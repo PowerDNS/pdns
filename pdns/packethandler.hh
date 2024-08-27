@@ -105,8 +105,6 @@ private:
   bool addDSforNS(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const DNSName& dsname);
   void completeANYRecords(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const DNSName &target);
 
-  void tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& r); //<! process TKEY record, and adds TKEY record to (r)eply, or error code.
-
   static AtomicCounter s_count;
   static std::mutex s_rfc2136lock;
   bool d_logDNSDetails;
@@ -120,4 +118,3 @@ private:
   UeberBackend B; // every thread an own instance
   DNSSECKeeper d_dk; // B is shared with DNSSECKeeper
 };
-

@@ -60,6 +60,8 @@ bool PacketHandler::s_SVCAutohints{false};
 
 extern string g_programname;
 
+[[nodiscard]] static std::unique_ptr<DNSPacket> tkeyHandler(const DNSPacket& p);
+
 // See https://www.rfc-editor.org/rfc/rfc8078.txt and https://www.rfc-editor.org/errata/eid5049 for details
 const std::shared_ptr<CDNSKEYRecordContent> PacketHandler::s_deleteCDNSKEYContent = std::make_shared<CDNSKEYRecordContent>("0 3 0 AA==");
 const std::shared_ptr<CDSRecordContent> PacketHandler::s_deleteCDSContent = std::make_shared<CDSRecordContent>("0 0 0 00");
@@ -1407,9 +1409,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
   }
 
   if (p.qtype == QType::TKEY) {
-    auto reply = p.replyPacket();
-    this->tkeyHandler(p, reply);
-    return reply;
+    return tkeyHandler(p);
   }
 
   try {
@@ -1424,29 +1424,29 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
       S.inc("servfail-packets");
       return p.replyPacket(RCode::ServFail);
     }
-    if(p.d.opcode) { // non-zero opcode (again thanks RA!)
-      if(p.d.opcode==Opcode::Update) {
-        S.inc("dnsupdate-queries");
-        int res = processUpdate(p);
-        if (res == RCode::Refused)
-          S.inc("dnsupdate-refused");
-        else if (res != RCode::ServFail)
-          S.inc("dnsupdate-answers");
-        return p.replyPacket(res);
-      }
-      else if(p.d.opcode==Opcode::Notify) {
-        S.inc("incoming-notifications");
-        return p.replyPacket(processNotify(p));
-      }
 
+    if (p.d.opcode == Opcode::Update) {
+      S.inc("dnsupdate-queries");
+      int res = processUpdate(p);
+      if (res == RCode::Refused)
+        S.inc("dnsupdate-refused");
+      else if (res != RCode::ServFail)
+        S.inc("dnsupdate-answers");
+      return p.replyPacket(res);
+    }
+    else if (p.d.opcode == Opcode::Notify) {
+      S.inc("incoming-notifications");
+      return p.replyPacket(processNotify(p));
+    }
+    else if (p.d.opcode != Opcode::Query) {
       g_log<<Logger::Error<<"Received an unknown opcode "<<p.d.opcode<<" from "<<p.getRemoteString()<<" for "<<p.qdomain<<endl;
-
       return p.replyPacket(RCode::NotImp);
     }
 
+    // From here on, we are handling a *Query* packet.
     // g_log<<Logger::Warning<<"Query for '"<<p.qdomain<<"' "<<p.qtype.toString()<<" from "<<p.getRemoteString()<< " (tcp="<<p.d_tcp<<")"<<endl;
 
-    if(p.qtype.getCode()==QType::IXFR) {
+    if (p.qtype == QType::IXFR) {
       return p.replyPacket(RCode::Refused);
     }
 
@@ -1812,7 +1812,9 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
   }
 }
 
-void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& r) {
+//<! process TKEY record, and adds TKEY record to (r)eply, or error code.
+[[nodiscard]]
+static std::unique_ptr<DNSPacket> tkeyHandler(const DNSPacket& p) {
 #ifdef ENABLE_GSS_TSIG
   if (g_doGssTSIG) {
     auto [i,a,s] = GssContext::getCounts();
@@ -1829,8 +1831,7 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
 
   if (!p.getTKEYRecord(&tkey_in, &name)) {
     g_log<<Logger::Error<<"TKEY request but no TKEY RR found"<<endl;
-    r->setRcode(RCode::FormErr);
-    return;
+    return p.replyPacket(RCode::FormErr);
   }
 
   auto inception = time(nullptr);
@@ -1883,11 +1884,7 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
     }
   } else if (tkey_in.d_mode == 5) { // destroy context
     if (p.d_havetsig == false) { // unauthenticated
-      if (p.d.opcode == Opcode::Update)
-        r->setRcode(RCode::Refused);
-      else
-        r->setRcode(RCode::NotAuth);
-      return;
+      return p.replyPacket(p.d.opcode == Opcode::Update ? RCode::Refused : RCode::NotAuth);
     }
     GssContext ctx(name);
     if (ctx.valid()) {
@@ -1898,11 +1895,7 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
     }
   } else {
     if (p.d_havetsig == false && tkey_in.d_mode != 2) { // unauthenticated
-      if (p.d.opcode == Opcode::Update)
-        r->setRcode(RCode::Refused);
-      else
-        r->setRcode(RCode::NotAuth);
-      return;
+      return p.replyPacket(p.d.opcode == Opcode::Update ? RCode::Refused : RCode::NotAuth);
     }
     tkey_out->d_error = 19; // BADMODE
   }
@@ -1918,7 +1911,9 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
   zrr.dr.d_class = QClass::ANY;
   zrr.dr.setContent(std::move(tkey_out));
   zrr.dr.d_place = DNSResourceRecord::ANSWER;
-  r->addRecord(std::move(zrr));
+
+  std::unique_ptr<DNSPacket> reply = p.replyPacket();
+  reply->addRecord(std::move(zrr));
 
 #ifdef ENABLE_GSS_TSIG
   if (sign)
@@ -1932,9 +1927,10 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
     trc.d_eRcode = 0;
     trc.d_otherData = "";
     // this should cause it to lookup name context
-    r->setTSIGDetails(trc, name, name.toStringNoDot(), "", false);
+    reply->setTSIGDetails(trc, name, name.toStringNoDot(), "", false);
   }
 #endif
 
-  r->commitD();
+  reply->commitD();
+  return reply;
 }
