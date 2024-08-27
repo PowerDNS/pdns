@@ -8,7 +8,7 @@ from authtests import AuthTest
 
 class GSSTSIGBase(AuthTest):
     _config_template_default = """
-module-dir=../regression-tests/modules
+module-dir={PDNS_MODULE_DIR}
 daemon=no
 socket-dir={confdir}
 cache-ttl=0

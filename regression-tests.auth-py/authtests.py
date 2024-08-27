@@ -27,7 +27,7 @@ class AuthTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     _config_params = []
 
     _config_template_default = """
-module-dir=../regression-tests/modules
+module-dir={PDNS_MODULE_DIR}
 daemon=no
 bind-config={confdir}/named.conf
 bind-dnssec-db={bind_dnssec_db}
@@ -75,6 +75,7 @@ PrivateKey: Lt0v0Gol3pRUFM7fDdcy0IWN0O/MnEmVPA+VylL8Y4U=
     _auths = {}
 
     _PREFIX = os.environ['PREFIX']
+    _PDNS_MODULE_DIR = os.environ['PDNS_MODULE_DIR']
 
 
     @classmethod
@@ -116,7 +117,9 @@ options {
         with open(os.path.join(confdir, 'pdns.conf'), 'w') as pdnsconf:
             pdnsconf.write(cls._config_template_default.format(
                 confdir=confdir, prefix=cls._PREFIX,
-                bind_dnssec_db=bind_dnssec_db))
+                bind_dnssec_db=bind_dnssec_db,
+                PDNS_MODULE_DIR=cls._PDNS_MODULE_DIR,
+            ))
             pdnsconf.write(cls._config_template % params)
 
         os.system("sqlite3 ./configs/auth/powerdns.sqlite < ../modules/gsqlite3backend/schema.sqlite3.sql")
