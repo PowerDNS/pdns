@@ -69,7 +69,7 @@ public:
 
 private:
   int tryAutoPrimary(const DNSPacket& p, const DNSName& tsigkeyname);
-  int processNotify(const DNSPacket& );
+  uint8_t processNotify(const DNSPacket& p);
   void addRootReferral(DNSPacket& r);
   bool addDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r);
   bool addCDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r);

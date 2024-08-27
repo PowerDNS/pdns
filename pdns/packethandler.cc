@@ -1077,7 +1077,7 @@ int PacketHandler::tryAutoPrimarySynchronous(const DNSPacket& p, const DNSName& 
   return RCode::NoError;
 }
 
-int PacketHandler::processNotify(const DNSPacket& p)
+uint8_t PacketHandler::processNotify(const DNSPacket& p)
 {
   /* now what?
      was this notification from an approved address?
@@ -1194,8 +1194,7 @@ std::unique_ptr<DNSPacket> PacketHandler::question(DNSPacket& p)
 
 void PacketHandler::makeNXDomain(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const DNSName& target, const DNSName& wildcard)
 {
-  DNSZoneRecord rr;
-  rr=makeEditedDNSZRFromSOAData(d_dk, d_sd, DNSResourceRecord::AUTHORITY);
+  DNSZoneRecord rr = makeEditedDNSZRFromSOAData(d_dk, d_sd, DNSResourceRecord::AUTHORITY);
   rr.dr.d_ttl=d_sd.getNegativeTTL();
   r->addRecord(std::move(rr));
 
@@ -1346,7 +1345,6 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
   DNSName haveAlias;
   uint8_t aliasScopeMask;
 
-  std::unique_ptr<DNSPacket> r{nullptr};
   bool noCache=false;
 
 #ifdef HAVE_LUA_RECORDS
@@ -1371,22 +1369,15 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
 
   if (p.hasEDNS()) {
     if(p.getEDNSVersion() > 0) {
-      r = p.replyPacket();
-
-      // PacketWriter::addOpt will take care of setting this correctly in the packet
-      r->setEDNSRcode(ERCode::BADVERS);
-      return r;
+      // PacketWriter::addOpt will take care of setting ERCode in the packet
+      return p.replyPacket(0, ERCode::BADVERS);
     }
     if (p.hasEDNSCookie()) {
       if (!p.hasWellFormedEDNSCookie()) {
-        r = p.replyPacket();
-        r->setRcode(RCode::FormErr);
-        return r;
+        return p.replyPacket(RCode::FormErr);
       }
       if (!p.hasValidEDNSCookie() && !p.d_tcp) {
-        r = p.replyPacket();
-        r->setEDNSRcode(ERCode::BADCOOKIE);
-        return r;
+        return p.replyPacket(0, ERCode::BADCOOKIE);
       }
     }
   }
@@ -1396,15 +1387,10 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
     string secret;
     TSIGRecordContent trc;
     if(!p.checkForCorrectTSIG(&B, &keyname, &secret, &trc)) {
-      r=p.replyPacket();  // generate an empty reply packet
       if(d_logDNSDetails)
         g_log<<Logger::Error<<"Received a TSIG signed message with a non-validating key"<<endl;
       // RFC3007 describes that a non-secure message should be sending Refused for DNS Updates
-      if (p.d.opcode == Opcode::Update)
-        r->setRcode(RCode::Refused);
-      else
-        r->setRcode(RCode::NotAuth);
-      return r;
+      return p.replyPacket(p.d.opcode == Opcode::Update ? RCode::Refused : RCode::NotAuth);  // generate an empty reply packet
     } else {
       getTSIGHashEnum(trc.d_algoName, p.d_tsig_algo);
 #ifdef ENABLE_GSS_TSIG
@@ -1420,11 +1406,10 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
     noCache=true;
   }
 
-  r=p.replyPacket();  // generate an empty reply packet, possibly with TSIG details inside
-
   if (p.qtype == QType::TKEY) {
-    this->tkeyHandler(p, r);
-    return r;
+    auto reply = p.replyPacket();
+    this->tkeyHandler(p, reply);
+    return reply;
   }
 
   try {
@@ -1437,43 +1422,32 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
       S.inc("corrupt-packets");
       S.ringAccount("remotes-corrupt", p.getInnerRemote());
       S.inc("servfail-packets");
-      r->setRcode(RCode::ServFail);
-      return r;
+      return p.replyPacket(RCode::ServFail);
     }
     if(p.d.opcode) { // non-zero opcode (again thanks RA!)
       if(p.d.opcode==Opcode::Update) {
         S.inc("dnsupdate-queries");
-        int res=processUpdate(p);
+        int res = processUpdate(p);
         if (res == RCode::Refused)
           S.inc("dnsupdate-refused");
         else if (res != RCode::ServFail)
           S.inc("dnsupdate-answers");
-        r->setRcode(res);
-        r->setOpcode(Opcode::Update);
-        return r;
+        return p.replyPacket(res);
       }
       else if(p.d.opcode==Opcode::Notify) {
         S.inc("incoming-notifications");
-        int res=processNotify(p);
-        if(res>=0) {
-          r->setRcode(res);
-          r->setOpcode(Opcode::Notify);
-          return r;
-        }
-        return nullptr;
+        return p.replyPacket(processNotify(p));
       }
 
       g_log<<Logger::Error<<"Received an unknown opcode "<<p.d.opcode<<" from "<<p.getRemoteString()<<" for "<<p.qdomain<<endl;
 
-      r->setRcode(RCode::NotImp);
-      return r;
+      return p.replyPacket(RCode::NotImp);
     }
 
     // g_log<<Logger::Warning<<"Query for '"<<p.qdomain<<"' "<<p.qtype.toString()<<" from "<<p.getRemoteString()<< " (tcp="<<p.d_tcp<<")"<<endl;
 
     if(p.qtype.getCode()==QType::IXFR) {
-      r->setRcode(RCode::Refused);
-      return r;
+      return p.replyPacket(RCode::Refused);
     }
 
     DNSName target=p.qdomain;
@@ -1485,16 +1459,20 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
 
     // we only know about qclass IN (and ANY), send Refused for everything else.
     if(p.qclass != QClass::IN && p.qclass!=QClass::ANY) {
-      r->setRcode(RCode::Refused);
-      return r;
+      return p.replyPacket(RCode::Refused);
     }
 
     // send TC for udp ANY query if any-to-tcp is enabled.
     if(p.qtype.getCode() == QType::ANY && !p.d_tcp && g_anyToTcp) {
-      r->d.tc = 1;
-      r->commitD();
-      return r;
+      auto reply = p.replyPacket();
+      reply->d.tc = 1;
+      reply->commitD();
+      return reply;
     }
+
+    // generate an empty reply packet, possibly with TSIG details inside.
+    // After this point, the reply packets contents will (almost always) be preserved.
+    auto r{p.replyPacket()};
 
     // for qclass ANY the response should never be authoritative unless the response covers all classes.
     if(p.qclass==QClass::ANY)
@@ -1504,9 +1482,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
   retargeted:;
     if(retargetcount > 10) {    // XXX FIXME, retargetcount++?
       g_log<<Logger::Warning<<"Abort CNAME chain resolution after "<<--retargetcount<<" redirects, sending out servfail. Initial query: '"<<p.qdomain<<"'"<<endl;
-      r=p.replyPacket();
-      r->setRcode(RCode::ServFail);
-      return r;
+      return p.replyPacket(RCode::ServFail);
     }
 
     if(!B.getAuth(target, p.qtype, &d_sd)) {
@@ -1620,10 +1596,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
           catch(std::exception &e) {
             while (B.get(rr)) ;              // don't leave DB handle in bad state
 
-            r=p.replyPacket();
-            r->setRcode(RCode::ServFail);
-
-            return r;
+            return p.replyPacket(RCode::ServFail);
           }
         }
       }
@@ -1818,13 +1791,14 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
 
     if(PC.enabled() && !noCache && p.couldBeCached())
       PC.insert(p, *r, r->getMinTTL()); // in the packet cache
+
+    return r;
   }
   catch(const DBException &e) {
     g_log<<Logger::Error<<"Backend reported condition which prevented lookup ("+e.reason+") sending out servfail"<<endl;
-    r=p.replyPacket(); // generate an empty reply packet
-    r->setRcode(RCode::ServFail);
     S.inc("servfail-packets");
     S.ringAccount("servfail-queries", p.qdomain, p.qtype);
+    return p.replyPacket(RCode::ServFail);
   }
   catch(const PDNSException &e) {
     g_log<<Logger::Error<<"Backend reported permanent error which prevented lookup ("+e.reason+"), aborting"<<endl;
@@ -1832,11 +1806,8 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
   }
   catch(const std::exception &e) {
     g_log<<Logger::Error<<"Exception building answer packet for "<<p.qdomain<<"/"<<p.qtype.toString()<<" ("<<e.what()<<") sending out servfail"<<endl;
-    r=p.replyPacket(); // generate an empty reply packet
-    r->setRcode(RCode::ServFail);
     S.inc("servfail-packets");
     S.ringAccount("servfail-queries", p.qdomain, p.qtype);
+    return p.replyPacket(RCode::ServFail);
   }
-  return r;
-
 }
