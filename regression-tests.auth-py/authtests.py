@@ -69,8 +69,10 @@ PrivateKey: Lt0v0Gol3pRUFM7fDdcy0IWN0O/MnEmVPA+VylL8Y4U=
         """,
     }
 
-    _auth_cmd = ['authbind',
-                 os.environ['PDNS']]
+    _auth_cmd = [os.environ['PDNS']]
+    if sys.platform != 'darwin':
+        _auth_cmd = ['authbind'] + _auth_cmd
+
     _auth_env = {}
     _auths = {}
 
