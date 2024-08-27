@@ -2114,7 +2114,7 @@ Workaround for `issue #11804 (outgoing AXFR may try to overfill a chunk and fail
 
 Default of no implies the pre-4.8 behaviour of up to 100 RRs per AXFR chunk.
 
-If enabled, only a single RR will be put into each AXFR chunk, making some zones transferable when they were not.
+If enabled, only a single RR will be put into each AXFR chunk, making some zones transferable when they were not otherwise.
 
 .. _setting-xfr-cycle-interval:
 
