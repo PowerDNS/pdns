@@ -40,9 +40,11 @@
 #include "ednsoptions.hh"
 #include "ednssubnet.hh"
 
+#include <boost/uuid/uuid_io.hpp>
+
 extern StatBag S;
 
-DNSProxy::DNSProxy(const string& remote) :
+DNSProxy::DNSProxy(const string& remote, const string& udpPortRange) :
   d_xor(dns_random_uint16())
 {
   d_resanswers = S.getPointer("recursing-answers");
@@ -52,6 +54,20 @@ DNSProxy::DNSProxy(const string& remote) :
   vector<string> addresses;
   stringtok(addresses, remote, " ,\t");
   d_remote = ComboAddress(addresses[0], 53);
+
+  vector<string> parts;
+  stringtok(parts, udpPortRange, " ");
+  if (parts.size() != 2) {
+    throw PDNSException("DNS Proxy UDP port range must contain exactly one lower and one upper bound");
+  }
+  unsigned long portRangeLow = std::stoul(parts.at(0));
+  unsigned long portRangeHigh = std::stoul(parts.at(1));
+  if (portRangeLow < 1 || portRangeHigh > 65535) {
+    throw PDNSException("DNS Proxy UDP port range values out of valid port bounds (1 to 65535)");
+  }
+  if (portRangeLow >= portRangeHigh) {
+    throw PDNSException("DNS Proxy UDP port range upper bound " + std::to_string(portRangeHigh) + " must be higher than lower bound (" + std::to_string(portRangeLow) + ")");
+  }
 
   if ((d_sock = socket(d_remote.sin4.sin_family, SOCK_DGRAM, 0)) < 0) {
     throw PDNSException(string("socket: ") + stringerror());
@@ -67,7 +83,7 @@ DNSProxy::DNSProxy(const string& remote) :
 
   unsigned int attempts = 0;
   for (; attempts < 10; attempts++) {
-    local.sin4.sin_port = htons(10000 + dns_random(50000));
+    local.sin4.sin_port = htons(portRangeLow + dns_random(portRangeHigh - portRangeLow));
 
     if (::bind(d_sock, (struct sockaddr*)&local, local.getSocklen()) >= 0) { // NOLINT(cppcoreguidelines-pro-type-cstyle-cast)
       break;
@@ -92,7 +108,7 @@ void DNSProxy::go()
   proxythread.detach();
 }
 
-//! look up qname target with r->qtype, plonk it in the answer section of 'r' with name aname
+//! look up qname 'target' with reply->qtype, plonk it in the answer section of 'reply' with name 'aname'
 bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& reply, const DNSName& target, const DNSName& aname, const uint8_t scopeMask)
 {
   string ECSOptionStr;

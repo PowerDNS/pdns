@@ -205,6 +205,7 @@ static void declareArguments()
   ::arg().set("receiver-threads", "Default number of receiver threads to start") = "1";
   ::arg().set("queue-limit", "Maximum number of milliseconds to queue a query") = "1500";
   ::arg().set("resolver", "Use this resolver for ALIAS and the internal stub resolver") = "no";
+  ::arg().set("dnsproxy-udp-port-range", "Select DNS Proxy outgoing UDP port from given range (lower upper)") = "10000 60000";
   ::arg().set("udp-truncation-threshold", "Maximum UDP response size before we truncate") = "1232";
 
   ::arg().set("config-name", "Name of this virtual configuration - will rename the binary image") = "";
@@ -786,7 +787,7 @@ static void mainthread()
   Utility::dropUserPrivs(newuid);
 
   if (::arg().mustDo("resolver")) {
-    DP = std::make_unique<DNSProxy>(::arg()["resolver"]);
+    DP = std::make_unique<DNSProxy>(::arg()["resolver"], ::arg()["dnsproxy-udp-port-range"]);
     DP->go();
   }
 
