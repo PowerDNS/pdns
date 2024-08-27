@@ -633,6 +633,20 @@ approximately doubles query load.
 If this is turned off, DNAME records are treated as any other and served
 only when queried explicitly.
 
+.. _setting-dnsproxy-udp-port-range:
+
+``dnsproxy-udp-port-range``
+---------------------------
+
+-  String
+-  Default: `10000 60000`
+
+If :ref:`setting-resolver` enables the DNS Proxy, this setting limits the
+port range the DNS Proxy's UDP port is chosen from.
+
+Default should be fine on most installs, but if you have conflicting local
+services, you may choose to limit the range.
+
 .. _setting-dnssec-key-cache-ttl:
 
 ``dnssec-key-cache-ttl``
