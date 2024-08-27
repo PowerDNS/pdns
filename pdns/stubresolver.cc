@@ -17,6 +17,7 @@
 #include "stubresolver.hh"
 #include "ednsoptions.hh"
 #include "ednssubnet.hh"
+#include "dnspacket.hh"
 
 #define LOCAL_RESOLV_CONF_PATH "/etc/resolv.conf"
 // don't stat() for local resolv.conf more than once every INTERVAL secs.
@@ -108,7 +109,7 @@ void stubParseResolveConf()
 }
 
 // s_resolversForStub contains the ComboAddresses that are used to resolve the
-int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& ret, const EDNSSubnetOpts* d_eso)
+int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& ret, EDNSSubnetOpts* d_eso)
 {
   // ensure resolver gets always configured
   if (!s_stubResolvConfigured) {
@@ -176,6 +177,12 @@ int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& r
       continue;
     }
 
+    if (d_eso != nullptr) {
+      DNSPacket replyPacket(false);
+      replyPacket.parse(reply.c_str(), reply.size());
+      d_eso->scope = replyPacket.d_eso.scope;
+    }
+
     for (const auto& answer : mdp.d_answers) {
       if (answer.d_place == 1 && answer.d_type == qtype) {
         DNSZoneRecord zrr;
@@ -190,7 +197,7 @@ int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& r
   return RCode::ServFail;
 }
 
-int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSRecord>& ret, const EDNSSubnetOpts* d_eso)
+int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSRecord>& ret, EDNSSubnetOpts* d_eso)
 {
   vector<DNSZoneRecord> ret2;
   int res = stubDoResolve(qname, qtype, ret2, d_eso);

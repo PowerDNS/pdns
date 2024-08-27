@@ -28,7 +28,6 @@
 #include "communicator.hh"
 #include "distributor.hh"
 #include "dnspacket.hh"
-#include "dnsproxy.hh"
 #include "dynlistener.hh"
 #include "nameserver.hh"
 #include "statbag.hh"
@@ -40,7 +39,6 @@ extern ArgvMap theArg;
 extern StatBag S; //!< Statistics are gathered across PDNS via the StatBag class S
 extern AuthPacketCache PC; //!< This is the main PacketCache, shared across all threads
 extern AuthQueryCache QC;
-extern std::unique_ptr<DNSProxy> DP;
 extern CommunicatorClass Communicator;
 void carbonDumpThread(); // Implemented in auth-carbon.cc. Avoids having an auth-carbon.hh declaring exactly one function.
 extern bool g_anyToTcp;

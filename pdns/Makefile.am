@@ -223,7 +223,6 @@ pdns_server_SOURCES = \
 	dnsname.cc dnsname.hh \
 	dnspacket.cc dnspacket.hh \
 	dnsparser.cc \
-	dnsproxy.cc dnsproxy.hh \
 	dnsrecords.cc dnsrecords.hh \
 	dnssecinfra.cc dnssecinfra.hh \
 	dnsseckeeper.hh \
@@ -593,7 +592,7 @@ sdig_LDADD += $(LIBSSL_LIBS)
 endif
 
 if LIBSODIUM
-sdig_CPPFLAGS +=$(LIBSODIUM_CFLAGS)
+sdig_CPPFLAGS += $(LIBSODIUM_CFLAGS)
 sdig_LDADD += $(LIBSODIUM_LIBS)
 endif
 
@@ -654,28 +653,49 @@ stubquery_SOURCES = \
 	arguments.cc arguments.hh \
 	base32.cc \
 	base64.cc \
+	dns.cc dns.hh \
 	dnslabeltext.cc \
 	dnsname.cc \
+	dnspacket.cc \
 	dnsparser.cc \
 	dnsrecords.cc \
+	dnssecinfra.cc dnssecinfra.hh \
 	dnswriter.cc \
+	ednscookies.cc ednscookies.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
+	gss_context.cc gss_context.hh \
 	iputils.cc \
 	logger.cc \
 	misc.cc \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc \
+	shuffle.cc shuffle.hh \
 	sillyrecords.cc \
 	statbag.cc \
 	stubquery.cc \
 	stubresolver.cc stubresolver.hh \
 	svc-records.cc svc-records.hh \
+	tsigverifier.cc tsigverifier.hh \
 	unix_utility.cc
 
+stubquery_CPPFLAGS = $(AM_CPPFLAGS)
 stubquery_LDADD = $(LIBCRYPTO_LIBS)
 stubquery_LDFLAGS = $(AM_LDFLAGS) $(LIBCRYPTO_LDFLAGS)
+if GSS_TSIG
+stubquery_LDADD += $(GSS_LIBS)
+endif
+
+if PKCS11
+stubquery_SOURCES += pkcs11signers.cc pkcs11signers.hh
+stubquery_LDADD += $(P11KIT1_LIBS)
+endif
+
+if LIBSODIUM
+stubquery_CPPFLAGS += $(LIBSODIUM_CFLAGS)
+stubquery_LDADD += $(LIBSODIUM_LIBS)
+endif
 
 saxfr_SOURCES = \
 	base32.cc \
@@ -798,14 +818,16 @@ ixplore_SOURCES = \
 	axfr-retriever.cc \
 	base32.cc \
 	base64.cc base64.hh \
-	dns.cc \
+	dns.cc dns.hh \
 	dns_random.hh \
 	dnslabeltext.cc \
 	dnsname.cc dnsname.hh \
+	dnspacket.cc dnspacket.hh \
 	dnsparser.cc dnsparser.hh \
 	dnsrecords.cc \
-	dnssecinfra.cc \
+	dnssecinfra.cc dnssecinfra.hh \
 	dnswriter.cc dnswriter.hh \
+	ednscookies.cc ednscookies.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
 	gss_context.cc gss_context.hh  \
@@ -820,6 +842,7 @@ ixplore_SOURCES = \
 	query-local-address.hh query-local-address.cc \
 	rcpgenerator.cc rcpgenerator.hh \
 	resolver.cc \
+	shuffle.cc shuffle.hh \
 	sillyrecords.cc \
 	sstuff.hh \
 	statbag.cc \
@@ -827,6 +850,7 @@ ixplore_SOURCES = \
 	tsigverifier.cc tsigverifier.hh \
 	unix_utility.cc zoneparser-tng.cc
 
+ixplore_CPPFLAGS = $(AM_CPPFLAGS)
 ixplore_LDADD = $(LIBCRYPTO_LIBS)
 ixplore_LDFLAGS = $(AM_LDFLAGS) $(LIBCRYPTO_LDFLAGS)
 if GSS_TSIG
@@ -836,6 +860,11 @@ endif
 if PKCS11
 ixplore_SOURCES += pkcs11signers.cc pkcs11signers.hh
 ixplore_LDADD += $(P11KIT1_LIBS)
+endif
+
+if LIBSODIUM
+ixplore_CPPFLAGS += $(LIBSODIUM_CFLAGS)
+ixplore_LDADD += $(LIBSODIUM_LIBS)
 endif
 
 dnstcpbench_SOURCES = \

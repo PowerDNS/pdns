@@ -79,7 +79,6 @@
 #include "dynlistener.hh"
 #include "dynhandler.hh"
 #include "communicator.hh"
-#include "dnsproxy.hh"
 #include "utility.hh"
 #include "dnsrecords.hh"
 #include "version.hh"
@@ -123,7 +122,6 @@ StatBag S; //!< Statistics are gathered across PDNS via the StatBag class S
 AuthPacketCache PC; //!< This is the main PacketCache, shared across all threads
 AuthQueryCache QC;
 AuthZoneCache g_zoneCache;
-std::unique_ptr<DNSProxy> DP{nullptr};
 static std::unique_ptr<DynListener> s_dynListener{nullptr};
 CommunicatorClass Communicator;
 static double avg_latency{0.0}, receive_latency{0.0}, cache_latency{0.0}, backend_latency{0.0}, send_latency{0.0};
@@ -785,11 +783,6 @@ static void mainthread()
 
   AuthWebServer webserver;
   Utility::dropUserPrivs(newuid);
-
-  if (::arg().mustDo("resolver")) {
-    DP = std::make_unique<DNSProxy>(::arg()["resolver"], ::arg()["dnsproxy-udp-port-range"]);
-    DP->go();
-  }
 
   try {
     doSecPoll(true);
