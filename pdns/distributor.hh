@@ -199,7 +199,7 @@ template<class Answer, class Question, class Backend>void MultiThreadDistributor
       }
       --d_queued;
       auto questionData = std::move(*tempQD);
-      std::unique_ptr<Answer> a = nullptr;
+      std::unique_ptr<Answer> answer = nullptr;
       if (queuetimeout && questionData->Q.d_dt.udiff() > queuetimeout * 1000) {
         S.inc("timedout-packets");
         continue;
@@ -213,15 +213,13 @@ retry:
           allowRetry = false;
           b = make_unique<Backend>();
         }
-        a = b->question(questionData->Q);
+        answer = b->question(questionData->Q);
       }
       catch (const PDNSException &e) {
         b.reset();
         if (!allowRetry) {
           g_log<<Logger::Error<<"Backend error: "<<e.reason<<endl;
-          a = questionData->Q.replyPacket();
-
-          a->setRcode(RCode::ServFail);
+          answer = questionData->Q.replyPacket(RCode::ServFail);
           S.inc("servfail-packets");
           S.ringAccount("servfail-queries", questionData->Q.qdomain, questionData->Q.qtype);
         } else {
@@ -233,9 +231,7 @@ retry:
         b.reset();
         if (!allowRetry) {
           g_log<<Logger::Error<<"Caught unknown exception in Distributor thread "<<std::this_thread::get_id()<<endl;
-          a = questionData->Q.replyPacket();
-
-          a->setRcode(RCode::ServFail);
+          answer = questionData->Q.replyPacket(RCode::ServFail);
           S.inc("servfail-packets");
           S.ringAccount("servfail-queries", questionData->Q.qdomain, questionData->Q.qtype);
         } else {
@@ -244,10 +240,10 @@ retry:
         }
       }
 
-      questionData->callback(a, questionData->start);
+      questionData->callback(answer, questionData->start);
 #ifdef ENABLE_GSS_TSIG
-      if (g_doGssTSIG && a != nullptr) {
-        questionData->Q.cleanupGSS(a->d.rcode);
+      if (g_doGssTSIG && answer != nullptr) {
+        questionData->Q.cleanupGSS(answer->d.rcode);
       }
 #endif
       questionData.reset();
@@ -272,7 +268,7 @@ retry:
 template<class Answer, class Question, class Backend>int SingleThreadDistributor<Answer,Question,Backend>::question(Question& q, callback_t callback)
 {
   int start = q.d_dt.udiff();
-  std::unique_ptr<Answer> a = nullptr;
+  std::unique_ptr<Answer> answer = nullptr;
   bool allowRetry=true;
 retry:
   try {
@@ -280,15 +276,13 @@ retry:
       allowRetry=false;
       b=make_unique<Backend>();
     }
-    a=b->question(q); // a can be NULL!
+    answer = b->question(q); // answer can be NULL!
   }
   catch(const PDNSException &e) {
     b.reset();
     if (!allowRetry) {
       g_log<<Logger::Error<<"Backend error: "<<e.reason<<endl;
-      a=q.replyPacket();
-
-      a->setRcode(RCode::ServFail);
+      answer = q.replyPacket(RCode::ServFail);
       S.inc("servfail-packets");
       S.ringAccount("servfail-queries", q.qdomain, q.qtype);
     } else {
@@ -300,9 +294,7 @@ retry:
     b.reset();
     if (!allowRetry) {
       g_log<<Logger::Error<<"Caught unknown exception in Distributor thread "<<std::this_thread::get_id()<<endl;
-      a=q.replyPacket();
-
-      a->setRcode(RCode::ServFail);
+      answer = q.replyPacket(RCode::ServFail);
       S.inc("servfail-packets");
       S.ringAccount("servfail-queries", q.qdomain, q.qtype);
     } else {
@@ -310,10 +302,10 @@ retry:
       goto retry;
     }
   }
-  callback(a, start);
+  callback(answer, start);
 #ifdef ENABLE_GSS_TSIG
-  if (g_doGssTSIG && a != nullptr) {
-    q.cleanupGSS(a->d.rcode);
+  if (g_doGssTSIG && answer != nullptr) {
+    q.cleanupGSS(answer->d.rcode);
   }
 #endif
   return 0;
