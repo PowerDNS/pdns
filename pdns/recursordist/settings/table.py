@@ -1364,7 +1364,7 @@ See :doc:`lua-config/index` for the options that can be set in this file.
         'default' : '',
         'help' : 'More powerful configuration options',
         'doc' : '''
- When creating a Lua context, all *.lua files in the directory are loaded to the Lua context.
+ When creating a Lua context, all ``*.lua`` files in the directory are loaded into the Lua context.
  ''',
     },
     {
