@@ -177,9 +177,10 @@ outside of Europe will hit 198.51.100.1 as long as it is available, and the
 
 Advanced topics
 ---------------
-By default, LUA records are executed with ``return `` prefixed to them. This saves
-a lot of typing for common cases. To run actual Lua scripts, start a record with a ``;``
-which indicates no ``return `` should be prepended.
+
+By default, LUA records are executed as if they were the argument to Lua's ``return`` statement.
+This saves a lot of typing for common cases.
+To run actual Lua scripts, start a record with a semicolon (``;``). You need to add your own ``return`` statement.
 
 To keep records more concise and readable, configuration can be stored in
 separate records. The full example from above can also be written as::
