@@ -49,7 +49,7 @@ Copy the existing instructions for Debian Buster:
 cp builder-support/dockerfiles/Dockerfile.target.debian-buster builder-support/dockerfiles/Dockerfile.target.debian-bookworm
 ```
 
-In the new `builder-support/dockerfiles/Dockerfile.target.debian-bookworm` file, replace every occurence of `debian-buster` by `debian-bookworm`, and of `debian:buster` by `debian:bookworm`
+In the new `builder-support/dockerfiles/Dockerfile.target.debian-bookworm` file, replace every occurrence of `debian-buster` by `debian-bookworm`, and of `debian:buster` by `debian:bookworm`
 
 Then add the new target to the list of OSes in the `.github/workflows/builder-dispatch.yml` workflow file:
 ```
