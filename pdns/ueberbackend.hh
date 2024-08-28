@@ -94,12 +94,15 @@ public:
   };
 
   void lookup(const QType& qtype, const DNSName& qname, int zoneId, DNSPacket* pkt_p = nullptr);
+  /** Read a single record from a lookup(...) result. */
+  bool get(DNSZoneRecord& resourceRecord);
+  /** Close state created by lookup(...). */
+  void lookupEnd();
 
   /** Determines if we are authoritative for a zone, and at what level */
   bool getAuth(const DNSName& target, const QType& qtype, SOAData* soaData, bool cachedOk = true);
   /** Load SOA info from backends, ignoring the cache.*/
   bool getSOAUncached(const DNSName& domain, SOAData& soaData);
-  bool get(DNSZoneRecord& resourceRecord);
   void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled);
 
   void getUnfreshSecondaryInfos(vector<DomainInfo>* domains);

@@ -801,6 +801,20 @@ bool UeberBackend::get(DNSZoneRecord& resourceRecord)
   return false;
 }
 
+void UeberBackend::lookupEnd()
+{
+  if (!d_negcached && !d_cached) {
+    DNSZoneRecord zoneRecord;
+    while (d_handle.get(zoneRecord)) {
+      // Read all answers so the backends will close any database handles they might have allocated.
+      // One day this could be optimized.
+    }
+  }
+
+  d_answers.clear();
+  d_cached = d_negcached = false;
+}
+
 // TSIG
 //
 bool UeberBackend::setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content)

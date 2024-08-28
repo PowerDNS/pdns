@@ -439,7 +439,7 @@ bool PacketHandler::getBestWildcard(DNSPacket& p, const DNSName &target, DNSName
             }
           }
           catch (std::exception &e) {
-            while (B.get(rr)) ;                 // don't leave DB handle in bad state
+            B.lookupEnd();                 // don't leave DB handle in bad state
 
             throw;
           }
@@ -465,7 +465,7 @@ bool PacketHandler::getBestWildcard(DNSPacket& p, const DNSName &target, DNSName
     B.lookup(QType(QType::ANY), subdomain, d_sd.domain_id, &p);
     if (B.get(rr)) {
       DLOG(g_log<<"No wildcard match, ancestor exists"<<endl);
-      while (B.get(rr)) ;
+      B.lookupEnd();
       break;
     }
     wildcard=subdomain;
@@ -501,7 +501,7 @@ DNSName PacketHandler::doAdditionalServiceProcessing(const DNSName &firstTarget,
           break;
         }
         default:
-          while (B.get(rr)) ;              // don't leave DB handle in bad state
+          B.lookupEnd();              // don't leave DB handle in bad state
 
           throw PDNSException("Unknown type (" + QType(qtype).toString() + ") for additional service processing");
       }
@@ -1623,7 +1623,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
             }
           }
           catch(std::exception &e) {
-            while (B.get(rr)) ;              // don't leave DB handle in bad state
+            B.lookupEnd();              // don't leave DB handle in bad state
 
             r=p.replyPacket();
             r->setRcode(RCode::ServFail);
