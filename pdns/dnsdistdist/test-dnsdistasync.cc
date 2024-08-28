@@ -135,7 +135,10 @@ BOOST_AUTO_TEST_CASE(test_TimeoutFailClose)
   // the event should be triggered after 10 ms, but we have seen
   // many spurious failures on our CI, likely because the box is
   // overloaded, so sleep for up to 100 ms to be sure
-  for (size_t counter = 0; !holder->empty() && counter < 10; counter++) {
+  for (size_t counter = 0; counter < 10; counter++) {
+    if (holder->empty() && sender->errorRaised.load()) {
+      break;
+    }
     usleep(10000);
   }
 
@@ -168,7 +171,10 @@ BOOST_AUTO_TEST_CASE(test_AddingExpiredEvent)
   // but we have seen many spurious failures on our CI,
   // likely because the box is overloaded, so sleep for up to
   // 100 ms to be sure
-  for (size_t counter = 0; !holder->empty() && counter < 10; counter++) {
+  for (size_t counter = 0; counter < 10; counter++) {
+    if (holder->empty() && sender->errorRaised.load()) {
+      break;
+    }
     usleep(10000);
   }
 
