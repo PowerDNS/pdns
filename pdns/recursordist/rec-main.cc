@@ -2342,6 +2342,7 @@ static int serviceMain(Logr::log_t log)
   RecThreadInfo::makeThreadPipes(log);
 
   g_tcpTimeout = ::arg().asNum("client-tcp-timeout");
+  g_maxTCPClients = ::arg().asNum("max-tcp-clients");
   g_maxTCPPerClient = ::arg().asNum("max-tcp-per-client");
   g_tcpMaxQueriesPerConn = ::arg().asNum("max-tcp-queries-per-connection");
   g_maxUDPQueriesPerRound = ::arg().asNum("max-udp-queries-per-round");
@@ -2719,32 +2720,8 @@ static void runLuaMaintenance(RecThreadInfo& threadInfo, time_t& last_lua_mainte
   }
 }
 
-static void runTCPMaintenance(RecThreadInfo& threadInfo, bool& listenOnTCP, unsigned int maxTcpClients)
-{
-  if (threadInfo.isTCPListener()) {
-    if (listenOnTCP) {
-      if (TCPConnection::getCurrentConnections() > maxTcpClients) { // shutdown, too many connections
-        for (const auto fileDesc : threadInfo.getTCPSockets()) {
-          t_fdm->removeReadFD(fileDesc);
-        }
-        listenOnTCP = false;
-      }
-    }
-    else {
-      if (TCPConnection::getCurrentConnections() <= maxTcpClients) { // reenable
-        for (const auto fileDesc : threadInfo.getTCPSockets()) {
-          t_fdm->addReadFD(fileDesc, handleNewTCPQuestion);
-        }
-        listenOnTCP = true;
-      }
-    }
-  }
-}
-
 static void recLoop()
 {
-  unsigned int maxTcpClients = ::arg().asNum("max-tcp-clients");
-  bool listenOnTCP{true};
   time_t last_stat = 0;
   time_t last_carbon = 0;
   time_t last_lua_maintenance = 0;
@@ -2806,8 +2783,6 @@ static void recLoop()
       auto timeoutUsec = g_multiTasker->nextWaiterDelayUsec(500000);
       t_fdm->run(&g_now, static_cast<int>(timeoutUsec / 1000));
       // 'run' updates g_now for us
-
-      runTCPMaintenance(threadInfo, listenOnTCP, maxTcpClients);
     }
     catch (const PDNSException& pdnsException) {
       s_rateLimitedLogger.log(g_slog->withName("runtime"), "recLoop", pdnsException);

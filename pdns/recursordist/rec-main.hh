@@ -206,6 +206,7 @@ extern unsigned int g_maxMThreads;
 extern bool g_reusePort;
 extern bool g_anyToTcp;
 extern size_t g_tcpMaxQueriesPerConn;
+extern unsigned int g_maxTCPClients;
 extern unsigned int g_maxTCPPerClient;
 extern int g_tcpTimeout;
 extern uint16_t g_udpTruncationThreshold;

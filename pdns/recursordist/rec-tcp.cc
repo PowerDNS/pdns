@@ -61,6 +61,7 @@
 // worker thread(s) now no longer process TCP queries.
 
 size_t g_tcpMaxQueriesPerConn;
+unsigned int g_maxTCPClients;
 unsigned int g_maxTCPPerClient;
 int g_tcpTimeout;
 bool g_anyToTcp;
@@ -690,85 +691,80 @@ void handleNewTCPQuestion(int fileDesc, [[maybe_unused]] FDMultiplexer::funcpara
   ComboAddress addr;
   socklen_t addrlen = sizeof(addr);
   int newsock = accept(fileDesc, reinterpret_cast<struct sockaddr*>(&addr), &addrlen); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-  if (newsock >= 0) {
-    if (g_multiTasker->numProcesses() >= g_maxMThreads) {
-      t_Counters.at(rec::Counter::overCapacityDrops)++;
-      try {
-        closesocket(newsock);
-      }
-      catch (const PDNSException& e) {
-        SLOG(g_log << Logger::Error << "Error closing TCP socket after an over capacity drop: " << e.reason << endl,
-             g_slogtcpin->error(Logr::Error, e.reason, "Error closing TCP socket after an over capacity drop", "exception", Logging::Loggable("PDNSException")));
-      }
-      return;
-    }
-
-    ComboAddress destaddr;
-    socklen_t len = sizeof(destaddr);
-    getsockname(newsock, reinterpret_cast<sockaddr*>(&destaddr), &len); // if this fails, we're ok with it NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-    bool fromProxyProtocolSource = expectProxyProtocol(addr, destaddr);
-    if (!fromProxyProtocolSource && t_remotes) {
-      t_remotes->push_back(addr);
-    }
-    ComboAddress mappedSource = addr;
-    if (!fromProxyProtocolSource && t_proxyMapping) {
-      if (const auto* iter = t_proxyMapping->lookup(addr)) {
-        mappedSource = iter->second.address;
-        ++iter->second.stats.netmaskMatches;
-      }
-    }
-    if (!fromProxyProtocolSource && t_allowFrom && !t_allowFrom->match(&mappedSource)) {
-      if (!g_quiet) {
-        SLOG(g_log << Logger::Error << "[" << g_multiTasker->getTid() << "] dropping TCP query from " << mappedSource.toString() << ", address neither matched by allow-from nor proxy-protocol-from" << endl,
-             g_slogtcpin->info(Logr::Error, "dropping TCP query address neither matched by allow-from nor proxy-protocol-from", "source", Logging::Loggable(mappedSource)));
-      }
-      t_Counters.at(rec::Counter::unauthorizedTCP)++;
-      try {
-        closesocket(newsock);
-      }
-      catch (const PDNSException& e) {
-        SLOG(g_log << Logger::Error << "Error closing TCP socket after an ACL drop: " << e.reason << endl,
-             g_slogtcpin->error(Logr::Error, e.reason, "Error closing TCP socket after an ACL drop", "exception", Logging::Loggable("PDNSException")));
-      }
-      return;
-    }
-
-    if (g_maxTCPPerClient > 0 && t_tcpClientCounts->count(addr) > 0 && (*t_tcpClientCounts)[addr] >= g_maxTCPPerClient) {
-      t_Counters.at(rec::Counter::tcpClientOverflow)++;
-      try {
-        closesocket(newsock); // don't call TCPConnection::closeAndCleanup here - did not enter it in the counts yet!
-      }
-      catch (const PDNSException& e) {
-        SLOG(g_log << Logger::Error << "Error closing TCP socket after an overflow drop: " << e.reason << endl,
-             g_slogtcpin->error(Logr::Error, e.reason, "Error closing TCP socket after an overflow drop", "exception", Logging::Loggable("PDNSException")));
-      }
-      return;
-    }
-
-    setNonBlocking(newsock);
-    setTCPNoDelay(newsock);
-    std::shared_ptr<TCPConnection> tcpConn = std::make_shared<TCPConnection>(newsock, addr);
-    tcpConn->d_source = addr;
-    tcpConn->d_destination = destaddr;
-    tcpConn->d_mappedSource = mappedSource;
-
-    if (fromProxyProtocolSource) {
-      tcpConn->proxyProtocolNeed = s_proxyProtocolMinimumHeaderSize;
-      tcpConn->data.resize(tcpConn->proxyProtocolNeed);
-      tcpConn->state = TCPConnection::PROXYPROTOCOLHEADER;
-    }
-    else {
-      tcpConn->state = TCPConnection::BYTE0;
-    }
-
-    struct timeval ttd
-    {
-    };
-    Utility::gettimeofday(&ttd, nullptr);
-    ttd.tv_sec += g_tcpTimeout;
-
-    t_fdm->addReadFD(tcpConn->getFD(), handleRunningTCPQuestion, tcpConn, &ttd);
+  if (newsock < 0) {
+    return;
   }
+  auto closeSock = [newsock](const string& msg) {
+    try {
+      closesocket(newsock);
+    }
+    catch (const PDNSException& e) {
+      g_slogtcpin->error(Logr::Error, e.reason, msg, "exception", Logging::Loggable("PDNSException"));
+    }
+  };
+
+  if (TCPConnection::getCurrentConnections() >= g_maxTCPClients) {
+    t_Counters.at(rec::Counter::tcpClientOverflow)++;
+    closeSock("Error closing TCP socket after an overflow drop");
+    return;
+  }
+  if (g_multiTasker->numProcesses() >= g_maxMThreads) {
+    t_Counters.at(rec::Counter::overCapacityDrops)++;
+    closeSock("Error closing TCP socket after an over capacity drop");
+    return;
+  }
+
+  ComboAddress destaddr;
+  socklen_t len = sizeof(destaddr);
+  getsockname(newsock, reinterpret_cast<sockaddr*>(&destaddr), &len); // if this fails, we're ok with it NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+  bool fromProxyProtocolSource = expectProxyProtocol(addr, destaddr);
+  if (!fromProxyProtocolSource && t_remotes) {
+    t_remotes->push_back(addr);
+  }
+  ComboAddress mappedSource = addr;
+  if (!fromProxyProtocolSource && t_proxyMapping) {
+    if (const auto* iter = t_proxyMapping->lookup(addr)) {
+      mappedSource = iter->second.address;
+      ++iter->second.stats.netmaskMatches;
+    }
+  }
+  if (!fromProxyProtocolSource && t_allowFrom && !t_allowFrom->match(&mappedSource)) {
+    if (!g_quiet) {
+      SLOG(g_log << Logger::Error << "[" << g_multiTasker->getTid() << "] dropping TCP query from " << mappedSource.toString() << ", address neither matched by allow-from nor proxy-protocol-from" << endl,
+           g_slogtcpin->info(Logr::Error, "dropping TCP query address neither matched by allow-from nor proxy-protocol-from", "source", Logging::Loggable(mappedSource)));
+    }
+    t_Counters.at(rec::Counter::unauthorizedTCP)++;
+    closeSock("Error closing TCP socket after an ACL drop");
+    return;
+  }
+
+  if (g_maxTCPPerClient > 0 && t_tcpClientCounts->count(addr) > 0 && (*t_tcpClientCounts)[addr] >= g_maxTCPPerClient) {
+    t_Counters.at(rec::Counter::tcpClientOverflow)++;
+    closeSock("Error closing TCP socket after a client overflow drop");
+    return;
+  }
+
+  setNonBlocking(newsock);
+  setTCPNoDelay(newsock);
+  std::shared_ptr<TCPConnection> tcpConn = std::make_shared<TCPConnection>(newsock, addr);
+  tcpConn->d_source = addr;
+  tcpConn->d_destination = destaddr;
+  tcpConn->d_mappedSource = mappedSource;
+
+  if (fromProxyProtocolSource) {
+    tcpConn->proxyProtocolNeed = s_proxyProtocolMinimumHeaderSize;
+    tcpConn->data.resize(tcpConn->proxyProtocolNeed);
+    tcpConn->state = TCPConnection::PROXYPROTOCOLHEADER;
+  }
+  else {
+    tcpConn->state = TCPConnection::BYTE0;
+  }
+
+  timeval ttd{};
+  Utility::gettimeofday(&ttd, nullptr);
+  ttd.tv_sec += g_tcpTimeout;
+
+  t_fdm->addReadFD(tcpConn->getFD(), handleRunningTCPQuestion, tcpConn, &ttd);
 }
 
 static void TCPIOHandlerIO(int fileDesc, FDMultiplexer::funcparam_t& var);
