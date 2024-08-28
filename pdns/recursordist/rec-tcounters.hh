@@ -60,6 +60,7 @@ enum class Counter : uint8_t
   sourceDisallowedNotify, // when this is increased, qcounter is also
   zoneDisallowedNotify, // when this is increased, qcounter is also
   policyDrops,
+  tcpOverflow,
   tcpClientOverflow,
   clientParseError,
   serverParseError,

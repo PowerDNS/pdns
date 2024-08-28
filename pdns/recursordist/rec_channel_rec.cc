@@ -1349,6 +1349,7 @@ static void registerAllStats1()
   addGetStat("unauthorized-tcp", [] { return g_Counters.sum(rec::Counter::unauthorizedTCP); });
   addGetStat("source-disallowed-notify", [] { return g_Counters.sum(rec::Counter::sourceDisallowedNotify); });
   addGetStat("zone-disallowed-notify", [] { return g_Counters.sum(rec::Counter::zoneDisallowedNotify); });
+  addGetStat("tcp-overflow", [] { return g_Counters.sum(rec::Counter::tcpOverflow); });
   addGetStat("tcp-client-overflow", [] { return g_Counters.sum(rec::Counter::tcpClientOverflow); });
 
   addGetStat("client-parse-errors", [] { return g_Counters.sum(rec::Counter::clientParseError); });

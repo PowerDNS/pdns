@@ -756,6 +756,12 @@ taskqueue-size
 
 number of tasks currently in the taskqueues
 
+.. _stat-tcp-overflow:
+
+tcp-overflow
+^^^^^^^^^^^^
+number of times an incoming TCP connection was closed immediately because there were too many open connections already
+
 .. _stat-tcp-client-overflow:
 
 tcp-client-overflow

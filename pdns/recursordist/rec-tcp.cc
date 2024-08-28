@@ -694,9 +694,12 @@ void handleNewTCPQuestion(int fileDesc, [[maybe_unused]] FDMultiplexer::funcpara
   if (newsock < 0) {
     return;
   }
-  auto closeSock = [newsock](const string& msg) {
+  auto closeSock = [newsock](rec::Counter cnt, const string& msg) {
     try {
       closesocket(newsock);
+      t_Counters.at(cnt)++;
+      // We want this bump to percolate up without too much delay
+      t_Counters.updateSnap(false);
     }
     catch (const PDNSException& e) {
       g_slogtcpin->error(Logr::Error, e.reason, msg, "exception", Logging::Loggable("PDNSException"));
@@ -704,13 +707,11 @@ void handleNewTCPQuestion(int fileDesc, [[maybe_unused]] FDMultiplexer::funcpara
   };
 
   if (TCPConnection::getCurrentConnections() >= g_maxTCPClients) {
-    t_Counters.at(rec::Counter::tcpClientOverflow)++;
-    closeSock("Error closing TCP socket after an overflow drop");
+    closeSock(rec::Counter::tcpOverflow, "Error closing TCP socket after an overflow drop");
     return;
   }
   if (g_multiTasker->numProcesses() >= g_maxMThreads) {
-    t_Counters.at(rec::Counter::overCapacityDrops)++;
-    closeSock("Error closing TCP socket after an over capacity drop");
+    closeSock(rec::Counter::overCapacityDrops, "Error closing TCP socket after an over capacity drop");
     return;
   }
 
@@ -733,14 +734,12 @@ void handleNewTCPQuestion(int fileDesc, [[maybe_unused]] FDMultiplexer::funcpara
       SLOG(g_log << Logger::Error << "[" << g_multiTasker->getTid() << "] dropping TCP query from " << mappedSource.toString() << ", address neither matched by allow-from nor proxy-protocol-from" << endl,
            g_slogtcpin->info(Logr::Error, "dropping TCP query address neither matched by allow-from nor proxy-protocol-from", "source", Logging::Loggable(mappedSource)));
     }
-    t_Counters.at(rec::Counter::unauthorizedTCP)++;
-    closeSock("Error closing TCP socket after an ACL drop");
+    closeSock(rec::Counter::unauthorizedTCP, "Error closing TCP socket after an ACL drop");
     return;
   }
 
   if (g_maxTCPPerClient > 0 && t_tcpClientCounts->count(addr) > 0 && (*t_tcpClientCounts)[addr] >= g_maxTCPPerClient) {
-    t_Counters.at(rec::Counter::tcpClientOverflow)++;
-    closeSock("Error closing TCP socket after a client overflow drop");
+    closeSock(rec::Counter::tcpClientOverflow, "Error closing TCP socket after a client overflow drop");
     return;
   }
 

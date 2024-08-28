@@ -206,6 +206,7 @@ static const oid10 udrEventsOID = {RECURSOR_STATS_OID, 148};
 static const oid10 maxChainLengthOID = {RECURSOR_STATS_OID, 149};
 static const oid10 maxChainWeightOID = {RECURSOR_STATS_OID, 150};
 static const oid10 chainLimitsOID = {RECURSOR_STATS_OID, 151};
+static const oid10 tcpOverflowOID = {RECURSOR_STATS_OID, 152};
 
 static std::unordered_map<oid, std::string> s_statsMap;
 
@@ -462,6 +463,7 @@ RecursorSNMPAgent::RecursorSNMPAgent(const std::string& name, const std::string&
   registerCounter64Stat("udr-events", udrEventsOID);
   registerCounter64Stat("max-chain-length", maxChainLengthOID);
   registerCounter64Stat("max-chain-weight", maxChainWeightOID);
+  registerCounter64Stat("tcp-overflow", tcpOverflowOID);
 
 #endif /* HAVE_NET_SNMP */
 }
