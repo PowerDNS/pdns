@@ -1555,6 +1555,8 @@ Number of receiver (listening) threads to start. See :doc:`performance`.
 
 Recursive DNS server to use for ALIAS lookups and the internal stub resolver. Only one address can be given.
 
+It is assumed that the specified recursive DNS server, and the network path to it, are trusted.
+
 Examples::
 
   resolver=127.0.0.1
