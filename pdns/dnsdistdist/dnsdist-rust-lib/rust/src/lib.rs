@@ -92,12 +92,11 @@ mod dnsdistsettings {
      * Functions callable from C++
      */
     extern "Rust" {
-        fn parse_yaml_string(str: &str) -> Result<GlobalConfiguration>;
+        fn from_yaml_string(str: &str) -> Result<GlobalConfiguration>;
     }
 }
 
     #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
-    #[serde(deny_unknown_fields)]
     struct RuleSelectorConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
@@ -150,6 +149,9 @@ fn get_selector_from_serde(serde: RuleSelectorConfiguration) -> dnsdistsettings:
    for sub in serde.selectors {
      selector.selectors.push(get_selector_from_serde(sub));
    }
+   for (key, value) in serde.extra.into_iter() {
+     selector.extra.push(dnsdistsettings::ExtraValue{key: key, value: value});
+   }
    selector
 }
 
@@ -179,7 +181,7 @@ fn get_global_configuration_from_serde(serde: GlobalConfigurationSerde) -> dnsdi
   config
 }
 
-pub fn parse_yaml_string(str: &str) -> Result<dnsdistsettings::GlobalConfiguration, serde_yaml::Error> {
+pub fn from_yaml_string(str: &str) -> Result<dnsdistsettings::GlobalConfiguration, serde_yaml::Error> {
     let serde_config: Result<GlobalConfigurationSerde, serde_yaml::Error> = serde_yaml::from_str(str);
     let config: dnsdistsettings::GlobalConfiguration = get_global_configuration_from_serde(serde_config?);
     return Ok(config);

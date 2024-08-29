@@ -3271,48 +3271,12 @@ static ListeningSockets initListeningSockets()
   return result;
 }
 
-#include "rust/cxx.h"
-#include "rust/lib.rs.h"
-
-static void testYaml()
-{
-  std::string test = R"a(---
-metrics:
-  carbon:
-    - address: "37.252.122.50:2003"
-      name: rga-test
-response-rules:
-  - selector:
-      type: all
-    action:
-      type: ffi-response-action
-      method: testResponse
-  - selector:
-      type: and
-      selectors:
-        - type: all
-        - name: my-selector
-    action:
-      type: allow
-)a";
-  auto globalConfig = dnsdist::rust::settings::parse_yaml_string(test);
-  cerr<<globalConfig.metrics.carbon[0].address<<endl;
-  for (const auto& rule : globalConfig.response_rules) {
-    cerr<<"Name: "<<rule.name<<", type "<<rule.selector.selector_type<<endl;
-    for (const auto& selector : rule.selector.selectors) {
-      cerr<<selector.name<<" -> "<<selector.selector_type<<endl;
-    }
-    for (const auto& extra : rule.extra) {
-      cerr<<extra.key<<" -> "<<extra.value<<endl;
-    }
-  }
-//  cerr<<carbonConfig.name<<endl;
-//  cerr<<carbonConfig.interval<<endl;
-}
+#include "dnsdist-configuration-yaml.hh"
 
 int main(int argc, char** argv)
 {
-  testYaml();
+  dnsdist::configuration::yaml::loadConfigurationFromFile("/home/remi/PowerDNS/confs/dnsdist.yml");
+
   try {
     CommandLineParameters cmdLine{};
     size_t udpBindsCount = 0;
