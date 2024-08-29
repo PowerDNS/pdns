@@ -951,6 +951,7 @@ Novell
 nproxy
 NPTL
 NSes
+nshost
 nsid
 nsis
 nsl
@@ -1003,6 +1004,7 @@ oraclebackend
 ordername
 orsn
 Oservers
+oskar
 OSX
 otherdomain
 otherpool

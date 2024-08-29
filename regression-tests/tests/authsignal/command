@@ -1,0 +1,2 @@
+#!/bin/sh
+cleandig _dsboot.cdnskey-cds-test.com._signal.ns1.example.net. CDS dnssec
