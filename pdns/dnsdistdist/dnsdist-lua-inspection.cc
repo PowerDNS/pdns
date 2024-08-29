@@ -1048,7 +1048,28 @@ void setupLuaInspection(LuaContext& luaCtx)
   /* DynBlock object accessors */
   luaCtx.registerMember("reason", &DynBlock::reason);
   luaCtx.registerMember("domain", &DynBlock::domain);
-  luaCtx.registerMember("until", &DynBlock::until);
+  luaCtx.registerMember<DynBlock, timespec>(
+    "until", [](const DynBlock& block) {
+      timespec nowMonotonic{};
+      gettime(&nowMonotonic);
+      timespec nowRealTime{};
+      gettime(&nowRealTime, true);
+
+      auto seconds = block.until.tv_sec - nowMonotonic.tv_sec;
+      auto nseconds = block.until.tv_nsec - nowMonotonic.tv_nsec;
+      if (nseconds < 0) {
+        seconds -= 1;
+        nseconds += 1000000000;
+      }
+
+      nowRealTime.tv_sec += seconds;
+      nowRealTime.tv_nsec += nseconds;
+      if (nowRealTime.tv_nsec > 1000000000) {
+        nowRealTime.tv_sec += 1;
+        nowRealTime.tv_nsec -= 1000000000;
+      }
+
+      return nowRealTime; }, [](DynBlock& block, [[maybe_unused]] timespec until) {});
   luaCtx.registerMember<DynBlock, unsigned int>(
     "blocks", [](const DynBlock& block) { return block.blocks.load(); }, [](DynBlock& block, [[maybe_unused]] unsigned int blocks) {});
   luaCtx.registerMember("action", &DynBlock::action);
