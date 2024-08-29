@@ -701,7 +701,7 @@ This can have odd effects, depending on your network, and may even be a security
 Therefore, the PowerDNS Recursor by default does not query private space IP addresses.
 This setting can be used to expand or reduce the limitations.
 
-Queries for names in forward zones and to addresses as configured in any of the settings :ref:`setting-forward-zones`, :ref:`setting-forward-zones-file` or :ref:`setting-forward-zones-recurse` are performed regardless of these limitations.
+Queries for names in forward zones and to addresses as configured in any of the settings :ref:`setting-forward-zones`, :ref:`setting-forward-zones-file` or :ref:`setting-forward-zones-recurse` are performed regardless of these limitations. However, if NS records are learned from :ref:`setting-forward-zones` and the IP addresses of the nameservers learned in that way are included in :ref:`setting-dont-query`, lookups relying on these nameservers will fail with SERVFAIL.
  ''',
     },
     {
@@ -1034,6 +1034,9 @@ Forwarded queries have the ``recursion desired (RD)`` bit set to ``0``, meaning 
 If an ``NS`` record set for a subzone of the forwarded zone is learned, that record set will be used to determine addresses for name servers of the subzone.
 This allows e.g. a forward to a local authoritative server holding a copy of the root zone, delegations received from that server will work.
 
+**Note**: When an ``NS`` record for a subzone is learned and the IP address for that nameserver is included in the IP ranges in :ref:`setting-dont-query`,
+SERVFAIL is returned.
+
 **IMPORTANT**: When using DNSSEC validation (which is default), forwards to non-delegated (e.g. internal) zones that have a DNSSEC signed parent zone will validate as Bogus.
 To prevent this, add a Negative Trust Anchor (NTA) for this zone in the :ref:`setting-lua-config-file` with ``addNTA('your.zone', 'A comment')``.
 If this forwarded zone is signed, instead of adding NTA, add the DS record to the :ref:`setting-lua-config-file`.
@@ -1072,6 +1075,9 @@ Multiple IP addresses can be specified and port numbers other than 53 can be con
 Forwarded queries have the ``recursion desired (RD)`` bit set to ``0``, meaning that this setting is intended to forward queries to authoritative servers.
 If an ``NS`` record set for a subzone of the forwarded zone is learned, that record set will be used to determine addresses for name servers of the subzone.
 This allows e.g. a forward to a local authoritative server holding a copy of the root zone, delegations received from that server will work.
+
+**Note**: When an ``NS`` record for a subzone is learned and the IP address for that nameserver is included in the IP ranges in :ref:`setting-dont-query`,
+SERVFAIL is returned.
 
 **IMPORTANT**: When using DNSSEC validation (which is default), forwards to non-delegated (e.g. internal) zones that have a DNSSEC signed parent zone will validate as Bogus.
 To prevent this, add a Negative Trust Anchor (NTA) for this zone in the :ref:`setting-lua-config-file` with ``addNTA('your.zone', 'A comment')``.
