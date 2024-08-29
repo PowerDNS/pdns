@@ -1,0 +1,12 @@
+---
+- TestMaxQPSIPRule:
+  - name: qps
+    type: unsigned int
+  - name: burst
+    type: unsigned int
+    default: qps
+    default-is-field: true
+  - name: ipv4-truncation
+    type: unsigned int
+    default: 32
+    alias: ipv4truncation

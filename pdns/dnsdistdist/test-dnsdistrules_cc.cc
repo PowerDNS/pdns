@@ -17,6 +17,74 @@ void checkParameterBound(const std::string& parameter, uint64_t value, size_t ma
   }
 }
 
+struct RuleParameter
+{
+  std::string name;
+  std::variant<unsigned int, std::string> value;
+};
+
+template <typename ParameterType>
+ParameterType getRequiredRuleParameter(const std::string& ruleName, std::vector<RuleParameter>& parameters, const std::string& parameterName)
+{
+  for (auto paramIt = parameters.begin(); paramIt != parameters.end(); ) {
+    if (paramIt->name != parameterName) {
+      ++paramIt;
+      continue;
+    }
+    auto value = std::get<ParameterType>(paramIt->value);
+    parameters.erase(paramIt);
+    return value;
+  }
+
+  throw std::runtime_error("Missing required parameter '" + parameterName + "' for selector '" + ruleName + "'");
+}
+
+template <typename ParameterType>
+ParameterType getOptionalRuleParameter(const std::string& ruleName, std::vector<RuleParameter>& parameters, const std::string& parameterName, ParameterType defaultValue)
+{
+  for (auto paramIt = parameters.begin(); paramIt != parameters.end(); ) {
+    if (paramIt->name != parameterName) {
+      ++paramIt;
+      continue;
+    }
+    auto value = std::get<ParameterType>(paramIt->value);
+    parameters.erase(paramIt);
+    return value;
+  }
+
+  return defaultValue;
+}
+
+class TestMaxQPSIPRule : public DNSRule
+{
+public:
+  TestMaxQPSIPRule(const std::string& ruleName, std::vector<RuleParameter>& parameters):
+    d_qps(getRequiredRuleParameter<unsigned int>(ruleName, parameters, "qps")),
+    d_burst(getOptionalRuleParameter<unsigned int>(ruleName, parameters, "burst", d_qps)),
+    d_ipv4trunc(getOptionalRuleParameter<unsigned int>(ruleName, parameters, "ipv4-truncation", 32))
+  {
+  }
+
+  bool matches(const DNSQuestion* dq) const override
+  {
+    return true;
+  }
+
+  string toString() const override
+  {
+    return "";
+  }
+private:
+  unsigned int d_qps;
+  unsigned int d_burst;
+  unsigned int d_ipv4trunc;
+};
+
+std::shared_ptr<DNSRule> buildSelector(const std::string& type, std::vector<RuleParameter>& parameters)
+{
+  return std::make_shared<TestMaxQPSIPRule>(type, parameters);
+}
+
 static DNSQuestion getDQ(const DNSName* providedName = nullptr)
 {
   static const DNSName qname("powerdns.com.");
@@ -223,6 +291,12 @@ BOOST_AUTO_TEST_CASE(test_payloadSizeRule) {
   }
 
   BOOST_CHECK_THROW(PayloadSizeRule("invalid", 42U), std::runtime_error);
+
+  std::vector<RuleParameter> parameters{
+    RuleParameter{ "qps", 5U },
+    RuleParameter{ "ipv4-truncation", 24U },
+  };
+  auto got = buildSelector("TestMaxQPSIPRule", parameters);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

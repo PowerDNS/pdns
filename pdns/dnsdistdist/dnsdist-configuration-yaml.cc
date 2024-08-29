@@ -59,6 +59,12 @@ bool loadConfigurationFromFile(const std::string fileName)
         cerr<<extra.key<<" => "<<extra.value<<endl;
       }
     }
+    for (const auto& selector : globalConfig.testselectors) {
+      cerr<<"Selector: "<<selector.selector_type<<endl;
+      for (const auto& sub : selector.andSel.selectors) {
+        cerr<<"  "<<sub<<endl;
+      }
+    }
     return true;
   }
   catch (const ::rust::Error& exp) {

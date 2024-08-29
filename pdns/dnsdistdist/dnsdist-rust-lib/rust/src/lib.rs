@@ -80,12 +80,50 @@ mod dnsdistsettings {
         extra: Vec<ExtraValue>
     }
 
+    #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
+    #[serde(deny_unknown_fields)]
+    struct TCPSelector {
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        tcp: bool,
+    }
+
+    #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
+    #[serde(deny_unknown_fields)]
+    struct AndSelector {
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        selectors: Vec<String>,
+    }
+
+    #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
+    #[serde(deny_unknown_fields)]
+    struct AllSelector {
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        dummy: bool
+    }
+
+    #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
+    #[serde(deny_unknown_fields)]
+    struct ByNameSelector {
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        name: String
+    }
+
+    #[derive(Default, Debug, PartialEq)]
+    struct TestSelector {
+        selector_type: String,
+        all: AllSelector,
+        andSel: AndSelector,
+        byname: ByNameSelector,
+        tcp: TCPSelector
+    }
+
     #[derive(Default, Debug, PartialEq)]
     struct GlobalConfiguration {
         metrics: MetricsConfiguration,
         webserver: WebServerConfiguration,
         console: ConsoleConfiguration,
-        response_rules: Vec<ResponseRule>
+        response_rules: Vec<ResponseRule>,
+        testselectors: Vec<TestSelector>
     }
 
     /*
@@ -130,6 +168,23 @@ mod dnsdistsettings {
         action: ResponseActionConfiguration
     }
 
+    #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
+    #[serde(deny_unknown_fields)]
+    struct AndSelectorSerde {
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        selectors: Vec<Selector>,
+    }
+
+    #[derive(Default, Serialize, Deserialize, Debug, PartialEq)]
+    #[serde(tag = "type")]
+    enum Selector {
+        #[default]
+        None,
+        All(dnsdistsettings::AllSelector),
+        And(AndSelectorSerde),
+        ByName(dnsdistsettings::ByNameSelector),
+        TCP(dnsdistsettings::TCPSelector),
+    }
 
     #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
@@ -141,7 +196,9 @@ mod dnsdistsettings {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         console: dnsdistsettings::ConsoleConfiguration,
         #[serde(default, rename = "response-rules", skip_serializing_if = "crate::is_default")]
-        response_rules: Vec<ResponseRuleConfiguration>
+        response_rules: Vec<ResponseRuleConfiguration>,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        testselectors: Vec<Selector>
     }
 
 fn get_selector_from_serde(serde: RuleSelectorConfiguration) -> dnsdistsettings::RuleSelector {
@@ -177,6 +234,16 @@ fn get_global_configuration_from_serde(serde: GlobalConfigurationSerde) -> dnsdi
   config.console = serde.console;
   for rule in serde.response_rules {
       config.response_rules.push(get_response_rule_from_serde(rule));
+  }
+  for rule in serde.testselectors {
+    match rule {
+        _All => {
+          config.testselectors.push(dnsdistsettings::TestSelector{selector_type: String::from("All"), ..Default::default() });
+//        And => 5,
+//        ByName => 10,
+//        TCP => 25,
+      }
+    }
   }
   config
 }
