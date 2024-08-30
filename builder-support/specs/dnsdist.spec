@@ -30,11 +30,13 @@ BuildRequires: libnghttp2-devel
 BuildRequires: lmdb-devel
 BuildRequires: lua-devel
 %define lua_implementation lua
+BuildRequires: re2-devel
 BuildRequires: systemd
 BuildRequires: systemd-devel
 BuildRequires: systemd-units
 BuildRequires: tinycdb-devel
 %if 0%{?amzn} != 2023
+BuildRequires: libsodium-devel
 BuildRequires: net-snmp-devel
 %endif
 %endif
@@ -77,8 +79,6 @@ export RANLIB=gcc-ranlib
   --enable-unit-tests \
   --enable-lto=thin \
   --enable-dns-over-tls \
-  --without-libsodium \
-  --without-re2 \
 %if 0%{?suse_version}
   --disable-dnscrypt \
   --without-libsodium \
@@ -93,7 +93,10 @@ export RANLIB=gcc-ranlib
   --with-gnutls \
   --with-libcap \
   --with-lua=%{lua_implementation} \
+  --with-re2 \
 %if 0%{?amzn} != 2023
+  --enable-dnscrypt \
+  --with-libsodium \
   --with-net-snmp \
 %endif
 %if 0%{?rhel} >= 8 || 0%{?amzn} == 2023
