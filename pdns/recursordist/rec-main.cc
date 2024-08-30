@@ -145,7 +145,7 @@ unsigned int RecThreadInfo::s_numUDPWorkerThreads;
 unsigned int RecThreadInfo::s_numTCPWorkerThreads;
 thread_local unsigned int RecThreadInfo::t_id;
 
-static pdns::RateLimitedLog s_rateLimitedLogger;
+pdns::RateLimitedLog g_rateLimitedLogger;
 
 static std::map<unsigned int, std::set<int>> parseCPUMap(Logr::log_t log)
 {
@@ -2389,13 +2389,18 @@ static void handlePipeRequest(int fileDesc, FDMultiplexer::funcparam_t& /* var *
     resp = tmsg->func();
   }
   catch (const PDNSException& pdnsException) {
-    s_rateLimitedLogger.log(g_slog->withName("runtime"), "PIPE function", pdnsException);
+    g_rateLimitedLogger.log(g_slog->withName("runtime"), "PIPE function", pdnsException);
+  }
+  catch (const MOADNSException& moadnsexception) {
+    if (g_logCommonErrors) {
+      g_slog->withName("runtime")->error(moadnsexception.what(), "PIPE function created an exception", "excepion", Logging::Loggable("MOADNSException"));
+    }
   }
   catch (const std::exception& stdException) {
-    s_rateLimitedLogger.log(g_slog->withName("runtime"), "PIPE function", stdException);
+    g_rateLimitedLogger.log(g_slog->withName("runtime"), "PIPE function", stdException);
   }
   catch (...) {
-    s_rateLimitedLogger.log(g_slog->withName("runtime"), "PIPE function");
+    g_rateLimitedLogger.log(g_slog->withName("runtime"), "PIPE function");
   }
   if (tmsg->wantAnswer) {
     if (write(RecThreadInfo::self().getPipes().writeFromThread, &resp, sizeof(resp)) != sizeof(resp)) {
@@ -2810,13 +2815,13 @@ static void recLoop()
       runTCPMaintenance(threadInfo, listenOnTCP, maxTcpClients);
     }
     catch (const PDNSException& pdnsException) {
-      s_rateLimitedLogger.log(g_slog->withName("runtime"), "recLoop", pdnsException);
+      g_rateLimitedLogger.log(g_slog->withName("runtime"), "recLoop", pdnsException);
     }
     catch (const std::exception& stdException) {
-      s_rateLimitedLogger.log(g_slog->withName("runtime"), "recLoop", stdException);
+      g_rateLimitedLogger.log(g_slog->withName("runtime"), "recLoop", stdException);
     }
     catch (...) {
-      s_rateLimitedLogger.log(g_slog->withName("runtime"), "recLoop");
+      g_rateLimitedLogger.log(g_slog->withName("runtime"), "recLoop");
     }
   }
 }

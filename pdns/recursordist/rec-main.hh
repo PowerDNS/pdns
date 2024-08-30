@@ -38,6 +38,7 @@
 #include "rec_channel.hh"
 #include "threadname.hh"
 #include "recpacketcache.hh"
+#include "ratelimitedlog.hh"
 
 #ifdef NOD_ENABLED
 #include "nod.hh"
@@ -240,6 +241,7 @@ extern RecursorControlChannel g_rcc; // only active in the handler thread
 
 extern thread_local std::unique_ptr<ProxyMapping> t_proxyMapping;
 using ProxyMappingStats_t = std::unordered_map<Netmask, ProxyMappingCounts>;
+extern pdns::RateLimitedLog g_rateLimitedLogger;
 
 #ifdef NOD_ENABLED
 extern bool g_nodEnabled;
