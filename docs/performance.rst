@@ -62,6 +62,11 @@ To determine if PowerDNS is unable to keep up with packets, determine
 the value of the :ref:`stat-qsize-q` variable. This represents the number of
 packets waiting for database attention. During normal operations the
 queue should be small.
+This number is a total over all receiver threads.
+
+The :ref:`setting-max-queue-length` and :ref:`setting-overload-queue-length` settings determine how PowerDNS deals with growing queues.
+If the queue for a single receiver thread (and its associated distributor threads) grows beyond the ``overload`` number, queries are answered only from the packet cache so the database can hopefully recover.
+If we reach the ``max`` number, we consider the situation hopeless and respawn.
 
 The value of :ref:`setting-queue-limit` should be set to only keep queries in
 queue for as long as someone would be interested in knowing the answer. Many
@@ -260,7 +265,7 @@ Amount of packets in the packetcache
 
 qsize-q
 ^^^^^^^
-Number of packets waiting for database attention, only available if :ref:`setting-receiver-threads` > 1
+Number of packets waiting for database attention, only available if :ref:`setting-distributor-threads` > 1
 
 .. _stat-query-cache-hit:
 

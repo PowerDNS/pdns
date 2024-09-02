@@ -1228,6 +1228,7 @@ will generally suffice for most installations.
 
 If this many packets are waiting for database attention, consider the
 situation hopeless and respawn.
+This limit is per receiver thread.
 
 .. _setting-max-signature-cache-entries:
 
