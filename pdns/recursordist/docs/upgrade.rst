@@ -4,8 +4,19 @@ Upgrade Guide
 Before upgrading, it is advised to read the :doc:`changelog/index`.
 When upgrading several versions, please read **all** notes applying to the upgrade.
 
-5.0.6 to 5.1.0 and master
--------------------------
+5.1.0 to master
+----------------
+
+Changed behaviour
+-----------------
+The way :ref:`setting-yaml-incoming.max_tcp_clients` is enforced has changed.
+If there are too many incoming TCP connections, new connections will be accepted but then closed immediately.
+Previously, excess connections would linger in the OS listen queue until timeout or until processing of incoming TCP connections resumed due to the number of connections being processed dropping below the limit.
+There is a new metric ``tcp-overflow`` that counts the connections closed immediately.
+
+
+5.0.6 to 5.1.0
+--------------
 
 The recursor.conf configuration file may contain YAML configuration syntax and new installs using our packages from repo.powerdns.com will install a configuration file using YAML syntax.
 Note to third-party package maintainers: please start doing the same.
