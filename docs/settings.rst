@@ -1227,7 +1227,8 @@ will generally suffice for most installations.
 -  Default: 5000
 
 If this many packets are waiting for database attention, consider the
-situation hopeless and respawn.
+situation hopeless and respawn the server process.
+This limit is per receiver thread.
 
 .. _setting-max-signature-cache-entries:
 
