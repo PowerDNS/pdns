@@ -1107,7 +1107,7 @@ if get_option('unit-tests-backends')
         start_test_stop,
         args: ['5300', module],
         workdir: product_source_dir / 'regression-tests',
-        depends: [pdns_auth, pdns_auth_util, sdig, saxfr],
+        depends: [pdns_auth, pdns_auth_util, sdig, saxfr, pdns_auth_notify, nsec3dig],
         is_parallel: false,
       )
     endif
