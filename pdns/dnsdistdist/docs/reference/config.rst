@@ -390,9 +390,23 @@ Webserver configuration
   .. versionadded:: 1.7.0
 
   Hash the supplied password using a random salt, and returns a string that can be used with :func:`setWebserverConfig`.
+  For example, to get a hashed version of the ``test`` password:
 
-  :param string - password: The password to hash
-  :param int - workFactor: The work factor to use for the hash function (currently scrypt), as a power of two. Default is 1024.
+  .. code-block:: sh
+
+    > hashPassword('test')
+    $scrypt$ln=10,p=1,r=8$RSYJ2QDmdlkNYMyqZF/FWw==$JQTftQCvAXR4Qtrg0lQmvrzgYEo3/PjEeuV4/2Oq1Vg=
+
+  The full string can then be used with :func:`setWebserverConfig`:
+
+  .. code-block:: lua
+
+    setWebserverConfig({password="$scrypt$ln=10,p=1,r=8$RSYJ2QDmdlkNYMyqZF/FWw==$JQTftQCvAXR4Qtrg0lQmvrzgYEo3/PjEeuV4/2Oq1Vg=",
+                        apiKey="$scrypt$ln=10,p=1,r=8$RSYJ2QDmdlkNYMyqZF/FWw==$JQTftQCvAXR4Qtrg0lQmvrzgYEo3/PjEeuV4/2Oq1Vg=",
+                        acl="127.0.0.1/32"})
+
+  :param string password: The password to hash
+  :param int workFactor: The work factor to use for the hash function (currently scrypt), as a power of two. Default is 1024.
 
 .. function:: webserver(listen_address [, password[, apikey[, customHeaders[, acl]]]])
 
