@@ -147,3 +147,6 @@ DoH
 
 # ignore long runs of a single character:
 \b([A-Za-z])\g{-1}{3,}\b
+
+# scrypt / argon
+\$(?:scrypt|argon\d+[di]*)\$\S+
