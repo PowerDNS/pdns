@@ -4232,43 +4232,53 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
   /* list of names for which we will allow A and AAAA records in the additional section
      to remain */
   std::unordered_set<DNSName> allowedAdditionals = {qname};
+  std::unordered_set<DNSName> allowedAnswerNames = {qname};
   bool haveAnswers = false;
   bool isNXDomain = false;
   bool isNXQType = false;
 
-  for (auto rec = lwr.d_records.begin(); rec != lwr.d_records.end();) {
+  std::vector<bool> skipvec(lwr.d_records.size(), false);
+  unsigned int counter = 0;
+  unsigned int skipCount = 0;
+
+  for (auto rec = lwr.d_records.cbegin(); rec != lwr.d_records.cend(); ++rec, ++counter) {
 
     // Allow OPT record containing EDNS(0) data
     if (rec->d_type == QType::OPT) {
-      ++rec;
       continue;
     }
 
     // Disallow QClass != IN
     if (rec->d_class != QClass::IN) {
       LOG(prefix << qname << ": Removing non internet-classed data received from " << auth << endl);
-      rec = lwr.d_records.erase(rec);
+      skipvec[counter] = true;
+      ++skipCount;
       continue;
     }
 
     // Disallow QType ANY in responses
     if (rec->d_type == QType::ANY) {
       LOG(prefix << qname << ": Removing 'ANY'-typed data received from " << auth << endl);
-      rec = lwr.d_records.erase(rec);
+      skipvec[counter] = true;
+      ++skipCount;
       continue;
     }
 
-    // Disallow any name not part of qname requested
+    // Disallow any name not part of auth requested (i.e. disallow x.y.z if asking a NS authoritative for x.w.z)
     if (!rec->d_name.isPartOf(auth)) {
       LOG(prefix << qname << ": Removing record '" << rec->toString() << "' in the " << DNSResourceRecord::placeString(rec->d_place) << " section received from " << auth << endl);
-      rec = lwr.d_records.erase(rec);
+      skipvec[counter] = true;
+      ++skipCount;
       continue;
     }
 
     // Disallow QType DNAME in non-answer section or containing an answer that is not a parent of or equal to the question name
+    // i.e. disallowed bar.example.com. DNAME bar.example.net. when asking foo.example.com
+    // But allow it when asking for foo.bar.example.com.
     if (rec->d_type == QType::DNAME && (rec->d_place != DNSResourceRecord::ANSWER || !qname.isPartOf(rec->d_name))) {
       LOG(prefix << qname << ": Removing invalid DNAME record '" << rec->toString() << "' in the " << DNSResourceRecord::placeString(rec->d_place) << " section received from " << auth << endl);
-      rec = lwr.d_records.erase(rec);
+      skipvec[counter] = true;
+      ++skipCount;
       continue;
     }
 
@@ -4280,18 +4290,29 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
            are sending such responses */
         if (rec->d_type != QType::CNAME || qname != rec->d_name) {
           LOG(prefix << qname << ": Removing record '" << rec->toString() << "' in the ANSWER section without the AA bit set received from " << auth << endl);
-          rec = lwr.d_records.erase(rec);
+          skipvec[counter] = true;
+          ++skipCount;
           continue;
         }
       }
       // Disallow answer records not answering the QType requested. ANY, CNAME, DNAME, RRSIG complicate matters here
       if (qtype != QType::ANY && rec->d_type != qtype.getCode() && !isRedirection(rec->d_type) && rec->d_type != QType::RRSIG) {
         LOG(prefix << qname << ": Removing irrelevant record '" << rec->toString() << "' in the ANSWER section received from " << auth << endl);
-        rec = lwr.d_records.erase(rec);
+        skipvec[counter] = true;
+        ++skipCount;
         continue;
       }
 
       haveAnswers = true;
+      if (rec->d_type == QType::CNAME) {
+        if (auto cnametarget = getRR<CNAMERecordContent>(*rec); cnametarget != nullptr) {
+          allowedAnswerNames.insert(cnametarget->getTarget());
+        }
+      }
+      else if (rec->d_type == QType::DNAME) {
+        // We have checked the DNAME rec->d_name above, the actual answer will be synthesized in a later step
+        allowedAnswerNames.insert(rec->d_name);
+      }
       allowAdditionalEntry(allowedAdditionals, *rec);
     }
 
@@ -4300,7 +4321,8 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
     else if (rec->d_place == DNSResourceRecord::AUTHORITY) {
       if (rec->d_type != QType::NS && rec->d_type != QType::DS && rec->d_type != QType::SOA && rec->d_type != QType::RRSIG && rec->d_type != QType::NSEC && rec->d_type != QType::NSEC3) {
         LOG(prefix << qname << ": Removing irrelevant record '" << rec->toString() << "' in the AUTHORITY section received from " << auth << endl);
-        rec = lwr.d_records.erase(rec);
+        skipvec[counter] = true;
+        ++skipCount;
         continue;
       }
       if (rec->d_type == QType::NS && !d_updatingRootNS && rec->d_name == g_rootdnsname) {
@@ -4309,7 +4331,8 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
          * So remove them and don't add them to allowedAdditionals.
          */
         LOG(prefix << qname << ": Removing NS record '" << rec->toString() << "' in the AUTHORITY section of a response received from " << auth << endl);
-        rec = lwr.d_records.erase(rec);
+        skipvec[counter] = true;
+        ++skipCount;
         continue;
       }
 
@@ -4317,13 +4340,15 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
         // Disallow a SOA record with a name that is not a parent of or equal to the name we asked
         if (!qname.isPartOf(rec->d_name)) {
           LOG(prefix << qname << ": Removing irrelevant SOA record '" << rec->toString() << "' in the AUTHORITY section received from " << auth << endl);
-          rec = lwr.d_records.erase(rec);
+          skipvec[counter] = true;
+          ++skipCount;
           continue;
         }
         // Disallow SOA without AA bit (except for forward with RD=1)
         if (!(lwr.d_aabit || wasForwardRecurse)) {
           LOG(prefix << qname << ": Removing irrelevant record (AA not set) '" << rec->toString() << "' in the AUTHORITY section received from " << auth << endl);
-          rec = lwr.d_records.erase(rec);
+          skipvec[counter] = true;
+          ++skipCount;
           continue;
         }
 
@@ -4339,36 +4364,41 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
         }
       }
     }
-    /* dealing with recors in additional */
+    /* dealing with records in additional */
     else if (rec->d_place == DNSResourceRecord::ADDITIONAL) {
       if (rec->d_type != QType::A && rec->d_type != QType::AAAA && rec->d_type != QType::RRSIG) {
         LOG(prefix << qname << ": Removing irrelevant record '" << rec->toString() << "' in the ADDITIONAL section received from " << auth << endl);
-        rec = lwr.d_records.erase(rec);
+        skipvec[counter] = true;
+        ++skipCount;
         continue;
       }
     }
-
-    ++rec;
   } // end of first loop, handled answer and most of authority section
 
-  sanitizeRecordsPass2(prefix, lwr, qname, auth, allowedAdditionals, isNXDomain, isNXQType);
+  sanitizeRecordsPass2(prefix, lwr, qname, auth, allowedAnswerNames, allowedAdditionals, isNXDomain, isNXQType, skipvec, skipCount);
 }
 
-void SyncRes::sanitizeRecordsPass2(const std::string& prefix, LWResult& lwr, const DNSName& qname, const DNSName& auth, std::unordered_set<DNSName>& allowedAdditionals, bool isNXDomain, bool isNXQType)
+void SyncRes::sanitizeRecordsPass2(const std::string& prefix, LWResult& lwr, const DNSName& qname, const DNSName& auth, std::unordered_set<DNSName>& allowedAnswerNames, std::unordered_set<DNSName>& allowedAdditionals, bool isNXDomain, bool isNXQType, std::vector<bool>& skipvec, unsigned int& skipCount)
 {
   // Second loop, we know now if the answer was NxDomain or NoData
-  for (auto rec = lwr.d_records.begin(); rec != lwr.d_records.end();) {
+  unsigned int counter = 0;
+  for (auto rec = lwr.d_records.cbegin(); rec != lwr.d_records.cend(); ++rec, ++counter) {
 
+    if (skipvec[counter]) {
+      continue;
+    }
     // Allow OPT record containing EDNS(0) data
     if (rec->d_type == QType::OPT) {
-      ++rec;
       continue;
     }
 
     if (rec->d_place == DNSResourceRecord::ANSWER) {
-      // Fully handled ANSWER section in first loop. This might change with more strict validation
-      ++rec;
-      continue;
+      if (allowedAnswerNames.count(rec->d_name) == 0) {
+        LOG(prefix << qname << ": Removing irrelevent record '" << rec->toString() << "' in the ANSWER section received from " << auth << endl);
+        skipvec[counter] = true;
+        ++skipCount;
+        continue;
+      }
     }
     if (rec->d_place == DNSResourceRecord::AUTHORITY && rec->d_type == QType::NS) {
       if (isNXDomain || isNXQType) {
@@ -4378,7 +4408,8 @@ void SyncRes::sanitizeRecordsPass2(const std::string& prefix, LWResult& lwr, con
          * for an off-path attacker by injecting spoofed UDP fragments. So do not add these to allowedAdditionals.
          */
         LOG(prefix << qname << ": Removing NS record '" << rec->toString() << "' in the AUTHORITY section of a " << (isNXDomain ? "NXD" : "NXQTYPE") << " response received from " << auth << endl);
-        rec = lwr.d_records.erase(rec);
+        skipvec[counter] = true;
+        ++skipCount;
         continue;
       }
       allowAdditionalEntry(allowedAdditionals, *rec);
@@ -4387,12 +4418,21 @@ void SyncRes::sanitizeRecordsPass2(const std::string& prefix, LWResult& lwr, con
     else if (rec->d_place == DNSResourceRecord::ADDITIONAL) {
       if (allowedAdditionals.count(rec->d_name) == 0) {
         LOG(prefix << qname << ": Removing irrelevant record '" << rec->toString() << "' in the ADDITIONAL section received from " << auth << endl);
-        rec = lwr.d_records.erase(rec);
+        skipvec[counter] = true;
+        ++skipCount;
         continue;
       }
     }
-
-    ++rec;
+  }
+  if (skipCount > 0) {
+    std::vector<DNSRecord> vec;
+    vec.reserve(lwr.d_records.size() - skipCount);
+    for (counter = 0; counter < lwr.d_records.size(); ++counter) {
+      if (!skipvec[counter]) {
+        vec.emplace_back(std::move(lwr.d_records[counter]));
+      }
+    }
+    lwr.d_records = std::move(vec);
   }
 }
 
