@@ -242,8 +242,9 @@ spectest=$5
 testsdir=./tests
 
 for prog in $SDIG $SAXFR $NOTIFY $NSEC3DIG; do
-  if `echo $prog | grep -q '\.\./pdns'`; then
-    ${MAKE} -C ../pdns ${prog##*../pdns/} || exit
+  if [ ! -x "$prog" ]; then
+    echo "Error: cannot find $prog, please build it."
+    exit 1
   fi
 done
 
