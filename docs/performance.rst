@@ -66,7 +66,7 @@ This number is a total over all receiver threads.
 
 The :ref:`setting-max-queue-length` and :ref:`setting-overload-queue-length` settings determine how PowerDNS deals with growing queues.
 If the queue for a single receiver thread (and its associated distributor threads) grows beyond the ``overload`` number, queries are answered only from the packet cache so the database can hopefully recover.
-If we reach the ``max`` number, we consider the situation hopeless and respawn.
+If we reach the ``max`` number, we consider the situation hopeless and respawn the server process.
 
 The value of :ref:`setting-queue-limit` should be set to only keep queries in
 queue for as long as someone would be interested in knowing the answer. Many
