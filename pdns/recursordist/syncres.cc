@@ -4310,6 +4310,7 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
         }
       }
       else if (rec->d_type == QType::DNAME) {
+        // We have checked the DNAME rec->d_name above, the actual answer will be synthesized in a later step
         allowedAnswerNames.insert(rec->d_name);
       }
       allowAdditionalEntry(allowedAdditionals, *rec);
@@ -4363,7 +4364,7 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
         }
       }
     }
-    /* dealing with recors in additional */
+    /* dealing with records in additional */
     else if (rec->d_place == DNSResourceRecord::ADDITIONAL) {
       if (rec->d_type != QType::A && rec->d_type != QType::AAAA && rec->d_type != QType::RRSIG) {
         LOG(prefix << qname << ": Removing irrelevant record '" << rec->toString() << "' in the ADDITIONAL section received from " << auth << endl);
