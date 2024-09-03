@@ -277,7 +277,6 @@ pdns_server_SOURCES = \
 	svc-records.cc svc-records.hh \
 	tcpreceiver.cc tcpreceiver.hh \
 	threadname.hh threadname.cc \
-	tkey.cc \
 	trusted-notification-proxy.hh trusted-notification-proxy.cc \
 	tsigutils.hh tsigutils.cc \
 	tsigverifier.cc tsigverifier.hh \

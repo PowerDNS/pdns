@@ -622,7 +622,6 @@ common_sources += files(
   src_dir / 'tcpreceiver.hh',
   src_dir / 'threadname.cc',
   src_dir / 'threadname.hh',
-  src_dir / 'tkey.cc',
   src_dir / 'trusted-notification-proxy.cc',
   src_dir / 'trusted-notification-proxy.hh',
   src_dir / 'tsigutils.cc',

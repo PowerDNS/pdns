@@ -116,7 +116,7 @@ public:
   vector<DNSZoneRecord*> getServiceRecords(); //!< Get a vector with all Service-style (SVCB) records
   void setCompress(bool compress);
 
-  std::unique_ptr<DNSPacket> replyPacket() const; //!< convenience function that creates a virgin answer packet to this question
+  std::unique_ptr<DNSPacket> replyPacket(int rcode = RCode::NoError, uint16_t extRCode = 0) const; //!< convenience function that creates a virgin answer packet to this question
 
   void commitD(); //!< copies 'd' into the stringbuffer
   unsigned int getMaxReplyLen(); //!< retrieve the maximum length of the packet we should send in response

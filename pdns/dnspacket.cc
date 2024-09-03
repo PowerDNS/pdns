@@ -421,7 +421,7 @@ void DNSPacket::setQuestion(int op, const DNSName &qd, int newqtype)
 }
 
 /** convenience function for creating a reply packet from a question packet. */
-std::unique_ptr<DNSPacket> DNSPacket::replyPacket() const
+std::unique_ptr<DNSPacket> DNSPacket::replyPacket(int rcode, uint16_t extRCode) const
 {
   auto r=make_unique<DNSPacket>(false);
   r->setSocket(d_socket);
@@ -434,6 +434,8 @@ std::unique_ptr<DNSPacket> DNSPacket::replyPacket() const
   r->setRD(d.rd); // if you wanted to recurse, answer will say you wanted it
   r->setID(d.id);
   r->setOpcode(d.opcode);
+  r->setRcode(rcode);
+  r->setEDNSRcode(extRCode);
 
   r->d_dt=d_dt;
   r->d.qdcount=1;

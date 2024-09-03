@@ -69,9 +69,8 @@ public:
 
 private:
   int tryAutoPrimary(const DNSPacket& p, const DNSName& tsigkeyname);
-  int processNotify(const DNSPacket& );
+  uint8_t processNotify(const DNSPacket& p);
   void addRootReferral(DNSPacket& r);
-  int doChaosRequest(const DNSPacket& p, std::unique_ptr<DNSPacket>& r, DNSName &target) const;
   bool addDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r);
   bool addCDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r);
   bool addCDS(DNSPacket& p, std::unique_ptr<DNSPacket>& r);
@@ -87,6 +86,7 @@ private:
   void addNSEC3(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const DNSName &target, const DNSName &wildcard, const NSEC3PARAMRecordContent& nsec3param, bool narrow, int mode);
   void emitNSEC(std::unique_ptr<DNSPacket>& r, const DNSName& name, const DNSName& next, int mode);
   void emitNSEC3(std::unique_ptr<DNSPacket>& r, const NSEC3PARAMRecordContent &ns3rc, const DNSName& unhashed, const string& begin, const string& end, int mode);
+  unique_ptr<DNSPacket> processQuery(DNSPacket& p);
   int processUpdate(DNSPacket& p);
   int forwardPacket(const string &msgPrefix, const DNSPacket& p, const DomainInfo& di);
   uint performUpdate(const string &msgPrefix, const DNSRecord *rr, DomainInfo *di, bool isPresigned, bool* narrow, bool* haveNSEC3, NSEC3PARAMRecordContent *ns3pr, bool *updatedSerial);
@@ -106,8 +106,6 @@ private:
   bool addDSforNS(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const DNSName& dsname);
   void completeANYRecords(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const DNSName &target);
 
-  void tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& r); //<! process TKEY record, and adds TKEY record to (r)eply, or error code.
-
   static AtomicCounter s_count;
   static std::mutex s_rfc2136lock;
   bool d_logDNSDetails;
@@ -121,4 +119,3 @@ private:
   UeberBackend B; // every thread an own instance
   DNSSECKeeper d_dk; // B is shared with DNSSECKeeper
 };
-
