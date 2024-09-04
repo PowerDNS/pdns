@@ -22,6 +22,7 @@
 
 #include "ext/lmdb-safe/lmdb-safe.hh"
 #include <lmdb.h>
+#include <memory>
 #include <stdexcept>
 #include <utility>
 #ifdef HAVE_CONFIG_H
@@ -74,34 +75,33 @@ std::pair<uint32_t, uint32_t> LMDBBackend::getSchemaVersionAndShards(std::string
   uint32_t schemaversion;
 
   int rc;
-  MDB_env* env = nullptr;
+  MDB_env* tmpEnv = nullptr;
 
-  if ((rc = mdb_env_create(&env)) != 0) {
+  if ((rc = mdb_env_create(&tmpEnv)) != 0) {
     throw std::runtime_error("mdb_env_create failed");
   }
 
-  if ((rc = mdb_env_set_mapsize(env, 0)) != 0) {
+  std::unique_ptr<MDB_env, decltype(&mdb_env_close)> env{tmpEnv, mdb_env_close};
+
+  if ((rc = mdb_env_set_mapsize(tmpEnv, 0)) != 0) {
     throw std::runtime_error("mdb_env_set_mapsize failed");
   }
 
-  if ((rc = mdb_env_set_maxdbs(env, 20)) != 0) { // we need 17: 1 {"pdns"} + 4 {"domains", "keydata", "tsig", "metadata"} * 2 {v4, v5} * 2 {main, index in _0}
-    mdb_env_close(env);
+  if ((rc = mdb_env_set_maxdbs(tmpEnv, 20)) != 0) { // we need 17: 1 {"pdns"} + 4 {"domains", "keydata", "tsig", "metadata"} * 2 {v4, v5} * 2 {main, index in _0}
     throw std::runtime_error("mdb_env_set_maxdbs failed");
   }
 
-  if ((rc = mdb_env_open(env, filename.c_str(), MDB_NOSUBDIR | MDB_RDONLY, 0600)) != 0) {
+  if ((rc = mdb_env_open(tmpEnv, filename.c_str(), MDB_NOSUBDIR | MDB_RDONLY, 0600)) != 0) {
     if (rc == ENOENT) {
       // we don't have a database yet! report schema 0, with 0 shards
       return {0u, 0u};
     }
-    mdb_env_close(env);
     throw std::runtime_error("mdb_env_open failed");
   }
 
   MDB_txn* txn = nullptr;
 
-  if ((rc = mdb_txn_begin(env, NULL, MDB_RDONLY, &txn)) != 0) {
-    mdb_env_close(env);
+  if ((rc = mdb_txn_begin(tmpEnv, NULL, MDB_RDONLY, &txn)) != 0) {
     throw std::runtime_error("mdb_txn_begin failed");
   }
 
@@ -112,11 +112,9 @@ std::pair<uint32_t, uint32_t> LMDBBackend::getSchemaVersionAndShards(std::string
       // this means nothing has been inited yet
       // we pretend this means 5
       mdb_txn_abort(txn);
-      mdb_env_close(env);
       return {5u, 0u};
     }
     mdb_txn_abort(txn);
-    mdb_env_close(env);
     throw std::runtime_error("mdb_dbi_open failed");
   }
 
@@ -130,7 +128,6 @@ std::pair<uint32_t, uint32_t> LMDBBackend::getSchemaVersionAndShards(std::string
       // this means nothing has been inited yet
       // we pretend this means 5
       mdb_txn_abort(txn);
-      mdb_env_close(env);
       return {5u, 0u};
     }
 
@@ -163,7 +160,6 @@ std::pair<uint32_t, uint32_t> LMDBBackend::getSchemaVersionAndShards(std::string
     if (rc == MDB_NOTFOUND) {
       cerr << "schemaversion was set, but shards was not. Dazed and confused, trying to exit." << endl;
       mdb_txn_abort(txn);
-      mdb_env_close(env);
       exit(1);
     }
 
@@ -185,7 +181,6 @@ std::pair<uint32_t, uint32_t> LMDBBackend::getSchemaVersionAndShards(std::string
   }
 
   mdb_txn_abort(txn);
-  mdb_env_close(env);
 
   return {schemaversion, shards};
 }
