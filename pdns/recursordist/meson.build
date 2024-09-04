@@ -263,6 +263,32 @@ dep_htmlfiles = declare_dependency(
   sources: [htmlfiles],
 )
 
+metric_sources = [
+  src_dir / 'metrics.py',
+  src_dir / 'metrics_table.py',
+  src_dir / 'RECURSOR-MIB.in',
+]
+
+py = import('python')
+python = py.find_installation('python3', required: true)
+
+metricfiles = custom_target(
+  command: [python, '@INPUT0@', '@SOURCE_ROOT@'],
+  input: metric_sources,
+  output: [
+          'rec-metrics-gen.h',
+          'rec-prometheus-gen.h',
+          'rec-snmp-gen.h',
+          'rec-oids-gen.h',
+          'RECURSOR-MIB.txt',
+  ],
+  capture: false,
+)
+
+dep_metrics = declare_dependency(
+  sources: [metricfiles],
+)
+
 deps = [
   dep_pdns,
   dep_no_config_in_source,
@@ -282,6 +308,7 @@ deps = [
   dep_htmlfiles,
   dep_dnstap,
   dep_libcurl,
+  dep_metrics,
 ]
 
 # Conditional sources that need to be separated into standalone libraries for special

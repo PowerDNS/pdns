@@ -39,7 +39,12 @@ AM_LDFLAGS = \
 ACLOCAL_AMFLAGS = -I m4
 
 BUILT_SOURCES=htmlfiles.h \
-	dnslabeltext.cc
+	dnslabeltext.cc \
+	rec-metrics-gen.h \
+	rec-prometheus-gen.h \
+	rec-snmp-gen.h \
+	rec-oids-gen.h \
+	RECURSOR-MIB.txt
 
 CLEANFILES = htmlfiles.h \
 	recursor.yml-dist
@@ -47,6 +52,10 @@ CLEANFILES = htmlfiles.h \
 htmlfiles.h: incfiles ${srcdir}/html/* ${srcdir}/html/js/*
 	$(AM_V_GEN)$(srcdir)/incfiles > $@.tmp
 	@mv $@.tmp $@
+
+# Use patterns to avoid having two instances of generate run simultaneously, a well-known hack for GNU make
+rec-metrics-gen%h rec-prometheus-gen%h rec-snmp-gen%h rec-oids-gen%h RECURSOR-MIB%txt: metrics.py metrics_table.py RECURSOR-MIB.in
+	$(PYTHON) metrics.py
 
 # We explicitly build settings in two steps, as settings modifies files in the settings/rust subdir
 SUBDIRS=ext settings settings/rust
@@ -78,6 +87,13 @@ EXTRA_DIST = \
 	test_libcrypto \
 	pdns-recursor.service.in \
 	RECURSOR-MIB.txt \
+	metrics.py \
+	metrics_table.py \
+	RECURSOR-MIB.in \
+	rec-metrics-gen.h \
+	rec-prometheus-gen.h \
+	rec-snmp-gen.h \
+	rec-oids-gen.h \
 	builder-support/gen-version
 
 dist-hook:
