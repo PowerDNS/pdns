@@ -165,9 +165,9 @@ std::pair<uint32_t, uint32_t> LMDBBackend::getSchemaVersionAndShards(std::string
   key.mv_size = strlen((char*)key.mv_data);
 
   {
-    int rc = mdb_get(txn, dbi, &key, &data);
-    if (rc != 0) {
-      if (rc == MDB_NOTFOUND) {
+    int retCode = mdb_get(txn, dbi, &key, &data);
+    if (retCode != 0) {
+      if (retCode == MDB_NOTFOUND) {
         cerr << "schemaversion was set, but shards was not. Dazed and confused, trying to exit." << endl;
         mdb_txn_abort(txn);
         exit(1);
