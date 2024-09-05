@@ -91,11 +91,11 @@ std::pair<uint32_t, uint32_t> LMDBBackend::getSchemaVersionAndShards(std::string
   }
 
   {
-    int rc = mdb_env_open(tmpEnv, filename.c_str(), MDB_NOSUBDIR | MDB_RDONLY, 0600);
-    if (rc != 0) {
-      if (rc == ENOENT) {
+    int retCode = mdb_env_open(tmpEnv, filename.c_str(), MDB_NOSUBDIR | MDB_RDONLY, 0600);
+    if (retCode != 0) {
+      if (retCode == ENOENT) {
         // we don't have a database yet! report schema 0, with 0 shards
-        return {0u, 0u};
+        return {0U, 0U};
       }
       throw std::runtime_error("mdb_env_open failed");
     }
@@ -110,13 +110,13 @@ std::pair<uint32_t, uint32_t> LMDBBackend::getSchemaVersionAndShards(std::string
   MDB_dbi dbi;
 
   {
-    int rc = mdb_dbi_open(txn, "pdns", 0, &dbi);
-    if (rc != 0) {
-      if (rc == MDB_NOTFOUND) {
+    int retCode = mdb_dbi_open(txn, "pdns", 0, &dbi);
+    if (retCode != 0) {
+      if (retCode == MDB_NOTFOUND) {
         // this means nothing has been inited yet
         // we pretend this means 5
         mdb_txn_abort(txn);
-        return {5u, 0u};
+        return {5U, 0U};
       }
       mdb_txn_abort(txn);
       throw std::runtime_error("mdb_dbi_open failed");
@@ -129,13 +129,13 @@ std::pair<uint32_t, uint32_t> LMDBBackend::getSchemaVersionAndShards(std::string
   key.mv_size = strlen((char*)key.mv_data);
 
   {
-    int rc = mdb_get(txn, dbi, &key, &data);
-    if (rc != 0) {
-      if (rc == MDB_NOTFOUND) {
+    int retCode = mdb_get(txn, dbi, &key, &data);
+    if (retCode != 0) {
+      if (retCode == MDB_NOTFOUND) {
         // this means nothing has been inited yet
         // we pretend this means 5
         mdb_txn_abort(txn);
-        return {5u, 0u};
+        return {5U, 0U};
       }
 
       throw std::runtime_error("mdb_get pdns.schemaversion failed");
