@@ -133,7 +133,8 @@ std::pair<uint32_t, uint32_t> LMDBBackend::getSchemaVersionAndShards(std::string
     int rc = mdb_get(txn, dbi, &key, &data);
     if (rc != 0) {
       if (rc == MDB_NOTFOUND) {
-        // this means nothing has been inited yet we pretend this means 5
+        // this means nothing has been inited yet
+        // we pretend this means 5
         mdb_txn_abort(txn);
         return {5u, 0u};
       }
