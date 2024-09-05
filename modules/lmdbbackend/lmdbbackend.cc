@@ -101,7 +101,6 @@ std::pair<uint32_t, uint32_t> LMDBBackend::getSchemaVersionAndShards(std::string
     }
   }
 
-
   MDB_txn* txn = nullptr;
 
   if (mdb_txn_begin(tmpEnv, nullptr, MDB_RDONLY, &txn) != 0) {
