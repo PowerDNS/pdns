@@ -966,6 +966,8 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
   lua.writeFunction("createForward6", []() {
       DNSName rel=s_lua_record_ctx->qname.makeRelative(s_lua_record_ctx->zone);
       auto parts = rel.getRawLabels();
+      string address = "::";
+
       if(parts.size()==8) {
         string tot;
         for(int i=0; i<8; ++i) {
@@ -974,14 +976,12 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
           }
           tot+=parts[i];
         }
-        ComboAddress address(tot);
-        return address.toString();
+        address = tot;
       }
       else if(parts.size()==1) {
         if (parts[0].find('-') != std::string::npos) {
           boost::replace_all(parts[0],"-",":");
-          ComboAddress address(parts[0]);
-          return address.toString();
+          address = parts[0];
         } else {
           if (parts[0].size() >= 32) {
             auto ippart = parts[0].substr(parts[0].size()-32);
@@ -995,13 +995,20 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
               ippart.substr(24, 4) + ":" +
               ippart.substr(28, 4);
 
-            ComboAddress address(fulladdress);
-            return address.toString();
+            address = fulladdress;
           }
         }
       }
 
-      return std::string("::");
+      try {
+        ComboAddress caddress(address);
+        address = caddress.toString();
+      }
+      catch (PDNSException &error) {
+        address = "::";
+      }
+
+      return address;
     });
   lua.writeFunction("createReverse6", [](string format, boost::optional<std::unordered_map<string,string>> e){
       vector<ComboAddress> candidates;
