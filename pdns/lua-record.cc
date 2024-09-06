@@ -969,18 +969,19 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
       if(parts.size()==8) {
         string tot;
         for(int i=0; i<8; ++i) {
-          if(i)
+          if(i != 0) {
             tot.append(1,':');
+          }
           tot+=parts[i];
         }
-        ComboAddress ca(tot);
-        return ca.toString();
+        ComboAddress address(tot);
+        return address.toString();
       }
       else if(parts.size()==1) {
         if (parts[0].find('-') != std::string::npos) {
           boost::replace_all(parts[0],"-",":");
-          ComboAddress ca(parts[0]);
-          return ca.toString();
+          ComboAddress address(parts[0]);
+          return address.toString();
         } else {
           if (parts[0].size() >= 32) {
             auto ippart = parts[0].substr(parts[0].size()-32);
@@ -994,8 +995,8 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
               ippart.substr(24, 4) + ":" +
               ippart.substr(28, 4);
 
-            ComboAddress ca(fulladdress);
-            return ca.toString();
+            ComboAddress address(fulladdress);
+            return address.toString();
           }
         }
       }
