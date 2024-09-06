@@ -200,7 +200,7 @@ foreach name, info: conditional_sources
   endif
 endforeach
 
-conf.set('HAVE_BOOST_CONTAINER_FLAT_SET_HPP', have_boost_1_48_0, description: 'Boost version >= 1.48.0 has boost::container::flat_set')
+conf.set('HAVE_BOOST_CONTAINER_FLAT_SET_HPP', true)
 
 # Generate config.h
 config_h = configure_file(configuration: conf, output: 'config.h')

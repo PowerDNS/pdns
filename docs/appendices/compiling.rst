@@ -42,7 +42,7 @@ Furthermore, the Makefiles require GNU make, not BSD make.
 
 By default, the PowerDNS Authoritative Server requires the following libraries and headers:
 
-* `Boost <http://boost.org/>`_ 1.35 or newer
+* `Boost <http://boost.org/>`_ 1.54 or newer
 * `OpenSSL <https://openssl.org>`_
 
 To build from a Git repository clone, the following dependencies are also required:

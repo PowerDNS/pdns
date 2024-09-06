@@ -51,10 +51,7 @@ AC_FUNC_STRERROR_R
 
 PDNS_CHECK_CLOCK_GETTIME
 
-BOOST_REQUIRE([1.42])
-
-# Check against flat_set header that requires boost >= 1.48
-BOOST_FIND_HEADER([boost/container/flat_set.hpp], [AC_MSG_NOTICE([boost::container::flat_set not available, will fallback to std::set])])
+BOOST_REQUIRE([1.54])
 
 # Boost Context was introduced in 1.51 (Aug 2012), but there was an immediate
 # API break in 1.52 (Nov 2012), so we only support that, and later.

@@ -79,11 +79,7 @@ bool g_reusePort{false};
 bool g_gettagNeedsEDNSOptions{false};
 bool g_useKernelTimestamp;
 std::atomic<uint32_t> g_maxCacheEntries, g_maxPacketCacheEntries;
-#ifdef HAVE_BOOST_CONTAINER_FLAT_SET_HPP
 boost::container::flat_set<uint16_t> g_avoidUdpSourcePorts;
-#else
-std::set<uint16_t> g_avoidUdpSourcePorts;
-#endif
 uint16_t g_minUdpSourcePort;
 uint16_t g_maxUdpSourcePort;
 double g_balancingFactor;

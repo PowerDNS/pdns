@@ -217,11 +217,8 @@ template <typename Container> uint16_t GenericDNSPacketWriter<Container>::lookup
   */
   unsigned int bestpos=0;
   *matchLen=0;
-#if BOOST_VERSION >= 105400
-  boost::container::static_vector<uint16_t, 34> nvect, pvect;
-#else
-  vector<uint16_t> nvect, pvect;
-#endif
+  boost::container::static_vector<uint16_t, 34> nvect;
+  boost::container::static_vector<uint16_t, 34> pvect;
 
   try {
     for(auto riter= raw.cbegin(); riter < raw.cend(); ) {
