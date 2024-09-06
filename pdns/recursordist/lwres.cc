@@ -484,7 +484,7 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
       return ret;
     }
 
-    if (queryfd == -1) {
+    if (queryfd <= -1) {
       *chained = true;
     }
 

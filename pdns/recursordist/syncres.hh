@@ -763,7 +763,7 @@ struct PacketID
   PacketBuffer inMSG; // they'll go here
   PacketBuffer outMSG; // the outgoing message that needs to be sent
 
-  using chain_t = set<uint16_t>;
+  using chain_t = set<std::pair<int, uint16_t>>;
   mutable chain_t authReqChain;
   shared_ptr<TCPIOHandler> tcphandler{nullptr};
   timeval creationTime{};
