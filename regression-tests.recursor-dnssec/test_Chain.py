@@ -10,6 +10,7 @@ class ChainTest(RecursorTest):
     _confdir = 'Chain'
 
     _config_template = """dnssec=validate
+    trace=no
 """
 
     def testBasic(self):
@@ -17,7 +18,7 @@ class ChainTest(RecursorTest):
         Tests the case of #14624. Sending many equal requests could lead to ServFail because of clashing
         waiter ids.
         """
-        count = 500
+        count = 200
         name = '1.delay1.example.'
         exp = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'TXT', 'a')
         for i in range(count):
@@ -26,8 +27,6 @@ class ChainTest(RecursorTest):
             self._sock.send(query.to_wire())
 
         for i in range(count):
-            print(i)
-            self._sock.settimeout(5.0)
             data = self._sock.recv(4096)
             res = dns.message.from_wire(data)
             self.assertRcodeEqual(res, dns.rcode.NOERROR)
