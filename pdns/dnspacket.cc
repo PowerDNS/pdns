@@ -353,7 +353,7 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
         pos->dr.getContent()->toPacket(pw);
         if(pw.size() + optsize > (d_tcp ? 65535 : getMaxReplyLen())) {
           if (throwsOnTruncation) {
-            throw PDNSException("attempt to write an oversized chunk");
+            throw PDNSException("attempt to write an oversized chunk, see https://docs.powerdns.com/authoritative/settings.html#workaround-11804");
           }
           pw.rollback();
           pw.truncate();
