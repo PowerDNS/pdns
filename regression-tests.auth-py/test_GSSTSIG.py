@@ -33,6 +33,9 @@ dnsupdate-require-tsig=no
                  'KRB5_KTNAME' : './kerberos-client/kt.keytab'
                  }
 
+    # zones will be created by our own setUpClass() code
+    _zones = {}
+
     @classmethod
     def setUpClass(cls):
         super(GSSTSIGBase, cls).setUpClass()

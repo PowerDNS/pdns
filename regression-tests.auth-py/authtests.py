@@ -138,6 +138,68 @@ options {
             raise AssertionError('%s failed (%d): %s' % (pdnsutilCmd, e.returncode, e.output))
 
     @classmethod
+    def listKeys(cls, confdir: str, zonename: str):
+        zone = '.' if zonename == 'ROOT' else zonename
+        pdnsutilCmd = [os.environ['PDNSUTIL'],
+                       '--config-dir=%s' % confdir,
+                       'list-keys',
+                       zone]
+
+        print(' '.join(pdnsutilCmd))
+        try:
+            lines = subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as e:
+            raise AssertionError('%s failed (%d): %s' % (pdnsutilCmd, e.returncode, e.output))
+
+        keys = []
+        found_header = False
+        for line in lines.splitlines():
+            if not found_header:
+                if line.startswith(b"----"):
+                    found_header = True
+                continue
+            line = line.decode().split()
+            if not (len(line) >= 8 and line[1] in ("CSK", "KSK", "ZSK")):
+                continue
+            print(line)
+            keys.append(
+                {
+                    "zone": line[0],
+                    "type": line[1],
+                    "act": line[2],
+                    "pub": line[3],
+                    "size": int(line[4]),
+                    "algorithm": line[5],
+                    "id": int(line[6]),
+                    "location": line[7],
+                    "keytag": int(line[8]),
+                })
+        return keys
+
+    @classmethod
+    def exportZoneDnsKey(cls, confdir: str, zonename: str, keyid: int):
+        zone = '.' if zonename == 'ROOT' else zonename
+        pdnsutilCmd = [os.environ['PDNSUTIL'],
+                       '--config-dir=%s' % confdir,
+                       'export-zone-dnskey',
+                       zone,
+                       str(keyid)]
+
+        print(' '.join(pdnsutilCmd))
+        try:
+            lines = subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as e:
+            raise AssertionError('%s failed (%d): %s' % (pdnsutilCmd, e.returncode, e.output))
+
+        for line in lines.splitlines():
+            line = line.strip().decode().split(maxsplit=3)
+            print(line)
+            if line[2] == "DNSKEY":
+                _, rdclass, rdtype, key = line
+                return dns.rrset.from_text(dns.name.from_text(zone), 3600, rdclass, rdtype, key)
+        return None
+
+    @classmethod
     def secureZone(cls, confdir, zonename, key=None):
         zone = '.' if zonename == 'ROOT' else zonename
         if not key:
@@ -168,6 +230,7 @@ options {
     def generateAllAuthConfig(cls, confdir):
         cls.generateAuthConfig(confdir)
         cls.generateAuthNamedConf(confdir, cls._zones.keys())
+        cls._zone_dnskeys = {}
 
         for zonename, zonecontent in cls._zones.items():
             cls.generateAuthZone(confdir,
@@ -175,6 +238,10 @@ options {
                                  zonecontent)
             if cls._zone_keys.get(zonename, None):
                 cls.secureZone(confdir, zonename, cls._zone_keys.get(zonename))
+                zone_keys = cls.listKeys(confdir, zonename)
+                cls._zone_dnskeys[dns.name.from_text(zonename)] = cls.exportZoneDnsKey(
+                    confdir, zonename, zone_keys[-1]["id"]
+                )
 
     @classmethod
     def waitForTCPSocket(cls, ipaddress, port):
@@ -590,3 +657,16 @@ options {
 
         if not found:
             raise AssertionError("No SOA record found in the authority section:\n%s" % msg.to_text())
+
+    def assertSigned(self, msg: dns.message.Message, name: str | dns.name.Name, rdatatype: str | int):
+        if not isinstance(msg, dns.message.Message):
+            raise TypeError("msg is not a dns.message.Message but a %s" % type(msg))
+
+        name = dns.name.from_text(name)
+
+        if not isinstance(rdatatype, int):
+            rdatatype = dns.rdatatype.from_text(rdatatype)
+
+        rrset = msg.find_rrset(msg.answer, name, dns.rdataclass.IN, rdatatype)
+        rrsig = msg.find_rrset(msg.answer, name, dns.rdataclass.IN, dns.rdatatype.RRSIG, covers=rdatatype)
+        dns.dnssec.validate(rrset, rrsig, self._zone_dnskeys)

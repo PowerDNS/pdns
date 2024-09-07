@@ -154,6 +154,8 @@ xfr-cycle-interval=1
 #axfr-fetch-timeout=20
 """
 
+    _zones = {}  # zone setup happens in setUpClass
+
     @classmethod
     def setUpClass(cls):
         super(XFRIncompleteAuthTest, cls).setUpClass()

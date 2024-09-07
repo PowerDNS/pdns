@@ -62,32 +62,37 @@ subnetwrong.example.org.     3600 IN ALIAS subnetwrong.example.com.
             cls._ALIASResponder.start()
 
     def testNoError(self):
-        expected_a = [dns.rrset.from_text('noerror.example.org.',
+        name = 'noerror.example.org.'
+        expected_a = [dns.rrset.from_text(name,
                                           0, dns.rdataclass.IN, 'A',
                                           '192.0.2.1')]
-        expected_aaaa = [dns.rrset.from_text('noerror.example.org.',
+        expected_aaaa = [dns.rrset.from_text(name,
                                              0, dns.rdataclass.IN, 'AAAA',
                                              '2001:DB8::1')]
 
-        query = dns.message.make_query('noerror.example.org', 'A')
+        query = dns.message.make_query(name, 'A', want_dnssec=True)
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertAnyRRsetInAnswer(res, expected_a)
         self.assertEqual(len(res.options), 0)  # this checks that we don't invent ECS on non-ECS queries
+        self.assertSigned(res, name, dns.rdatatype.A)
 
-        query = dns.message.make_query('noerror.example.org', 'AAAA')
+        query = dns.message.make_query(name, 'AAAA', want_dnssec=True)
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertAnyRRsetInAnswer(res, expected_aaaa)
+        self.assertSigned(res, name, dns.rdatatype.AAAA)
 
-        query = dns.message.make_query('noerror.example.org', 'ANY')
+        query = dns.message.make_query(name, 'ANY', want_dnssec=True)
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertAnyRRsetInAnswer(res, expected_a)
         self.assertAnyRRsetInAnswer(res, expected_aaaa)
+        self.assertSigned(res, name, dns.rdatatype.A)
+        self.assertSigned(res, name, dns.rdatatype.AAAA)
 
         # NODATA
-        query = dns.message.make_query('noerror.example.org', 'MX')
+        query = dns.message.make_query(name, 'MX')
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertEqual(len(res.answer), 0)
@@ -121,31 +126,36 @@ subnetwrong.example.org.     3600 IN ALIAS subnetwrong.example.com.
         self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
 
     def testNoErrorTCP(self):
-        expected_a = [dns.rrset.from_text('noerror.example.org.',
+        name = 'noerror.example.org.'
+        expected_a = [dns.rrset.from_text(name,
                                           0, dns.rdataclass.IN, 'A',
                                           '192.0.2.1')]
-        expected_aaaa = [dns.rrset.from_text('noerror.example.org.',
+        expected_aaaa = [dns.rrset.from_text(name,
                                              0, dns.rdataclass.IN, 'AAAA',
                                              '2001:DB8::1')]
 
-        query = dns.message.make_query('noerror.example.org', 'A')
+        query = dns.message.make_query(name, 'A', want_dnssec=True)
         res = self.sendTCPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertAnyRRsetInAnswer(res, expected_a)
+        self.assertSigned(res, name, dns.rdatatype.A)
 
-        query = dns.message.make_query('noerror.example.org', 'AAAA')
+        query = dns.message.make_query(name, 'AAAA', want_dnssec=True)
         res = self.sendTCPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertAnyRRsetInAnswer(res, expected_aaaa)
+        self.assertSigned(res, name, dns.rdatatype.AAAA)
 
-        query = dns.message.make_query('noerror.example.org', 'ANY')
+        query = dns.message.make_query(name, 'ANY', want_dnssec=True)
         res = self.sendTCPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertAnyRRsetInAnswer(res, expected_a)
         self.assertAnyRRsetInAnswer(res, expected_aaaa)
+        self.assertSigned(res, name, dns.rdatatype.A)
+        self.assertSigned(res, name, dns.rdatatype.AAAA)
 
         # NODATA
-        query = dns.message.make_query('noerror.example.org', 'MX')
+        query = dns.message.make_query(name, 'MX', want_dnssec=True)
         res = self.sendTCPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertEqual(len(res.answer), 0)
