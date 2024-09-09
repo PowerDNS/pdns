@@ -3285,14 +3285,14 @@ If this check draws the wrong conclusion, you can disable it.
         'name' : 'trustanchors',
         'section' : 'dnssec',
         'type' : LType.ListTrustAnchors,
-        'default' : '[{name: ., dsrecords: [\'20326 8 2 e06d44b80b8f1d39a95c0b0d7c65d08458e880409bbc683457104237c7f8ec8d\']}]',
+        'default' : '[{name: ., dsrecords: [\'38696 8 2 683D2D0ACB8C9B712A1948B27F741219298D0A450D612C483AF444A4C0FB2B16\']}]',
         'docdefault' : '''
 
 .. code-block:: yaml
 
    - name: .
      dsrecords:
-     - 20326 8 2 e06d44b80b8f1d39a95c0b0d7c65d08458e880409bbc683457104237c7f8ec8d
+     - 38696 8 2 683D2D0ACB8C9B712A1948B27F741219298D0A450D612C483AF444A4C0FB2B16
 
 ''',
         'help' : 'Sequence of trust anchors',
