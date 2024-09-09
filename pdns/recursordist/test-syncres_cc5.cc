@@ -1603,8 +1603,8 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_nodata_nowildcard_duplicated_n
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
-  /* because we pass along the duplicated NSEC3 */
-  BOOST_REQUIRE_EQUAL(ret.size(), 9U);
+  /* the duplicated NSEC3 should have been dedupped */
+  BOOST_REQUIRE_EQUAL(ret.size(), 8U);
   BOOST_CHECK_EQUAL(queriesCount, 4U);
 
   /* again, to test the cache */
@@ -1612,8 +1612,8 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_nodata_nowildcard_duplicated_n
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
-  /* because we pass along the duplicated NSEC3 */
-  BOOST_REQUIRE_EQUAL(ret.size(), 9U);
+  /* the duplicated NSEC3 should have been dedupped */
+  BOOST_REQUIRE_EQUAL(ret.size(), 8U);
   BOOST_CHECK_EQUAL(queriesCount, 4U);
 }
 

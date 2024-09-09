@@ -39,6 +39,7 @@
 #include "dnsseckeeper.hh"
 #include "validate-recursor.hh"
 #include "rec-taskqueue.hh"
+#include "shuffle.hh"
 
 rec::GlobalCounters g_Counters;
 thread_local rec::TCounters t_Counters(g_Counters);
@@ -4433,6 +4434,9 @@ void SyncRes::sanitizeRecordsPass2(const std::string& prefix, LWResult& lwr, con
       }
     }
     lwr.d_records = std::move(vec);
+  }
+  if (auto count = pdns::dedup(lwr.d_records); count > 0) {
+    LOG(prefix << qname << ": Removed " << count << " duplicate records from response received from " << auth << endl);
   }
 }
 

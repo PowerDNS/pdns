@@ -325,6 +325,7 @@ testrunner_SOURCES = \
 	secpoll.cc \
 	settings/cxxsupport.cc \
 	sholder.hh \
+	shuffle.cc shuffle.hh \
 	sillyrecords.cc \
 	sortlist.cc sortlist.hh \
 	sstuff.hh \
@@ -365,6 +366,7 @@ testrunner_SOURCES = \
 	test-rpzloader_cc.cc \
 	test-secpoll_cc.cc \
 	test-settings.cc \
+	test-shuffle_cc.cc \
 	test-signers.cc \
 	test-syncres_cc.cc \
 	test-syncres_cc.hh \
