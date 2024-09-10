@@ -38,7 +38,6 @@ bool generateOptRR(const std::string& optRData, PacketBuffer& res, size_t maximu
 void generateECSOption(const ComboAddress& source, string& res, uint16_t ECSPrefixLength);
 int removeEDNSOptionFromOPT(char* optStart, size_t* optLen, const uint16_t optionCodeToRemove);
 int rewriteResponseWithoutEDNSOption(const PacketBuffer& initialPacket, const uint16_t optionCodeToSkip, PacketBuffer& newContent);
-int getEDNSOptionsStart(const PacketBuffer& packet, const size_t offset, uint16_t* optRDPosition, size_t* remaining);
 bool isEDNSOptionInOpt(const PacketBuffer& packet, const size_t optStart, const size_t optLen, const uint16_t optionCodeToFind, size_t* optContentStart = nullptr, uint16_t* optContentLen = nullptr);
 bool addEDNS(PacketBuffer& packet, size_t maximumSize, bool dnssecOK, uint16_t payloadSize, uint8_t ednsrcode);
 bool addEDNSToQueryTurnedResponse(DNSQuestion& dnsQuestion);
@@ -49,7 +48,6 @@ bool handleEDNSClientSubnet(PacketBuffer& packet, size_t maximumSize, size_t qna
 
 bool parseEDNSOptions(const DNSQuestion& dnsQuestion);
 
-int getEDNSZ(const DNSQuestion& dnsQuestion);
 bool queryHasEDNS(const DNSQuestion& dnsQuestion);
 bool getEDNS0Record(const PacketBuffer& packet, EDNS0Record& edns0);
 
@@ -59,4 +57,12 @@ struct InternalQueryState;
 namespace dnsdist
 {
 bool setInternalQueryRCode(InternalQueryState& state, PacketBuffer& buffer, uint8_t rcode, bool clearAnswers);
+/* this method only works for queries (qdcount == 1, ancount == nscount == 0, arcount == 1) */
+int getEDNSOptionsStart(const PacketBuffer& packet, const size_t qnameWireLength, uint16_t* optRDPosition, size_t* remaining);
+/* this method only works for queries (qdcount == 1, ancount == nscount == 0, arcount == 1) */
+int getEDNSZ(const DNSQuestion& dnsQuestion);
+/* this method only works for queries (qdcount == 1, ancount == nscount == 0, arcount == 1) */
+std::optional<uint8_t> getEDNSVersion(const DNSQuestion& dnsQuestion);
+/* this method only works for queries (qdcount == 1, ancount == nscount == 0, arcount == 1) */
+std::optional<uint8_t> getEDNSExtendedRCode(const DNSQuestion& dnsQuestion);
 }

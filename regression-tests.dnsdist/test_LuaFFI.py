@@ -70,6 +70,18 @@ class TestAdvancedLuaFFI(DNSDistTest):
         return false
       end
 
+      local ednsVersion = ffi.C.dnsdist_ffi_dnsquestion_get_edns_version(dq)
+      if ednsVersion ~= 0 then
+        print('invalid EDNS version')
+        return false
+      end
+
+      local ednsExtendedRCode = ffi.C.dnsdist_ffi_dnsquestion_get_edns_extended_rcode(dq)
+      if ednsExtendedRCode ~= 0 then
+        print('invalid EDNS Extended RCode')
+        return false
+      end
+
       local len = ffi.C.dnsdist_ffi_dnsquestion_get_len(dq)
       if len ~= 52 then
         print('invalid length')
@@ -226,7 +238,19 @@ class TestAdvancedLuaFFIPerThread(DNSDistTest):
           return false
         end
 
-        local len = ffi.C.dnsdist_ffi_dnsquestion_get_len(dq)
+        local ednsVersion = ffi.C.dnsdist_ffi_dnsquestion_get_edns_version(dq)
+        if ednsVersion ~= 0 then
+          print('invalid EDNS version')
+          return false
+        end
+
+        local ednsExtendedRCode = ffi.C.dnsdist_ffi_dnsquestion_get_edns_extended_rcode(dq)
+        if ednsExtendedRCode ~= 0 then
+          print('invalid EDNS Extended RCode')
+          return false
+        end
+
+      local len = ffi.C.dnsdist_ffi_dnsquestion_get_len(dq)
         if len ~= 61 then
           print('invalid length')
           print(len)

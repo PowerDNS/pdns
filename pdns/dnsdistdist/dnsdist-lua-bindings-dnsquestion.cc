@@ -122,7 +122,7 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
     }
     dnsQuestion.ids.d_protoBufData->d_requestorID = newValue; });
   luaCtx.registerFunction<bool (DNSQuestion::*)() const>("getDO", [](const DNSQuestion& dnsQuestion) {
-    return getEDNSZ(dnsQuestion) & EDNS_HEADER_FLAG_DO;
+    return dnsdist::getEDNSZ(dnsQuestion) & EDNS_HEADER_FLAG_DO;
   });
   luaCtx.registerFunction<std::string (DNSQuestion::*)() const>("getContent", [](const DNSQuestion& dnsQuestion) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
@@ -423,7 +423,7 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
     editDNSPacketTTL(reinterpret_cast<char*>(dnsResponse.getMutableData().data()), dnsResponse.getData().size(), editFunc);
   });
   luaCtx.registerFunction<bool (DNSResponse::*)() const>("getDO", [](const DNSResponse& dnsQuestion) {
-    return getEDNSZ(dnsQuestion) & EDNS_HEADER_FLAG_DO;
+    return dnsdist::getEDNSZ(dnsQuestion) & EDNS_HEADER_FLAG_DO;
   });
   luaCtx.registerFunction<std::string (DNSResponse::*)() const>("getContent", [](const DNSResponse& dnsQuestion) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)

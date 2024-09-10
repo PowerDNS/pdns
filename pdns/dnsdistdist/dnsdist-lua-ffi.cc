@@ -235,9 +235,21 @@ uint32_t dnsdist_ffi_dnsquestion_get_temp_failure_ttl(const dnsdist_ffi_dnsquest
   return 0;
 }
 
-bool dnsdist_ffi_dnsquestion_get_do(const dnsdist_ffi_dnsquestion_t* dq)
+bool dnsdist_ffi_dnsquestion_get_do(const dnsdist_ffi_dnsquestion_t* dnsQuestion)
 {
-  return getEDNSZ(*dq->dq) & EDNS_HEADER_FLAG_DO;
+  return (dnsdist::getEDNSZ(*dnsQuestion->dq) & EDNS_HEADER_FLAG_DO) != 0;
+}
+
+uint8_t dnsdist_ffi_dnsquestion_get_edns_version(const dnsdist_ffi_dnsquestion_t* dnsQuestion)
+{
+  auto version = dnsdist::getEDNSVersion(*dnsQuestion->dq);
+  return version ? *version : 0U;
+}
+
+uint8_t dnsdist_ffi_dnsquestion_get_edns_extended_rcode(const dnsdist_ffi_dnsquestion_t* dnsQuestion)
+{
+  auto rcode = dnsdist::getEDNSExtendedRCode(*dnsQuestion->dq);
+  return rcode ? *rcode : 0U;
 }
 
 void dnsdist_ffi_dnsquestion_get_sni(const dnsdist_ffi_dnsquestion_t* dq, const char** sni, size_t* sniSize)

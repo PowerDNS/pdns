@@ -1489,7 +1489,7 @@ static int getZ(const DNSName& qname, const uint16_t qtype, const uint16_t qclas
 
   auto dnsQuestion = DNSQuestion(ids, query);
 
-  return getEDNSZ(dnsQuestion);
+  return dnsdist::getEDNSZ(dnsQuestion);
 }
 
 BOOST_AUTO_TEST_CASE(test_getEDNSZ)
@@ -1593,6 +1593,131 @@ BOOST_AUTO_TEST_CASE(test_getEDNSZ)
   }
 }
 
+BOOST_AUTO_TEST_CASE(test_getEDNSVersion)
+{
+  const DNSName qname("www.powerdns.com.");
+  const uint16_t qtype = QType::A;
+  const uint16_t qclass = QClass::IN;
+  const GenericDNSPacketWriter<PacketBuffer>::optvect_t opts;
+
+  auto getVersion = [&qname](PacketBuffer& query) {
+    InternalQueryState ids;
+    ids.protocol = dnsdist::Protocol::DoUDP;
+    ids.qname = qname;
+    ids.qtype = qtype;
+    ids.qclass = qclass;
+    ids.origDest = ComboAddress("127.0.0.1");
+    ids.origRemote = ComboAddress("127.0.0.1");
+    ids.queryRealTime.start();
+
+    auto dnsQuestion = DNSQuestion(ids, query);
+
+    return dnsdist::getEDNSVersion(dnsQuestion);
+  };
+
+  {
+    /* no EDNS */
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> packetWriter(query, qname, qtype, qclass, 0);
+    packetWriter.commit();
+
+    BOOST_CHECK(getVersion(query) == std::nullopt);
+  }
+
+  {
+    /* truncated EDNS */
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> packetWriter(query, qname, qtype, qclass, 0);
+    packetWriter.addOpt(512, 0, EDNS_HEADER_FLAG_DO);
+    packetWriter.commit();
+
+    query.resize(query.size() - (/* RDLEN */ sizeof(uint16_t) + /* TTL */ 2));
+    BOOST_CHECK(getVersion(query) == std::nullopt);
+  }
+
+  {
+    /* valid EDNS, no options */
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> packetWriter(query, qname, qtype, qclass, 0);
+    packetWriter.addOpt(512, 0, 0);
+    packetWriter.commit();
+
+    BOOST_CHECK_EQUAL(*getVersion(query), 0U);
+  }
+
+  {
+    /* EDNS version 255 */
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> packetWriter(query, qname, qtype, qclass, 0);
+    packetWriter.addOpt(512, 0, EDNS_HEADER_FLAG_DO, opts, 255U);
+    packetWriter.commit();
+
+    BOOST_CHECK_EQUAL(*getVersion(query), 255U);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_getEDNSExtendedRCode)
+{
+  const DNSName qname("www.powerdns.com.");
+  const uint16_t qtype = QType::A;
+  const uint16_t qclass = QClass::IN;
+
+  auto getExtendedRCode = [&qname](PacketBuffer& query) {
+    InternalQueryState ids;
+    ids.protocol = dnsdist::Protocol::DoUDP;
+    ids.qname = qname;
+    ids.qtype = qtype;
+    ids.qclass = qclass;
+    ids.origDest = ComboAddress("127.0.0.1");
+    ids.origRemote = ComboAddress("127.0.0.1");
+    ids.queryRealTime.start();
+
+    auto dnsQuestion = DNSQuestion(ids, query);
+
+    return dnsdist::getEDNSExtendedRCode(dnsQuestion);
+  };
+
+  {
+    /* no EDNS */
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> packetWriter(query, qname, qtype, qclass, 0);
+    packetWriter.commit();
+
+    BOOST_CHECK(getExtendedRCode(query) == std::nullopt);
+  }
+
+  {
+    /* truncated EDNS */
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> packetWriter(query, qname, qtype, qclass, 0);
+    packetWriter.addOpt(512, 0, EDNS_HEADER_FLAG_DO);
+    packetWriter.commit();
+
+    query.resize(query.size() - (/* RDLEN */ sizeof(uint16_t) + /* TTL */ 2));
+    BOOST_CHECK(getExtendedRCode(query) == std::nullopt);
+  }
+
+  {
+    /* valid EDNS, no options */
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> packetWriter(query, qname, qtype, qclass, 0);
+    packetWriter.addOpt(512, 0, 0);
+    packetWriter.commit();
+
+    BOOST_CHECK_EQUAL(*getExtendedRCode(query), 0U);
+  }
+
+  {
+    /* EDNS extended RCode 4095 (15 for the normal RCode, 255 for the EDNS part) */
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> packetWriter(query, qname, qtype, qclass, 0);
+    packetWriter.addOpt(512, 4095U, EDNS_HEADER_FLAG_DO);
+    packetWriter.commit();
+
+    BOOST_CHECK_EQUAL(*getExtendedRCode(query), 255U);
+  }
+}
+
 BOOST_AUTO_TEST_CASE(test_addEDNSToQueryTurnedResponse)
 {
   InternalQueryState ids;
@@ -1622,7 +1747,9 @@ BOOST_AUTO_TEST_CASE(test_addEDNSToQueryTurnedResponse)
     packetWriter.commit();
 
     auto dnsQuestion = turnIntoResponse(ids, query);
-    BOOST_CHECK_EQUAL(getEDNSZ(dnsQuestion), 0);
+    BOOST_CHECK_EQUAL(dnsdist::getEDNSZ(dnsQuestion), 0);
+    BOOST_CHECK(dnsdist::getEDNSVersion(dnsQuestion) == std::nullopt);
+    BOOST_CHECK(dnsdist::getEDNSExtendedRCode(dnsQuestion) == std::nullopt);
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(dnsQuestion.getData().data()), dnsQuestion.getData().size(), &udpPayloadSize, &zValue), false);
     BOOST_CHECK_EQUAL(zValue, 0);
@@ -1638,7 +1765,9 @@ BOOST_AUTO_TEST_CASE(test_addEDNSToQueryTurnedResponse)
 
     query.resize(query.size() - (/* RDLEN */ sizeof(uint16_t) + /* last byte of TTL / Z */ 1));
     auto dnsQuestion = turnIntoResponse(ids, query, false);
-    BOOST_CHECK_EQUAL(getEDNSZ(dnsQuestion), 0);
+    BOOST_CHECK_EQUAL(dnsdist::getEDNSZ(dnsQuestion), 0);
+    BOOST_CHECK(dnsdist::getEDNSVersion(dnsQuestion) == std::nullopt);
+    BOOST_CHECK(dnsdist::getEDNSExtendedRCode(dnsQuestion) == std::nullopt);
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(dnsQuestion.getData().data()), dnsQuestion.getData().size(), &udpPayloadSize, &zValue), false);
     BOOST_CHECK_EQUAL(zValue, 0);
@@ -1653,7 +1782,9 @@ BOOST_AUTO_TEST_CASE(test_addEDNSToQueryTurnedResponse)
     packetWriter.commit();
 
     auto dnsQuestion = turnIntoResponse(ids, query);
-    BOOST_CHECK_EQUAL(getEDNSZ(dnsQuestion), 0);
+    BOOST_CHECK_EQUAL(dnsdist::getEDNSZ(dnsQuestion), 0);
+    BOOST_CHECK_EQUAL(*dnsdist::getEDNSVersion(dnsQuestion), 0U);
+    BOOST_CHECK_EQUAL(*dnsdist::getEDNSExtendedRCode(dnsQuestion), 0U);
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(dnsQuestion.getData().data()), dnsQuestion.getData().size(), &udpPayloadSize, &zValue), true);
     BOOST_CHECK_EQUAL(zValue, 0);
@@ -1668,7 +1799,9 @@ BOOST_AUTO_TEST_CASE(test_addEDNSToQueryTurnedResponse)
     packetWriter.commit();
 
     auto dnsQuestion = turnIntoResponse(ids, query);
-    BOOST_CHECK_EQUAL(getEDNSZ(dnsQuestion), EDNS_HEADER_FLAG_DO);
+    BOOST_CHECK_EQUAL(dnsdist::getEDNSZ(dnsQuestion), EDNS_HEADER_FLAG_DO);
+    BOOST_CHECK_EQUAL(*dnsdist::getEDNSVersion(dnsQuestion), 0U);
+    BOOST_CHECK_EQUAL(*dnsdist::getEDNSExtendedRCode(dnsQuestion), 0U);
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(dnsQuestion.getData().data()), dnsQuestion.getData().size(), &udpPayloadSize, &zValue), true);
     BOOST_CHECK_EQUAL(zValue, EDNS_HEADER_FLAG_DO);
@@ -1683,7 +1816,9 @@ BOOST_AUTO_TEST_CASE(test_addEDNSToQueryTurnedResponse)
     packetWriter.commit();
 
     auto dnsQuestion = turnIntoResponse(ids, query);
-    BOOST_CHECK_EQUAL(getEDNSZ(dnsQuestion), 0);
+    BOOST_CHECK_EQUAL(dnsdist::getEDNSZ(dnsQuestion), 0);
+    BOOST_CHECK_EQUAL(*dnsdist::getEDNSVersion(dnsQuestion), 0U);
+    BOOST_CHECK_EQUAL(*dnsdist::getEDNSExtendedRCode(dnsQuestion), 0U);
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(dnsQuestion.getData().data()), dnsQuestion.getData().size(), &udpPayloadSize, &zValue), true);
     BOOST_CHECK_EQUAL(zValue, 0);
@@ -1698,7 +1833,9 @@ BOOST_AUTO_TEST_CASE(test_addEDNSToQueryTurnedResponse)
     packetWriter.commit();
 
     auto dnsQuestion = turnIntoResponse(ids, query);
-    BOOST_CHECK_EQUAL(getEDNSZ(dnsQuestion), EDNS_HEADER_FLAG_DO);
+    BOOST_CHECK_EQUAL(dnsdist::getEDNSZ(dnsQuestion), EDNS_HEADER_FLAG_DO);
+    BOOST_CHECK_EQUAL(*dnsdist::getEDNSVersion(dnsQuestion), 0U);
+    BOOST_CHECK_EQUAL(*dnsdist::getEDNSExtendedRCode(dnsQuestion), 0U);
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(dnsQuestion.getData().data()), dnsQuestion.getData().size(), &udpPayloadSize, &zValue), true);
     BOOST_CHECK_EQUAL(zValue, EDNS_HEADER_FLAG_DO);
@@ -1730,13 +1867,13 @@ BOOST_AUTO_TEST_CASE(test_getEDNSOptionsStart)
     packetWriter.getHeader()->rcode = RCode::NXDomain;
     packetWriter.commit();
 
-    int res = getEDNSOptionsStart(query, qname.wirelength(), &optRDPosition, &remaining);
+    int res = dnsdist::getEDNSOptionsStart(query, qname.wirelength(), &optRDPosition, &remaining);
 
     BOOST_CHECK_EQUAL(res, ENOENT);
 
     /* truncated packet (should not matter) */
     query.resize(query.size() - 1);
-    res = getEDNSOptionsStart(query, qname.wirelength(), &optRDPosition, &remaining);
+    res = dnsdist::getEDNSOptionsStart(query, qname.wirelength(), &optRDPosition, &remaining);
 
     BOOST_CHECK_EQUAL(res, ENOENT);
   }
@@ -1748,7 +1885,7 @@ BOOST_AUTO_TEST_CASE(test_getEDNSOptionsStart)
     packetWriter.addOpt(512, 0, 0);
     packetWriter.commit();
 
-    int res = getEDNSOptionsStart(query, qname.wirelength(), &optRDPosition, &remaining);
+    int res = dnsdist::getEDNSOptionsStart(query, qname.wirelength(), &optRDPosition, &remaining);
 
     BOOST_CHECK_EQUAL(res, 0);
     BOOST_CHECK_EQUAL(optRDPosition, optRDExpectedOffset);
@@ -1757,7 +1894,7 @@ BOOST_AUTO_TEST_CASE(test_getEDNSOptionsStart)
     /* truncated packet */
     query.resize(query.size() - 1);
 
-    res = getEDNSOptionsStart(query, qname.wirelength(), &optRDPosition, &remaining);
+    res = dnsdist::getEDNSOptionsStart(query, qname.wirelength(), &optRDPosition, &remaining);
     BOOST_CHECK_EQUAL(res, ENOENT);
   }
 
@@ -1768,7 +1905,7 @@ BOOST_AUTO_TEST_CASE(test_getEDNSOptionsStart)
     packetWriter.addOpt(512, 0, 0, opts);
     packetWriter.commit();
 
-    int res = getEDNSOptionsStart(query, qname.wirelength(), &optRDPosition, &remaining);
+    int res = dnsdist::getEDNSOptionsStart(query, qname.wirelength(), &optRDPosition, &remaining);
 
     BOOST_CHECK_EQUAL(res, 0);
     BOOST_CHECK_EQUAL(optRDPosition, optRDExpectedOffset);
@@ -1776,7 +1913,7 @@ BOOST_AUTO_TEST_CASE(test_getEDNSOptionsStart)
 
     /* truncated options (should not matter for this test) */
     query.resize(query.size() - 1);
-    res = getEDNSOptionsStart(query, qname.wirelength(), &optRDPosition, &remaining);
+    res = dnsdist::getEDNSOptionsStart(query, qname.wirelength(), &optRDPosition, &remaining);
     BOOST_CHECK_EQUAL(res, 0);
     BOOST_CHECK_EQUAL(optRDPosition, optRDExpectedOffset);
     BOOST_CHECK_EQUAL(remaining, query.size() - optRDExpectedOffset);
