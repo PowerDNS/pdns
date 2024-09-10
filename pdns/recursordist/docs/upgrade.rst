@@ -21,6 +21,19 @@ There is a new metric ``tcp-overflow`` that counts the connections closed immedi
 The recursor.conf configuration file may contain YAML configuration syntax and new installs using our packages from repo.powerdns.com will install a configuration file using YAML syntax.
 Note to third-party package maintainers: please start doing the same.
 
+.. warning::
+
+   If you are using the default *unmodified* ``recursor.conf`` from a previous release, it will be overwritten by an equivalent ``recursor.conf`` in YAML format by most packaging tools.
+   If you *also* have local setting files in the include directory, these are now expected to be in YAML format as well, because the format of the included files must be the same as the format of the main ``recursor.conf``.
+   This has the consequence that the previously included files will not be processed after the upgrade.
+   To work around this issue, either:
+
+   - modify the ``recursor.conf`` before upgrading so it does not get overwritten by the upgrade,
+   - copy back the original old-style ``recursor.conf`` after upgrading,
+   - or change the format of the existing included files into YAML and make sure their names have the ``.yml`` suffix.
+
+   A *modified* ``recursor.conf`` file will not be overwritten by an upgrade.
+
 New settings
 ^^^^^^^^^^^^
 
