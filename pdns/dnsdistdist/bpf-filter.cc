@@ -33,9 +33,9 @@
 
 #include "misc.hh"
 
-static __u64 ptr_to_u64(const void *ptr)
+static __u64 ptr_to_u64(const void* ptr)
 {
-  return (__u64) (unsigned long) ptr;
+  return (__u64)(unsigned long)ptr;
 }
 
 /* these can be static as they are not declared in libbpf.h: */
@@ -97,7 +97,7 @@ static int bpf_create_map(enum bpf_map_type map_type, int key_size, int value_si
   return syscall(SYS_bpf, BPF_MAP_CREATE, &attr, sizeof(attr));
 }
 
-static int bpf_update_elem(int descriptor, void *key, void *value, unsigned long long flags)
+static int bpf_update_elem(int descriptor, void* key, void* value, unsigned long long flags)
 {
   union bpf_attr attr;
   memset(&attr, 0, sizeof(attr));
@@ -108,7 +108,7 @@ static int bpf_update_elem(int descriptor, void *key, void *value, unsigned long
   return syscall(SYS_bpf, BPF_MAP_UPDATE_ELEM, &attr, sizeof(attr));
 }
 
-static int bpf_lookup_elem(int descriptor, void *key, void *value)
+static int bpf_lookup_elem(int descriptor, void* key, void* value)
 {
   union bpf_attr attr;
   memset(&attr, 0, sizeof(attr));
@@ -118,7 +118,7 @@ static int bpf_lookup_elem(int descriptor, void *key, void *value)
   return syscall(SYS_bpf, BPF_MAP_LOOKUP_ELEM, &attr, sizeof(attr));
 }
 
-static int bpf_delete_elem(int descriptor, void *key)
+static int bpf_delete_elem(int descriptor, void* key)
 {
   union bpf_attr attr;
   memset(&attr, 0, sizeof(attr));
@@ -127,7 +127,7 @@ static int bpf_delete_elem(int descriptor, void *key)
   return syscall(SYS_bpf, BPF_MAP_DELETE_ELEM, &attr, sizeof(attr));
 }
 
-static int bpf_get_next_key(int descriptor, void *key, void *next_key)
+static int bpf_get_next_key(int descriptor, void* key, void* next_key)
 {
   union bpf_attr attr;
   memset(&attr, 0, sizeof(attr));
@@ -138,16 +138,16 @@ static int bpf_get_next_key(int descriptor, void *key, void *next_key)
 }
 
 static int bpf_prog_load(enum bpf_prog_type prog_type,
-                         const struct bpf_insn *insns, size_t prog_len,
-                         const char *license, int kern_version)
+                         const struct bpf_insn* insns, size_t prog_len,
+                         const char* license, int kern_version)
 {
   char log_buf[65535];
   union bpf_attr attr;
   memset(&attr, 0, sizeof(attr));
   attr.prog_type = prog_type;
-  attr.insns = ptr_to_u64((void *) insns);
+  attr.insns = ptr_to_u64((void*)insns);
   attr.insn_cnt = static_cast<int>(prog_len / sizeof(struct bpf_insn));
-  attr.license = ptr_to_u64((void *) license);
+  attr.license = ptr_to_u64((void*)license);
   attr.log_buf = ptr_to_u64(log_buf);
   attr.log_size = sizeof(log_buf);
   attr.log_level = 1;
@@ -195,8 +195,8 @@ struct QNameValue
   uint16_t qtype{0};
 };
 
-
-BPFFilter::Map::Map(const BPFFilter::MapConfiguration& config, BPFFilter::MapFormat format): d_config(config)
+BPFFilter::Map::Map(const BPFFilter::MapConfiguration& config, BPFFilter::MapFormat format) :
+  d_config(config)
 {
   if (d_config.d_type == BPFFilter::MapType::Filters) {
     /* special case, this is a map of eBPF programs */
@@ -348,7 +348,6 @@ static FDWrapper loadProgram(const struct bpf_insn* filter, size_t filterSize)
   }
   return descriptor;
 }
-
 
 BPFFilter::BPFFilter(std::unordered_map<std::string, MapConfiguration>& configs, BPFFilter::MapFormat format, bool external) :
   d_mapFormat(format), d_external(external)
@@ -710,9 +709,9 @@ void BPFFilter::unblock(const DNSName& qname, uint16_t qtype)
   }
 }
 
-std::vector<std::pair<ComboAddress, uint64_t> > BPFFilter::getAddrStats()
+std::vector<std::pair<ComboAddress, uint64_t>> BPFFilter::getAddrStats()
 {
-  std::vector<std::pair<ComboAddress, uint64_t> > result;
+  std::vector<std::pair<ComboAddress, uint64_t>> result;
   {
     auto maps = d_maps.lock();
     result.reserve(maps->d_v4.d_count + maps->d_v6.d_count);
@@ -744,8 +743,8 @@ std::vector<std::pair<ComboAddress, uint64_t> > BPFFilter::getAddrStats()
     while (res == 0) {
       v4Key = nextV4Key;
       if (bpf_lookup_elem(map.d_fd.getHandle(), &v4Key, &value) == 0) {
-      v4Addr.sin_addr.s_addr = ntohl(v4Key);
-      result.emplace_back(ComboAddress(&v4Addr), value.counter);
+        v4Addr.sin_addr.s_addr = ntohl(v4Key);
+        result.emplace_back(ComboAddress(&v4Addr), value.counter);
       }
 
       res = bpf_get_next_key(map.d_fd.getHandle(), &v4Key, &nextV4Key);
@@ -816,13 +815,13 @@ std::vector<std::pair<Netmask, CounterAndActionValue>> BPFFilter::getRangeRule()
   return result;
 }
 
-std::vector<std::tuple<DNSName, uint16_t, uint64_t> > BPFFilter::getQNameStats()
+std::vector<std::tuple<DNSName, uint16_t, uint64_t>> BPFFilter::getQNameStats()
 {
-  std::vector<std::tuple<DNSName, uint16_t, uint64_t> > result;
+  std::vector<std::tuple<DNSName, uint16_t, uint64_t>> result;
 
   if (d_mapFormat == MapFormat::Legacy) {
-    QNameKey key = { { 0 } };
-    QNameKey nextKey = { { 0 } };
+    QNameKey key = {{0}};
+    QNameKey nextKey = {{0}};
     QNameValue value;
 
     auto maps = d_maps.lock();
@@ -832,7 +831,7 @@ std::vector<std::tuple<DNSName, uint16_t, uint64_t> > BPFFilter::getQNameStats()
 
     while (res == 0) {
       if (bpf_lookup_elem(map.d_fd.getHandle(), &nextKey, &value) == 0) {
-        nextKey.qname[sizeof(nextKey.qname) - 1 ] = '\0';
+        nextKey.qname[sizeof(nextKey.qname) - 1] = '\0';
         result.emplace_back(DNSName(reinterpret_cast<const char*>(nextKey.qname), sizeof(nextKey.qname), 0, false), value.qtype, value.counter);
       }
 
@@ -853,7 +852,7 @@ std::vector<std::tuple<DNSName, uint16_t, uint64_t> > BPFFilter::getQNameStats()
 
     while (res == 0) {
       if (bpf_lookup_elem(map.d_fd.getHandle(), &nextKey, &value) == 0) {
-        nextKey.qname[sizeof(nextKey.qname) - 1 ] = '\0';
+        nextKey.qname[sizeof(nextKey.qname) - 1] = '\0';
         result.emplace_back(DNSName(reinterpret_cast<const char*>(nextKey.qname), sizeof(nextKey.qname), 0, false), key.qtype, value.counter);
       }
 
@@ -941,19 +940,20 @@ void BPFFilter::rmRangeRule(const Netmask&)
   throw std::runtime_error("eBPF support not enabled");
 }
 
-std::vector<std::pair<Netmask, CounterAndActionValue>> BPFFilter::getRangeRule(){
+std::vector<std::pair<Netmask, CounterAndActionValue>> BPFFilter::getRangeRule()
+{
   std::vector<std::pair<Netmask, CounterAndActionValue>> result;
   return result;
 }
-std::vector<std::pair<ComboAddress, uint64_t> > BPFFilter::getAddrStats()
+std::vector<std::pair<ComboAddress, uint64_t>> BPFFilter::getAddrStats()
 {
-  std::vector<std::pair<ComboAddress, uint64_t> > result;
+  std::vector<std::pair<ComboAddress, uint64_t>> result;
   return result;
 }
 
-std::vector<std::tuple<DNSName, uint16_t, uint64_t> > BPFFilter::getQNameStats()
+std::vector<std::tuple<DNSName, uint16_t, uint64_t>> BPFFilter::getQNameStats()
 {
-  std::vector<std::tuple<DNSName, uint16_t, uint64_t> > result;
+  std::vector<std::tuple<DNSName, uint16_t, uint64_t>> result;
   return result;
 }
 

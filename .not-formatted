@@ -19,8 +19,6 @@
 ./pdns/base64.cc
 ./pdns/base64.hh
 ./pdns/bindparserclasses.hh
-./pdns/bpf-filter.cc
-./pdns/bpf-filter.hh
 ./pdns/calidns.cc
 ./pdns/capabilities.cc
 ./pdns/cdb.cc
@@ -28,8 +26,6 @@
 ./pdns/comfun.cc
 ./pdns/comment.hh
 ./pdns/dbdnsseckeeper.cc
-./pdns/delaypipe.cc
-./pdns/delaypipe.hh
 ./pdns/distributor.hh
 ./pdns/dns.cc
 ./pdns/dns.hh
@@ -88,7 +84,6 @@
 ./pdns/dnswasher.cc
 ./pdns/dnswriter.cc
 ./pdns/dnswriter.hh
-./pdns/doh.hh
 ./pdns/dumresp.cc
 ./pdns/dynhandler.cc
 ./pdns/dynhandler.hh

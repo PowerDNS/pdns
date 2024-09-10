@@ -27,30 +27,30 @@
 
 /**
    General idea: many threads submit work to this class, but only one executes it. The work should therefore be entirely trivial.
-   The implementation is that submitter threads create an object that represents the work, and it gets sent over a pipe 
+   The implementation is that submitter threads create an object that represents the work, and it gets sent over a pipe
    to the worker thread.
 
    The worker thread meanwhile listens on this pipe (non-blocking), with a delay set to the next object that needs to be executed.
    If meanwhile new work comes in, all objects who's time has come are executed, a new sleep time is calculated.
 */
 
-
 /* ObjectPipe facilitates the type-safe passing of types over a pipe */
 
-template<class T>
+template <class T>
 class ObjectPipe
 {
 public:
   ObjectPipe();
   void write(T& t);
   int readTimeout(T* t, double msec); //!< -1 is timeout, 0 is no data, 1 is data. msec<0 waits infinitely long. msec==0 = undefined
-  void close(); 
+  void close();
+
 private:
   pdns::channel::Sender<T> d_sender;
   pdns::channel::Receiver<T> d_receiver;
 };
 
-template<class T>
+template <class T>
 class DelayPipe
 {
 public:
@@ -68,11 +68,12 @@ private:
 
   double tsdelta(const struct timespec& a, const struct timespec& b) // read as a-b
   {
-    return 1.0*(a.tv_sec-b.tv_sec)+1.0*(a.tv_nsec-b.tv_nsec)/1000000000.0;
+    return 1.0 * (a.tv_sec - b.tv_sec) + 1.0 * (a.tv_nsec - b.tv_nsec) / 1000000000.0;
   }
 
   ObjectPipe<Combo> d_pipe;
-  struct tscomp {
+  struct tscomp
+  {
     bool operator()(const struct timespec& a, const struct timespec& b) const
     {
       return std::tie(a.tv_sec, a.tv_nsec) < std::tie(b.tv_sec, b.tv_nsec);

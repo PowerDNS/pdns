@@ -32,7 +32,8 @@
 class BPFFilter
 {
 public:
-  enum class MapType : uint8_t {
+  enum class MapType : uint8_t
+  {
     IPv4,
     IPv6,
     QNames,
@@ -41,12 +42,14 @@ public:
     CIDR6
   };
 
-  enum class MapFormat : uint8_t {
+  enum class MapFormat : uint8_t
+  {
     Legacy = 0,
     WithActions = 1
   };
 
-  enum class MatchAction : uint8_t {
+  enum class MatchAction : uint8_t
+  {
     Pass = 0,
     Drop = 1,
     Truncate = 2
@@ -76,7 +79,6 @@ public:
     uint64_t counter{0};
     BPFFilter::MatchAction action{BPFFilter::MatchAction::Pass};
   };
-  
 
   BPFFilter(std::unordered_map<std::string, MapConfiguration>& configs, BPFFilter::MapFormat format, bool external);
   BPFFilter(const BPFFilter&) = delete;
@@ -88,14 +90,14 @@ public:
   void removeSocket(int sock);
   void block(const ComboAddress& addr, MatchAction action);
   void addRangeRule(const Netmask& address, bool force, BPFFilter::MatchAction action);
-  void block(const DNSName& qname, MatchAction action, uint16_t qtype=255);
+  void block(const DNSName& qname, MatchAction action, uint16_t qtype = 255);
   void unblock(const ComboAddress& addr);
   void rmRangeRule(const Netmask& address);
-  void unblock(const DNSName& qname, uint16_t qtype=255);
+  void unblock(const DNSName& qname, uint16_t qtype = 255);
 
-  std::vector<std::pair<ComboAddress, uint64_t> > getAddrStats();
+  std::vector<std::pair<ComboAddress, uint64_t>> getAddrStats();
   std::vector<std::pair<Netmask, CounterAndActionValue>> getRangeRule();
-  std::vector<std::tuple<DNSName, uint16_t, uint64_t> > getQNameStats();
+  std::vector<std::tuple<DNSName, uint16_t, uint64_t>> getQNameStats();
 
   uint64_t getHits(const ComboAddress& requestor);
 
