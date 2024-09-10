@@ -42,7 +42,7 @@
 // there can be MANY OF THESE
 void CommunicatorClass::retrievalLoopThread()
 {
-  setThreadName("pdns/comm-retre");
+  setThreadName("pdns/comm-retri");
   for (;;) {
     d_suck_sem.wait();
     SuckRequest sr;
