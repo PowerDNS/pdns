@@ -1498,11 +1498,24 @@ Status, Statistics and More
 
 .. function:: topSlow([num[, limit[, labels]]])
 
+  .. versionchanged:: 1.9.7
+    queries that timed out are no longer reported by ``topSlow``, see :func:`topTimeouts` instead
+
   Print the ``num`` slowest queries that are slower than ``limit`` milliseconds.
   Optionally grouped by the rightmost ``labels`` DNS labels.
 
   :param int num: Number to show, defaults to 10
   :param int limit: Show queries slower than this amount of milliseconds, defaults to 2000
+  :param int label: Number of labels to cut down to
+
+.. function:: topTimeouts([num[, labels]])
+
+  .. versionadded:: 1.9.7
+
+  Print the ``num`` queries that timed out the most.
+  Optionally grouped by the rightmost ``labels`` DNS labels.
+
+  :param int num: Number to show, defaults to 10
   :param int label: Number of labels to cut down to
 
 .. _dynblocksref:
