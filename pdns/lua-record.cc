@@ -204,6 +204,10 @@ private:
           statuses->erase(it);
         }
       }
+
+      // set thread name again, in case std::async surprised us by doing work in this thread
+      setThreadName("pdns/luaupcheck");
+
       std::this_thread::sleep_until(checkStart + std::chrono::seconds(g_luaHealthChecksInterval));
     }
   }
