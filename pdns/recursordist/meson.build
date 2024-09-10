@@ -200,8 +200,6 @@ foreach name, info: conditional_sources
   endif
 endforeach
 
-conf.set('HAVE_BOOST_CONTAINER_FLAT_SET_HPP', true)
-
 # Generate config.h
 config_h = configure_file(configuration: conf, output: 'config.h')
 
