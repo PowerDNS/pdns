@@ -110,9 +110,6 @@ string getBuildConfiguration()
 #ifdef HAVE_LIBDECAF
       << " decaf"
 #endif
-#ifdef HAVE_BOOST_CONTEXT
-      << " fcontext"
-#endif
 #ifdef HAVE_LIBCRYPTO_ECDSA
       << " libcrypto-ecdsa"
 #endif
