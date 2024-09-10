@@ -118,7 +118,7 @@ extern "C"
   threadWrapper(intptr_t const xargs)
   {
 #else
-  threadWrapper(transfer_t const t)
+  threadWrapper(transfer_t const theThread)
   {
 #endif
     /* Access the args passed from pdns_makecontext, and copy them directly from
@@ -132,26 +132,26 @@ extern "C"
      */
     notifyStackSwitchDone();
 #if BOOST_VERSION < 106100
-    auto args = reinterpret_cast<args_t*>(xargs);
+    auto* args = reinterpret_cast<args_t*>(xargs);
 #else
-    auto args = reinterpret_cast<args_t*>(t.data);
+    auto* args = static_cast<args_t*>(theThread.data);
 #endif
-    auto ctx = args->self;
-    auto work = args->work;
+    auto* ctx = args->self;
+    auto* work = args->work;
     /* we switch back to pdns_makecontext() */
     notifyStackSwitchToKernel();
 #if BOOST_VERSION < 106100
     jump_fcontext(reinterpret_cast<fcontext_t*>(&ctx->uc_mcontext),
                   static_cast<fcontext_t>(args->prev_ctx), 0);
 #else
-    transfer_t res = jump_fcontext(t.fctx, 0);
+    transfer_t res = jump_fcontext(theThread.fctx, nullptr);
     CET_ENDBR;
     /* we got switched back from pdns_swapcontext() */
-    if (res.data) {
+    if (res.data != nullptr) {
       /* if res.data is not a nullptr, it holds a pointer to the context
          we just switched from, and we need to fill it to be able to
          switch back to it later. */
-      fcontext_t* ptr = static_cast<fcontext_t*>(res.data);
+      auto* ptr = static_cast<fcontext_t*>(res.data);
       *ptr = res.fctx;
     }
 #endif
@@ -168,13 +168,13 @@ extern "C"
 
     notifyStackSwitchToKernel();
     /* Emulate the System V uc_link feature. */
-    auto const next_ctx = ctx->uc_link->uc_mcontext;
+    auto* const next_ctx = ctx->uc_link->uc_mcontext;
 #if BOOST_VERSION < 106100
     jump_fcontext(reinterpret_cast<fcontext_t*>(&ctx->uc_mcontext),
                   static_cast<fcontext_t>(next_ctx),
                   reinterpret_cast<intptr_t>(ctx));
 #else
-    jump_fcontext(static_cast<fcontext_t>(next_ctx), 0);
+    jump_fcontext(static_cast<fcontext_t>(next_ctx), nullptr);
 #endif
 
 #ifdef NDEBUG
@@ -191,17 +191,19 @@ pdns_ucontext_t::pdns_ucontext_t() :
 #endif /* PDNS_USE_VALGRIND */
 }
 
+#ifdef PDNS_USE_VALGRIND
 pdns_ucontext_t::~pdns_ucontext_t()
 {
   /* There's nothing to delete here since fcontext doesn't require anything
    * to be heap allocated.
    */
-#ifdef PDNS_USE_VALGRIND
   if (valgrind_id != 0) {
     VALGRIND_STACK_DEREGISTER(valgrind_id);
   }
-#endif /* PDNS_USE_VALGRIND */
 }
+#else
+pdns_ucontext_t::~pdns_ucontext_t() = default;
+#endif /* PDNS_USE_VALGRIND */
 
 void pdns_swapcontext(pdns_ucontext_t& __restrict octx, pdns_ucontext_t const& __restrict ctx)
 {
@@ -218,11 +220,11 @@ void pdns_swapcontext(pdns_ucontext_t& __restrict octx, pdns_ucontext_t const& _
 #else
   transfer_t res = jump_fcontext(static_cast<fcontext_t>(ctx.uc_mcontext), &octx.uc_mcontext);
   CET_ENDBR;
-  if (res.data) {
+  if (res.data != nullptr) {
     /* if res.data is not a nullptr, it holds a pointer to the context
        we just switched from, and we need to fill it to be able to
        switch back to it later. */
-    fcontext_t* ptr = static_cast<fcontext_t*>(res.data);
+    auto* ptr = static_cast<fcontext_t*>(res.data);
     *ptr = res.fctx;
   }
   if (ctx.exception) {
@@ -233,9 +235,11 @@ void pdns_swapcontext(pdns_ucontext_t& __restrict octx, pdns_ucontext_t const& _
 
 void pdns_makecontext(pdns_ucontext_t& ctx, std::function<void(void)>& start)
 {
+  // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
   assert(ctx.uc_link);
   assert(ctx.uc_stack.size() >= 8192);
   assert(!ctx.uc_mcontext);
+  // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
   ctx.uc_mcontext = make_fcontext(&ctx.uc_stack[ctx.uc_stack.size() - 1],
                                   ctx.uc_stack.size() - 1, &threadWrapper);
   args_t args;
