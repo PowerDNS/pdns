@@ -3343,7 +3343,13 @@ int main(int argc, char** argv)
        acceptor ones, otherwise we might crash when processing
        the first TCP query */
 #ifndef USE_SINGLE_ACCEPTOR_THREAD
-    g_tcpclientthreads = std::make_unique<TCPClientCollection>(*g_maxTCPClientThreads, std::vector<ClientState*>());
+    const auto maxTCPClientThreads = *g_maxTCPClientThreads;
+    /* the limit is completely arbitrary: hopefully high enough not to trigger too many false positives
+       but low enough to be useful */
+    if (maxTCPClientThreads >= 50U) {
+      warnlog("setMaxTCPClientThreads(%d) might create a large number of TCP connections to backends, and is probably not needed, please consider lowering it", maxTCPClientThreads);
+    }
+    g_tcpclientthreads = std::make_unique<TCPClientCollection>(maxTCPClientThreads, std::vector<ClientState*>());
 #endif
 
 #if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
