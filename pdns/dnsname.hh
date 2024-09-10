@@ -34,10 +34,7 @@
 #include <string_view>
 
 #include <boost/version.hpp>
-
-#if BOOST_VERSION >= 105300
 #include <boost/container/string.hpp>
-#endif
 
 inline bool dns_isspace(char c)
 {
@@ -176,11 +173,8 @@ public:
   inline bool canonCompare(const DNSName& rhs) const;
   bool slowCanonCompare(const DNSName& rhs) const;
 
-#if BOOST_VERSION >= 105300
   typedef boost::container::string string_t;
-#else
-  typedef std::string string_t;
-#endif
+
   const string_t& getStorage() const {
     return d_storage;
   }

@@ -36,10 +36,8 @@ MANPAGES_DIST += $(MANPAGES_TARGET_TOOLS) \
 	dnsbulktest.1 \
 	dnstcpbench.1
 
-if HAVE_BOOST_GE_148
 MANPAGES_INSTALL += dnsbulktest.1 \
 	dnstcpbench.1
-endif
 
 if TOOLS
 MANPAGES_INSTALL += $(MANPAGES_TARGET_TOOLS)

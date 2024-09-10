@@ -114,13 +114,7 @@ PDNS_ENABLE_IPCIPHER
 PDNS_CHECK_RAGEL([pdns/dnslabeltext.cc], [www.powerdns.com])
 PDNS_CHECK_CLOCK_GETTIME
 
-BOOST_REQUIRE([1.42])
-# Boost accumulators, as used by dnsbulktest and dnstcpbench, need 1.48+
-# to be compatible with C++11
-AM_CONDITIONAL([HAVE_BOOST_GE_148], [test "$boost_major_version" -ge 148])
-AS_IF([test "$boost_major_version" -ge 148], [
-  AC_DEFINE(HAVE_BOOST_GE_148, [1], [Define to 1 if you have boost >= 1.48])
-])
+BOOST_REQUIRE([1.54])
 
 BOOST_PROGRAM_OPTIONS([mt])
 AS_IF([test "$boost_cv_lib_program_options" = "no"], [

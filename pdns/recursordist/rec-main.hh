@@ -43,9 +43,7 @@
 #include "nod.hh"
 #endif /* NOD_ENABLED */
 
-#ifdef HAVE_BOOST_CONTAINER_FLAT_SET_HPP
 #include <boost/container/flat_set.hpp>
-#endif
 
 extern std::shared_ptr<Logr::Logger> g_slogtcpin;
 extern std::shared_ptr<Logr::Logger> g_slogudpin;
@@ -277,11 +275,7 @@ extern thread_local FrameStreamServersInfo t_frameStreamServersInfo;
 extern thread_local FrameStreamServersInfo t_nodFrameStreamServersInfo;
 #endif /* HAVE_FSTRM */
 
-#ifdef HAVE_BOOST_CONTAINER_FLAT_SET_HPP
 extern boost::container::flat_set<uint16_t> g_avoidUdpSourcePorts;
-#else
-extern std::set<uint16_t> g_avoidUdpSourcePorts;
-#endif
 
 /* without reuseport, all listeners share the same sockets */
 typedef vector<pair<int, std::function<void(int, boost::any&)>>> deferredAdd_t;

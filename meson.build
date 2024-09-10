@@ -805,6 +805,14 @@ if get_option('tools')
       'main': src_dir / 'ixplore.cc',
       'manpages': ['ixplore.1'],
     },
+    'dnstcpbench': {
+      'main': src_dir / 'dnstcpbench.cc',
+      'manpages': ['dnstcpbench.1'],
+    },
+    'dnsbulktest': {
+      'main': src_dir / 'dnsbulktest.cc',
+      'manpages': ['dnsbulktest.1'],
+    },
     # Broken
     # 'comfun' : {
     #   'main': src_dir / 'comfun.cc',
@@ -833,18 +841,6 @@ if get_option('tools')
     src_dir / 'tcpiohandler.hh',
   )
 
-  if have_boost_1_48_0
-    tools += {
-      'dnstcpbench': {
-        'main': src_dir / 'dnstcpbench.cc',
-        'manpages': ['dnstcpbench.1'],
-      },
-      'dnsbulktest': {
-        'main': src_dir / 'dnsbulktest.cc',
-        'manpages': ['dnsbulktest.1'],
-      },
-    }
-  endif
 endif
 
 if get_option('tools-ixfrdist')
