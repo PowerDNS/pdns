@@ -400,9 +400,6 @@ void IncomingHTTP2Connection::handleIO()
           }
         }
         else {
-          d_currentPos = 0;
-          d_proxyProtocolNeed = 0;
-          d_buffer.clear();
           d_state = State::waitingForQuery;
           handleConnectionReady();
         }

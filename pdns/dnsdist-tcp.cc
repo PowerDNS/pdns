@@ -908,6 +908,9 @@ IncomingTCPConnectionState::ProxyProtocolResult IncomingTCPConnectionState::hand
           d_proxyProtocolValues = make_unique<std::vector<ProxyProtocolValue>>(std::move(proxyProtocolValues));
         }
 
+        d_currentPos = 0;
+        d_proxyProtocolNeed = 0;
+        d_buffer.clear();
         return ProxyProtocolResult::Done;
       }
     }
@@ -1090,15 +1093,14 @@ void IncomingTCPConnectionState::handleIO()
       if (!d_lastIOBlocked && d_state == State::readingProxyProtocolHeader) {
         auto status = handleProxyProtocolPayload();
         if (status == ProxyProtocolResult::Done) {
+          d_buffer.resize(sizeof(uint16_t));
+
           if (isProxyPayloadOutsideTLS()) {
             d_state = State::doingHandshake;
             iostate = handleHandshake(now);
           }
           else {
             d_state = State::readingQuerySize;
-            d_buffer.resize(sizeof(uint16_t));
-            d_currentPos = 0;
-            d_proxyProtocolNeed = 0;
           }
         }
         else if (status == ProxyProtocolResult::Error) {
