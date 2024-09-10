@@ -2261,7 +2261,7 @@ BOOST_AUTO_TEST_CASE(test_setEDNSOption)
   BOOST_REQUIRE(getEDNS0Record(dq.getData(), edns0));
   BOOST_CHECK_EQUAL(edns0.version, 0U);
   BOOST_CHECK_EQUAL(edns0.extRCode, 0U);
-  BOOST_CHECK_EQUAL(edns0.extFlags, EDNS_HEADER_FLAG_DO);
+  BOOST_CHECK_EQUAL(ntohs(edns0.extFlags), EDNS_HEADER_FLAG_DO);
 
   BOOST_REQUIRE(parseEDNSOptions(dq));
   BOOST_REQUIRE(dq.ednsOptions != nullptr);
