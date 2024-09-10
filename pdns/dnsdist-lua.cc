@@ -738,8 +738,13 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          for (const string& poolName : server->d_config.pools) {
                            removeServerFromPool(localPools, poolName, server);
                          }
-                         /* the server might also be in the default pool */
-                         removeServerFromPool(localPools, "", server);
+                         try {
+                           /* the server might also be in the default pool */
+                           removeServerFromPool(localPools, "", server);
+                         }
+                         catch (const std::out_of_range& exp) {
+                           /* but the default pool might not exist yet, this is fine */
+                         }
                          g_pools.setState(localPools);
                          states.erase(remove(states.begin(), states.end(), server), states.end());
                          g_dstates.setState(states);
