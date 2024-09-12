@@ -86,16 +86,23 @@ static void fillPacket(vector<uint8_t>& packet, const string& q, const string& t
   pw.getHeader()->id = htons(qid);
 }
 
-static void printReply(const string& reply, bool showflags, bool hidesoadetails, bool dumpluaraw)
+static void printReply(const string& reply, bool showflags, bool hidesoadetails, bool dumpluaraw, bool ignoreId = false)
 {
   MOADNSParser mdp(false, reply);
-  if (!s_expectedIDs.count(ntohs(mdp.d_header.id))) {
+  if (!ignoreId && !s_expectedIDs.count(ntohs(mdp.d_header.id))) {
     cout << "ID " << ntohs(mdp.d_header.id) << " was not expected, this response was not meant for us!"<<endl;
   }
   s_expectedIDs.erase(ntohs(mdp.d_header.id));
 
   cout << (mdp.d_header.qr ? "Reply to question" : "Question") << " for qname='" << mdp.d_qname.toString()
-       << "', qtype=" << DNSRecordContent::NumberToType(mdp.d_qtype) << endl;
+       << "', qtype=" << DNSRecordContent::NumberToType(mdp.d_qtype);
+
+  if (ignoreId) {
+    // if we did not generate the ID, the user might be interested in seeing it
+    cout << ", ID=" << ntohs(mdp.d_header.id);
+  }
+
+  cout << endl;
   cout << "Rcode: " << mdp.d_header.rcode << " ("
        << RCode::to_s(mdp.d_header.rcode) << "), RD: " << mdp.d_header.rd
        << ", QR: " << mdp.d_header.qr;
@@ -378,7 +385,7 @@ try {
       reply = reply.substr(2);
     }
 
-    printReply(reply, showflags, hidesoadetails, dumpluaraw);
+    printReply(reply, showflags, hidesoadetails, dumpluaraw, true);
   } else if (tcp) {
     std::shared_ptr<TLSCtx> tlsCtx{nullptr};
     if (dot) {
