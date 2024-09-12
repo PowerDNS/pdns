@@ -111,7 +111,7 @@ private:
     Map()
     {
     }
-    Map(const MapConfiguration&, MapFormat);
+    Map(MapConfiguration, MapFormat);
     MapConfiguration d_config;
     uint32_t d_count{0};
     FDWrapper d_fd;

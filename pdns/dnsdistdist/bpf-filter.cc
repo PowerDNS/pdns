@@ -35,6 +35,7 @@
 
 static __u64 ptr_to_u64(const void* ptr)
 {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
   return (__u64)(unsigned long)ptr;
 }
 
@@ -195,8 +196,8 @@ struct QNameValue
   uint16_t qtype{0};
 };
 
-BPFFilter::Map::Map(const BPFFilter::MapConfiguration& config, BPFFilter::MapFormat format) :
-  d_config(config)
+BPFFilter::Map::Map(BPFFilter::MapConfiguration config, BPFFilter::MapFormat format) :
+  d_config(std::move(config))
 {
   if (d_config.d_type == BPFFilter::MapType::Filters) {
     /* special case, this is a map of eBPF programs */
