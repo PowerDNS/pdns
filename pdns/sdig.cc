@@ -94,7 +94,7 @@ static void printReply(const string& reply, bool showflags, bool hidesoadetails,
   }
   s_expectedIDs.erase(ntohs(mdp.d_header.id));
 
-  cout << "Reply to question for qname='" << mdp.d_qname.toString()
+  cout << (mdp.d_header.qr ? "Reply to question" : "Question") << " for qname='" << mdp.d_qname.toString()
        << "', qtype=" << DNSRecordContent::NumberToType(mdp.d_qtype) << endl;
   cout << "Rcode: " << mdp.d_header.rcode << " ("
        << RCode::to_s(mdp.d_header.rcode) << "), RD: " << mdp.d_header.rd
