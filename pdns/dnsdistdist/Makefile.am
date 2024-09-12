@@ -370,6 +370,7 @@ testrunner_SOURCES = \
 	test-luawrapper.cc \
 	test-mplexer.cc \
 	test-proxy_protocol_cc.cc \
+	test-sholder_hh.cc \
 	testrunner.cc \
 	threadname.hh threadname.cc \
 	uuid-utils.hh uuid-utils.cc \
