@@ -567,7 +567,7 @@ public:
     d_ktls = true;
   }
 
-  bool isClient() const
+  [[nodiscard]] bool isClient() const
   {
     return d_isClient;
   }
@@ -617,9 +617,9 @@ class OpenSSLTLSIOCtx: public TLSCtx, public std::enable_shared_from_this<OpenSS
   };
 
 public:
-  static std::shared_ptr<OpenSSLTLSIOCtx> createServerSideContext(TLSFrontend& fe)
+  static std::shared_ptr<OpenSSLTLSIOCtx> createServerSideContext(TLSFrontend& frontend)
   {
-    return std::make_shared<OpenSSLTLSIOCtx>(fe, Private());
+    return std::make_shared<OpenSSLTLSIOCtx>(frontend, Private());
   }
 
   static std::shared_ptr<OpenSSLTLSIOCtx> createClientSideContext(const TLSContextParameters& params)
@@ -628,13 +628,13 @@ public:
   }
 
   /* server side context */
-  OpenSSLTLSIOCtx(TLSFrontend& fe, [[maybe_unused]] Private priv): d_feContext(std::make_unique<OpenSSLFrontendContext>(fe.d_addr, fe.d_tlsConfig))
+  OpenSSLTLSIOCtx(TLSFrontend& frontend, [[maybe_unused]] Private priv): d_feContext(std::make_unique<OpenSSLFrontendContext>(frontend.d_addr, frontend.d_tlsConfig))
   {
     OpenSSLTLSConnection::generateConnectionIndexIfNeeded();
 
-    d_ticketsKeyRotationDelay = fe.d_tlsConfig.d_ticketsKeyRotationDelay;
+    d_ticketsKeyRotationDelay = frontend.d_tlsConfig.d_ticketsKeyRotationDelay;
 
-    if (fe.d_tlsConfig.d_enableTickets && fe.d_tlsConfig.d_numberOfTicketsKeys > 0) {
+    if (frontend.d_tlsConfig.d_enableTickets && frontend.d_tlsConfig.d_numberOfTicketsKeys > 0) {
       /* use our own ticket keys handler so we can rotate them */
 #if OPENSSL_VERSION_MAJOR >= 3
       SSL_CTX_set_tlsext_ticket_key_evp_cb(d_feContext->d_tlsCtx.get(), &OpenSSLTLSIOCtx::ticketKeyCb);
@@ -651,22 +651,22 @@ public:
     }
 #endif /* DISABLE_OCSP_STAPLING */
 
-    if (fe.d_tlsConfig.d_readAhead) {
+    if (frontend.d_tlsConfig.d_readAhead) {
       SSL_CTX_set_read_ahead(d_feContext->d_tlsCtx.get(), 1);
     }
 
-    libssl_set_error_counters_callback(d_feContext->d_tlsCtx, &fe.d_tlsCounters);
+    libssl_set_error_counters_callback(d_feContext->d_tlsCtx, &frontend.d_tlsCounters);
 
-    if (!fe.d_tlsConfig.d_keyLogFile.empty()) {
-      d_feContext->d_keyLogFile = libssl_set_key_log_file(d_feContext->d_tlsCtx, fe.d_tlsConfig.d_keyLogFile);
+    if (!frontend.d_tlsConfig.d_keyLogFile.empty()) {
+      d_feContext->d_keyLogFile = libssl_set_key_log_file(d_feContext->d_tlsCtx, frontend.d_tlsConfig.d_keyLogFile);
     }
 
     try {
-      if (fe.d_tlsConfig.d_ticketKeyFile.empty()) {
+      if (frontend.d_tlsConfig.d_ticketKeyFile.empty()) {
         handleTicketsKeyRotation(time(nullptr));
       }
       else {
-        OpenSSLTLSIOCtx::loadTicketsKeys(fe.d_tlsConfig.d_ticketKeyFile);
+        OpenSSLTLSIOCtx::loadTicketsKeys(frontend.d_tlsConfig.d_ticketKeyFile);
       }
     }
     catch (const std::exception& e) {
@@ -675,7 +675,7 @@ public:
   }
 
   /* client side context */
-  OpenSSLTLSIOCtx(const TLSContextParameters& params, [[maybe_unused]] Private)
+  OpenSSLTLSIOCtx(const TLSContextParameters& params, [[maybe_unused]] Private priv)
   {
     int sslOptions =
       SSL_OP_NO_SSLv2 |
@@ -765,6 +765,11 @@ public:
     }
 #endif
   }
+
+  OpenSSLTLSIOCtx(const OpenSSLTLSIOCtx&) = delete;
+  OpenSSLTLSIOCtx(OpenSSLTLSIOCtx&&) = delete;
+  OpenSSLTLSIOCtx& operator=(const OpenSSLTLSIOCtx&) = delete;
+  OpenSSLTLSIOCtx& operator=(OpenSSLTLSIOCtx&&) = delete;
 
   ~OpenSSLTLSIOCtx() override
   {
