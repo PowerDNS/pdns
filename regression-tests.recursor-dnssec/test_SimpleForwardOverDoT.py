@@ -5,13 +5,13 @@ from recursortests import RecursorTest
 
 class SimpleForwardOverDoTTest(RecursorTest):
     """
-    This is forwarding to a DoT server in a very basic way and is dependent on Quad9 working
+    This is forwarding to DoT servers in a very basic way and is dependent on the forwards working for DoT
     """
 
     _confdir = 'SimpleForwardOverDoT'
     _config_template = """
 dnssec=validate
-forward-zones-recurse=.=9.9.9.9:853
+forward-zones-recurse=.=1.1.1.1:853;8.8.8.8:853;9.9.9.9:853
 devonly-regression-test-mode
     """
 
