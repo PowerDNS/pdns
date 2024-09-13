@@ -89,7 +89,8 @@ static void fillPacket(vector<uint8_t>& packet, const string& q, const string& t
 static void printReply(const string& reply, bool showflags, bool hidesoadetails, bool dumpluaraw, bool ignoreId = false)
 {
   MOADNSParser mdp(false, reply);
-  if (!ignoreId && !s_expectedIDs.count(ntohs(mdp.d_header.id))) {
+
+  if (!ignoreId && (s_expectedIDs.count(ntohs(mdp.d_header.id)) == 0U)) {
     cout << "ID " << ntohs(mdp.d_header.id) << " was not expected, this response was not meant for us!"<<endl;
   }
   s_expectedIDs.erase(ntohs(mdp.d_header.id));
