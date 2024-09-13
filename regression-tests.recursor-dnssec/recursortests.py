@@ -12,6 +12,7 @@ import time
 import unittest
 import dns
 import dns.message
+import requests
 
 from proxyprotocol import ProxyProtocol
 
@@ -1197,3 +1198,23 @@ distributor-threads={threads}""".format(confdir=confdir,
         if data:
             message = dns.message.from_wire(data)
         return message
+
+    def checkMetrics(self, map):
+        self.waitForTCPSocket("127.0.0.1", self._wsPort)
+        headers = {'x-api-key': self._apiKey}
+        url = 'http://127.0.0.1:' + str(self._wsPort) + '/api/v1/servers/localhost/statistics'
+        r = requests.get(url, headers=headers, timeout=self._wsTimeout)
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.json())
+        content = r.json()
+        count = 0
+        for entry in content:
+            for key, expected in map.items():
+                if entry['name'] == key:
+                    value = int(entry['value'])
+                    if callable(expected):
+                        self.assertTrue(expected(value))
+                    else:
+                        self.assertEqual(value, expected)
+                    count += 1
+        self.assertEqual(count, len(map))

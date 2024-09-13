@@ -313,8 +313,8 @@ LWResult::Result asendto(const void* data, size_t len, int /* flags */,
         }
         chain.first->key->authReqChain.emplace(*fileDesc, qid); // we can chain
         auto maxLength = t_Counters.at(rec::Counter::maxChainLength);
-        if (currentChainSize > maxLength) {
-          t_Counters.at(rec::Counter::maxChainLength) = currentChainSize;
+        if (currentChainSize + 1 > maxLength) {
+          t_Counters.at(rec::Counter::maxChainLength) = currentChainSize + 1;
         }
         return LWResult::Result::Success;
       }
