@@ -1908,6 +1908,7 @@ void setMaxConcurrentConnections(size_t max)
 void WebserverThread(Socket sock)
 {
   setThreadName("dnsdist/webserv");
+  //coverity[auto_causes_copy]
   const auto local = *dnsdist::configuration::getCurrentRuntimeConfiguration().d_webServerAddress;
   infolog("Webserver launched on %s", local.toStringWithPort());
 

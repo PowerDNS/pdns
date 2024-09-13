@@ -392,7 +392,7 @@ BPFFilter::BPFFilter(std::unordered_map<std::string, MapConfiguration>& configs,
     BPFFilter::MapConfiguration filters;
     filters.d_maxItems = 1;
     filters.d_type = BPFFilter::MapType::Filters;
-    maps->d_filters = BPFFilter::Map(filters, d_mapFormat);
+    maps->d_filters = BPFFilter::Map(std::move(filters), d_mapFormat);
 
     const struct bpf_insn main_filter[] = {
 #include "bpf-filter.main.ebpf"

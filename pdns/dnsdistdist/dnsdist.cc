@@ -2340,6 +2340,7 @@ static void healthChecksThread()
 
     std::unique_ptr<FDMultiplexer> mplexer{nullptr};
     // this points to the actual shared_ptrs!
+    //coverity[auto_causes_copy]
     const auto servers = dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends;
     for (const auto& dss : servers) {
       dss->updateStatisticsInfo();
