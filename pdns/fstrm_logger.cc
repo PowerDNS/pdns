@@ -170,7 +170,7 @@ RemoteLoggerInterface::Result FrameStreamLogger::queueData(const std::string& da
   }
   uint8_t* frame = (uint8_t*)malloc(data.length()); // NOLINT: it's the API
   if (frame == nullptr) {
-    ++d_queueFullDrops; // XXX separate count?
+    ++d_tooLargeCount;
     return Result::TooLarge;
   }
   memcpy(frame, data.c_str(), data.length());
