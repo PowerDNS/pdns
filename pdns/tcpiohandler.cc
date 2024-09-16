@@ -132,7 +132,7 @@ public:
   }
 
   /* client-side connection */
-  OpenSSLTLSConnection(const std::string& hostname, bool hostIsAddr, int socket, const struct timeval& timeout, std::shared_ptr<const OpenSSLTLSIOCtx> tlsCtx, std::unique_ptr<SSL, void(*)(SSL*)>&& conn): d_tlsCtx(std::move(tlsCtx)), d_conn(std::move(conn)), d_hostname(std::move(hostname)), d_timeout(timeout), d_isClient(true)
+  OpenSSLTLSConnection(std::string hostname, bool hostIsAddr, int socket, const struct timeval& timeout, std::shared_ptr<const OpenSSLTLSIOCtx> tlsCtx, std::unique_ptr<SSL, void(*)(SSL*)>&& conn): d_tlsCtx(std::move(tlsCtx)), d_conn(std::move(conn)), d_hostname(std::move(hostname)), d_timeout(timeout), d_isClient(true)
   {
     d_socket = socket;
 
@@ -1611,33 +1611,33 @@ class GnuTLSIOCtx: public TLSCtx
 {
 public:
   /* server side context */
-  GnuTLSIOCtx(TLSFrontend& fe): d_protos(getALPNVector(fe.d_alpn, false)), d_enableTickets(fe.d_tlsConfig.d_enableTickets)
+  GnuTLSIOCtx(TLSFrontend& frontend): d_protos(getALPNVector(frontend.d_alpn, false)), d_enableTickets(frontend.d_tlsConfig.d_enableTickets)
   {
     int rc = 0;
-    d_ticketsKeyRotationDelay = fe.d_tlsConfig.d_ticketsKeyRotationDelay;
+    d_ticketsKeyRotationDelay = frontend.d_tlsConfig.d_ticketsKeyRotationDelay;
 
     gnutls_certificate_credentials_t creds;
     rc = gnutls_certificate_allocate_credentials(&creds);
     if (rc != GNUTLS_E_SUCCESS) {
-      throw std::runtime_error("Error allocating credentials for TLS context on " + fe.d_addr.toStringWithPort() + ": " + gnutls_strerror(rc));
+      throw std::runtime_error("Error allocating credentials for TLS context on " + frontend.d_addr.toStringWithPort() + ": " + gnutls_strerror(rc));
     }
 
     d_creds = std::shared_ptr<gnutls_certificate_credentials_st>(creds, gnutls_certificate_free_credentials);
     creds = nullptr;
 
-    for (const auto& pair : fe.d_tlsConfig.d_certKeyPairs) {
+    for (const auto& pair : frontend.d_tlsConfig.d_certKeyPairs) {
       rc = gnutls_certificate_set_x509_key_file(d_creds.get(), pair.d_cert.c_str(), pair.d_key->c_str(), GNUTLS_X509_FMT_PEM);
       if (rc != GNUTLS_E_SUCCESS) {
-        throw std::runtime_error("Error loading certificate ('" + pair.d_cert + "') and key ('" + pair.d_key.value() + "') for TLS context on " + fe.d_addr.toStringWithPort() + ": " + gnutls_strerror(rc));
+        throw std::runtime_error("Error loading certificate ('" + pair.d_cert + "') and key ('" + pair.d_key.value() + "') for TLS context on " + frontend.d_addr.toStringWithPort() + ": " + gnutls_strerror(rc));
       }
     }
 
 #ifndef DISABLE_OCSP_STAPLING
     size_t count = 0;
-    for (const auto& file : fe.d_tlsConfig.d_ocspFiles) {
+    for (const auto& file : frontend.d_tlsConfig.d_ocspFiles) {
       rc = gnutls_certificate_set_ocsp_status_request_file(d_creds.get(), file.c_str(), count);
       if (rc != GNUTLS_E_SUCCESS) {
-        warnlog("Error loading OCSP response from file '%s' for certificate ('%s') and key ('%s') for TLS context on %s: %s", file, fe.d_tlsConfig.d_certKeyPairs.at(count).d_cert, fe.d_tlsConfig.d_certKeyPairs.at(count).d_key.value(), fe.d_addr.toStringWithPort(), gnutls_strerror(rc));
+        warnlog("Error loading OCSP response from file '%s' for certificate ('%s') and key ('%s') for TLS context on %s: %s", file, frontend.d_tlsConfig.d_certKeyPairs.at(count).d_cert, frontend.d_tlsConfig.d_certKeyPairs.at(count).d_key.value(), frontend.d_addr.toStringWithPort(), gnutls_strerror(rc));
       }
       ++count;
     }
@@ -1646,30 +1646,30 @@ public:
 #if GNUTLS_VERSION_NUMBER >= 0x030600
     rc = gnutls_certificate_set_known_dh_params(d_creds.get(), GNUTLS_SEC_PARAM_HIGH);
     if (rc != GNUTLS_E_SUCCESS) {
-      throw std::runtime_error("Error setting DH params for TLS context on " + fe.d_addr.toStringWithPort() + ": " + gnutls_strerror(rc));
+      throw std::runtime_error("Error setting DH params for TLS context on " + frontend.d_addr.toStringWithPort() + ": " + gnutls_strerror(rc));
     }
 #endif
 
-    rc = gnutls_priority_init(&d_priorityCache, fe.d_tlsConfig.d_ciphers.empty() ? "NORMAL" : fe.d_tlsConfig.d_ciphers.c_str(), nullptr);
+    rc = gnutls_priority_init(&d_priorityCache, frontend.d_tlsConfig.d_ciphers.empty() ? "NORMAL" : frontend.d_tlsConfig.d_ciphers.c_str(), nullptr);
     if (rc != GNUTLS_E_SUCCESS) {
-      throw std::runtime_error("Error setting up TLS cipher preferences to '" + fe.d_tlsConfig.d_ciphers + "' (" + gnutls_strerror(rc) + ") on " + fe.d_addr.toStringWithPort());
+      throw std::runtime_error("Error setting up TLS cipher preferences to '" + frontend.d_tlsConfig.d_ciphers + "' (" + gnutls_strerror(rc) + ") on " + frontend.d_addr.toStringWithPort());
     }
 
     try {
-      if (fe.d_tlsConfig.d_ticketKeyFile.empty()) {
+      if (frontend.d_tlsConfig.d_ticketKeyFile.empty()) {
         handleTicketsKeyRotation(time(nullptr));
       }
       else {
-        GnuTLSIOCtx::loadTicketsKeys(fe.d_tlsConfig.d_ticketKeyFile);
+        GnuTLSIOCtx::loadTicketsKeys(frontend.d_tlsConfig.d_ticketKeyFile);
       }
     }
     catch(const std::runtime_error& e) {
-      throw std::runtime_error("Error generating tickets key for TLS context on " + fe.d_addr.toStringWithPort() + ": " + e.what());
+      throw std::runtime_error("Error generating tickets key for TLS context on " + frontend.d_addr.toStringWithPort() + ": " + e.what());
     }
   }
 
   /* client side context */
-  GnuTLSIOCtx(const TLSContextParameters& params): d_protos(getALPNVector(params.d_alpn, true)), d_contextParameters(std::make_unique<TLSContextParameters>(params)), d_enableTickets(true), d_validateCerts(params.d_validateCertificates)
+  GnuTLSIOCtx(const TLSContextParameters& params): d_protos(getALPNVector(params.d_alpn, true)), d_contextParameters(std::make_unique<TLSContextParameters>(params)), d_validateCerts(params.d_validateCertificates)
   {
     int rc = 0;
 
