@@ -26,6 +26,26 @@ bool shouldDoVerboseLogging()
 
 TLSCtx::tickets_key_added_hook TLSCtx::s_ticketsKeyAddedHook{nullptr};
 
+static std::vector<std::vector<uint8_t>> getALPNVector(TLSFrontend::ALPN alpn, bool client)
+{
+  if (alpn == TLSFrontend::ALPN::DoT) {
+    /* we want to set the ALPN to dot (RFC7858), if only to mitigate the ALPACA attack */
+    return std::vector<std::vector<uint8_t>>{{'d', 'o', 't'}};
+  }
+  if (alpn == TLSFrontend::ALPN::DoH) {
+    if (client) {
+      /* we want to set the ALPN to h2, if only to mitigate the ALPACA attack */
+      return std::vector<std::vector<uint8_t>>{{'h', '2'}};
+    }
+    /* For server contexts, we want to set the ALPN for DoH (note that h2o sets it own ALPN values):
+       - HTTP/1.1 so that the OpenSSL callback ALPN accepts it, letting us later return a static response
+       - HTTP/2
+    */
+    return std::vector<std::vector<uint8_t>>{{'h', '2'},{'h', 't', 't', 'p', '/', '1', '.', '1'}};
+  }
+  return {};
+}
+
 #if defined(HAVE_DNS_OVER_TLS) || defined(HAVE_DNS_OVER_HTTPS)
 #ifdef HAVE_LIBSSL
 
@@ -592,13 +612,13 @@ private:
   static LockGuarded<bool> s_initTLSConnIndex;
   static int s_tlsConnIndex;
   std::vector<std::unique_ptr<TLSSession>> d_tlsSessions;
-  std::shared_ptr<const OpenSSLTLSIOCtx> d_tlsCtx; // we need to hold a reference to this to make sure that the context exists for as long as the connection, even if a reload happens in the meantime
+  const std::shared_ptr<const OpenSSLTLSIOCtx> d_tlsCtx; // we need to hold a reference to this to make sure that the context exists for as long as the connection, even if a reload happens in the meantime
   std::unique_ptr<SSL, void(*)(SSL*)> d_conn;
-  std::string d_hostname;
-  struct timeval d_timeout;
+  const std::string d_hostname;
+  const timeval d_timeout;
   bool d_connected{false};
   bool d_ktls{false};
-  bool d_isClient{false};
+  const bool d_isClient{false};
 };
 
 LockGuarded<bool> OpenSSLTLSConnection::s_initTLSConnIndex{false};
@@ -623,7 +643,7 @@ public:
   }
 
   /* server side context */
-  OpenSSLTLSIOCtx(TLSFrontend& frontend, [[maybe_unused]] Private priv): d_feContext(std::make_unique<OpenSSLFrontendContext>(frontend.d_addr, frontend.d_tlsConfig))
+  OpenSSLTLSIOCtx(TLSFrontend& frontend, [[maybe_unused]] Private priv): d_alpnProtos(getALPNVector(frontend.d_alpn, false)), d_feContext(std::make_unique<OpenSSLFrontendContext>(frontend.d_addr, frontend.d_tlsConfig))
   {
     OpenSSLTLSConnection::generateConnectionIndexIfNeeded();
 
@@ -651,6 +671,8 @@ public:
     }
 
     libssl_set_error_counters_callback(d_feContext->d_tlsCtx, &frontend.d_tlsCounters);
+
+    libssl_set_alpn_select_callback(d_feContext->d_tlsCtx.get(), alpnServerSelectCallback, this);
 
     if (!frontend.d_tlsConfig.d_keyLogFile.empty()) {
       d_feContext->d_keyLogFile = libssl_set_key_log_file(d_feContext->d_tlsCtx, frontend.d_tlsConfig.d_keyLogFile);
@@ -753,6 +775,8 @@ public:
        but we don't want OpenSSL to cache the session itself so we set SSL_SESS_CACHE_NO_INTERNAL_STORE as well */
     SSL_CTX_set_session_cache_mode(d_tlsCtx.get(), SSL_SESS_CACHE_CLIENT | SSL_SESS_CACHE_NO_INTERNAL_STORE);
     SSL_CTX_sess_set_new_cb(d_tlsCtx.get(), &OpenSSLTLSIOCtx::newTicketFromServerCb);
+
+    libssl_set_alpn_protos(d_tlsCtx.get(), getALPNVector(params.d_alpn, true));
 
 #ifdef SSL_MODE_RELEASE_BUFFERS
     if (params.d_releaseBuffers) {
@@ -880,22 +904,6 @@ public:
     return d_feContext != nullptr;
   }
 
-  bool setALPNProtos(const std::vector<std::vector<uint8_t>>& protos) override
-  {
-    auto* openSSLContext = getOpenSSLContext();
-    if (openSSLContext == nullptr) {
-      return false;
-    }
-
-    if (isServerContext()) {
-      d_alpnProtos = protos;
-      libssl_set_alpn_select_callback(openSSLContext, alpnServerSelectCallback, this);
-      return true;
-    }
-
-    return libssl_set_alpn_protos(openSSLContext, protos);
-  }
-
 private:
   /* called in a client context, if the client advertised more than one ALPN value and the server returned more than one as well, to select the one to use. */
   static int alpnServerSelectCallback(SSL*, const unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen, void* arg)
@@ -930,10 +938,9 @@ private:
     return SSL_TLSEXT_ERR_NOACK;
   }
 
-  std::vector<std::vector<uint8_t>> d_alpnProtos; // store the supported ALPN protocols, so that the server can select based on what the client sent
+  const std::vector<std::vector<uint8_t>> d_alpnProtos; // store the supported ALPN protocols, so that the server can select based on what the client sent
   std::shared_ptr<SSL_CTX> d_tlsCtx{nullptr}; // client context, on a server-side the context is stored in d_feContext->d_tlsCtx
   std::unique_ptr<OpenSSLFrontendContext> d_feContext{nullptr};
-  bool (*d_nextProtocolSelectCallback)(unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen){nullptr};
   bool d_ktls{false};
 };
 
@@ -1596,7 +1603,7 @@ private:
   std::unique_ptr<gnutls_session_int, void(*)(gnutls_session_t)> d_conn;
   std::vector<std::unique_ptr<TLSSession>> d_tlsSessions;
   std::string d_host;
-  bool d_client{false};
+  const bool d_client{false};
   bool d_handshakeDone{false};
 };
 
@@ -1604,7 +1611,7 @@ class GnuTLSIOCtx: public TLSCtx
 {
 public:
   /* server side context */
-  GnuTLSIOCtx(TLSFrontend& fe): d_enableTickets(fe.d_tlsConfig.d_enableTickets)
+  GnuTLSIOCtx(TLSFrontend& fe): d_protos(getALPNVector(fe.d_alpn, false)), d_enableTickets(fe.d_tlsConfig.d_enableTickets)
   {
     int rc = 0;
     d_ticketsKeyRotationDelay = fe.d_tlsConfig.d_ticketsKeyRotationDelay;
@@ -1662,7 +1669,7 @@ public:
   }
 
   /* client side context */
-  GnuTLSIOCtx(const TLSContextParameters& params): d_contextParameters(std::make_unique<TLSContextParameters>(params)), d_enableTickets(true), d_validateCerts(params.d_validateCertificates)
+  GnuTLSIOCtx(const TLSContextParameters& params): d_protos(getALPNVector(params.d_alpn, true)), d_contextParameters(std::make_unique<TLSContextParameters>(params)), d_enableTickets(true), d_validateCerts(params.d_validateCertificates)
   {
     int rc = 0;
 
@@ -1817,21 +1824,11 @@ public:
     return "gnutls";
   }
 
-  bool setALPNProtos(const std::vector<std::vector<uint8_t>>& protos) override
-  {
-#ifdef HAVE_GNUTLS_ALPN_SET_PROTOCOLS
-    d_protos = protos;
-    return true;
-#else
-    return false;
-#endif
-  }
-
 private:
   /* client context parameters */
-  std::unique_ptr<TLSContextParameters> d_contextParameters{nullptr};
   std::shared_ptr<gnutls_certificate_credentials_st> d_creds;
-  std::vector<std::vector<uint8_t>> d_protos;
+  const std::vector<std::vector<uint8_t>> d_protos;
+  std::unique_ptr<TLSContextParameters> d_contextParameters{nullptr};
   gnutls_priority_t d_priorityCache{nullptr};
   SharedLockGuarded<std::shared_ptr<GnuTLSTicketsKey>> d_ticketsKey{nullptr};
   bool d_enableTickets{true};
@@ -1841,34 +1838,6 @@ private:
 #endif /* HAVE_GNUTLS */
 
 #endif /* HAVE_DNS_OVER_TLS || HAVE_DNS_OVER_HTTPS */
-
-bool setupDoTProtocolNegotiation(std::shared_ptr<TLSCtx>& ctx)
-{
-  if (ctx == nullptr) {
-    return false;
-  }
-  /* we want to set the ALPN to dot (RFC7858), if only to mitigate the ALPACA attack */
-  const std::vector<std::vector<uint8_t>> dotAlpns = {{'d', 'o', 't'}};
-  ctx->setALPNProtos(dotAlpns);
-  return true;
-}
-
-bool setupDoHProtocolNegotiation(std::shared_ptr<TLSCtx>& ctx)
-{
-  if (ctx == nullptr) {
-    return false;
-  }
-  /* This code is only called for incoming/server TLS contexts (not outgoing/client),
-     and h2o sets it own ALPN values.
-     We want to set the ALPN for DoH:
-     - HTTP/1.1 so that the OpenSSL callback ALPN accepts it, letting us later return a static response
-     - HTTP/2
-  */
-  const std::vector<std::vector<uint8_t>> dohAlpns{{'h', '2'},{'h', 't', 't', 'p', '/', '1', '.', '1'}};
-  ctx->setALPNProtos(dohAlpns);
-
-  return true;
-}
 
 bool TLSFrontend::setupTLS()
 {
@@ -1894,13 +1863,6 @@ bool TLSFrontend::setupTLS()
 #else
 #error "TLS support needed but neither libssl nor GnuTLS were selected"
 #endif
-  }
-
-  if (d_alpn == ALPN::DoT) {
-    setupDoTProtocolNegotiation(newCtx);
-  }
-  else if (d_alpn == ALPN::DoH) {
-    setupDoHProtocolNegotiation(newCtx);
   }
 
   std::atomic_store_explicit(&d_ctx, std::move(newCtx), std::memory_order_release);

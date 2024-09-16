@@ -1032,21 +1032,6 @@ bool initDoHWorkers()
 #endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
 }
 
-bool setupDoHClientProtocolNegotiation(std::shared_ptr<TLSCtx>& ctx)
-{
-  if (ctx == nullptr) {
-    return false;
-  }
-#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
-  /* we want to set the ALPN to h2, if only to mitigate the ALPACA attack */
-  const std::vector<std::vector<uint8_t>> h2Alpns = {{'h', '2'}};
-  ctx->setALPNProtos(h2Alpns);
-  return true;
-#else /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
-  return false;
-#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
-}
-
 bool sendH2Query(const std::shared_ptr<DownstreamState>& ds, std::unique_ptr<FDMultiplexer>& mplexer, std::shared_ptr<TCPQuerySender>& sender, InternalQuery&& query, bool healthCheck)
 {
 #if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
