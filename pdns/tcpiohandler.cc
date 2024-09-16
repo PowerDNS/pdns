@@ -494,11 +494,6 @@ public:
 
     const unsigned char* alpn = nullptr;
     unsigned int alpnLen  = 0;
-#ifndef DISABLE_NPN
-#ifdef HAVE_SSL_GET0_NEXT_PROTO_NEGOTIATED
-    SSL_get0_next_proto_negotiated(d_conn.get(), &alpn, &alpnLen);
-#endif /* HAVE_SSL_GET0_NEXT_PROTO_NEGOTIATED */
-#endif /* DISABLE_NPN */
 #ifdef HAVE_SSL_GET0_ALPN_SELECTED
     if (alpn == nullptr) {
       SSL_get0_alpn_selected(d_conn.get(), &alpn, &alpnLen);
@@ -901,32 +896,8 @@ public:
     return libssl_set_alpn_protos(openSSLContext, protos);
   }
 
-#ifndef DISABLE_NPN
-  bool setNextProtocolSelectCallback(bool(*cb)(unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen)) override
-  {
-    d_nextProtocolSelectCallback = cb;
-    libssl_set_npn_select_callback(getOpenSSLContext(), npnSelectCallback, this);
-    return true;
-  }
-#endif /* DISABLE_NPN */
-
 private:
-  /* called in a client context, if the client advertised more than one ALPN values and the server returned more than one as well, to select the one to use. */
-#ifndef DISABLE_NPN
-  static int npnSelectCallback(SSL* /* s */, unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen, void* arg)
-  {
-    if (!arg) {
-      return SSL_TLSEXT_ERR_ALERT_WARNING;
-    }
-    OpenSSLTLSIOCtx* obj = reinterpret_cast<OpenSSLTLSIOCtx*>(arg);
-    if (obj->d_nextProtocolSelectCallback) {
-      return (*obj->d_nextProtocolSelectCallback)(out, outlen, in, inlen) ? SSL_TLSEXT_ERR_OK : SSL_TLSEXT_ERR_ALERT_WARNING;
-    }
-
-    return SSL_TLSEXT_ERR_OK;
-  }
-#endif /* NPN */
-
+  /* called in a client context, if the client advertised more than one ALPN value and the server returned more than one as well, to select the one to use. */
   static int alpnServerSelectCallback(SSL*, const unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen, void* arg)
   {
     if (!arg) {

@@ -117,12 +117,6 @@ public:
     return false;
   }
 
-  /* called in a client context, if the client advertised more than one ALPN values and the server returned more than one as well, to select the one to use. */
-  virtual bool setNextProtocolSelectCallback(bool(*)(unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen))
-  {
-    return false;
-  }
-
   using tickets_key_added_hook = std::function<void(const std::string& key)>;
 
   static void setTicketsKeyAddedHook(const tickets_key_added_hook& hook)
