@@ -50,12 +50,12 @@ jobs:
           echo "tag=${{ env.DEFAULT_IMAGE_TAG }}" >> "$GITHUB_OUTPUT"
 
   build-auth:
-    name: build auth
+    name: build auth (${{ matrix.builder }})
     if: ${{ !github.event.schedule || vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL }}
     runs-on: ubuntu-22.04
     needs: get-runner-container-image
     container:
-      image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
+      image: "${{ matrix.container_image }}"
       env:
         FUZZING_TARGETS: yes
         UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
@@ -63,12 +63,11 @@ jobs:
       options: --sysctl net.ipv6.conf.all.disable_ipv6=0
     strategy:
       matrix:
-        include:
-          - builder: autotools
-            sanitizers: asan+ubsan
-          - builder: meson
-            sanitizers: address,undefined
-            build_option: '--meson'
+        container_image: ["${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"]
+        builder: [autotools, meson]
+        exclude:
+          - container_image: "ghcr.io/powerdns/base-pdns-ci-image/debian-11-pdns-base:${{ needs.get-runner-container-image.outputs.tag }}"
+            builder: meson
       fail-fast: false
     defaults:
       run:
@@ -94,19 +93,19 @@ jobs:
           key: auth-ccache-${{ matrix.builder }}-${{ steps.get-stamp.outputs.stamp }}
           restore-keys: auth-ccache-${{ matrix.builder }}
       - name: set sanitizers
-        run: echo "SANITIZERS=${{ matrix.sanitizers }}" >> "$GITHUB_ENV"
+        run: echo "SANITIZERS=${{ matrix.builder == 'meson' && 'address,undefined' || 'asan+ubsan' }}" >> "$GITHUB_ENV"
         working-directory: .
       - run: inv install-auth-build-deps
         working-directory: .
-      - run: inv ci-autoconf ${{ matrix.build_option }}
+      - run: inv ci-autoconf ${{ matrix.builder == 'meson' && '--meson' || '' }}
         working-directory: .
-      - run: inv ci-auth-configure ${{ matrix.build_option }} -b pdns-${{ env.BUILDER_VERSION }}
+      - run: inv ci-auth-configure ${{ matrix.builder == 'meson' && '--meson' || '' }} -b pdns-${{ env.BUILDER_VERSION }}
         working-directory: .
-      - run: inv ci-auth-build ${{ matrix.build_option }} # This runs under pdns-$BUILDER_VERSION/pdns/ for make bear
+      - run: inv ci-auth-build ${{ matrix.builder == 'meson' && '--meson' || '' }} # This runs under pdns-$BUILDER_VERSION/pdns/ for make bear
       - run: inv ci-auth-install-remotebackend-test-deps
       - if: ${{ matrix.builder == 'meson' }}
         run: inv install-auth-test-deps-only -b geoip
-      - run: inv ci-auth-run-unit-tests ${{ matrix.build_option }}
+      - run: inv ci-auth-run-unit-tests ${{ matrix.builder == 'meson' && '--meson' || '' }}
         env:
           PDNS_BUILD_PATH: ../pdns-${{ env.BUILDER_VERSION }}
       - run: inv generate-coverage-info ./testrunner $GITHUB_WORKSPACE
@@ -116,12 +115,12 @@ jobs:
         if: ${{ env.COVERAGE == 'yes' && matrix.builder != 'meson' }}
         uses: coverallsapp/github-action@v2
         with:
-          flag-name: auth-unit-${{ matrix.sanitizers }}
+          flag-name: auth-unit-${{ env.SANITIZERS }}
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
           parallel: true
           allow-empty: true
           fail-on-error: false
-      - run: inv ci-auth-install ${{ matrix.build_option }}
+      - run: inv ci-auth-install ${{ matrix.builder == 'meson' && '--meson' || '' }}
       - run: ccache -s
       - if: ${{ matrix.builder != 'meson' }}
         run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
