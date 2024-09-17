@@ -306,26 +306,19 @@ DownstreamState::DownstreamState(DownstreamState::Config&& config, std::shared_p
 
   setName(d_config.name);
 
-  if (d_tlsCtx) {
-    if (!d_config.d_dohPath.empty()) {
+  if (d_tlsCtx && !d_config.d_dohPath.empty()) {
 #ifdef HAVE_NGHTTP2
-      setupDoHClientProtocolNegotiation(d_tlsCtx);
+    auto outgoingDoHWorkerThreads = dnsdist::configuration::getImmutableConfiguration().d_outgoingDoHWorkers;
+    if (dnsdist::configuration::isImmutableConfigurationDone() && outgoingDoHWorkerThreads && *outgoingDoHWorkerThreads == 0) {
+      throw std::runtime_error("Error: setOutgoingDoHWorkerThreads() is set to 0 so no outgoing DoH worker thread is available to serve queries");
+    }
 
-      auto outgoingDoHWorkerThreads = dnsdist::configuration::getImmutableConfiguration().d_outgoingDoHWorkers;
-      if (dnsdist::configuration::isImmutableConfigurationDone() && outgoingDoHWorkerThreads && *outgoingDoHWorkerThreads == 0) {
-        throw std::runtime_error("Error: setOutgoingDoHWorkerThreads() is set to 0 so no outgoing DoH worker thread is available to serve queries");
-      }
-
-      if (!dnsdist::configuration::isImmutableConfigurationDone() && (!outgoingDoHWorkerThreads || *outgoingDoHWorkerThreads == 0)) {
-        dnsdist::configuration::updateImmutableConfiguration([](dnsdist::configuration::ImmutableConfiguration& immutableConfig) {
-          immutableConfig.d_outgoingDoHWorkers = 1;
-        });
-      }
+    if (!dnsdist::configuration::isImmutableConfigurationDone() && (!outgoingDoHWorkerThreads || *outgoingDoHWorkerThreads == 0)) {
+      dnsdist::configuration::updateImmutableConfiguration([](dnsdist::configuration::ImmutableConfiguration& immutableConfig) {
+        immutableConfig.d_outgoingDoHWorkers = 1;
+      });
+    }
 #endif /* HAVE_NGHTTP2 */
-    }
-    else {
-      setupDoTProtocolNegotiation(d_tlsCtx);
-    }
   }
 
   if (connect && !isTCPOnly()) {

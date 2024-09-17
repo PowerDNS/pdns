@@ -922,16 +922,6 @@ static void dohClientThread(pdns::channel::Receiver<CrossProtocolQuery>&& receiv
     errlog("Fatal error in outgoing DoH thread: %s", e.what());
   }
 }
-
-static bool select_next_proto_callback(unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen)
-{
-  if (nghttp2_select_next_protocol(out, outlen, in, inlen) <= 0) {
-    vinfolog("The remote DoH backend did not advertise " NGHTTP2_PROTO_VERSION_ID);
-    return false;
-  }
-  return true;
-}
-
 #endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
 
 struct DoHClientCollection::DoHWorkerThread
@@ -1038,22 +1028,6 @@ bool initDoHWorkers()
   }
   return true;
 #else
-  return false;
-#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
-}
-
-bool setupDoHClientProtocolNegotiation(std::shared_ptr<TLSCtx>& ctx)
-{
-  if (ctx == nullptr) {
-    return false;
-  }
-#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
-  /* we want to set the ALPN to h2, if only to mitigate the ALPACA attack */
-  const std::vector<std::vector<uint8_t>> h2Alpns = {{'h', '2'}};
-  ctx->setALPNProtos(h2Alpns);
-  ctx->setNextProtocolSelectCallback(select_next_proto_callback);
-  return true;
-#else /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
   return false;
 #endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
 }

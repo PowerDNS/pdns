@@ -576,7 +576,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          if (getOptionalValue<std::string>(vars, "tls", valueStr) > 0) {
                            serverPort = 853;
                            config.d_tlsParams.d_provider = valueStr;
-                           tlsCtx = getTLSContext(config.d_tlsParams);
 
                            if (getOptionalValue<std::string>(vars, "dohPath", valueStr) > 0) {
 #if !defined(HAVE_DNS_OVER_HTTPS) || !defined(HAVE_NGHTTP2)
@@ -585,9 +584,15 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
                              serverPort = 443;
                              config.d_dohPath = valueStr;
+                             config.d_tlsParams.d_alpn = TLSFrontend::ALPN::DoH;
 
                              getOptionalValue<bool>(vars, "addXForwardedHeaders", config.d_addXForwardedHeaders);
                            }
+                           else {
+                             config.d_tlsParams.d_alpn = TLSFrontend::ALPN::DoT;
+                           }
+
+                           tlsCtx = getTLSContext(config.d_tlsParams);
                          }
 
                          try {

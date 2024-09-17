@@ -111,18 +111,6 @@ public:
   virtual size_t getTicketsKeysCount() = 0;
   virtual std::string getName() const = 0;
 
-  /* set the advertised ALPN protocols, in client or server context */
-  virtual bool setALPNProtos(const std::vector<std::vector<uint8_t>>& /* protos */)
-  {
-    return false;
-  }
-
-  /* called in a client context, if the client advertised more than one ALPN values and the server returned more than one as well, to select the one to use. */
-  virtual bool setNextProtocolSelectCallback(bool(*)(unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen))
-  {
-    return false;
-  }
-
   using tickets_key_added_hook = std::function<void(const std::string& key)>;
 
   static void setTicketsKeyAddedHook(const tickets_key_added_hook& hook)
@@ -583,6 +571,7 @@ struct TLSContextParameters
   std::string d_ciphers;
   std::string d_ciphers13;
   std::string d_caStore;
+  TLSFrontend::ALPN d_alpn{TLSFrontend::ALPN::Unset};
   bool d_validateCertificates{true};
   bool d_releaseBuffers{true};
   bool d_enableRenegotiation{false};

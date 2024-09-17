@@ -1091,16 +1091,7 @@ pdns::UniqueFilePtr libssl_set_key_log_file(std::unique_ptr<SSL_CTX, decltype(&S
 #endif /* HAVE_SSL_CTX_SET_KEYLOG_CALLBACK */
 }
 
-/* called in a client context, if the client advertised more than one ALPN values and the server returned more than one as well, to select the one to use. */
-#ifndef DISABLE_NPN
-void libssl_set_npn_select_callback(SSL_CTX* ctx, int (*cb)(SSL* s, unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen, void* arg), void* arg)
-{
-#ifdef HAVE_SSL_CTX_SET_NEXT_PROTO_SELECT_CB
-  SSL_CTX_set_next_proto_select_cb(ctx, cb, arg);
-#endif
-}
-#endif /* DISABLE_NPN */
-
+/* called in a client context, if the client advertised more than one ALPN value and the server returned more than one as well, to select the one to use. */
 void libssl_set_alpn_select_callback(SSL_CTX* ctx, int (*cb)(SSL* s, const unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen, void* arg), void* arg)
 {
 #ifdef HAVE_SSL_CTX_SET_ALPN_SELECT_CB
