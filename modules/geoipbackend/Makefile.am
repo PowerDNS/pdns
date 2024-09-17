@@ -10,5 +10,9 @@ libgeoipbackend_la_SOURCES = \
 	geoipinterface-mmdb.cc \
 	geoipinterface.cc geoipinterface.hh
 
+if GEOIPBACKEND_DYNMODULE
 libgeoipbackend_la_LDFLAGS = -module -avoid-version
+else
+libgeoipbackend_la_LDFLAGS = -static -avoid-version
+endif
 libgeoipbackend_la_LIBADD = $(YAML_LIBS) $(GEOIP_LIBS) $(MMDB_LIBS) $(CXXFS_LIBS)
