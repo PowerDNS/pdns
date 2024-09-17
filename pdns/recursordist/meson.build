@@ -122,7 +122,6 @@ common_sources += files(
   src_dir / 'mtasker_context.cc',
   src_dir / 'negcache.cc',
   src_dir / 'nsecrecords.cc',
-  src_dir / 'pollmplexer.cc',
   src_dir / 'protozero.cc',
   src_dir / 'proxy-protocol.cc',
   src_dir / 'pubsuffixloader.cc',
@@ -199,6 +198,24 @@ foreach name, info: conditional_sources
     common_sources += files(info['sources'])
   endif
 endforeach
+
+mplexer_sources = [src_dir / 'pollmplexer.cc']
+if have_linux
+  mplexer_sources += src_dir / 'epollmplexer.cc'
+endif
+if have_darwin
+  mplexer_sources += src_dir / 'kqueuemplexer.cc'
+endif
+if have_openbsd
+  mplexer_sources += src_dir / 'kqueuemplexer.cc'
+endif
+if have_freebsd
+  mplexer_sources += src_dir / 'kqueuemplexer.cc'
+endif
+if have_sunos
+  mplexer_sources += src_dir / 'devpollmplexer.cc'
+  mplexer_sources += src_dir / 'portsmplexer.cc'
+endif
 
 # Generate config.h
 config_h = configure_file(configuration: conf, output: 'config.h')
@@ -373,6 +390,7 @@ tools = {
       src_dir / 'rec-tcpout.cc',
       src_dir / 'rec-snmp.cc',
       src_dir / 'rec-tcp.cc',
+      mplexer_sources,
     ],
     'manpages': ['pdns_recursor.1'],
     'deps-extra': [
@@ -481,6 +499,7 @@ if get_option('unit-tests')
     'testrunner': {
         'main': [
           src_dir / 'testrunner.cc',
+          mplexer_sources,
         ],
         'deps-extra': [
           librec_test,
