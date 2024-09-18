@@ -2214,7 +2214,7 @@ public:
 
   [[nodiscard]] std::string toString() const override
   {
-    return std::string(d_nxd ? "NXD " : "NODATA") + " with SOA";
+    return std::string(d_nxd ? "NXD" : "NODATA") + " with SOA";
   }
   [[nodiscard]] dnsdist::ResponseConfig& getResponseConfig()
   {
