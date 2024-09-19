@@ -2366,6 +2366,18 @@ Individual parts of these zones can still be loaded or forwarded.
  ''',
     },
     {
+        'name' : 'serve_rfc6303',
+        'section' : 'recursor',
+        'type' : LType.Bool,
+        'default' : 'true',
+        'help' : 'If we should be authoritative for RFC 6303 private IP space',
+        'doc' : '''
+This makes the server authoritatively aware of the zones in RFC 6303 not covered by RFC 1918.
+Individual parts of these zones can still be loaded or forwarded.
+''',
+        'versionadded': ['5.1.x', '5.2.0'],
+    },
+    {
         'name' : 'serve_stale_extensions',
         'section' : 'recordcache',
         'type' : LType.Uint64,

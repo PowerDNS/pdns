@@ -270,6 +270,17 @@ void makePartialIPZone(SyncRes::domainmap_t& newMap,
   addToDomainMap(newMap, std::move(ad), dr.d_name, log, true, true);
 }
 
+void makePartialIP6Zone(SyncRes::domainmap_t& newMap,
+                        const std::string& name,
+                        Logr::log_t log)
+{
+  DNSRecord dnsRecord;
+  dnsRecord.d_name = DNSName(name);
+  SyncRes::AuthDomain authDomain = makeSOAAndNSNodes(dnsRecord, DNSName("localhost."));
+
+  addToDomainMap(newMap, std::move(authDomain), dnsRecord.d_name, log, true, true);
+}
+
 void addForwardAndReverseLookupEntries(SyncRes::domainmap_t& newMap,
                                        const std::string& searchSuffix,
                                        const std::vector<std::string>& parts,
