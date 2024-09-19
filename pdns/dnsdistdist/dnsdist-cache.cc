@@ -511,10 +511,10 @@ uint64_t DNSDistPacketCache::dump(int fileDesc, bool rawResponse)
         fprintf(filePtr.get(), "%s %" PRId64 " %s %s ; ecs %s, rcode %" PRIu8 ", key %" PRIu32 ", length %" PRIu16 ", received over UDP %d, added %" PRId64 ", dnssecOK %d, raw query flags %" PRIu16, value.qname.toString().c_str(), static_cast<int64_t>(value.validity - now), QClass(value.qclass).toString().c_str(), QType(value.qtype).toString().c_str(), value.subnet ? value.subnet.get().toString().c_str() : "empty", rcode, entry.first, value.len, value.receivedOverUDP ? 1 : 0, static_cast<int64_t>(value.added), value.dnssecOK ? 1 : 0, value.queryFlags);
 
         if (rawResponse) {
-	  std::string rawDataResponse = Base64Encode(value.value);
-	  fprintf(filePtr.get(), ", base64response %s", rawDataResponse.c_str());
-	}
-	fprintf(filePtr.get(), "\n");
+          std::string rawDataResponse = Base64Encode(value.value);
+          fprintf(filePtr.get(), ", base64response %s", rawDataResponse.c_str());
+        }
+        fprintf(filePtr.get(), "\n");
       }
       catch (...) {
         fprintf(filePtr.get(), "; error printing '%s'\n", value.qname.empty() ? "EMPTY" : value.qname.toString().c_str());
