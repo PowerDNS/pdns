@@ -132,7 +132,12 @@ def generateSBOM(packageName, additionalDeps):
     appName = packageName
     appInfos = getPackageInformations(pkgDB, packageName)
     component = { 'name': appName, 'bom-ref': 'pkg:' + appName, 'type': 'application'}
-    component['version'] = appInfos.version
+
+    if appInfos.release:
+        component['version'] = (appInfos.version if appInfos.epoch == 0 else str(appInfos.epoch) + ':' + appInfos.version) + '-' + appInfos.release
+    else:
+        component['version'] = (appInfos.version if appInfos.epoch == 0 else str(appInfos.epoch) + ':' + appInfos.version)
+
     component['supplier'] = {'name': appInfos.vendor if appInfos.vendor != '<NULL>' else 'PowerDNS.COM BV', 'url': ['https://www.powerdns.com']}
     component['licenses'] = [{'license': {'id': licenseToSPDXIdentifier(appInfos.license)}}]
     depRelations['pkg:' + appName] = []
