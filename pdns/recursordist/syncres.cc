@@ -6223,9 +6223,10 @@ int SyncRes::getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigne
     SLOG(g_log << Logger::Error << "Failed to update . records, got an exception: " << e.reason << endl,
          log->error(Logr::Error, e.reason, msg, "exception", Logging::Loggable("ImmediateServFailException")));
   }
-  catch (const PolicyHitException& e) {
+  catch (const PolicyHitException& policyHit) {
     SLOG(g_log << Logger::Error << "Failed to update . records, got a policy hit" << endl,
-         log->info(Logr::Error, msg, "exception", Logging::Loggable("PolicyHitException")));
+         log->info(Logr::Error, msg, "exception", Logging::Loggable("PolicyHitException"),
+                   "policyName", Logging::Loggable(resolver.d_appliedPolicy.getName())));
     ret.clear();
   }
   catch (const std::exception& e) {
