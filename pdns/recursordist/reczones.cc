@@ -181,6 +181,7 @@ string reloadZoneConfiguration(bool yaml)
       ::arg().preParseFile(configname, "allow-notify-for-file");
       ::arg().preParseFile(configname, "export-etc-hosts", "off");
       ::arg().preParseFile(configname, "serve-rfc1918");
+      ::arg().preParseFile(configname, "serve-rfc6303");
       ::arg().preParseFile(configname, "include-dir");
       ::arg().preParse(g_argc, g_argv, "include-dir");
 
@@ -199,6 +200,7 @@ string reloadZoneConfiguration(bool yaml)
         ::arg().preParseFile(filename, "allow-notify-for-file", ::arg()["allow-notify-for-file"]);
         ::arg().preParseFile(filename, "export-etc-hosts", ::arg()["export-etc-hosts"]);
         ::arg().preParseFile(filename, "serve-rfc1918", ::arg()["serve-rfc1918"]);
+        ::arg().preParseFile(filename, "serve-rfc1918", ::arg()["serve-rfc6303"]);
       }
     }
     // Process command line args potentially overriding what we read from config files
@@ -210,6 +212,7 @@ string reloadZoneConfiguration(bool yaml)
     ::arg().preParse(g_argc, g_argv, "allow-notify-for-file");
     ::arg().preParse(g_argc, g_argv, "export-etc-hosts");
     ::arg().preParse(g_argc, g_argv, "serve-rfc1918");
+    ::arg().preParse(g_argc, g_argv, "serve-rfc6303");
 
     auto [newDomainMap, newNotifySet] = parseZoneConfiguration(yaml);
 
@@ -508,6 +511,37 @@ static void processServeRFC1918(std::shared_ptr<SyncRes::domainmap_t>& newMap, L
   }
 }
 
+static void processServeRFC6303(std::shared_ptr<SyncRes::domainmap_t>& newMap, Logr::log_t log)
+{
+  if (!::arg().mustDo("serve-rfc6303")) {
+    return;
+  }
+  SLOG(g_log << Logger::Warning << "Inserting rfc 6303 private space zones" << endl,
+       log->info(Logr::Notice, "Inserting rfc 6303 private space zones"));
+  // Section 4.2
+  makePartialIPZone(*newMap, {"0"}, log);
+  // makePartialIPZone(*newMap, { "127" }, log) already done in processServeRFC1918
+  makePartialIPZone(*newMap, {"169", "254"}, log);
+  makePartialIPZone(*newMap, {"192", "0", "2"}, log);
+  makePartialIPZone(*newMap, {"198", "51", "100"}, log);
+  makePartialIPZone(*newMap, {"203", "0", "113"}, log);
+  makePartialIPZone(*newMap, {"255", "255", "255", "255"}, log); // actually produces NODATA instead of the RFC's NXDOMAIN
+
+  // Note v6 names are not reversed
+  // Section 4.3
+  // makePartialIP6Zone(*newMap, "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa", log) already handled by SyncRes::doSpecialNamesResolve, in accordance with section 4.2
+  makePartialIP6Zone(*newMap, "0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa", log); // actually produces NODATA instead of the RFC's NXDOMAIN
+  // Section 4.4
+  makePartialIP6Zone(*newMap, "d.f.ip6.arpa", log);
+  // Section 4.5
+  makePartialIP6Zone(*newMap, "8.e.f.ip6.arpa", log);
+  makePartialIP6Zone(*newMap, "9.e.f.ip6.arpa", log);
+  makePartialIP6Zone(*newMap, "a.e.f.ip6.arpa", log);
+  makePartialIP6Zone(*newMap, "b.e.f.ip6.arpa", log);
+  // Section 4.6
+  makePartialIP6Zone(*newMap, "8.b.d.0.1.0.0.2.ip6.arpa", log);
+}
+
 static void processAllowNotifyFor(shared_ptr<notifyset_t>& newSet)
 {
   vector<string> parts;
@@ -569,6 +603,7 @@ std::tuple<std::shared_ptr<SyncRes::domainmap_t>, std::shared_ptr<notifyset_t>> 
   }
   processExportEtcHosts(newMap, log);
   processServeRFC1918(newMap, log);
+  processServeRFC6303(newMap, log);
   processAllowNotifyFor(newSet);
   processAllowNotifyForFile(newSet, log);
 
