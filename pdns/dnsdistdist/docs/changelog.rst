@@ -11,7 +11,7 @@ Changelog
     :tags: Bug Fixes
     :pullreq: 14467
 
-    Fix a compilation issue with clang by switching to pdns::views::UnsignedCharView
+    Fix a compilation issue with clang by switching to ``pdns::views::UnsignedCharView``
 
   .. change::
     :tags: Bug Fixes
@@ -24,7 +24,7 @@ Changelog
     :tags: Bug Fixes, DNS over TLS
     :pullreq: 14679
 
-    Prevent a data race in incoming DNS over TLS connections by storing the `OpenSSLTLSIOCtx` in the connection
+    Prevent a data race in incoming DNS over TLS connections by storing the ``OpenSSLTLSIOCtx`` in the connection
 
 .. changelog::
   :version: 1.9.6
