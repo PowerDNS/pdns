@@ -2,6 +2,31 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.8.4
+  :released: 20th of September 2024
+
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.8.x.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14467
+
+    Fix a compilation issue with clang by switching to ``pdns::views::UnsignedCharView``
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14680
+    :tickets: 14562
+
+    Fix build with boost 1.86.0
+
+  .. change::
+    :tags: Bug Fixes, DNS over TLS
+    :pullreq: 14679
+
+    Prevent a data race in incoming DNS over TLS connections by storing the ``OpenSSLTLSIOCtx`` in the connection
+
+.. changelog::
   :version: 1.9.6
   :released: 16th of July 2024
 
