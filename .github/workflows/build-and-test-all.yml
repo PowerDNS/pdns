@@ -178,7 +178,7 @@ jobs:
             env: {}
             ports: []
           - backend: godbc_mssql
-            image: mcr.microsoft.com/mssql/server:2017-GA-ubuntu
+            image: mcr.microsoft.com/mssql/server:2022-CU12-ubuntu-22.04
             env:
               ACCEPT_EULA: Y
               SA_PASSWORD: 'SAsa12%%'
