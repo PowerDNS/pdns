@@ -1009,7 +1009,7 @@ See :doc:`../guides/cache` for a how to.
     .. versionchanged:: 2.0.0
       ``rawResponse`` added
 
-    Dump a summary of the cache entries to a file.
+    Dump a summary of the cache entries to a file. The raw response packet can be decoded by passing it to ``sdig``: ``echo [base64 encoded packet] | openssl base64 -d | sdig stdin 0 . A``
 
     :param str fname: The path to a file where the cache summary should be dumped. Note that if the target file already exists, it will not be overwritten.
     :param bool rawResponse: Dump the raw packet response encoded with base64.
