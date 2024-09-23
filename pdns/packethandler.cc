@@ -1337,6 +1337,7 @@ bool PacketHandler::tryWildcard(DNSPacket& p, std::unique_ptr<DNSPacket>& r, DNS
 }
 
 //! Called by the Distributor to ask a question. Returns 0 in case of an error
+// NOLINTNEXTLINE(readability-function-cognitive-complexity): TODO Clean this function up.
 std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
 {
   DNSZoneRecord rr;
