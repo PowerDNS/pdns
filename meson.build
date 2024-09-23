@@ -413,10 +413,6 @@ conditional_sources = {
     'sources': [src_dir / 'lua-record.cc'],
     'condition': dep_lua_records.found(),
   },
-  'standalone-fuzz-target-runner': {
-    'sources': [src_dir / 'standalone_fuzz_target_runner.cc'],
-    'condition': get_option('fuzz-targets'),
-  },
 }
 
 foreach name, info: conditional_sources

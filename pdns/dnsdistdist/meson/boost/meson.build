@@ -1,0 +1,5 @@
+dep_boost = dependency('boost', version: '>= 1.54', required: true)
+# conf.set('BOOST_CONTAINER_USE_STD_EXCEPTIONS', true, description: 'Boost use std exceptions')
+add_project_arguments('-DBOOST_CONTAINER_USE_STD_EXCEPTIONS', language: ['c', 'cpp'])
+summary('Boost', dep_boost.found(), bool_yn: true, section: 'Boost')
+summary('Version', dep_boost.version(), section: 'Boost')
