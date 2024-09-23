@@ -13,7 +13,7 @@ class NamedForwardTest(RecursorTest):
     _confdir = 'NamedForward'
     _config_template = """
 dnssec=validate
-forward-zones-recurse=.=dns.quad9.net
+forward-zones-recurse=.=dns.quad9.net;dns.google;one.one.one.one
 system-resolver-ttl=10
     """
 
