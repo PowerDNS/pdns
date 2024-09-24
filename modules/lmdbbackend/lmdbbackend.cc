@@ -21,6 +21,7 @@
  */
 
 #include "ext/lmdb-safe/lmdb-safe.hh"
+#include <cstring>
 #include <lmdb.h>
 #include <memory>
 #include <stdexcept>
@@ -905,26 +906,37 @@ BOOST_SERIALIZATION_SPLIT_FREE(DomainInfo);
 BOOST_IS_BITWISE_SERIALIZABLE(ComboAddress);
 
 template <>
-std::string serializeToBuffer(const LMDBBackend::LMDBResourceRecord& lrr)
+std::string serializeToBuffer(const LMDBBackend::LMDBResourceRecord& value)
 {
-  std::string ret;
-  uint16_t len = lrr.content.length();
-  ret.reserve(2 + len + 7);
+  std::string buffer;
 
-  ret.assign((const char*)&len, 2);
-  ret += lrr.content;
-  ret.append((const char*)&lrr.ttl, 4);
-  ret.append(1, (char)lrr.auth);
-  ret.append(1, (char)lrr.disabled);
-  ret.append(1, (char)lrr.ordername);
-  return ret;
+  // Data size of the resource record.
+  uint16_t len = value.content.length();
+
+  // Reserve space to store the size of the resource record + the content of the resource
+  // record + a few other things.
+  buffer.reserve(sizeof(len) + len + sizeof(value.ttl) + sizeof(value.auth) + sizeof(value.disabled) + sizeof(value.ordername));
+
+  // Store the size of the resource record.
+  std::memcpy(&buffer.at(0), &len, sizeof(len));
+
+  // Store the contents of the resource record.
+  buffer += value.content;
+
+  // The few other things.
+  std::memcpy(&buffer.at(sizeof(len) + len), &value.ttl, sizeof(value.ttl));
+  buffer.append(1, (char)value.auth);
+  buffer.append(1, (char)value.disabled);
+  buffer.append(1, (char)value.ordername);
+
+  return buffer;
 }
 
 template <>
-std::string serializeToBuffer(const vector<LMDBBackend::LMDBResourceRecord>& lrrs)
+std::string serializeToBuffer(const vector<LMDBBackend::LMDBResourceRecord>& value)
 {
   std::string ret;
-  for (const auto& lrr : lrrs) {
+  for (const auto& lrr : value) {
     ret += serializeToBuffer(lrr);
   }
   return ret;
