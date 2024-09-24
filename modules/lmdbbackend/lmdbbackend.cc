@@ -170,6 +170,7 @@ std::pair<uint32_t, uint32_t> LMDBBackend::getSchemaVersionAndShards(std::string
       if (retCode == MDB_NOTFOUND) {
         cerr << "schemaversion was set, but shards was not. Dazed and confused, trying to exit." << endl;
         mdb_txn_abort(txn);
+        // NOLINTNEXTLINE(concurrency-mt-unsafe)
         exit(1);
       }
 
