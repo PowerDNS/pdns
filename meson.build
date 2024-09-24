@@ -948,14 +948,21 @@ if get_option('unit-tests')
 endif
 
 if get_option('fuzz-targets')
-  tools += {
-    'fuzz-target-moadnsparser'                        : { 'main': src_dir / 'fuzz_moadnsparser.cc'                        },
-    'fuzz-target-packetcache'                         : { 'main': src_dir / 'fuzz_packetcache.cc'                         },
-    'fuzz-target-proxyprotocol'                       : { 'main': src_dir / 'fuzz_proxyprotocol.cc'                       },
-    'fuzz-target-dnslabeltext-parseRFC1035CharString' : { 'main': src_dir / 'fuzz_dnslabeltext_parseRFC1035CharString.cc' },
-    'fuzz-target-yahttp'                              : { 'main': src_dir / 'fuzz_yahttp.cc'                              },
-    'fuzz-target-zoneparsertng'                       : { 'main': src_dir / 'fuzz_zoneparsertng.cc'                       },
-  }
+  fuzz_targets = [
+    'moadnsparser',
+    'packetcache',
+    'proxyprotocol',
+    'dnslabeltext-parseRFC1035CharString',
+    'yahttp',
+    'zoneparsertng',
+  ]
+
+  foreach target: fuzz_targets
+    source_file = src_dir / 'fuzz_' + target.underscorify() + '.cc'
+    tools += {
+      'fuzz-target-' + target: { 'main': source_file }
+    }
+  endforeach
 endif
 
 libpdns_common = declare_dependency(
