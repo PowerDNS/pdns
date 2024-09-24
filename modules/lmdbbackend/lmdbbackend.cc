@@ -918,12 +918,14 @@ std::string serializeToBuffer(const LMDBBackend::LMDBResourceRecord& value)
   buffer.reserve(sizeof(len) + len + sizeof(value.ttl) + sizeof(value.auth) + sizeof(value.disabled) + sizeof(value.ordername));
 
   // Store the size of the resource record.
+  buffer.resize(sizeof(len));
   std::memcpy(&buffer.at(0), &len, sizeof(len));
 
   // Store the contents of the resource record.
   buffer += value.content;
 
   // The few other things.
+  buffer.resize(buffer.size() + sizeof(value.ttl));
   std::memcpy(&buffer.at(sizeof(len) + len), &value.ttl, sizeof(value.ttl));
   buffer.append(1, (char)value.auth);
   buffer.append(1, (char)value.disabled);
