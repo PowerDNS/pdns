@@ -957,19 +957,19 @@ static inline size_t deserializeRRFromBuffer(const string_view& str, LMDBBackend
 }
 
 template <>
-void deserializeFromBuffer(const string_view& str, LMDBBackend::LMDBResourceRecord& lrr)
+void deserializeFromBuffer(const string_view& buffer, LMDBBackend::LMDBResourceRecord& value)
 {
-  deserializeRRFromBuffer(str, lrr);
+  deserializeRRFromBuffer(buffer, value);
 }
 
 template <>
-void deserializeFromBuffer(const string_view& str, vector<LMDBBackend::LMDBResourceRecord>& lrrs)
+void deserializeFromBuffer(const string_view& buffer, vector<LMDBBackend::LMDBResourceRecord>& value)
 {
-  auto str_copy = str;
+  auto str_copy = buffer;
   while (str_copy.size() >= 9) { // minimum length for a record is 10
     LMDBBackend::LMDBResourceRecord lrr;
     auto rrLength = deserializeRRFromBuffer(str_copy, lrr);
-    lrrs.emplace_back(lrr);
+    value.emplace_back(lrr);
     str_copy.remove_prefix(rrLength);
   }
 }
