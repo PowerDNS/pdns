@@ -46,8 +46,15 @@ spectest=$1
 [ -z $spectest ] && spectest=""
 
 for prog in $SDIG $SAXFR $NOTIFY $NSEC3DIG; do
-  if `echo $prog | grep -q '\.\./pdns'`; then
-    ${MAKE} -C ../pdns ${prog##*../pdns/} || exit
+  if [ -z "$PDNS_BUILD_PATH" ]; then
+    if `echo $prog | grep -q '\.\./pdns'`; then
+      ${MAKE} -C ../pdns ${prog##*../pdns/} || exit
+    fi
+  else
+    if [ ! -x "$prog" ]; then
+      echo "Error: cannot find $prog, please build it."
+      exit 1
+    fi
   fi
 done
 
