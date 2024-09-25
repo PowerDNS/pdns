@@ -1112,9 +1112,12 @@ bool dnsdist_ffi_dnsquestion_add_proxy_protocol_values(dnsdist_ffi_dnsquestion_t
 
 size_t dnsdist_ffi_dnsquestion_get_proxy_protocol_values(dnsdist_ffi_dnsquestion_t* dnsQuestion, const dnsdist_ffi_proxy_protocol_value_t** out)
 {
-  size_t count = 0;
-  if (dnsQuestion == nullptr || dnsQuestion->dq == nullptr || out == nullptr || !dnsQuestion->dq->proxyProtocolValues) {
-    return count;
+  if (dnsQuestion == nullptr || dnsQuestion->dq == nullptr || !dnsQuestion->dq->proxyProtocolValues) {
+    return 0;
+  }
+
+  if (out == nullptr) {
+    return dnsQuestion->proxyProtocolValuesVect->size();
   }
 
   dnsQuestion->proxyProtocolValuesVect = std::make_unique<std::vector<dnsdist_ffi_proxy_protocol_value_t>>(dnsQuestion->dq->proxyProtocolValues->size());
@@ -1124,11 +1127,10 @@ size_t dnsdist_ffi_dnsquestion_get_proxy_protocol_values(dnsdist_ffi_dnsquestion
     targetEntry.size = entry.content.size();
     targetEntry.value = entry.content.data();
     targetEntry.type = entry.type;
-    ++count;
   }
 
   *out = dnsQuestion->proxyProtocolValuesVect->data();
-  return count;
+  return dnsQuestion->proxyProtocolValuesVect->size();
 }
 
 struct dnsdist_ffi_domain_list_t
