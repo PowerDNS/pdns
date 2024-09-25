@@ -46,8 +46,8 @@ jobs:
     with:
       product: 'authoritative'
     secrets:
-      COVERITY_TOKEN: ${{ secrets.COVERITY_TOKEN }}
-      COVERITY_EMAIL: ${{ secrets.COVERITY_EMAIL }}
+      COVERITY_TOKEN: ${{ secrets.coverity_auth_token }}
+      COVERITY_EMAIL: ${{ secrets.coverity_email }}
 
   coverity-dnsdist:
     name: coverity scan of dnsdist
@@ -56,8 +56,8 @@ jobs:
     with:
       product: 'dnsdist'
     secrets:
-      COVERITY_TOKEN: ${{ secrets.COVERITY_TOKEN }}
-      COVERITY_EMAIL: ${{ secrets.COVERITY_EMAIL }}
+      COVERITY_TOKEN: ${{ secrets.coverity_dnsdist_token }}
+      COVERITY_EMAIL: ${{ secrets.coverity_email }}
 
   coverity-rec:
     name: coverity scan of the rec
@@ -66,5 +66,5 @@ jobs:
     with:
       product: 'recursor'
     secrets:
-      COVERITY_TOKEN: ${{ secrets.COVERITY_TOKEN }}
-      COVERITY_EMAIL: ${{ secrets.COVERITY_EMAIL }}
+      COVERITY_TOKEN: ${{ secrets.coverity_rec_token }}
+      COVERITY_EMAIL: ${{ secrets.coverity_email }}
