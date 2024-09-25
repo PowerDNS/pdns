@@ -55,6 +55,7 @@ template <class T> static std::shared_ptr<DownstreamState> getLeastOutstanding(c
 // get server with least outstanding queries, and within those, with the lowest order, and within those: the fastest
 shared_ptr<DownstreamState> leastOutstanding(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
 {
+  (void)dq;
   using LeastOutstandingType = std::tuple<int,int,double>;
 
   if (servers.size() == 1 && servers[0].second->isUp()) {
@@ -150,6 +151,7 @@ static shared_ptr<DownstreamState> valrandom(const unsigned int val, const Serve
 
 shared_ptr<DownstreamState> wrandom(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
 {
+  (void)dq;
   return valrandom(dns_random_uint32(), servers);
 }
 
@@ -230,6 +232,7 @@ shared_ptr<DownstreamState> chashed(const ServerPolicy::NumberedServerVector& se
 
 shared_ptr<DownstreamState> roundrobin(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
 {
+  (void)dq;
   if (servers.empty()) {
     return shared_ptr<DownstreamState>();
   }
