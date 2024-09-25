@@ -5,6 +5,7 @@ if [ -z "$testsdir" ]; then
 fi
 
 PATH=.:$PATH:/usr/sbin
+MAKE=${MAKE:-make}
 
 if [ -z "$PDNS_BUILD_PATH" ]; then
   # PDNS_BUILD_PATH is unset or empty. Assume an autotools build.
@@ -45,9 +46,8 @@ spectest=$1
 [ -z $spectest ] && spectest=""
 
 for prog in $SDIG $SAXFR $NOTIFY $NSEC3DIG; do
-  if [ ! -x "$prog" ]; then
-    echo "Error: cannot find $prog, please build it."
-    exit 1
+  if `echo $prog | grep -q '\.\./pdns'`; then
+    ${MAKE} -C ../pdns ${prog##*../pdns/} || exit
   fi
 done
 
