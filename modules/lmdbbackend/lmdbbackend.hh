@@ -30,7 +30,6 @@ std::string keyConv(const T& t)
   /* www.ds9a.nl -> nl0ds9a0www0
      root -> 0   <- we need this to keep lmdb happy
      nl -> nl0
-     
   */
   if (t.empty()) {
     throw std::out_of_range(std::string(__PRETTY_FUNCTION__) + " Attempt to serialize an unset dnsname");

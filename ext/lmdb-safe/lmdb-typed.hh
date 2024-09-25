@@ -1,8 +1,10 @@
 #pragma once
+
 #include <stdexcept>
 #include <string_view>
+#include <sstream>
 #include <iostream>
-#include "lmdb-safe.hh"
+
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/vector.hpp>
@@ -11,88 +13,79 @@
 #include <boost/iostreams/stream.hpp>
 #include <boost/iostreams/stream_buffer.hpp>
 #include <boost/iostreams/device/back_inserter.hpp>
-#include <sstream>
-// using std::cout;
-// using std::endl;
 
+#include "lmdb-safe.hh"
 
 /*
-   Open issues:
+ * OPEN ISSUES:
+ *
+ * - Everything should go into a namespace.
+ * - Decide on what is an error and what is an exception.
+ * - Could id=0 be magic? (e.g. 'no such id') - yes.
+ * - Is boost the best serializer? It's a good default.
+ * - Perhaps use the separate index concept from multi_index.
+ * - Perhaps get eiter to be of same type so that for(auto& a : x) works.
+ *   - Make it more value-like with unique_ptr.
+ */
 
-   Everything should go into a namespace
-   What is an error? What is an exception?
-   could id=0 be magic? ('no such id')
-     yes
-   Is boost the best serializer?
-     good default
-   Perhaps use the separate index concept from multi_index
-   perhaps get eiter to be of same type so for(auto& a : x) works
-     make it more value "like" with unique_ptr
-*/
+/**
+ * LMDB ID Vector Type.
+ */
+typedef std::vector<uint32_t> LmdbIdVec;
 
-
-/** Return the highest ID used in a database. Returns 0 for an empty DB.
-    This makes us start everything at ID=1, which might make it possible to
-    treat id 0 as special
-*/
+/**
+ * Return the highest ID used in a database. Returns 0 for an empty DB. This makes us
+ * start everything at ID=1, which might make it possible to treat id 0 as special.
+ */
 unsigned int MDBGetMaxID(MDBRWTransaction& txn, MDBDbi& dbi);
 
-/** Return a randomly generated ID that is unique and not zero.
-    May throw if the database is very full.
-*/
+/**
+ * Return a randomly generated ID that is unique and not zero. May throw if the database
+ * is very full.
+ */
 unsigned int MDBGetRandomID(MDBRWTransaction& txn, MDBDbi& dbi);
 
-typedef std::vector<uint32_t> LMDBIDvec;
-
-/** This is our serialization interface.
-    You can define your own serToString for your type if you know better
-*/
-template<typename T>
-std::string serToString(const T& t)
+/**
+ * This is our serialization interface. It can be specialized for other types.
+ */
+template <typename T>
+std::string serializeToBuffer(const T& value)
 {
-  std::string serial_str;
-  boost::iostreams::back_insert_device<std::string> inserter(serial_str);
-  boost::iostreams::stream<boost::iostreams::back_insert_device<std::string> > s(inserter);
-  boost::archive::binary_oarchive oa(s, boost::archive::no_header | boost::archive::no_codecvt);
-
-  oa << t;
-  return serial_str;
+  std::string buffer;
+  boost::iostreams::back_insert_device<std::string> inserter(buffer);
+  boost::iostreams::stream<boost::iostreams::back_insert_device<std::string>> inserterStream(inserter);
+  boost::archive::binary_oarchive outputArchive(inserterStream, boost::archive::no_header | boost::archive::no_codecvt);
+  outputArchive << value;
+  return buffer;
 }
 
-template<typename T>
-void serFromString(const string_view& str, T& ret)
+template <typename T>
+void deserializeFromBuffer(const string_view& buffer, T& value)
 {
-  ret = T();
-
-  boost::iostreams::array_source source(&str[0], str.size());
+  value = T();
+  boost::iostreams::array_source source(&buffer[0], buffer.size());
   boost::iostreams::stream<boost::iostreams::array_source> stream(source);
-  boost::archive::binary_iarchive in_archive(stream, boost::archive::no_header|boost::archive::no_codecvt);
-  in_archive >> ret;
-
-  /*
-  std::istringstream istr{str};
-  boost::archive::binary_iarchive oi(istr,boost::archive::no_header|boost::archive::no_codecvt );
-  oi >> ret;
-  */
+  boost::archive::binary_iarchive inputArchive(stream, boost::archive::no_header | boost::archive::no_codecvt);
+  inputArchive >> value;
 }
-
 
 template <class T, class Enable>
-inline std::string keyConv(const T& t);
+inline std::string keyConv(const T& value);
 
-template <class T, typename std::enable_if<std::is_arithmetic<T>::value,T>::type* = nullptr>
-inline std::string keyConv(const T& t)
+template <class T, typename std::enable_if<std::is_arithmetic<T>::value, T>::type* = nullptr>
+inline std::string keyConv(const T& value)
 {
-  return std::string((char*)&t, sizeof(t));
+  return std::string((char*)&value, sizeof(value));
 }
 
-// this is how to override specific types.. it is ugly
-template<class T, typename std::enable_if<std::is_same<T, std::string>::value,T>::type* = nullptr>
-inline std::string keyConv(const T& t)
+/**
+ * keyConv specialization for std::string.
+ */
+template <class T, typename std::enable_if<std::is_same<T, std::string>::value, T>::type* = nullptr>
+inline std::string keyConv(const T& value)
 {
-  return t;
+  return value;
 }
-
 
 namespace {
   inline MDBOutVal getKeyFromCombinedKey(MDBInVal combined) {
@@ -290,7 +283,7 @@ public:
       if((*d_parent.d_txn)->get(d_parent.d_parent->d_main, id, data))
         return false;
 
-      serFromString(data.get<std::string>(), t);
+      deserializeFromBuffer(data.get<std::string>(), t);
       return true;
     }
 
@@ -304,7 +297,7 @@ public:
       // auto range = (*d_parent.d_txn)->prefix_range<N>(domain);
 
       // auto range = prefix_range<N>(key);
-      LMDBIDvec ids;
+      LmdbIdVec ids;
 
       // because we know we only want one item, pass onlyOldest=true to consistently get the same one out of a set of duplicates
       get_multi<N>(key, ids, true);
@@ -378,10 +371,10 @@ public:
         if(d_on_index) {
           if((*d_parent->d_txn)->get(d_parent->d_parent->d_main, d_id, d_data))
             throw std::runtime_error("Missing id in constructor");
-          serFromString(d_data.get<std::string>(), d_t);
+          deserializeFromBuffer(d_data.get<std::string>(), d_t);
         }
         else
-          serFromString(d_id.get<std::string>(), d_t);
+          deserializeFromBuffer(d_id.get<std::string>(), d_t);
       }
 
       explicit iter_t(Parent* parent, typename Parent::cursor_t&& cursor, const std::string& prefix) :
@@ -405,10 +398,10 @@ public:
         if(d_on_index) {
           if((*d_parent->d_txn)->get(d_parent->d_parent->d_main, d_id, d_data))
             throw std::runtime_error("Missing id in constructor");
-          serFromString(d_data.get<std::string>(), d_t);
+          deserializeFromBuffer(d_data.get<std::string>(), d_t);
         }
         else
-          serFromString(d_id.get<std::string>(), d_t);
+          deserializeFromBuffer(d_id.get<std::string>(), d_t);
       }
 
 
@@ -473,13 +466,13 @@ public:
             // if(filter && !filter(data))
             //   goto next;
 
-            serFromString(data.get<std::string>(), d_t);
+            deserializeFromBuffer(data.get<std::string>(), d_t);
           }
           else {
             // if(filter && !filter(data))
             //   goto next;
 
-            serFromString(d_id.get<std::string>(), d_t);
+            deserializeFromBuffer(d_id.get<std::string>(), d_t);
           }
         }
         return *this;
@@ -643,7 +636,7 @@ public:
     };
 
     template<int N>
-    void get_multi(const typename std::tuple_element<N, tuple_t>::type::type& key, LMDBIDvec& ids, bool onlyOldest=false)
+    void get_multi(const typename std::tuple_element<N, tuple_t>::type::type& key, LmdbIdVec& ids, bool onlyOldest=false)
     {
       // std::cerr<<"in get_multi"<<std::endl;
       typename Parent::cursor_t cursor = (*d_parent.d_txn)->getCursor(std::get<N>(d_parent.d_parent->d_tuple).d_idx);
@@ -763,7 +756,7 @@ public:
           // flags = MDB_APPEND;
         }
       }
-      (*d_txn)->put(d_parent->d_main, id, serToString(t), flags);
+      (*d_txn)->put(d_parent->d_main, id, serializeToBuffer(t), flags);
 
 #define insertMacro(N) std::get<N>(d_parent->d_tuple).put(*d_txn, t, id);
       insertMacro(0);
@@ -807,7 +800,7 @@ public:
       while(!cursor.get(key, data, first ? MDB_FIRST : MDB_NEXT)) {
         first = false;
         T t;
-        serFromString(data.get<std::string>(), t);
+        deserializeFromBuffer(data.get<std::string>(), t);
         clearIndex(key.get<uint32_t>(), t);
         cursor.del();
       }

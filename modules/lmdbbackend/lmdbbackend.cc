@@ -21,6 +21,7 @@
  */
 
 #include "ext/lmdb-safe/lmdb-safe.hh"
+#include <cstring>
 #include <lmdb.h>
 #include <memory>
 #include <stdexcept>
@@ -905,32 +906,45 @@ BOOST_SERIALIZATION_SPLIT_FREE(DomainInfo);
 BOOST_IS_BITWISE_SERIALIZABLE(ComboAddress);
 
 template <>
-std::string serToString(const LMDBBackend::LMDBResourceRecord& lrr)
+std::string serializeToBuffer(const LMDBBackend::LMDBResourceRecord& value)
 {
-  std::string ret;
-  uint16_t len = lrr.content.length();
-  ret.reserve(2 + len + 7);
+  std::string buffer;
 
-  ret.assign((const char*)&len, 2);
-  ret += lrr.content;
-  ret.append((const char*)&lrr.ttl, 4);
-  ret.append(1, (char)lrr.auth);
-  ret.append(1, (char)lrr.disabled);
-  ret.append(1, (char)lrr.ordername);
-  return ret;
+  // Data size of the resource record.
+  uint16_t len = value.content.length();
+
+  // Reserve space to store the size of the resource record + the content of the resource
+  // record + a few other things.
+  buffer.reserve(sizeof(len) + len + sizeof(value.ttl) + sizeof(value.auth) + sizeof(value.disabled) + sizeof(value.ordername));
+
+  // Store the size of the resource record.
+  // NOLINTNEXTLINE.
+  buffer.assign((const char*)&len, sizeof(len));
+
+  // Store the contents of the resource record.
+  buffer += value.content;
+
+  // The few other things.
+  // NOLINTNEXTLINE.
+  buffer.append((const char*)&value.ttl, sizeof(value.ttl));
+  buffer.append(1, (char)value.auth);
+  buffer.append(1, (char)value.disabled);
+  buffer.append(1, (char)value.ordername);
+
+  return buffer;
 }
 
 template <>
-std::string serToString(const vector<LMDBBackend::LMDBResourceRecord>& lrrs)
+std::string serializeToBuffer(const vector<LMDBBackend::LMDBResourceRecord>& value)
 {
   std::string ret;
-  for (const auto& lrr : lrrs) {
-    ret += serToString(lrr);
+  for (const auto& lrr : value) {
+    ret += serializeToBuffer(lrr);
   }
   return ret;
 }
 
-static inline size_t serOneRRFromString(const string_view& str, LMDBBackend::LMDBResourceRecord& lrr)
+static inline size_t deserializeRRFromBuffer(const string_view& str, LMDBBackend::LMDBResourceRecord& lrr)
 {
   uint16_t len;
   memcpy(&len, &str[0], 2);
@@ -945,19 +959,19 @@ static inline size_t serOneRRFromString(const string_view& str, LMDBBackend::LMD
 }
 
 template <>
-void serFromString(const string_view& str, LMDBBackend::LMDBResourceRecord& lrr)
+void deserializeFromBuffer(const string_view& buffer, LMDBBackend::LMDBResourceRecord& value)
 {
-  serOneRRFromString(str, lrr);
+  deserializeRRFromBuffer(buffer, value);
 }
 
 template <>
-void serFromString(const string_view& str, vector<LMDBBackend::LMDBResourceRecord>& lrrs)
+void deserializeFromBuffer(const string_view& buffer, vector<LMDBBackend::LMDBResourceRecord>& value)
 {
-  auto str_copy = str;
+  auto str_copy = buffer;
   while (str_copy.size() >= 9) { // minimum length for a record is 10
     LMDBBackend::LMDBResourceRecord lrr;
-    auto rrLength = serOneRRFromString(str_copy, lrr);
-    lrrs.emplace_back(lrr);
+    auto rrLength = deserializeRRFromBuffer(str_copy, lrr);
+    value.emplace_back(lrr);
     str_copy.remove_prefix(rrLength);
   }
 }
@@ -1088,7 +1102,7 @@ bool LMDBBackend::feedRecord(const DNSResourceRecord& r, const DNSName& ordernam
     rrs = _rrs.get<string>();
   }
 
-  rrs += serToString(lrr);
+  rrs += serializeToBuffer(lrr);
 
   d_rwtxn->txn->put(d_rwtxn->db->dbi, matchName, rrs);
 
@@ -1098,12 +1112,12 @@ bool LMDBBackend::feedRecord(const DNSResourceRecord& r, const DNSName& ordernam
       lrr.ttl = 0;
       lrr.content = lrr.qname.toDNSStringLC();
       lrr.auth = 0;
-      string ser = serToString(lrr);
+      string ser = serializeToBuffer(lrr);
       d_rwtxn->txn->put(d_rwtxn->db->dbi, co(lrr.domain_id, ordername, QType::NSEC3), ser);
 
       lrr.ttl = 1;
       lrr.content = ordername.toDNSString();
-      ser = serToString(lrr);
+      ser = serializeToBuffer(lrr);
       d_rwtxn->txn->put(d_rwtxn->db->dbi, co(lrr.domain_id, lrr.qname, QType::NSEC3), ser);
     }
   }
@@ -1120,7 +1134,7 @@ bool LMDBBackend::feedEnts(int domain_id, map<DNSName, bool>& nonterm)
     lrr.auth = nt.second;
     lrr.ordername = true;
 
-    std::string ser = serToString(lrr);
+    std::string ser = serializeToBuffer(lrr);
     d_rwtxn->txn->put(d_rwtxn->db->dbi, co(domain_id, lrr.qname, QType::ENT), ser);
   }
   return true;
@@ -1137,21 +1151,21 @@ bool LMDBBackend::feedEnts3(int domain_id, const DNSName& domain, map<DNSName, b
     lrr.ttl = 0;
     lrr.auth = nt.second;
     lrr.ordername = nt.second;
-    ser = serToString(lrr);
+    ser = serializeToBuffer(lrr);
     d_rwtxn->txn->put(d_rwtxn->db->dbi, co(domain_id, lrr.qname, QType::ENT), ser);
 
     if (!narrow && lrr.auth) {
       lrr.content = lrr.qname.toDNSString();
       lrr.auth = false;
       lrr.ordername = false;
-      ser = serToString(lrr);
+      ser = serializeToBuffer(lrr);
 
       ordername = DNSName(toBase32Hex(hashQNameWithSalt(ns3prc, nt.first)));
       d_rwtxn->txn->put(d_rwtxn->db->dbi, co(domain_id, ordername, QType::NSEC3), ser);
 
       lrr.ttl = 1;
       lrr.content = ordername.toDNSString();
-      ser = serToString(lrr);
+      ser = serializeToBuffer(lrr);
       d_rwtxn->txn->put(d_rwtxn->db->dbi, co(domain_id, lrr.qname, QType::NSEC3), ser);
     }
   }
@@ -1196,7 +1210,7 @@ bool LMDBBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
 
       adjustedRRSet.emplace_back(lrr);
     }
-    txn->txn->put(txn->db->dbi, match, serToString(adjustedRRSet));
+    txn->txn->put(txn->db->dbi, match, serializeToBuffer(adjustedRRSet));
   }
 
   if (needCommit)
@@ -1327,7 +1341,7 @@ bool LMDBBackend::deleteDomain(const DNSName& domain)
 
   abortTransaction();
 
-  LMDBIDvec idvec;
+  LmdbIdVec idvec;
 
   if (!d_handle_dups) {
     // get domain id
@@ -1352,7 +1366,7 @@ bool LMDBBackend::deleteDomain(const DNSName& domain)
 
     { // Remove metadata
       auto txn = d_tmeta->getRWTransaction();
-      LMDBIDvec ids;
+      LmdbIdVec ids;
 
       txn.get_multi<0>(domain, ids);
 
@@ -1365,7 +1379,7 @@ bool LMDBBackend::deleteDomain(const DNSName& domain)
 
     { // Remove cryptokeys
       auto txn = d_tkdb->getRWTransaction();
-      LMDBIDvec ids;
+      LmdbIdVec ids;
       txn.get_multi<0>(domain, ids);
 
       for (auto _id : ids) {
@@ -1522,7 +1536,7 @@ bool LMDBBackend::get(DNSZoneRecord& zr)
         continue;
       }
 
-      serFromString(d_currentVal.get<string_view>(), d_currentrrset);
+      deserializeFromBuffer(d_currentVal.get<string_view>(), d_currentrrset);
       d_currentrrsetpos = 0;
     }
     else {
@@ -1588,7 +1602,7 @@ bool LMDBBackend::getSerial(DomainInfo& di)
   MDBOutVal val;
   if (!txn->txn->get(txn->db->dbi, co(di.id, g_rootdnsname, QType::SOA), val)) {
     LMDBResourceRecord lrr;
-    serFromString(val.get<string_view>(), lrr);
+    deserializeFromBuffer(val.get<string_view>(), lrr);
     if (lrr.content.size() >= 5 * sizeof(uint32_t)) {
       uint32_t serial;
       // a SOA has five 32 bit fields, the first of which is the serial
@@ -1786,7 +1800,7 @@ void LMDBBackend::getUnfreshSecondaryInfos(vector<DomainInfo>* domains)
     compoundOrdername co;
     MDBOutVal val;
     if (!txn2->txn->get(txn2->db->dbi, co(di.id, g_rootdnsname, QType::SOA), val)) {
-      serFromString(val.get<string_view>(), lrr);
+      deserializeFromBuffer(val.get<string_view>(), lrr);
       memcpy(&st, &lrr.content[lrr.content.size() - sizeof(soatimes)], sizeof(soatimes));
       if ((time_t)(di.last_check + ntohl(st.refresh)) > now) { // still fresh
         return false;
@@ -1909,7 +1923,7 @@ bool LMDBBackend::getAllDomainMetadata(const DNSName& name, std::map<std::string
 {
   meta.clear();
   auto txn = d_tmeta->getROTransaction();
-  LMDBIDvec ids;
+  LmdbIdVec ids;
   txn.get_multi<0>(name, ids);
 
   DomainMeta dm;
@@ -1926,7 +1940,7 @@ bool LMDBBackend::setDomainMetadata(const DNSName& name, const std::string& kind
 {
   auto txn = d_tmeta->getRWTransaction();
 
-  LMDBIDvec ids;
+  LmdbIdVec ids;
   txn.get_multi<0>(name, ids);
 
   DomainMeta dmeta;
@@ -1950,7 +1964,7 @@ bool LMDBBackend::setDomainMetadata(const DNSName& name, const std::string& kind
 bool LMDBBackend::getDomainKeys(const DNSName& name, std::vector<KeyData>& keys)
 {
   auto txn = d_tkdb->getROTransaction();
-  LMDBIDvec ids;
+  LmdbIdVec ids;
   txn.get_multi<0>(name, ids);
 
   KeyDataDB key;
@@ -2087,13 +2101,13 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
 
     for (;;) {
       if (co.getDomainID(key.getNoStripHeader<StringView>()) != id) {
-        //cout<<"Last record also not part of this zone!"<<endl;
-        // this implies something is wrong in the database, nothing we can do
+        // cout<<"Last record also not part of this zone!"<<endl;
+        //  this implies something is wrong in the database, nothing we can do
         return false;
       }
 
       if (co.getQType(key.getNoStripHeader<StringView>()) == QType::NSEC3) {
-        serFromString(val.get<StringView>(), lrr);
+        deserializeFromBuffer(val.get<StringView>(), lrr);
         if (!lrr.ttl) // the kind of NSEC3 we need
           break;
       }
@@ -2112,7 +2126,7 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
     }
     for (;;) {
       if (co.getQType(key.getNoStripHeader<StringView>()) == QType::NSEC3) {
-        serFromString(val.get<StringView>(), lrr);
+        deserializeFromBuffer(val.get<StringView>(), lrr);
         if (!lrr.ttl)
           break;
       }
@@ -2143,7 +2157,7 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
       }
       for (;;) {
         if (co.getQType(key.getNoStripHeader<StringView>()) == QType::NSEC3) {
-          serFromString(val.get<StringView>(), lrr);
+          deserializeFromBuffer(val.get<StringView>(), lrr);
           if (!lrr.ttl)
             break;
         }
@@ -2166,7 +2180,7 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
         // cout<<"Potentially stopping traverse at "<< co.getQName(key.get<StringView>()) <<", " << (co.getQName(key.get<StringView>()).canonCompare(qname))<<endl;
         // cout<<"qname = "<<qname<<endl;
         // cout<<"here  = "<<co.getQName(key.get<StringView>())<<endl;
-        serFromString(val.get<StringView>(), lrr);
+        deserializeFromBuffer(val.get<StringView>(), lrr);
         if (!lrr.ttl)
           break;
       }
@@ -2185,13 +2199,13 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
 
         for (;;) {
           if (co.getDomainID(key.getNoStripHeader<StringView>()) != id) {
-            //cout<<"Last record also not part of this zone!"<<endl;
-            // this implies something is wrong in the database, nothing we can do
+            // cout<<"Last record also not part of this zone!"<<endl;
+            //  this implies something is wrong in the database, nothing we can do
             return false;
           }
 
           if (co.getQType(key.getNoStripHeader<StringView>()) == QType::NSEC3) {
-            serFromString(val.get<StringView>(), lrr);
+            deserializeFromBuffer(val.get<StringView>(), lrr);
             if (!lrr.ttl) // the kind of NSEC3 we need
               break;
           }
@@ -2212,7 +2226,7 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
         }
         for (;;) {
           if (co.getQType(key.getNoStripHeader<StringView>()) == QType::NSEC3) {
-            serFromString(val.get<StringView>(), lrr);
+            deserializeFromBuffer(val.get<StringView>(), lrr);
             if (!lrr.ttl)
               break;
           }
@@ -2248,7 +2262,7 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
       }
       for (;;) {
         if (co.getQType(key.getNoStripHeader<StringView>()) == QType::NSEC3) {
-          serFromString(val.get<StringView>(), lrr);
+          deserializeFromBuffer(val.get<StringView>(), lrr);
           if (!lrr.ttl)
             break;
         }
@@ -2268,7 +2282,7 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
 
     // cout<<"After "<<co.getQName(key.get<StringView>()) <<endl;
     if (co.getQType(key.getNoStripHeader<StringView>()) == QType::NSEC3) {
-      serFromString(val.get<StringView>(), lrr);
+      deserializeFromBuffer(val.get<StringView>(), lrr);
       if (!lrr.ttl) {
         break;
       }
@@ -2316,7 +2330,7 @@ bool LMDBBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonenameU, 
       if (co.getDomainID(key.getNoStripHeader<string_view>()) == id && key.getNoStripHeader<StringView>().rfind(matchkey, 0) == 0)
         continue;
       LMDBResourceRecord lrr;
-      serFromString(val.get<StringView>(), lrr);
+      deserializeFromBuffer(val.get<StringView>(), lrr);
       if (co.getQType(key.getNoStripHeader<string_view>()).getCode() && (lrr.auth || co.getQType(key.getNoStripHeader<string_view>()).getCode() == QType::NS))
         break;
     }
@@ -2347,7 +2361,7 @@ bool LMDBBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonenameU, 
         return false;
       }
       LMDBResourceRecord lrr;
-      serFromString(val.get<StringView>(), lrr);
+      deserializeFromBuffer(val.get<StringView>(), lrr);
       if (co.getQType(key.getNoStripHeader<string_view>()).getCode() && (lrr.auth || co.getQType(key.getNoStripHeader<string_view>()).getCode() == QType::NS))
         break;
     }
@@ -2362,7 +2376,7 @@ bool LMDBBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonenameU, 
   int skips = 0;
   for (;;) {
     LMDBResourceRecord lrr;
-    serFromString(val.get<StringView>(), lrr);
+    deserializeFromBuffer(val.get<StringView>(), lrr);
     if (co.getQType(key.getNoStripHeader<string_view>()).getCode() && (lrr.auth || co.getQType(key.getNoStripHeader<string_view>()).getCode() == QType::NS)) {
       after = co.getQName(key.getNoStripHeader<string_view>()) + zonename;
       // cout <<"Found auth ("<<lrr.auth<<") or an NS record "<<after<<", type: "<<co.getQType(key.getNoStripHeader<string_view>()).toString()<<", ttl = "<<lrr.ttl<<endl;
@@ -2392,7 +2406,7 @@ bool LMDBBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonenameU, 
     }
     before = co.getQName(key.getNoStripHeader<string_view>()) + zonename;
     LMDBResourceRecord lrr;
-    serFromString(val.get<string_view>(), lrr);
+    deserializeFromBuffer(val.get<string_view>(), lrr);
     // cout<<"And before to "<<before<<", auth = "<<rr.auth<<endl;
     if (co.getQType(key.getNoStripHeader<string_view>()).getCode() && (lrr.auth || co.getQType(key.getNoStripHeader<string_view>()) == QType::NS))
       break;
@@ -2442,7 +2456,7 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
     vector<LMDBResourceRecord> lrrs;
 
     if (co.getQType(key.getNoStripHeader<StringView>()) != QType::NSEC3) {
-      serFromString(val.get<StringView>(), lrrs);
+      deserializeFromBuffer(val.get<StringView>(), lrrs);
       bool changed = false;
       vector<LMDBResourceRecord> newRRs;
       for (auto& lrr : lrrs) {
@@ -2459,7 +2473,7 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
         newRRs.push_back(std::move(lrr));
       }
       if (changed) {
-        cursor.put(key, serToString(newRRs));
+        cursor.put(key, serializeToBuffer(newRRs));
       }
     }
 
@@ -2473,7 +2487,7 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
   // cerr<<"here qname="<<qname<<" ordername="<<ordername<<" qtype="<<qtype<<" matchkey="<<makeHexDump(matchkey)<<endl;
   int txngetrc;
   if (!(txngetrc = txn->txn->get(txn->db->dbi, matchkey, val))) {
-    serFromString(val.get<string_view>(), lrr);
+    deserializeFromBuffer(val.get<string_view>(), lrr);
 
     if (needNSEC3) {
       if (hasOrderName && lrr.content != ordername.toDNSStringLC()) {
@@ -2499,11 +2513,11 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
     lrr.auth = 0;
     lrr.content = rel.toDNSStringLC();
 
-    string str = serToString(lrr);
+    string str = serializeToBuffer(lrr);
     txn->txn->put(txn->db->dbi, co(domain_id, ordername, QType::NSEC3), str);
     lrr.ttl = 1;
     lrr.content = ordername.toDNSStringLC();
-    str = serToString(lrr);
+    str = serializeToBuffer(lrr);
     txn->txn->put(txn->db->dbi, matchkey, str); // 2
   }
 
@@ -2546,7 +2560,7 @@ bool LMDBBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& inse
       lrr.ttl = 0;
       lrr.auth = true;
 
-      std::string ser = serToString(lrr);
+      std::string ser = serializeToBuffer(lrr);
 
       txn->txn->put(txn->db->dbi, co(domain_id, lrr.qname, 0), ser);
 
@@ -2567,7 +2581,7 @@ bool LMDBBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& inse
 bool LMDBBackend::getTSIGKey(const DNSName& name, DNSName& algorithm, string& content)
 {
   auto txn = d_ttsig->getROTransaction();
-  LMDBIDvec ids;
+  LmdbIdVec ids;
   txn.get_multi<0>(name, ids);
 
   TSIGKey key;
@@ -2588,7 +2602,7 @@ bool LMDBBackend::setTSIGKey(const DNSName& name, const DNSName& algorithm, cons
 {
   auto txn = d_ttsig->getRWTransaction();
 
-  LMDBIDvec ids;
+  LmdbIdVec ids;
   txn.get_multi<0>(name, ids);
 
   TSIGKey key;
@@ -2614,7 +2628,7 @@ bool LMDBBackend::deleteTSIGKey(const DNSName& name)
 {
   auto txn = d_ttsig->getRWTransaction();
 
-  LMDBIDvec ids;
+  LmdbIdVec ids;
   txn.get_multi<0>(name, ids);
 
   TSIGKey key;
@@ -2698,7 +2712,7 @@ string LMDBBackend::directBackendCmd(const string& query)
 
           auto id = iter.getID();
 
-          LMDBIDvec ids;
+          LmdbIdVec ids;
           txn.get_multi<0>(di.zone, ids);
 
           if (ids.size() != 1) {
