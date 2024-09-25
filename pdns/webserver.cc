@@ -301,12 +301,12 @@ void WebServer::handleRequest(HttpRequest& req, HttpResponse& resp) const
     catch(PDNSException &e) {
       SLOG(g_log<<Logger::Error<<req.logprefix<<"HTTP ISE for \""<< req.url.path << "\": Exception: " << e.reason << endl,
            log->error(Logr::Error, e.reason, msg, "exception", Logging::Loggable("PDNSException")));
-      throw HttpInternalServerErrorException();
+      throw HttpInternalServerErrorException(e.reason);
     }
     catch(std::exception &e) {
       SLOG(g_log<<Logger::Error<<req.logprefix<<"HTTP ISE for \""<< req.url.path << "\": STL Exception: " << e.what() << endl,
            log->error(Logr::Error, e.what(), msg, "exception", Logging::Loggable("std::exception")));
-      throw HttpInternalServerErrorException();
+      throw HttpInternalServerErrorException(e.what());
     }
     catch(...) {
       SLOG(g_log<<Logger::Error<<req.logprefix<<"HTTP ISE for \""<< req.url.path << "\": Unknown Exception" << endl,
