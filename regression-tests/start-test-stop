@@ -43,8 +43,6 @@ export FIX_TESTS=${FIX_TESTS:-NO}
 ALGORITHM=${ALGORITHM:="hmac-md5"}
 KEY=${KEY:="kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys="}
 
-MAKE=${MAKE:-make}
-
 export ALGORITHM
 export KEY
 
