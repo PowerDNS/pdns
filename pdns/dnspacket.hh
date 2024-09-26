@@ -44,9 +44,6 @@
 #include "pdnsexception.hh"
 #include "dnsrecords.hh"
 
-class UeberBackend;
-class DNSSECKeeper;
-
 
 //! This class represents DNS packets, either received or to be sent.
 class DNSPacket
@@ -165,10 +162,10 @@ public:
 
   bool getTSIGDetails(TSIGRecordContent* tr, DNSName* keyname, uint16_t* tsigPos=nullptr) const;
   void setTSIGDetails(const TSIGRecordContent& tr, const DNSName& keyname, const string& secret, const string& previous, bool timersonly=false);
+  bool validateTSIG(const TSIGTriplet& tsigTriplet, const TSIGRecordContent& tsigContent, const std::string& previousMAC, const std::string& theirMAC, bool timersOnly) const;
   bool getTKEYRecord(TKEYRecordContent* tr, DNSName* keyname) const;
 
   vector<DNSZoneRecord>& getRRS() { return d_rrs; }
-  bool checkForCorrectTSIG(UeberBackend* B, DNSName* keyname, string* secret, TSIGRecordContent* trc) const;
 
   static uint16_t s_udpTruncationThreshold;
   static bool s_doEDNSSubnetProcessing;

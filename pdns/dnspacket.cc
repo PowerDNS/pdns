@@ -535,6 +535,17 @@ bool DNSPacket::getTSIGDetails(TSIGRecordContent* trc, DNSName* keyname, uint16_
   return true;
 }
 
+bool DNSPacket::validateTSIG(const TSIGTriplet& tsigTriplet, const TSIGRecordContent& tsigContent, const std::string& previousMAC, const std::string& theirMAC, bool timersOnly) const
+{
+  MOADNSParser mdp(d_isQuery, d_rawpacket);
+  uint16_t tsigPos = mdp.getTSIGPos();
+  if (tsigPos == 0) {
+    return false;
+  }
+
+  return ::validateTSIG(d_rawpacket, tsigPos, tsigTriplet, tsigContent, previousMAC, theirMAC, timersOnly);
+}
+
 bool DNSPacket::getTKEYRecord(TKEYRecordContent *tr, DNSName *keyname) const
 {
   MOADNSParser mdp(d_isQuery, d_rawpacket);
@@ -722,43 +733,6 @@ void DNSPacket::setSocket(Utility::sock_t sock)
 void DNSPacket::commitD()
 {
   d_rawpacket.replace(0,12,(char *)&d,12); // copy in d
-}
-
-bool DNSPacket::checkForCorrectTSIG(UeberBackend* B, DNSName* keyname, string* secret, TSIGRecordContent* trc) const
-{
-  uint16_t tsigPos;
-
-  if (!this->getTSIGDetails(trc, keyname, &tsigPos)) {
-    return false;
-  }
-
-  TSIGTriplet tt;
-  tt.name = *keyname;
-  tt.algo = trc->d_algoName;
-  if (tt.algo == DNSName("hmac-md5.sig-alg.reg.int"))
-    tt.algo = DNSName("hmac-md5");
-
-  if (tt.algo != DNSName("gss-tsig")) {
-    string secret64;
-    if(!B->getTSIGKey(*keyname, tt.algo, secret64)) {
-      g_log << Logger::Error << "Packet for domain '" << this->qdomain << "' denied: can't find TSIG key with name '" << *keyname << "' and algorithm '" << tt.algo << "'" << endl;
-      return false;
-    }
-    B64Decode(secret64, *secret);
-    tt.secret = *secret;
-  }
-
-  bool result;
-
-  try {
-    result = validateTSIG(d_rawpacket, tsigPos, tt, *trc, "", trc->d_mac, false);
-  }
-  catch(const std::runtime_error& err) {
-    g_log<<Logger::Error<<"Packet for '"<<this->qdomain<<"' denied: "<<err.what()<<endl;
-    return false;
-  }
-
-  return result;
 }
 
 const DNSName& DNSPacket::getTSIGKeyname() const {

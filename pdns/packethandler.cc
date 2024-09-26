@@ -25,6 +25,7 @@
 #include "packetcache.hh"
 #include "utility.hh"
 #include "base32.hh"
+#include "base64.hh"
 #include <string>
 #include <sys/types.h>
 #include <boost/algorithm/string.hpp>
@@ -1336,6 +1337,7 @@ bool PacketHandler::tryWildcard(DNSPacket& p, std::unique_ptr<DNSPacket>& r, DNS
 }
 
 //! Called by the Distributor to ask a question. Returns 0 in case of an error
+// NOLINTNEXTLINE(readability-function-cognitive-complexity): TODO Clean this function up.
 std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
 {
   DNSZoneRecord rr;
@@ -1394,10 +1396,10 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
   }
 
   if(p.d_havetsig) {
-    DNSName keyname;
+    DNSName tsigkeyname;
     string secret;
     TSIGRecordContent trc;
-    if(!p.checkForCorrectTSIG(&B, &keyname, &secret, &trc)) {
+    if (!checkForCorrectTSIG(p, &tsigkeyname, &secret, &trc)) {
       r=p.replyPacket();  // generate an empty reply packet
       if(d_logDNSDetails)
         g_log<<Logger::Error<<"Received a TSIG signed message with a non-validating key"<<endl;
@@ -1411,14 +1413,14 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
       getTSIGHashEnum(trc.d_algoName, p.d_tsig_algo);
 #ifdef ENABLE_GSS_TSIG
       if (g_doGssTSIG && p.d_tsig_algo == TSIG_GSS) {
-        GssContext gssctx(keyname);
+        GssContext gssctx(tsigkeyname);
         if (!gssctx.getPeerPrincipal(p.d_peer_principal)) {
-          g_log<<Logger::Warning<<"Failed to extract peer principal from GSS context with keyname '"<<keyname<<"'"<<endl;
+          g_log<<Logger::Warning<<"Failed to extract peer principal from GSS context with keyname '"<<tsigkeyname<<"'"<<endl;
         }
       }
 #endif
     }
-    p.setTSIGDetails(trc, keyname, secret, trc.d_mac); // this will get copied by replyPacket()
+    p.setTSIGDetails(trc, tsigkeyname, secret, trc.d_mac); // this will get copied by replyPacket()
     noCache=true;
   }
 
@@ -1844,4 +1846,38 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
   }
   return r;
 
+}
+
+bool PacketHandler::checkForCorrectTSIG(const DNSPacket& packet, DNSName* tsigkeyname, string* secret, TSIGRecordContent* tsigContent)
+{
+  uint16_t tsigPos{0};
+
+  if (!packet.getTSIGDetails(tsigContent, tsigkeyname, &tsigPos)) {
+    return false;
+  }
+
+  TSIGTriplet tsigTriplet;
+  tsigTriplet.name = *tsigkeyname;
+  tsigTriplet.algo = tsigContent->d_algoName;
+  if (tsigTriplet.algo == DNSName("hmac-md5.sig-alg.reg.int")) {
+    tsigTriplet.algo = DNSName("hmac-md5");
+  }
+
+  if (tsigTriplet.algo != DNSName("gss-tsig")) {
+    string secret64;
+    if (!B.getTSIGKey(*tsigkeyname, tsigTriplet.algo, secret64)) {
+      g_log << Logger::Error << "Packet for domain '" << packet.qdomain << "' denied: can't find TSIG key with name '" << *tsigkeyname << "' and algorithm '" << tsigTriplet.algo << "'" << endl;
+      return false;
+    }
+    B64Decode(secret64, *secret);
+    tsigTriplet.secret = *secret;
+  }
+
+  try {
+    return packet.validateTSIG(tsigTriplet, *tsigContent, "", tsigContent->d_mac, false);
+  }
+  catch(const std::runtime_error& err) {
+    g_log<<Logger::Error<<"Packet for '"<<packet.qdomain<<"' denied: "<<err.what()<<endl;
+    return false;
+  }
 }

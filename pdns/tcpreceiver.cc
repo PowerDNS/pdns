@@ -463,18 +463,18 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR, std::u
   string logPrefix=string(isAXFR ? "A" : "I")+"XFR-out zone '"+q->qdomain.toLogString()+"', client '"+q->getInnerRemote().toStringWithPort()+"', ";
 
   if(q->d_havetsig) { // if you have one, it must be good
-    TSIGRecordContent trc;
-    DNSName keyname;
+    TSIGRecordContent tsigContent;
+    DNSName tsigkeyname;
     string secret;
-    if(!q->checkForCorrectTSIG(packetHandler->getBackend(), &keyname, &secret, &trc)) {
+    if (!packetHandler->checkForCorrectTSIG(*q, &tsigkeyname, &secret, &tsigContent)) {
       return false;
     } else {
-      getTSIGHashEnum(trc.d_algoName, q->d_tsig_algo);
+      getTSIGHashEnum(tsigContent.d_algoName, q->d_tsig_algo);
 #ifdef ENABLE_GSS_TSIG
       if (g_doGssTSIG && q->d_tsig_algo == TSIG_GSS) {
-        GssContext gssctx(keyname);
+        GssContext gssctx(tsigkeyname);
         if (!gssctx.getPeerPrincipal(q->d_peer_principal)) {
-          g_log<<Logger::Warning<<"Failed to extract peer principal from GSS context with keyname '"<<keyname<<"'"<<endl;
+          g_log<<Logger::Warning<<"Failed to extract peer principal from GSS context with keyname '"<<tsigkeyname<<"'"<<endl;
         }
       }
 #endif
@@ -495,12 +495,12 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR, std::u
       return false;
     }
 #endif
-    if(!dk.TSIGGrantsAccess(q->qdomain, keyname)) {
-      g_log<<Logger::Warning<<logPrefix<<"denied: key with name '"<<keyname<<"' and algorithm '"<<getTSIGAlgoName(q->d_tsig_algo)<<"' does not grant access"<<endl;
+    if(!dk.TSIGGrantsAccess(q->qdomain, tsigkeyname)) {
+      g_log<<Logger::Warning<<logPrefix<<"denied: key with name '"<<tsigkeyname<<"' and algorithm '"<<getTSIGAlgoName(q->d_tsig_algo)<<"' does not grant access"<<endl;
       return false;
     }
     else {
-      g_log<<Logger::Notice<<logPrefix<<"allowed: TSIG signed request with authorized key '"<<keyname<<"' and algorithm '"<<getTSIGAlgoName(q->d_tsig_algo)<<"'"<<endl;
+      g_log<<Logger::Notice<<logPrefix<<"allowed: TSIG signed request with authorized key '"<<tsigkeyname<<"' and algorithm '"<<getTSIGAlgoName(q->d_tsig_algo)<<"'"<<endl;
       return true;
     }
   }
