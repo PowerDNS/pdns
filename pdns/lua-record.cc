@@ -90,6 +90,8 @@ public:
 private:
   void checkURL(const CheckDesc& cd, const bool status, const bool first = false)
   {
+    setThreadName("pdns/lua-c-url");
+
     string remstring;
     try {
       int timeout = 2;
@@ -138,6 +140,7 @@ private:
     }
   }
   void checkTCP(const CheckDesc& cd, const bool status, const bool first = false) {
+    setThreadName("pdns/lua-c-tcp");
     try {
       int timeout = 2;
       if (cd.opts.count("timeout")) {
@@ -168,6 +171,7 @@ private:
   }
   void checkThread()
   {
+    setThreadName("pdns/luaupcheck");
     while (true)
     {
       std::chrono::system_clock::time_point checkStart = std::chrono::system_clock::now();
@@ -200,6 +204,10 @@ private:
           statuses->erase(it);
         }
       }
+
+      // set thread name again, in case std::async surprised us by doing work in this thread
+      setThreadName("pdns/luaupcheck");
+
       std::this_thread::sleep_until(checkStart + std::chrono::seconds(g_luaHealthChecksInterval));
     }
   }

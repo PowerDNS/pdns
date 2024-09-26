@@ -1,3 +1,4 @@
+#include "threadname.hh"
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -49,6 +50,7 @@ int readn(int fd, void* buffer, unsigned int len)
 
 void* ChunkedSigningPipe::helperWorker(ChunkedSigningPipe* csp, int fd)
 try {
+  setThreadName("pdns/signer");
   csp->worker(fd);
   return nullptr;
 }
