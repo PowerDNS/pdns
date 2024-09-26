@@ -41,6 +41,19 @@ to see all available suites.
 In addition to diff-files in all test dirs, start-test-stop generates a jUnit-
 compatible XML report.
 
+---
+
+If you used meson to build, export `PDNS_BUILD_PATH` and point it to your
+build directory. Also make sure you configured with `-Dtools=true`, and have
+built `pdns-auth`, `pdns-auth-util`, `zone2sql` and `sdig`.
+Example for invoking the tests:
+
+```sh
+export PDNS_BUILD_PATH=/home/you/pdns/buildDir
+./start-test-stop 5300 gmysql
+```
+
+
 Manual testing
 --------------
 
