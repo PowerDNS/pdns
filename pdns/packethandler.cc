@@ -1517,6 +1517,12 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
       return r;
     }
 
+    if (retargetcount > 0 && !d_doResolveAcrossZones && !target.isPartOf(r->qdomainzone)) {
+      // We are following a retarget outside the initial zone (and do not need to check getAuth to know this). Config asked us not to do that.
+      // This is a performance optimization, the generic case is checked after getAuth below.
+      goto sendit;  // NOLINT(cppcoreguidelines-avoid-goto)
+    }
+
     if(!B.getAuth(target, p.qtype, &d_sd)) {
       DLOG(g_log<<Logger::Error<<"We have no authority over zone '"<<target<<"'"<<endl);
       if(!retargetcount) {
