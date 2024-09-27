@@ -942,7 +942,7 @@ nostrip
 NOSUBDIR
 nosync
 Notaras
-notauth
+NOTAUTH
 NOTIFYs
 NOTPARALLEL
 notrack
