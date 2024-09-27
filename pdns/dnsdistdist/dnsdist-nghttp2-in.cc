@@ -19,14 +19,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include "dnsdist-nghttp2-in.hh"
+
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
 
 #include "dnsdist-dnsparser.hh"
 #include "dnsdist-doh-common.hh"
-#include "dnsdist-nghttp2-in.hh"
 #include "dnsdist-proxy-protocol.hh"
 #include "dnsparser.hh"
-
-#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
 
 #if 0
 class IncomingDoHCrossProtocolContext : public CrossProtocolContext
