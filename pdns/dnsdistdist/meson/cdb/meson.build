@@ -1,5 +1,3 @@
-dep_cdb = dependency('', required: false)
-
 dep_cdb = dependency('libcdb', required: false)
 
 if not dep_cdb.found()

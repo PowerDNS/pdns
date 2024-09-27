@@ -33,7 +33,6 @@
 #include "iputils.hh"
 #include "libssl.hh"
 #include "stat_t.hh"
-#include "dnsdist-idstate.hh"
 
 struct DOH3ServerConfig;
 struct DownstreamState;
@@ -46,6 +45,7 @@ using h3_headers_t = std::unordered_map<std::string, std::string>;
 
 #ifdef HAVE_DNS_OVER_HTTP3
 
+#include "dnsdist-idstate.hh"
 #include "doq-common.hh"
 
 struct DOH3Frontend
