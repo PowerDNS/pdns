@@ -102,7 +102,6 @@ endif
 common_sources += files(
   src_dir / 'bpf-filter.cc',
   src_dir / 'capabilities.cc',
-  src_dir / 'cdb.cc',
   src_dir / 'channel.cc',
   src_dir / 'coverage.cc',
   src_dir / 'credentials.cc',

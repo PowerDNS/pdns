@@ -1,7 +1,7 @@
 dep_cdb = dependency('libcdb', required: false)
 
 if not dep_cdb.found()
-  if cxx.has_header('cdb.h', required: true)
+  if cxx.has_header('cdb.h', required: false)
     if cxx.has_function('cdb_find', args: ['-lcdb'])
       dep_cdb = declare_dependency(link_args: ['-lcdb'])
     endif
