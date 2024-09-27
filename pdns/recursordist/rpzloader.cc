@@ -24,10 +24,8 @@
 #include "dnsparser.hh"
 #include "dnsrecords.hh"
 #include "ixfr.hh"
-#include "syncres.hh"
 #include "axfr-retriever.hh"
 #include "lock.hh"
-#include "logger.hh"
 #include "logging.hh"
 #include "rec-lua-conf.hh"
 #include "rpzloader.hh"
@@ -436,32 +434,21 @@ static bool dumpZoneToDisk(Logr::log_t logger, const std::shared_ptr<DNSFilterEn
   return true;
 }
 
-// A struct that holds the condition var and related stuff to allow notifies to be sent to the tread owning
-// the struct.
-struct RPZWaiter
-{
-  RPZWaiter(std::thread::id arg) :
-    id(arg) {}
-  std::thread::id id;
-  std::mutex mutex;
-  std::condition_variable condVar;
-  std::atomic<bool> stop{false};
-};
 
-static void preloadRPZFIle(RPZTrackerParams& params, const DNSName& zoneName, std::shared_ptr<DNSFilterEngine::Zone>& oldZone, uint32_t& refresh, const string& polName, uint64_t configGeneration, RPZWaiter& rpzwaiter, Logr::log_t logger)
+static void preloadRPZFIle(RPZTrackerParams& params, const DNSName& zoneName, std::shared_ptr<DNSFilterEngine::Zone>& oldZone, uint32_t& refresh, const string& polName, uint64_t configGeneration, ZoneWaiter& rpzwaiter, Logr::log_t logger)
 {
-  while (!params.soaRecordContent) {
+  while (!params.zoneXFRParams.soaRecordContent) {
     /* if we received an empty sr, the zone was not really preloaded */
 
     /* full copy, as promised */
     std::shared_ptr<DNSFilterEngine::Zone> newZone = std::make_shared<DNSFilterEngine::Zone>(*oldZone);
-    for (const auto& primary : params.primaries) {
+    for (const auto& primary : params.zoneXFRParams.primaries) {
       try {
-        params.soaRecordContent = loadRPZFromServer(logger, primary, zoneName, newZone, params.defpol, params.defpolOverrideLocal, params.maxTTL, params.tsigtriplet, params.maxReceivedMBytes, params.localAddress, params.xfrTimeout);
-        newZone->setSerial(params.soaRecordContent->d_st.serial);
-        newZone->setRefresh(params.soaRecordContent->d_st.refresh);
+        params.zoneXFRParams.soaRecordContent = loadRPZFromServer(logger, primary, zoneName, newZone, params.defpol, params.defpolOverrideLocal, params.maxTTL, params.zoneXFRParams.tsigtriplet, params.zoneXFRParams.maxReceivedMBytes, params.zoneXFRParams.localAddress, params.zoneXFRParams.xfrTimeout);
+        newZone->setSerial(params.zoneXFRParams.soaRecordContent->d_st.serial);
+        newZone->setRefresh(params.zoneXFRParams.soaRecordContent->d_st.refresh);
         refresh = std::max(params.refreshFromConf != 0 ? params.refreshFromConf : newZone->getRefresh(), 1U);
-        setRPZZoneNewState(polName, params.soaRecordContent->d_st.serial, newZone->size(), false, true);
+        setRPZZoneNewState(polName, params.zoneXFRParams.soaRecordContent->d_st.serial, newZone->size(), false, true);
 
         g_luaconfs.modify([zoneIdx = params.zoneIdx, &newZone](LuaConfigItems& lci) {
           lci.dfe.setZone(zoneIdx, newZone);
@@ -487,7 +474,7 @@ static void preloadRPZFIle(RPZTrackerParams& params, const DNSName& zoneName, st
     }
     // Release newZone before (long) sleep to reduce memory usage
     newZone = nullptr;
-    if (!params.soaRecordContent) {
+    if (!params.zoneXFRParams.soaRecordContent) {
       std::unique_lock lock(rpzwaiter.mutex);
       rpzwaiter.condVar.wait_for(lock, std::chrono::seconds(refresh),
                                  [&stop = rpzwaiter.stop] { return stop.load(); });
@@ -504,12 +491,12 @@ static void preloadRPZFIle(RPZTrackerParams& params, const DNSName& zoneName, st
   }
 }
 
-static bool RPZTrackerIteration(RPZTrackerParams& params, const DNSName& zoneName, std::shared_ptr<DNSFilterEngine::Zone>& oldZone, uint32_t& refresh, const string& polName, bool& skipRefreshDelay, uint64_t configGeneration, RPZWaiter& rpzwaiter, Logr::log_t logger)
+static bool RPZTrackerIteration(RPZTrackerParams& params, const DNSName& zoneName, std::shared_ptr<DNSFilterEngine::Zone>& oldZone, uint32_t& refresh, const string& polName, bool& skipRefreshDelay, uint64_t configGeneration, ZoneWaiter& rpzwaiter, Logr::log_t logger)
 {
   // Don't hold on to oldZone, it well be re-assigned after sleep in the try block
   oldZone = nullptr;
   DNSRecord dnsRecord;
-  dnsRecord.setContent(params.soaRecordContent);
+  dnsRecord.setContent(params.zoneXFRParams.soaRecordContent);
 
   if (skipRefreshDelay) {
     skipRefreshDelay = false;
@@ -542,19 +529,19 @@ static bool RPZTrackerIteration(RPZTrackerParams& params, const DNSName& zoneNam
   }
 
   vector<pair<vector<DNSRecord>, vector<DNSRecord>>> deltas;
-  for (const auto& primary : params.primaries) {
+  for (const auto& primary : params.zoneXFRParams.primaries) {
     auto soa = getRR<SOARecordContent>(dnsRecord);
     auto serial = soa ? soa->d_st.serial : 0;
     SLOG(g_log << Logger::Info << "Getting IXFR deltas for " << zoneName << " from " << primary.toStringWithPort() << ", our serial: " << serial << endl,
          logger->info(Logr::Info, "Getting IXFR deltas", "address", Logging::Loggable(primary), "ourserial", Logging::Loggable(serial)));
 
-    ComboAddress local(params.localAddress);
+    ComboAddress local(params.zoneXFRParams.localAddress);
     if (local == ComboAddress()) {
       local = pdns::getQueryLocalAddress(primary.sin4.sin_family, 0);
     }
 
     try {
-      deltas = getIXFRDeltas(primary, zoneName, dnsRecord, params.xfrTimeout, true, params.tsigtriplet, &local, params.maxReceivedMBytes);
+      deltas = getIXFRDeltas(primary, zoneName, dnsRecord, params.zoneXFRParams.xfrTimeout, true, params.zoneXFRParams.tsigtriplet, &local, params.zoneXFRParams.maxReceivedMBytes);
 
       /* no need to try another primary */
       break;
@@ -589,7 +576,7 @@ static bool RPZTrackerIteration(RPZTrackerParams& params, const DNSName& zoneNam
     /* we need to make a _full copy_ of the zone we are going to work on */
     std::shared_ptr<DNSFilterEngine::Zone> newZone = std::make_shared<DNSFilterEngine::Zone>(*oldZone);
     /* initialize the current serial to the last one */
-    std::shared_ptr<const SOARecordContent> currentSR = params.soaRecordContent;
+    std::shared_ptr<const SOARecordContent> currentSR = params.zoneXFRParams.soaRecordContent;
 
     int totremove = 0;
     int totadd = 0;
@@ -648,13 +635,13 @@ static bool RPZTrackerIteration(RPZTrackerParams& params, const DNSName& zoneNam
 
     /* only update sr now that all changes have been converted */
     if (currentSR) {
-      params.soaRecordContent = std::move(currentSR);
+      params.zoneXFRParams.soaRecordContent = std::move(currentSR);
     }
     SLOG(g_log << Logger::Info << "Had " << totremove << " RPZ removal" << addS(totremove) << ", " << totadd << " addition" << addS(totadd) << " for " << zoneName << " New serial: " << params.soaRecordContent->d_st.serial << endl,
-         logger->info(Logr::Info, "RPZ mutations", "removals", Logging::Loggable(totremove), "additions", Logging::Loggable(totadd), "newserial", Logging::Loggable(params.soaRecordContent->d_st.serial)));
-    newZone->setSerial(params.soaRecordContent->d_st.serial);
-    newZone->setRefresh(params.soaRecordContent->d_st.refresh);
-    setRPZZoneNewState(polName, params.soaRecordContent->d_st.serial, newZone->size(), false, fullUpdate);
+         logger->info(Logr::Info, "RPZ mutations", "removals", Logging::Loggable(totremove), "additions", Logging::Loggable(totadd), "newserial", Logging::Loggable(params.zoneXFRParams.soaRecordContent->d_st.serial)));
+    newZone->setSerial(params.zoneXFRParams.soaRecordContent->d_st.serial);
+    newZone->setRefresh(params.zoneXFRParams.soaRecordContent->d_st.refresh);
+    setRPZZoneNewState(polName, params.zoneXFRParams.soaRecordContent->d_st.serial, newZone->size(), false, fullUpdate);
 
     /* we need to replace the existing zone with the new one,
        but we don't want to touch anything else, especially other zones,
@@ -685,35 +672,13 @@ static bool RPZTrackerIteration(RPZTrackerParams& params, const DNSName& zoneNam
   return true;
 }
 
-// As there can be multiple threads doing updates (due to config reloads), we use a multimap.
-// The value contains the actual thread id that owns the struct.
-
-static LockGuarded<std::multimap<DNSName, RPZWaiter&>> condVars;
-
-// Notify all threads tracking the RPZ name
-bool notifyRPZTracker(const DNSName& name)
-{
-  auto lock = condVars.lock();
-  auto [start, end] = lock->equal_range(name);
-  if (start == end) {
-    // Did not find any thread tracking that RPZ name
-    return false;
-  }
-  while (start != end) {
-    start->second.stop = true;
-    start->second.condVar.notify_one();
-    ++start;
-  }
-  return true;
-}
-
 // coverity[pass_by_value] params is intended to be a copy, as this is the main function of a thread
 void RPZIXFRTracker(RPZTrackerParams params, uint64_t configGeneration)
 {
   setThreadName("rec/rpzixfr");
-  bool isPreloaded = params.soaRecordContent != nullptr;
+  bool isPreloaded = params.zoneXFRParams.soaRecordContent != nullptr;
   auto logger = g_slog->withName("rpz");
-  RPZWaiter waiter(std::this_thread::get_id());
+  ZoneWaiter waiter(std::this_thread::get_id());
 
   /* we can _never_ modify this zone directly, we need to do a full copy then replace the existing zone */
   std::shared_ptr<DNSFilterEngine::Zone> oldZone = g_luaconfs.getLocal()->dfe.getZone(params.zoneIdx);
@@ -731,10 +696,8 @@ void RPZIXFRTracker(RPZTrackerParams params, uint64_t configGeneration)
   // Now that we know the name, set it in the logger
   logger = logger->withValues("zone", Logging::Loggable(zoneName));
 
-  {
-    auto lock = condVars.lock();
-    lock->emplace(zoneName, waiter);
-  }
+  insertZoneTracker(zoneName, waiter);
+
   preloadRPZFIle(params, zoneName, oldZone, refresh, polName, configGeneration, waiter, logger);
 
   bool skipRefreshDelay = isPreloaded;
@@ -743,14 +706,5 @@ void RPZIXFRTracker(RPZTrackerParams params, uint64_t configGeneration)
     // empty
   }
 
-  // Zap our (and only our) RPZWaiter struct out of the multimap
-  auto lock = condVars.lock();
-  auto [start, end] = lock->equal_range(zoneName);
-  while (start != end) {
-    if (start->second.id == std::this_thread::get_id()) {
-      lock->erase(start);
-      break;
-    }
-    ++start;
-  }
+  clearZoneTracker(zoneName);
 }
