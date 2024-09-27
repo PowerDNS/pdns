@@ -11,6 +11,8 @@ RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
 # devscripts gives us mk-build-deps (and a lot of other stuff)
 RUN apt-get update && apt-get -y dist-upgrade && apt-get install -y  --no-install-recommends devscripts equivs git && apt-get clean
 
+RUN git clone https://github.com/redis/hiredis.git && cd hiredis && make && make install && cd ~/
+
 COPY builder-support /source/builder-support
 
 # TODO: control file is not in tarballs at all right now
