@@ -1,4 +1,4 @@
-dep_libquiche = declare_dependency()
+dep_libquiche = dependency('', required: false)
 opt_libquiche = get_option('quiche')
 
 if (get_option('dns-over-quic') or get_option('dns-over-http3')) and opt_libquiche.allowed()
