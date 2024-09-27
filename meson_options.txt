@@ -15,6 +15,7 @@ option('unit-tests', type: 'boolean', value: false, description: 'Build and run 
 option('unit-tests-backends', type: 'boolean', value: false, description: 'Build and run backend unit tests')
 option('reproducible', type: 'boolean', value: false, description: 'Reproducible builds (for distro maintainers, makes debugging difficult)')
 option('fuzz-targets', type: 'boolean', value: false, description: 'Enable fuzzing targets')
+option('fuzzer_ldflags', type: 'string', value: '', description: 'Linker flags used for the fuzzing targets (a path to the libFuzzer static library, for example)')
 option('verbose-logging', type: 'boolean', value: false, description: 'Enable verbose logging')
 option('experimental-pkcs11', type: 'feature', value: 'disabled', description: 'PKCS11 support')
 option('experimental-gss-tsig', type: 'feature', value: 'disabled', description: 'GSS-TSIG support')

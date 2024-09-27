@@ -421,7 +421,7 @@ if get_option('fuzz-targets')
   tools += {
     'fuzz-target-dnsdistcache' : {
       'main': src_dir / 'fuzz_dnsdistcache.cc',
-      'link_flags': fuzzer_ldflags,
+      'link-args': fuzzer_ldflags,
       'files-extra': fuzz_extra_sources
     },
   }
@@ -429,7 +429,7 @@ if get_option('fuzz-targets')
     tools += {
       'fuzz-target-xsk' : {
          'main': src_dir / 'fuzz_xsk.cc',
-         'link_flags': fuzzer_ldflags,
+         'link-args': fuzzer_ldflags,
          'files-extra': fuzz_extra_sources + [
            src_dir / 'dnslabeltext.cc',
            src_dir / 'dnsname.cc',
