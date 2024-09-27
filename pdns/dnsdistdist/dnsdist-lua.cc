@@ -705,7 +705,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          }
 
                          if (ret->connected) {
-                           if (!dnsdist::configuration::isImmutableConfigurationDone()) {
+                           if (dnsdist::configuration::isImmutableConfigurationDone()) {
                              ret->start();
                            }
                          }
