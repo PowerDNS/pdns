@@ -870,10 +870,10 @@ void fromLuaToRust(const vector<RPZTrackerParams>& rpzs, pdns::rust::settings::r
       .seedFile = "",
     };
 
-    for (const auto& address : rpz.primaries) {
+    for (const auto& address : rpz.zoneXFRParams.primaries) {
       rustrpz.addresses.emplace_back(address.toStringWithPort());
     }
-    rustrpz.name = rpz.name;
+    rustrpz.name = rpz.zoneXFRParams.name;
     rustrpz.defcontent = rpz.defcontent;
     if (rpz.defpol) {
       rustrpz.defpol = cvt(rpz.defpol->d_kind);
@@ -890,14 +890,14 @@ void fromLuaToRust(const vector<RPZTrackerParams>& rpzs, pdns::rust::settings::r
       rustrpz.tags.emplace_back(tag);
     }
     rustrpz.overridesGettag = rpz.defpolOverrideLocal;
-    rustrpz.zoneSizeHint = rpz.zoneSizeHint;
-    assign(rustrpz.tsig, rpz.tsigtriplet);
+    rustrpz.zoneSizeHint = rpz.zoneXFRParams.zoneSizeHint;
+    assign(rustrpz.tsig, rpz.zoneXFRParams.tsigtriplet);
     rustrpz.refresh = rpz.refreshFromConf;
-    rustrpz.maxReceivedMBytes = rpz.maxReceivedMBytes;
-    if (rpz.localAddress != ComboAddress()) {
-      rustrpz.localAddress = rpz.localAddress.toString();
+    rustrpz.maxReceivedMBytes = rpz.zoneXFRParams.maxReceivedMBytes;
+    if (rpz.zoneXFRParams.localAddress != ComboAddress()) {
+      rustrpz.localAddress = rpz.zoneXFRParams.localAddress.toString();
     }
-    rustrpz.axfrTimeout = rpz.xfrTimeout;
+    rustrpz.axfrTimeout = rpz.zoneXFRParams.xfrTimeout;
     rustrpz.dumpFile = rpz.dumpZoneFileName;
     rustrpz.seedFile = rpz.seedFileName;
 
@@ -1181,9 +1181,9 @@ void fromRustToLuaConfig(const rust::Vec<pdns::rust::settings::rec::RPZ>& rpzs, 
     RPZTrackerParams params;
     for (const auto& address : rpz.addresses) {
       ComboAddress combo = ComboAddress(std::string(address), 53);
-      params.primaries.emplace_back(combo.toStringWithPort());
+      params.zoneXFRParams.primaries.emplace_back(combo.toStringWithPort());
     }
-    params.name = std::string(rpz.name);
+    params.zoneXFRParams.name = std::string(rpz.name);
     params.polName = std::string(rpz.policyName);
 
     if (!rpz.defpol.empty()) {
@@ -1217,14 +1217,14 @@ void fromRustToLuaConfig(const rust::Vec<pdns::rust::settings::rec::RPZ>& rpzs, 
       params.tags.emplace(std::string(tag));
     }
     params.defpolOverrideLocal = rpz.overridesGettag;
-    params.zoneSizeHint = rpz.zoneSizeHint;
-    assign(params.tsigtriplet, rpz.tsig);
+    params.zoneXFRParams.zoneSizeHint = rpz.zoneSizeHint;
+    assign(params.zoneXFRParams.tsigtriplet, rpz.tsig);
     params.refreshFromConf = rpz.refresh;
-    params.maxReceivedMBytes = rpz.maxReceivedMBytes;
+    params.zoneXFRParams.maxReceivedMBytes = rpz.maxReceivedMBytes;
     if (!rpz.localAddress.empty()) {
-      params.localAddress = ComboAddress(std::string(rpz.localAddress));
+      params.zoneXFRParams.localAddress = ComboAddress(std::string(rpz.localAddress));
     }
-    params.xfrTimeout = rpz.axfrTimeout;
+    params.zoneXFRParams.xfrTimeout = rpz.axfrTimeout;
     params.dumpZoneFileName = std::string(rpz.dumpFile);
     params.seedFileName = std::string(rpz.seedFile);
     luaConfig.rpzs.emplace_back(params);
