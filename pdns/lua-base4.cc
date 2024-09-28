@@ -193,25 +193,25 @@ void BaseLua4::prepareContext() {
 
   // cas_t
   d_lw->writeFunction("newCAS", []{ return cas_t(); });
-  d_lw->registerFunction<void(cas_t::*)(boost::variant<string,ComboAddress, vector<pair<unsigned int,string> > >)>("add",
-    [](cas_t& cas, const boost::variant<string,ComboAddress,vector<pair<unsigned int,string> > >& in)
-    {
-      try {
-      if(auto s = boost::get<string>(&in)) {
-        cas.insert(ComboAddress(*s));
-      }
-      else if(auto v = boost::get<vector<pair<unsigned int, string> > >(&in)) {
-        for(const auto& str : *v)
-          cas.insert(ComboAddress(str.second));
-      }
-      else
-        cas.insert(boost::get<ComboAddress>(in));
-      }
-      catch(std::exception& e) {
-        SLOG(g_log <<Logger::Error<<e.what()<<endl,
-             g_slog->withName("lua")->error(Logr::Error, e.what(), "Exception in newCAS", "exception", Logging::Loggable("std::exception")));
-      }
-    });
+  d_lw->registerFunction<void (cas_t::*)(std::variant<string, ComboAddress, vector<pair<unsigned int, string>>>)>("add",
+                                                                                                                  [](cas_t& cas, const std::variant<string, ComboAddress, vector<pair<unsigned int, string>>>& in) {
+                                                                                                                    try {
+                                                                                                                      auto s = std::get<string>(in);
+                                                                                                                      if (!s.empty()) {
+                                                                                                                        cas.emplace(s);
+                                                                                                                      }
+                                                                                                                      else if (auto v = std::get<vector<pair<unsigned int, string>>>(in); !v.empty()) {
+                                                                                                                        for (const auto& str : v)
+                                                                                                                          cas.emplace(str.second);
+                                                                                                                      }
+                                                                                                                      else
+                                                                                                                        cas.insert(std::get<ComboAddress>(in));
+                                                                                                                    }
+                                                                                                                    catch (std::exception& e) {
+                                                                                                                      SLOG(g_log << Logger::Error << e.what() << endl,
+                                                                                                                           g_slog->withName("lua")->error(Logr::Error, e.what(), "Exception in newCAS", "exception", Logging::Loggable("std::exception")));
+                                                                                                                    }
+                                                                                                                  });
   d_lw->registerFunction<bool(cas_t::*)(const ComboAddress&)>("check",[](const cas_t& cas, const ComboAddress&ca) { return cas.count(ca)>0; });
 
   // QType

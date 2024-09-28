@@ -118,13 +118,13 @@ bool AuthLua4::axfrfilter(const ComboAddress& remote, const DNSName& zone, const
       DNSResourceRecord rec;
 
       const auto& map = row.second;
-      rec.qtype = QType(boost::get<unsigned int>(map.at("qtype")));
-      rec.qname = DNSName(boost::get<std::string>(map.at("qname")));
+      rec.qtype = QType(std::get<unsigned int>(map.at("qtype")));
+      rec.qname = DNSName(std::get<std::string>(map.at("qname")));
       rec.qname.makeUsLowerCase();
       if (map.count("ttl")) {
-        rec.ttl = boost::get<unsigned int>(map.at("ttl"));
+        rec.ttl = std::get<unsigned int>(map.at("ttl"));
       }
-      rec.setContent(boost::get<std::string>(map.at("content")));
+      rec.setContent(std::get<std::string>(map.at("content")));
 
       out.push_back(rec);
     }
