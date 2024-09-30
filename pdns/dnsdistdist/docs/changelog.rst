@@ -2,6 +2,95 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.9.7
+  :released: 4th of October 2024
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14638
+    :tickets: 14562
+
+    Fix build with boost 1.86.0
+
+  .. change::
+    :tags: Bug Fixes, DNS over TLS
+    :pullreq: 14639
+    :tickets: 14631
+
+    Fix handling of proxy protocol payload outside of TLS for DoT
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14641
+    :tickets: 14568
+
+    Stop reporting timeouts in ``topSlow()``, add ``topTimeouts()``
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14643
+    :tickets: 14552
+
+    Return a valid unix timestamp for Dynamic Block's ``until``
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14644
+    :tickets: 14558
+
+    Fix EDNS flags confusion when editing the OPT header
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14645
+    :tickets: 14549
+
+    Fix compilation with GCC 15 (Holger Hoffstätte)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14646
+
+    Add warnings about large values passed to ``setMaxTCPClientThreads``
+
+  .. change::
+    :tags: Improvements, DNS over QUIC, DNS over HTTP3
+    :pullreq: 14647
+
+    Update Quiche to 0.22.0 (in our packages)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14640
+
+    Handle a non-existent default pool when removing a server
+
+  .. change::
+    :tags: Improvements, DNS over QUIC, DNS over HTTP3
+    :pullreq: 14695
+
+    Update the Rust version we use in our packages to 1.78
+
+  .. change::
+    :tags: Bug Fixes, DNS over TLS
+    :pullreq: 14677
+
+     Prevent a data race in incoming DNS over TLS connections by storing the ``OpenSSLTLSIOCtx`` in the connection
+
+  .. change::
+    :tags: New Features
+    :pullreq: 14716
+    :tickets: 14664
+
+    Add a FFI accessor to incoming proxy protocol values
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14730
+
+    Add EDNS to responses generated from raw record data
+
+.. changelog::
   :version: 1.8.4
   :released: 20th of September 2024
 
