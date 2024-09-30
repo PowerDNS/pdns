@@ -35,8 +35,6 @@ struct RPZTrackerParams
   std::string defcontent;
   bool defpolOverrideLocal{true};
   uint32_t maxTTL = std::numeric_limits<uint32_t>::max();
-  size_t zoneIdx{0};
-  uint32_t refreshFromConf{0};
   std::string seedFileName;
   std::string dumpZoneFileName;
   std::string polName;
