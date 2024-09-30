@@ -56,6 +56,7 @@ struct dnsdist_ffi_dnsquestion_t
   std::unique_ptr<std::vector<dnsdist_ffi_ednsoption_t>> ednsOptionsVect;
   std::unique_ptr<std::vector<dnsdist_ffi_http_header_t>> httpHeadersVect;
   std::unique_ptr<std::vector<dnsdist_ffi_tag_t>> tagsVect;
+  std::unique_ptr<std::vector<dnsdist_ffi_proxy_protocol_value_t>> proxyProtocolValuesVect;
   std::unique_ptr<std::unordered_map<std::string, std::string>> httpHeaders;
 };
 
