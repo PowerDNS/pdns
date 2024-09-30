@@ -447,10 +447,10 @@ static void preloadRPZFIle(RPZTrackerParams& params, const DNSName& zoneName, st
         params.zoneXFRParams.soaRecordContent = loadRPZFromServer(logger, primary, zoneName, newZone, params.defpol, params.defpolOverrideLocal, params.maxTTL, params.zoneXFRParams.tsigtriplet, params.zoneXFRParams.maxReceivedMBytes, params.zoneXFRParams.localAddress, params.zoneXFRParams.xfrTimeout);
         newZone->setSerial(params.zoneXFRParams.soaRecordContent->d_st.serial);
         newZone->setRefresh(params.zoneXFRParams.soaRecordContent->d_st.refresh);
-        refresh = std::max(params.refreshFromConf != 0 ? params.refreshFromConf : newZone->getRefresh(), 1U);
+        refresh = std::max(params.zoneXFRParams.refreshFromConf != 0 ? params.zoneXFRParams.refreshFromConf : newZone->getRefresh(), 1U);
         setRPZZoneNewState(polName, params.zoneXFRParams.soaRecordContent->d_st.serial, newZone->size(), false, true);
 
-        g_luaconfs.modify([zoneIdx = params.zoneIdx, &newZone](LuaConfigItems& lci) {
+        g_luaconfs.modify([zoneIdx = params.zoneXFRParams.zoneIdx, &newZone](LuaConfigItems& lci) {
           lci.dfe.setZone(zoneIdx, newZone);
         });
 
@@ -567,7 +567,7 @@ static bool RPZTrackerIteration(RPZTrackerParams& params, const DNSName& zoneNam
            logger->info(Logr::Info, "A more recent configuration has been found, stopping the existing RPZ update thread"));
       return false;
     }
-    oldZone = luaconfsLocal->dfe.getZone(params.zoneIdx);
+    oldZone = luaconfsLocal->dfe.getZone(params.zoneXFRParams.zoneIdx);
     if (!oldZone || oldZone->getDomain() != zoneName) {
       SLOG(g_log << Logger::Info << "This policy is no more, stopping the existing RPZ update thread for " << zoneName << endl,
            logger->info(Logr::Info, "This policy is no more, stopping the existing RPZ update thread"));
@@ -652,14 +652,14 @@ static bool RPZTrackerIteration(RPZTrackerParams& params, const DNSName& zoneNam
            logger->info(Logr::Info, "A more recent configuration has been found, stopping the existing RPZ update thread"));
       return false;
     }
-    g_luaconfs.modify([zoneIdx = params.zoneIdx, &newZone](LuaConfigItems& lci) {
+    g_luaconfs.modify([zoneIdx = params.zoneXFRParams.zoneIdx, &newZone](LuaConfigItems& lci) {
       lci.dfe.setZone(zoneIdx, newZone);
     });
 
     if (!params.dumpZoneFileName.empty()) {
       dumpZoneToDisk(logger, newZone, params.dumpZoneFileName);
     }
-    refresh = std::max(params.refreshFromConf != 0 ? params.refreshFromConf : newZone->getRefresh(), 1U);
+    refresh = std::max(params.zoneXFRParams.refreshFromConf != 0 ? params.zoneXFRParams.refreshFromConf : newZone->getRefresh(), 1U);
   }
   catch (const std::exception& e) {
     SLOG(g_log << Logger::Error << "Error while applying the update received over XFR for " << zoneName << ", skipping the update: " << e.what() << endl,
@@ -681,15 +681,15 @@ void RPZIXFRTracker(RPZTrackerParams params, uint64_t configGeneration)
   ZoneWaiter waiter(std::this_thread::get_id());
 
   /* we can _never_ modify this zone directly, we need to do a full copy then replace the existing zone */
-  std::shared_ptr<DNSFilterEngine::Zone> oldZone = g_luaconfs.getLocal()->dfe.getZone(params.zoneIdx);
+  std::shared_ptr<DNSFilterEngine::Zone> oldZone = g_luaconfs.getLocal()->dfe.getZone(params.zoneXFRParams.zoneIdx);
   if (!oldZone) {
     SLOG(g_log << Logger::Error << "Unable to retrieve RPZ zone with index " << params.zoneIdx << " from the configuration, exiting" << endl,
-         logger->error(Logr::Error, "Unable to retrieve RPZ zone from configuration", "index", Logging::Loggable(params.zoneIdx)));
+         logger->error(Logr::Error, "Unable to retrieve RPZ zone from configuration", "index", Logging::Loggable(params.zoneXFRParams.zoneIdx)));
     return;
   }
 
   // If oldZone failed to load its getRefresh() returns 0, protect against that
-  uint32_t refresh = std::max(params.refreshFromConf != 0 ? params.refreshFromConf : oldZone->getRefresh(), 10U);
+  uint32_t refresh = std::max(params.zoneXFRParams.refreshFromConf != 0 ? params.zoneXFRParams.refreshFromConf : oldZone->getRefresh(), 10U);
   DNSName zoneName = oldZone->getDomain();
   std::string polName = !oldZone->getName().empty() ? oldZone->getName() : zoneName.toStringNoDot();
 

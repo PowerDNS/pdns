@@ -3520,7 +3520,7 @@ static void activateRPZs(LuaConfigItems& lci)
       DNSName domain(params.zoneXFRParams.name);
       zone->setDomain(domain);
       zone->setName(params.polName.empty() ? params.zoneXFRParams.name : params.polName);
-      params.zoneIdx = lci.dfe.addZone(zone);
+      params.zoneXFRParams.zoneIdx = lci.dfe.addZone(zone);
       activateRPZPrimary(params, lci, zone, domain);
     }
     broadcastFunction([name = zone->getName()] { return pleaseInitPolCounts(name); });

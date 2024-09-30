@@ -299,8 +299,8 @@ static void rpzPrimary(LuaConfigItems& lci, const boost::variant<string, std::ve
         }
       }
       if (have.count("refresh") != 0) {
-        params.refreshFromConf = boost::get<uint32_t>(have.at("refresh"));
-        if (params.refreshFromConf == 0) {
+        params.zoneXFRParams.refreshFromConf = boost::get<uint32_t>(have.at("refresh"));
+        if (params.zoneXFRParams.refreshFromConf == 0) {
           SLOG(g_log << Logger::Warning << "rpzPrimary refresh value of 0 ignored" << endl,
                lci.d_slog->info(Logr::Warning, "rpzPrimary refresh value of 0 ignored"));
         }
