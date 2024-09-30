@@ -621,6 +621,59 @@ BOOST_AUTO_TEST_CASE(test_ProxyProtocolQuery)
   }
 }
 
+BOOST_AUTO_TEST_CASE(test_ProxyProtocolIncoming)
+{
+  InternalQueryState ids;
+  ids.origRemote = ComboAddress("192.0.2.1:4242");
+  ids.origDest = ComboAddress("192.0.2.255:53");
+  ids.qtype = QType::A;
+  ids.qclass = QClass::IN;
+  ids.protocol = dnsdist::Protocol::DoUDP;
+  ids.qname = DNSName("www.powerdns.com.");
+  ids.queryRealTime.start();
+  PacketBuffer query;
+  GenericDNSPacketWriter<PacketBuffer> pwQ(query, ids.qname, QType::A, QClass::IN, 0);
+  pwQ.getHeader()->rd = 1;
+  pwQ.getHeader()->id = htons(42);
+
+  DNSQuestion dnsQuestion(ids, query);
+  dnsdist_ffi_dnsquestion_t lightDQ(&dnsQuestion);
+
+  {
+    /* invalid dq */
+    const dnsdist_ffi_proxy_protocol_value_t* out = nullptr;
+    BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_proxy_protocol_values(nullptr, &out), 0U);
+  }
+  {
+    /* invalid pointer */
+    BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_proxy_protocol_values(&lightDQ, nullptr), 0U);
+  }
+  {
+    /* no proxy protocol values */
+    const dnsdist_ffi_proxy_protocol_value_t* out = nullptr;
+    BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_proxy_protocol_values(&lightDQ, &out), 0U);
+  }
+
+  {
+    /* add some proxy protocol TLV values */
+    dnsQuestion.proxyProtocolValues = std::make_unique<std::vector<ProxyProtocolValue>>();
+    dnsQuestion.proxyProtocolValues->emplace_back(ProxyProtocolValue{"foo", 42});
+    dnsQuestion.proxyProtocolValues->emplace_back(ProxyProtocolValue{"bar", 255});
+    dnsQuestion.proxyProtocolValues->emplace_back(ProxyProtocolValue{"", 0});
+    const dnsdist_ffi_proxy_protocol_value_t* out = nullptr;
+    auto count = dnsdist_ffi_dnsquestion_get_proxy_protocol_values(&lightDQ, &out);
+    BOOST_REQUIRE_EQUAL(count, 3U);
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic): sorry, this is a C API
+    BOOST_CHECK_EQUAL(out[0].type, 42U);
+    BOOST_CHECK_EQUAL(out[0].value, "foo");
+    BOOST_CHECK_EQUAL(out[1].type, 255U);
+    BOOST_CHECK_EQUAL(out[1].value, "bar");
+    BOOST_CHECK_EQUAL(out[2].type, 0U);
+    BOOST_CHECK_EQUAL(out[2].value, "");
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic): sorry, this is a C API
+  }
+}
+
 BOOST_AUTO_TEST_CASE(test_PacketOverlay)
 {
   const DNSName target("powerdns.com.");
