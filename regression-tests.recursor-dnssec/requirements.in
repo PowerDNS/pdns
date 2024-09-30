@@ -1,5 +1,5 @@
 # To generate requirements.txt, install pip-tools and run:
-#  pip-compile --generate-hashes requirements.in
+#  pip-compile --generate-hashes -U requirements.in
 
 dnspython>=1.11
 pytest

@@ -1,5 +1,5 @@
 # To generate requirements.txt, install pip-tools and run:
-#  pip-compile --generate-hashes requirements.in
+#  pip-compile --generate-hashes -U requirements.in
 
 Pdns-Remotebackend==0.8.0
 pyzmq==25.1.2
