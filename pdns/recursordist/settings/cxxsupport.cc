@@ -541,7 +541,7 @@ static void processLine(const std::string& arg, FieldMap& map, bool mainFile)
   ::rust::String section;
   ::rust::String fieldname;
   ::rust::String type_name;
-  pdns::rust::settings::rec::Value rustvalue = {false, 0, 0.0, "", {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+  pdns::rust::settings::rec::Value rustvalue = {false, 0, 0.0, "", {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
   if (pdns::settings::rec::oldKVToBridgeStruct(var, val, section, fieldname, type_name, rustvalue)) {
     auto overriding = !mainFile && !incremental && !simpleRustType(type_name);
     auto [existing, inserted] = map.emplace(std::pair{std::pair{section, fieldname}, pdns::rust::settings::rec::OldStyle{section, fieldname, var, std::move(type_name), rustvalue, overriding}});
@@ -671,6 +671,7 @@ std::string pdns::settings::rec::defaultsToYaml()
   def("recordcache", "zonetocaches", "Vec<ZoneToCache>");
   def("recursor", "allowed_additional_qtypes", "Vec<AllowedAdditionalQType>");
   def("incoming", "proxymappings", "Vec<ProxyMapping>");
+  def("recursor", "forwarding_catalog_zones", "Vec<ForwardingCatalogZone>");
   // End of should be generated XXX
 
   // Convert the map to a vector, as CXX does not have any dictionary like support.
@@ -713,7 +714,12 @@ std::string pdns::settings::rec::defaultsToYaml()
         oldname = std::string(iter->second.old_name);
       }
       res += "##### ";
-      res += arg().getHelp(oldname);
+      auto help = arg().getHelp(oldname);
+      if (help.empty()) {
+        replace(oldname.begin(), oldname.end(), '_', '-');
+        help = arg().getHelp(oldname);
+      }
+      res += help;
       res += '\n';
     }
     if (sectionChange) {
@@ -1297,6 +1303,30 @@ void fromRustToLuaConfig(const rust::Vec<pdns::rust::settings::rec::ProxyMapping
     proxyMapping.insert_or_assign(subnet, {address, smn});
   }
 }
+
+void fromRustToLuaConfig(const rust::Vec<pdns::rust::settings::rec::ForwardingCatalogZone>& catzones, std::vector<pair<ZoneXFRParams, std::shared_ptr<Zone>>>& lua)
+{
+  for (const auto& catz : catzones) {
+    cerr << "catz: " << catz.name << endl;
+    ZoneXFRParams params;
+    auto zone = std::make_shared<Zone>();
+
+    for (const auto& address : catz.xfr.addresses) {
+      ComboAddress combo = ComboAddress(std::string(address), 53);
+      params.primaries.emplace_back(combo.toStringWithPort());
+    }
+    params.name = std::string(catz.name);
+    params.zoneSizeHint = catz.xfr.zoneSizeHint;
+    assign(params.tsigtriplet, catz.xfr.tsig);
+    params.refreshFromConf = catz.xfr.refresh;
+    params.maxReceivedMBytes = catz.xfr.maxReceivedMBytes;
+    if (!catz.xfr.localAddress.empty()) {
+      params.localAddress = ComboAddress(std::string(catz.xfr.localAddress));
+    }
+    params.xfrTimeout = catz.xfr.axfrTimeout;
+    lua.emplace_back(params, zone);
+  }
+}
 }
 
 void pdns::settings::rec::fromBridgeStructToLuaConfig(const pdns::rust::settings::rec::Recursorsettings& settings, LuaConfigItems& luaConfig, ProxyMapping& proxyMapping)
@@ -1320,6 +1350,7 @@ void pdns::settings::rec::fromBridgeStructToLuaConfig(const pdns::rust::settings
   fromRustToLuaConfig(settings.recursor.sortlists, luaConfig.sortlist);
   fromRustToLuaConfig(settings.recordcache.zonetocaches, luaConfig.ztcConfigs);
   fromRustToLuaConfig(settings.recursor.allowed_additional_qtypes, luaConfig.allowAdditionalQTypes);
+  fromRustToLuaConfig(settings.recursor.forwarding_catalog_zones, luaConfig.catalogzones);
   fromRustToLuaConfig(settings.incoming.proxymappings, proxyMapping);
 }
 
