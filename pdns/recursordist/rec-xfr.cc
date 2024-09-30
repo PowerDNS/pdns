@@ -26,6 +26,7 @@
 #include "threadname.hh"
 #include "rec-lua-conf.hh"
 #include "query-local-address.hh"
+#include "axfr-retriever.hh"
 #include "ixfr.hh"
 
 // As there can be multiple threads doing updates (due to config reloads), we use a multimap.
@@ -67,6 +68,108 @@ void clearZoneTracker(const DNSName& zoneName)
       break;
     }
     ++start;
+  }
+}
+
+static shared_ptr<const SOARecordContent> loadZoneFromServer(Logr::log_t plogger, const ComboAddress& primary, const DNSName& zoneName, const TSIGTriplet& tsigTriplet, size_t maxReceivedBytes, const ComboAddress& localAddress, uint16_t axfrTimeout)
+{
+
+  auto logger = plogger->withValues("primary", Logging::Loggable(primary));
+  logger->info(Logr::Info, "Loading zone from nameserver");
+  if (!tsigTriplet.name.empty()) {
+    logger->info(Logr::Info, "Using TSIG key for authentication", "tsig_key_name", Logging::Loggable(tsigTriplet.name), "tsig_key_algorithm", Logging::Loggable(tsigTriplet.algo));
+  }
+
+  ComboAddress local(localAddress);
+  if (local == ComboAddress()) {
+    local = pdns::getQueryLocalAddress(primary.sin4.sin_family, 0);
+  }
+
+  AXFRRetriever axfr(primary, zoneName, tsigTriplet, &local, maxReceivedBytes, axfrTimeout);
+  unsigned int nrecords = 0;
+  Resolver::res_t nop;
+  vector<DNSRecord> chunk;
+  time_t last = 0;
+  time_t axfrStart = time(nullptr);
+  time_t axfrNow = time(nullptr);
+  shared_ptr<const SOARecordContent> soaRecordContent;
+  // coverity[store_truncates_time_t]
+  while (axfr.getChunk(nop, &chunk, (axfrStart + axfrTimeout - axfrNow)) != 0) {
+    for (auto& dnsRecord : chunk) {
+      if (dnsRecord.d_type == QType::NS || dnsRecord.d_type == QType::TSIG) {
+        continue;
+      }
+
+      dnsRecord.d_name.makeUsRelative(zoneName);
+      if (dnsRecord.d_type == QType::SOA) {
+        soaRecordContent = getRR<SOARecordContent>(dnsRecord);
+        continue;
+      }
+
+      //RPZRecordToPolicy(dnsRecord, zone, true, defpol, defpolOverrideLocal, maxTTL, logger);
+      nrecords++;
+    }
+    axfrNow = time(nullptr);
+    if (axfrNow < axfrStart || axfrNow - axfrStart > axfrTimeout) {
+      throw PDNSException("Total AXFR time exceeded!");
+    }
+    if (last != time(nullptr)) {
+      logger->info(Logr::Info, "Zone load in progress", "nrecords", Logging::Loggable(nrecords));
+      last = time(nullptr);
+    }
+  }
+
+  logger->info(Logr::Info, "Zone load completed", "nrecords", Logging::Loggable(nrecords), "soa", Logging::Loggable(soaRecordContent->getZoneRepresentation()));
+  return soaRecordContent;
+}
+
+static void preloadZoneFIle(ZoneXFRParams& params, const DNSName& zoneName, std::shared_ptr<Zone>& oldZone, uint32_t& refresh, uint64_t configGeneration, ZoneWaiter& waiter, Logr::log_t logger)
+{
+  while (!params.soaRecordContent) {
+    /* if we received an empty sr, the zone was not really preloaded */
+
+    /* full copy, as promised */
+    std::shared_ptr<Zone> newZone = std::make_shared<Zone>(*oldZone);
+    for (const auto& primary : params.primaries) {
+      try {
+        params.soaRecordContent = loadZoneFromServer(logger, primary, zoneName, params.tsigtriplet, params.maxReceivedMBytes, params.localAddress, params.xfrTimeout);
+        newZone->serial = params.soaRecordContent->d_st.serial;
+        newZone->refresh = params.soaRecordContent->d_st.refresh;
+        refresh = std::max(params.refreshFromConf != 0 ? params.refreshFromConf : newZone->refresh, 1U);
+        //setRPZZoneNewState(polName, params.zoneXFRParams.soaRecordContent->d_st.serial, newZone->size(), false, true);
+
+        g_luaconfs.modify([zoneIdx = params.zoneIdx, &newZone](LuaConfigItems& lci) {
+          lci.catalogzones.at(zoneIdx).second = newZone;
+        });
+
+        /* no need to try another primary */
+        break;
+      }
+      catch (const std::exception& e) {
+        logger->error(Logr::Warning, e.what(), "Unable to load zone, will retry", "from", Logging::Loggable(primary), "exception", Logging::Loggable("std::exception"), "refresh", Logging::Loggable(refresh));
+        // Stats
+      }
+      catch (const PDNSException& e) {
+        logger->error(Logr::Warning, e.reason, "Unable to load zone, will retry", "from", Logging::Loggable(primary), "exception", Logging::Loggable("PDNSException"), "refresh", Logging::Loggable(refresh));
+        // Stats
+      }
+    }
+    // Release newZone before (long) sleep to reduce memory usage
+    newZone = nullptr;
+    if (!params.soaRecordContent) {
+      std::unique_lock lock(waiter.mutex);
+      waiter.condVar.wait_for(lock, std::chrono::seconds(refresh),
+                                 [&stop = waiter.stop] { return stop.load(); });
+    }
+    waiter.stop = false;
+    auto luaconfsLocal = g_luaconfs.getLocal();
+
+    if (luaconfsLocal->generation != configGeneration) {
+      /* the configuration has been reloaded, meaning that a new thread
+         has been started to handle that zone and we are now obsolete.
+      */
+      return;
+    }
   }
 }
 
@@ -261,6 +364,8 @@ void zoneXFRTracker(ZoneXFRParams params, uint64_t configGeneration) // NOLINT(p
 
   insertZoneTracker(zoneName, waiter);
 
+  preloadZoneFIle(params, zoneName, oldZone, refresh, configGeneration, waiter, logger);
+  bool skipRefreshDelay = isPreloaded;
   while (zoneTrackerIteration(params, zoneName, oldZone, refresh, skipRefreshDelay, configGeneration, waiter, logger)) {
     // empty
   }
