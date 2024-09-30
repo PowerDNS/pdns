@@ -2321,7 +2321,7 @@ static int serviceMain(Logr::log_t log)
 
   {
     auto lci = g_luaconfs.getCopy();
-    startLuaConfigDelayedThreads(lci.rpzs, lci.generation);
+    startLuaConfigDelayedThreads(lci, lci.generation);
   }
 
   RecThreadInfo::makeThreadPipes(log);
@@ -3402,9 +3402,9 @@ struct WipeCacheResult wipeCaches(const DNSName& canon, bool subtree, uint16_t q
   return res;
 }
 
-void startLuaConfigDelayedThreads(const vector<RPZTrackerParams>& rpzs, uint64_t generation)
+void startLuaConfigDelayedThreads(const LuaConfigItems& luaConfig, uint64_t generation)
 {
-  for (const auto& rpzPrimary : rpzs) {
+  for (const auto& rpzPrimary : luaConfig.rpzs) {
     if (rpzPrimary.zoneXFRParams.primaries.empty()) {
       continue;
     }
@@ -3422,6 +3422,27 @@ void startLuaConfigDelayedThreads(const vector<RPZTrackerParams>& rpzs, uint64_t
     catch (const PDNSException& e) {
       SLOG(g_log << Logger::Error << "Problem starting RPZIXFRTracker thread: " << e.reason << endl,
            g_slog->withName("rpz")->error(Logr::Error, e.reason, "Exception starting RPZIXFRTracker thread", "exception", Logging::Loggable("PDNSException")));
+      exit(1); // NOLINT(concurrency-mt-unsafe)
+    }
+  }
+  for (const auto& [fcz, zone] : luaConfig.catalogzones) {
+    if (fcz.primaries.empty()) {
+      continue;
+    }
+    try {
+      // ZoneXFRTracker uses call by value for its args. That is essential, since we want copies so
+      // that ZoneXFRTracker gets values with the proper lifetime.
+      std::thread theThread(zoneXFRTracker, fcz, generation);
+      theThread.detach();
+    }
+    catch (const std::exception& e) {
+      SLOG(g_log << Logger::Error << "Problem starting ZoneIXFRTracker thread: " << e.what() << endl,
+           g_slog->withName("zone")->error(Logr::Error, e.what(), "Exception starting ZoneXFRTracker thread", "exception", Logging::Loggable("std::exception")));
+      exit(1); // NOLINT(concurrency-mt-unsafe)
+    }
+    catch (const PDNSException& e) {
+      SLOG(g_log << Logger::Error << "Problem starting ZoneIXFRTracker thread: " << e.reason << endl,
+           g_slog->withName("zone")->error(Logr::Error, e.reason, "Exception starting ZoneXFRTracker thread", "exception", Logging::Loggable("PDNSException")));
       exit(1); // NOLINT(concurrency-mt-unsafe)
     }
   }
@@ -3527,6 +3548,25 @@ static void activateRPZs(LuaConfigItems& lci)
   }
 }
 
+static void activateForwardingCatalogZones(LuaConfigItems& lci)
+{
+  size_t idx = 0;
+  for (auto& fcz : lci.catalogzones) {
+
+    auto& params = fcz.first;
+    params.zoneIdx = idx++;
+    auto zone = std::make_shared<Zone>();
+    if (params.zoneSizeHint != 0) {
+      //zone->reserve(params.zoneSizeHint);
+    }
+
+    DNSName domain(params.name);
+    zone->name = domain;
+    fcz.second = zone;
+  }
+}
+
+
 void activateLuaConfig(LuaConfigItems& lci)
 {
   if (!lci.trustAnchorFileInfo.fname.empty()) {
@@ -3540,5 +3580,6 @@ void activateLuaConfig(LuaConfigItems& lci)
     warnIfDNSSECDisabled("Warning: adding Negative Trust Anchor for DNSSEC, but dnssec is set to 'off'!");
   }
   activateRPZs(lci);
+  activateForwardingCatalogZones(lci);
   g_luaconfs.setState(lci);
 }

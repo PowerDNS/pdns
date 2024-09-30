@@ -70,3 +70,4 @@ struct Zone
 bool notifyZoneTracker(const DNSName& name);
 void insertZoneTracker(const DNSName& zoneName, ZoneWaiter& waiter);
 void clearZoneTracker(const DNSName& zoneName);
+void zoneXFRTracker(ZoneXFRParams params, uint64_t configGeneration);

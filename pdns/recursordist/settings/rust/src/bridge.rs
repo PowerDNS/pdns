@@ -67,6 +67,27 @@ impl Default for ApiZones {
     }
 }
 
+impl Default for XFR {
+    fn default() -> Self {
+        let deserialized: XFR = serde_yaml::from_str("").unwrap();
+        deserialized
+    }
+}
+
+impl Default for FCZDefault {
+    fn default() -> Self {
+        let deserialized: FCZDefault = serde_yaml::from_str("").unwrap();
+        deserialized
+    }
+}
+
+impl Default for ForwardingCatalogZone {
+    fn default() -> Self {
+        let deserialized: ForwardingCatalogZone = serde_yaml::from_str("").unwrap();
+        deserialized
+    }
+}
+
 pub fn validate_socket_address(field: &str, val: &String) -> Result<(), ValidationError> {
     let sa = SocketAddr::from_str(val);
     if sa.is_err() {
@@ -634,6 +655,22 @@ impl TSIGTriplet {
     }
 }
 
+impl ForwardingCatalogZone {
+    pub fn validate(&self, _field: &str) -> Result<(), ValidationError> {
+        Ok(())
+    }
+
+    fn to_yaml_map(&self) -> serde_yaml::Value {
+        // XXX INCOMPLETE
+        let seq = serde_yaml::Sequence::new();
+        let mut map = serde_yaml::Mapping::new();
+        inserts(&mut map, "name", &self.name);
+        insertb(&mut map, "allow_notify", self.allow_notify);
+        insertseq(&mut map, "groups", &seq);
+        serde_yaml::Value::Mapping(map)
+    }
+}
+
 #[allow(clippy::ptr_arg)] //# Avoids creating a rust::Slice object on the C++ side.
 pub fn validate_auth_zones(field: &str, vec: &Vec<AuthZone>) -> Result<(), ValidationError> {
     validate_vec(field, vec, |field, element| element.validate(field))
@@ -851,6 +888,13 @@ pub fn map_to_yaml_string(vec: &Vec<OldStyle>) -> Result<String, serde_yaml::Err
                     "Vec<ProxyMapping>" => {
                         let mut seq = serde_yaml::Sequence::new();
                         for element in &entry.value.vec_proxymapping_val {
+                            seq.push(element.to_yaml_map());
+                        }
+                        serde_yaml::Value::Sequence(seq)
+                    }
+                    "Vec<ForwardingCatalogZone>" => {
+                        let mut seq = serde_yaml::Sequence::new();
+                        for element in &entry.value.vec_forwardingcatalogzone_val {
                             seq.push(element.to_yaml_map());
                         }
                         serde_yaml::Value::Sequence(seq)
@@ -1100,3 +1144,4 @@ pub fn validate_recordcache(
 pub fn validate_snmp(_snmp: &recsettings::Snmp) -> Result<(), ValidationError> {
     Ok(())
 }
+

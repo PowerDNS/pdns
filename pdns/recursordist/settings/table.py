@@ -3535,4 +3535,16 @@ Load this Lua script on startup and shutdown and run the Lua function ``on_recur
         'skip-old' : 'No equivalent old-style setting',
         'versionadded': '5.2.0',
     },
+    {
+        'name' : 'forwarding_catalog_zones',
+        'section' : 'recursor',
+        'type' : LType.ListForwardingCatalogZones,
+        'default' : '',
+        'help' : 'Sequence of ForwardingCatalogZone',
+        'doc' : '''
+Sequence of ForwardingCatalogZone
+        ''',
+        'skip-old' : 'No equivalent old style setting',
+        'versionadded': '5.2.0',
+    },
 ]

@@ -886,6 +886,35 @@ BOOST_AUTO_TEST_CASE(test_yaml_proxymapping)
   BOOST_CHECK_EQUAL(settings.incoming.proxymappings[1].domains.size(), 3U);
 }
 
+BOOST_AUTO_TEST_CASE(test_yaml_forwardingcatalogzones)
+{
+  const std::string yaml = R"EOT(recursor:
+  forwarding_catalog_zones:
+  - name: 'forward.invalid'
+    xfr:
+      addresses: [192.168.178.3:53]
+    groups:
+      - forwarders: [1.2.3.4]
+      - name: mygroup
+        forwarders: [4.5.6.7]
+        recurse: true
+        allow_notify: true
+)EOT";
+
+  auto settings = pdns::rust::settings::rec::parse_yaml_string(yaml);
+  settings.validate();
+  BOOST_CHECK_EQUAL(std::string(settings.recursor.forwarding_catalog_zones[0].name), "forward.invalid");
+  BOOST_CHECK_EQUAL(std::string(settings.recursor.forwarding_catalog_zones[0].xfr.addresses[0]), "192.168.178.3:53");
+  BOOST_CHECK_EQUAL(settings.recursor.forwarding_catalog_zones[0].groups[0].forwarders.size(), 1U);
+  BOOST_CHECK_EQUAL(std::string(settings.recursor.forwarding_catalog_zones[0].groups[0].forwarders[0]), "1.2.3.4");
+  BOOST_CHECK_EQUAL(std::string(settings.recursor.forwarding_catalog_zones[0].groups[0].name), "");
+
+  BOOST_CHECK_EQUAL(settings.recursor.forwarding_catalog_zones[0].groups[1].forwarders.size(), 1U);
+  BOOST_CHECK_EQUAL(std::string(settings.recursor.forwarding_catalog_zones[0].groups[1].forwarders[0]), "4.5.6.7");
+  BOOST_CHECK_EQUAL(settings.recursor.forwarding_catalog_zones[0].groups[1].recurse, true);
+  BOOST_CHECK_EQUAL(settings.recursor.forwarding_catalog_zones[0].groups[1].allow_notify, true);
+}
+
 BOOST_AUTO_TEST_CASE(test_yaml_to_luaconfigand_back)
 {
   const std::string yaml = R"EOT(dnssec:
