@@ -25,6 +25,7 @@
 
 #include <string>
 #include <thread>
+#include <vector>
 
 #include "iputils.hh"
 
@@ -41,6 +42,8 @@ struct ZoneXFRParams
   TSIGTriplet tsigtriplet;
   size_t maxReceivedMBytes{0};
   size_t zoneSizeHint{0};
+  size_t zoneIdx;
+  uint32_t refreshFromConf;
   uint16_t xfrTimeout{20};
 };
 
@@ -54,6 +57,14 @@ struct ZoneWaiter
   std::mutex mutex;
   std::condition_variable condVar;
   std::atomic<bool> stop{false};
+};
+
+struct Zone
+{
+  std::vector<DNSRecord> d_records;
+  DNSName name;
+  uint32_t refresh{0};
+  uint32_t serial{0};
 };
 
 bool notifyZoneTracker(const DNSName& name);

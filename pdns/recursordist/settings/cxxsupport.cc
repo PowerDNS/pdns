@@ -892,7 +892,7 @@ void fromLuaToRust(const vector<RPZTrackerParams>& rpzs, pdns::rust::settings::r
     rustrpz.overridesGettag = rpz.defpolOverrideLocal;
     rustrpz.zoneSizeHint = rpz.zoneXFRParams.zoneSizeHint;
     assign(rustrpz.tsig, rpz.zoneXFRParams.tsigtriplet);
-    rustrpz.refresh = rpz.refreshFromConf;
+    rustrpz.refresh = rpz.zoneXFRParams.refreshFromConf;
     rustrpz.maxReceivedMBytes = rpz.zoneXFRParams.maxReceivedMBytes;
     if (rpz.zoneXFRParams.localAddress != ComboAddress()) {
       rustrpz.localAddress = rpz.zoneXFRParams.localAddress.toString();
@@ -1219,7 +1219,7 @@ void fromRustToLuaConfig(const rust::Vec<pdns::rust::settings::rec::RPZ>& rpzs, 
     params.defpolOverrideLocal = rpz.overridesGettag;
     params.zoneXFRParams.zoneSizeHint = rpz.zoneSizeHint;
     assign(params.zoneXFRParams.tsigtriplet, rpz.tsig);
-    params.refreshFromConf = rpz.refresh;
+    params.zoneXFRParams.refreshFromConf = rpz.refresh;
     params.zoneXFRParams.maxReceivedMBytes = rpz.maxReceivedMBytes;
     if (!rpz.localAddress.empty()) {
       params.zoneXFRParams.localAddress = ComboAddress(std::string(rpz.localAddress));
