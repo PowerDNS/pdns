@@ -17,6 +17,7 @@ afsdb
 AFYER
 agentx
 agentxperms
+Aguiar
 ahupowerdns
 Aips
 Aki
@@ -1238,6 +1239,7 @@ rwlock
 rytis
 Sakaguchi
 saltsa
+Samir
 sandboxing
 Sangwhan
 Saunalahti
