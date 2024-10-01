@@ -63,7 +63,7 @@ Changelog
     :tags: Bug Fixes
     :pullreq: 14640
 
-    Handle a non-existent default pool when removing a server
+    Handle a nonexistent default pool when removing a server
 
   .. change::
     :tags: Improvements, DNS over QUIC, DNS over HTTP3
