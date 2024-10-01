@@ -435,7 +435,7 @@ static bool dumpZoneToDisk(Logr::log_t logger, const std::shared_ptr<DNSFilterEn
 }
 
 
-static void preloadRPZFIle(RPZTrackerParams& params, const DNSName& zoneName, std::shared_ptr<DNSFilterEngine::Zone>& oldZone, uint32_t& refresh, const string& polName, uint64_t configGeneration, ZoneWaiter& rpzwaiter, Logr::log_t logger)
+static void preloadRPZFIle(RPZTrackerParams& params, const DNSName& zoneName, std::shared_ptr<DNSFilterEngine::Zone>& oldZone, uint32_t& refresh, const string& polName, uint64_t configGeneration, ZoneXFR::ZoneWaiter& rpzwaiter, Logr::log_t logger)
 {
   while (!params.zoneXFRParams.soaRecordContent) {
     /* if we received an empty sr, the zone was not really preloaded */
@@ -491,7 +491,7 @@ static void preloadRPZFIle(RPZTrackerParams& params, const DNSName& zoneName, st
   }
 }
 
-static bool RPZTrackerIteration(RPZTrackerParams& params, const DNSName& zoneName, std::shared_ptr<DNSFilterEngine::Zone>& oldZone, uint32_t& refresh, const string& polName, bool& skipRefreshDelay, uint64_t configGeneration, ZoneWaiter& rpzwaiter, Logr::log_t logger)
+static bool RPZTrackerIteration(RPZTrackerParams& params, const DNSName& zoneName, std::shared_ptr<DNSFilterEngine::Zone>& oldZone, uint32_t& refresh, const string& polName, bool& skipRefreshDelay, uint64_t configGeneration, ZoneXFR::ZoneWaiter& rpzwaiter, Logr::log_t logger)
 {
   // Don't hold on to oldZone, it well be re-assigned after sleep in the try block
   oldZone = nullptr;
@@ -678,7 +678,7 @@ void RPZIXFRTracker(RPZTrackerParams params, uint64_t configGeneration)
   setThreadName("rec/rpzixfr");
   bool isPreloaded = params.zoneXFRParams.soaRecordContent != nullptr;
   auto logger = g_slog->withName("rpz");
-  ZoneWaiter waiter(std::this_thread::get_id());
+  ZoneXFR::ZoneWaiter waiter(std::this_thread::get_id());
 
   /* we can _never_ modify this zone directly, we need to do a full copy then replace the existing zone */
   std::shared_ptr<DNSFilterEngine::Zone> oldZone = g_luaconfs.getLocal()->dfe.getZone(params.zoneXFRParams.zoneIdx);
@@ -696,7 +696,7 @@ void RPZIXFRTracker(RPZTrackerParams params, uint64_t configGeneration)
   // Now that we know the name, set it in the logger
   logger = logger->withValues("zone", Logging::Loggable(zoneName));
 
-  insertZoneTracker(zoneName, waiter);
+  ZoneXFR::insertZoneTracker(zoneName, waiter);
 
   preloadRPZFIle(params, zoneName, oldZone, refresh, polName, configGeneration, waiter, logger);
 
@@ -706,5 +706,5 @@ void RPZIXFRTracker(RPZTrackerParams params, uint64_t configGeneration)
     // empty
   }
 
-  clearZoneTracker(zoneName);
+  ZoneXFR::clearZoneTracker(zoneName);
 }

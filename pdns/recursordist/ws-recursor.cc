@@ -235,7 +235,7 @@ static void doCreateZone(const Json& document)
   bool notifyAllowed = boolFromJson(document, "notify_allowed", false);
   string confbasename = "zone-" + apiZoneNameToId(zone);
 
-  const string yamlAPiZonesFile = ::arg()["api-config-dir"] + "/apizones";
+  const string yamlAPIZonesFile = ::arg()["api-config-dir"] + "/apizones";
 
   if (kind == "NATIVE") {
     if (rdFlag) {
@@ -270,7 +270,7 @@ static void doCreateZone(const Json& document)
       pdns::rust::settings::rec::AuthZone authzone;
       authzone.zone = zonename;
       authzone.file = zonefilename;
-      pdns::rust::settings::rec::api_add_auth_zone(yamlAPiZonesFile, std::move(authzone));
+      pdns::rust::settings::rec::api_add_auth_zone(yamlAPIZonesFile, std::move(authzone));
     }
     else {
       apiWriteConfigFile(confbasename, "auth-zones+=" + zonename + "=" + zonefilename);
@@ -285,7 +285,7 @@ static void doCreateZone(const Json& document)
       for (const auto& value : document["servers"].array_items()) {
         forward.forwarders.emplace_back(value.string_value());
       }
-      pdns::rust::settings::rec::api_add_forward_zone(yamlAPiZonesFile, std::move(forward));
+      pdns::rust::settings::rec::api_add_forward_zone(yamlAPIZonesFile, std::move(forward));
     }
     else {
       string serverlist;

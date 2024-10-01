@@ -1304,27 +1304,29 @@ void fromRustToLuaConfig(const rust::Vec<pdns::rust::settings::rec::ProxyMapping
   }
 }
 
-void fromRustToLuaConfig(const rust::Vec<pdns::rust::settings::rec::ForwardingCatalogZone>& catzones, std::vector<pair<ZoneXFRParams, std::shared_ptr<Zone>>>& lua)
+void fromRustToLuaConfig(const rust::Vec<pdns::rust::settings::rec::ForwardingCatalogZone>& catzones, std::vector<FWCatz>& lua)
 {
   for (const auto& catz : catzones) {
-    cerr << "catz: " << catz.name << endl;
-    ZoneXFRParams params;
-    auto zone = std::make_shared<Zone>();
+    FWCatz fwcatz;
+    for (const auto& def : catz.groups) {
+      fwcatz.d_defaults.emplace(def.name, def);
+    }
+    fwcatz.d_catz = std::make_shared<CatalogZone>();
 
     for (const auto& address : catz.xfr.addresses) {
       ComboAddress combo = ComboAddress(std::string(address), 53);
-      params.primaries.emplace_back(combo.toStringWithPort());
+      fwcatz.d_params.primaries.emplace_back(combo.toStringWithPort());
     }
-    params.name = std::string(catz.name);
-    params.zoneSizeHint = catz.xfr.zoneSizeHint;
-    assign(params.tsigtriplet, catz.xfr.tsig);
-    params.refreshFromConf = catz.xfr.refresh;
-    params.maxReceivedMBytes = catz.xfr.maxReceivedMBytes;
+    fwcatz.d_params.name = std::string(catz.name);
+    fwcatz.d_params.zoneSizeHint = catz.xfr.zoneSizeHint;
+    assign(fwcatz.d_params.tsigtriplet, catz.xfr.tsig);
+    fwcatz.d_params.refreshFromConf = catz.xfr.refresh;
+    fwcatz.d_params.maxReceivedMBytes = catz.xfr.maxReceivedMBytes;
     if (!catz.xfr.localAddress.empty()) {
-      params.localAddress = ComboAddress(std::string(catz.xfr.localAddress));
+      fwcatz.d_params.localAddress = ComboAddress(std::string(catz.xfr.localAddress));
     }
-    params.xfrTimeout = catz.xfr.axfrTimeout;
-    lua.emplace_back(params, zone);
+    fwcatz.d_params.xfrTimeout = catz.xfr.axfrTimeout;
+    lua.emplace_back(std::move(fwcatz));
   }
 }
 }

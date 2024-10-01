@@ -3425,14 +3425,14 @@ void startLuaConfigDelayedThreads(const LuaConfigItems& luaConfig, uint64_t gene
       exit(1); // NOLINT(concurrency-mt-unsafe)
     }
   }
-  for (const auto& [fcz, zone] : luaConfig.catalogzones) {
-    if (fcz.primaries.empty()) {
+  for (const auto& fcz : luaConfig.catalogzones) {
+    if (fcz.d_params.primaries.empty()) {
       continue;
     }
     try {
       // ZoneXFRTracker uses call by value for its args. That is essential, since we want copies so
       // that ZoneXFRTracker gets values with the proper lifetime.
-      std::thread theThread(zoneXFRTracker, fcz, generation);
+      std::thread theThread(ZoneXFR::zoneXFRTracker, fcz.d_params, generation);
       theThread.detach();
     }
     catch (const std::exception& e) {
@@ -3553,16 +3553,16 @@ static void activateForwardingCatalogZones(LuaConfigItems& lci)
   size_t idx = 0;
   for (auto& fcz : lci.catalogzones) {
 
-    auto& params = fcz.first;
+    auto& params = fcz.d_params;
     params.zoneIdx = idx++;
-    auto zone = std::make_shared<Zone>();
+    auto zone = std::make_shared<CatalogZone>();
     if (params.zoneSizeHint != 0) {
-      //zone->reserve(params.zoneSizeHint);
+      zone->reserve(params.zoneSizeHint);
     }
 
     DNSName domain(params.name);
-    zone->name = domain;
-    fcz.second = zone;
+    zone->setName(domain);
+    fcz.d_catz = zone;
   }
 }
 
@@ -3583,3 +3583,4 @@ void activateLuaConfig(LuaConfigItems& lci)
   activateForwardingCatalogZones(lci);
   g_luaconfs.setState(lci);
 }
+

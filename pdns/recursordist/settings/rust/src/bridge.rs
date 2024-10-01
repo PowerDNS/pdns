@@ -665,7 +665,7 @@ impl ForwardingCatalogZone {
         let seq = serde_yaml::Sequence::new();
         let mut map = serde_yaml::Mapping::new();
         inserts(&mut map, "name", &self.name);
-        insertb(&mut map, "allow_notify", self.allow_notify);
+        insertb(&mut map, "notify_allowed", self.notify_allowed);
         insertseq(&mut map, "groups", &seq);
         serde_yaml::Value::Mapping(map)
     }
@@ -1034,6 +1034,14 @@ pub fn api_delete_zone(path: &str, zone: &str) -> Result<(), std::io::Error> {
     zones.auth_zones.retain(|x| x.zone != zone);
     // Zone data file is unlinked in the C++ caller ws-recursor.cc:doDeleteZone()
     zones.forward_zones.retain(|x| x.zone != zone);
+    api_write_zones(path, &zones)
+}
+
+// This function is called from C++, it needs to acquire the lock
+pub fn api_delete_zones(path: &str) -> Result<(), std::io::Error> {
+    let _lock = LOCK.lock().unwrap();
+    let mut zones = api_read_zones_locked(path, true)?;
+    zones.forward_zones.clear();
     api_write_zones(path, &zones)
 }
 

@@ -28,9 +28,14 @@
 #include <vector>
 
 #include "iputils.hh"
+#include "lock.hh"
+#include "logr.hh"
+#include "dnsrecords.hh"
+#include "rust/lib.rs.h"
 
 class DNSName;
 class SOARecordContent;
+struct FWCatz;
 
 // Please make sure that the struct below only contains value types since they are used as parameters in a thread ct
 struct ZoneXFRParams
@@ -47,27 +52,97 @@ struct ZoneXFRParams
   uint16_t xfrTimeout{20};
 };
 
-// A struct that holds the condition var and related stuff to allow notifies to be sent to the tread owning
-// the struct.
-struct ZoneWaiter
+class CatalogZone
 {
-  ZoneWaiter(std::thread::id arg) :
-    id(arg) {}
-  std::thread::id id;
-  std::mutex mutex;
-  std::condition_variable condVar;
-  std::atomic<bool> stop{false};
+public:
+  void setRefresh(uint32_t refresh)
+  {
+    d_refresh = refresh;
+  }
+  [[nodiscard]] auto getRefresh() const
+  {
+    return d_refresh;
+  }
+  void setSerial(uint32_t serial)
+  {
+    d_serial = serial;
+  }
+  void setName(const DNSName& name)
+  {
+    d_name = name;
+  }
+  [[nodiscard]] auto getName() const
+  {
+    return d_name;
+  }
+  void reserve([[maybe_unused]] size_t size)
+  {
+    //d_records.reserve(size);
+  }
+  void clear()
+  {
+    d_records.clear();
+  }
+  void newStats([[maybe_unused]] uint32_t serial, [[maybe_unused]]bool fullTransfer)
+  {
+    // XXX stats
+  }
+  void incFailedStats()
+  {
+    // XXX stats
+  }
+  void add(const DNSRecord& record, Logr::log_t  logger);
+  void remove(const DNSRecord& record, Logr::log_t logger);
+  void registerForwarders(const FWCatz& params, Logr::log_t logger);
+  [[nodiscard]] bool versionCheck() const;
+  [[nodiscard]] bool dupsCheck() const;
+
+private:
+  std::multimap<std::pair<DNSName, QType>, DNSRecord> d_records;
+  DNSName d_name;
+  uint32_t d_refresh{0};
+  uint32_t d_serial{0};
 };
 
-struct Zone
+struct FWCatz
 {
-  std::vector<DNSRecord> d_records;
-  DNSName name;
-  uint32_t refresh{0};
-  uint32_t serial{0};
+  ZoneXFRParams d_params;
+  std::map<std::string, pdns::rust::settings::rec::FCZDefault> d_defaults;
+  std::shared_ptr<CatalogZone> d_catz;
 };
 
-bool notifyZoneTracker(const DNSName& name);
-void insertZoneTracker(const DNSName& zoneName, ZoneWaiter& waiter);
-void clearZoneTracker(const DNSName& zoneName);
-void zoneXFRTracker(ZoneXFRParams params, uint64_t configGeneration);
+struct ZoneXFR
+{
+public:
+  // A struct that holds the condition var and related stuff to allow notifies to be sent to the tread owning
+  // the struct.
+  struct ZoneWaiter
+  {
+    ZoneWaiter(std::thread::id arg) :
+      id(arg) {}
+    std::thread::id id;
+    std::mutex mutex;
+    std::condition_variable condVar;
+    std::atomic<bool> stop{false};
+  };
+
+  static bool notifyZoneTracker(const DNSName& name);
+  static void insertZoneTracker(const DNSName& zoneName, ZoneWaiter& waiter);
+  static void clearZoneTracker(const DNSName& zoneName);
+  static void zoneXFRTracker(ZoneXFRParams params, uint64_t configGeneration);
+
+  ZoneXFR(ZoneXFRParams  params) :
+    d_params(std::move(params))
+  {}
+
+private:
+  void preloadZoneFile(const DNSName& zoneName, std::shared_ptr<CatalogZone>& oldZone, uint32_t& refresh, uint64_t configGeneration, ZoneWaiter& waiter, Logr::log_t logger);
+  bool zoneTrackerIteration(const DNSName& zoneName, std::shared_ptr<CatalogZone>& oldZone, uint32_t& refresh, bool& skipRefreshDelay, uint64_t configGeneration, ZoneWaiter& waiter, Logr::log_t logger);
+
+  ZoneXFRParams d_params;
+
+  // As there can be multiple threads doing updates (due to config reloads), we use a multimap.
+  // The value contains the actual thread id that owns the struct.
+  static LockGuarded<std::multimap<DNSName, ZoneXFR::ZoneWaiter&>> condVars;
+};
+
