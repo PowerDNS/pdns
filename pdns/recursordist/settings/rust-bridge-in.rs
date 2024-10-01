@@ -287,7 +287,7 @@ pub struct FCZDefault {
     #[serde(default, skip_serializing_if = "crate::is_default")]
     recurse: bool,
     #[serde(default, skip_serializing_if = "crate::is_default")]
-    allow_notify: bool,
+    notify_allowed: bool,
  }
 
 #[derive(Deserialize, Serialize, Clone, Debug, PartialEq)]
@@ -296,7 +296,7 @@ pub struct ForwardingCatalogZone {
     #[serde(default, skip_serializing_if = "crate::is_default")]
     name: String,
     #[serde(default, skip_serializing_if = "crate::is_default")]
-    allow_notify: bool,
+    notify_allowed: bool,
     #[serde(default, skip_serializing_if = "crate::is_default")]
     xfr: XFR,
     #[serde(default, skip_serializing_if = "crate::is_default")]
@@ -388,6 +388,7 @@ extern "Rust" {
     fn validate_trustanchors(field: &str, vec: &Vec<TrustAnchor>) -> Result<()>;
     fn validate_negativetrustanchors(field: &str, vec: &Vec<NegativeTrustAnchor>) -> Result<()>;
     fn api_delete_zone(file: &str, zone: &str) -> Result<()>;
+    fn api_delete_zones(file: &str) -> Result<()>;
 }
 
 unsafe extern "C++" {
