@@ -1,0 +1,3 @@
+User-agent: *
+Disallow: /3
+Disallow: /md
