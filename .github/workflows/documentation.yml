@@ -1,3 +1,32 @@
+# This workflow builds and publishes documentation for PowerDNS products.
+# It is controlled by the following variables and secrets:
+
+# Variables:
+# - PUBLISH_DOCS_TO_AWS: Set to 'true' to enable publishing to AWS
+# - PUBLISH_DOCS_TO_NETLIFY: Set to 'true' to enable publishing to Netlify
+# - PUBLISH_DOCS_TO_WEB1: Set to 'true' to enable publishing to Web1
+# - PUBLISH_PRS_TO_NETLIFY: Set to 'true' to publish PR previews to Netlify
+
+# - AWS_REGION: AWS region for S3 and CloudFront
+# - AWS_S3_BUCKET_DOCS: S3 bucket name for documentation
+# - AWS_CLOUDFRONT_DISTRIBUTION_ID_DNSDIST: CloudFront distribution ID for DNSdist docs
+# - AWS_CLOUDFRONT_DISTRIBUTION_ID_DOCS: CloudFront distribution ID for PowerDNS docs
+
+# - NETLIFY_SITE_ID_DOCS: Netlify site ID for PowerDNS docs
+# - NETLIFY_SITE_ID_DNSDIST: Netlify site ID for DNSdist docs
+
+
+# - REC_DOCS_DIR: Directory for Recursor docs on Web1
+# - AUTH_DOCS_DIR: Directory for Authoritative Server docs on Web1
+# - WEB1_HOSTKEY: SSH host key for Web1
+# - DOCS_HOST: Hostname for documentation server
+
+# Secrets:
+# - AWS_ACCESS_KEY_ID: AWS access key ID
+# - AWS_SECRET_ACCESS_KEY: AWS secret access key
+# - NETLIFY_API_TOKEN: API token for Netlify
+# - WEB1_DOCS_SECRET: SSH key for Web1 access
+
 ---
 name: 'Documentation'
 
@@ -6,21 +35,45 @@ on:
     branches: [master]
   pull_request:
     branches: [master]
-
+  workflow_dispatch: {}
+ 
 permissions:
   contents: read
+  pull-requests: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE20: true
 
 jobs:
-  build-upload-docs:
-    name: Build and upload docs
+  build-docs:
+    name: Build docs
     runs-on: ubuntu-22.04
+    env:
+      SERVICE_IP_ADDR: 127.0.0.1
+      BRANCH_NAME: ${{ github.ref_name }}
+    services:
+      database:
+        image: epicwink/proxpi
+        ports:
+          - 5000:5000
+        options: >-
+          --restart always
+    outputs:
+      pdns_version: ${{ steps.get-version.outputs.pdns_version }}
+      pip-list-auth: ${{ steps.pip-logs-auth.outputs.list-auth }}
+      pip-list-rec: ${{ steps.pip-logs-rec.outputs.list-rec }}
+      pip-list-dnsdist: ${{ steps.pip-logs-dnsdist.outputs.list-dnsdist }}
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: build-scripts/gh-actions-setup-inv-no-dist-upgrade  # this runs apt update
+      - run: pip config set global.index-url http://${{ env.SERVICE_IP_ADDR }}:5000/index/
+      - run: pip config set global.trusted-host ${{ env.SERVICE_IP_ADDR }}
+      - id: proxpi-docker
+        run: echo "id=$(docker ps | grep "epicwink/proxpi" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+      - run: build-scripts/gh-actions-setup-inv-no-dist-upgrade
       - run: inv install-doc-deps
       - run: inv install-doc-deps-pdf
 
@@ -28,16 +81,7 @@ jobs:
         run: |
           echo "pdns_version=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
-      - id: setup-ssh
-        run: |-
-          inv ci-docs-add-ssh --ssh-key="$SSH_KEY" --host-key="$HOST_KEY"
-          echo "have_ssh_key=yes" >> $GITHUB_OUTPUT
-        env:
-          SSH_KEY: ${{secrets.WEB1_DOCS_SECRET}}
-          HOST_KEY: ${{vars.WEB1_HOSTKEY}}
-        if: ${{github.ref_name == 'master' && env.SSH_KEY != ''}}
-
-      # Auth
+      # Build Auth docs
       - run: inv ci-docs-build
       - run: mv html auth-html-docs
         working-directory: ./docs/_build
@@ -47,21 +91,19 @@ jobs:
         with:
           name: authoritative-html-docs-${{steps.get-version.outputs.pdns_version}}
           path: ./docs/_build/auth-html-docs.tar
-      - run: bzip2 auth-html-docs.tar
-        if: ${{github.ref_name == 'master'}}
-        working-directory: ./docs/_build
       - run: inv ci-docs-build-pdf
       - uses: actions/upload-artifact@v4
         with:
           name: PowerDNS-Authoritative-${{steps.get-version.outputs.pdns_version}}.pdf
           path: ./docs/_build/latex/PowerDNS-Authoritative.pdf
-      - run: inv ci-docs-upload-master --docs-host="${DOCS_HOST}" --pdf="PowerDNS-Authoritative.pdf" --username="docs_powerdns_com" --product="auth" --directory="/${AUTH_DOCS_DIR}/"
-        env:
-          DOCS_HOST: ${{vars.DOCS_HOST}}
-          AUTH_DOCS_DIR: ${{vars.AUTH_DOCS_DIR}}
-        if: ${{github.ref_name == 'master' && steps.setup-ssh.outputs.have_ssh_key != ''}}
-
-      # Rec
+      - run: docker logs ${{ steps.proxpi-docker.outputs.id }} 2>&1 | grep whl | awk '{print $8}' | cut -d "/" -f 4 | awk -F'-' '{print $1"=="$2}' | sort -u --ignore-case > /tmp/proxpi-auth.log
+      - id: pip-logs-auth
+        run: echo "list-auth=$(cat /tmp/proxpi-auth.log | base64 -w0)" >> "$GITHUB_OUTPUT"
+      - run: sudo sh -c "truncate -s 0 /var/lib/docker/containers/${{ steps.proxpi-docker.outputs.id }}*/${{ steps.proxpi-docker.outputs.id }}*-json.log"
+      - name: Copy PDF to HTML docs directory
+        run: |
+          cp ./docs/_build/latex/PowerDNS-Authoritative.pdf ./docs/_build/auth-html-docs/
+      # Build Rec docs
       - run: inv ci-metrics-rec-generate
         working-directory: ./pdns/recursordist
       - run: inv ci-docs-rec-generate
@@ -76,23 +118,21 @@ jobs:
         with:
           name: recursor-html-docs-${{steps.get-version.outputs.pdns_version}}
           path: ./pdns/recursordist/docs/_build/rec-html-docs.tar
-      - run: bzip2 rec-html-docs.tar
-        if: ${{github.ref_name == 'master'}}
-        working-directory: ./pdns/recursordist/docs/_build
       - run: inv ci-docs-build-pdf
         working-directory: ./pdns/recursordist
       - uses: actions/upload-artifact@v4
         with:
           name: PowerDNS-Recursor-${{steps.get-version.outputs.pdns_version}}.pdf
           path: ./pdns/recursordist/docs/_build/latex/PowerDNS-Recursor.pdf
-      - run: inv ci-docs-upload-master --docs-host="${DOCS_HOST}" --pdf="PowerDNS-Recursor.pdf" --username="docs_powerdns_com" --product="rec" --directory="/${REC_DOCS_DIR}/"
-        env:
-          DOCS_HOST: ${{vars.DOCS_HOST}}
-          REC_DOCS_DIR: ${{vars.REC_DOCS_DIR}}
-        if: ${{github.ref_name == 'master' && steps.setup-ssh.outputs.have_ssh_key != ''}}
-        working-directory: ./pdns/recursordist
+      - run: docker logs ${{ steps.proxpi-docker.outputs.id }} 2>&1 | grep whl | awk '{print $8}' | cut -d "/" -f 4 | awk -F'-' '{print $1"=="$2}' | sort -u --ignore-case > /tmp/proxpi-rec.log
+      - id: pip-logs-rec
+        run: echo "list-rec=$(cat /tmp/proxpi-rec.log | base64 -w0)" >> "$GITHUB_OUTPUT"
+      - run: sudo sh -c "truncate -s 0 /var/lib/docker/containers/${{ steps.proxpi-docker.outputs.id }}*/${{ steps.proxpi-docker.outputs.id }}*-json.log"
+      - name: Copy PDF to HTML docs directory
+        run: |
+          cp ./pdns/recursordist/docs/_build/latex/PowerDNS-Recursor.pdf ./pdns/recursordist/docs/_build/rec-html-docs/
 
-      # DNSdist
+      # Build DNSdist docs
       - run: inv ci-docs-build
         working-directory: ./pdns/dnsdistdist
       - run: mv html dnsdist-html-docs
@@ -103,17 +143,249 @@ jobs:
         with:
           name: dnsdist-html-docs-${{steps.get-version.outputs.pdns_version}}
           path: ./pdns/dnsdistdist/docs/_build/dnsdist-html-docs.tar
-      - run: bzip2 dnsdist-html-docs.tar
-        if: ${{github.ref_name == 'master'}}
-        working-directory: ./pdns/dnsdistdist/docs/_build
       - run: inv ci-docs-build-pdf
         working-directory: ./pdns/dnsdistdist
       - uses: actions/upload-artifact@v4
         with:
           name: dnsdist-${{steps.get-version.outputs.pdns_version}}.pdf
           path: ./pdns/dnsdistdist/docs/_build/latex/dnsdist.pdf
-      - run: inv ci-docs-upload-master --docs-host="${DOCS_HOST}" --pdf="dnsdist.pdf" --username="dnsdist_org" --product="dnsdist"
+      - run: docker logs ${{ steps.proxpi-docker.outputs.id }} 2>&1 | grep whl | awk '{print $8}' | cut -d "/" -f 4 | awk -F'-' '{print $1"=="$2}' | sort -u --ignore-case > /tmp/proxpi-dnsdist.log
+      - id: pip-logs-dnsdist
+        run: echo "list-dnsdist=$(cat /tmp/proxpi-dnsdist.log | base64 -w0)" >> "$GITHUB_OUTPUT"
+      - name: Copy PDF to HTML docs directory
+        run: |
+          cp ./pdns/dnsdistdist/docs/_build/latex/dnsdist.pdf ./pdns/dnsdistdist/docs/_build/dnsdist-html-docs/
+
+      # Build website
+      - name: Build website
+        run: |
+          tar cf website.tar website
+      - uses: actions/upload-artifact@v4
+        with:
+          name: website-${{steps.get-version.outputs.pdns_version}}
+          path: website.tar
+
+  publish-to-netlify:
+    name: Publish to Netlify
+    needs: build-docs
+    if: ${{ vars.PUBLISH_DOCS_TO_NETLIFY == 'true' && (github.ref_name == 'master' || vars.PUBLISH_PRS_TO_NETLIFY == 'true') }}
+    runs-on: ubuntu-22.04
+    env:
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_API_TOKEN }}
+      NETLIFY_SITE_ID_DOCS: ${{ vars.NETLIFY_SITE_ID_DOCS }}
+      NETLIFY_SITE_ID_DNSDIST: ${{ vars.NETLIFY_SITE_ID_DNSDIST }}
+    steps:
+      - name: Check required secrets
+        run: |
+          missing_secrets=()
+          [ -z "$NETLIFY_AUTH_TOKEN" ] && missing_secrets+=("NETLIFY_API_TOKEN")
+          [ -z "$NETLIFY_SITE_ID_DOCS" ] && missing_secrets+=("NETLIFY_SITE_ID_DOCS")
+          [ -z "$NETLIFY_SITE_ID_DNSDIST" ] && missing_secrets+=("NETLIFY_SITE_ID_DNSDIST")
+          if [ ${#missing_secrets[@]} -ne 0 ]; then
+            echo "Error: The following secrets are missing: ${missing_secrets[*]}"
+            exit 1
+          fi
+      - name: Install Netlify
+        run: npm install netlify-cli@17.36.3 -g
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Deploy docs to Netlify
+        run: |
+          mkdir -p docs_site/temp
+          tar -xf artifacts/website-${{needs.build-docs.outputs.pdns_version}}/website.tar -C docs_site/temp
+          mv docs_site/temp/website/docs.powerdns.com/* docs_site/
+          rm -rf docs_site/temp
+          tar -xf artifacts/authoritative-html-docs-${{needs.build-docs.outputs.pdns_version}}/auth-html-docs.tar -C docs_site
+          tar -xf artifacts/recursor-html-docs-${{needs.build-docs.outputs.pdns_version}}/rec-html-docs.tar -C docs_site
+          mv docs_site/auth-html-docs docs_site/authoritative
+          mv docs_site/rec-html-docs docs_site/recursor
+          prod_flag=""
+          if [ "${{ github.ref_name }}" = "master" ]; then prod_flag="--prod"; fi
+          netlify deploy \
+            --dir ./docs_site \
+            --site $NETLIFY_SITE_ID_DOCS \
+            --auth $NETLIFY_AUTH_TOKEN \
+            $prod_flag \
+            --json \
+            > netlify_deploy_docs_output.json
+
+      - name: Deploy DNSdist docs to Netlify
+        run: |
+          tar -xf artifacts/dnsdist-html-docs-${{needs.build-docs.outputs.pdns_version}}/dnsdist-html-docs.tar
+          prod_flag=""
+          if [ "${{ github.ref_name }}" = "master" ]; then prod_flag="--prod"; fi
+          netlify deploy \
+            --dir ./dnsdist-html-docs \
+            --site $NETLIFY_SITE_ID_DNSDIST \
+            --auth $NETLIFY_AUTH_TOKEN \
+            $prod_flag \
+            --json \
+            > netlify_deploy_dnsdist_output.json
+
+      - name: Generate URL Previews
+        id: url_previews
+        if: ${{ github.ref_name != 'master' }}
+        run: |
+          if [ -f netlify_deploy_docs_output.json ]; then
+            DOCS_PREVIEW_URL=$(jq -r '.deploy_url' netlify_deploy_docs_output.json)
+            echo "DOCS_PREVIEW_URL=$DOCS_PREVIEW_URL" >> "$GITHUB_OUTPUT"
+          fi
+          if [ -f netlify_deploy_dnsdist_output.json ]; then
+            DNSDIST_PREVIEW_URL=$(jq -r '.deploy_url' netlify_deploy_dnsdist_output.json)
+            echo "DNSDIST_PREVIEW_URL=$DNSDIST_PREVIEW_URL" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Comment URL Previews on PR
+        uses: actions/github-script@v7
+        if: ${{ github.ref_name != 'master' }}
+        env:
+          DOCS_PREVIEW_URL: ${{ steps.url_previews.outputs.DOCS_PREVIEW_URL }}
+          DNSDIST_PREVIEW_URL: ${{ steps.url_previews.outputs.DNSDIST_PREVIEW_URL }}
+        with:
+          script: |
+            async function comment(){
+              const result = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                commit_sha: context.sha,
+              })
+
+              const issueNumber = result.data[0].number
+
+              if(issueNumber){
+                let commentBody = 'Preview URLs:\n'
+                if (process.env.DOCS_PREVIEW_URL) {
+                  commentBody += `- Docs (Auth, Rec, Root): ${process.env.DOCS_PREVIEW_URL}\n`
+                  commentBody += `  - Authoritative: ${process.env.DOCS_PREVIEW_URL}/authoritative\n`
+                  commentBody += `  - Recursor: ${process.env.DOCS_PREVIEW_URL}/recursor\n`
+                }
+                if (process.env.DNSDIST_PREVIEW_URL) {
+                  commentBody += `- DNSdist: ${process.env.DNSDIST_PREVIEW_URL}\n`
+                }
+
+                await github.rest.issues.createComment({
+                  issue_number: issueNumber,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  body: commentBody
+                })
+              } else {
+                console.log('No PR found for commit ' + context.sha)
+              }
+            }
+
+            comment()
+
+  publish-to-web1:
+    name: Publish to Web1
+    needs: build-docs
+    if: ${{ github.ref_name == 'master' && vars.PUBLISH_DOCS_TO_WEB1 == 'true' }}
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Check required secrets
+        run: |
+          missing_secrets=()
+          [ -z "${{ secrets.WEB1_DOCS_SECRET }}" ] && missing_secrets+=("WEB1_DOCS_SECRET")
+          [ -z "${{ vars.WEB1_HOSTKEY }}" ] && missing_secrets+=("WEB1_HOSTKEY")
+          [ -z "${{ vars.DOCS_HOST }}" ] && missing_secrets+=("DOCS_HOST")
+          [ -z "${{ vars.AUTH_DOCS_DIR }}" ] && missing_secrets+=("AUTH_DOCS_DIR")
+          [ -z "${{ vars.REC_DOCS_DIR }}" ] && missing_secrets+=("REC_DOCS_DIR")
+          if [ ${#missing_secrets[@]} -ne 0 ]; then
+            echo "Error: The following secrets/variables are missing: ${missing_secrets[*]}"
+            exit 1
+          fi
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - id: setup-ssh
+        run: |-
+          inv ci-docs-add-ssh --ssh-key="$SSH_KEY" --host-key="$HOST_KEY"
+        env:
+          SSH_KEY: ${{secrets.WEB1_DOCS_SECRET}}
+          HOST_KEY: ${{vars.WEB1_HOSTKEY}}
+      - name: Publish Auth docs
+        run: |
+          tar -xf artifacts/authoritative-html-docs-${{needs.build-docs.outputs.pdns_version}}/auth-html-docs.tar
+          inv ci-docs-upload-master --docs-host="${DOCS_HOST}" --pdf="PowerDNS-Authoritative.pdf" --username="docs_powerdns_com" --product="auth" --directory="/${AUTH_DOCS_DIR}/"
         env:
           DOCS_HOST: ${{vars.DOCS_HOST}}
-        if: ${{github.ref_name == 'master' && steps.setup-ssh.outputs.have_ssh_key != ''}}
+          AUTH_DOCS_DIR: ${{vars.AUTH_DOCS_DIR}}
+      - name: Publish Recursor docs
+        run: |
+          tar -xf artifacts/recursor-html-docs-${{needs.build-docs.outputs.pdns_version}}/rec-html-docs.tar
+          inv ci-docs-upload-master --docs-host="${DOCS_HOST}" --pdf="PowerDNS-Recursor.pdf" --username="docs_powerdns_com" --product="rec" --directory="/${REC_DOCS_DIR}/"
+        env:
+          DOCS_HOST: ${{vars.DOCS_HOST}}
+          REC_DOCS_DIR: ${{vars.REC_DOCS_DIR}}
+      - name: Publish DNSdist docs
+        run: |
+          tar -xf artifacts/dnsdist-html-docs-${{needs.build-docs.outputs.pdns_version}}/dnsdist-html-docs.tar
+          inv ci-docs-upload-master --docs-host="${DOCS_HOST}" --pdf="dnsdist.pdf" --username="dnsdist_org" --product="dnsdist"
+        env:
+          DOCS_HOST: ${{vars.DOCS_HOST}}
+
+
+  publish-to-aws:
+    name: Publish to AWS
+    needs: build-docs
+    if: ${{ github.ref_name == 'master' && vars.PUBLISH_DOCS_TO_AWS == 'true' }}
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Check required secrets
+        run: |
+          missing_secrets=()
+          [ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ] && missing_secrets+=("AWS_ACCESS_KEY_ID")
+          [ -z "${{ secrets.AWS_SECRET_ACCESS_KEY }}" ] && missing_secrets+=("AWS_SECRET_ACCESS_KEY")
+          [ -z "${{ vars.AWS_REGION }}" ] && missing_secrets+=("AWS_REGION")
+          [ -z "${{ vars.AWS_S3_BUCKET_DOCS }}" ] && missing_secrets+=("AWS_S3_BUCKET_DOCS")
+          [ -z "${{ vars.AWS_CLOUDFRONT_DISTRIBUTION_ID_DNSDIST }}" ] && missing_secrets+=("AWS_CLOUDFRONT_DISTRIBUTION_ID_DNSDIST")
+          [ -z "${{ vars.AWS_CLOUDFRONT_DISTRIBUTION_ID_DOCS }}" ] && missing_secrets+=("AWS_CLOUDFRONT_DISTRIBUTION_ID_DOCS")
+          if [ ${#missing_secrets[@]} -ne 0 ]; then
+            echo "Error: The following secrets/variables are missing: ${missing_secrets[*]}"
+            exit 1
+          fi
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      - name: Install AWS SDK v3
+        run: npm install @aws-sdk/client-s3 @aws-sdk/client-cloudfront
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Publish to AWS
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          AWS_S3_BUCKET_DOCS: ${{ vars.AWS_S3_BUCKET_DOCS }}
+          AWS_CLOUDFRONT_DISTRIBUTION_ID_DNSDIST: ${{ vars.AWS_CLOUDFRONT_DISTRIBUTION_ID_DNSDIST }}
+          AWS_CLOUDFRONT_DISTRIBUTION_ID_DOCS: ${{ vars.AWS_CLOUDFRONT_DISTRIBUTION_ID_DOCS }}
+        run: |
+          if [ -n "$AWS_CLOUDFRONT_DISTRIBUTION_ID_DNSDIST" ]; then
+            tar -xf artifacts/dnsdist-html-docs-${{needs.build-docs.outputs.pdns_version}}/dnsdist-html-docs.tar
+            node .github/scripts/publish.js publish dnsdist.org dnsdist-html-docs /
+          fi
+          if [ -n "$AWS_CLOUDFRONT_DISTRIBUTION_ID_DOCS" ]; then
+            tar -xf artifacts/recursor-html-docs-${{needs.build-docs.outputs.pdns_version}}/rec-html-docs.tar
+            node .github/scripts/publish.js publish docs.powerdns.com rec-html-docs /recursor
+            tar -xf artifacts/authoritative-html-docs-${{needs.build-docs.outputs.pdns_version}}/auth-html-docs.tar
+            node .github/scripts/publish.js publish docs.powerdns.com auth-html-docs /authoritative
+            tar -xf artifacts/website-${{needs.build-docs.outputs.pdns_version}}/website.tar
+            node .github/scripts/publish.js publish docs.powerdns.com website/docs.powerdns.com /
+          fi
+
+  validate-pip-hashes:
+    name: Validate list of packages and hashes
+    runs-on: ubuntu-22.04
+    needs: build-docs
+    steps:
+      - uses: actions/checkout@v4
+      - run: for i in `echo "${{ needs.build-docs.outputs.pip-list-auth }}" | base64 -d | sed 's/_/-/' | egrep -v "pip==|setuptools==|wheel==|setuptools-git=="`; do grep -qq -i $i docs/requirements.txt || ( echo "$i not found" && exit 1 ); done
+      - run: for i in `echo "${{ needs.build-docs.outputs.pip-list-rec }}" | base64 -d | sed 's/_/-/' | egrep -v "pip==|setuptools==|wheel==|setuptools-git=="`; do grep -qq -i $i docs/requirements.txt || ( echo "$i not found" && exit 1 ); done
+        working-directory: ./pdns/recursordist
+      - run: for i in `echo "${{ needs.build-docs.outputs.pip-list-dnsdist }}" | base64 -d | sed 's/_/-/' | egrep -v "pip==|setuptools==|wheel==|setuptools-git=="`; do grep -qq -i $i docs/requirements.txt || ( echo "$i not found" && exit 1 ); done
         working-directory: ./pdns/dnsdistdist
