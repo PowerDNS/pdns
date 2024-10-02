@@ -1564,7 +1564,7 @@ Previously, this limit was fixed at 10.
         'help' : 'Limit answers to ANY queries in size',
         'doc' : '''
 Limit answers to ANY queries constructed from the record cache in size.
-Trying to retrieve more than `:xref:setting-max-rrset-size` records will result in a ``ServFail``',
+Trying to retrieve more than :ref:`setting-max-rrset-size` records will result in a ``ServFail``',
  ''',
     'versionadded': ['4.9.9', '5.0.9', '5.1.2']
     },
@@ -1578,7 +1578,7 @@ Trying to retrieve more than `:xref:setting-max-rrset-size` records will result 
 Maximum size of RRSets in cache.
 Trying to retrieve larger RRSets will result in a ``ServFail``.',
  ''',
-    'versionadded': ['4.9.x', '5.0.y', '5.1.x']
+    'versionadded': ['4.9.9', '5.0.9', '5.1.2']
     },
     {
         'name' : 'max_ns_address_qperq',
