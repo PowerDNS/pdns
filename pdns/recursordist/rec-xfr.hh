@@ -23,6 +23,7 @@
 
 #include "config.h"
 
+#include <condition_variable>
 #include <string>
 #include <thread>
 #include <vector>
@@ -77,13 +78,13 @@ public:
   }
   void reserve([[maybe_unused]] size_t size)
   {
-    //d_records.reserve(size);
+    // d_records.reserve(size);
   }
   void clear()
   {
     d_records.clear();
   }
-  void newStats([[maybe_unused]] uint32_t serial, [[maybe_unused]]bool fullTransfer)
+  void newStats([[maybe_unused]] uint32_t serial, [[maybe_unused]] bool fullTransfer)
   {
     // XXX stats
   }
@@ -91,7 +92,7 @@ public:
   {
     // XXX stats
   }
-  void add(const DNSRecord& record, Logr::log_t  logger);
+  void add(const DNSRecord& record, Logr::log_t logger);
   void remove(const DNSRecord& record, Logr::log_t logger);
   void registerForwarders(const FWCatz& params, Logr::log_t logger);
   [[nodiscard]] bool versionCheck() const;
@@ -111,7 +112,7 @@ struct FWCatz
   std::shared_ptr<CatalogZone> d_catz;
 };
 
-struct ZoneXFR
+class ZoneXFR
 {
 public:
   // A struct that holds the condition var and related stuff to allow notifies to be sent to the tread owning
@@ -131,7 +132,7 @@ public:
   static void clearZoneTracker(const DNSName& zoneName);
   static void zoneXFRTracker(ZoneXFRParams params, uint64_t configGeneration);
 
-  ZoneXFR(ZoneXFRParams  params) :
+  ZoneXFR(ZoneXFRParams params) :
     d_params(std::move(params))
   {}
 
@@ -146,3 +147,4 @@ private:
   static LockGuarded<std::multimap<DNSName, ZoneXFR::ZoneWaiter&>> condVars;
 };
 
+std::string reloadZoneConfiguration(bool yaml);

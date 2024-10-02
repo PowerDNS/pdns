@@ -3566,7 +3566,6 @@ static void activateForwardingCatalogZones(LuaConfigItems& lci)
   }
 }
 
-
 void activateLuaConfig(LuaConfigItems& lci)
 {
   if (!lci.trustAnchorFileInfo.fname.empty()) {
@@ -3583,4 +3582,3 @@ void activateLuaConfig(LuaConfigItems& lci)
   activateForwardingCatalogZones(lci);
   g_luaconfs.setState(lci);
 }
-

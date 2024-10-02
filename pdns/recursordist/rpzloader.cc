@@ -434,7 +434,6 @@ static bool dumpZoneToDisk(Logr::log_t logger, const std::shared_ptr<DNSFilterEn
   return true;
 }
 
-
 static void preloadRPZFIle(RPZTrackerParams& params, const DNSName& zoneName, std::shared_ptr<DNSFilterEngine::Zone>& oldZone, uint32_t& refresh, const string& polName, uint64_t configGeneration, ZoneXFR::ZoneWaiter& rpzwaiter, Logr::log_t logger)
 {
   while (!params.zoneXFRParams.soaRecordContent) {

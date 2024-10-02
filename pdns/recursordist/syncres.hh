@@ -936,7 +936,6 @@ extern uint16_t g_outgoingEDNSBufsize;
 extern std::atomic<uint32_t> g_maxCacheEntries, g_maxPacketCacheEntries;
 extern bool g_lowercaseOutgoing;
 
-std::string reloadZoneConfiguration(bool yaml);
 using pipefunc_t = std::function<void*()>;
 void broadcastFunction(const pipefunc_t& func);
 void distributeAsyncFunction(const std::string& packet, const pipefunc_t& func);
