@@ -29,14 +29,12 @@
 #include "axfr-retriever.hh"
 #include "ixfr.hh"
 #include "dnsrecords.hh"
-#include "settings/cxxsettings.hh"
-#include "rec-main.hh"
-#include "syncres.hh"
 
 static const DNSName cZones("zones");
 static const DNSName cVersion("version");
 
-// TODO: cleanup files if not in catalogzones
+// TODO: cleanup files if not in catalogzones?
+// TODO: notify to catzone (works but for #14506)
 
 void CatalogZone::add(const DNSRecord& record, Logr::log_t logger)
 {
@@ -54,7 +52,7 @@ void CatalogZone::add(const DNSRecord& record, Logr::log_t logger)
     return;
   }
   const auto& key = record.d_name;
-  logger->info(Logr::Debug, "Adding cat zone entry", "name", Logging::Loggable(key), "qtype", Logging::Loggable(record.d_type));
+  logger->info(Logr::Debug, "Adding cat zone entry", "name", Logging::Loggable(key), "qtype", Logging::Loggable(QType(record.d_type)));
   d_records.emplace(std::make_pair(key, record.d_type), record);
 }
 
@@ -74,38 +72,59 @@ void CatalogZone::remove(const DNSRecord& record, Logr::log_t logger)
     return;
   }
   const auto& key = record.d_name;
-  logger->info(Logr::Debug, "Removing cat zone entry", "name", Logging::Loggable(key), "qtype", Logging::Loggable(record.d_type));
+  logger->info(Logr::Debug, "Removing cat zone entry", "name", Logging::Loggable(key), "qtype", Logging::Loggable(QType(record.d_type)));
   d_records.erase(std::make_pair(key, record.d_type));
 }
 
 void CatalogZone::registerForwarders(const FWCatz& params, Logr::log_t logger)
 {
-  auto defsIter = params.d_defaults.find("");
-  pdns::rust::settings::rec::FCZDefault defaults  = defsIter->second;
-  // defaults.name = "default";
-  // defaults.forwarders = {"1.2.3.4", "4.5.6.7"};
-  // defaults.recurse = false;
-  // defaults.notify_allowed = false;
-  
   const string zonesFile = ::arg()["api-config-dir"] + "/catzone." + d_name.toString();
   ::rust::Vec<::pdns::rust::settings::rec::ForwardZone> forwards;
+
   for (const auto& record : d_records) {
     if (record.first.second != QType::PTR) {
       continue;
     }
     if (const auto ptr = getRR<PTRRecordContent>(record.second)) {
+      auto defsIter = params.d_defaults.find("");
+      const auto& name = record.first.first;
+      auto groupKey = name;
+      groupKey.prependRawLabel("group");
+      // Look for group records matching the member
+      auto range = d_records.equal_range(std::make_pair(groupKey, QType::TXT));
+      for (auto groupIter = range.first; groupIter != range.second; ++groupIter) {
+        if (const auto txt = getRR<TXTRecordContent>(groupIter->second); txt != nullptr) {
+          auto groupName = txt->d_text;
+          groupName = unquotify(groupName);
+          auto iter = params.d_defaults.find(groupName);
+          if (iter == params.d_defaults.end()) {
+            logger->info(Logr::Debug, "No match for group in YAML config", "name", Logging::Loggable(name), "groupName", Logging::Loggable(groupName));
+            continue;
+          }
+          logger->info(Logr::Debug, "Match for group in YAML config", "name", Logging::Loggable(name), "groupName", Logging::Loggable(groupName));
+          defsIter = iter;
+          break;
+        }
+      }
+      if (defsIter == params.d_defaults.end()) {
+        logger->info(Logr::Error, "No match for group in YAML config", "name", Logging::Loggable(name));
+        continue;
+      }
       auto target = ptr->getContent();
       pdns::rust::settings::rec::ForwardZone forward;
       forward.zone = target.toString();
-      forward.recurse = defaults.recurse;
-      forward.notify_allowed = defaults.notify_allowed;
-      for (const auto& value : defaults.forwarders) {
+      forward.recurse = defsIter->second.recurse;
+      forward.notify_allowed = defsIter->second.notify_allowed;
+      for (const auto& value : defsIter->second.forwarders) {
         forward.forwarders.emplace_back(value);
       }
-      forward.validate("");
+      forward.validate("catz");
       forwards.emplace_back(std::move(forward));
     }
   }
+
+  // Simple approach: just replace everything. Keeping track of changes to members is a bit involved as the
+  // members themselves can change, be added ot deleted, but also the group records.
   pdns::rust::settings::rec::api_delete_zones(zonesFile);
   pdns::rust::settings::rec::api_add_forward_zones(zonesFile, forwards);
   reloadZoneConfiguration(true);
@@ -145,7 +164,7 @@ bool CatalogZone::dupsCheck() const
       invalid = true;
       continue;
     }
-    if (!values.insert(ptr->getContent()).second) {
+    if (!values.emplace(ptr->getContent()).second) {
       invalid = true;
       break;
     }
@@ -222,7 +241,7 @@ void ZoneXFR::preloadZoneFile(const DNSName& zoneName, std::shared_ptr<CatalogZo
     auto newZone = std::make_shared<CatalogZone>(*oldZone);
     for (const auto& primary : d_params.primaries) {
       try {
-        d_params.soaRecordContent = loadZoneFromServer(logger, primary, zoneName, newZone,  d_params.tsigtriplet, d_params.maxReceivedMBytes, d_params.localAddress, d_params.xfrTimeout);
+        d_params.soaRecordContent = loadZoneFromServer(logger, primary, zoneName, newZone, d_params.tsigtriplet, d_params.maxReceivedMBytes, d_params.localAddress, d_params.xfrTimeout);
         newZone->setSerial(d_params.soaRecordContent->d_st.serial);
         newZone->setRefresh(d_params.soaRecordContent->d_st.refresh);
         refresh = std::max(d_params.refreshFromConf != 0 ? d_params.refreshFromConf : newZone->getRefresh(), 1U);
@@ -251,7 +270,7 @@ void ZoneXFR::preloadZoneFile(const DNSName& zoneName, std::shared_ptr<CatalogZo
     if (!d_params.soaRecordContent) {
       std::unique_lock lock(waiter.mutex);
       waiter.condVar.wait_for(lock, std::chrono::seconds(refresh),
-                                 [&stop = waiter.stop] { return stop.load(); });
+                              [&stop = waiter.stop] { return stop.load(); });
     }
     waiter.stop = false;
     auto luaconfsLocal = g_luaconfs.getLocal();
@@ -263,7 +282,6 @@ void ZoneXFR::preloadZoneFile(const DNSName& zoneName, std::shared_ptr<CatalogZo
       return;
     }
   }
-
 }
 
 bool ZoneXFR::zoneTrackerIteration(const DNSName& zoneName, std::shared_ptr<CatalogZone>& oldZone, uint32_t& refresh, bool& skipRefreshDelay, uint64_t configGeneration, ZoneWaiter& waiter, Logr::log_t logger)
@@ -399,12 +417,12 @@ bool ZoneXFR::zoneTrackerIteration(const DNSName& zoneName, std::shared_ptr<Cata
         }
       }
     }
-  if (!newZone->versionCheck()) {
-    throw PDNSException("no valid version record in catalog zone");
-  }
-  if (!newZone->dupsCheck()) {
-    throw PDNSException("duplicate PTR values in catalog zone");
-  }
+    if (!newZone->versionCheck()) {
+      throw PDNSException("no valid version record in catalog zone");
+    }
+    if (!newZone->dupsCheck()) {
+      throw PDNSException("duplicate PTR values in catalog zone");
+    }
 
     /* only update sr now that all changes have been converted */
     if (currentSR) {
@@ -443,9 +461,9 @@ bool ZoneXFR::zoneTrackerIteration(const DNSName& zoneName, std::shared_ptr<Cata
 // coverity[pass_by_value] params is intended to be a copy, as this is the main function of a thread
 void ZoneXFR::zoneXFRTracker(ZoneXFRParams params, uint64_t configGeneration) // NOLINT(performance-unnecessary-value-param)
 {
-  setThreadName("rec/catixfr");
+  setThreadName("rec/fwcatzixfr");
   bool isPreloaded = params.soaRecordContent != nullptr;
-  auto logger = g_slog->withName("catixfr");
+  auto logger = g_slog->withName("fwcatzixfr");
   ZoneWaiter waiter(std::this_thread::get_id());
 
   /* we can _never_ modify this zone directly, we need to do a full copy then replace the existing zone */
@@ -476,4 +494,3 @@ void ZoneXFR::zoneXFRTracker(ZoneXFRParams params, uint64_t configGeneration) //
 
   clearZoneTracker(zoneName);
 }
-
