@@ -52,6 +52,8 @@
  */
 
 uint16_t MemRecursorCache::s_maxServedStaleExtensions;
+uint16_t MemRecursorCache::s_maxRRSetSize = 256;
+bool MemRecursorCache::s_limitQTypeAny = true;
 
 void MemRecursorCache::resetStaticsForTests()
 {
@@ -150,6 +152,9 @@ static void ptrAssign(T* ptr, const T& value)
 time_t MemRecursorCache::handleHit(time_t now, MapCombo::LockedContent& content, MemRecursorCache::OrderedTagIterator_t& entry, const DNSName& qname, uint32_t& origTTL, vector<DNSRecord>* res, vector<std::shared_ptr<const RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, boost::optional<vState>& state, bool* wasAuth, DNSName* fromAuthZone, ComboAddress* fromAuthIP)
 {
   // MUTEX SHOULD BE ACQUIRED (as indicated by the reference to the content which is protected by a lock)
+  if (entry->d_tooBig) {
+    throw ImmediateServFailException("too many records in RRSet");
+  }
   time_t ttd = entry->d_ttd;
   if (ttd <= now) {
     // Expired, don't bother returning contents. Callers *MUST* check return value of get(), and only look at the entry
@@ -163,6 +168,10 @@ time_t MemRecursorCache::handleHit(time_t now, MapCombo::LockedContent& content,
   }
 
   if (res != nullptr) {
+    if (s_limitQTypeAny && res->size() + entry->d_records.size() > s_maxRRSetSize) {
+      throw ImmediateServFailException("too many records in result");
+    }
+
     res->reserve(res->size() + entry->d_records.size());
 
     for (const auto& record : entry->d_records) {
@@ -350,7 +359,7 @@ time_t MemRecursorCache::fakeTTD(MemRecursorCache::OrderedTagIterator_t& entry, 
 }
 
 // returns -1 for no hits
-time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qtype, Flags flags, vector<DNSRecord>* res, const ComboAddress& who, const OptTag& routingTag, vector<std::shared_ptr<const RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, vState* state, bool* wasAuth, DNSName* fromAuthZone, ComboAddress* fromAuthIP)
+time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qtype, Flags flags, vector<DNSRecord>* res, const ComboAddress& who, const OptTag& routingTag, vector<std::shared_ptr<const RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, vState* state, bool* wasAuth, DNSName* fromAuthZone, ComboAddress* fromAuthIP) // NOLINT(readability-function-cognitive-complexity)
 {
   bool requireAuth = (flags & RequireAuth) != 0;
   bool refresh = (flags & Refresh) != 0;
@@ -410,7 +419,7 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qtype
 
   if (routingTag) {
     auto entries = getEntries(*lockedShard, qname, qtype, routingTag);
-    bool found = false;
+    unsigned int found = 0;
     time_t ttd{};
 
     if (entries.first != entries.second) {
@@ -427,17 +436,20 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qtype
         if (!entryMatches(firstIndexIterator, qtype, requireAuth, who)) {
           continue;
         }
-        found = true;
+        ++found;
 
         handleServeStaleBookkeeping(now, serveStale, firstIndexIterator);
 
         ttd = handleHit(now, *lockedShard, firstIndexIterator, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, fromAuthIP);
 
-        if (qtype != QType::ANY && qtype != QType::ADDR) { // normally if we have a hit, we are done
+        if (qtype == QType::ADDR && found == 2) {
+          break;
+        }
+        if (qtype != QType::ANY) { // normally if we have a hit, we are done
           break;
         }
       }
-      if (found) {
+      if (found > 0) {
         if (cachedState && ttd > now) {
           ptrAssign(state, *cachedState);
         }
@@ -451,7 +463,7 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qtype
 
   if (entries.first != entries.second) {
     OrderedTagIterator_t firstIndexIterator;
-    bool found = false;
+    unsigned int found = 0;
     time_t ttd{};
 
     for (auto i = entries.first; i != entries.second; ++i) {
@@ -466,17 +478,20 @@ time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qtype
       if (!entryMatches(firstIndexIterator, qtype, requireAuth, who)) {
         continue;
       }
-      found = true;
+      ++found;
 
       handleServeStaleBookkeeping(now, serveStale, firstIndexIterator);
 
       ttd = handleHit(now, *lockedShard, firstIndexIterator, qname, origTTL, res, signatures, authorityRecs, variable, cachedState, wasAuth, fromAuthZone, fromAuthIP);
 
-      if (qtype != QType::ANY && qtype != QType::ADDR) { // normally if we have a hit, we are done
+      if (qtype == QType::ADDR && found == 2) {
+        break;
+      }
+      if (qtype != QType::ANY) { // normally if we have a hit, we are done
         break;
       }
     }
-    if (found) {
+    if (found > 0) {
       if (cachedState && ttd > now) {
         ptrAssign(state, *cachedState);
       }
@@ -592,7 +607,6 @@ void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qty
   cacheEntry.d_signatures = signatures;
   cacheEntry.d_authorityRecs = authorityRecs;
   cacheEntry.d_records.clear();
-  cacheEntry.d_records.reserve(content.size());
   cacheEntry.d_authZone = authZone;
   if (from) {
     cacheEntry.d_from = *from;
@@ -601,6 +615,15 @@ void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qty
     cacheEntry.d_from = ComboAddress();
   }
 
+  size_t toStore = content.size();
+  if (toStore <= s_maxRRSetSize) {
+    cacheEntry.d_tooBig = false;
+  }
+  else {
+    toStore = 1; // record cache does not like empty RRSets
+    cacheEntry.d_tooBig = true;
+  }
+  cacheEntry.d_records.reserve(toStore);
   for (const auto& record : content) {
     /* Yes, we have altered the d_ttl value by adding time(nullptr) to it
        prior to calling this function, so the TTL actually holds a TTD. */
@@ -615,6 +638,9 @@ void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qty
       cacheEntry.d_orig_ttl = SyncRes::s_minimumTTL;
     }
     cacheEntry.d_records.push_back(record.getContent());
+    if (--toStore == 0) {
+      break;
+    }
   }
 
   if (!isNew) {
@@ -801,7 +827,7 @@ uint64_t MemRecursorCache::doDump(int fileDesc, size_t maxCacheEntries)
       for (const auto& record : recordSet.d_records) {
         count++;
         try {
-          fprintf(filePtr.get(), "%s %" PRIu32 " %" PRId64 " IN %s %s ; (%s) auth=%i zone=%s from=%s nm=%s rtag=%s ss=%hd\n", recordSet.d_qname.toString().c_str(), recordSet.d_orig_ttl, static_cast<int64_t>(recordSet.d_ttd - now), recordSet.d_qtype.toString().c_str(), record->getZoneRepresentation().c_str(), vStateToString(recordSet.d_state).c_str(), static_cast<int>(recordSet.d_auth), recordSet.d_authZone.toLogString().c_str(), recordSet.d_from.toString().c_str(), recordSet.d_netmask.empty() ? "" : recordSet.d_netmask.toString().c_str(), !recordSet.d_rtag ? "" : recordSet.d_rtag.get().c_str(), recordSet.d_servedStale);
+          fprintf(filePtr.get(), "%s %" PRIu32 " %" PRId64 " IN %s %s ; (%s) auth=%i zone=%s from=%s nm=%s rtag=%s ss=%hd%s\n", recordSet.d_qname.toString().c_str(), recordSet.d_orig_ttl, static_cast<int64_t>(recordSet.d_ttd - now), recordSet.d_qtype.toString().c_str(), record->getZoneRepresentation().c_str(), vStateToString(recordSet.d_state).c_str(), static_cast<int>(recordSet.d_auth), recordSet.d_authZone.toLogString().c_str(), recordSet.d_from.toString().c_str(), recordSet.d_netmask.empty() ? "" : recordSet.d_netmask.toString().c_str(), !recordSet.d_rtag ? "" : recordSet.d_rtag.get().c_str(), recordSet.d_servedStale, recordSet.d_tooBig ? " (too big!)" : "");
         }
         catch (...) {
           fprintf(filePtr.get(), "; error printing '%s'\n", recordSet.d_qname.empty() ? "EMPTY" : recordSet.d_qname.toString().c_str());
