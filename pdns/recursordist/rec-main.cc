@@ -1606,6 +1606,8 @@ static int initSyncRes(Logr::log_t log, const std::optional<std::string>& myHost
     MemRecursorCache::s_maxServedStaleExtensions = sse;
     NegCache::s_maxServedStaleExtensions = sse;
   }
+  MemRecursorCache::s_maxRRSetSize = ::arg().asNum("max-rrset-size");
+  MemRecursorCache::s_limitQTypeAny = ::arg().mustDo("limit-qtype-any");
 
   if (SyncRes::s_tcp_fast_open_connect) {
     checkFastOpenSysctl(true, log);
@@ -3079,6 +3081,8 @@ static void initArgs()
   ::arg().setSwitch("save-parent-ns-set", "Save parent NS set to be used if child NS set fails") = "yes";
   ::arg().set("max-busy-dot-probes", "Maximum number of concurrent DoT probes") = "0";
   ::arg().set("serve-stale-extensions", "Number of times a record's ttl is extended by 30s to be served stale") = "0";
+  ::arg().set("max-rrset-size", "Maximum size of RRSet in cache") = "256";
+  ::arg().setSwitch("limit-qtype-any", "Limit answers to ANY queries in size") = "yes";
 
   ::arg().setCmd("help", "Provide a helpful message");
   ::arg().setCmd("version", "Print version string");
