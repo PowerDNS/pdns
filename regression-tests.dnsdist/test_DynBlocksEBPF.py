@@ -5,9 +5,6 @@ import unittest
 from dnsdisttests import DNSDistTest
 from dnsdistDynBlockTests import DynBlocksTest
 
-class EBPFTest(object):
-    pass
-
 @unittest.skipUnless('ENABLE_SUDO_TESTS' in os.environ, "sudo is not available")
 class TestDynBlockEBPFQPS(DynBlocksTest):
 
