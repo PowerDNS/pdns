@@ -2602,7 +2602,10 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
   }
 
 #ifdef HAVE_EBPF
-  if (g_defaultBPFFilter && !g_defaultBPFFilter->isExternal()) {
+  /* for now eBPF filtering is not enabled on QUIC sockets because the eBPF code tries
+     to parse the QNAME from the payload for all UDP datagrams, which obviously does not
+     work well for these. */
+  if (!isQUIC && g_defaultBPFFilter && !g_defaultBPFFilter->isExternal()) {
     clientState.attachFilter(g_defaultBPFFilter, socket);
     vinfolog("Attaching default BPF Filter to %s frontend %s", (!tcp ? std::string("UDP") : std::string("TCP")), addr.toStringWithPort());
   }
