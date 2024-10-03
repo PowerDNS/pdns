@@ -4,11 +4,19 @@ Upgrade Guide
 Before upgrading, it is advised to read the :doc:`changelog/index`.
 When upgrading several versions, please read **all** notes applying to the upgrade.
 
+5.1.1 to 5.1.2, 5.0.8 to 5.0.9 and 4.9.8 to 4.9.9
+-------------------------------------------------
+
+New settings
+^^^^^^^^^^^^
+- The :ref:`setting-yaml-recordcache.max_rrset_size` setting has been introduced to limit the number of records in a result set.
+- The :ref:`setting-yaml-recordcache.limit_qtype_any` setting has been introduced to limit the number of records in answers to ANY queries.
+
 5.1.0 to master
 ----------------
 
 Changed behaviour
------------------
+^^^^^^^^^^^^^^^^^
 The way :ref:`setting-yaml-incoming.max_tcp_clients` is enforced has changed.
 If there are too many incoming TCP connections, new connections will be accepted but then closed immediately.
 Previously, excess connections would linger in the OS listen queue until timeout or until processing of incoming TCP connections resumed due to the number of connections being processed dropping below the limit.
