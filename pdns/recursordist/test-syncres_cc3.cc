@@ -54,27 +54,49 @@ BOOST_AUTO_TEST_CASE(test_unauth_any)
 
   const DNSName target("powerdns.com.");
 
-  sr->setAsyncCallback([target](const ComboAddress& ip, const DNSName& domain, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
-    if (isRootServer(ip)) {
+  sr->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
+    if (isRootServer(address)) {
       setLWResult(res, 0, false, false, true);
       addRecordToLW(res, "com.", QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
       addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
       return LWResult::Result::Success;
     }
-    else if (ip == ComboAddress("192.0.2.1:53")) {
-
-      setLWResult(res, 0, false, false, true);
-      addRecordToLW(res, domain, QType::A, "192.0.2.42");
-      return LWResult::Result::Success;
+    if (address == ComboAddress("192.0.2.1:53")) {
+      if (type == QType::A) {
+        setLWResult(res, 0, false, false, true);
+        addRecordToLW(res, domain, QType::A, "192.0.2.42");
+        addRecordToLW(res, domain, QType::A, "192.0.2.43");
+        return LWResult::Result::Success;
+      }
+      if (type == QType::AAAA) {
+        setLWResult(res, 0, false, false, true);
+        addRecordToLW(res, domain, QType::AAAA, "::1");
+        return LWResult::Result::Success;
+      }
     }
 
     return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;
-  int res = sr->beginResolve(target, QType(QType::ANY), QClass::IN, ret);
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(ret.size(), 2U);
+
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::AAAA), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(ret.size(), 1U);
+
+  ret.clear();
+  MemRecursorCache::s_maxRRSetSize = 2;
+  BOOST_CHECK_THROW(sr->beginResolve(target, QType(QType::ANY), QClass::IN, ret), ImmediateServFailException);
+
+  MemRecursorCache::s_limitQTypeAny = false;
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::ANY), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(ret.size(), 3U);
 }
 
 static void test_no_data_f(bool qmin)

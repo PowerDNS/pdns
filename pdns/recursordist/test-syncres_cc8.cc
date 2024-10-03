@@ -1584,6 +1584,20 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_from_cache_secure_any)
   ret.clear();
   /* third one _does_ require validation */
   sr->setDNSSECValidationRequested(true);
+  MemRecursorCache::s_maxRRSetSize = 1;
+  BOOST_CHECK_THROW(sr->beginResolve(target, QType(QType::ANY), QClass::IN, ret), ImmediateServFailException);
+  // BOOST_CHECK_EQUAL(res, RCode::NoError);
+  // BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
+  // BOOST_REQUIRE_EQUAL(ret.size(), 2U);
+  // for (const auto& record : ret) {
+  //   BOOST_CHECK(record.d_type == QType::A || record.d_type == QType::AAAA || record.d_type == QType::RRSIG);
+  // }
+  BOOST_CHECK_EQUAL(queriesCount, 2U);
+
+  ret.clear();
+  /* next one _does_ require validation */
+  MemRecursorCache::s_limitQTypeAny = false;
+  sr->setDNSSECValidationRequested(true);
   res = sr->beginResolve(target, QType(QType::ANY), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
