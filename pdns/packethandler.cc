@@ -43,11 +43,11 @@
 #include "statbag.hh"
 #include "resolver.hh"
 #include "communicator.hh"
-#include "dnsproxy.hh"
 #include "version.hh"
 #include "auth-main.hh"
 #include "trusted-notification-proxy.hh"
 #include "gss_context.hh"
+#include "stubresolver.hh"
 
 #if 0
 #undef DLOG
@@ -1347,8 +1347,6 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
 
   vector<DNSZoneRecord> rrset;
   bool weDone=false, weRedirected=false, weHaveUnauth=false, doSigs=false;
-  DNSName haveAlias;
-  uint8_t aliasScopeMask;
 
   std::unique_ptr<DNSPacket> r{nullptr};
   bool noCache=false;
@@ -1594,8 +1592,6 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
     // see what we get..
     B.lookup(QType(QType::ANY), target, d_sd.domain_id, &p);
     rrset.clear();
-    haveAlias.clear();
-    aliasScopeMask = 0;
     weDone = weRedirected = weHaveUnauth =  false;
 
     while(B.get(rr)) {
@@ -1615,7 +1611,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
               for (const auto& r_it : recvec) {
                 rr.dr.d_type = rec->d_type; // might be CNAME
                 rr.dr.setContent(r_it);
-                rr.scopeMask = p.getRealRemote().getBits(); // this makes sure answer is a specific as your question
+                rr.scopeMask = p.getRealRemote().getBits(); // this makes sure answer is as specific as your question
                 rrset.push_back(rr);
               }
               if(rec->d_type == QType::CNAME && p.qtype.getCode() != QType::CNAME)
@@ -1635,6 +1631,63 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
         }
       }
 #endif
+      if (rr.dr.d_type == QType::ALIAS && (p.qtype.getCode() == QType::A || p.qtype.getCode() == QType::AAAA || p.qtype.getCode() == QType::ANY) && !d_dk.isPresigned(d_sd.qname)) {
+        if (!d_doExpandALIAS) {
+          g_log<<Logger::Info<<"ALIAS record found for "<<target<<", but ALIAS expansion is disabled."<<endl;
+          continue;
+        }
+        DNSName aliasTarget = getRR<ALIASRecordContent>(rr.dr)->getContent();
+        if (aliasTarget.empty()) {
+          continue;
+        }
+
+        vector<DNSZoneRecord> ips;
+        EDNSSubnetOpts eso;
+        if (r->hasEDNSSubnet()) {
+          eso.scope = r->d_eso.scope;
+          eso.source = r->d_eso.source;
+        }
+        int ret1 = RCode::NoError;
+        int ret2 = RCode::NoError;
+        if (r->qtype == QType::A || r->qtype == QType::ANY) {
+          ret1 = stubDoResolve(aliasTarget, QType::A, ips, r->hasEDNSSubnet() ? &eso : nullptr);
+        }
+        if (r->qtype == QType::AAAA || r->qtype == QType::ANY) {
+          ret2 = stubDoResolve(aliasTarget, QType::AAAA, ips, r->hasEDNSSubnet() ? &eso : nullptr);
+        }
+
+        if (ret1 != RCode::NoError || ret2 != RCode::NoError) {
+          g_log << Logger::Error << "Error resolving for " << target << " ALIAS " << aliasTarget << " over UDP";
+          if (ret1 != RCode::NoError) {
+            g_log << Logger::Error << ", A-record query returned " << RCode::to_s(ret1);
+          }
+          if (ret2 != RCode::NoError) {
+            g_log << Logger::Error << ", AAAA-record query returned " << RCode::to_s(ret2);
+          }
+          g_log << Logger::Error << ", returning SERVFAIL" << endl;
+
+          while (B.get(rr)) {
+            // don't leave DB handle in bad state
+          }
+
+          r = p.replyPacket();
+          r->setRcode(RCode::ServFail);
+          return r;
+        }
+
+        for (auto& ip : ips) { // NOLINT(readability-identifier-length)
+          ip.dr.d_name = target;
+          if (r->hasEDNSSubnet()) {
+            // update the EDNS options with info from the resolver - issue #5469
+            // note that this relies on the ECS string encoder to use the source network, and only take the prefix length from scope
+            ip.scopeMask = eso.scope.getBits();
+          }
+          rrset.push_back(ip);
+        }
+
+        weDone = true;
+      }
+
       //cerr<<"got content: ["<<rr.content<<"]"<<endl;
       if (!d_dnssec && p.qtype.getCode() == QType::ANY && (rr.dr.d_type == QType:: DNSKEY || rr.dr.d_type == QType::NSEC3PARAM))
         continue; // Don't send dnssec info.
@@ -1651,15 +1704,6 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
       if(rr.dr.d_type == QType::CNAME && p.qtype.getCode() != QType::CNAME)
         weRedirected=true;
 
-      if (DP && rr.dr.d_type == QType::ALIAS && (p.qtype.getCode() == QType::A || p.qtype.getCode() == QType::AAAA || p.qtype.getCode() == QType::ANY) && !d_dk.isPresigned(d_sd.qname)) {
-        if (!d_doExpandALIAS) {
-          g_log<<Logger::Info<<"ALIAS record found for "<<target<<", but ALIAS expansion is disabled."<<endl;
-          continue;
-        }
-        haveAlias=getRR<ALIASRecordContent>(rr.dr)->getContent();
-        aliasScopeMask=rr.scopeMask;
-      }
-
       // Filter out all SOA's and add them in later
       if(rr.dr.d_type == QType::SOA)
         continue;
@@ -1674,19 +1718,12 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
     }
 
 
-    DLOG(g_log<<"After first ANY query for '"<<target<<"', id="<<d_sd.domain_id<<": weDone="<<weDone<<", weHaveUnauth="<<weHaveUnauth<<", weRedirected="<<weRedirected<<", haveAlias='"<<haveAlias<<"'"<<endl);
+    DLOG(g_log<<"After first ANY query for '"<<target<<"', id="<<d_sd.domain_id<<": weDone="<<weDone<<", weHaveUnauth="<<weHaveUnauth<<", weRedirected="<<weRedirected<<endl);
     if(p.qtype.getCode() == QType::DS && weHaveUnauth &&  !weDone && !weRedirected) {
       DLOG(g_log<<"Q for DS of a name for which we do have NS, but for which we don't have DS; need to provide an AUTH answer that shows we don't"<<endl);
       makeNOError(p, r, target, DNSName(), 1);
       goto sendit;
     }
-
-    if(!haveAlias.empty() && (!weDone || p.qtype.getCode() == QType::ANY)) {
-      DLOG(g_log<<Logger::Warning<<"Found nothing that matched for '"<<target<<"', but did get alias to '"<<haveAlias<<"', referring"<<endl);
-      DP->completePacket(r, haveAlias, target, aliasScopeMask);
-      return nullptr;
-    }
-
 
     // referral for DS query
     if(p.qtype.getCode() == QType::DS) {

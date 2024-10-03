@@ -533,8 +533,6 @@ common_sources += files(
   src_dir / 'dnspacket.hh',
   src_dir / 'dnsparser.cc',
   src_dir / 'dnsparser.hh',
-  src_dir / 'dnsproxy.cc',
-  src_dir / 'dnsproxy.hh',
   src_dir / 'dnsrecords.cc',
   src_dir / 'dnsrecords.hh',
   src_dir / 'dnssecinfra.cc',
