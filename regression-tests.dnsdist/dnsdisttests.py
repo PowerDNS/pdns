@@ -623,7 +623,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         return (receivedQuery, message)
 
     @classmethod
-    def openTCPConnection(cls, timeout=None, port=None):
+    def openTCPConnection(cls, timeout=2.0, port=None):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         if timeout:
@@ -636,7 +636,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         return sock
 
     @classmethod
-    def openTLSConnection(cls, port, serverName, caCert=None, timeout=None, alpn=[]):
+    def openTLSConnection(cls, port, serverName, caCert=None, timeout=2.0, alpn=[]):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         if timeout:
@@ -689,12 +689,12 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             return message
 
     @classmethod
-    def sendDOTQuery(cls, port, serverName, query, response, caFile, useQueue=True):
-        conn = cls.openTLSConnection(port, serverName, caFile)
-        cls.sendTCPQueryOverConnection(conn, query, response=response)
+    def sendDOTQuery(cls, port, serverName, query, response, caFile, useQueue=True, timeout=None):
+        conn = cls.openTLSConnection(port, serverName, caFile, timeout=timeout)
+        cls.sendTCPQueryOverConnection(conn, query, response=response, timeout=timeout)
         if useQueue:
-          return cls.recvTCPResponseOverConnection(conn, useQueue=useQueue)
-        return None, cls.recvTCPResponseOverConnection(conn, useQueue=useQueue)
+          return cls.recvTCPResponseOverConnection(conn, useQueue=useQueue, timeout=timeout)
+        return None, cls.recvTCPResponseOverConnection(conn, useQueue=useQueue, timeout=timeout)
 
     @classmethod
     def sendTCPQuery(cls, query, response, useQueue=True, timeout=2.0, rawQuery=False):
@@ -1002,6 +1002,9 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
 
         conn.setopt(pycurl.HTTPHEADER, ["Content-type: application/dns-message",
                                          "Accept: application/dns-message"])
+        if timeout:
+          conn.setopt(pycurl.TIMEOUT_MS, int(timeout*1000))
+
         return conn
 
     @classmethod
@@ -1098,23 +1101,23 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         cls._response_headers = response_headers.getvalue()
         return (receivedQuery, message)
 
-    def sendDOHQueryWrapper(self, query, response, useQueue=True):
-        return self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue)
+    def sendDOHQueryWrapper(self, query, response, useQueue=True, timeout=2):
+        return self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue, timeout=timeout)
 
-    def sendDOHWithNGHTTP2QueryWrapper(self, query, response, useQueue=True):
-        return self.sendDOHQuery(self._dohWithNGHTTP2ServerPort, self._serverName, self._dohWithNGHTTP2BaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue)
+    def sendDOHWithNGHTTP2QueryWrapper(self, query, response, useQueue=True, timeout=2):
+        return self.sendDOHQuery(self._dohWithNGHTTP2ServerPort, self._serverName, self._dohWithNGHTTP2BaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue, timeout=timeout)
 
-    def sendDOHWithH2OQueryWrapper(self, query, response, useQueue=True):
-        return self.sendDOHQuery(self._dohWithH2OServerPort, self._serverName, self._dohWithH2OBaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue)
+    def sendDOHWithH2OQueryWrapper(self, query, response, useQueue=True, timeout=2):
+        return self.sendDOHQuery(self._dohWithH2OServerPort, self._serverName, self._dohWithH2OBaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue, timeout=timeout)
 
-    def sendDOTQueryWrapper(self, query, response, useQueue=True):
-        return self.sendDOTQuery(self._tlsServerPort, self._serverName, query, response, self._caCert, useQueue=useQueue)
+    def sendDOTQueryWrapper(self, query, response, useQueue=True, timeout=2):
+        return self.sendDOTQuery(self._tlsServerPort, self._serverName, query, response, self._caCert, useQueue=useQueue, timeout=timeout)
 
-    def sendDOQQueryWrapper(self, query, response, useQueue=True):
-        return self.sendDOQQuery(self._doqServerPort, query, response=response, caFile=self._caCert, useQueue=useQueue, serverName=self._serverName)
+    def sendDOQQueryWrapper(self, query, response, useQueue=True, timeout=2):
+        return self.sendDOQQuery(self._doqServerPort, query, response=response, caFile=self._caCert, useQueue=useQueue, serverName=self._serverName, timeout=timeout)
 
-    def sendDOH3QueryWrapper(self, query, response, useQueue=True):
-        return self.sendDOH3Query(self._doh3ServerPort, self._dohBaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue, serverName=self._serverName)
+    def sendDOH3QueryWrapper(self, query, response, useQueue=True, timeout=2):
+        return self.sendDOH3Query(self._doh3ServerPort, self._dohBaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue, serverName=self._serverName, timeout=timeout)
     @classmethod
     def getDOQConnection(cls, port, caFile=None, source=None, source_port=0):
 
