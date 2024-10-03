@@ -90,6 +90,13 @@ Changelog
 
     Add EDNS to responses generated from raw record data
 
+  .. change::
+    :tags: Bug Fixes, DNS over QUIC, DNS over HTTP3
+    :pullreq: 14740
+    :tickets: 14736
+
+    Disable eBPF filtering on QUIC (DoQ, DoH3) sockets
+
 .. changelog::
   :version: 1.8.4
   :released: 20th of September 2024
