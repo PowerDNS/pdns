@@ -1791,6 +1791,8 @@ static int initSyncRes(Logr::log_t log)
     MemRecursorCache::s_maxServedStaleExtensions = sse;
     NegCache::s_maxServedStaleExtensions = sse;
   }
+  MemRecursorCache::s_maxRRSetSize = ::arg().asNum("max-rrset-size");
+  MemRecursorCache::s_limitQTypeAny = ::arg().mustDo("limit-qtype-any");
 
   if (SyncRes::s_tcp_fast_open_connect) {
     checkFastOpenSysctl(true, log);
