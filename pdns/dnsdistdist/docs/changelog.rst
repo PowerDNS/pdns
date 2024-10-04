@@ -36,7 +36,7 @@ Changelog
   .. change::
     :tags: Bug Fixes
     :pullreq: 14644
-    :tickets: 14558
+    :tickets: 14548
 
     Fix EDNS flags confusion when editing the OPT header
 
