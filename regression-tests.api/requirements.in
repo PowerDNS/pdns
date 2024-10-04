@@ -1,0 +1,8 @@
+# To generate requirements.txt, install pip-tools and run:
+#  pip-compile --generate-hashes -U requirements.in
+
+requests==2.31.0
+pytest
+parameterized
+mysql-connector
+psycopg2

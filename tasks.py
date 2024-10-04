@@ -201,7 +201,7 @@ def install_doc_deps_pdf(c):
 
 def install_meson(c):
     c.run(f'python3 -m venv {repo_home}/.venv')
-    c.run(f'. {repo_home}/.venv/bin/activate && pip install meson pyyaml ninja')
+    c.run(f'. {repo_home}/.venv/bin/activate && pip install -r {repo_home}/meson/requirements.txt')
 
 @task
 def install_auth_build_deps(c):

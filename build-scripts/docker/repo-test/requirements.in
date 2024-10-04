@@ -1,0 +1,4 @@
+# To generate requirements.txt, install pip-tools and run:
+#  pip-compile --generate-hashes -U requirements.in
+
+jinja2
