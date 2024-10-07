@@ -1084,6 +1084,7 @@ To prevent this, add a Negative Trust Anchor (NTA) for this zone in the :ref:`se
 If this forwarded zone is signed, instead of adding NTA, add the DS record to the :ref:`setting-lua-config-file`.
 See the :doc:`dnssec` information.
  ''',
+        'versionchanged' : ('5.2.0',  'Zones having ``notify_allowed`` set will be added to :ref:`setting-yaml-incoming.allow_notify_for`.')
     },
     {
         'name' : 'forward_zones_file',

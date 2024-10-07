@@ -160,7 +160,7 @@ A forward zone is defined as:
     - Socket Address
     - ...
   recurse: Boolean, default false
-  allow_notify:  Boolean, default false
+  allow_notify: Boolean, default false
 
 An example of a ``forward_zones`` entry, which consists of a sequence of `Forward Zone`_ entries:
 

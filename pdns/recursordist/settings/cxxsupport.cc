@@ -310,6 +310,15 @@ void pdns::settings::rec::processAPIDir(const string& includeDirOnCommandLine, p
   possiblyConvertForwardsandAuths(includeDir, apiDir, log);
 }
 
+static void addToAllowNotifyFor(Recursorsettings& settings, const rust::Vec<::pdns::rust::settings::rec::ForwardZone>& vec)
+{
+  for (const auto& item : vec) {
+    if (item.notify_allowed) {
+      settings.incoming.allow_notify_for.emplace_back(item.zone);
+    }
+  }
+}
+
 pdns::settings::rec::YamlSettingsStatus pdns::settings::rec::readYamlSettings(const std::string& configname, const std::string& includeDirOnCommandLine, Recursorsettings& settings, std::string& msg, Logr::log_t log)
 {
   auto file = ifstream(configname);
@@ -328,6 +337,11 @@ pdns::settings::rec::YamlSettingsStatus pdns::settings::rec::readYamlSettings(co
     for (const auto& yamlfile : yamlFiles) {
       mergeYamlSubFile(yamlfile, yamlstruct, false, log);
     }
+    // Add the zones with notify_allowed to allow_notify_for. For a forward_zones_file that will be
+    // taken care of elsewhere.  One drawback: the zones will be shown in allow_notify_for if you
+    // run --config, while they aren't actually there in any config file.
+    addToAllowNotifyFor(yamlstruct, yamlstruct.recursor.forward_zones);
+    addToAllowNotifyFor(yamlstruct, yamlstruct.recursor.forward_zones_recurse);
     yamlstruct.validate();
     settings = std::move(yamlstruct);
     return YamlSettingsStatus::OK;
