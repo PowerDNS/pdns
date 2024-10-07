@@ -3428,7 +3428,7 @@ static void* pleaseInitPolCounts(const string& name)
   return nullptr;
 }
 
-static void activateRPZFile(const RPZTrackerParams& params, LuaConfigItems& lci, shared_ptr<DNSFilterEngine::Zone>& zone)
+static bool activateRPZFile(const RPZTrackerParams& params, LuaConfigItems& lci, shared_ptr<DNSFilterEngine::Zone>& zone)
 {
   auto log = lci.d_slog->withValues("file", Logging::Loggable(params.name));
 
@@ -3443,7 +3443,10 @@ static void activateRPZFile(const RPZTrackerParams& params, LuaConfigItems& lci,
   catch (const std::exception& e) {
     SLOG(g_log << Logger::Error << "Unable to load RPZ zone from '" << params.name << "': " << e.what() << endl,
          log->error(Logr::Error, e.what(), "Exception while loading RPZ zone from file"));
+    zone->clear();
+    return false;
   }
+  return true;
 }
 
 static void activateRPZPrimary(RPZTrackerParams& params, LuaConfigItems& lci, shared_ptr<DNSFilterEngine::Zone>& zone, const DNSName& domain)
@@ -3502,8 +3505,9 @@ static void activateRPZs(LuaConfigItems& lci)
     zone->setIgnoreDuplicates(params.ignoreDuplicates);
 
     if (params.primaries.empty()) {
-      activateRPZFile(params, lci, zone);
-      lci.dfe.addZone(zone);
+      if (activateRPZFile(params, lci, zone)) {
+        lci.dfe.addZone(zone);
+      }
     }
     else {
       DNSName domain(params.name);
