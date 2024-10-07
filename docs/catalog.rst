@@ -87,7 +87,7 @@ Create a producer zone:
 
 .. code-block:: shell
 
-  pdnsutil load-zone catalog.example zones/catalog.example ZONEFILE
+  pdnsutil load-zone catalog.example ZONEFILE
   pdnsutil set-kind catalog.example producer
 
 Creating producer zones is supported in the :doc:`API <http-api/zone>`, using type ``PRODUCER``.
