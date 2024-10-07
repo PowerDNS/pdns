@@ -61,6 +61,8 @@ void MemRecursorCache::resetStaticsForTests()
   SyncRes::s_refresh_ttlperc = 0;
   SyncRes::s_locked_ttlperc = 0;
   SyncRes::s_minimumTTL = 0;
+  s_maxRRSetSize = 256;
+  s_limitQTypeAny = true;
 }
 
 MemRecursorCache::MemRecursorCache(size_t mapsCount) :
