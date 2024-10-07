@@ -35,14 +35,20 @@ fi
 # 5. Make $RUST_TARBALL available from https://downloads.powerdns.com/rust
 #
 cd /tmp
-echo $0: Downloading $RUST_TARBALL
+if [ -f $RUST_TARBALL ]; then
+    echo $0: Found existing $RUST_TARBALL
+else
+    echo $0: Downloading $RUST_TARBALL
+    rm -f $RUST_TARBALL
+    curl --silent --show-error --fail --output $RUST_TARBALL $SITE/$RUST_TARBALL
+fi
 echo $0: Expecting hash $VALUE
-
-curl -f -o $RUST_TARBALL $SITE/$RUST_TARBALL
 # Line below should echo two spaces between digest and name
 echo $VALUE"  "$RUST_TARBALL | sha256sum -c -
+rm -rf $RUST_VERSION
 tar -zxf $RUST_TARBALL
 cd $RUST_VERSION
-./install.sh --prefix=/usr
+./install.sh --prefix=/usr --components=rustc,rust-std-$ARCH-unknown-linux-gnu,cargo
+
 cd ..
-rm -rf $RUST_TARBALL $RUST_VERSION
+rm -rf $RUST_VERSION

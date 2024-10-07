@@ -16,6 +16,7 @@ ADD builder/helpers/ /pdns/builder/helpers/
 ADD builder-support/helpers/ /pdns/builder-support/helpers/
 
 @IF [ -n "$M_recursor$M_all" ]
+COPY --from=sdist /sdist/rust* /tmp
 RUN cd /pdns/builder-support/helpers/ && ./install_rust.sh
 @ENDIF
 
