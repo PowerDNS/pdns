@@ -1070,6 +1070,8 @@ Amount of time (in seconds) a pre-computed hash entry will be considered as expi
 -  Default: empty
 -  Example: ``/etc/pdns/lua-global/``
 
+.. versionadded:: 5.0.0
+
 When creating a Lua context, scan this directory for additional lua files. All files that end with
 .lua are loaded in order using ``POSIX`` as locale with Lua scripts.
 
