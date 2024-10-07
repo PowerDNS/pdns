@@ -59,3 +59,8 @@ PowerDNS-Recursor.pdf
 /.cache
 /.clang-tidy
 /recursor.yml
+/rec-metrics-gen.h
+/rec-oids-gen.h
+/rec-prometheus-gen.h
+rec-snmp-gen.h
+
