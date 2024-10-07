@@ -166,7 +166,11 @@ static void possiblyConvertACLFile(const string& includeDir, const string& apiDi
     if (plusis != string::npos) {
       auto val = line.substr(plusis + 2);
       boost::trim(val);
-      result.emplace_back(val);
+      vector<string> acls;
+      stringtok(acls, val, " ,\t");
+      for (const auto& acl : acls) {
+        result.emplace_back(acl);
+      }
     }
   }
 
