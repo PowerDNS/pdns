@@ -7,7 +7,7 @@
 # - rec-prometheus-gen.h
 # - rec-snmp-gen.h
 #
-# The .h files are included by the relavant C++ code.
+# The .h files are included by the relevant C++ code.
 # Keep the order sorted by SNMP OID (if present).
 #
 #    {
@@ -16,7 +16,7 @@
 #        'desc':  One line description ending up in docs, SNMP MIB and Prometheus HELP. Required. A dot is added at the end if absent.
 #        'longdesc': Extra description added to docs entry. Optional. A dot is added at the end if absent.
 #        'snmp': 1 SNMP OID count, must be unique. If absent, no SNMP entry is generated
-#        'snmpname': Override of SNMP name (if legeacy name did not follow convention)
+#        'snmpname': Override of SNMP name (if legacy name did not follow convention)
 #        'ptype': The promethheus type, default counter. Can also be gauge, histogram, multicounter. Also determines SNMP type.
 #        'pdesc': Override of Prometheus HELP text, if empty, no Prometheus entry is generated.
 #        'if': rec_control metrics conditionalized on expression
@@ -1176,7 +1176,7 @@
         'desc': 'Number of times internal maintenance has been called, including Lua maintenance',
     },
 
-    # Entries for aith-rcode-answers are a bit different than others: separate rec_control and SNMP metrics, but a multicounter entry for Prometheus. THe alphabetically firts gets a real pname, the others an empty one.
+    # Entries for auth-rcode-answers are a bit different than others: separate rec_control and SNMP metrics, but a multicounter entry for Prometheus. The alphabetically first gets a real pname, the others an empty one.
     # We only generate the Prometheus comment for the first one
     {
         'name': 'auth-noerror-answers',

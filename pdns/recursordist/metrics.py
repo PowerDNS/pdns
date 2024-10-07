@@ -15,9 +15,9 @@ print("metrics.py srcdir: " + srcdir + " = " + os.path.realpath(srcdir))
 
 def dedashForSNMP(name):
     cap = False
-    ret= ''
+    ret = ''
     for ch in name:
-        if ch =='-':
+        if ch == '-':
             cap = True
         elif cap:
             ret += ch.upper()
