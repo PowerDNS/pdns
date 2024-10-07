@@ -96,8 +96,6 @@ GlobalStateHolder<NetmaskGroup> g_dontThrottleNetmasks;
 GlobalStateHolder<SuffixMatchNode> g_DoTToAuthNames;
 uint64_t g_latencyStatSize;
 
-static pdns::RateLimitedLog s_rateLimitedLogger;
-
 LWResult::Result UDPClientSocks::getSocket(const ComboAddress& toaddr, int* fileDesc)
 {
   *fileDesc = makeClientSocket(toaddr.sin4.sin_family);
@@ -2281,13 +2279,18 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
               eventTrace.add(RecEventTrace::LuaGetTag, ctag, false);
             }
           }
+          catch (const MOADNSException& moadnsexception) {
+            if (g_logCommonErrors) {
+              g_slogudpin->error(moadnsexception.what(), "Error parsing a query packet for tag determination", "qname", Logging::Loggable(qname), "excepion", Logging::Loggable("MOADNSException"));
+            }
+          }
           catch (const std::exception& stdException) {
-            s_rateLimitedLogger.log(g_slogudpin, "Error parsing a query packet for tag determination", stdException, "qname", Logging::Loggable(qname), "remote", Logging::Loggable(fromaddr));
+            g_rateLimitedLogger.log(g_slogudpin, "Error parsing a query packet for tag determination", stdException, "qname", Logging::Loggable(qname), "remote", Logging::Loggable(fromaddr));
           }
         }
       }
       catch (const std::exception& stdException) {
-        s_rateLimitedLogger.log(g_slogudpin, "Error parsing a query packet for tag determination, setting tag=0", stdException);
+        g_rateLimitedLogger.log(g_slogudpin, "Error parsing a query packet for tag determination, setting tag=0", stdException);
       }
     }
 
