@@ -200,7 +200,7 @@ string reloadZoneConfiguration(bool yaml)
         ::arg().preParseFile(filename, "allow-notify-for-file", ::arg()["allow-notify-for-file"]);
         ::arg().preParseFile(filename, "export-etc-hosts", ::arg()["export-etc-hosts"]);
         ::arg().preParseFile(filename, "serve-rfc1918", ::arg()["serve-rfc1918"]);
-        ::arg().preParseFile(filename, "serve-rfc1918", ::arg()["serve-rfc6303"]);
+        ::arg().preParseFile(filename, "serve-rfc6303", ::arg()["serve-rfc6303"]);
       }
     }
     // Process command line args potentially overriding what we read from config files

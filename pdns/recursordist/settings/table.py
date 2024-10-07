@@ -2395,7 +2395,7 @@ Individual parts of these zones can still be loaded or forwarded.
 This makes the server authoritatively aware of the zones in RFC 6303 not covered by RFC 1918.
 Individual parts of these zones can still be loaded or forwarded.
 ''',
-        'versionadded': ['5.1.x', '5.2.0'],
+        'versionadded': ['5.1.3', '5.2.0'],
     },
     {
         'name' : 'serve_stale_extensions',
