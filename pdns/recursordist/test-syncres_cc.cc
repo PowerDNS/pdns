@@ -142,9 +142,7 @@ void initSR(bool debug)
   }
 
   RecursorPacketCache::s_refresh_ttlperc = 0;
-  MemRecursorCache::s_maxServedStaleExtensions = 0;
-  MemRecursorCache::s_maxRRSetSize = 100;
-  MemRecursorCache::s_limitQTypeAny = true;
+  MemRecursorCache::resetStaticsForTests();
   NegCache::s_maxServedStaleExtensions = 0;
   g_recCache = std::make_unique<MemRecursorCache>();
   g_negCache = std::make_unique<NegCache>();
