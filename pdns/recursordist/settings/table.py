@@ -2394,6 +2394,7 @@ Individual parts of these zones can still be loaded or forwarded.
         'doc' : '''
 This makes the server authoritatively aware of the zones in RFC 6303 not covered by RFC 1918.
 Individual parts of these zones can still be loaded or forwarded.
+:ref:`setting-serve-rfc1918` must be enabled for this option to take effect.
 ''',
         'versionadded': ['5.1.3', '5.2.0'],
     },

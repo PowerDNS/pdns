@@ -516,6 +516,9 @@ static void processServeRFC6303(std::shared_ptr<SyncRes::domainmap_t>& newMap, L
   if (!::arg().mustDo("serve-rfc6303")) {
     return;
   }
+  if (!::arg().mustDo("serve-rfc1918")) {
+    return;
+  }
   SLOG(g_log << Logger::Warning << "Inserting rfc 6303 private space zones" << endl,
        log->info(Logr::Notice, "Inserting rfc 6303 private space zones"));
   // Section 4.2
