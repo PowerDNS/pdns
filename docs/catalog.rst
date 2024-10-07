@@ -101,6 +101,7 @@ In the example below ``example.com`` is the member and ``catalog.example`` is th
 .. code-block:: shell
 
   pdnsutil set-catalog example.com catalog.example
+  pdnsutil set-kind example.com primary
 
 Setting catalog values is supported in the :doc:`API <http-api/zone>`, by setting the ``catalog`` property in the zone properties.
 Setting the catalog to an empty ``""`` removes the member zone from the catalog it is in.
