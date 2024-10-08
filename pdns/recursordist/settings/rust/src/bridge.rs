@@ -664,7 +664,7 @@ impl ForwardingCatalogZone {
         // XXX INCOMPLETE
         let seq = serde_yaml::Sequence::new();
         let mut map = serde_yaml::Mapping::new();
-        inserts(&mut map, "name", &self.name);
+        inserts(&mut map, "zone", &self.zone);
         insertb(&mut map, "notify_allowed", self.notify_allowed);
         insertseq(&mut map, "groups", &seq);
         serde_yaml::Value::Mapping(map)
