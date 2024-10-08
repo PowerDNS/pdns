@@ -890,7 +890,7 @@ BOOST_AUTO_TEST_CASE(test_yaml_forwardingcatalogzones)
 {
   const std::string yaml = R"EOT(recursor:
   forwarding_catalog_zones:
-  - name: 'forward.invalid'
+  - zone: 'forward.invalid'
     xfr:
       addresses: [192.168.178.3:53]
     groups:
@@ -903,7 +903,7 @@ BOOST_AUTO_TEST_CASE(test_yaml_forwardingcatalogzones)
 
   auto settings = pdns::rust::settings::rec::parse_yaml_string(yaml);
   settings.validate();
-  BOOST_CHECK_EQUAL(std::string(settings.recursor.forwarding_catalog_zones[0].name), "forward.invalid");
+  BOOST_CHECK_EQUAL(std::string(settings.recursor.forwarding_catalog_zones[0].zone), "forward.invalid");
   BOOST_CHECK_EQUAL(std::string(settings.recursor.forwarding_catalog_zones[0].xfr.addresses[0]), "192.168.178.3:53");
   BOOST_CHECK_EQUAL(settings.recursor.forwarding_catalog_zones[0].groups[0].forwarders.size(), 1U);
   BOOST_CHECK_EQUAL(std::string(settings.recursor.forwarding_catalog_zones[0].groups[0].forwarders[0]), "1.2.3.4");
