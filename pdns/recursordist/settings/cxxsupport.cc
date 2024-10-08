@@ -1391,6 +1391,7 @@ bool pdns::settings::rec::luaItemSet(const pdns::rust::settings::rec::Recursorse
   alldefault = alldefault && settings.logging.dnstap_nod_framestream_servers.empty();
   alldefault = alldefault && settings.recursor.sortlists.empty();
   alldefault = alldefault && settings.recursor.rpzs.empty();
+  alldefault = alldefault && settings.recursor.forwarding_catalog_zones.empty();
   alldefault = alldefault && settings.recordcache.zonetocaches.empty();
   alldefault = alldefault && settings.recursor.allowed_additional_qtypes.empty();
   alldefault = alldefault && settings.incoming.proxymappings.empty();
