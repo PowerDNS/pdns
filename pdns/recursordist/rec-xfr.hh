@@ -130,21 +130,30 @@ public:
   static bool notifyZoneTracker(const DNSName& name);
   static void insertZoneTracker(const DNSName& zoneName, ZoneWaiter& waiter);
   static void clearZoneTracker(const DNSName& zoneName);
-  static void zoneXFRTracker(ZoneXFRParams params, uint64_t configGeneration);
 
   ZoneXFR(ZoneXFRParams params) :
     d_params(std::move(params))
   {}
 
-private:
-  void preloadZoneFile(const DNSName& zoneName, std::shared_ptr<CatalogZone>& oldZone, uint32_t& refresh, uint64_t configGeneration, ZoneWaiter& waiter, Logr::log_t logger);
-  bool zoneTrackerIteration(const DNSName& zoneName, std::shared_ptr<CatalogZone>& oldZone, uint32_t& refresh, bool& skipRefreshDelay, uint64_t configGeneration, ZoneWaiter& waiter, Logr::log_t logger);
 
   ZoneXFRParams d_params;
 
   // As there can be multiple threads doing updates (due to config reloads), we use a multimap.
   // The value contains the actual thread id that owns the struct.
   static LockGuarded<std::multimap<DNSName, ZoneXFR::ZoneWaiter&>> condVars;
+};
+
+class FWCatZoneXFR : ZoneXFR
+{
+public:
+  FWCatZoneXFR(ZoneXFRParams params) :
+    ZoneXFR(std::move(params))
+  {}
+
+  static void zoneXFRTracker(ZoneXFRParams params, uint64_t configGeneration);
+private:
+  void preloadZoneFile(const DNSName& zoneName, std::shared_ptr<CatalogZone>& oldZone, uint32_t& refresh, uint64_t configGeneration, ZoneWaiter& waiter, Logr::log_t logger);
+  bool zoneTrackerIteration(const DNSName& zoneName, std::shared_ptr<CatalogZone>& oldZone, uint32_t& refresh, bool& skipRefreshDelay, uint64_t configGeneration, ZoneWaiter& waiter, Logr::log_t logger);
 };
 
 std::string reloadZoneConfiguration(bool yaml);
