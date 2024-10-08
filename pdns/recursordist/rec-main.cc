@@ -3432,7 +3432,7 @@ void startLuaConfigDelayedThreads(const LuaConfigItems& luaConfig, uint64_t gene
     try {
       // ZoneXFRTracker uses call by value for its args. That is essential, since we want copies so
       // that ZoneXFRTracker gets values with the proper lifetime.
-      std::thread theThread(ZoneXFR::zoneXFRTracker, fcz.d_params, generation);
+      std::thread theThread(FWCatZoneXFR::zoneXFRTracker, fcz.d_params, generation);
       theThread.detach();
     }
     catch (const std::exception& e) {

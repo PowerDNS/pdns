@@ -231,7 +231,7 @@ static shared_ptr<const SOARecordContent> loadZoneFromServer(Logr::log_t plogger
   return soaRecordContent;
 }
 
-void ZoneXFR::preloadZoneFile(const DNSName& zoneName, std::shared_ptr<CatalogZone>& oldZone, uint32_t& refresh, uint64_t configGeneration, ZoneWaiter& waiter, Logr::log_t logger)
+void FWCatZoneXFR::preloadZoneFile(const DNSName& zoneName, std::shared_ptr<CatalogZone>& oldZone, uint32_t& refresh, uint64_t configGeneration, ZoneWaiter& waiter, Logr::log_t logger)
 {
   while (!d_params.soaRecordContent) {
     /* if we received an empty sr, the zone was not really preloaded */
@@ -283,7 +283,7 @@ void ZoneXFR::preloadZoneFile(const DNSName& zoneName, std::shared_ptr<CatalogZo
   }
 }
 
-bool ZoneXFR::zoneTrackerIteration(const DNSName& zoneName, std::shared_ptr<CatalogZone>& oldZone, uint32_t& refresh, bool& skipRefreshDelay, uint64_t configGeneration, ZoneWaiter& waiter, Logr::log_t logger)
+bool FWCatZoneXFR::zoneTrackerIteration(const DNSName& zoneName, std::shared_ptr<CatalogZone>& oldZone, uint32_t& refresh, bool& skipRefreshDelay, uint64_t configGeneration, ZoneWaiter& waiter, Logr::log_t logger)
 {
   // Don't hold on to oldZone, it well be re-assigned after sleep in the try block
   oldZone = nullptr;
@@ -458,7 +458,7 @@ bool ZoneXFR::zoneTrackerIteration(const DNSName& zoneName, std::shared_ptr<Cata
 }
 
 // coverity[pass_by_value] params is intended to be a copy, as this is the main function of a thread
-void ZoneXFR::zoneXFRTracker(ZoneXFRParams params, uint64_t configGeneration) // NOLINT(performance-unnecessary-value-param)
+void FWCatZoneXFR::zoneXFRTracker(ZoneXFRParams params, uint64_t configGeneration) // NOLINT(performance-unnecessary-value-param)
 {
   setThreadName("rec/fwcatzixfr");
   bool isPreloaded = params.soaRecordContent != nullptr;
@@ -484,7 +484,7 @@ void ZoneXFR::zoneXFRTracker(ZoneXFRParams params, uint64_t configGeneration) //
 
   insertZoneTracker(zoneName, waiter);
 
-  ZoneXFR xfrObject(params);
+  FWCatZoneXFR xfrObject(params);
   xfrObject.preloadZoneFile(zoneName, oldZone, refresh, configGeneration, waiter, logger);
   bool skipRefreshDelay = isPreloaded;
   while (xfrObject.zoneTrackerIteration(zoneName, oldZone, refresh, skipRefreshDelay, configGeneration, waiter, logger)) {
