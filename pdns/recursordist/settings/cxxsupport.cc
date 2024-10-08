@@ -310,7 +310,7 @@ void pdns::settings::rec::processAPIDir(const string& includeDirOnCommandLine, p
   possiblyConvertForwardsandAuths(includeDir, apiDir, log);
 }
 
-template<typename T>
+template <typename T>
 static void addToAllowNotifyFor(Recursorsettings& settings, const rust::Vec<T>& vec)
 {
   for (const auto& item : vec) {
