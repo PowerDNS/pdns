@@ -135,7 +135,6 @@ public:
     d_params(std::move(params))
   {}
 
-
   ZoneXFRParams d_params;
 
   // As there can be multiple threads doing updates (due to config reloads), we use a multimap.
@@ -151,6 +150,7 @@ public:
   {}
 
   static void zoneXFRTracker(ZoneXFRParams params, uint64_t configGeneration);
+
 private:
   void preloadZoneFile(const DNSName& zoneName, std::shared_ptr<CatalogZone>& oldZone, uint32_t& refresh, uint64_t configGeneration, ZoneWaiter& waiter, Logr::log_t logger);
   bool zoneTrackerIteration(const DNSName& zoneName, std::shared_ptr<CatalogZone>& oldZone, uint32_t& refresh, bool& skipRefreshDelay, uint64_t configGeneration, ZoneWaiter& waiter, Logr::log_t logger);
