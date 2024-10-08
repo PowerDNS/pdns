@@ -227,7 +227,7 @@ class FWCatzServer(object):
                 print('Error in FWCatz socket: %s' % str(e))
                 sock.close()
 
-fwCatzServerPort = 4250
+fwCatzServerPort = 4252
 fwCatzServer = FWCatzServer(fwCatzServerPort)
 
 class FWCatzXFRRecursorTest(RecursorTest):
