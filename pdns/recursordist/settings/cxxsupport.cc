@@ -310,7 +310,8 @@ void pdns::settings::rec::processAPIDir(const string& includeDirOnCommandLine, p
   possiblyConvertForwardsandAuths(includeDir, apiDir, log);
 }
 
-static void addToAllowNotifyFor(Recursorsettings& settings, const rust::Vec<::pdns::rust::settings::rec::ForwardZone>& vec)
+template<typename T>
+static void addToAllowNotifyFor(Recursorsettings& settings, const rust::Vec<T>& vec)
 {
   for (const auto& item : vec) {
     if (item.notify_allowed) {
@@ -342,6 +343,7 @@ pdns::settings::rec::YamlSettingsStatus pdns::settings::rec::readYamlSettings(co
     // run --config, while they aren't actually there in any config file.
     addToAllowNotifyFor(yamlstruct, yamlstruct.recursor.forward_zones);
     addToAllowNotifyFor(yamlstruct, yamlstruct.recursor.forward_zones_recurse);
+    addToAllowNotifyFor(yamlstruct, yamlstruct.recursor.forwarding_catalog_zones);
     yamlstruct.validate();
     settings = std::move(yamlstruct);
     return YamlSettingsStatus::OK;
@@ -1317,7 +1319,7 @@ void fromRustToLuaConfig(const rust::Vec<pdns::rust::settings::rec::ForwardingCa
       ComboAddress combo = ComboAddress(std::string(address), 53);
       fwcatz.d_params.primaries.emplace_back(combo.toStringWithPort());
     }
-    fwcatz.d_params.name = std::string(catz.name);
+    fwcatz.d_params.name = std::string(catz.zone);
     fwcatz.d_params.zoneSizeHint = catz.xfr.zoneSizeHint;
     assign(fwcatz.d_params.tsigtriplet, catz.xfr.tsig);
     fwcatz.d_params.refreshFromConf = catz.xfr.refresh;

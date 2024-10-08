@@ -34,7 +34,6 @@ static const DNSName cZones("zones");
 static const DNSName cVersion("version");
 
 // TODO: cleanup files if not in catalogzones?
-// TODO: notify to catzone (works but for #14506)
 
 void CatalogZone::add(const DNSRecord& record, Logr::log_t logger)
 {

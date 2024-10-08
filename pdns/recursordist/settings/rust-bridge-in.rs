@@ -294,7 +294,7 @@ pub struct FCZDefault {
 #[serde(deny_unknown_fields)]
 pub struct ForwardingCatalogZone {
     #[serde(default, skip_serializing_if = "crate::is_default")]
-    name: String,
+    zone: String,
     #[serde(default, skip_serializing_if = "crate::is_default")]
     notify_allowed: bool,
     #[serde(default, skip_serializing_if = "crate::is_default")]
