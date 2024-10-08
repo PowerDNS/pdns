@@ -338,7 +338,9 @@ bool FWCatZoneXFR::zoneTrackerIteration(const DNSName& zoneName, std::shared_ptr
     }
     catch (const std::runtime_error& e) {
       logger->error(Logr::Warning, e.what(), "Exception during retrieval of delta", "exception", Logging::Loggable("std::runtime_error"));
-      oldZone->incFailedStats();
+      if (oldZone) {
+        oldZone->incFailedStats();
+      }
       continue;
     }
   }
