@@ -1427,6 +1427,10 @@ pdns::settings::rec::YamlSettingsStatus pdns::settings::rec::tryReadYAML(const s
            startupLog->info(Logr::Error, err, "configname", Logging::Loggable(yamlconfigname)));
       yamlstatus = pdns::settings::rec::PresentButFailed;
     }
+    else if (!settings.recursor.forwarding_catalog_zones.empty() && settings.webservice.api_dir.empty()) {
+      startupLog->info(Logr::Error, "Catalog zones defined, but webservice.api_dir is not set", "configname", Logging::Loggable(yamlconfigname));
+      yamlstatus = pdns::settings::rec::PresentButFailed;
+    }
     else if (setGlobals) {
       pdns::settings::rec::bridgeStructToOldStyleSettings(settings);
     }
