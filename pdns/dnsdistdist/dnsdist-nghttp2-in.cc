@@ -19,14 +19,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include "dnsdist-nghttp2-in.hh"
+
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
 
 #include "dnsdist-dnsparser.hh"
 #include "dnsdist-doh-common.hh"
-#include "dnsdist-nghttp2-in.hh"
 #include "dnsdist-proxy-protocol.hh"
 #include "dnsparser.hh"
-
-#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
 
 #if 0
 class IncomingDoHCrossProtocolContext : public CrossProtocolContext
@@ -981,7 +981,7 @@ int IncomingHTTP2Connection::on_header_callback(nghttp2_session* session, const 
       return NGHTTP2_ERR_CALLBACK_FAILURE;
     }
 
-#ifdef HAVE_NGHTTP2_CHECK_HEADER_VALUE_RFC9113
+#if defined(HAVE_NGHTTP2_CHECK_HEADER_VALUE_RFC9113)
     if (nghttp2_check_header_value_rfc9113(value, valuelen) == 0) {
       vinfolog("Invalid header value");
       return NGHTTP2_ERR_CALLBACK_FAILURE;
@@ -1001,7 +1001,7 @@ int IncomingHTTP2Connection::on_header_callback(nghttp2_session* session, const 
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): nghttp2 API
     auto valueView = std::string_view(reinterpret_cast<const char*>(value), valuelen);
     if (headerMatches(s_pathHeaderName)) {
-#ifdef HAVE_NGHTTP2_CHECK_PATH
+#if defined(HAVE_NGHTTP2_CHECK_PATH)
       if (nghttp2_check_path(value, valuelen) == 0) {
         vinfolog("Invalid path value");
         return NGHTTP2_ERR_CALLBACK_FAILURE;
@@ -1021,7 +1021,7 @@ int IncomingHTTP2Connection::on_header_callback(nghttp2_session* session, const 
       query.d_scheme = valueView;
     }
     else if (headerMatches(s_methodHeaderName)) {
-#if HAVE_NGHTTP2_CHECK_METHOD
+#if defined(HAVE_NGHTTP2_CHECK_METHOD)
       if (nghttp2_check_method(value, valuelen) == 0) {
         vinfolog("Invalid method value");
         return NGHTTP2_ERR_CALLBACK_FAILURE;

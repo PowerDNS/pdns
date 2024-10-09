@@ -1,5 +1,5 @@
 AC_DEFUN([DNSDIST_WITH_CDB], [
-  AC_MSG_CHECKING([whether we will we liniking with libcdb])
+  AC_MSG_CHECKING([whether we will we linking with libcdb])
   HAVE_CDB=0
   AC_ARG_WITH([cdb],
     AS_HELP_STRING([--with-cdb], [use CDB @<:@default=auto@:>@]),

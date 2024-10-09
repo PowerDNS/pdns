@@ -30,13 +30,13 @@
 #include "noinitvector.hh"
 #include "doq.hh"
 #include "stat_t.hh"
-#include "dnsdist-idstate.hh"
 
 struct DOQServerConfig;
 struct DownstreamState;
 
 #ifdef HAVE_DNS_OVER_QUIC
 
+#include "dnsdist-idstate.hh"
 #include "doq-common.hh"
 
 struct DOQFrontend
