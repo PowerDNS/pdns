@@ -46,8 +46,15 @@ spectest=$1
 [ -z $spectest ] && spectest=""
 
 for prog in $SDIG $SAXFR $NOTIFY $NSEC3DIG; do
-  if `echo $prog | grep -q '\.\./pdns'`; then
-    ${MAKE} -C ../pdns ${prog##*../pdns/} || exit
+  if [ -z "$PDNS_BUILD_PATH" ]; then
+    if `echo $prog | grep -q '\.\./pdns'`; then
+      ${MAKE} -C ../pdns ${prog##*../pdns/} || exit
+    fi
+  else
+    if [ ! -x "$prog" ]; then
+      echo "Error: cannot find $prog, please build it."
+      exit 1
+    fi
   fi
 done
 
@@ -66,112 +73,112 @@ touch passed_tests failed_tests skipped_tests
 
 for a in $(find $testsdir -type d | grep -v ^.$ | grep -v .svn | grep -v ^confdir | LC_ALL=C sort)
 do
-	if [ ! -x $a/command ]
-	then
-		continue
-	fi
-	testname=$(basename $a)
-	export testname
-	echo  "$testname: "
-	if [ "${PDNS_DEBUG}" = "YES" ]; then
-		cat $a/description
-	fi
+        if [ ! -x $a/command ]
+        then
+                continue
+        fi
+        testname=$(basename $a)
+        export testname
+        echo  "$testname: "
+        if [ "${PDNS_DEBUG}" = "YES" ]; then
+                cat $a/description
+        fi
 
-	echo  "$testname: " >> test-results
-	cat $a/description >> test-results
+        echo  "$testname: " >> test-results
+        cat $a/description >> test-results
 
-	SKIPIT=0
-	if [ -e $a/skip ]
-	then
-		SKIPIT=1
-		result="	Skipped test $a"
-	else
-		for reason in $skipreasons $context $backend
-		do
-			if [ -e $a/skip.$reason ]
-			then
-				SKIPIT=1
-				result="	Skipped test $a for reason $reason"
-				break
-			fi
-		done
-	fi
+        SKIPIT=0
+        if [ -e $a/skip ]
+        then
+                SKIPIT=1
+                result="	Skipped test $a"
+        else
+                for reason in $skipreasons $context $backend
+                do
+                        if [ -e $a/skip.$reason ]
+                        then
+                                SKIPIT=1
+                                result="	Skipped test $a for reason $reason"
+                                break
+                        fi
+                done
+        fi
 
-	FAIL=0
-	for reason in $skipreasons $context $backend
-	do
-		if [ -e $a/fail.$reason ]
-		then
-			FAIL=1
-			break
-		fi
-	done
+        FAIL=0
+        for reason in $skipreasons $context $backend
+        do
+                if [ -e $a/fail.$reason ]
+                then
+                        FAIL=1
+                        break
+                fi
+        done
 
-	if [ "$spectest" != "" ] && [ "$spectest" != "$testname" ] && [ "$testname" != "00dnssec-grabkeys" ]
-	then
-		SKIPIT=1
-		result="	Skipped test $a because it's not the specified single test"
-	fi
+        if [ "$spectest" != "" ] && [ "$spectest" != "$testname" ] && [ "$testname" != "00dnssec-grabkeys" ]
+        then
+                SKIPIT=1
+                result="	Skipped test $a because it's not the specified single test"
+        fi
 
 
-	if [ $SKIPIT = 1 ]
-	then
-		echo $testname >> skipped_tests
-		skipped=$[$skipped+1]
-	else
-		$a/command > $a/real_result
-		expected=$a/expected_result
+        if [ $SKIPIT = 1 ]
+        then
+                echo $testname >> skipped_tests
+                skipped=$[$skipped+1]
+        else
+                $a/command > $a/real_result
+                expected=$a/expected_result
 
-		diffopts="-u"
-		if [ -e $a/expected_result.i ]; then
-			expected=$a/expected_result.i
-			diffopts="${diffopts} -i"
-		fi
+                diffopts="-u"
+                if [ -e $a/expected_result.i ]; then
+                        expected=$a/expected_result.i
+                        diffopts="${diffopts} -i"
+                fi
 
-		for extracontext in $extracontexts
-		do
-			[ -e "$a/expected_result.$extracontext" ] && expected=$a/expected_result.$extracontext
-		done
-		[ -n "$context" ] && [ -e "$a/expected_result.$context" ] && expected=$a/expected_result.$context
-		diff ${diffopts} $expected $a/real_result > $a/diff 2>&1
-		if [ -s $a/diff ]
-		then
-			if [ $FAIL = 0 ]
-			then
-				result="	Failed test $a"
-				echo $testname >> failed_tests
-				failed=$[$failed+1]
-				if [ "$FIX_TESTS" == "YES" ]
-				then
-					mv -f $a/real_result $expected
-					result="$result (fixed)"
-				fi
-			else
-				result="	Expected failure for reason $reason, test passed $a"
-				echo $testname >> passed_tests
-				passed=$[$passed+1]
-			fi
-		else
-			if [ $FAIL = 0 ]
-			then
-				result="	Passed test $a"
-				echo $testname >> passed_tests
-				passed=$[$passed+1]
-			else
-				result="	Unexpected pass for reason $reason, test failed $a"
-				echo $testname >> failed_tests
-				failed=$[$failed+1]
-			fi
-		fi
-	fi
-	echo "$result"
-	echo
-	echo "$result" >> test-results
-	echo >> test-results
+                for extracontext in $extracontexts
+                do
+                        [ -e "$a/expected_result.$extracontext" ] && expected=$a/expected_result.$extracontext
+                done
+                [ -n "$context" ] && [ -e "$a/expected_result.$context" ] && expected=$a/expected_result.$context
+                diff ${diffopts} $expected $a/real_result > $a/diff 2>&1
+                if [ -s $a/diff ]
+                then
+                        if [ $FAIL = 0 ]
+                        then
+                                result="	Failed test $a"
+                                echo $testname >> failed_tests
+                                failed=$[$failed+1]
+                                if [ "$FIX_TESTS" == "YES" ]
+                                then
+                                        mv -f $a/real_result $expected
+                                        result="$result (fixed)"
+                                fi
+                        else
+                                result="	Expected failure for reason $reason, test passed $a"
+                                echo $testname >> passed_tests
+                                passed=$[$passed+1]
+                        fi
+                else
+                        if [ $FAIL = 0 ]
+                        then
+                                result="	Passed test $a"
+                                echo $testname >> passed_tests
+                                passed=$[$passed+1]
+                        else
+                                result="	Unexpected pass for reason $reason, test failed $a"
+                                echo $testname >> failed_tests
+                                failed=$[$failed+1]
+                        fi
+                fi
+        fi
+        echo "$result"
+        echo
+        echo "$result" >> test-results
+        echo >> test-results
 done
 
 if [ $failed -gt 0 ]; then
-	echo -n "::error title=Regression-tests::Tests failed. "
+        echo -n "::error title=Regression-tests::Tests failed. "
 fi
 echo -n $passed out of $[$passed+$failed]
 echo -n " ("

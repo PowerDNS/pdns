@@ -735,6 +735,7 @@ def ci_auth_run_unit_tests(c, meson=False):
     if meson:
         suite_timeout_sec = 120
         logfile = 'meson-logs/testlog.txt'
+        c.run(f'touch {repo_home}/regression-tests/tests/verify-dnssec-zone/allow-missing {repo_home}/regression-tests.nobackend/rectify-axfr/allow-missing') # FIXME: can this go?
         res = c.run(f'. {repo_home}/.venv/bin/activate && meson test --verbose -t {suite_timeout_sec}', warn=True)
     else:
         logfile = 'pdns/test-suite.log'

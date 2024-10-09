@@ -9,8 +9,8 @@ sed '/directory/ { s@./zones@../regression-tests/zones@ }' ../regression-tests/n
 
 cat >> ./named.conf << __EOF__
 zone "."{
-	type primary;
-	file "../../regression-tests.rootzone/zones/ROOT";
+        type primary;
+        file "../../regression-tests.rootzone/zones/ROOT";
 };
 __EOF__
 
@@ -32,8 +32,8 @@ echo ANALYZE\; | sqlite3 pdns.sqlite3
 
 for zone in $(grep 'zone ' named.conf | cut -f2 -d\")
 do
-	$PDNSUTIL $ARGS set-nsec3 $zone "1 0 1 abcd" >&2
-	$PDNSUTIL $ARGS add-zone-key $zone rsasha256 1024 zsk active >&2
+        $PDNSUTIL $ARGS set-nsec3 $zone "1 0 1 abcd" >&2
+        $PDNSUTIL $ARGS add-zone-key $zone rsasha256 1024 zsk active >&2
 done
 
 $RUNWRAPPER $PDNS --daemon=no --local-port=$port --socket-dir=./          \
