@@ -30,13 +30,12 @@
 #endif /* BOOST_PENDING_INTEGER_LOG2_HPP */
 #endif /* BOOST_VERSION */
 
-#include <boost/random/mersenne_twister.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 
 // The default of:
 // boost::uuids::random_generator
 // is safe for crypto operations since 1.67.0, but much slower.
-thread_local boost::uuids::basic_random_generator<boost::random::mt19937> t_uuidGenerator;
+thread_local boost::uuids::random_generator_mt19937 t_uuidGenerator;
 
 boost::uuids::uuid getUniqueID()
 {
