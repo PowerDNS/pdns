@@ -28,6 +28,7 @@
 #include "dnsdist-ecs.hh"
 #include "ednssubnet.hh"
 #include "packetcache.hh"
+#include "base64.hh"
 
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters): too cumbersome to change at this point
 DNSDistPacketCache::DNSDistPacketCache(size_t maxEntries, uint32_t maxTTL, uint32_t minTTL, uint32_t tempFailureTTL, uint32_t maxNegativeTTL, uint32_t staleTTL, bool dontAge, uint32_t shards, bool deferrableInsertLock, bool parseECS) :
@@ -481,7 +482,7 @@ uint64_t DNSDistPacketCache::getEntriesCount()
   return getSize();
 }
 
-uint64_t DNSDistPacketCache::dump(int fileDesc)
+uint64_t DNSDistPacketCache::dump(int fileDesc, bool rawResponse)
 {
   auto filePtr = pdns::UniqueFilePtr(fdopen(dup(fileDesc), "w"));
   if (filePtr == nullptr) {
@@ -507,7 +508,13 @@ uint64_t DNSDistPacketCache::dump(int fileDesc)
           rcode = dnsHeader.rcode;
         }
 
-        fprintf(filePtr.get(), "%s %" PRId64 " %s ; rcode %" PRIu8 ", key %" PRIu32 ", length %" PRIu16 ", received over UDP %d, added %" PRId64 "\n", value.qname.toString().c_str(), static_cast<int64_t>(value.validity - now), QType(value.qtype).toString().c_str(), rcode, entry.first, value.len, value.receivedOverUDP ? 1 : 0, static_cast<int64_t>(value.added));
+        fprintf(filePtr.get(), "%s %" PRId64 " %s %s ; ecs %s, rcode %" PRIu8 ", key %" PRIu32 ", length %" PRIu16 ", received over UDP %d, added %" PRId64 ", dnssecOK %d, raw query flags %" PRIu16, value.qname.toString().c_str(), static_cast<int64_t>(value.validity - now), QClass(value.qclass).toString().c_str(), QType(value.qtype).toString().c_str(), value.subnet ? value.subnet.get().toString().c_str() : "empty", rcode, entry.first, value.len, value.receivedOverUDP ? 1 : 0, static_cast<int64_t>(value.added), value.dnssecOK ? 1 : 0, value.queryFlags);
+
+        if (rawResponse) {
+          std::string rawDataResponse = Base64Encode(value.value);
+          fprintf(filePtr.get(), ", base64response %s", rawDataResponse.c_str());
+        }
+        fprintf(filePtr.get(), "\n");
       }
       catch (...) {
         fprintf(filePtr.get(), "; error printing '%s'\n", value.qname.empty() ? "EMPTY" : value.qname.toString().c_str());

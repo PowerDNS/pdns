@@ -202,7 +202,7 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
       return results;
     });
 
-  luaCtx.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)(const std::string& fname)const>("dump", [](const std::shared_ptr<DNSDistPacketCache>& cache, const std::string& fname) {
+  luaCtx.registerFunction<void(std::shared_ptr<DNSDistPacketCache>::*)(const std::string& fname, boost::optional<bool> rawResponse)const>("dump", [](const std::shared_ptr<DNSDistPacketCache>& cache, const std::string& fname, boost::optional<bool> rawResponse) {
       if (cache) {
 
         int fd = open(fname.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0660);
@@ -213,7 +213,7 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
 
         uint64_t records = 0;
         try {
-          records = cache->dump(fd);
+          records = cache->dump(fd, rawResponse? *rawResponse : false);
         }
         catch (const std::exception& e) {
           close(fd);
