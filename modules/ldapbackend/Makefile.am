@@ -22,5 +22,9 @@ libldapbackend_la_SOURCES = \
 	primary.cc \
 	utils.hh
 
+if LDAPBACKEND_DYNMODULE
 libldapbackend_la_LDFLAGS = -module -avoid-version
+else
+libldapbackend_la_LDFLAGS = -static -avoid-version
+endif
 libldapbackend_la_LIBADD = $(LDAP_LIBS) $(KRB5_LIBS)

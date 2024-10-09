@@ -11,5 +11,9 @@ libpipebackend_la_SOURCES = \
 	coprocess.cc coprocess.hh \
 	pipebackend.cc pipebackend.hh
 
+if PIPEBACKEND_DYNMODULE
 libpipebackend_la_LDFLAGS = -module -avoid-version
+else
+libpipebackend_la_LDFLAGS = -static -avoid-version
+endif
 
