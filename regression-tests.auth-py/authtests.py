@@ -250,10 +250,6 @@ options {
         pass
 
     @classmethod
-    def tearDownClass(cls):
-        cls.tearDownAuth()
-
-    @classmethod
     def killProcess(cls, p):
         # Don't try to kill it if it's already dead
         if p.poll() is not None:
