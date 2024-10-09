@@ -2995,6 +2995,29 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       frontend->loadTicketsKey(key);
     }
   });
+  luaCtx.writeFunction("loadTicketsKey", [](const std::string& key) {
+    for (const auto& frontend : dnsdist::getFrontends()) {
+      if (!frontend) {
+        continue;
+      }
+      try {
+#ifdef HAVE_DNS_OVER_TLS
+       if (frontend->tlsFrontend) {
+         frontend->tlsFrontend->loadTicketsKey(key);
+       }
+#endif /* HAVE_DNS_OVER_TLS */
+#ifdef HAVE_DNS_OVER_HTTPS
+       if (frontend->dohFrontend) {
+         frontend->dohFrontend->loadTicketsKey(key);
+       }
+#endif /* HAVE_DNS_OVER_HTTPS */
+      }
+      catch (const std::exception& e) {
+        errlog("Error loading given tickets key for local %s", frontend->local.toStringWithPort());
+      }
+    }
+  });
+
 
   luaCtx.registerFunction<void (std::shared_ptr<DOHFrontend>::*)(const LuaArray<std::shared_ptr<DOHResponseMapEntry>>&)>("setResponsesMap", [](const std::shared_ptr<DOHFrontend>& frontend, const LuaArray<std::shared_ptr<DOHResponseMapEntry>>& map) {
     if (frontend != nullptr) {
