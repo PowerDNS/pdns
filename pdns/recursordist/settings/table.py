@@ -3510,4 +3510,16 @@ Sequence of ProxyMapping
         'skip-old' : 'Equivalent Lua config in :doc:`lua-config/proxymapping`',
         'versionadded': '5.1.0',
     },
+    {
+        'name' : 'forwarding_catalog_zones',
+        'section' : 'recursor',
+        'type' : LType.ListForwardingCatalogZones,
+        'default' : '',
+        'help' : 'Sequence of ForwardingCatalogZone',
+        'doc' : '''
+Sequence of ForwardingCatalogZone
+        ''',
+        'skip-old' : 'No equivalent old style setting',
+        'versionadded': '5.2.0',
+    },
 ]
