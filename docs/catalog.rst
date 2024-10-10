@@ -141,3 +141,19 @@ The only difference is the type, which is now set to CONSUMER.
 Creating consumer zones is supported in the :doc:`API <http-api/zone>`, using type ``CONSUMER``.
 
 New member zones on the consumer adopt their primaries from the consumer zone.
+
+Updating a secondary server when primary address/port changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If NOTIFY+AXFR are being used to replicate zone changes between the
+primary and secondary servers, and the address and/or port of the
+primary server changes, two steps are necessary on each secondary
+server in order to fully apply the changes.
+
+.. code-block:: shell
+
+  pdnsutil change-secondary-zone-primary catalog.example 192.0.2.45
+  pdns_control retrieve catalog.example
+
+This will update the primary server contact details in each zone
+included in the catalog zone.
