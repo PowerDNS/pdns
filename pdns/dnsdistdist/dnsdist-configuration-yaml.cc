@@ -27,12 +27,25 @@
 #include <fstream>
 
 #include "dolog.hh"
+#include "dnsdist-rules.hh"
 #include "rust/cxx.h"
 #include "rust/lib.rs.h"
 #endif /* HAVE_YAML_CONFIGURATION */
 
 namespace dnsdist::configuration::yaml
 {
+
+static std::shared_ptr<DNSRule> getSelector(const dnsdist::rust::settings::TestSelector selector)
+{
+  if (selector.selector_type == "All") {
+    return std::make_shared<AllRule>();
+  }
+  if (selector.selector_type == "TCP") {
+    return std::make_shared<TCPRule>(selector.tcp.tcp);
+  }
+  throw std::runtime_error("Unsupported selector type: " + std::string(selector.selector_type));
+}
+
 bool loadConfigurationFromFile(const std::string fileName)
 {
 #if defined(HAVE_YAML_CONFIGURATION)
@@ -61,9 +74,14 @@ bool loadConfigurationFromFile(const std::string fileName)
     }
     for (const auto& selector : globalConfig.testselectors) {
       cerr<<"Selector: "<<selector.selector_type<<endl;
+      auto got = getSelector(selector);
+      cerr<<"Got: "<<got->toString()<<endl;
       for (const auto& sub : selector.andSel.selectors) {
         cerr<<"  "<<sub<<endl;
       }
+    }
+    for (const auto& selector : globalConfig.realselectors) {
+      cerr<<"REAL Selector: "<<selector.selector->d_rule->toString()<<endl;
     }
     return true;
   }
@@ -80,4 +98,74 @@ bool loadConfigurationFromFile(const std::string fileName)
   return false;
 #endif /* HAVE_YAML_CONFIGURATION */
 }
+}
+namespace dnsdist::rust::settings
+{
+
+static LockGuarded<std::unordered_map<std::string, std::shared_ptr<DNSSelector>>> s_selectorsMap;
+
+static void registerSelector(const std::shared_ptr<DNSSelector>& selector, std::string& name)
+{
+  if (name.empty()) {
+    auto uuid = getUniqueID();
+    name = boost::uuids::to_string(uuid);
+  }
+
+  auto [it, inserted] = s_selectorsMap.lock()->try_emplace(name, selector);
+  if (!inserted) {
+    throw std::runtime_error("Trying to register a selector named '" + name + "' while one already exists");
+  }
+}
+
+static std::shared_ptr<DNSSelector> getSelectorByName(const std::string& name)
+{
+  cerr<<"in "<<__PRETTY_FUNCTION__<<" for "<<name<<endl;
+  return s_selectorsMap.lock()->at(name);
+}
+
+std::shared_ptr<DNSSelector> getSelectorByName(const ::rust::string& name)
+{
+  auto nameStr = std::string(name);
+  return getSelectorByName(nameStr);
+}
+
+const std::string& getNameFromSelector(const DNSSelector& selector)
+{
+  return selector.d_name;
+}
+
+static std::shared_ptr<DNSSelector> newDNSSelector(std::shared_ptr<DNSRule>&& rule, const ::rust::String& name)
+{
+  auto selector = std::make_shared<DNSSelector>();
+  selector->d_name = std::string(name);
+  selector->d_rule = std::move(rule);
+  registerSelector(selector, selector->d_name);
+  return selector;
+}
+
+std::shared_ptr<DNSSelector> getMaxIPQPSSelector(const MaxQPSIPRuleConfig& config)
+{
+  auto rule = std::shared_ptr<DNSRule>(new MaxQPSIPRule(config.qps, config.burst, config.ipv4trunc, 64, 300, 60, 10, 10));
+  return newDNSSelector(std::move(rule), config.name);
+}
+
+std::shared_ptr<DNSSelector> getAllSelector()
+{
+  auto rule = std::shared_ptr<DNSRule>(new AllRule());
+  return newDNSSelector(std::move(rule), "");
+}
+
+std::shared_ptr<DNSSelector> getAndSelector(const AndSelectorConfig& config)
+{
+  cerr<<"in "<<__PRETTY_FUNCTION__<<" with " <<config.selectors.size()<<" selectors"<<endl;
+  LuaArray<std::shared_ptr<DNSRule>> selectors;
+  int counter = 1;
+  for (const auto& selector : config.selectors) {
+    auto dnsSelector = getSelectorByName(std::string(selector));
+    selectors.push_back({counter++, dnsSelector->d_rule});
+  }
+  auto rule = std::shared_ptr<DNSRule>(new AndRule(selectors));
+  return newDNSSelector(std::move(rule), config.name);
+}
+
 }
