@@ -555,7 +555,6 @@ class TestOpenSSLTLSTicketsKeyCallback(DNSDistTest):
         """
 
         newKey = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(80))
-        print("about to send command: `{}`".format("getTLSFrontend(0):setTicketsKey(\"{}\")".format(newKey)))
         self.sendConsoleCommand("getTLSFrontend(0):loadTicketsKey(\"{}\")".format(newKey))
         keyLen = self.sendConsoleCommand('lastKeyLen')
         self.assertEqual(int(keyLen), 80)
@@ -597,7 +596,6 @@ class TestGnuTLSTLSTicketsKeyCallback(DNSDistTest):
         """
 
         newKey = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(64))
-        print("about to send command: `{}`".format("getTLSFrontend(0):setTicketsKey(\"{}\")".format(newKey)))
         self.sendConsoleCommand("getTLSFrontend(0):loadTicketsKey(\"{}\")".format(newKey))
         keyLen = self.sendConsoleCommand('lastKeyLen')
         self.assertEqual(int(keyLen), 64)

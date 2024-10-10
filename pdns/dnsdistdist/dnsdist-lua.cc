@@ -3002,14 +3002,14 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
       try {
 #ifdef HAVE_DNS_OVER_TLS
-       if (frontend->tlsFrontend) {
-         frontend->tlsFrontend->loadTicketsKey(key);
-       }
+        if (frontend->tlsFrontend) {
+          frontend->tlsFrontend->loadTicketsKey(key);
+        }
 #endif /* HAVE_DNS_OVER_TLS */
 #ifdef HAVE_DNS_OVER_HTTPS
-       if (frontend->dohFrontend) {
-         frontend->dohFrontend->loadTicketsKey(key);
-       }
+        if (frontend->dohFrontend) {
+          frontend->dohFrontend->loadTicketsKey(key);
+        }
 #endif /* HAVE_DNS_OVER_HTTPS */
       }
       catch (const std::exception& e) {
@@ -3017,7 +3017,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       }
     }
   });
-
 
   luaCtx.registerFunction<void (std::shared_ptr<DOHFrontend>::*)(const LuaArray<std::shared_ptr<DOHResponseMapEntry>>&)>("setResponsesMap", [](const std::shared_ptr<DOHFrontend>& frontend, const LuaArray<std::shared_ptr<DOHResponseMapEntry>>& map) {
     if (frontend != nullptr) {

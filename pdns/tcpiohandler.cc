@@ -1041,9 +1041,6 @@ public:
       safe_memory_release(d_key.data, d_key.size);
       gnutls_free(d_key.data);
       d_key.data = nullptr;
-      safe_memory_release(d_key.data, d_key.size);
-      gnutls_free(d_key.data);
-      d_key.data = nullptr;
       throw;
     }
   }
