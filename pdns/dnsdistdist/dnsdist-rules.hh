@@ -35,6 +35,19 @@
 #include "dolog.hh"
 #include "dnsparser.hh"
 #include "dns_random.hh"
+#include "uuid-utils.hh"
+
+class DNSRule
+{
+public:
+  virtual ~DNSRule()
+  {
+  }
+  virtual bool matches(const DNSQuestion* dq) const = 0;
+  virtual string toString() const = 0;
+
+  mutable stat_t d_matches{0};
+};
 
 class MaxQPSIPRule : public DNSRule
 {

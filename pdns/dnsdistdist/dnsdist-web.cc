@@ -43,6 +43,7 @@
 #include "dnsdist-prometheus.hh"
 #include "dnsdist-rings.hh"
 #include "dnsdist-rule-chains.hh"
+#include "dnsdist-rules.hh"
 #include "dnsdist-web.hh"
 #include "dolog.hh"
 #include "gettime.hh"
