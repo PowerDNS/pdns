@@ -2259,7 +2259,7 @@ DOHFrontend
 
   .. method:: DOHFrontend:loadTicketsKey(key)
 
-     Replace the current TLS tickets key with a given one.
+     Load a new TLS tickets key.
 
      :param str key: the new raw TLS tickets key to load.
 
@@ -2444,7 +2444,7 @@ TLSFrontend
 
   .. method:: TLSFrontend:loadTicketsKey(key)
 
-     Replace the current TLS tickets key with a given one.
+     Load a new TLS tickets key.
 
     :param str key: the new raw TLS tickets key to load.
 
