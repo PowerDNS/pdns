@@ -166,6 +166,10 @@ struct DOHFrontend
   {
   }
 
+  virtual void loadTicketsKey(const std::string& /* key */)
+  {
+  }
+
   virtual void handleTicketsKeyRotation()
   {
   }
@@ -187,6 +191,7 @@ struct DOHFrontend
 
   virtual void rotateTicketsKey(time_t now);
   virtual void loadTicketsKeys(const std::string& keyFile);
+  virtual void loadTicketsKey(const std::string& key);
   virtual void handleTicketsKeyRotation();
   virtual std::string getNextTicketsKeyRotation() const;
   virtual size_t getTicketsKeysCount();
