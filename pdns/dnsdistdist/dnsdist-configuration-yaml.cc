@@ -82,7 +82,7 @@ bool loadConfigurationFromFile(const std::string fileName)
     //   }
     // }
     for (const auto& selector : globalConfig.realselectors) {
-      cerr<<"REAL Selector: "<<selector.selector->d_rule->toString()<<endl;
+      cerr << "REAL Selector: " << selector.selector->d_rule->toString() << endl;
     }
     return true;
   }
@@ -95,7 +95,7 @@ bool loadConfigurationFromFile(const std::string fileName)
   return false;
 #else
   (void)fileName;
-  cerr<<"Unsupported YAML configuration"<<endl;
+  cerr << "Unsupported YAML configuration" << endl;
   return false;
 #endif /* HAVE_YAML_CONFIGURATION */
 }
@@ -125,7 +125,7 @@ static std::shared_ptr<DNSSelector> getSelectorByName(const std::string& name)
   auto map = s_selectorsMap.lock();
   auto item = map->find(name);
   if (item == map->end()) {
-      return nullptr;
+    return nullptr;
   }
   return item->second;
 }
@@ -169,7 +169,7 @@ std::shared_ptr<DNSSelector> getAndSelector(const AndSelectorConfig& config)
   for (const auto& selector : config.selectors) {
     auto dnsSelector = getSelectorByName(std::string(selector));
     if (dnsSelector) {
-       selectors.push_back({counter++, dnsSelector->d_rule});
+      selectors.push_back({counter++, dnsSelector->d_rule});
     }
   }
   auto rule = std::shared_ptr<DNSRule>(new AndRule(selectors));
@@ -178,18 +178,18 @@ std::shared_ptr<DNSSelector> getAndSelector(const AndSelectorConfig& config)
 
 std::shared_ptr<DNSSelector> getTCPSelector(const TCPSelectorConfig& config)
 {
-    auto rule = std::shared_ptr<DNSRule>(new TCPRule(config.tcp));
-    return newDNSSelector(std::move(rule), config.name);
+  auto rule = std::shared_ptr<DNSRule>(new TCPRule(config.tcp));
+  return newDNSSelector(std::move(rule), config.name);
 }
 
 std::shared_ptr<DNSSelector> getNetmaskGroupSelector(const NetmaskGroupByNetmasksSelectorConfig& config)
 {
-    NetmaskGroup nmg;
-    for (const auto& netmask : config.netmasks) {
-        nmg.addMask(std::string(netmask));
-    }
-    auto rule = std::shared_ptr<DNSRule>(new NetmaskGroupRule(nmg, config.source, config.quiet));
-    return newDNSSelector(std::move(rule), config.name);
+  NetmaskGroup nmg;
+  for (const auto& netmask : config.netmasks) {
+    nmg.addMask(std::string(netmask));
+  }
+  auto rule = std::shared_ptr<DNSRule>(new NetmaskGroupRule(nmg, config.source, config.quiet));
+  return newDNSSelector(std::move(rule), config.name);
 }
 
 }
