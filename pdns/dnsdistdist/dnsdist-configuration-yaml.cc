@@ -34,17 +34,18 @@
 
 namespace dnsdist::configuration::yaml
 {
-
-static std::shared_ptr<DNSRule> getSelector(const dnsdist::rust::settings::TestSelector selector)
-{
-  if (selector.selector_type == "All") {
-    return std::make_shared<AllRule>();
-  }
-  if (selector.selector_type == "TCP") {
-    return std::make_shared<TCPRule>(selector.tcp.tcp);
-  }
-  throw std::runtime_error("Unsupported selector type: " + std::string(selector.selector_type));
-}
+#if defined(HAVE_YAML_CONFIGURATION)
+// static std::shared_ptr<DNSRule> getSelector(const dnsdist::rust::settings::TestSelector selector)
+// {
+//   if (selector.selector_type == "All") {
+//     return std::make_shared<AllRule>();
+//   }
+//   if (selector.selector_type == "TCP") {
+//     return std::make_shared<TCPRule>(selector.tcp.tcp);
+//   }
+//   throw std::runtime_error("Unsupported selector type: " + std::string(selector.selector_type));
+// }
+#endif /* HAVE_YAML_CONFIGURATION */
 
 bool loadConfigurationFromFile(const std::string fileName)
 {
@@ -60,26 +61,26 @@ bool loadConfigurationFromFile(const std::string fileName)
 
     auto globalConfig = dnsdist::rust::settings::from_yaml_string(data);
     cerr<<globalConfig.metrics.carbon[0].address<<endl;
-    for (const auto& rule : globalConfig.response_rules) {
-      cerr<<"Name: "<<rule.name<<", type "<<rule.selector.selector_type<<endl;
-      for (const auto& selector : rule.selector.selectors) {
-        cerr<<selector.name<<" -> "<<selector.selector_type<<endl;
-        for (const auto& extra : selector.extra) {
-          cerr<<" - "<<extra.key<<" => "<<extra.value<<endl;
-        }
-      }
-      for (const auto& extra : rule.extra) {
-        cerr<<extra.key<<" => "<<extra.value<<endl;
-      }
-    }
-    for (const auto& selector : globalConfig.testselectors) {
-      cerr<<"Selector: "<<selector.selector_type<<endl;
-      auto got = getSelector(selector);
-      cerr<<"Got: "<<got->toString()<<endl;
-      for (const auto& sub : selector.andSel.selectors) {
-        cerr<<"  "<<sub<<endl;
-      }
-    }
+    // for (const auto& rule : globalConfig.response_rules) {
+    //   cerr<<"Name: "<<rule.name<<", type "<<rule.selector.selector_type<<endl;
+    //   for (const auto& selector : rule.selector.selectors) {
+    //     cerr<<selector.name<<" -> "<<selector.selector_type<<endl;
+    //     for (const auto& extra : selector.extra) {
+    //       cerr<<" - "<<extra.key<<" => "<<extra.value<<endl;
+    //     }
+    //   }
+    //   for (const auto& extra : rule.extra) {
+    //     cerr<<extra.key<<" => "<<extra.value<<endl;
+    //   }
+    // }
+    // for (const auto& selector : globalConfig.testselectors) {
+    //   cerr<<"Selector: "<<selector.selector_type<<endl;
+    //   auto got = getSelector(selector);
+    //   cerr<<"Got: "<<got->toString()<<endl;
+    //   for (const auto& sub : selector.andSel.selectors) {
+    //     cerr<<"  "<<sub<<endl;
+    //   }
+    // }
     for (const auto& selector : globalConfig.realselectors) {
       cerr<<"REAL Selector: "<<selector.selector->d_rule->toString()<<endl;
     }
@@ -99,6 +100,8 @@ bool loadConfigurationFromFile(const std::string fileName)
 #endif /* HAVE_YAML_CONFIGURATION */
 }
 }
+
+#if defined(HAVE_YAML_CONFIGURATION)
 namespace dnsdist::rust::settings
 {
 
@@ -119,8 +122,12 @@ static void registerSelector(const std::shared_ptr<DNSSelector>& selector, std::
 
 static std::shared_ptr<DNSSelector> getSelectorByName(const std::string& name)
 {
-  cerr<<"in "<<__PRETTY_FUNCTION__<<" for "<<name<<endl;
-  return s_selectorsMap.lock()->at(name);
+  auto map = s_selectorsMap.lock();
+  auto item = map->find(name);
+  if (item == map->end()) {
+      return nullptr;
+  }
+  return item->second;
 }
 
 std::shared_ptr<DNSSelector> getSelectorByName(const ::rust::string& name)
@@ -157,15 +164,33 @@ std::shared_ptr<DNSSelector> getAllSelector()
 
 std::shared_ptr<DNSSelector> getAndSelector(const AndSelectorConfig& config)
 {
-  cerr<<"in "<<__PRETTY_FUNCTION__<<" with " <<config.selectors.size()<<" selectors"<<endl;
   LuaArray<std::shared_ptr<DNSRule>> selectors;
   int counter = 1;
   for (const auto& selector : config.selectors) {
     auto dnsSelector = getSelectorByName(std::string(selector));
-    selectors.push_back({counter++, dnsSelector->d_rule});
+    if (dnsSelector) {
+       selectors.push_back({counter++, dnsSelector->d_rule});
+    }
   }
   auto rule = std::shared_ptr<DNSRule>(new AndRule(selectors));
   return newDNSSelector(std::move(rule), config.name);
 }
 
+std::shared_ptr<DNSSelector> getTCPSelector(const TCPSelectorConfig& config)
+{
+    auto rule = std::shared_ptr<DNSRule>(new TCPRule(config.tcp));
+    return newDNSSelector(std::move(rule), config.name);
 }
+
+std::shared_ptr<DNSSelector> getNetmaskGroupSelector(const NetmaskGroupByNetmasksSelectorConfig& config)
+{
+    NetmaskGroup nmg;
+    for (const auto& netmask : config.netmasks) {
+        nmg.addMask(std::string(netmask));
+    }
+    auto rule = std::shared_ptr<DNSRule>(new NetmaskGroupRule(nmg, config.source, config.quiet));
+    return newDNSSelector(std::move(rule), config.name);
+}
+
+}
+#endif /* defined(HAVE_YAML_CONFIGURATION) */

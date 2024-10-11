@@ -80,7 +80,7 @@ private:
   unsigned int d_ipv4trunc;
 };
 
-std::shared_ptr<DNSRule> buildSelector(const std::string& type, std::vector<RuleParameter>& parameters)
+static std::shared_ptr<DNSRule> buildSelector(const std::string& type, std::vector<RuleParameter>& parameters)
 {
   return std::make_shared<TestMaxQPSIPRule>(type, parameters);
 }

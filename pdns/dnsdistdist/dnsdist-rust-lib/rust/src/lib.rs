@@ -1,11 +1,7 @@
-use cxx::let_cxx_string;
-use dnsdistsettings::DNSSelector;
 use serde::{Deserialize, Serialize};
 
 mod helpers;
 use helpers::*;
-
-use std::collections::HashMap;
 
 // Suppresses "Deserialize unused" warning
 #[derive(Deserialize, Serialize)]
@@ -69,26 +65,26 @@ mod dnsdistsettings {
         carbon: Vec<CarbonConfiguration>,
     }
 
-    #[derive(Default, Debug, PartialEq)]
-    struct ExtraValue {
-        key: String,
-        value: String,
-    }
+    // #[derive(Default, Debug, PartialEq)]
+    // struct ExtraValue {
+    //     key: String,
+    //     value: String,
+    // }
 
-    #[derive(Default, Debug, PartialEq)]
-    struct RuleSelector {
-        name: String,
-        selector_type: String,
-        selectors: Vec<RuleSelector>,
-        extra: Vec<ExtraValue>,
-    }
+    // #[derive(Default, Debug, PartialEq)]
+    // struct RuleSelector {
+    //     name: String,
+    //     selector_type: String,
+    //     selectors: Vec<RuleSelector>,
+    //     extra: Vec<ExtraValue>,
+    // }
 
-    #[derive(Default, Debug, PartialEq)]
-    struct ResponseRule {
-        name: String,
-        selector: RuleSelector,
-        extra: Vec<ExtraValue>,
-    }
+    // #[derive(Default, Debug, PartialEq)]
+    // struct ResponseRule {
+    //     name: String,
+    //     selector: RuleSelector,
+    //     extra: Vec<ExtraValue>,
+    // }
 
     #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
@@ -105,7 +101,7 @@ mod dnsdistsettings {
 
     #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
-    struct TCPSelector {
+    struct TCPSelectorConfig {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
         #[serde(default, skip_serializing_if = "crate::is_default")]
@@ -135,14 +131,44 @@ mod dnsdistsettings {
         name: String,
     }
 
-    #[derive(Default, Debug, PartialEq)]
-    struct TestSelector {
-        selector_type: String,
-        all: AllSelector,
-        andSel: AndSelectorConfig,
-        byname: ByNameSelector,
-        tcp: TCPSelector,
+    #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
+    #[serde(deny_unknown_fields)]
+    struct NetmaskGroupByRefSelectorConfig {
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        name: String,
+        #[serde(
+            default,
+            rename = "netmask-group",
+            skip_serializing_if = "crate::is_default"
+        )]
+        netmask_group: String,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        source: bool,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        quiet: bool,
     }
+
+    #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
+    #[serde(deny_unknown_fields)]
+    struct NetmaskGroupByNetmasksSelectorConfig {
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        netmasks: Vec<String>,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        name: String,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        source: bool,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        quiet: bool,
+    }
+
+    // #[derive(Default, Debug, PartialEq)]
+    // struct TestSelector {
+    //     selector_type: String,
+    //     all: AllSelector,
+    //     andSel: AndSelectorConfig,
+    //     byname: ByNameSelector,
+    //     tcp: TCPSelector,
+    // }
 
     struct SharedDNSSelector {
         selector: SharedPtr<DNSSelector>,
@@ -153,8 +179,8 @@ mod dnsdistsettings {
         metrics: MetricsConfiguration,
         webserver: WebServerConfiguration,
         console: ConsoleConfiguration,
-        response_rules: Vec<ResponseRule>,
-        testselectors: Vec<TestSelector>,
+        // response_rules: Vec<ResponseRule>,
+        // testselectors: Vec<TestSelector>,
         realselectors: Vec<SharedDNSSelector>,
     }
 
@@ -173,8 +199,12 @@ mod dnsdistsettings {
         fn getNameFromSelector(selector: &DNSSelector) -> &CxxString;
         fn getSelectorByName(name: &String) -> SharedPtr<DNSSelector>;
         fn getMaxIPQPSSelector(config: &MaxQPSIPRuleConfig) -> SharedPtr<DNSSelector>;
+        fn getTCPSelector(config: &TCPSelectorConfig) -> SharedPtr<DNSSelector>;
         fn getAllSelector() -> SharedPtr<DNSSelector>;
         fn getAndSelector(config: &AndSelectorConfig) -> SharedPtr<DNSSelector>;
+        fn getNetmaskGroupSelector(
+            config: &NetmaskGroupByNetmasksSelectorConfig,
+        ) -> SharedPtr<DNSSelector>;
     }
 }
 
@@ -186,45 +216,54 @@ impl Default for dnsdistsettings::SharedDNSSelector {
     }
 }
 
-#[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
-struct RuleSelectorConfiguration {
-    #[serde(default, skip_serializing_if = "crate::is_default")]
-    name: String,
-    #[serde(default, rename = "type", skip_serializing_if = "crate::is_default")]
-    selector_type: String,
-    #[serde(default, skip_serializing_if = "crate::is_default")]
-    selectors: Vec<RuleSelectorConfiguration>,
-    #[serde(flatten)]
-    extra: HashMap<String, String>,
-}
+// #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
+// struct RuleSelectorConfiguration {
+//     #[serde(default, skip_serializing_if = "crate::is_default")]
+//     name: String,
+//     #[serde(default, rename = "type", skip_serializing_if = "crate::is_default")]
+//     selector_type: String,
+//     #[serde(default, skip_serializing_if = "crate::is_default")]
+//     selectors: Vec<RuleSelectorConfiguration>,
+//     #[serde(flatten)]
+//     extra: HashMap<String, String>,
+// }
 
-#[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
-struct ResponseActionConfiguration {
-    #[serde(default, skip_serializing_if = "crate::is_default")]
-    name: String,
-    #[serde(default, rename = "type", skip_serializing_if = "crate::is_default")]
-    action_type: String,
-    #[serde(flatten)]
-    extra: HashMap<String, String>,
-}
+// #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
+// struct ResponseActionConfiguration {
+//     #[serde(default, skip_serializing_if = "crate::is_default")]
+//     name: String,
+//     #[serde(default, rename = "type", skip_serializing_if = "crate::is_default")]
+//     action_type: String,
+//     #[serde(flatten)]
+//     extra: HashMap<String, String>,
+// }
 
-#[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
-struct ResponseRuleConfiguration {
-    #[serde(default, skip_serializing_if = "crate::is_default")]
-    name: String,
-    #[serde(default, skip_serializing_if = "crate::is_default")]
-    uuid: String,
-    #[serde(default, skip_serializing_if = "crate::is_default")]
-    selector: RuleSelectorConfiguration,
-    #[serde(default, skip_serializing_if = "crate::is_default")]
-    action: ResponseActionConfiguration,
-}
+// #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
+// struct ResponseRuleConfiguration {
+//     #[serde(default, skip_serializing_if = "crate::is_default")]
+//     name: String,
+//     #[serde(default, skip_serializing_if = "crate::is_default")]
+//     uuid: String,
+//     #[serde(default, skip_serializing_if = "crate::is_default")]
+//     selector: RuleSelectorConfiguration,
+//     #[serde(default, skip_serializing_if = "crate::is_default")]
+//     action: ResponseActionConfiguration,
+// }
 
 #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
 struct AndSelectorSerde {
     #[serde(default, skip_serializing_if = "crate::is_default")]
     selectors: Vec<Selector>,
+}
+
+#[derive(Default, Serialize, Deserialize, Debug, PartialEq)]
+#[serde(untagged)]
+enum NetmaskGroupSelectorSerde {
+    #[default]
+    None,
+    ByRef(dnsdistsettings::NetmaskGroupByRefSelectorConfig),
+    ByNetmasks(dnsdistsettings::NetmaskGroupByNetmasksSelectorConfig),
 }
 
 #[derive(Default, Serialize, Deserialize, Debug, PartialEq)]
@@ -235,8 +274,9 @@ enum Selector {
     All(dnsdistsettings::AllSelector),
     And(AndSelectorSerde),
     ByName(dnsdistsettings::ByNameSelector),
-    TCP(dnsdistsettings::TCPSelector),
+    TCP(dnsdistsettings::TCPSelectorConfig),
     MaxQPSIP(dnsdistsettings::MaxQPSIPRuleConfig),
+    NetmaskGroup(NetmaskGroupSelectorSerde),
 }
 
 #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
@@ -248,54 +288,54 @@ struct GlobalConfigurationSerde {
     webserver: dnsdistsettings::WebServerConfiguration,
     #[serde(default, skip_serializing_if = "crate::is_default")]
     console: dnsdistsettings::ConsoleConfiguration,
-    #[serde(
-        default,
-        rename = "response-rules",
-        skip_serializing_if = "crate::is_default"
-    )]
-    response_rules: Vec<ResponseRuleConfiguration>,
+    // #[serde(
+    //     default,
+    //     rename = "response-rules",
+    //     skip_serializing_if = "crate::is_default"
+    // )]
+    // response_rules: Vec<ResponseRuleConfiguration>,
     #[serde(default, skip_serializing_if = "crate::is_default")]
     testselectors: Vec<Selector>,
 }
 
-fn get_selector_from_serde(serde: RuleSelectorConfiguration) -> dnsdistsettings::RuleSelector {
-    let mut selector = dnsdistsettings::RuleSelector {
-        name: serde.name,
-        selector_type: serde.selector_type,
-        ..Default::default()
-    };
-    for sub in serde.selectors {
-        selector.selectors.push(get_selector_from_serde(sub));
-    }
-    for (key, value) in serde.extra.into_iter() {
-        selector.extra.push(dnsdistsettings::ExtraValue {
-            key: key,
-            value: value,
-        });
-    }
-    selector
-}
+// fn get_selector_from_serde(serde: RuleSelectorConfiguration) -> dnsdistsettings::RuleSelector {
+//     let mut selector = dnsdistsettings::RuleSelector {
+//         name: serde.name,
+//         selector_type: serde.selector_type,
+//         ..Default::default()
+//     };
+//     for sub in serde.selectors {
+//         selector.selectors.push(get_selector_from_serde(sub));
+//     }
+//     for (key, value) in serde.extra.into_iter() {
+//         selector.extra.push(dnsdistsettings::ExtraValue {
+//             key: key,
+//             value: value,
+//         });
+//     }
+//     selector
+// }
 
-fn get_response_rule_from_serde(serde: ResponseRuleConfiguration) -> dnsdistsettings::ResponseRule {
-    let mut config: dnsdistsettings::ResponseRule = Default::default();
-    config.name = serde.name;
-    //config.uuid = serde.uuid;
-    config.selector.name = serde.selector.name;
-    config.selector.selector_type = serde.selector.selector_type;
-    for selector in serde.selector.selectors {
-        config
-            .selector
-            .selectors
-            .push(get_selector_from_serde(selector));
-    }
-    for (key, value) in serde.selector.extra.into_iter() {
-        config.extra.push(dnsdistsettings::ExtraValue {
-            key: key,
-            value: value,
-        });
-    }
-    config
-}
+// fn get_response_rule_from_serde(serde: ResponseRuleConfiguration) -> dnsdistsettings::ResponseRule {
+//     let mut config: dnsdistsettings::ResponseRule = Default::default();
+//     config.name = serde.name;
+//     //config.uuid = serde.uuid;
+//     config.selector.name = serde.selector.name;
+//     config.selector.selector_type = serde.selector.selector_type;
+//     for selector in serde.selector.selectors {
+//         config
+//             .selector
+//             .selectors
+//             .push(get_selector_from_serde(selector));
+//     }
+//     for (key, value) in serde.selector.extra.into_iter() {
+//         config.extra.push(dnsdistsettings::ExtraValue {
+//             key: key,
+//             value: value,
+//         });
+//     }
+//     config
+// }
 
 fn get_one_selector_from_serde(selector: &Selector) -> Option<dnsdistsettings::SharedDNSSelector> {
     println!("hello get_one_selector_from_serde!");
@@ -311,29 +351,36 @@ fn get_one_selector_from_serde(selector: &Selector) -> Option<dnsdistsettings::S
         }
         Selector::ByName(sel) => {
             println!("returning by name {}", sel.name);
+            let selector_from_name = dnsdistsettings::getSelectorByName(&sel.name);
+            if selector_from_name.is_null() {
+                panic!("Unable to find a selector named {}", sel.name);
+            }
             return Some(dnsdistsettings::SharedDNSSelector {
-                selector: dnsdistsettings::getSelectorByName(&sel.name),
+                selector: selector_from_name,
             });
         }
-        Selector::TCP(_) => {
-            println!("returning none for TCP");
+        Selector::TCP(config) => {
+            println!("returning TCP");
+            return Some(dnsdistsettings::SharedDNSSelector {
+                selector: dnsdistsettings::getTCPSelector(&config),
+            });
         }
         Selector::And(sel) => {
             let mut config: dnsdistsettings::AndSelectorConfig = Default::default();
-            for subSelector in &sel.selectors {
-                match subSelector {
-                    Selector::ByName(subSel) => {
-                        println!("pushing by name {}", subSel.name);
-                        config.selectors.push(subSel.name.clone());
+            for sub_selector in &sel.selectors {
+                match sub_selector {
+                    Selector::ByName(sub_sel) => {
+                        println!("pushing by name {}", sub_sel.name);
+                        config.selectors.push(sub_sel.name.clone());
                     }
-                    subSel => {
-                        let newSelector = get_one_selector_from_serde(&subSel);
+                    sub_sel => {
+                        let new_selector = get_one_selector_from_serde(&sub_sel);
                         println!("pushing by selector");
-                        if newSelector.is_some() {
+                        if new_selector.is_some() {
                             println!("really pushing by selector");
                             config.selectors.push(
                                 dnsdistsettings::getNameFromSelector(
-                                    &newSelector.unwrap().selector,
+                                    &new_selector.unwrap().selector,
                                 )
                                 .to_string(),
                             );
@@ -351,6 +398,16 @@ fn get_one_selector_from_serde(selector: &Selector) -> Option<dnsdistsettings::S
                 selector: dnsdistsettings::getMaxIPQPSSelector(&conf),
             });
         }
+        Selector::NetmaskGroup(nm_type) => match nm_type {
+            NetmaskGroupSelectorSerde::None => {}
+            NetmaskGroupSelectorSerde::ByRef(_) => {}
+            NetmaskGroupSelectorSerde::ByNetmasks(conf) => {
+                println!("returning netmask group");
+                return Some(dnsdistsettings::SharedDNSSelector {
+                    selector: dnsdistsettings::getNetmaskGroupSelector(&conf),
+                });
+            }
+        },
     }
     None
 }
@@ -377,51 +434,12 @@ fn get_global_configuration_from_serde(
     config.metrics = serde.metrics;
     config.webserver = serde.webserver;
     config.console = serde.console;
-    for rule in serde.response_rules {
-        config
-            .response_rules
-            .push(get_response_rule_from_serde(rule));
-    }
+    // for rule in serde.response_rules {
+    //     config
+    //         .response_rules
+    //         .push(get_response_rule_from_serde(rule));
+    // }
     config.realselectors = get_selectors_from_serde(&serde.testselectors);
-    println!("parsing test selectors now!");
-    for rule in serde.testselectors {
-        match rule {
-            Selector::None => {}
-            Selector::All(_) => {
-                config.testselectors.push(dnsdistsettings::TestSelector {
-                    selector_type: String::from("All"),
-                    ..Default::default()
-                });
-            }
-            Selector::And(_) => {
-                //config.testselectors.push(dnsdistsettings::TestSelector {
-                //    selector_type: String::from("And"),
-                //    andSel: dnsdistsettings::AndSelector {
-                //        selectors: sel.selectors,
-                //    },
-                //    ..Default::default()
-                //});
-            }
-            Selector::ByName(sel) => {
-                config.testselectors.push(dnsdistsettings::TestSelector {
-                    selector_type: String::from("ByName"),
-                    byname: dnsdistsettings::ByNameSelector { name: sel.name },
-                    ..Default::default()
-                });
-            }
-            Selector::TCP(tcp) => {
-                config.testselectors.push(dnsdistsettings::TestSelector {
-                    selector_type: String::from("TCP"),
-                    tcp: dnsdistsettings::TCPSelector {
-                        tcp: tcp.tcp,
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                });
-            }
-            Selector::MaxQPSIP(_) => {}
-        }
-    }
     config
 }
 
