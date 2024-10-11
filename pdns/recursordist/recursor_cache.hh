@@ -64,6 +64,9 @@ public:
   [[nodiscard]] pair<uint64_t, uint64_t> stats();
   [[nodiscard]] size_t ecsIndexSize();
 
+  void getRecords(size_t howmany, std::string& ret);
+  void putRecords(const std::string& pbuf);
+
   using OptTag = boost::optional<std::string>;
 
   using Flags = uint8_t;
@@ -113,6 +116,7 @@ private:
     {
     }
 
+
     using records_t = vector<std::shared_ptr<const DNSRecordContent>>;
 
     bool isStale(time_t now) const
@@ -149,6 +153,8 @@ private:
     mutable bool d_submitted{false}; // whether this entry has been queued for refetch
     bool d_tooBig{false};
   };
+
+  void replace(CacheEntry&& entry);
 
   /* The ECS Index (d_ecsIndex) keeps track of whether there is any ECS-specific
      entry for a given (qname,qtype) entry in the cache (d_map), and if so

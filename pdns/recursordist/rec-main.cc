@@ -807,6 +807,16 @@ static void checkSocketDir(Logr::log_t log)
   _exit(1);
 }
 
+static void setupNatsThread(Logr::log_t log)
+{
+  log->info(Logr::Info, "Starting nats thread");
+  std::thread thread([tid = std::this_thread::get_id()]() {
+    auto lua = std::make_shared<RecursorLua4>();
+    lua->loadFile("tmp/natsimpl.lua");
+  });
+  thread.detach();
+}
+
 #ifdef NOD_ENABLED
 static void setupNODThread(Logr::log_t log)
 {
@@ -2376,6 +2386,8 @@ static int serviceMain(Logr::log_t log)
   setupNODThread(log);
 #endif /* NOD_ENABLED */
 
+  setupNatsThread(log);
+  
   return RecThreadInfo::runThreads(log);
 }
 

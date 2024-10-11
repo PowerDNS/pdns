@@ -493,6 +493,17 @@ void RecursorLua4::postPrepareContext() // NOLINT(readability-function-cognitive
       (*event.discardedPolicies)[policy] = true;
     }
   });
+
+  d_lw->writeFunction("getRecordCacheRecords", [](size_t howmany) {
+    std::string ret;
+    g_recCache->getRecords(howmany, ret);
+    return ret;
+  });
+
+  d_lw->writeFunction("putIntoRecordCache", [](const string& data) {
+    g_recCache->putRecords(data);
+  });
+
   if (!d_include_path.empty()) {
     includePath(d_include_path);
   }
