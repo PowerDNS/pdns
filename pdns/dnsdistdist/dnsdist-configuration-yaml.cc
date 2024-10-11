@@ -22,13 +22,13 @@
 
 #include "dnsdist-configuration-yaml.hh"
 #include "iputils.hh"
+#include "remote_logger.hh"
 
 #if defined(HAVE_YAML_CONFIGURATION)
 
-#include <fstream>
-
 #include "dolog.hh"
 #include "dnsdist-rules.hh"
+#include "dnsdist-kvs.hh"
 #include "rust/cxx.h"
 #include "rust/lib.rs.h"
 #endif /* HAVE_YAML_CONFIGURATION */
@@ -74,7 +74,7 @@ bool loadConfigurationFromFile(const std::string fileName)
 namespace dnsdist::rust::settings
 {
 
-using RegisteredTypes = std::variant<std::shared_ptr<DNSSelector>, std::shared_ptr<NetmaskGroup>>;
+using RegisteredTypes = std::variant<std::shared_ptr<DNSSelector>, std::shared_ptr<NetmaskGroup>, std::shared_ptr<KeyValueStore>, std::shared_ptr<KeyValueLookupKey>, std::shared_ptr<RemoteLoggerInterface>>;
 static LockGuarded<std::unordered_map<std::string, RegisteredTypes>> s_registeredTypesMap;
 
 template <class T> static void registerType(const std::shared_ptr<T>& entry, std::string& name)
