@@ -34,18 +34,6 @@
 
 namespace dnsdist::configuration::yaml
 {
-#if defined(HAVE_YAML_CONFIGURATION)
-// static std::shared_ptr<DNSRule> getSelector(const dnsdist::rust::settings::TestSelector selector)
-// {
-//   if (selector.selector_type == "All") {
-//     return std::make_shared<AllRule>();
-//   }
-//   if (selector.selector_type == "TCP") {
-//     return std::make_shared<TCPRule>(selector.tcp.tcp);
-//   }
-//   throw std::runtime_error("Unsupported selector type: " + std::string(selector.selector_type));
-// }
-#endif /* HAVE_YAML_CONFIGURATION */
 
 bool loadConfigurationFromFile(const std::string fileName)
 {
@@ -61,26 +49,6 @@ bool loadConfigurationFromFile(const std::string fileName)
 
     auto globalConfig = dnsdist::rust::settings::from_yaml_string(data);
     cerr<<globalConfig.metrics.carbon[0].address<<endl;
-    // for (const auto& rule : globalConfig.response_rules) {
-    //   cerr<<"Name: "<<rule.name<<", type "<<rule.selector.selector_type<<endl;
-    //   for (const auto& selector : rule.selector.selectors) {
-    //     cerr<<selector.name<<" -> "<<selector.selector_type<<endl;
-    //     for (const auto& extra : selector.extra) {
-    //       cerr<<" - "<<extra.key<<" => "<<extra.value<<endl;
-    //     }
-    //   }
-    //   for (const auto& extra : rule.extra) {
-    //     cerr<<extra.key<<" => "<<extra.value<<endl;
-    //   }
-    // }
-    // for (const auto& selector : globalConfig.testselectors) {
-    //   cerr<<"Selector: "<<selector.selector_type<<endl;
-    //   auto got = getSelector(selector);
-    //   cerr<<"Got: "<<got->toString()<<endl;
-    //   for (const auto& sub : selector.andSel.selectors) {
-    //     cerr<<"  "<<sub<<endl;
-    //   }
-    // }
     for (const auto& selector : globalConfig.realselectors) {
       cerr << "REAL Selector: " << selector.selector->d_rule->toString() << endl;
     }
