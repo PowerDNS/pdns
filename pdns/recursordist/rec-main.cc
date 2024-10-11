@@ -810,9 +810,10 @@ static void checkSocketDir(Logr::log_t log)
 static void setupNatsThread(Logr::log_t log)
 {
   log->info(Logr::Info, "Starting nats thread");
-  std::thread thread([tid = std::this_thread::get_id()]() {
+  std::thread thread([tid = std::this_thread::get_id(), log]() {
     auto lua = std::make_shared<RecursorLua4>();
     lua->loadFile("tmp/natsimpl.lua");
+    log->info(Logr::Info, "Nats thread exited");
   });
   thread.detach();
 }

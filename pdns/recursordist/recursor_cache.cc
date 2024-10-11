@@ -8,12 +8,10 @@
 #include "misc.hh"
 #include <iostream>
 #include "dnsrecords.hh"
-#include "arguments.hh"
 #include "syncres.hh"
 #include "namespaces.hh"
 #include "cachecleaner.hh"
 #include "rec-taskqueue.hh"
-#include "protozero.hh"
 #include <protozero/pbf_builder.hpp>
 #include <protozero/pbf_message.hpp>
 
@@ -883,8 +881,8 @@ void MemRecursorCache::doPrune(time_t now, size_t keep)
   
 enum class PBCacheEntry : protozero::pbf_tag_type
 {
-  repeated_message_record = 1,
-  repeated_message_sig = 2,
+  repeated_bytes_record = 1,
+  repeated_bytes_sig = 2,
   repeated_message_authRecord = 3,
   required_bytes_name = 4,
   required_bytes_authZone = 5,
@@ -901,12 +899,6 @@ enum class PBCacheEntry : protozero::pbf_tag_type
   required_bool_tooBig = 16,
 };
 
-enum class PBRecord : protozero::pbf_tag_type
-{
-  required_uint32_type = 1,
-  repeated_bytes_content = 2,
-};
-
 enum class PBAuthRecord : protozero::pbf_tag_type
 {
   required_bytes_name = 1,
@@ -917,6 +909,42 @@ enum class PBAuthRecord : protozero::pbf_tag_type
   required_uint32_place = 6,
   required_uint32_clen = 7,
 };
+
+template <typename T>
+static void encodeComboAddress(protozero::pbf_builder<T>& writer, T type, const ComboAddress& address)
+{
+  if (address.sin4.sin_family == AF_INET) {
+    writer.add_bytes(type, reinterpret_cast<const char*>(&address.sin4.sin_addr.s_addr), sizeof(address.sin4.sin_addr.s_addr)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast): it's the API
+  }
+  else if (address.sin4.sin_family == AF_INET6) {
+    writer.add_bytes(type, reinterpret_cast<const char*>(&address.sin6.sin6_addr.s6_addr), sizeof(address.sin6.sin6_addr)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast): it's the API
+  }
+}
+
+template <typename T>
+static void decodeComboAddress(protozero::pbf_message<T>& message, ComboAddress& address)
+{
+  // Skip port and other parts
+  auto data = message.get_bytes();
+  address.reset();
+  address.sin4.sin_family = data.size() == 4 ? AF_INET : AF_INET6;
+  memcpy(&address.sin4.sin_addr, data.data(), data.size());
+}
+
+template <typename T>
+static void encodeNetmask(protozero::pbf_builder<T>& writer, T type, const Netmask& subnet)
+{
+  if (!subnet.empty()) {
+    writer.add_bytes(type, reinterpret_cast<const char*>(&subnet), sizeof(Netmask)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast): it's the API
+  }
+}
+
+template <typename T>
+static void decodeNetmask(protozero::pbf_message<T>& message, Netmask& subnet)
+{
+  auto data = message.get_bytes();
+  memcpy(&subnet, data.data(), data.size());
+}
 
 void MemRecursorCache::getRecords(size_t howmany, std::string& ret)
 {
@@ -931,17 +959,14 @@ void MemRecursorCache::getRecords(size_t howmany, std::string& ret)
     for (const auto& recordSet : sidx) {
       protozero::pbf_builder<PBCacheEntry> message(full, 1);
       //cerr << "S " << count << ' ' << recordSet.d_qname << ' ' << QType(recordSet.d_qtype) << ' ' << recordSet.d_auth << ' ' << recordSet.d_records.size() << endl;
+      // Two fields below must come before the other fields
       message.add_bytes(PBCacheEntry::required_bytes_name, recordSet.d_qname.toString());
       message.add_uint32(PBCacheEntry::required_uint32_qtype, recordSet.d_qtype);
       for (const auto& record : recordSet.d_records) {
-        protozero::pbf_builder<PBRecord> recordMesg(message, PBCacheEntry::repeated_message_record);
-        recordMesg.add_uint32(PBRecord::required_uint32_type, record->getType());
-        recordMesg.add_bytes(PBRecord::repeated_bytes_content, record->serialize(recordSet.d_qname, true));
+        message.add_bytes(PBCacheEntry::repeated_bytes_record, record->serialize(recordSet.d_qname, true));
       }
       for (const auto& record : recordSet.d_signatures) {
-        protozero::pbf_builder<PBRecord> recordMesg(message, PBCacheEntry::repeated_message_sig);
-        recordMesg.add_uint32(PBRecord::required_uint32_type, record->getType());
-        recordMesg.add_bytes(PBRecord::repeated_bytes_content, record->serialize(recordSet.d_qname, true));
+        message.add_bytes(PBCacheEntry::repeated_bytes_sig, record->serialize(recordSet.d_qname, true));
       }
       for (const auto& authRec : recordSet.d_authorityRecs) {
         protozero::pbf_builder<PBAuthRecord> auth(message, PBCacheEntry::repeated_message_authRecord);
@@ -954,10 +979,8 @@ void MemRecursorCache::getRecords(size_t howmany, std::string& ret)
         auth.add_uint32(PBAuthRecord::required_uint32_clen, authRec->d_clen);
       }
       message.add_bytes(PBCacheEntry::required_bytes_authZone, recordSet.d_authZone.toString());
-      message.add_bytes(PBCacheEntry::required_bytes_from, recordSet.d_from.toString());
-      if (!recordSet.d_netmask.empty()) {
-        message.add_bytes(PBCacheEntry::optional_bytes_netmask, recordSet.d_netmask.toString());
-      }
+      encodeComboAddress(message, PBCacheEntry::required_bytes_from, recordSet.d_from);
+      encodeNetmask(message, PBCacheEntry::optional_bytes_netmask, recordSet.d_netmask);
       if (recordSet.d_rtag) {
         message.add_bytes(PBCacheEntry::optional_bytes_rtag, *recordSet.d_rtag);
       }
@@ -984,60 +1007,6 @@ void MemRecursorCache::getRecords(size_t howmany, std::string& ret)
   cerr << "Constructed a string of length " << ret.size() << " for " << count << " record sets (requested " << howmany << ')' << endl;
 }
 
-static void PBReadRecord(protozero::pbf_message<PBCacheEntry>& message, const DNSName& name, vector<std::shared_ptr<const DNSRecordContent>>& records)
-{
-  protozero::pbf_message<PBRecord> recordMesg = message.get_message();
-  shared_ptr<DNSRecordContent> ptr{nullptr};
-  unsigned int type = -1;
-  while (recordMesg.next()) {
-    switch (recordMesg.tag()) {
-    case PBRecord::required_uint32_type:
-      type = recordMesg.get_uint64();
-      break;
-    case PBRecord::repeated_bytes_content:
-      if (type == -1U) {
-      }
-      else {
-        ptr = DNSRecordContent::deserialize(name, type, recordMesg.get_bytes());
-      }
-      break;
-    }
-  }
-  if (ptr == nullptr) {
-    cerr << "NULL PTR!" << endl;
-  }
-  else {
-    records.emplace_back(ptr);
-  }
-}
-
-static void PBReadRecord(protozero::pbf_message<PBCacheEntry>& message, const DNSName& name, vector<std::shared_ptr<const RRSIGRecordContent>>& records)
-{
-  protozero::pbf_message<PBRecord> recordMesg = message.get_message();
-  shared_ptr<const DNSRecordContent> ptr{nullptr};
-  unsigned int type = -1;
-  while (recordMesg.next()) {
-    switch (recordMesg.tag()) {
-    case PBRecord::required_uint32_type:
-      type = recordMesg.get_uint64();
-      break;
-    case PBRecord::repeated_bytes_content:
-      if (type == -1U) {
-        cerr << "Type not seen before content" << endl;
-      } else {
-        ptr = DNSRecordContent::deserialize(name, type, recordMesg.get_bytes());
-      }
-      break;
-    }
-  }
-  if (ptr == nullptr) {
-    cerr << "NULL PTR!" << endl;
-  }
-  else {
-    records.emplace_back(std::dynamic_pointer_cast<const RRSIGRecordContent>(ptr));
-  }
-}
-
 void MemRecursorCache::putRecords(const std::string& pbuf)
 {
   cerr << "Received a PB string of length " << pbuf.size() << endl;
@@ -1049,12 +1018,16 @@ void MemRecursorCache::putRecords(const std::string& pbuf)
       CacheEntry cacheEntry{{g_rootdnsname, QType::A, boost::none, Netmask()}, false};
       while (message.next()) {
         switch (message.tag()) {
-        case PBCacheEntry::repeated_message_record:
-          PBReadRecord(message, cacheEntry.d_qname, cacheEntry.d_records);
+        case PBCacheEntry::repeated_bytes_record: {
+          auto ptr = DNSRecordContent::deserialize(cacheEntry.d_qname, cacheEntry.d_qtype, message.get_bytes());
+          cacheEntry.d_records.emplace_back(ptr);
           break;
-        case PBCacheEntry::repeated_message_sig:
-          PBReadRecord(message, cacheEntry.d_qname, cacheEntry.d_signatures);
+        }
+        case PBCacheEntry::repeated_bytes_sig: {
+          auto ptr = DNSRecordContent::deserialize(cacheEntry.d_qname, QType::RRSIG, message.get_bytes());
+          cacheEntry.d_signatures.emplace_back(std::dynamic_pointer_cast<RRSIGRecordContent>(ptr));
           break;
+        }
         case PBCacheEntry::repeated_message_authRecord: {
           protozero::pbf_message<PBAuthRecord> auth = message.get_message();
           DNSRecord authRecord;
@@ -1095,11 +1068,10 @@ void MemRecursorCache::putRecords(const std::string& pbuf)
           cacheEntry.d_authZone = DNSName(message.get_bytes());
           break;
         case PBCacheEntry::required_bytes_from:
-          cacheEntry.d_from = ComboAddress(message.get_bytes());
+          decodeComboAddress(message, cacheEntry.d_from);
           break;
         case PBCacheEntry::optional_bytes_netmask: {
-          auto netmask = message.get_bytes();
-          cacheEntry.d_netmask = netmask.empty() ? Netmask() : Netmask(netmask);
+          decodeNetmask(message, cacheEntry.d_netmask);
           break;
         }
         case PBCacheEntry::optional_bytes_rtag:
