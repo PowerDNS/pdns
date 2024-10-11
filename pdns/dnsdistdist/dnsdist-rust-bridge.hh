@@ -18,7 +18,7 @@ struct DNSSelector
 
 struct MaxQPSIPRuleConfig;
 struct AndSelectorConfig;
-struct NetmaskGroupByNetmasksSelectorConfig;
+struct NetmaskGroupSelectorConfig;
 struct TCPSelectorConfig;
 
 std::shared_ptr<DNSSelector> getSelectorByName(const ::rust::String& name);
@@ -28,5 +28,5 @@ std::shared_ptr<DNSSelector> getMaxIPQPSSelector(const MaxQPSIPRuleConfig& confi
 std::shared_ptr<DNSSelector> getAllSelector();
 std::shared_ptr<DNSSelector> getTCPSelector(const TCPSelectorConfig& config);
 std::shared_ptr<DNSSelector> getAndSelector(const AndSelectorConfig& config);
-std::shared_ptr<DNSSelector> getNetmaskGroupSelector(const NetmaskGroupByNetmasksSelectorConfig& config);
+std::shared_ptr<DNSSelector> getNetmaskGroupSelector(const NetmaskGroupSelectorConfig& config);
 }

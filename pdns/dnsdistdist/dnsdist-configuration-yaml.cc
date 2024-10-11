@@ -21,6 +21,7 @@
  */
 
 #include "dnsdist-configuration-yaml.hh"
+#include "iputils.hh"
 
 #if defined(HAVE_YAML_CONFIGURATION)
 
@@ -73,35 +74,44 @@ bool loadConfigurationFromFile(const std::string fileName)
 namespace dnsdist::rust::settings
 {
 
-static LockGuarded<std::unordered_map<std::string, std::shared_ptr<DNSSelector>>> s_selectorsMap;
+using RegisteredTypes = std::variant<std::shared_ptr<DNSSelector>, std::shared_ptr<NetmaskGroup>>;
+static LockGuarded<std::unordered_map<std::string, RegisteredTypes>> s_registeredTypesMap;
 
-static void registerSelector(const std::shared_ptr<DNSSelector>& selector, std::string& name)
+template <class T> static void registerType(const std::shared_ptr<T>& entry, std::string& name)
 {
   if (name.empty()) {
     auto uuid = getUniqueID();
     name = boost::uuids::to_string(uuid);
   }
 
-  auto [it, inserted] = s_selectorsMap.lock()->try_emplace(name, selector);
+  auto [it, inserted] = s_registeredTypesMap.lock()->try_emplace(name, entry);
   if (!inserted) {
-    throw std::runtime_error("Trying to register a selector named '" + name + "' while one already exists");
+    throw std::runtime_error("Trying to register a type named '" + name + "' while one already exists");
   }
 }
 
-static std::shared_ptr<DNSSelector> getSelectorByName(const std::string& name)
+template <class T> static std::shared_ptr<T> getRegisteredTypeByName(const std::string& name)
 {
-  auto map = s_selectorsMap.lock();
+  auto map = s_registeredTypesMap.lock();
   auto item = map->find(name);
   if (item == map->end()) {
     return nullptr;
   }
-  return item->second;
+  if (auto* ptr = std::get_if<std::shared_ptr<T>>(&item->second)) {
+    return *ptr;
+  }
+  return nullptr;
 }
 
-std::shared_ptr<DNSSelector> getSelectorByName(const ::rust::string& name)
+template <class T> static std::shared_ptr<T> getRegisteredTypeByName(const ::rust::String& name)
 {
-  auto nameStr = std::string(name);
-  return getSelectorByName(nameStr);
+    auto nameStr = std::string(name);
+    return getRegisteredTypeByName<T>(nameStr);
+}
+
+std::shared_ptr<DNSSelector> getSelectorByName(const ::rust::String& name)
+{
+    return getRegisteredTypeByName<DNSSelector>(name);
 }
 
 const std::string& getNameFromSelector(const DNSSelector& selector)
@@ -114,7 +124,7 @@ static std::shared_ptr<DNSSelector> newDNSSelector(std::shared_ptr<DNSRule>&& ru
   auto selector = std::make_shared<DNSSelector>();
   selector->d_name = std::string(name);
   selector->d_rule = std::move(rule);
-  registerSelector(selector, selector->d_name);
+  registerType(selector, selector->d_name);
   return selector;
 }
 
@@ -135,7 +145,7 @@ std::shared_ptr<DNSSelector> getAndSelector(const AndSelectorConfig& config)
   LuaArray<std::shared_ptr<DNSRule>> selectors;
   int counter = 1;
   for (const auto& selector : config.selectors) {
-    auto dnsSelector = getSelectorByName(std::string(selector));
+    auto dnsSelector = getRegisteredTypeByName<DNSSelector>(std::string(selector));
     if (dnsSelector) {
       selectors.push_back({counter++, dnsSelector->d_rule});
     }
@@ -150,13 +160,19 @@ std::shared_ptr<DNSSelector> getTCPSelector(const TCPSelectorConfig& config)
   return newDNSSelector(std::move(rule), config.name);
 }
 
-std::shared_ptr<DNSSelector> getNetmaskGroupSelector(const NetmaskGroupByNetmasksSelectorConfig& config)
+std::shared_ptr<DNSSelector> getNetmaskGroupSelector(const NetmaskGroupSelectorConfig& config)
 {
-  NetmaskGroup nmg;
-  for (const auto& netmask : config.netmasks) {
-    nmg.addMask(std::string(netmask));
+  std::shared_ptr<NetmaskGroup> nmg;
+  if (!config.netmask_group.empty()) {
+      nmg = getRegisteredTypeByName<NetmaskGroup>(std::string(config.netmask_group));
   }
-  auto rule = std::shared_ptr<DNSRule>(new NetmaskGroupRule(nmg, config.source, config.quiet));
+  if (!nmg) {
+      nmg = std::make_shared<NetmaskGroup>();
+  }
+  for (const auto& netmask : config.netmasks) {
+    nmg->addMask(std::string(netmask));
+  }
+  auto rule = std::shared_ptr<DNSRule>(new NetmaskGroupRule(*nmg, config.source, config.quiet));
   return newDNSSelector(std::move(rule), config.name);
 }
 
