@@ -17,7 +17,7 @@ fi
 set -x
 
 EXTRA_ARG=""
-if [ $PWD = /srv/buildbot-worker/test-rec-debian-buster/build ]; then
+if [ $PWD = /srv/buildbot-worker/test-rec-debian-bookworm/build ]; then
     EXTRA_ARG=--ignore=test_SNMP.py
 fi
 
