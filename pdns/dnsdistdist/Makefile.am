@@ -18,7 +18,8 @@ DNSDIST_RUST_LIBS = $(top_builddir)/dnsdist-rust-lib/rust/libdnsdist_rust.a $(LI
 
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS=dnsdist-rust-lib/rust \
+SUBDIRS=dnsdist-rust-lib \
+	dnsdist-rust-lib/rust \
 	ext/arc4random \
 	ext/ipcrypt \
 	ext/yahttp
