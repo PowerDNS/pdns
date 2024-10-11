@@ -67,6 +67,57 @@ mod dnsdistsettings {
 
     #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
+    struct ProtobufLoggerConfig {
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        address: String,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        name: String,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        timeout: u16,
+        #[serde(
+            default,
+            rename = "max-queued-entries",
+            skip_serializing_if = "crate::is_default"
+        )]
+        max_queued_entries: u64,
+        #[serde(
+            default,
+            rename = "reconnect-wait-time",
+            skip_serializing_if = "crate::is_default"
+        )]
+        reconnect_wait_time: u8,
+    }
+
+    #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
+    #[serde(deny_unknown_fields)]
+    struct FrameStreamLoggerConfig {
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        address: String,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        name: String,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        protocol: String,
+    }
+
+    #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
+    #[serde(deny_unknown_fields)]
+    struct RemoteLoggingConfiguration {
+        #[serde(
+            default,
+            rename = "protocol-buffer",
+            skip_serializing_if = "crate::is_default"
+        )]
+        protocol_buffer: Vec<ProtobufLoggerConfig>,
+        #[serde(
+            default,
+            rename = "frame-stream",
+            skip_serializing_if = "crate::is_default"
+        )]
+        frame_stream: Vec<FrameStreamLoggerConfig>,
+    }
+
+    #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
+    #[serde(deny_unknown_fields)]
     struct MaxQPSIPRuleConfig {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
@@ -138,6 +189,7 @@ mod dnsdistsettings {
         metrics: MetricsConfiguration,
         webserver: WebServerConfiguration,
         console: ConsoleConfiguration,
+        remote_logging: RemoteLoggingConfiguration,
         realselectors: Vec<SharedDNSSelector>,
     }
 
@@ -200,6 +252,8 @@ struct GlobalConfigurationSerde {
     webserver: dnsdistsettings::WebServerConfiguration,
     #[serde(default, skip_serializing_if = "crate::is_default")]
     console: dnsdistsettings::ConsoleConfiguration,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    remote_logging: dnsdistsettings::RemoteLoggingConfiguration,
     #[serde(default, skip_serializing_if = "crate::is_default")]
     testselectors: Vec<Selector>,
 }
