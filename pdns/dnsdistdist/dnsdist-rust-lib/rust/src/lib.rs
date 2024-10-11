@@ -112,7 +112,7 @@ mod dnsdistsettings {
 
     #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
-    struct NetmaskGroupByRefSelectorConfig {
+    struct NetmaskGroupSelectorConfig {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
         #[serde(
@@ -122,18 +122,7 @@ mod dnsdistsettings {
         )]
         netmask_group: String,
         #[serde(default, skip_serializing_if = "crate::is_default")]
-        source: bool,
-        #[serde(default, skip_serializing_if = "crate::is_default")]
-        quiet: bool,
-    }
-
-    #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
-    #[serde(deny_unknown_fields)]
-    struct NetmaskGroupByNetmasksSelectorConfig {
-        #[serde(default, skip_serializing_if = "crate::is_default")]
         netmasks: Vec<String>,
-        #[serde(default, skip_serializing_if = "crate::is_default")]
-        name: String,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         source: bool,
         #[serde(default, skip_serializing_if = "crate::is_default")]
@@ -149,8 +138,6 @@ mod dnsdistsettings {
         metrics: MetricsConfiguration,
         webserver: WebServerConfiguration,
         console: ConsoleConfiguration,
-        // response_rules: Vec<ResponseRule>,
-        // testselectors: Vec<TestSelector>,
         realselectors: Vec<SharedDNSSelector>,
     }
 
@@ -172,9 +159,7 @@ mod dnsdistsettings {
         fn getTCPSelector(config: &TCPSelectorConfig) -> SharedPtr<DNSSelector>;
         fn getAllSelector() -> SharedPtr<DNSSelector>;
         fn getAndSelector(config: &AndSelectorConfig) -> SharedPtr<DNSSelector>;
-        fn getNetmaskGroupSelector(
-            config: &NetmaskGroupByNetmasksSelectorConfig,
-        ) -> SharedPtr<DNSSelector>;
+        fn getNetmaskGroupSelector(config: &NetmaskGroupSelectorConfig) -> SharedPtr<DNSSelector>;
     }
 }
 
@@ -194,15 +179,6 @@ struct AndSelectorSerde {
 }
 
 #[derive(Default, Serialize, Deserialize, Debug, PartialEq)]
-#[serde(untagged)]
-enum NetmaskGroupSelectorSerde {
-    #[default]
-    None,
-    ByRef(dnsdistsettings::NetmaskGroupByRefSelectorConfig),
-    ByNetmasks(dnsdistsettings::NetmaskGroupByNetmasksSelectorConfig),
-}
-
-#[derive(Default, Serialize, Deserialize, Debug, PartialEq)]
 #[serde(tag = "type")]
 enum Selector {
     #[default]
@@ -212,7 +188,7 @@ enum Selector {
     ByName(dnsdistsettings::ByNameSelector),
     TCP(dnsdistsettings::TCPSelectorConfig),
     MaxQPSIP(dnsdistsettings::MaxQPSIPRuleConfig),
-    NetmaskGroup(NetmaskGroupSelectorSerde),
+    NetmaskGroup(dnsdistsettings::NetmaskGroupSelectorConfig),
 }
 
 #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
@@ -229,19 +205,14 @@ struct GlobalConfigurationSerde {
 }
 
 fn get_one_selector_from_serde(selector: &Selector) -> Option<dnsdistsettings::SharedDNSSelector> {
-    println!("hello get_one_selector_from_serde!");
     match selector {
-        Selector::None => {
-            println!("returning none");
-        }
+        Selector::None => {}
         Selector::All(_) => {
-            println!("returning all");
             return Some(dnsdistsettings::SharedDNSSelector {
                 selector: dnsdistsettings::getAllSelector(),
             });
         }
         Selector::ByName(sel) => {
-            println!("returning by name {}", sel.name);
             let selector_from_name = dnsdistsettings::getSelectorByName(&sel.name);
             if selector_from_name.is_null() {
                 panic!("Unable to find a selector named {}", sel.name);
@@ -251,7 +222,6 @@ fn get_one_selector_from_serde(selector: &Selector) -> Option<dnsdistsettings::S
             });
         }
         Selector::TCP(config) => {
-            println!("returning TCP");
             return Some(dnsdistsettings::SharedDNSSelector {
                 selector: dnsdistsettings::getTCPSelector(&config),
             });
@@ -261,14 +231,11 @@ fn get_one_selector_from_serde(selector: &Selector) -> Option<dnsdistsettings::S
             for sub_selector in &sel.selectors {
                 match sub_selector {
                     Selector::ByName(sub_sel) => {
-                        println!("pushing by name {}", sub_sel.name);
                         config.selectors.push(sub_sel.name.clone());
                     }
                     sub_sel => {
                         let new_selector = get_one_selector_from_serde(&sub_sel);
-                        println!("pushing by selector");
                         if new_selector.is_some() {
-                            println!("really pushing by selector");
                             config.selectors.push(
                                 dnsdistsettings::getNameFromSelector(
                                     &new_selector.unwrap().selector,
@@ -284,21 +251,15 @@ fn get_one_selector_from_serde(selector: &Selector) -> Option<dnsdistsettings::S
             });
         }
         Selector::MaxQPSIP(conf) => {
-            println!("returning maxqpsip");
             return Some(dnsdistsettings::SharedDNSSelector {
                 selector: dnsdistsettings::getMaxIPQPSSelector(&conf),
             });
         }
-        Selector::NetmaskGroup(nm_type) => match nm_type {
-            NetmaskGroupSelectorSerde::None => {}
-            NetmaskGroupSelectorSerde::ByRef(_) => {}
-            NetmaskGroupSelectorSerde::ByNetmasks(conf) => {
-                println!("returning netmask group");
-                return Some(dnsdistsettings::SharedDNSSelector {
-                    selector: dnsdistsettings::getNetmaskGroupSelector(&conf),
-                });
-            }
-        },
+        Selector::NetmaskGroup(conf) => {
+            return Some(dnsdistsettings::SharedDNSSelector {
+                selector: dnsdistsettings::getNetmaskGroupSelector(&conf),
+            });
+        }
     }
     None
 }
@@ -306,7 +267,6 @@ fn get_one_selector_from_serde(selector: &Selector) -> Option<dnsdistsettings::S
 fn get_selectors_from_serde(
     selectors_from_serde: &Vec<Selector>,
 ) -> Vec<dnsdistsettings::SharedDNSSelector> {
-    println!("hello get_selectors_from_serde!");
     let mut results: Vec<dnsdistsettings::SharedDNSSelector> = Vec::new();
 
     for rule in selectors_from_serde {
