@@ -81,6 +81,10 @@ public:
   {
     throw std::runtime_error("This TLS backend does not have the capability to load a tickets key from a file");
   }
+  virtual void loadTicketsKey(const std::string& /* key */)
+  {
+    throw std::runtime_error("This TLS backend does not have the capability to load a ticket key");
+  }
   void handleTicketsKeyRotation(time_t now)
   {
     if (d_ticketsKeyRotationDelay != 0 && now > d_ticketsKeyNextRotation) {
@@ -160,6 +164,13 @@ public:
   {
     if (d_ctx != nullptr) {
       d_ctx->loadTicketsKeys(file);
+    }
+  }
+
+  void loadTicketsKey(const std::string& key)
+  {
+    if (d_ctx != nullptr) {
+      d_ctx->loadTicketsKey(key);
     }
   }
 

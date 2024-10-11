@@ -99,6 +99,11 @@ void DOHFrontend::loadTicketsKeys(const std::string& keyFile)
   return d_tlsContext.loadTicketsKeys(keyFile);
 }
 
+void DOHFrontend::loadTicketsKey(const std::string& key)
+{
+  return d_tlsContext.loadTicketsKey(key);
+}
+
 void DOHFrontend::handleTicketsKeyRotation()
 {
 }

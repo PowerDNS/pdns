@@ -93,6 +93,7 @@ class OpenSSLTLSTicketKey
 public:
   OpenSSLTLSTicketKey();
   OpenSSLTLSTicketKey(std::ifstream& file);
+  OpenSSLTLSTicketKey(const std::string& key);
   ~OpenSSLTLSTicketKey();
 
   bool nameMatches(const unsigned char name[TLS_TICKETS_KEY_NAME_SIZE]) const;
@@ -122,6 +123,7 @@ public:
   std::shared_ptr<OpenSSLTLSTicketKey> getDecryptionKey(unsigned char name[TLS_TICKETS_KEY_NAME_SIZE], bool& activeKey);
   size_t getKeysCount();
   void loadTicketsKeys(const std::string& keyFile);
+  void loadTicketsKey(const std::string& key);
   void rotateTicketsKey(time_t now);
 
 private:
