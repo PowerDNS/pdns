@@ -21,7 +21,6 @@ struct AndSelectorConfig;
 struct NetmaskGroupByNetmasksSelectorConfig;
 struct TCPSelectorConfig;
 
-
 std::shared_ptr<DNSSelector> getSelectorByName(const ::rust::String& name);
 const std::string& getNameFromSelector(const DNSSelector& selector);
 
