@@ -7,7 +7,7 @@
 namespace dnsdist::lua::hooks
 {
 using MaintenanceCallback = std::function<void()>;
-using TicketsKeyAddedHook = std::function<void(const char*, size_t)>;
+using TicketsKeyAddedHook = std::function<void(const std::string&, size_t)>;
 
 static LockGuarded<std::vector<MaintenanceCallback>> s_maintenanceHooks;
 
@@ -35,7 +35,7 @@ static void setTicketsKeyAddedHook(const LuaContext& context, const TicketsKeyAd
   TLSCtx::setTicketsKeyAddedHook([hook](const std::string& key) {
     try {
       auto lua = g_lua.lock();
-      hook(key.c_str(), key.size());
+      hook(key, key.size());
     }
     catch (const std::exception& exp) {
       warnlog("Error calling the Lua hook after new tickets key has been added: %s", exp.what());
