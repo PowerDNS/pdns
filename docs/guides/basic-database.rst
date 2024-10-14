@@ -91,7 +91,9 @@ If we now requery our database, ``www.example.com`` should be present::
 
 If this is not the output you get, remove ``+short`` to see the full output so you can find out what went wrong.
 The first problem could be that PowerDNS has a :ref:`packet-cache` and a :ref:`query-cache` performance reasons.
-If you see old, or no, data right after changing records, wait for :ref:`setting-cache-ttl`, or :ref:`setting-negquery-cache-ttl`, or :ref:`setting-query-cache-ttl`.
+If you see old, or no, data right after changing records, wait for :ref:`setting-cache-ttl`, 
+:ref:`setting-negquery-cache-ttl`, :ref:`setting-query-cache-ttl`, or :ref:`zone-cache-refresh-interval`
+to expire before testing.
 
 Now, run ``pdnsutil edit-zone example.com`` and try to add a few more records, and query them with dig to make sure they work.
 
