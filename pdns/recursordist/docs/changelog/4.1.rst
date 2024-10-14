@@ -933,7 +933,7 @@ See :doc:`EOL Statements <../appendices/EOL>`.
     :tags: Improvements
     :pullreq: 5774
 
-    Add :ref:`experimental metrics <stat-x-our-latency>` that track the time spent inside PowerDNS per query.
+    Add experimental :doc:`../metrics` ``x-our-latency`` that track the time spent inside PowerDNS per query.
     These metrics ignore time spent waiting for the network.
 
   .. change::
