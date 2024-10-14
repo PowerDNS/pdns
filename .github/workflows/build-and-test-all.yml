@@ -252,6 +252,9 @@ jobs:
           path: ~/.ccache
           key: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ matrix.builder}}-ccache-${{ steps.get-stamp.outputs.stamp }}
           restore-keys: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ matrix.builder}}-ccache-
+      - run: inv ci-install-meson
+        if: ${{ matrix.builder == 'meson' }}
+        working-directory: ./pdns/dnsdistdist/
       - run: inv ci-install-rust ${{ env.REPO_HOME }}
         working-directory: ./pdns/dnsdistdist/
       - run: inv ci-build-and-install-quiche ${{ env.REPO_HOME }}
