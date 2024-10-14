@@ -354,6 +354,10 @@ def install_dnsdist_build_deps(c, skipXDP=False):
     install_meson(c)
 
 @task
+def ci_install_meson(c):
+    install_meson(c)
+
+@task
 def ci_autoconf(c, meson=False):
     if not meson:
         c.run('autoreconf -vfi')
