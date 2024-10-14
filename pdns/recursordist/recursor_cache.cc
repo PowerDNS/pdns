@@ -991,7 +991,6 @@ void MemRecursorCache::getRecords(size_t howmany, size_t maxSize, std::string& r
     string buf;
     for (const auto& recordSet : sidx) {
       protozero::pbf_builder<PBCacheEntry> message(full, PBCacheDump::repeated_message_cacheEntry);
-      cerr << "S " << count << ' ' << recordSet.d_qname << ' ' << QType(recordSet.d_qtype) << ' ' << recordSet.d_auth << ' ' << recordSet.d_records.size() << endl;
       // Two fields below must come before the other fields
       message.add_bytes(PBCacheEntry::required_bytes_name, recordSet.d_qname.toString());
       message.add_uint32(PBCacheEntry::required_uint32_qtype, recordSet.d_qtype);

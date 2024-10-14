@@ -504,6 +504,18 @@ void RecursorLua4::postPrepareContext() // NOLINT(readability-function-cognitive
     g_recCache->putRecords(data);
   });
 
+  d_lw->writeFunction("spawnThread", [](const string& scriptName) {
+    auto log = g_slog->withName("lua")->withValues("name", Logging::Loggable(scriptName));
+    log->info(Logr::Info, "Starting Lua thread");
+    std::thread thread([=]() {
+      auto lua = std::make_shared<RecursorLua4>();
+      lua->loadFile(scriptName);
+      log->info(Logr::Notice, "Lua thread exiting");
+    });
+    thread.detach();
+  });
+
+
   if (!d_include_path.empty()) {
     includePath(d_include_path);
   }

@@ -21,3 +21,11 @@ These are some functions that don't really have a place in one of the other cate
   Get a random number.
 
   :param int upper_bound: The upper bound. You will get a random number below this upper bound.
+
+.. function:: spawnThread(script)
+
+   .. versionadded:: 5.2.0
+
+   Spawn a thread.
+
+   :param str script: The pathname of the Lua script to run.

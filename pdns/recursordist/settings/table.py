@@ -3510,4 +3510,16 @@ Sequence of ProxyMapping
         'skip-old' : 'Equivalent Lua config in :doc:`lua-config/proxymapping`',
         'versionadded': '5.1.0',
     },
+    {
+        'name' : 'lua_startup_script',
+        'section' : 'recursor',
+        'type' : LType.String,
+        'default' : '',
+        'help' : 'Custom Lua script to run on startup',
+        'doc' : '''
+Run this Lua script on startup in a separate thread.
+        ''',
+        'skip-old' : 'No equivalent old-style setting',
+        'versionadded': '5.2.0',
+    },
 ]

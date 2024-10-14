@@ -147,6 +147,8 @@ thread_local unsigned int RecThreadInfo::t_id;
 
 pdns::RateLimitedLog g_rateLimitedLogger;
 
+static void runCustomLua(Logr::log_t log);
+
 static std::map<unsigned int, std::set<int>> parseCPUMap(Logr::log_t log)
 {
   std::map<unsigned int, std::set<int>> result;
@@ -805,17 +807,6 @@ static void checkSocketDir(Logr::log_t log)
   SLOG(g_log << Logger::Error << "Problem with socket directory " << dir << ": " << msg << "; see https://docs.powerdns.com/recursor/upgrade.html#x-to-4-3-0" << endl,
        log->error(Logr::Error, msg, "Problem with socket directory, see https://docs.powerdns.com/recursor/upgrade.html#x-to-4-3-0", "dir", Logging::Loggable(dir)));
   _exit(1);
-}
-
-static void setupNatsThread(Logr::log_t log)
-{
-  log->info(Logr::Info, "Starting nats thread");
-  std::thread thread([tid = std::this_thread::get_id(), log]() {
-    auto lua = std::make_shared<RecursorLua4>();
-    lua->loadFile("tmp/natsimpl.lua");
-    log->info(Logr::Info, "Nats thread exited");
-  });
-  thread.detach();
 }
 
 #ifdef NOD_ENABLED
@@ -2387,7 +2378,7 @@ static int serviceMain(Logr::log_t log)
   setupNODThread(log);
 #endif /* NOD_ENABLED */
 
-  setupNatsThread(log);
+  runCustomLua(log);
   
   return RecThreadInfo::runThreads(log);
 }
@@ -3049,6 +3040,22 @@ static pair<int, bool> doConfig(Logr::log_t startupLog, const string& configname
 }
 
 LockGuarded<pdns::rust::settings::rec::Recursorsettings> g_yamlStruct;
+
+static void runCustomLua(Logr::log_t log)
+{
+  auto settings = g_yamlStruct.lock();
+  const auto& script = settings->recursor.lua_startup_script;
+  if (script.empty()) {
+    return;
+  }
+  log->info(Logr::Info, "Starting Custom Lua", "script", Logging::Loggable(script));
+  //std::thread thread([=]() {
+    auto lua = std::make_shared<RecursorLua4>();
+    lua->loadFile(std::string(script));
+    log->info(Logr::Info, "Custom Lua done");
+    //});
+    //thread.detach();
+}
 
 static void handleRuntimeDefaults(Logr::log_t log)
 {
