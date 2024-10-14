@@ -19,8 +19,8 @@ m4_pattern_forbid([^_?PKG_[A-Z_]+$], [*** pkg.m4 missing, please install pkg-con
 LT_PREREQ([2.2.2])
 LT_INIT([disable-static])
 
-CFLAGS="-g -O3 -Wall -Wextra -Wshadow -Wno-unused-parameter -fvisibility=hidden $CFLAGS"
-CXXFLAGS="-g -O3 -Wall -Wextra -Wshadow -Wno-unused-parameter -Wmissing-declarations -Wredundant-decls -fvisibility=hidden $CXXFLAGS"
+CFLAGS="-g -O3 -Wall -Wextra -Wshadow -fvisibility=hidden $CFLAGS"
+CXXFLAGS="-g -O3 -Wall -Wextra -Wshadow -Wmissing-declarations -Wredundant-decls -fvisibility=hidden $CXXFLAGS"
 
 AC_SUBST([pdns_configure_args], ["$ac_configure_args"])
 AC_DEFINE_UNQUOTED([DNSDIST_CONFIG_ARGS],
