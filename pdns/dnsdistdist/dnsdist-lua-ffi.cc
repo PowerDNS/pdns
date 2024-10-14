@@ -729,12 +729,14 @@ static size_t dnsdist_ffi_servers_get_index_from_server(const ServerPolicy::Numb
 
 size_t dnsdist_ffi_servers_list_chashed(const dnsdist_ffi_servers_list_t* list, const dnsdist_ffi_dnsquestion_t* dq, size_t hash)
 {
+  (void)dq;
   auto server = chashedFromHash(list->servers, hash);
   return dnsdist_ffi_servers_get_index_from_server(list->servers, server);
 }
 
 size_t dnsdist_ffi_servers_list_whashed(const dnsdist_ffi_servers_list_t* list, const dnsdist_ffi_dnsquestion_t* dq, size_t hash)
 {
+  (void)dq;
   auto server = whashedFromHash(list->servers, hash);
   return dnsdist_ffi_servers_get_index_from_server(list->servers, server);
 }
@@ -1881,6 +1883,7 @@ void dnsdist_ffi_metric_set(const char* metricName, size_t metricNameLen, double
 
 double dnsdist_ffi_metric_get(const char* metricName, size_t metricNameLen, bool isCounter)
 {
+  (void)isCounter;
   auto result = dnsdist::metrics::getCustomMetric(std::string_view(metricName, metricNameLen), {});
   if (std::get_if<dnsdist::metrics::Error>(&result) != nullptr) {
     return 0.;

@@ -32,6 +32,7 @@ void clearMaintenanceHooks()
 
 static void setTicketsKeyAddedHook(const LuaContext& context, const TicketsKeyAddedHook& hook)
 {
+  (void)context;
   TLSCtx::setTicketsKeyAddedHook([hook](const std::string& key) {
     try {
       auto lua = g_lua.lock();

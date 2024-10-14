@@ -168,6 +168,9 @@ public:
     nghttp2_data_provider dataProvider;
     dataProvider.source.ptr = &data;
     dataProvider.read_callback = [](nghttp2_session* session, int32_t stream_id, uint8_t* buf, size_t length, uint32_t* data_flags, nghttp2_data_source* source, void* user_data) -> ssize_t {
+      (void)session;
+      (void)stream_id;
+      (void)user_data;
       auto buffer = reinterpret_cast<PacketBuffer*>(source->ptr);
       size_t toCopy = 0;
       if (buffer->size() > 0) {
@@ -193,6 +196,7 @@ public:
 
   void submitError(uint32_t streamId, uint16_t status, const std::string& msg)
   {
+    (void)msg;
     const std::string statusStr = std::to_string(status);
     const nghttp2_nv hdrs[] = {{(uint8_t*)":status", (uint8_t*)statusStr.c_str(), sizeof(":status") - 1, statusStr.size(), NGHTTP2_NV_FLAG_NONE}};
 
@@ -215,6 +219,8 @@ public:
 private:
   static ssize_t send_callback(nghttp2_session* session, const uint8_t* data, size_t length, int flags, void* user_data)
   {
+    (void)session;
+    (void)flags;
     DOHConnection* conn = reinterpret_cast<DOHConnection*>(user_data);
     // cerr<<"inserting "<<length<<" bytes into the server output buffer of size "<<conn->d_serverOutBuffer.size()<<endl;
     if (!conn->d_idMapping.empty() && length > 9) {
@@ -240,6 +246,7 @@ private:
 
   static int on_frame_recv_callback(nghttp2_session* session, const nghttp2_frame* frame, void* user_data)
   {
+    (void)session;
     DOHConnection* conn = reinterpret_cast<DOHConnection*>(user_data);
     // cerr<<"Frame type is "<<std::to_string(frame->hd.type)<<endl;
     if ((frame->hd.type == NGHTTP2_HEADERS || frame->hd.type == NGHTTP2_DATA) && frame->hd.flags & NGHTTP2_FLAG_END_STREAM) {
@@ -295,6 +302,8 @@ private:
 
   static int on_data_chunk_recv_callback(nghttp2_session* session, uint8_t flags, int32_t stream_id, const uint8_t* data, size_t len, void* user_data)
   {
+    (void)session;
+    (void)flags;
     DOHConnection* conn = reinterpret_cast<DOHConnection*>(user_data);
     auto& query = conn->d_queries[stream_id];
     query.insert(query.end(), data, data + len);
@@ -303,6 +312,9 @@ private:
 
   static int on_stream_close_callback(nghttp2_session* session, int32_t stream_id, uint32_t error_code, void* user_data)
   {
+    (void)session;
+    (void)stream_id;
+    (void)user_data;
     if (error_code == 0) {
       return 0;
     }
@@ -397,6 +409,8 @@ public:
 
   IOState tryConnect(bool fastOpen, const ComboAddress& remote) override
   {
+    (void)fastOpen;
+    (void)remote;
     auto step = getStep();
     BOOST_REQUIRE_EQUAL(step.request, ExpectedStep::ExpectedRequest::connectToBackend);
 
@@ -441,6 +455,7 @@ public:
 
   void setSession(std::unique_ptr<TLSSession>& session) override
   {
+    (void)session;
   }
 
   std::vector<int> getAsyncFDs() override
@@ -455,15 +470,26 @@ public:
 
   void connect(bool fastOpen, const ComboAddress& remote, const struct timeval& timeout) override
   {
+    (void)fastOpen;
+    (void)remote;
+    (void)timeout;
   }
 
   size_t read(void* buffer, size_t bufferSize, const struct timeval& readTimeout, const struct timeval& totalTimeout = {0, 0}, bool allowIncomplete = false) override
   {
+    (void)buffer;
+    (void)bufferSize;
+    (void)readTimeout;
+    (void)totalTimeout;
+    (void)allowIncomplete;
     return 0;
   }
 
   size_t write(const void* buffer, size_t bufferSize, const struct timeval& writeTimeout) override
   {
+    (void)buffer;
+    (void)bufferSize;
+    (void)writeTimeout;
     return 0;
   }
 
@@ -780,10 +806,12 @@ BOOST_FIXTURE_TEST_CASE(test_ConnectionReuse, TestFixture)
     {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* acknowledge settings */
     {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [&firstQueryDone](int desc) {
+       (void)desc;
        firstQueryDone = true;
      }},
     /* headers */
     {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc) {
+       (void)desc;
      }},
     /* data */
     {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc) {
@@ -794,6 +822,7 @@ BOOST_FIXTURE_TEST_CASE(test_ConnectionReuse, TestFixture)
     {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* later the backend sends a go away frame */
     {ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, std::numeric_limits<size_t>::max(), [](int desc) {
+       (void)desc;
        s_connectionBuffers.at(desc)->submitGoAway();
      }},
     {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
@@ -867,6 +896,7 @@ BOOST_FIXTURE_TEST_CASE(test_InvalidDNSAnswer, TestFixture)
   auto sender = std::make_shared<MockupQuerySender>();
   sender->d_id = counter;
   sender->d_customHandler = [](uint16_t id, const struct timeval&, TCPResponse&& resp) {
+    (void)id;
     BOOST_CHECK_EQUAL(resp.d_buffer.size(), 11U);
     /* simulate an exception, since DoH and UDP frontends will process the query right away,
        while TCP and DoT will first pass it back to the TCP worker thread */
@@ -966,6 +996,7 @@ BOOST_FIXTURE_TEST_CASE(test_TimeoutWhileWriting, TestFixture)
     {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* data */
     {ExpectedStep::ExpectedRequest::writeToBackend, IOState::NeedWrite, std::numeric_limits<size_t>::max(), [&timeout](int desc) {
+       (void)desc;
        timeout = true;
      }},
     {ExpectedStep::ExpectedRequest::closeBackend, IOState::Done},
@@ -1053,6 +1084,7 @@ BOOST_FIXTURE_TEST_CASE(test_TimeoutWhileReading, TestFixture)
     {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* data */
     {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max(), [&timeout](int desc) {
+       (void)desc;
        /* set the timeout flag now, since the timeout occurs while waiting for the descriptor to become readable */
        timeout = true;
      }},
@@ -1717,6 +1749,7 @@ BOOST_FIXTURE_TEST_CASE(test_WrongStreamID, TestFixture)
     {ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, std::numeric_limits<size_t>::max()},
     /* read ends up as a time out since nghttp2 filters the frame with the wrong stream ID */
     {ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0, [&timeout](int desc) {
+       (void)desc;
        /* set the timeout flag now, since the timeout occurs while waiting for the descriptor to become readable */
        timeout = true;
      }},

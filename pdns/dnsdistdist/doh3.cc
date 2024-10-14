@@ -780,7 +780,7 @@ static void processH3HeaderEvent(ClientState& clientState, DOH3Frontend& fronten
   handleImmediateError("Unsupported HTTP method");
 }
 
-static void processH3DataEvent(ClientState& clientState, DOH3Frontend& frontend, H3Connection& conn, const ComboAddress& client, const PacketBuffer& serverConnID, const uint64_t streamID, quiche_h3_event* event, PacketBuffer& buffer)
+static void processH3DataEvent(ClientState& clientState, DOH3Frontend& frontend, H3Connection& conn, const ComboAddress& client, const PacketBuffer& serverConnID, const uint64_t streamID, PacketBuffer& buffer)
 {
   auto handleImmediateError = [&clientState, &frontend, &conn, streamID](const char* msg) {
     DEBUGLOG(msg);
@@ -854,7 +854,7 @@ static void processH3Events(ClientState& clientState, DOH3Frontend& frontend, H3
       break;
     }
     case QUICHE_H3_EVENT_DATA: {
-      processH3DataEvent(clientState, frontend, conn, client, serverConnID, streamID, event, buffer);
+      processH3DataEvent(clientState, frontend, conn, client, serverConnID, streamID, buffer);
       break;
     }
     case QUICHE_H3_EVENT_FINISHED:

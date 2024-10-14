@@ -1310,7 +1310,7 @@ bool checkQueryHeaders(const struct dnsheader& dnsHeader, ClientState& clientSta
 }
 
 #if !defined(DISABLE_RECVMMSG) && defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
-static void queueResponse(const ClientState& clientState, const PacketBuffer& response, const ComboAddress& dest, const ComboAddress& remote, struct mmsghdr& outMsg, struct iovec* iov, cmsgbuf_aligned* cbuf)
+static void queueResponse(const PacketBuffer& response, const ComboAddress& dest, const ComboAddress& remote, struct mmsghdr& outMsg, struct iovec* iov, cmsgbuf_aligned* cbuf)
 {
   outMsg.msg_len = 0;
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast,cppcoreguidelines-pro-type-reinterpret-cast): API
@@ -1579,6 +1579,7 @@ public:
 
   void handleResponse(const struct timeval& now, TCPResponse&& response) override
   {
+    (void)now;
     if (!response.d_ds && !response.d_idstate.selfGenerated) {
       throw std::runtime_error("Passing a cross-protocol answer originated from UDP without a valid downstream");
     }
@@ -1833,7 +1834,7 @@ static void processUDPQuery(ClientState& clientState, const struct msghdr* msgh,
 #ifndef DISABLE_RECVMMSG
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
       if (dnsQuestion.ids.delayMsec == 0 && responsesVect != nullptr) {
-        queueResponse(clientState, query, dest, remote, (*responsesVect)[*queuedResponses], respIOV, respCBuf);
+        queueResponse(query, dest, remote, (*responsesVect)[*queuedResponses], respIOV, respCBuf);
         (*queuedResponses)++;
         handleResponseSent(dnsQuestion.ids.qname, dnsQuestion.ids.qtype, 0., remote, ComboAddress(), query.size(), *dnsHeader, dnsdist::Protocol::DoUDP, dnsdist::Protocol::DoUDP, false);
         return;
@@ -2173,6 +2174,7 @@ static void udpClientThread(std::vector<ClientState*> states)
       }
       else {
         auto callback = [&remote, &msgh, &iov, &packet, &handleOnePacket, initialBufferSize](int socket, FDMultiplexer::funcparam_t& funcparam) {
+          (void)socket;
           const auto* param = boost::any_cast<const UDPStateParam*>(funcparam);
           try {
             remote.sin4.sin_family = param->cs->local.sin4.sin_family;
@@ -2369,7 +2371,7 @@ static void healthChecksThread()
   }
 }
 
-static void bindAny(int addressFamily, int sock)
+static void bindAny([[maybe_unused]] int addressFamily, int sock)
 {
   __attribute__((unused)) int one = 1;
 

@@ -159,17 +159,22 @@ public:
 
   void handleResponse(const struct timeval& now, TCPResponse&& response) override
   {
+    (void)now;
     d_data->d_buffer = std::move(response.d_buffer);
     d_data->d_ds->submitHealthCheckResult(d_data->d_initial, ::handleResponse(d_data));
   }
 
   void handleXFRResponse(const struct timeval& now, TCPResponse&& response) override
   {
+    (void)now;
+    (void)response;
     throw std::runtime_error("Unexpected XFR reponse to a health check query");
   }
 
   void notifyIOError(const struct timeval& now, [[maybe_unused]] TCPResponse&& response) override
   {
+    (void)now;
+    (void)response;
     ++d_data->d_ds->d_healthCheckMetrics.d_networkErrors;
     d_data->d_ds->submitHealthCheckResult(d_data->d_initial, false);
   }
@@ -231,6 +236,7 @@ static void healthCheckUDPCallback(int descriptor, FDMultiplexer::funcparam_t& p
 
 static void healthCheckTCPCallback(int descriptor, FDMultiplexer::funcparam_t& param)
 {
+  (void)descriptor;
   auto data = boost::any_cast<std::shared_ptr<HealthCheckData>>(param);
 
   IOStateGuard ioGuard(data->d_ioState);

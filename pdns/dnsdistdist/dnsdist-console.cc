@@ -886,6 +886,7 @@ extern "C"
 
   static char** dnsdist_completion_callback(const char* text, int start, int end)
   {
+    (void)end;
     char** matches = nullptr;
     if (start == 0) {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast): readline
