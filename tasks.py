@@ -607,8 +607,54 @@ def ci_rec_configure(c, features):
 
 
 @task
-def ci_dnsdist_configure(c, features):
+def ci_dnsdist_configure(c, features, builder, build_dir):
     additional_flags = ''
+    if features == 'least':
+        additional_flags = '-DDISABLE_COMPLETION \
+                            -DDISABLE_DELAY_PIPE \
+                            -DDISABLE_DYNBLOCKS \
+                            -DDISABLE_PROMETHEUS \
+                            -DDISABLE_PROTOBUF \
+                            -DDISABLE_BUILTIN_HTML \
+                            -DDISABLE_CARBON \
+                            -DDISABLE_SECPOLL \
+                            -DDISABLE_DEPRECATED_DYNBLOCK \
+                            -DDISABLE_LUA_WEB_HANDLERS \
+                            -DDISABLE_NON_FFI_DQ_BINDINGS \
+                            -DDISABLE_POLICIES_BINDINGS \
+                            -DDISABLE_PACKETCACHE_BINDINGS \
+                            -DDISABLE_DOWNSTREAM_BINDINGS \
+                            -DDISABLE_COMBO_ADDR_BINDINGS \
+                            -DDISABLE_CLIENT_STATE_BINDINGS \
+                            -DDISABLE_QPS_LIMITER_BINDINGS \
+                            -DDISABLE_SUFFIX_MATCH_BINDINGS \
+                            -DDISABLE_NETMASK_BINDINGS \
+                            -DDISABLE_DNSNAME_BINDINGS \
+                            -DDISABLE_DNSHEADER_BINDINGS \
+                            -DDISABLE_RECVMMSG \
+                            -DDISABLE_WEB_CACHE_MANAGEMENT \
+                            -DDISABLE_WEB_CONFIG \
+                            -DDISABLE_RULES_ALTERING_QUERIES \
+                            -DDISABLE_ECS_ACTIONS \
+                            -DDISABLE_TOP_N_BINDINGS \
+                            -DDISABLE_OCSP_STAPLING \
+                            -DDISABLE_HASHED_CREDENTIALS \
+                            -DDISABLE_FALSE_SHARING_PADDING \
+                            -DDISABLE_NPN'
+
+    if builder == 'meson':
+        cmd = ci_dnsdist_configure_meson(features, additional_flags, build_dir)
+        logfile = 'meson-logs/meson-log.txt'
+    else:
+        cmd = ci_dnsdist_configure_autotools(features, additional_flags, build_dir)
+        logfile = 'config.log'
+
+    res = c.run(cmd, warn=True)
+    if res.exited != 0:
+        c.run(f'cat {logfile}')
+        raise UnexpectedExit(res)
+
+def ci_dnsdist_configure_autotools(features, additional_flags):
     if features == 'full':
       features_set = '--enable-dnstap \
                       --enable-dnscrypt \
@@ -641,41 +687,10 @@ def ci_dnsdist_configure(c, features):
                       --without-net-snmp \
                       --without-nghttp2 \
                       --without-re2'
-      additional_flags = '-DDISABLE_COMPLETION \
-                          -DDISABLE_DELAY_PIPE \
-                          -DDISABLE_DYNBLOCKS \
-                          -DDISABLE_PROMETHEUS \
-                          -DDISABLE_PROTOBUF \
-                          -DDISABLE_BUILTIN_HTML \
-                          -DDISABLE_CARBON \
-                          -DDISABLE_SECPOLL \
-                          -DDISABLE_DEPRECATED_DYNBLOCK \
-                          -DDISABLE_LUA_WEB_HANDLERS \
-                          -DDISABLE_NON_FFI_DQ_BINDINGS \
-                          -DDISABLE_POLICIES_BINDINGS \
-                          -DDISABLE_PACKETCACHE_BINDINGS \
-                          -DDISABLE_DOWNSTREAM_BINDINGS \
-                          -DDISABLE_COMBO_ADDR_BINDINGS \
-                          -DDISABLE_CLIENT_STATE_BINDINGS \
-                          -DDISABLE_QPS_LIMITER_BINDINGS \
-                          -DDISABLE_SUFFIX_MATCH_BINDINGS \
-                          -DDISABLE_NETMASK_BINDINGS \
-                          -DDISABLE_DNSNAME_BINDINGS \
-                          -DDISABLE_DNSHEADER_BINDINGS \
-                          -DDISABLE_RECVMMSG \
-                          -DDISABLE_WEB_CACHE_MANAGEMENT \
-                          -DDISABLE_WEB_CONFIG \
-                          -DDISABLE_RULES_ALTERING_QUERIES \
-                          -DDISABLE_ECS_ACTIONS \
-                          -DDISABLE_TOP_N_BINDINGS \
-                          -DDISABLE_OCSP_STAPLING \
-                          -DDISABLE_HASHED_CREDENTIALS \
-                          -DDISABLE_FALSE_SHARING_PADDING \
-                          -DDISABLE_NPN'
     unittests = get_unit_tests()
     fuzztargets = get_fuzzing_targets()
     tools = f'''AR=llvm-ar-{clang_version} RANLIB=llvm-ranlib-{clang_version}''' if is_compiler_clang() else ''
-    configure_cmd = " ".join([
+    return " ".join([
         tools,
         get_base_configure_cmd(additional_c_flags='', additional_cxx_flags=additional_flags, enable_systemd=False, enable_sodium=False),
         features_set,
@@ -685,10 +700,71 @@ def ci_dnsdist_configure(c, features):
         '--prefix=/opt/dnsdist'
     ])
 
-    res = c.run(configure_cmd, warn=True)
-    if res.exited != 0:
-        c.run('cat config.log')
-        raise UnexpectedExit(res)
+def ci_dnsdist_configure_meson(features, additional_flags, build_dir):
+    if features == 'full':
+      features_set = '-D cdb=enabled \
+                      -D dnscrypt=enabled \
+                      -D dnstap=enabled \
+                      -D ebpf=enabled \
+                      -D h2o=enabled \
+                      -D ipcipher=enabled \
+                      -D libedit=enabled \
+                      -D libsodium=enabled \
+                      -D lmdb=enabled \
+                      -D nghttp2=enabled \
+                      -D re2=enabled \
+                      -D systemd=enabled \
+                      -D tls-gnutls=enabled \
+                      -D dns-over-https=true \
+                      -D dns-over-http3=true \
+                      -D dns-over-quic=true \
+                      -D dns-over-tls=true \
+                      -D fuzz-targets=true \
+                      -D reproducible=true \
+                      -D snmp=true \
+                      -D unit-tests=true'
+    else:
+      features_set = '-D cdb=disabled \
+                      -D dnscrypt=disabled \
+                      -D dnstap=disabled \
+                      -D ebpf=disabled \
+                      -D h2o=disabled \
+                      -D ipcipher=disabled \
+                      -D libedit=disabled \
+                      -D libsodium=disabled \
+                      -D lmdb=disabled \
+                      -D nghttp2=disabled \
+                      -D re2=disabled \
+                      -D systemd=disabled \
+                      -D tls-gnutls=disabled \
+                      -D dns-over-https=false \
+                      -D dns-over-http3=false \
+                      -D dns-over-quic=false \
+                      -D dns-over-tls=false \
+                      -D fuzz-targets=false \
+                      -D reproducible=false \
+                      -D snmp=false \
+                      -D unit-tests=false'
+    unittests = get_unit_tests()
+    fuzztargets = get_fuzzing_targets()
+    tools = f'''AR=llvm-ar-{clang_version} RANLIB=llvm-ranlib-{clang_version}''' if is_compiler_clang() else ''
+    cflags = " ".join([get_cflags()])
+    cxxflags = " ".join([get_cxxflags(), additional_flags])
+    return " ".join([
+        tools,
+        f'CFLAGS="{cflags}"',
+        f'CXXFLAGS="{cxxflags}"',
+        f"CC='{get_c_compiler()}'",
+        f"CXX='{get_cxx_compiler()}'",
+        unittests,
+        fuzztargets,
+        f'meson setup {build_dir}',
+        features_set,
+        "-D hardening-fortify-source=auto",
+        "-D auto-var-init=pattern",
+        get_coverage(meson=True),
+        get_sanitizers(meson=True)
+    ])
 
 @task
 def ci_auth_make(c):
@@ -721,8 +797,14 @@ def ci_rec_make_bear(c):
 def ci_dnsdist_make(c):
     c.run(f'make -j{get_build_concurrency(4)} -k V=1')
 
+def ci_dnsdist_run_ninja():
+    c.run(f'ninja -j{get_build_concurrency(4)} --verbose')
+
 @task
-def ci_dnsdist_make_bear(c):
+def ci_dnsdist_make_bear(c, builder):
+    if builder == 'meson':
+        return ci_dnsdist_run_ninja()
+
     # Assumed to be running under ./pdns/dnsdistdist/
     c.run(f'bear --append -- make -j{get_build_concurrency(4)} -k V=1')
 
@@ -752,10 +834,16 @@ def ci_rec_run_unit_tests(c):
       raise UnexpectedExit(res)
 
 @task
-def ci_dnsdist_run_unit_tests(c):
-    res = c.run('make check', warn=True)
+def ci_dnsdist_run_unit_tests(c, builder):
+    if builder == 'meson':
+        suite_timeout_sec = 120
+        logfile = 'meson-logs/testlog.txt'
+        res = c.run(f'meson test --verbose -t {suite_timeout_sec}', warn=True)
+    else:
+        logfile = 'test-suite.log'
+        res = c.run('make check', warn=True)
     if res.exited != 0:
-      c.run('cat test-suite.log')
+      c.run(f'cat {logfile}', warn=True)
       raise UnexpectedExit(res)
 
 @task
