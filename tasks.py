@@ -646,7 +646,7 @@ def ci_dnsdist_configure(c, features, builder, build_dir):
         cmd = ci_dnsdist_configure_meson(features, additional_flags, build_dir)
         logfile = 'meson-logs/meson-log.txt'
     else:
-        cmd = ci_dnsdist_configure_autotools(features, additional_flags, build_dir)
+        cmd = ci_dnsdist_configure_autotools(features, additional_flags)
         logfile = 'config.log'
 
     res = c.run(cmd, warn=True)
@@ -719,10 +719,8 @@ def ci_dnsdist_configure_meson(features, additional_flags, build_dir):
                       -D dns-over-http3=true \
                       -D dns-over-quic=true \
                       -D dns-over-tls=true \
-                      -D fuzz-targets=true \
                       -D reproducible=true \
-                      -D snmp=true \
-                      -D unit-tests=true'
+                      -D snmp=true'
     else:
       features_set = '-D cdb=disabled \
                       -D dnscrypt=disabled \
@@ -741,12 +739,10 @@ def ci_dnsdist_configure_meson(features, additional_flags, build_dir):
                       -D dns-over-http3=false \
                       -D dns-over-quic=false \
                       -D dns-over-tls=false \
-                      -D fuzz-targets=false \
                       -D reproducible=false \
-                      -D snmp=false \
-                      -D unit-tests=false'
-    unittests = get_unit_tests()
-    fuzztargets = get_fuzzing_targets()
+                      -D snmp=false'
+    unittests = get_unit_tests(meson=True)
+    fuzztargets = get_fuzzing_targets(meson=True)
     tools = f'''AR=llvm-ar-{clang_version} RANLIB=llvm-ranlib-{clang_version}''' if is_compiler_clang() else ''
     cflags = " ".join([get_cflags()])
     cxxflags = " ".join([get_cxxflags(), additional_flags])
@@ -756,10 +752,10 @@ def ci_dnsdist_configure_meson(features, additional_flags, build_dir):
         f'CXXFLAGS="{cxxflags}"',
         f"CC='{get_c_compiler()}'",
         f"CXX='{get_cxx_compiler()}'",
-        unittests,
-        fuzztargets,
         f'meson setup {build_dir}',
         features_set,
+        unittests,
+        fuzztargets,
         "-D hardening-fortify-source=auto",
         "-D auto-var-init=pattern",
         get_coverage(meson=True),
