@@ -165,6 +165,7 @@ public:
   }
   virtual std::unique_ptr<DOHUnitInterface> getDOHUnit(uint32_t streamID)
   {
+    (void)streamID;
     throw std::runtime_error("Getting a DOHUnit state from a generic TCP/DoT connection is not supported");
   }
   virtual void restoreDOHUnit(std::unique_ptr<DOHUnitInterface>&&)

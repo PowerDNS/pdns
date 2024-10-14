@@ -480,6 +480,8 @@ void IncomingHTTP2Connection::writeToSocket(bool socketReady)
 
 ssize_t IncomingHTTP2Connection::send_callback(nghttp2_session* session, const uint8_t* data, size_t length, int flags, void* user_data)
 {
+  (void)session;
+  (void)flags;
   auto* conn = static_cast<IncomingHTTP2Connection*>(user_data);
   if (conn->d_connectionDied) {
     return static_cast<ssize_t>(length);
@@ -550,6 +552,7 @@ void NGHTTP2Headers::addDynamicHeader(std::vector<nghttp2_nv>& headers, NGHTTP2H
 
 IOState IncomingHTTP2Connection::sendResponse(const struct timeval& now, TCPResponse&& response)
 {
+  (void)now;
   if (response.d_idstate.d_streamID == -1) {
     throw std::runtime_error("Invalid DoH stream ID while sending response");
   }
@@ -601,6 +604,7 @@ bool IncomingHTTP2Connection::sendResponse(IncomingHTTP2Connection::StreamID str
 
   data_provider.source.ptr = this;
   data_provider.read_callback = [](nghttp2_session*, IncomingHTTP2Connection::StreamID stream_id, uint8_t* buf, size_t length, uint32_t* data_flags, nghttp2_data_source* source, void* cb_data) -> ssize_t {
+    (void)source;
     auto* connection = static_cast<IncomingHTTP2Connection*>(cb_data);
     auto& obj = connection->d_currentStreams.at(stream_id);
     size_t toCopy = 0;
@@ -907,6 +911,7 @@ void IncomingHTTP2Connection::handleIncomingQuery(IncomingHTTP2Connection::Pendi
 
 int IncomingHTTP2Connection::on_frame_recv_callback(nghttp2_session* session, const nghttp2_frame* frame, void* user_data)
 {
+  (void)session;
   auto* conn = static_cast<IncomingHTTP2Connection*>(user_data);
   /* is this the last frame for this stream? */
   if ((frame->hd.type == NGHTTP2_HEADERS || frame->hd.type == NGHTTP2_DATA) && (frame->hd.flags & NGHTTP2_FLAG_END_STREAM) != 0) {
@@ -929,6 +934,8 @@ int IncomingHTTP2Connection::on_frame_recv_callback(nghttp2_session* session, co
 
 int IncomingHTTP2Connection::on_stream_close_callback(nghttp2_session* session, IncomingHTTP2Connection::StreamID stream_id, uint32_t error_code, void* user_data)
 {
+  (void)session;
+  (void)error_code;
   auto* conn = static_cast<IncomingHTTP2Connection*>(user_data);
 
   conn->d_currentStreams.erase(stream_id);
@@ -937,6 +944,7 @@ int IncomingHTTP2Connection::on_stream_close_callback(nghttp2_session* session, 
 
 int IncomingHTTP2Connection::on_begin_headers_callback(nghttp2_session* session, const nghttp2_frame* frame, void* user_data)
 {
+  (void)session;
   if (frame->hd.type != NGHTTP2_HEADERS || frame->headers.cat != NGHTTP2_HCAT_REQUEST) {
     return 0;
   }
@@ -973,6 +981,8 @@ static std::string::size_type getLengthOfPathWithoutParameters(const std::string
 
 int IncomingHTTP2Connection::on_header_callback(nghttp2_session* session, const nghttp2_frame* frame, const uint8_t* name, size_t nameLen, const uint8_t* value, size_t valuelen, uint8_t flags, void* user_data)
 {
+  (void)session;
+  (void)flags;
   auto* conn = static_cast<IncomingHTTP2Connection*>(user_data);
 
   if (frame->hd.type == NGHTTP2_HEADERS && frame->headers.cat == NGHTTP2_HCAT_REQUEST) {
@@ -1054,6 +1064,8 @@ int IncomingHTTP2Connection::on_header_callback(nghttp2_session* session, const 
 
 int IncomingHTTP2Connection::on_data_chunk_recv_callback(nghttp2_session* session, uint8_t flags, IncomingHTTP2Connection::StreamID stream_id, const uint8_t* data, size_t len, void* user_data)
 {
+  (void)session;
+  (void)flags;
   auto* conn = static_cast<IncomingHTTP2Connection*>(user_data);
   auto stream = conn->d_currentStreams.find(stream_id);
   if (stream == conn->d_currentStreams.end()) {
@@ -1073,9 +1085,10 @@ int IncomingHTTP2Connection::on_data_chunk_recv_callback(nghttp2_session* sessio
 
 int IncomingHTTP2Connection::on_error_callback(nghttp2_session* session, int lib_error_code, const char* msg, size_t len, void* user_data)
 {
+  (void)session;
   auto* conn = static_cast<IncomingHTTP2Connection*>(user_data);
 
-  vinfolog("Error in HTTP/2 connection from %d: %s", conn->d_ci.remote.toStringWithPort(), std::string(msg, len));
+  vinfolog("Error in HTTP/2 connection from %s: %s (%d)", conn->d_ci.remote.toStringWithPort(), std::string(msg, len), lib_error_code);
   conn->d_connectionClosing = true;
   conn->d_needFlush = true;
   nghttp2_session_terminate_session(conn->d_session.get(), NGHTTP2_NO_ERROR);
