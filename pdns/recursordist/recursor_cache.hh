@@ -64,7 +64,7 @@ public:
   [[nodiscard]] pair<uint64_t, uint64_t> stats();
   [[nodiscard]] size_t ecsIndexSize();
 
-  void getRecords(size_t howmany, std::string& ret);
+  void getRecords(size_t howmany, size_t maxsize, std::string& ret);
   void putRecords(const std::string& pbuf);
 
   using OptTag = boost::optional<std::string>;
@@ -154,7 +154,8 @@ private:
     bool d_tooBig{false};
   };
 
-  void replace(CacheEntry&& entry);
+  bool replace(CacheEntry&& entry);
+  template <typename T> bool putRecord(T&);
 
   /* The ECS Index (d_ecsIndex) keeps track of whether there is any ECS-specific
      entry for a given (qname,qtype) entry in the cache (d_map), and if so
