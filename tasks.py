@@ -345,6 +345,7 @@ def install_rec_build_deps(c):
 @task(optional=['skipXDP'])
 def install_dnsdist_build_deps(c, skipXDP=False):
     c.sudo('apt-get install -y --no-install-recommends ' +  ' '.join(all_build_deps + git_build_deps + dnsdist_build_deps + (dnsdist_xdp_build_deps if not skipXDP else [])))
+    install_meson(c)
 
 @task
 def ci_autoconf(c, meson=False):
@@ -752,7 +753,7 @@ def ci_dnsdist_configure_meson(features, additional_flags, build_dir):
         f'CXXFLAGS="{cxxflags}"',
         f"CC='{get_c_compiler()}'",
         f"CXX='{get_cxx_compiler()}'",
-        f'meson setup {build_dir}',
+        f'. {repo_home}/.venv/bin/activate && meson setup {build_dir}',
         features_set,
         unittests,
         fuzztargets,
@@ -794,7 +795,7 @@ def ci_dnsdist_make(c):
     c.run(f'make -j{get_build_concurrency(4)} -k V=1')
 
 def ci_dnsdist_run_ninja():
-    c.run(f'ninja -j{get_build_concurrency(4)} --verbose')
+    c.run(f'. {repo_home}/.venv/bin/activate && ninja -j{get_build_concurrency()} --verbose')
 
 @task
 def ci_dnsdist_make_bear(c, builder):
@@ -834,7 +835,7 @@ def ci_dnsdist_run_unit_tests(c, builder):
     if builder == 'meson':
         suite_timeout_sec = 120
         logfile = 'meson-logs/testlog.txt'
-        res = c.run(f'meson test --verbose -t {suite_timeout_sec}', warn=True)
+        res = c.run(f'. {repo_home}/.venv/bin/activate && meson test --verbose -t {suite_timeout_sec}', warn=True)
     else:
         logfile = 'test-suite.log'
         res = c.run('make check', warn=True)
