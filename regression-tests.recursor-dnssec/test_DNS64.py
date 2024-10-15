@@ -7,6 +7,7 @@ class DNS64RecursorTest(RecursorTest):
 
     _confdir = 'DNS64'
     _config_template = """
+    serve-rfc6303=no
     auth-zones=example.dns64=configs/%s/example.dns64.zone
     auth-zones+=in-addr.arpa=configs/%s/in-addr.arpa.zone
     auth-zones+=ip6.arpa=configs/%s/ip6.arpa.zone
