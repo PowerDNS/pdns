@@ -97,6 +97,8 @@ subdir('ext' / 'yahttp')
 
 if get_option('lmdb').allowed()
   subdir('ext' / 'lmdb-safe')
+else
+  dep_lmdb_safe = declare_dependency()
 endif
 
 common_sources += files(
