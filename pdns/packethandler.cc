@@ -70,6 +70,7 @@ PacketHandler::PacketHandler():B(g_programname), d_dk(&B)
   ++s_count;
   d_doDNAME=::arg().mustDo("dname-processing");
   d_doExpandALIAS = ::arg().mustDo("expand-alias");
+  d_doResolveAcrossZones = ::arg().mustDo("resolve-across-zones");
   d_logDNSDetails= ::arg().mustDo("log-dns-details");
   string fname= ::arg()["lua-prequery-script"];
 
@@ -1516,6 +1517,12 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
       return r;
     }
 
+    if (retargetcount > 0 && !d_doResolveAcrossZones && !target.isPartOf(r->qdomainzone)) {
+      // We are following a retarget outside the initial zone (and do not need to check getAuth to know this). Config asked us not to do that.
+      // This is a performance optimization, the generic case is checked after getAuth below.
+      goto sendit;  // NOLINT(cppcoreguidelines-avoid-goto)
+    }
+
     if(!B.getAuth(target, p.qtype, &d_sd)) {
       DLOG(g_log<<Logger::Error<<"We have no authority over zone '"<<target<<"'"<<endl);
       if(!retargetcount) {
@@ -1526,11 +1533,16 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
     }
     DLOG(g_log<<Logger::Error<<"We have authority, zone='"<<d_sd.qname<<"', id="<<d_sd.domain_id<<endl);
 
+    if (retargetcount == 0) {
+      r->qdomainzone = d_sd.qname;
+    } else if (!d_doResolveAcrossZones && r->qdomainzone != d_sd.qname) {
+      // We are following a retarget outside the initial zone. Config asked us not to do that.
+      goto sendit;  // NOLINT(cppcoreguidelines-avoid-goto)
+    }
+
     authSet.insert(d_sd.qname);
     d_dnssec=(p.d_dnssecOk && d_dk.isSecuredZone(d_sd.qname));
     doSigs |= d_dnssec;
-
-    if(!retargetcount) r->qdomainzone=d_sd.qname;
 
     if(d_sd.qname==p.qdomain) {
       if(!d_dk.isPresigned(d_sd.qname)) {
