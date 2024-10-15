@@ -139,7 +139,7 @@ jobs:
     needs: get-runner-container-image
     strategy:
       matrix:
-        sanitizers: [ubsan+asan, tsan]
+        sanitizers: [asan+ubsan, tsan]
         features: [least, full]
         exclude:
           - sanitizers: tsan
@@ -214,7 +214,7 @@ jobs:
     strategy:
       matrix:
         builder: [autotools, meson]
-        sanitizers: [ubsan+asan, tsan]
+        sanitizers: [asan+ubsan, tsan]
         features: [least, full]
         exclude:
           - sanitizers: tsan
@@ -532,7 +532,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        sanitizers: [ubsan+asan, tsan]
+        sanitizers: [asan+ubsan, tsan]
         dist_name: [debian]
         pdns_repo_version: ['48']
     container:
@@ -578,7 +578,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        sanitizers: [ubsan+asan, tsan]
+        sanitizers: [asan+ubsan, tsan]
         dist_name: [debian]
         pdns_repo_version: ['48']
     container:
@@ -627,7 +627,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        sanitizers: [ubsan+asan, tsan]
+        sanitizers: [asan+ubsan, tsan]
         threads: [1, 2, 3, 4, 8]
         mthreads: [2048]
         shards: [1, 2, 1024]
@@ -672,7 +672,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        sanitizers: [ubsan+asan, tsan]
+        sanitizers: [asan+ubsan, tsan]
     container:
       image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
