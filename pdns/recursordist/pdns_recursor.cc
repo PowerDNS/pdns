@@ -308,12 +308,12 @@ LWResult::Result asendto(const void* data, size_t len, int /* flags */,
         *fileDesc = -1; // gets used in waitEvent / sendEvent later on
         auto currentChainSize = chain.first->key->authReqChain.size();
         if (g_maxChainLength > 0 && currentChainSize >= g_maxChainLength) {
-          return LWResult::Result::OSLimitError;
+          return LWResult::Result::ChainLimitError;
         }
         assert(uSec(chain.first->key->creationTime) != 0); // NOLINT
         auto age = now - chain.first->key->creationTime;
         if (uSec(age) > static_cast<uint64_t>(1000) * authWaitTimeMSec(g_multiTasker) * 2 / 3) {
-          return LWResult::Result::OSLimitError;
+          return LWResult::Result::ChainLimitError;
         }
         chain.first->key->authReqChain.insert(qid); // we can chain
         auto maxLength = t_Counters.at(rec::Counter::maxChainLength);

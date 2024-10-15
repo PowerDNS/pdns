@@ -205,6 +205,7 @@ static const oid10 nodEventsOID = {RECURSOR_STATS_OID, 147};
 static const oid10 udrEventsOID = {RECURSOR_STATS_OID, 148};
 static const oid10 maxChainLengthOID = {RECURSOR_STATS_OID, 149};
 static const oid10 maxChainWeightOID = {RECURSOR_STATS_OID, 150};
+static const oid10 chainLimitsOID = {RECURSOR_STATS_OID, 151};
 
 static std::unordered_map<oid, std::string> s_statsMap;
 
@@ -435,6 +436,7 @@ RecursorSNMPAgent::RecursorSNMPAgent(const std::string& name, const std::string&
   registerCounter64Stat("non-resolving-nameserver-entries", nonResolvingNameserverEntriesOID);
   registerCounter64Stat("maintenance-usec", maintenanceUSecOID);
   registerCounter64Stat("maintenance-calls", maintenanceCallsOID);
+  registerCounter64Stat("chain-limits", chainLimitsOID);
 
 #define RCODE(num) registerCounter64Stat("auth-" + RCode::to_short_s(num) + "-answers", rcode##num##AnswersOID) // NOLINT(cppcoreguidelines-macro-usage)
   RCODE(0);

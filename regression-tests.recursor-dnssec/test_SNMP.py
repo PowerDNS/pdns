@@ -21,7 +21,7 @@ class TestSNMP(RecursorTest):
     """
 
     def _checkStatsValues(self, results):
-        count = 150
+        count = 151
         for i in list(range(1, count)):
             oid = self._snmpOID + '.1.' + str(i) + '.0'
             self.assertTrue(oid in results)

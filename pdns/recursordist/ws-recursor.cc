@@ -1257,6 +1257,10 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::d_metrics
   {"max-chain-weight",
    MetricDefinition(PrometheusMetricType::counter,
                     "Maximum chain weight")},
+
+  {"chain-limits",
+   MetricDefinition(PrometheusMetricType::counter,
+                    "Chain limits reached")},
 };
 
 constexpr bool CHECK_PROMETHEUS_METRICS = false;

@@ -98,6 +98,7 @@ enum class Counter : uint8_t
   udrCount,
   maxChainLength,
   maxChainWeight,
+  chainLimits,
 
   numberOfCounters
 };
