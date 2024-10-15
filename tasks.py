@@ -402,11 +402,22 @@ def ci_docs_add_ssh(c, ssh_key, host_key):
 def get_sanitizers(meson=False):
     sanitizers = os.getenv('SANITIZERS', '')
     if meson:
-        if sanitizers == 'ubsan+asan':
-            sanitizers='address,undefined'
-        if sanitizers == 'tsan':
-            sanitizers='thread'
-        return f'-D b_sanitize={sanitizers}' if sanitizers != '' else ''
+        subst = {
+            'tsan': 'thread',
+            'asan': 'address',
+            'ubsan': 'undefined'
+        }
+        meson_sanitizers = ''
+        sanitizers = sanitizers.split('+')
+        for sanitizer in sanitizers:
+            if sanitizer in subst:
+                if meson_sanitizers != '':
+                    meson_sanitizers = meson_sanitizers + ','
+                meson_sanitizers = meson_sanitizers + subst[sanitizer]
+            else:
+                meson_sanitizers = meson_sanitizers + sanitizer
+
+        return f'-D b_sanitize={meson_sanitizers}' if meson_sanitizers != '' else ''
     if sanitizers != '':
         sanitizers = sanitizers.split('+')
         sanitizers = ['--enable-' + sanitizer for sanitizer in sanitizers]
