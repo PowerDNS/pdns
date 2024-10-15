@@ -199,7 +199,6 @@ def install_doc_deps(c):
 def install_doc_deps_pdf(c):
     c.sudo('apt-get install -y ' + ' '.join(doc_deps_pdf))
 
-@task
 def install_meson(c):
     c.run(f'python3 -m venv {repo_home}/.venv')
     c.run(f'. {repo_home}/.venv/bin/activate && pip install -r {repo_home}/meson/requirements.txt')
@@ -346,6 +345,10 @@ def install_rec_build_deps(c):
 @task(optional=['skipXDP'])
 def install_dnsdist_build_deps(c, skipXDP=False):
     c.sudo('apt-get install -y --no-install-recommends ' +  ' '.join(all_build_deps + git_build_deps + dnsdist_build_deps + (dnsdist_xdp_build_deps if not skipXDP else [])))
+    install_meson(c)
+
+@task
+def ci_install_meson(c):
     install_meson(c)
 
 @task
