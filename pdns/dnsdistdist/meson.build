@@ -361,7 +361,7 @@ if not fs.is_file(libdnsdist_dnslabeltext_gen)
   summary('Ragel', ragel.found(), bool_yn: ragel.found(), section: 'DNS Labels')
   summary('Ragel Path', ragel.full_path(), section: 'DNS Labels')
   summary('Ragel Version', ragel.version(), section: 'DNS Labels')
-<
+
   ragel_generator = generator(
     ragel,
     output: '@BASENAME@.cc',
