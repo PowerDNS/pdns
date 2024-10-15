@@ -432,7 +432,6 @@ if get_option('fuzz-targets')
          'main': src_dir / 'fuzz_xsk.cc',
          'link-args': fuzzer_ldflags,
          'files-extra': fuzz_extra_sources + [
-           src_dir / 'dnslabeltext.cc',
            src_dir / 'dnsname.cc',
            src_dir / 'gettime.cc',
            src_dir / 'iputils.cc',
