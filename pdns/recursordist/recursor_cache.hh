@@ -26,7 +26,6 @@
 #include "qtype.hh"
 #include "misc.hh"
 #include "dnsname.hh"
-#include <iostream>
 #include "dnsrecords.hh"
 #include <boost/utility.hpp>
 #include <boost/multi_index_container.hpp>
@@ -116,7 +115,6 @@ private:
     {
     }
 
-
     using records_t = vector<std::shared_ptr<const DNSRecordContent>>;
 
     bool isStale(time_t now) const
@@ -155,7 +153,11 @@ private:
   };
 
   bool replace(CacheEntry&& entry);
-  template <typename T> bool putRecord(T&);
+  // Using templates to avoid exposing protozero types in this header file
+  template <typename T>
+  bool putRecord(T&);
+  template <typename T, typename U>
+  void getRecord(T&, U);
 
   /* The ECS Index (d_ecsIndex) keeps track of whether there is any ECS-specific
      entry for a given (qname,qtype) entry in the cache (d_map), and if so

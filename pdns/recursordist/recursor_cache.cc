@@ -1,20 +1,39 @@
-#ifdef HAVE_CONFIG_H
+/*
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+
 #include "config.h"
-#endif
 
 #include <cinttypes>
+#include <protozero/pbf_builder.hpp>
+#include <protozero/pbf_message.hpp>
 
 #include "recursor_cache.hh"
 #include "misc.hh"
-#include <iostream>
 #include "dnsrecords.hh"
 #include "syncres.hh"
 #include "namespaces.hh"
 #include "cachecleaner.hh"
 #include "rec-taskqueue.hh"
 #include "version.hh"
-#include <protozero/pbf_builder.hpp>
-#include <protozero/pbf_message.hpp>
 
 /*
  * SERVE-STALE: the general approach
@@ -882,7 +901,8 @@ enum class PBCacheDump : protozero::pbf_tag_type
   required_string_identity = 2,
   required_uint64_protocolVersion = 3,
   required_int64_time = 4,
-  repeated_message_cacheEntry = 5,
+  required_string_type = 5,
+  repeated_message_cacheEntry = 6,
 };
 
 enum class PBCacheEntry : protozero::pbf_tag_type
@@ -935,6 +955,9 @@ static void encodeComboAddress(protozero::pbf_builder<T>& writer, T type, const 
   else if (address.sin4.sin_family == AF_INET6) {
     message.add_bytes(PBComboAddress::required_bytes_address, reinterpret_cast<const char*>(&address.sin6.sin6_addr.s6_addr), sizeof(address.sin6.sin6_addr)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast): it's the API
   }
+  else {
+    assert(0);
+  }
 }
 
 template <typename T>
@@ -947,10 +970,16 @@ static void decodeComboAddress(protozero::pbf_message<T>& reader, ComboAddress& 
   if (message.next(PBComboAddress::required_uint32_port)) {
     address.setPort(message.get_uint32());
   }
+  else {
+    assert(0);
+  }
   if (message.next(PBComboAddress::required_bytes_address)) {
     auto data = message.get_bytes();
     address.sin4.sin_family = data.size() == 4 ? AF_INET : AF_INET6;
     memcpy(&address.sin4.sin_addr, data.data(), data.size());
+  }
+  else {
+    assert(0);
   }
 }
 
@@ -969,9 +998,46 @@ static void decodeNetmask(protozero::pbf_message<T>& message, Netmask& subnet)
   memcpy(&subnet, data.data(), data.size());
 }
 
-void MemRecursorCache::getRecords(size_t howmany, size_t maxSize, std::string& ret)
+template <typename T, typename U>
+void MemRecursorCache::getRecord(T& message, U recordSet)
 {
-  auto log = g_slog->withName("recordcache")->withValues("howmany", Logging::Loggable(howmany), "maxSize", Logging::Loggable(maxSize));
+  // Two fields below must come before the other fields
+  message.add_bytes(PBCacheEntry::required_bytes_name, recordSet->d_qname.toString());
+  message.add_uint32(PBCacheEntry::required_uint32_qtype, recordSet->d_qtype);
+  for (const auto& record : recordSet->d_records) {
+    message.add_bytes(PBCacheEntry::repeated_bytes_record, record->serialize(recordSet->d_qname, true));
+  }
+  for (const auto& record : recordSet->d_signatures) {
+    message.add_bytes(PBCacheEntry::repeated_bytes_sig, record->serialize(recordSet->d_qname, true));
+  }
+  for (const auto& authRec : recordSet->d_authorityRecs) {
+    protozero::pbf_builder<PBAuthRecord> auth(message, PBCacheEntry::repeated_message_authRecord);
+    auth.add_bytes(PBAuthRecord::required_bytes_name, authRec->d_name.toString());
+    auth.add_bytes(PBAuthRecord::required_bytes_rdata, authRec->getContent()->serialize(authRec->d_name, true));
+    auth.add_uint32(PBAuthRecord::required_uint32_type, authRec->d_type);
+    auth.add_uint32(PBAuthRecord::required_uint32_class, authRec->d_class);
+    auth.add_uint32(PBAuthRecord::required_uint32_ttl, authRec->d_ttl);
+    auth.add_uint32(PBAuthRecord::required_uint32_place, authRec->d_place);
+    auth.add_uint32(PBAuthRecord::required_uint32_clen, authRec->d_clen);
+  }
+  message.add_bytes(PBCacheEntry::required_bytes_authZone, recordSet->d_authZone.toString());
+  encodeComboAddress(message, PBCacheEntry::required_message_from, recordSet->d_from);
+  encodeNetmask(message, PBCacheEntry::optional_bytes_netmask, recordSet->d_netmask);
+  if (recordSet->d_rtag) {
+    message.add_bytes(PBCacheEntry::optional_bytes_rtag, *recordSet->d_rtag);
+  }
+  message.add_uint32(PBCacheEntry::required_uint32_state, static_cast<uint32_t>(recordSet->d_state));
+  message.add_int64(PBCacheEntry::required_int64_ttd, recordSet->d_ttd);
+  message.add_uint32(PBCacheEntry::required_uint32_orig_ttl, recordSet->d_orig_ttl);
+  message.add_uint32(PBCacheEntry::required_uint32_servedStale, recordSet->d_servedStale);
+  message.add_bool(PBCacheEntry::required_bool_auth, recordSet->d_auth);
+  message.add_bool(PBCacheEntry::required_bool_submitted, recordSet->d_submitted);
+  message.add_bool(PBCacheEntry::required_bool_tooBig, recordSet->d_tooBig);
+}
+
+void MemRecursorCache::getRecords(size_t perShard, size_t maxSize, std::string& ret)
+{
+  auto log = g_slog->withName("recordcache")->withValues("perShard", Logging::Loggable(perShard), "maxSize", Logging::Loggable(maxSize));
   log->info(Logr::Info, "Producing cache dump");
 
   protozero::pbf_builder<PBCacheDump> full(ret);
@@ -979,8 +1045,8 @@ void MemRecursorCache::getRecords(size_t howmany, size_t maxSize, std::string& r
   full.add_string(PBCacheDump::required_string_identity, SyncRes::s_serverID);
   full.add_uint64(PBCacheDump::required_uint64_protocolVersion, 1);
   full.add_int64(PBCacheDump::required_int64_time, time(nullptr));
+  full.add_string(PBCacheDump::required_string_type, "PBCacheDump");
 
-  const auto perShard = (howmany + d_maps.size() - 1) / d_maps.size(); // at least 1 per shard
   size_t count = 0;
   ret.reserve(maxSize + 4096); // We may overshoot (will be rolled back)
 
@@ -988,61 +1054,25 @@ void MemRecursorCache::getRecords(size_t howmany, size_t maxSize, std::string& r
     auto lockedShard = shard.lock();
     const auto& sidx = lockedShard->d_map.get<SequencedTag>();
     size_t thisShardCount = 0;
-    string buf;
-    for (const auto& recordSet : sidx) {
+    for (auto recordSet = sidx.rbegin(); recordSet != sidx.rend(); ++recordSet) {
       protozero::pbf_builder<PBCacheEntry> message(full, PBCacheDump::repeated_message_cacheEntry);
-      // Two fields below must come before the other fields
-      message.add_bytes(PBCacheEntry::required_bytes_name, recordSet.d_qname.toString());
-      message.add_uint32(PBCacheEntry::required_uint32_qtype, recordSet.d_qtype);
-      for (const auto& record : recordSet.d_records) {
-        message.add_bytes(PBCacheEntry::repeated_bytes_record, record->serialize(recordSet.d_qname, true));
-      }
-      for (const auto& record : recordSet.d_signatures) {
-        message.add_bytes(PBCacheEntry::repeated_bytes_sig, record->serialize(recordSet.d_qname, true));
-      }
-      for (const auto& authRec : recordSet.d_authorityRecs) {
-        protozero::pbf_builder<PBAuthRecord> auth(message, PBCacheEntry::repeated_message_authRecord);
-        auth.add_bytes(PBAuthRecord::required_bytes_name, authRec->d_name.toString());
-        auth.add_bytes(PBAuthRecord::required_bytes_rdata, authRec->getContent()->serialize(authRec->d_name, true));
-        auth.add_uint32(PBAuthRecord::required_uint32_type, authRec->d_type);
-        auth.add_uint32(PBAuthRecord::required_uint32_class, authRec->d_class);
-        auth.add_uint32(PBAuthRecord::required_uint32_ttl, authRec->d_ttl);
-        auth.add_uint32(PBAuthRecord::required_uint32_place, authRec->d_place);
-        auth.add_uint32(PBAuthRecord::required_uint32_clen, authRec->d_clen);
-      }
-      message.add_bytes(PBCacheEntry::required_bytes_authZone, recordSet.d_authZone.toString());
-      encodeComboAddress(message, PBCacheEntry::required_message_from, recordSet.d_from);
-      encodeNetmask(message, PBCacheEntry::optional_bytes_netmask, recordSet.d_netmask);
-      if (recordSet.d_rtag) {
-        message.add_bytes(PBCacheEntry::optional_bytes_rtag, *recordSet.d_rtag);
-      }
-      message.add_uint32(PBCacheEntry::required_uint32_state, static_cast<uint32_t>(recordSet.d_state));
-      message.add_int64(PBCacheEntry::required_int64_ttd, recordSet.d_ttd);
-      message.add_uint32(PBCacheEntry::required_uint32_orig_ttl, recordSet.d_orig_ttl);
-      message.add_uint32(PBCacheEntry::required_uint32_servedStale, recordSet.d_servedStale);
-      message.add_bool(PBCacheEntry::required_bool_auth, recordSet.d_auth);
-      message.add_bool(PBCacheEntry::required_bool_submitted, recordSet.d_submitted);
-      message.add_bool(PBCacheEntry::required_bool_tooBig, recordSet.d_tooBig);
+      getRecord(message, recordSet);
       if (ret.size() > maxSize) {
         message.rollback();
         log->info(Logr::Info, "Produced cache dump (max size reached)", "size", Logging::Loggable(ret.size()), "count", Logging::Loggable(count));
         return;
       }
       ++count;
-      if (count >= howmany) {
-        message.commit();
-        log->info(Logr::Info, "Produced cache dump (howmany reached)", "size", Logging::Loggable(ret.size()), "count", Logging::Loggable(count));
-        return;
-      }
       ++thisShardCount;
       if (thisShardCount >= perShard) {
         break;
       }
     }
   }
-log->info(Logr::Info, "Produced cache dump", "size", Logging::Loggable(ret.size()), "count", Logging::Loggable(count));
+  log->info(Logr::Info, "Produced cache dump", "size", Logging::Loggable(ret.size()), "count", Logging::Loggable(count));
+  std::ofstream out("/tmp/pb");
+  out.write(ret.data(), ret.size());
 }
-
 
 template <typename T>
 bool MemRecursorCache::putRecord(T& message)
@@ -1088,6 +1118,8 @@ bool MemRecursorCache::putRecord(T& message)
         case PBAuthRecord::required_uint32_clen:
           authRecord.d_clen = auth.get_uint32();
           break;
+        default:
+          assert(0);
         }
       }
       cacheEntry.d_authorityRecs.emplace_back(std::make_shared<DNSRecord>(authRecord));
@@ -1135,7 +1167,7 @@ bool MemRecursorCache::putRecord(T& message)
       cacheEntry.d_tooBig = message.get_bool();
       break;
     default:
-      message.skip();
+      assert(0);
       break;
     }
   }
@@ -1174,6 +1206,13 @@ void MemRecursorCache::putRecords(const std::string& pbuf)
       case PBCacheDump::required_int64_time: {
         auto time = full.get_int64();
         log = log->withValues("time", Logging::Loggable(time));
+        break;
+      }
+      case PBCacheDump::required_string_type: {
+        auto type = full.get_string();
+        if (type != "PBCacheDump") {
+          throw std::runtime_error("Data type mismatch");
+        }
         break;
       }
       case PBCacheDump::repeated_message_cacheEntry: {

@@ -494,9 +494,9 @@ void RecursorLua4::postPrepareContext() // NOLINT(readability-function-cognitive
     }
   });
 
-  d_lw->writeFunction("getRecordCacheRecords", [](size_t howmany, size_t maxsize) {
+  d_lw->writeFunction("getRecordCacheRecords", [](size_t perShard, size_t maxSize) {
     std::string ret;
-    g_recCache->getRecords(howmany, maxsize, ret);
+    g_recCache->getRecords(perShard, maxSize, ret);
     return ret;
   });
 
