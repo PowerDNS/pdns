@@ -813,13 +813,13 @@ def ci_rec_make_bear(c):
 def ci_dnsdist_make(c):
     c.run(f'make -j{get_build_concurrency(4)} -k V=1')
 
-def ci_dnsdist_run_ninja():
+def ci_dnsdist_run_ninja(c):
     c.run(f'. {repo_home}/.venv/bin/activate && ninja -j{get_build_concurrency()} --verbose')
 
 @task
 def ci_dnsdist_make_bear(c, builder):
     if builder == 'meson':
-        return ci_dnsdist_run_ninja()
+        return ci_dnsdist_run_ninja(c)
 
     # Assumed to be running under ./pdns/dnsdistdist/
     c.run(f'bear --append -- make -j{get_build_concurrency(4)} -k V=1')
