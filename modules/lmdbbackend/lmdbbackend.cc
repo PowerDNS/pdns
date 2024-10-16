@@ -54,7 +54,7 @@
 #include <systemd/sd-daemon.h>
 #endif
 
-#include <stdio.h>
+#include <cstdio>
 #include <unistd.h>
 
 #include "lmdbbackend.hh"
@@ -66,14 +66,14 @@ BOOST_CLASS_VERSION(LMDBBackend::KeyDataDB, 1)
 BOOST_CLASS_VERSION(DomainInfo, 1)
 
 static bool s_first = true;
-static int s_shards = 0;
+static uint32_t s_shards = 0;
 static std::mutex s_lmdbStartupLock;
 
 std::pair<uint32_t, uint32_t> LMDBBackend::getSchemaVersionAndShards(std::string& filename)
 {
   // cerr << "getting schema version for path " << filename << endl;
 
-  uint32_t schemaversion;
+  uint32_t schemaversion = 0;
 
   MDB_env* tmpEnv = nullptr;
 
@@ -160,7 +160,7 @@ std::pair<uint32_t, uint32_t> LMDBBackend::getSchemaVersionAndShards(std::string
     throw std::runtime_error("pdns.schemaversion had unexpected size");
   }
 
-  uint32_t shards;
+  uint32_t shards = 0;
 
   key.mv_data = (char*)"shards";
   key.mv_size = strlen((char*)key.mv_data);
@@ -392,7 +392,7 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
 
   MDB_txn* txn = nullptr;
 
-  if ((rc = mdb_txn_begin(env, NULL, 0, &txn)) != 0) {
+  if ((rc = mdb_txn_begin(env, nullptr, 0, &txn)) != 0) {
     mdb_env_close(env);
     throw std::runtime_error("mdb_txn_begin failed");
   }
@@ -742,8 +742,8 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
 
       auto txn = d_tdomains->getEnv()->getRWTransaction();
 
-      MDBOutVal shards;
-      if (!txn->get(pdnsdbi, "shards", shards)) {
+      MDBOutVal shards{};
+      if (txn->get(pdnsdbi, "shards", shards) == 0) {
         s_shards = shards.get<uint32_t>();
 
         if (mustDo("lightning-stream") && s_shards != 1) {
@@ -759,15 +759,15 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
         txn->put(pdnsdbi, "shards", s_shards);
       }
 
-      MDBOutVal gotuuid;
-      if (txn->get(pdnsdbi, "uuid", gotuuid)) {
+      MDBOutVal gotuuid{};
+      if (txn->get(pdnsdbi, "uuid", gotuuid) != 0) {
         const auto uuid = getUniqueID();
         const string uuids(uuid.begin(), uuid.end());
         txn->put(pdnsdbi, "uuid", uuids);
       }
 
-      MDBOutVal _schemaversion;
-      if (txn->get(pdnsdbi, "schemaversion", _schemaversion)) {
+      MDBOutVal _schemaversion{};
+      if (txn->get(pdnsdbi, "schemaversion", _schemaversion) != 0) {
         // our DB is entirely new, so we need to write the schemaversion
         txn->put(pdnsdbi, "schemaversion", currentSchemaVersion);
       }
