@@ -113,8 +113,8 @@ namespace {
   inline std::string makeCombinedKey(MDBInVal key, MDBInVal val)
   {
     std::string lenprefix(sizeof(uint16_t), '\0');
-    std::string skey((char*) key.d_mdbval.mv_data, key.d_mdbval.mv_size);
-    std::string sval((char*) val.d_mdbval.mv_data, val.d_mdbval.mv_size);
+    std::string skey(static_cast<char*>(key.d_mdbval.mv_data), key.d_mdbval.mv_size);
+    std::string sval(static_cast<char*>(val.d_mdbval.mv_data), val.d_mdbval.mv_size);
 
     if (val.d_mdbval.mv_size != 0 &&  // empty val case, for range queries
         val.d_mdbval.mv_size != sizeof(uint32_t)) {
