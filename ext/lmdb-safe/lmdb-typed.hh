@@ -224,29 +224,30 @@ struct nullindex_t
 };
 
 /** The main class. Templatized only on the indexes and typename right now */
-template<typename T, class I1=nullindex_t, class I2=nullindex_t, class I3 = nullindex_t, class I4 = nullindex_t>
+template <typename T, class I1 = nullindex_t, class I2 = nullindex_t, class I3 = nullindex_t, class I4 = nullindex_t>
 class TypedDBI
 {
-public:
-  TypedDBI(std::shared_ptr<MDBEnv> env, string_view name)
-    : d_env(std::move(env)), d_name(name)
-  {
-    d_main = d_env->openDB(name, MDB_CREATE);
-
-    // now you might be tempted to go all MPL on this so we can get rid of the
-    // ugly macro. I'm not very receptive to that idea since it will make things
-    // EVEN uglier.
-#define openMacro(N) std::get<N>(d_tuple).openDB(d_env, std::string(name)+"_"#N, MDB_CREATE);
-    openMacro(0);
-    openMacro(1);
-    openMacro(2);
-    openMacro(3);
-#undef openMacro
-  }
-
   // we get a lot of our smarts from this tuple, it enables get<0> etc
   using tuple_t = std::tuple<I1, I2, I3, I4>;
   tuple_t d_tuple;
+
+private:
+  template <uint8_t N>
+  auto openDB(string_view& name)
+  {
+    std::get<N>(d_tuple).openDB(d_env, std::string(name) + "_" + std::to_string(N), MDB_CREATE);
+  }
+
+public:
+  TypedDBI(std::shared_ptr<MDBEnv> env, string_view name) :
+    d_env(std::move(env)), d_name(name)
+  {
+    d_main = d_env->openDB(name, MDB_CREATE);
+    openDB<0>(name);
+    openDB<1>(name);
+    openDB<2>(name);
+    openDB<3>(name);
+  }
 
   // We support readonly and rw transactions. Here we put the Readonly operations
   // which get sourced by both kinds of transactions
