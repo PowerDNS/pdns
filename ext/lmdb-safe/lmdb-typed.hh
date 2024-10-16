@@ -117,7 +117,7 @@ namespace {
     std::string sval((char*) val.d_mdbval.mv_data, val.d_mdbval.mv_size);
 
     if (val.d_mdbval.mv_size != 0 &&  // empty val case, for range queries
-        val.d_mdbval.mv_size != 4) {   // uint32_t case
+        val.d_mdbval.mv_size != sizeof(uint32_t)) {
       throw std::runtime_error("got wrong size value in makeCombinedKey");
     }
 
