@@ -174,53 +174,49 @@ struct MDBOutVal
   }
 
 #ifndef DNSDIST
-  template <class T,
-          typename std::enable_if<std::is_integral<T>::value,
-                                  T>::type* = nullptr> const
-  T get()
-  {
-    T ret;
-
-    size_t offset = LMDBLS::LScheckHeaderAndGetSize(this, sizeof(T));
-
-    memcpy(&ret, reinterpret_cast<const char *>(d_mdbval.mv_data)+offset, sizeof(T));
-
-    static_assert(sizeof(T) == 4, "this code currently only supports 32 bit integers");
-    ret = ntohl(ret);
-    return ret;
-  }
-
-  template <class T,
-          typename std::enable_if<std::is_integral<T>::value,
-                                  T>::type* = nullptr> const
-  T getNoStripHeader()
-  {
-    T ret;
-    if(d_mdbval.mv_size != sizeof(T))
-      throw std::runtime_error("MDB data has wrong length for type");
-
-    memcpy(&ret, d_mdbval.mv_data, sizeof(T));
-
-    static_assert(sizeof(T) == 4, "this code currently only supports 32 bit integers");
-    ret = ntohl(ret);
-    return ret;
-  }
-
-#endif /* ifndef DNSDIST */
-
-  template <class T,
-            typename std::enable_if<std::is_class<T>::value,T>::type* = nullptr>
+  template <class T, typename std::enable_if<std::is_integral<T>::value, T>::type* = nullptr>
   T get() const;
 
+  template <class T, typename std::enable_if<std::is_integral<T>::value, T>::type* = nullptr>
+  T getNoStripHeader() const;
+#endif /* ifndef DNSDIST */
+
+  template <class T, typename std::enable_if<std::is_class<T>::value, T>::type* = nullptr>
+  T get() const;
 
 #ifndef DNSDIST
-  template <class T,
-            typename std::enable_if<std::is_class<T>::value,T>::type* = nullptr>
+  template <class T, typename std::enable_if<std::is_class<T>::value, T>::type* = nullptr>
   T getNoStripHeader() const;
 #endif
 
   MDB_val d_mdbval;
 };
+
+#ifndef DNSDIST
+template <>
+inline uint32_t MDBOutVal::get<uint32_t>() const
+{
+  uint32_t ret = 0;
+  size_t offset = LMDBLS::LScheckHeaderAndGetSize(this, sizeof(uint32_t));
+  // NOLINTNEXTLINE
+  memcpy(&ret, reinterpret_cast<const char*>(d_mdbval.mv_data) + offset, sizeof(uint32_t));
+  ret = ntohl(ret);
+  return ret;
+}
+
+template <>
+inline uint32_t MDBOutVal::getNoStripHeader() const
+{
+  uint32_t ret = 0;
+  if (d_mdbval.mv_size != sizeof(uint32_t)) {
+    throw std::runtime_error("MDB data has wrong length for type");
+  }
+
+  memcpy(&ret, d_mdbval.mv_data, sizeof(uint32_t));
+  ret = ntohl(ret);
+  return ret;
+}
+#endif /* ifndef DNSDIST */
 
 template<> inline std::string MDBOutVal::get<std::string>() const
 {
