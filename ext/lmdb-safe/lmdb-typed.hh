@@ -176,29 +176,31 @@ struct LMDBIndexOps
 
 /** This is an index on a field in a struct, it derives from the LMDBIndexOps */
 
-template<class Class,typename Type,Type Class::*PtrToMember>
+template <class Class, typename Type, Type Class::*PtrToMember>
 struct index_on : LMDBIndexOps<Class, Type, index_on<Class, Type, PtrToMember>>
 {
-  index_on() : LMDBIndexOps<Class, Type, index_on<Class, Type, PtrToMember>>(this)
+  index_on() :
+    LMDBIndexOps<Class, Type, index_on<Class, Type, PtrToMember>>(this)
   {}
-  static Type getMember(const Class& c)
+  static Type getMember(const Class& klass)
   {
-    return c.*PtrToMember;
+    return klass.*PtrToMember;
   }
 
   using type = Type;
 };
 
 /** This is a calculated index */
-template<class Class, typename Type, class Func>
-struct index_on_function : LMDBIndexOps<Class, Type, index_on_function<Class, Type, Func> >
+template <class Class, typename Type, class Func>
+struct index_on_function : LMDBIndexOps<Class, Type, index_on_function<Class, Type, Func>>
 {
-  index_on_function() : LMDBIndexOps<Class, Type, index_on_function<Class, Type, Func> >(this)
+  index_on_function() :
+    LMDBIndexOps<Class, Type, index_on_function<Class, Type, Func>>(this)
   {}
-  static Type getMember(const Class& c)
+  static Type getMember(const Class& klass)
   {
-    Func f;
-    return f(c);
+    Func function;
+    return function(klass);
   }
 
   using type = Type;
