@@ -145,21 +145,18 @@ struct LMDBIndexOps
 {
   explicit LMDBIndexOps(Parent* parent) : d_parent(parent){}
 
-  void put(MDBRWTransaction& txn, const Class& t, uint32_t id, int flags=0)
+  void put(MDBRWTransaction& txn, const Class& type, uint32_t idVal, int flags = 0)
   {
-    std::string sempty;
-    MDBInVal empty(sempty);
-
-    auto scombined = makeCombinedKey(keyConv(d_parent->getMember(t)), id);
+    auto scombined = makeCombinedKey(keyConv(d_parent->getMember(type)), idVal);
     MDBInVal combined(scombined);
 
     // if the entry existed already, this will just update the timestamp/txid in the LS header. This is intentional, so objects and their indexes always get synced together.
-    txn->put(d_idx, combined, empty, flags);
+    txn->put(d_idx, combined, string{}, flags);
   }
 
-  void del(MDBRWTransaction& txn, const Class& t, uint32_t id)
+  void del(MDBRWTransaction& txn, const Class& type, uint32_t idVal)
   {
-    auto scombined = makeCombinedKey(keyConv(d_parent->getMember(t)), id);
+    auto scombined = makeCombinedKey(keyConv(d_parent->getMember(type)), idVal);
     MDBInVal combined(scombined);
 
     int errCode = txn->del(d_idx, combined);
@@ -172,9 +169,9 @@ struct LMDBIndexOps
   {
     d_idx = env->openDB(str, flags);
   }
+
   MDBDbi d_idx;
   Parent* d_parent;
-
 };
 
 /** This is an index on a field in a struct, it derives from the LMDBIndexOps */
