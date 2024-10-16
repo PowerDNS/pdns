@@ -35,13 +35,13 @@ using LmdbIdVec = std::vector<uint32_t>;
  * Return the highest ID used in a database. Returns 0 for an empty DB. This makes us
  * start everything at ID=1, which might make it possible to treat id 0 as special.
  */
-unsigned int MDBGetMaxID(MDBRWTransaction& txn, MDBDbi& dbi);
+uint32_t MDBGetMaxID(MDBRWTransaction& txn, MDBDbi& dbi);
 
 /**
  * Return a randomly generated ID that is unique and not zero. May throw if the database
  * is very full.
  */
-unsigned int MDBGetRandomID(MDBRWTransaction& txn, MDBDbi& dbi);
+uint32_t MDBGetRandomID(MDBRWTransaction& txn, MDBDbi& dbi);
 
 /**
  * This is our serialization interface. It can be specialized for other types.
