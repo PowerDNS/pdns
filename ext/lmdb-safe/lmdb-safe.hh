@@ -1,45 +1,44 @@
 #pragma once
+
 #include <string_view>
 #include <lmdb.h>
-#include <iostream>
-#include <fstream>
-#include <set>
 #include <map>
 #include <thread>
 #include <memory>
 #include <string>
-#include <string.h>
+#include <cstring>
 #include <mutex>
 #include <vector>
 #include <algorithm>
 
-#include "config.h"
-
 #ifndef DNSDIST
 #include <boost/range/detail/common.hpp>
-#include <stdint.h>
+#include <cstdint>
 #include <netinet/in.h>
 #include <stdexcept>
-#include "../../pdns/misc.hh"
 #endif
 
 using std::string_view;
 
 /* open issues:
  *
- * - missing convenience functions (string_view, string)
+ * - Missing convenience functions (string_view, string).
  */
 
 /*
-The error strategy. Anything that "should never happen" turns into an exception. But things like 'duplicate entry' or 'no such key' are for you to deal with.
+ * The error strategy. Anything that "should never happen" turns into an exception. But
+ * things like 'duplicate entry' or 'no such key' are for you to deal with.
  */
 
 /*
-  Thread safety: we are as safe as lmdb. You can talk to MDBEnv from as many threads as you want
-*/
+ * Thread safety: we are as safe as lmdb. You can talk to MDBEnv from as many threads as
+ * you want.
+ */
 
-/** MDBDbi is our only 'value type' object, as 1) a dbi is actually an integer
-    and 2) per LMDB documentation, we never close it. */
+/*
+ * MDBDbi is our only 'value type' object, as 1) a dbi is actually an integer and 2) per
+ * LMDB documentation, we never close it.
+ */
 class MDBDbi
 {
 public:
@@ -69,12 +68,13 @@ public:
 
   ~MDBEnv()
   {
-    //    Only a single thread may call this function. All transactions, databases, and cursors must already be closed before calling this function
+    // Only a single thread may call this function. All transactions, databases, and
+    // cursors must already be closed before calling this function
     mdb_env_close(d_env);
     // but, elsewhere, docs say database handles do not need to be closed?
   }
 
-  MDBDbi openDB(const string_view dbname, int flags);
+  MDBDbi openDB(string_view dbname, int flags);
 
   MDBRWTransaction getRWTransaction();
   MDBROTransaction getROTransaction();
@@ -667,42 +667,41 @@ class MDBROCursor : public MDBGenCursor<MDBROTransactionImpl, MDBROCursor>
 public:
   MDBROCursor() = default;
   using MDBGenCursor<MDBROTransactionImpl, MDBROCursor>::MDBGenCursor;
-  MDBROCursor(const MDBROCursor &src) = delete;
-  MDBROCursor(MDBROCursor &&src) = default;
-  MDBROCursor &operator=(const MDBROCursor &src) = delete;
-  MDBROCursor &operator=(MDBROCursor &&src) = default;
+  MDBROCursor(const MDBROCursor& src) = delete;
+  MDBROCursor(MDBROCursor&& src) = default;
+  MDBROCursor& operator=(const MDBROCursor& src) = delete;
+  MDBROCursor& operator=(MDBROCursor&& src) = default;
   ~MDBROCursor() = default;
-
 };
 
 class MDBRWCursor;
 
-class MDBRWTransactionImpl: public MDBROTransactionImpl
+class MDBRWTransactionImpl : public MDBROTransactionImpl
 {
 protected:
   MDBRWTransactionImpl(MDBEnv* parent, MDB_txn* txn);
 
 private:
-  static MDB_txn *openRWTransaction(MDBEnv* env, MDB_txn *parent, int flags);
+  static MDB_txn* openRWTransaction(MDBEnv* env, MDB_txn* parent, int flags);
 
-private:
   std::vector<MDBRWCursor*> d_rw_cursors;
 
   uint64_t d_txtime{0};
 
   void closeRWCursors();
-  inline void closeRORWCursors() {
+  inline void closeRORWCursors()
+  {
     closeROCursors();
     closeRWCursors();
   }
 
 public:
-  explicit MDBRWTransactionImpl(MDBEnv* parent, int flags=0);
+  explicit MDBRWTransactionImpl(MDBEnv* parent, int flags = 0);
 
   MDBRWTransactionImpl(const MDBRWTransactionImpl& rhs) = delete;
   MDBRWTransactionImpl(MDBRWTransactionImpl&& rhs) = delete;
-  MDBRWTransactionImpl &operator=(const MDBRWTransactionImpl& rhs) = delete;
-  MDBRWTransactionImpl &operator=(MDBRWTransactionImpl&& rhs) = delete;
+  MDBRWTransactionImpl& operator=(const MDBRWTransactionImpl& rhs) = delete;
+  MDBRWTransactionImpl& operator=(MDBRWTransactionImpl&& rhs) = delete;
 
   ~MDBRWTransactionImpl() override;
 
@@ -712,53 +711,59 @@ public:
   void clear(MDB_dbi dbi);
 
 #ifndef DNSDIST
-  void put(MDB_dbi dbi, const MDBInVal& key, const MDBInVal& val, int flags=0)
+  void put(MDB_dbi dbi, const MDBInVal& key, const MDBInVal& val, int flags = 0)
   {
-    if(!d_txn)
+    if (d_txn == nullptr) {
       throw std::runtime_error("Attempt to use a closed RW transaction for put");
-    int rc;
+    }
 
     size_t txid = mdb_txn_id(d_txn);
 
-    if (d_txtime == 0) { throw std::runtime_error("got zero txtime"); }
+    if (d_txtime == 0) {
+      throw std::runtime_error("got zero txtime");
+    }
 
-    std::string ins =
-      LMDBLS::LSheader(d_txtime, txid).toString()+
-      std::string((const char*)val.d_mdbval.mv_data, val.d_mdbval.mv_size);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
+    std::string ins = LMDBLS::LSheader(d_txtime, txid).toString() + std::string((const char*)val.d_mdbval.mv_data, val.d_mdbval.mv_size);
 
     MDBInVal pval = ins;
 
-    if((rc=mdb_put(d_txn, dbi,
-                   const_cast<MDB_val*>(&key.d_mdbval),
-                   const_cast<MDB_val*>(&pval.d_mdbval), flags))) {
-      throw std::runtime_error("putting data: " + std::string(mdb_strerror(rc)));
+    int mdbPutRc = mdb_put(d_txn, dbi,
+                           // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+                           const_cast<MDB_val*>(&key.d_mdbval),
+                           const_cast<MDB_val*>(&pval.d_mdbval), flags);
+    if (mdbPutRc != 0) {
+      throw std::runtime_error("putting data: " + std::string(mdb_strerror(mdbPutRc)));
     }
   }
 #else
-  void put(MDB_dbi dbi, const MDBInVal& key, const MDBInVal& val, int flags=0)
+  void put(MDB_dbi dbi, const MDBInVal& key, const MDBInVal& val, int flags = 0)
   {
-    if(!d_txn)
+    if (!d_txn)
       throw std::runtime_error("Attempt to use a closed RW transaction for put");
     int rc;
-    if((rc=mdb_put(d_txn, dbi,
-                   const_cast<MDB_val*>(&key.d_mdbval),
-                   const_cast<MDB_val*>(&val.d_mdbval), flags)))
+    if ((rc = mdb_put(d_txn, dbi,
+                      const_cast<MDB_val*>(&key.d_mdbval),
+                      const_cast<MDB_val*>(&val.d_mdbval), flags)))
       throw std::runtime_error("putting data: " + std::string(mdb_strerror(rc)));
   }
 #endif
 
   int del(MDBDbi& dbi, const MDBInVal& key)
   {
-    int rc;
-    rc=mdb_del(d_txn, dbi, (MDB_val*)&key.d_mdbval, 0);
-    if(rc && rc != MDB_NOTFOUND)
-      throw std::runtime_error("deleting data: " + std::string(mdb_strerror(rc)));
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
+    int mdbDelRc = mdb_del(d_txn, dbi, (MDB_val*)&key.d_mdbval, nullptr);
+    if ((mdbDelRc != 0) && mdbDelRc != MDB_NOTFOUND) {
+      throw std::runtime_error("deleting data: " + std::string(mdb_strerror(mdbDelRc)));
+    }
 #ifndef DNSDIST
-    if(rc != MDB_NOTFOUND && LMDBLS::s_flag_deleted) {
+    if (mdbDelRc != MDB_NOTFOUND && LMDBLS::s_flag_deleted) {
       // if it did exist, we need to mark it as deleted now
 
       size_t txid = mdb_txn_id(d_txn);
-      if (d_txtime == 0) { throw std::runtime_error("got zero txtime"); }
+      if (d_txtime == 0) {
+        throw std::runtime_error("got zero txtime");
+      }
 
       std::string ins =
         // std::string((const char*)&txid, sizeof(txid)) +
@@ -766,38 +771,42 @@ public:
 
       MDBInVal pval = ins;
 
-      if((rc=mdb_put(d_txn, dbi,
-                     const_cast<MDB_val*>(&key.d_mdbval),
-                     const_cast<MDB_val*>(&pval.d_mdbval), 0))) {
-              throw std::runtime_error("marking data deleted: " + std::string(mdb_strerror(rc)));
+      mdbDelRc = mdb_put(d_txn, dbi,
+                         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+                         const_cast<MDB_val*>(&key.d_mdbval),
+                         const_cast<MDB_val*>(&pval.d_mdbval), 0);
+      if (mdbDelRc != 0) {
+        throw std::runtime_error("marking data deleted: " + std::string(mdb_strerror(mdbDelRc)));
       }
     }
 #endif
-    return rc;
+    return mdbDelRc;
   }
-
 
   int get(MDBDbi& dbi, const MDBInVal& key, MDBOutVal& val)
   {
-    if(!d_txn)
+    if (d_txn == nullptr) {
       throw std::runtime_error("Attempt to use a closed RW transaction for get");
+    }
 
-    int rc = mdb_get(d_txn, dbi, const_cast<MDB_val*>(&key.d_mdbval),
-                     const_cast<MDB_val*>(&val.d_mdbval));
-    if(rc && rc != MDB_NOTFOUND) {
-          throw std::runtime_error("getting data: " + std::string(mdb_strerror(rc)));
+    int mdbGetRc = mdb_get(d_txn, dbi,
+                           // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+                           const_cast<MDB_val*>(&key.d_mdbval),
+                           const_cast<MDB_val*>(&val.d_mdbval));
+    if ((mdbGetRc != 0) && mdbGetRc != MDB_NOTFOUND) {
+      throw std::runtime_error("getting data: " + std::string(mdb_strerror(mdbGetRc)));
     }
 
 #ifndef DNSDIST
-    if(rc != MDB_NOTFOUND) {  // key was found, value was retrieved
+    if (mdbGetRc != MDB_NOTFOUND) { // key was found, value was retrieved
       auto sval = val.getNoStripHeader<std::string_view>();
-      if (LMDBLS::LSisDeleted(sval)) {  // but it was deleted
-        rc = MDB_NOTFOUND;
+      if (LMDBLS::LSisDeleted(sval)) { // but it was deleted
+        mdbGetRc = MDB_NOTFOUND;
       }
     }
 #endif
 
-    return rc;
+    return mdbGetRc;
   }
 
   MDBDbi openDB(string_view dbname, int flags)
@@ -810,12 +819,12 @@ public:
 
   MDBRWTransaction getRWTransaction();
   MDBROTransaction getROTransaction();
-
 };
 
-/* "A cursor in a write-transaction can be closed before its transaction ends, and will otherwise be closed when its transaction ends"
-   This is a problem for us since it may means we are closing the cursor twice, which is bad
-*/
+/* "A cursor in a write-transaction can be closed before its transaction ends, and will
+ * otherwise be closed when its transaction ends". This is a problem for us since it may
+ * means we are closing the cursor twice, which is bad.
+ */
 class MDBRWCursor : public MDBGenCursor<MDBRWTransactionImpl, MDBRWCursor>
 {
 public:
