@@ -128,9 +128,9 @@ static std::shared_ptr<DNSSelector> newDNSSelector(std::shared_ptr<DNSRule>&& ru
   return selector;
 }
 
-std::shared_ptr<DNSSelector> getMaxIPQPSSelector(const MaxQPSIPRuleConfig& config)
+std::shared_ptr<DNSSelector> getMaxIPQPSSelector(const MaxQPSIPRuleConfiguration& config)
 {
-  auto rule = std::shared_ptr<DNSRule>(new MaxQPSIPRule(config.qps, config.burst, config.ipv4trunc, 64, 300, 60, 10, 10));
+  auto rule = std::shared_ptr<DNSRule>(new MaxQPSIPRule(config.qps, config.burst, config.ipv4_mask, config.ipv6_mask, config.expiration, config.cleanup_delay, config.scan_fraction, config.shards));
   return newDNSSelector(std::move(rule), config.name);
 }
 

@@ -118,15 +118,24 @@ mod dnsdistsettings {
 
     #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
-    struct MaxQPSIPRuleConfig {
+    struct MaxQPSIPRuleConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
-        #[serde(default, skip_serializing_if = "crate::is_default")]
         qps: u32,
+        #[serde(default = "crate::U8::<32>::value", skip_serializing_if = "crate::U8::<32>::is_equal")]
+        ipv4_mask: u8,
+        #[serde(default = "crate::U8::<64>::value", skip_serializing_if = "crate::U8::<64>::is_equal")]
+        ipv6_mask: u8,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         burst: u32,
-        #[serde(default, skip_serializing_if = "crate::is_default")]
-        ipv4trunc: u8,
+        #[serde(default = "crate::U32::<300>::value", skip_serializing_if = "crate::U32::<300>::is_equal")]
+        expiration: u32,
+        #[serde(default = "crate::U32::<60>::value", skip_serializing_if = "crate::U32::<60>::is_equal")]
+        cleanup_delay: u32,
+        #[serde(default = "crate::U32::<10>::value", skip_serializing_if = "crate::U32::<10>::is_equal")]
+        scan_fraction: u32,
+        #[serde(default = "crate::U32::<10>::value", skip_serializing_if = "crate::U32::<10>::is_equal")]
+        shards: u32,
     }
 
     #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
@@ -207,7 +216,7 @@ mod dnsdistsettings {
         type DNSSelector;
         fn getNameFromSelector(selector: &DNSSelector) -> &CxxString;
         fn getSelectorByName(name: &String) -> SharedPtr<DNSSelector>;
-        fn getMaxIPQPSSelector(config: &MaxQPSIPRuleConfig) -> SharedPtr<DNSSelector>;
+        fn getMaxIPQPSSelector(config: &MaxQPSIPRuleConfiguration) -> SharedPtr<DNSSelector>;
         fn getTCPSelector(config: &TCPSelectorConfig) -> SharedPtr<DNSSelector>;
         fn getAllSelector() -> SharedPtr<DNSSelector>;
         fn getAndSelector(config: &AndSelectorConfig) -> SharedPtr<DNSSelector>;
@@ -239,7 +248,7 @@ enum Selector {
     And(AndSelectorSerde),
     ByName(dnsdistsettings::ByNameSelector),
     TCP(dnsdistsettings::TCPSelectorConfig),
-    MaxQPSIP(dnsdistsettings::MaxQPSIPRuleConfig),
+    MaxQPSIP(dnsdistsettings::MaxQPSIPRuleConfiguration),
     NetmaskGroup(dnsdistsettings::NetmaskGroupSelectorConfig),
 }
 
