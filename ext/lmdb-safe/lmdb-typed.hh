@@ -1,9 +1,6 @@
 #pragma once
 
 #include <stdexcept>
-#include <string_view>
-#include <sstream>
-#include <iostream>
 
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
@@ -13,6 +10,7 @@
 #include <boost/iostreams/stream.hpp>
 #include <boost/iostreams/stream_buffer.hpp>
 #include <boost/iostreams/device/back_inserter.hpp>
+#include <utility>
 
 #include "lmdb-safe.hh"
 
@@ -31,19 +29,19 @@
 /**
  * LMDB ID Vector Type.
  */
-typedef std::vector<uint32_t> LmdbIdVec;
+using LmdbIdVec = std::vector<uint32_t>;
 
 /**
  * Return the highest ID used in a database. Returns 0 for an empty DB. This makes us
  * start everything at ID=1, which might make it possible to treat id 0 as special.
  */
-unsigned int MDBGetMaxID(MDBRWTransaction& txn, MDBDbi& dbi);
+uint32_t MDBGetMaxID(MDBRWTransaction& txn, MDBDbi& dbi);
 
 /**
  * Return a randomly generated ID that is unique and not zero. May throw if the database
  * is very full.
  */
-unsigned int MDBGetRandomID(MDBRWTransaction& txn, MDBDbi& dbi);
+uint32_t MDBGetRandomID(MDBRWTransaction& txn, MDBDbi& dbi);
 
 /**
  * This is our serialization interface. It can be specialized for other types.
@@ -75,7 +73,7 @@ inline std::string keyConv(const T& value);
 template <class T, typename std::enable_if<std::is_arithmetic<T>::value, T>::type* = nullptr>
 inline std::string keyConv(const T& value)
 {
-  return std::string((char*)&value, sizeof(value));
+  return string{(char*)&value, sizeof(value)};
 }
 
 /**
@@ -93,7 +91,7 @@ namespace {
       throw std::runtime_error("combined key too short to get ID from");
     }
 
-    MDBOutVal ret;
+    MDBOutVal ret{};
     ret.d_mdbval.mv_data = combined.d_mdbval.mv_data;
     ret.d_mdbval.mv_size = combined.d_mdbval.mv_size - sizeof(uint32_t);
 
@@ -105,7 +103,7 @@ namespace {
       throw std::runtime_error("combined key too short to get ID from");
     }
 
-    MDBOutVal ret;
+    MDBOutVal ret{};
     ret.d_mdbval.mv_data = (char*) combined.d_mdbval.mv_data + combined.d_mdbval.mv_size - sizeof(uint32_t);
     ret.d_mdbval.mv_size = sizeof(uint32_t);
 
@@ -115,11 +113,11 @@ namespace {
   inline std::string makeCombinedKey(MDBInVal key, MDBInVal val)
   {
     std::string lenprefix(sizeof(uint16_t), '\0');
-    std::string skey((char*) key.d_mdbval.mv_data, key.d_mdbval.mv_size);
-    std::string sval((char*) val.d_mdbval.mv_data, val.d_mdbval.mv_size);
+    std::string skey(static_cast<char*>(key.d_mdbval.mv_data), key.d_mdbval.mv_size);
+    std::string sval(static_cast<char*>(val.d_mdbval.mv_data), val.d_mdbval.mv_size);
 
     if (val.d_mdbval.mv_size != 0 &&  // empty val case, for range queries
-        val.d_mdbval.mv_size != 4) {   // uint32_t case
+        val.d_mdbval.mv_size != sizeof(uint32_t)) {
       throw std::runtime_error("got wrong size value in makeCombinedKey");
     }
 
@@ -147,25 +145,23 @@ struct LMDBIndexOps
 {
   explicit LMDBIndexOps(Parent* parent) : d_parent(parent){}
 
-  void put(MDBRWTransaction& txn, const Class& t, uint32_t id, int flags=0)
+  void put(MDBRWTransaction& txn, const Class& type, uint32_t idVal, int flags = 0)
   {
-    std::string sempty("");
-    MDBInVal empty(sempty);
-
-    auto scombined = makeCombinedKey(keyConv(d_parent->getMember(t)), id);
+    auto scombined = makeCombinedKey(keyConv(d_parent->getMember(type)), idVal);
     MDBInVal combined(scombined);
 
     // if the entry existed already, this will just update the timestamp/txid in the LS header. This is intentional, so objects and their indexes always get synced together.
-    txn->put(d_idx, combined, empty, flags);
+    txn->put(d_idx, combined, string{}, flags);
   }
 
-  void del(MDBRWTransaction& txn, const Class& t, uint32_t id)
+  void del(MDBRWTransaction& txn, const Class& type, uint32_t idVal)
   {
-    auto scombined = makeCombinedKey(keyConv(d_parent->getMember(t)), id);
+    auto scombined = makeCombinedKey(keyConv(d_parent->getMember(type)), idVal);
     MDBInVal combined(scombined);
 
-    if(int rc = txn->del(d_idx, combined)) {
-      throw std::runtime_error("Error deleting from index: " + std::string(mdb_strerror(rc)));
+    int errCode = txn->del(d_idx, combined);
+    if (errCode != 0) {
+      throw std::runtime_error("Error deleting from index: " + std::string(mdb_strerror(errCode)));
     }
   }
 
@@ -173,83 +169,85 @@ struct LMDBIndexOps
   {
     d_idx = env->openDB(str, flags);
   }
+
   MDBDbi d_idx;
   Parent* d_parent;
-
 };
 
 /** This is an index on a field in a struct, it derives from the LMDBIndexOps */
 
-template<class Class,typename Type,Type Class::*PtrToMember>
+template <class Class, typename Type, Type Class::*PtrToMember>
 struct index_on : LMDBIndexOps<Class, Type, index_on<Class, Type, PtrToMember>>
 {
-  index_on() : LMDBIndexOps<Class, Type, index_on<Class, Type, PtrToMember>>(this)
+  index_on() :
+    LMDBIndexOps<Class, Type, index_on<Class, Type, PtrToMember>>(this)
   {}
-  static Type getMember(const Class& c)
+  static Type getMember(const Class& klass)
   {
-    return c.*PtrToMember;
+    return klass.*PtrToMember;
   }
 
-  typedef Type type;
+  using type = Type;
 };
 
 /** This is a calculated index */
-template<class Class, typename Type, class Func>
-struct index_on_function : LMDBIndexOps<Class, Type, index_on_function<Class, Type, Func> >
+template <class Class, typename Type, class Func>
+struct index_on_function : LMDBIndexOps<Class, Type, index_on_function<Class, Type, Func>>
 {
-  index_on_function() : LMDBIndexOps<Class, Type, index_on_function<Class, Type, Func> >(this)
+  index_on_function() :
+    LMDBIndexOps<Class, Type, index_on_function<Class, Type, Func>>(this)
   {}
-  static Type getMember(const Class& c)
+  static Type getMember(const Class& klass)
   {
-    Func f;
-    return f(c);
+    Func function;
+    return function(klass);
   }
 
-  typedef Type type;
+  using type = Type;
 };
 
 /** nop index, so we can fill our N indexes, even if you don't use them all */
 struct nullindex_t
 {
-  template<typename Class>
-  void put(MDBRWTransaction& /* txn */, const Class& /* t */, uint32_t /* id */, int /* flags */ =0)
+  template <typename Class>
+  void put(MDBRWTransaction& /* txn */, const Class& /* t */, uint32_t /* id */, int /* flags */ = 0)
   {}
-  template<typename Class>
+  template <typename Class>
   void del(MDBRWTransaction& /* txn */, const Class& /* t */, uint32_t /* id */)
   {}
 
   void openDB(std::shared_ptr<MDBEnv>& /* env */, string_view /* str */, int /* flags */)
   {
-
   }
-  typedef uint32_t type; // dummy
+
+  using type = uint32_t; // dummy
 };
 
 /** The main class. Templatized only on the indexes and typename right now */
-template<typename T, class I1=nullindex_t, class I2=nullindex_t, class I3 = nullindex_t, class I4 = nullindex_t>
+template <typename T, class I1 = nullindex_t, class I2 = nullindex_t, class I3 = nullindex_t, class I4 = nullindex_t>
 class TypedDBI
 {
-public:
-  TypedDBI(std::shared_ptr<MDBEnv> env, string_view name)
-    : d_env(std::move(env)), d_name(name)
-  {
-    d_main = d_env->openDB(name, MDB_CREATE);
+  // we get a lot of our smarts from this tuple, it enables get<0> etc
+  using tuple_t = std::tuple<I1, I2, I3, I4>;
+  tuple_t d_tuple;
 
-    // now you might be tempted to go all MPL on this so we can get rid of the
-    // ugly macro. I'm not very receptive to that idea since it will make things
-    // EVEN uglier.
-#define openMacro(N) std::get<N>(d_tuple).openDB(d_env, std::string(name)+"_"#N, MDB_CREATE);
-    openMacro(0);
-    openMacro(1);
-    openMacro(2);
-    openMacro(3);
-#undef openMacro
+private:
+  template <uint8_t N>
+  auto openDB(string_view& name)
+  {
+    std::get<N>(d_tuple).openDB(d_env, std::string(name) + "_" + std::to_string(N), MDB_CREATE);
   }
 
-
-  // we get a lot of our smarts from this tuple, it enables get<0> etc
-  typedef std::tuple<I1, I2, I3, I4> tuple_t;
-  tuple_t d_tuple;
+public:
+  TypedDBI(std::shared_ptr<MDBEnv> env, string_view name) :
+    d_env(std::move(env)), d_name(name)
+  {
+    d_main = d_env->openDB(name, MDB_CREATE);
+    openDB<0>(name);
+    openDB<1>(name);
+    openDB<2>(name);
+    openDB<3>(name);
+  }
 
   // We support readonly and rw transactions. Here we put the Readonly operations
   // which get sourced by both kinds of transactions
@@ -279,9 +277,10 @@ public:
     //! Get item with id, from main table directly
     bool get(uint32_t id, T& t)
     {
-      MDBOutVal data;
-      if((*d_parent.d_txn)->get(d_parent.d_parent->d_main, id, data))
+      MDBOutVal data{};
+      if((*d_parent.d_txn)->get(d_parent.d_parent->d_main, id, data)) {
         return false;
+      }
 
       deserializeFromBuffer(data.get<std::string>(), t);
       return true;
@@ -367,43 +366,45 @@ public:
         // id.d_mdbval.mv_size -= LS_HEADER_SIZE;
         // id.d_mdbval.mv_data = (char*)d_id.d_mdbval.mv_data + LS_HEADER_SIZE;
 
-
-        if(d_on_index) {
-          if((*d_parent->d_txn)->get(d_parent->d_parent->d_main, d_id, d_data))
+        if (d_on_index) {
+          if ((*d_parent->d_txn)->get(d_parent->d_parent->d_main, d_id, d_data)) {
             throw std::runtime_error("Missing id in constructor");
+          }
           deserializeFromBuffer(d_data.get<std::string>(), d_t);
         }
-        else
+        else {
           deserializeFromBuffer(d_id.get<std::string>(), d_t);
+        }
       }
 
-      explicit iter_t(Parent* parent, typename Parent::cursor_t&& cursor, const std::string& prefix) :
+      explicit iter_t(Parent* parent, typename Parent::cursor_t&& cursor, std::string prefix) :
         d_parent(parent),
         d_cursor(std::move(cursor)),
         d_on_index(true), // is this an iterator on main database or on index?
         d_one_key(false),
-        d_prefix(prefix),
-        d_end(false)
+        d_prefix(std::move(prefix))
       {
-        if(d_end)
+        if (d_end) {
           return;
+        }
 
-        if(d_cursor.get(d_key, d_id,  MDB_GET_CURRENT)) {
+        if (d_cursor.get(d_key, d_id, MDB_GET_CURRENT)) {
           d_end = true;
           return;
         }
 
         d_id = getIDFromCombinedKey(d_key);
 
-        if(d_on_index) {
-          if((*d_parent->d_txn)->get(d_parent->d_parent->d_main, d_id, d_data))
+        if (d_on_index) {
+          if ((*d_parent->d_txn)->get(d_parent->d_parent->d_main, d_id, d_data)) {
             throw std::runtime_error("Missing id in constructor");
+          }
           deserializeFromBuffer(d_data.get<std::string>(), d_t);
         }
-        else
+        else {
           deserializeFromBuffer(d_id.get<std::string>(), d_t);
+        }
       }
-
 
       // std::function<bool(const MDBOutVal&)> filter;
       void del()
@@ -434,8 +435,8 @@ public:
       // implements generic ++ or --
       iter_t& genoperator(MDB_cursor_op op)
       {
-        MDBOutVal data;
-        int rc;
+        MDBOutVal data{};
+        int rc = 0;
       // next:;
         if (!d_one_key) {
           rc = d_cursor.get(d_key, d_id, op);
@@ -443,7 +444,7 @@ public:
         if(d_one_key || rc == MDB_NOTFOUND) {
           d_end = true;
         }
-        else if(rc) {
+        else if(rc != 0) {
           throw std::runtime_error("in genoperator, " + std::string(mdb_strerror(rc)));
         }
         else if(!d_prefix.empty() &&
@@ -461,8 +462,9 @@ public:
 
           if(d_on_index) {
             d_id = getIDFromCombinedKey(d_key);
-            if((*d_parent->d_txn)->get(d_parent->d_parent->d_main, d_id, data))
+            if ((*d_parent->d_txn)->get(d_parent->d_parent->d_main, d_id, data)) {
               throw std::runtime_error("Missing id field");
+            }
             // if(filter && !filter(data))
             //   goto next;
 
@@ -490,13 +492,11 @@ public:
       // get ID this iterator points to
       uint32_t getID()
       {
-        if(d_on_index) {
+        if (d_on_index) {
           // return d_id.get<uint32_t>();
           return d_id.getNoStripHeader<uint32_t>();
         }
-        else {
-          return d_key.getNoStripHeader<uint32_t>();
-        }
+        return d_key.getNoStripHeader<uint32_t>();
       }
 
       const MDBOutVal& getKey()
@@ -504,13 +504,14 @@ public:
         return d_key;
       }
 
-
       // transaction we are part of
       Parent* d_parent;
       typename Parent::cursor_t d_cursor;
 
       // gcc complains if I don't zero-init these, which is worrying XXX
-      MDBOutVal d_key{{0,0}}, d_data{{0,0}}, d_id{{0,0}};
+      MDBOutVal d_key{{0, nullptr}};
+      MDBOutVal d_data{{0, nullptr}};
+      MDBOutVal d_id{{0, nullptr}};
       bool d_on_index;
       bool d_one_key;
       std::string d_prefix;
@@ -523,7 +524,8 @@ public:
     {
       typename Parent::cursor_t cursor = (*d_parent.d_txn)->getCursor(std::get<N>(d_parent.d_parent->d_tuple).d_idx);
 
-      MDBOutVal out, id;
+      MDBOutVal out{};
+      MDBOutVal id{};
 
       if(cursor.get(out, id,  op)) {
                                              // on_index, one_key, end
@@ -549,7 +551,8 @@ public:
     {
       typename Parent::cursor_t cursor = (*d_parent.d_txn)->getCursor(d_parent.d_parent->d_main);
 
-      MDBOutVal out, id;
+      MDBOutVal out{};
+      MDBOutVal id{};
 
       if(cursor.get(out, id,  MDB_FIRST)) {
                                               // on_index, one_key, end
@@ -572,7 +575,8 @@ public:
 
       std::string keystr = makeCombinedKey(keyConv(key), MDBInVal(""));
       MDBInVal in(keystr);
-      MDBOutVal out, id;
+      MDBOutVal out{};
+      MDBOutVal id{};
       out.d_mdbval = in.d_mdbval;
 
       if(cursor.get(out, id,  op)) {
@@ -604,7 +608,8 @@ public:
 
       std::string keyString=makeCombinedKey(keyConv(key), MDBInVal(""));
       MDBInVal in(keyString);
-      MDBOutVal out, id;
+      MDBOutVal out{};
+      MDBOutVal id{};
       out.d_mdbval = in.d_mdbval;
 
       if(cursor.get(out, id,  MDB_SET)) {
@@ -623,7 +628,8 @@ public:
 
       std::string keyString=makeCombined(keyConv(key), MDBInVal(""));
       MDBInVal in(keyString);
-      MDBOutVal out, id;
+      MDBOutVal out{};
+      MDBOutVal id{};
       out.d_mdbval = in.d_mdbval;
 
       if(cursor.get(out, id,  MDB_SET_RANGE) ||
@@ -643,7 +649,8 @@ public:
 
       std::string keyString=makeCombinedKey(keyConv(key), MDBInVal(""));
       MDBInVal in(keyString);
-      MDBOutVal out, id;
+      MDBOutVal out{};
+      MDBOutVal id{};
       out.d_mdbval = in.d_mdbval;
 
       int rc = cursor.get(out, id,  MDB_SET_RANGE);
@@ -664,7 +671,7 @@ public:
         if (sthiskey == keyString) {
           auto _id = getIDFromCombinedKey(out);
           uint64_t ts = LMDBLS::LSgetTimestamp(id.getNoStripHeader<string_view>());
-          uint32_t __id = _id.getNoStripHeader<uint32_t>();
+          auto __id = _id.getNoStripHeader<uint32_t>();
 
           if (onlyOldest) {
             if (ts < oldestts) {
@@ -715,25 +722,23 @@ public:
       return d_txn;
     }
 
-    typedef MDBROCursor cursor_t;
+    using cursor_t = MDBROCursor;
 
     TypedDBI* d_parent;
     std::shared_ptr<MDBROTransaction> d_txn;
   };
 
-
   class RWTransaction :  public ReadonlyOperations<RWTransaction>
   {
   public:
-    explicit RWTransaction(TypedDBI* parent) : ReadonlyOperations<RWTransaction>(*this), d_parent(parent)
+    explicit RWTransaction(TypedDBI* parent) :
+      ReadonlyOperations<RWTransaction>(*this), d_parent(parent), d_txn(std::make_shared<MDBRWTransaction>(d_parent->d_env->getRWTransaction()))
     {
-      d_txn = std::make_shared<MDBRWTransaction>(d_parent->d_env->getRWTransaction());
     }
 
     explicit RWTransaction(TypedDBI* parent, std::shared_ptr<MDBRWTransaction> txn) : ReadonlyOperations<RWTransaction>(*this), d_parent(parent), d_txn(txn)
     {
     }
-
 
     RWTransaction(RWTransaction&& rhs) :
       ReadonlyOperations<RWTransaction>(*this),
@@ -772,8 +777,9 @@ public:
     void modify(uint32_t id, std::function<void(T&)> func)
     {
       T t;
-      if(!this->get(id, t))
-        throw std::runtime_error("Could not modify id "+std::to_string(id));
+      if (!this->get(id, t)) {
+        throw std::runtime_error("Could not modify id " + std::to_string(id));
+      }
       func(t);
 
       del(id);  // this is the lazy way. We could test for changed index fields
@@ -784,8 +790,9 @@ public:
     void del(uint32_t id)
     {
       T t;
-      if(!this->get(id, t))
+      if (!this->get(id, t)) {
         return;
+      }
 
       (*d_txn)->del(d_parent->d_main, id);
       clearIndex(id, t);
@@ -796,7 +803,8 @@ public:
     {
       auto cursor = (*d_txn)->getRWCursor(d_parent->d_main);
       bool first = true;
-      MDBOutVal key, data;
+      MDBOutVal key{};
+      MDBOutVal data{};
       while(!cursor.get(key, data, first ? MDB_FIRST : MDB_NEXT)) {
         first = false;
         T t;
@@ -818,7 +826,7 @@ public:
       (*d_txn)->abort();
     }
 
-    typedef MDBRWCursor cursor_t;
+    using cursor_t = MDBRWCursor;
 
     std::shared_ptr<MDBRWTransaction> getTransactionHandle()
     {
