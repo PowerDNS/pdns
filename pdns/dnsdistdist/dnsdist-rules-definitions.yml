@@ -1,12 +1,305 @@
 ---
-- TestMaxQPSIPRule:
-  - name: qps
-    type: unsigned int
-  - name: burst
-    type: unsigned int
-    default: qps
-    default-is-field: true
-  - name: ipv4-truncation
-    type: unsigned int
-    default: 32
-    alias: ipv4truncation
+Carbon:
+  section: "metrics"
+  type: "list"
+  parameters:
+    - name: "address"
+      type: "String"
+      description: "Indicates the IP address where the statistics should be sent"
+    - name: "name"
+      type: "String"
+      default: ""
+      description: "An optional string specifying the hostname that should be used. If left empty, the system hostname is used"
+    - name: "interval"
+      type: u32
+      default: 30
+      description: "An optional unsigned integer indicating the interval in seconds between exports"
+    - name: "namespace"
+      type: "String"
+      default: ""
+      description: "An optional string specifying the namespace name that should be used"
+    - name: "instance"
+      type: "String"
+      default: ""
+      description: "An optional string specifying the instance name that should be used"
+
+Protobuf-Logger:
+  section: "metrics"
+  type: "list"
+  parameters:
+    - name: "address"
+      type: "String"
+      description: "An IP:PORT combination where the logger is listening"
+    - name: "timeout"
+      type: u16
+      default: 2
+      description: "TCP connect timeout in seconds"
+    - name: "max-queued-entries"
+      type: u64
+      default: 100
+      description: "Queue this many messages before dropping new ones (e.g. when the remote listener closes the connection)"
+    - name: "reconnect-wait-time"
+      type: u8
+      default: 1
+      description: "Time in seconds between reconnection attempts"
+
+Webserver:
+  section: "global"
+  parameters:
+    - name: "listen-addresses"
+      type: "Vec<String>"
+      default: ""
+      description: "List of IP addresses and ports to listen on"
+    - name: "password"
+      type: "String"
+      default: ""
+      description: "The password used to access the internal webserver. Since 1.7.0 the password should be hashed and salted via the ``hashPassword()`` command"
+    - name: "api-key"
+      type: "String"
+      default: ""
+      description: "The API Key (set to an empty string do disable it). Since 1.7.0 the key should be hashed and salted via the ``hashPassword()`` command"
+    - name: "acl"
+      type: "Vec<String>"
+      default: "127.0.0.1, ::1"
+      description: "List of network masks or IP addresses that are allowed to open a connection to the web server"
+    - name: "api-requires-authentication"
+      type: "bool"
+      default: true
+      description: "Whether access to the API (/api endpoints) require a valid API key"
+    - name: "dashboard-requires-authentication"
+      type: "bool"
+      default: true
+      description: "Whether access to the statistics (/metrics and /jsonstat endpoints) require a valid password or API key"
+    - name: "max-concurrent-connections"
+      type: "u32"
+      default: 100
+      description: "The maximum number of concurrent web connections, or 0 which means an unlimited number"
+    - name: "hash-plaintext-credentials"
+      type: "bool"
+      default: false
+      description: "Whether passwords and API keys provided in plaintext should be hashed during startup, to prevent the plaintext versions from staying in memory. Doing so increases significantly the cost of verifying credentials"
+
+Console:
+  section: "global"
+  parameters:
+    - name: "listen-address"
+      type: "String"
+      description: "IP address and port to listen on for console connections"
+    - name: "key"
+      type: "String"
+      description: "The shared secret used to secure connections between the console client and the server, generated via ``makeKey()``"
+    - name: "acl"
+      type: "Vec<String>"
+      default: "127.0.0.1, ::1"
+      description: "List of network masks or IP addresses that are allowed to open a connection to the console server"
+
+edns-client-subnet:
+  section: "global"
+  parameters:
+    - name: "override"
+      type: "bool"
+      default: false
+      description: "When `useClientSubnet` in `newServer()` is set and dnsdist adds an EDNS Client Subnet Client option to the query, override an existing option already present in the query, if any. Please see Passing the source address to the backend for more information. Note that it’s not recommended to enable setECSOverride in front of an authoritative server responding with EDNS Client Subnet information as mismatching data (ECS scopes) can confuse clients and lead to SERVFAIL responses on downstream nameservers"
+    - name: "source-prefix-v4"
+      type: "u8"
+      default: 32
+      description: "When `useClientSubnet` in `newServer()` is set and dnsdist adds an EDNS Client Subnet Client option to the query, truncate the requestor's IPv4 address to `prefix` bits"
+    - name: "source-prefix-v6"
+      type: "u8"
+      default: 48
+      description: "When `useClientSubnet` in `newServer()` is set and dnsdist adds an EDNS Client Subnet Client option to the query, truncate the requestor's IPv6 address to `prefix` bits"
+
+acl:
+  section: "global"
+  type: "Vec<String>"
+  default: "127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fc00::/7, fe80::/10"
+  description: "CIDR netmasks of the clients allowed to send DNS queries"
+
+ring-buffer:
+  section: "global"
+  parameters:
+    - name: "size"
+      type: "u64"
+      default: 10000
+      description: "The maximum amount of queries to keep in the ringbuffer"
+    - name: "shards"
+      type: "u64"
+      default: 10
+      description: "The number of shards to use to limit lock contention"
+    - name: "lock-retries"
+      type: "u64"
+      default: 5
+      description: "Set the number of shards to attempt to lock without blocking before giving up and simply blocking while waiting for the next shard to be available. Default to 5 if there is more than one shard, 0 otherwise"
+    - name: "record-queries"
+      type: "bool"
+      default: true
+      description: "Whether to record queries in the ring buffers"
+    - name: "record-responses"
+      type: "bool"
+      default: true
+      description: "Whether to record responses in the ring buffers"
+
+tls-configuration:
+  parameters:
+    - name: "provider"
+      type: "String"
+      default: "OpenSSL"
+    - name: "certificate"
+      type: "String"
+    - name: "key"
+      type: "String"
+      default: ""
+    - name: "password"
+      type: "String"
+      default: ""
+
+outgoing-tls-configuration:
+  parameters:
+    - name: "provider"
+      type: "String"
+      default: "OpenSSL"
+    - name: "subject-name"
+      type: "String"
+      default: ""
+    - name: "validate-certificate"
+      type: "bool"
+      default: true
+
+outgoing-doh-configuration:
+  parameters:
+    - name: "path"
+      type: "String"
+      default: "/dns-query"
+    - name: "add-x-forwarded-for-headers"
+      type: "bool"
+      default: false
+
+binds:
+  section: "global"
+  type: list
+  parameters:
+    - name: "listen-address"
+      type: "String"
+      description: "Address and port to listen to"
+    - name: "reuseport"
+      type: "bool"
+      default: false
+    - name: "protocol"
+      type: "String"
+      default: "Do53"
+    - name: "threads"
+      type: "u32"
+      default: "1"
+    - name: "tls"
+      type: "TLSConfiguration"
+    - name: "doh"
+      type: "DoHConfiguration"
+
+backends:
+  section: "global"
+  type: "list"
+  parameters:
+    - name: "address"
+      type: "String"
+    - name: "protocol"
+      type: "String"
+    - name: "tls"
+      type: "OutgoingTLSConfiguration"
+    - name: "doh"
+      type: "OutgoingDoHConfiguration"
+    - name: "max-in-flight"
+      type: "u16"
+      default: "1"
+    - name: "use-client-subnet"
+      type: "bool"
+      default: false
+    - name: "use-proxy-protocol"
+      type: "bool"
+      default: false
+
+tcp:
+  section: "tuning"
+  parameters:
+    - name: "worker-threads"
+      type: "u32"
+      default: 10
+    - name: "receive-timeout"
+      type: "u32"
+      default: 2
+    - name: "send-timeout"
+      type: "u32"
+      default: 2
+
+doh:
+  section: "tuning"
+  parameters:
+    - name: "outgoing-worker-threads"
+      type: "u32"
+      default: 10
+
+packet-caches:
+  section: "global"
+  type: "list"
+  parameters:
+    - name: "name"
+      type: "String"
+    - name: "size"
+      type: "u64"
+    - name: "min-ttl"
+      type: "u32"
+      default: 0
+    - name: "shards"
+      type: "u32"
+
+
+pools:
+  section: "global"
+  type: "list"
+  parameters:
+    - name: "name"
+      type: "String"
+    - name: "packet-cache"
+      type: "String"
+    - name: "policy"
+      type: "String"
+
+
+
+MaxQPSIPRule:
+  section: "selectors"
+  version-changed:
+    version: "1.8.0"
+    description: "shards parameter added"
+  description: "Matches traffic for a subnet specified by v4Mask or v6Mask exceeding qps queries per second up to burst allowed. This rule keeps track of QPS by netmask or source IP. This state is cleaned up regularly if cleanupDelay is greater than zero, removing existing netmasks or IP addresses that have not been seen in the last expiration seconds."
+  parameters:
+    - name: qps
+      type: u32
+      description: "The number of queries per second allowed, above this number traffic is matched"
+    - name: ipv4-mask
+      type: u8
+      default: 32
+      description: The IPv4 netmask to match on"
+    - name: ipv6-mask
+      type: u8
+      default: 64
+      description: The IPv6 netmask to match on"
+    - name: burst
+      type: u32
+      description: "The number of burstable queries per second allowed. If unset or set to 0, it will be equal to the value of ``qps``"
+      default: 0
+    - name: expiration
+      type: u32
+      description: "How long to keep netmask or IP addresses after they have last been seen, in seconds"
+      default: 300
+    - name: cleanup-delay
+      type: u32
+      description: "The number of seconds between two cleanups"
+      default: 60
+    - name: scan-fraction
+      type: u32
+      description: "The maximum fraction of the store to scan for expired entries, for example 5 would scan at most 20% of it"
+      default: 10
+    - name: shards
+      type: u32
+      description: "How many shards to use, to decrease lock contention between threads. Default is 10 and is a safe default unless a very high number of threads are used to process incoming queries"
+      default: 10
