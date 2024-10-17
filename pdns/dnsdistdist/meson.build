@@ -205,13 +205,6 @@ conditional_sources = {
     ],
     'condition': dep_cdb.found(),
   },
-  'dnstap': {
-    'sources': [
-      src_dir / 'dnstap.cc',
-      src_dir / 'fstrm_logger.cc',
-    ],
-    'condition': dep_dnstap.found(),
-   },
   'doh': {
     'sources': [
       src_dir / 'doh.cc',
@@ -395,6 +388,8 @@ tools = {
   'dnsdist': {
     'main': src_dir / 'dnsdist.cc',
     'files-extra': [
+      src_dir / 'dnstap.cc',
+      src_dir / 'fstrm_logger.cc',
       mplexer_sources,
     ],
     'manpages': ['dnsdist.1'],
