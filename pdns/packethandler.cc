@@ -288,7 +288,7 @@ int PacketHandler::doChaosRequest(const DNSPacket& p, std::unique_ptr<DNSPacket>
       // modes: full, powerdns only, anonymous or custom
       const static string mode=::arg()["version-string"];
       string content;
-      if(mode.empty() || mode=="full")
+      if(mode=="full")
         content=fullVersionString();
       else if(mode=="powerdns")
         content="Served by PowerDNS - https://www.powerdns.com/";
