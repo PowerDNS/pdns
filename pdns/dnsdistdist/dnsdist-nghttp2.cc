@@ -1045,7 +1045,7 @@ bool initDoHWorkers()
 #endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
 }
 
-bool sendH2Query(const std::shared_ptr<DownstreamState>& ds, std::unique_ptr<FDMultiplexer>& mplexer, std::shared_ptr<TCPQuerySender>& sender, InternalQuery&& query, bool healthCheck)
+bool sendH2Query([[maybe_unused]] const std::shared_ptr<DownstreamState>& ds, [[maybe_unused]] std::unique_ptr<FDMultiplexer>& mplexer, [[maybe_unused]] std::shared_ptr<TCPQuerySender>& sender, [[maybe_unused]] InternalQuery&& query, [[maybe_unused]] bool healthCheck)
 {
 #if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
   struct timeval now
@@ -1080,7 +1080,7 @@ size_t clearH2Connections()
   return cleared;
 }
 
-size_t handleH2Timeouts(FDMultiplexer& mplexer, const struct timeval& now)
+size_t handleH2Timeouts([[maybe_unused]] FDMultiplexer& mplexer, [[maybe_unused]] const struct timeval& now)
 {
   size_t got = 0;
 #if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
@@ -1107,21 +1107,21 @@ size_t handleH2Timeouts(FDMultiplexer& mplexer, const struct timeval& now)
   return got;
 }
 
-void setDoHDownstreamCleanupInterval(uint16_t max)
+void setDoHDownstreamCleanupInterval([[maybe_unused]] uint16_t max)
 {
 #if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
   DownstreamDoHConnectionsManager::setCleanupInterval(max);
 #endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
 }
 
-void setDoHDownstreamMaxIdleTime(uint16_t max)
+void setDoHDownstreamMaxIdleTime([[maybe_unused]] uint16_t max)
 {
 #if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
   DownstreamDoHConnectionsManager::setMaxIdleTime(max);
 #endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
 }
 
-void setDoHDownstreamMaxIdleConnectionsPerBackend(size_t max)
+void setDoHDownstreamMaxIdleConnectionsPerBackend([[maybe_unused]] size_t max)
 {
 #if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
   DownstreamDoHConnectionsManager::setMaxIdleConnectionsPerDownstream(max);

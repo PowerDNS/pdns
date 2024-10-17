@@ -128,7 +128,7 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
       return std::shared_ptr<RemoteLoggerInterface>(new RemoteLogger(ComboAddress(remote), timeout ? *timeout : 2, maxQueuedEntries ? (*maxQueuedEntries*100) : 10000, reconnectWaitTime ? *reconnectWaitTime : 1, client));
     });
 
-  luaCtx.writeFunction("newFrameStreamUnixLogger", [client,configCheck](const std::string& address, boost::optional<LuaAssociativeTable<unsigned int>> params) {
+  luaCtx.writeFunction("newFrameStreamUnixLogger", [client,configCheck]([[maybe_unused]] const std::string& address, [[maybe_unused]] boost::optional<LuaAssociativeTable<unsigned int>> params) {
 #ifdef HAVE_FSTRM
       if (client || configCheck) {
         return std::shared_ptr<RemoteLoggerInterface>(nullptr);
@@ -143,7 +143,7 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
 #endif /* HAVE_FSTRM */
     });
 
-  luaCtx.writeFunction("newFrameStreamTcpLogger", [client,configCheck](const std::string& address, boost::optional<LuaAssociativeTable<unsigned int>> params) {
+  luaCtx.writeFunction("newFrameStreamTcpLogger", [client,configCheck]([[maybe_unused]] const std::string& address, [[maybe_unused]] boost::optional<LuaAssociativeTable<unsigned int>> params) {
 #if defined(HAVE_FSTRM) && defined(HAVE_FSTRM_TCP_WRITER_INIT)
       if (client || configCheck) {
         return std::shared_ptr<RemoteLoggerInterface>(nullptr);
