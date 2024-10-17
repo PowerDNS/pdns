@@ -30,7 +30,7 @@ namespace dnsdist::webserver
 void registerWebHandler(const std::string& endpoint, std::function<void(const YaHTTP::Request&, YaHTTP::Response&)> handler, bool isLua);
 }
 
-void setupLuaWeb(LuaContext& luaCtx)
+void setupLuaWeb([[maybe_unused]] LuaContext& luaCtx)
 {
 #ifndef DISABLE_LUA_WEB_HANDLERS
   luaCtx.writeFunction("registerWebHandler", [](const std::string& path, std::function<void(const YaHTTP::Request*, YaHTTP::Response*)> handler) {

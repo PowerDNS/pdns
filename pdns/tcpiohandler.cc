@@ -7,25 +7,13 @@
 
 const bool TCPIOHandler::s_disableConnectForUnitTests = false;
 
-namespace {
-bool shouldDoVerboseLogging()
-{
-#ifdef DNSDIST
-  return dnsdist::configuration::getCurrentRuntimeConfiguration().d_verbose;
-#elif defined(RECURSOR)
-  return false;
-#else
-  return true;
-#endif
-}
-}
-
 #ifdef HAVE_LIBSODIUM
 #include <sodium.h>
 #endif /* HAVE_LIBSODIUM */
 
 TLSCtx::tickets_key_added_hook TLSCtx::s_ticketsKeyAddedHook{nullptr};
 
+#if defined(HAVE_DNS_OVER_TLS) || defined(HAVE_DNS_OVER_HTTPS)
 static std::vector<std::vector<uint8_t>> getALPNVector(TLSFrontend::ALPN alpn, bool client)
 {
   if (alpn == TLSFrontend::ALPN::DoT) {
@@ -46,8 +34,20 @@ static std::vector<std::vector<uint8_t>> getALPNVector(TLSFrontend::ALPN alpn, b
   return {};
 }
 
-#if defined(HAVE_DNS_OVER_TLS) || defined(HAVE_DNS_OVER_HTTPS)
 #ifdef HAVE_LIBSSL
+
+namespace {
+bool shouldDoVerboseLogging()
+{
+#ifdef DNSDIST
+  return dnsdist::configuration::getCurrentRuntimeConfiguration().d_verbose;
+#elif defined(RECURSOR)
+  return false;
+#else
+  return true;
+#endif
+}
+}
 
 #include <openssl/conf.h>
 #include <openssl/err.h>
