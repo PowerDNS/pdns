@@ -166,6 +166,14 @@ namespace LMDBLS {
 
 #endif /* ifndef DNSDIST */
 
+template <class T>
+auto networkToHostByteOrder(T value) -> T;
+
+template <>
+inline auto networkToHostByteOrder(uint32_t value) -> uint32_t
+{
+  return ntohl(value);
+}
 
 struct MDBOutVal
 {
@@ -174,19 +182,11 @@ struct MDBOutVal
     return d_mdbval;
   }
 
-#ifndef DNSDIST
-  template <class T, typename std::enable_if<std::is_integral<T>::value, T>::type* = nullptr>
-  T get() const;
-
-  template <class T, typename std::enable_if<std::is_integral<T>::value, T>::type* = nullptr>
-  T getNoStripHeader() const;
-#endif /* ifndef DNSDIST */
-
-  template <class T, typename std::enable_if<std::is_class<T>::value, T>::type* = nullptr>
+  template <class T>
   T get() const;
 
 #ifndef DNSDIST
-  template <class T, typename std::enable_if<std::is_class<T>::value, T>::type* = nullptr>
+  template <class T>
   T getNoStripHeader() const;
 #endif
 
@@ -194,58 +194,76 @@ struct MDBOutVal
 };
 
 #ifndef DNSDIST
-template <>
-inline uint32_t MDBOutVal::get<uint32_t>() const
+template <class T>
+inline T MDBOutVal::get() const
 {
-  uint32_t ret = 0;
-  size_t offset = LMDBLS::LScheckHeaderAndGetSize(this, sizeof(uint32_t));
-  // NOLINTNEXTLINE
-  memcpy(&ret, reinterpret_cast<const char*>(d_mdbval.mv_data) + offset, sizeof(uint32_t));
-  ret = ntohl(ret);
+  T ret{};
+  size_t offset = LMDBLS::LScheckHeaderAndGetSize(this, sizeof(ret));
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+  memcpy(&ret, static_cast<const char*>(d_mdbval.mv_data) + offset, sizeof(ret));
+  ret = networkToHostByteOrder(ret);
   return ret;
 }
 
-template <>
-inline uint32_t MDBOutVal::getNoStripHeader() const
+template <class T>
+inline T MDBOutVal::getNoStripHeader() const
 {
-  uint32_t ret = 0;
-  if (d_mdbval.mv_size != sizeof(uint32_t)) {
+  T ret{};
+  if (d_mdbval.mv_size != sizeof(ret)) {
     throw std::runtime_error("MDB data has wrong length for type");
   }
 
-  memcpy(&ret, d_mdbval.mv_data, sizeof(uint32_t));
-  ret = ntohl(ret);
+  memcpy(&ret, d_mdbval.mv_data, sizeof(ret));
+  ret = networkToHostByteOrder(ret);
   return ret;
 }
 #endif /* ifndef DNSDIST */
 
-template<> inline std::string MDBOutVal::get<std::string>() const
+#ifdef DNSDIST
+
+template <>
+inline std::string MDBOutVal::get<std::string>() const
 {
-#ifndef DNSDIST
+  return {static_cast<char*>(d_mdbval.mv_data), d_mdbval.mv_size};
+}
+
+template <>
+inline string_view MDBOutVal::get<string_view>() const
+{
+  return {static_cast<char*>(d_mdbval.mv_data), d_mdbval.mv_size};
+}
+
+#else
+
+template <>
+inline std::string MDBOutVal::get<std::string>() const
+{
   size_t offset = LMDBLS::LScheckHeaderAndGetSize(this);
-
-  return std::string((char*)d_mdbval.mv_data+offset, d_mdbval.mv_size-offset);
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+  return {static_cast<char*>(d_mdbval.mv_data) + offset, d_mdbval.mv_size - offset};
 }
 
-template<> inline std::string MDBOutVal::getNoStripHeader<std::string>() const
+template <>
+inline string_view MDBOutVal::get<string_view>() const
 {
-#endif
-  return std::string((char*)d_mdbval.mv_data, d_mdbval.mv_size);
-}
-
-template<> inline string_view MDBOutVal::get<string_view>() const
-{
-#ifndef DNSDIST
   size_t offset = LMDBLS::LScheckHeaderAndGetSize(this);
-
-  return string_view((char*)d_mdbval.mv_data+offset, d_mdbval.mv_size-offset);
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+  return {static_cast<char*>(d_mdbval.mv_data) + offset, d_mdbval.mv_size - offset};
 }
 
-template<> inline string_view MDBOutVal::getNoStripHeader<string_view>() const
+template <>
+inline std::string MDBOutVal::getNoStripHeader<std::string>() const
 {
-#endif
-  return string_view((char*)d_mdbval.mv_data, d_mdbval.mv_size);
+  return {static_cast<char*>(d_mdbval.mv_data), d_mdbval.mv_size};
 }
+
+template <>
+inline string_view MDBOutVal::getNoStripHeader<string_view>() const
+{
+  return {static_cast<char*>(d_mdbval.mv_data), d_mdbval.mv_size};
+}
+
+#endif  // ifdef DNSDIST
 
 class MDBInVal
 {
