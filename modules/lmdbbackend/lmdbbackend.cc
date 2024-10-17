@@ -364,8 +364,6 @@ void copyIndexDBI(MDB_txn* txn, MDB_dbi sdbi, MDB_dbi tdbi)
 
 bool LMDBBackend::upgradeToSchemav5(std::string& filename)
 {
-  int rc;
-
   auto currentSchemaVersionAndShards = getSchemaVersionAndShards(filename);
   uint32_t currentSchemaVersion = currentSchemaVersionAndShards.first;
   uint32_t shards = currentSchemaVersionAndShards.second;
@@ -376,23 +374,23 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
 
   MDB_env* env = nullptr;
 
-  if ((rc = mdb_env_create(&env)) != 0) {
+  if (mdb_env_create(&env) != 0) {
     throw std::runtime_error("mdb_env_create failed");
   }
 
-  if ((rc = mdb_env_set_maxdbs(env, 20)) != 0) {
+  if (mdb_env_set_maxdbs(env, 20) != 0) {
     mdb_env_close(env);
     throw std::runtime_error("mdb_env_set_maxdbs failed");
   }
 
-  if ((rc = mdb_env_open(env, filename.c_str(), MDB_NOSUBDIR, 0600)) != 0) {
+  if (mdb_env_open(env, filename.c_str(), MDB_NOSUBDIR, 0600) != 0) {
     mdb_env_close(env);
     throw std::runtime_error("mdb_env_open failed");
   }
 
   MDB_txn* txn = nullptr;
 
-  if ((rc = mdb_txn_begin(env, nullptr, 0, &txn)) != 0) {
+  if (mdb_txn_begin(env, nullptr, 0, &txn) != 0) {
     mdb_env_close(env);
     throw std::runtime_error("mdb_txn_begin failed");
   }
@@ -418,31 +416,32 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
     std::cerr << "migrating shard " << shardfile << std::endl;
     MDB_env* shenv = nullptr;
 
-    if ((rc = mdb_env_create(&shenv)) != 0) {
+    if (mdb_env_create(&shenv) != 0) {
       throw std::runtime_error("mdb_env_create failed");
     }
 
-    if ((rc = mdb_env_set_maxdbs(shenv, 8)) != 0) {
+    if (mdb_env_set_maxdbs(shenv, 8) != 0) {
       mdb_env_close(env);
       throw std::runtime_error("mdb_env_set_maxdbs failed");
     }
 
-    if ((rc = mdb_env_open(shenv, shardfile.c_str(), MDB_NOSUBDIR, 0600)) != 0) {
+    if (mdb_env_open(shenv, shardfile.c_str(), MDB_NOSUBDIR, 0600) != 0) {
       mdb_env_close(env);
       throw std::runtime_error("mdb_env_open failed");
     }
 
     MDB_txn* shtxn = nullptr;
 
-    if ((rc = mdb_txn_begin(shenv, NULL, 0, &shtxn)) != 0) {
+    if (mdb_txn_begin(shenv, nullptr, 0, &shtxn) != 0) {
       mdb_env_close(env);
       throw std::runtime_error("mdb_txn_begin failed");
     }
 
-    MDB_dbi shdbi;
+    MDB_dbi shdbi = 0;
 
-    if ((rc = mdb_dbi_open(shtxn, "records", 0, &shdbi)) != 0) {
-      if (rc == MDB_NOTFOUND) {
+    const auto dbiOpenRc = mdb_dbi_open(shtxn, "records", 0, &shdbi);
+    if (dbiOpenRc != 0) {
+      if (dbiOpenRc == MDB_NOTFOUND) {
         mdb_txn_abort(shtxn);
         mdb_env_close(shenv);
         continue;
@@ -452,9 +451,9 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
       throw std::runtime_error("mdb_dbi_open shard records failed");
     }
 
-    MDB_dbi shdbi2;
+    MDB_dbi shdbi2 = 0;
 
-    if ((rc = mdb_dbi_open(shtxn, "records_v5", MDB_CREATE, &shdbi2)) != 0) {
+    if (mdb_dbi_open(shtxn, "records_v5", MDB_CREATE, &shdbi2) != 0) {
       mdb_dbi_close(shenv, shdbi);
       mdb_txn_abort(shtxn);
       mdb_env_close(shenv);
@@ -478,8 +477,8 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
     mdb_env_close(shenv);
   }
 
-  std::array<MDB_dbi, 4> fromtypeddbi;
-  std::array<MDB_dbi, 4> totypeddbi;
+  std::array<MDB_dbi, 4> fromtypeddbi{};
+  std::array<MDB_dbi, 4> totypeddbi{};
 
   int index = 0;
 
@@ -487,13 +486,16 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
     std::cerr << "migrating " << dbname << std::endl;
     std::string tdbname = dbname + "_v5";
 
-    if ((rc = mdb_dbi_open(txn, dbname.c_str(), 0, &fromtypeddbi[index])) != 0) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
+    if (mdb_dbi_open(txn, dbname.c_str(), 0, &fromtypeddbi[index]) != 0) {
       mdb_txn_abort(txn);
       mdb_env_close(env);
       throw std::runtime_error("mdb_dbi_open typeddbi failed");
     }
 
-    if ((rc = mdb_dbi_open(txn, tdbname.c_str(), MDB_CREATE, &totypeddbi[index])) != 0) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
+    if (mdb_dbi_open(txn, tdbname.c_str(), MDB_CREATE, &totypeddbi[index]) != 0) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
       mdb_dbi_close(env, fromtypeddbi[index]);
       mdb_txn_abort(txn);
       mdb_env_close(env);
@@ -501,10 +503,13 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
     }
 
     try {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
       copyTypedDBI(txn, fromtypeddbi[index], totypeddbi[index]);
     }
     catch (std::exception& e) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
       mdb_dbi_close(env, totypeddbi[index]);
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
       mdb_dbi_close(env, fromtypeddbi[index]);
       mdb_txn_abort(txn);
       mdb_env_close(env);
@@ -518,8 +523,8 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
     index++;
   }
 
-  std::array<MDB_dbi, 4> fromindexdbi;
-  std::array<MDB_dbi, 4> toindexdbi;
+  std::array<MDB_dbi, 4> fromindexdbi{};
+  std::array<MDB_dbi, 4> toindexdbi{};
 
   index = 0;
 
@@ -528,13 +533,16 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
     std::cerr << "migrating " << dbname << std::endl;
     std::string tdbname = dbname + "_v5_0";
 
-    if ((rc = mdb_dbi_open(txn, fdbname.c_str(), 0, &fromindexdbi[index])) != 0) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
+    if (mdb_dbi_open(txn, fdbname.c_str(), 0, &fromindexdbi[index]) != 0) {
       mdb_txn_abort(txn);
       mdb_env_close(env);
       throw std::runtime_error("mdb_dbi_open indexdbi failed");
     }
 
-    if ((rc = mdb_dbi_open(txn, tdbname.c_str(), MDB_CREATE, &toindexdbi[index])) != 0) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
+    if (mdb_dbi_open(txn, tdbname.c_str(), MDB_CREATE, &toindexdbi[index]) != 0) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
       mdb_dbi_close(env, fromindexdbi[index]);
       mdb_txn_abort(txn);
       mdb_env_close(env);
@@ -542,10 +550,13 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
     }
 
     try {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
       copyIndexDBI(txn, fromindexdbi[index], toindexdbi[index]);
     }
     catch (std::exception& e) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
       mdb_dbi_close(env, toindexdbi[index]);
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
       mdb_dbi_close(env, fromindexdbi[index]);
       mdb_txn_abort(txn);
       mdb_env_close(env);
@@ -559,16 +570,17 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
     index++;
   }
 
-  MDB_dbi dbi;
+  MDB_dbi dbi = 0;
 
   // finally, migrate the pdns db
-  if ((rc = mdb_dbi_open(txn, "pdns", 0, &dbi)) != 0) {
+  if (mdb_dbi_open(txn, "pdns", 0, &dbi) != 0) {
     mdb_txn_abort(txn);
     mdb_env_close(env);
     throw std::runtime_error("mdb_dbi_open pdns failed");
   }
 
-  MDB_val key, data;
+  MDB_val key;
+  MDB_val data;
 
   std::string header(LMDBLS::LS_MIN_HEADER_SIZE, '\0');
 
@@ -578,16 +590,15 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
     key.mv_data = (char*)keyname.c_str();
     key.mv_size = keyname.size();
 
-    if ((rc = mdb_get(txn, dbi, &key, &data))) {
+    if (mdb_get(txn, dbi, &key, &data) != 0) {
       throw std::runtime_error("mdb_get pdns.shards failed");
     }
-
-    uint32_t value;
 
     if (data.mv_size != sizeof(uint32_t)) {
       throw std::runtime_error("got non-uint32_t key");
     }
 
+    uint32_t value = 0;
     memcpy((void*)&value, data.mv_data, sizeof(uint32_t));
 
     value = htonl(value);
@@ -595,17 +606,16 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
       value = htonl(5);
     }
 
-    std::string sdata((char*)data.mv_data, data.mv_size);
-
+    std::string sdata(static_cast<char*>(data.mv_data), data.mv_size);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
     std::string stdata = header + std::string((char*)&value, sizeof(uint32_t));
-    ;
 
     MDB_val tdata;
 
     tdata.mv_data = (char*)stdata.c_str();
     tdata.mv_size = stdata.size();
 
-    if ((rc = mdb_put(txn, dbi, &key, &tdata, 0)) != 0) {
+    if (mdb_put(txn, dbi, &key, &tdata, 0) != 0) {
       throw std::runtime_error("mdb_put failed");
     }
   }
@@ -616,7 +626,7 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
     key.mv_data = (char*)keyname.c_str();
     key.mv_size = keyname.size();
 
-    if ((rc = mdb_get(txn, dbi, &key, &data))) {
+    if (mdb_get(txn, dbi, &key, &data) != 0) {
       throw std::runtime_error("mdb_get pdns.shards failed");
     }
 
@@ -629,20 +639,24 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
     tdata.mv_data = (char*)stdata.c_str();
     tdata.mv_size = stdata.size();
 
-    if ((rc = mdb_put(txn, dbi, &key, &tdata, 0)) != 0) {
+    if (mdb_put(txn, dbi, &key, &tdata, 0) != 0) {
       throw std::runtime_error("mdb_put failed");
     }
   }
 
   for (int i = 0; i < 4; i++) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
     mdb_drop(txn, fromtypeddbi[i], 1);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
     mdb_drop(txn, fromindexdbi[i], 1);
   }
 
   cerr << "txn commit=" << mdb_txn_commit(txn) << endl;
 
   for (int i = 0; i < 4; i++) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
     mdb_dbi_close(env, totypeddbi[i]);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
     mdb_dbi_close(env, toindexdbi[i]);
   }
   mdb_env_close(env);
