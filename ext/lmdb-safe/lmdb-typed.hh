@@ -11,6 +11,7 @@
 #include <boost/iostreams/stream_buffer.hpp>
 #include <boost/iostreams/device/back_inserter.hpp>
 #include <utility>
+#include <string>
 
 #include "lmdb-safe.hh"
 
@@ -73,7 +74,7 @@ inline std::string keyConv(const T& value);
 template <class T, typename std::enable_if<std::is_arithmetic<T>::value, T>::type* = nullptr>
 inline std::string keyConv(const T& value)
 {
-  return string{(char*)&value, sizeof(value)};
+  return std::string{(char*)&value, sizeof(value)};
 }
 
 /**
@@ -151,7 +152,7 @@ struct LMDBIndexOps
     MDBInVal combined(scombined);
 
     // if the entry existed already, this will just update the timestamp/txid in the LS header. This is intentional, so objects and their indexes always get synced together.
-    txn->put(d_idx, combined, string{}, flags);
+    txn->put(d_idx, combined, std::string{}, flags);
   }
 
   void del(MDBRWTransaction& txn, const Class& type, uint32_t idVal)
