@@ -20,44 +20,37 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include "lmdbbackend.hh"
+
+#include "config.h"
 #include "ext/lmdb-safe/lmdb-safe.hh"
+#include "pdns/arguments.hh"
+#include "pdns/base32.hh"
+#include "pdns/dns.hh"
+#include "pdns/dnsbackend.hh"
+#include "pdns/dnspacket.hh"
+#include "pdns/dnssecinfra.hh"
+#include "pdns/logger.hh"
+#include "pdns/pdnsexception.hh"
+#include "pdns/uuid-utils.hh"
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/iostreams/device/back_inserter.hpp>
+#include <boost/serialization/string.hpp>
+#include <boost/serialization/utility.hpp>
+#include <boost/serialization/vector.hpp>
+#include <boost/uuid/uuid_serialize.hpp>
+#include <cstdio>
 #include <cstring>
 #include <lmdb.h>
 #include <memory>
 #include <stdexcept>
+#include <unistd.h>
 #include <utility>
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-#include "pdns/utility.hh"
-#include "pdns/dnsbackend.hh"
-#include "pdns/dns.hh"
-#include "pdns/dnspacket.hh"
-#include "pdns/base32.hh"
-#include "pdns/dnssecinfra.hh"
-#include "pdns/pdnsexception.hh"
-#include "pdns/logger.hh"
-#include "pdns/version.hh"
-#include "pdns/arguments.hh"
-#include "pdns/lock.hh"
-#include "pdns/uuid-utils.hh"
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/serialization/vector.hpp>
-#include <boost/serialization/string.hpp>
-#include <boost/serialization/utility.hpp>
-#include <boost/uuid/uuid_serialize.hpp>
-
-#include <boost/iostreams/device/back_inserter.hpp>
 
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
 #endif
-
-#include <cstdio>
-#include <unistd.h>
-
-#include "lmdbbackend.hh"
 
 #define SCHEMAVERSION 5
 
