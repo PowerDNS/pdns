@@ -214,7 +214,7 @@ private:
   Socket d_socket;
 };
 
-bool addMetricDefinition(const dnsdist::prometheus::PrometheusMetricDefinition& def)
+bool addMetricDefinition([[maybe_unused]] const dnsdist::prometheus::PrometheusMetricDefinition& def)
 {
 #ifndef DISABLE_PROMETHEUS
   return MetricDefinitionStorage::addMetricDefinition(def);

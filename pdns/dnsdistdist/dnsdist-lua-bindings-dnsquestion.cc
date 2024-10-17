@@ -30,7 +30,7 @@
 #include "dnsparser.hh"
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity): this function declares Lua bindings, even with a good refactoring it will likely blow up the threshold
-void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
+void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
 {
 #ifndef DISABLE_NON_FFI_DQ_BINDINGS
   /* DNSQuestion */
@@ -173,7 +173,7 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
     return dnsQuestion.ids.queryRealTime.udiff();
   });
 
-  luaCtx.registerFunction<void (DNSQuestion::*)(std::string)>("sendTrap", [](const DNSQuestion& dnsQuestion, boost::optional<std::string> reason) {
+  luaCtx.registerFunction<void (DNSQuestion::*)(std::string)>("sendTrap", []([[maybe_unused]] const DNSQuestion& dnsQuestion, [[maybe_unused]] boost::optional<std::string> reason) {
 #ifdef HAVE_NET_SNMP
     if (g_snmpAgent != nullptr && dnsdist::configuration::getImmutableConfiguration().d_snmpTrapsEnabled) {
       g_snmpAgent->sendDNSTrap(dnsQuestion, reason ? *reason : "");
@@ -501,7 +501,7 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
     return dnsResponse.ids.queryRealTime.udiff();
   });
 
-  luaCtx.registerFunction<void (DNSResponse::*)(std::string)>("sendTrap", [](const DNSResponse& dnsResponse, boost::optional<std::string> reason) {
+  luaCtx.registerFunction<void (DNSResponse::*)(std::string)>("sendTrap", []([[maybe_unused]] const DNSResponse& dnsResponse, [[maybe_unused]] boost::optional<std::string> reason) {
 #ifdef HAVE_NET_SNMP
     if (g_snmpAgent != nullptr && dnsdist::configuration::getImmutableConfiguration().d_snmpTrapsEnabled) {
       g_snmpAgent->sendDNSTrap(dnsResponse, reason ? *reason : "");

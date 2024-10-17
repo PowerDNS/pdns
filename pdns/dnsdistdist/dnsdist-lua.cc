@@ -2118,7 +2118,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   typedef std::unordered_map<std::string, std::string> tlscertificateopts_t;
-  luaCtx.writeFunction("newTLSCertificate", [client](const std::string& cert, boost::optional<tlscertificateopts_t> opts) {
+  luaCtx.writeFunction("newTLSCertificate", [client]([[maybe_unused]] const std::string& cert, [[maybe_unused]] boost::optional<tlscertificateopts_t> opts) {
     std::shared_ptr<TLSCertKeyPair> result = nullptr;
     if (client) {
       return result;
@@ -2139,7 +2139,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     return result;
   });
 
-  luaCtx.writeFunction("addDOHLocal", [client](const std::string& addr, boost::optional<boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>>> certFiles, boost::optional<LuaTypeOrArrayOf<std::string>> keyFiles, boost::optional<LuaTypeOrArrayOf<std::string>> urls, boost::optional<localbind_t> vars) {
+  luaCtx.writeFunction("addDOHLocal", [client]([[maybe_unused]] const std::string& addr, [[maybe_unused]] boost::optional<boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>>> certFiles, [[maybe_unused]] boost::optional<LuaTypeOrArrayOf<std::string>> keyFiles, [[maybe_unused]] boost::optional<LuaTypeOrArrayOf<std::string>> urls, [[maybe_unused]] boost::optional<localbind_t> vars) {
     if (client) {
       return;
     }
@@ -2307,7 +2307,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   // NOLINTNEXTLINE(performance-unnecessary-value-param): somehow clang-tidy gets confused about the fact vars could be const while it cannot
-  luaCtx.writeFunction("addDOH3Local", [client](const std::string& addr, const boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>>& certFiles, const LuaTypeOrArrayOf<std::string>& keyFiles, boost::optional<localbind_t> vars) {
+  luaCtx.writeFunction("addDOH3Local", [client]([[maybe_unused]] const std::string& addr, [[maybe_unused]] const boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>>& certFiles, [[maybe_unused]] const LuaTypeOrArrayOf<std::string>& keyFiles, [[maybe_unused]] boost::optional<localbind_t> vars) {
     if (client) {
       return;
     }
@@ -2384,7 +2384,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   // NOLINTNEXTLINE(performance-unnecessary-value-param): somehow clang-tidy gets confused about the fact vars could be const while it cannot
-  luaCtx.writeFunction("addDOQLocal", [client](const std::string& addr, const boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>>& certFiles, const LuaTypeOrArrayOf<std::string>& keyFiles, boost::optional<localbind_t> vars) {
+  luaCtx.writeFunction("addDOQLocal", [client]([[maybe_unused]] const std::string& addr, [[maybe_unused]] const boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>>& certFiles, [[maybe_unused]] const LuaTypeOrArrayOf<std::string>& keyFiles, [[maybe_unused]] boost::optional<localbind_t> vars) {
     if (client) {
       return;
     }
@@ -2635,7 +2635,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #endif
   });
 
-  luaCtx.writeFunction("getDOHFrontend", [client](uint64_t index) {
+  luaCtx.writeFunction("getDOHFrontend", [client]([[maybe_unused]] uint64_t index) {
     std::shared_ptr<DOHFrontend> result = nullptr;
     if (client) {
       return result;
@@ -2673,7 +2673,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
 
-  luaCtx.registerFunction<void (std::shared_ptr<DOHFrontend>::*)(boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>> certFiles, LuaTypeOrArrayOf<std::string> keyFiles)>("loadNewCertificatesAndKeys", [](const std::shared_ptr<DOHFrontend>& frontend, const boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>>& certFiles, const LuaTypeOrArrayOf<std::string>& keyFiles) {
+  luaCtx.registerFunction<void (std::shared_ptr<DOHFrontend>::*)(boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>> certFiles, LuaTypeOrArrayOf<std::string> keyFiles)>("loadNewCertificatesAndKeys", []([[maybe_unused]] const std::shared_ptr<DOHFrontend>& frontend, [[maybe_unused]] const boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>>& certFiles, [[maybe_unused]] const LuaTypeOrArrayOf<std::string>& keyFiles) {
 #ifdef HAVE_DNS_OVER_HTTPS
     if (frontend != nullptr) {
       if (loadTLSCertificateAndKeys("DOHFrontend::loadNewCertificatesAndKeys", frontend->d_tlsContext.d_tlsConfig.d_certKeyPairs, certFiles, keyFiles)) {
@@ -2736,7 +2736,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
 
-  luaCtx.writeFunction("addTLSLocal", [client](const std::string& addr, const boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>>& certFiles, const LuaTypeOrArrayOf<std::string>& keyFiles, boost::optional<localbind_t> vars) {
+  luaCtx.writeFunction("addTLSLocal", [client]([[maybe_unused]] const std::string& addr, [[maybe_unused]] const boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>>& certFiles, [[maybe_unused]] const LuaTypeOrArrayOf<std::string>& keyFiles, [[maybe_unused]] boost::optional<localbind_t> vars) {
     if (client) {
       return;
     }
@@ -2864,7 +2864,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #endif
   });
 
-  luaCtx.writeFunction("getTLSFrontend", [](uint64_t index) {
+  luaCtx.writeFunction("getTLSFrontend", []([[maybe_unused]] uint64_t index) {
     std::shared_ptr<TLSFrontend> result = nullptr;
 #ifdef HAVE_DNS_OVER_TLS
     setLuaNoSideEffect();
@@ -2937,7 +2937,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     frontend->setupTLS();
   });
 
-  luaCtx.registerFunction<void (std::shared_ptr<TLSFrontend>::*)(const boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>>&, const LuaTypeOrArrayOf<std::string>&)>("loadNewCertificatesAndKeys", [](std::shared_ptr<TLSFrontend>& frontend, const boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>>& certFiles, const LuaTypeOrArrayOf<std::string>& keyFiles) {
+  luaCtx.registerFunction<void (std::shared_ptr<TLSFrontend>::*)(const boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>>&, const LuaTypeOrArrayOf<std::string>&)>("loadNewCertificatesAndKeys", []([[maybe_unused]] std::shared_ptr<TLSFrontend>& frontend, [[maybe_unused]] const boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>>& certFiles, [[maybe_unused]] const LuaTypeOrArrayOf<std::string>& keyFiles) {
 #ifdef HAVE_DNS_OVER_TLS
     if (loadTLSCertificateAndKeys("TLSFrontend::loadNewCertificatesAndKeys", frontend->d_tlsConfig.d_certKeyPairs, certFiles, keyFiles)) {
       frontend->setupTLS();

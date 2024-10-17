@@ -485,7 +485,7 @@ bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>&
   return true;
 }
 
-bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse, bool muted)
+bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse, [[maybe_unused]] bool muted)
 {
   bool zeroScope = false;
   if (!fixUpResponse(response, dnsResponse.ids.qname, dnsResponse.ids.origFlags, dnsResponse.ids.ednsAdded, dnsResponse.ids.ecsAdded, dnsResponse.ids.useZeroScope ? &zeroScope : nullptr)) {
@@ -584,7 +584,7 @@ static size_t getMaximumIncomingPacketSize(const ClientState& clientState)
   return dnsdist::configuration::s_udpIncomingBufferSize + runtimeConfig.d_proxyProtocolMaximumSize;
 }
 
-bool sendUDPResponse(int origFD, const PacketBuffer& response, const int delayMsec, const ComboAddress& origDest, const ComboAddress& origRemote)
+bool sendUDPResponse(int origFD, const PacketBuffer& response, [[maybe_unused]] const int delayMsec, const ComboAddress& origDest, const ComboAddress& origRemote)
 {
 #ifndef DISABLE_DELAY_PIPE
   if (delayMsec > 0 && g_delay != nullptr) {
@@ -1266,7 +1266,7 @@ static bool isUDPQueryAcceptable(ClientState& clientState, const struct msghdr* 
   return true;
 }
 
-bool checkDNSCryptQuery(const ClientState& clientState, PacketBuffer& query, std::unique_ptr<DNSCryptQuery>& dnsCryptQuery, time_t now, bool tcp)
+bool checkDNSCryptQuery(const ClientState& clientState, [[maybe_unused]] PacketBuffer& query, [[maybe_unused]] std::unique_ptr<DNSCryptQuery>& dnsCryptQuery, [[maybe_unused]] time_t now, [[maybe_unused]] bool tcp)
 {
   if (clientState.dnscryptCtx) {
 #ifdef HAVE_DNSCRYPT
@@ -1332,7 +1332,7 @@ struct mmsghdr
 #endif
 
 /* self-generated responses or cache hits */
-static bool prepareOutgoingResponse(const ClientState& clientState, DNSQuestion& dnsQuestion, bool cacheHit)
+static bool prepareOutgoingResponse([[maybe_unused]] const ClientState& clientState, DNSQuestion& dnsQuestion, bool cacheHit)
 {
   std::shared_ptr<DownstreamState> backend{nullptr};
   DNSResponse dnsResponse(dnsQuestion.ids, dnsQuestion.getMutableData(), backend);
