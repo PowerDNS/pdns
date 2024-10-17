@@ -139,7 +139,7 @@ jobs:
     needs: get-runner-container-image
     strategy:
       matrix:
-        sanitizers: [ubsan+asan, tsan]
+        sanitizers: [asan+ubsan, tsan]
         features: [least, full]
         exclude:
           - sanitizers: tsan
@@ -213,11 +213,14 @@ jobs:
     needs: get-runner-container-image
     strategy:
       matrix:
-        sanitizers: [ubsan+asan, tsan]
+        builder: [autotools, meson]
+        sanitizers: [asan+ubsan, tsan]
         features: [least, full]
         exclude:
           - sanitizers: tsan
             features: least
+          - sanitizers: tsan
+            builder: meson
     container:
       image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
@@ -247,25 +250,31 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.ccache
-          key: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-ccache-${{ steps.get-stamp.outputs.stamp }}
-          restore-keys: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-ccache-
+          key: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ matrix.builder}}-ccache-${{ steps.get-stamp.outputs.stamp }}
+          restore-keys: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ matrix.builder}}-ccache-
+      - run: inv ci-install-meson
+        if: ${{ matrix.builder == 'meson' }}
+        working-directory: ./pdns/dnsdistdist/
       - run: inv ci-install-rust ${{ env.REPO_HOME }}
         working-directory: ./pdns/dnsdistdist/
       - run: inv ci-build-and-install-quiche ${{ env.REPO_HOME }}
         working-directory: ./pdns/dnsdistdist/
       - run: inv ci-autoconf
+        if: ${{ matrix.builder == 'autotools' }}
         working-directory: ./pdns/dnsdistdist/
-      - run: inv ci-dnsdist-configure ${{ matrix.features }}
+      - run: inv ci-dnsdist-configure ${{ matrix.features }} ${{ matrix.builder }} dnsdist-${{ env.BUILDER_VERSION }}
         working-directory: ./pdns/dnsdistdist/
       - run: inv ci-make-distdir
+        if: ${{ matrix.builder == 'autotools' }}
         working-directory: ./pdns/dnsdistdist/
-      - run: inv ci-dnsdist-configure ${{ matrix.features }}
-      - run: inv ci-dnsdist-make-bear
-      - run: inv ci-dnsdist-run-unit-tests
+      - run: inv ci-dnsdist-configure ${{ matrix.features }} ${{ matrix.builder }} dnsdist-${{ env.BUILDER_VERSION }}
+        if: ${{ matrix.builder == 'autotools' }}
+      - run: inv ci-dnsdist-make-bear ${{ matrix.builder }}
+      - run: inv ci-dnsdist-run-unit-tests ${{ matrix.builder }}
       - run: inv generate-coverage-info ./testrunner $GITHUB_WORKSPACE
-        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' && matrix.builder == 'autotools'}}
       - name: Coveralls Parallel dnsdist unit
-        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' && matrix.builder == 'autotools' }}
         uses: coverallsapp/github-action@v2
         with:
           flag-name: dnsdist-unit-${{ matrix.features }}-${{ matrix.sanitizers }}
@@ -274,12 +283,14 @@ jobs:
           allow-empty: true
           fail-on-error: false
       - run: inv ci-make-install
+        if: ${{ matrix.builder == 'autotools' }}
       - run: ccache -s
       - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Store the binaries
+        if: ${{ matrix.builder == 'autotools' }}
         uses: actions/upload-artifact@v4 # this takes 30 seconds, maybe we want to tar
         with:
-          name: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
+          name: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ matrix.builder}}-${{ env.normalized-branch-name }}
           path: /opt/dnsdist
           retention-days: 1
 
@@ -521,7 +532,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        sanitizers: [ubsan+asan, tsan]
+        sanitizers: [asan+ubsan, tsan]
         dist_name: [debian]
         pdns_repo_version: ['48']
     container:
@@ -567,7 +578,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        sanitizers: [ubsan+asan, tsan]
+        sanitizers: [asan+ubsan, tsan]
         dist_name: [debian]
         pdns_repo_version: ['48']
     container:
@@ -616,7 +627,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        sanitizers: [ubsan+asan, tsan]
+        sanitizers: [asan+ubsan, tsan]
         threads: [1, 2, 3, 4, 8]
         mthreads: [2048]
         shards: [1, 2, 1024]
@@ -661,7 +672,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        sanitizers: [ubsan+asan, tsan]
+        sanitizers: [asan+ubsan, tsan]
     container:
       image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
@@ -685,7 +696,7 @@ jobs:
       - name: Fetch the binaries
         uses: actions/download-artifact@v4
         with:
-          name: dnsdist-full-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
+          name: dnsdist-full-${{ matrix.sanitizers }}-autotools-${{ env.normalized-branch-name }}
           path: /opt/dnsdist
       - run: inv install-clang-runtime
       - run: inv install-dnsdist-test-deps $([ "$(. /etc/os-release && echo $VERSION_CODENAME)" = "bullseye" ] && echo "--skipXDP=True")

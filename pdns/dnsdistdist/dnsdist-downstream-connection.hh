@@ -62,7 +62,7 @@ public:
       const auto& it = d_downstreamConnections.find(backendId);
       if (it != d_downstreamConnections.end()) {
         /* first scan idle connections, more recent first */
-        auto entry = findUsableConnectionInList(now, freshCutOff, it->second.d_idles, true);
+        auto entry = findUsableConnectionInList(freshCutOff, it->second.d_idles, true);
         if (entry) {
           ++ds->tcpReusedConnections;
           it->second.d_actives.insert(entry);
@@ -70,7 +70,7 @@ public:
         }
 
         /* then scan actives ones, more recent first as well */
-        entry = findUsableConnectionInList(now, freshCutOff, it->second.d_actives, false);
+        entry = findUsableConnectionInList(freshCutOff, it->second.d_actives, false);
         if (entry) {
           ++ds->tcpReusedConnections;
           return entry;
@@ -107,8 +107,8 @@ public:
     idleCutOff.tv_sec -= s_maxIdleTime;
 
     for (auto dsIt = d_downstreamConnections.begin(); dsIt != d_downstreamConnections.end();) {
-      cleanUpList(dsIt->second.d_idles, now, freshCutOff, idleCutOff);
-      cleanUpList(dsIt->second.d_actives, now, freshCutOff, idleCutOff);
+      cleanUpList(dsIt->second.d_idles, freshCutOff, idleCutOff);
+      cleanUpList(dsIt->second.d_actives, freshCutOff, idleCutOff);
 
       if (dsIt->second.d_idles.empty() && dsIt->second.d_actives.empty()) {
         dsIt = d_downstreamConnections.erase(dsIt);
@@ -212,7 +212,7 @@ public:
   }
 
 protected:
-  void cleanUpList(list_t& list, const struct timeval& now, const struct timeval& freshCutOff, const struct timeval& idleCutOff)
+  void cleanUpList(list_t& list, const struct timeval& freshCutOff, const struct timeval& idleCutOff)
   {
     auto& sidx = list.template get<SequencedTag>();
     for (auto connIt = sidx.begin(); connIt != sidx.end();) {
@@ -248,7 +248,7 @@ protected:
     }
   }
 
-  std::shared_ptr<T> findUsableConnectionInList(const struct timeval& now, const struct timeval& freshCutOff, list_t& list, bool removeIfFound)
+  std::shared_ptr<T> findUsableConnectionInList(const struct timeval& freshCutOff, list_t& list, bool removeIfFound)
   {
     auto& sidx = list.template get<SequencedTag>();
     for (auto listIt = sidx.begin(); listIt != sidx.end();) {
@@ -258,7 +258,7 @@ protected:
       }
 
       auto& entry = *listIt;
-      if (isConnectionUsable(entry, now, freshCutOff)) {
+      if (isConnectionUsable(entry, freshCutOff)) {
         entry->setReused();
         // make a copy since the iterator will be invalidated after erasing
         auto result = entry;
@@ -280,7 +280,7 @@ protected:
     return nullptr;
   }
 
-  bool isConnectionUsable(const std::shared_ptr<T>& conn, const struct timeval& now, const struct timeval& freshCutOff)
+  bool isConnectionUsable(const std::shared_ptr<T>& conn, const struct timeval& freshCutOff)
   {
     if (!conn->canBeReused()) {
       return false;
