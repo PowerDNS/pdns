@@ -167,7 +167,16 @@ namespace LMDBLS {
 #endif /* ifndef DNSDIST */
 
 template <class T>
+auto hostToNetworkByteOrder(T value) -> T;
+
+template <class T>
 auto networkToHostByteOrder(T value) -> T;
+
+template <>
+inline auto hostToNetworkByteOrder(uint32_t value) -> uint32_t
+{
+  return htonl(value);
+}
 
 template <>
 inline auto networkToHostByteOrder(uint32_t value) -> uint32_t
@@ -268,50 +277,46 @@ inline string_view MDBOutVal::getNoStripHeader<string_view>() const
 class MDBInVal
 {
 public:
-  MDBInVal(const MDBOutVal& rhs): d_mdbval(rhs.d_mdbval)
+  MDBInVal(const MDBOutVal& rhs) :
+    d_mdbval(rhs.d_mdbval)
   {
   }
 
 #ifndef DNSDIST
-  template <class T,
-            typename std::enable_if<std::is_integral<T>::value,
-                                    T>::type* = nullptr>
-  MDBInVal(T i)
+  template <class T>
+  MDBInVal(T rhs)
   {
-    static_assert(sizeof(T) == 4, "this code currently only supports 32 bit integers");
-    auto j = htonl(i);    // all actual usage in our codebase is 32 bits. If that ever changes, this will break the build and avoid runtime surprises
-    memcpy(&d_memory[0], &j, sizeof(j));
-
-    d_mdbval.mv_size = sizeof(T);
-    d_mdbval.mv_data = d_memory;;
+    auto rhsNetworkOrder = hostToNetworkByteOrder(rhs);
+    memcpy(&d_memory[0], &rhsNetworkOrder, sizeof(rhsNetworkOrder));
+    d_mdbval.mv_size = sizeof(rhs);
+    d_mdbval.mv_data = static_cast<void*>(d_memory);
   }
 #endif
 
-  MDBInVal(const char* s)
+  MDBInVal(const char* rhs)
   {
-    d_mdbval.mv_size = strlen(s);
-    d_mdbval.mv_data = (void*)s;
+    d_mdbval.mv_size = strlen(rhs);
+    d_mdbval.mv_data = (void*)rhs;
   }
 
-  MDBInVal(const string_view& v)
+  MDBInVal(const string_view& rhs)
   {
-    d_mdbval.mv_size = v.size();
-    d_mdbval.mv_data = (void*)&v[0];
+    d_mdbval.mv_size = rhs.size();
+    d_mdbval.mv_data = (void*)rhs.data();
   }
 
-  MDBInVal(const std::string& v)
+  MDBInVal(const std::string& rhs)
   {
-    d_mdbval.mv_size = v.size();
-    d_mdbval.mv_data = (void*)&v[0];
+    d_mdbval.mv_size = rhs.size();
+    d_mdbval.mv_data = (void*)rhs.data();
   }
-
 
   template<typename T>
-  static MDBInVal fromStruct(const T& t)
+  static MDBInVal fromStruct(const T& rhs)
   {
     MDBInVal ret;
     ret.d_mdbval.mv_size = sizeof(T);
-    ret.d_mdbval.mv_data = (void*)&t;
+    ret.d_mdbval.mv_data = (void*)&rhs;
     return ret;
   }
 
@@ -319,11 +324,15 @@ public:
   {
     return d_mdbval;
   }
-  MDB_val d_mdbval;
+
+  // NOLINTNEXTLINE(cppcoreguidelines-non-private-member-variables-in-classes)
+  MDB_val d_mdbval{};
+
 private:
   MDBInVal(){}
 #ifndef DNSDIST
-  char d_memory[sizeof(double)];
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays, modernize-avoid-c-arrays)
+  char d_memory[sizeof(uint64_t)]{};
 #endif
 };
 
