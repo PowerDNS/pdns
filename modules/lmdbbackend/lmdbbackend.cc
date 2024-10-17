@@ -756,20 +756,35 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
 
       auto txn = d_tdomains->getEnv()->getRWTransaction();
 
+      const auto configShardsTemp = atoi(getArg("shards").c_str());
+      if (configShardsTemp < 0) {
+        throw std::runtime_error("a negative shards value is not supported");
+      }
+      if (configShardsTemp == 0) {
+        throw std::runtime_error("a shards value of 0 is not supported");
+      }
+      const auto configShards = static_cast<uint32_t>(configShardsTemp);
+
       MDBOutVal shards{};
       if (txn->get(pdnsdbi, "shards", shards) == 0) {
         s_shards = shards.get<uint32_t>();
 
         if (mustDo("lightning-stream") && s_shards != 1) {
-          throw std::runtime_error(std::string("running with Lightning Stream support enabled requires a database with exactly 1 shard"));
+          throw std::runtime_error("running with Lightning Stream support enabled requires a database with exactly 1 shard");
         }
 
-        if (s_shards != atoi(getArg("shards").c_str())) {
-          g_log << Logger::Warning << "Note: configured number of lmdb shards (" << atoi(getArg("shards").c_str()) << ") is different from on-disk (" << s_shards << "). Using on-disk shard number" << endl;
+        if (s_shards != configShards) {
+          g_log << Logger::Warning
+                << "Note: configured number of lmdb shards ("
+                << atoi(getArg("shards").c_str())
+                << ") is different from on-disk ("
+                << s_shards
+                << "). Using on-disk shard number"
+                << endl;
         }
       }
       else {
-        s_shards = atoi(getArg("shards").c_str());
+        s_shards = configShards;
         txn->put(pdnsdbi, "shards", s_shards);
       }
 
