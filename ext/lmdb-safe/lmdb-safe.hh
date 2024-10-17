@@ -1,5 +1,7 @@
 #pragma once
 
+#include "config.h"
+
 #include <string_view>
 #include <lmdb.h>
 #include <map>
@@ -10,6 +12,7 @@
 #include <mutex>
 #include <vector>
 #include <algorithm>
+#include <arpa/inet.h>
 
 #ifndef DNSDIST
 #include <boost/range/detail/common.hpp>
