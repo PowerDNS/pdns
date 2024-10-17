@@ -102,46 +102,49 @@ std::shared_ptr<MDBEnv> getMDBEnv(const char* fname, int flags, int mode, uint64
 
 #ifndef DNSDIST
 
-#if !defined(__BYTE_ORDER__) || !defined(__ORDER_LITTLE_ENDIAN__) || !defined(__ORDER_BIG_ENDIAN__)
-#error "your compiler did not define byte order macros"
-#endif
-
-// FIXME do something more portable than __builtin_bswap64
-#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-#define _LMDB_SAFE_BSWAP64MAYBE(x) __builtin_bswap64(x)
-#else
-#define _LMDB_SAFE_BSWAP64MAYBE(x) (x)
-#endif
-
 struct MDBOutVal; // forward declaration because of how the functions below tie in with MDBOutVal
 
 namespace LMDBLS {
   class __attribute__((__packed__)) LSheader {
+  private:
+    static auto bswap64(uint64_t value) -> uint64_t
+    {
+#if !defined(__BYTE_ORDER__) || !defined(__ORDER_LITTLE_ENDIAN__) || !defined(__ORDER_BIG_ENDIAN__)
+#error "your compiler does not define byte order macros"
+#endif
+
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+      // FIXME: Do something more portable than __builtin_bswap64.
+      return __builtin_bswap64(value);
+#else
+      return value;
+#endif
+    }
+
   public:
     uint64_t d_timestamp;
     uint64_t d_txnid;
     uint8_t d_version;
     uint8_t d_flags;
-    uint32_t d_reserved;
+    uint32_t d_reserved{};
     uint16_t d_numextra;
 
-    LSheader(uint64_t timestamp, uint64_t txnid, uint8_t flags=0, uint8_t version=0, uint8_t numextra=0):
-      d_timestamp(_LMDB_SAFE_BSWAP64MAYBE(timestamp)),
-      d_txnid(_LMDB_SAFE_BSWAP64MAYBE(txnid)),
+    // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
+    LSheader(uint64_t timestamp, uint64_t txnid, uint8_t flags = 0, uint8_t version = 0, uint8_t numextra = 0) :
+      d_timestamp(bswap64(timestamp)),
+      d_txnid(bswap64(txnid)),
       d_version(version),
       d_flags(flags),
-      d_reserved(0),
       d_numextra(htons(numextra))
     {
-
     }
 
     std::string toString() {
       return std::string((char*)this, sizeof(*this)) + std::string(ntohs(d_numextra)*8, '\0');
     }
 
-    uint64_t getTimestamp() const {
-      return _LMDB_SAFE_BSWAP64MAYBE(d_timestamp);
+    [[nodiscard]] uint64_t getTimestamp() const {
+      return bswap64(d_timestamp);
     }
   };
 
@@ -160,8 +163,6 @@ namespace LMDBLS {
 
   extern bool s_flag_deleted;
 }
-
-#undef _LMDB_SAFE_BSWAP64MAYBE
 
 #endif /* ifndef DNSDIST */
 
