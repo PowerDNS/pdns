@@ -1042,56 +1042,59 @@ if get_option('unit-tests')
   )
 endif
 
-if get_option('module-remote') != 'disabled' and get_option('unit-tests-backends')
-  libpdns_module_remotebackend_test_common = declare_dependency(
-    link_whole: static_library(
-      'pdns-test-remotebackend',
-      module_remotebackend_test_sources_common,
-      dependencies: [
-        deps,
-        module_remotebackend_lib,
-        libpdns_signers_pkcs11,
-        libpdns_common,
-        libpdns_dnslabeltext,
-      ],
-      extra_files: module_remotebackend_test_sources_extra,
-    )
-  )
-
-  env = {
-    'BOOST_TEST_LOG_LEVEL': 'message',
-    'REMOTEBACKEND_ZEROMQ': get_option('module-remote-zeromq') ? 'yes' : 'no',
-  }
-
-  foreach test_binary, test_source: module_remotebackend_test_sources_binaries
-    exec_var_name = test_binary.underscorify()
-
-    set_variable(
-      exec_var_name,
-      executable(
-        test_binary,
-        test_source,
+if get_option('unit-tests-backends')
+  # Remote Backend Tests #################################################################
+  if get_option('module-remote') != 'disabled'
+    libpdns_module_remotebackend_test_common = declare_dependency(
+      link_whole: static_library(
+        'pdns-test-remotebackend',
+        module_remotebackend_test_sources_common,
         dependencies: [
           deps,
-          dep_boost_test,
-          dep_zeromq,
-          libpdns_module_remotebackend_test_common,
+          module_remotebackend_lib,
+          libpdns_signers_pkcs11,
+          libpdns_common,
+          libpdns_dnslabeltext,
         ],
+        extra_files: module_remotebackend_test_sources_extra,
       )
     )
 
-    test(
-      'pdns-auth-' + test_binary,
-      module_remotebackend_testrunner,
-      args: ['--', get_variable(exec_var_name).full_path()],
-      env: env,
-      workdir: product_source_dir / fs.parent(module_remotebackend_testrunner),
-      is_parallel: false,
-    )
-  endforeach
-endif
+    env = {
+      'BOOST_TEST_LOG_LEVEL': 'message',
+      'REMOTEBACKEND_ZEROMQ': get_option('module-remote-zeromq') ? 'yes' : 'no',
+    }
 
-if get_option('unit-tests-backends')
+    foreach test_binary, test_source: module_remotebackend_test_sources_binaries
+      exec_var_name = test_binary.underscorify()
+
+      set_variable(
+        exec_var_name,
+        executable(
+          test_binary,
+          test_source,
+          dependencies: [
+            deps,
+            dep_boost_test,
+            dep_zeromq,
+            libpdns_module_remotebackend_test_common,
+          ],
+        )
+      )
+
+      test(
+        'pdns-auth-' + test_binary,
+        module_remotebackend_testrunner,
+        args: ['--', get_variable(exec_var_name).full_path()],
+        env: env,
+        workdir: product_source_dir / fs.parent(module_remotebackend_testrunner),
+        is_parallel: false,
+        depends: get_variable(exec_var_name),
+      )
+    endforeach
+  endif
+
+  # Regression Tests #####################################################################
   start_test_stop = files('regression-tests' / 'start-test-stop')[0]
 
   test_modules = {
