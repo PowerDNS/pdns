@@ -290,6 +290,7 @@ public:
   MDBInVal(T rhs)
   {
     auto rhsNetworkOrder = hostToNetworkByteOrder(rhs);
+    static_assert(sizeof(rhsNetworkOrder) <= sizeof(d_memory));
     memcpy(&d_memory[0], &rhsNetworkOrder, sizeof(rhsNetworkOrder));
     d_mdbval.mv_size = sizeof(rhs);
     d_mdbval.mv_data = static_cast<void*>(d_memory);
