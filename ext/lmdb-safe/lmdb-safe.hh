@@ -2,6 +2,7 @@
 
 #include "config.h"
 
+#include <stdexcept>
 #include <string_view>
 #include <lmdb.h>
 #include <map>
@@ -18,7 +19,6 @@
 #include <boost/range/detail/common.hpp>
 #include <cstdint>
 #include <netinet/in.h>
-#include <stdexcept>
 #endif
 
 using std::string_view;
