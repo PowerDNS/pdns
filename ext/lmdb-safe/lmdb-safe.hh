@@ -240,7 +240,7 @@ inline std::string MDBOutVal::get<std::string>() const
 }
 
 template <>
-inline string_view MDBOutVal::get<string_view>() const
+inline std::string_view MDBOutVal::get<std::string_view>() const
 {
   return {static_cast<char*>(d_mdbval.mv_data), d_mdbval.mv_size};
 }
@@ -256,7 +256,7 @@ inline std::string MDBOutVal::get<std::string>() const
 }
 
 template <>
-inline string_view MDBOutVal::get<string_view>() const
+inline std::string_view MDBOutVal::get<std::string_view>() const
 {
   size_t offset = LMDBLS::LScheckHeaderAndGetSize(this);
   // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
@@ -270,7 +270,7 @@ inline std::string MDBOutVal::getNoStripHeader<std::string>() const
 }
 
 template <>
-inline string_view MDBOutVal::getNoStripHeader<string_view>() const
+inline std::string_view MDBOutVal::getNoStripHeader<std::string_view>() const
 {
   return {static_cast<char*>(d_mdbval.mv_data), d_mdbval.mv_size};
 }

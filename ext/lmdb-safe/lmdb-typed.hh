@@ -252,10 +252,11 @@ public:
 
   // We support readonly and rw transactions. Here we put the Readonly operations
   // which get sourced by both kinds of transactions
-  template<class Parent>
+  template <class Parent>
   struct ReadonlyOperations
   {
-    ReadonlyOperations(Parent& parent) : d_parent(parent)
+    ReadonlyOperations(Parent& parent) :
+      d_parent(parent)
     {}
 
     // //! Number of entries in main database
