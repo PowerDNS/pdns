@@ -116,20 +116,39 @@ jobs:
           repository: ${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}/${{ inputs.image-name }}
           short-description: ${{ inputs.image-description }}
 
-  test-uploaded-images:
-    name: test uploaded images
+  prepare-test-runner-os-list:
+    name: generate runner list
     if: ${{ inputs.push }}
     needs: build
+    runs-on: ubuntu-22.04
+    outputs:
+      runnerlist: ${{ steps.get-runnerlist.outputs.runnerlist }}
+      skiptests: ${{ steps.get-runnerlist.outputs.skiptests }}
+    steps:
+      - run: sudo apt-get update && sudo apt-get -y install jo
+      - id: get-runnerlist
+        run: |
+          runner_os=()
+          [[ -n "${{ contains(inputs.platforms, 'amd64') && 'ubuntu-22.04' || '' }}" ]] && runner_os+=('ubuntu-22.04')
+          [[ -n "${{ vars.ARM64_USE_UBICLOUD == '1' && contains(inputs.platforms, 'arm64') || '' }}" ]] && runner_os+=('ubicloud-standard-2-arm')
+          echo "runnerlist=$(jo -a ${runner_os[@]})" >> "$GITHUB_OUTPUT"
+          # Skip tests if no runner is suitable for running them. Set a default runner to avoid CI failure
+          if [[ -z "${runner_os[@]}" ]]; then
+            echo "runnerlist=$(jo -a ubuntu-22.04)" >> "$GITHUB_OUTPUT"
+            echo "skiptests=1" >> "$GITHUB_OUTPUT"
+          fi
+
+  test-uploaded-images:
+    name: test uploaded images
+    if: ${{ inputs.push && ! needs.prepare-test-runner-os-list.outputs.skiptests }}
+    needs: [build, prepare-test-runner-os-list]
     runs-on: ${{ matrix.runner-os }}
     strategy:
       matrix:
-        runner-os:
-          - ubuntu-22.04
-          - ubicloud-standard-2-arm
+        runner-os: ${{ fromJson(needs.prepare-test-runner-os-list.outputs.runnerlist )}}
       fail-fast: false
     steps:
       - name: Check running image
-        if: ${{ ( matrix.runner-os == 'ubuntu-22.04' && contains(inputs.platforms, 'amd64') ) || ( matrix.runner-os == 'ubicloud-standard-2-arm' && contains(inputs.platforms, 'arm64') ) }}
         run: |
           image_name='${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}/${{ inputs.image-name }}'
           for tag in `echo '${{ inputs.image-tags }}' | tr '\n' ' '`; do
@@ -138,7 +157,6 @@ jobs:
             docker run ${image_name}:${tag} --version || [ "$?" == "134" ]
           done
       - name: Check image digest matches
-        if: ${{ ( matrix.runner-os == 'ubuntu-22.04' && contains(inputs.platforms, 'amd64') ) || ( matrix.runner-os == 'ubicloud-standard-2-arm' && contains(inputs.platforms, 'arm64') ) }}
         run: |
           output_digest='${{ needs.build.outputs.image-digest }}'
           image_name='${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}/${{ inputs.image-name }}'
@@ -148,7 +166,6 @@ jobs:
               ( echo "Image digest does not match => output_digest: "${output_digest}" - image_digest: "${image_digest} && exit 1 )
           done
       - name: Check SBOM and Provenance
-        if: ${{ ( matrix.runner-os == 'ubuntu-22.04' && contains(inputs.platforms, 'amd64') ) || ( matrix.runner-os == 'ubicloud-standard-2-arm' && contains(inputs.platforms, 'arm64') ) }}
         run: |
           image_name='${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}/${{ inputs.image-name }}'
           for tag in `echo '${{ inputs.image-tags }}' | tr '\n' ' '`; do
