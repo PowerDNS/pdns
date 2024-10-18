@@ -55,7 +55,7 @@ public:
   uint64_t getTTLTooShorts() const { return d_ttlTooShorts.load(); }
   uint64_t getCleanupCount() const { return d_cleanupCount.load(); }
   uint64_t getEntriesCount();
-  uint64_t dump(int fileDesc);
+  uint64_t dump(int fileDesc, bool rawResponse = false);
 
   /* get the list of domains (qnames) that contains the given address in an A or AAAA record */
   std::set<DNSName> getDomainsContainingRecords(const ComboAddress& addr);
