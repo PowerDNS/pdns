@@ -52,6 +52,8 @@ class DropAction : public DNSAction
 public:
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
+    (void)dnsquestion;
+    (void)ruleresult;
     return Action::Drop;
   }
   [[nodiscard]] std::string toString() const override
@@ -65,6 +67,8 @@ class AllowAction : public DNSAction
 public:
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
+    (void)dnsquestion;
+    (void)ruleresult;
     return Action::Allow;
   }
   [[nodiscard]] std::string toString() const override
@@ -79,6 +83,8 @@ public:
   // this action does not stop the processing
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
+    (void)dnsquestion;
+    (void)ruleresult;
     return Action::None;
   }
   [[nodiscard]] std::string toString() const override
@@ -96,6 +102,8 @@ public:
   }
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
+    (void)dnsquestion;
+    (void)ruleresult;
     if (d_qps.lock()->check()) {
       return Action::None;
     }
@@ -119,6 +127,7 @@ public:
   }
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
+    (void)dnsquestion;
     *ruleresult = std::to_string(d_msec);
     return Action::Delay;
   }
@@ -190,6 +199,7 @@ TeeAction::~TeeAction()
 
 DNSAction::Action TeeAction::operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const
 {
+  (void)ruleresult;
   if (dnsquestion->overTCP()) {
     d_tcpdrops++;
     return DNSAction::Action::None;
@@ -372,6 +382,7 @@ public:
     d_rcode(rcode) {}
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
+    (void)ruleresult;
     dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsquestion->getMutableData(), [this](dnsheader& header) {
       header.rcode = d_rcode;
       header.qr = true; // for good measure
@@ -401,6 +412,7 @@ public:
     d_rcode(rcode) {}
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
+    (void)ruleresult;
     dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsquestion->getMutableData(), [this](dnsheader& header) {
       header.rcode = (d_rcode & 0xF);
       header.qr = true; // for good measure
@@ -451,6 +463,7 @@ public:
 
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
+    (void)ruleresult;
     if (!dnsdist::svc::generateSVCResponse(*dnsquestion, d_payloads, d_additionals4, d_additionals6, d_responseConfig)) {
       return Action::None;
     }
@@ -480,6 +493,8 @@ class TCAction : public DNSAction
 public:
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
+    (void)dnsquestion;
+    (void)ruleresult;
     return Action::Truncate;
   }
   [[nodiscard]] std::string toString() const override
@@ -493,6 +508,8 @@ class TCResponseAction : public DNSResponseAction
 public:
   DNSResponseAction::Action operator()(DNSResponse* dnsResponse, std::string* ruleresult) const override
   {
+    (void)dnsResponse;
+    (void)ruleresult;
     return Action::Truncate;
   }
   [[nodiscard]] std::string toString() const override
@@ -845,6 +862,7 @@ thread_local std::default_random_engine SpoofAction::t_randomEngine;
 
 DNSAction::Action SpoofAction::operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const
 {
+  (void)ruleresult;
   uint16_t qtype = dnsquestion->ids.qtype;
   // do we even have a response?
   if (d_cname.empty() && d_rawResponses.empty() &&
@@ -1025,6 +1043,7 @@ public:
 
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
+    (void)ruleresult;
     dnsdist::MacAddress mac{};
     int res = dnsdist::MacAddressesCache::get(dnsquestion->ids.origRemote, mac.data(), mac.size());
     if (res != 0) {
@@ -1089,6 +1108,7 @@ public:
 
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
+    (void)ruleresult;
     setEDNSOption(*dnsquestion, d_code, d_data);
     return Action::None;
   }
@@ -1109,6 +1129,7 @@ public:
   // this action does not stop the processing
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
+    (void)ruleresult;
     dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsquestion->getMutableData(), [](dnsheader& header) {
       header.rd = false;
       return true;
@@ -1141,6 +1162,7 @@ public:
 
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
+    (void)ruleresult;
     auto filepointer = std::atomic_load_explicit(&d_fp, std::memory_order_acquire);
     if (!filepointer) {
       if (!d_verboseOnly || dnsdist::configuration::getCurrentRuntimeConfiguration().d_verbose) {
@@ -1253,6 +1275,7 @@ public:
 
   DNSResponseAction::Action operator()(DNSResponse* response, std::string* ruleresult) const override
   {
+    (void)ruleresult;
     auto filepointer = std::atomic_load_explicit(&d_fp, std::memory_order_acquire);
     if (!filepointer) {
       if (!d_verboseOnly || dnsdist::configuration::getCurrentRuntimeConfiguration().d_verbose) {
@@ -1328,6 +1351,7 @@ public:
   // this action does not stop the processing
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
+    (void)ruleresult;
     dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsquestion->getMutableData(), [](dnsheader& header) {
       header.cd = true;
       return true;
@@ -1346,6 +1370,7 @@ public:
   // this action does not stop the processing
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
+    (void)ruleresult;
     dnsquestion->ids.skipCache = true;
     return Action::None;
   }
@@ -1360,6 +1385,7 @@ class SetSkipCacheResponseAction : public DNSResponseAction
 public:
   DNSResponseAction::Action operator()(DNSResponse* response, std::string* ruleresult) const override
   {
+    (void)ruleresult;
     response->ids.skipCache = true;
     return Action::None;
   }
@@ -1379,6 +1405,7 @@ public:
   }
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
+    (void)ruleresult;
     dnsquestion->ids.tempFailureTTL = d_ttl;
     return Action::None;
   }
@@ -1401,6 +1428,7 @@ public:
   }
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
+    (void)ruleresult;
     dnsquestion->ecsPrefixLength = dnsquestion->ids.origRemote.sin4.sin_family == AF_INET ? d_v4PrefixLength : d_v6PrefixLength;
     return Action::None;
   }
@@ -1424,6 +1452,7 @@ public:
   }
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
+    (void)ruleresult;
     dnsquestion->ecsOverride = d_ecsOverride;
     return Action::None;
   }
@@ -1442,6 +1471,7 @@ public:
   // this action does not stop the processing
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
+    (void)ruleresult;
     dnsquestion->useECS = false;
     return Action::None;
   }
@@ -1467,6 +1497,7 @@ public:
 
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
+    (void)ruleresult;
     if (d_hasV6) {
       dnsquestion->ecs = std::make_unique<Netmask>(dnsquestion->ids.origRemote.isIPv4() ? d_v4 : d_v6);
     }
@@ -1551,6 +1582,7 @@ public:
   {
     static thread_local std::string data;
     data.clear();
+    (void)ruleresult;
 
     DnstapMessage::ProtocolType protocol = ProtocolToDNSTap(dnsquestion->getProtocol());
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
@@ -1650,6 +1682,7 @@ public:
 
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
+    (void)ruleresult;
     if (!dnsquestion->ids.d_protoBufData) {
       dnsquestion->ids.d_protoBufData = std::make_unique<InternalQueryState::ProtoBufData>();
     }
@@ -1712,6 +1745,7 @@ public:
   }
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
+    (void)ruleresult;
     if (g_snmpAgent != nullptr && dnsdist::configuration::getCurrentRuntimeConfiguration().d_snmpTrapsEnabled) {
       g_snmpAgent->sendDNSTrap(*dnsquestion, d_reason);
     }
@@ -1737,6 +1771,7 @@ public:
   }
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
+    (void)ruleresult;
     dnsquestion->setTag(d_tag, d_value);
 
     return Action::None;
@@ -1762,6 +1797,7 @@ public:
   }
   DNSResponseAction::Action operator()(DNSResponse* response, std::string* ruleresult) const override
   {
+    (void)ruleresult;
     static thread_local std::string data;
     struct timespec now = {};
     gettime(&now, true);
@@ -1803,6 +1839,7 @@ public:
   }
   DNSResponseAction::Action operator()(DNSResponse* response, std::string* ruleresult) const override
   {
+    (void)ruleresult;
     if (!response->ids.d_protoBufData) {
       response->ids.d_protoBufData = std::make_unique<InternalQueryState::ProtoBufData>();
     }
@@ -1866,6 +1903,8 @@ class DropResponseAction : public DNSResponseAction
 public:
   DNSResponseAction::Action operator()(DNSResponse* response, std::string* ruleresult) const override
   {
+    (void)response;
+    (void)ruleresult;
     return Action::Drop;
   }
   [[nodiscard]] std::string toString() const override
@@ -1879,6 +1918,8 @@ class AllowResponseAction : public DNSResponseAction
 public:
   DNSResponseAction::Action operator()(DNSResponse* response, std::string* ruleresult) const override
   {
+    (void)response;
+    (void)ruleresult;
     return Action::Allow;
   }
   [[nodiscard]] std::string toString() const override
@@ -1896,6 +1937,7 @@ public:
   }
   DNSResponseAction::Action operator()(DNSResponse* response, std::string* ruleresult) const override
   {
+    (void)response;
     *ruleresult = std::to_string(d_msec);
     return Action::Delay;
   }
@@ -1919,6 +1961,7 @@ public:
   }
   DNSResponseAction::Action operator()(DNSResponse* response, std::string* ruleresult) const override
   {
+    (void)ruleresult;
     if (g_snmpAgent != nullptr && dnsdist::configuration::getCurrentRuntimeConfiguration().d_snmpTrapsEnabled) {
       g_snmpAgent->sendDNSTrap(*response, d_reason);
     }
@@ -1945,6 +1988,7 @@ public:
   }
   DNSResponseAction::Action operator()(DNSResponse* response, std::string* ruleresult) const override
   {
+    (void)ruleresult;
     response->setTag(d_tag, d_value);
 
     return Action::None;
@@ -1969,6 +2013,7 @@ public:
 
   DNSResponseAction::Action operator()(DNSResponse* response, std::string* ruleresult) const override
   {
+    (void)ruleresult;
     if (!d_qtypes.empty()) {
       clearDNSPacketRecordTypes(response->getMutableData(), d_qtypes);
     }
@@ -2030,6 +2075,7 @@ public:
 
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
+    (void)ruleresult;
     if (!dnsquestion->ids.du) {
       return Action::None;
     }
@@ -2073,6 +2119,7 @@ public:
 
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
+    (void)ruleresult;
     std::vector<std::string> keys = d_key->getKeys(*dnsquestion);
     std::string result;
     for (const auto& key : keys) {
@@ -2108,6 +2155,7 @@ public:
 
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
+    (void)ruleresult;
     std::vector<std::string> keys = d_key->getKeys(*dnsquestion);
     std::string result;
     for (const auto& key : keys) {
@@ -2143,6 +2191,7 @@ public:
 
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
+    (void)ruleresult;
     dnsquestion->ids.ttlCap = d_cap;
     return DNSAction::Action::None;
   }
@@ -2166,6 +2215,7 @@ public:
 
   DNSResponseAction::Action operator()(DNSResponse* response, std::string* ruleresult) const override
   {
+    (void)ruleresult;
     response->ids.ttlCap = d_cap;
     return DNSResponseAction::Action::None;
   }
@@ -2198,6 +2248,7 @@ public:
 
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
+    (void)ruleresult;
     if (!setNegativeAndAdditionalSOA(*dnsquestion, d_nxd, d_zone, d_ttl, d_mname, d_rname, d_params.serial, d_params.refresh, d_params.retry, d_params.expire, d_params.minimum, d_soaInAuthoritySection)) {
       return Action::None;
     }
@@ -2245,6 +2296,7 @@ public:
 
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
+    (void)ruleresult;
     if (!dnsquestion->proxyProtocolValues) {
       dnsquestion->proxyProtocolValues = make_unique<std::vector<ProxyProtocolValue>>();
     }
@@ -2274,6 +2326,7 @@ public:
 
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
+    (void)ruleresult;
     if (!dnsquestion->proxyProtocolValues) {
       dnsquestion->proxyProtocolValues = make_unique<std::vector<ProxyProtocolValue>>();
     }
@@ -2304,8 +2357,12 @@ public:
 
   DNSResponseAction::Action operator()(DNSResponse* response, std::string* ruleresult) const override
   {
+    (void)ruleresult;
     // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     auto visitor = [&](uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl) {
+      (void)section;
+      (void)qclass;
+      (void)qtype;
       return ttl * d_ratio;
     };
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
@@ -2334,6 +2391,7 @@ public:
 
   DNSAction::Action operator()(DNSQuestion* dnsQuestion, std::string* ruleresult) const override
   {
+    (void)ruleresult;
     dnsQuestion->ids.d_extendedError = std::make_unique<EDNSExtendedError>(d_ede);
 
     return DNSAction::Action::None;
@@ -2360,6 +2418,7 @@ public:
 
   DNSResponseAction::Action operator()(DNSResponse* dnsResponse, std::string* ruleresult) const override
   {
+    (void)ruleresult;
     dnsResponse->ids.d_extendedError = std::make_unique<EDNSExtendedError>(d_ede);
 
     return DNSResponseAction::Action::None;

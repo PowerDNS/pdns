@@ -35,6 +35,8 @@ bool TLSFrontend::setupTLS()
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static): this is a stub, the real one is not that simple..
 bool DNSDistSNMPAgent::sendDNSTrap(const DNSQuestion& dnsQuestion, const std::string& reason)
 {
+  (void)dnsQuestion;
+  (void)reason;
   return false;
 }
 
@@ -44,6 +46,8 @@ void setLuaNoSideEffect()
 
 DNSAction::Action SpoofAction::operator()(DNSQuestion* dnsQuestion, std::string* ruleresult) const
 {
+  (void)dnsQuestion;
+  (void)ruleresult;
   return DNSAction::Action::None;
 }
 
@@ -56,6 +60,7 @@ bool setupDoTProtocolNegotiation(std::shared_ptr<TLSCtx>& tlsCtx)
 // NOLINTNEXTLINE(performance-unnecessary-value-param): this is a stub, the real one is not that simple and the performance does not matter
 void responderThread(std::shared_ptr<DownstreamState> dss)
 {
+  (void)dss;
 }
 
 string g_outputBuffer;
@@ -104,6 +109,8 @@ static void benchPolicy(const ServerPolicy& pol)
     }
   }
   cerr << pol.name << " took " << std::to_string(sw.udiff()) << " us for " << names.size() << endl;
+#else
+  (void)pol;
 #endif /* BENCH_POLICIES */
 }
 
