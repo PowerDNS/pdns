@@ -53,7 +53,11 @@ libremotebackend_la_SOURCES = \
 	unixconnector.cc \
 	zmqconnector.cc
 
+if REMOTEBACKEND_DYNMODULE
 libremotebackend_la_LDFLAGS = -module -avoid-version
+else
+libremotebackend_la_LDFLAGS = -static -avoid-version
+endif
 
 libremotebackend_la_LIBADD = $(YAHTTP_LIBS) $(JSON11_LIBS)
 
