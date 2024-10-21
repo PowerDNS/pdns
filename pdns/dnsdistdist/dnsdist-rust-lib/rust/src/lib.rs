@@ -122,17 +122,17 @@ mod dnsdistsettings {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
         qps: u32,
-        #[serde(default = "crate::U8::<32>::value", skip_serializing_if = "crate::U8::<32>::is_equal")]
+        #[serde(rename = "ipv4-mask", default = "crate::U8::<32>::value", skip_serializing_if = "crate::U8::<32>::is_equal")]
         ipv4_mask: u8,
-        #[serde(default = "crate::U8::<64>::value", skip_serializing_if = "crate::U8::<64>::is_equal")]
+        #[serde(rename = "ipv6-mask", default = "crate::U8::<64>::value", skip_serializing_if = "crate::U8::<64>::is_equal")]
         ipv6_mask: u8,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         burst: u32,
         #[serde(default = "crate::U32::<300>::value", skip_serializing_if = "crate::U32::<300>::is_equal")]
         expiration: u32,
-        #[serde(default = "crate::U32::<60>::value", skip_serializing_if = "crate::U32::<60>::is_equal")]
+        #[serde(rename = "cleanup-delay", default = "crate::U32::<60>::value", skip_serializing_if = "crate::U32::<60>::is_equal")]
         cleanup_delay: u32,
-        #[serde(default = "crate::U32::<10>::value", skip_serializing_if = "crate::U32::<10>::is_equal")]
+        #[serde(rename = "scan-fraction", default = "crate::U32::<10>::value", skip_serializing_if = "crate::U32::<10>::is_equal")]
         scan_fraction: u32,
         #[serde(default = "crate::U32::<10>::value", skip_serializing_if = "crate::U32::<10>::is_equal")]
         shards: u32,
