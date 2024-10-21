@@ -489,7 +489,7 @@ Improvements:
 Experimental API changes (Chris Hofstaedtler):
 
 -  `commit ca44706 <https://github.com/PowerDNS/pdns/commit/ca44706>`__:
-   API: move shared DomainInfo reader into it's own function
+   API: move shared DomainInfo reader into its own function
 -  `commit 102602f <https://github.com/PowerDNS/pdns/commit/102602f>`__:
    API: allow writing to domains.account field
 -  `commit d82f632 <https://github.com/PowerDNS/pdns/commit/d82f632>`__:
