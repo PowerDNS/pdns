@@ -1,7 +1,6 @@
 #pragma once
 
 #include <stdexcept>
-
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/serialization/vector.hpp>
@@ -62,7 +61,7 @@ template <typename T>
 void deserializeFromBuffer(const string_view& buffer, T& value)
 {
   value = T();
-  boost::iostreams::array_source source(&buffer[0], buffer.size());
+  boost::iostreams::array_source source(buffer.data(), buffer.size());
   boost::iostreams::stream<boost::iostreams::array_source> stream(source);
   boost::archive::binary_iarchive inputArchive(stream, boost::archive::no_header | boost::archive::no_codecvt);
   inputArchive >> value;
@@ -95,7 +94,6 @@ namespace {
     MDBOutVal ret{};
     ret.d_mdbval.mv_data = combined.d_mdbval.mv_data;
     ret.d_mdbval.mv_size = combined.d_mdbval.mv_size - sizeof(uint32_t);
-
     return ret;
   }
 
@@ -105,9 +103,9 @@ namespace {
     }
 
     MDBOutVal ret{};
-    ret.d_mdbval.mv_data = (char*) combined.d_mdbval.mv_data + combined.d_mdbval.mv_size - sizeof(uint32_t);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    ret.d_mdbval.mv_data = static_cast<char*>(combined.d_mdbval.mv_data) + combined.d_mdbval.mv_size - sizeof(uint32_t);
     ret.d_mdbval.mv_size = sizeof(uint32_t);
-
     return ret;
   }
 
@@ -234,7 +232,7 @@ class TypedDBI
 
 private:
   template <uint8_t N>
-  auto openDB(string_view& name)
+  inline auto openDB(string_view& name)
   {
     std::get<N>(d_tuple).openDB(d_env, std::string(name) + "_" + std::to_string(N), MDB_CREATE);
   }
@@ -277,14 +275,14 @@ public:
     // }
 
     //! Get item with id, from main table directly
-    bool get(uint32_t id, T& t)
+    bool get(uint32_t itemId, T& value)
     {
       MDBOutVal data{};
-      if((*d_parent.d_txn)->get(d_parent.d_parent->d_main, id, data)) {
+      if((*d_parent.d_txn)->get(d_parent.d_parent->d_main, itemId, data)) {
         return false;
       }
 
-      deserializeFromBuffer(data.get<std::string>(), t);
+      deserializeFromBuffer(data.get<std::string>(), value);
       return true;
     }
 
@@ -435,13 +433,13 @@ public:
       }
 
       // implements generic ++ or --
-      iter_t& genoperator(MDB_cursor_op op)
+      iter_t& genoperator(MDB_cursor_op operation)
       {
         MDBOutVal data{};
         int rc = 0;
       // next:;
         if (!d_one_key) {
-          rc = d_cursor.get(d_key, d_id, op);
+          rc = d_cursor.get(d_key, d_id, operation);
         }
         if(d_one_key || rc == MDB_NOTFOUND) {
           d_end = true;
@@ -522,14 +520,14 @@ public:
     };
 
     template<int N>
-    iter_t genbegin(MDB_cursor_op op)
+    iter_t genbegin(MDB_cursor_op operation)
     {
       typename Parent::cursor_t cursor = (*d_parent.d_txn)->getCursor(std::get<N>(d_parent.d_parent->d_tuple).d_idx);
 
       MDBOutVal out{};
       MDBOutVal id{};
 
-      if(cursor.get(out, id,  op)) {
+      if(cursor.get(out, id,  operation)) {
                                              // on_index, one_key, end
         return iter_t{&d_parent, std::move(cursor), true, false, true};
       }
@@ -571,7 +569,7 @@ public:
 
     // basis for find, lower_bound
     template<int N>
-    iter_t genfind(const typename std::tuple_element<N, tuple_t>::type::type& key, MDB_cursor_op op)
+    iter_t genfind(const typename std::tuple_element<N, tuple_t>::type::type& key, MDB_cursor_op operation)
     {
       typename Parent::cursor_t cursor = (*d_parent.d_txn)->getCursor(std::get<N>(d_parent.d_parent->d_tuple).d_idx);
 
@@ -581,7 +579,7 @@ public:
       MDBOutVal id{};
       out.d_mdbval = in.d_mdbval;
 
-      if(cursor.get(out, id,  op)) {
+      if(cursor.get(out, id,  operation)) {
                                               // on_index, one_key, end
         return iter_t{&d_parent, std::move(cursor), true, false, true};
       }
@@ -673,18 +671,18 @@ public:
         if (sthiskey == keyString) {
           auto _id = getIDFromCombinedKey(out);
           uint64_t ts = LMDBLS::LSgetTimestamp(id.getNoStripHeader<string_view>());
-          auto __id = _id.getNoStripHeader<uint32_t>();
+          auto itemId = _id.getNoStripHeader<uint32_t>();
 
           if (onlyOldest) {
             if (ts < oldestts) {
               oldestts = ts;
-              oldestid = __id;
+              oldestid = itemId;
 
               ids.clear();
               ids.push_back(oldestid);
             }
           } else {
-            ids.push_back(__id);
+            ids.push_back(itemId);
           }
         }
 
@@ -711,10 +709,8 @@ public:
     {
     }
 
-
-    ROTransaction(ROTransaction&& rhs) :
-      ReadonlyOperations<ROTransaction>(*this), d_parent(rhs.d_parent),d_txn(std::move(rhs.d_txn))
-
+    ROTransaction(ROTransaction&& rhs) noexcept :
+      ReadonlyOperations<ROTransaction>(*this), d_parent(rhs.d_parent), d_txn(std::move(rhs.d_txn))
     {
       rhs.d_parent = 0;
     }
@@ -732,6 +728,13 @@ public:
 
   class RWTransaction :  public ReadonlyOperations<RWTransaction>
   {
+  private:
+    template <uint8_t N>
+    inline auto insert(const T& value, uint32_t itemId)
+    {
+      std::get<N>(d_parent->d_tuple).put(*d_txn, value, itemId);
+    }
+
   public:
     explicit RWTransaction(TypedDBI* parent) :
       ReadonlyOperations<RWTransaction>(*this), d_parent(parent), d_txn(std::make_shared<MDBRWTransaction>(d_parent->d_env->getRWTransaction()))
@@ -742,62 +745,61 @@ public:
     {
     }
 
-    RWTransaction(RWTransaction&& rhs) :
+    RWTransaction(RWTransaction&& rhs) noexcept :
       ReadonlyOperations<RWTransaction>(*this),
-      d_parent(rhs.d_parent), d_txn(std::move(rhs.d_txn))
+      d_parent(rhs.d_parent),
+      d_txn(std::move(rhs.d_txn))
     {
       rhs.d_parent = 0;
     }
 
     // insert something, with possibly a specific id
-    uint32_t put(const T& t, uint32_t id, bool random_ids=false)
+    uint32_t put(const T& value, uint32_t itemId, bool random_ids=false)
     {
       int flags = 0;
-      if(!id) {
+      if(itemId == 0) {
         if(random_ids) {
-          id = MDBGetRandomID(*d_txn, d_parent->d_main);
+          itemId = MDBGetRandomID(*d_txn, d_parent->d_main);
         }
         else {
-          id = MDBGetMaxID(*d_txn, d_parent->d_main) + 1;
+          itemId = MDBGetMaxID(*d_txn, d_parent->d_main) + 1;
           // FIXME: after dropping MDB_INTEGERKEY, we had to drop MDB_APPEND here. Check if this is an LMDB quirk.
           // flags = MDB_APPEND;
         }
       }
-      (*d_txn)->put(d_parent->d_main, id, serializeToBuffer(t), flags);
+      (*d_txn)->put(d_parent->d_main, itemId, serializeToBuffer(value), flags);
 
-#define insertMacro(N) std::get<N>(d_parent->d_tuple).put(*d_txn, t, id);
-      insertMacro(0);
-      insertMacro(1);
-      insertMacro(2);
-      insertMacro(3);
-#undef insertMacro
+      insert<0>(value, itemId);
+      insert<1>(value, itemId);
+      insert<2>(value, itemId);
+      insert<3>(value, itemId);
 
-      return id;
+      return itemId;
     }
 
     // modify an item 'in place', plus update indexes
-    void modify(uint32_t id, std::function<void(T&)> func)
+    void modify(uint32_t itemId, std::function<void(T&)> func)
     {
-      T t;
-      if (!this->get(id, t)) {
-        throw std::runtime_error("Could not modify id " + std::to_string(id));
+      T value;
+      if (!this->get(itemId, value)) {
+        throw std::runtime_error("Could not modify id " + std::to_string(itemId));
       }
-      func(t);
+      func(value);
 
-      del(id);  // this is the lazy way. We could test for changed index fields
-      put(t, id);
+      del(itemId);  // this is the lazy way. We could test for changed index fields
+      put(value, itemId);
     }
 
     //! delete an item, and from indexes
-    void del(uint32_t id)
+    void del(uint32_t itemId)
     {
-      T t;
-      if (!this->get(id, t)) {
+      T value;
+      if (!this->get(itemId, value)) {
         return;
       }
 
-      (*d_txn)->del(d_parent->d_main, id);
-      clearIndex(id, t);
+      (*d_txn)->del(d_parent->d_main, itemId);
+      clearIndex(itemId, value);
     }
 
     //! clear database & indexes (by hand!)
@@ -809,9 +811,9 @@ public:
       MDBOutVal data{};
       while(!cursor.get(key, data, first ? MDB_FIRST : MDB_NEXT)) {
         first = false;
-        T t;
-        deserializeFromBuffer(data.get<std::string>(), t);
-        clearIndex(key.get<uint32_t>(), t);
+        T value;
+        deserializeFromBuffer(data.get<std::string>(), value);
+        clearIndex(key.get<uint32_t>(), value);
         cursor.del();
       }
     }
@@ -835,17 +837,20 @@ public:
       return d_txn;
     }
 
-
   private:
-    // clear this ID from all indexes
-    void clearIndex(uint32_t id, const T& t)
+    template <uint8_t N>
+    inline auto clear(const T& value, uint32_t itemId)
     {
-#define clearMacro(N) std::get<N>(d_parent->d_tuple).del(*d_txn, t, id);
-      clearMacro(0);
-      clearMacro(1);
-      clearMacro(2);
-      clearMacro(3);
-#undef clearMacro
+      std::get<N>(d_parent->d_tuple).del(*d_txn, value, itemId);
+    }
+
+    // clear this ID from all indexes
+    void clearIndex(uint32_t itemId, const T& value)
+    {
+      clear<0>(value, itemId);
+      clear<1>(value, itemId);
+      clear<2>(value, itemId);
+      clear<3>(value, itemId);
     }
 
   public:
