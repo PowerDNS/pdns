@@ -47,10 +47,12 @@ permissions: # least privileges, see https://docs.github.com/en/actions/using-wo
 
 jobs:
   prepare:
-    name: generate OS list
+    name: generate OS runner and arch list
     runs-on: ubuntu-22.04
     outputs:
       oslist: ${{ steps.get-oslist.outputs.oslist }}
+      runnerlist: ${{ steps.get-runnerlist.outputs.runnerlist }}
+      archlist: ${{ steps.get-archlist.outputs.archlist }}
     steps:
       # instead of jo, we could use jq here, which avoids running apt, and thus would be faster.
       # but, as this whole workflow needs at least 30 minutes to run, I prefer spending a few seconds here
@@ -58,6 +60,11 @@ jobs:
       - run: sudo apt-get update && sudo apt-get -y install jo
       - id: get-oslist
         run: echo "oslist=$(jo -a ${{ inputs.os }})" >> "$GITHUB_OUTPUT"
+      - id: get-runnerlist
+        run: echo "runnerlist=$(jo -a ubuntu-22.04 ${{ vars.ARM64_USE_UBICLOUD == '1' && 'ubicloud-standard-2-arm' || '' }})" >> "$GITHUB_OUTPUT"
+      - id: get-archlist
+        run: echo "archlist=$(jo -a  x86_64 ${{ vars.ARM64_USE_UBICLOUD == '1' && 'aarch64' || '' }})" >> "$GITHUB_OUTPUT"
+
   build:
     needs: prepare
     name: ${{ inputs.product }} (${{ inputs.ref }}) on ${{ matrix.runner-os }} for ${{ matrix.os }}
@@ -65,9 +72,7 @@ jobs:
     strategy:
       matrix:
         os: ${{fromJson(needs.prepare.outputs.oslist)}}
-        runner-os:
-          - ubuntu-22.04
-          - ubicloud-standard-2-arm
+        runner-os: ${{ fromJson(needs.prepare.outputs.runnerlist )}}
         exclude:
           - os: el-7
             runner-os: ubicloud-standard-2-arm
@@ -167,7 +172,7 @@ jobs:
       - name: Get list of OS inputs
         run: |
           for os in ${{ inputs.os }}; do
-            for architecture in x86_64 aarch64; do
+            for architecture in x86_64 ${{ vars.ARM64_USE_UBICLOUD == '1' && 'aarch64' || '' }}; do
               [[ "$os" != "el-7" || "$architecture" != "aarch64"  ]] && echo "\"pkghashes-$os-$architecture\"" | tee -a /tmp/os-inputs.txt
             done
           done
@@ -182,7 +187,7 @@ jobs:
     strategy:
       matrix:
         os: ${{fromJson(needs.prepare.outputs.oslist)}}
-        architecture: ['x86_64', 'aarch64']
+        architecture: ${{ fromJson(needs.prepare.outputs.archlist )}}
         exclude:
           - os: el-7
             architecture: aarch64
@@ -218,7 +223,7 @@ jobs:
     strategy:
       matrix:
         os: ${{fromJson(needs.prepare.outputs.oslist)}}
-        architecture: ['x86_64', 'aarch64']
+        architecture: ${{ fromJson(needs.prepare.outputs.archlist )}}
         exclude:
           - os: el-7
             architecture: aarch64
