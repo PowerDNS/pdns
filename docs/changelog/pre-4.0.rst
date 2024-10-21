@@ -4766,7 +4766,7 @@ Bugs fixed
 -  ``pdns_control`` could leave behind remnants in case PowerDNS was not
    running (reported by dG)
 -  Incoming AXFR did not work on Solaris and other big-endian systems
-   (Willem de Groot helped debugging this long standing problem).
+   (Willem de Groot helped debugging this long-standing problem).
 -  Recursor could crash on convoluted CNAME loops. Thanks to Dan Faerch
    for delivering core dumps.
 -  Silly 'wuh' debugging output in zone2sql and bindbackend removed
@@ -5297,7 +5297,7 @@ already been running 24 hours on our servers before release.
 Version 2.7 and 2.7.1
 ---------------------
 
-This version fixes some very long standing issues and adds a few new
+This version fixes some very long-standing issues and adds a few new
 features. If you are still running 2.6, upgrade yesterday. If you were
 running 2.6.1, an upgrade is still strongly advised.
 
