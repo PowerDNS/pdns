@@ -104,7 +104,7 @@ To query the log, use a command similar to::
 The ``json`` backend
 --------------------
 The ``json`` structured logging backend has been added in version 5.1.0 and uses the same keys and values as the default backend.
-An example of a a log object::
+An example of a log object::
 
     {"level": "0", "limit": "10765", "msg": "Raised soft limit on number of filedescriptors to match max-mthreads and threads settings", "priority": "4", "subsystem": "config", "tid": "0", "ts": "1709285994.851"}
 
