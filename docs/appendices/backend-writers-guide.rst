@@ -16,7 +16,7 @@ return records matching the description asked for.
 
 .. warning::
   However, please note that your backend can get queries in
-  aNy CAsE! If your database is case sensitive, like most are (with the
+  aNy CAsE! If your database is case-sensitive, like most are (with the
   notable exception of MySQL), you must make sure that you do find answers
   which differ only in case.
 

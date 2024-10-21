@@ -4682,7 +4682,7 @@ Bugs fixed
    wasted memory and also led to the continued non-existence of hosts
    that since had come into existence.
 -  The Generic SQL backends did not lowercase the names of records,
-   which led to new records not being found by case sensitive databases
+   which led to new records not being found by case-sensitive databases
    (notably PostgreSQL). Found by Volker Goetz.
 -  NS queries for zones for which we did not carry authority, but only
    had delegation information, had their NS records in the wrong
@@ -5909,7 +5909,7 @@ Bugs fixed
    www.powerdns.com. While this did not confuse resolvers, it is better
    to conserve case. This has semantic consequences for all backends,
    which the documentation now spells out.
--  PostgreSQL backend was case sensitive and returned only answers in
+-  PostgreSQL backend was case-sensitive and returned only answers in
    case an exact match was found. The Generic PostgreSQL backend is now
    officially all lower case and zone2sql in PostgreSQL mode enforces
    this. Documentation has been updated to reflect the case change.
@@ -6326,7 +6326,7 @@ Feature enhancements
    prefix.
 -  zone2sql now accepts a ^^zone-name parameter
 -  BindBackend maturing - 9500 zones parsed in 3.5 seconds. No longer
-   case sensitive.
+   case-sensitive.
 
 Performance enhancements
 ^^^^^^^^^^^^^^^^^^^^^^^^
