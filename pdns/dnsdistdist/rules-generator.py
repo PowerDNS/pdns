@@ -31,14 +31,15 @@ def get_rust_object_name(name):
 
     return object_name
 
-def get_rust_default_definition(rust_type, parameter):
+def get_rust_default_definition(rust_type, parameter, rename):
     if not 'default' in parameter:
         return ''
     default_value = parameter['default']
+    rename_value = f'rename = "{rename}", ' if rename else ''
     if is_value_rust_default(rust_type, default_value):
-        return '        #[serde(default, skip_serializing_if = "crate::is_default")]\n'
+        return f'        #[serde({rename_value}default, skip_serializing_if = "crate::is_default")]\n'
     type_upper = rust_type.upper()
-    return f'''        #[serde(default = "crate::{type_upper}::<{default_value}>::value", skip_serializing_if = "crate::{type_upper}::<{default_value}>::is_equal")]\n'''
+    return f'''        #[serde({rename_value}default = "crate::{type_upper}::<{default_value}>::value", skip_serializing_if = "crate::{type_upper}::<{default_value}>::is_equal")]\n'''
 
 def get_rust_struct_from_definition(name, keys):
     obj_name = get_rust_object_name(name)
@@ -51,7 +52,8 @@ def get_rust_struct_from_definition(name, keys):
         for parameter in keys['parameters']:
             parameter_name = get_rust_field_name(parameter['name'])
             rust_type = parameter['type']
-            default_str = get_rust_default_definition(rust_type, parameter)
+            rename = parameter['name'] if parameter_name != parameter['name'] else None
+            default_str = get_rust_default_definition(rust_type, parameter, rename)
             str += default_str
             str += f'        {parameter_name}: {rust_type},\n'
     str += '    }\n'
@@ -73,10 +75,8 @@ def gather_sections(definitions):
 
 def get_rust_obj_for_section(section_name, def_name, def_keys):
     if 'type' in def_keys and def_keys['type'] == 'list':
-        print(f'Section {section_name} is a list')
         name = get_rust_object_name(def_name)
         return f'Vec<{name}Configuration>'
-    print(f'Section {section_name} is NOT a list')
     name = get_rust_object_name(def_name)
     return f'{name}Configuration'
 
