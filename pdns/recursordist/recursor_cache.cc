@@ -569,7 +569,7 @@ bool MemRecursorCache::CacheEntry::shouldReplace(time_t now, bool auth, vState s
 
 bool MemRecursorCache::replace(CacheEntry&& entry)
 {
-  if (!entry.d_netmask.empty()) {
+  if (!entry.d_netmask.empty() || entry.d_rtag) {
     // We don't handle that yet
     return false;
   }
@@ -973,10 +973,22 @@ static void decodeComboAddress(protozero::pbf_message<T>& reader, ComboAddress& 
   else {
     assert(0);
   }
+  constexpr auto inet4size = sizeof(address.sin4.sin_addr);
+  constexpr auto inet6size = sizeof(address.sin6.sin6_addr);
   if (message.next(PBComboAddress::required_bytes_address)) {
     auto data = message.get_bytes();
-    address.sin4.sin_family = data.size() == 4 ? AF_INET : AF_INET6;
-    memcpy(&address.sin4.sin_addr, data.data(), data.size());
+    address.sin4.sin_family = data.size() == inet4size ? AF_INET : AF_INET6;
+    if (data.size() == inet4size) {
+      address.sin4.sin_family = AF_INET;
+      memcpy(&address.sin4.sin_addr, data.data(), data.size());
+    }
+    else if (data.size() == inet6size) {
+      address.sin6.sin6_family = AF_INET6;
+      memcpy(&address.sin6.sin6_addr, data.data(), data.size());
+    }
+    else {
+      assert(0);
+    }
   }
   else {
     assert(0);
@@ -1171,10 +1183,10 @@ bool MemRecursorCache::putRecord(T& message)
       break;
     }
   }
-  return g_recCache->replace(std::move(cacheEntry));
+  return replace(std::move(cacheEntry));
 }
 
-void MemRecursorCache::putRecords(const std::string& pbuf)
+size_t MemRecursorCache::putRecords(const std::string& pbuf)
 {
   auto log = g_slog->withName("recordcache")->withValues("size", Logging::Loggable(pbuf.size()));
   log->info(Logr::Debug, "Processing cache dump");
@@ -1226,6 +1238,7 @@ void MemRecursorCache::putRecords(const std::string& pbuf)
       }
     }
     log->info(Logr::Info, "Processed cache dump", "processed", Logging::Loggable(count), "inserted", Logging::Loggable(inserted));
+    return inserted;
   }
   catch (const std::runtime_error& e) {
     log->error(Logr::Error, e.what(), "Runtime exception processing cache dump");
@@ -1236,6 +1249,7 @@ void MemRecursorCache::putRecords(const std::string& pbuf)
   catch (...) {
     log->error(Logr::Error, "Other exception processing cache dump");
   }
+  return 0;
 }
 
 namespace boost

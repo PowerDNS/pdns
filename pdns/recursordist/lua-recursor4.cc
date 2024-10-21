@@ -19,8 +19,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include <unordered_set>
+
 #include "lua-recursor4.hh"
-#include <fstream>
 #include "logger.hh"
 #include "logging.hh"
 #include "dnsparser.hh"
@@ -31,7 +32,6 @@
 #include "ednssubnet.hh"
 #include "filterpo.hh"
 #include "rec-snmp.hh"
-#include <unordered_set>
 #include "rec-main.hh"
 
 boost::optional<dnsheader> RecursorLua4::DNSQuestion::getDH() const
@@ -501,7 +501,7 @@ void RecursorLua4::postPrepareContext() // NOLINT(readability-function-cognitive
   });
 
   d_lw->writeFunction("putIntoRecordCache", [](const string& data) {
-    g_recCache->putRecords(data);
+    return g_recCache->putRecords(data);
   });
 
   d_lw->writeFunction("spawnThread", [](const string& scriptName) {
