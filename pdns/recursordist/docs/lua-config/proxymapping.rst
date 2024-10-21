@@ -48,7 +48,7 @@ See :func:`protobufServer` on how to tune the source address logged in ``Protobu
   Specify a table based mapping for a subnet.
 
   :param string subnet: a subnet to match
-  :param string ip: the IP address or IPaddress port combination to match the subnet to.
+  :param string ip: the IP address or IP address + port combination to match the subnet to.
   :param array domains: An array of strings used to fill a :ref:`dns-suffix-match-group`.
 
 If the optional ``domains`` argument is given to this function, only queries for names matching the :ref:`dns-suffix-match-group` will use the value ``M`` to determine the outgoing ECS; other queries will use the value ``S``.

@@ -44,7 +44,7 @@ If at a later date, resolution fails, the security-status is not reset to 1.
 It could be lowered however if we discover the security status is less urgent than we thought.
 
 If resolution fails, and the previous security-status was 1, the new security-status becomes 0 ('no data').
-If the security-status was higher than 1, it will remain that way, and not get set to 0.
+If the security-status was greater than 1, it will remain that way, and not get set to 0.
 
 In this way, security-status of 0 really means 'no data', and cannot mask a known problem.
 

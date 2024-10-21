@@ -183,7 +183,7 @@ Context
     tied to it.
 
     :param string certificate: Path to a certificate file
-    :param string keyfile: Path to a the corresponding key file
+    :param string keyfile: Path to the corresponding key file
     :param bool active: Whether the certificate should be marked as active. Default is true
 
   .. method:: DNSCryptContext:markActive(serial)

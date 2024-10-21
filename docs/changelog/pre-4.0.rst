@@ -303,7 +303,7 @@ Improvements:
 Bug fixes:
 
 -  `commit 88c52fe <https://github.com/PowerDNS/pdns/commit/88c52fe>`__:
-   make makeRelative() case insensitive (Kees Monshouwer)
+   make makeRelative() case-insensitive (Kees Monshouwer)
 
 DNSSEC improvements:
 
@@ -489,7 +489,7 @@ Improvements:
 Experimental API changes (Chris Hofstaedtler):
 
 -  `commit ca44706 <https://github.com/PowerDNS/pdns/commit/ca44706>`__:
-   API: move shared DomainInfo reader into it's own function
+   API: move shared DomainInfo reader into its own function
 -  `commit 102602f <https://github.com/PowerDNS/pdns/commit/102602f>`__:
    API: allow writing to domains.account field
 -  `commit d82f632 <https://github.com/PowerDNS/pdns/commit/d82f632>`__:
@@ -528,7 +528,7 @@ Improvements:
 -  `commit 73004f1 <https://github.com/PowerDNS/pdns/commit/73004f1>`__:
    implement CORS for the HTTP API
 -  `commit 4d9c289 <https://github.com/PowerDNS/pdns/commit/4d9c289>`__:
-   qtype is now case insensitive in API and database
+   qtype is now case-insensitive in API and database
 -  `commit 13af5d8 <https://github.com/PowerDNS/pdns/commit/13af5d8>`__,
    `commit 223373a <https://github.com/PowerDNS/pdns/commit/223373a>`__,
    `commit 1d5a68d <https://github.com/PowerDNS/pdns/commit/1d5a68d>`__,
@@ -955,7 +955,7 @@ Other changes
 -  `commit 3613a51 <https://github.com/PowerDNS/pdns/commit/3613a51>`__:
    Show built-in features in ^^version output
 -  `commit 4bd7d35 <https://github.com/PowerDNS/pdns/commit/4bd7d35>`__:
-   make domainmetadata queries case insensitive
+   make domainmetadata queries case-insensitive
 -  `commit 088c334 <https://github.com/PowerDNS/pdns/commit/088c334>`__:
    output warning message when no to be notified NS's are found
 -  `commit 5631b44 <https://github.com/PowerDNS/pdns/commit/5631b44>`__:
@@ -1072,7 +1072,7 @@ Changes since 3.3
 -  `commit 213ec4a <https://github.com/PowerDNS/pdns/commit/213ec4a>`__:
    add constraints for name to pg schema
 -  `commit f104427 <https://github.com/PowerDNS/pdns/commit/f104427>`__:
-   make domainmetadata queries case insensitive
+   make domainmetadata queries case-insensitive
 -  `commit 78fc378 <https://github.com/PowerDNS/pdns/commit/78fc378>`__:
    no label compression for name in TSIG records
 -  `commit 15d6ffb <https://github.com/PowerDNS/pdns/commit/15d6ffb>`__:
@@ -1561,7 +1561,7 @@ Changes between 3.2-RC2 and 3.2-RC3
    3003 <http://wiki.powerdns.com/projects/trac/changeset/3003>`__.
 -  Mark Zealey found that an earlier performance improvement could cause
    crashes under high load, with lots of IPs configured in local-address
-   and receiver-threads higher than 1. Fixed in `commit
+   and receiver-threads greater than 1. Fixed in `commit
    3005 <http://wiki.powerdns.com/projects/trac/changeset/3005>`__.
 
 Changes between 3.2-RC1 and 3.2-RC2
@@ -4682,7 +4682,7 @@ Bugs fixed
    wasted memory and also led to the continued non-existence of hosts
    that since had come into existence.
 -  The Generic SQL backends did not lowercase the names of records,
-   which led to new records not being found by case sensitive databases
+   which led to new records not being found by case-sensitive databases
    (notably PostgreSQL). Found by Volker Goetz.
 -  NS queries for zones for which we did not carry authority, but only
    had delegation information, had their NS records in the wrong
@@ -4766,7 +4766,7 @@ Bugs fixed
 -  ``pdns_control`` could leave behind remnants in case PowerDNS was not
    running (reported by dG)
 -  Incoming AXFR did not work on Solaris and other big-endian systems
-   (Willem de Groot helped debugging this long standing problem).
+   (Willem de Groot helped debugging this long-standing problem).
 -  Recursor could crash on convoluted CNAME loops. Thanks to Dan Faerch
    for delivering core dumps.
 -  Silly 'wuh' debugging output in zone2sql and bindbackend removed
@@ -5297,7 +5297,7 @@ already been running 24 hours on our servers before release.
 Version 2.7 and 2.7.1
 ---------------------
 
-This version fixes some very long standing issues and adds a few new
+This version fixes some very long-standing issues and adds a few new
 features. If you are still running 2.6, upgrade yesterday. If you were
 running 2.6.1, an upgrade is still strongly advised.
 
@@ -5491,7 +5491,7 @@ New features
 Enhancements
 ^^^^^^^^^^^^
 
--  Packet Cache is now case insensitive, leading to a higher hitrate
+-  Packet Cache is now case-insensitive, leading to a higher hitrate
    because identical queries only differing in case now both match. Care
    is taken to restore the proper case in the answer sent out.
 -  Packet Cache stores packets more efficiently now, savings are
@@ -5909,7 +5909,7 @@ Bugs fixed
    www.powerdns.com. While this did not confuse resolvers, it is better
    to conserve case. This has semantic consequences for all backends,
    which the documentation now spells out.
--  PostgreSQL backend was case sensitive and returned only answers in
+-  PostgreSQL backend was case-sensitive and returned only answers in
    case an exact match was found. The Generic PostgreSQL backend is now
    officially all lower case and zone2sql in PostgreSQL mode enforces
    this. Documentation has been updated to reflect the case change.
@@ -6326,7 +6326,7 @@ Feature enhancements
    prefix.
 -  zone2sql now accepts a ^^zone-name parameter
 -  BindBackend maturing - 9500 zones parsed in 3.5 seconds. No longer
-   case sensitive.
+   case-sensitive.
 
 Performance enhancements
 ^^^^^^^^^^^^^^^^^^^^^^^^

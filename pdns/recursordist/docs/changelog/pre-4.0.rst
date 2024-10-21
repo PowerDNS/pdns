@@ -884,7 +884,7 @@ Improvements
    selection. Suggested by Darren Gamble, implemented with help from
    Niels Bakker. Change in `commit
    1620 <http://wiki.powerdns.com/projects/trac/changeset/1620>`__.
--  Solaris on x86 has a long standing bug in port\_getn(), which we now
+-  Solaris on x86 has a long-standing bug in port\_getn(), which we now
    work around. Spotted by 'Dirk' and 'AS'. Solution suggested by the
    Apache runtime library, update in `commit
    1622 <http://wiki.powerdns.com/projects/trac/changeset/1622>`__.

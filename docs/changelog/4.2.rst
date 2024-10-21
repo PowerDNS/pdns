@@ -550,7 +550,7 @@ Changelogs for 4.2.x
     * Do not busy loop if we get lots of notifies.
     * Improve error reporting with garbage in the 'master' field of the database
     * Do not exit on exception resolving addresses to notify
-    * Auth ringbuffer summaries were case sensitive & accounted delegations incorrectly
+    * Auth ringbuffer summaries were case-sensitive & accounted delegations incorrectly
     * plug mysql_thread_init memory leak
     * Ensure we increase the number of queued queries before decreasing it
 

@@ -2,3 +2,4 @@
 ^docs/
 \.md$
 pdns/recursordist/settings/table.py
+regression-tests.*/description

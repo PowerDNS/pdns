@@ -13,7 +13,7 @@ Description
 If the address starts with an ``h``, it is assumed to be a DoH endpoint, and *PORT* is ignored.
 If qname and qtype are both `-` and tcp is used, multiple lines are read from stdin, where each line contains a qname and a type.
 If the address is ``stdin``, a DNS packet is read from stdin instead of from the network, and *PORT* is ignored.
-All input is literal and case sensitive.
+All input is literal and case-sensitive.
 Queries need option `recurse` to expect a resource record reply if the query target is not known to be the authoritative server for that record.
 
 Options

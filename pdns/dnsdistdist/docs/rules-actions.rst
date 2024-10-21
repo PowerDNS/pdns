@@ -73,7 +73,7 @@ This delays any query for a domain name with 5 or more consecutive digits in it.
 The second rule drops anything with more than 4 consecutive digits within a .example domain.
 
 Note that the query name is presented without a trailing dot to the regex.
-The regex is applied case insensitively.
+The regex is applied case-insensitively.
 
 Alternatively, if compiled in, :func:`RE2Rule` provides similar functionality, but against libre2.
 
