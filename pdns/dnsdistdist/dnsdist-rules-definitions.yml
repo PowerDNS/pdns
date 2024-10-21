@@ -96,7 +96,7 @@ Console:
 edns-client-subnet:
   section: "global"
   parameters:
-    - name: "override"
+    - name: "override-existing"
       type: "bool"
       default: false
       description: "When `useClientSubnet` in `newServer()` is set and dnsdist adds an EDNS Client Subnet Client option to the query, override an existing option already present in the query, if any. Please see Passing the source address to the backend for more information. Note that it’s not recommended to enable setECSOverride in front of an authoritative server responding with EDNS Client Subnet information as mismatching data (ECS scopes) can confuse clients and lead to SERVFAIL responses on downstream nameservers"
@@ -139,7 +139,7 @@ ring-buffer:
       default: true
       description: "Whether to record responses in the ring buffers"
 
-tls-configuration:
+tls:
   parameters:
     - name: "provider"
       type: "String"
@@ -153,7 +153,7 @@ tls-configuration:
       type: "String"
       default: ""
 
-outgoing-tls-configuration:
+outgoing-tls:
   parameters:
     - name: "provider"
       type: "String"
@@ -165,7 +165,16 @@ outgoing-tls-configuration:
       type: "bool"
       default: true
 
-outgoing-doh-configuration:
+doh:
+  parameters:
+    - name: "provider"
+      type: "String"
+      default: "nghttp2"
+    - name: "paths"
+      type: "Vec<String>"
+      default: "/dns-query"
+
+outgoing-doh:
   parameters:
     - name: "path"
       type: "String"
@@ -191,9 +200,9 @@ binds:
       type: "u32"
       default: "1"
     - name: "tls"
-      type: "TLSConfiguration"
+      type: "TlsConfiguration"
     - name: "doh"
-      type: "DoHConfiguration"
+      type: "DohConfiguration"
 
 backends:
   section: "global"
@@ -204,9 +213,9 @@ backends:
     - name: "protocol"
       type: "String"
     - name: "tls"
-      type: "OutgoingTLSConfiguration"
+      type: "OutgoingTlsConfiguration"
     - name: "doh"
-      type: "OutgoingDoHConfiguration"
+      type: "OutgoingDohConfiguration"
     - name: "max-in-flight"
       type: "u16"
       default: "1"
