@@ -421,7 +421,7 @@ PowerDNS.
 11. The prerequisite checks are performed (section 3.2 of :rfc:`2136 <2136#section-3.2>`). If a
     check fails, the corresponding RCode is returned. No further
     processing will happen.
-12. Per record in the update message, a the prescan checks are
+12. Per record in the update message, the prescan checks are
     performed. If the prescan fails, the corresponding RCode is
     returned. If the prescan for the record is correct, the actual
     update/delete/modify of the record is performed. If the update fails
