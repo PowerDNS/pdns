@@ -77,7 +77,8 @@ namespace dnsdist::rust::settings
 using RegisteredTypes = std::variant<std::shared_ptr<DNSSelector>, std::shared_ptr<NetmaskGroup>, std::shared_ptr<KeyValueStore>, std::shared_ptr<KeyValueLookupKey>, std::shared_ptr<RemoteLoggerInterface>>;
 static LockGuarded<std::unordered_map<std::string, RegisteredTypes>> s_registeredTypesMap;
 
-template <class T> static void registerType(const std::shared_ptr<T>& entry, std::string& name)
+template <class T>
+static void registerType(const std::shared_ptr<T>& entry, std::string& name)
 {
   if (name.empty()) {
     auto uuid = getUniqueID();
@@ -90,7 +91,8 @@ template <class T> static void registerType(const std::shared_ptr<T>& entry, std
   }
 }
 
-template <class T> static std::shared_ptr<T> getRegisteredTypeByName(const std::string& name)
+template <class T>
+static std::shared_ptr<T> getRegisteredTypeByName(const std::string& name)
 {
   auto map = s_registeredTypesMap.lock();
   auto item = map->find(name);
@@ -103,7 +105,8 @@ template <class T> static std::shared_ptr<T> getRegisteredTypeByName(const std::
   return nullptr;
 }
 
-template <class T> static std::shared_ptr<T> getRegisteredTypeByName(const ::rust::String& name)
+template <class T>
+static std::shared_ptr<T> getRegisteredTypeByName(const ::rust::String& name)
 {
     auto nameStr = std::string(name);
     return getRegisteredTypeByName<T>(nameStr);
@@ -164,10 +167,10 @@ std::shared_ptr<DNSSelector> getNetmaskGroupSelector(const NetmaskGroupSelectorC
 {
   std::shared_ptr<NetmaskGroup> nmg;
   if (!config.netmask_group.empty()) {
-      nmg = getRegisteredTypeByName<NetmaskGroup>(std::string(config.netmask_group));
+    nmg = getRegisteredTypeByName<NetmaskGroup>(std::string(config.netmask_group));
   }
   if (!nmg) {
-      nmg = std::make_shared<NetmaskGroup>();
+    nmg = std::make_shared<NetmaskGroup>();
   }
   for (const auto& netmask : config.netmasks) {
     nmg->addMask(std::string(netmask));
