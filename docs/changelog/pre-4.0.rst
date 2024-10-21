@@ -303,7 +303,7 @@ Improvements:
 Bug fixes:
 
 -  `commit 88c52fe <https://github.com/PowerDNS/pdns/commit/88c52fe>`__:
-   make makeRelative() case insensitive (Kees Monshouwer)
+   make makeRelative() case-insensitive (Kees Monshouwer)
 
 DNSSEC improvements:
 
@@ -528,7 +528,7 @@ Improvements:
 -  `commit 73004f1 <https://github.com/PowerDNS/pdns/commit/73004f1>`__:
    implement CORS for the HTTP API
 -  `commit 4d9c289 <https://github.com/PowerDNS/pdns/commit/4d9c289>`__:
-   qtype is now case insensitive in API and database
+   qtype is now case-insensitive in API and database
 -  `commit 13af5d8 <https://github.com/PowerDNS/pdns/commit/13af5d8>`__,
    `commit 223373a <https://github.com/PowerDNS/pdns/commit/223373a>`__,
    `commit 1d5a68d <https://github.com/PowerDNS/pdns/commit/1d5a68d>`__,
@@ -955,7 +955,7 @@ Other changes
 -  `commit 3613a51 <https://github.com/PowerDNS/pdns/commit/3613a51>`__:
    Show built-in features in ^^version output
 -  `commit 4bd7d35 <https://github.com/PowerDNS/pdns/commit/4bd7d35>`__:
-   make domainmetadata queries case insensitive
+   make domainmetadata queries case-insensitive
 -  `commit 088c334 <https://github.com/PowerDNS/pdns/commit/088c334>`__:
    output warning message when no to be notified NS's are found
 -  `commit 5631b44 <https://github.com/PowerDNS/pdns/commit/5631b44>`__:
@@ -1072,7 +1072,7 @@ Changes since 3.3
 -  `commit 213ec4a <https://github.com/PowerDNS/pdns/commit/213ec4a>`__:
    add constraints for name to pg schema
 -  `commit f104427 <https://github.com/PowerDNS/pdns/commit/f104427>`__:
-   make domainmetadata queries case insensitive
+   make domainmetadata queries case-insensitive
 -  `commit 78fc378 <https://github.com/PowerDNS/pdns/commit/78fc378>`__:
    no label compression for name in TSIG records
 -  `commit 15d6ffb <https://github.com/PowerDNS/pdns/commit/15d6ffb>`__:
@@ -5491,7 +5491,7 @@ New features
 Enhancements
 ^^^^^^^^^^^^
 
--  Packet Cache is now case insensitive, leading to a higher hitrate
+-  Packet Cache is now case-insensitive, leading to a higher hitrate
    because identical queries only differing in case now both match. Care
    is taken to restore the proper case in the answer sent out.
 -  Packet Cache stores packets more efficiently now, savings are

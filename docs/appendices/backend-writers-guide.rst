@@ -366,7 +366,7 @@ Methods
     on who is asking.
 
   Note that **qdomain** can be of any case and that your backend should
-  make sure it is in effect case insensitive. Furthermore, the case of the
+  make sure it is in effect case-insensitive. Furthermore, the case of the
   original question should be retained in answers returned by ``get()``!
 
   Finally, the domain_id might also be passed indicating that only
