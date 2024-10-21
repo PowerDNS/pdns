@@ -531,7 +531,7 @@ A secondary zone is pulled from a primary, after which it is 'fresh', but
 this is only temporary. In the SOA record of a zone there is a field
 which specifies the 'refresh' interval. After that interval has elapsed,
 the secondary nameserver needs to check at the primary if the serial number
-there is higher than what is stored in the backend locally.
+there is greater than what is stored in the backend locally.
 
 If this is the case, PowerDNS dubs the domain 'stale', and schedules a
 transfer of data from the remote. This transfer remains scheduled until

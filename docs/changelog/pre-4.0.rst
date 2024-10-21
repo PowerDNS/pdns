@@ -1561,7 +1561,7 @@ Changes between 3.2-RC2 and 3.2-RC3
    3003 <http://wiki.powerdns.com/projects/trac/changeset/3003>`__.
 -  Mark Zealey found that an earlier performance improvement could cause
    crashes under high load, with lots of IPs configured in local-address
-   and receiver-threads higher than 1. Fixed in `commit
+   and receiver-threads greater than 1. Fixed in `commit
    3005 <http://wiki.powerdns.com/projects/trac/changeset/3005>`__.
 
 Changes between 3.2-RC1 and 3.2-RC2
