@@ -1,17 +1,18 @@
 ---
-FormatStyle: none
-HeaderFileExtensions:
-  - h
-  - hh
-  - hpp
-ImplementationFileExtensions:
-  - c
-  - cc
-  - cpp
+FormatStyle: non
+# Older (pre 19) versions of clang-tidy do not grok these
+#HeaderFileExtensions:
+#  - h
+#  - hh
+#  - hpp
+#ImplementationFileExtensions:
+#  - c
+#  - cc
+#  - cpp
 WarningsAsErrors: ''
 HeaderFilterRegex: ''
 Checks: |
-  'clang-diagnostic-*,clang-analyzer-*,cppcoreguidelines-*,bugprone-*,concurrency-*,modernize-*,performance-*,portability-*,readability-*,-modernize-use-trailing-return-type,-readability-magic-numbers,-cppcoreguidelines-avoid-magic-numbers,-cppcoreguidelines-pro-type-union-access,-cppcoreguidelines-avoid-non-const-global-variables,-cppcoreguidelines-pro-type-vararg,-cppcoreguidelines-avoid-do-while,-cppcoreguidelines-avoid-const-or-ref-data-members,-performance-avoid-endl'
+  clang-diagnostic-*,clang-analyzer-*,cppcoreguidelines-*,bugprone-*,concurrency-*,modernize-*,performance-*,portability-*,readability-*,-modernize-use-trailing-return-type,-readability-magic-numbers,-cppcoreguidelines-avoid-magic-numbers,-cppcoreguidelines-pro-type-union-access,-cppcoreguidelines-avoid-non-const-global-variables,-cppcoreguidelines-pro-type-vararg,-cppcoreguidelines-avoid-do-while,-cppcoreguidelines-avoid-const-or-ref-data-members,-performance-avoid-endl
 # yamllint disable rule:line-length
 CheckOptions:
   - key: readability-suspicious-call-argument.PrefixSimilarAbove
