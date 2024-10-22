@@ -50,8 +50,8 @@ bool loadConfigurationFromFile(const std::string fileName)
 
     auto globalConfig = dnsdist::rust::settings::from_yaml_string(data);
     cerr<<globalConfig.metrics.carbon[0].address<<endl;
-    for (const auto& selector : globalConfig.realselectors) {
-      cerr << "REAL Selector: " << selector.selector->d_rule->toString() << endl;
+    for (const auto& selector : globalConfig.selectors) {
+      cerr << "Selector: " << selector.selector->d_rule->toString() << endl;
     }
     return true;
   }
