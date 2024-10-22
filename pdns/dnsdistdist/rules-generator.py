@@ -147,6 +147,7 @@ def main():
                     field_name = get_rust_field_name(definition_name)
                     name = get_rust_object_name(definition_name)
                     obj_type = f'{name}Configuration' if not 'type' in keys or keys['type'] != 'list' else f'Vec<{name}Configuration>'
+                    generated_fp.write('        #[serde(default, skip_serializing_if = "crate::is_default")]\n')
                     generated_fp.write(f'        {field_name}: {obj_type},\n')
 
             generated_fp.write('    }\n')

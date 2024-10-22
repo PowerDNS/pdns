@@ -131,7 +131,9 @@ mod dnsdistsettings {
     #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
     struct MetricsConfiguration {
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         carbon: Vec<CarbonConfiguration>,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         protobuf_logger: Vec<ProtobufLoggerConfiguration>,
     }
     #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
@@ -259,7 +261,9 @@ mod dnsdistsettings {
     #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
     struct TuningConfiguration {
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         doh: DohConfiguration,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         tcp: TcpConfiguration,
     }
     #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
@@ -287,6 +291,7 @@ mod dnsdistsettings {
     #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
     struct SelectorsConfiguration {
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         maxqpsiprule: MaxQPSIPRuleConfiguration,
     }
     #[derive(Default)]
