@@ -3273,8 +3273,6 @@ static ListeningSockets initListeningSockets()
 
 int main(int argc, char** argv)
 {
-  dnsdist::configuration::yaml::loadConfigurationFromFile("/home/remi/PowerDNS/confs/dnsdist.yml");
-
   try {
     CommandLineParameters cmdLine{};
     size_t udpBindsCount = 0;
@@ -3370,6 +3368,7 @@ int main(int argc, char** argv)
     /* create the default pool no matter what */
     createPoolIfNotExists("");
 
+    dnsdist::configuration::yaml::loadConfigurationFromFile("/home/remi/PowerDNS/confs/dnsdist.yml");
     setupLua(*(g_lua.lock()), false, false, cmdLine.config);
 
     setupPools();

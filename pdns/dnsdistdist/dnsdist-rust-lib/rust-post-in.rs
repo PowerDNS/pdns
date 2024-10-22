@@ -79,6 +79,14 @@ fn get_global_configuration_from_serde(
     config.metrics = serde.metrics;
     config.webserver = serde.webserver;
     config.console = serde.console;
+    config.edns_client_subnet = serde.edns_client_subnet;
+    config.acl = serde.acl;
+    config.ring_buffers = serde.ring_buffers;
+    config.binds = serde.binds;
+    config.backends = serde.backends;
+    config.packet_caches = serde.packet_caches;
+    config.pools = serde.pools;
+    config.tuning = serde.tuning;
     config.selectors = get_selectors_from_serde(&serde.selectors);
     config
 }
