@@ -1,0 +1,70 @@
+use serde::{Deserialize, Serialize};
+
+mod helpers;
+use helpers::*;
+
+// Suppresses "Deserialize unused" warning
+#[derive(Deserialize, Serialize)]
+struct UnusedStruct {}
+
+#[derive(Debug)]
+pub struct ValidationError {
+    msg: String,
+}
+
+#[cxx::bridge(namespace = dnsdist::rust::settings)]
+mod dnsdistsettings {
+    #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
+    #[serde(deny_unknown_fields)]
+    struct TCPSelectorConfig {
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        name: String,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        tcp: bool,
+    }
+
+    #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
+    #[serde(deny_unknown_fields)]
+    struct AndSelectorConfig {
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        name: String,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        selectors: Vec<String>,
+    }
+
+    #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
+    #[serde(deny_unknown_fields)]
+    struct AllSelector {
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        name: String,
+    }
+
+    #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
+    #[serde(deny_unknown_fields)]
+    struct ByNameSelector {
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        name: String,
+    }
+
+    #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
+    #[serde(deny_unknown_fields)]
+    struct NetmaskGroupSelectorConfig {
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        name: String,
+        #[serde(
+            default,
+            rename = "netmask-group",
+            skip_serializing_if = "crate::is_default"
+        )]
+        netmask_group: String,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        netmasks: Vec<String>,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        source: bool,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        quiet: bool,
+    }
+
+    struct SharedDNSSelector {
+        selector: SharedPtr<DNSSelector>,
+    }
