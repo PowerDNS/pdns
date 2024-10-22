@@ -29,7 +29,7 @@ std::unique_ptr<CrossProtocolQuery> getUDPCrossProtocolQueryFromDQ(DNSQuestion& 
 
 namespace dnsdist
 {
-std::unique_ptr<CrossProtocolQuery> getInternalQueryFromDQ(DNSQuestion& dnsQuestion, bool isResponse)
+std::unique_ptr<CrossProtocolQuery> getInternalQueryFromDQ(DNSQuestion& dnsQuestion, [[maybe_unused]] bool isResponse)
 {
   auto protocol = dnsQuestion.getProtocol();
   if (protocol == dnsdist::Protocol::DoUDP || protocol == dnsdist::Protocol::DNSCryptUDP) {

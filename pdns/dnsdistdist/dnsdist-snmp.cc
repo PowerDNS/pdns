@@ -80,6 +80,7 @@ static int handleCounter64Stats(netsnmp_mib_handler* handler,
                                 netsnmp_agent_request_info* reqinfo,
                                 netsnmp_request_info* requests)
 {
+  (void)handler;
   if (reqinfo->mode != MODE_GET) {
     return SNMP_ERR_GENERR;
   }
@@ -126,6 +127,7 @@ static int handleFloatStats(netsnmp_mib_handler* handler,
                             netsnmp_agent_request_info* reqinfo,
                             netsnmp_request_info* requests)
 {
+  (void)handler;
   if (reqinfo->mode != MODE_GET) {
     return SNMP_ERR_GENERR;
   }
@@ -177,6 +179,7 @@ static int handleGauge64Stats(netsnmp_mib_handler* handler,
                               netsnmp_agent_request_info* reqinfo,
                               netsnmp_request_info* requests)
 {
+  (void)handler;
   if (reqinfo->mode != MODE_GET) {
     return SNMP_ERR_GENERR;
   }
@@ -259,6 +262,8 @@ static netsnmp_variable_list* backendStatTable_get_next_data_point(void** loop_c
                                                                    netsnmp_variable_list* put_index_data,
                                                                    netsnmp_iterator_info* mydata)
 {
+  (void)loop_context;
+  (void)mydata;
   if (s_currentServerIdx >= s_servers.size()) {
     return nullptr;
   }
@@ -297,6 +302,8 @@ static int backendStatTable_handler(netsnmp_mib_handler* handler,
                                     netsnmp_agent_request_info* reqinfo,
                                     netsnmp_request_info* requests)
 {
+  (void)handler;
+  (void)reginfo;
   netsnmp_request_info* request{nullptr};
 
   switch (reqinfo->mode) {
@@ -387,7 +394,7 @@ static int backendStatTable_handler(netsnmp_mib_handler* handler,
 }
 #endif /* HAVE_NET_SNMP */
 
-bool DNSDistSNMPAgent::sendBackendStatusChangeTrap(const DownstreamState& dss)
+bool DNSDistSNMPAgent::sendBackendStatusChangeTrap([[maybe_unused]] const DownstreamState& dss)
 {
 #ifdef HAVE_NET_SNMP
   const string backendAddress = dss.d_config.remote.toStringWithPort();
@@ -425,7 +432,7 @@ bool DNSDistSNMPAgent::sendBackendStatusChangeTrap(const DownstreamState& dss)
 #endif /* HAVE_NET_SNMP */
 }
 
-bool DNSDistSNMPAgent::sendCustomTrap(const std::string& reason)
+bool DNSDistSNMPAgent::sendCustomTrap([[maybe_unused]] const std::string& reason)
 {
 #ifdef HAVE_NET_SNMP
   netsnmp_variable_list* varList = nullptr;
@@ -447,7 +454,7 @@ bool DNSDistSNMPAgent::sendCustomTrap(const std::string& reason)
 #endif /* HAVE_NET_SNMP */
 }
 
-bool DNSDistSNMPAgent::sendDNSTrap(const DNSQuestion& dnsQuestion, const std::string& reason)
+bool DNSDistSNMPAgent::sendDNSTrap([[maybe_unused]] const DNSQuestion& dnsQuestion, [[maybe_unused]] const std::string& reason)
 {
 #ifdef HAVE_NET_SNMP
   std::string local = dnsQuestion.ids.origDest.toString();
