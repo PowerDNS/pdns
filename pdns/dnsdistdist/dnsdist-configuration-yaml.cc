@@ -27,6 +27,7 @@
 #if defined(HAVE_YAML_CONFIGURATION)
 
 #include "dolog.hh"
+#include "dnsdist-backend.hh"
 #include "dnsdist-rules.hh"
 #include "dnsdist-kvs.hh"
 #include "rust/cxx.h"
@@ -49,10 +50,47 @@ bool loadConfigurationFromFile(const std::string fileName)
     auto data = std::string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
 
     auto globalConfig = dnsdist::rust::settings::from_yaml_string(data);
-    cerr<<globalConfig.metrics.carbon[0].address<<endl;
     for (const auto& selector : globalConfig.selectors) {
       cerr << "Selector: " << selector.selector->d_rule->toString() << endl;
     }
+
+    for (const auto& bind : globalConfig.binds) {
+      ComboAddress listeningAddress(std::string(bind.listen_address), 53);
+      std::string interface;
+      std::set<int> cpus;
+      updateImmutableConfiguration([&bind,listeningAddress,interface,cpus](ImmutableConfiguration& config) {
+        for (size_t idx = 0; idx < bind.threads; idx++) {
+          cerr << "Pushing frontend " << listeningAddress.toStringWithPort() << " protocol " << bind.protocol << endl;
+          auto state = std::make_shared<ClientState>(listeningAddress, bind.protocol != "DoQ", bind.reuseport, 0, interface, cpus, false);
+          config.d_frontends.emplace_back(std::move(state));
+          if (bind.protocol == "Do53") {
+            /* also create the UDP listener */
+            state = std::make_shared<ClientState>(ComboAddress(std::string(bind.listen_address), 53), false, bind.reuseport, 0, interface, cpus, false);
+            config.d_frontends.emplace_back(std::move(state));
+          }
+        }
+      });
+    }
+
+    for (const auto& backend : globalConfig.backends) {
+      DownstreamState::Config backendConfig;
+      std::shared_ptr<TLSCtx> tlsCtx;
+      backendConfig.remote = ComboAddress(std::string(backend.address), 53);
+      cerr << "Pushing backend " << backendConfig.remote.toStringWithPort() << endl;
+      auto downstream = std::make_shared<DownstreamState>(std::move(backendConfig), std::move(tlsCtx), true);
+
+      if (!downstream->d_config.pools.empty()) {
+        for (const auto& poolName : downstream->d_config.pools) {
+          addServerToPool(poolName, downstream);
+        }
+      }
+      else {
+        addServerToPool("", downstream);
+      }
+
+      dnsdist::backend::registerNewBackend(downstream);
+    }
+
     return true;
   }
   catch (const ::rust::Error& exp) {
@@ -108,13 +146,13 @@ static std::shared_ptr<T> getRegisteredTypeByName(const std::string& name)
 template <class T>
 static std::shared_ptr<T> getRegisteredTypeByName(const ::rust::String& name)
 {
-    auto nameStr = std::string(name);
-    return getRegisteredTypeByName<T>(nameStr);
+  auto nameStr = std::string(name);
+  return getRegisteredTypeByName<T>(nameStr);
 }
 
 std::shared_ptr<DNSSelector> getSelectorByName(const ::rust::String& name)
 {
-    return getRegisteredTypeByName<DNSSelector>(name);
+  return getRegisteredTypeByName<DNSSelector>(name);
 }
 
 const std::string& getNameFromSelector(const DNSSelector& selector)
