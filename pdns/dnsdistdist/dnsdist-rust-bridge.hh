@@ -5,7 +5,7 @@
 
 struct DNSRule;
 
-#include "dnsdist-rust-lib/rust/cxx.h"
+#include "rust/cxx.h"
 
 namespace dnsdist::rust::settings
 {

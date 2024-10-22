@@ -39,10 +39,12 @@ def get_rust_object_name(name):
 
     return object_name
 
-def get_rust_default_definition(rust_type, default, rename):
-    if default is None:
-        return ''
+def get_rust_serde_annotations(rust_type, default, rename):
     rename_value = f'rename = "{rename}", ' if rename else ''
+    if default is None:
+        if not rename_value:
+            return ''
+        return f'#[serde({rename_value})]'
     if default is True or is_value_rust_default(rust_type, default):
         return f'#[serde({rename_value}default, skip_serializing_if = "crate::is_default")]'
     type_upper = rust_type.capitalize()
@@ -66,7 +68,7 @@ def get_rust_struct_from_definition(name, keys):
         parameter_name = get_rust_field_name(parameter['name']) if parameter['name'] != 'namespace' else 'name_space'
         rust_type = parameter['type']
         rename = parameter['name'] if parameter_name != parameter['name'] else None
-        default_str = get_rust_default_definition(rust_type, parameter['default'] if 'default' in parameter else None, rename)
+        default_str = get_rust_serde_annotations(rust_type, parameter['default'] if 'default' in parameter else None, rename)
         if default_str:
             output += '        ' + default_str + '\n'
         output += f'        {parameter_name}: {rust_type},\n'
@@ -105,7 +107,7 @@ def main():
         print(f'Usage: {sys.argv[0]} <path/to/definitions/file>')
         sys.exit(1)
 
-    src_dir = 'dnsdist-rust-lib/'
+    src_dir = './'
     definitions = get_definitions_from_file(sys.argv[1])
     sections = gather_sections(definitions)
     global_objects = {}
@@ -174,7 +176,7 @@ struct GlobalConfigurationSerde {\n''')
     for obj, names in global_objects.items():
         field_name = get_rust_field_name(obj)
         rename = obj if field_name != obj else None
-        default_str = get_rust_default_definition(name[0], True, rename)
+        default_str = get_rust_serde_annotations(name[0], True, rename)
         if default_str:
             generated_fp.write('    ' + default_str + '\n')
         if field_name == 'selectors':
@@ -187,7 +189,7 @@ struct GlobalConfigurationSerde {\n''')
 
     include_file(generated_fp, src_dir + 'rust-post-in.rs')
 
-    os.rename(generated_fp.name, 'dnsdist-rust-lib/rust/src/lib.rs')
+    os.rename(generated_fp.name, src_dir + '/rust/src/lib.rs')
 
 if __name__ == '__main__':
     main()
