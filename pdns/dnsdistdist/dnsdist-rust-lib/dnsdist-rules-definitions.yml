@@ -1,5 +1,5 @@
 ---
-Carbon:
+carbon:
   section: "metrics"
   type: "list"
   parameters:
@@ -43,7 +43,7 @@ Protobuf-Logger:
       default: 1
       description: "Time in seconds between reconnection attempts"
 
-Webserver:
+webserver:
   section: "global"
   parameters:
     - name: "listen-addresses"
@@ -79,7 +79,7 @@ Webserver:
       default: "false"
       description: "Whether passwords and API keys provided in plaintext should be hashed during startup, to prevent the plaintext versions from staying in memory. Doing so increases significantly the cost of verifying credentials"
 
-Console:
+console:
   section: "global"
   parameters:
     - name: "listen-address"
@@ -115,7 +115,7 @@ acl:
   default: "127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fc00::/7, fe80::/10"
   description: "CIDR netmasks of the clients allowed to send DNS queries"
 
-ring-buffer:
+ring-buffers:
   section: "global"
   parameters:
     - name: "size"
@@ -165,7 +165,7 @@ outgoing-tls:
       type: "bool"
       default: "true"
 
-doh:
+incoming-doh:
   parameters:
     - name: "provider"
       type: "String"
@@ -179,7 +179,7 @@ outgoing-doh:
     - name: "path"
       type: "String"
       default: "/dns-query"
-    - name: "add-x-forwarded-for-headers"
+    - name: "add-x-forwarded-headers"
       type: "bool"
       default: "false"
 
@@ -201,8 +201,10 @@ binds:
       default: "1"
     - name: "tls"
       type: "TlsConfiguration"
+      default: true
     - name: "doh"
-      type: "DohConfiguration"
+      type: "IncomingDohConfiguration"
+      default: true
 
 backends:
   section: "global"
@@ -214,8 +216,10 @@ backends:
       type: "String"
     - name: "tls"
       type: "OutgoingTlsConfiguration"
+      default: true
     - name: "doh"
       type: "OutgoingDohConfiguration"
+      default: true
     - name: "max-in-flight"
       type: "u16"
       default: "1"
@@ -225,6 +229,9 @@ backends:
     - name: "use-proxy-protocol"
       type: "bool"
       default: "false"
+    - name: "health-check"
+      type: "String"
+      default: "auto"
 
 tcp:
   section: "tuning"
@@ -260,7 +267,6 @@ packet-caches:
     - name: "shards"
       type: "u32"
 
-
 pools:
   section: "global"
   type: "list"
@@ -269,10 +275,10 @@ pools:
       type: "String"
     - name: "packet-cache"
       type: "String"
+      default: true
     - name: "policy"
       type: "String"
-
-
+      default: "least-outstanding"
 
 MaxQPSIPRule:
   section: "selectors"
