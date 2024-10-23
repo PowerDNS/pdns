@@ -40,7 +40,7 @@ jobs:
     steps:
     - name: check-spelling
       id: spelling
-      uses: check-spelling/check-spelling@v0.0.22
+      uses: check-spelling/check-spelling@v0.0.23
       with:
         config: .github/actions/spell-check
         suppress_push_for_open_pull_request: ${{ github.actor != 'dependabot[bot]' && 1 }}
