@@ -25,6 +25,7 @@
 #include <array>
 #include <string>
 
-static const std::array<std::string, 1> rootDSs = {
-  "20326 8 2 e06d44b80b8f1d39a95c0b0d7c65d08458e880409bbc683457104237c7f8ec8d"
+static const std::array<std::string, 2> rootDSs = {
+  "20326 8 2 e06d44b80b8f1d39a95c0b0d7c65d08458e880409bbc683457104237c7f8ec8d",
+  "38696 8 2 683d2d0acb8c9b712a1948b27f741219298d0a450d612c483af444a4c0fb2b16"
 };
