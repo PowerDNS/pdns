@@ -21,7 +21,6 @@
  */
 #pragma once
 #include <string>
-#include <set>
 #include "dns.hh"
 #include "qtype.hh"
 #include "misc.hh"
@@ -63,7 +62,7 @@ public:
   [[nodiscard]] pair<uint64_t, uint64_t> stats();
   [[nodiscard]] size_t ecsIndexSize();
 
-  size_t getRecords(size_t howmany, size_t maxsize, std::string& ret);
+  size_t getRecords(size_t perShard, size_t maxSize, std::string& ret);
   size_t putRecords(const std::string& pbuf);
 
   using OptTag = boost::optional<std::string>;

@@ -578,7 +578,7 @@ bool MemRecursorCache::replace(CacheEntry&& entry)
 
   lockedShard->d_cachecachevalid = false;
   entry.d_submitted = false;
-  if (lockedShard->d_map.insert(entry).second) {
+  if (lockedShard->d_map.emplace(std::move(entry)).second) {
     shard.incEntriesCount();
     return true;
   }
