@@ -69,8 +69,14 @@ public:
     Success = 1,
     PermanentError = 2 /* not transport related */,
     OSLimitError = 3,
-    Spoofed = 4 /* Spoofing attempt (too many near-misses) */
+    Spoofed = 4, /* Spoofing attempt (too many near-misses) */
+    ChainLimitError = 5,
   };
+
+  [[nodiscard]] static bool isLimitError(Result res)
+  {
+    return res == Result::OSLimitError || res == Result::ChainLimitError;
+  }
 
   vector<DNSRecord> d_records;
   int d_rcode{0};
