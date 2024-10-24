@@ -271,7 +271,8 @@ void BaseLua4::prepareContext() {
     });
   d_lw->registerFunction<void (DNSRecord::*)(const std::string&)>("changeContent", [](DNSRecord& dr, const std::string& newContent) { dr.setContent(shared_ptr<DNSRecordContent>(DNSRecordContent::make(dr.d_type, 1, newContent))); });
 
-  // pdnsload
+  // pdnslog
+#ifdef RECURSOR
   d_lw->writeFunction("pdnslog", [](const std::string& msg, boost::optional<int> loglevel, boost::optional<std::map<std::string, std::string>> values) {
     auto log = g_slog->withName("lua");
     if (values) {
@@ -280,6 +281,10 @@ void BaseLua4::prepareContext() {
       }
     }
     log->info(static_cast<Logr::Priority>(loglevel.get_value_or(Logr::Warning)), msg);
+#else
+    d_lw->writeFunction("pdnslog", [](const std::string& msg, boost::optional<int> loglevel) {
+      g_log << (Logger::Urgency)loglevel.get_value_or(Logger::Warning) << msg<<endl;
+#endif
   });
 
   d_lw->writeFunction("pdnsrandom", [](boost::optional<uint32_t> maximum) {

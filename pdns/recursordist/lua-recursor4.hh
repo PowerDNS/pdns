@@ -224,6 +224,8 @@ public:
 
   bool policyHitEventFilter(const ComboAddress& remote, const DNSName& qname, const QType& qtype, bool tcp, DNSFilterEngine::Policy& policy, std::unordered_set<std::string>& tags, std::unordered_map<std::string, bool>& discardedPolicies) const;
 
+  void runStartStopFunction(const std::string& script, bool start, Logr::log_t log);
+
   [[nodiscard]] bool needDQ() const
   {
     return (d_prerpz || d_preresolve || d_nxdomain || d_nodata || d_postresolve);

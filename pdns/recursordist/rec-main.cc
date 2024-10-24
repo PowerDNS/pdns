@@ -147,7 +147,7 @@ thread_local unsigned int RecThreadInfo::t_id;
 
 pdns::RateLimitedLog g_rateLimitedLogger;
 
-static void runCustomLua(Logr::log_t log);
+static void runStartStopLua(bool start, Logr::log_t log);
 
 static std::map<unsigned int, std::set<int>> parseCPUMap(Logr::log_t log)
 {
@@ -356,6 +356,7 @@ int RecThreadInfo::runThreads(Logr::log_t log)
         ret = tInfo.exitCode;
       }
     }
+    runStartStopLua(false, log);
   }
   return ret;
 }
@@ -2378,8 +2379,8 @@ static int serviceMain(Logr::log_t log)
   setupNODThread(log);
 #endif /* NOD_ENABLED */
 
-  runCustomLua(log);
-  
+  runStartStopLua(true, log);
+
   return RecThreadInfo::runThreads(log);
 }
 
@@ -3041,20 +3042,15 @@ static pair<int, bool> doConfig(Logr::log_t startupLog, const string& configname
 
 LockGuarded<pdns::rust::settings::rec::Recursorsettings> g_yamlStruct;
 
-static void runCustomLua(Logr::log_t log)
+static void runStartStopLua(bool start, Logr::log_t log)
 {
   auto settings = g_yamlStruct.lock();
-  const auto& script = settings->recursor.lua_startup_script;
+  const auto& script = settings->recursor.lua_start_stop_script;
   if (script.empty()) {
     return;
   }
-  log->info(Logr::Info, "Starting Custom Lua", "script", Logging::Loggable(script));
-  //std::thread thread([=]() {
-    auto lua = std::make_shared<RecursorLua4>();
-    lua->loadFile(std::string(script));
-    log->info(Logr::Info, "Custom Lua done");
-    //});
-    //thread.detach();
+  auto lua = std::make_shared<RecursorLua4>();
+  lua->runStartStopFunction(std::string(script), start, log);
 }
 
 static void handleRuntimeDefaults(Logr::log_t log)

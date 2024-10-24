@@ -1047,7 +1047,7 @@ void MemRecursorCache::getRecord(T& message, U recordSet)
   message.add_bool(PBCacheEntry::required_bool_tooBig, recordSet->d_tooBig);
 }
 
-void MemRecursorCache::getRecords(size_t perShard, size_t maxSize, std::string& ret)
+size_t MemRecursorCache::getRecords(size_t perShard, size_t maxSize, std::string& ret)
 {
   auto log = g_slog->withName("recordcache")->withValues("perShard", Logging::Loggable(perShard), "maxSize", Logging::Loggable(maxSize));
   log->info(Logr::Info, "Producing cache dump");
@@ -1072,7 +1072,7 @@ void MemRecursorCache::getRecords(size_t perShard, size_t maxSize, std::string& 
       if (ret.size() > maxSize) {
         message.rollback();
         log->info(Logr::Info, "Produced cache dump (max size reached)", "size", Logging::Loggable(ret.size()), "count", Logging::Loggable(count));
-        return;
+        return count;
       }
       ++count;
       ++thisShardCount;
@@ -1082,8 +1082,7 @@ void MemRecursorCache::getRecords(size_t perShard, size_t maxSize, std::string& 
     }
   }
   log->info(Logr::Info, "Produced cache dump", "size", Logging::Loggable(ret.size()), "count", Logging::Loggable(count));
-  std::ofstream out("/tmp/pb");
-  out.write(ret.data(), ret.size());
+  return count;
 }
 
 template <typename T>
