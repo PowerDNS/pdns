@@ -1085,6 +1085,42 @@ size_t MemRecursorCache::getRecords(size_t perShard, size_t maxSize, std::string
   return count;
 }
 
+static void putAuthRecord(protozero::pbf_message<PBCacheEntry>& message, const DNSName& qname, std::vector<std::shared_ptr<DNSRecord>>& authRecs)
+{
+  protozero::pbf_message<PBAuthRecord> auth = message.get_message();
+  DNSRecord authRecord;
+  while (auth.next()) {
+    switch (auth.tag()) {
+    case PBAuthRecord::required_bytes_name:
+      authRecord.d_name = DNSName(auth.get_bytes());
+      break;
+    case PBAuthRecord::required_bytes_rdata: {
+      auto ptr = DNSRecordContent::deserialize(qname, authRecord.d_type, auth.get_bytes());
+      authRecord.setContent(ptr);
+      break;
+    }
+    case PBAuthRecord::required_uint32_class:
+      authRecord.d_class = auth.get_uint32();
+      break;
+    case PBAuthRecord::required_uint32_type:
+      authRecord.d_type = auth.get_uint32();
+      break;
+    case PBAuthRecord::required_uint32_ttl:
+      authRecord.d_ttl = auth.get_uint32();
+      break;
+    case PBAuthRecord::required_uint32_place:
+      authRecord.d_place = static_cast<DNSResourceRecord::Place>(auth.get_uint32());
+      break;
+    case PBAuthRecord::required_uint32_clen:
+      authRecord.d_clen = auth.get_uint32();
+      break;
+    default:
+      assert(0);
+    }
+  }
+  authRecs.emplace_back(std::make_shared<DNSRecord>(authRecord));
+}
+
 template <typename T>
 bool MemRecursorCache::putRecord(T& message)
 {
@@ -1101,41 +1137,9 @@ bool MemRecursorCache::putRecord(T& message)
       cacheEntry.d_signatures.emplace_back(std::dynamic_pointer_cast<RRSIGRecordContent>(ptr));
       break;
     }
-    case PBCacheEntry::repeated_message_authRecord: {
-      protozero::pbf_message<PBAuthRecord> auth = message.get_message();
-      DNSRecord authRecord;
-      while (auth.next()) {
-        switch (auth.tag()) {
-        case PBAuthRecord::required_bytes_name:
-          authRecord.d_name = DNSName(auth.get_bytes());
-          break;
-        case PBAuthRecord::required_bytes_rdata: {
-          auto ptr = DNSRecordContent::deserialize(cacheEntry.d_qname, authRecord.d_type, auth.get_bytes());
-          authRecord.setContent(ptr);
-          break;
-        }
-        case PBAuthRecord::required_uint32_class:
-          authRecord.d_class = auth.get_uint32();
-          break;
-        case PBAuthRecord::required_uint32_type:
-          authRecord.d_type = auth.get_uint32();
-          break;
-        case PBAuthRecord::required_uint32_ttl:
-          authRecord.d_ttl = auth.get_uint32();
-          break;
-        case PBAuthRecord::required_uint32_place:
-          authRecord.d_place = static_cast<DNSResourceRecord::Place>(auth.get_uint32());
-          break;
-        case PBAuthRecord::required_uint32_clen:
-          authRecord.d_clen = auth.get_uint32();
-          break;
-        default:
-          assert(0);
-        }
-      }
-      cacheEntry.d_authorityRecs.emplace_back(std::make_shared<DNSRecord>(authRecord));
+    case PBCacheEntry::repeated_message_authRecord:
+      putAuthRecord(message, cacheEntry.d_qname, cacheEntry.d_authorityRecs);
       break;
-    }
     case PBCacheEntry::required_bytes_name:
       cacheEntry.d_qname = DNSName(message.get_bytes());
       break;
@@ -1145,10 +1149,9 @@ bool MemRecursorCache::putRecord(T& message)
     case PBCacheEntry::required_message_from:
       decodeComboAddress(message, cacheEntry.d_from);
       break;
-    case PBCacheEntry::optional_bytes_netmask: {
+    case PBCacheEntry::optional_bytes_netmask:
       decodeNetmask(message, cacheEntry.d_netmask);
       break;
-    }
     case PBCacheEntry::optional_bytes_rtag:
       cacheEntry.d_rtag = message.get_bytes();
       break;
