@@ -964,6 +964,7 @@ speedtest_SOURCES = \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
 	sillyrecords.cc \
+	shuffle.cc shuffle.hh \
 	speedtest.cc \
 	statbag.cc \
 	svc-records.cc svc-records.hh \
