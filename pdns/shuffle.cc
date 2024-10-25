@@ -141,7 +141,7 @@ void pdns::orderAndShuffle(vector<DNSRecord>& rrs, bool includingAdditionals)
   shuffle(rrs, includingAdditionals);
 }
 
-unsigned int pdns::dedup(vector<DNSRecord>& rrs)
+unsigned int pdns::dedupRecords(vector<DNSRecord>& rrs)
 {
   // This function tries to avoid unneccesary work
   // First a vector with zero or one element does not need dedupping

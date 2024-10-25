@@ -1509,7 +1509,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
       }
 
       if (!ret.empty()) {
-        pdns::dedup(ret);
+        pdns::dedupRecords(ret);
         pdns::orderAndShuffle(ret, false);
         if (auto listToSort = luaconfsLocal->sortlist.getOrderCmp(comboWriter->d_source)) {
           stable_sort(ret.begin(), ret.end(), *listToSort);
