@@ -201,26 +201,8 @@ public:
   virtual std::string getZoneRepresentation(bool noDot=false) const = 0;
   virtual ~DNSRecordContent() = default;
   virtual void toPacket(DNSPacketWriter& pw) const = 0;
-  // returns the wire format of the content, possibly including compressed pointers pointing to the owner name (unless canonic or lowerCase are set)
-  string serialize(const DNSName& qname, bool canonic=false, bool lowerCase=false) const
-  {
-    vector<uint8_t> packet;
-    DNSPacketWriter pw(packet, g_rootdnsname, 1);
-    if(canonic)
-      pw.setCanonic(true);
-
-    if(lowerCase)
-      pw.setLowercase(true);
-
-    pw.startRecord(qname, this->getType());
-    this->toPacket(pw);
-
-    string record;
-    pw.getRecordPayload(record); // needs to be called before commit()
-    return record;
-  }
-
-  [[nodiscard]] string wireFormatContent(const DNSName& qname, bool canonic = false, bool lowerCase = false) const
+  // returns the wire format of the content or the full record, possibly including compressed pointers pointing to the owner name (unless canonic or lowerCase are set)
+  [[nodiscard]] string serialize(const DNSName& qname, bool canonic = false, bool lowerCase = false, bool full = false) const
   {
     vector<uint8_t> packet;
     DNSPacketWriter packetWriter(packet, g_rootdnsname, QType::A);
@@ -236,7 +218,11 @@ public:
     toPacket(packetWriter);
 
     string record;
-    packetWriter.getContentWireFormat(record); // needs to be called before commit()
+    if (full) {
+      packetWriter.getWireFormatContent(record); // needs to be called before commit()
+    } else {
+      packetWriter.getRecordPayload(record); // needs to be called before commit()
+    }
     return record;
   }
 
