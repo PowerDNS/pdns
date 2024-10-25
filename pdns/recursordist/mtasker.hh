@@ -373,8 +373,7 @@ std::shared_ptr<pdns_ucontext_t> MTasker<Key, Val, Cmp>::getUContext()
   ucontext->uc_link = &d_kernel; // come back to kernel after dying
 
 #ifdef PDNS_USE_VALGRIND
-  uc->valgrind_id = VALGRIND_STACK_REGISTER(&uc->uc_stack[0],
-                                            &uc->uc_stack[uc->uc_stack.size() - 1]);
+  ucontext->valgrind_id = VALGRIND_STACK_REGISTER(&ucontext->uc_stack[0], &ucontext->uc_stack[ucontext->uc_stack.size() - 1]);
 #endif /* PDNS_USE_VALGRIND */
 
   return ucontext;
