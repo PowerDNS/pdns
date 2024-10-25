@@ -159,7 +159,7 @@ unsigned int pdns::dedupRecords(vector<DNSRecord>& rrs)
 
   seen.reserve(rrs.size());
   for (const auto& rec : rrs) {
-    auto key = rec.getContent()->wireFormatContent(rec.d_name, true, true);
+    auto key = rec.getContent()->serialize(rec.d_name, true, true, true);
     // This ignores class, ttl and place by using constants for those
     if (!seen.emplace(std::move(key)).second) {
       dups[counter] = true;
