@@ -157,10 +157,11 @@ unsigned int pdns::dedup(vector<DNSRecord>& rrs)
   unsigned int counter = 0;
   unsigned int numDups = 0;
 
+  seen.reserve(rrs.size());
   for (const auto& rec : rrs) {
-    const auto key = rec.getContent()->wireFormatContent(rec.d_name, true, true);
+    auto key = rec.getContent()->wireFormatContent(rec.d_name, true, true);
     // This ignores class, ttl and place by using constants for those
-    if (!seen.emplace(key).second) {
+    if (!seen.emplace(std::move(key)).second) {
       dups[counter] = true;
       numDups++;
     }

@@ -14,6 +14,7 @@
 #include "lock.hh"
 #include "dns_random.hh"
 #include "arguments.hh"
+#include "shuffle.hh"
 
 #if defined(HAVE_LIBSODIUM)
 #include <sodium.h>
@@ -1181,6 +1182,47 @@ private:
 };
 #endif
 
+struct DedupRecordsTest
+{
+  explicit DedupRecordsTest(size_t howmany, bool dedup, bool withdup = false) : d_howmany(howmany), d_dedup(dedup), d_withdup(withdup)
+  {
+  }
+
+  [[nodiscard]] string getName() const
+  {
+    return std::to_string(d_howmany) + " DedupRecords" + std::string(d_dedup ? "" : " (generate only)") +
+      std::string(d_withdup ? " (with dup)" : "");
+  }
+
+  void operator()() const
+  {
+    std::vector<DNSRecord> vec;
+    vec.reserve(d_howmany);
+    std::string name("some.name.in.some.domain");
+    auto count = d_howmany;
+    if (d_withdup) {
+      count--;
+    }
+    for (size_t i = 0; i < count; i++) {
+      auto content = DNSRecordContent::make(QType::TXT, QClass::IN, "\"a text " + std::to_string(i) + "\"");
+      DNSRecord rec(name, content, QType::TXT);
+      if (i == 0 && d_withdup) {
+        vec.emplace_back(rec);
+      }
+      vec.emplace_back(std::move(rec));
+    }
+
+    if (d_dedup) {
+      pdns::dedup(vec);
+    }
+  }
+
+private:
+  size_t d_howmany;
+  bool d_dedup;
+  bool d_withdup;
+};
+
 int main()
 {
   try {
@@ -1335,6 +1377,15 @@ int main()
 #ifdef HAVE_LIBSODIUM
     doRun(SipHashTest("a string of chars"));
 #endif
+    doRun(DedupRecordsTest(2, false));
+    doRun(DedupRecordsTest(2, true));
+    doRun(DedupRecordsTest(2, true, true));
+    doRun(DedupRecordsTest(256, false));
+    doRun(DedupRecordsTest(256, true));
+    doRun(DedupRecordsTest(256, true, true));
+    doRun(DedupRecordsTest(4096, false));
+    doRun(DedupRecordsTest(4096, true));
+    doRun(DedupRecordsTest(4096, true, true));
 
     cerr<<"Total runs: " << g_totalRuns<<endl;
   }
