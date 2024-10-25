@@ -1213,7 +1213,7 @@ struct DedupRecordsTest
     }
 
     if (d_dedup) {
-      pdns::dedup(vec);
+      pdns::dedupRecords(vec);
     }
   }
 
