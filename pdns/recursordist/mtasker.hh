@@ -299,7 +299,7 @@ int MTasker<EventKey, EventVal, Cmp>::waitEvent(EventKey& key, EventVal* val, un
   d_threads[d_tid].dt.start();
 #endif
   if (val && d_waitstatus == Answer) {
-    *val = d_waitval;
+    *val = std::move(d_waitval);
   }
   d_tid = waiter.tid;
   if ((char*)&waiter < d_threads[d_tid].highestStackSeen) {
