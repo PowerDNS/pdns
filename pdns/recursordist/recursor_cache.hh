@@ -62,8 +62,8 @@ public:
   [[nodiscard]] pair<uint64_t, uint64_t> stats();
   [[nodiscard]] size_t ecsIndexSize();
 
-  size_t getRecords(size_t perShard, size_t maxSize, std::string& ret);
-  size_t putRecords(const std::string& pbuf);
+  size_t getRecordSets(size_t perShard, size_t maxSize, std::string& ret);
+  size_t putRecordSets(const std::string& pbuf);
 
   using OptTag = boost::optional<std::string>;
 
@@ -154,9 +154,9 @@ private:
   bool replace(CacheEntry&& entry);
   // Using templates to avoid exposing protozero types in this header file
   template <typename T>
-  bool putRecord(T&);
+  bool putRecordSet(T&);
   template <typename T, typename U>
-  void getRecord(T&, U);
+  void getRecordSet(T&, U);
 
   /* The ECS Index (d_ecsIndex) keeps track of whether there is any ECS-specific
      entry for a given (qname,qtype) entry in the cache (d_map), and if so

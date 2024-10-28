@@ -1368,10 +1368,10 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheDumpAndRestore)
     checker();
 
     std::string dump;
-    MRC.getRecords(std::numeric_limits<size_t>::max(), std::numeric_limits<size_t>::max(), dump);
+    MRC.getRecordSets(0, 0, dump);
     MRC.doWipeCache(DNSName("."), true);
     BOOST_CHECK_EQUAL(MRC.size(), 0U);
-    size_t inserted = MRC.putRecords(dump);
+    size_t inserted = MRC.putRecordSets(dump);
     BOOST_CHECK_EQUAL(inserted, 100U);
     BOOST_CHECK_EQUAL(MRC.size(), 100U);
 

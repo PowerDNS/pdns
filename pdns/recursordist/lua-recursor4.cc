@@ -496,12 +496,12 @@ void RecursorLua4::postPrepareContext() // NOLINT(readability-function-cognitive
 
   d_lw->writeFunction("getRecordCacheRecords", [](size_t perShard, size_t maxSize) {
     std::string ret;
-    auto number = g_recCache->getRecords(perShard, maxSize, ret);
+    auto number = g_recCache->getRecordSets(perShard, maxSize, ret);
     return std::tuple<std::string, size_t>{ret, number};
   });
 
   d_lw->writeFunction("putIntoRecordCache", [](const string& data) {
-    return g_recCache->putRecords(data);
+    return g_recCache->putRecordSets(data);
   });
 
   d_lw->writeFunction("spawnThread", [](const string& scriptName) {

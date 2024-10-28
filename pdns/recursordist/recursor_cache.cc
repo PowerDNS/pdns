@@ -1011,7 +1011,7 @@ static void decodeNetmask(protozero::pbf_message<T>& message, Netmask& subnet)
 }
 
 template <typename T, typename U>
-void MemRecursorCache::getRecord(T& message, U recordSet)
+void MemRecursorCache::getRecordSet(T& message, U recordSet)
 {
   // Two fields below must come before the other fields
   message.add_bytes(PBCacheEntry::required_bytes_name, recordSet->d_qname.toString());
@@ -1047,11 +1047,21 @@ void MemRecursorCache::getRecord(T& message, U recordSet)
   message.add_bool(PBCacheEntry::required_bool_tooBig, recordSet->d_tooBig);
 }
 
-size_t MemRecursorCache::getRecords(size_t perShard, size_t maxSize, std::string& ret)
+size_t MemRecursorCache::getRecordSets(size_t perShard, size_t maxSize, std::string& ret)
 {
   auto log = g_slog->withName("recordcache")->withValues("perShard", Logging::Loggable(perShard), "maxSize", Logging::Loggable(maxSize));
   log->info(Logr::Info, "Producing cache dump");
 
+  // A size estmate is hard: size() returns the number of record *sets*. Each record set can have
+  // multiple records, plus other associated records like signatures. 150 seems to works ok.
+  size_t estimate = maxSize == 0 ? size() * 150 : maxSize + 4096; // We may overshoot (will be rolled back)
+
+  if (perShard == 0) {
+    perShard = std::numeric_limits<size_t>::max();
+  }
+  if (maxSize == 0) {
+    maxSize = std::numeric_limits<size_t>::max();
+  }
   protozero::pbf_builder<PBCacheDump> full(ret);
   full.add_string(PBCacheDump::required_string_version, getPDNSVersion());
   full.add_string(PBCacheDump::required_string_identity, SyncRes::s_serverID);
@@ -1060,7 +1070,7 @@ size_t MemRecursorCache::getRecords(size_t perShard, size_t maxSize, std::string
   full.add_string(PBCacheDump::required_string_type, "PBCacheDump");
 
   size_t count = 0;
-  ret.reserve(maxSize + 4096); // We may overshoot (will be rolled back)
+  ret.reserve(estimate);
 
   for (auto& shard : d_maps) {
     auto lockedShard = shard.lock();
@@ -1068,7 +1078,7 @@ size_t MemRecursorCache::getRecords(size_t perShard, size_t maxSize, std::string
     size_t thisShardCount = 0;
     for (auto recordSet = sidx.rbegin(); recordSet != sidx.rend(); ++recordSet) {
       protozero::pbf_builder<PBCacheEntry> message(full, PBCacheDump::repeated_message_cacheEntry);
-      getRecord(message, recordSet);
+      getRecordSet(message, recordSet);
       if (ret.size() > maxSize) {
         message.rollback();
         log->info(Logr::Info, "Produced cache dump (max size reached)", "size", Logging::Loggable(ret.size()), "count", Logging::Loggable(count));
@@ -1122,7 +1132,7 @@ static void putAuthRecord(protozero::pbf_message<PBCacheEntry>& message, const D
 }
 
 template <typename T>
-bool MemRecursorCache::putRecord(T& message)
+bool MemRecursorCache::putRecordSet(T& message)
 {
   CacheEntry cacheEntry{{g_rootdnsname, QType::A, boost::none, Netmask()}, false};
   while (message.next()) {
@@ -1188,7 +1198,7 @@ bool MemRecursorCache::putRecord(T& message)
   return replace(std::move(cacheEntry));
 }
 
-size_t MemRecursorCache::putRecords(const std::string& pbuf)
+size_t MemRecursorCache::putRecordSets(const std::string& pbuf)
 {
   auto log = g_slog->withName("recordcache")->withValues("size", Logging::Loggable(pbuf.size()));
   log->info(Logr::Debug, "Processing cache dump");
@@ -1231,7 +1241,7 @@ size_t MemRecursorCache::putRecords(const std::string& pbuf)
       }
       case PBCacheDump::repeated_message_cacheEntry: {
         protozero::pbf_message<PBCacheEntry> message = full.get_message();
-        if (putRecord(message)) {
+        if (putRecordSet(message)) {
           ++inserted;
         }
         ++count;
