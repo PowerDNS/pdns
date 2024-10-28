@@ -940,6 +940,19 @@ By default, this option is empty, meaning no EDNS Client Subnet information is s
     'versionadded': '4.5.0'
     },
     {
+        'name' : 'enable_old_settings',
+        'section' : 'recursor',
+        'type' : LType.Bool,
+        'default' : 'false',
+        'help' : 'Enable (deprecated) parsing of old-style settings',
+        'doc' : '''
+Enable the deprecated parsing of old-style settings.
+Only makes sense to set on the command line.
+        ''',
+        'skip-yaml': True,
+        'versionadded': '5.2.0',
+    },
+    {
         'name' : 'entropy_source',
         'section' : 'recursor',
         'type' : LType.String,
