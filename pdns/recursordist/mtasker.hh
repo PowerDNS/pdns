@@ -305,7 +305,7 @@ int MTasker<EventKey, EventVal, Cmp>::waitEvent(EventKey& key, EventVal* val, un
   if ((char*)&waiter < d_threads[d_tid].highestStackSeen) {
     d_threads[d_tid].highestStackSeen = (char*)&waiter;
   }
-  key = d_eventkey;
+  key = std::move(d_eventkey);
   return d_waitstatus;
 }
 
