@@ -30,7 +30,6 @@
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/key_extractors.hpp>
 
-#include "namespaces.hh"
 #include "misc.hh"
 #include "mtasker_context.hh"
 
@@ -182,7 +181,7 @@ private:
   size_t d_maxCachedStacks{0};
   int d_tid{0};
   int d_maxtid{0};
-
+  bool d_used{false}; // was d_eventkey consumed?
   enum waitstatusenum : int8_t
   {
     Error = -1,
@@ -305,7 +304,9 @@ int MTasker<EventKey, EventVal, Cmp>::waitEvent(EventKey& key, EventVal* val, un
   if ((char*)&waiter < d_threads[d_tid].highestStackSeen) {
     d_threads[d_tid].highestStackSeen = (char*)&waiter;
   }
+  assert(!d_used);
   key = std::move(d_eventkey);
+  d_used = true;
   return d_waitstatus;
 }
 
@@ -343,7 +344,8 @@ int MTasker<EventKey, EventVal, Cmp>::sendEvent(const EventKey& key, const Event
     d_waitval = *val;
   }
   d_tid = waiter->tid; // set tid
-  d_eventkey = waiter->key; // pass waitEvent the exact key it was woken for
+  d_eventkey = std::move(waiter->key); // pass waitEvent the exact key it was woken for
+  d_used = false;
   auto userspace = std::move(waiter->context);
   d_waiters.erase(waiter); // removes the waitpoint
   notifyStackSwitch(d_threads[d_tid].startOfStack, d_stacksize);
@@ -464,7 +466,8 @@ bool MTasker<Key, Val, Cmp>::schedule(const struct timeval& now)
     for (typename waiters_by_ttd_index_t::iterator i = ttdindex.begin(); i != ttdindex.end();) {
       if (i->ttd.tv_sec && i->ttd < now) {
         d_waitstatus = TimeOut;
-        d_eventkey = i->key; // pass waitEvent the exact key it was woken for
+        d_eventkey = std::move(i->key); // pass waitEvent the exact key it was woken for
+        d_used = false;
         auto ucontext = i->context;
         d_tid = i->tid;
         ttdindex.erase(i++); // removes the waitpoint
