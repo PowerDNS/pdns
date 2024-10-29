@@ -186,7 +186,7 @@ private:
   {
     Error = -1,
     TimeOut = 0,
-    Answer
+    Answer = 1,
   } d_waitstatus;
 
   std::shared_ptr<pdns_ucontext_t> getUContext();
@@ -301,8 +301,9 @@ int MTasker<EventKey, EventVal, Cmp>::waitEvent(EventKey& key, EventVal* val, un
     *val = std::move(d_waitval);
   }
   d_tid = waiter.tid;
-  if ((char*)&waiter < d_threads[d_tid].highestStackSeen) {
-    d_threads[d_tid].highestStackSeen = (char*)&waiter;
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+  if (auto* waiterAddress = reinterpret_cast<char*>(&waiter); waiterAddress < d_threads[d_tid].highestStackSeen) {
+    d_threads[d_tid].highestStackSeen = waiterAddress;
   }
   assert(!d_used);
   key = std::move(d_eventkey);
@@ -333,10 +334,9 @@ void MTasker<Key, Val, Cmp>::yield()
 template <class EventKey, class EventVal, class Cmp>
 int MTasker<EventKey, EventVal, Cmp>::sendEvent(const EventKey& key, const EventVal* val)
 {
-  typename waiters_t::iterator waiter = d_waiters.find(key);
+  auto waiter = d_waiters.find(key);
 
   if (waiter == d_waiters.end()) {
-    // cerr<<"Event sent nobody was waiting for! " <<key << endl;
     return 0;
   }
   d_waitstatus = Answer;
@@ -459,11 +459,9 @@ bool MTasker<Key, Val, Cmp>::schedule(const struct timeval& now)
     return true;
   }
   if (!d_waiters.empty()) {
-    typedef typename waiters_t::template index<KeyTag>::type waiters_by_ttd_index_t;
-    //    waiters_by_ttd_index_t& ttdindex=d_waiters.template get<KeyTag>();
-    waiters_by_ttd_index_t& ttdindex = boost::multi_index::get<KeyTag>(d_waiters);
+    auto& ttdindex = boost::multi_index::get<KeyTag>(d_waiters);
 
-    for (typename waiters_by_ttd_index_t::iterator i = ttdindex.begin(); i != ttdindex.end();) {
+    for (auto i = ttdindex.begin(); i != ttdindex.end();) {
       if (i->ttd.tv_sec && i->ttd < now) {
         d_waitstatus = TimeOut;
         d_eventkey = std::move(i->key); // pass waitEvent the exact key it was woken for
