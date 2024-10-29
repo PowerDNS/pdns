@@ -181,7 +181,7 @@ private:
   size_t d_maxCachedStacks{0};
   int d_tid{0};
   int d_maxtid{0};
-  bool d_used{false}; // was d_eventkey consumed?
+  bool d_used{true}; // was d_eventkey consumed?
   enum waitstatusenum : int8_t
   {
     Error = -1,
