@@ -1168,12 +1168,14 @@ static void loggerBackend(const Logging::Entry& entry)
   g_log << urg << buf.str() << endl;
 }
 
-static int ratePercentage(uint64_t nom, uint64_t denom)
+static std::string rate(uint64_t nom, uint64_t denom, double perc = 100.0)
 {
   if (denom == 0) {
-    return 0;
+    return "0";
   }
-  return static_cast<int>(round(100.0 * static_cast<double>(nom) / static_cast<double>(denom)));
+  std::ostringstream str;
+  str << std::setprecision(2) << std::fixed << perc * static_cast<double>(nom) / static_cast<double>(denom);
+  return str.str();
 }
 
 static void doStats()
@@ -1181,106 +1183,83 @@ static void doStats()
   static time_t lastOutputTime;
   static uint64_t lastQueryCount;
 
-  uint64_t cacheHits = g_recCache->getCacheHits();
-  uint64_t cacheMisses = g_recCache->getCacheMisses();
-  uint64_t cacheSize = g_recCache->size();
+  auto cacheHits = g_recCache->getCacheHits();
+  auto cacheMisses = g_recCache->getCacheMisses();
+  auto cacheSize = g_recCache->size();
   auto rc_stats = g_recCache->stats();
   auto pc_stats = g_packetCache ? g_packetCache->stats() : std::pair<uint64_t, uint64_t>{0, 0};
-  double rrc = ratePercentage(rc_stats.first, rc_stats.second);
-  double rpc = ratePercentage(pc_stats.first, pc_stats.second);
-  uint64_t negCacheSize = g_negCache->size();
+  auto rrc = rate(rc_stats.first, rc_stats.second);
+  auto rpc = rate(pc_stats.first, pc_stats.second);
+  auto negCacheSize = g_negCache->size();
   auto taskPushes = getTaskPushes();
   auto taskExpired = getTaskExpired();
   auto taskSize = getTaskSize();
-  uint64_t pcSize = g_packetCache ? g_packetCache->size() : 0;
-  uint64_t pcHits = g_packetCache ? g_packetCache->getHits() : 0;
-
-  auto log = g_slog->withName("stats");
+  auto pcSize = g_packetCache ? g_packetCache->size() : 0;
+  auto pcHits = g_packetCache ? g_packetCache->getHits() : 0;
+  auto pcMisses = g_packetCache ? g_packetCache->getMisses() : 0;
 
   auto qcounter = g_Counters.sum(rec::Counter::qcounter);
-  auto syncresqueries = g_Counters.sum(rec::Counter::syncresqueries);
   auto outqueries = g_Counters.sum(rec::Counter::outqueries);
   auto throttledqueries = g_Counters.sum(rec::Counter::throttledqueries);
   auto tcpoutqueries = g_Counters.sum(rec::Counter::tcpoutqueries);
   auto dotoutqueries = g_Counters.sum(rec::Counter::dotoutqueries);
   auto outgoingtimeouts = g_Counters.sum(rec::Counter::outgoingtimeouts);
-  if (qcounter > 0 && (cacheHits + cacheMisses) > 0 && syncresqueries > 0 && outqueries > 0) {
-    if (!g_slogStructured) {
-      g_log << Logger::Notice << "stats: " << qcounter << " questions, " << cacheSize << " cache entries, " << negCacheSize << " negative entries, " << ratePercentage(cacheHits, cacheHits + cacheMisses) << "% cache hits" << endl;
-      g_log << Logger::Notice << "stats: record cache contended/acquired " << rc_stats.first << '/' << rc_stats.second << " = " << rrc << '%' << endl;
-      g_log << Logger::Notice << "stats: packet cache contended/acquired " << pc_stats.first << '/' << pc_stats.second << " = " << rpc << '%' << endl;
 
-      g_log << Logger::Notice << "stats: throttle map: "
-            << SyncRes::getThrottledServersSize() << ", ns speeds: "
-            << SyncRes::getNSSpeedsSize() << ", failed ns: "
-            << SyncRes::getFailedServersSize() << ", ednsmap: "
-            << SyncRes::getEDNSStatusesSize() << ", non-resolving: "
-            << SyncRes::getNonResolvingNSSize() << ", saved-parentsets: "
-            << SyncRes::getSaveParentsNSSetsSize()
-            << endl;
-      g_log << Logger::Notice << "stats: outpacket/query ratio " << ratePercentage(outqueries, syncresqueries) << "%";
-      g_log << Logger::Notice << ", " << ratePercentage(throttledqueries, outqueries + throttledqueries) << "% throttled" << endl;
-      g_log << Logger::Notice << "stats: " << tcpoutqueries << "/" << dotoutqueries << "/" << getCurrentIdleTCPConnections() << " outgoing tcp/dot/idle connections, " << broadcastAccFunction<uint64_t>(pleaseGetConcurrentQueries) << " queries running, " << outgoingtimeouts << " outgoing timeouts " << endl;
+  auto log = g_slog->withName("stats");
 
-      g_log << Logger::Notice << "stats: " << pcSize << " packet cache entries, " << ratePercentage(pcHits, qcounter) << "% packet cache hits" << endl;
+  if (qcounter > 0) {
+    const string report = "Periodic statistics report";
+    log->info(Logr::Info, report,
+              "questions", Logging::Loggable(qcounter),
+              "cache-entries", Logging::Loggable(cacheSize),
+              "negcache-entries", Logging::Loggable(negCacheSize),
+              "record-cache-hitratio-perc", Logging::Loggable(rate(cacheHits, cacheHits + cacheMisses)),
+              "record-cache-contended", Logging::Loggable(rc_stats.first),
+              "record-cache-acquired", Logging::Loggable(rc_stats.second),
+              "record-cache-contended-perc", Logging::Loggable(rrc));
+    log->info(Logr::Info, report,
+              "packetcache-contended", Logging::Loggable(pc_stats.first),
+              "packetcache-acquired", Logging::Loggable(pc_stats.second),
+              "packetcache-contended-perc", Logging::Loggable(rpc),
+              "packetcache-entries", Logging::Loggable(pcSize),
+              "packetcache-hitratio-perc", Logging::Loggable(rate(pcHits, pcHits + pcMisses)));
+    log->info(Logr::Info, report,
+              "throttle-entries", Logging::Loggable(SyncRes::getThrottledServersSize()),
+              "nsspeed-entries", Logging::Loggable(SyncRes::getNSSpeedsSize()),
+              "failed-host-entries", Logging::Loggable(SyncRes::getFailedServersSize()),
+              "edns-entries", Logging::Loggable(SyncRes::getEDNSStatusesSize()),
+              "non-resolving-nameserver-entries", Logging::Loggable(SyncRes::getNonResolvingNSSize()),
+              "saved-parent-ns-sets-entries", Logging::Loggable(SyncRes::getSaveParentsNSSetsSize()),
+              "outqueries-per-query", Logging::Loggable(rate(outqueries, qcounter, 1.0)));
+    log->info(Logr::Info, report,
+              "throttled-queries-perc", Logging::Loggable(rate(throttledqueries, outqueries + throttledqueries)),
+              "tcp-outqueries", Logging::Loggable(tcpoutqueries),
+              "dot-outqueries", Logging::Loggable(dotoutqueries),
+              "idle-tcpout-connections", Logging::Loggable(getCurrentIdleTCPConnections()),
+              "concurrent-queries", Logging::Loggable(broadcastAccFunction<uint64_t>(pleaseGetConcurrentQueries)),
+              "outgoing-timeouts", Logging::Loggable(outgoingtimeouts));
+    log->info(Logr::Info, report,
+              "taskqueue-pushed", Logging::Loggable(taskPushes),
+              "taskqueue-expired", Logging::Loggable(taskExpired),
+              "taskqueue-size", Logging::Loggable(taskSize));
 
-      g_log << Logger::Notice << "stats: tasks pushed/expired/queuesize: " << taskPushes << '/' << taskExpired << '/' << taskSize << endl;
-    }
-    else {
-      const string report = "Periodic statistics report";
-      log->info(Logr::Info, report,
-                "questions", Logging::Loggable(qcounter),
-                "cache-entries", Logging::Loggable(cacheSize),
-                "negcache-entries", Logging::Loggable(negCacheSize),
-                "record-cache-hitratio-perc", Logging::Loggable(ratePercentage(cacheHits, cacheHits + cacheMisses)),
-                "record-cache-contended", Logging::Loggable(rc_stats.first),
-                "record-cache-acquired", Logging::Loggable(rc_stats.second),
-                "record-cache-contended-perc", Logging::Loggable(rrc),
-                "packetcache-contended", Logging::Loggable(pc_stats.first),
-                "packetcache-acquired", Logging::Loggable(pc_stats.second),
-                "packetcache-contended-perc", Logging::Loggable(rpc));
-      log->info(Logr::Info, report,
-                "throttle-entries", Logging::Loggable(SyncRes::getThrottledServersSize()),
-                "nsspeed-entries", Logging::Loggable(SyncRes::getNSSpeedsSize()),
-                "failed-host-entries", Logging::Loggable(SyncRes::getFailedServersSize()),
-                "edns-entries", Logging::Loggable(SyncRes::getEDNSStatusesSize()),
-                "non-resolving-nameserver-entries", Logging::Loggable(SyncRes::getNonResolvingNSSize()),
-                "saved-parent-ns-sets-entries", Logging::Loggable(SyncRes::getSaveParentsNSSetsSize()),
-                "outqueries-per-query", Logging::Loggable(ratePercentage(outqueries, syncresqueries)));
-      log->info(Logr::Info, report,
-                "throttled-queries-perc", Logging::Loggable(ratePercentage(throttledqueries, outqueries + throttledqueries)),
-                "tcp-outqueries", Logging::Loggable(tcpoutqueries),
-                "dot-outqueries", Logging::Loggable(dotoutqueries),
-                "idle-tcpout-connections", Logging::Loggable(getCurrentIdleTCPConnections()),
-                "concurrent-queries", Logging::Loggable(broadcastAccFunction<uint64_t>(pleaseGetConcurrentQueries)),
-                "outgoing-timeouts", Logging::Loggable(outgoingtimeouts));
-      log->info(Logr::Info, report,
-                "packetcache-entries", Logging::Loggable(pcSize),
-                "packetcache-hitratio-perc", Logging::Loggable(ratePercentage(pcHits, qcounter)),
-                "taskqueue-pushed", Logging::Loggable(taskPushes),
-                "taskqueue-expired", Logging::Loggable(taskExpired),
-                "taskqueue-size", Logging::Loggable(taskSize));
-    }
     size_t idx = 0;
     for (const auto& threadInfo : RecThreadInfo::infos()) {
       if (threadInfo.isWorker()) {
-        SLOG(g_log << Logger::Notice << "stats: thread " << idx << " has been distributed " << threadInfo.getNumberOfDistributedQueries() << " queries" << endl,
-             log->info(Logr::Info, "Queries handled by thread", "thread", Logging::Loggable(idx), "tname", Logging::Loggable(threadInfo.getName()), "count", Logging::Loggable(threadInfo.getNumberOfDistributedQueries())));
+        log->info(Logr::Info, "Queries handled by thread", "thread", Logging::Loggable(idx), "tname", Logging::Loggable(threadInfo.getName()), "count", Logging::Loggable(threadInfo.getNumberOfDistributedQueries()));
         ++idx;
       }
     }
     time_t now = time(nullptr);
     if (lastOutputTime != 0 && lastQueryCount != 0 && now != lastOutputTime) {
-      SLOG(g_log << Logger::Notice << "stats: " << (qcounter - lastQueryCount) / (now - lastOutputTime) << " qps (average over " << (now - lastOutputTime) << " seconds)" << endl,
-           log->info(Logr::Info, "Periodic QPS report", "qps", Logging::Loggable((qcounter - lastQueryCount) / (now - lastOutputTime)),
-                     "averagedOver", Logging::Loggable(now - lastOutputTime)));
+      log->info(Logr::Info, "Periodic QPS report", "qps", Logging::Loggable((qcounter - lastQueryCount) / (now - lastOutputTime)),
+                "averagedOver", Logging::Loggable(now - lastOutputTime));
     }
     lastOutputTime = now;
     lastQueryCount = qcounter;
   }
   else if (statsWanted) {
-    SLOG(g_log << Logger::Notice << "stats: no stats yet!" << endl,
-         log->info(Logr::Notice, "No stats yet"));
+    log->info(Logr::Notice, "No stats yet");
   }
 
   statsWanted = false;
