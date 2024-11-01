@@ -22,6 +22,8 @@ If there are too many incoming TCP connections, new connections will be accepted
 Previously, excess connections would linger in the OS listen queue until timeout or until processing of incoming TCP connections resumed due to the number of connections being processed dropping below the limit.
 There is a new metric ``tcp-overflow`` that counts the connections closed immediately.
 
+The ``outqueries-per-query`` value reported in the log by the periodic statistics function is now reported as ``outqueries-per-query-perc` as it is a percentage.
+A value of 1 means that on average each 100 incoming queries lead to a single query to an authoritative server.
 
 5.0.6 to 5.1.0
 --------------
