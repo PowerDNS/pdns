@@ -2117,8 +2117,6 @@ bool checkForCacheHit(bool qnameParsed, unsigned int tag, const string& data,
       }
     }
 
-    t_Counters.at(rec::Counter::packetCacheHits)++;
-    t_Counters.at(rec::Counter::syncresqueries)++; // XXX
     if (response.length() >= sizeof(struct dnsheader)) {
       dnsheader_aligned dh_aligned(response.data());
       ageDNSPacket(response, age, dh_aligned);

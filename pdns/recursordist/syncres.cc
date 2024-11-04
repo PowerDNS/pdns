@@ -764,7 +764,6 @@ bool SyncRes::addAdditionals(QType qtype, vector<DNSRecord>& ret, unsigned int d
 int SyncRes::beginResolve(const DNSName& qname, const QType qtype, QClass qclass, vector<DNSRecord>& ret, unsigned int depth)
 {
   d_eventTrace.add(RecEventTrace::SyncRes);
-  t_Counters.at(rec::Counter::syncresqueries)++;
   d_wasVariable = false;
   d_wasOutOfBand = false;
   d_cutStates.clear();

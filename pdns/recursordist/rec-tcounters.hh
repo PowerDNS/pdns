@@ -37,7 +37,6 @@ namespace rec
 // Simple counters
 enum class Counter : uint8_t
 {
-  syncresqueries,
   outgoingtimeouts,
   outgoing4timeouts,
   outgoing6timeouts,
@@ -79,7 +78,6 @@ enum class Counter : uint8_t
   ednsPingMismatches,
   noPingOutQueries,
   noEdnsOutQueries,
-  packetCacheHits,
   noPacketError,
   ignoredCount,
   emptyQueriesCount,
