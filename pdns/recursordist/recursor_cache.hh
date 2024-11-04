@@ -21,12 +21,10 @@
  */
 #pragma once
 #include <string>
-#include <set>
 #include "dns.hh"
 #include "qtype.hh"
 #include "misc.hh"
 #include "dnsname.hh"
-#include <iostream>
 #include "dnsrecords.hh"
 #include <boost/utility.hpp>
 #include <boost/multi_index_container.hpp>
@@ -63,6 +61,9 @@ public:
   [[nodiscard]] size_t bytes();
   [[nodiscard]] pair<uint64_t, uint64_t> stats();
   [[nodiscard]] size_t ecsIndexSize();
+
+  size_t getRecordSets(size_t perShard, size_t maxSize, std::string& ret);
+  size_t putRecordSets(const std::string& pbuf);
 
   using OptTag = boost::optional<std::string>;
 
@@ -149,6 +150,13 @@ private:
     mutable bool d_submitted{false}; // whether this entry has been queued for refetch
     bool d_tooBig{false};
   };
+
+  bool replace(CacheEntry&& entry);
+  // Using templates to avoid exposing protozero types in this header file
+  template <typename T>
+  bool putRecordSet(T&);
+  template <typename T, typename U>
+  void getRecordSet(T&, U);
 
   /* The ECS Index (d_ecsIndex) keeps track of whether there is any ECS-specific
      entry for a given (qname,qtype) entry in the cache (d_map), and if so

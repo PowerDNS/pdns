@@ -1,18 +1,39 @@
-#ifdef HAVE_CONFIG_H
+/*
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+
 #include "config.h"
-#endif
 
 #include <cinttypes>
+#include <protozero/pbf_builder.hpp>
+#include <protozero/pbf_message.hpp>
 
 #include "recursor_cache.hh"
 #include "misc.hh"
-#include <iostream>
 #include "dnsrecords.hh"
-#include "arguments.hh"
 #include "syncres.hh"
 #include "namespaces.hh"
 #include "cachecleaner.hh"
 #include "rec-taskqueue.hh"
+#include "version.hh"
 
 /*
  * SERVE-STALE: the general approach
@@ -546,6 +567,24 @@ bool MemRecursorCache::CacheEntry::shouldReplace(time_t now, bool auth, vState s
   return true;
 }
 
+bool MemRecursorCache::replace(CacheEntry&& entry)
+{
+  if (!entry.d_netmask.empty() || entry.d_rtag) {
+    // We don't handle that yet
+    return false;
+  }
+  auto& shard = getMap(entry.d_qname);
+  auto lockedShard = shard.lock();
+
+  lockedShard->d_cachecachevalid = false;
+  entry.d_submitted = false;
+  if (lockedShard->d_map.emplace(std::move(entry)).second) {
+    shard.incEntriesCount();
+    return true;
+  }
+  return false;
+}
+
 void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qtype, const vector<DNSRecord>& content, const vector<shared_ptr<const RRSIGRecordContent>>& signatures, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs, bool auth, const DNSName& authZone, boost::optional<Netmask> ednsmask, const OptTag& routingTag, vState state, boost::optional<ComboAddress> from, bool refresh, time_t ttl_time)
 {
   auto& shard = getMap(qname);
@@ -854,6 +893,378 @@ void MemRecursorCache::doPrune(time_t now, size_t keep)
 {
   size_t cacheSize = size();
   pruneMutexCollectionsVector<SequencedTag>(now, d_maps, keep, cacheSize);
+}
+
+enum class PBCacheDump : protozero::pbf_tag_type
+{
+  required_string_version = 1,
+  required_string_identity = 2,
+  required_uint64_protocolVersion = 3,
+  required_int64_time = 4,
+  required_string_type = 5,
+  repeated_message_cacheEntry = 6,
+};
+
+enum class PBCacheEntry : protozero::pbf_tag_type
+{
+  repeated_bytes_record = 1,
+  repeated_bytes_sig = 2,
+  repeated_message_authRecord = 3,
+  required_bytes_name = 4,
+  required_bytes_authZone = 5,
+  required_message_from = 6,
+  optional_bytes_netmask = 7,
+  optional_bytes_rtag = 8,
+  required_uint32_state = 9,
+  required_int64_ttd = 10,
+  required_uint32_orig_ttl = 11,
+  required_uint32_servedStale = 12,
+  required_uint32_qtype = 13,
+  required_bool_auth = 14,
+  required_bool_submitted = 15,
+  required_bool_tooBig = 16,
+};
+
+enum class PBComboAddress : protozero::pbf_tag_type
+{
+  required_uint32_port = 1,
+  required_bytes_address = 2, // family implicit
+};
+
+enum class PBAuthRecord : protozero::pbf_tag_type
+{
+  required_bytes_name = 1,
+  required_bytes_rdata = 2,
+  required_uint32_type = 3,
+  required_uint32_class = 4,
+  required_uint32_ttl = 5,
+  required_uint32_place = 6,
+  required_uint32_clen = 7,
+};
+
+template <typename T>
+static void encodeComboAddress(protozero::pbf_builder<T>& writer, T type, const ComboAddress& address)
+{
+  protozero::pbf_builder<PBComboAddress> message(writer, type);
+
+  // Skip all parts except address and port
+  message.add_uint32(PBComboAddress::required_uint32_port, address.getPort());
+  if (address.sin4.sin_family == AF_INET) {
+    message.add_bytes(PBComboAddress::required_bytes_address, reinterpret_cast<const char*>(&address.sin4.sin_addr.s_addr), sizeof(address.sin4.sin_addr.s_addr)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast): it's the API
+  }
+  else if (address.sin4.sin_family == AF_INET6) {
+    message.add_bytes(PBComboAddress::required_bytes_address, reinterpret_cast<const char*>(&address.sin6.sin6_addr.s6_addr), sizeof(address.sin6.sin6_addr)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast): it's the API
+  }
+}
+
+template <typename T>
+static void decodeComboAddress(protozero::pbf_message<T>& reader, ComboAddress& address)
+{
+  address.reset();
+  protozero::pbf_message<PBComboAddress> message(reader.get_message());
+
+  // Skip all parts except address and port
+  if (message.next(PBComboAddress::required_uint32_port)) {
+    address.setPort(message.get_uint32());
+  }
+  else {
+    throw std::runtime_error("expected port in protobuf data");
+  }
+  constexpr auto inet4size = sizeof(address.sin4.sin_addr);
+  constexpr auto inet6size = sizeof(address.sin6.sin6_addr);
+  if (message.next(PBComboAddress::required_bytes_address)) {
+    auto data = message.get_bytes();
+    address.sin4.sin_family = data.size() == inet4size ? AF_INET : AF_INET6;
+    if (data.size() == inet4size) {
+      address.sin4.sin_family = AF_INET;
+      memcpy(&address.sin4.sin_addr, data.data(), data.size());
+    }
+    else if (data.size() == inet6size) {
+      address.sin6.sin6_family = AF_INET6;
+      memcpy(&address.sin6.sin6_addr, data.data(), data.size());
+    }
+    else {
+      throw std::runtime_error("unexpected address family in protobuf data");
+    }
+  }
+  else {
+    throw std::runtime_error("expected address bytes in protobuf data");
+  }
+}
+
+template <typename T>
+static void encodeNetmask(protozero::pbf_builder<T>& writer, T type, const Netmask& subnet)
+{
+  if (!subnet.empty()) {
+    writer.add_bytes(type, reinterpret_cast<const char*>(&subnet), sizeof(Netmask)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast): it's the API
+  }
+}
+
+template <typename T>
+static void decodeNetmask(protozero::pbf_message<T>& message, Netmask& subnet)
+{
+  auto data = message.get_bytes();
+  memcpy(&subnet, data.data(), data.size());
+}
+
+template <typename T, typename U>
+void MemRecursorCache::getRecordSet(T& message, U recordSet)
+{
+  // Two fields below must come before the other fields
+  message.add_bytes(PBCacheEntry::required_bytes_name, recordSet->d_qname.toString());
+  message.add_uint32(PBCacheEntry::required_uint32_qtype, recordSet->d_qtype);
+  for (const auto& record : recordSet->d_records) {
+    message.add_bytes(PBCacheEntry::repeated_bytes_record, record->serialize(recordSet->d_qname, true));
+  }
+  for (const auto& record : recordSet->d_signatures) {
+    message.add_bytes(PBCacheEntry::repeated_bytes_sig, record->serialize(recordSet->d_qname, true));
+  }
+  for (const auto& authRec : recordSet->d_authorityRecs) {
+    protozero::pbf_builder<PBAuthRecord> auth(message, PBCacheEntry::repeated_message_authRecord);
+    auth.add_bytes(PBAuthRecord::required_bytes_name, authRec->d_name.toString());
+    auth.add_bytes(PBAuthRecord::required_bytes_rdata, authRec->getContent()->serialize(authRec->d_name, true));
+    auth.add_uint32(PBAuthRecord::required_uint32_type, authRec->d_type);
+    auth.add_uint32(PBAuthRecord::required_uint32_class, authRec->d_class);
+    auth.add_uint32(PBAuthRecord::required_uint32_ttl, authRec->d_ttl);
+    auth.add_uint32(PBAuthRecord::required_uint32_place, authRec->d_place);
+    auth.add_uint32(PBAuthRecord::required_uint32_clen, authRec->d_clen);
+  }
+  message.add_bytes(PBCacheEntry::required_bytes_authZone, recordSet->d_authZone.toString());
+  encodeComboAddress(message, PBCacheEntry::required_message_from, recordSet->d_from);
+  encodeNetmask(message, PBCacheEntry::optional_bytes_netmask, recordSet->d_netmask);
+  if (recordSet->d_rtag) {
+    message.add_bytes(PBCacheEntry::optional_bytes_rtag, *recordSet->d_rtag);
+  }
+  message.add_uint32(PBCacheEntry::required_uint32_state, static_cast<uint32_t>(recordSet->d_state));
+  message.add_int64(PBCacheEntry::required_int64_ttd, recordSet->d_ttd);
+  message.add_uint32(PBCacheEntry::required_uint32_orig_ttl, recordSet->d_orig_ttl);
+  message.add_uint32(PBCacheEntry::required_uint32_servedStale, recordSet->d_servedStale);
+  message.add_bool(PBCacheEntry::required_bool_auth, recordSet->d_auth);
+  message.add_bool(PBCacheEntry::required_bool_submitted, recordSet->d_submitted);
+  message.add_bool(PBCacheEntry::required_bool_tooBig, recordSet->d_tooBig);
+}
+
+size_t MemRecursorCache::getRecordSets(size_t perShard, size_t maxSize, std::string& ret)
+{
+  auto log = g_slog->withName("recordcache")->withValues("perShard", Logging::Loggable(perShard), "maxSize", Logging::Loggable(maxSize));
+  log->info(Logr::Info, "Producing cache dump");
+
+  // A size estimate is hard: size() returns the number of record *sets*. Each record set can have
+  // multiple records, plus other associated records like signatures. 150 seems to works ok.
+  size_t estimate = maxSize == 0 ? size() * 150 : maxSize + 4096; // We may overshoot (will be rolled back)
+
+  if (perShard == 0) {
+    perShard = std::numeric_limits<size_t>::max();
+  }
+  if (maxSize == 0) {
+    maxSize = std::numeric_limits<size_t>::max();
+  }
+  protozero::pbf_builder<PBCacheDump> full(ret);
+  full.add_string(PBCacheDump::required_string_version, getPDNSVersion());
+  full.add_string(PBCacheDump::required_string_identity, SyncRes::s_serverID);
+  full.add_uint64(PBCacheDump::required_uint64_protocolVersion, 1);
+  full.add_int64(PBCacheDump::required_int64_time, time(nullptr));
+  full.add_string(PBCacheDump::required_string_type, "PBCacheDump");
+
+  size_t count = 0;
+  ret.reserve(estimate);
+
+  for (auto& shard : d_maps) {
+    auto lockedShard = shard.lock();
+    const auto& sidx = lockedShard->d_map.get<SequencedTag>();
+    size_t thisShardCount = 0;
+    for (auto recordSet = sidx.rbegin(); recordSet != sidx.rend(); ++recordSet) {
+      protozero::pbf_builder<PBCacheEntry> message(full, PBCacheDump::repeated_message_cacheEntry);
+      getRecordSet(message, recordSet);
+      if (ret.size() > maxSize) {
+        message.rollback();
+        log->info(Logr::Info, "Produced cache dump (max size reached)", "size", Logging::Loggable(ret.size()), "count", Logging::Loggable(count));
+        return count;
+      }
+      ++count;
+      ++thisShardCount;
+      if (thisShardCount >= perShard) {
+        break;
+      }
+    }
+  }
+  log->info(Logr::Info, "Produced cache dump", "size", Logging::Loggable(ret.size()), "count", Logging::Loggable(count));
+  return count;
+}
+
+static void putAuthRecord(protozero::pbf_message<PBCacheEntry>& message, const DNSName& qname, std::vector<std::shared_ptr<DNSRecord>>& authRecs)
+{
+  protozero::pbf_message<PBAuthRecord> auth = message.get_message();
+  DNSRecord authRecord;
+  while (auth.next()) {
+    switch (auth.tag()) {
+    case PBAuthRecord::required_bytes_name:
+      authRecord.d_name = DNSName(auth.get_bytes());
+      break;
+    case PBAuthRecord::required_bytes_rdata: {
+      auto ptr = DNSRecordContent::deserialize(qname, authRecord.d_type, auth.get_bytes());
+      authRecord.setContent(ptr);
+      break;
+    }
+    case PBAuthRecord::required_uint32_class:
+      authRecord.d_class = auth.get_uint32();
+      break;
+    case PBAuthRecord::required_uint32_type:
+      authRecord.d_type = auth.get_uint32();
+      break;
+    case PBAuthRecord::required_uint32_ttl:
+      authRecord.d_ttl = auth.get_uint32();
+      break;
+    case PBAuthRecord::required_uint32_place:
+      authRecord.d_place = static_cast<DNSResourceRecord::Place>(auth.get_uint32());
+      break;
+    case PBAuthRecord::required_uint32_clen:
+      authRecord.d_clen = auth.get_uint32();
+      break;
+    default:
+      break;
+    }
+  }
+  authRecs.emplace_back(std::make_shared<DNSRecord>(authRecord));
+}
+
+template <typename T>
+bool MemRecursorCache::putRecordSet(T& message)
+{
+  CacheEntry cacheEntry{{g_rootdnsname, QType::A, boost::none, Netmask()}, false};
+  while (message.next()) {
+    switch (message.tag()) {
+    case PBCacheEntry::repeated_bytes_record: {
+      auto ptr = DNSRecordContent::deserialize(cacheEntry.d_qname, cacheEntry.d_qtype, message.get_bytes());
+      cacheEntry.d_records.emplace_back(ptr);
+      break;
+    }
+    case PBCacheEntry::repeated_bytes_sig: {
+      auto ptr = DNSRecordContent::deserialize(cacheEntry.d_qname, QType::RRSIG, message.get_bytes());
+      cacheEntry.d_signatures.emplace_back(std::dynamic_pointer_cast<RRSIGRecordContent>(ptr));
+      break;
+    }
+    case PBCacheEntry::repeated_message_authRecord:
+      putAuthRecord(message, cacheEntry.d_qname, cacheEntry.d_authorityRecs);
+      break;
+    case PBCacheEntry::required_bytes_name:
+      cacheEntry.d_qname = DNSName(message.get_bytes());
+      break;
+    case PBCacheEntry::required_bytes_authZone:
+      cacheEntry.d_authZone = DNSName(message.get_bytes());
+      break;
+    case PBCacheEntry::required_message_from:
+      decodeComboAddress(message, cacheEntry.d_from);
+      break;
+    case PBCacheEntry::optional_bytes_netmask:
+      decodeNetmask(message, cacheEntry.d_netmask);
+      break;
+    case PBCacheEntry::optional_bytes_rtag:
+      cacheEntry.d_rtag = message.get_bytes();
+      break;
+    case PBCacheEntry::required_uint32_state:
+      cacheEntry.d_state = static_cast<vState>(message.get_uint32());
+      break;
+    case PBCacheEntry::required_int64_ttd:
+      cacheEntry.d_ttd = message.get_int64();
+      break;
+    case PBCacheEntry::required_uint32_orig_ttl:
+      cacheEntry.d_orig_ttl = message.get_uint32();
+      break;
+    case PBCacheEntry::required_uint32_servedStale:
+      cacheEntry.d_servedStale = message.get_uint32();
+      break;
+    case PBCacheEntry::required_uint32_qtype:
+      cacheEntry.d_qtype = message.get_uint32();
+      break;
+    case PBCacheEntry::required_bool_auth:
+      cacheEntry.d_auth = message.get_bool();
+      break;
+    case PBCacheEntry::required_bool_submitted:
+      cacheEntry.d_submitted = message.get_bool();
+      cacheEntry.d_submitted = false; // actually not
+      break;
+    case PBCacheEntry::required_bool_tooBig:
+      cacheEntry.d_tooBig = message.get_bool();
+      break;
+    default:
+      break;
+    }
+  }
+  return replace(std::move(cacheEntry));
+}
+
+size_t MemRecursorCache::putRecordSets(const std::string& pbuf)
+{
+  auto log = g_slog->withName("recordcache")->withValues("size", Logging::Loggable(pbuf.size()));
+  log->info(Logr::Debug, "Processing cache dump");
+
+  protozero::pbf_message<PBCacheDump> full(pbuf);
+  size_t count = 0;
+  size_t inserted = 0;
+  try {
+    bool protocolVersionSeen = false;
+    bool typeSeen = false;
+    while (full.next()) {
+      switch (full.tag()) {
+      case PBCacheDump::required_string_version: {
+        auto version = full.get_string();
+        log = log->withValues("version", Logging::Loggable(version));
+        break;
+      }
+      case PBCacheDump::required_string_identity: {
+        auto identity = full.get_string();
+        log = log->withValues("identity", Logging::Loggable(identity));
+        break;
+      }
+      case PBCacheDump::required_uint64_protocolVersion: {
+        auto protocolVersion = full.get_uint64();
+        log = log->withValues("protocolVersion", Logging::Loggable(protocolVersion));
+        if (protocolVersion != 1) {
+          throw std::runtime_error("Protocol version mismatch");
+        }
+        protocolVersionSeen = true;
+        break;
+      }
+      case PBCacheDump::required_int64_time: {
+        auto time = full.get_int64();
+        log = log->withValues("time", Logging::Loggable(time));
+        break;
+      }
+      case PBCacheDump::required_string_type: {
+        auto type = full.get_string();
+        if (type != "PBCacheDump") {
+          throw std::runtime_error("Data type mismatch");
+        }
+        typeSeen = true;
+        break;
+      }
+      case PBCacheDump::repeated_message_cacheEntry: {
+        if (!protocolVersionSeen || !typeSeen) {
+          throw std::runtime_error("Required field missing");
+        }
+        protozero::pbf_message<PBCacheEntry> message = full.get_message();
+        if (putRecordSet(message)) {
+          ++inserted;
+        }
+        ++count;
+        break;
+      }
+      }
+    }
+    log->info(Logr::Info, "Processed cache dump", "processed", Logging::Loggable(count), "inserted", Logging::Loggable(inserted));
+    return inserted;
+  }
+  catch (const std::runtime_error& e) {
+    log->error(Logr::Error, e.what(), "Runtime exception processing cache dump");
+  }
+  catch (const std::exception& e) {
+    log->error(Logr::Error, e.what(), "Exception processing cache dump");
+  }
+  catch (...) {
+    log->error(Logr::Error, "Other exception processing cache dump");
+  }
+  return 0;
 }
 
 namespace boost

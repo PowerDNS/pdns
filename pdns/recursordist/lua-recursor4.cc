@@ -19,8 +19,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include <unordered_set>
+
 #include "lua-recursor4.hh"
-#include <fstream>
 #include "logger.hh"
 #include "logging.hh"
 #include "dnsparser.hh"
@@ -31,7 +32,6 @@
 #include "ednssubnet.hh"
 #include "filterpo.hh"
 #include "rec-snmp.hh"
-#include <unordered_set>
 #include "rec-main.hh"
 
 boost::optional<dnsheader> RecursorLua4::DNSQuestion::getDH() const
@@ -493,6 +493,29 @@ void RecursorLua4::postPrepareContext() // NOLINT(readability-function-cognitive
       (*event.discardedPolicies)[policy] = true;
     }
   });
+
+  d_lw->writeFunction("getRecordCacheRecords", [](size_t perShard, size_t maxSize) {
+    std::string ret;
+    auto number = g_recCache->getRecordSets(perShard, maxSize, ret);
+    return std::tuple<std::string, size_t>{ret, number};
+  });
+
+  d_lw->writeFunction("putIntoRecordCache", [](const string& data) {
+    return g_recCache->putRecordSets(data);
+  });
+
+  d_lw->writeFunction("spawnThread", [](const string& scriptName) {
+    auto log = g_slog->withName("lua")->withValues("script", Logging::Loggable(scriptName));
+    log->info(Logr::Info, "Starting Lua script in separate thread");
+    std::thread thread([=]() {
+      auto lua = std::make_shared<RecursorLua4>();
+      lua->loadFile(scriptName);
+      log->info(Logr::Notice, "Lua thread exiting");
+    });
+    thread.detach();
+  });
+
+
   if (!d_include_path.empty()) {
     includePath(d_include_path);
   }
@@ -525,6 +548,22 @@ void RecursorLua4::getFeatures(Features& features)
   // e.g. features.emplace_back("somekey", string("stringvalue");
   // Both int and double end up as a lua number type.
   features.emplace_back("PR8001_devicename", true);
+}
+
+void RecursorLua4::runStartStopFunction(const string& script, bool start, Logr::log_t log)
+{
+  const string func = start ? "on_recursor_start" : "on_recursor_stop";
+  auto mylog = log->withValues("script", Logging::Loggable(script), "function", Logging::Loggable(func));
+  loadFile(script);
+  auto call = d_lw->readVariable<boost::optional<std::function<void()>>>(func).get_value_or(nullptr);
+  if (call) {
+    mylog->info(Logr::Info, "Starting Lua function");
+    call();
+    mylog->info(Logr::Info, "Lua function done");
+  }
+  else {
+    mylog->info(Logr::Info, "No Lua function found");
+  }
 }
 
 static void warnDrop(const RecursorLua4::DNSQuestion& dnsQuestion)

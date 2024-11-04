@@ -3523,4 +3523,16 @@ Sequence of ProxyMapping
         'skip-old' : 'Equivalent Lua config in :doc:`lua-config/proxymapping`',
         'versionadded': '5.1.0',
     },
+    {
+        'name' : 'lua_start_stop_script',
+        'section' : 'recursor',
+        'type' : LType.String,
+        'default' : '',
+        'help' : 'Lua script containing functions to run on startup and shutdown',
+        'doc' : '''
+Load this Lua script on startup and shutdown and run the Lua function ``on_recursor_start`` on startup and the Lua function ``on_recursor_stop`` on a ``nice`` shutdown (using ``rec_control quit-nicely`` of the :program:`Recursor` process.
+        ''',
+        'skip-old' : 'No equivalent old-style setting',
+        'versionadded': '5.2.0',
+    },
 ]
