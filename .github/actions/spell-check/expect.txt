@@ -531,6 +531,7 @@ gpgsqlbackend
 gprof
 gpsqlbackend
 grepq
+grpcs
 GSQ
 gsql
 gsqlite
@@ -1009,7 +1010,6 @@ otherdomain
 otherpool
 ourname
 ourserial
-ourtime
 outpacket
 outputbuffer
 outqueries
