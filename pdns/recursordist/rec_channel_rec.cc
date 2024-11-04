@@ -1583,31 +1583,33 @@ static DNSName nopFilter(const DNSName& name)
   return name;
 }
 
-static string doGenericTopQueries(pleasequeryfunc_t func, std::function<DNSName(const DNSName&)> filter = nopFilter)
+static string doGenericTopQueries(const pleasequeryfunc_t& func, const std::function<DNSName(const DNSName&)>& filter = nopFilter)
 {
   typedef pair<DNSName, uint16_t> query_t;
   typedef map<query_t, int> counts_t;
   counts_t counts;
-  vector<query_t> queries = broadcastAccFunction<vector<query_t>>(func);
+  auto queries = broadcastAccFunction<vector<query_t>>(func);
 
   unsigned int total = 0;
-  for (const query_t& q : queries) {
+  for (const auto& query : queries) {
     total++;
-    counts[pair(filter(q.first), q.second)]++;
+    counts[pair(filter(query.first), query.second)]++;
   }
 
   typedef std::multimap<int, query_t> rcounts_t;
   rcounts_t rcounts;
 
-  for (auto&& c : counts)
-    rcounts.emplace(-c.second, c.first);
+  for (const auto& count : counts) {
+    rcounts.emplace(-count.second, count.first);
+  }
 
   ostringstream ret;
   ret << "Over last " << total << " entries:\n";
   boost::format fmt("%.02f%%\t%s\n");
-  int limit = 0, accounted = 0;
-  if (total) {
-    for (rcounts_t::const_iterator i = rcounts.begin(); i != rcounts.end() && limit < 20; ++i, ++limit) {
+  unsigned int limit = 0;
+  unsigned int accounted = 0;
+  if (total > 0) {
+    for (auto i = rcounts.begin(); i != rcounts.end() && limit < 20; ++i, ++limit) {
       ret << fmt % (-100.0 * i->first / total) % (i->second.first.toLogString() + "|" + DNSRecordContent::NumberToType(i->second.second));
       accounted += -i->first;
     }
