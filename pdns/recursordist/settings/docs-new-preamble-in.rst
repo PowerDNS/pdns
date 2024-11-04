@@ -517,7 +517,7 @@ An example of an ``forwarding_catalog_zones`` entry, which is a sequence of `For
      groups:
       - forwarders: [192.168.178.3] # only default forwarder for 2nd catalog zone
 
-:program:`Recursor` will transfer the catalog zone from te authoritative server using IXFR (falling back to AXFR if needed) and add forwarding clauses for all members of the catalog zone.
+:program:`Recursor` will transfer the catalog zone from the authoritative server using IXFR (falling back to AXFR if needed) and add forwarding clauses for all members of the catalog zone.
 The forwarding paremeters will be taken from the default group entry (the one without a name) defined in the YAML settings.
 For catalog zone members in a group, the forwarding parameters will be taken from the group entry with the correspoding name.
 
