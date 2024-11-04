@@ -1516,20 +1516,20 @@ vector<ComboAddress>* pleaseGetTimeouts()
 static string doGenericTopRemotes(const pleaseremotefunc_t& func)
 {
   std::map<ComboAddress, int, ComboAddress::addressOnlyLessThan> counts;
-
   auto remotes = broadcastAccFunction<vector<ComboAddress>>(func);
-
-  unsigned int total = 0;
+  if (remotes.empty()) {
+    return "No data available\n";
+  }
+  const unsigned int total = remotes.size();
   for (const auto& address : remotes) {
-    total++;
     counts[address]++;
   }
 
   std::multimap<int, ComboAddress> rcounts;
-
   for (auto& count : counts) {
     rcounts.emplace(-count.second, count.first);
   }
+
   ostringstream ret;
   ret << "Over last " << total << " entries:\n";
   boost::format fmt("%.02f%%\t%s\n");
