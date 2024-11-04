@@ -239,12 +239,15 @@ static void printReply(const string& reply, bool showflags, bool hidesoadetails,
       } else if (iter->first == EDNSOptionCode::ZONEVERSION) {
         EDNSZoneVersion zoneversion;
         if (getEDNSZoneVersionFromString(iter->second, zoneversion)) {
-          // FIXME check type==0
-          uint32_t version;
-          memcpy((void*) &version, (void*) zoneversion.version.data(), sizeof(version));
-          version = ntohl(version);
+          if (zoneversion.type == 0) { // FIXME enum
+            uint32_t serial;
+            memcpy((void*) &serial, (void*) zoneversion.version.data(), sizeof(serial));
+            serial = ntohl(serial);
 
-          cerr << "EDNS Zone Version for labelcount " << (int)zoneversion.labelcount << ": " << version << endl;
+            cerr << "EDNS Zone Version (SOA serial) for labelcount " << (int)zoneversion.labelcount << ": " << serial << endl;
+          } else {
+            cerr << "EDNS Zone Version (type " << (int)zoneversion.type << "): " << makeHexDump(zoneversion.version) << endl;
+          }
         }
       } else {
         cerr << "Have unknown option " << (int)iter.first << endl;
