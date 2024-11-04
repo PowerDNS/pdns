@@ -955,9 +955,6 @@ static void encodeComboAddress(protozero::pbf_builder<T>& writer, T type, const 
   else if (address.sin4.sin_family == AF_INET6) {
     message.add_bytes(PBComboAddress::required_bytes_address, reinterpret_cast<const char*>(&address.sin6.sin6_addr.s6_addr), sizeof(address.sin6.sin6_addr)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast): it's the API
   }
-  else {
-    assert(0);
-  }
 }
 
 template <typename T>
@@ -971,7 +968,7 @@ static void decodeComboAddress(protozero::pbf_message<T>& reader, ComboAddress& 
     address.setPort(message.get_uint32());
   }
   else {
-    assert(0);
+    throw std::runtime_error("expected port in protobuf data");
   }
   constexpr auto inet4size = sizeof(address.sin4.sin_addr);
   constexpr auto inet6size = sizeof(address.sin6.sin6_addr);
@@ -987,11 +984,11 @@ static void decodeComboAddress(protozero::pbf_message<T>& reader, ComboAddress& 
       memcpy(&address.sin6.sin6_addr, data.data(), data.size());
     }
     else {
-      assert(0);
+      throw std::runtime_error("unexpected address family in protobuf data");
     }
   }
   else {
-    assert(0);
+    throw std::runtime_error("expected address bytes in protobuf data");
   }
 }
 
@@ -1052,7 +1049,7 @@ size_t MemRecursorCache::getRecordSets(size_t perShard, size_t maxSize, std::str
   auto log = g_slog->withName("recordcache")->withValues("perShard", Logging::Loggable(perShard), "maxSize", Logging::Loggable(maxSize));
   log->info(Logr::Info, "Producing cache dump");
 
-  // A size estmate is hard: size() returns the number of record *sets*. Each record set can have
+  // A size estimate is hard: size() returns the number of record *sets*. Each record set can have
   // multiple records, plus other associated records like signatures. 150 seems to works ok.
   size_t estimate = maxSize == 0 ? size() * 150 : maxSize + 4096; // We may overshoot (will be rolled back)
 
@@ -1125,7 +1122,7 @@ static void putAuthRecord(protozero::pbf_message<PBCacheEntry>& message, const D
       authRecord.d_clen = auth.get_uint32();
       break;
     default:
-      assert(0);
+      break;
     }
   }
   authRecs.emplace_back(std::make_shared<DNSRecord>(authRecord));
@@ -1191,7 +1188,6 @@ bool MemRecursorCache::putRecordSet(T& message)
       cacheEntry.d_tooBig = message.get_bool();
       break;
     default:
-      assert(0);
       break;
     }
   }
@@ -1207,6 +1203,8 @@ size_t MemRecursorCache::putRecordSets(const std::string& pbuf)
   size_t count = 0;
   size_t inserted = 0;
   try {
+    bool protocolVersionSeen = false;
+    bool typeSeen = false;
     while (full.next()) {
       switch (full.tag()) {
       case PBCacheDump::required_string_version: {
@@ -1225,6 +1223,7 @@ size_t MemRecursorCache::putRecordSets(const std::string& pbuf)
         if (protocolVersion != 1) {
           throw std::runtime_error("Protocol version mismatch");
         }
+        protocolVersionSeen = true;
         break;
       }
       case PBCacheDump::required_int64_time: {
@@ -1237,9 +1236,13 @@ size_t MemRecursorCache::putRecordSets(const std::string& pbuf)
         if (type != "PBCacheDump") {
           throw std::runtime_error("Data type mismatch");
         }
+        typeSeen = true;
         break;
       }
       case PBCacheDump::repeated_message_cacheEntry: {
+        if (!protocolVersionSeen || !typeSeen) {
+          throw std::runtime_error("Required field missing");
+        }
         protozero::pbf_message<PBCacheEntry> message = full.get_message();
         if (putRecordSet(message)) {
           ++inserted;

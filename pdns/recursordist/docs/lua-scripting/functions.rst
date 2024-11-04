@@ -44,6 +44,7 @@ These are some functions that don't really have a place in one of the other cate
 
    Some record sets might be skipped, for example when they are already present in the record cache or contain specific information not supported yet by this function.
    If the :program:`Recursor` determines the version of the data is not compatible, it will skip loading and log an error.
+   In that case 0 is returned.
 
 .. function:: getRecordCacheRecords(perShard, maxSize) -> str, int
 
