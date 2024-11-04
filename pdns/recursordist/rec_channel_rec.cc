@@ -1515,19 +1515,20 @@ vector<ComboAddress>* pleaseGetTimeouts()
 
 static string doGenericTopRemotes(const pleaseremotefunc_t& func)
 {
-  std::map<ComboAddress, int, ComboAddress::addressOnlyLessThan> counts;
   auto remotes = broadcastAccFunction<vector<ComboAddress>>(func);
-  if (remotes.empty()) {
-    return "No data available\n";
-  }
   const unsigned int total = remotes.size();
+  if (total == 0) {
+    return "No qualifying data available\n";
+  }
+
+  std::map<ComboAddress, unsigned int, ComboAddress::addressOnlyLessThan> counts;
   for (const auto& address : remotes) {
     counts[address]++;
   }
 
-  std::multimap<int, ComboAddress> rcounts;
-  for (auto& count : counts) {
-    rcounts.emplace(-count.second, count.first);
+  std::multimap<unsigned int, ComboAddress> rcounts;
+  for (const auto& count : counts) {
+    rcounts.emplace(count.second, count.first);
   }
 
   ostringstream ret;
@@ -1535,14 +1536,12 @@ static string doGenericTopRemotes(const pleaseremotefunc_t& func)
   boost::format fmt("%.02f%%\t%s\n");
   unsigned int limit = 0;
   unsigned int accounted = 0;
-  if (total != 0) {
-    for (auto i = rcounts.begin(); i != rcounts.end() && limit < 20; ++i, ++limit) {
-      ret << fmt % (-100.0 * i->first / total) % i->second.toString();
-      accounted += -i->first;
-    }
-    ret << '\n'
-        << fmt % (100.0 * (total - accounted) / total) % "rest";
+  for (auto i = rcounts.rbegin(); i != rcounts.rend() && limit < 20; ++i, ++limit) {
+    ret << fmt % (100.0 * i->first / total) % i->second.toString();
+    accounted += i->first;
   }
+  ret << '\n'
+      << fmt % (100.0 * (total - accounted) / total) % "rest";
   return ret.str();
 }
 
@@ -1585,22 +1584,21 @@ static DNSName nopFilter(const DNSName& name)
 
 static string doGenericTopQueries(const pleasequeryfunc_t& func, const std::function<DNSName(const DNSName&)>& filter = nopFilter)
 {
-  typedef pair<DNSName, uint16_t> query_t;
-  typedef map<query_t, int> counts_t;
-  counts_t counts;
+  using query_t = pair<DNSName, uint16_t>;
   auto queries = broadcastAccFunction<vector<query_t>>(func);
+  const unsigned int total = queries.size();
+  if (total == 0) {
+    return "No qualifying data available\n";
+  }
 
-  unsigned int total = 0;
+  map<query_t, unsigned int> counts;
   for (const auto& query : queries) {
-    total++;
     counts[pair(filter(query.first), query.second)]++;
   }
 
-  typedef std::multimap<int, query_t> rcounts_t;
-  rcounts_t rcounts;
-
+  std::multimap<unsigned int, query_t> rcounts;
   for (const auto& count : counts) {
-    rcounts.emplace(-count.second, count.first);
+    rcounts.emplace(count.second, count.first);
   }
 
   ostringstream ret;
@@ -1608,14 +1606,12 @@ static string doGenericTopQueries(const pleasequeryfunc_t& func, const std::func
   boost::format fmt("%.02f%%\t%s\n");
   unsigned int limit = 0;
   unsigned int accounted = 0;
-  if (total > 0) {
-    for (auto i = rcounts.begin(); i != rcounts.end() && limit < 20; ++i, ++limit) {
-      ret << fmt % (-100.0 * i->first / total) % (i->second.first.toLogString() + "|" + DNSRecordContent::NumberToType(i->second.second));
-      accounted += -i->first;
-    }
-    ret << '\n'
-        << fmt % (100.0 * (total - accounted) / total) % "rest";
+  for (auto i = rcounts.rbegin(); i != rcounts.rend() && limit < 20; ++i, ++limit) {
+    ret << fmt % (100.0 * i->first / total) % (i->second.first.toLogString() + "|" + DNSRecordContent::NumberToType(i->second.second));
+    accounted += i->first;
   }
+  ret << '\n'
+      << fmt % (100.0 * (total - accounted) / total) % "rest";
 
   return ret.str();
 }
