@@ -239,6 +239,7 @@ static void printReply(const string& reply, bool showflags, bool hidesoadetails,
       } else if (iter->first == EDNSOptionCode::ZONEVERSION) {
         EDNSZoneVersion zoneversion;
         if (getEDNSZoneVersionFromString(iter->second, zoneversion)) {
+          // FIXME check type==0
           uint32_t version;
           memcpy((void*) &version, (void*) zoneversion.version.data(), sizeof(version));
           version = ntohl(version);
