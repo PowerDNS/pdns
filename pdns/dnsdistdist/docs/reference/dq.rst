@@ -266,7 +266,7 @@ This state can be modified from the various hooks.
         dq:setContent(raw)
         return DNSAction.Allow
       end
-      addAction(AndRule({QTypeRule(DNSQType.A), makeRule('custom.async.tests.powerdns.com')}), LuaAction(replaceQueryPayload))
+      addAction(AndRule({QTypeRule(DNSQType.A), QNameSuffixRule('custom.async.tests.powerdns.com')}), LuaAction(replaceQueryPayload))
 
     :param string data: The raw DNS payload
 

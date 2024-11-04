@@ -587,7 +587,7 @@ Convenience Functions
 .. function:: makeRule(rule)
 
   .. versionchanged:: 1.9.0
-    This function is deprecated, please use :func:`NetmaskGroupRule` or :func:`QnameSuffixRule` instead
+    This function is deprecated, please use :func:`NetmaskGroupRule` or :func:`QNameSuffixRule` instead
 
   Make a :func:`NetmaskGroupRule` or a :func:`SuffixMatchNodeRule`, depending on how it is called.
   The `rule` parameter can be a string, or a list of strings, that should contain either:

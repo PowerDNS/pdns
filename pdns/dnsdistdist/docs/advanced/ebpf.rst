@@ -43,7 +43,7 @@ The :meth:`BPFFilter:blockQName` method can be used to block queries based on th
 Using the 255 (ANY) qtype will block all queries for the qname, regardless of the qtype.
 Contrary to source address filtering, qname filtering only works over UDP. TCP qname filtering can be done the usual way::
 
-  addAction(AndRule({TCPRule(true), makeRule("evildomain.com")}), DropAction())
+  addAction(AndRule({TCPRule(true), QNameSuffixRule("evildomain.com")}), DropAction())
 
 The :meth:`BPFFilter:attachToAllBinds` method attaches the filter to every existing bind at runtime. It cannot use at configuration time. The :func:`setDefaultBPFFilter()` should be used at configuration time.
 
