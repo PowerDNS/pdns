@@ -344,7 +344,7 @@ int MTasker<EventKey, EventVal, Cmp>::sendEvent(const EventKey& key, const Event
     d_waitval = *val;
   }
   d_tid = waiter->tid; // set tid
-  d_eventkey = std::move(waiter->key); // pass waitEvent the exact key it was woken for
+  d_eventkey = waiter->key; // pass waitEvent the exact key it was woken for
   d_used = false;
   auto userspace = std::move(waiter->context);
   d_waiters.erase(waiter); // removes the waitpoint
@@ -464,7 +464,7 @@ bool MTasker<Key, Val, Cmp>::schedule(const struct timeval& now)
     for (auto i = ttdindex.begin(); i != ttdindex.end();) {
       if (i->ttd.tv_sec && i->ttd < now) {
         d_waitstatus = TimeOut;
-        d_eventkey = std::move(i->key); // pass waitEvent the exact key it was woken for
+        d_eventkey = i->key; // pass waitEvent the exact key it was woken for
         d_used = false;
         auto ucontext = i->context;
         d_tid = i->tid;
