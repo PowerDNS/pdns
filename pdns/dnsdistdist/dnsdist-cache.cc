@@ -484,7 +484,11 @@ uint64_t DNSDistPacketCache::getEntriesCount()
 
 uint64_t DNSDistPacketCache::dump(int fileDesc, bool rawResponse)
 {
-  auto filePtr = pdns::UniqueFilePtr(fdopen(dup(fileDesc), "w"));
+  auto fileDescDuplicated = dup(fileDesc);
+  if (fileDescDuplicated < 0) {
+    return 0;
+  }
+  auto filePtr = pdns::UniqueFilePtr(fdopen(fileDescDuplicated, "w"));
   if (filePtr == nullptr) {
     return 0;
   }
