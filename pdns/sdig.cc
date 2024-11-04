@@ -7,6 +7,7 @@
 #include "ednsoptions.hh"
 #include "ednssubnet.hh"
 #include "ednsextendederror.hh"
+#include "ednszoneversion.hh"
 #include "misc.hh"
 #include "proxy-protocol.hh"
 #include "sstuff.hh"
@@ -57,11 +58,12 @@ static std::unordered_set<uint16_t> s_expectedIDs;
 
 static void fillPacket(vector<uint8_t>& packet, const string& q, const string& t,
                        bool dnssec, const boost::optional<Netmask>& ednsnm,
+                       bool zoneversion,
                        bool recurse, QClass qclass, uint8_t opcode, uint16_t qid)
 {
   DNSPacketWriter pw(packet, DNSName(q), DNSRecordContent::TypeToNumber(t), qclass, opcode);
 
-  if (dnssec || ednsnm || getenv("SDIGBUFSIZE")) {
+  if (dnssec || ednsnm || zoneversion || getenv("SDIGBUFSIZE")) {
     char* sbuf = getenv("SDIGBUFSIZE");
     int bufsize;
     if (sbuf)
@@ -73,6 +75,10 @@ static void fillPacket(vector<uint8_t>& packet, const string& q, const string& t
       EDNSSubnetOpts eo;
       eo.source = *ednsnm;
       opts.emplace_back(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(eo));
+    }
+
+    if (zoneversion) {
+      opts.emplace_back(EDNSOptionCode::ZONEVERSION, "");
     }
 
     pw.addOpt(bufsize, 0, dnssec ? EDNSOpts::DNSSECOK : 0, opts);
@@ -182,6 +188,15 @@ static void printReply(const string& reply, bool showflags, bool hidesoadetails,
         if (getEDNSExtendedErrorOptFromString(iter->second, eee)) {
           cerr << "EDNS Extended Error response: " << eee.infoCode << "/" << eee.extraText << endl;
         }
+      } else if (iter->first == EDNSOptionCode::ZONEVERSION) {
+        EDNSZoneVersion zoneversion;
+        if (getEDNSZoneVersionFromString(iter->second, zoneversion)) {
+          uint32_t version;
+          memcpy((void*) &version, (void*) zoneversion.version.data(), sizeof(version));
+          version = ntohl(version);
+
+          cerr << "EDNS Zone Version for labelcount " << (int)zoneversion.labelcount << ": " << version << endl;
+        }
       } else {
         cerr << "Have unknown option " << (int)iter->first << endl;
       }
@@ -211,6 +226,7 @@ try {
   string caStore;
   string tlsProvider = "openssl";
   bool dumpluaraw = false;
+  bool zoneversion = false;
 
   for (int i = 1; i < argc; i++) {
     if ((string)argv[i] == "--help") {
@@ -306,6 +322,9 @@ try {
       else if (strcmp(argv[i], "dumpluaraw") == 0) {
         dumpluaraw = true;
       }
+      else if (strcmp(argv[i], "zoneversion") == 0) {
+        zoneversion = true;
+      }
       else {
         cerr << argv[i] << ": unknown argument" << endl;
         exit(EXIT_FAILURE);
@@ -356,7 +375,7 @@ try {
 #ifdef HAVE_LIBCURL
     vector<uint8_t> packet;
     s_expectedIDs.insert(0);
-    fillPacket(packet, name, type, dnssec, ednsnm, recurse, qclass, opcode, 0);
+    fillPacket(packet, name, type, dnssec, ednsnm, zoneversion, recurse, qclass, opcode, 0);
     MiniCurl mc;
     MiniCurl::MiniCurlHeaders mch;
     mch.emplace("Content-Type", "application/dns-message");
@@ -410,7 +429,7 @@ try {
     for (const auto& it : questions) {
       vector<uint8_t> packet;
       s_expectedIDs.insert(counter);
-      fillPacket(packet, it.first, it.second, dnssec, ednsnm, recurse, qclass, opcode, counter);
+      fillPacket(packet, it.first, it.second, dnssec, ednsnm, zoneversion, recurse, qclass, opcode, counter);
       counter++;
 
       // Prefer to do a single write, so that fastopen can send all the data on SYN
@@ -440,7 +459,7 @@ try {
   {
     vector<uint8_t> packet;
     s_expectedIDs.insert(0);
-    fillPacket(packet, name, type, dnssec, ednsnm, recurse, qclass, opcode, 0);
+    fillPacket(packet, name, type, dnssec, ednsnm, zoneversion, recurse, qclass, opcode, 0);
     string question(packet.begin(), packet.end());
     Socket sock(dest.sin4.sin_family, SOCK_DGRAM);
     question = proxyheader + question;
