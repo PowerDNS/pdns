@@ -78,8 +78,6 @@ does not support HTTP/2, like nginx. We do not plan on implementing HTTP/1, and 
 For nginx in particular, a possible work-around is to use the `grpc_pass <http://nginx.org/r/grpc_pass>`_ directive as suggested in their `bug tracker <https://trac.nginx.org/nginx/ticket/1875>`_ e.g.::
 
   location /dns-query {
-    include /config/nginx/proxy.conf;
-    include /config/nginx/resolver.conf;
     set $upstream_app dnsdist;
     set $upstream_port 443;
     set $upstream_proto grpc;
