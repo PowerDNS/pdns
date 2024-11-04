@@ -26,7 +26,7 @@ These are some functions that don't really have a place in one of the other cate
 
    .. versionadded:: 5.2.0
 
-   Spawn a thread.
+   Spawn a new thread running the supplied Lua script in a newly created Lua context.
 
    :param str script: The pathname of the Lua script to run.
 
@@ -37,7 +37,7 @@ These are some functions that don't really have a place in one of the other cate
 
    .. versionadded:: 5.2.0
 
-   Put a record cache dump into the record cache.
+   Load a record cache dump into the record cache.
 
    :param str dump: The data in the proprietary format produced by :func:`getRecordCacheRecords`).
    :returns: The number of records inserted into the record cache.
