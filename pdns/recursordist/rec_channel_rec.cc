@@ -1513,31 +1513,30 @@ vector<ComboAddress>* pleaseGetTimeouts()
   return ret;
 }
 
-static string doGenericTopRemotes(pleaseremotefunc_t func)
+static string doGenericTopRemotes(const pleaseremotefunc_t& func)
 {
-  typedef map<ComboAddress, int, ComboAddress::addressOnlyLessThan> counts_t;
-  counts_t counts;
+  std::map<ComboAddress, int, ComboAddress::addressOnlyLessThan> counts;
 
-  vector<ComboAddress> remotes = broadcastAccFunction<vector<ComboAddress>>(func);
+  auto remotes = broadcastAccFunction<vector<ComboAddress>>(func);
 
   unsigned int total = 0;
-  for (const ComboAddress& ca : remotes) {
+  for (const auto& address : remotes) {
     total++;
-    counts[ca]++;
+    counts[address]++;
   }
 
-  typedef std::multimap<int, ComboAddress> rcounts_t;
-  rcounts_t rcounts;
+  std::multimap<int, ComboAddress> rcounts;
 
-  for (auto&& c : counts)
-    rcounts.emplace(-c.second, c.first);
-
+  for (auto& count : counts) {
+    rcounts.emplace(-count.second, count.first);
+  }
   ostringstream ret;
   ret << "Over last " << total << " entries:\n";
   boost::format fmt("%.02f%%\t%s\n");
-  int limit = 0, accounted = 0;
-  if (total) {
-    for (rcounts_t::const_iterator i = rcounts.begin(); i != rcounts.end() && limit < 20; ++i, ++limit) {
+  unsigned int limit = 0;
+  unsigned int accounted = 0;
+  if (total != 0) {
+    for (auto i = rcounts.begin(); i != rcounts.end() && limit < 20; ++i, ++limit) {
       ret << fmt % (-100.0 * i->first / total) % i->second.toString();
       accounted += -i->first;
     }
