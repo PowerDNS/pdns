@@ -48,6 +48,8 @@ Options
                       control.
 --timeout=<num>       Number of seconds to wait for the remote PowerDNS
                       Recursor to respond.
+--version             Show the version number of this program. Note that the **version**
+                      command shows the version of the running recursor.
 
 Commands
 --------
@@ -179,7 +181,7 @@ hash-password [*WORK-FACTOR*]
 
 help
     Shows a list of supported commands understood by the running
-    :program:`pdns_recursor`
+    :program:`pdns_recursor`.
 
 list-dnssec-algos
     List supported (and potentially disabled) DNSSEC algorithms.
@@ -329,7 +331,7 @@ unload-lua-script
     Unloads Lua script if one was loaded.
 
 version
-    Report running version.
+    Report the version of the running Recursor.
 
 wipe-cache *DOMAIN* [*DOMAIN*] [...]
     Wipe entries for *DOMAIN* (exact name match) from the cache. This is useful

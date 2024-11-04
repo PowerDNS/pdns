@@ -3223,6 +3223,12 @@ int main(int argc, char** argv)
         SLOG(g_log << Logger::Warning << "Unable to open configuration file '" << configname << "'" << endl,
              startupLog->error("No such file", "Unable to open configuration file", "config_file", Logging::Loggable(configname)));
       }
+      else {
+        if (!::arg().mustDo("enable-old-settings")) {
+          startupLog->info(Logr::Error, "Old-style settings syntax not enabled by default anymore. Use YAML or enable with --enable-old-settings on the command line", "configname", Logging::Loggable(configname));
+          return EXIT_FAILURE;
+        }
+      }
     }
 
     // Reparse, now with config file as well, both for old-style as for YAML settings
