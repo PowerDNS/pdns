@@ -80,8 +80,8 @@ For nginx in particular, a possible work-around is to use the `grpc_pass <http:/
   location /dns-query {
     set $upstream_app dnsdist;
     set $upstream_port 443;
-    set $upstream_proto grpc;
-    grpc_pass grpcs://$upstream_app:$upstream_port;
+    set $upstream_proto grpcs;
+    grpc_pass $upstream_proto://$upstream_app:$upstream_port;
 
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
