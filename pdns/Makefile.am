@@ -231,6 +231,7 @@ pdns_server_SOURCES = \
 	ednscookies.cc ednscookies.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
+	ednszoneversion.cc ednszoneversion.hh \
 	gettime.cc gettime.hh \
 	gss_context.cc gss_context.hh \
 	histogram.hh \
@@ -542,6 +543,7 @@ sdig_SOURCES = \
 	dolog.hh \
 	ednscookies.cc ednscookies.hh \
 	ednsextendederror.cc ednsextendederror.hh \
+	ednszoneversion.cc ednszoneversion.hh \
 	ednssubnet.cc iputils.cc \
 	libssl.cc libssl.hh \
 	logger.cc \

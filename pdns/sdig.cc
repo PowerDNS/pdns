@@ -8,6 +8,7 @@
 #include "ednssubnet.hh"
 #include "ednscookies.hh"
 #include "ednsextendederror.hh"
+#include "ednszoneversion.hh"
 #include "misc.hh"
 #include "proxy-protocol.hh"
 #include "sstuff.hh"
@@ -63,12 +64,13 @@ static std::unordered_set<uint16_t> s_expectedIDs;
 
 static void fillPacket(vector<uint8_t>& packet, const string& q, const string& t,
                        bool dnssec, const std::optional<Netmask>& ednsnm,
+                       bool zoneversion,
                        bool recurse, QClass qclass, uint8_t opcode, uint16_t qid, const std::optional<string>& cookie,
                        OpenTelemetryData& otids)
 {
   DNSPacketWriter pw(packet, DNSName(q), DNSRecordContent::TypeToNumber(t), qclass, opcode);
 
-  if (dnssec || ednsnm || getenv("SDIGBUFSIZE") != nullptr || cookie || otids) { // NOLINT(concurrency-mt-unsafe) we're single threaded
+  if (dnssec || ednsnm || getenv("SDIGBUFSIZE") != nullptr || cookie || otids || zoneversion) { // NOLINT(concurrency-mt-unsafe) we're single threaded
     char* sbuf = getenv("SDIGBUFSIZE"); // NOLINT(concurrency-mt-unsafe) we're single threaded
     int bufsize;
     if (sbuf)
@@ -104,6 +106,10 @@ static void fillPacket(vector<uint8_t>& packet, const string& q, const string& t
       record.setSpanID(spanid);
       opts.emplace_back(EDNSOptionCode::OTTRACEIDS, std::string_view(reinterpret_cast<const char*>(data.data()), data.size())); // NOLINT
     }
+    if (zoneversion) {
+      opts.emplace_back(EDNSOptionCode::ZONEVERSION, "");
+    }
+
     pw.addOpt(bufsize, 0, dnssec ? EDNSOpts::DNSSECOK : 0, opts);
     pw.commit();
   }
@@ -230,6 +236,15 @@ static void printReply(const string& reply, bool showflags, bool hidesoadetails,
         if (getEDNSExtendedErrorOptFromString(iter.second, eee)) {
           cerr << "EDNS Extended Error response: " << eee.infoCode << "/" << eee.extraText << endl;
         }
+      } else if (iter->first == EDNSOptionCode::ZONEVERSION) {
+        EDNSZoneVersion zoneversion;
+        if (getEDNSZoneVersionFromString(iter->second, zoneversion)) {
+          uint32_t version;
+          memcpy((void*) &version, (void*) zoneversion.version.data(), sizeof(version));
+          version = ntohl(version);
+
+          cerr << "EDNS Zone Version for labelcount " << (int)zoneversion.labelcount << ": " << version << endl;
+        }
       } else {
         cerr << "Have unknown option " << (int)iter.first << endl;
       }
@@ -261,6 +276,7 @@ try {
   bool dumpluaraw = false;
   std::optional<string> cookie;
   OpenTelemetryData otdata;
+  bool zoneversion = false;
 
   // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic, concurrency-mt-unsafe) it's the argv API and we're single-threaded
   for (int i = 1; i < argc; i++) {
@@ -385,6 +401,8 @@ try {
         }
         pdns::trace::SpanID spanid{}; // default: all zero, so no parent
         otdata = std::make_pair(traceid, spanid);
+      else if (strcmp(argv[i], "zoneversion") == 0) {
+        zoneversion = true;
       }
       else {
         cerr << argv[i] << ": unknown argument" << endl;
@@ -437,7 +455,7 @@ try {
 #ifdef HAVE_LIBCURL
     vector<uint8_t> packet;
     s_expectedIDs.insert(0);
-    fillPacket(packet, name, type, dnssec, ednsnm, recurse, qclass, opcode, 0, cookie, otdata);
+    fillPacket(packet, name, type, dnssec, ednsnm, zoneversion, recurse, qclass, opcode, 0, cookie, otdata);
     MiniCurl mc;
     MiniCurl::MiniCurlHeaders mch;
     mch.emplace("Content-Type", "application/dns-message");
@@ -491,7 +509,7 @@ try {
     for (const auto& it : questions) {
       vector<uint8_t> packet;
       s_expectedIDs.insert(counter);
-      fillPacket(packet, it.first, it.second, dnssec, ednsnm, recurse, qclass, opcode, counter, cookie, otdata);
+      fillPacket(packet, it.first, it.second, dnssec, ednsnm, zoneversion, recurse, qclass, opcode, counter, cookie, otdata);
       counter++;
 
       // Prefer to do a single write, so that fastopen can send all the data on SYN
@@ -521,7 +539,7 @@ try {
   {
     vector<uint8_t> packet;
     s_expectedIDs.insert(0);
-    fillPacket(packet, name, type, dnssec, ednsnm, recurse, qclass, opcode, 0, cookie, otdata);
+    fillPacket(packet, name, type, dnssec, ednsnm, zoneversion, recurse, qclass, opcode, 0, cookie, otdata);
     string question(packet.begin(), packet.end());
     Socket sock(dest.sin4.sin_family, SOCK_DGRAM);
     question = proxyheader + question;
