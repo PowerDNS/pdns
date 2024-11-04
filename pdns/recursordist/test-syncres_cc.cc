@@ -215,6 +215,7 @@ void initSR(bool debug)
 
   g_dnssecmode = DNSSECMode::Off;
   g_maxNSEC3Iterations = 2500;
+  g_signatureInceptionSkew = 60;
 
   g_aggressiveNSECCache.reset();
   AggressiveNSECCache::s_maxNSEC3CommonPrefix = AggressiveNSECCache::s_default_maxNSEC3CommonPrefix;
