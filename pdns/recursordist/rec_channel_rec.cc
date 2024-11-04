@@ -1886,7 +1886,7 @@ static RecursorControlChannel::Answer help()
           "                                 notice: queries from cache aren't being counted yet\n"
           "get-remotelogger-stats           get remote logger statistics\n"
           "hash-password [work-factor]      ask for a password then return the hashed version\n"
-          "help                             get this list (from the runnig recursor)\n"
+          "help                             get this list (from the running recursor)\n"
           "list-dnssec-algos                list supported DNSSEC algorithms\n"
           "ping                             check that all threads are alive\n"
           "quit                             stop the recursor daemon\n"

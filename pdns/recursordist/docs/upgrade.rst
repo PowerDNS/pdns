@@ -10,7 +10,7 @@ When upgrading several versions, please read **all** notes applying to the upgra
 Changed behaviour
 ^^^^^^^^^^^^^^^^^
 Parsing of old-style settings is no longer enabled by default.
-Convert yor settings file to YAML (see :doc:`appendices/yamlconversion`) or pass ``--enable-old-settings`` on the command line.
+Convert your settings file to YAML (see :doc:`appendices/yamlconversion`) or pass ``--enable-old-settings`` on the command line.
 
 The way :ref:`setting-yaml-incoming.max_tcp_clients` is enforced has changed.
 If there are too many incoming TCP connections, new connections will be accepted but then closed immediately.
