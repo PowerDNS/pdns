@@ -38,7 +38,7 @@ class DNSName;
 class SOARecordContent;
 struct FWCatz;
 
-// Please make sure that the struct below only contains value types since they are used as parameters in a thread ct
+// All members of this struct must be copyable, as they are used as parameters in a thread constructor
 struct ZoneXFRParams
 {
   std::string name;
@@ -103,7 +103,7 @@ struct FWCatz
 class ZoneXFR
 {
 public:
-  // A struct that holds the condition var and related stuff to allow notifies to be sent to the tread owning
+  // A struct that holds the condition var and related stuff to allow notifies to be sent to the thread owning
   // the struct.
   struct ZoneWaiter
   {

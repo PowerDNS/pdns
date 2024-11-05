@@ -492,7 +492,7 @@ As of version 5.2.0, a forwarding catalog zone entry is defined as:
        localAddress: IP address, default not set
        axfrTimeout: number, default 20
      groups:
-     - name:
+     - name: optional group name
        forwarders: [] Sequence of SocketAddress
        recurse: bool, default false
        notify: bool, default false
