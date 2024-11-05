@@ -73,7 +73,7 @@ void CatalogZone::remove(const DNSRecord& record, Logr::log_t logger)
   d_records.erase(std::make_pair(key, record.d_type));
 }
 
-void CatalogZone::registerForwarders(const FWCatz& params, Logr::log_t logger) const
+void CatalogZone::registerForwarders(const FWCatalogZone& params, Logr::log_t logger) const
 {
   const string zonesFile = ::arg()["api-config-dir"] + "/catzone." + d_name.toString();
   ::rust::Vec<::pdns::rust::settings::rec::ForwardZone> forwards;

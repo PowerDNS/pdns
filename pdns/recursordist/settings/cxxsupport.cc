@@ -1306,10 +1306,10 @@ void fromRustToLuaConfig(const rust::Vec<pdns::rust::settings::rec::ProxyMapping
   }
 }
 
-void fromRustToLuaConfig(const rust::Vec<pdns::rust::settings::rec::ForwardingCatalogZone>& catzones, std::vector<FWCatz>& lua)
+void fromRustToLuaConfig(const rust::Vec<pdns::rust::settings::rec::ForwardingCatalogZone>& catzones, std::vector<FWCatalogZone>& lua)
 {
   for (const auto& catz : catzones) {
-    FWCatz fwcatz;
+    FWCatalogZone fwcatz;
     for (const auto& def : catz.groups) {
       fwcatz.d_defaults.emplace(def.name, def);
     }

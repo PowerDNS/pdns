@@ -36,7 +36,7 @@
 
 class DNSName;
 class SOARecordContent;
-struct FWCatz;
+struct FWCatalogZone;
 
 // All members of this struct must be copyable, as they are used as parameters in a thread constructor
 struct ZoneXFRParams
@@ -82,7 +82,7 @@ public:
   }
   void add(const DNSRecord& record, Logr::log_t logger);
   void remove(const DNSRecord& record, Logr::log_t logger);
-  void registerForwarders(const FWCatz& params, Logr::log_t logger) const;
+  void registerForwarders(const FWCatalogZone& params, Logr::log_t logger) const;
   [[nodiscard]] bool versionCheck() const;
   [[nodiscard]] bool dupsCheck() const;
 
@@ -93,7 +93,7 @@ private:
   uint32_t d_serial{0};
 };
 
-struct FWCatz
+struct FWCatalogZone
 {
   ZoneXFRParams d_params;
   std::map<std::string, pdns::rust::settings::rec::FCZDefault> d_defaults;
