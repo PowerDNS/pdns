@@ -488,7 +488,7 @@ As of version 5.2.0, a forwarding catalog zone entry is defined as:
          algo: string
          secret: base64string
        refresh: number, default not set
-       maxReceivedMBytes: number default not set
+       maxReceivedMBytes: number, default not set
        localAddress: IP address, default not set
        axfrTimeout: number, default 20
      groups:
@@ -497,7 +497,7 @@ As of version 5.2.0, a forwarding catalog zone entry is defined as:
        recurse: bool, default false
        notify: bool, default false
 
-An example of an ``forwarding_catalog_zones`` entry, which is a sequence of `ForwardingCatalogZone`_:
+An example of a ``forwarding_catalog_zones`` entry, which is a sequence of `ForwardingCatalogZone`_:
 
 .. code-block:: yaml
 
@@ -518,8 +518,8 @@ An example of an ``forwarding_catalog_zones`` entry, which is a sequence of `For
       - forwarders: [192.168.178.3] # only default forwarder for 2nd catalog zone
 
 :program:`Recursor` will transfer the catalog zone from the authoritative server using IXFR (falling back to AXFR if needed) and add forwarding clauses for all members of the catalog zone.
-The forwarding paremeters will be taken from the default group entry (the one without a name) defined in the YAML settings.
-For catalog zone members in a group, the forwarding parameters will be taken from the group entry with the correspoding name.
+The forwarding parameters will be taken from the default group entry (the one without a name) defined in the YAML settings.
+For catalog zone members in a group, the forwarding parameters will be taken from the group entry with the corresponding name.
 
 The forwarding definitions will be written into a file ``$api_dir/catzone.$zonename``. :ref:`setting-yaml-webservice.api_dir` must be defined, the directory must exist and be writable by the :program:`Recursor` process.
 

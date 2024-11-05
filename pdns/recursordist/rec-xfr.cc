@@ -75,7 +75,7 @@ void CatalogZone::remove(const DNSRecord& record, Logr::log_t logger)
   d_records.erase(std::make_pair(key, record.d_type));
 }
 
-void CatalogZone::registerForwarders(const FWCatz& params, Logr::log_t logger)
+void CatalogZone::registerForwarders(const FWCatz& params, Logr::log_t logger) const
 {
   const string zonesFile = ::arg()["api-config-dir"] + "/catzone." + d_name.toString();
   ::rust::Vec<::pdns::rust::settings::rec::ForwardZone> forwards;
@@ -231,7 +231,7 @@ static shared_ptr<const SOARecordContent> loadZoneFromServer(Logr::log_t plogger
   return soaRecordContent;
 }
 
-void FWCatZoneXFR::preloadZoneFile(const DNSName& zoneName, std::shared_ptr<CatalogZone>& oldZone, uint32_t& refresh, uint64_t configGeneration, ZoneWaiter& waiter, Logr::log_t logger)
+void FWCatZoneXFR::preloadZoneFile(const DNSName& zoneName, const std::shared_ptr<const CatalogZone>& oldZone, uint32_t& refresh, uint64_t configGeneration, ZoneWaiter& waiter, Logr::log_t logger)
 {
   while (!d_params.soaRecordContent) {
     /* if we received an empty sr, the zone was not really preloaded */
@@ -283,7 +283,7 @@ void FWCatZoneXFR::preloadZoneFile(const DNSName& zoneName, std::shared_ptr<Cata
   }
 }
 
-bool FWCatZoneXFR::zoneTrackerIteration(const DNSName& zoneName, std::shared_ptr<CatalogZone>& oldZone, uint32_t& refresh, bool& skipRefreshDelay, uint64_t configGeneration, ZoneWaiter& waiter, Logr::log_t logger)
+bool FWCatZoneXFR::zoneTrackerIteration(const DNSName& zoneName, std::shared_ptr<const CatalogZone>& oldZone, uint32_t& refresh, bool& skipRefreshDelay, uint64_t configGeneration, ZoneWaiter& waiter, Logr::log_t logger)
 {
   // Don't hold on to oldZone, it well be re-assigned after sleep in the try block
   oldZone = nullptr;
@@ -466,7 +466,7 @@ void FWCatZoneXFR::zoneXFRTracker(ZoneXFRParams params, uint64_t configGeneratio
   ZoneWaiter waiter(std::this_thread::get_id());
 
   /* we can _never_ modify this zone directly, we need to do a full copy then replace the existing zone */
-  std::shared_ptr<CatalogZone> oldZone;
+  std::shared_ptr<const CatalogZone> oldZone;
   if (params.zoneIdx < g_luaconfs.getLocal()->catalogzones.size()) {
     oldZone = g_luaconfs.getLocal()->catalogzones.at(params.zoneIdx).d_catz;
   }

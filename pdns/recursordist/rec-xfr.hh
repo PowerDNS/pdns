@@ -82,7 +82,7 @@ public:
   }
   void add(const DNSRecord& record, Logr::log_t logger);
   void remove(const DNSRecord& record, Logr::log_t logger);
-  void registerForwarders(const FWCatz& params, Logr::log_t logger);
+  void registerForwarders(const FWCatz& params, Logr::log_t logger) const;
   [[nodiscard]] bool versionCheck() const;
   [[nodiscard]] bool dupsCheck() const;
 
@@ -140,8 +140,8 @@ public:
   static void zoneXFRTracker(ZoneXFRParams params, uint64_t configGeneration);
 
 private:
-  void preloadZoneFile(const DNSName& zoneName, std::shared_ptr<CatalogZone>& oldZone, uint32_t& refresh, uint64_t configGeneration, ZoneWaiter& waiter, Logr::log_t logger);
-  bool zoneTrackerIteration(const DNSName& zoneName, std::shared_ptr<CatalogZone>& oldZone, uint32_t& refresh, bool& skipRefreshDelay, uint64_t configGeneration, ZoneWaiter& waiter, Logr::log_t logger);
+  void preloadZoneFile(const DNSName& zoneName, const std::shared_ptr<const CatalogZone>& oldZone, uint32_t& refresh, uint64_t configGeneration, ZoneWaiter& waiter, Logr::log_t logger);
+  bool zoneTrackerIteration(const DNSName& zoneName, std::shared_ptr<const CatalogZone>& oldZone, uint32_t& refresh, bool& skipRefreshDelay, uint64_t configGeneration, ZoneWaiter& waiter, Logr::log_t logger);
 };
 
 std::string reloadZoneConfiguration(bool yaml);
