@@ -25,6 +25,7 @@
 #include "ednssubnet.hh"
 #include "ednscookies.hh"
 #include <optional>
+#include <unordered_map>
 #include <unordered_set>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -189,6 +190,7 @@ private:
 
   vector<DNSZoneRecord> d_rrs; // 8
   std::unordered_set<size_t> d_dedup;
+  std::unordered_map<DNSName, uint32_t> d_auth_serials;
   string d_rawpacket; // this is where everything lives 8
   EDNSCookiesOpt d_eco;
 
