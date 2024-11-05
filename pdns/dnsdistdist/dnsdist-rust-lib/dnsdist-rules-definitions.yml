@@ -139,11 +139,8 @@ ring-buffers:
       default: "true"
       description: "Whether to record responses in the ring buffers"
 
-tls:
+incoming-tls-certificate-key-pair:
   parameters:
-    - name: "provider"
-      type: "String"
-      default: "OpenSSL"
     - name: "certificate"
       type: "String"
     - name: "key"
@@ -152,6 +149,69 @@ tls:
     - name: "password"
       type: "String"
       default: ""
+
+incoming-tls:
+  parameters:
+    - name: "provider"
+      type: "String"
+      default: "OpenSSL"
+    - name: "certificates"
+      type: "Vec<IncomingTlsCertificateKeyPairConfiguration>"
+      default: true
+    - name: "ignore-errors"
+      type: "bool"
+      default: "false"
+    - name: "ciphers"
+      type: "String"
+      default: ""
+    - name: "ciphers-tls-13"
+      type: "String"
+      default: ""
+    - name: "minimum-version"
+      type: "String"
+      default: "tls1.0"
+    - name: "ticket-key-file"
+      type: "String"
+      default: ""
+    - name: "tickets-keys-rotation-delay"
+      type: "u32"
+      default: "43200"
+    - name: "number-of-tickets-keys"
+      type: "u32"
+      default: "5"
+    - name: "prefer-server-ciphers"
+      type: "bool"
+      default: "true"
+    - name: "session-timeout"
+      type: "u32"
+      default: "0"
+    - name: "session-tickets"
+      type: "bool"
+      default: "true"
+    - name: "number-of-stored-sessions"
+      type: "u32"
+      default: "20480"
+    - name: "ocsp-response-files"
+      type: "Vec<String>"
+      default: true
+    - name: "key-log-file"
+      type: "String"
+      default: ""
+    - name: "release-buffers"
+      type: "bool"
+      default: "true"
+    - name: "enable-renegotiation"
+      type: "bool"
+      default: "false"
+    - name: "async-mode"
+      type: "bool"
+      default: "false"
+    - name: "ktls"
+      type: "bool"
+      default: "false"
+    - name: "read-ahead"
+      type: "bool"
+      default: "true"
 
 outgoing-tls:
   parameters:
@@ -183,6 +243,21 @@ outgoing-doh:
       type: "bool"
       default: "false"
 
+incoming-tcp:
+  parameters:
+    - name: "max-in-flight-queries"
+      type: "u32"
+      default: 0
+    - name: "listen-queue-size"
+      type: "u32"
+      default: 0
+    - name: "fast-open-queue-size"
+      type: "u32"
+      default: 0
+    - name: "max-concurrent-connections"
+      type: "u32"
+      default: 0
+
 binds:
   section: "global"
   type: list
@@ -199,8 +274,20 @@ binds:
     - name: "threads"
       type: "u32"
       default: "1"
+    - name: "interface"
+      type: "String"
+      default: ""
+    - name: "cpus"
+      type: "String"
+      default: ""
+    - name: "enable-proxy-protocol"
+      type: "bool"
+      default: "false"
+    - name: "tcp"
+      type: "IncomingTcpConfiguration"
+      default: true
     - name: "tls"
-      type: "TlsConfiguration"
+      type: "IncomingTlsConfiguration"
       default: true
     - name: "doh"
       type: "IncomingDohConfiguration"

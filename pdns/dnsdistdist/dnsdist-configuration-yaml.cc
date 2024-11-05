@@ -37,6 +37,67 @@
 namespace dnsdist::configuration::yaml
 {
 
+static std::set<int> getCPUPiningFromStr(const std::string& cpuStr)
+{
+  std::set<int> cpus;
+  std::vector<std::string> tokens;
+  stringtok(tokens, cpuStr);
+  for (const auto& token : tokens) {
+    cpus.insert(pdns::checked_stoi<int>(token));
+  }
+  return cpus;
+}
+
+static TLSConfig getTLSConfigFromRustIncomingTLS(const dnsdist::rust::settings::IncomingTlsConfiguration& incomingTLSConfig)
+{
+  #warning find out what to do with the provider
+  TLSConfig out;
+  for (const auto& certConfig : incomingTLSConfig.certificates) {
+    TLSCertKeyPair pair(std::string(certConfig.certificate));
+    if (!certConfig.key.empty()) {
+      pair.d_key = std::string(certConfig.key);
+    }
+    if (!certConfig.password.empty()) {
+      pair.d_password = std::string(certConfig.password);
+    }
+    out.d_certKeyPairs.push_back(std::move(pair));
+  }
+  for (const auto& ocspFile : incomingTLSConfig.ocsp_response_files) {
+    out.d_ocspFiles.emplace_back(ocspFile);
+  }
+  out.d_ciphers = std::string(incomingTLSConfig.ciphers);
+  out.d_ciphers13 = std::string(incomingTLSConfig.ciphers_tls_13);
+  out.d_minTLSVersion = libssl_tls_version_from_string(std::string(incomingTLSConfig.minimum_version));
+  out.d_ticketKeyFile = std::string(incomingTLSConfig.ticket_key_file);
+  out.d_keyLogFile = std::string(incomingTLSConfig.key_log_file);
+  out.d_maxStoredSessions = incomingTLSConfig.number_of_stored_sessions;
+  out.d_sessionTimeout = incomingTLSConfig.session_timeout;
+  out.d_ticketsKeyRotationDelay = incomingTLSConfig.tickets_keys_rotation_delay;
+  out.d_numberOfTicketsKeys = incomingTLSConfig.number_of_tickets_keys;
+  out.d_preferServerCiphers = incomingTLSConfig.prefer_server_ciphers;
+  out.d_enableTickets = incomingTLSConfig.session_tickets;
+  out.d_releaseBuffers = incomingTLSConfig.release_buffers;
+  out.d_enableRenegotiation = incomingTLSConfig.enable_renegotiation;
+  out.d_asyncMode = incomingTLSConfig.async_mode;
+  out.d_ktls = incomingTLSConfig.ktls;
+  out.d_readAhead = incomingTLSConfig.read_ahead;
+  return out;
+}
+
+static void handleTLSConfiguration(const dnsdist::rust::settings::BindsConfiguration& bind, ClientState& state)
+{
+  auto tlsConfig = getTLSConfigFromRustIncomingTLS(bind.tls);
+#warning handle ignoreTLSConfigurationErrors
+  if (bind.protocol == "DoT") {
+    auto frontend = std::make_shared<TLSFrontend>(TLSFrontend::ALPN::DoT);
+    frontend->d_provider = std::string(bind.tls.provider);
+    boost::algorithm::to_lower(frontend->d_provider);
+    #warning handle proxyProtocolOutsideTLS
+    #warning handle additionalAddresses
+    frontend->d_tlsConfig = std::move(tlsConfig);
+  }
+}
+
 bool loadConfigurationFromFile(const std::string fileName)
 {
 #if defined(HAVE_YAML_CONFIGURATION)
@@ -56,16 +117,27 @@ bool loadConfigurationFromFile(const std::string fileName)
 
     for (const auto& bind : globalConfig.binds) {
       ComboAddress listeningAddress(std::string(bind.listen_address), 53);
-      std::string interface;
-      std::set<int> cpus;
-      updateImmutableConfiguration([&bind,listeningAddress,interface,cpus](ImmutableConfiguration& config) {
+      updateImmutableConfiguration([&bind,listeningAddress](ImmutableConfiguration& config) {
         for (size_t idx = 0; idx < bind.threads; idx++) {
-          cerr << "Pushing frontend " << listeningAddress.toStringWithPort() << " protocol " << bind.protocol << endl;
-          auto state = std::make_shared<ClientState>(listeningAddress, bind.protocol != "DoQ", bind.reuseport, 0, interface, cpus, false);
+          auto cpus = getCPUPiningFromStr(std::string(bind.cpus));
+          auto state = std::make_shared<ClientState>(listeningAddress, bind.protocol != "DoQ", bind.reuseport, bind.tcp.fast_open_queue_size, std::string(bind.interface), cpus, false);
+          if (bind.tcp.listen_queue_size > 0) {
+            state->tcpListenQueueSize = bind.tcp.listen_queue_size;
+          }
+          if (bind.tcp.max_in_flight_queries > 0) {
+            state->d_maxInFlightQueriesPerConn = bind.tcp.max_in_flight_queries;
+          }
+          if (bind.tcp.max_concurrent_connections > 0) {
+            state->d_tcpConcurrentConnectionsLimit = bind.tcp.max_concurrent_connections;
+          }
+          if (bind.protocol != "Do53") {
+            handleTLSConfiguration(bind, *state);
+          }
+
           config.d_frontends.emplace_back(std::move(state));
           if (bind.protocol == "Do53") {
             /* also create the UDP listener */
-            state = std::make_shared<ClientState>(ComboAddress(std::string(bind.listen_address), 53), false, bind.reuseport, 0, interface, cpus, false);
+            state = std::make_shared<ClientState>(ComboAddress(std::string(bind.listen_address), 53), false, bind.reuseport, bind.tcp.fast_open_queue_size, std::string(bind.interface), cpus, false);
             config.d_frontends.emplace_back(std::move(state));
           }
         }
