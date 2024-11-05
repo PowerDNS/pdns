@@ -35,19 +35,27 @@ static const DNSName cVersion("version");
 
 // TODO: cleanup files if not in catalogzones?
 
-void CatalogZone::add(const DNSRecord& record, Logr::log_t logger)
+static bool validate(const DNSRecord& record, Logr::log_t logger)
 {
   if (record.d_name.empty()) {
     logger->info(Logr::Warning, "Record is not part of zone, skipping", "name", Logging::Loggable(record.d_name));
-    return;
+    return false;
   }
   if (record.d_class != QClass::IN) {
     logger->info(Logr::Warning, "Record class is not IN, skipping", "name", Logging::Loggable(record.d_name));
-    return;
+    return false;
   }
 
   if (record.d_name.getLastLabel() != cZones && record.d_name != cVersion) {
     logger->info(Logr::Warning, "Record is not a catalog zone entry, skipping", "name", Logging::Loggable(record.d_name));
+    return false;
+  }
+  return true;
+}
+
+void CatalogZone::add(const DNSRecord& record, Logr::log_t logger)
+{
+  if (!validate(record, logger)) {
     return;
   }
   const auto& key = record.d_name;
@@ -57,17 +65,7 @@ void CatalogZone::add(const DNSRecord& record, Logr::log_t logger)
 
 void CatalogZone::remove(const DNSRecord& record, Logr::log_t logger)
 {
-  if (record.d_name.empty()) {
-    logger->info(Logr::Warning, "Record is not part of zone, skipping", "name", Logging::Loggable(record.d_name));
-    return;
-  }
-  if (record.d_class != QClass::IN) {
-    logger->info(Logr::Warning, "Record class is not IN, skipping", "name", Logging::Loggable(record.d_name));
-    return;
-  }
-
-  if (record.d_name.getLastLabel() != cZones && record.d_name != cVersion) {
-    logger->info(Logr::Warning, "Record is not a catalog zone entry, skipping", "name", Logging::Loggable(record.d_name));
+  if (!validate(record, logger)) {
     return;
   }
   const auto& key = record.d_name;

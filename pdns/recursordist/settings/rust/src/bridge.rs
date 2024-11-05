@@ -661,12 +661,48 @@ impl ForwardingCatalogZone {
     }
 
     fn to_yaml_map(&self) -> serde_yaml::Value {
-        // XXX INCOMPLETE
-        let seq = serde_yaml::Sequence::new();
         let mut map = serde_yaml::Mapping::new();
         inserts(&mut map, "zone", &self.zone);
         insertb(&mut map, "notify_allowed", self.notify_allowed);
-        insertseq(&mut map, "groups", &seq);
+
+        let mut xfrmap = serde_yaml::Mapping::new();
+        let mut addrs = serde_yaml::Sequence::new();
+        for address in &self.xfr.addresses {
+            addrs.push(serde_yaml::Value::String(address.to_owned()));
+        }
+        insertseq(&mut xfrmap, "addresses", &addrs);
+        insertu32(&mut xfrmap, "zoneSizeHint", self.xfr.zoneSizeHint);
+        let mut tsigmap = serde_yaml::Mapping::new();
+        inserts(&mut tsigmap, "name", &self.xfr.tsig.name);
+        inserts(&mut tsigmap, "algo", &self.xfr.tsig.algo);
+        inserts(&mut tsigmap, "secret", &self.xfr.tsig.secret);
+        xfrmap.insert(
+            serde_yaml::Value::String("tsig".to_owned()),
+            serde_yaml::Value::Mapping(tsigmap),
+        );
+        insertu32(&mut xfrmap, "refresh", self.xfr.refresh);
+        insertu32(&mut xfrmap, "maxReceivedMBytes", self.xfr.maxReceivedMBytes);
+        inserts(&mut xfrmap, "localAddress", &self.xfr.localAddress);
+        insertu32(&mut xfrmap, "axfrTimeout", self.xfr.axfrTimeout);
+        map.insert(
+            serde_yaml::Value::String("xfr".to_owned()),
+            serde_yaml::Value::Mapping(xfrmap),
+        );
+
+        let mut groupseq = serde_yaml::Sequence::new();
+        for entry in &self.groups {
+            let mut submap = serde_yaml::Mapping::new();
+            inserts(&mut submap, "name", &entry.name);
+            let mut fwseq = serde_yaml::Sequence::new();
+            for forwarder in &entry.forwarders {
+                fwseq.push(serde_yaml::Value::String(forwarder.to_owned()));
+            }
+            insertseq(&mut submap, "forwarders", &fwseq);
+            insertb(&mut submap, "recurse", entry.recurse);
+            insertb(&mut submap, "notify_allowed", entry.notify_allowed);
+            groupseq.push(serde_yaml::Value::Mapping(submap));
+        }
+        insertseq(&mut map, "groups", &groupseq);
         serde_yaml::Value::Mapping(map)
     }
 }
