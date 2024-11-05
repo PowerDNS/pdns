@@ -1525,6 +1525,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
       goto sendit;
     }
     DLOG(g_log<<Logger::Error<<"We have authority, zone='"<<d_sd.qname<<"', id="<<d_sd.domain_id<<endl);
+    g_log<<Logger::Error<<"We have authority, zone='"<<d_sd.qname<<"', id="<<d_sd.domain_id<<", serial="<<d_sd.serial<<endl;
 
     authSet.insert(d_sd.qname);
     d_dnssec=(p.d_dnssecOk && d_dk.isSecuredZone(d_sd.qname));
