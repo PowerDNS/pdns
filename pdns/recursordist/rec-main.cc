@@ -3556,10 +3556,7 @@ static void activateForwardingCatalogZones(LuaConfigItems& lci)
     auto& params = fcz.d_params;
     params.zoneIdx = idx++;
     auto zone = std::make_shared<CatalogZone>();
-    if (params.zoneSizeHint != 0) {
-      zone->reserve(params.zoneSizeHint);
-    }
-
+    // zoneSizeHint ignored
     DNSName domain(params.name);
     zone->setName(domain);
     fcz.d_catz = zone;

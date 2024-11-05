@@ -76,21 +76,9 @@ public:
   {
     return d_name;
   }
-  void reserve([[maybe_unused]] size_t size)
-  {
-    // d_records.reserve(size);
-  }
   void clear()
   {
     d_records.clear();
-  }
-  void newStats([[maybe_unused]] uint32_t serial, [[maybe_unused]] bool fullTransfer)
-  {
-    // XXX stats
-  }
-  void incFailedStats()
-  {
-    // XXX stats
   }
   void add(const DNSRecord& record, Logr::log_t logger);
   void remove(const DNSRecord& record, Logr::log_t logger);

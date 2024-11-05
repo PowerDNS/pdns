@@ -190,8 +190,8 @@ static shared_ptr<const SOARecordContent> loadZoneFromServer(Logr::log_t plogger
   Resolver::res_t nop;
   vector<DNSRecord> chunk;
   time_t last = 0;
-  time_t axfrStart = time(nullptr);
-  time_t axfrNow = time(nullptr);
+  const time_t axfrStart = time(nullptr);
+  time_t axfrNow = axfrStart;
   shared_ptr<const SOARecordContent> soaRecordContent;
   // coverity[store_truncates_time_t]
   while (axfr.getChunk(nop, &chunk, (axfrStart + axfrTimeout - axfrNow)) != 0) {
@@ -244,7 +244,7 @@ void FWCatZoneXFR::preloadZoneFile(const DNSName& zoneName, std::shared_ptr<Cata
         newZone->setSerial(d_params.soaRecordContent->d_st.serial);
         newZone->setRefresh(d_params.soaRecordContent->d_st.refresh);
         refresh = std::max(d_params.refreshFromConf != 0 ? d_params.refreshFromConf : newZone->getRefresh(), 1U);
-        newZone->newStats(d_params.soaRecordContent->d_st.serial, true);
+        // XXX Stats
 
         g_luaconfs.modify([zoneIdx = d_params.zoneIdx, &newZone](LuaConfigItems& lci) {
           lci.catalogzones.at(zoneIdx).d_catz = newZone;
@@ -257,11 +257,11 @@ void FWCatZoneXFR::preloadZoneFile(const DNSName& zoneName, std::shared_ptr<Cata
       }
       catch (const std::exception& e) {
         logger->error(Logr::Warning, e.what(), "Unable to load zone, will retry", "from", Logging::Loggable(primary), "exception", Logging::Loggable("std::exception"), "refresh", Logging::Loggable(refresh));
-        oldZone->incFailedStats();
+        // XXX Stats
       }
       catch (const PDNSException& e) {
         logger->error(Logr::Warning, e.reason, "Unable to load zone, will retry", "from", Logging::Loggable(primary), "exception", Logging::Loggable("PDNSException"), "refresh", Logging::Loggable(refresh));
-        oldZone->incFailedStats();
+        // XXX Stats
       }
     }
     // Release newZone before (long) sleep to reduce memory usage
@@ -339,7 +339,7 @@ bool FWCatZoneXFR::zoneTrackerIteration(const DNSName& zoneName, std::shared_ptr
     catch (const std::runtime_error& e) {
       logger->error(Logr::Warning, e.what(), "Exception during retrieval of delta", "exception", Logging::Loggable("std::runtime_error"));
       if (oldZone) {
-        oldZone->incFailedStats();
+        // XXX Stats
       }
       continue;
     }
@@ -366,9 +366,8 @@ bool FWCatZoneXFR::zoneTrackerIteration(const DNSName& zoneName, std::shared_ptr
     /* initialize the current serial to the last one */
     std::shared_ptr<const SOARecordContent> currentSR = d_params.soaRecordContent;
 
-    int totremove = 0;
-    int totadd = 0;
-    bool fullUpdate = false;
+    int removed = 0;
+    int added = 0;
 
     for (const auto& delta : deltas) {
       const auto& remove = delta.first;
@@ -376,7 +375,6 @@ bool FWCatZoneXFR::zoneTrackerIteration(const DNSName& zoneName, std::shared_ptr
       if (remove.empty()) {
         logger->info(Logr::Warning, "IXFR update is a whole new zone");
         newZone->clear();
-        fullUpdate = true;
       }
       for (const auto& resourceRecord : remove) { // should always contain the SOA
         if (resourceRecord.d_type == QType::NS) {
@@ -395,7 +393,7 @@ bool FWCatZoneXFR::zoneTrackerIteration(const DNSName& zoneName, std::shared_ptr
           }
         }
         else {
-          totremove++;
+          removed++;
           logger->info(Logr::Debug, "Remove from zone", "name", Logging::Loggable(resourceRecord.d_name));
           newZone->remove(resourceRecord, logger);
         }
@@ -412,7 +410,7 @@ bool FWCatZoneXFR::zoneTrackerIteration(const DNSName& zoneName, std::shared_ptr
           }
         }
         else {
-          totadd++;
+          added++;
           logger->info(Logr::Debug, "Addition to zone", "name", Logging::Loggable(resourceRecord.d_name));
           newZone->add(resourceRecord, logger);
         }
@@ -429,10 +427,10 @@ bool FWCatZoneXFR::zoneTrackerIteration(const DNSName& zoneName, std::shared_ptr
     if (currentSR) {
       d_params.soaRecordContent = std::move(currentSR);
     }
-    logger->info(Logr::Info, "Zone mutations", "removals", Logging::Loggable(totremove), "additions", Logging::Loggable(totadd), "newserial", Logging::Loggable(d_params.soaRecordContent->d_st.serial));
+    logger->info(Logr::Info, "Zone mutations", "removals", Logging::Loggable(removed), "additions", Logging::Loggable(added), "newserial", Logging::Loggable(d_params.soaRecordContent->d_st.serial));
     newZone->setSerial(d_params.soaRecordContent->d_st.serial);
     newZone->setRefresh(d_params.soaRecordContent->d_st.refresh);
-    newZone->newStats(d_params.soaRecordContent->d_st.serial, fullUpdate);
+    // XXX Stats
 
     /* we need to replace the existing zone with the new one,
        but we don't want to touch anything else, especially other zones,
