@@ -4,6 +4,38 @@ Changelogs for 5.1.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.1.3
+  :released: 5th of November 2024
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14774
+    :tickets: 14693
+
+    Implement rfc6303 special zones (mostly v6 reverse mappings).
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14773
+    :tickets: 14628
+
+    Avoid duplicated waiter ids for chained requests.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14772
+    :tickets: 14554
+
+    Distinguish OS imposed limits from app imposed limits, specifically on chains.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14771
+    :tickets: 14549, 14550
+
+    json11: add include for cstdint.
+
+.. changelog::
   :version: 5.1.2
   :released: 3rd of October 2024
 

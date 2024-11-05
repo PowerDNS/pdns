@@ -20,6 +20,19 @@ There is a new metric ``tcp-overflow`` that counts the connections closed immedi
 The ``outqueries-per-query`` value reported in the log by the periodic statistics function is now reported as ``outqueries-per-query-perc`` as it is a percentage.
 A value of 1 means that on average each 100 incoming queries lead to a single query to an authoritative server.
 
+New Settings
+^^^^^^^^^^^^
+
+- The :ref:`setting-serve-rfc6303` settings has been introduced to implement :rfc:`6303`. By default this setting is enabled so this potentially changes behaviour for names inside the ``ip6.arpa`` domain.
+
+5.1.2 to 5.1.3
+--------------
+
+New Settings
+^^^^^^^^^^^^
+
+- The :ref:`setting-serve-rfc6303` settings has been introduced to implement :rfc:`6303`. By default this setting is enabled so this potentially changes behaviour for names inside the ``ip6.arpa`` domain.
+
 5.1.1 to 5.1.2, 5.0.8 to 5.0.9 and 4.9.8 to 4.9.9
 -------------------------------------------------
 
