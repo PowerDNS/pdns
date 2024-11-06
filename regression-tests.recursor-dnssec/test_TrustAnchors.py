@@ -22,7 +22,7 @@ addNTA("example.com", "some reason")
     def testTrustanchorDotServer(self):
         expected = dns.rrset.from_text_list(
             'trustanchor.server.', 86400, dns.rdataclass.CH, 'TXT',
-            ['". 20326"', '"powerdns.com. 44030"'])
+            ['". 20326 38696"', '"powerdns.com. 44030"'])
         query = dns.message.make_query('trustanchor.server', 'TXT',
                                        dns.rdataclass.CH)
         result = self.sendUDPQuery(query)
