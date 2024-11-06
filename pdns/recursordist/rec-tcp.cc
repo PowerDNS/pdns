@@ -1085,7 +1085,7 @@ LWResult::Result arecvtcp(PacketBuffer& data, const size_t len, shared_ptr<TCPIO
   return LWResult::Result::Success;
 }
 
-void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets, Logr::log_t log)
+unsigned int makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets, Logr::log_t log)
 {
   vector<string> localAddresses;
   stringtok(localAddresses, ::arg()["local-address"], " ,");
@@ -1192,4 +1192,5 @@ void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets
     first = false;
 #endif
   }
+  return localAddresses.size();
 }
