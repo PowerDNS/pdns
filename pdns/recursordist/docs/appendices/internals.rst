@@ -199,7 +199,7 @@ with a compound key on the name and type of a record. Furthermore, the
 cache is sequenced, each time a record is accessed it is moved to the
 end of the list. When cleanup is performed, we start at the beginning.
 New records also get inserted at the end. For DNS correctness, the sort
-order of the cache is case insensitive.
+order of the cache is case-insensitive.
 
 The multi index container appears in other parts of PowerDNS, and
 MTasker as well.

@@ -16,7 +16,7 @@ return records matching the description asked for.
 
 .. warning::
   However, please note that your backend can get queries in
-  aNy CAsE! If your database is case sensitive, like most are (with the
+  aNy CAsE! If your database is case-sensitive, like most are (with the
   notable exception of MySQL), you must make sure that you do find answers
   which differ only in case.
 
@@ -366,7 +366,7 @@ Methods
     on who is asking.
 
   Note that **qdomain** can be of any case and that your backend should
-  make sure it is in effect case insensitive. Furthermore, the case of the
+  make sure it is in effect case-insensitive. Furthermore, the case of the
   original question should be retained in answers returned by ``get()``!
 
   Finally, the domain_id might also be passed indicating that only
@@ -531,7 +531,7 @@ A secondary zone is pulled from a primary, after which it is 'fresh', but
 this is only temporary. In the SOA record of a zone there is a field
 which specifies the 'refresh' interval. After that interval has elapsed,
 the secondary nameserver needs to check at the primary if the serial number
-there is higher than what is stored in the backend locally.
+there is greater than what is stored in the backend locally.
 
 If this is the case, PowerDNS dubs the domain 'stale', and schedules a
 transfer of data from the remote. This transfer remains scheduled until

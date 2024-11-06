@@ -161,7 +161,7 @@ Changed settings
 Metrics
 ^^^^^^^
 The way metrics are collected has been changed to increase performance, especially when many thread are used.
-This allows for solving a long standing issue that some statistics were not updated on packet cache hits.
+This allows for solving a long-standing issue that some statistics were not updated on packet cache hits.
 This is now resolved, but has the consequence that some metrics (in particular response related ones) changed behaviour as they now also reflect packet cache hits, while they did not before.
 This affects the results shown by ``rec_control get-qtypelist`` and the ``response-by-qtype``, ``response-sizes`` and ``response-by-rcode`` items returned by the ``/api/v1/servers/localhost/statistics`` API endpoint.
 Additionally, most ``RCodes`` and ``QTypes`` that are marked ``Unassigned``, ``Reserved`` or ``Obsolete`` by IANA are not accounted, to reduce the memory consumed by these metrics.

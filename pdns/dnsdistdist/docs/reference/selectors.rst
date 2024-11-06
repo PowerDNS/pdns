@@ -303,7 +303,7 @@ Selectors can be combined via :func:`AndRule`, :func:`OrRule` and :func:`NotRule
   The second rule drops anything with more than 4 consecutive digits within a .EXAMPLE domain.
 
   Note that the query name is presented without a trailing dot to the regex.
-  The regex is applied case insensitively.
+  The regex is applied case-insensitively.
 
   :param string regex: A regular expression to match the traffic on
 
