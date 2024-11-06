@@ -1656,11 +1656,12 @@ If :ref:`setting-qname-minimization` is enabled, the fallback code in case of a 
         'name' : 'max_tcp_clients',
         'section' : 'incoming',
         'type' : LType.Uint64,
-        'default' : '128',
+        'default' : '1024',
         'help' : 'Maximum number of simultaneous TCP clients',
         'doc' : '''
 Maximum number of simultaneous incoming TCP connections allowed.
  ''',
+        'versionchanged': ('5.2.0', 'Before 5.2.0 the default was 128.'),
     },
     {
         'name' : 'max_tcp_per_client',
@@ -1670,7 +1671,7 @@ Maximum number of simultaneous incoming TCP connections allowed.
         'help' : 'If set, maximum number of TCP sessions per client (IP address)',
         'doc' : '''
 Maximum number of simultaneous incoming TCP connections allowed per client (remote IP address).
- 0 means unlimited.
+0 means unlimited.
  ''',
     },
     {
