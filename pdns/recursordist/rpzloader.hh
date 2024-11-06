@@ -20,6 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
+#include "rec-xfr.hh"
 #include "filterpo.hh"
 #include <string>
 #include "dnsrecords.hh"
@@ -29,23 +30,14 @@ extern bool g_logRPZChanges;
 // Please make sure that the struct below only contains value types since they are used as parameters in a thread ct
 struct RPZTrackerParams
 {
-  std::string name;
-  std::vector<ComboAddress> primaries;
+  ZoneXFRParams zoneXFRParams;
   boost::optional<DNSFilterEngine::Policy> defpol;
   std::string defcontent;
   bool defpolOverrideLocal{true};
   uint32_t maxTTL = std::numeric_limits<uint32_t>::max();
-  size_t zoneIdx{0};
-  TSIGTriplet tsigtriplet;
-  size_t maxReceivedMBytes{0};
-  ComboAddress localAddress;
-  uint16_t xfrTimeout{20};
-  uint32_t refreshFromConf{0};
-  std::shared_ptr<const SOARecordContent> soaRecordContent;
   std::string seedFileName;
   std::string dumpZoneFileName;
   std::string polName;
-  size_t zoneSizeHint{0};
   std::set<std::string> tags;
   uint32_t extendedErrorCode{std::numeric_limits<uint32_t>::max()};
   std::string extendedErrorExtra;
@@ -55,7 +47,6 @@ struct RPZTrackerParams
 
 std::shared_ptr<const SOARecordContent> loadRPZFromFile(const std::string& fname, const std::shared_ptr<DNSFilterEngine::Zone>& zone, const boost::optional<DNSFilterEngine::Policy>& defpol, bool defpolOverrideLocal, uint32_t maxTTL);
 void RPZIXFRTracker(RPZTrackerParams params, uint64_t configGeneration);
-bool notifyRPZTracker(const DNSName& name);
 
 struct rpzStats
 {

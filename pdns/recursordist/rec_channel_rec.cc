@@ -1934,7 +1934,7 @@ RecursorControlChannel::Answer luaconfig(bool broadcast)
       activateLuaConfig(lci);
       lci = g_luaconfs.getCopy();
       if (broadcast) {
-        startLuaConfigDelayedThreads(lci.rpzs, lci.generation);
+        startLuaConfigDelayedThreads(lci, lci.generation);
         broadcastFunction([=] { return pleaseSupplantProxyMapping(proxyMapping); });
       }
       else {
@@ -1972,7 +1972,7 @@ RecursorControlChannel::Answer luaconfig(bool broadcast)
     activateLuaConfig(lci);
     lci = g_luaconfs.getCopy();
     if (broadcast) {
-      startLuaConfigDelayedThreads(lci.rpzs, lci.generation);
+      startLuaConfigDelayedThreads(lci, lci.generation);
       broadcastFunction([pmap = std::move(proxyMapping)] { return pleaseSupplantProxyMapping(pmap); });
     }
     else {

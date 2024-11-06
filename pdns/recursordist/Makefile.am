@@ -198,6 +198,8 @@ pdns_recursor_SOURCES = \
 	rec-tcounters.cc rec-tcounters.hh \
 	rec-tcp.cc \
 	rec-tcpout.cc rec-tcpout.hh \
+	rec-xfr.cc rec-xfr.hh \
+	rec-xfrtracker.cc \
 	rec-zonetocache.cc rec-zonetocache.hh \
 	rec_channel.cc rec_channel.hh rec_metrics.hh \
 	rec_channel_rec.cc \
@@ -330,6 +332,7 @@ testrunner_SOURCES = \
 	rec-system-resolve.hh rec-system-resolve.cc \
 	rec-taskqueue.cc rec-taskqueue.hh \
 	rec-tcounters.cc rec-tcounters.hh \
+	rec-xfrtracker.cc \
 	rec-zonetocache.cc rec-zonetocache.hh \
 	recpacketcache.cc recpacketcache.hh \
 	recursor_cache.cc recursor_cache.hh \

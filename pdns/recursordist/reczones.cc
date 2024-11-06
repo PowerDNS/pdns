@@ -313,12 +313,12 @@ static void processForwardZones(shared_ptr<SyncRes::domainmap_t>& newMap, Logr::
   }
 }
 
-static void processApiZonesFile(shared_ptr<SyncRes::domainmap_t>& newMap, shared_ptr<notifyset_t>& newSet, Logr::log_t log)
+static void processApiZonesFile(const string& file, shared_ptr<SyncRes::domainmap_t>& newMap, shared_ptr<notifyset_t>& newSet, Logr::log_t log)
 {
   if (::arg()["api-config-dir"].empty()) {
     return;
   }
-  const auto filename = ::arg()["api-config-dir"] + "/apizones";
+  const auto filename = ::arg()["api-config-dir"] + "/" + file;
   struct stat statStruct
   {
   };
@@ -602,7 +602,11 @@ std::tuple<std::shared_ptr<SyncRes::domainmap_t>, std::shared_ptr<notifyset_t>> 
   processForwardZones(newMap, log);
   processForwardZonesFile(newMap, newSet, log);
   if (yaml) {
-    processApiZonesFile(newMap, newSet, log);
+    auto lci = g_luaconfs.getLocal();
+    processApiZonesFile("apizones", newMap, newSet, log);
+    for (const auto& catz : lci->catalogzones) {
+      processApiZonesFile("catzone." + catz.d_catz->getName().toString(), newMap, newSet, log);
+    }
   }
   processExportEtcHosts(newMap, log);
   processServeRFC1918(newMap, log);

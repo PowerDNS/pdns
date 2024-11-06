@@ -621,7 +621,7 @@ void handleNewTCPQuestion(int fileDesc, FDMultiplexer::funcparam_t&);
 void makeUDPServerSockets(deferredAdd_t& deferredAdds, Logr::log_t);
 string doTraceRegex(FDWrapper file, vector<string>::const_iterator begin, vector<string>::const_iterator end);
 extern bool g_luaSettingsInYAML;
-void startLuaConfigDelayedThreads(const vector<RPZTrackerParams>& rpzs, uint64_t generation);
+void startLuaConfigDelayedThreads(const LuaConfigItems& luaConfig, uint64_t generation);
 void activateLuaConfig(LuaConfigItems& lci);
 unsigned int authWaitTimeMSec(const std::unique_ptr<MT_t>& mtasker);
 

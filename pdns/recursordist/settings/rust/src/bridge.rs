@@ -67,6 +67,27 @@ impl Default for ApiZones {
     }
 }
 
+impl Default for XFR {
+    fn default() -> Self {
+        let deserialized: XFR = serde_yaml::from_str("").unwrap();
+        deserialized
+    }
+}
+
+impl Default for FCZDefault {
+    fn default() -> Self {
+        let deserialized: FCZDefault = serde_yaml::from_str("").unwrap();
+        deserialized
+    }
+}
+
+impl Default for ForwardingCatalogZone {
+    fn default() -> Self {
+        let deserialized: ForwardingCatalogZone = serde_yaml::from_str("").unwrap();
+        deserialized
+    }
+}
+
 pub fn validate_socket_address(field: &str, val: &String) -> Result<(), ValidationError> {
     let sa = SocketAddr::from_str(val);
     if sa.is_err() {
@@ -634,6 +655,58 @@ impl TSIGTriplet {
     }
 }
 
+impl ForwardingCatalogZone {
+    pub fn validate(&self, _field: &str) -> Result<(), ValidationError> {
+        Ok(())
+    }
+
+    fn to_yaml_map(&self) -> serde_yaml::Value {
+        let mut map = serde_yaml::Mapping::new();
+        inserts(&mut map, "zone", &self.zone);
+        insertb(&mut map, "notify_allowed", self.notify_allowed);
+
+        let mut xfrmap = serde_yaml::Mapping::new();
+        let mut addrs = serde_yaml::Sequence::new();
+        for address in &self.xfr.addresses {
+            addrs.push(serde_yaml::Value::String(address.to_owned()));
+        }
+        insertseq(&mut xfrmap, "addresses", &addrs);
+        insertu32(&mut xfrmap, "zoneSizeHint", self.xfr.zoneSizeHint);
+        let mut tsigmap = serde_yaml::Mapping::new();
+        inserts(&mut tsigmap, "name", &self.xfr.tsig.name);
+        inserts(&mut tsigmap, "algo", &self.xfr.tsig.algo);
+        inserts(&mut tsigmap, "secret", &self.xfr.tsig.secret);
+        xfrmap.insert(
+            serde_yaml::Value::String("tsig".to_owned()),
+            serde_yaml::Value::Mapping(tsigmap),
+        );
+        insertu32(&mut xfrmap, "refresh", self.xfr.refresh);
+        insertu32(&mut xfrmap, "maxReceivedMBytes", self.xfr.maxReceivedMBytes);
+        inserts(&mut xfrmap, "localAddress", &self.xfr.localAddress);
+        insertu32(&mut xfrmap, "axfrTimeout", self.xfr.axfrTimeout);
+        map.insert(
+            serde_yaml::Value::String("xfr".to_owned()),
+            serde_yaml::Value::Mapping(xfrmap),
+        );
+
+        let mut groupseq = serde_yaml::Sequence::new();
+        for entry in &self.groups {
+            let mut submap = serde_yaml::Mapping::new();
+            inserts(&mut submap, "name", &entry.name);
+            let mut fwseq = serde_yaml::Sequence::new();
+            for forwarder in &entry.forwarders {
+                fwseq.push(serde_yaml::Value::String(forwarder.to_owned()));
+            }
+            insertseq(&mut submap, "forwarders", &fwseq);
+            insertb(&mut submap, "recurse", entry.recurse);
+            insertb(&mut submap, "notify_allowed", entry.notify_allowed);
+            groupseq.push(serde_yaml::Value::Mapping(submap));
+        }
+        insertseq(&mut map, "groups", &groupseq);
+        serde_yaml::Value::Mapping(map)
+    }
+}
+
 #[allow(clippy::ptr_arg)] //# Avoids creating a rust::Slice object on the C++ side.
 pub fn validate_auth_zones(field: &str, vec: &Vec<AuthZone>) -> Result<(), ValidationError> {
     validate_vec(field, vec, |field, element| element.validate(field))
@@ -855,6 +928,13 @@ pub fn map_to_yaml_string(vec: &Vec<OldStyle>) -> Result<String, serde_yaml::Err
                         }
                         serde_yaml::Value::Sequence(seq)
                     }
+                    "Vec<ForwardingCatalogZone>" => {
+                        let mut seq = serde_yaml::Sequence::new();
+                        for element in &entry.value.vec_forwardingcatalogzone_val {
+                            seq.push(element.to_yaml_map());
+                        }
+                        serde_yaml::Value::Sequence(seq)
+                    }
                     other => serde_yaml::Value::String(
                         "map_to_yaml_string: Unknown type: ".to_owned() + other,
                     ),
@@ -993,6 +1073,14 @@ pub fn api_delete_zone(path: &str, zone: &str) -> Result<(), std::io::Error> {
     api_write_zones(path, &zones)
 }
 
+// This function is called from C++, it needs to acquire the lock
+pub fn api_delete_zones(path: &str) -> Result<(), std::io::Error> {
+    let _lock = LOCK.lock().unwrap();
+    let mut zones = api_read_zones_locked(path, true)?;
+    zones.forward_zones.clear();
+    api_write_zones(path, &zones)
+}
+
 pub fn def_pb_export_qtypes() -> Vec<String> {
     vec![
         String::from("A"),
@@ -1100,3 +1188,4 @@ pub fn validate_recordcache(
 pub fn validate_snmp(_snmp: &recsettings::Snmp) -> Result<(), ValidationError> {
     Ok(())
 }
+

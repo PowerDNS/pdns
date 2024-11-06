@@ -310,7 +310,8 @@ void pdns::settings::rec::processAPIDir(const string& includeDirOnCommandLine, p
   possiblyConvertForwardsandAuths(includeDir, apiDir, log);
 }
 
-static void addToAllowNotifyFor(Recursorsettings& settings, const rust::Vec<::pdns::rust::settings::rec::ForwardZone>& vec)
+template <typename T>
+static void addToAllowNotifyFor(Recursorsettings& settings, const rust::Vec<T>& vec)
 {
   for (const auto& item : vec) {
     if (item.notify_allowed) {
@@ -342,6 +343,7 @@ pdns::settings::rec::YamlSettingsStatus pdns::settings::rec::readYamlSettings(co
     // run --config, while they aren't actually there in any config file.
     addToAllowNotifyFor(yamlstruct, yamlstruct.recursor.forward_zones);
     addToAllowNotifyFor(yamlstruct, yamlstruct.recursor.forward_zones_recurse);
+    addToAllowNotifyFor(yamlstruct, yamlstruct.recursor.forwarding_catalog_zones);
     yamlstruct.validate();
     settings = std::move(yamlstruct);
     return YamlSettingsStatus::OK;
@@ -541,7 +543,7 @@ static void processLine(const std::string& arg, FieldMap& map, bool mainFile)
   ::rust::String section;
   ::rust::String fieldname;
   ::rust::String type_name;
-  pdns::rust::settings::rec::Value rustvalue = {false, 0, 0.0, "", {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
+  pdns::rust::settings::rec::Value rustvalue = {false, 0, 0.0, "", {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}};
   if (pdns::settings::rec::oldKVToBridgeStruct(var, val, section, fieldname, type_name, rustvalue)) {
     auto overriding = !mainFile && !incremental && !simpleRustType(type_name);
     auto [existing, inserted] = map.emplace(std::pair{std::pair{section, fieldname}, pdns::rust::settings::rec::OldStyle{section, fieldname, var, std::move(type_name), rustvalue, overriding}});
@@ -671,6 +673,7 @@ std::string pdns::settings::rec::defaultsToYaml()
   def("recordcache", "zonetocaches", "Vec<ZoneToCache>");
   def("recursor", "allowed_additional_qtypes", "Vec<AllowedAdditionalQType>");
   def("incoming", "proxymappings", "Vec<ProxyMapping>");
+  def("recursor", "forwarding_catalog_zones", "Vec<ForwardingCatalogZone>");
   // End of should be generated XXX
 
   // Convert the map to a vector, as CXX does not have any dictionary like support.
@@ -713,7 +716,12 @@ std::string pdns::settings::rec::defaultsToYaml()
         oldname = std::string(iter->second.old_name);
       }
       res += "##### ";
-      res += arg().getHelp(oldname);
+      auto help = arg().getHelp(oldname);
+      if (help.empty()) {
+        replace(oldname.begin(), oldname.end(), '_', '-');
+        help = arg().getHelp(oldname);
+      }
+      res += help;
       res += '\n';
     }
     if (sectionChange) {
@@ -870,10 +878,10 @@ void fromLuaToRust(const vector<RPZTrackerParams>& rpzs, pdns::rust::settings::r
       .seedFile = "",
     };
 
-    for (const auto& address : rpz.primaries) {
+    for (const auto& address : rpz.zoneXFRParams.primaries) {
       rustrpz.addresses.emplace_back(address.toStringWithPort());
     }
-    rustrpz.name = rpz.name;
+    rustrpz.name = rpz.zoneXFRParams.name;
     rustrpz.defcontent = rpz.defcontent;
     if (rpz.defpol) {
       rustrpz.defpol = cvt(rpz.defpol->d_kind);
@@ -890,14 +898,14 @@ void fromLuaToRust(const vector<RPZTrackerParams>& rpzs, pdns::rust::settings::r
       rustrpz.tags.emplace_back(tag);
     }
     rustrpz.overridesGettag = rpz.defpolOverrideLocal;
-    rustrpz.zoneSizeHint = rpz.zoneSizeHint;
-    assign(rustrpz.tsig, rpz.tsigtriplet);
-    rustrpz.refresh = rpz.refreshFromConf;
-    rustrpz.maxReceivedMBytes = rpz.maxReceivedMBytes;
-    if (rpz.localAddress != ComboAddress()) {
-      rustrpz.localAddress = rpz.localAddress.toString();
+    rustrpz.zoneSizeHint = rpz.zoneXFRParams.zoneSizeHint;
+    assign(rustrpz.tsig, rpz.zoneXFRParams.tsigtriplet);
+    rustrpz.refresh = rpz.zoneXFRParams.refreshFromConf;
+    rustrpz.maxReceivedMBytes = rpz.zoneXFRParams.maxReceivedMBytes;
+    if (rpz.zoneXFRParams.localAddress != ComboAddress()) {
+      rustrpz.localAddress = rpz.zoneXFRParams.localAddress.toString();
     }
-    rustrpz.axfrTimeout = rpz.xfrTimeout;
+    rustrpz.axfrTimeout = rpz.zoneXFRParams.xfrTimeout;
     rustrpz.dumpFile = rpz.dumpZoneFileName;
     rustrpz.seedFile = rpz.seedFileName;
 
@@ -1181,9 +1189,9 @@ void fromRustToLuaConfig(const rust::Vec<pdns::rust::settings::rec::RPZ>& rpzs, 
     RPZTrackerParams params;
     for (const auto& address : rpz.addresses) {
       ComboAddress combo = ComboAddress(std::string(address), 53);
-      params.primaries.emplace_back(combo.toStringWithPort());
+      params.zoneXFRParams.primaries.emplace_back(combo.toStringWithPort());
     }
-    params.name = std::string(rpz.name);
+    params.zoneXFRParams.name = std::string(rpz.name);
     params.polName = std::string(rpz.policyName);
 
     if (!rpz.defpol.empty()) {
@@ -1217,14 +1225,14 @@ void fromRustToLuaConfig(const rust::Vec<pdns::rust::settings::rec::RPZ>& rpzs, 
       params.tags.emplace(std::string(tag));
     }
     params.defpolOverrideLocal = rpz.overridesGettag;
-    params.zoneSizeHint = rpz.zoneSizeHint;
-    assign(params.tsigtriplet, rpz.tsig);
-    params.refreshFromConf = rpz.refresh;
-    params.maxReceivedMBytes = rpz.maxReceivedMBytes;
+    params.zoneXFRParams.zoneSizeHint = rpz.zoneSizeHint;
+    assign(params.zoneXFRParams.tsigtriplet, rpz.tsig);
+    params.zoneXFRParams.refreshFromConf = rpz.refresh;
+    params.zoneXFRParams.maxReceivedMBytes = rpz.maxReceivedMBytes;
     if (!rpz.localAddress.empty()) {
-      params.localAddress = ComboAddress(std::string(rpz.localAddress));
+      params.zoneXFRParams.localAddress = ComboAddress(std::string(rpz.localAddress));
     }
-    params.xfrTimeout = rpz.axfrTimeout;
+    params.zoneXFRParams.xfrTimeout = rpz.axfrTimeout;
     params.dumpZoneFileName = std::string(rpz.dumpFile);
     params.seedFileName = std::string(rpz.seedFile);
     luaConfig.rpzs.emplace_back(params);
@@ -1297,6 +1305,32 @@ void fromRustToLuaConfig(const rust::Vec<pdns::rust::settings::rec::ProxyMapping
     proxyMapping.insert_or_assign(subnet, {address, smn});
   }
 }
+
+void fromRustToLuaConfig(const rust::Vec<pdns::rust::settings::rec::ForwardingCatalogZone>& catzones, std::vector<FWCatalogZone>& lua)
+{
+  for (const auto& catz : catzones) {
+    FWCatalogZone fwcatz;
+    for (const auto& def : catz.groups) {
+      fwcatz.d_defaults.emplace(def.name, def);
+    }
+    fwcatz.d_catz = std::make_shared<CatalogZone>();
+
+    for (const auto& address : catz.xfr.addresses) {
+      ComboAddress combo = ComboAddress(std::string(address), 53);
+      fwcatz.d_params.primaries.emplace_back(combo.toStringWithPort());
+    }
+    fwcatz.d_params.name = std::string(catz.zone);
+    fwcatz.d_params.zoneSizeHint = catz.xfr.zoneSizeHint;
+    assign(fwcatz.d_params.tsigtriplet, catz.xfr.tsig);
+    fwcatz.d_params.refreshFromConf = catz.xfr.refresh;
+    fwcatz.d_params.maxReceivedMBytes = catz.xfr.maxReceivedMBytes;
+    if (!catz.xfr.localAddress.empty()) {
+      fwcatz.d_params.localAddress = ComboAddress(std::string(catz.xfr.localAddress));
+    }
+    fwcatz.d_params.xfrTimeout = catz.xfr.axfrTimeout;
+    lua.emplace_back(std::move(fwcatz));
+  }
+}
 }
 
 void pdns::settings::rec::fromBridgeStructToLuaConfig(const pdns::rust::settings::rec::Recursorsettings& settings, LuaConfigItems& luaConfig, ProxyMapping& proxyMapping)
@@ -1320,6 +1354,7 @@ void pdns::settings::rec::fromBridgeStructToLuaConfig(const pdns::rust::settings
   fromRustToLuaConfig(settings.recursor.sortlists, luaConfig.sortlist);
   fromRustToLuaConfig(settings.recordcache.zonetocaches, luaConfig.ztcConfigs);
   fromRustToLuaConfig(settings.recursor.allowed_additional_qtypes, luaConfig.allowAdditionalQTypes);
+  fromRustToLuaConfig(settings.recursor.forwarding_catalog_zones, luaConfig.catalogzones);
   fromRustToLuaConfig(settings.incoming.proxymappings, proxyMapping);
 }
 
@@ -1356,6 +1391,7 @@ bool pdns::settings::rec::luaItemSet(const pdns::rust::settings::rec::Recursorse
   alldefault = alldefault && settings.logging.dnstap_nod_framestream_servers.empty();
   alldefault = alldefault && settings.recursor.sortlists.empty();
   alldefault = alldefault && settings.recursor.rpzs.empty();
+  alldefault = alldefault && settings.recursor.forwarding_catalog_zones.empty();
   alldefault = alldefault && settings.recordcache.zonetocaches.empty();
   alldefault = alldefault && settings.recursor.allowed_additional_qtypes.empty();
   alldefault = alldefault && settings.incoming.proxymappings.empty();
@@ -1389,6 +1425,10 @@ pdns::settings::rec::YamlSettingsStatus pdns::settings::rec::tryReadYAML(const s
       const std::string err = "YAML settings include values originally in Lua but also sets `recursor.lua_config_file`. This is unsupported";
       SLOG(g_log << Logger::Error << err << endl,
            startupLog->info(Logr::Error, err, "configname", Logging::Loggable(yamlconfigname)));
+      yamlstatus = pdns::settings::rec::PresentButFailed;
+    }
+    else if (!settings.recursor.forwarding_catalog_zones.empty() && settings.webservice.api_dir.empty()) {
+      startupLog->info(Logr::Error, "Catalog zones defined, but webservice.api_dir is not set", "configname", Logging::Loggable(yamlconfigname));
       yamlstatus = pdns::settings::rec::PresentButFailed;
     }
     else if (setGlobals) {

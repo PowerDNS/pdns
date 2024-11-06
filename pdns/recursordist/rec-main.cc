@@ -2321,7 +2321,7 @@ static int serviceMain(Logr::log_t log)
 
   {
     auto lci = g_luaconfs.getCopy();
-    startLuaConfigDelayedThreads(lci.rpzs, lci.generation);
+    startLuaConfigDelayedThreads(lci, lci.generation);
   }
 
   RecThreadInfo::makeThreadPipes(log);
@@ -2875,7 +2875,7 @@ static void recursorThread()
       checkFrameStreamExport(luaconfsLocal, luaconfsLocal->nodFrameStreamExportConfig, t_nodFrameStreamServersInfo);
 #endif
       for (const auto& rpz : luaconfsLocal->rpzs) {
-        string name = rpz.polName.empty() ? (rpz.primaries.empty() ? "rpzFile" : rpz.name) : rpz.polName;
+        string name = rpz.polName.empty() ? (rpz.zoneXFRParams.primaries.empty() ? "rpzFile" : rpz.zoneXFRParams.name) : rpz.polName;
         t_Counters.at(rec::PolicyNameHits::policyName).counts[name] = 0;
       }
     }
@@ -3402,10 +3402,10 @@ struct WipeCacheResult wipeCaches(const DNSName& canon, bool subtree, uint16_t q
   return res;
 }
 
-void startLuaConfigDelayedThreads(const vector<RPZTrackerParams>& rpzs, uint64_t generation)
+void startLuaConfigDelayedThreads(const LuaConfigItems& luaConfig, uint64_t generation)
 {
-  for (const auto& rpzPrimary : rpzs) {
-    if (rpzPrimary.primaries.empty()) {
+  for (const auto& rpzPrimary : luaConfig.rpzs) {
+    if (rpzPrimary.zoneXFRParams.primaries.empty()) {
       continue;
     }
     try {
@@ -3425,6 +3425,27 @@ void startLuaConfigDelayedThreads(const vector<RPZTrackerParams>& rpzs, uint64_t
       exit(1); // NOLINT(concurrency-mt-unsafe)
     }
   }
+  for (const auto& fcz : luaConfig.catalogzones) {
+    if (fcz.d_params.primaries.empty()) {
+      continue;
+    }
+    try {
+      // ZoneXFRTracker uses call by value for its args. That is essential, since we want copies so
+      // that ZoneXFRTracker gets values with the proper lifetime.
+      std::thread theThread(FWCatZoneXFR::zoneXFRTracker, fcz.d_params, generation);
+      theThread.detach();
+    }
+    catch (const std::exception& e) {
+      SLOG(g_log << Logger::Error << "Problem starting ZoneIXFRTracker thread: " << e.what() << endl,
+           g_slog->withName("zone")->error(Logr::Error, e.what(), "Exception starting ZoneXFRTracker thread", "exception", Logging::Loggable("std::exception")));
+      exit(1); // NOLINT(concurrency-mt-unsafe)
+    }
+    catch (const PDNSException& e) {
+      SLOG(g_log << Logger::Error << "Problem starting ZoneIXFRTracker thread: " << e.reason << endl,
+           g_slog->withName("zone")->error(Logr::Error, e.reason, "Exception starting ZoneXFRTracker thread", "exception", Logging::Loggable("PDNSException")));
+      exit(1); // NOLINT(concurrency-mt-unsafe)
+    }
+  }
 }
 
 static void* pleaseInitPolCounts(const string& name)
@@ -3437,13 +3458,13 @@ static void* pleaseInitPolCounts(const string& name)
 
 static bool activateRPZFile(const RPZTrackerParams& params, LuaConfigItems& lci, shared_ptr<DNSFilterEngine::Zone>& zone)
 {
-  auto log = lci.d_slog->withValues("file", Logging::Loggable(params.name));
+  auto log = lci.d_slog->withValues("file", Logging::Loggable(params.zoneXFRParams.name));
 
   zone->setName(params.polName.empty() ? "rpzFile" : params.polName);
   try {
     SLOG(g_log << Logger::Warning << "Loading RPZ from file '" << params.name << "'" << endl,
          log->info(Logr::Info, "Loading RPZ from file"));
-    loadRPZFromFile(params.name, zone, params.defpol, params.defpolOverrideLocal, params.maxTTL);
+    loadRPZFromFile(params.zoneXFRParams.name, zone, params.defpol, params.defpolOverrideLocal, params.maxTTL);
     SLOG(g_log << Logger::Warning << "Done loading RPZ from file '" << params.name << "'" << endl,
          log->info(Logr::Info, "Done loading RPZ from file"));
   }
@@ -3458,20 +3479,20 @@ static bool activateRPZFile(const RPZTrackerParams& params, LuaConfigItems& lci,
 
 static void activateRPZPrimary(RPZTrackerParams& params, LuaConfigItems& lci, shared_ptr<DNSFilterEngine::Zone>& zone, const DNSName& domain)
 {
-  auto log = lci.d_slog->withValues("seedfile", Logging::Loggable(params.seedFileName), "zone", Logging::Loggable(params.name));
+  auto log = lci.d_slog->withValues("seedfile", Logging::Loggable(params.seedFileName), "zone", Logging::Loggable(params.zoneXFRParams.name));
 
   if (!params.seedFileName.empty()) {
     SLOG(g_log << Logger::Info << "Pre-loading RPZ zone " << params.name << " from seed file '" << params.seedFileName << "'" << endl,
          log->info(Logr::Info, "Pre-loading RPZ zone from seed file"));
     try {
-      params.soaRecordContent = loadRPZFromFile(params.seedFileName, zone, params.defpol, params.defpolOverrideLocal, params.maxTTL);
+      params.zoneXFRParams.soaRecordContent = loadRPZFromFile(params.seedFileName, zone, params.defpol, params.defpolOverrideLocal, params.maxTTL);
 
       if (zone->getDomain() != domain) {
-        throw PDNSException("The RPZ zone " + params.name + " loaded from the seed file (" + zone->getDomain().toString() + ") does not match the one passed in parameter (" + domain.toString() + ")");
+        throw PDNSException("The RPZ zone " + params.zoneXFRParams.name + " loaded from the seed file (" + zone->getDomain().toString() + ") does not match the one passed in parameter (" + domain.toString() + ")");
       }
 
-      if (params.soaRecordContent == nullptr) {
-        throw PDNSException("The RPZ zone " + params.name + " loaded from the seed file (" + zone->getDomain().toString() + ") has no SOA record");
+      if (params.zoneXFRParams.soaRecordContent == nullptr) {
+        throw PDNSException("The RPZ zone " + params.zoneXFRParams.name + " loaded from the seed file (" + zone->getDomain().toString() + ") has no SOA record");
       }
     }
     catch (const PDNSException& e) {
@@ -3491,8 +3512,8 @@ static void activateRPZs(LuaConfigItems& lci)
 {
   for (auto& params : lci.rpzs) {
     auto zone = std::make_shared<DNSFilterEngine::Zone>();
-    if (params.zoneSizeHint != 0) {
-      zone->reserve(params.zoneSizeHint);
+    if (params.zoneXFRParams.zoneSizeHint != 0) {
+      zone->reserve(params.zoneXFRParams.zoneSizeHint);
     }
     if (!params.tags.empty()) {
       std::unordered_set<std::string> tags;
@@ -3511,19 +3532,34 @@ static void activateRPZs(LuaConfigItems& lci)
     zone->setIncludeSOA(params.includeSOA);
     zone->setIgnoreDuplicates(params.ignoreDuplicates);
 
-    if (params.primaries.empty()) {
+    if (params.zoneXFRParams.primaries.empty()) {
       if (activateRPZFile(params, lci, zone)) {
         lci.dfe.addZone(zone);
       }
     }
     else {
-      DNSName domain(params.name);
+      DNSName domain(params.zoneXFRParams.name);
       zone->setDomain(domain);
-      zone->setName(params.polName.empty() ? params.name : params.polName);
-      params.zoneIdx = lci.dfe.addZone(zone);
+      zone->setName(params.polName.empty() ? params.zoneXFRParams.name : params.polName);
+      params.zoneXFRParams.zoneIdx = lci.dfe.addZone(zone);
       activateRPZPrimary(params, lci, zone, domain);
     }
     broadcastFunction([name = zone->getName()] { return pleaseInitPolCounts(name); });
+  }
+}
+
+static void activateForwardingCatalogZones(LuaConfigItems& lci)
+{
+  size_t idx = 0;
+  for (auto& fcz : lci.catalogzones) {
+
+    auto& params = fcz.d_params;
+    params.zoneIdx = idx++;
+    auto zone = std::make_shared<CatalogZone>();
+    // zoneSizeHint ignored
+    DNSName domain(params.name);
+    zone->setName(domain);
+    fcz.d_catz = zone;
   }
 }
 
@@ -3540,5 +3576,6 @@ void activateLuaConfig(LuaConfigItems& lci)
     warnIfDNSSECDisabled("Warning: adding Negative Trust Anchor for DNSSEC, but dnssec is set to 'off'!");
   }
   activateRPZs(lci);
+  activateForwardingCatalogZones(lci);
   g_luaconfs.setState(lci);
 }
