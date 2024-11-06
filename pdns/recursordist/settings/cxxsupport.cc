@@ -879,7 +879,7 @@ void fromLuaToRust(const vector<RPZTrackerParams>& rpzs, pdns::rust::settings::r
     };
 
     for (const auto& address : rpz.zoneXFRParams.primaries) {
-      rustrpz.addresses.emplace_back(address.toStringWithPort());
+      rustrpz.addresses.emplace_back(address);
     }
     rustrpz.name = rpz.zoneXFRParams.name;
     rustrpz.defcontent = rpz.defcontent;
@@ -1188,8 +1188,7 @@ void fromRustToLuaConfig(const rust::Vec<pdns::rust::settings::rec::RPZ>& rpzs, 
   for (const auto& rpz : rpzs) {
     RPZTrackerParams params;
     for (const auto& address : rpz.addresses) {
-      ComboAddress combo = ComboAddress(std::string(address), 53);
-      params.zoneXFRParams.primaries.emplace_back(combo.toStringWithPort());
+      params.zoneXFRParams.primaries.emplace_back(address);
     }
     params.zoneXFRParams.name = std::string(rpz.name);
     params.polName = std::string(rpz.policyName);
@@ -1316,8 +1315,7 @@ void fromRustToLuaConfig(const rust::Vec<pdns::rust::settings::rec::ForwardingCa
     fwcatz.d_catz = std::make_shared<CatalogZone>();
 
     for (const auto& address : catz.xfr.addresses) {
-      ComboAddress combo = ComboAddress(std::string(address), 53);
-      fwcatz.d_params.primaries.emplace_back(combo.toStringWithPort());
+      fwcatz.d_params.primaries.emplace_back(address);
     }
     fwcatz.d_params.name = std::string(catz.zone);
     fwcatz.d_params.zoneSizeHint = catz.xfr.zoneSizeHint;

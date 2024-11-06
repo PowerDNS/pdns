@@ -186,7 +186,7 @@ fn validate_address_family(addrfield: &str, localfield: &str, vec: &[String], lo
         let msg = format!("{}: cannot be empty", addrfield);
         return Err(ValidationError { msg });
     }
-    validate_vec(addrfield, vec, validate_socket_address)?;
+    validate_vec(addrfield, vec, validate_socket_address_or_name)?;
     if local_address.is_empty() {
         return Ok(());
     }
@@ -200,7 +200,11 @@ fn validate_address_family(addrfield: &str, localfield: &str, vec: &[String], lo
         let mut wrong = false;
         let sa = SocketAddr::from_str(addr_str);
         if sa.is_err() {
-            let ip = IpAddr::from_str(addr_str).unwrap();
+            let ip = IpAddr::from_str(addr_str);
+            if ip.is_err() { // It is likely a name
+                continue;
+            }
+            let ip = ip.unwrap();
             if local.is_ipv4() != ip.is_ipv4() || local.is_ipv6() != ip.is_ipv6() {
                 wrong = true;
             }
@@ -656,7 +660,11 @@ impl TSIGTriplet {
 }
 
 impl ForwardingCatalogZone {
-    pub fn validate(&self, _field: &str) -> Result<(), ValidationError> {
+    pub fn validate(&self, field: &str) -> Result<(), ValidationError> {
+        self.xfr.tsig.validate(&(field.to_owned() + ".xfr.tsig"))?;
+        if !self.xfr.addresses.is_empty() {
+            validate_address_family(&(field.to_owned() + ".xfr.addresses"), &(field.to_owned() + ".xfr.localAddress"), &self.xfr.addresses, &self.xfr.localAddress)?;
+        }
         Ok(())
     }
 

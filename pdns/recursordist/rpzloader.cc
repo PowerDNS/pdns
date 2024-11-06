@@ -32,6 +32,7 @@
 #include "zoneparser-tng.hh"
 #include "threadname.hh"
 #include "query-local-address.hh"
+#include "rec-system-resolve.hh"
 
 Netmask makeNetmaskFromRPZ(const DNSName& name)
 {
@@ -443,7 +444,8 @@ static void preloadRPZFIle(RPZTrackerParams& params, const DNSName& zoneName, st
     std::shared_ptr<DNSFilterEngine::Zone> newZone = std::make_shared<DNSFilterEngine::Zone>(*oldZone);
     for (const auto& primary : params.zoneXFRParams.primaries) {
       try {
-        params.zoneXFRParams.soaRecordContent = loadRPZFromServer(logger, primary, zoneName, newZone, params.defpol, params.defpolOverrideLocal, params.maxTTL, params.zoneXFRParams.tsigtriplet, params.zoneXFRParams.maxReceivedMBytes, params.zoneXFRParams.localAddress, params.zoneXFRParams.xfrTimeout);
+        auto combo = pdns::fromNameOrIP(primary, 53, logger);
+        params.zoneXFRParams.soaRecordContent = loadRPZFromServer(logger, combo, zoneName, newZone, params.defpol, params.defpolOverrideLocal, params.maxTTL, params.zoneXFRParams.tsigtriplet, params.zoneXFRParams.maxReceivedMBytes, params.zoneXFRParams.localAddress, params.zoneXFRParams.xfrTimeout);
         newZone->setSerial(params.zoneXFRParams.soaRecordContent->d_st.serial);
         newZone->setRefresh(params.zoneXFRParams.soaRecordContent->d_st.refresh);
         refresh = std::max(params.zoneXFRParams.refreshFromConf != 0 ? params.zoneXFRParams.refreshFromConf : newZone->getRefresh(), 1U);
@@ -528,7 +530,8 @@ static bool RPZTrackerIteration(RPZTrackerParams& params, const DNSName& zoneNam
   }
 
   vector<pair<vector<DNSRecord>, vector<DNSRecord>>> deltas;
-  for (const auto& primary : params.zoneXFRParams.primaries) {
+  for (const auto& ipOrName : params.zoneXFRParams.primaries) {
+    auto primary = pdns::fromNameOrIP(ipOrName, 53, logger);
     auto soa = getRR<SOARecordContent>(dnsRecord);
     auto serial = soa ? soa->d_st.serial : 0;
     SLOG(g_log << Logger::Info << "Getting IXFR deltas for " << zoneName << " from " << primary.toStringWithPort() << ", our serial: " << serial << endl,
