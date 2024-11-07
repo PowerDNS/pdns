@@ -122,6 +122,7 @@ public:
 
   bool couldBeCached() const; //!< returns 0 if this query should bypass the packet cache
   bool hasEDNSSubnet() const;
+  bool wantsEDNSZoneVersion() const;
   bool hasEDNS() const;
   bool hasEDNSCookie() const;
   bool hasWellFormedEDNSCookie() const;
@@ -206,6 +207,7 @@ private:
   bool d_tsigtimersonly{false};
   bool d_wantsnsid{false};
   bool d_haveednssubnet{false};
+  bool d_wantszoneversion{false};
   bool d_haveednscookie{false};
   bool d_ednscookievalid{false};
   bool d_haveednssection{false};
