@@ -215,7 +215,7 @@ incoming-tls:
     - name: "proxy-protocol-outside-tls"
       type: "bool"
       default: "false"
-    - name: "ignore_configuration_errors"
+    - name: "ignore-configuration-errors"
       type: "bool"
       default: "false"
 
@@ -227,9 +227,27 @@ outgoing-tls:
     - name: "subject-name"
       type: "String"
       default: ""
+    - name: "subject-address"
+      type: "String"
+      default: ""
     - name: "validate-certificate"
       type: "bool"
       default: "true"
+    - name: "ca-store"
+      type: "String"
+      default: ""
+    - name: "ciphers"
+      type: "String"
+      default: ""
+    - name: "ciphers-tls-13"
+      type: "String"
+      default: ""
+    - name: "release-buffers"
+      type: "bool"
+      default: "true"
+    - name: "enable-renegotiation"
+      type: "bool"
+      default: "false"
 
 doh-custom-response-header:
   parameters:
@@ -360,12 +378,114 @@ binds:
       type: "Vec<String>"
       default: true
 
+outgoing-tcp:
+  parameters:
+    - name: "connect-timeout"
+      type: "u16"
+      default: 5
+    - name: "send-timeout"
+      type: "u16"
+      default: 30
+    - name: "receive-timeout"
+      type: "u16"
+      default: 30
+    - name: "fast-open"
+      type: "bool"
+      default: "false"
+
+lazy-health-check:
+  parameters:
+    - name: "interval"
+      type: "u16"
+      default: 30
+    - name: "min-sample-count"
+      type: "u16"
+      default: 1
+    - name: "mode"
+      type: "String"
+      default: "TimeoutOrServFail"
+    - name: "sample-size"
+      type: "u16"
+      default: 100
+    - name: "threshold"
+      type: "u16"
+      default: 20
+    - name: "use-exponential-back-off"
+      type: "bool"
+      default: "false"
+    - name: "max-back-off"
+      type: "u16"
+      default: 3600
+
+health-check:
+  parameters:
+    - name: "mode"
+      type: "String"
+      default: "auto"
+    - name: "qclass"
+      type: "String"
+      default: "IN"
+    - name: "qtype"
+      type: "String"
+      default: "A"
+    - name: "function"
+      type: "String"
+      default: ""
+    - name: "timeout"
+      type: "u16"
+      default: 1000
+    - name: "set-cd"
+      type: "bool"
+      default: "false"
+    - name: "max-failures"
+      type: "u8"
+      default: "1"
+    - name: "rise"
+      type: "u8"
+      default: "1"
+    - name: "interval"
+      type: "u32"
+      default: "1"
+    - name: "must-resolve"
+      type: "bool"
+      default: "false"
+    - name: "use-tcp"
+      type: "bool"
+      default: "false"
+    - name: "lazy"
+      type: "LazyHealthCheckConfiguration"
+      default: true
+
+outgoing-auto-upgrade:
+  parameters:
+    - name: "enabled"
+      type: "bool"
+      default: "false"
+    - name: "interval"
+      type: "u32"
+      default: "3600"
+    - name: "keep"
+      type: "bool"
+      default: "false"
+    - name: "pool"
+      type: "String"
+      default: ""
+    - name: "doh-key"
+      type: "u8"
+      default: "7"
+    - name: "use-lazy-health-check"
+      type: "bool"
+      default: "false"
+
 backends:
   section: "global"
   type: "list"
   parameters:
     - name: "address"
       type: "String"
+    - name: "id"
+      type: "String"
+      default: ""
     - name: "protocol"
       type: "String"
     - name: "tls"
@@ -374,18 +494,72 @@ backends:
     - name: "doh"
       type: "OutgoingDohConfiguration"
       default: true
-    - name: "max-in-flight"
-      type: "u16"
-      default: "1"
     - name: "use-client-subnet"
       type: "bool"
       default: "false"
     - name: "use-proxy-protocol"
       type: "bool"
       default: "false"
-    - name: "health-check"
+    - name: "queries-per-second"
+      type: "u32"
+      default: 0
+    - name: "order"
+      type: "u32"
+      default: 1
+    - name: "weight"
+      type: "u32"
+      default: 1
+    - name: "pools"
+      type: "Vec<String>"
+      default: true
+    - name: "retries"
+      type: "u16"
+      default: 5
+    - name: "tcp"
+      type: "OutgoingTcpConfiguration"
+      default: true
+    - name: "ip-bind-addr-no-port"
+      type: "bool"
+      default: "true"
+    - name: "health-checks"
+      type: "HealthCheckConfiguration"
+      default: true
+    - name: "source"
       type: "String"
-      default: "auto"
+      default: ""
+    - name: "sockets"
+      type: "u32"
+      default: "1"
+    - name: "disable-zero-scope"
+      type: "bool"
+      default: "false"
+    - name: "reconnect-on-up"
+      type: "bool"
+      default: "false"
+    - name: "max-in-flight"
+      type: "u32"
+      default: "1"
+    - name: "tcp-only"
+      type: "bool"
+      default: "false"
+    - name: "auto-upgrade"
+      type: "OutgoingAutoUpgradeConfiguration"
+      default: true
+    - name: "max-concurrent-tcp-connections"
+      type: "u32"
+      default: 0
+    - name: "ktls"
+      type: "bool"
+      default: "false"
+    - name: "proxy-protocol-advertise-tls"
+      type: "bool"
+      default: "false"
+    - name: "xsk-sockets"
+      type: "Vec<String>"
+      default: true
+    - name: "mac-address"
+      type: "String"
+      default: ""
 
 tcp:
   section: "tuning"

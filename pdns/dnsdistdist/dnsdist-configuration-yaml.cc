@@ -203,6 +203,16 @@ static bool handleTLSConfiguration(const dnsdist::rust::settings::BindsConfigura
   return true;
 }
 
+static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dnsdist::rust::settings::BackendsConfiguration& config)
+{
+  DownstreamState::Config backendConfig;
+  std::shared_ptr<TLSCtx> tlsCtx;
+  backendConfig.remote = ComboAddress(std::string(config.address), 53);
+  auto downstream = std::make_shared<DownstreamState>(std::move(backendConfig), std::move(tlsCtx), true);
+
+  return downstream;
+}
+
 bool loadConfigurationFromFile(const std::string fileName)
 {
 #if defined(HAVE_YAML_CONFIGURATION)
@@ -263,10 +273,7 @@ bool loadConfigurationFromFile(const std::string fileName)
     }
 
     for (const auto& backend : globalConfig.backends) {
-      DownstreamState::Config backendConfig;
-      std::shared_ptr<TLSCtx> tlsCtx;
-      backendConfig.remote = ComboAddress(std::string(backend.address), 53);
-      auto downstream = std::make_shared<DownstreamState>(std::move(backendConfig), std::move(tlsCtx), true);
+      auto downstream = createBackendFromConfiguration(backend);
 
       if (!downstream->d_config.pools.empty()) {
         for (const auto& poolName : downstream->d_config.pools) {

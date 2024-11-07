@@ -411,52 +411,60 @@ static void handleNewServerHealthCheckParameters(boost::optional<newserver_t>& v
 static void handleNewServerSourceParameter(boost::optional<newserver_t>& vars, DownstreamState::Config& config)
 {
   std::string source;
-  if (getOptionalValue<std::string>(vars, "source", source) > 0) {
-    /* handle source in the following forms:
-       - v4 address ("192.0.2.1")
-       - v6 address ("2001:DB8::1")
-       - interface name ("eth0")
-                              - v4 address and interface name ("192.0.2.1@eth0")
-                              - v6 address and interface name ("2001:DB8::1@eth0")
-    */
-    bool parsed = false;
-    std::string::size_type pos = source.find('@');
-    if (pos == std::string::npos) {
-      /* no '@', try to parse that as a valid v4/v6 address */
-      try {
-        config.sourceAddr = ComboAddress(source);
-        parsed = true;
-      }
-      catch (...) {
-      }
-    }
+  if (getOptionalValue<std::string>(vars, "source", source) <= 0) {
+    return;
+  }
 
-    if (!parsed) {
-      /* try to parse as interface name, or v4/v6@itf */
-      config.sourceItfName = source.substr(pos == std::string::npos ? 0 : pos + 1);
-      unsigned int itfIdx = if_nametoindex(config.sourceItfName.c_str());
-      if (itfIdx != 0) {
-        if (pos == 0 || pos == std::string::npos) {
-          /* "eth0" or "@eth0" */
-          config.sourceItf = itfIdx;
-        }
-        else {
-          /* "192.0.2.1@eth0" */
-          config.sourceAddr = ComboAddress(source.substr(0, pos));
-          config.sourceItf = itfIdx;
-        }
-#ifdef SO_BINDTODEVICE
-        /* we need to retain CAP_NET_RAW to be able to set SO_BINDTODEVICE in the health checks */
-        dnsdist::configuration::updateImmutableConfiguration([](dnsdist::configuration::ImmutableConfiguration& currentConfig) {
-          currentConfig.d_capabilitiesToRetain.insert("CAP_NET_RAW");
-        });
-#endif
-      }
-      else {
-        warnlog("Dismissing source %s because '%s' is not a valid interface name", source, config.sourceItfName);
-      }
+  DownstreamState::parseSourceParameter(source, config);
+}
+
+bool DownstreamState::parseSourceParameter(const std::string& source, DownstreamState::Config& config)
+{
+  /* handle source in the following forms:
+     - v4 address ("192.0.2.1")
+     - v6 address ("2001:DB8::1")
+     - interface name ("eth0")
+     - v4 address and interface name ("192.0.2.1@eth0")
+     - v6 address and interface name ("2001:DB8::1@eth0")
+  */
+  std::string::size_type pos = source.find('@');
+  if (pos == std::string::npos) {
+    /* no '@', try to parse that as a valid v4/v6 address */
+    try {
+      config.sourceAddr = ComboAddress(source);
+      parsed = true;
+      return true;
+    }
+    catch (...) {
     }
   }
+
+  /* try to parse as interface name, or v4/v6@itf */
+  config.sourceItfName = source.substr(pos == std::string::npos ? 0 : pos + 1);
+  unsigned int itfIdx = if_nametoindex(config.sourceItfName.c_str());
+  if (itfIdx != 0) {
+    if (pos == 0 || pos == std::string::npos) {
+      /* "eth0" or "@eth0" */
+      config.sourceItf = itfIdx;
+    }
+    else {
+      /* "192.0.2.1@eth0" */
+      config.sourceAddr = ComboAddress(source.substr(0, pos));
+      config.sourceItf = itfIdx;
+    }
+#ifdef SO_BINDTODEVICE
+    if (!isImmutableConfigurationDone()) {
+      /* we need to retain CAP_NET_RAW to be able to set SO_BINDTODEVICE in the health checks */
+      dnsdist::configuration::updateImmutableConfiguration([](dnsdist::configuration::ImmutableConfiguration& currentConfig) {
+        currentConfig.d_capabilitiesToRetain.insert("CAP_NET_RAW");
+      });
+    }
+#endif
+    return true;
+  }
+
+  warnlog("Dismissing source %s because '%s' is not a valid interface name", source, config.sourceItfName);
+  return false;
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity,readability-function-size): this function declares Lua bindings, even with a good refactoring it will likely blow up the threshold

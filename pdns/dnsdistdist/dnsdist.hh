@@ -719,6 +719,8 @@ private:
   bool d_stopped{false};
 
 public:
+  static bool parseSourceParameter(const std::string& source, Config& config);
+
   void updateStatisticsInfo()
   {
     auto delta = sw.udiffAndSet() / 1000000.0;
