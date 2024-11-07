@@ -30,6 +30,7 @@
 #include "dnsdist-backend.hh"
 #include "dnsdist-rules.hh"
 #include "dnsdist-kvs.hh"
+#include "doh.hh"
 #include "rust/cxx.h"
 #include "rust/lib.rs.h"
 #endif /* HAVE_YAML_CONFIGURATION */
@@ -95,6 +96,51 @@ static void handleTLSConfiguration(const dnsdist::rust::settings::BindsConfigura
     #warning handle proxyProtocolOutsideTLS
     #warning handle additionalAddresses
     frontend->d_tlsConfig = std::move(tlsConfig);
+    state.tlsFrontend = std::move(frontend);
+  }
+  else if (bind.protocol == "DoH") {
+    auto frontend = std::make_shared<DOHFrontend>();
+    frontend->d_tlsContext.d_provider = std::string(bind.tls.provider);
+    boost::algorithm::to_lower(frontend->d_tlsContext.d_provider);
+    frontend->d_library = std::string(bind.doh.provider);
+
+    #warning handle library
+    if (frontend->d_library == "h2o") {
+#ifdef HAVE_LIBH2OEVLOOP
+      frontend = std::make_shared<H2ODOHFrontend>();
+      // we _really_ need to set it again, as we just replaced the generic frontend by a new one
+      frontend->d_library = "h2o";
+#else /* HAVE_LIBH2OEVLOOP */
+        errlog("DOH bind %s is configured to use libh2o but the library is not available", bind.listen_address);
+        return;
+#endif /* HAVE_LIBH2OEVLOOP */
+    }
+    else if (frontend->d_library == "nghttp2") {
+#ifndef HAVE_NGHTTP2
+      errlog("DOH bind %s is configured to use nghttp2 but the library is not available", bind.listen_address);
+      return;
+#endif /* HAVE_NGHTTP2 */
+    }
+    else {
+      errlog("DOH bind %s is configured to use an unknown library ('%s')", bind.listen_address, frontend->d_library);
+      return;
+    }
+
+    for (const auto& path : bind.doh.paths) {
+      frontend->d_urls.emplace(path);
+    }
+
+    if (!tlsConfig.d_certKeyPairs.empty()) {
+      frontend->d_tlsContext.d_addr = ComboAddress(std::string(bind.listen_address), 443);
+      infolog("DNS over HTTPS configured");
+    }
+    else {
+      frontend->d_tlsContext.d_addr = ComboAddress(std::string(bind.listen_address), 80);
+      infolog("No certificate provided for DoH endpoint %s, running in DNS over HTTP mode instead of DNS over HTTPS", frontend->d_tlsContext.d_addr.toStringWithPort());
+    }
+
+    frontend->d_tlsContext.d_tlsConfig = std::move(tlsConfig);
+    state.dohFrontend = std::move(frontend);
   }
 }
 
