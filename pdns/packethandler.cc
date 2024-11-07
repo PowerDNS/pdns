@@ -1526,7 +1526,9 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
     }
     DLOG(g_log<<Logger::Error<<"We have authority, zone='"<<d_sd.qname<<"', id="<<d_sd.domain_id<<endl);
     g_log<<Logger::Error<<"We have authority, zone='"<<d_sd.qname<<"', id="<<d_sd.domain_id<<", serial="<<d_sd.serial<<endl;
-    r->d_auth_serials[d_sd.qname] = {d_sd.serial, d_sd.serial/2};
+    if (r->wantsEDNSZoneVersion()) {
+      r->d_auth_serials[d_sd.qname] = {d_sd.serial, d_sd.serial/2};
+    }
 
     authSet.insert(d_sd.qname);
     d_dnssec=(p.d_dnssecOk && d_dk.isSecuredZone(d_sd.qname));

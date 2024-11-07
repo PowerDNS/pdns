@@ -467,6 +467,7 @@ std::unique_ptr<DNSPacket> DNSPacket::replyPacket() const
   r->d_eso = d_eso;
   r->d_eco = d_eco;
   r->d_haveednssubnet = d_haveednssubnet;
+  r->d_wantszoneversion = d_wantszoneversion;
   r->d_haveednssection = d_haveednssection;
   r->d_haveednscookie = d_haveednscookie;
   r->d_ednsversion = 0;
@@ -647,6 +648,9 @@ try
         d_eco.makeFromString(option.second);
         d_ednscookievalid = d_eco.isValid(s_EDNSCookieKey, d_remote);
       }
+      else if (option.first == EDNSOptionCode::ZONEVERSION) {
+        d_wantszoneversion = true;
+      }
       else {
         // cerr<<"Have an option #"<<iter->first<<": "<<makeHexDump(iter->second)<<endl;
       }
@@ -707,6 +711,11 @@ void DNSPacket::setRemote(const ComboAddress *outer, std::optional<ComboAddress>
 bool DNSPacket::hasEDNSSubnet() const
 {
   return d_haveednssubnet;
+}
+
+bool DNSPacket::wantsEDNSZoneVersion() const
+{
+  return d_wantszoneversion;
 }
 
 bool DNSPacket::hasEDNS() const
