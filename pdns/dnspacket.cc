@@ -400,7 +400,7 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
 
         uint8_t labelcount = name.countLabels();
         EDNSZoneVersion unedited = {labelcount, 0 /* FIXME enum */, unedited_serial};
-        EDNSZoneVersion edited = {labelcount, 1 /* FIXME enum and wrong number */, edited_serial};
+        EDNSZoneVersion edited = {labelcount, 246 /* FIXME enum and wrong number */, edited_serial};
 
         string opt = makeEDNSZoneVersionString(unedited);
         opts.emplace_back(EDNSOptionCode::ZONEVERSION, opt);
