@@ -51,7 +51,6 @@ static std::set<int> getCPUPiningFromStr(const std::string& cpuStr)
 
 static TLSConfig getTLSConfigFromRustIncomingTLS(const dnsdist::rust::settings::IncomingTlsConfiguration& incomingTLSConfig)
 {
-  #warning find out what to do with the provider
   TLSConfig out;
   for (const auto& certConfig : incomingTLSConfig.certificates) {
     TLSCertKeyPair pair(std::string(certConfig.certificate));
@@ -85,49 +84,106 @@ static TLSConfig getTLSConfigFromRustIncomingTLS(const dnsdist::rust::settings::
   return out;
 }
 
-static void handleTLSConfiguration(const dnsdist::rust::settings::BindsConfiguration& bind, ClientState& state)
+static bool validateTLSConfiguration(const dnsdist::rust::settings::BindsConfiguration& bind, const TLSConfig& tlsConfig)
+{
+  if (!bind.tls.ignore_configuration_errors) {
+    return true;
+  }
+
+  // we are asked to try to load the certificates so we can return a potential error
+  // and properly ignore the frontend before actually launching it
+  try {
+    std::map<int, std::string> ocspResponses = {};
+    auto ctx = libssl_init_server_context(tlsConfig, ocspResponses);
+  }
+  catch (const std::runtime_error& e) {
+    errlog("Ignoring %s frontend: '%s'", bind.protocol, e.what());
+    return false;
+  }
+
+  return true;
+}
+
+static bool handleTLSConfiguration(const dnsdist::rust::settings::BindsConfiguration& bind, ClientState& state)
 {
   auto tlsConfig = getTLSConfigFromRustIncomingTLS(bind.tls);
-#warning handle ignoreTLSConfigurationErrors
+  if (!validateTLSConfiguration(bind, tlsConfig)) {
+    return false;
+  }
+
   if (bind.protocol == "DoT") {
     auto frontend = std::make_shared<TLSFrontend>(TLSFrontend::ALPN::DoT);
     frontend->d_provider = std::string(bind.tls.provider);
     boost::algorithm::to_lower(frontend->d_provider);
-    #warning handle proxyProtocolOutsideTLS
-    #warning handle additionalAddresses
+    frontend->d_proxyProtocolOutsideTLS = bind.tls.proxy_protocol_outside_tls;
     frontend->d_tlsConfig = std::move(tlsConfig);
     state.tlsFrontend = std::move(frontend);
+  }
+  else if (bind.protocol == "DoQ") {
+    auto frontend = std::make_shared<DOQFrontend>();
+    frontend->d_local = ComboAddress(std::string(bind.listen_address), 853);
+    frontend->d_quicheParams.d_tlsConfig = std::move(tlsConfig);
+    frontend->d_quicheParams.d_maxInFlight = bind.doq.max_concurrent_queries_per_connection;
+    frontend->d_quicheParams.d_idleTimeout = bind.quic.idle_timeout;
+    frontend->d_quicheParams.d_keyLogFile = std::string(bind.tls.key_log_file);
+    if (dnsdist::doq::s_available_cc_algorithms.count(std::string(bind.quic.congestion_control_algorithm)) > 0) {
+      frontend->d_quicheParams.d_ccAlgo = std::string(bind.quic.congestion_control_algorithm);
+    }
+    frontend->d_internalPipeBufferSize = bind.quic.internal_pipe_buffer_size;
+    state.doqFrontend = std::move(frontend);
+  }
+  else if (bind.protocol == "DoH3") {
+    auto frontend = std::make_shared<DOH3Frontend>();
+    frontend->d_local = ComboAddress(std::string(bind.listen_address), 853);
+    frontend->d_quicheParams.d_tlsConfig = std::move(tlsConfig);
+    frontend->d_quicheParams.d_idleTimeout = bind.quic.idle_timeout;
+    frontend->d_quicheParams.d_keyLogFile = std::string(bind.tls.key_log_file);
+    if (dnsdist::doq::s_available_cc_algorithms.count(std::string(bind.quic.congestion_control_algorithm)) > 0) {
+      frontend->d_quicheParams.d_ccAlgo = std::string(bind.quic.congestion_control_algorithm);
+    }
+    frontend->d_internalPipeBufferSize = bind.quic.internal_pipe_buffer_size;
+    state.doh3Frontend = std::move(frontend);
   }
   else if (bind.protocol == "DoH") {
     auto frontend = std::make_shared<DOHFrontend>();
     frontend->d_tlsContext.d_provider = std::string(bind.tls.provider);
     boost::algorithm::to_lower(frontend->d_tlsContext.d_provider);
     frontend->d_library = std::string(bind.doh.provider);
-
-    #warning handle library
     if (frontend->d_library == "h2o") {
 #ifdef HAVE_LIBH2OEVLOOP
       frontend = std::make_shared<H2ODOHFrontend>();
       // we _really_ need to set it again, as we just replaced the generic frontend by a new one
       frontend->d_library = "h2o";
 #else /* HAVE_LIBH2OEVLOOP */
-        errlog("DOH bind %s is configured to use libh2o but the library is not available", bind.listen_address);
-        return;
+      errlog("DOH bind %s is configured to use libh2o but the library is not available", bind.listen_address);
+      return false;
 #endif /* HAVE_LIBH2OEVLOOP */
     }
     else if (frontend->d_library == "nghttp2") {
 #ifndef HAVE_NGHTTP2
       errlog("DOH bind %s is configured to use nghttp2 but the library is not available", bind.listen_address);
-      return;
+      return false;
 #endif /* HAVE_NGHTTP2 */
     }
     else {
       errlog("DOH bind %s is configured to use an unknown library ('%s')", bind.listen_address, frontend->d_library);
-      return;
+      return false;
     }
 
     for (const auto& path : bind.doh.paths) {
       frontend->d_urls.emplace(path);
+    }
+    frontend->d_idleTimeout = bind.doh.idle_timeout;
+    frontend->d_serverTokens = std::string(bind.doh.server_tokens);
+    frontend->d_sendCacheControlHeaders = bind.doh.send_cache_control_headers;
+    frontend->d_keepIncomingHeaders = bind.doh.keep_incoming_headers;
+    frontend->d_trustForwardedForHeader = bind.doh.trust_forwarded_for_header;
+    frontend->d_earlyACLDrop = bind.doh.early_acl_drop;
+    frontend->d_internalPipeBufferSize = bind.doh.internal_pipe_buffer_size;
+    frontend->d_exactPathMatching = bind.doh.exact_path_matching;
+    for (const auto& customHeader : bind.doh.custom_response_headers) {
+      auto headerResponse = std::pair(boost::to_lower_copy(std::string(customHeader.key)), std::string(customHeader.value));
+      frontend->d_customResponseHeaders.insert(std::move(headerResponse));
     }
 
     if (!tlsConfig.d_certKeyPairs.empty()) {
@@ -139,9 +195,12 @@ static void handleTLSConfiguration(const dnsdist::rust::settings::BindsConfigura
       infolog("No certificate provided for DoH endpoint %s, running in DNS over HTTP mode instead of DNS over HTTPS", frontend->d_tlsContext.d_addr.toStringWithPort());
     }
 
+    frontend->d_tlsContext.d_proxyProtocolOutsideTLS = bind.tls.proxy_protocol_outside_tls;
     frontend->d_tlsContext.d_tlsConfig = std::move(tlsConfig);
     state.dohFrontend = std::move(frontend);
   }
+
+  return true;
 }
 
 bool loadConfigurationFromFile(const std::string fileName)
@@ -176,8 +235,21 @@ bool loadConfigurationFromFile(const std::string fileName)
           if (bind.tcp.max_concurrent_connections > 0) {
             state->d_tcpConcurrentConnectionsLimit = bind.tcp.max_concurrent_connections;
           }
+
+          for (const auto& addr : bind.additional_addresses) {
+            try {
+              ComboAddress address{std::string(addr)};
+              state->d_additionalAddresses.emplace_back(address, -1);
+            }
+            catch (const PDNSException& e) {
+              errlog("Unable to parse additional address %s for %s bind: %s", std::string(addr), bind.protocol, e.reason);
+            }
+          }
+
           if (bind.protocol != "Do53") {
-            handleTLSConfiguration(bind, *state);
+            if (!handleTLSConfiguration(bind, *state)) {
+              continue;
+            }
           }
 
           config.d_frontends.emplace_back(std::move(state));
@@ -194,7 +266,6 @@ bool loadConfigurationFromFile(const std::string fileName)
       DownstreamState::Config backendConfig;
       std::shared_ptr<TLSCtx> tlsCtx;
       backendConfig.remote = ComboAddress(std::string(backend.address), 53);
-      cerr << "Pushing backend " << backendConfig.remote.toStringWithPort() << endl;
       auto downstream = std::make_shared<DownstreamState>(std::move(backendConfig), std::move(tlsCtx), true);
 
       if (!downstream->d_config.pools.empty()) {
