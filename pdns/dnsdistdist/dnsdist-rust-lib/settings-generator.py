@@ -5,6 +5,10 @@ import sys
 import tempfile
 import yaml
 
+def quote(arg):
+    """Return a quoted string"""
+    return '"' + arg + '"'
+
 def is_value_rust_default(rust_type, value):
     """Is a value the same as its corresponding Rust default?"""
     if rust_type == 'bool':
@@ -14,9 +18,7 @@ def is_value_rust_default(rust_type, value):
     if rust_type == 'f64':
         return value in ('0.0', 0.0)
     if rust_type == 'String':
-        # FIXME
-        #return value == ''
-        return True
+        return value == ''
     if rust_type == 'Vec<String>':
         # FIXME
         return True
@@ -39,7 +41,68 @@ def get_rust_object_name(name):
 
     return object_name
 
-def get_rust_serde_annotations(rust_type, default, rename):
+def gen_rust_vec_default_functions(name, typeName, defvalue):
+    """Generate Rust code for the default handling of a vector for typeName"""
+    ret = f'// DEFAULT HANDLING for {name}\n'
+    ret += f'fn default_value_{name}() -> Vec<dnsdistsettings::{typeName}> {{\n'
+    ret += f'    let msg = "default value defined for `{name}\' should be valid YAML";'
+    ret += f'    let deserialized: Vec<dnsdistsettings::{typeName}> = serde_yaml::from_str({quote(defvalue)}).expect(&msg);\n'
+    ret += f'    deserialized\n'
+    ret += '}\n'
+    ret += f'fn default_value_equal_{name}(value: &Vec<dnsdistsettings::{typeName}>)'
+    ret += '-> bool {\n'
+    ret += f'    let def = default_value_{name}();\n'
+    ret += '    &def == value\n'
+    ret += '}\n\n'
+    return ret
+
+# Example snippet generated
+# fn default_value_general_query_local_address() -> Vec<String> {
+#    vec![String::from("0.0.0.0"), ]
+#}
+#fn default_value_equal_general_query_local_address(value: &Vec<String>) -> bool {
+#    let def = default_value_general_query_local_address();
+#    &def == value
+#}
+def gen_rust_stringvec_default_functions(default, name):
+    """Generate Rust code for the default handling of a vector for Strings"""
+    ret = f'// DEFAULT HANDLING for {name}\n'
+    ret += f'fn default_value_{name}() -> Vec<String> {{\n'
+    parts = re.split('[ \t,]+', default)
+    if len(parts) > 0:
+        ret += '    vec![\n'
+        for part in parts:
+            if part == '':
+                continue
+            ret += f'        String::from({quote(part)}),\n'
+        ret += '    ]\n'
+    else:
+        ret  += '    vec![]\n'
+    ret += '}\n'
+    ret += f'fn default_value_equal_{name}(value: &Vec<String>) -> bool {{\n'
+    ret += f'    let def = default_value_{name}();\n'
+    ret += '    &def == value\n'
+    ret += '}\n\n'
+    return ret
+
+def gen_rust_default_functions(rust_type, default, name):
+    """Generate Rust code for the default handling"""
+    if rust_type in ['Vec<String>']:
+        return gen_rust_stringvec_default_functions(default, name)
+    ret = f'// DEFAULT HANDLING for {name}\n'
+    ret += f'fn default_value_{name}() -> {rust_type} {{\n'
+    rustdef = quote(default)
+    ret += f"    String::from({rustdef})\n"
+    ret += '}\n'
+    if rust_type == 'String':
+        rust_type = 'str'
+    ret += f'fn default_value_equal_{name}(value: &{rust_type})'
+    ret += '-> bool {\n'
+    ret += f'    value == default_value_{name}()\n'
+    ret += '}\n\n'
+    return ret
+
+def get_rust_serde_annotations(rust_type, default, rename, obj, field, default_functions):
     rename_value = f'rename = "{rename}", ' if rename else ''
     if default is None:
         if not rename_value:
@@ -50,9 +113,13 @@ def get_rust_serde_annotations(rust_type, default, rename):
     type_upper = rust_type.capitalize()
     if rust_type == 'bool':
         return f'''#[serde({rename_value}default = "crate::{type_upper}::<{default}>::value", skip_serializing_if = "crate::if_true")]'''
+    if rust_type == 'String' or rust_type == 'Vec<String>':
+        basename = obj + '_' + field
+        default_functions.append(gen_rust_default_functions(rust_type, default, basename))
+        return f'''#[serde({rename_value}default = "crate::default_value_{basename}", skip_serializing_if = "crate::default_value_equal_{basename}")]'''
     return f'''#[serde({rename_value}default = "crate::{type_upper}::<{default}>::value", skip_serializing_if = "crate::{type_upper}::<{default}>::is_equal")]'''
 
-def get_rust_struct_from_definition(name, keys):
+def get_rust_struct_from_definition(name, keys, default_functions):
     if not 'parameters' in keys:
         return ''
     obj_name = get_rust_object_name(name)
@@ -68,7 +135,7 @@ def get_rust_struct_from_definition(name, keys):
         parameter_name = get_rust_field_name(parameter['name']) if parameter['name'] != 'namespace' else 'name_space'
         rust_type = parameter['type']
         rename = parameter['name'] if parameter_name != parameter['name'] else None
-        default_str = get_rust_serde_annotations(rust_type, parameter['default'] if 'default' in parameter else None, rename)
+        default_str = get_rust_serde_annotations(rust_type, parameter['default'] if 'default' in parameter else None, rename, get_rust_field_name(name), parameter_name, default_functions)
         if default_str:
             output += '        ' + default_str + '\n'
         output += f'        {parameter_name}: {rust_type},\n'
@@ -109,6 +176,7 @@ def main():
 
     src_dir = './'
     definitions = get_definitions_from_file(sys.argv[1])
+    default_functions = []
     sections = gather_sections(definitions)
     global_objects = {}
     generated_fp = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8', dir=src_dir + '/rust/src/')
@@ -118,7 +186,7 @@ def main():
         if 'section' in keys and keys['section'] != 'none':
             continue
 
-        generated_fp.write(get_rust_struct_from_definition(definition_name, keys) + '\n')
+        generated_fp.write(get_rust_struct_from_definition(definition_name, keys, default_functions) + '\n')
 
     for section, section_type in sections.items():
 
@@ -131,7 +199,7 @@ def main():
                         global_objects[definition_name] = (keys['type'], keys['type'])
                     else:
                         global_objects[definition_name] = get_rust_obj_for_section(definition_name, keys)
-                generated_fp.write(get_rust_struct_from_definition(definition_name, keys) + '\n')
+                generated_fp.write(get_rust_struct_from_definition(definition_name, keys, default_functions) + '\n')
 
 
         if section != 'global':
@@ -176,7 +244,7 @@ struct GlobalConfigurationSerde {\n''')
     for obj, names in global_objects.items():
         field_name = get_rust_field_name(obj)
         rename = obj if field_name != obj else None
-        default_str = get_rust_serde_annotations(name[0], True, rename)
+        default_str = get_rust_serde_annotations(name[0], True, rename, field_name, 'global', default_functions)
         if default_str:
             generated_fp.write('    ' + default_str + '\n')
         if field_name == 'selectors':
@@ -186,6 +254,10 @@ struct GlobalConfigurationSerde {\n''')
         generated_fp.write(f'    {field_name}: {name},\n')
 
     generated_fp.write('}\n')
+
+    # the generated functions for the default values
+    for function_def in default_functions:
+        generated_fp.write(function_def + '\n')
 
     include_file(generated_fp, src_dir + 'rust-post-in.rs')
 
