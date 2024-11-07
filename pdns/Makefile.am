@@ -370,6 +370,7 @@ pdnsutil_SOURCES = \
 	dynlistener.cc \
 	ednscookies.cc ednscookies.hh \
 	ednsoptions.cc ednsoptions.hh \
+	ednszoneversion.cc ednszoneversion.hh \
 	ednssubnet.cc \
 	gettime.cc gettime.hh \
 	gss_context.cc gss_context.hh \
@@ -739,6 +740,7 @@ ixfrdist_SOURCES = \
 	ednsextendederror.cc ednsextendederror.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
+	ednszoneversion.cc ednszoneversion.hh \
 	gss_context.cc gss_context.hh \
 	iputils.hh iputils.cc \
 	ixfr.cc ixfr.hh \
@@ -1371,6 +1373,7 @@ testrunner_SOURCES = \
 	dnswriter.cc \
 	ednscookies.cc ednscookies.hh \
 	ednsoptions.cc ednsoptions.hh \
+	ednszoneversion.cc ednszoneversion.hh \
 	ednssubnet.cc \
 	gettime.cc gettime.hh \
 	gss_context.cc gss_context.hh \
