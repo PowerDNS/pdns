@@ -212,6 +212,12 @@ incoming-tls:
     - name: "read-ahead"
       type: "bool"
       default: "true"
+    - name: "proxy-protocol-outside-tls"
+      type: "bool"
+      default: "false"
+    - name: "ignore_configuration_errors"
+      type: "bool"
+      default: "false"
 
 outgoing-tls:
   parameters:
@@ -225,6 +231,13 @@ outgoing-tls:
       type: "bool"
       default: "true"
 
+doh-custom-response-header:
+  parameters:
+    - name: "key"
+      type: "String"
+    - name: "value"
+      type: "String"
+
 incoming-doh:
   parameters:
     - name: "provider"
@@ -233,6 +246,51 @@ incoming-doh:
     - name: "paths"
       type: "Vec<String>"
       default: "/dns-query"
+    - name: "idle-timeout"
+      type: "u64"
+      default: 30
+    - name: "server-tokens"
+      type: "String"
+      default: "h2o/dnsdist"
+    - name: "send-cache-control-headers"
+      type: "bool"
+      default: "true"
+    - name: "keep-incoming-headers"
+      type: "bool"
+      default: "false"
+    - name: "trust-forwarded-for-header"
+      type: "bool"
+      default: "false"
+    - name: "early-acl-drop"
+      type: "bool"
+      default: "true"
+    - name: "exact-path-matching"
+      type: "bool"
+      default: "true"
+    - name: "internal_pipe_buffer_size"
+      type: "u32"
+      default: 1048576
+    - name: "custom-response-headers"
+      type: "Vec<DohCustomResponseHeaderConfiguration>"
+      default: true
+
+incoming-doq:
+  parameters:
+    - name: "max_concurrent_queries_per_connection"
+      type: "u64"
+      default: 65535
+
+incoming-quic:
+  parameters:
+    - name: "idle-timeout"
+      type: "u64"
+      default: 5
+    - name: "congestion_control_algorithm"
+      type: "String"
+      default: "reno"
+    - name: "internal_pipe_buffer_size"
+      type: "u32"
+      default: 1048576
 
 outgoing-doh:
   parameters:
@@ -291,6 +349,15 @@ binds:
       default: true
     - name: "doh"
       type: "IncomingDohConfiguration"
+      default: true
+    - name: "doq"
+      type: "IncomingDoqConfiguration"
+      default: true
+    - name: "quic"
+      type: "IncomingQuicConfiguration"
+      default: true
+    - name: "additional-addresses"
+      type: "Vec<String>"
       default: true
 
 backends:
