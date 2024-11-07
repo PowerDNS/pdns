@@ -242,7 +242,7 @@ static void printReply(const string& reply, bool showflags, bool hidesoadetails,
           if (zoneversion.type == 0) { // FIXME enum
             cerr << "EDNS Zone Version (SOA serial) for labelcount " << (int)zoneversion.labelcount << ": " << zoneversion.version << endl;
           } else {
-            cerr << "EDNS Zone Version (type " << (int)zoneversion.type << "): " << zoneversion.version << endl;
+            cerr << "EDNS Zone Version (type " << (int)zoneversion.type << ") for labelcount " << (int)zoneversion.labelcount << ": " << zoneversion.version << endl;
           }
         }
       } else {
