@@ -173,6 +173,7 @@ public:
   static bool s_doEDNSCookieProcessing;
   static string s_EDNSCookieKey;
   EDNSSubnetOpts d_eso;
+  std::unordered_map<DNSName, std::pair<uint32_t, uint32_t> > d_auth_serials; // unedited, edited
 
 #ifdef ENABLE_GSS_TSIG
   void cleanupGSS(int rcode);
@@ -190,7 +191,6 @@ private:
 
   vector<DNSZoneRecord> d_rrs; // 8
   std::unordered_set<size_t> d_dedup;
-  std::unordered_map<DNSName, uint32_t> d_auth_serials;
   string d_rawpacket; // this is where everything lives 8
   EDNSCookiesOpt d_eco;
 

@@ -19,6 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include "ednszoneversion.hh"
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -333,6 +334,10 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
     }
   }
 
+  if (! d_auth_serials.empty()) {
+    optsize += 2 * (EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE + EDNSZoneVersion::EDNSZoneVersionOptSize);
+  }
+
   if (d_trc.d_algoName.countLabels())
   {
     // TSIG is not OPT, but we count it in optsize anyway
@@ -388,6 +393,21 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
         opts.emplace_back(EDNSOptionCode::COOKIE, d_eco.makeOptString());
       }
 
+      for (auto &auth_serial : d_auth_serials) {
+        auto& name = auth_serial.first;
+        auto& unedited_serial = auth_serial.second.first;
+        auto& edited_serial = auth_serial.second.second;
+
+        uint8_t labelcount = name.countLabels();
+        EDNSZoneVersion unedited = {labelcount, 0 /* FIXME enum */, unedited_serial};
+        EDNSZoneVersion edited = {labelcount, 1 /* FIXME enum and wrong number */, edited_serial};
+
+        string opt = makeEDNSZoneVersionString(unedited);
+        opts.emplace_back(EDNSOptionCode::ZONEVERSION, opt);
+
+        opt = makeEDNSZoneVersionString(edited);
+        opts.emplace_back(EDNSOptionCode::ZONEVERSION, opt);
+      }
       if(!opts.empty() || d_haveednssection || d_dnssecOk)
       {
         pw.addOpt(s_udpTruncationThreshold, d_ednsrcode, d_dnssecOk ? EDNSOpts::DNSSECOK : 0, opts);

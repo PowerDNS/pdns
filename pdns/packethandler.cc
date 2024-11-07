@@ -1693,6 +1693,7 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
     return true;
   }
   DLOG(g_log<<Logger::Error<<"We have authority, zone='"<<d_sd.qname()<<"', id="<<d_sd.domain_id<<", zonename="<<d_sd.zonename<<endl);
+  state.r->d_auth_serials[d_sd.qname] = {d_sd.serial, d_sd.serial/2};
 
   if (!retargeted) {
     state.r->qdomainzone = d_sd.zonename;
