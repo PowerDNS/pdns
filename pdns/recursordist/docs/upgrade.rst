@@ -23,7 +23,9 @@ A value of 1 means that on average each 100 incoming queries lead to a single qu
 New Settings
 ^^^^^^^^^^^^
 
-- The :ref:`setting-serve-rfc6303` settings has been introduced to implement :rfc:`6303`. By default this setting is enabled so this potentially changes behaviour for names inside the ``ip6.arpa`` domain.
+- The :ref:`setting-yaml-recursor.serve_rfc6303` settings has been introduced to implement :rfc:`6303`. By default this setting is enabled so this potentially changes behaviour for names inside the ``ip6.arpa`` domain.
+- The :ref:`setting-yaml-recursor.lua_start_stop_script` settings has been introduced to specify Lua scripts to run on startup and shutdown.
+- The :ref:`setting-yaml-recursor.forwarding_catalog_zones` settings has been introduced to populate forwarding zones using catalog zones.
 
 5.1.2 to 5.1.3
 --------------

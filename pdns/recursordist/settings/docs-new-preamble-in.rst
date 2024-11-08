@@ -497,7 +497,7 @@ As of version 5.2.0, a forwarding catalog zone entry is defined as:
        recurse: bool, default false
        notify: bool, default false
 
-An example of a ``forwarding_catalog_zones`` entry, which is a sequence of `ForwardingCatalogZone`_:
+An example of a :ref:`setting-yaml-recursor.forwarding_catalog_zones` entry, which is a sequence of `ForwardingCatalogZone`_:
 
 .. code-block:: yaml
 
