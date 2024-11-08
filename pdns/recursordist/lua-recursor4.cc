@@ -507,7 +507,7 @@ void RecursorLua4::postPrepareContext() // NOLINT(readability-function-cognitive
   d_lw->writeFunction("spawnThread", [](const string& scriptName) {
     auto log = g_slog->withName("lua")->withValues("script", Logging::Loggable(scriptName));
     log->info(Logr::Info, "Starting Lua script in separate thread");
-    std::thread thread([=]() {
+    std::thread thread([log = std::move(log), scriptName]() {
       auto lua = std::make_shared<RecursorLua4>();
       lua->loadFile(scriptName);
       log->info(Logr::Notice, "Lua thread exiting");
@@ -555,14 +555,15 @@ void RecursorLua4::runStartStopFunction(const string& script, bool start, Logr::
   const string func = start ? "on_recursor_start" : "on_recursor_stop";
   auto mylog = log->withValues("script", Logging::Loggable(script), "function", Logging::Loggable(func));
   loadFile(script);
-  auto call = d_lw->readVariable<boost::optional<std::function<void()>>>(func).get_value_or(nullptr);
+  // coverity[auto_causes_copy] does not work with &, despite what coverity thinks
+  const auto call = d_lw->readVariable<boost::optional<std::function<void()>>>(func).get_value_or(nullptr);
   if (call) {
     mylog->info(Logr::Info, "Starting Lua function");
     call();
     mylog->info(Logr::Info, "Lua function done");
   }
   else {
-    mylog->info(Logr::Info, "No Lua function found");
+    mylog->info(Logr::Notice, "No Lua function found");
   }
 }
 
