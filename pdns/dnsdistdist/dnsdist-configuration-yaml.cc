@@ -31,6 +31,7 @@
 #include "dnsdist-discovery.hh"
 #include "dnsdist-rules.hh"
 #include "dnsdist-kvs.hh"
+#include "dnsdist-web.hh"
 #include "doh.hh"
 #include "rust/cxx.h"
 #include "rust/lib.rs.h"
@@ -428,10 +429,65 @@ bool loadConfigurationFromFile(const std::string fileName)
 
 #ifndef DISABLE_CARBON
     for (const auto& carbonConfig : globalConfig.metrics.carbon) {
-
+      auto newEndpoint = dnsdist::Carbon::newEndpoint(std::string(carbonConfig.address),
+                                                      std::string(carbonConfig.name),
+                                                      carbonConfig.interval,
+                                                      carbonConfig.name_space.empty() ? "dnsdist" : std::string(carbonConfig.name_space),
+                                                      carbonConfig.instance.empty() ? "main" : std::string(carbonConfig.instance));
+      dnsdist::configuration::updateRuntimeConfiguration([&newEndpoint](dnsdist::configuration::RuntimeConfiguration& config) {
+        config.d_carbonEndpoints.push_back(std::move(newEndpoint));
+      });
     }
 #endif /* DISABLE_CARBON */
 
+    if (!globalConfig.webserver.listen_address.empty()) {
+      const auto& webConfig = globalConfig.webserver;
+      ComboAddress local;
+      try {
+        local = ComboAddress{std::string(webConfig.listen_address)};
+      }
+      catch (const PDNSException& e) {
+        throw std::runtime_error(std::string("Error parsing the bind address for the webserver: ") + e.reason);
+      }
+      dnsdist::configuration::updateRuntimeConfiguration([local,webConfig](dnsdist::configuration::RuntimeConfiguration& config) {
+        config.d_webServerAddress = local;
+        if (!webConfig.password.empty()) {
+          auto holder = std::make_shared<CredentialsHolder>(std::string(webConfig.password), webConfig.hash_plaintext_credentials);
+          if (!holder->wasHashed() && holder->isHashingAvailable()) {
+            infolog("Passing a plain-text password via the 'webserver.password' parameter to is not advised, please consider generating a hashed one using 'hashPassword()' instead.");
+          }
+          config.d_webPassword = std::move(holder);
+        }
+        if (!webConfig.api_key.empty()) {
+          auto holder = std::make_shared<CredentialsHolder>(std::string(webConfig.api_key), webConfig.hash_plaintext_credentials);
+          if (!holder->wasHashed() && holder->isHashingAvailable()) {
+            infolog("Passing a plain-text API key via the 'webserver.api_key' parameter to is not advised, please consider generating a hashed one using 'hashPassword()' instead.");
+          }
+          config.d_webAPIKey = std::move(holder);
+        }
+        if (!webConfig.acl.empty()) {
+          config.d_webServerACL.clear();
+          for (const auto& acl : webConfig.acl) {
+            config.d_webServerACL.toMasks(std::string(acl));
+          }
+        }
+        if (!webConfig.custom_headers.empty()) {
+          if (!config.d_webCustomHeaders) {
+            config.d_webCustomHeaders = std::unordered_map<std::string, std::string>();
+            for (const auto& customHeader : webConfig.custom_headers) {
+              auto headerResponse = std::pair(boost::to_lower_copy(std::string(customHeader.key)), std::string(customHeader.value));
+              config.d_webCustomHeaders->insert(std::move(headerResponse));
+            }
+          }
+        }
+
+        config.d_apiRequiresAuthentication = webConfig.api_requires_authentication;
+        config.d_dashboardRequiresAuthentication = webConfig.dashboard_requires_authentication;
+        config.d_statsRequireAuthentication = webConfig.stats_require_authentication;
+        dnsdist::webserver::setMaxConcurrentConnections(webConfig.max_concurrent_connections);
+      });
+
+    }
     return true;
   }
   catch (const ::rust::Error& exp) {
