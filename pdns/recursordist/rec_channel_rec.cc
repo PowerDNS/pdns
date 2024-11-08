@@ -1513,37 +1513,35 @@ vector<ComboAddress>* pleaseGetTimeouts()
   return ret;
 }
 
-static string doGenericTopRemotes(pleaseremotefunc_t func)
+static string doGenericTopRemotes(const pleaseremotefunc_t& func)
 {
-  typedef map<ComboAddress, int, ComboAddress::addressOnlyLessThan> counts_t;
-  counts_t counts;
-
-  vector<ComboAddress> remotes = broadcastAccFunction<vector<ComboAddress>>(func);
-
-  unsigned int total = 0;
-  for (const ComboAddress& ca : remotes) {
-    total++;
-    counts[ca]++;
+  auto remotes = broadcastAccFunction<vector<ComboAddress>>(func);
+  const unsigned int total = remotes.size();
+  if (total == 0) {
+    return "No qualifying data available\n";
   }
 
-  typedef std::multimap<int, ComboAddress> rcounts_t;
-  rcounts_t rcounts;
+  std::map<ComboAddress, unsigned int, ComboAddress::addressOnlyLessThan> counts;
+  for (const auto& address : remotes) {
+    counts[address]++;
+  }
 
-  for (auto&& c : counts)
-    rcounts.emplace(-c.second, c.first);
+  std::multimap<unsigned int, ComboAddress> rcounts;
+  for (const auto& count : counts) {
+    rcounts.emplace(count.second, count.first);
+  }
 
   ostringstream ret;
   ret << "Over last " << total << " entries:\n";
   boost::format fmt("%.02f%%\t%s\n");
-  int limit = 0, accounted = 0;
-  if (total) {
-    for (rcounts_t::const_iterator i = rcounts.begin(); i != rcounts.end() && limit < 20; ++i, ++limit) {
-      ret << fmt % (-100.0 * i->first / total) % i->second.toString();
-      accounted += -i->first;
-    }
-    ret << '\n'
-        << fmt % (100.0 * (total - accounted) / total) % "rest";
+  unsigned int limit = 0;
+  unsigned int accounted = 0;
+  for (auto i = rcounts.rbegin(); i != rcounts.rend() && limit < 20; ++i, ++limit) {
+    ret << fmt % (100.0 * i->first / total) % i->second.toString();
+    accounted += i->first;
   }
+  ret << '\n'
+      << fmt % (100.0 * (total - accounted) / total) % "rest";
   return ret.str();
 }
 
@@ -1584,37 +1582,36 @@ static DNSName nopFilter(const DNSName& name)
   return name;
 }
 
-static string doGenericTopQueries(pleasequeryfunc_t func, std::function<DNSName(const DNSName&)> filter = nopFilter)
+static string doGenericTopQueries(const pleasequeryfunc_t& func, const std::function<DNSName(const DNSName&)>& filter = nopFilter)
 {
-  typedef pair<DNSName, uint16_t> query_t;
-  typedef map<query_t, int> counts_t;
-  counts_t counts;
-  vector<query_t> queries = broadcastAccFunction<vector<query_t>>(func);
-
-  unsigned int total = 0;
-  for (const query_t& q : queries) {
-    total++;
-    counts[pair(filter(q.first), q.second)]++;
+  using query_t = pair<DNSName, uint16_t>;
+  auto queries = broadcastAccFunction<vector<query_t>>(func);
+  const unsigned int total = queries.size();
+  if (total == 0) {
+    return "No qualifying data available\n";
   }
 
-  typedef std::multimap<int, query_t> rcounts_t;
-  rcounts_t rcounts;
+  map<query_t, unsigned int> counts;
+  for (const auto& query : queries) {
+    counts[pair(filter(query.first), query.second)]++;
+  }
 
-  for (auto&& c : counts)
-    rcounts.emplace(-c.second, c.first);
+  std::multimap<unsigned int, query_t> rcounts;
+  for (const auto& count : counts) {
+    rcounts.emplace(count.second, count.first);
+  }
 
   ostringstream ret;
   ret << "Over last " << total << " entries:\n";
   boost::format fmt("%.02f%%\t%s\n");
-  int limit = 0, accounted = 0;
-  if (total) {
-    for (rcounts_t::const_iterator i = rcounts.begin(); i != rcounts.end() && limit < 20; ++i, ++limit) {
-      ret << fmt % (-100.0 * i->first / total) % (i->second.first.toLogString() + "|" + DNSRecordContent::NumberToType(i->second.second));
-      accounted += -i->first;
-    }
-    ret << '\n'
-        << fmt % (100.0 * (total - accounted) / total) % "rest";
+  unsigned int limit = 0;
+  unsigned int accounted = 0;
+  for (auto i = rcounts.rbegin(); i != rcounts.rend() && limit < 20; ++i, ++limit) {
+    ret << fmt % (100.0 * i->first / total) % (i->second.first.toLogString() + "|" + DNSRecordContent::NumberToType(i->second.second));
+    accounted += i->first;
   }
+  ret << '\n'
+      << fmt % (100.0 * (total - accounted) / total) % "rest";
 
   return ret.str();
 }
