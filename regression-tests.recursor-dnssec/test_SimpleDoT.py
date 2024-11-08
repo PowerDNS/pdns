@@ -35,7 +35,8 @@ devonly-regression-test-mode
         query = dns.message.make_query('dot-test-target.powerdns.org', 'TXT', want_dnssec=True)
         query.flags |= dns.flags.AD
 
-        res = self.sendUDPQuery(query)
+        # As this test uses external servers, be a more generous wrt timeouts than the default 2.0s
+        res = self.sendUDPQuery(query, timeout=5.0)
 
         self.assertMessageIsAuthenticated(res)
         self.assertRRsetInAnswer(res, expected)
