@@ -910,10 +910,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     {"setWeightedBalancingFactor", [](dnsdist::configuration::ImmutableConfiguration& config, double newValue) { config.d_weightedBalancingFactor = newValue; }, 1.0},
   };
 
-  for (const auto& item : booleanConfigItems) {
+  for (const auto& item : booleanImmutableConfigItems) {
     luaCtx.writeFunction(item.name, [&item](bool value) {
       try {
-        dnsdist::configuration::updateRuntimeConfiguration([value, &item](dnsdist::configuration::RuntimeConfiguration& config) {
+        dnsdist::configuration::updateImmutableConfiguration([value, &item](dnsdist::configuration::ImmutableConfiguration& config) {
           item.mutator(config, value);
         });
       }
