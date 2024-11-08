@@ -39,6 +39,7 @@ class ServerPolicy;
 struct ServerPool;
 struct DownstreamState;
 struct ClientState;
+class LuaContext;
 
 using servers_t = std::vector<std::shared_ptr<DownstreamState>>;
 
@@ -177,4 +178,6 @@ void updateRuntimeConfiguration(const std::function<void(RuntimeConfiguration&)>
    configuration is now sealed */
 bool isImmutableConfigurationDone();
 void setImmutableConfigurationDone();
+
+void setupLuaConfigurationItems(LuaContext& luaCtx);
 }
