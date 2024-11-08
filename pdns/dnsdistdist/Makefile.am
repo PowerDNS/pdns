@@ -159,6 +159,7 @@ dnsdist_SOURCES = \
 	dnsdist-carbon.cc dnsdist-carbon.hh \
 	dnsdist-concurrent-connections.hh \
 	dnsdist-configuration.cc dnsdist-configuration.hh \
+	dnsdist-configuration-items.cc \
 	dnsdist-configuration-yaml.cc dnsdist-configuration-yaml.hh \
 	dnsdist-console.cc dnsdist-console.hh \
 	dnsdist-crypto.cc dnsdist-crypto.hh \
