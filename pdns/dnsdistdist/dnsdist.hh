@@ -720,6 +720,7 @@ private:
 
 public:
   static bool parseSourceParameter(const std::string& source, Config& config);
+  static std::optional<DownstreamState::Availability> getAvailabilityFromStr(const std::string& mode);
 
   void updateStatisticsInfo()
   {

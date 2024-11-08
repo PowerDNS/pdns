@@ -248,6 +248,9 @@ outgoing-tls:
     - name: "enable-renegotiation"
       type: "bool"
       default: "false"
+    - name: "ktls"
+      type: "bool"
+      default: "false"
 
 doh-custom-response-header:
   parameters:
@@ -422,6 +425,9 @@ health-check:
     - name: "mode"
       type: "String"
       default: "auto"
+    - name: "qname"
+      type: "String"
+      default: ""
     - name: "qclass"
       type: "String"
       default: "IN"
@@ -484,6 +490,9 @@ backends:
     - name: "address"
       type: "String"
     - name: "id"
+      type: "String"
+      default: ""
+    - name: "name"
       type: "String"
       default: ""
     - name: "protocol"
@@ -558,6 +567,9 @@ backends:
       type: "Vec<String>"
       default: true
     - name: "mac-address"
+      type: "String"
+      default: ""
+    - name: "cpus"
       type: "String"
       default: ""
 

@@ -28,11 +28,14 @@
 
 #include "dolog.hh"
 #include "dnsdist-backend.hh"
+#include "dnsdist-discovery.hh"
 #include "dnsdist-rules.hh"
 #include "dnsdist-kvs.hh"
 #include "doh.hh"
 #include "rust/cxx.h"
 #include "rust/lib.rs.h"
+
+#include <boost/uuid/string_generator.hpp>
 #endif /* HAVE_YAML_CONFIGURATION */
 
 namespace dnsdist::configuration::yaml
@@ -203,12 +206,135 @@ static bool handleTLSConfiguration(const dnsdist::rust::settings::BindsConfigura
   return true;
 }
 
+template <class T> static bool getOptionalLuaFunction(T& destination, const std::string& functionName)
+{
+  auto lua = g_lua.lock();
+  auto function = lua->readVariable<boost::optional<T>>(functionName);
+  if (!function) {
+    return false;
+  }
+  destination = *function;
+  return true;
+}
+
 static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dnsdist::rust::settings::BackendsConfiguration& config)
 {
   DownstreamState::Config backendConfig;
   std::shared_ptr<TLSCtx> tlsCtx;
-  backendConfig.remote = ComboAddress(std::string(config.address), 53);
+
+  backendConfig.d_numberOfSockets = config.sockets;
+  backendConfig.d_qpsLimit = config.queries_per_second;
+  backendConfig.order = config.order;
+  backendConfig.d_weight = config.weight;
+  backendConfig.d_retries = config.retries;
+  backendConfig.d_maxInFlightQueriesPerConn = config.max_in_flight;
+  backendConfig.d_tcpConcurrentConnectionsLimit = config.max_concurrent_tcp_connections;
+  backendConfig.name = std::string(config.name);
+  if (!config.id.empty()) {
+    backendConfig.id = boost::uuids::string_generator()(std::string(config.id));
+  }
+  backendConfig.useECS = config.use_client_subnet;
+  backendConfig.useProxyProtocol = config.use_proxy_protocol;
+  backendConfig.d_proxyProtocolAdvertiseTLS = config.proxy_protocol_advertise_tls;
+  backendConfig.disableZeroScope = config.disable_zero_scope;
+  backendConfig.ipBindAddrNoPort = config.ip_bind_addr_no_port;
+  backendConfig.reconnectOnUp = config.reconnect_on_up;
+  backendConfig.d_cpus = getCPUPiningFromStr(std::string(config.cpus));
+  backendConfig.d_tcpOnly = config.tcp_only;
+
+  backendConfig.tcpConnectTimeout = config.tcp.connect_timeout;
+  backendConfig.tcpSendTimeout = config.tcp.send_timeout;
+  backendConfig.tcpRecvTimeout = config.tcp.receive_timeout;
+  backendConfig.tcpFastOpen = config.tcp.fast_open;
+
+  const auto& hcConf = config.health_checks;
+  backendConfig.checkInterval = hcConf.interval;
+  if (!hcConf.qname.empty()) {
+    backendConfig.checkName = DNSName(std::string(hcConf.qname));
+  }
+  backendConfig.checkType = std::string(hcConf.qtype);
+  if (!hcConf.qclass.empty()) {
+    backendConfig.checkClass = QClass(std::string(hcConf.qclass));
+  }
+  backendConfig.checkTimeout = hcConf.timeout;
+  backendConfig.d_tcpCheck = hcConf.use_tcp;
+  backendConfig.setCD = hcConf.set_cd;
+  backendConfig.mustResolve = hcConf.must_resolve;
+  backendConfig.maxCheckFailures = hcConf.max_failures;
+  backendConfig.minRiseSuccesses = hcConf.rise;
+
+  getOptionalLuaFunction<DownstreamState::checkfunc_t>(backendConfig.checkFunction, std::string(hcConf.function));
+
+  auto availability = DownstreamState::getAvailabilityFromStr(std::string(hcConf.mode));
+  if (availability) {
+    backendConfig.availability = *availability;
+  }
+
+  backendConfig.d_lazyHealthCheckSampleSize = hcConf.lazy.sample_size;
+  backendConfig.d_lazyHealthCheckMinSampleCount = hcConf.lazy.min_sample_count;
+  backendConfig.d_lazyHealthCheckThreshold = hcConf.lazy.threshold;
+  backendConfig.d_lazyHealthCheckFailedInterval = hcConf.lazy.interval;
+  backendConfig.d_lazyHealthCheckUseExponentialBackOff = hcConf.lazy.use_exponential_back_off;
+  backendConfig.d_lazyHealthCheckMaxBackOff = hcConf.lazy.max_back_off;
+  if (hcConf.lazy.mode == "TimeoutOnly") {
+    backendConfig.d_lazyHealthCheckMode = DownstreamState::LazyHealthCheckMode::TimeoutOnly;
+  }
+  else if (hcConf.lazy.mode == "TimeoutOrServFail") {
+    backendConfig.d_lazyHealthCheckMode = DownstreamState::LazyHealthCheckMode::TimeoutOrServFail;
+  }
+  else if (!hcConf.lazy.mode.empty()) {
+    warnlog("Ignoring unknown value '%s' for 'lazy.mode' on backend %s", hcConf.lazy.mode, std::string(config.address));
+  }
+
+  backendConfig.d_upgradeToLazyHealthChecks = config.auto_upgrade.use_lazy_health_check;
+
+  uint16_t serverPort = 53;
+  const auto& tlsConf = config.tls;
+  if (!tlsConf.provider.empty()) {
+    serverPort = 853;
+    backendConfig.d_tlsParams.d_alpn = TLSFrontend::ALPN::DoT;
+    backendConfig.d_tlsParams.d_provider = std::string(tlsConf.provider);
+    backendConfig.d_tlsParams.d_ciphers = std::string(tlsConf.ciphers);
+    backendConfig.d_tlsParams.d_ciphers13 = std::string(tlsConf.ciphers_tls_13);
+    backendConfig.d_tlsParams.d_caStore = std::string(tlsConf.ca_store);
+    backendConfig.d_tlsParams.d_validateCertificates = tlsConf.validate_certificate;
+    backendConfig.d_tlsParams.d_releaseBuffers = tlsConf.release_buffers;
+    backendConfig.d_tlsParams.d_enableRenegotiation = tlsConf.enable_renegotiation;
+    backendConfig.d_tlsParams.d_ktls = tlsConf.ktls;
+    backendConfig.d_tlsSubjectName = std::string(tlsConf.subject_name);
+    if (!tlsConf.subject_address.empty()) {
+      try {
+        ComboAddress addr{std::string(tlsConf.subject_address)};
+        backendConfig.d_tlsSubjectName = addr.toString();
+        backendConfig.d_tlsSubjectIsAddr = true;
+      }
+      catch (const std::exception&) {
+        errlog("Error creating new server: downstream subject_address value must be a valid IP address");
+      }
+    }
+
+    if (!config.doh.path.empty()) {
+      serverPort = 443;
+      backendConfig.d_dohPath = std::string(config.doh.path);
+      backendConfig.d_tlsParams.d_alpn = TLSFrontend::ALPN::DoH;
+      backendConfig.d_addXForwardedHeaders = config.doh.add_x_forwarded_headers;
+    }
+  }
+
+  for (const auto& pool : config.pools) {
+    backendConfig.pools.emplace(pool);
+  }
+
+  backendConfig.remote = ComboAddress(std::string(config.address), serverPort);
+
+  #warning handle XSK
+
   auto downstream = std::make_shared<DownstreamState>(std::move(backendConfig), std::move(tlsCtx), true);
+
+  const auto& autoUpgradeConf = config.auto_upgrade;
+  if (autoUpgradeConf.enabled && downstream->getProtocol() != dnsdist::Protocol::DoT && downstream->getProtocol() != dnsdist::Protocol::DoH) {
+    dnsdist::ServiceDiscovery::addUpgradeableServer(downstream, autoUpgradeConf.interval, std::string(autoUpgradeConf.pool), autoUpgradeConf.doh_key, autoUpgradeConf.keep);
+  }
 
   return downstream;
 }
