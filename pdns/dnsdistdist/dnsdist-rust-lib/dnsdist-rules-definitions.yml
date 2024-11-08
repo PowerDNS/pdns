@@ -46,10 +46,10 @@ Protobuf-Logger:
 webserver:
   section: "global"
   parameters:
-    - name: "listen-addresses"
-      type: "Vec<String>"
+    - name: "listen-address"
+      type: "String"
       default: ""
-      description: "List of IP addresses and ports to listen on"
+      description: "IP address and port to listen on"
     - name: "password"
       type: "String"
       default: ""
@@ -65,11 +65,15 @@ webserver:
     - name: "api-requires-authentication"
       type: "bool"
       default: "true"
-      description: "Whether access to the API (/api endpoints) require a valid API key"
+      description: "Whether access to the API (/api endpoints) requires a valid API key"
+    - name: "stats-require-authentication"
+      type: "bool"
+      default: "true"
+      description: "Whether access to the statistics (/metrics and /jsonstat endpoints) requires a valid password or API key"
     - name: "dashboard-requires-authentication"
       type: "bool"
       default: "true"
-      description: "Whether access to the statistics (/metrics and /jsonstat endpoints) require a valid password or API key"
+      description: "Whether access to the internal dashboard requires a valid password"
     - name: "max-concurrent-connections"
       type: "u32"
       default: 100
@@ -78,6 +82,9 @@ webserver:
       type: "bool"
       default: "false"
       description: "Whether passwords and API keys provided in plaintext should be hashed during startup, to prevent the plaintext versions from staying in memory. Doing so increases significantly the cost of verifying credentials"
+    - name: "custom-headers"
+      type: "Vec<HttpCustomResponseHeaderConfiguration>"
+      default: true
 
 console:
   section: "global"
@@ -252,7 +259,7 @@ outgoing-tls:
       type: "bool"
       default: "false"
 
-doh-custom-response-header:
+http-custom-response-header:
   parameters:
     - name: "key"
       type: "String"
@@ -292,7 +299,7 @@ incoming-doh:
       type: "u32"
       default: 1048576
     - name: "custom-response-headers"
-      type: "Vec<DohCustomResponseHeaderConfiguration>"
+      type: "Vec<HttpCustomResponseHeaderConfiguration>"
       default: true
 
 incoming-doq:
