@@ -25,7 +25,7 @@
 #include "remote_logger.hh"
 
 #if defined(HAVE_YAML_CONFIGURATION)
-
+#include "base64.hh"
 #include "dolog.hh"
 #include "dnsdist-backend.hh"
 #include "dnsdist-discovery.hh"
@@ -412,6 +412,25 @@ bool loadConfigurationFromFile(const std::string fileName)
 
       dnsdist::backend::registerNewBackend(downstream);
     }
+
+    if (!globalConfig.console.listen_address.empty()) {
+      const auto& consoleConf = globalConfig.console;
+      dnsdist::configuration::updateRuntimeConfiguration([consoleConf](dnsdist::configuration::RuntimeConfiguration& config) {
+        config.d_consoleServerAddress = ComboAddress(std::string(consoleConf.listen_address), 5199);
+        config.d_consoleEnabled = true;
+        config.d_consoleACL.clear();
+        for (const auto& aclEntry : consoleConf.acl) {
+          config.d_consoleACL.addMask(std::string(aclEntry));
+        }
+        B64Decode(std::string(consoleConf.key), config.d_consoleKey);
+      });
+    }
+
+#ifndef DISABLE_CARBON
+    for (const auto& carbonConfig : globalConfig.metrics.carbon) {
+
+    }
+#endif /* DISABLE_CARBON */
 
     return true;
   }
