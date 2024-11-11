@@ -48,8 +48,8 @@ struct ZoneXFRParams
   TSIGTriplet tsigtriplet;
   size_t maxReceivedMBytes{0};
   size_t zoneSizeHint{0};
-  size_t zoneIdx;
-  uint32_t refreshFromConf;
+  size_t zoneIdx{0};
+  uint32_t refreshFromConf{0};
   uint16_t xfrTimeout{20};
 };
 
