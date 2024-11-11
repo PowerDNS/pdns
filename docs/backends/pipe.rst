@@ -2,12 +2,17 @@ Pipe Backend
 ============
 
 * Native: Yes
-* Master: No
-* Slave: No
-* Superslave: No
-* DNSSEC: Partial, no delegation, no key storage
+* Primary: No
+* Secondary: No
+* Producer: No
+* Consumer: No
+* Autosecondary: No
+* DNS Update: No
+* DNSSEC: No
 * Disabled data: No
 * Comments: No
+* API: Read-only
+* Multiple instances: Yes
 * Zone caching: No
 * Module name: pipe
 * Launch name: ``pipe``

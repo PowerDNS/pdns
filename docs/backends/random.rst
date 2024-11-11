@@ -5,14 +5,19 @@ Random Backend
   This backend has been removed in 4.6.0
 
 * Native: Yes
-* Master: No
-* Slave: No
-* Superslave: No
-* DNSSEC: Yes, no key storage
+* Primary: No
+* Secondary: No
+* Producer: No
+* Consumer: No
+* Autosecondary: No
+* DNS Update: No
+* DNSSEC: No
 * Disabled data: No
 * Comments: No
+* API: No
+* Multiple instances: No
 * Zone caching: No
-* Module name: built in
+* Module name: random
 * Launch: ``random``
 
 This is a very silly backend which is discussed in the :doc:`Backends

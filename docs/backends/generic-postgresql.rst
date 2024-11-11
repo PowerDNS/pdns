@@ -2,12 +2,17 @@ Generic PostgreSQL backend
 ==========================
 
 * Native: Yes
-* Master: Yes
-* Slave: Yes
-* Superslave: Yes
+* Primary: Yes
+* Secondary: Yes
+* Producer: Yes
+* Consumer: Yes
+* Autosecondary: Yes
+* DNS Update: Yes
 * DNSSEC: Yes (set ``gpgsql-dnssec``)
 * Disabled data: Yes
 * Comments: Yes
+* API: Read-Write
+* Multiple instances: yes
 * Zone caching: Yes
 * Module name: gpgsql
 * Launch name: ``gpgsql``

@@ -2,12 +2,17 @@ GeoIP backend
 =============
 
 * Native: Yes
-* Master: No
-* Slave: No
-* Superslave: No
+* Primary: No
+* Secondary: No
+* Producer: No
+* Consumer: No
+* Autosecondary: No
+* DNS Update: No
 * DNSSEC: Yes
 * Disabled data: No
 * Comments: No
+* API: Read-only
+* Multiple instances: Yes
 * Zone caching: Yes
 * Module name: geoip
 * Launch name: ``geoip``

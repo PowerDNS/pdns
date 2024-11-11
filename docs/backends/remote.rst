@@ -2,12 +2,20 @@ Remote Backend
 ==============
 
 * Native: Yes
-* Master: Yes\*
-* Slave: Yes\*
-* Superslave: Yes\*
+* Primary: Yes\*
+* Secondary: Yes\*
+* Producer: No
+* Consumer: No
+* Autosecondary: Yes\*
+* DNS Update: No
 * DNSSEC: Yes\*
-* Zone caching: Yes\*
+* Disabled data: No
+* Comments: No
+* API: Read-Write
 * Multiple instances: Yes
+* Zone caching: Yes\*
+* Module name: remote
+* Launch: ``remote``
 
 \* If provided by the responder (your script).
 
