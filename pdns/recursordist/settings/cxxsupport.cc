@@ -38,6 +38,7 @@
 #include "dnsrecords.hh"
 #include "base64.hh"
 #include "validate-recursor.hh"
+#include "threadname.hh"
 
 ::rust::Vec<::rust::String> pdns::settings::rec::getStrings(const std::string& name)
 {
@@ -1453,3 +1454,4 @@ bool pdns::rust::settings::rec::isValidHostname(::rust::Str str)
     return false;
   }
 }
+

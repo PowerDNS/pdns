@@ -44,6 +44,7 @@
 #include "rec-system-resolve.hh"
 #include "root-dnssec.hh"
 #include "ratelimitedlog.hh"
+#include "settings/rust/web.rs.h"
 
 #ifdef NOD_ENABLED
 #include "nod.hh"
@@ -3319,6 +3320,8 @@ int main(int argc, char** argv)
       g_packetCache = std::make_unique<RecursorPacketCache>(g_maxPacketCacheEntries, ::arg().asNum("packetcache-shards"));
     }
 
+    extern void serveRustWeb();
+    serveRustWeb();
     ret = serviceMain(startupLog);
   }
   catch (const PDNSException& ae) {

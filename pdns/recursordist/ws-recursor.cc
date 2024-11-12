@@ -25,6 +25,7 @@
 #include "ws-recursor.hh"
 #include "json.hh"
 
+#include <algorithm>
 #include <string>
 #include "namespaces.hh"
 #include <iostream>
@@ -45,8 +46,22 @@
 #include "tcpiohandler.hh"
 #include "rec-main.hh"
 #include "settings/cxxsettings.hh" // IWYU pragma: keep, needed by included generated file
+#include "settings/rust/web.rs.h"
 
 using json11::Json;
+
+static void fromCxxToRust(const HttpResponse& cxxresp, pdns::rust::web::rec::Response& rustResponse)
+{
+  if (cxxresp.status != 0) {
+    rustResponse.status = cxxresp.status;
+  }
+  rustResponse.body = ::rust::Vec<::rust::u8>();
+  rustResponse.body.reserve(cxxresp.body.size());
+  std::copy(cxxresp.body.cbegin(), cxxresp.body.cend(), std::back_inserter(rustResponse.body));
+  for (const auto& header : cxxresp.headers) {
+    rustResponse.headers.emplace_back(pdns::rust::web::rec::KeyValue{header.first, header.second});
+  }
+}
 
 void productServerStatisticsFetch(map<string, string>& out)
 {
@@ -358,8 +373,8 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
 
   DNSName zonename = apiNameToDNSName(stringFromJson(document, "name"));
 
-  const auto& iter = SyncRes::t_sstorage.domainmap->find(zonename);
-  if (iter != SyncRes::t_sstorage.domainmap->cend()) {
+  const auto& iter = g_initialDomainMap->find(zonename);
+  if (iter != g_initialDomainMap->cend()) {
     throw ApiException("Zone already exists");
   }
 
@@ -369,10 +384,20 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
   resp->status = 201;
 }
 
+void pdns::rust::web::rec::apiServerZonesPOST(const pdns::rust::web::rec::Request& rustRequest, pdns::rust::web::rec::Response& rustResponse)
+{
+  HttpRequest req;
+  HttpResponse resp;
+
+  req.body = std::string(reinterpret_cast<const char*>(rustRequest.body.data()), rustRequest.body.size());
+  apiServerZonesPOST(&req, &resp);
+  fromCxxToRust(resp, rustResponse);
+}
+
 static void apiServerZonesGET(HttpRequest* /* req */, HttpResponse* resp)
 {
   Json::array doc;
-  for (const auto& val : *SyncRes::t_sstorage.domainmap) {
+  for (const auto& val : *g_initialDomainMap) {
     const SyncRes::AuthDomain& zone = val.second;
     Json::array servers;
     for (const auto& server : zone.d_servers) {
@@ -389,6 +414,13 @@ static void apiServerZonesGET(HttpRequest* /* req */, HttpResponse* resp)
       {"recursion_desired", zone.d_servers.empty() ? false : zone.d_rdForward}});
   }
   resp->setJsonBody(doc);
+}
+
+void pdns::rust::web::rec::apiServerZonesGET(const pdns::rust::web::rec::Request& /* rustRequest */, pdns::rust::web::rec::Response& rustResponse)
+{
+  HttpResponse resp;
+  apiServerZonesGET(nullptr, &resp);
+  fromCxxToRust(resp, rustResponse);
 }
 
 static inline DNSName findZoneById(HttpRequest* req)
@@ -472,6 +504,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp)
   resp->setJsonBody(doc);
 }
 
+
 static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp)
 {
   DNSName canon = apiNameToDNSName(req->getvars["domain"]);
@@ -485,6 +518,18 @@ static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp)
   resp->setJsonBody(Json::object{
     {"count", res.record_count + res.packet_count + res.negative_record_count},
     {"result", "Flushed cache."}});
+}
+
+void pdns::rust::web::rec::apiServerCacheFlush(const pdns::rust::web::rec::Request& rustRequest, pdns::rust::web::rec::Response& rustResponse)
+{
+  HttpRequest request;
+  for (const auto& [key, value] : rustRequest.vars) {
+    cerr << key << ' ' << value << endl;
+    request.getvars[std::string(key)] = std::string(value);
+  }
+  HttpResponse response;
+  apiServerCacheFlush(&request, &response);
+  fromCxxToRust(response, rustResponse);
 }
 
 static void apiServerRPZStats(HttpRequest* /* req */, HttpResponse* resp)
@@ -568,6 +613,13 @@ static void prometheusMetrics(HttpRequest* /* req */, HttpResponse* resp)
   resp->status = 200;
 }
 
+void pdns::rust::web::rec::prometheusMetrics(const pdns::rust::web::rec::Request& /* rustRequest */, pdns::rust::web::rec::Response& rustReponse)
+{
+  HttpResponse resp;
+  prometheusMetrics(nullptr, &resp);
+  fromCxxToRust(resp, rustReponse);
+}
+
 #include "htmlfiles.h"
 
 static void serveStuff(HttpRequest* req, HttpResponse* resp)
@@ -606,6 +658,15 @@ static void serveStuff(HttpRequest* req, HttpResponse* resp)
   else {
     resp->status = 404;
   }
+}
+
+void pdns::rust::web::rec::serveStuff(const pdns::rust::web::rec::Request& rustRequest, pdns::rust::web::rec::Response& rustReponse)
+{
+  HttpRequest request;
+  HttpResponse response;
+  request.url = std::string(rustRequest.uri);
+  serveStuff(&request, &response);
+  fromCxxToRust(response, rustReponse);
 }
 
 const std::map<std::string, MetricDefinition> MetricDefinitionStorage::d_metrics = {
@@ -950,4 +1011,13 @@ void AsyncWebServer::go()
     return;
   }
   server->asyncWaitForConnections(d_fdm, [this](const std::shared_ptr<Socket>& socket) { serveConnection(socket); });
+}
+
+void serveRustWeb()
+{
+  static ::rust::Vec<::rust::String> urls;
+  for (const auto& [url, _]  : g_urlmap) {
+    urls.emplace_back(url);
+  }
+  pdns::rust::web::rec::serveweb({"127.0.0.1:3000", "[::1]:3000"}, urls);
 }
