@@ -209,7 +209,8 @@ static bool handleTLSConfiguration(const dnsdist::rust::settings::BindsConfigura
   return true;
 }
 
-template <class T> static bool getOptionalLuaFunction(T& destination, const std::string& functionName)
+template <class T>
+static bool getOptionalLuaFunction(T& destination, const std::string& functionName)
 {
   auto lua = g_lua.lock();
   auto function = lua->readVariable<boost::optional<T>>(functionName);
@@ -330,7 +331,7 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dns
 
   backendConfig.remote = ComboAddress(std::string(config.address), serverPort);
 
-  #warning handle XSK
+#warning handle XSK
 
   auto downstream = std::make_shared<DownstreamState>(std::move(backendConfig), std::move(tlsCtx), true);
 
@@ -361,7 +362,7 @@ bool loadConfigurationFromFile(const std::string fileName)
 
     for (const auto& bind : globalConfig.binds) {
       ComboAddress listeningAddress(std::string(bind.listen_address), 53);
-      updateImmutableConfiguration([&bind,listeningAddress](ImmutableConfiguration& config) {
+      updateImmutableConfiguration([&bind, listeningAddress](ImmutableConfiguration& config) {
         for (size_t idx = 0; idx < bind.threads; idx++) {
           auto cpus = getCPUPiningFromStr(std::string(bind.cpus));
           auto state = std::make_shared<ClientState>(listeningAddress, bind.protocol != "DoQ", bind.reuseport, bind.tcp.fast_open_queue_size, std::string(bind.interface), cpus, false);
@@ -460,7 +461,7 @@ bool loadConfigurationFromFile(const std::string fileName)
       catch (const PDNSException& e) {
         throw std::runtime_error(std::string("Error parsing the bind address for the webserver: ") + e.reason);
       }
-      dnsdist::configuration::updateRuntimeConfiguration([local,webConfig](dnsdist::configuration::RuntimeConfiguration& config) {
+      dnsdist::configuration::updateRuntimeConfiguration([local, webConfig](dnsdist::configuration::RuntimeConfiguration& config) {
         config.d_webServerAddress = local;
         if (!webConfig.password.empty()) {
           auto holder = std::make_shared<CredentialsHolder>(std::string(webConfig.password), webConfig.hash_plaintext_credentials);
@@ -511,7 +512,7 @@ bool loadConfigurationFromFile(const std::string fileName)
     }
 
     if (!globalConfig.dynamic_rules_settings.default_action.empty()) {
-      dnsdist::configuration::updateRuntimeConfiguration([default_action=globalConfig.dynamic_rules_settings.default_action](dnsdist::configuration::RuntimeConfiguration& config) {
+      dnsdist::configuration::updateRuntimeConfiguration([default_action = globalConfig.dynamic_rules_settings.default_action](dnsdist::configuration::RuntimeConfiguration& config) {
         config.d_dynBlockAction = DNSAction::typeFromString(std::string(default_action));
       });
     }
@@ -528,7 +529,7 @@ bool loadConfigurationFromFile(const std::string fileName)
     }
 
     if (!globalConfig.general.capabilities_to_retain.empty()) {
-      dnsdist::configuration::updateImmutableConfiguration([capabilities=globalConfig.general.capabilities_to_retain](dnsdist::configuration::ImmutableConfiguration& config) {
+      dnsdist::configuration::updateImmutableConfiguration([capabilities = globalConfig.general.capabilities_to_retain](dnsdist::configuration::ImmutableConfiguration& config) {
         for (const auto& capability : capabilities) {
           config.d_capabilitiesToRetain.emplace(std::string(capability));
         }

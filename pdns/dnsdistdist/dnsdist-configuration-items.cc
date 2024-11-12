@@ -28,7 +28,8 @@
 #include "dnsdist-lua.hh"
 #include "dolog.hh"
 
-namespace dnsdist::configuration {
+namespace dnsdist::configuration
+{
 struct BooleanConfigurationItems
 {
   const std::function<void(dnsdist::configuration::RuntimeConfiguration& config, bool newValue)> mutator;
@@ -61,6 +62,7 @@ struct DoubleImmutableConfigurationItems
   const double minimumValue{1.0};
 };
 
+// clang-format off
 static const std::map<std::string, BooleanConfigurationItems> s_booleanConfigItems{
   {"truncateTC", {[](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_truncateTC = newValue; }}},
   {"fixupCase", {[](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_fixupCase = newValue; }}},
@@ -153,11 +155,12 @@ static const std::map<std::string, DoubleImmutableConfigurationItems> s_doubleIm
   {"setConsistentHashingBalancingFactor", {[](dnsdist::configuration::ImmutableConfiguration& config, double newValue) { config.d_consistentHashBalancingFactor = newValue; }, 1.0}},
   {"setWeightedBalancingFactor", {[](dnsdist::configuration::ImmutableConfiguration& config, double newValue) { config.d_weightedBalancingFactor = newValue; }, 1.0}},
 };
+// clang-format on
 
 void setupLuaConfigurationItems(LuaContext& luaCtx)
 {
   for (const auto& item : s_booleanConfigItems) {
-    luaCtx.writeFunction(item.first, [&item=item.second](bool value) {
+    luaCtx.writeFunction(item.first, [&item = item.second](bool value) {
       setLuaSideEffect();
       dnsdist::configuration::updateRuntimeConfiguration([value, &item](dnsdist::configuration::RuntimeConfiguration& config) {
         item.mutator(config, value);
@@ -166,7 +169,7 @@ void setupLuaConfigurationItems(LuaContext& luaCtx)
   }
 
   for (const auto& item : s_unsignedIntegerConfigItems) {
-    luaCtx.writeFunction(item.first, [&name=item.first,&item=item.second](uint64_t value) {
+    luaCtx.writeFunction(item.first, [&name = item.first, &item = item.second](uint64_t value) {
       setLuaSideEffect();
       checkParameterBound(name, value, item.maximumValue);
       dnsdist::configuration::updateRuntimeConfiguration([value, &item](dnsdist::configuration::RuntimeConfiguration& config) {
@@ -176,7 +179,7 @@ void setupLuaConfigurationItems(LuaContext& luaCtx)
   }
 
   for (const auto& item : s_stringConfigItems) {
-    luaCtx.writeFunction(item.first, [&item=item.second](const std::string& value) {
+    luaCtx.writeFunction(item.first, [&item = item.second](const std::string& value) {
       setLuaSideEffect();
       dnsdist::configuration::updateRuntimeConfiguration([value, &item](dnsdist::configuration::RuntimeConfiguration& config) {
         item.mutator(config, value);
@@ -185,7 +188,7 @@ void setupLuaConfigurationItems(LuaContext& luaCtx)
   }
 
   for (const auto& item : s_booleanImmutableConfigItems) {
-    luaCtx.writeFunction(item.first, [&name=item.first,&item=item.second](bool value) {
+    luaCtx.writeFunction(item.first, [&name = item.first, &item = item.second](bool value) {
       try {
         dnsdist::configuration::updateImmutableConfiguration([value, &item](dnsdist::configuration::ImmutableConfiguration& config) {
           item.mutator(config, value);
@@ -199,7 +202,7 @@ void setupLuaConfigurationItems(LuaContext& luaCtx)
   }
 
   for (const auto& item : s_unsignedIntegerImmutableConfigItems) {
-    luaCtx.writeFunction(item.first, [&name=item.first,&item=item.second](uint64_t value) {
+    luaCtx.writeFunction(item.first, [&name = item.first, &item = item.second](uint64_t value) {
       checkParameterBound(name, value, item.maximumValue);
       try {
         dnsdist::configuration::updateImmutableConfiguration([value, &item](dnsdist::configuration::ImmutableConfiguration& config) {
@@ -213,7 +216,7 @@ void setupLuaConfigurationItems(LuaContext& luaCtx)
     });
   }
   for (const auto& item : s_doubleImmutableConfigItems) {
-    luaCtx.writeFunction(item.first, [&name=item.first,&item=item.second](double value) {
+    luaCtx.writeFunction(item.first, [&name = item.first, &item = item.second](double value) {
       if (value != 0 && value < item.minimumValue) {
         g_outputBuffer = "Invalid value passed to " + name + "()!\n";
         errlog("Invalid value passed to %s()!", name);
