@@ -95,7 +95,7 @@ template <typename Container> void GenericDNSPacketWriter<Container>::startRecor
   d_sor=d_content.size(); // this will remind us where to stuff the record size
 }
 
-template <typename Container> void GenericDNSPacketWriter<Container>::addOpt(const uint16_t udpsize, const uint16_t extRCode, const uint16_t ednsFlags, const optvect_t& options, const uint8_t version)
+template <typename Container> uint32_t GenericDNSPacketWriter<Container>::addOpt(const uint16_t udpsize, const uint16_t extRCode, const uint16_t ednsFlags, const optvect_t& options, const uint8_t version)
 {
   uint32_t ttl=0;
 
@@ -127,6 +127,7 @@ template <typename Container> void GenericDNSPacketWriter<Container>::addOpt(con
     xfr16BitInt(option.second.length());
     xfrBlob(option.second);
   }
+  return ttl;
 }
 
 template <typename Container> void GenericDNSPacketWriter<Container>::xfr48BitInt(uint64_t val)

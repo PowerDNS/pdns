@@ -70,7 +70,7 @@ public:
 
   /** Shorthand way to add an Opt-record, for example for EDNS0 purposes */
   using optvect_t = vector<pair<uint16_t,std::string> >;
-  void addOpt(const uint16_t udpsize, const uint16_t extRCode, const uint16_t ednsFlags, const optvect_t& options=optvect_t(), const uint8_t version=0);
+  uint32_t addOpt(uint16_t udpsize, uint16_t extRCode, uint16_t ednsFlags, const optvect_t& options = {}, uint8_t version = 0);
 
   /** needs to be called after the last record is added, but can be called again and again later on. Is called internally by startRecord too.
       The content of the vector<> passed to the constructor is inconsistent until commit is called.

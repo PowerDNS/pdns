@@ -1718,8 +1718,9 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
          OPT record.  This MUST also occur when a truncated response (using
          the DNS header's TC bit) is returned."
       */
-      packetWriter.addOpt(512, ednsExtRCode, DNSSECOK ? EDNSOpts::DNSSECOK : 0, returnedEdnsOptions);
+      auto ednsVersion = packetWriter.addOpt(512, ednsExtRCode, DNSSECOK ? EDNSOpts::DNSSECOK : 0, returnedEdnsOptions);
       packetWriter.commit();
+      pbMessage.setMeta("_pdnsREDNS", {}, {ednsVersion});
     }
 
     t_Counters.at(rec::ResponseStats::responseStats).submitResponse(comboWriter->d_mdp.d_qtype, packet.size(), packetWriter.getHeader()->rcode);
@@ -2014,7 +2015,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
 }
 
 void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uint16_t* qtype, uint16_t* qclass,
-                       bool& foundECS, EDNSSubnetOpts* ednssubnet, EDNSOptionViewMap* options)
+                       bool& foundECS, EDNSSubnetOpts* ednssubnet, EDNSOptionViewMap* options, boost::optional<uint32_t>& ednsVersion)
 {
   const bool lookForECS = ednssubnet != nullptr;
   const dnsheader_aligned dnshead(question.data());
@@ -2027,7 +2028,7 @@ void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uint16_t* 
   const size_t headerSize = /* root */ 1 + sizeof(dnsrecordheader);
   const uint16_t arcount = ntohs(dhPointer->arcount);
 
-  for (uint16_t arpos = 0; arpos < arcount && questionLen > (pos + headerSize) && (lookForECS && !foundECS); arpos++) {
+  for (uint16_t arpos = 0; arpos < arcount && questionLen >= (pos + headerSize) && (lookForECS && !foundECS); arpos++) {
     if (question.at(pos) != 0) {
       /* not an OPT, bye. */
       return;
@@ -2035,12 +2036,14 @@ void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uint16_t* 
 
     pos += 1;
     const auto* drh = reinterpret_cast<const dnsrecordheader*>(&question.at(pos)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+    if (ntohs(drh->d_type) == QType::OPT) {
+      ednsVersion = htonl(drh->d_ttl);
+    }
     pos += sizeof(dnsrecordheader);
 
     if (pos >= questionLen) {
       return;
     }
-
     /* OPT root label (1) followed by type (2) */
     if (lookForECS && ntohs(drh->d_type) == QType::OPT) {
       if (options == nullptr) {
@@ -2228,6 +2231,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   std::string extendedErrorExtra;
   boost::optional<int> rcode = boost::none;
   boost::optional<uint16_t> extendedErrorCode{boost::none};
+  boost::optional<uint32_t> ednsVersion{boost::none};
   uint32_t ttlCap = std::numeric_limits<uint32_t>::max();
   bool variable = false;
   bool followCNAMEs = false;
@@ -2248,7 +2252,6 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     g_mtracer->clearAllocators();
     */
 #endif
-
     // We do not have a SyncRes specific Lua context at this point yet, so ok to use t_pdl
     if (needECS || (t_pdl && (t_pdl->hasGettagFunc() || t_pdl->hasGettagFFIFunc())) || dnsheader->opcode == static_cast<unsigned>(Opcode::Notify)) {
       try {
@@ -2257,7 +2260,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         ecsFound = false;
 
         getQNameAndSubnet(question, &qname, &qtype, &qclass,
-                          ecsFound, &ednssubnet, g_gettagNeedsEDNSOptions ? &ednsOptions : nullptr);
+                          ecsFound, &ednssubnet, g_gettagNeedsEDNSOptions ? &ednsOptions : nullptr, ednsVersion);
 
         qnameParsed = true;
         ecsParsed = true;
@@ -2295,7 +2298,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     RecursorPacketCache::OptPBData pbData{boost::none};
     if (t_protobufServers.servers) {
       if (logQuery && !(luaconfsLocal->protobufExportConfig.taggedOnly && policyTags.empty())) {
-        protobufLogQuery(luaconfsLocal, uniqueId, source, destination, mappedSource, ednssubnet.source, false, dnsheader->id, question.size(), qname, qtype, qclass, policyTags, requestorId, deviceId, deviceName, meta);
+        protobufLogQuery(luaconfsLocal, uniqueId, source, destination, mappedSource, ednssubnet.source, false, dnsheader->id, question.size(), qname, qtype, qclass, policyTags, requestorId, deviceId, deviceName, meta, ednsVersion);
       }
     }
 
