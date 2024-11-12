@@ -4,17 +4,17 @@ Random Backend
 .. deprecated:: 4.6.0
   This backend has been removed in 4.6.0
 
-- Native: Yes
-- Master: No
-- Slave: No
-- Superslave: No
-- Case: Depends
-- DNSSEC: Yes, no key storage
-- Disabled data: No
-- Comments: No
-- Zone caching: No
-- Module name: built in
-- Launch: ``random``
+* Native: Yes
+* Master: No
+* Slave: No
+* Superslave: No
+* Case: Depends
+* DNSSEC: Yes, no key storage
+* Disabled data: No
+* Comments: No
+* Zone caching: No
+* Module name: built in
+* Launch: ``random``
 
 This is a very silly backend which is discussed in the :doc:`Backends
 writer's guide <../appendices/backend-writers-guide>`.
