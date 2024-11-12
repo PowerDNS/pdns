@@ -1,17 +1,18 @@
 ---
 FormatStyle: none
-HeaderFileExtensions:
-  - h
-  - hh
-  - hpp
-ImplementationFileExtensions:
-  - c
-  - cc
-  - cpp
+# Older (pre 19) versions of clang-tidy do not grok these
+# HeaderFileExtensions:
+#  - h
+#  - hh
+#  - hpp
+#ImplementationFileExtensions:
+#  - c
+#  - cc
+#  - cpp
 WarningsAsErrors: ''
 HeaderFilterRegex: ''
 Checks: |
-  'clang-diagnostic-*,clang-analyzer-*,bugprone-*,concurrency-*,-modernize-use-trailing-return-type,-readability-magic-numbers,-cppcoreguidelines-avoid-magic-numbers,-performance-avoid-endl'
+  clang-diagnostic-*,clang-analyzer-*,bugprone-*,concurrency-*,-modernize-use-trailing-return-type,-readability-magic-numbers,-cppcoreguidelines-avoid-magic-numbers,-performance-avoid-endl
 # yamllint disable rule:line-length
 CheckOptions:
   - key: bugprone-string-constructor.LargeLengthThreshold
