@@ -41,6 +41,7 @@
 
 namespace dnsdist::configuration::yaml
 {
+#if defined(HAVE_YAML_CONFIGURATION)
 void convertImmutableFlatSettingsFromRust(const dnsdist::rust::settings::GlobalConfiguration& yamlConfig);
 void convertRuntimeFlatSettingsFromRust(const dnsdist::rust::settings::GlobalConfiguration& yamlConfig);
 
@@ -342,6 +343,7 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dns
 
   return downstream;
 }
+#endif /* defined(HAVE_YAML_CONFIGURATION) */
 
 bool loadConfigurationFromFile(const std::string fileName)
 {
