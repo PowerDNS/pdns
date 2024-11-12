@@ -127,6 +127,7 @@ libtestremotebackend_la_SOURCES = \
 	../../pdns/ednscookies.cc \
 	../../pdns/ednsoptions.cc ../../pdns/ednsoptions.hh \
 	../../pdns/ednssubnet.cc \
+	../../pdns/ednszoneversion.cc \
 	../../pdns/gss_context.cc ../../pdns/gss_context.hh \
 	../../pdns/iputils.cc \
 	../../pdns/json.hh ../../pdns/json.cc \

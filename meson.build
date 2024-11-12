@@ -541,6 +541,8 @@ common_sources += files(
   src_dir / 'ednsoptions.hh',
   src_dir / 'ednssubnet.cc',
   src_dir / 'ednssubnet.hh',
+  src_dir / 'ednszoneversion.cc',
+  src_dir / 'ednszoneversion.hh',
   src_dir / 'gss_context.cc',
   src_dir / 'gss_context.hh',
   src_dir / 'histogram.hh',
