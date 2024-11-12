@@ -69,7 +69,7 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
       {
       tkey_out->d_error = 21; // BADALGO
 #ifdef ENABLE_GSS_TSIG
-      g_log<<Logger::Debug<<"GSS-TSIG request but feature not enabled by enable-gss-tsigs setting"<<endl;
+      g_log<<Logger::Debug<<"GSS-TSIG request but feature not enabled by enable-gss-tsig setting"<<endl;
 #else
       g_log<<Logger::Debug<<"GSS-TSIG request but feature not compiled in"<<endl;
 #endif
