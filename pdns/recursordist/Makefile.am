@@ -552,10 +552,10 @@ rec_control_SOURCES = \
 	rec_channel.cc rec_channel.hh \
 	rec_control.cc \
 	settings/cxxsupport.cc \
-	threadname.cc threadname.hh \
 	sillyrecords.cc \
 	sortlist.cc sortlist.hh \
 	svc-records.cc svc-records.hh \
+	threadname.cc threadname.hh \
 	unix_utility.cc
 
 nodist_rec_control_SOURCES = \

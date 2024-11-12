@@ -147,5 +147,5 @@ private:
   static bool s_selfResolveCheck;
 };
 
-  ComboAddress fromNameOrIP(const string& str, uint16_t defPort, Logr::log_t log);
+ComboAddress fromNameOrIP(const string& str, uint16_t defPort, Logr::log_t log);
 }

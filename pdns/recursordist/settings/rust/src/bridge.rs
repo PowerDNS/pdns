@@ -665,6 +665,10 @@ impl ForwardingCatalogZone {
         if !self.xfr.addresses.is_empty() {
             validate_address_family(&(field.to_owned() + ".xfr.addresses"), &(field.to_owned() + ".xfr.localAddress"), &self.xfr.addresses, &self.xfr.localAddress)?;
         }
+        else {
+            let msg = format!("{}.xfr.addresses: at least one address required", field);
+            return Err(ValidationError { msg });
+        }
         Ok(())
     }
 
