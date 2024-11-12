@@ -626,6 +626,7 @@ try
   d_haveednssection = false;
   d_haveednscookie = false;
   d_ednscookievalid = false;
+  d_wantszoneversion = false;
 
   if(getEDNSOpts(mdp, &edo)) {
     d_haveednssection=true;
