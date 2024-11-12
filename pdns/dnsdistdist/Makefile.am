@@ -151,7 +151,7 @@ dnsdist_SOURCES = \
 	dns.cc dns.hh \
 	dns_random.hh \
 	dnscrypt.cc dnscrypt.hh \
-	dnsdist-actions.hh \
+	dnsdist-actions.cc dnsdist-actions.hh \
 	dnsdist-async.cc dnsdist-async.hh \
 	dnsdist-backend.cc dnsdist-backend.hh \
 	dnsdist-backoff.hh \
@@ -283,6 +283,7 @@ testrunner_SOURCES = \
 	credentials.cc credentials.hh \
 	dns.cc dns.hh \
 	dnscrypt.cc dnscrypt.hh \
+	dnsdist-actions.cc dnsdist-actions.hh \
 	dnsdist-async.cc dnsdist-async.hh \
 	dnsdist-backend.cc dnsdist-backend.hh \
 	dnsdist-backoff.hh \
@@ -498,6 +499,7 @@ dnsdist_SOURCES += doq-common.cc
 endif
 
 if HAVE_YAML_CONFIGURATION
+dnsdist_SOURCES += dnsdist-rust-lib/dnsdist-configuration-yaml-items-cxx.cc
 dnsdist_LDADD += $(DNSDIST_RUST_LIBS)
 endif
 
