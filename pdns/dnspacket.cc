@@ -394,7 +394,7 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
       }
 
       for (auto &auth_serial : d_auth_serials) {
-        auto& name = auth_serial.first;
+        const auto& name = auth_serial.first;
         auto& unedited_serial = auth_serial.second.first;
         auto& edited_serial = auth_serial.second.second;
 

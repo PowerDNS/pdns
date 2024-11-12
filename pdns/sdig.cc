@@ -70,13 +70,12 @@ static void fillPacket(vector<uint8_t>& packet, const string& q, const string& t
 {
   DNSPacketWriter pw(packet, DNSName(q), DNSRecordContent::TypeToNumber(t), qclass, opcode);
 
-  if (dnssec || ednsnm || getenv("SDIGBUFSIZE") != nullptr || cookie || otids || zoneversion) { // NOLINT(concurrency-mt-unsafe) we're single threaded
-    char* sbuf = getenv("SDIGBUFSIZE"); // NOLINT(concurrency-mt-unsafe) we're single threaded
-    int bufsize;
-    if (sbuf)
-      bufsize = atoi(sbuf);
-    else
-      bufsize = 2800;
+  char* env_sdigbufsize = getenv("SDIGBUFSIZE"); // NOLINT(concurrency-mt-unsafe)
+  if (dnssec || ednsnm || env_sdigbufsize != nullptr || cookie || otids || zoneversion) { // NOLINT(concurrency-mt-unsafe) we're single threaded
+    int bufsize = 2800;
+    if (env_sdigbufsize != nullptr) {
+      bufsize = atoi(env_sdigbufsize);
+    }
     DNSPacketWriter::optvect_t opts;
     if (ednsnm) {
       EDNSSubnetOpts eo;
@@ -110,15 +109,15 @@ static void fillPacket(vector<uint8_t>& packet, const string& q, const string& t
       opts.emplace_back(EDNSOptionCode::ZONEVERSION, "");
     }
 
-    pw.addOpt(bufsize, 0, dnssec ? EDNSOpts::DNSSECOK : 0, opts);
-    pw.commit();
+    pwriter.addOpt(bufsize, 0, dnssec ? EDNSOpts::DNSSECOK : 0, opts);
+    pwriter.commit();
   }
 
   if (recurse) {
-    pw.getHeader()->rd = true;
+    pwriter.getHeader()->rd = true;
   }
 
-  pw.getHeader()->id = htons(qid);
+  pwriter.getHeader()->id = htons(qid);
 }
 
 static void printReply(const string& reply, bool showflags, bool hidesoadetails, bool dumpluaraw, bool ignoreId = false)
@@ -237,7 +236,7 @@ static void printReply(const string& reply, bool showflags, bool hidesoadetails,
           cerr << "EDNS Extended Error response: " << eee.infoCode << "/" << eee.extraText << endl;
         }
       } else if (iter->first == EDNSOptionCode::ZONEVERSION) {
-        EDNSZoneVersion zoneversion;
+        EDNSZoneVersion zoneversion{};
         if (getEDNSZoneVersionFromString(iter->second, zoneversion)) {
           if (zoneversion.type == 0) { // FIXME enum
             cerr << "EDNS Zone Version (SOA serial) for labelcount " << (int)zoneversion.labelcount << ": " << zoneversion.version << endl;
@@ -252,7 +251,7 @@ static void printReply(const string& reply, bool showflags, bool hidesoadetails,
   }
 }
 
-int main(int argc, char** argv) // NOLINT(readability-function-cognitive-complexity) XXX FIXME
+int main(int argc, char** argv) // NOLINT(readability-function-cognitive-complexity)
 try {
   /* default timeout of 10s */
   struct timeval timeout{10,0};
