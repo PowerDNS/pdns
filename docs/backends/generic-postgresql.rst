@@ -5,7 +5,6 @@ Generic PostgreSQL backend
 * Master: Yes
 * Slave: Yes
 * Superslave: Yes
-* Case: All lower
 * DNSSEC: Yes (set ``gpgsql-dnssec``)
 * Disabled data: Yes
 * Comments: Yes

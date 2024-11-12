@@ -5,7 +5,6 @@ Generic MySQL/MariaDB  backend
 * Master: Yes
 * Slave: Yes
 * Superslave: Yes
-* Case: All lower
 * DNSSEC: Yes (set ``gmysql-dnssec``)
 * Disabled data: Yes
 * Comments: Yes

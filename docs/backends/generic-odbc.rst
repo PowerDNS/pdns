@@ -5,7 +5,6 @@ Generic ODBC Backend
 * Master: Yes
 * Slave: Yes
 * Superslave: Yes
-* Case: All lower
 * DNSSEC: Yes
 * Disabled data: Yes
 * Comments: Yes

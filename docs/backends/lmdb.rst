@@ -5,7 +5,6 @@ LMDB backend
 * Master: Yes
 * Slave: Yes
 * Superslave: No
-* Case: All lower
 * DNSSEC: Yes
 * Disabled data: Yes
 * Comments: No
