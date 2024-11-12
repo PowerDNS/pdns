@@ -41,6 +41,7 @@
 
 namespace dnsdist::configuration::yaml
 {
+void convertRuntimeFlatSettingsFromRust(const dnsdist::rust::settings::GlobalConfiguration& yamlConfig);
 
 static std::set<int> getCPUPiningFromStr(const std::string& cpuStr)
 {
@@ -427,6 +428,15 @@ bool loadConfigurationFromFile(const std::string fileName)
       });
     }
 
+    if (!globalConfig.proxy_protocol.acl.empty()) {
+      dnsdist::configuration::updateRuntimeConfiguration([globalConfig](dnsdist::configuration::RuntimeConfiguration& config) {
+        config.d_proxyProtocolACL.clear();
+        for (const auto& aclEntry : globalConfig.proxy_protocol.acl) {
+          config.d_proxyProtocolACL.addMask(std::string(aclEntry));
+        }
+      });
+    }
+
 #ifndef DISABLE_CARBON
     for (const auto& carbonConfig : globalConfig.metrics.carbon) {
       auto newEndpoint = dnsdist::Carbon::newEndpoint(std::string(carbonConfig.address),
@@ -485,9 +495,27 @@ bool loadConfigurationFromFile(const std::string fileName)
         config.d_dashboardRequiresAuthentication = webConfig.dashboard_requires_authentication;
         config.d_statsRequireAuthentication = webConfig.stats_require_authentication;
         dnsdist::webserver::setMaxConcurrentConnections(webConfig.max_concurrent_connections);
+        config.d_apiConfigDirectory = std::string(webConfig.api_configuration_directory);
+        config.d_apiReadWrite = webConfig.api_read_write;
       });
-
     }
+
+    if (globalConfig.query_count.enabled) {
+      dnsdist::configuration::updateRuntimeConfiguration([&globalConfig](dnsdist::configuration::RuntimeConfiguration& config) {
+        config.d_queryCountConfig.d_enabled = true;
+        if (!globalConfig.query_count.filter.empty()) {
+          getOptionalLuaFunction<dnsdist::QueryCount::Configuration::Filter>(config.d_queryCountConfig.d_filter, std::string(globalConfig.query_count.filter));
+        }
+      });
+    }
+
+    if (!globalConfig.dynamic_rules_settings.default_action.empty()) {
+      dnsdist::configuration::updateRuntimeConfiguration([default_action=globalConfig.dynamic_rules_settings.default_action](dnsdist::configuration::RuntimeConfiguration& config) {
+        config.d_dynBlockAction = DNSAction::typeFromString(std::string(default_action));
+      });
+    }
+
+    convertRuntimeFlatSettingsFromRust(globalConfig);
     return true;
   }
   catch (const ::rust::Error& exp) {

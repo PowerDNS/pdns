@@ -85,6 +85,12 @@ webserver:
     - name: "custom-headers"
       type: "Vec<HttpCustomResponseHeaderConfiguration>"
       default: true
+    - name: "api-configuration-directory"
+      type: "String"
+      default: ""
+    - name: "api-read-write"
+      type: "bool"
+      default: "false"
 
 console:
   section: "global"
@@ -99,25 +105,56 @@ console:
       type: "Vec<String>"
       default: "127.0.0.1, ::1"
       description: "List of network masks or IP addresses that are allowed to open a connection to the console server"
+    - name: "maximum-output-size"
+      type: "u32"
+      default: "10000000"
+      lua-name: "setConsoleOutputMaxMsgSize"
+      internal-field-name: "d_consoleOutputMsgMaxSize"
+      runtime-configurable: true
+    - name: "log-connections"
+      type: "bool"
+      default: "true"
+      lua-name: "setConsoleConnectionsLogging"
+      internal-field-name: "d_logConsoleConnections"
+      runtime-configurable: true
 
 edns-client-subnet:
   section: "global"
   parameters:
     - name: "override-existing"
       lua-name: "setECSOverride"
+      internal-field-name: "d_ecsOverride"
+      runtime-configurable: true
       type: "bool"
       default: "false"
       description: "When `useClientSubnet` in `newServer()` is set and dnsdist adds an EDNS Client Subnet Client option to the query, override an existing option already present in the query, if any. Please see Passing the source address to the backend for more information. Note that it’s not recommended to enable setECSOverride in front of an authoritative server responding with EDNS Client Subnet information as mismatching data (ECS scopes) can confuse clients and lead to SERVFAIL responses on downstream nameservers"
     - name: "source-prefix-v4"
       lua-name: "setECSSourcePrefixV4"
+      internal-field-name: "d_ECSSourcePrefixV4"
+      runtime-configurable: true
       type: "u8"
       default: 32
       description: "When `useClientSubnet` in `newServer()` is set and dnsdist adds an EDNS Client Subnet Client option to the query, truncate the requestor's IPv4 address to `prefix` bits"
     - name: "source-prefix-v6"
       lua-name: "setECSSourcePrefixV6"
+      internal-field-name: "d_ECSSourcePrefixV6"
+      runtime-configurable: true
       type: "u8"
       default: 48
       description: "When `useClientSubnet` in `newServer()` is set and dnsdist adds an EDNS Client Subnet Client option to the query, truncate the requestor's IPv6 address to `prefix` bits"
+
+dynamic-rules-settings:
+  section: "global"
+  parameters:
+    - name: "purge-interval"
+      type: "u64"
+      default: "60"
+      lua-name: "setDynBlocksPurgeInterval"
+      internal-field-name: "d_dynBlocksPurgeInterval"
+      runtime-configurable: true
+    - name: "default-action"
+      type: "String"
+      default: "Drop"
 
 acl:
   section: "global"
@@ -592,9 +629,49 @@ tcp:
     - name: "receive-timeout"
       type: "u32"
       default: 2
+      lua-name: "setTCPRecvTimeout"
+      internal-field-name: "d_tcpRecvTimeout"
+      runtime-configurable: true
     - name: "send-timeout"
       type: "u32"
       default: 2
+      lua-name: "setTCPSendTimeout"
+      internal-field-name: "d_tcpSendTimeout"
+      runtime-configurable: true
+    - name: "max-queries-per-connection"
+      type: "u64"
+      default: "0"
+      lua-name: "setMaxTCPQueriesPerConnection"
+      internal-field-name: "d_maxTCPQueriesPerConn"
+      runtime-configurable: true
+    - name: "max-connection-duration"
+      type: "u64"
+      default: "0"
+      lua-name: "setMaxTCPConnectionDuration"
+      internal-field-name: "d_maxTCPConnectionDuration"
+      runtime-configurable: true
+
+tls:
+  section: "tuning"
+  parameters:
+    - name: "outgoing-tickets-cache-cleanup-delay"
+      type: "u16"
+      default: "60"
+      lua-name: "setOutgoingTLSSessionsCacheCleanupDelay"
+      internal-field-name: "d_tlsSessionCacheCleanupDelay"
+      runtime-configurable: true
+    - name: "outgoing-tickets-cache-validity"
+      type: "u16"
+      default: "600"
+      lua-name: "setOutgoingTLSSessionsCacheMaxTicketValidity"
+      internal-field-name: "d_tlsSessionCacheSessionValidity"
+      runtime-configurable: true
+    - name: "max-outgoing-tickets-per-backend"
+      type: "u16"
+      default: "20"
+      lua-name: "setOutgoingTLSSessionsCacheMaxTicketsPerBackend"
+      internal-field-name: "d_tlsSessionCacheMaxSessionsPerBackend"
+      runtime-configurable: true
 
 doh:
   section: "tuning"
@@ -602,6 +679,96 @@ doh:
     - name: "outgoing-worker-threads"
       type: "u32"
       default: 10
+
+cache-settings:
+  section: "global"
+  parameters:
+    - name: "stale-entries-ttl"
+      type: "u32"
+      default: "0"
+      lua-name: "setStaleCacheEntriesTTL"
+      internal-field-name: "d_staleCacheEntriesTTL"
+      runtime-configurable: true
+    - name: "cleaning-delay"
+      type: "u16"
+      default: "60"
+      lua-name: "setCacheCleaningDelay"
+      internal-field-name: "d_cacheCleaningDelay"
+      runtime-configurable: true
+    - name: "cleaning-percentage"
+      type: "u16"
+      default: "100"
+      lua-name: "setCacheCleaningPercentage"
+      internal-field-name: "d_cacheCleaningPercentage"
+      runtime-configurable: true
+
+security-polling:
+  section: "global"
+  parameters:
+    - name: "polling-interval"
+      type: "u32"
+      default: "3600"
+      lua-name: "setSecurityPollInterval"
+      internal-field-name: "d_secPollInterval"
+      runtime-configurable: true
+    - name: "suffix"
+      type: "String"
+      default: "secpoll.powerdns.com."
+      lua-name: "setSecurityPollSuffix"
+      internal-field-name: "d_secPollSuffix"
+      runtime-configurable: true
+
+general:
+  section: "global"
+  parameters:
+    - name: "edns-udp-payload-size-self-generated-answers"
+      type: "u16"
+      default: "1232"
+      lua-name: "setPayloadSizeOnSelfGeneratedAnswers"
+      internal-field-name: "d_payloadSizeSelfGenAnswers"
+      runtime-configurable: true
+    - name: "add-edns-to-self-generated-answers"
+      type: "bool"
+      default: "true"
+      lua-name: "setAddEDNSToSelfGeneratedResponses"
+      internal-field-name: "d_addEDNSToSelfGeneratedResponses"
+      runtime-configurable: true
+    - name: "truncate-tc-answers"
+      type: "bool"
+      default: "false"
+      lua-name: "truncateTC"
+      internal-field-name: "d_truncateTC"
+      runtime-configurable: true
+    - name: "fixup-case"
+      type: "bool"
+      default: "false"
+      lua-name: "fixupCase"
+      internal-field-name: "d_fixupCase"
+      runtime-configurable: true
+    - name: "verbose"
+      type: "bool"
+      default: "false"
+      lua-name: "setVerbose"
+      internal-field-name: "d_verbose"
+      runtime-configurable: true
+    - name: "verbose-health-checks"
+      type: "bool"
+      default: "false"
+      lua-name: "setVerboseHealthChecks"
+      internal-field-name: "d_verboseHealthChecks"
+      runtime-configurable: true
+    - name: "allow-empty-responses"
+      type: "bool"
+      default: "false"
+      lua-name: "setAllowEmptyResponse"
+      internal-field-name: "d_allowEmptyResponse"
+      runtime-modifiable: true
+    - name: "drop-empty-queries"
+      type: "bool"
+      default: "false"
+      lua-name: "setDropEmptyQueries"
+      internal-field-name: "d_dropEmptyQueries"
+      runtime-modifiable: true
 
 packet-caches:
   section: "global"
@@ -617,6 +784,45 @@ packet-caches:
     - name: "shards"
       type: "u32"
 
+proxy-protocol:
+  section: "global"
+  parameters:
+    - name: "acl"
+      type: "Vec<String>"
+      default: ""
+    - name: "maximum-payload-size"
+      type: "u32"
+      default: "512"
+      lua-name: "setProxyProtocolMaximumPayloadSize"
+      internal-field-name: "d_proxyProtocolMaximumSize"
+      runtime-configurable: true
+    - name: "apply-acl-to-proxied-clients"
+      type: "bool"
+      default: "false"
+      lua-name: "setProxyProtocolApplyACLToProxiedClients"
+      internal-field-name: "d_applyACLToProxiedClients"
+      runtime-configurable: true
+
+snmp:
+  section: "global"
+  parameters:
+    - name: "enabled"
+      type: "bool"
+      default: "false"
+    - name: "traps-enabled"
+      type: "bool"
+      default: "false"
+
+query-count:
+  section: "global"
+  parameters:
+    - name: "enabled"
+      type: "bool"
+      default: "false"
+    - name: "filter"
+      type: "String"
+      default: ""
+
 pools:
   section: "global"
   type: "list"
@@ -629,6 +835,38 @@ pools:
     - name: "policy"
       type: "String"
       default: "least-outstanding"
+
+custom-load-balancing-policy:
+  parameters:
+    - name: "name"
+      type: "String"
+    - name: "function"
+      type: "String"
+    - name: "ffi"
+      type: "bool"
+      default: "false"
+    - name: "per-thread"
+      type: "bool"
+      default: "false"
+
+load-balancing-policies:
+  section: "global"
+  parameters:
+    - name: "servfail-on-no-server"
+      type: "bool"
+      default: "false"
+      lua-name: "setServFailWhenNoServer"
+      internal-field-name: "d_servFailOnNoPolicy"
+      runtime-modifiable: true
+    - name: "round-robin-servfail-on-no-server"
+      type: "bool"
+      default: "false"
+      lua-name: "setRoundRobinFailOnNoServer"
+      internal-field-name: "d_roundrobinFailOnNoServer"
+      runtime-modifiable: true
+    - name: "custom-policies"
+      type: "Vec<CustomLoadBalancingPolicyConfiguration>"
+      default: true
 
 MaxQPSIPRule:
   section: "selectors"

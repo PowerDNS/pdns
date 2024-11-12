@@ -169,6 +169,47 @@ def include_file(out_fp, include_file_name):
         out_fp.write(in_fp.read())
         out_fp.write(f'// END INCLUDE {include_file_name}\n')
 
+def generate_flat_settings_for_cxx(definitions, out_file_path):
+    cxx_flat_settings_fp = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8', dir=out_file_path)
+
+    include_file(cxx_flat_settings_fp, out_file_path + 'dnsdist-configuration-yaml-items-cxx-pre-in.cc')
+
+    # first we do runtime-settable settings
+    cxx_flat_settings_fp.write('''#if defined(HAVE_YAML_CONFIGURATION)
+#include "rust/cxx.h"
+#include "rust/lib.rs.h"
+
+namespace dnsdist::configuration::yaml
+{
+void convertRuntimeFlatSettingsFromRust(const dnsdist::rust::settings::GlobalConfiguration& yamlConfig)
+{
+  dnsdist::configuration::updateRuntimeConfiguration([&yamlConfig](dnsdist::configuration::RuntimeConfiguration& config) {\n''');
+    for category_name, keys in definitions.items():
+        if not 'parameters' in keys or not 'section' in keys:
+            continue
+
+        category_name = get_rust_field_name(category_name) if keys['section'] == 'global' else get_rust_field_name(keys['section']) + '.' + get_rust_field_name(category_name)
+        for parameter in keys['parameters']:
+            if not 'internal-field-name' in parameter or not 'runtime-configurable' in parameter or not parameter['runtime-configurable']:
+                continue
+            internal_field_name = parameter['internal-field-name']
+            rust_field_name = get_rust_field_name(parameter['name']) if not 'rename' in parameter else parameter['rename']
+            default = parameter['default'] if parameter['type'] != 'String' else '"' + parameter['default'] + '"'
+            cxx_flat_settings_fp.write(f'    if (yamlConfig.{category_name}.{rust_field_name} != {default} && config.{internal_field_name} == {default}) {{\n')
+            if parameter['type'] != 'String':
+                cxx_flat_settings_fp.write(f'        config.{internal_field_name} = yamlConfig.{category_name}.{rust_field_name};\n')
+            else:
+                cxx_flat_settings_fp.write(f'        config.{internal_field_name} = std::string(yamlConfig.{category_name}.{rust_field_name});\n')
+            cxx_flat_settings_fp.write(f'    }}\n')
+
+    cxx_flat_settings_fp.write('  });\n');
+    cxx_flat_settings_fp.write('''}\n
+}
+#endif /* defined(HAVE_YAML_CONFIGURATION) */
+''')
+
+    os.rename(cxx_flat_settings_fp.name, out_file_path + 'dnsdist-configuration-yaml-items-cxx.cc')
+
 def main():
     if len(sys.argv) != 2:
         print(f'Usage: {sys.argv[0]} <path/to/definitions/file>')
@@ -181,6 +222,8 @@ def main():
     global_objects = {}
     generated_fp = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8', dir=src_dir + '/rust/src/')
     include_file(generated_fp, src_dir + 'rust-pre-in.rs')
+
+    generate_flat_settings_for_cxx(definitions, src_dir)
 
     for definition_name, keys in definitions.items():
         if 'section' in keys and keys['section'] != 'none':
