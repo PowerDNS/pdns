@@ -28,22 +28,22 @@
 DNSAction::Action DNSAction::typeFromString(const std::string& str)
 {
   static const std::unordered_map<std::string, Action> s_mappings{
-    {"allow", Action::Allow },
-    {"delay", Action::Delay },
-    {"drop", Action::Drop },
-    {"headermodify", Action::HeaderModify },
-    {"none", Action::None },
-    {"noop", Action::NoOp },
-    {"norecurse", Action::NoRecurse },
-    {"nxdomain", Action::Nxdomain },
-    {"pool", Action::Pool },
-    {"refused", Action::Refused },
-    {"servfail", Action::ServFail },
-    {"settag", Action::SetTag },
-    {"spoof", Action::Spoof },
-    {"spoofpacket", Action::SpoofPacket },
-    {"spoofraw", Action::SpoofRaw },
-    {"truncate", Action::Truncate },
+    {"allow", Action::Allow},
+    {"delay", Action::Delay},
+    {"drop", Action::Drop},
+    {"headermodify", Action::HeaderModify},
+    {"none", Action::None},
+    {"noop", Action::NoOp},
+    {"norecurse", Action::NoRecurse},
+    {"nxdomain", Action::Nxdomain},
+    {"pool", Action::Pool},
+    {"refused", Action::Refused},
+    {"servfail", Action::ServFail},
+    {"settag", Action::SetTag},
+    {"spoof", Action::Spoof},
+    {"spoofpacket", Action::SpoofPacket},
+    {"spoofraw", Action::SpoofRaw},
+    {"truncate", Action::Truncate},
   };
 
   auto lower = boost::to_lower_copy(str);
