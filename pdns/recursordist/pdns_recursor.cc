@@ -2677,7 +2677,7 @@ static void handleNewUDPQuestion(int fileDesc, FDMultiplexer::funcparam_t& /* va
   t_Counters.updateSnap(g_regressionTestMode);
 }
 
-void makeUDPServerSockets(deferredAdd_t& deferredAdds, Logr::log_t log)
+unsigned int makeUDPServerSockets(deferredAdd_t& deferredAdds, Logr::log_t log)
 {
   int one = 1;
   vector<string> localAddresses;
@@ -2769,6 +2769,7 @@ void makeUDPServerSockets(deferredAdd_t& deferredAdds, Logr::log_t log)
     SLOG(g_log << Logger::Info << "Listening for UDP queries on " << address.toStringWithPort() << endl,
          log->info(Logr::Info, "Listening for queries", "proto", Logging::Loggable("UDP"), "address", Logging::Loggable(address)));
   }
+  return localAddresses.size();
 }
 
 static bool trySendingQueryToWorker(unsigned int target, ThreadMSG* tmsg)
