@@ -1720,7 +1720,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
       */
       auto ednsVersion = packetWriter.addOpt(512, ednsExtRCode, DNSSECOK ? EDNSOpts::DNSSECOK : 0, returnedEdnsOptions);
       packetWriter.commit();
-      pbMessage.setMeta("_pdnsREDNS", {}, {ednsVersion});
+      pbMessage.setMeta("_pdnsREDNS", {}, {ednsVersion}); // XXX CONDITIONAL!
     }
 
     t_Counters.at(rec::ResponseStats::responseStats).submitResponse(comboWriter->d_mdp.d_qtype, packet.size(), packetWriter.getHeader()->rcode);
@@ -1831,7 +1831,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
 
     resolver.d_eventTrace.add(RecEventTrace::AnswerSent);
 
-    // Now do the per query changing part ot the protobuf message
+    // Now do the per query changing part of the protobuf message
     if (t_protobufServers.servers && !(luaconfsLocal->protobufExportConfig.taggedOnly && appliedPolicy.getName().empty() && comboWriter->d_policyTags.empty())) {
       // Below are the fields that are not stored in the packet cache and will be appended here and on a cache hit
       if (g_useKernelTimestamp && comboWriter->d_kernelTimestamp.tv_sec != 0) {
@@ -1874,6 +1874,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
       for (const auto& metaValue : dnsQuestion.meta) {
         pbMessage.setMeta(metaValue.first, metaValue.second.stringVal, metaValue.second.intVal);
       }
+      pbMessage.setMeta("_pdnsRFlags", {}, {htons(*getFlagsFromDNSHeader(packetWriter.getHeader()))});
 #ifdef NOD_ENABLED
       if (g_nodEnabled) {
         if (nod) {
@@ -2298,7 +2299,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     RecursorPacketCache::OptPBData pbData{boost::none};
     if (t_protobufServers.servers) {
       if (logQuery && !(luaconfsLocal->protobufExportConfig.taggedOnly && policyTags.empty())) {
-        protobufLogQuery(luaconfsLocal, uniqueId, source, destination, mappedSource, ednssubnet.source, false, dnsheader->id, question.size(), qname, qtype, qclass, policyTags, requestorId, deviceId, deviceName, meta, ednsVersion);
+        protobufLogQuery(luaconfsLocal, uniqueId, source, destination, mappedSource, ednssubnet.source, false, question.size(), qname, qtype, qclass, policyTags, requestorId, deviceId, deviceName, meta, ednsVersion, *dnsheader);
       }
     }
 
@@ -2337,7 +2338,8 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         eventTrace.add(RecEventTrace::AnswerSent);
 
         if (t_protobufServers.servers && logResponse && (!luaconfsLocal->protobufExportConfig.taggedOnly || !pbData || pbData->d_tagged)) {
-          protobufLogResponse(dnsheader, luaconfsLocal, pbData, tval, false, source, destination, mappedSource, ednssubnet, uniqueId, requestorId, deviceId, deviceName, meta, eventTrace, policyTags);
+          const dnsheader_aligned hdr(response.data());
+          protobufLogResponse(hdr.get(), luaconfsLocal, pbData, tval, false, source, destination, mappedSource, ednssubnet, uniqueId, requestorId, deviceId, deviceName, meta, eventTrace, policyTags);
         }
 
         if (eventTrace.enabled() && (SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_log) != 0) {
