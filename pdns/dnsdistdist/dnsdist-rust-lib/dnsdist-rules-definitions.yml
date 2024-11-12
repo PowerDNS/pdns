@@ -117,6 +117,12 @@ console:
       lua-name: "setConsoleConnectionsLogging"
       internal-field-name: "d_logConsoleConnections"
       runtime-configurable: true
+    - name: "max-concurrent-connections"
+      type: "u64"
+      default: "0"
+      lua-name: "setConsoleMaximumConcurrentConnections"
+      internal-field-name: "d_consoleMaxConcurrentConnections"
+      runtime-configurable: false
 
 edns-client-subnet:
   section: "global"
@@ -169,22 +175,37 @@ ring-buffers:
       type: "u64"
       default: 10000
       description: "The maximum amount of queries to keep in the ringbuffer"
+      lua-name: "setRingBuffersSize"
+      internal-field-name: "d_ringsCapacity"
+      runtime-configurable: false
     - name: "shards"
       type: "u64"
       default: 10
       description: "The number of shards to use to limit lock contention"
+      lua-name: "setRingBuffersSize"
+      internal-field-name: "d_ringsNumberOfShards"
+      runtime-configurable: false
     - name: "lock-retries"
       type: "u64"
       default: 5
       description: "Set the number of shards to attempt to lock without blocking before giving up and simply blocking while waiting for the next shard to be available. Default to 5 if there is more than one shard, 0 otherwise"
+      lua-name: "setRingBuffersOptions"
+      internal-field-name: "d_ringsNbLockTries"
+      runtime-configurable: false
     - name: "record-queries"
       type: "bool"
       default: "true"
       description: "Whether to record queries in the ring buffers"
+      lua-name: "setRingBuffersOptions"
+      internal-field-name: "d_ringsRecordQueries"
+      runtime-configurable: false
     - name: "record-responses"
       type: "bool"
       default: "true"
       description: "Whether to record responses in the ring buffers"
+      lua-name: "setRingBuffersOptions"
+      internal-field-name: "d_ringsRecordResponses"
+      runtime-configurable: false
 
 incoming-tls-certificate-key-pair:
   parameters:
@@ -335,7 +356,7 @@ incoming-doh:
     - name: "exact-path-matching"
       type: "bool"
       default: "true"
-    - name: "internal_pipe_buffer_size"
+    - name: "internal-pipe-buffer-size"
       type: "u32"
       default: 1048576
     - name: "custom-response-headers"
@@ -353,10 +374,10 @@ incoming-quic:
     - name: "idle-timeout"
       type: "u64"
       default: 5
-    - name: "congestion_control_algorithm"
+    - name: "congestion-control-algorithm"
       type: "String"
       default: "reno"
-    - name: "internal_pipe_buffer_size"
+    - name: "internal-pipe-buffer-size"
       type: "u32"
       default: 1048576
 
@@ -626,6 +647,9 @@ tcp:
     - name: "worker-threads"
       type: "u32"
       default: 10
+      lua-name: "setMaxTCPClientThreads"
+      internal-field-name: "d_maxTCPClientThreads"
+      runtime-configurable: false
     - name: "receive-timeout"
       type: "u32"
       default: 2
@@ -650,6 +674,93 @@ tcp:
       lua-name: "setMaxTCPConnectionDuration"
       internal-field-name: "d_maxTCPConnectionDuration"
       runtime-configurable: true
+    - name: "max-queued-connections"
+      type: "u64"
+      default: "10000"
+      lua-name: "setMaxTCPQueuedConnections"
+      internal-field-name: "d_maxTCPQueuedConnections"
+      runtime-configurable: false
+    - name: "internal-pipe-buffer-size"
+      type: "u32"
+      default: 1048576
+      lua-name: "setTCPInternalPipeBufferSize"
+      internal-field-name: "d_tcpInternalPipeBufferSize"
+      runtime-configurable: false
+    - name: "outgoing-max-idle-time"
+      type: "u64"
+      default: 300
+      lua-name: "setTCPDownstreamMaxIdleTime"
+      internal-field-name: "d_outgoingTCPMaxIdleTime"
+      runtime-configurable: false
+    - name: "outgoing-cleanup-interval"
+      type: "u64"
+      default: 60
+      lua-name: "setTCPDownstreamCleanupInterval"
+      internal-field-name: "d_outgoingTCPCleanupInterval"
+      runtime-configurable: false
+    - name: "outgoing-max-idle-connection-per-backend"
+      type: "u64"
+      default: 10
+      lua-name: "setMaxCachedTCPConnectionsPerDownstream"
+      internal-field-name: "d_outgoingTCPMaxIdlePerBackend"
+      runtime-configurable: false
+    - name: "max-connections-per-client"
+      type: "u32"
+      default: 0
+      lua-name: "setMaxTCPConnectionsPerClient"
+      internal-field-name: "d_maxTCPConnectionsPerClient"
+      runtime-configurable: false
+    - name: "fast-open-key"
+      type: "String"
+      default: ""
+      lua-name: "setTCPFastOpenKey"
+      runtime-configurable: false
+
+udp:
+  section: "tuning"
+  parameters:
+    - name: "messages-per-round"
+      type: "u32"
+      default: 1
+      lua-name: "setUDPMultipleMessagesVectorSize"
+      internal-field-name: "d_udpVectorSize"
+      runtime-configurable: false
+    - name: "send-buffer-size"
+      type: "u32"
+      default: 0
+      lua-name: "setUDPSocketBufferSizes"
+      internal-field-name: "d_socketUDPSendBuffer"
+      runtime-configurable: false
+    - name: "receive-buffer-size"
+      type: "u32"
+      default: 0
+      lua-name: "setUDPSocketBufferSizes"
+      internal-field-name: "d_socketUDPRecvBuffer"
+      runtime-configurable: false
+    - name: "max-outstanding-per-backend"
+      type: "u32"
+      default: 65535
+      lua-name: "setMaxUDPOutstanding"
+      internal-field-name: "d_maxUDPOutstanding"
+      runtime-configurable: false
+    - name: "timeout"
+      type: "u8"
+      default: 2
+      lua-name: "setUDPTimeout"
+      internal-field-name: "d_udpTimeout"
+      runtime-configurable: false
+    - name: "randomize-outgoing-sockets-to-backend"
+      type: "bool"
+      default: "false"
+      lua-name: "setRandomizedOutgoingSockets"
+      internal-field-name: "d_randomizeUDPSocketsToBackend"
+      runtime-configurable: false
+    - name: "randomize-ids-to-backend"
+      type: "bool"
+      default: "false"
+      lua-name: "setRandomizedIdsOverUDP"
+      internal-field-name: "d_randomizeIDsToBackend"
+      runtime-configurable: false
 
 tls:
   section: "tuning"
@@ -679,6 +790,27 @@ doh:
     - name: "outgoing-worker-threads"
       type: "u32"
       default: 10
+      lua-name: "setOutgoingDoHWorkerThreads"
+      internal-field-name: "d_outgoingDoHWorkers"
+      runtime-configurable: false
+    - name: "outgoing-max-idle-time"
+      type: "u64"
+      default: 300
+      lua-name: "setDoHDownstreamMaxIdleTime"
+      internal-field-name: "d_outgoingDoHMaxIdleTime"
+      runtime-configurable: false
+    - name: "outgoing-cleanup-interval"
+      type: "u64"
+      default: 60
+      lua-name: "setDoHDownstreamCleanupInterval"
+      internal-field-name: "d_outgoingDoHCleanupInterval"
+      runtime-configurable: false
+    - name: "outgoing-max-idle-connection-per-backend"
+      type: "u64"
+      default: 10
+      lua-name: "setMaxIdleDoHConnectionsPerDownstream"
+      internal-field-name: "d_outgoingDoHMaxIdlePerBackend"
+      runtime-configurable: false
 
 cache-settings:
   section: "global"
@@ -762,13 +894,18 @@ general:
       default: "false"
       lua-name: "setAllowEmptyResponse"
       internal-field-name: "d_allowEmptyResponse"
-      runtime-modifiable: true
+      runtime-configurable: true
     - name: "drop-empty-queries"
       type: "bool"
       default: "false"
       lua-name: "setDropEmptyQueries"
       internal-field-name: "d_dropEmptyQueries"
-      runtime-modifiable: true
+      runtime-configurable: true
+    - name: "capabilities-to-retain"
+      type: "Vec<String>"
+      default: true
+      lua-name: "addCapabilitiesToRetain"
+      runtime-configurable: false
 
 packet-caches:
   section: "global"
@@ -857,16 +994,34 @@ load-balancing-policies:
       default: "false"
       lua-name: "setServFailWhenNoServer"
       internal-field-name: "d_servFailOnNoPolicy"
-      runtime-modifiable: true
+      runtime-configurable: true
     - name: "round-robin-servfail-on-no-server"
       type: "bool"
       default: "false"
       lua-name: "setRoundRobinFailOnNoServer"
       internal-field-name: "d_roundrobinFailOnNoServer"
-      runtime-modifiable: true
+      runtime-configurable: true
+    - name: "weighted-balancing-factor"
+      type: "f64"
+      default: 0.0
+      lua-name: "setWeightedBalancingFactor"
+      internal-field-name: "d_weightedBalancingFactor"
+      runtime-configurable: false
+    - name: "consistent-hashing-balancing-factor"
+      type: "f64"
+      default: 0.0
+      lua-name: "setConsistentHashingBalancingFactor"
+      internal-field-name: "d_consistentHashBalancingFactor"
+      runtime-configurable: false
     - name: "custom-policies"
       type: "Vec<CustomLoadBalancingPolicyConfiguration>"
       default: true
+    - name: "hash-perturbation"
+      type: "u32"
+      default: "0"
+      lua-name: "setWHashedPertubation"
+      internal-field-name: "d_hashPerturbation"
+      runtime-configurable: false
 
 MaxQPSIPRule:
   section: "selectors"

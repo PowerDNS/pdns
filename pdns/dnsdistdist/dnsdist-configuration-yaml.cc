@@ -41,6 +41,7 @@
 
 namespace dnsdist::configuration::yaml
 {
+void convertImmutableFlatSettingsFromRust(const dnsdist::rust::settings::GlobalConfiguration& yamlConfig);
 void convertRuntimeFlatSettingsFromRust(const dnsdist::rust::settings::GlobalConfiguration& yamlConfig);
 
 static std::set<int> getCPUPiningFromStr(const std::string& cpuStr)
@@ -515,6 +516,26 @@ bool loadConfigurationFromFile(const std::string fileName)
       });
     }
 
+    if (!globalConfig.tuning.tcp.fast_open_key.empty()) {
+      std::vector<uint32_t> key(4);
+      auto ret = sscanf(globalConfig.tuning.tcp.fast_open_key.c_str(), "%" SCNx32 "-%" SCNx32 "-%" SCNx32 "-%" SCNx32, &key.at(0), &key.at(1), &key.at(2), &key.at(3));
+      if (ret < 0 || static_cast<size_t>(ret) != key.size()) {
+        throw std::runtime_error("Invalid value passed to tuning.tcp.fast_open_key!\n");
+      }
+      dnsdist::configuration::updateImmutableConfiguration([&key](dnsdist::configuration::ImmutableConfiguration& config) {
+        config.d_tcpFastOpenKey = std::move(key);
+      });
+    }
+
+    if (!globalConfig.general.capabilities_to_retain.empty()) {
+      dnsdist::configuration::updateImmutableConfiguration([capabilities=globalConfig.general.capabilities_to_retain](dnsdist::configuration::ImmutableConfiguration& config) {
+        for (const auto& capability : capabilities) {
+          config.d_capabilitiesToRetain.emplace(std::string(capability));
+        }
+      });
+    }
+
+    convertImmutableFlatSettingsFromRust(globalConfig);
     convertRuntimeFlatSettingsFromRust(globalConfig);
     return true;
   }

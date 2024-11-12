@@ -203,6 +203,31 @@ void convertRuntimeFlatSettingsFromRust(const dnsdist::rust::settings::GlobalCon
             cxx_flat_settings_fp.write(f'    }}\n')
 
     cxx_flat_settings_fp.write('  });\n');
+    cxx_flat_settings_fp.write('''}\n''');
+
+    # then immutable ones
+    cxx_flat_settings_fp.write('''void convertImmutableFlatSettingsFromRust(const dnsdist::rust::settings::GlobalConfiguration& yamlConfig)
+{
+  dnsdist::configuration::updateImmutableConfiguration([&yamlConfig](dnsdist::configuration::ImmutableConfiguration& config) {\n''');
+    for category_name, keys in definitions.items():
+        if not 'parameters' in keys or not 'section' in keys:
+            continue
+
+        category_name = get_rust_field_name(category_name) if keys['section'] == 'global' else get_rust_field_name(keys['section']) + '.' + get_rust_field_name(category_name)
+        for parameter in keys['parameters']:
+            if not 'internal-field-name' in parameter or not 'runtime-configurable' in parameter or parameter['runtime-configurable']:
+                continue
+            internal_field_name = parameter['internal-field-name']
+            rust_field_name = get_rust_field_name(parameter['name']) if not 'rename' in parameter else parameter['rename']
+            default = parameter['default'] if parameter['type'] != 'String' else '"' + parameter['default'] + '"'
+            cxx_flat_settings_fp.write(f'    if (yamlConfig.{category_name}.{rust_field_name} != {default} && config.{internal_field_name} == {default}) {{\n')
+            if parameter['type'] != 'String':
+                cxx_flat_settings_fp.write(f'        config.{internal_field_name} = yamlConfig.{category_name}.{rust_field_name};\n')
+            else:
+                cxx_flat_settings_fp.write(f'        config.{internal_field_name} = std::string(yamlConfig.{category_name}.{rust_field_name});\n')
+            cxx_flat_settings_fp.write(f'    }}\n')
+
+    cxx_flat_settings_fp.write('  });\n');
     cxx_flat_settings_fp.write('''}\n
 }
 #endif /* defined(HAVE_YAML_CONFIGURATION) */
