@@ -49,7 +49,7 @@ bool getEDNSZoneVersionFromString(const char* options, unsigned int len, EDNSZon
   if (len > sizeof(zoneversionw)) {
     return false; // FIXME this silently breaks on >256 bytes of version
   }
-  if (len < (1+1+4)) {
+  if (len < (1 + 1 + 4)) {
     return false; // does not contain labelcount + type + uint32_t version
   }
   memcpy(&zoneversionw, options, len);
@@ -72,7 +72,7 @@ string makeEDNSZoneVersionString(const EDNSZoneVersion& zoneversion)
   uint32_t version = htonl(zoneversion.version);
   memcpy(&zoneversionw.version, &version, sizeof(zoneversion.version));
 
-  ret.assign((const char*)&zoneversionw, 1+1+4);
+  ret.assign((const char*)&zoneversionw, 1 + 1 + 4);
 
   return ret;
 }
