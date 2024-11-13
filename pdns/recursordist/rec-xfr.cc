@@ -139,8 +139,7 @@ bool CatalogZone::versionCheck() const
       invalid = true;
       continue;
     }
-    auto str = txt->d_text;
-    if (str != "\"2\"") {
+    if (txt->d_text != "\"2\"") {
       invalid = true;
       continue;
     }
@@ -485,7 +484,7 @@ void FWCatZoneXFR::zoneXFRTracker(ZoneXFRParams params, uint64_t configGeneratio
 
   insertZoneTracker(zoneName, waiter);
 
-  FWCatZoneXFR xfrObject(params);
+  FWCatZoneXFR xfrObject(std::move(params));
   xfrObject.preloadZoneFile(zoneName, oldZone, refresh, configGeneration, waiter, logger);
   bool skipRefreshDelay = isPreloaded;
   while (xfrObject.zoneTrackerIteration(zoneName, oldZone, refresh, skipRefreshDelay, configGeneration, waiter, logger)) {
