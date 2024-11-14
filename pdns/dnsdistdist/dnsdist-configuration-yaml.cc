@@ -45,6 +45,45 @@ namespace dnsdist::configuration::yaml
 void convertImmutableFlatSettingsFromRust(const dnsdist::rust::settings::GlobalConfiguration& yamlConfig);
 void convertRuntimeFlatSettingsFromRust(const dnsdist::rust::settings::GlobalConfiguration& yamlConfig);
 
+using RegisteredTypes = std::variant<std::shared_ptr<DNSDistPacketCache>, std::shared_ptr<dnsdist::rust::settings::DNSSelector>, std::shared_ptr<NetmaskGroup>, std::shared_ptr<KeyValueStore>, std::shared_ptr<KeyValueLookupKey>, std::shared_ptr<RemoteLoggerInterface>, std::shared_ptr<ServerPolicy>>;
+static LockGuarded<std::unordered_map<std::string, RegisteredTypes>> s_registeredTypesMap;
+
+template <class T>
+static void registerType(const std::shared_ptr<T>& entry, const ::rust::string& rustName)
+{
+  std::string name(rustName);
+  if (name.empty()) {
+    auto uuid = getUniqueID();
+    name = boost::uuids::to_string(uuid);
+  }
+
+  auto [it, inserted] = s_registeredTypesMap.lock()->try_emplace(name, entry);
+  if (!inserted) {
+    throw std::runtime_error("Trying to register a type named '" + name + "' while one already exists");
+  }
+}
+
+template <class T>
+static std::shared_ptr<T> getRegisteredTypeByName(const std::string& name)
+{
+  auto map = s_registeredTypesMap.lock();
+  auto item = map->find(name);
+  if (item == map->end()) {
+    return nullptr;
+  }
+  if (auto* ptr = std::get_if<std::shared_ptr<T>>(&item->second)) {
+    return *ptr;
+  }
+  return nullptr;
+}
+
+template <class T>
+static std::shared_ptr<T> getRegisteredTypeByName(const ::rust::String& name)
+{
+  auto nameStr = std::string(name);
+  return getRegisteredTypeByName<T>(nameStr);
+}
+
 static std::set<int> getCPUPiningFromStr(const std::string& cpuStr)
 {
   std::set<int> cpus;
@@ -211,10 +250,10 @@ static bool handleTLSConfiguration(const dnsdist::rust::settings::BindsConfigura
 }
 
 template <class T>
-static bool getOptionalLuaFunction(T& destination, const std::string& functionName)
+static bool getOptionalLuaFunction(T& destination, const ::rust::string& functionName)
 {
   auto lua = g_lua.lock();
-  auto function = lua->readVariable<boost::optional<T>>(functionName);
+  auto function = lua->readVariable<boost::optional<T>>(std::string(functionName));
   if (!function) {
     return false;
   }
@@ -268,7 +307,7 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dns
   backendConfig.maxCheckFailures = hcConf.max_failures;
   backendConfig.minRiseSuccesses = hcConf.rise;
 
-  getOptionalLuaFunction<DownstreamState::checkfunc_t>(backendConfig.checkFunction, std::string(hcConf.function));
+  getOptionalLuaFunction<DownstreamState::checkfunc_t>(backendConfig.checkFunction, hcConf.function);
 
   auto availability = DownstreamState::getAvailabilityFromStr(std::string(hcConf.mode));
   if (availability) {
@@ -352,6 +391,11 @@ bool loadConfigurationFromFile(const std::string fileName)
   if (!file.is_open()) {
     errlog("Unable to open YAML file %s: %s", fileName, stringerror(errno));
     return false;
+  }
+
+  /* register built-in policies */
+  for (const auto& policy : dnsdist::lbpolicies::getBuiltInPolicies()) {
+    registerType<ServerPolicy>(policy, ::rust::string(policy->d_name));
   }
 
   try {
@@ -508,7 +552,7 @@ bool loadConfigurationFromFile(const std::string fileName)
       dnsdist::configuration::updateRuntimeConfiguration([&globalConfig](dnsdist::configuration::RuntimeConfiguration& config) {
         config.d_queryCountConfig.d_enabled = true;
         if (!globalConfig.query_count.filter.empty()) {
-          getOptionalLuaFunction<dnsdist::QueryCount::Configuration::Filter>(config.d_queryCountConfig.d_filter, std::string(globalConfig.query_count.filter));
+          getOptionalLuaFunction<dnsdist::QueryCount::Configuration::Filter>(config.d_queryCountConfig.d_filter, globalConfig.query_count.filter);
         }
       });
     }
@@ -538,6 +582,42 @@ bool loadConfigurationFromFile(const std::string fileName)
       });
     }
 
+    for (const auto& policy : globalConfig.load_balancing_policies.custom_policies) {
+      if (policy.ffi) {
+        if (policy.per_thread) {
+          auto policyObj = std::make_shared<ServerPolicy>(std::string(policy.name), std::string(policy.function));
+          registerType<ServerPolicy>(policyObj, policy.name);
+        }
+        else {
+          ServerPolicy::ffipolicyfunc_t function;
+
+          if (!getOptionalLuaFunction<ServerPolicy::ffipolicyfunc_t>(function, policy.function)) {
+            throw std::runtime_error("Custom FFI load-balancing policy '" + std::string(policy.name) + "' is referring to a non-existent Lua function '" + std::string(policy.function) + "'");
+          }
+          auto policyObj = std::make_shared<ServerPolicy>(std::string(policy.name), std::move(function));
+          registerType<ServerPolicy>(policyObj, policy.name);
+        }
+      }
+      else {
+        ServerPolicy::policyfunc_t function;
+        if (!getOptionalLuaFunction<ServerPolicy::policyfunc_t>(function, policy.function)) {
+          throw std::runtime_error("Custom load-balancing policy '" + std::string(policy.name) + "' is referring to a non-existent Lua function '" + std::string(policy.function) + "'");
+        }
+        auto policyObj = std::make_shared<ServerPolicy>(std::string(policy.name), std::move(function), true);
+        registerType<ServerPolicy>(policyObj, policy.name);
+      }
+    }
+
+    for (const auto& pool : globalConfig.pools) {
+      std::shared_ptr<ServerPool> poolObj = createPoolIfNotExists(std::string(pool.name));
+      if (!pool.packet_cache.empty()) {
+        poolObj->packetCache = getRegisteredTypeByName<DNSDistPacketCache>(pool.packet_cache);
+      }
+      if (!pool.policy.empty()) {
+        poolObj->policy = getRegisteredTypeByName<ServerPolicy>(pool.policy);
+      }
+    }
+
     convertImmutableFlatSettingsFromRust(globalConfig);
     convertRuntimeFlatSettingsFromRust(globalConfig);
     return true;
@@ -561,47 +641,9 @@ bool loadConfigurationFromFile(const std::string fileName)
 namespace dnsdist::rust::settings
 {
 
-using RegisteredTypes = std::variant<std::shared_ptr<DNSSelector>, std::shared_ptr<NetmaskGroup>, std::shared_ptr<KeyValueStore>, std::shared_ptr<KeyValueLookupKey>, std::shared_ptr<RemoteLoggerInterface>>;
-static LockGuarded<std::unordered_map<std::string, RegisteredTypes>> s_registeredTypesMap;
-
-template <class T>
-static void registerType(const std::shared_ptr<T>& entry, std::string& name)
-{
-  if (name.empty()) {
-    auto uuid = getUniqueID();
-    name = boost::uuids::to_string(uuid);
-  }
-
-  auto [it, inserted] = s_registeredTypesMap.lock()->try_emplace(name, entry);
-  if (!inserted) {
-    throw std::runtime_error("Trying to register a type named '" + name + "' while one already exists");
-  }
-}
-
-template <class T>
-static std::shared_ptr<T> getRegisteredTypeByName(const std::string& name)
-{
-  auto map = s_registeredTypesMap.lock();
-  auto item = map->find(name);
-  if (item == map->end()) {
-    return nullptr;
-  }
-  if (auto* ptr = std::get_if<std::shared_ptr<T>>(&item->second)) {
-    return *ptr;
-  }
-  return nullptr;
-}
-
-template <class T>
-static std::shared_ptr<T> getRegisteredTypeByName(const ::rust::String& name)
-{
-  auto nameStr = std::string(name);
-  return getRegisteredTypeByName<T>(nameStr);
-}
-
 std::shared_ptr<DNSSelector> getSelectorByName(const ::rust::String& name)
 {
-  return getRegisteredTypeByName<DNSSelector>(name);
+  return dnsdist::configuration::yaml::getRegisteredTypeByName<DNSSelector>(name);
 }
 
 const std::string& getNameFromSelector(const DNSSelector& selector)
@@ -614,7 +656,7 @@ static std::shared_ptr<DNSSelector> newDNSSelector(std::shared_ptr<DNSRule>&& ru
   auto selector = std::make_shared<DNSSelector>();
   selector->d_name = std::string(name);
   selector->d_rule = std::move(rule);
-  registerType(selector, selector->d_name);
+  dnsdist::configuration::yaml::registerType(selector, name);
   return selector;
 }
 
@@ -635,7 +677,7 @@ std::shared_ptr<DNSSelector> getAndSelector(const AndSelectorConfig& config)
   LuaArray<std::shared_ptr<DNSRule>> selectors;
   int counter = 1;
   for (const auto& selector : config.selectors) {
-    auto dnsSelector = getRegisteredTypeByName<DNSSelector>(std::string(selector));
+    auto dnsSelector = dnsdist::configuration::yaml::getRegisteredTypeByName<DNSSelector>(std::string(selector));
     if (dnsSelector) {
       selectors.push_back({counter++, dnsSelector->d_rule});
     }
@@ -654,7 +696,7 @@ std::shared_ptr<DNSSelector> getNetmaskGroupSelector(const NetmaskGroupSelectorC
 {
   std::shared_ptr<NetmaskGroup> nmg;
   if (!config.netmask_group.empty()) {
-    nmg = getRegisteredTypeByName<NetmaskGroup>(std::string(config.netmask_group));
+    nmg = dnsdist::configuration::yaml::getRegisteredTypeByName<NetmaskGroup>(std::string(config.netmask_group));
   }
   if (!nmg) {
     nmg = std::make_shared<NetmaskGroup>();
