@@ -47,3 +47,9 @@ enum Selector {
     MaxQPSIP(dnsdistsettings::MaxQPSIPRuleConfiguration),
     NetmaskGroup(dnsdistsettings::NetmaskGroupSelectorConfig),
 }
+
+impl Selector {
+  fn validate(&self) -> Result<(), ValidationError> {
+    Ok(())
+  }
+}

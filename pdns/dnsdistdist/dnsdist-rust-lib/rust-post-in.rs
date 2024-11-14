@@ -96,6 +96,13 @@ pub fn from_yaml_string(
 ) -> Result<dnsdistsettings::GlobalConfiguration, serde_yaml::Error> {
     let serde_config: Result<GlobalConfigurationSerde, serde_yaml::Error> =
         serde_yaml::from_str(str);
+
+    if !serde_config.is_err() {
+      let validation_result = serde_config.as_ref().unwrap().validate();
+      if let Err(e) = validation_result {
+          println!("Error validating the configuration loaded from {}: {}", str, e);
+      }
+    }
     let config: dnsdistsettings::GlobalConfiguration =
         get_global_configuration_from_serde(serde_config?);
     return Ok(config);
