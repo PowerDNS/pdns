@@ -321,7 +321,7 @@ try {
       else if (strcmp(argv[i], "dumpluaraw") == 0) {
         dumpluaraw = true;
       }
-      else if (strcmp(argv[i], "zoneversion") == 0) {
+      else if (strcmp(argv[i], "zoneversion") == 0) { // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         zoneversion = true;
       }
       else {
