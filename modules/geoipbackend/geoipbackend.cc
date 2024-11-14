@@ -939,7 +939,7 @@ bool GeoIPBackend::getAllDomainMetadata(const DNSName& name, std::map<std::strin
     if (dom.domain == name) {
       if (hasDNSSECkey(dom.domain)) {
         meta[string("NSEC3NARROW")].push_back("1");
-        meta[string("NSEC3PARAM")].push_back("1 0 1 f95a");
+        meta[string("NSEC3PARAM")].push_back("1 0 0 -");
       }
       return true;
     }
