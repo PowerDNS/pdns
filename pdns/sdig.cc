@@ -203,6 +203,10 @@ static void printReply(const string& reply, bool showflags, bool hidesoadetails,
   }
 }
 
+
+// accessing `argv[i]` triggers `cppcoreguidelines-pro-bounds-pointer-arithmetic`
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+
 int main(int argc, char** argv) // NOLINT(readability-function-cognitive-complexity)
 try {
   /* default timeout of 10s */
@@ -321,7 +325,7 @@ try {
       else if (strcmp(argv[i], "dumpluaraw") == 0) {
         dumpluaraw = true;
       }
-      else if (strcmp(argv[i], "zoneversion") == 0) { // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+      else if (strcmp(argv[i], "zoneversion") == 0) {
         zoneversion = true;
       }
       else {
@@ -477,3 +481,5 @@ try {
 } catch (PDNSException& e) {
   cerr << "Fatal: " << e.reason << endl;
 }
+
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
