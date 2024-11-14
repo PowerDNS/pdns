@@ -370,8 +370,8 @@ pdnsutil_SOURCES = \
 	dynlistener.cc \
 	ednscookies.cc ednscookies.hh \
 	ednsoptions.cc ednsoptions.hh \
-	ednszoneversion.cc ednszoneversion.hh \
 	ednssubnet.cc \
+	ednszoneversion.cc ednszoneversion.hh \
 	gettime.cc gettime.hh \
 	gss_context.cc gss_context.hh \
 	ipcipher.cc ipcipher.hh \
@@ -557,8 +557,8 @@ sdig_SOURCES = \
 	dnswriter.cc dnswriter.hh \
 	dolog.hh \
 	ednsextendederror.cc ednsextendederror.hh \
-	ednszoneversion.cc ednszoneversion.hh \
 	ednssubnet.cc iputils.cc \
+	ednszoneversion.cc ednszoneversion.hh \
 	libssl.cc libssl.hh \
 	logger.cc \
 	misc.cc misc.hh \
@@ -1373,8 +1373,8 @@ testrunner_SOURCES = \
 	dnswriter.cc \
 	ednscookies.cc ednscookies.hh \
 	ednsoptions.cc ednsoptions.hh \
-	ednszoneversion.cc ednszoneversion.hh \
 	ednssubnet.cc \
+	ednszoneversion.cc ednszoneversion.hh \
 	gettime.cc gettime.hh \
 	gss_context.cc gss_context.hh \
 	histogram.hh \
