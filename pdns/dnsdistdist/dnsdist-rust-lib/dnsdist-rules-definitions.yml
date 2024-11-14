@@ -24,7 +24,7 @@ carbon:
       description: "An optional string specifying the instance name that should be used"
 
 Protobuf-Logger:
-  section: "metrics"
+  section: "remote-logging"
   type: "list"
   parameters:
     - name: "address"

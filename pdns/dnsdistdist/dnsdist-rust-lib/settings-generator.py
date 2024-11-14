@@ -142,6 +142,43 @@ def get_rust_struct_from_definition(name, keys, default_functions):
     output += '    }\n'
     return output
 
+def is_vector_of(rust_type):
+    return rust_type.startswith('Vec<')
+
+def should_validate_type(rust_type):
+    if is_vector_of(rust_type):
+        sub_type = rust_type[4:-1]
+        return should_validate_type(sub_type)
+    if rust_type in ['bool', 'u8', 'u16', 'u32', 'u64', 'f64', 'String']:
+        return False
+    return True
+
+def get_validation_for_field(field_name, rust_type):
+    if not should_validate_type(rust_type):
+        return ''
+    if not is_vector_of(rust_type):
+        return f'        self.{field_name}.validate()?;\n'
+    else:
+        return f'''        for sub_type in &self.{field_name} {{
+        sub_type.validate()?;
+    }}'''
+
+def get_struct_validation_function_from_definition(name, parameters):
+    if len(parameters) == 0:
+        return ''
+    struct_name = get_rust_object_name(name)
+    output = f'''impl dnsdistsettings::{struct_name}Configuration {{
+    fn validate(&self) -> Result<(), ValidationError> {{
+'''
+    for parameter in parameters:
+        field_name = get_rust_field_name(parameter['name']) if parameter['name'] != 'namespace' else 'name_space'
+        rust_type = parameter['type']
+        output += get_validation_for_field(field_name, rust_type)
+    output += '''        Ok(())
+    }
+}'''
+    return output
+
 def get_definitions_from_file(def_file):
     with open(def_file, 'rt', encoding="utf-8") as fd:
         definitions = yaml.safe_load(fd.read())
@@ -243,6 +280,7 @@ def main():
     src_dir = './'
     definitions = get_definitions_from_file(sys.argv[1])
     default_functions = []
+    validation_functions = []
     sections = gather_sections(definitions)
     global_objects = {}
     generated_fp = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8', dir=src_dir + '/rust/src/')
@@ -250,45 +288,59 @@ def main():
 
     generate_flat_settings_for_cxx(definitions, src_dir)
 
+    # handle structures that are not directly under a first-level section
     for definition_name, keys in definitions.items():
         if 'section' in keys and keys['section'] != 'none':
             continue
 
         generated_fp.write(get_rust_struct_from_definition(definition_name, keys, default_functions) + '\n')
+        validation_functions.append(get_struct_validation_function_from_definition(definition_name, keys['parameters'] if 'parameters' in keys else []))
 
+    # for each section, including the global one, generate the structures below the section one
     for section, section_type in sections.items():
 
         for definition_name, keys in definitions.items():
             if not 'section' in keys:
                 continue
-            if keys['section'] == section:
-                if section == 'global':
-                    if 'type' in keys and keys['type'] != 'list':
-                        global_objects[definition_name] = (keys['type'], keys['type'])
-                    else:
-                        global_objects[definition_name] = get_rust_obj_for_section(definition_name, keys)
-                generated_fp.write(get_rust_struct_from_definition(definition_name, keys, default_functions) + '\n')
-
-
-        if section != 'global':
-            if section_type is not None and section_type != 'list':
-                global_objects[section] = (section_type, section_type)
+            if keys['section'] != section:
                 continue
 
-            global_objects[section] = (get_rust_object_name(section) + 'Configuration', 'dnsdistsettings::' + get_rust_object_name(section) + 'Configuration')
+            if section == 'global':
+                if 'type' in keys and keys['type'] != 'list':
+                    global_objects[definition_name] = (keys['type'], keys['type'])
+                else:
+                    global_objects[definition_name] = get_rust_obj_for_section(definition_name, keys)
+            generated_fp.write(get_rust_struct_from_definition(definition_name, keys, default_functions) + '\n')
+            validation_functions.append(get_struct_validation_function_from_definition(definition_name, keys['parameters'] if 'parameters' in keys else []))
 
-            generated_fp.write(f'''    #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
+        if section == 'global':
+            continue
+
+        # now handling the structure for the session itself
+        if section_type is not None and section_type != 'list':
+            global_objects[section] = (section_type, section_type)
+            continue
+
+        global_objects[section] = (get_rust_object_name(section) + 'Configuration', 'dnsdistsettings::' + get_rust_object_name(section) + 'Configuration')
+
+        section_name = get_rust_object_name(section)
+        # generate the first-level structure that is directly under 'global'
+        section_struct_parameters = []
+        generated_fp.write(f'''    #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
-    struct {section.capitalize()}Configuration {{\n''')
-            for definition_name, keys in definitions.items():
-                if 'section' in keys and keys['section'] == section:
-                    field_name = get_rust_field_name(definition_name)
-                    name = get_rust_object_name(definition_name)
-                    obj_type = f'{name}Configuration' if not 'type' in keys or keys['type'] != 'list' else f'Vec<{name}Configuration>'
-                    generated_fp.write('        #[serde(default, skip_serializing_if = "crate::is_default")]\n')
-                    generated_fp.write(f'        {field_name}: {obj_type},\n')
+    struct {section_name}Configuration {{\n''')
+        for definition_name, keys in definitions.items():
+            if not 'section' in keys or keys['section'] != section:
+                continue
+            field_name = get_rust_field_name(definition_name)
+            name = get_rust_object_name(definition_name)
+            obj_type = f'{name}Configuration' if not 'type' in keys or keys['type'] != 'list' else f'Vec<{name}Configuration>'
+            generated_fp.write('        #[serde(default, skip_serializing_if = "crate::is_default")]\n')
+            generated_fp.write(f'        {field_name}: {obj_type},\n')
+            section_struct_parameters.append({'name': field_name, 'type': obj_type})
 
-            generated_fp.write('    }\n')
+        generated_fp.write('    }\n')
+        validation_functions.append(get_struct_validation_function_from_definition(section_name, section_struct_parameters))
 
     # the cxx-compatible Global configuration object
     generated_fp.write('''    #[derive(Default)]
@@ -323,8 +375,24 @@ struct GlobalConfigurationSerde {\n''')
 
     generated_fp.write('}\n')
 
-    # the generated functions for the default values
+    # Validation function for the global section
+    generated_fp.write('impl GlobalConfigurationSerde {\n')
+    generated_fp.write('    fn validate(&self) -> Result<(), ValidationError> {\n')
+    for obj, names in global_objects.items():
+        field_name = get_rust_field_name(obj)
+        rust_type = names[1]
+        if field_name == 'selectors':
+            rust_type = 'Vec<Selector>'
+        generated_fp.write(get_validation_for_field(field_name, rust_type))
+    generated_fp.write('        Ok(())\n')
+    generated_fp.write('    }\n')
+    generated_fp.write('}\n\n')
+
+    # the generated functions for the default values and validation
     for function_def in default_functions:
+        generated_fp.write(function_def + '\n')
+
+    for function_def in validation_functions:
         generated_fp.write(function_def + '\n')
 
     include_file(generated_fp, src_dir + 'rust-post-in.rs')
