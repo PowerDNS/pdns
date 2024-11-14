@@ -251,6 +251,10 @@ static void printReply(const string& reply, bool showflags, bool hidesoadetails,
   }
 }
 
+
+// accessing `argv[i]` triggers `cppcoreguidelines-pro-bounds-pointer-arithmetic`
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+
 int main(int argc, char** argv) // NOLINT(readability-function-cognitive-complexity)
 try {
   /* default timeout of 10s */
@@ -400,6 +404,7 @@ try {
         }
         pdns::trace::SpanID spanid{}; // default: all zero, so no parent
         otdata = std::make_pair(traceid, spanid);
+      }
       else if (strcmp(argv[i], "zoneversion") == 0) {
         zoneversion = true;
       }
@@ -557,3 +562,5 @@ try {
 } catch (PDNSException& e) {
   cerr << "Fatal: " << e.reason << endl;
 }
+
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
