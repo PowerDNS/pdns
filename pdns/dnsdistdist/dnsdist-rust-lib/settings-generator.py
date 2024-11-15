@@ -127,13 +127,23 @@ def get_rust_struct_from_definition(name, keys, default_functions):
     if 'generate-name-field' in keys and keys['generate-name-field'] is True:
         name_field = '''         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,\n'''
-    output = f'''    #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
+    output = ''
+    if not 'skip-serde' in keys or not keys['skip-serde']:
+        output += '''    #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
-    struct {obj_name}Configuration {{
+'''
+    output += f'''    struct {obj_name}Configuration {{
 {name_field}'''
     for parameter in keys['parameters']:
         parameter_name = get_rust_field_name(parameter['name']) if not 'rename' in parameter else parameter['rename']
         rust_type = parameter['type']
+        # cxx does not support Enums, so we have to convert them to opaque types
+        if rust_type == 'Action':
+            rust_type = 'SharedDNSAction'
+        if rust_type == 'Selector':
+            rust_type = 'SharedDNSSelector'
+        if rust_type == 'Vec<Selector>':
+            rust_type = 'Vec<SharedDNSSelector>'
         rename = parameter['name'] if parameter_name != parameter['name'] else None
         default_str = get_rust_serde_annotations(rust_type, parameter['default'] if 'default' in parameter else None, rename, get_rust_field_name(name), parameter_name, default_functions)
         if default_str:
@@ -151,17 +161,23 @@ def should_validate_type(rust_type):
         return should_validate_type(sub_type)
     if rust_type in ['bool', 'u8', 'u16', 'u32', 'u64', 'f64', 'String']:
         return False
+    print(rust_type)
+    if rust_type in ['Selector', 'dnsdistsettings::SelectorsConfiguration']:
+        print('not validating selector')
+        return False
     return True
 
 def get_validation_for_field(field_name, rust_type):
     if not should_validate_type(rust_type):
         return ''
     if not is_vector_of(rust_type):
+        print(f'field {field_name} of type {rust_type} will be validated')
         return f'        self.{field_name}.validate()?;\n'
     else:
         return f'''        for sub_type in &self.{field_name} {{
         sub_type.validate()?;
-    }}'''
+    }}
+'''
 
 def get_struct_validation_function_from_definition(name, parameters):
     if len(parameters) == 0:
@@ -347,11 +363,16 @@ def main():
     struct GlobalConfiguration {\n''')
     for obj, names in global_objects.items():
         field_name = get_rust_field_name(obj)
-        if field_name == 'selectors':
-            name = 'Vec<SharedDNSSelector>'
-        else:
-            name = names[0]
-        generated_fp.write(f'        {field_name}: {name},\n')
+        field_type = names[0]
+        if field_type == 'SelectorsConfiguration':
+            field_type = 'Vec<SharedDNSSelector>'
+        if field_type == 'Selector':
+            field_type = 'SharedDNSSelector'
+        if field_type == 'Action':
+            field_type = 'SharedDNSAction'
+        if field_type == 'Vec<Selector>':
+            field_type = 'Vec<SharedDNSSelector>'
+        generated_fp.write(f'        {field_name}: {field_type},\n')
 
     generated_fp.write('    }\n')
 
@@ -367,11 +388,12 @@ struct GlobalConfigurationSerde {\n''')
         default_str = get_rust_serde_annotations(name[0], True, rename, field_name, 'global', default_functions)
         if default_str:
             generated_fp.write('    ' + default_str + '\n')
-        if field_name == 'selectors':
-            name = 'Vec<Selector>'
-        else:
-            name = names[1]
-        generated_fp.write(f'    {field_name}: {name},\n')
+        rust_type = names[1]
+        if rust_type == 'dnsdistsettings::SelectorsConfiguration':
+            rust_type = 'Vec<Selector>'
+        if rust_type == 'Vec<dnsdistsettings::QueryRulesConfiguration>':
+            rust_type = 'Vec<QueryRulesConfigurationSerde>'
+        generated_fp.write(f'    {field_name}: {rust_type},\n')
 
     generated_fp.write('}\n')
 
@@ -381,8 +403,12 @@ struct GlobalConfigurationSerde {\n''')
     for obj, names in global_objects.items():
         field_name = get_rust_field_name(obj)
         rust_type = names[1]
-        if field_name == 'selectors':
-            rust_type = 'Vec<Selector>'
+        if rust_type == 'Action':
+            rust_type = 'SharedDNSAction'
+        if rust_type == 'Selector':
+            rust_type = 'SharedDNSSelector'
+        if rust_type == 'SelectorsConfiguration':
+            rust_type = 'Vec<SharedDNSSelector>'
         generated_fp.write(get_validation_for_field(field_name, rust_type))
     generated_fp.write('        Ok(())\n')
     generated_fp.write('    }\n')

@@ -1133,7 +1133,21 @@ load-balancing-policies:
       internal-field-name: "d_hashPerturbation"
       runtime-configurable: false
 
-MaxQPSIPRule:
+query-rules:
+  section: "global"
+  type: "list"
+  skip-serde: true
+  parameters:
+    - name: "name"
+      type: "String"
+    - name: "uuid"
+      type: "String"
+    - name: "selector"
+      type: "Selector"
+    - name: "action"
+      type: "Action"
+
+MaxQPSIPSelector:
   section: "selectors"
   version-changed:
     version: "1.8.0"

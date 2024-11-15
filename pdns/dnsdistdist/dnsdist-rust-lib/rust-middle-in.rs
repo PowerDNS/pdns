@@ -12,11 +12,14 @@
         type DNSSelector;
         fn getNameFromSelector(selector: &DNSSelector) -> &CxxString;
         fn getSelectorByName(name: &String) -> SharedPtr<DNSSelector>;
-        fn getMaxIPQPSSelector(config: &MaxQPSIPRuleConfiguration) -> SharedPtr<DNSSelector>;
+        fn getMaxIPQPSSelector(config: &MaxQPSIPSelectorConfiguration) -> SharedPtr<DNSSelector>;
         fn getTCPSelector(config: &TCPSelectorConfig) -> SharedPtr<DNSSelector>;
         fn getAllSelector() -> SharedPtr<DNSSelector>;
         fn getAndSelector(config: &AndSelectorConfig) -> SharedPtr<DNSSelector>;
         fn getNetmaskGroupSelector(config: &NetmaskGroupSelectorConfig) -> SharedPtr<DNSSelector>;
+        type DNSActionWrapper;
+        fn getActionByName(name: &String) -> SharedPtr<DNSActionWrapper>;
+        fn getPoolAction(config: &PoolActionConfig) -> SharedPtr<DNSActionWrapper>;
     }
 }
 
@@ -44,11 +47,46 @@ enum Selector {
     And(AndSelectorSerde),
     ByName(dnsdistsettings::ByNameSelector),
     TCP(dnsdistsettings::TCPSelectorConfig),
-    MaxQPSIP(dnsdistsettings::MaxQPSIPRuleConfiguration),
+    MaxQPSIP(dnsdistsettings::MaxQPSIPSelectorConfiguration),
     NetmaskGroup(dnsdistsettings::NetmaskGroupSelectorConfig),
 }
 
+#[derive(Default, Serialize, Deserialize, Debug, PartialEq)]
+#[serde(tag = "type")]
+enum Action {
+    #[default]
+    None,
+    Pool(dnsdistsettings::PoolActionConfig),
+}
+
 impl Selector {
+  fn validate(&self) -> Result<(), ValidationError> {
+    Ok(())
+  }
+}
+
+impl Action {
+  fn validate(&self) -> Result<(), ValidationError> {
+    Ok(())
+  }
+}
+
+#[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
+#[serde(deny_unknown_fields)]
+struct QueryRulesConfigurationSerde {
+    name: String,
+    uuid: String,
+    selector: Selector,
+    action: Action,
+}
+
+impl QueryRulesConfigurationSerde {
+  fn validate(&self) -> Result<(), ValidationError> {
+    Ok(())
+  }
+}
+
+impl dnsdistsettings::SharedDNSAction {
   fn validate(&self) -> Result<(), ValidationError> {
     Ok(())
   }

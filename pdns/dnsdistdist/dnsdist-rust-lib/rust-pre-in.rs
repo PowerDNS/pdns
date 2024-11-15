@@ -68,3 +68,17 @@ mod dnsdistsettings {
     struct SharedDNSSelector {
         selector: SharedPtr<DNSSelector>,
     }
+
+    #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
+    #[serde(deny_unknown_fields)]
+    struct PoolActionConfig {
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        name: String,
+        pool: String,
+        #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
+        stop_processing: bool,
+    }
+
+    struct SharedDNSAction {
+        action: SharedPtr<DNSActionWrapper>,
+    }

@@ -27,6 +27,7 @@
 #if defined(HAVE_YAML_CONFIGURATION)
 #include "base64.hh"
 #include "dolog.hh"
+#include "dnsdist-actions.hh"
 #include "dnsdist-backend.hh"
 #include "dnsdist-cache.hh"
 #include "dnsdist-discovery.hh"
@@ -47,7 +48,7 @@ namespace dnsdist::configuration::yaml
 void convertImmutableFlatSettingsFromRust(const dnsdist::rust::settings::GlobalConfiguration& yamlConfig);
 void convertRuntimeFlatSettingsFromRust(const dnsdist::rust::settings::GlobalConfiguration& yamlConfig);
 
-using RegisteredTypes = std::variant<std::shared_ptr<DNSDistPacketCache>, std::shared_ptr<dnsdist::rust::settings::DNSSelector>, std::shared_ptr<NetmaskGroup>, std::shared_ptr<KeyValueStore>, std::shared_ptr<KeyValueLookupKey>, std::shared_ptr<RemoteLoggerInterface>, std::shared_ptr<ServerPolicy>>;
+using RegisteredTypes = std::variant<std::shared_ptr<DNSDistPacketCache>, std::shared_ptr<dnsdist::rust::settings::DNSSelector>, std::shared_ptr<dnsdist::rust::settings::DNSActionWrapper>, std::shared_ptr<NetmaskGroup>, std::shared_ptr<KeyValueStore>, std::shared_ptr<KeyValueLookupKey>, std::shared_ptr<RemoteLoggerInterface>, std::shared_ptr<ServerPolicy>>;
 static LockGuarded<std::unordered_map<std::string, RegisteredTypes>> s_registeredTypesMap;
 
 template <class T>
@@ -803,7 +804,7 @@ static std::shared_ptr<DNSSelector> newDNSSelector(std::shared_ptr<DNSRule>&& ru
   return selector;
 }
 
-std::shared_ptr<DNSSelector> getMaxIPQPSSelector(const MaxQPSIPRuleConfiguration& config)
+std::shared_ptr<DNSSelector> getMaxIPQPSSelector(const MaxQPSIPSelectorConfiguration& config)
 {
   auto rule = std::shared_ptr<DNSRule>(new MaxQPSIPRule(config.qps, config.burst, config.ipv4_mask, config.ipv6_mask, config.expiration, config.cleanup_delay, config.scan_fraction, config.shards));
   return newDNSSelector(std::move(rule), config.name);
@@ -849,6 +850,16 @@ std::shared_ptr<DNSSelector> getNetmaskGroupSelector(const NetmaskGroupSelectorC
   }
   auto rule = std::shared_ptr<DNSRule>(new NetmaskGroupRule(*nmg, config.source, config.quiet));
   return newDNSSelector(std::move(rule), config.name);
+}
+
+std::shared_ptr<DNSActionWrapper> getPoolAction(const PoolActionConfig& config)
+{
+  auto poolAction = std::shared_ptr<DNSAction>(new PoolAction(config.pool, config.stop_processing));
+  auto action = std::make_shared<DNSActionWrapper>();
+  action->d_name = std::string(config.name);
+  action->d_action = std::move(poolAction);
+  dnsdist::configuration::yaml::registerType(action, action->d_name);
+  return action;
 }
 
 }
