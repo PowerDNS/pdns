@@ -42,7 +42,7 @@ struct FWCatalogZone;
 struct ZoneXFRParams
 {
   std::string name;
-  std::vector<ComboAddress> primaries;
+  std::vector<std::string> primaries;
   ComboAddress localAddress;
   std::shared_ptr<const SOARecordContent> soaRecordContent;
   TSIGTriplet tsigtriplet;

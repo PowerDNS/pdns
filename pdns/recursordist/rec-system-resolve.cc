@@ -304,3 +304,26 @@ void pdns::RecResolve::Refresher::trigger()
   wakeup = true;
   condVar.notify_one();
 }
+
+ComboAddress pdns::fromNameOrIP(const string& str, uint16_t defPort, Logr::log_t log)
+{
+  try {
+    ComboAddress addr = parseIPAndPort(str, defPort);
+    return addr;
+  }
+  catch (const PDNSException&) {
+    uint16_t port = defPort;
+    string::size_type pos = str.rfind(':');
+    if (pos != string::npos) {
+      port = pdns::checked_stoi<uint16_t>(str.substr(pos + 1));
+    }
+    auto& res = pdns::RecResolve::getInstance();
+    ComboAddress address = res.lookupAndRegister(str.substr(0, pos), time(nullptr));
+    if (address != ComboAddress()) {
+      address.setPort(port);
+      return address;
+    }
+    log->error(Logr::Error, "Could not resolve name", "name", Logging::Loggable(str));
+    throw PDNSException("Could not resolve " + str);
+  }
+}

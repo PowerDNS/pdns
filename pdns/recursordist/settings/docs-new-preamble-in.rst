@@ -383,6 +383,8 @@ As of version 5.1.0, an RPZ entry is defined as
     seedFile: string
 
 If ``addresses`` is empty, the ``name`` field specifies the path name of the RPZ, otherwise the ``name`` field defines the name of the RPZ.
+Starting with version 5.2.0, names instead of IP addresess can be used for ``addresses`` if
+:ref:`setting-yaml-recursor.system_resolver_ttl` is set.
 
 
 An example of an ``rpzs`` entry, which is a sequence of `RPZ`_:
@@ -497,6 +499,7 @@ As of version 5.2.0, a forwarding catalog zone entry is defined as:
        recurse: bool, default false
        notify: bool, default false
 
+Names instead of IP addresess can be used for ``addresses`` if :ref:`setting-yaml-recursor.system_resolver_ttl` is set.
 An example of a :ref:`setting-yaml-recursor.forwarding_catalog_zones` entry, which is a sequence of `ForwardingCatalogZone`_:
 
 .. code-block:: yaml

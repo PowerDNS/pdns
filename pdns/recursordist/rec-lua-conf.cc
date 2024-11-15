@@ -16,6 +16,7 @@
 #include "validate.hh"
 #include "validate-recursor.hh"
 #include "root-dnssec.hh"
+#include "rec-system-resolve.hh"
 
 GlobalStateHolder<LuaConfigItems> g_luaconfs;
 
@@ -278,11 +279,11 @@ static void rpzPrimary(LuaConfigItems& lci, const boost::variant<string, std::ve
 
   std::shared_ptr<DNSFilterEngine::Zone> zone = std::make_shared<DNSFilterEngine::Zone>();
   if (primaries_.type() == typeid(string)) {
-    params.zoneXFRParams.primaries.emplace_back(boost::get<std::string>(primaries_), 53);
+    params.zoneXFRParams.primaries.emplace_back(boost::get<std::string>(primaries_));
   }
   else {
     for (const auto& primary : boost::get<std::vector<std::pair<int, std::string>>>(primaries_)) {
-      params.zoneXFRParams.primaries.emplace_back(primary.second, 53);
+      params.zoneXFRParams.primaries.emplace_back(primary.second);
     }
   }
 
@@ -329,7 +330,8 @@ static void rpzPrimary(LuaConfigItems& lci, const boost::variant<string, std::ve
 
     if (params.zoneXFRParams.localAddress != ComboAddress()) {
       // We were passed a localAddress, check if its AF matches the primaries'
-      for (const auto& primary : params.zoneXFRParams.primaries) {
+      for (const auto& nameOrIP : params.zoneXFRParams.primaries) {
+        auto primary = pdns::fromNameOrIP(nameOrIP, 53, lci.d_slog);
         if (params.zoneXFRParams.localAddress.sin4.sin_family != primary.sin4.sin_family) {
           throw PDNSException("Primary address(" + primary.toString() + ") is not of the same Address Family as the local address (" + params.zoneXFRParams.localAddress.toString() + ").");
         }

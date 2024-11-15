@@ -31,6 +31,7 @@
 #include "namespaces.hh"
 #include "iputils.hh"
 #include "lock.hh"
+#include "logr.hh"
 
 /************************************************************************************************
 The pdns::RecResolve class implements a facility to use the system configured resolver. At the moment
@@ -146,4 +147,5 @@ private:
   static bool s_selfResolveCheck;
 };
 
+ComboAddress fromNameOrIP(const string& str, uint16_t defPort, Logr::log_t log);
 }

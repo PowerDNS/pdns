@@ -29,6 +29,7 @@
 #include "axfr-retriever.hh"
 #include "ixfr.hh"
 #include "dnsrecords.hh"
+#include "rec-system-resolve.hh"
 
 static const DNSName cZones("zones");
 static const DNSName cVersion("version");
@@ -85,6 +86,7 @@ void CatalogZone::registerForwarders(const FWCatalogZone& params, Logr::log_t lo
     if (const auto ptr = getRR<PTRRecordContent>(record.second)) {
       auto defsIter = params.d_defaults.find("");
       const auto& name = record.first.first;
+      const auto& target = ptr->getContent();
       auto groupKey = name;
       groupKey.prependRawLabel("group");
       // Look for group records matching the member
@@ -95,19 +97,18 @@ void CatalogZone::registerForwarders(const FWCatalogZone& params, Logr::log_t lo
           groupName = unquotify(groupName);
           auto iter = params.d_defaults.find(groupName);
           if (iter == params.d_defaults.end()) {
-            logger->info(Logr::Debug, "No match for group in YAML config", "name", Logging::Loggable(name), "groupName", Logging::Loggable(groupName));
+            logger->info(Logr::Error, "No match for group in YAML config", "name", Logging::Loggable(name), "groupName", Logging::Loggable(groupName), "target", Logging::Loggable(target));
             continue;
           }
-          logger->info(Logr::Debug, "Match for group in YAML config", "name", Logging::Loggable(name), "groupName", Logging::Loggable(groupName));
+          logger->info(Logr::Debug, "Match for group in YAML config", "name", Logging::Loggable(name), "groupName", Logging::Loggable(groupName), "target", Logging::Loggable(target));
           defsIter = iter;
           break;
         }
       }
       if (defsIter == params.d_defaults.end()) {
-        logger->info(Logr::Error, "No match for group in YAML config", "name", Logging::Loggable(name));
+        logger->info(Logr::Error, "No match for default group in YAML config", "name", Logging::Loggable(name), "target", Logging::Loggable(target));
         continue;
       }
-      auto target = ptr->getContent();
       pdns::rust::settings::rec::ForwardZone forward;
       forward.zone = target.toString();
       forward.recurse = defsIter->second.recurse;
@@ -236,8 +237,9 @@ void FWCatZoneXFR::preloadZoneFile(const DNSName& zoneName, const std::shared_pt
 
     /* full copy, as promised */
     auto newZone = std::make_shared<CatalogZone>(*oldZone);
-    for (const auto& primary : d_params.primaries) {
+    for (const auto& nameOrIp : d_params.primaries) {
       try {
+        auto primary = pdns::fromNameOrIP(nameOrIp, 53, logger);
         d_params.soaRecordContent = loadZoneFromServer(logger, primary, zoneName, newZone, d_params.tsigtriplet, d_params.maxReceivedMBytes, d_params.localAddress, d_params.xfrTimeout);
         newZone->setSerial(d_params.soaRecordContent->d_st.serial);
         newZone->setRefresh(d_params.soaRecordContent->d_st.refresh);
@@ -254,11 +256,11 @@ void FWCatZoneXFR::preloadZoneFile(const DNSName& zoneName, const std::shared_pt
         break;
       }
       catch (const std::exception& e) {
-        logger->error(Logr::Warning, e.what(), "Unable to load zone, will retry", "from", Logging::Loggable(primary), "exception", Logging::Loggable("std::exception"), "refresh", Logging::Loggable(refresh));
+        logger->error(Logr::Warning, e.what(), "Unable to load zone, will retry", "from", Logging::Loggable(nameOrIp), "exception", Logging::Loggable("std::exception"), "refresh", Logging::Loggable(refresh));
         // XXX Stats
       }
       catch (const PDNSException& e) {
-        logger->error(Logr::Warning, e.reason, "Unable to load zone, will retry", "from", Logging::Loggable(primary), "exception", Logging::Loggable("PDNSException"), "refresh", Logging::Loggable(refresh));
+        logger->error(Logr::Warning, e.reason, "Unable to load zone, will retry", "from", Logging::Loggable(nameOrIp), "exception", Logging::Loggable("PDNSException"), "refresh", Logging::Loggable(refresh));
         // XXX Stats
       }
     }
@@ -318,7 +320,8 @@ bool FWCatZoneXFR::zoneTrackerIteration(const DNSName& zoneName, std::shared_ptr
   }
 
   vector<pair<vector<DNSRecord>, vector<DNSRecord>>> deltas;
-  for (const auto& primary : d_params.primaries) {
+  for (const auto& nameOrIp : d_params.primaries) {
+    auto primary = pdns::fromNameOrIP(nameOrIp, 53, logger);
     auto soa = getRR<SOARecordContent>(soaRecord);
     auto serial = soa ? soa->d_st.serial : 0;
     logger->info(Logr::Info, "Getting IXFR deltas", "address", Logging::Loggable(primary), "ourserial", Logging::Loggable(serial));

@@ -548,12 +548,14 @@ rec_control_SOURCES = \
 	qtype.cc \
 	rcpgenerator.cc	rcpgenerator.hh \
 	rec-lua-conf.cc rec-lua-conf.hh \
+	rec-system-resolve.cc rec-system-resolve.hh \
 	rec_channel.cc rec_channel.hh \
 	rec_control.cc \
 	settings/cxxsupport.cc \
 	sillyrecords.cc \
 	sortlist.cc sortlist.hh \
 	svc-records.cc svc-records.hh \
+	threadname.cc threadname.hh \
 	unix_utility.cc
 
 nodist_rec_control_SOURCES = \

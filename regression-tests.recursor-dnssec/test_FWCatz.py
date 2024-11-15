@@ -256,16 +256,16 @@ packetcache:
 incoming:
   allow_notify_from: [127.0.0.0/8]
 recursor:
+  system_resolver_ttl: 30
   forwarding_catalog_zones:
   - zone: forward.catz
     xfr:
       # The first server is a bogus one, to test that we correctly fail over to the second one
-      addresses: [127.0.0.1:9999, 127.0.0.1:%d]
+      addresses: [127.0.0.1:9999, localhost:%d]
       refresh: 1
     notify_allowed: true
     groups:
-    -  name: ''
-       forwarders: [1.2.3.4]
+    -  forwarders: [1.2.3.4] # Default
     -  name: 'GROUP'
        forwarders: [4.5.6.7]
        notify_allowed: true
