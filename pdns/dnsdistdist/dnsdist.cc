@@ -2232,6 +2232,7 @@ static void maintThread()
           (*maintenanceCallback)();
         }
         dnsdist::lua::hooks::runMaintenanceHooks(*lua);
+        dnsdist::DynamicBlocks::runRegisteredGroups(*lua);
         secondsToWaitLog = 0;
       }
       catch (const std::exception& e) {
