@@ -80,35 +80,39 @@ LWResult::Result asyncresolve(const ComboAddress& /* ip */, const DNSName& /* do
 bool primeHints(time_t now)
 {
   vector<DNSRecord> nsset;
-  if (!g_recCache)
+  if (!g_recCache) {
     g_recCache = std::make_unique<MemRecursorCache>();
-  if (!g_negCache)
+  }
+  if (!g_negCache) {
     g_negCache = std::make_unique<NegCache>();
+  }
 
-  DNSRecord arr, aaaarr, nsrr;
+  DNSRecord arr;
+  DNSRecord aaaarr;
+  DNSRecord nsrr;
   nsrr.d_name = g_rootdnsname;
   arr.d_type = QType::A;
   aaaarr.d_type = QType::AAAA;
   nsrr.d_type = QType::NS;
   arr.d_ttl = aaaarr.d_ttl = nsrr.d_ttl = now + 3600000;
 
-  for (char c = 'a'; c <= 'm'; ++c) {
-    char templ[40];
-    strncpy(templ, "a.root-servers.net.", sizeof(templ) - 1);
-    templ[sizeof(templ) - 1] = '\0';
-    *templ = c;
-    aaaarr.d_name = arr.d_name = DNSName(templ);
-    nsrr.setContent(std::make_shared<NSRecordContent>(DNSName(templ)));
-    arr.setContent(std::make_shared<ARecordContent>(ComboAddress(rootIps4[c - 'a'])));
+  for (char character = 'a'; character <= 'm'; ++character) {
+    std::array<char, 40> templ{};
+    strncpy(templ.data(), "a.root-servers.net.", sizeof(templ) - 1);
+    templ[templ.size() - 1] = '\0';
+    templ.at(0) = character;
+    aaaarr.d_name = arr.d_name = DNSName(templ.data());
+    nsrr.setContent(std::make_shared<NSRecordContent>(DNSName(templ.data())));
+    arr.setContent(std::make_shared<ARecordContent>(ComboAddress(rootIps4.at(character - 'a'))));
     vector<DNSRecord> aset;
     aset.push_back(arr);
-    g_recCache->replace(now, DNSName(templ), QType(QType::A), aset, vector<std::shared_ptr<const RRSIGRecordContent>>(), {}, false, g_rootdnsname);
-    if (!rootIps6[c - 'a'].empty()) {
-      aaaarr.setContent(std::make_shared<AAAARecordContent>(ComboAddress(rootIps6[c - 'a'])));
+    g_recCache->replace(now, DNSName(templ.data()), QType(QType::A), aset, vector<std::shared_ptr<const RRSIGRecordContent>>(), {}, false, g_rootdnsname);
+    if (!rootIps6.at(character - 'a').empty()) {
+      aaaarr.setContent(std::make_shared<AAAARecordContent>(ComboAddress(rootIps6.at(character - 'a'))));
 
       vector<DNSRecord> aaaaset;
       aaaaset.push_back(aaaarr);
-      g_recCache->replace(now, DNSName(templ), QType(QType::AAAA), aaaaset, vector<std::shared_ptr<const RRSIGRecordContent>>(), {}, false, g_rootdnsname);
+      g_recCache->replace(now, DNSName(templ.data()), QType(QType::AAAA), aaaaset, vector<std::shared_ptr<const RRSIGRecordContent>>(), {}, false, g_rootdnsname);
     }
 
     nsset.push_back(nsrr);
