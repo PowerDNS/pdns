@@ -2556,7 +2556,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<
 {
   vector<DNSRecord> cset;
   vector<std::shared_ptr<const RRSIGRecordContent>> signatures;
-  std::shared_ptr<vector<DNSRecord>> authorityRecs = std::make_shared<vector<DNSRecord>>();
+  MemRecursorCache::AuthRecs authorityRecs = MemRecursorCache::s_emptyAuthRecs;
   bool wasAuth = false;
   uint32_t capTTL = std::numeric_limits<uint32_t>::max();
   DNSName foundName;
@@ -2999,7 +2999,7 @@ bool SyncRes::doCacheCheck(const DNSName& qname, const DNSName& authname, bool w
   bool found = false;
   bool expired = false;
   vector<std::shared_ptr<const RRSIGRecordContent>> signatures;
-  std::shared_ptr<vector<DNSRecord>> authorityRecs = std::make_shared<vector<DNSRecord>>();
+  MemRecursorCache::AuthRecs authorityRecs = MemRecursorCache::s_emptyAuthRecs;
   uint32_t ttl = 0;
   uint32_t capTTL = std::numeric_limits<uint32_t>::max();
   bool wasCachedAuth{};
@@ -3606,7 +3606,7 @@ bool SyncRes::validationEnabled()
   return g_dnssecmode != DNSSECMode::Off && g_dnssecmode != DNSSECMode::ProcessNoValidate;
 }
 
-uint32_t SyncRes::computeLowestTTD(const std::vector<DNSRecord>& records, const std::vector<std::shared_ptr<const RRSIGRecordContent>>& signatures, uint32_t signaturesTTL, const std::shared_ptr<std::vector<DNSRecord>>& authorityRecs) const
+uint32_t SyncRes::computeLowestTTD(const std::vector<DNSRecord>& records, const std::vector<std::shared_ptr<const RRSIGRecordContent>>& signatures, uint32_t signaturesTTL, const MemRecursorCache::AuthRecsVec& authorityRecs) const
 {
   uint32_t lowestTTD = std::numeric_limits<uint32_t>::max();
   for (const auto& record : records) {
@@ -3628,7 +3628,7 @@ uint32_t SyncRes::computeLowestTTD(const std::vector<DNSRecord>& records, const 
     }
   }
 
-  for (const auto& entry : *authorityRecs) {
+  for (const auto& entry : authorityRecs) {
     /* be careful, this is still a TTL here */
     lowestTTD = min(lowestTTD, static_cast<uint32_t>(entry.d_ttl + d_now.tv_sec));
 
@@ -4536,7 +4536,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
   fixupAnswer(prefix, lwr, qname, qtype, auth, wasForwarded, rdQuery);
   sanitizeRecords(prefix, lwr, qname, qtype, auth, wasForwarded, rdQuery);
 
-  std::shared_ptr<std::vector<DNSRecord>> authorityRecs = std::make_shared<std::vector<DNSRecord>>();
+  MemRecursorCache::AuthRecsVec authorityRecs;
   bool isCNAMEAnswer = false;
   bool isDNAMEAnswer = false;
   DNSName seenAuth;
@@ -4633,12 +4633,12 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
       }
 
       if (nsecTypes.count(rec.d_type) != 0) {
-        authorityRecs->emplace_back(rec);
+        authorityRecs.emplace_back(rec);
       }
       else if (rec.d_type == QType::RRSIG) {
         auto rrsig = getRR<RRSIGRecordContent>(rec);
         if (rrsig && nsecTypes.count(rrsig->d_type) != 0) {
-          authorityRecs->emplace_back(rec);
+          authorityRecs.emplace_back(rec);
         }
       }
     }
@@ -4711,7 +4711,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
 
   // supplant
   for (auto& entry : tcache) {
-    if ((entry.second.records.size() + entry.second.signatures.size() + authorityRecs->size()) > 1) { // need to group the ttl to be the minimum of the RRSET (RFC 2181, 5.2)
+    if ((entry.second.records.size() + entry.second.signatures.size() + authorityRecs.size()) > 1) { // need to group the ttl to be the minimum of the RRSET (RFC 2181, 5.2)
       uint32_t lowestTTD = computeLowestTTD(entry.second.records, entry.second.signatures, entry.second.signaturesTTL, authorityRecs);
 
       for (auto& record : entry.second.records) {
@@ -4882,7 +4882,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
             thisRRNeedsWildcardProof = true;
           }
         }
-        g_recCache->replace(d_now.tv_sec, tCacheEntry->first.name, tCacheEntry->first.type, tCacheEntry->second.records, tCacheEntry->second.signatures, thisRRNeedsWildcardProof ? authorityRecs : nullptr, tCacheEntry->first.type == QType::DS ? true : isAA, auth, tCacheEntry->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::none, d_routingTag, recordState, remoteIP, d_refresh, tCacheEntry->second.d_ttl_time);
+        g_recCache->replace(d_now.tv_sec, tCacheEntry->first.name, tCacheEntry->first.type, tCacheEntry->second.records, tCacheEntry->second.signatures, thisRRNeedsWildcardProof ? authorityRecs : *MemRecursorCache::s_emptyAuthRecs, tCacheEntry->first.type == QType::DS ? true : isAA, auth, tCacheEntry->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::none, d_routingTag, recordState, remoteIP, d_refresh, tCacheEntry->second.d_ttl_time);
 
         // Delete potential negcache entry. When a record recovers with serve-stale the negcache entry can cause the wrong entry to
         // be served, as negcache entries are checked before record cache entries

@@ -1342,6 +1342,7 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd_dnssec_cname_wildcard_expanded
   res = testSR->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(testSR->getValidationState(), vState::Insecure);
+  BOOST_CHECK(MemRecursorCache::s_emptyAuthRecs->empty());
   BOOST_REQUIRE_EQUAL(ret.size(), 5U);
   BOOST_CHECK_EQUAL(queriesCount, 5U);
 }

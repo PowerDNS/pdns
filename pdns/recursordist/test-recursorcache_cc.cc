@@ -21,7 +21,7 @@ static void simple(time_t now)
   MemRecursorCache MRC;
 
   std::vector<DNSRecord> records;
-  std::shared_ptr<std::vector<DNSRecord>> authRecords;
+  MemRecursorCache::AuthRecsVec authRecords;
   std::vector<std::shared_ptr<const RRSIGRecordContent>> signatures;
   const DNSName authZone(".");
 
@@ -444,7 +444,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheGhost)
   MemRecursorCache MRC;
 
   std::vector<DNSRecord> records;
-  std::shared_ptr<std::vector<DNSRecord>> authRecords;
+  MemRecursorCache::AuthRecsVec authRecords;
   std::vector<std::shared_ptr<const RRSIGRecordContent>> signatures;
   time_t now = time(nullptr);
 
@@ -488,7 +488,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheReplaceAuthByNonAuthMargin)
   MemRecursorCache MRC;
 
   std::vector<DNSRecord> records;
-  std::shared_ptr<std::vector<DNSRecord>> authRecords;
+  MemRecursorCache::AuthRecsVec authRecords;
   std::vector<std::shared_ptr<const RRSIGRecordContent>> signatures;
   time_t now = time(nullptr);
 
@@ -535,7 +535,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingExpiredEntries)
 
   std::vector<DNSRecord> records;
   std::vector<std::shared_ptr<const RRSIGRecordContent>> signatures;
-  std::shared_ptr<std::vector<DNSRecord>> authRecs;
+  MemRecursorCache::AuthRecsVec authRecs;
   const DNSName authZone(".");
   BOOST_CHECK_EQUAL(MRC.size(), 0U);
   time_t now = time(nullptr);
@@ -630,7 +630,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingValidEntries)
 
   std::vector<DNSRecord> records;
   std::vector<std::shared_ptr<const RRSIGRecordContent>> signatures;
-  std::shared_ptr<std::vector<DNSRecord>> authRecs;
+  MemRecursorCache::AuthRecsVec authRecs;
   const DNSName authZone(".");
   BOOST_CHECK_EQUAL(MRC.size(), 0U);
   time_t now = time(nullptr);
@@ -810,7 +810,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheECSIndex)
   const DNSName power("powerdns.com.");
   const DNSName authZone(".");
   std::vector<DNSRecord> records;
-  std::shared_ptr<std::vector<DNSRecord>> authRecords;
+  MemRecursorCache::AuthRecsVec authRecords;
   std::vector<std::shared_ptr<const RRSIGRecordContent>> signatures;
   time_t now = time(nullptr);
   std::vector<DNSRecord> retrieved;
@@ -970,7 +970,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_Wipe)
   const DNSName power("powerdns.com.");
   const DNSName authZone(".");
   std::vector<DNSRecord> records;
-  std::shared_ptr<std::vector<DNSRecord>> authRecords;
+  MemRecursorCache::AuthRecsVec authRecords;
   std::vector<std::shared_ptr<const RRSIGRecordContent>> signatures;
   time_t now = time(nullptr);
   std::vector<DNSRecord> retrieved;
@@ -1059,7 +1059,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheTagged)
   MemRecursorCache MRC;
 
   const DNSName authZone(".");
-  std::shared_ptr<std::vector<DNSRecord>> authRecords;
+  MemRecursorCache::AuthRecsVec authRecords;
   std::vector<std::shared_ptr<const RRSIGRecordContent>> signatures;
   time_t now = time(nullptr);
   time_t ttd = now + 30;
@@ -1293,14 +1293,14 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheDumpAndRestore)
   MemRecursorCache MRC;
 
   const DNSName authZone(".");
-  std::shared_ptr<std::vector<DNSRecord>> authRecords = std::make_shared<std::vector<DNSRecord>>();
+  MemRecursorCache::AuthRecsVec authRecords;
   DNSRecord dr;
   dr.d_place = DNSResourceRecord::ANSWER;
   dr.d_name = DNSName("hi");
   dr.d_type = QType::AAAA;
   dr.d_ttl = 3600;
   dr.setContent(std::make_shared<ARecordContent>(ComboAddress("1::2:3:4")));
-  authRecords->emplace_back(dr);
+  authRecords.emplace_back(dr);
 
   std::vector<std::shared_ptr<const RRSIGRecordContent>> signatures;
   signatures.emplace_back(std::dynamic_pointer_cast<RRSIGRecordContent>(RRSIGRecordContent::make("DNSKEY 8 0 172800 20241111000000 20241021000000 20326 . alCFgDZS+0l5zcpQ/7R+5OFeCrk9KGkNP2F9ynXIXG6QigPj/9qjm0xx ItRJUUim+SrJywAmLKe+48oTUeSRyDKVVg3LGDekLKcIVz0EBqTL2y44 usDlUlxqx5O0LQVHy4h/hm9+dCXFiSBWoV0LcAplV9OYWhxi+CxmxZU5 8vK6eVAde8E2JHdeDuy23WF5lxYEg1q7ehEt5EdRvZ7hZzfawEFR3Qv3 WMootO2eBAAneIe94daJP/i1iwQJ4p+bGVCZ4sJk+Pk9J7lwEQq6Ghkd SpLsRxArUhvoVgtnh0LkAV7TsajYk8K2JRt7wHNDbBV6+Vdq2bh7ZPGv LiGkIQ==")));
@@ -1340,7 +1340,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheDumpAndRestore)
 
     for (size_t counter = 0; counter < expected + 10; counter++) {
       std::vector<DNSRecord> retrieved;
-      std::shared_ptr<std::vector<DNSRecord>> authRecs;
+      MemRecursorCache::AuthRecs authRecs;
       std::vector<std::shared_ptr<const RRSIGRecordContent>> sigs;
       bool variable = false;
       vState state = vState::Indeterminate;
@@ -1355,7 +1355,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheDumpAndRestore)
         BOOST_CHECK_EQUAL(sigs.at(0)->getZoneRepresentation(), signatures.at(0)->getZoneRepresentation());
         BOOST_CHECK_EQUAL(authRecs->size(), 1U);
 
-        BOOST_CHECK_EQUAL(authRecs->at(0).toString(), authRecords->at(0).toString());
+        BOOST_CHECK_EQUAL(authRecs->at(0).toString(), authRecords.at(0).toString());
         BOOST_CHECK_EQUAL(state, vState::Insecure);
         BOOST_CHECK_EQUAL(wasAuth, true);
         BOOST_CHECK_EQUAL(fromZone, authZone);

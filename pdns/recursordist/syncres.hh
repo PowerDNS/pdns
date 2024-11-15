@@ -678,7 +678,7 @@ private:
   boost::optional<Netmask> getEDNSSubnetMask(const DNSName& name, const ComboAddress& rem);
 
   static bool validationEnabled();
-  uint32_t computeLowestTTD(const std::vector<DNSRecord>& records, const std::vector<std::shared_ptr<const RRSIGRecordContent>>& signatures, uint32_t signaturesTTL, const std::shared_ptr<std::vector<DNSRecord>>& authorityRecs) const;
+  uint32_t computeLowestTTD(const std::vector<DNSRecord>& records, const std::vector<std::shared_ptr<const RRSIGRecordContent>>& signatures, uint32_t signaturesTTL, const MemRecursorCache::AuthRecsVec& authorityRecs) const;
   void updateValidationState(const DNSName& qname, vState& state, vState stateUpdate, const string& prefix);
   vState validateRecordsWithSigs(unsigned int depth, const string& prefix, const DNSName& qname, QType qtype, const DNSName& name, QType type, const std::vector<DNSRecord>& records, const std::vector<std::shared_ptr<const RRSIGRecordContent>>& signatures);
   vState validateDNSKeys(const DNSName& zone, const std::vector<DNSRecord>& dnskeys, const std::vector<std::shared_ptr<const RRSIGRecordContent>>& signatures, unsigned int depth, const string& prefix);

@@ -41,7 +41,7 @@ static void putIntoCache(time_t now, QType qtype, vState state, const ComboAddre
     // Put non-default root hints into cache as authoritative.  As argued below in
     // putDefaultHintsIntoCache, this is actually wrong, but people might depend on it by having
     // root-hints that refer to servers that aren't actually capable or willing to serve root data.
-    g_recCache->replace(now, name, qtype, aset, {}, nullptr, true, g_rootdnsname, boost::none, boost::none, state, from);
+    g_recCache->replace(now, name, qtype, aset, {}, {}, true, g_rootdnsname, boost::none, boost::none, state, from);
   }
 }
 

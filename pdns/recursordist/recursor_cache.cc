@@ -76,6 +76,8 @@ uint16_t MemRecursorCache::s_maxServedStaleExtensions;
 uint16_t MemRecursorCache::s_maxRRSetSize = 256;
 bool MemRecursorCache::s_limitQTypeAny = true;
 
+const MemRecursorCache::AuthRecs MemRecursorCache::s_emptyAuthRecs = std::make_shared<MemRecursorCache::AuthRecsVec>();
+
 void MemRecursorCache::resetStaticsForTests()
 {
   s_maxServedStaleExtensions = 0;
@@ -172,7 +174,7 @@ static void ptrAssign(T* ptr, const T& value)
   }
 }
 
-time_t MemRecursorCache::handleHit(time_t now, MapCombo::LockedContent& content, MemRecursorCache::OrderedTagIterator_t& entry, const DNSName& qname, uint32_t& origTTL, vector<DNSRecord>* res, vector<std::shared_ptr<const RRSIGRecordContent>>* signatures, std::shared_ptr<std::vector<DNSRecord>>* authorityRecs, bool* variable, boost::optional<vState>& state, bool* wasAuth, DNSName* fromAuthZone, ComboAddress* fromAuthIP)
+time_t MemRecursorCache::handleHit(time_t now, MapCombo::LockedContent& content, MemRecursorCache::OrderedTagIterator_t& entry, const DNSName& qname, uint32_t& origTTL, vector<DNSRecord>* res, vector<std::shared_ptr<const RRSIGRecordContent>>* signatures, AuthRecs* authorityRecs, bool* variable, boost::optional<vState>& state, bool* wasAuth, DNSName* fromAuthZone, ComboAddress* fromAuthIP)
 {
   // MUTEX SHOULD BE ACQUIRED (as indicated by the reference to the content which is protected by a lock)
   if (entry->d_tooBig) {
@@ -215,7 +217,7 @@ time_t MemRecursorCache::handleHit(time_t now, MapCombo::LockedContent& content,
   }
 
   if (authorityRecs != nullptr) {
-    *authorityRecs = entry->d_authorityRecs ? entry->d_authorityRecs : std::make_shared<vector<DNSRecord>>();
+    *authorityRecs = entry->d_authorityRecs ? entry->d_authorityRecs : s_emptyAuthRecs;
   }
 
   updateDNSSECValidationStateFromCache(state, entry->d_state);
@@ -382,7 +384,7 @@ time_t MemRecursorCache::fakeTTD(MemRecursorCache::OrderedTagIterator_t& entry, 
 }
 
 // returns -1 for no hits
-time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qtype, Flags flags, vector<DNSRecord>* res, const ComboAddress& who, const OptTag& routingTag, vector<std::shared_ptr<const RRSIGRecordContent>>* signatures, std::shared_ptr<std::vector<DNSRecord>>* authorityRecs, bool* variable, vState* state, bool* wasAuth, DNSName* fromAuthZone, ComboAddress* fromAuthIP) // NOLINT(readability-function-cognitive-complexity)
+time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qtype, Flags flags, vector<DNSRecord>* res, const ComboAddress& who, const OptTag& routingTag, vector<std::shared_ptr<const RRSIGRecordContent>>* signatures, AuthRecs* authorityRecs, bool* variable, vState* state, bool* wasAuth, DNSName* fromAuthZone, ComboAddress* fromAuthIP) // NOLINT(readability-function-cognitive-complexity)
 {
   bool requireAuth = (flags & RequireAuth) != 0;
   bool refresh = (flags & Refresh) != 0;
@@ -585,7 +587,7 @@ bool MemRecursorCache::replace(CacheEntry&& entry)
   return false;
 }
 
-void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qtype, const vector<DNSRecord>& content, const vector<shared_ptr<const RRSIGRecordContent>>& signatures, const std::shared_ptr<std::vector<DNSRecord>>& authorityRecs, bool auth, const DNSName& authZone, boost::optional<Netmask> ednsmask, const OptTag& routingTag, vState state, boost::optional<ComboAddress> from, bool refresh, time_t ttl_time)
+void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qtype, const vector<DNSRecord>& content, const vector<shared_ptr<const RRSIGRecordContent>>& signatures, const AuthRecsVec& authorityRecs, bool auth, const DNSName& authZone, boost::optional<Netmask> ednsmask, const OptTag& routingTag, vState state, boost::optional<ComboAddress> from, bool refresh, time_t ttl_time)
 {
   auto& shard = getMap(qname);
   auto lockedShard = shard.lock();
@@ -646,8 +648,8 @@ void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qty
   }
 
   cacheEntry.d_signatures = signatures;
-  if (authorityRecs && !authorityRecs->empty()) {
-    cacheEntry.d_authorityRecs = authorityRecs;
+  if (!authorityRecs.empty()) {
+    cacheEntry.d_authorityRecs = std::make_shared<const AuthRecsVec>(authorityRecs);
   }
   else {
     cacheEntry.d_authorityRecs = nullptr;
@@ -1097,7 +1099,7 @@ size_t MemRecursorCache::getRecordSets(size_t perShard, size_t maxSize, std::str
   return count;
 }
 
-static void putAuthRecord(protozero::pbf_message<PBCacheEntry>& message, const DNSName& qname, std::shared_ptr<std::vector<DNSRecord>>& authRecs)
+static void putAuthRecord(protozero::pbf_message<PBCacheEntry>& message, const DNSName& qname, std::vector<DNSRecord>& authRecs)
 {
   protozero::pbf_message<PBAuthRecord> auth = message.get_message();
   DNSRecord authRecord;
@@ -1130,12 +1132,13 @@ static void putAuthRecord(protozero::pbf_message<PBCacheEntry>& message, const D
       break;
     }
   }
-  authRecs->emplace_back(authRecord);
+  authRecs.emplace_back(authRecord);
 }
 
 template <typename T>
 bool MemRecursorCache::putRecordSet(T& message)
 {
+  std::vector<DNSRecord> authRecs;
   CacheEntry cacheEntry{{g_rootdnsname, QType::A, boost::none, Netmask()}, false};
   while (message.next()) {
     switch (message.tag()) {
@@ -1153,7 +1156,7 @@ bool MemRecursorCache::putRecordSet(T& message)
       if (!cacheEntry.d_authorityRecs) {
         cacheEntry.d_authorityRecs = std::make_shared<std::vector<DNSRecord>>();
       }
-      putAuthRecord(message, cacheEntry.d_qname, cacheEntry.d_authorityRecs);
+      putAuthRecord(message, cacheEntry.d_qname, authRecs);
       break;
     case PBCacheEntry::required_bytes_name:
       cacheEntry.d_qname = DNSName(message.get_bytes());
@@ -1198,6 +1201,9 @@ bool MemRecursorCache::putRecordSet(T& message)
     default:
       break;
     }
+  }
+  if (!authRecs.empty()) {
+    cacheEntry.d_authorityRecs = std::make_shared<const std::vector<DNSRecord>>(authRecs);
   }
   return replace(std::move(cacheEntry));
 }
