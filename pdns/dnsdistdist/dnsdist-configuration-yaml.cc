@@ -30,6 +30,7 @@
 #include "dnsdist-backend.hh"
 #include "dnsdist-cache.hh"
 #include "dnsdist-discovery.hh"
+#include "dnsdist-dynblocks.hh"
 #include "dnsdist-rules.hh"
 #include "dnsdist-kvs.hh"
 #include "dnsdist-web.hh"
@@ -85,13 +86,30 @@ static std::shared_ptr<T> getRegisteredTypeByName(const ::rust::String& name)
   return getRegisteredTypeByName<T>(nameStr);
 }
 
-static std::set<int> getCPUPiningFromStr(const std::string& cpuStr)
+template <class T>
+static T checkedConversionFromStr(const std::string& context, const std::string& parameterName, const std::string& str)
+{
+  try {
+    return pdns::checked_stoi<T>(std::string(str));
+  }
+  catch (const std::exception& exp) {
+    throw std::runtime_error("Error converting value '" + str + "' for parameter '" + parameterName + "' in YAML directive '" + context + "': " + exp.what());
+  }
+}
+
+template <class T>
+static T checkedConversionFromStr(const std::string& context, const std::string& parameterName, const ::rust::string& str)
+{
+  return checkedConversionFromStr<T>(context, parameterName, std::string(str));
+}
+
+static std::set<int> getCPUPiningFromStr(const std::string& context, const std::string& cpuStr)
 {
   std::set<int> cpus;
   std::vector<std::string> tokens;
   stringtok(tokens, cpuStr);
   for (const auto& token : tokens) {
-    cpus.insert(pdns::checked_stoi<int>(token));
+    cpus.insert(checkedConversionFromStr<int>(context, "cpus", token));
   }
   return cpus;
 }
@@ -284,7 +302,7 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dns
   backendConfig.disableZeroScope = config.disable_zero_scope;
   backendConfig.ipBindAddrNoPort = config.ip_bind_addr_no_port;
   backendConfig.reconnectOnUp = config.reconnect_on_up;
-  backendConfig.d_cpus = getCPUPiningFromStr(std::string(config.cpus));
+  backendConfig.d_cpus = getCPUPiningFromStr("backend", std::string(config.cpus));
   backendConfig.d_tcpOnly = config.tcp_only;
 
   backendConfig.tcpConnectTimeout = config.tcp.connect_timeout;
@@ -411,7 +429,7 @@ bool loadConfigurationFromFile(const std::string fileName)
       ComboAddress listeningAddress(std::string(bind.listen_address), 53);
       updateImmutableConfiguration([&bind, listeningAddress](ImmutableConfiguration& config) {
         for (size_t idx = 0; idx < bind.threads; idx++) {
-          auto cpus = getCPUPiningFromStr(std::string(bind.cpus));
+          auto cpus = getCPUPiningFromStr("binds", std::string(bind.cpus));
           auto state = std::make_shared<ClientState>(listeningAddress, bind.protocol != "DoQ", bind.reuseport, bind.tcp.fast_open_queue_size, std::string(bind.interface), cpus, false);
           if (bind.tcp.listen_queue_size > 0) {
             state->tcpListenQueueSize = bind.tcp.listen_queue_size;
@@ -562,6 +580,108 @@ bool loadConfigurationFromFile(const std::string fileName)
       dnsdist::configuration::updateRuntimeConfiguration([default_action = globalConfig.dynamic_rules_settings.default_action](dnsdist::configuration::RuntimeConfiguration& config) {
         config.d_dynBlockAction = DNSAction::typeFromString(std::string(default_action));
       });
+    }
+
+    for (const auto& dbrg : globalConfig.dynamic_rules) {
+      auto dbrgObj = std::make_shared<DynBlockRulesGroup>();
+      dbrgObj->setMasks(dbrg.mask_ipv4, dbrg.mask_ipv6, dbrg.mask_port);
+      for (const auto& range : dbrg.exclude_ranges) {
+        dbrgObj->excludeRange(Netmask(std::string(range)));
+      }
+      for (const auto& range : dbrg.include_ranges) {
+        dbrgObj->includeRange(Netmask(std::string(range)));
+      }
+      for (const auto& domain : dbrg.exclude_domains) {
+        dbrgObj->excludeDomain(DNSName(std::string(domain)));
+      }
+      for (const auto& rule : dbrg.rules) {
+        if (rule.rule_type == "query-rate") {
+          DynBlockRulesGroup::DynBlockRule ruleParams(std::string(rule.comment), rule.action_duration, rule.rate, rule.warning_rate, rule.seconds, rule.action.empty() ? DNSAction::Action::None : DNSAction::typeFromString(std::string(rule.action)));
+          if (ruleParams.d_action == DNSAction::Action::SetTag && !rule.tag_name.empty()) {
+            ruleParams.d_tagSettings = std::make_shared<DynBlock::TagSettings>();
+            ruleParams.d_tagSettings->d_name = std::string(rule.tag_name);
+            ruleParams.d_tagSettings->d_value = std::string(rule.tag_value);
+          }
+          dbrgObj->setQueryRate(std::move(ruleParams));
+        }
+        else if (rule.rule_type == "rcode-rate") {
+          DynBlockRulesGroup::DynBlockRule ruleParams(std::string(rule.comment), rule.action_duration, rule.rate, rule.warning_rate, rule.seconds, rule.action.empty() ? DNSAction::Action::None : DNSAction::typeFromString(std::string(rule.action)));
+          if (ruleParams.d_action == DNSAction::Action::SetTag && !rule.tag_name.empty()) {
+            ruleParams.d_tagSettings = std::make_shared<DynBlock::TagSettings>();
+            ruleParams.d_tagSettings->d_name = std::string(rule.tag_name);
+            ruleParams.d_tagSettings->d_value = std::string(rule.tag_value);
+          }
+          dbrgObj->setRCodeRate(checkedConversionFromStr<int>("dynamic-rules.rules.rcode_rate", "rcode", rule.rcode), std::move(ruleParams));
+        }
+        else if (rule.rule_type == "rcode-ratio") {
+          DynBlockRulesGroup::DynBlockRatioRule ruleParams(std::string(rule.comment), rule.action_duration, rule.ratio, rule.warning_ratio, rule.seconds, rule.action.empty() ? DNSAction::Action::None : DNSAction::typeFromString(std::string(rule.action)), rule.minimum_number_of_responses);
+          if (ruleParams.d_action == DNSAction::Action::SetTag && !rule.tag_name.empty()) {
+            ruleParams.d_tagSettings = std::make_shared<DynBlock::TagSettings>();
+            ruleParams.d_tagSettings->d_name = std::string(rule.tag_name);
+            ruleParams.d_tagSettings->d_value = std::string(rule.tag_value);
+          }
+          dbrgObj->setRCodeRatio(checkedConversionFromStr<int>("dynamic-rules.rules.rcode_ratio", "rcode", rule.rcode), std::move(ruleParams));
+        }
+        else if (rule.rule_type == "qtype-rate") {
+          DynBlockRulesGroup::DynBlockRule ruleParams(std::string(rule.comment), rule.action_duration, rule.rate, rule.warning_rate, rule.seconds, rule.action.empty() ? DNSAction::Action::None : DNSAction::typeFromString(std::string(rule.action)));
+          if (ruleParams.d_action == DNSAction::Action::SetTag && !rule.tag_name.empty()) {
+            ruleParams.d_tagSettings = std::make_shared<DynBlock::TagSettings>();
+            ruleParams.d_tagSettings->d_name = std::string(rule.tag_name);
+            ruleParams.d_tagSettings->d_value = std::string(rule.tag_value);
+          }
+          dbrgObj->setRCodeRate(checkedConversionFromStr<int>("dynamic-rules.rules.qtype_rate", "qtype", rule.qtype), std::move(ruleParams));
+        }
+        else if (rule.rule_type == "qtype-ratio") {
+          DynBlockRulesGroup::DynBlockRatioRule ruleParams(std::string(rule.comment), rule.action_duration, rule.ratio, rule.warning_ratio, rule.seconds, rule.action.empty() ? DNSAction::Action::None : DNSAction::typeFromString(std::string(rule.action)), rule.minimum_number_of_responses);
+          if (ruleParams.d_action == DNSAction::Action::SetTag && !rule.tag_name.empty()) {
+            ruleParams.d_tagSettings = std::make_shared<DynBlock::TagSettings>();
+            ruleParams.d_tagSettings->d_name = std::string(rule.tag_name);
+            ruleParams.d_tagSettings->d_value = std::string(rule.tag_value);
+          }
+          dbrgObj->setRCodeRatio(checkedConversionFromStr<int>("dynamic-rules.rules.qtype_ratio", "qtype", rule.qtype), std::move(ruleParams));
+        }
+        else if (rule.rule_type == "cache-miss-ratio") {
+          DynBlockRulesGroup::DynBlockCacheMissRatioRule ruleParams(std::string(rule.comment), rule.action_duration, rule.ratio, rule.warning_ratio, rule.seconds, rule.action.empty() ? DNSAction::Action::None : DNSAction::typeFromString(std::string(rule.action)), rule.minimum_number_of_responses, rule.minimum_global_cache_hit_ratio);
+          if (ruleParams.d_action == DNSAction::Action::SetTag && !rule.tag_name.empty()) {
+            ruleParams.d_tagSettings = std::make_shared<DynBlock::TagSettings>();
+            ruleParams.d_tagSettings->d_name = std::string(rule.tag_name);
+            ruleParams.d_tagSettings->d_value = std::string(rule.tag_value);
+          }
+          dbrgObj->setCacheMissRatio(std::move(ruleParams));
+        }
+        else if (rule.rule_type == "response-byte-rate") {
+          DynBlockRulesGroup::DynBlockRule ruleParams(std::string(rule.comment), rule.action_duration, rule.rate, rule.warning_rate, rule.seconds, rule.action.empty() ? DNSAction::Action::None : DNSAction::typeFromString(std::string(rule.action)));
+          if (ruleParams.d_action == DNSAction::Action::SetTag && !rule.tag_name.empty()) {
+            ruleParams.d_tagSettings = std::make_shared<DynBlock::TagSettings>();
+            ruleParams.d_tagSettings->d_name = std::string(rule.tag_name);
+            ruleParams.d_tagSettings->d_value = std::string(rule.tag_value);
+          }
+          dbrgObj->setResponseByteRate(std::move(ruleParams));
+        }
+        else if (rule.rule_type == "suffix-match") {
+          DynBlockRulesGroup::DynBlockRule ruleParams(std::string(rule.comment), rule.action_duration, 0, 0, rule.seconds, rule.action.empty() ? DNSAction::Action::None : DNSAction::typeFromString(std::string(rule.action)));
+          if (ruleParams.d_action == DNSAction::Action::SetTag && !rule.tag_name.empty()) {
+            ruleParams.d_tagSettings = std::make_shared<DynBlock::TagSettings>();
+            ruleParams.d_tagSettings->d_name = std::string(rule.tag_name);
+            ruleParams.d_tagSettings->d_value = std::string(rule.tag_value);
+          }
+          DynBlockRulesGroup::smtVisitor_t visitor;
+          getOptionalLuaFunction<DynBlockRulesGroup::smtVisitor_t>(visitor, rule.visitor_function);
+          dbrgObj->setSuffixMatchRule(std::move(ruleParams), std::move(visitor));
+        }
+        else if (rule.rule_type == "suffix-match-ffi") {
+          DynBlockRulesGroup::DynBlockRule ruleParams(std::string(rule.comment), rule.action_duration, 0, 0, rule.seconds, rule.action.empty() ? DNSAction::Action::None : DNSAction::typeFromString(std::string(rule.action)));
+          if (ruleParams.d_action == DNSAction::Action::SetTag && !rule.tag_name.empty()) {
+            ruleParams.d_tagSettings = std::make_shared<DynBlock::TagSettings>();
+            ruleParams.d_tagSettings->d_name = std::string(rule.tag_name);
+            ruleParams.d_tagSettings->d_value = std::string(rule.tag_value);
+          }
+          dnsdist_ffi_stat_node_visitor_t visitor;
+          getOptionalLuaFunction<dnsdist_ffi_stat_node_visitor_t>(visitor, rule.visitor_function);
+          dbrgObj->setSuffixMatchRuleFFI(std::move(ruleParams), std::move(visitor));
+        }
+      }
+      dnsdist::DynamicBlocks::registerGroup(dbrgObj);
     }
 
     if (!globalConfig.tuning.tcp.fast_open_key.empty()) {

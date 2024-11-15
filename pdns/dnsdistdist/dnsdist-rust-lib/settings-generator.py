@@ -132,7 +132,7 @@ def get_rust_struct_from_definition(name, keys, default_functions):
     struct {obj_name}Configuration {{
 {name_field}'''
     for parameter in keys['parameters']:
-        parameter_name = get_rust_field_name(parameter['name']) if parameter['name'] != 'namespace' else 'name_space'
+        parameter_name = get_rust_field_name(parameter['name']) if not 'rename' in parameter else parameter['rename']
         rust_type = parameter['type']
         rename = parameter['name'] if parameter_name != parameter['name'] else None
         default_str = get_rust_serde_annotations(rust_type, parameter['default'] if 'default' in parameter else None, rename, get_rust_field_name(name), parameter_name, default_functions)
@@ -332,7 +332,7 @@ def main():
         for definition_name, keys in definitions.items():
             if not 'section' in keys or keys['section'] != section:
                 continue
-            field_name = get_rust_field_name(definition_name)
+            field_name = get_rust_field_name(definition_name) if not 'rename' in keys else keys['rename']
             name = get_rust_object_name(definition_name)
             obj_type = f'{name}Configuration' if not 'type' in keys or keys['type'] != 'list' else f'Vec<{name}Configuration>'
             generated_fp.write('        #[serde(default, skip_serializing_if = "crate::is_default")]\n')
