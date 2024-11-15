@@ -72,7 +72,7 @@ public:
   {
     d_name = name;
   }
-  [[nodiscard]] auto getName() const
+  [[nodiscard]] const DNSName& getName() const
   {
     return d_name;
   }
@@ -119,6 +119,7 @@ public:
   static void insertZoneTracker(const DNSName& zoneName, ZoneWaiter& waiter);
   static void clearZoneTracker(const DNSName& zoneName);
 
+  // coverity[pass_by_value] clang-tidy and coverity do not agree here
   ZoneXFR(ZoneXFRParams params) :
     d_params(std::move(params))
   {}
@@ -133,6 +134,7 @@ public:
 class FWCatZoneXFR : ZoneXFR
 {
 public:
+  // coverity[pass_by_value] clang-tidy and coverity do not agree here
   FWCatZoneXFR(ZoneXFRParams params) :
     ZoneXFR(std::move(params))
   {}
