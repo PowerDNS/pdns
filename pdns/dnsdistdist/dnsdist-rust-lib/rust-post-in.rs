@@ -72,6 +72,39 @@ fn get_selectors_from_serde(
     results
 }
 
+fn get_one_action_from_serde(action: &Action) -> Option<dnsdistsettings::SharedDNSAction> {
+    match action {
+        Action::None => {}
+        Action::Pool(pool) => {
+            let pool_action = dnsdistsettings::getPoolAction(&pool);
+            return Some(dnsdistsettings::SharedDNSAction {
+                action: pool_action,
+            });
+        }
+    }
+    None
+}
+
+fn get_query_rules_from_serde(
+    rules_from_serde: &Vec<QueryRulesConfigurationSerde>,
+) -> Vec<dnsdistsettings::QueryRulesConfiguration> {
+    let mut results: Vec<dnsdistsettings::QueryRulesConfiguration> = Vec::new();
+
+    for rule in rules_from_serde {
+        let selector = get_one_selector_from_serde(&rule.selector);
+        let action = get_one_action_from_serde(&rule.action);
+        if selector.is_some() && action.is_some() {
+            results.push(dnsdistsettings::QueryRulesConfiguration {
+              name: rule.name.clone(),
+              uuid: rule.uuid.clone(),
+              selector: selector.unwrap(),
+              action: action.unwrap(),
+            });
+        }
+    }
+    results
+}
+
 fn get_global_configuration_from_serde(
     serde: GlobalConfigurationSerde,
 ) -> dnsdistsettings::GlobalConfiguration {
@@ -87,6 +120,7 @@ fn get_global_configuration_from_serde(
     config.packet_caches = serde.packet_caches;
     config.pools = serde.pools;
     config.tuning = serde.tuning;
+    config.query_rules = get_query_rules_from_serde(&serde.query_rules);
     config.selectors = get_selectors_from_serde(&serde.selectors);
     config
 }
