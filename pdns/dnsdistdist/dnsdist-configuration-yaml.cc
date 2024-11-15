@@ -28,6 +28,7 @@
 #include "base64.hh"
 #include "dolog.hh"
 #include "dnsdist-backend.hh"
+#include "dnsdist-cache.hh"
 #include "dnsdist-discovery.hh"
 #include "dnsdist-rules.hh"
 #include "dnsdist-kvs.hh"
@@ -580,6 +581,28 @@ bool loadConfigurationFromFile(const std::string fileName)
           config.d_capabilitiesToRetain.emplace(std::string(capability));
         }
       });
+    }
+
+    for (const auto& cache : globalConfig.packet_caches) {
+      auto packetCacheObj = std::make_shared<DNSDistPacketCache>(cache.size, cache.max_ttl, cache.min_ttl, cache.temporary_failure_ttl, cache.max_negative_ttl, cache.stale_ttl, cache.dont_age, cache.shards, cache.deferrable_insert_lock, cache.parse_ecs);
+
+      packetCacheObj->setKeepStaleData(cache.keep_stale_data);
+      std::unordered_set<uint16_t> optionsToSkip{EDNSOptionCode::COOKIE};
+
+      for (const auto& option : cache.options_to_skip) {
+        optionsToSkip.insert(pdns::checked_stoi<uint16_t>(std::string(option)));
+      }
+
+      if (cache.cookie_hashing) {
+        optionsToSkip.erase(EDNSOptionCode::COOKIE);
+      }
+
+      packetCacheObj->setSkippedOptions(optionsToSkip);
+      if (cache.maximum_entry_size >= sizeof(dnsheader)) {
+        packetCacheObj->setMaximumEntrySize(cache.maximum_entry_size);
+      }
+
+      registerType<DNSDistPacketCache>(packetCacheObj, cache.name);
     }
 
     for (const auto& policy : globalConfig.load_balancing_policies.custom_policies) {
