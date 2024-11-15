@@ -1718,9 +1718,8 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
          OPT record.  This MUST also occur when a truncated response (using
          the DNS header's TC bit) is returned."
       */
-      auto ednsVersion = packetWriter.addOpt(512, ednsExtRCode, DNSSECOK ? EDNSOpts::DNSSECOK : 0, returnedEdnsOptions);
+      packetWriter.addOpt(512, ednsExtRCode, DNSSECOK ? EDNSOpts::DNSSECOK : 0, returnedEdnsOptions);
       packetWriter.commit();
-      pbMessage.setMeta("_pdnsREDNS", {}, {ednsVersion}); // XXX CONDITIONAL!
     }
 
     t_Counters.at(rec::ResponseStats::responseStats).submitResponse(comboWriter->d_mdp.d_qtype, packet.size(), packetWriter.getHeader()->rcode);
@@ -1874,7 +1873,6 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
       for (const auto& metaValue : dnsQuestion.meta) {
         pbMessage.setMeta(metaValue.first, metaValue.second.stringVal, metaValue.second.intVal);
       }
-      pbMessage.setMeta("_pdnsRFlags", {}, {htons(*getFlagsFromDNSHeader(packetWriter.getHeader()))});
 #ifdef NOD_ENABLED
       if (g_nodEnabled) {
         if (nod) {
@@ -2045,6 +2043,7 @@ void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uint16_t* 
     if (pos >= questionLen) {
       return;
     }
+
     /* OPT root label (1) followed by type (2) */
     if (lookForECS && ntohs(drh->d_type) == QType::OPT) {
       if (options == nullptr) {
@@ -2253,6 +2252,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     g_mtracer->clearAllocators();
     */
 #endif
+
     // We do not have a SyncRes specific Lua context at this point yet, so ok to use t_pdl
     if (needECS || (t_pdl && (t_pdl->hasGettagFunc() || t_pdl->hasGettagFFIFunc())) || dnsheader->opcode == static_cast<unsigned>(Opcode::Notify)) {
       try {
@@ -2338,8 +2338,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         eventTrace.add(RecEventTrace::AnswerSent);
 
         if (t_protobufServers.servers && logResponse && (!luaconfsLocal->protobufExportConfig.taggedOnly || !pbData || pbData->d_tagged)) {
-          const dnsheader_aligned hdr(response.data());
-          protobufLogResponse(hdr.get(), luaconfsLocal, pbData, tval, false, source, destination, mappedSource, ednssubnet, uniqueId, requestorId, deviceId, deviceName, meta, eventTrace, policyTags);
+          protobufLogResponse(dnsheader, luaconfsLocal, pbData, tval, false, source, destination, mappedSource, ednssubnet, uniqueId, requestorId, deviceId, deviceName, meta, eventTrace, policyTags);
         }
 
         if (eventTrace.enabled() && (SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_log) != 0) {

@@ -257,27 +257,38 @@ class PDNSPBConnHandler(object):
         if msg.HasField('outgoingQueries'):
            outgoingQs = str(msg.outgoingQueries)
 
+        headerFlags = "N/A"
+        if msg.HasField('headerFlags'):
+            headerFlags = "0x%04X" % msg.headerFlags
+
+        ednsVersion = "N/A"
+        if msg.HasField('ednsVersion'):
+            ednsVersion = "0x%08X" % msg.ednsVersion
+
         print('[%s] %s of size %d: %s%s%s -> %s%s(%s) id: %d uuid: %s%s '
-                  'requestorid: %s deviceid: %s devicename: %s serverid: %s nod: %s workerId: %s pcCacheHit: %s outgoingQueries: %s' % (datestr,
-                                                    typestr,
-                                                    msg.inBytes,
-                                                    ipfromstr,
-                                                    fromportstr,
-                                                    requestorstr,
-                                                    iptostr,
-                                                    toportstr,
-                                                    protostr,
-                                                    msg.id,
-                                                    messageidstr,
-                                                    initialrequestidstr,
-                                                    requestorId,
-                                                    deviceId,
-                                                    deviceName,
-                                                    serveridstr,
-                                                    nod,
-                                                    workerId,
-                                                    pcCacheHit,
-                                                    outgoingQs))
+                  'requestorid: %s deviceid: %s devicename: %s serverid: %s nod: %s workerId: %s pcCacheHit: %s outgoingQueries: %s headerFlags: %s ednsVersion: %s' %
+              (datestr,
+               typestr,
+               msg.inBytes,
+               ipfromstr,
+               fromportstr,
+               requestorstr,
+               iptostr,
+               toportstr,
+               protostr,
+               msg.id,
+               messageidstr,
+               initialrequestidstr,
+               requestorId,
+               deviceId,
+               deviceName,
+               serveridstr,
+               nod,
+               workerId,
+               pcCacheHit,
+               outgoingQs,
+               headerFlags,
+               ednsVersion))
 
         for mt in msg.meta:
             values = ''

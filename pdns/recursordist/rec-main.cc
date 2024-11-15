@@ -562,12 +562,11 @@ void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boo
   for (const auto& mit : meta) {
     msg.setMeta(mit.first, mit.second.stringVal, mit.second.intVal);
   }
-
-  msg.setMeta("_pdnsQFlags", {}, {htons(*getFlagsFromDNSHeader(&header))});
-
+  msg.setHeaderFlags(htons(*getFlagsFromDNSHeader(&header)));
   if (ednsVersion) {
-    msg.setMeta("_pdnsQEDNS", {}, {*ednsVersion});
+    msg.setEDNSVersion(*ednsVersion);
   }
+
   std::string strMsg(msg.finishAndMoveBuf());
   for (auto& server : *t_protobufServers.servers) {
     remoteLoggerQueueData(*server, strMsg);
@@ -646,7 +645,6 @@ void protobufLogResponse(const struct dnsheader* header, LocalStateHolder<LuaCon
   for (const auto& metaItem : meta) {
     pbMessage.setMeta(metaItem.first, metaItem.second.stringVal, metaItem.second.intVal);
   }
-  pbMessage.setMeta("_pdnsRFlags", {}, {htons(*getFlagsFromDNSHeader(header))});
 #ifdef NOD_ENABLED
   if (g_nodEnabled) {
     pbMessage.setNewlyObservedDomain(false);
