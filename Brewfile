@@ -1,5 +1,6 @@
 # Use "brew bundle" to install these.
-# You still need 'PKG_CONFIG_PATH=/usr/local/opt/libedit/lib/pkgconfig:/usr/local/opt/openssl/lib/pkgconfig' for ./configure.
+# See https://github.com/Homebrew/homebrew-core/blob/master/Formula/p/pdns.rb or
+# https://github.com/Homebrew/homebrew-core/blob/master/Formula/p/pdnsrec.rb for ./configure tips
 brew 'autoconf'
 brew 'automake'
 brew 'libedit'
@@ -12,3 +13,5 @@ brew 'protobuf'
 brew 'python'
 brew 'ragel'
 brew 'sqlite'
+brew 'boost'
+brew 'rust'
