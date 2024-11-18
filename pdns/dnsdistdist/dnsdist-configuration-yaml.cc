@@ -854,7 +854,7 @@ std::shared_ptr<DNSSelector> getNetmaskGroupSelector(const NetmaskGroupSelectorC
 
 std::shared_ptr<DNSActionWrapper> getPoolAction(const PoolActionConfig& config)
 {
-  auto poolAction = std::shared_ptr<DNSAction>(new PoolAction(config.pool, config.stop_processing));
+  auto poolAction = dnsdist::actions::getPoolAction(std::string(config.pool), config.stop_processing);
   auto action = std::make_shared<DNSActionWrapper>();
   action->d_name = std::string(config.name);
   action->d_action = std::move(poolAction);

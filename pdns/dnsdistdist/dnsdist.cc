@@ -59,6 +59,7 @@
 #include "dnsdist-rings.hh"
 #include "dnsdist-rules.hh"
 #include "dnsdist-secpoll.hh"
+#include "dnsdist-self-answers.hh"
 #include "dnsdist-snmp.hh"
 #include "dnsdist-tcp.hh"
 #include "dnsdist-tcp-downstream.hh"
@@ -520,9 +521,7 @@ bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse,
   }
 
   if (dnsResponse.ids.ttlCap > 0) {
-    std::string result;
-    LimitTTLResponseAction lrac(0, dnsResponse.ids.ttlCap, {});
-    lrac(&dnsResponse, &result);
+    dnsdist::PacketMangling::restrictDNSPacketTTLs(dnsResponse.getMutableData(), 0, dnsResponse.ids.ttlCap);
   }
 
   if (dnsResponse.ids.d_extendedError) {
@@ -832,28 +831,28 @@ static void spoofResponseFromString(DNSQuestion& dnsQuestion, const string& spoo
   string result;
 
   if (raw) {
+    dnsdist::ResponseConfig config;
     std::vector<std::string> raws;
     stringtok(raws, spoofContent, ",");
-    SpoofAction tempSpoofAction(raws, std::nullopt);
-    tempSpoofAction(&dnsQuestion, &result);
+    dnsdist::self_answers::generateAnswerFromRDataEntries(dnsQuestion, raws, std::nullopt, config);
   }
   else {
     std::vector<std::string> addrs;
     stringtok(addrs, spoofContent, " ,");
 
     if (addrs.size() == 1) {
+      dnsdist::ResponseConfig config;
       try {
         ComboAddress spoofAddr(spoofContent);
-        SpoofAction tempSpoofAction({spoofAddr});
-        tempSpoofAction(&dnsQuestion, &result);
+        dnsdist::self_answers::generateAnswerFromIPAddresses(dnsQuestion, {spoofAddr}, config);
       }
       catch (const PDNSException& e) {
         DNSName cname(spoofContent);
-        SpoofAction tempSpoofAction(cname); // CNAME then
-        tempSpoofAction(&dnsQuestion, &result);
+        dnsdist::self_answers::generateAnswerFromCNAME(dnsQuestion, cname, config);
       }
     }
     else {
+      dnsdist::ResponseConfig config;
       std::vector<ComboAddress> cas;
       for (const auto& addr : addrs) {
         try {
@@ -862,18 +861,14 @@ static void spoofResponseFromString(DNSQuestion& dnsQuestion, const string& spoo
         catch (...) {
         }
       }
-      SpoofAction tempSpoofAction(cas);
-      tempSpoofAction(&dnsQuestion, &result);
+      dnsdist::self_answers::generateAnswerFromIPAddresses(dnsQuestion, cas, config);
     }
   }
 }
 
 static void spoofPacketFromString(DNSQuestion& dnsQuestion, const string& spoofContent)
 {
-  string result;
-
-  SpoofAction tempSpoofAction(spoofContent.c_str(), spoofContent.size());
-  tempSpoofAction(&dnsQuestion, &result);
+  dnsdist::self_answers::generateAnswerFromRawPacket(dnsQuestion, PacketBuffer(spoofContent.data(), spoofContent.data() + spoofContent.size()));
 }
 
 bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dnsQuestion, std::string& ruleresult, bool& drop)
@@ -1348,9 +1343,7 @@ static bool prepareOutgoingResponse(const ClientState& clientState, DNSQuestion&
   }
 
   if (dnsResponse.ids.ttlCap > 0) {
-    std::string result;
-    LimitTTLResponseAction ltrac(0, dnsResponse.ids.ttlCap, {});
-    ltrac(&dnsResponse, &result);
+    dnsdist::PacketMangling::restrictDNSPacketTTLs(dnsResponse.getMutableData(), 0, dnsResponse.ids.ttlCap);
   }
 
   if (dnsResponse.ids.d_extendedError) {
@@ -1498,7 +1491,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
 
       ++dnsdist::metrics::g_stats.cacheMisses;
 
-      //coverity[auto_causes_copy]
+      // coverity[auto_causes_copy]
       const auto existingPool = dnsQuestion.ids.poolName;
       const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
       const auto& cacheMissRuleActions = dnsdist::rules::getRuleChain(chains, dnsdist::rules::RuleChain::CacheMissRules);
@@ -2342,7 +2335,7 @@ static void healthChecksThread()
 
     std::unique_ptr<FDMultiplexer> mplexer{nullptr};
     // this points to the actual shared_ptrs!
-    //coverity[auto_causes_copy]
+    // coverity[auto_causes_copy]
     const auto servers = dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends;
     for (const auto& dss : servers) {
       dss->updateStatisticsInfo();
@@ -3509,7 +3502,7 @@ int main(int argc, char** argv)
     checkFileDescriptorsLimits(udpBindsCount, tcpBindsCount);
 
     {
-      //coverity[auto_causes_copy]
+      // coverity[auto_causes_copy]
       const auto states = dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends; // it is a copy, but the internal shared_ptrs are the real deal
       auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent(states.size()));
       for (auto& dss : states) {
