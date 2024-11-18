@@ -16,9 +16,20 @@ permissions: # least privileges, see https://docs.github.com/en/actions/using-wo
   contents: read
 
 jobs:
+  prepare:
+    name: generate runner list
+    runs-on: ubuntu-22.04
+    outputs:
+      runnerlist: ${{ steps.get-runnerlist.outputs.runnerlist }}
+    steps:
+      - run: sudo apt-get update && sudo apt-get -y install jo
+      - id: get-runnerlist
+        run: echo "runnerlist=$(jo -a ubuntu-22.04 ${{ vars.ARM64_USE_UBICLOUD == '1' && 'ubicloud-standard-2-arm' || '' }})" >> "$GITHUB_OUTPUT"
+
   build:
     name: build.sh
     if: ${{ vars.SCHEDULED_JOBS_BUILDER }}
+    needs: prepare
     runs-on: ${{ matrix.runner-os }}
     strategy:
       matrix:
@@ -33,9 +44,7 @@ jobs:
           - debian-bookworm
           - debian-trixie
           - amazon-2023
-        runner-os:
-          - ubuntu-22.04
-          - ubicloud-standard-2-arm
+        runner-os: ${{ fromJson(needs.prepare.outputs.runnerlist )}}
         exclude:
           - os: el-7
             runner-os: ubicloud-standard-2-arm
