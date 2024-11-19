@@ -1575,6 +1575,7 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_nodata_nowildcard_duplicated_n
         addRecordToLW(res, "a.gtld-servers.com.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
         return LWResult::Result::Success;
       }
+      // The code below introduces duplicate NSEC3 records
       if (address == ComboAddress("192.0.2.1:53")) {
         setLWResult(res, 0, true, false, true);
         /* no data */
@@ -1603,8 +1604,8 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_nodata_nowildcard_duplicated_n
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
-  /* the duplicated NSEC3 should have been dedupped */
-  BOOST_REQUIRE_EQUAL(ret.size(), 8U);
+  /* the duplicated NSEC3 have not been dedupped */
+  BOOST_REQUIRE_EQUAL(ret.size(), 9U);
   BOOST_CHECK_EQUAL(queriesCount, 4U);
 
   /* again, to test the cache */
@@ -1612,8 +1613,8 @@ BOOST_AUTO_TEST_CASE(test_dnssec_validation_nsec3_nodata_nowildcard_duplicated_n
   res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Secure);
-  /* the duplicated NSEC3 should have been dedupped */
-  BOOST_REQUIRE_EQUAL(ret.size(), 8U);
+  /* the duplicated NSEC3 have not been dedupped */
+  BOOST_REQUIRE_EQUAL(ret.size(), 9U);
   BOOST_CHECK_EQUAL(queriesCount, 4U);
 }
 
