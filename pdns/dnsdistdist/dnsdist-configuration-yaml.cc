@@ -27,7 +27,7 @@
 #if defined(HAVE_YAML_CONFIGURATION)
 #include "base64.hh"
 #include "dolog.hh"
-#include "dnsdist-actions.hh"
+#include "dnsdist-actions-factories.hh"
 #include "dnsdist-backend.hh"
 #include "dnsdist-cache.hh"
 #include "dnsdist-discovery.hh"
@@ -784,6 +784,11 @@ bool loadConfigurationFromFile(const std::string fileName)
 #if defined(HAVE_YAML_CONFIGURATION)
 namespace dnsdist::rust::settings
 {
+
+std::shared_ptr<DNSActionWrapper> getActionByName(const ::rust::String& name)
+{
+  return dnsdist::configuration::yaml::getRegisteredTypeByName<DNSActionWrapper>(name);
+}
 
 std::shared_ptr<DNSSelector> getSelectorByName(const ::rust::String& name)
 {
