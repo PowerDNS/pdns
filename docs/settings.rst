@@ -785,6 +785,23 @@ the server will return NODATA for A/AAAA queries for such names.
   In PowerDNS Authoritative Server 4.0.x, this setting did not exist and
   ALIAS was always expanded.
 
+.. _setting-resolve-across-zones:
+
+``resolve-across-zones``
+------------------------
+
+.. versionadded:: 5.0.0
+
+-  Boolean
+-  Default: yes
+
+If this is enabled, CNAME records and other referrals will be resolved as long as their targets exist in any local backend.
+Can be disabled to allow for different authorities managing zones in the same server instance.
+
+Referrals not available in local backends are never resolved.
+SVCB referrals are never resolved across zones.
+ALIAS is not impacted by this setting.
+
 .. _setting-forward-dnsupdate:
 
 ``forward-dnsupdate``

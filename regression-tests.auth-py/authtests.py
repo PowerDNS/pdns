@@ -436,7 +436,7 @@ options {
                 self.assertEqual(ans, rrset, "'%s' != '%s'" % (ans.to_text(), rrset.to_text()))
                 found = True
 
-        if not found :
+        if not found:
             raise AssertionError("RRset not found in answer\n\n%s" % ret)
 
     def assertRRsetInAdditional(self, msg, rrset):
@@ -460,7 +460,7 @@ options {
                 self.assertEqual(ans, rrset, "'%s' != '%s'" % (ans.to_text(), rrset.to_text()))
                 found = True
 
-        if not found :
+        if not found:
             raise AssertionError("RRset not found in answer\n\n%s" % ret)
 
     def sortRRsets(self, rrsets):
