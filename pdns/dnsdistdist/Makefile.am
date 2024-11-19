@@ -152,6 +152,7 @@ dnsdist_SOURCES = \
 	dns_random.hh \
 	dnscrypt.cc dnscrypt.hh \
 	dnsdist-actions.cc dnsdist-actions.hh \
+	dnsdist-actions-factories.cc dnsdist-actions-factories.hh \
 	dnsdist-async.cc dnsdist-async.hh \
 	dnsdist-backend.cc dnsdist-backend.hh \
 	dnsdist-backoff.hh \

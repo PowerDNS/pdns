@@ -23,7 +23,6 @@
 
 #include <cstdint>
 #include <map>
-#include <optional>
 #include <string>
 
 /* so what could you do:
@@ -95,27 +94,3 @@ public:
   {
   }
 };
-
-#include "dnsdist-svc.hh"
-#include "iputils.hh"
-
-namespace dnsdist::actions
-{
-std::shared_ptr<DNSAction> getDropAction();
-std::shared_ptr<DNSAction> getAllowAction();
-std::shared_ptr<DNSAction> getNoneAction();
-std::shared_ptr<DNSAction> getQPSAction(int limit);
-std::shared_ptr<DNSAction> getDelayAction(int delay);
-std::shared_ptr<DNSAction> getTeeAction(const ComboAddress& rca, const std::optional<ComboAddress>& lca, bool addECS = false, bool addProxyProtocol = false);
-std::shared_ptr<DNSAction> getPoolAction(std::string pool, bool stopProcessing);
-std::shared_ptr<DNSAction> getQPSPoolAction(unsigned int limit, std::string pool, bool stopProcessing);
-std::shared_ptr<DNSAction> getRCodeAction(uint8_t rcode);
-std::shared_ptr<DNSAction> getERCodeAction(uint8_t rcode);
-std::shared_ptr<DNSAction> getSpoofSVCAction(const std::vector<SVCRecordParameters>& parameters);
-std::shared_ptr<DNSAction> getTCAction();
-
-std::shared_ptr<DNSResponseAction> getTCResponseAction();
-
-
-
-}

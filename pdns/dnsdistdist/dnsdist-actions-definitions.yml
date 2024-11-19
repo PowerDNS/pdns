@@ -1,0 +1,225 @@
+---
+- name: "allow"
+- name: "delay"
+  parameters:
+    - name: "msec"
+      type: "u32"
+- name: "drop"
+- name: "SetEDNSOption"
+  parameters:
+    - name: "code"
+      type: "u32"
+    - name: "data"
+      type: "String"
+- name: "ERCode"
+  skip-cpp: true
+  parameters:
+    - name: "rcode"
+      type: "u8"
+    - name: "vars"
+      type: "ResponseConfig"
+      default: "true"
+      cpp-optional: false
+- name: "HTTPStatus"
+  skip-cpp: true
+  parameters:
+    - name: "status"
+      type: "u16"
+    - name: "body"
+      type: "String"
+    - name: "content-type"
+      type: "String"
+      default: ""
+      cpp-optional: false
+    - name: "vars"
+      type: "ResponseConfig"
+      default: "true"
+- name: "log"
+  parameters:
+    - name: "file-name"
+      type: "String"
+      default: ""
+      cpp-optional: false
+    - name: "binary"
+      type: "bool"
+      default: "true"
+      cpp-optional: false
+    - name: "append"
+      type: "bool"
+      default: "false"
+      cpp-optional: false
+    - name: "buffered"
+      type: "bool"
+      default: "false"
+      cpp-optional: false
+    - name: "verbose-only"
+      type: "bool"
+      default: "true"
+      cpp-optional: false
+    - name: "include-timestamp"
+      type: "bool"
+      default: "false"
+      cpp-optional: false
+- name: "lua"
+  parameters:
+    - name: "function"
+      type: "dnsdist::actions::LuaActionFunction"
+- name: "LuaFFI"
+  parameters:
+    - name: "function"
+      type: "dnsdist::actions::LuaActionFFIFunction"
+- name: "LuaFFIPerThread"
+  parameters:
+    - name: "code"
+      type: "String"
+- name: "NegativeAndSOA"
+  skip-cpp: true
+  parameters:
+    - name: "nxd"
+      type: "bool"
+    - name: "zone"
+      type: "String"
+    - name: "ttl"
+      type: "u32"
+    - name: "mname"
+      type: "String"
+    - name: "rname"
+      type: "String"
+    - name: "serial"
+      type: "u32"
+    - name: "refresh"
+      type: "u32"
+    - name: "retry"
+      type: "u32"
+    - name: "expire"
+      type: "u32"
+    - name: "minimum"
+      type: "u32"
+    - name: "vars"
+      type: "ResponseConfig"
+      default: "true"
+- name: "none"
+- name: "pool"
+  parameters:
+    - name: "pool-name"
+      type: "String"
+    - name: "stop-processing"
+      type: "bool"
+      default: "true"
+      cpp-optional: false
+- name: "QPS"
+  parameters:
+    - name: "limit"
+      type: "u32"
+- name: "QPSPool"
+  parameters:
+    - name: "limit"
+      type: "u32"
+    - name: "pool-name"
+      type: "String"
+    - name: "stop-processing"
+      type: "bool"
+      default: "true"
+      cpp-optional: false
+- name: "RCode"
+  skip-cpp: true
+  parameters:
+    - name: "rcode"
+      type: "u8"
+    - name: "vars"
+      type: "ResponseConfig"
+      default: "true"
+- name: "SetAdditionalProxyProtocolValue"
+  parameters:
+    - name: "type"
+      type: "u8"
+    - name: "value"
+      type: "String"
+- name: "SetDisableECS"
+- name: "SetDisableValidation"
+- name: "SetECS"
+  skip-cpp: true
+  parameters:
+    - name: "ipv4"
+      type: "ComboAddress"
+    - name: "ipv6"
+      type: "ComboAddress"
+      default: ""
+      cpp-optional: false
+- name: "SetECSOverride"
+  parameters:
+    - name: "override"
+      type: "bool"
+- name: "SetECSPrefixLength"
+  parameters:
+    - name: "ipv4"
+      type: "u16"
+    - name: "ipv6"
+      type: "u16"
+- name: "SetExtendedDNSError"
+  parameters:
+    - name: "info-code"
+      type: "u16"
+    - name: "extra-text"
+      type: "String"
+      default: ""
+      cpp-optional: false
+- name: "SetMacAddr"
+  parameters:
+    - name: "code"
+      type: "u32"
+- name: "SetMaxReturnedTTL"
+  skip-cpp: true
+  parameters:
+    - name: "max"
+      type: "u32"
+- name: "SetNoRecurse"
+- name: "SetSkipCache"
+- name: "SetTag"
+  parameters:
+    - name: "tag"
+      type: "String"
+    - name: "value"
+      type: "String"
+- name: "SetTempFailureCacheTTL"
+  parameters:
+    - name: "maxTTL"
+      type: "u32"
+- name: "SNMPTrap"
+  parameters:
+    - name: "reason"
+      type: "String"
+      default: ""
+      cpp-optional: false
+- name: "SpoofPacket"
+  skip-cpp: true
+  parameters:
+    - name: "response"
+      type: "String"
+    - name: "len"
+      type: "u32"
+- name: "SpoofSVC"
+  skip-cpp: true
+  parameters:
+    - name: "parameters"
+      type: "Vec<SVCRecordParameters>"
+    - name: "vars"
+      type: "ResponseConfig"
+      default: "true"
+- name: "TC"
+- name: "tee"
+  skip-cpp: true
+  parameters:
+    - name: "rca"
+      type: "const ComboAddress&"
+    - name: "addECS"
+      type: "bool"
+      default: "false"
+      cpp-optional: false
+    - name: "lca"
+      type: "ComboAddress"
+      default: ""
+    - name: "addProxyProtocol"
+      type: "bool"
+      default: "false"
+      cpp-optional: false

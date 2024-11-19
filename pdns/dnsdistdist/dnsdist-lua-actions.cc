@@ -21,10 +21,13 @@
  */
 #include "config.h"
 #include "dnsdist.hh"
-#include "dnsdist-actions.hh"
+#include "dnsdist-actions-factories.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-lua-ffi.hh"
+#include "dnsdist-protobuf.hh"
 #include "dnsdist-rule-chains.hh"
+#include "dnstap.hh"
+#include "remote_logger.hh"
 
 template <typename ActionT, typename IdentifierT>
 static void addAction(IdentifierT identifier, const luadnsrule_t& var, const std::shared_ptr<ActionT>& action, boost::optional<luaruleparams_t>& params)
@@ -45,12 +48,25 @@ static void addAction(IdentifierT identifier, const luadnsrule_t& var, const std
 
 using responseParams_t = std::unordered_map<std::string, boost::variant<bool, uint32_t>>;
 
-static void parseResponseConfig(boost::optional<responseParams_t>& vars, dnsdist::ResponseConfig& config)
+static dnsdist::ResponseConfig parseResponseConfig(boost::optional<responseParams_t>& vars)
 {
+  dnsdist::ResponseConfig config;
   getOptionalValue<uint32_t>(vars, "ttl", config.ttl);
   getOptionalValue<bool>(vars, "aa", config.setAA);
   getOptionalValue<bool>(vars, "ad", config.setAD);
   getOptionalValue<bool>(vars, "ra", config.setRA);
+  return config;
+}
+
+template <class T>
+static std::vector<T> convertLuaArrayToRegular(const LuaArray<T>& luaArray)
+{
+  std::vector<T> out;
+  out.reserve(luaArray.size());
+  for (const auto& entry : luaArray) {
+    out.emplace_back(entry.second);
+  }
+  return out;
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity): this function declares Lua bindings, even with a good refactoring it will likely blow up the threshold
@@ -120,45 +136,6 @@ void setupLuaActions(LuaContext& luaCtx)
   luaCtx.registerFunction("reload", &DNSAction::reload);
   luaCtx.registerFunction("reload", &DNSResponseAction::reload);
 
-  luaCtx.writeFunction("LuaAction", [](LuaAction::func_t func) {
-    setLuaSideEffect();
-    return dnsdist::actions::getLuaAction(std::move(func));
-  });
-
-  luaCtx.writeFunction("LuaFFIAction", [](LuaFFIAction::func_t func) {
-    setLuaSideEffect();
-    return dnsdist::actions::getLuaFFIAction(std::move(func));
-  });
-
-  luaCtx.writeFunction("LuaFFIPerThreadAction", [](const std::string& code) {
-    setLuaSideEffect();
-    return dnsdist::actions::getLuaFFIPerThreadAction(code);
-  });
-
-  luaCtx.writeFunction("SetNoRecurseAction", []() {
-    return dnsdist::actions::getSetNoRecurseAction();
-  });
-
-  luaCtx.writeFunction("SetMacAddrAction", [](int code) {
-    return dnsdist::actions::getSetMacAddrAction(code);
-  });
-
-  luaCtx.writeFunction("SetEDNSOptionAction", [](int code, const std::string& data) {
-    return dnsdist::actions::getSetEDNSOptionAction(code, data);
-  });
-
-  luaCtx.writeFunction("PoolAction", [](const std::string& poolname, boost::optional<bool> stopProcessing) {
-    return dnsdist::actions::getPoolAction(poolname, stopProcessing ? *stopProcessing : true);
-  });
-
-  luaCtx.writeFunction("QPSAction", [](int limit) {
-    return dnsdist::actions::getQPSAction(limit);
-  });
-
-  luaCtx.writeFunction("QPSPoolAction", [](int limit, const std::string& poolname, boost::optional<bool> stopProcessing) {
-    return dnsdist::actions::getQPSPoolAction(limit, poolname, stopProcessing ? *stopProcessing : true);
-  });
-
   luaCtx.writeFunction("SpoofAction", [](LuaTypeOrArrayOf<std::string> inp, boost::optional<responseParams_t> vars) {
     vector<ComboAddress> addrs;
     if (auto* ipaddr = boost::get<std::string>(&inp)) {
@@ -171,25 +148,24 @@ void setupLuaActions(LuaContext& luaCtx)
       }
     }
 
-    auto ret = dnsdist::actions::getSpoofAction(addrs);
-    auto spoofaction = std::dynamic_pointer_cast<SpoofAction>(ret);
-    parseResponseConfig(vars, spoofaction->getResponseConfig());
+    auto responseConfig = parseResponseConfig(vars);
     checkAllParametersConsumed("SpoofAction", vars);
+    auto ret = dnsdist::actions::getSpoofAction(addrs, responseConfig);
     return ret;
   });
 
   luaCtx.writeFunction("SpoofSVCAction", [](const LuaArray<SVCRecordParameters>& parameters, boost::optional<responseParams_t> vars) {
-    auto ret = dnsdist::actions::getSpoofSVCAction(parameters);
-    auto spoofaction = std::dynamic_pointer_cast<SpoofSVCAction>(ret);
-    parseResponseConfig(vars, spoofaction->getResponseConfig());
+    auto responseConfig = parseResponseConfig(vars);
+    checkAllParametersConsumed("SpoofAction", vars);
+    auto svcParams = convertLuaArrayToRegular(parameters);
+    auto ret = dnsdist::actions::getSpoofSVCAction(svcParams, responseConfig);
     return ret;
   });
 
   luaCtx.writeFunction("SpoofCNAMEAction", [](const std::string& cname, boost::optional<responseParams_t> vars) {
-    auto ret = dnsdist::actions::getSpoofAction(DNSName(cname));
-    auto spoofaction = std::dynamic_pointer_cast<SpoofAction>(ret);
-    parseResponseConfig(vars, spoofaction->getResponseConfig());
+    auto responseConfig = parseResponseConfig(vars);
     checkAllParametersConsumed("SpoofCNAMEAction", vars);
+    auto ret = dnsdist::actions::getSpoofAction(DNSName(cname), responseConfig);
     return ret;
   });
 
@@ -213,10 +189,9 @@ void setupLuaActions(LuaContext& luaCtx)
     if (qtypeForAny > 0) {
       qtypeForAnyParam = static_cast<uint16_t>(qtypeForAny);
     }
-    auto ret = dnsdist::actions::getSpoofAction(raws, qtypeForAnyParam);
-    auto spoofaction = std::dynamic_pointer_cast<SpoofAction>(ret);
-    parseResponseConfig(vars, spoofaction->getResponseConfig());
+    auto responseConfig = parseResponseConfig(vars);
     checkAllParametersConsumed("SpoofRawAction", vars);
+    auto ret = dnsdist::actions::getSpoofAction(raws, qtypeForAnyParam, responseConfig);
     return ret;
   });
 
@@ -224,44 +199,8 @@ void setupLuaActions(LuaContext& luaCtx)
     if (len < sizeof(dnsheader)) {
       throw std::runtime_error(std::string("SpoofPacketAction: given packet len is too small"));
     }
-    auto ret = std::shared_ptr<DNSAction>(new SpoofAction(response.c_str(), len));
+    auto ret = dnsdist::actions::getSpoofAction(PacketBuffer(response.data(), response.data() + len));
     return ret;
-  });
-
-  luaCtx.writeFunction("DropAction", []() {
-    return std::shared_ptr<DNSAction>(new DropAction);
-  });
-
-  luaCtx.writeFunction("AllowAction", []() {
-    return std::shared_ptr<DNSAction>(new AllowAction);
-  });
-
-  luaCtx.writeFunction("NoneAction", []() {
-    return std::shared_ptr<DNSAction>(new NoneAction);
-  });
-
-  luaCtx.writeFunction("DelayAction", [](int msec) {
-    return std::shared_ptr<DNSAction>(new DelayAction(msec));
-  });
-
-  luaCtx.writeFunction("TCAction", []() {
-    return std::shared_ptr<DNSAction>(new TCAction);
-  });
-
-  luaCtx.writeFunction("TCResponseAction", []() {
-    return std::shared_ptr<DNSResponseAction>(new TCResponseAction);
-  });
-
-  luaCtx.writeFunction("SetDisableValidationAction", []() {
-    return std::shared_ptr<DNSAction>(new SetDisableValidationAction);
-  });
-
-  luaCtx.writeFunction("LogAction", [](boost::optional<std::string> fname, boost::optional<bool> binary, boost::optional<bool> append, boost::optional<bool> buffered, boost::optional<bool> verboseOnly, boost::optional<bool> includeTimestamp) {
-    return std::shared_ptr<DNSAction>(new LogAction(fname ? *fname : "", binary ? *binary : true, append ? *append : false, buffered ? *buffered : false, verboseOnly ? *verboseOnly : true, includeTimestamp ? *includeTimestamp : false));
-  });
-
-  luaCtx.writeFunction("LogResponseAction", [](boost::optional<std::string> fname, boost::optional<bool> append, boost::optional<bool> buffered, boost::optional<bool> verboseOnly, boost::optional<bool> includeTimestamp) {
-    return std::shared_ptr<DNSResponseAction>(new LogResponseAction(fname ? *fname : "", append ? *append : false, buffered ? *buffered : false, verboseOnly ? *verboseOnly : true, includeTimestamp ? *includeTimestamp : false));
   });
 
   luaCtx.writeFunction("LimitTTLResponseAction", [](uint32_t min, uint32_t max, boost::optional<LuaArray<uint16_t>> types) {
@@ -272,30 +211,30 @@ void setupLuaActions(LuaContext& luaCtx)
         capTypes.insert(QType(type));
       }
     }
-    return std::shared_ptr<DNSResponseAction>(new LimitTTLResponseAction(min, max, capTypes));
+    return dnsdist::actions::getLimitTTLResponseAction(min, max, capTypes);
   });
 
   luaCtx.writeFunction("SetMinTTLResponseAction", [](uint32_t min) {
-    return std::shared_ptr<DNSResponseAction>(new LimitTTLResponseAction(min));
+    return dnsdist::actions::getLimitTTLResponseAction(min);
   });
 
   luaCtx.writeFunction("SetMaxTTLResponseAction", [](uint32_t max) {
-    return std::shared_ptr<DNSResponseAction>(new LimitTTLResponseAction(0, max));
+    return dnsdist::actions::getLimitTTLResponseAction(0, max);
   });
 
   luaCtx.writeFunction("SetMaxReturnedTTLAction", [](uint32_t max) {
-    return std::shared_ptr<DNSAction>(new MaxReturnedTTLAction(max));
+    return dnsdist::actions::getSetMaxReturnedTTLAction(max);
   });
 
   luaCtx.writeFunction("SetMaxReturnedTTLResponseAction", [](uint32_t max) {
-    return std::shared_ptr<DNSResponseAction>(new MaxReturnedTTLResponseAction(max));
+    return dnsdist::actions::getSetMaxReturnedTTLResponseAction(max);
   });
 
   luaCtx.writeFunction("SetReducedTTLResponseAction", [](uint8_t percentage) {
     if (percentage > 100) {
       throw std::runtime_error(std::string("SetReducedTTLResponseAction takes a percentage between 0 and 100."));
     }
-    return std::shared_ptr<DNSResponseAction>(new SetReducedTTLResponseAction(percentage));
+    return dnsdist::actions::getSetReducedTTLResponseAction(percentage);
   });
 
   luaCtx.writeFunction("ClearRecordTypesResponseAction", [](LuaTypeOrArrayOf<int> types) {
@@ -309,66 +248,25 @@ void setupLuaActions(LuaContext& luaCtx)
         qtypes.insert(tpair.second);
       }
     }
-    return std::shared_ptr<DNSResponseAction>(new ClearRecordTypesResponseAction(std::move(qtypes)));
+    return dnsdist::actions::getClearRecordTypesResponseAction(std::move(qtypes));
   });
 
   luaCtx.writeFunction("RCodeAction", [](uint8_t rcode, boost::optional<responseParams_t> vars) {
-    auto ret = std::shared_ptr<DNSAction>(new RCodeAction(rcode));
-    auto rca = std::dynamic_pointer_cast<RCodeAction>(ret);
-    parseResponseConfig(vars, rca->getResponseConfig());
+    auto responseConfig = parseResponseConfig(vars);
     checkAllParametersConsumed("RCodeAction", vars);
+    auto ret = dnsdist::actions::getRCodeAction(rcode, responseConfig);
     return ret;
   });
 
   luaCtx.writeFunction("ERCodeAction", [](uint8_t rcode, boost::optional<responseParams_t> vars) {
-    auto ret = std::shared_ptr<DNSAction>(new ERCodeAction(rcode));
-    auto erca = std::dynamic_pointer_cast<ERCodeAction>(ret);
-    parseResponseConfig(vars, erca->getResponseConfig());
+    auto responseConfig = parseResponseConfig(vars);
     checkAllParametersConsumed("ERCodeAction", vars);
+    auto ret = dnsdist::actions::getERCodeAction(rcode, responseConfig);
     return ret;
   });
 
-  luaCtx.writeFunction("SetSkipCacheAction", []() {
-    return std::shared_ptr<DNSAction>(new SetSkipCacheAction);
-  });
-
-  luaCtx.writeFunction("SetSkipCacheResponseAction", []() {
-    return std::shared_ptr<DNSResponseAction>(new SetSkipCacheResponseAction);
-  });
-
-  luaCtx.writeFunction("SetTempFailureCacheTTLAction", [](int maxTTL) {
-    return std::shared_ptr<DNSAction>(new SetTempFailureCacheTTLAction(maxTTL));
-  });
-
-  luaCtx.writeFunction("DropResponseAction", []() {
-    return std::shared_ptr<DNSResponseAction>(new DropResponseAction);
-  });
-
-  luaCtx.writeFunction("AllowResponseAction", []() {
-    return std::shared_ptr<DNSResponseAction>(new AllowResponseAction);
-  });
-
-  luaCtx.writeFunction("DelayResponseAction", [](int msec) {
-    return std::shared_ptr<DNSResponseAction>(new DelayResponseAction(msec));
-  });
-
-  luaCtx.writeFunction("LuaResponseAction", [](LuaResponseAction::func_t func) {
-    setLuaSideEffect();
-    return std::shared_ptr<DNSResponseAction>(new LuaResponseAction(std::move(func)));
-  });
-
-  luaCtx.writeFunction("LuaFFIResponseAction", [](LuaFFIResponseAction::func_t func) {
-    setLuaSideEffect();
-    return std::shared_ptr<DNSResponseAction>(new LuaFFIResponseAction(std::move(func)));
-  });
-
-  luaCtx.writeFunction("LuaFFIPerThreadResponseAction", [](const std::string& code) {
-    setLuaSideEffect();
-    return std::shared_ptr<DNSResponseAction>(new LuaFFIPerThreadResponseAction(code));
-  });
-
 #ifndef DISABLE_PROTOBUF
-  luaCtx.writeFunction("RemoteLogAction", [](std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(DNSQuestion*, DNSDistProtoBufMessage*)>> alterFunc, boost::optional<LuaAssociativeTable<std::string>> vars, boost::optional<LuaAssociativeTable<std::string>> metas) {
+  luaCtx.writeFunction("RemoteLogAction", [](std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<dnsdist::actions::ProtobufAlterFunction> alterFunc, boost::optional<LuaAssociativeTable<std::string>> vars, boost::optional<LuaAssociativeTable<std::string>> metas) {
     if (logger) {
       // avoids potentially-evaluated-expression warning with clang.
       RemoteLoggerInterface& remoteLoggerRef = *logger;
@@ -379,9 +277,11 @@ void setupLuaActions(LuaContext& luaCtx)
     }
 
     std::string tags;
-    RemoteLogActionConfiguration config;
+    dnsdist::actions::RemoteLogActionConfiguration config;
     config.logger = std::move(logger);
-    config.alterQueryFunc = std::move(alterFunc);
+    if (alterFunc) {
+      config.alterQueryFunc = std::move(*alterFunc);
+    }
     getOptionalValue<std::string>(vars, "serverID", config.serverID);
     getOptionalValue<std::string>(vars, "ipEncryptKey", config.ipEncryptKey);
     getOptionalValue<std::string>(vars, "exportTags", tags);
@@ -405,10 +305,10 @@ void setupLuaActions(LuaContext& luaCtx)
 
     checkAllParametersConsumed("RemoteLogAction", vars);
 
-    return std::shared_ptr<DNSAction>(new RemoteLogAction(config));
+    return dnsdist::actions::getRemoteLogAction(config);
   });
 
-  luaCtx.writeFunction("RemoteLogResponseAction", [](std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(DNSResponse*, DNSDistProtoBufMessage*)>> alterFunc, boost::optional<bool> includeCNAME, boost::optional<LuaAssociativeTable<std::string>> vars, boost::optional<LuaAssociativeTable<std::string>> metas) {
+  luaCtx.writeFunction("RemoteLogResponseAction", [](std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<dnsdist::actions::ProtobufAlterResponseFunction> alterFunc, boost::optional<bool> includeCNAME, boost::optional<LuaAssociativeTable<std::string>> vars, boost::optional<LuaAssociativeTable<std::string>> metas) {
     if (logger) {
       // avoids potentially-evaluated-expression warning with clang.
       RemoteLoggerInterface& remoteLoggerRef = *logger;
@@ -419,9 +319,11 @@ void setupLuaActions(LuaContext& luaCtx)
     }
 
     std::string tags;
-    RemoteLogActionConfiguration config;
+    dnsdist::actions::RemoteLogActionConfiguration config;
     config.logger = std::move(logger);
-    config.alterResponseFunc = std::move(alterFunc);
+    if (alterFunc) {
+      config.alterResponseFunc = std::move(*alterFunc);
+    }
     config.includeCNAME = includeCNAME ? *includeCNAME : false;
     getOptionalValue<std::string>(vars, "serverID", config.serverID);
     getOptionalValue<std::string>(vars, "ipEncryptKey", config.ipEncryptKey);
@@ -447,117 +349,78 @@ void setupLuaActions(LuaContext& luaCtx)
 
     checkAllParametersConsumed("RemoteLogResponseAction", vars);
 
-    return std::shared_ptr<DNSResponseAction>(new RemoteLogResponseAction(config));
+    return dnsdist::actions::getRemoteLogResponseAction(config);
   });
 
-  luaCtx.writeFunction("DnstapLogAction", [](const std::string& identity, std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(DNSQuestion*, DnstapMessage*)>> alterFunc) {
-    return std::shared_ptr<DNSAction>(new DnstapLogAction(identity, logger, std::move(alterFunc)));
+  luaCtx.writeFunction("DnstapLogAction", [](const std::string& identity, std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<dnsdist::actions::DnstapAlterFunction> alterFunc) {
+    return dnsdist::actions::getDnstapLogAction(identity, logger, alterFunc ? std::move(*alterFunc) : std::optional<dnsdist::actions::DnstapAlterFunction>());
   });
 
-  luaCtx.writeFunction("DnstapLogResponseAction", [](const std::string& identity, std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<std::function<void(DNSResponse*, DnstapMessage*)>> alterFunc) {
-    return std::shared_ptr<DNSResponseAction>(new DnstapLogResponseAction(identity, logger, std::move(alterFunc)));
+  luaCtx.writeFunction("DnstapLogResponseAction", [](const std::string& identity, std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<dnsdist::actions::DnstapAlterResponseFunction> alterFunc) {
+    return dnsdist::actions::getDnstapLogResponseAction(identity, logger, alterFunc ? std::move(*alterFunc) : std::optional<dnsdist::actions::DnstapAlterResponseFunction>());
   });
 #endif /* DISABLE_PROTOBUF */
 
   luaCtx.writeFunction("TeeAction", [](const std::string& remote, boost::optional<bool> addECS, boost::optional<std::string> local, boost::optional<bool> addProxyProtocol) {
-    boost::optional<ComboAddress> localAddr{boost::none};
+    std::optional<ComboAddress> localAddr;
     if (local) {
       localAddr = ComboAddress(*local, 0);
     }
 
-    return std::shared_ptr<DNSAction>(new TeeAction(ComboAddress(remote, 53), localAddr, addECS ? *addECS : false, addProxyProtocol ? *addProxyProtocol : false));
-  });
-
-  luaCtx.writeFunction("SetECSPrefixLengthAction", [](uint16_t v4PrefixLength, uint16_t v6PrefixLength) {
-    return std::shared_ptr<DNSAction>(new SetECSPrefixLengthAction(v4PrefixLength, v6PrefixLength));
-  });
-
-  luaCtx.writeFunction("SetECSOverrideAction", [](bool ecsOverride) {
-    return std::shared_ptr<DNSAction>(new SetECSOverrideAction(ecsOverride));
-  });
-
-  luaCtx.writeFunction("SetDisableECSAction", []() {
-    return std::shared_ptr<DNSAction>(new SetDisableECSAction());
+    return dnsdist::actions::getTeeAction(ComboAddress(remote, 53), localAddr, addECS ? *addECS : false, addProxyProtocol ? *addProxyProtocol : false);
   });
 
   luaCtx.writeFunction("SetECSAction", [](const std::string& v4Netmask, boost::optional<std::string> v6Netmask) {
     if (v6Netmask) {
-      return std::shared_ptr<DNSAction>(new SetECSAction(Netmask(v4Netmask), Netmask(*v6Netmask)));
+      return dnsdist::actions::getSetECSAction(v4Netmask, *v6Netmask);
     }
-    return std::shared_ptr<DNSAction>(new SetECSAction(Netmask(v4Netmask)));
+    return dnsdist::actions::getSetECSAction(v4Netmask);
   });
 
-#ifdef HAVE_NET_SNMP
-  luaCtx.writeFunction("SNMPTrapAction", [](boost::optional<std::string> reason) {
-    return std::shared_ptr<DNSAction>(new SNMPTrapAction(reason ? *reason : ""));
-  });
-
-  luaCtx.writeFunction("SNMPTrapResponseAction", [](boost::optional<std::string> reason) {
-    return std::shared_ptr<DNSResponseAction>(new SNMPTrapResponseAction(reason ? *reason : ""));
-  });
-#endif /* HAVE_NET_SNMP */
-
-  luaCtx.writeFunction("SetTagAction", [](const std::string& tag, const std::string& value) {
-    return std::shared_ptr<DNSAction>(new SetTagAction(tag, value));
-  });
-
-  luaCtx.writeFunction("SetTagResponseAction", [](const std::string& tag, const std::string& value) {
-    return std::shared_ptr<DNSResponseAction>(new SetTagResponseAction(tag, value));
-  });
 
   luaCtx.writeFunction("ContinueAction", [](std::shared_ptr<DNSAction> action) {
-    return std::shared_ptr<DNSAction>(new ContinueAction(action));
+    return dnsdist::actions::getContinueAction(action);
   });
 
 #ifdef HAVE_DNS_OVER_HTTPS
   luaCtx.writeFunction("HTTPStatusAction", [](uint16_t status, std::string body, boost::optional<std::string> contentType, boost::optional<responseParams_t> vars) {
-    auto ret = std::shared_ptr<DNSAction>(new HTTPStatusAction(status, PacketBuffer(body.begin(), body.end()), contentType ? *contentType : ""));
-    auto hsa = std::dynamic_pointer_cast<HTTPStatusAction>(ret);
-    parseResponseConfig(vars, hsa->getResponseConfig());
+    auto responseConfig = parseResponseConfig(vars);
     checkAllParametersConsumed("HTTPStatusAction", vars);
+    auto ret = dnsdist::actions::getHTTPStatusAction(status, PacketBuffer(body.begin(), body.end()), contentType ? *contentType : "", responseConfig);
     return ret;
   });
 #endif /* HAVE_DNS_OVER_HTTPS */
 
 #if defined(HAVE_LMDB) || defined(HAVE_CDB)
   luaCtx.writeFunction("KeyValueStoreLookupAction", [](std::shared_ptr<KeyValueStore>& kvs, std::shared_ptr<KeyValueLookupKey>& lookupKey, const std::string& destinationTag) {
-    return std::shared_ptr<DNSAction>(new KeyValueStoreLookupAction(kvs, lookupKey, destinationTag));
+    return dnsdist::actions::getKeyValueStoreLookupAction(kvs, lookupKey, destinationTag);
   });
 
   luaCtx.writeFunction("KeyValueStoreRangeLookupAction", [](std::shared_ptr<KeyValueStore>& kvs, std::shared_ptr<KeyValueLookupKey>& lookupKey, const std::string& destinationTag) {
-    return std::shared_ptr<DNSAction>(new KeyValueStoreRangeLookupAction(kvs, lookupKey, destinationTag));
+    return dnsdist::actions::getKeyValueStoreRangeLookupAction(kvs, lookupKey, destinationTag);
   });
 #endif /* defined(HAVE_LMDB) || defined(HAVE_CDB) */
 
   luaCtx.writeFunction("NegativeAndSOAAction", [](bool nxd, const std::string& zone, uint32_t ttl, const std::string& mname, const std::string& rname, uint32_t serial, uint32_t refresh, uint32_t retry, uint32_t expire, uint32_t minimum, boost::optional<responseParams_t> vars) {
     bool soaInAuthoritySection = false;
     getOptionalValue<bool>(vars, "soaInAuthoritySection", soaInAuthoritySection);
-    NegativeAndSOAAction::SOAParams params{
+    auto responseConfig = parseResponseConfig(vars);
+    checkAllParametersConsumed("NegativeAndSOAAction", vars);
+    dnsdist::actions::SOAParams params{
       .serial = serial,
       .refresh = refresh,
       .retry = retry,
       .expire = expire,
       .minimum = minimum};
-    auto ret = std::shared_ptr<DNSAction>(new NegativeAndSOAAction(nxd, DNSName(zone), ttl, DNSName(mname), DNSName(rname), params, soaInAuthoritySection));
-    auto action = std::dynamic_pointer_cast<NegativeAndSOAAction>(ret);
-    parseResponseConfig(vars, action->getResponseConfig());
-    checkAllParametersConsumed("NegativeAndSOAAction", vars);
+    auto ret = dnsdist::actions::getNegativeAndSOAAction(nxd, DNSName(zone), ttl, DNSName(mname), DNSName(rname), params, soaInAuthoritySection, responseConfig);
     return ret;
   });
 
   luaCtx.writeFunction("SetProxyProtocolValuesAction", [](const std::vector<std::pair<uint8_t, std::string>>& values) {
-    return std::shared_ptr<DNSAction>(new SetProxyProtocolValuesAction(values));
+    return dnsdist::actions::getSetProxyProtocolValuesAction(values);
   });
 
-  luaCtx.writeFunction("SetAdditionalProxyProtocolValueAction", [](uint8_t type, const std::string& value) {
-    return std::shared_ptr<DNSAction>(new SetAdditionalProxyProtocolValueAction(type, value));
-  });
+#include "dnsdist-lua-actions-generated.cc"
+#include "dnsdist-lua-response-actions-generated.cc"
 
-  luaCtx.writeFunction("SetExtendedDNSErrorAction", [](uint16_t infoCode, boost::optional<std::string> extraText) {
-    return std::shared_ptr<DNSAction>(new SetExtendedDNSErrorAction(infoCode, extraText ? *extraText : ""));
-  });
-
-  luaCtx.writeFunction("SetExtendedDNSErrorResponseAction", [](uint16_t infoCode, boost::optional<std::string> extraText) {
-    return std::shared_ptr<DNSResponseAction>(new SetExtendedDNSErrorResponseAction(infoCode, extraText ? *extraText : ""));
-  });
 }
