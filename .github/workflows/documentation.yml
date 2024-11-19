@@ -5,7 +5,6 @@
 # - PUBLISH_DOCS_TO_AWS: Set to 'true' to enable publishing to AWS
 # - PUBLISH_DOCS_TO_NETLIFY: Set to 'true' to enable publishing to Netlify
 # - PUBLISH_DOCS_TO_WEB1: Set to 'true' to enable publishing to Web1
-# - PUBLISH_PRS_TO_NETLIFY: Set to 'true' to publish PR previews to Netlify
 
 # - AWS_REGION: AWS region for S3 and CloudFront
 # - AWS_S3_BUCKET_DOCS: S3 bucket name for documentation
@@ -33,13 +32,10 @@ name: 'Documentation'
 on:
   push:
     branches: [master]
-  pull_request:
-    branches: [master]
   workflow_dispatch: {}
  
 permissions:
   contents: read
-  pull-requests: write
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE20: true
@@ -168,7 +164,7 @@ jobs:
   publish-to-netlify:
     name: Publish to Netlify
     needs: build-docs
-    if: ${{ vars.PUBLISH_DOCS_TO_NETLIFY == 'true' && (github.ref_name == 'master' || vars.PUBLISH_PRS_TO_NETLIFY == 'true') }}
+    if: ${{ vars.PUBLISH_DOCS_TO_NETLIFY == 'true' && github.ref_name == 'master' }}
     runs-on: ubuntu-22.04
     env:
       NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_API_TOKEN }}
@@ -201,82 +197,20 @@ jobs:
           tar -xf artifacts/recursor-html-docs-${{needs.build-docs.outputs.pdns_version}}/rec-html-docs.tar -C docs_site
           mv docs_site/auth-html-docs docs_site/authoritative
           mv docs_site/rec-html-docs docs_site/recursor
-          prod_flag=""
-          if [ "${{ github.ref_name }}" = "master" ]; then prod_flag="--prod"; fi
           netlify deploy \
             --dir ./docs_site \
             --site $NETLIFY_SITE_ID_DOCS \
             --auth $NETLIFY_AUTH_TOKEN \
-            $prod_flag \
-            --json \
-            > netlify_deploy_docs_output.json
+            --prod
 
       - name: Deploy DNSdist docs to Netlify
         run: |
           tar -xf artifacts/dnsdist-html-docs-${{needs.build-docs.outputs.pdns_version}}/dnsdist-html-docs.tar
-          prod_flag=""
-          if [ "${{ github.ref_name }}" = "master" ]; then prod_flag="--prod"; fi
           netlify deploy \
             --dir ./dnsdist-html-docs \
             --site $NETLIFY_SITE_ID_DNSDIST \
             --auth $NETLIFY_AUTH_TOKEN \
-            $prod_flag \
-            --json \
-            > netlify_deploy_dnsdist_output.json
-
-      - name: Generate URL Previews
-        id: url_previews
-        if: ${{ github.ref_name != 'master' }}
-        run: |
-          if [ -f netlify_deploy_docs_output.json ]; then
-            DOCS_PREVIEW_URL=$(jq -r '.deploy_url' netlify_deploy_docs_output.json)
-            echo "DOCS_PREVIEW_URL=$DOCS_PREVIEW_URL" >> "$GITHUB_OUTPUT"
-          fi
-          if [ -f netlify_deploy_dnsdist_output.json ]; then
-            DNSDIST_PREVIEW_URL=$(jq -r '.deploy_url' netlify_deploy_dnsdist_output.json)
-            echo "DNSDIST_PREVIEW_URL=$DNSDIST_PREVIEW_URL" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Comment URL Previews on PR
-        uses: actions/github-script@v7
-        if: ${{ github.ref_name != 'master' }}
-        env:
-          DOCS_PREVIEW_URL: ${{ steps.url_previews.outputs.DOCS_PREVIEW_URL }}
-          DNSDIST_PREVIEW_URL: ${{ steps.url_previews.outputs.DNSDIST_PREVIEW_URL }}
-        with:
-          script: |
-            async function comment(){
-              const result = await github.rest.repos.listPullRequestsAssociatedWithCommit({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                commit_sha: context.sha,
-              })
-
-              const issueNumber = result.data[0].number
-
-              if(issueNumber){
-                let commentBody = 'Preview URLs:\n'
-                if (process.env.DOCS_PREVIEW_URL) {
-                  commentBody += `- Docs (Auth, Rec, Root): ${process.env.DOCS_PREVIEW_URL}\n`
-                  commentBody += `  - Authoritative: ${process.env.DOCS_PREVIEW_URL}/authoritative\n`
-                  commentBody += `  - Recursor: ${process.env.DOCS_PREVIEW_URL}/recursor\n`
-                }
-                if (process.env.DNSDIST_PREVIEW_URL) {
-                  commentBody += `- DNSdist: ${process.env.DNSDIST_PREVIEW_URL}\n`
-                }
-
-                await github.rest.issues.createComment({
-                  issue_number: issueNumber,
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  body: commentBody
-                })
-              } else {
-                console.log('No PR found for commit ' + context.sha)
-              }
-            }
-
-            comment()
+            --prod
 
   publish-to-web1:
     name: Publish to Web1
