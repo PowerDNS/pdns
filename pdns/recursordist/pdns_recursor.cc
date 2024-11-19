@@ -779,6 +779,9 @@ int getFakeAAAARecords(const DNSName& qname, ComboAddress prefix, vector<DNSReco
                 }),
               ret.end());
   }
+  else {
+    pdns::dedupRecords(ret);
+  }
   t_Counters.at(rec::Counter::dns64prefixanswers)++;
   return rcode;
 }
@@ -1509,7 +1512,9 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
       }
 
       if (!ret.empty()) {
+#ifdef notyet
         pdns::dedupRecords(ret);
+#endif
         pdns::orderAndShuffle(ret, false);
         if (auto listToSort = luaconfsLocal->sortlist.getOrderCmp(comboWriter->d_source)) {
           stable_sort(ret.begin(), ret.end(), *listToSort);
