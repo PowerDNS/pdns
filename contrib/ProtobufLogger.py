@@ -259,11 +259,11 @@ class PDNSPBConnHandler(object):
 
         headerFlags = "N/A"
         if msg.HasField('headerFlags'):
-            headerFlags = "0x%04X" % msg.headerFlags
+            headerFlags = "0x%04X" % socket.ntohs(msg.headerFlags)
 
         ednsVersion = "N/A"
         if msg.HasField('ednsVersion'):
-            ednsVersion = "0x%08X" % msg.ednsVersion
+            ednsVersion = "0x%08X" % socket.ntohl(msg.ednsVersion)
 
         print('[%s] %s of size %d: %s%s%s -> %s%s(%s) id: %d uuid: %s%s '
                   'requestorid: %s deviceid: %s devicename: %s serverid: %s nod: %s workerId: %s pcCacheHit: %s outgoingQueries: %s headerFlags: %s ednsVersion: %s' %

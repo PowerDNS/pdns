@@ -2036,7 +2036,7 @@ void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uint16_t* 
     pos += 1;
     const auto* drh = reinterpret_cast<const dnsrecordheader*>(&question.at(pos)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     if (ntohs(drh->d_type) == QType::OPT) {
-      ednsVersion = htonl(drh->d_ttl);
+      ednsVersion = drh->d_ttl;
     }
     pos += sizeof(dnsrecordheader);
 

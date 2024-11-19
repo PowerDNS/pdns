@@ -562,7 +562,7 @@ void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boo
   for (const auto& mit : meta) {
     msg.setMeta(mit.first, mit.second.stringVal, mit.second.intVal);
   }
-  msg.setHeaderFlags(htons(*getFlagsFromDNSHeader(&header)));
+  msg.setHeaderFlags(*getFlagsFromDNSHeader(&header));
   if (ednsVersion) {
     msg.setEDNSVersion(*ednsVersion);
   }
