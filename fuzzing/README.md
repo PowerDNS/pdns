@@ -25,12 +25,15 @@ By default the targets are linked against a standalone target,
 `standalone_fuzz_target_runner.cc`, which does no fuzzing but makes it easy
 to check a given test file, or just that the fuzzing targets can be built properly.
 
-This behaviour can be changed via the `LIB_FUZZING_ENGINE` variable, for example
-by setting it to `-lFuzzer`, building with clang by setting `CC=clang CXX=clang++`
-before running the `configure` and adding `-fsanitize=fuzzer-no-link` to `CFLAGS`
-and `CXXFLAGS`. Doing so instructs the compiler to instrument the code for
-efficient fuzzing but not to link directly with `-lFuzzer`, which would make
-the compilation tests done during the configure phase fail.
+This behaviour can be changed via:
+- either the `LIB_FUZZING_ENGINE` variable when building with `./configure`
+- or the `-Dfuzzer_ldflags` option when building with `meson`
+
+For example, setting `LIB_FUZZING_ENGINE` to `-lFuzzer`, then building with clang
+by setting `CC=clang CXX=clang++` before running the `configure`, and adding
+`-fsanitize=fuzzer-no-link` to `CFLAGS` and `CXXFLAGS`, instructs the compiler
+to instrument the code for efficient fuzzing but not to link directly with
+`-lFuzzer`, which would make the compilation tests done during the configure phase fail.
 
 Sanitizers
 ----------
@@ -84,6 +87,15 @@ Then build:
 ```
 LIB_FUZZING_ENGINE="/usr/lib/clang/11.0.1/lib/linux/libclang_rt.fuzzer-x86_64.a" \
   make -C pdns -j2 fuzz_targets
+```
+
+or, if you are using `meson` to build the authoritative server instead of `./configure`:
+
+```
+env CC=clang CXX=clang++ \
+  CFLAGS=-fsanitize=fuzzer-no-link CXXFLAGS=-fsanitize=fuzzer-no-link \
+  meson setup .. -Dfuzz-targets=true -Dfuzzer_ldflags=/usr/lib/clang/18/lib/linux/libclang_rt.fuzzer-x86_64.a -Db_sanitize=address,undefined
+ninja
 ```
 
 Now you're ready to run one of the fuzzing targets.

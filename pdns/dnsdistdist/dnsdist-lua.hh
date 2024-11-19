@@ -112,9 +112,9 @@ public:
   {
   }
 
-  DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
+  DNSResponseAction::Action operator()(DNSResponse* dr, [[maybe_unused]] std::string* ruleresult) const override
   {
-    auto visitor = [&](uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl) {
+    auto visitor = [&]([[maybe_unused]] uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl) {
       if (!d_types.empty() && qclass == QClass::IN && d_types.count(qtype) == 0) {
         return ttl;
       }

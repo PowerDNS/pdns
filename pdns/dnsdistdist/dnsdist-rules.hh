@@ -195,8 +195,9 @@ public:
   {}
 
 
-  bool matches(const DNSQuestion* qd) const override
+  bool matches(const DNSQuestion* dq) const override
   {
+    (void)dq;
     return d_qps.check();
   }
 
@@ -396,6 +397,7 @@ public:
   AllRule() {}
   bool matches(const DNSQuestion* dq) const override
   {
+    (void)dq;
     return true;
   }
 
@@ -1055,8 +1057,10 @@ public:
   }
   bool matches(const DNSQuestion* dq) const override
   {
-    if(d_proba == 1.0)
+    (void)dq;
+    if (d_proba == 1.0) {
       return true;
+    }
     double rnd = 1.0*dns_random_uint32() / UINT32_MAX;
     return rnd > (1.0 - d_proba);
   }
@@ -1111,6 +1115,7 @@ public:
 
   bool matches(const DNSQuestion* dq) const override
   {
+    (void)dq;
     return (getPool(d_poolname)->countServers(true) > 0);
   }
 
@@ -1131,6 +1136,7 @@ public:
 
   bool matches(const DNSQuestion* dq) const override
   {
+    (void)dq;
     return (getPool(d_poolname)->poolLoad()) > d_limit;
   }
 
