@@ -1231,12 +1231,12 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_dump)
 
   std::vector<std::string> expected;
   expected.emplace_back("; Zone powerdns.com.\n");
-  expected.emplace_back("www.powerdns.com. 10 IN NSEC z.powerdns.com. A RRSIG NSEC\n");
+  expected.emplace_back("www.powerdns.com. 10 IN NSEC z.powerdns.com. A RRSIG NSEC by ./TYPE0\n");
   expected.emplace_back("- RRSIG NSEC 5 3 10 20370101000000 20370101000000 24567 dummy. data\n");
-  expected.emplace_back("z.powerdns.com. 10 IN NSEC zz.powerdns.com. AAAA RRSIG NSEC\n");
+  expected.emplace_back("z.powerdns.com. 10 IN NSEC zz.powerdns.com. AAAA RRSIG NSEC by ./TYPE0\n");
   expected.emplace_back("- RRSIG NSEC 5 3 10 20370101000000 20370101000000 24567 dummy. data\n");
   expected.emplace_back("; Zone powerdns.org.\n");
-  expected.emplace_back("www.powerdns.org. 10 IN NSEC3 1 0 50 ab HASG==== A RRSIG NSEC3\n");
+  expected.emplace_back("www.powerdns.org. 10 IN NSEC3 1 0 50 ab HASG==== A RRSIG NSEC3 by ./TYPE0\n");
   expected.emplace_back("- RRSIG NSEC3 5 3 10 20370101000000 20370101000000 24567 dummy. data\n");
 
   struct timeval now
@@ -1286,12 +1286,12 @@ BOOST_AUTO_TEST_CASE(test_aggressive_nsec_dump)
 
   expected.clear();
   expected.emplace_back("; Zone powerdns.com.\n");
-  expected.emplace_back("www.powerdns.com. 10 IN NSEC z.powerdns.com. A RRSIG NSEC\n");
+  expected.emplace_back("www.powerdns.com. 10 IN NSEC z.powerdns.com. A RRSIG NSEC by ./TYPE0\n");
   expected.emplace_back("- RRSIG NSEC 5 3 10 20370101000000 20370101000000 24567 dummy. data\n");
-  expected.emplace_back("z.powerdns.com. 30 IN NSEC zz.powerdns.com. AAAA RRSIG NSEC\n");
+  expected.emplace_back("z.powerdns.com. 30 IN NSEC zz.powerdns.com. AAAA RRSIG NSEC by ./TYPE0\n");
   expected.emplace_back("- RRSIG NSEC 5 3 10 20370101000000 20370101000000 24567 dummy. data\n");
   expected.emplace_back("; Zone powerdns.org.\n");
-  expected.emplace_back("www.powerdns.org. 10 IN NSEC3 1 0 50 ab HASG==== A RRSIG NSEC3\n");
+  expected.emplace_back("www.powerdns.org. 10 IN NSEC3 1 0 50 ab HASG==== A RRSIG NSEC3 by ./TYPE0\n");
   expected.emplace_back("- RRSIG NSEC3 5 3 10 20370101000000 20370101000000 24567 dummy. data\n");
 
   rec.d_name = DNSName("z.powerdns.com");
