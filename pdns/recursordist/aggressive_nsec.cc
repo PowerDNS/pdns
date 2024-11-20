@@ -269,7 +269,7 @@ bool AggressiveNSECCache::isSmallCoveringNSEC3(const DNSName& owner, const std::
   return commonPrefixIsLong(ownerHash, nextHash, AggressiveNSECCache::s_maxNSEC3CommonPrefix);
 }
 
-void AggressiveNSECCache::insertNSEC(const DNSName& zone, const DNSName& owner, const DNSRecord& record, const std::vector<std::shared_ptr<const RRSIGRecordContent>>& signatures, bool nsec3)
+void AggressiveNSECCache::insertNSEC(const DNSName& zone, const DNSName& owner, const DNSRecord& record, const std::vector<std::shared_ptr<const RRSIGRecordContent>>& signatures, bool nsec3, const DNSName& qname, QType qtype)
 {
   if (nsec3 && nsec3Disabled()) {
     return;
@@ -345,21 +345,21 @@ void AggressiveNSECCache::insertNSEC(const DNSName& zone, const DNSName& owner, 
     /* the TTL is already a TTD by now */
     if (!nsec3 && isWildcardExpanded(owner.countLabels(), *signatures.at(0))) {
       DNSName realOwner = getNSECOwnerName(owner, signatures);
-      auto pair = zoneEntry->d_entries.insert({record.getContent(), signatures, realOwner, next, record.d_ttl});
+      auto pair = zoneEntry->d_entries.insert({record.getContent(), signatures, realOwner, next, qname, record.d_ttl, qtype});
       if (pair.second) {
         ++d_entriesCount;
       }
       else {
-        zoneEntry->d_entries.replace(pair.first, {record.getContent(), signatures, std::move(realOwner), next, record.d_ttl});
+        zoneEntry->d_entries.replace(pair.first, {record.getContent(), signatures, std::move(realOwner), next, qname, record.d_ttl, qtype});
       }
     }
     else {
-      auto pair = zoneEntry->d_entries.insert({record.getContent(), signatures, owner, next, record.d_ttl});
+      auto pair = zoneEntry->d_entries.insert({record.getContent(), signatures, owner, next, qname, record.d_ttl, qtype});
       if (pair.second) {
         ++d_entriesCount;
       }
       else {
-        zoneEntry->d_entries.replace(pair.first, {record.getContent(), signatures, owner, std::move(next), record.d_ttl});
+        zoneEntry->d_entries.replace(pair.first, {record.getContent(), signatures, owner, std::move(next), qname, record.d_ttl, qtype});
       }
     }
   }
@@ -572,7 +572,7 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<LockGuarded
 
   ZoneEntry::CacheEntry exactNSEC3;
   if (getNSEC3(now, zoneEntry, nameHash, exactNSEC3)) {
-    VLOG(log, name << ": Found a direct NSEC3 match for " << nameHash);
+    VLOG(log, name << ": Found a direct NSEC3 match for " << nameHash << " inserted by " << exactNSEC3.d_qname << '/' << exactNSEC3.d_qtype);
     auto nsec3 = std::dynamic_pointer_cast<const NSEC3RecordContent>(exactNSEC3.d_record);
     if (!nsec3 || nsec3->d_iterations != iterations || nsec3->d_salt != salt) {
       VLOG_NO_PREFIX(log, " but the content is not valid, or has a different salt or iterations count" << endl);
@@ -603,7 +603,7 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<LockGuarded
       return false;
     }
 
-    VLOG(log, ": done!" << endl);
+    VLOG_NO_PREFIX(log, ": done!" << endl);
     ++d_nsec3Hits;
     res = RCode::NoError;
     addToRRSet(now, soaSet, soaSignatures, zone, doDNSSEC, ret);
@@ -621,7 +621,7 @@ bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<LockGuarded
     remainingLabels--;
 
     if (getNSEC3(now, zoneEntry, closestHash, closestNSEC3)) {
-      VLOG(log, name << ": Found closest encloser at " << closestEncloser << " (" << closestHash << ")" << endl);
+      VLOG(log, name << ": Found closest encloser at " << closestEncloser << " (" << closestHash << ") inserted by " << closestNSEC3.d_qname << '/' << closestNSEC3.d_qtype << endl);
 
       auto nsec3 = std::dynamic_pointer_cast<const NSEC3RecordContent>(closestNSEC3.d_record);
       if (!nsec3 || nsec3->d_iterations != iterations || nsec3->d_salt != salt) {
@@ -839,7 +839,7 @@ bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType
     return false;
   }
 
-  VLOG_NO_PREFIX(log, ": found a possible NSEC at " << entry.d_owner << " ");
+  VLOG_NO_PREFIX(log, ": found a possible NSEC at " << entry.d_owner << " inserted by " << entry.d_qname << '/' << entry.d_qtype << ' ');
   // note that matchesNSEC() takes care of ruling out ancestor NSECs for us
   auto denial = matchesNSEC(name, type.getCode(), entry.d_owner, *content, entry.d_signatures, log);
   if (denial == dState::NODENIAL || denial == dState::INCONCLUSIVE) {
@@ -930,7 +930,7 @@ size_t AggressiveNSECCache::dumpToFile(pdns::UniqueFilePtr& filePtr, const struc
     for (const auto& entry : zone->d_entries) {
       int64_t ttl = entry.d_ttd - now.tv_sec;
       try {
-        fprintf(filePtr.get(), "%s %" PRId64 " IN %s %s\n", entry.d_owner.toString().c_str(), ttl, zone->d_nsec3 ? "NSEC3" : "NSEC", entry.d_record->getZoneRepresentation().c_str());
+        fprintf(filePtr.get(), "%s %" PRId64 " IN %s %s by %s/%s\n", entry.d_owner.toString().c_str(), ttl, zone->d_nsec3 ? "NSEC3" : "NSEC", entry.d_record->getZoneRepresentation().c_str(), entry.d_qname.toString().c_str(), entry.d_qtype.toString().c_str());
         for (const auto& signature : entry.d_signatures) {
           fprintf(filePtr.get(), "- RRSIG %s\n", signature->getZoneRepresentation().c_str());
         }
