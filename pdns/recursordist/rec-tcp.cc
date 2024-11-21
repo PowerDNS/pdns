@@ -299,7 +299,7 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
   DNSName qname;
   uint16_t qtype = 0;
   uint16_t qclass = 0;
-  bool needECS = false;
+  bool needEDNSParse = false;
   string requestorId;
   string deviceId;
   string deviceName;
@@ -311,12 +311,12 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
   comboWriter->d_eventTrace.add(RecEventTrace::ReqRecv);
   auto luaconfsLocal = g_luaconfs.getLocal();
   if (checkProtobufExport(luaconfsLocal)) {
-    needECS = true;
+    needEDNSParse = true;
   }
   logQuery = t_protobufServers.servers && luaconfsLocal->protobufExportConfig.logQueries;
   comboWriter->d_logResponse = t_protobufServers.servers && luaconfsLocal->protobufExportConfig.logResponses;
 
-  if (needECS || (t_pdl && (t_pdl->hasGettagFFIFunc() || t_pdl->hasGettagFunc())) || comboWriter->d_mdp.d_header.opcode == static_cast<unsigned>(Opcode::Notify)) {
+  if (needEDNSParse || (t_pdl && (t_pdl->hasGettagFFIFunc() || t_pdl->hasGettagFunc())) || comboWriter->d_mdp.d_header.opcode == static_cast<unsigned>(Opcode::Notify)) {
 
     try {
       EDNSOptionViewMap ednsOptions;
