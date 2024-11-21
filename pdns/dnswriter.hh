@@ -138,6 +138,7 @@ public:
 
   dnsheader* getHeader();
   void getRecordPayload(string& records); // call __before commit__
+  void getWireFormatContent(string& record); // call __before commit__
 
   void setCanonic(bool val)
   {
