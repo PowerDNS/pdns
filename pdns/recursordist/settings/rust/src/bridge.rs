@@ -111,10 +111,7 @@ pub fn validate_socket_address_or_name(field: &str, val: &String) -> Result<(), 
     let sa = validate_socket_address(field, val);
     if sa.is_err() && !isValidHostname(val) {
         let parts: Vec<&str> = val.split(':').collect();
-        if parts.len() != 2
-            || !isValidHostname(parts[0])
-            || !is_port_number(parts[1])
-        {
+        if parts.len() != 2 || !isValidHostname(parts[0]) || !is_port_number(parts[1]) {
             let msg = format!(
                 "{}: value `{}' is not an IP, IP:port, name or name:port combination",
                 field, val
@@ -181,7 +178,12 @@ pub fn validate_subnet(field: &str, val: &String) -> Result<(), ValidationError>
     Ok(())
 }
 
-fn validate_address_family(addrfield: &str, localfield: &str, vec: &[String], local_address: &String) -> Result<(), ValidationError> {
+fn validate_address_family(
+    addrfield: &str,
+    localfield: &str,
+    vec: &[String],
+    local_address: &String,
+) -> Result<(), ValidationError> {
     if vec.is_empty() {
         let msg = format!("{}: cannot be empty", addrfield);
         return Err(ValidationError { msg });
@@ -208,15 +210,17 @@ fn validate_address_family(addrfield: &str, localfield: &str, vec: &[String], lo
             if local.is_ipv4() != ip.is_ipv4() || local.is_ipv6() != ip.is_ipv6() {
                 wrong = true;
             }
-        }
-        else {
+        } else {
             let sa = sa.unwrap();
             if local.is_ipv4() != sa.is_ipv4() || local.is_ipv6() != sa.is_ipv6() {
                 wrong = true;
             }
         }
         if wrong {
-            let msg = format!("{}: value `{}' and `{}' differ in address family", localfield, local_address, addr_str);
+            let msg = format!(
+                "{}: value `{}' and `{}' differ in address family",
+                localfield, local_address, addr_str
+            );
             return Err(ValidationError { msg });
         }
     }
@@ -501,7 +505,12 @@ impl RPZ {
         }
         self.tsig.validate(&(field.to_owned() + ".tsig"))?;
         if !self.addresses.is_empty() {
-            validate_address_family(&(field.to_owned() + ".addresses"), &(field.to_owned() + ".localAddress"), &self.addresses, &self.localAddress)?;
+            validate_address_family(
+                &(field.to_owned() + ".addresses"),
+                &(field.to_owned() + ".localAddress"),
+                &self.addresses,
+                &self.localAddress,
+            )?;
         }
         Ok(())
     }
@@ -579,7 +588,12 @@ impl ZoneToCache {
                 &self.sources,
                 validate_socket_address,
             )?;
-            validate_address_family(&(field.to_string() + ".sources"), &(field.to_string() + ".localAddress"), &self.sources, &self.localAddress)?;
+            validate_address_family(
+                &(field.to_string() + ".sources"),
+                &(field.to_string() + ".localAddress"),
+                &self.sources,
+                &self.localAddress,
+            )?;
         }
         self.tsig.validate(&(field.to_owned() + ".tsig"))?;
         Ok(())
@@ -1213,4 +1227,3 @@ pub fn validate_recordcache(
 pub fn validate_snmp(_snmp: &recsettings::Snmp) -> Result<(), ValidationError> {
     Ok(())
 }
-
