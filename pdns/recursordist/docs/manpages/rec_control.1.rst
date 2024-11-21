@@ -27,7 +27,7 @@ To stop the recursor by hand, run::
 
   # rec_control quit
 
-To dump the cache to disk, execute::
+To dump the caches to disk, execute::
 
   # rec_control dump-cache /tmp/the-cache
 
@@ -53,10 +53,10 @@ Options
 
 Commands
 --------
-add-dont-throttle-names NAME [NAME...]
+add-dont-throttle-names *NAME* [*NAME*...]
     Add names for nameserver domains that may not be throttled.
 
-add-dont-throttle-netmasks NETMASK [NETMASK...]
+add-dont-throttle-netmasks *NETMASK* [*NETMASK*...]
     Add netmasks for nameservers that may not be throttled.
 
 add-nta *DOMAIN* [*REASON*]
@@ -70,10 +70,10 @@ add-ta *DOMAIN* *DSRECORD*
 current-queries
     Shows the currently active queries.
 
-clear-dont-throttle-names NAME [NAME...]
+clear-dont-throttle-names *NAME* [*NAME*...]
     Remove names that are not allowed to be throttled. If *NAME* is ``*``, remove all
 
-clear-dont-throttle-netmasks NETMASK [NETMASK...]
+clear-dont-throttle-netmasks *NETMASK* [*NETMASK*...]
     Remove netmasks that are not allowed to be throttled. If *NETMASK* is ``*``, remove all
 
 clear-nta *DOMAIN*...
@@ -84,15 +84,15 @@ clear-ta [*DOMAIN*]...
     Remove Trust Anchor for one or more *DOMAIN*\ s. Note that removing the
     root trust anchor is not possible.
 
-dump-cache *FILENAME*
-    Dumps the entire cache to *FILENAME*. This file should not exist already,
+dump-cache *FILENAME* [*TYPE*...]
+    Dumps caches to *FILENAME*. This file should not exist already,
     PowerDNS will refuse to overwrite it. While dumping, the recursor
     might not answer questions.
 
-    Typical PowerDNS Recursors run multiple threads, therefore you'll see
-    duplicate, different entries for the same domains. The negative cache is
-    also dumped to the same file. The per-thread positive and negative cache
-    dumps are separated with an appropriate comment.
+    If no *TYPE* is specified the record cache, the negative cache,
+    the packet cache and the aggressive NSEC cache are dumped. To
+    select specific caches specify one or more *TYPE*s, separated
+    by spaces. The value of *TYPE* can be r, n, p or a.
 
 dump-dot-probe-map *FILENAME*
     Dump the contents of the DoT probe map to the *FILENAME* mentioned.
