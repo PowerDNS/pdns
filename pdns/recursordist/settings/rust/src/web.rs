@@ -72,7 +72,7 @@ fn api_wrapper(
 
 async fn hello(
     rust_request: Request<IncomingBody>,
-    urls: &Vec<String>,
+    urls: &[String],
 ) -> MyResult<Response<BoxBody>> {
     let mut rust_response = Response::builder();
     let mut vars: Vec<rustweb::KeyValue> = vec![];
@@ -92,7 +92,7 @@ async fn hello(
     let mut request = rustweb::Request {
         body: vec![],
         uri: rust_request.uri().to_string(),
-        vars: vars,
+        vars,
     };
     let mut response = rustweb::Response {
         status: 0,
@@ -131,18 +131,19 @@ async fn hello(
             );
         }
         _ => {
-            println!("{}", rust_request.uri().path());
-            println!("{}", urls.len());
             let mut path = rust_request.uri().path();
             if path == "/" {
                 path = "/index.html";
             }
             let pos = urls.iter().position(|x| String::from("/") + x == path);
-            println!("Pos is {:?}", pos);
-            if let Err(_) = rustweb::serveStuff(&request, &mut response) {
+            if pos.is_none() {
+                println!("{} not found", path);
+            }
+            if rustweb::serveStuff(&request, &mut response).is_err() {
                 // Return 404 not found response.
                 response.status = StatusCode::NOT_FOUND.as_u16();
                 response.body = NOTFOUND.to_vec();
+                println!("{} not found case 2", path);
             }
         }
     }
@@ -159,7 +160,7 @@ async fn hello(
     Ok(rust_response)
 }
 
-async fn serveweb_async(listener: TcpListener, urls: &'static Vec<String>) -> MyResult<()> {
+async fn serveweb_async(listener: TcpListener, urls: &'static [String]) -> MyResult<()> {
     //let request_counter = Arc::new(AtomicUsize::new(0));
     /*
         let fut = http1::Builder::new()
@@ -192,7 +193,7 @@ async fn serveweb_async(listener: TcpListener, urls: &'static Vec<String>) -> My
     }
 }
 
-pub fn serveweb(addresses: &Vec<String>, urls: &'static Vec<String>) -> Result<(), std::io::Error> {
+pub fn serveweb(addresses: &Vec<String>, urls: &'static [String]) -> Result<(), std::io::Error> {
     let runtime = Builder::new_current_thread()
         .worker_threads(1)
         .thread_name("rec/web")
@@ -244,7 +245,7 @@ pub fn serveweb(addresses: &Vec<String>, urls: &'static Vec<String>) -> Result<(
 mod rustweb {
 
     extern "Rust" {
-        fn serveweb(addreses: &Vec<String>, urls: &'static Vec<String>) -> Result<()>;
+        fn serveweb(addreses: &Vec<String>, urls: &'static [String]) -> Result<()>;
     }
 
     struct KeyValue {
