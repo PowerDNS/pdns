@@ -4874,7 +4874,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
 
     if (g_aggressiveNSECCache && (tCacheEntry->first.type == QType::NSEC || tCacheEntry->first.type == QType::NSEC3) && recordState == vState::Secure && !seenAuth.empty()) {
       // Good candidate for NSEC{,3} caching
-      g_aggressiveNSECCache->insertNSEC(seenAuth, tCacheEntry->first.name, tCacheEntry->second.records.at(0), tCacheEntry->second.signatures, tCacheEntry->first.type == QType::NSEC3);
+      g_aggressiveNSECCache->insertNSEC(seenAuth, tCacheEntry->first.name, tCacheEntry->second.records.at(0), tCacheEntry->second.signatures, tCacheEntry->first.type == QType::NSEC3, qname, qtype);
     }
 
     if (tCacheEntry->first.place == DNSResourceRecord::ANSWER && ednsmask) {
