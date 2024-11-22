@@ -12,6 +12,10 @@ export PDNS_TEST_NO_IPV6=1
 # Backends
 backends := bind ldap lmdb lua2 pipe gmysql godbc gpgsql gsqlite3 geoip remote tinydns
 
+CONFIGURE_ARGS =
+
+# Workaround for debbug #1078413 https://github.com/PowerDNS/pdns/issues/14084
+CONFIGURE_ARGS += --with-libcrypto=/usr
 
 %:
 	dh $@
