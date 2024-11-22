@@ -2919,7 +2919,7 @@ static void recursorThread()
     t_fdm->addReadFD(threadInfo.getPipes().readToThread, handlePipeRequest);
 
     if (threadInfo.isHandler()) {
-      if (::arg().mustDo("webserver")) {
+      if (false && ::arg().mustDo("webserver")) {
         SLOG(g_log << Logger::Warning << "Enabling web server" << endl,
              log->info(Logr::Info, "Enabling web server"));
         try {
@@ -3320,8 +3320,10 @@ int main(int argc, char** argv)
       g_packetCache = std::make_unique<RecursorPacketCache>(g_maxPacketCacheEntries, ::arg().asNum("packetcache-shards"));
     }
 
-    extern void serveRustWeb();
-    serveRustWeb();
+    if (::arg().mustDo("webserver")) {
+      extern void serveRustWeb();
+      serveRustWeb();
+    }
     ret = serviceMain(startupLog);
   }
   catch (const PDNSException& ae) {

@@ -961,7 +961,8 @@ void serveRustWeb()
   for (const auto& [url, _]  : g_urlmap) {
     urls.emplace_back(url);
   }
-  pdns::rust::web::rec::serveweb({"127.0.0.1:3000", "[::1]:3000"}, ::rust::Slice<const ::rust::String>{urls.data(), urls.size()});
+  auto address = ComboAddress(arg()["webserver-address"], arg().asNum("webserver-port"));
+  pdns::rust::web::rec::serveweb({::rust::String(address.toStringWithPort())}, ::rust::Slice<const ::rust::String>{urls.data(), urls.size()});
 }
 
 static void fromCxxToRust(const HttpResponse& cxxresp, pdns::rust::web::rec::Response& rustResponse)
