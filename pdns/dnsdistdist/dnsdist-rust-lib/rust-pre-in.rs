@@ -23,13 +23,10 @@ mod dnsdistsettings {
         tcp: bool,
     }
 
-    #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
-    #[serde(deny_unknown_fields)]
+    #[derive(Default)]
     struct AndSelectorConfig {
-        #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
-        #[serde(default, skip_serializing_if = "crate::is_default")]
-        selectors: Vec<String>,
+        selectors: Vec<SharedDNSSelector>,
     }
 
     #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
@@ -42,7 +39,6 @@ mod dnsdistsettings {
     #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
     struct ByNameSelector {
-        #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
     }
 

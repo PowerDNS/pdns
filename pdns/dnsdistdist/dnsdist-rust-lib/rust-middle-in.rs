@@ -10,7 +10,6 @@
     unsafe extern "C++" {
         include!("dnsdist-rust-bridge.hh");
         type DNSSelector;
-        fn getNameFromSelector(selector: &DNSSelector) -> &CxxString;
         fn getSelectorByName(name: &String) -> SharedPtr<DNSSelector>;
         fn getMaxIPQPSSelector(config: &MaxQPSIPSelectorConfiguration) -> SharedPtr<DNSSelector>;
         fn getTCPSelector(config: &TCPSelectorConfig) -> SharedPtr<DNSSelector>;
