@@ -24,4 +24,3 @@ RUN /pdns-recursor/builder/helpers/set-configure-ac-version.sh && \
     ./configure --disable-dependency-tracking && \
     make dist
 RUN cp pdns-recursor-${BUILDER_VERSION}.tar.bz2 /sdist/
-RUN cp /tmp/rust* /sdist/
