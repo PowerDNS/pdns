@@ -60,14 +60,12 @@ fn api_wrapper(
         header::HeaderValue::from_static("default-src 'self'; style-src 'self' 'unsafe-inline'"),
     );
 
-    println!("api_wrapper A0 Status {}", response.status);
     match handler(request, response) {
         Ok(_) => {}
         Err(_) => {
             response.status = StatusCode::UNPROCESSABLE_ENTITY.as_u16(); // 422
         }
     }
-    println!("api_wrapper A Status {}", response.status);
 }
 
 async fn hello(
@@ -101,8 +99,13 @@ async fn hello(
     };
     let headers = rust_response.headers_mut().expect("no headers?");
     match (rust_request.method(), rust_request.uri().path()) {
-        (&Method::GET, "/metrics") => {
-            rustweb::prometheusMetrics(&request, &mut response).unwrap();
+        (&Method::GET, "/jsonstat") => {
+            api_wrapper(
+                rustweb::jsonstat as Func,
+                &request,
+                &mut response,
+                headers,
+            );
         }
         (&Method::PUT, "/api/v1/servers/localhost/cache/flush") => {
             api_wrapper(
@@ -112,8 +115,15 @@ async fn hello(
                 headers,
             );
         }
+        (&Method::GET, "/api/v1/servers/localhost/statistics") => {
+            api_wrapper(
+                rustweb::apiServerStatistics as Func,
+                &request,
+                &mut response,
+                headers,
+            );
+        }
         (&Method::GET, "/api/v1/servers/localhost/zones") => {
-            println!("hello Status {}", response.status);
             api_wrapper(
                 rustweb::apiServerZonesGET as Func,
                 &request,
@@ -129,6 +139,17 @@ async fn hello(
                 &mut response,
                 headers,
             );
+        }
+        (&Method::GET, "/api/v1/servers/localhost") => {
+            api_wrapper(
+                rustweb::apiServerDetail as Func,
+                &request,
+                &mut response,
+                headers,
+            );
+        }
+        (&Method::GET, "/metrics") => {
+            rustweb::prometheusMetrics(&request, &mut response).unwrap();
         }
         _ => {
             let mut path = rust_request.uri().path();
@@ -147,7 +168,6 @@ async fn hello(
             }
         }
     }
-    println!("B Status {}", response.status);
     let mut rust_response = rust_response
         .status(StatusCode::from_u16(response.status).unwrap())
         .body(full(response.body))?;
@@ -267,10 +287,13 @@ mod rustweb {
 
     unsafe extern "C++" {
         include!("bridge.hh");
-        fn serveStuff(request: &Request, response: &mut Response) -> Result<()>;
-        fn prometheusMetrics(request: &Request, response: &mut Response) -> Result<()>;
         fn apiServerCacheFlush(request: &Request, response: &mut Response) -> Result<()>;
+        fn apiServerDetail(requst: &Request, response: &mut Response) -> Result<()>;
+        fn apiServerStatistics(requst: &Request, response: &mut Response) -> Result<()>;
         fn apiServerZonesGET(request: &Request, response: &mut Response) -> Result<()>;
         fn apiServerZonesPOST(requst: &Request, response: &mut Response) -> Result<()>;
+        fn jsonstat(request: &Request, response: &mut Response) -> Result<()>;
+        fn prometheusMetrics(request: &Request, response: &mut Response) -> Result<()>;
+        fn serveStuff(request: &Request, response: &mut Response) -> Result<()>;
     }
 }

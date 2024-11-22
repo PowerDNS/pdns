@@ -22,7 +22,7 @@ BUILT_SOURCES=cxxsettings-generated.cc rust/src/lib.rs
 # with an rust/src/lib.rs.h that does not contain e.g. field name or field type changes.
 #
 # Use patterns to avoid having two instances of generate run simultaneously, a well-known hack for GNU make
-cxxsettings-generated%cc rust/src/lib%rs: table.py generate.py rust-preamble-in.rs rust-bridge-in.rs docs-old-preamble-in.rst docs-new-preamble-in.rst
+cxxsettings-generated%cc rust/src/lib%rs rust/src/web%rs: table.py generate.py rust-preamble-in.rs rust-bridge-in.rs docs-old-preamble-in.rst docs-new-preamble-in.rst
 	@if test "$(PYTHON)" = ":"; then echo "Settings table table.py has changed, python is needed to regenerate the related settings files but python was not found. Please install python and re-run configure"; exit 1; fi
 	@if ! $(PYTHON) --version | grep -q "Python 3"; then echo $(PYTHON) should be at least version 3. Please install python 3 and re-run configure; exit 1; fi
 	$(MAKE) -C rust clean

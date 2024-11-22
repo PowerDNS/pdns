@@ -3,5 +3,6 @@
 /Makefile.in
 /cxx.h
 /lib.rs.h
+/web.rs.h
 src/lib.rs
 .dir-locals.el

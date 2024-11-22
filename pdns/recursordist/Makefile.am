@@ -328,6 +328,7 @@ testrunner_SOURCES = \
 	rec-system-resolve.hh rec-system-resolve.cc \
 	rec-taskqueue.cc rec-taskqueue.hh \
 	rec-tcounters.cc rec-tcounters.hh \
+	rec-web-stubs.hh \
 	rec-xfrtracker.cc \
 	rec-zonetocache.cc rec-zonetocache.hh \
 	recpacketcache.cc recpacketcache.hh \
@@ -543,6 +544,7 @@ rec_control_SOURCES = \
 	rec-system-resolve.cc rec-system-resolve.hh \
 	rec_channel.cc rec_channel.hh \
 	rec_control.cc \
+	rec-web-stubs.hh \
 	settings/cxxsupport.cc \
 	sillyrecords.cc \
 	sortlist.cc sortlist.hh \

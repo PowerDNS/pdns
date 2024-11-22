@@ -50,19 +50,6 @@
 
 using json11::Json;
 
-static void fromCxxToRust(const HttpResponse& cxxresp, pdns::rust::web::rec::Response& rustResponse)
-{
-  if (cxxresp.status != 0) {
-    rustResponse.status = cxxresp.status;
-  }
-  rustResponse.body = ::rust::Vec<::rust::u8>();
-  rustResponse.body.reserve(cxxresp.body.size());
-  std::copy(cxxresp.body.cbegin(), cxxresp.body.cend(), std::back_inserter(rustResponse.body));
-  for (const auto& header : cxxresp.headers) {
-    rustResponse.headers.emplace_back(pdns::rust::web::rec::KeyValue{header.first, header.second});
-  }
-}
-
 void productServerStatisticsFetch(map<string, string>& out)
 {
   auto stats = getAllStatsMap(StatComponent::API);
@@ -384,16 +371,6 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
   resp->status = 201;
 }
 
-void pdns::rust::web::rec::apiServerZonesPOST(const pdns::rust::web::rec::Request& rustRequest, pdns::rust::web::rec::Response& rustResponse)
-{
-  HttpRequest req;
-  HttpResponse resp;
-
-  req.body = std::string(reinterpret_cast<const char*>(rustRequest.body.data()), rustRequest.body.size());
-  apiServerZonesPOST(&req, &resp);
-  fromCxxToRust(resp, rustResponse);
-}
-
 static void apiServerZonesGET(HttpRequest* /* req */, HttpResponse* resp)
 {
   Json::array doc;
@@ -414,13 +391,6 @@ static void apiServerZonesGET(HttpRequest* /* req */, HttpResponse* resp)
       {"recursion_desired", zone.d_servers.empty() ? false : zone.d_rdForward}});
   }
   resp->setJsonBody(doc);
-}
-
-void pdns::rust::web::rec::apiServerZonesGET(const pdns::rust::web::rec::Request& /* rustRequest */, pdns::rust::web::rec::Response& rustResponse)
-{
-  HttpResponse resp;
-  apiServerZonesGET(nullptr, &resp);
-  fromCxxToRust(resp, rustResponse);
 }
 
 static inline DNSName findZoneById(HttpRequest* req)
@@ -520,18 +490,6 @@ static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp)
     {"result", "Flushed cache."}});
 }
 
-void pdns::rust::web::rec::apiServerCacheFlush(const pdns::rust::web::rec::Request& rustRequest, pdns::rust::web::rec::Response& rustResponse)
-{
-  HttpRequest request;
-  for (const auto& [key, value] : rustRequest.vars) {
-    cerr << key << ' ' << value << endl;
-    request.getvars[std::string(key)] = std::string(value);
-  }
-  HttpResponse response;
-  apiServerCacheFlush(&request, &response);
-  fromCxxToRust(response, rustResponse);
-}
-
 static void apiServerRPZStats(HttpRequest* /* req */, HttpResponse* resp)
 {
   auto luaconf = g_luaconfs.getLocal();
@@ -613,13 +571,6 @@ static void prometheusMetrics(HttpRequest* /* req */, HttpResponse* resp)
   resp->status = 200;
 }
 
-void pdns::rust::web::rec::prometheusMetrics(const pdns::rust::web::rec::Request& /* rustRequest */, pdns::rust::web::rec::Response& rustReponse)
-{
-  HttpResponse resp;
-  prometheusMetrics(nullptr, &resp);
-  fromCxxToRust(resp, rustReponse);
-}
-
 #include "htmlfiles.h"
 
 static void serveStuff(HttpRequest* req, HttpResponse* resp)
@@ -658,15 +609,6 @@ static void serveStuff(HttpRequest* req, HttpResponse* resp)
   else {
     resp->status = 404;
   }
-}
-
-void pdns::rust::web::rec::serveStuff(const pdns::rust::web::rec::Request& rustRequest, pdns::rust::web::rec::Response& rustReponse)
-{
-  HttpRequest request;
-  HttpResponse response;
-  request.url = std::string(rustRequest.uri);
-  serveStuff(&request, &response);
-  fromCxxToRust(response, rustReponse);
 }
 
 const std::map<std::string, MetricDefinition> MetricDefinitionStorage::d_metrics = {
@@ -1019,5 +961,51 @@ void serveRustWeb()
   for (const auto& [url, _]  : g_urlmap) {
     urls.emplace_back(url);
   }
-  pdns::rust::web::rec::serveweb({"127.0.0.1:3000", "[::1]:3000"}, urls);
+  pdns::rust::web::rec::serveweb({"127.0.0.1:3000", "[::1]:3000"}, ::rust::Slice<const ::rust::String>{urls.data(), urls.size()});
+}
+
+static void fromCxxToRust(const HttpResponse& cxxresp, pdns::rust::web::rec::Response& rustResponse)
+{
+  if (cxxresp.status != 0) {
+    rustResponse.status = cxxresp.status;
+  }
+  rustResponse.body = ::rust::Vec<::rust::u8>();
+  rustResponse.body.reserve(cxxresp.body.size());
+  std::copy(cxxresp.body.cbegin(), cxxresp.body.cend(), std::back_inserter(rustResponse.body));
+  for (const auto& header : cxxresp.headers) {
+    rustResponse.headers.emplace_back(pdns::rust::web::rec::KeyValue{header.first, header.second});
+  }
+}
+
+static void rustWrapper(const std::function<void (HttpRequest*, HttpResponse*)>& func, const pdns::rust::web::rec::Request& rustRequest, pdns::rust::web::rec::Response& rustResponse)
+{
+  HttpRequest request;
+  HttpResponse response;
+  request.body = std::string(reinterpret_cast<const char*>(rustRequest.body.data()), rustRequest.body.size());
+  request.url = std::string(rustRequest.uri);
+  for (const auto& [key, value] : rustRequest.vars) {
+    request.getvars[std::string(key)] = std::string(value);
+  }
+  func(&request, &response);
+  fromCxxToRust(response, rustResponse);
+}
+
+namespace pdns::rust::web::rec {
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define WRAPPER(A) void A(const Request& rustRequest, Response& rustResponse) { rustWrapper(::A, rustRequest, rustResponse); }
+
+void jsonstat(const Request& rustRequest, Response& rustResponse)
+{
+  rustWrapper(RecursorWebServer::jsonstat, rustRequest, rustResponse);
+}
+
+WRAPPER(apiServerCacheFlush)
+WRAPPER(apiServerDetail)
+WRAPPER(apiServerZonesGET)
+WRAPPER(apiServerZonesPOST)
+WRAPPER(prometheusMetrics)
+WRAPPER(serveStuff)
+WRAPPER(apiServerStatistics)
+
 }

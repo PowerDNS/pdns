@@ -7,7 +7,8 @@ EXTRA_DIST = \
 	Cargo.lock \
 	build.rs \
 	src/bridge.rs \
-	src/helpers.rs
+	src/helpers.rs \
+        src/web.rs
 
 # should actually end up in a target specific dir...
 libsettings.a lib.rs.h: src/web.rs src/bridge.rs src/lib.rs src/helpers.rs Cargo.toml Cargo.lock build.rs
