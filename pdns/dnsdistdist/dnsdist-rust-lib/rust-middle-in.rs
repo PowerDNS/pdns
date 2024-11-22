@@ -11,14 +11,16 @@
         include!("dnsdist-rust-bridge.hh");
         type DNSSelector;
         fn getSelectorByName(name: &String) -> SharedPtr<DNSSelector>;
+        type DNSActionWrapper;
+        fn getActionByName(name: &String) -> SharedPtr<DNSActionWrapper>;
+        type DNSResponseActionWrapper;
+
         fn getMaxIPQPSSelector(config: &MaxQPSIPSelectorConfiguration) -> SharedPtr<DNSSelector>;
         fn getTCPSelector(config: &TCPSelectorConfig) -> SharedPtr<DNSSelector>;
         fn getAllSelector() -> SharedPtr<DNSSelector>;
         fn getAndSelector(config: &AndSelectorConfig) -> SharedPtr<DNSSelector>;
         fn getNetmaskGroupSelector(config: &NetmaskGroupSelectorConfig) -> SharedPtr<DNSSelector>;
-        type DNSActionWrapper;
-        fn getActionByName(name: &String) -> SharedPtr<DNSActionWrapper>;
-        fn getPoolAction(config: &PoolActionConfig) -> SharedPtr<DNSActionWrapper>;
+        //fn getPoolAction(config: &PoolActionConfiguration) -> SharedPtr<DNSActionWrapper>;
     }
 }
 
@@ -48,14 +50,6 @@ enum Selector {
     TCP(dnsdistsettings::TCPSelectorConfig),
     MaxQPSIP(dnsdistsettings::MaxQPSIPSelectorConfiguration),
     NetmaskGroup(dnsdistsettings::NetmaskGroupSelectorConfig),
-}
-
-#[derive(Default, Serialize, Deserialize, Debug, PartialEq)]
-#[serde(tag = "type")]
-enum Action {
-    #[default]
-    None,
-    Pool(dnsdistsettings::PoolActionConfig),
 }
 
 impl Selector {

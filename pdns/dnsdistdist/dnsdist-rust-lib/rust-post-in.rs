@@ -60,19 +60,6 @@ fn get_selectors_from_serde(
     results
 }
 
-fn get_one_action_from_serde(action: &Action) -> Option<dnsdistsettings::SharedDNSAction> {
-    match action {
-        Action::None => {}
-        Action::Pool(pool) => {
-            let pool_action = dnsdistsettings::getPoolAction(&pool);
-            return Some(dnsdistsettings::SharedDNSAction {
-                action: pool_action,
-            });
-        }
-    }
-    None
-}
-
 fn get_query_rules_from_serde(
     rules_from_serde: &Vec<QueryRulesConfigurationSerde>,
 ) -> Vec<dnsdistsettings::QueryRulesConfiguration> {

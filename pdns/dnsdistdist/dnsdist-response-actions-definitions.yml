@@ -5,6 +5,7 @@
   parameters:
     - name: "types"
       type: "Vec<u16>"
+      default: true
 - name: "delay"
   parameters:
     - name: "msec"
@@ -19,7 +20,7 @@
       type: "u32"
     - name: "types"
       type: "Vec<u16>"
-      default: "true"
+      default: true
 - name: "log"
   parameters:
     - name: "file-name"
@@ -46,10 +47,12 @@
   parameters:
     - name: "function"
       type: "dnsdist::actions::LuaResponseActionFunction"
+      rust-type: "String"
 - name: "LuaFFI"
   parameters:
     - name: "function"
       type: "dnsdist::actions::LuaResponseActionFFIFunction"
+      rust-type: "String"
 - name: "LuaFFIPerThread"
   parameters:
     - name: "code"

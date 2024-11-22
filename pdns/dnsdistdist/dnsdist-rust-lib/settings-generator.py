@@ -119,24 +119,16 @@ def get_rust_serde_annotations(rust_type, default, rename, obj, field, default_f
         return f'''#[serde({rename_value}default = "crate::default_value_{basename}", skip_serializing_if = "crate::default_value_equal_{basename}")]'''
     return f'''#[serde({rename_value}default = "crate::{type_upper}::<{default}>::value", skip_serializing_if = "crate::{type_upper}::<{default}>::is_equal")]'''
 
-def get_rust_struct_from_definition(name, keys, default_functions):
+def get_rust_struct_fields_from_definition(name, keys, default_functions, indent_spaces):
     if not 'parameters' in keys:
         return ''
-    obj_name = get_rust_object_name(name)
-    name_field = ''
-    if 'generate-name-field' in keys and keys['generate-name-field'] is True:
-        name_field = '''         #[serde(default, skip_serializing_if = "crate::is_default")]
-        name: String,\n'''
     output = ''
-    if not 'skip-serde' in keys or not keys['skip-serde']:
-        output += '''    #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
-    #[serde(deny_unknown_fields)]
-'''
-    output += f'''    struct {obj_name}Configuration {{
-{name_field}'''
+    indent = ' '*indent_spaces
     for parameter in keys['parameters']:
         parameter_name = get_rust_field_name(parameter['name']) if not 'rename' in parameter else parameter['rename']
         rust_type = parameter['type']
+        if 'rust-type' in parameter:
+            rust_type = parameter['rust-type']
         # cxx does not support Enums, so we have to convert them to opaque types
         if rust_type == 'Action':
             rust_type = 'SharedDNSAction'
@@ -147,8 +139,30 @@ def get_rust_struct_from_definition(name, keys, default_functions):
         rename = parameter['name'] if parameter_name != parameter['name'] else None
         default_str = get_rust_serde_annotations(rust_type, parameter['default'] if 'default' in parameter else None, rename, get_rust_field_name(name), parameter_name, default_functions)
         if default_str:
-            output += '        ' + default_str + '\n'
-        output += f'        {parameter_name}: {rust_type},\n'
+            output += indent + default_str + '\n'
+        output += f'{indent}{parameter_name}: {rust_type},\n'
+
+    return output
+
+def get_rust_struct_from_definition(name, keys, default_functions, indent_spaces=4):
+    if not 'parameters' in keys:
+        return ''
+    obj_name = get_rust_object_name(name)
+    indent = ' '*indent_spaces
+    name_field = ''
+    output = ''
+    if not 'skip-serde' in keys or not keys['skip-serde']:
+        output += f'''{indent}#[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
+{indent}#[serde(deny_unknown_fields)]
+'''
+    output += f'''{indent}struct {obj_name}Configuration {{
+{name_field}'''
+    indent_spaces += 4
+    indent = ' '*indent_spaces
+    if 'generate-name-field' in keys and keys['generate-name-field'] is True:
+        name_field = f'''{indent}#[serde(default, skip_serializing_if = "crate::is_default")]
+{indent}name: String,\n'''
+    output += get_rust_struct_fields_from_definition(name, keys, default_functions, indent_spaces)
     output += '    }\n'
     return output
 
@@ -288,6 +302,179 @@ void convertRuntimeFlatSettingsFromRust(const dnsdist::rust::settings::GlobalCon
 
     os.rename(cxx_flat_settings_fp.name, out_file_path + 'dnsdist-configuration-yaml-items-cxx.cc')
 
+def generate_actions_config(output, response, default_functions):
+    suffix = 'ResponseAction' if response else 'Action'
+    actions_definitions = get_actions_definitions(response)
+    action_buffer = ''
+    for action in actions_definitions:
+        name = get_rust_object_name(action['name'])
+        struct_name = f'{name}{suffix}Configuration'
+        indent = ' ' * 4
+        action_buffer += f'''{indent}#[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
+{indent}#[serde(deny_unknown_fields)]
+{indent}struct {struct_name} {{\n'''
+
+        indent = ' ' * 8
+        action_buffer += f'''{indent}#[serde(default, skip_serializing_if = "crate::is_default")]
+{indent}name: String,\n'''
+
+        action_buffer += get_rust_struct_fields_from_definition(struct_name, action, default_functions, 8)
+
+        action_buffer += '    }\n\n'
+
+    output.write(action_buffer)
+
+def generate_cpp_action_headers():
+    cpp_action_headers_fp = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8', dir='..')
+    header_buffer = ''
+
+    # query actions
+    actions_definitions = get_actions_definitions(False)
+    suffix = 'Action'
+    for action in actions_definitions:
+        name = get_rust_object_name(action['name'])
+        struct_name = f'{name}{suffix}Configuration'
+        header_buffer += f'struct {struct_name};\n'
+        header_buffer += f'std::shared_ptr<DNS{suffix}Wrapper> get{name}{suffix}(const {struct_name}& config);\n'
+
+    # response actions
+    actions_definitions = get_actions_definitions(True)
+    suffix = 'ResponseAction'
+    for action in actions_definitions:
+        name = get_rust_object_name(action['name'])
+        struct_name = f'{name}{suffix}Configuration'
+        header_buffer += f'struct {struct_name};\n'
+        header_buffer += f'std::shared_ptr<DNS{suffix}Wrapper> get{name}{suffix}(const {struct_name}& config);\n'
+
+    cpp_action_headers_fp.write(header_buffer)
+    os.rename(cpp_action_headers_fp.name, '../dnsdist-rust-bridge-actions-generated.hh')
+
+def get_cpp_parameters(struct_name, parameters, skip_name):
+    output = ''
+    for parameter in parameters:
+        name = parameter['name']
+        ptype = parameter['type']
+        if name == 'name' and skip_name:
+            continue
+        pname = get_rust_field_name(name)
+        if len(output) > 0:
+            output += ', '
+        field = f'{struct_name}.{pname}'
+        if ptype == 'String':
+            field = f'std::string({field})'
+        output += field
+    return output
+
+def generate_cpp_action_wrappers():
+    cpp_action_wrappers_fp = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8', dir='..')
+    wrappers_buffer = ''
+
+    # query actions
+    actions_definitions = get_actions_definitions(False)
+    suffix = 'Action'
+    for action in actions_definitions:
+        name = get_rust_object_name(action['name'])
+        struct_name = f'{name}{suffix}Configuration'
+        parameters = get_cpp_parameters('config', action['parameters'], True) if 'parameters' in action else ''
+        wrappers_buffer += f'''std::shared_ptr<DNS{suffix}Wrapper> get{name}{suffix}(const {struct_name}& config)
+{{
+  auto action = dnsdist::actions::get{name}{suffix}({parameters});
+  return newDNSActionWrapper(std::move(action), config.name);
+}}
+'''
+
+    # response actions
+    actions_definitions = get_actions_definitions(True)
+    suffix = 'ResponseAction'
+    for action in actions_definitions:
+        name = get_rust_object_name(action['name'])
+        struct_name = f'{name}{suffix}Configuration'
+        parameters = get_cpp_parameters('config', action['parameters'], True) if 'parameters' in action else ''
+        wrappers_buffer += f'''std::shared_ptr<DNS{suffix}Wrapper> get{name}{suffix}(const {struct_name}& config)
+{{
+  auto action = dnsdist::actions::get{name}{suffix}({parameters});
+  return newDNSResponseActionWrapper(std::move(action), config.name);
+}}
+'''
+
+    cpp_action_wrappers_fp.write(wrappers_buffer)
+    os.rename(cpp_action_wrappers_fp.name, '../dnsdist-rust-bridge-actions-generated.cc')
+
+def generate_rust_actions_enum(output, response):
+    suffix = 'ResponseAction' if response else 'Action'
+    actions_definitions = get_actions_definitions(response)
+    enum_buffer = f'''#[derive(Default, Serialize, Deserialize, Debug, PartialEq)]
+#[serde(tag = "type")]
+enum {suffix} {{
+    #[default]
+    Default,
+'''
+
+    for action in actions_definitions:
+        name = get_rust_object_name(action['name'])
+        struct_name = f'{name}{suffix}Configuration'
+        enum_buffer += f'    {name}(dnsdistsettings::{struct_name}),\n'
+
+    enum_buffer += '}\n\n'
+
+    output.write(enum_buffer)
+
+def get_actions_definitions(response):
+    def_file = '../dnsdist-response-actions-definitions.yml' if response else '../dnsdist-actions-definitions.yml'
+    return get_definitions_from_file(def_file)
+
+def generate_cpp_action_functions_callable_from_rust(output):
+    output_buffer = '''
+    /*
+     * Functions callable from Rust (actions)
+     */
+    unsafe extern "C++" {
+'''
+    # first query actions
+    actions_definitions = get_actions_definitions(False)
+    suffix = 'Action'
+    for action in actions_definitions:
+        name = get_rust_object_name(action['name'])
+        output_buffer += f'        fn get{name}{suffix}(config: &{name}{suffix}Configuration) -> SharedPtr<DNS{suffix}Wrapper>;\n'
+
+    # then response actions
+    actions_definitions = get_actions_definitions(True)
+    suffix = 'ResponseAction'
+    for action in actions_definitions:
+        name = get_rust_object_name(action['name'])
+        output_buffer += f'        fn get{name}{suffix}(config: &{name}{suffix}Configuration) -> SharedPtr<DNS{suffix}Wrapper>;\n'
+
+    output_buffer += '    }\n'
+    output.write(output_buffer)
+
+def generate_rust_action_to_config(output, response):
+    suffix = 'ResponseAction' if response else 'Action'
+    actions_definitions = get_actions_definitions(response)
+    function_name = 'get_one_action_from_serde' if not response else 'get_one_response_action_from_serde'
+    enum_buffer = f'''fn {function_name}(action: &{suffix}) -> Option<dnsdistsettings::SharedDNS{suffix}> {{
+    match action {{
+        {suffix}::Default => {{}}
+'''
+
+    for action in actions_definitions:
+        name = get_rust_object_name(action['name'])
+        var = name.lower()
+        struct_name = f'{name}{suffix}Configuration'
+        enum_buffer += f'''        {suffix}::{name}({var}) => {{
+            let tmp_action = dnsdistsettings::get{name}{suffix}(&{var});
+            return Some(dnsdistsettings::SharedDNS{suffix} {{
+                action: tmp_action,
+            }});
+        }}
+'''
+
+    enum_buffer += '''    }
+    None
+}
+'''
+
+    output.write(enum_buffer)
+
 def main():
     if len(sys.argv) != 2:
         print(f'Usage: {sys.argv[0]} <path/to/definitions/file>')
@@ -299,8 +486,15 @@ def main():
     validation_functions = []
     sections = gather_sections(definitions)
     global_objects = {}
+
+    generate_cpp_action_headers()
+    generate_cpp_action_wrappers()
+
     generated_fp = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8', dir=src_dir + '/rust/src/')
     include_file(generated_fp, src_dir + 'rust-pre-in.rs')
+
+    generate_actions_config(generated_fp, False, default_functions)
+    generate_actions_config(generated_fp, True, default_functions)
 
     generate_flat_settings_for_cxx(definitions, src_dir)
 
@@ -376,7 +570,12 @@ def main():
 
     generated_fp.write('    }\n')
 
+    generate_cpp_action_functions_callable_from_rust(generated_fp)
+
     include_file(generated_fp, src_dir + 'rust-middle-in.rs')
+
+    generate_rust_actions_enum(generated_fp, False)
+    generate_rust_actions_enum(generated_fp, True)
 
     # then the Serde one
     generated_fp.write('''#[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
@@ -420,6 +619,9 @@ struct GlobalConfigurationSerde {\n''')
 
     for function_def in validation_functions:
         generated_fp.write(function_def + '\n')
+
+    generate_rust_action_to_config(generated_fp, False)
+    generate_rust_action_to_config(generated_fp, True)
 
     include_file(generated_fp, src_dir + 'rust-post-in.rs')
 
