@@ -16,6 +16,51 @@ pub struct ValidationError {
 mod dnsdistsettings {
     #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
+    struct ResponseConfig {
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        set_aa: bool,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        set_ad: bool,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        set_ra: bool,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        ttl: u32,
+    }
+
+    #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
+    #[serde(deny_unknown_fields)]
+    struct SVCRecordAdditionalParams {
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        key: u16,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        value: String,
+    }
+
+    #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
+    #[serde(deny_unknown_fields)]
+    struct SVCRecordParameters {
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        mandatory_params: Vec<u16>,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        alpns: Vec<String>,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        ipv4_hints: Vec<String>,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        ipv6_hints: Vec<String>,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        additional_params: Vec<SVCRecordAdditionalParams>,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        target: String,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        port: u16,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        priority: u16,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        non_default_alpn: bool,
+    }
+
+    #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
+    #[serde(deny_unknown_fields)]
     struct TCPSelectorConfig {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
@@ -65,16 +110,10 @@ mod dnsdistsettings {
         selector: SharedPtr<DNSSelector>,
     }
 
-    #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
-    #[serde(deny_unknown_fields)]
-    struct PoolActionConfig {
-        #[serde(default, skip_serializing_if = "crate::is_default")]
-        name: String,
-        pool: String,
-        #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
-        stop_processing: bool,
-    }
-
     struct SharedDNSAction {
         action: SharedPtr<DNSActionWrapper>,
+    }
+
+    struct SharedDNSResponseAction {
+        action: SharedPtr<DNSResponseActionWrapper>,
     }

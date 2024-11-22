@@ -48,7 +48,7 @@ namespace dnsdist::configuration::yaml
 void convertImmutableFlatSettingsFromRust(const dnsdist::rust::settings::GlobalConfiguration& yamlConfig);
 void convertRuntimeFlatSettingsFromRust(const dnsdist::rust::settings::GlobalConfiguration& yamlConfig);
 
-using RegisteredTypes = std::variant<std::shared_ptr<DNSDistPacketCache>, std::shared_ptr<dnsdist::rust::settings::DNSSelector>, std::shared_ptr<dnsdist::rust::settings::DNSActionWrapper>, std::shared_ptr<NetmaskGroup>, std::shared_ptr<KeyValueStore>, std::shared_ptr<KeyValueLookupKey>, std::shared_ptr<RemoteLoggerInterface>, std::shared_ptr<ServerPolicy>>;
+using RegisteredTypes = std::variant<std::shared_ptr<DNSDistPacketCache>, std::shared_ptr<dnsdist::rust::settings::DNSSelector>, std::shared_ptr<dnsdist::rust::settings::DNSActionWrapper>, std::shared_ptr<dnsdist::rust::settings::DNSResponseActionWrapper>, std::shared_ptr<NetmaskGroup>, std::shared_ptr<KeyValueStore>, std::shared_ptr<KeyValueLookupKey>, std::shared_ptr<RemoteLoggerInterface>, std::shared_ptr<ServerPolicy>>;
 static LockGuarded<std::unordered_map<std::string, RegisteredTypes>> s_registeredTypesMap;
 
 template <class T>
@@ -856,15 +856,30 @@ std::shared_ptr<DNSSelector> getNetmaskGroupSelector(const NetmaskGroupSelectorC
   return newDNSSelector(std::move(rule), config.name);
 }
 
-std::shared_ptr<DNSActionWrapper> getPoolAction(const PoolActionConfig& config)
+static std::shared_ptr<DNSActionWrapper> newDNSActionWrapper(std::shared_ptr<DNSAction>&& action, const ::rust::String& name)
 {
-  auto poolAction = dnsdist::actions::getPoolAction(std::string(config.pool), config.stop_processing);
-  auto action = std::make_shared<DNSActionWrapper>();
-  action->d_name = std::string(config.name);
-  action->d_action = std::move(poolAction);
-  dnsdist::configuration::yaml::registerType(action, action->d_name);
-  return action;
+  auto wrapper = std::make_shared<DNSActionWrapper>();
+  wrapper->d_name = std::string(name);
+  wrapper->d_action = std::move(action);
+  dnsdist::configuration::yaml::registerType(wrapper, name);
+  return wrapper;
 }
 
+static std::shared_ptr<DNSResponseActionWrapper> newDNSResponseActionWrapper(std::shared_ptr<DNSResponseAction>&& action, const ::rust::String& name)
+{
+  auto wrapper = std::make_shared<DNSResponseActionWrapper>();
+  wrapper->d_name = std::string(name);
+  wrapper->d_action = std::move(action);
+  dnsdist::configuration::yaml::registerType(wrapper, name);
+  return wrapper;
+}
+
+std::shared_ptr<DNSActionWrapper> getPoolAction(const PoolActionConfiguration& config)
+{
+  auto poolAction = dnsdist::actions::getPoolAction(std::string(config.pool_name), config.stop_processing);
+  return newDNSActionWrapper(std::move(poolAction), config.name);
+}
+
+#include "dnsdist-rust-bridge-actions-generated.cc"
 }
 #endif /* defined(HAVE_YAML_CONFIGURATION) */

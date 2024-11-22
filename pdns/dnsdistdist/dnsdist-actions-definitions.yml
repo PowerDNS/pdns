@@ -18,7 +18,7 @@
       type: "u8"
     - name: "vars"
       type: "ResponseConfig"
-      default: "true"
+      default: true
       cpp-optional: false
 - name: "HTTPStatus"
   skip-cpp: true
@@ -33,7 +33,7 @@
       cpp-optional: false
     - name: "vars"
       type: "ResponseConfig"
-      default: "true"
+      default: true
 - name: "log"
   parameters:
     - name: "file-name"
@@ -64,10 +64,12 @@
   parameters:
     - name: "function"
       type: "dnsdist::actions::LuaActionFunction"
+      rust-type: "String"
 - name: "LuaFFI"
   parameters:
     - name: "function"
       type: "dnsdist::actions::LuaActionFFIFunction"
+      rust-type: "String"
 - name: "LuaFFIPerThread"
   parameters:
     - name: "code"
@@ -97,7 +99,7 @@
       type: "u32"
     - name: "vars"
       type: "ResponseConfig"
-      default: "true"
+      default: true
 - name: "none"
 - name: "pool"
   parameters:
@@ -128,10 +130,10 @@
       type: "u8"
     - name: "vars"
       type: "ResponseConfig"
-      default: "true"
+      default: true
 - name: "SetAdditionalProxyProtocolValue"
   parameters:
-    - name: "type"
+    - name: "proxy-type"
       type: "u8"
     - name: "value"
       type: "String"
@@ -141,14 +143,14 @@
   skip-cpp: true
   parameters:
     - name: "ipv4"
-      type: "ComboAddress"
+      type: "String"
     - name: "ipv6"
-      type: "ComboAddress"
+      type: "String"
       default: ""
       cpp-optional: false
 - name: "SetECSOverride"
   parameters:
-    - name: "override"
+    - name: "override-existing"
       type: "bool"
 - name: "SetECSPrefixLength"
   parameters:
@@ -205,19 +207,19 @@
       type: "Vec<SVCRecordParameters>"
     - name: "vars"
       type: "ResponseConfig"
-      default: "true"
+      default: true
 - name: "TC"
 - name: "tee"
   skip-cpp: true
   parameters:
     - name: "rca"
-      type: "const ComboAddress&"
+      type: "String"
     - name: "addECS"
       type: "bool"
       default: "false"
       cpp-optional: false
     - name: "lca"
-      type: "ComboAddress"
+      type: "String"
       default: ""
     - name: "addProxyProtocol"
       type: "bool"
