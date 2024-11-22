@@ -3,7 +3,7 @@ RRSet
 
 .. json:object:: RRSet
 
-  This represents a Resource Record set (all record with the same name and type).
+  This represents a Resource Record set (all records with the same name and type).
 
   :property string name: Name for record set (e.g. "www.powerdns.com.")
   :property string type: Type of this record (e.g. "A", "PTR", "MX")
