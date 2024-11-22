@@ -266,13 +266,13 @@ async fn hello(
             }
             let pos = urls.iter().position(|x| String::from("/") + x == path);
             if pos.is_none() {
-                println!("{} not found", path);
+                eprintln!("{} {} not found", rust_request.method(), path);
             }
             if rustweb::serveStuff(&request, &mut response).is_err() {
                 // Return 404 not found response.
                 response.status = StatusCode::NOT_FOUND.as_u16();
                 response.body = NOTFOUND.to_vec();
-                println!("{} not found case 2", path);
+                eprintln!("{} {} not found case 2", rust_request.method(), path);
             }
         }
     }

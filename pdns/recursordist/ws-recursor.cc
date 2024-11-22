@@ -993,6 +993,12 @@ static void rustWrapper(const std::function<void(HttpRequest*, HttpResponse*)>& 
     response.body = e.response().body;
     response.status = e.response().status;
   }
+  catch (const ApiException & e) {
+    response.setErrorResult(e.what(), 422);
+  }
+  catch (const JsonException & e) {
+    response.setErrorResult(e.what(), 422);
+  }
   fromCxxToRust(response, rustResponse);
 }
 
