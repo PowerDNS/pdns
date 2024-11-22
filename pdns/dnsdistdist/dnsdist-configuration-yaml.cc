@@ -583,6 +583,12 @@ bool loadConfigurationFromFile(const std::string fileName)
       });
     }
 
+    for (const auto& rule : globalConfig.query_rules) {
+      cerr<<"Got rule with name "<<rule.name<<" and UUID "<<rule.uuid<<endl;
+      cerr<<" - Selector is "<<rule.selector.selector->d_rule->toString()<<endl;
+      cerr<<" - Action is "<<rule.action.action->d_action->toString()<<endl;
+    }
+
     for (const auto& dbrg : globalConfig.dynamic_rules) {
       auto dbrgObj = std::make_shared<DynBlockRulesGroup>();
       dbrgObj->setMasks(dbrg.mask_ipv4, dbrg.mask_ipv6, dbrg.mask_port);
@@ -795,11 +801,6 @@ std::shared_ptr<DNSSelector> getSelectorByName(const ::rust::String& name)
   return dnsdist::configuration::yaml::getRegisteredTypeByName<DNSSelector>(name);
 }
 
-const std::string& getNameFromSelector(const DNSSelector& selector)
-{
-  return selector.d_name;
-}
-
 static std::shared_ptr<DNSSelector> newDNSSelector(std::shared_ptr<DNSRule>&& rule, const ::rust::String& name)
 {
   auto selector = std::make_shared<DNSSelector>();
@@ -824,12 +825,10 @@ std::shared_ptr<DNSSelector> getAllSelector()
 std::shared_ptr<DNSSelector> getAndSelector(const AndSelectorConfig& config)
 {
   LuaArray<std::shared_ptr<DNSRule>> selectors;
+  selectors.reserve(config.selectors.size());
   int counter = 1;
   for (const auto& selector : config.selectors) {
-    auto dnsSelector = dnsdist::configuration::yaml::getRegisteredTypeByName<DNSSelector>(std::string(selector));
-    if (dnsSelector) {
-      selectors.push_back({counter++, dnsSelector->d_rule});
-    }
+    selectors.emplace_back(counter++, selector.selector->d_rule);
   }
   auto rule = std::shared_ptr<DNSRule>(new AndRule(selectors));
   return newDNSSelector(std::move(rule), config.name);

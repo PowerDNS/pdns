@@ -23,21 +23,9 @@ fn get_one_selector_from_serde(selector: &Selector) -> Option<dnsdistsettings::S
         Selector::And(sel) => {
             let mut config: dnsdistsettings::AndSelectorConfig = Default::default();
             for sub_selector in &sel.selectors {
-                match sub_selector {
-                    Selector::ByName(sub_sel) => {
-                        config.selectors.push(sub_sel.name.clone());
-                    }
-                    sub_sel => {
-                        let new_selector = get_one_selector_from_serde(&sub_sel);
-                        if new_selector.is_some() {
-                            config.selectors.push(
-                                dnsdistsettings::getNameFromSelector(
-                                    &new_selector.unwrap().selector,
-                                )
-                                .to_string(),
-                            );
-                        }
-                    }
+                let new_selector = get_one_selector_from_serde(&sub_selector);
+                if new_selector.is_some() {
+                    config.selectors.push(new_selector.unwrap());
                 }
             }
             return Some(dnsdistsettings::SharedDNSSelector {
@@ -120,8 +108,10 @@ fn get_global_configuration_from_serde(
     config.packet_caches = serde.packet_caches;
     config.pools = serde.pools;
     config.tuning = serde.tuning;
-    config.query_rules = get_query_rules_from_serde(&serde.query_rules);
+    // this needs to be done BEFORE the rules so that they can refer to the selectors
+    // by name
     config.selectors = get_selectors_from_serde(&serde.selectors);
+    config.query_rules = get_query_rules_from_serde(&serde.query_rules);
     config
 }
 
