@@ -374,6 +374,10 @@ public:
     {
       return d_serial;
     }
+    [[nodiscard]] const DNSRecord& getSOA() const
+    {
+      return d_zoneData->d_soa;
+    }
 
     [[nodiscard]] size_t size() const
     {

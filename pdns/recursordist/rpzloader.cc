@@ -382,6 +382,19 @@ std::shared_ptr<const SOARecordContent> loadRPZFromFile(const std::string& fname
 static bool dumpZoneToDisk(Logr::log_t logger, const std::shared_ptr<DNSFilterEngine::Zone>& newZone, const std::string& dumpZoneFileName)
 {
   logger->info(Logr::Debug, "Dumping zone to disk", "destination_file", Logging::Loggable(dumpZoneFileName));
+  DNSRecord soa = newZone->getSOA();
+  uint32_t serial = 0;
+  DNSName zone;
+  if (auto soaContent = getRR<SOARecordContent>(soa)) {
+    serial = soaContent->d_st.serial;
+  }
+  if (newZone->getSerial() != serial) {
+    logger->info(Logr::Error, "Inconsistency of internal serial and SOA serial", "serial", Logging::Loggable(newZone->getSerial()), "soaserial", Logging::Loggable(serial));
+  }
+
+  if (newZone->getDomain() != soa.d_name) {
+    logger->info(Logr::Error, "Inconsistency of internal name and SOA name", "zone", Logging::Loggable(newZone->getDomain()), "soaname", Logging::Loggable(soa.d_name));
+  }
   std::string temp = dumpZoneFileName + "XXXXXX";
   int fileDesc = mkstemp(&temp.at(0));
   if (fileDesc < 0) {
@@ -621,8 +634,10 @@ static bool RPZTrackerIteration(RPZTrackerParams& params, const DNSName& zoneNam
           continue;
         }
         if (resourceRecord.d_type == QType::SOA) {
-          auto tempSR = getRR<SOARecordContent>(resourceRecord);
-          if (tempSR) {
+          if (auto tempSR = getRR<SOARecordContent>(resourceRecord)) {
+            dnsRecord = resourceRecord;
+            // IXFR leaves us a relative name, fix that
+            dnsRecord.d_name = newZone->getDomain();
             currentSR = std::move(tempSR);
           }
         }
@@ -637,6 +652,7 @@ static bool RPZTrackerIteration(RPZTrackerParams& params, const DNSName& zoneNam
 
     /* only update sr now that all changes have been converted */
     if (currentSR) {
+      newZone->setSOA(dnsRecord);
       params.zoneXFRParams.soaRecordContent = std::move(currentSR);
     }
     SLOG(g_log << Logger::Info << "Had " << totremove << " RPZ removal" << addS(totremove) << ", " << totadd << " addition" << addS(totadd) << " for " << zoneName << " New serial: " << params.soaRecordContent->d_st.serial << endl,

@@ -272,6 +272,10 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord>>> getIXFRDeltas(const ComboAddr
           // we are up to date
           return ret;
         }
+        if(soaRecord->d_st.serial < getRR<SOARecordContent>(oursr)->d_st.serial) {
+          // we have a higher SOA than the auth? Should not happen, but what can we do?
+          throw std::runtime_error("Our serial is higher than remote one for zone '" + zone.toLogString() + "' from primary '" + primary.toStringWithPort() + "': ours " + std::to_string(getRR<SOARecordContent>(oursr)->d_st.serial) + " theirs " + std::to_string(soaRecord->d_st.serial));
+        }
         primarySOA = std::move(soaRecord);
         ++primarySOACount;
       } else if (r.d_type == QType::SOA) {
