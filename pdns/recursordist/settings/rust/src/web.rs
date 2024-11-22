@@ -108,8 +108,92 @@ async fn hello(
             );
         }
         (&Method::PUT, "/api/v1/servers/localhost/cache/flush") => {
+            request.body = rust_request.collect().await?.to_bytes().to_vec();
             api_wrapper(
                 rustweb::apiServerCacheFlush as Func,
+                &request,
+                &mut response,
+                headers,
+            );
+        }
+        (&Method::PUT, "/api/v1/servers/localhost/config/allow-from") => {
+            request.body = rust_request.collect().await?.to_bytes().to_vec();
+            api_wrapper(
+                rustweb::apiServerConfigAllowFromPUT as Func,
+                &request,
+                &mut response,
+                headers,
+            );
+        }
+        (&Method::GET, "/api/v1/servers/localhost/config/allow-from") => {
+            api_wrapper(
+                rustweb::apiServerConfigAllowFromGET as Func,
+                &request,
+                &mut response,
+                headers,
+            );
+        }
+        (&Method::PUT, "/api/v1/servers/localhost/config/allow-notify-from") => {
+            request.body = rust_request.collect().await?.to_bytes().to_vec();
+            api_wrapper(
+                rustweb::apiServerConfigAllowNotifyFromPUT as Func,
+                &request,
+                &mut response,
+                headers,
+            );
+        }
+        (&Method::GET, "/api/v1/servers/localhost/config/allow-notify-from") => {
+            api_wrapper(
+                rustweb::apiServerConfigAllowNotifyFromGET as Func,
+                &request,
+                &mut response,
+                headers,
+            );
+        }
+        (&Method::GET, "/api/v1/servers/localhost/config") => {
+            api_wrapper(
+                rustweb::apiServerConfig as Func,
+                &request,
+                &mut response,
+                headers,
+            );
+        }
+        (&Method::GET, "/api/v1/servers/localhost/rpzstatistics") => {
+            api_wrapper(
+                rustweb::apiServerRPZStats as Func,
+                &request,
+                &mut response,
+                headers,
+            );
+        }
+        (&Method::GET, "/api/v1/servers/localhost/search-data") => {
+            api_wrapper(
+                rustweb::apiServerSearchData as Func,
+                &request,
+                &mut response,
+                headers,
+            );
+        }
+        (&Method::GET, "/api/v1/servers/localhost/zones/") => {
+            api_wrapper(
+                rustweb::apiServerZoneDetailGET as Func,
+                &request,
+                &mut response,
+                headers,
+            );
+        }
+        (&Method::PUT, "/api/v1/servers/localhost/zones/") => {
+            request.body = rust_request.collect().await?.to_bytes().to_vec();
+            api_wrapper(
+                rustweb::apiServerZoneDetailPUT as Func,
+                &request,
+                &mut response,
+                headers,
+            );
+        }
+        (&Method::DELETE, "/api/v1/servers/localhost/zones/") => {
+            api_wrapper(
+                rustweb::apiServerZoneDetailDELETE as Func,
                 &request,
                 &mut response,
                 headers,
@@ -143,6 +227,30 @@ async fn hello(
         (&Method::GET, "/api/v1/servers/localhost") => {
             api_wrapper(
                 rustweb::apiServerDetail as Func,
+                &request,
+                &mut response,
+                headers,
+            );
+        }
+        (&Method::GET, "/api/v1/servers") => {
+            api_wrapper(
+                rustweb::apiServer as Func,
+                &request,
+                &mut response,
+                headers,
+            );
+        }
+        (&Method::GET, "/api/v1") => {
+            api_wrapper(
+                rustweb::apiDiscoveryV1 as Func,
+                &request,
+                &mut response,
+                headers,
+            );
+        }
+        (&Method::GET, "/api") => {
+            api_wrapper(
+                rustweb::apiDiscovery as Func,
                 &request,
                 &mut response,
                 headers,
@@ -287,9 +395,22 @@ mod rustweb {
 
     unsafe extern "C++" {
         include!("bridge.hh");
+        fn apiDiscovery(request: &Request, response: &mut Response) -> Result<()>;
+        fn apiDiscoveryV1(request: &Request, response: &mut Response) -> Result<()>;
+        fn apiServer(request: &Request, response: &mut Response) -> Result<()>;
         fn apiServerCacheFlush(request: &Request, response: &mut Response) -> Result<()>;
+        fn apiServerConfig(request: &Request, response: &mut Response) -> Result<()>;
+        fn apiServerConfigAllowFromGET(request: &Request, response: &mut Response) -> Result<()>;
+        fn apiServerConfigAllowFromPUT(request: &Request, response: &mut Response) -> Result<()>;
+        fn apiServerConfigAllowNotifyFromGET(request: &Request, response: &mut Response) -> Result<()>;
+        fn apiServerConfigAllowNotifyFromPUT(request: &Request, response: &mut Response) -> Result<()>;
         fn apiServerDetail(requst: &Request, response: &mut Response) -> Result<()>;
+        fn apiServerRPZStats(request: &Request, response: &mut Response) -> Result<()>;
+        fn apiServerSearchData(request: &Request, response: &mut Response) -> Result<()>;
         fn apiServerStatistics(requst: &Request, response: &mut Response) -> Result<()>;
+        fn apiServerZoneDetailDELETE(request: &Request, response: &mut Response) -> Result<()>;
+        fn apiServerZoneDetailGET(request: &Request, response: &mut Response) -> Result<()>;
+        fn apiServerZoneDetailPUT(request: &Request, response: &mut Response) -> Result<()>;
         fn apiServerZonesGET(request: &Request, response: &mut Response) -> Result<()>;
         fn apiServerZonesPOST(requst: &Request, response: &mut Response) -> Result<()>;
         fn jsonstat(request: &Request, response: &mut Response) -> Result<()>;

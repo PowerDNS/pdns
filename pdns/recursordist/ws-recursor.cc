@@ -474,7 +474,6 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp)
   resp->setJsonBody(doc);
 }
 
-
 static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp)
 {
   DNSName canon = apiNameToDNSName(req->getvars["domain"]);
@@ -870,10 +869,8 @@ void AsyncWebServer::serveConnection(const std::shared_ptr<Socket>& socket) cons
     yarl.initialize(&req);
     socket->setNonBlocking();
 
-    const struct timeval timeout
-    {
-      g_networkTimeoutMsec / 1000, static_cast<suseconds_t>(g_networkTimeoutMsec) % 1000 * 1000
-    };
+    const struct timeval timeout{
+      g_networkTimeoutMsec / 1000, static_cast<suseconds_t>(g_networkTimeoutMsec) % 1000 * 1000};
     std::shared_ptr<TLSCtx> tlsCtx{nullptr};
     if (d_loglevel > WebServer::LogLevel::None) {
       socket->getRemote(remote);
@@ -958,7 +955,7 @@ void AsyncWebServer::go()
 void serveRustWeb()
 {
   static ::rust::Vec<::rust::String> urls;
-  for (const auto& [url, _]  : g_urlmap) {
+  for (const auto& [url, _] : g_urlmap) {
     urls.emplace_back(url);
   }
   auto address = ComboAddress(arg()["webserver-address"], arg().asNum("webserver-port"));
@@ -978,7 +975,7 @@ static void fromCxxToRust(const HttpResponse& cxxresp, pdns::rust::web::rec::Res
   }
 }
 
-static void rustWrapper(const std::function<void (HttpRequest*, HttpResponse*)>& func, const pdns::rust::web::rec::Request& rustRequest, pdns::rust::web::rec::Response& rustResponse)
+static void rustWrapper(const std::function<void(HttpRequest*, HttpResponse*)>& func, const pdns::rust::web::rec::Request& rustRequest, pdns::rust::web::rec::Response& rustResponse)
 {
   HttpRequest request;
   HttpResponse response;
@@ -987,26 +984,49 @@ static void rustWrapper(const std::function<void (HttpRequest*, HttpResponse*)>&
   for (const auto& [key, value] : rustRequest.vars) {
     request.getvars[std::string(key)] = std::string(value);
   }
-  func(&request, &response);
+  request.d_slog = g_slog; // XXX
+  response.d_slog = g_slog; // XXX
+  try {
+    func(&request, &response);
+  }
+  catch (HttpException& e) {
+    response.body = e.response().body;
+    response.status = e.response().status;
+  }
   fromCxxToRust(response, rustResponse);
 }
 
-namespace pdns::rust::web::rec {
+namespace pdns::rust::web::rec
+{
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define WRAPPER(A) void A(const Request& rustRequest, Response& rustResponse) { rustWrapper(::A, rustRequest, rustResponse); }
+#define WRAPPER(A) \
+  void A(const Request& rustRequest, Response& rustResponse) { rustWrapper(::A, rustRequest, rustResponse); }
 
 void jsonstat(const Request& rustRequest, Response& rustResponse)
 {
   rustWrapper(RecursorWebServer::jsonstat, rustRequest, rustResponse);
 }
 
+WRAPPER(apiDiscovery)
+WRAPPER(apiDiscoveryV1)
+WRAPPER(apiServer)
 WRAPPER(apiServerCacheFlush)
+WRAPPER(apiServerConfig)
+WRAPPER(apiServerConfigAllowFromGET)
+WRAPPER(apiServerConfigAllowFromPUT)
+WRAPPER(apiServerConfigAllowNotifyFromGET)
+WRAPPER(apiServerConfigAllowNotifyFromPUT)
 WRAPPER(apiServerDetail)
+WRAPPER(apiServerRPZStats)
+WRAPPER(apiServerSearchData)
+WRAPPER(apiServerStatistics)
+WRAPPER(apiServerZoneDetailDELETE)
+WRAPPER(apiServerZoneDetailGET)
+WRAPPER(apiServerZoneDetailPUT)
 WRAPPER(apiServerZonesGET)
 WRAPPER(apiServerZonesPOST)
 WRAPPER(prometheusMetrics)
 WRAPPER(serveStuff)
-WRAPPER(apiServerStatistics)
 
 }

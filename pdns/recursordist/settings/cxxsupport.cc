@@ -1454,4 +1454,3 @@ bool pdns::rust::settings::rec::isValidHostname(::rust::Str str)
     return false;
   }
 }
-
