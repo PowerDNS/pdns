@@ -1,4 +1,5 @@
 import dns
+import dns.zone
 import json
 import os
 import requests
@@ -383,11 +384,11 @@ class RPZXFRRecursorTest(RPZRecursorTest):
     """
 
     global rpzServerPort
+    _confdir = 'RPZXFRRecursor'
     _lua_config_file = """
     -- The first server is a bogus one, to test that we correctly fail over to the second one
-    rpzMaster({'127.0.0.1:9999', '127.0.0.1:%d'}, 'zone.rpz.', { refresh=1, includeSOA=true})
-    """ % (rpzServerPort)
-    _confdir = 'RPZXFRRecursor'
+    rpzMaster({'127.0.0.1:9999', '127.0.0.1:%d'}, 'zone.rpz.', { refresh=1, includeSOA=true, dumpFile="configs/%s/rpz.zone.dump"})
+    """ % (rpzServerPort, _confdir)
     _wsPort = 8042
     _wsTimeout = 2
     _wsPassword = 'secretpassword'
@@ -419,6 +420,23 @@ e 3600 IN A 192.0.2.42
 """.format(soa=cls._SOA))
         super(RPZRecursorTest, cls).generateRecursorConfig(confdir)
 
+    def checkDump(self, serial, timeout=2):
+        file = 'configs/%s/rpz.zone.dump' % self._confdir
+        attempts = 0
+        incr = .1
+        # There's a file base race here, so do a few attempts
+        while attempts < timeout:
+            zone = dns.zone.from_file(file, 'zone.rpz', relativize=False, check_origin=False, allow_include=False)
+            soa = zone['']
+            rdataset = soa.find_rdataset(dns.rdataclass.IN, dns.rdatatype.SOA)
+            # if the above call did not throw an exception the SOA has the right owner, continue
+            soa = zone.get_soa()
+            if soa.serial == serial and soa.mname == dns.name.from_text('ns.zone.rpz.'):
+                return # we foiund what we expected
+            attempts = attempts + incr
+            time.sleep(incr)
+        raise AssertionError("Waited %d seconds for the dumpfile to be updated to %d but the serial is still %d" % (timeout, serial, soa.serial))
+
     def waitUntilCorrectSerialIsLoaded(self, serial, timeout=5):
         global rpzServer
 
@@ -431,6 +449,7 @@ e 3600 IN A 192.0.2.42
                 raise AssertionError("Expected serial %d, got %d" % (serial, currentSerial))
             if currentSerial == serial:
                 self._xfrDone = self._xfrDone + 1
+                self.checkDump(serial)
                 return
 
             attempts = attempts + 1
