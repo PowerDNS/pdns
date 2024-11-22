@@ -74,7 +74,9 @@ impl Action {
 #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
 struct QueryRulesConfigurationSerde {
+    #[serde(default, skip_serializing_if = "crate::is_default")]
     name: String,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
     uuid: String,
     selector: Selector,
     action: Action,
