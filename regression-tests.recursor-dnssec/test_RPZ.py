@@ -432,7 +432,7 @@ e 3600 IN A 192.0.2.42
             # if the above call did not throw an exception the SOA has the right owner, continue
             soa = zone.get_soa()
             if soa.serial == serial and soa.mname == dns.name.from_text('ns.zone.rpz.'):
-                return # we foiund what we expected
+                return # we found what we expected
             attempts = attempts + incr
             time.sleep(incr)
         raise AssertionError("Waited %d seconds for the dumpfile to be updated to %d but the serial is still %d" % (timeout, serial, soa.serial))
