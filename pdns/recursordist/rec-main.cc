@@ -111,7 +111,7 @@ std::set<ComboAddress> g_proxyProtocolExceptions;
 boost::optional<ComboAddress> g_dns64Prefix{boost::none};
 DNSName g_dns64PrefixReverse;
 unsigned int g_maxChainLength;
-std::shared_ptr<SyncRes::domainmap_t> g_initialDomainMap; // new threads needs this to be setup
+LockGuarded<std::shared_ptr<SyncRes::domainmap_t>> g_initialDomainMap; // new threads needs this to be setup
 std::shared_ptr<NetmaskGroup> g_initialAllowFrom; // new thread needs to be setup with this
 std::shared_ptr<NetmaskGroup> g_initialAllowNotifyFrom; // new threads need this to be setup
 std::shared_ptr<notifyset_t> g_initialAllowNotifyFor; // new threads need this to be setup
@@ -350,6 +350,11 @@ int RecThreadInfo::runThreads(Logr::log_t log)
     auto& info = RecThreadInfo::info(currentThreadId);
     info.setHandler();
     info.start(currentThreadId, "web+stat", cpusMap, log);
+
+    if (::arg().mustDo("webserver")) {
+      extern void serveRustWeb();
+      serveRustWeb();
+    }
 
     for (auto& tInfo : RecThreadInfo::infos()) {
       tInfo.thread.join();
@@ -2228,7 +2233,7 @@ static int serviceMain(Logr::log_t log)
   }
   g_networkTimeoutMsec = ::arg().asNum("network-timeout");
 
-  std::tie(g_initialDomainMap, g_initialAllowNotifyFor) = parseZoneConfiguration(g_yamlSettings);
+  std::tie(*g_initialDomainMap.lock(), g_initialAllowNotifyFor) = parseZoneConfiguration(g_yamlSettings);
 
   g_latencyStatSize = ::arg().asNum("latency-statistic-size");
 
@@ -2828,7 +2833,7 @@ static void recursorThread()
     auto& threadInfo = RecThreadInfo::self();
     {
       SyncRes tmp(g_now); // make sure it allocates tsstorage before we do anything, like primeHints or so..
-      SyncRes::setDomainMap(g_initialDomainMap);
+      SyncRes::setDomainMap(*g_initialDomainMap.lock());
       t_allowFrom = g_initialAllowFrom;
       t_allowNotifyFrom = g_initialAllowNotifyFrom;
       t_allowNotifyFor = g_initialAllowNotifyFor;
@@ -3320,10 +3325,6 @@ int main(int argc, char** argv)
       g_packetCache = std::make_unique<RecursorPacketCache>(g_maxPacketCacheEntries, ::arg().asNum("packetcache-shards"));
     }
 
-    if (::arg().mustDo("webserver")) {
-      extern void serveRustWeb();
-      serveRustWeb();
-    }
     ret = serviceMain(startupLog);
   }
   catch (const PDNSException& ae) {

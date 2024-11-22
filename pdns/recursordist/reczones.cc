@@ -217,8 +217,8 @@ string reloadZoneConfiguration(bool yaml)
     for (const auto& entry : oldAndNewDomains) {
       wipeCaches(entry, true, 0xffff);
     }
-    extern std::shared_ptr<SyncRes::domainmap_t> g_initialDomainMap; // XXX
-    g_initialDomainMap = newDomainMap;
+    extern LockGuarded<std::shared_ptr<SyncRes::domainmap_t>> g_initialDomainMap; // XXX
+    *g_initialDomainMap.lock() = newDomainMap;
     return "ok\n";
   }
   catch (const std::exception& e) {
