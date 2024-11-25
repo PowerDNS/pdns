@@ -66,7 +66,7 @@ Handling of root hints
 On startup, the :program:`Recursor` uses root hints to resolve the names and addresses of the root name servers and puts the record sets found into the record cache.
 This is needed to be able to resolve names, as the recursive algorithm starts at the root (using cached data) and then tries to resolve delegations until it finds the name servers that are authoritative for the domain in question.
 
-If the :ref:`setting-hint-file` is not set, :program:`Recursor` wil use a compiled-in table as root hints.
+If the :ref:`setting-hint-file` is not set, :program:`Recursor` will use a compiled-in table as root hints.
 
 Periodically, based on the :ref:`setting-max-cache-ttl`, the :program:`Recursor` will refetch the root data using data in its cache by doing a `. NS` query.
 If that does not succeed, it will fall back to using the root hints to fill the cache with root data.
