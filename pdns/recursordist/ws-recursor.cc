@@ -956,12 +956,12 @@ void AsyncWebServer::go()
 
 void serveRustWeb()
 {
-  static ::rust::Vec<::rust::String> urls;
+  ::rust::Vec<::rust::String> urls;
   for (const auto& [url, _] : g_urlmap) {
     urls.emplace_back(url);
   }
   auto address = ComboAddress(arg()["webserver-address"], arg().asNum("webserver-port"));
-  pdns::rust::web::rec::serveweb({::rust::String(address.toStringWithPort())}, ::rust::Slice<const ::rust::String>{urls.data(), urls.size()});
+  pdns::rust::web::rec::serveweb({::rust::String(address.toStringWithPort())}, ::rust::Slice<const ::rust::String>{urls.data(), urls.size()}, arg()["api-key"], arg()["webserver-password"]);
 }
 
 static void fromCxxToRust(const HttpResponse& cxxresp, pdns::rust::web::rec::Response& rustResponse)
