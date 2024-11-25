@@ -1558,7 +1558,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
 
         if (t_protobufServers.servers) {
           // Max size is 64k, but we're conservative here, as other fields are added after the answers have been added
-          // If a single answer causes a too big protobuf message, it wil be dropped by queueData()
+          // If a single answer causes a too big protobuf message, it will be dropped by queueData()
           // But note addRR has code to prevent that
           if (pbMessage.size() < std::numeric_limits<uint16_t>::max() / 2) {
             pbMessage.addRR(record, luaconfsLocal->protobufExportConfig.exportTypes, udr);

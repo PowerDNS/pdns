@@ -161,7 +161,7 @@ public:
   GssContextType d_type{GSS_CONTEXT_NONE};
   gss_ctx_id_t d_ctx{GSS_C_NO_CONTEXT};
   gss_name_t d_peer_name{GSS_C_NO_NAME};
-  time_t d_expires{time(nullptr) + 60}; // partly initialized wil be cleaned up
+  time_t d_expires{time(nullptr) + 60}; // partly initialized will be cleaned up
 
   enum
   {

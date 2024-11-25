@@ -97,7 +97,7 @@ Interception Functions
 
     The tagged packetcache can e.g. be used to answer queries from cache that have e.g. been filtered for certain IPs (this logic should be implemented in :func:`gettag`).
     This ensure that queries are answered quickly compared to setting :attr:`dq.variable <DNSQuestion.variable>` to true.
-    In the latter case, repeated queries will not be found in the packetcache and pass through the entire resolving process, and all relevant Lua hooks wil be called.
+    In the latter case, repeated queries will not be found in the packetcache and pass through the entire resolving process, and all relevant Lua hooks will be called.
 
     :param ComboAddress remote: The sender's IP address
     :param Netmask ednssubnet: The EDNS Client subnet that was extracted from the packet

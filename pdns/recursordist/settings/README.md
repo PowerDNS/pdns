@@ -216,7 +216,7 @@ An example is the function
 ```
 
 Which parses YAML and produces a struct with all the settings.
-Settings that are not mentioned in the YAML string wil have their default value.
+Settings that are not mentioned in the YAML string will have their default value.
 
 `rust/lib.rs.h` contains the corresponding C++ prototype, defined in the `pdns::rust::settings::rec` namespace:
 
