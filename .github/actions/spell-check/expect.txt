@@ -263,7 +263,9 @@ Darron
 dataformat
 datatracker
 Daugaard
+davidmillerskt
 Davids
+davidtmiller
 Dayneko
 dbfile
 dblacka
@@ -481,6 +483,7 @@ geobackend
 geoipbackend
 geolocated
 Georgeto
+getbootstrap
 Gergely
 Gerritsen
 Gervai
@@ -608,6 +611,7 @@ ipencrypt
 ipfilter
 IPSECKEY
 iputils
+ironsummitmedia
 isane
 ismaster
 isoc
@@ -777,6 +781,7 @@ mbed
 mbedtls
 MBOXFW
 mbytes
+mdo
 Meerwald
 Mekking
 melpa
@@ -1308,6 +1313,7 @@ sshfp
 ssi
 SSQ
 stacksize
+startbootstrap
 starttransaction
 Stasic
 statbag
@@ -1387,6 +1393,7 @@ Thessalonikefs
 Thiago
 thinko
 Thomassen
+Thorton
 threadmessage
 throttlemap
 thrysoee

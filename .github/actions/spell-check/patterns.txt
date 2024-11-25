@@ -183,3 +183,6 @@ DoH
 
 # scrypt / argon
 \$(?:scrypt|argon\d+[di]*)\$\S+
+
+# Twitter status
+\btwitter\.com/[^/\s"')]*(?:/status/\d+(?:\?[-_0-9a-zA-Z&=]*|)|)
