@@ -199,6 +199,13 @@ class TestRecursorProtobuf(RecursorTest):
         self.assertTrue(msg.question.HasField('qName'))
         self.assertEqual(msg.question.qName, qname)
 
+    # This method takes wire format values to check
+    def checkProtobufHeaderFlagsAndEDNSVersion(self, msg, flags, ednsVersion):
+        self.assertTrue(msg.HasField('headerFlags'))
+        self.assertEqual(msg.headerFlags, socket.htons(flags))
+        self.assertTrue(msg.HasField('ednsVersion'))
+        self.assertEqual(msg.ednsVersion, socket.htonl(ednsVersion))
+
     def checkProtobufResponse(self, msg, protocol, response, initiator='127.0.0.1', receivedSize=None, vstate=dnsmessage_pb2.PBDNSMessage.VState.Indeterminate):
         self.assertEqual(msg.type, dnsmessage_pb2.PBDNSMessage.DNSResponseType)
         self.checkProtobufBase(msg, protocol, response, initiator, receivedSize=receivedSize)
@@ -342,6 +349,29 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
         # check the protobuf messages corresponding to the UDP query and answer
         msg = self.getFirstProtobufMessage()
         self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.UDP, query, dns.rdataclass.IN, dns.rdatatype.A, name)
+        # wire format, RD and CD set in headerflags, plus DO bit in flags part of EDNS Version
+        self.checkProtobufHeaderFlagsAndEDNSVersion(msg, 0x0110, 0x00008000)
+        # then the response
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res, '127.0.0.1')
+        self.assertEqual(len(msg.response.rrs), 1)
+        rr = msg.response.rrs[0]
+        # we have max-cache-ttl set to 15
+        self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
+        self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
+        self.checkNoRemainingMessage()
+        #
+        # again, for a PC cache hit
+        #
+        res = self.sendUDPQuery(query)
+
+        self.assertRRsetInAnswer(res, expected)
+
+        # check the protobuf messages corresponding to the UDP query and answer
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.UDP, query, dns.rdataclass.IN, dns.rdatatype.A, name)
+        # wire format, RD and CD set in headerflags, plus DO bit in flags part of EDNS Version
+        self.checkProtobufHeaderFlagsAndEDNSVersion(msg, 0x0110, 0x00008000)
         # then the response
         msg = self.getFirstProtobufMessage()
         self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res, '127.0.0.1')

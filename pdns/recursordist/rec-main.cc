@@ -525,7 +525,7 @@ bool checkOutgoingProtobufExport(LocalStateHolder<LuaConfigItems>& luaconfsLocal
   return true;
 }
 
-void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boost::uuids::uuid& uniqueId, const ComboAddress& remote, const ComboAddress& local, const ComboAddress& mappedSource, const Netmask& ednssubnet, bool tcp, uint16_t queryID, size_t len, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::unordered_set<std::string>& policyTags, const std::string& requestorId, const std::string& deviceId, const std::string& deviceName, const std::map<std::string, RecursorLua4::MetaValue>& meta)
+void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boost::uuids::uuid& uniqueId, const ComboAddress& remote, const ComboAddress& local, const ComboAddress& mappedSource, const Netmask& ednssubnet, bool tcp, size_t len, const DNSName& qname, uint16_t qtype, uint16_t qclass, const std::unordered_set<std::string>& policyTags, const std::string& requestorId, const std::string& deviceId, const std::string& deviceName, const std::map<std::string, RecursorLua4::MetaValue>& meta, const boost::optional<uint32_t>& ednsVersion, const dnsheader& header)
 {
   auto log = g_slog->withName("pblq");
 
@@ -547,7 +547,7 @@ void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boo
 
   pdns::ProtoZero::RecMessage msg{128, std::string::size_type(policyTags.empty() ? 0 : 64)}; // It's a guess
   msg.setType(pdns::ProtoZero::Message::MessageType::DNSQueryType);
-  msg.setRequest(uniqueId, requestor, local, qname, qtype, qclass, queryID, tcp ? pdns::ProtoZero::Message::TransportProtocol::TCP : pdns::ProtoZero::Message::TransportProtocol::UDP, len);
+  msg.setRequest(uniqueId, requestor, local, qname, qtype, qclass, header.id, tcp ? pdns::ProtoZero::Message::TransportProtocol::TCP : pdns::ProtoZero::Message::TransportProtocol::UDP, len);
   msg.setServerIdentity(SyncRes::s_serverID);
   msg.setEDNSSubnet(ednssubnet, ednssubnet.isIPv4() ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
   msg.setRequestorId(requestorId);
@@ -561,6 +561,10 @@ void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boo
   }
   for (const auto& mit : meta) {
     msg.setMeta(mit.first, mit.second.stringVal, mit.second.intVal);
+  }
+  msg.setHeaderFlags(*getFlagsFromDNSHeader(&header));
+  if (ednsVersion) {
+    msg.setEDNSVersion(*ednsVersion);
   }
 
   std::string strMsg(msg.finishAndMoveBuf());
