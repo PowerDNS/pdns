@@ -27,8 +27,6 @@ jobs:
           - el-7
           - el-8
           - centos-9-stream
-          - ubuntu-lunar
-          - ubuntu-mantic
           - ubuntu-noble
           - debian-bookworm
           - debian-trixie
