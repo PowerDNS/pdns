@@ -388,7 +388,9 @@ CredentialsHolder::~CredentialsHolder()
 
 bool CredentialsHolder::matches(const std::string& password) const
 {
+  cerr << "matches " << d_isHashed << ' ' << password << ' ' << d_credentials.getString() << endl;
   if (d_isHashed) {
+     cerr << "Case 1" << endl;
     return verifyPassword(d_credentials.getString(), d_salt, d_workFactor, d_parallelFactor, d_blockSize, password);
   }
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)

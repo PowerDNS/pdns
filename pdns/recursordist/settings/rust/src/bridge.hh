@@ -22,6 +22,8 @@
 #pragma once
 
 #include "rust/cxx.h"
+#include "../../../credentials.hh"
+
 
 namespace pdns::rust::settings::rec
 {
@@ -32,6 +34,7 @@ void setThreadName(::rust::Str str);
 
 namespace pdns::rust::web::rec
 {
+using CredentialsHolder = ::CredentialsHolder;
 struct KeyValue;
 struct Request;
 struct Response;

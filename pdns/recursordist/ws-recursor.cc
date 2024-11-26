@@ -185,8 +185,9 @@ static void apiServerConfigAllowNotifyFromPUT(HttpRequest* req, HttpResponse* re
 
 static void fillZone(const DNSName& zonename, HttpResponse* resp)
 {
-  auto iter = SyncRes::t_sstorage.domainmap->find(zonename);
-  if (iter == SyncRes::t_sstorage.domainmap->end()) {
+  auto lock = g_initialDomainMap.lock();
+  auto iter = (*lock)->find(zonename);
+  if (iter == (*lock)->end()) {
     throw ApiException("Could not find domain '" + zonename.toLogString() + "'");
   }
 
@@ -215,7 +216,7 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp)
     {"kind", zone.d_servers.empty() ? "Native" : "Forwarded"},
     {"servers", servers},
     {"recursion_desired", zone.d_servers.empty() ? false : zone.d_rdForward},
-    {"notify_allowed", isAllowNotifyForZone(zonename)},
+    //{"notify_allowed", isAllowNotifyForZone(zonename)},
     {"records", records}};
 
   resp->setJsonBody(doc);
@@ -398,7 +399,8 @@ static void apiServerZonesGET(HttpRequest* /* req */, HttpResponse* resp)
 static inline DNSName findZoneById(HttpRequest* req)
 {
   auto zonename = apiZoneIdToName(req->parameters["id"]);
-  if (SyncRes::t_sstorage.domainmap->find(zonename) == SyncRes::t_sstorage.domainmap->end()) {
+  auto lock = g_initialDomainMap.lock();
+  if ((*lock)->find(zonename) == (*lock)->end()) {
     throw ApiException("Could not find domain '" + zonename.toLogString() + "'");
   }
   return zonename;
@@ -961,7 +963,18 @@ void serveRustWeb()
     urls.emplace_back(url);
   }
   auto address = ComboAddress(arg()["webserver-address"], arg().asNum("webserver-port"));
-  pdns::rust::web::rec::serveweb({::rust::String(address.toStringWithPort())}, ::rust::Slice<const ::rust::String>{urls.data(), urls.size()}, arg()["api-key"], arg()["webserver-password"]);
+
+  auto passwordString = arg()["webserver-password"];
+  std::unique_ptr<CredentialsHolder> password;
+  if (!passwordString.empty()) {
+    password = std::make_unique<CredentialsHolder>(std::move(passwordString), arg().mustDo("webserver-hash-plaintext-credentials"));
+  }
+  auto apikeyString = arg()["api-key"];
+  std::unique_ptr<CredentialsHolder> apikey;
+  if (!apikeyString.empty()) {
+    apikey = std::make_unique<CredentialsHolder>(std::move(apikeyString), arg().mustDo("webserver-hash-plaintext-credentials"));
+  }
+  pdns::rust::web::rec::serveweb({::rust::String(address.toStringWithPort())}, ::rust::Slice<const ::rust::String>{urls.data(), urls.size()}, std::move(password), std::move(apikey));
 }
 
 static void fromCxxToRust(const HttpResponse& cxxresp, pdns::rust::web::rec::Response& rustResponse)
@@ -985,6 +998,9 @@ static void rustWrapper(const std::function<void(HttpRequest*, HttpResponse*)>& 
   request.url = std::string(rustRequest.uri);
   for (const auto& [key, value] : rustRequest.vars) {
     request.getvars[std::string(key)] = std::string(value);
+  }
+  for (const auto& [key, value] : rustRequest.parameters) {
+    request.parameters[std::string(key)] = std::string(value);
   }
   request.d_slog = g_slog; // XXX
   response.d_slog = g_slog; // XXX

@@ -3,14 +3,15 @@ TODO
 
 - Logging
 - Table based routing including OPTIONS request handling
-- Requests taking e.g. an <id>
-- ACLs
-- Authorization
+- ACLs of webserver
+- ACL handling; thread local does not work, see how domains are done
+- Authorization: metrics and plain files (and more?) are not subject to password auth
 - Allow multipe listen addreses in settings (singlevalued right now)
 - TLS?
 - Code is now in settings dir. It's only possible to split the modules into separate Rust libs if we
-  use shared libs (in theory, I did not try). Currenlty all CXX using Rust cargo's must be compiled
-  as one and refer to a single static Rust runtime,
+  use shared libs (in theory, I did not try). Currently all CXX using Rust cargo's must be compiled
+  as one and refer to a single static Rust runtime
+- Ripping out yahttp stuff, providing some basic classees only
 */
 
 use std::net::SocketAddr;
@@ -28,6 +29,7 @@ use std::io::ErrorKind;
 use std::str::FromStr;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use base64::prelude::*;
 
 type GenericError = Box<dyn std::error::Error + Send + Sync>;
 type MyResult<T> = std::result::Result<T, GenericError>;
@@ -43,6 +45,51 @@ fn full<T: Into<Bytes>>(chunk: T) -> BoxBody {
 
 type Func = fn(&rustweb::Request, &mut rustweb::Response) -> Result<(), cxx::Exception>;
 
+fn compare_authorization(ctx: &Context, reqheaders: &header::HeaderMap) -> bool
+{
+    let mut auth_ok = false;
+    if !ctx.password_ch.is_null() {
+        if let Some(authorization) = reqheaders.get("authorization") {
+            let mut lcase = authorization.as_bytes().to_owned();
+            lcase.make_ascii_lowercase();
+            if lcase.starts_with(b"basic ") {
+                let cookie = &authorization.as_bytes()[6..];
+                if let Ok(plain) = BASE64_STANDARD.decode(cookie) {
+                    println!("plain {:?}", plain);
+                    let mut split = plain.split(|i| *i == b':');
+                    println!("split {:?}", split);
+                    if split.next().is_some() {
+                        println!("split {:?}", split);
+                        if let Some(split) = split.next() {
+                            println!("split {:?}", split);
+                            cxx::let_cxx_string!(s = &split);
+                            auth_ok = ctx.password_ch.as_ref().unwrap().matches(&s);
+                            println!("OK4 {}", auth_ok);
+                        }
+                    }
+                }
+            }
+        }
+        println!("OK5 {}", auth_ok);
+    } else {
+        auth_ok = true;
+    }
+    auth_ok
+}
+
+fn unauthorized(response: &mut rustweb::Response, headers: &mut header::HeaderMap, auth: &str)
+{
+    // XXX log
+    let status =  StatusCode::UNAUTHORIZED;
+    response.status = status.as_u16();
+    let val = format!("{} realm=\"PowerDNS\"", auth);
+    headers.insert(
+        header::WWW_AUTHENTICATE,
+        header::HeaderValue::from_str(&val).unwrap(),
+    );
+    response.body = status.canonical_reason().unwrap().as_bytes().to_vec();
+}
+
 fn api_wrapper(
     ctx: &Context,
     handler: Func,
@@ -50,56 +97,47 @@ fn api_wrapper(
     response: &mut rustweb::Response,
     reqheaders: &header::HeaderMap,
     headers: &mut header::HeaderMap,
+    allow_password: bool
 ) {
+
     // security headers
     headers.insert(
         header::ACCESS_CONTROL_ALLOW_ORIGIN,
         header::HeaderValue::from_static("*"),
     );
-    if ctx.api_key.is_empty() {
-        // XXX log
-        // Www-Authenticate: X-API-Key realm="PowerDNS"
-        let status =  StatusCode::UNAUTHORIZED;
-        response.status = status.as_u16();
-        headers.insert(
-            header::WWW_AUTHENTICATE,
-            header::HeaderValue::from_static("X-API-Key ream=\"PowerDNS\""),
-        );
-        response.body = status.canonical_reason().unwrap().as_bytes().to_vec();
+    if ctx.api_ch.is_null() {
+        unauthorized(response, headers, "X-API-Key");
         return;
     }
 
-    // XXX encrypted credentials handling, password handling!
-    let allow_password = false;
+    // XXX AUDIT!
     let mut auth_ok = false;
+    println!("OK0 {}", auth_ok);
     if let Some(api) = reqheaders.get("x-api-key") {
-        auth_ok = api.as_bytes() == ctx.api_key.as_bytes();
-        println!("OK {}", auth_ok);
+        cxx::let_cxx_string!(s = &api.as_bytes());
+        auth_ok = ctx.api_ch.as_ref().unwrap().matches(&s);
+        println!("OK1 {}", auth_ok);
     }
     if !auth_ok {
         for kv in &request.vars {
-            if kv.key == "x-api-key" && kv.value == ctx.api_key {
+            cxx::let_cxx_string!(s = &kv.value);
+            if kv.key == "x-api-key" && ctx.api_ch.as_ref().unwrap().matches(&s) {
                 auth_ok = true;
+                println!("OK2 {}", auth_ok);
                 break;
             }
         }
     }
+    println!("OK3 {}", auth_ok);
     if !auth_ok && allow_password {
-        if !ctx.webserver_password.is_empty() {
-            //auth_ok = req->compareAuthorization(*d_webserverPassword); XXX
-        } else {
-            auth_ok = true;
+        auth_ok = compare_authorization(ctx, reqheaders);
+        if !auth_ok {
+            unauthorized(response, headers, "Basic");
+            return;
         }
     }
     if !auth_ok {
-        // XXX log
-        let status =  StatusCode::UNAUTHORIZED;
-        response.status = status.as_u16();
-        headers.insert(
-            header::WWW_AUTHENTICATE,
-            header::HeaderValue::from_static("X-API-Key ream=\"PowerDNS\""),
-        );
-        response.body = status.canonical_reason().unwrap().as_bytes().to_vec();
+        unauthorized(response, headers, "X-API-Key");
         return;
     }
     response.status = StatusCode::OK.as_u16(); // 200;
@@ -137,8 +175,8 @@ fn api_wrapper(
 
 struct Context {
     urls: Vec<String>,
-    api_key: String,
-    webserver_password: String,
+    password_ch: cxx::UniquePtr<rustweb::CredentialsHolder>,
+    api_ch: cxx::UniquePtr<rustweb::CredentialsHolder>,
     counter: Mutex<u32>,
 }
 
@@ -150,7 +188,6 @@ async fn hello(
         let mut counter = ctx.counter.lock().await;
         *counter += 1;
     }
-    let mut rust_response = Response::builder();
     let mut vars: Vec<rustweb::KeyValue> = vec![];
     if let Some(query) = rust_request.uri().query() {
         for (k, v) in form_urlencoded::parse(query.as_bytes()) {
@@ -169,73 +206,89 @@ async fn hello(
         body: vec![],
         uri: rust_request.uri().to_string(),
         vars,
+        parameters: vec![],
     };
     let mut response = rustweb::Response {
         status: 0,
         body: vec![],
         headers: vec![],
     };
-    let headers = rust_response.headers_mut().expect("no headers?");
     let mut apifunc: Option<Func> = None;
     let method = rust_request.method().to_owned();
-    match (&method, rust_request.uri().path()) {
-        (&Method::GET, "/jsonstat") =>
-            apifunc = Some(rustweb::jsonstat),
-        (&Method::PUT, "/api/v1/servers/localhost/cache/flush") =>
+    let path: Vec<_> = rust_request.uri().path().split('/').skip(1).collect();
+    let mut allow_password = false;
+    match (&method, &*path) {
+        (&Method::GET, ["jsonstat"]) => {
+            allow_password = true;
+            apifunc = Some(rustweb::jsonstat);
+        }
+        (&Method::PUT, ["api", "v1", "servers", "localhost", "cache", "flush"]) =>
             apifunc = Some(rustweb::apiServerCacheFlush),
-        (&Method::PUT, "/api/v1/servers/localhost/config/allow-from") =>
+        (&Method::PUT, ["api", "v1", "servers", "localhost", "config", "allow-from"]) =>
             apifunc = Some(rustweb::apiServerConfigAllowFromPUT),
-        (&Method::GET, "/api/v1/servers/localhost/config/allow-from") =>
+        (&Method::GET, ["api", "v1", "servers", "localhost", "config", "allow-from"]) =>
             apifunc = Some(rustweb::apiServerConfigAllowFromGET),
-        (&Method::PUT, "/api/v1/servers/localhost/config/allow-notify-from") =>
+        (&Method::PUT, ["api", "v1", "servers", "localhost", "config", "allow-notify-from"]) =>
             apifunc = Some(rustweb::apiServerConfigAllowNotifyFromPUT),
-        (&Method::GET, "/api/v1/servers/localhost/config/allow-notify-from") =>
+        (&Method::GET, ["api", "v1", "servers", "localhost", "config", "allow-notify-from"]) =>
             apifunc = Some(rustweb::apiServerConfigAllowNotifyFromGET),
-        (&Method::GET, "/api/v1/servers/localhost/config") =>
+        (&Method::GET, ["api", "v1", "servers", "localhost", "config"]) =>
             apifunc = Some(rustweb::apiServerConfig),
-        (&Method::GET, "/api/v1/servers/localhost/rpzstatistics") =>
+        (&Method::GET, ["api", "v1", "servers", "localhost", "rpzstatistics"]) =>
             apifunc = Some(rustweb::apiServerRPZStats),
-        (&Method::GET, "/api/v1/servers/localhost/search-data") =>
+        (&Method::GET, ["api", "v1", "servers", "localhost", "search-data"]) =>
             apifunc = Some(rustweb::apiServerSearchData),
-        (&Method::GET, "/api/v1/servers/localhost/zones/") =>
-            apifunc = Some(rustweb::apiServerZoneDetailGET),
-        (&Method::PUT, "/api/v1/servers/localhost/zones/") =>
-            apifunc = Some(rustweb::apiServerZoneDetailPUT),
-        (&Method::DELETE, "/api/v1/servers/localhost/zones/") =>
-            apifunc = Some(rustweb::apiServerZoneDetailDELETE),
-        (&Method::GET, "/api/v1/servers/localhost/statistics") =>
-            apifunc = Some(rustweb::apiServerStatistics),
-        (&Method::GET, "/api/v1/servers/localhost/zones") =>
+        (&Method::GET, ["api", "v1", "servers", "localhost", "zones", id]) => {
+            request.parameters.push(rustweb::KeyValue{key: String::from("id"), value: String::from(*id)});
+            apifunc = Some(rustweb::apiServerZoneDetailGET);
+        }
+        (&Method::PUT, ["api", "v1", "servers", "localhost", "zones", id]) => {
+            request.parameters.push(rustweb::KeyValue{key: String::from("id"), value: String::from(*id)});
+            apifunc = Some(rustweb::apiServerZoneDetailPUT);
+        }
+        (&Method::DELETE, ["api", "v1", "servers", "localhost", "zones", id]) => {
+            request.parameters.push(rustweb::KeyValue{key: String::from("id"), value: String::from(*id)});
+            apifunc = Some(rustweb::apiServerZoneDetailDELETE);
+        }
+        (&Method::GET, ["api", "v1", "servers", "localhost", "statistics"]) => {
+            allow_password = true;
+            apifunc = Some(rustweb::apiServerStatistics);
+        }
+        (&Method::GET, ["api", "v1", "servers", "localhost", "zones"]) =>
             apifunc = Some(rustweb::apiServerZonesGET),
-        (&Method::POST, "/api/v1/servers/localhost/zones") =>
+        (&Method::POST, ["api", "v1", "servers", "localhost", "zones"]) =>
             apifunc = Some(rustweb::apiServerZonesPOST),
-        (&Method::GET, "/api/v1/servers/localhost") =>
-            apifunc = Some(rustweb::apiServerDetail),
-        (&Method::GET, "/api/v1/servers") =>
+        (&Method::GET, ["api", "v1", "servers", "localhost"]) => {
+            allow_password = true;
+            apifunc = Some(rustweb::apiServerDetail);
+        }
+        (&Method::GET, ["api", "v1", "servers"]) =>
             apifunc = Some(rustweb::apiServer),
-        (&Method::GET, "/api/v1") =>
+        (&Method::GET, ["api", "v1"]) =>
             apifunc = Some(rustweb::apiDiscoveryV1),
-        (&Method::GET, "/api") =>
+        (&Method::GET, ["api"]) =>
             apifunc = Some(rustweb::apiDiscovery),
-        (&Method::GET, "/metrics") =>
+        (&Method::GET, ["metrics"]) =>
             rustweb::prometheusMetrics(&request, &mut response).unwrap(),
         _ => {
-            let mut path = rust_request.uri().path();
-            if path == "/" {
-                path = "/index.html";
+            let mut uripath = rust_request.uri().path();
+            if uripath == "/" {
+                uripath = "/index.html";
             }
-            let pos = ctx.urls.iter().position(|x| String::from("/") + x == path);
+            let pos = ctx.urls.iter().position(|x| String::from("/") + x == uripath);
             if pos.is_none() {
-                eprintln!("{} {} not found", rust_request.method(), path);
+                eprintln!("{} {} not found", rust_request.method(), uripath);
             }
             if rustweb::serveStuff(&request, &mut response).is_err() {
                 // Return 404 not found response.
                 response.status = StatusCode::NOT_FOUND.as_u16();
                 response.body = NOTFOUND.to_vec();
-                eprintln!("{} {} not found case 2", rust_request.method(), path);
+                eprintln!("{} {} not found case 2", rust_request.method(), uripath);
             }
         }
     }
+    let mut rust_response = Response::builder();
+
     if let Some(func) = apifunc {
         let reqheaders = rust_request.headers().clone();
         if rust_request.method()== Method::POST || rust_request.method() == Method::PUT {
@@ -247,7 +300,8 @@ async fn hello(
             &request,
             &mut response,
             &reqheaders,
-            headers,
+            rust_response.headers_mut().expect("no headers?"),
+            allow_password,
         );
     }
 
@@ -302,12 +356,12 @@ async fn serveweb_async(listener: TcpListener, ctx: Arc<Context>) -> MyResult<()
     }
 }
 
-pub fn serveweb(addresses: &Vec<String>, urls: &[String], api_key: String, webserver_password: String) -> Result<(), std::io::Error> {
+pub fn serveweb(addresses: &Vec<String>, urls: &[String], password_ch: cxx::UniquePtr<rustweb::CredentialsHolder>, api_ch: cxx::UniquePtr<rustweb::CredentialsHolder>) -> Result<(), std::io::Error> {
     // Context (R/O for now)
     let ctx = Arc::new(Context {
         urls: urls.to_vec(),
-        api_key,
-        webserver_password,
+        password_ch,
+        api_ch,
         counter: Mutex::new(0),
     });
 
@@ -355,14 +409,20 @@ pub fn serveweb(addresses: &Vec<String>, urls: &[String], api_key: String, webse
     Ok(())
 }
 
+unsafe impl Send for rustweb::CredentialsHolder {}
+unsafe impl Sync for rustweb::CredentialsHolder {}
+
 #[cxx::bridge(namespace = "pdns::rust::web::rec")]
 mod rustweb {
+    extern "C++" {
+      type CredentialsHolder;
+    }
 
     /*
      * Functions callable from C++
      */
     extern "Rust" {
-        fn serveweb(addreses: &Vec<String>, urls: &[String], apikey: String, password: String) -> Result<()>;
+        fn serveweb(addreses: &Vec<String>, urls: &[String], pwch: UniquePtr<CredentialsHolder>, apikeych: UniquePtr<CredentialsHolder>) -> Result<()>;
     }
 
     struct KeyValue {
@@ -374,6 +434,7 @@ mod rustweb {
         body: Vec<u8>,
         uri: String,
         vars: Vec<KeyValue>,
+        parameters: Vec<KeyValue>,
     }
 
     struct Response {
@@ -408,5 +469,7 @@ mod rustweb {
         fn jsonstat(request: &Request, response: &mut Response) -> Result<()>;
         fn prometheusMetrics(request: &Request, response: &mut Response) -> Result<()>;
         fn serveStuff(request: &Request, response: &mut Response) -> Result<()>;
+
+        fn matches(self: &CredentialsHolder, str: &CxxString) -> bool;
     }
 }
