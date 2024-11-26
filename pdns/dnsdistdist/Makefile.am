@@ -53,6 +53,8 @@ SRC_JS_FILES := $(wildcard src_js/*.js)
 MIN_JS_FILES := $(patsubst src_js/%.js,html/js/%.min.js,$(SRC_JS_FILES))
 
 dnsdist%generated%: actions-generator.py dnsdist-actions-definitions.yml dnsdist-response-actions-definitions.yml
+	@if test "$(PYTHON)" = ":"; then echo "Actions definitions have changed, python is needed to regenerate the related files but python was not found. Please install python and re-run configure"; exit 1; fi
+	@if ! $(PYTHON) --version | grep -q "Python 3"; then echo $(PYTHON) should be at least version 3. Please install python 3 and re-run configure; exit 1; fi
 	$(PYTHON) actions-generator.py
 
 html/js/%.min.js: src_js/%.js
@@ -103,6 +105,9 @@ endif
 endif
 
 EXTRA_DIST=COPYING \
+	   actions-generator.py \
+	   dnsdist-actions-definitions.yml \
+	   dnsdist-response-actions-definitions.yml \
 	   dnslabeltext.rl \
 	   dnsdist.conf-dist \
 	   dnsmessage.proto \
