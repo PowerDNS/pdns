@@ -1147,6 +1147,20 @@ query-rules:
     - name: "action"
       type: "Action"
 
+response-rules:
+  section: "global"
+  type: "list"
+  skip-serde: true
+  parameters:
+    - name: "name"
+      type: "String"
+    - name: "uuid"
+      type: "String"
+    - name: "selector"
+      type: "Selector"
+    - name: "action"
+      type: "ResponseAction"
+
 MaxQPSIPSelector:
   section: "selectors"
   version-changed:

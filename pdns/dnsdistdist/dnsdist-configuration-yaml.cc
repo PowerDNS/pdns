@@ -587,6 +587,11 @@ bool loadConfigurationFromFile(const std::string fileName)
       cerr<<"Got rule with name "<<rule.name<<" and UUID "<<rule.uuid<<endl;
       cerr<<" - Selector is "<<rule.selector.selector->d_rule->toString()<<endl;
       cerr<<" - Action is "<<rule.action.action->d_action->toString()<<endl;
+
+      dnsdist::configuration::updateRuntimeConfiguration([&rule](dnsdist::configuration::RuntimeConfiguration& config) {
+        boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
+        dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::RuleChain::Rules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
+      });
     }
 
     for (const auto& dbrg : globalConfig.dynamic_rules) {
@@ -874,10 +879,109 @@ static std::shared_ptr<DNSResponseActionWrapper> newDNSResponseActionWrapper(std
   return wrapper;
 }
 
-std::shared_ptr<DNSActionWrapper> getPoolAction(const PoolActionConfiguration& config)
+static dnsdist::ResponseConfig convertResponseConfig(const dnsdist::rust::settings::ResponseConfig& rustConfig)
 {
-  auto poolAction = dnsdist::actions::getPoolAction(std::string(config.pool_name), config.stop_processing);
-  return newDNSActionWrapper(std::move(poolAction), config.name);
+  dnsdist::ResponseConfig cppConfig{};
+  cppConfig.setAA = rustConfig.set_aa;
+  cppConfig.setAD = rustConfig.set_ad;
+  cppConfig.setRA = rustConfig.set_ra;
+  cppConfig.ttl = rustConfig.ttl;
+  return cppConfig;
+}
+
+static dnsdist::actions::SOAParams convertSOAParams(const dnsdist::rust::settings::SOAParams& soa)
+{
+  dnsdist::actions::SOAParams cppSOA{};
+  cppSOA.serial = soa.serial;
+  cppSOA.refresh = soa.refresh;
+  cppSOA.retry = soa.retry;
+  cppSOA.expire = soa.expire;
+  cppSOA.minimum = soa.minimum;
+  return cppSOA;
+}
+
+static std::vector<::SVCRecordParameters> convertSVCRecordParameters(const ::rust::Vec<dnsdist::rust::settings::SVCRecordParameters>& rustParameters)
+{
+  std::vector<::SVCRecordParameters> cppParameters;
+  for (const auto& rustConfig : rustParameters) {
+    ::SVCRecordParameters cppConfig{};
+    for (auto param : rustConfig.mandatory_params) {
+      cppConfig.mandatoryParams.insert(param);
+    }
+    for (const auto& alpn : rustConfig.alpns) {
+      cppConfig.alpns.emplace_back(alpn);
+    }
+    for (const auto& hint : rustConfig.ipv4_hints) {
+      cppConfig.ipv4hints.emplace_back(std::string(hint));
+    }
+    for (const auto& hint : rustConfig.ipv6_hints) {
+      cppConfig.ipv6hints.emplace_back(std::string(hint));
+    }
+    for (const auto& param : rustConfig.additional_params) {
+      cppConfig.additionalParams.emplace_back(param.key, std::string(param.value));
+    }
+    cppConfig.target = DNSName(std::string(rustConfig.target));
+    if (rustConfig.port != 0) {
+      cppConfig.port = rustConfig.port;
+    }
+    cppConfig.priority = rustConfig.priority;
+    cppConfig.noDefaultAlpn = rustConfig.no_default_alpn;
+
+    cppParameters.emplace_back(std::move(cppConfig));
+  }
+  return cppParameters;
+}
+
+template <class T>
+T convertLuaFunction(const ::rust::String& context, const ::rust::String& name)
+{
+  T function;
+  if (!dnsdist::configuration::yaml::getOptionalLuaFunction<T>(function, name)) {
+    throw std::runtime_error("Context '" + std::string(context) + "' is referring to a non-existent Lua function '" + std::string(name) + "'");
+  }
+  return function;
+}
+
+std::shared_ptr<DNSActionWrapper> getSpoofPacketAction(const SpoofPacketActionConfiguration& config)
+{
+  if (config.response.size() < sizeof(dnsheader)) {
+    throw std::runtime_error(std::string("SpoofPacketAction: given packet len is too small"));
+  }
+  auto action = dnsdist::actions::getSpoofAction(PacketBuffer(config.response.data(), config.response.data() + config.response.size()));
+  return newDNSActionWrapper(std::move(action), config.name);
+}
+
+std::shared_ptr<DNSResponseActionWrapper> getClearRecordTypesResponseAction(const ClearRecordTypesResponseActionConfiguration& config)
+{
+  std::unordered_set<QType> qtypes{};
+  for (const auto& type : config.types) {
+    qtypes.insert(type);
+  }
+  auto action = dnsdist::actions::getClearRecordTypesResponseAction(std::move(qtypes));
+  return newDNSResponseActionWrapper(std::move(action), config.name);
+}
+
+std::shared_ptr<DNSResponseActionWrapper> getLimitTTLResponseAction(const LimitTTLResponseActionConfiguration& config)
+{
+  std::unordered_set<QType> capTypes;
+  for (const auto& type : config.types) {
+    capTypes.insert(QType(type));
+  }
+
+  auto action = dnsdist::actions::getLimitTTLResponseAction(config.min, config.max, capTypes);
+  return newDNSResponseActionWrapper(std::move(action), config.name);
+}
+
+std::shared_ptr<DNSResponseActionWrapper> getSetMinTTLResponseAction(const SetMinTTLResponseActionConfiguration& config)
+{
+  auto action = dnsdist::actions::getLimitTTLResponseAction(config.min);
+  return newDNSResponseActionWrapper(std::move(action), config.name);
+}
+
+std::shared_ptr<DNSResponseActionWrapper> getSetMaxTTLResponseAction(const SetMaxTTLResponseActionConfiguration& config)
+{
+  auto action = dnsdist::actions::getLimitTTLResponseAction(0, config.max);
+  return newDNSResponseActionWrapper(std::move(action), config.name);
 }
 
 #include "dnsdist-rust-bridge-actions-generated.cc"
