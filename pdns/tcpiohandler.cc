@@ -857,6 +857,15 @@ public:
     }
   }
 
+  void loadTicketsKey(const std::string& key) final
+  {
+    d_feContext->d_ticketKeys.loadTicketsKey(key);
+
+    if (d_ticketsKeyRotationDelay > 0) {
+      d_ticketsKeyNextRotation = time(nullptr) + d_ticketsKeyRotationDelay;
+    }
+  }
+
   size_t getTicketsKeysCount() override
   {
     return d_feContext->d_ticketKeys.getKeysCount();
@@ -1002,7 +1011,24 @@ public:
     safe_memory_lock(d_key.data, d_key.size);
   }
 
-  GnuTLSTicketsKey(const std::string& keyFile)
+  GnuTLSTicketsKey(const std::string& key)
+  {
+    /* to be sure we are loading the correct amount of data, which
+       may change between versions, let's generate a correct key first */
+    if (gnutls_session_ticket_key_generate(&d_key) != GNUTLS_E_SUCCESS) {
+      throw std::runtime_error("Error generating tickets key (before parsing key file) for TLS context");
+    }
+
+    safe_memory_lock(d_key.data, d_key.size);
+    if (key.size() != d_key.size) {
+      safe_memory_release(d_key.data, d_key.size);
+      gnutls_free(d_key.data);
+      d_key.data = nullptr;
+      throw std::runtime_error("Invalid GnuTLS ticket key size");
+    }
+    memcpy(d_key.data, key.data(), key.size());
+  }
+  GnuTLSTicketsKey(std::ifstream& file)
   {
     /* to be sure we are loading the correct amount of data, which
        may change between versions, let's generate a correct key first */
@@ -1013,15 +1039,12 @@ public:
     safe_memory_lock(d_key.data, d_key.size);
 
     try {
-      ifstream file(keyFile);
       file.read(reinterpret_cast<char*>(d_key.data), d_key.size);
 
       if (file.fail()) {
-        file.close();
-        throw std::runtime_error("Invalid GnuTLS tickets key file " + keyFile);
+        throw std::runtime_error("Invalid GnuTLS tickets key file");
       }
 
-      file.close();
     }
     catch (const std::exception& e) {
       safe_memory_release(d_key.data, d_key.size);
@@ -1813,14 +1836,26 @@ public:
     auto newKey = std::make_shared<GnuTLSTicketsKey>();
     addTicketsKey(now, std::move(newKey));
   }
-  void loadTicketsKeys(const std::string& file) final
+  void loadTicketsKey(const std::string& key) final
   {
     if (!d_enableTickets) {
       return;
     }
 
+    auto newKey = std::make_shared<GnuTLSTicketsKey>(key);
+    addTicketsKey(time(nullptr), std::move(newKey));
+  }
+
+  void loadTicketsKeys(const std::string& keyFile) final
+  {
+    if (!d_enableTickets) {
+      return;
+    }
+
+    std::ifstream file(keyFile);
     auto newKey = std::make_shared<GnuTLSTicketsKey>(file);
     addTicketsKey(time(nullptr), std::move(newKey));
+    file.close();
   }
 
   size_t getTicketsKeysCount() override

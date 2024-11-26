@@ -52,6 +52,12 @@ Global configuration
 
   :param str path: The directory to load configuration files from. Each file must end in ``.conf``.
 
+.. function:: loadTicketsKey(key)
+
+  Load the given TLS tickets key on all compatible frontends (DOH and TLS).
+
+  :param str key: The new raw TLS tickets key to use.
+
 .. function:: reloadAllCertificates()
 
   .. versionadded:: 1.4.0
@@ -2251,6 +2257,12 @@ DOHFrontend
 
     :param str ticketsKeysFile: The path to a file from where TLS tickets keys should be loaded.
 
+  .. method:: DOHFrontend:loadTicketsKey(key)
+
+     Load a new TLS tickets key.
+
+     :param str key: the new raw TLS tickets key to load.
+
   .. method:: DOHFrontend:reloadCertificates()
 
      Reload the current TLS certificate and key pairs.
@@ -2429,6 +2441,12 @@ TLSFrontend
      See :doc:`../advanced/tls-sessions-management` for more information.
 
     :param str ticketsKeysFile: The path to a file from where TLS tickets keys should be loaded.
+
+  .. method:: TLSFrontend:loadTicketsKey(key)
+
+     Load a new TLS tickets key.
+
+    :param str key: the new raw TLS tickets key to load.
 
   .. method:: TLSFrontend:reloadCertificates()
 

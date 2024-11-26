@@ -3036,7 +3036,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
 
-  luaCtx.registerFunction<void (std::shared_ptr<DOHFrontend>::*)(boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>> certFiles, boost::variant<std::string, LuaArray<std::string>> keyFiles)>("loadNewCertificatesAndKeys", [](std::shared_ptr<DOHFrontend> frontend, boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>> certFiles, boost::variant<std::string, LuaArray<std::string>> keyFiles) {
+  luaCtx.registerFunction<void (std::shared_ptr<DOHFrontend>::*)(boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>> certFiles, boost::variant<std::string, LuaArray<std::string>> keyFiles)>("loadNewCertificatesAndKeys", [](const std::shared_ptr<DOHFrontend>& frontend, const boost::variant<std::string, std::shared_ptr<TLSCertKeyPair>, LuaArray<std::string>, LuaArray<std::shared_ptr<TLSCertKeyPair>>>& certFiles, const boost::variant<std::string, LuaArray<std::string>>& keyFiles) {
 #ifdef HAVE_DNS_OVER_HTTPS
     if (frontend != nullptr) {
       if (loadTLSCertificateAndKeys("DOHFrontend::loadNewCertificatesAndKeys", frontend->d_tlsContext.d_tlsConfig.d_certKeyPairs, certFiles, keyFiles)) {
@@ -3046,15 +3046,44 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #endif
   });
 
-  luaCtx.registerFunction<void (std::shared_ptr<DOHFrontend>::*)()>("rotateTicketsKey", [](std::shared_ptr<DOHFrontend> frontend) {
+  luaCtx.registerFunction<void (std::shared_ptr<DOHFrontend>::*)()>("rotateTicketsKey", [](const std::shared_ptr<DOHFrontend>& frontend) {
     if (frontend != nullptr) {
       frontend->rotateTicketsKey(time(nullptr));
     }
   });
 
-  luaCtx.registerFunction<void (std::shared_ptr<DOHFrontend>::*)(const std::string&)>("loadTicketsKeys", [](std::shared_ptr<DOHFrontend> frontend, const std::string& file) {
+  luaCtx.registerFunction<void (std::shared_ptr<DOHFrontend>::*)(const std::string&)>("loadTicketsKeys", [](const std::shared_ptr<DOHFrontend>& frontend, const std::string& file) {
     if (frontend != nullptr) {
       frontend->loadTicketsKeys(file);
+    }
+  });
+
+  luaCtx.registerFunction<void (std::shared_ptr<DOHFrontend>::*)(const std::string&)>("loadTicketsKey", [](const std::shared_ptr<DOHFrontend>& frontend, const std::string& key) {
+    if (frontend != nullptr) {
+      frontend->loadTicketsKey(key);
+    }
+  });
+
+  luaCtx.writeFunction("loadTicketsKey", [](const std::string& key) {
+    for (const auto& frontend : g_frontends) {
+      if (!frontend) {
+        continue;
+      }
+      try {
+#ifdef HAVE_DNS_OVER_TLS
+        if (frontend->tlsFrontend) {
+          frontend->tlsFrontend->loadTicketsKey(key);
+        }
+#endif /* HAVE_DNS_OVER_TLS */
+#ifdef HAVE_DNS_OVER_HTTPS
+        if (frontend->dohFrontend) {
+          frontend->dohFrontend->loadTicketsKey(key);
+        }
+#endif /* HAVE_DNS_OVER_HTTPS */
+      }
+      catch (const std::exception& e) {
+        errlog("Error loading given tickets key for local %s", frontend->local.toStringWithPort());
+      }
     }
   });
 
@@ -3285,6 +3314,16 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     auto ctx = frontend->getContext();
     if (ctx) {
       ctx->loadTicketsKeys(file);
+    }
+  });
+
+  luaCtx.registerFunction<void (std::shared_ptr<TLSFrontend>::*)(const std::string&)>("loadTicketsKey", [](std::shared_ptr<TLSFrontend>& frontend, const std::string& key) {
+    if (frontend == nullptr) {
+      return;
+    }
+    auto ctx = frontend->getContext();
+    if (ctx) {
+      ctx->loadTicketsKey(key);
     }
   });
 
