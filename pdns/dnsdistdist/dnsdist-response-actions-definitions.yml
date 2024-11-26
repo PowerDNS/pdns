@@ -2,6 +2,7 @@
 - name: "allow"
 - name: "ClearRecordTypes"
   skip-cpp: true
+  skip-rust: true
   parameters:
     - name: "types"
       type: "Vec<u16>"
@@ -13,6 +14,7 @@
 - name: "drop"
 - name: "LimitTTL"
   skip-cpp: true
+  skip-rust: true
   parameters:
     - name: "min"
       type: "u32"
@@ -67,6 +69,7 @@
       cpp-optional: false
 - name: "SetMinTTL"
   skip-cpp: true
+  skip-rust: true
   parameters:
     - name: "min"
       type: "u32"
@@ -77,6 +80,7 @@
       type: "u32"
 - name: "SetMaxTTL"
   skip-cpp: true
+  skip-rust: true
   parameters:
     - name: "max"
       type: "u32"

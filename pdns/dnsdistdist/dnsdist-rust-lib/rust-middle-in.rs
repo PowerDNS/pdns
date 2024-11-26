@@ -20,7 +20,6 @@
         fn getAllSelector() -> SharedPtr<DNSSelector>;
         fn getAndSelector(config: &AndSelectorConfig) -> SharedPtr<DNSSelector>;
         fn getNetmaskGroupSelector(config: &NetmaskGroupSelectorConfig) -> SharedPtr<DNSSelector>;
-        //fn getPoolAction(config: &PoolActionConfiguration) -> SharedPtr<DNSActionWrapper>;
     }
 }
 
@@ -64,6 +63,12 @@ impl Action {
   }
 }
 
+impl ResponseAction {
+  fn validate(&self) -> Result<(), ValidationError> {
+    Ok(())
+  }
+}
+
 #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
 struct QueryRulesConfigurationSerde {
@@ -81,7 +86,30 @@ impl QueryRulesConfigurationSerde {
   }
 }
 
+#[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
+#[serde(deny_unknown_fields)]
+struct ResponseRulesConfigurationSerde {
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    name: String,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    uuid: String,
+    selector: Selector,
+    action: ResponseAction,
+}
+
+impl ResponseRulesConfigurationSerde {
+  fn validate(&self) -> Result<(), ValidationError> {
+    Ok(())
+  }
+}
+
 impl dnsdistsettings::SharedDNSAction {
+  fn validate(&self) -> Result<(), ValidationError> {
+    Ok(())
+  }
+}
+
+impl dnsdistsettings::SharedDNSResponseAction {
   fn validate(&self) -> Result<(), ValidationError> {
     Ok(())
   }

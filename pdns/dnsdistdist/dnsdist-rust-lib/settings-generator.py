@@ -132,9 +132,11 @@ def get_rust_struct_fields_from_definition(name, keys, default_functions, indent
         # cxx does not support Enums, so we have to convert them to opaque types
         if rust_type == 'Action':
             rust_type = 'SharedDNSAction'
-        if rust_type == 'Selector':
+        elif rust_type == 'ResponseAction':
+            rust_type = 'SharedDNSResponseAction'
+        elif rust_type == 'Selector':
             rust_type = 'SharedDNSSelector'
-        if rust_type == 'Vec<Selector>':
+        elif rust_type == 'Vec<Selector>':
             rust_type = 'Vec<SharedDNSSelector>'
         rename = parameter['name'] if parameter_name != parameter['name'] else None
         default_str = get_rust_serde_annotations(rust_type, parameter['default'] if 'default' in parameter else None, rename, get_rust_field_name(name), parameter_name, default_functions)
@@ -349,7 +351,7 @@ def generate_cpp_action_headers():
     cpp_action_headers_fp.write(header_buffer)
     os.rename(cpp_action_headers_fp.name, '../dnsdist-rust-bridge-actions-generated.hh')
 
-def get_cpp_parameters(struct_name, parameters, skip_name):
+def get_cpp_parameters(struct_type, struct_name, parameters, skip_name):
     output = ''
     for parameter in parameters:
         name = parameter['name']
@@ -360,8 +362,22 @@ def get_cpp_parameters(struct_name, parameters, skip_name):
         if len(output) > 0:
             output += ', '
         field = f'{struct_name}.{pname}'
-        if ptype == 'String':
+        if ptype == 'PacketBuffer':
+            field = f'PacketBuffer({field}.data(), {field}.data() + {field}.size())'
+        elif ptype == 'DNSName':
+            field = f'DNSName(std::string({field}))'
+        elif ptype == 'ComboAddress':
+            field = f'ComboAddress(std::string({field}))'
+        elif ptype == 'String':
             field = f'std::string({field})'
+        elif ptype == 'ResponseConfig':
+            field = f'convertResponseConfig({field})'
+        elif ptype == 'Vec<SVCRecordParameters>':
+            field = f'convertSVCRecordParameters({field})'
+        elif ptype == 'SOAParams':
+            field = f'convertSOAParams({field})'
+        elif ptype in ['dnsdist::actions::LuaActionFunction', 'dnsdist::actions::LuaActionFFIFunction', 'dnsdist::actions::LuaResponseActionFunction', 'dnsdist::actions::LuaResponseActionFFIFunction']:
+            field = f'convertLuaFunction<{ptype}>("{struct_type}", {field})'
         output += field
     return output
 
@@ -373,9 +389,11 @@ def generate_cpp_action_wrappers():
     actions_definitions = get_actions_definitions(False)
     suffix = 'Action'
     for action in actions_definitions:
+        if 'skip-rust' in action and action['skip-rust']:
+            continue
         name = get_rust_object_name(action['name'])
         struct_name = f'{name}{suffix}Configuration'
-        parameters = get_cpp_parameters('config', action['parameters'], True) if 'parameters' in action else ''
+        parameters = get_cpp_parameters(struct_name, 'config', action['parameters'], True) if 'parameters' in action else ''
         wrappers_buffer += f'''std::shared_ptr<DNS{suffix}Wrapper> get{name}{suffix}(const {struct_name}& config)
 {{
   auto action = dnsdist::actions::get{name}{suffix}({parameters});
@@ -387,9 +405,11 @@ def generate_cpp_action_wrappers():
     actions_definitions = get_actions_definitions(True)
     suffix = 'ResponseAction'
     for action in actions_definitions:
+        if 'skip-rust' in action and action['skip-rust']:
+            continue
         name = get_rust_object_name(action['name'])
         struct_name = f'{name}{suffix}Configuration'
-        parameters = get_cpp_parameters('config', action['parameters'], True) if 'parameters' in action else ''
+        parameters = get_cpp_parameters(struct_name, 'config', action['parameters'], True) if 'parameters' in action else ''
         wrappers_buffer += f'''std::shared_ptr<DNS{suffix}Wrapper> get{name}{suffix}(const {struct_name}& config)
 {{
   auto action = dnsdist::actions::get{name}{suffix}({parameters});
@@ -560,11 +580,13 @@ def main():
         field_type = names[0]
         if field_type == 'SelectorsConfiguration':
             field_type = 'Vec<SharedDNSSelector>'
-        if field_type == 'Selector':
+        elif field_type == 'Selector':
             field_type = 'SharedDNSSelector'
-        if field_type == 'Action':
+        elif field_type == 'Action':
             field_type = 'SharedDNSAction'
-        if field_type == 'Vec<Selector>':
+        elif field_type == 'ResponseAction':
+            field_type = 'SharedDNSResponseAction'
+        elif field_type == 'Vec<Selector>':
             field_type = 'Vec<SharedDNSSelector>'
         generated_fp.write(f'        {field_name}: {field_type},\n')
 
@@ -592,6 +614,8 @@ struct GlobalConfigurationSerde {\n''')
             rust_type = 'Vec<Selector>'
         if rust_type == 'Vec<dnsdistsettings::QueryRulesConfiguration>':
             rust_type = 'Vec<QueryRulesConfigurationSerde>'
+        if rust_type == 'Vec<dnsdistsettings::ResponseRulesConfiguration>':
+            rust_type = 'Vec<ResponseRulesConfigurationSerde>'
         generated_fp.write(f'    {field_name}: {rust_type},\n')
 
     generated_fp.write('}\n')
@@ -604,9 +628,11 @@ struct GlobalConfigurationSerde {\n''')
         rust_type = names[1]
         if rust_type == 'Action':
             rust_type = 'SharedDNSAction'
-        if rust_type == 'Selector':
+        elif rust_type == 'ResponseAction':
+            rust_type = 'SharedDNSResponseAction'
+        elif rust_type == 'Selector':
             rust_type = 'SharedDNSSelector'
-        if rust_type == 'SelectorsConfiguration':
+        elif rust_type == 'SelectorsConfiguration':
             rust_type = 'Vec<SharedDNSSelector>'
         generated_fp.write(get_validation_for_field(field_name, rust_type))
     generated_fp.write('        Ok(())\n')

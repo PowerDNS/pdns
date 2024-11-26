@@ -29,6 +29,16 @@ mod dnsdistsettings {
 
     #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
+    struct SOAParams {
+        serial: u32,
+        refresh: u32,
+        retry: u32,
+        expire: u32,
+        minimum: u32,
+    }
+
+    #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
+    #[serde(deny_unknown_fields)]
     struct SVCRecordAdditionalParams {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         key: u16,
@@ -56,7 +66,7 @@ mod dnsdistsettings {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         priority: u16,
         #[serde(default, skip_serializing_if = "crate::is_default")]
-        non_default_alpn: bool,
+        no_default_alpn: bool,
     }
 
     #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]

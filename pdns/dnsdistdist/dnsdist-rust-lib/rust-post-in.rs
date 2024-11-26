@@ -80,6 +80,26 @@ fn get_query_rules_from_serde(
     results
 }
 
+fn get_response_rules_from_serde(
+    rules_from_serde: &Vec<ResponseRulesConfigurationSerde>,
+) -> Vec<dnsdistsettings::ResponseRulesConfiguration> {
+    let mut results: Vec<dnsdistsettings::ResponseRulesConfiguration> = Vec::new();
+
+    for rule in rules_from_serde {
+        let selector = get_one_selector_from_serde(&rule.selector);
+        let action = get_one_response_action_from_serde(&rule.action);
+        if selector.is_some() && action.is_some() {
+            results.push(dnsdistsettings::ResponseRulesConfiguration {
+              name: rule.name.clone(),
+              uuid: rule.uuid.clone(),
+              selector: selector.unwrap(),
+              action: action.unwrap(),
+            });
+        }
+    }
+    results
+}
+
 fn get_global_configuration_from_serde(
     serde: GlobalConfigurationSerde,
 ) -> dnsdistsettings::GlobalConfiguration {
@@ -99,6 +119,7 @@ fn get_global_configuration_from_serde(
     // by name
     config.selectors = get_selectors_from_serde(&serde.selectors);
     config.query_rules = get_query_rules_from_serde(&serde.query_rules);
+    config.response_rules = get_response_rules_from_serde(&serde.response_rules);
     config
 }
 
