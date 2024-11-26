@@ -604,6 +604,34 @@ bool loadConfigurationFromFile(const std::string fileName)
       });
     }
 
+    for (const auto& rule : globalConfig.cache_hit_response_rules) {
+      dnsdist::configuration::updateRuntimeConfiguration([&rule](dnsdist::configuration::RuntimeConfiguration& config) {
+        boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
+        dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::CacheHitResponseRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
+      });
+    }
+
+    for (const auto& rule : globalConfig.cache_inserted_response_rules) {
+      dnsdist::configuration::updateRuntimeConfiguration([&rule](dnsdist::configuration::RuntimeConfiguration& config) {
+        boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
+        dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
+      });
+    }
+
+    for (const auto& rule : globalConfig.self_answered_response_rules) {
+      dnsdist::configuration::updateRuntimeConfiguration([&rule](dnsdist::configuration::RuntimeConfiguration& config) {
+        boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
+        dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::SelfAnsweredResponseRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
+      });
+    }
+
+    for (const auto& rule : globalConfig.xfr_response_rules) {
+      dnsdist::configuration::updateRuntimeConfiguration([&rule](dnsdist::configuration::RuntimeConfiguration& config) {
+        boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
+        dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::XFRResponseRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
+      });
+    }
+
     for (const auto& dbrg : globalConfig.dynamic_rules) {
       auto dbrgObj = std::make_shared<DynBlockRulesGroup>();
       dbrgObj->setMasks(dbrg.mask_ipv4, dbrg.mask_ipv6, dbrg.mask_port);
