@@ -1147,6 +1147,11 @@ query-rules:
     - name: "action"
       type: "Action"
 
+cache-miss-rules:
+  section: "global"
+  type: "Vec<QueryRulesConfiguration>"
+  skip-serde: true
+
 response-rules:
   section: "global"
   type: "list"

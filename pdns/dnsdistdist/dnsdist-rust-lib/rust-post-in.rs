@@ -119,6 +119,7 @@ fn get_global_configuration_from_serde(
     // by name
     config.selectors = get_selectors_from_serde(&serde.selectors);
     config.query_rules = get_query_rules_from_serde(&serde.query_rules);
+    config.cache_miss_rules = get_query_rules_from_serde(&serde.cache_miss_rules);
     config.response_rules = get_response_rules_from_serde(&serde.response_rules);
     config
 }
