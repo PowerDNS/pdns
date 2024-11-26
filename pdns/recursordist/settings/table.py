@@ -1607,7 +1607,7 @@ of a single client query. If IPv6 is enabled, an A and a AAAA query
 for a name counts as 1. If a zone publishes more than this number of
 NS records, the limit is further reduced for that zone by lowering
 it by the number of NS records found above the
-:ref:`setting-max-ns-address-qperq` value. The limit wil not be reduced to a
+:ref:`setting-max-ns-address-qperq` value. The limit will not be reduced to a
 number lower than 5.
  ''',
     'versionadded' : ['4.1.16', '4.2.2', '4.3.1']
