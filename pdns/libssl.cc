@@ -745,22 +745,23 @@ OpenSSLTLSTicketKey::OpenSSLTLSTicketKey(std::ifstream& file)
 #endif /* HAVE_LIBSODIUM */
 }
 
+// NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init): d_name, d_cipherKey and d_hmacKey are initialized
 OpenSSLTLSTicketKey::OpenSSLTLSTicketKey(const std::string& key)
 {
   if (key.size() != (sizeof(d_name) + sizeof(d_cipherKey) + sizeof(d_hmacKey))) {
     throw std::runtime_error("Unable to load a ticket key from given data");
   }
   size_t from = 0;
-  memcpy(d_name, &key.at(from), sizeof(d_name));
+  memcpy(&d_name, &key.at(from), sizeof(d_name));
   from += sizeof(d_name);
-  memcpy(d_cipherKey, &key.at(from), sizeof(d_cipherKey));
+  memcpy(&d_cipherKey, &key.at(from), sizeof(d_cipherKey));
   from += sizeof(d_cipherKey);
-  memcpy(d_hmacKey, &key.at(from), sizeof(d_hmacKey));
+  memcpy(&d_hmacKey, &key.at(from), sizeof(d_hmacKey));
 
 #ifdef HAVE_LIBSODIUM
-  sodium_mlock(d_name, sizeof(d_name));
-  sodium_mlock(d_cipherKey, sizeof(d_cipherKey));
-  sodium_mlock(d_hmacKey, sizeof(d_hmacKey));
+  sodium_mlock(&d_name, sizeof(d_name));
+  sodium_mlock(&d_cipherKey, sizeof(d_cipherKey));
+  sodium_mlock(&d_hmacKey, sizeof(d_hmacKey));
 #endif /* HAVE_LIBSODIUM */
 }
 
