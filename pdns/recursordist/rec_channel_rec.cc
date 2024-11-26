@@ -1890,6 +1890,7 @@ static RecursorControlChannel::Answer help()
           "quit-nicely                      stop the recursor daemon nicely\n"
           "reload-acls                      reload ACLS\n"
           "reload-lua-script [filename]     (re)load Lua script\n"
+          "reload-yaml                      Reload runtime settable parts of YAML settings\n"
           "reload-lua-config [filename]     (re)load Lua configuration file or equivalent YAML clauses\n"
           "reload-zones                     reload all auth and forward zones\n"
           "set-ecs-minimum-ttl value        set ecs-minimum-ttl-override\n"
@@ -1927,6 +1928,9 @@ RecursorControlChannel::Answer luaconfig(bool broadcast)
   extern std::unique_ptr<ProxyMapping> g_proxyMapping;
   if (!g_luaSettingsInYAML) {
     try {
+      if (::arg()["lua-config-file"].empty()) {
+        return {0, "No Lua or corresponding YAML configuration active\n"};
+      }
       loadRecursorLuaConfig(::arg()["lua-config-file"], proxyMapping, lci);
       activateLuaConfig(lci);
       lci = g_luaconfs.getCopy();
@@ -1992,7 +1996,7 @@ static RecursorControlChannel::Answer luaconfig(T begin, T end)
 {
   if (begin != end) {
     if (g_luaSettingsInYAML) {
-      return {1, "Unable to reload Lua script from '" + ::arg()["lua-config-file"] + " as there is no active Lua configuration\n"};
+      return {1, "Unable to reload Lua script from '" + *begin + "' as there is no active Lua configuration\n"};
     }
     ::arg().set("lua-config-file") = *begin;
   }
@@ -2113,6 +2117,9 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int socket, cons
     return doQueueReloadLuaScript(begin, end);
   }
   if (cmd == "reload-lua-config") {
+    return luaconfig(begin, end);
+  }
+  if (cmd == "reload-yaml") {
     return luaconfig(begin, end);
   }
   if (cmd == "set-carbon-server") {

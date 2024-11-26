@@ -26,6 +26,8 @@ Settings on the command line are processed after the file-based settings are pro
    You have to choose however: either set Lua settings the old way in the Lua config file, or convert all to YAML.
    If you are using YAML settings of items originally specified in the Lua config file, do not set :ref:`setting-yaml-recursor.lua_config_file` anymore. The :program:`Recursor` will check that you do not mix both configuration methods.
 
+   When using YAML style for settings originally found in the Lua config file, ``rec_control reload-lua-config`` will reload parts of the YAML settings. Refer to the specific setting to learn if it is subject to reloading. Starting with version 5.2.0, the command ``rec_control reload-yaml`` can be used, which is an alias for ``rec_control reload-lua-config``.
+
 YAML settings file
 ------------------
 Please refer to e.g. `<https://docs.ansible.com/ansible/latest/reference_appendices/YAMLSyntax.html>`_
