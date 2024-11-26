@@ -31,7 +31,7 @@ Before upgrading, it is advised to read the :doc:`../upgrade`.
     :pullreq: 14858
     :tickets: 14855
 
-    Remember which query led to aggressive cache insert/update and show it cache dump and traces.
+    Remember which query led to aggressive cache insert/update and show it in cache dump and traces.
 
   .. change::
     :tags: Improvements
