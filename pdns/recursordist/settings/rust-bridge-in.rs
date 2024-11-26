@@ -248,7 +248,7 @@ pub struct ProxyMapping {
     domains: Vec<String>,
 }
 
-// A struct holding both a vector of forward zones and a vector o auth zones, used by REST API code
+// A struct holding both a vector of forward zones and a vector of auth zones, used by REST API code
 #[derive(Deserialize, Serialize, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct ApiZones {
@@ -364,7 +364,7 @@ extern "Rust" {
     // Merge a string representing YAML settings into a existing setttings struct
     fn merge(lhs: &mut Recursorsettings, rhs: &str) -> Result<()>;
 
-    // Validate the sections inside the main settings struct, sections themselves will valdiate their fields
+    // Validate the sections inside the main settings struct, sections themselves will validate their fields
     fn validate(self: &Recursorsettings) -> Result<()>;
     // The validate function below are "hand-crafted" as their structs are not generated
     fn validate(self: &AuthZone, field: &str) -> Result<()>;

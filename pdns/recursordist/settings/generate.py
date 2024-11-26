@@ -509,7 +509,7 @@ def write_rust_section(file, section, entries, default_funcs):
 
 #
 # Each section als has a Default implementation, so that a section with all entries having a default
-# value does not get generated into a yaml section. Such a tarit looks like:
+# value does not get generated into a yaml section. Such a trait looks like:
 #
 #impl Default for recsettings::ForwardZone {
 #    fn default() -> Self {
