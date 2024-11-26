@@ -1,7 +1,19 @@
 #!/usr/bin/python3
+"""Load actions definitions and generates C++ factories and Lua bindings code."""
+# Loads the actions definitions from:
+# - dnsdist-actions-definitions.yml
+# - dnsdist-response-actions-definitions.yml
+# and generates C++ factories to create the objects
+# for these actions from the corresponding aparameters:
+# - dnsdist-actions-factories-generated.cc
+# - dnsdist-actions-factories-generated.hh
+# - dnsdist-response-actions-factories-generated.cc
+# - dnsdist-response-actions-factories-generated.hh
+# as well as Lua bindings for them:
+# - dnsdist-lua-actions-generated.cc
+# - dnsdist-lua-response-actions-generated.cc
 
 import os
-import sys
 import tempfile
 import yaml
 
@@ -28,8 +40,6 @@ def type_to_cpp(type_str, lua_interface):
         if lua_interface:
             return 'std::string'
         return 'const std::string&'
-    #if type_str == 'ResponseConfig':
-    #    return 'const dnsdist::ResponseConfig&'
     return type_str
 
 def get_cpp_object_name(name, is_class=True):
@@ -48,17 +58,16 @@ def get_cpp_object_name(name, is_class=True):
 
 def get_cpp_parameter_name(name):
     return get_cpp_object_name(name, is_class=False)
-    #return name.replace('-', '_').lower()
 
 def get_cpp_parameters_definition(parameters, lua_interface):
     output = ''
     for parameter in parameters:
         pname = get_cpp_parameter_name(parameter['name'])
         ptype = type_to_cpp(parameter['type'], lua_interface)
-        if 'default' in parameter and (lua_interface or not 'cpp-optional' in parameter or parameter['cpp-optional'] == True):
+        if 'default' in parameter:
             if lua_interface:
                 ptype = f'boost::optional<{ptype}>'
-            else:
+            elif not 'cpp-optional' in parameter or parameter['cpp-optional']:
                 ptype = f'std::optional<{ptype}>'
         if len(output) > 0:
             output += ', '
@@ -71,8 +80,11 @@ def get_cpp_parameters(parameters, lua_interface):
         pname = get_cpp_parameter_name(parameter['name'])
         if len(output) > 0:
             output += ', '
-        if 'default' in parameter and (lua_interface or not 'cpp-optional' in parameter or parameter['cpp-optional'] == True):
-            default = parameter['default']
+        if 'default' in parameter:
+            if lua_interface:
+                default = parameter['default']
+            elif not 'cpp-optional' in parameter or parameter['cpp-optional']:
+                default = parameter['default']
             if default == '':
                 default = '""'
             output += f'{pname} ? *{pname} : {default}'
@@ -86,7 +98,7 @@ def generate_actions_factories_header(definitions, response=False):
     generated_fp = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8', dir='.')
 
     for action in definitions:
-        if 'skip-cpp' in action and action['skip-cpp'] == True:
+        if 'skip-cpp' in action and action['skip-cpp']:
             continue
         name = get_cpp_object_name(action['name'])
         output = f'std::shared_ptr<{shared_object_type}> get{name}{suffix}('
@@ -103,7 +115,7 @@ def generate_actions_factories(definitions, response=False):
     generated_fp = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8', dir='.')
 
     for action in definitions:
-        if 'skip-cpp' in action and action['skip-cpp'] == True:
+        if 'skip-cpp' in action and action['skip-cpp']:
             continue
         name = get_cpp_object_name(action['name'])
         output = f'std::shared_ptr<DNS{suffix}> get{name}{suffix}('
@@ -125,7 +137,7 @@ def generate_lua_actions_bindings(definitions, response=False):
     generated_fp = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8', dir='.')
 
     for action in definitions:
-        if 'skip-cpp' in action and action['skip-cpp'] == True:
+        if 'skip-cpp' in action and action['skip-cpp']:
             continue
         name = get_cpp_object_name(action['name'])
         output = f'luaCtx.writeFunction("{name}{suffix}", []('
