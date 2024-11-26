@@ -209,7 +209,7 @@ dependencies = [
 
 [[package]]
 name = "settings"
-version = "5.1.0"
+version = "5.2.0"
 dependencies = [
  "base64",
  "cxx",
