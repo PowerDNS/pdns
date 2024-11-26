@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import os
+import re
 import sys
 import tempfile
 import yaml
@@ -53,15 +54,15 @@ def get_rust_object_name(name):
 
     return object_name
 
-def gen_rust_vec_default_functions(name, typeName, defvalue):
-    """Generate Rust code for the default handling of a vector for typeName"""
+def gen_rust_vec_default_functions(name, type_name, def_value):
+    """Generate Rust code for the default handling of a vector for type_name"""
     ret = f'// DEFAULT HANDLING for {name}\n'
-    ret += f'fn default_value_{name}() -> Vec<dnsdistsettings::{typeName}> {{\n'
+    ret += f'fn default_value_{name}() -> Vec<dnsdistsettings::{type_name}> {{\n'
     ret += f'    let msg = "default value defined for `{name}\' should be valid YAML";'
-    ret += f'    let deserialized: Vec<dnsdistsettings::{typeName}> = serde_yaml::from_str({quote(defvalue)}).expect(&msg);\n'
-    ret += f'    deserialized\n'
+    ret += f'    let deserialized: Vec<dnsdistsettings::{type_name}> = serde_yaml::from_str({quote(def_value)}).expect(&msg);\n'
+    ret += '    deserialized\n'
     ret += '}\n'
-    ret += f'fn default_value_equal_{name}(value: &Vec<dnsdistsettings::{typeName}>)'
+    ret += f'fn default_value_equal_{name}(value: &Vec<dnsdistsettings::{type_name}>)'
     ret += '-> bool {\n'
     ret += f'    let def = default_value_{name}();\n'
     ret += '    &def == value\n'
@@ -125,7 +126,7 @@ def get_rust_serde_annotations(rust_type, default, rename, obj, field, default_f
     type_upper = rust_type.capitalize()
     if rust_type == 'bool':
         return f'''#[serde({rename_value}default = "crate::{type_upper}::<{default}>::value", skip_serializing_if = "crate::if_true")]'''
-    if rust_type == 'String' or rust_type == 'Vec<String>':
+    if rust_type in ['String', 'Vec<String>']:
         basename = obj + '_' + field
         default_functions.append(gen_rust_default_functions(rust_type, default, basename))
         return f'''#[serde({rename_value}default = "crate::default_value_{basename}", skip_serializing_if = "crate::default_value_equal_{basename}")]'''
@@ -195,8 +196,8 @@ def get_validation_for_field(field_name, rust_type):
         return ''
     if not is_vector_of(rust_type):
         return f'        self.{field_name}.validate()?;\n'
-    else:
-        return f'''        for sub_type in &self.{field_name} {{
+
+    return f'''        for sub_type in &self.{field_name} {{
         sub_type.validate()?;
     }}
 '''
@@ -258,7 +259,7 @@ namespace dnsdist::configuration::yaml
 {
 void convertRuntimeFlatSettingsFromRust(const dnsdist::rust::settings::GlobalConfiguration& yamlConfig)
 {
-  dnsdist::configuration::updateRuntimeConfiguration([&yamlConfig](dnsdist::configuration::RuntimeConfiguration& config) {\n''');
+  dnsdist::configuration::updateRuntimeConfiguration([&yamlConfig](dnsdist::configuration::RuntimeConfiguration& config) {\n''')
     for category_name, keys in definitions.items():
         if not 'parameters' in keys or not 'section' in keys:
             continue
@@ -275,15 +276,15 @@ void convertRuntimeFlatSettingsFromRust(const dnsdist::rust::settings::GlobalCon
                 cxx_flat_settings_fp.write(f'        config.{internal_field_name} = yamlConfig.{category_name}.{rust_field_name};\n')
             else:
                 cxx_flat_settings_fp.write(f'        config.{internal_field_name} = std::string(yamlConfig.{category_name}.{rust_field_name});\n')
-            cxx_flat_settings_fp.write(f'    }}\n')
+            cxx_flat_settings_fp.write('    }\n')
 
-    cxx_flat_settings_fp.write('  });\n');
-    cxx_flat_settings_fp.write('''}\n''');
+    cxx_flat_settings_fp.write('  });\n')
+    cxx_flat_settings_fp.write('''}\n''')
 
     # then immutable ones
     cxx_flat_settings_fp.write('''void convertImmutableFlatSettingsFromRust(const dnsdist::rust::settings::GlobalConfiguration& yamlConfig)
 {
-  dnsdist::configuration::updateImmutableConfiguration([&yamlConfig](dnsdist::configuration::ImmutableConfiguration& config) {\n''');
+  dnsdist::configuration::updateImmutableConfiguration([&yamlConfig](dnsdist::configuration::ImmutableConfiguration& config) {\n''')
     for category_name, keys in definitions.items():
         if not 'parameters' in keys or not 'section' in keys:
             continue
@@ -300,9 +301,9 @@ void convertRuntimeFlatSettingsFromRust(const dnsdist::rust::settings::GlobalCon
                 cxx_flat_settings_fp.write(f'        config.{internal_field_name} = yamlConfig.{category_name}.{rust_field_name};\n')
             else:
                 cxx_flat_settings_fp.write(f'        config.{internal_field_name} = std::string(yamlConfig.{category_name}.{rust_field_name});\n')
-            cxx_flat_settings_fp.write(f'    }}\n')
+            cxx_flat_settings_fp.write('    }\n')
 
-    cxx_flat_settings_fp.write('  });\n');
+    cxx_flat_settings_fp.write('  });\n')
     cxx_flat_settings_fp.write('''}\n
 }
 #endif /* defined(HAVE_YAML_CONFIGURATION) */
@@ -485,7 +486,6 @@ def generate_rust_action_to_config(output, response):
     for action in actions_definitions:
         name = get_rust_object_name(action['name'])
         var = name.lower()
-        struct_name = f'{name}{suffix}Configuration'
         enum_buffer += f'''        {suffix}::{name}({var}) => {{
             let tmp_action = dnsdistsettings::get{name}{suffix}(&{var});
             return Some(dnsdistsettings::SharedDNS{suffix} {{
@@ -510,7 +510,7 @@ def handle_nested_structures(generated_fp, definitions, default_functions, valid
         validation_functions.append(get_struct_validation_function_from_definition(definition_name, keys['parameters'] if 'parameters' in keys else []))
 
 def handle_global_structures(generated_fp, sections, definitions, global_objects, default_functions, validation_functions):
-    for section, section_type in sections.items():
+    for section, _ in sections.items():
         for definition_name, keys in definitions.items():
             if not 'section' in keys:
                 continue
