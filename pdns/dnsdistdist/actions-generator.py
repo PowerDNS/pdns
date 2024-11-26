@@ -25,10 +25,10 @@ def get_definitions_from_file(def_file):
 def is_vector_of(type_str):
     return type_str.startswith('Vec<')
 
-def type_to_cpp(type_str, lua_interface):
+def type_to_cpp(type_str, lua_interface, inside_container=False):
     if is_vector_of(type_str):
         sub_type = type_str[4:-1]
-        return 'std::vector<' + type_to_cpp(sub_type, lua_interface) + '>'
+        return 'std::vector<' + type_to_cpp(sub_type, lua_interface, True) + '>'
 
     if type_str == 'u8':
         return 'uint8_t'
@@ -36,8 +36,14 @@ def type_to_cpp(type_str, lua_interface):
         return 'uint16_t'
     if type_str == 'u32':
         return 'uint32_t'
+    if type_str == 'u64':
+        return 'uint64_t'
+    if type_str == 'f64':
+        return 'double'
     if type_str == 'String':
         if lua_interface:
+            return 'std::string'
+        if inside_container:
             return 'std::string'
         return 'const std::string&'
     return type_str
@@ -66,8 +72,10 @@ def get_cpp_parameters_definition(parameters, lua_interface):
         ptype = type_to_cpp(parameter['type'], lua_interface)
         if 'default' in parameter:
             if lua_interface:
+                ptype = type_to_cpp(parameter['type'], lua_interface, True)
                 ptype = f'boost::optional<{ptype}>'
             elif not 'cpp-optional' in parameter or parameter['cpp-optional']:
+                ptype = type_to_cpp(parameter['type'], lua_interface, True)
                 ptype = f'std::optional<{ptype}>'
         if len(output) > 0:
             output += ', '
@@ -80,16 +88,38 @@ def get_cpp_parameters(parameters, lua_interface):
         pname = get_cpp_parameter_name(parameter['name'])
         if len(output) > 0:
             output += ', '
-        if 'default' in parameter:
-            if lua_interface:
-                default = parameter['default']
-            elif not 'cpp-optional' in parameter or parameter['cpp-optional']:
-                default = parameter['default']
-            if default == '':
-                default = '""'
-            output += f'{pname} ? *{pname} : {default}'
-        else:
+        default = None
+        if not 'default' in parameter:
             output += f'{pname}'
+            continue
+
+        cpp_optional = not 'cpp-optional' in parameter or parameter['cpp-optional']
+        if lua_interface and not cpp_optional:
+            # We are the Lua binding, and the factory does not handle optional values
+            # -> pass the value if any, and the default otherwise
+            default = parameter['default']
+        elif lua_interface and cpp_optional:
+            # we are the Lua binding, the factory does handle optional values,
+            # -> boost::optional to std::optional
+            output += f'boostToStandardOptional({pname})'
+            continue
+        elif not lua_interface and cpp_optional:
+            # We are the C++ factory and we do handle optional values
+            # -> pass the value if any, and the default otherwise
+            default = parameter['default']
+        else:
+            # We are the C++ factory and we do not handle optional values
+            # -> pass the value we received
+            output += f'{pname}'
+            continue
+
+        if default == '':
+            default = '""'
+        if default == True:
+            default = '{}'
+
+        output += f'{pname} ? *{pname} : {default}'
+
     return output
 
 def generate_actions_factories_header(definitions, response=False):
@@ -154,6 +184,64 @@ def generate_lua_actions_bindings(definitions, response=False):
     output_file_name = 'dnsdist-lua-response-actions-generated.cc' if response else 'dnsdist-lua-actions-generated.cc'
     os.rename(generated_fp.name, output_file_name)
 
+def generate_selectors_factory_header(definitions):
+    generated_fp = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8', dir='.')
+
+    for selector in definitions:
+        if 'skip-cpp' in selector and selector['skip-cpp']:
+            continue
+        name = get_cpp_object_name(selector['name'])
+        output = f'std::shared_ptr<{name}Rule> get{name}Selector('
+        if 'parameters' in selector:
+            output += get_cpp_parameters_definition(selector['parameters'], False)
+        output += ');\n'
+        generated_fp.write(output)
+
+    output_file_name = 'dnsdist-selectors-factory-generated.hh'
+    os.rename(generated_fp.name, output_file_name)
+
+def generate_selectors_factory(definitions, response=False):
+    generated_fp = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8', dir='.')
+
+    for selector in definitions:
+        if 'skip-cpp' in selector and selector['skip-cpp']:
+            continue
+        name = get_cpp_object_name(selector['name'])
+        output = f'std::shared_ptr<{name}Rule> get{name}Selector('
+        if 'parameters' in selector:
+            output += get_cpp_parameters_definition(selector['parameters'], False)
+        output += ') {\n'
+        output += f'  return std::make_shared<{name}Rule>('
+        if 'parameters' in selector:
+            output += get_cpp_parameters(selector['parameters'], False)
+        output += ');\n'
+        output += '}\n\n'
+        generated_fp.write(output)
+
+    output_file_name = 'dnsdist-selectors-factory-generated.cc'
+    os.rename(generated_fp.name, output_file_name)
+
+def generate_lua_selectors_bindings(definitions):
+    generated_fp = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8', dir='.')
+
+    for selector in definitions:
+        if 'skip-cpp' in selector and selector['skip-cpp']:
+            continue
+        name = get_cpp_object_name(selector['name'])
+        output = f'luaCtx.writeFunction("{name}Rule", []('
+        if 'parameters' in selector:
+            output += get_cpp_parameters_definition(selector['parameters'], True)
+        output += ') {\n'
+        output += f'  return std::shared_ptr<DNSRule>(dnsdist::selectors::get{name}Selector('
+        if 'parameters' in selector:
+            output += get_cpp_parameters(selector['parameters'], True)
+        output += '));\n'
+        output += '});\n\n'
+        generated_fp.write(output)
+
+    output_file_name = 'dnsdist-lua-selectors-generated.cc'
+    os.rename(generated_fp.name, output_file_name)
+
 def main():
     definitions = get_definitions_from_file('dnsdist-actions-definitions.yml')
     generate_actions_factories_header(definitions)
@@ -164,6 +252,11 @@ def main():
     generate_actions_factories_header(definitions, response=True)
     generate_actions_factories(definitions, response=True)
     generate_lua_actions_bindings(definitions, response=True)
+
+    definitions = get_definitions_from_file('dnsdist-selectors-definitions.yml')
+    generate_selectors_factory_header(definitions)
+    generate_selectors_factory(definitions)
+    generate_lua_selectors_bindings(definitions)
 
 if __name__ == '__main__':
     main()

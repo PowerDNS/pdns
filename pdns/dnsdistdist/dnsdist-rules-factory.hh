@@ -1,3 +1,24 @@
+/*
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/sequenced_index.hpp>
@@ -13,11 +34,17 @@
 #include "dns_random.hh"
 #include "uuid-utils.hh"
 
+namespace dnsdist::selectors
+{
+using LuaSelectorFunction = std::function<bool(const DNSQuestion* dq)>;
+using LuaSelectorFFIFunction = std::function<bool(dnsdist_ffi_dnsquestion_t* dq)>;
+}
+
 class MaxQPSIPRule : public DNSRule
 {
 public:
   MaxQPSIPRule(unsigned int qps, unsigned int burst, unsigned int ipv4trunc=32, unsigned int ipv6trunc=64, unsigned int expiration=300, unsigned int cleanupDelay=60, unsigned int scanFraction=10, size_t shardsCount=10):
-    d_shards(shardsCount), d_qps(qps), d_burst(burst), d_ipv4trunc(ipv4trunc), d_ipv6trunc(ipv6trunc), d_cleanupDelay(cleanupDelay), d_expiration(expiration), d_scanFraction(scanFraction)
+    d_shards(shardsCount), d_qps(qps), d_burst(burst == 0 ? qps : burst), d_ipv4trunc(ipv4trunc), d_ipv6trunc(ipv6trunc), d_cleanupDelay(cleanupDelay), d_expiration(expiration), d_scanFraction(scanFraction)
   {
     d_cleaningUp.clear();
     gettime(&d_lastCleanup, true);
@@ -94,6 +121,7 @@ public:
 
   bool matches(const DNSQuestion* dq) const override
   {
+    cerr<<"seeing if "<<dq->ids.origRemote.toString()<<" matches limit of "<<d_qps<<", burst is "<<d_burst<<endl;
     cleanupIfNeeded(dq->getQueryRealTime());
 
     ComboAddress zeroport(dq->ids.origRemote);
@@ -105,10 +133,12 @@ public:
       auto limits = shard.lock();
       auto iter = limits->find(zeroport);
       if (iter == limits->end()) {
+        cerr<<"not found"<<endl;
         Entry e(zeroport, QPSLimiter(d_qps, d_burst));
         iter = limits->insert(e).first;
       }
 
+      cerr<<"found"<<endl;
       moveCacheItemToBack<SequencedTag>(*limits, iter);
       return !iter->d_limiter.check(d_qps, d_burst);
     }
@@ -145,13 +175,13 @@ private:
     ComboAddress d_addr;
   };
 
-  typedef multi_index_container<
+  using qpsContainer_t = multi_index_container<
     Entry,
     indexed_by <
       hashed_unique<tag<HashedTag>, member<Entry,ComboAddress,&Entry::d_addr>, ComboAddress::addressOnlyHash >,
       sequenced<tag<SequencedTag> >
       >
-  > qpsContainer_t;
+  >;
 
   mutable std::vector<LockGuarded<qpsContainer_t>> d_shards;
   mutable struct timespec d_lastCleanup;
@@ -163,14 +193,15 @@ private:
 class MaxQPSRule : public DNSRule
 {
 public:
-  MaxQPSRule(unsigned int qps)
-   : d_qps(qps, qps)
-  {}
+  MaxQPSRule(unsigned int qps):
+    d_qps(qps, qps)
+  {
+  }
 
-  MaxQPSRule(unsigned int qps, unsigned int burst)
-   : d_qps(qps, burst)
-  {}
-
+  MaxQPSRule(unsigned int qps, unsigned int burst):
+    d_qps(qps, burst > 0 ? burst : qps)
+  {
+  }
 
   bool matches(const DNSQuestion* qd) const override
   {
@@ -181,7 +212,6 @@ public:
   {
     return "Max " + std::to_string(d_qps.getRate()) + " qps";
   }
-
 
 private:
   mutable QPSLimiter d_qps;
@@ -398,11 +428,8 @@ public:
 class AndRule : public DNSRule
 {
 public:
-  AndRule(const std::vector<pair<int, std::shared_ptr<DNSRule> > >& rules)
+  AndRule(const std::vector<std::shared_ptr<DNSRule>>& rules): d_rules(rules)
   {
-    for (const auto& r : rules) {
-      d_rules.push_back(r.second);
-    }
   }
 
   bool matches(const DNSQuestion* dq) const override
@@ -434,11 +461,8 @@ private:
 class OrRule : public DNSRule
 {
 public:
-  OrRule(const std::vector<pair<int, std::shared_ptr<DNSRule> > >& rules)
+  OrRule(const std::vector<std::shared_ptr<DNSRule>>& rules): d_rules(rules)
   {
-    for (const auto& r : rules) {
-      d_rules.push_back(r.second);
-    }
   }
 
   bool matches(const DNSQuestion* dq) const override
@@ -573,7 +597,9 @@ public:
   }
   bool matches(const DNSQuestion* dq) const override
   {
-    return d_smn.check(dq->ids.qname);
+    auto match = d_smn.check(dq->ids.qname);;
+    cerr<<"checking if "<<dq->ids.qname.toString()<<" matches "<<match<<endl;
+    return match;
   }
   string toString() const override
   {
@@ -1055,7 +1081,7 @@ public:
       return false;
     }
 
-    if (!d_value) {
+    if (!d_value || d_value->empty()) {
       return true;
     }
 
@@ -1116,7 +1142,7 @@ private:
 class KeyValueStoreLookupRule: public DNSRule
 {
 public:
-  KeyValueStoreLookupRule(std::shared_ptr<KeyValueStore>& kvs, std::shared_ptr<KeyValueLookupKey>& lookupKey): d_kvs(kvs), d_key(lookupKey)
+  KeyValueStoreLookupRule(const std::shared_ptr<KeyValueStore>& kvs, const std::shared_ptr<KeyValueLookupKey>& lookupKey): d_kvs(kvs), d_key(lookupKey)
   {
   }
 
@@ -1145,7 +1171,7 @@ private:
 class KeyValueStoreRangeLookupRule: public DNSRule
 {
 public:
-  KeyValueStoreRangeLookupRule(std::shared_ptr<KeyValueStore>& kvs, std::shared_ptr<KeyValueLookupKey>& lookupKey): d_kvs(kvs), d_key(lookupKey)
+  KeyValueStoreRangeLookupRule(const std::shared_ptr<KeyValueStore>& kvs, const std::shared_ptr<KeyValueLookupKey>& lookupKey): d_kvs(kvs), d_key(lookupKey)
   {
   }
 
@@ -1175,8 +1201,7 @@ private:
 class LuaRule : public DNSRule
 {
 public:
-  typedef std::function<bool(const DNSQuestion* dq)> func_t;
-  LuaRule(const func_t& func): d_func(func)
+  LuaRule(const dnsdist::selectors::LuaSelectorFunction& func): d_func(func)
   {}
 
   bool matches(const DNSQuestion* dq) const override
@@ -1197,14 +1222,13 @@ public:
     return "Lua script";
   }
 private:
-  func_t d_func;
+  dnsdist::selectors::LuaSelectorFunction d_func;
 };
 
 class LuaFFIRule : public DNSRule
 {
 public:
-  typedef std::function<bool(dnsdist_ffi_dnsquestion_t* dq)> func_t;
-  LuaFFIRule(const func_t& func): d_func(func)
+  LuaFFIRule(const dnsdist::selectors::LuaSelectorFFIFunction& func): d_func(func)
   {}
 
   bool matches(const DNSQuestion* dq) const override
@@ -1226,14 +1250,12 @@ public:
     return "Lua FFI script";
   }
 private:
-  func_t d_func;
+  dnsdist::selectors::LuaSelectorFFIFunction d_func;
 };
 
 class LuaFFIPerThreadRule : public DNSRule
 {
 public:
-  typedef std::function<bool(dnsdist_ffi_dnsquestion_t* dq)> func_t;
-
   LuaFFIPerThreadRule(const std::string& code): d_functionCode(code), d_functionID(s_functionsCounter++)
   {
   }
@@ -1247,7 +1269,7 @@ public:
         /* mark the state as initialized first so if there is a syntax error
            we only try to execute the code once */
         state.d_initialized = true;
-        state.d_func = state.d_luaContext.executeCode<func_t>(d_functionCode);
+        state.d_func = state.d_luaContext.executeCode<dnsdist::selectors::LuaSelectorFFIFunction>(d_functionCode);
       }
 
       if (!state.d_func) {
@@ -1275,7 +1297,7 @@ private:
   struct PerThreadState
   {
     LuaContext d_luaContext;
-    func_t d_func;
+    dnsdist::selectors::LuaSelectorFFIFunction d_func;
     bool d_initialized{false};
   };
 
@@ -1299,7 +1321,7 @@ public:
     }
 
     for (const auto& entry : *dq->proxyProtocolValues) {
-      if (entry.type == d_type && (!d_value || entry.content == *d_value)) {
+      if (entry.type == d_type && (!d_value || d_value->empty() || entry.content == *d_value)) {
         return true;
       }
     }
@@ -1382,3 +1404,20 @@ private:
   uint16_t d_size;
   Comparisons d_comparison;
 };
+
+namespace dnsdist::selectors
+{
+std::shared_ptr<AndRule> getAndSelector(const std::vector<std::shared_ptr<DNSRule>> rules);
+std::shared_ptr<OrRule> getOrSelector(const std::vector<std::shared_ptr<DNSRule>> rules);
+std::shared_ptr<NotRule> getNotSelector(const std::shared_ptr<DNSRule>& rule);
+std::shared_ptr<QNameRule> getQNameSelector(const DNSName& qname);
+std::shared_ptr<QNameSetRule> getQNameSetSelector(const DNSNameSet& qnames);
+std::shared_ptr<SuffixMatchNodeRule> getQNameSuffixSelector(const SuffixMatchNode& suffixes, bool quiet);
+std::shared_ptr<QTypeRule> getQTypeSelector(const std::string& qtypeStr, uint16_t qtypeCode);
+std::shared_ptr<QClassRule> getQClassSelector(const std::string& qclassStr, uint16_t qclassCode);
+std::shared_ptr<NetmaskGroupRule> getNetmaskGroupSelector(const NetmaskGroup& nmg, bool source, bool quiet);
+std::shared_ptr<KeyValueStoreLookupRule> getKeyValueStoreLookupSelector(const std::shared_ptr<KeyValueStore>& kvs, const std::shared_ptr<KeyValueLookupKey>& lookupKey);
+std::shared_ptr<KeyValueStoreRangeLookupRule> getKeyValueStoreRangeLookupSelector(const std::shared_ptr<KeyValueStore>& kvs, const std::shared_ptr<KeyValueLookupKey>& lookupKey);
+
+#include "dnsdist-selectors-factory-generated.hh"
+}

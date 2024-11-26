@@ -69,52 +69,17 @@ mod dnsdistsettings {
         no_default_alpn: bool,
     }
 
-    #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
-    #[serde(deny_unknown_fields)]
-    struct TCPSelectorConfig {
-        #[serde(default, skip_serializing_if = "crate::is_default")]
-        name: String,
-        #[serde(default, skip_serializing_if = "crate::is_default")]
-        tcp: bool,
-    }
-
     #[derive(Default)]
     struct AndSelectorConfig {
         name: String,
         selectors: Vec<SharedDNSSelector>,
     }
 
-    #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
-    #[serde(deny_unknown_fields)]
-    struct AllSelector {
-        #[serde(default, skip_serializing_if = "crate::is_default")]
-        name: String,
-    }
-
-    #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
-    #[serde(deny_unknown_fields)]
-    struct ByNameSelector {
-        name: String,
-    }
-
-    #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
-    #[serde(deny_unknown_fields)]
-    struct NetmaskGroupSelectorConfig {
-        #[serde(default, skip_serializing_if = "crate::is_default")]
-        name: String,
-        #[serde(
-            default,
-            rename = "netmask-group",
-            skip_serializing_if = "crate::is_default"
-        )]
-        netmask_group: String,
-        #[serde(default, skip_serializing_if = "crate::is_default")]
-        netmasks: Vec<String>,
-        #[serde(default, skip_serializing_if = "crate::is_default")]
-        source: bool,
-        #[serde(default, skip_serializing_if = "crate::is_default")]
-        quiet: bool,
-    }
+//    #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
+//    #[serde(deny_unknown_fields)]
+//    struct ByNameSelector {
+//        name: String,
+//    }
 
     struct SharedDNSSelector {
         selector: SharedPtr<DNSSelector>,

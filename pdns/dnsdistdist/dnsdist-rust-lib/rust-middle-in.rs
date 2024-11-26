@@ -10,16 +10,10 @@
     unsafe extern "C++" {
         include!("dnsdist-rust-bridge.hh");
         type DNSSelector;
-        fn getSelectorByName(name: &String) -> SharedPtr<DNSSelector>;
+        //fn getSelectorByName(name: &String) -> SharedPtr<DNSSelector>;
         type DNSActionWrapper;
-        fn getActionByName(name: &String) -> SharedPtr<DNSActionWrapper>;
+        //fn getActionByName(name: &String) -> SharedPtr<DNSActionWrapper>;
         type DNSResponseActionWrapper;
-
-        fn getMaxIPQPSSelector(config: &MaxQPSIPSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getTCPSelector(config: &TCPSelectorConfig) -> SharedPtr<DNSSelector>;
-        fn getAllSelector() -> SharedPtr<DNSSelector>;
-        fn getAndSelector(config: &AndSelectorConfig) -> SharedPtr<DNSSelector>;
-        fn getNetmaskGroupSelector(config: &NetmaskGroupSelectorConfig) -> SharedPtr<DNSSelector>;
     }
 }
 
@@ -33,23 +27,37 @@ impl Default for dnsdistsettings::SharedDNSSelector {
 
 #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
-struct AndSelectorSerde {
+struct AndSelectorConfigurationSerde {
     #[serde(default, skip_serializing_if = "crate::is_default")]
     selectors: Vec<Selector>,
 }
 
-#[derive(Default, Serialize, Deserialize, Debug, PartialEq)]
-#[serde(tag = "type")]
-enum Selector {
-    #[default]
-    None,
-    All(dnsdistsettings::AllSelector),
-    And(AndSelectorSerde),
-    ByName(dnsdistsettings::ByNameSelector),
-    TCP(dnsdistsettings::TCPSelectorConfig),
-    MaxQPSIP(dnsdistsettings::MaxQPSIPSelectorConfiguration),
-    NetmaskGroup(dnsdistsettings::NetmaskGroupSelectorConfig),
+#[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
+#[serde(deny_unknown_fields)]
+struct OrSelectorConfigurationSerde {
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    selectors: Vec<Selector>,
 }
+
+#[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
+#[serde(deny_unknown_fields)]
+struct NotSelectorConfigurationSerde {
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    selector: Box<Selector>,
+}
+
+//#[derive(Default, Serialize, Deserialize, Debug, PartialEq)]
+//#[serde(tag = "type")]
+//enum Selector {
+//    #[default]
+//    None,
+//    All(dnsdistsettings::AllSelector),
+//    And(AndSelectorSerde),
+//    ByName(dnsdistsettings::ByNameSelector),
+//    TCP(dnsdistsettings::TCPSelectorConfig),
+//    MaxQPSIP(dnsdistsettings::MaxQPSIPSelectorConfiguration),
+//    NetmaskGroup(dnsdistsettings::NetmaskGroupSelectorConfig),
+//}
 
 impl Selector {
   fn validate(&self) -> Result<(), ValidationError> {

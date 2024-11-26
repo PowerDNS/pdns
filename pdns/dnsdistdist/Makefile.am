@@ -39,6 +39,7 @@ BUILT_SOURCES=htmlfiles.h \
 	dnsdist-lua-ffi-interface.inc \
 	dnsdist-lua-actions-generated.cc dnsdist-lua-response-actions-generated.cc \
 	dnsdist-response-actions-factories-generated.cc \
+	dnsdist-selectors-factory-generated.cc dnsdist-selectors-factory-generated.hh \
 	dnslabeltext.cc
 
 htmlfiles.h: $(srcdir)/html/* $(srcdir)/incfiles
@@ -52,8 +53,8 @@ dnsdist-lua-ffi-interface.inc: dnsdist-lua-ffi-interface.h dnsdist-lua-inspectio
 SRC_JS_FILES := $(wildcard src_js/*.js)
 MIN_JS_FILES := $(patsubst src_js/%.js,html/js/%.min.js,$(SRC_JS_FILES))
 
-dnsdist%generated%: actions-generator.py dnsdist-actions-definitions.yml dnsdist-response-actions-definitions.yml
-	@if test "$(PYTHON)" = ":"; then echo "Actions definitions have changed, python is needed to regenerate the related files but python was not found. Please install python and re-run configure"; exit 1; fi
+dnsdist%generated%: actions-generator.py dnsdist-actions-definitions.yml dnsdist-response-actions-definitions.yml dnsdist-selectors-definitions.yml
+	@if test "$(PYTHON)" = ":"; then echo "Actions or selectors definitions have changed, python is needed to regenerate the related files but python was not found. Please install python and re-run configure"; exit 1; fi
 	@if ! $(PYTHON) --version | grep -q "Python 3"; then echo $(PYTHON) should be at least version 3. Please install python 3 and re-run configure; exit 1; fi
 	$(PYTHON) actions-generator.py
 
@@ -108,6 +109,7 @@ EXTRA_DIST=COPYING \
 	   actions-generator.py \
 	   dnsdist-actions-definitions.yml \
 	   dnsdist-response-actions-definitions.yml \
+	   dnsdist-selectors-definitions.yml \
 	   dnslabeltext.rl \
 	   dnsdist.conf-dist \
 	   dnsmessage.proto \
@@ -228,6 +230,7 @@ dnsdist_SOURCES = \
 	dnsdist-rules-factory.hh \
 	dnsdist-rules.cc dnsdist-rules.hh \
 	dnsdist-secpoll.cc dnsdist-secpoll.hh \
+	dnsdist-selectors-factory-generated.hh \
 	dnsdist-self-answers.cc dnsdist-self-answers.hh \
 	dnsdist-session-cache.cc dnsdist-session-cache.hh \
 	dnsdist-snmp.cc dnsdist-snmp.hh \
@@ -445,6 +448,7 @@ endif
 
 if HAVE_RE2
 dnsdist_LDADD += $(RE2_LIBS)
+testrunner_LDADD += $(RE2_LIBS)
 endif
 
 if HAVE_LIBSSL
