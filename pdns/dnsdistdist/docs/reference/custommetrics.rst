@@ -17,11 +17,11 @@ Then you can update those at runtime using the following functions, depending on
   .. versionchanged:: 1.8.1
     This function can now be used at runtime, instead of only at configuration time.
 
-  Return true if declaration was successful
+  Returns true if declaration was successful.
 
   :param str name: The name of the metric, lowercase alphanumerical characters and dashes (-) only
   :param str type: The desired type in ``gauge`` or ``counter``
-  :param str name: The description of the metric
+  :param str description: The description of the metric
   :param str prometheusName: The name to use in the prometheus metrics, if supplied. Otherwise the regular name will be used, prefixed with ``dnsdist_`` and ``-`` replaced by ``_``.
 
 .. function:: incMetric(name [, step]) -> int
@@ -31,8 +31,9 @@ Then you can update those at runtime using the following functions, depending on
   .. versionchanged:: 1.8.1
     Optional ``step`` parameter added.
 
-  Increment counter by one (or more, see the ``step`` parameter), will issue an error if the metric is not declared or not a ``counter``
-  Return the new value
+  Increment counter by one (or more, see the ``step`` parameter), will issue an error if the metric is not declared or not a ``counter``.
+
+  Returns the new value.
 
   :param str name: The name of the metric
   :param int step: By how much the counter should be incremented, default to 1.
@@ -44,8 +45,9 @@ Then you can update those at runtime using the following functions, depending on
   .. versionchanged:: 1.8.1
     Optional ``step`` parameter added.
 
-  Decrement counter by one (or more, see the ``step`` parameter), will issue an error if the metric is not declared or not a ``counter``
-  Return the new value
+  Decrement counter by one (or more, see the ``step`` parameter), will issue an error if the metric is not declared or not a ``counter``.
+
+  Returns the new value.
 
   :param str name: The name of the metric
   :param int step: By how much the counter should be decremented, default to 1.
@@ -54,7 +56,7 @@ Then you can update those at runtime using the following functions, depending on
 
   .. versionadded:: 1.8.0
 
-  Get metric value
+  Get metric value.
 
   :param str name: The name of the metric
 
@@ -62,8 +64,9 @@ Then you can update those at runtime using the following functions, depending on
 
   .. versionadded:: 1.8.0
 
-  Set the new value, will issue an error if the metric is not declared or not a ``gauge``
-  Return the new value
+  Set the new value, will issue an error if the metric is not declared or not a ``gauge``.
+
+  Return the new value.
 
   :param str name: The name of the metric
   :param double value: The new value
