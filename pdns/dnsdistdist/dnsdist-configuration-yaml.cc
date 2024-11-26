@@ -835,16 +835,6 @@ bool loadConfigurationFromFile(const std::string fileName)
 namespace dnsdist::rust::settings
 {
 
-std::shared_ptr<DNSActionWrapper> getActionByName(const ::rust::String& name)
-{
-  return dnsdist::configuration::yaml::getRegisteredTypeByName<DNSActionWrapper>(name);
-}
-
-std::shared_ptr<DNSSelector> getSelectorByName(const ::rust::String& name)
-{
-  return dnsdist::configuration::yaml::getRegisteredTypeByName<DNSSelector>(name);
-}
-
 static std::shared_ptr<DNSSelector> newDNSSelector(std::shared_ptr<DNSRule>&& rule, const ::rust::String& name)
 {
   auto selector = std::make_shared<DNSSelector>();
@@ -852,52 +842,6 @@ static std::shared_ptr<DNSSelector> newDNSSelector(std::shared_ptr<DNSRule>&& ru
   selector->d_rule = std::move(rule);
   dnsdist::configuration::yaml::registerType(selector, name);
   return selector;
-}
-
-std::shared_ptr<DNSSelector> getMaxIPQPSSelector(const MaxQPSIPSelectorConfiguration& config)
-{
-  auto rule = std::shared_ptr<DNSRule>(new MaxQPSIPRule(config.qps, config.burst, config.ipv4_mask, config.ipv6_mask, config.expiration, config.cleanup_delay, config.scan_fraction, config.shards));
-  return newDNSSelector(std::move(rule), config.name);
-}
-
-std::shared_ptr<DNSSelector> getAllSelector()
-{
-  auto rule = std::shared_ptr<DNSRule>(new AllRule());
-  return newDNSSelector(std::move(rule), "");
-}
-
-std::shared_ptr<DNSSelector> getAndSelector(const AndSelectorConfig& config)
-{
-  LuaArray<std::shared_ptr<DNSRule>> selectors;
-  selectors.reserve(config.selectors.size());
-  int counter = 1;
-  for (const auto& selector : config.selectors) {
-    selectors.emplace_back(counter++, selector.selector->d_rule);
-  }
-  auto rule = std::shared_ptr<DNSRule>(new AndRule(selectors));
-  return newDNSSelector(std::move(rule), config.name);
-}
-
-std::shared_ptr<DNSSelector> getTCPSelector(const TCPSelectorConfig& config)
-{
-  auto rule = std::shared_ptr<DNSRule>(new TCPRule(config.tcp));
-  return newDNSSelector(std::move(rule), config.name);
-}
-
-std::shared_ptr<DNSSelector> getNetmaskGroupSelector(const NetmaskGroupSelectorConfig& config)
-{
-  std::shared_ptr<NetmaskGroup> nmg;
-  if (!config.netmask_group.empty()) {
-    nmg = dnsdist::configuration::yaml::getRegisteredTypeByName<NetmaskGroup>(std::string(config.netmask_group));
-  }
-  if (!nmg) {
-    nmg = std::make_shared<NetmaskGroup>();
-  }
-  for (const auto& netmask : config.netmasks) {
-    nmg->addMask(std::string(netmask));
-  }
-  auto rule = std::shared_ptr<DNSRule>(new NetmaskGroupRule(*nmg, config.source, config.quiet));
-  return newDNSSelector(std::move(rule), config.name);
 }
 
 static std::shared_ptr<DNSActionWrapper> newDNSActionWrapper(std::shared_ptr<DNSAction>&& action, const ::rust::String& name)
@@ -1023,6 +967,107 @@ std::shared_ptr<DNSResponseActionWrapper> getSetMaxTTLResponseAction(const SetMa
   return newDNSResponseActionWrapper(std::move(action), config.name);
 }
 
+std::shared_ptr<DNSSelector> getQNameSuffixSelector(const QNameSuffixSelectorConfiguration& config)
+{
+  SuffixMatchNode suffixes;
+  for (const auto& suffix : config.suffixes) {
+    suffixes.add(std::string(suffix));
+  }
+  return newDNSSelector(dnsdist::selectors::getQNameSuffixSelector(suffixes, config.quiet), config.name);
+}
+
+std::shared_ptr<DNSSelector> getQNameSetSelector(const QNameSetSelectorConfiguration& config)
+{
+  DNSNameSet qnames;
+  for (const auto& name : config.qnames) {
+    qnames.emplace(std::string(name));
+  }
+  return newDNSSelector(dnsdist::selectors::getQNameSetSelector(qnames), config.name);
+}
+
+std::shared_ptr<DNSSelector> getQNameSelector(const QNameSelectorConfiguration& config)
+{
+  return newDNSSelector(dnsdist::selectors::getQNameSelector(DNSName(std::string(config.qname))), config.name);
+}
+
+std::shared_ptr<DNSSelector> getNetmaskGroupSelector(const NetmaskGroupSelectorConfiguration& config)
+{
+  std::shared_ptr<NetmaskGroup> nmg;
+  if (!config.netmask_group_name.empty()) {
+    nmg = dnsdist::configuration::yaml::getRegisteredTypeByName<NetmaskGroup>(std::string(config.netmask_group_name));
+  }
+  if (!nmg) {
+    nmg = std::make_shared<NetmaskGroup>();
+  }
+  for (const auto& netmask : config.netmasks) {
+    nmg->addMask(std::string(netmask));
+  }
+  auto selector = dnsdist::selectors::getNetmaskGroupSelector(*nmg, config.source, config.quiet);
+  return newDNSSelector(std::move(selector), config.name);
+}
+
+std::shared_ptr<DNSSelector> getKeyValueStoreLookupSelector(const KeyValueStoreLookupSelectorConfiguration& config)
+{
+  auto kvs = dnsdist::configuration::yaml::getRegisteredTypeByName<KeyValueStore>(std::string(config.kvs_name));
+  if (!kvs) {
+    throw std::runtime_error("Unable to find the key-value store named '" + std::string(config.kvs_name) + "'");
+  }
+  auto lookupKey = dnsdist::configuration::yaml::getRegisteredTypeByName<KeyValueLookupKey>(std::string(config.lookup_key_name));
+  if (!lookupKey) {
+    throw std::runtime_error("Unable to find the key-value lookup key named '" + std::string(config.lookup_key_name) + "'");
+  }
+  auto selector = dnsdist::selectors::getKeyValueStoreLookupSelector(kvs, lookupKey);
+  return newDNSSelector(std::move(selector), config.name);
+}
+
+std::shared_ptr<DNSSelector> getKeyValueStoreRangeLookupSelector(const KeyValueStoreRangeLookupSelectorConfiguration& config)
+{
+  auto kvs = dnsdist::configuration::yaml::getRegisteredTypeByName<KeyValueStore>(std::string(config.kvs_name));
+  if (!kvs) {
+    throw std::runtime_error("Unable to find the key-value store named '" + std::string(config.kvs_name) + "'");
+  }
+  auto lookupKey = dnsdist::configuration::yaml::getRegisteredTypeByName<KeyValueLookupKey>(std::string(config.lookup_key_name));
+  if (!lookupKey) {
+    throw std::runtime_error("Unable to find the key-value lookup key named '" + std::string(config.lookup_key_name) + "'");
+  }
+  auto selector = dnsdist::selectors::getKeyValueStoreRangeLookupSelector(kvs, lookupKey);
+  return newDNSSelector(std::move(selector), config.name);
+}
+
+std::shared_ptr<DNSSelector> getAndSelector(const AndSelectorConfiguration& config)
+{
+  std::vector<std::shared_ptr<DNSRule>> selectors;
+  selectors.reserve(config.selectors.size());
+  for (const auto& subSelector : config.selectors) {
+    selectors.emplace_back(subSelector.selector->d_rule);
+  }
+  auto selector = dnsdist::selectors::getAndSelector(selectors);
+  return newDNSSelector(std::move(selector), config.name);
+}
+
+std::shared_ptr<DNSSelector> getOrSelector(const OrSelectorConfiguration& config)
+{
+  std::vector<std::shared_ptr<DNSRule>> selectors;
+  selectors.reserve(config.selectors.size());
+  for (const auto& subSelector : config.selectors) {
+    selectors.emplace_back(subSelector.selector->d_rule);
+  }
+  auto selector = dnsdist::selectors::getOrSelector(selectors);
+  return newDNSSelector(std::move(selector), config.name);
+}
+
+std::shared_ptr<DNSSelector> getNotSelector(const NotSelectorConfiguration& config)
+{
+  auto selector = dnsdist::selectors::getNotSelector(config.selector.selector->d_rule);
+  return newDNSSelector(std::move(selector), config.name);
+}
+
+std::shared_ptr<DNSSelector> getByNameSelector(const ByNameSelectorConfiguration& config)
+{
+  return dnsdist::configuration::yaml::getRegisteredTypeByName<DNSSelector>(config.selector_name);
+}
+
 #include "dnsdist-rust-bridge-actions-generated.cc"
+#include "dnsdist-rust-bridge-selectors-generated.cc"
 }
 #endif /* defined(HAVE_YAML_CONFIGURATION) */

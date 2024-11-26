@@ -1,50 +1,50 @@
-fn get_one_selector_from_serde(selector: &Selector) -> Option<dnsdistsettings::SharedDNSSelector> {
-    match selector {
-        Selector::None => {}
-        Selector::All(_) => {
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: dnsdistsettings::getAllSelector(),
-            });
-        }
-        Selector::ByName(sel) => {
-            let selector_from_name = dnsdistsettings::getSelectorByName(&sel.name);
-            if selector_from_name.is_null() {
-                panic!("Unable to find a selector named {}", sel.name);
-            }
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: selector_from_name,
-            });
-        }
-        Selector::TCP(config) => {
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: dnsdistsettings::getTCPSelector(&config),
-            });
-        }
-        Selector::And(sel) => {
-            let mut config: dnsdistsettings::AndSelectorConfig = Default::default();
-            for sub_selector in &sel.selectors {
-                let new_selector = get_one_selector_from_serde(&sub_selector);
-                if new_selector.is_some() {
-                    config.selectors.push(new_selector.unwrap());
-                }
-            }
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: dnsdistsettings::getAndSelector(&config),
-            });
-        }
-        Selector::MaxQPSIP(conf) => {
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: dnsdistsettings::getMaxIPQPSSelector(&conf),
-            });
-        }
-        Selector::NetmaskGroup(conf) => {
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: dnsdistsettings::getNetmaskGroupSelector(&conf),
-            });
-        }
-    }
-    None
-}
+// fn get_one_selector_from_serde(selector: &Selector) -> Option<dnsdistsettings::SharedDNSSelector> {
+//     match selector {
+//         Selector::None => {}
+//         Selector::All(_) => {
+//             return Some(dnsdistsettings::SharedDNSSelector {
+//                 selector: dnsdistsettings::getAllSelector(),
+//             });
+//         }
+//         Selector::ByName(sel) => {
+//             let selector_from_name = dnsdistsettings::getSelectorByName(&sel.name);
+//             if selector_from_name.is_null() {
+//                 panic!("Unable to find a selector named {}", sel.name);
+//             }
+//             return Some(dnsdistsettings::SharedDNSSelector {
+//                 selector: selector_from_name,
+//             });
+//         }
+//         Selector::TCP(config) => {
+//             return Some(dnsdistsettings::SharedDNSSelector {
+//                 selector: dnsdistsettings::getTCPSelector(&config),
+//             });
+//         }
+//         Selector::And(sel) => {
+//             let mut config: dnsdistsettings::AndSelectorConfig = Default::default();
+//             for sub_selector in &sel.selectors {
+//                 let new_selector = get_one_selector_from_serde(&sub_selector);
+//                 if new_selector.is_some() {
+//                     config.selectors.push(new_selector.unwrap());
+//                 }
+//             }
+//             return Some(dnsdistsettings::SharedDNSSelector {
+//                 selector: dnsdistsettings::getAndSelector(&config),
+//             });
+//         }
+//         Selector::MaxQPSIP(conf) => {
+//             return Some(dnsdistsettings::SharedDNSSelector {
+//                 selector: dnsdistsettings::getMaxIPQPSSelector(&conf),
+//             });
+//         }
+//         Selector::NetmaskGroup(conf) => {
+//             return Some(dnsdistsettings::SharedDNSSelector {
+//                 selector: dnsdistsettings::getNetmaskGroupSelector(&conf),
+//             });
+//         }
+//     }
+//     None
+// }
 
 fn get_selectors_from_serde(
     selectors_from_serde: &Vec<Selector>,

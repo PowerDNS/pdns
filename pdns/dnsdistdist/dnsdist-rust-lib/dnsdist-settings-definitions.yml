@@ -1133,6 +1133,11 @@ load-balancing-policies:
       internal-field-name: "d_hashPerturbation"
       runtime-configurable: false
 
+selectors:
+  section: "global"
+  type: "Vec<Selector>"
+  skip-serde: true
+
 query-rules:
   section: "global"
   type: "list"
@@ -1185,45 +1190,3 @@ xfr-response-rules:
   section: "global"
   type: "Vec<ResponseRulesConfiguration>"
   skip-serde: true
-
-MaxQPSIPSelector:
-  section: "selectors"
-  version-changed:
-    version: "1.8.0"
-    description: "shards parameter added"
-  description: "Matches traffic for a subnet specified by v4Mask or v6Mask exceeding qps queries per second up to burst allowed. This rule keeps track of QPS by netmask or source IP. This state is cleaned up regularly if cleanupDelay is greater than zero, removing existing netmasks or IP addresses that have not been seen in the last expiration seconds."
-  parameters:
-    - name: "name"
-      type: "String"
-      default: ""
-    - name: qps
-      type: u32
-      description: "The number of queries per second allowed, above this number traffic is matched"
-    - name: ipv4-mask
-      type: u8
-      default: 32
-      description: The IPv4 netmask to match on"
-    - name: ipv6-mask
-      type: u8
-      default: 64
-      description: The IPv6 netmask to match on"
-    - name: burst
-      type: u32
-      description: "The number of burstable queries per second allowed. If unset or set to 0, it will be equal to the value of ``qps``"
-      default: 0
-    - name: expiration
-      type: u32
-      description: "How long to keep netmask or IP addresses after they have last been seen, in seconds"
-      default: 300
-    - name: cleanup-delay
-      type: u32
-      description: "The number of seconds between two cleanups"
-      default: 60
-    - name: scan-fraction
-      type: u32
-      description: "The maximum fraction of the store to scan for expired entries, for example 5 would scan at most 20% of it"
-      default: 10
-    - name: shards
-      type: u32
-      description: "How many shards to use, to decrease lock contention between threads. Default is 10 and is a safe default unless a very high number of threads are used to process incoming queries"
-      default: 10

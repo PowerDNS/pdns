@@ -19,7 +19,6 @@
     - name: "vars"
       type: "ResponseConfig"
       default: true
-      cpp-optional: false
 - name: "HTTPStatus"
   skip-cpp: true
   parameters:
@@ -31,7 +30,6 @@
     - name: "content-type"
       type: "String"
       default: ""
-      cpp-optional: false
     - name: "vars"
       type: "ResponseConfig"
       default: true
@@ -222,8 +220,6 @@
     - name: "addECS"
       type: "bool"
       default: "false"
-      cpp-optional: false
     - name: "addProxyProtocol"
       type: "bool"
       default: "false"
-      cpp-optional: false

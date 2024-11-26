@@ -30,19 +30,6 @@ struct DNSResponseActionWrapper
   std::string d_name;
 };
 
-std::shared_ptr<DNSSelector> getSelectorByName(const ::rust::String& name);
-std::shared_ptr<DNSActionWrapper> getActionByName(const ::rust::String& name);
-
-struct MaxQPSIPSelectorConfiguration;
-struct AndSelectorConfig;
-struct NetmaskGroupSelectorConfig;
-struct TCPSelectorConfig;
-
-std::shared_ptr<DNSSelector> getMaxIPQPSSelector(const MaxQPSIPSelectorConfiguration& config);
-std::shared_ptr<DNSSelector> getAllSelector();
-std::shared_ptr<DNSSelector> getTCPSelector(const TCPSelectorConfig& config);
-std::shared_ptr<DNSSelector> getAndSelector(const AndSelectorConfig& config);
-std::shared_ptr<DNSSelector> getNetmaskGroupSelector(const NetmaskGroupSelectorConfig& config);
-
 #include "dnsdist-rust-bridge-actions-generated.hh"
+#include "dnsdist-rust-bridge-selectors-generated.hh"
 }
