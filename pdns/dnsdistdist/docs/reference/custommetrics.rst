@@ -17,6 +17,9 @@ Then you can update those at runtime using the following functions, depending on
   .. versionchanged:: 1.8.1
     This function can now be used at runtime, instead of only at configuration time.
 
+  Re-declaring an existing metric with the same name and type will not reset it.
+  Re-declaring with the same name but a different type will cause one of them to be masked.
+
   Returns true if declaration was successful.
 
   :param str name: The name of the metric, lowercase alphanumerical characters and dashes (-) only
