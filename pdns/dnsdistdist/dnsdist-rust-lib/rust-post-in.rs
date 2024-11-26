@@ -121,6 +121,10 @@ fn get_global_configuration_from_serde(
     config.query_rules = get_query_rules_from_serde(&serde.query_rules);
     config.cache_miss_rules = get_query_rules_from_serde(&serde.cache_miss_rules);
     config.response_rules = get_response_rules_from_serde(&serde.response_rules);
+    config.cache_hit_response_rules = get_response_rules_from_serde(&serde.cache_hit_response_rules);
+    config.cache_inserted_response_rules = get_response_rules_from_serde(&serde.cache_inserted_response_rules);
+    config.self_answered_response_rules = get_response_rules_from_serde(&serde.self_answered_response_rules);
+    config.xfr_response_rules = get_response_rules_from_serde(&serde.xfr_response_rules);
     config
 }
 

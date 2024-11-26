@@ -1166,6 +1166,26 @@ response-rules:
     - name: "action"
       type: "ResponseAction"
 
+cache-hit-response-rules:
+  section: "global"
+  type: "Vec<ResponseRulesConfiguration>"
+  skip-serde: true
+
+cache-inserted-response-rules:
+  section: "global"
+  type: "Vec<ResponseRulesConfiguration>"
+  skip-serde: true
+
+self-answered-response-rules:
+  section: "global"
+  type: "Vec<ResponseRulesConfiguration>"
+  skip-serde: true
+
+xfr-response-rules:
+  section: "global"
+  type: "Vec<ResponseRulesConfiguration>"
+  skip-serde: true
+
 MaxQPSIPSelector:
   section: "selectors"
   version-changed:
