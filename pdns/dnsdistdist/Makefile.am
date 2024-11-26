@@ -35,7 +35,10 @@ dnslabeltext.cc: dnslabeltext.rl
 	$(AM_V_GEN)$(RAGEL) $< -o dnslabeltext.cc
 
 BUILT_SOURCES=htmlfiles.h \
+	dnsdist-actions-factories-generated.cc dnsdist-actions-factories-generated.hh \
 	dnsdist-lua-ffi-interface.inc \
+	dnsdist-lua-actions-generated.cc dnsdist-lua-response-actions-generated.cc \
+	dnsdist-response-actions-factories-generated.cc \
 	dnslabeltext.cc
 
 htmlfiles.h: $(srcdir)/html/* $(srcdir)/incfiles
@@ -48,6 +51,9 @@ dnsdist-lua-ffi-interface.inc: dnsdist-lua-ffi-interface.h dnsdist-lua-inspectio
 	@echo ')FFIContent"' >> $@
 SRC_JS_FILES := $(wildcard src_js/*.js)
 MIN_JS_FILES := $(patsubst src_js/%.js,html/js/%.min.js,$(SRC_JS_FILES))
+
+dnsdist%generated%: actions-generator.py dnsdist-actions-definitions.yml dnsdist-response-actions-definitions.yml
+	$(PYTHON) actions-generator.py
 
 html/js/%.min.js: src_js/%.js
 	uglifyjs $< > $@
@@ -153,6 +159,7 @@ dnsdist_SOURCES = \
 	dnscrypt.cc dnscrypt.hh \
 	dnsdist-actions.cc dnsdist-actions.hh \
 	dnsdist-actions-factories.cc dnsdist-actions-factories.hh \
+	dnsdist-actions-factories-generated.hh \
 	dnsdist-async.cc dnsdist-async.hh \
 	dnsdist-backend.cc dnsdist-backend.hh \
 	dnsdist-backoff.hh \
