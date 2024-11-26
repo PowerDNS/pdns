@@ -33,6 +33,7 @@
 #include "dnsdist-discovery.hh"
 #include "dnsdist-dynblocks.hh"
 #include "dnsdist-rules.hh"
+#include "dnsdist-rules-factory.hh"
 #include "dnsdist-kvs.hh"
 #include "dnsdist-web.hh"
 #include "doh.hh"
