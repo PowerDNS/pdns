@@ -39,6 +39,7 @@ jobs:
           - el-8
           - centos-9-stream
           - ubuntu-noble
+          - ubuntu-oracular
           - debian-bookworm
           - debian-trixie
           - amazon-2023

@@ -7,6 +7,10 @@ export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 DPKG_EXPORT_BUILDFLAGS = 1
 include /usr/share/dpkg/default.mk
 
+CONFIGURE_ARGS =
+
+# Workaround for debbug #1078413 https://github.com/PowerDNS/pdns/issues/14084
+CONFIGURE_ARGS += --with-libcrypto=/usr
 
 %:
 	dh $@
@@ -30,7 +34,8 @@ override_dh_auto_configure:
 		--with-net-snmp \
 		--enable-dns-over-tls \
 		--enable-dnstap \
-		--enable-nod
+		--enable-nod \
+		$(CONFIGURE_ARGS)
 
 # Stop installing the Lua config files once we fully moved to YAML configuration
 override_dh_auto_install:
