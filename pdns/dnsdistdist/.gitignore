@@ -48,3 +48,5 @@ doctrees/
 latex/
 .doctrees/
 /.cache
+/*-generated.cc
+/*-generated.hh
