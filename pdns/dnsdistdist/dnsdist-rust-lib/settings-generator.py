@@ -9,6 +9,18 @@ def quote(arg):
     """Return a quoted string"""
     return '"' + arg + '"'
 
+def get_vector_sub_type(rust_type):
+    return rust_type[4:-1]
+
+def is_vector_of(rust_type):
+    return rust_type.startswith('Vec<')
+
+def is_type_native(rust_type):
+    if is_vector_of(rust_type):
+        sub_type = get_vector_sub_type(rust_type)
+        return is_type_native(sub_type)
+    return rust_type in ['bool', 'u8', 'u32', 'u64', 'f64', 'String']
+
 def is_value_rust_default(rust_type, value):
     """Is a value the same as its corresponding Rust default?"""
     if rust_type == 'bool':
@@ -168,18 +180,13 @@ def get_rust_struct_from_definition(name, keys, default_functions, indent_spaces
     output += '    }\n'
     return output
 
-def is_vector_of(rust_type):
-    return rust_type.startswith('Vec<')
-
 def should_validate_type(rust_type):
     if is_vector_of(rust_type):
-        sub_type = rust_type[4:-1]
+        sub_type = get_vector_sub_type(rust_type)
         return should_validate_type(sub_type)
     if rust_type in ['bool', 'u8', 'u16', 'u32', 'u64', 'f64', 'String']:
         return False
-    print(rust_type)
     if rust_type in ['Selector', 'dnsdistsettings::SelectorsConfiguration']:
-        print('not validating selector')
         return False
     return True
 
@@ -187,7 +194,6 @@ def get_validation_for_field(field_name, rust_type):
     if not should_validate_type(rust_type):
         return ''
     if not is_vector_of(rust_type):
-        print(f'field {field_name} of type {rust_type} will be validated')
         return f'        self.{field_name}.validate()?;\n'
     else:
         return f'''        for sub_type in &self.{field_name} {{
@@ -495,30 +501,7 @@ def generate_rust_action_to_config(output, response):
 
     output.write(enum_buffer)
 
-def main():
-    if len(sys.argv) != 2:
-        print(f'Usage: {sys.argv[0]} <path/to/definitions/file>')
-        sys.exit(1)
-
-    src_dir = './'
-    definitions = get_definitions_from_file(sys.argv[1])
-    default_functions = []
-    validation_functions = []
-    sections = gather_sections(definitions)
-    global_objects = {}
-
-    generate_cpp_action_headers()
-    generate_cpp_action_wrappers()
-
-    generated_fp = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8', dir=src_dir + '/rust/src/')
-    include_file(generated_fp, src_dir + 'rust-pre-in.rs')
-
-    generate_actions_config(generated_fp, False, default_functions)
-    generate_actions_config(generated_fp, True, default_functions)
-
-    generate_flat_settings_for_cxx(definitions, src_dir)
-
-    # handle structures that are not directly under a first-level section
+def handle_nested_structures(generated_fp, definitions, default_functions, validation_functions):
     for definition_name, keys in definitions.items():
         if 'section' in keys and keys['section'] != 'none':
             continue
@@ -526,9 +509,8 @@ def main():
         generated_fp.write(get_rust_struct_from_definition(definition_name, keys, default_functions) + '\n')
         validation_functions.append(get_struct_validation_function_from_definition(definition_name, keys['parameters'] if 'parameters' in keys else []))
 
-    # for each section, including the global one, generate the structures below the section one
+def handle_global_structures(generated_fp, sections, definitions, global_objects, default_functions, validation_functions):
     for section, section_type in sections.items():
-
         for definition_name, keys in definitions.items():
             if not 'section' in keys:
                 continue
@@ -537,16 +519,28 @@ def main():
 
             if section == 'global':
                 if 'type' in keys and keys['type'] != 'list':
-                    global_objects[definition_name] = (keys['type'], keys['type'])
+                    rust_type = keys['type']
+                    print(f'Found global, non-list type {rust_type} for {definition_name}')
+                    if is_type_native(rust_type):
+                        global_objects[definition_name] = (rust_type, rust_type)
+                    else:
+                        if is_vector_of(rust_type):
+                            sub_type = get_vector_sub_type(rust_type)
+                            global_objects[definition_name] = (rust_type, 'Vec<dnsdistsettings::' + sub_type + '>')
+                        else:
+                            global_objects[definition_name] = (rust_type, 'dnsdistsettings::' + rust_type)
                 else:
                     global_objects[definition_name] = get_rust_obj_for_section(definition_name, keys)
+
             generated_fp.write(get_rust_struct_from_definition(definition_name, keys, default_functions) + '\n')
             validation_functions.append(get_struct_validation_function_from_definition(definition_name, keys['parameters'] if 'parameters' in keys else []))
 
+def handle_sub_structures(generated_fp, sections, definitions, global_objects, validation_functions):
+    for section, section_type in sections.items():
         if section == 'global':
             continue
 
-        # now handling the structure for the session itself
+        # now handling the structure for the section itself
         if section_type is not None and section_type != 'list':
             global_objects[section] = (section_type, section_type)
             continue
@@ -571,6 +565,36 @@ def main():
 
         generated_fp.write('    }\n')
         validation_functions.append(get_struct_validation_function_from_definition(section_name, section_struct_parameters))
+
+def main():
+    if len(sys.argv) != 2:
+        print(f'Usage: {sys.argv[0]} <path/to/definitions/file>')
+        sys.exit(1)
+
+    src_dir = './'
+    definitions = get_definitions_from_file(sys.argv[1])
+    default_functions = []
+    validation_functions = []
+    sections = gather_sections(definitions)
+    global_objects = {}
+
+    generate_cpp_action_headers()
+    generate_cpp_action_wrappers()
+
+    generated_fp = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8', dir=src_dir + '/rust/src/')
+    include_file(generated_fp, src_dir + 'rust-pre-in.rs')
+
+    generate_actions_config(generated_fp, False, default_functions)
+    generate_actions_config(generated_fp, True, default_functions)
+
+    generate_flat_settings_for_cxx(definitions, src_dir)
+
+    # handle structures that are not directly under a first-level section
+    handle_nested_structures(generated_fp, definitions, default_functions, validation_functions)
+
+    # for each section, including the global one, generate the structures below the section one
+    handle_global_structures(generated_fp, sections, definitions, global_objects, default_functions, validation_functions)
+    handle_sub_structures(generated_fp, sections, definitions, global_objects, validation_functions)
 
     # the cxx-compatible Global configuration object
     generated_fp.write('''    #[derive(Default)]
@@ -606,7 +630,7 @@ struct GlobalConfigurationSerde {\n''')
     for obj, names in global_objects.items():
         field_name = get_rust_field_name(obj)
         rename = obj if field_name != obj else None
-        default_str = get_rust_serde_annotations(name[0], True, rename, field_name, 'global', default_functions)
+        default_str = get_rust_serde_annotations(names[0], True, rename, field_name, 'global', default_functions)
         if default_str:
             generated_fp.write('    ' + default_str + '\n')
         rust_type = names[1]

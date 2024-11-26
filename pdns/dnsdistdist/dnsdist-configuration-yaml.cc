@@ -584,13 +584,23 @@ bool loadConfigurationFromFile(const std::string fileName)
     }
 
     for (const auto& rule : globalConfig.query_rules) {
-      cerr<<"Got rule with name "<<rule.name<<" and UUID "<<rule.uuid<<endl;
-      cerr<<" - Selector is "<<rule.selector.selector->d_rule->toString()<<endl;
-      cerr<<" - Action is "<<rule.action.action->d_action->toString()<<endl;
-
       dnsdist::configuration::updateRuntimeConfiguration([&rule](dnsdist::configuration::RuntimeConfiguration& config) {
         boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
         dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::RuleChain::Rules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
+      });
+    }
+
+    for (const auto& rule : globalConfig.cache_miss_rules) {
+      dnsdist::configuration::updateRuntimeConfiguration([&rule](dnsdist::configuration::RuntimeConfiguration& config) {
+        boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
+        dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::RuleChain::CacheMissRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
+      });
+    }
+
+    for (const auto& rule : globalConfig.response_rules) {
+      dnsdist::configuration::updateRuntimeConfiguration([&rule](dnsdist::configuration::RuntimeConfiguration& config) {
+        boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
+        dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::ResponseRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
       });
     }
 
