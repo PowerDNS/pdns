@@ -211,7 +211,11 @@ reload-lua-config [*FILENAME*]
     executed, any settings changed at runtime that are not modified in this
     file, will still be active. The effects of reloading do not always take
     place immediately, as some subsystems reload and replace configuration
-    in an asynchronous way.
+    in an asynchronous way. IF YAML settings are used this command will
+    reload the runtime settable parts of the YAML settings
+
+reload-yaml
+    Reload the runtime settable parts of the YAML settings.
 
 reload-zones
     Reload authoritative and forward zones. Retains current configuration in

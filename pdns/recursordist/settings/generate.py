@@ -47,6 +47,7 @@
 #            to handle old names when converting .conf to .yml
 #   skip-old: optional if this key is present, the field will be skipped in the old style settings.
 #   versionadded: string or list of strings
+#   runtime: optional, mentions how the settings can be updated runtime (or via API) if applicable
 #
 # The above struct will generate in cxxsettings-generated.cc:
 #
@@ -701,6 +702,15 @@ def gen_oldstyle_docs(srcdir, entries):
                 file.write('- YAML setting does not exist\n\n')
             else:
                 file.write(f"- YAML setting: :ref:`setting-yaml-{section}.{entry['name']}`\n\n")
+            if 'runtime' in entry:
+                runtime = entry['runtime']
+                if not isinstance(runtime, list):
+                    runtime = [runtime]
+                for k,v in enumerate(runtime):
+                    runtime[k] = '``' + runtime[k] + '``'
+                    if v == 'reload-yaml':
+                         continue
+                file.write(f"- Runtime modifiable using ``rec_control`` {', '.join(f'{w}' for w in runtime)}\n\n")
             file.write(entry['doc'].strip())
             file.write('\n\n')
 
@@ -758,6 +768,15 @@ def gen_newstyle_docs(srcdir, argentries):
                 file.write(f"- {entry['skip-old']}\n\n")
             else:
                 file.write(f"- Old style setting: :ref:`setting-{entry['oldname']}`\n\n")
+            if 'runtime' in entry:
+                runtime = entry['runtime']
+                if not isinstance(runtime, list):
+                    runtime = [runtime]
+                for k,v in enumerate(runtime):
+                    runtime[k] = '``' + runtime[k] + '``'
+                    if v == 'reload-yaml':
+                         runtime[k] = 'since 5.2.0: ' + runtime[k]
+                file.write(f"- Runtime modifiable using ``rec_control`` {', '.join(f'{w}' for w in runtime)}\n\n")
             if 'doc-new' in entry:
                 file.write(fixxrefs(entries, entry['doc-new'].strip()))
             else:
