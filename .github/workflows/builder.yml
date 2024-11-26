@@ -30,7 +30,6 @@ jobs:
           - el-8
           - centos-9-stream
           - ubuntu-jammy
-          - ubuntu-lunar
           - debian-bookworm
           - amazon-2023
       fail-fast: false
