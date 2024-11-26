@@ -1041,7 +1041,8 @@ void clearSuffixDynamicRules()
 
 LockGuarded<std::vector<std::shared_ptr<DynBlockRulesGroup>>> s_registeredDynamicBlockGroups;
 
-void registerGroup(std::shared_ptr<DynBlockRulesGroup>& group){
+void registerGroup(std::shared_ptr<DynBlockRulesGroup>& group)
+{
   s_registeredDynamicBlockGroups.lock()->push_back(group);
 }
 

@@ -2339,8 +2339,8 @@ std::shared_ptr<DNSResponseAction> getLimitTTLResponseAction(uint32_t min, uint3
   return std::shared_ptr<DNSResponseAction>(new LimitTTLResponseAction(min, max, types));
 }
 
-std::shared_ptr<DNSResponseAction> getMinTTLResponseAction(uint32_t min){
-
+std::shared_ptr<DNSResponseAction> getMinTTLResponseAction(uint32_t min)
+{
   return std::shared_ptr<DNSResponseAction>(new LimitTTLResponseAction(min));
 }
 
@@ -2374,7 +2374,8 @@ std::shared_ptr<DNSAction> getSetECSAction(const std::string& ipv4)
   return std::shared_ptr<DNSAction>(new SetECSAction(Netmask(ipv4)));
 }
 
-std::shared_ptr<DNSAction> getSetECSAction(const std::string& ipv4, const std::string& ipv6) {
+std::shared_ptr<DNSAction> getSetECSAction(const std::string& ipv4, const std::string& ipv6)
+{
   return std::shared_ptr<DNSAction>(new SetECSAction(Netmask(ipv4), Netmask(ipv6)));
 }
 
@@ -2423,7 +2424,8 @@ std::shared_ptr<DNSAction> getSetProxyProtocolValuesAction(const std::vector<std
   return std::shared_ptr<DNSAction>(new SetProxyProtocolValuesAction(values));
 }
 
-std::shared_ptr<DNSAction> getTeeAction(const ComboAddress& rca, std::optional<ComboAddress> lca, bool addECS, bool addProxyProtocol) {
+std::shared_ptr<DNSAction> getTeeAction(const ComboAddress& rca, std::optional<ComboAddress> lca, bool addECS, bool addProxyProtocol)
+{
   return std::shared_ptr<DNSAction>(new TeeAction(rca, lca, addECS, addProxyProtocol));
 }
 
