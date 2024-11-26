@@ -377,7 +377,6 @@ void setupLuaActions(LuaContext& luaCtx)
     return dnsdist::actions::getSetECSAction(v4Netmask);
   });
 
-
   luaCtx.writeFunction("ContinueAction", [](std::shared_ptr<DNSAction> action) {
     return dnsdist::actions::getContinueAction(action);
   });
