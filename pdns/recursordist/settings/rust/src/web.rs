@@ -180,6 +180,122 @@ struct Context {
     counter: Mutex<u32>,
 }
 
+fn file(ctx: &Context, method: &Method, path: &str, request: &rustweb::Request, response: &mut rustweb::Response)
+{
+    let mut uripath = path;
+    if uripath == "/" {
+        uripath = "/index.html";
+    }
+    let pos = ctx.urls.iter().position(|x| String::from("/") + x == uripath);
+    if pos.is_none() {
+        eprintln!("{} {} not found", method, uripath);
+    }
+
+    if rustweb::serveStuff(request, response).is_err() {
+        // Return 404 not found response.
+        response.status = StatusCode::NOT_FOUND.as_u16();
+        response.body = NOTFOUND.to_vec();
+        eprintln!("{} {} not found case 2", method, uripath);
+    }
+}
+
+type FileFunc = fn(ctx: &Context, method: &Method, path: &str, request: &rustweb::Request, response: &mut rustweb::Response);
+
+fn matcher(method: &Method, path: &str, apifunc: &mut Option<Func>, rawfunc: &mut Option<Func>, filefunc: &mut Option<FileFunc>, allow_password: &mut bool, request: &mut rustweb::Request)
+{
+    let path: Vec<_> = path.split('/').skip(1).collect();
+    match (method, &*path) {
+        (&Method::GET, ["jsonstat"]) => {
+            *allow_password = true;
+            *apifunc = Some(rustweb::jsonstat);
+        }
+        (&Method::PUT, ["api", "v1", "servers", "localhost", "cache", "flush"]) =>
+            *apifunc = Some(rustweb::apiServerCacheFlush),
+        (&Method::PUT, ["api", "v1", "servers", "localhost", "config", "allow-from"]) =>
+            *apifunc = Some(rustweb::apiServerConfigAllowFromPUT),
+        (&Method::GET, ["api", "v1", "servers", "localhost", "config", "allow-from"]) =>
+            *apifunc = Some(rustweb::apiServerConfigAllowFromGET),
+        (&Method::PUT, ["api", "v1", "servers", "localhost", "config", "allow-notify-from"]) =>
+            *apifunc = Some(rustweb::apiServerConfigAllowNotifyFromPUT),
+        (&Method::GET, ["api", "v1", "servers", "localhost", "config", "allow-notify-from"]) =>
+            *apifunc = Some(rustweb::apiServerConfigAllowNotifyFromGET),
+        (&Method::GET, ["api", "v1", "servers", "localhost", "config"]) =>
+            *apifunc = Some(rustweb::apiServerConfig),
+        (&Method::GET, ["api", "v1", "servers", "localhost", "rpzstatistics"]) =>
+            *apifunc = Some(rustweb::apiServerRPZStats),
+        (&Method::GET, ["api", "v1", "servers", "localhost", "search-data"]) =>
+            *apifunc = Some(rustweb::apiServerSearchData),
+        (&Method::GET, ["api", "v1", "servers", "localhost", "zones", id]) => {
+            request.parameters.push(rustweb::KeyValue{key: String::from("id"), value: String::from(*id)});
+            *apifunc = Some(rustweb::apiServerZoneDetailGET);
+        }
+        (&Method::PUT, ["api", "v1", "servers", "localhost", "zones", id]) => {
+            request.parameters.push(rustweb::KeyValue{key: String::from("id"), value: String::from(*id)});
+            *apifunc = Some(rustweb::apiServerZoneDetailPUT);
+        }
+        (&Method::DELETE, ["api", "v1", "servers", "localhost", "zones", id]) => {
+            request.parameters.push(rustweb::KeyValue{key: String::from("id"), value: String::from(*id)});
+            *apifunc = Some(rustweb::apiServerZoneDetailDELETE);
+        }
+        (&Method::GET, ["api", "v1", "servers", "localhost", "statistics"]) => {
+            *allow_password = true;
+            *apifunc = Some(rustweb::apiServerStatistics);
+        }
+        (&Method::GET, ["api", "v1", "servers", "localhost", "zones"]) =>
+            *apifunc = Some(rustweb::apiServerZonesGET),
+        (&Method::POST, ["api", "v1", "servers", "localhost", "zones"]) =>
+            *apifunc = Some(rustweb::apiServerZonesPOST),
+        (&Method::GET, ["api", "v1", "servers", "localhost"]) => {
+            *allow_password = true;
+            *apifunc = Some(rustweb::apiServerDetail);
+        }
+        (&Method::GET, ["api", "v1", "servers"]) =>
+            *apifunc = Some(rustweb::apiServer),
+        (&Method::GET, ["api", "v1"]) =>
+            *apifunc = Some(rustweb::apiDiscoveryV1),
+        (&Method::GET, ["api"]) =>
+            *apifunc = Some(rustweb::apiDiscovery),
+        (&Method::GET, ["metrics"]) =>
+            *rawfunc = Some(rustweb::prometheusMetrics),
+        _ =>
+            *filefunc = Some(file),
+    }
+}
+
+fn collect_options(path: &str, response: &mut rustweb::Response)
+{
+    let mut methods = vec!();
+    for method in [Method::GET, Method::POST, Method::PUT, Method::DELETE] {
+        let mut apifunc: Option<Func> = None;
+        let mut rawfunc: Option<_> = None;
+        let mut filefunc: Option<_> = None;
+        let mut allow_password = false;
+        let mut request = rustweb::Request {
+            body: vec![],
+            uri: String::from(""),
+            vars: vec![],
+            parameters: vec![],
+        };
+        println!("MATCH? {}", path);
+        matcher(&method, path, &mut apifunc, &mut rawfunc, &mut filefunc, &mut allow_password, &mut request);
+        if apifunc.is_some() || rawfunc.is_some() /* || filefunc.is_some() */ {
+            println!("MATCH");
+            methods.push(method.to_string());
+        }
+    }
+    if methods.is_empty() {
+        response.status = 404;
+        return;
+    }
+    response.status = 200;
+    methods.push(Method::OPTIONS.to_string());
+    response.headers.push(rustweb::KeyValue{key: String::from("access-control-allow-origin"), value: String::from("*")});
+    response.headers.push(rustweb::KeyValue{key: String::from("access-control-allow-headers"), value: String::from("Content-Type, X-API-Key")});
+    response.headers.push(rustweb::KeyValue{key: String::from("access-control-max-age"), value: String::from("3600")});
+    response.headers.push(rustweb::KeyValue{key: String::from("access-control-allow-methods"), value: methods.join(", ")});
+    response.headers.push(rustweb::KeyValue{key: String::from("content-type"), value: String::from("text/plain")});
+}
+
 async fn hello(
     rust_request: Request<IncomingBody>,
     ctx: Arc<Context>
@@ -214,97 +330,44 @@ async fn hello(
         headers: vec![],
     };
     let mut apifunc: Option<Func> = None;
+    let mut rawfunc: Option<_> = None;
+    let mut filefunc: Option<_> = None;
     let method = rust_request.method().to_owned();
-    let path: Vec<_> = rust_request.uri().path().split('/').skip(1).collect();
     let mut allow_password = false;
-    match (&method, &*path) {
-        (&Method::GET, ["jsonstat"]) => {
-            allow_password = true;
-            apifunc = Some(rustweb::jsonstat);
-        }
-        (&Method::PUT, ["api", "v1", "servers", "localhost", "cache", "flush"]) =>
-            apifunc = Some(rustweb::apiServerCacheFlush),
-        (&Method::PUT, ["api", "v1", "servers", "localhost", "config", "allow-from"]) =>
-            apifunc = Some(rustweb::apiServerConfigAllowFromPUT),
-        (&Method::GET, ["api", "v1", "servers", "localhost", "config", "allow-from"]) =>
-            apifunc = Some(rustweb::apiServerConfigAllowFromGET),
-        (&Method::PUT, ["api", "v1", "servers", "localhost", "config", "allow-notify-from"]) =>
-            apifunc = Some(rustweb::apiServerConfigAllowNotifyFromPUT),
-        (&Method::GET, ["api", "v1", "servers", "localhost", "config", "allow-notify-from"]) =>
-            apifunc = Some(rustweb::apiServerConfigAllowNotifyFromGET),
-        (&Method::GET, ["api", "v1", "servers", "localhost", "config"]) =>
-            apifunc = Some(rustweb::apiServerConfig),
-        (&Method::GET, ["api", "v1", "servers", "localhost", "rpzstatistics"]) =>
-            apifunc = Some(rustweb::apiServerRPZStats),
-        (&Method::GET, ["api", "v1", "servers", "localhost", "search-data"]) =>
-            apifunc = Some(rustweb::apiServerSearchData),
-        (&Method::GET, ["api", "v1", "servers", "localhost", "zones", id]) => {
-            request.parameters.push(rustweb::KeyValue{key: String::from("id"), value: String::from(*id)});
-            apifunc = Some(rustweb::apiServerZoneDetailGET);
-        }
-        (&Method::PUT, ["api", "v1", "servers", "localhost", "zones", id]) => {
-            request.parameters.push(rustweb::KeyValue{key: String::from("id"), value: String::from(*id)});
-            apifunc = Some(rustweb::apiServerZoneDetailPUT);
-        }
-        (&Method::DELETE, ["api", "v1", "servers", "localhost", "zones", id]) => {
-            request.parameters.push(rustweb::KeyValue{key: String::from("id"), value: String::from(*id)});
-            apifunc = Some(rustweb::apiServerZoneDetailDELETE);
-        }
-        (&Method::GET, ["api", "v1", "servers", "localhost", "statistics"]) => {
-            allow_password = true;
-            apifunc = Some(rustweb::apiServerStatistics);
-        }
-        (&Method::GET, ["api", "v1", "servers", "localhost", "zones"]) =>
-            apifunc = Some(rustweb::apiServerZonesGET),
-        (&Method::POST, ["api", "v1", "servers", "localhost", "zones"]) =>
-            apifunc = Some(rustweb::apiServerZonesPOST),
-        (&Method::GET, ["api", "v1", "servers", "localhost"]) => {
-            allow_password = true;
-            apifunc = Some(rustweb::apiServerDetail);
-        }
-        (&Method::GET, ["api", "v1", "servers"]) =>
-            apifunc = Some(rustweb::apiServer),
-        (&Method::GET, ["api", "v1"]) =>
-            apifunc = Some(rustweb::apiDiscoveryV1),
-        (&Method::GET, ["api"]) =>
-            apifunc = Some(rustweb::apiDiscovery),
-        (&Method::GET, ["metrics"]) =>
-            rustweb::prometheusMetrics(&request, &mut response).unwrap(),
-        _ => {
-            let mut uripath = rust_request.uri().path();
-            if uripath == "/" {
-                uripath = "/index.html";
-            }
-            let pos = ctx.urls.iter().position(|x| String::from("/") + x == uripath);
-            if pos.is_none() {
-                eprintln!("{} {} not found", rust_request.method(), uripath);
-            }
-            if rustweb::serveStuff(&request, &mut response).is_err() {
-                // Return 404 not found response.
-                response.status = StatusCode::NOT_FOUND.as_u16();
-                response.body = NOTFOUND.to_vec();
-                eprintln!("{} {} not found case 2", rust_request.method(), uripath);
-            }
-        }
-    }
     let mut rust_response = Response::builder();
 
-    if let Some(func) = apifunc {
-        let reqheaders = rust_request.headers().clone();
-        if rust_request.method()== Method::POST || rust_request.method() == Method::PUT {
-            request.body = rust_request.collect().await?.to_bytes().to_vec();
-        }
-        api_wrapper(
-            &ctx,
-            func,
-            &request,
-            &mut response,
-            &reqheaders,
-            rust_response.headers_mut().expect("no headers?"),
-            allow_password,
-        );
+    if method == &Method::OPTIONS {
+        collect_options(rust_request.uri().path(), &mut response);
     }
+    else{
+        matcher(&method, rust_request.uri().path(), &mut apifunc, &mut rawfunc, &mut filefunc, &mut allow_password, &mut request);
 
+        if let Some(func) = apifunc {
+            let reqheaders = rust_request.headers().clone();
+            if rust_request.method()== Method::POST || rust_request.method() == Method::PUT {
+                request.body = rust_request.collect().await?.to_bytes().to_vec();
+            }
+            api_wrapper(
+                &ctx,
+                func,
+                &request,
+                &mut response,
+                &reqheaders,
+                rust_response.headers_mut().expect("no headers?"),
+                allow_password,
+            );
+        }
+        else if let Some(func) = rawfunc {
+            if func(&request, &mut response).is_err() {
+                let status =  StatusCode::UNPROCESSABLE_ENTITY; // 422
+                response.status = status.as_u16();
+                response.body = status.canonical_reason().unwrap().as_bytes().to_vec();
+            }
+        }
+        else if let Some(func) = filefunc {
+            func(&ctx, &method, rust_request.uri().path(), &request, &mut response);
+        }
+    }
     let mut body = full(response.body);
     if method == Method::HEAD {
         body = full(vec!());

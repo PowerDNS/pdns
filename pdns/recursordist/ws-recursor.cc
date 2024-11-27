@@ -216,7 +216,7 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp)
     {"kind", zone.d_servers.empty() ? "Native" : "Forwarded"},
     {"servers", servers},
     {"recursion_desired", zone.d_servers.empty() ? false : zone.d_rdForward},
-    //{"notify_allowed", isAllowNotifyForZone(zonename)},
+    {"notify_allowed", isAllowNotifyForZone(zonename)},
     {"records", records}};
 
   resp->setJsonBody(doc);
