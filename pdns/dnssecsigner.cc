@@ -151,7 +151,7 @@ static void addSignature(DNSSECKeeper& dk, UeberBackend& db, const DNSName& sign
   if(toSign.empty())
     return;
   vector<RRSIGRecordContent> rrcs;
-  if(dk.isPresigned(signer)) {
+  if(dk.isPresigned(signer) || (::arg().mustDo("direct-dnskey-signature") && signQType == QType::DNSKEY)) {
     //cerr<<"Doing presignatures"<<endl;
     dk.getPreRRSIGs(db, outsigned, origTTL, packet); // does it all
   }
