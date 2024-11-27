@@ -91,11 +91,13 @@ static void apiServerConfigACLGET(const std::string& aclType, HttpRequest* /* re
 {
   // Return currently configured ACLs
   vector<string> entries;
-  if (t_allowFrom && aclType == "allow-from") {
-    entries = t_allowFrom->toStringVector();
+  auto lock1 = g_initialAllowFrom.lock();
+  auto lock2 = g_initialAllowNotifyFrom.lock();
+  if (*lock1 && aclType == "allow-from") {
+      entries = (*lock1)->toStringVector();
   }
-  else if (t_allowNotifyFrom && aclType == "allow-notify-from") {
-    entries = t_allowNotifyFrom->toStringVector();
+  else if (*lock2 && aclType == "allow-notify-from") {
+    entries = (*lock2)->toStringVector();
   }
 
   resp->setJsonBody(Json::object{
@@ -183,6 +185,23 @@ static void apiServerConfigAllowNotifyFromPUT(HttpRequest* req, HttpResponse* re
   apiServerConfigACLPUT("allow-notify-from", req, resp);
 }
 
+static bool isAllowedNotify(DNSName qname)
+{
+  auto lock = g_initialAllowNotifyFor.lock();
+
+  if (*lock == nullptr || (*lock)->empty()) {
+    return false;
+  }
+
+  do {
+    auto ret = (*lock)->find(qname);
+    if (ret != (*lock)->end()) {
+      return true;
+    }
+  } while (qname.chopOff());
+  return false;
+}
+
 static void fillZone(const DNSName& zonename, HttpResponse* resp)
 {
   auto lock = g_initialDomainMap.lock();
@@ -216,7 +235,7 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp)
     {"kind", zone.d_servers.empty() ? "Native" : "Forwarded"},
     {"servers", servers},
     {"recursion_desired", zone.d_servers.empty() ? false : zone.d_rdForward},
-    {"notify_allowed", isAllowNotifyForZone(zonename)},
+    {"notify_allowed", isAllowedNotify(zonename)},
     {"records", records}};
 
   resp->setJsonBody(doc);
@@ -444,8 +463,9 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp)
     throw ApiException("Query q can't be blank");
   }
 
+  auto lock = g_initialDomainMap.lock();
   Json::array doc;
-  for (const SyncRes::domainmap_t::value_type& val : *SyncRes::t_sstorage.domainmap) {
+  for (const SyncRes::domainmap_t::value_type& val : **lock) {
     string zoneId = apiZoneNameToId(val.first);
     string zoneName = val.first.toString();
     if (pdns_ci_find(zoneName, qVar) != string::npos) {

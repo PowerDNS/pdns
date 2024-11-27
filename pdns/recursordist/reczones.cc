@@ -219,6 +219,8 @@ string reloadZoneConfiguration(bool yaml)
     }
     extern LockGuarded<std::shared_ptr<SyncRes::domainmap_t>> g_initialDomainMap; // XXX
     *g_initialDomainMap.lock() = newDomainMap;
+    extern LockGuarded<std::shared_ptr<notifyset_t>> g_initialAllowNotifyFor; // XXX
+    *g_initialAllowNotifyFor.lock() = newNotifySet;
     return "ok\n";
   }
   catch (const std::exception& e) {

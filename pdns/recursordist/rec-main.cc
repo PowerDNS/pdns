@@ -112,9 +112,9 @@ boost::optional<ComboAddress> g_dns64Prefix{boost::none};
 DNSName g_dns64PrefixReverse;
 unsigned int g_maxChainLength;
 LockGuarded<std::shared_ptr<SyncRes::domainmap_t>> g_initialDomainMap; // new threads needs this to be setup
-std::shared_ptr<NetmaskGroup> g_initialAllowFrom; // new thread needs to be setup with this
-std::shared_ptr<NetmaskGroup> g_initialAllowNotifyFrom; // new threads need this to be setup
-std::shared_ptr<notifyset_t> g_initialAllowNotifyFor; // new threads need this to be setup
+LockGuarded<std::shared_ptr<NetmaskGroup>> g_initialAllowFrom; // new thread needs to be setup with this
+LockGuarded<std::shared_ptr<NetmaskGroup>> g_initialAllowNotifyFrom; // new threads need this to be setup
+LockGuarded<std::shared_ptr<notifyset_t>> g_initialAllowNotifyFor; // new threads need this to be setup
 bool g_logRPZChanges{false};
 static time_t s_statisticsInterval;
 static std::atomic<uint32_t> s_counter;
@@ -1472,13 +1472,13 @@ void parseACLs()
     allowFrom = nullptr;
   }
 
-  g_initialAllowFrom = allowFrom;
+  *g_initialAllowFrom.lock() = allowFrom;
   // coverity[copy_constructor_call] maybe this can be avoided, but be careful as pointers get passed to other threads
   broadcastFunction([=] { return pleaseSupplantAllowFrom(allowFrom); });
 
   auto allowNotifyFrom = parseACL("allow-notify-from-file", "allow-notify-from", log);
 
-  g_initialAllowNotifyFrom = allowNotifyFrom;
+  *g_initialAllowNotifyFrom.lock() = allowNotifyFrom;
   // coverity[copy_constructor_call] maybe this can be avoided, but be careful as pointers get passed to other threads
   broadcastFunction([=] { return pleaseSupplantAllowNotifyFrom(allowNotifyFrom); });
 
@@ -2233,7 +2233,7 @@ static int serviceMain(Logr::log_t log)
   }
   g_networkTimeoutMsec = ::arg().asNum("network-timeout");
 
-  std::tie(*g_initialDomainMap.lock(), g_initialAllowNotifyFor) = parseZoneConfiguration(g_yamlSettings);
+  std::tie(*g_initialDomainMap.lock(), *g_initialAllowNotifyFor.lock()) = parseZoneConfiguration(g_yamlSettings);
 
   g_latencyStatSize = ::arg().asNum("latency-statistic-size");
 
@@ -2834,9 +2834,9 @@ static void recursorThread()
     {
       SyncRes tmp(g_now); // make sure it allocates tsstorage before we do anything, like primeHints or so..
       SyncRes::setDomainMap(*g_initialDomainMap.lock());
-      t_allowFrom = g_initialAllowFrom;
-      t_allowNotifyFrom = g_initialAllowNotifyFrom;
-      t_allowNotifyFor = g_initialAllowNotifyFor;
+      t_allowFrom = *g_initialAllowFrom.lock();
+      t_allowNotifyFrom = *g_initialAllowNotifyFrom.lock();
+      t_allowNotifyFor = *g_initialAllowNotifyFor.lock();
       t_udpclientsocks = std::make_unique<UDPClientSocks>();
       t_tcpClientCounts = std::make_unique<tcpClientCounts_t>();
       if (g_proxyMapping) {

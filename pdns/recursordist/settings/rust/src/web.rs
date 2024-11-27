@@ -2,9 +2,7 @@
 TODO
 
 - Logging
-- Table based routing including OPTIONS request handling
 - ACLs of webserver
-- ACL handling; thread local does not work, see how domains are done
 - Authorization: metrics and plain files (and more?) are not subject to password auth
 - Allow multipe listen addreses in settings (singlevalued right now)
 - TLS?
@@ -55,22 +53,16 @@ fn compare_authorization(ctx: &Context, reqheaders: &header::HeaderMap) -> bool
             if lcase.starts_with(b"basic ") {
                 let cookie = &authorization.as_bytes()[6..];
                 if let Ok(plain) = BASE64_STANDARD.decode(cookie) {
-                    println!("plain {:?}", plain);
                     let mut split = plain.split(|i| *i == b':');
-                    println!("split {:?}", split);
                     if split.next().is_some() {
-                        println!("split {:?}", split);
                         if let Some(split) = split.next() {
-                            println!("split {:?}", split);
                             cxx::let_cxx_string!(s = &split);
                             auth_ok = ctx.password_ch.as_ref().unwrap().matches(&s);
-                            println!("OK4 {}", auth_ok);
                         }
                     }
                 }
             }
         }
-        println!("OK5 {}", auth_ok);
     } else {
         auth_ok = true;
     }
@@ -112,23 +104,20 @@ fn api_wrapper(
 
     // XXX AUDIT!
     let mut auth_ok = false;
-    println!("OK0 {}", auth_ok);
+
     if let Some(api) = reqheaders.get("x-api-key") {
         cxx::let_cxx_string!(s = &api.as_bytes());
         auth_ok = ctx.api_ch.as_ref().unwrap().matches(&s);
-        println!("OK1 {}", auth_ok);
     }
     if !auth_ok {
         for kv in &request.vars {
             cxx::let_cxx_string!(s = &kv.value);
             if kv.key == "x-api-key" && ctx.api_ch.as_ref().unwrap().matches(&s) {
                 auth_ok = true;
-                println!("OK2 {}", auth_ok);
                 break;
             }
         }
     }
-    println!("OK3 {}", auth_ok);
     if !auth_ok && allow_password {
         auth_ok = compare_authorization(ctx, reqheaders);
         if !auth_ok {
@@ -276,10 +265,8 @@ fn collect_options(path: &str, response: &mut rustweb::Response)
             vars: vec![],
             parameters: vec![],
         };
-        println!("MATCH? {}", path);
         matcher(&method, path, &mut apifunc, &mut rawfunc, &mut filefunc, &mut allow_password, &mut request);
         if apifunc.is_some() || rawfunc.is_some() /* || filefunc.is_some() */ {
-            println!("MATCH");
             methods.push(method.to_string());
         }
     }
@@ -415,7 +402,6 @@ async fn serveweb_async(listener: TcpListener, ctx: Arc<Context>) -> MyResult<()
                 eprintln!("Error serving connection: {:?}", err);
             }
         });
-        eprintln!("{}", ctx2.counter.lock().await);
     }
 }
 
