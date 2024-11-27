@@ -3153,8 +3153,8 @@ int main(int argc, char** argv)
   g_argc = argc;
   g_argv = argv;
   versionSetProduct(ProductRecursor);
-  reportBasicTypes();
-  reportOtherTypes();
+  reportAllTypes();
+  DNSRecordContent::lock();
 
   int ret = EXIT_SUCCESS;
 

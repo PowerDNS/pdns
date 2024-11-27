@@ -27,6 +27,8 @@
 #include "namespaces.hh"
 #include "noinitvector.hh"
 
+bool DNSRecordContent::d_locked{false};
+
 UnknownRecordContent::UnknownRecordContent(const string& zone)
 {
   // parse the input

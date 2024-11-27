@@ -234,6 +234,7 @@ public:
 
   static void regist(uint16_t cl, uint16_t ty, makerfunc_t* f, zmakerfunc_t* z, const char* name)
   {
+    assert(!d_locked);
     if(f)
       getTypemap()[pair(cl,ty)]=f;
     if(z)
@@ -245,6 +246,7 @@ public:
 
   static void unregist(uint16_t cl, uint16_t ty)
   {
+    assert(!d_locked);
     auto key = pair(cl, ty);
     getTypemap().erase(key);
     getZmakermap().erase(key);
@@ -284,6 +286,11 @@ public:
 
   virtual uint16_t getType() const = 0;
 
+  static void lock()
+  {
+    d_locked = true;
+  }
+
 protected:
   typedef std::map<std::pair<uint16_t, uint16_t>, makerfunc_t* > typemap_t;
   typedef std::map<std::pair<uint16_t, uint16_t>, zmakerfunc_t* > zmakermap_t;
@@ -293,6 +300,7 @@ protected:
   static t2namemap_t& getT2Namemap();
   static n2typemap_t& getN2Typemap();
   static zmakermap_t& getZmakermap();
+  static bool d_locked;
 };
 
 struct DNSRecord
