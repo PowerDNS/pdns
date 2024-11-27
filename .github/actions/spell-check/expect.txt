@@ -1136,6 +1136,7 @@ relbar
 relbarbgcolor
 relbarlinkcolor
 relbartextcolor
+reloadable
 relro
 Remco
 remi

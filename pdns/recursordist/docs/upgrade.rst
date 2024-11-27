@@ -20,6 +20,16 @@ There is a new metric ``tcp-overflow`` that counts the connections closed immedi
 The ``outqueries-per-query`` value reported in the log by the periodic statistics function is now reported as ``outqueries-per-query-perc`` as it is a percentage.
 A value of 1 means that on average each 100 incoming queries lead to a single query to an authoritative server.
 
+A new ``rec_control reload-yaml`` command has been introduced as an alias for ``reload-lua-config``.
+Both commands will (if YAML settings are active), reload the runtime reloadable parts of the YAML settings.
+These are the YAML settings that correspond to Lua configuration items, plus a few new settings that have no Lua equivalent.
+The documentation has been updated to state more clearly which settings can be modified at runtime.
+
+Changed settings
+^^^^^^^^^^^^^^^^
+
+- The :ref:`setting-yaml-incoming.max_tcp_clients` default value has been raised 1024.
+
 New Settings
 ^^^^^^^^^^^^
 

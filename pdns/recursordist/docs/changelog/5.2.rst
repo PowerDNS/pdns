@@ -4,6 +4,55 @@ Changelogs for 5.2.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.2.0-beta1
+  :released: 27th of November 2024
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14852
+
+    Add rec_control reload-yaml as an alias for reload-lua-config.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14852
+
+    Add header flags and edns version as fields in protobuf messages.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14863
+    :tickets: 14471, 14857
+
+    Fix serial number inconsistency for RPZ dump files.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14858
+    :tickets: 14855
+
+    Remember which query led to aggressive cache insert/update and show it in cache dump and traces.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14847
+
+    Several coverity reports, all low severity optimizations.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14844
+
+    Allow addresses to retrieve catalog zones and RPZs to be names (is system resolver is enabled).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14838
+    :tickets: 14533
+
+    Better fd count estimates and move default incoming.max_tcp_client to 1024.
+
+.. changelog::
   :version: 5.2.0-alpha1
   :released: 11th of November 2024
 
