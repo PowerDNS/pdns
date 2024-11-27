@@ -37,7 +37,6 @@
 #define includeboilerplate(RNAME)   RNAME##RecordContent(const DNSRecord& dr, PacketReader& pr); \
   RNAME##RecordContent(const string& zoneData);                                                  \
   static void report(void);                                                                      \
-  static void unreport(void);                                                                    \
   static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);          \
   static std::shared_ptr<DNSRecordContent> make(const string& zonedata);                         \
   string getZoneRepresentation(bool noDot=false) const override;                                 \
@@ -1012,11 +1011,6 @@ void RNAME##RecordContent::report(void)                                         
 {                                                                                                  \
   regist(1, QType::RNAME, &RNAME##RecordContent::make, &RNAME##RecordContent::make, #RNAME);              \
   regist(254, QType::RNAME, &RNAME##RecordContent::make, &RNAME##RecordContent::make, #RNAME);            \
-}                                                                                                  \
-void RNAME##RecordContent::unreport(void)                                                          \
-{                                                                                                  \
-  unregist(1, QType::RNAME);                                                                              \
-  unregist(254, QType::RNAME);                                                                            \
 }                                                                                                  \
                                                                                                    \
 RNAME##RecordContent::RNAME##RecordContent(const string& zoneData)                                 \
