@@ -350,7 +350,7 @@ void AggressiveNSECCache::insertNSEC(const DNSName& zone, const DNSName& owner, 
         ++d_entriesCount;
       }
       else {
-        zoneEntry->d_entries.replace(pair.first, {record.getContent(), signatures, std::move(realOwner), next, qname, record.d_ttl, qtype});
+        zoneEntry->d_entries.replace(pair.first, {record.getContent(), signatures, std::move(realOwner), std::move(next), qname, record.d_ttl, qtype});
       }
     }
     else {
