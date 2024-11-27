@@ -1210,6 +1210,7 @@ int main(int argc, char** argv)
 {
   versionSetProduct(ProductAuthoritative);
   reportAllTypes(); // init MOADNSParser
+  DNSRecordContent::lock();
 
   g_programname = "pdns";
   g_starttime = time(nullptr);
