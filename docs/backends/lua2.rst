@@ -2,12 +2,17 @@ Lua2 Backend
 ============
 
 * Native: Yes
-* Master: Yes
-* Slave: No
-* Superslave: No
+* Primary: Yes
+* Secondary: No
+* Producer: No
+* Consumer: No
+* Autosecondary: No
+* DNS Update: No
 * DNSSEC: Yes
 * Disabled data: No
 * Comments: No
+* API: ???
+* Multiple instances: ???
 * Zone caching: Yes
 * Module name: lua2
 * Launch name: ``lua2``
