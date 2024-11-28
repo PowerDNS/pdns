@@ -47,12 +47,6 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
   // tuple contains <type, user value, zone representation, line value, broken>
   typedef boost::tuple<QType::typeenum, std::string, std::string, std::string, broken_marker> case_t;
   typedef std::list<case_t> cases_t;
-  MRRecordContent::report();
-  IPSECKEYRecordContent::report();
-  KXRecordContent::report();
-  DHCIDRecordContent::report();
-  TSIGRecordContent::report();
-  TKEYRecordContent::report();
 
 // NB!!! WHEN ADDING A TEST MAKE SURE YOU PUT IT NEXT TO ITS KIND
 // TO MAKE SURE TEST NUMBERING DOES NOT BREAK
@@ -305,8 +299,12 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
    BOOST_TEST_MESSAGE("Checking record type " << q.toString() << " test #" << n);
    try {
       std::string recData;
-      auto rec = DNSRecordContent::make(q.getCode(), 1, inval);
-      BOOST_CHECK_MESSAGE(rec != NULL, "make( " << q.getCode() << ", 1, " << inval << ") should not return NULL");
+      uint16_t qclass = QClass::IN;
+      if (q.getCode() == QType::TSIG || q.getCode() == QType::TKEY) {
+        qclass = QClass::ANY;
+      }
+      auto rec = DNSRecordContent::make(q.getCode(), qclass, inval);
+      BOOST_CHECK_MESSAGE(rec != nullptr, "make( " << q.getCode() << ", " << qclass << ", " << inval << ") should not return NULL");
       if (rec == NULL) continue;
       // now verify the record (note that this will be same as *zone* value (except for certain QTypes)
 
@@ -325,7 +323,7 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
       }
       recData = rec->serialize(DNSName("rec.test"));
 
-      std::shared_ptr<DNSRecordContent> rec2 = DNSRecordContent::deserialize(DNSName("rec.test"),q.getCode(),recData);
+      auto rec2 = DNSRecordContent::deserialize(DNSName("rec.test"), q.getCode(), recData, qclass);
       BOOST_CHECK_MESSAGE(rec2 != NULL, "deserialize(rec.test, " << q.getCode() << ", recData) should not return NULL");
       if (rec2 == NULL) continue;
       // now verify the zone representation (here it can be different!)
@@ -434,7 +432,6 @@ BOOST_AUTO_TEST_CASE(test_opt_record_in) {
 
   // test that nsid gets parsed into system
   std::string packet("\xf0\x01\x01\x00\x00\x01\x00\x01\x00\x00\x00\x01\x03www\x08powerdns\x03""com\x00\x00\x01\x00\x01\x03www\x08powerdns\x03""com\x00\x00\x01\x00\x01\x00\x00\x00\x10\x00\x04\x7f\x00\x00\x01\x00\x00\x29\x05\x00\x00\x00\x00\x00\x00\x0c\x00\x03\x00\x08powerdns",89);
-  OPTRecordContent::report();
 
   MOADNSParser mdp(true, (char*)&*packet.begin(), (unsigned int)packet.size());
 

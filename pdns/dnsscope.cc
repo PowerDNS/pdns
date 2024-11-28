@@ -225,7 +225,8 @@ try
   typedef vector<pair<time_t, LiveCounts> > pcounts_t;
   pcounts_t pcounts;
   const uint16_t port = g_vm["port"].as<uint16_t>();
-  OPTRecordContent::report();
+
+  reportAllTypes();
 
   for(unsigned int fno=0; fno < files.size(); ++fno) {
     PcapPacketReader pr(files[fno]);

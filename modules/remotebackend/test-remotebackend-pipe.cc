@@ -79,10 +79,7 @@ struct RemotebackendSetup
       ::arg().set("remote-connection-string") = "pipe:command=unittest_pipe.py";
       ::arg().set("remote-dnssec") = "yes";
       backendUnderTest = std::move(BackendMakers().all()[0]);
-      // load few record types to help out
-      SOARecordContent::report();
-      NSRecordContent::report();
-      ARecordContent::report();
+      reportAllTypes();
     }
     catch (PDNSException& ex) {
       BOOST_TEST_MESSAGE("Cannot start remotebackend: " << ex.reason);

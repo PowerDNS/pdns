@@ -344,8 +344,6 @@ static void checkRR(const SignerParams& signer)
   /* values taken from rfc8080 for ed25519 and ed448, rfc5933 for gost */
   DNSName qname(dpk.getAlgorithm() == DNSSECKeeper::ECCGOST ? "www.example.net." : "example.com.");
 
-  reportBasicTypes();
-
   RRSIGRecordContent rrc;
   uint32_t expire = 1440021600;
   uint32_t inception = 1438207200;
