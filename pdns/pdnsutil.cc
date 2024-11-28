@@ -1338,6 +1338,7 @@ static int editZone(const DNSName &zone, const PDNSColors& col) {
 
             changed[{dr.d_name, dr.d_type}]+=str.str();
             grouped[{dr.d_name, dr.d_type}].at(0) = dr;
+            cout<<endl<<"SOA serial for zone "<<zone<<" set to "<<sd.serial;
           }
           break;
         case 'q':
