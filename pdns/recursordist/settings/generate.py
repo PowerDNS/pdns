@@ -410,7 +410,7 @@ def gen_rust_vec_default_functions(name, typeName, defvalue):
     ret = f'// DEFAULT HANDLING for {name}\n'
     ret += f'fn default_value_{name}() -> Vec<recsettings::{typeName}> {{\n'
     ret += f'    let msg = "default value defined for `{name}\' should be valid YAML";'
-    ret += f'    let deserialized: Vec<recsettings::{typeName}> = serde_yaml::from_str({quote(defvalue)}).expect(&msg);\n'
+    ret += f'    let deserialized: Vec<recsettings::{typeName}> = serde_yaml::from_str({quote(defvalue)}).expect(msg);\n'
     ret += f'    deserialized\n'
     ret += '}\n'
     ret += f'fn default_value_equal_{name}(value: &Vec<recsettings::{typeName}>)'

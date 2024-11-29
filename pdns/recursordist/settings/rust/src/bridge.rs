@@ -153,7 +153,7 @@ fn validate_name(field: &str, val: &String) -> Result<(), ValidationError> {
             return Err(ValidationError { msg });
         }
         // XXX Too liberal, should check for alnum, - and proper \ddd
-        if !label.chars().all(|ch| ch.is_ascii()) {
+        if !label.is_ascii() {
             let msg = format!("{}: `{}' contains non-ascii character", field, val);
             return Err(ValidationError { msg });
         }
