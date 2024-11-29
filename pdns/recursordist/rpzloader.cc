@@ -652,7 +652,7 @@ static bool RPZTrackerIteration(RPZTrackerParams& params, const DNSName& zoneNam
 
     /* only update sr now that all changes have been converted */
     if (currentSR) {
-      newZone->setSOA(dnsRecord);
+      newZone->setSOA(std::move(dnsRecord));
       params.zoneXFRParams.soaRecordContent = std::move(currentSR);
     }
     SLOG(g_log << Logger::Info << "Had " << totremove << " RPZ removal" << addS(totremove) << ", " << totadd << " addition" << addS(totadd) << " for " << zoneName << " New serial: " << params.soaRecordContent->d_st.serial << endl,
