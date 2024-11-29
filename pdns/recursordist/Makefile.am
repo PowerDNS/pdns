@@ -542,9 +542,9 @@ rec_control_SOURCES = \
 	rcpgenerator.cc	rcpgenerator.hh \
 	rec-lua-conf.cc rec-lua-conf.hh \
 	rec-system-resolve.cc rec-system-resolve.hh \
+	rec-web-stubs.hh \
 	rec_channel.cc rec_channel.hh \
 	rec_control.cc \
-	rec-web-stubs.hh \
 	settings/cxxsupport.cc \
 	sillyrecords.cc \
 	sortlist.cc sortlist.hh \

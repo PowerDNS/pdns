@@ -273,6 +273,11 @@ int RecThreadInfo::runThreads(Logr::log_t log)
       taskInfo.start(currentThreadId, "task", cpusMap, log);
     }
 
+    if (::arg().mustDo("webserver")) {
+      extern void serveRustWeb();
+      serveRustWeb();
+    }
+
     currentThreadId = 1;
     auto& info = RecThreadInfo::info(currentThreadId);
     info.setListener();
