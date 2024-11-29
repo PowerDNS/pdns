@@ -46,6 +46,7 @@
 #include "tcpiohandler.hh"
 #include "rec-main.hh"
 #include "settings/cxxsettings.hh" // IWYU pragma: keep, needed by included generated file
+#include "settings/rust/src/bridge.hh"
 #include "settings/rust/web.rs.h"
 
 using json11::Json;
@@ -994,7 +995,11 @@ void serveRustWeb()
   if (!apikeyString.empty()) {
     apikey = std::make_unique<CredentialsHolder>(std::move(apikeyString), arg().mustDo("webserver-hash-plaintext-credentials"));
   }
-  pdns::rust::web::rec::serveweb({::rust::String(address.toStringWithPort())}, ::rust::Slice<const ::rust::String>{urls.data(), urls.size()}, std::move(password), std::move(apikey));
+  NetmaskGroup acl;
+  acl.toMasks(::arg()["webserver-allow-from"]);
+  auto aclPtr = std::make_unique<pdns::rust::web::rec::NetmaskGroup>(acl);
+
+  pdns::rust::web::rec::serveweb({::rust::String(address.toStringWithPort())}, ::rust::Slice<const ::rust::String>{urls.data(), urls.size()}, std::move(password), std::move(apikey), std::move(aclPtr));
 }
 
 static void fromCxxToRust(const HttpResponse& cxxresp, pdns::rust::web::rec::Response& rustResponse)

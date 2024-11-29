@@ -39,6 +39,8 @@
 #include "base64.hh"
 #include "validate-recursor.hh"
 #include "threadname.hh"
+#include "iputils.hh"
+#include "bridge.hh"
 
 ::rust::Vec<::rust::String> pdns::settings::rec::getStrings(const std::string& name)
 {
@@ -1453,4 +1455,40 @@ bool pdns::rust::settings::rec::isValidHostname(::rust::Str str)
   catch (...) {
     return false;
   }
+}
+
+namespace pdns::rust::web::rec
+{
+NetmaskGroup::NetmaskGroup(const ::NetmaskGroup& arg) :
+  d_ptr(std::make_unique<::NetmaskGroup>(arg))
+{
+}
+NetmaskGroup::~NetmaskGroup() = default;
+
+
+ComboAddress::ComboAddress(const ::ComboAddress& arg) :
+  d_ptr(std::make_unique<::ComboAddress>(arg))
+{
+}
+ComboAddress::~ComboAddress() = default;
+
+std::unique_ptr<ComboAddress> comboaddress(::rust::Str str)
+{
+  return std::make_unique<ComboAddress>(::ComboAddress(std::string(str)));
+}
+
+[[nodiscard]] const ::NetmaskGroup& NetmaskGroup::get() const
+{
+  return *d_ptr;
+}
+
+[[nodiscard]] const ::ComboAddress& ComboAddress::get() const
+{
+  return *d_ptr;
+}
+  
+bool matches(const std::unique_ptr<NetmaskGroup>& nmg, const std::unique_ptr<ComboAddress>& address)
+{
+  return nmg->get().match(address->get());
+}
 }

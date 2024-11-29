@@ -166,6 +166,7 @@ struct Context {
     urls: Vec<String>,
     password_ch: cxx::UniquePtr<rustweb::CredentialsHolder>,
     api_ch: cxx::UniquePtr<rustweb::CredentialsHolder>,
+    acl: cxx::UniquePtr<rustweb::NetmaskGroup>,
     counter: Mutex<u32>,
 }
 
@@ -382,9 +383,22 @@ async fn serveweb_async(listener: TcpListener, ctx: Arc<Context>) -> MyResult<()
     // We start a loop to continuously accept incoming connections
     loop {
         let ctx = Arc::clone(&ctx);
-        let ctx2 = Arc::clone(&ctx);
         let (stream, _) = listener.accept().await?;
 
+        match stream.peer_addr() {
+            Ok(address) => {
+                eprintln!("Peer: {:?}", address);
+                let combo = rustweb::comboaddress(&address.to_string());
+                if !rustweb::matches(&ctx.acl, &combo) {
+                    eprintln!("No acl match! {:?}", address);
+                    continue;
+                }
+            }
+            Err(err) => {
+                eprintln!("Can't get: {:?}", err);
+                continue; // If we can't determine the peer address, don't
+            }
+        }
         // Use an adapter to access something implementing `tokio::io` traits as if they implement
         // `hyper::rt` IO traits.
         let io = TokioIo::new(stream);
@@ -405,12 +419,13 @@ async fn serveweb_async(listener: TcpListener, ctx: Arc<Context>) -> MyResult<()
     }
 }
 
-pub fn serveweb(addresses: &Vec<String>, urls: &[String], password_ch: cxx::UniquePtr<rustweb::CredentialsHolder>, api_ch: cxx::UniquePtr<rustweb::CredentialsHolder>) -> Result<(), std::io::Error> {
+pub fn serveweb(addresses: &Vec<String>, urls: &[String], password_ch: cxx::UniquePtr<rustweb::CredentialsHolder>, api_ch: cxx::UniquePtr<rustweb::CredentialsHolder>, acl: cxx::UniquePtr<rustweb::NetmaskGroup>) -> Result<(), std::io::Error> {
     // Context (R/O for now)
     let ctx = Arc::new(Context {
         urls: urls.to_vec(),
         password_ch,
         api_ch,
+        acl,
         counter: Mutex::new(0),
     });
 
@@ -460,18 +475,22 @@ pub fn serveweb(addresses: &Vec<String>, urls: &[String], password_ch: cxx::Uniq
 
 unsafe impl Send for rustweb::CredentialsHolder {}
 unsafe impl Sync for rustweb::CredentialsHolder {}
+unsafe impl Send for rustweb::NetmaskGroup {}
+unsafe impl Sync for rustweb::NetmaskGroup {}
 
 #[cxx::bridge(namespace = "pdns::rust::web::rec")]
 mod rustweb {
     extern "C++" {
-      type CredentialsHolder;
+        type CredentialsHolder;
+        type NetmaskGroup;
+        type ComboAddress;
     }
 
     /*
      * Functions callable from C++
      */
     extern "Rust" {
-        fn serveweb(addreses: &Vec<String>, urls: &[String], pwch: UniquePtr<CredentialsHolder>, apikeych: UniquePtr<CredentialsHolder>) -> Result<()>;
+        fn serveweb(addreses: &Vec<String>, urls: &[String], pwch: UniquePtr<CredentialsHolder>, apikeych: UniquePtr<CredentialsHolder>, acl: UniquePtr<NetmaskGroup>) -> Result<()>;
     }
 
     struct KeyValue {
@@ -520,5 +539,7 @@ mod rustweb {
         fn serveStuff(request: &Request, response: &mut Response) -> Result<()>;
 
         fn matches(self: &CredentialsHolder, str: &CxxString) -> bool;
+        fn comboaddress(address: &str) -> UniquePtr<ComboAddress>;
+        fn matches(nmg: &UniquePtr<NetmaskGroup>, address: &UniquePtr<ComboAddress>) -> bool; // match is a keyword
     }
 }

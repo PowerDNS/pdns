@@ -4,5 +4,6 @@ fn main() {
         // .file("src/source.cc") Code callable from Rust is in ../cxxsupport.cc
         .flag_if_supported("-std=c++17")
         .flag("-Isrc")
+        .flag("-I../../..")
         .compile("settings");
 }

@@ -22,8 +22,7 @@
 #pragma once
 
 #include "rust/cxx.h"
-#include "../../../credentials.hh"
-
+#include "credentials.hh"
 
 namespace pdns::rust::settings::rec
 {
@@ -32,12 +31,35 @@ bool isValidHostname(::rust::Str str);
 void setThreadName(::rust::Str str);
 }
 
+class NetmaskGroup;
+union ComboAddress;
+
 namespace pdns::rust::web::rec
 {
 using CredentialsHolder = ::CredentialsHolder;
+  //using NetmaskGroup = ::NetmaskGroup;
 struct KeyValue;
 struct Request;
 struct Response;
+class NetmaskGroup
+{
+public:
+  NetmaskGroup(const ::NetmaskGroup& arg);
+  ~NetmaskGroup();
+  [[nodiscard]] const ::NetmaskGroup& get() const;
+private:
+  std::unique_ptr<::NetmaskGroup> d_ptr;
+};
+class ComboAddress
+{
+public:
+  ComboAddress(const ::ComboAddress& arg);
+  ~ComboAddress();
+  [[nodiscard]] const ::ComboAddress& get() const;
+private:
+  std::unique_ptr<::ComboAddress> d_ptr;
+};
+
 void apiServer(const Request& rustRequest, Response& rustResponse);
 void apiDiscovery(const Request& rustRequest, Response& rustResponse);
 void apiDiscoveryV1(const Request& rustRequest, Response& rustResponse);
@@ -59,4 +81,6 @@ void apiServerSearchData(const Request& rustRequest, Response& rustResponse);
 void apiServerZoneDetailGET(const Request& rustRequest, Response& rustResponse);
 void apiServerZoneDetailPUT(const Request& rustRequest, Response& rustResponse);
 void apiServerZoneDetailDELETE(const Request& rustRequest, Response& rustResponse);
+std::unique_ptr<pdns::rust::web::rec::ComboAddress> comboaddress(::rust::Str str);
+bool matches(const std::unique_ptr<NetmaskGroup>& nmg, const std::unique_ptr<ComboAddress>& address);
 }
