@@ -3154,7 +3154,6 @@ int main(int argc, char** argv)
   g_argv = argv;
   versionSetProduct(ProductRecursor);
   reportAllTypes();
-  DNSRecordContent::lock();
 
   int ret = EXIT_SUCCESS;
 

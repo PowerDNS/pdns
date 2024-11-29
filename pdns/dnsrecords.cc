@@ -458,9 +458,8 @@ boilerplate_conv(LP,
                  conv.xfrName(d_fqdn, false);)
 
 /* EUI48 start */
-void EUI48RecordContent::report(const ReportIsOnlyCallableByReportAllTypes& guard)
+void EUI48RecordContent::report(const ReportIsOnlyCallableByReportAllTypes& /* unused */)
 {
-  (void)guard;
   regist(1, QType::EUI48, &make, &make, "EUI48");
 }
 std::shared_ptr<DNSRecordContent> EUI48RecordContent::make(const DNSRecord &dr, PacketReader& pr)
@@ -503,9 +502,8 @@ string EUI48RecordContent::getZoneRepresentation(bool /* noDot */) const
 
 /* EUI64 start */
 
-void EUI64RecordContent::report(const ReportIsOnlyCallableByReportAllTypes& guard)
+void EUI64RecordContent::report(const ReportIsOnlyCallableByReportAllTypes& /* unused */)
 {
-  (void)guard;
   regist(1, QType::EUI64, &make, &make, "EUI64");
 }
 std::shared_ptr<DNSRecordContent> EUI64RecordContent::make(const DNSRecord &dr, PacketReader& pr)
@@ -550,9 +548,8 @@ string EUI64RecordContent::getZoneRepresentation(bool /* noDot */) const
 
 /* APL start */
 /* https://tools.ietf.org/html/rfc3123 */
-void APLRecordContent::report(const ReportIsOnlyCallableByReportAllTypes& guard)
+void APLRecordContent::report(const ReportIsOnlyCallableByReportAllTypes& /* unused */)
 {
-  (void)guard;
   regist(1, QType::APL, &make, &make, "APL");
 }
 
