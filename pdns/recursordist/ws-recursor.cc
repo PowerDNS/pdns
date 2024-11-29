@@ -95,7 +95,7 @@ static void apiServerConfigACLGET(const std::string& aclType, HttpRequest* /* re
   auto lock1 = g_initialAllowFrom.lock();
   auto lock2 = g_initialAllowNotifyFrom.lock();
   if (*lock1 && aclType == "allow-from") {
-      entries = (*lock1)->toStringVector();
+    entries = (*lock1)->toStringVector();
   }
   else if (*lock2 && aclType == "allow-notify-from") {
     entries = (*lock2)->toStringVector();
@@ -894,8 +894,10 @@ void AsyncWebServer::serveConnection(const std::shared_ptr<Socket>& socket) cons
     yarl.initialize(&req);
     socket->setNonBlocking();
 
-    const struct timeval timeout{
-      g_networkTimeoutMsec / 1000, static_cast<suseconds_t>(g_networkTimeoutMsec) % 1000 * 1000};
+    const struct timeval timeout
+    {
+      g_networkTimeoutMsec / 1000, static_cast<suseconds_t>(g_networkTimeoutMsec) % 1000 * 1000
+    };
     std::shared_ptr<TLSCtx> tlsCtx{nullptr};
     if (d_loglevel > WebServer::LogLevel::None) {
       socket->getRemote(remote);
@@ -1036,10 +1038,10 @@ static void rustWrapper(const std::function<void(HttpRequest*, HttpResponse*)>& 
     response.body = e.response().body;
     response.status = e.response().status;
   }
-  catch (const ApiException & e) {
+  catch (const ApiException& e) {
     response.setErrorResult(e.what(), 422);
   }
-  catch (const JsonException & e) {
+  catch (const JsonException& e) {
     response.setErrorResult(e.what(), 422);
   }
   fromCxxToRust(response, rustResponse);

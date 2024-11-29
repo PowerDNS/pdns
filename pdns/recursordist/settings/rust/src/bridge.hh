@@ -37,28 +37,31 @@ union ComboAddress;
 namespace pdns::rust::web::rec
 {
 using CredentialsHolder = ::CredentialsHolder;
-  //using NetmaskGroup = ::NetmaskGroup;
+// using NetmaskGroup = ::NetmaskGroup;
 struct KeyValue;
 struct Request;
 struct Response;
-class NetmaskGroup
+
+template <typename A>
+class Wrapper
 {
 public:
-  NetmaskGroup(const ::NetmaskGroup& arg);
-  ~NetmaskGroup();
-  [[nodiscard]] const ::NetmaskGroup& get() const;
+  Wrapper(const A& arg);
+  ~Wrapper(); // out-of-line definition, to keep A opaque
+
+  Wrapper() = delete;
+  Wrapper(const Wrapper&) = delete;
+  Wrapper(Wrapper&&) = delete;
+  Wrapper& operator=(const Wrapper&) = delete;
+  Wrapper& operator=(Wrapper&&) = delete;
+
+  [[nodiscard]] const A& get() const;
+
 private:
-  std::unique_ptr<::NetmaskGroup> d_ptr;
+  std::unique_ptr<A> d_ptr;
 };
-class ComboAddress
-{
-public:
-  ComboAddress(const ::ComboAddress& arg);
-  ~ComboAddress();
-  [[nodiscard]] const ::ComboAddress& get() const;
-private:
-  std::unique_ptr<::ComboAddress> d_ptr;
-};
+using NetmaskGroup = Wrapper<::NetmaskGroup>;
+using ComboAddress = Wrapper<::ComboAddress>;
 
 void apiServer(const Request& rustRequest, Response& rustResponse);
 void apiDiscovery(const Request& rustRequest, Response& rustResponse);
@@ -81,6 +84,6 @@ void apiServerSearchData(const Request& rustRequest, Response& rustResponse);
 void apiServerZoneDetailGET(const Request& rustRequest, Response& rustResponse);
 void apiServerZoneDetailPUT(const Request& rustRequest, Response& rustResponse);
 void apiServerZoneDetailDELETE(const Request& rustRequest, Response& rustResponse);
-std::unique_ptr<pdns::rust::web::rec::ComboAddress> comboaddress(::rust::Str str);
+std::unique_ptr<ComboAddress> comboaddress(::rust::Str str);
 bool matches(const std::unique_ptr<NetmaskGroup>& nmg, const std::unique_ptr<ComboAddress>& address);
 }

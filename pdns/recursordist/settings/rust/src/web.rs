@@ -10,6 +10,9 @@ TODO
   use shared libs (in theory, I did not try). Currently all CXX using Rust cargo's must be compiled
   as one and refer to a single static Rust runtime
 - Ripping out yahttp stuff, providing some basic classees only
+- Some classes (NetmaskGroup, ComboAddress) need a uniqueptr Wrapper to keep them opaque (iputils
+  cannot be included without big headages in bridge.hh at the moment). We could seperate
+  NetmaskGroup, but I expect ComboAddress to not work as it is union.
 */
 
 use std::net::SocketAddr;

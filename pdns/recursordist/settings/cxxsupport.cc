@@ -1459,34 +1459,30 @@ bool pdns::rust::settings::rec::isValidHostname(::rust::Str str)
 
 namespace pdns::rust::web::rec
 {
-NetmaskGroup::NetmaskGroup(const ::NetmaskGroup& arg) :
-  d_ptr(std::make_unique<::NetmaskGroup>(arg))
+
+template <typename M>
+Wrapper<M>::Wrapper(const M& arg) :
+  d_ptr(std::make_unique<M>(arg))
 {
 }
-NetmaskGroup::~NetmaskGroup() = default;
 
+template <typename M>
+Wrapper<M>::~Wrapper<M>() = default;
 
-ComboAddress::ComboAddress(const ::ComboAddress& arg) :
-  d_ptr(std::make_unique<::ComboAddress>(arg))
+template <typename M>
+[[nodiscard]] const M& Wrapper<M>::get() const
 {
+  return *d_ptr;
 }
-ComboAddress::~ComboAddress() = default;
+
+template class Wrapper<::NetmaskGroup>;
+template class Wrapper<::ComboAddress>;
 
 std::unique_ptr<ComboAddress> comboaddress(::rust::Str str)
 {
   return std::make_unique<ComboAddress>(::ComboAddress(std::string(str)));
 }
 
-[[nodiscard]] const ::NetmaskGroup& NetmaskGroup::get() const
-{
-  return *d_ptr;
-}
-
-[[nodiscard]] const ::ComboAddress& ComboAddress::get() const
-{
-  return *d_ptr;
-}
-  
 bool matches(const std::unique_ptr<NetmaskGroup>& nmg, const std::unique_ptr<ComboAddress>& address)
 {
   return nmg->get().match(address->get());
