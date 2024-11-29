@@ -1009,9 +1009,8 @@ void RNAME##RecordContent::toPacket(DNSPacketWriter& pw) const                  
   this->xfrPacket(pw);                                                                             \
 }                                                                                                  \
                                                                                                    \
-void RNAME##RecordContent::report(const ReportIsOnlyCallableByReportAllTypes& guard)               \
+void RNAME##RecordContent::report(const ReportIsOnlyCallableByReportAllTypes& /* unused */)        \
 {                                                                                                  \
-  (void)guard;                                                                                     \
   regist(1, QType::RNAME, &RNAME##RecordContent::make, &RNAME##RecordContent::make, #RNAME);       \
   regist(254, QType::RNAME, &RNAME##RecordContent::make, &RNAME##RecordContent::make, #RNAME);     \
 }                                                                                                  \
