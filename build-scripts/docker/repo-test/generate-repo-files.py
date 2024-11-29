@@ -207,7 +207,7 @@ def run (tag, arch='x86_64'):
                              tag],
                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     version = re.search(r'(PowerDNS Authoritative Server|PowerDNS Recursor|' +
-                        r'dnsdist) (\d+\.\d+\.\d+(-\w+)?)',
+                        r'dnsdist) (\d+\.\d+\.\d+(-\w+)?[^ ]*)',
                         cp.stdout.decode())
     if g_verbose:
         print(cp.stdout.decode())
