@@ -20,6 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
+#include <atomic>
 #include <map>
 #include <sstream>
 #include <stdexcept>
@@ -225,7 +226,7 @@ public:
   }
 
   // parse the content in wire format, possibly including compressed pointers pointing to the owner name
-  static shared_ptr<DNSRecordContent> deserialize(const DNSName& qname, uint16_t qtype, const string& serialized);
+  static shared_ptr<DNSRecordContent> deserialize(const DNSName& qname, uint16_t qtype, const string& serialized, uint16_t qclass=QClass::IN);
 
   void doRecordCheck(const struct DNSRecord&){}
 
@@ -234,6 +235,7 @@ public:
 
   static void regist(uint16_t cl, uint16_t ty, makerfunc_t* f, zmakerfunc_t* z, const char* name)
   {
+    assert(!d_locked.load()); // NOLINT: it's the API
     if(f)
       getTypemap()[pair(cl,ty)]=f;
     if(z)
@@ -241,13 +243,6 @@ public:
 
     getT2Namemap().emplace(pair(cl, ty), name);
     getN2Typemap().emplace(name, pair(cl, ty));
-  }
-
-  static void unregist(uint16_t cl, uint16_t ty)
-  {
-    auto key = pair(cl, ty);
-    getTypemap().erase(key);
-    getZmakermap().erase(key);
   }
 
   static bool isUnknownType(const string& name)
@@ -284,6 +279,11 @@ public:
 
   virtual uint16_t getType() const = 0;
 
+  static void lock()
+  {
+    d_locked.store(true);
+  }
+
 protected:
   typedef std::map<std::pair<uint16_t, uint16_t>, makerfunc_t* > typemap_t;
   typedef std::map<std::pair<uint16_t, uint16_t>, zmakerfunc_t* > zmakermap_t;
@@ -293,6 +293,7 @@ protected:
   static t2namemap_t& getT2Namemap();
   static n2typemap_t& getN2Typemap();
   static zmakermap_t& getZmakermap();
+  static std::atomic<bool> d_locked;
 };
 
 struct DNSRecord

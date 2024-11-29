@@ -21,8 +21,6 @@
 BOOST_AUTO_TEST_SUITE(test_zoneparser_tng_cc)
 
 BOOST_AUTO_TEST_CASE(test_tng_record_types) {
-  reportAllTypes();
-
   std::ostringstream pathbuf;
   const char* p = std::getenv("SRCDIR");
   if(!p)
@@ -57,8 +55,6 @@ BOOST_AUTO_TEST_CASE(test_tng_record_types) {
 }
 
 BOOST_AUTO_TEST_CASE(test_tng_record_generate) {
-  reportAllTypes();
-
   std::ostringstream pathbuf;
   const char* p = std::getenv("SRCDIR");
   if(!p)
@@ -219,8 +215,6 @@ BOOST_AUTO_TEST_CASE(test_tng_record_generate) {
 }
 
 BOOST_AUTO_TEST_CASE(test_tng_upgrade) {
-  reportAllTypes();
-
   ZoneParserTNG zp(std::vector<std::string>({"foo.test. 86400 IN TYPE1 \\# 4 c0000304"}), DNSName("test"), true);
   DNSResourceRecord rr;
   zp.get(rr);

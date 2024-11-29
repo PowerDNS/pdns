@@ -156,7 +156,7 @@ latlon2ul(const char **latlonstrptr, int *which)
   return (retval);
 }
 
-void LOCRecordContent::report()
+void LOCRecordContent::report(const ReportIsOnlyCallableByReportAllTypes& /* unused */)
 {
   regist(1, QType::LOC, &make, &make, "LOC");
   regist(254, QType::LOC, &make, &make, "LOC");

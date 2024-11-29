@@ -34,10 +34,11 @@
 #include "iputils.hh"
 #include "svc-records.hh"
 
+struct ReportIsOnlyCallableByReportAllTypes;
+
 #define includeboilerplate(RNAME)   RNAME##RecordContent(const DNSRecord& dr, PacketReader& pr); \
   RNAME##RecordContent(const string& zoneData);                                                  \
-  static void report(void);                                                                      \
-  static void unreport(void);                                                                    \
+  static void report(const ReportIsOnlyCallableByReportAllTypes& guard);                         \
   static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);          \
   static std::shared_ptr<DNSRecordContent> make(const string& zonedata);                         \
   string getZoneRepresentation(bool noDot=false) const override;                                 \
@@ -701,7 +702,7 @@ private:
 class NSECRecordContent : public DNSRecordContent
 {
 public:
-  static void report();
+  static void report(const ReportIsOnlyCallableByReportAllTypes& guard);
   NSECRecordContent() = default;
   NSECRecordContent(const string& content, const DNSName& zone=DNSName());
 
@@ -738,7 +739,7 @@ private:
 class NSEC3RecordContent : public DNSRecordContent
 {
 public:
-  static void report();
+  static void report(const ReportIsOnlyCallableByReportAllTypes& guard);
   NSEC3RecordContent() = default;
   NSEC3RecordContent(const string& content, const DNSName& zone=DNSName());
 
@@ -784,7 +785,7 @@ private:
 class CSYNCRecordContent : public DNSRecordContent
 {
 public:
-  static void report();
+  static void report(const ReportIsOnlyCallableByReportAllTypes& guard);
   CSYNCRecordContent() = default;
   CSYNCRecordContent(const string& content, const DNSName& zone=DNSName());
 
@@ -812,7 +813,7 @@ private:
 class NSEC3PARAMRecordContent : public DNSRecordContent
 {
 public:
-  static void report();
+  static void report(const ReportIsOnlyCallableByReportAllTypes& guard);
   NSEC3PARAMRecordContent() = default;
   NSEC3PARAMRecordContent(const string& content, const DNSName& zone=DNSName());
 
@@ -836,7 +837,7 @@ public:
 class LOCRecordContent : public DNSRecordContent
 {
 public:
-  static void report();
+  static void report(const ReportIsOnlyCallableByReportAllTypes& guard);
   LOCRecordContent() = default;
   LOCRecordContent(const string& content, const string& zone="");
 
@@ -900,7 +901,7 @@ class EUI48RecordContent : public DNSRecordContent
 {
 public:
   EUI48RecordContent() = default;
-  static void report();
+  static void report(const ReportIsOnlyCallableByReportAllTypes& guard);
   static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);
   static std::shared_ptr<DNSRecordContent> make(const string& zone); // FIXME400: DNSName& zone?
   string getZoneRepresentation(bool noDot=false) const override;
@@ -915,7 +916,7 @@ class EUI64RecordContent : public DNSRecordContent
 {
 public:
   EUI64RecordContent() = default;
-  static void report();
+  static void report(const ReportIsOnlyCallableByReportAllTypes& guard);
   static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);
   static std::shared_ptr<DNSRecordContent> make(const string& zone); // FIXME400: DNSName& zone?
   string getZoneRepresentation(bool noDot=false) const override;
@@ -1008,15 +1009,10 @@ void RNAME##RecordContent::toPacket(DNSPacketWriter& pw) const                  
   this->xfrPacket(pw);                                                                             \
 }                                                                                                  \
                                                                                                    \
-void RNAME##RecordContent::report(void)                                                            \
+void RNAME##RecordContent::report(const ReportIsOnlyCallableByReportAllTypes& /* unused */)        \
 {                                                                                                  \
-  regist(1, QType::RNAME, &RNAME##RecordContent::make, &RNAME##RecordContent::make, #RNAME);              \
-  regist(254, QType::RNAME, &RNAME##RecordContent::make, &RNAME##RecordContent::make, #RNAME);            \
-}                                                                                                  \
-void RNAME##RecordContent::unreport(void)                                                          \
-{                                                                                                  \
-  unregist(1, QType::RNAME);                                                                              \
-  unregist(254, QType::RNAME);                                                                            \
+  regist(1, QType::RNAME, &RNAME##RecordContent::make, &RNAME##RecordContent::make, #RNAME);       \
+  regist(254, QType::RNAME, &RNAME##RecordContent::make, &RNAME##RecordContent::make, #RNAME);     \
 }                                                                                                  \
                                                                                                    \
 RNAME##RecordContent::RNAME##RecordContent(const string& zoneData)                                 \
@@ -1066,8 +1062,6 @@ struct EDNSOpts
 
 class MOADNSParser;
 bool getEDNSOpts(const MOADNSParser& mdp, EDNSOpts* eo);
-void reportBasicTypes();
-void reportOtherTypes();
 void reportAllTypes();
 ComboAddress getAddr(const DNSRecord& dr, uint16_t defport=0);
 void checkHostnameCorrectness(const DNSResourceRecord& rr);

@@ -164,7 +164,7 @@ string NSECBitmap::getZoneRepresentation() const
   return ret;
 }
 
-void NSECRecordContent::report()
+void NSECRecordContent::report(const ReportIsOnlyCallableByReportAllTypes& /* unused */)
 {
   regist(1, 47, &make, &make, "NSEC");
 }
@@ -213,7 +213,7 @@ string NSECRecordContent::getZoneRepresentation(bool /* noDot */) const
 
 ////// begin of NSEC3
 
-void NSEC3RecordContent::report()
+void NSEC3RecordContent::report(const ReportIsOnlyCallableByReportAllTypes& /* unused */)
 {
   regist(1, 50, &make, &make, "NSEC3");
 }
@@ -286,7 +286,7 @@ string NSEC3RecordContent::getZoneRepresentation(bool /* noDot */) const
 }
 
 
-void NSEC3PARAMRecordContent::report()
+void NSEC3PARAMRecordContent::report(const ReportIsOnlyCallableByReportAllTypes& /* unused */)
 {
   regist(1, 51, &make, &make, "NSEC3PARAM");
   regist(254, 51, &make, &make, "NSEC3PARAM");
@@ -343,7 +343,7 @@ string NSEC3PARAMRecordContent::getZoneRepresentation(bool /* noDot */) const
 
 ////// begin of CSYNC
 
-void CSYNCRecordContent::report()
+void CSYNCRecordContent::report(const ReportIsOnlyCallableByReportAllTypes& /* unused */)
 {
   regist(1, 62, &make, &make, "CSYNC");
 }

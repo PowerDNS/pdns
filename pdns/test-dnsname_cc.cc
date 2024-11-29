@@ -265,7 +265,6 @@ BOOST_AUTO_TEST_CASE(test_Append) {
 }
 
 BOOST_AUTO_TEST_CASE(test_packetCompress) {
-  reportBasicTypes();
   vector<unsigned char> packet;
   DNSPacketWriter dpw(packet, DNSName("www.ds9a.nl."), QType::AAAA);
   dpw.startRecord(DNSName("ds9a.nl"), QType::SOA);
@@ -302,7 +301,6 @@ BOOST_AUTO_TEST_CASE(test_packetCompress) {
 }
 
 BOOST_AUTO_TEST_CASE(test_packetCompressLong) {
-  reportBasicTypes();
   vector<unsigned char> packet;
   DNSName loopback("1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa");
   DNSPacketWriter dpw(packet, loopback, QType::PTR);
@@ -330,7 +328,6 @@ BOOST_AUTO_TEST_CASE(test_packetCompressLong) {
 
 BOOST_AUTO_TEST_CASE(test_PacketParse) {
   vector<unsigned char> packet;
-  reportBasicTypes();
   DNSName root(".");
   DNSPacketWriter dpw1(packet, g_rootdnsname, QType::AAAA);
   DNSName p((char*)&packet[0], packet.size(), 12, false);
@@ -393,7 +390,6 @@ BOOST_AUTO_TEST_CASE(test_hashContainer) {
 
 BOOST_AUTO_TEST_CASE(test_QuestionHash) {
   vector<unsigned char> packet(sizeof(dnsheader));
-  reportBasicTypes();
 
   bool ok;
   // A return init case
@@ -453,7 +449,6 @@ BOOST_AUTO_TEST_CASE(test_QuestionHash) {
 
 BOOST_AUTO_TEST_CASE(test_packetParse) {
   vector<unsigned char> packet;
-  reportBasicTypes();
   DNSPacketWriter dpw(packet, DNSName("www.ds9a.nl."), QType::AAAA);
 
   uint16_t qtype, qclass;

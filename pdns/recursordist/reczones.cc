@@ -570,9 +570,6 @@ std::tuple<std::shared_ptr<SyncRes::domainmap_t>, std::shared_ptr<notifyset_t>> 
 {
   auto log = g_slog->withName("config");
 
-  TXTRecordContent::report();
-  OPTRecordContent::report();
-
   auto newMap = std::make_shared<SyncRes::domainmap_t>();
   auto newSet = std::make_shared<notifyset_t>();
 

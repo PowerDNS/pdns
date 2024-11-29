@@ -3153,8 +3153,7 @@ int main(int argc, char** argv)
   g_argc = argc;
   g_argv = argv;
   versionSetProduct(ProductRecursor);
-  reportBasicTypes();
-  reportOtherTypes();
+  reportAllTypes();
 
   int ret = EXIT_SUCCESS;
 
