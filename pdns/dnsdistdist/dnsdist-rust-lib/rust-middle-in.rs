@@ -46,19 +46,6 @@ struct NotSelectorConfigurationSerde {
     selector: Box<Selector>,
 }
 
-//#[derive(Default, Serialize, Deserialize, Debug, PartialEq)]
-//#[serde(tag = "type")]
-//enum Selector {
-//    #[default]
-//    None,
-//    All(dnsdistsettings::AllSelector),
-//    And(AndSelectorSerde),
-//    ByName(dnsdistsettings::ByNameSelector),
-//    TCP(dnsdistsettings::TCPSelectorConfig),
-//    MaxQPSIP(dnsdistsettings::MaxQPSIPSelectorConfiguration),
-//    NetmaskGroup(dnsdistsettings::NetmaskGroupSelectorConfig),
-//}
-
 impl Selector {
   fn validate(&self) -> Result<(), ValidationError> {
     Ok(())

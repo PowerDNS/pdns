@@ -1,51 +1,3 @@
-// fn get_one_selector_from_serde(selector: &Selector) -> Option<dnsdistsettings::SharedDNSSelector> {
-//     match selector {
-//         Selector::None => {}
-//         Selector::All(_) => {
-//             return Some(dnsdistsettings::SharedDNSSelector {
-//                 selector: dnsdistsettings::getAllSelector(),
-//             });
-//         }
-//         Selector::ByName(sel) => {
-//             let selector_from_name = dnsdistsettings::getSelectorByName(&sel.name);
-//             if selector_from_name.is_null() {
-//                 panic!("Unable to find a selector named {}", sel.name);
-//             }
-//             return Some(dnsdistsettings::SharedDNSSelector {
-//                 selector: selector_from_name,
-//             });
-//         }
-//         Selector::TCP(config) => {
-//             return Some(dnsdistsettings::SharedDNSSelector {
-//                 selector: dnsdistsettings::getTCPSelector(&config),
-//             });
-//         }
-//         Selector::And(sel) => {
-//             let mut config: dnsdistsettings::AndSelectorConfig = Default::default();
-//             for sub_selector in &sel.selectors {
-//                 let new_selector = get_one_selector_from_serde(&sub_selector);
-//                 if new_selector.is_some() {
-//                     config.selectors.push(new_selector.unwrap());
-//                 }
-//             }
-//             return Some(dnsdistsettings::SharedDNSSelector {
-//                 selector: dnsdistsettings::getAndSelector(&config),
-//             });
-//         }
-//         Selector::MaxQPSIP(conf) => {
-//             return Some(dnsdistsettings::SharedDNSSelector {
-//                 selector: dnsdistsettings::getMaxIPQPSSelector(&conf),
-//             });
-//         }
-//         Selector::NetmaskGroup(conf) => {
-//             return Some(dnsdistsettings::SharedDNSSelector {
-//                 selector: dnsdistsettings::getNetmaskGroupSelector(&conf),
-//             });
-//         }
-//     }
-//     None
-// }
-
 fn get_selectors_from_serde(
     selectors_from_serde: &Vec<Selector>,
 ) -> Vec<dnsdistsettings::SharedDNSSelector> {
@@ -104,16 +56,27 @@ fn get_global_configuration_from_serde(
     serde: GlobalConfigurationSerde,
 ) -> dnsdistsettings::GlobalConfiguration {
     let mut config: dnsdistsettings::GlobalConfiguration = Default::default();
-    config.metrics = serde.metrics;
+    config.key_value_stores = serde.key_value_stores;
     config.webserver = serde.webserver;
     config.console = serde.console;
     config.edns_client_subnet = serde.edns_client_subnet;
+    config.dynamic_rules_settings = serde.dynamic_rules_settings;
+    config.dynamic_rules = serde.dynamic_rules;
     config.acl = serde.acl;
     config.ring_buffers = serde.ring_buffers;
     config.binds = serde.binds;
     config.backends = serde.backends;
+    config.cache_settings = serde.cache_settings;
+    config.security_polling = serde.security_polling;
+    config.general = serde.general;
     config.packet_caches = serde.packet_caches;
+    config.proxy_protocol = serde.proxy_protocol;
+    config.snmp = serde.snmp;
+    config.query_count = serde.query_count;
+    config.load_balancing_policies = serde.load_balancing_policies;
     config.pools = serde.pools;
+    config.metrics = serde.metrics;
+    config.remote_logging = serde.remote_logging;
     config.tuning = serde.tuning;
     // this needs to be done BEFORE the rules so that they can refer to the selectors
     // by name

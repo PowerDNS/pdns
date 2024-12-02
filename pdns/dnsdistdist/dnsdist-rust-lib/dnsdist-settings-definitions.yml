@@ -24,25 +24,145 @@ carbon:
       default: ""
       description: "An optional string specifying the instance name that should be used"
 
-Protobuf-Logger:
+protobuf-loggers:
   section: "remote-logging"
   type: "list"
   parameters:
+    - name: "name"
+      type: "String"
     - name: "address"
       type: "String"
       description: "An IP:PORT combination where the logger is listening"
     - name: "timeout"
-      type: u16
+      type: "u16"
       default: 2
       description: "TCP connect timeout in seconds"
     - name: "max-queued-entries"
-      type: u64
+      type: "u64"
       default: 100
       description: "Queue this many messages before dropping new ones (e.g. when the remote listener closes the connection)"
     - name: "reconnect-wait-time"
-      type: u8
+      type: "u8"
       default: 1
       description: "Time in seconds between reconnection attempts"
+
+dnstap-loggers:
+  section: "remote-logging"
+  type: "list"
+  parameters:
+    - name: "name"
+      type: "String"
+    - name: "transport"
+      type: "String"
+    - name: "address"
+      type: "String"
+    - name: "buffer-hint"
+      type: "u64"
+      default: 0
+    - name: "flush-timeout"
+      type: "u64"
+      default: 0
+    - name: "input-queue-size"
+      type: "u64"
+      default: 0
+    - name: "output-queue-size"
+      type: "u64"
+      default: 0
+    - name: "queue-notify-threshold"
+      type: "u64"
+      default: 0
+    - name: "reopen-interval"
+      type: "u64"
+      default: 0
+
+LMDBKVS:
+  parameters:
+    - name: "name"
+      type: "String"
+    - name: "file-name"
+      type: "String"
+    - name: "database-name"
+      type: "String"
+    - name: "no-lock"
+      type: "bool"
+      default: "false"
+
+CDBKVS:
+  parameters:
+    - name: "name"
+      type: "String"
+    - name: "file-name"
+      type: "String"
+    - name: "refresh-delay"
+      type: "u32"
+
+KVSLookupKeySourceIP:
+  parameters:
+    - name: "name"
+      type: "String"
+    - name: "v4-mask"
+      type: "u8"
+      default: "32"
+    - name: "v6-mask"
+      type: "u8"
+      default: "128"
+    - name: "include-port"
+      type: "bool"
+      default: "false"
+
+KVSLookupKeyQName:
+  parameters:
+    - name: "name"
+      type: "String"
+    - name: "wire-format"
+      type: "bool"
+      default: "true"
+
+KVSLookupKeySuffix:
+  parameters:
+    - name: "name"
+      type: "String"
+    - name: "minimum-labels"
+      type: "u16"
+      default: "0"
+    - name: "wire-format"
+      type: "bool"
+      default: "true"
+
+KVSLookupKeyTag:
+  parameters:
+    - name: "name"
+      type: "String"
+    - name: "tag"
+      type: "String"
+
+KVSLookupKeys:
+  parameters:
+    - name: "source-ip-keys"
+      type: "Vec<KVSLookupKeySourceIPConfiguration>"
+      default: true
+    - name: "qname-keys"
+      type: "Vec<KVSLookupKeyQNameConfiguration>"
+      default: true
+    - name: "suffix-keys"
+      type: "Vec<KVSLookupKeySuffixConfiguration>"
+      default: true
+    - name: "tag-keys"
+      type: "Vec<KVSLookupKeyTagConfiguration>"
+      default: true
+
+key-value-stores:
+  section: "global"
+  parameters:
+    - name: "lmdb"
+      type: "Vec<LMDBKVSConfiguration>"
+      default: true
+    - name: "cdb"
+      type: "Vec<CDBKVSConfiguration>"
+      default: true
+    - name: "lookup-keys"
+      type: "KVSLookupKeysConfiguration"
+      default: true
 
 webserver:
   section: "global"
@@ -1056,9 +1176,21 @@ snmp:
     - name: "enabled"
       type: "bool"
       default: "false"
+      lua-name: "snmpAgent"
+      internal-field-name: "d_snmpEnabled"
+      runtime-configurable: false
     - name: "traps-enabled"
       type: "bool"
       default: "false"
+      lua-name: "snmpAgent"
+      internal-field-name: "d_snmpTrapsEnabled"
+      runtime-configurable: false
+    - name: "daemon-socket"
+      type: "String"
+      default: ""
+      lua-name: "snmpAgent"
+      internal-field-name: "d_snmpDaemonSocketPath"
+      runtime-configurable: false
 
 query-count:
   section: "global"

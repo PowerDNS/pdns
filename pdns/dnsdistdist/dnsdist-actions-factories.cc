@@ -1606,7 +1606,7 @@ public:
   }
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
-    if (g_snmpAgent != nullptr && dnsdist::configuration::getCurrentRuntimeConfiguration().d_snmpTrapsEnabled) {
+    if (g_snmpAgent != nullptr && dnsdist::configuration::getImmutableConfiguration().d_snmpTrapsEnabled) {
       g_snmpAgent->sendDNSTrap(*dnsquestion, d_reason);
     }
 
@@ -1813,7 +1813,7 @@ public:
   }
   DNSResponseAction::Action operator()(DNSResponse* response, std::string* ruleresult) const override
   {
-    if (g_snmpAgent != nullptr && dnsdist::configuration::getCurrentRuntimeConfiguration().d_snmpTrapsEnabled) {
+    if (g_snmpAgent != nullptr && dnsdist::configuration::getImmutableConfiguration().d_snmpTrapsEnabled) {
       g_snmpAgent->sendDNSTrap(*response, d_reason);
     }
 

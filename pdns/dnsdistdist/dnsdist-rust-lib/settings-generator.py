@@ -256,6 +256,7 @@ def generate_flat_settings_for_cxx(definitions, out_file_path):
     cxx_flat_settings_fp.write('''#if defined(HAVE_YAML_CONFIGURATION)
 #include "rust/cxx.h"
 #include "rust/lib.rs.h"
+#include "dnsdist-configuration-yaml-internal.hh"
 
 namespace dnsdist::configuration::yaml
 {
