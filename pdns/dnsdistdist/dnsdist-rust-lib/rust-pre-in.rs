@@ -69,18 +69,6 @@ mod dnsdistsettings {
         no_default_alpn: bool,
     }
 
-    #[derive(Default)]
-    struct AndSelectorConfig {
-        name: String,
-        selectors: Vec<SharedDNSSelector>,
-    }
-
-//    #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
-//    #[serde(deny_unknown_fields)]
-//    struct ByNameSelector {
-//        name: String,
-//    }
-
     struct SharedDNSSelector {
         selector: SharedPtr<DNSSelector>,
     }

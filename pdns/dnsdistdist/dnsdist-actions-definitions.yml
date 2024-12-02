@@ -33,6 +33,26 @@
     - name: "vars"
       type: "ResponseConfig"
       default: true
+- name: "KeyValueStoreLookup"
+  skip-cpp: true
+  skip-rust: true
+  parameters:
+    - name: "kvs-name"
+      type: "String"
+    - name: "lookup-key-name"
+      type: "String"
+    - name: "destination-tag"
+      type: "String"
+- name: "KeyValueStoreRangeLookup"
+  skip-cpp: true
+  skip-rust: true
+  parameters:
+    - name: "kvs-name"
+      type: "String"
+    - name: "lookup-key-name"
+      type: "String"
+    - name: "destination-tag"
+      type: "String"
 - name: "log"
   parameters:
     - name: "file-name"

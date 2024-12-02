@@ -21,8 +21,6 @@
  */
 
 #include "dnsdist-configuration-yaml.hh"
-#include "iputils.hh"
-#include "remote_logger.hh"
 
 #if defined(HAVE_YAML_CONFIGURATION)
 #include "base64.hh"
@@ -37,8 +35,13 @@
 #include "dnsdist-kvs.hh"
 #include "dnsdist-web.hh"
 #include "doh.hh"
+#include "fstrm_logger.hh"
+#include "iputils.hh"
+#include "remote_logger.hh"
+
 #include "rust/cxx.h"
 #include "rust/lib.rs.h"
+#include "dnsdist-configuration-yaml-internal.hh"
 
 #include <boost/uuid/string_generator.hpp>
 #endif /* HAVE_YAML_CONFIGURATION */
@@ -46,8 +49,6 @@
 namespace dnsdist::configuration::yaml
 {
 #if defined(HAVE_YAML_CONFIGURATION)
-void convertImmutableFlatSettingsFromRust(const dnsdist::rust::settings::GlobalConfiguration& yamlConfig);
-void convertRuntimeFlatSettingsFromRust(const dnsdist::rust::settings::GlobalConfiguration& yamlConfig);
 
 using RegisteredTypes = std::variant<std::shared_ptr<DNSDistPacketCache>, std::shared_ptr<dnsdist::rust::settings::DNSSelector>, std::shared_ptr<dnsdist::rust::settings::DNSActionWrapper>, std::shared_ptr<dnsdist::rust::settings::DNSResponseActionWrapper>, std::shared_ptr<NetmaskGroup>, std::shared_ptr<KeyValueStore>, std::shared_ptr<KeyValueLookupKey>, std::shared_ptr<RemoteLoggerInterface>, std::shared_ptr<ServerPolicy>>;
 static LockGuarded<std::unordered_map<std::string, RegisteredTypes>> s_registeredTypesMap;
@@ -427,6 +428,15 @@ bool loadConfigurationFromFile(const std::string fileName)
       cerr << "Selector: " << selector.selector->d_rule->toString() << endl;
     }
 
+    if (!globalConfig.acl.empty()) {
+      dnsdist::configuration::updateRuntimeConfiguration([&acl = globalConfig.acl](dnsdist::configuration::RuntimeConfiguration& config) {
+        config.d_ACL.clear();
+        for (const auto& aclEntry : acl) {
+          config.d_ACL.addMask(std::string(aclEntry));
+        }
+      });
+    }
+
     for (const auto& bind : globalConfig.binds) {
       ComboAddress listeningAddress(std::string(bind.listen_address), 53);
       updateImmutableConfiguration([&bind, listeningAddress](ImmutableConfiguration& config) {
@@ -506,6 +516,37 @@ bool loadConfigurationFromFile(const std::string fileName)
       });
     }
 
+#if defined(HAVE_LMDB)
+    for (const auto& lmdb : globalConfig.key_value_stores.lmdb) {
+      auto store = std::shared_ptr<KeyValueStore>(std::make_shared<LMDBKVStore>(std::string(lmdb.file_name), std::string(lmdb.database_name), lmdb.no_lock));
+      registerType<KeyValueStore>(store, lmdb.name);
+    }
+#endif /* defined(HAVE_LMDB) */
+#if defined(HAVE_CDB)
+    for (const auto& cdb : globalConfig.key_value_stores.cdb) {
+      auto store = std::shared_ptr<KeyValueStore>(std::make_shared<CDBKVStore>(std::string(cdb.file_name), cdb.refresh_delay));
+      registerType<KeyValueStore>(store, cdb.name);
+    }
+#endif /* defined(HAVE_CDB) */
+#if defined(HAVE_LMDB) || defined(HAVE_CDB)
+    for (const auto& key : globalConfig.key_value_stores.lookup_keys.source_ip_keys) {
+      auto lookup = std::shared_ptr<KeyValueLookupKey>(std::make_shared<KeyValueLookupKeySourceIP>(key.v4_mask, key.v6_mask, key.include_port));
+      registerType<KeyValueLookupKey>(lookup, key.name);
+    }
+    for (const auto& key : globalConfig.key_value_stores.lookup_keys.qname_keys) {
+      auto lookup = std::shared_ptr<KeyValueLookupKey>(std::make_shared<KeyValueLookupKeyQName>(key.wire_format));
+      registerType<KeyValueLookupKey>(lookup, key.name);
+    }
+    for (const auto& key : globalConfig.key_value_stores.lookup_keys.suffix_keys) {
+      auto lookup = std::shared_ptr<KeyValueLookupKey>(std::make_shared<KeyValueLookupKeySuffix>(key.minimum_labels, key.wire_format));
+      registerType<KeyValueLookupKey>(lookup, key.name);
+    }
+    for (const auto& key : globalConfig.key_value_stores.lookup_keys.tag_keys) {
+      auto lookup = std::shared_ptr<KeyValueLookupKey>(std::make_shared<KeyValueLookupKeyTag>(std::string(key.tag)));
+      registerType<KeyValueLookupKey>(lookup, key.name);
+    }
+#endif /* defined(HAVE_LMDB) || defined(HAVE_CDB) */
+
 #ifndef DISABLE_CARBON
     for (const auto& carbonConfig : globalConfig.metrics.carbon) {
       auto newEndpoint = dnsdist::Carbon::newEndpoint(std::string(carbonConfig.address),
@@ -518,6 +559,41 @@ bool loadConfigurationFromFile(const std::string fileName)
       });
     }
 #endif /* DISABLE_CARBON */
+
+#if !defined(DISABLE_PROTOBUF)
+
+    for (const auto& protobufLogger : globalConfig.remote_logging.protobuf_loggers) {
+      auto object = std::shared_ptr<RemoteLoggerInterface>(std::make_shared<RemoteLogger>(ComboAddress(std::string(protobufLogger.address)), protobufLogger.timeout, protobufLogger.max_queued_entries*100, protobufLogger.reconnect_wait_time, false));
+      registerType<RemoteLoggerInterface>(object, protobufLogger.name);
+    }
+
+#if defined(HAVE_FSTRM)
+    for (const auto& dnstapLogger : globalConfig.remote_logging.dnstap_loggers) {
+      auto transport = boost::to_lower_copy(std::string(dnstapLogger.transport));
+      int family{0};
+      if (transport == "unix") {
+        family = AF_UNIX;
+      }
+      else if (transport == "tcp") {
+        family = AF_INET;
+      }
+      else {
+        throw std::runtime_error("Unsupport dnstap transport type '" + transport + "'");
+      }
+
+      std::unordered_map<string, unsigned int> options;
+      options["bufferHint"] = dnstapLogger.buffer_hint;
+      options["flushTimeout"] = dnstapLogger.flush_timeout;
+      options["inputQueueSize"] = dnstapLogger.input_queue_size;
+      options["outputQueueSize"] = dnstapLogger.output_queue_size;
+      options["queueNotifyThreshold"] = dnstapLogger.queue_notify_threshold;
+      options["reopenInterval"] = dnstapLogger.reopen_interval;
+
+      auto object = std::shared_ptr<RemoteLoggerInterface>(std::make_shared<FrameStreamLogger>(family, std::string(dnstapLogger.address), false, options));
+      registerType<RemoteLoggerInterface>(object, dnstapLogger.name);
+    }
+#endif /* HAVE_FSTRM*/
+#endif /* DISABLE_PROTOBUF */
 
     if (!globalConfig.webserver.listen_address.empty()) {
       const auto& webConfig = globalConfig.webserver;
@@ -581,55 +657,6 @@ bool loadConfigurationFromFile(const std::string fileName)
     if (!globalConfig.dynamic_rules_settings.default_action.empty()) {
       dnsdist::configuration::updateRuntimeConfiguration([default_action = globalConfig.dynamic_rules_settings.default_action](dnsdist::configuration::RuntimeConfiguration& config) {
         config.d_dynBlockAction = DNSAction::typeFromString(std::string(default_action));
-      });
-    }
-
-    for (const auto& rule : globalConfig.query_rules) {
-      dnsdist::configuration::updateRuntimeConfiguration([&rule](dnsdist::configuration::RuntimeConfiguration& config) {
-        boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
-        dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::RuleChain::Rules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
-      });
-    }
-
-    for (const auto& rule : globalConfig.cache_miss_rules) {
-      dnsdist::configuration::updateRuntimeConfiguration([&rule](dnsdist::configuration::RuntimeConfiguration& config) {
-        boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
-        dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::RuleChain::CacheMissRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
-      });
-    }
-
-    for (const auto& rule : globalConfig.response_rules) {
-      dnsdist::configuration::updateRuntimeConfiguration([&rule](dnsdist::configuration::RuntimeConfiguration& config) {
-        boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
-        dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::ResponseRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
-      });
-    }
-
-    for (const auto& rule : globalConfig.cache_hit_response_rules) {
-      dnsdist::configuration::updateRuntimeConfiguration([&rule](dnsdist::configuration::RuntimeConfiguration& config) {
-        boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
-        dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::CacheHitResponseRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
-      });
-    }
-
-    for (const auto& rule : globalConfig.cache_inserted_response_rules) {
-      dnsdist::configuration::updateRuntimeConfiguration([&rule](dnsdist::configuration::RuntimeConfiguration& config) {
-        boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
-        dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
-      });
-    }
-
-    for (const auto& rule : globalConfig.self_answered_response_rules) {
-      dnsdist::configuration::updateRuntimeConfiguration([&rule](dnsdist::configuration::RuntimeConfiguration& config) {
-        boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
-        dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::SelfAnsweredResponseRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
-      });
-    }
-
-    for (const auto& rule : globalConfig.xfr_response_rules) {
-      dnsdist::configuration::updateRuntimeConfiguration([&rule](dnsdist::configuration::RuntimeConfiguration& config) {
-        boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
-        dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::XFRResponseRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
       });
     }
 
@@ -814,6 +841,56 @@ bool loadConfigurationFromFile(const std::string fileName)
 
     convertImmutableFlatSettingsFromRust(globalConfig);
     convertRuntimeFlatSettingsFromRust(globalConfig);
+
+    for (const auto& rule : globalConfig.query_rules) {
+      dnsdist::configuration::updateRuntimeConfiguration([&rule](dnsdist::configuration::RuntimeConfiguration& config) {
+        boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
+        dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::RuleChain::Rules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
+      });
+    }
+
+    for (const auto& rule : globalConfig.cache_miss_rules) {
+      dnsdist::configuration::updateRuntimeConfiguration([&rule](dnsdist::configuration::RuntimeConfiguration& config) {
+        boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
+        dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::RuleChain::CacheMissRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
+      });
+    }
+
+    for (const auto& rule : globalConfig.response_rules) {
+      dnsdist::configuration::updateRuntimeConfiguration([&rule](dnsdist::configuration::RuntimeConfiguration& config) {
+        boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
+        dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::ResponseRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
+      });
+    }
+
+    for (const auto& rule : globalConfig.cache_hit_response_rules) {
+      dnsdist::configuration::updateRuntimeConfiguration([&rule](dnsdist::configuration::RuntimeConfiguration& config) {
+        boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
+        dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::CacheHitResponseRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
+      });
+    }
+
+    for (const auto& rule : globalConfig.cache_inserted_response_rules) {
+      dnsdist::configuration::updateRuntimeConfiguration([&rule](dnsdist::configuration::RuntimeConfiguration& config) {
+        boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
+        dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
+      });
+    }
+
+    for (const auto& rule : globalConfig.self_answered_response_rules) {
+      dnsdist::configuration::updateRuntimeConfiguration([&rule](dnsdist::configuration::RuntimeConfiguration& config) {
+        boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
+        dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::SelfAnsweredResponseRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
+      });
+    }
+
+    for (const auto& rule : globalConfig.xfr_response_rules) {
+      dnsdist::configuration::updateRuntimeConfiguration([&rule](dnsdist::configuration::RuntimeConfiguration& config) {
+        boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
+        dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::XFRResponseRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
+      });
+    }
+
     return true;
   }
   catch (const ::rust::Error& exp) {
@@ -1004,6 +1081,34 @@ std::shared_ptr<DNSSelector> getNetmaskGroupSelector(const NetmaskGroupSelectorC
   }
   auto selector = dnsdist::selectors::getNetmaskGroupSelector(*nmg, config.source, config.quiet);
   return newDNSSelector(std::move(selector), config.name);
+}
+
+std::shared_ptr<DNSActionWrapper> getKeyValueStoreLookupAction(const KeyValueStoreLookupActionConfiguration& config)
+{
+  auto kvs = dnsdist::configuration::yaml::getRegisteredTypeByName<KeyValueStore>(std::string(config.kvs_name));
+  if (!kvs) {
+    throw std::runtime_error("Unable to find the key-value store named '" + std::string(config.kvs_name) + "'");
+  }
+  auto lookupKey = dnsdist::configuration::yaml::getRegisteredTypeByName<KeyValueLookupKey>(std::string(config.lookup_key_name));
+  if (!lookupKey) {
+    throw std::runtime_error("Unable to find the key-value lookup key named '" + std::string(config.lookup_key_name) + "'");
+  }
+  auto action = dnsdist::actions::getKeyValueStoreLookupAction(kvs, lookupKey, std::string(config.destination_tag));
+  return newDNSActionWrapper(std::move(action), config.name);
+}
+
+std::shared_ptr<DNSActionWrapper> getKeyValueStoreRangeLookupAction(const KeyValueStoreRangeLookupActionConfiguration& config)
+{
+  auto kvs = dnsdist::configuration::yaml::getRegisteredTypeByName<KeyValueStore>(std::string(config.kvs_name));
+  if (!kvs) {
+    throw std::runtime_error("Unable to find the key-value store named '" + std::string(config.kvs_name) + "'");
+  }
+  auto lookupKey = dnsdist::configuration::yaml::getRegisteredTypeByName<KeyValueLookupKey>(std::string(config.lookup_key_name));
+  if (!lookupKey) {
+    throw std::runtime_error("Unable to find the key-value lookup key named '" + std::string(config.lookup_key_name) + "'");
+  }
+  auto action = dnsdist::actions::getKeyValueStoreRangeLookupAction(kvs, lookupKey, std::string(config.destination_tag));
+  return newDNSActionWrapper(std::move(action), config.name);
 }
 
 std::shared_ptr<DNSSelector> getKeyValueStoreLookupSelector(const KeyValueStoreLookupSelectorConfiguration& config)
