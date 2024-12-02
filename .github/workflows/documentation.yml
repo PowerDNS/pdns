@@ -230,6 +230,9 @@ jobs:
             echo "Error: The following secrets/variables are missing: ${missing_secrets[*]}"
             exit 1
           fi
+      - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
+      - uses: actions/checkout@v4
+      - run: build-scripts/gh-actions-setup-inv-no-dist-upgrade
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
