@@ -546,8 +546,7 @@ static void HEXDecode(const char* begin, const char* end, string& out)
     }
   }
   if(mode)
-    out.append(1, (char) val);
-
+    throw RecordTextException("Hexadecimal blob with odd number of characters");
 }
 
 void RecordTextReader::xfrHexBlob(string& val, bool keepReading)
