@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>PowerDNS Documentation</title>
+
+    <!-- Bootstrap Core CSS -->
+    <link href="website/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <link href="website/css/one-page-wonder.css" rel="stylesheet">
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+</head>
+
+<body>
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+        <div class="container">
+        </div>
+        <!-- /.container -->
+    </nav>
+
+    <!-- Full Width Image Header -->
+   <header class="header-image">
+        <div class="headline">
+            <div class="container">
+              <img src="website/img/powerdns-logo-trans.png" alt="PowerDNS logo"/>
+              <h1>Documentation</h1>
+              <p>There are two PowerDNS nameserver products: the Authoritative Server and the Recursor. While most other nameservers fully combine these functions, PowerDNS offers them separately, but can mix both authoritative and recursive usage seamlessly.</p>
+              <p>The <a href='/authoritative'>Authoritative Server</a> will answer questions about domains it knows about, but will not go out on the net to resolve queries about other domains. When the Authoritative Server answers a question, it comes out of the database, and can be trusted as being authoritative. There is no way to pollute the cache or to confuse the daemon.</p>
+
+              <p>The <a href="/recursor">Recursor</a>, conversely, by default has no knowledge of domains itself, but will always consult other authoritative servers to answer questions given to it.</p>
+
+              <p>PowerDNS has been designed to serve both the needs of small installations by being easy to setup, as well as for serving very large query volumes on large numbers of domains. Additionally, through use of clever programming techniques, PowerDNS offers very high domain resolution performance.</p>
+
+              <p>Another prime goal is security. By the use of language features, the PowerDNS source code is reasonably small which makes auditing easy. In the same way, library features have been used to mitigate the risks of buffer overflows.</p>
+
+              <p>Finally, PowerDNS is able to give a lot of statistics on its operation which is both helpful in determining the scalability of an installation as well as for spotting problems.</p>
+
+
+              <h2><a href="/authoritative">PowerDNS Authoritative Server documentation</a></h2>
+              <h2><a href="/recursor">PowerDNS Recursor documentation</a></h2>
+              <h2><a href="https://dnsdist.org/">PowerDNS DNSdist documentation</a></h2>
+              <h2><a href="http://software.open-xchange.com/products/powerdns/doc/cc/">PowerDNS Cloud Control documentation</a></h2>
+              <h2><a href="/dstore/latest">PowerDNS Dstore documentation</a></h2>
+              <h2><a href="/lightningstream">PowerDNS Lightning Stream documentation</a></h2>
+              <h2><a href="/zonecontrol/latest">ZoneControl documentation</a></h2>
+            </div>
+        </div>
+    </header>
+
+    <!-- Page Content -->
+    <div class="container">
+
+      <hr class="featurette-divider">
+        <!-- Footer -->
+        <footer>
+            <div class="row">
+                <div class="col-lg-12">
+                    <p>Copyright &copy; PowerDNS.com</p>
+                </div>
+            </div>
+        </footer>
+    </div>
+    <!-- /.container -->
+
+    <!-- jQuery -->
+    <script src="website/js/jquery.js"></script>
+
+    <!-- Bootstrap Core JavaScript -->
+    <script src="website/js/bootstrap.min.js"></script>
+
+</body>
+
+</html>
