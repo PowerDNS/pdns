@@ -1532,6 +1532,12 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
       goto sendit;
     }
     DLOG(g_log<<Logger::Error<<"We have authority, zone='"<<d_sd.qname<<"', id="<<d_sd.domain_id<<endl);
+    g_log<<Logger::Error<<"We have authority, zone='"<<d_sd.qname<<"', id="<<d_sd.domain_id<<", serial="<<d_sd.serial<<endl;
+    if (r->wantsEDNSZoneVersion()) {
+      auto edited_serial = calculateEditSOA(d_sd.serial, d_dk, d_sd.qname);
+
+      r->d_auth_serials[d_sd.qname] = {edited_serial, d_sd.serial};
+    }
 
     if (retargetcount == 0) {
       r->qdomainzone = d_sd.qname;

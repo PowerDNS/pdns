@@ -235,6 +235,7 @@ pdns_server_SOURCES = \
 	ednscookies.cc ednscookies.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
+	ednszoneversion.cc ednszoneversion.hh \
 	gettime.cc gettime.hh \
 	gss_context.cc gss_context.hh \
 	histogram.hh \
@@ -370,6 +371,7 @@ pdnsutil_SOURCES = \
 	ednscookies.cc ednscookies.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc \
+	ednszoneversion.cc ednszoneversion.hh \
 	gettime.cc gettime.hh \
 	gss_context.cc gss_context.hh \
 	ipcipher.cc ipcipher.hh \
@@ -556,6 +558,7 @@ sdig_SOURCES = \
 	dolog.hh \
 	ednsextendederror.cc ednsextendederror.hh \
 	ednssubnet.cc iputils.cc \
+	ednszoneversion.cc ednszoneversion.hh \
 	libssl.cc libssl.hh \
 	logger.cc \
 	misc.cc misc.hh \
@@ -737,6 +740,7 @@ ixfrdist_SOURCES = \
 	ednsextendederror.cc ednsextendederror.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc ednssubnet.hh \
+	ednszoneversion.cc ednszoneversion.hh \
 	gss_context.cc gss_context.hh \
 	iputils.hh iputils.cc \
 	ixfr.cc ixfr.hh \
@@ -1370,6 +1374,7 @@ testrunner_SOURCES = \
 	ednscookies.cc ednscookies.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednssubnet.cc \
+	ednszoneversion.cc ednszoneversion.hh \
 	gettime.cc gettime.hh \
 	gss_context.cc gss_context.hh \
 	histogram.hh \
