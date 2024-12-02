@@ -22,7 +22,7 @@ jobs:
     # on a ubuntu-20.04 VM
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # for correct version numbers
           submodules: recursive
@@ -32,7 +32,7 @@ jobs:
         run: 'echo ::set-output name=version::$(readlink builder/tmp/latest)'
         id: getversion
       - name: Upload packages
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ github.event.inputs.product }}-${{ github.event.inputs.os }}-${{ steps.getversion.outputs.version }}
           path: built_pkgs/

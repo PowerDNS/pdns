@@ -26,7 +26,7 @@ jobs:
       ASAN_OPTIONS: detect_leaks=0
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 5
           submodules: recursive
@@ -37,7 +37,7 @@ jobs:
           echo "stamp=$(/bin/date +%s)" >> "$GITHUB_OUTPUT"
         shell: bash
       - name: let GitHub cache our ccache data
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.ccache
           key: auth-ccache-${{ steps.get-stamp.outputs.stamp }}
@@ -54,7 +54,7 @@ jobs:
       - run: ccache -s
       - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Store the binaries
-        uses: actions/upload-artifact@v3 # this takes 30 seconds, maybe we want to tar
+        uses: actions/upload-artifact@v4 # this takes 30 seconds, maybe we want to tar
         with:
           name: pdns-auth-${{ env.normalized-branch-name }}
           path: /opt/pdns-auth
@@ -94,14 +94,14 @@ jobs:
           --restart always
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 5
           submodules: recursive
           ref: ${{ inputs.branch-name }}
       - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: pdns-auth-${{ env.normalized-branch-name }}
           path: /opt/pdns-auth
@@ -206,14 +206,14 @@ jobs:
           --restart always
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 5
           submodules: recursive
           ref: ${{ inputs.branch-name }}
       - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: pdns-auth-${{ env.normalized-branch-name }}
           path: /opt/pdns-auth
@@ -233,14 +233,14 @@ jobs:
       ASAN_OPTIONS: detect_leaks=0
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 5
           submodules: recursive
           ref: ${{ inputs.branch-name }}
       - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: pdns-auth-${{ env.normalized-branch-name }}
           path: /opt/pdns-auth
@@ -253,7 +253,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 5
           submodules: recursive
@@ -276,7 +276,7 @@ jobs:
         run: "sudo apt-get update && sudo apt-get install jq jc"
       - name: Fail job if any of the previous jobs failed
         run: "for i in `echo '${{ toJSON(needs) }}' | jq -r '.[].result'`; do if [[ $i == 'failure' ]]; then echo '${{ toJSON(needs) }}'; exit 1; fi; done;"
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 5
           submodules: recursive
