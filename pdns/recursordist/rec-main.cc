@@ -356,7 +356,6 @@ int RecThreadInfo::runThreads(Logr::log_t log)
         ret = tInfo.exitCode;
       }
     }
-    runStartStopLua(false, log);
   }
   return ret;
 }
@@ -2390,8 +2389,9 @@ static int serviceMain(Logr::log_t log)
 #endif /* NOD_ENABLED */
 
   runStartStopLua(true, log);
-
-  return RecThreadInfo::runThreads(log);
+  ret = RecThreadInfo::runThreads(log);
+  runStartStopLua(false, log);
+  return ret;
 }
 
 static void handlePipeRequest(int fileDesc, FDMultiplexer::funcparam_t& /* var */)
