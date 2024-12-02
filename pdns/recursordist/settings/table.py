@@ -792,7 +792,7 @@ That is, only if both the limits apply, the record will not be cached. This deci
         'help' : 'If we should never cache IPv4 ECS responses',
         'doc' : '''
 When set, never cache replies carrying EDNS IPv4 Client Subnet scope in the record cache.
-In this case the decision made by ```ecs-ipv4-cache-bits`` and ``ecs-cache-limit-ttl`` is no longer relevant.
+In this case the decision made by ``ecs-ipv4-cache-bits`` and ``ecs-cache-limit-ttl`` is no longer relevant.
  ''',
     'versionadded': '4.5.0'
     },
@@ -805,7 +805,7 @@ In this case the decision made by ```ecs-ipv4-cache-bits`` and ``ecs-cache-limit
         'help' : 'If we should never cache IPv6 ECS responses',
         'doc' : '''
 When set, never cache replies carrying EDNS IPv6 Client Subnet scope in the record cache.
-In this case the decision made by ```ecs-ipv6-cache-bits`` and ``ecs-cache-limit-ttl`` is no longer relevant.
+In this case the decision made by ``ecs-ipv6-cache-bits`` and ``ecs-cache-limit-ttl`` is no longer relevant.
  ''',
     'versionadded': '4.5.0'
     },
@@ -3388,7 +3388,7 @@ Sequence of negative trust anchors.
         ''',
         'skip-old' : 'Equivalent Lua config in :doc:`lua-config/dnssec`',
         'versionadded': '5.1.0',
-        'runtime': ['add-nta', 'clear-nta'],
+        'runtime': ['add-nta', 'clear-nta', 'reload-lua-config', 'reload-yaml'],
     },
     {
         'name' : 'trustanchorfile',
@@ -3402,6 +3402,7 @@ This can be used to read distribution provided trust anchors, as for instance ``
         ''',
         'skip-old' : 'Equivalent Lua config in :doc:`lua-config/dnssec`',
         'versionadded': '5.1.0',
+        'runtime': ['reload-lua-config', 'reload-yaml'],
     },
     {
         'name' : 'trustanchorfile_interval',

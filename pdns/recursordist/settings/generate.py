@@ -706,11 +706,12 @@ def gen_oldstyle_docs(srcdir, entries):
                 runtime = entry['runtime']
                 if not isinstance(runtime, list):
                     runtime = [runtime]
-                for k,v in enumerate(runtime):
-                    runtime[k] = '``' + runtime[k] + '``'
+                li = []
+                for v in runtime:
                     if v == 'reload-yaml':
                          continue
-                file.write(f"- Runtime modifiable using ``rec_control`` {', '.join(f'{w}' for w in runtime)}\n\n")
+                    li.append('``' + v + '``')
+                file.write(f"- Runtime modifiable using ``rec_control`` {', '.join(f'{w}' for w in li)}\n\n")
             file.write(entry['doc'].strip())
             file.write('\n\n')
 
@@ -772,11 +773,13 @@ def gen_newstyle_docs(srcdir, argentries):
                 runtime = entry['runtime']
                 if not isinstance(runtime, list):
                     runtime = [runtime]
-                for k,v in enumerate(runtime):
-                    runtime[k] = '``' + runtime[k] + '``'
+                li = []
+                for v in runtime:
+                    vv = '``' + v + '``'
                     if v == 'reload-yaml':
-                         runtime[k] = 'since 5.2.0: ' + runtime[k]
-                file.write(f"- Runtime modifiable using ``rec_control`` {', '.join(f'{w}' for w in runtime)}\n\n")
+                         vv = 'since 5.2.0: ' + vv
+                    li.append(vv)
+                file.write(f"- Runtime modifiable using ``rec_control`` {', '.join(f'{w}' for w in li)}\n\n")
             if 'doc-new' in entry:
                 file.write(fixxrefs(entries, entry['doc-new'].strip()))
             else:
