@@ -426,7 +426,7 @@ BOOST_AUTO_TEST_CASE(test_answer_no_aa)
   /* check that the record in the answer section has not been cached */
   const ComboAddress who;
   vector<DNSRecord> cached;
-  vector<std::shared_ptr<const RRSIGRecordContent>> signatures;
+  MemRecursorCache::SigRecs signatures;
   BOOST_REQUIRE_GT(g_recCache->get(now, target, QType(QType::A), MemRecursorCache::None, &cached, who, boost::none, &signatures), 0);
 }
 

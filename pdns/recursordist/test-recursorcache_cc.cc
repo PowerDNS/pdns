@@ -1342,7 +1342,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheDumpAndRestore)
     for (size_t counter = 0; counter < expected + 10; counter++) {
       std::vector<DNSRecord> retrieved;
       MemRecursorCache::AuthRecs authRecs;
-      std::vector<std::shared_ptr<const RRSIGRecordContent>> sigs;
+      MemRecursorCache::SigRecs sigs;
       bool variable = false;
       vState state = vState::Indeterminate;
       bool wasAuth = false;
@@ -1352,8 +1352,8 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheDumpAndRestore)
         matches++;
         BOOST_CHECK_EQUAL(retrieved.size(), rset0.size());
         BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr0Content.toString());
-        BOOST_CHECK_EQUAL(sigs.size(), 1U);
-        BOOST_CHECK_EQUAL(sigs.at(0)->getZoneRepresentation(), signatures.at(0)->getZoneRepresentation());
+        BOOST_CHECK_EQUAL(sigs->size(), 1U);
+        BOOST_CHECK_EQUAL(sigs->at(0)->getZoneRepresentation(), signatures.at(0)->getZoneRepresentation());
         BOOST_CHECK_EQUAL(authRecs->size(), 1U);
 
         BOOST_CHECK_EQUAL(authRecs->at(0).toString(), authRecords.at(0).toString());
