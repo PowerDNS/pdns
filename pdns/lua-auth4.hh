@@ -38,7 +38,7 @@ private:
   };
 
   typedef std::function<bool(const UpdatePolicyQuery&)> luacall_update_policy_t;
-  typedef std::function<std::tuple<int, std::unordered_map<int, std::unordered_map<std::string,boost::variant<unsigned int,std::string> > > >(const ComboAddress&, const DNSName&, const DNSResourceRecord&)> luacall_axfr_filter_t;
+  typedef std::function<std::tuple<int, std::unordered_map<int, std::unordered_map<std::string, std::variant<unsigned int, std::string>>>>(const ComboAddress&, const DNSName&, const DNSResourceRecord&)> luacall_axfr_filter_t;
   typedef std::function<bool(DNSPacket*)> luacall_prequery_t;
 
   luacall_update_policy_t d_update_policy;
