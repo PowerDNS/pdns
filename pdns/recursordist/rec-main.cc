@@ -2923,13 +2923,14 @@ static void recursorThread()
     }
 
     t_fdm = unique_ptr<FDMultiplexer>(getMultiplexer(log));
-
+#if 0
     std::unique_ptr<RecursorWebServer> rws;
-
+#endif
     t_fdm->addReadFD(threadInfo.getPipes().readToThread, handlePipeRequest);
 
     if (threadInfo.isHandler()) {
-      if (false && ::arg().mustDo("webserver")) {
+#if 0
+      if (::arg().mustDo("webserver")) {
         SLOG(g_log << Logger::Warning << "Enabling web server" << endl,
              log->info(Logr::Info, "Enabling web server"));
         try {
@@ -2941,6 +2942,7 @@ static void recursorThread()
           _exit(99);
         }
       }
+#endif
       SLOG(g_log << Logger::Info << "Enabled '" << t_fdm->getName() << "' multiplexer" << endl,
            log->info(Logr::Info, "Enabled multiplexer", "name", Logging::Loggable(t_fdm->getName())));
     }

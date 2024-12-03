@@ -19,9 +19,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifdef HAVE_CONFIG_H
+
 #include "config.h"
-#endif
+
 #include "ws-recursor.hh"
 #include "json.hh"
 
@@ -42,8 +42,6 @@
 #include "logging.hh"
 #include "rec-lua-conf.hh"
 #include "rpzloader.hh"
-#include "uuid-utils.hh"
-#include "tcpiohandler.hh"
 #include "rec-main.hh"
 #include "settings/cxxsettings.hh" // IWYU pragma: keep, needed by included generated file
 #include "settings/rust/src/bridge.hh"
@@ -639,6 +637,8 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::d_metrics
 #include "rec-prometheus-gen.h"
 };
 
+#ifndef RUST_WS
+
 constexpr bool CHECK_PROMETHEUS_METRICS = false;
 
 static void validatePrometheusMetrics()
@@ -719,8 +719,9 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
   d_ws->registerWebHandler("/metrics", prometheusMetrics, "GET");
   d_ws->go();
 }
+#endif // !RUST_WS
 
-void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
+static void jsonstat(HttpRequest* req, HttpResponse* resp)
 {
   string command;
 
@@ -832,6 +833,8 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
   }
   resp->setErrorResult("Command '" + command + "' not found", 404);
 }
+
+#ifndef RUST_WS
 
 void AsyncServerNewConnectionMT(void* arg)
 {
@@ -978,6 +981,7 @@ void AsyncWebServer::go()
   }
   server->asyncWaitForConnections(d_fdm, [this](const std::shared_ptr<Socket>& socket) { serveConnection(socket); });
 }
+#endif // !RUST_WS
 
 void serveRustWeb()
 {
@@ -1054,11 +1058,7 @@ namespace pdns::rust::web::rec
 #define WRAPPER(A) \
   void A(const Request& rustRequest, Response& rustResponse) { rustWrapper(::A, rustRequest, rustResponse); }
 
-void jsonstat(const Request& rustRequest, Response& rustResponse)
-{
-  rustWrapper(RecursorWebServer::jsonstat, rustRequest, rustResponse);
-}
-
+WRAPPER(jsonstat)
 WRAPPER(apiDiscovery)
 WRAPPER(apiDiscoveryV1)
 WRAPPER(apiServer)

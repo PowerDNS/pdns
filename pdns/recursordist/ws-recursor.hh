@@ -28,6 +28,7 @@
 class HttpRequest;
 class HttpResponse;
 
+#if 0
 class AsyncServer : public Server
 {
 public:
@@ -75,3 +76,4 @@ public:
 private:
   std::unique_ptr<AsyncWebServer> d_ws{nullptr};
 };
+#endif

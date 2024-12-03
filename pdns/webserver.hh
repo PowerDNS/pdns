@@ -20,9 +20,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
-#include <map>
-#include <string>
-#include <list>
+
+#ifdef RECURSOR
+// Network facing/routing part of webserver is implemented in rust. We stil use a few classes from
+// yahttp, but do not link to it.
+#define RUST_WS
+#endif
+
 #include <boost/utility.hpp>
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Woverloaded-virtual"
@@ -34,7 +38,9 @@
 
 #include "credentials.hh"
 #include "namespaces.hh"
+#ifndef REST_WS
 #include "sstuff.hh"
+#endif
 #include "logging.hh"
 
 class HttpRequest : public YaHTTP::Request {
@@ -158,6 +164,8 @@ public:
   ApiException(const string& what_arg) : runtime_error(what_arg) {
   }
 };
+
+#ifndef RUST_WS
 
 class Server
 {
@@ -300,3 +308,5 @@ protected:
   // Describes the amount of logging the webserver does
   WebServer::LogLevel d_loglevel{WebServer::LogLevel::Detailed};
 };
+
+#endif // !RUST_WS

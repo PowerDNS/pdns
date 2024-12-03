@@ -20,3 +20,7 @@ dep_yahttp = declare_dependency(
   link_with: lib_yahttp,
   include_directories: include_directories('..'),
 )
+
+dep_yahttp_header_only = declare_dependency(
+  include_directories: include_directories('..'),
+)
