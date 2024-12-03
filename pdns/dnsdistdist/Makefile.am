@@ -164,19 +164,19 @@ dnsdist_SOURCES = \
 	dns.cc dns.hh \
 	dns_random.hh \
 	dnscrypt.cc dnscrypt.hh \
-	dnsdist-actions.cc dnsdist-actions.hh \
-	dnsdist-actions-factories.cc dnsdist-actions-factories.hh \
 	dnsdist-actions-factories-generated.hh \
+	dnsdist-actions-factories.cc dnsdist-actions-factories.hh \
+	dnsdist-actions.cc dnsdist-actions.hh \
 	dnsdist-async.cc dnsdist-async.hh \
 	dnsdist-backend.cc dnsdist-backend.hh \
 	dnsdist-backoff.hh \
 	dnsdist-cache.cc dnsdist-cache.hh \
 	dnsdist-carbon.cc dnsdist-carbon.hh \
 	dnsdist-concurrent-connections.hh \
-	dnsdist-configuration.cc dnsdist-configuration.hh \
 	dnsdist-configuration-items.cc \
-	dnsdist-configuration-yaml.cc dnsdist-configuration-yaml.hh \
 	dnsdist-configuration-yaml-internal.hh \
+	dnsdist-configuration-yaml.cc dnsdist-configuration-yaml.hh \
+	dnsdist-configuration.cc dnsdist-configuration.hh \
 	dnsdist-console.cc dnsdist-console.hh \
 	dnsdist-crypto.cc dnsdist-crypto.hh \
 	dnsdist-discovery.cc dnsdist-discovery.hh \
