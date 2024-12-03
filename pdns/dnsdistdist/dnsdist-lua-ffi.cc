@@ -619,7 +619,7 @@ void dnsdist_ffi_dnsquestion_spoof_raw(dnsdist_ffi_dnsquestion_t* dq, const dnsd
     data.emplace_back(values[idx].value, values[idx].size);
   }
 
-  dnsdist::ResponseConfig config;
+  dnsdist::ResponseConfig config{};
   dnsdist::self_answers::generateAnswerFromRDataEntries(*dq->dq, data, std::nullopt, config);
 }
 
@@ -647,7 +647,7 @@ void dnsdist_ffi_dnsquestion_spoof_addrs(dnsdist_ffi_dnsquestion_t* dq, const dn
     }
   }
 
-  dnsdist::ResponseConfig config;
+  dnsdist::ResponseConfig config{};
   dnsdist::self_answers::generateAnswerFromIPAddresses(*dq->dq, data, config);
 }
 

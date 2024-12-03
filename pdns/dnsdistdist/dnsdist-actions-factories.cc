@@ -1802,7 +1802,6 @@ private:
   int d_msec;
 };
 
-#ifdef HAVE_NET_SNMP
 class SNMPTrapResponseAction : public DNSResponseAction
 {
 public:
@@ -1827,7 +1826,6 @@ public:
 private:
   std::string d_reason;
 };
-#endif /* HAVE_NET_SNMP */
 
 class SetTagResponseAction : public DNSResponseAction
 {

@@ -674,7 +674,6 @@ def handle_global_structures(generated_fp, sections, definitions, global_objects
             if section == 'global':
                 if 'type' in keys and keys['type'] != 'list':
                     rust_type = keys['type']
-                    print(f'Found global, non-list type {rust_type} for {definition_name}')
                     if is_type_native(rust_type):
                         global_objects[definition_name] = (rust_type, rust_type)
                     else:

@@ -514,7 +514,7 @@ private:
   string d_visual;
 };
 
-#ifdef HAVE_RE2
+#if defined(HAVE_RE2)
 #include <re2/re2.h>
 class RE2Rule : public DNSRule
 {
@@ -537,7 +537,25 @@ private:
   RE2 d_re2;
   string d_visual;
 };
-#endif
+#else /* HAVE_RE2 */
+class RE2Rule : public DNSRule
+{
+public:
+  RE2Rule(const std::string& re2)
+  {
+    throw std::runtime_error("RE2 support is disabled");
+  }
+  bool matches(const DNSQuestion* dq) const override
+  {
+    return false;
+  }
+
+  string toString() const override
+  {
+    return "Unsupported RE2";
+  }
+};
+#endif /* HAVE_RE2 */
 
 #ifdef HAVE_DNS_OVER_HTTPS
 class HTTPHeaderRule : public DNSRule

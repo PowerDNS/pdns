@@ -2225,7 +2225,9 @@ static void maintThread()
           (*maintenanceCallback)();
         }
         dnsdist::lua::hooks::runMaintenanceHooks(*lua);
+#if !defined(DISABLE_DYNBLOCKS)
         dnsdist::DynamicBlocks::runRegisteredGroups(*lua);
+#endif /* DISABLE_DYNBLOCKS */
         secondsToWaitLog = 0;
       }
       catch (const std::exception& e) {
@@ -3362,7 +3364,7 @@ int main(int argc, char** argv)
     /* create the default pool no matter what */
     createPoolIfNotExists("");
 
-    dnsdist::configuration::yaml::loadConfigurationFromFile("/home/remi/PowerDNS/confs/dnsdist.yml");
+    //dnsdist::configuration::yaml::loadConfigurationFromFile("/home/remi/PowerDNS/confs/dnsdist.yml");
     setupLua(*(g_lua.lock()), false, false, cmdLine.config);
 
     setupPools();
