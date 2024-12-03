@@ -4116,8 +4116,20 @@ vState SyncRes::validateRecordsWithSigs(unsigned int depth, const string& prefix
   }
 
   LOG(prefix << vStateToString(state) << "!" << endl);
+
+  bool skipThisLevelWhenLookingForMissedCuts = false;
+  if (name == qname && qtype == QType::DS && (type == QType::NSEC || type == QType::NSEC3)) {
+    /* so we have a NSEC(3) record likely proving that the DS we were looking for does not exist,
+       but we cannot validate it:
+       - if there actually is a cut at this level, we will not be able to validate it anyway
+       - if there is no cut at this level, the only thing that can save us is a cut above
+    */
+    LOG(prefix << name << ": We are trying to validate a " << type << " record for " << name << " likely proving that the DS we were initially looking for (" << qname << ") does not exist, no need to check a zone cut at this exact level" << endl);
+    skipThisLevelWhenLookingForMissedCuts = true;
+  }
+
   /* try again to get the missed cuts, harder this time */
-  auto zState = getValidationStatus(name, false, type == QType::DS, depth, prefix);
+  auto zState = getValidationStatus(name, false, type == QType::DS || skipThisLevelWhenLookingForMissedCuts, depth, prefix);
   LOG(prefix << name << ": Checking whether we missed a zone cut before returning a Bogus state" << endl);
   if (zState == vState::Secure) {
     /* too bad */
