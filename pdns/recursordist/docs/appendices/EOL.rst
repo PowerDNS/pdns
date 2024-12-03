@@ -22,7 +22,7 @@ Note: Users with a commercial agreement with PowerDNS.COM BV or Open-Xchange
 can receive extended support for releases which are End Of Life. If you are
 such a user, these EOL statements do not apply to you.
 Please refer to the support `commitment
-<https://oxpedia.org/wiki/index.php?title=PowerDNS:Version_Support_Commitment>`_
+<https://www.powerdns.com/support-commitment>`_
 for details.
 Note that for the Open Source support channels we only support the latest minor release of a release train.
 That means that we ask you to reproduce potential issues on the latest minor release first.
