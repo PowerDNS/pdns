@@ -2147,7 +2147,7 @@ Other functions
 
   .. code-block:: lua
 
-    function myCallback(hostname, ips)
+    function myCallback()
       print('called')
     end
     addMaintenanceCallback(myCallback)
