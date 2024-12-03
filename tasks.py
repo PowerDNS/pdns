@@ -379,7 +379,6 @@ def ci_docs_upload_master(c, docs_host, pdf, username, product, directory=""):
         "--exclude '*~'",
     ])
     c.run(f"{rsync_cmd} --delete ./docs/_build/{product}-html-docs/ {username}@{docs_host}:{directory}")
-    c.run(f"{rsync_cmd} ./docs/_build/latex/{pdf} {username}@{docs_host}:{directory}")
 
 @task
 def ci_docs_add_ssh(c, ssh_key, host_key):

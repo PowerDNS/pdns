@@ -249,8 +249,7 @@ jobs:
         run: |
           mkdir -p ./docs/_build
           tar -xf artifacts/authoritative-html-docs-${{needs.build-docs.outputs.pdns_version}}/auth-html-docs.tar -C ./docs/_build/
-          mkdir -p ./docs/_build/latex
-          cp artifacts/PowerDNS-Authoritative-${{needs.build-docs.outputs.pdns_version}}.pdf/PowerDNS-Authoritative.pdf ./docs/_build/latex/
+          cp artifacts/PowerDNS-Authoritative-${{needs.build-docs.outputs.pdns_version}}.pdf/PowerDNS-Authoritative.pdf ./docs/_build/auth-html-docs/
           inv ci-docs-upload-master --docs-host="${DOCS_HOST}" --pdf="PowerDNS-Authoritative.pdf" --username="docs_powerdns_com" --product="auth" --directory="/${AUTH_DOCS_DIR}/"
         env:
           DOCS_HOST: ${{vars.DOCS_HOST}}
@@ -259,8 +258,7 @@ jobs:
         run: |
           mkdir -p ./pdns/recursordist/docs/_build
           tar -xf artifacts/recursor-html-docs-${{needs.build-docs.outputs.pdns_version}}/rec-html-docs.tar -C ./pdns/recursordist/docs/_build/
-          mkdir -p ./pdns/recursordist/docs/_build/latex
-          cp artifacts/PowerDNS-Recursor-${{needs.build-docs.outputs.pdns_version}}.pdf/PowerDNS-Recursor.pdf ./pdns/recursordist/docs/_build/latex/
+          cp artifacts/PowerDNS-Recursor-${{needs.build-docs.outputs.pdns_version}}.pdf/PowerDNS-Recursor.pdf ./pdns/recursordist/docs/_build/rec-html-docs/
           inv ci-docs-upload-master --docs-host="${DOCS_HOST}" --pdf="PowerDNS-Recursor.pdf" --username="docs_powerdns_com" --product="rec" --directory="/${REC_DOCS_DIR}/"
         env:
           DOCS_HOST: ${{vars.DOCS_HOST}}
@@ -269,8 +267,7 @@ jobs:
         run: |
           mkdir -p ./pdns/dnsdistdist/docs/_build
           tar -xf artifacts/dnsdist-html-docs-${{needs.build-docs.outputs.pdns_version}}/dnsdist-html-docs.tar -C ./pdns/dnsdistdist/docs/_build/
-          mkdir -p ./pdns/dnsdistdist/docs/_build/latex
-          cp artifacts/dnsdist-${{needs.build-docs.outputs.pdns_version}}.pdf/dnsdist.pdf ./pdns/dnsdistdist/docs/_build/latex/
+          cp artifacts/dnsdist-${{needs.build-docs.outputs.pdns_version}}.pdf/dnsdist.pdf ./pdns/dnsdistdist/docs/_build/dnsdist-html-docs/
           inv ci-docs-upload-master --docs-host="${DOCS_HOST}" --pdf="dnsdist.pdf" --username="dnsdist_org" --product="dnsdist"
         env:
           DOCS_HOST: ${{vars.DOCS_HOST}}
