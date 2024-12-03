@@ -256,19 +256,17 @@ jobs:
           AUTH_DOCS_DIR: ${{vars.AUTH_DOCS_DIR}}
       - name: Publish Recursor docs
         run: |
-          mkdir -p ./pdns/recursordist/docs/_build
-          tar -xf artifacts/recursor-html-docs-${{needs.build-docs.outputs.pdns_version}}/rec-html-docs.tar -C ./pdns/recursordist/docs/_build/
-          cp artifacts/PowerDNS-Recursor-${{needs.build-docs.outputs.pdns_version}}.pdf/PowerDNS-Recursor.pdf ./pdns/recursordist/docs/_build/rec-html-docs/
+          tar -xf artifacts/recursor-html-docs-${{needs.build-docs.outputs.pdns_version}}/rec-html-docs.tar -C ./docs/_build/
+          cp artifacts/PowerDNS-Recursor-${{needs.build-docs.outputs.pdns_version}}.pdf/PowerDNS-Recursor.pdf ./docs/_build/rec-html-docs/
           inv ci-docs-upload-master --docs-host="${DOCS_HOST}" --pdf="PowerDNS-Recursor.pdf" --username="docs_powerdns_com" --product="rec" --directory="/${REC_DOCS_DIR}/"
         env:
           DOCS_HOST: ${{vars.DOCS_HOST}}
           REC_DOCS_DIR: ${{vars.REC_DOCS_DIR}}
       - name: Publish DNSdist docs
         run: |
-          mkdir -p ./pdns/dnsdistdist/docs/_build
-          tar -xf artifacts/dnsdist-html-docs-${{needs.build-docs.outputs.pdns_version}}/dnsdist-html-docs.tar -C ./pdns/dnsdistdist/docs/_build/
-          cp artifacts/dnsdist-${{needs.build-docs.outputs.pdns_version}}.pdf/dnsdist.pdf ./pdns/dnsdistdist/docs/_build/dnsdist-html-docs/
-          inv ci-docs-upload-master --docs-host="${DOCS_HOST}" --pdf="dnsdist.pdf" --username="dnsdist_org" --product="dnsdist"
+          tar -xf artifacts/dnsdist-html-docs-${{needs.build-docs.outputs.pdns_version}}/dnsdist-html-docs.tar -C ./docs/_build/
+          cp artifacts/dnsdist-${{needs.build-docs.outputs.pdns_version}}.pdf/dnsdist.pdf ./docs/_build/dnsdist-html-docs/
+          inv ci-docs-upload-master --docs-host="${DOCS_HOST}" --pdf="dnsdist.pdf" --username="dnsdist_org" --product="dnsdist" --directory="/${DNSDIST_DOCS_DIR}/"
         env:
           DOCS_HOST: ${{vars.DOCS_HOST}}
 
