@@ -43,7 +43,7 @@ using LuaSelectorFFIFunction = std::function<bool(dnsdist_ffi_dnsquestion_t* dq)
 class MaxQPSIPRule : public DNSRule
 {
 public:
-  MaxQPSIPRule(unsigned int qps, unsigned int burst, unsigned int ipv4trunc=32, unsigned int ipv6trunc=64, unsigned int expiration=300, unsigned int cleanupDelay=60, unsigned int scanFraction=10, size_t shardsCount=10):
+  MaxQPSIPRule(unsigned int qps, unsigned int ipv4trunc=32, unsigned int ipv6trunc=64, unsigned int burst=0, unsigned int expiration=300, unsigned int cleanupDelay=60, unsigned int scanFraction=10, size_t shardsCount=10):
     d_shards(shardsCount), d_qps(qps), d_burst(burst == 0 ? qps : burst), d_ipv4trunc(ipv4trunc), d_ipv6trunc(ipv6trunc), d_cleanupDelay(cleanupDelay), d_expiration(expiration), d_scanFraction(scanFraction)
   {
     d_cleaningUp.clear();
@@ -121,7 +121,6 @@ public:
 
   bool matches(const DNSQuestion* dq) const override
   {
-    cerr<<"seeing if "<<dq->ids.origRemote.toString()<<" matches limit of "<<d_qps<<", burst is "<<d_burst<<endl;
     cleanupIfNeeded(dq->getQueryRealTime());
 
     ComboAddress zeroport(dq->ids.origRemote);
@@ -133,12 +132,10 @@ public:
       auto limits = shard.lock();
       auto iter = limits->find(zeroport);
       if (iter == limits->end()) {
-        cerr<<"not found"<<endl;
         Entry e(zeroport, QPSLimiter(d_qps, d_burst));
         iter = limits->insert(e).first;
       }
 
-      cerr<<"found"<<endl;
       moveCacheItemToBack<SequencedTag>(*limits, iter);
       return !iter->d_limiter.check(d_qps, d_burst);
     }
