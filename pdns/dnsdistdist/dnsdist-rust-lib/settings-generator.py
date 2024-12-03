@@ -250,7 +250,7 @@ def include_file(out_fp, include_file_name):
 def generate_flat_settings_for_cxx(definitions, out_file_path):
     cxx_flat_settings_fp = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8', dir=out_file_path)
 
-    include_file(cxx_flat_settings_fp, out_file_path + 'dnsdist-configuration-yaml-items-cxx-pre-in.cc')
+    include_file(cxx_flat_settings_fp, out_file_path + 'dnsdist-configuration-yaml-items-generated-pre-in.cc')
 
     # first we do runtime-settable settings
     cxx_flat_settings_fp.write('''#if defined(HAVE_YAML_CONFIGURATION)
@@ -312,7 +312,7 @@ void convertRuntimeFlatSettingsFromRust(const dnsdist::rust::settings::GlobalCon
 #endif /* defined(HAVE_YAML_CONFIGURATION) */
 ''')
 
-    os.rename(cxx_flat_settings_fp.name, out_file_path + 'dnsdist-configuration-yaml-items-cxx.cc')
+    os.rename(cxx_flat_settings_fp.name, out_file_path + 'dnsdist-configuration-yaml-items-generated.cc')
 
 def generate_actions_config(output, response, default_functions):
     suffix = 'ResponseAction' if response else 'Action'
