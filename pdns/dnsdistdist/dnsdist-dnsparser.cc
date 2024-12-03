@@ -188,51 +188,51 @@ bool changeNameInDNSPacket(PacketBuffer& initialPacket, const DNSName& from, con
 
 namespace PacketMangling
 {
-bool editDNSHeaderFromPacket(PacketBuffer& packet, const std::function<bool(dnsheader& header)>& editFunction)
-{
-  if (packet.size() < sizeof(dnsheader)) {
-    throw std::runtime_error("Trying to edit the DNS header of a too small packet");
-  }
-
-  return editDNSHeaderFromRawPacket(packet.data(), editFunction);
-}
-
-bool editDNSHeaderFromRawPacket(void* packet, const std::function<bool(dnsheader& header)>& editFunction)
-{
-  if (dnsheader_aligned::isMemoryAligned(packet)) {
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    auto* header = reinterpret_cast<dnsheader*>(packet);
-    return editFunction(*header);
-  }
-
-  dnsheader header{};
-  memcpy(&header, packet, sizeof(header));
-  if (!editFunction(header)) {
-    return false;
-  }
-  memcpy(packet, &header, sizeof(header));
-  return true;
-}
-
-void restrictDNSPacketTTLs(PacketBuffer& packet, uint32_t minimumValue, uint32_t maximumValue, const std::unordered_set<QType>& types)
-{
-  auto visitor = [minimumValue, maximumValue, types](uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl) {
-    if (!types.empty() && qclass == QClass::IN && types.count(qtype) == 0) {
-      return ttl;
+  bool editDNSHeaderFromPacket(PacketBuffer& packet, const std::function<bool(dnsheader& header)>& editFunction)
+  {
+    if (packet.size() < sizeof(dnsheader)) {
+      throw std::runtime_error("Trying to edit the DNS header of a too small packet");
     }
 
-    if (minimumValue > 0) {
-      if (ttl < minimumValue) {
-        ttl = minimumValue;
+    return editDNSHeaderFromRawPacket(packet.data(), editFunction);
+  }
+
+  bool editDNSHeaderFromRawPacket(void* packet, const std::function<bool(dnsheader& header)>& editFunction)
+  {
+    if (dnsheader_aligned::isMemoryAligned(packet)) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+      auto* header = reinterpret_cast<dnsheader*>(packet);
+      return editFunction(*header);
+    }
+
+    dnsheader header{};
+    memcpy(&header, packet, sizeof(header));
+    if (!editFunction(header)) {
+      return false;
+    }
+    memcpy(packet, &header, sizeof(header));
+    return true;
+  }
+
+  void restrictDNSPacketTTLs(PacketBuffer& packet, uint32_t minimumValue, uint32_t maximumValue, const std::unordered_set<QType>& types)
+  {
+    auto visitor = [minimumValue, maximumValue, types](uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl) {
+      if (!types.empty() && qclass == QClass::IN && types.count(qtype) == 0) {
+        return ttl;
       }
-    }
-    if (ttl > maximumValue) {
-      ttl = maximumValue;
-    }
-    return ttl;
-  };
-  editDNSPacketTTL(reinterpret_cast<char*>(packet.data()), packet.size(), visitor);
-}
+
+      if (minimumValue > 0) {
+        if (ttl < minimumValue) {
+          ttl = minimumValue;
+        }
+      }
+      if (ttl > maximumValue) {
+        ttl = maximumValue;
+      }
+      return ttl;
+    };
+    editDNSPacketTTL(reinterpret_cast<char*>(packet.data()), packet.size(), visitor);
+  }
 
 }
 
