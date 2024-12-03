@@ -1675,7 +1675,7 @@ static string resToString(int res)
   return res >= 0 ? RCode::to_s(res) : std::to_string(res);
 }
 
-int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord>& ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, Context& context) // NOLINT(readability-function-cognitive-complexity)
+int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord>& ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, Context& context, bool* doResolveFromCache) // NOLINT(readability-function-cognitive-complexity)
 {
   auto prefix = getPrefix(depth);
   auto luaconfsLocal = g_luaconfs.getLocal();
@@ -1732,6 +1732,9 @@ int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord
     LOG(prefix << qname << ": Step0 Found in cache" << endl);
     if (d_appliedPolicy.d_type != DNSFilterEngine::PolicyType::None && (d_appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NXDOMAIN || d_appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NODATA)) {
       ret.clear();
+    }
+    if (doResolveFromCache != nullptr) {
+      *doResolveFromCache = true;
     }
     return res;
   }
@@ -1957,10 +1960,11 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName& qname, const QType qtyp
         }
       }
 
+      bool cnameFromCache = false;
       /* When we are looking for a DS, we want to the non-CNAME cache check first
          because we can actually have a DS (from the parent zone) AND a CNAME (from
          the child zone), and what we really want is the DS */
-      if (qtype != QType::DS && doCNAMECacheCheck(qname, qtype, ret, depth, prefix, res, context, wasAuthZone, wasForwardRecurse, loop == 1)) { // will reroute us if needed
+      if (qtype != QType::DS && doCNAMECacheCheck(qname, qtype, ret, depth, prefix, res, context, wasAuthZone, wasForwardRecurse, loop == 1, &cnameFromCache)) { // will reroute us if needed
         d_wasOutOfBand = wasAuthZone;
         // Here we have an issue. If we were prevented from going out to the network (cache-only was set, possibly because we
         // are in QM Step0) we might have a CNAME but not the corresponding target.
@@ -1986,6 +1990,10 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName& qname, const QType qtyp
             }
           }
         }
+        if (fromCache != nullptr && cnameFromCache) {
+          *fromCache = true;
+        }
+
         return res;
       }
 
@@ -2519,7 +2527,7 @@ static pair<bool, unsigned int> scanForCNAMELoop(const DNSName& name, const vect
   return {false, numCNames};
 }
 
-bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<DNSRecord>& ret, unsigned int depth, const string& prefix, int& res, Context& context, bool wasAuthZone, bool wasForwardRecurse, bool checkForDups) // NOLINT(readability-function-cognitive-complexity)
+bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<DNSRecord>& ret, unsigned int depth, const string& prefix, int& res, Context& context, bool wasAuthZone, bool wasForwardRecurse, bool checkForDups, bool* cnameFromCache) // NOLINT(readability-function-cognitive-complexity)
 {
   vector<DNSRecord> cset;
   vector<std::shared_ptr<const RRSIGRecordContent>> signatures;
@@ -2724,9 +2732,16 @@ bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<
       Context cnameContext;
       // Be aware that going out on the network might be disabled (cache-only), for example because we are in QM Step0,
       // so you can't trust that a real lookup will have been made.
-      res = doResolve(newTarget, qtype, ret, depth + 1, beenthere, cnameContext);
+      bool fromCache = false;
+      res = doResolve(newTarget, qtype, ret, depth + 1, beenthere, cnameContext, &fromCache);
       LOG(prefix << qname << ": Updating validation state for response to " << qname << " from " << context.state << " with the state from the DNAME/CNAME quest: " << cnameContext.state << endl);
       updateValidationState(qname, context.state, cnameContext.state, prefix);
+
+      if (fromCache && foundQT == QType::CNAME) {
+        if(cnameFromCache != nullptr) {
+          *cnameFromCache = true;
+        }
+      }
 
       return true;
     }
