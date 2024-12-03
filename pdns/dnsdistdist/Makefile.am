@@ -53,7 +53,7 @@ dnsdist-lua-ffi-interface.inc: dnsdist-lua-ffi-interface.h dnsdist-lua-inspectio
 SRC_JS_FILES := $(wildcard src_js/*.js)
 MIN_JS_FILES := $(patsubst src_js/%.js,html/js/%.min.js,$(SRC_JS_FILES))
 
-dnsdist%generated%: actions-generator.py dnsdist-actions-definitions.yml dnsdist-response-actions-definitions.yml dnsdist-selectors-definitions.yml
+dnsdist%generated.cc dnsdist%generated.hh: actions-generator.py dnsdist-actions-definitions.yml dnsdist-response-actions-definitions.yml dnsdist-selectors-definitions.yml
 	@if test "$(PYTHON)" = ":"; then echo "Actions or selectors definitions have changed, python is needed to regenerate the related files but python was not found. Please install python and re-run configure"; exit 1; fi
 	@if ! $(PYTHON) --version | grep -q "Python 3"; then echo $(PYTHON) should be at least version 3. Please install python 3 and re-run configure; exit 1; fi
 	$(PYTHON) actions-generator.py
@@ -521,7 +521,7 @@ dnsdist_SOURCES += doq-common.cc
 endif
 
 if HAVE_YAML_CONFIGURATION
-dnsdist_SOURCES += dnsdist-rust-lib/dnsdist-configuration-yaml-items-cxx.cc
+dnsdist_SOURCES += dnsdist-rust-lib/dnsdist-configuration-yaml-items-generated.cc
 dnsdist_LDADD += $(DNSDIST_RUST_LIBS)
 endif
 
