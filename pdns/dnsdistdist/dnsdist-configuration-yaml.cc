@@ -19,6 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include <stdexcept>
 
 #include "dnsdist-configuration-yaml.hh"
 
@@ -424,9 +425,6 @@ bool loadConfigurationFromFile(const std::string fileName)
     auto data = std::string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
 
     auto globalConfig = dnsdist::rust::settings::from_yaml_string(data);
-    for (const auto& selector : globalConfig.selectors) {
-      cerr << "Selector: " << selector.selector->d_rule->toString() << endl;
-    }
 
     if (!globalConfig.acl.empty()) {
       dnsdist::configuration::updateRuntimeConfiguration([&acl = globalConfig.acl](dnsdist::configuration::RuntimeConfiguration& config) {
@@ -902,8 +900,7 @@ bool loadConfigurationFromFile(const std::string fileName)
   return false;
 #else
   (void)fileName;
-  cerr << "Unsupported YAML configuration" << endl;
-  return false;
+  throw std::runtime_error("Unsupported YAML configuration");
 #endif /* HAVE_YAML_CONFIGURATION */
 }
 }

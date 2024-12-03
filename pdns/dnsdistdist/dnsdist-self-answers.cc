@@ -23,6 +23,7 @@
 
 #include "dnsdist-self-answers.hh"
 
+#include "dnsdist-configuration.hh"
 #include "dnsdist-ecs.hh"
 
 namespace dnsdist::self_answers
