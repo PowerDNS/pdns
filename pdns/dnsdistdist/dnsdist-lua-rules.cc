@@ -212,7 +212,7 @@ static void moveRuleToTop(IdentifierTypeT chainIdentifier)
     if (rules.empty()) {
       return;
     }
-    //coverity[auto_causes_copy]
+    // coverity[auto_causes_copy]
     auto subject = *rules.rbegin();
     rules.erase(std::prev(rules.end()));
     rules.insert(rules.begin(), subject);
@@ -229,7 +229,7 @@ static void mvRule(IdentifierTypeT chainIdentifier, unsigned int from, unsigned 
       g_outputBuffer = "Error: attempt to move rules from/to invalid index\n";
       return;
     }
-    //coverity[auto_causes_copy]
+    // coverity[auto_causes_copy]
     auto subject = rules[from];
     rules.erase(rules.begin() + from);
     if (destination > rules.size()) {
@@ -613,7 +613,7 @@ void setupLuaRules(LuaContext& luaCtx)
     return std::shared_ptr<DNSRule>(dnsdist::selectors::getQNameSelector(DNSName(qname)));
   });
 
-luaCtx.writeFunction("QNameSetRule", [](const DNSNameSet& names) {
+  luaCtx.writeFunction("QNameSetRule", [](const DNSNameSet& names) {
     return std::shared_ptr<DNSRule>(new QNameSetRule(names));
   });
 

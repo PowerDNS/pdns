@@ -563,7 +563,7 @@ bool loadConfigurationFromFile(const std::string fileName)
 #if !defined(DISABLE_PROTOBUF)
 
     for (const auto& protobufLogger : globalConfig.remote_logging.protobuf_loggers) {
-      auto object = std::shared_ptr<RemoteLoggerInterface>(std::make_shared<RemoteLogger>(ComboAddress(std::string(protobufLogger.address)), protobufLogger.timeout, protobufLogger.max_queued_entries*100, protobufLogger.reconnect_wait_time, false));
+      auto object = std::shared_ptr<RemoteLoggerInterface>(std::make_shared<RemoteLogger>(ComboAddress(std::string(protobufLogger.address)), protobufLogger.timeout, protobufLogger.max_queued_entries * 100, protobufLogger.reconnect_wait_time, false));
       registerType<RemoteLoggerInterface>(object, protobufLogger.name);
     }
 

@@ -421,5 +421,4 @@ void setupLuaActions(LuaContext& luaCtx)
 
 #include "dnsdist-lua-actions-generated.cc"
 #include "dnsdist-lua-response-actions-generated.cc"
-
 }

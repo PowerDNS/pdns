@@ -1487,50 +1487,50 @@ private:
 
 namespace
 {
-void addMetaDataToProtobuf(DNSDistProtoBufMessage& message, const DNSQuestion& dnsquestion, const std::vector<std::pair<std::string, ProtoBufMetaKey>>& metas)
-{
-  for (const auto& [name, meta] : metas) {
-    message.addMeta(name, meta.getValues(dnsquestion), {});
-  }
-}
-
-void addTagsToProtobuf(DNSDistProtoBufMessage& message, const DNSQuestion& dnsquestion, const std::unordered_set<std::string>& allowed)
-{
-  if (!dnsquestion.ids.qTag) {
-    return;
+  void addMetaDataToProtobuf(DNSDistProtoBufMessage& message, const DNSQuestion& dnsquestion, const std::vector<std::pair<std::string, ProtoBufMetaKey>>& metas)
+  {
+    for (const auto& [name, meta] : metas) {
+      message.addMeta(name, meta.getValues(dnsquestion), {});
+    }
   }
 
-  for (const auto& [key, value] : *dnsquestion.ids.qTag) {
-    if (!allowed.empty() && allowed.count(key) == 0) {
-      continue;
+  void addTagsToProtobuf(DNSDistProtoBufMessage& message, const DNSQuestion& dnsquestion, const std::unordered_set<std::string>& allowed)
+  {
+    if (!dnsquestion.ids.qTag) {
+      return;
     }
 
-    if (value.empty()) {
-      message.addTag(key);
+    for (const auto& [key, value] : *dnsquestion.ids.qTag) {
+      if (!allowed.empty() && allowed.count(key) == 0) {
+        continue;
+      }
+
+      if (value.empty()) {
+        message.addTag(key);
+      }
+      else {
+        auto tag = key;
+        tag.append(":");
+        tag.append(value);
+        message.addTag(tag);
+      }
+    }
+  }
+
+  void addExtendedDNSErrorToProtobuf(DNSDistProtoBufMessage& message, const DNSResponse& response, const std::string& metaKey)
+  {
+    auto [infoCode, extraText] = dnsdist::edns::getExtendedDNSError(response.getData());
+    if (!infoCode) {
+      return;
+    }
+
+    if (extraText) {
+      message.addMeta(metaKey, {*extraText}, {*infoCode});
     }
     else {
-      auto tag = key;
-      tag.append(":");
-      tag.append(value);
-      message.addTag(tag);
+      message.addMeta(metaKey, {}, {*infoCode});
     }
   }
-}
-
-void addExtendedDNSErrorToProtobuf(DNSDistProtoBufMessage& message, const DNSResponse& response, const std::string& metaKey)
-{
-  auto [infoCode, extraText] = dnsdist::edns::getExtendedDNSError(response.getData());
-  if (!infoCode) {
-    return;
-  }
-
-  if (extraText) {
-    message.addMeta(metaKey, {*extraText}, {*infoCode});
-  }
-  else {
-    message.addMeta(metaKey, {}, {*infoCode});
-  }
-}
 }
 
 class RemoteLogAction : public DNSAction, public boost::noncopyable
