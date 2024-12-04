@@ -284,7 +284,7 @@ static bool getOptionalLuaFunction(T& destination, const ::rust::string& functio
   return true;
 }
 
-static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dnsdist::rust::settings::BackendsConfiguration& config)
+static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dnsdist::rust::settings::BackendsConfiguration& config, bool configCheck)
 {
   DownstreamState::Config backendConfig;
   std::shared_ptr<TLSCtx> tlsCtx;
@@ -396,7 +396,7 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dns
 
 #warning handle XSK
 
-  auto downstream = std::make_shared<DownstreamState>(std::move(backendConfig), std::move(tlsCtx), true);
+  auto downstream = std::make_shared<DownstreamState>(std::move(backendConfig), std::move(tlsCtx), !configCheck);
 
   const auto& autoUpgradeConf = config.auto_upgrade;
   if (autoUpgradeConf.enabled && downstream->getProtocol() != dnsdist::Protocol::DoT && downstream->getProtocol() != dnsdist::Protocol::DoH) {
@@ -407,7 +407,7 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dns
 }
 #endif /* defined(HAVE_YAML_CONFIGURATION) */
 
-bool loadConfigurationFromFile(const std::string fileName)
+bool loadConfigurationFromFile(const std::string fileName, bool isClient, bool configCheck)
 {
 #if defined(HAVE_YAML_CONFIGURATION)
   auto file = std::ifstream(fileName);
@@ -425,6 +425,23 @@ bool loadConfigurationFromFile(const std::string fileName)
     auto data = std::string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
 
     auto globalConfig = dnsdist::rust::settings::from_yaml_string(data);
+
+    if (!globalConfig.console.listen_address.empty()) {
+      const auto& consoleConf = globalConfig.console;
+      dnsdist::configuration::updateRuntimeConfiguration([consoleConf](dnsdist::configuration::RuntimeConfiguration& config) {
+        config.d_consoleServerAddress = ComboAddress(std::string(consoleConf.listen_address), 5199);
+        config.d_consoleEnabled = true;
+        config.d_consoleACL.clear();
+        for (const auto& aclEntry : consoleConf.acl) {
+          config.d_consoleACL.addMask(std::string(aclEntry));
+        }
+        B64Decode(std::string(consoleConf.key), config.d_consoleKey);
+      });
+    }
+
+    if (isClient) {
+      return true;
+    }
 
     if (!globalConfig.acl.empty()) {
       dnsdist::configuration::updateRuntimeConfiguration([&acl = globalConfig.acl](dnsdist::configuration::RuntimeConfiguration& config) {
@@ -478,7 +495,7 @@ bool loadConfigurationFromFile(const std::string fileName)
     }
 
     for (const auto& backend : globalConfig.backends) {
-      auto downstream = createBackendFromConfiguration(backend);
+      auto downstream = createBackendFromConfiguration(backend, configCheck);
 
       if (!downstream->d_config.pools.empty()) {
         for (const auto& poolName : downstream->d_config.pools) {
@@ -490,19 +507,6 @@ bool loadConfigurationFromFile(const std::string fileName)
       }
 
       dnsdist::backend::registerNewBackend(downstream);
-    }
-
-    if (!globalConfig.console.listen_address.empty()) {
-      const auto& consoleConf = globalConfig.console;
-      dnsdist::configuration::updateRuntimeConfiguration([consoleConf](dnsdist::configuration::RuntimeConfiguration& config) {
-        config.d_consoleServerAddress = ComboAddress(std::string(consoleConf.listen_address), 5199);
-        config.d_consoleEnabled = true;
-        config.d_consoleACL.clear();
-        for (const auto& aclEntry : consoleConf.acl) {
-          config.d_consoleACL.addMask(std::string(aclEntry));
-        }
-        B64Decode(std::string(consoleConf.key), config.d_consoleKey);
-      });
     }
 
     if (!globalConfig.proxy_protocol.acl.empty()) {
@@ -559,36 +563,37 @@ bool loadConfigurationFromFile(const std::string fileName)
 #endif /* DISABLE_CARBON */
 
 #if !defined(DISABLE_PROTOBUF)
-
-    for (const auto& protobufLogger : globalConfig.remote_logging.protobuf_loggers) {
-      auto object = std::shared_ptr<RemoteLoggerInterface>(std::make_shared<RemoteLogger>(ComboAddress(std::string(protobufLogger.address)), protobufLogger.timeout, protobufLogger.max_queued_entries * 100, protobufLogger.reconnect_wait_time, false));
-      registerType<RemoteLoggerInterface>(object, protobufLogger.name);
-    }
+    if (!configCheck) {
+      for (const auto& protobufLogger : globalConfig.remote_logging.protobuf_loggers) {
+        auto object = std::shared_ptr<RemoteLoggerInterface>(std::make_shared<RemoteLogger>(ComboAddress(std::string(protobufLogger.address)), protobufLogger.timeout, protobufLogger.max_queued_entries * 100, protobufLogger.reconnect_wait_time, false));
+        registerType<RemoteLoggerInterface>(object, protobufLogger.name);
+      }
 
 #if defined(HAVE_FSTRM)
-    for (const auto& dnstapLogger : globalConfig.remote_logging.dnstap_loggers) {
-      auto transport = boost::to_lower_copy(std::string(dnstapLogger.transport));
-      int family{0};
-      if (transport == "unix") {
-        family = AF_UNIX;
-      }
-      else if (transport == "tcp") {
-        family = AF_INET;
-      }
-      else {
-        throw std::runtime_error("Unsupport dnstap transport type '" + transport + "'");
-      }
+      for (const auto& dnstapLogger : globalConfig.remote_logging.dnstap_loggers) {
+        auto transport = boost::to_lower_copy(std::string(dnstapLogger.transport));
+        int family{0};
+        if (transport == "unix") {
+          family = AF_UNIX;
+        }
+        else if (transport == "tcp") {
+          family = AF_INET;
+        }
+        else {
+          throw std::runtime_error("Unsupport dnstap transport type '" + transport + "'");
+        }
 
-      std::unordered_map<string, unsigned int> options;
-      options["bufferHint"] = dnstapLogger.buffer_hint;
-      options["flushTimeout"] = dnstapLogger.flush_timeout;
-      options["inputQueueSize"] = dnstapLogger.input_queue_size;
-      options["outputQueueSize"] = dnstapLogger.output_queue_size;
-      options["queueNotifyThreshold"] = dnstapLogger.queue_notify_threshold;
-      options["reopenInterval"] = dnstapLogger.reopen_interval;
+        std::unordered_map<string, unsigned int> options;
+        options["bufferHint"] = dnstapLogger.buffer_hint;
+        options["flushTimeout"] = dnstapLogger.flush_timeout;
+        options["inputQueueSize"] = dnstapLogger.input_queue_size;
+        options["outputQueueSize"] = dnstapLogger.output_queue_size;
+        options["queueNotifyThreshold"] = dnstapLogger.queue_notify_threshold;
+        options["reopenInterval"] = dnstapLogger.reopen_interval;
 
-      auto object = std::shared_ptr<RemoteLoggerInterface>(std::make_shared<FrameStreamLogger>(family, std::string(dnstapLogger.address), false, options));
-      registerType<RemoteLoggerInterface>(object, dnstapLogger.name);
+        auto object = std::shared_ptr<RemoteLoggerInterface>(std::make_shared<FrameStreamLogger>(family, std::string(dnstapLogger.address), false, options));
+        registerType<RemoteLoggerInterface>(object, dnstapLogger.name);
+      }
     }
 #endif /* HAVE_FSTRM*/
 #endif /* DISABLE_PROTOBUF */

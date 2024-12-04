@@ -3194,7 +3194,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 }
 
-void setupLua(LuaContext& luaCtx, bool client, bool configCheck, const std::string& config)
+namespace dnsdist::lua
+{
+void setupLua(LuaContext& luaCtx, bool client, bool configCheck)
 {
   setupLuaActions(luaCtx);
   setupLuaConfig(luaCtx, client, configCheck);
@@ -3217,7 +3219,13 @@ void setupLua(LuaContext& luaCtx, bool client, bool configCheck, const std::stri
 #ifdef LUAJIT_VERSION
   luaCtx.executeCode(getLuaFFIWrappers());
 #endif
+}
+}
 
+namespace dnsdist::configuration::lua
+{
+void loadLuaConfigurationFile(LuaContext& luaCtx, const std::string& config, bool configCheck)
+{
   std::ifstream ifs(config);
   if (!ifs) {
     if (configCheck) {
@@ -3230,4 +3238,5 @@ void setupLua(LuaContext& luaCtx, bool client, bool configCheck, const std::stri
   }
 
   luaCtx.executeCode(ifs);
+}
 }
