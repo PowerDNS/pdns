@@ -1,4 +1,48 @@
 #!/usr/bin/python3
+"""Load settings definitions and generates C++ and Rust code to handle them."""
+# 1/ Loads the settings definitions from
+# - dnsdist-settings-definitions.yml
+# and generates Rust structures and functions that are used to parse the
+# YAML settings and populate the Rust structures (via Serde):
+# rust/src/lib.rs
+# Note that some existing structures and functions present in
+# - rust-pre-in.rs
+# - rust-middle-in.rs
+# - rust-post-in.rs
+# are also included into the final rust/src/lib.rs file
+# Note that during the compilation of the Rust code to create the static
+# dnsdist_rust library, the cxx module also creates corresponding C++ structures
+# for interoperability
+# 2/ Creates methods to fill DNSdist's internal configuration structures
+# from the YAML parameters for all trivial values:
+# - dnsdist-configuration-yaml-items-generated.cc
+# 3/ Loads the action definitions from:
+# - dnsdist-actions-definitions.yml
+# - dnsdist-response-actions-definitions.yml
+# and generates C++ headers and code to create the wrappers
+# for these actions from the Rust structures:
+# - dnsdist-rust-bridge-actions-generated.hh
+# - dnsdist-rust-bridge-actions-generated.cc
+# 2/ Loads the selector definitions from:
+# - dnsdist-selectors-definitions.yml
+# - dnsdist-rust-bridge-selectors-generated.hh
+# - dnsdist-rust-bridge-selectors-generated.cc
+# and generates C++ headers and code to create the wrappers
+# for these selectors from the Rust structures:
+# The format of the definitions, in YAML, is a simple list of items.
+# Each item has a name and an optional list of parameters.
+# Parameters have a name, a type, and optionally a default value
+# Types are the Rust ones, converted to the C++ equivalent when needed
+# Default values are written as quoted strings, with the exception of the
+# special unquoted true value which means to use the default value for the
+# object type, which needs to exist.
+# Items can optionally have the following properties:
+# - 'skip-cpp' is not used by this script but is used by the dnsdist-rules-generator.py one, where it means that the corresponding C++ factory and Lua bindinds will not be generated, which is useful for objects taking parameters that cannot be directly mapped
+# - 'skip-rust' is not used by this script but is used by the dnsdist-settings-generator.py one, where it means that the C++ code to create the Rust-side version of an action or selector will not generated
+# - 'skip-serde' is not used by this script but is used by the dnsdist-settings-generator.py one, where it means that the Rust structure representing that action or selector in the YAML setting will not be directly created by Serde. It is used for selectors that reference another selector themselves, or actions referencing another action.
+# - 'lua-name' name of the Lua directive for this setting
+# - 'internal-field-name' name of the corresponding field in DNSdist's internal configuration structures, which is used to generate 'dnsdist-configuration-yaml-items-generated.cc'
+# - 'runtime-configurable' whether this setting can be set at runtime or can only be set at configuration time
 
 import os
 import re
@@ -248,7 +292,7 @@ def include_file(out_fp, include_file_name):
         out_fp.write(f'// END INCLUDE {include_file_name}\n')
 
 def generate_flat_settings_for_cxx(definitions, out_file_path):
-    cxx_flat_settings_fp = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8', dir=out_file_path)
+    cxx_flat_settings_fp = get_temporary_file_for_generated_code(out_file_path)
 
     include_file(cxx_flat_settings_fp, out_file_path + 'dnsdist-configuration-yaml-items-generated-pre-in.cc')
 
@@ -364,7 +408,7 @@ def generate_selectors_config(output, default_functions):
     output.write(selector_buffer)
 
 def generate_cpp_action_headers():
-    cpp_action_headers_fp = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8', dir='..')
+    cpp_action_headers_fp = get_temporary_file_for_generated_code('..')
     header_buffer = ''
 
     # query actions
@@ -389,7 +433,7 @@ def generate_cpp_action_headers():
     os.rename(cpp_action_headers_fp.name, '../dnsdist-rust-bridge-actions-generated.hh')
 
 def generate_cpp_selector_headers():
-    cpp_selector_headers_fp = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8', dir='..')
+    cpp_selector_headers_fp = get_temporary_file_for_generated_code('..')
     header_buffer = ''
 
     selectors_definitions = get_selectors_definitions()
@@ -433,7 +477,7 @@ def get_cpp_parameters(struct_type, struct_name, parameters, skip_name):
     return output
 
 def generate_cpp_action_wrappers():
-    cpp_action_wrappers_fp = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8', dir='..')
+    cpp_action_wrappers_fp = get_temporary_file_for_generated_code('..')
     wrappers_buffer = ''
 
     # query actions
@@ -472,7 +516,7 @@ def generate_cpp_action_wrappers():
     os.rename(cpp_action_wrappers_fp.name, '../dnsdist-rust-bridge-actions-generated.cc')
 
 def generate_cpp_selector_wrappers():
-    cpp_selector_wrappers_fp = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8', dir='..')
+    cpp_selector_wrappers_fp = get_temporary_file_for_generated_code('..')
     wrappers_buffer = ''
 
     selectors_definitions = get_selectors_definitions()
@@ -719,6 +763,11 @@ def handle_sub_structures(generated_fp, sections, definitions, global_objects, v
         generated_fp.write('    }\n')
         validation_functions.append(get_struct_validation_function_from_definition(section_name, section_struct_parameters))
 
+def get_temporary_file_for_generated_code(directory):
+    generated_fp = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8', dir=directory, delete=False)
+    generated_fp.write('// !! This file has been generated by dnsdist-settings-generator.py, do not edit by hand!!\n')
+    return generated_fp
+
 def main():
     if len(sys.argv) != 2:
         print(f'Usage: {sys.argv[0]} <path/to/definitions/file>')
@@ -736,7 +785,7 @@ def main():
     generate_cpp_selector_headers()
     generate_cpp_selector_wrappers()
 
-    generated_fp = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8', dir=src_dir + '/rust/src/')
+    generated_fp = get_temporary_file_for_generated_code(src_dir + '/rust/src/')
     include_file(generated_fp, src_dir + 'rust-pre-in.rs')
 
     generate_actions_config(generated_fp, False, default_functions)
