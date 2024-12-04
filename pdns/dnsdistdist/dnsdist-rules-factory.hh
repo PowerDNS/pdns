@@ -557,7 +557,6 @@ public:
 };
 #endif /* HAVE_RE2 */
 
-#ifdef HAVE_DNS_OVER_HTTPS
 class HTTPHeaderRule : public DNSRule
 {
 public:
@@ -593,7 +592,6 @@ private:
   Regex d_regex;
   std::string d_visual;
 };
-#endif
 
 class SNIRule : public DNSRule
 {

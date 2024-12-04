@@ -25,14 +25,17 @@
 std::atomic<uint64_t> LuaFFIPerThreadRule::s_functionsCounter = 0;
 thread_local std::map<uint64_t, LuaFFIPerThreadRule::PerThreadState> LuaFFIPerThreadRule::t_perThreadStates;
 
-#ifdef HAVE_DNS_OVER_HTTPS
 HTTPHeaderRule::HTTPHeaderRule(const std::string& header, const std::string& regex) :
   d_header(toLower(header)), d_regex(regex), d_visual("http[" + header + "] ~ " + regex)
 {
+#if !defined(HAVE_DNS_OVER_HTTPS)
+  throw std::runtime_error("Using HTTPHeaderRule while DoH support is not enabled");
+#endif /* HAVE_DNS_OVER_HTTPS */
 }
 
 bool HTTPHeaderRule::matches(const DNSQuestion* dq) const
 {
+#if defined(HAVE_DNS_OVER_HTTPS)
   if (!dq->ids.du) {
     return false;
   }
@@ -43,6 +46,7 @@ bool HTTPHeaderRule::matches(const DNSQuestion* dq) const
       return d_regex.match(header.second);
     }
   }
+#endif /* HAVE_DNS_OVER_HTTPS */
   return false;
 }
 
@@ -54,16 +58,23 @@ string HTTPHeaderRule::toString() const
 HTTPPathRule::HTTPPathRule(std::string path) :
   d_path(std::move(path))
 {
+#if !defined(HAVE_DNS_OVER_HTTPS)
+  throw std::runtime_error("Using HTTPPathRule while DoH support is not enabled");
+#endif /* HAVE_DNS_OVER_HTTPS */
 }
 
 bool HTTPPathRule::matches(const DNSQuestion* dq) const
 {
+#if defined(HAVE_DNS_OVER_HTTPS)
   if (!dq->ids.du) {
     return false;
   }
 
   const auto path = dq->ids.du->getHTTPPath();
   return d_path == path;
+#else
+  return false;
+#endif /* HAVE_DNS_OVER_HTTPS */
 }
 
 string HTTPPathRule::toString() const
@@ -74,23 +85,28 @@ string HTTPPathRule::toString() const
 HTTPPathRegexRule::HTTPPathRegexRule(const std::string& regex) :
   d_regex(regex), d_visual("http path ~ " + regex)
 {
+#if !defined(HAVE_DNS_OVER_HTTPS)
+  throw std::runtime_error("Using HTTPRegexRule while DoH support is not enabled");
+#endif /* HAVE_DNS_OVER_HTTPS */
 }
 
 bool HTTPPathRegexRule::matches(const DNSQuestion* dq) const
 {
+#if defined(HAVE_DNS_OVER_HTTPS)
   if (!dq->ids.du) {
     return false;
   }
 
   return d_regex.match(dq->ids.du->getHTTPPath());
+#else
+  return false;
+#endif /* HAVE_DNS_OVER_HTTPS */
 }
 
 string HTTPPathRegexRule::toString() const
 {
   return d_visual;
 }
-
-#endif /* HAVE_DNS_OVER_HTTPS */
 
 namespace dnsdist::selectors
 {
