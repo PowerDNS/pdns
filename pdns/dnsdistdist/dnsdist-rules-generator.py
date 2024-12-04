@@ -174,12 +174,12 @@ def generate_actions_factories(definitions, response=False):
         output = f'std::shared_ptr<DNS{suffix}> get{name}{suffix}('
         if 'parameters' in action:
             output += get_cpp_parameters_definition(action['parameters'], False)
-        output += ') {\n'
+        output += ')\n{\n'
         output += f'  return std::shared_ptr<DNS{suffix}>(new {name}{suffix}('
         if 'parameters' in action:
             output += get_cpp_parameters(action['parameters'], False)
         output += '));\n'
-        output += '}\n\n'
+        output += '}\n'
         generated_fp.write(output)
 
     output_file_name = 'dnsdist-response-actions-factories-generated.cc' if response else 'dnsdist-actions-factories-generated.cc'
@@ -201,7 +201,7 @@ def generate_lua_actions_bindings(definitions, response=False):
         if 'parameters' in action:
             output += get_cpp_parameters(action['parameters'], True)
         output += ');\n'
-        output += '});\n\n'
+        output += '});\n'
         generated_fp.write(output)
 
     output_file_name = 'dnsdist-lua-response-actions-generated.cc' if response else 'dnsdist-lua-actions-generated.cc'
@@ -233,12 +233,12 @@ def generate_selectors_factory(definitions, response=False):
         output = f'std::shared_ptr<{name}Rule> get{name}Selector('
         if 'parameters' in selector:
             output += get_cpp_parameters_definition(selector['parameters'], False)
-        output += ') {\n'
+        output += ')\n{\n'
         output += f'  return std::make_shared<{name}Rule>('
         if 'parameters' in selector:
             output += get_cpp_parameters(selector['parameters'], False)
         output += ');\n'
-        output += '}\n\n'
+        output += '}\n'
         generated_fp.write(output)
 
     output_file_name = 'dnsdist-selectors-factory-generated.cc'
@@ -259,7 +259,7 @@ def generate_lua_selectors_bindings(definitions):
         if 'parameters' in selector:
             output += get_cpp_parameters(selector['parameters'], True)
         output += '));\n'
-        output += '});\n\n'
+        output += '});\n'
         generated_fp.write(output)
 
     output_file_name = 'dnsdist-lua-selectors-generated.cc'
