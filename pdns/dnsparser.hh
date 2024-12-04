@@ -68,8 +68,8 @@ class MOADNSParser;
 class PacketReader
 {
 public:
-  PacketReader(const std::string_view& content, uint16_t initialPos=sizeof(dnsheader))
-    : d_pos(initialPos), d_startrecordpos(initialPos), d_content(content)
+  PacketReader(const std::string_view& content, uint16_t initialPos=sizeof(dnsheader), bool trusted = false)
+    : d_pos(initialPos), d_startrecordpos(initialPos), d_content(content), d_trusted(trusted)
   {
     if(content.size() > std::numeric_limits<uint16_t>::max())
       throw std::out_of_range("packet too large");
@@ -186,6 +186,7 @@ private:
   uint16_t d_recordlen;      // ditto
   uint16_t not_used; // Aligns the whole class on 8-byte boundaries
   const std::string_view d_content;
+  bool d_trusted;
 };
 
 struct DNSRecord;
@@ -226,7 +227,7 @@ public:
   }
 
   // parse the content in wire format, possibly including compressed pointers pointing to the owner name
-  static shared_ptr<DNSRecordContent> deserialize(const DNSName& qname, uint16_t qtype, const string& serialized, uint16_t qclass=QClass::IN);
+  static shared_ptr<DNSRecordContent> deserialize(const DNSName& qname, uint16_t qtype, const string& serialized, uint16_t qclass=QClass::IN, bool trusted = false);
 
   void doRecordCheck(const struct DNSRecord&){}
 
