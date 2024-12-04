@@ -407,7 +407,7 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dns
 }
 #endif /* defined(HAVE_YAML_CONFIGURATION) */
 
-bool loadConfigurationFromFile(const std::string fileName, bool isClient, bool configCheck)
+bool loadConfigurationFromFile(const std::string& fileName, bool isClient, bool configCheck)
 {
 #if defined(HAVE_YAML_CONFIGURATION)
   auto file = std::ifstream(fileName);
