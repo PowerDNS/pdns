@@ -27,5 +27,5 @@
 
 namespace dnsdist::configuration::yaml
 {
-bool loadConfigurationFromFile(const std::string fileName);
+bool loadConfigurationFromFile(const std::string fileName, bool isClient, bool configCheck);
 }
