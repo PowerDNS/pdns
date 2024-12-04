@@ -2138,7 +2138,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("setWeightedBalancingFactor", [](double factor) {
     setLuaSideEffect();
-    if (factor >= 1.0) {
+    if (factor >= 1.0 || factor == 0) {
       g_weightedBalancingFactor = factor;
     }
     else {

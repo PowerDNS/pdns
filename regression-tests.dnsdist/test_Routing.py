@@ -645,6 +645,9 @@ class TestRoutingWRandom(DNSDistTest):
     _config_params = ['_testServerPort', '_testServer2Port']
     _config_template = """
     setServerPolicy(wrandom)
+    setWeightedBalancingFactor(1.0)
+    -- this is the default, but let's ensure we can reset it to the initial value
+    setWeightedBalancingFactor(0)
     s1 = newServer{address="127.0.0.1:%s", weight=1}
     s1:setUp()
     s2 = newServer{address="127.0.0.1:%s", weight=2}
