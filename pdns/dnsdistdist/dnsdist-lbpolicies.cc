@@ -87,7 +87,7 @@ template <class T> static std::shared_ptr<DownstreamState> getValRandom(const Se
   int sum = 0;
 
   size_t usableServers = 0;
-  const auto weightedBalancingFactor = dnsdist::configuration::getImmutableConfiguration().d_consistentHashBalancingFactor;
+  const auto weightedBalancingFactor = dnsdist::configuration::getImmutableConfiguration().d_weightedBalancingFactor;
   for (const auto& d : servers) {      // w=1, w=10 -> 1, 11
     if (d.second->isUp() && (weightedBalancingFactor == 0 || (static_cast<double>(d.second->outstanding.load()) <= (targetLoad * d.second->d_config.d_weight)))) {
       // Don't overflow sum when adding high weights
@@ -121,7 +121,7 @@ static shared_ptr<DownstreamState> valrandom(const unsigned int val, const Serve
 {
   using ValRandomType = int;
   double targetLoad = std::numeric_limits<double>::max();
-  const auto weightedBalancingFactor = dnsdist::configuration::getImmutableConfiguration().d_consistentHashBalancingFactor;
+  const auto weightedBalancingFactor = dnsdist::configuration::getImmutableConfiguration().d_weightedBalancingFactor;
   if (weightedBalancingFactor > 0) {
     /* we start with one, representing the query we are currently handling */
     double currentLoad = 1;
