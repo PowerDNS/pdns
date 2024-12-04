@@ -38,7 +38,9 @@ BUILT_SOURCES=htmlfiles.h \
 	dnsdist-actions-factories-generated.cc dnsdist-actions-factories-generated.hh \
 	dnsdist-lua-ffi-interface.inc \
 	dnsdist-lua-actions-generated.cc dnsdist-lua-response-actions-generated.cc \
-	dnsdist-response-actions-factories-generated.cc \
+	dnsdist-response-actions-factories-generated.cc dnsdist-response-actions-factories-generated.hh \
+	dnsdist-rust-bridge-actions-generated.cc dnsdist-rust-bridge-actions-generated.hh \
+	dnsdist-rust-bridge-selectors-generated.cc dnsdist-rust-bridge-selectors-generated.hh \
 	dnsdist-selectors-factory-generated.cc dnsdist-selectors-factory-generated.hh \
 	dnslabeltext.cc
 
