@@ -320,9 +320,9 @@ void convertRuntimeFlatSettingsFromRust(const dnsdist::rust::settings::GlobalCon
             default = parameter['default'] if parameter['type'] != 'String' else '"' + parameter['default'] + '"'
             cxx_flat_settings_fp.write(f'    if (yamlConfig.{category_name}.{rust_field_name} != {default} && config.{internal_field_name} == {default}) {{\n')
             if parameter['type'] != 'String':
-                cxx_flat_settings_fp.write(f'        config.{internal_field_name} = yamlConfig.{category_name}.{rust_field_name};\n')
+                cxx_flat_settings_fp.write(f'      config.{internal_field_name} = yamlConfig.{category_name}.{rust_field_name};\n')
             else:
-                cxx_flat_settings_fp.write(f'        config.{internal_field_name} = std::string(yamlConfig.{category_name}.{rust_field_name});\n')
+                cxx_flat_settings_fp.write(f'      config.{internal_field_name} = std::string(yamlConfig.{category_name}.{rust_field_name});\n')
             cxx_flat_settings_fp.write('    }\n')
 
     cxx_flat_settings_fp.write('  });\n')
@@ -345,9 +345,9 @@ void convertRuntimeFlatSettingsFromRust(const dnsdist::rust::settings::GlobalCon
             default = parameter['default'] if parameter['type'] != 'String' else '"' + parameter['default'] + '"'
             cxx_flat_settings_fp.write(f'    if (yamlConfig.{category_name}.{rust_field_name} != {default} && config.{internal_field_name} == {default}) {{\n')
             if parameter['type'] != 'String':
-                cxx_flat_settings_fp.write(f'        config.{internal_field_name} = yamlConfig.{category_name}.{rust_field_name};\n')
+                cxx_flat_settings_fp.write(f'      config.{internal_field_name} = yamlConfig.{category_name}.{rust_field_name};\n')
             else:
-                cxx_flat_settings_fp.write(f'        config.{internal_field_name} = std::string(yamlConfig.{category_name}.{rust_field_name});\n')
+                cxx_flat_settings_fp.write(f'      config.{internal_field_name} = std::string(yamlConfig.{category_name}.{rust_field_name});\n')
             cxx_flat_settings_fp.write('    }\n')
 
     cxx_flat_settings_fp.write('  });\n')
