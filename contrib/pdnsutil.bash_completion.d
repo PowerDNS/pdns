@@ -10,13 +10,15 @@
 # pdnsutil YOUNAMEIT <TAB> - completes to available zones, might be expensive with many (>10000) zones
 #
 
-have pdnsutil && {
+which pdnsutil >/dev/null 2>&1
 
+if [ "${?}" -eq 0 ]
+then
   _pdnsutil_helper_local_() {
     local cur prev cmd
 
-    local _PDNSUTIL_ALL_CMDS="activate-tsig-key activate-zone-key add-record add-supermaster add-zone-key backend-cmd backend-lookup b2b-migrate bench-db change-slave-zone-master
-                              check-zone check-all-zones clear-zone create-bind-db create-slave-zone create-zone deactivate-tsig-key deactivate-zone-key delete-rrset
+    local _PDNSUTIL_ALL_CMDS="activate-tsig-key activate-zone-key add-record add-autoprimary add-zone-key backend-cmd backend-lookup b2b-migrate bench-db change-secondary-zone-master
+                              check-zone check-all-zones clear-zone create-bind-db create-secondary-zone create-zone deactivate-tsig-key deactivate-zone-key delete-rrset
                               delete-tsig-key delete-zone disable-dnssec edit-zone export-zone-dnskey export-zone-key generate-tsig-key generate-zone-key get-meta
                               hash-zone-record increase-serial import-tsig-key import-zone-key load-zone list-algorithms list-keys list-zone list-all-zones
                               list-tsig-keys rectify-zone rectify-all-zones remove-zone-key replace-rrset secure-all-zones secure-zone set-kind set-nsec3 set-presigned
@@ -42,4 +44,4 @@ have pdnsutil && {
   }
 
   complete -o default -F _pdnsutil_helper_local_ pdnsutil
-}
+fi
