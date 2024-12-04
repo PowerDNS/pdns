@@ -175,22 +175,6 @@ def ci_install_rust(c, repo):
     with c.cd(f'{repo}/builder-support/helpers/'):
         c.run('sudo sh install_rust.sh')
 
-def install_libdecaf(c, product):
-    c.run('rm -rf /tmp/libdecaf && git clone https://git.code.sf.net/p/ed448goldilocks/code /tmp/libdecaf')
-    with c.cd('/tmp/libdecaf'):
-        c.run('git checkout 41f349')
-        c.run(f'CC={get_c_compiler()} CXX={get_cxx_compiler()} '
-              'cmake -B build '
-              '-DCMAKE_INSTALL_PREFIX=/usr/local '
-              '-DCMAKE_INSTALL_LIBDIR=lib '
-              '-DENABLE_STATIC=OFF '
-              '-DENABLE_TESTS=OFF '
-              '-DCMAKE_C_FLAGS="-Wno-sizeof-array-div -Wno-array-parameter" .')
-        c.run('make -C build')
-        c.run('sudo make -C build install')
-    c.sudo(f'mkdir -p /opt/{product}/libdecaf')
-    c.sudo(f'cp /usr/local/lib/libdecaf.so* /opt/{product}/libdecaf/.')
-
 @task
 def install_doc_deps(c):
     c.sudo('apt-get install -y ' + ' '.join(doc_deps))
@@ -207,8 +191,6 @@ def install_meson(c):
 def install_auth_build_deps(c):
     c.sudo('apt-get install -y --no-install-recommends ' + ' '.join(all_build_deps + git_build_deps + auth_build_deps))
     install_meson(c)
-    if os.getenv('DECAF_SUPPORT', 'no') == 'yes':
-        install_libdecaf(c, 'pdns-auth')
 
 def is_coverage_enabled():
     sanitizers = os.getenv('SANITIZERS')
@@ -279,11 +261,6 @@ def install_auth_test_deps(c, backend): # FIXME: rename this, we do way more tha
     c.run('touch regression-tests/tests/verify-dnssec-zone/allow-missing regression-tests.nobackend/rectify-axfr/allow-missing') # FIXME: can this go?
     # FIXME we may want to start a background recursor here to make ALIAS tests more robust
     setup_authbind(c)
-
-    if os.getenv('DECAF_SUPPORT', 'no') == 'yes':
-        # Copy libdecaf out
-        c.sudo('mkdir -p /usr/local/lib')
-        c.sudo('cp /opt/pdns-auth/libdecaf/libdecaf.so* /usr/local/lib/.')
 
 @task
 def install_rec_bulk_deps(c): # FIXME: rename this, we do way more than apt-get
@@ -513,7 +490,6 @@ def ci_auth_configure_autotools(c):
         "--enable-remotebackend-zeromq",
         "--enable-verbose-logging",
         "--with-lmdb=/usr",
-        "--with-libdecaf" if os.getenv('DECAF_SUPPORT', 'no') == 'yes' else '',
         "--prefix=/opt/pdns-auth",
         "--enable-ixfrdist",
         unittests,
@@ -547,7 +523,6 @@ def ci_auth_configure_meson(c, build_dir):
         "-D dns-over-tls=true",
         "-D experimental-pkcs11=enabled",
         "-D experimental-gss-tsig=enabled",
-        "-D signers-libdecaf=enabled" if os.getenv('DECAF_SUPPORT', 'no') == 'yes' else '',
         "-D prefix=/opt/pdns-auth",
         "-D tools-ixfrdist=true",
         unittests,
@@ -599,7 +574,6 @@ def ci_rec_configure(c, features):
             "--with-lua=luajit",
             "--without-libcap",
             "--without-libcurl",
-            "--without-libdecaf",
             "--without-libsodium",
             "--without-net-snmp",
             unittests,

@@ -42,7 +42,6 @@ subdir('meson' / 'net-libs')                # Network Libraries
 subdir('meson' / 'tm-gmtoff')               # Check for tm_gmtoff field in struct tm
 subdir('meson' / 'mmap')                    # Check for mmap
 subdir('meson' / 'libsodium')               # Libsodium-based signers
-subdir('meson' / 'libdecaf')                # Libdecaf-based signers
 subdir('meson' / 'libcrypto')               # OpenSSL-based signers
 subdir('meson' / 'libssl')                  # OpenSSL libssl
 subdir('meson' / 'gnutls')                  # GnuTLS
@@ -128,7 +127,6 @@ deps = [
   dep_lua_records,
   dep_netlibs,
   dep_libsodium,
-  dep_libdecaf,
   dep_libcrypto,
   dep_libssl,
   dep_gnutls,
@@ -440,17 +438,6 @@ if dep_libsodium.found()
   )
 endif
 
-libpdns_signers_decaf = dependency('', required: false)
-if dep_libdecaf.found()
-  libpdns_signers_decaf = declare_dependency(
-    link_whole: static_library(
-      'pdns-signers-decaf',
-      sources: files(src_dir / 'decafsigners.cc'),
-      dependencies: deps,
-    )
-  )
-endif
-
 libpdns_signers_pkcs11 = dependency('', required: false)
 if dep_pkcs11.found()
   libpdns_signers_pkcs11 = declare_dependency(
@@ -692,7 +679,6 @@ tools = {
       libpdns_ssqlite3,
       libpdns_gettime,
       libpdns_signers_openssl,
-      libpdns_signers_decaf,
       libpdns_signers_sodium,
     ],
     'manpages': ['pdns_server.1'],
@@ -705,7 +691,6 @@ tools = {
       dep_modules,
       libpdns_ssqlite3,
       libpdns_signers_openssl,
-      libpdns_signers_decaf,
       libpdns_signers_sodium,
     ],
     'manpages': ['pdnsutil.1'],
@@ -930,7 +915,6 @@ if get_option('unit-tests')
       'deps-extra': [
         libpdns_test,
         libpdns_signers_openssl,
-        libpdns_signers_decaf,
         libpdns_signers_sodium,
       ],
     },

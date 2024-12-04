@@ -5,10 +5,6 @@ RUST_LIBS = $(top_builddir)/settings/rust/libsettings.a $(LIBDL)
 
 AM_CPPFLAGS = $(LUA_CFLAGS) $(YAHTTP_CFLAGS) $(BOOST_CPPFLAGS) $(LIBSODIUM_CFLAGS) $(NET_SNMP_CFLAGS) $(LIBCAP_CFLAGS) $(SANITIZER_FLAGS) -O3 -Wall -pthread -DSYSCONFDIR=\"${sysconfdir}\" $(SYSTEMD_CFLAGS)
 
-if LIBDECAF
-AM_CPPFLAGS += $(LIBDECAF_CFLAGS)
-endif
-
 AM_CPPFLAGS += \
 	-I$(top_srcdir)/ext/json11 \
 	-I$(top_srcdir)/ext/protozero/include \
@@ -452,12 +448,6 @@ testrunner_LDADD += $(LIBSODIUM_LIBS)
 endif
 
 
-
-if LIBDECAF
-pdns_recursor_SOURCES += \
-	decafsigners.cc
-pdns_recursor_LDADD += $(LIBDECAF_LIBS)
-endif
 
 if MALLOC_TRACE
 pdns_recursor_SOURCES += \

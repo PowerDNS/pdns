@@ -31,7 +31,6 @@ env:
   COVERAGE: ${{ github.repository == 'PowerDNS/pdns' && 'yes' || 'no' }}
   LLVM_PROFILE_FILE: "/tmp/code-%p.profraw"
   OPTIMIZATIONS: yes
-  DECAF_SUPPORT: yes
 
 jobs:
   get-runner-container-image:

@@ -318,7 +318,7 @@ struct Fixture
     addSignerParams(DNSSECKeeper::ED25519, "ED25519", ed25519);
 #endif
 
-#if defined(HAVE_LIBDECAF) || defined(HAVE_LIBCRYPTO_ED448)
+#if defined(HAVE_LIBCRYPTO_ED448)
     addSignerParams(DNSSECKeeper::ED448, "ED448", ed448);
 #endif
   }
