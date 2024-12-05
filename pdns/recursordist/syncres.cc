@@ -1675,7 +1675,7 @@ static string resToString(int res)
   return res >= 0 ? RCode::to_s(res) : std::to_string(res);
 }
 
-int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord>& ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, Context& context, bool* doResolveFromCache) // NOLINT(readability-function-cognitive-complexity)
+int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord>& ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, Context& context, bool* doneResolveFromCache) // NOLINT(readability-function-cognitive-complexity)
 {
   auto prefix = getPrefix(depth);
   auto luaconfsLocal = g_luaconfs.getLocal();
@@ -1733,8 +1733,8 @@ int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord
     if (d_appliedPolicy.d_type != DNSFilterEngine::PolicyType::None && (d_appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NXDOMAIN || d_appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NODATA)) {
       ret.clear();
     }
-    if (doResolveFromCache != nullptr) {
-      *doResolveFromCache = true;
+    if (doneResolveFromCache != nullptr) {
+      *doneResolveFromCache = true;
     }
     return res;
   }
@@ -1960,11 +1960,11 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName& qname, const QType qtyp
         }
       }
 
-      bool cnameFromCache = false;
+      bool cnameTargetFromCache = false;
       /* When we are looking for a DS, we want to the non-CNAME cache check first
          because we can actually have a DS (from the parent zone) AND a CNAME (from
          the child zone), and what we really want is the DS */
-      if (qtype != QType::DS && doCNAMECacheCheck(qname, qtype, ret, depth, prefix, res, context, wasAuthZone, wasForwardRecurse, loop == 1, &cnameFromCache)) { // will reroute us if needed
+      if (qtype != QType::DS && doCNAMECacheCheck(qname, qtype, ret, depth, prefix, res, context, wasAuthZone, wasForwardRecurse, loop == 1, &cnameTargetFromCache)) { // will reroute us if needed
         d_wasOutOfBand = wasAuthZone;
         // Here we have an issue. If we were prevented from going out to the network (cache-only was set, possibly because we
         // are in QM Step0) we might have a CNAME but not the corresponding target.
@@ -1990,7 +1990,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName& qname, const QType qtyp
             }
           }
         }
-        if (fromCache != nullptr && cnameFromCache) {
+        if (fromCache != nullptr && cnameTargetFromCache) {
           *fromCache = true;
         }
 
@@ -2527,7 +2527,7 @@ static pair<bool, unsigned int> scanForCNAMELoop(const DNSName& name, const vect
   return {false, numCNames};
 }
 
-bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<DNSRecord>& ret, unsigned int depth, const string& prefix, int& res, Context& context, bool wasAuthZone, bool wasForwardRecurse, bool checkForDups, bool* cnameFromCache) // NOLINT(readability-function-cognitive-complexity)
+bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<DNSRecord>& ret, unsigned int depth, const string& prefix, int& res, Context& context, bool wasAuthZone, bool wasForwardRecurse, bool checkForDups, bool* cnameTargetInCache) // NOLINT(readability-function-cognitive-complexity)
 {
   vector<DNSRecord> cset;
   vector<std::shared_ptr<const RRSIGRecordContent>> signatures;
@@ -2738,8 +2738,8 @@ bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<
       updateValidationState(qname, context.state, cnameContext.state, prefix);
 
       if (fromCache && foundQT == QType::CNAME) {
-        if (cnameFromCache != nullptr) {
-          *cnameFromCache = true;
+        if (cnameTargetInCache != nullptr) {
+          *cnameTargetInCache = true;
         }
       }
 
