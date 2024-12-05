@@ -61,9 +61,13 @@ if ! "$PDNSRECURSOR" --version 2>&1 | grep Features | grep -q dnstap-framestream
   export NODNSTAPTESTS=1
 fi
 
+# Run with -m 'not external' to skip test that require external connectivity
+# Run with -m 'not unreliable_on_gh' to skip tests that are unreliable on GitHUb
+# Run with -m 'not (external or unreliable_on_gh)' to skip both categories
+
 # LIBFAKETIME is only added to LD_PRELOAD by the pyton code when needed
 if [ "${LIBASAN}" != "" -o "${LIBAUTHBIND}" != "" ]; then
-LD_PRELOAD="${LIBASAN} ${LIBAUTHBIND}" pytest --ignore=test_WellKnown.py --junitxml=pytest.xml $@
+LD_PRELOAD="${LIBASAN} ${LIBAUTHBIND}" pytest --junitxml=pytest.xml "$@"
 else
-pytest --ignore=test_WellKnown.py  --junitxml=pytest.xml $@
+pytest --junitxml=pytest.xml "$@"
 fi

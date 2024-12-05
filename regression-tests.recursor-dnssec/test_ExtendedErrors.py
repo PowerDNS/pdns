@@ -83,6 +83,7 @@ extended-resolution-errors=yes
 
         super(ExtendedErrorsTest, cls).generateRecursorConfig(confdir)
 
+    @pytest.mark.external
     def testNotIncepted(self):
         qname = 'signotincepted.bad-dnssec.wb.sidnlabs.nl.'
         query = dns.message.make_query(qname, 'A', want_dnssec=True)
@@ -96,6 +97,7 @@ extended-resolution-errors=yes
             self.assertEqual(res.options[0].otype, 15)
             self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(8, b''))
 
+    @pytest.mark.external
     def testExpired(self):
         qname = 'sigexpired.bad-dnssec.wb.sidnlabs.nl.'
         query = dns.message.make_query(qname, 'A', want_dnssec=True)
@@ -109,6 +111,7 @@ extended-resolution-errors=yes
             self.assertEqual(res.options[0].otype, 15)
             self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(7, b''))
 
+    @pytest.mark.external
     def testAllExpired(self):
         qname = 'servfail.nl.'
         query = dns.message.make_query(qname, 'AAAA', want_dnssec=True)
@@ -122,6 +125,7 @@ extended-resolution-errors=yes
             self.assertEqual(res.options[0].otype, 15)
             self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(6, b''))
 
+    @pytest.mark.external
     def testBogus(self):
         qname = 'bogussig.ok.bad-dnssec.wb.sidnlabs.nl.'
         query = dns.message.make_query(qname, 'A', want_dnssec=True)
@@ -135,6 +139,7 @@ extended-resolution-errors=yes
             self.assertEqual(res.options[0].otype, 15)
             self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(6, b''))
 
+    @pytest.mark.external
     def testMissingRRSIG(self):
         qname = 'brokendnssec.net.'
         query = dns.message.make_query(qname, 'A', want_dnssec=True)
@@ -236,6 +241,7 @@ extended-resolution-errors=no
     def generateRecursorConfig(cls, confdir):
         super(NoExtendedErrorsTest, cls).generateRecursorConfig(confdir)
 
+    @pytest.mark.external
     def testNotIncepted(self):
         qname = 'signotincepted.bad-dnssec.wb.sidnlabs.nl.'
         query = dns.message.make_query(qname, 'A', want_dnssec=True)

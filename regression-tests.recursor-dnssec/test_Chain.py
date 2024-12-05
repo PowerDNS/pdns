@@ -1,3 +1,4 @@
+import pytest
 import dns
 import os
 import time
@@ -23,6 +24,7 @@ class ChainTest(RecursorTest):
     api-key=%s
 """ % (_wsPort, _wsPassword, _apiKey)
 
+    @pytest.mark.unreliable_on_gh
     def testBasic(self):
         """
         Tests the case of #14624. Sending many equal requests could lead to ServFail because of clashing

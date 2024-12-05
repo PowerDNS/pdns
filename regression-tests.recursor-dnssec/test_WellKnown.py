@@ -1,7 +1,9 @@
+import pytest
 import dns
 from recursortests import RecursorTest
 
-class TestWellKnown(RecursorTest):
+@pytest.mark.external
+class WellKnownTest(RecursorTest):
     _auths_zones = None
     _confdir = 'WellKnown'
     _roothints = None

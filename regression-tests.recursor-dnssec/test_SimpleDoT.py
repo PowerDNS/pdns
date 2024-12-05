@@ -1,3 +1,4 @@
+import pytest
 import dns
 import os
 import subprocess
@@ -30,6 +31,7 @@ devonly-regression-test-mode
         cls.generateRecursorConfig(confdir)
         cls.startRecursor(confdir, cls._recursorPort)
 
+    @pytest.mark.external
     def testTXT(self):
         expected = dns.rrset.from_text('dot-test-target.powerdns.org.', 0, dns.rdataclass.IN, 'TXT', 'https://github.com/PowerDNS/pdns/pull/12825')
         query = dns.message.make_query('dot-test-target.powerdns.org', 'TXT', want_dnssec=True)
