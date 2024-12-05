@@ -67,7 +67,7 @@ jobs:
 
   build:
     needs: prepare
-    name: ${{ inputs.product }} (${{ inputs.ref }}) on ${{ matrix.runner-os }} for ${{ matrix.os }}
+    name: for ${{ matrix.os }} ${{ inputs.product }} (${{ inputs.ref }}) on ${{ matrix.runner-os }}
     runs-on: ${{ matrix.runner-os }}
     strategy:
       matrix:
