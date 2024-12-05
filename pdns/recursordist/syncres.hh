@@ -637,14 +637,14 @@ private:
   bool doResolveAtThisIP(const std::string& prefix, const DNSName& qname, QType qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool sendRDQuery, bool wasForwarded, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool doDoT, bool& truncated, bool& spoofed, boost::optional<EDNSExtendedError>& extendedError, bool dontThrottle = false);
   bool processAnswer(unsigned int depth, const string& prefix, LWResult& lwr, const DNSName& qname, QType qtype, DNSName& auth, bool wasForwarded, const boost::optional<Netmask>& ednsmask, bool sendRDQuery, NsSet& nameservers, std::vector<DNSRecord>& ret, const DNSFilterEngine& dfe, bool* gotNewServers, int* rcode, vState& state, const ComboAddress& remoteIP);
 
-  int doResolve(const DNSName& qname, QType qtype, vector<DNSRecord>& ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, Context& context, bool* doResolvFromCache = nullptr);
+  int doResolve(const DNSName& qname, QType qtype, vector<DNSRecord>& ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, Context& context, bool* doResolveFromCache = nullptr);
   int doResolveNoQNameMinimization(const DNSName& qname, QType qtype, vector<DNSRecord>& ret, unsigned int depth, set<GetBestNSAnswer>& beenthere, Context& context, bool* fromCache = nullptr, StopAtDelegation* stopAtDelegation = nullptr);
   bool doOOBResolve(const AuthDomain& domain, const DNSName& qname, QType qtype, vector<DNSRecord>& ret, int& res);
   bool doOOBResolve(const DNSName& qname, QType qtype, vector<DNSRecord>& ret, unsigned int depth, const string& prefix, int& res);
   static bool isRecursiveForwardOrAuth(const DNSName& qname);
   static bool isForwardOrAuth(const DNSName& qname);
   static domainmap_t::const_iterator getBestAuthZone(DNSName* qname);
-  bool doCNAMECacheCheck(const DNSName& qname, QType qtype, vector<DNSRecord>& ret, unsigned int depth, const string& prefix, int& res, Context& context, bool wasAuthZone, bool wasForwardRecurse, bool checkForDups, bool* cnameFromCache = nullptr);
+  bool doCNAMECacheCheck(const DNSName& qname, QType qtype, vector<DNSRecord>& ret, unsigned int depth, const string& prefix, int& res, Context& context, bool wasAuthZone, bool wasForwardRecurse, bool checkForDups, bool* cnameFromCache);
   bool doCacheCheck(const DNSName& qname, const DNSName& authname, bool wasForwardedOrAuthZone, bool wasAuthZone, bool wasForwardRecurse, QType qtype, vector<DNSRecord>& ret, unsigned int depth, const string& prefix, int& res, Context& context);
   void getBestNSFromCache(const DNSName& qname, QType qtype, vector<DNSRecord>& bestns, bool* flawedNSSet, unsigned int depth, const string& prefix, set<GetBestNSAnswer>& beenthere, const boost::optional<DNSName>& cutOffDomain = boost::none);
   DNSName getBestNSNamesFromCache(const DNSName& qname, QType qtype, NsSet& nsset, bool* flawedNSSet, unsigned int depth, const string& prefix, set<GetBestNSAnswer>& beenthere);

@@ -2017,7 +2017,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName& qname, const QType qtyp
       }
 
       /* if we have not found a cached DS (or denial of), now is the time to look for a CNAME */
-      if (qtype == QType::DS && doCNAMECacheCheck(qname, qtype, ret, depth, prefix, res, context, wasAuthZone, wasForwardRecurse, loop == 1)) { // will reroute us if needed
+      if (qtype == QType::DS && doCNAMECacheCheck(qname, qtype, ret, depth, prefix, res, context, wasAuthZone, wasForwardRecurse, loop == 1, nullptr)) { // will reroute us if needed
         d_wasOutOfBand = wasAuthZone;
         // Here we have an issue. If we were prevented from going out to the network (cache-only was set, possibly because we
         // are in QM Step0) we might have a CNAME but not the corresponding target.
@@ -2738,7 +2738,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<
       updateValidationState(qname, context.state, cnameContext.state, prefix);
 
       if (fromCache && foundQT == QType::CNAME) {
-        if(cnameFromCache != nullptr) {
+        if (cnameFromCache != nullptr) {
           *cnameFromCache = true;
         }
       }
