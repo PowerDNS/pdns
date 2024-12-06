@@ -316,8 +316,10 @@ def install_dnsdist_test_deps(c, skipXDP=False): # FIXME: rename this, we do way
     c.sudo('chmod 755 /var/agentx')
 
 @task
-def install_rec_build_deps(c):
+def install_rec_build_deps(c, meson=False):
     c.sudo('apt-get install -y --no-install-recommends ' +  ' '.join(all_build_deps + git_build_deps + rec_build_deps))
+    if meson:
+        install_meson(c)
 
 @task(optional=['skipXDP'])
 def install_dnsdist_build_deps(c, skipXDP=False):
@@ -368,6 +370,10 @@ def ci_docs_add_ssh(c, ssh_key, host_key):
 def get_sanitizers(meson=False):
     sanitizers = os.getenv('SANITIZERS', '')
     if meson:
+        if sanitizers == 'ubsan+asan':
+            sanitizers='address,undefined'
+        if sanitizers == 'tsan':
+            sanitizers='thread'
         return f'-D b_sanitize={sanitizers}' if sanitizers != '' else ''
     if sanitizers != '':
         sanitizers = sanitizers.split('+')
@@ -542,10 +548,42 @@ def ci_auth_configure(c, build_dir=None, meson=False):
             with c.cd(f'{build_dir}'):
                 ci_auth_configure_autotools(c)
 
-@task
-def ci_rec_configure(c, features):
-    unittests = get_unit_tests()
+def ci_rec_configure_meson(c, features, build_dir):
+    # XXX feautures
+    unittests = get_unit_tests(meson=True, auth=False)
+    if features == "full":
+        configure_cmd = " ".join([
+            "LDFLAGS='-L/usr/local/lib -Wl,-rpath,/usr/local/lib'",
+            get_base_configure_cmd_meson(build_dir),
+            "-D dns-over-tls=true",
+            "-D nod=true",
+            "-D snmp=true",
+            "-D lua=luajit",
+            "-D prefix=/opt/pdns-recursor",
+            unittests,
+        ])
+    else:
+        configure_cmd = " ".join([
+            "LDFLAGS='-L/usr/local/lib -Wl,-rpath,/usr/local/lib'",
+            get_base_configure_cmd_meson(build_dir),
+            "-D dns-over-tls=false",
+            "-D dnstap=disabled",
+            "-D libcurl=disabled",
+            "-D lua=luajit",
+            "-D nod=false",
+            "-D prefix=/opt/pdns-recursor",
+            "-D signers-libsodium=disabled",
+            "-D snmp=false",
+            "-D systemd=disabled",
+            unittests,
+        ])
+    res = c.run(configure_cmd, warn=True)
+    if res.exited != 0:
+        c.run(f'cat {build_dir}/meson-logs/meson-log.txt')
+        raise UnexpectedExit(res)
 
+def ci_rec_configure_autotools(c, features):
+    unittests = get_unit_tests()
     if features == 'full':
         configure_cmd = " ".join([
             get_base_configure_cmd(),
@@ -581,6 +619,16 @@ def ci_rec_configure(c, features):
         c.run('cat config.log')
         raise UnexpectedExit(res)
 
+@task
+def ci_rec_configure(c, features, build_dir=None, meson=False):
+    if meson:
+        ci_rec_configure_meson(c, features, build_dir)
+    else:
+        ci_rec_configure_autotools(c, features)
+        if build_dir:
+            ci_make_distdir(c)
+            with c.cd(f'{build_dir}'):
+                ci_rec_configure_autotools(c, features)
 
 @task
 def ci_dnsdist_configure(c, features):
@@ -675,7 +723,7 @@ def ci_auth_make_bear(c):
     c.run(f'bear --append -- make -j{get_build_concurrency()} -k V=1')
 
 def run_ninja(c):
-    c.run(f'. {repo_home}/.venv/bin/activate && ninja -j{get_build_concurrency()} --verbose')
+    c.run(f'. {repo_home}/.venv/bin/activate && ninja -j{get_build_concurrency(4)} --verbose')
 
 @task
 def ci_auth_build(c, meson=False):
@@ -685,13 +733,16 @@ def ci_auth_build(c, meson=False):
         ci_auth_make_bear(c)
 
 @task
-def ci_rec_make(c):
-    c.run(f'make -j{get_build_concurrency()} -k V=1')
-
-@task
 def ci_rec_make_bear(c):
     # Assumed to be running under ./pdns/recursordist/
-    c.run(f'bear --append -- make -j{get_build_concurrency()} -k V=1')
+    c.run(f'bear --append -- make -j{get_build_concurrency(4)} -k V=1')
+
+@task
+def ci_rec_build(c, meson=False):
+    if meson:
+        run_ninja(c)
+    else:
+        ci_rec_make_bear(c)
 
 @task
 def ci_dnsdist_make(c):
@@ -722,11 +773,16 @@ def ci_auth_run_unit_tests(c, meson=False):
         raise UnexpectedExit(res)
 
 @task
-def ci_rec_run_unit_tests(c):
-    res = c.run('make check', warn=True)
-    if res.exited != 0:
-      c.run('cat test-suite.log')
-      raise UnexpectedExit(res)
+def ci_rec_run_unit_tests(c, meson=False):
+    if meson:
+        suite_timeout_sec = 120
+        logfile = 'meson-logs/testlog.txt'
+        res = c.run(f'. {repo_home}/.venv/bin/activate && meson test --verbose -t {suite_timeout_sec}', warn=True)
+    else:
+        res = c.run('make check', warn=True)
+        if res.exited != 0:
+          c.run('cat test-suite.log')
+          raise UnexpectedExit(res)
 
 @task
 def ci_dnsdist_run_unit_tests(c):
@@ -736,8 +792,9 @@ def ci_dnsdist_run_unit_tests(c):
       raise UnexpectedExit(res)
 
 @task
-def ci_make_distdir(c):
-    c.run('make distdir')
+def ci_make_distdir(c, meson=False):
+    if not meson:
+        c.run('make distdir')
 
 @task
 def ci_auth_install(c, meson=False):
@@ -747,6 +804,11 @@ def ci_auth_install(c, meson=False):
 @task
 def ci_make_install(c):
     c.run('make install')
+
+@task
+def ci_rec_install(c, meson=False):
+    if not meson:
+        c.run('make install')
 
 @task
 def add_auth_repo(c, dist_name, dist_release_name, pdns_repo_version):
