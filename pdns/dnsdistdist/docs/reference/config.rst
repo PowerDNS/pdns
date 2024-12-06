@@ -749,6 +749,7 @@ Servers
     ``proxyProtocolAdvertiseTLS``            ``bool``              "Whether to set the SSL Proxy Protocol TLV in the proxy protocol payload sent to the backend if the query was received over an encrypted channel (DNSCrypt, DoQ, DoH or DoT). Requires ``useProxyProtocol=true``. Default is false."
     ``xskSockets``                            ``array``            "An array of :class:`XskSocket` objects to enable ``XSK`` / ``AF_XDP`` support for this backend. See :doc:`../advanced/xsk` for more information."
     ``MACAddr``                              ``str``               "When the ``xskSocket`` option is set, this parameter can be used to specify the destination MAC address to use to reach the backend. If this options is not specified, dnsdist will try to get it from the IP of the backend by looking into the system's MAC address table, but it will fail if the corresponding MAC address is not present."
+    ``keyLogFile``                           ``str``               "Write the TLS keys in the specified file so that an external program can decrypt TLS exchanges, in the format described in https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format. Note that this feature requires OpenSSL >= 1.1.1."
 
 .. function:: getServer(index) -> Server
 

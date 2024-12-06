@@ -553,6 +553,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          getOptionalValue<std::string>(vars, "ciphers", config.d_tlsParams.d_ciphers);
                          getOptionalValue<std::string>(vars, "ciphers13", config.d_tlsParams.d_ciphers13);
                          getOptionalValue<std::string>(vars, "caStore", config.d_tlsParams.d_caStore);
+                         getOptionalValue<std::string>(vars, "keyLogFile", config.d_tlsParams.d_keyLogFile);
                          getOptionalValue<bool>(vars, "validateCertificates", config.d_tlsParams.d_validateCertificates);
                          getOptionalValue<bool>(vars, "releaseBuffers", config.d_tlsParams.d_releaseBuffers);
                          getOptionalValue<bool>(vars, "enableRenegotiation", config.d_tlsParams.d_enableRenegotiation);

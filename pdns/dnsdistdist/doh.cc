@@ -1503,7 +1503,7 @@ static void setupTLSContext(DOHAcceptContext& acceptCtx,
   libssl_set_error_counters_callback(ctx, &counters);
 
   if (!tlsConfig.d_keyLogFile.empty()) {
-    acceptCtx.d_keyLogFile = libssl_set_key_log_file(ctx, tlsConfig.d_keyLogFile);
+    acceptCtx.d_keyLogFile = libssl_set_key_log_file(ctx.get(), tlsConfig.d_keyLogFile);
   }
 
   h2o_ssl_register_alpn_protocols(ctx.get(), h2o_http2_alpn_protocols);

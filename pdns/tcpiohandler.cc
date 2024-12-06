@@ -675,7 +675,7 @@ public:
     libssl_set_alpn_select_callback(d_feContext->d_tlsCtx.get(), alpnServerSelectCallback, this);
 
     if (!frontend.d_tlsConfig.d_keyLogFile.empty()) {
-      d_feContext->d_keyLogFile = libssl_set_key_log_file(d_feContext->d_tlsCtx, frontend.d_tlsConfig.d_keyLogFile);
+      d_feContext->d_keyLogFile = libssl_set_key_log_file(d_feContext->d_tlsCtx.get(), frontend.d_tlsConfig.d_keyLogFile);
     }
 
     try {
@@ -775,6 +775,10 @@ public:
        but we don't want OpenSSL to cache the session itself so we set SSL_SESS_CACHE_NO_INTERNAL_STORE as well */
     SSL_CTX_set_session_cache_mode(d_tlsCtx.get(), SSL_SESS_CACHE_CLIENT | SSL_SESS_CACHE_NO_INTERNAL_STORE);
     SSL_CTX_sess_set_new_cb(d_tlsCtx.get(), &OpenSSLTLSIOCtx::newTicketFromServerCb);
+
+    if (!params.d_keyLogFile.empty()) {
+      d_keyLogFile = libssl_set_key_log_file(d_tlsCtx.get(), params.d_keyLogFile);
+    }
 
     libssl_set_alpn_protos(d_tlsCtx.get(), getALPNVector(params.d_alpn, true));
 
@@ -951,6 +955,7 @@ private:
   std::shared_ptr<SSL_CTX> d_tlsCtx{nullptr}; // client context, on a server-side the context is stored in d_feContext->d_tlsCtx
   std::unique_ptr<OpenSSLFrontendContext> d_feContext{nullptr};
   bool d_ktls{false};
+  pdns::UniqueFilePtr d_keyLogFile{nullptr};
 };
 
 #endif /* HAVE_LIBSSL */
