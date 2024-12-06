@@ -584,6 +584,9 @@ BOOST_AUTO_TEST_CASE(test_nsec_records_in) {
 
     BOOST_CHECK_THROW(MOADNSParser failParser(false, reinterpret_cast<const char*>(packet.data()), packet.size()-1), MOADNSException);
   }
+
+  // Invalid length of the NSEC3 hex blob
+  BOOST_CHECK_THROW(DNSRecordContent::make(QType::NSEC3PARAM, QClass::IN, "1 0 12 abcde"), RecordTextException);
 }
 
 BOOST_AUTO_TEST_CASE(test_nsec_records_types) {
