@@ -651,7 +651,6 @@ DEBFULLNAME
 debhelper
 debtest
 DEBUGLOG
-decafsigners
 decltype
 deconfigure
 deconfigured
@@ -1810,7 +1809,6 @@ llu
 LMDBQ
 lnc
 lnow
-loaderdecaf
 loadersodium
 loadfile
 loadmodule

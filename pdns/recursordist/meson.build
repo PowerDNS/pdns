@@ -45,7 +45,6 @@ subdir('meson' / 'net-libs')                # Network Libraries
 subdir('meson' / 'tm-gmtoff')               # Check for tm_gmtoff field in struct tm
 subdir('meson' / 'mmap')                    # Check for mmap
 subdir('meson' / 'libsodium')               # Libsodium-based signers
-subdir('meson' / 'libdecaf')                # Libdecaf-based signers
 subdir('meson' / 'libcrypto')               # OpenSSL-based signers
 subdir('meson' / 'libssl')                  # OpenSSL libssl
 subdir('meson' / 'libsnmp')                 # SNMP
@@ -326,17 +325,6 @@ if dep_libsodium.found()
   )
 endif
 
-librec_signers_decaf = dependency('', required: false)
-if dep_libdecaf.found()
-  librec_signers_decaf = declare_dependency(
-    link_whole: static_library(
-      'rec-signers-decaf',
-      sources: files(src_dir / 'decafsigners.cc'),
-      dependencies: [dep_boost, dep_libdecaf],
-    )
-  )
-endif
-
 librec_signers_openssl = declare_dependency(
   link_whole: static_library(
     'rec-signers-openssl',
@@ -433,7 +421,6 @@ tools = {
       dep_rust_settings,
       dep_systemd,
       librec_signers_openssl,
-      librec_signers_decaf,
       librec_signers_sodium,
       dep_pubsuffix,
     ],
@@ -519,7 +506,6 @@ if get_option('unit-tests')
           dep_settings,
           dep_rust_settings,
           librec_signers_openssl,
-          librec_signers_decaf,
           librec_signers_sodium,
       ],
     )

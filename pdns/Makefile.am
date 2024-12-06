@@ -45,10 +45,6 @@ if LIBSODIUM
 AM_CPPFLAGS +=$(LIBSODIUM_CFLAGS)
 endif
 
-if LIBDECAF
-AM_CPPFLAGS += $(LIBDECAF_CFLAGS)
-endif
-
 EXTRA_DIST = \
 	dnslabeltext.rl \
 	dnslabeltext.cc \
@@ -316,11 +312,6 @@ pdns_server_SOURCES += sodiumsigners.cc
 pdns_server_LDADD += $(LIBSODIUM_LIBS)
 endif
 
-if LIBDECAF
-pdns_server_SOURCES += decafsigners.cc
-pdns_server_LDADD += $(LIBDECAF_LIBS)
-endif
-
 if SQLITE3
 pdns_server_SOURCES += ssqlite3.cc ssqlite3.hh
 pdns_server_LDADD += $(SQLITE3_LIBS)
@@ -421,11 +412,6 @@ pdnsutil_LDADD = \
 if LIBSODIUM
 pdnsutil_SOURCES += sodiumsigners.cc
 pdnsutil_LDADD += $(LIBSODIUM_LIBS)
-endif
-
-if LIBDECAF
-pdnsutil_SOURCES += decafsigners.cc
-pdnsutil_LDADD += $(LIBDECAF_LIBS)
 endif
 
 if SQLITE3
@@ -1480,11 +1466,6 @@ if LIBSODIUM
 testrunner_SOURCES += sodiumsigners.cc
 testrunner_LDADD += $(LIBSODIUM_LIBS)
 speedtest_LDADD += $(LIBSODIUM_LIBS)
-endif
-
-if LIBDECAF
-testrunner_SOURCES += decafsigners.cc
-testrunner_LDADD += $(LIBDECAF_LIBS)
 endif
 
 if HAVE_FREEBSD

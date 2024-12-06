@@ -107,9 +107,6 @@ string getBuildConfiguration()
 {
   ostringstream ret;
   ret << "Features:"
-#ifdef HAVE_LIBDECAF
-      << " decaf"
-#endif
 #ifdef HAVE_LIBCRYPTO_ECDSA
       << " libcrypto-ecdsa"
 #endif
