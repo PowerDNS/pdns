@@ -174,8 +174,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.ccache
-          key: recursor-${{ matrix.features }}-${{ matrix.sanitizers }}-ccache-${{ steps.get-stamp.outputs.stamp }}
-          restore-keys: recursor-${{ matrix.features }}-${{ matrix.sanitizers }}-ccache-
+          key: recursor-ccache-${{ matrix.builder }}-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ steps.get-stamp.outputs.stamp }}
+          restore-keys: recursor-ccache-${{ matrix.builder }}-${{ matrix.features }}-${{ matrix.sanitizers }}
       - run: inv install-rec-build-deps ${{ matrix.builder == 'meson' && '--meson' || '' }}
         working-directory: ./pdns/recursordist/
       - run: inv ci-install-rust ${{ env.REPO_HOME }}

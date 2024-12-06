@@ -452,12 +452,14 @@ def get_base_configure_cmd(additional_c_flags='', additional_cxx_flags='', enabl
 def get_base_configure_cmd_meson(build_dir, additional_c_flags='', additional_cxx_flags='', enable_systemd=True, enable_sodium=True):
     cflags = " ".join([get_cflags(), additional_c_flags])
     cxxflags = " ".join([get_cxxflags(), additional_cxx_flags])
-    return " ".join([
+    env = " ".join([
         f'CFLAGS="{cflags}"',
         f'CXXFLAGS="{cxxflags}"',
         f"CC='{get_c_compiler()}'",
-        f"CXX='{get_cxx_compiler()}'",
-        f'. {repo_home}/.venv/bin/activate && meson setup {build_dir}',
+        f"CXX='{get_cxx_compiler()}'"
+    ])
+    return " ".join([
+        f'. {repo_home}/.venv/bin/activate && {env} meson setup {build_dir}',
         "-D systemd={}".format("enabled" if enable_systemd else "disabled"),
         "-D signers-libsodium={}".format("enabled" if enable_sodium else "disabled"),
         "-D hardening-fortify-source=auto",
