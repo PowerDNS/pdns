@@ -594,9 +594,9 @@ class TestFirstAvailableQPSPacketCacheHits(DNSDistTest):
                 self.assertEqual(receivedResponse, response)
 
         # 4 queries should made it through, 2 UDP and 2 TCP
-        for k,v in self._responsesCounter.items():
-            print(k)
-            print(v)
+        #for k,v in self._responsesCounter.items():
+        #    print(k)
+        #    print(v)
 
         if 'UDP Responder' in self._responsesCounter:
             self.assertEqual(self._responsesCounter['UDP Responder'], 0)
@@ -802,6 +802,168 @@ class TestRoutingHighValueWRandom(DNSDistTest):
             self.assertEqual(self._responsesCounter['UDP Responder 2'], numberOfQueries - self._responsesCounter['UDP Responder'])
         if 'TCP Responder 2' in self._responsesCounter:
             self.assertEqual(self._responsesCounter['TCP Responder 2'], numberOfQueries - self._responsesCounter['TCP Responder'])
+
+class TestRoutingWHashed(DNSDistTest):
+
+    _testServer2Port = pickAvailablePort()
+    _config_params = ['_testServerPort', '_testServer2Port']
+    _config_template = """
+    setServerPolicy(whashed)
+    setWeightedBalancingFactor(1.5)
+    -- this is the default, but let's ensure we can reset it to the initial value
+    setWeightedBalancingFactor(0)
+    s1 = newServer{address="127.0.0.1:%s", weight=1}
+    s1:setUp()
+    s2 = newServer{address="127.0.0.1:%s", weight=1}
+    s2:setUp()
+    """
+
+    @classmethod
+    def startResponders(cls):
+        print("Launching responders..")
+        cls._UDPResponder = threading.Thread(name='UDP Responder', target=cls.UDPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue])
+        cls._UDPResponder.daemon = True
+        cls._UDPResponder.start()
+        cls._UDPResponder2 = threading.Thread(name='UDP Responder 2', target=cls.UDPResponder, args=[cls._testServer2Port, cls._toResponderQueue, cls._fromResponderQueue])
+        cls._UDPResponder2.daemon = True
+        cls._UDPResponder2.start()
+
+        cls._TCPResponder = threading.Thread(name='TCP Responder', target=cls.TCPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue])
+        cls._TCPResponder.daemon = True
+        cls._TCPResponder.start()
+
+        cls._TCPResponder2 = threading.Thread(name='TCP Responder 2', target=cls.TCPResponder, args=[cls._testServer2Port, cls._toResponderQueue, cls._fromResponderQueue])
+        cls._TCPResponder2.daemon = True
+        cls._TCPResponder2.start()
+
+    def testHashed(self):
+        """
+        Routing: WHashed
+
+        Send 100 A queries to "<num>.whashed.routing.tests.powerdns.com.",
+        check that dnsdist routes at least 25% to each backend (hashing
+        will not be perfect, especially with so few datapoints, but still).
+        """
+        numberOfQueries = 100
+        suffix = 'whashed.routing.tests.powerdns.com.'
+
+        # the counter is shared for UDP and TCP,
+        # so we need to do UDP then TCP to have a clean count
+        for idx in range(numberOfQueries):
+            name = str(idx) + '.udp.' + suffix
+            query = dns.message.make_query(name, 'A', 'IN')
+            response = dns.message.make_response(query)
+            rrset = dns.rrset.from_text(name,
+                                        60,
+                                        dns.rdataclass.IN,
+                                        dns.rdatatype.A,
+                                        '192.0.2.1')
+            response.answer.append(rrset)
+            (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
+
+        for idx in range(numberOfQueries):
+            name = str(idx) + '.tcp.' + suffix
+            query = dns.message.make_query(name, 'A', 'IN')
+            response = dns.message.make_response(query)
+            rrset = dns.rrset.from_text(name,
+                                        60,
+                                        dns.rdataclass.IN,
+                                        dns.rdatatype.A,
+                                        '192.0.2.1')
+            response.answer.append(rrset)
+            (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
+
+        self.assertGreater(self._responsesCounter['UDP Responder'], numberOfQueries * 0.25)
+        self.assertGreater(self._responsesCounter['TCP Responder'], numberOfQueries * 0.25)
+        self.assertGreater(self._responsesCounter['UDP Responder 2'], numberOfQueries * 0.25)
+        self.assertGreater(self._responsesCounter['TCP Responder 2'], numberOfQueries * 0.25)
+
+class TestRoutingCHashed(DNSDistTest):
+
+    _testServer2Port = pickAvailablePort()
+    _config_params = ['_testServerPort', '_testServer2Port']
+    _config_template = """
+    setServerPolicy(chashed)
+    setConsistentHashingBalancingFactor(1.5)
+    -- this is the default, but let's ensure we can reset it to the initial value
+    setConsistentHashingBalancingFactor(0)
+    s1 = newServer{address="127.0.0.1:%s", weight=1000}
+    s1:setUp()
+    s2 = newServer{address="127.0.0.1:%s", weight=1000}
+    s2:setUp()
+    """
+
+    @classmethod
+    def startResponders(cls):
+        print("Launching responders..")
+        cls._UDPResponder = threading.Thread(name='UDP Responder', target=cls.UDPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue])
+        cls._UDPResponder.daemon = True
+        cls._UDPResponder.start()
+        cls._UDPResponder2 = threading.Thread(name='UDP Responder 2', target=cls.UDPResponder, args=[cls._testServer2Port, cls._toResponderQueue, cls._fromResponderQueue])
+        cls._UDPResponder2.daemon = True
+        cls._UDPResponder2.start()
+
+        cls._TCPResponder = threading.Thread(name='TCP Responder', target=cls.TCPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue])
+        cls._TCPResponder.daemon = True
+        cls._TCPResponder.start()
+
+        cls._TCPResponder2 = threading.Thread(name='TCP Responder 2', target=cls.TCPResponder, args=[cls._testServer2Port, cls._toResponderQueue, cls._fromResponderQueue])
+        cls._TCPResponder2.daemon = True
+        cls._TCPResponder2.start()
+
+    def testHashed(self):
+        """
+        Routing: CHashed
+
+        Send 100 A queries to "<num>.chashed.routing.tests.powerdns.com.",
+        check that dnsdist routes at least 25% to each backend (hashing
+        will not be perfect, especially with so few datapoints, but still).
+        """
+        numberOfQueries = 100
+        suffix = 'chashed.routing.tests.powerdns.com.'
+
+        # the counter is shared for UDP and TCP,
+        # so we need to do UDP then TCP to have a clean count
+        for idx in range(numberOfQueries):
+            name = str(idx) + '.udp.' + suffix
+            query = dns.message.make_query(name, 'A', 'IN')
+            response = dns.message.make_response(query)
+            rrset = dns.rrset.from_text(name,
+                                        60,
+                                        dns.rdataclass.IN,
+                                        dns.rdatatype.A,
+                                        '192.0.2.1')
+            response.answer.append(rrset)
+            (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
+
+        for idx in range(numberOfQueries):
+            name = str(idx) + '.tcp.' + suffix
+            query = dns.message.make_query(name, 'A', 'IN')
+            response = dns.message.make_response(query)
+            rrset = dns.rrset.from_text(name,
+                                        60,
+                                        dns.rdataclass.IN,
+                                        dns.rdatatype.A,
+                                        '192.0.2.1')
+            response.answer.append(rrset)
+            (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
+
+        self.assertGreater(self._responsesCounter['UDP Responder'], numberOfQueries * 0.25)
+        self.assertGreater(self._responsesCounter['TCP Responder'], numberOfQueries * 0.25)
+        self.assertGreater(self._responsesCounter['UDP Responder 2'], numberOfQueries * 0.25)
+        self.assertGreater(self._responsesCounter['TCP Responder 2'], numberOfQueries * 0.25)
 
 class TestRoutingLuaFFILBNoServer(DNSDistTest):
 
