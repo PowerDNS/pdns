@@ -1,17 +1,21 @@
 import os
 import sys
+import shutil
 
 # default: 'type': uint64
 # ptype: "'counter' (vs gauge')
 
 srcdir = '.'
-if len(sys.argv) == 2:
-    print("metrics.py: using srcdir from arguments")
+builddir = '.'
+if len(sys.argv) == 3:
+    print("metrics.py: using srcdir and builddir from arguments")
     srcdir = sys.argv[1]
+    builddir = sys.argv[2]
 
 print("Generating metrics related files")
 print("metrics.py cwd: " + os.getcwd())
 print("metrics.py srcdir: " + srcdir + " = " + os.path.realpath(srcdir))
+print("metrics.py builddir: " + builddir + " = " + os.path.realpath(builddir))
 
 def dedashForSNMP(name):
     cap = False
@@ -31,6 +35,9 @@ def dedashForSNMP(name):
 with open(srcdir + '/metrics_table.py', mode='r', encoding="utf-8") as file:
     table = eval(file.read())
 
+#
+# We create various files in the srcdir but copy them into the buildir if neeed to satisfy meson
+#
 with open(srcdir + '/rec-oids-gen.h', 'w', encoding='utf-8') as file:
     file.write('// THIS IS A GENERATED FILE. DO NOT EDIT. SOURCE metrics.py AND metrics_table.py\n')
     for entry in table:
@@ -44,6 +51,8 @@ with open(srcdir + '/rec-oids-gen.h', 'w', encoding='utf-8') as file:
         file.write(f'static const oid10 {name}OID = {{RECURSOR_STATS_OID, {snmp}}};\n')
         if 'ifdef' in entry:
             file.write(f'#endif\n')
+if srcdir != builddir:
+    shutil.copy(srcdir + '/rec-oids-gen.h', builddir)
 
 with open(srcdir + '/rec-snmp-gen.h', 'w', encoding='utf-8') as file:
     file.write('// THIS IS A GENERATED FILE. DO NOT EDIT. SOURCE metrics.py AND metrics_table.py\n')
@@ -58,6 +67,8 @@ with open(srcdir + '/rec-snmp-gen.h', 'w', encoding='utf-8') as file:
         file.write(f'registerCounter64Stat("{name}", {dname}OID);\n')
         if 'ifdef' in entry:
             file.write(f'#endif\n')
+if srcdir != builddir:
+    shutil.copy(srcdir + '/rec-snmp-gen.h', builddir)
 
 with open(srcdir + '/rec-prometheus-gen.h', 'w', encoding='utf-8') as file:
     file.write('// THIS IS A GENERATED FILE. DO NOT EDIT. SOURCE metrics.py AND metrics_table.py\n')
@@ -75,6 +86,8 @@ with open(srcdir + '/rec-prometheus-gen.h', 'w', encoding='utf-8') as file:
         if 'ptype' in entry:
           ptype = entry['ptype']
         file.write(f'{{"{name}", MetricDefinition(PrometheusMetricType::{ptype}, "{desc}")}},\n')
+if srcdir != builddir:
+    shutil.copy(srcdir + '/rec-prometheus-gen.h', builddir)
 
 with open(srcdir + '/rec-metrics-gen.h', 'w', encoding='utf-8') as file:
     file.write('// THIS IS A GENERATED FILE. DO NOT EDIT. SOURCE metrics.py AND metrics_table.py\n')
@@ -94,6 +107,8 @@ with open(srcdir + '/rec-metrics-gen.h', 'w', encoding='utf-8') as file:
             file.write(f'}}\n')
         if 'ifdef' in entry:
             file.write(f'#endif\n')
+if srcdir != builddir:
+    shutil.copy(srcdir + '/rec-metrics-gen.h', builddir)
 
 if os.path.isdir(srcdir + '/docs'):
     with open(srcdir + '/docs/rec-metrics-gen.rst', 'w', encoding='utf-8') as file:
@@ -155,9 +170,11 @@ for entry in table:
     str2 += f',\n        {name}'
 
 
-with open(srcdir + '/RECURSOR-MIB.in', mode='r', encoding='UTF-8') as file:
+with open(srcdir + '/RECURSOR-MIB.in', mode='r', encoding='utf-8') as file:
     text = file.read()
     text = text.replace('REPL_OBJECTS1', str1)
     text = text.replace('REPL_OBJECTS2', str2)
     with open(srcdir + '/RECURSOR-MIB.txt', 'w', encoding='utf-8') as file2:
         file2.write(text)
+if srcdir != builddir:
+    shutil.copy(srcdir + '/RECURSOR-MIB.txt', builddir) 
