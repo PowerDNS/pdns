@@ -725,7 +725,7 @@ def ci_auth_make_bear(c):
     c.run(f'bear --append -- make -j{get_build_concurrency()} -k V=1')
 
 def run_ninja(c):
-    c.run(f'. {repo_home}/.venv/bin/activate && ninja -j{get_build_concurrency(4)} --verbose')
+    c.run(f'. {repo_home}/.venv/bin/activate && ninja -j{get_build_concurrency()} --verbose')
 
 @task
 def ci_auth_build(c, meson=False):
@@ -737,7 +737,7 @@ def ci_auth_build(c, meson=False):
 @task
 def ci_rec_make_bear(c):
     # Assumed to be running under ./pdns/recursordist/
-    c.run(f'bear --append -- make -j{get_build_concurrency(4)} -k V=1')
+    c.run(f'bear --append -- make -j{get_build_concurrency()} -k V=1')
 
 @task
 def ci_rec_build(c, meson=False):
