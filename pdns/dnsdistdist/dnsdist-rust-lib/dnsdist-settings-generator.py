@@ -64,13 +64,13 @@ def is_type_native(rust_type):
     if is_vector_of(rust_type):
         sub_type = get_vector_sub_type(rust_type)
         return is_type_native(sub_type)
-    return rust_type in ['bool', 'u8', 'u32', 'u64', 'f64', 'String']
+    return rust_type in ['bool', 'u8', 'u16', 'u32', 'u64', 'f64', 'String']
 
 def is_value_rust_default(rust_type, value):
     """Is a value the same as its corresponding Rust default?"""
     if rust_type == 'bool':
         return value == 'false'
-    if rust_type  in ('u8', 'u32', 'u64'):
+    if rust_type  in ('u8', 'u16', 'u32', 'u64'):
         return value in (0, '0', '')
     if rust_type == 'f64':
         return value in ('0.0', 0.0)
