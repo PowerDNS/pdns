@@ -903,7 +903,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   {
     const std::string name;
     const std::function<void(dnsdist::configuration::ImmutableConfiguration& config, double value)> mutator;
-    const double maximumValue{1.0};
+    const double minimumValue{1.0};
   };
   static const std::vector<DoubleImmutableConfigurationItems> doubleImmutableConfigItems{
     {"setConsistentHashingBalancingFactor", [](dnsdist::configuration::ImmutableConfiguration& config, double newValue) { config.d_consistentHashBalancingFactor = newValue; }, 1.0},
@@ -940,7 +940,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   }
   for (const auto& item : doubleImmutableConfigItems) {
     luaCtx.writeFunction(item.name, [&item](double value) {
-      if (value > item.maximumValue) {
+      if (value != 0 && value < item.minimumValue) {
         g_outputBuffer = "Invalid value passed to " + item.name + "()!\n";
         errlog("Invalid value passed to %s()!", item.name);
         return;
