@@ -131,6 +131,14 @@ This state can be modified from the various hooks.
 
     :returns: A table of EDNSOptionView objects, indexed on the ECS Option code
 
+  .. method:: DNSQuestion::getElapsedUs -> double
+
+     .. versionadded:: 2.0.0
+
+     Return the amount of time that has elapsed since the query was received.
+
+     :returns: A double indicating elapsed time in microseconds
+
   .. method:: DNSQuestion:getHTTPHeaders() -> table
 
     .. versionadded:: 1.4.0
