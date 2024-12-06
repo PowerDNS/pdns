@@ -12,6 +12,7 @@ permissions:
 
 jobs:
   call-build-packages-auth:
+    if: ${{ vars.SCHEDULED_PACKAGES_DAILY }}
     uses: PowerDNS/pdns/.github/workflows/build-packages.yml@master
     with:
       is_release: 'NO'
@@ -23,6 +24,7 @@ jobs:
       DOWNLOADS_AUTOBUILT_HOSTKEY: ${{ secrets.DOWNLOADS_AUTOBUILT_HOSTKEY }}
 
   call-build-packages-dnsdist:
+    if: ${{ vars.SCHEDULED_PACKAGES_DAILY }}
     uses: PowerDNS/pdns/.github/workflows/build-packages.yml@master
     with:
       is_release: 'NO'
@@ -34,6 +36,7 @@ jobs:
       DOWNLOADS_AUTOBUILT_HOSTKEY: ${{ secrets.DOWNLOADS_AUTOBUILT_HOSTKEY }}
 
   call-build-packages-rec:
+    if: ${{ vars.SCHEDULED_PACKAGES_DAILY }}
     uses: PowerDNS/pdns/.github/workflows/build-packages.yml@master
     with:
       is_release: 'NO'
