@@ -1110,7 +1110,7 @@ static void libssl_key_log_file_callback(const SSL* ssl, const char* line)
 }
 #endif /* HAVE_SSL_CTX_SET_KEYLOG_CALLBACK */
 
-pdns::UniqueFilePtr libssl_set_key_log_file(std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>& ctx, const std::string& logFile)
+pdns::UniqueFilePtr libssl_set_key_log_file(SSL_CTX* ctx, const std::string& logFile)
 {
 #ifdef HAVE_SSL_CTX_SET_KEYLOG_CALLBACK
   auto filePtr = pdns::openFileForWriting(logFile, 0600, false, true);
@@ -1118,8 +1118,8 @@ pdns::UniqueFilePtr libssl_set_key_log_file(std::unique_ptr<SSL_CTX, decltype(&S
     auto error = errno;
     throw std::runtime_error("Error opening file " + logFile + " for writing: " + stringerror(error));
   }
-  SSL_CTX_set_ex_data(ctx.get(), s_keyLogIndex, filePtr.get());
-  SSL_CTX_set_keylog_callback(ctx.get(), &libssl_key_log_file_callback);
+  SSL_CTX_set_ex_data(ctx, s_keyLogIndex, filePtr.get());
+  SSL_CTX_set_keylog_callback(ctx, &libssl_key_log_file_callback);
   return filePtr;
 #else
   return pdns::UniqueFilePtr(nullptr);
