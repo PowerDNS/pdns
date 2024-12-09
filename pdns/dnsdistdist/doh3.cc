@@ -22,6 +22,8 @@
 
 #include "doh3.hh"
 
+#include <boost/algorithm/cxx11/any_of.hpp>
+
 #ifdef HAVE_DNS_OVER_HTTP3
 #include <quiche.h>
 
@@ -991,11 +993,11 @@ void doh3Thread(ClientState* clientState)
       mplexer->getAvailableFDs(readyFDs, 500);
 
       try {
-        if (std::find(readyFDs.begin(), readyFDs.end(), sock.getHandle()) != readyFDs.end()) {
+        if (boost::algorithm::any_of_equal(readyFDs, sock.getHandle())) {
           handleSocketReadable(*frontend, *clientState, sock, buffer);
         }
 
-        if (std::find(readyFDs.begin(), readyFDs.end(), responseReceiverFD) != readyFDs.end()) {
+        if (boost::algorithm::any_of_equal(readyFDs, responseReceiverFD)) {
           flushResponses(frontend->d_server_config->d_responseReceiver);
         }
 

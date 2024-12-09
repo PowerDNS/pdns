@@ -23,6 +23,7 @@
 #include "config.h"
 #endif
 #include "utility.hh"
+#include <boost/range/algorithm/stable_sort.hpp>
 #include <cstdio>
 #include <cstdlib>
 #include <sys/types.h>
@@ -272,9 +273,9 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
   // we now need to order rrs so that the different sections come at the right place
   // we want a stable sort, based on the d_place field
 
-  stable_sort(d_rrs.begin(),d_rrs.end(), [](const DNSZoneRecord& a, const DNSZoneRecord& b) {
-      return a.dr.d_place < b.dr.d_place;
-    });
+  boost::range::stable_sort(d_rrs, [](const auto& first, const auto& second) {
+    return first.dr.d_place < second.dr.d_place;
+  });
   static bool mustNotShuffle = ::arg().mustDo("no-shuffle");
 
   if(!d_xfr && !mustNotShuffle) {

@@ -23,6 +23,8 @@
 #include <algorithm>
 #include <stdexcept>
 
+#include <boost/range/algorithm/find.hpp>
+
 #include "dnsdist-protocols.hh"
 
 namespace dnsdist
@@ -49,7 +51,7 @@ const std::array<std::string, Protocol::s_numberOfProtocols> Protocol::s_prettyN
 
 Protocol::Protocol(const std::string& protocol)
 {
-  const auto& namesIt = std::find(s_names.begin(), s_names.end(), protocol);
+  auto namesIt = boost::range::find(s_names, protocol);
   if (namesIt == s_names.end()) {
     throw std::runtime_error("Unknown protocol name: '" + protocol + "'");
   }

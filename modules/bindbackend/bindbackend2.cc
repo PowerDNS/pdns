@@ -23,6 +23,8 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#include <boost/range/algorithm/set_algorithm.hpp>
+#include <boost/range/algorithm/sort.hpp>
 #include <cerrno>
 #include <string>
 #include <set>
@@ -924,7 +926,7 @@ void Bind2Backend::loadConfig(string* status) // NOLINT(readability-function-cog
       }
     }
 
-    sort(domains.begin(), domains.end()); // put stuff in inode order
+    boost::range::sort(domains); // put stuff in inode order
     for (const auto& domain : domains) {
       if (!(domain.hadFileDirective)) {
         g_log << Logger::Warning << d_logprefix << " Zone '" << domain.name << "' has no 'file' directive set in " << getArg("config") << endl;
@@ -1021,7 +1023,7 @@ void Bind2Backend::loadConfig(string* status) // NOLINT(readability-function-cog
     }
     vector<DNSName> diff;
 
-    set_difference(oldnames.begin(), oldnames.end(), newnames.begin(), newnames.end(), back_inserter(diff));
+    boost::range::set_difference(oldnames, newnames, back_inserter(diff));
     unsigned int remdomains = diff.size();
 
     for (const DNSName& name : diff) {
@@ -1030,7 +1032,7 @@ void Bind2Backend::loadConfig(string* status) // NOLINT(readability-function-cog
 
     // count number of entirely new domains
     diff.clear();
-    set_difference(newnames.begin(), newnames.end(), oldnames.begin(), oldnames.end(), back_inserter(diff));
+    boost::range::set_difference(newnames, oldnames, back_inserter(diff));
     newdomains = diff.size();
 
     ostringstream msg;

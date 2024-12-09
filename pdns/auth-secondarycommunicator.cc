@@ -27,6 +27,9 @@
 #include "dnssecinfra.hh"
 #include "dnsseckeeper.hh"
 #include "base32.hh"
+#include <boost/range/algorithm/count.hpp>
+#include <boost/range/algorithm/sort.hpp>
+#include <boost/range/algorithm_ext.hpp>
 #include <cerrno>
 #include "communicator.hh"
 #include <set>
@@ -98,8 +101,8 @@ static bool catalogDiff(const DomainInfo& di, vector<CatalogInfo>& fromXFR, vect
   vector<CatalogInfo> retrieve;
 
   try {
-    sort(fromXFR.begin(), fromXFR.end());
-    sort(fromDB.begin(), fromDB.end());
+    boost::range::sort(fromXFR);
+    boost::range::sort(fromDB);
 
     auto xfr = fromXFR.cbegin();
     auto db = fromDB.cbegin();
@@ -321,7 +324,7 @@ static bool catalogProcess(const DomainInfo& di, vector<DNSResourceRecord>& rrs,
   vector<DNSResourceRecord> ret;
 
   const auto compare = [](const DNSResourceRecord& a, const DNSResourceRecord& b) { return a.qname == b.qname ? a.qtype < b.qtype : a.qname.canonCompare(b.qname); };
-  sort(rrs.begin(), rrs.end(), compare);
+  boost::range::sort(rrs, compare);
 
   DNSName rel;
   DNSName unique;
@@ -490,12 +493,9 @@ void CommunicatorClass::ixfrSuck(const DNSName& domain, const TSIGTriplet& tt, c
           }
         }
         // O(N^2)!
-        rrset.erase(remove_if(rrset.begin(), rrset.end(),
-                              [&g](const DNSRecord& dr) {
-                                return count(g.second.first.cbegin(),
-                                             g.second.first.cend(), dr);
-                              }),
-                    rrset.end());
+        boost::range::remove_erase_if(rrset, [&g](const auto& dnsr) {
+          return boost::algorithm::any_of_equal(g.second.first, dnsr);
+        });
         // the DNSRecord== operator compares on name, type, class and lowercase content representation
 
         for (const auto& x : g.second.second) {

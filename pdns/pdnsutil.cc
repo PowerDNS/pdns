@@ -2,6 +2,10 @@
 #include "dnsparser.hh"
 #include "dnsrecords.hh"
 #include "qtype.hh"
+#include <boost/algorithm/cxx11/none_of.hpp>
+#include <boost/range/algorithm/reverse.hpp>
+#include <boost/range/algorithm/set_algorithm.hpp>
+#include <boost/range/algorithm/sort.hpp>
 #include <boost/smart_ptr/make_shared_array.hpp>
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -1216,7 +1220,7 @@ static int editZone(const DNSName &zone, const PDNSColors& col) {
       DNSRecord dr(rr);
       pre.push_back(dr);
     }
-    sort(pre.begin(), pre.end(), DNSRecord::prettyCompare);
+    boost::range::sort(pre, DNSRecord::prettyCompare);
     for(const auto& dr : pre) {
       ostringstream os;
       os<<dr.d_name<<"\t"<<dr.d_ttl<<"\tIN\t"<<DNSRecordContent::NumberToType(dr.d_type)<<"\t"<<dr.getContent()->getZoneRepresentation(true)<<endl;
@@ -1262,7 +1266,7 @@ static int editZone(const DNSName &zone, const PDNSColors& col) {
     goto reAsk;
   }
 
-  sort(post.begin(), post.end(), DNSRecord::prettyCompare);
+  boost::range::sort(post, DNSRecord::prettyCompare);
   checkrr.clear();
 
   for(const DNSRecord& rr : post) {
@@ -1292,7 +1296,7 @@ static int editZone(const DNSName &zone, const PDNSColors& col) {
   vector<DNSRecord> diff;
 
   map<pair<DNSName,uint16_t>, string> changed;
-  set_difference(pre.cbegin(), pre.cend(), post.cbegin(), post.cend(), back_inserter(diff), DNSRecord::prettyCompare);
+  boost::range::set_difference(pre, post, back_inserter(diff), DNSRecord::prettyCompare);
   for(const auto& d : diff) {
     ostringstream str;
     str << col.red() << "-" << d.d_name << " " << d.d_ttl << " IN " << DNSRecordContent::NumberToType(d.d_type) << " " <<d.getContent()->getZoneRepresentation(true) << col.rst() <<endl;
@@ -1300,7 +1304,7 @@ static int editZone(const DNSName &zone, const PDNSColors& col) {
 
   }
   diff.clear();
-  set_difference(post.cbegin(), post.cend(), pre.cbegin(), pre.cend(), back_inserter(diff), DNSRecord::prettyCompare);
+  boost::range::set_difference(post, pre, back_inserter(diff), DNSRecord::prettyCompare);
   for(const auto& d : diff) {
     ostringstream str;
 
@@ -2167,8 +2171,8 @@ static bool showZone(DNSSECKeeper& dnsseckeeper, const DNSName& zone, bool expor
       cout << "keys: "<<endl;
     }
 
-    sort(keys.begin(),keys.end());
-    reverse(keys.begin(),keys.end());
+    boost::range::sort(keys);
+    boost::range::reverse(keys);
     for(const auto& key : keys) {
       string algname = DNSSECKeeper::algorithm2name(key.d_algorithm);
 
@@ -3937,7 +3941,7 @@ try
     bool clobber = true;
     if (cmds.at(0) == "add-meta") {
       clobber = false;
-      if (find(multiMetaWhitelist.begin(), multiMetaWhitelist.end(), kind) == multiMetaWhitelist.end() && kind.find("X-") != 0) {
+      if (boost::algorithm::none_of_equal(multiMetaWhitelist, kind) && kind.find("X-") != 0) {
         cerr<<"Refusing to add metadata to single-value metadata "<<kind<<endl;
         return 1;
       }

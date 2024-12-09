@@ -23,6 +23,7 @@
 #include "dnsrecords.hh"
 #include "dnspacket.hh"
 
+#include <boost/range/algorithm/reverse.hpp>
 #include <string>
 #include <vector>
 #include <optional>
@@ -263,8 +264,8 @@ struct CanonicalCompare
     stringtok(avect, a, ".");
     stringtok(bvect, b, ".");
 
-    reverse(avect.begin(), avect.end());
-    reverse(bvect.begin(), bvect.end());
+    boost::range::reverse(avect);
+    boost::range::reverse(bvect);
 
     return avect < bvect;
   }

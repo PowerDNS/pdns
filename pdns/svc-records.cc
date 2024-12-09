@@ -19,6 +19,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include <boost/range/algorithm/find_if.hpp>
+
 #include "svc-records.hh"
 #include "misc.hh"
 #include "base64.hh"
@@ -56,7 +58,7 @@ SvcParam::SvcParamKey SvcParam::keyFromString(const std::string& k, bool &generi
 }
 
 std::string SvcParam::keyToString(const SvcParam::SvcParamKey& k) {
-  auto ret = std::find_if(SvcParams.begin(), SvcParams.end(), [&](const std::pair<std::string, SvcParam::SvcParamKey>& e) { return e.second == k; });
+  auto ret = boost::range::find_if(SvcParams, [&](const auto& param) { return param.second == k; });
   if (ret != SvcParams.end()) {
     return ret->first;
   }

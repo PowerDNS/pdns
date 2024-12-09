@@ -19,6 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include <boost/range/algorithm/count.hpp>
 #include <memory>
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -157,7 +158,7 @@ void BackendMakerClass::launch(const string& instr)
   stringtok(parts, instr, ", ");
 
   for (const auto& part : parts) {
-    if (count(parts.begin(), parts.end(), part) > 1) {
+    if (boost::range::count(parts, part) > 1) {
       throw ArgException("Refusing to launch multiple backends with the same name '" + part + "', verify all 'launch' statements in your configuration");
     }
   }

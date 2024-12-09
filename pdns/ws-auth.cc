@@ -43,6 +43,8 @@
 #include "ws-api.hh"
 #include "version.hh"
 #include "dnsseckeeper.hh"
+#include <boost/algorithm/cxx11/none_of.hpp>
+#include <boost/range/algorithm/sort.hpp>
 #include <iomanip>
 #include "zoneparser-tng.hh"
 #include "auth-main.hh"
@@ -467,7 +469,7 @@ static void fillZone(UeberBackend& backend, const DNSName& zonename, HttpRespons
         }
         records.push_back(resourceRecord);
       }
-      sort(records.begin(), records.end(), [](const DNSResourceRecord& rrA, const DNSResourceRecord& rrB) {
+      boost::range::sort(records, [](const DNSResourceRecord& rrA, const DNSResourceRecord& rrB) {
         /* if you ever want to update this comparison function,
            please be aware that you will also need to update the conditions in the code merging
            the records and comments below */
@@ -487,7 +489,7 @@ static void fillZone(UeberBackend& backend, const DNSName& zonename, HttpRespons
           comments.push_back(comment);
         }
       }
-      sort(comments.begin(), comments.end(), [](const Comment& rrA, const Comment& rrB) {
+      boost::range::sort(comments, [](const Comment& rrA, const Comment& rrB) {
         /* if you ever want to update this comparison function,
            please be aware that you will also need to update the conditions in the code merging
            the records and comments below */
@@ -1102,10 +1104,7 @@ static void apiZoneMetadataPOST(HttpRequest* req, HttpResponse* resp)
     if (!value.is_string()) {
       throw ApiException("metadata must be strings");
     }
-    if (std::find(vecMetadata.cbegin(),
-                  vecMetadata.cend(),
-                  value.string_value())
-        == vecMetadata.cend()) {
+    if (boost::algorithm::none_of_equal(vecMetadata, value.string_value())) {
       vecMetadata.push_back(value.string_value());
     }
   }
@@ -1603,11 +1602,11 @@ static void gatherRecordsFromZone(const std::string& zonestring, vector<DNSResou
  */
 static void checkNewRecords(vector<DNSResourceRecord>& records, const DNSName& zone)
 {
-  sort(records.begin(), records.end(),
-       [](const DNSResourceRecord& rec_a, const DNSResourceRecord& rec_b) -> bool {
-         /* we need _strict_ weak ordering */
-         return std::tie(rec_a.qname, rec_a.qtype, rec_a.content) < std::tie(rec_b.qname, rec_b.qtype, rec_b.content);
-       });
+  boost::range::sort(records,
+                     [](const DNSResourceRecord& rec_a, const DNSResourceRecord& rec_b) -> bool {
+                       /* we need _strict_ weak ordering */
+                       return std::tie(rec_a.qname, rec_a.qtype, rec_a.content) < std::tie(rec_b.qname, rec_b.qtype, rec_b.content);
+                     });
 
   DNSResourceRecord previous;
   for (const auto& rec : records) {

@@ -2,6 +2,9 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
+#include <boost/range/algorithm/count.hpp>
+
 #include "packethandler.hh"
 #include "qtype.hh"
 #include "dnspacket.hh"
@@ -476,10 +479,12 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
       bool foundDeeper = false, foundOtherWithSameName = false;
       di->backend->listSubZone(rr->d_name, di->id);
       while (di->backend->get(rec)) {
-        if (rec.qname == rr->d_name && !count(recordsToDelete.begin(), recordsToDelete.end(), rec))
+        if (rec.qname == rr->d_name && boost::range::count(recordsToDelete, rec) == 0) {
           foundOtherWithSameName = true;
-        if (rec.qname != rr->d_name && rec.qtype.getCode() != QType::NS) //Skip NS records, as this would be a delegate that we can ignore as this does not require us to create a ENT
+        }
+        if (rec.qname != rr->d_name && rec.qtype.getCode() != QType::NS) { // Skip NS records, as this would be a delegate that we can ignore as this does not require us to create a ENT
           foundDeeper = true;
+        }
       }
 
       if (foundDeeper && !foundOtherWithSameName) {

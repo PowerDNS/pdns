@@ -23,6 +23,7 @@
 #include "config.h"
 #endif
 #include "arguments.hh"
+#include <boost/algorithm/cxx11/any_of.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/compare.hpp>
 #include <boost/algorithm/string/predicate.hpp>
@@ -33,6 +34,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <boost/range/algorithm/sort.hpp>
 #include <climits>
 
 ArgvMap::param_t::const_iterator ArgvMap::begin()
@@ -111,7 +113,7 @@ bool ArgvMap::contains(const string& var, const string& val)
   vector<string> parts;
 
   stringtok(parts, param->second, ", \t");
-  return std::any_of(parts.begin(), parts.end(), [&](const std::string& str) { return str == val; });
+  return boost::algorithm::any_of_equal(parts, val);
 }
 
 string ArgvMap::helpstring(string prefix)
@@ -440,7 +442,7 @@ void ArgvMap::parseOne(const string& arg, const string& parseOnly, bool lax)
       // unknown setting encountered. see if its on the ignore list before throwing.
       vector<string> parts;
       stringtok(parts, d_params["ignore-unknown-settings"], " ,\t\n\r");
-      if (find(parts.begin(), parts.end(), var) != parts.end()) {
+      if (boost::algorithm::any_of_equal(parts, var)) {
         d_unknownParams[var] = std::move(val);
         SLOG(g_log << Logger::Warning << "Ignoring unknown setting '" << var << "' as requested" << endl,
              d_log->info(Logr::Warning, "Ignoring unknown setting as requested", "name", Logging::Loggable(var)));
@@ -605,6 +607,6 @@ void ArgvMap::gatherIncludes(const std::string& directory, const std::string& su
     throw ArgException(msg);
   }
 
-  std::sort(vec.begin(), vec.end(), CIStringComparePOSIX());
+  boost::range::sort(vec, CIStringComparePOSIX());
   extraConfigs.insert(extraConfigs.end(), vec.begin(), vec.end());
 }

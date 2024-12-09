@@ -1,4 +1,5 @@
 #include "config.h"
+#include <boost/range/algorithm/sort.hpp>
 #include <cassert>
 #include <fstream>
 #include <unordered_set>
@@ -66,7 +67,7 @@ void BaseLua4::includePath(const std::string& directory) {
     throw PDNSException(msg);
   }
 
-  std::sort(vec.begin(), vec.end(), CIStringComparePOSIX());
+  boost::range::sort(vec, CIStringComparePOSIX());
 
   for(const auto& file: vec) {
     loadFile(file, false);
