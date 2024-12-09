@@ -582,6 +582,7 @@ struct TLSContextParameters
   std::string d_ciphers;
   std::string d_ciphers13;
   std::string d_caStore;
+  std::string d_keyLogFile;
   TLSFrontend::ALPN d_alpn{TLSFrontend::ALPN::Unset};
   bool d_validateCertificates{true};
   bool d_releaseBuffers{true};

@@ -559,6 +559,15 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          getOptionalValue<bool>(vars, "ktls", config.d_tlsParams.d_ktls);
                          getOptionalValue<std::string>(vars, "subjectName", config.d_tlsSubjectName);
 
+                         if (vars->count("keyLogFile") > 0) {
+#ifdef HAVE_SSL_CTX_SET_KEYLOG_CALLBACK
+                           getOptionalValue<std::string>(vars, "keyLogFile", config.d_tlsParams.d_keyLogFile);
+#else
+        errlog("TLS Key logging has been enabled using the 'keyLogFile' parameter to newServer(), but this version of OpenSSL does not support it");
+        g_outputBuffer = "TLS Key logging has been enabled using the 'keyLogFile' parameter to newServer(), but this version of OpenSSL does not support it";
+#endif
+                         }
+
                          if (getOptionalValue<std::string>(vars, "subjectAddr", valueStr) > 0) {
                            try {
                              ComboAddress addr(valueStr);
