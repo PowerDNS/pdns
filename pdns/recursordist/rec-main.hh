@@ -193,6 +193,7 @@ using RemoteLoggerStats_t = std::unordered_map<std::string, RemoteLoggerInterfac
 
 extern bool g_yamlSettings;
 extern string g_yamlSettingsSuffix;
+extern LockGuarded<pdns::rust::settings::rec::Recursorsettings> g_yamlStruct;
 extern bool g_logCommonErrors;
 extern size_t g_proxyProtocolMaximumSize;
 extern std::atomic<bool> g_quiet;

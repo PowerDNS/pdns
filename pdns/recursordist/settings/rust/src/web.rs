@@ -1,18 +1,17 @@
 /*
 TODO
-
+- Table based routing?
 - Logging
-- ACLs of webserver
-- Authorization: metrics and plain files (and more?) are not subject to password auth
-- Allow multipe listen addreses in settings (singlevalued right now)
+- Authorization: metrics and plain files (and more?) are not subject to password auth plus the code needs a n careful audit.
 - TLS?
 - Code is now in settings dir. It's only possible to split the modules into separate Rust libs if we
   use shared libs (in theory, I did not try). Currently all CXX using Rust cargo's must be compiled
   as one and refer to a single static Rust runtime
-- Ripping out yahttp stuff, providing some basic classees only
-- Some classes (NetmaskGroup, ComboAddress) need a uniqueptr Wrapper to keep them opaque (iputils
+- Ripping out yahttp stuff, providing some basic classes only. ATM we do use a few yahttp include files (but no .cc)
+- Some classes (NetmaskGroup, ComboAddress) need a UniquePtr Wrapper to keep them opaque (iputils
   cannot be included without big headages in bridge.hh at the moment). We could seperate
   NetmaskGroup, but I expect ComboAddress to not work as it is union.
+- Avoid unsafe? Can it be done?
 */
 
 use std::net::SocketAddr;
@@ -155,6 +154,7 @@ fn api_wrapper(
         header::HeaderValue::from_static("default-src 'self'; style-src 'self' 'unsafe-inline'"),
     );
 
+    // This calls into C++
     match handler(request, response) {
         Ok(_) => {}
         Err(_) => {
@@ -165,6 +165,7 @@ fn api_wrapper(
     }
 }
 
+// Data used by requests handlers, only counter is r/w.
 struct Context {
     urls: Vec<String>,
     password_ch: cxx::UniquePtr<rustweb::CredentialsHolder>,
@@ -173,6 +174,7 @@ struct Context {
     counter: Mutex<u32>,
 }
 
+// Serve a file
 fn file(ctx: &Context, method: &Method, path: &str, request: &rustweb::Request, response: &mut rustweb::Response)
 {
     let mut uripath = path;
@@ -184,6 +186,7 @@ fn file(ctx: &Context, method: &Method, path: &str, request: &rustweb::Request, 
         eprintln!("{} {} not found", method, uripath);
     }
 
+    // This calls into C++
     if rustweb::serveStuff(request, response).is_err() {
         // Return 404 not found response.
         response.status = StatusCode::NOT_FOUND.as_u16();
@@ -194,6 +197,7 @@ fn file(ctx: &Context, method: &Method, path: &str, request: &rustweb::Request, 
 
 type FileFunc = fn(ctx: &Context, method: &Method, path: &str, request: &rustweb::Request, response: &mut rustweb::Response);
 
+// Match a request and return the function that imlements it, this should probably be table based.
 fn matcher(method: &Method, path: &str, apifunc: &mut Option<Func>, rawfunc: &mut Option<Func>, filefunc: &mut Option<FileFunc>, allow_password: &mut bool, request: &mut rustweb::Request)
 {
     let path: Vec<_> = path.split('/').skip(1).collect();
@@ -255,6 +259,7 @@ fn matcher(method: &Method, path: &str, apifunc: &mut Option<Func>, rawfunc: &mu
     }
 }
 
+// This constructs the answer to an OPTIONS query
 fn collect_options(path: &str, response: &mut rustweb::Response)
 {
     let mut methods = vec!();
@@ -287,14 +292,17 @@ fn collect_options(path: &str, response: &mut rustweb::Response)
     response.headers.push(rustweb::KeyValue{key: String::from("content-type"), value: String::from("text/plain")});
 }
 
-async fn hello(
+// Main entry point after a request arrived
+async fn process_request(
     rust_request: Request<IncomingBody>,
     ctx: Arc<Context>
 ) -> MyResult<Response<BoxBody>> {
     {
+        // For demo purposes
         let mut counter = ctx.counter.lock().await;
         *counter += 1;
     }
+    // Convert  query part of URI into vars table
     let mut vars: Vec<rustweb::KeyValue> = vec![];
     if let Some(query) = rust_request.uri().query() {
         for (k, v) in form_urlencoded::parse(query.as_bytes()) {
@@ -309,6 +317,8 @@ async fn hello(
             vars.push(kv);
         }
     }
+
+    // Fill request and response structs wih default values.
     let mut request = rustweb::Request {
         body: vec![],
         uri: rust_request.uri().to_string(),
@@ -327,10 +337,11 @@ async fn hello(
     let mut allow_password = false;
     let mut rust_response = Response::builder();
 
-    if method == &Method::OPTIONS {
+    if method == Method::OPTIONS {
         collect_options(rust_request.uri().path(), &mut response);
     }
-    else{
+    else {
+        // Find the right fucntion implementing what the request wants
         matcher(&method, rust_request.uri().path(), &mut apifunc, &mut rawfunc, &mut filefunc, &mut allow_password, &mut request);
 
         if let Some(func) = apifunc {
@@ -338,6 +349,7 @@ async fn hello(
             if rust_request.method()== Method::POST || rust_request.method() == Method::PUT {
                 request.body = rust_request.collect().await?.to_bytes().to_vec();
             }
+            // This calls indirectly into C++
             api_wrapper(
                 &ctx,
                 func,
@@ -349,6 +361,7 @@ async fn hello(
             );
         }
         else if let Some(func) = rawfunc {
+            // Non-API func
             if func(&request, &mut response).is_err() {
                 let status =  StatusCode::UNPROCESSABLE_ENTITY; // 422
                 response.status = status.as_u16();
@@ -356,14 +369,17 @@ async fn hello(
             }
         }
         else if let Some(func) = filefunc {
+            // Server static file
             func(&ctx, &method, rust_request.uri().path(), &request, &mut response);
         }
     }
+    // Throw away body for HEAD call
     let mut body = full(response.body);
     if method == Method::HEAD {
         body = full(vec!());
     }
 
+    // Construct response based on what C++ gave us
     let mut rust_response = rust_response
         .status(StatusCode::from_u16(response.status).unwrap())
         .body(body)?;
@@ -408,14 +424,13 @@ async fn serveweb_async(listener: TcpListener, ctx: Arc<Context>) -> MyResult<()
         let fut =
             http1::Builder::new().serve_connection(io, service_fn(move |req| {
                 let ctx = Arc::clone(&ctx);
-                hello(req, ctx)
+                process_request(req, ctx)
             }));
 
-        // Spawn a tokio task to serve multiple connections concurrently
+        // Spawn a tokio task to serve the request
         tokio::task::spawn(async move {
-            // Finally, we bind the incoming connection to our `hello` service
-            if let Err(err) = fut.await
-            {
+            // Finally, we bind the incoming connection to our `process_request` service
+            if let Err(err) = fut.await {
                 eprintln!("Error serving connection: {:?}", err);
             }
         });
@@ -423,26 +438,26 @@ async fn serveweb_async(listener: TcpListener, ctx: Arc<Context>) -> MyResult<()
 }
 
 pub fn serveweb(addresses: &Vec<String>, urls: &[String], password_ch: cxx::UniquePtr<rustweb::CredentialsHolder>, api_ch: cxx::UniquePtr<rustweb::CredentialsHolder>, acl: cxx::UniquePtr<rustweb::NetmaskGroup>) -> Result<(), std::io::Error> {
-    // Context (R/O for now)
+    // Context, atomically reference counted
     let ctx = Arc::new(Context {
         urls: urls.to_vec(),
         password_ch,
         api_ch,
         acl,
-        counter: Mutex::new(0),
+        counter: Mutex::new(0), // more for educational purposes
     });
 
+    // We use a single thread to handle all the requests, letting the runtime abstracts from this
     let runtime = Builder::new_current_thread()
         .worker_threads(1)
         .thread_name("rec/web")
         .enable_io()
         .build()?;
 
+    // For each listening address we spawn a tokio handler an then a single Posix thread is created that
+    // waits (forever) for all of them to complete by joining them all.
     let mut set = JoinSet::new();
-
     for addr_str in addresses {
-        // Socket create and bind should happen here
-        //let addr = SocketAddr::from_str(addr_str);
         let addr = match SocketAddr::from_str(addr_str) {
             Ok(val) => val,
             Err(err) => {
@@ -476,6 +491,7 @@ pub fn serveweb(addresses: &Vec<String>, urls: &[String], password_ch: cxx::Uniq
     Ok(())
 }
 
+// impl below needed because the classes are used in the Context, which gets passed around.
 unsafe impl Send for rustweb::CredentialsHolder {}
 unsafe impl Sync for rustweb::CredentialsHolder {}
 unsafe impl Send for rustweb::NetmaskGroup {}
@@ -493,6 +509,7 @@ mod rustweb {
      * Functions callable from C++
      */
     extern "Rust" {
+        // The main entry point, This function will return, but will setup thread(s) to handle requests.
         fn serveweb(addreses: &Vec<String>, urls: &[String], pwch: UniquePtr<CredentialsHolder>, apikeych: UniquePtr<CredentialsHolder>, acl: UniquePtr<NetmaskGroup>) -> Result<()>;
     }
 

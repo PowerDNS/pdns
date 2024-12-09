@@ -990,6 +990,14 @@ void serveRustWeb()
     urls.emplace_back(url);
   }
   auto address = ComboAddress(arg()["webserver-address"], arg().asNum("webserver-port"));
+  ::rust::Vec<::rust::String> addressList{address.toStringWithPort()};
+
+  if (g_yamlSettings) {
+    auto addresses = g_yamlStruct.lock()->webservice.addresses;
+    if (addresses.size() != 1 || addresses.at(0) != "127.0.0.1:8082") {
+      addressList = std::move(addresses);
+    }
+  }
 
   auto passwordString = arg()["webserver-password"];
   std::unique_ptr<CredentialsHolder> password;
@@ -1005,7 +1013,7 @@ void serveRustWeb()
   acl.toMasks(::arg()["webserver-allow-from"]);
   auto aclPtr = std::make_unique<pdns::rust::web::rec::NetmaskGroup>(acl);
 
-  pdns::rust::web::rec::serveweb({::rust::String(address.toStringWithPort())}, ::rust::Slice<const ::rust::String>{urls.data(), urls.size()}, std::move(password), std::move(apikey), std::move(aclPtr));
+  pdns::rust::web::rec::serveweb(addressList, ::rust::Slice<const ::rust::String>{urls.data(), urls.size()}, std::move(password), std::move(apikey), std::move(aclPtr));
 }
 
 static void fromCxxToRust(const HttpResponse& cxxresp, pdns::rust::web::rec::Response& rustResponse)
@@ -1021,6 +1029,8 @@ static void fromCxxToRust(const HttpResponse& cxxresp, pdns::rust::web::rec::Res
   }
 }
 
+
+// Convert what we receive from Rust into C++ data, call funtions and convert results back to Rust data
 static void rustWrapper(const std::function<void(HttpRequest*, HttpResponse*)>& func, const pdns::rust::web::rec::Request& rustRequest, pdns::rust::web::rec::Response& rustResponse)
 {
   HttpRequest request;
