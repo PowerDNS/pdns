@@ -257,7 +257,7 @@ set-event-trace-enabled *NUM*
     ``2`` = log file, ``3`` = protobuf and log file.
 
 show-yaml [*FILE*]
-    Show Yaml representation of odl-style config.
+    Show Yaml representation of old-style config.
 
 top-queries
     Shows the top-20 queries. Statistics are over the last
