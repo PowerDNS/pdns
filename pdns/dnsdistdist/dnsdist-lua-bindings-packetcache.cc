@@ -28,8 +28,6 @@
 #include "dnsdist-cache.hh"
 #include "dnsdist-lua.hh"
 
-#include <boost/lexical_cast.hpp>
-
 void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
 {
   /* PacketCache */
