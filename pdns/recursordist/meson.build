@@ -274,7 +274,7 @@ py = import('python')
 python = py.find_installation('python3', required: true)
 
 metricfiles = custom_target(
-  command: [python, '@INPUT0@', '@SOURCE_ROOT@'],
+  command: [python, '@INPUT0@', '@SOURCE_ROOT@', '@BUILD_ROOT@'],
   input: metric_sources,
   output: [
           'rec-metrics-gen.h',
