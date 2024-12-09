@@ -221,11 +221,11 @@ public:
     const auto tied = std::tie(tv.tv_sec, tv.tv_usec);
     auto& idx = writes ? d_writeCallbacks.get<TTDOrderedTag>() : d_readCallbacks.get<TTDOrderedTag>();
 
-    for (auto it = idx.begin(); it != idx.end(); ++it) {
-      if (it->d_ttd.tv_sec == 0 || tied <= std::tie(it->d_ttd.tv_sec, it->d_ttd.tv_usec)) {
+    for (const auto& t : idx) {
+      if (t.d_ttd.tv_sec == 0 || tied <= std::tie(t.d_ttd.tv_sec, t.d_ttd.tv_usec)) {
         break;
       }
-      ret.emplace_back(it->d_fd, it->d_parameter);
+      ret.emplace_back(t.d_fd, t.d_parameter);
     }
 
     return ret;
