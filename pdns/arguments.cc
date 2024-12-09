@@ -111,7 +111,7 @@ bool ArgvMap::contains(const string& var, const string& val)
   vector<string> parts;
 
   stringtok(parts, param->second, ", \t");
-  return std::any_of(parts.begin(), parts.end(), [&](const std::string& str) { return str == val; });
+  return std::find(parts.begin(), parts.end(), val) != parts.end();
 }
 
 string ArgvMap::helpstring(string prefix)
