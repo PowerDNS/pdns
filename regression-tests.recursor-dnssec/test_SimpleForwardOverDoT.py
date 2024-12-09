@@ -1,3 +1,4 @@
+import pytest
 import dns
 import os
 import subprocess
@@ -27,6 +28,7 @@ devonly-regression-test-mode
         cls.generateRecursorConfig(confdir)
         cls.startRecursor(confdir, cls._recursorPort)
 
+    @pytest.mark.external
     def testA(self):
         expected = dns.rrset.from_text('dns.google.', 0, dns.rdataclass.IN, 'A', '8.8.8.8', '8.8.4.4')
         query = dns.message.make_query('dns.google', 'A', want_dnssec=True)
