@@ -2,6 +2,7 @@
 #include "config.h"
 #endif
 
+#include <algorithm>
 #include <boost/format.hpp>
 
 #include "utility.hh"
@@ -46,8 +47,7 @@ static uint8_t precsize_aton(const char **strptr)
       break;
 
   mantissa = cmval / poweroften[exponent];
-  if (mantissa > 9)
-    mantissa = 9;
+  mantissa = std::min(mantissa, 9);
 
   retval = (mantissa << 4) | exponent;
 
