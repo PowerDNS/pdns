@@ -133,7 +133,7 @@ This state can be modified from the various hooks.
 
   .. method:: DNSQuestion::getElapsedUs -> double
 
-     .. versionadded:: 2.0.0
+     .. versionadded:: 1.9.8
 
      Return the amount of time that has elapsed since the query was received.
 
