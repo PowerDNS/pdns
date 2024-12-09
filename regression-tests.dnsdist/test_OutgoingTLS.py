@@ -4,6 +4,7 @@ import requests
 import ssl
 import threading
 import time
+import os
 
 from dnsdisttests import DNSDistTest, pickAvailablePort
 
@@ -137,14 +138,20 @@ class BrokenOutgoingTLSTests(object):
         self.checkNoResponderHit()
 
 class TestOutgoingTLSOpenSSL(DNSDistTest, OutgoingTLSTests):
+    if os.path.exists("/tmp/dotkeys"):
+        os.remove("/tmp/dotkeys")
     _tlsBackendPort = pickAvailablePort()
     _config_params = ['_tlsBackendPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
     _config_template = """
     setMaxTCPClientThreads(1)
-    newServer{address="127.0.0.1:%s", tls='openssl', validateCertificates=true, caStore='ca.pem', subjectName='powerdns.com'}
+    newServer{address="127.0.0.1:%s", tls='openssl', validateCertificates=true, caStore='ca.pem', subjectName='powerdns.com', keyLogFile="/tmp/dotkeys"}
     webserver("127.0.0.1:%s")
     setWebserverConfig({password="%s", apiKey="%s"})
     """
+
+    def testZNonEmptyKeyfile(self):
+        self.assertTrue(os.path.exists("/tmp/dotkeys"))
+        self.assertTrue(os.path.getsize("/tmp/dotkeys") > 0)
 
     @staticmethod
     def sniCallback(sslSocket, sni, sslContext):

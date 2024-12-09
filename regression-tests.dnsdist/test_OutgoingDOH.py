@@ -6,6 +6,7 @@ import requests
 import ssl
 import threading
 import time
+import os
 
 from dnsdisttests import DNSDistTest, pickAvailablePort
 
@@ -263,6 +264,8 @@ class OutgoingDOHBrokenResponsesTests(object):
         self.assertEqual(response, receivedResponse)
 
 class TestOutgoingDOHOpenSSL(DNSDistTest, OutgoingDOHTests):
+    if os.path.exists("/tmp/dohkeys"):
+        os.remove("/tmp/dohkeys")
     _tlsBackendPort = pickAvailablePort()
     _tlsProvider = 'openssl'
     _consoleKey = DNSDistTest.generateConsoleKey()
@@ -272,7 +275,7 @@ class TestOutgoingDOHOpenSSL(DNSDistTest, OutgoingDOHTests):
     setKey("%s")
     controlSocket("127.0.0.1:%d")
     setMaxTCPClientThreads(1)
-    newServer{address="127.0.0.1:%s", tls='%s', validateCertificates=true, caStore='ca.pem', subjectName='powerdns.com', dohPath='/dns-query', pool={'', 'cache'}}:setUp()
+    newServer{address="127.0.0.1:%s", tls='%s', validateCertificates=true, caStore='ca.pem', subjectName='powerdns.com', dohPath='/dns-query', pool={'', 'cache'}, keyLogFile="/tmp/dohkeys"}:setUp()
     webserver("127.0.0.1:%s")
     setWebserverConfig({password="%s", apiKey="%s"})
 
@@ -282,6 +285,10 @@ class TestOutgoingDOHOpenSSL(DNSDistTest, OutgoingDOHTests):
     smn:add('cached.outgoing-doh.test.powerdns.com.')
     addAction(SuffixMatchNodeRule(smn), PoolAction('cache'))
     """
+
+    def testZNonEmptyKeyfile(self):
+        self.assertTrue(os.path.exists("/tmp/dohkeys"))
+        self.assertTrue(os.path.getsize("/tmp/dohkeys") > 0)
 
     @staticmethod
     def sniCallback(sslSocket, sni, sslContext):
