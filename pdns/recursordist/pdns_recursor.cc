@@ -2682,7 +2682,7 @@ static void handleNewUDPQuestion(int fileDesc, FDMultiplexer::funcparam_t& /* va
   t_Counters.updateSnap(g_regressionTestMode);
 }
 
-unsigned int makeUDPServerSockets(deferredAdd_t& deferredAdds, Logr::log_t log)
+unsigned int makeUDPServerSockets(deferredAdd_t& deferredAdds, Logr::log_t log, bool doLog, unsigned int instances)
 {
   int one = 1;
   vector<string> localAddresses;
@@ -2771,8 +2771,9 @@ unsigned int makeUDPServerSockets(deferredAdd_t& deferredAdds, Logr::log_t log)
 
     deferredAdds.emplace_back(socketFd, handleNewUDPQuestion);
     g_listenSocketsAddresses[socketFd] = address; // this is written to only from the startup thread, not from the workers
-    SLOG(g_log << Logger::Info << "Listening for UDP queries on " << address.toStringWithPort() << endl,
-         log->info(Logr::Info, "Listening for queries", "proto", Logging::Loggable("UDP"), "address", Logging::Loggable(address)));
+  }
+  if (doLog) {
+    log->info(Logr::Info, "Listening for queries", "proto", Logging::Loggable("UDP"), "addresses", Logging::IterLoggable(localAddresses.cbegin(), localAddresses.cend()), "socketInstances", Logging::Loggable(instances), "reuseport", Logging::Loggable(g_reusePort));
   }
   return localAddresses.size();
 }

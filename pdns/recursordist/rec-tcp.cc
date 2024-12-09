@@ -1086,7 +1086,7 @@ LWResult::Result arecvtcp(PacketBuffer& data, const size_t len, shared_ptr<TCPIO
   return LWResult::Result::Success;
 }
 
-unsigned int makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets, Logr::log_t log)
+unsigned int makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets, Logr::log_t log, bool doLog, unsigned int instances)
 {
   vector<string> localAddresses;
   stringtok(localAddresses, ::arg()["local-address"], " ,");
@@ -1186,12 +1186,13 @@ unsigned int makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tc
 
     // we don't need to update g_listenSocketsAddresses since it doesn't work for TCP/IP:
     //  - fd is not that which we know here, but returned from accept()
-    SLOG(g_log << Logger::Info << "Listening for TCP queries on " << address.toStringWithPort() << endl,
-         log->info(Logr::Info, "Listening for queries", "protocol", Logging::Loggable("TCP"), "address", Logging::Loggable(address)));
 
 #ifdef TCP_DEFER_ACCEPT
     first = false;
 #endif
+  }
+  if (doLog) {
+    log->info(Logr::Info, "Listening for queries", "protocol", Logging::Loggable("TCP"), "addresses", Logging::IterLoggable(localAddresses.cbegin(), localAddresses.cend()), "socketInstances", Logging::Loggable(instances), "reuseport", Logging::Loggable(g_reusePort));
   }
   return localAddresses.size();
 }
