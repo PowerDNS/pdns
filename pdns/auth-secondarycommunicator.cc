@@ -27,6 +27,7 @@
 #include "dnssecinfra.hh"
 #include "dnsseckeeper.hh"
 #include "base32.hh"
+#include <boost/range/algorithm_ext.hpp>
 #include <cerrno>
 #include "communicator.hh"
 #include <set>
@@ -490,12 +491,9 @@ void CommunicatorClass::ixfrSuck(const DNSName& domain, const TSIGTriplet& tt, c
           }
         }
         // O(N^2)!
-        rrset.erase(remove_if(rrset.begin(), rrset.end(),
-                              [&g](const DNSRecord& dr) {
-                                return count(g.second.first.cbegin(),
-                                             g.second.first.cend(), dr);
-                              }),
-                    rrset.end());
+        boost::range::remove_erase_if(rrset, [&g](const auto& dnsr) {
+          return std::find(g.second.first.begin(), g.second.first.end(), dnsr) != g.second.first.end();
+        });
         // the DNSRecord== operator compares on name, type, class and lowercase content representation
 
         for (const auto& x : g.second.second) {
