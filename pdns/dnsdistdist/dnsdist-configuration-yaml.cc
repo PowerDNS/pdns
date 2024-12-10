@@ -180,7 +180,8 @@ static bool handleTLSConfiguration(const dnsdist::rust::settings::BindsConfigura
     return false;
   }
 
-  if (bind.protocol == "DoT") {
+  auto protocol = boost::to_lower_copy(std::string(bind.protocol));
+  if (protocol == "dot") {
     auto frontend = std::make_shared<TLSFrontend>(TLSFrontend::ALPN::DoT);
     frontend->d_provider = std::string(bind.tls.provider);
     boost::algorithm::to_lower(frontend->d_provider);
@@ -188,7 +189,7 @@ static bool handleTLSConfiguration(const dnsdist::rust::settings::BindsConfigura
     frontend->d_tlsConfig = std::move(tlsConfig);
     state.tlsFrontend = std::move(frontend);
   }
-  else if (bind.protocol == "DoQ") {
+  else if (protocol == "doq") {
     auto frontend = std::make_shared<DOQFrontend>();
     frontend->d_local = ComboAddress(std::string(bind.listen_address), 853);
     frontend->d_quicheParams.d_tlsConfig = std::move(tlsConfig);
@@ -201,7 +202,7 @@ static bool handleTLSConfiguration(const dnsdist::rust::settings::BindsConfigura
     frontend->d_internalPipeBufferSize = bind.quic.internal_pipe_buffer_size;
     state.doqFrontend = std::move(frontend);
   }
-  else if (bind.protocol == "DoH3") {
+  else if (protocol == "doh3") {
     auto frontend = std::make_shared<DOH3Frontend>();
     frontend->d_local = ComboAddress(std::string(bind.listen_address), 853);
     frontend->d_quicheParams.d_tlsConfig = std::move(tlsConfig);
@@ -213,7 +214,7 @@ static bool handleTLSConfiguration(const dnsdist::rust::settings::BindsConfigura
     frontend->d_internalPipeBufferSize = bind.quic.internal_pipe_buffer_size;
     state.doh3Frontend = std::move(frontend);
   }
-  else if (bind.protocol == "DoH") {
+  else if (protocol == "doh") {
     auto frontend = std::make_shared<DOHFrontend>();
     frontend->d_tlsContext.d_provider = std::string(bind.tls.provider);
     boost::algorithm::to_lower(frontend->d_tlsContext.d_provider);
@@ -267,6 +268,10 @@ static bool handleTLSConfiguration(const dnsdist::rust::settings::BindsConfigura
     frontend->d_tlsContext.d_proxyProtocolOutsideTLS = bind.tls.proxy_protocol_outside_tls;
     frontend->d_tlsContext.d_tlsConfig = std::move(tlsConfig);
     state.dohFrontend = std::move(frontend);
+  }
+  else if (protocol != "do53") {
+    errlog("Bind %s is configured to use an unknown protocol ('%s')", bind.listen_address, protocol);
+    return false;
   }
 
   return true;
@@ -357,9 +362,8 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dns
 
   uint16_t serverPort = 53;
   const auto& tlsConf = config.tls;
-  if (!tlsConf.provider.empty()) {
-    serverPort = 853;
-    backendConfig.d_tlsParams.d_alpn = TLSFrontend::ALPN::DoT;
+  auto protocol = boost::to_lower_copy(std::string(config.protocol));
+  if (protocol == "dot" || protocol == "doh") {
     backendConfig.d_tlsParams.d_provider = std::string(tlsConf.provider);
     backendConfig.d_tlsParams.d_ciphers = std::string(tlsConf.ciphers);
     backendConfig.d_tlsParams.d_ciphers13 = std::string(tlsConf.ciphers_tls_13);
@@ -379,13 +383,17 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dns
         errlog("Error creating new server: downstream subject_address value must be a valid IP address");
       }
     }
+  }
 
-    if (!config.doh.path.empty()) {
-      serverPort = 443;
-      backendConfig.d_dohPath = std::string(config.doh.path);
-      backendConfig.d_tlsParams.d_alpn = TLSFrontend::ALPN::DoH;
-      backendConfig.d_addXForwardedHeaders = config.doh.add_x_forwarded_headers;
-    }
+  if (protocol == "dot") {
+    serverPort = 853;
+    backendConfig.d_tlsParams.d_alpn = TLSFrontend::ALPN::DoT;
+  }
+  else if (protocol == "doh") {
+    serverPort = 443;
+    backendConfig.d_tlsParams.d_alpn = TLSFrontend::ALPN::DoH;
+    backendConfig.d_dohPath = std::string(config.doh.path);
+    backendConfig.d_addXForwardedHeaders = config.doh.add_x_forwarded_headers;
   }
 
   for (const auto& pool : config.pools) {
@@ -455,9 +463,10 @@ bool loadConfigurationFromFile(const std::string& fileName, bool isClient, bool 
     for (const auto& bind : globalConfig.binds) {
       ComboAddress listeningAddress(std::string(bind.listen_address), 53);
       updateImmutableConfiguration([&bind, listeningAddress](ImmutableConfiguration& config) {
+        auto protocol = boost::to_lower_copy(std::string(bind.protocol));
+        auto cpus = getCPUPiningFromStr("binds", std::string(bind.cpus));
         for (size_t idx = 0; idx < bind.threads; idx++) {
-          auto cpus = getCPUPiningFromStr("binds", std::string(bind.cpus));
-          auto state = std::make_shared<ClientState>(listeningAddress, bind.protocol != "DoQ", bind.reuseport, bind.tcp.fast_open_queue_size, std::string(bind.interface), cpus, false);
+          auto state = std::make_shared<ClientState>(listeningAddress, protocol != "doq", bind.reuseport, bind.tcp.fast_open_queue_size, std::string(bind.interface), cpus, false);
           if (bind.tcp.listen_queue_size > 0) {
             state->tcpListenQueueSize = bind.tcp.listen_queue_size;
           }
@@ -474,18 +483,18 @@ bool loadConfigurationFromFile(const std::string& fileName, bool isClient, bool 
               state->d_additionalAddresses.emplace_back(address, -1);
             }
             catch (const PDNSException& e) {
-              errlog("Unable to parse additional address %s for %s bind: %s", std::string(addr), bind.protocol, e.reason);
+              errlog("Unable to parse additional address %s for %s bind: %s", std::string(addr), protocol, e.reason);
             }
           }
 
-          if (bind.protocol != "Do53") {
+          if (protocol != "do53") {
             if (!handleTLSConfiguration(bind, *state)) {
               continue;
             }
           }
 
           config.d_frontends.emplace_back(std::move(state));
-          if (bind.protocol == "Do53") {
+          if (protocol == "do53") {
             /* also create the UDP listener */
             state = std::make_shared<ClientState>(ComboAddress(std::string(bind.listen_address), 53), false, bind.reuseport, bind.tcp.fast_open_queue_size, std::string(bind.interface), cpus, false);
             config.d_frontends.emplace_back(std::move(state));
