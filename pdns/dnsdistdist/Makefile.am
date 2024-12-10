@@ -111,6 +111,7 @@ EXTRA_DIST=COPYING \
 	   dnsdist-rules-generator.py \
 	   dnsdist-actions-definitions.yml \
 	   dnsdist-response-actions-definitions.yml \
+	   dnsdist-rust-bridge.hh \
 	   dnsdist-selectors-definitions.yml \
 	   dnslabeltext.rl \
 	   dnsdist.conf-dist \
