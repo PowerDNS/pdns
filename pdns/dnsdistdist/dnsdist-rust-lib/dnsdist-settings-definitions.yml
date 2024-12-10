@@ -218,9 +218,11 @@ console:
   parameters:
     - name: "listen-address"
       type: "String"
+      default: ""
       description: "IP address and port to listen on for console connections"
     - name: "key"
       type: "String"
+      default: ""
       description: "The shared secret used to secure connections between the console client and the server, generated via ``makeKey()``"
     - name: "acl"
       type: "Vec<String>"

@@ -159,6 +159,17 @@ def gen_rust_default_functions(rust_type, default, name):
     ret += '}\n\n'
     return ret
 
+def write_rust_default_trait_impl(struct):
+    """Generate Rust code for the default Trait for a structure"""
+    result = ''
+    result += f'impl Default for dnsdistsettings::{struct} {{\n'
+    result += '    fn default() -> Self {\n'
+    result += f'        let deserialized: dnsdistsettings::{struct} = serde_yaml::from_str("").unwrap();\n'
+    result += '        deserialized\n'
+    result += '    }\n'
+    result += '}\n\n'
+    return result
+
 def get_rust_serde_annotations(rust_type, default, rename, obj, field, default_functions):
     rename_value = f'rename = "{rename}", ' if rename else ''
     if default is None:
@@ -212,7 +223,7 @@ def get_rust_struct_from_definition(name, keys, default_functions, indent_spaces
     name_field = ''
     output = ''
     if not 'skip-serde' in keys or not keys['skip-serde']:
-        output += f'''{indent}#[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
+        output += f'''{indent}#[derive(Deserialize, Serialize, Debug, PartialEq)]
 {indent}#[serde(deny_unknown_fields)]
 '''
 
@@ -225,6 +236,8 @@ def get_rust_struct_from_definition(name, keys, default_functions, indent_spaces
 {indent}name: String,\n'''
     output += get_rust_struct_fields_from_definition(name, keys, default_functions, indent_spaces)
     output += '    }\n'
+    if not 'skip-serde' in keys or not keys['skip-serde']:
+        default_functions.append(write_rust_default_trait_impl(f'{obj_name}Configuration'))
     return output
 
 def should_validate_type(rust_type):
@@ -366,7 +379,7 @@ def generate_actions_config(output, response, default_functions):
         name = get_rust_object_name(action['name'])
         struct_name = f'{name}{suffix}Configuration'
         indent = ' ' * 4
-        action_buffer += f'''{indent}#[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
+        action_buffer += f'''{indent}#[derive(Deserialize, Serialize, Debug, PartialEq)]
 {indent}#[serde(deny_unknown_fields)]
 {indent}struct {struct_name} {{\n'''
 
@@ -389,7 +402,7 @@ def generate_selectors_config(output, default_functions):
         struct_name = f'{name}{suffix}Configuration'
         indent = ' ' * 4
         if not 'skip-serde' in selector or not selector['skip-serde']:
-            selector_buffer += f'''{indent}#[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
+            selector_buffer += f'''{indent}#[derive(Deserialize, Serialize, Debug, PartialEq)]
 {indent}#[serde(deny_unknown_fields)]\n'''
         else:
             selector_buffer += f'{indent}#[derive(Default)]\n'
@@ -747,7 +760,7 @@ def handle_sub_structures(generated_fp, sections, definitions, global_objects, v
         section_name = get_rust_object_name(section)
         # generate the first-level structure that is directly under 'global'
         section_struct_parameters = []
-        generated_fp.write(f'''    #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
+        generated_fp.write(f'''    #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
     struct {section_name}Configuration {{\n''')
         for definition_name, keys in definitions.items():
@@ -762,6 +775,7 @@ def handle_sub_structures(generated_fp, sections, definitions, global_objects, v
 
         generated_fp.write('    }\n')
         validation_functions.append(get_struct_validation_function_from_definition(section_name, section_struct_parameters))
+        validation_functions.append(write_rust_default_trait_impl(f'{section_name}Configuration'))
 
 def get_temporary_file_for_generated_code(directory):
     generated_fp = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8', dir=directory, delete=False)
@@ -830,7 +844,7 @@ def main():
     generate_rust_selectors_enum(generated_fp)
 
     # then the Serde one
-    generated_fp.write('''#[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
+    generated_fp.write('''#[derive(Deserialize, Serialize, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
 struct GlobalConfigurationSerde {\n''')
     for obj, names in global_objects.items():
