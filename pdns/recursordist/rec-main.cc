@@ -1891,7 +1891,8 @@ static unsigned int initDistribution(Logr::log_t log)
       for (unsigned int i = 0; i < RecThreadInfo::numDistributors(); i++, threadNum++) {
         auto& info = RecThreadInfo::info(threadNum);
         auto& deferredAdds = info.getDeferredAdds();
-        count += makeUDPServerSockets(deferredAdds, log);
+        // The two last arguments to make{UDP,TCP}ServerSockets are used for logging purposes only, same for calls below
+        count += makeUDPServerSockets(deferredAdds, log, i == RecThreadInfo::numDistributors() - 1, RecThreadInfo::numDistributors());
       }
     }
     else {
@@ -1899,7 +1900,7 @@ static unsigned int initDistribution(Logr::log_t log)
       for (unsigned int i = 0; i < RecThreadInfo::numUDPWorkers(); i++, threadNum++) {
         auto& info = RecThreadInfo::info(threadNum);
         auto& deferredAdds = info.getDeferredAdds();
-        count += makeUDPServerSockets(deferredAdds, log);
+        count += makeUDPServerSockets(deferredAdds, log, i == RecThreadInfo::numUDPWorkers() - 1, RecThreadInfo::numUDPWorkers());
       }
     }
     threadNum = 1 + RecThreadInfo::numDistributors() + RecThreadInfo::numUDPWorkers();
@@ -1907,15 +1908,15 @@ static unsigned int initDistribution(Logr::log_t log)
       auto& info = RecThreadInfo::info(threadNum);
       auto& deferredAdds = info.getDeferredAdds();
       auto& tcpSockets = info.getTCPSockets();
-      count += makeTCPServerSockets(deferredAdds, tcpSockets, log);
+      count += makeTCPServerSockets(deferredAdds, tcpSockets, log, i == RecThreadInfo::numTCPWorkers() - 1, RecThreadInfo::numTCPWorkers());
     }
   }
   else {
     std::set<int> tcpSockets;
     /* we don't have reuseport so we can only open one socket per
        listening addr:port and everyone will listen on it */
-    count += makeUDPServerSockets(s_deferredUDPadds, log);
-    count += makeTCPServerSockets(s_deferredTCPadds, tcpSockets, log);
+    count += makeUDPServerSockets(s_deferredUDPadds, log, true, 1);
+    count += makeTCPServerSockets(s_deferredTCPadds, tcpSockets, log, true, 1);
 
     // TCP queries are handled by TCP workers
     for (unsigned int i = 0; i < RecThreadInfo::numTCPWorkers(); i++) {
