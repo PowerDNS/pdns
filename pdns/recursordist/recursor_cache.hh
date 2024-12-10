@@ -78,12 +78,22 @@ public:
   // are optimizations: an empty vector will be stored as a nullptr, but get() will return a pointer
   // to an already existing empty vector in that case, this is more convenient for the caller, since
   // it avoid checking for nullptr, just iterate as for the non-empty case.
+  //
+  // get() will return a shared vector to a const vector of shared pointers. Only a single shared
+  // pointer gets copied, while earlier code would copy all shared pointer in the vector.
+  //
+  // In the current SyncRes code, AuthRecs never get appended to a non-empty vector while SigRecs do
+  // get appended in some cases; the handleHit() code will take measures. In the futrue we might
+  // want a more specialized datastructure than a vector, it would require another level of
+  // indirection though, so for now we construct a new shared vector if appending is needed. See
+  // handleHit() for details.
   using AuthRecsVec = std::vector<DNSRecord>;
   using AuthRecs = std::shared_ptr<const AuthRecsVec>; // const to avoid modifying the vector, which would be bad for shared data
   const static AuthRecs s_emptyAuthRecs;
 
+  // Use same setup as AuthRecs.
   using SigRecsVec = std::vector<std::shared_ptr<const RRSIGRecordContent>>;
-  using SigRecs = std::shared_ptr<const SigRecsVec>;
+  using SigRecs = std::shared_ptr<const SigRecsVec>; // Also const as it is shared
   const static SigRecs s_emptySigRecs;
 
   [[nodiscard]] time_t get(time_t, const DNSName& qname, QType qtype, Flags flags, vector<DNSRecord>* res, const ComboAddress& who, const OptTag& routingTag = boost::none, SigRecs* signatures = nullptr, AuthRecs* authorityRecs = nullptr, bool* variable = nullptr, vState* state = nullptr, bool* wasAuth = nullptr, DNSName* fromAuthZone = nullptr, ComboAddress* fromAuthIP = nullptr);

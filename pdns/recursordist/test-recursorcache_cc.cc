@@ -1432,11 +1432,11 @@ struct NOPTest
   }
 };
 
-struct AuthRecordsTest
+struct RecordsSpeedTest
 {
   [[nodiscard]] static string getName()
   {
-    return "AuthRecordsTest";
+    return "RecordsSpeedTest";
   }
 
   void operator()() const
@@ -1455,6 +1455,9 @@ struct AuthRecordsTest
     authRecords.emplace_back(dr);
     time_t now = time(nullptr);
     time_t ttd = now + 30;
+
+    MemRecursorCache::SigRecsVec signatures;
+    signatures.emplace_back(std::dynamic_pointer_cast<RRSIGRecordContent>(RRSIGRecordContent::make("DNSKEY 8 0 172800 20241111000000 20241021000000 20326 . alCFgDZS+0l5zcpQ/7R+5OFeCrk9KGkNP2F9ynXIXG6QigPj/9qjm0xx ItRJUUim+SrJywAmLKe+48oTUeSRyDKVVg3LGDekLKcIVz0EBqTL2y44 usDlUlxqx5O0LQVHy4h/hm9+dCXFiSBWoV0LcAplV9OYWhxi+CxmxZU5 8vK6eVAde8E2JHdeDuy23WF5lxYEg1q7ehEt5EdRvZ7hZzfawEFR3Qv3 WMootO2eBAAneIe94daJP/i1iwQJ4p+bGVCZ4sJk+Pk9J7lwEQq6Ghkd SpLsRxArUhvoVgtnh0LkAV7TsajYk8K2JRt7wHNDbBV6+Vdq2bh7ZPGv LiGkIQ==")));
 
     DNSName power("powerdns.com.");
     DNSRecord dr0;
@@ -1477,7 +1480,7 @@ struct AuthRecordsTest
       DNSName a = DNSName("hello ") + DNSName(std::to_string(counter));
       BOOST_CHECK_EQUAL(DNSName(a.toString()), a);
 
-      MRC.replace(now, a, QType(QType::A), rset0, {}, authRecords, true, authZone, boost::none, boost::none, vState::Insecure, somebody, false, ttl_time);
+      MRC.replace(now, a, QType(QType::A), rset0, signatures, authRecords, true, authZone, boost::none, boost::none, vState::Insecure, somebody, false, ttl_time);
     }
 
     BOOST_CHECK_EQUAL(MRC.size(), expected);
@@ -1489,7 +1492,7 @@ struct AuthRecordsTest
       for (size_t counter = 0; counter < expected; ++counter) {
         std::vector<DNSRecord> retrieved;
         MemRecursorCache::AuthRecs authRecs;
-        std::vector<std::shared_ptr<const RRSIGRecordContent>> sigs;
+        MemRecursorCache::SigRecs sigs;
         bool variable = false;
         vState state = vState::Indeterminate;
         bool wasAuth = false;
@@ -1507,7 +1510,7 @@ struct AuthRecordsTest
 BOOST_AUTO_TEST_CASE(test_speed)
 {
   doRun(NOPTest());
-  doRun(AuthRecordsTest());
+  doRun(RecordsSpeedTest());
 }
 #endif
 
