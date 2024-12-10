@@ -2,7 +2,9 @@ CARGO ?= cargo
 
 EXTRA_DIST = \
 	Cargo.toml \
-	Cargo.lock
+	Cargo.lock \
+	build.rs \
+	src/helpers.rs
 
 if HAVE_YAML_CONFIGURATION
 all install: libdnsdist_rust.a
