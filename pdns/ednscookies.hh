@@ -20,8 +20,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
-#include "namespaces.hh"
-#include "iputils.hh"
+
+#include <string>
+
+union ComboAddress;
 
 struct EDNSCookiesOpt
 {
@@ -35,38 +37,39 @@ struct EDNSCookiesOpt
   bool makeFromString(const std::string& option);
   bool makeFromString(const char* option, unsigned int len);
 
-  size_t size() const
+  [[nodiscard]] size_t size() const
   {
     return server.size() + client.size();
   }
 
-  bool isWellFormed() const
+  [[nodiscard]] bool isWellFormed() const
   {
     // RFC7873 section 5.2.2
     //    In summary, valid cookie lengths are 8 and 16 to 40 inclusive.
+    // That's the total size. We account for client and server size seperately
     return (
-      client.size() == 8 && (server.size() == 0 || (server.size() >= 8 && server.size() <= 32)));
+      client.size() == 8 && (server.empty() || (server.size() >= 8 && server.size() <= 32)));
   }
 
-  bool isValid(const string& secret, const ComboAddress& source) const;
-  bool makeServerCookie(const string& secret, const ComboAddress& source);
-  string makeOptString() const;
-  string getServer() const
+  [[nodiscard]] bool isValid(const std::string& secret, const ComboAddress& source) const;
+  bool makeServerCookie(const std::string& secret, const ComboAddress& source);
+  [[nodiscard]] std::string makeOptString() const;
+  [[nodiscard]] std::string getServer() const
   {
     return server;
   }
-  string getClient() const
+  [[nodiscard]] std::string getClient() const
   {
     return client;
   }
 
 private:
-  bool shouldRefresh() const;
+  [[nodiscard]] bool shouldRefresh() const;
 
   // the client cookie
-  string client;
+  std::string client;
   // the server cookie
-  string server;
+  std::string server;
 
   void getEDNSCookiesOptFromString(const char* option, unsigned int len);
 };

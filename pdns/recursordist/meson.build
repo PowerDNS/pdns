@@ -107,6 +107,7 @@ common_sources += files(
   src_dir / 'dnsrecords.cc',
   src_dir / 'dnssecinfra.cc',
   src_dir / 'dnswriter.cc',
+  src_dir / 'ednscookies.cc',
   src_dir / 'ednsextendederror.cc',
   src_dir / 'ednsoptions.cc',
   src_dir / 'ednspadding.cc',
@@ -445,7 +446,6 @@ tools = {
 
 test_sources = []
 test_sources += files(
-      src_dir / 'ednscookies.cc',
       src_dir / 'test-aggressive_nsec_cc.cc',
       src_dir / 'test-arguments_cc.cc',
       src_dir / 'test-base32_cc.cc',
@@ -457,6 +457,7 @@ test_sources += files(
       src_dir / 'test-dnsparser_hh.cc',
       src_dir / 'test-dnsrecordcontent.cc',
       src_dir / 'test-dnsrecords_cc.cc',
+      src_dir / 'test-ednscookie_cc.cc',
       src_dir / 'test-ednsoptions_cc.cc',
       src_dir / 'test-filterpo_cc.cc',
       src_dir / 'test-histogram_hh.cc',
