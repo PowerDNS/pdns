@@ -1891,6 +1891,7 @@ static unsigned int initDistribution(Logr::log_t log)
       for (unsigned int i = 0; i < RecThreadInfo::numDistributors(); i++, threadNum++) {
         auto& info = RecThreadInfo::info(threadNum);
         auto& deferredAdds = info.getDeferredAdds();
+        // The two last arguments to make{UDP,TCP}ServerSockets are used for logging purposes only, same for calls below
         count += makeUDPServerSockets(deferredAdds, log, i == RecThreadInfo::numDistributors() - 1, RecThreadInfo::numDistributors());
       }
     }

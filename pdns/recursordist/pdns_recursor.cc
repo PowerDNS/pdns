@@ -2682,6 +2682,7 @@ static void handleNewUDPQuestion(int fileDesc, FDMultiplexer::funcparam_t& /* va
   t_Counters.updateSnap(g_regressionTestMode);
 }
 
+// The two last arguments to makeUDPServerSockets are used for logging purposes only
 unsigned int makeUDPServerSockets(deferredAdd_t& deferredAdds, Logr::log_t log, bool doLog, unsigned int instances)
 {
   int one = 1;

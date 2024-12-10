@@ -1086,6 +1086,7 @@ LWResult::Result arecvtcp(PacketBuffer& data, const size_t len, shared_ptr<TCPIO
   return LWResult::Result::Success;
 }
 
+// The two last arguments to makeTCPServerSockets are used for logging purposes only
 unsigned int makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets, Logr::log_t log, bool doLog, unsigned int instances)
 {
   vector<string> localAddresses;
