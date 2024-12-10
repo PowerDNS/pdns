@@ -3,9 +3,9 @@
 #include <memory>
 #include <string>
 
-struct DNSAction;
-struct DNSResponseAction;
-struct DNSRule;
+class DNSAction;
+class DNSResponseAction;
+class DNSRule;
 
 #include "rust/cxx.h"
 
