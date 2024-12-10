@@ -652,7 +652,6 @@ def ci_dnsdist_configure(c, features):
     unittests = get_unit_tests()
     fuzztargets = get_fuzzing_targets()
     tools = f'''AR=llvm-ar-{clang_version} RANLIB=llvm-ranlib-{clang_version}''' if is_compiler_clang() else ''
-    additional_flags += '-fuse-ld=lld'
     configure_cmd = " ".join([
         tools,
         get_base_configure_cmd(additional_c_flags='', additional_cxx_flags=additional_flags, enable_systemd=False, enable_sodium=False),
