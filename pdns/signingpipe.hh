@@ -49,8 +49,8 @@ public:
   unsigned int getReady() const;
 
   std::atomic<unsigned long> d_signed;
-  unsigned int d_queued;
-  unsigned int d_outstanding;
+  unsigned int d_queued{0};
+  unsigned int d_outstanding{0};
 
 private:
   void flushToSign();	
@@ -63,7 +63,7 @@ private:
   void worker(int fd);
 
   unsigned int d_numworkers;
-  unsigned int d_submitted;
+  unsigned int d_submitted{0};
 
   std::unique_ptr<rrset_t> d_rrsetToSign;
   std::deque< std::vector<DNSZoneRecord> > d_chunks;
@@ -77,5 +77,5 @@ private:
 
   vector<std::thread> d_threads;
   bool d_mustSign;
-  bool d_final;
+  bool d_final{false};
 };

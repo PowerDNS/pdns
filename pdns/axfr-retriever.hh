@@ -51,6 +51,6 @@ class AXFRRetriever : public boost::noncopyable
     TSIGRecordContent d_trc;
     TSIGTCPVerifier d_tsigVerifier;
 
-    size_t d_receivedBytes;
+    size_t d_receivedBytes{0};
     size_t d_maxReceivedBytes;
 };

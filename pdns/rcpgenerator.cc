@@ -36,7 +36,8 @@
 #include "base64.hh"
 #include "namespaces.hh"
 
-RecordTextReader::RecordTextReader(string  str, DNSName  zone) : d_string(std::move(str)), d_zone(std::move(zone)), d_pos(0)
+RecordTextReader::RecordTextReader(string str, DNSName zone) :
+  d_string(std::move(str)), d_zone(std::move(zone))
 {
    /* remove whitespace */
    if(!d_string.empty() && ( dns_isspace(*d_string.begin()) || dns_isspace(*d_string.rbegin()) ))

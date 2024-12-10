@@ -31,11 +31,11 @@ using pdns::resolver::parseResult;
 
 AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
                              const DNSName& domain,
-                             const TSIGTriplet& tt, 
+                             const TSIGTriplet& tt,
                              const ComboAddress* laddr,
                              size_t maxReceivedBytes,
-                             uint16_t timeout)
-  : d_buf(65536), d_tsigVerifier(tt, remote, d_trc), d_receivedBytes(0), d_maxReceivedBytes(maxReceivedBytes)
+                             uint16_t timeout) :
+  d_buf(65536), d_tsigVerifier(tt, remote, d_trc), d_maxReceivedBytes(maxReceivedBytes)
 {
   ComboAddress local;
   if (laddr != nullptr) {

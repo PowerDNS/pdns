@@ -60,10 +60,11 @@ private:
   unsigned makeTTLFromZone(const std::string& str);
 
   struct filestate {
-    filestate(FILE* fp, string filename) : d_fp(fp), d_filename(std::move(filename)), d_lineno(0){}
+    filestate(FILE* fp, string filename) :
+      d_fp(fp), d_filename(std::move(filename)) {}
     FILE *d_fp;
     string d_filename;
-    int d_lineno;
+    int d_lineno{0};
   };
 
   parts_t d_parts;

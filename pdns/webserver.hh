@@ -289,7 +289,7 @@ protected:
   std::unique_ptr<CredentialsHolder> d_webserverPassword{nullptr};
 
   ssize_t d_maxbodysize; // in bytes
-  int d_connectiontimeout; // in seconds
+  int d_connectiontimeout{5}; // in seconds
 
   NetmaskGroup d_acl;
 

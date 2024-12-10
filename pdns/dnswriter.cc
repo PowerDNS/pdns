@@ -40,9 +40,9 @@
 
 */
 
-
-template <typename Container> GenericDNSPacketWriter<Container>::GenericDNSPacketWriter(Container& content, const DNSName& qname, uint16_t  qtype, uint16_t qclass, uint8_t opcode)
-  : d_content(content), d_qname(qname), d_canonic(false), d_lowerCase(false)
+template <typename Container>
+GenericDNSPacketWriter<Container>::GenericDNSPacketWriter(Container& content, const DNSName& qname, uint16_t qtype, uint16_t qclass, uint8_t opcode) :
+  d_content(content), d_qname(qname)
 {
   d_content.clear();
   dnsheader dnsheader;

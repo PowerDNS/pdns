@@ -70,9 +70,6 @@ protected:
   };
 
 public:
-  FDMultiplexer() :
-    d_inrun(false)
-  {}
   virtual ~FDMultiplexer() = default;
 
   // The maximum number of events processed in a single run, not the maximum of watched descriptors
@@ -296,7 +293,7 @@ protected:
     callbackmap_t;
 
   callbackmap_t d_readCallbacks, d_writeCallbacks;
-  bool d_inrun;
+  bool d_inrun{false};
 
   void accountingAddFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const funcparam_t& parameter, const struct timeval* ttd)
   {

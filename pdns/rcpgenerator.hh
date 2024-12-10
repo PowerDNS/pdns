@@ -77,7 +77,7 @@ public:
 private:
   string d_string;
   DNSName d_zone;
-  string::size_type d_pos;
+  string::size_type d_pos{0};
   string::size_type d_end;
   void skipSpaces();
 };
