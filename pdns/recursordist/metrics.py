@@ -36,7 +36,8 @@ with open(srcdir + '/metrics_table.py', mode='r', encoding="utf-8") as file:
     table = eval(file.read())
 
 #
-# We create various files in the srcdir but copy them into the buildir if needed to satisfy meson
+# We create various files in the srcdir but copy them into the builddir if needed to satisfy meson
+# FIXME: only generate in builddir once autotools have been dropped
 #
 with open(srcdir + '/rec-oids-gen.h', 'w', encoding='utf-8') as file:
     file.write('// THIS IS A GENERATED FILE. DO NOT EDIT. SOURCE metrics.py AND metrics_table.py\n')
