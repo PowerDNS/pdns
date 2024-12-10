@@ -100,6 +100,18 @@ mod dnsdistsettings {
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
+    struct DnstapLogActionConfiguration {
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        name: String,
+        identity: String,
+        #[serde(rename = "logger-name", )]
+        logger_name: String,
+        #[serde(rename = "alter-function", default, skip_serializing_if = "crate::is_default")]
+        alter_function: String,
+    }
+
+    #[derive(Deserialize, Serialize, Debug, PartialEq)]
+    #[serde(deny_unknown_fields)]
     struct DropActionConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
@@ -270,6 +282,25 @@ mod dnsdistsettings {
         rcode: u8,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         vars: ResponseConfig,
+    }
+
+    #[derive(Deserialize, Serialize, Debug, PartialEq)]
+    #[serde(deny_unknown_fields)]
+    struct RemoteLogActionConfiguration {
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        name: String,
+        #[serde(rename = "logger-name", )]
+        logger_name: String,
+        #[serde(rename = "alter-function", default, skip_serializing_if = "crate::is_default")]
+        alter_function: String,
+        #[serde(rename = "server-id", default, skip_serializing_if = "crate::is_default")]
+        server_id: String,
+        #[serde(rename = "ip-encrypt-key", default, skip_serializing_if = "crate::is_default")]
+        ip_encrypt_key: String,
+        #[serde(rename = "export-tags", default, skip_serializing_if = "crate::is_default")]
+        export_tags: Vec<String>,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        metas: Vec<ProtoBufMetaConfiguration>,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
@@ -458,6 +489,18 @@ mod dnsdistsettings {
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
+    struct DnstapLogResponseActionConfiguration {
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        name: String,
+        identity: String,
+        #[serde(rename = "logger-name", )]
+        logger_name: String,
+        #[serde(rename = "alter-function", default, skip_serializing_if = "crate::is_default")]
+        alter_function: String,
+    }
+
+    #[derive(Deserialize, Serialize, Debug, PartialEq)]
+    #[serde(deny_unknown_fields)]
     struct DropResponseActionConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
@@ -513,6 +556,29 @@ mod dnsdistsettings {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
         code: String,
+    }
+
+    #[derive(Deserialize, Serialize, Debug, PartialEq)]
+    #[serde(deny_unknown_fields)]
+    struct RemoteLogResponseActionConfiguration {
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        name: String,
+        #[serde(rename = "logger-name", )]
+        logger_name: String,
+        #[serde(rename = "alter-function", default, skip_serializing_if = "crate::is_default")]
+        alter_function: String,
+        #[serde(rename = "server-id", default, skip_serializing_if = "crate::is_default")]
+        server_id: String,
+        #[serde(rename = "ip-encrypt-key", default, skip_serializing_if = "crate::is_default")]
+        ip_encrypt_key: String,
+        #[serde(rename = "include-cname", default, skip_serializing_if = "crate::is_default")]
+        include_cname: bool,
+        #[serde(rename = "export-tags", default, skip_serializing_if = "crate::is_default")]
+        export_tags: Vec<String>,
+        #[serde(rename = "export-extended-errors-to-meta", default, skip_serializing_if = "crate::is_default")]
+        export_extended_errors_to_meta: String,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        metas: Vec<ProtoBufMetaConfiguration>,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
@@ -988,6 +1054,13 @@ mod dnsdistsettings {
     struct TrailingDataSelectorConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
+    }
+
+    #[derive(Deserialize, Serialize, Debug, PartialEq)]
+    #[serde(deny_unknown_fields)]
+    struct ProtoBufMetaConfiguration {
+        key: String,
+        value: String,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
@@ -1831,9 +1904,9 @@ mod dnsdistsettings {
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
     struct RemoteLoggingConfiguration {
-        #[serde(default, skip_serializing_if = "crate::is_default")]
+        #[serde(rename = "protobuf-loggers", default, skip_serializing_if = "crate::is_default")]
         protobuf_loggers: Vec<ProtobufLoggersConfiguration>,
-        #[serde(default, skip_serializing_if = "crate::is_default")]
+        #[serde(rename = "dnstap-loggers", default, skip_serializing_if = "crate::is_default")]
         dnstap_loggers: Vec<DnstapLoggersConfiguration>,
     }
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
@@ -1888,6 +1961,7 @@ mod dnsdistsettings {
     unsafe extern "C++" {
         fn getAllowAction(config: &AllowActionConfiguration) -> SharedPtr<DNSActionWrapper>;
         fn getDelayAction(config: &DelayActionConfiguration) -> SharedPtr<DNSActionWrapper>;
+        fn getDnstapLogAction(config: &DnstapLogActionConfiguration) -> SharedPtr<DNSActionWrapper>;
         fn getDropAction(config: &DropActionConfiguration) -> SharedPtr<DNSActionWrapper>;
         fn getSetEDNSOptionAction(config: &SetEDNSOptionActionConfiguration) -> SharedPtr<DNSActionWrapper>;
         fn getERCodeAction(config: &ERCodeActionConfiguration) -> SharedPtr<DNSActionWrapper>;
@@ -1904,6 +1978,7 @@ mod dnsdistsettings {
         fn getQPSAction(config: &QPSActionConfiguration) -> SharedPtr<DNSActionWrapper>;
         fn getQPSPoolAction(config: &QPSPoolActionConfiguration) -> SharedPtr<DNSActionWrapper>;
         fn getRCodeAction(config: &RCodeActionConfiguration) -> SharedPtr<DNSActionWrapper>;
+        fn getRemoteLogAction(config: &RemoteLogActionConfiguration) -> SharedPtr<DNSActionWrapper>;
         fn getSetAdditionalProxyProtocolValueAction(config: &SetAdditionalProxyProtocolValueActionConfiguration) -> SharedPtr<DNSActionWrapper>;
         fn getSetDisableECSAction(config: &SetDisableECSActionConfiguration) -> SharedPtr<DNSActionWrapper>;
         fn getSetDisableValidationAction(config: &SetDisableValidationActionConfiguration) -> SharedPtr<DNSActionWrapper>;
@@ -1925,12 +2000,14 @@ mod dnsdistsettings {
         fn getAllowResponseAction(config: &AllowResponseActionConfiguration) -> SharedPtr<DNSResponseActionWrapper>;
         fn getClearRecordTypesResponseAction(config: &ClearRecordTypesResponseActionConfiguration) -> SharedPtr<DNSResponseActionWrapper>;
         fn getDelayResponseAction(config: &DelayResponseActionConfiguration) -> SharedPtr<DNSResponseActionWrapper>;
+        fn getDnstapLogResponseAction(config: &DnstapLogResponseActionConfiguration) -> SharedPtr<DNSResponseActionWrapper>;
         fn getDropResponseAction(config: &DropResponseActionConfiguration) -> SharedPtr<DNSResponseActionWrapper>;
         fn getLimitTTLResponseAction(config: &LimitTTLResponseActionConfiguration) -> SharedPtr<DNSResponseActionWrapper>;
         fn getLogResponseAction(config: &LogResponseActionConfiguration) -> SharedPtr<DNSResponseActionWrapper>;
         fn getLuaResponseAction(config: &LuaResponseActionConfiguration) -> SharedPtr<DNSResponseActionWrapper>;
         fn getLuaFFIResponseAction(config: &LuaFFIResponseActionConfiguration) -> SharedPtr<DNSResponseActionWrapper>;
         fn getLuaFFIPerThreadResponseAction(config: &LuaFFIPerThreadResponseActionConfiguration) -> SharedPtr<DNSResponseActionWrapper>;
+        fn getRemoteLogResponseAction(config: &RemoteLogResponseActionConfiguration) -> SharedPtr<DNSResponseActionWrapper>;
         fn getSetExtendedDNSErrorResponseAction(config: &SetExtendedDNSErrorResponseActionConfiguration) -> SharedPtr<DNSResponseActionWrapper>;
         fn getSetMinTTLResponseAction(config: &SetMinTTLResponseActionConfiguration) -> SharedPtr<DNSResponseActionWrapper>;
         fn getSetMaxReturnedTTLResponseAction(config: &SetMaxReturnedTTLResponseActionConfiguration) -> SharedPtr<DNSResponseActionWrapper>;
@@ -1998,10 +2075,10 @@ mod dnsdistsettings {
     unsafe extern "C++" {
         include!("dnsdist-rust-bridge.hh");
         type DNSSelector;
-        //fn getSelectorByName(name: &String) -> SharedPtr<DNSSelector>;
         type DNSActionWrapper;
-        //fn getActionByName(name: &String) -> SharedPtr<DNSActionWrapper>;
         type DNSResponseActionWrapper;
+        fn registerProtobufLogger(config: &ProtobufLoggersConfiguration);
+        fn registerDnstapLogger(config: &DnstapLoggersConfiguration);
     }
 }
 
@@ -2105,6 +2182,7 @@ enum Action {
     Default,
     Allow(dnsdistsettings::AllowActionConfiguration),
     Delay(dnsdistsettings::DelayActionConfiguration),
+    DnstapLog(dnsdistsettings::DnstapLogActionConfiguration),
     Drop(dnsdistsettings::DropActionConfiguration),
     SetEDNSOption(dnsdistsettings::SetEDNSOptionActionConfiguration),
     ERCode(dnsdistsettings::ERCodeActionConfiguration),
@@ -2121,6 +2199,7 @@ enum Action {
     QPS(dnsdistsettings::QPSActionConfiguration),
     QPSPool(dnsdistsettings::QPSPoolActionConfiguration),
     RCode(dnsdistsettings::RCodeActionConfiguration),
+    RemoteLog(dnsdistsettings::RemoteLogActionConfiguration),
     SetAdditionalProxyProtocolValue(dnsdistsettings::SetAdditionalProxyProtocolValueActionConfiguration),
     SetDisableECS(dnsdistsettings::SetDisableECSActionConfiguration),
     SetDisableValidation(dnsdistsettings::SetDisableValidationActionConfiguration),
@@ -2149,12 +2228,14 @@ enum ResponseAction {
     Allow(dnsdistsettings::AllowResponseActionConfiguration),
     ClearRecordTypes(dnsdistsettings::ClearRecordTypesResponseActionConfiguration),
     Delay(dnsdistsettings::DelayResponseActionConfiguration),
+    DnstapLog(dnsdistsettings::DnstapLogResponseActionConfiguration),
     Drop(dnsdistsettings::DropResponseActionConfiguration),
     LimitTTL(dnsdistsettings::LimitTTLResponseActionConfiguration),
     Log(dnsdistsettings::LogResponseActionConfiguration),
     Lua(dnsdistsettings::LuaResponseActionConfiguration),
     LuaFFI(dnsdistsettings::LuaFFIResponseActionConfiguration),
     LuaFFIPerThread(dnsdistsettings::LuaFFIPerThreadResponseActionConfiguration),
+    RemoteLog(dnsdistsettings::RemoteLogResponseActionConfiguration),
     SetExtendedDNSError(dnsdistsettings::SetExtendedDNSErrorResponseActionConfiguration),
     SetMinTTL(dnsdistsettings::SetMinTTLResponseActionConfiguration),
     SetMaxReturnedTTL(dnsdistsettings::SetMaxReturnedTTLResponseActionConfiguration),
@@ -2338,6 +2419,14 @@ impl GlobalConfigurationSerde {
         Ok(())
     }
 }
+
+impl Default for dnsdistsettings::ProtoBufMetaConfiguration {
+    fn default() -> Self {
+        let deserialized: dnsdistsettings::ProtoBufMetaConfiguration = serde_yaml::from_str("").unwrap();
+        deserialized
+    }
+}
+
 
 impl Default for dnsdistsettings::LMDBKVSConfiguration {
     fn default() -> Self {
@@ -2868,6 +2957,11 @@ impl Default for dnsdistsettings::DohConfiguration {
 }
 
 
+impl dnsdistsettings::ProtoBufMetaConfiguration {
+    fn validate(&self) -> Result<(), ValidationError> {
+        Ok(())
+    }
+}
 impl dnsdistsettings::LMDBKVSConfiguration {
     fn validate(&self) -> Result<(), ValidationError> {
         Ok(())
@@ -3234,6 +3328,12 @@ fn get_one_action_from_serde(action: &Action) -> Option<dnsdistsettings::SharedD
                 action: tmp_action,
             });
         }
+        Action::DnstapLog(dnstaplog) => {
+            let tmp_action = dnsdistsettings::getDnstapLogAction(&dnstaplog);
+            return Some(dnsdistsettings::SharedDNSAction {
+                action: tmp_action,
+            });
+        }
         Action::Drop(drop) => {
             let tmp_action = dnsdistsettings::getDropAction(&drop);
             return Some(dnsdistsettings::SharedDNSAction {
@@ -3326,6 +3426,12 @@ fn get_one_action_from_serde(action: &Action) -> Option<dnsdistsettings::SharedD
         }
         Action::RCode(rcode) => {
             let tmp_action = dnsdistsettings::getRCodeAction(&rcode);
+            return Some(dnsdistsettings::SharedDNSAction {
+                action: tmp_action,
+            });
+        }
+        Action::RemoteLog(remotelog) => {
+            let tmp_action = dnsdistsettings::getRemoteLogAction(&remotelog);
             return Some(dnsdistsettings::SharedDNSAction {
                 action: tmp_action,
             });
@@ -3462,6 +3568,12 @@ fn get_one_response_action_from_serde(action: &ResponseAction) -> Option<dnsdist
                 action: tmp_action,
             });
         }
+        ResponseAction::DnstapLog(dnstaplog) => {
+            let tmp_action = dnsdistsettings::getDnstapLogResponseAction(&dnstaplog);
+            return Some(dnsdistsettings::SharedDNSResponseAction {
+                action: tmp_action,
+            });
+        }
         ResponseAction::Drop(drop) => {
             let tmp_action = dnsdistsettings::getDropResponseAction(&drop);
             return Some(dnsdistsettings::SharedDNSResponseAction {
@@ -3494,6 +3606,12 @@ fn get_one_response_action_from_serde(action: &ResponseAction) -> Option<dnsdist
         }
         ResponseAction::LuaFFIPerThread(luaffiperthread) => {
             let tmp_action = dnsdistsettings::getLuaFFIPerThreadResponseAction(&luaffiperthread);
+            return Some(dnsdistsettings::SharedDNSResponseAction {
+                action: tmp_action,
+            });
+        }
+        ResponseAction::RemoteLog(remotelog) => {
+            let tmp_action = dnsdistsettings::getRemoteLogResponseAction(&remotelog);
             return Some(dnsdistsettings::SharedDNSResponseAction {
                 action: tmp_action,
             });
@@ -3896,6 +4014,17 @@ fn get_response_rules_from_serde(
     results
 }
 
+fn register_remote_loggers(
+  config: &dnsdistsettings::RemoteLoggingConfiguration,
+) {
+  for logger in &config.protobuf_loggers {
+    dnsdistsettings::registerProtobufLogger(&logger);
+  }
+  for logger in &config.dnstap_loggers {
+    dnsdistsettings::registerDnstapLogger(&logger);
+  }
+}
+
 fn get_global_configuration_from_serde(
     serde: GlobalConfigurationSerde,
 ) -> dnsdistsettings::GlobalConfiguration {
@@ -3922,6 +4051,8 @@ fn get_global_configuration_from_serde(
     config.metrics = serde.metrics;
     config.remote_logging = serde.remote_logging;
     config.tuning = serde.tuning;
+    // this needs to be done before the rules so that they can refer to the loggers
+    register_remote_loggers(&config.remote_logging);
     // this needs to be done BEFORE the rules so that they can refer to the selectors
     // by name
     config.selectors = get_selectors_from_serde(&serde.selectors);

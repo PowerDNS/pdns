@@ -571,42 +571,6 @@ bool loadConfigurationFromFile(const std::string& fileName, bool isClient, bool 
     }
 #endif /* DISABLE_CARBON */
 
-#if !defined(DISABLE_PROTOBUF)
-    if (!configCheck) {
-      for (const auto& protobufLogger : globalConfig.remote_logging.protobuf_loggers) {
-        auto object = std::shared_ptr<RemoteLoggerInterface>(std::make_shared<RemoteLogger>(ComboAddress(std::string(protobufLogger.address)), protobufLogger.timeout, protobufLogger.max_queued_entries * 100, protobufLogger.reconnect_wait_time, false));
-        registerType<RemoteLoggerInterface>(object, protobufLogger.name);
-      }
-
-#if defined(HAVE_FSTRM)
-      for (const auto& dnstapLogger : globalConfig.remote_logging.dnstap_loggers) {
-        auto transport = boost::to_lower_copy(std::string(dnstapLogger.transport));
-        int family{0};
-        if (transport == "unix") {
-          family = AF_UNIX;
-        }
-        else if (transport == "tcp") {
-          family = AF_INET;
-        }
-        else {
-          throw std::runtime_error("Unsupport dnstap transport type '" + transport + "'");
-        }
-
-        std::unordered_map<string, unsigned int> options;
-        options["bufferHint"] = dnstapLogger.buffer_hint;
-        options["flushTimeout"] = dnstapLogger.flush_timeout;
-        options["inputQueueSize"] = dnstapLogger.input_queue_size;
-        options["outputQueueSize"] = dnstapLogger.output_queue_size;
-        options["queueNotifyThreshold"] = dnstapLogger.queue_notify_threshold;
-        options["reopenInterval"] = dnstapLogger.reopen_interval;
-
-        auto object = std::shared_ptr<RemoteLoggerInterface>(std::make_shared<FrameStreamLogger>(family, std::string(dnstapLogger.address), false, options));
-        registerType<RemoteLoggerInterface>(object, dnstapLogger.name);
-      }
-    }
-#endif /* HAVE_FSTRM*/
-#endif /* DISABLE_PROTOBUF */
-
     if (!globalConfig.webserver.listen_address.empty()) {
       const auto& webConfig = globalConfig.webserver;
       ComboAddress local;
@@ -903,6 +867,7 @@ bool loadConfigurationFromFile(const std::string& fileName, bool isClient, bool 
       });
     }
 
+    s_registeredTypesMap.lock()->clear();
     return true;
   }
   catch (const ::rust::Error& exp) {
@@ -911,6 +876,7 @@ bool loadConfigurationFromFile(const std::string& fileName, bool isClient, bool 
   catch (const std::exception& exp) {
     errlog("C++ error while opening YAML file %s: %s", fileName, exp.what());
   }
+  s_registeredTypesMap.lock()->clear();
   return false;
 #else
   (void)fileName;
@@ -1148,6 +1114,144 @@ std::shared_ptr<DNSSelector> getKeyValueStoreRangeLookupSelector(const KeyValueS
   }
   auto selector = dnsdist::selectors::getKeyValueStoreRangeLookupSelector(kvs, lookupKey);
   return newDNSSelector(std::move(selector), config.name);
+}
+
+std::shared_ptr<DNSActionWrapper> getDnstapLogAction(const DnstapLogActionConfiguration& config)
+{
+#if defined(DISABLE_PROTOBUF) || !defined(HAVE_FSTRM)
+  throw std::runtime_error("Unable to create dnstap log action: dnstap support is not enabled");
+#else
+  auto logger = dnsdist::configuration::yaml::getRegisteredTypeByName<RemoteLoggerInterface>(std::string(config.logger_name));
+  if (!logger) {
+    throw std::runtime_error("Unable to find the dnstap logger named '" + std::string(config.logger_name) + "'");
+  }
+  dnsdist::actions::DnstapAlterFunction alterFunc;
+  dnsdist::configuration::yaml::getOptionalLuaFunction<dnsdist::actions::DnstapAlterFunction>(alterFunc, config.alter_function);
+  auto action = dnsdist::actions::getDnstapLogAction(std::string(config.identity), logger, alterFunc);
+  return newDNSActionWrapper(std::move(action), config.name);
+#endif
+}
+
+std::shared_ptr<DNSResponseActionWrapper> getDnstapLogResponseAction(const DnstapLogResponseActionConfiguration& config)
+{
+#if defined(DISABLE_PROTOBUF) || !defined(HAVE_FSTRM)
+  throw std::runtime_error("Unable to create dnstap log action: dnstap support is not enabled");
+#else
+  auto logger = dnsdist::configuration::yaml::getRegisteredTypeByName<RemoteLoggerInterface>(std::string(config.logger_name));
+  if (!logger) {
+    throw std::runtime_error("Unable to find the dnstap logger named '" + std::string(config.logger_name) + "'");
+  }
+  dnsdist::actions::DnstapAlterResponseFunction alterFunc;
+  dnsdist::configuration::yaml::getOptionalLuaFunction<dnsdist::actions::DnstapAlterResponseFunction>(alterFunc, config.alter_function);
+  auto action = dnsdist::actions::getDnstapLogResponseAction(std::string(config.identity), logger, alterFunc);
+  return newDNSResponseActionWrapper(std::move(action), config.name);
+#endif
+}
+
+std::shared_ptr<DNSActionWrapper> getRemoteLogAction(const RemoteLogActionConfiguration& config)
+{
+#if defined(DISABLE_PROTOBUF)
+  throw std::runtime_error("Unable to create remote log action: protobuf support is disabled");
+#else
+  auto logger = dnsdist::configuration::yaml::getRegisteredTypeByName<RemoteLoggerInterface>(std::string(config.logger_name));
+  if (!logger) {
+    throw std::runtime_error("Unable to find the protobuf logger named '" + std::string(config.logger_name) + "'");
+  }
+  dnsdist::actions::RemoteLogActionConfiguration actionConfig{};
+  actionConfig.logger = std::move(logger);
+  actionConfig.serverID = std::string(config.server_id);
+  actionConfig.ipEncryptKey = std::string(config.ip_encrypt_key);
+  for (const auto& meta : config.metas) {
+    actionConfig.metas.emplace_back(std::string(meta.key), ProtoBufMetaKey(std::string(meta.value)));
+  }
+  if (!config.export_tags.empty()) {
+    actionConfig.tagsToExport = std::unordered_set<std::string>();
+    for (const auto& tag : config.export_tags) {
+      actionConfig.tagsToExport->emplace(std::string(tag));
+    }
+  }
+  dnsdist::actions::ProtobufAlterFunction alterFunc;
+  if (dnsdist::configuration::yaml::getOptionalLuaFunction<dnsdist::actions::ProtobufAlterFunction>(alterFunc, config.alter_function)) {
+    actionConfig.alterQueryFunc = std::move(alterFunc);
+  }
+  auto action = dnsdist::actions::getRemoteLogAction(actionConfig);
+  return newDNSActionWrapper(std::move(action), config.name);
+#endif
+}
+
+std::shared_ptr<DNSResponseActionWrapper> getRemoteLogResponseAction(const RemoteLogResponseActionConfiguration& config)
+{
+#if defined(DISABLE_PROTOBUF)
+  throw std::runtime_error("Unable to create remote log action: protobuf support is disabled");
+#else
+  auto logger = dnsdist::configuration::yaml::getRegisteredTypeByName<RemoteLoggerInterface>(std::string(config.logger_name));
+  if (!logger) {
+    throw std::runtime_error("Unable to find the protobuf logger named '" + std::string(config.logger_name) + "'");
+  }
+  dnsdist::actions::RemoteLogActionConfiguration actionConfig{};
+  actionConfig.logger = std::move(logger);
+  actionConfig.serverID = std::string(config.server_id);
+  actionConfig.ipEncryptKey = std::string(config.ip_encrypt_key);
+  actionConfig.includeCNAME = config.include_cname;
+  for (const auto& meta : config.metas) {
+    actionConfig.metas.emplace_back(std::string(meta.key), ProtoBufMetaKey(std::string(meta.value)));
+  }
+  if (!config.export_tags.empty()) {
+    actionConfig.tagsToExport = std::unordered_set<std::string>();
+    for (const auto& tag : config.export_tags) {
+      actionConfig.tagsToExport->emplace(std::string(tag));
+    }
+  }
+  if (!config.export_extended_errors_to_meta.empty()) {
+    actionConfig.exportExtendedErrorsToMeta = std::string(config.export_extended_errors_to_meta);
+  }
+  dnsdist::actions::ProtobufAlterResponseFunction alterFunc;
+  if (dnsdist::configuration::yaml::getOptionalLuaFunction<dnsdist::actions::ProtobufAlterResponseFunction>(alterFunc, config.alter_function)) {
+    actionConfig.alterResponseFunc = std::move(alterFunc);
+  }
+  auto action = dnsdist::actions::getRemoteLogResponseAction(actionConfig);
+  return newDNSResponseActionWrapper(std::move(action), config.name);
+#endif
+}
+
+void registerProtobufLogger(const ProtobufLoggersConfiguration& config)
+{
+#if defined(DISABLE_PROTOBUF)
+  throw std::runtime_error("Unable to create protobuf logger: protobuf support is disabled");
+#else
+  auto object = std::shared_ptr<RemoteLoggerInterface>(std::make_shared<RemoteLogger>(ComboAddress(std::string(config.address)), config.timeout, config.max_queued_entries * 100, config.reconnect_wait_time, false));
+  dnsdist::configuration::yaml::registerType<RemoteLoggerInterface>(object, config.name);
+#endif
+}
+
+void registerDnstapLogger(const DnstapLoggersConfiguration& config)
+{
+#if defined(DISABLE_PROTOBUF) || !defined(HAVE_FSTRM)
+  throw std::runtime_error("Unable to create dnstap logger: dnstap support is disabled");
+#else
+  auto transport = boost::to_lower_copy(std::string(config.transport));
+  int family{0};
+  if (transport == "unix") {
+    family = AF_UNIX;
+  }
+  else if (transport == "tcp") {
+    family = AF_INET;
+  }
+  else {
+    throw std::runtime_error("Unsupport dnstap transport type '" + transport + "'");
+  }
+
+  std::unordered_map<string, unsigned int> options;
+  options["bufferHint"] = config.buffer_hint;
+  options["flushTimeout"] = config.flush_timeout;
+  options["inputQueueSize"] = config.input_queue_size;
+  options["outputQueueSize"] = config.output_queue_size;
+  options["queueNotifyThreshold"] = config.queue_notify_threshold;
+  options["reopenInterval"] = config.reopen_interval;
+
+  auto object = std::shared_ptr<RemoteLoggerInterface>(std::make_shared<FrameStreamLogger>(family, std::string(config.address), false, options));
+  dnsdist::configuration::yaml::registerType<RemoteLoggerInterface>(object, config.name);
+#endif
 }
 
 std::shared_ptr<DNSSelector> getAndSelector(const AndSelectorConfiguration& config)

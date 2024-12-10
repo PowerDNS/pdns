@@ -78,8 +78,6 @@ query-rules:
         """
         Yaml: Forwarded query
         """
-        rules = self.sendConsoleCommand('showRules()')
-        print(rules)
         name = 'forwarded.yaml.test.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         query.flags &= ~dns.flags.RD

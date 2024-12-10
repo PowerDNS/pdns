@@ -11,6 +11,18 @@
   parameters:
     - name: "msec"
       type: "u32"
+- name: "DnstapLog"
+  skip-cpp: true
+  skip-rust: true
+  parameters:
+    - name: "identity"
+      type: "String"
+    - name: "logger-name"
+      type: "String"
+    - name: "alter-function"
+      type: "dnsdist::actions::DnstapAlterResponseFunction"
+      rust-type: "String"
+      default: ""
 - name: "drop"
 - name: "LimitTTL"
   skip-cpp: true
@@ -59,6 +71,34 @@
   parameters:
     - name: "code"
       type: "String"
+- name: "RemoteLog"
+  skip-cpp: true
+  skip-rust: true
+  parameters:
+    - name: "logger-name"
+      type: "String"
+    - name: "alter-function"
+      type: "dnsdist::actions::ProtobufAlterResponseFunction"
+      rust-type: "String"
+      default: ""
+    - name: "server-id"
+      type: "String"
+      default: ""
+    - name: "ip-encrypt-key"
+      type: "String"
+      default: ""
+    - name: "include-cname"
+      type: "bool"
+      default: "false"
+    - name: "export-tags"
+      type: "Vec<String>"
+      default: true
+    - name: "export-extended-errors-to-meta"
+      type: "String"
+      default: ""
+    - name: "metas"
+      type: "Vec<ProtoBufMetaConfiguration>"
+      default: true
 - name: "SetExtendedDNSError"
   parameters:
     - name: "info-code"

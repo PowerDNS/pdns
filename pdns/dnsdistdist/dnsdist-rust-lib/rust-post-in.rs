@@ -52,6 +52,17 @@ fn get_response_rules_from_serde(
     results
 }
 
+fn register_remote_loggers(
+  config: &dnsdistsettings::RemoteLoggingConfiguration,
+) {
+  for logger in &config.protobuf_loggers {
+    dnsdistsettings::registerProtobufLogger(&logger);
+  }
+  for logger in &config.dnstap_loggers {
+    dnsdistsettings::registerDnstapLogger(&logger);
+  }
+}
+
 fn get_global_configuration_from_serde(
     serde: GlobalConfigurationSerde,
 ) -> dnsdistsettings::GlobalConfiguration {
@@ -78,6 +89,8 @@ fn get_global_configuration_from_serde(
     config.metrics = serde.metrics;
     config.remote_logging = serde.remote_logging;
     config.tuning = serde.tuning;
+    // this needs to be done before the rules so that they can refer to the loggers
+    register_remote_loggers(&config.remote_logging);
     // this needs to be done BEFORE the rules so that they can refer to the selectors
     // by name
     config.selectors = get_selectors_from_serde(&serde.selectors);

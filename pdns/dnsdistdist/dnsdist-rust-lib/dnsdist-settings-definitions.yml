@@ -75,6 +75,13 @@ dnstap-loggers:
       type: "u64"
       default: 0
 
+ProtoBufMeta:
+  parameters:
+    - name: "key"
+      type: "String"
+    - name: "value"
+      type: "String"
+
 LMDBKVS:
   parameters:
     - name: "name"
