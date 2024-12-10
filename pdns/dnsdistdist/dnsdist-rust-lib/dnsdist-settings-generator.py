@@ -767,9 +767,11 @@ def handle_sub_structures(generated_fp, sections, definitions, global_objects, v
             if not 'section' in keys or keys['section'] != section:
                 continue
             field_name = get_rust_field_name(definition_name) if not 'rename' in keys else keys['rename']
+            rename = None if field_name == definition_name else definition_name
             name = get_rust_object_name(definition_name)
             obj_type = f'{name}Configuration' if not 'type' in keys or keys['type'] != 'list' else f'Vec<{name}Configuration>'
-            generated_fp.write('        #[serde(default, skip_serializing_if = "crate::is_default")]\n')
+            annotation = get_rust_serde_annotations(obj_type, True, rename, f'{section_name}Configuration', field_name, validation_functions)
+            generated_fp.write(f'        {annotation}\n')
             generated_fp.write(f'        {field_name}: {obj_type},\n')
             section_struct_parameters.append({'name': field_name, 'type': obj_type})
 

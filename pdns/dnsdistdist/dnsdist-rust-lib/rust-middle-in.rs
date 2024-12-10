@@ -10,10 +10,10 @@
     unsafe extern "C++" {
         include!("dnsdist-rust-bridge.hh");
         type DNSSelector;
-        //fn getSelectorByName(name: &String) -> SharedPtr<DNSSelector>;
         type DNSActionWrapper;
-        //fn getActionByName(name: &String) -> SharedPtr<DNSActionWrapper>;
         type DNSResponseActionWrapper;
+        fn registerProtobufLogger(config: &ProtobufLoggersConfiguration);
+        fn registerDnstapLogger(config: &DnstapLoggersConfiguration);
     }
 }
 
