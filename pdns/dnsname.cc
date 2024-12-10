@@ -21,6 +21,8 @@
  */
 #include "dnsname.hh"
 #include <boost/format.hpp>
+#include <boost/range/algorithm/lexicographical_compare.hpp>
+#include <boost/range/adaptor/reversed.hpp>
 #include <string>
 #include <cinttypes>
 
@@ -464,7 +466,7 @@ void DNSName::prependRawLabel(const std::string& label)
 bool DNSName::slowCanonCompare(const DNSName& rhs) const
 {
   auto ours=getRawLabels(), rhsLabels = rhs.getRawLabels();
-  return std::lexicographical_compare(ours.rbegin(), ours.rend(), rhsLabels.rbegin(), rhsLabels.rend(), CIStringCompare());
+  return boost::range::lexicographical_compare(boost::adaptors::reverse(ours), boost::adaptors::reverse(rhsLabels), CIStringCompare());
 }
 
 vector<std::string> DNSName::getRawLabels() const

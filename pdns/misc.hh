@@ -20,6 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
+#include <boost/range/algorithm/search.hpp>
 #include <cinttypes>
 #include <cstring>
 #include <cstdio>
@@ -455,8 +456,8 @@ struct CIStringPairCompare
 
 inline size_t pdns_ci_find(const string& haystack, const string& needle)
 {
-  string::const_iterator it = std::search(haystack.begin(), haystack.end(),
-    needle.begin(), needle.end(), pdns_iequals_ch);
+  string::const_iterator it = boost::range::search(haystack,
+                                                   needle, pdns_iequals_ch);
   if (it == haystack.end()) {
     // not found
     return string::npos;

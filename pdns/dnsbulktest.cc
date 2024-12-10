@@ -28,6 +28,7 @@
 #pragma GCC diagnostic ignored "-Wdeprecated-copy-with-user-provided-copy"
 #endif
 #include <boost/accumulators/accumulators.hpp>
+#include <boost/algorithm/cxx11/none_of.hpp>
 #include <boost/array.hpp>
 #include <boost/accumulators/statistics.hpp>
 #pragma GCC diagnostic pop
@@ -317,8 +318,7 @@ try
     pos=split.second.find('/');
     if(pos != string::npos) // alexa has whole urls in the list now.
       split.second.resize(pos);
-    if(find_if(split.second.begin(), split.second.end(), isalpha) == split.second.end())
-    {
+    if (boost::algorithm::none_of(split.second, isalpha)) {
       continue; // this was an IP address
     }
     domains.push_back(TypedQuery(split.second, qtype));

@@ -26,6 +26,8 @@
 #include <cstdio>
 #include <libgen.h>
 
+#include <boost/algorithm/cxx11/none_of.hpp>
+
 #include "namespaces.hh"
 #include "arguments.hh"
 #include "misc.hh"
@@ -750,7 +752,7 @@ void fromLuaToRust(const LuaConfigItems& luaConfig, pdns::rust::settings::rec::D
     ::rust::Vec<::rust::String> dsRecords;
     for (const auto& dsRecord : anchors.second) {
       const auto dsString = dsRecord.getZoneRepresentation();
-      if (anchors.first != g_rootdnsname || std::find(rootDSs.begin(), rootDSs.end(), dsString) == rootDSs.end()) {
+      if (anchors.first != g_rootdnsname || boost::algorithm::none_of_equal(rootDSs, dsString)) {
         dsRecords.emplace_back(dsRecord.getZoneRepresentation());
       }
     }
@@ -1367,7 +1369,7 @@ bool pdns::settings::rec::luaItemSet(const pdns::rust::settings::rec::Recursorse
         break;
       }
       for (const auto& dsRecord : trustanchor.dsrecords) {
-        if (std::find(rootDSs.begin(), rootDSs.end(), std::string(dsRecord)) == rootDSs.end()) {
+        if (boost::algorithm::none_of_equal(rootDSs, dsRecord)) {
           alldefault = false;
           break;
         }

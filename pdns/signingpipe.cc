@@ -2,6 +2,9 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
+#include <boost/range/algorithm/sort.hpp>
+
 #include "signingpipe.hh"
 #include "misc.hh"
 #include "dns_random.hh"
@@ -113,9 +116,9 @@ bool dedupEqual(const DNSZoneRecord& a, const DNSZoneRecord &b)
 
 void ChunkedSigningPipe::dedupRRSet()
 {
-  // our set contains contains records for one type and one name, but might not be sorted otherwise
-  sort(d_rrsetToSign->begin(), d_rrsetToSign->end(), dedupLessThan);
-  d_rrsetToSign->erase(unique(d_rrsetToSign->begin(), d_rrsetToSign->end(), dedupEqual), d_rrsetToSign->end());
+  // our set contains records for one type and one name, but might not be sorted otherwise
+  boost::range::sort(*d_rrsetToSign, dedupLessThan);
+  d_rrsetToSign->erase(std::unique(d_rrsetToSign->begin(), d_rrsetToSign->end(), dedupEqual), d_rrsetToSign->end());
 }
 
 bool ChunkedSigningPipe::submit(const DNSZoneRecord& rr)

@@ -22,6 +22,7 @@
 #pragma once
 
 #include <algorithm>
+#include <boost/algorithm/cxx11/any_of.hpp>
 #include <cstddef>
 class DNSPacket;
 
@@ -120,7 +121,7 @@ struct DomainInfo
 
   [[nodiscard]] bool isPrimary(const ComboAddress& ipAddress) const
   {
-    return std::any_of(primaries.begin(), primaries.end(), [ipAddress](auto primary) { return ComboAddress::addressOnlyEqual()(ipAddress, primary); });
+    return boost::algorithm::any_of(primaries, [ipAddress](auto primary) { return ComboAddress::addressOnlyEqual()(ipAddress, primary); });
   }
 };
 

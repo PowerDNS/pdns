@@ -30,6 +30,7 @@
 #include <regex.h>
 #include <glob.h>
 #include <boost/algorithm/string/replace.hpp>
+#include <boost/range/algorithm/sort.hpp>
 #include <boost/format.hpp>
 #include <fstream>
 #include <filesystem>
@@ -356,7 +357,7 @@ void GeoIPBackend::loadDomainsFromDirectory(const std::string& dir, vector<GeoIP
       paths.push_back(p);
     }
   }
-  std::sort(paths.begin(), paths.end());
+  boost::range::sort(paths);
   for (const auto& p : paths) {
     try {
       GeoIPDomain dom;

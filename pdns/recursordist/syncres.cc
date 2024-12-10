@@ -20,10 +20,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #ifdef HAVE_CONFIG_H
-#include <utility>
-
 #include "config.h"
 #endif
+
+#include <boost/algorithm/cxx11/none_of.hpp>
+#include <boost/range/algorithm_ext.hpp>
+#include <utility>
 
 #include "arguments.hh"
 #include "aggressive_nsec.hh"
@@ -3558,7 +3560,7 @@ bool SyncRes::throttledOrBlocked(const std::string& prefix, const ComboAddress& 
     }
     // The name (from the cache) is forwarded, but is it forwarded to an IP in known forwarders?
     const auto& ips = iter->second.d_servers;
-    if (std::find(ips.cbegin(), ips.cend(), remoteIP) == ips.cend()) {
+    if (boost::algorithm::none_of_equal(ips, remoteIP)) {
       LOG(prefix << qname << ": Not sending query to " << remoteIP.toString() << ", blocked by 'dont-query' setting" << endl);
       t_Counters.at(rec::Counter::dontqueries)++;
       return true;
@@ -5109,13 +5111,10 @@ bool SyncRes::processRecords(const std::string& prefix, const DNSName& qname, co
           dnameTarget = content->getTarget();
           dnameTTL = rec.d_ttl;
           if (!newtarget.empty()) { // We had a CNAME before, remove it from ret so we don't cache it
-            ret.erase(std::remove_if(
-                        ret.begin(),
-                        ret.end(),
-                        [&qname](DNSRecord& dnsrecord) {
-                          return (dnsrecord.d_place == DNSResourceRecord::ANSWER && dnsrecord.d_type == QType::CNAME && dnsrecord.d_name == qname);
-                        }),
-                      ret.end());
+            boost::range::remove_erase_if(ret,
+                                          [&qname](DNSRecord& dnsrecord) {
+                                            return (dnsrecord.d_place == DNSResourceRecord::ANSWER && dnsrecord.d_type == QType::CNAME && dnsrecord.d_name == qname);
+                                          });
           }
           try {
             newtarget = qname.makeRelative(dnameOwner) + dnameTarget;
@@ -6266,19 +6265,7 @@ bool SyncRes::answerIsNOData(uint16_t requestedType, int rcode, const std::vecto
     return false;
   }
 
-  // NOLINTNEXTLINE(readability-use-anyofallof)
-  for (const auto& rec : records) {
-    if (rec.d_place == DNSResourceRecord::ANSWER && rec.d_type == requestedType) {
-      /* we have a record, of the right type, in the right section */
-      return false;
-    }
-  }
-  return true;
-#if 0
-  // This code should be equivalent to the code above, clang-tidy prefers any_of()
-  // I have doubts if that is easier to read
-  return !std::any_of(records.begin(), records.end(), [=](const DNSRecord& rec) {
+  return boost::algorithm::none_of(records, [=](const auto& rec) {
     return rec.d_place == DNSResourceRecord::ANSWER && rec.d_type == requestedType;
   });
-#endif
 }

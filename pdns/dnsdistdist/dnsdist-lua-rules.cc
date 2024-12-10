@@ -25,6 +25,8 @@
 #include "dnsdist-rule-chains.hh"
 #include "dns_random.hh"
 
+#include <boost/range/algorithm/remove_if.hpp>
+
 std::shared_ptr<DNSRule> makeRule(const luadnsrule_t& var, const std::string& calledFrom)
 {
   if (var.type() == typeid(std::shared_ptr<DNSRule>)) {
@@ -141,15 +143,12 @@ static void showRules(IdentifierT identifier, boost::optional<ruleparams_t>& var
 template <typename ChainTypeT, typename RuleTypeT>
 static bool removeRuleFromChain(ChainTypeT& rules, const std::function<bool(const RuleTypeT& rule)>& matchFunction)
 {
-  auto removeIt = std::remove_if(rules.begin(),
-                                 rules.end(),
-                                 matchFunction);
+  auto removeIt = boost::range::remove_if(rules, matchFunction);
   if (removeIt == rules.end()) {
     g_outputBuffer = "Error: no rule matched\n";
     return false;
   }
-  rules.erase(removeIt,
-              rules.end());
+  rules.erase(removeIt, rules.end());
   return true;
 }
 

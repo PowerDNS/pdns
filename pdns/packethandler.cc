@@ -224,7 +224,7 @@ bool PacketHandler::addCDS(DNSPacket& p, std::unique_ptr<DNSPacket>& r)
   rr.dr.d_name=p.qdomain;
   rr.auth=true;
 
-  if(std::find(digestAlgos.begin(), digestAlgos.end(), "0") != digestAlgos.end()) { // delete DS via CDS
+  if (boost::algorithm::any_of_equal(digestAlgos, "0")) { // delete DS via CDS
     rr.dr.setContent(s_deleteCDSContent);
     r->addRecord(std::move(rr));
     return true;

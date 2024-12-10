@@ -20,6 +20,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #ifdef HAVE_CONFIG_H
+#include <boost/range/algorithm/stable_sort.hpp>
+
 #include "config.h"
 #endif
 #include "dnssecinfra.hh"
@@ -205,7 +207,7 @@ static bool getBestAuthFromSet(const set<DNSName>& authSet, const DNSName& name,
 
 void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const set<DNSName>& authSet, vector<DNSZoneRecord>& rrs, DNSPacket* packet)
 {
-  stable_sort(rrs.begin(), rrs.end(), rrsigncomp);
+  boost::range::stable_sort(rrs, rrsigncomp);
 
   DNSName authQName, signQName, wildcardQName;
   uint16_t signQType=0;

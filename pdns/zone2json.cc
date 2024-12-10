@@ -26,6 +26,7 @@
 #include "config.h"
 #endif
 #include <unistd.h>
+#include <boost/range/algorithm/sort.hpp>
 #include <string>
 #include <map>
 
@@ -152,7 +153,7 @@ try
         }
       }
 
-      sort(domains.begin(), domains.end()); // put stuff in inode order
+      boost::range::sort(domains); // put stuff in inode order
 
       int numdomains=domains.size();
       int tick=numdomains/100;

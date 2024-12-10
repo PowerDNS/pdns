@@ -24,6 +24,7 @@
 #endif
 
 #include <boost/format.hpp>
+#include <boost/range/algorithm/find_if.hpp>
 
 #include "utility.hh"
 #include "dnsrecords.hh"
@@ -812,11 +813,10 @@ SvcParam SVCBBaseRecordContent::getParam(const SvcParam::SvcParamKey &key) const
 }
 
 set<SvcParam>::const_iterator SVCBBaseRecordContent::getParamIt(const SvcParam::SvcParamKey &key) const {
-  auto p = std::find_if(d_params.begin(), d_params.end(),
-      [&key](const SvcParam &param) {
-        return param.getKey() == key;
-      });
-  return p;
+  return boost::range::find_if(d_params,
+                               [&key](const SvcParam& param) {
+                                 return param.getKey() == key;
+                               });
 }
 
 std::shared_ptr<SVCBBaseRecordContent> SVCBRecordContent::clone() const

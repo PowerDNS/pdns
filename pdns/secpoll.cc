@@ -20,6 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <boost/range/algorithm/count.hpp>
 #include <string>
 #include <vector>
 #include "dnsrecords.hh"
@@ -28,7 +29,7 @@
 #include "secpoll.hh"
 
 bool isReleaseVersion(const std::string &version) {
-  return std::count(version.begin(), version.end(), '.') == 2;
+  return boost::range::count(version, '.') == 2;
 }
 
 static void setSecPollToUnknownOnOK(int &secPollStatus) {

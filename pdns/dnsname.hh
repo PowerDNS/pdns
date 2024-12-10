@@ -21,6 +21,9 @@
  */
 #pragma once
 #include <array>
+#include <boost/range/algorithm/copy.hpp>
+#include <boost/range/algorithm/lexicographical_compare.hpp>
+#include <boost/range/adaptor/reversed.hpp>
 #include <cstring>
 #include <optional>
 #include <string>
@@ -163,11 +166,11 @@ public:
 
   bool operator<(const DNSName& rhs)  const // this delivers _some_ kind of ordering, but not one useful in a DNS context. Really fast though.
   {
-    return std::lexicographical_compare(d_storage.rbegin(), d_storage.rend(),
-				 rhs.d_storage.rbegin(), rhs.d_storage.rend(),
-				 [](const unsigned char& a, const unsigned char& b) {
-					  return dns_tolower(a) < dns_tolower(b);
-					}); // note that this is case insensitive, including on the label lengths
+    return boost::range::lexicographical_compare(boost::adaptors::reverse(d_storage),
+                                                 boost::adaptors::reverse(rhs.d_storage),
+                                                 [](const unsigned char& a, const unsigned char& b) {
+                                                   return dns_tolower(a) < dns_tolower(b);
+                                                 }); // note that this is case insensitive, including on the label lengths
   }
 
   inline bool canonCompare(const DNSName& rhs) const;
@@ -656,7 +659,7 @@ bool DNSName::operator==(const DNSName& rhs) const
 struct DNSNameSet: public std::unordered_set<DNSName> {
     std::string toString() const {
         std::ostringstream oss;
-        std::copy(begin(), end(), std::ostream_iterator<DNSName>(oss, "\n"));
+        boost::range::copy(*this, std::ostream_iterator<DNSName>(oss, "\n"));
         return oss.str();
     }
 };

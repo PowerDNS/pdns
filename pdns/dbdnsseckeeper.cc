@@ -26,6 +26,9 @@
 #include "dnssecinfra.hh"
 #include "ueberbackend.hh"
 #include "statbag.hh"
+#include <boost/algorithm/cxx11/none_of.hpp>
+#include <boost/range/algorithm/set_algorithm.hpp>
+#include <boost/range/algorithm/sort.hpp>
 #include <iostream>
 
 #include <sys/stat.h>
@@ -574,7 +577,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const DNSName& zone, bool useCache)
         algoNoSEP.insert(dkrc.d_algorithm);
     }
   }
-  set_intersection(algoSEP.begin(), algoSEP.end(), algoNoSEP.begin(), algoNoSEP.end(), std::back_inserter(algoHasSeparateKSK));
+  boost::range::set_intersection(algoSEP, algoNoSEP, std::back_inserter(algoHasSeparateKSK));
   retkeyset.reserve(dbkeyset.size());
 
   for(DNSBackend::KeyData& kd : dbkeyset)
@@ -591,16 +594,19 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const DNSName& zone, bool useCache)
     kmd.hasSEPBit = (kd.flags == 257);
     kmd.id = kd.id;
 
-    if (find(algoHasSeparateKSK.begin(), algoHasSeparateKSK.end(), dpk.getAlgorithm()) == algoHasSeparateKSK.end())
+    if (boost::algorithm::none_of_equal(algoHasSeparateKSK, dpk.getAlgorithm())) {
       kmd.keyType = CSK;
-    else if(kmd.hasSEPBit)
+    }
+    else if (kmd.hasSEPBit) {
       kmd.keyType = KSK;
-    else
+    }
+    else {
       kmd.keyType = ZSK;
+    }
 
     retkeyset.emplace_back(dpk, kmd);
   }
-  sort(retkeyset.begin(), retkeyset.end(), keyCompareByKindAndID);
+  boost::range::sort(retkeyset, keyCompareByKindAndID);
 
   if (ttl > 0) {
     KeyCacheEntry kce;

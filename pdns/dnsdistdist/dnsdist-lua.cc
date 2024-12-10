@@ -36,6 +36,8 @@
 #include <thread>
 #include <vector>
 
+#include <boost/range/algorithm_ext.hpp>
+
 #include "dnsdist.hh"
 #include "dnsdist-backend.hh"
 #include "dnsdist-cache.hh"
@@ -760,7 +762,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          }
 
                          dnsdist::configuration::updateRuntimeConfiguration([&server](dnsdist::configuration::RuntimeConfiguration& config) {
-                           config.d_backends.erase(std::remove(config.d_backends.begin(), config.d_backends.end(), server), config.d_backends.end());
+                           boost::range::remove_erase(config.d_backends, server);
                          });
 
                          server->stop();

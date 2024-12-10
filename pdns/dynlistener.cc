@@ -22,6 +22,8 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#include <boost/range/algorithm/sort.hpp>
+#include <boost/range/algorithm/unique.hpp>
 #include <cstring>
 #include <string>
 #include <map>
@@ -409,9 +411,9 @@ string DynListener::getHelp()
   for(g_funkdb_t::const_iterator i=s_funcdb.begin();i!=s_funcdb.end();++i) {
     funcs.push_back(str(boost::format(fmter) % (toLower(i->first)+" "+i->second.args) % i->second.usage));
   }
-  sort(funcs.begin(), funcs.end());
+  boost::range::sort(funcs);
 
   // hack: this removes the duplicate quit method
-  funcs.resize(unique(funcs.begin(), funcs.end()) - funcs.begin());
+  funcs.erase(std::unique(funcs.begin(), funcs.end()), funcs.end());
   return boost::join(funcs, "\n");
 }

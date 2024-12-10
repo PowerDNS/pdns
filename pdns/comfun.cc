@@ -19,6 +19,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+
+#include <boost/range/algorithm/sort.hpp>
+
 #include "statbag.hh"
 #include "zoneparser-tng.hh"
 #include "namespaces.hh"
@@ -501,7 +504,7 @@ try
       domains.push_back(nsq);
     }
 
-    sort(domains.begin(), domains.end(), [](const NSQuery& a, const NSQuery& b) { return b.count < a.count; });
+    boost::range::sort(domains, [](const auto& first, const auto& second) { return second.count < first.count; });
     for(;;) {
       try {
         inflighter.run();

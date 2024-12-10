@@ -22,6 +22,8 @@
 
 #include "rec-main.hh"
 
+#include <boost/range/algorithm_ext.hpp>
+
 #include "arguments.hh"
 #include "dns_random.hh"
 #include "ednsextendederror.hh"
@@ -736,24 +738,21 @@ int getFakeAAAARecords(const DNSName& qname, ComboAddress prefix, vector<DNSReco
 
   // Remove double CNAME records
   std::set<DNSName> seenCNAMEs;
-  ret.erase(std::remove_if(
-              ret.begin(),
-              ret.end(),
-              [&seenCNAMEs](DNSRecord& record) {
-                if (record.d_type == QType::CNAME) {
-                  auto target = getRR<CNAMERecordContent>(record);
-                  if (target == nullptr) {
-                    return false;
-                  }
-                  if (seenCNAMEs.count(target->getTarget()) > 0) {
-                    // We've had this CNAME before, remove it
-                    return true;
-                  }
-                  seenCNAMEs.insert(target->getTarget());
-                }
-                return false;
-              }),
-            ret.end());
+  boost::range::remove_erase_if(ret,
+                                [&seenCNAMEs](DNSRecord& record) {
+                                  if (record.d_type == QType::CNAME) {
+                                    auto target = getRR<CNAMERecordContent>(record);
+                                    if (target == nullptr) {
+                                      return false;
+                                    }
+                                    if (seenCNAMEs.count(target->getTarget()) > 0) {
+                                      // We've had this CNAME before, remove it
+                                      return true;
+                                    }
+                                    seenCNAMEs.insert(target->getTarget());
+                                  }
+                                  return false;
+                                });
 
   bool seenA = false;
   for (DNSRecord& record : ret) {
@@ -771,31 +770,25 @@ int getFakeAAAARecords(const DNSName& qname, ComboAddress prefix, vector<DNSReco
   if (seenA) {
     // We've seen an A in the ANSWER section, so there is no need to keep any
     // SOA in the AUTHORITY section as this is not a NODATA response.
-    ret.erase(std::remove_if(
-                ret.begin(),
-                ret.end(),
-                [](DNSRecord& record) {
-                  return (record.d_type == QType::SOA && record.d_place == DNSResourceRecord::AUTHORITY);
-                }),
-              ret.end());
+    boost::range::remove_erase_if(ret,
+                                  [](DNSRecord& record) {
+                                    return (record.d_type == QType::SOA && record.d_place == DNSResourceRecord::AUTHORITY);
+                                  });
   }
   else {
     // Remove double SOA records
     std::set<DNSName> seenSOAs;
-    ret.erase(std::remove_if(
-                ret.begin(),
-                ret.end(),
-                [&seenSOAs](DNSRecord& record) {
-                  if (record.d_type == QType::SOA) {
-                    if (seenSOAs.count(record.d_name) > 0) {
-                      // We've had this SOA before, remove it
-                      return true;
-                    }
-                    seenSOAs.insert(record.d_name);
-                  }
-                  return false;
-                }),
-              ret.end());
+    boost::range::remove_erase_if(ret,
+                                  [&seenSOAs](DNSRecord& record) {
+                                    if (record.d_type == QType::SOA) {
+                                      if (seenSOAs.count(record.d_name) > 0) {
+                                        // We've had this SOA before, remove it
+                                        return true;
+                                      }
+                                      seenSOAs.insert(record.d_name);
+                                    }
+                                    return false;
+                                  });
   }
   t_Counters.at(rec::Counter::dns64prefixanswers)++;
   return rcode;

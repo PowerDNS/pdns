@@ -23,6 +23,7 @@
 #include "config.h"
 #endif
 
+#include <boost/range/algorithm/stable_sort.hpp>
 #include <string>
 
 #include "shuffle.hh"
@@ -135,7 +136,7 @@ static uint16_t mapTypesToOrder(uint16_t type)
 // then shuffle the parts that desire shuffling
 void pdns::orderAndShuffle(vector<DNSRecord>& rrs, bool includingAdditionals)
 {
-  std::stable_sort(rrs.begin(), rrs.end(), [](const DNSRecord& lhs, const DNSRecord& rhs) {
+  boost::range::stable_sort(rrs, [](const DNSRecord& lhs, const DNSRecord& rhs) {
     return std::tuple(lhs.d_place, mapTypesToOrder(lhs.d_type)) < std::tuple(rhs.d_place, mapTypesToOrder(rhs.d_type));
   });
   shuffle(rrs, includingAdditionals);

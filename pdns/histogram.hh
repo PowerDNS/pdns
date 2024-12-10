@@ -21,6 +21,7 @@
  */
 #pragma once
 
+#include <boost/algorithm/cxx11/is_sorted.hpp>
 #include <cassert>
 #include <algorithm>
 #include <limits>
@@ -73,7 +74,7 @@ public:
   BaseHistogram(const std::string& prefix, const std::vector<uint64_t>& boundaries) :
     d_name(prefix)
   {
-    if (!std::is_sorted(boundaries.cbegin(), boundaries.cend())) {
+    if (!boost::algorithm::is_sorted(boundaries)) {
       throw std::invalid_argument("boundary array must be sorted");
     }
     if (boundaries.size() == 0) {

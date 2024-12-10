@@ -23,6 +23,7 @@
 #include "config.h"
 #endif
 #include <boost/algorithm/string.hpp>
+#include <boost/range/algorithm/sort.hpp>
 #include <boost/scoped_array.hpp>
 #include "auth-packetcache.hh"
 #include "utility.hh"
@@ -748,11 +749,12 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
           zrr.dr.d_type=QType::CDS;
           vector<string> digestAlgos;
           stringtok(digestAlgos, publishCDS, ", ");
-          if(std::find(digestAlgos.begin(), digestAlgos.end(), "0") != digestAlgos.end()) {
+          if (boost::algorithm::any_of_equal(digestAlgos, "0")) {
             doCDS = false;
             zrr.dr.setContent(PacketHandler::s_deleteCDSContent);
             zrrs.push_back(zrr);
-          } else {
+          }
+          else {
             for(auto const &digestAlgo : digestAlgos) {
               zrr.dr.setContent(std::make_shared<DSRecordContent>(makeDSFromDNSKey(target, value.first.getDNSKEY(), pdns::checked_stoi<uint8_t>(digestAlgo))));
               zrrs.push_back(zrr);
@@ -923,8 +925,8 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
 
   // Group records by name and type, signpipe stumbles over interrupted rrsets
   if(securedZone && !presignedZone) {
-    sort(zrrs.begin(), zrrs.end(), [](const DNSZoneRecord& a, const DNSZoneRecord& b) {
-      return std::tie(a.dr.d_name, a.dr.d_type) < std::tie(b.dr.d_name, b.dr.d_type);
+    boost::range::sort(zrrs, [](const auto& first, const auto& second) {
+      return std::tie(first.dr.d_name, first.dr.d_type) < std::tie(second.dr.d_name, second.dr.d_type);
     });
   }
 
