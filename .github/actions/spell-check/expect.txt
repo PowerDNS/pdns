@@ -483,7 +483,6 @@ geobackend
 geoipbackend
 geolocated
 Georgeto
-getbootstrap
 Gergely
 Gerritsen
 Gervai
@@ -491,6 +490,7 @@ Gerwin
 getaddrs
 getalldomainmetadata
 getbeforeandafternamesabsolute
+getbootstrap
 getcarbonhostname
 getdomaininfo
 getdomainkeys
@@ -1291,6 +1291,7 @@ sortlist
 sourcecode
 SOURCEDIR
 sourceforge
+sourcelink
 sourceware
 Spaans
 Spackages

@@ -127,6 +127,7 @@ html_favicon = 'common/favicon.ico'
 html_static_path = ['_static']
 html_style = 'pdns.css'
 
+html_sidebars = { '**': ['logo-text.html', 'searchbox.html', 'relations.html', 'localtoc.html', 'sourcelink.html'] }
 
 # -- Options for HTMLHelp output ------------------------------------------
 
