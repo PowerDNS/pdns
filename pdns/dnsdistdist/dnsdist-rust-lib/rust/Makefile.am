@@ -7,7 +7,7 @@ EXTRA_DIST = \
 if HAVE_YAML_CONFIGURATION
 all install: libdnsdist_rust.a
 
-libdnsdist_rust.a: src/lib.rs Cargo.toml Cargo.lock
+libdnsdist_rust.a: src/lib.rs src/helpers.rs Cargo.toml Cargo.lock
 	SYSCONFDIR=$(sysconfdir) $(CARGO) build --release $(RUST_TARGET) --target-dir=$(builddir)/target --manifest-path ${srcdir}/Cargo.toml
 	cp target/release/libdnsdist_rust.a libdnsdist_rust.a
 	cp target/cxxbridge/dnsdist-rust/src/lib.rs.h lib.rs.h
