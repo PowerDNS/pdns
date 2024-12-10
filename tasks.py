@@ -593,6 +593,7 @@ def ci_dnsdist_configure(c, features):
                       --enable-dns-over-quic \
                       --enable-dns-over-http3 \
                       --enable-systemd \
+                      --enable-yaml \
                       --prefix=/opt/dnsdist \
                       --with-gnutls \
                       --with-h2o \
