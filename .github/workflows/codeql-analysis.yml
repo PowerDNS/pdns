@@ -39,7 +39,7 @@ jobs:
         # Override automatic language detection by changing the below list
         # Supported options are ['csharp', 'cpp', 'go', 'java', 'javascript', 'python']
         language: ['cpp']
-        product: ['auth', 'rec', 'dnsdist']
+        product: ['rec']
         # Learn more...
         # https://docs.github.com/en/github/finding-security-vulnerabilities-and-errors-in-your-code/configuring-code-scanning#overriding-automatic-language-detection
 
@@ -54,8 +54,6 @@ jobs:
       REPO_HOME: ${{ github.workspace }}
 
     outputs:
-      clang-tidy-annotations-auth: ${{ steps.clang-tidy-annotations-auth.outputs.failed }}
-      clang-tidy-annotations-dnsdist: ${{ steps.clang-tidy-annotations-dnsdist.outputs.failed }}
       clang-tidy-annotations-rec: ${{ steps.clang-tidy-annotations-rec.outputs.failed }}
 
     steps:
