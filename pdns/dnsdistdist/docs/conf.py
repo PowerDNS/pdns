@@ -117,6 +117,7 @@ html_static_path = ['_static']
 
 html_favicon = '_static/favicon.ico'
 
+html_sidebars = { '**': ['searchbox.html', 'relations.html', 'localtoc.html', 'sourcelink.html'] }
 
 # -- Options for HTMLHelp output ------------------------------------------
 
