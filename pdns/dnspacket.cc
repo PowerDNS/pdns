@@ -19,6 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include "ednszoneversion.hh"
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -334,6 +335,10 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
     }
   }
 
+  if (! d_auth_serials.empty()) {
+    optsize += 2 * (EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE + EDNSZoneVersion::EDNSZoneVersionOptSize);
+  }
+
   if (d_trc.d_algoName.countLabels())
   {
     // TSIG is not OPT, but we count it in optsize anyway
@@ -383,6 +388,21 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
         opts.emplace_back(EDNSOptionCode::COOKIE, d_eco.makeOptString());
       }
 
+      for (auto &auth_serial : d_auth_serials) {
+        const auto& name = auth_serial.first;
+        auto& unedited_serial = auth_serial.second.first;
+        auto& edited_serial = auth_serial.second.second;
+
+        uint8_t labelcount = name.countLabels();
+        EDNSZoneVersion unedited = {labelcount, 0 /* FIXME enum */, unedited_serial};
+        EDNSZoneVersion edited = {labelcount, 246 /* FIXME enum and wrong number */, edited_serial};
+
+        string opt = makeEDNSZoneVersionString(unedited);
+        opts.emplace_back(EDNSOptionCode::ZONEVERSION, opt);
+
+        opt = makeEDNSZoneVersionString(edited);
+        opts.emplace_back(EDNSOptionCode::ZONEVERSION, opt);
+      }
       if(!opts.empty() || d_haveednssection || d_dnssecOk)
       {
         pw.addOpt(s_udpTruncationThreshold, d_ednsrcode, d_dnssecOk ? EDNSOpts::DNSSECOK : 0, opts);
@@ -447,6 +467,7 @@ std::unique_ptr<DNSPacket> DNSPacket::replyPacket() const
   r->d_eso = d_eso;
   r->d_eco = d_eco;
   r->d_haveednssubnet = d_haveednssubnet;
+  r->d_wantszoneversion = d_wantszoneversion;
   r->d_haveednssection = d_haveednssection;
   r->d_haveednscookie = d_haveednscookie;
   r->d_ednsversion = 0;
@@ -600,6 +621,7 @@ try
   d_haveednssection = false;
   d_haveednscookie = false;
   d_ednscookievalid = false;
+  d_wantszoneversion = false;
 
   if(getEDNSOpts(mdp, &edo)) {
     d_haveednssection=true;
@@ -626,6 +648,9 @@ try
         d_haveednscookie = true;
         d_eco.makeFromString(option.second);
         d_ednscookievalid = d_eco.isValid(s_EDNSCookieKey, d_remote);
+      }
+      else if (option.first == EDNSOptionCode::ZONEVERSION) {
+        d_wantszoneversion = true;
       }
       else {
         // cerr<<"Have an option #"<<iter->first<<": "<<makeHexDump(iter->second)<<endl;
@@ -687,6 +712,11 @@ void DNSPacket::setRemote(const ComboAddress *outer, std::optional<ComboAddress>
 bool DNSPacket::hasEDNSSubnet() const
 {
   return d_haveednssubnet;
+}
+
+bool DNSPacket::wantsEDNSZoneVersion() const
+{
+  return d_wantszoneversion;
 }
 
 bool DNSPacket::hasEDNS() const
