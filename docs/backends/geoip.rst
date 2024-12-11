@@ -14,7 +14,7 @@ GeoIP backend
 
 This backend (which is a.k.a. the YAML backend) allows visitors to be sent to a server closer to them, with
 no appreciable delay, as would otherwise be incurred with a protocol
-level redirect. Additionally, the Geo Backend can be used to provide
+level redirect. Additionally, the GeoIP backend can be used to provide
 service over several clusters, any of which can be taken out of use
 easily, for example for maintenance purposes. This backend can utilize
 EDNS Client Subnet extension for decision making, if provided in query

@@ -22,7 +22,7 @@ To A Generic SQL Backend
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. note::
-  This assumes the schema provided with PowerDNS is in place
+  This assumes the schema provided with PowerDNS is in place.
 
 In order to migrate to a Generic SQL backend, add all your domains to
 the 'domains' table with the IP of your current master. On your current

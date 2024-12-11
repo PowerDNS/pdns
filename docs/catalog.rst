@@ -41,7 +41,7 @@ None really.
 Per zone settings
 -----------------
 
-It is highly recommended to protect catalog zones with :doc:`TSIG <../tsig>`
+It is highly recommended to protect catalog zones with :doc:`TSIG <../tsig>`.
 
 CATALOG-HASH
 ~~~~~~~~~~~~

@@ -123,7 +123,7 @@ Rules for filling out DNSSEC fields
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. note::
-   This section is only relevant for user who use SQL to change records and zones.
+   This section is only relevant for users who use SQL to change records and zones.
 
 Two additional fields in the 'records' table are important: 'auth' and
 'ordername'. These fields are set correctly on an incoming zone
@@ -282,11 +282,12 @@ Domain and zone manipulation
    :doc:`domain metadata <../domainmetadata>` for a domain.
 -  ``get-domain-metadata-query``: Get a single piece of
    :doc:`domain metadata <../domainmetadata>`.
--  ``clear-domain-metadata-query``: Delete a single entry of domain
-   metadata.
--  ``clear-domain-all-metadata-query``: Remove all domain metadata for a
-   domain.
--  ``set-domain-metadata-query``: Add domain metadata for a zone.
+-  ``clear-domain-metadata-query``: Delete a single entry of
+   :doc:`domain metadata <../domainmetadata>`.
+-  ``clear-domain-all-metadata-query``: Remove all
+   :doc:`domain metadata <../domainmetadata>` for a domain.
+-  ``set-domain-metadata-query``: Add
+   :doc:`domain metadata <../domainmetadata>` for a zone.
 
 -  ``add-domain-key-query``: Called to a cryptokey to a domain.
 -  ``list-domain-keys-query``: Called to get all cryptokeys for a
@@ -344,7 +345,7 @@ For listing/modifying comments.
 -  ``list-comments-query``: Called to get all comments in a zone.
    Returns fields: domain_id, name, type, modified_at, account,
    comment.
--  ``insert-comment-query`` Called to create a single comment for a
+-  ``insert-comment-query``: Called to create a single comment for a
    specific RRSet. Given fields: domain_id, name, type, modified_at,
    account, comment
 -  ``delete-comment-rrset-query``: Called to delete all comments for a

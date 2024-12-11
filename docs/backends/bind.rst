@@ -166,14 +166,14 @@ not yet available, to prevent incomplete answers.
 
 Reloading is currently done only when a request (or zone transfer) for a
 zone comes in, and then only after :ref:`setting-bind-check-interval`
-seconds have passed after the last check. If a change occurred, access
+seconds have passed since the last check. If a change occurred, access
 to the zone is disabled, the file is reloaded, access is restored, and
 the question is answered. For regular zones, reloading is fast enough to
 answer the question which lead to the reload within the DNS timeout.
 
 If :ref:`setting-bind-check-interval` is specified as
-zero, no checks will be performed until the ``pdns_control reload`` is
-given.
+zero, no checks will be performed until the ``pdns_control reload`` command
+is issued.
 
 Please note that also the :ref:`setting-slave-cycle-interval` setting
 controls how often a master would notify a slave about changes.
@@ -219,7 +219,7 @@ Lists all zones that have problems, and what those problems are.
 ``bind-reload-now <domain>``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Reloads a zone from disk NOW, reporting back results.
+Reloads a zone from disk immediately, reporting back results.
 
 ``rediscover``
 ~~~~~~~~~~~~~~
