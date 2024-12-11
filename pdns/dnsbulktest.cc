@@ -317,8 +317,7 @@ try
     pos=split.second.find('/');
     if(pos != string::npos) // alexa has whole urls in the list now.
       split.second.resize(pos);
-    if(find_if(split.second.begin(), split.second.end(), isalpha) == split.second.end())
-    {
+    if (std::none_of(split.second.begin(), split.second.end(), isalpha)) {
       continue; // this was an IP address
     }
     domains.push_back(TypedQuery(split.second, qtype));
