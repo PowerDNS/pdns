@@ -15,7 +15,7 @@ Using AXFR to a Slave-Capable Backend
 The easiest way to migrate all your zones from your old infrastructure
 to PowerDNS is to add all your domains as a slave domain with your
 current master as the master, wait for the zones to be transferred and
-change the zones to master. Make sure :ref:`setting-slave` is set to "yes"
+change the zones to master. Make sure :ref:`setting-secondary` is set to "yes"
 in your pdns.conf.
 
 To A Generic SQL Backend
@@ -40,7 +40,7 @@ domain in the database:
 
     UPDATE domains set type='MASTER' where type='SLAVE';
 
-And set :ref:`setting-master` to "yes" in your pdns.conf
+And set :ref:`setting-primary` to "yes" in your pdns.conf
 and restart PowerDNS.
 
 Or, if you want to use :ref:`native <native-operation>`:
@@ -76,7 +76,7 @@ transferred. Now you can change the zone type to master:
       file "/var/lib/powerdns/zones/example.net.zone";
     };
 
-Don't forget to enable :ref:`setting-master` in your
+Don't forget to enable :ref:`setting-primary` in your
 pdns.conf and restart, or if this setting was already set, use
 ``pdns_control rediscover`` to load these zones as master zones.
 

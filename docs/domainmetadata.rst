@@ -196,7 +196,7 @@ SLAVE-RENOTIFY
 
 If set to 1, will make PowerDNS renotify the secondaries after an AXFR is received from a master.
 Any other value means that no renotifies are done. If not set at all, action will depend on
-the :ref:`setting-slave-renotify` setting.
+the :ref:`setting-secondary-do-renotify` setting.
 
 .. _metadata-soa-edit:
 

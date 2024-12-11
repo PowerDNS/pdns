@@ -116,7 +116,7 @@ domains or updated serial numbers. The CDB datafile requires us to do a
 full scan of all the records. When running with verbose logging, this
 could lead to a lot of output. The scanning of the CDB file may also
 take a while on systems with large files. The scan happens at an
-interval set by the :ref:`setting-slave-cycle-interval`. It
+interval set by the :ref:`setting-xfr-cycle-interval`. It
 might be useful to raise this value to limit the amount of scans on the
 CDB file.
 
