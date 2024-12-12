@@ -211,17 +211,18 @@ static string prometheusLabelValueEscape(const string& value)
 {
   string ret;
 
-  for (char i : value) {
-    if (i == '"' || i == '\\') {
+  for (char lblchar : value) {
+    if (lblchar == '"' || lblchar == '\\') {
       ret += '\\';
-      ret += i;
+      ret += lblchar;
     }
-    else if (i == '\n') {
+    else if (lblchar == '\n') {
       ret += '\\';
       ret += 'n';
     }
-    else
-      ret += i;
+    else {
+      ret += lblchar;
+    }
   }
   return ret;
 }
@@ -229,8 +230,8 @@ static string prometheusLabelValueEscape(const string& value)
 static std::string generateCombinationOfLabels(const std::unordered_map<std::string, std::string>& labels)
 {
   auto ordered = std::map(labels.begin(), labels.end());
-  return std::accumulate(ordered.begin(), ordered.end(), std::string(), [](const std::string& acc, const std::pair<std::string, std::string>& l) {
-    return acc + (acc.empty() ? std::string() : ",") + l.first + "=" + "\"" + prometheusLabelValueEscape(l.second) + "\"";
+  return std::accumulate(ordered.begin(), ordered.end(), std::string(), [](const std::string& acc, const std::pair<std::string, std::string>& label) {
+    return acc + (acc.empty() ? std::string() : ",") + label.first + "=" + "\"" + prometheusLabelValueEscape(label.second) + "\"";
   });
 }
 
