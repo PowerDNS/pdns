@@ -1295,6 +1295,16 @@ mod dnsdistsettings {
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
+    struct HttpResponsesMapConfiguration {
+        expression: String,
+        status: u16,
+        content: String,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        headers: Vec<HttpCustomResponseHeaderConfiguration>,
+    }
+
+    #[derive(Deserialize, Serialize, Debug, PartialEq)]
+    #[serde(deny_unknown_fields)]
     struct IncomingDohConfiguration {
         #[serde(default = "crate::default_value_incoming_doh_provider", skip_serializing_if = "crate::default_value_equal_incoming_doh_provider")]
         provider: String,
@@ -1318,6 +1328,8 @@ mod dnsdistsettings {
         internal_pipe_buffer_size: u32,
         #[serde(rename = "custom-response-headers", default, skip_serializing_if = "crate::is_default")]
         custom_response_headers: Vec<HttpCustomResponseHeaderConfiguration>,
+        #[serde(rename = "responses-map", default, skip_serializing_if = "crate::is_default")]
+        responses_map: Vec<HttpResponsesMapConfiguration>,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
@@ -2607,6 +2619,14 @@ impl Default for dnsdistsettings::HttpCustomResponseHeaderConfiguration {
 }
 
 
+impl Default for dnsdistsettings::HttpResponsesMapConfiguration {
+    fn default() -> Self {
+        let deserialized: dnsdistsettings::HttpResponsesMapConfiguration = serde_yaml::from_str("").unwrap();
+        deserialized
+    }
+}
+
+
 // DEFAULT HANDLING for incoming_doh_provider
 fn default_value_incoming_doh_provider() -> String {
     String::from("nghttp2")
@@ -3075,9 +3095,20 @@ impl dnsdistsettings::HttpCustomResponseHeaderConfiguration {
         Ok(())
     }
 }
+impl dnsdistsettings::HttpResponsesMapConfiguration {
+    fn validate(&self) -> Result<(), ValidationError> {
+        for sub_type in &self.headers {
+        sub_type.validate()?;
+    }
+        Ok(())
+    }
+}
 impl dnsdistsettings::IncomingDohConfiguration {
     fn validate(&self) -> Result<(), ValidationError> {
         for sub_type in &self.custom_response_headers {
+        sub_type.validate()?;
+    }
+        for sub_type in &self.responses_map {
         sub_type.validate()?;
     }
         Ok(())

@@ -532,6 +532,18 @@ http-custom-response-header:
     - name: "value"
       type: "String"
 
+http-responses-map:
+  parameters:
+    - name: "expression"
+      type: "String"
+    - name: "status"
+      type: "u16"
+    - name: "content"
+      type: "String"
+    - name: "headers"
+      type: "Vec<HttpCustomResponseHeaderConfiguration>"
+      default: true
+
 incoming-doh:
   parameters:
     - name: "provider"
@@ -566,6 +578,9 @@ incoming-doh:
       default: 1048576
     - name: "custom-response-headers"
       type: "Vec<HttpCustomResponseHeaderConfiguration>"
+      default: true
+    - name: "responses-map"
+      type: "Vec<HttpResponsesMapConfiguration>"
       default: true
 
 incoming-doq:

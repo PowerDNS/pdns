@@ -258,6 +258,22 @@ static bool handleTLSConfiguration(const dnsdist::rust::settings::BindsConfigura
       frontend->d_customResponseHeaders.insert(std::move(headerResponse));
     }
 
+    if (!bind.doh.responses_map.empty()) {
+      auto newMap = std::make_shared<std::vector<std::shared_ptr<DOHResponseMapEntry>>>();
+      for (const auto& responsesMap : bind.doh.responses_map) {
+        boost::optional<std::unordered_map<std::string, std::string>> headers;
+        if (!responsesMap.headers.empty()) {
+          headers = std::unordered_map<std::string, std::string>();
+          for (const auto& header : responsesMap.headers) {
+            headers->emplace(boost::to_lower_copy(std::string(header.key)), std::string(header.value));
+          }
+        }
+        auto entry = std::make_shared<DOHResponseMapEntry>(std::string(responsesMap.expression), responsesMap.status, PacketBuffer(responsesMap.content.begin(), responsesMap.content.end()), headers);
+        newMap->emplace_back(std::move(entry));
+      }
+      frontend->d_responsesMap = std::move(newMap);
+    }
+
     if (!tlsConfig.d_certKeyPairs.empty()) {
       frontend->d_tlsContext.d_addr = ComboAddress(std::string(bind.listen_address), 443);
       infolog("DNS over HTTPS configured");
