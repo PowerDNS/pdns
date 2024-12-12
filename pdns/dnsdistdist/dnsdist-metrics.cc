@@ -22,6 +22,7 @@
 #include <boost/algorithm/string/join.hpp>
 #include <numeric>
 #include <regex>
+#include <utility>
 
 #include "dnsdist-metrics.hh"
 #include "dnsdist.hh"
@@ -233,19 +234,26 @@ static std::string generateCombinationOfLabels(const std::unordered_map<std::str
   });
 }
 
+template <typename T>
+static T& initializeOrGetMetric(const std::string_view& name, std::map<std::string, T>& metricEntries, const std::unordered_map<std::string, std::string>& labels)
+{
+  auto combinationOfLabels = generateCombinationOfLabels(labels);
+  auto metricEntry = metricEntries.find(combinationOfLabels);
+  if (metricEntry == metricEntries.end()) {
+    metricEntry = metricEntries.emplace(std::piecewise_construct, std::forward_as_tuple(combinationOfLabels), std::forward_as_tuple()).first;
+    g_stats.entries.write_lock()->emplace_back(Stats::EntryTriple{std::string(name), combinationOfLabels, &metricEntry->second.d_value});
+  }
+  return metricEntry->second;
+}
+
 std::variant<uint64_t, Error> incrementCustomCounter(const std::string_view& name, uint64_t step, const std::unordered_map<std::string, std::string>& labels)
 {
   auto customCounters = s_customCounters.write_lock();
   auto metric = customCounters->find(name);
   if (metric != customCounters->end()) {
-    auto combinationOfLabels = generateCombinationOfLabels(labels);
-    auto metricEntry = metric->second.find(combinationOfLabels);
-    if (metricEntry == metric->second.end()) {
-      metricEntry = metric->second.emplace(combinationOfLabels, MutableCounter()).first;
-      g_stats.entries.write_lock()->emplace_back(Stats::EntryTriple{std::string(name), combinationOfLabels, &metricEntry->second.d_value});
-    }
-    metricEntry->second.d_value += step;
-    return metricEntry->second.d_value.load();
+    auto& metricEntry = initializeOrGetMetric(name, metric->second, labels);
+    metricEntry.d_value += step;
+    return metricEntry.d_value.load();
   }
   return std::string("Unable to increment custom metric '") + std::string(name) + "': no such counter";
 }
@@ -255,14 +263,9 @@ std::variant<uint64_t, Error> decrementCustomCounter(const std::string_view& nam
   auto customCounters = s_customCounters.write_lock();
   auto metric = customCounters->find(name);
   if (metric != customCounters->end()) {
-    auto combinationOfLabels = generateCombinationOfLabels(labels);
-    auto metricEntry = metric->second.find(combinationOfLabels);
-    if (metricEntry == metric->second.end()) {
-      metricEntry = metric->second.emplace(combinationOfLabels, MutableCounter()).first;
-      g_stats.entries.write_lock()->emplace_back(Stats::EntryTriple{std::string(name), combinationOfLabels, &metricEntry->second.d_value});
-    }
-    metricEntry->second.d_value -= step;
-    return metricEntry->second.d_value.load();
+    auto& metricEntry = initializeOrGetMetric(name, metric->second, labels);
+    metricEntry.d_value -= step;
+    return metricEntry.d_value.load();
   }
   return std::string("Unable to decrement custom metric '") + std::string(name) + "': no such counter";
 }
@@ -272,13 +275,8 @@ std::variant<double, Error> setCustomGauge(const std::string_view& name, const d
   auto customGauges = s_customGauges.write_lock();
   auto metric = customGauges->find(name);
   if (metric != customGauges->end()) {
-    auto combinationOfLabels = generateCombinationOfLabels(labels);
-    auto metricEntry = metric->second.find(combinationOfLabels);
-    if (metricEntry == metric->second.end()) {
-      metricEntry = metric->second.emplace(combinationOfLabels, MutableGauge()).first;
-      g_stats.entries.write_lock()->emplace_back(Stats::EntryTriple{std::string(name), combinationOfLabels, &metricEntry->second.d_value});
-    }
-    metricEntry->second.d_value = value;
+    auto& metricEntry = initializeOrGetMetric(name, metric->second, labels);
+    metricEntry.d_value = value;
     return value;
   }
 
