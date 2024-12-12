@@ -85,7 +85,8 @@
 
 using std::thread;
 
-using update_metric_opts_t = LuaAssociativeTable<boost::variant<uint64_t, double, LuaAssociativeTable<std::string>>>;
+using update_metric_opts_t = LuaAssociativeTable<boost::variant<uint64_t, LuaAssociativeTable<std::string>>>;
+using declare_metric_opts_t = LuaAssociativeTable<boost::variant<bool, std::string>>;
 
 static boost::tribool s_noLuaSideEffect;
 
@@ -3412,8 +3413,22 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     newThread.detach();
   });
 
-  luaCtx.writeFunction("declareMetric", [](const std::string& name, const std::string& type, const std::string& description, boost::optional<std::string> customName) {
-    auto result = dnsdist::metrics::declareCustomMetric(name, type, description, customName ? std::optional<std::string>(*customName) : std::nullopt);
+  luaCtx.writeFunction("declareMetric", [](const std::string& name, const std::string& type, const std::string& description, boost::optional<boost::variant<std::string, boost::optional<declare_metric_opts_t>>> opts) {
+    bool withLabels = false;
+    std::optional<std::string> customName = std::nullopt;
+    if (opts) {
+      auto* optCustomName = boost::get<std::string>(&opts.get());
+      if (optCustomName) {
+        customName = std::optional(*optCustomName);
+      }
+      if (!customName) {
+        boost::optional<declare_metric_opts_t> vars = boost::get<boost::optional<declare_metric_opts_t>>(opts.get());
+        getOptionalValue<std::string>(vars, "customName", customName);
+        getOptionalValue<bool>(vars, "withLabels", withLabels);
+        checkAllParametersConsumed("declareMetric", vars);
+      }
+    }
+    auto result = dnsdist::metrics::declareCustomMetric(name, type, description, customName, withLabels);
     if (result) {
       g_outputBuffer += *result + "\n";
       errlog("Error in declareMetric: %s", *result);

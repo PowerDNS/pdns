@@ -169,7 +169,7 @@ Stats::Stats() :
 
 struct Stats g_stats;
 
-std::optional<std::string> declareCustomMetric(const std::string& name, const std::string& type, const std::string& description, std::optional<std::string> customName)
+std::optional<std::string> declareCustomMetric(const std::string& name, const std::string& type, const std::string& description, std::optional<std::string> customName, bool withLabels)
 {
   if (!std::regex_match(name, std::regex("^[a-z0-9-]+$"))) {
     return std::string("Unable to declare metric '") + std::string(name) + std::string("': invalid name\n");
@@ -180,6 +180,10 @@ std::optional<std::string> declareCustomMetric(const std::string& name, const st
     auto customCounters = s_customCounters.write_lock();
     auto itp = customCounters->emplace(name, std::map<std::string, MutableCounter>());
     if (itp.second) {
+      if (!withLabels) {
+        auto counter = itp.first->second.emplace("", MutableCounter());
+        g_stats.entries.write_lock()->emplace_back(Stats::EntryTriple{name, "", &counter.first->second.d_value});
+      }
       dnsdist::prometheus::PrometheusMetricDefinition def{name, type, description, finalCustomName};
       dnsdist::webserver::addMetricDefinition(def);
     }
@@ -188,6 +192,10 @@ std::optional<std::string> declareCustomMetric(const std::string& name, const st
     auto customGauges = s_customGauges.write_lock();
     auto itp = customGauges->emplace(name, std::map<std::string, MutableGauge>());
     if (itp.second) {
+      if (!withLabels) {
+        auto gauge = itp.first->second.emplace("", MutableGauge());
+        g_stats.entries.write_lock()->emplace_back(Stats::EntryTriple{name, "", &gauge.first->second.d_value});
+      }
       dnsdist::prometheus::PrometheusMetricDefinition def{name, type, description, finalCustomName};
       dnsdist::webserver::addMetricDefinition(def);
     }

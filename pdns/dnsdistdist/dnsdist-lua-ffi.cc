@@ -1805,7 +1805,8 @@ bool dnsdist_ffi_metric_declare(const char* name, size_t nameLen, const char* ty
   if (name == nullptr || nameLen == 0 || type == nullptr || description == nullptr) {
     return false;
   }
-  auto result = dnsdist::metrics::declareCustomMetric(name, type, description, customName != nullptr ? std::optional<std::string>(customName) : std::nullopt);
+  // TODO: add labels options?
+  auto result = dnsdist::metrics::declareCustomMetric(name, type, description, customName != nullptr ? std::optional<std::string>(customName) : std::nullopt, false);
   return !result;
 }
 
