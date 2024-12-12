@@ -206,7 +206,7 @@ SOA-EDIT
 When serving this zone, modify the SOA serial number in one of several
 ways. Mostly useful to get secondaries to re-transfer a zone regularly to get
 fresh RRSIGs. See the :ref:`DNSSEC
-documentation <soa-edit-ensure-signature-freshness-on-slaves>`
+documentation <soa-edit-ensure-signature-freshness-on-secondaries>`
 for more information.
 
 .. _metadata-soa-edit-api:

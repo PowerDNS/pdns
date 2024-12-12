@@ -29,7 +29,7 @@ To deliver a correctly signed zone with the :ref:`dnssec-pdnsutil-dnssec-default
     pdnsutil secure-zone ZONE
 
 To view the DS records for this zone (to transfer to the parent zone),
-run
+run:
 
 .. code-block:: shell
 
