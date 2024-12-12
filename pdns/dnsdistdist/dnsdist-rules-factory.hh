@@ -622,10 +622,7 @@ public:
   }
   bool matches(const DNSQuestion* dq) const override
   {
-    auto match = d_smn.check(dq->ids.qname);
-    ;
-    cerr << "checking if " << dq->ids.qname.toString() << " matches " << match << endl;
-    return match;
+    return d_smn.check(dq->ids.qname);
   }
   string toString() const override
   {
