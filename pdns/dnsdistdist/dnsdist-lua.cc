@@ -886,29 +886,28 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     const std::function<void(dnsdist::configuration::ImmutableConfiguration& config, uint64_t value)> mutator;
     const size_t maximumValue{std::numeric_limits<uint64_t>::max()};
   };
-  static const std::vector<UnsignedIntegerImmutableConfigurationItems> unsignedIntegerImmutableConfigItems
-  {
+  static const std::vector<UnsignedIntegerImmutableConfigurationItems> unsignedIntegerImmutableConfigItems{
     {"setMaxTCPQueuedConnections", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_maxTCPQueuedConnections = newValue; }, std::numeric_limits<uint16_t>::max()},
-      {"setMaxTCPClientThreads", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_maxTCPClientThreads = newValue; }, std::numeric_limits<uint16_t>::max()},
-      {"setMaxTCPConnectionsPerClient", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_maxTCPConnectionsPerClient = newValue; }, std::numeric_limits<uint64_t>::max()},
-      {"setTCPInternalPipeBufferSize", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_tcpInternalPipeBufferSize = newValue; }, std::numeric_limits<uint64_t>::max()},
-      {"setMaxCachedTCPConnectionsPerDownstream", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_outgoingTCPMaxIdlePerBackend = newValue; }, std::numeric_limits<uint16_t>::max()},
-      {"setTCPDownstreamCleanupInterval", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_outgoingTCPCleanupInterval = newValue; }, std::numeric_limits<uint32_t>::max()},
-      {"setTCPDownstreamMaxIdleTime", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_outgoingTCPMaxIdleTime = newValue; }, std::numeric_limits<uint16_t>::max()},
+    {"setMaxTCPClientThreads", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_maxTCPClientThreads = newValue; }, std::numeric_limits<uint16_t>::max()},
+    {"setMaxTCPConnectionsPerClient", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_maxTCPConnectionsPerClient = newValue; }, std::numeric_limits<uint64_t>::max()},
+    {"setTCPInternalPipeBufferSize", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_tcpInternalPipeBufferSize = newValue; }, std::numeric_limits<uint64_t>::max()},
+    {"setMaxCachedTCPConnectionsPerDownstream", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_outgoingTCPMaxIdlePerBackend = newValue; }, std::numeric_limits<uint16_t>::max()},
+    {"setTCPDownstreamCleanupInterval", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_outgoingTCPCleanupInterval = newValue; }, std::numeric_limits<uint32_t>::max()},
+    {"setTCPDownstreamMaxIdleTime", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_outgoingTCPMaxIdleTime = newValue; }, std::numeric_limits<uint16_t>::max()},
 #if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
-      {"setOutgoingDoHWorkerThreads", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_outgoingDoHWorkers = newValue; }, std::numeric_limits<uint16_t>::max()},
-      {"setMaxIdleDoHConnectionsPerDownstream", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_outgoingDoHMaxIdlePerBackend = newValue; }, std::numeric_limits<uint16_t>::max()},
-      {"setDoHDownstreamCleanupInterval", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_outgoingDoHCleanupInterval = newValue; }, std::numeric_limits<uint32_t>::max()},
-      {"setDoHDownstreamMaxIdleTime", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_outgoingDoHMaxIdleTime = newValue; }, std::numeric_limits<uint16_t>::max()},
+    {"setOutgoingDoHWorkerThreads", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_outgoingDoHWorkers = newValue; }, std::numeric_limits<uint16_t>::max()},
+    {"setMaxIdleDoHConnectionsPerDownstream", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_outgoingDoHMaxIdlePerBackend = newValue; }, std::numeric_limits<uint16_t>::max()},
+    {"setDoHDownstreamCleanupInterval", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_outgoingDoHCleanupInterval = newValue; }, std::numeric_limits<uint32_t>::max()},
+    {"setDoHDownstreamMaxIdleTime", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_outgoingDoHMaxIdleTime = newValue; }, std::numeric_limits<uint16_t>::max()},
 #endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
-      {"setMaxUDPOutstanding", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_maxUDPOutstanding = newValue; }, std::numeric_limits<uint16_t>::max()},
-      {"setWHashedPertubation", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_hashPerturbation = newValue; }, std::numeric_limits<uint32_t>::max()},
+    {"setMaxUDPOutstanding", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_maxUDPOutstanding = newValue; }, std::numeric_limits<uint16_t>::max()},
+    {"setWHashedPertubation", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_hashPerturbation = newValue; }, std::numeric_limits<uint32_t>::max()},
 #ifndef DISABLE_RECVMMSG
-      {"setUDPMultipleMessagesVectorSize", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_udpVectorSize = newValue; }, std::numeric_limits<uint32_t>::max()},
+    {"setUDPMultipleMessagesVectorSize", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_udpVectorSize = newValue; }, std::numeric_limits<uint32_t>::max()},
 #endif /* DISABLE_RECVMMSG */
-      {"setUDPTimeout", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_udpTimeout = newValue; }, std::numeric_limits<uint8_t>::max()},
-      {"setConsoleMaximumConcurrentConnections", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_consoleMaxConcurrentConnections = newValue; }, std::numeric_limits<uint32_t>::max()},
-      {"setRingBuffersLockRetries", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_ringsNbLockTries = newValue; }, std::numeric_limits<uint64_t>::max()},
+    {"setUDPTimeout", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_udpTimeout = newValue; }, std::numeric_limits<uint8_t>::max()},
+    {"setConsoleMaximumConcurrentConnections", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_consoleMaxConcurrentConnections = newValue; }, std::numeric_limits<uint32_t>::max()},
+    {"setRingBuffersLockRetries", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_ringsNbLockTries = newValue; }, std::numeric_limits<uint64_t>::max()},
   };
 
   struct DoubleImmutableConfigurationItems
@@ -1267,7 +1266,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   luaCtx.writeFunction("getPoolServers", [](const string& pool) {
-    //coverity[auto_causes_copy]
+    // coverity[auto_causes_copy]
     const auto poolServers = getDownstreamCandidates(pool);
     return *poolServers;
   });
@@ -1603,7 +1602,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       g_outputBuffer = "Crypto failed..\n";
     }
 #else
-      g_outputBuffer = "Crypto not available.\n";
+    g_outputBuffer = "Crypto not available.\n";
 #endif
   });
 
@@ -1876,9 +1875,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       //             1        2         3                4
       ret << (fmt % "Name" % "Cache" % "ServerPolicy" % "Servers") << endl;
 
-      //coverity[auto_causes_copy]
+      // coverity[auto_causes_copy]
       const auto defaultPolicyName = dnsdist::configuration::getCurrentRuntimeConfiguration().d_lbPolicy->getName();
-      //coverity[auto_causes_copy]
+      // coverity[auto_causes_copy]
       const auto pools = dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools;
       for (const auto& entry : pools) {
         const string& name = entry.first;
@@ -2461,7 +2460,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #ifdef HAVE_NGHTTP2
       frontend->d_library = "nghttp2";
 #else /* HAVE_NGHTTP2 */
-        frontend->d_library = "h2o";
+      frontend->d_library = "h2o";
 #endif /* HAVE_NGHTTP2 */
     }
     if (frontend->d_library == "h2o") {
@@ -2470,8 +2469,8 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       // we _really_ need to set it again, as we just replaced the generic frontend by a new one
       frontend->d_library = "h2o";
 #else /* HAVE_LIBH2OEVLOOP */
-        errlog("DOH bind %s is configured to use libh2o but the library is not available", addr);
-        return;
+      errlog("DOH bind %s is configured to use libh2o but the library is not available", addr);
+      return;
 #endif /* HAVE_LIBH2OEVLOOP */
     }
     else if (frontend->d_library == "nghttp2") {
@@ -2588,7 +2587,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #ifdef HAVE_LIBSSL
         const std::string provider("openssl");
 #else
-          const std::string provider("gnutls");
+        const std::string provider("gnutls");
 #endif
         vinfolog("Loading default TLS provider '%s'", provider);
       }
@@ -2609,7 +2608,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       config.d_frontends.push_back(std::move(clientState));
     });
 #else /* HAVE_DNS_OVER_HTTPS */
-      throw std::runtime_error("addDOHLocal() called but DNS over HTTPS support is not present!");
+    throw std::runtime_error("addDOHLocal() called but DNS over HTTPS support is not present!");
 #endif /* HAVE_DNS_OVER_HTTPS */
   });
 
@@ -2686,7 +2685,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       config.d_frontends.push_back(std::move(clientState));
     });
 #else
-      throw std::runtime_error("addDOH3Local() called but DNS over HTTP/3 support is not present!");
+    throw std::runtime_error("addDOH3Local() called but DNS over HTTP/3 support is not present!");
 #endif
   });
 
@@ -2763,7 +2762,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       config.d_frontends.push_back(std::move(clientState));
     });
 #else
-      throw std::runtime_error("addDOQLocal() called but DNS over QUIC support is not present!");
+    throw std::runtime_error("addDOQLocal() called but DNS over QUIC support is not present!");
 #endif
   });
 
@@ -2786,7 +2785,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       throw;
     }
 #else
-      g_outputBuffer = "DNS over QUIC support is not present!\n";
+    g_outputBuffer = "DNS over QUIC support is not present!\n";
 #endif
   });
 
@@ -2845,7 +2844,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       throw;
     }
 #else
-      g_outputBuffer = "DNS over HTTPS support is not present!\n";
+    g_outputBuffer = "DNS over HTTPS support is not present!\n";
 #endif
   });
 
@@ -2868,7 +2867,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       throw;
     }
 #else
-      g_outputBuffer = "DNS over HTTP3 support is not present!\n";
+    g_outputBuffer = "DNS over HTTP3 support is not present!\n";
 #endif
   });
 
@@ -2938,7 +2937,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       throw;
     }
 #else
-      g_outputBuffer = "DNS over HTTPS support is not present!\n";
+    g_outputBuffer = "DNS over HTTPS support is not present!\n";
 #endif
   });
 
@@ -3117,7 +3116,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #ifdef HAVE_LIBSSL
         const std::string provider("openssl");
 #else
-          const std::string provider("gnutls");
+        const std::string provider("gnutls");
 #endif
         vinfolog("Loading default TLS provider '%s'", provider);
       }
@@ -3143,7 +3142,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       g_outputBuffer = "Error: " + string(e.what()) + "\n";
     }
 #else
-      throw std::runtime_error("addTLSLocal() called but DNS over TLS support is not present!");
+    throw std::runtime_error("addTLSLocal() called but DNS over TLS support is not present!");
 #endif
   });
 
@@ -3167,7 +3166,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       throw;
     }
 #else
-      g_outputBuffer = "DNS over TLS support is not present!\n";
+    g_outputBuffer = "DNS over TLS support is not present!\n";
 #endif
   });
 
