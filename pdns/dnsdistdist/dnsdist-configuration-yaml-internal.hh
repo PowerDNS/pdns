@@ -21,10 +21,12 @@
  */
 #pragma once
 
+#include "dnsdist-configuration.hh"
+
 namespace dnsdist::configuration::yaml
 {
 #if defined(HAVE_YAML_CONFIGURATION)
-void convertImmutableFlatSettingsFromRust(const dnsdist::rust::settings::GlobalConfiguration& yamlConfig);
-void convertRuntimeFlatSettingsFromRust(const dnsdist::rust::settings::GlobalConfiguration& yamlConfig);
+void convertImmutableFlatSettingsFromRust(const dnsdist::rust::settings::GlobalConfiguration& yamlConfig, dnsdist::configuration::ImmutableConfiguration& config);
+void convertRuntimeFlatSettingsFromRust(const dnsdist::rust::settings::GlobalConfiguration& yamlConfig, dnsdist::configuration::RuntimeConfiguration& config);
 #endif /* HAVE_YAML_CONFIGURATION */
 }

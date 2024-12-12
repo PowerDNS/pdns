@@ -526,7 +526,7 @@ bool loadConfigurationFromFile(const std::string& fileName, bool isClient, bool 
     }
 
     if (!globalConfig.proxy_protocol.acl.empty()) {
-      dnsdist::configuration::updateRuntimeConfiguration([globalConfig](dnsdist::configuration::RuntimeConfiguration& config) {
+      dnsdist::configuration::updateRuntimeConfiguration([&globalConfig](dnsdist::configuration::RuntimeConfiguration& config) {
         config.d_proxyProtocolACL.clear();
         for (const auto& aclEntry : globalConfig.proxy_protocol.acl) {
           config.d_proxyProtocolACL.addMask(std::string(aclEntry));
@@ -566,14 +566,16 @@ bool loadConfigurationFromFile(const std::string& fileName, bool isClient, bool 
 #endif /* defined(HAVE_LMDB) || defined(HAVE_CDB) */
 
 #ifndef DISABLE_CARBON
-    for (const auto& carbonConfig : globalConfig.metrics.carbon) {
-      auto newEndpoint = dnsdist::Carbon::newEndpoint(std::string(carbonConfig.address),
-                                                      std::string(carbonConfig.name),
-                                                      carbonConfig.interval,
-                                                      carbonConfig.name_space.empty() ? "dnsdist" : std::string(carbonConfig.name_space),
-                                                      carbonConfig.instance.empty() ? "main" : std::string(carbonConfig.instance));
-      dnsdist::configuration::updateRuntimeConfiguration([&newEndpoint](dnsdist::configuration::RuntimeConfiguration& config) {
-        config.d_carbonEndpoints.push_back(std::move(newEndpoint));
+    if (!globalConfig.metrics.carbon.empty()) {
+      dnsdist::configuration::updateRuntimeConfiguration([&globalConfig](dnsdist::configuration::RuntimeConfiguration& config) {
+        for (const auto& carbonConfig : globalConfig.metrics.carbon) {
+          auto newEndpoint = dnsdist::Carbon::newEndpoint(std::string(carbonConfig.address),
+                                                          std::string(carbonConfig.name),
+                                                          carbonConfig.interval,
+                                                          carbonConfig.name_space.empty() ? "dnsdist" : std::string(carbonConfig.name_space),
+                                                          carbonConfig.instance.empty() ? "main" : std::string(carbonConfig.instance));
+          config.d_carbonEndpoints.push_back(std::move(newEndpoint));
+        }
       });
     }
 #endif /* DISABLE_CARBON */
@@ -822,57 +824,50 @@ bool loadConfigurationFromFile(const std::string& fileName, bool isClient, bool 
       }
     }
 
-    convertImmutableFlatSettingsFromRust(globalConfig);
-    convertRuntimeFlatSettingsFromRust(globalConfig);
+    dnsdist::configuration::updateImmutableConfiguration([&globalConfig](dnsdist::configuration::ImmutableConfiguration& config) {
+      convertImmutableFlatSettingsFromRust(globalConfig, config);
+    });
 
-    for (const auto& rule : globalConfig.query_rules) {
-      dnsdist::configuration::updateRuntimeConfiguration([&rule](dnsdist::configuration::RuntimeConfiguration& config) {
+    dnsdist::configuration::updateRuntimeConfiguration([&globalConfig](dnsdist::configuration::RuntimeConfiguration& config) {
+      convertRuntimeFlatSettingsFromRust(globalConfig, config);
+    });
+
+    dnsdist::configuration::updateRuntimeConfiguration([&globalConfig](dnsdist::configuration::RuntimeConfiguration& config) {
+      for (const auto& rule : globalConfig.query_rules) {
         boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
         dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::RuleChain::Rules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
-      });
-    }
+      }
 
-    for (const auto& rule : globalConfig.cache_miss_rules) {
-      dnsdist::configuration::updateRuntimeConfiguration([&rule](dnsdist::configuration::RuntimeConfiguration& config) {
+      for (const auto& rule : globalConfig.cache_miss_rules) {
         boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
         dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::RuleChain::CacheMissRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
-      });
-    }
+      }
 
-    for (const auto& rule : globalConfig.response_rules) {
-      dnsdist::configuration::updateRuntimeConfiguration([&rule](dnsdist::configuration::RuntimeConfiguration& config) {
+      for (const auto& rule : globalConfig.response_rules) {
         boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
         dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::ResponseRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
-      });
-    }
+      }
 
-    for (const auto& rule : globalConfig.cache_hit_response_rules) {
-      dnsdist::configuration::updateRuntimeConfiguration([&rule](dnsdist::configuration::RuntimeConfiguration& config) {
+      for (const auto& rule : globalConfig.cache_hit_response_rules) {
         boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
         dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::CacheHitResponseRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
-      });
-    }
+      }
 
-    for (const auto& rule : globalConfig.cache_inserted_response_rules) {
-      dnsdist::configuration::updateRuntimeConfiguration([&rule](dnsdist::configuration::RuntimeConfiguration& config) {
+      for (const auto& rule : globalConfig.cache_inserted_response_rules) {
         boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
         dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
-      });
-    }
+      }
 
-    for (const auto& rule : globalConfig.self_answered_response_rules) {
-      dnsdist::configuration::updateRuntimeConfiguration([&rule](dnsdist::configuration::RuntimeConfiguration& config) {
+      for (const auto& rule : globalConfig.self_answered_response_rules) {
         boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
         dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::SelfAnsweredResponseRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
-      });
-    }
+      }
 
-    for (const auto& rule : globalConfig.xfr_response_rules) {
-      dnsdist::configuration::updateRuntimeConfiguration([&rule](dnsdist::configuration::RuntimeConfiguration& config) {
+      for (const auto& rule : globalConfig.xfr_response_rules) {
         boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
         dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::XFRResponseRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
-      });
-    }
+      }
+    });
 
     s_registeredTypesMap.lock()->clear();
     return true;
