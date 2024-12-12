@@ -990,6 +990,39 @@ std::shared_ptr<DNSActionWrapper> getSpoofPacketAction(const SpoofPacketActionCo
   return newDNSActionWrapper(std::move(action), config.name);
 }
 
+std::shared_ptr<DNSActionWrapper> getSpoofAction(const SpoofActionConfiguration& config)
+{
+  std::vector<ComboAddress> addresses;
+  for (const auto& addr : config.ips) {
+    addresses.emplace_back(std::string(addr));
+  }
+  auto action = dnsdist::actions::getSpoofAction(addresses, convertResponseConfig(config.vars));
+  return newDNSActionWrapper(std::move(action), config.name);
+}
+
+std::shared_ptr<DNSActionWrapper> getSpoofCNAMEAction(const SpoofCNAMEActionConfiguration& config)
+{
+  auto cname = DNSName(std::string(config.cname));
+  auto action = dnsdist::actions::getSpoofAction(cname, convertResponseConfig(config.vars));
+  return newDNSActionWrapper(std::move(action), config.name);
+}
+
+std::shared_ptr<DNSActionWrapper> getSpoofRawAction(const SpoofRawActionConfiguration& config)
+{
+  std::vector<std::string> raws;
+  for (const auto& answer : config.answers) {
+    raws.emplace_back(answer);
+  }
+  std::optional<uint16_t> qtypeForAny;
+  if (!config.qtype_for_any.empty()) {
+    QType qtype;
+    qtype = std::string(config.qtype_for_any);
+    qtypeForAny = qtype.getCode();
+  }
+  auto action = dnsdist::actions::getSpoofAction(raws, qtypeForAny, convertResponseConfig(config.vars));
+  return newDNSActionWrapper(std::move(action), config.name);
+}
+
 std::shared_ptr<DNSResponseActionWrapper> getClearRecordTypesResponseAction(const ClearRecordTypesResponseActionConfiguration& config)
 {
   std::unordered_set<QType> qtypes{};

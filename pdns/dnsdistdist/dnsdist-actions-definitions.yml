@@ -244,6 +244,24 @@
       type: "String"
       default: ""
       cpp-optional: false
+- name: "Spoof"
+  skip-cpp: true
+  skip-rust: true
+  parameters:
+    - name: "ips"
+      type: "Vec<String>"
+    - name: "vars"
+      type: "ResponseConfig"
+      default: true
+- name: "SpoofCNAME"
+  skip-cpp: true
+  skip-rust: true
+  parameters:
+    - name: "cname"
+      type: "String"
+    - name: "vars"
+      type: "ResponseConfig"
+      default: true
 - name: "SpoofPacket"
   skip-cpp: true
   skip-rust: true
@@ -252,6 +270,18 @@
       type: "String"
     - name: "len"
       type: "u32"
+- name: "SpoofRaw"
+  skip-cpp: true
+  skip-rust: true
+  parameters:
+    - name: "answers"
+      type: "Vec<String>"
+    - name: "qtype-for-any"
+      type: "String"
+      default: ""
+    - name: "vars"
+      type: "ResponseConfig"
+      default: true
 - name: "SpoofSVC"
   skip-cpp: true
   parameters:
