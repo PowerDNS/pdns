@@ -425,11 +425,43 @@ mod dnsdistsettings {
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
+    struct SpoofActionConfiguration {
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        name: String,
+        ips: Vec<String>,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        vars: ResponseConfig,
+    }
+
+    #[derive(Deserialize, Serialize, Debug, PartialEq)]
+    #[serde(deny_unknown_fields)]
+    struct SpoofCNAMEActionConfiguration {
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        name: String,
+        cname: String,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        vars: ResponseConfig,
+    }
+
+    #[derive(Deserialize, Serialize, Debug, PartialEq)]
+    #[serde(deny_unknown_fields)]
     struct SpoofPacketActionConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
         response: String,
         len: u32,
+    }
+
+    #[derive(Deserialize, Serialize, Debug, PartialEq)]
+    #[serde(deny_unknown_fields)]
+    struct SpoofRawActionConfiguration {
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        name: String,
+        answers: Vec<String>,
+        #[serde(rename = "qtype-for-any", default, skip_serializing_if = "crate::is_default")]
+        qtype_for_any: String,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        vars: ResponseConfig,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
@@ -1993,7 +2025,10 @@ mod dnsdistsettings {
         fn getSetTagAction(config: &SetTagActionConfiguration) -> SharedPtr<DNSActionWrapper>;
         fn getSetTempFailureCacheTTLAction(config: &SetTempFailureCacheTTLActionConfiguration) -> SharedPtr<DNSActionWrapper>;
         fn getSNMPTrapAction(config: &SNMPTrapActionConfiguration) -> SharedPtr<DNSActionWrapper>;
+        fn getSpoofAction(config: &SpoofActionConfiguration) -> SharedPtr<DNSActionWrapper>;
+        fn getSpoofCNAMEAction(config: &SpoofCNAMEActionConfiguration) -> SharedPtr<DNSActionWrapper>;
         fn getSpoofPacketAction(config: &SpoofPacketActionConfiguration) -> SharedPtr<DNSActionWrapper>;
+        fn getSpoofRawAction(config: &SpoofRawActionConfiguration) -> SharedPtr<DNSActionWrapper>;
         fn getSpoofSVCAction(config: &SpoofSVCActionConfiguration) -> SharedPtr<DNSActionWrapper>;
         fn getTCAction(config: &TCActionConfiguration) -> SharedPtr<DNSActionWrapper>;
         fn getTeeAction(config: &TeeActionConfiguration) -> SharedPtr<DNSActionWrapper>;
@@ -2214,7 +2249,10 @@ enum Action {
     SetTag(dnsdistsettings::SetTagActionConfiguration),
     SetTempFailureCacheTTL(dnsdistsettings::SetTempFailureCacheTTLActionConfiguration),
     SNMPTrap(dnsdistsettings::SNMPTrapActionConfiguration),
+    Spoof(dnsdistsettings::SpoofActionConfiguration),
+    SpoofCNAME(dnsdistsettings::SpoofCNAMEActionConfiguration),
     SpoofPacket(dnsdistsettings::SpoofPacketActionConfiguration),
+    SpoofRaw(dnsdistsettings::SpoofRawActionConfiguration),
     SpoofSVC(dnsdistsettings::SpoofSVCActionConfiguration),
     TC(dnsdistsettings::TCActionConfiguration),
     Tee(dnsdistsettings::TeeActionConfiguration),
@@ -3520,8 +3558,26 @@ fn get_one_action_from_serde(action: &Action) -> Option<dnsdistsettings::SharedD
                 action: tmp_action,
             });
         }
+        Action::Spoof(spoof) => {
+            let tmp_action = dnsdistsettings::getSpoofAction(&spoof);
+            return Some(dnsdistsettings::SharedDNSAction {
+                action: tmp_action,
+            });
+        }
+        Action::SpoofCNAME(spoofcname) => {
+            let tmp_action = dnsdistsettings::getSpoofCNAMEAction(&spoofcname);
+            return Some(dnsdistsettings::SharedDNSAction {
+                action: tmp_action,
+            });
+        }
         Action::SpoofPacket(spoofpacket) => {
             let tmp_action = dnsdistsettings::getSpoofPacketAction(&spoofpacket);
+            return Some(dnsdistsettings::SharedDNSAction {
+                action: tmp_action,
+            });
+        }
+        Action::SpoofRaw(spoofraw) => {
+            let tmp_action = dnsdistsettings::getSpoofRawAction(&spoofraw);
             return Some(dnsdistsettings::SharedDNSAction {
                 action: tmp_action,
             });
