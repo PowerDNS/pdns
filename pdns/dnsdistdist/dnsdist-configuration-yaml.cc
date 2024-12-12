@@ -206,7 +206,7 @@ static bool handleTLSConfiguration(const dnsdist::rust::settings::BindsConfigura
   }
   else if (protocol == "doh3") {
     auto frontend = std::make_shared<DOH3Frontend>();
-    frontend->d_local = ComboAddress(std::string(bind.listen_address), 853);
+    frontend->d_local = ComboAddress(std::string(bind.listen_address), 443);
     frontend->d_quicheParams.d_tlsConfig = std::move(tlsConfig);
     frontend->d_quicheParams.d_idleTimeout = bind.quic.idle_timeout;
     frontend->d_quicheParams.d_keyLogFile = std::string(bind.tls.key_log_file);
@@ -489,7 +489,7 @@ bool loadConfigurationFromFile(const std::string& fileName, bool isClient, bool 
         auto protocol = boost::to_lower_copy(std::string(bind.protocol));
         auto cpus = getCPUPiningFromStr("binds", std::string(bind.cpus));
         for (size_t idx = 0; idx < bind.threads; idx++) {
-          auto state = std::make_shared<ClientState>(listeningAddress, protocol != "doq", bind.reuseport, bind.tcp.fast_open_queue_size, std::string(bind.interface), cpus, false);
+          auto state = std::make_shared<ClientState>(listeningAddress, protocol != "doq" && protocol != "doh3", bind.reuseport, bind.tcp.fast_open_queue_size, std::string(bind.interface), cpus, false);
           if (bind.tcp.listen_queue_size > 0) {
             state->tcpListenQueueSize = bind.tcp.listen_queue_size;
           }
