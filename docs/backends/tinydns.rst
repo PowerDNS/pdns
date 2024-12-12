@@ -45,8 +45,8 @@ Specifies the name of the data file to use.
 This adjusts the `TAI <http://www.tai64.com/>`__ value if timestamps are
 used. These seconds will be added to the start point (1970) and will
 allow you to adjust for leap seconds. The current default is 11. The
-last update was on `june 30th
-2012 <http://hpiers.obspm.fr/iers/bul/bulc/bulletinc.dat>`__.
+last update was on `January 1st,
+2017 <http://hpiers.obspm.fr/iers/bul/bulc/bulletinc.dat>`__.
 
 .. _setting-tinydns-notify-on-startup:
 
