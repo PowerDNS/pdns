@@ -422,6 +422,10 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dns
 
 #warning handle XSK
 
+  if (protocol == "dot" || protocol == "doh") {
+    tlsCtx = getTLSContext(backendConfig.d_tlsParams);
+  }
+
   auto downstream = std::make_shared<DownstreamState>(std::move(backendConfig), std::move(tlsCtx), !configCheck);
 
   const auto& autoUpgradeConf = config.auto_upgrade;
