@@ -500,6 +500,10 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
         prometheusMetricName = metricDetails.customName;
       }
 
+      if (!entry.d_labels.empty()) {
+        prometheusMetricName += "{" + entry.d_labels + "}";
+      }
+
       // for these we have the help and types encoded in the sources
       // but we need to be careful about labels in custom metrics
       std::string helpName = prometheusMetricName.substr(0, prometheusMetricName.find('{'));

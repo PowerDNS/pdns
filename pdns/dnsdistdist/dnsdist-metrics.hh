@@ -25,6 +25,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <variant>
 
 #include "lock.hh"
@@ -35,10 +36,10 @@ namespace dnsdist::metrics
 using Error = std::string;
 
 [[nodiscard]] std::optional<Error> declareCustomMetric(const std::string& name, const std::string& type, const std::string& description, std::optional<std::string> customName);
-[[nodiscard]] std::variant<uint64_t, Error> incrementCustomCounter(const std::string_view& name, uint64_t step);
-[[nodiscard]] std::variant<uint64_t, Error> decrementCustomCounter(const std::string_view& name, uint64_t step);
-[[nodiscard]] std::variant<double, Error> setCustomGauge(const std::string_view& name, const double value);
-[[nodiscard]] std::variant<double, Error> getCustomMetric(const std::string_view& name);
+[[nodiscard]] std::variant<uint64_t, Error> incrementCustomCounter(const std::string_view& name, uint64_t step, const std::unordered_map<std::string, std::string>& labels);
+[[nodiscard]] std::variant<uint64_t, Error> decrementCustomCounter(const std::string_view& name, uint64_t step, const std::unordered_map<std::string, std::string>& labels);
+[[nodiscard]] std::variant<double, Error> setCustomGauge(const std::string_view& name, const double value, const std::unordered_map<std::string, std::string>& labels);
+[[nodiscard]] std::variant<double, Error> getCustomMetric(const std::string_view& name, const std::unordered_map<std::string, std::string>& labels);
 
 using pdns::stat_t;
 
@@ -89,13 +90,14 @@ struct Stats
   pdns::stat_double_t latencyDoH3Avg100{0}, latencyDoH3Avg1000{0}, latencyDoH3Avg10000{0}, latencyDoH3Avg1000000{0};
   using statfunction_t = std::function<uint64_t(const std::string&)>;
   using entry_t = std::variant<stat_t*, pdns::stat_double_t*, statfunction_t>;
-  struct EntryPair
+  struct EntryTriple
   {
     std::string d_name;
+    std::string d_labels;
     entry_t d_value;
   };
 
-  SharedLockGuarded<std::vector<EntryPair>> entries;
+  SharedLockGuarded<std::vector<EntryTriple>> entries;
 };
 
 extern struct Stats g_stats;
