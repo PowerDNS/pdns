@@ -1774,6 +1774,7 @@ mod dnsdistsettings {
         max_ttl: u32,
         #[serde(rename = "min-ttl", default, skip_serializing_if = "crate::is_default")]
         min_ttl: u32,
+        #[serde(default = "crate::U32::<20>::value", skip_serializing_if = "crate::U32::<20>::is_equal")]
         shards: u32,
         #[serde(rename = "parse-ecs", default, skip_serializing_if = "crate::is_default")]
         parse_ecs: bool,

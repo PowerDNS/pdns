@@ -1155,7 +1155,7 @@ packet-caches:
       default: 0
     - name: "shards"
       type: "u32"
-      defaut: "20"
+      default: "20"
     - name: "parse-ecs"
       type: "bool"
       default: "false"
