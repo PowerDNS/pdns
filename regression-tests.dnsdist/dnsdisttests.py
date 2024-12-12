@@ -137,6 +137,9 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
 
         print("Launching dnsdist..")
         if cls._yaml_config_template:
+            if 'SKIP_YAML_TESTS' in os.environ:
+                raise unittest.SkipTest('YAML tests are disabled')
+
             params = tuple([getattr(cls, param) for param in cls._yaml_config_params])
             confFile = os.path.join('configs', 'dnsdist_%s.yml' % (cls.__name__))
             with open(confFile, 'w') as conf:
