@@ -3412,7 +3412,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     newThread.detach();
   });
 
-  luaCtx.writeFunction("declareMetric", [](const std::string& name, const std::string& type, const std::string& description, boost::optional<boost::variant<std::string, boost::optional<declare_metric_opts_t>>> opts) {
+  luaCtx.writeFunction("declareMetric", [](const std::string& name, const std::string& type, const std::string& description, boost::optional<boost::variant<std::string, declare_metric_opts_t>> opts) {
     bool withLabels = false;
     std::optional<std::string> customName = std::nullopt;
     if (opts) {
@@ -3421,7 +3421,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         customName = std::optional(*optCustomName);
       }
       if (!customName) {
-        boost::optional<declare_metric_opts_t> vars = boost::get<boost::optional<declare_metric_opts_t>>(opts.get());
+        boost::optional<declare_metric_opts_t> vars = {boost::get<declare_metric_opts_t>(opts.get())};
         getOptionalValue<std::string>(vars, "customName", customName);
         getOptionalValue<bool>(vars, "withLabels", withLabels);
         checkAllParametersConsumed("declareMetric", vars);
@@ -3435,7 +3435,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
     return true;
   });
-  luaCtx.writeFunction("incMetric", [](const std::string& name, boost::optional<boost::variant<uint64_t, boost::optional<update_metric_opts_t>>> opts) {
+  luaCtx.writeFunction("incMetric", [](const std::string& name, boost::optional<boost::variant<uint64_t, update_metric_opts_t>> opts) {
     auto incOpts = opts.get_value_or(1);
     uint64_t step = 1;
     std::unordered_map<std::string, std::string> labels;
@@ -3443,7 +3443,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       step = *custom_step;
     }
     else {
-      boost::optional<update_metric_opts_t> vars = boost::get<boost::optional<update_metric_opts_t>>(incOpts);
+      boost::optional<update_metric_opts_t> vars = {boost::get<update_metric_opts_t>(incOpts)};
       getOptionalValue<uint64_t>(vars, "step", step);
       getOptionalValue<LuaAssociativeTable<std::string>>(vars, "labels", labels);
       checkAllParametersConsumed("incMetric", vars);
@@ -3456,7 +3456,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
     return std::get<uint64_t>(result);
   });
-  luaCtx.writeFunction("decMetric", [](const std::string& name, boost::optional<boost::variant<uint64_t, boost::optional<update_metric_opts_t>>> opts) {
+  luaCtx.writeFunction("decMetric", [](const std::string& name, boost::optional<boost::variant<uint64_t, update_metric_opts_t>> opts) {
     auto decOpts = opts.get_value_or(1);
     uint64_t step = 1;
     std::unordered_map<std::string, std::string> labels;
@@ -3464,7 +3464,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       step = *custom_step;
     }
     else {
-      boost::optional<update_metric_opts_t> vars = boost::get<boost::optional<update_metric_opts_t>>(decOpts);
+      boost::optional<update_metric_opts_t> vars = {boost::get<update_metric_opts_t>(decOpts)};
       getOptionalValue<uint64_t>(vars, "step", step);
       getOptionalValue<LuaAssociativeTable<std::string>>(vars, "labels", labels);
       checkAllParametersConsumed("decMetric", vars);
