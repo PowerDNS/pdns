@@ -3436,6 +3436,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
     return true;
   });
+  // NOLINTNEXTLINE(performance-unnecessary-value-param)
   luaCtx.writeFunction("incMetric", [](const std::string& name, boost::optional<boost::variant<uint64_t, update_metric_opts_t>> opts) {
     auto incOpts = opts.get_value_or(1);
     uint64_t step = 1;
@@ -3457,6 +3458,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
     return std::get<uint64_t>(result);
   });
+  // NOLINTNEXTLINE(performance-unnecessary-value-param)
   luaCtx.writeFunction("decMetric", [](const std::string& name, boost::optional<boost::variant<uint64_t, update_metric_opts_t>> opts) {
     auto decOpts = opts.get_value_or(1);
     uint64_t step = 1;

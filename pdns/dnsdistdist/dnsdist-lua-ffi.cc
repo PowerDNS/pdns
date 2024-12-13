@@ -1056,6 +1056,7 @@ size_t dnsdist_ffi_generate_proxy_protocol_payload(const size_t addrSize, const 
     if (valuesCount > 0) {
       valuesVect.reserve(valuesCount);
       for (size_t idx = 0; idx < valuesCount; idx++) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         valuesVect.push_back({std::string(values[idx].value, values[idx].size), values[idx].type});
       }
     }
@@ -1085,6 +1086,7 @@ size_t dnsdist_ffi_dnsquestion_generate_proxy_protocol_payload(const dnsdist_ffi
   if (valuesCount > 0) {
     valuesVect.reserve(valuesCount);
     for (size_t idx = 0; idx < valuesCount; idx++) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
       valuesVect.push_back({std::string(values[idx].value, values[idx].size), values[idx].type});
     }
   }
