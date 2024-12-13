@@ -115,7 +115,7 @@ Logging details of queries and answers
 --------------------------------------
 
 In some cases a tracing provides too much information, and we want to follow what the recursor is doing on a higher level.
-By setting :ref:`setting-yaml-logging.quiet` to ``true`` the recursor will produce a log line for each client query received and answered.
+By setting :ref:`setting-quiet` to ``true`` the recursor will produce a log line for each client query received and answered.
 Be aware that this causes overhead and should not be used in a high query-per-second production environment::
 
     Jul 09 09:08:31 msg="Question" subsystem="syncres" level="0" prio="Info" tid="4" ts="1720508911.919" ecs="" mtid="1" proto="udp" qname="www.example.com" qtype="A" remote="127.0.0.1:54573"
