@@ -4,6 +4,81 @@ Changelogs for 5.2.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.2.0-rc1
+  :released: 13th of December 2024
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14962
+    :tickets: 14957
+
+    Avoid local source port 4791 (zhaojs).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14942
+
+    Log only one line per protocol for listening sockets on startup.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14941
+
+    Generate metrics files (also) where meson expects them.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14943
+
+    Skip the current zone when looking for a cut after an invalid DS denial proof
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14913
+
+    Reject hexadecimal blobs with odd number of characters.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14926
+    :tickets: 12953
+
+    Remove support for libdecaf.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14917
+    :tickets: 14915
+
+    Sync Dockerfile build options with packages
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14909
+
+    Followup to 14796: also call stop hook in 1 thread case.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14897
+
+    Fix register QType race.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14896
+
+    Coverity fixes, all minor optimizations
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14895
+
+    Follow clippy's code improvements advice, move static lib version to 5.2.0.
+
+
+
+.. changelog::
   :version: 5.2.0-beta1
   :released: 27th of November 2024
 

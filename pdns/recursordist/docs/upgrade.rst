@@ -29,6 +29,7 @@ Changed settings
 ^^^^^^^^^^^^^^^^
 
 - The :ref:`setting-yaml-incoming.max_tcp_clients` default value has been raised 1024.
+- The :ref:`setting-yaml-outgoing.udp_source_port_avoid` default value now includes port 4791.
 
 New Settings
 ^^^^^^^^^^^^
