@@ -103,7 +103,7 @@ Using ``zone2sql``
 ^^^^^^^^^^^^^^^^^^
 
 To migrate, the ``zone2sql`` tool is provided. This tool parses a BIND
-``named.conf`` file and zone files and outputs SQL on standard out,
+``named.conf`` file and zone files and outputs SQL on standard output,
 which can then be fed to your database. It understands the BIND master
 file extension ``$GENERATE`` and will also honour ``$ORIGIN`` and
 ``$TTL``.

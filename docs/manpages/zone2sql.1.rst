@@ -10,7 +10,7 @@ Description
 -----------
 
 :program:`zone2sql` parses BIND named.conf files and zonefiles and outputs SQL
-on standard out, which can then be fed to your database.
+on standard output, which can then be fed to your database.
 
 :program:`zone2sql` understands the BIND master file extension ``$GENERATE``
 and will also honour ``$ORIGIN`` and ``$TTL``.

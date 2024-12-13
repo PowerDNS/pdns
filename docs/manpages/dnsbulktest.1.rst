@@ -11,7 +11,7 @@ Description
 
 :program:`dnsbulktest` sends a large amount of different queries (for up to
 *LIMIT* different domains) to the nameserver at *IPADDRESS* on port
-*PORT*. It reads the domain names from STDIN in the alexa topX format
+*PORT*. It reads the domain names from STDIN in the Alexa topX format
 and outputs statistics on STDOUT.
 
 Options

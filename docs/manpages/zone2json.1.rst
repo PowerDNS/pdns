@@ -10,7 +10,7 @@ Description
 -----------
 
 :program:`zone2json` parses BIND named.conf files and zonefiles and outputs
-JSON on standard out, which can then be fed to the PowerDNS API.
+JSON on standard output, which can then be fed to the PowerDNS API.
 
 :program:`zone2json` understands the BIND master file extension ``$GENERATE``
 and will also honour ``$ORIGIN`` and ``$TTL``.
