@@ -55,11 +55,11 @@ public:
   virtual bool queryCityV6(string& ret, GeoIPNetmask& gl, const string& ip) = 0;
   virtual bool queryLocation(GeoIPNetmask& gl, const string& ip,
                              double& latitude, double& longitude,
-                             boost::optional<int>& alt, boost::optional<int>& prec)
+                             std::optional<int>& alt, std::optional<int>& prec)
     = 0;
   virtual bool queryLocationV6(GeoIPNetmask& gl, const string& ip,
                                double& latitude, double& longitude,
-                               boost::optional<int>& alt, boost::optional<int>& prec)
+                               std::optional<int>& alt, std::optional<int>& prec)
     = 0;
 
   virtual ~GeoIPInterface() = default;
