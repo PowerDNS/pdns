@@ -64,10 +64,12 @@ for pr in arguments.pullrequest:
                 out += '    :tickets: {}\n'.format(', '.join(tickets))
         out += '\n    {}'.format(pr_info['title'][0].capitalize() + pr_info['title'][1:])
 
-    if pr_info['user']['login'].lower() not in ['ahupowerdns', 'habbie',
-                                                'pieterlexis', 'rgacogne',
-                                                'aerique', 'chbruyand',
-                                                'omoerbeek', 'fredmorcos']:
+    if pr_info['user']['login'].lower() not in ['habbie',
+                                                'rgacogne',
+                                                'aerique',
+                                                'chbruyand',
+                                                'omoerbeek',
+                                                'miodvallat']:
         try:
             if access_token:
                 user_info = requests.get(pr_info['user']['url'],
