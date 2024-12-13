@@ -51,7 +51,7 @@ Functions and methods of a ``DNSResourceRecord``
 
   .. method:: DNSResourceRecord:lastModified() -> int
 
-    If unzero, last time this record was changed
+    If non-zero, last time this record was changed
 
   .. method:: DNSResourceRecord:ttl() -> int
 
