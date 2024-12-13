@@ -480,7 +480,7 @@ void DynBlockRulesGroup::processResponseRules(counts_t& counts, StatNode& root, 
 
       if (suffixMatchRuleMatches) {
         const bool hit = ringEntry.isACacheHit();
-        root.submit(ringEntry.name, ((ringEntry.dh.rcode == 0 && ringEntry.usec == std::numeric_limits<unsigned int>::max()) ? -1 : ringEntry.dh.rcode), ringEntry.size, hit, boost::none);
+        root.submit(ringEntry.name, ((ringEntry.dh.rcode == 0 && ringEntry.usec == std::numeric_limits<unsigned int>::max()) ? -1 : ringEntry.dh.rcode), ringEntry.size, hit, std::nullopt);
       }
     }
   }

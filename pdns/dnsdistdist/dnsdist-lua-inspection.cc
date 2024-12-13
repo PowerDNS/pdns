@@ -143,7 +143,7 @@ static void statNodeRespRing(statvisitor_t visitor, uint64_t seconds)
       }
 
       const bool hit = entry.isACacheHit();
-      root.submit(entry.name, ((entry.dh.rcode == 0 && entry.usec == std::numeric_limits<unsigned int>::max()) ? -1 : entry.dh.rcode), entry.size, hit, boost::none);
+      root.submit(entry.name, ((entry.dh.rcode == 0 && entry.usec == std::numeric_limits<unsigned int>::max()) ? -1 : entry.dh.rcode), entry.size, hit, std::nullopt);
     }
   }
 
