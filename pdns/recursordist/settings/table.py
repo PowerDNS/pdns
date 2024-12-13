@@ -2981,11 +2981,11 @@ See :ref:`setting-udp-source-port-min`.
         'name' : 'udp_source_port_avoid',
         'section' : 'outgoing',
         'type' : LType.ListStrings,
-        'default' : '11211',
-        'help' : 'List of comma separated UDP port number to avoid',
+        'default' : '4791,11211',
+        'help' : 'List of comma separated UDP port numbers to avoid',
         'doc' : '''
 A list of comma-separated UDP port numbers to avoid when binding.
-Ex: `5300,11211`
+Ex: `4791,5300,11211`
 
 See :ref:`setting-udp-source-port-min`.
  ''',
@@ -2996,12 +2996,14 @@ A sequence of UDP port numbers to avoid when binding. For example:
 
  outgoing:
    udp_source_port_avoid:
+   - 4791
    - 5300
    - 11211
 
 See :ref:`setting-udp-source-port-min`.
  ''',
-    'versionadded': '4.2.0'
+        'versionadded': '4.2.0',
+        'versionchanged': ('5.2.0', 'port 4791 was added to the default list'),
     },
     {
         'name' : 'udp_truncation_threshold',
