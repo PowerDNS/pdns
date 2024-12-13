@@ -287,7 +287,7 @@ public:
         free(result);
         gl.netmask = tmp_gl.netmask;
         // reduce space to dash
-        ret = boost::replace_all_copy(ret, " ", "-");
+        std::replace(ret.begin(), ret.end(), ' ', '-');
         return true;
       }
     }
@@ -306,7 +306,7 @@ public:
         free(result);
         gl.netmask = tmp_gl.netmask;
         // reduce space to dash
-        ret = boost::replace_all_copy(ret, " ", "-");
+        std::replace(ret.begin(), ret.end(), ' ', '-');
         return true;
       }
     }

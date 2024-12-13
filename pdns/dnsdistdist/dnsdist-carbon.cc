@@ -78,7 +78,7 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
 
     for (const auto& state : dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends) {
       string serverName = state->getName().empty() ? state->d_config.remote.toStringWithPort() : state->getName();
-      boost::replace_all(serverName, ".", "_");
+      std::replace(serverName.begin(), serverName.end(), '.', '_');
       string base = namespace_name;
       base += ".";
       base += hostname;
@@ -123,7 +123,7 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
       }
 
       string frontName = front->local.toStringWithPort() + (front->udpFD >= 0 ? "_udp" : "_tcp");
-      boost::replace_all(frontName, ".", "_");
+      std::replace(frontName.begin(), frontName.end(), '.', '_');
       auto dupPair = frontendDuplicates.insert({frontName, 1});
       if (!dupPair.second) {
         frontName += "_" + std::to_string(dupPair.first->second);
@@ -180,7 +180,7 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
 
     for (const auto& entry : dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools) {
       string poolName = entry.first;
-      boost::replace_all(poolName, ".", "_");
+      std::replace(poolName.begin(), poolName.end(), '.', '_');
       if (poolName.empty()) {
         poolName = "_default_";
       }
@@ -228,10 +228,10 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
       const string base = "dnsdist." + hostname + ".main.doh.";
       for (const auto& doh : dnsdist::getDoHFrontends()) {
         string name = doh->d_tlsContext.d_addr.toStringWithPort();
-        boost::replace_all(name, ".", "_");
-        boost::replace_all(name, ":", "_");
-        boost::replace_all(name, "[", "_");
-        boost::replace_all(name, "]", "_");
+        std::replace(name.begin(), name.end(), '.', '_');
+        std::replace(name.begin(), name.end(), ':', '_');
+        std::replace(name.begin(), name.end(), '[', '_');
+        std::replace(name.begin(), name.end(), ']', '_');
 
         auto dupPair = dohFrontendDuplicates.insert({name, 1});
         if (!dupPair.second) {
@@ -274,7 +274,7 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
       auto records = dnsdist::QueryCount::g_queryCountRecords.write_lock();
       for (const auto& record : *records) {
         qname = record.first;
-        boost::replace_all(qname, ".", "_");
+        std::replace(qname.begin(), qname.end(), '.', '_');
         str << "dnsdist.querycount." << qname << ".queries " << record.second << " " << now << "\r\n";
       }
       records->clear();

@@ -44,8 +44,8 @@ void doSecPoll(bool first)
   if(*query.rbegin()!='.')
     query+='.';
 
-  boost::replace_all(query, "+", "_");
-  boost::replace_all(query, "~", "_");
+  std::replace(query.begin(), query.end(), '+', '_');
+  std::replace(query.begin(), query.end(), '~', '_');
 
   int security_status = std::stoi(S.getValueStr("security-status"));
 

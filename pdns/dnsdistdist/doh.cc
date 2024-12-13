@@ -1145,8 +1145,8 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
       if (pos != string::npos) {
         // need to base64url decode this
         string sdns(path.substr(pos+5));
-        boost::replace_all(sdns,"-", "+");
-        boost::replace_all(sdns,"_", "/");
+        std::replace(sdns.begin(), sdns.end(), '-', '+');
+        std::replace(sdns.begin(), sdns.end(), '_', '/');
         // re-add padding that may have been missing
         switch (sdns.size() % 4) {
         case 2:
