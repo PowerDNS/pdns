@@ -195,6 +195,144 @@ class TestLMDB(DNSDistTest):
             self.assertTrue(receivedResponse)
             self.assertEqual(expectedResponse, receivedResponse)
 
+class TestLMDBYaml(TestLMDB):
+
+    _lmdbFileName = '/tmp/test-lmdb-db'
+    _lmdbDBName = 'db-name'
+    _config_template = ""
+    _config_params = []
+    _yaml_config_template = """---
+backends:
+  - address: "127.0.0.1:%d"
+    protocol: Do53
+key-value-stores:
+  lmdb:
+    - name: "lmdb-kvs"
+      file-name: "%s"
+      database-name: "%s"
+  lookup-keys:
+    source-ip-keys:
+      - name: "lookup-source-ip"
+    qname-keys:
+      - name: "lookup-qname"
+      - name: "lookup-qname-plaintext"
+        wire-format: false
+    suffix-keys:
+      - name: "lookup-suffix"
+    tag-keys:
+      - name: "lookup-tag-qname-result"
+        tag: "kvs-qname-result"
+
+query-rules:
+  - name: "qname as key"
+    selector:
+      type: "And"
+      selectors:
+        - type: "QName"
+          qname: "kvs-rule.lmdb.tests.powerdns.com."
+        - type: "KeyValueStoreLookup"
+          kvs-name: "lmdb-kvs"
+          lookup-key-name: "lookup-qname-plaintext"
+    action:
+      type: "Spoof"
+      ips:
+        - "13.14.15.16"
+  - name: "source IP as key"
+    selector:
+      type: "All"
+    action:
+      type: "KeyValueStoreLookup"
+      kvs-name: "lmdb-kvs"
+      lookup-key-name: "lookup-source-ip"
+      destination-tag: "kvs-sourceip-result"
+  - name: "plaintext qname as key"
+    selector:
+      type: "All"
+    action:
+      type: "KeyValueStoreLookup"
+      kvs-name: "lmdb-kvs"
+      lookup-key-name: "lookup-qname-plaintext"
+      destination-tag: "kvs-plain-text-result"
+  - name: "plaintext qname tag check"
+    selector:
+      type: "Tag"
+      tag: "kvs-plain-text-result"
+      value: "this is the value of the plaintext tag"
+    action:
+      type: "Spoof"
+      ips:
+        - "9.10.11.12"
+  - name: "wire qname as key"
+    selector:
+      type: "All"
+    action:
+      type: "KeyValueStoreLookup"
+      kvs-name: "lmdb-kvs"
+      lookup-key-name: "lookup-qname"
+      destination-tag: "kvs-qname-result"
+  - name: "wire qname tag check"
+    selector:
+      type: "Tag"
+      tag: "kvs-qname-result"
+      value: "this is the value of the qname tag"
+    action:
+      type: "KeyValueStoreLookup"
+      kvs-name: "lmdb-kvs"
+      lookup-key-name: "lookup-tag-qname-result"
+      destination-tag: "kvs-tag-result"
+  - name: "source IP as key"
+    selector:
+      type: "All"
+    action:
+      type: "KeyValueStoreLookup"
+      kvs-name: "lmdb-kvs"
+      lookup-key-name: "lookup-source-ip"
+      destination-tag: "kvs-sourceip-result"
+  - name: "qname suffix as key"
+    selector:
+      type: "All"
+    action:
+      type: "KeyValueStoreLookup"
+      kvs-name: "lmdb-kvs"
+      lookup-key-name: "lookup-suffix"
+      destination-tag: "kvs-suffix-result"
+  - name: "tag check"
+    selector:
+      type: "Tag"
+      tag: "kvs-tag-result"
+      value: "this is the value of the second tag"
+    action:
+      type: "Spoof"
+      ips:
+        - "1.2.3.4"
+  - name: "suffix tag check"
+    selector:
+      type: "Tag"
+      tag: "kvs-suffix-result"
+      value: "this is the value of the suffix tag"
+    action:
+      type: "Spoof"
+      ips:
+        - "42.42.42.42"
+  - name: "source IP tag check"
+    selector:
+      type: "Tag"
+      tag: "kvs-sourceip-result"
+      value: "this is the value of the source address tag"
+    action:
+      type: "Spoof"
+      ips:
+        - "5.6.7.8"
+  - name: "otherwise"
+    selector:
+      type: "All"
+    action:
+      type: "Spoof"
+      ips:
+        - "9.9.9.9"
+    """
+    _yaml_config_params = ['_testServerPort', '_lmdbFileName', '_lmdbDBName']
+
 class TestLMDBIPInRange(DNSDistTest):
 
     _lmdbFileName = '/tmp/test-lmdb-range-1-db'

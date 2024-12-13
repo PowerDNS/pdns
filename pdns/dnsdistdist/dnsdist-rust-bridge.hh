@@ -32,9 +32,11 @@ struct DNSResponseActionWrapper
 
 struct ProtobufLoggersConfiguration;
 struct DnstapLoggersConfiguration;
+struct KeyValueStoresConfiguration;
 
 void registerProtobufLogger(const ProtobufLoggersConfiguration& config);
 void registerDnstapLogger(const DnstapLoggersConfiguration& config);
+void registerKVSObjects(const KeyValueStoresConfiguration& config);
 
 #include "dnsdist-rust-bridge-actions-generated.hh"
 #include "dnsdist-rust-bridge-selectors-generated.hh"
