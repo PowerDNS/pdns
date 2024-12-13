@@ -1278,6 +1278,8 @@ mod dnsdistsettings {
         ciphers: String,
         #[serde(rename = "ciphers-tls-13", default, skip_serializing_if = "crate::is_default")]
         ciphers_tls_13: String,
+        #[serde(rename = "key-log-file", default, skip_serializing_if = "crate::is_default")]
+        key_log_file: String,
         #[serde(rename = "release-buffers", default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
         release_buffers: bool,
         #[serde(rename = "enable-renegotiation", default, skip_serializing_if = "crate::is_default")]
