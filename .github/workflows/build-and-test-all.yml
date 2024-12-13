@@ -220,7 +220,6 @@ jobs:
     container:
       image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
-        CLANG_VERSION: '14'
         SANITIZERS: ${{ matrix.sanitizers }}
         UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
         UNIT_TESTS: yes

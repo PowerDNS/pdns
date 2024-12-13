@@ -172,6 +172,7 @@ def install_clang_runtime(c):
 
 @task
 def ci_install_rust(c, repo):
+    c.sudo(f'apt-get -y --no-install-recommends install lld-{clang_version}')
     with c.cd(f'{repo}/builder-support/helpers/'):
         c.run('sudo sh install_rust.sh')
 
@@ -584,7 +585,7 @@ def ci_rec_configure(c, features):
 
 @task
 def ci_dnsdist_configure(c, features):
-    additional_flags = ''
+    additional_flags = '-fuse-ld=lld '
     if features == 'full':
       features_set = '--enable-dnstap \
                       --enable-dnscrypt \
