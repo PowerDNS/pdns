@@ -1576,7 +1576,7 @@ mod dnsdistsettings {
         override_existing: bool,
         #[serde(rename = "source-prefix-v4", default = "crate::U8::<32>::value", skip_serializing_if = "crate::U8::<32>::is_equal")]
         source_prefix_v4: u8,
-        #[serde(rename = "source-prefix-v6", default = "crate::U8::<48>::value", skip_serializing_if = "crate::U8::<48>::is_equal")]
+        #[serde(rename = "source-prefix-v6", default = "crate::U8::<56>::value", skip_serializing_if = "crate::U8::<56>::is_equal")]
         source_prefix_v6: u8,
     }
 
