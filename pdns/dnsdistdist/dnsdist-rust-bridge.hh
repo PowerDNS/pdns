@@ -30,8 +30,8 @@ struct DNSResponseActionWrapper
   std::string d_name;
 };
 
-class ProtobufLoggersConfiguration;
-class DnstapLoggersConfiguration;
+struct ProtobufLoggersConfiguration;
+struct DnstapLoggersConfiguration;
 
 void registerProtobufLogger(const ProtobufLoggersConfiguration& config);
 void registerDnstapLogger(const DnstapLoggersConfiguration& config);
