@@ -244,12 +244,11 @@ bool DNSPacket::couldBeCached() const
 
 unsigned int DNSPacket::getMinTTL()
 {
-  unsigned int minttl = UINT_MAX;
-  for(const DNSZoneRecord& rr :  d_rrs) {
-    minttl = std::min(minttl, rr.dr.d_ttl);
+  auto it = std::min_element(d_rrs.begin(), d_rrs.end());
+  if (it != d_rrs.end()) {
+    return it->dr.d_ttl;
   }
-
-  return minttl;
+  return UINT_MAX;
 }
 
 bool DNSPacket::isEmpty()

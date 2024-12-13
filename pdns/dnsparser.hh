@@ -438,6 +438,10 @@ struct DNSZoneRecord
   bool auth{true};
   bool disabled{false};
   DNSRecord dr;
+
+  bool operator<(const DNSZoneRecord& other) const {
+    return dr.d_ttl < other.dr.d_ttl;
+  }
 };
 
 class UnknownRecordContent : public DNSRecordContent
