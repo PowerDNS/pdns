@@ -112,6 +112,10 @@ EXTRA_DIST=COPYING \
 	   dnsdist-actions-definitions.yml \
 	   dnsdist-response-actions-definitions.yml \
 	   dnsdist-rust-bridge.hh \
+	   dnsdist-rust-bridge-actions-generated.cc \
+	   dnsdist-rust-bridge-actions-generated.hh \
+	   dnsdist-rust-bridge-selectors-generated.cc \
+	   dnsdist-rust-bridge-selectors-generated.hh \
 	   dnsdist-selectors-definitions.yml \
 	   dnslabeltext.rl \
 	   dnsdist.conf-dist \
