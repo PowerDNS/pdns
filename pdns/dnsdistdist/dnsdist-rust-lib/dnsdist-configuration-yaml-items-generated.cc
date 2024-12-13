@@ -46,7 +46,7 @@ void convertRuntimeFlatSettingsFromRust(const dnsdist::rust::settings::GlobalCon
   if (yamlConfig.edns_client_subnet.source_prefix_v4 != 32 && config.d_ECSSourcePrefixV4 == 32) {
     config.d_ECSSourcePrefixV4 = yamlConfig.edns_client_subnet.source_prefix_v4;
   }
-  if (yamlConfig.edns_client_subnet.source_prefix_v6 != 48 && config.d_ECSSourcePrefixV6 == 48) {
+  if (yamlConfig.edns_client_subnet.source_prefix_v6 != 56 && config.d_ECSSourcePrefixV6 == 56) {
     config.d_ECSSourcePrefixV6 = yamlConfig.edns_client_subnet.source_prefix_v6;
   }
   if (yamlConfig.dynamic_rules_settings.purge_interval != 60 && config.d_dynBlocksPurgeInterval == 60) {

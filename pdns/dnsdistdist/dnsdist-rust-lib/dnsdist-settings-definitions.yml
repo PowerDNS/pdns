@@ -276,7 +276,7 @@ edns-client-subnet:
       internal-field-name: "d_ECSSourcePrefixV6"
       runtime-configurable: true
       type: "u8"
-      default: 48
+      default: 56
       description: "When `useClientSubnet` in `newServer()` is set and dnsdist adds an EDNS Client Subnet Client option to the query, truncate the requestor's IPv6 address to `prefix` bits"
 
 dynamic-rules-settings:
