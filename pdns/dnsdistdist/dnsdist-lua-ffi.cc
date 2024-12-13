@@ -1806,14 +1806,12 @@ bool dnsdist_ffi_metric_declare(const char* name, size_t nameLen, const char* ty
   if (name == nullptr || nameLen == 0 || type == nullptr || description == nullptr) {
     return false;
   }
-  // TODO: add labels options?
   auto result = dnsdist::metrics::declareCustomMetric(name, type, description, customName != nullptr ? std::optional<std::string>(customName) : std::nullopt, false);
   return !result;
 }
 
 void dnsdist_ffi_metric_inc(const char* metricName, size_t metricNameLen)
 {
-  // TODO: add labels?
   auto result = dnsdist::metrics::incrementCustomCounter(std::string_view(metricName, metricNameLen), 1U, {});
   if (std::get_if<dnsdist::metrics::Error>(&result) != nullptr) {
     return;
@@ -1822,7 +1820,6 @@ void dnsdist_ffi_metric_inc(const char* metricName, size_t metricNameLen)
 
 void dnsdist_ffi_metric_inc_by(const char* metricName, size_t metricNameLen, uint64_t value)
 {
-  // TODO: add labels?
   auto result = dnsdist::metrics::incrementCustomCounter(std::string_view(metricName, metricNameLen), value, {});
   if (std::get_if<dnsdist::metrics::Error>(&result) != nullptr) {
     return;
@@ -1831,7 +1828,6 @@ void dnsdist_ffi_metric_inc_by(const char* metricName, size_t metricNameLen, uin
 
 void dnsdist_ffi_metric_dec(const char* metricName, size_t metricNameLen)
 {
-  // TODO: add labels?
   auto result = dnsdist::metrics::decrementCustomCounter(std::string_view(metricName, metricNameLen), 1U, {});
   if (std::get_if<dnsdist::metrics::Error>(&result) != nullptr) {
     return;
@@ -1840,7 +1836,6 @@ void dnsdist_ffi_metric_dec(const char* metricName, size_t metricNameLen)
 
 void dnsdist_ffi_metric_set(const char* metricName, size_t metricNameLen, double value)
 {
-  // TODO: add labels?
   auto result = dnsdist::metrics::setCustomGauge(std::string_view(metricName, metricNameLen), value, {});
   if (std::get_if<dnsdist::metrics::Error>(&result) != nullptr) {
     return;
@@ -1849,7 +1844,6 @@ void dnsdist_ffi_metric_set(const char* metricName, size_t metricNameLen, double
 
 double dnsdist_ffi_metric_get(const char* metricName, size_t metricNameLen, bool isCounter)
 {
-  // TODO: add labels?
   auto result = dnsdist::metrics::getCustomMetric(std::string_view(metricName, metricNameLen), {});
   if (std::get_if<dnsdist::metrics::Error>(&result) != nullptr) {
     return 0.;
