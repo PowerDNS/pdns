@@ -386,6 +386,7 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dns
     backendConfig.d_tlsParams.d_ciphers = std::string(tlsConf.ciphers);
     backendConfig.d_tlsParams.d_ciphers13 = std::string(tlsConf.ciphers_tls_13);
     backendConfig.d_tlsParams.d_caStore = std::string(tlsConf.ca_store);
+    backendConfig.d_tlsParams.d_keyLogFile = std::string(tlsConf.key_log_file);
     backendConfig.d_tlsParams.d_validateCertificates = tlsConf.validate_certificate;
     backendConfig.d_tlsParams.d_releaseBuffers = tlsConf.release_buffers;
     backendConfig.d_tlsParams.d_enableRenegotiation = tlsConf.enable_renegotiation;
