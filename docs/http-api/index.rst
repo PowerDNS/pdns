@@ -283,9 +283,7 @@ A simple ``GET`` request will return a response similar to the following:
   pdns_auth_user_msec 48
 
 
-Prometheus can then be configured to scrape metrics from this endpoint using a simple job description like the following:
-
-.. prometheus scrape-job::
+Prometheus can then be configured to scrape metrics from this endpoint using a simple job description like the following::
 
   scrape_configs:
     - job_name: 'pdns_auth'
@@ -300,7 +298,7 @@ Enabling the API
 ----------------
 
 To enable the API, the webserver and the HTTP API need to be enabled.
-Add these lines to the ``pdns.conf``::
+Add these lines to ``pdns.conf``::
 
   api=yes
   api-key=changeme
@@ -331,7 +329,7 @@ Response code ``4xx`` or ``5xx``, depending on the situation.
 
 -  Invalid JSON body from client: ``400 Bad Request``
 -  Input validation failed: ``422 Unprocessable Entity``
--  JSON body from client not a hash: ``400 Bad Request``
+-  JSON body from client is not a hash: ``400 Bad Request``
 
 Error responses have a JSON body of this format:
 
@@ -345,7 +343,7 @@ The API accepts and emits :rfc:`JSON <7159>`.
 The ``Accept:`` header determines the output format.
 An unknown value or ``*/*`` will cause a ``400 Bad Request``.
 
-All text is UTF-8 and HTTP headers will reflect this.
+All text is encoded in UTF-8 and HTTP headers will reflect this.
 
 Data types:
 
