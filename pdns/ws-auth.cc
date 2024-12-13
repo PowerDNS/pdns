@@ -713,13 +713,13 @@ static bool isZoneApiRectifyEnabled(const DomainInfo& domainInfo)
   return api_rectify == "1";
 }
 
-static void extractDomainInfoFromDocument(const Json& document, boost::optional<DomainInfo::DomainKind>& kind, boost::optional<vector<ComboAddress>>& primaries, boost::optional<DNSName>& catalog, boost::optional<string>& account)
+static void extractDomainInfoFromDocument(const Json& document, std::optional<DomainInfo::DomainKind>& kind, std::optional<vector<ComboAddress>>& primaries, std::optional<DNSName>& catalog, std::optional<string>& account)
 {
   if (document["kind"].is_string()) {
     kind = DomainInfo::stringToKind(stringFromJson(document, "kind"));
   }
   else {
-    kind = boost::none;
+    kind = std::nullopt;
   }
 
   if (document["masters"].is_array()) {
@@ -738,7 +738,7 @@ static void extractDomainInfoFromDocument(const Json& document, boost::optional<
     }
   }
   else {
-    primaries = boost::none;
+    primaries = std::nullopt;
   }
 
   if (document["catalog"].is_string()) {
@@ -746,14 +746,14 @@ static void extractDomainInfoFromDocument(const Json& document, boost::optional<
     catalog = (!catstring.empty() ? DNSName(catstring) : DNSName());
   }
   else {
-    catalog = boost::none;
+    catalog = std::nullopt;
   }
 
   if (document["account"].is_string()) {
     account = document["account"].string_value();
   }
   else {
-    account = boost::none;
+    account = std::nullopt;
   }
 }
 
@@ -778,10 +778,10 @@ static void extractJsonTSIGKeyIds(UeberBackend& backend, const Json& jsonArray, 
 // Must be called within backend transaction.
 static void updateDomainSettingsFromDocument(UeberBackend& backend, DomainInfo& domainInfo, const DNSName& zonename, const Json& document, bool zoneWasModified)
 {
-  boost::optional<DomainInfo::DomainKind> kind;
-  boost::optional<vector<ComboAddress>> primaries;
-  boost::optional<DNSName> catalog;
-  boost::optional<string> account;
+  std::optional<DomainInfo::DomainKind> kind;
+  std::optional<vector<ComboAddress>> primaries;
+  std::optional<DNSName> catalog;
+  std::optional<string> account;
 
   extractDomainInfoFromDocument(document, kind, primaries, catalog, account);
 
@@ -1875,10 +1875,10 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
     throw HttpConflictException();
   }
 
-  boost::optional<DomainInfo::DomainKind> kind;
-  boost::optional<vector<ComboAddress>> primaries;
-  boost::optional<DNSName> catalog;
-  boost::optional<string> account;
+  std::optional<DomainInfo::DomainKind> kind;
+  std::optional<vector<ComboAddress>> primaries;
+  std::optional<DNSName> catalog;
+  std::optional<string> account;
   extractDomainInfoFromDocument(document, kind, primaries, catalog, account);
 
   // validate 'kind' is set
@@ -2011,7 +2011,7 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
   }
 
   // no going back after this
-  if (!backend.createDomain(zonename, kind.get_value_or(DomainInfo::Native), primaries.get_value_or(vector<ComboAddress>()), account.get_value_or(""))) {
+  if (!backend.createDomain(zonename, kind.value_or(DomainInfo::Native), primaries.value_or(vector<ComboAddress>()), account.value_or(""))) {
     throw ApiException("Creating domain '" + zonename.toString() + "' failed: backend refused");
   }
 
