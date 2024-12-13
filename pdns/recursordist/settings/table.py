@@ -3002,7 +3002,8 @@ A sequence of UDP port numbers to avoid when binding. For example:
 
 See :ref:`setting-udp-source-port-min`.
  ''',
-    'versionadded': '4.2.0'
+        'versionadded': '4.2.0',
+        'versionchanged': ('5.2.0', 'port 4791 was added in the default list'),
     },
     {
         'name' : 'udp_truncation_threshold',
