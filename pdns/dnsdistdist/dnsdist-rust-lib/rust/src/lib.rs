@@ -2129,6 +2129,7 @@ mod dnsdistsettings {
         type DNSResponseActionWrapper;
         fn registerProtobufLogger(config: &ProtobufLoggersConfiguration);
         fn registerDnstapLogger(config: &DnstapLoggersConfiguration);
+        fn registerKVSObjects(config: &KeyValueStoresConfiguration);
     }
 }
 
@@ -4143,6 +4144,8 @@ fn get_global_configuration_from_serde(
     config.tuning = serde.tuning;
     // this needs to be done before the rules so that they can refer to the loggers
     register_remote_loggers(&config.remote_logging);
+    // this needs to be done before the rules so that they can refer to the KVS objects
+    dnsdistsettings::registerKVSObjects(&config.key_value_stores);
     // this needs to be done BEFORE the rules so that they can refer to the selectors
     // by name
     config.selectors = get_selectors_from_serde(&serde.selectors);

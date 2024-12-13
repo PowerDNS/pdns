@@ -555,37 +555,6 @@ bool loadConfigurationFromFile(const std::string& fileName, bool isClient, bool 
       });
     }
 
-#if defined(HAVE_LMDB)
-    for (const auto& lmdb : globalConfig.key_value_stores.lmdb) {
-      auto store = std::shared_ptr<KeyValueStore>(std::make_shared<LMDBKVStore>(std::string(lmdb.file_name), std::string(lmdb.database_name), lmdb.no_lock));
-      registerType<KeyValueStore>(store, lmdb.name);
-    }
-#endif /* defined(HAVE_LMDB) */
-#if defined(HAVE_CDB)
-    for (const auto& cdb : globalConfig.key_value_stores.cdb) {
-      auto store = std::shared_ptr<KeyValueStore>(std::make_shared<CDBKVStore>(std::string(cdb.file_name), cdb.refresh_delay));
-      registerType<KeyValueStore>(store, cdb.name);
-    }
-#endif /* defined(HAVE_CDB) */
-#if defined(HAVE_LMDB) || defined(HAVE_CDB)
-    for (const auto& key : globalConfig.key_value_stores.lookup_keys.source_ip_keys) {
-      auto lookup = std::shared_ptr<KeyValueLookupKey>(std::make_shared<KeyValueLookupKeySourceIP>(key.v4_mask, key.v6_mask, key.include_port));
-      registerType<KeyValueLookupKey>(lookup, key.name);
-    }
-    for (const auto& key : globalConfig.key_value_stores.lookup_keys.qname_keys) {
-      auto lookup = std::shared_ptr<KeyValueLookupKey>(std::make_shared<KeyValueLookupKeyQName>(key.wire_format));
-      registerType<KeyValueLookupKey>(lookup, key.name);
-    }
-    for (const auto& key : globalConfig.key_value_stores.lookup_keys.suffix_keys) {
-      auto lookup = std::shared_ptr<KeyValueLookupKey>(std::make_shared<KeyValueLookupKeySuffix>(key.minimum_labels, key.wire_format));
-      registerType<KeyValueLookupKey>(lookup, key.name);
-    }
-    for (const auto& key : globalConfig.key_value_stores.lookup_keys.tag_keys) {
-      auto lookup = std::shared_ptr<KeyValueLookupKey>(std::make_shared<KeyValueLookupKeyTag>(std::string(key.tag)));
-      registerType<KeyValueLookupKey>(lookup, key.name);
-    }
-#endif /* defined(HAVE_LMDB) || defined(HAVE_CDB) */
-
 #ifndef DISABLE_CARBON
     if (!globalConfig.metrics.carbon.empty()) {
       dnsdist::configuration::updateRuntimeConfiguration([&globalConfig](dnsdist::configuration::RuntimeConfiguration& config) {
@@ -1119,11 +1088,11 @@ std::shared_ptr<DNSSelector> getNetmaskGroupSelector(const NetmaskGroupSelectorC
 std::shared_ptr<DNSActionWrapper> getKeyValueStoreLookupAction(const KeyValueStoreLookupActionConfiguration& config)
 {
   auto kvs = dnsdist::configuration::yaml::getRegisteredTypeByName<KeyValueStore>(std::string(config.kvs_name));
-  if (!kvs) {
+  if (!kvs && !(dnsdist::configuration::yaml::s_inClientMode || dnsdist::configuration::yaml::s_inConfigCheckMode)) {
     throw std::runtime_error("Unable to find the key-value store named '" + std::string(config.kvs_name) + "'");
   }
   auto lookupKey = dnsdist::configuration::yaml::getRegisteredTypeByName<KeyValueLookupKey>(std::string(config.lookup_key_name));
-  if (!lookupKey) {
+  if (!lookupKey && !(dnsdist::configuration::yaml::s_inClientMode || dnsdist::configuration::yaml::s_inConfigCheckMode)) {
     throw std::runtime_error("Unable to find the key-value lookup key named '" + std::string(config.lookup_key_name) + "'");
   }
   auto action = dnsdist::actions::getKeyValueStoreLookupAction(kvs, lookupKey, std::string(config.destination_tag));
@@ -1133,11 +1102,11 @@ std::shared_ptr<DNSActionWrapper> getKeyValueStoreLookupAction(const KeyValueSto
 std::shared_ptr<DNSActionWrapper> getKeyValueStoreRangeLookupAction(const KeyValueStoreRangeLookupActionConfiguration& config)
 {
   auto kvs = dnsdist::configuration::yaml::getRegisteredTypeByName<KeyValueStore>(std::string(config.kvs_name));
-  if (!kvs) {
+  if (!kvs && !(dnsdist::configuration::yaml::s_inClientMode || dnsdist::configuration::yaml::s_inConfigCheckMode)) {
     throw std::runtime_error("Unable to find the key-value store named '" + std::string(config.kvs_name) + "'");
   }
   auto lookupKey = dnsdist::configuration::yaml::getRegisteredTypeByName<KeyValueLookupKey>(std::string(config.lookup_key_name));
-  if (!lookupKey) {
+  if (!lookupKey && !(dnsdist::configuration::yaml::s_inClientMode || dnsdist::configuration::yaml::s_inConfigCheckMode)) {
     throw std::runtime_error("Unable to find the key-value lookup key named '" + std::string(config.lookup_key_name) + "'");
   }
   auto action = dnsdist::actions::getKeyValueStoreRangeLookupAction(kvs, lookupKey, std::string(config.destination_tag));
@@ -1147,11 +1116,11 @@ std::shared_ptr<DNSActionWrapper> getKeyValueStoreRangeLookupAction(const KeyVal
 std::shared_ptr<DNSSelector> getKeyValueStoreLookupSelector(const KeyValueStoreLookupSelectorConfiguration& config)
 {
   auto kvs = dnsdist::configuration::yaml::getRegisteredTypeByName<KeyValueStore>(std::string(config.kvs_name));
-  if (!kvs) {
+  if (!kvs && !(dnsdist::configuration::yaml::s_inClientMode || dnsdist::configuration::yaml::s_inConfigCheckMode)) {
     throw std::runtime_error("Unable to find the key-value store named '" + std::string(config.kvs_name) + "'");
   }
   auto lookupKey = dnsdist::configuration::yaml::getRegisteredTypeByName<KeyValueLookupKey>(std::string(config.lookup_key_name));
-  if (!lookupKey) {
+  if (!lookupKey && !(dnsdist::configuration::yaml::s_inClientMode || dnsdist::configuration::yaml::s_inConfigCheckMode)) {
     throw std::runtime_error("Unable to find the key-value lookup key named '" + std::string(config.lookup_key_name) + "'");
   }
   auto selector = dnsdist::selectors::getKeyValueStoreLookupSelector(kvs, lookupKey);
@@ -1161,11 +1130,11 @@ std::shared_ptr<DNSSelector> getKeyValueStoreLookupSelector(const KeyValueStoreL
 std::shared_ptr<DNSSelector> getKeyValueStoreRangeLookupSelector(const KeyValueStoreRangeLookupSelectorConfiguration& config)
 {
   auto kvs = dnsdist::configuration::yaml::getRegisteredTypeByName<KeyValueStore>(std::string(config.kvs_name));
-  if (!kvs) {
+  if (!kvs && !(dnsdist::configuration::yaml::s_inClientMode || dnsdist::configuration::yaml::s_inConfigCheckMode)) {
     throw std::runtime_error("Unable to find the key-value store named '" + std::string(config.kvs_name) + "'");
   }
   auto lookupKey = dnsdist::configuration::yaml::getRegisteredTypeByName<KeyValueLookupKey>(std::string(config.lookup_key_name));
-  if (!lookupKey) {
+  if (!lookupKey && !(dnsdist::configuration::yaml::s_inClientMode || dnsdist::configuration::yaml::s_inConfigCheckMode)) {
     throw std::runtime_error("Unable to find the key-value lookup key named '" + std::string(config.lookup_key_name) + "'");
   }
   auto selector = dnsdist::selectors::getKeyValueStoreRangeLookupSelector(kvs, lookupKey);
@@ -1319,6 +1288,41 @@ void registerDnstapLogger(const DnstapLoggersConfiguration& config)
   auto object = std::shared_ptr<RemoteLoggerInterface>(std::make_shared<FrameStreamLogger>(family, std::string(config.address), false, options));
   dnsdist::configuration::yaml::registerType<RemoteLoggerInterface>(object, config.name);
 #endif
+}
+
+void registerKVSObjects(const KeyValueStoresConfiguration& config)
+{
+  bool createObjects = !dnsdist::configuration::yaml::s_inClientMode && !dnsdist::configuration::yaml::s_inConfigCheckMode;
+#if defined(HAVE_LMDB)
+  for (const auto& lmdb : config.lmdb) {
+    auto store = createObjects ? std::shared_ptr<KeyValueStore>(std::make_shared<LMDBKVStore>(std::string(lmdb.file_name), std::string(lmdb.database_name), lmdb.no_lock)) : std::shared_ptr<KeyValueStore>();
+    dnsdist::configuration::yaml::registerType<KeyValueStore>(store, lmdb.name);
+  }
+#endif /* defined(HAVE_LMDB) */
+#if defined(HAVE_CDB)
+  for (const auto& cdb : config.cdb) {
+    auto store = createObjects ? std::shared_ptr<KeyValueStore>(std::make_shared<CDBKVStore>(std::string(cdb.file_name), cdb.refresh_delay)) : std::shared_ptr<KeyValueStore>();
+    dnsdist::configuration::yaml::registerType<KeyValueStore>(store, cdb.name);
+  }
+#endif /* defined(HAVE_CDB) */
+#if defined(HAVE_LMDB) || defined(HAVE_CDB)
+  for (const auto& key : config.lookup_keys.source_ip_keys) {
+    auto lookup = createObjects ? std::shared_ptr<KeyValueLookupKey>(std::make_shared<KeyValueLookupKeySourceIP>(key.v4_mask, key.v6_mask, key.include_port)) : std::shared_ptr<KeyValueLookupKey>();
+    dnsdist::configuration::yaml::registerType<KeyValueLookupKey>(lookup, key.name);
+  }
+  for (const auto& key : config.lookup_keys.qname_keys) {
+    auto lookup = createObjects ? std::shared_ptr<KeyValueLookupKey>(std::make_shared<KeyValueLookupKeyQName>(key.wire_format)) : std::shared_ptr<KeyValueLookupKey>();
+    dnsdist::configuration::yaml::registerType<KeyValueLookupKey>(lookup, key.name);
+  }
+  for (const auto& key : config.lookup_keys.suffix_keys) {
+    auto lookup = createObjects ? std::shared_ptr<KeyValueLookupKey>(std::make_shared<KeyValueLookupKeySuffix>(key.minimum_labels, key.wire_format)) : std::shared_ptr<KeyValueLookupKey>();
+    dnsdist::configuration::yaml::registerType<KeyValueLookupKey>(lookup, key.name);
+  }
+  for (const auto& key : config.lookup_keys.tag_keys) {
+    auto lookup = createObjects ? std::shared_ptr<KeyValueLookupKey>(std::make_shared<KeyValueLookupKeyTag>(std::string(key.tag))) : std::shared_ptr<KeyValueLookupKey>();
+    dnsdist::configuration::yaml::registerType<KeyValueLookupKey>(lookup, key.name);
+  }
+#endif /* defined(HAVE_LMDB) || defined(HAVE_CDB) */
 }
 
 std::shared_ptr<DNSSelector> getAndSelector(const AndSelectorConfiguration& config)

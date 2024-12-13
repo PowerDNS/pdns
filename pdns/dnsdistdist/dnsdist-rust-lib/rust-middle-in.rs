@@ -14,6 +14,7 @@
         type DNSResponseActionWrapper;
         fn registerProtobufLogger(config: &ProtobufLoggersConfiguration);
         fn registerDnstapLogger(config: &DnstapLoggersConfiguration);
+        fn registerKVSObjects(config: &KeyValueStoresConfiguration);
     }
 }
 
