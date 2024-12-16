@@ -931,6 +931,9 @@ static void addStatsToJSONObject(Json::object& obj)
     if (entry.d_name == "special-memory-usage") {
       continue; // Too expensive for get-all
     }
+    if (entry.d_labels != "") {
+      continue; // Skip labeled metrics to prevent duplicates
+    }
     if (const auto& val = std::get_if<pdns::stat_t*>(&entry.d_value)) {
       obj.emplace(entry.d_name, (double)(*val)->load());
     }
