@@ -344,7 +344,7 @@ std::shared_ptr<DNSRule> qnameSuffixRule(const boost::variant<const SuffixMatchN
 }
 
 template <class T>
-static std::optional<T> boostToStandardOptional(const boost::optional<T>& boostOpt)
+std::optional<T> boostToStandardOptional(const boost::optional<T>& boostOpt)
 {
   return boostOpt ? *boostOpt : std::optional<T>();
 }
@@ -609,7 +609,7 @@ void setupLuaRules(LuaContext& luaCtx)
     tisr->toString();
   });
 
-  luaCtx.writeFunction("QNameRule", [](std::string qname) {
+  luaCtx.writeFunction("QNameRule", [](const std::string& qname) {
     return std::shared_ptr<DNSRule>(dnsdist::selectors::getQNameSelector(DNSName(qname)));
   });
 
@@ -627,5 +627,6 @@ void setupLuaRules(LuaContext& luaCtx)
   });
 #endif /* defined(HAVE_LMDB) || defined(HAVE_CDB) */
 
+// NOLINTNEXTLINE(bugprone-suspicious-include)
 #include "dnsdist-lua-selectors-generated.cc"
 }

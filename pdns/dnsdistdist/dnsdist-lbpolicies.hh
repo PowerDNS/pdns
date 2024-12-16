@@ -111,5 +111,5 @@ std::shared_ptr<DownstreamState> roundrobin(const ServerPolicy::NumberedServerVe
 
 namespace dnsdist::lbpolicies
 {
-const std::vector<std::shared_ptr<ServerPolicy>> getBuiltInPolicies();
+const std::vector<std::shared_ptr<ServerPolicy>>& getBuiltInPolicies();
 }

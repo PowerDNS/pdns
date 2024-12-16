@@ -404,7 +404,7 @@ std::shared_ptr<DownstreamState> ServerPolicy::getSelectedBackend(const ServerPo
 
 namespace dnsdist::lbpolicies
 {
-const std::vector<std::shared_ptr<ServerPolicy>> getBuiltInPolicies()
+const std::vector<std::shared_ptr<ServerPolicy>>& getBuiltInPolicies()
 {
   static const std::vector<std::shared_ptr<ServerPolicy>> s_policies{
     std::make_shared<ServerPolicy>("firstAvailable", firstAvailable, false),
