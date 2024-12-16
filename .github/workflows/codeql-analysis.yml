@@ -165,4 +165,4 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 2
-    - run: if [[ "$(file -i --dereference $(git diff --name-only HEAD^..HEAD -- . :^fuzzing/corpus) | grep binary | grep -v 'image/' | grep -v 'inode/x-empty' | grep -v 'inode/directory')" != "" ]]; then exit 1; fi
+    - run: if [[ "$(file -i --dereference $(git diff --name-only HEAD^..HEAD -- . :^fuzzing/corpus) | grep binary | grep -v 'image/' | grep -v 'inode/x-empty' | grep -v 'inode/directory' | grep -v '^modules/tinydnsbackend/data.cdb')" != "" ]]; then exit 1; fi
