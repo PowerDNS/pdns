@@ -66,7 +66,7 @@ public:
   {
   }
 
-  bool matches(const DNSQuestion* dq) const override
+  bool matches(const DNSQuestion* dnsQuestion) const override
   {
     return true;
   }

@@ -33,14 +33,14 @@ HTTPHeaderRule::HTTPHeaderRule(const std::string& header, const std::string& reg
 #endif /* HAVE_DNS_OVER_HTTPS */
 }
 
-bool HTTPHeaderRule::matches(const DNSQuestion* dq) const
+bool HTTPHeaderRule::matches(const DNSQuestion* dnsQuestion) const
 {
 #if defined(HAVE_DNS_OVER_HTTPS)
-  if (!dq->ids.du) {
+  if (!dnsQuestion->ids.du) {
     return false;
   }
 
-  const auto& headers = dq->ids.du->getHTTPHeaders();
+  const auto& headers = dnsQuestion->ids.du->getHTTPHeaders();
   for (const auto& header : headers) {
     if (header.first == d_header) {
       return d_regex.match(header.second);
@@ -63,14 +63,14 @@ HTTPPathRule::HTTPPathRule(std::string path) :
 #endif /* HAVE_DNS_OVER_HTTPS */
 }
 
-bool HTTPPathRule::matches(const DNSQuestion* dq) const
+bool HTTPPathRule::matches(const DNSQuestion* dnsQuestion) const
 {
 #if defined(HAVE_DNS_OVER_HTTPS)
-  if (!dq->ids.du) {
+  if (!dnsQuestion->ids.du) {
     return false;
   }
 
-  const auto path = dq->ids.du->getHTTPPath();
+  const auto path = dnsQuestion->ids.du->getHTTPPath();
   return d_path == path;
 #else
   return false;
@@ -90,14 +90,14 @@ HTTPPathRegexRule::HTTPPathRegexRule(const std::string& regex) :
 #endif /* HAVE_DNS_OVER_HTTPS */
 }
 
-bool HTTPPathRegexRule::matches(const DNSQuestion* dq) const
+bool HTTPPathRegexRule::matches(const DNSQuestion* dnsQuestion) const
 {
 #if defined(HAVE_DNS_OVER_HTTPS)
-  if (!dq->ids.du) {
+  if (!dnsQuestion->ids.du) {
     return false;
   }
 
-  return d_regex.match(dq->ids.du->getHTTPPath());
+  return d_regex.match(dnsQuestion->ids.du->getHTTPPath());
 #else
   return false;
 #endif /* HAVE_DNS_OVER_HTTPS */
@@ -160,12 +160,12 @@ std::shared_ptr<KeyValueStoreRangeLookupRule> getKeyValueStoreRangeLookupSelecto
   return std::make_shared<KeyValueStoreRangeLookupRule>(kvs, lookupKey);
 }
 
-std::shared_ptr<AndRule> getAndSelector(const std::vector<std::shared_ptr<DNSRule>> rules)
+std::shared_ptr<AndRule> getAndSelector(const std::vector<std::shared_ptr<DNSRule>>& rules)
 {
   return std::make_shared<AndRule>(rules);
 }
 
-std::shared_ptr<OrRule> getOrSelector(const std::vector<std::shared_ptr<DNSRule>> rules)
+std::shared_ptr<OrRule> getOrSelector(const std::vector<std::shared_ptr<DNSRule>>& rules)
 {
   return std::make_shared<OrRule>(rules);
 }
@@ -175,6 +175,7 @@ std::shared_ptr<NotRule> getNotSelector(const std::shared_ptr<DNSRule>& rule)
   return std::make_shared<NotRule>(rule);
 }
 
+// NOLINTNEXTLINE(bugprone-suspicious-include)
 #include "dnsdist-selectors-factory-generated.cc"
 
 }

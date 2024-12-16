@@ -231,6 +231,7 @@ namespace PacketMangling
       }
       return ttl;
     };
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     editDNSPacketTTL(reinterpret_cast<char*>(packet.data()), packet.size(), visitor);
   }
 

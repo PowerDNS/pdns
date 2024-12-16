@@ -266,7 +266,9 @@ BOOST_AUTO_TEST_CASE(test_Query)
     std::vector<dnsdist_ffi_raw_value> values;
     ComboAddress v4("192.0.2.1");
     ComboAddress v6("[2001:db8::42]");
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     values.push_back({reinterpret_cast<const char*>(&v4.sin4.sin_addr.s_addr), sizeof(v4.sin4.sin_addr.s_addr)});
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     values.push_back({reinterpret_cast<const char*>(&v6.sin6.sin6_addr.s6_addr), sizeof(v6.sin6.sin6_addr.s6_addr)});
 
     dnsdist_ffi_dnsquestion_spoof_addrs(&lightDQ, values.data(), values.size());

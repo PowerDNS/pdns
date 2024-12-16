@@ -1493,8 +1493,8 @@ private:
 
 namespace dnsdist::selectors
 {
-std::shared_ptr<AndRule> getAndSelector(const std::vector<std::shared_ptr<DNSRule>> rules);
-std::shared_ptr<OrRule> getOrSelector(const std::vector<std::shared_ptr<DNSRule>> rules);
+std::shared_ptr<AndRule> getAndSelector(const std::vector<std::shared_ptr<DNSRule>>& rules);
+std::shared_ptr<OrRule> getOrSelector(const std::vector<std::shared_ptr<DNSRule>>& rules);
 std::shared_ptr<NotRule> getNotSelector(const std::shared_ptr<DNSRule>& rule);
 std::shared_ptr<QNameRule> getQNameSelector(const DNSName& qname);
 std::shared_ptr<QNameSetRule> getQNameSetSelector(const DNSNameSet& qnames);

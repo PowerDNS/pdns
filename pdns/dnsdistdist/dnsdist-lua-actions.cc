@@ -199,6 +199,7 @@ void setupLuaActions(LuaContext& luaCtx)
     if (len < sizeof(dnsheader)) {
       throw std::runtime_error(std::string("SpoofPacketAction: given packet len is too small"));
     }
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     auto ret = dnsdist::actions::getSpoofAction(PacketBuffer(response.data(), response.data() + len));
     return ret;
   });
@@ -353,11 +354,11 @@ void setupLuaActions(LuaContext& luaCtx)
   });
 
   luaCtx.writeFunction("DnstapLogAction", [](const std::string& identity, std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<dnsdist::actions::DnstapAlterFunction> alterFunc) {
-    return dnsdist::actions::getDnstapLogAction(identity, logger, alterFunc ? std::move(*alterFunc) : std::optional<dnsdist::actions::DnstapAlterFunction>());
+    return dnsdist::actions::getDnstapLogAction(identity, std::move(logger), alterFunc ? std::move(*alterFunc) : std::optional<dnsdist::actions::DnstapAlterFunction>());
   });
 
   luaCtx.writeFunction("DnstapLogResponseAction", [](const std::string& identity, std::shared_ptr<RemoteLoggerInterface> logger, boost::optional<dnsdist::actions::DnstapAlterResponseFunction> alterFunc) {
-    return dnsdist::actions::getDnstapLogResponseAction(identity, logger, alterFunc ? std::move(*alterFunc) : std::optional<dnsdist::actions::DnstapAlterResponseFunction>());
+    return dnsdist::actions::getDnstapLogResponseAction(identity, std::move(logger), alterFunc ? std::move(*alterFunc) : std::optional<dnsdist::actions::DnstapAlterResponseFunction>());
   });
 #endif /* DISABLE_PROTOBUF */
 
@@ -378,7 +379,7 @@ void setupLuaActions(LuaContext& luaCtx)
   });
 
   luaCtx.writeFunction("ContinueAction", [](std::shared_ptr<DNSAction> action) {
-    return dnsdist::actions::getContinueAction(action);
+    return dnsdist::actions::getContinueAction(std::move(action));
   });
 
 #ifdef HAVE_DNS_OVER_HTTPS
@@ -419,6 +420,8 @@ void setupLuaActions(LuaContext& luaCtx)
     return dnsdist::actions::getSetProxyProtocolValuesAction(values);
   });
 
+// NOLINTNEXTLINE(bugprone-suspicious-include)
 #include "dnsdist-lua-actions-generated.cc"
+// NOLINTNEXTLINE(bugprone-suspicious-include)
 #include "dnsdist-lua-response-actions-generated.cc"
 }
