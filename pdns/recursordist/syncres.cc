@@ -1885,6 +1885,32 @@ unsigned int SyncRes::getAdjustedRecursionBound() const
   return bound;
 }
 
+static bool haveFinalAnswer(const DNSName& qname, QType qtype, int res, const vector<DNSRecord>& ret)
+{
+  if (res != RCode::NoError) {
+    return false;
+  }
+
+  // This loop assumes the CNAME's records are in-order
+  DNSName target(qname);
+  for (const auto& record : ret) {
+    if (record.d_place == DNSResourceRecord::ANSWER && record.d_name == target) {
+      if (record.d_type == qtype) {
+        return true;
+      }
+      if (record.d_type == QType::CNAME) {
+        if (auto ptr = getRR<CNAMERecordContent>(record)) {
+          target = ptr->getTarget();
+        }
+        else {
+          return false;
+        }
+      }
+    }
+  }
+  return false;
+}
+
 /*! This function will check the cache and go out to the internet if the answer is not in cache
  *
  * \param qname The name we need an answer for
@@ -1986,6 +2012,11 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName& qname, const QType qtyp
             }
           }
         }
+        // This handles the case mentioned above: if the full CNAME chain leading to the answer was
+        // constructed from the cache, indicate that.
+        if (fromCache != nullptr && haveFinalAnswer(qname, qtype, res, ret)) {
+          *fromCache = true;
+        }
         return res;
       }
 
@@ -2035,7 +2066,9 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName& qname, const QType qtyp
             }
           }
         }
-
+        if (fromCache != nullptr && haveFinalAnswer(qname, qtype, res, ret)) {
+          *fromCache = true;
+        }
         return res;
       }
     }
