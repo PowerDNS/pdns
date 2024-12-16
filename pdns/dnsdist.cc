@@ -579,10 +579,12 @@ bool processResponseAfterRules(PacketBuffer& response, const std::vector<DNSDist
       zeroScope = false;
     }
     uint32_t cacheKey = dr.ids.cacheKey;
-    if (dr.ids.protocol == dnsdist::Protocol::DoH && dr.ids.forwardedOverUDP) {
-      cacheKey = dr.ids.cacheKeyUDP;
+    if (dr.ids.protocol == dnsdist::Protocol::DoH && !dr.ids.forwardedOverUDP) {
+      cacheKey = dr.ids.cacheKeyTCP;
+      // disable zeroScope in that case, as we only have the "no-ECS" cache key for UDP
+      zeroScope = false;
     }
-    else if (zeroScope) {
+    if (zeroScope) {
       // if zeroScope, pass the pre-ECS hash-key and do not pass the subnet to the cache
       cacheKey = dr.ids.cacheKeyNoECS;
     }
@@ -1441,6 +1443,10 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dq, LocalHolders& holders
     const auto& policy = poolPolicy != nullptr ? *poolPolicy : *(holders.policy);
     const auto servers = serverPool->getServers();
     selectedBackend = policy.getSelectedBackend(*servers, dq);
+    bool willBeForwardedOverUDP = !dq.overTCP() || dq.ids.protocol == dnsdist::Protocol::DoH;
+    if (selectedBackend && selectedBackend->isTCPOnly()) {
+      willBeForwardedOverUDP = false;
+    }
 
     uint32_t allowExpired = selectedBackend ? 0 : g_staleCacheEntriesTTL;
 
@@ -1453,7 +1459,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dq, LocalHolders& holders
       // we need ECS parsing (parseECS) to be true so we can be sure that the initial incoming query did not have an existing
       // ECS option, which would make it unsuitable for the zero-scope feature.
       if (dq.ids.packetCache && !dq.ids.skipCache && (!selectedBackend || !selectedBackend->d_config.disableZeroScope) && dq.ids.packetCache->isECSParsingEnabled()) {
-        if (dq.ids.packetCache->get(dq, dq.getHeader()->id, &dq.ids.cacheKeyNoECS, dq.ids.subnet, dq.ids.dnssecOK, !dq.overTCP(), allowExpired, false, true, false)) {
+        if (dq.ids.packetCache->get(dq, dq.getHeader()->id, &dq.ids.cacheKeyNoECS, dq.ids.subnet, dq.ids.dnssecOK, willBeForwardedOverUDP, allowExpired, false, true, false)) {
 
           vinfolog("Packet cache hit for query for %s|%s from %s (%s, %d bytes)", dq.ids.qname.toLogString(), QType(dq.ids.qtype).toString(), dq.ids.origRemote.toStringWithPort(), dq.ids.protocol.toString(), dq.getData().size());
 
@@ -1479,14 +1485,11 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dq, LocalHolders& holders
     }
 
     if (dq.ids.packetCache && !dq.ids.skipCache) {
-      bool forwardedOverUDP = !dq.overTCP();
-      if (selectedBackend && selectedBackend->isTCPOnly()) {
-        forwardedOverUDP = false;
-      }
-
-      /* we do not record a miss for queries received over DoH and forwarded over TCP
+      /* First lookup, which takes into account how the protocol over which the query will be forwarded.
+         For DoH, this lookup is done with the protocol set to TCP but we will retry over UDP below,
+         therefore we do not record a miss for queries received over DoH and forwarded over TCP
          yet, as we will do a second-lookup */
-      if (dq.ids.packetCache->get(dq, dq.getHeader()->id, &dq.ids.cacheKey, dq.ids.subnet, dq.ids.dnssecOK, forwardedOverUDP, allowExpired, false, true, dq.ids.protocol != dnsdist::Protocol::DoH || forwardedOverUDP)) {
+      if (dq.ids.packetCache->get(dq, dq.getHeader()->id, dq.ids.protocol == dnsdist::Protocol::DoH ? &dq.ids.cacheKeyTCP : &dq.ids.cacheKey, dq.ids.subnet, dq.ids.dnssecOK, dq.ids.protocol != dnsdist::Protocol::DoH && willBeForwardedOverUDP, allowExpired, false, true, dq.ids.protocol != dnsdist::Protocol::DoH || !willBeForwardedOverUDP)) {
 
         dnsdist::PacketMangling::editDNSHeaderFromPacket(dq.getMutableData(), [flags=dq.ids.origFlags](dnsheader& header) {
           restoreFlags(&header, flags);
@@ -1503,9 +1506,10 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dq, LocalHolders& holders
         ++dq.ids.cs->responses;
         return ProcessQueryResult::SendAnswer;
       }
-      else if (dq.ids.protocol == dnsdist::Protocol::DoH && !forwardedOverUDP) {
-        /* do a second-lookup for UDP responses, but we do not want TC=1 answers */
-        if (dq.ids.packetCache->get(dq, dq.getHeader()->id, &dq.ids.cacheKeyUDP, dq.ids.subnet, dq.ids.dnssecOK, true, allowExpired, false, false, true)) {
+      if (dq.ids.protocol == dnsdist::Protocol::DoH && willBeForwardedOverUDP) {
+        /* do a second-lookup for responses received over UDP, but we do not want TC=1 answers */
+        /* we need to be careful to keep the existing cache-key (TCP) */
+        if (dq.ids.packetCache->get(dq, dq.getHeader()->id, &dq.ids.cacheKey, dq.ids.subnet, dq.ids.dnssecOK, true, allowExpired, false, false, true)) {
           if (!prepareOutgoingResponse(holders, *dq.ids.cs, dq, true)) {
             return ProcessQueryResult::Drop;
           }

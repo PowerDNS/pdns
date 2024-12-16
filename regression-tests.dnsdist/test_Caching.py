@@ -2396,6 +2396,12 @@ class TestCachingCollisionWithECSParsing(DNSDistTest):
 
 class TestCachingScopeZero(DNSDistTest):
 
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _dohServerPort = pickAvailablePort()
+    _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
     _config_template = """
     -- Be careful to enable ECS parsing in the packet cache, otherwise scope zero is disabled
     pc = newPacketCache(100, {maxTTL=86400, minTTL=1, temporaryFailureTTL=60, staleTTL=60, dontAge=false, numberOfShards=1, deferrableInsertLock=true, maxNegativeTTL=3600, parseECS=true})
@@ -2406,7 +2412,11 @@ class TestCachingScopeZero(DNSDistTest):
     -- to unset it using rules before the first cache lookup)
     addAction(RDRule(), SetECSAction("192.0.2.1/32"))
     addAction(RDRule(), SetNoRecurseAction())
+
+    -- test the DoH special case (query received over TCP, forwarded over UDP)
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/" }, {library='nghttp2'})
     """
+    _config_params = ['_testServerPort', '_dohServerPort', '_serverCert', '_serverKey']
 
     def testScopeZero(self):
         """
@@ -2581,6 +2591,38 @@ class TestCachingScopeZero(DNSDistTest):
             receivedQuery.id = expectedQuery2.id
             self.checkMessageEDNSWithECS(expectedQuery2, receivedQuery)
             self.checkMessageNoEDNS(receivedResponse, response)
+
+    def testScopeZeroIncomingDoH(self):
+        """
+        Cache: Test the scope-zero feature with a query received over DoH, backend returns a scope of zero
+        """
+        ttl = 600
+        name = 'scope-zero-incoming-doh.cache.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'AAAA', 'IN')
+        query.flags &= ~dns.flags.RD
+        ecso = clientsubnetoption.ClientSubnetOption('127.0.0.0', 24)
+        expectedQuery = dns.message.make_query(name, 'AAAA', 'IN', use_edns=True, options=[ecso], payload=4096)
+        expectedQuery.flags &= ~dns.flags.RD
+        ecsoResponse = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24, 0)
+        expectedResponse = dns.message.make_response(query)
+        scopedResponse = dns.message.make_response(query)
+        scopedResponse.use_edns(edns=True, payload=4096, options=[ecsoResponse])
+        rrset = dns.rrset.from_text(name,
+                                    ttl,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '::1')
+        scopedResponse.answer.append(rrset)
+        expectedResponse.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendDOHQueryWrapper(query, scopedResponse)
+        receivedQuery.id = expectedQuery.id
+        self.checkMessageEDNSWithECS(expectedQuery, receivedQuery)
+        self.checkMessageNoEDNS(receivedResponse, expectedResponse)
+
+        # next query should hit the cache
+        (receivedQuery, receivedResponse) = self.sendDOHQueryWrapper(query, response=None, useQueue=False)
+        self.checkMessageNoEDNS(receivedResponse, expectedResponse)
 
 class TestCachingScopeZeroButNoSubnetcheck(DNSDistTest):
 
