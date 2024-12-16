@@ -62,7 +62,7 @@ Then you can update those at runtime using the following functions, depending on
 
   Options:
 
-  * ``step``: int - By ow much the counter should be incremented, default to 1
+  * ``step``: int - By how much the counter should be incremented, default to 1
   * ``labels={}``: table - Set of key: value pairs with labels and their values that should be used to increment the metric. Different combinations of labels have different metric values.
 
 .. function:: decMetric(name [, step|options]) -> int
@@ -88,7 +88,7 @@ Then you can update those at runtime using the following functions, depending on
 
   Options:
 
-  * ``step``: int - By ow much the counter should be decremented, default to 1
+  * ``step``: int - By how much the counter should be decremented, default to 1
   * ``labels={}``: table - Set of key: value pairs with labels and their values that should be used to decrement the metric. Different combinations of labels have different metric values.
 
 .. function:: getMetric(name [, options]) -> double
