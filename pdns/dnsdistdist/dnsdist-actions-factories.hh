@@ -33,16 +33,15 @@ struct DNSResponse;
 #include "dnsdist-actions.hh"
 #include "dnsdist-protobuf.hh"
 #include "dnsdist-svc.hh"
+#include "dnstap.hh"
 #include "iputils.hh"
 #include "noinitvector.hh"
 
 struct dnsdist_ffi_dnsquestion_t;
 struct dnsdist_ffi_dnsresponse_t;
-class DNSDistProtoBufMessage;
 class RemoteLoggerInterface;
 class KeyValueStore;
 class KeyValueLookupKey;
-class DnstapMessage;
 
 namespace dnsdist::actions
 {
