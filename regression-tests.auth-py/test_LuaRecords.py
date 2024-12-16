@@ -148,6 +148,7 @@ resolve          IN    LUA    A   ";local r=resolve('localhost', 1) local t={{}}
 filterforwardempty IN LUA A "filterForward('192.0.2.1', newNMG{{'192.1.2.0/24'}}, '')"
 
 *.createforward  IN    LUA    A     "filterForward(createForward(), newNMG{{'1.0.0.0/8', '64.0.0.0/8'}})"
+*.createforward6 IN    LUA    AAAA  "filterForward(createForward6(), newNMG{{'2000::/3'}}, 'fe80::1')"
 *.createreverse  IN    LUA    PTR   "createReverse('%5%.example.com', {{['10.10.10.10'] = 'quad10.example.com.'}})"
 *.createreverse6 IN    LUA    PTR   "createReverse6('%33%.example.com', {{['2001:db8::1'] = 'example.example.com.'}})"
 
@@ -160,14 +161,7 @@ lookmeup         IN           A  192.0.2.5
 dblookup         IN    LUA    A  "dblookup('lookmeup.example.org', pdns.A)[1]"
 
 whitespace       IN    LUA    TXT "'foo" "bar'"
-        """,
-        'createforward6.example.org': """
-createforward6.example.org.                 3600 IN SOA  {soa}
-createforward6.example.org.                 3600 IN NS   ns1.example.org.
-createforward6.example.org.                 3600 IN NS   ns2.example.org.
-*                                                IN    LUA    AAAA  "filterForward(createForward6(), newNMG{{'2000::/3'}}, 'fe80::1')"
         """
-# the separate createforward6 zone is because some of the code in lua-record.cc insists on working relatively to the zone apex
     }
     _web_rrsets = []
 
@@ -1004,7 +998,7 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
                 "invalid": "0.0.0.0",
                 "1-2-3-4": "1.2.3.4",
                 "1-2-3-4.foo": "1.2.3.4",
-                "1-2-3-4.foo.bar": "0.0.0.0",
+                "1-2-3-4.foo.bar": "1.2.3.4",
                 "1-2-3-4.foo.bar.baz": "0.0.0.0",
                 "1-2-3-4.foo.bar.baz.quux": "0.0.0.0",
                 "ip-1-2-3-4": "1.2.3.4",

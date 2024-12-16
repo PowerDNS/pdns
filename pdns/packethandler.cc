@@ -427,7 +427,7 @@ bool PacketHandler::getBestWildcard(DNSPacket& p, const DNSName &target, DNSName
           //    noCache=true;
           DLOG(g_log<<"Executing Lua: '"<<rec->getCode()<<"'"<<endl);
           try {
-            auto recvec=luaSynth(rec->getCode(), target, d_sd.qname, d_sd.domain_id, p, rec->d_type, s_LUA);
+            auto recvec=luaSynth(rec->getCode(), target, rr.dr, d_sd.qname, d_sd.domain_id, p, rec->d_type, s_LUA);
             for (const auto& r : recvec) {
               rr.dr.d_type = rec->d_type; // might be CNAME
               rr.dr.setContent(r);
@@ -1622,7 +1622,7 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
         if(rec->d_type == QType::CNAME || rec->d_type == p.qtype.getCode() || (p.qtype.getCode() == QType::ANY && rec->d_type != QType::RRSIG)) {
           noCache=true;
           try {
-            auto recvec=luaSynth(rec->getCode(), target, d_sd.qname, d_sd.domain_id, p, rec->d_type, s_LUA);
+            auto recvec=luaSynth(rec->getCode(), target, rr.dr, d_sd.qname, d_sd.domain_id, p, rec->d_type, s_LUA);
             if(!recvec.empty()) {
               for (const auto& r_it : recvec) {
                 rr.dr.d_type = rec->d_type; // might be CNAME
