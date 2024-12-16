@@ -17,7 +17,7 @@ Then you can update those at runtime using the following functions, depending on
   .. versionchanged:: 1.8.1
     This function can now be used at runtime, instead of only at configuration time.
 
-  .. versionchanged:: ?
+  .. versionchanged:: 2.0.0
     This function now takes options, with ``withLabels`` option added. ``prometheusName`` can now be provided in options.
 
  .. note::
@@ -46,7 +46,7 @@ Then you can update those at runtime using the following functions, depending on
   .. versionchanged:: 1.8.1
     Optional ``step`` parameter added.
 
-  .. versionchanged:: ?
+  .. versionchanged:: 2.0.0
     This function now takes options, with ``labels`` option added. ``step`` can now be provided in options.
 
  .. note::
@@ -72,7 +72,7 @@ Then you can update those at runtime using the following functions, depending on
   .. versionchanged:: 1.8.1
     Optional ``step`` parameter added.
 
-  .. versionchanged:: ?
+  .. versionchanged:: 2.0.0
     This function now takes options, with ``labels`` option added. ``step`` can now be provided in options.
 
  .. note::
@@ -95,7 +95,7 @@ Then you can update those at runtime using the following functions, depending on
 
   .. versionadded:: 1.8.0
 
-  .. versionchanged:: ?
+  .. versionchanged:: 2.0.0
     This function now takes options, with ``labels`` option added.
 
  .. note::
@@ -114,7 +114,7 @@ Then you can update those at runtime using the following functions, depending on
 
   .. versionadded:: 1.8.0
 
-  .. versionchanged:: ?
+  .. versionchanged:: 2.0.0
     This function now takes options, with ``labels`` option added.
 
  .. note::
