@@ -1009,7 +1009,7 @@ static std::shared_ptr<DNSRecordContent> deserializeContentZR(uint16_t qtype, co
   if (qtype == QType::A && content.size() == 4) {
     return std::make_shared<ARecordContent>(*((uint32_t*)content.c_str()));
   }
-  return DNSRecordContent::deserialize(qname, qtype, content);
+  return DNSRecordContent::deserialize(qname, qtype, content, QClass::IN, true);
 }
 
 /* design. If you ask a question without a zone id, we lookup the best
