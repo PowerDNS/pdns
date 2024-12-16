@@ -17,6 +17,9 @@ class TestLMDB(DNSDistTest):
     newServer{address="127.0.0.1:%d"}
 
     kvs = newLMDBKVStore('%s', '%s')
+    kvs:reload()
+    kvs:lookup('does not exist, just testing that the lookup binding exists')
+    kvs:lookupSuffix(newDNSName('dummy'))
 
     -- KVS lookups follow
     -- if the qname is 'kvs-rule.lmdb.tests.powerdns.com.', does a lookup in the LMDB database using the qname as key, and spoof an answer if it matches
