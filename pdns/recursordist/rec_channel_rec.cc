@@ -1379,7 +1379,6 @@ void doExitGeneric(bool nicely)
   _exit(0); // regression test check for exit 0
 #endif
   g_log << Logger::Error << "Exiting on user request" << endl;
-  g_rcc.~RecursorControlChannel();
 
   if (!g_pidfname.empty()) {
     unlink(g_pidfname.c_str()); // we can at least try..
@@ -1387,8 +1386,14 @@ void doExitGeneric(bool nicely)
 
   if (nicely) {
     RecursorControlChannel::stop = true;
+    {
+      std::unique_lock lock(doneRunning.mutex);
+      doneRunning.condVar.wait(lock, [] { return doneRunning.done.load(); });
+    }
+    // g_rcc.~RecursorControlChannel() do not call, will be done by caller!
   }
   else {
+    g_rcc.~RecursorControlChannel();
 #if defined(__SANITIZE_ADDRESS__) && defined(HAVE_LEAK_SANITIZER_INTERFACE)
     clearLuaScript();
     pdns::coverage::dumpCoverageData();
