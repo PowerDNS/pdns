@@ -203,7 +203,7 @@ std::variant<uint64_t, Error> incrementCustomCounter(const std::string_view& nam
     metric->second.d_value += step;
     return metric->second.d_value.load();
   }
-  return std::string("Unable to increment custom metric '") + std::string(name) + "': no such metric";
+  return std::string("Unable to increment custom metric '") + std::string(name) + "': no such counter";
 }
 
 std::variant<uint64_t, Error> decrementCustomCounter(const std::string_view& name, uint64_t step)
@@ -214,7 +214,7 @@ std::variant<uint64_t, Error> decrementCustomCounter(const std::string_view& nam
     metric->second.d_value -= step;
     return metric->second.d_value.load();
   }
-  return std::string("Unable to decrement custom metric '") + std::string(name) + "': no such metric";
+  return std::string("Unable to decrement custom metric '") + std::string(name) + "': no such counter";
 }
 
 std::variant<double, Error> setCustomGauge(const std::string_view& name, const double value)
@@ -226,7 +226,7 @@ std::variant<double, Error> setCustomGauge(const std::string_view& name, const d
     return value;
   }
 
-  return std::string("Unable to set metric '") + std::string(name) + "': no such metric";
+  return std::string("Unable to set metric '") + std::string(name) + "': no such gauge";
 }
 
 std::variant<double, Error> getCustomMetric(const std::string_view& name)
