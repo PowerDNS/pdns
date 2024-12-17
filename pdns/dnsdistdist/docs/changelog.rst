@@ -36,6 +36,12 @@ Changelog
 
     Fix ECS zero-scope caching with incoming DoH queries
 
+  .. change::
+    :tags: Improvements, Metrics
+    :pullreq: 14978
+
+    Custom metrics: better error messages, small doc improvements
+
 .. changelog::
   :version: 1.9.7
   :released: 4th of October 2024
