@@ -3156,7 +3156,7 @@ static void setupLogging(const string& logname)
   }
 }
 
-DoneRunning doneRunning;
+DoneRunning g_doneRunning;
 
 int main(int argc, char** argv)
 {
@@ -3330,9 +3330,9 @@ int main(int argc, char** argv)
 
     ret = serviceMain(startupLog);
     {
-      std::lock_guard lock(doneRunning.mutex);
-      doneRunning.done = true;
-      doneRunning.condVar.notify_one();
+      std::lock_guard lock(g_doneRunning.mutex);
+      g_doneRunning.done = true;
+      g_doneRunning.condVar.notify_one();
     }
     RecThreadInfo::joinThread0();
   }

@@ -161,7 +161,7 @@ struct DoneRunning
   std::condition_variable condVar;
   std::atomic<bool> done{false};
 };
-extern DoneRunning doneRunning;
+extern DoneRunning g_doneRunning;
 
 // you can ask this class for a UDP socket to send a query from
 // this socket is not yours, don't even think about deleting it

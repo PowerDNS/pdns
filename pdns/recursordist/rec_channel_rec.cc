@@ -1387,8 +1387,8 @@ void doExitGeneric(bool nicely)
   if (nicely) {
     RecursorControlChannel::stop = true;
     {
-      std::unique_lock lock(doneRunning.mutex);
-      doneRunning.condVar.wait(lock, [] { return doneRunning.done.load(); });
+      std::unique_lock lock(g_doneRunning.mutex);
+      g_doneRunning.condVar.wait(lock, [] { return g_doneRunning.done.load(); });
     }
     // g_rcc.~RecursorControlChannel() do not call, caller still needs it!
   }
