@@ -384,6 +384,7 @@ Reverse DNS functions
       - ``%3%`` = 0
       - ``%4%`` = 1
   - ``%33%`` converts the compressed address format into a dashed format, e.g. ``2001:a::1`` to ``2001-a--1``
+      This format may add '0' to the result, preventing it from being identified as an illegal IDN by ``dig``.
   - ``%34%`` to ``%41%`` represent the 8 uncompressed 2-byte chunks
       - **Example:** PTR query for ``2001:a:b::123``
       - ``%34%`` - returns ``2001`` (chunk 1)
