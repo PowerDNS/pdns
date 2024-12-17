@@ -2454,7 +2454,6 @@ static void handleRCC(int fileDesc, FDMultiplexer::funcparam_t& /* var */)
     command();
     if (command == doExitNicely) {
       g_rcc.send(clientfd, answer);
-      g_rcc.~RecursorControlChannel();
     }
   }
   catch (const std::exception& e) {

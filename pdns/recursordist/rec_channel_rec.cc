@@ -1390,7 +1390,7 @@ void doExitGeneric(bool nicely)
       std::unique_lock lock(doneRunning.mutex);
       doneRunning.condVar.wait(lock, [] { return doneRunning.done.load(); });
     }
-    // g_rcc.~RecursorControlChannel() do not call, will be done by caller!
+    // g_rcc.~RecursorControlChannel() do not call, caller still needs it!
   }
   else {
     g_rcc.~RecursorControlChannel();
