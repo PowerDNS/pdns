@@ -2014,7 +2014,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName& qname, const QType qtyp
         }
         // This handles the case mentioned above: if the full CNAME chain leading to the answer was
         // constructed from the cache, indicate that.
-        if (fromCache != nullptr && *fromCache == false && haveFinalAnswer(qname, qtype, res, ret)) {
+        if (fromCache != nullptr && !*fromCache && haveFinalAnswer(qname, qtype, res, ret)) {
           *fromCache = true;
         }
         return res;
@@ -2066,7 +2066,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName& qname, const QType qtyp
             }
           }
         }
-        if (fromCache != nullptr && *fromCache == false && haveFinalAnswer(qname, qtype, res, ret)) {
+        if (fromCache != nullptr && !*fromCache && haveFinalAnswer(qname, qtype, res, ret)) {
           *fromCache = true;
         }
         return res;
