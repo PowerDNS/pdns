@@ -27,7 +27,7 @@ Changelog
     :tags: Bug Fixes
     :pullreq: 14929
 
-    Allow resetting `setWeightedBalancingFactor()` to zero
+    Allow resetting ``setWeightedBalancingFactor()`` to zero
 
   .. change::
     :tags: Bug Fixes, DNS over HTTPS
