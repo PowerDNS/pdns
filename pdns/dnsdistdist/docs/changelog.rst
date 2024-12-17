@@ -2,6 +2,41 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.9.8
+  :released: 17th of December 2024
+
+  .. change::
+    :tags: Improvements, DNS over TLS, DNS over HTTPS
+    :pullreq: 14877
+
+    Add the ability to load a given TLS tickets key
+
+  .. change::
+    :tags: Bug Fixes, DNS over TLS, DNS over HTTPS
+    :pullreq: 14878
+
+    setTicketsKeyAddedHook: pass a std::string to the hook to avoid luawrapper to truncate content at potential null chars
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14887
+
+    Add elapsed time to dq object (@phonedph1)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14929
+
+    Allow resetting `setWeightedBalancingFactor()` to zero
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 14977
+    :tickets: 14959
+
+    Fix ECS zero-scope caching with incoming DoH queries
+
+.. changelog::
   :version: 1.9.7
   :released: 4th of October 2024
 
