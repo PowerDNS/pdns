@@ -2,6 +2,20 @@ Changelogs for 4.9.x
 ====================
 
 .. changelog::
+  :version: 4.9.3
+  :released: 17th of December 2024
+
+  This is release 4.9.3 of the Authoritative Server.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 4.9.x.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14968
+
+    SVCB parser: allow quotes around port=
+
+.. changelog::
   :version: 4.9.2
   :released: 1st of October 2024
 
