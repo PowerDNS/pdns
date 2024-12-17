@@ -260,7 +260,7 @@ void dnsdist_ffi_dnsquestion_get_sni(const dnsdist_ffi_dnsquestion_t* dq, const 
 
 const char* dnsdist_ffi_dnsquestion_get_tag(const dnsdist_ffi_dnsquestion_t* dq, const char* label)
 {
-  const char * result = nullptr;
+  const char* result = nullptr;
 
   if (dq != nullptr && dq->dq != nullptr && dq->dq->ids.qTag != nullptr) {
     const auto it = dq->dq->ids.qTag->find(label);
@@ -455,7 +455,6 @@ size_t dnsdist_ffi_dnsquestion_get_tag_array(dnsdist_ffi_dnsquestion_t* dq, cons
     entry.value = tag.second.c_str();
     ++pos;
   }
-
 
   if (!dq->tagsVect->empty()) {
     *out = dq->tagsVect->data();
@@ -1007,7 +1006,7 @@ static constexpr char s_lua_ffi_code[] = R"FFICodeContent(
   ffi.cdef[[
 )FFICodeContent"
 #include "dnsdist-lua-ffi-interface.inc"
-R"FFICodeContent(
+                                         R"FFICodeContent(
   ]]
 
 )FFICodeContent";
@@ -1057,7 +1056,8 @@ size_t dnsdist_ffi_generate_proxy_protocol_payload(const size_t addrSize, const 
     if (valuesCount > 0) {
       valuesVect.reserve(valuesCount);
       for (size_t idx = 0; idx < valuesCount; idx++) {
-        valuesVect.push_back({ std::string(values[idx].value, values[idx].size), values[idx].type });
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        valuesVect.push_back({std::string(values[idx].value, values[idx].size), values[idx].type});
       }
     }
 
@@ -1086,7 +1086,8 @@ size_t dnsdist_ffi_dnsquestion_generate_proxy_protocol_payload(const dnsdist_ffi
   if (valuesCount > 0) {
     valuesVect.reserve(valuesCount);
     for (size_t idx = 0; idx < valuesCount; idx++) {
-      valuesVect.push_back({ std::string(values[idx].value, values[idx].size), values[idx].type });
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+      valuesVect.push_back({std::string(values[idx].value, values[idx].size), values[idx].type});
     }
   }
 
@@ -1113,7 +1114,7 @@ bool dnsdist_ffi_dnsquestion_add_proxy_protocol_values(dnsdist_ffi_dnsquestion_t
   dnsQuestion->dq->proxyProtocolValues->reserve(dnsQuestion->dq->proxyProtocolValues->size() + valuesCount);
   for (size_t idx = 0; idx < valuesCount; idx++) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): the Lua FFI API is a C API..
-    dnsQuestion->dq->proxyProtocolValues->push_back({ std::string(values[idx].value, values[idx].size), values[idx].type });
+    dnsQuestion->dq->proxyProtocolValues->push_back({std::string(values[idx].value, values[idx].size), values[idx].type});
   }
 
   return true;
@@ -1146,7 +1147,8 @@ struct dnsdist_ffi_domain_list_t
 {
   std::vector<std::string> d_domains;
 };
-struct dnsdist_ffi_address_list_t {
+struct dnsdist_ffi_address_list_t
+{
   std::vector<std::string> d_addresses;
 };
 
@@ -1476,7 +1478,8 @@ void dnsdist_ffi_ring_entry_list_free(dnsdist_ffi_ring_entry_list_t* list)
   delete list;
 }
 
-template<typename T> static void addRingEntryToList(std::unique_ptr<dnsdist_ffi_ring_entry_list_t>& list, const struct timespec& now, const T& entry)
+template <typename T>
+static void addRingEntryToList(std::unique_ptr<dnsdist_ffi_ring_entry_list_t>& list, const struct timespec& now, const T& entry)
 {
   auto age = DiffTime(entry.when, now);
 
@@ -1805,13 +1808,13 @@ bool dnsdist_ffi_metric_declare(const char* name, size_t nameLen, const char* ty
   if (name == nullptr || nameLen == 0 || type == nullptr || description == nullptr) {
     return false;
   }
-  auto result = dnsdist::metrics::declareCustomMetric(name, type, description, customName != nullptr ? std::optional<std::string>(customName) : std::nullopt);
+  auto result = dnsdist::metrics::declareCustomMetric(name, type, description, customName != nullptr ? std::optional<std::string>(customName) : std::nullopt, false);
   return !result;
 }
 
 void dnsdist_ffi_metric_inc(const char* metricName, size_t metricNameLen)
 {
-  auto result = dnsdist::metrics::incrementCustomCounter(std::string_view(metricName, metricNameLen), 1U);
+  auto result = dnsdist::metrics::incrementCustomCounter(std::string_view(metricName, metricNameLen), 1U, {});
   if (std::get_if<dnsdist::metrics::Error>(&result) != nullptr) {
     return;
   }
@@ -1819,7 +1822,7 @@ void dnsdist_ffi_metric_inc(const char* metricName, size_t metricNameLen)
 
 void dnsdist_ffi_metric_inc_by(const char* metricName, size_t metricNameLen, uint64_t value)
 {
-  auto result = dnsdist::metrics::incrementCustomCounter(std::string_view(metricName, metricNameLen), value);
+  auto result = dnsdist::metrics::incrementCustomCounter(std::string_view(metricName, metricNameLen), value, {});
   if (std::get_if<dnsdist::metrics::Error>(&result) != nullptr) {
     return;
   }
@@ -1827,7 +1830,7 @@ void dnsdist_ffi_metric_inc_by(const char* metricName, size_t metricNameLen, uin
 
 void dnsdist_ffi_metric_dec(const char* metricName, size_t metricNameLen)
 {
-  auto result = dnsdist::metrics::decrementCustomCounter(std::string_view(metricName, metricNameLen), 1U);
+  auto result = dnsdist::metrics::decrementCustomCounter(std::string_view(metricName, metricNameLen), 1U, {});
   if (std::get_if<dnsdist::metrics::Error>(&result) != nullptr) {
     return;
   }
@@ -1835,7 +1838,7 @@ void dnsdist_ffi_metric_dec(const char* metricName, size_t metricNameLen)
 
 void dnsdist_ffi_metric_set(const char* metricName, size_t metricNameLen, double value)
 {
-  auto result = dnsdist::metrics::setCustomGauge(std::string_view(metricName, metricNameLen), value);
+  auto result = dnsdist::metrics::setCustomGauge(std::string_view(metricName, metricNameLen), value, {});
   if (std::get_if<dnsdist::metrics::Error>(&result) != nullptr) {
     return;
   }
@@ -1843,7 +1846,7 @@ void dnsdist_ffi_metric_set(const char* metricName, size_t metricNameLen, double
 
 double dnsdist_ffi_metric_get(const char* metricName, size_t metricNameLen, bool isCounter)
 {
-  auto result = dnsdist::metrics::getCustomMetric(std::string_view(metricName, metricNameLen));
+  auto result = dnsdist::metrics::getCustomMetric(std::string_view(metricName, metricNameLen), {});
   if (std::get_if<dnsdist::metrics::Error>(&result) != nullptr) {
     return 0.;
   }

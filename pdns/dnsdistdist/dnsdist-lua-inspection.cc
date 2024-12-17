@@ -19,7 +19,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include <algorithm>
 #include <fcntl.h>
+#include <iterator>
 
 #include "dnsdist.hh"
 #include "dnsdist-console.hh"
@@ -811,12 +813,18 @@ void setupLuaInspection(LuaContext& luaCtx)
     boost::format fmt("%-35s\t%+11s");
     g_outputBuffer.clear();
     auto entries = *dnsdist::metrics::g_stats.entries.read_lock();
-    sort(entries.begin(), entries.end(),
+
+    // Filter entries to just the ones without label, for clearer output
+    std::vector<std::reference_wrapper<decltype(entries)::value_type>> unlabeledEntries;
+    std::copy_if(entries.begin(), entries.end(), std::back_inserter(unlabeledEntries), [](const decltype(entries)::value_type& triple) { return triple.d_labels.empty(); });
+
+    sort(unlabeledEntries.begin(), unlabeledEntries.end(),
          [](const decltype(entries)::value_type& lhs, const decltype(entries)::value_type& rhs) {
            return lhs.d_name < rhs.d_name;
          });
     boost::format flt("    %9.1f");
-    for (const auto& entry : entries) {
+    for (const auto& entryRef : unlabeledEntries) {
+      const auto& entry = entryRef.get();
       string second;
       if (const auto& val = std::get_if<pdns::stat_t*>(&entry.d_value)) {
         second = std::to_string((*val)->load());
@@ -828,7 +836,7 @@ void setupLuaInspection(LuaContext& luaCtx)
         second = std::to_string((*func)(entry.d_name));
       }
 
-      if (leftcolumn.size() < entries.size() / 2) {
+      if (leftcolumn.size() < unlabeledEntries.size() / 2) {
         leftcolumn.push_back((fmt % entry.d_name % second).str());
       }
       else {

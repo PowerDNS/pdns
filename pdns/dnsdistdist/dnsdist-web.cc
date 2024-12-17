@@ -500,6 +500,10 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
         prometheusMetricName = metricDetails.customName;
       }
 
+      if (!entry.d_labels.empty()) {
+        prometheusMetricName += "{" + entry.d_labels + "}";
+      }
+
       // for these we have the help and types encoded in the sources
       // but we need to be careful about labels in custom metrics
       std::string helpName = prometheusMetricName.substr(0, prometheusMetricName.find('{'));
@@ -926,6 +930,9 @@ static void addStatsToJSONObject(Json::object& obj)
   for (const auto& entry : *entries) {
     if (entry.d_name == "special-memory-usage") {
       continue; // Too expensive for get-all
+    }
+    if (!entry.d_labels.empty()) {
+      continue; // Skip labeled metrics to prevent duplicates
     }
     if (const auto& val = std::get_if<pdns::stat_t*>(&entry.d_value)) {
       obj.emplace(entry.d_name, (double)(*val)->load());
@@ -1908,7 +1915,7 @@ void setMaxConcurrentConnections(size_t max)
 void WebserverThread(Socket sock)
 {
   setThreadName("dnsdist/webserv");
-  //coverity[auto_causes_copy]
+  // coverity[auto_causes_copy]
   const auto local = *dnsdist::configuration::getCurrentRuntimeConfiguration().d_webServerAddress;
   infolog("Webserver launched on %s", local.toStringWithPort());
 

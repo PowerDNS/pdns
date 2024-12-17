@@ -57,6 +57,11 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
     {
       auto entries = dnsdist::metrics::g_stats.entries.read_lock();
       for (const auto& entry : *entries) {
+        // Skip non-empty labels, since labels are not supported in Carbon
+        if (!entry.d_labels.empty()) {
+          continue;
+        }
+
         str << namespace_name << "." << hostname << "." << instance_name << "." << entry.d_name << ' ';
         if (const auto& val = std::get_if<pdns::stat_t*>(&entry.d_value)) {
           str << (*val)->load();

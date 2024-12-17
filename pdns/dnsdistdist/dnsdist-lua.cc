@@ -85,6 +85,9 @@
 
 using std::thread;
 
+using update_metric_opts_t = LuaAssociativeTable<boost::variant<uint64_t, LuaAssociativeTable<std::string>>>;
+using declare_metric_opts_t = LuaAssociativeTable<boost::variant<bool, std::string>>;
+
 static boost::tribool s_noLuaSideEffect;
 
 /* this is a best effort way to prevent logging calls with no side-effects in the output of delta()
@@ -1264,7 +1267,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   luaCtx.writeFunction("getPoolServers", [](const string& pool) {
-    //coverity[auto_causes_copy]
+    // coverity[auto_causes_copy]
     const auto poolServers = getDownstreamCandidates(pool);
     return *poolServers;
   });
@@ -1873,9 +1876,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       //             1        2         3                4
       ret << (fmt % "Name" % "Cache" % "ServerPolicy" % "Servers") << endl;
 
-      //coverity[auto_causes_copy]
+      // coverity[auto_causes_copy]
       const auto defaultPolicyName = dnsdist::configuration::getCurrentRuntimeConfiguration().d_lbPolicy->getName();
-      //coverity[auto_causes_copy]
+      // coverity[auto_causes_copy]
       const auto pools = dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools;
       for (const auto& entry : pools) {
         const string& name = entry.first;
@@ -3410,8 +3413,22 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     newThread.detach();
   });
 
-  luaCtx.writeFunction("declareMetric", [](const std::string& name, const std::string& type, const std::string& description, boost::optional<std::string> customName) {
-    auto result = dnsdist::metrics::declareCustomMetric(name, type, description, customName ? std::optional<std::string>(*customName) : std::nullopt);
+  luaCtx.writeFunction("declareMetric", [](const std::string& name, const std::string& type, const std::string& description, boost::optional<boost::variant<std::string, declare_metric_opts_t>> opts) {
+    bool withLabels = false;
+    std::optional<std::string> customName = std::nullopt;
+    if (opts) {
+      auto* optCustomName = boost::get<std::string>(&opts.get());
+      if (optCustomName != nullptr) {
+        customName = std::optional(*optCustomName);
+      }
+      if (!customName) {
+        boost::optional<declare_metric_opts_t> vars = {boost::get<declare_metric_opts_t>(opts.get())};
+        getOptionalValue<std::string>(vars, "customName", customName);
+        getOptionalValue<bool>(vars, "withLabels", withLabels);
+        checkAllParametersConsumed("declareMetric", vars);
+      }
+    }
+    auto result = dnsdist::metrics::declareCustomMetric(name, type, description, customName, withLabels);
     if (result) {
       g_outputBuffer += *result + "\n";
       errlog("Error in declareMetric: %s", *result);
@@ -3419,8 +3436,21 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
     return true;
   });
-  luaCtx.writeFunction("incMetric", [](const std::string& name, boost::optional<uint64_t> step) {
-    auto result = dnsdist::metrics::incrementCustomCounter(name, step ? *step : 1);
+  // NOLINTNEXTLINE(performance-unnecessary-value-param)
+  luaCtx.writeFunction("incMetric", [](const std::string& name, boost::optional<boost::variant<uint64_t, update_metric_opts_t>> opts) {
+    auto incOpts = opts.get_value_or(1);
+    uint64_t step = 1;
+    std::unordered_map<std::string, std::string> labels;
+    if (auto* custom_step = boost::get<uint64_t>(&incOpts)) {
+      step = *custom_step;
+    }
+    else {
+      boost::optional<update_metric_opts_t> vars = {boost::get<update_metric_opts_t>(incOpts)};
+      getOptionalValue<uint64_t>(vars, "step", step);
+      getOptionalValue<LuaAssociativeTable<std::string>>(vars, "labels", labels);
+      checkAllParametersConsumed("incMetric", vars);
+    }
+    auto result = dnsdist::metrics::incrementCustomCounter(name, step, labels);
     if (const auto* errorStr = std::get_if<dnsdist::metrics::Error>(&result)) {
       g_outputBuffer = *errorStr + "'\n";
       errlog("Error in incMetric: %s", *errorStr);
@@ -3428,8 +3458,21 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
     return std::get<uint64_t>(result);
   });
-  luaCtx.writeFunction("decMetric", [](const std::string& name, boost::optional<uint64_t> step) {
-    auto result = dnsdist::metrics::decrementCustomCounter(name, step ? *step : 1);
+  // NOLINTNEXTLINE(performance-unnecessary-value-param)
+  luaCtx.writeFunction("decMetric", [](const std::string& name, boost::optional<boost::variant<uint64_t, update_metric_opts_t>> opts) {
+    auto decOpts = opts.get_value_or(1);
+    uint64_t step = 1;
+    std::unordered_map<std::string, std::string> labels;
+    if (auto* custom_step = boost::get<uint64_t>(&decOpts)) {
+      step = *custom_step;
+    }
+    else {
+      boost::optional<update_metric_opts_t> vars = {boost::get<update_metric_opts_t>(decOpts)};
+      getOptionalValue<uint64_t>(vars, "step", step);
+      getOptionalValue<LuaAssociativeTable<std::string>>(vars, "labels", labels);
+      checkAllParametersConsumed("decMetric", vars);
+    }
+    auto result = dnsdist::metrics::decrementCustomCounter(name, step, labels);
     if (const auto* errorStr = std::get_if<dnsdist::metrics::Error>(&result)) {
       g_outputBuffer = *errorStr + "'\n";
       errlog("Error in decMetric: %s", *errorStr);
@@ -3437,8 +3480,13 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
     return std::get<uint64_t>(result);
   });
-  luaCtx.writeFunction("setMetric", [](const std::string& name, const double value) -> double {
-    auto result = dnsdist::metrics::setCustomGauge(name, value);
+  luaCtx.writeFunction("setMetric", [](const std::string& name, const double value, boost::optional<update_metric_opts_t> opts) -> double {
+    std::unordered_map<std::string, std::string> labels;
+    if (opts) {
+      getOptionalValue<LuaAssociativeTable<std::string>>(opts, "labels", labels);
+    }
+    checkAllParametersConsumed("setMetric", opts);
+    auto result = dnsdist::metrics::setCustomGauge(name, value, labels);
     if (const auto* errorStr = std::get_if<dnsdist::metrics::Error>(&result)) {
       g_outputBuffer = *errorStr + "'\n";
       errlog("Error in setMetric: %s", *errorStr);
@@ -3446,8 +3494,13 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
     return std::get<double>(result);
   });
-  luaCtx.writeFunction("getMetric", [](const std::string& name) {
-    auto result = dnsdist::metrics::getCustomMetric(name);
+  luaCtx.writeFunction("getMetric", [](const std::string& name, boost::optional<update_metric_opts_t> opts) {
+    std::unordered_map<std::string, std::string> labels;
+    if (opts) {
+      getOptionalValue<LuaAssociativeTable<std::string>>(opts, "labels", labels);
+    }
+    checkAllParametersConsumed("getMetric", opts);
+    auto result = dnsdist::metrics::getCustomMetric(name, labels);
     if (const auto* errorStr = std::get_if<dnsdist::metrics::Error>(&result)) {
       g_outputBuffer = *errorStr + "'\n";
       errlog("Error in getMetric: %s", *errorStr);
