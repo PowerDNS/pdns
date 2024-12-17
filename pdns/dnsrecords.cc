@@ -812,11 +812,7 @@ SvcParam SVCBBaseRecordContent::getParam(const SvcParam::SvcParamKey &key) const
 }
 
 set<SvcParam>::const_iterator SVCBBaseRecordContent::getParamIt(const SvcParam::SvcParamKey &key) const {
-  auto p = std::find_if(d_params.begin(), d_params.end(),
-      [&key](const SvcParam &param) {
-        return param.getKey() == key;
-      });
-  return p;
+  return std::find(d_params.begin(), d_params.end(), key);
 }
 
 std::shared_ptr<SVCBBaseRecordContent> SVCBRecordContent::clone() const
