@@ -1737,6 +1737,117 @@ BOOST_AUTO_TEST_CASE(test_cname_long_loop)
   }
 }
 
+BOOST_AUTO_TEST_CASE(test_cname_long_step0_shortcut)
+{
+  // This tets the case fixed /optimizaed in #14973
+  std::unique_ptr<SyncRes> resolver;
+  initSR(resolver);
+  resolver->setQNameMinimization();
+  primeHints();
+  resolver->setLogMode(SyncRes::Store);
+
+  size_t count = 0;
+  const DNSName target1("cname1.powerdns.com.");
+  const DNSName target2("cname2.powerdns.com.");
+  const DNSName target3("cname3.powerdns.com.");
+  const DNSName target4("cname4.powerdns.com.");
+
+  resolver->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int qtype, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
+    count++;
+
+    if (domain == DNSName("com.")) {
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, domain, QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
+      addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+      return LWResult::Result::Success;
+    }
+    if (domain == DNSName("powerdns.com.")) {
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, domain, QType::NS, "ns.powerdns.com.", DNSResourceRecord::AUTHORITY, 172800);
+      addRecordToLW(res, "ns.powerdns.com.", QType::A, "192.0.2.2", DNSResourceRecord::ADDITIONAL, 3600);
+      return LWResult::Result::Success;
+    }
+    if (address == ComboAddress("192.0.2.2:53")) {
+
+      if (domain == target1) {
+        setLWResult(res, 0, true, false, false);
+        addRecordToLW(res, domain, QType::CNAME, target2.toString());
+        return LWResult::Result::Success;
+      }
+      if (domain == target2) {
+        setLWResult(res, 0, true, false, false);
+        addRecordToLW(res, domain, QType::CNAME, target3.toString());
+        return LWResult::Result::Success;
+      }
+      if (domain == target3) {
+        setLWResult(res, 0, true, false, false);
+        addRecordToLW(res, domain, QType::CNAME, target4.toString());
+        return LWResult::Result::Success;
+      }
+      if (domain == target4) {
+        setLWResult(res, 0, true, false, false);
+        if (qtype == QType::A) {
+          addRecordToLW(res, domain, QType::A, "1.2.3.4");
+        }
+        else if (qtype == QType::AAAA) {
+          addRecordToLW(res, domain, QType::AAAA, "::1234");
+        }
+        return LWResult::Result::Success;
+      }
+
+      return LWResult::Result::Success;
+    }
+
+    return LWResult::Result::Timeout;
+  });
+
+  // We analyze the trace to see how many cases of a failed Step0 occurs. This is a bit dirty, but
+  // we have no other way of telling how the resolving took place, as the number of cache lookups is
+  // not recorded by the record cache. Also, we like to know if something in Syncres changed that
+  // influences the number of failing Step0 lookups.
+  auto counter = [](const string& str) {
+    const std::string key = "Step0 Not cached";
+    size_t occurences = 0;
+    auto pos = str.find(key);
+    while (pos != std::string::npos) {
+      occurences++;
+      pos = str.find(key, pos + 1);
+    }
+    return occurences;
+  };
+  vector<DNSRecord> ret;
+  int res = resolver->beginResolve(target1, QType(QType::AAAA), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(ret.size(), 4U);
+  BOOST_CHECK_EQUAL(count, 6U);
+  BOOST_CHECK_EQUAL(resolver->d_maxdepth, 3U);
+  auto trace = resolver->getTrace();
+  trace = resolver->getTrace();
+  BOOST_CHECK_EQUAL(counter(trace), 4U);
+
+  // And again to check cache, all Step0 cases should succeed
+  ret.clear();
+  res = resolver->beginResolve(target1, QType(QType::AAAA), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(ret.size(), 4U);
+  BOOST_CHECK_EQUAL(count, 6U);
+  BOOST_CHECK_EQUAL(resolver->d_maxdepth, 3U);
+  trace = resolver->getTrace();
+  BOOST_CHECK_EQUAL(counter(trace), 4U);
+
+  // And again to check a name that does not fully resolve, we expect Step0 failures to increase
+  g_recCache->doWipeCache(target4, false, QType::AAAA);
+  ret.clear();
+  res = resolver->beginResolve(target1, QType(QType::AAAA), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(ret.size(), 4U);
+  BOOST_CHECK_EQUAL(count, 7U);
+  BOOST_CHECK_EQUAL(resolver->d_maxdepth, 3U);
+  trace = resolver->getTrace();
+  // XXX This number feels pretty high (15 extra, same as before #14973, there seems to be room for more improvement).
+  BOOST_CHECK_EQUAL(counter(trace), 19U);
+}
+
 BOOST_AUTO_TEST_CASE(test_cname_length)
 {
   std::unique_ptr<SyncRes> sr;
