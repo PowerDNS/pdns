@@ -16,10 +16,10 @@ Other functions
   - `pdns.loglevels.Critical`
   - `pdns.loglevels.Debug`
   - `pdns.loglevels.Emergency`
+  - `pdns.loglevels.Error`
   - `pdns.loglevels.Info`
   - `pdns.loglevels.Notice`
   - `pdns.loglevels.Warning`
-  - `pdns.loglevels.Error`
 
 .. function:: pdnsrandom([upper_bound])
 

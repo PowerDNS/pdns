@@ -27,6 +27,7 @@ algoroll
 aliasmode
 allocs
 Altpeter
+andersbrownworth
 Anderton
 anewid
 anid
@@ -263,7 +264,6 @@ Darron
 dataformat
 datatracker
 Daugaard
-davidmillerskt
 Davids
 davidtmiller
 Dayneko
@@ -278,7 +278,6 @@ ddns
 ddos
 deactivatedomainkey
 debian
-deboynepollard
 Deduktiva
 defcontent
 defpol
@@ -383,7 +382,6 @@ dynbpf
 dyndns
 dynhandler
 dynmodules
-eachother
 easydns
 ebpf
 ebpfblocklist
@@ -626,6 +624,7 @@ janeczku
 Jatko
 Jaury
 Jauvin
+jdebp
 Jeftovic
 Jelte
 Jermar
@@ -781,7 +780,6 @@ mbed
 mbedtls
 MBOXFW
 mbytes
-mdo
 Meerwald
 Mekking
 melpa
@@ -926,7 +924,6 @@ nsspeeds
 NSTTL
 nsupdate
 nta
-ntlworld
 Nuitari
 NULs
 NUMA
@@ -975,7 +972,6 @@ ourserial
 outpacket
 outputbuffer
 outqueries
-oxpedia
 PACKAGEVERSION
 packetcache
 packethandler
@@ -1290,7 +1286,6 @@ Soroceanu
 sortlist
 sourcecode
 SOURCEDIR
-sourceforge
 sourcelink
 sourceware
 Spaans

@@ -269,10 +269,12 @@ AXFR zone transfer. The user-defined function ``axfrfilter`` within your
 script is invoked for each resource record read during the transfer, and
 the outcome of the function defines what PowerDNS does with the records.
 
-What you can accomplish using a Lua script: - Ensure consistent values
-on SOA - Change incoming SOA serial number to a YYYYMMDDnn format -
-Ensure consistent NS RRset - Timestamp the zone transfer with a TXT
-record
+What you can accomplish using a Lua script:
+
+- Ensure consistent values on SOA 
+- Change incoming SOA serial number to a YYYYMMDDnn format
+- Ensure consistent NS RRset
+- Timestamp the zone transfer with a TXT record
 
 This script can be enabled like this::
 
@@ -291,7 +293,7 @@ If your function decides to handle a resource record it must return a
 result code of 0 together with a Lua table containing one or more
 replacement records to be stored in the back-end database (if the table
 is empty, no record is added). If you want your record(s) to be appended
-after the matching record, return 1 and table of record(s). If, on the
+after the matching record, return 1 and a table of record(s). If, on the
 other hand, your function decides not to modify a record, it must return
 -1 and an empty table indicating that PowerDNS should handle the
 incoming record as normal.
@@ -302,7 +304,7 @@ Consider the following simple example:
 
         function axfrfilter(remoteip, zone, record)
 
-           -- Replace each HINFO records with this TXT
+           -- Replace each HINFO record with this TXT
            if record:qtype() == pdns.HINFO then
               resp = {}
               resp[1] = {
