@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 """Load settings definitions and generates the corresponding documentation."""
 import os
-import re
 import sys
 import tempfile
 import yaml
@@ -72,86 +71,112 @@ def rust_type_to_human_str(rust_type):
     return rust_type
 
 def print_structure(parameters):
+    output = ''
     for parameter in parameters:
-        print(f'{parameter["name"]}')
-        print('^'*len(parameter["name"]))
-        print('')
+        output += f'{parameter["name"]}\n'
+        output += '^'*len(parameter["name"]) + '\n'
+        output += '\n'
 
         ptype = parameter['type']
         if is_type_native(ptype):
             ptype = rust_type_to_human_str(ptype)
-            print(f'- {ptype}')
+            output += f'- {ptype}\n'
         else:
-            print(f'- :ref:`{ptype} <setting-yaml-{ptype}>`')
+            if is_vector_of(ptype):
+                ptype = get_vector_sub_type(ptype)
+                human_type = rust_type_to_human_str(ptype)
+                output += f'- Sequence of :ref:`{human_type} <setting-yaml-{ptype}>`\n'
+            else:
+                human_type = rust_type_to_human_str(ptype)
+                output += f'- :ref:`{human_type} <setting-yaml-{ptype}>`\n'
 
         if 'default' in parameter:
             default = parameter['default']
             if default is True:
-                print('')
+                output += '\n'
                 continue
             if default == '':
-                print(f'- Default: ""')
+                output += '- Default: ""\n'
             else:
-                print(f'- Default: {default}')
+                output += f'- Default: {default}\n'
         else:
-            print('- Required')
-        print('')
+            output += '- Required\n'
+        output += '\n'
         if 'description' in parameters:
             description = parameters['description']
-            print(description)
-            print(' ')
+            output += description
+            output += '\n \n'
+
+    return output
 
 def process_section(section_name, entries, objects):
-    print(section_name)
-    print('=' * len(section_name))
-    print('')
+    output = ''
+    output += section_name + '\n'
+    output += '=' * len(section_name) + '\n'
+    output += '\n'
 
     if not 'parameters' in entries:
         if not 'type' in entries:
             for sub_section, sub_entries in sorted(entries.items()):
-                process_section(sub_section, sub_entries, objects)
+                output += process_section(sub_section, sub_entries, objects)
         elif is_vector_of(entries['type']):
             sub_type = get_vector_sub_type(entries['type'])
             if is_type_native(sub_type):
-                print(f'- Sequence of {sub_type} objects')
+                output += f'- Sequence of {sub_type} objects\n'
             else:
-                print(f'- Sequence of :ref:`{sub_type} <setting-yaml-{sub_type}>` objects')
-            print('')
+                output += f'- Sequence of :ref:`{sub_type} <setting-yaml-{sub_type}>` objects\n'
+            output += '\n'
 
     else:
         if 'type' in entries:
             if entries['type'] != 'list':
                 print(f'Section {section_name} has parameters and a type which is not list!', file=sys.stderr)
-                return
-            else:
-                print(f'- Sequence of objects containing:')
-                print('')
+                return ''
+
+            output += '- Sequence of objects containing:\n'
+            output += '\n'
 
         parameters = entries['parameters']
-        print_structure(parameters)
-    print('')
+        output += print_structure(parameters)
+    output += '\n'
 
     if 'description' in entries:
         description = entries['description']
-        print(description)
-        print(' ')
+        output += description + '\n'
+        output += ' \n'
+
+    return output
 
 def process_object(object_name, entries):
-    print(f'.. _setting-yaml-{object_name}:\n\n')
-    process_section(object_name, entries, {})
+    output = f'.. _setting-yaml-{object_name}:\n\n'
+    output += process_section(object_name, entries, {})
+    return output
+
+def get_temporary_file_for_generated_content(directory):
+    generated_fp = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8', dir=directory, delete=False)
+    return generated_fp
 
 def main():
     if len(sys.argv) != 2:
         print(f'Usage: {sys.argv[0]} <path/to/definitions/file>')
         sys.exit(1)
 
+    generated_fp = get_temporary_file_for_generated_content('../docs/')
+    output = '''.. raw:: latex
+
+    \\setcounter{secnumdepth}{-1}
+
+'''
+
     (sections, objects) = get_definitions_grouped_by_section(sys.argv[1])
     for section_name, entries in sorted(sections.items()):
-        process_section(section_name, entries, objects)
+        output += process_section(section_name, entries, objects)
 
-    print("@@@@ OBJECTS @@@@")
     for object_name, entries in sorted(objects.items()):
-        process_object(object_name, entries)
+        output += process_object(object_name, entries)
+
+    generated_fp.write(output)
+    os.rename(generated_fp.name, '../docs/reference/yaml.rst')
 
 if __name__ == '__main__':
     main()
