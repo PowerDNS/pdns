@@ -19,5 +19,5 @@ pdnsutil_wrapper show-zone .
 
 pdnsutil_wrapper list-all-zones | LC_ALL=C sort
 
-pdnsutil_wrapper add-record example.com..variant1 uniquename A 1.2.3.4
+pdnsutil_wrapper add-record example.com..variant1 uniquename.example.com A 1.2.3.4
 pdnsutil_wrapper backend-lookup $backend uniquename.example.com..variant1

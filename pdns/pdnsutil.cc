@@ -1758,11 +1758,10 @@ static int addOrReplaceRecord(bool isAdd, const vector<string>& cmds) {
   DNSResourceRecord rr;
   vector<DNSResourceRecord> newrrs;
   ZoneName zone(cmds.at(1));
-  DNSName name;
-  if (cmds.at(2) == "@")
-    name=zone.operator const DNSName&();
-  else
-    name = DNSName(cmds.at(2)) + zone.operator const DNSName&();
+  DNSName name = DNSName(cmds.at(2));
+  if (!name.isPartOf(zone)) {
+    throw PDNSException("Name \"" + name.toString() + "\" to add is not part of zone \"" + zone.toString() + "\".");
+  }
 
   UtilBackend B; //NOLINT(readability-identifier-length)
   DomainInfo di;
@@ -1933,11 +1932,10 @@ static int deleteRRSet(const std::string& zone_, const std::string& name_, const
     throw PDNSException("Operation on a secondary zone is not allowed unless --force");
   }
 
-  DNSName name;
-  if(name_=="@")
-    name=zone.operator const DNSName&();
-  else
-    name=DNSName(name_)+zone.operator const DNSName&();
+  DNSName name = DNSName(name_);
+  if (!name.isPartOf(zone)) {
+    throw PDNSException("Name \"" + name.toString() + "\" to remove is not part of zone \"" + zone.toString() + "\".");
+  }
 
   QType qt(QType::chartocode(type_.c_str()));
   di.backend->startTransaction(zone, UnknownDomainID);

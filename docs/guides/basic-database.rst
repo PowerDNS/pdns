@@ -67,10 +67,10 @@ Now, let's add a zone and some records::
     $ sudo -u pdns pdnsutil create-zone example.com ns1.example.com
     Creating empty zone 'example.com'
     Also adding one NS record
-    $ sudo -u pdns pdnsutil add-record example.com '' MX '25 mail.example.com'
+    $ sudo -u pdns pdnsutil add-record example.com example.com MX '25 mail.example.com'
     New rrset:
     example.com. 3005 IN MX 25 mail.example.com
-    $ sudo -u pdns pdnsutil add-record example.com. www A 192.0.2.1
+    $ sudo -u pdns pdnsutil add-record example.com www.example.com A 192.0.2.1
     New rrset:
     www.example.com. 3005 IN A 192.0.2.1
 
