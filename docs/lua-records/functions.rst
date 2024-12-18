@@ -65,6 +65,8 @@ Record creation functions
   - ``backupSelector``: used to pick the address(es) from all addresses if all addresses are down. Choices include 'pickclosest', 'random', 'hashed', 'all' (default 'random').
   - ``source``: Source address to check from
   - ``timeout``: Maximum time in seconds that you allow the check to take (default 2)
+  - ``interval``: Time interval between two checks, in seconds. Defaults to :ref:`setting-lua-health-checks-interval` if not specified.
+  - ``minimumFailures``: The number of unsuccessful checks in a row required to mark the address as down. Defaults to 1 if not specified, i.e. report as down on the first unsuccessful check.
 
 
 .. function:: ifurlup(url, addresses[, options])
@@ -86,9 +88,11 @@ Record creation functions
   - ``backupSelector``: used to pick the address from all addresses if all addresses are down. Choices include 'pickclosest', 'random', 'hashed', 'all' (default 'random').
   - ``source``: Source address to check from
   - ``timeout``: Maximum time in seconds that you allow the check to take (default 2)
+  - ``interval``: Time interval between two checks, in seconds. Defaults to :ref:`setting-lua-health-checks-interval` if not specified.
   - ``stringmatch``: check ``url`` for this string, only declare 'up' if found
   - ``useragent``: Set the HTTP "User-Agent" header in the requests. By default it is set to "PowerDNS Authoritative Server"
   - ``byteslimit``: Limit the maximum download size to ``byteslimit`` bytes (default 0 meaning no limit).
+  - ``minimumFailures``: The number of unsuccessful checks in a row required to mark the address as down. Defaults to 1 if not specified, i.e. report as down on the first unsuccessful check.
 
   An example of a list of address sets:
 
