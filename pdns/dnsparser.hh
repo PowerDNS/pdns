@@ -293,6 +293,8 @@ public:
     d_locked.store(true);
   }
 
+  [[nodiscard]] virtual size_t sizeEstimate() const = 0;
+
 protected:
   typedef std::map<std::pair<uint16_t, uint16_t>, makerfunc_t* > typemap_t;
   typedef std::map<std::pair<uint16_t, uint16_t>, zmakerfunc_t* > zmakermap_t;
@@ -433,6 +435,11 @@ public:
 
     return *d_content == *rhs.d_content;
   }
+
+  [[nodiscard]] size_t sizeEstimate() const
+  {
+    return sizeof(*this) + d_name.sizeEstimate() + (d_content ? d_content->sizeEstimate() : 0U);
+  }
 };
 
 struct DNSZoneRecord
@@ -467,6 +474,11 @@ public:
   const vector<uint8_t>& getRawContent() const
   {
     return d_record;
+  }
+
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_dr.sizeEstimate() + d_record.size();
   }
 
 private:

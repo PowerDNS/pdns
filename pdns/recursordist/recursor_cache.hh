@@ -156,6 +156,10 @@ private:
 
     bool shouldReplace(time_t now, bool auth, vState state, bool refresh);
 
+    [[nodiscard]] size_t sizeEstimate() const;
+    [[nodiscard]] size_t authRecsSizeEstimate() const;
+    [[nodiscard]] size_t sigRecsSizeEstimate() const;
+
     records_t d_records;
     SigRecs d_signatures;
     AuthRecs d_authorityRecs;

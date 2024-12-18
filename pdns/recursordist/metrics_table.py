@@ -85,7 +85,7 @@
         'lambda': 'doGetCacheBytes',
         'ptype': 'gauge',
         'desc': 'Size of the cache in bytes',
-        'longdesc': '''Disabled by default, see :ref:`setting-stats-rec-control-disabled-list`. This metric is currently broken, it always is 0.''',
+        'longdesc': '''Since version 5.3.0 this metric computes a rough estimate of the number of bytes allocated by the record cache. Older versions return a number that cannot be relied upon. Disabled by default, as computing this number is CPU intensive, see :ref:`setting-stats-rec-control-disabled-list`.''',
         'snmp': 7,
     },
     {

@@ -716,4 +716,27 @@ BOOST_AUTO_TEST_CASE(test_nsec3_records_types) {
   }
 }
 
+BOOST_AUTO_TEST_CASE(test_size_estimate)
+{
+  auto anA = DNSRecordContent::make(QType::A, QClass::IN, "1.2.3.4");
+  auto anAAAA = DNSRecordContent::make(QType::AAAA, QClass::IN, "1234:4578:89ab::");
+  auto aTXT = DNSRecordContent::make(QType::TXT, QClass::IN, "\"a somewhat long text\"");
+  BOOST_CHECK(anAAAA->sizeEstimate() < aTXT->sizeEstimate());
+
+  auto rrsigA = DNSRecordContent::make(QType::RRSIG, QClass::IN, "SOA 8 3 300 20130523000000 20130509000000 54216 rec.test. ecWKD/OsdAiXpbM/sgPT82KVD/WiQnnqcxoJgiH3ixHa+LOAcYU7FG7V4BRRJxLriY1e0rB2gAs3kCel9D4bzfK6wAqG4Di/eHUgHptRlaR2ycELJ4t1pjzrnuGiIzA1wM2izRmeE+Xoy1367Qu0pOz5DLzTfQITWFsB2iUzN4Y=");
+  auto rrsigB = DNSRecordContent::make(QType::RRSIG, QClass::IN, "SOA 8 3 300 20130523000000 20130509000000 54216 rec.test. fcWKD/OsdAiXpbM/sgPT82KVD/WiQnnqcxoJgiH3ixHa+LOAcYU7FG7V4BRRJxLriY1e0rB2gAs3kCel9D4bzfK6wAqG4Di/eHUgHptRlaR2ycELJ4t1pjzrnuGiIzA1wM2izRmeE+Xoy1367Qu0pOz5DLzTfQITWFsB2iUzN4YAAAA=");
+  BOOST_CHECK(rrsigA->sizeEstimate() < rrsigB->sizeEstimate());
+  BOOST_CHECK(rrsigA->sizeEstimate() > aTXT->sizeEstimate());
+
+  auto nsecA = DNSRecordContent::make(QType::NSEC, QClass::IN, "host.example.com. A MX RRSIG NSEC TYPE1234");
+  auto nsecB = DNSRecordContent::make(QType::NSEC, QClass::IN, "host1.example.com. A MX RRSIG NSEC TYPE1234");
+  BOOST_CHECK(nsecA->sizeEstimate() < nsecB->sizeEstimate());
+  BOOST_CHECK(nsecA->sizeEstimate() > aTXT->sizeEstimate());
+
+  auto nsec3A = DNSRecordContent::make(QType::NSEC3, QClass::IN, "1 1 12 aabbccdd 2vptu5timamqttgl4luu9kg21e0aor3s a mx rrsig nsec3 type1234 type65535");
+  auto nsec3B = DNSRecordContent::make(QType::NSEC3, QClass::IN, "1 1 0 - 2vptu5timamqttgl4luu9kg21e0aor3s");
+  BOOST_CHECK(nsec3A->sizeEstimate() > nsec3B->sizeEstimate());
+  BOOST_CHECK(nsec3B->sizeEstimate() > aTXT->sizeEstimate());
+}
+
 BOOST_AUTO_TEST_SUITE_END()
