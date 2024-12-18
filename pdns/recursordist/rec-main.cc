@@ -279,10 +279,9 @@ int RecThreadInfo::runThreads(Logr::log_t log)
     RecThreadInfo::setThreadId(currentThreadId);
     recursorThread();
 
-    for (unsigned int thread = 0; thread < RecThreadInfo::numRecursorThreads(); thread++) {
-      if (thread == 1) {
-        continue;
-      }
+    // Skip handler thread (it might be still handling the quite-nicely) and 1, which is actually the main thread in this case
+    // handler thread (0) will be handled in main().
+    for (unsigned int thread = 2; thread < RecThreadInfo::numRecursorThreads(); thread++) {
       auto& tInfo = RecThreadInfo::info(thread);
       tInfo.thread.join();
       if (tInfo.exitCode != 0) {
@@ -351,6 +350,9 @@ int RecThreadInfo::runThreads(Logr::log_t log)
     info.start(currentThreadId, "web+stat", cpusMap, log);
 
     for (auto& tInfo : RecThreadInfo::infos()) {
+      if (tInfo.getName() == "web+stat") { // XXX testing for isHandler() does not work as expected!
+        continue;
+      }
       tInfo.thread.join();
       if (tInfo.exitCode != 0) {
         ret = tInfo.exitCode;
@@ -2446,8 +2448,13 @@ static void handleRCC(int fileDesc, FDMultiplexer::funcparam_t& /* var */)
     RecursorControlParser::func_t* command = nullptr;
     auto answer = RecursorControlParser::getAnswer(clientfd, msg, &command);
 
-    g_rcc.send(clientfd, answer);
+    if (command != doExitNicely) {
+      g_rcc.send(clientfd, answer);
+    }
     command();
+    if (command == doExitNicely) {
+      g_rcc.send(clientfd, answer);
+    }
   }
   catch (const std::exception& e) {
     SLOG(g_log << Logger::Error << "Error dealing with control socket request: " << e.what() << endl,
@@ -3149,6 +3156,8 @@ static void setupLogging(const string& logname)
   }
 }
 
+DoneRunning g_doneRunning;
+
 int main(int argc, char** argv)
 {
   g_argc = argc;
@@ -3318,6 +3327,12 @@ int main(int argc, char** argv)
     }
 
     ret = serviceMain(startupLog);
+    {
+      std::lock_guard lock(g_doneRunning.mutex);
+      g_doneRunning.done = true;
+      g_doneRunning.condVar.notify_one();
+    }
+    RecThreadInfo::joinThread0();
   }
   catch (const PDNSException& ae) {
     SLOG(g_log << Logger::Error << "Exception: " << ae.reason << endl,
