@@ -325,6 +325,58 @@ class TestGnuTLS(DNSDistTest, TLSTests):
     def testProvider(self):
         self.assertEqual(self.getTLSProvider(), "gnutls")
 
+class TestOpenSSLYaml(DNSDistTest, TLSTests):
+
+    _extraStartupSleep = 1
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+    _serverKey = 'server-tls.key'
+    _serverCert = 'server-tls.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _tlsServerPort = pickAvailablePort()
+    _config_template = ""
+    _config_params = []
+    _yaml_config_template = """---
+console:
+  key: "%s"
+  listen-address: "127.0.0.1:%d"
+  acl:
+    - 127.0.0.0/8
+backends:
+  - address: "127.0.0.1:%d"
+    protocol: "Do53"
+binds:
+  - listen-address: "127.0.0.1:%d"
+    reuseport: true
+    protocol: "DoT"
+    tls:
+      certificates:
+        - certificate: "%s"
+          key: "%s"
+      provider: "openssl"
+query-rules:
+  - name: "SNI"
+    selector:
+      type: "SNI"
+      server-name: "powerdns.com"
+    action:
+      type: "Spoof"
+      ips:
+        - "1.2.3.4"
+    """
+    _yaml_config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey']
+
+    @classmethod
+    def setUpClass(cls):
+        cls.generateNewCertificateAndKey('server-tls')
+        cls.startResponders()
+        cls.startDNSDist()
+        cls.setUpSockets()
+
+    def testProvider(self):
+        self.assertEqual(self.getTLSProvider(), "openssl")
+
 class TestDOTWithCache(DNSDistTest):
     _serverKey = 'server.key'
     _serverCert = 'server.chain'
