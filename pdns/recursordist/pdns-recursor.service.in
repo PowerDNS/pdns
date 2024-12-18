@@ -7,6 +7,7 @@ After=network-online.target time-sync.target
 
 [Service]
 ExecStart=@sbindir@/pdns_recursor --daemon=no --write-pid=no --disable-syslog --log-timestamp=no
+ExecStop=@bindir@/rec_control --socket-dir=%t/pdns-recursor quit-nicely
 User=@service_user@
 Group=@service_group@
 Type=notify
