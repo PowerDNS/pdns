@@ -38,7 +38,7 @@ class FakeHTTPServer(BaseHTTPRequestHandler):
     def do_HEAD(self):
         self._set_headers()
 
-class TestLuaRecords(AuthTest):
+class BaseLuaTest(AuthTest):
     _config_template = """
 geoip-database-files=../modules/geoipbackend/regression-tests/GeoLiteCity.mmdb
 edns-subnet-processing=yes
@@ -101,6 +101,16 @@ usa          IN    LUA    A   ( ";include('config')                         "
 usa-ext      IN    LUA    A   ( ";include('config')                         "
                                 "return ifurlup('http://www.lua.org:8080/', "
                                 "{{EUEips, USAips}}, settings)              ")
+
+usa-unreachable IN LUA    A   ( ";settings={{stringmatch='Programming in Lua', minimumFailures=2}} "
+                                "USAips={{'{prefix}.103', '192.168.42.105'}}"
+                                "return ifurlup('http://www.lua.org:8080/', "
+                                "USAips, settings)                          ")
+
+usa-slowcheck IN   LUA    A   ( ";settings={{stringmatch='Programming in Lua', interval=8}} "
+                                "USAips={{'{prefix}.103', '192.168.42.105'}}"
+                                "return ifurlup('http://www.lua.org:8080/', "
+                                "USAips, settings)                          ")
 
 mix.ifurlup  IN    LUA    A   ("ifurlup('http://www.other.org:8080/ping.json', "
                                "{{ '192.168.42.101', '{prefix}.101' }},        "
@@ -189,7 +199,7 @@ whitespace       IN    LUA    TXT "'foo" "bar'"
     @classmethod
     def setUpClass(cls):
 
-        super(TestLuaRecords, cls).setUpClass()
+        super(BaseLuaTest, cls).setUpClass()
 
         cls._web_rrsets = [dns.rrset.from_text('web1.example.org.', 0, dns.rdataclass.IN, 'A',
                                                '{prefix}.101'.format(prefix=cls._PREFIX)),
@@ -198,6 +208,8 @@ whitespace       IN    LUA    TXT "'foo" "bar'"
                            dns.rrset.from_text('web3.example.org.', 0, dns.rdataclass.IN, 'A',
                                                '{prefix}.103'.format(prefix=cls._PREFIX))
         ]
+
+class TestLuaRecords(BaseLuaTest):
 
     def testPickRandom(self):
         """
@@ -440,7 +452,7 @@ whitespace       IN    LUA    TXT "'foo" "bar'"
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertAnyRRsetInAnswer(res, all_rrs)
 
-        # the timeout in the LUA health checker is 2 second, so we make sure to wait slightly longer here
+        # the timeout in the LUA health checker is 1 second, so we make sure to wait slightly longer here
         time.sleep(3)
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -468,7 +480,7 @@ whitespace       IN    LUA    TXT "'foo" "bar'"
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertAnyRRsetInAnswer(res, all_rrs)
 
-        # the timeout in the LUA health checker is 2 second, so we make sure to wait slightly longer here
+        # the timeout in the LUA health checker is 1 second, so we make sure to wait slightly longer here
         time.sleep(3)
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
@@ -1160,6 +1172,110 @@ lua-health-checks-interval=1
 
     def testWhitespace(self):
         return TestLuaRecords.testWhitespace(self, False)
+
+class TestLuaRecordsSlowTimeouts(BaseLuaTest):
+     # This configuration is similar to BaseLuaTest, but the health check
+     # interval is increased to 5 seconds.
+    _config_template = """
+geoip-database-files=../modules/geoipbackend/regression-tests/GeoLiteCity.mmdb
+edns-subnet-processing=yes
+launch=bind geoip
+any-to-tcp=no
+enable-lua-records
+lua-records-insert-whitespace=yes
+lua-health-checks-interval=5
+"""
+
+    def testIfurlupMinimumFailures(self):
+        """
+        Simple ifurlup() test with minimumFailures option set.
+        """
+        reachable = [
+            '{prefix}.103'.format(prefix=self._PREFIX)
+        ]
+        unreachable = ['192.168.42.105']
+        ips = reachable + unreachable
+        all_rrs = []
+        reachable_rrs = []
+        unreachable_rrs = []
+        for ip in ips:
+            rr = dns.rrset.from_text('usa-unreachable.example.org.', 0, dns.rdataclass.IN, 'A', ip)
+            all_rrs.append(rr)
+            if ip in reachable:
+                reachable_rrs.append(rr)
+            else:
+                unreachable_rrs.append(rr)
+
+        query = dns.message.make_query('usa-unreachable.example.org', 'A')
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertAnyRRsetInAnswer(res, all_rrs)
+
+        # The above request being sent at time T, the following events occur:
+        # T+00: results computed using backupSelector as no data available yet
+        # T+00: checker thread starts
+        # T+02: 192.168.42.105 found down, first time, still kept up
+        # T+05: checker thread wakes up, decides to skip 192.168.42.105 check,
+        #       as its last update time was T+02, hence no check until T+07
+        # T+10: checker thread wakes up
+        # T+12: 192.168.42.105 found down, second time, finally marked down
+
+        # Due to minimumFailures set, there should be no error yet.
+        time.sleep(5)
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertAnyRRsetInAnswer(res, all_rrs)
+
+        # Wait for another check. At this point the checker thread should have
+        # reached the minimumFailures threshold and mark the unreachable IP
+        # as such.
+        time.sleep(8)
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertAnyRRsetInAnswer(res, reachable_rrs)
+        self.assertNoneRRsetInAnswer(res, unreachable_rrs)
+
+    def testIfurlupInterval(self):
+        """
+        Simple ifurlup() test with interval option set.
+        """
+        reachable = [
+            '{prefix}.103'.format(prefix=self._PREFIX)
+        ]
+        unreachable = ['192.168.42.105']
+        ips = reachable + unreachable
+        all_rrs = []
+        reachable_rrs = []
+        unreachable_rrs = []
+        for ip in ips:
+            rr = dns.rrset.from_text('usa-slowcheck.example.org.', 0, dns.rdataclass.IN, 'A', ip)
+            all_rrs.append(rr)
+            if ip in reachable:
+                reachable_rrs.append(rr)
+            else:
+                unreachable_rrs.append(rr)
+
+        query = dns.message.make_query('usa-slowcheck.example.org', 'A')
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertAnyRRsetInAnswer(res, all_rrs)
+
+        # the timeout in the LUA health checker is 5 second, but usa-slowcheck
+        # uses 8 seconds, which forces the thread to run every second (gcd
+        # of 5 and 8).
+        time.sleep(6)
+
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        # due to minimumFailures set, there should be no error yet
+        self.assertAnyRRsetInAnswer(res, all_rrs)
+
+        # At this point the check should have fired.
+        time.sleep(3)
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertAnyRRsetInAnswer(res, reachable_rrs)
+        self.assertNoneRRsetInAnswer(res, unreachable_rrs)
 
 if __name__ == '__main__':
     unittest.main()
