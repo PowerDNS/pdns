@@ -29,8 +29,8 @@
 
    ponder netmask tree from file for huge number of netmasks
 
-   unify ifurlup/ifportup
-      add attribute for certificate check
+   add attribute for certificate check in genericIfUp
+
    add list of current monitors
       expire them too?
 
@@ -547,7 +547,7 @@ static bool getAuth(const DNSName& name, uint16_t qtype, SOAData* soaData)
   }
 }
 
-static std::string getOptionValue(const boost::optional<std::unordered_map<string, string>>& options, const std::string &name, const std::string &defaultValue)
+static std::string getOptionValue(const boost::optional<opts_t>& options, const std::string &name, const std::string &defaultValue)
 {
   string selector=defaultValue;
   if(options) {
@@ -878,7 +878,7 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
     });
 
 
-  lua.writeFunction("createReverse", [](string format, boost::optional<std::unordered_map<string,string>> e){
+  lua.writeFunction("createReverse", [](string format, boost::optional<opts_t> e){
       try {
         auto labels = s_lua_record_ctx->qname.getRawLabels();
         if(labels.size()<4)
@@ -1010,7 +1010,7 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
 
       return std::string("::");
     });
-  lua.writeFunction("createReverse6", [](string format, boost::optional<std::unordered_map<string,string>> e){
+  lua.writeFunction("createReverse6", [](string format, boost::optional<opts_t> e){
       vector<ComboAddress> candidates;
 
       try {
@@ -1095,7 +1095,7 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
    *
    * @example ifportup(443, { '1.2.3.4', '5.4.3.2' })"
    */
-  lua.writeFunction("ifportup", [](int port, const boost::variant<iplist_t, ipunitlist_t>& ips, const boost::optional<std::unordered_map<string,string>> options) {
+  lua.writeFunction("ifportup", [](int port, const boost::variant<iplist_t, ipunitlist_t>& ips, const boost::optional<opts_t> options) {
       if (port < 0) {
         port = 0;
       }
