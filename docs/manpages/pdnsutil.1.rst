@@ -245,6 +245,7 @@ add-record *ZONE* *NAME* *TYPE* [*TTL*] *CONTENT*
 
     Add one or more records of *NAME* and *TYPE* to *ZONE* with *CONTENT*
     and optional *TTL*. If *TTL* is not set, default will be used.
+    Use @ as *NAME* to add a record to the apex.
 
 add-autoprimary *IP* *NAMESERVER* [*ACCOUNT*]
 
