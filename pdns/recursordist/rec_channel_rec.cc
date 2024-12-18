@@ -1378,7 +1378,7 @@ void doExitGeneric(bool nicely)
 #if defined(__SANITIZE_THREAD__)
   _exit(0); // regression test check for exit 0
 #endif
-  g_log << Logger::Error << "Exiting on user request" << endl;
+  g_slog->withName("runtime")->info(Logr::Notice, "Exiting on user request");
 
   if (!g_pidfname.empty()) {
     unlink(g_pidfname.c_str()); // we can at least try..
