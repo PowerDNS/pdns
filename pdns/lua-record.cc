@@ -1180,9 +1180,9 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
   /*
    * Based on the hash of `bestwho`, returns an IP address from the list
    * supplied, weighted according to the results of isUp calls.
-   * @example selfweighted("{ "192.0.2.20", "203.0.113.4", "203.0.113.2" })
+   * @example pickselfweighted("{ "192.0.2.20", "203.0.113.4", "203.0.113.2" })
    */
-  lua.writeFunction("selfweighted", [](const iplist_t& ips,
+  lua.writeFunction("pickselfweighted", [](const iplist_t& ips,
                                           boost::optional<opts_t> options) {
       vector< pair<int, ComboAddress> > items;
       opts_t opts;
