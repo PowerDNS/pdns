@@ -1016,9 +1016,7 @@ uint32_t getDNSPacketMinTTL(const char* packet, size_t length, bool* seenAuthSOA
       }
 
       const uint32_t ttl = dpm.get32BitInt();
-      if (result > ttl) {
-        result = ttl;
-      }
+      result = std::min(result, ttl);
 
       dpm.skipRData();
     }
