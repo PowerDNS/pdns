@@ -1,12 +1,15 @@
 ---
 - name: "allow"
+  description: "Let these packets go through."
 - name: "ClearRecordTypes"
+  description: "Removes given type(s) records from the response. Beware you can accidentally turn the answer into a NODATA response without a SOA record in the additional section in which case you may want to use NegativeAndSOAAction() to generate an answer, see example below. Subsequent rules are processed after this action."
   skip-cpp: true
   skip-rust: true
   parameters:
     - name: "types"
       type: "Vec<u16>"
       default: true
+      description: "List of types to remove"
 - name: "delay"
   parameters:
     - name: "msec"

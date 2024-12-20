@@ -1,4 +1,5 @@
 ---
+- name: "all"
 - name: "And"
   skip-cpp: true
   skip-rust: true
@@ -7,7 +8,6 @@
     - name: "selectors"
       type: "Vec<Selector>"
       default: true
-- name: "all"
 - name: "ByName"
   skip-cpp: true
   skip-rust: true

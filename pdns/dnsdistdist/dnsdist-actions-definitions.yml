@@ -1,5 +1,6 @@
 ---
 - name: "allow"
+  description: "Let these packets go through."
 - name: "delay"
   parameters:
     - name: "msec"

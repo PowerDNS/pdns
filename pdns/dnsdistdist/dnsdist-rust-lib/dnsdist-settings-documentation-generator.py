@@ -40,39 +40,18 @@ def get_rust_object_name(name):
 
     return object_name
 
-def get_definitions_grouped_by_section(def_file):
-    sections = {}
+def get_objects(def_file):
     objects = {}
-    global_objects = {}
     definitions = get_definitions_from_file(def_file)
     for definition_name, keys in definitions.items():
-        if not 'section' in keys:
-            object_name = get_rust_object_name(definition_name) + 'Configuration'
-            objects[object_name] = keys
-            continue
-        section_name = keys['section']
-        if 'type' in keys and keys['type'] == 'list':
-            object_name = get_rust_object_name(definition_name) + 'Configuration'
-            objects[object_name] = keys
-            if section_name == 'global':
-                global_objects[definition_name] = rust_type_to_human_str(object_name)
-            continue
-        if section_name == 'global':
-            if 'type' in keys and is_type_native(keys['type']):
-                sections[definition_name] = keys
-            print(definition_name)
-            global_objects[definition_name] = rust_type_to_human_str(keys['type'] if 'type' in keys else get_rust_object_name(definition_name) + 'Configuration')
-        else:
-            if not section_name in sections:
-                sections[section_name] = {}
-                global_objects[section_name] = rust_type_to_human_str(get_rust_object_name(section_name) + 'Configuration')
-            sections[section_name][definition_name] = keys
+        object_name = get_rust_object_name(definition_name) + 'Configuration'
+        objects[object_name] = keys
 
-    return (sections, objects, global_objects)
+    return objects
 
-def rust_type_to_human_str(rust_type):
+def rust_type_to_human_str(rust_type, entry_type, generate_ref=True):
     if is_vector_of(rust_type):
-        return 'Sequence of ' + rust_type_to_human_str(get_vector_sub_type(rust_type))
+        return 'Sequence of ' + rust_type_to_human_str(get_vector_sub_type(rust_type), entry_type, generate_ref)
     if rust_type in ['u8', 'u16', 'u32', 'u64']:
         return 'Unsigned integer'
     if rust_type == 'f64':
@@ -81,94 +60,44 @@ def rust_type_to_human_str(rust_type):
         return 'Boolean'
     if rust_type == 'String':
         return 'String'
-    return f':ref:`{rust_type} <setting-yaml-{rust_type}>`'
+    if generate_ref:
+        return f':ref:`{rust_type} <yaml-{entry_type}-{rust_type}>`'
+    return f'{rust_type}'
 
-def print_structure(parameters):
-    # YAML block first
-    output = '.. code-block:: yaml\n\n'
+def print_structure(parameters, entry_type):
+    output = ''
+    # list
     for parameter in parameters:
-        output += f'  {parameter["name"]}: '
+        output += f'- **{parameter["name"]}**: '
         ptype = parameter['type']
-        human_type = rust_type_to_human_str(ptype)
+        if 'rust-type' in parameter:
+            ptype = parameter['rust-type']
+        human_type = rust_type_to_human_str(ptype, entry_type)
         output += f'{human_type}'
 
         if 'default' in parameter:
             default = parameter['default']
-            if default is True:
-                output += '\n'
-                continue
-            if default == '':
-                output += ' ("")'
-            else:
-                output += f' ({default})'
-        else:
-            output += ' (Required)'
+            if default is not True:
+                if default == '':
+                    output += ' ``("")``'
+                else:
+                    output += f' ``({default})``'
+
+        if 'description' in parameter:
+            description = parameter['description']
+            output += ' - ' + description
+
         output += '\n'
 
-    output += '\n\n'
-
-    # then all parameters, one by one
-    for parameter in parameters:
-        ptype = parameter['type']
-        if not is_type_native(ptype):
-            continue
-        output += f'{parameter["name"]}\n'
-        output += '^'*len(parameter["name"]) + '\n'
-        output += '\n'
-
-        human_type = rust_type_to_human_str(ptype)
-        output += f'- {human_type}\n'
-
-        if 'default' in parameter:
-            default = parameter['default']
-            if default is True:
-                output += '\n'
-                continue
-            if default == '':
-                output += '- Default: ""\n'
-            else:
-                output += f'- Default: {default}\n'
-        else:
-            output += '- Required\n'
-        output += '\n'
-        if 'description' in parameters:
-            description = parameters['description']
-            output += description
-            output += '\n \n'
+    output += '\n'
 
     return output
 
-def get_section_type(entries):
-    pass
+def process_object(object_name, entries, entry_type, is_setting_struct=False):
+    output = f'.. _yaml-{entry_type}-{object_name}:\n\n'
 
-def process_section(section_name, entries, prefix=''):
-    output = ''
-
-    if not 'parameters' in entries and not 'type' in entries:
-        print(f'{section_name} has NEITHER type nor parameters')
-        for sub_section, sub_entries in sorted(entries.items()):
-            output += process_section(sub_section, sub_entries, prefix=section_name)
-        return output
-
-    if prefix:
-        output += prefix + '.'
-    output += f'{section_name}\n'
-    output += '-' * (len(prefix) + (1 if len(prefix) > 0 else 0) + len(section_name)) + '\n'
-    output += '\n'
-
-    if not 'parameters' in entries:
-        output += rust_type_to_human_str(entries['type']) + '\n'
-    else:
-        if 'type' in entries:
-            if entries['type'] != 'list':
-                print(f'Section {section_name} has parameters and a type which is not list!', file=sys.stderr)
-                return ''
-
-            output += 'Sequence of objects containing:\n'
-            output += '\n'
-
-        parameters = entries['parameters']
-        output += print_structure(parameters)
+    output += f'{object_name}\n'
+    output += '-' * len(object_name) + '\n'
     output += '\n'
 
     if 'description' in entries:
@@ -176,11 +105,13 @@ def process_section(section_name, entries, prefix=''):
         output += description + '\n'
         output += ' \n'
 
-    return output
+    if 'parameters' in entries:
+        if not is_setting_struct:
+            output += "Parameters:\n\n"
+        parameters = entries['parameters']
+        output += print_structure(parameters, entry_type)
+        output += '\n'
 
-def process_object(object_name, entries):
-    output = f'.. _setting-yaml-{object_name}:\n\n'
-    output += process_section(object_name, entries)
     return output
 
 def get_temporary_file_for_generated_content(directory):
@@ -205,32 +136,59 @@ A YAML configuration file contains several sections, that are described below.
 .. code-block:: yaml\n
 '''
 
-    (sections, objects, global_objects) = get_definitions_grouped_by_section(sys.argv[1])
-    for field_name, human_str in sorted(global_objects.items()):
-        output += f'  {field_name}: {human_str}\n'
+    objects = get_objects('dnsdist-settings-definitions.yml')
+    for object_name, entries in sorted(objects.items()):
+        if object_name == 'GlobalConfiguration':
+            output += process_object(object_name, entries, 'settings', True)
+            break
 
     output += '\n'
 
-    for section_name, entries in sorted(sections.items()):
-        output += process_section(section_name, entries)
-
     for object_name, entries in sorted(objects.items()):
-        output += process_object(object_name, entries)
+        if object_name != 'GlobalConfiguration':
+            output += process_object(object_name, entries, 'settings', True)
+
+    return output
+
+def process_selectors_or_actions(def_file, entry_type):
+    title = f'YAML {entry_type} reference'
+    output = f'''.. raw:: latex
+
+    \\setcounter{{secnumdepth}}{{-1}}
+
+.. _yaml-settings-{entry_type}:
+
+{title}
+'''
+    output += len(title)*'=' + '\n\n'
+    entries = get_definitions_from_file(def_file)
+
+    suffix = get_rust_object_name(entry_type)
+    for entry in entries:
+        output += process_object(get_rust_object_name(entry['name'] + suffix), entry, 'settings')
 
     return output
 
 def main():
-    if len(sys.argv) != 2:
-        print(f'Usage: {sys.argv[0]} <path/to/definitions/file>')
-        sys.exit(1)
+    generated_fp = get_temporary_file_for_generated_content('../docs/')
+    output = process_settings()
+    generated_fp.write(output)
+    os.rename(generated_fp.name, '../docs/reference/yaml-settings.rst')
 
     generated_fp = get_temporary_file_for_generated_content('../docs/')
-
-    output = process_settings()
-#    output += process_selectors()
-
+    output = process_selectors_or_actions('../dnsdist-actions-definitions.yml', 'action')
     generated_fp.write(output)
-    os.rename(generated_fp.name, '../docs/reference/yaml.rst')
+    os.rename(generated_fp.name, '../docs/reference/yaml-actions.rst')
+
+    generated_fp = get_temporary_file_for_generated_content('../docs/')
+    output = process_selectors_or_actions('../dnsdist-response-actions-definitions.yml', 'responseaction')
+    generated_fp.write(output)
+    os.rename(generated_fp.name, '../docs/reference/yaml-response-actions.rst')
+
+    generated_fp = get_temporary_file_for_generated_content('../docs/')
+    output = process_selectors_or_actions('../dnsdist-selectors-definitions.yml', 'selector')
+    generated_fp.write(output)
+    os.rename(generated_fp.name, '../docs/reference/yaml-selectors.rst')
 
 if __name__ == '__main__':
     main()
