@@ -155,7 +155,7 @@ static TLSConfig getTLSConfigFromRustIncomingTLS(const dnsdist::rust::settings::
   return out;
 }
 
-static bool validateTLSConfiguration(const dnsdist::rust::settings::BindsConfiguration& bind, const TLSConfig& tlsConfig)
+static bool validateTLSConfiguration(const dnsdist::rust::settings::BindConfiguration& bind, const TLSConfig& tlsConfig)
 {
   if (!bind.tls.ignore_configuration_errors) {
     return true;
@@ -175,7 +175,7 @@ static bool validateTLSConfiguration(const dnsdist::rust::settings::BindsConfigu
   return true;
 }
 
-static bool handleTLSConfiguration(const dnsdist::rust::settings::BindsConfiguration& bind, ClientState& state)
+static bool handleTLSConfiguration(const dnsdist::rust::settings::BindConfiguration& bind, ClientState& state)
 {
   auto tlsConfig = getTLSConfigFromRustIncomingTLS(bind.tls);
   if (!validateTLSConfiguration(bind, tlsConfig)) {
@@ -307,7 +307,7 @@ static bool getOptionalLuaFunction(T& destination, const ::rust::string& functio
   return true;
 }
 
-static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dnsdist::rust::settings::BackendsConfiguration& config, bool configCheck)
+static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dnsdist::rust::settings::BackendConfiguration& config, bool configCheck)
 {
   DownstreamState::Config backendConfig;
   std::shared_ptr<TLSCtx> tlsCtx;
@@ -1239,7 +1239,7 @@ std::shared_ptr<DNSResponseActionWrapper> getRemoteLogResponseAction(const Remot
 #endif
 }
 
-void registerProtobufLogger(const ProtobufLoggersConfiguration& config)
+void registerProtobufLogger(const ProtobufLoggerConfiguration& config)
 {
 #if defined(DISABLE_PROTOBUF)
   throw std::runtime_error("Unable to create protobuf logger: protobuf support is disabled");
@@ -1254,7 +1254,7 @@ void registerProtobufLogger(const ProtobufLoggersConfiguration& config)
 #endif
 }
 
-void registerDnstapLogger(const DnstapLoggersConfiguration& config)
+void registerDnstapLogger(const DnstapLoggerConfiguration& config)
 {
 #if defined(DISABLE_PROTOBUF) || !defined(HAVE_FSTRM)
   throw std::runtime_error("Unable to create dnstap logger: dnstap support is disabled");

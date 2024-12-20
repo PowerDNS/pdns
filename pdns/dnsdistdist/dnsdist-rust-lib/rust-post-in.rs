@@ -13,15 +13,15 @@ fn get_selectors_from_serde(
 }
 
 fn get_query_rules_from_serde(
-    rules_from_serde: &Vec<QueryRulesConfigurationSerde>,
-) -> Vec<dnsdistsettings::QueryRulesConfiguration> {
-    let mut results: Vec<dnsdistsettings::QueryRulesConfiguration> = Vec::new();
+    rules_from_serde: &Vec<QueryRuleConfigurationSerde>,
+) -> Vec<dnsdistsettings::QueryRuleConfiguration> {
+    let mut results: Vec<dnsdistsettings::QueryRuleConfiguration> = Vec::new();
 
     for rule in rules_from_serde {
         let selector = get_one_selector_from_serde(&rule.selector);
         let action = get_one_action_from_serde(&rule.action);
         if selector.is_some() && action.is_some() {
-            results.push(dnsdistsettings::QueryRulesConfiguration {
+            results.push(dnsdistsettings::QueryRuleConfiguration {
               name: rule.name.clone(),
               uuid: rule.uuid.clone(),
               selector: selector.unwrap(),
@@ -33,15 +33,15 @@ fn get_query_rules_from_serde(
 }
 
 fn get_response_rules_from_serde(
-    rules_from_serde: &Vec<ResponseRulesConfigurationSerde>,
-) -> Vec<dnsdistsettings::ResponseRulesConfiguration> {
-    let mut results: Vec<dnsdistsettings::ResponseRulesConfiguration> = Vec::new();
+    rules_from_serde: &Vec<ResponseRuleConfigurationSerde>,
+) -> Vec<dnsdistsettings::ResponseRuleConfiguration> {
+    let mut results: Vec<dnsdistsettings::ResponseRuleConfiguration> = Vec::new();
 
     for rule in rules_from_serde {
         let selector = get_one_selector_from_serde(&rule.selector);
         let action = get_one_response_action_from_serde(&rule.action);
         if selector.is_some() && action.is_some() {
-            results.push(dnsdistsettings::ResponseRulesConfiguration {
+            results.push(dnsdistsettings::ResponseRuleConfiguration {
               name: rule.name.clone(),
               uuid: rule.uuid.clone(),
               selector: selector.unwrap(),

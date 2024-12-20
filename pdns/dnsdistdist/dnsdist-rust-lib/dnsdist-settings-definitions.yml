@@ -1,7 +1,114 @@
 ---
+global:
+  skip-serde: true
+  parameters:
+    - name: "acl"
+      type: "Vec<String>"
+      default: "127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fc00::/7, fe80::/10"
+      description: "CIDR netmasks of the clients allowed to send DNS queries"
+    - name: "backends"
+      type: "Vec<BackendConfiguration>"
+      default: true
+    - name: "binds"
+      type: "Vec<BindConfiguration>"
+      default: true
+    - name: "cache-hit-response-rules"
+      type: "Vec<ResponseRuleConfiguration>"
+      default: true
+      skip-serde: true
+    - name: "cache-inserted-response-rules"
+      type: "Vec<ResponseRuleConfiguration>"
+      default: true
+      skip-serde: true
+    - name: "cache-miss-rules"
+      type: "Vec<QueryRuleConfiguration>"
+      default: true
+      skip-serde: true
+    - name: "cache-settings"
+      type: "CacheSettingsConfiguration"
+      default: true
+    - name: "console"
+      type: "ConsoleConfiguration"
+      default: true
+    - name: "dynamic-rules"
+      type: "Vec<DynamicRulesConfiguration>"
+      default: true
+    - name: "dynamic-rules-settings"
+      type: "DynamicRulesSettingsConfiguration"
+      default: true
+    - name: "edns-client-subnet"
+      type: "EdnsClientSubnetConfiguration"
+      default: true
+    - name: "general"
+      type: "GeneralConfiguration"
+      default: true
+    - name: "key-value-stores"
+      type: "KeyValueStoresConfiguration"
+      default: true
+    - name: "load-balancing-policies"
+      type: "LoadBalancingPoliciesConfiguration"
+      default: true
+    - name: "metrics"
+      type: "MetricsConfiguration"
+      default: true
+    - name: "packet-caches"
+      type: "Vec<PacketCacheConfiguration>"
+      default: true
+    - name: "pools"
+      type: "Vec<PoolConfiguration>"
+      default: true
+    - name: "proxy-protocol"
+      type: "ProxyProtocolConfiguration"
+      default: true
+    - name: "query-count"
+      type: "QueryCountConfiguration"
+      default: true
+    - name: "query-rules"
+      type: "Vec<QueryRuleConfiguration>"
+      default: true
+      skip-serde: true
+    - name: "remote-logging"
+      type: "RemoteLoggingConfiguration"
+      default: true
+    - name: "response-rules"
+      type: "Vec<ResponseRuleConfiguration>"
+      default: true
+      skip-serde: true
+    - name: "ring-buffers"
+      type: "RingBuffersConfiguration"
+      default: true
+    - name: "security-polling"
+      type: "SecurityPollingConfiguration"
+      default: true
+    - name: "selectors"
+      type: "Vec<Selector>"
+      default: true
+      skip-serde: true
+    - name: "self-answered-response-rules"
+      type: "Vec<ResponseRuleConfiguration>"
+      default: true
+      skip-serde: true
+    - name: "snmp"
+      type: "SnmpConfiguration"
+      default: true
+    - name: "tuning"
+      type: "TuningConfiguration"
+      default: true
+    - name: "webserver"
+      type: "WebserverConfiguration"
+      default: true
+    - name: "xfr-response-rules"
+      type: "Vec<ResponseRuleConfiguration>"
+      default: true
+      skip-serde: true
+
+metrics:
+  parameters:
+    - name: "carbon"
+      type: "Vec<CarbonConfiguration>"
+      default: true
+
 carbon:
-  section: "metrics"
-  type: "list"
   parameters:
     - name: "address"
       type: "String"
@@ -24,9 +131,16 @@ carbon:
       default: ""
       description: "An optional string specifying the instance name that should be used"
 
-protobuf-loggers:
-  section: "remote-logging"
-  type: "list"
+remote-logging:
+  parameters:
+    - name: "protobuf-loggers"
+      type: "Vec<ProtobufLoggerConfiguration>"
+      default: true
+    - name: "dnstap-loggers"
+      type: "Vec<DnstapLoggerConfiguration>"
+      default: true
+
+protobuf-logger:
   parameters:
     - name: "name"
       type: "String"
@@ -46,9 +160,7 @@ protobuf-loggers:
       default: 1
       description: "Time in seconds between reconnection attempts"
 
-dnstap-loggers:
-  section: "remote-logging"
-  type: "list"
+dnstap-logger:
   parameters:
     - name: "name"
       type: "String"
@@ -159,7 +271,6 @@ KVSLookupKeys:
       default: true
 
 key-value-stores:
-  section: "global"
   parameters:
     - name: "lmdb"
       type: "Vec<LMDBKVSConfiguration>"
@@ -172,7 +283,6 @@ key-value-stores:
       default: true
 
 webserver:
-  section: "global"
   parameters:
     - name: "listen-address"
       type: "String"
@@ -221,7 +331,6 @@ webserver:
       default: "false"
 
 console:
-  section: "global"
   parameters:
     - name: "listen-address"
       type: "String"
@@ -255,7 +364,6 @@ console:
       runtime-configurable: false
 
 edns-client-subnet:
-  section: "global"
   parameters:
     - name: "override-existing"
       lua-name: "setECSOverride"
@@ -280,7 +388,6 @@ edns-client-subnet:
       description: "When `useClientSubnet` in `newServer()` is set and dnsdist adds an EDNS Client Subnet Client option to the query, truncate the requestor's IPv6 address to `prefix` bits"
 
 dynamic-rules-settings:
-  section: "global"
   parameters:
     - name: "purge-interval"
       type: "u64"
@@ -341,8 +448,6 @@ dynamic-rule:
       default: "0.0"
 
 dynamic-rules:
-  section: "global"
-  type: list
   parameters:
     - name: "name"
       type: "String"
@@ -367,14 +472,7 @@ dynamic-rules:
     - name: "rules"
       type: "Vec<DynamicRuleConfiguration>"
 
-acl:
-  section: "global"
-  type: "Vec<String>"
-  default: "127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fc00::/7, fe80::/10"
-  description: "CIDR netmasks of the clients allowed to send DNS queries"
-
 ring-buffers:
-  section: "global"
   parameters:
     - name: "size"
       type: "u64"
@@ -628,9 +726,7 @@ incoming-tcp:
       type: "u32"
       default: 0
 
-binds:
-  section: "global"
-  type: list
+bind:
   parameters:
     - name: "listen-address"
       type: "String"
@@ -774,9 +870,7 @@ outgoing-auto-upgrade:
       type: "bool"
       default: "false"
 
-backends:
-  section: "global"
-  type: "list"
+backend:
   parameters:
     - name: "address"
       type: "String"
@@ -864,8 +958,23 @@ backends:
       type: "String"
       default: ""
 
-tcp:
-  section: "tuning"
+tuning:
+  parameters:
+    - name: "doh"
+      type: "DohTuningConfiguration"
+      default: true
+    - name: "tcp"
+      type: "TcpTuningConfiguration"
+      default: true
+    - name: "tls"
+      type: "TlsTuningConfiguration"
+      default: true
+    - name: "udp"
+      type: "UdpTuningConfiguration"
+      default: true
+
+tcp-tuning:
+  category: "tuning.tcp"
   parameters:
     - name: "worker-threads"
       type: "u32"
@@ -939,8 +1048,8 @@ tcp:
       lua-name: "setTCPFastOpenKey"
       runtime-configurable: false
 
-udp:
-  section: "tuning"
+udp-tuning:
+  category: "tuning.udp"
   parameters:
     - name: "messages-per-round"
       type: "u32"
@@ -985,8 +1094,8 @@ udp:
       internal-field-name: "d_randomizeIDsToBackend"
       runtime-configurable: false
 
-tls:
-  section: "tuning"
+tls-tuning:
+  category: "tuning.tls"
   parameters:
     - name: "outgoing-tickets-cache-cleanup-delay"
       type: "u16"
@@ -1007,8 +1116,8 @@ tls:
       internal-field-name: "d_tlsSessionCacheMaxSessionsPerBackend"
       runtime-configurable: true
 
-doh:
-  section: "tuning"
+doh-tuning:
+  category: "tuning.doh"
   parameters:
     - name: "outgoing-worker-threads"
       type: "u32"
@@ -1036,7 +1145,6 @@ doh:
       runtime-configurable: false
 
 cache-settings:
-  section: "global"
   parameters:
     - name: "stale-entries-ttl"
       type: "u32"
@@ -1058,7 +1166,6 @@ cache-settings:
       runtime-configurable: true
 
 security-polling:
-  section: "global"
   parameters:
     - name: "polling-interval"
       type: "u32"
@@ -1074,7 +1181,6 @@ security-polling:
       runtime-configurable: true
 
 general:
-  section: "global"
   parameters:
     - name: "edns-udp-payload-size-self-generated-answers"
       type: "u16"
@@ -1130,9 +1236,7 @@ general:
       lua-name: "addCapabilitiesToRetain"
       runtime-configurable: false
 
-packet-caches:
-  section: "global"
-  type: "list"
+packet-cache:
   parameters:
     - name: "name"
       type: "String"
@@ -1179,7 +1283,6 @@ packet-caches:
       default: true
 
 proxy-protocol:
-  section: "global"
   parameters:
     - name: "acl"
       type: "Vec<String>"
@@ -1198,7 +1301,6 @@ proxy-protocol:
       runtime-configurable: true
 
 snmp:
-  section: "global"
   parameters:
     - name: "enabled"
       type: "bool"
@@ -1220,7 +1322,6 @@ snmp:
       runtime-configurable: false
 
 query-count:
-  section: "global"
   parameters:
     - name: "enabled"
       type: "bool"
@@ -1229,9 +1330,7 @@ query-count:
       type: "String"
       default: ""
 
-pools:
-  section: "global"
-  type: "list"
+pool:
   parameters:
     - name: "name"
       type: "String"
@@ -1256,7 +1355,6 @@ custom-load-balancing-policy:
       default: "false"
 
 load-balancing-policies:
-  section: "global"
   parameters:
     - name: "servfail-on-no-server"
       type: "bool"
@@ -1292,14 +1390,7 @@ load-balancing-policies:
       internal-field-name: "d_hashPerturbation"
       runtime-configurable: false
 
-selectors:
-  section: "global"
-  type: "Vec<Selector>"
-  skip-serde: true
-
-query-rules:
-  section: "global"
-  type: "list"
+query-rule:
   skip-serde: true
   parameters:
     - name: "name"
@@ -1311,14 +1402,7 @@ query-rules:
     - name: "action"
       type: "Action"
 
-cache-miss-rules:
-  section: "global"
-  type: "Vec<QueryRulesConfiguration>"
-  skip-serde: true
-
-response-rules:
-  section: "global"
-  type: "list"
+response-rule:
   skip-serde: true
   parameters:
     - name: "name"
@@ -1329,23 +1413,3 @@ response-rules:
       type: "Selector"
     - name: "action"
       type: "ResponseAction"
-
-cache-hit-response-rules:
-  section: "global"
-  type: "Vec<ResponseRulesConfiguration>"
-  skip-serde: true
-
-cache-inserted-response-rules:
-  section: "global"
-  type: "Vec<ResponseRulesConfiguration>"
-  skip-serde: true
-
-self-answered-response-rules:
-  section: "global"
-  type: "Vec<ResponseRulesConfiguration>"
-  skip-serde: true
-
-xfr-response-rules:
-  section: "global"
-  type: "Vec<ResponseRulesConfiguration>"
-  skip-serde: true

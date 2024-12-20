@@ -30,12 +30,12 @@ struct DNSResponseActionWrapper
   std::string d_name;
 };
 
-struct ProtobufLoggersConfiguration;
-struct DnstapLoggersConfiguration;
+struct ProtobufLoggerConfiguration;
+struct DnstapLoggerConfiguration;
 struct KeyValueStoresConfiguration;
 
-void registerProtobufLogger(const ProtobufLoggersConfiguration& config);
-void registerDnstapLogger(const DnstapLoggersConfiguration& config);
+void registerProtobufLogger(const ProtobufLoggerConfiguration& config);
+void registerDnstapLogger(const DnstapLoggerConfiguration& config);
 void registerKVSObjects(const KeyValueStoresConfiguration& config);
 
 #include "dnsdist-rust-bridge-actions-generated.hh"

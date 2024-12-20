@@ -38,8 +38,8 @@
 # object type, which needs to exist.
 # Items can optionally have the following properties:
 # - 'skip-cpp' is not used by this script but is used by the dnsdist-rules-generator.py one, where it means that the corresponding C++ factory and Lua bindinds will not be generated, which is useful for objects taking parameters that cannot be directly mapped
-# - 'skip-rust' is not used by this script but is used by the dnsdist-settings-generator.py one, where it means that the C++ code to create the Rust-side version of an action or selector will not generated
-# - 'skip-serde' is not used by this script but is used by the dnsdist-settings-generator.py one, where it means that the Rust structure representing that action or selector in the YAML setting will not be directly created by Serde. It is used for selectors that reference another selector themselves, or actions referencing another action.
+# - 'skip-rust' means that the C++ code to create the Rust-side version of an action or selector will not generated
+# - 'skip-serde' means that the Rust structure representing that action or selector in the YAML setting will not be directly created by Serde. It is used for selectors that reference another selector themselves, or actions referencing another action.
 # - 'lua-name' name of the Lua directive for this setting
 # - 'internal-field-name' name of the corresponding field in DNSdist's internal configuration structures, which is used to generate 'dnsdist-configuration-yaml-items-generated.cc'
 # - 'runtime-configurable' whether this setting can be set at runtime or can only be set at configuration time
@@ -159,12 +159,13 @@ def gen_rust_default_functions(rust_type, default, name):
     ret += '}\n\n'
     return ret
 
-def write_rust_default_trait_impl(struct):
+def write_rust_default_trait_impl(struct, skip_namespace=False):
     """Generate Rust code for the default Trait for a structure"""
+    namespace = 'dnsdistsettings::' if not skip_namespace else ''
     result = ''
-    result += f'impl Default for dnsdistsettings::{struct} {{\n'
+    result += f'impl Default for {namespace}{struct} {{\n'
     result += '    fn default() -> Self {\n'
-    result += f'        let deserialized: dnsdistsettings::{struct} = serde_yaml::from_str("").unwrap();\n'
+    result += f'        let deserialized: {namespace}{struct} = serde_yaml::from_str("").unwrap();\n'
     result += '        deserialized\n'
     result += '    }\n'
     result += '}\n\n'
@@ -187,7 +188,21 @@ def get_rust_serde_annotations(rust_type, default, rename, obj, field, default_f
         return f'''#[serde({rename_value}default = "crate::default_value_{basename}", skip_serializing_if = "crate::default_value_equal_{basename}")]'''
     return f'''#[serde({rename_value}default = "crate::{type_upper}::<{default}>::value", skip_serializing_if = "crate::{type_upper}::<{default}>::is_equal")]'''
 
-def get_rust_struct_fields_from_definition(name, keys, default_functions, indent_spaces):
+def get_converted_serde_type(rust_type):
+    if is_type_native(rust_type):
+        return rust_type
+
+    if is_vector_of(rust_type):
+        sub_type = get_vector_sub_type(rust_type)
+        if sub_type == 'Selector':
+            return rust_type
+        if sub_type in ['QueryRuleConfiguration', 'ResponseRuleConfiguration']:
+            return f'Vec<{sub_type}Serde>'
+        return f'Vec<dnsdistsettings::{sub_type}>'
+
+    return f'dnsdistsettings::{rust_type}'
+
+def get_rust_struct_fields_from_definition(name, keys, default_functions, indent_spaces, special_serde_object=False):
     if not 'parameters' in keys:
         return ''
     output = ''
@@ -197,17 +212,20 @@ def get_rust_struct_fields_from_definition(name, keys, default_functions, indent
         rust_type = parameter['type']
         if 'rust-type' in parameter:
             rust_type = parameter['rust-type']
-        # cxx does not support Enums, so we have to convert them to opaque types
-        if rust_type == 'Action':
-            rust_type = 'SharedDNSAction'
-        elif rust_type == 'ResponseAction':
-            rust_type = 'SharedDNSResponseAction'
-        elif rust_type == 'Selector':
-            rust_type = 'SharedDNSSelector'
-        elif rust_type == 'Vec<Selector>':
-            rust_type = 'Vec<SharedDNSSelector>'
+        if special_serde_object:
+            rust_type = get_converted_serde_type(rust_type)
+        else:
+            # cxx does not support Enums, so we have to convert them to opaque types
+            if rust_type == 'Action':
+                rust_type = 'SharedDNSAction'
+            elif rust_type == 'ResponseAction':
+                rust_type = 'SharedDNSResponseAction'
+            elif rust_type == 'Selector':
+                rust_type = 'SharedDNSSelector'
+            elif rust_type == 'Vec<Selector>':
+                rust_type = 'Vec<SharedDNSSelector>'
         rename = parameter['name'] if parameter_name != parameter['name'] else None
-        if not 'skip-serde' in keys or not keys['skip-serde']:
+        if special_serde_object or not 'skip-serde' in keys or not keys['skip-serde']:
             default_str = get_rust_serde_annotations(rust_type, parameter['default'] if 'default' in parameter else None, rename, get_rust_field_name(name), parameter_name, default_functions)
             if default_str:
                 output += indent + default_str + '\n'
@@ -215,29 +233,28 @@ def get_rust_struct_fields_from_definition(name, keys, default_functions, indent
 
     return output
 
-def get_rust_struct_from_definition(name, keys, default_functions, indent_spaces=4):
+def get_rust_struct_from_definition(name, keys, default_functions, indent_spaces=4, special_serde_object=False):
     if not 'parameters' in keys:
         return ''
     obj_name = get_rust_object_name(name)
     indent = ' '*indent_spaces
-    name_field = ''
     output = ''
-    if not 'skip-serde' in keys or not keys['skip-serde']:
+    if special_serde_object or not 'skip-serde' in keys or not keys['skip-serde']:
         output += f'''{indent}#[derive(Deserialize, Serialize, Debug, PartialEq)]
 {indent}#[serde(deny_unknown_fields)]
 '''
+    elif name == 'global':
+        output += f'{indent}#[derive(Default)]\n'
 
-    output += f'''{indent}struct {obj_name}Configuration {{
-{name_field}'''
+    name_suffix = 'Serde' if name == 'global' and special_serde_object else ''
+    output += f'''{indent}struct {obj_name}Configuration{name_suffix} {{
+'''
     indent_spaces += 4
     indent = ' '*indent_spaces
-    if 'generate-name-field' in keys and keys['generate-name-field'] is True:
-        name_field = f'''{indent}#[serde(default, skip_serializing_if = "crate::is_default")]
-{indent}name: String,\n'''
-    output += get_rust_struct_fields_from_definition(name, keys, default_functions, indent_spaces)
+    output += get_rust_struct_fields_from_definition(name, keys, default_functions, indent_spaces, special_serde_object=special_serde_object)
     output += '    }\n'
-    if not 'skip-serde' in keys or not keys['skip-serde']:
-        default_functions.append(write_rust_default_trait_impl(f'{obj_name}Configuration'))
+    if special_serde_object or not 'skip-serde' in keys or not keys['skip-serde']:
+        default_functions.append(write_rust_default_trait_impl(f'{obj_name}Configuration{name_suffix}', special_serde_object))
     return output
 
 def should_validate_type(rust_type):
@@ -261,11 +278,13 @@ def get_validation_for_field(field_name, rust_type):
     }}
 '''
 
-def get_struct_validation_function_from_definition(name, parameters):
+def get_struct_validation_function_from_definition(name, parameters, special_serde_object=False):
     if len(parameters) == 0:
         return ''
+    namespace = 'dnsdistsettings::' if not special_serde_object else ''
+    suffix = 'Serde' if special_serde_object else ''
     struct_name = get_rust_object_name(name)
-    output = f'''impl dnsdistsettings::{struct_name}Configuration {{
+    output = f'''impl {namespace}{struct_name}Configuration{suffix} {{
     fn validate(&self) -> Result<(), ValidationError> {{
 '''
     for parameter in parameters:
@@ -281,22 +300,6 @@ def get_definitions_from_file(def_file):
     with open(def_file, 'rt', encoding="utf-8") as fd:
         definitions = yaml.safe_load(fd.read())
         return definitions
-
-def gather_sections(definitions):
-    sections = {}
-    for key in definitions:
-        entry = definitions[key]
-        if 'section' in entry:
-            section_name = entry['section']
-            sections[section_name] = entry['type'] if 'type' in entry else None
-    return sections
-
-def get_rust_obj_for_section(def_name, def_keys):
-    if 'type' in def_keys and def_keys['type'] == 'list':
-        name = get_rust_object_name(def_name)
-        return (f'Vec<{name}Configuration>', f'Vec<dnsdistsettings::{name}Configuration>')
-    name = get_rust_object_name(def_name)
-    return (f'{name}Configuration', f'dnsdistsettings::{name}Configuration')
 
 def include_file(out_fp, include_file_name):
     with open(include_file_name, mode='r', encoding='utf-8') as in_fp:
@@ -320,10 +323,14 @@ namespace dnsdist::configuration::yaml
 void convertRuntimeFlatSettingsFromRust(const dnsdist::rust::settings::GlobalConfiguration& yamlConfig, dnsdist::configuration::RuntimeConfiguration& config)
 {\n''')
     for category_name, keys in definitions.items():
-        if not 'parameters' in keys or not 'section' in keys:
+        if not 'parameters' in keys:
             continue
 
-        category_name = get_rust_field_name(category_name) if keys['section'] == 'global' else get_rust_field_name(keys['section']) + '.' + get_rust_field_name(category_name)
+        if 'category' in keys:
+            category_name = keys['category']
+        else:
+            category_name = get_rust_field_name(category_name)
+
         for parameter in keys['parameters']:
             if not 'internal-field-name' in parameter or not 'runtime-configurable' in parameter or not parameter['runtime-configurable']:
                 continue
@@ -343,10 +350,14 @@ void convertRuntimeFlatSettingsFromRust(const dnsdist::rust::settings::GlobalCon
     cxx_flat_settings_fp.write('''void convertImmutableFlatSettingsFromRust(const dnsdist::rust::settings::GlobalConfiguration& yamlConfig, dnsdist::configuration::ImmutableConfiguration& config)
 {\n''')
     for category_name, keys in definitions.items():
-        if not 'parameters' in keys or not 'section' in keys:
+        if not 'parameters' in keys:
             continue
 
-        category_name = get_rust_field_name(category_name) if keys['section'] == 'global' else get_rust_field_name(keys['section']) + '.' + get_rust_field_name(category_name)
+        if 'category' in keys:
+            category_name = keys['category']
+        else:
+            category_name = get_rust_field_name(category_name)
+
         for parameter in keys['parameters']:
             if not 'internal-field-name' in parameter or not 'runtime-configurable' in parameter or parameter['runtime-configurable']:
                 continue
@@ -708,72 +719,10 @@ def generate_rust_selector_to_config(output):
 
     output.write(enum_buffer)
 
-def handle_nested_structures(generated_fp, definitions, default_functions, validation_functions):
+def handle_structures(generated_fp, definitions, default_functions, validation_functions):
     for definition_name, keys in definitions.items():
-        if 'section' in keys and keys['section'] != 'none':
-            continue
-
         generated_fp.write(get_rust_struct_from_definition(definition_name, keys, default_functions) + '\n')
         validation_functions.append(get_struct_validation_function_from_definition(definition_name, keys['parameters'] if 'parameters' in keys else []))
-
-def handle_global_structures(generated_fp, sections, definitions, global_objects, default_functions, validation_functions):
-    for section, _ in sections.items():
-        for definition_name, keys in definitions.items():
-            if not 'section' in keys:
-                continue
-            if keys['section'] != section:
-                continue
-
-            if section == 'global':
-                if 'type' in keys and keys['type'] != 'list':
-                    rust_type = keys['type']
-                    if is_type_native(rust_type):
-                        global_objects[definition_name] = (rust_type, rust_type)
-                    else:
-                        if is_vector_of(rust_type):
-                            sub_type = get_vector_sub_type(rust_type)
-                            global_objects[definition_name] = (rust_type, 'Vec<dnsdistsettings::' + sub_type + '>')
-                        else:
-                            global_objects[definition_name] = (rust_type, 'dnsdistsettings::' + rust_type)
-                else:
-                    global_objects[definition_name] = get_rust_obj_for_section(definition_name, keys)
-
-            generated_fp.write(get_rust_struct_from_definition(definition_name, keys, default_functions) + '\n')
-            validation_functions.append(get_struct_validation_function_from_definition(definition_name, keys['parameters'] if 'parameters' in keys else []))
-
-def handle_sub_structures(generated_fp, sections, definitions, global_objects, validation_functions):
-    for section, section_type in sections.items():
-        if section == 'global':
-            continue
-
-        # now handling the structure for the section itself
-        if section_type is not None and section_type != 'list':
-            global_objects[section] = (section_type, section_type)
-            continue
-
-        global_objects[section] = (get_rust_object_name(section) + 'Configuration', 'dnsdistsettings::' + get_rust_object_name(section) + 'Configuration')
-
-        section_name = get_rust_object_name(section)
-        # generate the first-level structure that is directly under 'global'
-        section_struct_parameters = []
-        generated_fp.write(f'''    #[derive(Deserialize, Serialize, Debug, PartialEq)]
-    #[serde(deny_unknown_fields)]
-    struct {section_name}Configuration {{\n''')
-        for definition_name, keys in definitions.items():
-            if not 'section' in keys or keys['section'] != section:
-                continue
-            field_name = get_rust_field_name(definition_name) if not 'rename' in keys else keys['rename']
-            rename = None if field_name == definition_name else definition_name
-            name = get_rust_object_name(definition_name)
-            obj_type = f'{name}Configuration' if not 'type' in keys or keys['type'] != 'list' else f'Vec<{name}Configuration>'
-            annotation = get_rust_serde_annotations(obj_type, True, rename, f'{section_name}Configuration', field_name, validation_functions)
-            generated_fp.write(f'        {annotation}\n')
-            generated_fp.write(f'        {field_name}: {obj_type},\n')
-            section_struct_parameters.append({'name': field_name, 'type': obj_type})
-
-        generated_fp.write('    }\n')
-        validation_functions.append(get_struct_validation_function_from_definition(section_name, section_struct_parameters))
-        validation_functions.append(write_rust_default_trait_impl(f'{section_name}Configuration'))
 
 def get_temporary_file_for_generated_code(directory):
     generated_fp = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8', dir=directory, delete=False)
@@ -789,7 +738,6 @@ def main():
     definitions = get_definitions_from_file(sys.argv[1])
     default_functions = []
     validation_functions = []
-    sections = gather_sections(definitions)
     global_objects = {}
 
     generate_cpp_action_headers()
@@ -806,81 +754,22 @@ def main():
 
     generate_flat_settings_for_cxx(definitions, src_dir)
 
-    # handle structures that are not directly under a first-level section
-    handle_nested_structures(generated_fp, definitions, default_functions, validation_functions)
-
-    # for each section, including the global one, generate the structures below the section one
-    handle_global_structures(generated_fp, sections, definitions, global_objects, default_functions, validation_functions)
-    handle_sub_structures(generated_fp, sections, definitions, global_objects, validation_functions)
-
-    # the cxx-compatible Global configuration object
-    generated_fp.write('''    #[derive(Default)]
-    struct GlobalConfiguration {\n''')
-    for obj, names in global_objects.items():
-        field_name = get_rust_field_name(obj)
-        field_type = names[0]
-        if field_type == 'SelectorsConfiguration':
-            field_type = 'Vec<SharedDNSSelector>'
-        elif field_type == 'Selector':
-            field_type = 'SharedDNSSelector'
-        elif field_type == 'Action':
-            field_type = 'SharedDNSAction'
-        elif field_type == 'ResponseAction':
-            field_type = 'SharedDNSResponseAction'
-        elif field_type == 'Vec<Selector>':
-            field_type = 'Vec<SharedDNSSelector>'
-        generated_fp.write(f'        {field_name}: {field_type},\n')
-
-    generated_fp.write('    }\n')
+    handle_structures(generated_fp, definitions, default_functions, validation_functions)
 
     generate_cpp_action_selector_functions_callable_from_rust(generated_fp)
 
     include_file(generated_fp, src_dir + 'rust-middle-in.rs')
+    # we are now outside of the dnsdistsettings namespace
+
+    # generate the special global configuration Serde structure
+    for definition_name, keys in definitions.items():
+        if definition_name == 'global':
+            generated_fp.write(get_rust_struct_from_definition(definition_name, keys, default_functions, special_serde_object=True) + '\n')
+            validation_functions.append(get_struct_validation_function_from_definition(definition_name, keys['parameters'] if 'parameters' in keys else [], True))
 
     generate_rust_actions_enum(generated_fp, False)
     generate_rust_actions_enum(generated_fp, True)
     generate_rust_selectors_enum(generated_fp)
-
-    # then the Serde one
-    generated_fp.write('''#[derive(Deserialize, Serialize, Debug, PartialEq)]
-#[serde(deny_unknown_fields)]
-struct GlobalConfigurationSerde {\n''')
-    for obj, names in global_objects.items():
-        field_name = get_rust_field_name(obj)
-        rename = obj if field_name != obj else None
-        default_str = get_rust_serde_annotations(names[0], True, rename, field_name, 'global', default_functions)
-        if default_str:
-            generated_fp.write('    ' + default_str + '\n')
-        rust_type = names[1]
-        if rust_type == 'Vec<dnsdistsettings::Selector>':
-            rust_type = 'Vec<Selector>'
-        if rust_type == 'Vec<dnsdistsettings::QueryRulesConfiguration>':
-            rust_type = 'Vec<QueryRulesConfigurationSerde>'
-        if rust_type == 'Vec<dnsdistsettings::ResponseRulesConfiguration>':
-            rust_type = 'Vec<ResponseRulesConfigurationSerde>'
-        generated_fp.write(f'    {field_name}: {rust_type},\n')
-
-    generated_fp.write('}\n')
-
-    # Validation function for the global section
-    generated_fp.write('impl GlobalConfigurationSerde {\n')
-    generated_fp.write('    fn validate(&self) -> Result<(), ValidationError> {\n')
-    for obj, names in global_objects.items():
-        field_name = get_rust_field_name(obj)
-        rust_type = names[1]
-        if rust_type == 'Action':
-            rust_type = 'SharedDNSAction'
-        elif rust_type == 'ResponseAction':
-            rust_type = 'SharedDNSResponseAction'
-        elif rust_type == 'Selector':
-            rust_type = 'SharedDNSSelector'
-        #elif rust_type == 'SelectorsConfiguration':
-        elif rust_type == 'Vec<dnsdistsettings::Selector>':
-            rust_type = 'Vec<Selector>'
-        generated_fp.write(get_validation_for_field(field_name, rust_type))
-    generated_fp.write('        Ok(())\n')
-    generated_fp.write('    }\n')
-    generated_fp.write('}\n\n')
 
     # the generated functions for the default values and validation
     for function_def in default_functions:
