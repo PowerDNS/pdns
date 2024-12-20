@@ -1,8 +1,0 @@
-[centos-sclo-rh]
-name=CentOS-6 - SCLo rh
-baseurl=http://vault.centos.org/centos/6/sclo/$basearch/rh/
-#mirrorlist=http://mirrorlist.centos.org?arch=$basearch&release=6&repo=sclo-rh
-gpgcheck=1
-enabled=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-SIG-SCLo
-

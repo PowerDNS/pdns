@@ -140,11 +140,8 @@ def write_release_files (release):
                    'rec-48', 'rec-49', 'rec-50', 'rec-51', 'rec-master',
                    'dnsdist-17', 'dnsdist-18', 'dnsdist-19', 'dnsdist-master']:
         write_pkg_pin_file(release)
-        write_dockerfile('el', '7', release)
         write_dockerfile('el', '8', release)
         write_dockerfile('el', '9', release)
-        write_dockerfile('debian', 'buster', release)
-        write_list_file('debian', 'buster', release)
         write_dockerfile('debian', 'bullseye', release)
         write_list_file('debian', 'bullseye', release)
         write_dockerfile('ubuntu', 'focal', release)
@@ -241,8 +238,6 @@ def test_release (release, arch='x86_64'):
     returned_versions = []
     print('=== testing {} ({}) ==='.format(release, arch))
     for df in dockerfiles:
-        if arch == 'aarch64' and str(df).endswith('el-7'):
-            continue
         if arch == 'aarch64' and not release in ['rec-49', 'rec-50', 'rec-51', 'rec-master',
                                                  'dnsdist-19', 'dnsdist-master']:
             continue
