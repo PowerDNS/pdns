@@ -166,8 +166,14 @@ createforward6.example.org.                 3600 IN SOA  {soa}
 createforward6.example.org.                 3600 IN NS   ns1.example.org.
 createforward6.example.org.                 3600 IN NS   ns2.example.org.
 *                                                IN    LUA    AAAA  "filterForward(createForward6(), newNMG{{'2000::/3'}}, 'fe80::1')"
-        """
+        """,
 # the separate createforward6 zone is because some of the code in lua-record.cc insists on working relatively to the zone apex
+        'no-filter.createforward6.example.org': """
+no-filter.createforward6.example.org.       3600 IN SOA  {soa}
+no-filter.createforward6.example.org.       3600 IN NS   ns1.example.org.
+no-filter.createforward6.example.org.       3600 IN NS   ns2.example.org.
+*                                                IN    LUA    AAAA  "createForward6()"
+        """
     }
     _web_rrsets = []
 
@@ -1030,6 +1036,46 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
             ".createreverse6.example.org." : (dns.rdatatype.PTR, {
                 "8.b.d.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.1.0.0.2" : "2001--db8.example.com.",
                 "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2" : "example.example.com."   # exception
+            })
+        }
+
+        for suffix, v in expected.items():
+            qtype, pairs = v
+            for prefix, target in pairs.items():
+                name = prefix + suffix
+
+                query = dns.message.make_query(name, qtype)
+                response = dns.message.make_response(query)
+                response.answer.append(dns.rrset.from_text(
+                    name, 0, dns.rdataclass.IN, qtype, target))
+
+                res = self.sendUDPQuery(query)
+                print(res)
+                self.assertRcodeEqual(res, dns.rcode.NOERROR)
+                self.assertEqual(res.answer, response.answer)
+
+    def testCreateForwardAndReverseWithZero(self):
+        """
+        Fix #7524
+        """
+        expected = {
+            ".no-filter.createforward6.example.org." : (dns.rdatatype.AAAA, {
+                "0--0" : "::",
+                "0--1" : "::1",
+                "0aa--0" : "aa::",
+                "0aa--1" : "aa::1",
+                "2001--0" : "2001::",
+                "a-b--c" : "a:b::c",
+                "a--b-c" : "a::b:c"
+            }),
+            ".createreverse6.example.org." : (dns.rdatatype.PTR, {
+                "0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0" : "0--0.example.com.",
+                "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0" : "0--1.example.com.",
+                "0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.a.a.0.0" : "0aa--0.example.com.",
+                "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.a.a.0.0" : "0aa--1.example.com.",
+                "0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.1.0.0.2" : "2001--0.example.com.",
+                "c.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.b.0.0.0.a.0.0.0" : "a-b--c.example.com.",
+                "c.0.0.0.b.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.a.0.0.0" : "a--b-c.example.com."
             })
         }
 
