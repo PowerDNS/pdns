@@ -12,8 +12,8 @@
         type DNSSelector;
         type DNSActionWrapper;
         type DNSResponseActionWrapper;
-        fn registerProtobufLogger(config: &ProtobufLoggersConfiguration);
-        fn registerDnstapLogger(config: &DnstapLoggersConfiguration);
+        fn registerProtobufLogger(config: &ProtobufLoggerConfiguration);
+        fn registerDnstapLogger(config: &DnstapLoggerConfiguration);
         fn registerKVSObjects(config: &KeyValueStoresConfiguration);
     }
 }
@@ -67,7 +67,7 @@ impl ResponseAction {
 
 #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
-struct QueryRulesConfigurationSerde {
+struct QueryRuleConfigurationSerde {
     #[serde(default, skip_serializing_if = "crate::is_default")]
     name: String,
     #[serde(default, skip_serializing_if = "crate::is_default")]
@@ -76,7 +76,7 @@ struct QueryRulesConfigurationSerde {
     action: Action,
 }
 
-impl QueryRulesConfigurationSerde {
+impl QueryRuleConfigurationSerde {
   fn validate(&self) -> Result<(), ValidationError> {
     Ok(())
   }
@@ -84,7 +84,7 @@ impl QueryRulesConfigurationSerde {
 
 #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
-struct ResponseRulesConfigurationSerde {
+struct ResponseRuleConfigurationSerde {
     #[serde(default, skip_serializing_if = "crate::is_default")]
     name: String,
     #[serde(default, skip_serializing_if = "crate::is_default")]
@@ -93,7 +93,7 @@ struct ResponseRulesConfigurationSerde {
     action: ResponseAction,
 }
 
-impl ResponseRulesConfigurationSerde {
+impl ResponseRuleConfigurationSerde {
   fn validate(&self) -> Result<(), ValidationError> {
     Ok(())
   }
