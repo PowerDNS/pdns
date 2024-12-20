@@ -1,0 +1,268 @@
+---
+- name: "all"
+- name: "And"
+  skip-cpp: true
+  skip-rust: true
+  skip-serde: true
+  parameters:
+    - name: "selectors"
+      type: "Vec<Selector>"
+      default: true
+- name: "ByName"
+  skip-cpp: true
+  skip-rust: true
+  parameters:
+    - name: "selector-name"
+      type: "String"
+- name: "DNSSEC"
+- name: "DSTPort"
+  parameters:
+    - name: "port"
+      type: "u16"
+- name: "EDNSOption"
+  parameters:
+    - name: "option-code"
+      type: "u16"
+- name: "EDNSVersion"
+  parameters:
+    - name: "version"
+      type: "u8"
+- name: "ERCode"
+  parameters:
+    - name: "rcode"
+      type: "u64"
+- name: "HTTPHeader"
+  parameters:
+    - name: "header"
+      type: "String"
+    - name: "expression"
+      type: "String"
+- name: "HTTPPath"
+  parameters:
+    - name: "path"
+      type: "String"
+- name: "HTTPPathRegex"
+  parameters:
+    - name: "expression"
+      type: "String"
+- name: "KeyValueStoreLookup"
+  skip-cpp: true
+  skip-rust: true
+  parameters:
+    - name: "kvs-name"
+      type: "String"
+    - name: "lookup-key-name"
+      type: "String"
+- name: "KeyValueStoreRangeLookup"
+  skip-cpp: true
+  skip-rust: true
+  parameters:
+    - name: "kvs-name"
+      type: "String"
+    - name: "lookup-key-name"
+      type: "String"
+- name: "lua"
+  parameters:
+    - name: "function"
+      type: "dnsdist::selectors::LuaSelectorFunction"
+      rust-type: "String"
+- name: "LuaFFI"
+  parameters:
+    - name: "function"
+      type: "dnsdist::selectors::LuaSelectorFFIFunction"
+      rust-type: "String"
+- name: "LuaFFIPerThread"
+  parameters:
+    - name: "code"
+      type: "String"
+- name: "MaxQPS"
+  parameters:
+    - name: "qps"
+      type: "u32"
+    - name: "burst"
+      type: "u32"
+      default: 0
+- name: "MaxQPSIP"
+  parameters:
+    - name: "qps"
+      type: "u32"
+    - name: "ipv4-mask"
+      type: "u8"
+      default: 32
+    - name: "ipv6-mask"
+      type: "u8"
+      default: 64
+    - name: "burst"
+      type: "u32"
+      default: 0
+    - name: "expiration"
+      type: "u32"
+      default: 300
+    - name: "cleanup-delay"
+      type: "u32"
+      default: 60
+    - name: "scan-fraction"
+      type: "u32"
+      default: 10
+    - name: "shards"
+      type: "u32"
+      default: 10
+- name: "NetmaskGroup"
+  skip-cpp: true
+  skip-rust: true
+  parameters:
+    - name: "netmask-group-name"
+      type: "String"
+      default: ""
+    - name: "netmasks"
+      type: "Vec<String>"
+      default: true
+    - name: "source"
+      type: "bool"
+      default: "true"
+    - name: "quiet"
+      type: "bool"
+      default: "false"
+- name: "Not"
+  skip-cpp: true
+  skip-rust: true
+  skip-serde: true
+  parameters:
+    - name: "selector"
+      type: "Selector"
+- name: "opcode"
+  parameters:
+    - name: "code"
+      type: "u8"
+- name: "Or"
+  skip-cpp: true
+  skip-rust: true
+  skip-serde: true
+  parameters:
+    - name: "selectors"
+      type: "Vec<Selector>"
+      default: true
+- name: "PayloadSize"
+  parameters:
+    - name: "comparison"
+      type: "String"
+    - name: "size"
+      type: "u16"
+- name: "PoolAvailable"
+  parameters:
+    - name: "pool"
+      type: "String"
+- name: "PoolOutstanding"
+  parameters:
+    - name: "pool"
+      type: "String"
+    - name: "max-outstanding"
+      type: "u64"
+- name: "proba"
+  parameters:
+    - name: "probability"
+      type: "f64"
+- name: "ProxyProtocolValue"
+  parameters:
+    - name: "option-type"
+      type: "u8"
+    - name: "option-value"
+      type: "String"
+      default: ""
+- name: "QClass"
+  skip-cpp: true
+  parameters:
+    - name: "qclass"
+      type: "String"
+      default: ""
+    - name: "numeric-value"
+      type: "u16"
+      default: 0
+- name: "QName"
+  skip-cpp: true
+  skip-rust: true
+  parameters:
+    - name: "qname"
+      type: "String"
+- name: "QNameLabelsCount"
+  parameters:
+    - name: "min-labels-count"
+      type: "u16"
+    - name: "max-labels-count"
+      type: "u16"
+- name: "QNameSet"
+  skip-cpp: true
+  skip-rust: true
+  parameters:
+    - name: "qnames"
+      type: "Vec<String>"
+- name: "QNameSuffix"
+  skip-cpp: true
+  skip-rust: true
+  parameters:
+    - name: "suffixes"
+      type: "Vec<String>"
+    - name: "quiet"
+      type: "bool"
+      default: "false"
+- name: "QNameWireLength"
+  parameters:
+    - name: "min"
+      type: "u16"
+    - name: "max"
+      type: "u16"
+- name: "QType"
+  skip-cpp: true
+  parameters:
+    - name: "qtype"
+      type: "String"
+    - name: "numeric-value"
+      type: "u16"
+      default: 0
+- name: "RCode"
+  parameters:
+    - name: "rcode"
+      type: "u64"
+- name: "RD"
+- name: "RE2"
+  parameters:
+    - name: "expression"
+      type: "String"
+- name: "RecordsCount"
+  parameters:
+    - name: "section"
+      type: "u8"
+    - name: "minimum"
+      type: "u16"
+    - name: "maximum"
+      type: "u16"
+- name: "RecordsTypeCount"
+  parameters:
+    - name: "section"
+      type: "u8"
+    - name: "record-type"
+      type: "u16"
+    - name: "minimum"
+      type: "u16"
+    - name: "maximum"
+      type: "u16"
+- name: "regex"
+  parameters:
+    - name: "expression"
+      type: "String"
+- name: "SNI"
+  parameters:
+    - name: "server-name"
+      type: "String"
+- name: "Tag"
+  parameters:
+    - name: "tag"
+      type: "String"
+    - name: "value"
+      type: "String"
+      default: ""
+- name: "TCP"
+  parameters:
+    - name: "tcp"
+      type: "bool"
+- name: "TrailingData"

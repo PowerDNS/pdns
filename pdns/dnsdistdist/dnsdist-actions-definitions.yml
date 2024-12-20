@@ -1,0 +1,310 @@
+---
+- name: "allow"
+  description: "Let these packets go through."
+- name: "delay"
+  parameters:
+    - name: "msec"
+      type: "u32"
+- name: "DnstapLog"
+  skip-cpp: true
+  skip-rust: true
+  parameters:
+    - name: "identity"
+      type: "String"
+    - name: "logger-name"
+      type: "String"
+    - name: "alter-function"
+      type: "dnsdist::actions::DnstapAlterFunction"
+      rust-type: "String"
+      default: ""
+- name: "drop"
+- name: "SetEDNSOption"
+  parameters:
+    - name: "code"
+      type: "u32"
+    - name: "data"
+      type: "String"
+- name: "ERCode"
+  skip-cpp: true
+  parameters:
+    - name: "rcode"
+      type: "u8"
+    - name: "vars"
+      type: "ResponseConfig"
+      default: true
+- name: "HTTPStatus"
+  skip-cpp: true
+  parameters:
+    - name: "status"
+      type: "u16"
+    - name: "body"
+      rust-type: "String"
+      type: "PacketBuffer"
+    - name: "content-type"
+      type: "String"
+      default: ""
+    - name: "vars"
+      type: "ResponseConfig"
+      default: true
+- name: "KeyValueStoreLookup"
+  skip-cpp: true
+  skip-rust: true
+  parameters:
+    - name: "kvs-name"
+      type: "String"
+    - name: "lookup-key-name"
+      type: "String"
+    - name: "destination-tag"
+      type: "String"
+- name: "KeyValueStoreRangeLookup"
+  skip-cpp: true
+  skip-rust: true
+  parameters:
+    - name: "kvs-name"
+      type: "String"
+    - name: "lookup-key-name"
+      type: "String"
+    - name: "destination-tag"
+      type: "String"
+- name: "log"
+  parameters:
+    - name: "file-name"
+      type: "String"
+      default: ""
+      cpp-optional: false
+    - name: "binary"
+      type: "bool"
+      default: "true"
+      cpp-optional: false
+    - name: "append"
+      type: "bool"
+      default: "false"
+      cpp-optional: false
+    - name: "buffered"
+      type: "bool"
+      default: "false"
+      cpp-optional: false
+    - name: "verbose-only"
+      type: "bool"
+      default: "true"
+      cpp-optional: false
+    - name: "include-timestamp"
+      type: "bool"
+      default: "false"
+      cpp-optional: false
+- name: "lua"
+  parameters:
+    - name: "function"
+      type: "dnsdist::actions::LuaActionFunction"
+      rust-type: "String"
+- name: "LuaFFI"
+  parameters:
+    - name: "function"
+      type: "dnsdist::actions::LuaActionFFIFunction"
+      rust-type: "String"
+- name: "LuaFFIPerThread"
+  parameters:
+    - name: "code"
+      type: "String"
+- name: "NegativeAndSOA"
+  skip-cpp: true
+  parameters:
+    - name: "nxd"
+      type: "bool"
+    - name: "zone"
+      type: "DNSName"
+      rust-type: "String"
+    - name: "ttl"
+      type: "u32"
+    - name: "mname"
+      type: "DNSName"
+      rust-type: "String"
+    - name: "rname"
+      type: "DNSName"
+      rust-type: "String"
+    - name: "soa-parameters"
+      type: "SOAParams"
+    - name: "soa-in-authority"
+      type: "bool"
+      default: "false"
+    - name: "vars"
+      type: "ResponseConfig"
+      default: true
+- name: "none"
+- name: "pool"
+  parameters:
+    - name: "pool-name"
+      type: "String"
+    - name: "stop-processing"
+      type: "bool"
+      default: "true"
+      cpp-optional: false
+- name: "QPS"
+  parameters:
+    - name: "limit"
+      type: "u32"
+- name: "QPSPool"
+  parameters:
+    - name: "limit"
+      type: "u32"
+    - name: "pool-name"
+      type: "String"
+    - name: "stop-processing"
+      type: "bool"
+      default: "true"
+      cpp-optional: false
+- name: "RCode"
+  skip-cpp: true
+  parameters:
+    - name: "rcode"
+      type: "u8"
+    - name: "vars"
+      type: "ResponseConfig"
+      default: true
+- name: "RemoteLog"
+  skip-cpp: true
+  skip-rust: true
+  parameters:
+    - name: "logger-name"
+      type: "String"
+    - name: "alter-function"
+      type: "dnsdist::actions::ProtobufAlterFunction"
+      rust-type: "String"
+      default: ""
+    - name: "server-id"
+      type: "String"
+      default: ""
+    - name: "ip-encrypt-key"
+      type: "String"
+      default: ""
+    - name: "export-tags"
+      type: "Vec<String>"
+      default: true
+    - name: "metas"
+      type: "Vec<ProtoBufMetaConfiguration>"
+      default: true
+- name: "SetAdditionalProxyProtocolValue"
+  parameters:
+    - name: "proxy-type"
+      type: "u8"
+    - name: "value"
+      type: "String"
+- name: "SetDisableECS"
+- name: "SetDisableValidation"
+- name: "SetECS"
+  skip-cpp: true
+  parameters:
+    - name: "ipv4"
+      type: "String"
+    - name: "ipv6"
+      type: "String"
+      default: ""
+      cpp-optional: false
+- name: "SetECSOverride"
+  parameters:
+    - name: "override-existing"
+      type: "bool"
+- name: "SetECSPrefixLength"
+  parameters:
+    - name: "ipv4"
+      type: "u16"
+    - name: "ipv6"
+      type: "u16"
+- name: "SetExtendedDNSError"
+  parameters:
+    - name: "info-code"
+      type: "u16"
+    - name: "extra-text"
+      type: "String"
+      default: ""
+      cpp-optional: false
+- name: "SetMacAddr"
+  parameters:
+    - name: "code"
+      type: "u32"
+- name: "SetMaxReturnedTTL"
+  skip-cpp: true
+  parameters:
+    - name: "max"
+      type: "u32"
+- name: "SetNoRecurse"
+- name: "SetSkipCache"
+- name: "SetTag"
+  parameters:
+    - name: "tag"
+      type: "String"
+    - name: "value"
+      type: "String"
+- name: "SetTempFailureCacheTTL"
+  parameters:
+    - name: "maxTTL"
+      type: "u32"
+- name: "SNMPTrap"
+  parameters:
+    - name: "reason"
+      type: "String"
+      default: ""
+      cpp-optional: false
+- name: "Spoof"
+  skip-cpp: true
+  skip-rust: true
+  parameters:
+    - name: "ips"
+      type: "Vec<String>"
+    - name: "vars"
+      type: "ResponseConfig"
+      default: true
+- name: "SpoofCNAME"
+  skip-cpp: true
+  skip-rust: true
+  parameters:
+    - name: "cname"
+      type: "String"
+    - name: "vars"
+      type: "ResponseConfig"
+      default: true
+- name: "SpoofPacket"
+  skip-cpp: true
+  skip-rust: true
+  parameters:
+    - name: "response"
+      type: "String"
+    - name: "len"
+      type: "u32"
+- name: "SpoofRaw"
+  skip-cpp: true
+  skip-rust: true
+  parameters:
+    - name: "answers"
+      type: "Vec<String>"
+    - name: "qtype-for-any"
+      type: "String"
+      default: ""
+    - name: "vars"
+      type: "ResponseConfig"
+      default: true
+- name: "SpoofSVC"
+  skip-cpp: true
+  parameters:
+    - name: "parameters"
+      type: "Vec<SVCRecordParameters>"
+    - name: "vars"
+      type: "ResponseConfig"
+      default: true
+- name: "TC"
+- name: "tee"
+  skip-cpp: true
+  parameters:
+    - name: "rca"
+      type: "ComboAddress"
+      rust-type: "String"
+    - name: "lca"
+      type: "ComboAddress"
+      rust-type: "String"
+      default: ""
+    - name: "addECS"
+      type: "bool"
+      default: "false"
+    - name: "addProxyProtocol"
+      type: "bool"
+      default: "false"

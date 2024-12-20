@@ -54,6 +54,26 @@ impl<const U: u32> U32<U> {
     }
 }
 
+pub struct U16<const U: u16>;
+impl<const U: u16> U16<U> {
+    pub const fn value() -> u16 {
+        U
+    }
+    pub fn is_equal(v: &u16) -> bool {
+        v == &U
+    }
+}
+
+pub struct U8<const U: u8>;
+impl<const U: u8> U8<U> {
+    pub const fn value() -> u8 {
+        U
+    }
+    pub fn is_equal(v: &u8) -> bool {
+        v == &U
+    }
+}
+
 // A helper to define constant value as a Rust path */
 pub struct Bool<const U: bool>;
 impl<const U: bool> Bool<U> {
