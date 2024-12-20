@@ -448,6 +448,35 @@ Reverse DNS functions
 Helper functions
 ~~~~~~~~~~~~~~~~
 
+.. function:: geoiplookup(address, attr)
+
+  Retrieve specific attributes related to an IP address.
+
+  :param string address: The IP address to lookup.
+  :param int attr: The attribute identifier for the lookup.
+
+  You can use the following constants as the attribute:
+
+  - `GeoIPQueryAttribute.ASn`
+  - `GeoIPQueryAttribute.City`
+  - `GeoIPQueryAttribute.Continent`
+  - `GeoIPQueryAttribute.Country`
+  - `GeoIPQueryAttribute.Country2`
+  - `GeoIPQueryAttribute.Name`
+  - `GeoIPQueryAttribute.Region`
+  - `GeoIPQueryAttribute.Location`
+
+  Example::
+
+    asn.example.com       IN LUA TXT "geoiplookup(bestwho:toString(), GeoIPQueryAttribute.ASn)"       ; 1
+    city.example.com      IN LUA TXT "geoiplookup(bestwho:toString(), GeoIPQueryAttribute.City)"      ; auckland
+    continent.example.com IN LUA TXT "geoiplookup(bestwho:toString(), GeoIPQueryAttribute.Continent)" ; oc
+    country.example.com   IN LUA TXT "geoiplookup(bestwho:toString(), GeoIPQueryAttribute.Country)"   ; nz
+    country2.example.com  IN LUA TXT "geoiplookup(bestwho:toString(), GeoIPQueryAttribute.Country2)"  ; nz
+    name.example.com      IN LUA TXT "geoiplookup(bestwho:toString(), GeoIPQueryAttribute.Name)"      ; lvlt-1
+    region.example.com    IN LUA TXT "geoiplookup(bestwho:toString(), GeoIPQueryAttribute.Region)"    ; auk
+    location.example.com  IN LUA TXT "geoiplookup(bestwho:toString(), GeoIPQueryAttribute.Location)"  ; -36.000000 174.000000
+
 .. function:: asnum(number)
               asnum(numbers)
 

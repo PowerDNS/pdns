@@ -160,6 +160,11 @@ lookmeup         IN           A  192.0.2.5
 dblookup         IN    LUA    A  "dblookup('lookmeup.example.org', pdns.A)[1]"
 
 whitespace       IN    LUA    TXT "'foo" "bar'"
+
+geoipqueryattribute IN LUA    TXT ("string.format('%d %d %d %d %d %d %d',"
+                                   "GeoIPQueryAttribute.ASn, GeoIPQueryAttribute.City, GeoIPQueryAttribute.Continent,"
+                                   "GeoIPQueryAttribute.Country, GeoIPQueryAttribute.Country2, GeoIPQueryAttribute.Name,"
+                                   "GeoIPQueryAttribute.Region, GeoIPQueryAttribute.Location)")
         """,
         'createforward6.example.org': """
 createforward6.example.org.                 3600 IN SOA  {soa}
@@ -1104,6 +1109,22 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
         response = dns.message.make_response(query)
 
         response.answer.append(dns.rrset.from_text(name, 0, dns.rdataclass.IN, dns.rdatatype.TXT, '"foo   bar"' if expectws else '"foobar"'))
+
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertEqual(res.answer, response.answer)
+
+    def testGeoIPQueryAttribute(self):
+        """
+        Test GeoIPQueryAttribute enum
+        """
+        name = 'geoipqueryattribute.example.org.'
+
+        query = dns.message.make_query(name, 'TXT')
+
+        response = dns.message.make_response(query)
+
+        response.answer.append(dns.rrset.from_text(name, 0, dns.rdataclass.IN, dns.rdatatype.TXT, '"0 1 2 3 4 5 6"'))
 
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
