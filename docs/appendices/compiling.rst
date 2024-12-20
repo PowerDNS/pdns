@@ -36,8 +36,8 @@ These releases are PGP-signed with one of these key-ids:
 Dependencies
 ------------
 
-To build the PowerDNS Authoritative Server, a C++ compiler with support for C++ 2011 is required.
-This means gcc 4.9 and newer and clang 3.5 and newer.
+To build the PowerDNS Authoritative Server, a C++ compiler with support for C++ 2017 is required.
+This means gcc 7.1 and newer and clang 5 and newer.
 Furthermore, the Makefiles require GNU make, not BSD make.
 
 By default, the PowerDNS Authoritative Server requires the following libraries and headers:

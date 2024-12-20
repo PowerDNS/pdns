@@ -43,7 +43,7 @@ Path to the LMDB file (e.g. */var/lib/powerdns/pdns.lmdb*)
 ``lmdb-shards``
 ^^^^^^^^^^^^^^^^^
 
-Records database will be split into this number of shards e.g. lmdb-shards=64
+Records database will be split into this number of shards e.g. lmdb-shards=64.
 Default is 2 on 32 bits systems, and 64 on 64 bits systems.
 
 .. _setting-lmdb-sync-mode:
@@ -55,11 +55,10 @@ Default is 2 on 32 bits systems, and 64 on 64 bits systems.
 
   ``mapasync`` choice removed
 
-* Synchronisation mode: sync, nosync, nometasync
-* Default: sync
+Synchronisation mode: one of sync, nosync, nometasync (default: sync).
 
 ``sync`` (default since 4.9.0)
-  LMDB synchronous mode. Safest option, but also slightly slower. Can  also be enabled with ``lmdb-sync-mode=``
+  LMDB synchronous mode. Safest option, but also slightly slower. Can also be enabled with ``lmdb-sync-mode=``
 
 ``nosync``
   don't flush systems buffers to disk when committing a transaction.
@@ -77,9 +76,9 @@ Default is 2 on 32 bits systems, and 64 on 64 bits systems.
 ``lmdb-schema-version``
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-Determines the maximum schema version LMDB is allowed to upgrade to. If the on disk LMDB database has a lower version than the current version of the LMDB schema the backend will not start, unless this setting allows it to upgrade the schema. If the version of the DB is already the same as the current schema version this setting is not checked and the backend starts normally.
+Determines the maximum schema version LMDB is allowed to upgrade to. If the on disk LMDB database has a lower version than the current version of the LMDB schema the backend will not start, unless this setting allows it to upgrade the schema. If the version of the DB is already the same as the current schema version this setting is not checked and the backend will start normally.
 
-The default value for this setting is the highest supported schema version for the version of PowerDNS you are starting. if you want to prevent automatic schema upgrades, explicitly set this setting to the current default before upgrading PowerDNS.
+The default value for this setting is the highest supported schema version for the version of PowerDNS you are starting. If you want to prevent automatic schema upgrades, explicitly set this setting to the current default before upgrading PowerDNS.
 
 ================  ===================
 PowerDNS Version  LMDB Schema version

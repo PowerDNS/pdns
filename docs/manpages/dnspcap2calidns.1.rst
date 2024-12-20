@@ -10,7 +10,7 @@ Description
 -----------
 
 :program:`dnspcap2calidns` reads the PCAP file *PCAPFILE* for DNS queries and
-writes these to *OUTFILE* in the format understood by :program:`calidns`
+writes these to *OUTFILE* in the format understood by :program:`calidns`.
 
 Options
 -------

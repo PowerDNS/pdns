@@ -15,14 +15,13 @@ Functions and methods of a ``DNSResourceRecord``
 .. function:: newDRR(name, type, ttl, content[, domainId[, auth]]) -> DNSResourceRecord
 
   Returns a new :class:`DNSResourceRecord` object.
-  .. todo describe the auth param
 
   :param DNSName name: The name to the new record
   :param string type: The name to create a DNSName for
   :param int ttl: The TTL of the record
   :param string content: The content of the record
   :param int domainId: The optional domain ID of the zone the record belongs to
-  :param int auth: ?
+  :param int auth: Whether the record is authoritative
 
   .. todo complete LUA example below
   .. code-block:: lua
@@ -52,7 +51,7 @@ Functions and methods of a ``DNSResourceRecord``
 
   .. method:: DNSResourceRecord:lastModified() -> int
 
-    If unzero, last time this record was changed
+    If non-zero, last time this record was changed
 
   .. method:: DNSResourceRecord:ttl() -> int
 

@@ -122,7 +122,7 @@ defaults to 20 seconds.
 
 The default values should work fine for many sites. When tuning, keep in
 mind that the Query Cache mostly saves database access but that the
-Packet Cache also saves a lot of CPU because 0 internal processing is
+Packet Cache also saves a lot of CPU because zero internal processing is
 done when answering a question from the Packet Cache.
 
 Caches & Memory Allocations & glibc
@@ -321,6 +321,12 @@ security-status
 ^^^^^^^^^^^^^^^
 Security status based on :ref:`securitypolling`.
 
+.. _stat-send-latency:
+
+send-latency
+^^^^^^^^^^^^
+Average number of microseconds needed to send the answer
+
 .. _stat-servfail-packets:
 
 servfail-packets
@@ -404,12 +410,6 @@ Number of questions received over TCPv6
 timedout-packets
 ^^^^^^^^^^^^^^^^
 Amount of packets that were dropped because they had to wait too long internally
-
-.. _stat-send-latency:
-
-send-latency
-^^^^^^^^^^^^
-Average number of microseconds needed to send the answer
 
 .. _stat-udp-answers-bytes:
 

@@ -4,12 +4,12 @@ dnswasher
 Synopsis
 --------
 
-:program:`dnswasher` *INFILE* [*INFILE*] *OUTFILE*
+:program:`dnswasher` [*OPTION*]... *INFILE* [*INFILE*] *OUTFILE*
 
 Description
 -----------
 
-dnswasher takes one or more *INFILE*\ s in PCAP format and writes out
+:program:`dnswasher` takes one or more *INFILE*\ s in PCAP format and writes out
 *OUTFILE* also in PCAP format, while obfuscating end-user IP addresses.
 
 This is useful to share data with third parties while attempting to
@@ -25,11 +25,11 @@ about.
 Options
 -------
 
---decrypt,-d             Undo IPCipher encryption of IP addresses
---help, -h               Show summary of options.
---key,-k                 Base64 encoded 128-bit key for IPCipher
---passphrase,-p          Passphrase that will be used to derive an IPCipher key
---version,-v             Output version
+--decrypt, -d                          Undo IPCipher encryption of IP addresses.
+--help, -h                             Show summary of options.
+--key, -k                              Base64 encoded 128-bit key for IPCipher.
+--passphrase, -p                       Passphrase that will be used to derive an IPCipher key.
+--version, -v                          Output version.
 
 See also
 --------

@@ -37,7 +37,7 @@ ALLOW-AXFR-FROM
 Per-zone AXFR ACLs can be stored in the domainmetadata table.
 
 Each ACL specifies one subnet (v4 or v6), or the magical value 'AUTO-NS'
-that tries to allow all potential slaves in.
+that tries to allow all potential secondaries in.
 
 Example:
 
@@ -194,9 +194,9 @@ SLAVE-RENOTIFY
 --------------
 .. versionadded:: 4.3.0
 
-If set to 1, will make PowerDNS renotify the slaves after an AXFR is received from a master.
+If set to 1, will make PowerDNS renotify the secondaries after an AXFR is received from a master.
 Any other value means that no renotifies are done. If not set at all, action will depend on
-the :ref:`setting-slave-renotify` setting.
+the :ref:`setting-secondary-do-renotify` setting.
 
 .. _metadata-soa-edit:
 
@@ -204,9 +204,9 @@ SOA-EDIT
 --------
 
 When serving this zone, modify the SOA serial number in one of several
-ways. Mostly useful to get slaves to re-transfer a zone regularly to get
+ways. Mostly useful to get secondaries to re-transfer a zone regularly to get
 fresh RRSIGs. See the :ref:`DNSSEC
-documentation <soa-edit-ensure-signature-freshness-on-slaves>`
+documentation <soa-edit-ensure-signature-freshness-on-secondaries>`
 for more information.
 
 .. _metadata-soa-edit-api:
@@ -231,7 +231,7 @@ TSIG-ALLOW-DNSUPDATE
 --------------------
 
 This setting allows you to set the TSIG key required to do an :doc:`dnsupdate`.
-If :ref:`GSS-TSIG <tsig-gss-tsig>` is enabled, you can put kerberos principals here as well.
+If :ref:`GSS-TSIG <tsig-gss-tsig>` is enabled, you can put Kerberos principals here as well.
 
 Extra metadata
 --------------
