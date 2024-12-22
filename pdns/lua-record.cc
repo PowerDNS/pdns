@@ -147,6 +147,7 @@ private:
     catch(std::exception& ne) {
       if(status || first)
         g_log<<Logger::Info<<"LUA record monitoring declaring "<<remstring<<" DOWN for URL "<<cd.url<<", error: "<<ne.what()<<endl;
+      setWeight(cd, 0);
       setDown(cd);
     }
   }
