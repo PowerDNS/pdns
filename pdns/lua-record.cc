@@ -1178,10 +1178,11 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
   /*
    * Based on the hash of `bestwho`, returns an IP address from the list
    * supplied, weighted according to the results of isUp calls.
-   * @example pickselfweighted("{ "192.0.2.20", "203.0.113.4", "203.0.113.2" })
+   * @example pickselfweighted('http://example.com/weight', { "192.0.2.20", "203.0.113.4", "203.0.113.2" })
    */
-  lua.writeFunction("pickselfweighted", [](const iplist_t& ips,
-                                          boost::optional<opts_t> options) {
+  lua.writeFunction("pickselfweighted", [](const std::string& url,
+                                             const iplist_t& ips,
+                                             boost::optional<opts_t> options) {
       vector< pair<int, ComboAddress> > items;
       opts_t opts;
       if(options)
@@ -1193,7 +1194,7 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
       vector<ComboAddress> conv = convComboAddressList(ips);
       for (auto& entry : conv) {
         int weight = 0;
-        weight = g_up.isUp(entry, opts);
+        weight = g_up.isUp(entry, url, opts);
         if(weight>0){
           available = 1;
         }
