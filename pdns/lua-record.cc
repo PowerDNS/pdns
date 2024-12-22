@@ -232,14 +232,11 @@ private:
       state->first = false;
     }
   }
-  
+
   void setWeight(const CheckDesc& cd, int weight){
     auto statuses = d_statuses.write_lock();
     auto& state = (*statuses)[cd];
     state->weight = weight;
-    if (state->first) {
-      state->first = false;
-    }
   }
 
   void setDown(const ComboAddress& rem, const std::string& url=std::string(), const opts_t& opts = opts_t())
