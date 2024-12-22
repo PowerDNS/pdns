@@ -128,20 +128,31 @@ Record creation functions
 
   This function also works for CNAME or TXT records.
 
-.. function:: pickselfweighted(addresses[, options])
+.. function:: pickselfweighted(url, addresses[, options])
 
-  Selects an IP address from the supplied list, weighted according to the results of `isUp` checks. Each address is evaluated, and if its associated weight (from `isUp`) is greater than 0, it is considered for selection using a weighted hash based on `bestwho`. If no address is "up," the function defaults to a random selection.
+  Selects an IP address from the supplied list, weighted according to the results of `isUp` checks. Each address is evaluated, and if its associated weight (from `isUp`) is greater than 0, it is considered for selection using a weighted hash based on `bestwho`. If no address is "up" the function defaults to a random selection.
 
+  :param string url: The health check url to retrieve.
   :param addresses: A list of IP addresses to evaluate.
-  :param options: (Optional) A table of options for this specific check. Supports:
-    - ``source``: Source address for the check.
-    - ``timeout``: Maximum time in seconds for the check (default 2).
-  
-  Example usage::
+  :param options: Table of options for this specific check, see below.
 
-    pickselfweighted({ "192.0.2.20", "203.0.113.4", "203.0.113.2" }, { source = "192.0.2.1", timeout = 1 })
+  Various options can be set in the ``options`` parameter:
 
-  This function is ideal for scenarios where weighted selection is necessary to prioritize "up" addresses while still offering fallback behavior when all addresses are down.
+  - ``selector``: used to pick the address(es) from the subset of available addresses of the selected set. Choices include 'pickclosest', 'random', 'hashed', 'all' (default 'random').
+  - ``backupSelector``: used to pick the address from all addresses if all addresses are down. Choices include 'pickclosest', 'random', 'hashed', 'all' (default 'random').
+  - ``source``: Source address to check from
+  - ``timeout``: Maximum time in seconds that you allow the check to take (default 2)
+  - ``stringmatch``: check ``url`` for this string, only declare 'up' if found
+  - ``useragent``: Set the HTTP "User-Agent" header in the requests. By default it is set to "PowerDNS Authoritative Server"
+  - ``byteslimit``: Limit the maximum download size to ``byteslimit`` bytes (default 0 meaning no limit).
+
+  An example of a list of address sets:
+
+  .. code-block:: lua
+
+    pickselfweighted("http://example.com/weight", { "192.0.2.20", "203.0.113.4", "203.0.113.2" })
+
+  This function is ideal for scenarios where candidates can self-determine their weights, while also providing fallback behavior when all addresses are down.
 
 .. function:: pickrandomsample(number, values)
 
