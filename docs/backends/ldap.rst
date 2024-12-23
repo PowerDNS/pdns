@@ -124,7 +124,7 @@ password, or "gssapi", which requires a Kerberos keytab.
 
 (default "") : Path to the object to authenticate against. Should only
 be used, if the LDAP server doesn't support anonymous binds and with the
-"simple" bindmethod.
+"simple" :ref:`setting-ldap-bindmethod`.
 
 .. _setting-ldap-secret:
 
@@ -132,7 +132,7 @@ be used, if the LDAP server doesn't support anonymous binds and with the
 ^^^^^^^^^^^^^^^
 
 (default "") : Password for authentication against the object specified
-by ldap-binddn. Only used when "bindmethod" is "simple".
+by ldap-binddn. Only used when :ref:`setting-ldap-bindmethod` is "simple".
 
 .. _setting-ldap-krb5-keytab:
 
@@ -140,9 +140,9 @@ by ldap-binddn. Only used when "bindmethod" is "simple".
 ^^^^^^^^^^^^^^^^^^^^
 
 (default: "") : Full path to the keytab file to use to authenticate.
-This is only used when "bindmethod" is set to "gssapi". The keytab must,
-ideally, contain only one principal (or to put it otherwise, only the
-first principal found in the keytab will be used).
+This is only used when :ref:`setting-ldap-bindmethod` is set to "gssapi".
+The keytab must, ideally, contain only one principal (or to put it otherwise,
+only the first principal found in the keytab will be used).
 
 .. _setting-ldap-krb5-ccache:
 

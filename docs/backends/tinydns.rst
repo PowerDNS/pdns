@@ -12,9 +12,9 @@ TinyDNS Backend
 - Launch: ``tinydns``
 
 The TinyDNS backend allows you to use
-`djbdns's <http://cr.yp.to/djbdns.html>`__ ``data.cdb`` file format as
+`djbdns's <https://cr.yp.to/djbdns.html>`__ ``data.cdb`` file format as
 the storage of your DNS records. The ``data.cdb`` file is created using
-`tinydns-data <http://cr.yp.to/djbdns/tinydns-data.html>`__. The backend
+`tinydns-data <https://cr.yp.to/djbdns/tinydns-data.html>`__. The backend
 is designed to be able to use the ``data.cdb`` files without any
 changes.
 
@@ -42,11 +42,11 @@ Specifies the name of the data file to use.
 -  Integer
 -  Default: 11
 
-This adjusts the `TAI <http://www.tai64.com/>`__ value if timestamps are
-used. These seconds will be added to the start point (1970) and will
-allow you to adjust for leap seconds. The current default is 11. The
-last update was on `june 30th
-2012 <http://hpiers.obspm.fr/iers/bul/bulc/bulletinc.dat>`__.
+This adjusts the `TAI <https://cr.yp.to/libtai/tai64.html>`__ value if
+timestamps are used. These seconds will be added to the start point (1970)
+and will allow you to adjust for leap seconds. The current default is 11.
+The last update was on `January 1st,
+2017 <https://hpiers.obspm.fr/iers/bul/bulc/bulletinc.dat>`__.
 
 .. _setting-tinydns-notify-on-startup:
 
@@ -116,7 +116,7 @@ domains or updated serial numbers. The CDB datafile requires us to do a
 full scan of all the records. When running with verbose logging, this
 could lead to a lot of output. The scanning of the CDB file may also
 take a while on systems with large files. The scan happens at an
-interval set by the :ref:`setting-slave-cycle-interval`. It
+interval set by the :ref:`setting-xfr-cycle-interval`. It
 might be useful to raise this value to limit the amount of scans on the
 CDB file.
 
@@ -130,17 +130,17 @@ Useful implementation Notes
 
 This backend might solve some issues you have with the current tinydns
 noted on `Jonathan de Boyne
-Pollard's <http://homepage.ntlworld.com/jonathan.deboynepollard/author.html>`__
+Pollard's <http://jdebp.uk/about-the-author.html>`__
 `djbdns known problems
-page <http://homepage.ntlworld.com/jonathan.deboynepollard/FGA/djbdns-problems.html>`__.
+page <http://jdebp.uk/FGA/djbdns-problems.html>`__.
 
 The ``data.cdb`` file format support all types of records. They are
 sometimes difficult to create because you need to specify the actual
 content of the rdata. `Tinydns.org <http://tinydns.org/>`__ provides a
 number of links to tools/cgi-scripts that allow you to create records.
-`Anders Brownworth <http://anders.com/>`__ also provides a number of
+`Anders Brownworth <https://andersbrownworth.com/>`__ also provides a number of
 useful record building scripts on his
-`djbdnsRecordBuilder <http://anders.com/projects/sysadmin/djbdnsRecordBuilder/>`__.
+`djbdnsRecordBuilder <https://andersbrownworth.com/projects/sysadmin/djbdnsRecordBuilder/>`__.
 
 PowerDNS and TinyDNS handle wildcards differently. Looking up
 foo.www.example.com with the below records on TinyDNS will return

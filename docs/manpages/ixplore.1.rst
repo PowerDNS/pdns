@@ -35,7 +35,7 @@ ZONE
     The name of the zone the IXFRs are consumed from.
 BEFORE
     Path to the 'before' zonefile.
-AFYER
+AFTER
     Path to the 'after' zonefile.
 
 track-mode

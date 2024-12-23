@@ -14,8 +14,8 @@ algorithms are 'hmac-sha1', 'hmac-shaX' where X is 224, 256, 384 or 512.
 The content is a Base64-encoded secret.
 
 .. note::
-  Most backends require DNSSEC support enabled to support TSIG.
-  For the Generic SQL Backend make sure to use the DNSSEC enabled schema
+  Most backends require DNSSEC support to be enabled to support TSIG.
+  For the Generic SQL Backend, make sure to use the DNSSEC-enabled schema
   and to turn on the relevant '-dnssec' flag (for example,
   ``gmysql-dnssec``)!
 
@@ -134,7 +134,7 @@ Prerequisites
    If a user keytab is used, specify it using the ``KRB5_KTNAME`` environment variable when starting up PDNS server, which must be able to read the keytab file.
 
 
-In particular, if something does not work, read logs and ensure that your kerberos environment is ok before filing an issue.
+In particular, if something does not work, read logs and ensure that your Kerberos environment is functional before filing an issue.
 Most common problems are time synchronization or changes done to the principal.
 
 Setting up

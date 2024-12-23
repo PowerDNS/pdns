@@ -216,12 +216,13 @@ Record creation functions
   :param values: table of weight, string (such as IPv4 or IPv6 address).
 
   This function works almost like :func:`pickwhashed` while bringing the following properties:
+
   - reordering the list of entries won't affect the distribution
   - updating the weight of an entry will only affect a part of the distribution
   - because of the previous properties, the CPU and memory cost is a bit higher than :func:`pickwhashed`
 
   Hashes will be pre computed the first time such a record is hit and refreshed if needed. If updating the list is done often,
-  the cash may grow. A cleanup routine is performed every :ref:`setting-lua-consistent-hashes-cleanup-interval` seconds (default 1h)
+  the cache may grow. A cleanup routine is performed every :ref:`setting-lua-consistent-hashes-cleanup-interval` seconds (default 1h)
   and cleans cached entries for records that haven't been used for :ref:`setting-lua-consistent-hashes-expire-delay` seconds (default 24h)
 
   An example::
@@ -364,7 +365,7 @@ Reverse DNS functions
   Used for generating default hostnames from IPv6 wildcard reverse DNS records, e.g. ``*.1.0.0.2.ip6.arpa``
 
   **For simplicity purposes, only small sections of IPv6 rDNS domains are used in most parts of this guide,**
-  **as a full ip6.arpa record is around 80 characters long**
+  **as a full ip6.arpa record is around 80 characters long.**
 
   See :func:`createReverse` for IPv4 records (in-addr.arpa)
 
@@ -426,7 +427,7 @@ Reverse DNS functions
     $ dig +short AAAA 2001-a-b--1.static6.example.com @ns1.example.com
     2001:a:b::1
 
-  Since 4.8.0: a non-split full length format (``20010002000300040005000600070db8.example.com``) is also supported, optionally prefixed, in which case the last 32 characters will be considered.
+  Since 4.8.0: a non-split full length format (``20010002000300040005000600070db8.example.com``) is also supported, optionally prefixed, in which case only the last 32 characters will be considered.
 
 .. function:: filterForward(address, masks[, fallback])
 

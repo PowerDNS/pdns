@@ -15,7 +15,7 @@ To enable distributors of PowerDNS to signal that they have backported versions,
 Details
 ^^^^^^^
 PowerDNS software sadly sometimes has critical security bugs.
-Even though we send out notifications of these via all channels available, we find that not everybody actually find out about our security releases.
+Even though we send out notifications of these via all channels available, we find that not everybody actually finds out about our security releases.
 
 To solve this, PowerDNS software will start polling for security notifications, and log these periodically.
 Secondly, the security status of the software will be reported using the built-in metrics.

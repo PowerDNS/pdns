@@ -35,16 +35,17 @@ The equivalent for IPv6 is not known.
 Options
 -------
 
--f, <FILENAME>, --file <FILENAME>       *FILENAME* from which to read queries. Defaults to standard input if unspecified.
--h, --help                              Provide a helpful message.
---timeout-msec <MSEC>                   *MSEC* milliseconds to wait for an answer.
--u, --udp-first                         Attempt resolution via UDP first, only do TCP if truncated answer is received.
--v, --verbose                           Be wordy on what the program is doing.
---workers <NUM>                         Use *NUM* parallel worker threads.
+REMOTE-ADDRESS
+    IPv4 or IPv6 to test against.
+REMOTE-PORT
+    Port to test against, defaults to 53.
 
-*REMOTE-ADDRESS*: IPv4 or IPv6 to test against.
-
-*REMOTE-PORT*: Port to test against, defaults to 53.
+-f <FILENAME>, --file <FILENAME>       *FILENAME* from which to read queries. Defaults to standard input if unspecified.
+-h, --help                             Provide a helpful message.
+--timeout-msec <MSEC>                  *MSEC* milliseconds to wait for an answer.
+-u, --udp-first                        Attempt resolution via UDP first, only do TCP if truncated answer is received.
+-v, --verbose                          Be wordy on what the program is doing.
+--workers <NUM>                        Use *NUM* parallel worker threads.
 
 Bugs
 ----

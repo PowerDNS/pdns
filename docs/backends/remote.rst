@@ -20,8 +20,8 @@ Important notices
 -----------------
 
 There is a breaking change on v4.0 and later. Before version 4.0, the
-DNS names passed in queries were without trailing dot, after version 4.0
-the DNS names are sent with trailing dot. F.ex. example.org is now sent
+DNS names passed in queries were sent without a trailing dot, after version 4.0
+the DNS names are always sent with trailing dot. F.ex. example.org is now sent
 as example.org.
 
 In some (broken) network setups, the IP addresses provided in the
@@ -231,7 +231,7 @@ Response:
 ``list``
 ~~~~~~~~
 
-Lists all records for the zonename. If you are running dnssec, you
+Lists all records for the zonename. If you are running DNSSEC, you
 should take care of setting auth to appropriate value, otherwise things
 can go wrong.
 
@@ -329,7 +329,7 @@ Response:
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 Returns the value(s) for variable kind for zone name. You **must**
-always return something, if there are no values, you shall return empty
+always return something, if there are no values, you shall return an empty
 set.
 
 *  Mandatory: yes
@@ -374,7 +374,7 @@ Response:
 
 Returns the value(s) for variable kind for zone name. Most commonly it's
 one of NSEC3PARAM, PRESIGNED, SOA-EDIT. Can be others, too. You **must**
-always return something, if there are no values, you shall return empty
+always return something, if there are no values, you shall return an empty
 array.
 
 -  Mandatory: No

@@ -13,10 +13,10 @@ This program takes recorded questions and answers and replays them to
 the specified nameserver and reporting afterwards which percentage of
 answers matched, were worse or better.
 
-dnsreplay compares the answers and some other metrics with the actual
+:program:`dnsreplay` compares the answers and some other metrics with the actual
 ones with those found in the dumpfile.
 
-By default it only replay queries with recursion-desired flag set.
+By default it will only replay queries with recursion-desired flag set.
 
 Options
 -------
@@ -36,11 +36,11 @@ PORT
 --packet-limit <NUM>       Stop after replaying *NUM* packets. Default for *NUM* is 0, which
                            means no limit.
 --pcap-dns-port <VAL>      Look at packets from or to this port in the PCAP. Default is 53.
---quiet <FLAG>             If *FLAG* is set to 1. dnsreplay will not be very noisy with its
+--quiet <FLAG>             If *FLAG* is set to 1, :program:`dnsreplay` will not be very noisy with its
                            output. This is the default.
---recursive <FLAG>         If *FLAG* is set to 1. dnsreplay will only replay queries with
+--recursive <FLAG>         If *FLAG* is set to 1, :program:`dnsreplay` will only replay queries with
                            recursion desired flag set. This is the default.
---source-from-pcap <FLAG>  If *FLAG* is set to 1. dnsreplay will send the replayed queries from the
+--source-from-pcap <FLAG>  If *FLAG* is set to 1, :program:`dnsreplay` will send the replayed queries from the
                            source IP address and port present in the PCAP file. This requires
                            IP_TRANSPARENT support. Default is 0 which means replayed queries will be
                            sent from a local address.

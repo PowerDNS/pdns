@@ -15,9 +15,9 @@ to the keying defaults of ``pdnsutil secure-zone``.
 It is possible to operate a zone with different keying algorithms
 simultaneously, but it has also been observed that this is not reliable.
 
-Depending on your master/slave setup, you may need to tinker with the
-:ref:`SOA-EDIT <metadata-soa-edit>` metadata on your master.
-This is described in the :ref:`soa-edit-ensure-signature-freshness-on-slaves` section.
+Depending on your primary/secondary setup, you may need to tinker with the
+:ref:`SOA-EDIT <metadata-soa-edit>` metadata on your primary.
+This is described in the :ref:`soa-edit-ensure-signature-freshness-on-secondaries` section.
 
 Packet sizes, fragments, TCP/IP service
 ---------------------------------------
