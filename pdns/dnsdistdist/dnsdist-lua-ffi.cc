@@ -606,7 +606,7 @@ void dnsdist_ffi_dnsquestion_send_trap(dnsdist_ffi_dnsquestion_t* dq, const char
 
 void dnsdist_ffi_dnsquestion_spoof_packet(dnsdist_ffi_dnsquestion_t* dq, const char* raw, size_t len)
 {
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
   dnsdist::self_answers::generateAnswerFromRawPacket(*dq->dq, PacketBuffer(raw, raw + len));
 }
 

@@ -561,7 +561,7 @@ class HTTPHeaderRule : public DNSRule
 {
 public:
   HTTPHeaderRule(const std::string& header, const std::string& regex);
-  bool matches(const DNSQuestion* dq) const override;
+  bool matches(const DNSQuestion* dnsQuestion) const override;
   string toString() const override;
 
 private:
@@ -574,7 +574,7 @@ class HTTPPathRule : public DNSRule
 {
 public:
   HTTPPathRule(std::string path);
-  bool matches(const DNSQuestion* dq) const override;
+  bool matches(const DNSQuestion* dnsQuestion) const override;
   string toString() const override;
 
 private:
@@ -585,7 +585,7 @@ class HTTPPathRegexRule : public DNSRule
 {
 public:
   HTTPPathRegexRule(const std::string& regex);
-  bool matches(const DNSQuestion* dq) const override;
+  bool matches(const DNSQuestion* dnsQuestion) const override;
   string toString() const override;
 
 private:
