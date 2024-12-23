@@ -1209,7 +1209,7 @@ lua-health-checks-interval=5
         # wait for another check. At this point the checker thread should have
         # reached the minimumFailures threshold and mark the unreachable IP
         # as such.
-        time.sleep(5)
+        time.sleep(5 + 1)
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertAnyRRsetInAnswer(res, reachable_rrs)
