@@ -26,7 +26,7 @@
 #if defined(HAVE_YAML_CONFIGURATION)
 #include "base64.hh"
 #include "dolog.hh"
-#include "dnsdist-actions-factories.hh"
+#include "dnsdist-actions-factory.hh"
 #include "dnsdist-backend.hh"
 #include "dnsdist-cache.hh"
 #include "dnsdist-discovery.hh"

@@ -21,7 +21,7 @@
  */
 #include "config.h"
 #include "dnsdist.hh"
-#include "dnsdist-actions-factories.hh"
+#include "dnsdist-actions-factory.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-lua-ffi.hh"
 #include "dnsdist-protobuf.hh"

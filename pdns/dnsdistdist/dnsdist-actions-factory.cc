@@ -21,7 +21,7 @@
  */
 #include <unordered_map>
 
-#include "dnsdist-actions-factories.hh"
+#include "dnsdist-actions-factory.hh"
 
 #include "config.h"
 #include "dnsdist.hh"
@@ -2427,6 +2427,6 @@ std::shared_ptr<DNSAction> getTeeAction(const ComboAddress& rca, std::optional<C
   return std::shared_ptr<DNSAction>(new TeeAction(rca, lca, addECS, addProxyProtocol));
 }
 
-#include "dnsdist-actions-factories-generated.cc"
-#include "dnsdist-response-actions-factories-generated.cc"
+#include "dnsdist-actions-factory-generated.cc"
+#include "dnsdist-response-actions-factory-generated.cc"
 }

@@ -59,8 +59,8 @@ struct SOAParams
   uint32_t minimum;
 };
 
-#include "dnsdist-actions-factories-generated.hh"
-#include "dnsdist-response-actions-factories-generated.hh"
+#include "dnsdist-actions-factory-generated.hh"
+#include "dnsdist-response-actions-factory-generated.hh"
 
 std::shared_ptr<DNSAction> getContinueAction(std::shared_ptr<DNSAction> action);
 #ifdef HAVE_DNS_OVER_HTTPS

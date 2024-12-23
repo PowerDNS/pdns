@@ -35,10 +35,10 @@ dnslabeltext.cc: dnslabeltext.rl
 	$(AM_V_GEN)$(RAGEL) $< -o dnslabeltext.cc
 
 BUILT_SOURCES=htmlfiles.h \
-	dnsdist-actions-factories-generated.cc dnsdist-actions-factories-generated.hh \
+	dnsdist-actions-factory-generated.cc dnsdist-actions-factory-generated.hh \
 	dnsdist-lua-ffi-interface.inc \
 	dnsdist-lua-actions-generated.cc dnsdist-lua-response-actions-generated.cc \
-	dnsdist-response-actions-factories-generated.cc dnsdist-response-actions-factories-generated.hh \
+	dnsdist-response-actions-factory-generated.cc dnsdist-response-actions-factory-generated.hh \
 	dnsdist-rust-bridge-actions-generated.cc dnsdist-rust-bridge-actions-generated.hh \
 	dnsdist-rust-bridge-selectors-generated.cc dnsdist-rust-bridge-selectors-generated.hh \
 	dnsdist-selectors-factory-generated.cc dnsdist-selectors-factory-generated.hh \
@@ -171,8 +171,8 @@ dnsdist_SOURCES = \
 	dns.cc dns.hh \
 	dns_random.hh \
 	dnscrypt.cc dnscrypt.hh \
-	dnsdist-actions-factories-generated.hh \
-	dnsdist-actions-factories.cc dnsdist-actions-factories.hh \
+	dnsdist-actions-factory-generated.hh \
+	dnsdist-actions-factory.cc dnsdist-actions-factory.hh \
 	dnsdist-actions.cc dnsdist-actions.hh \
 	dnsdist-async.cc dnsdist-async.hh \
 	dnsdist-backend.cc dnsdist-backend.hh \
