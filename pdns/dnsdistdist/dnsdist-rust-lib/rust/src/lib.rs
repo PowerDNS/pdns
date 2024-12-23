@@ -688,17 +688,17 @@ mod dnsdistsettings {
         name: String,
     }
 
-    #[derive(Default)]
-    struct AndSelectorConfiguration {
-        name: String,
-        selectors: Vec<SharedDNSSelector>,
-    }
-
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
     struct AllSelectorConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
+    }
+
+    #[derive(Default)]
+    struct AndSelectorConfiguration {
+        name: String,
+        selectors: Vec<SharedDNSSelector>,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
@@ -1194,7 +1194,7 @@ mod dnsdistsettings {
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
-    struct LMDBKVSConfiguration {
+    struct LMDBKVStoreConfiguration {
         name: String,
         #[serde(rename = "file-name", )]
         file_name: String,
@@ -1206,7 +1206,7 @@ mod dnsdistsettings {
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
-    struct CDBKVSConfiguration {
+    struct CDBKVStoreConfiguration {
         name: String,
         #[serde(rename = "file-name", )]
         file_name: String,
@@ -1268,9 +1268,9 @@ mod dnsdistsettings {
     #[serde(deny_unknown_fields)]
     struct KeyValueStoresConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
-        lmdb: Vec<LMDBKVSConfiguration>,
+        lmdb: Vec<LMDBKVStoreConfiguration>,
         #[serde(default, skip_serializing_if = "crate::is_default")]
-        cdb: Vec<CDBKVSConfiguration>,
+        cdb: Vec<CDBKVStoreConfiguration>,
         #[serde(rename = "lookup-keys", default, skip_serializing_if = "crate::is_default")]
         lookup_keys: KVSLookupKeysConfiguration,
     }
@@ -2064,8 +2064,8 @@ mod dnsdistsettings {
         fn getSetTagResponseAction(config: &SetTagResponseActionConfiguration) -> SharedPtr<DNSResponseActionWrapper>;
         fn getSNMPTrapResponseAction(config: &SNMPTrapResponseActionConfiguration) -> SharedPtr<DNSResponseActionWrapper>;
         fn getTCResponseAction(config: &TCResponseActionConfiguration) -> SharedPtr<DNSResponseActionWrapper>;
-        fn getAndSelector(config: &AndSelectorConfiguration) -> SharedPtr<DNSSelector>;
         fn getAllSelector(config: &AllSelectorConfiguration) -> SharedPtr<DNSSelector>;
+        fn getAndSelector(config: &AndSelectorConfiguration) -> SharedPtr<DNSSelector>;
         fn getByNameSelector(config: &ByNameSelectorConfiguration) -> SharedPtr<DNSSelector>;
         fn getDNSSECSelector(config: &DNSSECSelectorConfiguration) -> SharedPtr<DNSSelector>;
         fn getDSTPortSelector(config: &DSTPortSelectorConfiguration) -> SharedPtr<DNSSelector>;
@@ -2368,8 +2368,8 @@ enum ResponseAction {
 enum Selector {
     #[default]
     Default,
-    And(AndSelectorConfigurationSerde),
     All(dnsdistsettings::AllSelectorConfiguration),
+    And(AndSelectorConfigurationSerde),
     ByName(dnsdistsettings::ByNameSelectorConfiguration),
     DNSSEC(dnsdistsettings::DNSSECSelectorConfiguration),
     DSTPort(dnsdistsettings::DSTPortSelectorConfiguration),
@@ -2462,17 +2462,17 @@ impl Default for dnsdistsettings::ProtoBufMetaConfiguration {
 }
 
 
-impl Default for dnsdistsettings::LMDBKVSConfiguration {
+impl Default for dnsdistsettings::LMDBKVStoreConfiguration {
     fn default() -> Self {
-        let deserialized: dnsdistsettings::LMDBKVSConfiguration = serde_yaml::from_str("").unwrap();
+        let deserialized: dnsdistsettings::LMDBKVStoreConfiguration = serde_yaml::from_str("").unwrap();
         deserialized
     }
 }
 
 
-impl Default for dnsdistsettings::CDBKVSConfiguration {
+impl Default for dnsdistsettings::CDBKVStoreConfiguration {
     fn default() -> Self {
-        let deserialized: dnsdistsettings::CDBKVSConfiguration = serde_yaml::from_str("").unwrap();
+        let deserialized: dnsdistsettings::CDBKVStoreConfiguration = serde_yaml::from_str("").unwrap();
         deserialized
     }
 }
@@ -3087,12 +3087,12 @@ impl dnsdistsettings::ProtoBufMetaConfiguration {
         Ok(())
     }
 }
-impl dnsdistsettings::LMDBKVSConfiguration {
+impl dnsdistsettings::LMDBKVStoreConfiguration {
     fn validate(&self) -> Result<(), ValidationError> {
         Ok(())
     }
 }
-impl dnsdistsettings::CDBKVSConfiguration {
+impl dnsdistsettings::CDBKVStoreConfiguration {
     fn validate(&self) -> Result<(), ValidationError> {
         Ok(())
     }
@@ -3822,6 +3822,12 @@ fn get_one_response_action_from_serde(action: &ResponseAction) -> Option<dnsdist
 fn get_one_selector_from_serde(selector: &Selector) -> Option<dnsdistsettings::SharedDNSSelector> {
     match selector {
         Selector::Default => {}
+        Selector::All(all) => {
+            let tmp_selector = dnsdistsettings::getAllSelector(&all);
+            return Some(dnsdistsettings::SharedDNSSelector {
+                selector: tmp_selector,
+            });
+        }
         Selector::And(and) => {
              let mut config: dnsdistsettings::AndSelectorConfiguration = Default::default();
              for sub_selector in &and.selectors {
@@ -3833,12 +3839,6 @@ fn get_one_selector_from_serde(selector: &Selector) -> Option<dnsdistsettings::S
              return Some(dnsdistsettings::SharedDNSSelector {
                  selector: dnsdistsettings::getAndSelector(&config),
              });
-        }
-        Selector::All(all) => {
-            let tmp_selector = dnsdistsettings::getAllSelector(&all);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
         }
         Selector::ByName(byname) => {
             let tmp_selector = dnsdistsettings::getByNameSelector(&byname);

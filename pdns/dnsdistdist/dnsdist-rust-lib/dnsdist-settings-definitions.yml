@@ -223,7 +223,7 @@ ProtoBufMeta:
     - name: "value"
       type: "String"
 
-LMDBKVS:
+LMDBKVStore:
   parameters:
     - name: "name"
       type: "String"
@@ -235,7 +235,7 @@ LMDBKVS:
       type: "bool"
       default: "false"
 
-CDBKVS:
+CDBKVStore:
   parameters:
     - name: "name"
       type: "String"
@@ -302,10 +302,10 @@ KVSLookupKeys:
 key-value-stores:
   parameters:
     - name: "lmdb"
-      type: "Vec<LMDBKVSConfiguration>"
+      type: "Vec<LMDBKVStoreConfiguration>"
       default: true
     - name: "cdb"
-      type: "Vec<CDBKVSConfiguration>"
+      type: "Vec<CDBKVStoreConfiguration>"
       default: true
     - name: "lookup-keys"
       type: "KVSLookupKeysConfiguration"

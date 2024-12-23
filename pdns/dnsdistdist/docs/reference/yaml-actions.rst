@@ -4,7 +4,7 @@
 
     \setcounter{secnumdepth}{-1}
 
-.. _yaml-settings-action:
+.. _yaml-settings-Action:
 
 YAML action reference
 =====================
@@ -15,7 +15,7 @@ AllowAction
 -----------
 
 Let these packets go through.
- 
+
 .. _yaml-settings-DelayAction:
 
 DelayAction

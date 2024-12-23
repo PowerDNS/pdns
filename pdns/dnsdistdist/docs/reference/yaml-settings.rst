@@ -109,10 +109,10 @@ BindConfiguration
 - **additional-addresses**: Sequence of String
 
 
-.. _yaml-settings-CDBKVSConfiguration:
+.. _yaml-settings-CDBKVStoreConfiguration:
 
-CDBKVSConfiguration
--------------------
+CDBKVStoreConfiguration
+-----------------------
 
 - **name**: String
 - **file-name**: String
@@ -447,15 +447,15 @@ KVSLookupKeysConfiguration
 KeyValueStoresConfiguration
 ---------------------------
 
-- **lmdb**: Sequence of :ref:`LMDBKVSConfiguration <yaml-settings-LMDBKVSConfiguration>`
-- **cdb**: Sequence of :ref:`CDBKVSConfiguration <yaml-settings-CDBKVSConfiguration>`
+- **lmdb**: Sequence of :ref:`LMDBKVStoreConfiguration <yaml-settings-LMDBKVStoreConfiguration>`
+- **cdb**: Sequence of :ref:`CDBKVStoreConfiguration <yaml-settings-CDBKVStoreConfiguration>`
 - **lookup-keys**: :ref:`KVSLookupKeysConfiguration <yaml-settings-KVSLookupKeysConfiguration>`
 
 
-.. _yaml-settings-LMDBKVSConfiguration:
+.. _yaml-settings-LMDBKVStoreConfiguration:
 
-LMDBKVSConfiguration
---------------------
+LMDBKVStoreConfiguration
+------------------------
 
 - **name**: String
 - **file-name**: String

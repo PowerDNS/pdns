@@ -103,7 +103,7 @@ def process_object(object_name, entries, entry_type, is_setting_struct=False):
     if 'description' in entries:
         description = entries['description']
         output += description + '\n'
-        output += ' \n'
+        output += '\n'
 
     if 'parameters' in entries:
         if not is_setting_struct:
@@ -152,18 +152,19 @@ A YAML configuration file contains several sections, that are described below.
 
 def process_selectors_or_actions(def_file, entry_type):
     title = f'YAML {entry_type} reference'
+    object_name = get_rust_object_name(entry_type)
     output = f'''.. raw:: latex
 
     \\setcounter{{secnumdepth}}{{-1}}
 
-.. _yaml-settings-{entry_type}:
+.. _yaml-settings-{object_name}:
 
 {title}
 '''
     output += len(title)*'=' + '\n\n'
     entries = get_definitions_from_file(def_file)
 
-    suffix = get_rust_object_name(entry_type)
+    suffix = object_name
     for entry in entries:
         output += process_object(get_rust_object_name(entry['name'] + suffix), entry, 'settings')
 
@@ -181,7 +182,7 @@ def main():
     os.rename(generated_fp.name, '../docs/reference/yaml-actions.rst')
 
     generated_fp = get_temporary_file_for_generated_content('../docs/')
-    output = process_selectors_or_actions('../dnsdist-response-actions-definitions.yml', 'responseaction')
+    output = process_selectors_or_actions('../dnsdist-response-actions-definitions.yml', 'response-action')
     generated_fp.write(output)
     os.rename(generated_fp.name, '../docs/reference/yaml-response-actions.rst')
 

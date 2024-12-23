@@ -4,7 +4,7 @@
 
     \setcounter{secnumdepth}{-1}
 
-.. _yaml-settings-selector:
+.. _yaml-settings-Selector:
 
 YAML selector reference
 =======================

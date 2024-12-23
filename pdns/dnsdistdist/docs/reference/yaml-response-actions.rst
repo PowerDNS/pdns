@@ -4,33 +4,33 @@
 
     \setcounter{secnumdepth}{-1}
 
-.. _yaml-settings-responseaction:
+.. _yaml-settings-ResponseAction:
 
-YAML responseaction reference
-=============================
+YAML response-action reference
+==============================
 
-.. _yaml-settings-AllowResponseaction:
+.. _yaml-settings-AllowResponseAction:
 
-AllowResponseaction
+AllowResponseAction
 -------------------
 
 Let these packets go through.
- 
-.. _yaml-settings-ClearRecordTypesResponseaction:
 
-ClearRecordTypesResponseaction
+.. _yaml-settings-ClearRecordTypesResponseAction:
+
+ClearRecordTypesResponseAction
 ------------------------------
 
 Removes given type(s) records from the response. Beware you can accidentally turn the answer into a NODATA response without a SOA record in the additional section in which case you may want to use NegativeAndSOAAction() to generate an answer, see example below. Subsequent rules are processed after this action.
- 
+
 Parameters:
 
 - **types**: Sequence of Unsigned integer - List of types to remove
 
 
-.. _yaml-settings-DelayResponseaction:
+.. _yaml-settings-DelayResponseAction:
 
-DelayResponseaction
+DelayResponseAction
 -------------------
 
 Parameters:
@@ -38,9 +38,9 @@ Parameters:
 - **msec**: Unsigned integer
 
 
-.. _yaml-settings-DnstapLogResponseaction:
+.. _yaml-settings-DnstapLogResponseAction:
 
-DnstapLogResponseaction
+DnstapLogResponseAction
 -----------------------
 
 Parameters:
@@ -50,14 +50,14 @@ Parameters:
 - **alter-function**: String ``("")``
 
 
-.. _yaml-settings-DropResponseaction:
+.. _yaml-settings-DropResponseAction:
 
-DropResponseaction
+DropResponseAction
 ------------------
 
-.. _yaml-settings-LimitTTLResponseaction:
+.. _yaml-settings-LimitTTLResponseAction:
 
-LimitTTLResponseaction
+LimitTTLResponseAction
 ----------------------
 
 Parameters:
@@ -67,9 +67,9 @@ Parameters:
 - **types**: Sequence of Unsigned integer
 
 
-.. _yaml-settings-LogResponseaction:
+.. _yaml-settings-LogResponseAction:
 
-LogResponseaction
+LogResponseAction
 -----------------
 
 Parameters:
@@ -81,9 +81,9 @@ Parameters:
 - **include-timestamp**: Boolean ``(false)``
 
 
-.. _yaml-settings-LuaResponseaction:
+.. _yaml-settings-LuaResponseAction:
 
-LuaResponseaction
+LuaResponseAction
 -----------------
 
 Parameters:
@@ -91,9 +91,9 @@ Parameters:
 - **function**: String
 
 
-.. _yaml-settings-LuaFFIResponseaction:
+.. _yaml-settings-LuaFFIResponseAction:
 
-LuaFFIResponseaction
+LuaFFIResponseAction
 --------------------
 
 Parameters:
@@ -101,9 +101,9 @@ Parameters:
 - **function**: String
 
 
-.. _yaml-settings-LuaFFIPerThreadResponseaction:
+.. _yaml-settings-LuaFFIPerThreadResponseAction:
 
-LuaFFIPerThreadResponseaction
+LuaFFIPerThreadResponseAction
 -----------------------------
 
 Parameters:
@@ -111,9 +111,9 @@ Parameters:
 - **code**: String
 
 
-.. _yaml-settings-RemoteLogResponseaction:
+.. _yaml-settings-RemoteLogResponseAction:
 
-RemoteLogResponseaction
+RemoteLogResponseAction
 -----------------------
 
 Parameters:
@@ -128,9 +128,9 @@ Parameters:
 - **metas**: Sequence of :ref:`ProtoBufMetaConfiguration <yaml-settings-ProtoBufMetaConfiguration>`
 
 
-.. _yaml-settings-SetExtendedDNSErrorResponseaction:
+.. _yaml-settings-SetExtendedDNSErrorResponseAction:
 
-SetExtendedDNSErrorResponseaction
+SetExtendedDNSErrorResponseAction
 ---------------------------------
 
 Parameters:
@@ -139,9 +139,9 @@ Parameters:
 - **extra-text**: String ``("")``
 
 
-.. _yaml-settings-SetMinTTLResponseaction:
+.. _yaml-settings-SetMinTTLResponseAction:
 
-SetMinTTLResponseaction
+SetMinTTLResponseAction
 -----------------------
 
 Parameters:
@@ -149,9 +149,9 @@ Parameters:
 - **min**: Unsigned integer
 
 
-.. _yaml-settings-SetMaxReturnedTTLResponseaction:
+.. _yaml-settings-SetMaxReturnedTTLResponseAction:
 
-SetMaxReturnedTTLResponseaction
+SetMaxReturnedTTLResponseAction
 -------------------------------
 
 Parameters:
@@ -159,9 +159,9 @@ Parameters:
 - **max**: Unsigned integer
 
 
-.. _yaml-settings-SetMaxTTLResponseaction:
+.. _yaml-settings-SetMaxTTLResponseAction:
 
-SetMaxTTLResponseaction
+SetMaxTTLResponseAction
 -----------------------
 
 Parameters:
@@ -169,9 +169,9 @@ Parameters:
 - **max**: Unsigned integer
 
 
-.. _yaml-settings-SetReducedTTLResponseaction:
+.. _yaml-settings-SetReducedTTLResponseAction:
 
-SetReducedTTLResponseaction
+SetReducedTTLResponseAction
 ---------------------------
 
 Parameters:
@@ -179,14 +179,14 @@ Parameters:
 - **percentage**: Unsigned integer
 
 
-.. _yaml-settings-SetSkipCacheResponseaction:
+.. _yaml-settings-SetSkipCacheResponseAction:
 
-SetSkipCacheResponseaction
+SetSkipCacheResponseAction
 --------------------------
 
-.. _yaml-settings-SetTagResponseaction:
+.. _yaml-settings-SetTagResponseAction:
 
-SetTagResponseaction
+SetTagResponseAction
 --------------------
 
 Parameters:
@@ -195,9 +195,9 @@ Parameters:
 - **value**: String
 
 
-.. _yaml-settings-SNMPTrapResponseaction:
+.. _yaml-settings-SNMPTrapResponseAction:
 
-SNMPTrapResponseaction
+SNMPTrapResponseAction
 ----------------------
 
 Parameters:
@@ -205,8 +205,8 @@ Parameters:
 - **reason**: String ``("")``
 
 
-.. _yaml-settings-TCResponseaction:
+.. _yaml-settings-TCResponseAction:
 
-TCResponseaction
+TCResponseAction
 ----------------
 
