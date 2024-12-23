@@ -132,7 +132,7 @@ YAML configuration reference
 
 Since 2.0.0, :program:`dnsdist` supports the YAML configuration format in addition to the existing Lua one.
 
-If the configuration file passed to :program:`dnsdist` via the ``-C`` command-line switch ends in ``.yml``, it is assumed to be in the new YAML format, and an attempt toload a Lua configuration file with the same name but the ``.lua`` will be done before loading the YAML configuration. If the names ends in ``.lua``, there will also be an attempt to find a file with the same name but ending in ``.yml``. Otherwise the existing Lua configuration format is assumed.
+If the configuration file passed to :program:`dnsdist` via the ``-C`` command-line switch ends in ``.yml``, it is assumed to be in the new YAML format, and an attempt to load a Lua configuration file with the same name but the ``.lua`` will be done before loading the YAML configuration. If the names ends in ``.lua``, there will also be an attempt to find a file with the same name but ending in ``.yml``. Otherwise the existing Lua configuration format is assumed.
 
 A YAML configuration file contains several sections, that are described below.
 
