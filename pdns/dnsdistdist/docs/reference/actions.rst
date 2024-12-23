@@ -59,7 +59,7 @@ The following actions exist.
   Execute the specified action and override its return with None, making it possible to continue the processing.
   Subsequent rules are processed after this action.
 
-  :param int action: Any other action
+  :param Action action: Any other action
 
 .. function:: DelayAction(milliseconds)
 
@@ -224,7 +224,7 @@ The following actions exist.
 
   :param int min: The minimum allowed value
   :param int max: The maximum allowed value
-  :param list of int: The record types to cap the TTL for. Default is empty which means all records will be capped.
+  :param table types: The record types to cap the TTL for, as integers. Default is empty which means all records will be capped.
 
 .. function:: LogAction([filename[, binary[, append[, buffered[, verboseOnly[, includeTimestamp]]]]]])
 
@@ -496,7 +496,7 @@ The following actions exist.
     ``exportExtendedErrorsToMeta`` optional key added to the options table.
 
   Send the content of this response to a remote logger via Protocol Buffer.
-  ``alterFunction`` is the same callback that receiving a :class:`DNSQuestion` and a :class:`DNSDistProtoBufMessage`, that can be used to modify the Protocol Buffer content, for example for anonymization purposes.
+  ``alterFunction`` is the same callback that receiving a :class:`DNSResponse` and a :class:`DNSDistProtoBufMessage`, that can be used to modify the Protocol Buffer content, for example for anonymization purposes.
   ``includeCNAME`` indicates whether CNAME records inside the response should be parsed and exported.
   The default is to only exports A and AAAA records.
   Since 1.8.0 it is possible to add configurable meta-data fields to the Protocol Buffer message via the ``metas`` parameter, which takes a list of ``name``=``key`` pairs. See :func:`RemoteLogAction` for the list of available keys.
@@ -878,11 +878,11 @@ The following actions exist.
 
   .. versionadded:: 1.7.0
 
-  Forge a response with the specified SVC record data. If the list contains more than one class:`SVCRecordParameters` (generated via :func:`newSVCRecordParameters`) object, they are all returned,
+  Forge a response with the specified SVC record data. If the list contains more than one :class:`SVCRecordParameters` (generated via :func:`newSVCRecordParameters`) object, they are all returned,
   and should have different priorities.
   The hints provided in the SVC parameters, if any, will also be added as A/AAAA records in the additional section, using the target name present in the parameters as owner name if it's not empty (root) and the qname instead.
 
-  :param list of class:`SVCRecordParameters` svcParams: The record data to return
+  :param table svcParams: List of :class:`SVCRecordParameters` from which to generate the record data to return
   :param table options: A table with key: value pairs with options.
 
   Options:
