@@ -29,8 +29,8 @@
 
    ponder netmask tree from file for huge number of netmasks
 
-   unify ifurlup/ifportup
-      add attribute for certificate check
+   add attribute for certificate check in genericIfUp
+
    add list of current monitors
       expire them too?
 
@@ -71,10 +71,14 @@ private:
     CheckState(time_t _lastAccess): lastAccess(_lastAccess) {}
     /* current status */
     std::atomic<bool> status{false};
-    /* first check ? */
+    /* first check? */
     std::atomic<bool> first{true};
+    /* number of successive checks returning failure */
+    std::atomic<unsigned int> failures{0};
     /* last time the status was accessed */
     std::atomic<time_t> lastAccess{0};
+    /* last time the status was modified */
+    std::atomic<time_t> lastStatusUpdate{0};
   };
 
 public:
@@ -88,7 +92,7 @@ public:
   bool isUp(const CheckDesc& cd);
 
 private:
-  void checkURL(const CheckDesc& cd, const bool status, const bool first = false)
+  void checkURL(const CheckDesc& cd, const bool status, const bool first) // NOLINT(readability-identifier-length)
   {
     setThreadName("pdns/lua-c-url");
 
@@ -139,7 +143,7 @@ private:
       setDown(cd);
     }
   }
-  void checkTCP(const CheckDesc& cd, const bool status, const bool first = false) {
+  void checkTCP(const CheckDesc& cd, const bool status, const bool first) { // NOLINT(readability-identifier-length)
     setThreadName("pdns/lua-c-tcp");
     try {
       int timeout = 2;
@@ -177,20 +181,44 @@ private:
       std::chrono::system_clock::time_point checkStart = std::chrono::system_clock::now();
       std::vector<std::future<void>> results;
       std::vector<CheckDesc> toDelete;
+      time_t interval{g_luaHealthChecksInterval};
       {
         // make sure there's no insertion
         auto statuses = d_statuses.read_lock();
         for (auto& it: *statuses) {
           auto& desc = it.first;
           auto& state = it.second;
+          time_t checkInterval{0};
+          auto lastAccess = std::chrono::system_clock::from_time_t(state->lastAccess);
+
+          if (desc.opts.count("interval") != 0)
+            checkInterval = std::atoi(desc.opts.at("interval").c_str());
+
+          if (not state->first) {
+            time_t nextCheckSecond = state->lastStatusUpdate;
+            if (checkInterval != 0)
+               nextCheckSecond += checkInterval;
+            else
+               nextCheckSecond += g_luaHealthChecksInterval;
+            if (checkStart < std::chrono::system_clock::from_time_t(nextCheckSecond)) {
+              continue; // too early
+            }
+          }
 
           if (desc.url.empty()) { // TCP
             results.push_back(std::async(std::launch::async, &IsUpOracle::checkTCP, this, desc, state->status.load(), state->first.load()));
           } else { // URL
             results.push_back(std::async(std::launch::async, &IsUpOracle::checkURL, this, desc, state->status.load(), state->first.load()));
           }
-          if (std::chrono::system_clock::from_time_t(state->lastAccess) < (checkStart - std::chrono::seconds(g_luaHealthChecksExpireDelay))) {
+          // Give it a chance to run at least once.
+          // If minimumFailures * interval > lua-health-checks-expire-delay, then a down status will never get reported.
+          // This is unlikely to be a problem in practice due to the default value of the expire delay being one hour.
+          if (not state->first &&
+              lastAccess < (checkStart - std::chrono::seconds(g_luaHealthChecksExpireDelay))) {
             toDelete.push_back(desc);
+          }
+          if (checkInterval != 0) {
+            interval = std::gcd(interval, checkInterval);
           }
         }
       }
@@ -208,7 +236,7 @@ private:
       // set thread name again, in case std::async surprised us by doing work in this thread
       setThreadName("pdns/luaupcheck");
 
-      std::this_thread::sleep_until(checkStart + std::chrono::seconds(g_luaHealthChecksInterval));
+      std::this_thread::sleep_until(checkStart + std::chrono::seconds(interval));
     }
   }
 
@@ -222,9 +250,23 @@ private:
   {
     auto statuses = d_statuses.write_lock();
     auto& state = (*statuses)[cd];
-    state->status = status;
-    if (state->first) {
-      state->first = false;
+    state->lastStatusUpdate = time(nullptr);
+    state->first = false;
+    if (status) {
+      state->failures = 0;
+      state->status = true;
+    } else {
+      unsigned int minimumFailures = 1;
+      if (cd.opts.count("minimumFailures") != 0) {
+        unsigned int value = std::atoi(cd.opts.at("minimumFailures").c_str());
+        if (value != 0) {
+          minimumFailures = std::max(minimumFailures, value);
+        }
+      }
+      // Since `status' was set to false at constructor time, we need to
+      // recompute its value unconditionally to expose "down, but not enough
+      // times yet" targets as up.
+      state->status = ++state->failures < minimumFailures;
     }
   }
 
@@ -547,7 +589,7 @@ static bool getAuth(const DNSName& name, uint16_t qtype, SOAData* soaData)
   }
 }
 
-static std::string getOptionValue(const boost::optional<std::unordered_map<string, string>>& options, const std::string &name, const std::string &defaultValue)
+static std::string getOptionValue(const boost::optional<opts_t>& options, const std::string &name, const std::string &defaultValue)
 {
   string selector=defaultValue;
   if(options) {
@@ -878,7 +920,7 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
     });
 
 
-  lua.writeFunction("createReverse", [](string format, boost::optional<std::unordered_map<string,string>> e){
+  lua.writeFunction("createReverse", [](string format, boost::optional<opts_t> e){
       try {
         auto labels = s_lua_record_ctx->qname.getRawLabels();
         if(labels.size()<4)
@@ -1010,7 +1052,7 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
 
       return std::string("::");
     });
-  lua.writeFunction("createReverse6", [](string format, boost::optional<std::unordered_map<string,string>> e){
+  lua.writeFunction("createReverse6", [](string format, boost::optional<opts_t> e){
       vector<ComboAddress> candidates;
 
       try {
@@ -1095,7 +1137,7 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
    *
    * @example ifportup(443, { '1.2.3.4', '5.4.3.2' })"
    */
-  lua.writeFunction("ifportup", [](int port, const boost::variant<iplist_t, ipunitlist_t>& ips, const boost::optional<std::unordered_map<string,string>> options) {
+  lua.writeFunction("ifportup", [](int port, const boost::variant<iplist_t, ipunitlist_t>& ips, const boost::optional<opts_t> options) {
       if (port < 0) {
         port = 0;
       }

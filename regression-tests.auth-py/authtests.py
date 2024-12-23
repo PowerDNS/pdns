@@ -493,6 +493,29 @@ options {
             raise AssertionError("RRset not found in answer\n%s" %
                                  "\n".join(([ans.to_text() for ans in msg.answer])))
 
+    def assertNoneRRsetInAnswer(self, msg, rrsets):
+        """Asserts that none of the supplied rrsets exist (without comparing TTL)
+        in the answer section of msg
+
+        @param msg: the dns.message.Message to check
+        @param rrsets: an array of dns.rrset.RRset object"""
+
+        if not isinstance(msg, dns.message.Message):
+            raise TypeError("msg is not a dns.message.Message")
+
+        found = False
+        for rrset in rrsets:
+            if not isinstance(rrset, dns.rrset.RRset):
+                raise TypeError("rrset is not a dns.rrset.RRset")
+            for ans in msg.answer:
+                if ans.match(rrset.name, rrset.rdclass, rrset.rdtype, 0, None):
+                    if ans == rrset:
+                        found = True
+
+        if found:
+            raise AssertionError("RRset incorrectly found in answer\n%s" %
+                                 "\n".join(([ans.to_text() for ans in msg.answer])))
+
     def assertMatchingRRSIGInAnswer(self, msg, coveredRRset, keys=None):
         """Looks for coveredRRset in the answer section and if there is an RRSIG RRset
         that covers that RRset. If keys is not None, this function will also try to
