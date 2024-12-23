@@ -971,6 +971,22 @@ T convertLuaFunction(const ::rust::String& context, const ::rust::String& name)
   return function;
 }
 
+std::shared_ptr<DNSActionWrapper> getContinueAction(const ContinueActionConfiguration& config)
+{
+  auto action = dnsdist::actions::getContinueAction(config.action.action->d_action);
+  return newDNSActionWrapper(std::move(action), config.name);
+}
+
+std::shared_ptr<DNSActionWrapper> getSetProxyProtocolValuesAction(const SetProxyProtocolValuesActionConfiguration& config)
+{
+  std::vector<std::pair<uint8_t, std::string>> values;
+  for (const auto& value : config.values) {
+    values.emplace_back(value.key, std::string(value.value));
+  }
+  auto action = dnsdist::actions::getSetProxyProtocolValuesAction(values);
+  return newDNSActionWrapper(std::move(action), config.name);
+}
+
 std::shared_ptr<DNSActionWrapper> getSpoofPacketAction(const SpoofPacketActionConfiguration& config)
 {
   if (config.response.size() < sizeof(dnsheader)) {

@@ -18,6 +18,14 @@
     }
 }
 
+impl Default for dnsdistsettings::SharedDNSAction {
+    fn default() -> dnsdistsettings::SharedDNSAction {
+        dnsdistsettings::SharedDNSAction {
+            action: cxx::SharedPtr::null(),
+        }
+    }
+}
+
 impl Default for dnsdistsettings::SharedDNSSelector {
     fn default() -> dnsdistsettings::SharedDNSSelector {
         dnsdistsettings::SharedDNSSelector {
@@ -45,6 +53,13 @@ struct OrSelectorConfigurationSerde {
 struct NotSelectorConfigurationSerde {
     #[serde(default, skip_serializing_if = "crate::is_default")]
     selector: Box<Selector>,
+}
+
+#[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
+#[serde(deny_unknown_fields)]
+struct ContinueActionConfigurationSerde {
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    action: Box<Action>,
 }
 
 impl Selector {

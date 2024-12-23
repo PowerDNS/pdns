@@ -194,7 +194,7 @@ def get_converted_serde_type(rust_type):
 
     if is_vector_of(rust_type):
         sub_type = get_vector_sub_type(rust_type)
-        if sub_type == 'Selector':
+        if sub_type in ['Action', 'Selector']:
             return rust_type
         if sub_type in ['QueryRuleConfiguration', 'ResponseRuleConfiguration']:
             return f'Vec<{sub_type}Serde>'
@@ -263,7 +263,7 @@ def should_validate_type(rust_type):
         return should_validate_type(sub_type)
     if rust_type in ['bool', 'u8', 'u16', 'u32', 'u64', 'f64', 'String']:
         return False
-    if rust_type in ['Selector', 'dnsdistsettings::SelectorsConfiguration']:
+    if rust_type in ['Action', 'Selector', 'dnsdistsettings::SelectorsConfiguration']:
         return False
     return True
 
@@ -386,13 +386,18 @@ def generate_actions_config(output, response, default_functions):
         name = get_rust_object_name(action['name'])
         struct_name = f'{name}{suffix}Configuration'
         indent = ' ' * 4
-        action_buffer += f'''{indent}#[derive(Deserialize, Serialize, Debug, PartialEq)]
-{indent}#[serde(deny_unknown_fields)]
-{indent}struct {struct_name} {{\n'''
+        if not 'skip-serde' in action or not action['skip-serde']:
+            action_buffer += f'''{indent}#[derive(Deserialize, Serialize, Debug, PartialEq)]
+{indent}#[serde(deny_unknown_fields)]\n'''
+        else:
+            action_buffer += f'{indent}#[derive(Default)]\n'
+
+        action_buffer += f'{indent}struct {struct_name} {{\n'
 
         indent = ' ' * 8
-        action_buffer += f'''{indent}#[serde(default, skip_serializing_if = "crate::is_default")]
-{indent}name: String,\n'''
+        if not 'skip-serde' in action or not action['skip-serde']:
+            action_buffer += f'{indent}#[serde(default, skip_serializing_if = "crate::is_default")]\n'
+        action_buffer += f'{indent}name: String,\n'
 
         action_buffer += get_rust_struct_fields_from_definition(struct_name, action, default_functions, 8)
 
@@ -570,7 +575,11 @@ enum {suffix} {{
     for action in actions_definitions:
         name = get_rust_object_name(action['name'])
         struct_name = f'{name}{suffix}Configuration'
-        enum_buffer += f'    {name}(dnsdistsettings::{struct_name}),\n'
+        if struct_name in ['ContinueActionConfiguration']:
+            # special version for Serde
+            enum_buffer += f'    {name}({struct_name}Serde),\n'
+        else:
+            enum_buffer += f'    {name}(dnsdistsettings::{struct_name}),\n'
 
     enum_buffer += '}\n\n'
 
@@ -650,12 +659,25 @@ def generate_rust_action_to_config(output, response):
     for action in actions_definitions:
         name = get_rust_object_name(action['name'])
         var = name.lower()
-        enum_buffer += f'''        {suffix}::{name}({var}) => {{
-            let tmp_action = dnsdistsettings::get{name}{suffix}(&{var});
-            return Some(dnsdistsettings::SharedDNS{suffix} {{
-                action: tmp_action,
-            }});
+        if name in ['Continue']:
+            enum_buffer += f'''        {suffix}::{name}(cont) => {{
+             let mut config: dnsdistsettings::{name}{suffix}Configuration = Default::default();
+             let new_action = get_one_action_from_serde(&*cont.action);
+             if new_action.is_some() {{
+                 config.action = new_action.unwrap();
+             }}
+             return Some(dnsdistsettings::SharedDNS{suffix} {{
+                 action: dnsdistsettings::get{name}{suffix}(&config),
+             }});
         }}
+'''
+        else:
+            enum_buffer += f'''        {suffix}::{name}(config) => {{
+                let tmp_action = dnsdistsettings::get{name}{suffix}(&config);
+                return Some(dnsdistsettings::SharedDNS{suffix} {{
+                    action: tmp_action,
+                }});
+            }}
 '''
 
     enum_buffer += '''    }

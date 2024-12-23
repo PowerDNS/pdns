@@ -93,7 +93,7 @@ def print_structure(parameters, entry_type):
 
     return output
 
-def process_object(object_name, entries, entry_type, is_setting_struct=False):
+def process_object(object_name, entries, entry_type, is_setting_struct=False, lua_equivalent=None):
     output = f'.. _yaml-{entry_type}-{object_name}:\n\n'
 
     output += f'{object_name}\n'
@@ -104,6 +104,9 @@ def process_object(object_name, entries, entry_type, is_setting_struct=False):
         description = entries['description']
         output += description + '\n'
         output += '\n'
+
+    if lua_equivalent is not None:
+        output += f'Lua equivalent: :func:`{lua_equivalent}`\n\n'
 
     if 'parameters' in entries:
         if not is_setting_struct:
@@ -146,7 +149,7 @@ A YAML configuration file contains several sections, that are described below.
 
     for object_name, entries in sorted(objects.items()):
         if object_name != 'GlobalConfiguration':
-            output += process_object(object_name, entries, 'settings', True)
+            output += process_object(object_name, entries, 'settings', True, entries['lua-name'] if 'lua-name' in entries else None)
 
     return output
 
@@ -166,7 +169,11 @@ def process_selectors_or_actions(def_file, entry_type):
 
     suffix = object_name
     for entry in entries:
-        output += process_object(get_rust_object_name(entry['name'] + suffix), entry, 'settings')
+        object_name = get_rust_object_name(entry['name'])
+        lua_equivalent = object_name + ('Rule' if entry_type == 'selector' else suffix)
+        if 'no-lua-equivalent' in entry:
+            lua_equivalent = None
+        output += process_object(object_name + suffix, entry, 'settings', lua_equivalent=lua_equivalent)
 
     return output
 

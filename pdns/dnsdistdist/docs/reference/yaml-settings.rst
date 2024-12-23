@@ -612,6 +612,15 @@ ProxyProtocolConfiguration
 - **apply-acl-to-proxied-clients**: Boolean ``(false)``
 
 
+.. _yaml-settings-ProxyProtocolValueConfiguration:
+
+ProxyProtocolValueConfiguration
+-------------------------------
+
+- **key**: Unsigned integer
+- **value**: String
+
+
 .. _yaml-settings-QueryCountConfiguration:
 
 QueryCountConfiguration

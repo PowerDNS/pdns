@@ -812,6 +812,13 @@ outgoing-tcp:
       type: "bool"
       default: "false"
 
+proxy-protocol-value:
+  parameters:
+    - name: "key"
+      type: "u8"
+    - name: "value"
+      type: "String"
+
 lazy-health-check:
   parameters:
     - name: "interval"

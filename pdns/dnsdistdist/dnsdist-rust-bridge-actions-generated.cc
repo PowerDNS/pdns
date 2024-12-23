@@ -161,7 +161,7 @@ std::shared_ptr<DNSActionWrapper> getTCAction(const TCActionConfiguration& confi
 }
 std::shared_ptr<DNSActionWrapper> getTeeAction(const TeeActionConfiguration& config)
 {
-  auto action = dnsdist::actions::getTeeAction(ComboAddress(std::string(config.rca)), ComboAddress(std::string(config.lca)), config.addecs, config.addproxyprotocol);
+  auto action = dnsdist::actions::getTeeAction(ComboAddress(std::string(config.rca)), ComboAddress(std::string(config.lca)), config.add_ecs, config.add_proxy_protocol);
   return newDNSActionWrapper(std::move(action), config.name);
 }
 std::shared_ptr<DNSResponseActionWrapper> getAllowResponseAction(const AllowResponseActionConfiguration& config)
