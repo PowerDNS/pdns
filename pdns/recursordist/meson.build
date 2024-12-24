@@ -472,6 +472,7 @@ test_sources += files(
       src_dir / 'test-rpzloader_cc.cc',
       src_dir / 'test-secpoll_cc.cc',
       src_dir / 'test-settings.cc',
+      src_dir / 'test-shuffle_cc.cc',
       src_dir / 'test-signers.cc',
       src_dir / 'test-syncres_cc.cc',
       src_dir / 'test-syncres_cc.hh',

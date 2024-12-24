@@ -780,22 +780,7 @@ int getFakeAAAARecords(const DNSName& qname, ComboAddress prefix, vector<DNSReco
               ret.end());
   }
   else {
-    // Remove double SOA records
-    std::set<DNSName> seenSOAs;
-    ret.erase(std::remove_if(
-                ret.begin(),
-                ret.end(),
-                [&seenSOAs](DNSRecord& record) {
-                  if (record.d_type == QType::SOA) {
-                    if (seenSOAs.count(record.d_name) > 0) {
-                      // We've had this SOA before, remove it
-                      return true;
-                    }
-                    seenSOAs.insert(record.d_name);
-                  }
-                  return false;
-                }),
-              ret.end());
+    pdns::dedupRecords(ret);
   }
   t_Counters.at(rec::Counter::dns64prefixanswers)++;
   return rcode;
@@ -1527,6 +1512,9 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
       }
 
       if (!ret.empty()) {
+#ifdef notyet
+        pdns::dedupRecords(ret);
+#endif
         pdns::orderAndShuffle(ret, false);
         if (auto listToSort = luaconfsLocal->sortlist.getOrderCmp(comboWriter->d_source)) {
           stable_sort(ret.begin(), ret.end(), *listToSort);
