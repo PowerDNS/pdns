@@ -172,6 +172,7 @@ dnsdist_SOURCES = \
 	dns_random.hh \
 	dnscrypt.cc dnscrypt.hh \
 	dnsdist-actions-factory-generated.hh \
+	dnsdist-actions-factory.cc dnsdist-actions-factory.hh \
 	dnsdist-actions.cc dnsdist-actions.hh \
 	dnsdist-async.cc dnsdist-async.hh \
 	dnsdist-backend.cc dnsdist-backend.hh \
@@ -454,6 +455,7 @@ endif
 
 if HAVE_RE2
 dnsdist_LDADD += $(RE2_LIBS)
+testrunner_LDADD += $(RE2_LIBS)
 endif
 
 if HAVE_LIBSSL

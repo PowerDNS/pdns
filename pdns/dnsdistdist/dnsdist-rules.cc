@@ -123,3 +123,75 @@ string HTTPPathRegexRule::toString() const
 {
   return d_visual;
 }
+
+namespace dnsdist::selectors
+{
+std::shared_ptr<QClassRule> getQClassSelector(const std::string& qclassStr, uint16_t qclassCode)
+{
+  QClass qclass(qclassCode);
+  if (!qclassStr.empty()) {
+    qclass = QClass(std::string(qclassStr));
+  }
+
+  return std::make_shared<QClassRule>(qclass);
+}
+
+std::shared_ptr<QTypeRule> getQTypeSelector(const std::string& qtypeStr, uint16_t qtypeCode)
+{
+  QType qtype(qtypeCode);
+  if (!qtypeStr.empty()) {
+    qtype = std::string(qtypeStr);
+  }
+
+  return std::make_shared<QTypeRule>(qtype);
+}
+
+std::shared_ptr<SuffixMatchNodeRule> getQNameSuffixSelector(const SuffixMatchNode& suffixes, bool quiet)
+{
+  return std::make_shared<SuffixMatchNodeRule>(suffixes, quiet);
+}
+
+std::shared_ptr<QNameSetRule> getQNameSetSelector(const DNSNameSet& qnames)
+{
+  return std::make_shared<QNameSetRule>(qnames);
+}
+
+std::shared_ptr<QNameRule> getQNameSelector(const DNSName& qname)
+{
+  return std::make_shared<QNameRule>(qname);
+}
+
+std::shared_ptr<NetmaskGroupRule> getNetmaskGroupSelector(const NetmaskGroup& nmg, bool source, bool quiet)
+{
+  return std::make_shared<NetmaskGroupRule>(nmg, source, quiet);
+}
+
+std::shared_ptr<KeyValueStoreLookupRule> getKeyValueStoreLookupSelector(const std::shared_ptr<KeyValueStore>& kvs, const std::shared_ptr<KeyValueLookupKey>& lookupKey)
+{
+  return std::make_shared<KeyValueStoreLookupRule>(kvs, lookupKey);
+}
+
+std::shared_ptr<KeyValueStoreRangeLookupRule> getKeyValueStoreRangeLookupSelector(const std::shared_ptr<KeyValueStore>& kvs, const std::shared_ptr<KeyValueLookupKey>& lookupKey)
+{
+  return std::make_shared<KeyValueStoreRangeLookupRule>(kvs, lookupKey);
+}
+
+std::shared_ptr<AndRule> getAndSelector(const std::vector<std::shared_ptr<DNSRule>>& rules)
+{
+  return std::make_shared<AndRule>(rules);
+}
+
+std::shared_ptr<OrRule> getOrSelector(const std::vector<std::shared_ptr<DNSRule>>& rules)
+{
+  return std::make_shared<OrRule>(rules);
+}
+
+std::shared_ptr<NotRule> getNotSelector(const std::shared_ptr<DNSRule>& rule)
+{
+  return std::make_shared<NotRule>(rule);
+}
+
+// NOLINTNEXTLINE(bugprone-suspicious-include)
+#include "dnsdist-selectors-factory-generated.cc"
+
+}
