@@ -719,6 +719,9 @@ private:
   bool d_stopped{false};
 
 public:
+  static bool parseSourceParameter(const std::string& source, Config& config);
+  static std::optional<DownstreamState::Availability> getAvailabilityFromStr(const std::string& mode);
+
   void updateStatisticsInfo()
   {
     auto delta = sw.udiffAndSet() / 1000000.0;
