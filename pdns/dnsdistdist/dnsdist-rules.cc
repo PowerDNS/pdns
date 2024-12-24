@@ -19,7 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#include "dnsdist-rules.hh"
+#include "dnsdist-rules-factory.hh"
 
 std::atomic<uint64_t> LuaFFIPerThreadRule::s_functionsCounter = 0;
 thread_local std::map<uint64_t, LuaFFIPerThreadRule::PerThreadState> LuaFFIPerThreadRule::t_perThreadStates;

@@ -8,7 +8,7 @@
 #include <thread>
 #include <boost/test/unit_test.hpp>
 
-#include "dnsdist-rules.hh"
+#include "dnsdist-rules-factory.hh"
 
 void checkParameterBound(const std::string& parameter, uint64_t value, size_t max)
 {
