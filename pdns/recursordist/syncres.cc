@@ -2555,8 +2555,8 @@ static pair<bool, unsigned int> scanForCNAMELoop(const DNSName& name, const vect
 bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<DNSRecord>& ret, unsigned int depth, const string& prefix, int& res, Context& context, bool wasAuthZone, bool wasForwardRecurse, bool checkForDups) // NOLINT(readability-function-cognitive-complexity)
 {
   vector<DNSRecord> cset;
-  vector<std::shared_ptr<const RRSIGRecordContent>> signatures;
-  vector<std::shared_ptr<DNSRecord>> authorityRecs;
+  MemRecursorCache::SigRecs signatures = MemRecursorCache::s_emptySigRecs;
+  MemRecursorCache::AuthRecs authorityRecs = MemRecursorCache::s_emptyAuthRecs;
   bool wasAuth = false;
   uint32_t capTTL = std::numeric_limits<uint32_t>::max();
   DNSName foundName;
@@ -2619,10 +2619,10 @@ bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<
       if (!wasAuthZone && shouldValidate() && (wasAuth || wasForwardRecurse) && context.state == vState::Indeterminate && d_requireAuthData) {
         /* This means we couldn't figure out the state when this entry was cached */
 
-        vState recordState = getValidationStatus(foundName, !signatures.empty(), qtype == QType::DS, depth, prefix);
+        vState recordState = getValidationStatus(foundName, !signatures->empty(), qtype == QType::DS, depth, prefix);
         if (recordState == vState::Secure) {
           LOG(prefix << qname << ": Got vState::Indeterminate state from the " << foundQT.toString() << " cache, validating.." << endl);
-          context.state = SyncRes::validateRecordsWithSigs(depth, prefix, qname, qtype, foundName, foundQT, cset, signatures);
+          context.state = SyncRes::validateRecordsWithSigs(depth, prefix, qname, qtype, foundName, foundQT, cset, *signatures);
           if (context.state != vState::Indeterminate) {
             LOG(prefix << qname << ": Got vState::Indeterminate state from the " << foundQT.toString() << " cache, new validation result is " << context.state << endl);
             if (vStateIsBogus(context.state)) {
@@ -2652,10 +2652,10 @@ bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<
       dnsRecord.d_ttl = std::min(dnsRecord.d_ttl, capTTL);
       const uint32_t ttl = dnsRecord.d_ttl;
       if (!alreadyPresent) {
-        ret.reserve(ret.size() + 2 + signatures.size() + authorityRecs.size());
+        ret.reserve(ret.size() + 2 + signatures->size() + authorityRecs->size());
         ret.push_back(dnsRecord);
 
-        for (const auto& signature : signatures) {
+        for (const auto& signature : *signatures) {
           DNSRecord sigdr;
           sigdr.d_type = QType::RRSIG;
           sigdr.d_name = foundName;
@@ -2666,8 +2666,8 @@ bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<
           ret.push_back(sigdr);
         }
 
-        for (const auto& rec : authorityRecs) {
-          DNSRecord authDR(*rec);
+        for (const auto& rec : *authorityRecs) {
+          DNSRecord authDR(rec);
           authDR.d_ttl = ttl;
           ret.push_back(authDR);
         }
@@ -2772,7 +2772,7 @@ namespace
 struct CacheEntry
 {
   vector<DNSRecord> records;
-  vector<shared_ptr<const RRSIGRecordContent>> signatures;
+  MemRecursorCache::SigRecsVec signatures;
   time_t d_ttl_time{0};
   uint32_t signaturesTTL{std::numeric_limits<uint32_t>::max()};
 };
@@ -2816,9 +2816,9 @@ static void reapRecordsForValidation(std::map<QType, CacheEntry>& entries, const
   }
 }
 
-static void reapSignaturesForValidation(std::map<QType, CacheEntry>& entries, const vector<std::shared_ptr<const RRSIGRecordContent>>& signatures)
+static void reapSignaturesForValidation(std::map<QType, CacheEntry>& entries, const MemRecursorCache::SigRecs& signatures)
 {
-  for (const auto& sig : signatures) {
+  for (const auto& sig : *signatures) {
     entries[sig->d_type].signatures.push_back(sig);
   }
 }
@@ -2998,8 +2998,8 @@ bool SyncRes::doCacheCheck(const DNSName& qname, const DNSName& authname, bool w
   vector<DNSRecord> cset;
   bool found = false;
   bool expired = false;
-  vector<std::shared_ptr<const RRSIGRecordContent>> signatures;
-  vector<std::shared_ptr<DNSRecord>> authorityRecs;
+  MemRecursorCache::SigRecs signatures = MemRecursorCache::s_emptySigRecs;
+  MemRecursorCache::AuthRecs authorityRecs = MemRecursorCache::s_emptyAuthRecs;
   uint32_t ttl = 0;
   uint32_t capTTL = std::numeric_limits<uint32_t>::max();
   bool wasCachedAuth{};
@@ -3020,12 +3020,12 @@ bool SyncRes::doCacheCheck(const DNSName& qname, const DNSName& authname, bool w
     if (!wasAuthZone && shouldValidate() && (wasCachedAuth || wasForwardRecurse) && cachedState == vState::Indeterminate && d_requireAuthData) {
 
       /* This means we couldn't figure out the state when this entry was cached */
-      vState recordState = getValidationStatus(qname, !signatures.empty(), qtype == QType::DS, depth, prefix);
+      vState recordState = getValidationStatus(qname, !signatures->empty(), qtype == QType::DS, depth, prefix);
 
       if (recordState == vState::Secure) {
         LOG(prefix << sqname << ": Got vState::Indeterminate state from the cache, validating.." << endl);
-        if (sqt == QType::DNSKEY && sqname == getSigner(signatures)) {
-          cachedState = validateDNSKeys(sqname, cset, signatures, depth, prefix);
+        if (sqt == QType::DNSKEY && sqname == getSigner(*signatures)) {
+          cachedState = validateDNSKeys(sqname, cset, *signatures, depth, prefix);
         }
         else {
           if (sqt == QType::ANY) {
@@ -3045,7 +3045,7 @@ bool SyncRes::doCacheCheck(const DNSName& qname, const DNSName& authname, bool w
             }
           }
           else {
-            cachedState = SyncRes::validateRecordsWithSigs(depth, prefix, qname, qtype, sqname, sqt, cset, signatures);
+            cachedState = SyncRes::validateRecordsWithSigs(depth, prefix, qname, qtype, sqname, sqt, cset, *signatures);
           }
         }
       }
@@ -3087,9 +3087,9 @@ bool SyncRes::doCacheCheck(const DNSName& qname, const DNSName& authname, bool w
       }
     }
 
-    ret.reserve(ret.size() + signatures.size() + authorityRecs.size());
+    ret.reserve(ret.size() + signatures->size() + authorityRecs->size());
 
-    for (const auto& signature : signatures) {
+    for (const auto& signature : *signatures) {
       DNSRecord dnsRecord;
       dnsRecord.d_type = QType::RRSIG;
       dnsRecord.d_name = sqname;
@@ -3100,8 +3100,8 @@ bool SyncRes::doCacheCheck(const DNSName& qname, const DNSName& authname, bool w
       ret.push_back(dnsRecord);
     }
 
-    for (const auto& rec : authorityRecs) {
-      DNSRecord dnsRecord(*rec);
+    for (const auto& rec : *authorityRecs) {
+      DNSRecord dnsRecord(rec);
       dnsRecord.d_ttl = ttl;
       ret.push_back(dnsRecord);
     }
@@ -3606,7 +3606,7 @@ bool SyncRes::validationEnabled()
   return g_dnssecmode != DNSSECMode::Off && g_dnssecmode != DNSSECMode::ProcessNoValidate;
 }
 
-uint32_t SyncRes::computeLowestTTD(const std::vector<DNSRecord>& records, const std::vector<std::shared_ptr<const RRSIGRecordContent>>& signatures, uint32_t signaturesTTL, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs) const
+uint32_t SyncRes::computeLowestTTD(const std::vector<DNSRecord>& records, const MemRecursorCache::SigRecsVec& signatures, uint32_t signaturesTTL, const MemRecursorCache::AuthRecsVec& authorityRecs) const
 {
   uint32_t lowestTTD = std::numeric_limits<uint32_t>::max();
   for (const auto& record : records) {
@@ -3630,10 +3630,10 @@ uint32_t SyncRes::computeLowestTTD(const std::vector<DNSRecord>& records, const 
 
   for (const auto& entry : authorityRecs) {
     /* be careful, this is still a TTL here */
-    lowestTTD = min(lowestTTD, static_cast<uint32_t>(entry->d_ttl + d_now.tv_sec));
+    lowestTTD = min(lowestTTD, static_cast<uint32_t>(entry.d_ttl + d_now.tv_sec));
 
-    if (entry->d_type == QType::RRSIG && validationEnabled()) {
-      auto rrsig = getRR<RRSIGRecordContent>(*entry);
+    if (entry.d_type == QType::RRSIG && validationEnabled()) {
+      auto rrsig = getRR<RRSIGRecordContent>(entry);
       if (rrsig) {
         if (isRRSIGNotExpired(d_now.tv_sec, *rrsig)) {
           // we don't decrement d_sigexpire by 'now' because we actually want a TTD, not a TTL */
@@ -3929,7 +3929,7 @@ vState SyncRes::getValidationStatus(const DNSName& name, bool wouldBeValid, bool
   return result;
 }
 
-vState SyncRes::validateDNSKeys(const DNSName& zone, const std::vector<DNSRecord>& dnskeys, const std::vector<std::shared_ptr<const RRSIGRecordContent>>& signatures, unsigned int depth, const string& prefix)
+vState SyncRes::validateDNSKeys(const DNSName& zone, const std::vector<DNSRecord>& dnskeys, const MemRecursorCache::SigRecsVec& signatures, unsigned int depth, const string& prefix)
 {
   dsset_t dsSet;
   if (signatures.empty()) {
@@ -4040,7 +4040,7 @@ vState SyncRes::getDNSKeys(const DNSName& signer, skeyset_t& keys, bool& servFai
   return vState::BogusUnableToGetDNSKEYs;
 }
 
-vState SyncRes::validateRecordsWithSigs(unsigned int depth, const string& prefix, const DNSName& qname, const QType qtype, const DNSName& name, const QType type, const std::vector<DNSRecord>& records, const std::vector<std::shared_ptr<const RRSIGRecordContent>>& signatures)
+vState SyncRes::validateRecordsWithSigs(unsigned int depth, const string& prefix, const DNSName& qname, const QType qtype, const DNSName& name, const QType type, const std::vector<DNSRecord>& records, const MemRecursorCache::SigRecsVec& signatures)
 {
   skeyset_t keys;
   if (signatures.empty()) {
@@ -4536,7 +4536,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
   fixupAnswer(prefix, lwr, qname, qtype, auth, wasForwarded, rdQuery);
   sanitizeRecords(prefix, lwr, qname, qtype, auth, wasForwarded, rdQuery);
 
-  std::vector<std::shared_ptr<DNSRecord>> authorityRecs;
+  MemRecursorCache::AuthRecsVec authorityRecs;
   bool isCNAMEAnswer = false;
   bool isDNAMEAnswer = false;
   DNSName seenAuth;
@@ -4633,12 +4633,12 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
       }
 
       if (nsecTypes.count(rec.d_type) != 0) {
-        authorityRecs.push_back(std::make_shared<DNSRecord>(rec));
+        authorityRecs.emplace_back(rec);
       }
       else if (rec.d_type == QType::RRSIG) {
         auto rrsig = getRR<RRSIGRecordContent>(rec);
         if (rrsig && nsecTypes.count(rrsig->d_type) != 0) {
-          authorityRecs.push_back(std::make_shared<DNSRecord>(rec));
+          authorityRecs.emplace_back(rec);
         }
       }
     }
@@ -4882,7 +4882,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
             thisRRNeedsWildcardProof = true;
           }
         }
-        g_recCache->replace(d_now.tv_sec, tCacheEntry->first.name, tCacheEntry->first.type, tCacheEntry->second.records, tCacheEntry->second.signatures, thisRRNeedsWildcardProof ? authorityRecs : std::vector<std::shared_ptr<DNSRecord>>(), tCacheEntry->first.type == QType::DS ? true : isAA, auth, tCacheEntry->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::none, d_routingTag, recordState, remoteIP, d_refresh, tCacheEntry->second.d_ttl_time);
+        g_recCache->replace(d_now.tv_sec, tCacheEntry->first.name, tCacheEntry->first.type, tCacheEntry->second.records, tCacheEntry->second.signatures, thisRRNeedsWildcardProof ? authorityRecs : *MemRecursorCache::s_emptyAuthRecs, tCacheEntry->first.type == QType::DS ? true : isAA, auth, tCacheEntry->first.place == DNSResourceRecord::ANSWER ? ednsmask : boost::none, d_routingTag, recordState, remoteIP, d_refresh, tCacheEntry->second.d_ttl_time);
 
         // Delete potential negcache entry. When a record recovers with serve-stale the negcache entry can cause the wrong entry to
         // be served, as negcache entries are checked before record cache entries
