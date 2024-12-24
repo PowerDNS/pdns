@@ -21,7 +21,7 @@
  */
 #include "dnsdist.hh"
 #include "dnsdist-lua.hh"
-#include "dnsdist-rules.hh"
+#include "dnsdist-rules-factory.hh"
 #include "dnsdist-rule-chains.hh"
 #include "dns_random.hh"
 
