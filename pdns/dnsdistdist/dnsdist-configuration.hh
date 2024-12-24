@@ -78,7 +78,7 @@ struct ImmutableConfiguration
   uint64_t d_outgoingTCPCleanupInterval{60};
   uint64_t d_outgoingDoHMaxIdlePerBackend{10};
   uint64_t d_outgoingTCPMaxIdlePerBackend{10};
-  uint64_t d_maxTCPClientThreads{0};
+  uint64_t d_maxTCPClientThreads{10};
   size_t d_maxTCPConnectionsPerClient{0};
   size_t d_udpVectorSize{1};
   size_t d_ringsCapacity{10000};
