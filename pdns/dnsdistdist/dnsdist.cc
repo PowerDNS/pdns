@@ -3444,9 +3444,12 @@ int main(int argc, char** argv)
     g_delay = std::make_unique<DelayPipe<DelayedPacket>>();
 #endif /* DISABLE_DELAY_PIPE */
 
-    if (g_snmpAgent != nullptr) {
+#if defined(HAVE_NET_SNMP)
+    if (dnsdist::configuration::getImmutableConfiguration().d_snmpEnabled) {
+      g_snmpAgent = std::make_unique<DNSDistSNMPAgent>("dnsdist", dnsdist::configuration::getImmutableConfiguration().d_snmpDaemonSocketPath);
       g_snmpAgent->run();
     }
+#endif /* HAVE_NET_SNMP */
 
     /* we need to create the TCP worker threads before the
        acceptor ones, otherwise we might crash when processing

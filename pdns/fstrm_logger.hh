@@ -36,7 +36,7 @@
 class FrameStreamLogger : public RemoteLoggerInterface
 {
 public:
-  FrameStreamLogger(int family, std::string address, bool connect, const std::unordered_map<string, unsigned>& options = std::unordered_map<string, unsigned>());
+  FrameStreamLogger(int family, std::string address, bool connect, const std::unordered_map<string, unsigned int>& options = std::unordered_map<string, unsigned int>());
   FrameStreamLogger(const FrameStreamLogger&) = delete;
   FrameStreamLogger(FrameStreamLogger&&) = delete;
   FrameStreamLogger& operator=(const FrameStreamLogger&) = delete;
