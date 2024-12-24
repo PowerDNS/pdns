@@ -56,7 +56,7 @@ static const string nameForClass(QClass qclass, uint16_t qtype)
 static std::unordered_set<uint16_t> s_expectedIDs;
 
 static void fillPacket(vector<uint8_t>& packet, const string& q, const string& t,
-                       bool dnssec, const boost::optional<Netmask>& ednsnm,
+                       bool dnssec, const std::optional<Netmask>& ednsnm,
                        bool recurse, QClass qclass, uint8_t opcode, uint16_t qid)
 {
   DNSPacketWriter pw(packet, DNSName(q), DNSRecordContent::TypeToNumber(t), qclass, opcode);
@@ -203,7 +203,7 @@ try {
   bool fastOpen = false;
   bool insecureDoT = false;
   bool fromstdin = false;
-  boost::optional<Netmask> ednsnm;
+  std::optional<Netmask> ednsnm;
   QClass qclass = QClass::IN;
   uint8_t opcode = 0;
   string proxyheader;
