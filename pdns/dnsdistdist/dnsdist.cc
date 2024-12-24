@@ -57,6 +57,7 @@
 #include "dnsdist-proxy-protocol.hh"
 #include "dnsdist-random.hh"
 #include "dnsdist-rings.hh"
+#include "dnsdist-rules.hh"
 #include "dnsdist-secpoll.hh"
 #include "dnsdist-self-answers.hh"
 #include "dnsdist-snmp.hh"
