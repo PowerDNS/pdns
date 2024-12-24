@@ -1,6 +1,7 @@
 EXTRA_DIST = \
 	dnsdist-configuration-yaml-items-generated-pre-in.cc \
 	dnsdist-configuration-yaml-items-generated.cc \
+	dnsdist-settings-documentation-generator.py \
 	dnsdist-settings-generator.py \
 	rust-pre-in.rs \
 	rust-middle-in.rs \
