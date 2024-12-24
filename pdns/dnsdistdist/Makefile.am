@@ -180,6 +180,7 @@ dnsdist_SOURCES = \
 	dnsdist-lua-bindings-protobuf.cc \
 	dnsdist-lua-bindings-rings.cc \
 	dnsdist-lua-bindings.cc \
+	dnsdist-lua-configuration-items.cc \
 	dnsdist-lua-ffi-interface.h dnsdist-lua-ffi-interface.inc \
 	dnsdist-lua-ffi.cc dnsdist-lua-ffi.hh \
 	dnsdist-lua-hooks.cc dnsdist-lua-hooks.hh \

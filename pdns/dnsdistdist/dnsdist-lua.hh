@@ -62,6 +62,11 @@ void setupLuaVars(LuaContext& luaCtx);
 void setupLuaWeb(LuaContext& luaCtx);
 void setupLuaLoadBalancingContext(LuaContext& luaCtx);
 
+namespace dnsdist::lua
+{
+void setupConfigurationItems(LuaContext& luaCtx);
+}
+
 /**
  * getOptionalValue(vars, key, value)
  *
