@@ -64,7 +64,13 @@ void setupLuaLoadBalancingContext(LuaContext& luaCtx);
 
 namespace dnsdist::lua
 {
+void setupLua(LuaContext& luaCtx, bool client, bool configCheck);
 void setupConfigurationItems(LuaContext& luaCtx);
+}
+
+namespace dnsdist::configuration::lua
+{
+void loadLuaConfigurationFile(LuaContext& luaCtx, const std::string& config, bool configCheck);
 }
 
 /**
