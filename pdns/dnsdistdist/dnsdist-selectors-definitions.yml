@@ -1,0 +1,317 @@
+---
+- name: "all"
+  description: "Matches all traffic"
+- name: "And"
+  skip-cpp: true
+  skip-rust: true
+  skip-serde: true
+  description: "Matches traffic if all selectors match"
+  parameters:
+    - name: "selectors"
+      type: "Vec<Selector>"
+      default: true
+- name: "ByName"
+  skip-cpp: true
+  skip-rust: true
+  no-lua-equivalent: true
+  description: "References an already declared selector by its name"
+  parameters:
+    - name: "selector-name"
+      type: "String"
+- name: "DNSSEC"
+  description: "Matches queries with the DO flag set"
+- name: "DSTPort"
+  description: "Matches questions received to the destination port"
+  parameters:
+    - name: "port"
+      type: "u16"
+- name: "EDNSOption"
+  description: "Matches queries or responses with the specified EDNS option present"
+  parameters:
+    - name: "option-code"
+      type: "u16"
+- name: "EDNSVersion"
+  description: "Matches queries or responses with an OPT record whose EDNS version is greater than the specified EDNS version"
+  parameters:
+    - name: "version"
+      type: "u8"
+- name: "ERCode"
+  description: "Matches queries or responses with the specified rcode. The full 16bit RCode will be matched. If no EDNS OPT RR is present, the upper 12 bits are treated as 0"
+  parameters:
+    - name: "rcode"
+      type: "u64"
+- name: "HTTPHeader"
+  description: "Matches DNS over HTTPS queries with a HTTP header name whose content matches the supplied regular expression. It is necessary to set the ``keepIncomingHeaders`` to :func:`addDOHLocal()` to use this rule"
+  parameters:
+    - name: "header"
+      type: "String"
+    - name: "expression"
+      type: "String"
+- name: "HTTPPath"
+  description: "Matches DNS over HTTPS queries with a specific HTTP path"
+  parameters:
+    - name: "path"
+      type: "String"
+- name: "HTTPPathRegex"
+  description: "Matches DNS over HTTPS queries with a path matching the supplied regular expression"
+  parameters:
+    - name: "expression"
+      type: "String"
+- name: "KeyValueStoreLookup"
+  skip-cpp: true
+  skip-rust: true
+  description: "Matches if the key returned by ``lookup-key-name`` exists in the key value store"
+  parameters:
+    - name: "kvs-name"
+      type: "String"
+    - name: "lookup-key-name"
+      type: "String"
+- name: "KeyValueStoreRangeLookup"
+  skip-cpp: true
+  skip-rust: true
+  description: "Does a range-based lookup into the key value store using the key returned by ``lookup-key-name`` and matches if there is a range covering that key.
+This assumes that there is a key, in network byte order, for the last element of the range (for example ``2001:0db8:ffff:ffff:ffff:ffff:ffff:ffff`` for ``2001:db8::/32``) which contains the first element of the range (``2001:0db8:0000:0000:0000:0000:0000:0000``) (optionally followed by any data) as value, still in network byte order, and that there is no overlapping ranges in the database. This requires that the underlying store supports ordered keys, which is true for ``LMDB`` but not for ``CDB``"
+  parameters:
+    - name: "kvs-name"
+      type: "String"
+    - name: "lookup-key-name"
+      type: "String"
+- name: "lua"
+  description: "Invoke a Lua function that accepts a :class:`DNSQuestion` object. The function should return true if the query matches, or false otherwise. If the Lua code fails, false is returned"
+  parameters:
+    - name: "function"
+      type: "dnsdist::selectors::LuaSelectorFunction"
+      rust-type: "String"
+- name: "LuaFFI"
+  description: "Invoke a Lua FFI function that accepts a pointer to a ``dnsdist_ffi_dnsquestion_t`` object, whose bindings are defined in ``dnsdist-lua-ffi-interface.h``. The function should return true if the query matches, or false otherwise. If the Lua code fails, false is returned"
+  parameters:
+    - name: "function"
+      type: "dnsdist::selectors::LuaSelectorFFIFunction"
+      rust-type: "String"
+- name: "LuaFFIPerThread"
+  description: "Invoke a Lua FFI function that accepts a pointer to a ``dnsdist_ffi_dnsquestion_t`` object, whose bindings are defined in ``dnsdist-lua-ffi-interface.h``. The function should return true if the query matches, or false otherwise. If the Lua code fails, false is returned.
+
+The function will be invoked in a per-thread Lua state, without access to the global Lua state. All constants (:ref:`DNSQType`, :ref:`DNSRCode`, ...) are available in that per-thread context, as well as all FFI functions. Objects and their bindings that are not usable in a FFI context (:class:`DNSQuestion`, :class:`DNSDistProtoBufMessage`, :class:`PacketCache`, ...) are not available"
+  parameters:
+    - name: "code"
+      type: "String"
+- name: "MaxQPS"
+  description: "Matches traffic not exceeding this qps limit. If e.g. this is set to 50, starting at the 51st query of the current second traffic stops being matched. This can be used to enforce a global QPS limit"
+  parameters:
+    - name: "qps"
+      type: "u32"
+    - name: "burst"
+      type: "u32"
+      default: 0
+- name: "MaxQPSIP"
+  description: "Matches traffic for a subnet specified by the v4 or v6 mask exceeding ``qps`` queries per second up to ``burst`` allowed. This rule keeps track of QPS by netmask or source IP. This state is cleaned up regularly if ``cleanup-delay`` is greater than zero, removing existing netmasks or IP addresses that have not been seen in the last ``expiration`` seconds."
+  parameters:
+    - name: "qps"
+      type: "u32"
+    - name: "ipv4-mask"
+      type: "u8"
+      default: 32
+    - name: "ipv6-mask"
+      type: "u8"
+      default: 64
+    - name: "burst"
+      type: "u32"
+      default: 0
+    - name: "expiration"
+      type: "u32"
+      default: 300
+    - name: "cleanup-delay"
+      type: "u32"
+      default: 60
+    - name: "scan-fraction"
+      type: "u32"
+      default: 10
+    - name: "shards"
+      type: "u32"
+      default: 10
+- name: "NetmaskGroup"
+  skip-cpp: true
+  skip-rust: true
+  description: "Matches traffic from/to the network range specified in either the supplied :class:`NetmaskGroup` object or the list of ``netmasks``.
+Set the ``source`` parameter to ``false`` to match against destination address instead of source address. This can be used to differentiate between clients"
+  parameters:
+    - name: "netmask-group-name"
+      type: "String"
+      default: ""
+    - name: "netmasks"
+      type: "Vec<String>"
+      default: true
+    - name: "source"
+      type: "bool"
+      default: "true"
+    - name: "quiet"
+      type: "bool"
+      default: "false"
+- name: "Not"
+  description: "Matches the traffic if the selector rule does not match"
+  skip-cpp: true
+  skip-rust: true
+  skip-serde: true
+  parameters:
+    - name: "selector"
+      type: "Selector"
+- name: "opcode"
+  description: "Matches queries with opcode equals to ``code``"
+  parameters:
+    - name: "code"
+      type: "u8"
+- name: "Or"
+  description: "Matches the traffic if one or more of the selectors Rules does match"
+  skip-cpp: true
+  skip-rust: true
+  skip-serde: true
+  parameters:
+    - name: "selectors"
+      type: "Vec<Selector>"
+      default: true
+- name: "PayloadSize"
+  description: "Matches queries or responses whose DNS payload size fits the given comparison"
+  parameters:
+    - name: "comparison"
+      type: "String"
+    - name: "size"
+      type: "u16"
+- name: "PoolAvailable"
+  description: "Check whether a pool has any servers available to handle queries"
+  parameters:
+    - name: "pool"
+      type: "String"
+- name: "PoolOutstanding"
+  description: "Check whether a pool has total outstanding queries above limit"
+  parameters:
+    - name: "pool"
+      type: "String"
+    - name: "max-outstanding"
+      type: "u64"
+- name: "proba"
+  description: "Matches queries with a given probability. 1.0 means \"always\""
+  parameters:
+    - name: "probability"
+      type: "f64"
+- name: "ProxyProtocolValue"
+  description: "Matches queries that have a proxy protocol TLV value of the specified type. If ``option-value`` is set, the content of the value should also match the content of value"
+  parameters:
+    - name: "option-type"
+      type: "u8"
+    - name: "option-value"
+      type: "String"
+      default: ""
+- name: "QClass"
+  description: "Matches queries with the specified qclass. The class can be specified as a numerical value or as a string"
+  skip-cpp: true
+  parameters:
+    - name: "qclass"
+      type: "String"
+      default: ""
+    - name: "numeric-value"
+      type: "u16"
+      default: 0
+- name: "QName"
+  description: "Matches queries with the specified qname exactly"
+  skip-cpp: true
+  skip-rust: true
+  parameters:
+    - name: "qname"
+      type: "String"
+- name: "QNameLabelsCount"
+  description: "Matches if the qname has less than ``min-labels-count`` or more than ``max-labels-count`` labels"
+  parameters:
+    - name: "min-labels-count"
+      type: "u16"
+    - name: "max-labels-count"
+      type: "u16"
+- name: "QNameSet"
+  description: "Matches if the set contains exact qname. To match subdomain names, see :ref:`yaml-settings-QNameSuffixSelector`"
+  skip-cpp: true
+  skip-rust: true
+  parameters:
+    - name: "qnames"
+      type: "Vec<String>"
+- name: "QNameSuffix"
+  description: "Matches based on a group of domain suffixes for rapid testing of membership. Pass true to ``quiet`` to prevent listing of all domains matched in the console or the web interface"
+  skip-cpp: true
+  skip-rust: true
+  parameters:
+    - name: "suffixes"
+      type: "Vec<String>"
+    - name: "quiet"
+      type: "bool"
+      default: "false"
+- name: "QNameWireLength"
+  description: "Matches if the qname’s length on the wire is less than ``min`` or more than ``max`` bytes."
+  parameters:
+    - name: "min"
+      type: "u16"
+    - name: "max"
+      type: "u16"
+- name: "QType"
+  description: "Matches queries with the specified qtype, which can be supplied as a String or as a numerical value"
+  skip-cpp: true
+  parameters:
+    - name: "qtype"
+      type: "String"
+    - name: "numeric-value"
+      type: "u16"
+      default: 0
+- name: "RCode"
+  description: "Matches queries or responses with the specified rcode"
+  parameters:
+    - name: "rcode"
+      type: "u64"
+- name: "RD"
+  description: "Matches queries with the RD flag set"
+- name: "RE2"
+  description: "Matches the query name against the supplied regex using the RE2 engine"
+  parameters:
+    - name: "expression"
+      type: "String"
+- name: "RecordsCount"
+  description: "Matches if there is at least ``minimum`` and at most ``maximum`` records in the ``section`` section. ``section`` is specified as an integer with ``0`` being the question section, ``1`` answer, ``2`` authority and ``3`` additional"
+  parameters:
+    - name: "section"
+      type: "u8"
+    - name: "minimum"
+      type: "u16"
+    - name: "maximum"
+      type: "u16"
+- name: "RecordsTypeCount"
+  description: "Matches if there is at least ``minimum`` and at most ``maximum`` records of type ``record-type`` in the section ``section``. ``section`` is specified as an integer with ``0`` being the question section, ``1`` answer, ``2`` authority and ``3`` additional"
+  parameters:
+    - name: "section"
+      type: "u8"
+    - name: "record-type"
+      type: "u16"
+    - name: "minimum"
+      type: "u16"
+    - name: "maximum"
+      type: "u16"
+- name: "regex"
+  description: "Matches the query name against the supplied regular expression"
+  parameters:
+    - name: "expression"
+      type: "String"
+- name: "SNI"
+  description: "Matches against the TLS Server Name Indication value sent by the client, if any. Only makes sense for DoT or DoH, and for that last one matching on the HTTP Host header using :ref:`yaml-settings-HTTPHeaderSelector` might provide more consistent results"
+  parameters:
+    - name: "server-name"
+      type: "String"
+- name: "Tag"
+  description: "Matches question or answer with a tag named ``tag`` set. If ``value`` is specified, the existing tag value should match too"
+  parameters:
+    - name: "tag"
+      type: "String"
+    - name: "value"
+      type: "String"
+      default: ""
+- name: "TCP"
+  description: "Matches question received over TCP if ``tcp`` is true, over UDP otherwise"
+  parameters:
+    - name: "tcp"
+      type: "bool"
+- name: "TrailingData"
+  description: "Matches if the query has trailing data"
