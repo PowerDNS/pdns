@@ -2228,6 +2228,9 @@ static void maintThread()
           (*maintenanceCallback)();
         }
         dnsdist::lua::hooks::runMaintenanceHooks(*lua);
+#if !defined(DISABLE_DYNBLOCKS)
+	dnsdist::DynamicBlocks::runRegisteredGroups(*lua);
+#endif /* DISABLE_DYNBLOCKS */
         secondsToWaitLog = 0;
       }
       catch (const std::exception& e) {
