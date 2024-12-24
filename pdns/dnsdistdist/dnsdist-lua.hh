@@ -102,64 +102,6 @@ private:
   std::optional<uint16_t> d_rawTypeForAny{};
 };
 
-class LimitTTLResponseAction : public DNSResponseAction, public boost::noncopyable
-{
-public:
-  LimitTTLResponseAction() {}
-
-  LimitTTLResponseAction(uint32_t min, uint32_t max = std::numeric_limits<uint32_t>::max(), const std::unordered_set<QType>& types = {}) :
-    d_types(types), d_min(min), d_max(max)
-  {
-  }
-
-  DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
-  {
-    auto visitor = [&](uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl) {
-      if (!d_types.empty() && qclass == QClass::IN && d_types.count(qtype) == 0) {
-        return ttl;
-      }
-
-      if (d_min > 0) {
-        if (ttl < d_min) {
-          ttl = d_min;
-        }
-      }
-      if (ttl > d_max) {
-        ttl = d_max;
-      }
-      return ttl;
-    };
-    editDNSPacketTTL(reinterpret_cast<char*>(dr->getMutableData().data()), dr->getData().size(), visitor);
-    return DNSResponseAction::Action::None;
-  }
-
-  std::string toString() const override
-  {
-    std::string result = "limit ttl (" + std::to_string(d_min) + " <= ttl <= " + std::to_string(d_max);
-    if (!d_types.empty()) {
-      bool first = true;
-      result += ", types in [";
-      for (const auto& type : d_types) {
-        if (first) {
-          first = false;
-        }
-        else {
-          result += " ";
-        }
-        result += type.toString();
-      }
-      result += "]";
-    }
-    result += +")";
-    return result;
-  }
-
-private:
-  std::unordered_set<QType> d_types;
-  uint32_t d_min{0};
-  uint32_t d_max{std::numeric_limits<uint32_t>::max()};
-};
-
 template <class T>
 using LuaArray = std::vector<std::pair<int, T>>;
 template <class T>

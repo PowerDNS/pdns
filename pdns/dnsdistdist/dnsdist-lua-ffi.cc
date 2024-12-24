@@ -789,9 +789,7 @@ void dnsdist_ffi_dnsresponse_set_max_ttl(dnsdist_ffi_dnsresponse_t* dr, uint32_t
 void dnsdist_ffi_dnsresponse_limit_ttl(dnsdist_ffi_dnsresponse_t* dr, uint32_t min, uint32_t max)
 {
   if (dr != nullptr && dr->dr != nullptr) {
-    std::string result;
-    LimitTTLResponseAction ac(min, max);
-    ac(dr->dr, &result);
+    dnsdist::PacketMangling::restrictDNSPacketTTLs(dr->dr->getMutableData(), min, max);
   }
 }
 
