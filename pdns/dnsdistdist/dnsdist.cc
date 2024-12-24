@@ -3383,12 +3383,6 @@ int main(int argc, char** argv)
       }
     }
 
-    if (dnsdist::configuration::getImmutableConfiguration().d_maxTCPClientThreads == 0 && tcpBindsCount > 0) {
-      dnsdist::configuration::updateImmutableConfiguration([](dnsdist::configuration::ImmutableConfiguration& config) {
-        config.d_maxTCPClientThreads = static_cast<size_t>(10);
-      });
-    }
-
     dnsdist::configuration::setImmutableConfigurationDone();
 
     {
