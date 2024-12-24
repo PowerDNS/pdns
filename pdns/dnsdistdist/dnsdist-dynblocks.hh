@@ -26,6 +26,7 @@
 
 #include "dolog.hh"
 #include "dnsdist-rings.hh"
+#include "gettime.hh"
 #include "statnode.hh"
 
 extern "C"
@@ -465,5 +466,8 @@ void setClientAddressDynamicRules(ClientAddressDynamicRules&& rules);
 void setSuffixDynamicRules(SuffixDynamicRules&& rules);
 void clearClientAddressDynamicRules();
 void clearSuffixDynamicRules();
+
+void registerGroup(std::shared_ptr<DynBlockRulesGroup>& group);
+void runRegisteredGroups(LuaContext& luaCtx);
 }
 #endif /* DISABLE_DYNBLOCKS */
