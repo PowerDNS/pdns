@@ -1047,6 +1047,16 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
         string dashed=ip6.toString();
         boost::replace_all(dashed, ":", "-");
 
+        // https://github.com/PowerDNS/pdns/issues/7524
+        if (boost::ends_with(dashed, "-")) {
+          // "a--a-" -> "a--a-0"
+          dashed.push_back('0');
+        }
+        if (boost::starts_with(dashed, "-") || dashed.compare(2, 2, "--") == 0) {
+          // "-a--a" -> "0-a--a"               "aa--a" -> "0aa--a"
+          dashed.insert(0, "0");
+        }
+
         for(int i=31; i>=0; --i)
           fmt % labels[i];
         fmt % dashed;
