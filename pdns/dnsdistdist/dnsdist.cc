@@ -58,6 +58,7 @@
 #include "dnsdist-random.hh"
 #include "dnsdist-rings.hh"
 #include "dnsdist-secpoll.hh"
+#include "dnsdist-self-answers.hh"
 #include "dnsdist-snmp.hh"
 #include "dnsdist-tcp.hh"
 #include "dnsdist-tcp-downstream.hh"
@@ -830,28 +831,28 @@ static void spoofResponseFromString(DNSQuestion& dnsQuestion, const string& spoo
   string result;
 
   if (raw) {
+    dnsdist::ResponseConfig config;
     std::vector<std::string> raws;
     stringtok(raws, spoofContent, ",");
-    SpoofAction tempSpoofAction(raws, std::nullopt);
-    tempSpoofAction(&dnsQuestion, &result);
+    dnsdist::self_answers::generateAnswerFromRDataEntries(dnsQuestion, raws, std::nullopt, config);
   }
   else {
     std::vector<std::string> addrs;
     stringtok(addrs, spoofContent, " ,");
 
     if (addrs.size() == 1) {
+      dnsdist::ResponseConfig config;
       try {
         ComboAddress spoofAddr(spoofContent);
-        SpoofAction tempSpoofAction({spoofAddr});
-        tempSpoofAction(&dnsQuestion, &result);
+        dnsdist::self_answers::generateAnswerFromIPAddresses(dnsQuestion, {spoofAddr}, config);
       }
       catch (const PDNSException& e) {
         DNSName cname(spoofContent);
-        SpoofAction tempSpoofAction(cname); // CNAME then
-        tempSpoofAction(&dnsQuestion, &result);
+        dnsdist::self_answers::generateAnswerFromCNAME(dnsQuestion, cname, config);
       }
     }
     else {
+      dnsdist::ResponseConfig config;
       std::vector<ComboAddress> cas;
       for (const auto& addr : addrs) {
         try {
@@ -860,18 +861,15 @@ static void spoofResponseFromString(DNSQuestion& dnsQuestion, const string& spoo
         catch (...) {
         }
       }
-      SpoofAction tempSpoofAction(cas);
-      tempSpoofAction(&dnsQuestion, &result);
+      dnsdist::self_answers::generateAnswerFromIPAddresses(dnsQuestion, cas, config);
     }
   }
 }
 
 static void spoofPacketFromString(DNSQuestion& dnsQuestion, const string& spoofContent)
 {
-  string result;
-
-  SpoofAction tempSpoofAction(spoofContent.c_str(), spoofContent.size());
-  tempSpoofAction(&dnsQuestion, &result);
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+  dnsdist::self_answers::generateAnswerFromRawPacket(dnsQuestion, PacketBuffer(spoofContent.data(), spoofContent.data() + spoofContent.size()));
 }
 
 bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dnsQuestion, std::string& ruleresult, bool& drop)

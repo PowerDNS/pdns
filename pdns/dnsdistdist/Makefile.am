@@ -205,6 +205,7 @@ dnsdist_SOURCES = \
 	dnsdist-rule-chains.cc dnsdist-rule-chains.hh \
 	dnsdist-rules.cc dnsdist-rules.hh \
 	dnsdist-secpoll.cc dnsdist-secpoll.hh \
+	dnsdist-self-answers.cc dnsdist-self-answers.hh \
 	dnsdist-session-cache.cc dnsdist-session-cache.hh \
 	dnsdist-snmp.cc dnsdist-snmp.hh \
 	dnsdist-svc.cc dnsdist-svc.hh \
@@ -312,6 +313,7 @@ testrunner_SOURCES = \
 	dnsdist-rings.cc dnsdist-rings.hh \
 	dnsdist-rule-chains.cc dnsdist-rule-chains.hh \
 	dnsdist-rules.cc dnsdist-rules.hh \
+	dnsdist-self-answers.cc dnsdist-self-answers.hh \
 	dnsdist-session-cache.cc dnsdist-session-cache.hh \
 	dnsdist-svc.cc dnsdist-svc.hh \
 	dnsdist-tcp-downstream.cc \
