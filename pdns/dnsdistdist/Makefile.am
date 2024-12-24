@@ -117,6 +117,7 @@ EXTRA_DIST=COPYING \
 	   dnsdist-rust-bridge-selectors-generated.cc \
 	   dnsdist-rust-bridge-selectors-generated.hh \
 	   dnsdist-selectors-definitions.yml \
+	   dnsdist-settings-definitions.yml \
 	   dnslabeltext.rl \
 	   dnsdist.conf-dist \
 	   dnsmessage.proto \
@@ -180,6 +181,8 @@ dnsdist_SOURCES = \
 	dnsdist-cache.cc dnsdist-cache.hh \
 	dnsdist-carbon.cc dnsdist-carbon.hh \
 	dnsdist-concurrent-connections.hh \
+	dnsdist-configuration-yaml-internal.hh \
+	dnsdist-configuration-yaml.cc dnsdist-configuration-yaml.hh \
 	dnsdist-configuration.cc dnsdist-configuration.hh \
 	dnsdist-console.cc dnsdist-console.hh \
 	dnsdist-crypto.cc dnsdist-crypto.hh \
@@ -526,6 +529,7 @@ testrunner_LDADD += $(QUICHE_LDFLAGS) $(QUICHE_LIBS)
 endif
 
 if HAVE_YAML_CONFIGURATION
+dnsdist_SOURCES += dnsdist-rust-lib/dnsdist-configuration-yaml-items-generated.cc
 dnsdist_LDADD += $(DNSDIST_RUST_LIBS)
 endif
 
