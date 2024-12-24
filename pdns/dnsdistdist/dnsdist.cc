@@ -520,9 +520,7 @@ bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse,
   }
 
   if (dnsResponse.ids.ttlCap > 0) {
-    std::string result;
-    LimitTTLResponseAction lrac(0, dnsResponse.ids.ttlCap, {});
-    lrac(&dnsResponse, &result);
+    dnsdist::PacketMangling::restrictDNSPacketTTLs(dnsResponse.getMutableData(), 0, dnsResponse.ids.ttlCap);
   }
 
   if (dnsResponse.ids.d_extendedError) {
@@ -1348,9 +1346,7 @@ static bool prepareOutgoingResponse(const ClientState& clientState, DNSQuestion&
   }
 
   if (dnsResponse.ids.ttlCap > 0) {
-    std::string result;
-    LimitTTLResponseAction ltrac(0, dnsResponse.ids.ttlCap, {});
-    ltrac(&dnsResponse, &result);
+    dnsdist::PacketMangling::restrictDNSPacketTTLs(dnsResponse.getMutableData(), 0, dnsResponse.ids.ttlCap);
   }
 
   if (dnsResponse.ids.d_extendedError) {

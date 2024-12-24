@@ -131,6 +131,49 @@ private:
   int d_msec;
 };
 
+class LimitTTLResponseAction : public DNSResponseAction, public boost::noncopyable
+{
+public:
+  LimitTTLResponseAction() {}
+
+  LimitTTLResponseAction(uint32_t min, uint32_t max = std::numeric_limits<uint32_t>::max(), const std::unordered_set<QType>& types = {}) :
+    d_types(types), d_min(min), d_max(max)
+  {
+  }
+
+  DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
+  {
+    dnsdist::PacketMangling::restrictDNSPacketTTLs(dr->getMutableData(), d_min, d_max, d_types);
+    return DNSResponseAction::Action::None;
+  }
+
+  std::string toString() const override
+  {
+    std::string result = "limit ttl (" + std::to_string(d_min) + " <= ttl <= " + std::to_string(d_max);
+    if (!d_types.empty()) {
+      bool first = true;
+      result += ", types in [";
+      for (const auto& type : d_types) {
+        if (first) {
+          first = false;
+        }
+        else {
+          result += " ";
+        }
+        result += type.toString();
+      }
+      result += "]";
+    }
+    result += +")";
+    return result;
+  }
+
+private:
+  std::unordered_set<QType> d_types;
+  uint32_t d_min{0};
+  uint32_t d_max{std::numeric_limits<uint32_t>::max()};
+};
+
 class TeeAction : public DNSAction
 {
 public:
