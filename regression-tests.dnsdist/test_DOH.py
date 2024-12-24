@@ -761,6 +761,149 @@ class TestDoHNGHTTP2(DOHTests, DNSDistDOHTest):
 class TestDoHH2O(DOHTests, DNSDistDOHTest):
     _dohLibrary = 'h2o'
 
+class TestDoHNGHTTP2Yaml(DOHTests, DNSDistDOHTest):
+    _dohLibrary = 'nghttp2'
+    _yaml_config_template = """---
+console:
+  key: "%s"
+  listen-address: "127.0.0.1:%d"
+  acl:
+    - 127.0.0.0/8
+backends:
+  - address: "127.0.0.1:%d"
+    protocol: "Do53"
+binds:
+  - listen-address: "127.0.0.1:%d"
+    reuseport: true
+    protocol: "DoH"
+    tls:
+      certificates:
+        - certificate: "%s"
+          key: "%s"
+    doh:
+      provider: "%s"
+      paths:
+        - "/"
+        - "/coffee"
+        - "/PowerDNS"
+        - "/PowerDNS2"
+        - "/PowerDNS-999"
+      custom-response-headers:
+        - key: "access-control-allow-origin"
+          value: "*"
+        - key: "user-agent"
+          value: "derp"
+        - key: "UPPERCASE"
+          value: "VaLuE"
+      keep-incoming-headers: true
+      responses-map:
+        - expression: "^/coffee$"
+          status: 418
+          content: 'C0FFEE'
+          headers:
+           - key: "FoO"
+             value: "bar"
+query-rules:
+  - name: "Drop"
+    selector:
+      type: "QName"
+      qname: "drop.doh.tests.powerdns.com."
+    action:
+      type: "Drop"
+  - name: "Refused"
+    selector:
+      type: "QName"
+      qname: "refused.doh.tests.powerdns.com."
+    action:
+      type: "RCode"
+      rcode: 5
+  - name: "Spoof"
+    selector:
+      type: "QName"
+      qname: "spoof.doh.tests.powerdns.com."
+    action:
+      type: "Spoof"
+      ips:
+        - "1.2.3.4"
+  - name: "HTTP header"
+    selector:
+      type: "HTTPHeader"
+      header: "X-PowerDNS"
+      expression: "^[a]{5}$"
+    action:
+      type: "Spoof"
+      ips:
+        - "2.3.4.5"
+  - name: "HTTP path"
+    selector:
+      type: "HTTPPath"
+      path: "/PowerDNS"
+    action:
+      type: "Spoof"
+      ips:
+        - "3.4.5.6"
+  - name: "HTTP regex"
+    selector:
+      type: "HTTPPathRegex"
+      expression: "^/PowerDNS-[0-9]"
+    action:
+      type: "Spoof"
+      ips:
+        - "6.7.8.9"
+  - name: "HTTP status"
+    selector:
+      type: "QName"
+      qname: "http-status-action.doh.tests.powerdns.com."
+    action:
+      type: "HTTPStatus"
+      status: 200
+      body: "Plaintext answer"
+      content-type: "text/plain"
+  - name: "HTTP status redirect"
+    selector:
+      type: "QName"
+      qname: "http-status-action-redirect.doh.tests.powerdns.com."
+    action:
+      type: "HTTPStatus"
+      status: 307
+      body: "https://doh.powerdns.org"
+  - name: "No backend"
+    selector:
+      type: "QName"
+      qname: "no-backend.doh.tests.powerdns.com."
+    action:
+      type: "Pool"
+      pool-name: "this-pool-has-no-backend"
+  - name: "HTTP Lua"
+    selector:
+      type: "QName"
+      qname: "http-lua.doh.tests.powerdns.com."
+    action:
+      type: "Lua"
+      function: "dohHandler"
+"""
+    _yaml_config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_dohServerPort', '_serverCert', '_serverKey', '_dohLibrary']
+    _config_template = """
+    function dohHandler(dq)
+      if dq:getHTTPScheme() == 'https' and dq:getHTTPHost() == '%s:%d' and dq:getHTTPPath() == '/' and dq:getHTTPQueryString() == '' then
+        local foundct = false
+        for key,value in pairs(dq:getHTTPHeaders()) do
+          if key == 'content-type' and value == 'application/dns-message' then
+            foundct = true
+            break
+          end
+        end
+        if foundct then
+          dq:setHTTPResponse(200, 'It works!', 'text/plain')
+          dq.dh:setQR(true)
+          return DNSAction.HeaderModify
+        end
+      end
+      return DNSAction.None
+    end
+    """
+    _config_params = ['_serverName', '_dohServerPort']
+
 class DOHSubPathsTests(object):
     _serverKey = 'server.key'
     _serverCert = 'server.chain'

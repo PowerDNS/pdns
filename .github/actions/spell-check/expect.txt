@@ -1211,6 +1211,7 @@ scopemask
 sdfn
 sdfoijdfio
 sdig
+secnumdepth
 secpoll
 securitypolicy
 securitypolling
@@ -1226,6 +1227,7 @@ servfail
 servicemode
 setaffinity
 setcontent
+setcounter
 setdomainmetadata
 seting
 setkey

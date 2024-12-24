@@ -178,6 +178,7 @@ inline size_t hash_value(const QType qtype) {
 struct QClass
 {
   constexpr QClass(uint16_t code = 0) : qclass(code) {}
+  explicit QClass(const std::string& code);
 
   constexpr operator uint16_t() const {
     return qclass;
@@ -186,7 +187,7 @@ struct QClass
   {
     return qclass;
   }
-  const std::string toString() const;
+  std::string toString() const;
 
   static const QClass IN;
   static const QClass CHAOS;

@@ -26,6 +26,9 @@ class CDBTest(DNSDistTest):
     newServer{address="127.0.0.1:%d"}
 
     kvs = newCDBKVStore('%s', %d)
+    kvs:reload()
+    kvs:lookup('does not exist, just testing that the lookup binding exists')
+    kvs:lookupSuffix(newDNSName('dummy'))
 
     -- KVS lookups follow
     -- does a lookup in the CDB database using the source IP as key, and store the result into the 'kvs-sourceip-result' tag
