@@ -21,12 +21,8 @@
  */
 #pragma once
 
-#include <random>
-
 #include "dolog.hh"
 #include "dnsdist.hh"
-#include "dnsdist-dnsparser.hh"
-#include "dnsparser.hh"
 
 #include "ext/luawrapper/include/LuaContext.hpp"
 
