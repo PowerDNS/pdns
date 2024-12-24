@@ -2242,28 +2242,18 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     if (client || configCheck) {
       return;
     }
-    if (!checkConfigurationTime("snmpAgent")) {
-      return;
-    }
 
-    {
-      if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_snmpEnabled) {
-        errlog("snmpAgent() cannot be used twice!");
-        g_outputBuffer = "snmpAgent() cannot be used twice!\n";
-        return;
-      }
-    }
-
-    dnsdist::configuration::updateRuntimeConfiguration([enableTraps](dnsdist::configuration::RuntimeConfiguration& config) {
+    dnsdist::configuration::updateImmutableConfiguration([enableTraps, &daemonSocket](dnsdist::configuration::ImmutableConfiguration& config) {
       config.d_snmpEnabled = true;
       config.d_snmpTrapsEnabled = enableTraps;
+      if (daemonSocket) {
+        config.d_snmpDaemonSocketPath = *daemonSocket;
+      }
     });
-
-    g_snmpAgent = std::make_unique<DNSDistSNMPAgent>("dnsdist", daemonSocket ? *daemonSocket : std::string());
   });
 
   luaCtx.writeFunction("sendCustomTrap", [](const std::string& str) {
-    if (g_snmpAgent != nullptr && dnsdist::configuration::getCurrentRuntimeConfiguration().d_snmpTrapsEnabled) {
+    if (g_snmpAgent != nullptr && dnsdist::configuration::getImmutableConfiguration().d_snmpTrapsEnabled) {
       g_snmpAgent->sendCustomTrap(str);
     }
   });

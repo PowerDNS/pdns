@@ -59,6 +59,7 @@ struct ImmutableConfiguration
   std::set<std::string> d_capabilitiesToRetain;
   std::vector<uint32_t> d_tcpFastOpenKey;
   std::vector<std::shared_ptr<ClientState>> d_frontends;
+  std::string d_snmpDaemonSocketPath;
 #ifdef __linux__
   // On Linux this gives us 128k pending queries (default is 8192 queries),
   // which should be enough to deal with huge spikes
@@ -93,6 +94,8 @@ struct ImmutableConfiguration
   bool d_randomizeIDsToBackend{false};
   bool d_ringsRecordQueries{true};
   bool d_ringsRecordResponses{true};
+  bool d_snmpEnabled{false};
+  bool d_snmpTrapsEnabled{false};
 };
 
 /* this part of the configuration can be updated at runtime via
@@ -152,8 +155,6 @@ struct RuntimeConfiguration
   bool d_servFailOnNoPolicy{false};
   bool d_allowEmptyResponse{false};
   bool d_dropEmptyQueries{false};
-  bool d_snmpEnabled{false};
-  bool d_snmpTrapsEnabled{false};
   bool d_consoleEnabled{false};
   bool d_logConsoleConnections{true};
   bool d_addEDNSToSelfGeneratedResponses{true};
