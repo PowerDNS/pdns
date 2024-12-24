@@ -654,6 +654,7 @@ typedef struct AuthLuaRecordContext
 {
   ComboAddress          bestwho;
   DNSName               qname;
+  DNSRecord             zone_record;
   DNSName               zone;
   int                   zoneid;
 } lua_record_ctx_t;
@@ -915,8 +916,14 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
       return std::string("error");
     });
   lua.writeFunction("createForward", []() {
-      static string allZerosIP("0.0.0.0");
-      DNSName rel=s_lua_record_ctx->qname.makeRelative(s_lua_record_ctx->zone);
+      static string allZerosIP{"0.0.0.0"};
+      DNSName record_name{s_lua_record_ctx->zone_record.d_name};
+      if (record_name.isWildcard() == false) {
+        return allZerosIP;
+      }
+      record_name.chopOff();
+      DNSName rel{s_lua_record_ctx->qname.makeRelative(record_name)};
+
       // parts is something like ["1", "2", "3", "4", "static"] or
       // ["1", "2", "3", "4"] or ["ip40414243", "ip-addresses", ...]
       auto parts = rel.getRawLabels();
@@ -972,7 +979,14 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
     });
 
   lua.writeFunction("createForward6", []() {
-      DNSName rel=s_lua_record_ctx->qname.makeRelative(s_lua_record_ctx->zone);
+      static string allZerosIP{"::"};
+      DNSName record_name{s_lua_record_ctx->zone_record.d_name};
+      if (record_name.isWildcard() == false) {
+        return allZerosIP;
+      }
+      record_name.chopOff();
+      DNSName rel{s_lua_record_ctx->qname.makeRelative(record_name)};
+
       auto parts = rel.getRawLabels();
       if(parts.size()==8) {
         string tot;
@@ -1008,7 +1022,7 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
         }
       }
 
-      return std::string("::");
+      return allZerosIP;
     });
   lua.writeFunction("createReverse6", [](string format, boost::optional<std::unordered_map<string,string>> e){
       vector<ComboAddress> candidates;
@@ -1395,7 +1409,7 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
     });
 }
 
-std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, const DNSName& query, const DNSName& zone, int zoneid, const DNSPacket& dnsp, uint16_t qtype, unique_ptr<AuthLua4>& LUA)
+std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, const DNSName& query, const DNSRecord& zone_record, const DNSName& zone, int zoneid, const DNSPacket& dnsp, uint16_t qtype, unique_ptr<AuthLua4>& LUA)
 {
   if(!LUA ||                  // we don't have a Lua state yet
      !g_LuaRecordSharedState) { // or we want a new one even if we had one
@@ -1409,6 +1423,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
 
   s_lua_record_ctx = std::make_unique<lua_record_ctx_t>();
   s_lua_record_ctx->qname = query;
+  s_lua_record_ctx->zone_record = zone_record;
   s_lua_record_ctx->zone = zone;
   s_lua_record_ctx->zoneid = zoneid;
 
