@@ -33,6 +33,7 @@
 #include "dnsdist-proxy-protocol.hh"
 #include "dnsdist-kvs.hh"
 #include "dnsdist-rule-chains.hh"
+#include "dnsdist-self-answers.hh"
 #include "dnsdist-snmp.hh"
 #include "dnsdist-svc.hh"
 
@@ -411,8 +412,8 @@ private:
 class RCodeAction : public DNSAction
 {
 public:
-  RCodeAction(uint8_t rcode) :
-    d_rcode(rcode) {}
+  RCodeAction(uint8_t rcode, dnsdist::ResponseConfig responseConfig) :
+    d_responseConfig(responseConfig), d_rcode(rcode) {}
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
     dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsquestion->getMutableData(), [this](dnsheader& header) {
@@ -427,10 +428,6 @@ public:
   {
     return "set rcode " + std::to_string(d_rcode);
   }
-  [[nodiscard]] dnsdist::ResponseConfig& getResponseConfig()
-  {
-    return d_responseConfig;
-  }
 
 private:
   dnsdist::ResponseConfig d_responseConfig;
@@ -440,8 +437,8 @@ private:
 class ERCodeAction : public DNSAction
 {
 public:
-  ERCodeAction(uint8_t rcode) :
-    d_rcode(rcode) {}
+  ERCodeAction(uint8_t rcode, dnsdist::ResponseConfig responseConfig) :
+    d_responseConfig(responseConfig), d_rcode(rcode) {}
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
     dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsquestion->getMutableData(), [this](dnsheader& header) {
@@ -457,10 +454,6 @@ public:
   {
     return "set ercode " + ERCode::to_s(d_rcode);
   }
-  [[nodiscard]] dnsdist::ResponseConfig& getResponseConfig()
-  {
-    return d_responseConfig;
-  }
 
 private:
   dnsdist::ResponseConfig d_responseConfig;
@@ -470,7 +463,8 @@ private:
 class SpoofSVCAction : public DNSAction
 {
 public:
-  SpoofSVCAction(const LuaArray<SVCRecordParameters>& parameters)
+  SpoofSVCAction(const LuaArray<SVCRecordParameters>& parameters, dnsdist::ResponseConfig responseConfig) :
+    d_responseConfig(responseConfig)
   {
     d_payloads.reserve(parameters.size());
 
@@ -504,11 +498,6 @@ public:
   [[nodiscard]] std::string toString() const override
   {
     return "spoof SVC record ";
-  }
-
-  [[nodiscard]] dnsdist::ResponseConfig& getResponseConfig()
-  {
-    return d_responseConfig;
   }
 
 private:
@@ -884,7 +873,68 @@ private:
 std::atomic<uint64_t> LuaFFIPerThreadResponseAction::s_functionsCounter = 0;
 thread_local std::map<uint64_t, LuaFFIPerThreadResponseAction::PerThreadState> LuaFFIPerThreadResponseAction::t_perThreadStates;
 
-thread_local std::default_random_engine SpoofAction::t_randomEngine;
+class SpoofAction : public DNSAction
+{
+public:
+  SpoofAction(const vector<ComboAddress>& addrs, const dnsdist::ResponseConfig& responseConfig) :
+    d_responseConfig(responseConfig), d_addrs(addrs)
+  {
+    for (const auto& addr : d_addrs) {
+      if (addr.isIPv4()) {
+        d_types.insert(QType::A);
+      }
+      else if (addr.isIPv6()) {
+        d_types.insert(QType::AAAA);
+      }
+    }
+
+    if (!d_addrs.empty()) {
+      d_types.insert(QType::ANY);
+    }
+  }
+
+  SpoofAction(const DNSName& cname, const dnsdist::ResponseConfig& responseConfig) :
+    d_responseConfig(responseConfig), d_cname(cname)
+  {
+  }
+
+  SpoofAction(const PacketBuffer& rawresponse) :
+    d_raw(rawresponse)
+  {
+  }
+
+  SpoofAction(const vector<std::string>& raws, std::optional<uint16_t> typeForAny, const dnsdist::ResponseConfig& responseConfig) :
+    d_responseConfig(responseConfig), d_rawResponses(raws), d_rawTypeForAny(typeForAny)
+  {
+  }
+
+  DNSAction::Action operator()(DNSQuestion* dnsquestion, string* ruleresult) const override;
+
+  string toString() const override
+  {
+    string ret = "spoof in ";
+    if (!d_cname.empty()) {
+      ret += d_cname.toString() + " ";
+    }
+    if (d_rawResponses.size() > 0) {
+      ret += "raw bytes ";
+    }
+    else {
+      for (const auto& a : d_addrs)
+        ret += a.toString() + " ";
+    }
+    return ret;
+  }
+
+private:
+  dnsdist::ResponseConfig d_responseConfig;
+  std::vector<ComboAddress> d_addrs;
+  std::unordered_set<uint16_t> d_types;
+  std::vector<std::string> d_rawResponses;
+  PacketBuffer d_raw;
+  DNSName d_cname;
+  std::optional<uint16_t> d_rawTypeForAny{};
+};
 
 DNSAction::Action SpoofAction::operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const
 {
@@ -897,164 +947,27 @@ DNSAction::Action SpoofAction::operator()(DNSQuestion* dnsquestion, std::string*
   }
 
   if (d_raw.size() >= sizeof(dnsheader)) {
-    auto questionId = dnsquestion->getHeader()->id;
-    dnsquestion->getMutableData() = d_raw;
-    dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsquestion->getMutableData(), [questionId](dnsheader& header) {
-      header.id = questionId;
-      return true;
-    });
+    dnsdist::self_answers::generateAnswerFromRawPacket(*dnsquestion, d_raw);
     return Action::HeaderModify;
   }
-  std::vector<ComboAddress> addrs = {};
-  std::vector<std::string> rawResponses = {};
-  unsigned int totrdatalen = 0;
-  size_t numberOfRecords = 0;
+
   if (!d_cname.empty()) {
-    qtype = QType::CNAME;
-    totrdatalen += d_cname.getStorage().size();
-    numberOfRecords = 1;
+    if (dnsdist::self_answers::generateAnswerFromCNAME(*dnsquestion, d_cname, d_responseConfig)) {
+      return Action::HeaderModify;
+    }
   }
   else if (!d_rawResponses.empty()) {
-    rawResponses.reserve(d_rawResponses.size());
-    for (const auto& rawResponse : d_rawResponses) {
-      totrdatalen += rawResponse.size();
-      rawResponses.push_back(rawResponse);
-      ++numberOfRecords;
-    }
-    if (rawResponses.size() > 1) {
-      shuffle(rawResponses.begin(), rawResponses.end(), t_randomEngine);
+    if (dnsdist::self_answers::generateAnswerFromRDataEntries(*dnsquestion, d_rawResponses, d_rawTypeForAny, d_responseConfig)) {
+      return Action::HeaderModify;
     }
   }
   else {
-    for (const auto& addr : d_addrs) {
-      if (qtype != QType::ANY && ((addr.sin4.sin_family == AF_INET && qtype != QType::A) || (addr.sin4.sin_family == AF_INET6 && qtype != QType::AAAA))) {
-        continue;
-      }
-      totrdatalen += addr.sin4.sin_family == AF_INET ? sizeof(addr.sin4.sin_addr.s_addr) : sizeof(addr.sin6.sin6_addr.s6_addr);
-      addrs.push_back(addr);
-      ++numberOfRecords;
+    if (dnsdist::self_answers::generateAnswerFromIPAddresses(*dnsquestion, d_addrs, d_responseConfig)) {
+      return Action::HeaderModify;
     }
   }
 
-  if (addrs.size() > 1) {
-    shuffle(addrs.begin(), addrs.end(), t_randomEngine);
-  }
-
-  unsigned int qnameWireLength = 0;
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-  DNSName ignore(reinterpret_cast<const char*>(dnsquestion->getData().data()), dnsquestion->getData().size(), sizeof(dnsheader), false, nullptr, nullptr, &qnameWireLength);
-
-  if (dnsquestion->getMaximumSize() < (sizeof(dnsheader) + qnameWireLength + 4 + numberOfRecords * 12 /* recordstart */ + totrdatalen)) {
-    return Action::None;
-  }
-
-  bool dnssecOK = false;
-  bool hadEDNS = false;
-  if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses && queryHasEDNS(*dnsquestion)) {
-    hadEDNS = true;
-    dnssecOK = ((dnsdist::getEDNSZ(*dnsquestion) & EDNS_HEADER_FLAG_DO) != 0);
-  }
-
-  auto& data = dnsquestion->getMutableData();
-  data.resize(sizeof(dnsheader) + qnameWireLength + 4 + numberOfRecords * 12 /* recordstart */ + totrdatalen); // there goes your EDNS
-  uint8_t* dest = &(data.at(sizeof(dnsheader) + qnameWireLength + 4));
-
-  dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsquestion->getMutableData(), [this](dnsheader& header) {
-    header.qr = true; // for good measure
-    setResponseHeadersFromConfig(header, d_responseConfig);
-    header.ancount = 0;
-    header.arcount = 0; // for now, forget about your EDNS, we're marching over it
-    return true;
-  });
-
-  uint32_t ttl = htonl(d_responseConfig.ttl);
-  uint16_t qclass = htons(dnsquestion->ids.qclass);
-  std::array<unsigned char, 12> recordstart = {
-    0xc0, 0x0c, // compressed name
-    0, 0, // QTYPE
-    0, 0, // QCLASS
-    0, 0, 0, 0, // TTL
-    0, 0 // rdata length
-  };
-  static_assert(recordstart.size() == 12, "sizeof(recordstart) must be equal to 12, otherwise the above check is invalid");
-  memcpy(&recordstart[4], &qclass, sizeof(qclass));
-  memcpy(&recordstart[6], &ttl, sizeof(ttl));
-
-  if (qtype == QType::CNAME) {
-    const auto& wireData = d_cname.getStorage(); // Note! This doesn't do compression!
-    uint16_t rdataLen = htons(wireData.length());
-    qtype = htons(qtype);
-    memcpy(&recordstart[2], &qtype, sizeof(qtype));
-    memcpy(&recordstart[10], &rdataLen, sizeof(rdataLen));
-
-    memcpy(dest, recordstart.data(), recordstart.size());
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-    dest += recordstart.size();
-    memcpy(dest, wireData.c_str(), wireData.length());
-    dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsquestion->getMutableData(), [](dnsheader& header) {
-      header.ancount++;
-      return true;
-    });
-  }
-  else if (!rawResponses.empty()) {
-    if (qtype == QType::ANY && d_rawTypeForAny) {
-      qtype = *d_rawTypeForAny;
-    }
-    qtype = htons(qtype);
-    for (const auto& rawResponse : rawResponses) {
-      uint16_t rdataLen = htons(rawResponse.size());
-      memcpy(&recordstart[2], &qtype, sizeof(qtype));
-      memcpy(&recordstart[10], &rdataLen, sizeof(rdataLen));
-
-      memcpy(dest, recordstart.data(), sizeof(recordstart));
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-      dest += recordstart.size();
-
-      memcpy(dest, rawResponse.c_str(), rawResponse.size());
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-      dest += rawResponse.size();
-
-      dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsquestion->getMutableData(), [](dnsheader& header) {
-        header.ancount++;
-        return true;
-      });
-    }
-  }
-  else {
-    for (const auto& addr : addrs) {
-      uint16_t rdataLen = htons(addr.sin4.sin_family == AF_INET ? sizeof(addr.sin4.sin_addr.s_addr) : sizeof(addr.sin6.sin6_addr.s6_addr));
-      qtype = htons(addr.sin4.sin_family == AF_INET ? QType::A : QType::AAAA);
-      memcpy(&recordstart[2], &qtype, sizeof(qtype));
-      memcpy(&recordstart[10], &rdataLen, sizeof(rdataLen));
-
-      memcpy(dest, recordstart.data(), recordstart.size());
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-      dest += sizeof(recordstart);
-
-      memcpy(dest,
-             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-             addr.sin4.sin_family == AF_INET ? reinterpret_cast<const void*>(&addr.sin4.sin_addr.s_addr) : reinterpret_cast<const void*>(&addr.sin6.sin6_addr.s6_addr),
-             addr.sin4.sin_family == AF_INET ? sizeof(addr.sin4.sin_addr.s_addr) : sizeof(addr.sin6.sin6_addr.s6_addr));
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-      dest += (addr.sin4.sin_family == AF_INET ? sizeof(addr.sin4.sin_addr.s_addr) : sizeof(addr.sin6.sin6_addr.s6_addr));
-      dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsquestion->getMutableData(), [](dnsheader& header) {
-        header.ancount++;
-        return true;
-      });
-    }
-  }
-
-  auto finalANCount = dnsquestion->getHeader()->ancount;
-  dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsquestion->getMutableData(), [finalANCount](dnsheader& header) {
-    header.ancount = htons(finalANCount);
-    return true;
-  });
-
-  if (hadEDNS) {
-    addEDNS(dnsquestion->getMutableData(), dnsquestion->getMaximumSize(), dnssecOK, dnsdist::configuration::getCurrentRuntimeConfiguration().d_payloadSizeSelfGenAnswers, 0);
-  }
-
-  return Action::HeaderModify;
+  return Action::None;
 }
 
 class SetMacAddrAction : public DNSAction
@@ -2066,8 +1979,8 @@ private:
 class HTTPStatusAction : public DNSAction
 {
 public:
-  HTTPStatusAction(int code, PacketBuffer body, std::string contentType) :
-    d_body(std::move(body)), d_contentType(std::move(contentType)), d_code(code)
+  HTTPStatusAction(int code, PacketBuffer body, std::string contentType, dnsdist::ResponseConfig responseConfig) :
+    d_responseConfig(responseConfig), d_body(std::move(body)), d_contentType(std::move(contentType)), d_code(code)
   {
   }
 
@@ -2101,11 +2014,6 @@ public:
   [[nodiscard]] std::string toString() const override
   {
     return "return an HTTP status of " + std::to_string(d_code);
-  }
-
-  [[nodiscard]] dnsdist::ResponseConfig& getResponseConfig()
-  {
-    return d_responseConfig;
   }
 
 private:
@@ -2246,8 +2154,8 @@ public:
     uint32_t minimum;
   };
 
-  NegativeAndSOAAction(bool nxd, DNSName zone, uint32_t ttl, DNSName mname, DNSName rname, SOAParams params, bool soaInAuthoritySection) :
-    d_zone(std::move(zone)), d_mname(std::move(mname)), d_rname(std::move(rname)), d_ttl(ttl), d_params(params), d_nxd(nxd), d_soaInAuthoritySection(soaInAuthoritySection)
+  NegativeAndSOAAction(bool nxd, DNSName zone, uint32_t ttl, DNSName mname, DNSName rname, SOAParams params, bool soaInAuthoritySection, dnsdist::ResponseConfig responseConfig) :
+    d_responseConfig(responseConfig), d_zone(std::move(zone)), d_mname(std::move(mname)), d_rname(std::move(rname)), d_ttl(ttl), d_params(params), d_nxd(nxd), d_soaInAuthoritySection(soaInAuthoritySection)
   {
   }
 
@@ -2268,10 +2176,6 @@ public:
   [[nodiscard]] std::string toString() const override
   {
     return std::string(d_nxd ? "NXD" : "NODATA") + " with SOA";
-  }
-  [[nodiscard]] dnsdist::ResponseConfig& getResponseConfig()
-  {
-    return d_responseConfig;
   }
 
 private:
@@ -2448,12 +2352,14 @@ static void addAction(IdentifierT identifier, const luadnsrule_t& var, const std
 
 using responseParams_t = std::unordered_map<std::string, boost::variant<bool, uint32_t>>;
 
-static void parseResponseConfig(boost::optional<responseParams_t>& vars, dnsdist::ResponseConfig& config)
+static dnsdist::ResponseConfig parseResponseConfig(boost::optional<responseParams_t>& vars)
 {
+  dnsdist::ResponseConfig config;
   getOptionalValue<uint32_t>(vars, "ttl", config.ttl);
   getOptionalValue<bool>(vars, "aa", config.setAA);
   getOptionalValue<bool>(vars, "ad", config.setAD);
   getOptionalValue<bool>(vars, "ra", config.setRA);
+  return config;
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity): this function declares Lua bindings, even with a good refactoring it will likely blow up the threshold
@@ -2574,25 +2480,23 @@ void setupLuaActions(LuaContext& luaCtx)
       }
     }
 
-    auto ret = std::shared_ptr<DNSAction>(new SpoofAction(addrs));
-    auto spoofaction = std::dynamic_pointer_cast<SpoofAction>(ret);
-    parseResponseConfig(vars, spoofaction->getResponseConfig());
+    auto responseConfig = parseResponseConfig(vars);
     checkAllParametersConsumed("SpoofAction", vars);
+    auto ret = std::shared_ptr<DNSAction>(new SpoofAction(addrs, responseConfig));
     return ret;
   });
 
   luaCtx.writeFunction("SpoofSVCAction", [](const LuaArray<SVCRecordParameters>& parameters, boost::optional<responseParams_t> vars) {
-    auto ret = std::shared_ptr<DNSAction>(new SpoofSVCAction(parameters));
-    auto spoofaction = std::dynamic_pointer_cast<SpoofSVCAction>(ret);
-    parseResponseConfig(vars, spoofaction->getResponseConfig());
+    auto responseConfig = parseResponseConfig(vars);
+    checkAllParametersConsumed("SpoofAction", vars);
+    auto ret = std::shared_ptr<DNSAction>(new SpoofSVCAction(parameters, responseConfig));
     return ret;
   });
 
   luaCtx.writeFunction("SpoofCNAMEAction", [](const std::string& cname, boost::optional<responseParams_t> vars) {
-    auto ret = std::shared_ptr<DNSAction>(new SpoofAction(DNSName(cname)));
-    auto spoofaction = std::dynamic_pointer_cast<SpoofAction>(ret);
-    parseResponseConfig(vars, spoofaction->getResponseConfig());
+    auto responseConfig = parseResponseConfig(vars);
     checkAllParametersConsumed("SpoofCNAMEAction", vars);
+    auto ret = std::shared_ptr<DNSAction>(new SpoofAction(DNSName(cname), responseConfig));
     return ret;
   });
 
@@ -2616,10 +2520,9 @@ void setupLuaActions(LuaContext& luaCtx)
     if (qtypeForAny > 0) {
       qtypeForAnyParam = static_cast<uint16_t>(qtypeForAny);
     }
-    auto ret = std::shared_ptr<DNSAction>(new SpoofAction(raws, qtypeForAnyParam));
-    auto spoofaction = std::dynamic_pointer_cast<SpoofAction>(ret);
-    parseResponseConfig(vars, spoofaction->getResponseConfig());
+    auto responseConfig = parseResponseConfig(vars);
     checkAllParametersConsumed("SpoofRawAction", vars);
+    auto ret = std::shared_ptr<DNSAction>(new SpoofAction(raws, qtypeForAnyParam, responseConfig));
     return ret;
   });
 
@@ -2627,7 +2530,8 @@ void setupLuaActions(LuaContext& luaCtx)
     if (len < sizeof(dnsheader)) {
       throw std::runtime_error(std::string("SpoofPacketAction: given packet len is too small"));
     }
-    auto ret = std::shared_ptr<DNSAction>(new SpoofAction(response.c_str(), len));
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    auto ret = std::shared_ptr<DNSAction>(new SpoofAction(PacketBuffer(response.data(), response.data() + len)));
     return ret;
   });
 
@@ -2716,18 +2620,16 @@ void setupLuaActions(LuaContext& luaCtx)
   });
 
   luaCtx.writeFunction("RCodeAction", [](uint8_t rcode, boost::optional<responseParams_t> vars) {
-    auto ret = std::shared_ptr<DNSAction>(new RCodeAction(rcode));
-    auto rca = std::dynamic_pointer_cast<RCodeAction>(ret);
-    parseResponseConfig(vars, rca->getResponseConfig());
+    auto responseConfig = parseResponseConfig(vars);
     checkAllParametersConsumed("RCodeAction", vars);
+    auto ret = std::shared_ptr<DNSAction>(new RCodeAction(rcode, responseConfig));
     return ret;
   });
 
   luaCtx.writeFunction("ERCodeAction", [](uint8_t rcode, boost::optional<responseParams_t> vars) {
-    auto ret = std::shared_ptr<DNSAction>(new ERCodeAction(rcode));
-    auto erca = std::dynamic_pointer_cast<ERCodeAction>(ret);
-    parseResponseConfig(vars, erca->getResponseConfig());
+    auto responseConfig = parseResponseConfig(vars);
     checkAllParametersConsumed("ERCodeAction", vars);
+    auto ret = std::shared_ptr<DNSAction>(new ERCodeAction(rcode, responseConfig));
     return ret;
   });
 
@@ -2914,10 +2816,9 @@ void setupLuaActions(LuaContext& luaCtx)
 
 #ifdef HAVE_DNS_OVER_HTTPS
   luaCtx.writeFunction("HTTPStatusAction", [](uint16_t status, std::string body, boost::optional<std::string> contentType, boost::optional<responseParams_t> vars) {
-    auto ret = std::shared_ptr<DNSAction>(new HTTPStatusAction(status, PacketBuffer(body.begin(), body.end()), contentType ? *contentType : ""));
-    auto hsa = std::dynamic_pointer_cast<HTTPStatusAction>(ret);
-    parseResponseConfig(vars, hsa->getResponseConfig());
+    auto responseConfig = parseResponseConfig(vars);
     checkAllParametersConsumed("HTTPStatusAction", vars);
+    auto ret = std::shared_ptr<DNSAction>(new HTTPStatusAction(status, PacketBuffer(body.begin(), body.end()), contentType ? *contentType : "", responseConfig));
     return ret;
   });
 #endif /* HAVE_DNS_OVER_HTTPS */
@@ -2933,6 +2834,7 @@ void setupLuaActions(LuaContext& luaCtx)
 #endif /* defined(HAVE_LMDB) || defined(HAVE_CDB) */
 
   luaCtx.writeFunction("NegativeAndSOAAction", [](bool nxd, const std::string& zone, uint32_t ttl, const std::string& mname, const std::string& rname, uint32_t serial, uint32_t refresh, uint32_t retry, uint32_t expire, uint32_t minimum, boost::optional<responseParams_t> vars) {
+    auto responseConfig = parseResponseConfig(vars);
     bool soaInAuthoritySection = false;
     getOptionalValue<bool>(vars, "soaInAuthoritySection", soaInAuthoritySection);
     NegativeAndSOAAction::SOAParams params{
@@ -2941,10 +2843,8 @@ void setupLuaActions(LuaContext& luaCtx)
       .retry = retry,
       .expire = expire,
       .minimum = minimum};
-    auto ret = std::shared_ptr<DNSAction>(new NegativeAndSOAAction(nxd, DNSName(zone), ttl, DNSName(mname), DNSName(rname), params, soaInAuthoritySection));
-    auto action = std::dynamic_pointer_cast<NegativeAndSOAAction>(ret);
-    parseResponseConfig(vars, action->getResponseConfig());
     checkAllParametersConsumed("NegativeAndSOAAction", vars);
+    auto ret = std::shared_ptr<DNSAction>(new NegativeAndSOAAction(nxd, DNSName(zone), ttl, DNSName(mname), DNSName(rname), params, soaInAuthoritySection, responseConfig));
     return ret;
   });
 
