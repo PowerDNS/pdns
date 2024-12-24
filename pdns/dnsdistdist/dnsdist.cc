@@ -23,6 +23,7 @@
 #include "config.h"
 
 #include <cstdint>
+#include <filesystem>
 #include <fstream>
 #include <getopt.h>
 #include <grp.h>
@@ -43,6 +44,7 @@
 #include "dnsdist-cache.hh"
 #include "dnsdist-carbon.hh"
 #include "dnsdist-configuration.hh"
+#include "dnsdist-configuration-yaml.hh"
 #include "dnsdist-console.hh"
 #include "dnsdist-crypto.hh"
 #include "dnsdist-discovery.hh"
@@ -1495,7 +1497,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
 
       ++dnsdist::metrics::g_stats.cacheMisses;
 
-      //coverity[auto_causes_copy]
+      // coverity[auto_causes_copy]
       const auto existingPool = dnsQuestion.ids.poolName;
       const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
       const auto& cacheMissRuleActions = dnsdist::rules::getRuleChain(chains, dnsdist::rules::RuleChain::CacheMissRules);
@@ -2230,7 +2232,7 @@ static void maintThread()
         }
         dnsdist::lua::hooks::runMaintenanceHooks(*lua);
 #if !defined(DISABLE_DYNBLOCKS)
-	dnsdist::DynamicBlocks::runRegisteredGroups(*lua);
+        dnsdist::DynamicBlocks::runRegisteredGroups(*lua);
 #endif /* DISABLE_DYNBLOCKS */
         secondsToWaitLog = 0;
       }
@@ -2341,7 +2343,7 @@ static void healthChecksThread()
 
     std::unique_ptr<FDMultiplexer> mplexer{nullptr};
     // this points to the actual shared_ptrs!
-    //coverity[auto_causes_copy]
+    // coverity[auto_causes_copy]
     const auto servers = dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends;
     for (const auto& dss : servers) {
       dss->updateStatisticsInfo();
@@ -3269,6 +3271,43 @@ static ListeningSockets initListeningSockets()
   return result;
 }
 
+static std::optional<std::string> lookForTentativeConfigurationFileWithExtension(const std::string& configurationFile, const std::string& extension)
+{
+  auto dotPos = configurationFile.rfind('.');
+  if (dotPos == std::string::npos) {
+    return std::nullopt;
+  }
+  auto tentativeFile = configurationFile.substr(0, dotPos + 1) + extension;
+  if (!std::filesystem::exists(tentativeFile)) {
+    return std::nullopt;
+  }
+  return tentativeFile;
+}
+
+static void loadConfigurationFromFile(const std::string& configurationFile, bool isClient, bool configCheck)
+{
+  if (boost::ends_with(configurationFile, ".yml")) {
+    if (auto tentativeLuaConfFile = lookForTentativeConfigurationFileWithExtension(configurationFile, "lua")) {
+      vinfolog("Loading configuration from auto-discovered Lua file %s", *tentativeLuaConfFile);
+      dnsdist::configuration::lua::loadLuaConfigurationFile(*(g_lua.lock()), *tentativeLuaConfFile, configCheck);
+    }
+    vinfolog("Loading configuration from YAML file %s", configurationFile);
+    dnsdist::configuration::yaml::loadConfigurationFromFile(configurationFile, isClient, configCheck);
+  }
+  else if (boost::ends_with(configurationFile, ".lua")) {
+    vinfolog("Loading configuration from Lua file %s", configurationFile);
+    dnsdist::configuration::lua::loadLuaConfigurationFile(*(g_lua.lock()), configurationFile, configCheck);
+    if (auto tentativeYamlConfFile = lookForTentativeConfigurationFileWithExtension(configurationFile, "yml")) {
+      vinfolog("Loading configuration from auto-discovered YAML file %s", *tentativeYamlConfFile);
+      dnsdist::configuration::yaml::loadConfigurationFromFile(*tentativeYamlConfFile, isClient, configCheck);
+    }
+  }
+  else {
+    vinfolog("Loading configuration from Lua file %s", configurationFile);
+    dnsdist::configuration::lua::loadLuaConfigurationFile(*(g_lua.lock()), configurationFile, configCheck);
+  }
+}
+
 int main(int argc, char** argv)
 {
   try {
@@ -3318,7 +3357,8 @@ int main(int argc, char** argv)
     });
 
     if (cmdLine.beClient || !cmdLine.command.empty()) {
-      setupLua(*(g_lua.lock()), true, false, cmdLine.config);
+      dnsdist::lua::setupLua(*(g_lua.lock()), true, false);
+      loadConfigurationFromFile(cmdLine.config, true, false);
       if (clientAddress != ComboAddress()) {
         dnsdist::configuration::updateRuntimeConfiguration([&clientAddress](dnsdist::configuration::RuntimeConfiguration& config) {
           config.d_consoleServerAddress = clientAddress;
@@ -3348,7 +3388,8 @@ int main(int argc, char** argv)
     dnsdist::webserver::registerBuiltInWebHandlers();
 
     if (cmdLine.checkConfig) {
-      setupLua(*(g_lua.lock()), false, true, cmdLine.config);
+      dnsdist::lua::setupLua(*(g_lua.lock()), false, true);
+      loadConfigurationFromFile(cmdLine.config, false, true);
       // No exception was thrown
       infolog("Configuration '%s' OK!", cmdLine.config);
 #ifdef COVERAGE
@@ -3366,7 +3407,8 @@ int main(int argc, char** argv)
     /* create the default pool no matter what */
     createPoolIfNotExists("");
 
-    setupLua(*(g_lua.lock()), false, false, cmdLine.config);
+    dnsdist::lua::setupLua(*(g_lua.lock()), false, false);
+    loadConfigurationFromFile(cmdLine.config, false, false);
 
     setupPools();
 
@@ -3502,7 +3544,7 @@ int main(int argc, char** argv)
     checkFileDescriptorsLimits(udpBindsCount, tcpBindsCount);
 
     {
-      //coverity[auto_causes_copy]
+      // coverity[auto_causes_copy]
       const auto states = dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends; // it is a copy, but the internal shared_ptrs are the real deal
       auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent(states.size()));
       for (auto& dss : states) {
