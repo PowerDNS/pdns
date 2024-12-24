@@ -1001,3 +1001,77 @@ class TestProtobufAXFR(DNSDistProtobufTest):
                     self.assertEqual(socket.inet_ntop(socket.AF_INET6, rr.rdata), '2001:db8::1')
 
         self.assertEqual(count, len(responses))
+
+class TestYamlProtobuf(DNSDistProtobufTest):
+
+    _yaml_config_template = """---
+binds:
+  - listen-address: "127.0.0.1:%d"
+    reuseport: true
+    protocol: Do53
+    threads: 2
+
+backends:
+  - address: "127.0.0.1:%d"
+    protocol: Do53
+
+remote-logging:
+  protobuf-loggers:
+    - name: "my-logger"
+      address: "127.0.0.1:%d"
+      timeout: 1
+
+query-rules:
+  - name: "my-rule"
+    selector:
+      type: "All"
+    action:
+      type: "RemoteLog"
+      logger-name: "my-logger"
+      server-id: "%s"
+      export-tags:
+        - "tag-1"
+        - "tag-2"
+"""
+    _dnsDistPort = pickAvailablePort()
+    _testServerPort = pickAvailablePort()
+    _yaml_config_params = ['_dnsDistPort', '_testServerPort', '_protobufServerPort', '_protobufServerID']
+    _config_params = []
+
+    def testProtobuf(self):
+        """
+        Yaml: Remote logging via protobuf
+        """
+        name = 'remote-logging.protobuf.yaml.test.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        query.flags &= ~dns.flags.RD
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+
+        response.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response=response)
+            receivedQuery.id = query.id
+            self.assertEqual(receivedQuery, query)
+            self.assertEqual(receivedResponse, response)
+
+
+        if self._protobufQueue.empty():
+            # let the protobuf messages the time to get there
+            time.sleep(1)
+        # check the protobuf message corresponding to the UDP query
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.UDP, query, dns.rdataclass.IN, dns.rdatatype.A, name)
+
+        if self._protobufQueue.empty():
+            # let the protobuf messages the time to get there
+            time.sleep(1)
+        # TCP query
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.TCP, query, dns.rdataclass.IN, dns.rdatatype.A, name)
