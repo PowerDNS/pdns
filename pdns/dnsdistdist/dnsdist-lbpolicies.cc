@@ -401,3 +401,18 @@ std::shared_ptr<DownstreamState> ServerPolicy::getSelectedBackend(const ServerPo
 
   return selectedBackend;
 }
+
+namespace dnsdist::lbpolicies
+{
+const std::vector<std::shared_ptr<ServerPolicy>>& getBuiltInPolicies()
+{
+  static const std::vector<std::shared_ptr<ServerPolicy>> s_policies{
+    std::make_shared<ServerPolicy>("firstAvailable", firstAvailable, false),
+    std::make_shared<ServerPolicy>("roundrobin", roundrobin, false),
+    std::make_shared<ServerPolicy>("wrandom", wrandom, false),
+    std::make_shared<ServerPolicy>("whashed", whashed, false),
+    std::make_shared<ServerPolicy>("chashed", chashed, false),
+    std::make_shared<ServerPolicy>("leastOutstanding", leastOutstanding, false)};
+  return s_policies;
+}
+}

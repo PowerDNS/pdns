@@ -87,14 +87,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.registerFunction("toString", &ServerPolicy::toString);
   luaCtx.registerFunction("__tostring", &ServerPolicy::toString);
 
-  const std::array<std::shared_ptr<ServerPolicy>, 6> policies = {
-    std::make_shared<ServerPolicy>("firstAvailable", firstAvailable, false),
-    std::make_shared<ServerPolicy>("roundrobin", roundrobin, false),
-    std::make_shared<ServerPolicy>("wrandom", wrandom, false),
-    std::make_shared<ServerPolicy>("whashed", whashed, false),
-    std::make_shared<ServerPolicy>("chashed", chashed, false),
-    std::make_shared<ServerPolicy>("leastOutstanding", leastOutstanding, false)};
-  for (const auto& policy : policies) {
+  for (const auto& policy : dnsdist::lbpolicies::getBuiltInPolicies()) {
     luaCtx.writeVariable(policy->d_name, policy);
   }
 
