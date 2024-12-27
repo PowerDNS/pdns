@@ -831,6 +831,13 @@ bool loadConfigurationFromFile(const std::string& fileName, bool isClient, bool 
       }
     }
 
+    if (!globalConfig.load_balancing_policies.default_policy.empty()) {
+      auto policy = getRegisteredTypeByName<ServerPolicy>(globalConfig.load_balancing_policies.default_policy);
+      dnsdist::configuration::updateRuntimeConfiguration([&policy](dnsdist::configuration::RuntimeConfiguration& config) {
+        config.d_lbPolicy = std::move(policy);
+      });
+    }
+
     for (const auto& pool : globalConfig.pools) {
       std::shared_ptr<ServerPool> poolObj = createPoolIfNotExists(std::string(pool.name));
       if (!pool.packet_cache.empty()) {

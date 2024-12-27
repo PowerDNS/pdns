@@ -501,6 +501,7 @@ LazyHealthCheckConfiguration
 LoadBalancingPoliciesConfiguration
 ----------------------------------
 
+- **default-policy**: String ``(leastOutstanding)``
 - **servfail-on-no-server**: Boolean ``(false)``
 - **round-robin-servfail-on-no-server**: Boolean ``(false)``
 - **weighted-balancing-factor**: Double ``(0.0)``
