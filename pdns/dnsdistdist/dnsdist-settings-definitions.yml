@@ -1411,6 +1411,11 @@ custom-load-balancing-policy:
 
 load-balancing-policies:
   parameters:
+    - name: "default-policy"
+      type: "String"
+      default: "leastOutstanding"
+      lua-name: "setServerPolicy"
+      runtime-configurable: true
     - name: "servfail-on-no-server"
       type: "bool"
       default: "false"

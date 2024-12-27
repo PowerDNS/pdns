@@ -2010,6 +2010,8 @@ mod dnsdistsettings {
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
     struct LoadBalancingPoliciesConfiguration {
+        #[serde(rename = "default-policy", default = "crate::default_value_load_balancing_policies_default_policy", skip_serializing_if = "crate::default_value_equal_load_balancing_policies_default_policy")]
+        default_policy: String,
         #[serde(rename = "servfail-on-no-server", default, skip_serializing_if = "crate::is_default")]
         servfail_on_no_server: bool,
         #[serde(rename = "round-robin-servfail-on-no-server", default, skip_serializing_if = "crate::is_default")]
@@ -3055,6 +3057,15 @@ impl Default for dnsdistsettings::CustomLoadBalancingPolicyConfiguration {
         let deserialized: dnsdistsettings::CustomLoadBalancingPolicyConfiguration = serde_yaml::from_str("").unwrap();
         deserialized
     }
+}
+
+
+// DEFAULT HANDLING for load_balancing_policies_default_policy
+fn default_value_load_balancing_policies_default_policy() -> String {
+    String::from("leastOutstanding")
+}
+fn default_value_equal_load_balancing_policies_default_policy(value: &str)-> bool {
+    value == default_value_load_balancing_policies_default_policy()
 }
 
 
