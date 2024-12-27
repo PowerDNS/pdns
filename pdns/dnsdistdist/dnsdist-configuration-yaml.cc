@@ -453,6 +453,302 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dns
 
   return downstream;
 }
+
+static void loadRulesConfiguration(const dnsdist::rust::settings::GlobalConfiguration& globalConfig)
+{
+  dnsdist::configuration::updateRuntimeConfiguration([&globalConfig](dnsdist::configuration::RuntimeConfiguration& config) {
+    for (const auto& rule : globalConfig.query_rules) {
+      boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
+      dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::RuleChain::Rules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
+    }
+
+    for (const auto& rule : globalConfig.cache_miss_rules) {
+      boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
+      dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::RuleChain::CacheMissRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
+    }
+
+    for (const auto& rule : globalConfig.response_rules) {
+      boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
+      dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::ResponseRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
+    }
+
+    for (const auto& rule : globalConfig.cache_hit_response_rules) {
+      boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
+      dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::CacheHitResponseRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
+    }
+
+    for (const auto& rule : globalConfig.cache_inserted_response_rules) {
+      boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
+      dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
+    }
+
+    for (const auto& rule : globalConfig.self_answered_response_rules) {
+      boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
+      dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::SelfAnsweredResponseRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
+    }
+
+    for (const auto& rule : globalConfig.xfr_response_rules) {
+      boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
+      dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::XFRResponseRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
+    }
+  });
+}
+
+static void loadDynamicBlockConfiguration(const dnsdist::rust::settings::DynamicRulesSettingsConfiguration& settings, const ::rust::Vec<dnsdist::rust::settings::DynamicRulesConfiguration>& dynamicRules)
+{
+  if (!settings.default_action.empty()) {
+    dnsdist::configuration::updateRuntimeConfiguration([default_action = settings.default_action](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_dynBlockAction = DNSAction::typeFromString(std::string(default_action));
+    });
+  }
+
+  for (const auto& dbrg : dynamicRules) {
+    auto dbrgObj = std::make_shared<DynBlockRulesGroup>();
+    dbrgObj->setMasks(dbrg.mask_ipv4, dbrg.mask_ipv6, dbrg.mask_port);
+    for (const auto& range : dbrg.exclude_ranges) {
+      dbrgObj->excludeRange(Netmask(std::string(range)));
+    }
+    for (const auto& range : dbrg.include_ranges) {
+      dbrgObj->includeRange(Netmask(std::string(range)));
+    }
+    for (const auto& domain : dbrg.exclude_domains) {
+      dbrgObj->excludeDomain(DNSName(std::string(domain)));
+    }
+    for (const auto& rule : dbrg.rules) {
+      if (rule.rule_type == "query-rate") {
+        DynBlockRulesGroup::DynBlockRule ruleParams(std::string(rule.comment), rule.action_duration, rule.rate, rule.warning_rate, rule.seconds, rule.action.empty() ? DNSAction::Action::None : DNSAction::typeFromString(std::string(rule.action)));
+        if (ruleParams.d_action == DNSAction::Action::SetTag && !rule.tag_name.empty()) {
+          ruleParams.d_tagSettings = std::make_shared<DynBlock::TagSettings>();
+          ruleParams.d_tagSettings->d_name = std::string(rule.tag_name);
+          ruleParams.d_tagSettings->d_value = std::string(rule.tag_value);
+        }
+        dbrgObj->setQueryRate(std::move(ruleParams));
+      }
+      else if (rule.rule_type == "rcode-rate") {
+        DynBlockRulesGroup::DynBlockRule ruleParams(std::string(rule.comment), rule.action_duration, rule.rate, rule.warning_rate, rule.seconds, rule.action.empty() ? DNSAction::Action::None : DNSAction::typeFromString(std::string(rule.action)));
+        if (ruleParams.d_action == DNSAction::Action::SetTag && !rule.tag_name.empty()) {
+          ruleParams.d_tagSettings = std::make_shared<DynBlock::TagSettings>();
+          ruleParams.d_tagSettings->d_name = std::string(rule.tag_name);
+          ruleParams.d_tagSettings->d_value = std::string(rule.tag_value);
+        }
+        dbrgObj->setRCodeRate(checkedConversionFromStr<int>("dynamic-rules.rules.rcode_rate", "rcode", rule.rcode), std::move(ruleParams));
+      }
+      else if (rule.rule_type == "rcode-ratio") {
+        DynBlockRulesGroup::DynBlockRatioRule ruleParams(std::string(rule.comment), rule.action_duration, rule.ratio, rule.warning_ratio, rule.seconds, rule.action.empty() ? DNSAction::Action::None : DNSAction::typeFromString(std::string(rule.action)), rule.minimum_number_of_responses);
+        if (ruleParams.d_action == DNSAction::Action::SetTag && !rule.tag_name.empty()) {
+          ruleParams.d_tagSettings = std::make_shared<DynBlock::TagSettings>();
+          ruleParams.d_tagSettings->d_name = std::string(rule.tag_name);
+          ruleParams.d_tagSettings->d_value = std::string(rule.tag_value);
+        }
+        dbrgObj->setRCodeRatio(checkedConversionFromStr<int>("dynamic-rules.rules.rcode_ratio", "rcode", rule.rcode), std::move(ruleParams));
+      }
+      else if (rule.rule_type == "qtype-rate") {
+        DynBlockRulesGroup::DynBlockRule ruleParams(std::string(rule.comment), rule.action_duration, rule.rate, rule.warning_rate, rule.seconds, rule.action.empty() ? DNSAction::Action::None : DNSAction::typeFromString(std::string(rule.action)));
+        if (ruleParams.d_action == DNSAction::Action::SetTag && !rule.tag_name.empty()) {
+          ruleParams.d_tagSettings = std::make_shared<DynBlock::TagSettings>();
+          ruleParams.d_tagSettings->d_name = std::string(rule.tag_name);
+          ruleParams.d_tagSettings->d_value = std::string(rule.tag_value);
+        }
+        dbrgObj->setRCodeRate(checkedConversionFromStr<int>("dynamic-rules.rules.qtype_rate", "qtype", rule.qtype), std::move(ruleParams));
+      }
+      else if (rule.rule_type == "qtype-ratio") {
+        DynBlockRulesGroup::DynBlockRatioRule ruleParams(std::string(rule.comment), rule.action_duration, rule.ratio, rule.warning_ratio, rule.seconds, rule.action.empty() ? DNSAction::Action::None : DNSAction::typeFromString(std::string(rule.action)), rule.minimum_number_of_responses);
+        if (ruleParams.d_action == DNSAction::Action::SetTag && !rule.tag_name.empty()) {
+          ruleParams.d_tagSettings = std::make_shared<DynBlock::TagSettings>();
+          ruleParams.d_tagSettings->d_name = std::string(rule.tag_name);
+          ruleParams.d_tagSettings->d_value = std::string(rule.tag_value);
+        }
+        dbrgObj->setRCodeRatio(checkedConversionFromStr<int>("dynamic-rules.rules.qtype_ratio", "qtype", rule.qtype), std::move(ruleParams));
+      }
+      else if (rule.rule_type == "cache-miss-ratio") {
+        DynBlockRulesGroup::DynBlockCacheMissRatioRule ruleParams(std::string(rule.comment), rule.action_duration, rule.ratio, rule.warning_ratio, rule.seconds, rule.action.empty() ? DNSAction::Action::None : DNSAction::typeFromString(std::string(rule.action)), rule.minimum_number_of_responses, rule.minimum_global_cache_hit_ratio);
+        if (ruleParams.d_action == DNSAction::Action::SetTag && !rule.tag_name.empty()) {
+          ruleParams.d_tagSettings = std::make_shared<DynBlock::TagSettings>();
+          ruleParams.d_tagSettings->d_name = std::string(rule.tag_name);
+          ruleParams.d_tagSettings->d_value = std::string(rule.tag_value);
+        }
+        dbrgObj->setCacheMissRatio(std::move(ruleParams));
+      }
+      else if (rule.rule_type == "response-byte-rate") {
+        DynBlockRulesGroup::DynBlockRule ruleParams(std::string(rule.comment), rule.action_duration, rule.rate, rule.warning_rate, rule.seconds, rule.action.empty() ? DNSAction::Action::None : DNSAction::typeFromString(std::string(rule.action)));
+        if (ruleParams.d_action == DNSAction::Action::SetTag && !rule.tag_name.empty()) {
+          ruleParams.d_tagSettings = std::make_shared<DynBlock::TagSettings>();
+          ruleParams.d_tagSettings->d_name = std::string(rule.tag_name);
+          ruleParams.d_tagSettings->d_value = std::string(rule.tag_value);
+        }
+          dbrgObj->setResponseByteRate(std::move(ruleParams));
+      }
+      else if (rule.rule_type == "suffix-match") {
+        DynBlockRulesGroup::DynBlockRule ruleParams(std::string(rule.comment), rule.action_duration, 0, 0, rule.seconds, rule.action.empty() ? DNSAction::Action::None : DNSAction::typeFromString(std::string(rule.action)));
+        if (ruleParams.d_action == DNSAction::Action::SetTag && !rule.tag_name.empty()) {
+          ruleParams.d_tagSettings = std::make_shared<DynBlock::TagSettings>();
+          ruleParams.d_tagSettings->d_name = std::string(rule.tag_name);
+          ruleParams.d_tagSettings->d_value = std::string(rule.tag_value);
+        }
+        DynBlockRulesGroup::smtVisitor_t visitor;
+        getOptionalLuaFunction<DynBlockRulesGroup::smtVisitor_t>(visitor, rule.visitor_function);
+        dbrgObj->setSuffixMatchRule(std::move(ruleParams), std::move(visitor));
+      }
+      else if (rule.rule_type == "suffix-match-ffi") {
+        DynBlockRulesGroup::DynBlockRule ruleParams(std::string(rule.comment), rule.action_duration, 0, 0, rule.seconds, rule.action.empty() ? DNSAction::Action::None : DNSAction::typeFromString(std::string(rule.action)));
+        if (ruleParams.d_action == DNSAction::Action::SetTag && !rule.tag_name.empty()) {
+          ruleParams.d_tagSettings = std::make_shared<DynBlock::TagSettings>();
+          ruleParams.d_tagSettings->d_name = std::string(rule.tag_name);
+          ruleParams.d_tagSettings->d_value = std::string(rule.tag_value);
+        }
+        dnsdist_ffi_stat_node_visitor_t visitor;
+        getOptionalLuaFunction<dnsdist_ffi_stat_node_visitor_t>(visitor, rule.visitor_function);
+        dbrgObj->setSuffixMatchRuleFFI(std::move(ruleParams), std::move(visitor));
+      }
+    }
+    dnsdist::DynamicBlocks::registerGroup(dbrgObj);
+  }
+}
+
+static void loadBinds(const ::rust::Vec<dnsdist::rust::settings::BindConfiguration>& binds)
+{
+  for (const auto& bind : binds) {
+    updateImmutableConfiguration([&bind](ImmutableConfiguration& config) {
+      auto protocol = boost::to_lower_copy(std::string(bind.protocol));
+      uint16_t defaultPort = 53;
+      if (protocol == "dot" || protocol == "doq") {
+        defaultPort = 853;
+      }
+      else if (protocol == "doh" || protocol == "dnscrypt" || protocol == "doh3") {
+        defaultPort = 443;
+      }
+      ComboAddress listeningAddress(std::string(bind.listen_address), defaultPort);
+      auto cpus = getCPUPiningFromStr("binds", std::string(bind.cpus));
+      std::shared_ptr<XSKMap> xskMap;
+      if (!bind.xsk.empty()) {
+        xskMap = getRegisteredTypeByName<XSKMap>(bind.xsk);
+        if (!xskMap) {
+          throw std::runtime_error("XSK map " + std::string(bind.xsk) + " attached to bind " + std::string(bind.listen_address) + " not found");
+        }
+        if (xskMap->size() != bind.threads) {
+          throw std::runtime_error("XSK map " + std::string(bind.xsk) + " attached to bind " + std::string(bind.listen_address) + " has less queues than the number of threads of the bind");
+        }
+      }
+
+      for (size_t idx = 0; idx < bind.threads; idx++) {
+#if defined(HAVE_DNSCRYPT)
+        std::shared_ptr<DNSCryptContext> dnsCryptContext;
+#endif /* defined(HAVE_DNSCRYPT) */
+
+        auto state = std::make_shared<ClientState>(listeningAddress, protocol != "doq" && protocol != "doh3", bind.reuseport, bind.tcp.fast_open_queue_size, std::string(bind.interface), cpus, false);
+
+        if (bind.tcp.listen_queue_size > 0) {
+          state->tcpListenQueueSize = bind.tcp.listen_queue_size;
+        }
+        if (bind.tcp.max_in_flight_queries > 0) {
+          state->d_maxInFlightQueriesPerConn = bind.tcp.max_in_flight_queries;
+        }
+        if (bind.tcp.max_concurrent_connections > 0) {
+          state->d_tcpConcurrentConnectionsLimit = bind.tcp.max_concurrent_connections;
+        }
+
+        for (const auto& addr : bind.additional_addresses) {
+          try {
+            ComboAddress address{std::string(addr)};
+            state->d_additionalAddresses.emplace_back(address, -1);
+          }
+          catch (const PDNSException& e) {
+            errlog("Unable to parse additional address %s for %s bind: %s", std::string(addr), protocol, e.reason);
+          }
+        }
+
+        if (protocol == "dnscrypt") {
+#if defined(HAVE_DNSCRYPT)
+          std::vector<DNSCryptContext::CertKeyPaths> certKeys;
+          for (const auto& pair : bind.dnscrypt.certificates) {
+            certKeys.push_back({std::string(pair.certificate), std::string(pair.key)});
+          }
+          dnsCryptContext = std::make_shared<DNSCryptContext>(std::string(bind.dnscrypt.provider_name), certKeys);
+          state->dnscryptCtx = dnsCryptContext;
+#endif /* defined(HAVE_DNSCRYPT) */
+        }
+        else if (protocol != "do53") {
+          if (!handleTLSConfiguration(bind, *state)) {
+            continue;
+          }
+        }
+
+        config.d_frontends.emplace_back(std::move(state));
+        if (protocol == "do53" || protocol == "dnscrypt") {
+          /* also create the UDP listener */
+          state = std::make_shared<ClientState>(ComboAddress(std::string(bind.listen_address), defaultPort), false, bind.reuseport, bind.tcp.fast_open_queue_size, std::string(bind.interface), cpus, false);
+#if defined(HAVE_DNSCRYPT)
+          state->dnscryptCtx = dnsCryptContext;
+#endif /* defined(HAVE_DNSCRYPT) */
+#if defined(HAVE_XSK)
+          if (xskMap) {
+            auto xsk = xskMap->at(idx);
+            state->xskInfo = XskWorker::create(XskWorker::Type::Bidirectional, xsk->sharedEmptyFrameOffset);
+            xsk->addWorker(state->xskInfo);
+            xsk->addWorkerRoute(state->xskInfo, listeningAddress);
+            state->xskInfoResponder = XskWorker::create(XskWorker::Type::OutgoingOnly, xsk->sharedEmptyFrameOffset);
+            xsk->addWorker(state->xskInfoResponder);
+            vinfolog("Enabling XSK in %s mode for incoming UDP packets to %s", xsk->getXDPMode(), listeningAddress.toStringWithPort());
+          }
+#endif /* defined(HAVE_XSK) */
+          config.d_frontends.emplace_back(std::move(state));
+        }
+      }
+    });
+  }
+}
+
+static void loadWebServer(const dnsdist::rust::settings::WebserverConfiguration& webConfig)
+{
+  ComboAddress local;
+  try {
+    local = ComboAddress{std::string(webConfig.listen_address)};
+  }
+  catch (const PDNSException& e) {
+    throw std::runtime_error(std::string("Error parsing the bind address for the webserver: ") + e.reason);
+  }
+  dnsdist::configuration::updateRuntimeConfiguration([local, webConfig](dnsdist::configuration::RuntimeConfiguration& config) {
+    config.d_webServerAddress = local;
+    if (!webConfig.password.empty()) {
+      auto holder = std::make_shared<CredentialsHolder>(std::string(webConfig.password), webConfig.hash_plaintext_credentials);
+      if (!holder->wasHashed() && holder->isHashingAvailable()) {
+        infolog("Passing a plain-text password via the 'webserver.password' parameter to is not advised, please consider generating a hashed one using 'hashPassword()' instead.");
+      }
+      config.d_webPassword = std::move(holder);
+    }
+    if (!webConfig.api_key.empty()) {
+      auto holder = std::make_shared<CredentialsHolder>(std::string(webConfig.api_key), webConfig.hash_plaintext_credentials);
+      if (!holder->wasHashed() && holder->isHashingAvailable()) {
+        infolog("Passing a plain-text API key via the 'webserver.api_key' parameter to is not advised, please consider generating a hashed one using 'hashPassword()' instead.");
+      }
+      config.d_webAPIKey = std::move(holder);
+    }
+    if (!webConfig.acl.empty()) {
+      config.d_webServerACL.clear();
+      for (const auto& acl : webConfig.acl) {
+        config.d_webServerACL.toMasks(std::string(acl));
+      }
+    }
+    if (!webConfig.custom_headers.empty()) {
+      if (!config.d_webCustomHeaders) {
+        config.d_webCustomHeaders = std::unordered_map<std::string, std::string>();
+        for (const auto& customHeader : webConfig.custom_headers) {
+          auto headerResponse = std::pair(boost::to_lower_copy(std::string(customHeader.key)), std::string(customHeader.value));
+          config.d_webCustomHeaders->insert(std::move(headerResponse));
+        }
+      }
+    }
+
+    config.d_apiRequiresAuthentication = webConfig.api_requires_authentication;
+    config.d_dashboardRequiresAuthentication = webConfig.dashboard_requires_authentication;
+    config.d_statsRequireAuthentication = webConfig.stats_require_authentication;
+    dnsdist::webserver::setMaxConcurrentConnections(webConfig.max_concurrent_connections);
+    config.d_apiConfigDirectory = std::string(webConfig.api_configuration_directory);
+    config.d_apiReadWrite = webConfig.api_read_write;
+  });
+}
+
+
 #endif /* defined(HAVE_YAML_CONFIGURATION) */
 
 bool loadConfigurationFromFile(const std::string& fileName, bool isClient, bool configCheck)
@@ -543,95 +839,7 @@ bool loadConfigurationFromFile(const std::string& fileName, bool isClient, bool 
     }
 #endif /* defined(HAVE_XSK) */
 
-    for (const auto& bind : globalConfig.binds) {
-      updateImmutableConfiguration([&bind](ImmutableConfiguration& config) {
-        auto protocol = boost::to_lower_copy(std::string(bind.protocol));
-        uint16_t defaultPort = 53;
-        if (protocol == "dot" || protocol == "doq") {
-          defaultPort = 853;
-        }
-        else if (protocol == "doh" || protocol == "dnscrypt" || protocol == "doh3") {
-          defaultPort = 443;
-        }
-        ComboAddress listeningAddress(std::string(bind.listen_address), defaultPort);
-        auto cpus = getCPUPiningFromStr("binds", std::string(bind.cpus));
-        std::shared_ptr<XSKMap> xskMap;
-        if (!bind.xsk.empty()) {
-          xskMap = getRegisteredTypeByName<XSKMap>(bind.xsk);
-          if (!xskMap) {
-            throw std::runtime_error("XSK map " + std::string(bind.xsk) + " attached to bind " + std::string(bind.listen_address) + " not found");
-          }
-          if (xskMap->size() != bind.threads) {
-            throw std::runtime_error("XSK map " + std::string(bind.xsk) + " attached to bind " + std::string(bind.listen_address) + " has less queues than the number of threads of the bind");
-          }
-        }
-
-        for (size_t idx = 0; idx < bind.threads; idx++) {
-#if defined(HAVE_DNSCRYPT)
-          std::shared_ptr<DNSCryptContext> dnsCryptContext;
-#endif /* defined(HAVE_DNSCRYPT) */
-
-          auto state = std::make_shared<ClientState>(listeningAddress, protocol != "doq" && protocol != "doh3", bind.reuseport, bind.tcp.fast_open_queue_size, std::string(bind.interface), cpus, false);
-
-          if (bind.tcp.listen_queue_size > 0) {
-            state->tcpListenQueueSize = bind.tcp.listen_queue_size;
-          }
-          if (bind.tcp.max_in_flight_queries > 0) {
-            state->d_maxInFlightQueriesPerConn = bind.tcp.max_in_flight_queries;
-          }
-          if (bind.tcp.max_concurrent_connections > 0) {
-            state->d_tcpConcurrentConnectionsLimit = bind.tcp.max_concurrent_connections;
-          }
-
-          for (const auto& addr : bind.additional_addresses) {
-            try {
-              ComboAddress address{std::string(addr)};
-              state->d_additionalAddresses.emplace_back(address, -1);
-            }
-            catch (const PDNSException& e) {
-              errlog("Unable to parse additional address %s for %s bind: %s", std::string(addr), protocol, e.reason);
-            }
-          }
-
-          if (protocol == "dnscrypt") {
-#if defined(HAVE_DNSCRYPT)
-            std::vector<DNSCryptContext::CertKeyPaths> certKeys;
-            for (const auto& pair : bind.dnscrypt.certificates) {
-              certKeys.push_back({std::string(pair.certificate), std::string(pair.key)});
-            }
-            dnsCryptContext = std::make_shared<DNSCryptContext>(std::string(bind.dnscrypt.provider_name), certKeys);
-            state->dnscryptCtx = dnsCryptContext;
-#endif /* defined(HAVE_DNSCRYPT) */
-          }
-          else if (protocol != "do53") {
-            if (!handleTLSConfiguration(bind, *state)) {
-              continue;
-            }
-          }
-
-          config.d_frontends.emplace_back(std::move(state));
-          if (protocol == "do53" || protocol == "dnscrypt") {
-            /* also create the UDP listener */
-            state = std::make_shared<ClientState>(ComboAddress(std::string(bind.listen_address), defaultPort), false, bind.reuseport, bind.tcp.fast_open_queue_size, std::string(bind.interface), cpus, false);
-#if defined(HAVE_DNSCRYPT)
-            state->dnscryptCtx = dnsCryptContext;
-#endif /* defined(HAVE_DNSCRYPT) */
-#if defined(HAVE_XSK)
-            if (xskMap) {
-              auto xsk = xskMap->at(idx);
-              state->xskInfo = XskWorker::create(XskWorker::Type::Bidirectional, xsk->sharedEmptyFrameOffset);
-              xsk->addWorker(state->xskInfo);
-              xsk->addWorkerRoute(state->xskInfo, listeningAddress);
-              state->xskInfoResponder = XskWorker::create(XskWorker::Type::OutgoingOnly, xsk->sharedEmptyFrameOffset);
-              xsk->addWorker(state->xskInfoResponder);
-              vinfolog("Enabling XSK in %s mode for incoming UDP packets to %s", xsk->getXDPMode(), listeningAddress.toStringWithPort());
-            }
-#endif /* defined(HAVE_XSK) */
-            config.d_frontends.emplace_back(std::move(state));
-          }
-        }
-      });
-    }
+    loadBinds(globalConfig.binds);
 
     for (const auto& backend : globalConfig.backends) {
       auto downstream = createBackendFromConfiguration(backend, configCheck);
@@ -674,52 +882,7 @@ bool loadConfigurationFromFile(const std::string& fileName, bool isClient, bool 
 
     if (!globalConfig.webserver.listen_address.empty()) {
       const auto& webConfig = globalConfig.webserver;
-      ComboAddress local;
-      try {
-        local = ComboAddress{std::string(webConfig.listen_address)};
-      }
-      catch (const PDNSException& e) {
-        throw std::runtime_error(std::string("Error parsing the bind address for the webserver: ") + e.reason);
-      }
-      dnsdist::configuration::updateRuntimeConfiguration([local, webConfig](dnsdist::configuration::RuntimeConfiguration& config) {
-        config.d_webServerAddress = local;
-        if (!webConfig.password.empty()) {
-          auto holder = std::make_shared<CredentialsHolder>(std::string(webConfig.password), webConfig.hash_plaintext_credentials);
-          if (!holder->wasHashed() && holder->isHashingAvailable()) {
-            infolog("Passing a plain-text password via the 'webserver.password' parameter to is not advised, please consider generating a hashed one using 'hashPassword()' instead.");
-          }
-          config.d_webPassword = std::move(holder);
-        }
-        if (!webConfig.api_key.empty()) {
-          auto holder = std::make_shared<CredentialsHolder>(std::string(webConfig.api_key), webConfig.hash_plaintext_credentials);
-          if (!holder->wasHashed() && holder->isHashingAvailable()) {
-            infolog("Passing a plain-text API key via the 'webserver.api_key' parameter to is not advised, please consider generating a hashed one using 'hashPassword()' instead.");
-          }
-          config.d_webAPIKey = std::move(holder);
-        }
-        if (!webConfig.acl.empty()) {
-          config.d_webServerACL.clear();
-          for (const auto& acl : webConfig.acl) {
-            config.d_webServerACL.toMasks(std::string(acl));
-          }
-        }
-        if (!webConfig.custom_headers.empty()) {
-          if (!config.d_webCustomHeaders) {
-            config.d_webCustomHeaders = std::unordered_map<std::string, std::string>();
-            for (const auto& customHeader : webConfig.custom_headers) {
-              auto headerResponse = std::pair(boost::to_lower_copy(std::string(customHeader.key)), std::string(customHeader.value));
-              config.d_webCustomHeaders->insert(std::move(headerResponse));
-            }
-          }
-        }
-
-        config.d_apiRequiresAuthentication = webConfig.api_requires_authentication;
-        config.d_dashboardRequiresAuthentication = webConfig.dashboard_requires_authentication;
-        config.d_statsRequireAuthentication = webConfig.stats_require_authentication;
-        dnsdist::webserver::setMaxConcurrentConnections(webConfig.max_concurrent_connections);
-        config.d_apiConfigDirectory = std::string(webConfig.api_configuration_directory);
-        config.d_apiReadWrite = webConfig.api_read_write;
-      });
+      loadWebServer(webConfig);
     }
 
     if (globalConfig.query_count.enabled) {
@@ -731,113 +894,7 @@ bool loadConfigurationFromFile(const std::string& fileName, bool isClient, bool 
       });
     }
 
-    if (!globalConfig.dynamic_rules_settings.default_action.empty()) {
-      dnsdist::configuration::updateRuntimeConfiguration([default_action = globalConfig.dynamic_rules_settings.default_action](dnsdist::configuration::RuntimeConfiguration& config) {
-        config.d_dynBlockAction = DNSAction::typeFromString(std::string(default_action));
-      });
-    }
-
-    for (const auto& dbrg : globalConfig.dynamic_rules) {
-      auto dbrgObj = std::make_shared<DynBlockRulesGroup>();
-      dbrgObj->setMasks(dbrg.mask_ipv4, dbrg.mask_ipv6, dbrg.mask_port);
-      for (const auto& range : dbrg.exclude_ranges) {
-        dbrgObj->excludeRange(Netmask(std::string(range)));
-      }
-      for (const auto& range : dbrg.include_ranges) {
-        dbrgObj->includeRange(Netmask(std::string(range)));
-      }
-      for (const auto& domain : dbrg.exclude_domains) {
-        dbrgObj->excludeDomain(DNSName(std::string(domain)));
-      }
-      for (const auto& rule : dbrg.rules) {
-        if (rule.rule_type == "query-rate") {
-          DynBlockRulesGroup::DynBlockRule ruleParams(std::string(rule.comment), rule.action_duration, rule.rate, rule.warning_rate, rule.seconds, rule.action.empty() ? DNSAction::Action::None : DNSAction::typeFromString(std::string(rule.action)));
-          if (ruleParams.d_action == DNSAction::Action::SetTag && !rule.tag_name.empty()) {
-            ruleParams.d_tagSettings = std::make_shared<DynBlock::TagSettings>();
-            ruleParams.d_tagSettings->d_name = std::string(rule.tag_name);
-            ruleParams.d_tagSettings->d_value = std::string(rule.tag_value);
-          }
-          dbrgObj->setQueryRate(std::move(ruleParams));
-        }
-        else if (rule.rule_type == "rcode-rate") {
-          DynBlockRulesGroup::DynBlockRule ruleParams(std::string(rule.comment), rule.action_duration, rule.rate, rule.warning_rate, rule.seconds, rule.action.empty() ? DNSAction::Action::None : DNSAction::typeFromString(std::string(rule.action)));
-          if (ruleParams.d_action == DNSAction::Action::SetTag && !rule.tag_name.empty()) {
-            ruleParams.d_tagSettings = std::make_shared<DynBlock::TagSettings>();
-            ruleParams.d_tagSettings->d_name = std::string(rule.tag_name);
-            ruleParams.d_tagSettings->d_value = std::string(rule.tag_value);
-          }
-          dbrgObj->setRCodeRate(checkedConversionFromStr<int>("dynamic-rules.rules.rcode_rate", "rcode", rule.rcode), std::move(ruleParams));
-        }
-        else if (rule.rule_type == "rcode-ratio") {
-          DynBlockRulesGroup::DynBlockRatioRule ruleParams(std::string(rule.comment), rule.action_duration, rule.ratio, rule.warning_ratio, rule.seconds, rule.action.empty() ? DNSAction::Action::None : DNSAction::typeFromString(std::string(rule.action)), rule.minimum_number_of_responses);
-          if (ruleParams.d_action == DNSAction::Action::SetTag && !rule.tag_name.empty()) {
-            ruleParams.d_tagSettings = std::make_shared<DynBlock::TagSettings>();
-            ruleParams.d_tagSettings->d_name = std::string(rule.tag_name);
-            ruleParams.d_tagSettings->d_value = std::string(rule.tag_value);
-          }
-          dbrgObj->setRCodeRatio(checkedConversionFromStr<int>("dynamic-rules.rules.rcode_ratio", "rcode", rule.rcode), std::move(ruleParams));
-        }
-        else if (rule.rule_type == "qtype-rate") {
-          DynBlockRulesGroup::DynBlockRule ruleParams(std::string(rule.comment), rule.action_duration, rule.rate, rule.warning_rate, rule.seconds, rule.action.empty() ? DNSAction::Action::None : DNSAction::typeFromString(std::string(rule.action)));
-          if (ruleParams.d_action == DNSAction::Action::SetTag && !rule.tag_name.empty()) {
-            ruleParams.d_tagSettings = std::make_shared<DynBlock::TagSettings>();
-            ruleParams.d_tagSettings->d_name = std::string(rule.tag_name);
-            ruleParams.d_tagSettings->d_value = std::string(rule.tag_value);
-          }
-          dbrgObj->setRCodeRate(checkedConversionFromStr<int>("dynamic-rules.rules.qtype_rate", "qtype", rule.qtype), std::move(ruleParams));
-        }
-        else if (rule.rule_type == "qtype-ratio") {
-          DynBlockRulesGroup::DynBlockRatioRule ruleParams(std::string(rule.comment), rule.action_duration, rule.ratio, rule.warning_ratio, rule.seconds, rule.action.empty() ? DNSAction::Action::None : DNSAction::typeFromString(std::string(rule.action)), rule.minimum_number_of_responses);
-          if (ruleParams.d_action == DNSAction::Action::SetTag && !rule.tag_name.empty()) {
-            ruleParams.d_tagSettings = std::make_shared<DynBlock::TagSettings>();
-            ruleParams.d_tagSettings->d_name = std::string(rule.tag_name);
-            ruleParams.d_tagSettings->d_value = std::string(rule.tag_value);
-          }
-          dbrgObj->setRCodeRatio(checkedConversionFromStr<int>("dynamic-rules.rules.qtype_ratio", "qtype", rule.qtype), std::move(ruleParams));
-        }
-        else if (rule.rule_type == "cache-miss-ratio") {
-          DynBlockRulesGroup::DynBlockCacheMissRatioRule ruleParams(std::string(rule.comment), rule.action_duration, rule.ratio, rule.warning_ratio, rule.seconds, rule.action.empty() ? DNSAction::Action::None : DNSAction::typeFromString(std::string(rule.action)), rule.minimum_number_of_responses, rule.minimum_global_cache_hit_ratio);
-          if (ruleParams.d_action == DNSAction::Action::SetTag && !rule.tag_name.empty()) {
-            ruleParams.d_tagSettings = std::make_shared<DynBlock::TagSettings>();
-            ruleParams.d_tagSettings->d_name = std::string(rule.tag_name);
-            ruleParams.d_tagSettings->d_value = std::string(rule.tag_value);
-          }
-          dbrgObj->setCacheMissRatio(std::move(ruleParams));
-        }
-        else if (rule.rule_type == "response-byte-rate") {
-          DynBlockRulesGroup::DynBlockRule ruleParams(std::string(rule.comment), rule.action_duration, rule.rate, rule.warning_rate, rule.seconds, rule.action.empty() ? DNSAction::Action::None : DNSAction::typeFromString(std::string(rule.action)));
-          if (ruleParams.d_action == DNSAction::Action::SetTag && !rule.tag_name.empty()) {
-            ruleParams.d_tagSettings = std::make_shared<DynBlock::TagSettings>();
-            ruleParams.d_tagSettings->d_name = std::string(rule.tag_name);
-            ruleParams.d_tagSettings->d_value = std::string(rule.tag_value);
-          }
-          dbrgObj->setResponseByteRate(std::move(ruleParams));
-        }
-        else if (rule.rule_type == "suffix-match") {
-          DynBlockRulesGroup::DynBlockRule ruleParams(std::string(rule.comment), rule.action_duration, 0, 0, rule.seconds, rule.action.empty() ? DNSAction::Action::None : DNSAction::typeFromString(std::string(rule.action)));
-          if (ruleParams.d_action == DNSAction::Action::SetTag && !rule.tag_name.empty()) {
-            ruleParams.d_tagSettings = std::make_shared<DynBlock::TagSettings>();
-            ruleParams.d_tagSettings->d_name = std::string(rule.tag_name);
-            ruleParams.d_tagSettings->d_value = std::string(rule.tag_value);
-          }
-          DynBlockRulesGroup::smtVisitor_t visitor;
-          getOptionalLuaFunction<DynBlockRulesGroup::smtVisitor_t>(visitor, rule.visitor_function);
-          dbrgObj->setSuffixMatchRule(std::move(ruleParams), std::move(visitor));
-        }
-        else if (rule.rule_type == "suffix-match-ffi") {
-          DynBlockRulesGroup::DynBlockRule ruleParams(std::string(rule.comment), rule.action_duration, 0, 0, rule.seconds, rule.action.empty() ? DNSAction::Action::None : DNSAction::typeFromString(std::string(rule.action)));
-          if (ruleParams.d_action == DNSAction::Action::SetTag && !rule.tag_name.empty()) {
-            ruleParams.d_tagSettings = std::make_shared<DynBlock::TagSettings>();
-            ruleParams.d_tagSettings->d_name = std::string(rule.tag_name);
-            ruleParams.d_tagSettings->d_value = std::string(rule.tag_value);
-          }
-          dnsdist_ffi_stat_node_visitor_t visitor;
-          getOptionalLuaFunction<dnsdist_ffi_stat_node_visitor_t>(visitor, rule.visitor_function);
-          dbrgObj->setSuffixMatchRuleFFI(std::move(ruleParams), std::move(visitor));
-        }
-      }
-      dnsdist::DynamicBlocks::registerGroup(dbrgObj);
-    }
+    loadDynamicBlockConfiguration(globalConfig.dynamic_rules_settings, globalConfig.dynamic_rules);
 
     if (!globalConfig.tuning.tcp.fast_open_key.empty()) {
       std::vector<uint32_t> key(4);
@@ -931,42 +988,7 @@ bool loadConfigurationFromFile(const std::string& fileName, bool isClient, bool 
       convertRuntimeFlatSettingsFromRust(globalConfig, config);
     });
 
-    dnsdist::configuration::updateRuntimeConfiguration([&globalConfig](dnsdist::configuration::RuntimeConfiguration& config) {
-      for (const auto& rule : globalConfig.query_rules) {
-        boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
-        dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::RuleChain::Rules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
-      }
-
-      for (const auto& rule : globalConfig.cache_miss_rules) {
-        boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
-        dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::RuleChain::CacheMissRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
-      }
-
-      for (const auto& rule : globalConfig.response_rules) {
-        boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
-        dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::ResponseRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
-      }
-
-      for (const auto& rule : globalConfig.cache_hit_response_rules) {
-        boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
-        dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::CacheHitResponseRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
-      }
-
-      for (const auto& rule : globalConfig.cache_inserted_response_rules) {
-        boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
-        dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
-      }
-
-      for (const auto& rule : globalConfig.self_answered_response_rules) {
-        boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
-        dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::SelfAnsweredResponseRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
-      }
-
-      for (const auto& rule : globalConfig.xfr_response_rules) {
-        boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
-        dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::XFRResponseRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
-      }
-    });
+    loadRulesConfiguration(globalConfig);
 
     s_registeredTypesMap.lock()->clear();
     return true;
