@@ -106,6 +106,7 @@ BindConfiguration
 - **doh**: :ref:`IncomingDohConfiguration <yaml-settings-IncomingDohConfiguration>`
 - **doq**: :ref:`IncomingDoqConfiguration <yaml-settings-IncomingDoqConfiguration>`
 - **quic**: :ref:`IncomingQuicConfiguration <yaml-settings-IncomingQuicConfiguration>`
+- **dnscrypt**: :ref:`IncomingDnscryptConfiguration <yaml-settings-IncomingDnscryptConfiguration>`
 - **additional-addresses**: Sequence of String
 
 
@@ -303,6 +304,24 @@ HttpResponsesMapConfiguration
 - **status**: Unsigned integer
 - **content**: String
 - **headers**: Sequence of :ref:`HttpCustomResponseHeaderConfiguration <yaml-settings-HttpCustomResponseHeaderConfiguration>`
+
+
+.. _yaml-settings-IncomingDnscryptCertificateKeyPairConfiguration:
+
+IncomingDnscryptCertificateKeyPairConfiguration
+-----------------------------------------------
+
+- **certificate**: String
+- **key**: String
+
+
+.. _yaml-settings-IncomingDnscryptConfiguration:
+
+IncomingDnscryptConfiguration
+-----------------------------
+
+- **provider-name**: String ``("")``
+- **certificates**: Sequence of :ref:`IncomingDnscryptCertificateKeyPairConfiguration <yaml-settings-IncomingDnscryptCertificateKeyPairConfiguration>`
 
 
 .. _yaml-settings-IncomingDohConfiguration:
