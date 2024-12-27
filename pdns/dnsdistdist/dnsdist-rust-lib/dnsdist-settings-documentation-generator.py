@@ -178,6 +178,10 @@ def process_selectors_or_actions(def_file, entry_type):
     return output
 
 def main():
+    if not os.path.isdir('../docs'):
+        print('Skipping settings documentation generation because the ../docs/ folder does not exist')
+        return
+
     generated_fp = get_temporary_file_for_generated_content('../docs/')
     output = process_settings()
     generated_fp.write(output)

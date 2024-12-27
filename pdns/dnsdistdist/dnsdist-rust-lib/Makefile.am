@@ -18,6 +18,7 @@ rust/src/lib.rs dnsdist-configuration-yaml-items-generated.cc: dnsdist-settings-
 	@if ! $(PYTHON) --version | grep -q "Python 3"; then echo $(PYTHON) should be at least version 3. Please install python 3 and re-run configure; exit 1; fi
 	$(MAKE) -C rust clean
 	(cd ${srcdir} && $(PYTHON) dnsdist-settings-generator.py ../dnsdist-settings-definitions.yml)
+	$(PYTHON) dnsdist-settings-documentation-generator.py
 
 clean-local:
 	rm -f dnsdist-configuration-yaml-items-generated.cc
