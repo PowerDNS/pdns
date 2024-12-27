@@ -37,10 +37,12 @@
 #include "dnsdist-rules-factory.hh"
 #include "dnsdist-kvs.hh"
 #include "dnsdist-web.hh"
+#include "dnsdist-xsk.hh"
 #include "doh.hh"
 #include "fstrm_logger.hh"
 #include "iputils.hh"
 #include "remote_logger.hh"
+#include "xsk.hh"
 
 #include "rust/cxx.h"
 #include "rust/lib.rs.h"
@@ -53,7 +55,9 @@ namespace dnsdist::configuration::yaml
 {
 #if defined(HAVE_YAML_CONFIGURATION)
 
-using RegisteredTypes = std::variant<std::shared_ptr<DNSDistPacketCache>, std::shared_ptr<dnsdist::rust::settings::DNSSelector>, std::shared_ptr<dnsdist::rust::settings::DNSActionWrapper>, std::shared_ptr<dnsdist::rust::settings::DNSResponseActionWrapper>, std::shared_ptr<NetmaskGroup>, std::shared_ptr<KeyValueStore>, std::shared_ptr<KeyValueLookupKey>, std::shared_ptr<RemoteLoggerInterface>, std::shared_ptr<ServerPolicy>>;
+using XSKMap = std::vector<std::shared_ptr<XskSocket>>;
+
+using RegisteredTypes = std::variant<std::shared_ptr<DNSDistPacketCache>, std::shared_ptr<dnsdist::rust::settings::DNSSelector>, std::shared_ptr<dnsdist::rust::settings::DNSActionWrapper>, std::shared_ptr<dnsdist::rust::settings::DNSResponseActionWrapper>, std::shared_ptr<NetmaskGroup>, std::shared_ptr<KeyValueStore>, std::shared_ptr<KeyValueLookupKey>, std::shared_ptr<RemoteLoggerInterface>, std::shared_ptr<ServerPolicy>, std::shared_ptr<XSKMap>>;
 static LockGuarded<std::unordered_map<std::string, RegisteredTypes>> s_registeredTypesMap;
 static std::atomic<bool> s_inConfigCheckMode;
 static std::atomic<bool> s_inClientMode;
@@ -423,13 +427,24 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dns
 
   backendConfig.remote = ComboAddress(std::string(config.address), serverPort);
 
-#warning handle XSK
-
   if (protocol == "dot" || protocol == "doh") {
     tlsCtx = getTLSContext(backendConfig.d_tlsParams);
   }
 
   auto downstream = std::make_shared<DownstreamState>(std::move(backendConfig), std::move(tlsCtx), !configCheck);
+
+#if defined(HAVE_XSK)
+  if (!config.xsk.empty()) {
+    auto xskMap = getRegisteredTypeByName<XSKMap>(config.xsk);
+    if (!xskMap) {
+      throw std::runtime_error("XSK map " + std::string(config.xsk) + " attached to backend " + std::string(config.address) + " not found");
+    }
+    downstream->registerXsk(*xskMap);
+    if (!configCheck) {
+      infolog("Added downstream server %s via XSK in %s mode", std::string(config.address), xskMap->at(0)->getXDPMode());
+    }
+  }
+#endif /* defined(HAVE_XSK) */
 
   const auto& autoUpgradeConf = config.auto_upgrade;
   if (autoUpgradeConf.enabled && downstream->getProtocol() != dnsdist::Protocol::DoT && downstream->getProtocol() != dnsdist::Protocol::DoH) {
@@ -490,6 +505,44 @@ bool loadConfigurationFromFile(const std::string& fileName, bool isClient, bool 
       });
     }
 
+#if defined(HAVE_EBPF)
+    if (!configCheck && globalConfig.ebpf.ipv4.max_entries > 0 && globalConfig.ebpf.ipv6.max_entries > 0 && globalConfig.ebpf.qnames.max_entries > 0) {
+      BPFFilter::MapFormat format = globalConfig.ebpf.external ? BPFFilter::MapFormat::WithActions : BPFFilter::MapFormat::Legacy;
+      std::unordered_map<std::string, BPFFilter::MapConfiguration> mapsConfig;
+
+      const auto convertParamsToConfig = [&mapsConfig](const std::string& name, BPFFilter::MapType type, const dnsdist::rust::settings::EbpfMapConfiguration& mapConfig) {
+        if (mapConfig.max_entries == 0) {
+          return;
+        }
+        BPFFilter::MapConfiguration config;
+        config.d_type = type;
+        config.d_maxItems = mapConfig.max_entries;
+        config.d_pinnedPath = std::string(mapConfig.pinned_path);
+        mapsConfig[name] = std::move(config);
+      };
+
+      convertParamsToConfig("ipv4", BPFFilter::MapType::IPv4, globalConfig.ebpf.ipv4);
+      convertParamsToConfig("ipv6", BPFFilter::MapType::IPv6, globalConfig.ebpf.ipv6);
+      convertParamsToConfig("qnames", BPFFilter::MapType::QNames, globalConfig.ebpf.qnames);
+      convertParamsToConfig("cidr4", BPFFilter::MapType::CIDR4, globalConfig.ebpf.cidr_ipv4);
+      convertParamsToConfig("cidr6", BPFFilter::MapType::CIDR6, globalConfig.ebpf.cidr_ipv6);
+      auto filter = std::make_shared<BPFFilter>(mapsConfig, format, globalConfig.ebpf.external);
+      g_defaultBPFFilter = std::move(filter);
+    }
+#endif /* defined(HAVE_EBPF) */
+
+#if defined(HAVE_XSK)
+    for (const auto& xskEntry : globalConfig.xsk) {
+      auto map = std::shared_ptr<XSKMap>();
+      for (size_t counter = 0; counter < xskEntry.queues; ++counter) {
+        auto socket = std::make_shared<XskSocket>(xskEntry.frames, std::string(xskEntry.interface), counter, std::string(xskEntry.map_path));
+        dnsdist::xsk::g_xsk.push_back(socket);
+        map->push_back(std::move(socket));
+      }
+      registerType<XSKMap>(map, xskEntry.name);
+    }
+#endif /* defined(HAVE_XSK) */
+
     for (const auto& bind : globalConfig.binds) {
       updateImmutableConfiguration([&bind](ImmutableConfiguration& config) {
         auto protocol = boost::to_lower_copy(std::string(bind.protocol));
@@ -502,6 +555,17 @@ bool loadConfigurationFromFile(const std::string& fileName, bool isClient, bool 
         }
         ComboAddress listeningAddress(std::string(bind.listen_address), defaultPort);
         auto cpus = getCPUPiningFromStr("binds", std::string(bind.cpus));
+        std::shared_ptr<XSKMap> xskMap;
+        if (!bind.xsk.empty()) {
+          xskMap = getRegisteredTypeByName<XSKMap>(bind.xsk);
+          if (!xskMap) {
+            throw std::runtime_error("XSK map " + std::string(bind.xsk) + " attached to bind " + std::string(bind.listen_address) + " not found");
+          }
+          if (xskMap->size() != bind.threads) {
+            throw std::runtime_error("XSK map " + std::string(bind.xsk) + " attached to bind " + std::string(bind.listen_address) + " has less queues than the number of threads of the bind");
+          }
+        }
+
         for (size_t idx = 0; idx < bind.threads; idx++) {
 #if defined(HAVE_DNSCRYPT)
           std::shared_ptr<DNSCryptContext> dnsCryptContext;
@@ -552,6 +616,17 @@ bool loadConfigurationFromFile(const std::string& fileName, bool isClient, bool 
 #if defined(HAVE_DNSCRYPT)
             state->dnscryptCtx = dnsCryptContext;
 #endif /* defined(HAVE_DNSCRYPT) */
+#if defined(HAVE_XSK)
+            if (xskMap) {
+              auto xsk = xskMap->at(idx);
+              state->xskInfo = XskWorker::create(XskWorker::Type::Bidirectional, xsk->sharedEmptyFrameOffset);
+              xsk->addWorker(state->xskInfo);
+              xsk->addWorkerRoute(state->xskInfo, listeningAddress);
+              state->xskInfoResponder = XskWorker::create(XskWorker::Type::OutgoingOnly, xsk->sharedEmptyFrameOffset);
+              xsk->addWorker(state->xskInfoResponder);
+              vinfolog("Enabling XSK in %s mode for incoming UDP packets to %s", xsk->getXDPMode(), listeningAddress.toStringWithPort());
+            }
+#endif /* defined(HAVE_XSK) */
             config.d_frontends.emplace_back(std::move(state));
           }
         }

@@ -1115,6 +1115,7 @@ mod dnsdistsettings {
         console: ConsoleConfiguration,
         dynamic_rules: Vec<DynamicRulesConfiguration>,
         dynamic_rules_settings: DynamicRulesSettingsConfiguration,
+        ebpf: EbpfConfiguration,
         edns_client_subnet: EdnsClientSubnetConfiguration,
         general: GeneralConfiguration,
         key_value_stores: KeyValueStoresConfiguration,
@@ -1135,6 +1136,7 @@ mod dnsdistsettings {
         tuning: TuningConfiguration,
         webserver: WebserverConfiguration,
         xfr_response_rules: Vec<ResponseRuleConfiguration>,
+        xsk: Vec<XskConfiguration>,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
@@ -1334,6 +1336,32 @@ mod dnsdistsettings {
         log_connections: bool,
         #[serde(rename = "max-concurrent-connections", default, skip_serializing_if = "crate::is_default")]
         max_concurrent_connections: u64,
+    }
+
+    #[derive(Deserialize, Serialize, Debug, PartialEq)]
+    #[serde(deny_unknown_fields)]
+    struct EbpfMapConfiguration {
+        #[serde(rename = "max-entries", default, skip_serializing_if = "crate::is_default")]
+        max_entries: u32,
+        #[serde(rename = "pinned-path", default, skip_serializing_if = "crate::is_default")]
+        pinned_path: String,
+    }
+
+    #[derive(Deserialize, Serialize, Debug, PartialEq)]
+    #[serde(deny_unknown_fields)]
+    struct EbpfConfiguration {
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        ipv4: EbpfMapConfiguration,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        ipv6: EbpfMapConfiguration,
+        #[serde(rename = "cidr-ipv4", default, skip_serializing_if = "crate::is_default")]
+        cidr_ipv4: EbpfMapConfiguration,
+        #[serde(rename = "cidr-ipv6", default, skip_serializing_if = "crate::is_default")]
+        cidr_ipv6: EbpfMapConfiguration,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        qnames: EbpfMapConfiguration,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        external: bool,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
@@ -1644,6 +1672,8 @@ mod dnsdistsettings {
         dnscrypt: IncomingDnscryptConfiguration,
         #[serde(rename = "additional-addresses", default, skip_serializing_if = "crate::is_default")]
         additional_addresses: Vec<String>,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        xsk: String,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
@@ -1792,6 +1822,8 @@ mod dnsdistsettings {
         mac_address: String,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         cpus: String,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        xsk: String,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
@@ -2040,6 +2072,18 @@ mod dnsdistsettings {
         action: SharedDNSResponseAction,
     }
 
+    #[derive(Deserialize, Serialize, Debug, PartialEq)]
+    #[serde(deny_unknown_fields)]
+    struct XskConfiguration {
+        name: String,
+        interface: String,
+        queues: u16,
+        #[serde(default = "crate::U32::<65536>::value", skip_serializing_if = "crate::U32::<65536>::is_equal")]
+        frames: u32,
+        #[serde(rename = "map-path", default = "crate::default_value_xsk_map_path", skip_serializing_if = "crate::default_value_equal_xsk_map_path")]
+        map_path: String,
+    }
+
 
     /*
      * Functions callable from Rust (actions and selectors)
@@ -2281,6 +2325,8 @@ impl dnsdistsettings::SharedDNSResponseAction {
         dynamic_rules: Vec<dnsdistsettings::DynamicRulesConfiguration>,
         #[serde(rename = "dynamic-rules-settings", default, skip_serializing_if = "crate::is_default")]
         dynamic_rules_settings: dnsdistsettings::DynamicRulesSettingsConfiguration,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        ebpf: dnsdistsettings::EbpfConfiguration,
         #[serde(rename = "edns-client-subnet", default, skip_serializing_if = "crate::is_default")]
         edns_client_subnet: dnsdistsettings::EdnsClientSubnetConfiguration,
         #[serde(default, skip_serializing_if = "crate::is_default")]
@@ -2321,6 +2367,8 @@ impl dnsdistsettings::SharedDNSResponseAction {
         webserver: dnsdistsettings::WebserverConfiguration,
         #[serde(rename = "xfr-response-rules", default, skip_serializing_if = "crate::is_default")]
         xfr_response_rules: Vec<ResponseRuleConfigurationSerde>,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        xsk: Vec<dnsdistsettings::XskConfiguration>,
     }
 
 #[derive(Default, Serialize, Deserialize, Debug, PartialEq)]
@@ -2574,6 +2622,22 @@ impl Default for dnsdistsettings::WebserverConfiguration {
 impl Default for dnsdistsettings::ConsoleConfiguration {
     fn default() -> Self {
         let deserialized: dnsdistsettings::ConsoleConfiguration = serde_yaml::from_str("").unwrap();
+        deserialized
+    }
+}
+
+
+impl Default for dnsdistsettings::EbpfMapConfiguration {
+    fn default() -> Self {
+        let deserialized: dnsdistsettings::EbpfMapConfiguration = serde_yaml::from_str("").unwrap();
+        deserialized
+    }
+}
+
+
+impl Default for dnsdistsettings::EbpfConfiguration {
+    fn default() -> Self {
+        let deserialized: dnsdistsettings::EbpfConfiguration = serde_yaml::from_str("").unwrap();
         deserialized
     }
 }
@@ -3053,6 +3117,23 @@ impl Default for dnsdistsettings::LoadBalancingPoliciesConfiguration {
 }
 
 
+// DEFAULT HANDLING for xsk_map_path
+fn default_value_xsk_map_path() -> String {
+    String::from("/sys/fs/bpf/dnsdist/xskmap")
+}
+fn default_value_equal_xsk_map_path(value: &str)-> bool {
+    value == default_value_xsk_map_path()
+}
+
+
+impl Default for dnsdistsettings::XskConfiguration {
+    fn default() -> Self {
+        let deserialized: dnsdistsettings::XskConfiguration = serde_yaml::from_str("").unwrap();
+        deserialized
+    }
+}
+
+
 impl Default for GlobalConfigurationSerde {
     fn default() -> Self {
         let deserialized: GlobalConfigurationSerde = serde_yaml::from_str("").unwrap();
@@ -3084,6 +3165,7 @@ impl dnsdistsettings::GlobalConfiguration {
         sub_type.validate()?;
     }
         self.dynamic_rules_settings.validate()?;
+        self.ebpf.validate()?;
         self.edns_client_subnet.validate()?;
         self.general.validate()?;
         self.key_value_stores.validate()?;
@@ -3113,6 +3195,9 @@ impl dnsdistsettings::GlobalConfiguration {
         self.tuning.validate()?;
         self.webserver.validate()?;
         for sub_type in &self.xfr_response_rules {
+        sub_type.validate()?;
+    }
+        for sub_type in &self.xsk {
         sub_type.validate()?;
     }
         Ok(())
@@ -3226,6 +3311,21 @@ impl dnsdistsettings::WebserverConfiguration {
 }
 impl dnsdistsettings::ConsoleConfiguration {
     fn validate(&self) -> Result<(), ValidationError> {
+        Ok(())
+    }
+}
+impl dnsdistsettings::EbpfMapConfiguration {
+    fn validate(&self) -> Result<(), ValidationError> {
+        Ok(())
+    }
+}
+impl dnsdistsettings::EbpfConfiguration {
+    fn validate(&self) -> Result<(), ValidationError> {
+        self.ipv4.validate()?;
+        self.ipv6.validate()?;
+        self.cidr_ipv4.validate()?;
+        self.cidr_ipv6.validate()?;
+        self.qnames.validate()?;
         Ok(())
     }
 }
@@ -3472,6 +3572,11 @@ impl dnsdistsettings::ResponseRuleConfiguration {
         Ok(())
     }
 }
+impl dnsdistsettings::XskConfiguration {
+    fn validate(&self) -> Result<(), ValidationError> {
+        Ok(())
+    }
+}
 impl GlobalConfigurationSerde {
     fn validate(&self) -> Result<(), ValidationError> {
         for sub_type in &self.backends {
@@ -3495,6 +3600,7 @@ impl GlobalConfigurationSerde {
         sub_type.validate()?;
     }
         self.dynamic_rules_settings.validate()?;
+        self.ebpf.validate()?;
         self.edns_client_subnet.validate()?;
         self.general.validate()?;
         self.key_value_stores.validate()?;
@@ -3524,6 +3630,9 @@ impl GlobalConfigurationSerde {
         self.tuning.validate()?;
         self.webserver.validate()?;
         for sub_type in &self.xfr_response_rules {
+        sub_type.validate()?;
+    }
+        for sub_type in &self.xsk {
         sub_type.validate()?;
     }
         Ok(())

@@ -30,6 +30,7 @@ GlobalConfiguration
 - **console**: :ref:`ConsoleConfiguration <yaml-settings-ConsoleConfiguration>` - Console-related settings
 - **dynamic-rules**: Sequence of :ref:`DynamicRulesConfiguration <yaml-settings-DynamicRulesConfiguration>` - List of dynamic rules
 - **dynamic-rules-settings**: :ref:`DynamicRulesSettingsConfiguration <yaml-settings-DynamicRulesSettingsConfiguration>` - Dynamic rules-related settings
+- **ebpf**: :ref:`EbpfConfiguration <yaml-settings-EbpfConfiguration>` - EBPF settings
 - **edns-client-subnet**: :ref:`EdnsClientSubnetConfiguration <yaml-settings-EdnsClientSubnetConfiguration>` - EDNS Client Subnet-related settings
 - **general**: :ref:`GeneralConfiguration <yaml-settings-GeneralConfiguration>` - General settings
 - **key-value-stores**: :ref:`KeyValueStoresConfiguration <yaml-settings-KeyValueStoresConfiguration>` - Key-Value stores
@@ -50,6 +51,7 @@ GlobalConfiguration
 - **tuning**: :ref:`TuningConfiguration <yaml-settings-TuningConfiguration>` - Performance-related settings
 - **webserver**: :ref:`WebserverConfiguration <yaml-settings-WebserverConfiguration>` - Internal web server configuration
 - **xfr-response-rules**: Sequence of :ref:`ResponseRuleConfiguration <yaml-settings-ResponseRuleConfiguration>` - List of rules executed when a XFR response is received
+- **xsk**: Sequence of :ref:`XskConfiguration <yaml-settings-XskConfiguration>` - List of AF_XDP / XSK objects
 
 
 
@@ -87,6 +89,7 @@ BackendConfiguration
 - **xsk-sockets**: Sequence of String
 - **mac-address**: String ``("")``
 - **cpus**: String ``("")``
+- **xsk**: String ``("")``
 
 
 .. _yaml-settings-BindConfiguration:
@@ -108,6 +111,7 @@ BindConfiguration
 - **quic**: :ref:`IncomingQuicConfiguration <yaml-settings-IncomingQuicConfiguration>`
 - **dnscrypt**: :ref:`IncomingDnscryptConfiguration <yaml-settings-IncomingDnscryptConfiguration>`
 - **additional-addresses**: Sequence of String
+- **xsk**: String ``("")``
 
 
 .. _yaml-settings-CDBKVStoreConfiguration:
@@ -238,6 +242,28 @@ DynamicRulesSettingsConfiguration
 
 - **purge-interval**: Unsigned integer ``(60)``
 - **default-action**: String ``(Drop)``
+
+
+.. _yaml-settings-EbpfConfiguration:
+
+EbpfConfiguration
+-----------------
+
+- **ipv4**: :ref:`EbpfMapConfiguration <yaml-settings-EbpfMapConfiguration>`
+- **ipv6**: :ref:`EbpfMapConfiguration <yaml-settings-EbpfMapConfiguration>`
+- **cidr-ipv4**: :ref:`EbpfMapConfiguration <yaml-settings-EbpfMapConfiguration>`
+- **cidr-ipv6**: :ref:`EbpfMapConfiguration <yaml-settings-EbpfMapConfiguration>`
+- **qnames**: :ref:`EbpfMapConfiguration <yaml-settings-EbpfMapConfiguration>`
+- **external**: Boolean ``(false)``
+
+
+.. _yaml-settings-EbpfMapConfiguration:
+
+EbpfMapConfiguration
+--------------------
+
+- **max-entries**: Unsigned integer ``(0)``
+- **pinned-path**: String ``("")``
 
 
 .. _yaml-settings-EdnsClientSubnetConfiguration:
@@ -783,5 +809,17 @@ WebserverConfiguration
 - **custom-headers**: Sequence of :ref:`HttpCustomResponseHeaderConfiguration <yaml-settings-HttpCustomResponseHeaderConfiguration>`
 - **api-configuration-directory**: String ``("")``
 - **api-read-write**: Boolean ``(false)``
+
+
+.. _yaml-settings-XskConfiguration:
+
+XskConfiguration
+----------------
+
+- **name**: String
+- **interface**: String
+- **queues**: Unsigned integer
+- **frames**: Unsigned integer ``(65536)``
+- **map-path**: String ``(/sys/fs/bpf/dnsdist/xskmap)``
 
 
