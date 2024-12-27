@@ -2218,24 +2218,6 @@ struct ContinueActionConfigurationSerde {
     action: Box<Action>,
 }
 
-impl Selector {
-  fn validate(&self) -> Result<(), ValidationError> {
-    Ok(())
-  }
-}
-
-impl Action {
-  fn validate(&self) -> Result<(), ValidationError> {
-    Ok(())
-  }
-}
-
-impl ResponseAction {
-  fn validate(&self) -> Result<(), ValidationError> {
-    Ok(())
-  }
-}
-
 #[derive(Default, Deserialize, Serialize, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
 struct QueryRuleConfigurationSerde {
@@ -2265,12 +2247,6 @@ struct ResponseRuleConfigurationSerde {
 }
 
 impl ResponseRuleConfigurationSerde {
-  fn validate(&self) -> Result<(), ValidationError> {
-    Ok(())
-  }
-}
-
-impl dnsdistsettings::SharedDNSAction {
   fn validate(&self) -> Result<(), ValidationError> {
     Ok(())
   }
