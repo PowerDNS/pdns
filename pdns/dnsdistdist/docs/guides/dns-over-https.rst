@@ -34,6 +34,25 @@ A more complicated (and more realistic) example is when you want to indicate met
 
   addDOHLocal('2001:db8:1:f00::1', '/etc/ssl/certs/example.com.pem', '/etc/ssl/private/example.com.key', "/", {customResponseHeaders={["link"]="<https://example.com/policy.html> rel=\\"service-meta\\"; type=\\"text/html\\""}})
 
+Or in ``yaml``:
+
+.. code-block:: yaml
+
+  - listen-address: "2001:db8:1:f00::1"
+    protocol: "DoH"
+    tls:
+      certificates:
+        - certificate: "/etc/ssl/certs/example.com.pem"
+          key: "/etc/ssl/private/example.com.key"
+    doh:
+      provider: "nghttp2"
+      paths:
+        - "/"
+      custom-response-headers:
+        - key: "link"
+          value: "<https://example.com/policy.html> rel=\\"service-meta\\"; type=\\"text/html\\""
+
+
 A particular attention should be taken to the permissions of the certificate and key files. Many ACME clients used to get and renew certificates, like CertBot, set permissions assuming that services are started as root, which is no longer true for dnsdist as of 1.5.0. For that particular case, making a copy of the necessary files in the /etc/dnsdist directory is advised, using for example CertBot's ``--deploy-hook`` feature to copy the files with the right permissions after a renewal.
 
 More information about sessions management can also be found in :doc:`../advanced/tls-sessions-management`.
@@ -127,6 +146,18 @@ That support can be enabled via the ``dohPath`` parameter of the :func:`newServe
 .. code-block:: lua
 
   newServer({address="[2001:DB8::1]:443", tls="openssl", subjectName="doh.powerdns.com", dohPath="/dns-query", validateCertificates=true})
+
+.. code-block:: yaml
+
+  backends:
+    - address: "127.0.0.1:%d"
+      protocol: "DoH"
+      tls:
+        provider: "openssl"
+        validate-certificate: true
+        subject-name: "doh.powerdns.com"
+      doh:
+        path: "/dns-query"
 
 
 Internal design

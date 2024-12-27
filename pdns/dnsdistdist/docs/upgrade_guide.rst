@@ -4,6 +4,8 @@ Upgrade Guide
 1.9.x to 2.0.0
 --------------
 
+:program:`dnsdist` supports a new, optional ``yaml`` :doc:`configuration format <reference/yaml-settings>`. This new format requires a Rust compiler and a Python 3 interpreter.
+
 :func:`showTLSContexts` has been renamed to :func:`showTLSFrontends`.
 :func:`getTLSContext` and the associated :class:`TLSContext` have been removed, please use :func:`getTLSFrontend` and the associated :class:`TLSFrontend` instead.
 
