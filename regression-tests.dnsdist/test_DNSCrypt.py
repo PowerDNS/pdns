@@ -265,6 +265,56 @@ class TestDNSCrypt(DNSCryptTest):
 
         self.doDNSCryptQuery(client, query, response, True)
 
+class TestDNSCryptYaml(TestDNSCrypt):
+    _config_template = """
+    function checkDNSCryptUDP(dq)
+      if dq:getProtocol() ~= "DNSCrypt UDP" then
+        return DNSAction.Spoof, '1.2.3.4'
+      end
+      return DNSAction.None
+    end
+
+    function checkDNSCryptTCP(dq)
+      if dq:getProtocol() ~= "DNSCrypt TCP" then
+        return DNSAction.Spoof, '1.2.3.4'
+      end
+      return DNSAction.None
+    end
+"""
+    _yaml_config_template = """
+console:
+  key: "%s"
+  listen-address: "127.0.0.1:%d"
+  acl:
+    - 127.0.0.0/8
+binds:
+  - listen-address: "127.0.0.1:%d"
+    protocol: "DNSCrypt"
+    dnscrypt:
+      provider-name: "%s"
+      certificates:
+        - certificate: "DNSCryptResolver.cert"
+          key: "DNSCryptResolver.key"
+backends:
+  - address: "127.0.0.1:%d"
+    protocol: Do53
+query-rules:
+  - selector:
+      type: "QName"
+      qname: "udp.protocols.dnscrypt.tests.powerdns.com."
+    action:
+      type: "Lua"
+      function: "checkDNSCryptUDP"
+  - selector:
+      type: "QName"
+      qname: "tcp.protocols.dnscrypt.tests.powerdns.com."
+    action:
+      type: "Lua"
+      function: "checkDNSCryptTCP"
+"""
+    _config_params = []
+    _yaml_config_params = ['_consoleKeyB64', '_consolePort', '_dnsDistPortDNSCrypt', '_providerName', '_testServerPort']
+
 class TestDNSCryptWithCache(DNSCryptTest):
 
     _config_params = ['_resolverCertificateSerial', '_resolverCertificateValidFrom', '_resolverCertificateValidUntil', '_dnsDistPortDNSCrypt', '_providerName', '_testServerPort']

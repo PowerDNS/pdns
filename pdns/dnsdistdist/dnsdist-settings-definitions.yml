@@ -731,6 +731,22 @@ incoming-quic:
       type: "u32"
       default: 1048576
 
+incoming-dnscrypt-certificate-key-pair:
+  parameters:
+    - name: "certificate"
+      type: "String"
+    - name: "key"
+      type: "String"
+
+incoming-dnscrypt:
+  parameters:
+    - name: "provider-name"
+      type: "String"
+      default: ""
+    - name: "certificates"
+      type: "Vec<IncomingDnscryptCertificateKeyPairConfiguration>"
+      default: true
+
 outgoing-doh:
   parameters:
     - name: "path"
@@ -792,6 +808,9 @@ bind:
       default: true
     - name: "quic"
       type: "IncomingQuicConfiguration"
+      default: true
+    - name: "dnscrypt"
+      type: "IncomingDnscryptConfiguration"
       default: true
     - name: "additional-addresses"
       type: "Vec<String>"

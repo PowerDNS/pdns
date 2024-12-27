@@ -26,6 +26,7 @@
 #if defined(HAVE_YAML_CONFIGURATION)
 #include "base64.hh"
 #include "dolog.hh"
+#include "dnscrypt.hh"
 #include "dnsdist-actions-factory.hh"
 #include "dnsdist-backend.hh"
 #include "dnsdist-cache.hh"
@@ -490,12 +491,24 @@ bool loadConfigurationFromFile(const std::string& fileName, bool isClient, bool 
     }
 
     for (const auto& bind : globalConfig.binds) {
-      ComboAddress listeningAddress(std::string(bind.listen_address), 53);
-      updateImmutableConfiguration([&bind, listeningAddress](ImmutableConfiguration& config) {
+      updateImmutableConfiguration([&bind](ImmutableConfiguration& config) {
         auto protocol = boost::to_lower_copy(std::string(bind.protocol));
+        uint16_t defaultPort = 53;
+        if (protocol == "dot" || protocol == "doq") {
+          defaultPort = 853;
+        }
+        else if (protocol == "doh" || protocol == "dnscrypt" || protocol == "doh3") {
+          defaultPort = 443;
+        }
+        ComboAddress listeningAddress(std::string(bind.listen_address), defaultPort);
         auto cpus = getCPUPiningFromStr("binds", std::string(bind.cpus));
         for (size_t idx = 0; idx < bind.threads; idx++) {
+#if defined(HAVE_DNSCRYPT)
+          std::shared_ptr<DNSCryptContext> dnsCryptContext;
+#endif /* defined(HAVE_DNSCRYPT) */
+
           auto state = std::make_shared<ClientState>(listeningAddress, protocol != "doq" && protocol != "doh3", bind.reuseport, bind.tcp.fast_open_queue_size, std::string(bind.interface), cpus, false);
+
           if (bind.tcp.listen_queue_size > 0) {
             state->tcpListenQueueSize = bind.tcp.listen_queue_size;
           }
@@ -516,16 +529,29 @@ bool loadConfigurationFromFile(const std::string& fileName, bool isClient, bool 
             }
           }
 
-          if (protocol != "do53") {
+          if (protocol == "dnscrypt") {
+#if defined(HAVE_DNSCRYPT)
+            std::vector<DNSCryptContext::CertKeyPaths> certKeys;
+            for (const auto& pair : bind.dnscrypt.certificates) {
+              certKeys.push_back({std::string(pair.certificate), std::string(pair.key)});
+            }
+            dnsCryptContext = std::make_shared<DNSCryptContext>(std::string(bind.dnscrypt.provider_name), certKeys);
+            state->dnscryptCtx = dnsCryptContext;
+#endif /* defined(HAVE_DNSCRYPT) */
+          }
+          else if (protocol != "do53") {
             if (!handleTLSConfiguration(bind, *state)) {
               continue;
             }
           }
 
           config.d_frontends.emplace_back(std::move(state));
-          if (protocol == "do53") {
+          if (protocol == "do53" || protocol == "dnscrypt") {
             /* also create the UDP listener */
-            state = std::make_shared<ClientState>(ComboAddress(std::string(bind.listen_address), 53), false, bind.reuseport, bind.tcp.fast_open_queue_size, std::string(bind.interface), cpus, false);
+            state = std::make_shared<ClientState>(ComboAddress(std::string(bind.listen_address), defaultPort), false, bind.reuseport, bind.tcp.fast_open_queue_size, std::string(bind.interface), cpus, false);
+#if defined(HAVE_DNSCRYPT)
+            state->dnscryptCtx = dnsCryptContext;
+#endif /* defined(HAVE_DNSCRYPT) */
             config.d_frontends.emplace_back(std::move(state));
           }
         }

@@ -1577,6 +1577,22 @@ mod dnsdistsettings {
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
+    struct IncomingDnscryptCertificateKeyPairConfiguration {
+        certificate: String,
+        key: String,
+    }
+
+    #[derive(Deserialize, Serialize, Debug, PartialEq)]
+    #[serde(deny_unknown_fields)]
+    struct IncomingDnscryptConfiguration {
+        #[serde(rename = "provider-name", default, skip_serializing_if = "crate::is_default")]
+        provider_name: String,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        certificates: Vec<IncomingDnscryptCertificateKeyPairConfiguration>,
+    }
+
+    #[derive(Deserialize, Serialize, Debug, PartialEq)]
+    #[serde(deny_unknown_fields)]
     struct OutgoingDohConfiguration {
         #[serde(default = "crate::default_value_outgoing_doh_path", skip_serializing_if = "crate::default_value_equal_outgoing_doh_path")]
         path: String,
@@ -1624,6 +1640,8 @@ mod dnsdistsettings {
         doq: IncomingDoqConfiguration,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         quic: IncomingQuicConfiguration,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        dnscrypt: IncomingDnscryptConfiguration,
         #[serde(rename = "additional-addresses", default, skip_serializing_if = "crate::is_default")]
         additional_addresses: Vec<String>,
     }
@@ -2768,6 +2786,22 @@ impl Default for dnsdistsettings::IncomingQuicConfiguration {
 }
 
 
+impl Default for dnsdistsettings::IncomingDnscryptCertificateKeyPairConfiguration {
+    fn default() -> Self {
+        let deserialized: dnsdistsettings::IncomingDnscryptCertificateKeyPairConfiguration = serde_yaml::from_str("").unwrap();
+        deserialized
+    }
+}
+
+
+impl Default for dnsdistsettings::IncomingDnscryptConfiguration {
+    fn default() -> Self {
+        let deserialized: dnsdistsettings::IncomingDnscryptConfiguration = serde_yaml::from_str("").unwrap();
+        deserialized
+    }
+}
+
+
 // DEFAULT HANDLING for outgoing_doh_path
 fn default_value_outgoing_doh_path() -> String {
     String::from("/dns-query")
@@ -3288,6 +3322,19 @@ impl dnsdistsettings::IncomingQuicConfiguration {
         Ok(())
     }
 }
+impl dnsdistsettings::IncomingDnscryptCertificateKeyPairConfiguration {
+    fn validate(&self) -> Result<(), ValidationError> {
+        Ok(())
+    }
+}
+impl dnsdistsettings::IncomingDnscryptConfiguration {
+    fn validate(&self) -> Result<(), ValidationError> {
+        for sub_type in &self.certificates {
+        sub_type.validate()?;
+    }
+        Ok(())
+    }
+}
 impl dnsdistsettings::OutgoingDohConfiguration {
     fn validate(&self) -> Result<(), ValidationError> {
         Ok(())
@@ -3305,6 +3352,7 @@ impl dnsdistsettings::BindConfiguration {
         self.doh.validate()?;
         self.doq.validate()?;
         self.quic.validate()?;
+        self.dnscrypt.validate()?;
         Ok(())
     }
 }
