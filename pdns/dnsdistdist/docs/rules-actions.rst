@@ -9,7 +9,7 @@ Packet Policies
 
 It receives packets on one or several addresses it listens on, and determines whether it will process this packet based on the :doc:`advanced/acl`. Should the packet be processed, :program:`dnsdist` attempts to match any of the configured rules in order and when one matches, the associated action is performed.
 
-These rule and action combinations are considered policies. The complete list of selectors (rules) can be found in :doc:`reference/selectors`, and the list of actions in :doc:`reference/actions`.
+These rule and action combinations are considered policies. The complete list of selectors (rules) can be found in :doc:`reference/selectors` (:doc:`reference/yaml-selectors`), and the list of actions in :doc:`reference/actions` (:doc:`reference/yaml-actions` and :doc:`reference/yaml-response-actions`).
 
 Packet Actions
 --------------

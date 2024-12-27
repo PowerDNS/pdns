@@ -1,6 +1,11 @@
 Upgrade Guide
 =============
 
+1.9.X to 2.0.0
+--------------
+
+:program:`dnsdist` supports a new, optional ``yaml`` :doc:`configuration format <reference/yaml-settings>`. This new format requires a Rust compiler and a Python 3 interpreter.
+
 1.8.x to 1.9.0
 --------------
 
