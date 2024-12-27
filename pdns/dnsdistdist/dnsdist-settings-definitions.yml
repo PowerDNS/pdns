@@ -45,6 +45,10 @@ global:
       type: "DynamicRulesSettingsConfiguration"
       default: true
       description: "Dynamic rules-related settings"
+    - name: "ebpf"
+      type: "EbpfConfiguration"
+      default: true
+      description: "EBPF settings"
     - name: "edns-client-subnet"
       type: "EdnsClientSubnetConfiguration"
       default: true
@@ -130,6 +134,10 @@ global:
       default: true
       skip-serde: true
       description: "List of rules executed when a XFR response is received"
+    - name: "xsk"
+      type: "Vec<XskConfiguration>"
+      default: true
+      description: "List of AF_XDP / XSK objects"
 
 metrics:
   parameters:
@@ -391,6 +399,36 @@ console:
       lua-name: "setConsoleMaximumConcurrentConnections"
       internal-field-name: "d_consoleMaxConcurrentConnections"
       runtime-configurable: false
+
+ebpf-map:
+  parameters:
+    - name: "max-entries"
+      type: "u32"
+      default: 0
+    - name: "pinned-path"
+      type: "String"
+      default: ""
+
+ebpf:
+  parameters:
+    - name: "ipv4"
+      type: "EbpfMapConfiguration"
+      default: true
+    - name: "ipv6"
+      type: "EbpfMapConfiguration"
+      default: true
+    - name: "cidr-ipv4"
+      type: "EbpfMapConfiguration"
+      default: true
+    - name: "cidr-ipv6"
+      type: "EbpfMapConfiguration"
+      default: true
+    - name: "qnames"
+      type: "EbpfMapConfiguration"
+      default: true
+    - name: "external"
+      type: "bool"
+      default: "false"
 
 edns-client-subnet:
   parameters:
@@ -815,6 +853,9 @@ bind:
     - name: "additional-addresses"
       type: "Vec<String>"
       default: true
+    - name: "xsk"
+      type: "String"
+      default: ""
 
 outgoing-tcp:
   parameters:
@@ -1010,6 +1051,9 @@ backend:
       type: "String"
       default: ""
     - name: "cpus"
+      type: "String"
+      default: ""
+    - name: "xsk"
       type: "String"
       default: ""
 
@@ -1473,3 +1517,18 @@ response-rule:
       type: "Selector"
     - name: "action"
       type: "ResponseAction"
+
+xsk:
+  parameters:
+    - name: "name"
+      type: "String"
+    - name: "interface"
+      type: "String"
+    - name: "queues"
+      type: "u16"
+    - name: "frames"
+      type: "u32"
+      default: 65536
+    - name: "map-path"
+      type: "String"
+      default: "/sys/fs/bpf/dnsdist/xskmap"
