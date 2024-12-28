@@ -87,6 +87,7 @@ public:
   ~IsUpOracle() = default;
   int isUp(const ComboAddress& remote, const opts_t& opts);
   int isUp(const ComboAddress& remote, const std::string& url, const opts_t& opts);
+  //NOLINT(readability-identifier-length)
   int isUp(const CheckDesc& cd);
 
 private:
@@ -242,6 +243,7 @@ private:
 
   void setDown(const ComboAddress& rem, const std::string& url=std::string(), const opts_t& opts = opts_t())
   {
+    //NOLINT(readability-identifier-length)
     CheckDesc cd{rem, url, opts};
     setStatus(cd, false);
   }
@@ -272,6 +274,7 @@ int IsUpOracle::isUp(const CheckDesc& cd)
   time_t now = time(nullptr);
   {
     auto statuses = d_statuses.read_lock();
+    //NOLINT(readability-identifier-length)
     auto iter = statuses->find(cd);
     if (iter != statuses->end()) {
       iter->second->lastAccess = now;
