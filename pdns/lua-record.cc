@@ -1198,14 +1198,12 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
       for (auto& entry : conv) {
         int weight = 0;
         weight = g_up.isUp(entry, url, opts);
-        if(weight>0){
+        if(weight>0)
           available = 1;
-        }
         items.emplace_back(weight, entry);
       }
-      if(available) {
+      if(available)
         return pickWeightedHashed<ComboAddress>(s_lua_record_ctx->bestwho, items).toString();
-      }
 
       // All units down, apply backupSelector on all candidates
       return pickWeightedRandom<ComboAddress>(items).toString();
