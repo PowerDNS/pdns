@@ -1192,14 +1192,14 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
         opts = *options;
 
       items.reserve(ips.capacity());
-      bool available = 0;
+      bool available = false;
 
       vector<ComboAddress> conv = convComboAddressList(ips);
       for (auto& entry : conv) {
         int weight = 0;
         weight = g_up.isUp(entry, url, opts);
         if(weight>0)
-          available = 1;
+          available = true;
         items.emplace_back(weight, entry);
       }
       if(available)
