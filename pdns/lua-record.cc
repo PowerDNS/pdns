@@ -1245,6 +1245,7 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
   lua.writeFunction("geoiplookup", [](const string &ip, const GeoIPInterface::GeoIPQueryAttribute attr) {
     return getGeo(ip, attr);
   });
+  lua.writeVariable("GeoIPQueryAttribute", std::unordered_map<std::string, int>{{"ASn", GeoIPInterface::GeoIPQueryAttribute::ASn}, {"City", GeoIPInterface::GeoIPQueryAttribute::City}, {"Continent", GeoIPInterface::GeoIPQueryAttribute::Continent}, {"Country", GeoIPInterface::GeoIPQueryAttribute::Country}, {"Country2", GeoIPInterface::GeoIPQueryAttribute::Country2}, {"Name", GeoIPInterface::GeoIPQueryAttribute::Name}, {"Region", GeoIPInterface::GeoIPQueryAttribute::Region}, {"Location", GeoIPInterface::GeoIPQueryAttribute::Location}});
 
   typedef const boost::variant<string,vector<pair<int,string> > > combovar_t;
 
