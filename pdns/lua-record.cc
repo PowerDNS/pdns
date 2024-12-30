@@ -266,6 +266,7 @@ private:
   }
 };
 
+//NOLINT(readability-identifier-length)
 int IsUpOracle::isUp(const CheckDesc& cd)
 {
   if (!d_checkerThreadStarted.test_and_set()) {
@@ -274,7 +275,6 @@ int IsUpOracle::isUp(const CheckDesc& cd)
   time_t now = time(nullptr);
   {
     auto statuses = d_statuses.read_lock();
-    //NOLINT(readability-identifier-length)
     auto iter = statuses->find(cd);
     if (iter != statuses->end()) {
       iter->second->lastAccess = now;
