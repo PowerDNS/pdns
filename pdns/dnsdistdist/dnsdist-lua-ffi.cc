@@ -422,10 +422,10 @@ size_t dnsdist_ffi_dnsquestion_get_http_headers(dnsdist_ffi_dnsquestion_t* dq, c
 {
 #if defined(HAVE_DNS_OVER_HTTPS) || defined(HAVE_DNS_OVER_HTTP3)
   const auto processHeaders = [&dq](const std::unordered_map<std::string, std::string>& headers) {
-    if (headers.size() == 0) {
+    if (headers.empty()) {
       return;
     }
-    dq->httpHeaders = std::make_unique<std::unordered_map<std::string, std::string>>(std::move(headers));
+    dq->httpHeaders = std::make_unique<std::unordered_map<std::string, std::string>>(headers);
     if (!dq->httpHeadersVect) {
       dq->httpHeadersVect = std::make_unique<std::vector<dnsdist_ffi_http_header_t>>();
     }

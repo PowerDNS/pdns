@@ -69,7 +69,7 @@ bool HTTPPathRule::matches(const DNSQuestion* dq) const
     const auto path = dq->ids.du->getHTTPPath();
     return d_path == path;
   }
-  else if (dq->ids.doh3u) {
+  if (dq->ids.doh3u) {
     return dq->ids.doh3u->getHTTPPath() == d_path;
   }
   return false;
@@ -91,7 +91,7 @@ bool HTTPPathRegexRule::matches(const DNSQuestion* dq) const
     const auto path = dq->ids.du->getHTTPPath();
     return d_regex.match(path);
   }
-  else if (dq->ids.doh3u) {
+  if (dq->ids.doh3u) {
     return d_regex.match(dq->ids.doh3u->getHTTPPath());
   }
   return false;

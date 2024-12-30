@@ -1049,7 +1049,7 @@ std::string DOH3Unit::getHTTPQueryString() const
   const auto& path = headers.at(":path");
   auto pos = path.find('?');
   if (pos == string::npos) {
-    return std::string();
+    return {};
   }
 
   return path.substr(pos);
@@ -1082,22 +1082,22 @@ const dnsdist::doh3::h3_headers_t& DOH3Unit::getHTTPHeaders() const
 
 std::string DOH3Unit::getHTTPPath() const
 {
-  return std::string();
+  return {};
 }
 
 std::string DOH3Unit::getHTTPQueryString() const
 {
-  return std::string();
+  return {};
 }
 
 std::string DOH3Unit::getHTTPHost() const
 {
-  return std::string();
+  return {};
 }
 
 std::string DOH3Unit::getHTTPScheme() const
 {
-  return std::string();
+  return {};
 }
 
 const dnsdist::doh3::h3_headers_t& DOH3Unit::getHTTPHeaders() const
