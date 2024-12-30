@@ -32,15 +32,23 @@ HTTPHeaderRule::HTTPHeaderRule(const std::string& header, const std::string& reg
 
 bool HTTPHeaderRule::matches(const DNSQuestion* dq) const
 {
-  if (!dq->ids.du) {
+  if (dq->ids.du) {
+    const auto& headers = dq->ids.du->getHTTPHeaders();
+    for (const auto& header : headers) {
+      if (header.first == d_header) {
+        return d_regex.match(header.second);
+      }
+    }
     return false;
   }
-
-  const auto& headers = dq->ids.du->getHTTPHeaders();
-  for (const auto& header : headers) {
-    if (header.first == d_header) {
-      return d_regex.match(header.second);
+  if (dq->ids.doh3u) {
+    const auto& headers = dq->ids.doh3u->getHTTPHeaders();
+    for (const auto& header : headers) {
+      if (header.first == d_header) {
+        return d_regex.match(header.second);
+      }
     }
+    return false;
   }
   return false;
 }
@@ -57,12 +65,14 @@ HTTPPathRule::HTTPPathRule(std::string path) :
 
 bool HTTPPathRule::matches(const DNSQuestion* dq) const
 {
-  if (!dq->ids.du) {
-    return false;
+  if (dq->ids.du) {
+    const auto path = dq->ids.du->getHTTPPath();
+    return d_path == path;
   }
-
-  const auto path = dq->ids.du->getHTTPPath();
-  return d_path == path;
+  else if (dq->ids.doh3u) {
+    return dq->ids.doh3u->getHTTPPath() == d_path;
+  }
+  return false;
 }
 
 string HTTPPathRule::toString() const
@@ -77,11 +87,14 @@ HTTPPathRegexRule::HTTPPathRegexRule(const std::string& regex) :
 
 bool HTTPPathRegexRule::matches(const DNSQuestion* dq) const
 {
-  if (!dq->ids.du) {
-    return false;
+  if (dq->ids.du) {
+    const auto path = dq->ids.du->getHTTPPath();
+    return d_regex.match(path);
   }
-
-  return d_regex.match(dq->ids.du->getHTTPPath());
+  else if (dq->ids.doh3u) {
+    return d_regex.match(dq->ids.doh3u->getHTTPPath());
+  }
+  return false;
 }
 
 string HTTPPathRegexRule::toString() const

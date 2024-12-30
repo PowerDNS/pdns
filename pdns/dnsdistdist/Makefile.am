@@ -480,12 +480,15 @@ endif
 
 if HAVE_DNS_OVER_HTTP3
 dnsdist_SOURCES += doh3.cc
+testrunner_SOURCES += doh3.cc
 endif
 
 if HAVE_QUICHE
 AM_CPPFLAGS += $(QUICHE_CFLAGS)
 dnsdist_LDADD += $(QUICHE_LDFLAGS) $(QUICHE_LIBS)
 dnsdist_SOURCES += doq-common.cc
+testrunner_SOURCES += doq-common.cc
+testrunner_LDADD += $(QUICHE_LDFLAGS) $(QUICHE_LIBS)
 endif
 
 if !HAVE_LUA_HPP

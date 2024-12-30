@@ -1,4 +1,5 @@
 import base64
+import copy
 import asyncio
 import pickle
 import ssl
@@ -133,7 +134,7 @@ class HttpClient(QuicConnectionProtocol):
                 (b":authority", request.url.authority.encode()),
                 (b":path", request.url.full_path.encode()),
             ]
-            + [(k.encode(), v.encode()) for (k, v) in request.headers.items()],
+            + [(k.lower().encode(), v.encode()) for (k, v) in request.headers.items()],
             end_stream=not request.content,
         )
         if request.content:
@@ -155,21 +156,22 @@ async def perform_http_request(
     data: Optional[bytes],
     include: bool,
     output_dir: Optional[str],
+    additional_headers: Optional[Dict] = None,
 ) -> None:
     # perform request
     start = time.time()
     if data is not None:
+        headers = copy.deepcopy(additional_headers) if additional_headers else {}
+        headers["content-length"] = str(len(data))
+        headers["content-type"] = "application/dns-message"
         http_events = await client.post(
             url,
             data=data,
-            headers={
-                "content-length": str(len(data)),
-                "content-type": "application/dns-message",
-            },
+            headers=headers,
         )
         method = "POST"
     else:
-        http_events = await client.get(url)
+        http_events = await client.get(url, headers=additional_headers)
         method = "GET"
     elapsed = time.time() - start
 
@@ -190,6 +192,7 @@ async def async_h3_query(
     timeout: float,
     post: bool,
     create_protocol=HttpClient,
+    additional_headers: Optional[Dict] = None,
 ) -> None:
 
     url = baseurl
@@ -212,6 +215,7 @@ async def async_h3_query(
                     data=query.to_wire() if post else None,
                     include=False,
                     output_dir=None,
+                    additional_headers=additional_headers,
                 )
 
                 return answer
@@ -219,7 +223,7 @@ async def async_h3_query(
             return e
 
 
-def doh3_query(query, baseurl, timeout=2, port=853, verify=None, server_hostname=None, post=False):
+def doh3_query(query, baseurl, timeout=2, port=853, verify=None, server_hostname=None, post=False, additional_headers=None):
     configuration = QuicConfiguration(alpn_protocols=H3_ALPN, is_client=True)
     if verify:
         configuration.load_verify_locations(verify)
@@ -232,7 +236,8 @@ def doh3_query(query, baseurl, timeout=2, port=853, verify=None, server_hostname
             query=query,
             timeout=timeout,
             create_protocol=HttpClient,
-            post=post
+            post=post,
+            additional_headers=additional_headers
         )
     )
 

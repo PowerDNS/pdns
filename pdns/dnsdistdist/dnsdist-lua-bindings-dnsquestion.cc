@@ -513,38 +513,53 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
 
 #ifdef HAVE_DNS_OVER_HTTPS
   luaCtx.registerFunction<std::string (DNSQuestion::*)(void) const>("getHTTPPath", [](const DNSQuestion& dnsQuestion) {
-    if (dnsQuestion.ids.du == nullptr) {
-      return std::string();
+    if (dnsQuestion.ids.du) {
+      return dnsQuestion.ids.du->getHTTPPath();
     }
-    return dnsQuestion.ids.du->getHTTPPath();
+    if (dnsQuestion.ids.doh3u) {
+      return dnsQuestion.ids.doh3u->getHTTPPath();
+    }
+    return std::string();
   });
 
   luaCtx.registerFunction<std::string (DNSQuestion::*)(void) const>("getHTTPQueryString", [](const DNSQuestion& dnsQuestion) {
-    if (dnsQuestion.ids.du == nullptr) {
-      return std::string();
+    if (dnsQuestion.ids.du) {
+      return dnsQuestion.ids.du->getHTTPQueryString();
     }
-    return dnsQuestion.ids.du->getHTTPQueryString();
+    if (dnsQuestion.ids.doh3u) {
+      return dnsQuestion.ids.doh3u->getHTTPQueryString();
+    }
+    return std::string();
   });
 
   luaCtx.registerFunction<std::string (DNSQuestion::*)(void) const>("getHTTPHost", [](const DNSQuestion& dnsQuestion) {
-    if (dnsQuestion.ids.du == nullptr) {
-      return std::string();
+    if (dnsQuestion.ids.du) {
+      return dnsQuestion.ids.du->getHTTPHost();
     }
-    return dnsQuestion.ids.du->getHTTPHost();
+    if (dnsQuestion.ids.doh3u) {
+      return dnsQuestion.ids.doh3u->getHTTPHost();
+    }
+    return std::string();
   });
 
   luaCtx.registerFunction<std::string (DNSQuestion::*)(void) const>("getHTTPScheme", [](const DNSQuestion& dnsQuestion) {
-    if (dnsQuestion.ids.du == nullptr) {
-      return std::string();
+    if (dnsQuestion.ids.du) {
+      return dnsQuestion.ids.du->getHTTPScheme();
     }
-    return dnsQuestion.ids.du->getHTTPScheme();
+    if (dnsQuestion.ids.doh3u) {
+      return dnsQuestion.ids.doh3u->getHTTPScheme();
+    }
+    return std::string();
   });
 
   luaCtx.registerFunction<LuaAssociativeTable<std::string> (DNSQuestion::*)(void) const>("getHTTPHeaders", [](const DNSQuestion& dnsQuestion) {
-    if (dnsQuestion.ids.du == nullptr) {
-      return LuaAssociativeTable<std::string>();
+    if (dnsQuestion.ids.du) {
+      return dnsQuestion.ids.du->getHTTPHeaders();
     }
-    return dnsQuestion.ids.du->getHTTPHeaders();
+    if (dnsQuestion.ids.doh3u) {
+      return dnsQuestion.ids.doh3u->getHTTPHeaders();
+    }
+    return LuaAssociativeTable<std::string>();
   });
 
   luaCtx.registerFunction<void (DNSQuestion::*)(uint64_t statusCode, const std::string& body, const boost::optional<std::string> contentType)>("setHTTPResponse", [](DNSQuestion& dnsQuestion, uint64_t statusCode, const std::string& body, const boost::optional<std::string>& contentType) {
