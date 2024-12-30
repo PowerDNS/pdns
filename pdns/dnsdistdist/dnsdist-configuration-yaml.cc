@@ -576,7 +576,7 @@ static void loadDynamicBlockConfiguration(const dnsdist::rust::settings::Dynamic
           ruleParams.d_tagSettings->d_name = std::string(rule.tag_name);
           ruleParams.d_tagSettings->d_value = std::string(rule.tag_value);
         }
-          dbrgObj->setResponseByteRate(std::move(ruleParams));
+        dbrgObj->setResponseByteRate(std::move(ruleParams));
       }
       else if (rule.rule_type == "suffix-match") {
         DynBlockRulesGroup::DynBlockRule ruleParams(std::string(rule.comment), rule.action_duration, 0, 0, rule.seconds, rule.action.empty() ? DNSAction::Action::None : DNSAction::typeFromString(std::string(rule.action)));
@@ -747,7 +747,6 @@ static void loadWebServer(const dnsdist::rust::settings::WebserverConfiguration&
     config.d_apiReadWrite = webConfig.api_read_write;
   });
 }
-
 
 #endif /* defined(HAVE_YAML_CONFIGURATION) */
 
