@@ -452,6 +452,10 @@ size_t dnsdist_ffi_dnsquestion_get_http_headers(dnsdist_ffi_dnsquestion_t* dq, c
   }
 #endif /* HAVE_DNS_OVER_HTTP3 */
 
+  if (!dq->httpHeadersVect) {
+    return 0;
+  }
+
   if (!dq->httpHeadersVect->empty()) {
     *out = dq->httpHeadersVect->data();
   }
