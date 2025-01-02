@@ -18,6 +18,18 @@
 
 #include "namespaces.hh"
 
+/* g++ defines __SANITIZE_THREAD__
+   clang++ supports the nice __has_feature(thread_sanitizer),
+   let's merge them */
+#if defined(__has_feature)
+#if __has_feature(thread_sanitizer)
+#define __SANITIZE_THREAD__ 1
+#endif
+#if __has_feature(address_sanitizer)
+#define __SANITIZE_ADDRESS__ 1
+#endif
+#endif
+
 std::atomic<bool> RecursorControlChannel::stop = false;
 
 RecursorControlChannel::RecursorControlChannel()
@@ -188,8 +200,15 @@ RecursorControlChannel::Answer RecursorControlChannel::recv(int fd, unsigned int
   const time_t start = time(nullptr);
 
   waitForRead(fd, timeout, start);
-  int err;
-  if (::recv(fd, &err, sizeof(err), 0) != sizeof(err)) {
+  int err{};
+  auto ret = ::recv(fd, &err, sizeof(err), 0);
+  if (ret == 0) {
+#if defined(__SANITIZE_THREAD__)
+    return {0, "bye nicely\n"}; // Hack because TSAN enabled build justs _exits on quit-nicely
+#endif
+    throw PDNSException("Unable to receive status over control connection: EOF");
+  }
+  if (ret != sizeof(err)) {
     throw PDNSException("Unable to receive return status over control channel: " + stringerror());
   }
 
