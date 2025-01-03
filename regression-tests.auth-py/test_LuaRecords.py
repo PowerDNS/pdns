@@ -166,8 +166,14 @@ createforward6.example.org.                 3600 IN SOA  {soa}
 createforward6.example.org.                 3600 IN NS   ns1.example.org.
 createforward6.example.org.                 3600 IN NS   ns2.example.org.
 *                                                IN    LUA    AAAA  "filterForward(createForward6(), newNMG{{'2000::/3'}}, 'fe80::1')"
+        """,
+        'createforward6-nofilter.example.org': """
+createforward6-nofilter.example.org.                 3600 IN SOA  {soa}
+createforward6-nofilter.example.org.                 3600 IN NS   ns1.example.org.
+createforward6-nofilter.example.org.                 3600 IN NS   ns2.example.org.
+*                                                IN    LUA    AAAA  "createForward6(), newNMG{{'2000::/3'}}"
         """
-# the separate createforward6 zone is because some of the code in lua-record.cc insists on working relatively to the zone apex
+# the separate createforward6 zones are because some of the code in lua-record.cc insists on working relatively to the zone apex
     }
     _web_rrsets = []
 
@@ -1026,6 +1032,10 @@ createforward6.example.org.                 3600 IN NS   ns2.example.org.
                 "20010002000300040005000600070db8" : "2001:2:3:4:5:6:7:db8",
                 "blabla20010002000300040005000600070db8" : "2001:2:3:4:5:6:7:db8",
                 "4000-db8--1" : "fe80::1"   # filtered, with fallback address override
+            }),
+            ".createforward6-nofilter.example.org." : (dns.rdatatype.AAAA, {
+                "foo" : "::",
+                "averylongstringthatismorethan32chars" : "::"
             }),
             ".createreverse6.example.org." : (dns.rdatatype.PTR, {
                 "8.b.d.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.1.0.0.2" : "2001--db8.example.com.",
