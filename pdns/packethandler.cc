@@ -1682,7 +1682,7 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
               zrr.scopeMask = pkt.getRealRemote().getBits(); // this makes sure answer is a specific as your question
               rrset.push_back(zrr);
             }
-            if(rec->d_type == QType::CNAME && pkt.qtype.getCode() != QType::CNAME) {
+            if(rec->d_type == QType::CNAME && (pkt.qtype.getCode() != QType::ANY && pkt.qtype.getCode() != QType::CNAME)) {
               weRedirected = true;
             }
             else {
@@ -1717,7 +1717,7 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
       weHaveUnauth=true;
     }
 
-    if(zrr.dr.d_type == QType::CNAME && pkt.qtype.getCode() != QType::CNAME) {
+    if(zrr.dr.d_type == QType::CNAME && (pkt.qtype.getCode() != QType::ANY && pkt.qtype.getCode() != QType::CNAME)) {
       weRedirected=true;
     }
 
