@@ -39,6 +39,7 @@
 #include "dnsbackend.hh"
 #include "ednsoptions.hh"
 #include "ednscookies.hh"
+#include "ednspadding.hh"
 #include "pdnsexception.hh"
 #include "dnspacket.hh"
 #include "logger.hh"
@@ -334,6 +335,11 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
     }
   }
 
+  if (d_ednspadding) {
+    // actual padding length not included yet
+    optsize += EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE;
+  }
+
   if (d_trc.d_algoName.countLabels())
   {
     // TSIG is not OPT, but we count it in optsize anyway
@@ -381,6 +387,19 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
       if (d_haveednscookie && d_eco.isWellFormed()) {
         d_eco.makeServerCookie(s_EDNSCookieKey, getInnerRemote());
         opts.emplace_back(EDNSOptionCode::COOKIE, d_eco.makeOptString());
+      }
+
+      if (d_ednspadding) {
+        size_t remaining = d_tcp ? 65535 : getMaxReplyLen();
+        const size_t blockSize = 468; // RFC8467 4.1
+        // Note that optsize already contains the size of the EDNS0 padding
+        // option header.
+        size_t modulo = (pw.size() + optsize) % blockSize;
+        size_t padSize = 0;
+        if (modulo > 0) {
+          padSize = std::min(blockSize - modulo, remaining);
+        }
+        opts.emplace_back(EDNSOptionCode::PADDING, makeEDNSPaddingOptString(padSize));
       }
 
       if(!opts.empty() || d_haveednssection || d_dnssecOk)
@@ -449,6 +468,7 @@ std::unique_ptr<DNSPacket> DNSPacket::replyPacket() const
   r->d_haveednssubnet = d_haveednssubnet;
   r->d_haveednssection = d_haveednssection;
   r->d_haveednscookie = d_haveednscookie;
+  r->d_ednspadding = d_ednspadding;
   r->d_ednsversion = 0;
   r->d_ednsrcode = 0;
   r->d_xfr = d_xfr;
@@ -600,6 +620,7 @@ try
   d_haveednssection = false;
   d_haveednscookie = false;
   d_ednscookievalid = false;
+  d_ednspadding = false;
 
   if(getEDNSOpts(mdp, &edo)) {
     d_haveednssection=true;
@@ -626,6 +647,9 @@ try
         d_haveednscookie = true;
         d_eco.makeFromString(option.second);
         d_ednscookievalid = d_eco.isValid(s_EDNSCookieKey, d_remote);
+      }
+      else if (option.first == EDNSOptionCode::PADDING) {
+        d_ednspadding = true;
       }
       else {
         // cerr<<"Have an option #"<<iter->first<<": "<<makeHexDump(iter->second)<<endl;
