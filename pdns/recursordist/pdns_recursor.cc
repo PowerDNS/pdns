@@ -1623,7 +1623,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
 
       if (currentSize < (maxSize - 4)) {
         size_t remaining = maxSize - (currentSize + 4);
-        /* from rfc8647, "4.1.  Recommended Strategy: Block-Length Padding":
+        /* from rfc8467, "4.1.  Recommended Strategy: Block-Length Padding":
            If a server receives a query that includes the EDNS(0) "Padding"
            option, it MUST pad the corresponding response (see Section 4 of
            RFC 7830) and SHOULD pad the corresponding response to a

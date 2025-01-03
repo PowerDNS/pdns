@@ -373,7 +373,7 @@ static void addPadding(const DNSPacketWriter& pw, size_t bufsize, DNSPacketWrite
   const size_t currentSize = pw.getSizeWithOpts(opts);
   if (currentSize < (bufsize - 4)) {
     const size_t remaining = bufsize - (currentSize + 4);
-    /* from rfc8647, "4.1.  Recommended Strategy: Block-Length Padding":
+    /* from rfc8467, "4.1.  Recommended Strategy: Block-Length Padding":
        Clients SHOULD pad queries to the closest multiple of 128 octets.
        Note we are in the client role here.
     */
