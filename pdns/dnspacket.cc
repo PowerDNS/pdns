@@ -391,13 +391,12 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
 
       if (d_ednspadding) {
         size_t remaining = d_tcp ? 65535 : getMaxReplyLen();
-        const size_t blockSize = 468; // RFC8467 4.1
         // Note that optsize already contains the size of the EDNS0 padding
         // option header.
-        size_t modulo = (pw.size() + optsize) % blockSize;
+        size_t modulo = (pw.size() + optsize) % rfc8467::serverPaddingBlockSize;
         size_t padSize = 0;
         if (modulo > 0) {
-          padSize = std::min(blockSize - modulo, remaining);
+          padSize = std::min(rfc8467::serverPaddingBlockSize - modulo, remaining);
         }
         opts.emplace_back(EDNSOptionCode::PADDING, makeEDNSPaddingOptString(padSize));
       }
