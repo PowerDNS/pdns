@@ -611,7 +611,7 @@ Without `auto`, code might still compile but trigger a copy or worse.
 ## Explicit Comparisons
 
 * Compare numerical values with `== 0` or `!= 0` explicitly ;
-* Compare to `nullptr` for the same reason.
+* Compare to `nullptr`, which is easier to read.
 
 ## Initialization
 
