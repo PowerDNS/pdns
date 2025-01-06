@@ -140,9 +140,12 @@ jobs:
       matrix:
         sanitizers: [ubsan+asan, tsan]
         features: [least, full]
+        builder: [autotools, meson]
         exclude:
           - sanitizers: tsan
             features: least
+          - builder: meson
+            sanitizers: tsan
     container:
       image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
@@ -171,23 +174,22 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.ccache
-          key: recursor-${{ matrix.features }}-${{ matrix.sanitizers }}-ccache-${{ steps.get-stamp.outputs.stamp }}
-          restore-keys: recursor-${{ matrix.features }}-${{ matrix.sanitizers }}-ccache-
+          key: recursor-ccache-${{ matrix.builder }}-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ steps.get-stamp.outputs.stamp }}
+          restore-keys: recursor-ccache-${{ matrix.builder }}-${{ matrix.features }}-${{ matrix.sanitizers }}
+      - run: inv install-rec-build-deps ${{ matrix.builder == 'meson' && '--meson' || '' }}
+        working-directory: ./pdns/recursordist/
       - run: inv ci-install-rust ${{ env.REPO_HOME }}
         working-directory: ./pdns/recursordist/
-      - run: inv ci-autoconf
+      - run: inv ci-autoconf ${{ matrix.builder == 'meson' && '--meson' || '' }}
         working-directory: ./pdns/recursordist/
-      - run: inv ci-rec-configure ${{ matrix.features }}
+      - run: inv ci-rec-configure -f ${{ matrix.features }} -b pdns-recursor-${{ env.BUILDER_VERSION }} ${{ matrix.builder == 'meson' && '--meson' || '' }}
         working-directory: ./pdns/recursordist/
-      - run: inv ci-make-distdir
-        working-directory: ./pdns/recursordist/
-      - run: inv ci-rec-configure ${{ matrix.features }}
-      - run: inv ci-rec-make-bear
-      - run: inv ci-rec-run-unit-tests
+      - run: inv ci-rec-build ${{ matrix.builder == 'meson' && '--meson' || '' }}
+      - run: inv ci-rec-run-unit-tests ${{ matrix.builder == 'meson' && '--meson' || '' }}
       - run: inv generate-coverage-info ./testrunner $GITHUB_WORKSPACE
-        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' && matrix.builder != 'meson' }}
       - name: Coveralls Parallel rec unit
-        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' && matrix.builder != 'meson' }}
         uses: coverallsapp/github-action@v2
         with:
           flag-name: rec-unit-${{ matrix.features }}-${{ matrix.sanitizers }}
@@ -195,10 +197,12 @@ jobs:
           parallel: true
           allow-empty: true
           fail-on-error: false
-      - run: inv ci-make-install
+      - run: inv ci-rec-install ${{ matrix.builder == 'meson' && '--meson' || '' }}
       - run: ccache -s
-      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
-      - name: Store the binaries
+      - if: ${{ matrix.builder != 'meson' }}
+        run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
+      - if: ${{ matrix.builder != 'meson' }}
+        name: Store the binaries
         uses: actions/upload-artifact@v4 # this takes 30 seconds, maybe we want to tar
         with:
           name: pdns-recursor-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
