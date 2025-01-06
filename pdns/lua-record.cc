@@ -918,7 +918,7 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
   lua.writeFunction("createForward", []() {
       static string allZerosIP{"0.0.0.0"};
       DNSName record_name{s_lua_record_ctx->zone_record.d_name};
-      if (record_name.isWildcard() == false) {
+      if (!record_name.isWildcard()) {
         return allZerosIP;
       }
       record_name.chopOff();
@@ -981,7 +981,7 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
   lua.writeFunction("createForward6", []() {
       static string allZerosIP{"::"};
       DNSName record_name{s_lua_record_ctx->zone_record.d_name};
-      if (record_name.isWildcard() == false) {
+      if (!record_name.isWildcard()) {
         return allZerosIP;
       }
       record_name.chopOff();
