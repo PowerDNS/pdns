@@ -551,7 +551,7 @@ def ci_auth_configure(c, build_dir=None, meson=False):
                 ci_auth_configure_autotools(c)
 
 def ci_rec_configure_meson(c, features, build_dir):
-    # XXX feautures
+    # XXX features
     unittests = get_unit_tests(meson=True, auth=False)
     if features == "full":
         configure_cmd = " ".join([
