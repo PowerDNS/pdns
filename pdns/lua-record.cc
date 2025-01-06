@@ -654,9 +654,8 @@ typedef struct AuthLuaRecordContext
 {
   ComboAddress          bestwho;
   DNSName               qname;
-  DNSRecord             zone_record;
+  DNSZoneRecord         zone_record;
   DNSName               zone;
-  int                   zoneid;
 } lua_record_ctx_t;
 
 static thread_local unique_ptr<lua_record_ctx_t> s_lua_record_ctx;
@@ -766,7 +765,7 @@ static std::vector<std::shared_ptr<EntryHashesHolder>> getCHashedEntries(const i
 
 static std::string pickConsistentWeightedHashed(const ComboAddress& bestwho, const std::vector<std::pair<int, std::string>>& items)
 {
-  const auto& zoneId = s_lua_record_ctx->zoneid;
+  const auto& zoneId = s_lua_record_ctx->zone_record.domain_id;
   const auto queryName = s_lua_record_ctx->qname.toString();
   unsigned int sel = std::numeric_limits<unsigned int>::max();
   unsigned int min = std::numeric_limits<unsigned int>::max();
@@ -917,7 +916,7 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
     });
   lua.writeFunction("createForward", []() {
       static string allZerosIP{"0.0.0.0"};
-      DNSName record_name{s_lua_record_ctx->zone_record.d_name};
+      DNSName record_name{s_lua_record_ctx->zone_record.dr.d_name};
       if (!record_name.isWildcard()) {
         return allZerosIP;
       }
@@ -980,7 +979,7 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
 
   lua.writeFunction("createForward6", []() {
       static string allZerosIP{"::"};
-      DNSName record_name{s_lua_record_ctx->zone_record.d_name};
+      DNSName record_name{s_lua_record_ctx->zone_record.dr.d_name};
       if (!record_name.isWildcard()) {
         return allZerosIP;
       }
@@ -1397,7 +1396,7 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
         return;
       }
       try {
-        vector<DNSZoneRecord> drs = lookup(rec, QType::LUA, s_lua_record_ctx->zoneid);
+        vector<DNSZoneRecord> drs = lookup(rec, QType::LUA, s_lua_record_ctx->zone_record.domain_id);
         for(const auto& dr : drs) {
           auto lr = getRR<LUARecordContent>(dr.dr);
           lua.executeCode(lr->getCode());
@@ -1409,7 +1408,7 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
     });
 }
 
-std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, const DNSName& query, const DNSRecord& zone_record, const DNSName& zone, int zoneid, const DNSPacket& dnsp, uint16_t qtype, unique_ptr<AuthLua4>& LUA)
+std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, const DNSName& query, const DNSZoneRecord& zone_record, const DNSName& zone, const DNSPacket& dnsp, uint16_t qtype, unique_ptr<AuthLua4>& LUA)
 {
   if(!LUA ||                  // we don't have a Lua state yet
      !g_LuaRecordSharedState) { // or we want a new one even if we had one
@@ -1425,11 +1424,10 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
   s_lua_record_ctx->qname = query;
   s_lua_record_ctx->zone_record = zone_record;
   s_lua_record_ctx->zone = zone;
-  s_lua_record_ctx->zoneid = zoneid;
 
   lua.writeVariable("qname", query);
   lua.writeVariable("zone", zone);
-  lua.writeVariable("zoneid", zoneid);
+  lua.writeVariable("zoneid", zone_record.domain_id);
   lua.writeVariable("who", dnsp.getInnerRemote());
   lua.writeVariable("localwho", dnsp.getLocal());
   lua.writeVariable("dh", (dnsheader*)&dnsp.d);
