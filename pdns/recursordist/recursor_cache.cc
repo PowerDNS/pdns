@@ -76,6 +76,9 @@ uint16_t MemRecursorCache::s_maxServedStaleExtensions;
 uint16_t MemRecursorCache::s_maxRRSetSize = 256;
 bool MemRecursorCache::s_limitQTypeAny = true;
 
+const MemRecursorCache::AuthRecs MemRecursorCache::s_emptyAuthRecs = std::make_shared<MemRecursorCache::AuthRecsVec>();
+const MemRecursorCache::SigRecs MemRecursorCache::s_emptySigRecs = std::make_shared<MemRecursorCache::SigRecsVec>();
+
 void MemRecursorCache::resetStaticsForTests()
 {
   s_maxServedStaleExtensions = 0;
@@ -172,7 +175,7 @@ static void ptrAssign(T* ptr, const T& value)
   }
 }
 
-time_t MemRecursorCache::handleHit(time_t now, MapCombo::LockedContent& content, MemRecursorCache::OrderedTagIterator_t& entry, const DNSName& qname, uint32_t& origTTL, vector<DNSRecord>* res, vector<std::shared_ptr<const RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, boost::optional<vState>& state, bool* wasAuth, DNSName* fromAuthZone, ComboAddress* fromAuthIP)
+time_t MemRecursorCache::handleHit(time_t now, MapCombo::LockedContent& content, OrderedTagIterator_t& entry, const DNSName& qname, uint32_t& origTTL, vector<DNSRecord>* res, SigRecs* signatures, AuthRecs* authorityRecs, bool* variable, boost::optional<vState>& state, bool* wasAuth, DNSName* fromAuthZone, ComboAddress* fromAuthIP)
 {
   // MUTEX SHOULD BE ACQUIRED (as indicated by the reference to the content which is protected by a lock)
   if (entry->d_tooBig) {
@@ -211,11 +214,21 @@ time_t MemRecursorCache::handleHit(time_t now, MapCombo::LockedContent& content,
   }
 
   if (signatures != nullptr) {
-    signatures->insert(signatures->end(), entry->d_signatures.begin(), entry->d_signatures.end());
+    if (*signatures && !(*signatures)->empty() && entry->d_signatures && !entry->d_signatures->empty()) {
+      // Return a new vec if we need to append to a non-empty vector
+      SigRecsVec vec(**signatures);
+      vec.insert(vec.end(), entry->d_signatures->cbegin(), entry->d_signatures->cend());
+      *signatures = std::make_shared<SigRecsVec>(std::move(vec));
+    }
+    else {
+      *signatures = entry->d_signatures ? entry->d_signatures : s_emptySigRecs;
+    }
   }
 
   if (authorityRecs != nullptr) {
-    authorityRecs->insert(authorityRecs->end(), entry->d_authorityRecs.begin(), entry->d_authorityRecs.end());
+    // XXX Might need to be adapted like sigs to handle a non-empty incoming authorityRecs
+    assert(*authorityRecs == nullptr || (*authorityRecs)->empty());
+    *authorityRecs = entry->d_authorityRecs ? entry->d_authorityRecs : s_emptyAuthRecs;
   }
 
   updateDNSSECValidationStateFromCache(state, entry->d_state);
@@ -382,7 +395,7 @@ time_t MemRecursorCache::fakeTTD(MemRecursorCache::OrderedTagIterator_t& entry, 
 }
 
 // returns -1 for no hits
-time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qtype, Flags flags, vector<DNSRecord>* res, const ComboAddress& who, const OptTag& routingTag, vector<std::shared_ptr<const RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, vState* state, bool* wasAuth, DNSName* fromAuthZone, ComboAddress* fromAuthIP) // NOLINT(readability-function-cognitive-complexity)
+time_t MemRecursorCache::get(time_t now, const DNSName& qname, const QType qtype, Flags flags, vector<DNSRecord>* res, const ComboAddress& who, const OptTag& routingTag, SigRecs* signatures, AuthRecs* authorityRecs, bool* variable, vState* state, bool* wasAuth, DNSName* fromAuthZone, ComboAddress* fromAuthIP) // NOLINT(readability-function-cognitive-complexity)
 {
   bool requireAuth = (flags & RequireAuth) != 0;
   bool refresh = (flags & Refresh) != 0;
@@ -585,7 +598,7 @@ bool MemRecursorCache::replace(CacheEntry&& entry)
   return false;
 }
 
-void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qtype, const vector<DNSRecord>& content, const vector<shared_ptr<const RRSIGRecordContent>>& signatures, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs, bool auth, const DNSName& authZone, boost::optional<Netmask> ednsmask, const OptTag& routingTag, vState state, boost::optional<ComboAddress> from, bool refresh, time_t ttl_time)
+void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qtype, const vector<DNSRecord>& content, const SigRecsVec& signatures, const AuthRecsVec& authorityRecs, bool auth, const DNSName& authZone, boost::optional<Netmask> ednsmask, const OptTag& routingTag, vState state, boost::optional<ComboAddress> from, bool refresh, time_t ttl_time)
 {
   auto& shard = getMap(qname);
   auto lockedShard = shard.lock();
@@ -645,8 +658,18 @@ void MemRecursorCache::replace(time_t now, const DNSName& qname, const QType qty
     cacheEntry.d_auth = true;
   }
 
-  cacheEntry.d_signatures = signatures;
-  cacheEntry.d_authorityRecs = authorityRecs;
+  if (!signatures.empty()) {
+    cacheEntry.d_signatures = std::make_shared<const SigRecsVec>(signatures);
+  }
+  else {
+    cacheEntry.d_signatures = nullptr;
+  }
+  if (!authorityRecs.empty()) {
+    cacheEntry.d_authorityRecs = std::make_shared<const AuthRecsVec>(authorityRecs);
+  }
+  else {
+    cacheEntry.d_authorityRecs = nullptr;
+  }
   cacheEntry.d_records.clear();
   cacheEntry.d_authZone = authZone;
   if (from) {
@@ -874,13 +897,15 @@ uint64_t MemRecursorCache::doDump(int fileDesc, size_t maxCacheEntries)
           fprintf(filePtr.get(), "; error printing '%s'\n", recordSet.d_qname.empty() ? "EMPTY" : recordSet.d_qname.toString().c_str());
         }
       }
-      for (const auto& sig : recordSet.d_signatures) {
-        count++;
-        try {
-          fprintf(filePtr.get(), "%s %" PRIu32 " %" PRId64 " IN RRSIG %s ; %s\n", recordSet.d_qname.toString().c_str(), recordSet.d_orig_ttl, static_cast<int64_t>(recordSet.d_ttd - now), sig->getZoneRepresentation().c_str(), recordSet.d_netmask.empty() ? "" : recordSet.d_netmask.toString().c_str());
-        }
-        catch (...) {
-          fprintf(filePtr.get(), "; error printing '%s'\n", recordSet.d_qname.empty() ? "EMPTY" : recordSet.d_qname.toString().c_str());
+      if (recordSet.d_signatures) {
+        for (const auto& sig : *recordSet.d_signatures) {
+          count++;
+          try {
+            fprintf(filePtr.get(), "%s %" PRIu32 " %" PRId64 " IN RRSIG %s ; %s\n", recordSet.d_qname.toString().c_str(), recordSet.d_orig_ttl, static_cast<int64_t>(recordSet.d_ttd - now), sig->getZoneRepresentation().c_str(), recordSet.d_netmask.empty() ? "" : recordSet.d_netmask.toString().c_str());
+          }
+          catch (...) {
+            fprintf(filePtr.get(), "; error printing '%s'\n", recordSet.d_qname.empty() ? "EMPTY" : recordSet.d_qname.toString().c_str());
+          }
         }
       }
     }
@@ -1016,18 +1041,22 @@ void MemRecursorCache::getRecordSet(T& message, U recordSet)
   for (const auto& record : recordSet->d_records) {
     message.add_bytes(PBCacheEntry::repeated_bytes_record, record->serialize(recordSet->d_qname, true));
   }
-  for (const auto& record : recordSet->d_signatures) {
-    message.add_bytes(PBCacheEntry::repeated_bytes_sig, record->serialize(recordSet->d_qname, true));
+  if (recordSet->d_signatures) {
+    for (const auto& record : *recordSet->d_signatures) {
+      message.add_bytes(PBCacheEntry::repeated_bytes_sig, record->serialize(recordSet->d_qname, true));
+    }
   }
-  for (const auto& authRec : recordSet->d_authorityRecs) {
-    protozero::pbf_builder<PBAuthRecord> auth(message, PBCacheEntry::repeated_message_authRecord);
-    auth.add_bytes(PBAuthRecord::required_bytes_name, authRec->d_name.toString());
-    auth.add_bytes(PBAuthRecord::required_bytes_rdata, authRec->getContent()->serialize(authRec->d_name, true));
-    auth.add_uint32(PBAuthRecord::required_uint32_type, authRec->d_type);
-    auth.add_uint32(PBAuthRecord::required_uint32_class, authRec->d_class);
-    auth.add_uint32(PBAuthRecord::required_uint32_ttl, authRec->d_ttl);
-    auth.add_uint32(PBAuthRecord::required_uint32_place, authRec->d_place);
-    auth.add_uint32(PBAuthRecord::required_uint32_clen, authRec->d_clen);
+  if (recordSet->d_authorityRecs) {
+    for (const auto& authRec : *recordSet->d_authorityRecs) {
+      protozero::pbf_builder<PBAuthRecord> auth(message, PBCacheEntry::repeated_message_authRecord);
+      auth.add_bytes(PBAuthRecord::required_bytes_name, authRec.d_name.toString());
+      auth.add_bytes(PBAuthRecord::required_bytes_rdata, authRec.getContent()->serialize(authRec.d_name, true));
+      auth.add_uint32(PBAuthRecord::required_uint32_type, authRec.d_type);
+      auth.add_uint32(PBAuthRecord::required_uint32_class, authRec.d_class);
+      auth.add_uint32(PBAuthRecord::required_uint32_ttl, authRec.d_ttl);
+      auth.add_uint32(PBAuthRecord::required_uint32_place, authRec.d_place);
+      auth.add_uint32(PBAuthRecord::required_uint32_clen, authRec.d_clen);
+    }
   }
   message.add_bytes(PBCacheEntry::required_bytes_authZone, recordSet->d_authZone.toString());
   encodeComboAddress(message, PBCacheEntry::required_message_from, recordSet->d_from);
@@ -1092,7 +1121,7 @@ size_t MemRecursorCache::getRecordSets(size_t perShard, size_t maxSize, std::str
   return count;
 }
 
-static void putAuthRecord(protozero::pbf_message<PBCacheEntry>& message, const DNSName& qname, std::vector<std::shared_ptr<DNSRecord>>& authRecs)
+static void putAuthRecord(protozero::pbf_message<PBCacheEntry>& message, const DNSName& qname, std::vector<DNSRecord>& authRecs)
 {
   protozero::pbf_message<PBAuthRecord> auth = message.get_message();
   DNSRecord authRecord;
@@ -1125,12 +1154,14 @@ static void putAuthRecord(protozero::pbf_message<PBCacheEntry>& message, const D
       break;
     }
   }
-  authRecs.emplace_back(std::make_shared<DNSRecord>(authRecord));
+  authRecs.emplace_back(authRecord);
 }
 
 template <typename T>
 bool MemRecursorCache::putRecordSet(T& message)
 {
+  AuthRecsVec authRecs;
+  SigRecsVec sigRecs;
   CacheEntry cacheEntry{{g_rootdnsname, QType::A, boost::none, Netmask()}, false};
   while (message.next()) {
     switch (message.tag()) {
@@ -1141,11 +1172,11 @@ bool MemRecursorCache::putRecordSet(T& message)
     }
     case PBCacheEntry::repeated_bytes_sig: {
       auto ptr = DNSRecordContent::deserialize(cacheEntry.d_qname, QType::RRSIG, message.get_bytes());
-      cacheEntry.d_signatures.emplace_back(std::dynamic_pointer_cast<RRSIGRecordContent>(ptr));
+      sigRecs.emplace_back(std::dynamic_pointer_cast<RRSIGRecordContent>(ptr));
       break;
     }
     case PBCacheEntry::repeated_message_authRecord:
-      putAuthRecord(message, cacheEntry.d_qname, cacheEntry.d_authorityRecs);
+      putAuthRecord(message, cacheEntry.d_qname, authRecs);
       break;
     case PBCacheEntry::required_bytes_name:
       cacheEntry.d_qname = DNSName(message.get_bytes());
@@ -1190,6 +1221,12 @@ bool MemRecursorCache::putRecordSet(T& message)
     default:
       break;
     }
+  }
+  if (!authRecs.empty()) {
+    cacheEntry.d_authorityRecs = std::make_shared<const AuthRecsVec>(std::move(authRecs));
+  }
+  if (!sigRecs.empty()) {
+    cacheEntry.d_signatures = std::make_shared<const SigRecsVec>(std::move(sigRecs));
   }
   return replace(std::move(cacheEntry));
 }

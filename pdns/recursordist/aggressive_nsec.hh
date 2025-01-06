@@ -38,6 +38,7 @@ using namespace ::boost::multi_index;
 #include "stat_t.hh"
 #include "logger.hh"
 #include "validate.hh"
+#include "recursor_cache.hh"
 
 class AggressiveNSECCache
 {
@@ -154,7 +155,7 @@ private:
   std::shared_ptr<LockGuarded<ZoneEntry>> getBestZone(const DNSName& zone);
   bool getNSECBefore(time_t now, std::shared_ptr<LockGuarded<ZoneEntry>>& zoneEntry, const DNSName& name, ZoneEntry::CacheEntry& entry);
   bool getNSEC3(time_t now, std::shared_ptr<LockGuarded<ZoneEntry>>& zoneEntry, const DNSName& name, ZoneEntry::CacheEntry& entry);
-  bool getNSEC3Denial(time_t now, std::shared_ptr<LockGuarded<ZoneEntry>>& zoneEntry, std::vector<DNSRecord>& soaSet, std::vector<std::shared_ptr<const RRSIGRecordContent>>& soaSignatures, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, bool doDNSSEC, const OptLog&, pdns::validation::ValidationContext& validationContext);
+  bool getNSEC3Denial(time_t now, std::shared_ptr<LockGuarded<ZoneEntry>>& zoneEntry, std::vector<DNSRecord>& soaSet, const MemRecursorCache::SigRecs& soaSignatures, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, bool doDNSSEC, const OptLog&, pdns::validation::ValidationContext& validationContext);
   bool synthesizeFromNSEC3Wildcard(time_t now, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, bool doDNSSEC, ZoneEntry::CacheEntry& nextCloser, const DNSName& wildcardName, const OptLog&);
   bool synthesizeFromNSECWildcard(time_t now, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, bool doDNSSEC, ZoneEntry::CacheEntry& nsec, const DNSName& wildcardName, const OptLog&);
 

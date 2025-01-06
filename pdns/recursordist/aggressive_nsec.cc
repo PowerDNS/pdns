@@ -441,7 +441,7 @@ bool AggressiveNSECCache::getNSEC3(time_t now, std::shared_ptr<LockGuarded<Aggre
   return false;
 }
 
-static void addToRRSet(const time_t now, std::vector<DNSRecord>& recordSet, std::vector<std::shared_ptr<const RRSIGRecordContent>> signatures, const DNSName& owner, bool doDNSSEC, std::vector<DNSRecord>& ret, DNSResourceRecord::Place place = DNSResourceRecord::AUTHORITY)
+static void addToRRSet(const time_t now, std::vector<DNSRecord>& recordSet, const MemRecursorCache::SigRecs& signatures, const DNSName& owner, bool doDNSSEC, std::vector<DNSRecord>& ret, DNSResourceRecord::Place place = DNSResourceRecord::AUTHORITY)
 {
   uint32_t ttl = 0;
 
@@ -458,12 +458,12 @@ static void addToRRSet(const time_t now, std::vector<DNSRecord>& recordSet, std:
   }
 
   if (doDNSSEC) {
-    for (auto& signature : signatures) {
+    for (const auto& signature : *signatures) {
       DNSRecord dr;
       dr.d_type = QType::RRSIG;
       dr.d_name = owner;
       dr.d_ttl = ttl;
-      dr.setContent(std::move(signature));
+      dr.setContent(signature);
       dr.d_place = place;
       dr.d_class = QClass::IN;
       ret.push_back(std::move(dr));
@@ -501,7 +501,7 @@ bool AggressiveNSECCache::synthesizeFromNSEC3Wildcard(time_t now, const DNSName&
   vState cachedState;
 
   std::vector<DNSRecord> wcSet;
-  std::vector<std::shared_ptr<const RRSIGRecordContent>> wcSignatures;
+  MemRecursorCache::SigRecs wcSignatures;
 
   if (g_recCache->get(now, wildcardName, type, MemRecursorCache::RequireAuth, &wcSet, ComboAddress("127.0.0.1"), boost::none, doDNSSEC ? &wcSignatures : nullptr, nullptr, nullptr, &cachedState) <= 0 || cachedState != vState::Secure) {
     VLOG(log, name << ": Unfortunately we don't have a valid entry for " << wildcardName << ", so we cannot synthesize from that wildcard" << endl);
@@ -525,14 +525,14 @@ bool AggressiveNSECCache::synthesizeFromNSECWildcard(time_t now, const DNSName& 
   vState cachedState;
 
   std::vector<DNSRecord> wcSet;
-  std::vector<std::shared_ptr<const RRSIGRecordContent>> wcSignatures;
+  MemRecursorCache::SigRecs wcSignatures;
 
   if (g_recCache->get(now, wildcardName, type, MemRecursorCache::RequireAuth, &wcSet, ComboAddress("127.0.0.1"), boost::none, doDNSSEC ? &wcSignatures : nullptr, nullptr, nullptr, &cachedState) <= 0 || cachedState != vState::Secure) {
     VLOG(log, name << ": Unfortunately we don't have a valid entry for " << wildcardName << ", so we cannot synthesize from that wildcard" << endl);
     return false;
   }
 
-  addToRRSet(now, wcSet, std::move(wcSignatures), name, doDNSSEC, ret, DNSResourceRecord::ANSWER);
+  addToRRSet(now, wcSet, wcSignatures, name, doDNSSEC, ret, DNSResourceRecord::ANSWER);
   // coverity[store_truncates_time_t]
   addRecordToRRSet(nsec.d_owner, QType::NSEC, nsec.d_ttd - now, nsec.d_record, nsec.d_signatures, doDNSSEC, ret);
 
@@ -542,7 +542,7 @@ bool AggressiveNSECCache::synthesizeFromNSECWildcard(time_t now, const DNSName& 
   return true;
 }
 
-bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<LockGuarded<AggressiveNSECCache::ZoneEntry>>& zoneEntry, std::vector<DNSRecord>& soaSet, std::vector<std::shared_ptr<const RRSIGRecordContent>>& soaSignatures, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, bool doDNSSEC, const OptLog& log, pdns::validation::ValidationContext& validationContext)
+bool AggressiveNSECCache::getNSEC3Denial(time_t now, std::shared_ptr<LockGuarded<AggressiveNSECCache::ZoneEntry>>& zoneEntry, std::vector<DNSRecord>& soaSet, const MemRecursorCache::SigRecs& soaSignatures, const DNSName& name, const QType& type, std::vector<DNSRecord>& ret, int& res, bool doDNSSEC, const OptLog& log, pdns::validation::ValidationContext& validationContext)
 {
   DNSName zone;
   std::string salt;
@@ -812,7 +812,7 @@ bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType
 
   vState cachedState;
   std::vector<DNSRecord> soaSet;
-  std::vector<std::shared_ptr<const RRSIGRecordContent>> soaSignatures;
+  MemRecursorCache::SigRecs soaSignatures;
   /* we might not actually need the SOA if we find a matching wildcard, but let's not bother for now */
   if (g_recCache->get(now, zone, QType::SOA, MemRecursorCache::RequireAuth, &soaSet, who, routingTag, doDNSSEC ? &soaSignatures : nullptr, nullptr, nullptr, &cachedState) <= 0 || cachedState != vState::Secure) {
     VLOG(log, name << ": No valid SOA found for " << zone << ", which is the best match for " << name << endl);
@@ -898,9 +898,9 @@ bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType
     return false;
   }
 
-  ret.reserve(ret.size() + soaSet.size() + soaSignatures.size() + /* NSEC */ 1 + entry.d_signatures.size() + (needWildcard ? (/* NSEC */ 1 + wcEntry.d_signatures.size()) : 0));
+  ret.reserve(ret.size() + soaSet.size() + soaSignatures->size() + /* NSEC */ 1 + entry.d_signatures.size() + (needWildcard ? (/* NSEC */ 1 + wcEntry.d_signatures.size()) : 0));
 
-  addToRRSet(now, soaSet, std::move(soaSignatures), zone, doDNSSEC, ret);
+  addToRRSet(now, soaSet, soaSignatures, zone, doDNSSEC, ret);
   // coverity[store_truncates_time_t]
   addRecordToRRSet(entry.d_owner, QType::NSEC, entry.d_ttd - now, entry.d_record, entry.d_signatures, doDNSSEC, ret);
 
