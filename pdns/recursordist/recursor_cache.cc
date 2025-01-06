@@ -218,10 +218,9 @@ time_t MemRecursorCache::handleHit(time_t now, MapCombo::LockedContent& content,
       // Return a new vec if we need to append to a non-empty vector
       SigRecsVec vec(**signatures);
       vec.insert(vec.end(), entry->d_signatures->cbegin(), entry->d_signatures->cend());
-      *signatures = std::make_shared<SigRecsVec>(vec);
+      *signatures = std::make_shared<SigRecsVec>(std::move(vec));
     }
     else {
-      assert(*signatures == nullptr || (*signatures)->empty());
       *signatures = entry->d_signatures ? entry->d_signatures : s_emptySigRecs;
     }
   }
@@ -1042,18 +1041,22 @@ void MemRecursorCache::getRecordSet(T& message, U recordSet)
   for (const auto& record : recordSet->d_records) {
     message.add_bytes(PBCacheEntry::repeated_bytes_record, record->serialize(recordSet->d_qname, true));
   }
-  for (const auto& record : *recordSet->d_signatures) {
-    message.add_bytes(PBCacheEntry::repeated_bytes_sig, record->serialize(recordSet->d_qname, true));
+  if (recordSet->d_signatures) {
+    for (const auto& record : *recordSet->d_signatures) {
+      message.add_bytes(PBCacheEntry::repeated_bytes_sig, record->serialize(recordSet->d_qname, true));
+    }
   }
-  for (const auto& authRec : *recordSet->d_authorityRecs) {
-    protozero::pbf_builder<PBAuthRecord> auth(message, PBCacheEntry::repeated_message_authRecord);
-    auth.add_bytes(PBAuthRecord::required_bytes_name, authRec.d_name.toString());
-    auth.add_bytes(PBAuthRecord::required_bytes_rdata, authRec.getContent()->serialize(authRec.d_name, true));
-    auth.add_uint32(PBAuthRecord::required_uint32_type, authRec.d_type);
-    auth.add_uint32(PBAuthRecord::required_uint32_class, authRec.d_class);
-    auth.add_uint32(PBAuthRecord::required_uint32_ttl, authRec.d_ttl);
-    auth.add_uint32(PBAuthRecord::required_uint32_place, authRec.d_place);
-    auth.add_uint32(PBAuthRecord::required_uint32_clen, authRec.d_clen);
+  if (recordSet->d_authorityRecs) {
+    for (const auto& authRec : *recordSet->d_authorityRecs) {
+      protozero::pbf_builder<PBAuthRecord> auth(message, PBCacheEntry::repeated_message_authRecord);
+      auth.add_bytes(PBAuthRecord::required_bytes_name, authRec.d_name.toString());
+      auth.add_bytes(PBAuthRecord::required_bytes_rdata, authRec.getContent()->serialize(authRec.d_name, true));
+      auth.add_uint32(PBAuthRecord::required_uint32_type, authRec.d_type);
+      auth.add_uint32(PBAuthRecord::required_uint32_class, authRec.d_class);
+      auth.add_uint32(PBAuthRecord::required_uint32_ttl, authRec.d_ttl);
+      auth.add_uint32(PBAuthRecord::required_uint32_place, authRec.d_place);
+      auth.add_uint32(PBAuthRecord::required_uint32_clen, authRec.d_clen);
+    }
   }
   message.add_bytes(PBCacheEntry::required_bytes_authZone, recordSet->d_authZone.toString());
   encodeComboAddress(message, PBCacheEntry::required_message_from, recordSet->d_from);
@@ -1168,17 +1171,11 @@ bool MemRecursorCache::putRecordSet(T& message)
       break;
     }
     case PBCacheEntry::repeated_bytes_sig: {
-      if (!cacheEntry.d_signatures) {
-        cacheEntry.d_signatures = std::make_shared<SigRecsVec>();
-      }
       auto ptr = DNSRecordContent::deserialize(cacheEntry.d_qname, QType::RRSIG, message.get_bytes());
       sigRecs.emplace_back(std::dynamic_pointer_cast<RRSIGRecordContent>(ptr));
       break;
     }
     case PBCacheEntry::repeated_message_authRecord:
-      if (!cacheEntry.d_authorityRecs) {
-        cacheEntry.d_authorityRecs = std::make_shared<AuthRecsVec>();
-      }
       putAuthRecord(message, cacheEntry.d_qname, authRecs);
       break;
     case PBCacheEntry::required_bytes_name:
@@ -1226,10 +1223,10 @@ bool MemRecursorCache::putRecordSet(T& message)
     }
   }
   if (!authRecs.empty()) {
-    cacheEntry.d_authorityRecs = std::make_shared<const AuthRecsVec>(authRecs);
+    cacheEntry.d_authorityRecs = std::make_shared<const AuthRecsVec>(std::move(authRecs));
   }
   if (!sigRecs.empty()) {
-    cacheEntry.d_signatures = std::make_shared<const SigRecsVec>(sigRecs);
+    cacheEntry.d_signatures = std::make_shared<const SigRecsVec>(std::move(sigRecs));
   }
   return replace(std::move(cacheEntry));
 }

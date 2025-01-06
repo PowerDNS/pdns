@@ -83,8 +83,8 @@ public:
   // pointer gets copied, while earlier code would copy all shared pointer in the vector.
   //
   // In the current SyncRes code, AuthRecs never get appended to a non-empty vector while SigRecs do
-  // get appended in some cases; the handleHit() code will take measures. In the futrue we might
-  // want a more specialized datastructure than a vector, it would require another level of
+  // get appended in some cases; the handleHit() code will take measures. In the future we might
+  // want a more specialized data structure than a vector, it would require another level of
   // indirection though, so for now we construct a new shared vector if appending is needed. See
   // handleHit() for details.
   using AuthRecsVec = std::vector<DNSRecord>;
