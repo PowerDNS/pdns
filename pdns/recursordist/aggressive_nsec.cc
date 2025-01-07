@@ -501,7 +501,7 @@ bool AggressiveNSECCache::synthesizeFromNSEC3Wildcard(time_t now, const DNSName&
   vState cachedState;
 
   std::vector<DNSRecord> wcSet;
-  MemRecursorCache::SigRecs wcSignatures;
+  MemRecursorCache::SigRecs wcSignatures = MemRecursorCache::s_emptySigRecs;
 
   if (g_recCache->get(now, wildcardName, type, MemRecursorCache::RequireAuth, &wcSet, ComboAddress("127.0.0.1"), boost::none, doDNSSEC ? &wcSignatures : nullptr, nullptr, nullptr, &cachedState) <= 0 || cachedState != vState::Secure) {
     VLOG(log, name << ": Unfortunately we don't have a valid entry for " << wildcardName << ", so we cannot synthesize from that wildcard" << endl);
@@ -525,7 +525,7 @@ bool AggressiveNSECCache::synthesizeFromNSECWildcard(time_t now, const DNSName& 
   vState cachedState;
 
   std::vector<DNSRecord> wcSet;
-  MemRecursorCache::SigRecs wcSignatures;
+  MemRecursorCache::SigRecs wcSignatures = MemRecursorCache::s_emptySigRecs;
 
   if (g_recCache->get(now, wildcardName, type, MemRecursorCache::RequireAuth, &wcSet, ComboAddress("127.0.0.1"), boost::none, doDNSSEC ? &wcSignatures : nullptr, nullptr, nullptr, &cachedState) <= 0 || cachedState != vState::Secure) {
     VLOG(log, name << ": Unfortunately we don't have a valid entry for " << wildcardName << ", so we cannot synthesize from that wildcard" << endl);
@@ -812,7 +812,7 @@ bool AggressiveNSECCache::getDenial(time_t now, const DNSName& name, const QType
 
   vState cachedState;
   std::vector<DNSRecord> soaSet;
-  MemRecursorCache::SigRecs soaSignatures;
+  MemRecursorCache::SigRecs soaSignatures = MemRecursorCache::s_emptySigRecs;
   /* we might not actually need the SOA if we find a matching wildcard, but let's not bother for now */
   if (g_recCache->get(now, zone, QType::SOA, MemRecursorCache::RequireAuth, &soaSet, who, routingTag, doDNSSEC ? &soaSignatures : nullptr, nullptr, nullptr, &cachedState) <= 0 || cachedState != vState::Secure) {
     VLOG(log, name << ": No valid SOA found for " << zone << ", which is the best match for " << name << endl);
