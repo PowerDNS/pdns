@@ -143,7 +143,7 @@ void pdns::orderAndShuffle(vector<DNSRecord>& rrs, bool includingAdditionals)
 
 unsigned int pdns::dedupRecords(vector<DNSRecord>& rrs)
 {
-  // This function tries to avoid unneccesary work
+  // This function tries to avoid unnecessary work
   // First a vector with zero or one element does not need dedupping
   if (rrs.size() <= 1) {
     return 0;
@@ -174,7 +174,7 @@ unsigned int pdns::dedupRecords(vector<DNSRecord>& rrs)
   }
 
   // We avoid calling erase, as it calls a lot of move constructors. This can hurt, especially if
-  // you call it on a large vector muliple times.
+  // you call it on a large vector multiple times.
   // So we just take the elements that are unique
   std::vector<DNSRecord> ret;
   ret.reserve(rrs.size() - numDups);

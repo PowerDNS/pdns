@@ -1513,6 +1513,9 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
 
       if (!ret.empty()) {
 #ifdef notyet
+        // As dedupping is relatively expensive do not dedup in general. We do have a few cases
+        // where we call dedup explicitly, e.g. when doing NAT64 or when adding NSEC records in
+        // doCNAMECacheCheck
         pdns::dedupRecords(ret);
 #endif
         pdns::orderAndShuffle(ret, false);

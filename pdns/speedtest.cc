@@ -1186,18 +1186,7 @@ struct DedupRecordsTest
 {
   explicit DedupRecordsTest(size_t howmany, bool dedup, bool withdup = false) : d_howmany(howmany), d_dedup(dedup), d_withdup(withdup)
   {
-  }
-
-  [[nodiscard]] string getName() const
-  {
-    return std::to_string(d_howmany) + " DedupRecords" + std::string(d_dedup ? "" : " (generate only)") +
-      std::string(d_withdup ? " (with dup)" : "");
-  }
-
-  void operator()() const
-  {
-    std::vector<DNSRecord> vec;
-    vec.reserve(d_howmany);
+    d_vec.reserve(d_howmany);
     std::string name("some.name.in.some.domain");
     auto count = d_howmany;
     if (d_withdup) {
@@ -1207,17 +1196,28 @@ struct DedupRecordsTest
       auto content = DNSRecordContent::make(QType::TXT, QClass::IN, "\"a text " + std::to_string(i) + "\"");
       DNSRecord rec(name, content, QType::TXT);
       if (i == 0 && d_withdup) {
-        vec.emplace_back(rec);
+        d_vec.emplace_back(rec);
       }
-      vec.emplace_back(std::move(rec));
+      d_vec.emplace_back(std::move(rec));
     }
+  }
 
+  [[nodiscard]] string getName() const
+  {
+    return std::to_string(d_howmany) + " DedupRecords" + std::string(d_dedup ? "" : " (setup only)") +
+      std::string(d_withdup ? " (with dup)" : "");
+  }
+
+  void operator()() const
+  {
+    auto vec{d_vec};
     if (d_dedup) {
       pdns::dedupRecords(vec);
     }
   }
 
 private:
+  vector<DNSRecord> d_vec;
   size_t d_howmany;
   bool d_dedup;
   bool d_withdup;

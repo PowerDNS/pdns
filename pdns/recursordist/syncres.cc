@@ -4448,6 +4448,7 @@ void SyncRes::sanitizeRecordsPass2(const std::string& prefix, LWResult& lwr, con
     lwr.d_records = std::move(vec);
   }
 #ifdef notyet
+  // As dedupping is relatively expensive and having dup records not really hurts as far as we have seen, do not dedup.
   if (auto count = pdns::dedupRecords(lwr.d_records); count > 0) {
     LOG(prefix << qname << ": Removed " << count << " duplicate records from response received from " << auth << endl);
   }
