@@ -115,6 +115,57 @@ static T checkedConversionFromStr(const std::string& context, const std::string&
   return checkedConversionFromStr<T>(context, parameterName, std::string(str));
 }
 
+template <class T>
+static bool getOptionalLuaFunction(T& destination, const ::rust::string& functionName)
+{
+  auto lua = g_lua.lock();
+  auto function = lua->readVariable<boost::optional<T>>(std::string(functionName));
+  if (!function) {
+    return false;
+  }
+  destination = *function;
+  return true;
+}
+
+static std::optional<std::string> loadContentFromConfigurationFile(const std::string& fileName)
+{
+  /* no check on the file size, don't do this with just any file! */
+  auto file = std::ifstream(fileName);
+  if (!file.is_open()) {
+    return std::nullopt;
+  }
+  return std::string(std::istreambuf_iterator<char>(file), {});
+}
+
+template <class FuncType>
+static bool getLuaFunctionFromConfiguration(FuncType& destination, const ::rust::string& functionName, const ::rust::string& functionCode, const ::rust::string& functionFile, const std::string& context)
+{
+  if (!functionName.empty()) {
+    return getOptionalLuaFunction<FuncType>(destination, functionName);
+  }
+  if (!functionCode.empty()) {
+    auto function = dnsdist::lua::getFunctionFromLuaCode<FuncType>(std::string(functionCode), context);
+    if (function) {
+      destination = *function;
+      return true;
+    }
+    throw std::runtime_error("Unable to load a Lua function from the content of lua directive in " + context + " context");
+  }
+  if (!functionFile.empty()) {
+    auto content = loadContentFromConfigurationFile(std::string(functionFile));
+    if (!content) {
+      throw std::runtime_error("Unable to load content of lua-file's '" + std::string(functionFile) + "' in " + context + " context");
+    }
+    auto function = dnsdist::lua::getFunctionFromLuaCode<FuncType>(*content, context);
+    if (function) {
+      destination = *function;
+      return true;
+    }
+    throw std::runtime_error("Unable to load a Lua function from the content of lua-file's '" + std::string(functionFile) + "' in " + context + " context");
+  }
+  return false;
+}
+
 static std::set<int> getCPUPiningFromStr(const std::string& context, const std::string& cpuStr)
 {
   std::set<int> cpus;
@@ -301,18 +352,6 @@ static bool handleTLSConfiguration(const dnsdist::rust::settings::BindConfigurat
   return true;
 }
 
-template <class T>
-static bool getOptionalLuaFunction(T& destination, const ::rust::string& functionName)
-{
-  auto lua = g_lua.lock();
-  auto function = lua->readVariable<boost::optional<T>>(std::string(functionName));
-  if (!function) {
-    return false;
-  }
-  destination = *function;
-  return true;
-}
-
 static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dnsdist::rust::settings::BackendConfiguration& config, bool configCheck)
 {
   DownstreamState::Config backendConfig;
@@ -359,7 +398,7 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dns
   backendConfig.maxCheckFailures = hcConf.max_failures;
   backendConfig.minRiseSuccesses = hcConf.rise;
 
-  getOptionalLuaFunction<DownstreamState::checkfunc_t>(backendConfig.checkFunction, hcConf.function);
+  getLuaFunctionFromConfiguration<DownstreamState::checkfunc_t>(backendConfig.checkFunction, hcConf.function, hcConf.lua, hcConf.lua_file, "backend health-check");
 
   auto availability = DownstreamState::getAvailabilityFromStr(std::string(hcConf.mode));
   if (availability) {
@@ -586,7 +625,7 @@ static void loadDynamicBlockConfiguration(const dnsdist::rust::settings::Dynamic
           ruleParams.d_tagSettings->d_value = std::string(rule.tag_value);
         }
         DynBlockRulesGroup::smtVisitor_t visitor;
-        getOptionalLuaFunction<DynBlockRulesGroup::smtVisitor_t>(visitor, rule.visitor_function);
+        getLuaFunctionFromConfiguration(visitor, rule.visitor_function_name, rule.visitor_function_code, rule.visitor_function_file, "dynamic block suffix match visitor function");
         dbrgObj->setSuffixMatchRule(std::move(ruleParams), std::move(visitor));
       }
       else if (rule.rule_type == "suffix-match-ffi") {
@@ -597,7 +636,7 @@ static void loadDynamicBlockConfiguration(const dnsdist::rust::settings::Dynamic
           ruleParams.d_tagSettings->d_value = std::string(rule.tag_value);
         }
         dnsdist_ffi_stat_node_visitor_t visitor;
-        getOptionalLuaFunction<dnsdist_ffi_stat_node_visitor_t>(visitor, rule.visitor_function);
+        getLuaFunctionFromConfiguration(visitor, rule.visitor_function_name, rule.visitor_function_code, rule.visitor_function_file, "dynamic block suffix match FFI visitor function");
         dbrgObj->setSuffixMatchRuleFFI(std::move(ruleParams), std::move(visitor));
       }
     }
@@ -747,7 +786,6 @@ static void loadWebServer(const dnsdist::rust::settings::WebserverConfiguration&
     config.d_apiReadWrite = webConfig.api_read_write;
   });
 }
-
 #endif /* defined(HAVE_YAML_CONFIGURATION) */
 
 bool loadConfigurationFromFile(const std::string& fileName, bool isClient, bool configCheck)
@@ -758,8 +796,8 @@ bool loadConfigurationFromFile(const std::string& fileName, bool isClient, bool 
   s_inConfigCheckMode.store(configCheck);
   s_inClientMode.store(isClient);
 
-  auto file = std::ifstream(fileName);
-  if (!file.is_open()) {
+  auto data = loadContentFromConfigurationFile(fileName);
+  if (!data) {
     errlog("Unable to open YAML file %s: %s", fileName, stringerror(errno));
     return false;
   }
@@ -770,9 +808,7 @@ bool loadConfigurationFromFile(const std::string& fileName, bool isClient, bool 
   }
 
   try {
-    auto data = std::string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
-
-    auto globalConfig = dnsdist::rust::settings::from_yaml_string(data);
+    auto globalConfig = dnsdist::rust::settings::from_yaml_string(*data);
 
     if (!globalConfig.console.listen_address.empty()) {
       const auto& consoleConf = globalConfig.console;
@@ -887,9 +923,7 @@ bool loadConfigurationFromFile(const std::string& fileName, bool isClient, bool 
     if (globalConfig.query_count.enabled) {
       dnsdist::configuration::updateRuntimeConfiguration([&globalConfig](dnsdist::configuration::RuntimeConfiguration& config) {
         config.d_queryCountConfig.d_enabled = true;
-        if (!globalConfig.query_count.filter.empty()) {
-          getOptionalLuaFunction<dnsdist::QueryCount::Configuration::Filter>(config.d_queryCountConfig.d_filter, globalConfig.query_count.filter);
-        }
+        getLuaFunctionFromConfiguration(config.d_queryCountConfig.d_filter, globalConfig.query_count.filter_function_name, globalConfig.query_count.filter_function_code, globalConfig.query_count.filter_function_file, "query count filter function");
       });
     }
 
@@ -939,14 +973,14 @@ bool loadConfigurationFromFile(const std::string& fileName, bool isClient, bool 
     for (const auto& policy : globalConfig.load_balancing_policies.custom_policies) {
       if (policy.ffi) {
         if (policy.per_thread) {
-          auto policyObj = std::make_shared<ServerPolicy>(std::string(policy.name), std::string(policy.function));
+          auto policyObj = std::make_shared<ServerPolicy>(std::string(policy.name), std::string(policy.function_code));
           registerType<ServerPolicy>(policyObj, policy.name);
         }
         else {
           ServerPolicy::ffipolicyfunc_t function;
 
-          if (!getOptionalLuaFunction<ServerPolicy::ffipolicyfunc_t>(function, policy.function)) {
-            throw std::runtime_error("Custom FFI load-balancing policy '" + std::string(policy.name) + "' is referring to a non-existent Lua function '" + std::string(policy.function) + "'");
+          if (!getLuaFunctionFromConfiguration(function, policy.function_name, policy.function_code, policy.function_file, "FFI load-balancing policy")) {
+            throw std::runtime_error("Custom FFI load-balancing policy '" + std::string(policy.name) + "' could not be created: no valid function name, Lua code or Lua file");
           }
           auto policyObj = std::make_shared<ServerPolicy>(std::string(policy.name), std::move(function));
           registerType<ServerPolicy>(policyObj, policy.name);
@@ -954,8 +988,8 @@ bool loadConfigurationFromFile(const std::string& fileName, bool isClient, bool 
       }
       else {
         ServerPolicy::policyfunc_t function;
-        if (!getOptionalLuaFunction<ServerPolicy::policyfunc_t>(function, policy.function)) {
-          throw std::runtime_error("Custom load-balancing policy '" + std::string(policy.name) + "' is referring to a non-existent Lua function '" + std::string(policy.function) + "'");
+        if (!getLuaFunctionFromConfiguration(function, policy.function_name, policy.function_code, policy.function_file, "load-balancing policy")) {
+          throw std::runtime_error("Custom load-balancing policy '" + std::string(policy.name) + "' could not be created: no valid function name, Lua code or Lua file");
         }
         auto policyObj = std::make_shared<ServerPolicy>(std::string(policy.name), std::move(function), true);
         registerType<ServerPolicy>(policyObj, policy.name);
@@ -1091,14 +1125,24 @@ static std::vector<::SVCRecordParameters> convertSVCRecordParameters(const ::rus
   return cppParameters;
 }
 
-template <class T>
-T convertLuaFunction(const ::rust::String& context, const ::rust::String& name)
+std::shared_ptr<DNSActionWrapper> getLuaAction(const LuaActionConfiguration& config)
 {
-  T function;
-  if (!dnsdist::configuration::yaml::getOptionalLuaFunction<T>(function, name)) {
-    throw std::runtime_error("Context '" + std::string(context) + "' is referring to a non-existent Lua function '" + std::string(name) + "'");
+  dnsdist::actions::LuaActionFunction function;
+  if (!dnsdist::configuration::yaml::getLuaFunctionFromConfiguration(function, config.function_name, config.function_code, config.function_file, "Lua action")) {
+    throw std::runtime_error("Lua action '" + std::string(config.name) + "' could not be created: no valid function name, Lua code or Lua file");
   }
-  return function;
+  auto action = dnsdist::actions::getLuaAction(std::move(function));
+  return newDNSActionWrapper(std::move(action), config.name);
+}
+
+std::shared_ptr<DNSActionWrapper> getLuaFFIAction(const LuaFFIActionConfiguration& config)
+{
+  dnsdist::actions::LuaActionFFIFunction function;
+  if (!dnsdist::configuration::yaml::getLuaFunctionFromConfiguration(function, config.function_name, config.function_code, config.function_file, "Lua action")) {
+    throw std::runtime_error("Lua FFI action '" + std::string(config.name) + "' could not be created: no valid function name, Lua code or Lua file");
+  }
+  auto action = dnsdist::actions::getLuaFFIAction(std::move(function));
+  return newDNSActionWrapper(std::move(action), config.name);
 }
 
 std::shared_ptr<DNSActionWrapper> getContinueAction(const ContinueActionConfiguration& config)
@@ -1157,6 +1201,26 @@ std::shared_ptr<DNSActionWrapper> getSpoofRawAction(const SpoofRawActionConfigur
   }
   auto action = dnsdist::actions::getSpoofAction(raws, qtypeForAny, convertResponseConfig(config.vars));
   return newDNSActionWrapper(std::move(action), config.name);
+}
+
+std::shared_ptr<DNSResponseActionWrapper> getLuaResponseAction(const LuaResponseActionConfiguration& config)
+{
+  dnsdist::actions::LuaResponseActionFunction function;
+  if (!dnsdist::configuration::yaml::getLuaFunctionFromConfiguration(function, config.function_name, config.function_code, config.function_file, "Lua action")) {
+    throw std::runtime_error("Lua response action '" + std::string(config.name) + "' could not be created: no valid function name, Lua code or Lua file");
+  }
+  auto action = dnsdist::actions::getLuaResponseAction(std::move(function));
+  return newDNSResponseActionWrapper(std::move(action), config.name);
+}
+
+std::shared_ptr<DNSResponseActionWrapper> getLuaFFIResponseAction(const LuaFFIResponseActionConfiguration& config)
+{
+  dnsdist::actions::LuaResponseActionFFIFunction function;
+  if (!dnsdist::configuration::yaml::getLuaFunctionFromConfiguration(function, config.function_name, config.function_code, config.function_file, "Lua action")) {
+    throw std::runtime_error("Lua FFI response action '" + std::string(config.name) + "' could not be created: no valid function name, Lua code or Lua file");
+  }
+  auto action = dnsdist::actions::getLuaFFIResponseAction(std::move(function));
+  return newDNSResponseActionWrapper(std::move(action), config.name);
 }
 
 std::shared_ptr<DNSResponseActionWrapper> getClearRecordTypesResponseAction(const ClearRecordTypesResponseActionConfiguration& config)
@@ -1297,7 +1361,7 @@ std::shared_ptr<DNSActionWrapper> getDnstapLogAction(const DnstapLogActionConfig
     throw std::runtime_error("Unable to find the dnstap logger named '" + std::string(config.logger_name) + "'");
   }
   dnsdist::actions::DnstapAlterFunction alterFunc;
-  dnsdist::configuration::yaml::getOptionalLuaFunction<dnsdist::actions::DnstapAlterFunction>(alterFunc, config.alter_function);
+  dnsdist::configuration::yaml::getLuaFunctionFromConfiguration(alterFunc, config.alter_function_name, config.alter_function_code, config.alter_function_file, "dnstap log action");
   auto action = dnsdist::actions::getDnstapLogAction(std::string(config.identity), logger, alterFunc);
   return newDNSActionWrapper(std::move(action), config.name);
 #endif
@@ -1313,7 +1377,7 @@ std::shared_ptr<DNSResponseActionWrapper> getDnstapLogResponseAction(const Dnsta
     throw std::runtime_error("Unable to find the dnstap logger named '" + std::string(config.logger_name) + "'");
   }
   dnsdist::actions::DnstapAlterResponseFunction alterFunc;
-  dnsdist::configuration::yaml::getOptionalLuaFunction<dnsdist::actions::DnstapAlterResponseFunction>(alterFunc, config.alter_function);
+  dnsdist::configuration::yaml::getLuaFunctionFromConfiguration(alterFunc, config.alter_function_name, config.alter_function_code, config.alter_function_file, "dnstap log response action");
   auto action = dnsdist::actions::getDnstapLogResponseAction(std::string(config.identity), logger, alterFunc);
   return newDNSResponseActionWrapper(std::move(action), config.name);
 #endif
@@ -1342,7 +1406,7 @@ std::shared_ptr<DNSActionWrapper> getRemoteLogAction(const RemoteLogActionConfig
     }
   }
   dnsdist::actions::ProtobufAlterFunction alterFunc;
-  if (dnsdist::configuration::yaml::getOptionalLuaFunction<dnsdist::actions::ProtobufAlterFunction>(alterFunc, config.alter_function)) {
+  if (dnsdist::configuration::yaml::getLuaFunctionFromConfiguration(alterFunc, config.alter_function_name, config.alter_function_code, config.alter_function_file, "remote log action")) {
     actionConfig.alterQueryFunc = std::move(alterFunc);
   }
   auto action = dnsdist::actions::getRemoteLogAction(actionConfig);
@@ -1377,7 +1441,7 @@ std::shared_ptr<DNSResponseActionWrapper> getRemoteLogResponseAction(const Remot
     actionConfig.exportExtendedErrorsToMeta = std::string(config.export_extended_errors_to_meta);
   }
   dnsdist::actions::ProtobufAlterResponseFunction alterFunc;
-  if (dnsdist::configuration::yaml::getOptionalLuaFunction<dnsdist::actions::ProtobufAlterResponseFunction>(alterFunc, config.alter_function)) {
+  if (dnsdist::configuration::yaml::getLuaFunctionFromConfiguration(alterFunc, config.alter_function_name, config.alter_function_code, config.alter_function_file, "remote log response action")) {
     actionConfig.alterResponseFunc = std::move(alterFunc);
   }
   auto action = dnsdist::actions::getRemoteLogResponseAction(actionConfig);
@@ -1469,6 +1533,26 @@ void registerKVSObjects(const KeyValueStoresConfiguration& config)
     dnsdist::configuration::yaml::registerType<KeyValueLookupKey>(lookup, key.name);
   }
 #endif /* defined(HAVE_LMDB) || defined(HAVE_CDB) */
+}
+
+std::shared_ptr<DNSSelector> getLuaSelector(const LuaSelectorConfiguration& config)
+{
+  dnsdist::selectors::LuaSelectorFunction function;
+  if (!dnsdist::configuration::yaml::getLuaFunctionFromConfiguration(function, config.function_name, config.function_code, config.function_file, "Lua selector")) {
+    throw std::runtime_error("Unable to create a Lua selector: no valid function name, Lua code or Lua file");
+  }
+  auto selector = dnsdist::selectors::getLuaSelector(function);
+  return newDNSSelector(std::move(selector), config.name);
+}
+
+std::shared_ptr<DNSSelector> getLuaFFISelector(const LuaFFISelectorConfiguration& config)
+{
+  dnsdist::selectors::LuaSelectorFFIFunction function;
+  if (!dnsdist::configuration::yaml::getLuaFunctionFromConfiguration(function, config.function_name, config.function_code, config.function_file, "Lua FFI selector")) {
+    throw std::runtime_error("Unable to create a Lua FFI selector: no valid function name, Lua code or Lua file");
+  }
+  auto selector = dnsdist::selectors::getLuaFFISelector(function);
+  return newDNSSelector(std::move(selector), config.name);
 }
 
 std::shared_ptr<DNSSelector> getAndSelector(const AndSelectorConfiguration& config)

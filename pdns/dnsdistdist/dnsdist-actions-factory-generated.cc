@@ -19,14 +19,6 @@ std::shared_ptr<DNSAction> getLogAction(const std::string& fileName, bool binary
 {
   return std::shared_ptr<DNSAction>(new LogAction(fileName, binary, append, buffered, verboseOnly, includeTimestamp));
 }
-std::shared_ptr<DNSAction> getLuaAction(dnsdist::actions::LuaActionFunction function)
-{
-  return std::shared_ptr<DNSAction>(new LuaAction(function));
-}
-std::shared_ptr<DNSAction> getLuaFFIAction(dnsdist::actions::LuaActionFFIFunction function)
-{
-  return std::shared_ptr<DNSAction>(new LuaFFIAction(function));
-}
 std::shared_ptr<DNSAction> getLuaFFIPerThreadAction(const std::string& code)
 {
   return std::shared_ptr<DNSAction>(new LuaFFIPerThreadAction(code));

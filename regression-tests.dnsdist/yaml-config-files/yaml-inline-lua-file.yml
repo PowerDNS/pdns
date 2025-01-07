@@ -1,0 +1,7 @@
+return function(dr)
+  local rd = dr.dh:getRD()
+  if not rd then
+    return true
+  end
+  return false
+end

@@ -191,6 +191,16 @@ std::shared_ptr<NotRule> getNotSelector(const std::shared_ptr<DNSRule>& rule)
   return std::make_shared<NotRule>(rule);
 }
 
+std::shared_ptr<LuaRule> getLuaSelector(const dnsdist::selectors::LuaSelectorFunction& func)
+{
+  return std::make_shared<LuaRule>(func);
+}
+
+std::shared_ptr<LuaFFIRule> getLuaFFISelector(const dnsdist::selectors::LuaSelectorFFIFunction& func)
+{
+  return std::make_shared<LuaFFIRule>(func);
+}
+
 // NOLINTNEXTLINE(bugprone-suspicious-include)
 #include "dnsdist-selectors-factory-generated.cc"
 

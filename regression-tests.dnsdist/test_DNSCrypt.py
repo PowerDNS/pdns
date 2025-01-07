@@ -304,13 +304,13 @@ query-rules:
       qname: "udp.protocols.dnscrypt.tests.powerdns.com."
     action:
       type: "Lua"
-      function: "checkDNSCryptUDP"
+      function-name: "checkDNSCryptUDP"
   - selector:
       type: "QName"
       qname: "tcp.protocols.dnscrypt.tests.powerdns.com."
     action:
       type: "Lua"
-      function: "checkDNSCryptTCP"
+      function-name: "checkDNSCryptTCP"
 """
     _config_params = []
     _yaml_config_params = ['_consoleKeyB64', '_consolePort', '_dnsDistPortDNSCrypt', '_providerName', '_testServerPort']

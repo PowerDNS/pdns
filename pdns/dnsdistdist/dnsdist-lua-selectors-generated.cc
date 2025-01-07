@@ -26,12 +26,6 @@ luaCtx.writeFunction("HTTPPathRule", [](std::string path) {
 luaCtx.writeFunction("HTTPPathRegexRule", [](std::string expression) {
   return std::shared_ptr<DNSRule>(dnsdist::selectors::getHTTPPathRegexSelector(expression));
 });
-luaCtx.writeFunction("LuaRule", [](dnsdist::selectors::LuaSelectorFunction function) {
-  return std::shared_ptr<DNSRule>(dnsdist::selectors::getLuaSelector(function));
-});
-luaCtx.writeFunction("LuaFFIRule", [](dnsdist::selectors::LuaSelectorFFIFunction function) {
-  return std::shared_ptr<DNSRule>(dnsdist::selectors::getLuaFFISelector(function));
-});
 luaCtx.writeFunction("LuaFFIPerThreadRule", [](std::string code) {
   return std::shared_ptr<DNSRule>(dnsdist::selectors::getLuaFFIPerThreadSelector(code));
 });

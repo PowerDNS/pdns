@@ -193,7 +193,9 @@ Lua equivalent: :func:`LuaRule`
 
 Parameters:
 
-- **function**: String
+- **function-name**: String ``("")``
+- **function-code**: String ``("")``
+- **function-file**: String ``("")``
 
 
 .. _yaml-settings-LuaFFISelector:
@@ -207,7 +209,9 @@ Lua equivalent: :func:`LuaFFIRule`
 
 Parameters:
 
-- **function**: String
+- **function-name**: String ``("")``
+- **function-code**: String ``("")``
+- **function-file**: String ``("")``
 
 
 .. _yaml-settings-LuaFFIPerThreadSelector:

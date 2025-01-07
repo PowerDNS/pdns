@@ -14,12 +14,6 @@ luaCtx.writeFunction("SetEDNSOptionAction", [](uint32_t code, std::string data) 
 luaCtx.writeFunction("LogAction", [](boost::optional<std::string> fileName, boost::optional<bool> binary, boost::optional<bool> append, boost::optional<bool> buffered, boost::optional<bool> verboseOnly, boost::optional<bool> includeTimestamp) {
   return dnsdist::actions::getLogAction(fileName ? *fileName : "", binary ? *binary : true, append ? *append : false, buffered ? *buffered : false, verboseOnly ? *verboseOnly : true, includeTimestamp ? *includeTimestamp : false);
 });
-luaCtx.writeFunction("LuaAction", [](dnsdist::actions::LuaActionFunction function) {
-  return dnsdist::actions::getLuaAction(function);
-});
-luaCtx.writeFunction("LuaFFIAction", [](dnsdist::actions::LuaActionFFIFunction function) {
-  return dnsdist::actions::getLuaFFIAction(function);
-});
 luaCtx.writeFunction("LuaFFIPerThreadAction", [](std::string code) {
   return dnsdist::actions::getLuaFFIPerThreadAction(code);
 });

@@ -2302,6 +2302,26 @@ private:
   uint32_t d_max{std::numeric_limits<uint32_t>::max()};
 };
 
+std::shared_ptr<DNSAction> getLuaAction(dnsdist::actions::LuaActionFunction function)
+{
+  return std::shared_ptr<DNSAction>(new LuaAction(function));
+}
+
+std::shared_ptr<DNSAction> getLuaFFIAction(dnsdist::actions::LuaActionFFIFunction function)
+{
+  return std::shared_ptr<DNSAction>(new LuaFFIAction(function));
+}
+
+std::shared_ptr<DNSResponseAction> getLuaResponseAction(dnsdist::actions::LuaResponseActionFunction function)
+{
+  return std::shared_ptr<DNSResponseAction>(new LuaResponseAction(function));
+}
+
+std::shared_ptr<DNSResponseAction> getLuaFFIResponseAction(dnsdist::actions::LuaResponseActionFFIFunction function)
+{
+  return std::shared_ptr<DNSResponseAction>(new LuaFFIResponseAction(function));
+}
+
 #ifndef DISABLE_PROTOBUF
 std::shared_ptr<DNSAction> getRemoteLogAction(RemoteLogActionConfiguration& config)
 {

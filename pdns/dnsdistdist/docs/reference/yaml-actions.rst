@@ -59,7 +59,9 @@ Parameters:
 
 - **identity**: String
 - **logger-name**: String
-- **alter-function**: String ``("")``
+- **alter-function-name**: String ``("")``
+- **alter-function-code**: String ``("")``
+- **alter-function-file**: String ``("")``
 
 
 .. _yaml-settings-DropAction:
@@ -180,7 +182,9 @@ Lua equivalent: :func:`LuaAction`
 
 Parameters:
 
-- **function**: String
+- **function-name**: String ``("")``
+- **function-code**: String ``("")``
+- **function-file**: String ``("")``
 
 
 .. _yaml-settings-LuaFFIAction:
@@ -194,7 +198,9 @@ Lua equivalent: :func:`LuaFFIAction`
 
 Parameters:
 
-- **function**: String
+- **function-name**: String ``("")``
+- **function-code**: String ``("")``
+- **function-file**: String ``("")``
 
 
 .. _yaml-settings-LuaFFIPerThreadAction:
@@ -313,7 +319,9 @@ Lua equivalent: :func:`RemoteLogAction`
 Parameters:
 
 - **logger-name**: String
-- **alter-function**: String ``("")``
+- **alter-function-name**: String ``("")``
+- **alter-function-code**: String ``("")``
+- **alter-function-file**: String ``("")``
 - **server-id**: String ``("")``
 - **ip-encrypt-key**: String ``("")``
 - **export-tags**: Sequence of String

@@ -137,6 +137,22 @@ void setupLuaActions(LuaContext& luaCtx)
   luaCtx.registerFunction("reload", &DNSAction::reload);
   luaCtx.registerFunction("reload", &DNSResponseAction::reload);
 
+  luaCtx.writeFunction("LuaAction", [](dnsdist::actions::LuaActionFunction function) {
+    return dnsdist::actions::getLuaAction(function);
+  });
+
+  luaCtx.writeFunction("LuaFFIAction", [](dnsdist::actions::LuaActionFFIFunction function) {
+    return dnsdist::actions::getLuaFFIAction(function);
+  });
+
+  luaCtx.writeFunction("LuaResponseAction", [](dnsdist::actions::LuaResponseActionFunction function) {
+    return dnsdist::actions::getLuaResponseAction(function);
+  });
+
+  luaCtx.writeFunction("LuaFFIResponseAction", [](dnsdist::actions::LuaResponseActionFFIFunction function) {
+    return dnsdist::actions::getLuaFFIResponseAction(function);
+  });
+
   luaCtx.writeFunction("SpoofAction", [](LuaTypeOrArrayOf<std::string> inp, boost::optional<responseParams_t> vars) {
     vector<ComboAddress> addrs;
     if (auto* ipaddr = boost::get<std::string>(&inp)) {

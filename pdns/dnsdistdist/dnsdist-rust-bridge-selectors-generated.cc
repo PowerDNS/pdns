@@ -44,16 +44,6 @@ std::shared_ptr<DNSSelector> getHTTPPathRegexSelector(const HTTPPathRegexSelecto
   auto selector = dnsdist::selectors::getHTTPPathRegexSelector(std::string(config.expression));
   return newDNSSelector(std::move(selector), config.name);
 }
-std::shared_ptr<DNSSelector> getLuaSelector(const LuaSelectorConfiguration& config)
-{
-  auto selector = dnsdist::selectors::getLuaSelector(convertLuaFunction<dnsdist::selectors::LuaSelectorFunction>("LuaSelectorConfiguration", config.function));
-  return newDNSSelector(std::move(selector), config.name);
-}
-std::shared_ptr<DNSSelector> getLuaFFISelector(const LuaFFISelectorConfiguration& config)
-{
-  auto selector = dnsdist::selectors::getLuaFFISelector(convertLuaFunction<dnsdist::selectors::LuaSelectorFFIFunction>("LuaFFISelectorConfiguration", config.function));
-  return newDNSSelector(std::move(selector), config.name);
-}
 std::shared_ptr<DNSSelector> getLuaFFIPerThreadSelector(const LuaFFIPerThreadSelectorConfiguration& config)
 {
   auto selector = dnsdist::selectors::getLuaFFIPerThreadSelector(std::string(config.code));

@@ -8,8 +8,6 @@ std::shared_ptr<ERCodeRule> getERCodeSelector(uint64_t rcode);
 std::shared_ptr<HTTPHeaderRule> getHTTPHeaderSelector(const std::string& header, const std::string& expression);
 std::shared_ptr<HTTPPathRule> getHTTPPathSelector(const std::string& path);
 std::shared_ptr<HTTPPathRegexRule> getHTTPPathRegexSelector(const std::string& expression);
-std::shared_ptr<LuaRule> getLuaSelector(dnsdist::selectors::LuaSelectorFunction function);
-std::shared_ptr<LuaFFIRule> getLuaFFISelector(dnsdist::selectors::LuaSelectorFFIFunction function);
 std::shared_ptr<LuaFFIPerThreadRule> getLuaFFIPerThreadSelector(const std::string& code);
 std::shared_ptr<MaxQPSRule> getMaxQPSSelector(uint32_t qps, std::optional<uint32_t> burst);
 std::shared_ptr<MaxQPSIPRule> getMaxQPSIPSelector(uint32_t qps, std::optional<uint8_t> ipv4Mask, std::optional<uint8_t> ipv6Mask, std::optional<uint32_t> burst, std::optional<uint32_t> expiration, std::optional<uint32_t> cleanupDelay, std::optional<uint32_t> scanFraction, std::optional<uint32_t> shards);

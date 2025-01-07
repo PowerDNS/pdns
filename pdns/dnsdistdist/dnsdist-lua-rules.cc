@@ -576,6 +576,14 @@ void setupLuaRules(LuaContext& luaCtx)
     return std::shared_ptr<DNSRule>(new NotRule(rule));
   });
 
+  luaCtx.writeFunction("LuaRule", [](dnsdist::selectors::LuaSelectorFunction function) {
+    return std::shared_ptr<DNSRule>(dnsdist::selectors::getLuaSelector(function));
+  });
+
+  luaCtx.writeFunction("LuaFFIRule", [](dnsdist::selectors::LuaSelectorFFIFunction function) {
+    return std::shared_ptr<DNSRule>(dnsdist::selectors::getLuaFFISelector(function));
+  });
+
   luaCtx.writeFunction("RCodeRule", [](uint64_t rcode) {
     checkParameterBound("RCodeRule", rcode, std::numeric_limits<uint8_t>::max());
     return std::shared_ptr<DNSRule>(new RCodeRule(rcode));

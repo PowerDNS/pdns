@@ -59,7 +59,9 @@ Parameters:
 
 - **identity**: String
 - **logger-name**: String
-- **alter-function**: String ``("")``
+- **alter-function_name**: String ``("")``
+- **alter-function-code**: String ``("")``
+- **alter-function-file**: String ``("")``
 
 
 .. _yaml-settings-DropResponseAction:
@@ -116,7 +118,9 @@ Lua equivalent: :func:`LuaResponseAction`
 
 Parameters:
 
-- **function**: String
+- **function-name**: String ``("")``
+- **function-code**: String ``("")``
+- **function-file**: String ``("")``
 
 
 .. _yaml-settings-LuaFFIResponseAction:
@@ -130,7 +134,9 @@ Lua equivalent: :func:`LuaFFIResponseAction`
 
 Parameters:
 
-- **function**: String
+- **function-name**: String ``("")``
+- **function-code**: String ``("")``
+- **function-file**: String ``("")``
 
 
 .. _yaml-settings-LuaFFIPerThreadResponseAction:
@@ -159,7 +165,9 @@ Lua equivalent: :func:`RemoteLogResponseAction`
 Parameters:
 
 - **logger-name**: String
-- **alter-function**: String ``("")``
+- **alter-function-name**: String ``("")``
+- **alter-function-code**: String ``("")``
+- **alter-function-file**: String ``("")``
 - **server-id**: String ``("")``
 - **ip-encrypt-key**: String ``("")``
 - **include-cname**: Boolean ``(false)``

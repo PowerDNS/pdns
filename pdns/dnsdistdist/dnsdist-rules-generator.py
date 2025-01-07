@@ -28,7 +28,7 @@
 # special unquoted true value which means to use the default value for the
 # object type, which needs to exist.
 # Items can optionally have the following properties:
-# - 'skip-cpp' means that the corresponding C++ factory and Lua bindinds will not be generated, which is useful for objects taking parameters that cannot be directly mapped
+# - 'skip-cpp' means that the corresponding C++ factory and Lua bindings will not be generated, which is useful for objects taking parameters that cannot be directly mapped
 # - 'skip-rust' is not used by this script but is used by the dnsdist-settings-generator.py one, where it means that the C++ code to create the Rust-side version of an action or selector will not generated
 # - 'skip-serde' is not used by this script but is used by the dnsdist-settings-generator.py one, where it means that the Rust structure representing that action or selector in the YAML setting will not be directly created by Serde. It is used for selectors that reference another selector themselves, or actions referencing another action.
 import os

@@ -66,6 +66,23 @@ namespace dnsdist::lua
 {
 void setupLua(LuaContext& luaCtx, bool client, bool configCheck);
 void setupConfigurationItems(LuaContext& luaCtx);
+
+template <class FunctionType>
+std::optional<FunctionType> getFunctionFromLuaCode(const std::string& code, const std::string& context)
+{
+  try {
+    auto function = g_lua.lock()->executeCode<FunctionType>(code);
+    if (!function) {
+      return std::nullopt;
+    }
+    return function;
+  }
+  catch (const std::exception& exp) {
+    warnlog("Parsing Lua code '%s' in context '%s' failed: %s", code, context, exp.what());
+  }
+
+  return std::nullopt;
+}
 }
 
 namespace dnsdist::configuration::lua

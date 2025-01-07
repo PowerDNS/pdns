@@ -112,8 +112,12 @@ mod dnsdistsettings {
         identity: String,
         #[serde(rename = "logger-name", )]
         logger_name: String,
-        #[serde(rename = "alter-function", default, skip_serializing_if = "crate::is_default")]
-        alter_function: String,
+        #[serde(rename = "alter-function-name", default, skip_serializing_if = "crate::is_default")]
+        alter_function_name: String,
+        #[serde(rename = "alter-function-code", default, skip_serializing_if = "crate::is_default")]
+        alter_function_code: String,
+        #[serde(rename = "alter-function-file", default, skip_serializing_if = "crate::is_default")]
+        alter_function_file: String,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
@@ -205,7 +209,12 @@ mod dnsdistsettings {
     struct LuaActionConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
-        function: String,
+        #[serde(rename = "function-name", default, skip_serializing_if = "crate::is_default")]
+        function_name: String,
+        #[serde(rename = "function-code", default, skip_serializing_if = "crate::is_default")]
+        function_code: String,
+        #[serde(rename = "function-file", default, skip_serializing_if = "crate::is_default")]
+        function_file: String,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
@@ -213,7 +222,12 @@ mod dnsdistsettings {
     struct LuaFFIActionConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
-        function: String,
+        #[serde(rename = "function-name", default, skip_serializing_if = "crate::is_default")]
+        function_name: String,
+        #[serde(rename = "function-code", default, skip_serializing_if = "crate::is_default")]
+        function_code: String,
+        #[serde(rename = "function-file", default, skip_serializing_if = "crate::is_default")]
+        function_file: String,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
@@ -297,8 +311,12 @@ mod dnsdistsettings {
         name: String,
         #[serde(rename = "logger-name", )]
         logger_name: String,
-        #[serde(rename = "alter-function", default, skip_serializing_if = "crate::is_default")]
-        alter_function: String,
+        #[serde(rename = "alter-function-name", default, skip_serializing_if = "crate::is_default")]
+        alter_function_name: String,
+        #[serde(rename = "alter-function-code", default, skip_serializing_if = "crate::is_default")]
+        alter_function_code: String,
+        #[serde(rename = "alter-function-file", default, skip_serializing_if = "crate::is_default")]
+        alter_function_file: String,
         #[serde(rename = "server-id", default, skip_serializing_if = "crate::is_default")]
         server_id: String,
         #[serde(rename = "ip-encrypt-key", default, skip_serializing_if = "crate::is_default")]
@@ -542,8 +560,12 @@ mod dnsdistsettings {
         identity: String,
         #[serde(rename = "logger-name", )]
         logger_name: String,
-        #[serde(rename = "alter-function", default, skip_serializing_if = "crate::is_default")]
-        alter_function: String,
+        #[serde(rename = "alter-function_name", default, skip_serializing_if = "crate::is_default")]
+        alter_function_name: String,
+        #[serde(rename = "alter-function-code", default, skip_serializing_if = "crate::is_default")]
+        alter_function_code: String,
+        #[serde(rename = "alter-function-file", default, skip_serializing_if = "crate::is_default")]
+        alter_function_file: String,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
@@ -586,7 +608,12 @@ mod dnsdistsettings {
     struct LuaResponseActionConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
-        function: String,
+        #[serde(rename = "function-name", default, skip_serializing_if = "crate::is_default")]
+        function_name: String,
+        #[serde(rename = "function-code", default, skip_serializing_if = "crate::is_default")]
+        function_code: String,
+        #[serde(rename = "function-file", default, skip_serializing_if = "crate::is_default")]
+        function_file: String,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
@@ -594,7 +621,12 @@ mod dnsdistsettings {
     struct LuaFFIResponseActionConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
-        function: String,
+        #[serde(rename = "function-name", default, skip_serializing_if = "crate::is_default")]
+        function_name: String,
+        #[serde(rename = "function-code", default, skip_serializing_if = "crate::is_default")]
+        function_code: String,
+        #[serde(rename = "function-file", default, skip_serializing_if = "crate::is_default")]
+        function_file: String,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
@@ -612,8 +644,12 @@ mod dnsdistsettings {
         name: String,
         #[serde(rename = "logger-name", )]
         logger_name: String,
-        #[serde(rename = "alter-function", default, skip_serializing_if = "crate::is_default")]
-        alter_function: String,
+        #[serde(rename = "alter-function-name", default, skip_serializing_if = "crate::is_default")]
+        alter_function_name: String,
+        #[serde(rename = "alter-function-code", default, skip_serializing_if = "crate::is_default")]
+        alter_function_code: String,
+        #[serde(rename = "alter-function-file", default, skip_serializing_if = "crate::is_default")]
+        alter_function_file: String,
         #[serde(rename = "server-id", default, skip_serializing_if = "crate::is_default")]
         server_id: String,
         #[serde(rename = "ip-encrypt-key", default, skip_serializing_if = "crate::is_default")]
@@ -817,7 +853,12 @@ mod dnsdistsettings {
     struct LuaSelectorConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
-        function: String,
+        #[serde(rename = "function-name", default, skip_serializing_if = "crate::is_default")]
+        function_name: String,
+        #[serde(rename = "function-code", default, skip_serializing_if = "crate::is_default")]
+        function_code: String,
+        #[serde(rename = "function-file", default, skip_serializing_if = "crate::is_default")]
+        function_file: String,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
@@ -825,7 +866,12 @@ mod dnsdistsettings {
     struct LuaFFISelectorConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
-        function: String,
+        #[serde(rename = "function-name", default, skip_serializing_if = "crate::is_default")]
+        function_name: String,
+        #[serde(rename = "function-code", default, skip_serializing_if = "crate::is_default")]
+        function_code: String,
+        #[serde(rename = "function-file", default, skip_serializing_if = "crate::is_default")]
+        function_file: String,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
@@ -1407,8 +1453,12 @@ mod dnsdistsettings {
         tag_name: String,
         #[serde(rename = "tag-value", default = "crate::default_value_dynamic_rule_tag_value", skip_serializing_if = "crate::default_value_equal_dynamic_rule_tag_value")]
         tag_value: String,
-        #[serde(rename = "visitor-function", default, skip_serializing_if = "crate::is_default")]
-        visitor_function: String,
+        #[serde(rename = "visitor-function-name", default, skip_serializing_if = "crate::is_default")]
+        visitor_function_name: String,
+        #[serde(rename = "visitor-function-code", default, skip_serializing_if = "crate::is_default")]
+        visitor_function_code: String,
+        #[serde(rename = "visitor-function-file", default, skip_serializing_if = "crate::is_default")]
+        visitor_function_file: String,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         rcode: String,
         #[serde(default, skip_serializing_if = "crate::is_default")]
@@ -1728,6 +1778,10 @@ mod dnsdistsettings {
         qtype: String,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         function: String,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        lua: String,
+        #[serde(rename = "lua-file", default, skip_serializing_if = "crate::is_default")]
+        lua_file: String,
         #[serde(default = "crate::U16::<1000>::value", skip_serializing_if = "crate::U16::<1000>::is_equal")]
         timeout: u16,
         #[serde(rename = "set-cd", default, skip_serializing_if = "crate::is_default")]
@@ -2014,8 +2068,12 @@ mod dnsdistsettings {
     struct QueryCountConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         enabled: bool,
-        #[serde(default, skip_serializing_if = "crate::is_default")]
-        filter: String,
+        #[serde(rename = "filter-function-name", default, skip_serializing_if = "crate::is_default")]
+        filter_function_name: String,
+        #[serde(rename = "filter-function-code", default, skip_serializing_if = "crate::is_default")]
+        filter_function_code: String,
+        #[serde(rename = "filter-function-file", default, skip_serializing_if = "crate::is_default")]
+        filter_function_file: String,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
@@ -2032,7 +2090,12 @@ mod dnsdistsettings {
     #[serde(deny_unknown_fields)]
     struct CustomLoadBalancingPolicyConfiguration {
         name: String,
-        function: String,
+        #[serde(rename = "function-name", default, skip_serializing_if = "crate::is_default")]
+        function_name: String,
+        #[serde(rename = "function-code", default, skip_serializing_if = "crate::is_default")]
+        function_code: String,
+        #[serde(rename = "function-file", default, skip_serializing_if = "crate::is_default")]
+        function_file: String,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         ffi: bool,
         #[serde(rename = "per-thread", default, skip_serializing_if = "crate::is_default")]
