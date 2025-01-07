@@ -35,14 +35,6 @@ std::shared_ptr<HTTPPathRegexRule> getHTTPPathRegexSelector(const std::string& e
 {
   return std::make_shared<HTTPPathRegexRule>(expression);
 }
-std::shared_ptr<LuaRule> getLuaSelector(dnsdist::selectors::LuaSelectorFunction function)
-{
-  return std::make_shared<LuaRule>(function);
-}
-std::shared_ptr<LuaFFIRule> getLuaFFISelector(dnsdist::selectors::LuaSelectorFFIFunction function)
-{
-  return std::make_shared<LuaFFIRule>(function);
-}
 std::shared_ptr<LuaFFIPerThreadRule> getLuaFFIPerThreadSelector(const std::string& code)
 {
   return std::make_shared<LuaFFIPerThreadRule>(code);

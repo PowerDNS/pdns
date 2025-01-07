@@ -62,6 +62,11 @@ struct SOAParams
 #include "dnsdist-actions-factory-generated.hh"
 #include "dnsdist-response-actions-factory-generated.hh"
 
+std::shared_ptr<DNSAction> getLuaAction(dnsdist::actions::LuaActionFunction function);
+std::shared_ptr<DNSAction> getLuaFFIAction(dnsdist::actions::LuaActionFFIFunction function);
+std::shared_ptr<DNSResponseAction> getLuaResponseAction(dnsdist::actions::LuaResponseActionFunction function);
+std::shared_ptr<DNSResponseAction> getLuaFFIResponseAction(dnsdist::actions::LuaResponseActionFFIFunction function);
+
 std::shared_ptr<DNSAction> getContinueAction(std::shared_ptr<DNSAction> action);
 #ifdef HAVE_DNS_OVER_HTTPS
 std::shared_ptr<DNSAction> getHTTPStatusAction(uint16_t status, PacketBuffer&& body, const std::string& contentType, const dnsdist::ResponseConfig& responseConfig);

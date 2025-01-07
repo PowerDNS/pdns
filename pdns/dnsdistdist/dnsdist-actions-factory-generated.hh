@@ -4,8 +4,6 @@ std::shared_ptr<DNSAction> getDelayAction(uint32_t msec);
 std::shared_ptr<DNSAction> getDropAction();
 std::shared_ptr<DNSAction> getSetEDNSOptionAction(uint32_t code, const std::string& data);
 std::shared_ptr<DNSAction> getLogAction(const std::string& fileName, bool binary, bool append, bool buffered, bool verboseOnly, bool includeTimestamp);
-std::shared_ptr<DNSAction> getLuaAction(dnsdist::actions::LuaActionFunction function);
-std::shared_ptr<DNSAction> getLuaFFIAction(dnsdist::actions::LuaActionFFIFunction function);
 std::shared_ptr<DNSAction> getLuaFFIPerThreadAction(const std::string& code);
 std::shared_ptr<DNSAction> getNoneAction();
 std::shared_ptr<DNSAction> getPoolAction(const std::string& poolName, bool stopProcessing);

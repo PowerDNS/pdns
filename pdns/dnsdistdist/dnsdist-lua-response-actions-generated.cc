@@ -11,12 +11,6 @@ luaCtx.writeFunction("DropResponseAction", []() {
 luaCtx.writeFunction("LogResponseAction", [](boost::optional<std::string> fileName, boost::optional<bool> append, boost::optional<bool> buffered, boost::optional<bool> verboseOnly, boost::optional<bool> includeTimestamp) {
   return dnsdist::actions::getLogResponseAction(fileName ? *fileName : "", append ? *append : false, buffered ? *buffered : false, verboseOnly ? *verboseOnly : true, includeTimestamp ? *includeTimestamp : false);
 });
-luaCtx.writeFunction("LuaResponseAction", [](dnsdist::actions::LuaResponseActionFunction function) {
-  return dnsdist::actions::getLuaResponseAction(function);
-});
-luaCtx.writeFunction("LuaFFIResponseAction", [](dnsdist::actions::LuaResponseActionFFIFunction function) {
-  return dnsdist::actions::getLuaFFIResponseAction(function);
-});
 luaCtx.writeFunction("LuaFFIPerThreadResponseAction", [](std::string code) {
   return dnsdist::actions::getLuaFFIPerThreadResponseAction(code);
 });

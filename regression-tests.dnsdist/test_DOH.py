@@ -880,7 +880,7 @@ query-rules:
       qname: "http-lua.doh.tests.powerdns.com."
     action:
       type: "Lua"
-      function: "dohHandler"
+      function-name: "dohHandler"
 """
     _yaml_config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_dohServerPort', '_serverCert', '_serverKey', '_dohLibrary']
     _config_template = """

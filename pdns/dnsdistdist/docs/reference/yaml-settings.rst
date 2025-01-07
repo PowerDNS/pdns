@@ -165,7 +165,9 @@ CustomLoadBalancingPolicyConfiguration
 --------------------------------------
 
 - **name**: String
-- **function**: String
+- **function-name**: String ``("")``
+- **function-code**: String ``("")``
+- **function-file**: String ``("")``
 - **ffi**: Boolean ``(false)``
 - **per-thread**: Boolean ``(false)``
 
@@ -213,7 +215,9 @@ DynamicRuleConfiguration
 - **warning-ratio**: Double ``(0.0)``
 - **tag-name**: String ``("")``
 - **tag-value**: String ``(0)``
-- **visitor-function**: String ``("")``
+- **visitor-function-name**: String ``("")``
+- **visitor-function-code**: String ``("")``
+- **visitor-function-file**: String ``("")``
 - **rcode**: String ``("")``
 - **qtype**: String ``("")``
 - **minimum-number-of-responses**: Unsigned integer ``(0)``
@@ -302,6 +306,8 @@ HealthCheckConfiguration
 - **qclass**: String ``(IN)``
 - **qtype**: String ``(A)``
 - **function**: String ``("")``
+- **lua**: String ``("")``
+- **lua-file**: String ``("")``
 - **timeout**: Unsigned integer ``(1000)``
 - **set-cd**: Boolean ``(false)``
 - **max-failures**: Unsigned integer ``(1)``
@@ -673,7 +679,9 @@ QueryCountConfiguration
 -----------------------
 
 - **enabled**: Boolean ``(false)``
-- **filter**: String ``("")``
+- **filter-function-name**: String ``("")``
+- **filter-function-code**: String ``("")``
+- **filter-function-file**: String ``("")``
 
 
 .. _yaml-settings-QueryRuleConfiguration:

@@ -15,14 +15,6 @@ std::shared_ptr<DNSResponseAction> getLogResponseAction(const std::string& fileN
 {
   return std::shared_ptr<DNSResponseAction>(new LogResponseAction(fileName, append, buffered, verboseOnly, includeTimestamp));
 }
-std::shared_ptr<DNSResponseAction> getLuaResponseAction(dnsdist::actions::LuaResponseActionFunction function)
-{
-  return std::shared_ptr<DNSResponseAction>(new LuaResponseAction(function));
-}
-std::shared_ptr<DNSResponseAction> getLuaFFIResponseAction(dnsdist::actions::LuaResponseActionFFIFunction function)
-{
-  return std::shared_ptr<DNSResponseAction>(new LuaFFIResponseAction(function));
-}
 std::shared_ptr<DNSResponseAction> getLuaFFIPerThreadResponseAction(const std::string& code)
 {
   return std::shared_ptr<DNSResponseAction>(new LuaFFIPerThreadResponseAction(code));

@@ -34,16 +34,6 @@ std::shared_ptr<DNSActionWrapper> getLogAction(const LogActionConfiguration& con
   auto action = dnsdist::actions::getLogAction(std::string(config.file_name), config.binary, config.append, config.buffered, config.verbose_only, config.include_timestamp);
   return newDNSActionWrapper(std::move(action), config.name);
 }
-std::shared_ptr<DNSActionWrapper> getLuaAction(const LuaActionConfiguration& config)
-{
-  auto action = dnsdist::actions::getLuaAction(convertLuaFunction<dnsdist::actions::LuaActionFunction>("LuaActionConfiguration", config.function));
-  return newDNSActionWrapper(std::move(action), config.name);
-}
-std::shared_ptr<DNSActionWrapper> getLuaFFIAction(const LuaFFIActionConfiguration& config)
-{
-  auto action = dnsdist::actions::getLuaFFIAction(convertLuaFunction<dnsdist::actions::LuaActionFFIFunction>("LuaFFIActionConfiguration", config.function));
-  return newDNSActionWrapper(std::move(action), config.name);
-}
 std::shared_ptr<DNSActionWrapper> getLuaFFIPerThreadAction(const LuaFFIPerThreadActionConfiguration& config)
 {
   auto action = dnsdist::actions::getLuaFFIPerThreadAction(std::string(config.code));
@@ -182,16 +172,6 @@ std::shared_ptr<DNSResponseActionWrapper> getDropResponseAction(const DropRespon
 std::shared_ptr<DNSResponseActionWrapper> getLogResponseAction(const LogResponseActionConfiguration& config)
 {
   auto action = dnsdist::actions::getLogResponseAction(std::string(config.file_name), config.append, config.buffered, config.verbose_only, config.include_timestamp);
-  return newDNSResponseActionWrapper(std::move(action), config.name);
-}
-std::shared_ptr<DNSResponseActionWrapper> getLuaResponseAction(const LuaResponseActionConfiguration& config)
-{
-  auto action = dnsdist::actions::getLuaResponseAction(convertLuaFunction<dnsdist::actions::LuaResponseActionFunction>("LuaResponseActionConfiguration", config.function));
-  return newDNSResponseActionWrapper(std::move(action), config.name);
-}
-std::shared_ptr<DNSResponseActionWrapper> getLuaFFIResponseAction(const LuaFFIResponseActionConfiguration& config)
-{
-  auto action = dnsdist::actions::getLuaFFIResponseAction(convertLuaFunction<dnsdist::actions::LuaResponseActionFFIFunction>("LuaFFIResponseActionConfiguration", config.function));
   return newDNSResponseActionWrapper(std::move(action), config.name);
 }
 std::shared_ptr<DNSResponseActionWrapper> getLuaFFIPerThreadResponseAction(const LuaFFIPerThreadResponseActionConfiguration& config)

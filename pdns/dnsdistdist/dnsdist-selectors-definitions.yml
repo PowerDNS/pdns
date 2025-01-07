@@ -78,16 +78,32 @@ This assumes that there is a key, in network byte order, for the last element of
       type: "String"
 - name: "lua"
   description: "Invoke a Lua function that accepts a :class:`DNSQuestion` object. The function should return true if the query matches, or false otherwise. If the Lua code fails, false is returned"
+  skip-cpp: true
+  skip-rust: true
   parameters:
-    - name: "function"
-      type: "dnsdist::selectors::LuaSelectorFunction"
-      rust-type: "String"
+    - name: "function-name"
+      type: "String"
+      default: ""
+    - name: "function-code"
+      type: "String"
+      default: ""
+    - name: "function-file"
+      type: "String"
+      default: ""
 - name: "LuaFFI"
   description: "Invoke a Lua FFI function that accepts a pointer to a ``dnsdist_ffi_dnsquestion_t`` object, whose bindings are defined in ``dnsdist-lua-ffi-interface.h``. The function should return true if the query matches, or false otherwise. If the Lua code fails, false is returned"
+  skip-cpp: true
+  skip-rust: true
   parameters:
-    - name: "function"
-      type: "dnsdist::selectors::LuaSelectorFFIFunction"
-      rust-type: "String"
+    - name: "function-name"
+      type: "String"
+      default: ""
+    - name: "function-code"
+      type: "String"
+      default: ""
+    - name: "function-file"
+      type: "String"
+      default: ""
 - name: "LuaFFIPerThread"
   description: "Invoke a Lua FFI function that accepts a pointer to a ``dnsdist_ffi_dnsquestion_t`` object, whose bindings are defined in ``dnsdist-lua-ffi-interface.h``. The function should return true if the query matches, or false otherwise. If the Lua code fails, false is returned.
 

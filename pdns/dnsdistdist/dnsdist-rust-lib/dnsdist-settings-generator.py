@@ -496,8 +496,6 @@ def get_cpp_parameters(struct_type, struct_name, parameters, skip_name):
             field = f'convertSVCRecordParameters({field})'
         elif ptype == 'SOAParams':
             field = f'convertSOAParams({field})'
-        elif ptype in ['dnsdist::actions::LuaActionFunction', 'dnsdist::actions::LuaActionFFIFunction', 'dnsdist::actions::LuaResponseActionFunction', 'dnsdist::actions::LuaResponseActionFFIFunction', 'dnsdist::selectors::LuaSelectorFunction', 'dnsdist::selectors::LuaSelectorFFIFunction']:
-            field = f'convertLuaFunction<{ptype}>("{struct_type}", {field})'
         output += field
     return output
 
