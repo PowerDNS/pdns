@@ -2687,6 +2687,7 @@ unsigned int makeUDPServerSockets(deferredAdd_t& deferredAdds, Logr::log_t log, 
 {
   int one = 1;
   vector<string> localAddresses;
+  vector<string> logVec;
   stringtok(localAddresses, ::arg()["local-address"], " ,");
 
   if (localAddresses.empty()) {
@@ -2700,6 +2701,7 @@ unsigned int makeUDPServerSockets(deferredAdd_t& deferredAdds, Logr::log_t log, 
     if (socketFd < 0) {
       throw PDNSException("Making a UDP server socket for resolver: " + stringerror());
     }
+    logVec.emplace_back(address.toStringWithPort());
     if (!setSocketTimestamps(socketFd)) {
       SLOG(g_log << Logger::Warning << "Unable to enable timestamp reporting for socket" << endl,
            log->info(Logr::Warning, "Unable to enable timestamp reporting for socket"));
@@ -2774,7 +2776,7 @@ unsigned int makeUDPServerSockets(deferredAdd_t& deferredAdds, Logr::log_t log, 
     g_listenSocketsAddresses[socketFd] = address; // this is written to only from the startup thread, not from the workers
   }
   if (doLog) {
-    log->info(Logr::Info, "Listening for queries", "proto", Logging::Loggable("UDP"), "addresses", Logging::IterLoggable(localAddresses.cbegin(), localAddresses.cend()), "socketInstances", Logging::Loggable(instances), "reuseport", Logging::Loggable(g_reusePort));
+    log->info(Logr::Info, "Listening for queries", "proto", Logging::Loggable("UDP"), "addresses", Logging::IterLoggable(logVec.cbegin(), logVec.cend()), "socketInstances", Logging::Loggable(instances), "reuseport", Logging::Loggable(g_reusePort));
   }
   return localAddresses.size();
 }
