@@ -3,6 +3,8 @@ name: 'Run daily tests'
 
 on:
   push:
+  schedule:
+    - cron: '14 5 * * *'
   workflow_call:
     inputs:
       branch-name:
@@ -12,9 +14,16 @@ on:
         type: string
 
 jobs:
-  run-bulk-test:
+  run-rec-bulk-test:
+    #if: ${{ vars.REC_BULKTEST_USE_UBICLOUD == '1' }}
     name: Run Recursor Bulk Test
+    #runs-on: ubicloud-standard-8-ubuntu-2404
     runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        testsize: [100]
+        IPv6: [0, 1]
+      max-parallel: 1
     steps:
       - uses: actions/checkout@v4
         with:
@@ -24,19 +33,16 @@ jobs:
       - name: Add PowerDNS Repo
         run: echo 'deb [signed-by=/etc/apt/keyrings/rec-master-pub.asc] http://repo.powerdns.com/ubuntu noble-rec-master main' | sudo tee /etc/apt/sources.list.d/pdns.list
       - name: Add key
-        run:  sudo install -d /etc/apt/keyrings; curl https://repo.powerdns.com/CBC8B383-pub.asc | sudo tee /etc/apt/keyrings/rec-master-pub.asc
+        run: sudo install -d /etc/apt/keyrings; curl https://repo.powerdns.com/CBC8B383-pub.asc | sudo tee /etc/apt/keyrings/rec-master-pub.asc
       - name: Apt Update
         run: sudo apt-get update
-      - name: Install Recursor Package
+      - name: Install Recursor Package and PDNS Tools
         run: sudo apt install pdns-recursor pdns-tools
       - name: Get Top Million Names
-        run: curl --no-progress-meter -LO http://s3-us-west-1.amazonaws.com/umbrella-static/top-1m.csv.zip
+        run: curl --no-progress-meter -LO http://s3-us-west-1.amazonaws.com/umbrella-static/top-1m.csv.zip && unzip top-1m.csv.zip -d .
         working-directory: regression-tests
-      - name: Unzip Top Million Names
-        run: unzip top-1m.csv.zip -d .
-        working-directory: regression-tests
-      - name: Run With IPv6 Disabled
-        run: ./recursor-test 5300 100 8 2048 1024
+      - name: Run Bulk Test
+        run: ./recursor-test 5300 ${{ matrix.testsize }} 8 2048 1024
         working-directory: regression-tests
         env:
           RECURSOR: /usr/sbin/pdns_recursor
@@ -44,14 +50,4 @@ jobs:
           DNSBULKTEST: /usr/bin/dnsbulktest
           THRESHOLD: 95
           TRACE: no
-          IPv6: 0
-      - name: Run With IPv6 Enabled
-        run: ./recursor-test 5300 100 8 2048 1024
-        working-directory: regression-tests
-        env:
-          RECURSOR: /usr/sbin/pdns_recursor
-          RECCONTROL: /usr/bin/rec_control
-          DNSBULKTEST: /usr/bin/dnsbulktest
-          THRESHOLD: 95
-          TRACE: no
-          IPv6: 1
+          IPv6: ${{ matrix.IPv6 }}
