@@ -659,6 +659,7 @@ jobs:
           fail-on-error: false
 
   test-recursor-ubicloud-bulk:
+    if: ${{ vars.REC_BULKTEST_USE_UBICLOUD == '1' }}
     name: 'test rec ubicloud bulk'
     needs:
       - build-recursor
