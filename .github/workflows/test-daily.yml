@@ -1,0 +1,57 @@
+---
+name: 'Run daily tests'
+
+on:
+  push:
+  workflow_call:
+    inputs:
+      branch-name:
+        description: 'Checkout to a specific branch'
+        required: true
+        default: 'master'
+        type: string
+
+jobs:
+  run-bulk-test:
+    name: Run Recursor Bulk Test
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 5
+          submodules: recursive
+          ref: ${{ inputs.branch-name }}
+      - name: Add PowerDNS Repo
+        run: echo 'deb [signed-by=/etc/apt/keyrings/rec-master-pub.asc] http://repo.powerdns.com/ubuntu noble-rec-master main' | sudo tee /etc/apt/sources.list.d/pdns.list
+      - name: Add key
+        run:  sudo install -d /etc/apt/keyrings; curl https://repo.powerdns.com/CBC8B383-pub.asc | sudo tee /etc/apt/keyrings/rec-master-pub.asc
+      - name: Apt Update
+        run: sudo apt-get update
+      - name: Install Recursor Package
+        run: sudo apt install pdns-recursor pdns-tools
+      - name: Get Top Million Names
+        run: curl --no-progress-meter -LO http://s3-us-west-1.amazonaws.com/umbrella-static/top-1m.csv.zip
+        working-directory: regression-tests
+      - name: Unzip Top Million Names
+        run: unzip top-1m.csv.zip -d .
+        working-directory: regression-tests
+      - name: Run With IPv6 Disabled
+        run: ./recursor-test 5300 100 8 2048 1024
+        working-directory: regression-tests
+        env:
+          RECURSOR: /usr/sbin/pdns_recursor
+          RECCONTROL: /usr/bin/rec_control
+          DNSBULKTEST: /usr/bin/dnsbulktest
+          THRESHOLD: 95
+          TRACE: no
+          IPv6: 0
+      - name: Run With IPv6 Enabled
+        run: ./recursor-test 5300 100 8 2048 1024
+        working-directory: regression-tests
+        env:
+          RECURSOR: /usr/sbin/pdns_recursor
+          RECCONTROL: /usr/bin/rec_control
+          DNSBULKTEST: /usr/bin/dnsbulktest
+          THRESHOLD: 95
+          TRACE: no
+          IPv6: 1
