@@ -325,6 +325,18 @@ bool recvAsync(Socket& socket, PacketBuffer& buffer, ComboAddress& clientAddr, C
   return !buffer.empty();
 }
 
-};
+std::string getSNIFromQuicheConnection(const QuicheConnection& conn)
+{
+#if defined(HAVE_QUICHE_CONN_SERVER_NAME)
+  const uint8_t* sniPtr = nullptr;
+  size_t sniPtrSize = 0;
+  quiche_conn_server_name(conn.get(), &sniPtr, &sniPtrSize);
+  if (sniPtrSize > 0) {
+    return std::string(reinterpret_cast<const char*>(sniPtr), sniPtrSize);
+  }
+#endif /* HAVE_QUICHE_CONN_SERVER_NAME */
+  return {};
+}
+}
 
 #endif

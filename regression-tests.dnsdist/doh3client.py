@@ -228,7 +228,7 @@ async def async_h3_query(
 
 
 def doh3_query(query, baseurl, timeout=2, port=853, verify=None, server_hostname=None, post=False, additional_headers=None, raw_response=False):
-    configuration = QuicConfiguration(alpn_protocols=H3_ALPN, is_client=True)
+    configuration = QuicConfiguration(alpn_protocols=H3_ALPN, is_client=True, server_name=server_hostname)
     if verify:
         configuration.load_verify_locations(verify)
 

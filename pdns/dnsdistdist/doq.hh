@@ -84,6 +84,7 @@ struct DOQUnit
   PacketBuffer response;
   PacketBuffer serverConnID;
   std::shared_ptr<DownstreamState> downstream{nullptr};
+  std::shared_ptr<const std::string> sni{nullptr};
   DOQServerConfig* dsc{nullptr};
   uint64_t streamID{0};
   size_t proxyProtocolPayloadSize{0};

@@ -61,6 +61,14 @@ public:
   Connection& operator=(Connection&&) = default;
   ~Connection() = default;
 
+  std::shared_ptr<const std::string> getSNI()
+  {
+    if (!d_sni) {
+      d_sni = std::make_shared<const std::string>(getSNIFromQuicheConnection(d_conn));
+    }
+    return d_sni;
+  }
+
   ComboAddress d_peer;
   ComboAddress d_localAddr;
   QuicheConnection d_conn;
@@ -68,6 +76,7 @@ public:
 
   std::unordered_map<uint64_t, PacketBuffer> d_streamBuffers;
   std::unordered_map<uint64_t, PacketBuffer> d_streamOutBuffers;
+  std::shared_ptr<const std::string> d_sni{nullptr};
 };
 
 static void sendBackDOQUnit(DOQUnitUniquePtr&& unit, const char* description);
@@ -472,6 +481,9 @@ static void processDOQQuery(DOQUnitUniquePtr&& doqUnit)
       ids.origFlags = *flags;
       return true;
     });
+    if (unit->sni) {
+      dnsQuestion.sni = *unit->sni;
+    }
     unit->ids.cs = &clientState;
 
     auto result = processQuery(dnsQuestion, downstream);
@@ -541,7 +553,7 @@ static void processDOQQuery(DOQUnitUniquePtr&& doqUnit)
   }
 }
 
-static void doq_dispatch_query(DOQServerConfig& dsc, PacketBuffer&& query, const ComboAddress& local, const ComboAddress& remote, const PacketBuffer& serverConnID, const uint64_t streamID)
+static void doq_dispatch_query(DOQServerConfig& dsc, PacketBuffer&& query, const ComboAddress& local, const ComboAddress& remote, const PacketBuffer& serverConnID, const uint64_t streamID, const std::shared_ptr<const std::string>& sni)
 {
   try {
     auto unit = std::make_unique<DOQUnit>(std::move(query));
@@ -551,6 +563,7 @@ static void doq_dispatch_query(DOQServerConfig& dsc, PacketBuffer&& query, const
     unit->ids.protocol = dnsdist::Protocol::DoQ;
     unit->serverConnID = serverConnID;
     unit->streamID = streamID;
+    unit->sni = sni;
 
     processDOQQuery(std::move(unit));
   }
@@ -649,7 +662,7 @@ static void handleReadableStream(DOQFrontend& frontend, ClientState& clientState
     return;
   }
   DEBUGLOG("Dispatching query");
-  doq_dispatch_query(*(frontend.d_server_config), std::move(streamBuffer), conn.d_localAddr, client, serverConnID, streamID);
+  doq_dispatch_query(*(frontend.d_server_config), std::move(streamBuffer), conn.d_localAddr, client, serverConnID, streamID, conn.getSNI());
   conn.d_streamBuffers.erase(streamID);
 }
 

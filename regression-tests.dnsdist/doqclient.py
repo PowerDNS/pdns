@@ -88,7 +88,7 @@ class StreamResetError(Exception):
         super().__init__(message)
 
 def quic_query(query, host='127.0.0.1', timeout=2, port=853, verify=None, server_hostname=None):
-    configuration = QuicConfiguration(alpn_protocols=["doq"], is_client=True)
+    configuration = QuicConfiguration(alpn_protocols=["doq"], is_client=True, server_name=server_hostname)
     if verify:
         configuration.load_verify_locations(verify)
     (result, serial) = asyncio.run(
@@ -108,7 +108,7 @@ def quic_query(query, host='127.0.0.1', timeout=2, port=853, verify=None, server
     return (result, serial)
 
 def quic_bogus_query(query, host='127.0.0.1', timeout=2, port=853, verify=None, server_hostname=None):
-    configuration = QuicConfiguration(alpn_protocols=["doq"], is_client=True)
+    configuration = QuicConfiguration(alpn_protocols=["doq"], is_client=True, server_name=server_hostname)
     if verify:
         configuration.load_verify_locations(verify)
     (result, _) = asyncio.run(
