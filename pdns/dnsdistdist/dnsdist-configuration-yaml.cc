@@ -786,6 +786,36 @@ static void loadWebServer(const dnsdist::rust::settings::WebserverConfiguration&
     config.d_apiReadWrite = webConfig.api_read_write;
   });
 }
+
+static void loadCustomPolicies(const ::rust::Vec<dnsdist::rust::settings::CustomLoadBalancingPolicyConfiguration>& customPolicies)
+{
+  for (const auto& policy : customPolicies) {
+    if (policy.ffi) {
+      if (policy.per_thread) {
+        auto policyObj = std::make_shared<ServerPolicy>(std::string(policy.name), std::string(policy.function_code));
+        registerType<ServerPolicy>(policyObj, policy.name);
+      }
+      else {
+        ServerPolicy::ffipolicyfunc_t function;
+
+        if (!getLuaFunctionFromConfiguration(function, policy.function_name, policy.function_code, policy.function_file, "FFI load-balancing policy")) {
+          throw std::runtime_error("Custom FFI load-balancing policy '" + std::string(policy.name) + "' could not be created: no valid function name, Lua code or Lua file");
+        }
+        auto policyObj = std::make_shared<ServerPolicy>(std::string(policy.name), std::move(function));
+        registerType<ServerPolicy>(policyObj, policy.name);
+      }
+    }
+    else {
+      ServerPolicy::policyfunc_t function;
+      if (!getLuaFunctionFromConfiguration(function, policy.function_name, policy.function_code, policy.function_file, "load-balancing policy")) {
+        throw std::runtime_error("Custom load-balancing policy '" + std::string(policy.name) + "' could not be created: no valid function name, Lua code or Lua file");
+      }
+      auto policyObj = std::make_shared<ServerPolicy>(std::string(policy.name), std::move(function), true);
+      registerType<ServerPolicy>(policyObj, policy.name);
+    }
+  }
+}
+
 #endif /* defined(HAVE_YAML_CONFIGURATION) */
 
 bool loadConfigurationFromFile(const std::string& fileName, bool isClient, bool configCheck)
@@ -970,31 +1000,7 @@ bool loadConfigurationFromFile(const std::string& fileName, bool isClient, bool 
       registerType<DNSDistPacketCache>(packetCacheObj, cache.name);
     }
 
-    for (const auto& policy : globalConfig.load_balancing_policies.custom_policies) {
-      if (policy.ffi) {
-        if (policy.per_thread) {
-          auto policyObj = std::make_shared<ServerPolicy>(std::string(policy.name), std::string(policy.function_code));
-          registerType<ServerPolicy>(policyObj, policy.name);
-        }
-        else {
-          ServerPolicy::ffipolicyfunc_t function;
-
-          if (!getLuaFunctionFromConfiguration(function, policy.function_name, policy.function_code, policy.function_file, "FFI load-balancing policy")) {
-            throw std::runtime_error("Custom FFI load-balancing policy '" + std::string(policy.name) + "' could not be created: no valid function name, Lua code or Lua file");
-          }
-          auto policyObj = std::make_shared<ServerPolicy>(std::string(policy.name), std::move(function));
-          registerType<ServerPolicy>(policyObj, policy.name);
-        }
-      }
-      else {
-        ServerPolicy::policyfunc_t function;
-        if (!getLuaFunctionFromConfiguration(function, policy.function_name, policy.function_code, policy.function_file, "load-balancing policy")) {
-          throw std::runtime_error("Custom load-balancing policy '" + std::string(policy.name) + "' could not be created: no valid function name, Lua code or Lua file");
-        }
-        auto policyObj = std::make_shared<ServerPolicy>(std::string(policy.name), std::move(function), true);
-        registerType<ServerPolicy>(policyObj, policy.name);
-      }
-    }
+    loadCustomPolicies(globalConfig.load_balancing_policies.custom_policies);
 
     if (!globalConfig.load_balancing_policies.default_policy.empty()) {
       auto policy = getRegisteredTypeByName<ServerPolicy>(globalConfig.load_balancing_policies.default_policy);
@@ -1588,7 +1594,9 @@ std::shared_ptr<DNSSelector> getByNameSelector(const ByNameSelectorConfiguration
   return dnsdist::configuration::yaml::getRegisteredTypeByName<DNSSelector>(config.selector_name);
 }
 
+// NOLINTNEXTLINE(bugprone-suspicious-include)
 #include "dnsdist-rust-bridge-actions-generated.cc"
+// NOLINTNEXTLINE(bugprone-suspicious-include)
 #include "dnsdist-rust-bridge-selectors-generated.cc"
 }
 #endif /* defined(HAVE_YAML_CONFIGURATION) */

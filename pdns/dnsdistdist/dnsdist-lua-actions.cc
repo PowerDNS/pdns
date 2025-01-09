@@ -138,19 +138,19 @@ void setupLuaActions(LuaContext& luaCtx)
   luaCtx.registerFunction("reload", &DNSResponseAction::reload);
 
   luaCtx.writeFunction("LuaAction", [](dnsdist::actions::LuaActionFunction function) {
-    return dnsdist::actions::getLuaAction(function);
+    return dnsdist::actions::getLuaAction(std::move(function));
   });
 
   luaCtx.writeFunction("LuaFFIAction", [](dnsdist::actions::LuaActionFFIFunction function) {
-    return dnsdist::actions::getLuaFFIAction(function);
+    return dnsdist::actions::getLuaFFIAction(std::move(function));
   });
 
   luaCtx.writeFunction("LuaResponseAction", [](dnsdist::actions::LuaResponseActionFunction function) {
-    return dnsdist::actions::getLuaResponseAction(function);
+    return dnsdist::actions::getLuaResponseAction(std::move(function));
   });
 
   luaCtx.writeFunction("LuaFFIResponseAction", [](dnsdist::actions::LuaResponseActionFFIFunction function) {
-    return dnsdist::actions::getLuaFFIResponseAction(function);
+    return dnsdist::actions::getLuaFFIResponseAction(std::move(function));
   });
 
   luaCtx.writeFunction("SpoofAction", [](LuaTypeOrArrayOf<std::string> inp, boost::optional<responseParams_t> vars) {

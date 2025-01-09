@@ -397,7 +397,7 @@ class ERCodeAction : public DNSAction
 {
 public:
   ERCodeAction(uint8_t rcode, dnsdist::ResponseConfig responseConfig) :
-    d_responseConfig(std::move(responseConfig)), d_rcode(rcode)
+    d_responseConfig(responseConfig), d_rcode(rcode)
   {
   }
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
@@ -463,9 +463,9 @@ public:
 
 private:
   dnsdist::ResponseConfig d_responseConfig;
-  std::vector<std::vector<uint8_t>> d_payloads{};
-  std::set<std::pair<DNSName, ComboAddress>> d_additionals4{};
-  std::set<std::pair<DNSName, ComboAddress>> d_additionals6{};
+  std::vector<std::vector<uint8_t>> d_payloads;
+  std::set<std::pair<DNSName, ComboAddress>> d_additionals4;
+  std::set<std::pair<DNSName, ComboAddress>> d_additionals6;
 };
 
 class TCAction : public DNSAction
@@ -844,13 +844,13 @@ public:
     }
   }
 
-  SpoofAction(const DNSName& cname, const dnsdist::ResponseConfig& responseConfig) :
-    d_responseConfig(responseConfig), d_cname(cname)
+  SpoofAction(DNSName cname, const dnsdist::ResponseConfig& responseConfig) :
+    d_responseConfig(responseConfig), d_cname(std::move(cname))
   {
   }
 
-  SpoofAction(const PacketBuffer& rawresponse) :
-    d_raw(rawresponse)
+  SpoofAction(PacketBuffer rawresponse) :
+    d_raw(std::move(rawresponse))
   {
   }
 
@@ -867,12 +867,13 @@ public:
     if (!d_cname.empty()) {
       ret += d_cname.toString() + " ";
     }
-    if (d_rawResponses.size() > 0) {
+    if (!d_rawResponses.empty()) {
       ret += "raw bytes ";
     }
     else {
-      for (const auto& a : d_addrs)
-        ret += a.toString() + " ";
+      for (const auto& addr : d_addrs) {
+        ret += addr.toString() + " ";
+      }
     }
     return ret;
   }
@@ -884,7 +885,7 @@ private:
   std::vector<std::string> d_rawResponses;
   PacketBuffer d_raw;
   DNSName d_cname;
-  std::optional<uint16_t> d_rawTypeForAny{};
+  std::optional<uint16_t> d_rawTypeForAny;
 };
 
 DNSAction::Action SpoofAction::operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const
@@ -1873,7 +1874,7 @@ public:
   }
 
 private:
-  std::unordered_set<QType> d_qtypes{};
+  std::unordered_set<QType> d_qtypes;
 };
 
 class ContinueAction : public DNSAction
@@ -1915,7 +1916,7 @@ private:
 class HTTPStatusAction : public DNSAction
 {
 public:
-  HTTPStatusAction(int code, PacketBuffer body, std::string contentType, dnsdist::ResponseConfig responseConfig) :
+  HTTPStatusAction(uint16_t code, PacketBuffer body, std::string contentType, const dnsdist::ResponseConfig& responseConfig) :
     d_responseConfig(responseConfig), d_body(std::move(body)), d_contentType(std::move(contentType)), d_code(code)
   {
   }
@@ -2262,16 +2263,14 @@ private:
 class LimitTTLResponseAction : public DNSResponseAction, public boost::noncopyable
 {
 public:
-  LimitTTLResponseAction() {}
-
-  LimitTTLResponseAction(uint32_t min, uint32_t max = std::numeric_limits<uint32_t>::max(), const std::unordered_set<QType>& types = {}) :
-    d_types(types), d_min(min), d_max(max)
+  LimitTTLResponseAction(uint32_t min, uint32_t max = std::numeric_limits<uint32_t>::max(), std::unordered_set<QType> types = {}) :
+    d_types(std::move(types)), d_min(min), d_max(max)
   {
   }
 
-  DNSResponseAction::Action operator()(DNSResponse* dr, std::string* ruleresult) const override
+  DNSResponseAction::Action operator()(DNSResponse* dnsResponse, std::string* ruleresult) const override
   {
-    dnsdist::PacketMangling::restrictDNSPacketTTLs(dr->getMutableData(), d_min, d_max, d_types);
+    dnsdist::PacketMangling::restrictDNSPacketTTLs(dnsResponse->getMutableData(), d_min, d_max, d_types);
     return DNSResponseAction::Action::None;
   }
 
@@ -2304,22 +2303,22 @@ private:
 
 std::shared_ptr<DNSAction> getLuaAction(dnsdist::actions::LuaActionFunction function)
 {
-  return std::shared_ptr<DNSAction>(new LuaAction(function));
+  return std::shared_ptr<DNSAction>(new LuaAction(std::move(function)));
 }
 
 std::shared_ptr<DNSAction> getLuaFFIAction(dnsdist::actions::LuaActionFFIFunction function)
 {
-  return std::shared_ptr<DNSAction>(new LuaFFIAction(function));
+  return std::shared_ptr<DNSAction>(new LuaFFIAction(std::move(function)));
 }
 
 std::shared_ptr<DNSResponseAction> getLuaResponseAction(dnsdist::actions::LuaResponseActionFunction function)
 {
-  return std::shared_ptr<DNSResponseAction>(new LuaResponseAction(function));
+  return std::shared_ptr<DNSResponseAction>(new LuaResponseAction(std::move(function)));
 }
 
 std::shared_ptr<DNSResponseAction> getLuaFFIResponseAction(dnsdist::actions::LuaResponseActionFFIFunction function)
 {
-  return std::shared_ptr<DNSResponseAction>(new LuaFFIResponseAction(function));
+  return std::shared_ptr<DNSResponseAction>(new LuaFFIResponseAction(std::move(function)));
 }
 
 #ifndef DISABLE_PROTOBUF
@@ -2335,12 +2334,12 @@ std::shared_ptr<DNSResponseAction> getRemoteLogResponseAction(RemoteLogActionCon
 
 std::shared_ptr<DNSAction> getDnstapLogAction(const std::string& identity, std::shared_ptr<RemoteLoggerInterface> logger, std::optional<DnstapAlterFunction> alterFunc)
 {
-  return std::shared_ptr<DNSAction>(new DnstapLogAction(identity, logger, alterFunc));
+  return std::shared_ptr<DNSAction>(new DnstapLogAction(identity, logger, std::move(alterFunc)));
 }
 
 std::shared_ptr<DNSResponseAction> getDnstapLogResponseAction(const std::string& identity, std::shared_ptr<RemoteLoggerInterface> logger, std::optional<DnstapAlterResponseFunction> alterFunc)
 {
-  return std::shared_ptr<DNSResponseAction>(new DnstapLogResponseAction(identity, logger, alterFunc));
+  return std::shared_ptr<DNSResponseAction>(new DnstapLogResponseAction(identity, logger, std::move(alterFunc)));
 }
 #endif /* DISABLE_PROTOBUF */
 
@@ -2359,14 +2358,14 @@ std::shared_ptr<DNSAction> getKeyValueStoreRangeLookupAction(std::shared_ptr<Key
 #ifdef HAVE_DNS_OVER_HTTPS
 std::shared_ptr<DNSAction> getHTTPStatusAction(uint16_t status, PacketBuffer&& body, const std::string& contentType, const dnsdist::ResponseConfig& responseConfig)
 {
-  return std::shared_ptr<DNSAction>(new HTTPStatusAction(status, body, contentType, responseConfig));
+  return std::shared_ptr<DNSAction>(new HTTPStatusAction(status, std::move(body), contentType, responseConfig));
 }
 
 #endif
 
 std::shared_ptr<DNSResponseAction> getLimitTTLResponseAction(uint32_t min, uint32_t max, std::unordered_set<QType> types)
 {
-  return std::shared_ptr<DNSResponseAction>(new LimitTTLResponseAction(min, max, types));
+  return std::shared_ptr<DNSResponseAction>(new LimitTTLResponseAction(min, max, std::move(types)));
 }
 
 std::shared_ptr<DNSResponseAction> getMinTTLResponseAction(uint32_t min)
@@ -2376,7 +2375,7 @@ std::shared_ptr<DNSResponseAction> getMinTTLResponseAction(uint32_t min)
 
 std::shared_ptr<DNSResponseAction> getClearRecordTypesResponseAction(std::unordered_set<QType> types)
 {
-  return std::shared_ptr<DNSResponseAction>(new ClearRecordTypesResponseAction(types));
+  return std::shared_ptr<DNSResponseAction>(new ClearRecordTypesResponseAction(std::move(types)));
 }
 
 std::shared_ptr<DNSAction> getContinueAction(std::shared_ptr<DNSAction> action)
@@ -2459,6 +2458,8 @@ std::shared_ptr<DNSAction> getTeeAction(const ComboAddress& rca, std::optional<C
   return std::shared_ptr<DNSAction>(new TeeAction(rca, lca, addECS, addProxyProtocol));
 }
 
+// NOLINTNEXTLINE(bugprone-suspicious-include)
 #include "dnsdist-actions-factory-generated.cc"
+// NOLINTNEXTLINE(bugprone-suspicious-include)
 #include "dnsdist-response-actions-factory-generated.cc"
 }
