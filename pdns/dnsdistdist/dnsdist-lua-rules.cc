@@ -576,11 +576,11 @@ void setupLuaRules(LuaContext& luaCtx)
     return std::shared_ptr<DNSRule>(new NotRule(rule));
   });
 
-  luaCtx.writeFunction("LuaRule", [](dnsdist::selectors::LuaSelectorFunction function) {
+  luaCtx.writeFunction("LuaRule", [](const dnsdist::selectors::LuaSelectorFunction& function) {
     return std::shared_ptr<DNSRule>(dnsdist::selectors::getLuaSelector(function));
   });
 
-  luaCtx.writeFunction("LuaFFIRule", [](dnsdist::selectors::LuaSelectorFFIFunction function) {
+  luaCtx.writeFunction("LuaFFIRule", [](const dnsdist::selectors::LuaSelectorFFIFunction& function) {
     return std::shared_ptr<DNSRule>(dnsdist::selectors::getLuaFFISelector(function));
   });
 
