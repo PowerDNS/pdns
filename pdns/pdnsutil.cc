@@ -2515,7 +2515,7 @@ static int addOrSetMeta(const DNSName& zone, const string& kind, const vector<st
   return 0;
 }
 
-static int addZoneKey(vector<string>& cmds, DNSSECKeeper& dk)
+static int addZoneKey(vector<string>& cmds, DNSSECKeeper& dk) //NOLINT(readability-identifier-length)
 {
   if(cmds.size() < 3 ) {
     cerr << "Syntax: pdnsutil add-zone-key ZONE [zsk|ksk] [BITS] [active|inactive] [rsasha1|rsasha1-nsec3-sha1|rsasha256|rsasha512|ecdsa256|ecdsa384";
@@ -2532,8 +2532,8 @@ static int addZoneKey(vector<string>& cmds, DNSSECKeeper& dk)
   }
   DNSName zone(cmds.at(1));
 
-  UeberBackend B("default");
-  DomainInfo di;
+  UeberBackend B("default"); //NOLINT(readability-identifier-length)
+  DomainInfo di; //NOLINT(readability-identifier-length)
 
   if (!B.getDomainInfo(zone, di)){
     cerr << "No such zone in the database" << endl;
@@ -2547,11 +2547,13 @@ static int addZoneKey(vector<string>& cmds, DNSSECKeeper& dk)
   int algorithm=DNSSECKeeper::ECDSA256;
   bool active=false;
   bool published=true;
-  for(unsigned int n=2; n < cmds.size(); ++n) {
-    if (pdns_iequals(cmds.at(n), "zsk"))
+  for(unsigned int n=2; n < cmds.size(); ++n) { //NOLINT(readability-identifier-length)
+    if (pdns_iequals(cmds.at(n), "zsk")) {
       keyOrZone = false;
-    else if (pdns_iequals(cmds.at(n), "ksk"))
+    }
+    else if (pdns_iequals(cmds.at(n), "ksk")) {
       keyOrZone = true;
+    }
     else if ((tmp_algo = DNSSECKeeper::shorthand2algorithm(cmds.at(n))) > 0) {
       algorithm = tmp_algo;
     }
@@ -2575,21 +2577,21 @@ static int addZoneKey(vector<string>& cmds, DNSSECKeeper& dk)
       return EXIT_FAILURE;
     }
   }
-  int64_t id{-1};
+  int64_t id{-1}; //NOLINT(readability-identifier-length)
   if (!dk.addKey(zone, keyOrZone, algorithm, id, bits, active, published)) {
     cerr<<"Adding key failed, perhaps DNSSEC not enabled in configuration?"<<endl;
     return 1;
+  }
+  cerr<<"Added a " << (keyOrZone ? "KSK" : "ZSK")<<" with algorithm = "<<algorithm<<", active="<<active<<endl;
+  if (bits != 0) {
+    cerr<<"Requested specific key size of "<<bits<<" bits"<<endl;
+  }
+  if (id == -1) {
+    cerr<<std::to_string(id)<<": Key was added, but backend does not support returning of key id"<<endl;
+  } else if (id < -1) {
+    cerr<<std::to_string(id)<<": Key was added, but there was a failure while returning the key id"<<endl;
   } else {
-    cerr<<"Added a " << (keyOrZone ? "KSK" : "ZSK")<<" with algorithm = "<<algorithm<<", active="<<active<<endl;
-    if (bits)
-      cerr<<"Requested specific key size of "<<bits<<" bits"<<endl;
-    if (id == -1) {
-      cerr<<std::to_string(id)<<": Key was added, but backend does not support returning of key id"<<endl;
-    } else if (id < -1) {
-      cerr<<std::to_string(id)<<": Key was added, but there was a failure while returning the key id"<<endl;
-    } else {
-      cout<<std::to_string(id)<<endl;
-    }
+    cout<<std::to_string(id)<<endl;
   }
   return 0;
 }
