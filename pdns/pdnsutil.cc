@@ -2590,8 +2590,15 @@ static int addZoneKey(vector<string>& cmds, DNSSECKeeper& dk) //NOLINT(readabili
     cerr<<std::to_string(id)<<": Key was added, but backend does not support returning of key id"<<endl;
   } else if (id < -1) {
     cerr<<std::to_string(id)<<": Key was added, but there was a failure while returning the key id"<<endl;
+    return 1;
   } else {
-    cout<<std::to_string(id)<<endl;
+    try {
+      dk.getKeyById(zone, id);
+      cout<<std::to_string(id)<<endl;
+    } catch (std::exception& e) {
+      cerr<<std::to_string(id)<<": Key was added, but there was a failure while reading it back: " <<e.what()<<endl;
+      return 1;
+    }
   }
   return 0;
 }
