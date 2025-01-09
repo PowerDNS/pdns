@@ -21,6 +21,7 @@
  */
 #include "dnsdist-svc.hh"
 #include "dnsdist.hh"
+#include "dnsdist-dnsparser.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-lua.hh"
 #include "dnswriter.hh"

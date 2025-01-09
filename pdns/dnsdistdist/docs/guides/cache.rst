@@ -25,6 +25,22 @@ Something along the lines of a dozen bytes per pre-allocated entry can be expect
 That does not mean that the memory is completely allocated up-front, the final memory usage depending mostly on the size of cached responses and therefore varying during the cache's lifetime.
 Assuming an average response size of 512 bytes, a cache size of 10000000 entries on a 64-bit host with 8GB of dedicated RAM would be a safe choice.
 
+The equivalent ``yaml`` configuration would be:
+
+.. code-block:: yaml
+
+  packet-caches:
+    - name: "pc"
+      size: 1000
+      max-ttl: 86400
+      min-ttl: 0
+      temporary-failure-ttl: 60
+      state-ttl: 60
+      dont-age: false
+  pools:
+    - name: ""
+      packet-cache: "pc"
+
 The :func:`setStaleCacheEntriesTTL` directive can be used to allow dnsdist to use expired entries from the cache when no backend is available.
 Only entries that have expired for less than n seconds will be used, and the returned TTL can be set when creating a new cache with :func:`newPacketCache`.
 
