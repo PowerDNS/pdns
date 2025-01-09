@@ -49,8 +49,6 @@
 
 using namespace dnsdist::doq;
 
-using h3_headers_t = std::map<std::string, std::string>;
-
 class H3Connection
 {
 public:
@@ -70,7 +68,7 @@ public:
   QuicheConfig d_config;
   QuicheHTTP3Connection d_http3{nullptr, quiche_h3_conn_free};
   // buffer request headers by streamID
-  std::unordered_map<uint64_t, h3_headers_t> d_headersBuffers;
+  std::unordered_map<uint64_t, dnsdist::doh3::h3_headers_t> d_headersBuffers;
   std::unordered_map<uint64_t, PacketBuffer> d_streamBuffers;
   std::unordered_map<uint64_t, PacketBuffer> d_streamOutBuffers;
 };
@@ -629,7 +627,7 @@ static void processDOH3Query(DOH3UnitUniquePtr&& doh3Unit)
   }
 }
 
-static void doh3_dispatch_query(DOH3ServerConfig& dsc, PacketBuffer&& query, const ComboAddress& local, const ComboAddress& remote, const PacketBuffer& serverConnID, const uint64_t streamID)
+static void doh3_dispatch_query(DOH3ServerConfig& dsc, PacketBuffer&& query, const ComboAddress& local, const ComboAddress& remote, const PacketBuffer& serverConnID, const uint64_t streamID, dnsdist::doh3::h3_headers_t&& headers)
 {
   try {
     auto unit = std::make_unique<DOH3Unit>(std::move(query));
@@ -639,6 +637,7 @@ static void doh3_dispatch_query(DOH3ServerConfig& dsc, PacketBuffer&& query, con
     unit->ids.protocol = dnsdist::Protocol::DoH3;
     unit->serverConnID = serverConnID;
     unit->streamID = streamID;
+    unit->headers = std::move(headers);
 
     processDOH3Query(std::move(unit));
   }
@@ -706,7 +705,7 @@ static void processH3HeaderEvent(ClientState& clientState, DOH3Frontend& fronten
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
       std::string_view content(reinterpret_cast<char*>(value), value_len);
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
-      auto* headersptr = reinterpret_cast<h3_headers_t*>(argp);
+      auto* headersptr = reinterpret_cast<dnsdist::doh3::h3_headers_t*>(argp);
       headersptr->emplace(key, content);
       return 0;
     },
@@ -739,7 +738,7 @@ static void processH3HeaderEvent(ClientState& clientState, DOH3Frontend& fronten
       return;
     }
     DEBUGLOG("Dispatching GET query");
-    doh3_dispatch_query(*(frontend.d_server_config), std::move(*payload), conn.d_localAddr, client, serverConnID, streamID);
+    doh3_dispatch_query(*(frontend.d_server_config), std::move(*payload), conn.d_localAddr, client, serverConnID, streamID, std::move(headers));
     conn.d_streamBuffers.erase(streamID);
     conn.d_headersBuffers.erase(streamID);
     return;
@@ -804,7 +803,7 @@ static void processH3DataEvent(ClientState& clientState, DOH3Frontend& frontend,
   }
 
   DEBUGLOG("Dispatching POST query");
-  doh3_dispatch_query(*(frontend.d_server_config), std::move(streamBuffer), conn.d_localAddr, client, serverConnID, streamID);
+  doh3_dispatch_query(*(frontend.d_server_config), std::move(streamBuffer), conn.d_localAddr, client, serverConnID, streamID, std::move(headers));
   conn.d_headersBuffers.erase(streamID);
   conn.d_streamBuffers.erase(streamID);
 }
@@ -821,7 +820,7 @@ static void processH3Events(ClientState& clientState, DOH3Frontend& frontend, H3
     if (streamID < 0) {
       break;
     }
-    conn.d_headersBuffers.try_emplace(streamID, h3_headers_t{});
+    conn.d_headersBuffers.try_emplace(streamID, dnsdist::doh3::h3_headers_t{});
 
     switch (quiche_h3_event_type(event)) {
     case QUICHE_H3_EVENT_HEADERS: {
@@ -1033,6 +1032,78 @@ void doh3Thread(ClientState* clientState)
   catch (const std::exception& e) {
     DEBUGLOG("Caught fatal error in the main DoH3 thread: " << e.what());
   }
+}
+
+std::string DOH3Unit::getHTTPPath() const
+{
+  const auto& path = headers.at(":path");
+  auto pos = path.find('?');
+  if (pos == string::npos) {
+    return path;
+  }
+  return path.substr(0, pos);
+}
+
+std::string DOH3Unit::getHTTPQueryString() const
+{
+  const auto& path = headers.at(":path");
+  auto pos = path.find('?');
+  if (pos == string::npos) {
+    return {};
+  }
+
+  return path.substr(pos);
+}
+
+std::string DOH3Unit::getHTTPHost() const
+{
+  const auto& host = headers.find(":authority");
+  if (host == headers.end()) {
+    return {};
+  }
+  return host->second;
+}
+
+std::string DOH3Unit::getHTTPScheme() const
+{
+  const auto& scheme = headers.find(":scheme");
+  if (scheme == headers.end()) {
+    return {};
+  }
+  return scheme->second;
+}
+
+const dnsdist::doh3::h3_headers_t& DOH3Unit::getHTTPHeaders() const
+{
+  return headers;
+}
+
+#else /* HAVE_DNS_OVER_HTTP3 */
+
+std::string DOH3Unit::getHTTPPath() const
+{
+  return {};
+}
+
+std::string DOH3Unit::getHTTPQueryString() const
+{
+  return {};
+}
+
+std::string DOH3Unit::getHTTPHost() const
+{
+  return {};
+}
+
+std::string DOH3Unit::getHTTPScheme() const
+{
+  return {};
+}
+
+const dnsdist::doh3::h3_headers_t& DOH3Unit::getHTTPHeaders() const
+{
+  static const dnsdist::doh3::h3_headers_t headers;
+  return headers;
 }
 
 #endif /* HAVE_DNS_OVER_HTTP3 */

@@ -294,12 +294,16 @@ size_t dnsdist_ffi_dnsquestion_get_tag_raw(const dnsdist_ffi_dnsquestion_t* dq, 
 const char* dnsdist_ffi_dnsquestion_get_http_path(dnsdist_ffi_dnsquestion_t* dq)
 {
   if (!dq->httpPath) {
-    if (dq->dq->ids.du == nullptr) {
-      return nullptr;
-    }
-#ifdef HAVE_DNS_OVER_HTTPS
-    dq->httpPath = dq->dq->ids.du->getHTTPPath();
+    if (dq->dq->ids.du) {
+#if defined(HAVE_DNS_OVER_HTTPS)
+      dq->httpPath = dq->dq->ids.du->getHTTPPath();
 #endif /* HAVE_DNS_OVER_HTTPS */
+    }
+    else if (dq->dq->ids.doh3u) {
+#if defined(HAVE_DNS_OVER_HTTP3)
+      dq->httpPath = dq->dq->ids.doh3u->getHTTPPath();
+#endif /* HAVE_DNS_OVER_HTTP3 */
+    }
   }
   if (dq->httpPath) {
     return dq->httpPath->c_str();
@@ -310,12 +314,16 @@ const char* dnsdist_ffi_dnsquestion_get_http_path(dnsdist_ffi_dnsquestion_t* dq)
 const char* dnsdist_ffi_dnsquestion_get_http_query_string(dnsdist_ffi_dnsquestion_t* dq)
 {
   if (!dq->httpQueryString) {
-    if (dq->dq->ids.du == nullptr) {
-      return nullptr;
-    }
+    if (dq->dq->ids.du) {
 #ifdef HAVE_DNS_OVER_HTTPS
-    dq->httpQueryString = dq->dq->ids.du->getHTTPQueryString();
+      dq->httpQueryString = dq->dq->ids.du->getHTTPQueryString();
 #endif /* HAVE_DNS_OVER_HTTPS */
+    }
+    else if (dq->dq->ids.doh3u) {
+#if defined(HAVE_DNS_OVER_HTTP3)
+      dq->httpQueryString = dq->dq->ids.doh3u->getHTTPQueryString();
+#endif /* HAVE_DNS_OVER_HTTP3 */
+    }
   }
   if (dq->httpQueryString) {
     return dq->httpQueryString->c_str();
@@ -326,12 +334,16 @@ const char* dnsdist_ffi_dnsquestion_get_http_query_string(dnsdist_ffi_dnsquestio
 const char* dnsdist_ffi_dnsquestion_get_http_host(dnsdist_ffi_dnsquestion_t* dq)
 {
   if (!dq->httpHost) {
-    if (dq->dq->ids.du == nullptr) {
-      return nullptr;
-    }
+    if (dq->dq->ids.du) {
 #ifdef HAVE_DNS_OVER_HTTPS
-    dq->httpHost = dq->dq->ids.du->getHTTPHost();
+      dq->httpHost = dq->dq->ids.du->getHTTPHost();
 #endif /* HAVE_DNS_OVER_HTTPS */
+    }
+    else if (dq->dq->ids.doh3u) {
+#if defined(HAVE_DNS_OVER_HTTP3)
+      dq->httpHost = dq->dq->ids.doh3u->getHTTPHost();
+#endif /* HAVE_DNS_OVER_HTTP3 */
+    }
   }
   if (dq->httpHost) {
     return dq->httpHost->c_str();
@@ -342,12 +354,16 @@ const char* dnsdist_ffi_dnsquestion_get_http_host(dnsdist_ffi_dnsquestion_t* dq)
 const char* dnsdist_ffi_dnsquestion_get_http_scheme(dnsdist_ffi_dnsquestion_t* dq)
 {
   if (!dq->httpScheme) {
-    if (dq->dq->ids.du == nullptr) {
-      return nullptr;
-    }
+    if (dq->dq->ids.du) {
 #ifdef HAVE_DNS_OVER_HTTPS
-    dq->httpScheme = dq->dq->ids.du->getHTTPScheme();
+      dq->httpScheme = dq->dq->ids.du->getHTTPScheme();
 #endif /* HAVE_DNS_OVER_HTTPS */
+    }
+    else if (dq->dq->ids.doh3u) {
+#if defined(HAVE_DNS_OVER_HTTP3)
+      dq->httpScheme = dq->dq->ids.doh3u->getHTTPScheme();
+#endif /* HAVE_DNS_OVER_HTTP3 */
+    }
   }
   if (dq->httpScheme) {
     return dq->httpScheme->c_str();
@@ -404,36 +420,49 @@ size_t dnsdist_ffi_dnsquestion_get_edns_options(dnsdist_ffi_dnsquestion_t* dq, c
 
 size_t dnsdist_ffi_dnsquestion_get_http_headers(dnsdist_ffi_dnsquestion_t* dq, const dnsdist_ffi_http_header_t** out)
 {
-  if (dq->dq->ids.du == nullptr) {
-    return 0;
-  }
+#if defined(HAVE_DNS_OVER_HTTPS) || defined(HAVE_DNS_OVER_HTTP3)
+  const auto processHeaders = [&dq](const std::unordered_map<std::string, std::string>& headers) {
+    if (headers.empty()) {
+      return;
+    }
+    dq->httpHeaders = std::make_unique<std::unordered_map<std::string, std::string>>(headers);
+    if (!dq->httpHeadersVect) {
+      dq->httpHeadersVect = std::make_unique<std::vector<dnsdist_ffi_http_header_t>>();
+    }
+    dq->httpHeadersVect->clear();
+    dq->httpHeadersVect->resize(dq->httpHeaders->size());
+    size_t pos = 0;
+    for (const auto& header : *dq->httpHeaders) {
+      dq->httpHeadersVect->at(pos).name = header.first.c_str();
+      dq->httpHeadersVect->at(pos).value = header.second.c_str();
+      ++pos;
+    }
+  };
 
-#ifdef HAVE_DNS_OVER_HTTPS
-  auto headers = dq->dq->ids.du->getHTTPHeaders();
-  if (headers.size() == 0) {
-    return 0;
+#if defined(HAVE_DNS_OVER_HTTPS)
+  if (dq->dq->ids.du) {
+    const auto& headers = dq->dq->ids.du->getHTTPHeaders();
+    processHeaders(headers);
   }
-  dq->httpHeaders = std::make_unique<std::unordered_map<std::string, std::string>>(std::move(headers));
+#endif /* HAVE_DNS_OVER_HTTPS */
+#if defined(HAVE_DNS_OVER_HTTP3)
+  if (dq->dq->ids.doh3u) {
+    const auto& headers = dq->dq->ids.doh3u->getHTTPHeaders();
+    processHeaders(headers);
+  }
+#endif /* HAVE_DNS_OVER_HTTP3 */
+
   if (!dq->httpHeadersVect) {
-    dq->httpHeadersVect = std::make_unique<std::vector<dnsdist_ffi_http_header_t>>();
-  }
-  dq->httpHeadersVect->clear();
-  dq->httpHeadersVect->resize(dq->httpHeaders->size());
-  size_t pos = 0;
-  for (const auto& header : *dq->httpHeaders) {
-    dq->httpHeadersVect->at(pos).name = header.first.c_str();
-    dq->httpHeadersVect->at(pos).value = header.second.c_str();
-    ++pos;
+    return 0;
   }
 
   if (!dq->httpHeadersVect->empty()) {
     *out = dq->httpHeadersVect->data();
   }
-
   return dq->httpHeadersVect->size();
-#else
+#else /* HAVE_DNS_OVER_HTTPS || HAVE_DNS_OVER_HTTP3 */
   return 0;
-#endif
+#endif /* HAVE_DNS_OVER_HTTPS || HAVE_DNS_OVER_HTTP3 */
 }
 
 size_t dnsdist_ffi_dnsquestion_get_tag_array(dnsdist_ffi_dnsquestion_t* dq, const dnsdist_ffi_tag_t** out)
