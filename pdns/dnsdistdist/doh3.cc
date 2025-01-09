@@ -62,6 +62,14 @@ public:
   H3Connection& operator=(H3Connection&&) = default;
   ~H3Connection() = default;
 
+  std::shared_ptr<const std::string> getSNI()
+  {
+    if (!d_sni) {
+      d_sni = std::make_shared<const std::string>(getSNIFromQuicheConnection(d_conn));
+    }
+    return d_sni;
+  }
+
   ComboAddress d_peer;
   ComboAddress d_localAddr;
   QuicheConnection d_conn;
@@ -71,6 +79,7 @@ public:
   std::unordered_map<uint64_t, dnsdist::doh3::h3_headers_t> d_headersBuffers;
   std::unordered_map<uint64_t, PacketBuffer> d_streamBuffers;
   std::unordered_map<uint64_t, PacketBuffer> d_streamOutBuffers;
+  std::shared_ptr<const std::string> d_sni{nullptr};
 };
 
 static void sendBackDOH3Unit(DOH3UnitUniquePtr&& unit, const char* description);
@@ -553,6 +562,9 @@ static void processDOH3Query(DOH3UnitUniquePtr&& doh3Unit)
       ids.origFlags = *flags;
       return true;
     });
+    if (unit->sni) {
+      dnsQuestion.sni = *unit->sni;
+    }
     unit->ids.cs = &clientState;
 
     auto result = processQuery(dnsQuestion, downstream);
@@ -627,7 +639,7 @@ static void processDOH3Query(DOH3UnitUniquePtr&& doh3Unit)
   }
 }
 
-static void doh3_dispatch_query(DOH3ServerConfig& dsc, PacketBuffer&& query, const ComboAddress& local, const ComboAddress& remote, const PacketBuffer& serverConnID, const uint64_t streamID, dnsdist::doh3::h3_headers_t&& headers)
+static void doh3_dispatch_query(DOH3ServerConfig& dsc, PacketBuffer&& query, const ComboAddress& local, const ComboAddress& remote, const PacketBuffer& serverConnID, const uint64_t streamID, const std::shared_ptr<const std::string>& sni, dnsdist::doh3::h3_headers_t&& headers)
 {
   try {
     auto unit = std::make_unique<DOH3Unit>(std::move(query));
@@ -637,6 +649,7 @@ static void doh3_dispatch_query(DOH3ServerConfig& dsc, PacketBuffer&& query, con
     unit->ids.protocol = dnsdist::Protocol::DoH3;
     unit->serverConnID = serverConnID;
     unit->streamID = streamID;
+    unit->sni = sni;
     unit->headers = std::move(headers);
 
     processDOH3Query(std::move(unit));
@@ -738,7 +751,7 @@ static void processH3HeaderEvent(ClientState& clientState, DOH3Frontend& fronten
       return;
     }
     DEBUGLOG("Dispatching GET query");
-    doh3_dispatch_query(*(frontend.d_server_config), std::move(*payload), conn.d_localAddr, client, serverConnID, streamID, std::move(headers));
+    doh3_dispatch_query(*(frontend.d_server_config), std::move(*payload), conn.d_localAddr, client, serverConnID, streamID, conn.getSNI(), std::move(headers));
     conn.d_streamBuffers.erase(streamID);
     conn.d_headersBuffers.erase(streamID);
     return;
@@ -803,7 +816,7 @@ static void processH3DataEvent(ClientState& clientState, DOH3Frontend& frontend,
   }
 
   DEBUGLOG("Dispatching POST query");
-  doh3_dispatch_query(*(frontend.d_server_config), std::move(streamBuffer), conn.d_localAddr, client, serverConnID, streamID, std::move(headers));
+  doh3_dispatch_query(*(frontend.d_server_config), std::move(streamBuffer), conn.d_localAddr, client, serverConnID, streamID, conn.getSNI(), std::move(headers));
   conn.d_headersBuffers.erase(streamID);
   conn.d_streamBuffers.erase(streamID);
 }

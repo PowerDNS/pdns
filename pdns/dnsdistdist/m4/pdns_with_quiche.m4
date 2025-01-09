@@ -21,6 +21,16 @@ AC_DEFUN([PDNS_WITH_QUICHE], [
           AC_DEFINE([HAVE_QUICHE], [1], [Define to 1 if you have quiche])
         ], [ : ])
       ])
+      AS_IF([test "x$HAVE_QUICHE" = "x1"], [
+        save_CFLAGS=$CFLAGS
+        save_LIBS=$LIBS
+        CFLAGS="$QUICHE_CFLAGS $CFLAGS"
+        LIBS="$QUICHE_LIBS $LIBS"
+        AC_CHECK_FUNCS([quiche_conn_server_name])
+        CFLAGS=$save_CFLAGS
+        LIBS=$save_LIBS
+
+      ])
     ])
   ])
   AM_CONDITIONAL([HAVE_QUICHE], [test "x$QUICHE_LIBS" != "x"])
