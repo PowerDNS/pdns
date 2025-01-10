@@ -23,8 +23,11 @@
 
 #include <memory>
 #include <string>
+#include <unordered_map>
 
 #include "config.h"
+
+#ifdef HAVE_DNS_OVER_HTTP3
 #include "channel.hh"
 #include "iputils.hh"
 #include "libssl.hh"
@@ -34,6 +37,7 @@
 
 struct DOH3ServerConfig;
 struct DownstreamState;
+#endif
 
 namespace dnsdist::doh3
 {
@@ -117,18 +121,16 @@ void doh3Thread(ClientState* clientState);
 
 struct DOH3Unit
 {
-  std::string getHTTPPath() const;
-  std::string getHTTPQueryString() const;
-  const std::string& getHTTPHost() const;
-  const std::string& getHTTPScheme() const;
-  const dnsdist::doh3::h3_headers_t& getHTTPHeaders() const;
+  [[nodiscard]] std::string getHTTPPath() const;
+  [[nodiscard]] std::string getHTTPQueryString() const;
+  [[nodiscard]] std::string getHTTPHost() const;
+  [[nodiscard]] std::string getHTTPScheme() const;
+  [[nodiscard]] const dnsdist::doh3::h3_headers_t& getHTTPHeaders() const;
 };
 
 struct DOH3Frontend
 {
-  DOH3Frontend()
-  {
-  }
+  DOH3Frontend() = default;
   void setup()
   {
   }

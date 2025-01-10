@@ -221,7 +221,7 @@ dnsdist_SOURCES = \
 	dnstap.cc dnstap.hh \
 	dnswriter.cc dnswriter.hh \
 	doh.hh \
-	doh3.hh \
+	doh3.cc doh3.hh \
 	dolog.cc dolog.hh \
 	doq-common.hh \
 	doq.hh \
@@ -321,6 +321,7 @@ testrunner_SOURCES = \
 	dnsname.cc dnsname.hh \
 	dnsparser.hh dnsparser.cc \
 	dnswriter.cc dnswriter.hh \
+	doh3.cc doh3.hh \
 	dolog.cc dolog.hh \
 	ednscookies.cc ednscookies.hh \
 	ednsextendederror.cc ednsextendederror.hh \
@@ -477,11 +478,6 @@ endif
 
 if HAVE_DNS_OVER_QUIC
 dnsdist_SOURCES += doq.cc
-endif
-
-if HAVE_DNS_OVER_HTTP3
-dnsdist_SOURCES += doh3.cc
-testrunner_SOURCES += doh3.cc
 endif
 
 if HAVE_QUICHE
