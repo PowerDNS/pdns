@@ -422,6 +422,7 @@ endif
 
 if HAVE_LIBSSL
 dnsdist_LDADD += $(LIBSSL_LIBS)
+testrunner_LDADD += $(LIBSSL_LIBS)
 endif
 
 if HAVE_XSK
