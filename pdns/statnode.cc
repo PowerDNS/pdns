@@ -48,7 +48,7 @@ void StatNode::visit(const visitor_t& visitor, Stat& newstat, unsigned int depth
   newstat += childstat;
 }
 
-void StatNode::submit(const DNSName& domain, int rcode, unsigned int bytes, bool hit, const boost::optional<const ComboAddress&>& remote)
+void StatNode::submit(const DNSName& domain, int rcode, unsigned int bytes, bool hit, const std::optional<ComboAddress>& remote)
 {
   //  cerr<<"FIRST submit called on '"<<domain<<"'"<<endl;
   std::vector<string> tmp = domain.getRawLabels();
@@ -67,7 +67,7 @@ void StatNode::submit(const DNSName& domain, int rcode, unsigned int bytes, bool
    www.powerdns.com. 
 */
 
-void StatNode::submit(std::vector<string>::const_iterator end, std::vector<string>::const_iterator begin, const std::string& domain, int rcode, unsigned int bytes, const boost::optional<const ComboAddress&>& remote, unsigned int count, bool hit)
+void StatNode::submit(std::vector<string>::const_iterator end, std::vector<string>::const_iterator begin, const std::string& domain, int rcode, unsigned int bytes, const std::optional<ComboAddress>& remote, unsigned int count, bool hit)
 {
   //  cerr<<"Submit called for domain='"<<domain<<"': ";
   //  for(const std::string& n :  labels) 
