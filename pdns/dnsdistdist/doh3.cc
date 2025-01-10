@@ -303,7 +303,7 @@ static void h3_send_response(H3Connection& conn, const uint64_t streamID, uint16
   PacketBuffer location;
   PacketBuffer responseBody;
   std::vector<quiche_h3_header> headers;
-  headers.reserve(3);
+  headers.reserve(4);
   addHeaderToList(headers, ":status", sizeof(":status") - 1, status.data(), status.size());
 
   if (statusCode >= 300 && statusCode < 400) {
