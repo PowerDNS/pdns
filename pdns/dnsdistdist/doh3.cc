@@ -288,13 +288,13 @@ static bool tryWriteResponse(H3Connection& conn, const uint64_t streamID, Packet
 static void addHeaderToList(std::vector<quiche_h3_header>& headers, const char* name, size_t nameLen, const char* value, size_t valueLen)
 {
   headers.emplace_back((quiche_h3_header){
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
-      .name = reinterpret_cast<const uint8_t*>(name),
-      .name_len = nameLen,
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
-      .value = reinterpret_cast<const uint8_t*>(value),
-      .value_len = valueLen,
-    });
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
+    .name = reinterpret_cast<const uint8_t*>(name),
+    .name_len = nameLen,
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
+    .value = reinterpret_cast<const uint8_t*>(value),
+    .value_len = valueLen,
+  });
 }
 
 static void h3_send_response(H3Connection& conn, const uint64_t streamID, uint16_t statusCode, const uint8_t* body, size_t len, const std::string& contentType = {})
