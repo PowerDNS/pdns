@@ -315,6 +315,7 @@ static void h3_send_response(H3Connection& conn, const uint64_t streamID, uint16
     addHeaderToList(headers, "content-type", sizeof("content-type") - 1, s_redirectContentType.data(), s_redirectContentType.size());
     responseBody.reserve(s_redirectStart.size() + len + s_redirectEnd.size());
     responseBody.insert(responseBody.begin(), s_redirectStart.begin(), s_redirectStart.end());
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     responseBody.insert(responseBody.end(), body, body + len);
     responseBody.insert(responseBody.end(), s_redirectEnd.begin(), s_redirectEnd.end());
     body = responseBody.data();

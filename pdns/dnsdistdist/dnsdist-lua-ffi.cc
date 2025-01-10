@@ -501,6 +501,7 @@ void dnsdist_ffi_dnsquestion_set_http_response(dnsdist_ffi_dnsquestion_t* dq, ui
 {
 #if defined(HAVE_DNS_OVER_HTTPS)
   if (dq->dq->ids.du) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): C API
     PacketBuffer bodyVect(body, body + bodyLen);
     dq->dq->ids.du->setHTTPResponse(statusCode, std::move(bodyVect), contentType);
     dnsdist::PacketMangling::editDNSHeaderFromPacket(dq->dq->getMutableData(), [](dnsheader& header) {
@@ -511,6 +512,7 @@ void dnsdist_ffi_dnsquestion_set_http_response(dnsdist_ffi_dnsquestion_t* dq, ui
 #endif
 #if defined(HAVE_DNS_OVER_HTTP3)
   if (dq->dq->ids.doh3u) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): C API
     PacketBuffer bodyVect(body, body + bodyLen);
     dq->dq->ids.doh3u->setHTTPResponse(statusCode, std::move(bodyVect), contentType);
     dnsdist::PacketMangling::editDNSHeaderFromPacket(dq->dq->getMutableData(), [](dnsheader& header) {
