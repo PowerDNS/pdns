@@ -3147,7 +3147,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #endif
   });
 
-  luaCtx.writeFunction("showTLSContexts", []() {
+  luaCtx.writeFunction("showTLSFrontends", []() {
 #ifdef HAVE_DNS_OVER_TLS
     setLuaNoSideEffect();
     try {
@@ -3169,30 +3169,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #else
       g_outputBuffer = "DNS over TLS support is not present!\n";
 #endif
-  });
-
-  luaCtx.writeFunction("getTLSContext", [](uint64_t index) {
-    std::shared_ptr<TLSCtx> result = nullptr;
-#ifdef HAVE_DNS_OVER_TLS
-    setLuaNoSideEffect();
-    const auto tlsFrontends = dnsdist::getDoTFrontends();
-    try {
-      if (index < tlsFrontends.size()) {
-        result = tlsFrontends.at(index)->getContext();
-      }
-      else {
-        errlog("Error: trying to get TLS context with index %d but we only have %d context(s)\n", index, tlsFrontends.size());
-        g_outputBuffer = "Error: trying to get TLS context with index " + std::to_string(index) + " but we only have " + std::to_string(tlsFrontends.size()) + " context(s)\n";
-      }
-    }
-    catch (const std::exception& e) {
-      g_outputBuffer = "Error while trying to get TLS context with index " + std::to_string(index) + ": " + string(e.what()) + "\n";
-      errlog("Error while trying to get TLS context with index %d: %s\n", index, string(e.what()));
-    }
-#else
-        g_outputBuffer="DNS over TLS support is not present!\n";
-#endif
-    return result;
   });
 
   luaCtx.writeFunction("getTLSFrontend", [](uint64_t index) {
@@ -3222,18 +3198,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.writeFunction("getTLSFrontendCount", []() {
     setLuaNoSideEffect();
     return dnsdist::getDoTFrontends().size();
-  });
-
-  luaCtx.registerFunction<void (std::shared_ptr<TLSCtx>::*)()>("rotateTicketsKey", [](std::shared_ptr<TLSCtx>& ctx) {
-    if (ctx != nullptr) {
-      ctx->rotateTicketsKey(time(nullptr));
-    }
-  });
-
-  luaCtx.registerFunction<void (std::shared_ptr<TLSCtx>::*)(const std::string&)>("loadTicketsKeys", [](std::shared_ptr<TLSCtx>& ctx, const std::string& file) {
-    if (ctx != nullptr) {
-      ctx->loadTicketsKeys(file);
-    }
   });
 
   luaCtx.registerFunction<std::string (std::shared_ptr<TLSFrontend>::*)() const>("getAddressAndPort", [](const std::shared_ptr<TLSFrontend>& frontend) {
