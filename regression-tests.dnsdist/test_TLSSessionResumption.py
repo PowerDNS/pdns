@@ -230,20 +230,20 @@ class TestTLSSessionResumptionDOT(DNSDistTLSSessionResumptionTest):
 
         # rotate the TLS session ticket keys several times, but keep the previously active one around so we can resume
         for _ in range(self._numberOfKeys - 1):
-            self.sendConsoleCommand("getTLSContext(0):rotateTicketsKey()")
+            self.sendConsoleCommand("getTLSFrontend(0):rotateTicketsKey()")
 
         # the session should be resumed and a new ticket, encrypted with the newly active key, should be stored
         self.assertTrue(self.checkSessionResumed('127.0.0.1', self._tlsServerPort, self._serverName, self._caCert, '/tmp/session.dot', '/tmp/session.dot'))
 
         # rotate the TLS session ticket keys several times, but keep the previously active one around so we can resume
         for _ in range(self._numberOfKeys - 1):
-            self.sendConsoleCommand("getTLSContext(0):rotateTicketsKey()")
+            self.sendConsoleCommand("getTLSFrontend(0):rotateTicketsKey()")
 
         self.assertTrue(self.checkSessionResumed('127.0.0.1', self._tlsServerPort, self._serverName, self._caCert, '/tmp/session.dot', '/tmp/session.dot'))
 
         # rotate the TLS session ticket keys several times, not keeping any key around this time!
         for _ in range(self._numberOfKeys):
-            self.sendConsoleCommand("getTLSContext(0):rotateTicketsKey()")
+            self.sendConsoleCommand("getTLSFrontend(0):rotateTicketsKey()")
 
         # we should not be able to resume
         self.assertFalse(self.checkSessionResumed('127.0.0.1', self._tlsServerPort, self._serverName, self._caCert, '/tmp/session.dot', '/tmp/session.dot'))
@@ -252,26 +252,26 @@ class TestTLSSessionResumptionDOT(DNSDistTLSSessionResumptionTest):
         self.generateTicketKeysFile(self._numberOfKeys, '/tmp/ticketKeys.1')
         self.generateTicketKeysFile(self._numberOfKeys - 1, '/tmp/ticketKeys.2')
         # load all ticket keys from the file
-        self.sendConsoleCommand("getTLSContext(0):loadTicketsKeys('/tmp/ticketKeys.1')")
+        self.sendConsoleCommand("getTLSFrontend(0):loadTicketsKeys('/tmp/ticketKeys.1')")
 
         # create a new session, resume it
         self.assertFalse(self.checkSessionResumed('127.0.0.1', self._tlsServerPort, self._serverName, self._caCert, '/tmp/session.dot', None))
         self.assertTrue(self.checkSessionResumed('127.0.0.1', self._tlsServerPort, self._serverName, self._caCert, '/tmp/session.dot', '/tmp/session.dot', allowNoTicket=True))
 
         # reload the same keys
-        self.sendConsoleCommand("getTLSContext(0):loadTicketsKeys('/tmp/ticketKeys.1')")
+        self.sendConsoleCommand("getTLSFrontend(0):loadTicketsKeys('/tmp/ticketKeys.1')")
 
         # should still be able to resume
         self.assertTrue(self.checkSessionResumed('127.0.0.1', self._tlsServerPort, self._serverName, self._caCert, '/tmp/session.dot', '/tmp/session.dot', allowNoTicket=True))
 
         # rotate the TLS session ticket keys several times, but keep the previously active one around so we can resume
         for _ in range(self._numberOfKeys - 1):
-            self.sendConsoleCommand("getTLSContext(0):rotateTicketsKey()")
+            self.sendConsoleCommand("getTLSFrontend(0):rotateTicketsKey()")
         # should still be able to resume
         self.assertTrue(self.checkSessionResumed('127.0.0.1', self._tlsServerPort, self._serverName, self._caCert, '/tmp/session.dot', '/tmp/session.dot'))
 
         # reload the same keys
-        self.sendConsoleCommand("getTLSContext(0):loadTicketsKeys('/tmp/ticketKeys.1')")
+        self.sendConsoleCommand("getTLSFrontend(0):loadTicketsKeys('/tmp/ticketKeys.1')")
         # since the last key was only present in memory, we should not be able to resume
         self.assertFalse(self.checkSessionResumed('127.0.0.1', self._tlsServerPort, self._serverName, self._caCert, '/tmp/session.dot', '/tmp/session.dot'))
 
@@ -280,20 +280,20 @@ class TestTLSSessionResumptionDOT(DNSDistTLSSessionResumptionTest):
 
         # generate a file with only _numberOfKeys - 1 keys, so the last active one should still be around after loading that one
         self.generateTicketKeysFile(self._numberOfKeys - 1, '/tmp/ticketKeys.2')
-        self.sendConsoleCommand("getTLSContext(0):loadTicketsKeys('/tmp/ticketKeys.2')")
+        self.sendConsoleCommand("getTLSFrontend(0):loadTicketsKeys('/tmp/ticketKeys.2')")
         # we should be able to resume, and the ticket should be re-encrypted with the new key (NOTE THAT we store into a new file!!)
         self.assertTrue(self.checkSessionResumed('127.0.0.1', self._tlsServerPort, self._serverName, self._caCert, '/tmp/session.dot.2', '/tmp/session.dot'))
         self.assertTrue(self.checkSessionResumed('127.0.0.1', self._tlsServerPort, self._serverName, self._caCert, '/tmp/session.dot.2', '/tmp/session.dot.2', allowNoTicket=True))
 
         # rotate all keys, we should not be able to resume
         for _ in range(self._numberOfKeys):
-            self.sendConsoleCommand("getTLSContext(0):rotateTicketsKey()")
+            self.sendConsoleCommand("getTLSFrontend(0):rotateTicketsKey()")
         self.assertFalse(self.checkSessionResumed('127.0.0.1', self._tlsServerPort, self._serverName, self._caCert, '/tmp/session.dot.3', '/tmp/session.dot.2'))
 
         # reload from file 1, the old session should resume
-        self.sendConsoleCommand("getTLSContext(0):loadTicketsKeys('/tmp/ticketKeys.1')")
+        self.sendConsoleCommand("getTLSFrontend(0):loadTicketsKeys('/tmp/ticketKeys.1')")
         self.assertTrue(self.checkSessionResumed('127.0.0.1', self._tlsServerPort, self._serverName, self._caCert, '/tmp/session.dot', '/tmp/session.dot', allowNoTicket=True))
 
         # reload from file 2, the latest session should resume
-        self.sendConsoleCommand("getTLSContext(0):loadTicketsKeys('/tmp/ticketKeys.2')")
+        self.sendConsoleCommand("getTLSFrontend(0):loadTicketsKeys('/tmp/ticketKeys.2')")
         self.assertTrue(self.checkSessionResumed('127.0.0.1', self._tlsServerPort, self._serverName, self._caCert, '/tmp/session.dot.2', '/tmp/session.dot.2', allowNoTicket=True))

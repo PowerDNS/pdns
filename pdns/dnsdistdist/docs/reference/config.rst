@@ -1226,6 +1226,9 @@ Status, Statistics and More
 
 .. function:: getTLSContext(idx)
 
+  .. versionchanged:: 2.0.0
+    This directive was removed in version 2.0.0, see :func:`getTLSFrontend` instead.
+
   Return the TLSContext object for the context of index ``idx``.
 
 .. function:: getTLSFrontend(idx)
@@ -1424,13 +1427,25 @@ Status, Statistics and More
 
 .. function:: showTLSContexts()
 
-  Print the list of all available DNS over TLS contexts.
+  .. versionchanged:: 2.0.0
+    This function has been renamed to :func:`showTLSFrontends`.
+
+  Print the list of all available DNS over TLS frontends.
 
 .. function:: showTLSErrorCounters()
 
   .. versionadded:: 1.4.0
 
   Display metrics about TLS handshake failures.
+
+.. function:: showTLSContexts()
+
+  .. versionadded:: 2.0.0
+
+  .. note::
+    Before 2.0.0 this function was called ``showTLSContexts``.
+
+  Print the list of all available DNS over TLS frontends.
 
 .. function:: showVersion()
 
@@ -2508,6 +2523,9 @@ TLSContext
 ~~~~~~~~~~
 
 .. class:: TLSContext
+
+  .. versionchanged:: 2.0.0
+    This class has been removed in version 2.0.0.
 
   This object represents an address and port dnsdist is listening on for DNS over TLS queries.
 
