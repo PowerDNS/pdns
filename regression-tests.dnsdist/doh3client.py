@@ -176,12 +176,16 @@ async def perform_http_request(
     elapsed = time.time() - start
 
     result = bytes()
+    headers = {}
     for http_event in http_events:
         if isinstance(http_event, DataReceived):
             result += http_event.data
         if isinstance(http_event, StreamReset):
             result = http_event
-    return result
+        if isinstance(http_event, HeadersReceived):
+            for k, v in http_event.headers:
+                headers[k] = v
+    return (result, headers)
 
 
 async def async_h3_query(
@@ -220,15 +224,15 @@ async def async_h3_query(
 
                 return answer
         except asyncio.TimeoutError as e:
-            return e
+            return (e,{})
 
 
-def doh3_query(query, baseurl, timeout=2, port=853, verify=None, server_hostname=None, post=False, additional_headers=None):
+def doh3_query(query, baseurl, timeout=2, port=853, verify=None, server_hostname=None, post=False, additional_headers=None, raw_response=False):
     configuration = QuicConfiguration(alpn_protocols=H3_ALPN, is_client=True)
     if verify:
         configuration.load_verify_locations(verify)
 
-    result = asyncio.run(
+    (result, headers) = asyncio.run(
         async_h3_query(
             configuration=configuration,
             baseurl=baseurl,
@@ -245,4 +249,6 @@ def doh3_query(query, baseurl, timeout=2, port=853, verify=None, server_hostname
         raise StreamResetError(result.error_code)
     if (isinstance(result, asyncio.TimeoutError)):
         raise TimeoutError()
+    if raw_response:
+        return (result, headers)
     return dns.message.from_wire(result)

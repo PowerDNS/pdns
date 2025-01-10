@@ -511,7 +511,7 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
 #endif /* HAVE_NET_SNMP */
   });
 
-#ifdef HAVE_DNS_OVER_HTTPS
+#if defined(HAVE_DNS_OVER_HTTPS) || defined(HAVE_DNS_OVER_HTTP3)
   luaCtx.registerFunction<std::string (DNSQuestion::*)(void) const>("getHTTPPath", [](const DNSQuestion& dnsQuestion) {
     if (dnsQuestion.ids.du) {
       return dnsQuestion.ids.du->getHTTPPath();
@@ -563,14 +563,19 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
   });
 
   luaCtx.registerFunction<void (DNSQuestion::*)(uint64_t statusCode, const std::string& body, const boost::optional<std::string> contentType)>("setHTTPResponse", [](DNSQuestion& dnsQuestion, uint64_t statusCode, const std::string& body, const boost::optional<std::string>& contentType) {
-    if (dnsQuestion.ids.du == nullptr) {
+    if (dnsQuestion.ids.du == nullptr && dnsQuestion.ids.doh3u == nullptr) {
       return;
     }
     checkParameterBound("DNSQuestion::setHTTPResponse", statusCode, std::numeric_limits<uint16_t>::max());
     PacketBuffer vect(body.begin(), body.end());
-    dnsQuestion.ids.du->setHTTPResponse(statusCode, std::move(vect), contentType ? *contentType : "");
+    if (dnsQuestion.ids.du) {
+      dnsQuestion.ids.du->setHTTPResponse(statusCode, std::move(vect), contentType ? *contentType : "");
+    }
+    else {
+      dnsQuestion.ids.doh3u->setHTTPResponse(statusCode, std::move(vect), contentType ? *contentType : "");
+    }
   });
-#endif /* HAVE_DNS_OVER_HTTPS */
+#endif /* HAVE_DNS_OVER_HTTPS HAVE_DNS_OVER_HTTP3 */
 
   luaCtx.registerFunction<bool (DNSQuestion::*)(bool nxd, const std::string& zone, uint64_t ttl, const std::string& mname, const std::string& rname, uint64_t serial, uint64_t refresh, uint64_t retry, uint64_t expire, uint64_t minimum)>("setNegativeAndAdditionalSOA", [](DNSQuestion& dnsQuestion, bool nxd, const std::string& zone, uint64_t ttl, const std::string& mname, const std::string& rname, uint64_t serial, uint64_t refresh, uint64_t retry, uint64_t expire, uint64_t minimum) {
     checkParameterBound("setNegativeAndAdditionalSOA", ttl, std::numeric_limits<uint32_t>::max());

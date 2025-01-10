@@ -2019,7 +2019,7 @@ private:
   std::shared_ptr<DNSAction> d_action;
 };
 
-#ifdef HAVE_DNS_OVER_HTTPS
+#if defined(HAVE_DNS_OVER_HTTPS) || defined(HAVE_DNS_OVER_HTTP3)
 class HTTPStatusAction : public DNSAction
 {
 public:
@@ -2030,17 +2030,29 @@ public:
 
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
-    if (!dnsquestion->ids.du) {
-      return Action::None;
+#if defined(HAVE_DNS_OVER_HTTPS)
+    if (dnsquestion->ids.du) {
+      dnsquestion->ids.du->setHTTPResponse(d_code, PacketBuffer(d_body), d_contentType);
+      dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsquestion->getMutableData(), [this](dnsheader& header) {
+        header.qr = true; // for good measure
+        setResponseHeadersFromConfig(header, d_responseConfig);
+        return true;
+      });
+      return Action::HeaderModify;
     }
-
-    dnsquestion->ids.du->setHTTPResponse(d_code, PacketBuffer(d_body), d_contentType);
-    dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsquestion->getMutableData(), [this](dnsheader& header) {
-      header.qr = true; // for good measure
-      setResponseHeadersFromConfig(header, d_responseConfig);
-      return true;
-    });
-    return Action::HeaderModify;
+#endif /* HAVE_DNS_OVER_HTTPS */
+#if defined(HAVE_DNS_OVER_HTTP3)
+    if (dnsquestion->ids.doh3u) {
+      dnsquestion->ids.doh3u->setHTTPResponse(d_code, PacketBuffer(d_body), d_contentType);
+      dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsquestion->getMutableData(), [this](dnsheader& header) {
+        header.qr = true; // for good measure
+        setResponseHeadersFromConfig(header, d_responseConfig);
+        return true;
+      });
+      return Action::HeaderModify;
+    }
+#endif /* HAVE_DNS_OVER_HTTP3 */
+    return Action::None;
   }
 
   [[nodiscard]] std::string toString() const override
@@ -2059,7 +2071,7 @@ private:
   std::string d_contentType;
   int d_code;
 };
-#endif /* HAVE_DNS_OVER_HTTPS */
+#endif /* HAVE_DNS_OVER_HTTPS || HAVE_DNS_OVER_HTTP3 */
 
 #if defined(HAVE_LMDB) || defined(HAVE_CDB)
 class KeyValueStoreLookupAction : public DNSAction
