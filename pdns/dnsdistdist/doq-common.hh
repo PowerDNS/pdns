@@ -23,6 +23,7 @@
 
 #include <map>
 #include <memory>
+#include <string>
 
 #include "config.h"
 
@@ -97,7 +98,7 @@ void handleVersionNegociation(Socket& sock, const PacketBuffer& clientConnID, co
 void flushEgress(Socket& sock, QuicheConnection& conn, const ComboAddress& peer, const ComboAddress& localAddr, PacketBuffer& buffer);
 void configureQuiche(QuicheConfig& config, const QuicheParams& params, bool isHTTP);
 bool recvAsync(Socket& socket, PacketBuffer& buffer, ComboAddress& clientAddr, ComboAddress& localAddr);
-
+std::string getSNIFromQuicheConnection(const QuicheConnection& conn);
 };
 
 #endif
