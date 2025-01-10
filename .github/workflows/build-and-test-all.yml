@@ -623,6 +623,7 @@ jobs:
         threads: [1, 2, 3, 4, 8]
         mthreads: [2048]
         shards: [1, 2, 1024]
+        IPv6: [0]
     container:
       image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
@@ -644,7 +645,7 @@ jobs:
           path: /opt/pdns-recursor
       - run: inv install-clang-runtime
       - run: inv install-rec-bulk-deps
-      - run: inv test-bulk-recursor ${{ matrix.threads }} ${{ matrix.mthreads }} ${{ matrix.shards }}
+      - run: inv test-bulk-recursor 100 ${{ matrix.threads }} ${{ matrix.mthreads }} ${{ matrix.shards }} ${{ matrix.IPv6 }}
       - run: inv generate-coverage-info /opt/pdns-recursor/sbin/pdns_recursor $GITHUB_WORKSPACE
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
       - name: Coveralls Parallel recursor bulk
@@ -656,6 +657,51 @@ jobs:
           parallel: true
           allow-empty: true
           fail-on-error: false
+
+  test-recursor-ubicloud-bulk:
+    if: ${{ vars.REC_BULKTEST_USE_UBICLOUD == '1' || github.repository == 'PowerDNS/pdns' }}
+    name: 'test rec ubicloud bulk'
+    needs:
+      - build-recursor
+    runs-on: ubicloud-standard-8-ubuntu-2404
+    strategy:
+      matrix:
+        sanitizers: [ubsan+asan] # TSAN disabled for now
+        threads: [8]
+        mthreads: [2048]
+        shards: [1024]
+        IPv6: [0, 1]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 5
+          submodules: recursive
+          ref: ${{ inputs.branch-name }}
+      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
+      - name: Fetch the binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: pdns-recursor-full-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
+          path: /opt/pdns-recursor
+      - run: build-scripts/gh-actions-setup-inv-no-dist-upgrade
+      - run: inv install-rec-bulk-ubicloud-deps
+      - run: inv test-bulk-recursor 50000 ${{ matrix.threads }} ${{ matrix.mthreads }} ${{ matrix.shards }} ${{ matrix.IPv6 }}
+        env:
+          UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp'
+          ASAN_OPTIONS: detect_leaks=0
+          TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ github.workspace }}/pdns/recursordist/recursor-tsan.supp"
+      #  Disabled, it gives us: "/bin/bash: line 1: llvm-profdata-13: command not found" due to mismatch between deb and ubuntu versions
+      #- run: inv generate-coverage-info /opt/pdns-recursor/sbin/pdns_recursor $GITHUB_WORKSPACE
+      #  if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
+      #- name: Coveralls Parallel recursor bulk
+      #  if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
+      #  uses: coverallsapp/github-action@v2
+      #  with:
+      #    flag-name: rec-regression-bulk-full-${{ matrix.sanitizers }}
+      #    path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
+      #    parallel: true
+      #    allow-empty: true
+      #    fail-on-error: false
 
   test-dnsdist-regression:
     needs:
@@ -736,6 +782,7 @@ jobs:
       - test-recursor-api
       - test-recursor-regression
       - test-recursor-bulk
+      - test-recursor-ubicloud-bulk
     if: success() || failure()
     runs-on: ubuntu-22.04
     steps:

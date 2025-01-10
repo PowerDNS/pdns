@@ -60,7 +60,24 @@ rec_build_deps = [
 ]
 rec_bulk_deps = [
     'curl',
+    'dnsutils',
     'libboost-all-dev',
+    'libcap2',
+    'libfstrm0',
+    'libluajit-5.1-2',
+    '"libsnmp[1-9]+"',
+    'libsodium23',
+    'libsystemd0',
+    'moreutils',
+    'pdns-tools',
+    'unzip',
+]
+rec_bulk_ubicloud_deps = [
+    'curl',
+    'dnsutils',
+    'libboost-context1.74.0',
+    'libboost-system1.74.0',
+    'libboost-filesystem1.74.0',
     'libcap2',
     'libfstrm0',
     'libluajit-5.1-2',
@@ -265,6 +282,11 @@ def install_auth_test_deps(c, backend): # FIXME: rename this, we do way more tha
 @task
 def install_rec_bulk_deps(c): # FIXME: rename this, we do way more than apt-get
     c.sudo('apt-get --no-install-recommends -y install ' + ' '.join(rec_bulk_deps))
+    c.run('chmod +x /opt/pdns-recursor/bin/* /opt/pdns-recursor/sbin/*')
+
+@task
+def install_rec_bulk_ubicloud_deps(c): # FIXME: rename this, we do way more than apt-get
+    c.sudo('apt-get --no-install-recommends -y install ' + ' '.join(rec_bulk_ubicloud_deps))
     c.run('chmod +x /opt/pdns-recursor/bin/* /opt/pdns-recursor/sbin/*')
 
 @task
@@ -1044,13 +1066,12 @@ def test_regression_recursor(c):
     c.run('PDNSRECURSOR=/opt/pdns-recursor/sbin/pdns_recursor RECCONTROL=/opt/pdns-recursor/bin/rec_control ./build-scripts/test-recursor')
 
 @task
-def test_bulk_recursor(c, threads, mthreads, shards):
-    # We run an extremely small version of the bulk test, as GH does not seem to be able to handle the UDP load
+def test_bulk_recursor(c, size, threads, mthreads, shards, ipv6):
     with c.cd('regression-tests'):
-        c.run('curl -LO http://s3-us-west-1.amazonaws.com/umbrella-static/top-1m.csv.zip')
+        c.run('curl --no-progress-meter -LO http://s3-us-west-1.amazonaws.com/umbrella-static/top-1m.csv.zip')
         c.run('unzip top-1m.csv.zip -d .')
         c.run('chmod +x /opt/pdns-recursor/bin/* /opt/pdns-recursor/sbin/*')
-        c.run(f'DNSBULKTEST=/usr/bin/dnsbulktest RECURSOR=/opt/pdns-recursor/sbin/pdns_recursor RECCONTROL=/opt/pdns-recursor/bin/rec_control THRESHOLD=95 TRACE=no ./recursor-test 5300 100 {threads} {mthreads} {shards}')
+        c.run(f'DNSBULKTEST=/usr/bin/dnsbulktest RECURSOR=/opt/pdns-recursor/sbin/pdns_recursor RECCONTROL=/opt/pdns-recursor/bin/rec_control IPv6={ipv6} THRESHOLD=95 TRACE=no ./recursor-test 5300 {size} {threads} {mthreads} {shards}')
 
 @task
 def install_swagger_tools(c):
