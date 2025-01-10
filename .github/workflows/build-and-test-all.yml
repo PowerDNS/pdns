@@ -659,7 +659,7 @@ jobs:
           fail-on-error: false
 
   test-recursor-ubicloud-bulk:
-    if: ${{ vars.REC_BULKTEST_USE_UBICLOUD == '1' }}
+    if: ${{ vars.REC_BULKTEST_USE_UBICLOUD == '1' || github.repository == 'PowerDNS/pdns' }}
     name: 'test rec ubicloud bulk'
     needs:
       - build-recursor
