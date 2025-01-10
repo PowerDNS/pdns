@@ -949,6 +949,7 @@ speedtest_SOURCES = \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
+	shuffle.cc shuffle.hh \
 	sillyrecords.cc \
 	speedtest.cc \
 	statbag.cc \

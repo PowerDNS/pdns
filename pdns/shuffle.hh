@@ -29,4 +29,5 @@ namespace pdns
 {
 void shuffle(std::vector<DNSZoneRecord>& rrs);
 void orderAndShuffle(std::vector<DNSRecord>& rrs, bool includingAdditionals);
+unsigned int dedupRecords(std::vector<DNSRecord>& rrs);
 }

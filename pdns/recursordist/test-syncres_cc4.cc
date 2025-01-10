@@ -1729,9 +1729,9 @@ BOOST_AUTO_TEST_CASE(test_dnssec_bogus_too_many_sigs)
         addRecordToLW(res, domain, QType::NS, std::string(addr), DNSResourceRecord::ANSWER, 3600);
       }
 
-      addRRSIG(keys, res->d_records, domain, 300, true, boost::none, boost::none, fixedNow);
-      addRRSIG(keys, res->d_records, domain, 300, true, boost::none, boost::none, fixedNow);
-      addRRSIG(keys, res->d_records, domain, 300, false, boost::none, boost::none, fixedNow);
+      addRRSIG(keys, res->d_records, domain, 300, 1, boost::none, boost::none, fixedNow);
+      addRRSIG(keys, res->d_records, domain, 300, 2, boost::none, boost::none, fixedNow);
+      addRRSIG(keys, res->d_records, domain, 300, 0, boost::none, boost::none, fixedNow);
 
       addRecordToLW(res, "a.root-servers.net.", QType::A, "198.41.0.4", DNSResourceRecord::ADDITIONAL, 3600);
       addRecordToLW(res, "a.root-servers.net.", QType::AAAA, "2001:503:ba3e::2:30", DNSResourceRecord::ADDITIONAL, 3600);

@@ -39,6 +39,7 @@
 #include "dnsseckeeper.hh"
 #include "validate-recursor.hh"
 #include "rec-taskqueue.hh"
+#include "shuffle.hh"
 
 rec::GlobalCounters g_Counters;
 thread_local rec::TCounters t_Counters(g_Counters);
@@ -2759,6 +2760,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<
       // so you can't trust that a real lookup will have been made.
       res = doResolve(newTarget, qtype, ret, depth + 1, beenthere, cnameContext);
       LOG(prefix << qname << ": Updating validation state for response to " << qname << " from " << context.state << " with the state from the DNAME/CNAME quest: " << cnameContext.state << endl);
+      pdns::dedupRecords(ret); // multiple NSECS could have been added, #14120
       updateValidationState(qname, context.state, cnameContext.state, prefix);
 
       return true;
@@ -4478,6 +4480,12 @@ void SyncRes::sanitizeRecordsPass2(const std::string& prefix, LWResult& lwr, con
     }
     lwr.d_records = std::move(vec);
   }
+#ifdef notyet
+  // As dedupping is relatively expensive and having dup records not really hurts as far as we have seen, do not dedup.
+  if (auto count = pdns::dedupRecords(lwr.d_records); count > 0) {
+    LOG(prefix << qname << ": Removed " << count << " duplicate records from response received from " << auth << endl);
+  }
+#endif
 }
 
 void SyncRes::rememberParentSetIfNeeded(const DNSName& domain, const vector<DNSRecord>& newRecords, unsigned int depth, const string& prefix)
