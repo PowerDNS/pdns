@@ -1015,6 +1015,7 @@ pickchashed
 pickclosest
 pickhashed
 picknamehashed
+pickselfweighted
 pickrandom
 pickrandomsample
 pickwhashed
