@@ -235,6 +235,7 @@ private:
     }
   }
 
+  //NOLINTNEXTLINE(readability-identifier-length)
   void setWeight(const CheckDesc& cd, int weight){
     auto statuses = d_statuses.write_lock();
     auto& state = (*statuses)[cd];
@@ -281,7 +282,7 @@ int IsUpOracle::isUp(const CheckDesc& cd)
       if (iter->second->weight > 0) {
         return iter->second->weight;
       }
-      return iter->second->status;
+      return static_cast<int>(iter->second->status);
     }
   }
   // try to parse options so we don't insert any malformed content
@@ -295,7 +296,7 @@ int IsUpOracle::isUp(const CheckDesc& cd)
       (*statuses)[cd] = std::make_unique<CheckState>(now);
     }
   }
-  return false;
+  return 0;
 }
 
 int IsUpOracle::isUp(const ComboAddress& remote, const opts_t& opts)
@@ -1188,8 +1189,9 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
                                              boost::optional<opts_t> options) {
       vector< pair<int, ComboAddress> > items;
       opts_t opts;
-      if(options)
+      if(options) {
         opts = *options;
+      }
 
       items.reserve(ips.capacity());
       bool available = false;
@@ -1198,12 +1200,14 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
       for (auto& entry : conv) {
         int weight = 0;
         weight = g_up.isUp(entry, url, opts);
-        if(weight>0)
+        if(weight>0) {
           available = true;
+        }
         items.emplace_back(weight, entry);
       }
-      if(available)
+      if(available) {
         return pickWeightedHashed<ComboAddress>(s_lua_record_ctx->bestwho, items).toString();
+      }
 
       // All units down, apply backupSelector on all candidates
       return pickWeightedRandom<ComboAddress>(items).toString();
