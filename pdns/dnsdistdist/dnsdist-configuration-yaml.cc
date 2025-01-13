@@ -590,15 +590,6 @@ static void loadDynamicBlockConfiguration(const dnsdist::rust::settings::Dynamic
         }
         dbrgObj->setRCodeRate(checkedConversionFromStr<int>("dynamic-rules.rules.qtype_rate", "qtype", rule.qtype), std::move(ruleParams));
       }
-      else if (rule.rule_type == "qtype-ratio") {
-        DynBlockRulesGroup::DynBlockRatioRule ruleParams(std::string(rule.comment), rule.action_duration, rule.ratio, rule.warning_ratio, rule.seconds, rule.action.empty() ? DNSAction::Action::None : DNSAction::typeFromString(std::string(rule.action)), rule.minimum_number_of_responses);
-        if (ruleParams.d_action == DNSAction::Action::SetTag && !rule.tag_name.empty()) {
-          ruleParams.d_tagSettings = std::make_shared<DynBlock::TagSettings>();
-          ruleParams.d_tagSettings->d_name = std::string(rule.tag_name);
-          ruleParams.d_tagSettings->d_value = std::string(rule.tag_value);
-        }
-        dbrgObj->setRCodeRatio(checkedConversionFromStr<int>("dynamic-rules.rules.qtype_ratio", "qtype", rule.qtype), std::move(ruleParams));
-      }
       else if (rule.rule_type == "cache-miss-ratio") {
         DynBlockRulesGroup::DynBlockCacheMissRatioRule ruleParams(std::string(rule.comment), rule.action_duration, rule.ratio, rule.warning_ratio, rule.seconds, rule.action.empty() ? DNSAction::Action::None : DNSAction::typeFromString(std::string(rule.action)), rule.minimum_number_of_responses, rule.minimum_global_cache_hit_ratio);
         if (ruleParams.d_action == DNSAction::Action::SetTag && !rule.tag_name.empty()) {

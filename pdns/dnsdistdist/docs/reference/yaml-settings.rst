@@ -119,9 +119,11 @@ BindConfiguration
 CDBKVStoreConfiguration
 -----------------------
 
-- **name**: String
-- **file_name**: String
-- **refresh_delay**: Unsigned integer
+CDB-based key-value store
+
+- **name**: String - The name of this object
+- **file_name**: String - The path to an existing CDB database
+- **refresh_delay**: Unsigned integer - The delay in seconds between two checks of the database modification time. 0 means disabled
 
 
 .. _yaml-settings-Cache_settingsConfiguration:
@@ -139,6 +141,8 @@ Cache_settingsConfiguration
 CarbonConfiguration
 -------------------
 
+Carbon endpoint to send metrics to
+
 - **address**: String - Indicates the IP address where the statistics should be sent
 - **name**: String ``("")`` - An optional string specifying the hostname that should be used. If left empty, the system hostname is used
 - **interval**: Unsigned integer ``(30)`` - An optional unsigned integer indicating the interval in seconds between exports
@@ -151,12 +155,14 @@ CarbonConfiguration
 ConsoleConfiguration
 --------------------
 
+Console-related settings
+
 - **listen_address**: String ``("")`` - IP address and port to listen on for console connections
 - **key**: String ``("")`` - The shared secret used to secure connections between the console client and the server, generated via ``makeKey()``
 - **acl**: Sequence of String ``(127.0.0.1, ::1)`` - List of network masks or IP addresses that are allowed to open a connection to the console server
-- **maximum_output_size**: Unsigned integer ``(10000000)``
-- **log_connections**: Boolean ``(true)``
-- **max_concurrent_connections**: Unsigned integer ``(0)``
+- **maximum_output_size**: Unsigned integer ``(10000000)`` - Set the maximum size, in bytes, of a single console message
+- **log_connections**: Boolean ``(true)`` - Whether to log the opening and closing of console connections
+- **max_concurrent_connections**: Unsigned integer ``(0)`` - Set the maximum number of concurrent console connection
 
 
 .. _yaml-settings-Custom_load_balancing_policyConfiguration:
@@ -177,15 +183,17 @@ Custom_load_balancing_policyConfiguration
 Dnstap_loggerConfiguration
 --------------------------
 
-- **name**: String
-- **transport**: String
-- **address**: String
-- **buffer_hint**: Unsigned integer ``(0)``
-- **flush_timeout**: Unsigned integer ``(0)``
-- **input_queue_size**: Unsigned integer ``(0)``
-- **output_queue_size**: Unsigned integer ``(0)``
-- **queue_notify_threshold**: Unsigned integer ``(0)``
-- **reopen_interval**: Unsigned integer ``(0)``
+Endpoint to send queries and/or responses data to, using the dnstap format
+
+- **name**: String - Name of this endpoint
+- **transport**: String - The dnstap transport to use. Supported values are: unix, tcp
+- **address**: String - The address of the endpoint. If the transport is set to 'unix', the address should be local ``AF_UNIX`` socket path. Note that most platforms have a rather short limit on the length. Otherwise the address should be an IP:port
+- **buffer_hint**: Unsigned integer ``(0)`` - The threshold number of bytes to accumulate in the output buffer before forcing a buffer flush. According to the libfstrm library, the minimum is 1024, the maximum is 65536, and the default is 8192
+- **flush_timeout**: Unsigned integer ``(0)`` - The number of seconds to allow unflushed data to remain in the output buffer. According to the libfstrm library, the minimum is 1 second, the maximum is 600 seconds (10 minutes), and the default is 1 second
+- **input_queue_size**: Unsigned integer ``(0)`` - The number of queue entries to allocate for each input queue. This value must be a power of 2. According to the fstrm library, the minimum is 2, the maximum is 16384, and the default is 512
+- **output_queue_size**: Unsigned integer ``(0)`` - The number of queue entries to allocate for each output queue. According to the libfstrm library, the minimum is 2, the maximum is system-dependent and based on ``IOV_MAX``, and the default is 64
+- **queue_notify_threshold**: Unsigned integer ``(0)`` - The number of outstanding queue entries to allow on an input queue before waking the I/O thread. Accordingg to the libfstrm library, the minimum is 1 and the default is 32
+- **reopen_interval**: Unsigned integer ``(0)`` - The number of queue entries to allocate for each output queue. According to the libfstrm library, the minimum is 2, the maximum is system-dependent and based on IOV_MAX, and the default is 64
 
 
 .. _yaml-settings-Doh_tuningConfiguration:
@@ -204,24 +212,26 @@ Doh_tuningConfiguration
 Dynamic_ruleConfiguration
 -------------------------
 
-- **type**: String
-- **seconds**: Unsigned integer
-- **action_duration**: Unsigned integer
-- **comment**: String
-- **rate**: Unsigned integer ``(0)``
-- **ratio**: Double ``(0.0)``
-- **action**: String ``(drop)``
-- **warning_rate**: Unsigned integer ``(0)``
-- **warning_ratio**: Double ``(0.0)``
+Dynamic rule settings
+
+- **type**: String - The type of this rule. Supported values are: query-rate, rcode-rate, rcode-ratio, qtype-rate, cache-miss-ratio, response-byte-rate
+- **seconds**: Unsigned integer - Number of seconds the rule has been exceeded
+- **action_duration**: Unsigned integer - How long the action is going to be enforced
+- **comment**: String - Comment describing why the action why taken
+- **rate**: Unsigned integer ``(0)`` - For ``query-rate``, ``rcode-rate``, ``qtype-rate`` and ``response-byte-rate``, the rate that should be exceeded
+- **ratio**: Double ``(0.0)`` - For ``rcode-ratio``, ``qtype-ratio`` and ``cache-miss-ratio``, the ratio that should be exceeded
+- **action**: String ``(drop)`` - The action that will be taken once the rate or ratio is exceeded. Supported values are: Drop, NoNop, NoRecurse, NXDomain, SetTag, Truncate, Refused
+- **warning_rate**: Unsigned integer ``(0)`` - For ``query-rate``, ``rcode-rate``, ``qtype-rate`` and ``response-byte-rate``, the rate that should be exceeded for a warning to be logged, but no action enforced
+- **warning_ratio**: Double ``(0.0)`` - For ``rcode-ratio`` and ``cache-miss-ratio``, the ratio that should be exceeded for a warning to be logged, but no action enforced
 - **tag_name**: String ``("")``
-- **tag_value**: String ``(0)``
-- **visitor_function_name**: String ``("")``
-- **visitor_function_code**: String ``("")``
-- **visitor_function_file**: String ``("")``
-- **rcode**: String ``("")``
-- **qtype**: String ``("")``
-- **minimum_number_of_responses**: Unsigned integer ``(0)``
-- **minimum_global_cache_hit_ratio**: Double ``(0.0)``
+- **tag_value**: String ``(0)`` - If ``action`` is set to ``SetTag``, the value that will be set
+- **visitor_function_name**: String ``("")`` - For ``suffix-match`` and ``suffix-match-ffi``, the name of the Lua visitor function to call for each label of every domain seen in recent queries and responses
+- **visitor_function_code**: String ``("")`` - For ``suffix-match`` and ``suffix-match-ffi``, the code of Lua visitor function for each label of every domain seen in recent queries and responses
+- **visitor_function_file**: String ``("")`` - For ``suffix-match`` and ``suffix-match-ffi``, a path to a file containing the code of Lua visitor function for each label of every domain seen in recent queries and responses
+- **rcode**: String ``("")`` - For ``rcode-rate`` and ``rcode-ratio``, the response code to match
+- **qtype**: String ``("")`` - For ``qtype-rate``, the query type to match
+- **minimum_number_of_responses**: Unsigned integer ``(0)`` - For ``cache-miss-ratio`` and ``rcode-ratio``, the minimum number of responses to have received for this rule to apply
+- **minimum_global_cache_hit_ratio**: Double ``(0.0)`` - The minimum global cache-hit ratio (over all pools, so ``cache-hits`` / (``cache-hits`` + ``cache-misses``)) for a ``cache-miss-ratio`` rule to be applied
 
 
 .. _yaml-settings-Dynamic_rulesConfiguration:
@@ -229,14 +239,16 @@ Dynamic_ruleConfiguration
 Dynamic_rulesConfiguration
 --------------------------
 
-- **name**: String
-- **mask_ipv4**: Unsigned integer ``(32)``
-- **mask_ipv6**: Unsigned integer ``(64)``
-- **mask_port**: Unsigned integer ``(0)``
-- **exclude_ranges**: Sequence of String
-- **include_ranges**: Sequence of String
-- **exclude_domains**: Sequence of String
-- **rules**: Sequence of :ref:`DynamicRuleConfiguration <yaml-settings-DynamicRuleConfiguration>`
+Group of dynamic rules
+
+- **name**: String - The name of this group of dynamic rules
+- **mask_ipv4**: Unsigned integer ``(32)`` - Number of bits to keep for IPv4 addresses
+- **mask_ipv6**: Unsigned integer ``(64)`` - Number of bits to keep for IPv6 addresses. In some scenarios it might make sense to block a whole /64 IPv6 range instead of a single address, for example
+- **mask_port**: Unsigned integer ``(0)`` - Number of bits of port to consider over IPv4, for CGNAT deployments. Default is 0 meaning that the port is not taken into account. For example passing ``2`` here, which only makes sense if the IPv4 parameter is set to ``32``, will split a given IPv4 address into four port ranges: ``0-16383``, ``16384-32767``, ``32768-49151`` and ``49152-65535``
+- **exclude_ranges**: Sequence of String - Exclude this list of ranges, meaning that no dynamic block will ever be inserted for clients in that range. Default to empty, meaning rules are applied to all ranges. When used in combination with ``include_ranges`` the more specific entry wins
+- **include_ranges**: Sequence of String - Include this list of ranges, meaning that dynamic rules will be inserted for clients in that range. When used in combination with ``exclude_ranges`` the more specific entry wins
+- **exclude_domains**: Sequence of String - Exclude this list of domains, meaning that no dynamic rules will ever be inserted for this domain via ``suffix-match`` or ``suffix-match-ffi`` rules. Default to empty, meaning rules are applied to all domains
+- **rules**: Sequence of :ref:`DynamicRuleConfiguration <yaml-settings-DynamicRuleConfiguration>` - List of dynamic rules in this group
 
 
 .. _yaml-settings-Dynamic_rules_settingsConfiguration:
@@ -244,8 +256,10 @@ Dynamic_rulesConfiguration
 Dynamic_rules_settingsConfiguration
 -----------------------------------
 
-- **purge_interval**: Unsigned integer ``(60)``
-- **default_action**: String ``(Drop)``
+Dynamic rules-related settings
+
+- **purge_interval**: Unsigned integer ``(60)`` - Set at which interval, in seconds, the expired dynamic blocks entries will be effectively removed from the tree. Entries are not applied anymore as soon as they expire, but they remain in the tree for a while for performance reasons. Removing them makes the addition of new entries faster and frees up the memory they use. Setting this value to 0 disables the purging mechanism, so entries will remain in the tree
+- **default_action**: String ``(Drop)`` - Set which action is performed when a query is blocked. Supported values are: Drop, NoOp, NoRecurse, NXDomain, Refused, Truncate
 
 
 .. _yaml-settings-EbpfConfiguration:
@@ -253,12 +267,14 @@ Dynamic_rules_settingsConfiguration
 EbpfConfiguration
 -----------------
 
-- **ipv4**: :ref:`EbpfMapConfiguration <yaml-settings-EbpfMapConfiguration>`
-- **ipv6**: :ref:`EbpfMapConfiguration <yaml-settings-EbpfMapConfiguration>`
-- **cidr_ipv4**: :ref:`EbpfMapConfiguration <yaml-settings-EbpfMapConfiguration>`
-- **cidr_ipv6**: :ref:`EbpfMapConfiguration <yaml-settings-EbpfMapConfiguration>`
-- **qnames**: :ref:`EbpfMapConfiguration <yaml-settings-EbpfMapConfiguration>`
-- **external**: Boolean ``(false)``
+``eBPF`` and ``XDP`` related settings
+
+- **ipv4**: :ref:`EbpfMapConfiguration <yaml-settings-EbpfMapConfiguration>` - IPv4 maps
+- **ipv6**: :ref:`EbpfMapConfiguration <yaml-settings-EbpfMapConfiguration>` - IPv6 maps
+- **cidr_ipv4**: :ref:`EbpfMapConfiguration <yaml-settings-EbpfMapConfiguration>` - IPv4 subnets maps
+- **cidr_ipv6**: :ref:`EbpfMapConfiguration <yaml-settings-EbpfMapConfiguration>` - IPv6 subnets maps
+- **qnames**: :ref:`EbpfMapConfiguration <yaml-settings-EbpfMapConfiguration>` - DNS names maps
+- **external**: Boolean ``(false)`` - If set to true, :program:`dnsdist` does not load the internal ``eBPF`` program. This is useful for ``AF_XDP`` and ``XDP`` maps
 
 
 .. _yaml-settings-Ebpf_mapConfiguration:
@@ -266,8 +282,10 @@ EbpfConfiguration
 Ebpf_mapConfiguration
 ---------------------
 
-- **max_entries**: Unsigned integer ``(0)``
-- **pinned_path**: String ``("")``
+An ``eBPF`` map that is used to share data with kernel-land ``AF_XDP``/``XSK``, ``socket filter`` or ``XDP`` programs. Maps can be pinned to a filesystem path, which makes their content persistent across restarts and allows external programs to read their content and to add new entries. :program:`dnsdist` will try to load maps that are pinned to a filesystem path on startups, inheriting any existing entries, and fall back to creating them if they do not exist yet. Note that the user :program`dnsdist` is running under must have the right privileges to read and write to the given file, and to go through all the directories in the path leading to that file. The pinned path must be on a filesystem of type ``BPF``, usually below ``/sys/fs/bpf/``
+
+- **max_entries**: Unsigned integer ``(0)`` - Maximum number of entries in this map. 0 means no entry at all
+- **pinned_path**: String ``("")`` - The filesystem path this map should be pinned to
 
 
 .. _yaml-settings-Edns_client_subnetConfiguration:
@@ -275,9 +293,11 @@ Ebpf_mapConfiguration
 Edns_client_subnetConfiguration
 -------------------------------
 
-- **override_existing**: Boolean ``(false)`` - When `useClientSubnet` in `newServer()` is set and dnsdist adds an EDNS Client Subnet Client option to the query, override an existing option already present in the query, if any. Please see Passing the source address to the backend for more information. Note that it’s not recommended to enable setECSOverride in front of an authoritative server responding with EDNS Client Subnet information as mismatching data (ECS scopes) can confuse clients and lead to SERVFAIL responses on downstream nameservers
-- **source_prefix_v4**: Unsigned integer ``(32)`` - When `useClientSubnet` in `newServer()` is set and dnsdist adds an EDNS Client Subnet Client option to the query, truncate the requestor's IPv4 address to `prefix` bits
-- **source_prefix_v6**: Unsigned integer ``(56)`` - When `useClientSubnet` in `newServer()` is set and dnsdist adds an EDNS Client Subnet Client option to the query, truncate the requestor's IPv6 address to `prefix` bits
+EDNS Client Subnet-related settings
+
+- **override_existing**: Boolean ``(false)`` - When ``useClientSubnet`` in :func:`newServer()` or ``use_client_subnet`` in :ref:`_yaml-settings-BackendConfiguration` are set, and :program:`dnsdist` adds an EDNS Client Subnet Client option to the query, override an existing option already present in the query, if any. Please see Passing the source address to the backend for more information. Note that it’s not recommended to enable this option in front of an authoritative server responding with EDNS Client Subnet information as mismatching data (ECS scopes) can confuse clients and lead to SERVFAIL responses on downstream nameservers
+- **source_prefix_v4**: Unsigned integer ``(32)`` - When ``useClientSubnet`` in :func:`newServer()` or ``use_client_subnet`` in :ref:`_yaml-settings-BackendConfiguration` are set, and :program:`dnsdist` adds an EDNS Client Subnet Client option to the query, truncate the requestor's IPv4 address to this number of bits
+- **source_prefix_v6**: Unsigned integer ``(56)`` - When ``useClientSubnet`` in :func:`newServer()` or ``use_client_subnet`` in :ref:`_yaml-settings-BackendConfiguration` are set, and :program:`dnsdist` adds an EDNS Client Subnet Client option to the query, truncate the requestor's IPv6 address to this number of bits
 
 
 .. _yaml-settings-GeneralConfiguration:
@@ -409,7 +429,9 @@ Incoming_tcpConfiguration
 Incoming_tlsConfiguration
 -------------------------
 
-- **provider**: String ``(OpenSSL)``
+TLS parameters for frontends
+
+- **provider**: String ``(OpenSSL)`` - . Supported values are: OpenSSL, GnuTLS
 - **certificates**: Sequence of :ref:`IncomingTlsCertificateKeyPairConfiguration <yaml-settings-IncomingTlsCertificateKeyPairConfiguration>`
 - **ignore_errors**: Boolean ``(false)``
 - **ciphers**: String ``("")``
@@ -438,9 +460,11 @@ Incoming_tlsConfiguration
 Incoming_tls_certificate_key_pairConfiguration
 ----------------------------------------------
 
-- **certificate**: String
-- **key**: String ``("")``
-- **password**: String ``("")``
+A pair of TLS certificate and key, with an optional associated password
+
+- **certificate**: String - A path to a file containing the certificate, in ``PEM``, ``DER`` or ``PKCS12`` format
+- **key**: String ``("")`` - A path to a file containing the key corresponding to the certificate, in ``PEM``, ``DER`` or ``PKCS12`` format
+- **password**: String ``("")`` - Password protecting the PKCS12 file if appropriate
 
 
 .. _yaml-settings-KVSLookupKeyQNameConfiguration:
@@ -448,8 +472,10 @@ Incoming_tls_certificate_key_pairConfiguration
 KVSLookupKeyQNameConfiguration
 ------------------------------
 
-- **name**: String
-- **wire_format**: Boolean ``(true)``
+Lookup key that can be used with :ref:`_yaml-settings-KeyValueStoreLookupAction` or :ref:`_yaml-settings-KeyValueStoreLookupSelector`, will return the qname of the query in DNS wire format
+
+- **name**: String - The name of this lookup key
+- **wire_format**: Boolean ``(true)`` - Whether to do the lookup in wire format (default) or in plain text
 
 
 .. _yaml-settings-KVSLookupKeySourceIPConfiguration:
@@ -457,10 +483,12 @@ KVSLookupKeyQNameConfiguration
 KVSLookupKeySourceIPConfiguration
 ---------------------------------
 
-- **name**: String
-- **v4_mask**: Unsigned integer ``(32)``
-- **v6_mask**: Unsigned integer ``(128)``
-- **include_port**: Boolean ``(false)``
+Lookup key that can be used with :ref:`_yaml-settings-KeyValueStoreLookupAction` or :ref:`_yaml-settings-KeyValueStoreLookupSelector`, will return the source IP of the client in network byte-order
+
+- **name**: String - The name of this lookup key
+- **v4_mask**: Unsigned integer ``(32)`` - Mask applied to IPv4 addresses. Default is 32 (the whole address)
+- **v6_mask**: Unsigned integer ``(128)`` - Mask applied to IPv6 addresses. Default is 128 (the whole address)
+- **include_port**: Boolean ``(false)`` - Whether to append the port (in network byte-order) after the address
 
 
 .. _yaml-settings-KVSLookupKeySuffixConfiguration:
@@ -468,15 +496,32 @@ KVSLookupKeySourceIPConfiguration
 KVSLookupKeySuffixConfiguration
 -------------------------------
 
-- **name**: String
-- **minimum_labels**: Unsigned integer ``(0)``
-- **wire_format**: Boolean ``(true)``
+Lookup key that can be used with :ref:`_yaml-settings-KeyValueStoreLookupAction` or :ref:`_yaml-settings-KeyValueStoreLookupSelector`, will return a vector of keys based on the labels of the qname in DNS wire format or plain text. For example if the qname is sub.domain.powerdns.com. the following keys will be returned:
+
+- ``\\3sub\\6domain\\8powerdns\\3com\\0``
+- ``\\6domain\\8powerdns\\3com\\0``
+- ``\\8powerdns\\3com\\0``
+- ``\\3com\\0``
+- ``\\0``
+
+If ``min_labels`` is set to a value larger than ``0`` the lookup will only be done as long as there is at least ``min_labels`` labels remaining. Taking back our previous example, it means only the following keys will be returned if ``min_labels`` is set to ``2``:
+
+- ``\\3sub\\6domain\\8powerdns\\3com\\0``
+- ``\\6domain\\8powerdns\\3com\\0``
+- ``\\8powerdns\\3com\\0``
+
+
+- **name**: String - The name of this lookup key
+- **minimum_labels**: Unsigned integer ``(0)`` - The minimum number of labels to do a lookup for. Default is 0 which means unlimited
+- **wire_format**: Boolean ``(true)`` - Whether to do the lookup in wire format (default) or in plain text
 
 
 .. _yaml-settings-KVSLookupKeyTagConfiguration:
 
 KVSLookupKeyTagConfiguration
 ----------------------------
+
+Lookup key that can be used with :ref:`_yaml-settings-KeyValueStoreLookupAction` or :ref:`_yaml-settings-KeyValueStoreLookupSelector`, will return the value of the corresponding tag for this query, if it exists
 
 - **name**: String
 - **tag**: String
@@ -486,6 +531,8 @@ KVSLookupKeyTagConfiguration
 
 KVSLookupKeysConfiguration
 --------------------------
+
+List of look keys that can be used with :ref:`_yaml-settings-KeyValueStoreLookupAction` or :ref:`_yaml-settings-KeyValueStoreLookupSelector`
 
 - **source_ip_keys**: Sequence of :ref:`KVSLookupKeySourceIPConfiguration <yaml-settings-KVSLookupKeySourceIPConfiguration>`
 - **qname_keys**: Sequence of :ref:`KVSLookupKeyQNameConfiguration <yaml-settings-KVSLookupKeyQNameConfiguration>`
@@ -498,9 +545,11 @@ KVSLookupKeysConfiguration
 Key_value_storesConfiguration
 -----------------------------
 
-- **lmdb**: Sequence of :ref:`LMDBKVStoreConfiguration <yaml-settings-LMDBKVStoreConfiguration>`
-- **cdb**: Sequence of :ref:`CDBKVStoreConfiguration <yaml-settings-CDBKVStoreConfiguration>`
-- **lookup_keys**: :ref:`KVSLookupKeysConfiguration <yaml-settings-KVSLookupKeysConfiguration>`
+List of key-value stores that can be used with :ref:`_yaml-settings-KeyValueStoreLookupAction` or :ref:`_yaml-settings-KeyValueStoreLookupSelector`
+
+- **lmdb**: Sequence of :ref:`LMDBKVStoreConfiguration <yaml-settings-LMDBKVStoreConfiguration>` - List of LMDB-based key-value stores
+- **cdb**: Sequence of :ref:`CDBKVStoreConfiguration <yaml-settings-CDBKVStoreConfiguration>` - List of CDB-based key-value stores
+- **lookup_keys**: :ref:`KVSLookupKeysConfiguration <yaml-settings-KVSLookupKeysConfiguration>` - List of lookup keys
 
 
 .. _yaml-settings-LMDBKVStoreConfiguration:
@@ -508,10 +557,12 @@ Key_value_storesConfiguration
 LMDBKVStoreConfiguration
 ------------------------
 
-- **name**: String
-- **file_name**: String
-- **database_name**: String
-- **no_lock**: Boolean ``(false)``
+LMDB-based key-value store
+
+- **name**: String - The name of this object
+- **file_name**: String - The path to an existing ``LMDB`` database created with ``MDB_NOSUBDIR``
+- **database_name**: String - The name of the database to use
+- **no_lock**: Boolean ``(false)`` - Whether to open the database with the ``MDB_NOLOCK`` flag
 
 
 .. _yaml-settings-Lazy_health_checkConfiguration:
@@ -547,7 +598,9 @@ Load_balancing_policiesConfiguration
 MetricsConfiguration
 --------------------
 
-- **carbon**: Sequence of :ref:`CarbonConfiguration <yaml-settings-CarbonConfiguration>`
+Metrics-related settings
+
+- **carbon**: Sequence of :ref:`CarbonConfiguration <yaml-settings-CarbonConfiguration>` - List of Carbon endpoints to send metrics to
 
 
 .. _yaml-settings-Outgoing_auto_upgradeConfiguration:
@@ -638,8 +691,10 @@ PoolConfiguration
 ProtoBufMetaConfiguration
 -------------------------
 
-- **key**: String
-- **value**: String
+Meta-data entry to be added to a Protocol Buffer message
+
+- **key**: String - Name of the meta entry
+- **value**: String - Value of the meta entry
 
 
 .. _yaml-settings-Protobuf_loggerConfiguration:
@@ -647,7 +702,9 @@ ProtoBufMetaConfiguration
 Protobuf_loggerConfiguration
 ----------------------------
 
-- **name**: String
+Endpoint to send queries and/or responses data to, using the native PowerDNS format
+
+- **name**: String - Name of this endpoint
 - **address**: String - An IP:PORT combination where the logger is listening
 - **timeout**: Unsigned integer ``(2)`` - TCP connect timeout in seconds
 - **max_queued_entries**: Unsigned integer ``(100)`` - Queue this many messages before dropping new ones (e.g. when the remote listener closes the connection)
@@ -700,8 +757,10 @@ Query_ruleConfiguration
 Remote_loggingConfiguration
 ---------------------------
 
-- **protobuf_loggers**: Sequence of :ref:`ProtobufLoggerConfiguration <yaml-settings-ProtobufLoggerConfiguration>`
-- **dnstap_loggers**: Sequence of :ref:`DnstapLoggerConfiguration <yaml-settings-DnstapLoggerConfiguration>`
+Queries and/or responses remote logging settings
+
+- **protobuf_loggers**: Sequence of :ref:`ProtobufLoggerConfiguration <yaml-settings-ProtobufLoggerConfiguration>` - List of endpoints to send queries and/or responses data to, using the native PowerDNS format
+- **dnstap_loggers**: Sequence of :ref:`DnstapLoggerConfiguration <yaml-settings-DnstapLoggerConfiguration>` - List of endpoints to send queries and/or responses data to, using the dnstap format
 
 
 .. _yaml-settings-Response_ruleConfiguration:
@@ -719,6 +778,8 @@ Response_ruleConfiguration
 
 Ring_buffersConfiguration
 -------------------------
+
+Settings for in-memory ring buffers, that are used for live traffic inspection and dynamic rules
 
 - **size**: Unsigned integer ``(10000)`` - The maximum amount of queries to keep in the ringbuffer
 - **shards**: Unsigned integer ``(10)`` - The number of shards to use to limit lock contention
@@ -814,9 +875,9 @@ WebserverConfiguration
 - **dashboard_requires_authentication**: Boolean ``(true)`` - Whether access to the internal dashboard requires a valid password
 - **max_concurrent_connections**: Unsigned integer ``(100)`` - The maximum number of concurrent web connections, or 0 which means an unlimited number
 - **hash_plaintext_credentials**: Boolean ``(false)`` - Whether passwords and API keys provided in plaintext should be hashed during startup, to prevent the plaintext versions from staying in memory. Doing so increases significantly the cost of verifying credentials
-- **custom_headers**: Sequence of :ref:`HttpCustomResponseHeaderConfiguration <yaml-settings-HttpCustomResponseHeaderConfiguration>`
-- **api_configuration_directory**: String ``("")``
-- **api_read_write**: Boolean ``(false)``
+- **custom_headers**: Sequence of :ref:`HttpCustomResponseHeaderConfiguration <yaml-settings-HttpCustomResponseHeaderConfiguration>` - List of custom HTTP headers to set in our responses
+- **api_configuration_directory**: String ``("")`` - A valid directory where the configuration files will be written by the API
+- **api_read_write**: Boolean ``(false)`` - Allow modifications via the API. Optionally saving these changes to disk. Modifications done via the API will not be written to the configuration by default and will not persist after a reload
 
 
 .. _yaml-settings-XskConfiguration:

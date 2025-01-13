@@ -140,12 +140,15 @@ global:
       description: "List of AF_XDP / XSK objects"
 
 metrics:
+  description: "Metrics-related settings"
   parameters:
     - name: "carbon"
       type: "Vec<CarbonConfiguration>"
       default: true
+      description: "List of Carbon endpoints to send metrics to"
 
 carbon:
+  description: "Carbon endpoint to send metrics to"
   parameters:
     - name: "address"
       type: "String"
@@ -169,18 +172,23 @@ carbon:
       description: "An optional string specifying the instance name that should be used"
 
 remote_logging:
+  description: "Queries and/or responses remote logging settings"
   parameters:
     - name: "protobuf_loggers"
       type: "Vec<ProtobufLoggerConfiguration>"
       default: true
+      description: "List of endpoints to send queries and/or responses data to, using the native PowerDNS format"
     - name: "dnstap_loggers"
       type: "Vec<DnstapLoggerConfiguration>"
       default: true
+      description: "List of endpoints to send queries and/or responses data to, using the dnstap format"
 
 protobuf_logger:
+  description: "Endpoint to send queries and/or responses data to, using the native PowerDNS format"
   parameters:
     - name: "name"
       type: "String"
+      description: "Name of this endpoint"
     - name: "address"
       type: "String"
       description: "An IP:PORT combination where the logger is listening"
@@ -198,94 +206,146 @@ protobuf_logger:
       description: "Time in seconds between reconnection attempts"
 
 dnstap_logger:
+  description: "Endpoint to send queries and/or responses data to, using the dnstap format"
   parameters:
     - name: "name"
       type: "String"
+      description: "Name of this endpoint"
     - name: "transport"
       type: "String"
+      description: "The dnstap transport to use"
+      supported-values:
+        - "unix"
+        - "tcp"
     - name: "address"
       type: "String"
+      description: "The address of the endpoint. If the transport is set to 'unix', the address should be local ``AF_UNIX`` socket path. Note that most platforms have a rather short limit on the length. Otherwise the address should be an IP:port"
     - name: "buffer_hint"
       type: "u64"
       default: 0
+      description: "The threshold number of bytes to accumulate in the output buffer before forcing a buffer flush. According to the libfstrm library, the minimum is 1024, the maximum is 65536, and the default is 8192"
     - name: "flush_timeout"
       type: "u64"
       default: 0
+      description: "The number of seconds to allow unflushed data to remain in the output buffer. According to the libfstrm library, the minimum is 1 second, the maximum is 600 seconds (10 minutes), and the default is 1 second"
     - name: "input_queue_size"
       type: "u64"
       default: 0
+      description: "The number of queue entries to allocate for each input queue. This value must be a power of 2. According to the fstrm library, the minimum is 2, the maximum is 16384, and the default is 512"
     - name: "output_queue_size"
       type: "u64"
       default: 0
+      description: "The number of queue entries to allocate for each output queue. According to the libfstrm library, the minimum is 2, the maximum is system-dependent and based on ``IOV_MAX``, and the default is 64"
     - name: "queue_notify_threshold"
       type: "u64"
       default: 0
+      description: "The number of outstanding queue entries to allow on an input queue before waking the I/O thread. Accordingg to the libfstrm library, the minimum is 1 and the default is 32"
     - name: "reopen_interval"
       type: "u64"
       default: 0
+      description: "The number of queue entries to allocate for each output queue. According to the libfstrm library, the minimum is 2, the maximum is system-dependent and based on IOV_MAX, and the default is 64"
 
 ProtoBufMeta:
+  description: "Meta-data entry to be added to a Protocol Buffer message"
   parameters:
     - name: "key"
       type: "String"
+      description: "Name of the meta entry"
     - name: "value"
       type: "String"
+      description: "Value of the meta entry"
 
 LMDBKVStore:
+  description: "LMDB-based key-value store"
   parameters:
     - name: "name"
       type: "String"
+      description: "The name of this object"
     - name: "file_name"
       type: "String"
+      description: "The path to an existing ``LMDB`` database created with ``MDB_NOSUBDIR``"
     - name: "database_name"
       type: "String"
+      description: "The name of the database to use"
     - name: "no_lock"
       type: "bool"
       default: "false"
+      description: "Whether to open the database with the ``MDB_NOLOCK`` flag"
 
 CDBKVStore:
+  description: "CDB-based key-value store"
   parameters:
     - name: "name"
       type: "String"
+      description: "The name of this object"
     - name: "file_name"
       type: "String"
+      description: "The path to an existing CDB database"
     - name: "refresh_delay"
       type: "u32"
+      description: "The delay in seconds between two checks of the database modification time. 0 means disabled"
 
 KVSLookupKeySourceIP:
+  description: "Lookup key that can be used with :ref:`_yaml-settings-KeyValueStoreLookupAction` or :ref:`_yaml-settings-KeyValueStoreLookupSelector`, will return the source IP of the client in network byte-order"
   parameters:
     - name: "name"
       type: "String"
+      description: "The name of this lookup key"
     - name: "v4_mask"
       type: "u8"
       default: "32"
+      description: "Mask applied to IPv4 addresses. Default is 32 (the whole address)"
     - name: "v6_mask"
       type: "u8"
       default: "128"
+      description: "Mask applied to IPv6 addresses. Default is 128 (the whole address)"
     - name: "include_port"
       type: "bool"
       default: "false"
+      description: "Whether to append the port (in network byte-order) after the address"
 
 KVSLookupKeyQName:
+  description: "Lookup key that can be used with :ref:`_yaml-settings-KeyValueStoreLookupAction` or :ref:`_yaml-settings-KeyValueStoreLookupSelector`, will return the qname of the query in DNS wire format"
   parameters:
     - name: "name"
       type: "String"
+      description: "The name of this lookup key"
     - name: "wire_format"
       type: "bool"
       default: "true"
+      description: "Whether to do the lookup in wire format (default) or in plain text"
 
 KVSLookupKeySuffix:
+  description: |
+    Lookup key that can be used with :ref:`_yaml-settings-KeyValueStoreLookupAction` or :ref:`_yaml-settings-KeyValueStoreLookupSelector`, will return a vector of keys based on the labels of the qname in DNS wire format or plain text. For example if the qname is sub.domain.powerdns.com. the following keys will be returned:
+
+    - ``\\3sub\\6domain\\8powerdns\\3com\\0``
+    - ``\\6domain\\8powerdns\\3com\\0``
+    - ``\\8powerdns\\3com\\0``
+    - ``\\3com\\0``
+    - ``\\0``
+
+    If ``min_labels`` is set to a value larger than ``0`` the lookup will only be done as long as there is at least ``min_labels`` labels remaining. Taking back our previous example, it means only the following keys will be returned if ``min_labels`` is set to ``2``:
+
+    - ``\\3sub\\6domain\\8powerdns\\3com\\0``
+    - ``\\6domain\\8powerdns\\3com\\0``
+    - ``\\8powerdns\\3com\\0``
+
   parameters:
     - name: "name"
       type: "String"
+      description: "The name of this lookup key"
     - name: "minimum_labels"
       type: "u16"
       default: "0"
+      description: "The minimum number of labels to do a lookup for. Default is 0 which means unlimited"
     - name: "wire_format"
       type: "bool"
       default: "true"
+      description: "Whether to do the lookup in wire format (default) or in plain text"
 
 KVSLookupKeyTag:
+  description: "Lookup key that can be used with :ref:`_yaml-settings-KeyValueStoreLookupAction` or :ref:`_yaml-settings-KeyValueStoreLookupSelector`, will return the value of the corresponding tag for this query, if it exists"
   parameters:
     - name: "name"
       type: "String"
@@ -293,6 +353,7 @@ KVSLookupKeyTag:
       type: "String"
 
 KVSLookupKeys:
+  description: "List of look keys that can be used with :ref:`_yaml-settings-KeyValueStoreLookupAction` or :ref:`_yaml-settings-KeyValueStoreLookupSelector`"
   parameters:
     - name: "source_ip_keys"
       type: "Vec<KVSLookupKeySourceIPConfiguration>"
@@ -308,16 +369,20 @@ KVSLookupKeys:
       default: true
 
 key_value_stores:
+  description: "List of key-value stores that can be used with :ref:`_yaml-settings-KeyValueStoreLookupAction` or :ref:`_yaml-settings-KeyValueStoreLookupSelector`"
   parameters:
     - name: "lmdb"
       type: "Vec<LMDBKVStoreConfiguration>"
       default: true
+      description: "List of LMDB-based key-value stores"
     - name: "cdb"
       type: "Vec<CDBKVStoreConfiguration>"
       default: true
+      description: "List of CDB-based key-value stores"
     - name: "lookup_keys"
       type: "KVSLookupKeysConfiguration"
       default: true
+      description: "List of lookup keys"
 
 webserver:
   parameters:
@@ -360,14 +425,18 @@ webserver:
     - name: "custom_headers"
       type: "Vec<HttpCustomResponseHeaderConfiguration>"
       default: true
+      description: "List of custom HTTP headers to set in our responses"
     - name: "api_configuration_directory"
       type: "String"
       default: ""
+      description: "A valid directory where the configuration files will be written by the API"
     - name: "api_read_write"
       type: "bool"
       default: "false"
+      description: "Allow modifications via the API. Optionally saving these changes to disk. Modifications done via the API will not be written to the configuration by default and will not persist after a reload"
 
 console:
+  description: "Console-related settings"
   parameters:
     - name: "listen_address"
       type: "String"
@@ -387,50 +456,64 @@ console:
       lua-name: "setConsoleOutputMaxMsgSize"
       internal-field-name: "d_consoleOutputMsgMaxSize"
       runtime-configurable: true
+      description: "Set the maximum size, in bytes, of a single console message"
     - name: "log_connections"
       type: "bool"
       default: "true"
       lua-name: "setConsoleConnectionsLogging"
       internal-field-name: "d_logConsoleConnections"
       runtime-configurable: true
+      description: "Whether to log the opening and closing of console connections"
     - name: "max_concurrent_connections"
       type: "u64"
       default: "0"
       lua-name: "setConsoleMaximumConcurrentConnections"
       internal-field-name: "d_consoleMaxConcurrentConnections"
       runtime-configurable: false
+      description: "Set the maximum number of concurrent console connection"
 
 ebpf_map:
+  description: "An ``eBPF`` map that is used to share data with kernel-land ``AF_XDP``/``XSK``, ``socket filter`` or ``XDP`` programs. Maps can be pinned to a filesystem path, which makes their content persistent across restarts and allows external programs to read their content and to add new entries. :program:`dnsdist` will try to load maps that are pinned to a filesystem path on startups, inheriting any existing entries, and fall back to creating them if they do not exist yet. Note that the user :program`dnsdist` is running under must have the right privileges to read and write to the given file, and to go through all the directories in the path leading to that file. The pinned path must be on a filesystem of type ``BPF``, usually below ``/sys/fs/bpf/``"
   parameters:
     - name: "max_entries"
       type: "u32"
       default: 0
+      description: "Maximum number of entries in this map. 0 means no entry at all"
     - name: "pinned_path"
       type: "String"
       default: ""
+      description: "The filesystem path this map should be pinned to"
 
 ebpf:
+  description: "``eBPF`` and ``XDP`` related settings"
   parameters:
     - name: "ipv4"
       type: "EbpfMapConfiguration"
       default: true
+      description: "IPv4 maps"
     - name: "ipv6"
       type: "EbpfMapConfiguration"
       default: true
+      description: "IPv6 maps"
     - name: "cidr_ipv4"
       type: "EbpfMapConfiguration"
       default: true
+      description: "IPv4 subnets maps"
     - name: "cidr_ipv6"
       type: "EbpfMapConfiguration"
       default: true
+      description: "IPv6 subnets maps"
     - name: "qnames"
       type: "EbpfMapConfiguration"
       default: true
+      description: "DNS names maps"
     - name: "external"
       type: "bool"
       default: "false"
+      description: "If set to true, :program:`dnsdist` does not load the internal ``eBPF`` program. This is useful for ``AF_XDP`` and ``XDP`` maps"
 
 edns_client_subnet:
+  description: "EDNS Client Subnet-related settings"
   parameters:
     - name: "override_existing"
       lua-name: "setECSOverride"
@@ -438,23 +521,24 @@ edns_client_subnet:
       runtime-configurable: true
       type: "bool"
       default: "false"
-      description: "When `useClientSubnet` in `newServer()` is set and dnsdist adds an EDNS Client Subnet Client option to the query, override an existing option already present in the query, if any. Please see Passing the source address to the backend for more information. Note that it’s not recommended to enable setECSOverride in front of an authoritative server responding with EDNS Client Subnet information as mismatching data (ECS scopes) can confuse clients and lead to SERVFAIL responses on downstream nameservers"
+      description: "When ``useClientSubnet`` in :func:`newServer()` or ``use_client_subnet`` in :ref:`_yaml-settings-BackendConfiguration` are set, and :program:`dnsdist` adds an EDNS Client Subnet Client option to the query, override an existing option already present in the query, if any. Please see Passing the source address to the backend for more information. Note that it’s not recommended to enable this option in front of an authoritative server responding with EDNS Client Subnet information as mismatching data (ECS scopes) can confuse clients and lead to SERVFAIL responses on downstream nameservers"
     - name: "source_prefix_v4"
       lua-name: "setECSSourcePrefixV4"
       internal-field-name: "d_ECSSourcePrefixV4"
       runtime-configurable: true
       type: "u8"
       default: 32
-      description: "When `useClientSubnet` in `newServer()` is set and dnsdist adds an EDNS Client Subnet Client option to the query, truncate the requestor's IPv4 address to `prefix` bits"
+      description: "When ``useClientSubnet`` in :func:`newServer()` or ``use_client_subnet`` in :ref:`_yaml-settings-BackendConfiguration` are set, and :program:`dnsdist` adds an EDNS Client Subnet Client option to the query, truncate the requestor's IPv4 address to this number of bits"
     - name: "source_prefix_v6"
       lua-name: "setECSSourcePrefixV6"
       internal-field-name: "d_ECSSourcePrefixV6"
       runtime-configurable: true
       type: "u8"
       default: 56
-      description: "When `useClientSubnet` in `newServer()` is set and dnsdist adds an EDNS Client Subnet Client option to the query, truncate the requestor's IPv6 address to `prefix` bits"
+      description: "When ``useClientSubnet`` in :func:`newServer()` or ``use_client_subnet`` in :ref:`_yaml-settings-BackendConfiguration` are set, and :program:`dnsdist` adds an EDNS Client Subnet Client option to the query, truncate the requestor's IPv6 address to this number of bits"
 
 dynamic_rules_settings:
+  description: "Dynamic rules-related settings"
   parameters:
     - name: "purge_interval"
       type: "u64"
@@ -462,90 +546,143 @@ dynamic_rules_settings:
       lua-name: "setDynBlocksPurgeInterval"
       internal-field-name: "d_dynBlocksPurgeInterval"
       runtime-configurable: true
+      description: "Set at which interval, in seconds, the expired dynamic blocks entries will be effectively removed from the tree. Entries are not applied anymore as soon as they expire, but they remain in the tree for a while for performance reasons. Removing them makes the addition of new entries faster and frees up the memory they use. Setting this value to 0 disables the purging mechanism, so entries will remain in the tree"
     - name: "default_action"
       type: "String"
       default: "Drop"
+      description: "Set which action is performed when a query is blocked"
+      supported-values:
+        - Drop
+        - NoOp
+        - NoRecurse
+        - NXDomain
+        - Refused
+        - Truncate
 
 dynamic_rule:
+  description: "Dynamic rule settings"
   parameters:
     - name: "type"
       rename: "rule_type"
       type: "String"
+      description: "The type of this rule"
+      supported-values:
+        - "query-rate"
+        - "rcode-rate"
+        - "rcode-ratio"
+        - "qtype-rate"
+        - "cache-miss-ratio"
+        - "response-byte-rate"
     - name: "seconds"
       type: "u32"
+      description: "Number of seconds the rule has been exceeded"
     - name: "action_duration"
       type: "u32"
+      description: "How long the action is going to be enforced"
     - name: "comment"
       type: "String"
+      description: "Comment describing why the action why taken"
     - name: "rate"
       type: "u32"
       default: "0"
+      description: "For ``query-rate``, ``rcode-rate``, ``qtype-rate`` and ``response-byte-rate``, the rate that should be exceeded"
     - name: "ratio"
       type: "f64"
       default: "0.0"
+      description: "For ``rcode-ratio``, ``qtype-ratio`` and ``cache-miss-ratio``, the ratio that should be exceeded"
     - name: "action"
       type: "String"
       default: "drop"
+      description: "The action that will be taken once the rate or ratio is exceeded"
+      supported-values:
+        - "Drop"
+        - "NoNop"
+        - "NoRecurse"
+        - "NXDomain"
+        - "SetTag"
+        - "Truncate"
+        - "Refused"
     - name: "warning_rate"
       type: "u32"
       default: "0"
+      description: "For ``query-rate``, ``rcode-rate``, ``qtype-rate`` and ``response-byte-rate``, the rate that should be exceeded for a warning to be logged, but no action enforced"
     - name: "warning_ratio"
       type: "f64"
       default: "0.0"
+      description: "For ``rcode-ratio`` and ``cache-miss-ratio``, the ratio that should be exceeded for a warning to be logged, but no action enforced"
     - name: "tag_name"
       type: "String"
       default: ""
+      descripton: "If ``action`` is set to ``SetTag``, the name of the tag that will be set"
     - name: "tag_value"
       type: "String"
       default: "0"
+      description: "If ``action`` is set to ``SetTag``, the value that will be set"
     - name: "visitor_function_name"
       type: "String"
       default: ""
+      description: "For ``suffix-match`` and ``suffix-match-ffi``, the name of the Lua visitor function to call for each label of every domain seen in recent queries and responses"
     - name: "visitor_function_code"
       type: "String"
       default: ""
+      description: "For ``suffix-match`` and ``suffix-match-ffi``, the code of Lua visitor function for each label of every domain seen in recent queries and responses"
     - name: "visitor_function_file"
       type: "String"
       default: ""
+      description: "For ``suffix-match`` and ``suffix-match-ffi``, a path to a file containing the code of Lua visitor function for each label of every domain seen in recent queries and responses"
     - name: "rcode"
       type: "String"
       default: ""
+      description: "For ``rcode-rate`` and ``rcode-ratio``, the response code to match"
     - name: "qtype"
       type: "String"
       default: ""
+      description: "For ``qtype-rate``, the query type to match"
     - name: "minimum_number_of_responses"
       type: "u32"
       default: "0"
+      description: "For ``cache-miss-ratio`` and ``rcode-ratio``, the minimum number of responses to have received for this rule to apply"
     - name: "minimum_global_cache_hit_ratio"
       type: "f64"
       default: "0.0"
+      description: "The minimum global cache-hit ratio (over all pools, so ``cache-hits`` / (``cache-hits`` + ``cache-misses``)) for a ``cache-miss-ratio`` rule to be applied"
 
 dynamic_rules:
+  description: "Group of dynamic rules"
   parameters:
     - name: "name"
       type: "String"
+      description: "The name of this group of dynamic rules"
     - name: "mask_ipv4"
       type: "u8"
       default: "32"
+      description: "Number of bits to keep for IPv4 addresses"
     - name: "mask_ipv6"
       type: "u8"
       default: "64"
+      description: "Number of bits to keep for IPv6 addresses. In some scenarios it might make sense to block a whole /64 IPv6 range instead of a single address, for example"
     - name: "mask_port"
       type: u8
       default: "0"
+      description: "Number of bits of port to consider over IPv4, for CGNAT deployments. Default is 0 meaning that the port is not taken into account. For example passing ``2`` here, which only makes sense if the IPv4 parameter is set to ``32``, will split a given IPv4 address into four port ranges: ``0-16383``, ``16384-32767``, ``32768-49151`` and ``49152-65535``"
     - name: "exclude_ranges"
       type: "Vec<String>"
       default: true
+      description: "Exclude this list of ranges, meaning that no dynamic block will ever be inserted for clients in that range. Default to empty, meaning rules are applied to all ranges. When used in combination with ``include_ranges`` the more specific entry wins"
     - name: "include_ranges"
       type: "Vec<String>"
       default: true
+      description: "Include this list of ranges, meaning that dynamic rules will be inserted for clients in that range. When used in combination with ``exclude_ranges`` the more specific entry wins"
     - name: "exclude_domains"
       type: "Vec<String>"
       default: true
+      description: "Exclude this list of domains, meaning that no dynamic rules will ever be inserted for this domain via ``suffix-match`` or ``suffix-match-ffi`` rules. Default to empty, meaning rules are applied to all domains"
     - name: "rules"
       type: "Vec<DynamicRuleConfiguration>"
+      description: "List of dynamic rules in this group"
 
 ring_buffers:
+  description: "Settings for in-memory ring buffers, that are used for live traffic inspection and dynamic rules"
   parameters:
     - name: "size"
       type: "u64"
@@ -584,21 +721,30 @@ ring_buffers:
       runtime-configurable: false
 
 incoming_tls_certificate_key_pair:
+  description: "A pair of TLS certificate and key, with an optional associated password"
   parameters:
     - name: "certificate"
       type: "String"
+      description: "A path to a file containing the certificate, in ``PEM``, ``DER`` or ``PKCS12`` format"
     - name: "key"
       type: "String"
       default: ""
+      description: "A path to a file containing the key corresponding to the certificate, in ``PEM``, ``DER`` or ``PKCS12`` format"
     - name: "password"
       type: "String"
       default: ""
+      description: "Password protecting the PKCS12 file if appropriate"
 
 incoming_tls:
+  description: "TLS parameters for frontends"
   parameters:
     - name: "provider"
       type: "String"
       default: "OpenSSL"
+      description: ""
+      supported-values:
+        - "OpenSSL"
+        - "GnuTLS"
     - name: "certificates"
       type: "Vec<IncomingTlsCertificateKeyPairConfiguration>"
       default: true

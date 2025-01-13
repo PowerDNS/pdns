@@ -87,6 +87,10 @@ def print_structure(parameters, entry_type):
             description = parameter['description']
             output += ' - ' + description
 
+        if 'supported-values' in parameter:
+            values = ', '.join(parameter['supported-values'])
+            output += '. Supported values are: ' + values
+
         output += '\n'
 
     output += '\n'
