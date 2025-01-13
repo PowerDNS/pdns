@@ -379,6 +379,18 @@ std::shared_ptr<const SOARecordContent> loadRPZFromFile(const std::string& fname
   return soaRecordContent;
 }
 
+struct FilenameDeleter
+{
+  void operator()(const string* name) const noexcept
+  {
+    if (!name->empty()) {
+      unlink(name->c_str());
+    }
+  }
+};
+
+using UniqueFilenameDeleterPtr = std::unique_ptr<std::string, FilenameDeleter>;
+
 static bool dumpZoneToDisk(Logr::log_t logger, const std::shared_ptr<DNSFilterEngine::Zone>& newZone, const std::string& dumpZoneFileName)
 {
   logger->info(Logr::Debug, "Dumping zone to disk", "destination_file", Logging::Loggable(dumpZoneFileName));
@@ -395,11 +407,12 @@ static bool dumpZoneToDisk(Logr::log_t logger, const std::shared_ptr<DNSFilterEn
   if (newZone->getDomain() != soa.d_name) {
     logger->info(Logr::Error, "Inconsistency of internal name and SOA name", "zone", Logging::Loggable(newZone->getDomain()), "soaname", Logging::Loggable(soa.d_name));
   }
-  std::string temp = dumpZoneFileName + "XXXXXX";
-  int fileDesc = mkstemp(&temp.at(0));
+  auto tempFile = UniqueFilenameDeleterPtr(new string(dumpZoneFileName + "XXXXXX"));
+  int fileDesc = mkstemp(tempFile->data());
   if (fileDesc < 0) {
     SLOG(g_log << Logger::Warning << "Unable to open a file to dump the content of the RPZ zone " << zoneName << endl,
          logger->error(Logr::Error, errno, "Unable to create temporary file"));
+    tempFile->clear(); // file has not been created, no need to unlink
     return false;
   }
 
@@ -439,12 +452,12 @@ static bool dumpZoneToDisk(Logr::log_t logger, const std::shared_ptr<DNSFilterEn
     return false;
   }
 
-  if (rename(temp.c_str(), dumpZoneFileName.c_str()) != 0) {
+  if (rename(tempFile->c_str(), dumpZoneFileName.c_str()) != 0) {
     SLOG(g_log << Logger::Warning << "Error while moving the content of the RPZ zone " << zoneName << " to the dump file: " << stringerror() << endl,
          logger->error(Logr::Error, errno, "Error while moving the content of the RPZ", "destination_file", Logging::Loggable(dumpZoneFileName)));
     return false;
   }
-
+  tempFile->clear(); // file has been renamed, no need to unlink
   return true;
 }
 
