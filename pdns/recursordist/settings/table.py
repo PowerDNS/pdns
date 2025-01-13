@@ -917,7 +917,7 @@ Whether to add EDNS padding to outgoing DoT queries.
         'default' : '7830',
         'help' : 'Packetcache tag associated to responses sent with EDNS padding, to prevent sending these to clients for which padding is not enabled.',
         'doc' : '''
-The packetcache tag to use for padded responses, to prevent a client not allowed by the :ref::`setting-edns-padding-from` list to be served a cached answer generated for an allowed one. This
+The packetcache tag to use for padded responses, to prevent a client not allowed by the :ref:`setting-edns-padding-from` list to be served a cached answer generated for an allowed one. This
 effectively divides the packet cache in two when :ref:`setting-edns-padding-from` is used. Note that this will not override a tag set from one of the ``Lua`` hooks.
  ''',
     'versionadded': '4.5.0'
