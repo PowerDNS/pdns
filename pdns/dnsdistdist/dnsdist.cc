@@ -3284,7 +3284,7 @@ static std::optional<std::string> lookForTentativeConfigurationFileWithExtension
   return tentativeFile;
 }
 
-static void loadConfigurationFromFile(const std::string& configurationFile, bool isClient, bool configCheck)
+static bool loadConfigurationFromFile(const std::string& configurationFile, bool isClient, bool configCheck)
 {
   if (boost::ends_with(configurationFile, ".yml")) {
     if (auto tentativeLuaConfFile = lookForTentativeConfigurationFileWithExtension(configurationFile, "lua")) {
@@ -3292,20 +3292,21 @@ static void loadConfigurationFromFile(const std::string& configurationFile, bool
       dnsdist::configuration::lua::loadLuaConfigurationFile(*(g_lua.lock()), *tentativeLuaConfFile, configCheck);
     }
     vinfolog("Loading configuration from YAML file %s", configurationFile);
-    dnsdist::configuration::yaml::loadConfigurationFromFile(configurationFile, isClient, configCheck);
+    return dnsdist::configuration::yaml::loadConfigurationFromFile(configurationFile, isClient, configCheck);
   }
-  else if (boost::ends_with(configurationFile, ".lua")) {
+  if (boost::ends_with(configurationFile, ".lua")) {
     vinfolog("Loading configuration from Lua file %s", configurationFile);
     dnsdist::configuration::lua::loadLuaConfigurationFile(*(g_lua.lock()), configurationFile, configCheck);
     if (auto tentativeYamlConfFile = lookForTentativeConfigurationFileWithExtension(configurationFile, "yml")) {
       vinfolog("Loading configuration from auto-discovered YAML file %s", *tentativeYamlConfFile);
-      dnsdist::configuration::yaml::loadConfigurationFromFile(*tentativeYamlConfFile, isClient, configCheck);
+      return dnsdist::configuration::yaml::loadConfigurationFromFile(*tentativeYamlConfFile, isClient, configCheck);
     }
   }
   else {
     vinfolog("Loading configuration from Lua file %s", configurationFile);
     dnsdist::configuration::lua::loadLuaConfigurationFile(*(g_lua.lock()), configurationFile, configCheck);
   }
+  return true;
 }
 
 int main(int argc, char** argv)
@@ -3358,7 +3359,13 @@ int main(int argc, char** argv)
 
     if (cmdLine.beClient || !cmdLine.command.empty()) {
       dnsdist::lua::setupLua(*(g_lua.lock()), true, false);
-      loadConfigurationFromFile(cmdLine.config, true, false);
+      if (!loadConfigurationFromFile(cmdLine.config, true, false)) {
+#ifdef COVERAGE
+        exit(EXIT_FAILURE);
+#else
+        _exit(EXIT_FAILURE);
+#endif
+      }
       if (clientAddress != ComboAddress()) {
         dnsdist::configuration::updateRuntimeConfiguration([&clientAddress](dnsdist::configuration::RuntimeConfiguration& config) {
           config.d_consoleServerAddress = clientAddress;
@@ -3389,7 +3396,13 @@ int main(int argc, char** argv)
 
     if (cmdLine.checkConfig) {
       dnsdist::lua::setupLua(*(g_lua.lock()), false, true);
-      loadConfigurationFromFile(cmdLine.config, false, true);
+      if (!loadConfigurationFromFile(cmdLine.config, false, true)) {
+#ifdef COVERAGE
+        exit(EXIT_FAILURE);
+#else
+        _exit(EXIT_FAILURE);
+#endif
+      }
       // No exception was thrown
       infolog("Configuration '%s' OK!", cmdLine.config);
 #ifdef COVERAGE
@@ -3408,7 +3421,13 @@ int main(int argc, char** argv)
     createPoolIfNotExists("");
 
     dnsdist::lua::setupLua(*(g_lua.lock()), false, false);
-    loadConfigurationFromFile(cmdLine.config, false, false);
+    if (!loadConfigurationFromFile(cmdLine.config, false, false)) {
+#ifdef COVERAGE
+      exit(EXIT_FAILURE);
+#else
+      _exit(EXIT_FAILURE);
+#endif
+    }
 
     setupPools();
 
