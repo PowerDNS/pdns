@@ -17,7 +17,15 @@ _M.verbose = false
 local ourservers = {}
 local ourcount = {}
 
-local resolverpipe = io.popen('/usr/local/bin/dnsdist-resolver', 'w')
+-- Global variable for store results for getAddressInfo() function
+local resout = {}
+
+local function resolveCB(hostname, ips)
+    resout[hostname] = {}
+    for _, ip in ipairs(ips) do
+        table.insert(resout[hostname], ip:toString())
+    end
+end
 
 local function tablecopy(t)
     local t2 = {}
@@ -71,22 +79,9 @@ local function setServer(name, ip)
 end
 
 function _M.maintenance()
-    -- TODO: only do this if the list has changed
-    -- TODO: check return values
     for k in pairs(_M.servers) do
-        resolverpipe:write(k .. ' ')
+        getAddressInfo(k, resolveCB)
     end
-    resolverpipe:write('\n')
-    resolverpipe:flush()
-
-    -- TODO: maybe this failure should be quiet for the first X seconds?
-    local ret, resout = pcall(loadfile, '/tmp/dnsdist-resolver.out')
-    if not ret then
-        error(resout)
-    end
-
-    -- on purpose no pcall, an error here is a bug
-    resout = resout()
 
     local activeservers = {}
     -- check for servers removed by controller
