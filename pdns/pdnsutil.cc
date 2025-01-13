@@ -40,6 +40,7 @@
 #include <sys/stat.h>
 #include <termios.h>            //termios, TCSANOW, ECHO, ICANON
 #include "opensslsigners.hh"
+#include "lua-auth4.hh"
 #ifdef HAVE_LIBSODIUM
 #include <sodium.h>
 #endif
@@ -58,6 +59,10 @@ namespace po = boost::program_options;
 po::variables_map g_vm;
 
 string g_programname="pdns";
+
+int g_luaRecordExecLimit{-1};
+time_t g_luaHealthChecksInterval{5};
+time_t g_luaHealthChecksExpireDelay{3600};
 
 namespace {
   bool g_verbose;
@@ -2895,6 +2900,67 @@ try
 
     auto ret = zonemdVerifyFile(DNSName(cmds[1]), cmds[2]);
     return ret;
+  }
+
+  if (cmds.at(0) == "run-lua-record-script") {
+    if (cmds.size() < 4) {
+      cerr<<"Usage: run-lua-record-script SCRIPT QNAME QTYPE [EXTRA]"<<endl;
+      cerr<<endl;
+      cerr<<R"FOO(Example: run-lua-record-script "{qname:toString(), who:toString()}" www.example.com TXT)FOO"<<endl;
+      cerr<<R"FOO(Example: run-lua-record-script "{qname:toString(), who:toString()}" www.example.com TXT 'return {who="192.0.2.101:500"}')FOO"<<endl;
+      cerr<<endl;
+      cerr<<"EXTRA can override zone, zoneid, who, dnssecOK, tcp and ednsPKTSize"<<endl;
+      return 1;
+    }
+    auto authlua = make_unique<AuthLua4>();
+    LuaContext& setup = *authlua->getLua();
+
+    map<string, boost::variant<int, string, bool>> extra;
+
+    if (cmds.size() == 5) {
+      extra = setup.executeCode<map<string, boost::variant<int, string, bool>>>(cmds.at(4));
+    }
+
+    auto code = cmds.at(1);
+    auto query = DNSName(cmds.at(2));
+    auto zone = query;
+    auto zoneid = -1;
+    QType qtype;
+    qtype = cmds.at(3);
+    auto remote = ComboAddress("192.0.2.1");
+
+    DNSPacket dnsp(true);
+
+    if (extra.count("zone"))        zone = DNSName(boost::get<string>(extra["zone"]));
+    if (extra.count("zoneid"))      zoneid = boost::get<int>(extra["zoneid"]);
+    if (extra.count("who"))         remote = ComboAddress(boost::get<string>(extra["who"]));
+    if (extra.count("dnssecOK"))    dnsp.d_dnssecOk = boost::get<bool>(extra["dnssecOK"]);
+    if (extra.count("tcp"))         dnsp.d_tcp = boost::get<bool>(extra["tcp"]);
+    if (extra.count("ednsPKTSize")) dnsp.d_ednsRawPacketSizeLimit = boost::get<int>(extra["ednsPKTSize"]);
+    // if (extra.count("ecswho"))      dnsp.   FIXME: we don't have an interface for setting ECS
+
+    dnsp.setRemote(&remote);
+    // FIXME add dnsp.dh
+    cerr<<"# inputs"<<endl;
+    cerr<<"code=["<<code<<"]"<<endl;
+    cerr<<"query=["<<query<<"]"<<endl;
+    cerr<<"zone=["<<zone<<"]"<<endl;
+    cerr<<"qtype=["<<qtype<<"]"<<endl;
+    cerr<<"zoneid=["<<zoneid<<"]"<<endl;
+    cerr<<"who=["<<dnsp.getRemote().toStringWithPort()<<"]"<<endl;
+    cerr<<"dnssecOK=["<<dnsp.d_dnssecOk<<"]"<<endl;
+    cerr<<"tcp=["<<dnsp.d_tcp<<"]"<<endl;
+    cerr<<"ednsPKTSize=["<<dnsp.d_ednsRawPacketSizeLimit<<"]"<<endl;
+
+    std::unique_ptr<AuthLua4> LUA;
+
+    cerr<<endl;
+    cerr<<"# outputs"<<endl;
+    auto res = luaSynth(code, query, zone, zoneid, dnsp, qtype, LUA);
+    for (const auto &drc : res) {
+      cout<<drc->getZoneRepresentation()<<endl;
+    }
+    return 0;
   }
 
   DNSSECKeeper dk;
