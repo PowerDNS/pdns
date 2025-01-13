@@ -19,7 +19,3 @@ rust/src/lib.rs dnsdist-configuration-yaml-items-generated.cc: dnsdist-settings-
 	$(MAKE) -C rust clean
 	(cd ${srcdir} && $(PYTHON) dnsdist-settings-generator.py ../dnsdist-settings-definitions.yml)
 	$(PYTHON) dnsdist-settings-documentation-generator.py
-
-clean-local:
-	rm -f dnsdist-configuration-yaml-items-generated.cc
-	rm -f rust/src/lib.rs
