@@ -86,7 +86,6 @@ bool HTTPPathRule::matches(const DNSQuestion* dnsQuestion) const
   }
 #endif /* defined(HAVE_DNS_OVER_HTTP3) */
   return false;
-
 }
 
 string HTTPPathRule::toString() const
