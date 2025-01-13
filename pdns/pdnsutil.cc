@@ -2515,6 +2515,94 @@ static int addOrSetMeta(const DNSName& zone, const string& kind, const vector<st
   return 0;
 }
 
+static int addZoneKey(vector<string>& cmds, DNSSECKeeper& dk) //NOLINT(readability-identifier-length)
+{
+  if(cmds.size() < 3 ) {
+    cerr << "Syntax: pdnsutil add-zone-key ZONE [zsk|ksk] [BITS] [active|inactive] [rsasha1|rsasha1-nsec3-sha1|rsasha256|rsasha512|ecdsa256|ecdsa384";
+#if defined(HAVE_LIBSODIUM) || defined(HAVE_LIBCRYPTO_ED25519)
+    cerr << "|ed25519";
+#endif
+#if defined(HAVE_LIBCRYPTO_ED448)
+    cerr << "|ed448";
+#endif
+    cerr << "]"<<endl;
+    cerr << endl;
+    cerr << "If zsk|ksk is omitted, add-zone-key makes a key with flags 256 (a 'ZSK')."<<endl;
+    return 0;
+  }
+  DNSName zone(cmds.at(1));
+
+  UeberBackend B("default"); //NOLINT(readability-identifier-length)
+  DomainInfo di; //NOLINT(readability-identifier-length)
+
+  if (!B.getDomainInfo(zone, di)){
+    cerr << "No such zone in the database" << endl;
+    return 0;
+  }
+
+  // need to get algorithm, bits & ksk or zsk from commandline
+  bool keyOrZone=false;
+  int tmp_algo=0;
+  int bits=0;
+  int algorithm=DNSSECKeeper::ECDSA256;
+  bool active=false;
+  bool published=true;
+  for(unsigned int n=2; n < cmds.size(); ++n) { //NOLINT(readability-identifier-length)
+    if (pdns_iequals(cmds.at(n), "zsk")) {
+      keyOrZone = false;
+    }
+    else if (pdns_iequals(cmds.at(n), "ksk")) {
+      keyOrZone = true;
+    }
+    else if ((tmp_algo = DNSSECKeeper::shorthand2algorithm(cmds.at(n))) > 0) {
+      algorithm = tmp_algo;
+    }
+    else if (pdns_iequals(cmds.at(n), "active")) {
+      active=true;
+    }
+    else if (pdns_iequals(cmds.at(n), "inactive") || pdns_iequals(cmds.at(n), "passive")) { // 'passive' eventually needs to be removed
+      active=false;
+    }
+    else if (pdns_iequals(cmds.at(n), "published")) {
+      published = true;
+    }
+    else if (pdns_iequals(cmds.at(n), "unpublished")) {
+      published = false;
+    }
+    else if (pdns::checked_stoi<int>(cmds.at(n)) != 0) {
+      pdns::checked_stoi_into(bits, cmds.at(n));
+    }
+    else {
+      cerr << "Unknown algorithm, key flag or size '" << cmds.at(n) << "'" << endl;
+      return EXIT_FAILURE;
+    }
+  }
+  int64_t id{-1}; //NOLINT(readability-identifier-length)
+  if (!dk.addKey(zone, keyOrZone, algorithm, id, bits, active, published)) {
+    cerr<<"Adding key failed, perhaps DNSSEC not enabled in configuration?"<<endl;
+    return 1;
+  }
+  cerr<<"Added a " << (keyOrZone ? "KSK" : "ZSK")<<" with algorithm = "<<algorithm<<", active="<<active<<endl;
+  if (bits != 0) {
+    cerr<<"Requested specific key size of "<<bits<<" bits"<<endl;
+  }
+  if (id == -1) {
+    cerr<<std::to_string(id)<<": Key was added, but backend does not support returning of key id"<<endl;
+  } else if (id < -1) {
+    cerr<<std::to_string(id)<<": Key was added, but there was a failure while returning the key id"<<endl;
+    return 1;
+  } else {
+    try {
+      dk.getKeyById(zone, id);
+      cout<<std::to_string(id)<<endl;
+    } catch (std::exception& e) {
+      cerr<<std::to_string(id)<<": Key was added, but there was a failure while reading it back: " <<e.what()<<endl;
+      return 1;
+    }
+  }
+  return 0;
+}
+
 // NOLINTNEXTLINE(readability-function-cognitive-complexity): TODO Clean this function up.
 int main(int argc, char** argv)
 try
@@ -3023,80 +3111,7 @@ try
   }
 
   else if (cmds.at(0) == "add-zone-key") {
-    if(cmds.size() < 3 ) {
-      cerr << "Syntax: pdnsutil add-zone-key ZONE [zsk|ksk] [BITS] [active|inactive] [rsasha1|rsasha1-nsec3-sha1|rsasha256|rsasha512|ecdsa256|ecdsa384";
-#if defined(HAVE_LIBSODIUM) || defined(HAVE_LIBCRYPTO_ED25519)
-      cerr << "|ed25519";
-#endif
-#if defined(HAVE_LIBCRYPTO_ED448)
-      cerr << "|ed448";
-#endif
-      cerr << "]"<<endl;
-      cerr << endl;
-      cerr << "If zsk|ksk is omitted, add-zone-key makes a key with flags 256 (a 'ZSK')."<<endl;
-      return 0;
-    }
-    DNSName zone(cmds.at(1));
-
-    UeberBackend B("default");
-    DomainInfo di;
-
-    if (!B.getDomainInfo(zone, di)){
-      cerr << "No such zone in the database" << endl;
-      return 0;
-    }
-
-    // need to get algorithm, bits & ksk or zsk from commandline
-    bool keyOrZone=false;
-    int tmp_algo=0;
-    int bits=0;
-    int algorithm=DNSSECKeeper::ECDSA256;
-    bool active=false;
-    bool published=true;
-    for(unsigned int n=2; n < cmds.size(); ++n) {
-      if (pdns_iequals(cmds.at(n), "zsk"))
-        keyOrZone = false;
-      else if (pdns_iequals(cmds.at(n), "ksk"))
-        keyOrZone = true;
-      else if ((tmp_algo = DNSSECKeeper::shorthand2algorithm(cmds.at(n))) > 0) {
-        algorithm = tmp_algo;
-      }
-      else if (pdns_iequals(cmds.at(n), "active")) {
-        active=true;
-      }
-      else if (pdns_iequals(cmds.at(n), "inactive") || pdns_iequals(cmds.at(n), "passive")) { // 'passive' eventually needs to be removed
-        active=false;
-      }
-      else if (pdns_iequals(cmds.at(n), "published")) {
-        published = true;
-      }
-      else if (pdns_iequals(cmds.at(n), "unpublished")) {
-        published = false;
-      }
-      else if (pdns::checked_stoi<int>(cmds.at(n)) != 0) {
-        pdns::checked_stoi_into(bits, cmds.at(n));
-      }
-      else {
-        cerr << "Unknown algorithm, key flag or size '" << cmds.at(n) << "'" << endl;
-        return EXIT_FAILURE;
-      }
-    }
-    int64_t id{-1};
-    if (!dk.addKey(zone, keyOrZone, algorithm, id, bits, active, published)) {
-      cerr<<"Adding key failed, perhaps DNSSEC not enabled in configuration?"<<endl;
-      return 1;
-    } else {
-      cerr<<"Added a " << (keyOrZone ? "KSK" : "ZSK")<<" with algorithm = "<<algorithm<<", active="<<active<<endl;
-      if (bits)
-        cerr<<"Requested specific key size of "<<bits<<" bits"<<endl;
-      if (id == -1) {
-        cerr<<std::to_string(id)<<": Key was added, but backend does not support returning of key id"<<endl;
-      } else if (id < -1) {
-        cerr<<std::to_string(id)<<": Key was added, but there was a failure while returning the key id"<<endl;
-      } else {
-        cout<<std::to_string(id)<<endl;
-      }
-    }
+    return addZoneKey(cmds, dk);
   }
   else if (cmds.at(0) == "remove-zone-key") {
     if(cmds.size() < 3) {
