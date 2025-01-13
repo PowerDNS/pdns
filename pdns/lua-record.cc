@@ -71,6 +71,8 @@ private:
     CheckState(time_t _lastAccess): lastAccess(_lastAccess) {}
     /* current status */
     std::atomic<bool> status{false};
+    /* current weight */
+    std::atomic<int> weight{0};
     /* first check ? */
     std::atomic<bool> first{true};
     /* last time the status was accessed */
@@ -83,9 +85,10 @@ public:
     d_checkerThreadStarted.clear();
   }
   ~IsUpOracle() = default;
-  bool isUp(const ComboAddress& remote, const opts_t& opts);
-  bool isUp(const ComboAddress& remote, const std::string& url, const opts_t& opts);
-  bool isUp(const CheckDesc& cd);
+  int isUp(const ComboAddress& remote, const opts_t& opts);
+  int isUp(const ComboAddress& remote, const std::string& url, const opts_t& opts);
+  //NOLINTNEXTLINE(readability-identifier-length)
+  int isUp(const CheckDesc& cd);
 
 private:
   void checkURL(const CheckDesc& cd, const bool status, const bool first = false)
@@ -128,14 +131,26 @@ private:
         throw std::runtime_error(boost::str(boost::format("unable to match content with `%s`") % cd.opts.at("stringmatch")));
       }
 
-      if(!status) {
-        g_log<<Logger::Info<<"LUA record monitoring declaring "<<remstring<<" UP for URL "<<cd.url<<"!"<<endl;
+      int weight = 0;
+      try {
+        weight = stoi(content);
+        if(!status) {
+          g_log<<Logger::Info<<"LUA record monitoring declaring "<<remstring<<" UP for URL "<<cd.url<<"!"<<" with WEIGHT "<<content<<"!"<<endl;
+        }
       }
+      catch (const std::exception&) {
+        if(!status) {
+          g_log<<Logger::Info<<"LUA record monitoring declaring "<<remstring<<" UP for URL "<<cd.url<<"!"<<endl;
+        }
+      }
+
+      setWeight(cd, weight);
       setUp(cd);
     }
     catch(std::exception& ne) {
       if(status || first)
         g_log<<Logger::Info<<"LUA record monitoring declaring "<<remstring<<" DOWN for URL "<<cd.url<<", error: "<<ne.what()<<endl;
+      setWeight(cd, 0);
       setDown(cd);
     }
   }
@@ -228,8 +243,16 @@ private:
     }
   }
 
+  //NOLINTNEXTLINE(readability-identifier-length)
+  void setWeight(const CheckDesc& cd, int weight){
+    auto statuses = d_statuses.write_lock();
+    auto& state = (*statuses)[cd];
+    state->weight = weight;
+  }
+
   void setDown(const ComboAddress& rem, const std::string& url=std::string(), const opts_t& opts = opts_t())
   {
+    //NOLINTNEXTLINE(readability-identifier-length)
     CheckDesc cd{rem, url, opts};
     setStatus(cd, false);
   }
@@ -252,7 +275,8 @@ private:
   }
 };
 
-bool IsUpOracle::isUp(const CheckDesc& cd)
+//NOLINTNEXTLINE(readability-identifier-length)
+int IsUpOracle::isUp(const CheckDesc& cd)
 {
   if (!d_checkerThreadStarted.test_and_set()) {
     d_checkerThread = std::make_unique<std::thread>([this] { return checkThread(); });
@@ -263,7 +287,10 @@ bool IsUpOracle::isUp(const CheckDesc& cd)
     auto iter = statuses->find(cd);
     if (iter != statuses->end()) {
       iter->second->lastAccess = now;
-      return iter->second->status;
+      if (iter->second->weight > 0) {
+        return iter->second->weight;
+      }
+      return static_cast<int>(iter->second->status);
     }
   }
   // try to parse options so we don't insert any malformed content
@@ -277,16 +304,16 @@ bool IsUpOracle::isUp(const CheckDesc& cd)
       (*statuses)[cd] = std::make_unique<CheckState>(now);
     }
   }
-  return false;
+  return 0;
 }
 
-bool IsUpOracle::isUp(const ComboAddress& remote, const opts_t& opts)
+int IsUpOracle::isUp(const ComboAddress& remote, const opts_t& opts)
 {
   CheckDesc cd{remote, "", opts};
   return isUp(cd);
 }
 
-bool IsUpOracle::isUp(const ComboAddress& remote, const std::string& url, const opts_t& opts)
+int IsUpOracle::isUp(const ComboAddress& remote, const std::string& url, const opts_t& opts)
 {
   CheckDesc cd{remote, url, opts};
   return isUp(cd);
@@ -1171,6 +1198,40 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
   lua.writeFunction("pickrandom", [](const iplist_t& ips) {
       vector<string> items = convStringList(ips);
       return pickRandom<string>(items);
+    });
+
+  /*
+   * Based on the hash of `bestwho`, returns an IP address from the list
+   * supplied, weighted according to the results of isUp calls.
+   * @example pickselfweighted('http://example.com/weight', { "192.0.2.20", "203.0.113.4", "203.0.113.2" })
+   */
+  lua.writeFunction("pickselfweighted", [](const std::string& url,
+                                             const iplist_t& ips,
+                                             boost::optional<opts_t> options) {
+      vector< pair<int, ComboAddress> > items;
+      opts_t opts;
+      if(options) {
+        opts = *options;
+      }
+
+      items.reserve(ips.capacity());
+      bool available = false;
+
+      vector<ComboAddress> conv = convComboAddressList(ips);
+      for (auto& entry : conv) {
+        int weight = 0;
+        weight = g_up.isUp(entry, url, opts);
+        if(weight>0) {
+          available = true;
+        }
+        items.emplace_back(weight, entry);
+      }
+      if(available) {
+        return pickWeightedHashed<ComboAddress>(s_lua_record_ctx->bestwho, items).toString();
+      }
+
+      // All units down, apply backupSelector on all candidates
+      return pickWeightedRandom<ComboAddress>(items).toString();
     });
 
   lua.writeFunction("pickrandomsample", [](int n, const iplist_t& ips) {

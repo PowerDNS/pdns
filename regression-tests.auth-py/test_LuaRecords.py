@@ -27,6 +27,8 @@ class FakeHTTPServer(BaseHTTPRequestHandler):
         self._set_headers()
         if self.path == '/ping.json':
             self.wfile.write(bytes('{"ping":"pong"}', 'utf-8'))
+        if self.path == '/weight.txt':
+            self.wfile.write(bytes('12', 'utf-8'))
         else:
             self.wfile.write(bytes("<html><body><h1>hi!</h1><h2>Programming in Lua !</h2></body></html>", "utf-8"))
 
@@ -78,6 +80,7 @@ rand-txt.example.org.        3600 IN LUA  TXT   "pickrandom({{ 'bob', 'alice' }}
 randn-txt.example.org.       3600 IN LUA  TXT   "pickrandomsample( 2, {{ 'bob', 'alice', 'john' }} )"
 v6-bogus.rand.example.org.   3600 IN LUA  AAAA  "pickrandom({{'{prefix}.101', '{prefix}.102'}})"
 v6.rand.example.org.         3600 IN LUA  AAAA  "pickrandom({{ '2001:db8:a0b:12f0::1', 'fe80::2a1:9bff:fe9b:f268' }})"
+selfweighted.example.org.    3600 IN LUA  A     "pickselfweighted('http://selfweighted.example.org:8080/weight.txt',{{'{prefix}.101', '{prefix}.102'}})"
 closest.geo                  3600 IN LUA  A     "pickclosest({{ '1.1.1.2', '1.2.3.4' }})"
 empty.rand.example.org.      3600 IN LUA  A     "pickrandom()"
 timeout.example.org.         3600 IN LUA  A     "; local i = 0 ;  while i < 1000 do pickrandom() ; i = i + 1 end return '1.2.3.4'"
@@ -253,6 +256,24 @@ whitespace       IN    LUA    TXT "'foo" "bar'"
 
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
+
+    def testSelfWeighted(self):
+        """
+        Test the selfweighted() function with a set of A records
+        """
+        expected = [dns.rrset.from_text('selfweighted.example.org.', 0, dns.rdataclass.IN, 'A',
+                                        '{prefix}.101'.format(prefix=self._PREFIX)),
+                    dns.rrset.from_text('selfweighted.example.org.', 0, dns.rdataclass.IN, 'A',
+                                        '{prefix}.102'.format(prefix=self._PREFIX))]
+        query = dns.message.make_query('selfweighted.example.org', 'A')
+        res = self.sendUDPQuery(query)
+
+        # wait for health checks to happen
+        time.sleep(3)
+
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertAnyRRsetInAnswer(res, expected)
 
     def testPickRandomSampleTxt(self):
         """
