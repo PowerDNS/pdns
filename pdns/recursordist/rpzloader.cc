@@ -383,8 +383,11 @@ struct FilenameDeleter
 {
   void operator()(const string* name) const noexcept
   {
-    if (!name->empty()) {
-      unlink(name->c_str());
+    if (name != nullptr) {
+      if (!name->empty()) {
+        unlink(name->c_str());
+      }
+      delete name; // NOLINT(cppcoreguidelines-owning-memory)
     }
   }
 };
