@@ -15,9 +15,9 @@ std::shared_ptr<DNSAction> getSetEDNSOptionAction(uint32_t code, const std::stri
 {
   return std::shared_ptr<DNSAction>(new SetEDNSOptionAction(code, data));
 }
-std::shared_ptr<DNSAction> getLogAction(const std::string& fileName, bool binary, bool append, bool buffered, bool verboseOnly, bool includeTimestamp)
+std::shared_ptr<DNSAction> getLogAction(const std::string& file_name, bool binary, bool append, bool buffered, bool verbose_only, bool include_timestamp)
 {
-  return std::shared_ptr<DNSAction>(new LogAction(fileName, binary, append, buffered, verboseOnly, includeTimestamp));
+  return std::shared_ptr<DNSAction>(new LogAction(file_name, binary, append, buffered, verbose_only, include_timestamp));
 }
 std::shared_ptr<DNSAction> getLuaFFIPerThreadAction(const std::string& code)
 {
@@ -27,21 +27,21 @@ std::shared_ptr<DNSAction> getNoneAction()
 {
   return std::shared_ptr<DNSAction>(new NoneAction());
 }
-std::shared_ptr<DNSAction> getPoolAction(const std::string& poolName, bool stopProcessing)
+std::shared_ptr<DNSAction> getPoolAction(const std::string& pool_name, bool stop_processing)
 {
-  return std::shared_ptr<DNSAction>(new PoolAction(poolName, stopProcessing));
+  return std::shared_ptr<DNSAction>(new PoolAction(pool_name, stop_processing));
 }
 std::shared_ptr<DNSAction> getQPSAction(uint32_t limit)
 {
   return std::shared_ptr<DNSAction>(new QPSAction(limit));
 }
-std::shared_ptr<DNSAction> getQPSPoolAction(uint32_t limit, const std::string& poolName, bool stopProcessing)
+std::shared_ptr<DNSAction> getQPSPoolAction(uint32_t limit, const std::string& pool_name, bool stop_processing)
 {
-  return std::shared_ptr<DNSAction>(new QPSPoolAction(limit, poolName, stopProcessing));
+  return std::shared_ptr<DNSAction>(new QPSPoolAction(limit, pool_name, stop_processing));
 }
-std::shared_ptr<DNSAction> getSetAdditionalProxyProtocolValueAction(uint8_t proxyType, const std::string& value)
+std::shared_ptr<DNSAction> getSetAdditionalProxyProtocolValueAction(uint8_t proxy_type, const std::string& value)
 {
-  return std::shared_ptr<DNSAction>(new SetAdditionalProxyProtocolValueAction(proxyType, value));
+  return std::shared_ptr<DNSAction>(new SetAdditionalProxyProtocolValueAction(proxy_type, value));
 }
 std::shared_ptr<DNSAction> getSetDisableECSAction()
 {
@@ -51,17 +51,17 @@ std::shared_ptr<DNSAction> getSetDisableValidationAction()
 {
   return std::shared_ptr<DNSAction>(new SetDisableValidationAction());
 }
-std::shared_ptr<DNSAction> getSetECSOverrideAction(bool overrideExisting)
+std::shared_ptr<DNSAction> getSetECSOverrideAction(bool override_existing)
 {
-  return std::shared_ptr<DNSAction>(new SetECSOverrideAction(overrideExisting));
+  return std::shared_ptr<DNSAction>(new SetECSOverrideAction(override_existing));
 }
 std::shared_ptr<DNSAction> getSetECSPrefixLengthAction(uint16_t ipv4, uint16_t ipv6)
 {
   return std::shared_ptr<DNSAction>(new SetECSPrefixLengthAction(ipv4, ipv6));
 }
-std::shared_ptr<DNSAction> getSetExtendedDNSErrorAction(uint16_t infoCode, const std::string& extraText)
+std::shared_ptr<DNSAction> getSetExtendedDNSErrorAction(uint16_t info_code, const std::string& extra_text)
 {
-  return std::shared_ptr<DNSAction>(new SetExtendedDNSErrorAction(infoCode, extraText));
+  return std::shared_ptr<DNSAction>(new SetExtendedDNSErrorAction(info_code, extra_text));
 }
 std::shared_ptr<DNSAction> getSetMacAddrAction(uint32_t code)
 {

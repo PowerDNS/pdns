@@ -340,14 +340,14 @@ class TestOpenSSLYaml(DNSDistTest, TLSTests):
     _yaml_config_template = """---
 console:
   key: "%s"
-  listen-address: "127.0.0.1:%d"
+  listen_address: "127.0.0.1:%d"
   acl:
     - 127.0.0.0/8
 backends:
   - address: "127.0.0.1:%d"
     protocol: "Do53"
 binds:
-  - listen-address: "127.0.0.1:%d"
+  - listen_address: "127.0.0.1:%d"
     reuseport: true
     protocol: "DoT"
     tls:
@@ -355,11 +355,11 @@ binds:
         - certificate: "%s"
           key: "%s"
       provider: "openssl"
-query-rules:
+query_rules:
   - name: "SNI"
     selector:
       type: "SNI"
-      server-name: "powerdns.com"
+      server_name: "powerdns.com"
     action:
       type: "Spoof"
       ips:

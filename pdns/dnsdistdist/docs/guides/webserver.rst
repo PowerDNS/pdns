@@ -21,9 +21,9 @@ The equivalent ``yaml`` configuration would be:
 .. code-block:: yaml
 
   webserver:
-    listen-address: "127.0.0.1:8083"
+    listen_address: "127.0.0.1:8083"
     password: "supersecretpassword"
-    api-key: "supersecretAPIkey"
+    api_key: "supersecretAPIkey"
     acl:
       - "192.0.2.0/24"
       - "!192.0.2.1"

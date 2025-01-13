@@ -110,13 +110,12 @@ mod dnsdistsettings {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
         identity: String,
-        #[serde(rename = "logger-name", )]
         logger_name: String,
-        #[serde(rename = "alter-function-name", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         alter_function_name: String,
-        #[serde(rename = "alter-function-code", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         alter_function_code: String,
-        #[serde(rename = "alter-function-file", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         alter_function_file: String,
     }
 
@@ -153,7 +152,7 @@ mod dnsdistsettings {
         name: String,
         status: u16,
         body: String,
-        #[serde(rename = "content-type", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         content_type: String,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         vars: ResponseConfig,
@@ -164,11 +163,8 @@ mod dnsdistsettings {
     struct KeyValueStoreLookupActionConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
-        #[serde(rename = "kvs-name", )]
         kvs_name: String,
-        #[serde(rename = "lookup-key-name", )]
         lookup_key_name: String,
-        #[serde(rename = "destination-tag", )]
         destination_tag: String,
     }
 
@@ -177,11 +173,8 @@ mod dnsdistsettings {
     struct KeyValueStoreRangeLookupActionConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
-        #[serde(rename = "kvs-name", )]
         kvs_name: String,
-        #[serde(rename = "lookup-key-name", )]
         lookup_key_name: String,
-        #[serde(rename = "destination-tag", )]
         destination_tag: String,
     }
 
@@ -190,7 +183,7 @@ mod dnsdistsettings {
     struct LogActionConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
-        #[serde(rename = "file-name", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         file_name: String,
         #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
         binary: bool,
@@ -198,9 +191,9 @@ mod dnsdistsettings {
         append: bool,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         buffered: bool,
-        #[serde(rename = "verbose-only", default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
+        #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
         verbose_only: bool,
-        #[serde(rename = "include-timestamp", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         include_timestamp: bool,
     }
 
@@ -209,11 +202,11 @@ mod dnsdistsettings {
     struct LuaActionConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
-        #[serde(rename = "function-name", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         function_name: String,
-        #[serde(rename = "function-code", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         function_code: String,
-        #[serde(rename = "function-file", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         function_file: String,
     }
 
@@ -222,11 +215,11 @@ mod dnsdistsettings {
     struct LuaFFIActionConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
-        #[serde(rename = "function-name", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         function_name: String,
-        #[serde(rename = "function-code", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         function_code: String,
-        #[serde(rename = "function-file", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         function_file: String,
     }
 
@@ -248,9 +241,8 @@ mod dnsdistsettings {
         ttl: u32,
         mname: String,
         rname: String,
-        #[serde(rename = "soa-parameters", )]
         soa_parameters: SOAParams,
-        #[serde(rename = "soa-in-authority", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         soa_in_authority: bool,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         vars: ResponseConfig,
@@ -268,9 +260,8 @@ mod dnsdistsettings {
     struct PoolActionConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
-        #[serde(rename = "pool-name", )]
         pool_name: String,
-        #[serde(rename = "stop-processing", default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
+        #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
         stop_processing: bool,
     }
 
@@ -288,9 +279,8 @@ mod dnsdistsettings {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
         limit: u32,
-        #[serde(rename = "pool-name", )]
         pool_name: String,
-        #[serde(rename = "stop-processing", default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
+        #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
         stop_processing: bool,
     }
 
@@ -309,19 +299,18 @@ mod dnsdistsettings {
     struct RemoteLogActionConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
-        #[serde(rename = "logger-name", )]
         logger_name: String,
-        #[serde(rename = "alter-function-name", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         alter_function_name: String,
-        #[serde(rename = "alter-function-code", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         alter_function_code: String,
-        #[serde(rename = "alter-function-file", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         alter_function_file: String,
-        #[serde(rename = "server-id", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         server_id: String,
-        #[serde(rename = "ip-encrypt-key", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         ip_encrypt_key: String,
-        #[serde(rename = "export-tags", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         export_tags: Vec<String>,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         metas: Vec<ProtoBufMetaConfiguration>,
@@ -332,7 +321,6 @@ mod dnsdistsettings {
     struct SetAdditionalProxyProtocolValueActionConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
-        #[serde(rename = "proxy-type", )]
         proxy_type: u8,
         value: String,
     }
@@ -366,7 +354,6 @@ mod dnsdistsettings {
     struct SetECSOverrideActionConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
-        #[serde(rename = "override-existing", )]
         override_existing: bool,
     }
 
@@ -384,9 +371,8 @@ mod dnsdistsettings {
     struct SetExtendedDNSErrorActionConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
-        #[serde(rename = "info-code", )]
         info_code: u16,
-        #[serde(rename = "extra-text", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         extra_text: String,
     }
 
@@ -491,7 +477,7 @@ mod dnsdistsettings {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
         answers: Vec<String>,
-        #[serde(rename = "qtype-for-any", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         qtype_for_any: String,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         vars: ResponseConfig,
@@ -522,9 +508,9 @@ mod dnsdistsettings {
         rca: String,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         lca: String,
-        #[serde(rename = "add-ecs", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         add_ecs: bool,
-        #[serde(rename = "add-proxy-protocol", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         add_proxy_protocol: bool,
     }
 
@@ -757,7 +743,6 @@ mod dnsdistsettings {
     struct ByNameSelectorConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
-        #[serde(rename = "selector-name", )]
         selector_name: String,
     }
 
@@ -781,7 +766,6 @@ mod dnsdistsettings {
     struct EDNSOptionSelectorConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
-        #[serde(rename = "option-code", )]
         option_code: u16,
     }
 
@@ -831,9 +815,7 @@ mod dnsdistsettings {
     struct KeyValueStoreLookupSelectorConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
-        #[serde(rename = "kvs-name", )]
         kvs_name: String,
-        #[serde(rename = "lookup-key-name", )]
         lookup_key_name: String,
     }
 
@@ -842,9 +824,7 @@ mod dnsdistsettings {
     struct KeyValueStoreRangeLookupSelectorConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
-        #[serde(rename = "kvs-name", )]
         kvs_name: String,
-        #[serde(rename = "lookup-key-name", )]
         lookup_key_name: String,
     }
 
@@ -853,11 +833,11 @@ mod dnsdistsettings {
     struct LuaSelectorConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
-        #[serde(rename = "function-name", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         function_name: String,
-        #[serde(rename = "function-code", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         function_code: String,
-        #[serde(rename = "function-file", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         function_file: String,
     }
 
@@ -866,11 +846,11 @@ mod dnsdistsettings {
     struct LuaFFISelectorConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
-        #[serde(rename = "function-name", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         function_name: String,
-        #[serde(rename = "function-code", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         function_code: String,
-        #[serde(rename = "function-file", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         function_file: String,
     }
 
@@ -898,17 +878,17 @@ mod dnsdistsettings {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
         qps: u32,
-        #[serde(rename = "ipv4-mask", default = "crate::U8::<32>::value", skip_serializing_if = "crate::U8::<32>::is_equal")]
+        #[serde(default = "crate::U8::<32>::value", skip_serializing_if = "crate::U8::<32>::is_equal")]
         ipv4_mask: u8,
-        #[serde(rename = "ipv6-mask", default = "crate::U8::<64>::value", skip_serializing_if = "crate::U8::<64>::is_equal")]
+        #[serde(default = "crate::U8::<64>::value", skip_serializing_if = "crate::U8::<64>::is_equal")]
         ipv6_mask: u8,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         burst: u32,
         #[serde(default = "crate::U32::<300>::value", skip_serializing_if = "crate::U32::<300>::is_equal")]
         expiration: u32,
-        #[serde(rename = "cleanup-delay", default = "crate::U32::<60>::value", skip_serializing_if = "crate::U32::<60>::is_equal")]
+        #[serde(default = "crate::U32::<60>::value", skip_serializing_if = "crate::U32::<60>::is_equal")]
         cleanup_delay: u32,
-        #[serde(rename = "scan-fraction", default = "crate::U32::<10>::value", skip_serializing_if = "crate::U32::<10>::is_equal")]
+        #[serde(default = "crate::U32::<10>::value", skip_serializing_if = "crate::U32::<10>::is_equal")]
         scan_fraction: u32,
         #[serde(default = "crate::U32::<10>::value", skip_serializing_if = "crate::U32::<10>::is_equal")]
         shards: u32,
@@ -919,7 +899,7 @@ mod dnsdistsettings {
     struct NetmaskGroupSelectorConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
-        #[serde(rename = "netmask-group-name", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         netmask_group_name: String,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         netmasks: Vec<String>,
@@ -972,7 +952,6 @@ mod dnsdistsettings {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
         pool: String,
-        #[serde(rename = "max-outstanding", )]
         max_outstanding: u64,
     }
 
@@ -989,9 +968,8 @@ mod dnsdistsettings {
     struct ProxyProtocolValueSelectorConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
-        #[serde(rename = "option-type", )]
         option_type: u8,
-        #[serde(rename = "option-value", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         option_value: String,
     }
 
@@ -1002,7 +980,7 @@ mod dnsdistsettings {
         name: String,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         qclass: String,
-        #[serde(rename = "numeric-value", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         numeric_value: u16,
     }
 
@@ -1019,9 +997,7 @@ mod dnsdistsettings {
     struct QNameLabelsCountSelectorConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
-        #[serde(rename = "min-labels-count", )]
         min_labels_count: u16,
-        #[serde(rename = "max-labels-count", )]
         max_labels_count: u16,
     }
 
@@ -1058,7 +1034,7 @@ mod dnsdistsettings {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
         qtype: String,
-        #[serde(rename = "numeric-value", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         numeric_value: u16,
     }
 
@@ -1101,7 +1077,6 @@ mod dnsdistsettings {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
         section: u8,
-        #[serde(rename = "record-type", )]
         record_type: u16,
         minimum: u16,
         maximum: u16,
@@ -1120,7 +1095,6 @@ mod dnsdistsettings {
     struct SNISelectorConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
-        #[serde(rename = "server-name", )]
         server_name: String,
     }
 
@@ -1209,9 +1183,9 @@ mod dnsdistsettings {
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
     struct RemoteLoggingConfiguration {
-        #[serde(rename = "protobuf-loggers", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         protobuf_loggers: Vec<ProtobufLoggerConfiguration>,
-        #[serde(rename = "dnstap-loggers", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         dnstap_loggers: Vec<DnstapLoggerConfiguration>,
     }
 
@@ -1222,9 +1196,9 @@ mod dnsdistsettings {
         address: String,
         #[serde(default = "crate::U16::<2>::value", skip_serializing_if = "crate::U16::<2>::is_equal")]
         timeout: u16,
-        #[serde(rename = "max-queued-entries", default = "crate::U64::<100>::value", skip_serializing_if = "crate::U64::<100>::is_equal")]
+        #[serde(default = "crate::U64::<100>::value", skip_serializing_if = "crate::U64::<100>::is_equal")]
         max_queued_entries: u64,
-        #[serde(rename = "reconnect-wait-time", default = "crate::U8::<1>::value", skip_serializing_if = "crate::U8::<1>::is_equal")]
+        #[serde(default = "crate::U8::<1>::value", skip_serializing_if = "crate::U8::<1>::is_equal")]
         reconnect_wait_time: u8,
     }
 
@@ -1234,17 +1208,17 @@ mod dnsdistsettings {
         name: String,
         transport: String,
         address: String,
-        #[serde(rename = "buffer-hint", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         buffer_hint: u64,
-        #[serde(rename = "flush-timeout", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         flush_timeout: u64,
-        #[serde(rename = "input-queue-size", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         input_queue_size: u64,
-        #[serde(rename = "output-queue-size", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         output_queue_size: u64,
-        #[serde(rename = "queue-notify-threshold", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         queue_notify_threshold: u64,
-        #[serde(rename = "reopen-interval", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         reopen_interval: u64,
     }
 
@@ -1259,11 +1233,9 @@ mod dnsdistsettings {
     #[serde(deny_unknown_fields)]
     struct LMDBKVStoreConfiguration {
         name: String,
-        #[serde(rename = "file-name", )]
         file_name: String,
-        #[serde(rename = "database-name", )]
         database_name: String,
-        #[serde(rename = "no-lock", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         no_lock: bool,
     }
 
@@ -1271,9 +1243,7 @@ mod dnsdistsettings {
     #[serde(deny_unknown_fields)]
     struct CDBKVStoreConfiguration {
         name: String,
-        #[serde(rename = "file-name", )]
         file_name: String,
-        #[serde(rename = "refresh-delay", )]
         refresh_delay: u32,
     }
 
@@ -1281,11 +1251,11 @@ mod dnsdistsettings {
     #[serde(deny_unknown_fields)]
     struct KVSLookupKeySourceIPConfiguration {
         name: String,
-        #[serde(rename = "v4-mask", default = "crate::U8::<32>::value", skip_serializing_if = "crate::U8::<32>::is_equal")]
+        #[serde(default = "crate::U8::<32>::value", skip_serializing_if = "crate::U8::<32>::is_equal")]
         v4_mask: u8,
-        #[serde(rename = "v6-mask", default = "crate::U8::<128>::value", skip_serializing_if = "crate::U8::<128>::is_equal")]
+        #[serde(default = "crate::U8::<128>::value", skip_serializing_if = "crate::U8::<128>::is_equal")]
         v6_mask: u8,
-        #[serde(rename = "include-port", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         include_port: bool,
     }
 
@@ -1293,7 +1263,7 @@ mod dnsdistsettings {
     #[serde(deny_unknown_fields)]
     struct KVSLookupKeyQNameConfiguration {
         name: String,
-        #[serde(rename = "wire-format", default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
+        #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
         wire_format: bool,
     }
 
@@ -1301,9 +1271,9 @@ mod dnsdistsettings {
     #[serde(deny_unknown_fields)]
     struct KVSLookupKeySuffixConfiguration {
         name: String,
-        #[serde(rename = "minimum-labels", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         minimum_labels: u16,
-        #[serde(rename = "wire-format", default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
+        #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
         wire_format: bool,
     }
 
@@ -1317,13 +1287,13 @@ mod dnsdistsettings {
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
     struct KVSLookupKeysConfiguration {
-        #[serde(rename = "source-ip-keys", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         source_ip_keys: Vec<KVSLookupKeySourceIPConfiguration>,
-        #[serde(rename = "qname-keys", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         qname_keys: Vec<KVSLookupKeyQNameConfiguration>,
-        #[serde(rename = "suffix-keys", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         suffix_keys: Vec<KVSLookupKeySuffixConfiguration>,
-        #[serde(rename = "tag-keys", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         tag_keys: Vec<KVSLookupKeyTagConfiguration>,
     }
 
@@ -1334,62 +1304,62 @@ mod dnsdistsettings {
         lmdb: Vec<LMDBKVStoreConfiguration>,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         cdb: Vec<CDBKVStoreConfiguration>,
-        #[serde(rename = "lookup-keys", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         lookup_keys: KVSLookupKeysConfiguration,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
     struct WebserverConfiguration {
-        #[serde(rename = "listen-address", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         listen_address: String,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         password: String,
-        #[serde(rename = "api-key", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         api_key: String,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         acl: Vec<String>,
-        #[serde(rename = "api-requires-authentication", default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
+        #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
         api_requires_authentication: bool,
-        #[serde(rename = "stats-require-authentication", default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
+        #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
         stats_require_authentication: bool,
-        #[serde(rename = "dashboard-requires-authentication", default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
+        #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
         dashboard_requires_authentication: bool,
-        #[serde(rename = "max-concurrent-connections", default = "crate::U32::<100>::value", skip_serializing_if = "crate::U32::<100>::is_equal")]
+        #[serde(default = "crate::U32::<100>::value", skip_serializing_if = "crate::U32::<100>::is_equal")]
         max_concurrent_connections: u32,
-        #[serde(rename = "hash-plaintext-credentials", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         hash_plaintext_credentials: bool,
-        #[serde(rename = "custom-headers", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         custom_headers: Vec<HttpCustomResponseHeaderConfiguration>,
-        #[serde(rename = "api-configuration-directory", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         api_configuration_directory: String,
-        #[serde(rename = "api-read-write", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         api_read_write: bool,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
     struct ConsoleConfiguration {
-        #[serde(rename = "listen-address", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         listen_address: String,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         key: String,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         acl: Vec<String>,
-        #[serde(rename = "maximum-output-size", default = "crate::U32::<10000000>::value", skip_serializing_if = "crate::U32::<10000000>::is_equal")]
+        #[serde(default = "crate::U32::<10000000>::value", skip_serializing_if = "crate::U32::<10000000>::is_equal")]
         maximum_output_size: u32,
-        #[serde(rename = "log-connections", default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
+        #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
         log_connections: bool,
-        #[serde(rename = "max-concurrent-connections", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         max_concurrent_connections: u64,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
     struct EbpfMapConfiguration {
-        #[serde(rename = "max-entries", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         max_entries: u32,
-        #[serde(rename = "pinned-path", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         pinned_path: String,
     }
 
@@ -1400,9 +1370,9 @@ mod dnsdistsettings {
         ipv4: EbpfMapConfiguration,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         ipv6: EbpfMapConfiguration,
-        #[serde(rename = "cidr-ipv4", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         cidr_ipv4: EbpfMapConfiguration,
-        #[serde(rename = "cidr-ipv6", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         cidr_ipv6: EbpfMapConfiguration,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         qnames: EbpfMapConfiguration,
@@ -1413,20 +1383,20 @@ mod dnsdistsettings {
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
     struct EdnsClientSubnetConfiguration {
-        #[serde(rename = "override-existing", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         override_existing: bool,
-        #[serde(rename = "source-prefix-v4", default = "crate::U8::<32>::value", skip_serializing_if = "crate::U8::<32>::is_equal")]
+        #[serde(default = "crate::U8::<32>::value", skip_serializing_if = "crate::U8::<32>::is_equal")]
         source_prefix_v4: u8,
-        #[serde(rename = "source-prefix-v6", default = "crate::U8::<56>::value", skip_serializing_if = "crate::U8::<56>::is_equal")]
+        #[serde(default = "crate::U8::<56>::value", skip_serializing_if = "crate::U8::<56>::is_equal")]
         source_prefix_v6: u8,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
     struct DynamicRulesSettingsConfiguration {
-        #[serde(rename = "purge-interval", default = "crate::U64::<60>::value", skip_serializing_if = "crate::U64::<60>::is_equal")]
+        #[serde(default = "crate::U64::<60>::value", skip_serializing_if = "crate::U64::<60>::is_equal")]
         purge_interval: u64,
-        #[serde(rename = "default-action", default = "crate::default_value_dynamic_rules_settings_default_action", skip_serializing_if = "crate::default_value_equal_dynamic_rules_settings_default_action")]
+        #[serde(default = "crate::default_value_dynamic_rules_settings_default_action", skip_serializing_if = "crate::default_value_equal_dynamic_rules_settings_default_action")]
         default_action: String,
     }
 
@@ -1436,7 +1406,6 @@ mod dnsdistsettings {
         #[serde(rename = "type", )]
         rule_type: String,
         seconds: u32,
-        #[serde(rename = "action-duration", )]
         action_duration: u32,
         comment: String,
         #[serde(default, skip_serializing_if = "crate::is_default")]
@@ -1445,27 +1414,27 @@ mod dnsdistsettings {
         ratio: f64,
         #[serde(default = "crate::default_value_dynamic_rule_action", skip_serializing_if = "crate::default_value_equal_dynamic_rule_action")]
         action: String,
-        #[serde(rename = "warning-rate", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         warning_rate: u32,
-        #[serde(rename = "warning-ratio", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         warning_ratio: f64,
-        #[serde(rename = "tag-name", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         tag_name: String,
-        #[serde(rename = "tag-value", default = "crate::default_value_dynamic_rule_tag_value", skip_serializing_if = "crate::default_value_equal_dynamic_rule_tag_value")]
+        #[serde(default = "crate::default_value_dynamic_rule_tag_value", skip_serializing_if = "crate::default_value_equal_dynamic_rule_tag_value")]
         tag_value: String,
-        #[serde(rename = "visitor-function-name", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         visitor_function_name: String,
-        #[serde(rename = "visitor-function-code", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         visitor_function_code: String,
-        #[serde(rename = "visitor-function-file", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         visitor_function_file: String,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         rcode: String,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         qtype: String,
-        #[serde(rename = "minimum-number-of-responses", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         minimum_number_of_responses: u32,
-        #[serde(rename = "minimum-global-cache-hit-ratio", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         minimum_global_cache_hit_ratio: f64,
     }
 
@@ -1473,17 +1442,17 @@ mod dnsdistsettings {
     #[serde(deny_unknown_fields)]
     struct DynamicRulesConfiguration {
         name: String,
-        #[serde(rename = "mask-ipv4", default = "crate::U8::<32>::value", skip_serializing_if = "crate::U8::<32>::is_equal")]
+        #[serde(default = "crate::U8::<32>::value", skip_serializing_if = "crate::U8::<32>::is_equal")]
         mask_ipv4: u8,
-        #[serde(rename = "mask-ipv6", default = "crate::U8::<64>::value", skip_serializing_if = "crate::U8::<64>::is_equal")]
+        #[serde(default = "crate::U8::<64>::value", skip_serializing_if = "crate::U8::<64>::is_equal")]
         mask_ipv6: u8,
-        #[serde(rename = "mask-port", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         mask_port: u8,
-        #[serde(rename = "exclude-ranges", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         exclude_ranges: Vec<String>,
-        #[serde(rename = "include-ranges", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         include_ranges: Vec<String>,
-        #[serde(rename = "exclude-domains", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         exclude_domains: Vec<String>,
         rules: Vec<DynamicRuleConfiguration>,
     }
@@ -1495,11 +1464,11 @@ mod dnsdistsettings {
         size: u64,
         #[serde(default = "crate::U64::<10>::value", skip_serializing_if = "crate::U64::<10>::is_equal")]
         shards: u64,
-        #[serde(rename = "lock-retries", default = "crate::U64::<5>::value", skip_serializing_if = "crate::U64::<5>::is_equal")]
+        #[serde(default = "crate::U64::<5>::value", skip_serializing_if = "crate::U64::<5>::is_equal")]
         lock_retries: u64,
-        #[serde(rename = "record-queries", default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
+        #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
         record_queries: bool,
-        #[serde(rename = "record-responses", default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
+        #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
         record_responses: bool,
     }
 
@@ -1520,45 +1489,45 @@ mod dnsdistsettings {
         provider: String,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         certificates: Vec<IncomingTlsCertificateKeyPairConfiguration>,
-        #[serde(rename = "ignore-errors", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         ignore_errors: bool,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         ciphers: String,
-        #[serde(rename = "ciphers-tls-13", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         ciphers_tls_13: String,
-        #[serde(rename = "minimum-version", default = "crate::default_value_incoming_tls_minimum_version", skip_serializing_if = "crate::default_value_equal_incoming_tls_minimum_version")]
+        #[serde(default = "crate::default_value_incoming_tls_minimum_version", skip_serializing_if = "crate::default_value_equal_incoming_tls_minimum_version")]
         minimum_version: String,
-        #[serde(rename = "ticket-key-file", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         ticket_key_file: String,
-        #[serde(rename = "tickets-keys-rotation-delay", default = "crate::U32::<43200>::value", skip_serializing_if = "crate::U32::<43200>::is_equal")]
+        #[serde(default = "crate::U32::<43200>::value", skip_serializing_if = "crate::U32::<43200>::is_equal")]
         tickets_keys_rotation_delay: u32,
-        #[serde(rename = "number-of-tickets-keys", default = "crate::U32::<5>::value", skip_serializing_if = "crate::U32::<5>::is_equal")]
+        #[serde(default = "crate::U32::<5>::value", skip_serializing_if = "crate::U32::<5>::is_equal")]
         number_of_tickets_keys: u32,
-        #[serde(rename = "prefer-server-ciphers", default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
+        #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
         prefer_server_ciphers: bool,
-        #[serde(rename = "session-timeout", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         session_timeout: u32,
-        #[serde(rename = "session-tickets", default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
+        #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
         session_tickets: bool,
-        #[serde(rename = "number-of-stored-sessions", default = "crate::U32::<20480>::value", skip_serializing_if = "crate::U32::<20480>::is_equal")]
+        #[serde(default = "crate::U32::<20480>::value", skip_serializing_if = "crate::U32::<20480>::is_equal")]
         number_of_stored_sessions: u32,
-        #[serde(rename = "ocsp-response-files", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         ocsp_response_files: Vec<String>,
-        #[serde(rename = "key-log-file", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         key_log_file: String,
-        #[serde(rename = "release-buffers", default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
+        #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
         release_buffers: bool,
-        #[serde(rename = "enable-renegotiation", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         enable_renegotiation: bool,
-        #[serde(rename = "async-mode", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         async_mode: bool,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         ktls: bool,
-        #[serde(rename = "read-ahead", default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
+        #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
         read_ahead: bool,
-        #[serde(rename = "proxy-protocol-outside-tls", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         proxy_protocol_outside_tls: bool,
-        #[serde(rename = "ignore-configuration-errors", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         ignore_configuration_errors: bool,
     }
 
@@ -1567,23 +1536,23 @@ mod dnsdistsettings {
     struct OutgoingTlsConfiguration {
         #[serde(default = "crate::default_value_outgoing_tls_provider", skip_serializing_if = "crate::default_value_equal_outgoing_tls_provider")]
         provider: String,
-        #[serde(rename = "subject-name", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         subject_name: String,
-        #[serde(rename = "subject-address", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         subject_address: String,
-        #[serde(rename = "validate-certificate", default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
+        #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
         validate_certificate: bool,
-        #[serde(rename = "ca-store", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         ca_store: String,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         ciphers: String,
-        #[serde(rename = "ciphers-tls-13", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         ciphers_tls_13: String,
-        #[serde(rename = "key-log-file", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         key_log_file: String,
-        #[serde(rename = "release-buffers", default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
+        #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
         release_buffers: bool,
-        #[serde(rename = "enable-renegotiation", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         enable_renegotiation: bool,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         ktls: bool,
@@ -1613,25 +1582,25 @@ mod dnsdistsettings {
         provider: String,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         paths: Vec<String>,
-        #[serde(rename = "idle-timeout", default = "crate::U64::<30>::value", skip_serializing_if = "crate::U64::<30>::is_equal")]
+        #[serde(default = "crate::U64::<30>::value", skip_serializing_if = "crate::U64::<30>::is_equal")]
         idle_timeout: u64,
-        #[serde(rename = "server-tokens", default = "crate::default_value_incoming_doh_server_tokens", skip_serializing_if = "crate::default_value_equal_incoming_doh_server_tokens")]
+        #[serde(default = "crate::default_value_incoming_doh_server_tokens", skip_serializing_if = "crate::default_value_equal_incoming_doh_server_tokens")]
         server_tokens: String,
-        #[serde(rename = "send-cache-control-headers", default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
+        #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
         send_cache_control_headers: bool,
-        #[serde(rename = "keep-incoming-headers", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         keep_incoming_headers: bool,
-        #[serde(rename = "trust-forwarded-for-header", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         trust_forwarded_for_header: bool,
-        #[serde(rename = "early-acl-drop", default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
+        #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
         early_acl_drop: bool,
-        #[serde(rename = "exact-path-matching", default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
+        #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
         exact_path_matching: bool,
-        #[serde(rename = "internal-pipe-buffer-size", default = "crate::U32::<1048576>::value", skip_serializing_if = "crate::U32::<1048576>::is_equal")]
+        #[serde(default = "crate::U32::<1048576>::value", skip_serializing_if = "crate::U32::<1048576>::is_equal")]
         internal_pipe_buffer_size: u32,
-        #[serde(rename = "custom-response-headers", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         custom_response_headers: Vec<HttpCustomResponseHeaderConfiguration>,
-        #[serde(rename = "responses-map", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         responses_map: Vec<HttpResponsesMapConfiguration>,
     }
 
@@ -1645,11 +1614,11 @@ mod dnsdistsettings {
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
     struct IncomingQuicConfiguration {
-        #[serde(rename = "idle-timeout", default = "crate::U64::<5>::value", skip_serializing_if = "crate::U64::<5>::is_equal")]
+        #[serde(default = "crate::U64::<5>::value", skip_serializing_if = "crate::U64::<5>::is_equal")]
         idle_timeout: u64,
-        #[serde(rename = "congestion-control-algorithm", default = "crate::default_value_incoming_quic_congestion_control_algorithm", skip_serializing_if = "crate::default_value_equal_incoming_quic_congestion_control_algorithm")]
+        #[serde(default = "crate::default_value_incoming_quic_congestion_control_algorithm", skip_serializing_if = "crate::default_value_equal_incoming_quic_congestion_control_algorithm")]
         congestion_control_algorithm: String,
-        #[serde(rename = "internal-pipe-buffer-size", default = "crate::U32::<1048576>::value", skip_serializing_if = "crate::U32::<1048576>::is_equal")]
+        #[serde(default = "crate::U32::<1048576>::value", skip_serializing_if = "crate::U32::<1048576>::is_equal")]
         internal_pipe_buffer_size: u32,
     }
 
@@ -1663,7 +1632,7 @@ mod dnsdistsettings {
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
     struct IncomingDnscryptConfiguration {
-        #[serde(rename = "provider-name", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         provider_name: String,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         certificates: Vec<IncomingDnscryptCertificateKeyPairConfiguration>,
@@ -1674,27 +1643,26 @@ mod dnsdistsettings {
     struct OutgoingDohConfiguration {
         #[serde(default = "crate::default_value_outgoing_doh_path", skip_serializing_if = "crate::default_value_equal_outgoing_doh_path")]
         path: String,
-        #[serde(rename = "add-x-forwarded-headers", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         add_x_forwarded_headers: bool,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
     struct IncomingTcpConfiguration {
-        #[serde(rename = "max-in-flight-queries", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         max_in_flight_queries: u32,
-        #[serde(rename = "listen-queue-size", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         listen_queue_size: u32,
-        #[serde(rename = "fast-open-queue-size", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         fast_open_queue_size: u32,
-        #[serde(rename = "max-concurrent-connections", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         max_concurrent_connections: u32,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
     struct BindConfiguration {
-        #[serde(rename = "listen-address", )]
         listen_address: String,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         reuseport: bool,
@@ -1706,7 +1674,7 @@ mod dnsdistsettings {
         interface: String,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         cpus: String,
-        #[serde(rename = "enable-proxy-protocol", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         enable_proxy_protocol: bool,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         tcp: IncomingTcpConfiguration,
@@ -1720,7 +1688,7 @@ mod dnsdistsettings {
         quic: IncomingQuicConfiguration,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         dnscrypt: IncomingDnscryptConfiguration,
-        #[serde(rename = "additional-addresses", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         additional_addresses: Vec<String>,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         xsk: String,
@@ -1729,13 +1697,13 @@ mod dnsdistsettings {
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
     struct OutgoingTcpConfiguration {
-        #[serde(rename = "connect-timeout", default = "crate::U16::<5>::value", skip_serializing_if = "crate::U16::<5>::is_equal")]
+        #[serde(default = "crate::U16::<5>::value", skip_serializing_if = "crate::U16::<5>::is_equal")]
         connect_timeout: u16,
-        #[serde(rename = "send-timeout", default = "crate::U16::<30>::value", skip_serializing_if = "crate::U16::<30>::is_equal")]
+        #[serde(default = "crate::U16::<30>::value", skip_serializing_if = "crate::U16::<30>::is_equal")]
         send_timeout: u16,
-        #[serde(rename = "receive-timeout", default = "crate::U16::<30>::value", skip_serializing_if = "crate::U16::<30>::is_equal")]
+        #[serde(default = "crate::U16::<30>::value", skip_serializing_if = "crate::U16::<30>::is_equal")]
         receive_timeout: u16,
-        #[serde(rename = "fast-open", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         fast_open: bool,
     }
 
@@ -1751,17 +1719,17 @@ mod dnsdistsettings {
     struct LazyHealthCheckConfiguration {
         #[serde(default = "crate::U16::<30>::value", skip_serializing_if = "crate::U16::<30>::is_equal")]
         interval: u16,
-        #[serde(rename = "min-sample-count", default = "crate::U16::<1>::value", skip_serializing_if = "crate::U16::<1>::is_equal")]
+        #[serde(default = "crate::U16::<1>::value", skip_serializing_if = "crate::U16::<1>::is_equal")]
         min_sample_count: u16,
         #[serde(default = "crate::default_value_lazy_health_check_mode", skip_serializing_if = "crate::default_value_equal_lazy_health_check_mode")]
         mode: String,
-        #[serde(rename = "sample-size", default = "crate::U16::<100>::value", skip_serializing_if = "crate::U16::<100>::is_equal")]
+        #[serde(default = "crate::U16::<100>::value", skip_serializing_if = "crate::U16::<100>::is_equal")]
         sample_size: u16,
         #[serde(default = "crate::U16::<20>::value", skip_serializing_if = "crate::U16::<20>::is_equal")]
         threshold: u16,
-        #[serde(rename = "use-exponential-back-off", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         use_exponential_back_off: bool,
-        #[serde(rename = "max-back-off", default = "crate::U16::<3600>::value", skip_serializing_if = "crate::U16::<3600>::is_equal")]
+        #[serde(default = "crate::U16::<3600>::value", skip_serializing_if = "crate::U16::<3600>::is_equal")]
         max_back_off: u16,
     }
 
@@ -1780,21 +1748,21 @@ mod dnsdistsettings {
         function: String,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         lua: String,
-        #[serde(rename = "lua-file", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         lua_file: String,
         #[serde(default = "crate::U16::<1000>::value", skip_serializing_if = "crate::U16::<1000>::is_equal")]
         timeout: u16,
-        #[serde(rename = "set-cd", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         set_cd: bool,
-        #[serde(rename = "max-failures", default = "crate::U8::<1>::value", skip_serializing_if = "crate::U8::<1>::is_equal")]
+        #[serde(default = "crate::U8::<1>::value", skip_serializing_if = "crate::U8::<1>::is_equal")]
         max_failures: u8,
         #[serde(default = "crate::U8::<1>::value", skip_serializing_if = "crate::U8::<1>::is_equal")]
         rise: u8,
         #[serde(default = "crate::U32::<1>::value", skip_serializing_if = "crate::U32::<1>::is_equal")]
         interval: u32,
-        #[serde(rename = "must-resolve", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         must_resolve: bool,
-        #[serde(rename = "use-tcp", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         use_tcp: bool,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         lazy: LazyHealthCheckConfiguration,
@@ -1811,9 +1779,9 @@ mod dnsdistsettings {
         keep: bool,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         pool: String,
-        #[serde(rename = "doh-key", default = "crate::U8::<7>::value", skip_serializing_if = "crate::U8::<7>::is_equal")]
+        #[serde(default = "crate::U8::<7>::value", skip_serializing_if = "crate::U8::<7>::is_equal")]
         doh_key: u8,
-        #[serde(rename = "use-lazy-health-check", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         use_lazy_health_check: bool,
     }
 
@@ -1830,11 +1798,11 @@ mod dnsdistsettings {
         tls: OutgoingTlsConfiguration,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         doh: OutgoingDohConfiguration,
-        #[serde(rename = "use-client-subnet", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         use_client_subnet: bool,
-        #[serde(rename = "use-proxy-protocol", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         use_proxy_protocol: bool,
-        #[serde(rename = "queries-per-second", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         queries_per_second: u32,
         #[serde(default = "crate::U32::<1>::value", skip_serializing_if = "crate::U32::<1>::is_equal")]
         order: u32,
@@ -1846,33 +1814,33 @@ mod dnsdistsettings {
         retries: u16,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         tcp: OutgoingTcpConfiguration,
-        #[serde(rename = "ip-bind-addr-no-port", default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
+        #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
         ip_bind_addr_no_port: bool,
-        #[serde(rename = "health-checks", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         health_checks: HealthCheckConfiguration,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         source: String,
         #[serde(default = "crate::U32::<1>::value", skip_serializing_if = "crate::U32::<1>::is_equal")]
         sockets: u32,
-        #[serde(rename = "disable-zero-scope", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         disable_zero_scope: bool,
-        #[serde(rename = "reconnect-on-up", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         reconnect_on_up: bool,
-        #[serde(rename = "max-in-flight", default = "crate::U32::<1>::value", skip_serializing_if = "crate::U32::<1>::is_equal")]
+        #[serde(default = "crate::U32::<1>::value", skip_serializing_if = "crate::U32::<1>::is_equal")]
         max_in_flight: u32,
-        #[serde(rename = "tcp-only", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         tcp_only: bool,
-        #[serde(rename = "auto-upgrade", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         auto_upgrade: OutgoingAutoUpgradeConfiguration,
-        #[serde(rename = "max-concurrent-tcp-connections", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         max_concurrent_tcp_connections: u32,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         ktls: bool,
-        #[serde(rename = "proxy-protocol-advertise-tls", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         proxy_protocol_advertise_tls: bool,
-        #[serde(rename = "xsk-sockets", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         xsk_sockets: Vec<String>,
-        #[serde(rename = "mac-address", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         mac_address: String,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         cpus: String,
@@ -1896,90 +1864,90 @@ mod dnsdistsettings {
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
     struct TcpTuningConfiguration {
-        #[serde(rename = "worker-threads", default = "crate::U32::<10>::value", skip_serializing_if = "crate::U32::<10>::is_equal")]
+        #[serde(default = "crate::U32::<10>::value", skip_serializing_if = "crate::U32::<10>::is_equal")]
         worker_threads: u32,
-        #[serde(rename = "receive-timeout", default = "crate::U32::<2>::value", skip_serializing_if = "crate::U32::<2>::is_equal")]
+        #[serde(default = "crate::U32::<2>::value", skip_serializing_if = "crate::U32::<2>::is_equal")]
         receive_timeout: u32,
-        #[serde(rename = "send-timeout", default = "crate::U32::<2>::value", skip_serializing_if = "crate::U32::<2>::is_equal")]
+        #[serde(default = "crate::U32::<2>::value", skip_serializing_if = "crate::U32::<2>::is_equal")]
         send_timeout: u32,
-        #[serde(rename = "max-queries-per-connection", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         max_queries_per_connection: u64,
-        #[serde(rename = "max-connection-duration", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         max_connection_duration: u64,
-        #[serde(rename = "max-queued-connections", default = "crate::U64::<10000>::value", skip_serializing_if = "crate::U64::<10000>::is_equal")]
+        #[serde(default = "crate::U64::<10000>::value", skip_serializing_if = "crate::U64::<10000>::is_equal")]
         max_queued_connections: u64,
-        #[serde(rename = "internal-pipe-buffer-size", default = "crate::U32::<1048576>::value", skip_serializing_if = "crate::U32::<1048576>::is_equal")]
+        #[serde(default = "crate::U32::<1048576>::value", skip_serializing_if = "crate::U32::<1048576>::is_equal")]
         internal_pipe_buffer_size: u32,
-        #[serde(rename = "outgoing-max-idle-time", default = "crate::U64::<300>::value", skip_serializing_if = "crate::U64::<300>::is_equal")]
+        #[serde(default = "crate::U64::<300>::value", skip_serializing_if = "crate::U64::<300>::is_equal")]
         outgoing_max_idle_time: u64,
-        #[serde(rename = "outgoing-cleanup-interval", default = "crate::U64::<60>::value", skip_serializing_if = "crate::U64::<60>::is_equal")]
+        #[serde(default = "crate::U64::<60>::value", skip_serializing_if = "crate::U64::<60>::is_equal")]
         outgoing_cleanup_interval: u64,
-        #[serde(rename = "outgoing-max-idle-connection-per-backend", default = "crate::U64::<10>::value", skip_serializing_if = "crate::U64::<10>::is_equal")]
+        #[serde(default = "crate::U64::<10>::value", skip_serializing_if = "crate::U64::<10>::is_equal")]
         outgoing_max_idle_connection_per_backend: u64,
-        #[serde(rename = "max-connections-per-client", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         max_connections_per_client: u32,
-        #[serde(rename = "fast-open-key", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         fast_open_key: String,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
     struct UdpTuningConfiguration {
-        #[serde(rename = "messages-per-round", default = "crate::U32::<1>::value", skip_serializing_if = "crate::U32::<1>::is_equal")]
+        #[serde(default = "crate::U32::<1>::value", skip_serializing_if = "crate::U32::<1>::is_equal")]
         messages_per_round: u32,
-        #[serde(rename = "send-buffer-size", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         send_buffer_size: u32,
-        #[serde(rename = "receive-buffer-size", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         receive_buffer_size: u32,
-        #[serde(rename = "max-outstanding-per-backend", default = "crate::U32::<65535>::value", skip_serializing_if = "crate::U32::<65535>::is_equal")]
+        #[serde(default = "crate::U32::<65535>::value", skip_serializing_if = "crate::U32::<65535>::is_equal")]
         max_outstanding_per_backend: u32,
         #[serde(default = "crate::U8::<2>::value", skip_serializing_if = "crate::U8::<2>::is_equal")]
         timeout: u8,
-        #[serde(rename = "randomize-outgoing-sockets-to-backend", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         randomize_outgoing_sockets_to_backend: bool,
-        #[serde(rename = "randomize-ids-to-backend", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         randomize_ids_to_backend: bool,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
     struct TlsTuningConfiguration {
-        #[serde(rename = "outgoing-tickets-cache-cleanup-delay", default = "crate::U16::<60>::value", skip_serializing_if = "crate::U16::<60>::is_equal")]
+        #[serde(default = "crate::U16::<60>::value", skip_serializing_if = "crate::U16::<60>::is_equal")]
         outgoing_tickets_cache_cleanup_delay: u16,
-        #[serde(rename = "outgoing-tickets-cache-validity", default = "crate::U16::<600>::value", skip_serializing_if = "crate::U16::<600>::is_equal")]
+        #[serde(default = "crate::U16::<600>::value", skip_serializing_if = "crate::U16::<600>::is_equal")]
         outgoing_tickets_cache_validity: u16,
-        #[serde(rename = "max-outgoing-tickets-per-backend", default = "crate::U16::<20>::value", skip_serializing_if = "crate::U16::<20>::is_equal")]
+        #[serde(default = "crate::U16::<20>::value", skip_serializing_if = "crate::U16::<20>::is_equal")]
         max_outgoing_tickets_per_backend: u16,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
     struct DohTuningConfiguration {
-        #[serde(rename = "outgoing-worker-threads", default = "crate::U32::<10>::value", skip_serializing_if = "crate::U32::<10>::is_equal")]
+        #[serde(default = "crate::U32::<10>::value", skip_serializing_if = "crate::U32::<10>::is_equal")]
         outgoing_worker_threads: u32,
-        #[serde(rename = "outgoing-max-idle-time", default = "crate::U64::<300>::value", skip_serializing_if = "crate::U64::<300>::is_equal")]
+        #[serde(default = "crate::U64::<300>::value", skip_serializing_if = "crate::U64::<300>::is_equal")]
         outgoing_max_idle_time: u64,
-        #[serde(rename = "outgoing-cleanup-interval", default = "crate::U64::<60>::value", skip_serializing_if = "crate::U64::<60>::is_equal")]
+        #[serde(default = "crate::U64::<60>::value", skip_serializing_if = "crate::U64::<60>::is_equal")]
         outgoing_cleanup_interval: u64,
-        #[serde(rename = "outgoing-max-idle-connection-per-backend", default = "crate::U64::<10>::value", skip_serializing_if = "crate::U64::<10>::is_equal")]
+        #[serde(default = "crate::U64::<10>::value", skip_serializing_if = "crate::U64::<10>::is_equal")]
         outgoing_max_idle_connection_per_backend: u64,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
     struct CacheSettingsConfiguration {
-        #[serde(rename = "stale-entries-ttl", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         stale_entries_ttl: u32,
-        #[serde(rename = "cleaning-delay", default = "crate::U16::<60>::value", skip_serializing_if = "crate::U16::<60>::is_equal")]
+        #[serde(default = "crate::U16::<60>::value", skip_serializing_if = "crate::U16::<60>::is_equal")]
         cleaning_delay: u16,
-        #[serde(rename = "cleaning-percentage", default = "crate::U16::<100>::value", skip_serializing_if = "crate::U16::<100>::is_equal")]
+        #[serde(default = "crate::U16::<100>::value", skip_serializing_if = "crate::U16::<100>::is_equal")]
         cleaning_percentage: u16,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
     struct SecurityPollingConfiguration {
-        #[serde(rename = "polling-interval", default = "crate::U32::<3600>::value", skip_serializing_if = "crate::U32::<3600>::is_equal")]
+        #[serde(default = "crate::U32::<3600>::value", skip_serializing_if = "crate::U32::<3600>::is_equal")]
         polling_interval: u32,
         #[serde(default = "crate::default_value_security_polling_suffix", skip_serializing_if = "crate::default_value_equal_security_polling_suffix")]
         suffix: String,
@@ -1988,23 +1956,23 @@ mod dnsdistsettings {
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
     struct GeneralConfiguration {
-        #[serde(rename = "edns-udp-payload-size-self-generated-answers", default = "crate::U16::<1232>::value", skip_serializing_if = "crate::U16::<1232>::is_equal")]
+        #[serde(default = "crate::U16::<1232>::value", skip_serializing_if = "crate::U16::<1232>::is_equal")]
         edns_udp_payload_size_self_generated_answers: u16,
-        #[serde(rename = "add-edns-to-self-generated-answers", default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
+        #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
         add_edns_to_self_generated_answers: bool,
-        #[serde(rename = "truncate-tc-answers", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         truncate_tc_answers: bool,
-        #[serde(rename = "fixup-case", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         fixup_case: bool,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         verbose: bool,
-        #[serde(rename = "verbose-health-checks", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         verbose_health_checks: bool,
-        #[serde(rename = "allow-empty-responses", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         allow_empty_responses: bool,
-        #[serde(rename = "drop-empty-queries", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         drop_empty_queries: bool,
-        #[serde(rename = "capabilities-to-retain", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         capabilities_to_retain: Vec<String>,
     }
 
@@ -2013,31 +1981,31 @@ mod dnsdistsettings {
     struct PacketCacheConfiguration {
         name: String,
         size: u64,
-        #[serde(rename = "deferrable-insert-lock", default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
+        #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
         deferrable_insert_lock: bool,
-        #[serde(rename = "dont-age", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         dont_age: bool,
-        #[serde(rename = "keep-stale-data", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         keep_stale_data: bool,
-        #[serde(rename = "max-negative-ttl", default = "crate::U32::<3600>::value", skip_serializing_if = "crate::U32::<3600>::is_equal")]
+        #[serde(default = "crate::U32::<3600>::value", skip_serializing_if = "crate::U32::<3600>::is_equal")]
         max_negative_ttl: u32,
-        #[serde(rename = "max-ttl", default = "crate::U32::<86400>::value", skip_serializing_if = "crate::U32::<86400>::is_equal")]
+        #[serde(default = "crate::U32::<86400>::value", skip_serializing_if = "crate::U32::<86400>::is_equal")]
         max_ttl: u32,
-        #[serde(rename = "min-ttl", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         min_ttl: u32,
         #[serde(default = "crate::U32::<20>::value", skip_serializing_if = "crate::U32::<20>::is_equal")]
         shards: u32,
-        #[serde(rename = "parse-ecs", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         parse_ecs: bool,
-        #[serde(rename = "stale-ttl", default = "crate::U32::<60>::value", skip_serializing_if = "crate::U32::<60>::is_equal")]
+        #[serde(default = "crate::U32::<60>::value", skip_serializing_if = "crate::U32::<60>::is_equal")]
         stale_ttl: u32,
-        #[serde(rename = "temporary-failure-ttl", default = "crate::U32::<60>::value", skip_serializing_if = "crate::U32::<60>::is_equal")]
+        #[serde(default = "crate::U32::<60>::value", skip_serializing_if = "crate::U32::<60>::is_equal")]
         temporary_failure_ttl: u32,
-        #[serde(rename = "cookie-hashing", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         cookie_hashing: bool,
-        #[serde(rename = "maximum-entry-size", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         maximum_entry_size: u32,
-        #[serde(rename = "options-to-skip", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         options_to_skip: Vec<String>,
     }
 
@@ -2046,9 +2014,9 @@ mod dnsdistsettings {
     struct ProxyProtocolConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         acl: Vec<String>,
-        #[serde(rename = "maximum-payload-size", default = "crate::U32::<512>::value", skip_serializing_if = "crate::U32::<512>::is_equal")]
+        #[serde(default = "crate::U32::<512>::value", skip_serializing_if = "crate::U32::<512>::is_equal")]
         maximum_payload_size: u32,
-        #[serde(rename = "apply-acl-to-proxied-clients", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         apply_acl_to_proxied_clients: bool,
     }
 
@@ -2057,9 +2025,9 @@ mod dnsdistsettings {
     struct SnmpConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         enabled: bool,
-        #[serde(rename = "traps-enabled", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         traps_enabled: bool,
-        #[serde(rename = "daemon-socket", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         daemon_socket: String,
     }
 
@@ -2068,11 +2036,11 @@ mod dnsdistsettings {
     struct QueryCountConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         enabled: bool,
-        #[serde(rename = "filter-function-name", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         filter_function_name: String,
-        #[serde(rename = "filter-function-code", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         filter_function_code: String,
-        #[serde(rename = "filter-function-file", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         filter_function_file: String,
     }
 
@@ -2080,7 +2048,7 @@ mod dnsdistsettings {
     #[serde(deny_unknown_fields)]
     struct PoolConfiguration {
         name: String,
-        #[serde(rename = "packet-cache", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         packet_cache: String,
         #[serde(default = "crate::default_value_pool_policy", skip_serializing_if = "crate::default_value_equal_pool_policy")]
         policy: String,
@@ -2090,34 +2058,34 @@ mod dnsdistsettings {
     #[serde(deny_unknown_fields)]
     struct CustomLoadBalancingPolicyConfiguration {
         name: String,
-        #[serde(rename = "function-name", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         function_name: String,
-        #[serde(rename = "function-code", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         function_code: String,
-        #[serde(rename = "function-file", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         function_file: String,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         ffi: bool,
-        #[serde(rename = "per-thread", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         per_thread: bool,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
     struct LoadBalancingPoliciesConfiguration {
-        #[serde(rename = "default-policy", default = "crate::default_value_load_balancing_policies_default_policy", skip_serializing_if = "crate::default_value_equal_load_balancing_policies_default_policy")]
+        #[serde(default = "crate::default_value_load_balancing_policies_default_policy", skip_serializing_if = "crate::default_value_equal_load_balancing_policies_default_policy")]
         default_policy: String,
-        #[serde(rename = "servfail-on-no-server", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         servfail_on_no_server: bool,
-        #[serde(rename = "round-robin-servfail-on-no-server", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         round_robin_servfail_on_no_server: bool,
-        #[serde(rename = "weighted-balancing-factor", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         weighted_balancing_factor: f64,
-        #[serde(rename = "consistent-hashing-balancing-factor", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         consistent_hashing_balancing_factor: f64,
-        #[serde(rename = "custom-policies", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         custom_policies: Vec<CustomLoadBalancingPolicyConfiguration>,
-        #[serde(rename = "hash-perturbation", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         hash_perturbation: u32,
     }
 
@@ -2143,7 +2111,7 @@ mod dnsdistsettings {
         queues: u16,
         #[serde(default = "crate::U32::<65536>::value", skip_serializing_if = "crate::U32::<65536>::is_equal")]
         frames: u32,
-        #[serde(rename = "map-path", default = "crate::default_value_xsk_map_path", skip_serializing_if = "crate::default_value_equal_xsk_map_path")]
+        #[serde(default = "crate::default_value_xsk_map_path", skip_serializing_if = "crate::default_value_equal_xsk_map_path")]
         map_path: String,
     }
 
@@ -2374,53 +2342,53 @@ impl dnsdistsettings::SharedDNSResponseAction {
         backends: Vec<dnsdistsettings::BackendConfiguration>,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         binds: Vec<dnsdistsettings::BindConfiguration>,
-        #[serde(rename = "cache-hit-response-rules", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         cache_hit_response_rules: Vec<ResponseRuleConfigurationSerde>,
-        #[serde(rename = "cache-inserted-response-rules", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         cache_inserted_response_rules: Vec<ResponseRuleConfigurationSerde>,
-        #[serde(rename = "cache-miss-rules", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         cache_miss_rules: Vec<QueryRuleConfigurationSerde>,
-        #[serde(rename = "cache-settings", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         cache_settings: dnsdistsettings::CacheSettingsConfiguration,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         console: dnsdistsettings::ConsoleConfiguration,
-        #[serde(rename = "dynamic-rules", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         dynamic_rules: Vec<dnsdistsettings::DynamicRulesConfiguration>,
-        #[serde(rename = "dynamic-rules-settings", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         dynamic_rules_settings: dnsdistsettings::DynamicRulesSettingsConfiguration,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         ebpf: dnsdistsettings::EbpfConfiguration,
-        #[serde(rename = "edns-client-subnet", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         edns_client_subnet: dnsdistsettings::EdnsClientSubnetConfiguration,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         general: dnsdistsettings::GeneralConfiguration,
-        #[serde(rename = "key-value-stores", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         key_value_stores: dnsdistsettings::KeyValueStoresConfiguration,
-        #[serde(rename = "load-balancing-policies", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         load_balancing_policies: dnsdistsettings::LoadBalancingPoliciesConfiguration,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         metrics: dnsdistsettings::MetricsConfiguration,
-        #[serde(rename = "packet-caches", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         packet_caches: Vec<dnsdistsettings::PacketCacheConfiguration>,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         pools: Vec<dnsdistsettings::PoolConfiguration>,
-        #[serde(rename = "proxy-protocol", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         proxy_protocol: dnsdistsettings::ProxyProtocolConfiguration,
-        #[serde(rename = "query-count", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         query_count: dnsdistsettings::QueryCountConfiguration,
-        #[serde(rename = "query-rules", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         query_rules: Vec<QueryRuleConfigurationSerde>,
-        #[serde(rename = "remote-logging", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         remote_logging: dnsdistsettings::RemoteLoggingConfiguration,
-        #[serde(rename = "response-rules", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         response_rules: Vec<ResponseRuleConfigurationSerde>,
-        #[serde(rename = "ring-buffers", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         ring_buffers: dnsdistsettings::RingBuffersConfiguration,
-        #[serde(rename = "security-polling", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         security_polling: dnsdistsettings::SecurityPollingConfiguration,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         selectors: Vec<Selector>,
-        #[serde(rename = "self-answered-response-rules", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         self_answered_response_rules: Vec<ResponseRuleConfigurationSerde>,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         snmp: dnsdistsettings::SnmpConfiguration,
@@ -2428,7 +2396,7 @@ impl dnsdistsettings::SharedDNSResponseAction {
         tuning: dnsdistsettings::TuningConfiguration,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         webserver: dnsdistsettings::WebserverConfiguration,
-        #[serde(rename = "xfr-response-rules", default, skip_serializing_if = "crate::is_default")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         xfr_response_rules: Vec<ResponseRuleConfigurationSerde>,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         xsk: Vec<dnsdistsettings::XskConfiguration>,
@@ -3140,7 +3108,7 @@ impl Default for dnsdistsettings::QueryCountConfiguration {
 
 // DEFAULT HANDLING for pool_policy
 fn default_value_pool_policy() -> String {
-    String::from("least-outstanding")
+    String::from("leastOutstanding")
 }
 fn default_value_equal_pool_policy(value: &str)-> bool {
     value == default_value_pool_policy()

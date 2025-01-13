@@ -29,17 +29,17 @@ The equivalent ``yaml`` configuration would be:
 
 .. code-block:: yaml
 
-  packet-caches:
+  packet_caches:
     - name: "pc"
       size: 1000
-      max-ttl: 86400
-      min-ttl: 0
-      temporary-failure-ttl: 60
-      state-ttl: 60
-      dont-age: false
+      max_ttl: 86400
+      min_ttl: 0
+      temporary_failure_ttl: 60
+      state_ttl: 60
+      dont_age: false
   pools:
     - name: ""
-      packet-cache: "pc"
+      packet_cache: "pc"
 
 The :func:`setStaleCacheEntriesTTL` directive can be used to allow dnsdist to use expired entries from the cache when no backend is available.
 Only entries that have expired for less than n seconds will be used, and the returned TTL can be set when creating a new cache with :func:`newPacketCache`.

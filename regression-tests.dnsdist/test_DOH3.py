@@ -238,14 +238,14 @@ backends:
   - address: "127.0.0.1:%d"
     protocol: "Do53"
 binds:
-  - listen-address: "127.0.0.1:%d"
+  - listen_address: "127.0.0.1:%d"
     reuseport: true
     protocol: "DoH3"
     tls:
       certificates:
         - certificate: "%s"
           key: "%s"
-query-rules:
+query_rules:
   - name: "Drop"
     selector:
       type: "QName"
@@ -273,7 +273,7 @@ query-rules:
       qname: "no-backend.doq.tests.powerdns.com."
     action:
       type: "Pool"
-      pool-name: "this-pool-has-no-backend"
+      pool_name: "this-pool-has-no-backend"
     """
     _yaml_config_params = ['_testServerPort', '_doqServerPort','_serverCert', '_serverKey']
 

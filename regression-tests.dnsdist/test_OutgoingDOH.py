@@ -351,7 +351,7 @@ class TestOutgoingDOHOpenSSLYaml(DNSDistTest, OutgoingDOHTests):
     _yaml_config_template = """---
 console:
   key: "%s"
-  listen-address: "127.0.0.1:%d"
+  listen_address: "127.0.0.1:%d"
   acl:
     - 127.0.0.0/8
 backends:
@@ -362,29 +362,29 @@ backends:
       - "cache"
     tls:
       provider: "%s"
-      validate-certificate: true
-      ca-store: "ca.pem"
-      subject-name: "powerdns.com"
+      validate_certificate: true
+      ca_store: "ca.pem"
+      subject_name: "powerdns.com"
     doh:
       path: "/dns-query"
-    health-checks:
+    health_checks:
       mode: "UP"
 webserver:
-  listen-address: "127.0.0.1:%d"
+  listen_address: "127.0.0.1:%d"
   password: "%s"
-  api-key: "%s"
+  api_key: "%s"
   acl:
     - 127.0.0.0/8
 tuning:
   tcp:
-    worker-threads: 1
+    worker_threads: 1
 pools:
   - name: "cache"
-    packet-cache: "pc"
-packet-caches:
+    packet_cache: "pc"
+packet_caches:
   - name: "pc"
     size: 100
-query-rules:
+query_rules:
   - name: "suffix to pool"
     selector:
       type: "QNameSuffix"
@@ -392,7 +392,7 @@ query-rules:
         - "cached.outgoing-doh.test.powerdns.com."
     action:
       type: "Pool"
-      pool-name: "cache"
+      pool_name: "cache"
 """
     _yaml_config_params = ['_consoleKeyB64', '_consolePort', '_tlsBackendPort', '_tlsProvider', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
 

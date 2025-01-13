@@ -38,7 +38,7 @@ Or in ``yaml``:
 
 .. code-block:: yaml
 
-  - listen-address: "2001:db8:1:f00::1"
+  - listen_address: "2001:db8:1:f00::1"
     protocol: "DoH"
     tls:
       certificates:
@@ -48,7 +48,7 @@ Or in ``yaml``:
       provider: "nghttp2"
       paths:
         - "/"
-      custom-response-headers:
+      custom_response_headers:
         - key: "link"
           value: "<https://example.com/policy.html> rel=\\"service-meta\\"; type=\\"text/html\\""
 
@@ -154,8 +154,8 @@ That support can be enabled via the ``dohPath`` parameter of the :func:`newServe
       protocol: "DoH"
       tls:
         provider: "openssl"
-        validate-certificate: true
-        subject-name: "doh.powerdns.com"
+        validate_certificate: true
+        subject_name: "doh.powerdns.com"
       doh:
         path: "/dns-query"
 

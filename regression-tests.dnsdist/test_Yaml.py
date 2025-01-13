@@ -7,31 +7,31 @@ class TestYaml(DNSDistTest):
 
     _yaml_config_template = """---
 webserver:
-  listen-address: "127.0.0.1:%d"
+  listen_address: "127.0.0.1:%d"
   acl:
     - 127.0.0.0/8
 
 console:
-  listen-address: "127.0.0.1:%d"
+  listen_address: "127.0.0.1:%d"
   key: "%s"
   acl:
     - 127.0.0.0/8
 
-edns-client-subnet:
-  override-existing: true
-  source-prefix-v4: 32
-  source-prefix-v6: 48
+edns_client_subnet:
+  override_existing: true
+  source_prefix_v4: 32
+  source_prefix_v6: 48
 
 acl:
   - 127.0.0.1/32
   - ::1/128
 
-ring-buffers:
+ring_buffers:
   size: 2000
   shards: 2
 
 binds:
-  - listen-address: "127.0.0.1:%d"
+  - listen_address: "127.0.0.1:%d"
     reuseport: true
     protocol: Do53
     threads: 2
@@ -52,7 +52,7 @@ selectors:
     name: "is-tcp"
     tcp: true
 
-query-rules:
+query_rules:
   - name: "route inline-yaml to inline pool"
     selector:
       type: "QNameSet"
@@ -60,34 +60,34 @@ query-rules:
         - "inline-lua.yaml.test.powerdns.com."
     action:
       type: "Pool"
-      pool-name: "inline"
-      stop-processing: true
+      pool_name: "inline"
+      stop_processing: true
   - name: "my-rule"
     selector:
       type: "And"
       selectors:
         - type: "ByName"
-          selector-name: "is-tcp"
+          selector_name: "is-tcp"
         - type: "Not"
           selector:
             type: "RD"
     action:
       type: "Pool"
-      pool-name: "tcp-pool"
+      pool_name: "tcp-pool"
 
-response-rules:
+response_rules:
   - name: "inline RD=0 TCP gets cleared"
     selector:
       type: "And"
       selectors:
         - type: "ByName"
-          selector-name: "is-tcp"
+          selector_name: "is-tcp"
         - type: "QNameSet"
           qnames:
             - "inline-lua.yaml.test.powerdns.com."
         - type: "Lua"
           name: "Match responses on RD=0 (inline)"
-          function-code: |
+          function_code: |
             return function(dr)
               local rd = dr.dh:getRD()
               if not rd then
@@ -108,7 +108,7 @@ response-rules:
             - "inline-lua.yaml.test.powerdns.com."
         - type: "Lua"
           name: "Match responses on RD=0 (file)"
-          function-file: "yaml-config-files/yaml-inline-lua-file.yml"
+          function_file: "yaml-config-files/yaml-inline-lua-file.yml"
     action:
       type: "TC"
 """

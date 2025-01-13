@@ -1006,7 +1006,7 @@ class TestYamlProtobuf(DNSDistProtobufTest):
 
     _yaml_config_template = """---
 binds:
-  - listen-address: "127.0.0.1:%d"
+  - listen_address: "127.0.0.1:%d"
     reuseport: true
     protocol: Do53
     threads: 2
@@ -1015,21 +1015,21 @@ backends:
   - address: "127.0.0.1:%d"
     protocol: Do53
 
-remote-logging:
-  protobuf-loggers:
+remote_logging:
+  protobuf_loggers:
     - name: "my-logger"
       address: "127.0.0.1:%d"
       timeout: 1
 
-query-rules:
+query_rules:
   - name: "my-rule"
     selector:
       type: "All"
     action:
       type: "RemoteLog"
-      logger-name: "my-logger"
-      server-id: "%s"
-      export-tags:
+      logger_name: "my-logger"
+      server_id: "%s"
+      export_tags:
         - "tag-1"
         - "tag-2"
 """

@@ -48,8 +48,8 @@ The ``yaml`` equivalent, from 2.0+ onwards, would be:
       qps: 10
     - address: "192.0.2.1"
       protocol: Do53
-  load-balancing-policies:
-    default-policy: "firstAvailable"
+  load_balancing_policies:
+    default_policy: "firstAvailable"
 
 Now run dnsdist again, reading this configuration::
 
@@ -151,9 +151,9 @@ acl:
   - "2001:db8:1::/56"
   - "2001:db8:2::/56"
 binds:
-  - listen-address: "192.0.2.53"
+  - listen_address: "192.0.2.53"
     protocol: Do53
-  - listen-address: "[::1]:5300"
+  - listen_address: "[::1]:5300"
     protocol: Do53
 
 

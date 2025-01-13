@@ -16,7 +16,7 @@ Or in ``yaml``:
 .. code-block:: yaml
 
   console:
-    listen-address: "192.0.2.53:5199"
+    listen_address: "192.0.2.53:5199"
 
 
 Enabling the console without encryption enabled is not recommended. Note that encryption requires building dnsdist with either libsodium or libcrypto support enabled.
@@ -51,7 +51,7 @@ Then add the generated :func:`setKey` line to your dnsdist configuration file, a
 .. code-block:: yaml
 
   console:
-    listen-address: "192.0.2.53:5199"
+    listen_address: "192.0.2.53:5199"
     key: "ENCODED KEY"
 
 Now you can run ``dnsdist -c`` to connect to the console.
@@ -77,7 +77,7 @@ Since 1.3.0, dnsdist supports restricting which client can connect to the consol
 .. code-block:: yaml
 
   console:
-    listen-address: "192.0.2.53:5199"
+    listen_address: "192.0.2.53:5199"
     key: "ENCODED KEY"
     acl:
       - "192.0.2.0/24"

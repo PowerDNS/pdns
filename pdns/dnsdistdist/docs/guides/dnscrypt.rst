@@ -12,10 +12,10 @@ And in ``yaml``:
 .. code-block:: yaml
 
   binds:
-    - listen-address: "127.0.0.1:8443"
+    - listen_address: "127.0.0.1:8443"
       protocol: "DNSCrypt"
       dnscrypt:
-        provider-name: "2.providername"
+        provider_name: "2.providername"
         certificates:
           - certificate: "/path/to/resolver.cert"
             key: "/path/to/resolver.key"

@@ -21,7 +21,7 @@ In order to support multiple certificates and keys, for example an ECDSA and an 
 .. code-block:: yaml
 
   binds:
-    - listen-address: "192.0.2.55"
+    - listen_address: "192.0.2.55"
       protocol: "DoT"
       tls:
         certificates:

@@ -766,14 +766,14 @@ class TestDoHNGHTTP2Yaml(DOHTests, DNSDistDOHTest):
     _yaml_config_template = """---
 console:
   key: "%s"
-  listen-address: "127.0.0.1:%d"
+  listen_address: "127.0.0.1:%d"
   acl:
     - 127.0.0.0/8
 backends:
   - address: "127.0.0.1:%d"
     protocol: "Do53"
 binds:
-  - listen-address: "127.0.0.1:%d"
+  - listen_address: "127.0.0.1:%d"
     reuseport: true
     protocol: "DoH"
     tls:
@@ -788,22 +788,22 @@ binds:
         - "/PowerDNS"
         - "/PowerDNS2"
         - "/PowerDNS-999"
-      custom-response-headers:
+      custom_response_headers:
         - key: "access-control-allow-origin"
           value: "*"
         - key: "user-agent"
           value: "derp"
         - key: "UPPERCASE"
           value: "VaLuE"
-      keep-incoming-headers: true
-      responses-map:
+      keep_incoming_headers: true
+      responses_map:
         - expression: "^/coffee$"
           status: 418
           content: 'C0FFEE'
           headers:
            - key: "FoO"
              value: "bar"
-query-rules:
+query_rules:
   - name: "Drop"
     selector:
       type: "QName"
@@ -858,7 +858,7 @@ query-rules:
       type: "HTTPStatus"
       status: 200
       body: "Plaintext answer"
-      content-type: "text/plain"
+      content_type: "text/plain"
   - name: "HTTP status redirect"
     selector:
       type: "QName"
@@ -873,14 +873,14 @@ query-rules:
       qname: "no-backend.doh.tests.powerdns.com."
     action:
       type: "Pool"
-      pool-name: "this-pool-has-no-backend"
+      pool_name: "this-pool-has-no-backend"
   - name: "HTTP Lua"
     selector:
       type: "QName"
       qname: "http-lua.doh.tests.powerdns.com."
     action:
       type: "Lua"
-      function-name: "dohHandler"
+      function_name: "dohHandler"
 """
     _yaml_config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_dohServerPort', '_serverCert', '_serverKey', '_dohLibrary']
     _config_template = """

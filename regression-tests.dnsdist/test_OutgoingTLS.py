@@ -180,18 +180,18 @@ backends:
     protocol: "DoT"
     tls:
       provider: "openssl"
-      validate-certificate: true
-      ca-store: "ca.pem"
-      subject-name: "powerdns.com"
+      validate_certificate: true
+      ca_store: "ca.pem"
+      subject_name: "powerdns.com"
 webserver:
-  listen-address: "127.0.0.1:%d"
+  listen_address: "127.0.0.1:%d"
   password: "%s"
-  api-key: "%s"
+  api_key: "%s"
   acl:
     - 127.0.0.0/8
 tuning:
   tcp:
-    worker-threads: 1
+    worker_threads: 1
     """
     _yaml_config_params = ['_tlsBackendPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
 

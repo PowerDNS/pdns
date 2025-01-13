@@ -208,25 +208,25 @@ class TestLMDBYaml(TestLMDB):
 backends:
   - address: "127.0.0.1:%d"
     protocol: Do53
-key-value-stores:
+key_value_stores:
   lmdb:
     - name: "lmdb-kvs"
-      file-name: "%s"
-      database-name: "%s"
-  lookup-keys:
-    source-ip-keys:
+      file_name: "%s"
+      database_name: "%s"
+  lookup_keys:
+    source_ip_keys:
       - name: "lookup-source-ip"
-    qname-keys:
+    qname_keys:
       - name: "lookup-qname"
       - name: "lookup-qname-plaintext"
-        wire-format: false
-    suffix-keys:
+        wire_format: false
+    suffix_keys:
       - name: "lookup-suffix"
-    tag-keys:
+    tag_keys:
       - name: "lookup-tag-qname-result"
         tag: "kvs-qname-result"
 
-query-rules:
+query_rules:
   - name: "qname as key"
     selector:
       type: "And"
@@ -234,8 +234,8 @@ query-rules:
         - type: "QName"
           qname: "kvs-rule.lmdb.tests.powerdns.com."
         - type: "KeyValueStoreLookup"
-          kvs-name: "lmdb-kvs"
-          lookup-key-name: "lookup-qname-plaintext"
+          kvs_name: "lmdb-kvs"
+          lookup_key_name: "lookup-qname-plaintext"
     action:
       type: "Spoof"
       ips:
@@ -245,17 +245,17 @@ query-rules:
       type: "All"
     action:
       type: "KeyValueStoreLookup"
-      kvs-name: "lmdb-kvs"
-      lookup-key-name: "lookup-source-ip"
-      destination-tag: "kvs-sourceip-result"
+      kvs_name: "lmdb-kvs"
+      lookup_key_name: "lookup-source-ip"
+      destination_tag: "kvs-sourceip-result"
   - name: "plaintext qname as key"
     selector:
       type: "All"
     action:
       type: "KeyValueStoreLookup"
-      kvs-name: "lmdb-kvs"
-      lookup-key-name: "lookup-qname-plaintext"
-      destination-tag: "kvs-plain-text-result"
+      kvs_name: "lmdb-kvs"
+      lookup_key_name: "lookup-qname-plaintext"
+      destination_tag: "kvs-plain-text-result"
   - name: "plaintext qname tag check"
     selector:
       type: "Tag"
@@ -270,9 +270,9 @@ query-rules:
       type: "All"
     action:
       type: "KeyValueStoreLookup"
-      kvs-name: "lmdb-kvs"
-      lookup-key-name: "lookup-qname"
-      destination-tag: "kvs-qname-result"
+      kvs_name: "lmdb-kvs"
+      lookup_key_name: "lookup-qname"
+      destination_tag: "kvs-qname-result"
   - name: "wire qname tag check"
     selector:
       type: "Tag"
@@ -280,25 +280,25 @@ query-rules:
       value: "this is the value of the qname tag"
     action:
       type: "KeyValueStoreLookup"
-      kvs-name: "lmdb-kvs"
-      lookup-key-name: "lookup-tag-qname-result"
-      destination-tag: "kvs-tag-result"
+      kvs_name: "lmdb-kvs"
+      lookup_key_name: "lookup-tag-qname-result"
+      destination_tag: "kvs-tag-result"
   - name: "source IP as key"
     selector:
       type: "All"
     action:
       type: "KeyValueStoreLookup"
-      kvs-name: "lmdb-kvs"
-      lookup-key-name: "lookup-source-ip"
-      destination-tag: "kvs-sourceip-result"
+      kvs_name: "lmdb-kvs"
+      lookup_key_name: "lookup-source-ip"
+      destination_tag: "kvs-sourceip-result"
   - name: "qname suffix as key"
     selector:
       type: "All"
     action:
       type: "KeyValueStoreLookup"
-      kvs-name: "lmdb-kvs"
-      lookup-key-name: "lookup-suffix"
-      destination-tag: "kvs-suffix-result"
+      kvs_name: "lmdb-kvs"
+      lookup_key_name: "lookup-suffix"
+      destination_tag: "kvs-suffix-result"
   - name: "tag check"
     selector:
       type: "Tag"

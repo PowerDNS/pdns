@@ -8,8 +8,8 @@ luaCtx.writeFunction("DNSSECRule", []() {
 luaCtx.writeFunction("DSTPortRule", [](uint16_t port) {
   return std::shared_ptr<DNSRule>(dnsdist::selectors::getDSTPortSelector(port));
 });
-luaCtx.writeFunction("EDNSOptionRule", [](uint16_t optionCode) {
-  return std::shared_ptr<DNSRule>(dnsdist::selectors::getEDNSOptionSelector(optionCode));
+luaCtx.writeFunction("EDNSOptionRule", [](uint16_t option_code) {
+  return std::shared_ptr<DNSRule>(dnsdist::selectors::getEDNSOptionSelector(option_code));
 });
 luaCtx.writeFunction("EDNSVersionRule", [](uint8_t version) {
   return std::shared_ptr<DNSRule>(dnsdist::selectors::getEDNSVersionSelector(version));
@@ -32,8 +32,8 @@ luaCtx.writeFunction("LuaFFIPerThreadRule", [](std::string code) {
 luaCtx.writeFunction("MaxQPSRule", [](uint32_t qps, boost::optional<uint32_t> burst) {
   return std::shared_ptr<DNSRule>(dnsdist::selectors::getMaxQPSSelector(qps, boostToStandardOptional(burst)));
 });
-luaCtx.writeFunction("MaxQPSIPRule", [](uint32_t qps, boost::optional<uint8_t> ipv4Mask, boost::optional<uint8_t> ipv6Mask, boost::optional<uint32_t> burst, boost::optional<uint32_t> expiration, boost::optional<uint32_t> cleanupDelay, boost::optional<uint32_t> scanFraction, boost::optional<uint32_t> shards) {
-  return std::shared_ptr<DNSRule>(dnsdist::selectors::getMaxQPSIPSelector(qps, boostToStandardOptional(ipv4Mask), boostToStandardOptional(ipv6Mask), boostToStandardOptional(burst), boostToStandardOptional(expiration), boostToStandardOptional(cleanupDelay), boostToStandardOptional(scanFraction), boostToStandardOptional(shards)));
+luaCtx.writeFunction("MaxQPSIPRule", [](uint32_t qps, boost::optional<uint8_t> ipv4_mask, boost::optional<uint8_t> ipv6_mask, boost::optional<uint32_t> burst, boost::optional<uint32_t> expiration, boost::optional<uint32_t> cleanup_delay, boost::optional<uint32_t> scan_fraction, boost::optional<uint32_t> shards) {
+  return std::shared_ptr<DNSRule>(dnsdist::selectors::getMaxQPSIPSelector(qps, boostToStandardOptional(ipv4_mask), boostToStandardOptional(ipv6_mask), boostToStandardOptional(burst), boostToStandardOptional(expiration), boostToStandardOptional(cleanup_delay), boostToStandardOptional(scan_fraction), boostToStandardOptional(shards)));
 });
 luaCtx.writeFunction("OpcodeRule", [](uint8_t code) {
   return std::shared_ptr<DNSRule>(dnsdist::selectors::getOpcodeSelector(code));
@@ -44,17 +44,17 @@ luaCtx.writeFunction("PayloadSizeRule", [](std::string comparison, uint16_t size
 luaCtx.writeFunction("PoolAvailableRule", [](std::string pool) {
   return std::shared_ptr<DNSRule>(dnsdist::selectors::getPoolAvailableSelector(pool));
 });
-luaCtx.writeFunction("PoolOutstandingRule", [](std::string pool, uint64_t maxOutstanding) {
-  return std::shared_ptr<DNSRule>(dnsdist::selectors::getPoolOutstandingSelector(pool, maxOutstanding));
+luaCtx.writeFunction("PoolOutstandingRule", [](std::string pool, uint64_t max_outstanding) {
+  return std::shared_ptr<DNSRule>(dnsdist::selectors::getPoolOutstandingSelector(pool, max_outstanding));
 });
 luaCtx.writeFunction("ProbaRule", [](double probability) {
   return std::shared_ptr<DNSRule>(dnsdist::selectors::getProbaSelector(probability));
 });
-luaCtx.writeFunction("ProxyProtocolValueRule", [](uint8_t optionType, boost::optional<std::string> optionValue) {
-  return std::shared_ptr<DNSRule>(dnsdist::selectors::getProxyProtocolValueSelector(optionType, boostToStandardOptional(optionValue)));
+luaCtx.writeFunction("ProxyProtocolValueRule", [](uint8_t option_type, boost::optional<std::string> option_value) {
+  return std::shared_ptr<DNSRule>(dnsdist::selectors::getProxyProtocolValueSelector(option_type, boostToStandardOptional(option_value)));
 });
-luaCtx.writeFunction("QNameLabelsCountRule", [](uint16_t minLabelsCount, uint16_t maxLabelsCount) {
-  return std::shared_ptr<DNSRule>(dnsdist::selectors::getQNameLabelsCountSelector(minLabelsCount, maxLabelsCount));
+luaCtx.writeFunction("QNameLabelsCountRule", [](uint16_t min_labels_count, uint16_t max_labels_count) {
+  return std::shared_ptr<DNSRule>(dnsdist::selectors::getQNameLabelsCountSelector(min_labels_count, max_labels_count));
 });
 luaCtx.writeFunction("QNameWireLengthRule", [](uint16_t min, uint16_t max) {
   return std::shared_ptr<DNSRule>(dnsdist::selectors::getQNameWireLengthSelector(min, max));
@@ -71,14 +71,14 @@ luaCtx.writeFunction("RE2Rule", [](std::string expression) {
 luaCtx.writeFunction("RecordsCountRule", [](uint8_t section, uint16_t minimum, uint16_t maximum) {
   return std::shared_ptr<DNSRule>(dnsdist::selectors::getRecordsCountSelector(section, minimum, maximum));
 });
-luaCtx.writeFunction("RecordsTypeCountRule", [](uint8_t section, uint16_t recordType, uint16_t minimum, uint16_t maximum) {
-  return std::shared_ptr<DNSRule>(dnsdist::selectors::getRecordsTypeCountSelector(section, recordType, minimum, maximum));
+luaCtx.writeFunction("RecordsTypeCountRule", [](uint8_t section, uint16_t record_type, uint16_t minimum, uint16_t maximum) {
+  return std::shared_ptr<DNSRule>(dnsdist::selectors::getRecordsTypeCountSelector(section, record_type, minimum, maximum));
 });
 luaCtx.writeFunction("RegexRule", [](std::string expression) {
   return std::shared_ptr<DNSRule>(dnsdist::selectors::getRegexSelector(expression));
 });
-luaCtx.writeFunction("SNIRule", [](std::string serverName) {
-  return std::shared_ptr<DNSRule>(dnsdist::selectors::getSNISelector(serverName));
+luaCtx.writeFunction("SNIRule", [](std::string server_name) {
+  return std::shared_ptr<DNSRule>(dnsdist::selectors::getSNISelector(server_name));
 });
 luaCtx.writeFunction("TagRule", [](std::string tag, boost::optional<std::string> value) {
   return std::shared_ptr<DNSRule>(dnsdist::selectors::getTagSelector(tag, boostToStandardOptional(value)));

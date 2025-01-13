@@ -21,14 +21,14 @@ The fourth parameter, if present, indicates various options. For instance, you c
 .. code-block:: yaml
 
   binds:
-    - listen-address: "2001:db8:1:f00::1"
+    - listen_address: "2001:db8:1:f00::1"
       protocol: "DoQ"
       tls:
         certificates:
           - certificate: "/etc/ssl/certs/example.com.pem"
             key: "/etc/ssl/private/example.com.key"
       quic:
-        congestion-control-algorithm: "bbr"
+        congestion_control_algorithm: "bbr"
 
 
 A particular attention should be taken to the permissions of the certificate and key files. Many ACME clients used to get and renew certificates, like CertBot, set permissions assuming that services are started as root, which is no longer true for dnsdist as of 1.5.0. For that particular case, making a copy of the necessary files in the /etc/dnsdist directory is advised, using for example CertBot's ``--deploy-hook`` feature to copy the files with the right permissions after a renewal.

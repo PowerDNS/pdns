@@ -11,9 +11,9 @@ std::shared_ptr<DSTPortRule> getDSTPortSelector(uint16_t port)
 {
   return std::make_shared<DSTPortRule>(port);
 }
-std::shared_ptr<EDNSOptionRule> getEDNSOptionSelector(uint16_t optionCode)
+std::shared_ptr<EDNSOptionRule> getEDNSOptionSelector(uint16_t option_code)
 {
-  return std::make_shared<EDNSOptionRule>(optionCode);
+  return std::make_shared<EDNSOptionRule>(option_code);
 }
 std::shared_ptr<EDNSVersionRule> getEDNSVersionSelector(uint8_t version)
 {
@@ -43,9 +43,9 @@ std::shared_ptr<MaxQPSRule> getMaxQPSSelector(uint32_t qps, std::optional<uint32
 {
   return std::make_shared<MaxQPSRule>(qps, burst ? *burst : 0);
 }
-std::shared_ptr<MaxQPSIPRule> getMaxQPSIPSelector(uint32_t qps, std::optional<uint8_t> ipv4Mask, std::optional<uint8_t> ipv6Mask, std::optional<uint32_t> burst, std::optional<uint32_t> expiration, std::optional<uint32_t> cleanupDelay, std::optional<uint32_t> scanFraction, std::optional<uint32_t> shards)
+std::shared_ptr<MaxQPSIPRule> getMaxQPSIPSelector(uint32_t qps, std::optional<uint8_t> ipv4_mask, std::optional<uint8_t> ipv6_mask, std::optional<uint32_t> burst, std::optional<uint32_t> expiration, std::optional<uint32_t> cleanup_delay, std::optional<uint32_t> scan_fraction, std::optional<uint32_t> shards)
 {
-  return std::make_shared<MaxQPSIPRule>(qps, ipv4Mask ? *ipv4Mask : 32, ipv6Mask ? *ipv6Mask : 64, burst ? *burst : 0, expiration ? *expiration : 300, cleanupDelay ? *cleanupDelay : 60, scanFraction ? *scanFraction : 10, shards ? *shards : 10);
+  return std::make_shared<MaxQPSIPRule>(qps, ipv4_mask ? *ipv4_mask : 32, ipv6_mask ? *ipv6_mask : 64, burst ? *burst : 0, expiration ? *expiration : 300, cleanup_delay ? *cleanup_delay : 60, scan_fraction ? *scan_fraction : 10, shards ? *shards : 10);
 }
 std::shared_ptr<OpcodeRule> getOpcodeSelector(uint8_t code)
 {
@@ -59,21 +59,21 @@ std::shared_ptr<PoolAvailableRule> getPoolAvailableSelector(const std::string& p
 {
   return std::make_shared<PoolAvailableRule>(pool);
 }
-std::shared_ptr<PoolOutstandingRule> getPoolOutstandingSelector(const std::string& pool, uint64_t maxOutstanding)
+std::shared_ptr<PoolOutstandingRule> getPoolOutstandingSelector(const std::string& pool, uint64_t max_outstanding)
 {
-  return std::make_shared<PoolOutstandingRule>(pool, maxOutstanding);
+  return std::make_shared<PoolOutstandingRule>(pool, max_outstanding);
 }
 std::shared_ptr<ProbaRule> getProbaSelector(double probability)
 {
   return std::make_shared<ProbaRule>(probability);
 }
-std::shared_ptr<ProxyProtocolValueRule> getProxyProtocolValueSelector(uint8_t optionType, std::optional<std::string> optionValue)
+std::shared_ptr<ProxyProtocolValueRule> getProxyProtocolValueSelector(uint8_t option_type, std::optional<std::string> option_value)
 {
-  return std::make_shared<ProxyProtocolValueRule>(optionType, optionValue ? *optionValue : "");
+  return std::make_shared<ProxyProtocolValueRule>(option_type, option_value ? *option_value : "");
 }
-std::shared_ptr<QNameLabelsCountRule> getQNameLabelsCountSelector(uint16_t minLabelsCount, uint16_t maxLabelsCount)
+std::shared_ptr<QNameLabelsCountRule> getQNameLabelsCountSelector(uint16_t min_labels_count, uint16_t max_labels_count)
 {
-  return std::make_shared<QNameLabelsCountRule>(minLabelsCount, maxLabelsCount);
+  return std::make_shared<QNameLabelsCountRule>(min_labels_count, max_labels_count);
 }
 std::shared_ptr<QNameWireLengthRule> getQNameWireLengthSelector(uint16_t min, uint16_t max)
 {
@@ -95,17 +95,17 @@ std::shared_ptr<RecordsCountRule> getRecordsCountSelector(uint8_t section, uint1
 {
   return std::make_shared<RecordsCountRule>(section, minimum, maximum);
 }
-std::shared_ptr<RecordsTypeCountRule> getRecordsTypeCountSelector(uint8_t section, uint16_t recordType, uint16_t minimum, uint16_t maximum)
+std::shared_ptr<RecordsTypeCountRule> getRecordsTypeCountSelector(uint8_t section, uint16_t record_type, uint16_t minimum, uint16_t maximum)
 {
-  return std::make_shared<RecordsTypeCountRule>(section, recordType, minimum, maximum);
+  return std::make_shared<RecordsTypeCountRule>(section, record_type, minimum, maximum);
 }
 std::shared_ptr<RegexRule> getRegexSelector(const std::string& expression)
 {
   return std::make_shared<RegexRule>(expression);
 }
-std::shared_ptr<SNIRule> getSNISelector(const std::string& serverName)
+std::shared_ptr<SNIRule> getSNISelector(const std::string& server_name)
 {
-  return std::make_shared<SNIRule>(serverName);
+  return std::make_shared<SNIRule>(server_name);
 }
 std::shared_ptr<TagRule> getTagSelector(const std::string& tag, std::optional<std::string> value)
 {

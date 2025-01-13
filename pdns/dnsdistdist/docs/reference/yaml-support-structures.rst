@@ -10,9 +10,9 @@ YAML support structures
 ResponseConfig
 --------------
 
-- **set-aa**: Boolean
-- **set-ad**: Boolean
-- **set-ra**: Boolean
+- **set_aa**: Boolean
+- **set_ad**: Boolean
+- **set_ra**: Boolean
 - **ttl**: Unsigned integer
 
 .. _yaml-settings-SOAParams:
@@ -39,12 +39,12 @@ SVCRecordAdditionalParams
 SVCRecordParameters
 -------------------
 
-- **mandatory-params**: Sequence of Unsigned integer
+- **mandatory_params**: Sequence of Unsigned integer
 - **alpns**: Sequence of String
-- **ipv4-hints**: Sequence of String
-- **ipv6-hints**: Sequence of String
+- **ipv4_hints**: Sequence of String
+- **ipv6_hints**: Sequence of String
 - **additional_params**: Sequence of :ref:`SVCRecordAdditionalParams <yaml-settings-SVCRecordAdditionalParams>`
 - **target**: String
 - **port**: Unsigned integer
 - **priority**: Unsigned integer
-- **no-default-alpn**: Boolean
+- **no_default_alpn**: Boolean

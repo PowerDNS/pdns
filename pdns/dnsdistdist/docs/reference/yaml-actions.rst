@@ -51,17 +51,17 @@ Parameters:
 DnstapLogAction
 ---------------
 
-Send the current query to a remote logger as a dnstap message. ``alter-function`` is a callback, receiving a :class:`DNSQuestion` and a :class:`DnstapMessage`, that can be used to modify the message. Subsequent rules are processed after this action
+Send the current query to a remote logger as a dnstap message. ``alter_function`` is a callback, receiving a :class:`DNSQuestion` and a :class:`DnstapMessage`, that can be used to modify the message. Subsequent rules are processed after this action
 
 Lua equivalent: :func:`DnstapLogAction`
 
 Parameters:
 
 - **identity**: String
-- **logger-name**: String
-- **alter-function-name**: String ``("")``
-- **alter-function-code**: String ``("")``
-- **alter-function-file**: String ``("")``
+- **logger_name**: String
+- **alter_function_name**: String ``("")``
+- **alter_function_code**: String ``("")``
+- **alter_function_file**: String ``("")``
 
 
 .. _yaml-settings-DropAction:
@@ -116,7 +116,7 @@ Parameters:
 
 - **status**: Unsigned integer
 - **body**: String
-- **content-type**: String ``("")``
+- **content_type**: String ``("")``
 - **vars**: :ref:`ResponseConfig <yaml-settings-ResponseConfig>`
 
 
@@ -125,15 +125,15 @@ Parameters:
 KeyValueStoreLookupAction
 -------------------------
 
-Does a lookup into the key value store using the key returned by ``lookup-key-name``, and storing the result if any into the tag named ``destination-tag``. The store can be a ``CDB`` or a ``LMDB`` database.  The key can be based on the qname, source IP or the value of an existing tag. Subsequent rules are processed after this action. Note that the tag is always created, even if there was no match, but in that case the content is empty
+Does a lookup into the key value store using the key returned by ``lookup_key_name``, and storing the result if any into the tag named ``destination_tag``. The store can be a ``CDB`` or a ``LMDB`` database.  The key can be based on the qname, source IP or the value of an existing tag. Subsequent rules are processed after this action. Note that the tag is always created, even if there was no match, but in that case the content is empty
 
 Lua equivalent: :func:`KeyValueStoreLookupAction`
 
 Parameters:
 
-- **kvs-name**: String
-- **lookup-key-name**: String
-- **destination-tag**: String
+- **kvs_name**: String
+- **lookup_key_name**: String
+- **destination_tag**: String
 
 
 .. _yaml-settings-KeyValueStoreRangeLookupAction:
@@ -141,15 +141,15 @@ Parameters:
 KeyValueStoreRangeLookupAction
 ------------------------------
 
-Does a range-based lookup into the key value store using the key returned by ``lookup-key-name``, and storing the result if any into the tag named ``destination-tag``. This assumes that there is a key in network byte order for the last element of the range (for example ``2001:0db8:ffff:ffff:ffff:ffff:ffff:ffff`` for ``2001:db8::/32``) which contains the first element of the range (``2001:0db8:0000:0000:0000:0000:0000:0000``) (optionally followed by any data) as value, also in network byte order, and that there is no overlapping ranges in the database. This requires that the underlying store supports ordered keys, which is true for LMDB but not for CDB
+Does a range-based lookup into the key value store using the key returned by ``lookup_key_name``, and storing the result if any into the tag named ``destination_tag``. This assumes that there is a key in network byte order for the last element of the range (for example ``2001:0db8:ffff:ffff:ffff:ffff:ffff:ffff`` for ``2001:db8::/32``) which contains the first element of the range (``2001:0db8:0000:0000:0000:0000:0000:0000``) (optionally followed by any data) as value, also in network byte order, and that there is no overlapping ranges in the database. This requires that the underlying store supports ordered keys, which is true for LMDB but not for CDB
 
 Lua equivalent: :func:`KeyValueStoreRangeLookupAction`
 
 Parameters:
 
-- **kvs-name**: String
-- **lookup-key-name**: String
-- **destination-tag**: String
+- **kvs_name**: String
+- **lookup_key_name**: String
+- **destination_tag**: String
 
 
 .. _yaml-settings-LogAction:
@@ -157,18 +157,18 @@ Parameters:
 LogAction
 ---------
 
-Log a line for each query, to the specified file if any, to the console (require verbose) if the empty string is given as filename. If an empty string is supplied in the file name, the logging is done to stdout, and only in verbose mode by default. This can be changed by setting ``verbose-only`` to ``false``. When logging to a file, the ``binary`` parameter specifies whether we log in binary form (default) or in textual form. The ``append`` parameter specifies whether we open the file for appending or truncate each time (default). The ``buffered`` parameter specifies whether writes to the file are buffered (default) or not. Subsequent rules are processed after this action
+Log a line for each query, to the specified file if any, to the console (require verbose) if the empty string is given as filename. If an empty string is supplied in the file name, the logging is done to stdout, and only in verbose mode by default. This can be changed by setting ``verbose_only`` to ``false``. When logging to a file, the ``binary`` parameter specifies whether we log in binary form (default) or in textual form. The ``append`` parameter specifies whether we open the file for appending or truncate each time (default). The ``buffered`` parameter specifies whether writes to the file are buffered (default) or not. Subsequent rules are processed after this action
 
 Lua equivalent: :func:`LogAction`
 
 Parameters:
 
-- **file-name**: String ``("")``
+- **file_name**: String ``("")``
 - **binary**: Boolean ``(true)``
 - **append**: Boolean ``(false)``
 - **buffered**: Boolean ``(false)``
-- **verbose-only**: Boolean ``(true)``
-- **include-timestamp**: Boolean ``(false)``
+- **verbose_only**: Boolean ``(true)``
+- **include_timestamp**: Boolean ``(false)``
 
 
 .. _yaml-settings-LuaAction:
@@ -182,9 +182,9 @@ Lua equivalent: :func:`LuaAction`
 
 Parameters:
 
-- **function-name**: String ``("")``
-- **function-code**: String ``("")``
-- **function-file**: String ``("")``
+- **function_name**: String ``("")``
+- **function_code**: String ``("")``
+- **function_file**: String ``("")``
 
 
 .. _yaml-settings-LuaFFIAction:
@@ -198,9 +198,9 @@ Lua equivalent: :func:`LuaFFIAction`
 
 Parameters:
 
-- **function-name**: String ``("")``
-- **function-code**: String ``("")``
-- **function-file**: String ``("")``
+- **function_name**: String ``("")``
+- **function_code**: String ``("")``
+- **function_file**: String ``("")``
 
 
 .. _yaml-settings-LuaFFIPerThreadAction:
@@ -233,8 +233,8 @@ Parameters:
 - **ttl**: Unsigned integer
 - **mname**: String
 - **rname**: String
-- **soa-parameters**: :ref:`SOAParams <yaml-settings-SOAParams>`
-- **soa-in-authority**: Boolean ``(false)``
+- **soa_parameters**: :ref:`SOAParams <yaml-settings-SOAParams>`
+- **soa_in_authority**: Boolean ``(false)``
 - **vars**: :ref:`ResponseConfig <yaml-settings-ResponseConfig>`
 
 
@@ -252,14 +252,14 @@ Lua equivalent: :func:`NoneAction`
 PoolAction
 ----------
 
-Send the packet into the specified pool. If ``stop-processing`` is set to ``false``, subsequent rules will be processed after this action
+Send the packet into the specified pool. If ``stop_processing`` is set to ``false``, subsequent rules will be processed after this action
 
 Lua equivalent: :func:`PoolAction`
 
 Parameters:
 
-- **pool-name**: String
-- **stop-processing**: Boolean ``(true)``
+- **pool_name**: String
+- **stop_processing**: Boolean ``(true)``
 
 
 .. _yaml-settings-QPSAction:
@@ -288,8 +288,8 @@ Lua equivalent: :func:`QPSPoolAction`
 Parameters:
 
 - **limit**: Unsigned integer
-- **pool-name**: String
-- **stop-processing**: Boolean ``(true)``
+- **pool_name**: String
+- **stop_processing**: Boolean ``(true)``
 
 
 .. _yaml-settings-RCodeAction:
@@ -312,19 +312,19 @@ Parameters:
 RemoteLogAction
 ---------------
 
-Send the current query to a remote logger as a Protocol Buffer message. ``alter-function`` is a callback, receiving a :class:`DNSQuestion` and a :class:`DNSDistProtoBufMessage`, that can be used to modify the message, for example for anonymization purposes. Subsequent rules are processed after this action
+Send the current query to a remote logger as a Protocol Buffer message. ``alter_function`` is a callback, receiving a :class:`DNSQuestion` and a :class:`DNSDistProtoBufMessage`, that can be used to modify the message, for example for anonymization purposes. Subsequent rules are processed after this action
 
 Lua equivalent: :func:`RemoteLogAction`
 
 Parameters:
 
-- **logger-name**: String
-- **alter-function-name**: String ``("")``
-- **alter-function-code**: String ``("")``
-- **alter-function-file**: String ``("")``
-- **server-id**: String ``("")``
-- **ip-encrypt-key**: String ``("")``
-- **export-tags**: Sequence of String
+- **logger_name**: String
+- **alter_function_name**: String ``("")``
+- **alter_function_code**: String ``("")``
+- **alter_function_file**: String ``("")``
+- **server_id**: String ``("")``
+- **ip_encrypt_key**: String ``("")``
+- **export_tags**: Sequence of String
 - **metas**: Sequence of :ref:`ProtoBufMetaConfiguration <yaml-settings-ProtoBufMetaConfiguration>`
 
 
@@ -339,7 +339,7 @@ Lua equivalent: :func:`SetAdditionalProxyProtocolValueAction`
 
 Parameters:
 
-- **proxy-type**: Unsigned integer
+- **proxy_type**: Unsigned integer
 - **value**: String
 
 
@@ -387,7 +387,7 @@ Lua equivalent: :func:`SetECSOverrideAction`
 
 Parameters:
 
-- **override-existing**: Boolean
+- **override_existing**: Boolean
 
 
 .. _yaml-settings-SetECSPrefixLengthAction:
@@ -416,8 +416,8 @@ Lua equivalent: :func:`SetExtendedDNSErrorAction`
 
 Parameters:
 
-- **info-code**: Unsigned integer
-- **extra-text**: String ``("")``
+- **info_code**: Unsigned integer
+- **extra_text**: String ``("")``
 
 
 .. _yaml-settings-SetMacAddrAction:
@@ -580,7 +580,7 @@ Lua equivalent: :func:`SpoofRawAction`
 Parameters:
 
 - **answers**: Sequence of String
-- **qtype-for-any**: String ``("")``
+- **qtype_for_any**: String ``("")``
 - **vars**: :ref:`ResponseConfig <yaml-settings-ResponseConfig>`
 
 
@@ -613,7 +613,7 @@ Lua equivalent: :func:`TCAction`
 TeeAction
 ---------
 
-Send copy of query to remote, keep stats on responses. If ``add-ecs`` is set to true, EDNS Client Subnet information will be added to the query. If ``add-proxy-protocol`` is set to true, a Proxy Protocol v2 payload will be prepended in front of the query. The payload will contain the protocol the initial query was received over (UDP or TCP), as well as the initial source and destination addresses and ports. If ``lca`` has provided a value like “192.0.2.53”, dnsdist will try binding that address as local address when sending the queries. Subsequent rules are processed after this action
+Send copy of query to remote, keep stats on responses. If ``add_ecs`` is set to true, EDNS Client Subnet information will be added to the query. If ``add_proxy_protocol`` is set to true, a Proxy Protocol v2 payload will be prepended in front of the query. The payload will contain the protocol the initial query was received over (UDP or TCP), as well as the initial source and destination addresses and ports. If ``lca`` has provided a value like “192.0.2.53”, dnsdist will try binding that address as local address when sending the queries. Subsequent rules are processed after this action
 
 Lua equivalent: :func:`TeeAction`
 
@@ -621,7 +621,7 @@ Parameters:
 
 - **rca**: String
 - **lca**: String ``("")``
-- **add-ecs**: Boolean ``(false)``
-- **add-proxy-protocol**: Boolean ``(false)``
+- **add_ecs**: Boolean ``(false)``
+- **add_proxy_protocol**: Boolean ``(false)``
 
 

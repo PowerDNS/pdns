@@ -23,34 +23,34 @@ GlobalConfiguration
 - **acl**: Sequence of String ``(127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fc00::/7, fe80::/10)`` - CIDR netmasks of the clients allowed to send DNS queries
 - **backends**: Sequence of :ref:`BackendConfiguration <yaml-settings-BackendConfiguration>` - List of backends
 - **binds**: Sequence of :ref:`BindConfiguration <yaml-settings-BindConfiguration>` - List of endpoints to accept queries on
-- **cache-hit-response-rules**: Sequence of :ref:`ResponseRuleConfiguration <yaml-settings-ResponseRuleConfiguration>` - List of rules executed on a cache hit
-- **cache-inserted-response-rules**: Sequence of :ref:`ResponseRuleConfiguration <yaml-settings-ResponseRuleConfiguration>` - List of rules executed after inserting a new response into the cache
-- **cache-miss-rules**: Sequence of :ref:`QueryRuleConfiguration <yaml-settings-QueryRuleConfiguration>` - List of rules executed after a cache miss
-- **cache-settings**: :ref:`CacheSettingsConfiguration <yaml-settings-CacheSettingsConfiguration>` - Caching-related settings
+- **cache_hit_response_rules**: Sequence of :ref:`ResponseRuleConfiguration <yaml-settings-ResponseRuleConfiguration>` - List of rules executed on a cache hit
+- **cache_inserted_response_rules**: Sequence of :ref:`ResponseRuleConfiguration <yaml-settings-ResponseRuleConfiguration>` - List of rules executed after inserting a new response into the cache
+- **cache_miss_rules**: Sequence of :ref:`QueryRuleConfiguration <yaml-settings-QueryRuleConfiguration>` - List of rules executed after a cache miss
+- **cache_settings**: :ref:`CacheSettingsConfiguration <yaml-settings-CacheSettingsConfiguration>` - Caching-related settings
 - **console**: :ref:`ConsoleConfiguration <yaml-settings-ConsoleConfiguration>` - Console-related settings
-- **dynamic-rules**: Sequence of :ref:`DynamicRulesConfiguration <yaml-settings-DynamicRulesConfiguration>` - List of dynamic rules
-- **dynamic-rules-settings**: :ref:`DynamicRulesSettingsConfiguration <yaml-settings-DynamicRulesSettingsConfiguration>` - Dynamic rules-related settings
+- **dynamic_rules**: Sequence of :ref:`DynamicRulesConfiguration <yaml-settings-DynamicRulesConfiguration>` - List of dynamic rules
+- **dynamic_rules_settings**: :ref:`DynamicRulesSettingsConfiguration <yaml-settings-DynamicRulesSettingsConfiguration>` - Dynamic rules-related settings
 - **ebpf**: :ref:`EbpfConfiguration <yaml-settings-EbpfConfiguration>` - EBPF settings
-- **edns-client-subnet**: :ref:`EdnsClientSubnetConfiguration <yaml-settings-EdnsClientSubnetConfiguration>` - EDNS Client Subnet-related settings
+- **edns_client_subnet**: :ref:`EdnsClientSubnetConfiguration <yaml-settings-EdnsClientSubnetConfiguration>` - EDNS Client Subnet-related settings
 - **general**: :ref:`GeneralConfiguration <yaml-settings-GeneralConfiguration>` - General settings
-- **key-value-stores**: :ref:`KeyValueStoresConfiguration <yaml-settings-KeyValueStoresConfiguration>` - Key-Value stores
-- **load-balancing-policies**: :ref:`LoadBalancingPoliciesConfiguration <yaml-settings-LoadBalancingPoliciesConfiguration>` - Load-balancing policies
+- **key_value_stores**: :ref:`KeyValueStoresConfiguration <yaml-settings-KeyValueStoresConfiguration>` - Key-Value stores
+- **load_balancing_policies**: :ref:`LoadBalancingPoliciesConfiguration <yaml-settings-LoadBalancingPoliciesConfiguration>` - Load-balancing policies
 - **metrics**: :ref:`MetricsConfiguration <yaml-settings-MetricsConfiguration>` - Metrics-related settings
-- **packet-caches**: Sequence of :ref:`PacketCacheConfiguration <yaml-settings-PacketCacheConfiguration>` - Packet-cache definitions
+- **packet_caches**: Sequence of :ref:`PacketCacheConfiguration <yaml-settings-PacketCacheConfiguration>` - Packet-cache definitions
 - **pools**: Sequence of :ref:`PoolConfiguration <yaml-settings-PoolConfiguration>` - Pools of backends
-- **proxy-protocol**: :ref:`ProxyProtocolConfiguration <yaml-settings-ProxyProtocolConfiguration>` - Proxy-protocol-related settings
-- **query-count**: :ref:`QueryCountConfiguration <yaml-settings-QueryCountConfiguration>` - Queries counting-related settings
-- **query-rules**: Sequence of :ref:`QueryRuleConfiguration <yaml-settings-QueryRuleConfiguration>` - List of rules executed when a query is received
-- **remote-logging**: :ref:`RemoteLoggingConfiguration <yaml-settings-RemoteLoggingConfiguration>` - Remote logging-related settings
-- **response-rules**: Sequence of :ref:`ResponseRuleConfiguration <yaml-settings-ResponseRuleConfiguration>` - List of rules executed when a response is received
-- **ring-buffers**: :ref:`RingBuffersConfiguration <yaml-settings-RingBuffersConfiguration>` - In-memory ring buffer settings
-- **security-polling**: :ref:`SecurityPollingConfiguration <yaml-settings-SecurityPollingConfiguration>` - Automatic checking of outdated version
+- **proxy_protocol**: :ref:`ProxyProtocolConfiguration <yaml-settings-ProxyProtocolConfiguration>` - Proxy-protocol-related settings
+- **query_count**: :ref:`QueryCountConfiguration <yaml-settings-QueryCountConfiguration>` - Queries counting-related settings
+- **query_rules**: Sequence of :ref:`QueryRuleConfiguration <yaml-settings-QueryRuleConfiguration>` - List of rules executed when a query is received
+- **remote_logging**: :ref:`RemoteLoggingConfiguration <yaml-settings-RemoteLoggingConfiguration>` - Remote logging-related settings
+- **response_rules**: Sequence of :ref:`ResponseRuleConfiguration <yaml-settings-ResponseRuleConfiguration>` - List of rules executed when a response is received
+- **ring_buffers**: :ref:`RingBuffersConfiguration <yaml-settings-RingBuffersConfiguration>` - In-memory ring buffer settings
+- **security_polling**: :ref:`SecurityPollingConfiguration <yaml-settings-SecurityPollingConfiguration>` - Automatic checking of outdated version
 - **selectors**: Sequence of :ref:`Selector <yaml-settings-Selector>` - List of selectors that can be reused in rules
-- **self-answered-response-rules**: Sequence of :ref:`ResponseRuleConfiguration <yaml-settings-ResponseRuleConfiguration>` - List of rules executed when a response is generated by DNSdist itself
+- **self_answered_response_rules**: Sequence of :ref:`ResponseRuleConfiguration <yaml-settings-ResponseRuleConfiguration>` - List of rules executed when a response is generated by DNSdist itself
 - **snmp**: :ref:`SnmpConfiguration <yaml-settings-SnmpConfiguration>` - SNMP-related settings
 - **tuning**: :ref:`TuningConfiguration <yaml-settings-TuningConfiguration>` - Performance-related settings
 - **webserver**: :ref:`WebserverConfiguration <yaml-settings-WebserverConfiguration>` - Internal web server configuration
-- **xfr-response-rules**: Sequence of :ref:`ResponseRuleConfiguration <yaml-settings-ResponseRuleConfiguration>` - List of rules executed when a XFR response is received
+- **xfr_response_rules**: Sequence of :ref:`ResponseRuleConfiguration <yaml-settings-ResponseRuleConfiguration>` - List of rules executed when a XFR response is received
 - **xsk**: Sequence of :ref:`XskConfiguration <yaml-settings-XskConfiguration>` - List of AF_XDP / XSK objects
 
 
@@ -66,28 +66,28 @@ BackendConfiguration
 - **protocol**: String
 - **tls**: :ref:`OutgoingTlsConfiguration <yaml-settings-OutgoingTlsConfiguration>`
 - **doh**: :ref:`OutgoingDohConfiguration <yaml-settings-OutgoingDohConfiguration>`
-- **use-client-subnet**: Boolean ``(false)``
-- **use-proxy-protocol**: Boolean ``(false)``
-- **queries-per-second**: Unsigned integer ``(0)``
+- **use_client_subnet**: Boolean ``(false)``
+- **use_proxy_protocol**: Boolean ``(false)``
+- **queries_per_second**: Unsigned integer ``(0)``
 - **order**: Unsigned integer ``(1)``
 - **weight**: Unsigned integer ``(1)``
 - **pools**: Sequence of String
 - **retries**: Unsigned integer ``(5)``
 - **tcp**: :ref:`OutgoingTcpConfiguration <yaml-settings-OutgoingTcpConfiguration>`
-- **ip-bind-addr-no-port**: Boolean ``(true)``
-- **health-checks**: :ref:`HealthCheckConfiguration <yaml-settings-HealthCheckConfiguration>`
+- **ip_bind_addr_no_port**: Boolean ``(true)``
+- **health_checks**: :ref:`HealthCheckConfiguration <yaml-settings-HealthCheckConfiguration>`
 - **source**: String ``("")``
 - **sockets**: Unsigned integer ``(1)``
-- **disable-zero-scope**: Boolean ``(false)``
-- **reconnect-on-up**: Boolean ``(false)``
-- **max-in-flight**: Unsigned integer ``(1)``
-- **tcp-only**: Boolean ``(false)``
-- **auto-upgrade**: :ref:`OutgoingAutoUpgradeConfiguration <yaml-settings-OutgoingAutoUpgradeConfiguration>`
-- **max-concurrent-tcp-connections**: Unsigned integer ``(0)``
+- **disable_zero_scope**: Boolean ``(false)``
+- **reconnect_on_up**: Boolean ``(false)``
+- **max_in_flight**: Unsigned integer ``(1)``
+- **tcp_only**: Boolean ``(false)``
+- **auto_upgrade**: :ref:`OutgoingAutoUpgradeConfiguration <yaml-settings-OutgoingAutoUpgradeConfiguration>`
+- **max_concurrent_tcp_connections**: Unsigned integer ``(0)``
 - **ktls**: Boolean ``(false)``
-- **proxy-protocol-advertise-tls**: Boolean ``(false)``
-- **xsk-sockets**: Sequence of String
-- **mac-address**: String ``("")``
+- **proxy_protocol_advertise_tls**: Boolean ``(false)``
+- **xsk_sockets**: Sequence of String
+- **mac_address**: String ``("")``
 - **cpus**: String ``("")``
 - **xsk**: String ``("")``
 
@@ -97,20 +97,20 @@ BackendConfiguration
 BindConfiguration
 -----------------
 
-- **listen-address**: String - Address and port to listen to
+- **listen_address**: String - Address and port to listen to
 - **reuseport**: Boolean ``(false)``
 - **protocol**: String ``(Do53)``
 - **threads**: Unsigned integer ``(1)``
 - **interface**: String ``("")``
 - **cpus**: String ``("")``
-- **enable-proxy-protocol**: Boolean ``(false)``
+- **enable_proxy_protocol**: Boolean ``(false)``
 - **tcp**: :ref:`IncomingTcpConfiguration <yaml-settings-IncomingTcpConfiguration>`
 - **tls**: :ref:`IncomingTlsConfiguration <yaml-settings-IncomingTlsConfiguration>`
 - **doh**: :ref:`IncomingDohConfiguration <yaml-settings-IncomingDohConfiguration>`
 - **doq**: :ref:`IncomingDoqConfiguration <yaml-settings-IncomingDoqConfiguration>`
 - **quic**: :ref:`IncomingQuicConfiguration <yaml-settings-IncomingQuicConfiguration>`
 - **dnscrypt**: :ref:`IncomingDnscryptConfiguration <yaml-settings-IncomingDnscryptConfiguration>`
-- **additional-addresses**: Sequence of String
+- **additional_addresses**: Sequence of String
 - **xsk**: String ``("")``
 
 
@@ -120,18 +120,18 @@ CDBKVStoreConfiguration
 -----------------------
 
 - **name**: String
-- **file-name**: String
-- **refresh-delay**: Unsigned integer
+- **file_name**: String
+- **refresh_delay**: Unsigned integer
 
 
-.. _yaml-settings-CacheSettingsConfiguration:
+.. _yaml-settings-Cache_settingsConfiguration:
 
-CacheSettingsConfiguration
---------------------------
+Cache_settingsConfiguration
+---------------------------
 
-- **stale-entries-ttl**: Unsigned integer ``(0)``
-- **cleaning-delay**: Unsigned integer ``(60)``
-- **cleaning-percentage**: Unsigned integer ``(100)``
+- **stale_entries_ttl**: Unsigned integer ``(0)``
+- **cleaning_delay**: Unsigned integer ``(60)``
+- **cleaning_percentage**: Unsigned integer ``(100)``
 
 
 .. _yaml-settings-CarbonConfiguration:
@@ -151,101 +151,101 @@ CarbonConfiguration
 ConsoleConfiguration
 --------------------
 
-- **listen-address**: String ``("")`` - IP address and port to listen on for console connections
+- **listen_address**: String ``("")`` - IP address and port to listen on for console connections
 - **key**: String ``("")`` - The shared secret used to secure connections between the console client and the server, generated via ``makeKey()``
 - **acl**: Sequence of String ``(127.0.0.1, ::1)`` - List of network masks or IP addresses that are allowed to open a connection to the console server
-- **maximum-output-size**: Unsigned integer ``(10000000)``
-- **log-connections**: Boolean ``(true)``
-- **max-concurrent-connections**: Unsigned integer ``(0)``
+- **maximum_output_size**: Unsigned integer ``(10000000)``
+- **log_connections**: Boolean ``(true)``
+- **max_concurrent_connections**: Unsigned integer ``(0)``
 
 
-.. _yaml-settings-CustomLoadBalancingPolicyConfiguration:
+.. _yaml-settings-Custom_load_balancing_policyConfiguration:
 
-CustomLoadBalancingPolicyConfiguration
---------------------------------------
+Custom_load_balancing_policyConfiguration
+-----------------------------------------
 
 - **name**: String
-- **function-name**: String ``("")``
-- **function-code**: String ``("")``
-- **function-file**: String ``("")``
+- **function_name**: String ``("")``
+- **function_code**: String ``("")``
+- **function_file**: String ``("")``
 - **ffi**: Boolean ``(false)``
-- **per-thread**: Boolean ``(false)``
+- **per_thread**: Boolean ``(false)``
 
 
-.. _yaml-settings-DnstapLoggerConfiguration:
+.. _yaml-settings-Dnstap_loggerConfiguration:
 
-DnstapLoggerConfiguration
--------------------------
+Dnstap_loggerConfiguration
+--------------------------
 
 - **name**: String
 - **transport**: String
 - **address**: String
-- **buffer-hint**: Unsigned integer ``(0)``
-- **flush-timeout**: Unsigned integer ``(0)``
-- **input-queue-size**: Unsigned integer ``(0)``
-- **output-queue-size**: Unsigned integer ``(0)``
-- **queue-notify-threshold**: Unsigned integer ``(0)``
-- **reopen-interval**: Unsigned integer ``(0)``
+- **buffer_hint**: Unsigned integer ``(0)``
+- **flush_timeout**: Unsigned integer ``(0)``
+- **input_queue_size**: Unsigned integer ``(0)``
+- **output_queue_size**: Unsigned integer ``(0)``
+- **queue_notify_threshold**: Unsigned integer ``(0)``
+- **reopen_interval**: Unsigned integer ``(0)``
 
 
-.. _yaml-settings-DohTuningConfiguration:
+.. _yaml-settings-Doh_tuningConfiguration:
 
-DohTuningConfiguration
-----------------------
+Doh_tuningConfiguration
+-----------------------
 
-- **outgoing-worker-threads**: Unsigned integer ``(10)``
-- **outgoing-max-idle-time**: Unsigned integer ``(300)``
-- **outgoing-cleanup-interval**: Unsigned integer ``(60)``
-- **outgoing-max-idle-connection-per-backend**: Unsigned integer ``(10)``
+- **outgoing_worker_threads**: Unsigned integer ``(10)``
+- **outgoing_max_idle_time**: Unsigned integer ``(300)``
+- **outgoing_cleanup_interval**: Unsigned integer ``(60)``
+- **outgoing_max_idle_connection_per_backend**: Unsigned integer ``(10)``
 
 
-.. _yaml-settings-DynamicRuleConfiguration:
+.. _yaml-settings-Dynamic_ruleConfiguration:
 
-DynamicRuleConfiguration
-------------------------
+Dynamic_ruleConfiguration
+-------------------------
 
 - **type**: String
 - **seconds**: Unsigned integer
-- **action-duration**: Unsigned integer
+- **action_duration**: Unsigned integer
 - **comment**: String
 - **rate**: Unsigned integer ``(0)``
 - **ratio**: Double ``(0.0)``
 - **action**: String ``(drop)``
-- **warning-rate**: Unsigned integer ``(0)``
-- **warning-ratio**: Double ``(0.0)``
-- **tag-name**: String ``("")``
-- **tag-value**: String ``(0)``
-- **visitor-function-name**: String ``("")``
-- **visitor-function-code**: String ``("")``
-- **visitor-function-file**: String ``("")``
+- **warning_rate**: Unsigned integer ``(0)``
+- **warning_ratio**: Double ``(0.0)``
+- **tag_name**: String ``("")``
+- **tag_value**: String ``(0)``
+- **visitor_function_name**: String ``("")``
+- **visitor_function_code**: String ``("")``
+- **visitor_function_file**: String ``("")``
 - **rcode**: String ``("")``
 - **qtype**: String ``("")``
-- **minimum-number-of-responses**: Unsigned integer ``(0)``
-- **minimum-global-cache-hit-ratio**: Double ``(0.0)``
+- **minimum_number_of_responses**: Unsigned integer ``(0)``
+- **minimum_global_cache_hit_ratio**: Double ``(0.0)``
 
 
-.. _yaml-settings-DynamicRulesConfiguration:
+.. _yaml-settings-Dynamic_rulesConfiguration:
 
-DynamicRulesConfiguration
--------------------------
+Dynamic_rulesConfiguration
+--------------------------
 
 - **name**: String
-- **mask-ipv4**: Unsigned integer ``(32)``
-- **mask-ipv6**: Unsigned integer ``(64)``
-- **mask-port**: Unsigned integer ``(0)``
-- **exclude-ranges**: Sequence of String
-- **include-ranges**: Sequence of String
-- **exclude-domains**: Sequence of String
+- **mask_ipv4**: Unsigned integer ``(32)``
+- **mask_ipv6**: Unsigned integer ``(64)``
+- **mask_port**: Unsigned integer ``(0)``
+- **exclude_ranges**: Sequence of String
+- **include_ranges**: Sequence of String
+- **exclude_domains**: Sequence of String
 - **rules**: Sequence of :ref:`DynamicRuleConfiguration <yaml-settings-DynamicRuleConfiguration>`
 
 
-.. _yaml-settings-DynamicRulesSettingsConfiguration:
+.. _yaml-settings-Dynamic_rules_settingsConfiguration:
 
-DynamicRulesSettingsConfiguration
----------------------------------
+Dynamic_rules_settingsConfiguration
+-----------------------------------
 
-- **purge-interval**: Unsigned integer ``(60)``
-- **default-action**: String ``(Drop)``
+- **purge_interval**: Unsigned integer ``(60)``
+- **default_action**: String ``(Drop)``
 
 
 .. _yaml-settings-EbpfConfiguration:
@@ -255,29 +255,29 @@ EbpfConfiguration
 
 - **ipv4**: :ref:`EbpfMapConfiguration <yaml-settings-EbpfMapConfiguration>`
 - **ipv6**: :ref:`EbpfMapConfiguration <yaml-settings-EbpfMapConfiguration>`
-- **cidr-ipv4**: :ref:`EbpfMapConfiguration <yaml-settings-EbpfMapConfiguration>`
-- **cidr-ipv6**: :ref:`EbpfMapConfiguration <yaml-settings-EbpfMapConfiguration>`
+- **cidr_ipv4**: :ref:`EbpfMapConfiguration <yaml-settings-EbpfMapConfiguration>`
+- **cidr_ipv6**: :ref:`EbpfMapConfiguration <yaml-settings-EbpfMapConfiguration>`
 - **qnames**: :ref:`EbpfMapConfiguration <yaml-settings-EbpfMapConfiguration>`
 - **external**: Boolean ``(false)``
 
 
-.. _yaml-settings-EbpfMapConfiguration:
+.. _yaml-settings-Ebpf_mapConfiguration:
 
-EbpfMapConfiguration
---------------------
+Ebpf_mapConfiguration
+---------------------
 
-- **max-entries**: Unsigned integer ``(0)``
-- **pinned-path**: String ``("")``
+- **max_entries**: Unsigned integer ``(0)``
+- **pinned_path**: String ``("")``
 
 
-.. _yaml-settings-EdnsClientSubnetConfiguration:
+.. _yaml-settings-Edns_client_subnetConfiguration:
 
-EdnsClientSubnetConfiguration
------------------------------
+Edns_client_subnetConfiguration
+-------------------------------
 
-- **override-existing**: Boolean ``(false)`` - When `useClientSubnet` in `newServer()` is set and dnsdist adds an EDNS Client Subnet Client option to the query, override an existing option already present in the query, if any. Please see Passing the source address to the backend for more information. Note that it’s not recommended to enable setECSOverride in front of an authoritative server responding with EDNS Client Subnet information as mismatching data (ECS scopes) can confuse clients and lead to SERVFAIL responses on downstream nameservers
-- **source-prefix-v4**: Unsigned integer ``(32)`` - When `useClientSubnet` in `newServer()` is set and dnsdist adds an EDNS Client Subnet Client option to the query, truncate the requestor's IPv4 address to `prefix` bits
-- **source-prefix-v6**: Unsigned integer ``(56)`` - When `useClientSubnet` in `newServer()` is set and dnsdist adds an EDNS Client Subnet Client option to the query, truncate the requestor's IPv6 address to `prefix` bits
+- **override_existing**: Boolean ``(false)`` - When `useClientSubnet` in `newServer()` is set and dnsdist adds an EDNS Client Subnet Client option to the query, override an existing option already present in the query, if any. Please see Passing the source address to the backend for more information. Note that it’s not recommended to enable setECSOverride in front of an authoritative server responding with EDNS Client Subnet information as mismatching data (ECS scopes) can confuse clients and lead to SERVFAIL responses on downstream nameservers
+- **source_prefix_v4**: Unsigned integer ``(32)`` - When `useClientSubnet` in `newServer()` is set and dnsdist adds an EDNS Client Subnet Client option to the query, truncate the requestor's IPv4 address to `prefix` bits
+- **source_prefix_v6**: Unsigned integer ``(56)`` - When `useClientSubnet` in `newServer()` is set and dnsdist adds an EDNS Client Subnet Client option to the query, truncate the requestor's IPv6 address to `prefix` bits
 
 
 .. _yaml-settings-GeneralConfiguration:
@@ -285,21 +285,21 @@ EdnsClientSubnetConfiguration
 GeneralConfiguration
 --------------------
 
-- **edns-udp-payload-size-self-generated-answers**: Unsigned integer ``(1232)``
-- **add-edns-to-self-generated-answers**: Boolean ``(true)``
-- **truncate-tc-answers**: Boolean ``(false)``
-- **fixup-case**: Boolean ``(false)``
+- **edns_udp_payload_size_self_generated_answers**: Unsigned integer ``(1232)``
+- **add_edns_to_self_generated_answers**: Boolean ``(true)``
+- **truncate_tc_answers**: Boolean ``(false)``
+- **fixup_case**: Boolean ``(false)``
 - **verbose**: Boolean ``(false)``
-- **verbose-health-checks**: Boolean ``(false)``
-- **allow-empty-responses**: Boolean ``(false)``
-- **drop-empty-queries**: Boolean ``(false)``
-- **capabilities-to-retain**: Sequence of String
+- **verbose_health_checks**: Boolean ``(false)``
+- **allow_empty_responses**: Boolean ``(false)``
+- **drop_empty_queries**: Boolean ``(false)``
+- **capabilities_to_retain**: Sequence of String
 
 
-.. _yaml-settings-HealthCheckConfiguration:
+.. _yaml-settings-Health_checkConfiguration:
 
-HealthCheckConfiguration
-------------------------
+Health_checkConfiguration
+-------------------------
 
 - **mode**: String ``(auto)``
 - **qname**: String ``("")``
@@ -307,30 +307,30 @@ HealthCheckConfiguration
 - **qtype**: String ``(A)``
 - **function**: String ``("")``
 - **lua**: String ``("")``
-- **lua-file**: String ``("")``
+- **lua_file**: String ``("")``
 - **timeout**: Unsigned integer ``(1000)``
-- **set-cd**: Boolean ``(false)``
-- **max-failures**: Unsigned integer ``(1)``
+- **set_cd**: Boolean ``(false)``
+- **max_failures**: Unsigned integer ``(1)``
 - **rise**: Unsigned integer ``(1)``
 - **interval**: Unsigned integer ``(1)``
-- **must-resolve**: Boolean ``(false)``
-- **use-tcp**: Boolean ``(false)``
+- **must_resolve**: Boolean ``(false)``
+- **use_tcp**: Boolean ``(false)``
 - **lazy**: :ref:`LazyHealthCheckConfiguration <yaml-settings-LazyHealthCheckConfiguration>`
 
 
-.. _yaml-settings-HttpCustomResponseHeaderConfiguration:
+.. _yaml-settings-Http_custom_response_headerConfiguration:
 
-HttpCustomResponseHeaderConfiguration
--------------------------------------
+Http_custom_response_headerConfiguration
+----------------------------------------
 
 - **key**: String
 - **value**: String
 
 
-.. _yaml-settings-HttpResponsesMapConfiguration:
+.. _yaml-settings-Http_responses_mapConfiguration:
 
-HttpResponsesMapConfiguration
------------------------------
+Http_responses_mapConfiguration
+-------------------------------
 
 - **expression**: String
 - **status**: Unsigned integer
@@ -338,109 +338,109 @@ HttpResponsesMapConfiguration
 - **headers**: Sequence of :ref:`HttpCustomResponseHeaderConfiguration <yaml-settings-HttpCustomResponseHeaderConfiguration>`
 
 
-.. _yaml-settings-IncomingDnscryptCertificateKeyPairConfiguration:
+.. _yaml-settings-Incoming_dnscryptConfiguration:
 
-IncomingDnscryptCertificateKeyPairConfiguration
------------------------------------------------
+Incoming_dnscryptConfiguration
+------------------------------
+
+- **provider_name**: String ``("")``
+- **certificates**: Sequence of :ref:`IncomingDnscryptCertificateKeyPairConfiguration <yaml-settings-IncomingDnscryptCertificateKeyPairConfiguration>`
+
+
+.. _yaml-settings-Incoming_dnscrypt_certificate_key_pairConfiguration:
+
+Incoming_dnscrypt_certificate_key_pairConfiguration
+---------------------------------------------------
 
 - **certificate**: String
 - **key**: String
 
 
-.. _yaml-settings-IncomingDnscryptConfiguration:
+.. _yaml-settings-Incoming_dohConfiguration:
 
-IncomingDnscryptConfiguration
------------------------------
-
-- **provider-name**: String ``("")``
-- **certificates**: Sequence of :ref:`IncomingDnscryptCertificateKeyPairConfiguration <yaml-settings-IncomingDnscryptCertificateKeyPairConfiguration>`
-
-
-.. _yaml-settings-IncomingDohConfiguration:
-
-IncomingDohConfiguration
-------------------------
+Incoming_dohConfiguration
+-------------------------
 
 - **provider**: String ``(nghttp2)``
 - **paths**: Sequence of String ``(/dns-query)``
-- **idle-timeout**: Unsigned integer ``(30)``
-- **server-tokens**: String ``(h2o/dnsdist)``
-- **send-cache-control-headers**: Boolean ``(true)``
-- **keep-incoming-headers**: Boolean ``(false)``
-- **trust-forwarded-for-header**: Boolean ``(false)``
-- **early-acl-drop**: Boolean ``(true)``
-- **exact-path-matching**: Boolean ``(true)``
-- **internal-pipe-buffer-size**: Unsigned integer ``(1048576)``
-- **custom-response-headers**: Sequence of :ref:`HttpCustomResponseHeaderConfiguration <yaml-settings-HttpCustomResponseHeaderConfiguration>`
-- **responses-map**: Sequence of :ref:`HttpResponsesMapConfiguration <yaml-settings-HttpResponsesMapConfiguration>`
+- **idle_timeout**: Unsigned integer ``(30)``
+- **server_tokens**: String ``(h2o/dnsdist)``
+- **send_cache_control_headers**: Boolean ``(true)``
+- **keep_incoming_headers**: Boolean ``(false)``
+- **trust_forwarded_for_header**: Boolean ``(false)``
+- **early_acl_drop**: Boolean ``(true)``
+- **exact_path_matching**: Boolean ``(true)``
+- **internal_pipe_buffer_size**: Unsigned integer ``(1048576)``
+- **custom_response_headers**: Sequence of :ref:`HttpCustomResponseHeaderConfiguration <yaml-settings-HttpCustomResponseHeaderConfiguration>`
+- **responses_map**: Sequence of :ref:`HttpResponsesMapConfiguration <yaml-settings-HttpResponsesMapConfiguration>`
 
 
-.. _yaml-settings-IncomingDoqConfiguration:
+.. _yaml-settings-Incoming_doqConfiguration:
 
-IncomingDoqConfiguration
-------------------------
+Incoming_doqConfiguration
+-------------------------
 
 - **max_concurrent_queries_per_connection**: Unsigned integer ``(65535)``
 
 
-.. _yaml-settings-IncomingQuicConfiguration:
+.. _yaml-settings-Incoming_quicConfiguration:
 
-IncomingQuicConfiguration
+Incoming_quicConfiguration
+--------------------------
+
+- **idle_timeout**: Unsigned integer ``(5)``
+- **congestion_control_algorithm**: String ``(reno)``
+- **internal_pipe_buffer_size**: Unsigned integer ``(1048576)``
+
+
+.. _yaml-settings-Incoming_tcpConfiguration:
+
+Incoming_tcpConfiguration
 -------------------------
 
-- **idle-timeout**: Unsigned integer ``(5)``
-- **congestion-control-algorithm**: String ``(reno)``
-- **internal-pipe-buffer-size**: Unsigned integer ``(1048576)``
+- **max_in_flight_queries**: Unsigned integer ``(0)``
+- **listen_queue_size**: Unsigned integer ``(0)``
+- **fast_open_queue_size**: Unsigned integer ``(0)``
+- **max_concurrent_connections**: Unsigned integer ``(0)``
 
 
-.. _yaml-settings-IncomingTcpConfiguration:
+.. _yaml-settings-Incoming_tlsConfiguration:
 
-IncomingTcpConfiguration
-------------------------
+Incoming_tlsConfiguration
+-------------------------
 
-- **max-in-flight-queries**: Unsigned integer ``(0)``
-- **listen-queue-size**: Unsigned integer ``(0)``
-- **fast-open-queue-size**: Unsigned integer ``(0)``
-- **max-concurrent-connections**: Unsigned integer ``(0)``
+- **provider**: String ``(OpenSSL)``
+- **certificates**: Sequence of :ref:`IncomingTlsCertificateKeyPairConfiguration <yaml-settings-IncomingTlsCertificateKeyPairConfiguration>`
+- **ignore_errors**: Boolean ``(false)``
+- **ciphers**: String ``("")``
+- **ciphers_tls_13**: String ``("")``
+- **minimum_version**: String ``(tls1.0)``
+- **ticket_key_file**: String ``("")``
+- **tickets_keys_rotation_delay**: Unsigned integer ``(43200)``
+- **number_of_tickets_keys**: Unsigned integer ``(5)``
+- **prefer_server_ciphers**: Boolean ``(true)``
+- **session_timeout**: Unsigned integer ``(0)``
+- **session_tickets**: Boolean ``(true)``
+- **number_of_stored_sessions**: Unsigned integer ``(20480)``
+- **ocsp_response_files**: Sequence of String
+- **key_log_file**: String ``("")``
+- **release_buffers**: Boolean ``(true)``
+- **enable_renegotiation**: Boolean ``(false)``
+- **async_mode**: Boolean ``(false)``
+- **ktls**: Boolean ``(false)``
+- **read_ahead**: Boolean ``(true)``
+- **proxy_protocol_outside_tls**: Boolean ``(false)``
+- **ignore_configuration_errors**: Boolean ``(false)``
 
 
-.. _yaml-settings-IncomingTlsCertificateKeyPairConfiguration:
+.. _yaml-settings-Incoming_tls_certificate_key_pairConfiguration:
 
-IncomingTlsCertificateKeyPairConfiguration
-------------------------------------------
+Incoming_tls_certificate_key_pairConfiguration
+----------------------------------------------
 
 - **certificate**: String
 - **key**: String ``("")``
 - **password**: String ``("")``
-
-
-.. _yaml-settings-IncomingTlsConfiguration:
-
-IncomingTlsConfiguration
-------------------------
-
-- **provider**: String ``(OpenSSL)``
-- **certificates**: Sequence of :ref:`IncomingTlsCertificateKeyPairConfiguration <yaml-settings-IncomingTlsCertificateKeyPairConfiguration>`
-- **ignore-errors**: Boolean ``(false)``
-- **ciphers**: String ``("")``
-- **ciphers-tls-13**: String ``("")``
-- **minimum-version**: String ``(tls1.0)``
-- **ticket-key-file**: String ``("")``
-- **tickets-keys-rotation-delay**: Unsigned integer ``(43200)``
-- **number-of-tickets-keys**: Unsigned integer ``(5)``
-- **prefer-server-ciphers**: Boolean ``(true)``
-- **session-timeout**: Unsigned integer ``(0)``
-- **session-tickets**: Boolean ``(true)``
-- **number-of-stored-sessions**: Unsigned integer ``(20480)``
-- **ocsp-response-files**: Sequence of String
-- **key-log-file**: String ``("")``
-- **release-buffers**: Boolean ``(true)``
-- **enable-renegotiation**: Boolean ``(false)``
-- **async-mode**: Boolean ``(false)``
-- **ktls**: Boolean ``(false)``
-- **read-ahead**: Boolean ``(true)``
-- **proxy-protocol-outside-tls**: Boolean ``(false)``
-- **ignore-configuration-errors**: Boolean ``(false)``
 
 
 .. _yaml-settings-KVSLookupKeyQNameConfiguration:
@@ -449,7 +449,7 @@ KVSLookupKeyQNameConfiguration
 ------------------------------
 
 - **name**: String
-- **wire-format**: Boolean ``(true)``
+- **wire_format**: Boolean ``(true)``
 
 
 .. _yaml-settings-KVSLookupKeySourceIPConfiguration:
@@ -458,9 +458,9 @@ KVSLookupKeySourceIPConfiguration
 ---------------------------------
 
 - **name**: String
-- **v4-mask**: Unsigned integer ``(32)``
-- **v6-mask**: Unsigned integer ``(128)``
-- **include-port**: Boolean ``(false)``
+- **v4_mask**: Unsigned integer ``(32)``
+- **v6_mask**: Unsigned integer ``(128)``
+- **include_port**: Boolean ``(false)``
 
 
 .. _yaml-settings-KVSLookupKeySuffixConfiguration:
@@ -469,8 +469,8 @@ KVSLookupKeySuffixConfiguration
 -------------------------------
 
 - **name**: String
-- **minimum-labels**: Unsigned integer ``(0)``
-- **wire-format**: Boolean ``(true)``
+- **minimum_labels**: Unsigned integer ``(0)``
+- **wire_format**: Boolean ``(true)``
 
 
 .. _yaml-settings-KVSLookupKeyTagConfiguration:
@@ -487,20 +487,20 @@ KVSLookupKeyTagConfiguration
 KVSLookupKeysConfiguration
 --------------------------
 
-- **source-ip-keys**: Sequence of :ref:`KVSLookupKeySourceIPConfiguration <yaml-settings-KVSLookupKeySourceIPConfiguration>`
-- **qname-keys**: Sequence of :ref:`KVSLookupKeyQNameConfiguration <yaml-settings-KVSLookupKeyQNameConfiguration>`
-- **suffix-keys**: Sequence of :ref:`KVSLookupKeySuffixConfiguration <yaml-settings-KVSLookupKeySuffixConfiguration>`
-- **tag-keys**: Sequence of :ref:`KVSLookupKeyTagConfiguration <yaml-settings-KVSLookupKeyTagConfiguration>`
+- **source_ip_keys**: Sequence of :ref:`KVSLookupKeySourceIPConfiguration <yaml-settings-KVSLookupKeySourceIPConfiguration>`
+- **qname_keys**: Sequence of :ref:`KVSLookupKeyQNameConfiguration <yaml-settings-KVSLookupKeyQNameConfiguration>`
+- **suffix_keys**: Sequence of :ref:`KVSLookupKeySuffixConfiguration <yaml-settings-KVSLookupKeySuffixConfiguration>`
+- **tag_keys**: Sequence of :ref:`KVSLookupKeyTagConfiguration <yaml-settings-KVSLookupKeyTagConfiguration>`
 
 
-.. _yaml-settings-KeyValueStoresConfiguration:
+.. _yaml-settings-Key_value_storesConfiguration:
 
-KeyValueStoresConfiguration
----------------------------
+Key_value_storesConfiguration
+-----------------------------
 
 - **lmdb**: Sequence of :ref:`LMDBKVStoreConfiguration <yaml-settings-LMDBKVStoreConfiguration>`
 - **cdb**: Sequence of :ref:`CDBKVStoreConfiguration <yaml-settings-CDBKVStoreConfiguration>`
-- **lookup-keys**: :ref:`KVSLookupKeysConfiguration <yaml-settings-KVSLookupKeysConfiguration>`
+- **lookup_keys**: :ref:`KVSLookupKeysConfiguration <yaml-settings-KVSLookupKeysConfiguration>`
 
 
 .. _yaml-settings-LMDBKVStoreConfiguration:
@@ -509,37 +509,37 @@ LMDBKVStoreConfiguration
 ------------------------
 
 - **name**: String
-- **file-name**: String
-- **database-name**: String
-- **no-lock**: Boolean ``(false)``
+- **file_name**: String
+- **database_name**: String
+- **no_lock**: Boolean ``(false)``
 
 
-.. _yaml-settings-LazyHealthCheckConfiguration:
+.. _yaml-settings-Lazy_health_checkConfiguration:
 
-LazyHealthCheckConfiguration
-----------------------------
+Lazy_health_checkConfiguration
+------------------------------
 
 - **interval**: Unsigned integer ``(30)``
-- **min-sample-count**: Unsigned integer ``(1)``
+- **min_sample_count**: Unsigned integer ``(1)``
 - **mode**: String ``(TimeoutOrServFail)``
-- **sample-size**: Unsigned integer ``(100)``
+- **sample_size**: Unsigned integer ``(100)``
 - **threshold**: Unsigned integer ``(20)``
-- **use-exponential-back-off**: Boolean ``(false)``
-- **max-back-off**: Unsigned integer ``(3600)``
+- **use_exponential_back_off**: Boolean ``(false)``
+- **max_back_off**: Unsigned integer ``(3600)``
 
 
-.. _yaml-settings-LoadBalancingPoliciesConfiguration:
+.. _yaml-settings-Load_balancing_policiesConfiguration:
 
-LoadBalancingPoliciesConfiguration
-----------------------------------
+Load_balancing_policiesConfiguration
+------------------------------------
 
-- **default-policy**: String ``(leastOutstanding)``
-- **servfail-on-no-server**: Boolean ``(false)``
-- **round-robin-servfail-on-no-server**: Boolean ``(false)``
-- **weighted-balancing-factor**: Double ``(0.0)``
-- **consistent-hashing-balancing-factor**: Double ``(0.0)``
-- **custom-policies**: Sequence of :ref:`CustomLoadBalancingPolicyConfiguration <yaml-settings-CustomLoadBalancingPolicyConfiguration>`
-- **hash-perturbation**: Unsigned integer ``(0)``
+- **default_policy**: String ``(leastOutstanding)``
+- **servfail_on_no_server**: Boolean ``(false)``
+- **round_robin_servfail_on_no_server**: Boolean ``(false)``
+- **weighted_balancing_factor**: Double ``(0.0)``
+- **consistent_hashing_balancing_factor**: Double ``(0.0)``
+- **custom_policies**: Sequence of :ref:`CustomLoadBalancingPolicyConfiguration <yaml-settings-CustomLoadBalancingPolicyConfiguration>`
+- **hash_perturbation**: Unsigned integer ``(0)``
 
 
 .. _yaml-settings-MetricsConfiguration:
@@ -550,77 +550,77 @@ MetricsConfiguration
 - **carbon**: Sequence of :ref:`CarbonConfiguration <yaml-settings-CarbonConfiguration>`
 
 
-.. _yaml-settings-OutgoingAutoUpgradeConfiguration:
+.. _yaml-settings-Outgoing_auto_upgradeConfiguration:
 
-OutgoingAutoUpgradeConfiguration
---------------------------------
+Outgoing_auto_upgradeConfiguration
+----------------------------------
 
 - **enabled**: Boolean ``(false)``
 - **interval**: Unsigned integer ``(3600)``
 - **keep**: Boolean ``(false)``
 - **pool**: String ``("")``
-- **doh-key**: Unsigned integer ``(7)``
-- **use-lazy-health-check**: Boolean ``(false)``
+- **doh_key**: Unsigned integer ``(7)``
+- **use_lazy_health_check**: Boolean ``(false)``
 
 
-.. _yaml-settings-OutgoingDohConfiguration:
+.. _yaml-settings-Outgoing_dohConfiguration:
 
-OutgoingDohConfiguration
-------------------------
+Outgoing_dohConfiguration
+-------------------------
 
 - **path**: String ``(/dns-query)``
-- **add-x-forwarded-headers**: Boolean ``(false)``
+- **add_x_forwarded_headers**: Boolean ``(false)``
 
 
-.. _yaml-settings-OutgoingTcpConfiguration:
+.. _yaml-settings-Outgoing_tcpConfiguration:
 
-OutgoingTcpConfiguration
-------------------------
+Outgoing_tcpConfiguration
+-------------------------
 
-- **connect-timeout**: Unsigned integer ``(5)``
-- **send-timeout**: Unsigned integer ``(30)``
-- **receive-timeout**: Unsigned integer ``(30)``
-- **fast-open**: Boolean ``(false)``
+- **connect_timeout**: Unsigned integer ``(5)``
+- **send_timeout**: Unsigned integer ``(30)``
+- **receive_timeout**: Unsigned integer ``(30)``
+- **fast_open**: Boolean ``(false)``
 
 
-.. _yaml-settings-OutgoingTlsConfiguration:
+.. _yaml-settings-Outgoing_tlsConfiguration:
 
-OutgoingTlsConfiguration
-------------------------
+Outgoing_tlsConfiguration
+-------------------------
 
 - **provider**: String ``(OpenSSL)``
-- **subject-name**: String ``("")``
-- **subject-address**: String ``("")``
-- **validate-certificate**: Boolean ``(true)``
-- **ca-store**: String ``("")``
+- **subject_name**: String ``("")``
+- **subject_address**: String ``("")``
+- **validate_certificate**: Boolean ``(true)``
+- **ca_store**: String ``("")``
 - **ciphers**: String ``("")``
-- **ciphers-tls-13**: String ``("")``
-- **key-log-file**: String ``("")``
-- **release-buffers**: Boolean ``(true)``
-- **enable-renegotiation**: Boolean ``(false)``
+- **ciphers_tls_13**: String ``("")``
+- **key_log_file**: String ``("")``
+- **release_buffers**: Boolean ``(true)``
+- **enable_renegotiation**: Boolean ``(false)``
 - **ktls**: Boolean ``(false)``
 
 
-.. _yaml-settings-PacketCacheConfiguration:
+.. _yaml-settings-Packet_cacheConfiguration:
 
-PacketCacheConfiguration
-------------------------
+Packet_cacheConfiguration
+-------------------------
 
 - **name**: String
 - **size**: Unsigned integer
-- **deferrable-insert-lock**: Boolean ``(true)``
-- **dont-age**: Boolean ``(false)``
-- **keep-stale-data**: Boolean ``(false)``
-- **max-negative-ttl**: Unsigned integer ``(3600)``
-- **max-ttl**: Unsigned integer ``(86400)``
-- **min-ttl**: Unsigned integer ``(0)``
+- **deferrable_insert_lock**: Boolean ``(true)``
+- **dont_age**: Boolean ``(false)``
+- **keep_stale_data**: Boolean ``(false)``
+- **max_negative_ttl**: Unsigned integer ``(3600)``
+- **max_ttl**: Unsigned integer ``(86400)``
+- **min_ttl**: Unsigned integer ``(0)``
 - **shards**: Unsigned integer ``(20)``
-- **parse-ecs**: Boolean ``(false)``
-- **stale-ttl**: Unsigned integer ``(60)``
-- **temporary-failure-ttl**: Unsigned integer ``(60)``
-- **cookie-hashing**: Boolean ``(false)``
-- **maximum-entry-size**: Unsigned integer ``(0)``
-- **options-to-skip**: Sequence of String
+- **parse_ecs**: Boolean ``(false)``
+- **stale_ttl**: Unsigned integer ``(60)``
+- **temporary_failure_ttl**: Unsigned integer ``(60)``
+- **cookie_hashing**: Boolean ``(false)``
+- **maximum_entry_size**: Unsigned integer ``(0)``
+- **options_to_skip**: Sequence of String
 
 
 .. _yaml-settings-PoolConfiguration:
@@ -629,8 +629,8 @@ PoolConfiguration
 -----------------
 
 - **name**: String
-- **packet-cache**: String
-- **policy**: String ``(least-outstanding)``
+- **packet_cache**: String
+- **policy**: String ``(leastOutstanding)``
 
 
 .. _yaml-settings-ProtoBufMetaConfiguration:
@@ -642,52 +642,52 @@ ProtoBufMetaConfiguration
 - **value**: String
 
 
-.. _yaml-settings-ProtobufLoggerConfiguration:
+.. _yaml-settings-Protobuf_loggerConfiguration:
 
-ProtobufLoggerConfiguration
----------------------------
+Protobuf_loggerConfiguration
+----------------------------
 
 - **name**: String
 - **address**: String - An IP:PORT combination where the logger is listening
 - **timeout**: Unsigned integer ``(2)`` - TCP connect timeout in seconds
-- **max-queued-entries**: Unsigned integer ``(100)`` - Queue this many messages before dropping new ones (e.g. when the remote listener closes the connection)
-- **reconnect-wait-time**: Unsigned integer ``(1)`` - Time in seconds between reconnection attempts
+- **max_queued_entries**: Unsigned integer ``(100)`` - Queue this many messages before dropping new ones (e.g. when the remote listener closes the connection)
+- **reconnect_wait_time**: Unsigned integer ``(1)`` - Time in seconds between reconnection attempts
 
 
-.. _yaml-settings-ProxyProtocolConfiguration:
+.. _yaml-settings-Proxy_protocolConfiguration:
 
-ProxyProtocolConfiguration
---------------------------
+Proxy_protocolConfiguration
+---------------------------
 
 - **acl**: Sequence of String ``("")``
-- **maximum-payload-size**: Unsigned integer ``(512)``
-- **apply-acl-to-proxied-clients**: Boolean ``(false)``
+- **maximum_payload_size**: Unsigned integer ``(512)``
+- **apply_acl_to_proxied_clients**: Boolean ``(false)``
 
 
-.. _yaml-settings-ProxyProtocolValueConfiguration:
+.. _yaml-settings-Proxy_protocol_valueConfiguration:
 
-ProxyProtocolValueConfiguration
--------------------------------
+Proxy_protocol_valueConfiguration
+---------------------------------
 
 - **key**: Unsigned integer
 - **value**: String
 
 
-.. _yaml-settings-QueryCountConfiguration:
+.. _yaml-settings-Query_countConfiguration:
 
-QueryCountConfiguration
------------------------
+Query_countConfiguration
+------------------------
 
 - **enabled**: Boolean ``(false)``
-- **filter-function-name**: String ``("")``
-- **filter-function-code**: String ``("")``
-- **filter-function-file**: String ``("")``
+- **filter_function_name**: String ``("")``
+- **filter_function_code**: String ``("")``
+- **filter_function_file**: String ``("")``
 
 
-.. _yaml-settings-QueryRuleConfiguration:
+.. _yaml-settings-Query_ruleConfiguration:
 
-QueryRuleConfiguration
-----------------------
+Query_ruleConfiguration
+-----------------------
 
 - **name**: String
 - **uuid**: String
@@ -695,19 +695,19 @@ QueryRuleConfiguration
 - **action**: :ref:`Action <yaml-settings-Action>`
 
 
-.. _yaml-settings-RemoteLoggingConfiguration:
+.. _yaml-settings-Remote_loggingConfiguration:
 
-RemoteLoggingConfiguration
+Remote_loggingConfiguration
+---------------------------
+
+- **protobuf_loggers**: Sequence of :ref:`ProtobufLoggerConfiguration <yaml-settings-ProtobufLoggerConfiguration>`
+- **dnstap_loggers**: Sequence of :ref:`DnstapLoggerConfiguration <yaml-settings-DnstapLoggerConfiguration>`
+
+
+.. _yaml-settings-Response_ruleConfiguration:
+
+Response_ruleConfiguration
 --------------------------
-
-- **protobuf-loggers**: Sequence of :ref:`ProtobufLoggerConfiguration <yaml-settings-ProtobufLoggerConfiguration>`
-- **dnstap-loggers**: Sequence of :ref:`DnstapLoggerConfiguration <yaml-settings-DnstapLoggerConfiguration>`
-
-
-.. _yaml-settings-ResponseRuleConfiguration:
-
-ResponseRuleConfiguration
--------------------------
 
 - **name**: String
 - **uuid**: String
@@ -715,24 +715,24 @@ ResponseRuleConfiguration
 - **action**: :ref:`ResponseAction <yaml-settings-ResponseAction>`
 
 
-.. _yaml-settings-RingBuffersConfiguration:
+.. _yaml-settings-Ring_buffersConfiguration:
 
-RingBuffersConfiguration
-------------------------
+Ring_buffersConfiguration
+-------------------------
 
 - **size**: Unsigned integer ``(10000)`` - The maximum amount of queries to keep in the ringbuffer
 - **shards**: Unsigned integer ``(10)`` - The number of shards to use to limit lock contention
-- **lock-retries**: Unsigned integer ``(5)`` - Set the number of shards to attempt to lock without blocking before giving up and simply blocking while waiting for the next shard to be available. Default to 5 if there is more than one shard, 0 otherwise
-- **record-queries**: Boolean ``(true)`` - Whether to record queries in the ring buffers
-- **record-responses**: Boolean ``(true)`` - Whether to record responses in the ring buffers
+- **lock_retries**: Unsigned integer ``(5)`` - Set the number of shards to attempt to lock without blocking before giving up and simply blocking while waiting for the next shard to be available. Default to 5 if there is more than one shard, 0 otherwise
+- **record_queries**: Boolean ``(true)`` - Whether to record queries in the ring buffers
+- **record_responses**: Boolean ``(true)`` - Whether to record responses in the ring buffers
 
 
-.. _yaml-settings-SecurityPollingConfiguration:
+.. _yaml-settings-Security_pollingConfiguration:
 
-SecurityPollingConfiguration
-----------------------------
+Security_pollingConfiguration
+-----------------------------
 
-- **polling-interval**: Unsigned integer ``(3600)``
+- **polling_interval**: Unsigned integer ``(3600)``
 - **suffix**: String ``(secpoll.powerdns.com.)``
 
 
@@ -742,37 +742,37 @@ SnmpConfiguration
 -----------------
 
 - **enabled**: Boolean ``(false)``
-- **traps-enabled**: Boolean ``(false)``
-- **daemon-socket**: String ``("")``
+- **traps_enabled**: Boolean ``(false)``
+- **daemon_socket**: String ``("")``
 
 
-.. _yaml-settings-TcpTuningConfiguration:
+.. _yaml-settings-Tcp_tuningConfiguration:
 
-TcpTuningConfiguration
-----------------------
+Tcp_tuningConfiguration
+-----------------------
 
-- **worker-threads**: Unsigned integer ``(10)``
-- **receive-timeout**: Unsigned integer ``(2)``
-- **send-timeout**: Unsigned integer ``(2)``
-- **max-queries-per-connection**: Unsigned integer ``(0)``
-- **max-connection-duration**: Unsigned integer ``(0)``
-- **max-queued-connections**: Unsigned integer ``(10000)``
-- **internal-pipe-buffer-size**: Unsigned integer ``(1048576)``
-- **outgoing-max-idle-time**: Unsigned integer ``(300)``
-- **outgoing-cleanup-interval**: Unsigned integer ``(60)``
-- **outgoing-max-idle-connection-per-backend**: Unsigned integer ``(10)``
-- **max-connections-per-client**: Unsigned integer ``(0)``
-- **fast-open-key**: String ``("")``
+- **worker_threads**: Unsigned integer ``(10)``
+- **receive_timeout**: Unsigned integer ``(2)``
+- **send_timeout**: Unsigned integer ``(2)``
+- **max_queries_per_connection**: Unsigned integer ``(0)``
+- **max_connection_duration**: Unsigned integer ``(0)``
+- **max_queued_connections**: Unsigned integer ``(10000)``
+- **internal_pipe_buffer_size**: Unsigned integer ``(1048576)``
+- **outgoing_max_idle_time**: Unsigned integer ``(300)``
+- **outgoing_cleanup_interval**: Unsigned integer ``(60)``
+- **outgoing_max_idle_connection_per_backend**: Unsigned integer ``(10)``
+- **max_connections_per_client**: Unsigned integer ``(0)``
+- **fast_open_key**: String ``("")``
 
 
-.. _yaml-settings-TlsTuningConfiguration:
+.. _yaml-settings-Tls_tuningConfiguration:
 
-TlsTuningConfiguration
-----------------------
+Tls_tuningConfiguration
+-----------------------
 
-- **outgoing-tickets-cache-cleanup-delay**: Unsigned integer ``(60)``
-- **outgoing-tickets-cache-validity**: Unsigned integer ``(600)``
-- **max-outgoing-tickets-per-backend**: Unsigned integer ``(20)``
+- **outgoing_tickets_cache_cleanup_delay**: Unsigned integer ``(60)``
+- **outgoing_tickets_cache_validity**: Unsigned integer ``(600)``
+- **max_outgoing_tickets_per_backend**: Unsigned integer ``(20)``
 
 
 .. _yaml-settings-TuningConfiguration:
@@ -786,18 +786,18 @@ TuningConfiguration
 - **udp**: :ref:`UdpTuningConfiguration <yaml-settings-UdpTuningConfiguration>`
 
 
-.. _yaml-settings-UdpTuningConfiguration:
+.. _yaml-settings-Udp_tuningConfiguration:
 
-UdpTuningConfiguration
-----------------------
+Udp_tuningConfiguration
+-----------------------
 
-- **messages-per-round**: Unsigned integer ``(1)``
-- **send-buffer-size**: Unsigned integer ``(0)``
-- **receive-buffer-size**: Unsigned integer ``(0)``
-- **max-outstanding-per-backend**: Unsigned integer ``(65535)``
+- **messages_per_round**: Unsigned integer ``(1)``
+- **send_buffer_size**: Unsigned integer ``(0)``
+- **receive_buffer_size**: Unsigned integer ``(0)``
+- **max_outstanding_per_backend**: Unsigned integer ``(65535)``
 - **timeout**: Unsigned integer ``(2)``
-- **randomize-outgoing-sockets-to-backend**: Boolean ``(false)``
-- **randomize-ids-to-backend**: Boolean ``(false)``
+- **randomize_outgoing_sockets_to_backend**: Boolean ``(false)``
+- **randomize_ids_to_backend**: Boolean ``(false)``
 
 
 .. _yaml-settings-WebserverConfiguration:
@@ -805,18 +805,18 @@ UdpTuningConfiguration
 WebserverConfiguration
 ----------------------
 
-- **listen-address**: String ``("")`` - IP address and port to listen on
+- **listen_address**: String ``("")`` - IP address and port to listen on
 - **password**: String ``("")`` - The password used to access the internal webserver. Since 1.7.0 the password should be hashed and salted via the ``hashPassword()`` command
-- **api-key**: String ``("")`` - The API Key (set to an empty string do disable it). Since 1.7.0 the key should be hashed and salted via the ``hashPassword()`` command
+- **api_key**: String ``("")`` - The API Key (set to an empty string do disable it). Since 1.7.0 the key should be hashed and salted via the ``hashPassword()`` command
 - **acl**: Sequence of String ``(127.0.0.1, ::1)`` - List of network masks or IP addresses that are allowed to open a connection to the web server
-- **api-requires-authentication**: Boolean ``(true)`` - Whether access to the API (/api endpoints) requires a valid API key
-- **stats-require-authentication**: Boolean ``(true)`` - Whether access to the statistics (/metrics and /jsonstat endpoints) requires a valid password or API key
-- **dashboard-requires-authentication**: Boolean ``(true)`` - Whether access to the internal dashboard requires a valid password
-- **max-concurrent-connections**: Unsigned integer ``(100)`` - The maximum number of concurrent web connections, or 0 which means an unlimited number
-- **hash-plaintext-credentials**: Boolean ``(false)`` - Whether passwords and API keys provided in plaintext should be hashed during startup, to prevent the plaintext versions from staying in memory. Doing so increases significantly the cost of verifying credentials
-- **custom-headers**: Sequence of :ref:`HttpCustomResponseHeaderConfiguration <yaml-settings-HttpCustomResponseHeaderConfiguration>`
-- **api-configuration-directory**: String ``("")``
-- **api-read-write**: Boolean ``(false)``
+- **api_requires_authentication**: Boolean ``(true)`` - Whether access to the API (/api endpoints) requires a valid API key
+- **stats_require_authentication**: Boolean ``(true)`` - Whether access to the statistics (/metrics and /jsonstat endpoints) requires a valid password or API key
+- **dashboard_requires_authentication**: Boolean ``(true)`` - Whether access to the internal dashboard requires a valid password
+- **max_concurrent_connections**: Unsigned integer ``(100)`` - The maximum number of concurrent web connections, or 0 which means an unlimited number
+- **hash_plaintext_credentials**: Boolean ``(false)`` - Whether passwords and API keys provided in plaintext should be hashed during startup, to prevent the plaintext versions from staying in memory. Doing so increases significantly the cost of verifying credentials
+- **custom_headers**: Sequence of :ref:`HttpCustomResponseHeaderConfiguration <yaml-settings-HttpCustomResponseHeaderConfiguration>`
+- **api_configuration_directory**: String ``("")``
+- **api_read_write**: Boolean ``(false)``
 
 
 .. _yaml-settings-XskConfiguration:
@@ -828,6 +828,6 @@ XskConfiguration
 - **interface**: String
 - **queues**: Unsigned integer
 - **frames**: Unsigned integer ``(65536)``
-- **map-path**: String ``(/sys/fs/bpf/dnsdist/xskmap)``
+- **map_path**: String ``(/sys/fs/bpf/dnsdist/xskmap)``
 
 

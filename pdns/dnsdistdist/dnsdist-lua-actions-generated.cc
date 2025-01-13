@@ -11,8 +11,8 @@ luaCtx.writeFunction("DropAction", []() {
 luaCtx.writeFunction("SetEDNSOptionAction", [](uint32_t code, std::string data) {
   return dnsdist::actions::getSetEDNSOptionAction(code, data);
 });
-luaCtx.writeFunction("LogAction", [](boost::optional<std::string> fileName, boost::optional<bool> binary, boost::optional<bool> append, boost::optional<bool> buffered, boost::optional<bool> verboseOnly, boost::optional<bool> includeTimestamp) {
-  return dnsdist::actions::getLogAction(fileName ? *fileName : "", binary ? *binary : true, append ? *append : false, buffered ? *buffered : false, verboseOnly ? *verboseOnly : true, includeTimestamp ? *includeTimestamp : false);
+luaCtx.writeFunction("LogAction", [](boost::optional<std::string> file_name, boost::optional<bool> binary, boost::optional<bool> append, boost::optional<bool> buffered, boost::optional<bool> verbose_only, boost::optional<bool> include_timestamp) {
+  return dnsdist::actions::getLogAction(file_name ? *file_name : "", binary ? *binary : true, append ? *append : false, buffered ? *buffered : false, verbose_only ? *verbose_only : true, include_timestamp ? *include_timestamp : false);
 });
 luaCtx.writeFunction("LuaFFIPerThreadAction", [](std::string code) {
   return dnsdist::actions::getLuaFFIPerThreadAction(code);
@@ -20,17 +20,17 @@ luaCtx.writeFunction("LuaFFIPerThreadAction", [](std::string code) {
 luaCtx.writeFunction("NoneAction", []() {
   return dnsdist::actions::getNoneAction();
 });
-luaCtx.writeFunction("PoolAction", [](std::string poolName, boost::optional<bool> stopProcessing) {
-  return dnsdist::actions::getPoolAction(poolName, stopProcessing ? *stopProcessing : true);
+luaCtx.writeFunction("PoolAction", [](std::string pool_name, boost::optional<bool> stop_processing) {
+  return dnsdist::actions::getPoolAction(pool_name, stop_processing ? *stop_processing : true);
 });
 luaCtx.writeFunction("QPSAction", [](uint32_t limit) {
   return dnsdist::actions::getQPSAction(limit);
 });
-luaCtx.writeFunction("QPSPoolAction", [](uint32_t limit, std::string poolName, boost::optional<bool> stopProcessing) {
-  return dnsdist::actions::getQPSPoolAction(limit, poolName, stopProcessing ? *stopProcessing : true);
+luaCtx.writeFunction("QPSPoolAction", [](uint32_t limit, std::string pool_name, boost::optional<bool> stop_processing) {
+  return dnsdist::actions::getQPSPoolAction(limit, pool_name, stop_processing ? *stop_processing : true);
 });
-luaCtx.writeFunction("SetAdditionalProxyProtocolValueAction", [](uint8_t proxyType, std::string value) {
-  return dnsdist::actions::getSetAdditionalProxyProtocolValueAction(proxyType, value);
+luaCtx.writeFunction("SetAdditionalProxyProtocolValueAction", [](uint8_t proxy_type, std::string value) {
+  return dnsdist::actions::getSetAdditionalProxyProtocolValueAction(proxy_type, value);
 });
 luaCtx.writeFunction("SetDisableECSAction", []() {
   return dnsdist::actions::getSetDisableECSAction();
@@ -38,14 +38,14 @@ luaCtx.writeFunction("SetDisableECSAction", []() {
 luaCtx.writeFunction("SetDisableValidationAction", []() {
   return dnsdist::actions::getSetDisableValidationAction();
 });
-luaCtx.writeFunction("SetECSOverrideAction", [](bool overrideExisting) {
-  return dnsdist::actions::getSetECSOverrideAction(overrideExisting);
+luaCtx.writeFunction("SetECSOverrideAction", [](bool override_existing) {
+  return dnsdist::actions::getSetECSOverrideAction(override_existing);
 });
 luaCtx.writeFunction("SetECSPrefixLengthAction", [](uint16_t ipv4, uint16_t ipv6) {
   return dnsdist::actions::getSetECSPrefixLengthAction(ipv4, ipv6);
 });
-luaCtx.writeFunction("SetExtendedDNSErrorAction", [](uint16_t infoCode, boost::optional<std::string> extraText) {
-  return dnsdist::actions::getSetExtendedDNSErrorAction(infoCode, extraText ? *extraText : "");
+luaCtx.writeFunction("SetExtendedDNSErrorAction", [](uint16_t info_code, boost::optional<std::string> extra_text) {
+  return dnsdist::actions::getSetExtendedDNSErrorAction(info_code, extra_text ? *extra_text : "");
 });
 luaCtx.writeFunction("SetMacAddrAction", [](uint32_t code) {
   return dnsdist::actions::getSetMacAddrAction(code);

@@ -284,33 +284,33 @@ class TestDNSCryptYaml(TestDNSCrypt):
     _yaml_config_template = """
 console:
   key: "%s"
-  listen-address: "127.0.0.1:%d"
+  listen_address: "127.0.0.1:%d"
   acl:
     - 127.0.0.0/8
 binds:
-  - listen-address: "127.0.0.1:%d"
+  - listen_address: "127.0.0.1:%d"
     protocol: "DNSCrypt"
     dnscrypt:
-      provider-name: "%s"
+      provider_name: "%s"
       certificates:
         - certificate: "DNSCryptResolver.cert"
           key: "DNSCryptResolver.key"
 backends:
   - address: "127.0.0.1:%d"
     protocol: Do53
-query-rules:
+query_rules:
   - selector:
       type: "QName"
       qname: "udp.protocols.dnscrypt.tests.powerdns.com."
     action:
       type: "Lua"
-      function-name: "checkDNSCryptUDP"
+      function_name: "checkDNSCryptUDP"
   - selector:
       type: "QName"
       qname: "tcp.protocols.dnscrypt.tests.powerdns.com."
     action:
       type: "Lua"
-      function-name: "checkDNSCryptTCP"
+      function_name: "checkDNSCryptTCP"
 """
     _config_params = []
     _yaml_config_params = ['_consoleKeyB64', '_consolePort', '_dnsDistPortDNSCrypt', '_providerName', '_testServerPort']

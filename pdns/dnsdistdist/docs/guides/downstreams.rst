@@ -63,11 +63,11 @@ In ``yaml``:
   backends:
     - address: "192.0.2.1"
       protocol: "Do53"
-      health-checks:
+      health_checks:
         qname: "a.root-servers.net."
         qtype: "AAAA"
         qclass: "CHAOS"
-        must-resolve: true
+        must_resolve: true
 
 
 You can turn on logging of health check errors using the :func:`setVerboseHealthChecks` function.
@@ -105,17 +105,17 @@ So for example, if we set ``healthCheckMode`` to ``lazy``, ``lazyHealthCheckSamp
   backends:
     - address: "192.0.2.1"
       protocol: "Do53"
-      health-checks:
+      health_checks:
         mode: "lazy"
         rise: 2
-        max-failures: 3
-        check-interval: 1
+        max_failures: 3
+        check_interval: 1
         lazy:
           mode: "TimeoutOnly"
           interval: 30
           threshold: 30
-          sample-size: 100
-          min-sample-count: 10
+          sample_size: 100
+          min_sample_count: 10
 
 The 'lazy' mode also supports using an exponential back-off time between health-check queries, once a backend has been moved to the 'down' state. This can be enabled by setting the ``lazyHealthCheckUseExponentialBackOff`` parameter to 'true'. Once the backend has been marked as 'down', the first query will be sent after ``lazyHealthCheckFailedInterval`` seconds, the second one after 2 times ``lazyHealthCheckFailedInterval`` seconds, the third after 4 times ``lazyHealthCheckFailedInterval`` seconds, and so on and so forth, until ``lazyHealthCheckMaxBackOff`` has been reached. Then probes will be sent every ``lazyHealthCheckMaxBackOff`` seconds (default is 3600 so one hour) until the backend comes 'up' again.
 

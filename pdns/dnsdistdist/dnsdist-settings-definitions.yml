@@ -14,22 +14,22 @@ global:
       type: "Vec<BindConfiguration>"
       default: true
       description: "List of endpoints to accept queries on"
-    - name: "cache-hit-response-rules"
+    - name: "cache_hit_response_rules"
       type: "Vec<ResponseRuleConfiguration>"
       default: true
       skip-serde: true
       description: "List of rules executed on a cache hit"
-    - name: "cache-inserted-response-rules"
+    - name: "cache_inserted_response_rules"
       type: "Vec<ResponseRuleConfiguration>"
       default: true
       skip-serde: true
       description: "List of rules executed after inserting a new response into the cache"
-    - name: "cache-miss-rules"
+    - name: "cache_miss_rules"
       type: "Vec<QueryRuleConfiguration>"
       default: true
       skip-serde: true
       description: "List of rules executed after a cache miss"
-    - name: "cache-settings"
+    - name: "cache_settings"
       type: "CacheSettingsConfiguration"
       default: true
       description: "Caching-related settings"
@@ -37,11 +37,11 @@ global:
       type: "ConsoleConfiguration"
       default: true
       description: "Console-related settings"
-    - name: "dynamic-rules"
+    - name: "dynamic_rules"
       type: "Vec<DynamicRulesConfiguration>"
       default: true
       description: "List of dynamic rules"
-    - name: "dynamic-rules-settings"
+    - name: "dynamic_rules_settings"
       type: "DynamicRulesSettingsConfiguration"
       default: true
       description: "Dynamic rules-related settings"
@@ -49,7 +49,7 @@ global:
       type: "EbpfConfiguration"
       default: true
       description: "EBPF settings"
-    - name: "edns-client-subnet"
+    - name: "edns_client_subnet"
       type: "EdnsClientSubnetConfiguration"
       default: true
       description: "EDNS Client Subnet-related settings"
@@ -57,11 +57,11 @@ global:
       type: "GeneralConfiguration"
       default: true
       description: "General settings"
-    - name: "key-value-stores"
+    - name: "key_value_stores"
       type: "KeyValueStoresConfiguration"
       default: true
       description: "Key-Value stores"
-    - name: "load-balancing-policies"
+    - name: "load_balancing_policies"
       type: "LoadBalancingPoliciesConfiguration"
       default: true
       description: "Load-balancing policies"
@@ -69,7 +69,7 @@ global:
       type: "MetricsConfiguration"
       default: true
       description: "Metrics-related settings"
-    - name: "packet-caches"
+    - name: "packet_caches"
       type: "Vec<PacketCacheConfiguration>"
       default: true
       description: "Packet-cache definitions"
@@ -77,33 +77,33 @@ global:
       type: "Vec<PoolConfiguration>"
       default: true
       description: "Pools of backends"
-    - name: "proxy-protocol"
+    - name: "proxy_protocol"
       type: "ProxyProtocolConfiguration"
       default: true
       description: "Proxy-protocol-related settings"
-    - name: "query-count"
+    - name: "query_count"
       type: "QueryCountConfiguration"
       default: true
       description: "Queries counting-related settings"
-    - name: "query-rules"
+    - name: "query_rules"
       type: "Vec<QueryRuleConfiguration>"
       default: true
       skip-serde: true
       description: "List of rules executed when a query is received"
-    - name: "remote-logging"
+    - name: "remote_logging"
       type: "RemoteLoggingConfiguration"
       default: true
       description: "Remote logging-related settings"
-    - name: "response-rules"
+    - name: "response_rules"
       type: "Vec<ResponseRuleConfiguration>"
       default: true
       skip-serde: true
       description: "List of rules executed when a response is received"
-    - name: "ring-buffers"
+    - name: "ring_buffers"
       type: "RingBuffersConfiguration"
       default: true
       description: "In-memory ring buffer settings"
-    - name: "security-polling"
+    - name: "security_polling"
       type: "SecurityPollingConfiguration"
       default: true
       description: "Automatic checking of outdated version"
@@ -112,7 +112,7 @@ global:
       default: true
       skip-serde: true
       description: "List of selectors that can be reused in rules"
-    - name: "self-answered-response-rules"
+    - name: "self_answered_response_rules"
       type: "Vec<ResponseRuleConfiguration>"
       default: true
       skip-serde: true
@@ -129,7 +129,7 @@ global:
       type: "WebserverConfiguration"
       default: true
       description: "Internal web server configuration"
-    - name: "xfr-response-rules"
+    - name: "xfr_response_rules"
       type: "Vec<ResponseRuleConfiguration>"
       default: true
       skip-serde: true
@@ -168,16 +168,16 @@ carbon:
       default: ""
       description: "An optional string specifying the instance name that should be used"
 
-remote-logging:
+remote_logging:
   parameters:
-    - name: "protobuf-loggers"
+    - name: "protobuf_loggers"
       type: "Vec<ProtobufLoggerConfiguration>"
       default: true
-    - name: "dnstap-loggers"
+    - name: "dnstap_loggers"
       type: "Vec<DnstapLoggerConfiguration>"
       default: true
 
-protobuf-logger:
+protobuf_logger:
   parameters:
     - name: "name"
       type: "String"
@@ -188,16 +188,16 @@ protobuf-logger:
       type: "u16"
       default: 2
       description: "TCP connect timeout in seconds"
-    - name: "max-queued-entries"
+    - name: "max_queued_entries"
       type: "u64"
       default: 100
       description: "Queue this many messages before dropping new ones (e.g. when the remote listener closes the connection)"
-    - name: "reconnect-wait-time"
+    - name: "reconnect_wait_time"
       type: "u8"
       default: 1
       description: "Time in seconds between reconnection attempts"
 
-dnstap-logger:
+dnstap_logger:
   parameters:
     - name: "name"
       type: "String"
@@ -205,22 +205,22 @@ dnstap-logger:
       type: "String"
     - name: "address"
       type: "String"
-    - name: "buffer-hint"
+    - name: "buffer_hint"
       type: "u64"
       default: 0
-    - name: "flush-timeout"
+    - name: "flush_timeout"
       type: "u64"
       default: 0
-    - name: "input-queue-size"
+    - name: "input_queue_size"
       type: "u64"
       default: 0
-    - name: "output-queue-size"
+    - name: "output_queue_size"
       type: "u64"
       default: 0
-    - name: "queue-notify-threshold"
+    - name: "queue_notify_threshold"
       type: "u64"
       default: 0
-    - name: "reopen-interval"
+    - name: "reopen_interval"
       type: "u64"
       default: 0
 
@@ -235,11 +235,11 @@ LMDBKVStore:
   parameters:
     - name: "name"
       type: "String"
-    - name: "file-name"
+    - name: "file_name"
       type: "String"
-    - name: "database-name"
+    - name: "database_name"
       type: "String"
-    - name: "no-lock"
+    - name: "no_lock"
       type: "bool"
       default: "false"
 
@@ -247,22 +247,22 @@ CDBKVStore:
   parameters:
     - name: "name"
       type: "String"
-    - name: "file-name"
+    - name: "file_name"
       type: "String"
-    - name: "refresh-delay"
+    - name: "refresh_delay"
       type: "u32"
 
 KVSLookupKeySourceIP:
   parameters:
     - name: "name"
       type: "String"
-    - name: "v4-mask"
+    - name: "v4_mask"
       type: "u8"
       default: "32"
-    - name: "v6-mask"
+    - name: "v6_mask"
       type: "u8"
       default: "128"
-    - name: "include-port"
+    - name: "include_port"
       type: "bool"
       default: "false"
 
@@ -270,7 +270,7 @@ KVSLookupKeyQName:
   parameters:
     - name: "name"
       type: "String"
-    - name: "wire-format"
+    - name: "wire_format"
       type: "bool"
       default: "true"
 
@@ -278,10 +278,10 @@ KVSLookupKeySuffix:
   parameters:
     - name: "name"
       type: "String"
-    - name: "minimum-labels"
+    - name: "minimum_labels"
       type: "u16"
       default: "0"
-    - name: "wire-format"
+    - name: "wire_format"
       type: "bool"
       default: "true"
 
@@ -294,20 +294,20 @@ KVSLookupKeyTag:
 
 KVSLookupKeys:
   parameters:
-    - name: "source-ip-keys"
+    - name: "source_ip_keys"
       type: "Vec<KVSLookupKeySourceIPConfiguration>"
       default: true
-    - name: "qname-keys"
+    - name: "qname_keys"
       type: "Vec<KVSLookupKeyQNameConfiguration>"
       default: true
-    - name: "suffix-keys"
+    - name: "suffix_keys"
       type: "Vec<KVSLookupKeySuffixConfiguration>"
       default: true
-    - name: "tag-keys"
+    - name: "tag_keys"
       type: "Vec<KVSLookupKeyTagConfiguration>"
       default: true
 
-key-value-stores:
+key_value_stores:
   parameters:
     - name: "lmdb"
       type: "Vec<LMDBKVStoreConfiguration>"
@@ -315,13 +315,13 @@ key-value-stores:
     - name: "cdb"
       type: "Vec<CDBKVStoreConfiguration>"
       default: true
-    - name: "lookup-keys"
+    - name: "lookup_keys"
       type: "KVSLookupKeysConfiguration"
       default: true
 
 webserver:
   parameters:
-    - name: "listen-address"
+    - name: "listen_address"
       type: "String"
       default: ""
       description: "IP address and port to listen on"
@@ -329,7 +329,7 @@ webserver:
       type: "String"
       default: ""
       description: "The password used to access the internal webserver. Since 1.7.0 the password should be hashed and salted via the ``hashPassword()`` command"
-    - name: "api-key"
+    - name: "api_key"
       type: "String"
       default: ""
       description: "The API Key (set to an empty string do disable it). Since 1.7.0 the key should be hashed and salted via the ``hashPassword()`` command"
@@ -337,39 +337,39 @@ webserver:
       type: "Vec<String>"
       default: "127.0.0.1, ::1"
       description: "List of network masks or IP addresses that are allowed to open a connection to the web server"
-    - name: "api-requires-authentication"
+    - name: "api_requires_authentication"
       type: "bool"
       default: "true"
       description: "Whether access to the API (/api endpoints) requires a valid API key"
-    - name: "stats-require-authentication"
+    - name: "stats_require_authentication"
       type: "bool"
       default: "true"
       description: "Whether access to the statistics (/metrics and /jsonstat endpoints) requires a valid password or API key"
-    - name: "dashboard-requires-authentication"
+    - name: "dashboard_requires_authentication"
       type: "bool"
       default: "true"
       description: "Whether access to the internal dashboard requires a valid password"
-    - name: "max-concurrent-connections"
+    - name: "max_concurrent_connections"
       type: "u32"
       default: 100
       description: "The maximum number of concurrent web connections, or 0 which means an unlimited number"
-    - name: "hash-plaintext-credentials"
+    - name: "hash_plaintext_credentials"
       type: "bool"
       default: "false"
       description: "Whether passwords and API keys provided in plaintext should be hashed during startup, to prevent the plaintext versions from staying in memory. Doing so increases significantly the cost of verifying credentials"
-    - name: "custom-headers"
+    - name: "custom_headers"
       type: "Vec<HttpCustomResponseHeaderConfiguration>"
       default: true
-    - name: "api-configuration-directory"
+    - name: "api_configuration_directory"
       type: "String"
       default: ""
-    - name: "api-read-write"
+    - name: "api_read_write"
       type: "bool"
       default: "false"
 
 console:
   parameters:
-    - name: "listen-address"
+    - name: "listen_address"
       type: "String"
       default: ""
       description: "IP address and port to listen on for console connections"
@@ -381,31 +381,31 @@ console:
       type: "Vec<String>"
       default: "127.0.0.1, ::1"
       description: "List of network masks or IP addresses that are allowed to open a connection to the console server"
-    - name: "maximum-output-size"
+    - name: "maximum_output_size"
       type: "u32"
       default: "10000000"
       lua-name: "setConsoleOutputMaxMsgSize"
       internal-field-name: "d_consoleOutputMsgMaxSize"
       runtime-configurable: true
-    - name: "log-connections"
+    - name: "log_connections"
       type: "bool"
       default: "true"
       lua-name: "setConsoleConnectionsLogging"
       internal-field-name: "d_logConsoleConnections"
       runtime-configurable: true
-    - name: "max-concurrent-connections"
+    - name: "max_concurrent_connections"
       type: "u64"
       default: "0"
       lua-name: "setConsoleMaximumConcurrentConnections"
       internal-field-name: "d_consoleMaxConcurrentConnections"
       runtime-configurable: false
 
-ebpf-map:
+ebpf_map:
   parameters:
-    - name: "max-entries"
+    - name: "max_entries"
       type: "u32"
       default: 0
-    - name: "pinned-path"
+    - name: "pinned_path"
       type: "String"
       default: ""
 
@@ -417,10 +417,10 @@ ebpf:
     - name: "ipv6"
       type: "EbpfMapConfiguration"
       default: true
-    - name: "cidr-ipv4"
+    - name: "cidr_ipv4"
       type: "EbpfMapConfiguration"
       default: true
-    - name: "cidr-ipv6"
+    - name: "cidr_ipv6"
       type: "EbpfMapConfiguration"
       default: true
     - name: "qnames"
@@ -430,23 +430,23 @@ ebpf:
       type: "bool"
       default: "false"
 
-edns-client-subnet:
+edns_client_subnet:
   parameters:
-    - name: "override-existing"
+    - name: "override_existing"
       lua-name: "setECSOverride"
       internal-field-name: "d_ecsOverride"
       runtime-configurable: true
       type: "bool"
       default: "false"
       description: "When `useClientSubnet` in `newServer()` is set and dnsdist adds an EDNS Client Subnet Client option to the query, override an existing option already present in the query, if any. Please see Passing the source address to the backend for more information. Note that it’s not recommended to enable setECSOverride in front of an authoritative server responding with EDNS Client Subnet information as mismatching data (ECS scopes) can confuse clients and lead to SERVFAIL responses on downstream nameservers"
-    - name: "source-prefix-v4"
+    - name: "source_prefix_v4"
       lua-name: "setECSSourcePrefixV4"
       internal-field-name: "d_ECSSourcePrefixV4"
       runtime-configurable: true
       type: "u8"
       default: 32
       description: "When `useClientSubnet` in `newServer()` is set and dnsdist adds an EDNS Client Subnet Client option to the query, truncate the requestor's IPv4 address to `prefix` bits"
-    - name: "source-prefix-v6"
+    - name: "source_prefix_v6"
       lua-name: "setECSSourcePrefixV6"
       internal-field-name: "d_ECSSourcePrefixV6"
       runtime-configurable: true
@@ -454,26 +454,26 @@ edns-client-subnet:
       default: 56
       description: "When `useClientSubnet` in `newServer()` is set and dnsdist adds an EDNS Client Subnet Client option to the query, truncate the requestor's IPv6 address to `prefix` bits"
 
-dynamic-rules-settings:
+dynamic_rules_settings:
   parameters:
-    - name: "purge-interval"
+    - name: "purge_interval"
       type: "u64"
       default: "60"
       lua-name: "setDynBlocksPurgeInterval"
       internal-field-name: "d_dynBlocksPurgeInterval"
       runtime-configurable: true
-    - name: "default-action"
+    - name: "default_action"
       type: "String"
       default: "Drop"
 
-dynamic-rule:
+dynamic_rule:
   parameters:
     - name: "type"
       rename: "rule_type"
       type: "String"
     - name: "seconds"
       type: "u32"
-    - name: "action-duration"
+    - name: "action_duration"
       type: "u32"
     - name: "comment"
       type: "String"
@@ -486,25 +486,25 @@ dynamic-rule:
     - name: "action"
       type: "String"
       default: "drop"
-    - name: "warning-rate"
+    - name: "warning_rate"
       type: "u32"
       default: "0"
-    - name: "warning-ratio"
+    - name: "warning_ratio"
       type: "f64"
       default: "0.0"
-    - name: "tag-name"
+    - name: "tag_name"
       type: "String"
       default: ""
-    - name: "tag-value"
+    - name: "tag_value"
       type: "String"
       default: "0"
-    - name: "visitor-function-name"
+    - name: "visitor_function_name"
       type: "String"
       default: ""
-    - name: "visitor-function-code"
+    - name: "visitor_function_code"
       type: "String"
       default: ""
-    - name: "visitor-function-file"
+    - name: "visitor_function_file"
       type: "String"
       default: ""
     - name: "rcode"
@@ -513,39 +513,39 @@ dynamic-rule:
     - name: "qtype"
       type: "String"
       default: ""
-    - name: "minimum-number-of-responses"
+    - name: "minimum_number_of_responses"
       type: "u32"
       default: "0"
-    - name: "minimum-global-cache-hit-ratio"
+    - name: "minimum_global_cache_hit_ratio"
       type: "f64"
       default: "0.0"
 
-dynamic-rules:
+dynamic_rules:
   parameters:
     - name: "name"
       type: "String"
-    - name: "mask-ipv4"
+    - name: "mask_ipv4"
       type: "u8"
       default: "32"
-    - name: "mask-ipv6"
+    - name: "mask_ipv6"
       type: "u8"
       default: "64"
-    - name: "mask-port"
+    - name: "mask_port"
       type: u8
       default: "0"
-    - name: "exclude-ranges"
+    - name: "exclude_ranges"
       type: "Vec<String>"
       default: true
-    - name: "include-ranges"
+    - name: "include_ranges"
       type: "Vec<String>"
       default: true
-    - name: "exclude-domains"
+    - name: "exclude_domains"
       type: "Vec<String>"
       default: true
     - name: "rules"
       type: "Vec<DynamicRuleConfiguration>"
 
-ring-buffers:
+ring_buffers:
   parameters:
     - name: "size"
       type: "u64"
@@ -561,21 +561,21 @@ ring-buffers:
       lua-name: "setRingBuffersSize"
       internal-field-name: "d_ringsNumberOfShards"
       runtime-configurable: false
-    - name: "lock-retries"
+    - name: "lock_retries"
       type: "u64"
       default: 5
       description: "Set the number of shards to attempt to lock without blocking before giving up and simply blocking while waiting for the next shard to be available. Default to 5 if there is more than one shard, 0 otherwise"
       lua-name: "setRingBuffersOptions"
       internal-field-name: "d_ringsNbLockTries"
       runtime-configurable: false
-    - name: "record-queries"
+    - name: "record_queries"
       type: "bool"
       default: "true"
       description: "Whether to record queries in the ring buffers"
       lua-name: "setRingBuffersOptions"
       internal-field-name: "d_ringsRecordQueries"
       runtime-configurable: false
-    - name: "record-responses"
+    - name: "record_responses"
       type: "bool"
       default: "true"
       description: "Whether to record responses in the ring buffers"
@@ -583,7 +583,7 @@ ring-buffers:
       internal-field-name: "d_ringsRecordResponses"
       runtime-configurable: false
 
-incoming-tls-certificate-key-pair:
+incoming_tls_certificate_key_pair:
   parameters:
     - name: "certificate"
       type: "String"
@@ -594,7 +594,7 @@ incoming-tls-certificate-key-pair:
       type: "String"
       default: ""
 
-incoming-tls:
+incoming_tls:
   parameters:
     - name: "provider"
       type: "String"
@@ -602,111 +602,111 @@ incoming-tls:
     - name: "certificates"
       type: "Vec<IncomingTlsCertificateKeyPairConfiguration>"
       default: true
-    - name: "ignore-errors"
+    - name: "ignore_errors"
       type: "bool"
       default: "false"
     - name: "ciphers"
       type: "String"
       default: ""
-    - name: "ciphers-tls-13"
+    - name: "ciphers_tls_13"
       type: "String"
       default: ""
-    - name: "minimum-version"
+    - name: "minimum_version"
       type: "String"
       default: "tls1.0"
-    - name: "ticket-key-file"
+    - name: "ticket_key_file"
       type: "String"
       default: ""
-    - name: "tickets-keys-rotation-delay"
+    - name: "tickets_keys_rotation_delay"
       type: "u32"
       default: "43200"
-    - name: "number-of-tickets-keys"
+    - name: "number_of_tickets_keys"
       type: "u32"
       default: "5"
-    - name: "prefer-server-ciphers"
+    - name: "prefer_server_ciphers"
       type: "bool"
       default: "true"
-    - name: "session-timeout"
+    - name: "session_timeout"
       type: "u32"
       default: "0"
-    - name: "session-tickets"
+    - name: "session_tickets"
       type: "bool"
       default: "true"
-    - name: "number-of-stored-sessions"
+    - name: "number_of_stored_sessions"
       type: "u32"
       default: "20480"
-    - name: "ocsp-response-files"
+    - name: "ocsp_response_files"
       type: "Vec<String>"
       default: true
-    - name: "key-log-file"
+    - name: "key_log_file"
       type: "String"
       default: ""
-    - name: "release-buffers"
+    - name: "release_buffers"
       type: "bool"
       default: "true"
-    - name: "enable-renegotiation"
+    - name: "enable_renegotiation"
       type: "bool"
       default: "false"
-    - name: "async-mode"
+    - name: "async_mode"
       type: "bool"
       default: "false"
     - name: "ktls"
       type: "bool"
       default: "false"
-    - name: "read-ahead"
+    - name: "read_ahead"
       type: "bool"
       default: "true"
-    - name: "proxy-protocol-outside-tls"
+    - name: "proxy_protocol_outside_tls"
       type: "bool"
       default: "false"
-    - name: "ignore-configuration-errors"
+    - name: "ignore_configuration_errors"
       type: "bool"
       default: "false"
 
-outgoing-tls:
+outgoing_tls:
   parameters:
     - name: "provider"
       type: "String"
       default: "OpenSSL"
-    - name: "subject-name"
+    - name: "subject_name"
       type: "String"
       default: ""
-    - name: "subject-address"
+    - name: "subject_address"
       type: "String"
       default: ""
-    - name: "validate-certificate"
+    - name: "validate_certificate"
       type: "bool"
       default: "true"
-    - name: "ca-store"
+    - name: "ca_store"
       type: "String"
       default: ""
     - name: "ciphers"
       type: "String"
       default: ""
-    - name: "ciphers-tls-13"
+    - name: "ciphers_tls_13"
       type: "String"
       default: ""
-    - name: "key-log-file"
+    - name: "key_log_file"
       type: "String"
       default: ""
-    - name: "release-buffers"
+    - name: "release_buffers"
       type: "bool"
       default: "true"
-    - name: "enable-renegotiation"
+    - name: "enable_renegotiation"
       type: "bool"
       default: "false"
     - name: "ktls"
       type: "bool"
       default: "false"
 
-http-custom-response-header:
+http_custom_response_header:
   parameters:
     - name: "key"
       type: "String"
     - name: "value"
       type: "String"
 
-http-responses-map:
+http_responses_map:
   parameters:
     - name: "expression"
       type: "String"
@@ -718,7 +718,7 @@ http-responses-map:
       type: "Vec<HttpCustomResponseHeaderConfiguration>"
       default: true
 
-incoming-doh:
+incoming_doh:
   parameters:
     - name: "provider"
       type: "String"
@@ -726,98 +726,98 @@ incoming-doh:
     - name: "paths"
       type: "Vec<String>"
       default: "/dns-query"
-    - name: "idle-timeout"
+    - name: "idle_timeout"
       type: "u64"
       default: 30
-    - name: "server-tokens"
+    - name: "server_tokens"
       type: "String"
       default: "h2o/dnsdist"
-    - name: "send-cache-control-headers"
+    - name: "send_cache_control_headers"
       type: "bool"
       default: "true"
-    - name: "keep-incoming-headers"
+    - name: "keep_incoming_headers"
       type: "bool"
       default: "false"
-    - name: "trust-forwarded-for-header"
+    - name: "trust_forwarded_for_header"
       type: "bool"
       default: "false"
-    - name: "early-acl-drop"
+    - name: "early_acl_drop"
       type: "bool"
       default: "true"
-    - name: "exact-path-matching"
+    - name: "exact_path_matching"
       type: "bool"
       default: "true"
-    - name: "internal-pipe-buffer-size"
+    - name: "internal_pipe_buffer_size"
       type: "u32"
       default: 1048576
-    - name: "custom-response-headers"
+    - name: "custom_response_headers"
       type: "Vec<HttpCustomResponseHeaderConfiguration>"
       default: true
-    - name: "responses-map"
+    - name: "responses_map"
       type: "Vec<HttpResponsesMapConfiguration>"
       default: true
 
-incoming-doq:
+incoming_doq:
   parameters:
     - name: "max_concurrent_queries_per_connection"
       type: "u64"
       default: 65535
 
-incoming-quic:
+incoming_quic:
   parameters:
-    - name: "idle-timeout"
+    - name: "idle_timeout"
       type: "u64"
       default: 5
-    - name: "congestion-control-algorithm"
+    - name: "congestion_control_algorithm"
       type: "String"
       default: "reno"
-    - name: "internal-pipe-buffer-size"
+    - name: "internal_pipe_buffer_size"
       type: "u32"
       default: 1048576
 
-incoming-dnscrypt-certificate-key-pair:
+incoming_dnscrypt_certificate_key_pair:
   parameters:
     - name: "certificate"
       type: "String"
     - name: "key"
       type: "String"
 
-incoming-dnscrypt:
+incoming_dnscrypt:
   parameters:
-    - name: "provider-name"
+    - name: "provider_name"
       type: "String"
       default: ""
     - name: "certificates"
       type: "Vec<IncomingDnscryptCertificateKeyPairConfiguration>"
       default: true
 
-outgoing-doh:
+outgoing_doh:
   parameters:
     - name: "path"
       type: "String"
       default: "/dns-query"
-    - name: "add-x-forwarded-headers"
+    - name: "add_x_forwarded_headers"
       type: "bool"
       default: "false"
 
-incoming-tcp:
+incoming_tcp:
   parameters:
-    - name: "max-in-flight-queries"
+    - name: "max_in_flight_queries"
       type: "u32"
       default: 0
-    - name: "listen-queue-size"
+    - name: "listen_queue_size"
       type: "u32"
       default: 0
-    - name: "fast-open-queue-size"
+    - name: "fast_open_queue_size"
       type: "u32"
       default: 0
-    - name: "max-concurrent-connections"
+    - name: "max_concurrent_connections"
       type: "u32"
       default: 0
 
 bind:
   parameters:
-    - name: "listen-address"
+    - name: "listen_address"
       type: "String"
       description: "Address and port to listen to"
     - name: "reuseport"
@@ -835,7 +835,7 @@ bind:
     - name: "cpus"
       type: "String"
       default: ""
-    - name: "enable-proxy-protocol"
+    - name: "enable_proxy_protocol"
       type: "bool"
       default: "false"
     - name: "tcp"
@@ -856,60 +856,60 @@ bind:
     - name: "dnscrypt"
       type: "IncomingDnscryptConfiguration"
       default: true
-    - name: "additional-addresses"
+    - name: "additional_addresses"
       type: "Vec<String>"
       default: true
     - name: "xsk"
       type: "String"
       default: ""
 
-outgoing-tcp:
+outgoing_tcp:
   parameters:
-    - name: "connect-timeout"
+    - name: "connect_timeout"
       type: "u16"
       default: 5
-    - name: "send-timeout"
+    - name: "send_timeout"
       type: "u16"
       default: 30
-    - name: "receive-timeout"
+    - name: "receive_timeout"
       type: "u16"
       default: 30
-    - name: "fast-open"
+    - name: "fast_open"
       type: "bool"
       default: "false"
 
-proxy-protocol-value:
+proxy_protocol_value:
   parameters:
     - name: "key"
       type: "u8"
     - name: "value"
       type: "String"
 
-lazy-health-check:
+lazy_health_check:
   parameters:
     - name: "interval"
       type: "u16"
       default: 30
-    - name: "min-sample-count"
+    - name: "min_sample_count"
       type: "u16"
       default: 1
     - name: "mode"
       type: "String"
       default: "TimeoutOrServFail"
-    - name: "sample-size"
+    - name: "sample_size"
       type: "u16"
       default: 100
     - name: "threshold"
       type: "u16"
       default: 20
-    - name: "use-exponential-back-off"
+    - name: "use_exponential_back_off"
       type: "bool"
       default: "false"
-    - name: "max-back-off"
+    - name: "max_back_off"
       type: "u16"
       default: 3600
 
-health-check:
+health_check:
   parameters:
     - name: "mode"
       type: "String"
@@ -929,16 +929,16 @@ health-check:
     - name: "lua"
       type: "String"
       default: ""
-    - name: "lua-file"
+    - name: "lua_file"
       type: "String"
       default: ""
     - name: "timeout"
       type: "u16"
       default: 1000
-    - name: "set-cd"
+    - name: "set_cd"
       type: "bool"
       default: "false"
-    - name: "max-failures"
+    - name: "max_failures"
       type: "u8"
       default: "1"
     - name: "rise"
@@ -947,17 +947,17 @@ health-check:
     - name: "interval"
       type: "u32"
       default: "1"
-    - name: "must-resolve"
+    - name: "must_resolve"
       type: "bool"
       default: "false"
-    - name: "use-tcp"
+    - name: "use_tcp"
       type: "bool"
       default: "false"
     - name: "lazy"
       type: "LazyHealthCheckConfiguration"
       default: true
 
-outgoing-auto-upgrade:
+outgoing_auto_upgrade:
   parameters:
     - name: "enabled"
       type: "bool"
@@ -971,10 +971,10 @@ outgoing-auto-upgrade:
     - name: "pool"
       type: "String"
       default: ""
-    - name: "doh-key"
+    - name: "doh_key"
       type: "u8"
       default: "7"
-    - name: "use-lazy-health-check"
+    - name: "use_lazy_health_check"
       type: "bool"
       default: "false"
 
@@ -996,13 +996,13 @@ backend:
     - name: "doh"
       type: "OutgoingDohConfiguration"
       default: true
-    - name: "use-client-subnet"
+    - name: "use_client_subnet"
       type: "bool"
       default: "false"
-    - name: "use-proxy-protocol"
+    - name: "use_proxy_protocol"
       type: "bool"
       default: "false"
-    - name: "queries-per-second"
+    - name: "queries_per_second"
       type: "u32"
       default: 0
     - name: "order"
@@ -1020,10 +1020,10 @@ backend:
     - name: "tcp"
       type: "OutgoingTcpConfiguration"
       default: true
-    - name: "ip-bind-addr-no-port"
+    - name: "ip_bind_addr_no_port"
       type: "bool"
       default: "true"
-    - name: "health-checks"
+    - name: "health_checks"
       type: "HealthCheckConfiguration"
       default: true
     - name: "source"
@@ -1032,34 +1032,34 @@ backend:
     - name: "sockets"
       type: "u32"
       default: "1"
-    - name: "disable-zero-scope"
+    - name: "disable_zero_scope"
       type: "bool"
       default: "false"
-    - name: "reconnect-on-up"
+    - name: "reconnect_on_up"
       type: "bool"
       default: "false"
-    - name: "max-in-flight"
+    - name: "max_in_flight"
       type: "u32"
       default: "1"
-    - name: "tcp-only"
+    - name: "tcp_only"
       type: "bool"
       default: "false"
-    - name: "auto-upgrade"
+    - name: "auto_upgrade"
       type: "OutgoingAutoUpgradeConfiguration"
       default: true
-    - name: "max-concurrent-tcp-connections"
+    - name: "max_concurrent_tcp_connections"
       type: "u32"
       default: 0
     - name: "ktls"
       type: "bool"
       default: "false"
-    - name: "proxy-protocol-advertise-tls"
+    - name: "proxy_protocol_advertise_tls"
       type: "bool"
       default: "false"
-    - name: "xsk-sockets"
+    - name: "xsk_sockets"
       type: "Vec<String>"
       default: true
-    - name: "mac-address"
+    - name: "mac_address"
       type: "String"
       default: ""
     - name: "cpus"
@@ -1084,103 +1084,103 @@ tuning:
       type: "UdpTuningConfiguration"
       default: true
 
-tcp-tuning:
+tcp_tuning:
   category: "tuning.tcp"
   parameters:
-    - name: "worker-threads"
+    - name: "worker_threads"
       type: "u32"
       default: 10
       lua-name: "setMaxTCPClientThreads"
       internal-field-name: "d_maxTCPClientThreads"
       runtime-configurable: false
-    - name: "receive-timeout"
+    - name: "receive_timeout"
       type: "u32"
       default: 2
       lua-name: "setTCPRecvTimeout"
       internal-field-name: "d_tcpRecvTimeout"
       runtime-configurable: true
-    - name: "send-timeout"
+    - name: "send_timeout"
       type: "u32"
       default: 2
       lua-name: "setTCPSendTimeout"
       internal-field-name: "d_tcpSendTimeout"
       runtime-configurable: true
-    - name: "max-queries-per-connection"
+    - name: "max_queries_per_connection"
       type: "u64"
       default: "0"
       lua-name: "setMaxTCPQueriesPerConnection"
       internal-field-name: "d_maxTCPQueriesPerConn"
       runtime-configurable: true
-    - name: "max-connection-duration"
+    - name: "max_connection_duration"
       type: "u64"
       default: "0"
       lua-name: "setMaxTCPConnectionDuration"
       internal-field-name: "d_maxTCPConnectionDuration"
       runtime-configurable: true
-    - name: "max-queued-connections"
+    - name: "max_queued_connections"
       type: "u64"
       default: "10000"
       lua-name: "setMaxTCPQueuedConnections"
       internal-field-name: "d_maxTCPQueuedConnections"
       runtime-configurable: false
-    - name: "internal-pipe-buffer-size"
+    - name: "internal_pipe_buffer_size"
       type: "u32"
       default: 1048576
       lua-name: "setTCPInternalPipeBufferSize"
       internal-field-name: "d_tcpInternalPipeBufferSize"
       runtime-configurable: false
-    - name: "outgoing-max-idle-time"
+    - name: "outgoing_max_idle_time"
       type: "u64"
       default: 300
       lua-name: "setTCPDownstreamMaxIdleTime"
       internal-field-name: "d_outgoingTCPMaxIdleTime"
       runtime-configurable: false
-    - name: "outgoing-cleanup-interval"
+    - name: "outgoing_cleanup_interval"
       type: "u64"
       default: 60
       lua-name: "setTCPDownstreamCleanupInterval"
       internal-field-name: "d_outgoingTCPCleanupInterval"
       runtime-configurable: false
-    - name: "outgoing-max-idle-connection-per-backend"
+    - name: "outgoing_max_idle_connection_per_backend"
       type: "u64"
       default: 10
       lua-name: "setMaxCachedTCPConnectionsPerDownstream"
       internal-field-name: "d_outgoingTCPMaxIdlePerBackend"
       runtime-configurable: false
-    - name: "max-connections-per-client"
+    - name: "max_connections_per_client"
       type: "u32"
       default: 0
       lua-name: "setMaxTCPConnectionsPerClient"
       internal-field-name: "d_maxTCPConnectionsPerClient"
       runtime-configurable: false
-    - name: "fast-open-key"
+    - name: "fast_open_key"
       type: "String"
       default: ""
       lua-name: "setTCPFastOpenKey"
       runtime-configurable: false
 
-udp-tuning:
+udp_tuning:
   category: "tuning.udp"
   parameters:
-    - name: "messages-per-round"
+    - name: "messages_per_round"
       type: "u32"
       default: 1
       lua-name: "setUDPMultipleMessagesVectorSize"
       internal-field-name: "d_udpVectorSize"
       runtime-configurable: false
-    - name: "send-buffer-size"
+    - name: "send_buffer_size"
       type: "u32"
       default: 0
       lua-name: "setUDPSocketBufferSizes"
       internal-field-name: "d_socketUDPSendBuffer"
       runtime-configurable: false
-    - name: "receive-buffer-size"
+    - name: "receive_buffer_size"
       type: "u32"
       default: 0
       lua-name: "setUDPSocketBufferSizes"
       internal-field-name: "d_socketUDPRecvBuffer"
       runtime-configurable: false
-    - name: "max-outstanding-per-backend"
+    - name: "max_outstanding_per_backend"
       type: "u32"
       default: 65535
       lua-name: "setMaxUDPOutstanding"
@@ -1192,93 +1192,93 @@ udp-tuning:
       lua-name: "setUDPTimeout"
       internal-field-name: "d_udpTimeout"
       runtime-configurable: false
-    - name: "randomize-outgoing-sockets-to-backend"
+    - name: "randomize_outgoing_sockets_to_backend"
       type: "bool"
       default: "false"
       lua-name: "setRandomizedOutgoingSockets"
       internal-field-name: "d_randomizeUDPSocketsToBackend"
       runtime-configurable: false
-    - name: "randomize-ids-to-backend"
+    - name: "randomize_ids_to_backend"
       type: "bool"
       default: "false"
       lua-name: "setRandomizedIdsOverUDP"
       internal-field-name: "d_randomizeIDsToBackend"
       runtime-configurable: false
 
-tls-tuning:
+tls_tuning:
   category: "tuning.tls"
   parameters:
-    - name: "outgoing-tickets-cache-cleanup-delay"
+    - name: "outgoing_tickets_cache_cleanup_delay"
       type: "u16"
       default: "60"
       lua-name: "setOutgoingTLSSessionsCacheCleanupDelay"
       internal-field-name: "d_tlsSessionCacheCleanupDelay"
       runtime-configurable: true
-    - name: "outgoing-tickets-cache-validity"
+    - name: "outgoing_tickets_cache_validity"
       type: "u16"
       default: "600"
       lua-name: "setOutgoingTLSSessionsCacheMaxTicketValidity"
       internal-field-name: "d_tlsSessionCacheSessionValidity"
       runtime-configurable: true
-    - name: "max-outgoing-tickets-per-backend"
+    - name: "max_outgoing_tickets_per_backend"
       type: "u16"
       default: "20"
       lua-name: "setOutgoingTLSSessionsCacheMaxTicketsPerBackend"
       internal-field-name: "d_tlsSessionCacheMaxSessionsPerBackend"
       runtime-configurable: true
 
-doh-tuning:
+doh_tuning:
   category: "tuning.doh"
   parameters:
-    - name: "outgoing-worker-threads"
+    - name: "outgoing_worker_threads"
       type: "u32"
       default: 10
       lua-name: "setOutgoingDoHWorkerThreads"
       internal-field-name: "d_outgoingDoHWorkers"
       runtime-configurable: false
-    - name: "outgoing-max-idle-time"
+    - name: "outgoing_max_idle_time"
       type: "u64"
       default: 300
       lua-name: "setDoHDownstreamMaxIdleTime"
       internal-field-name: "d_outgoingDoHMaxIdleTime"
       runtime-configurable: false
-    - name: "outgoing-cleanup-interval"
+    - name: "outgoing_cleanup_interval"
       type: "u64"
       default: 60
       lua-name: "setDoHDownstreamCleanupInterval"
       internal-field-name: "d_outgoingDoHCleanupInterval"
       runtime-configurable: false
-    - name: "outgoing-max-idle-connection-per-backend"
+    - name: "outgoing_max_idle_connection_per_backend"
       type: "u64"
       default: 10
       lua-name: "setMaxIdleDoHConnectionsPerDownstream"
       internal-field-name: "d_outgoingDoHMaxIdlePerBackend"
       runtime-configurable: false
 
-cache-settings:
+cache_settings:
   parameters:
-    - name: "stale-entries-ttl"
+    - name: "stale_entries_ttl"
       type: "u32"
       default: "0"
       lua-name: "setStaleCacheEntriesTTL"
       internal-field-name: "d_staleCacheEntriesTTL"
       runtime-configurable: true
-    - name: "cleaning-delay"
+    - name: "cleaning_delay"
       type: "u16"
       default: "60"
       lua-name: "setCacheCleaningDelay"
       internal-field-name: "d_cacheCleaningDelay"
       runtime-configurable: true
-    - name: "cleaning-percentage"
+    - name: "cleaning_percentage"
       type: "u16"
       default: "100"
       lua-name: "setCacheCleaningPercentage"
       internal-field-name: "d_cacheCleaningPercentage"
       runtime-configurable: true
 
-security-polling:
+security_polling:
   parameters:
-    - name: "polling-interval"
+    - name: "polling_interval"
       type: "u32"
       default: "3600"
       lua-name: "setSecurityPollInterval"
@@ -1293,25 +1293,25 @@ security-polling:
 
 general:
   parameters:
-    - name: "edns-udp-payload-size-self-generated-answers"
+    - name: "edns_udp_payload_size_self_generated_answers"
       type: "u16"
       default: "1232"
       lua-name: "setPayloadSizeOnSelfGeneratedAnswers"
       internal-field-name: "d_payloadSizeSelfGenAnswers"
       runtime-configurable: true
-    - name: "add-edns-to-self-generated-answers"
+    - name: "add_edns_to_self_generated_answers"
       type: "bool"
       default: "true"
       lua-name: "setAddEDNSToSelfGeneratedResponses"
       internal-field-name: "d_addEDNSToSelfGeneratedResponses"
       runtime-configurable: true
-    - name: "truncate-tc-answers"
+    - name: "truncate_tc_answers"
       type: "bool"
       default: "false"
       lua-name: "truncateTC"
       internal-field-name: "d_truncateTC"
       runtime-configurable: true
-    - name: "fixup-case"
+    - name: "fixup_case"
       type: "bool"
       default: "false"
       lua-name: "fixupCase"
@@ -1323,88 +1323,88 @@ general:
       lua-name: "setVerbose"
       internal-field-name: "d_verbose"
       runtime-configurable: true
-    - name: "verbose-health-checks"
+    - name: "verbose_health_checks"
       type: "bool"
       default: "false"
       lua-name: "setVerboseHealthChecks"
       internal-field-name: "d_verboseHealthChecks"
       runtime-configurable: true
-    - name: "allow-empty-responses"
+    - name: "allow_empty_responses"
       type: "bool"
       default: "false"
       lua-name: "setAllowEmptyResponse"
       internal-field-name: "d_allowEmptyResponse"
       runtime-configurable: true
-    - name: "drop-empty-queries"
+    - name: "drop_empty_queries"
       type: "bool"
       default: "false"
       lua-name: "setDropEmptyQueries"
       internal-field-name: "d_dropEmptyQueries"
       runtime-configurable: true
-    - name: "capabilities-to-retain"
+    - name: "capabilities_to_retain"
       type: "Vec<String>"
       default: true
       lua-name: "addCapabilitiesToRetain"
       runtime-configurable: false
 
-packet-cache:
+packet_cache:
   parameters:
     - name: "name"
       type: "String"
     - name: "size"
       type: "u64"
-    - name: "deferrable-insert-lock"
+    - name: "deferrable_insert_lock"
       type: "bool"
       default: "true"
-    - name: "dont-age"
+    - name: "dont_age"
       type: "bool"
       default: "false"
-    - name: "keep-stale-data"
+    - name: "keep_stale_data"
       type: "bool"
       default: "false"
-    - name: "max-negative-ttl"
+    - name: "max_negative_ttl"
       type: "u32"
       default: "3600"
-    - name: "max-ttl"
+    - name: "max_ttl"
       type: "u32"
       default: "86400"
-    - name: "min-ttl"
+    - name: "min_ttl"
       type: "u32"
       default: 0
     - name: "shards"
       type: "u32"
       default: "20"
-    - name: "parse-ecs"
+    - name: "parse_ecs"
       type: "bool"
       default: "false"
-    - name: "stale-ttl"
+    - name: "stale_ttl"
       type: "u32"
       default: "60"
-    - name: "temporary-failure-ttl"
+    - name: "temporary_failure_ttl"
       type: "u32"
       default: "60"
-    - name: "cookie-hashing"
+    - name: "cookie_hashing"
       type: "bool"
       default: "false"
-    - name: "maximum-entry-size"
+    - name: "maximum_entry_size"
       type: "u32"
       default: "0"
-    - name: "options-to-skip"
+    - name: "options_to_skip"
       type: "Vec<String>"
       default: true
 
-proxy-protocol:
+proxy_protocol:
   parameters:
     - name: "acl"
       type: "Vec<String>"
       default: ""
-    - name: "maximum-payload-size"
+    - name: "maximum_payload_size"
       type: "u32"
       default: "512"
       lua-name: "setProxyProtocolMaximumPayloadSize"
       internal-field-name: "d_proxyProtocolMaximumSize"
       runtime-configurable: true
-    - name: "apply-acl-to-proxied-clients"
+    - name: "apply_acl_to_proxied_clients"
       type: "bool"
       default: "false"
       lua-name: "setProxyProtocolApplyACLToProxiedClients"
@@ -1419,31 +1419,31 @@ snmp:
       lua-name: "snmpAgent"
       internal-field-name: "d_snmpEnabled"
       runtime-configurable: false
-    - name: "traps-enabled"
+    - name: "traps_enabled"
       type: "bool"
       default: "false"
       lua-name: "snmpAgent"
       internal-field-name: "d_snmpTrapsEnabled"
       runtime-configurable: false
-    - name: "daemon-socket"
+    - name: "daemon_socket"
       type: "String"
       default: ""
       lua-name: "snmpAgent"
       internal-field-name: "d_snmpDaemonSocketPath"
       runtime-configurable: false
 
-query-count:
+query_count:
   parameters:
     - name: "enabled"
       type: "bool"
       default: "false"
-    - name: "filter-function-name"
+    - name: "filter_function_name"
       type: "String"
       default: ""
-    - name: "filter-function-code"
+    - name: "filter_function_code"
       type: "String"
       default: ""
-    - name: "filter-function-file"
+    - name: "filter_function_file"
       type: "String"
       default: ""
 
@@ -1451,75 +1451,75 @@ pool:
   parameters:
     - name: "name"
       type: "String"
-    - name: "packet-cache"
+    - name: "packet_cache"
       type: "String"
       default: true
     - name: "policy"
       type: "String"
-      default: "least-outstanding"
+      default: "leastOutstanding"
 
-custom-load-balancing-policy:
+custom_load_balancing_policy:
   parameters:
     - name: "name"
       type: "String"
-    - name: "function-name"
+    - name: "function_name"
       type: "String"
       default: ""
-    - name: "function-code"
+    - name: "function_code"
       type: "String"
       default: ""
-    - name: "function-file"
+    - name: "function_file"
       type: "String"
       default: ""
     - name: "ffi"
       type: "bool"
       default: "false"
-    - name: "per-thread"
+    - name: "per_thread"
       type: "bool"
       default: "false"
 
-load-balancing-policies:
+load_balancing_policies:
   parameters:
-    - name: "default-policy"
+    - name: "default_policy"
       type: "String"
       default: "leastOutstanding"
       lua-name: "setServerPolicy"
       runtime-configurable: true
-    - name: "servfail-on-no-server"
+    - name: "servfail_on_no_server"
       type: "bool"
       default: "false"
       lua-name: "setServFailWhenNoServer"
       internal-field-name: "d_servFailOnNoPolicy"
       runtime-configurable: true
-    - name: "round-robin-servfail-on-no-server"
+    - name: "round_robin_servfail_on_no_server"
       type: "bool"
       default: "false"
       lua-name: "setRoundRobinFailOnNoServer"
       internal-field-name: "d_roundrobinFailOnNoServer"
       runtime-configurable: true
-    - name: "weighted-balancing-factor"
+    - name: "weighted_balancing_factor"
       type: "f64"
       default: 0.0
       lua-name: "setWeightedBalancingFactor"
       internal-field-name: "d_weightedBalancingFactor"
       runtime-configurable: false
-    - name: "consistent-hashing-balancing-factor"
+    - name: "consistent_hashing_balancing_factor"
       type: "f64"
       default: 0.0
       lua-name: "setConsistentHashingBalancingFactor"
       internal-field-name: "d_consistentHashBalancingFactor"
       runtime-configurable: false
-    - name: "custom-policies"
+    - name: "custom_policies"
       type: "Vec<CustomLoadBalancingPolicyConfiguration>"
       default: true
-    - name: "hash-perturbation"
+    - name: "hash_perturbation"
       type: "u32"
       default: "0"
       lua-name: "setWHashedPertubation"
       internal-field-name: "d_hashPerturbation"
       runtime-configurable: false
 
-query-rule:
+query_rule:
   skip-serde: true
   parameters:
     - name: "name"
@@ -1531,7 +1531,7 @@ query-rule:
     - name: "action"
       type: "Action"
 
-response-rule:
+response_rule:
   skip-serde: true
   parameters:
     - name: "name"
@@ -1554,6 +1554,6 @@ xsk:
     - name: "frames"
       type: "u32"
       default: 65536
-    - name: "map-path"
+    - name: "map_path"
       type: "String"
       default: "/sys/fs/bpf/dnsdist/xskmap"
