@@ -49,21 +49,21 @@ static std::string getFirstTXTAnswer(const std::string& answer)
     throw std::runtime_error("Looking for a TXT record in an answer smaller than the DNS header");
   }
 
-  const dnsheader_aligned dh(answer.data());
-  PacketReader pr(answer);
-  uint16_t qdcount = ntohs(dh->qdcount);
-  uint16_t ancount = ntohs(dh->ancount);
+  const dnsheader_aligned dnsHeader(answer.data());
+  PacketReader reader(answer);
+  uint16_t qdcount = ntohs(dnsHeader->qdcount);
+  uint16_t ancount = ntohs(dnsHeader->ancount);
 
   DNSName rrname;
-  uint16_t rrtype;
-  uint16_t rrclass;
+  uint16_t rrtype{};
+  uint16_t rrclass{};
 
   size_t idx = 0;
   /* consume qd */
   for (; idx < qdcount; idx++) {
-    rrname = pr.getName();
-    rrtype = pr.get16BitInt();
-    rrclass = pr.get16BitInt();
+    rrname = reader.getName();
+    rrtype = reader.get16BitInt();
+    rrclass = reader.get16BitInt();
     (void)rrtype;
     (void)rrclass;
   }
@@ -71,19 +71,17 @@ static std::string getFirstTXTAnswer(const std::string& answer)
   /* parse AN */
   for (idx = 0; idx < ancount; idx++) {
     string blob;
-    struct dnsrecordheader ah;
-    rrname = pr.getName();
-    pr.getDnsrecordheader(ah);
+    dnsrecordheader answerHeader{};
+    rrname = reader.getName();
+    reader.getDnsrecordheader(answerHeader);
 
-    if (ah.d_type == QType::TXT) {
+    if (answerHeader.d_type == QType::TXT) {
       string txt;
-      pr.xfrText(txt);
+      reader.xfrText(txt);
 
       return txt;
     }
-    else {
-      pr.xfrBlob(blob);
-    }
+    reader.xfrBlob(blob);
   }
 
   throw std::runtime_error("No TXT record in answer");
@@ -95,9 +93,9 @@ static std::string getSecPollStatus(const std::string& queriedName, int timeout 
 
   const DNSName sentName(queriedName);
   std::vector<uint8_t> packet;
-  DNSPacketWriter pw(packet, sentName, QType::TXT);
-  pw.getHeader()->id = dnsdist::getRandomDNSID();
-  pw.getHeader()->rd = 1;
+  DNSPacketWriter writer(packet, sentName, QType::TXT);
+  writer.getHeader()->id = dnsdist::getRandomDNSID();
+  writer.getHeader()->rd = 1;
 
   const auto& resolversForStub = getResolvers("/etc/resolv.conf");
 
@@ -119,7 +117,7 @@ static std::string getSecPollStatus(const std::string& queriedName, int timeout 
       }
       continue;
     }
-    else if (ret == 0) {
+    if (ret == 0) {
       if (verbose) {
         warnlog("Timeout while waiting for the secpoll response from stub resolver %s", dest.toString());
       }
@@ -129,9 +127,9 @@ static std::string getSecPollStatus(const std::string& queriedName, int timeout 
     try {
       sock.read(reply);
     }
-    catch (const std::exception& e) {
+    catch (const std::exception& exp) {
       if (verbose) {
-        warnlog("Error while reading for the secpoll response from stub resolver %s: %s", dest.toString(), e.what());
+        warnlog("Error while reading for the secpoll response from stub resolver %s: %s", dest.toString(), exp.what());
       }
       continue;
     }
@@ -143,36 +141,36 @@ static std::string getSecPollStatus(const std::string& queriedName, int timeout 
       continue;
     }
 
-    struct dnsheader d;
-    memcpy(&d, reply.c_str(), sizeof(d));
-    if (d.id != pw.getHeader()->id) {
+    dnsheader dnsHeader{};
+    memcpy(&dnsHeader, reply.c_str(), sizeof(dnsHeader));
+    if (dnsHeader.id != writer.getHeader()->id) {
       if (verbose) {
-        warnlog("Invalid ID (%d / %d) received from the secpoll stub resolver %s", d.id, pw.getHeader()->id, dest.toString());
+        warnlog("Invalid ID (%d / %d) received from the secpoll stub resolver %s", dnsHeader.id, writer.getHeader()->id, dest.toString());
       }
       continue;
     }
 
-    if (d.rcode != RCode::NoError) {
+    if (dnsHeader.rcode != RCode::NoError) {
       if (verbose) {
-        warnlog("Response code '%s' received from the secpoll stub resolver %s for '%s'", RCode::to_s(d.rcode), dest.toString(), queriedName);
+        warnlog("Response code '%s' received from the secpoll stub resolver %s for '%s'", RCode::to_s(dnsHeader.rcode), dest.toString(), queriedName);
       }
 
       /* no need to try another resolver if the domain does not exist */
-      if (d.rcode == RCode::NXDomain) {
+      if (dnsHeader.rcode == RCode::NXDomain) {
         throw std::runtime_error("Unable to get a valid Security Status update, domain does not exist");
       }
       continue;
     }
 
-    if (ntohs(d.qdcount) != 1 || ntohs(d.ancount) != 1) {
+    if (ntohs(dnsHeader.qdcount) != 1 || ntohs(dnsHeader.ancount) != 1) {
       if (verbose) {
-        warnlog("Invalid answer (qdcount %d / ancount %d) received from the secpoll stub resolver %s", ntohs(d.qdcount), ntohs(d.ancount), dest.toString());
+        warnlog("Invalid answer (qdcount %d / ancount %d) received from the secpoll stub resolver %s", ntohs(dnsHeader.qdcount), ntohs(dnsHeader.ancount), dest.toString());
       }
       continue;
     }
 
-    uint16_t receivedType;
-    uint16_t receivedClass;
+    uint16_t receivedType{};
+    uint16_t receivedClass{};
     DNSName receivedName(reply.c_str(), reply.size(), sizeof(dnsheader), false, &receivedType, &receivedClass);
 
     if (receivedName != sentName || receivedType != QType::TXT || receivedClass != QClass::IN) {
@@ -231,12 +229,12 @@ void doSecPoll(const std::string& suffix)
     s_secPollDone = true;
     return;
   }
-  catch (const std::exception& e) {
+  catch (const std::exception& exp) {
     if (releaseVersion) {
-      warnlog("Error while retrieving the security update for version %s: %s", version, e.what());
+      warnlog("Error while retrieving the security update for version %s: %s", version, exp.what());
     }
     else if (!s_secPollDone) {
-      infolog("Error while retrieving the security update for version %s: %s", version, e.what());
+      infolog("Error while retrieving the security update for version %s: %s", version, exp.what());
     }
   }
 
