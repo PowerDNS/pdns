@@ -20,9 +20,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
-#include "namespaces.hh"
+
 #include "iputils.hh"
-#include "dnsname.hh"
 
 struct EDNSSubnetOpts
 {
@@ -30,6 +29,6 @@ struct EDNSSubnetOpts
   Netmask scope;
 };
 
-bool getEDNSSubnetOptsFromString(const string& options, EDNSSubnetOpts* eso);
+bool getEDNSSubnetOptsFromString(const std::string& options, EDNSSubnetOpts* eso);
 bool getEDNSSubnetOptsFromString(const char* options, unsigned int len, EDNSSubnetOpts* eso);
-string makeEDNSSubnetOptsString(const EDNSSubnetOpts& eso);
+std::string makeEDNSSubnetOptsString(const EDNSSubnetOpts& eso);

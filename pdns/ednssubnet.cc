@@ -19,11 +19,10 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifdef HAVE_CONFIG_H
+
 #include "config.h"
-#endif
+
 #include "ednssubnet.hh"
-#include "dns.hh"
 
 namespace
 {
@@ -36,11 +35,11 @@ struct EDNSSubnetOptsWire
 
 }
 
-bool getEDNSSubnetOptsFromString(const string& options, EDNSSubnetOpts* eso)
+bool getEDNSSubnetOptsFromString(const std::string& options, EDNSSubnetOpts* eso)
 {
-  // cerr<<"options.size:"<<options.size()<<endl;
   return getEDNSSubnetOptsFromString(options.c_str(), options.length(), eso);
 }
+
 bool getEDNSSubnetOptsFromString(const char* options, unsigned int len, EDNSSubnetOpts* eso)
 {
   EDNSSubnetOptsWire esow{};
@@ -50,10 +49,10 @@ bool getEDNSSubnetOptsFromString(const char* options, unsigned int len, EDNSSubn
   }
   memcpy(&esow, options, sizeof(esow));
   esow.family = ntohs(esow.family);
-  // cerr<<"Family when parsing from string: "<<esow.family<<endl;
+
   ComboAddress address;
   unsigned int octetsin = esow.sourceMask > 0 ? (((esow.sourceMask - 1) >> 3) + 1) : 0;
-  // cerr<<"octetsin:"<<octetsin<<endl;
+
   if (esow.family == 1) {
     if (len != sizeof(esow) + octetsin) {
       return false;
@@ -94,25 +93,27 @@ bool getEDNSSubnetOptsFromString(const char* options, unsigned int len, EDNSSubn
   return true;
 }
 
-string makeEDNSSubnetOptsString(const EDNSSubnetOpts& eso)
+std::string makeEDNSSubnetOptsString(const EDNSSubnetOpts& eso)
 {
-  string ret;
+  std::string ret;
   EDNSSubnetOptsWire esow{};
   uint16_t family = htons(eso.source.getNetwork().sin4.sin_family == AF_INET ? 1 : 2);
   esow.family = family;
   esow.sourceMask = eso.source.getBits();
   esow.scopeMask = eso.scope.getBits();
-  ret.assign((const char*)&esow, sizeof(esow)); // NOLINT(cppcoreguidelines-pro-type-cstyle-cast)
+  // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
+  ret.assign(reinterpret_cast<const char*>(&esow), sizeof(esow));
   int octetsout = ((esow.sourceMask - 1) >> 3) + 1;
 
   ComboAddress src = eso.source.getNetwork();
   src.truncate(esow.sourceMask);
 
   if (family == htons(1)) {
-    ret.append((const char*)&src.sin4.sin_addr.s_addr, octetsout); // NOLINT(cppcoreguidelines-pro-type-cstyle-cast)
+    ret.append(reinterpret_cast<const char*>(&src.sin4.sin_addr.s_addr), octetsout);
   }
   else {
-    ret.append((const char*)&src.sin6.sin6_addr.s6_addr, octetsout); // NOLINT(cppcoreguidelines-pro-type-cstyle-cast)
+    ret.append(reinterpret_cast<const char*>(&src.sin6.sin6_addr.s6_addr), octetsout);
   }
+  // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
   return ret;
 }
