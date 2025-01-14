@@ -34,6 +34,10 @@ void dnsdist_ffi_stat_node_get_full_name_raw(const dnsdist_ffi_stat_node_t* node
 
 unsigned int dnsdist_ffi_stat_node_get_children_count(const dnsdist_ffi_stat_node_t* node) __attribute__((visibility("default")));
 
+/* Note that dnsdist_ffi_stat_node_get_children_* methods return the sum of
+   the queries or responses received for the children of a node AND the node
+   itself. It's quite unexpected but breaking the existing behaviour now would be painful.
+*/
 uint64_t dnsdist_ffi_stat_node_get_children_queries_count(const dnsdist_ffi_stat_node_t* node) __attribute__((visibility("default")));
 uint64_t dnsdist_ffi_stat_node_get_children_noerrors_count(const dnsdist_ffi_stat_node_t* node) __attribute__((visibility("default")));
 uint64_t dnsdist_ffi_stat_node_get_children_nxdomains_count(const dnsdist_ffi_stat_node_t* node) __attribute__((visibility("default")));
