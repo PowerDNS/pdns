@@ -23,6 +23,8 @@ class TestDOH3(QUICTests, DNSDistTest):
     addAction(HTTPHeaderRule("X-PowerDNS", "^[a]{5}$"), SpoofAction("2.3.4.5"))
     addAction(HTTPPathRule("/PowerDNS"), SpoofAction("3.4.5.6"))
     addAction(HTTPPathRegexRule("^/PowerDNS-[0-9]"), SpoofAction("6.7.8.9"))
+    addAction("http-status-action.doh3.tests.powerdns.com.", HTTPStatusAction(200, "Plaintext answer", "text/plain"))
+    addAction("http-status-action-redirect.doh3.tests.powerdns.com.", HTTPStatusAction(307, "https://doh.powerdns.org"))
     addAction("no-backend.doq.tests.powerdns.com.", PoolAction('this-pool-has-no-backend'))
 
     function dohHandler(dq)
@@ -35,7 +37,9 @@ class TestDOH3(QUICTests, DNSDistTest):
           end
         end
         if foundct then
-          return DNSAction.Spoof, "10.11.12.13"
+          dq:setHTTPResponse(200, 'It works!', 'text/plain')
+          dq.dh:setQR(true)
+          return DNSAction.HeaderModify
         end
       end
       return DNSAction.None
@@ -173,6 +177,37 @@ class TestDOH3(QUICTests, DNSDistTest):
         self.checkQueryNoEDNS(expectedQuery, receivedQuery)
         self.assertEqual(response, receivedResponse)
 
+    def testHTTPStatusAction200(self):
+        """
+        DOH3: HTTPStatusAction 200 OK
+        """
+        name = 'http-status-action.doh3.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        query.id = 0
+
+        (receivedResponse, receivedHeaders) = self.sendDOH3Query(self._doqServerPort, self._dohBaseURL, query, caFile=self._caCert, useQueue=False, post=True, rawResponse=True)
+        self.assertTrue(receivedResponse)
+        self.assertEqual(receivedResponse, b'Plaintext answer')
+        self.assertIn(b':status', receivedHeaders)
+        self.assertEqual(receivedHeaders[b':status'], b'200')
+        self.assertIn(b'content-type', receivedHeaders)
+        self.assertEqual(receivedHeaders[b'content-type'], b'text/plain')
+
+    def testHTTPStatusAction307(self):
+        """
+        DOH3: HTTPStatusAction 307
+        """
+        name = 'http-status-action-redirect.doh3.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        query.id = 0
+
+        (receivedResponse, receivedHeaders) = self.sendDOH3Query(self._doqServerPort, self._dohBaseURL, query, caFile=self._caCert, useQueue=False, post=True, rawResponse=True)
+        self.assertTrue(receivedResponse)
+        self.assertIn(b':status', receivedHeaders)
+        self.assertEqual(receivedHeaders[b':status'], b'307')
+        self.assertIn(b'location', receivedHeaders)
+        self.assertEqual(receivedHeaders[b'location'], b'https://doh.powerdns.org')
+
     def testHTTPLuaBindings(self):
         """
         DOH3: Lua HTTP bindings
@@ -181,8 +216,13 @@ class TestDOH3(QUICTests, DNSDistTest):
         query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
         query.id = 0
 
-        (_, receivedResponse) = self.sendDOH3Query(self._doqServerPort, self._dohBaseURL, query, caFile=self._caCert, useQueue=False, post=True)
+        (receivedResponse, receivedHeaders) = self.sendDOH3Query(self._doqServerPort, self._dohBaseURL, query, caFile=self._caCert, useQueue=False, post=True, rawResponse=True)
         self.assertTrue(receivedResponse)
+        self.assertEqual(receivedResponse, b'It works!')
+        self.assertIn(b':status', receivedHeaders)
+        self.assertEqual(receivedHeaders[b':status'], b'200')
+        self.assertIn(b'content-type', receivedHeaders)
+        self.assertEqual(receivedHeaders[b'content-type'], b'text/plain')
 
 class TestDOH3ACL(QUICACLTests, DNSDistTest):
     _serverKey = 'server.key'

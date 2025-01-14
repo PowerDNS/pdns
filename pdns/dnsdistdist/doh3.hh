@@ -26,12 +26,12 @@
 #include <unordered_map>
 
 #include "config.h"
+#include "noinitvector.hh"
 
 #ifdef HAVE_DNS_OVER_HTTP3
 #include "channel.hh"
 #include "iputils.hh"
 #include "libssl.hh"
-#include "noinitvector.hh"
 #include "stat_t.hh"
 #include "dnsdist-idstate.hh"
 
@@ -93,6 +93,7 @@ struct DOH3Unit
   [[nodiscard]] std::string getHTTPHost() const;
   [[nodiscard]] std::string getHTTPScheme() const;
   [[nodiscard]] const dnsdist::doh3::h3_headers_t& getHTTPHeaders() const;
+  void setHTTPResponse(uint16_t statusCode, PacketBuffer&& body, const std::string& contentType = "");
 
   InternalQueryState ids;
   PacketBuffer query;
@@ -100,6 +101,7 @@ struct DOH3Unit
   PacketBuffer serverConnID;
   dnsdist::doh3::h3_headers_t headers;
   std::shared_ptr<DownstreamState> downstream{nullptr};
+  std::string d_contentTypeOut;
   DOH3ServerConfig* dsc{nullptr};
   uint64_t streamID{0};
   size_t proxyProtocolPayloadSize{0};
@@ -126,6 +128,7 @@ struct DOH3Unit
   [[nodiscard]] std::string getHTTPHost() const;
   [[nodiscard]] std::string getHTTPScheme() const;
   [[nodiscard]] const dnsdist::doh3::h3_headers_t& getHTTPHeaders() const;
+  void setHTTPResponse(uint16_t, PacketBuffer&&, const std::string&);
 };
 
 struct DOH3Frontend

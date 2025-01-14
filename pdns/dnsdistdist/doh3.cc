@@ -285,40 +285,53 @@ static bool tryWriteResponse(H3Connection& conn, const uint64_t streamID, Packet
   return true;
 }
 
-static void h3_send_response(H3Connection& conn, const uint64_t streamID, uint16_t statusCode, const uint8_t* body, size_t len)
+static void addHeaderToList(std::vector<quiche_h3_header>& headers, const char* name, size_t nameLen, const char* value, size_t valueLen)
+{
+  headers.emplace_back((quiche_h3_header){
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
+    .name = reinterpret_cast<const uint8_t*>(name),
+    .name_len = nameLen,
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
+    .value = reinterpret_cast<const uint8_t*>(value),
+    .value_len = valueLen,
+  });
+}
+
+static void h3_send_response(H3Connection& conn, const uint64_t streamID, uint16_t statusCode, const uint8_t* body, size_t len, const std::string& contentType = {})
 {
   std::string status = std::to_string(statusCode);
-  std::string lenStr = std::to_string(len);
-  std::array<quiche_h3_header, 3> headers{
-    (quiche_h3_header){
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
-      .name = reinterpret_cast<const uint8_t*>(":status"),
-      .name_len = sizeof(":status") - 1,
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
-      .value = reinterpret_cast<const uint8_t*>(status.data()),
-      .value_len = status.size(),
-    },
-    (quiche_h3_header){
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
-      .name = reinterpret_cast<const uint8_t*>("content-length"),
-      .name_len = sizeof("content-length") - 1,
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
-      .value = reinterpret_cast<const uint8_t*>(lenStr.data()),
-      .value_len = lenStr.size(),
-    },
-    (quiche_h3_header){
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
-      .name = reinterpret_cast<const uint8_t*>("content-type"),
-      .name_len = sizeof("content-type") - 1,
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
-      .value = reinterpret_cast<const uint8_t*>("application/dns-message"),
-      .value_len = sizeof("application/dns-message") - 1,
-    },
-  };
+  PacketBuffer location;
+  PacketBuffer responseBody;
+  std::vector<quiche_h3_header> headers;
+  headers.reserve(4);
+  addHeaderToList(headers, ":status", sizeof(":status") - 1, status.data(), status.size());
+
+  if (statusCode >= 300 && statusCode < 400) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
+    addHeaderToList(headers, "location", sizeof("location") - 1, reinterpret_cast<const char*>(body), len);
+    static const std::string s_redirectStart{"<!DOCTYPE html><TITLE>Moved</TITLE><P>The document has moved <A HREF=\""};
+    static const std::string s_redirectEnd{"\">here</A>"};
+    static const std::string s_redirectContentType("text/html; charset=utf-8");
+    addHeaderToList(headers, "content-type", sizeof("content-type") - 1, s_redirectContentType.data(), s_redirectContentType.size());
+    responseBody.reserve(s_redirectStart.size() + len + s_redirectEnd.size());
+    responseBody.insert(responseBody.begin(), s_redirectStart.begin(), s_redirectStart.end());
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    responseBody.insert(responseBody.end(), body, body + len);
+    responseBody.insert(responseBody.end(), s_redirectEnd.begin(), s_redirectEnd.end());
+    body = responseBody.data();
+    len = responseBody.size();
+  }
+  else if (len > 0 && (statusCode == 200U || !contentType.empty())) {
+    // do not include content-type header info if there is no content
+    addHeaderToList(headers, "content-type", sizeof("content-type") - 1, contentType.empty() ? "application/dns-message" : contentType.data(), contentType.empty() ? sizeof("application/dns-message") - 1 : contentType.size());
+  }
+
+  const std::string lenStr = std::to_string(len);
+  addHeaderToList(headers, "content-length", sizeof("content-length") - 1, lenStr.data(), lenStr.size());
+
   auto returnValue = quiche_h3_send_response(conn.d_http3.get(), conn.d_conn.get(),
                                              streamID, headers.data(),
-                                             // do not include content-type header info if there is no content
-                                             (len > 0 && statusCode == 200U ? headers.size() : headers.size() - 1),
+                                             headers.size(),
                                              len == 0);
   if (returnValue != 0) {
     /* in theory it could be QUICHE_H3_ERR_STREAM_BLOCKED if the stream is not writable / congested, but we are not going to handle this case */
@@ -350,13 +363,13 @@ static void h3_send_response(H3Connection& conn, const uint64_t streamID, uint16
   }
 }
 
-static void h3_send_response(H3Connection& conn, const uint64_t streamID, uint16_t statusCode, const std::string& content)
+static void h3_send_response(H3Connection& conn, const uint64_t streamID, uint16_t statusCode, const std::string& content = {})
 {
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
   h3_send_response(conn, streamID, statusCode, reinterpret_cast<const uint8_t*>(content.data()), content.size());
 }
 
-static void handleResponse(DOH3Frontend& frontend, H3Connection& conn, const uint64_t streamID, uint16_t statusCode, const PacketBuffer& response)
+static void handleResponse(DOH3Frontend& frontend, H3Connection& conn, const uint64_t streamID, uint16_t statusCode, const PacketBuffer& response, const std::string& contentType)
 {
   if (statusCode == 200) {
     ++frontend.d_validResponses;
@@ -368,7 +381,7 @@ static void handleResponse(DOH3Frontend& frontend, H3Connection& conn, const uin
     quiche_conn_stream_shutdown(conn.d_conn.get(), streamID, QUICHE_SHUTDOWN_WRITE, static_cast<uint64_t>(DOQ_Error_Codes::DOQ_UNSPECIFIED_ERROR));
   }
   else {
-    h3_send_response(conn, streamID, statusCode, &response.at(0), response.size());
+    h3_send_response(conn, streamID, statusCode, &response.at(0), response.size(), contentType);
   }
 }
 
@@ -471,7 +484,7 @@ static void processDOH3Query(DOH3UnitUniquePtr&& doh3Unit)
   const auto handleImmediateResponse = [](DOH3UnitUniquePtr&& unit, [[maybe_unused]] const char* reason) {
     DEBUGLOG("handleImmediateResponse() reason=" << reason);
     auto conn = getConnection(unit->dsc->df->d_server_config->d_connections, unit->serverConnID);
-    handleResponse(*unit->dsc->df, *conn, unit->streamID, unit->status_code, unit->response);
+    handleResponse(*unit->dsc->df, *conn, unit->streamID, unit->status_code, unit->response, unit->d_contentTypeOut);
     unit->ids.doh3u.reset();
   };
 
@@ -658,7 +671,7 @@ static void flushResponses(pdns::channel::Receiver<DOH3Unit>& receiver)
       auto unit = std::move(*tmp);
       auto conn = getConnection(unit->dsc->df->d_server_config->d_connections, unit->serverConnID);
       if (conn) {
-        handleResponse(*unit->dsc->df, *conn, unit->streamID, unit->status_code, unit->response);
+        handleResponse(*unit->dsc->df, *conn, unit->streamID, unit->status_code, unit->response, unit->d_contentTypeOut);
       }
     }
     catch (const std::exception& e) {
@@ -1078,6 +1091,13 @@ const dnsdist::doh3::h3_headers_t& DOH3Unit::getHTTPHeaders() const
   return headers;
 }
 
+void DOH3Unit::setHTTPResponse(uint16_t statusCode, PacketBuffer&& body, const std::string& contentType)
+{
+  status_code = statusCode;
+  response = std::move(body);
+  d_contentTypeOut = contentType;
+}
+
 #else /* HAVE_DNS_OVER_HTTP3 */
 
 std::string DOH3Unit::getHTTPPath() const
@@ -1104,6 +1124,10 @@ const dnsdist::doh3::h3_headers_t& DOH3Unit::getHTTPHeaders() const
 {
   static const dnsdist::doh3::h3_headers_t headers;
   return headers;
+}
+
+void DOH3Unit::setHTTPResponse(uint16_t, PacketBuffer&&, const std::string&)
+{
 }
 
 #endif /* HAVE_DNS_OVER_HTTP3 */
