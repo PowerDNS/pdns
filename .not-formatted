@@ -43,7 +43,6 @@
 ./pdns/dnsdistdist/dnsdist-lua-web.cc
 ./pdns/dnsdistdist/dnsdist-prometheus.hh
 ./pdns/dnsdistdist/dnsdist-rules.hh
-./pdns/dnsdistdist/dnsdist-secpoll.cc
 ./pdns/dnsdistdist/dnsdist-systemd.cc
 ./pdns/dnsdistdist/dnsdist-tcp-downstream.cc
 ./pdns/dnsdistdist/dnsdist-tcp-downstream.hh

@@ -60,12 +60,12 @@ static std::string getFirstTXTAnswer(const std::string& answer)
 
   size_t idx = 0;
   /* consume qd */
-  for(; idx < qdcount; idx++) {
+  for (; idx < qdcount; idx++) {
     rrname = pr.getName();
     rrtype = pr.get16BitInt();
     rrclass = pr.get16BitInt();
-    (void) rrtype;
-    (void) rrclass;
+    (void)rrtype;
+    (void)rrclass;
   }
 
   /* parse AN */
@@ -89,7 +89,7 @@ static std::string getFirstTXTAnswer(const std::string& answer)
   throw std::runtime_error("No TXT record in answer");
 }
 
-static std::string getSecPollStatus(const std::string& queriedName, int timeout=2)
+static std::string getSecPollStatus(const std::string& queriedName, int timeout = 2)
 {
   const auto verbose = dnsdist::configuration::getCurrentRuntimeConfiguration().d_verbose;
 
@@ -129,7 +129,7 @@ static std::string getSecPollStatus(const std::string& queriedName, int timeout=
     try {
       sock.read(reply);
     }
-    catch(const std::exception& e) {
+    catch (const std::exception& e) {
       if (verbose) {
         warnlog("Error while reading for the secpoll response from stub resolver %s: %s", dest.toString(), e.what());
       }
@@ -223,7 +223,7 @@ void doSecPoll(const std::string& suffix)
     if (securityStatus == 2) {
       errlog("PowerDNS DNSDist Security Update Recommended: %s", securityMessage);
     }
-    else if(securityStatus == 3) {
+    else if (securityStatus == 3) {
       errlog("PowerDNS DNSDist Security Update Mandatory: %s", securityMessage);
     }
 
