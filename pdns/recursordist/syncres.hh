@@ -299,7 +299,7 @@ public:
 
   static void setECSScopeZeroAddress(const Netmask& scopeZeroMask)
   {
-    s_ecsScopeZero.source = scopeZeroMask;
+    s_ecsScopeZero.setSource(scopeZeroMask);
   }
 
   static void clearECSStats()

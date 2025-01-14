@@ -114,8 +114,8 @@ bool DNSProxy::completePacket(std::unique_ptr<DNSPacket>& reply, const DNSName& 
   string ECSOptionStr;
 
   if (reply->hasEDNSSubnet()) {
-    DLOG(g_log << "dnsproxy::completePacket: Parsed edns source: " << reply->d_eso.source.toString() << ", scope: " << reply->d_eso.scope.toString() << ", family = " << reply->d_eso.scope.getNetwork().sin4.sin_family << endl);
-    ECSOptionStr = makeEDNSSubnetOptsString(reply->d_eso);
+    DLOG(g_log << "dnsproxy::completePacket: Parsed edns source: " << reply->d_eso.getSource().toString() << ", scope: " << Netmask(reply->d_eso.getSource().getNetwork(), reply->d_eso.getScopePrefixLength()).toString() << ", family = " << std::to_string(reply->d_eso.getFamily()) << endl);
+    ECSOptionStr = reply->d_eso.makeOptString();
     DLOG(g_log << "from dnsproxy::completePacket: Creating ECS option string " << makeHexDump(ECSOptionStr) << endl);
   }
 
@@ -288,8 +288,8 @@ void DNSProxy::mainloop()
         MOADNSParser mdp(false, packet.getString());
         // update the EDNS options with info from the resolver - issue #5469
         // note that this relies on the ECS string encoder to use the source network, and only take the prefix length from scope
-        iter->second.complete->d_eso.scope = packet.d_eso.scope;
-        DLOG(g_log << "from dnsproxy::mainLoop: updated EDNS options from resolver EDNS source: " << iter->second.complete->d_eso.source.toString() << " EDNS scope: " << iter->second.complete->d_eso.scope.toString() << endl);
+        iter->second.complete->d_eso.setScopePrefixLength(packet.d_eso.getScopePrefixLength());
+        DLOG(g_log << "from dnsproxy::mainLoop: updated EDNS options from resolver EDNS source: " << iter->second.complete->d_eso.getSource().toString() << " EDNS scope: " << Netmask(iter->second.complete->d_eso.getSource().getNetwork(), iter->second.complete->d_eso.getScopePrefixLength()).toString() << endl);
 
         if (mdp.d_header.rcode == RCode::NoError) {
           for (const auto& answer : mdp.d_answers) {

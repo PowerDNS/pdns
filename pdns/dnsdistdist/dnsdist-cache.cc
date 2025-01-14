@@ -65,8 +65,8 @@ bool DNSDistPacketCache::getClientSubnet(const PacketBuffer& packet, size_t qnam
 
       EDNSSubnetOpts eso;
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-      if (getEDNSSubnetOptsFromString(reinterpret_cast<const char*>(&packet.at(optRDPosition + ecsOptionStartPosition + (EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE))), ecsOptionSize - (EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE), &eso)) {
-        subnet = eso.source;
+      if (EDNSSubnetOpts::getFromString(reinterpret_cast<const char*>(&packet.at(optRDPosition + ecsOptionStartPosition + (EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE))), ecsOptionSize - (EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE), &eso)) {
+        subnet = eso.getSource();
         return true;
       }
     }

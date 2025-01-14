@@ -801,8 +801,8 @@ BOOST_AUTO_TEST_CASE(test_PCCollision)
     pwQ.getHeader()->id = qid;
     GenericDNSPacketWriter<PacketBuffer>::optvect_t ednsOptions;
     EDNSSubnetOpts opt;
-    opt.source = Netmask("10.0.59.220/32");
-    ednsOptions.emplace_back(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt));
+    opt.setSource(Netmask("10.0.59.220/32"));
+    ednsOptions.emplace_back(EDNSOptionCode::ECS, opt.makeOptString());
     pwQ.addOpt(512, 0, 0, ednsOptions);
     pwQ.commit();
 
@@ -812,7 +812,7 @@ BOOST_AUTO_TEST_CASE(test_PCCollision)
     bool found = localCache.get(dnsQuestion, 0, &key, subnetOut, dnssecOK, receivedOverUDP);
     BOOST_CHECK_EQUAL(found, false);
     BOOST_REQUIRE(subnetOut);
-    BOOST_CHECK_EQUAL(subnetOut->toString(), opt.source.toString());
+    BOOST_CHECK_EQUAL(subnetOut->toString(), opt.getSource().toString());
 
     PacketBuffer response;
     GenericDNSPacketWriter<PacketBuffer> pwR(response, ids.qname, ids.qtype, QClass::IN, 0);
@@ -831,7 +831,7 @@ BOOST_AUTO_TEST_CASE(test_PCCollision)
     found = localCache.get(dnsQuestion, 0, &key, subnetOut, dnssecOK, receivedOverUDP);
     BOOST_CHECK_EQUAL(found, true);
     BOOST_REQUIRE(subnetOut);
-    BOOST_CHECK_EQUAL(subnetOut->toString(), opt.source.toString());
+    BOOST_CHECK_EQUAL(subnetOut->toString(), opt.getSource().toString());
   }
 
   /* now lookup for the same query with a different ECS value,
@@ -843,8 +843,8 @@ BOOST_AUTO_TEST_CASE(test_PCCollision)
     pwQ.getHeader()->id = qid;
     GenericDNSPacketWriter<PacketBuffer>::optvect_t ednsOptions;
     EDNSSubnetOpts opt;
-    opt.source = Netmask("10.0.167.48/32");
-    ednsOptions.emplace_back(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt));
+    opt.setSource(Netmask("10.0.167.48/32"));
+    ednsOptions.emplace_back(EDNSOptionCode::ECS, opt.makeOptString());
     pwQ.addOpt(512, 0, 0, ednsOptions);
     pwQ.commit();
 
@@ -855,7 +855,7 @@ BOOST_AUTO_TEST_CASE(test_PCCollision)
     BOOST_CHECK_EQUAL(found, false);
     BOOST_CHECK_EQUAL(secondKey, key);
     BOOST_REQUIRE(subnetOut);
-    BOOST_CHECK_EQUAL(subnetOut->toString(), opt.source.toString());
+    BOOST_CHECK_EQUAL(subnetOut->toString(), opt.getSource().toString());
     BOOST_CHECK_EQUAL(localCache.getLookupCollisions(), 1U);
   }
 

@@ -56,9 +56,9 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheAuthCollision) {
     pw1.getHeader()->rd = true;
     pw1.getHeader()->qr = false;
     pw1.getHeader()->id = 0x42;
-    opt.source = Netmask("10.0.59.220/32");
+    opt.setSource(Netmask("10.0.59.220/32"));
     ednsOptions.clear();
-    ednsOptions.emplace_back(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt));
+    ednsOptions.emplace_back(EDNSOptionCode::ECS, opt.makeOptString());
     pw1.addOpt(512, 0, 0, ednsOptions);
     pw1.commit();
 
@@ -70,9 +70,9 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheAuthCollision) {
     pw2.getHeader()->rd = true;
     pw2.getHeader()->qr = false;
     pw2.getHeader()->id = 0x84;
-    opt.source = Netmask("10.0.167.48/32");
+    opt.setSource(Netmask("10.0.167.48/32"));
     ednsOptions.clear();
-    ednsOptions.emplace_back(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt));
+    ednsOptions.emplace_back(EDNSOptionCode::ECS, opt.makeOptString());
     pw2.addOpt(512, 0, 0, ednsOptions);
     pw2.commit();
 
@@ -128,9 +128,9 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheAuthCollision) {
     pw1.getHeader()->rd = true;
     pw1.getHeader()->qr = false;
     pw1.getHeader()->id = 0x42;
-    opt.source = Netmask("10.0.41.6/32");
+    opt.setSource(Netmask("10.0.41.6/32"));
     ednsOptions.clear();
-    ednsOptions.emplace_back(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt));
+    ednsOptions.emplace_back(EDNSOptionCode::ECS, opt.makeOptString());
     pw1.addOpt(512, 0, EDNSOpts::DNSSECOK, ednsOptions);
     pw1.commit();
 
@@ -142,9 +142,9 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheAuthCollision) {
     pw2.getHeader()->rd = true;
     pw2.getHeader()->qr = false;
     pw2.getHeader()->id = 0x84;
-    opt.source = Netmask("10.0.119.79/32");
+    opt.setSource(Netmask("10.0.119.79/32"));
     ednsOptions.clear();
-    ednsOptions.emplace_back(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt));
+    ednsOptions.emplace_back(EDNSOptionCode::ECS, opt.makeOptString());
     /* no EDNSOpts::DNSSECOK !! */
     pw2.addOpt(512, 0, 0, ednsOptions);
     pw2.commit();
@@ -164,9 +164,9 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheAuthCollision) {
     pw1.getHeader()->rd = true;
     pw1.getHeader()->qr = false;
     pw1.getHeader()->id = 0x42;
-    opt.source = Netmask("192.0.2.1/32");
+    opt.setSource(Netmask("192.0.2.1/32"));
     ednsOptions.clear();
-    ednsOptions.emplace_back(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt));
+    ednsOptions.emplace_back(EDNSOptionCode::ECS, opt.makeOptString());
     EDNSCookiesOpt cookiesOpt(string("deadbeefdeadbeef"));
     ednsOptions.emplace_back(EDNSOptionCode::COOKIE, cookiesOpt.makeOptString());
     pw1.addOpt(512, 0, EDNSOpts::DNSSECOK, ednsOptions);
@@ -180,9 +180,9 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheAuthCollision) {
     pw2.getHeader()->rd = true;
     pw2.getHeader()->qr = false;
     pw2.getHeader()->id = 0x84;
-    opt.source = Netmask("192.0.2.1/32");
+    opt.setSource(Netmask("192.0.2.1/32"));
     ednsOptions.clear();
-    ednsOptions.emplace_back(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt));
+    ednsOptions.emplace_back(EDNSOptionCode::ECS, opt.makeOptString());
     cookiesOpt.makeFromString(string("deadbeefbadc0fee"));
     ednsOptions.emplace_back(EDNSOptionCode::COOKIE, cookiesOpt.makeOptString());
     pw2.addOpt(512, 0, EDNSOpts::DNSSECOK, ednsOptions);
@@ -315,9 +315,9 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheRecCollision) {
     pw1.getHeader()->rd = true;
     pw1.getHeader()->qr = false;
     pw1.getHeader()->id = 0x42;
-    opt.source = Netmask("10.0.18.199/32");
+    opt.setSource(Netmask("10.0.18.199/32"));
     ednsOptions.clear();
-    ednsOptions.emplace_back(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt));
+    ednsOptions.emplace_back(EDNSOptionCode::ECS, opt.makeOptString());
     pw1.addOpt(512, 0, 0, ednsOptions);
     pw1.commit();
 
@@ -329,9 +329,9 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheRecCollision) {
     pw2.getHeader()->rd = true;
     pw2.getHeader()->qr = false;
     pw2.getHeader()->id = 0x84;
-    opt.source = Netmask("10.0.131.66/32");
+    opt.setSource(Netmask("10.0.131.66/32"));
     ednsOptions.clear();
-    ednsOptions.emplace_back(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt));
+    ednsOptions.emplace_back(EDNSOptionCode::ECS, opt.makeOptString());
     pw2.addOpt(512, 0, 0, ednsOptions);
     pw2.commit();
 
@@ -350,9 +350,9 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheRecCollision) {
     pw1.getHeader()->rd = true;
     pw1.getHeader()->qr = false;
     pw1.getHeader()->id = 0x42;
-    opt.source = Netmask("192.0.2.1/32");
+    opt.setSource(Netmask("192.0.2.1/32"));
     ednsOptions.clear();
-    ednsOptions.emplace_back(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt));
+    ednsOptions.emplace_back(EDNSOptionCode::ECS, opt.makeOptString());
     EDNSCookiesOpt cookiesOpt(string("deadbeefdead\x11\xee\x00\x00").c_str(), 16);
     ednsOptions.emplace_back(EDNSOptionCode::COOKIE, cookiesOpt.makeOptString());
     pw1.addOpt(512, 0, EDNSOpts::DNSSECOK, ednsOptions);
@@ -366,9 +366,9 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheRecCollision) {
     pw2.getHeader()->rd = true;
     pw2.getHeader()->qr = false;
     pw2.getHeader()->id = 0x84;
-    opt.source = Netmask("192.0.2.1/32");
+    opt.setSource(Netmask("192.0.2.1/32"));
     ednsOptions.clear();
-    ednsOptions.emplace_back(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt));
+    ednsOptions.emplace_back(EDNSOptionCode::ECS, opt.makeOptString());
     cookiesOpt.makeFromString(string("deadbeefdead\x67\x44\x00\x00").c_str(), 16);
     ednsOptions.emplace_back(EDNSOptionCode::COOKIE, cookiesOpt.makeOptString());
     pw2.addOpt(512, 0, EDNSOpts::DNSSECOK, ednsOptions);

@@ -29,18 +29,18 @@ namespace
 struct EDNSSubnetOptsWire
 {
   uint16_t family;
-  uint8_t sourceMask;
-  uint8_t scopeMask;
+  uint8_t sourcePrefixLength;
+  uint8_t scopePrefixLength;
 } GCCPACKATTRIBUTE; // BRRRRR
 
 }
 
-bool getEDNSSubnetOptsFromString(const std::string& options, EDNSSubnetOpts* eso)
+bool EDNSSubnetOpts::getFromString(const std::string& options, EDNSSubnetOpts* eso)
 {
-  return getEDNSSubnetOptsFromString(options.c_str(), options.length(), eso);
+  return getFromString(options.c_str(), options.length(), eso);
 }
 
-bool getEDNSSubnetOptsFromString(const char* options, unsigned int len, EDNSSubnetOpts* eso)
+bool EDNSSubnetOpts::getFromString(const char* options, unsigned int len, EDNSSubnetOpts* eso)
 {
   EDNSSubnetOptsWire esow{};
   static_assert(sizeof(esow) == 4, "sizeof(EDNSSubnetOptsWire) must be 4 bytes");
@@ -51,7 +51,7 @@ bool getEDNSSubnetOptsFromString(const char* options, unsigned int len, EDNSSubn
   esow.family = ntohs(esow.family);
 
   ComboAddress address;
-  unsigned int octetsin = esow.sourceMask > 0 ? (((esow.sourceMask - 1) >> 3) + 1) : 0;
+  unsigned int octetsin = esow.sourcePrefixLength > 0 ? (((esow.sourcePrefixLength - 1) >> 3) + 1) : 0;
 
   if (esow.family == 1) {
     if (len != sizeof(esow) + octetsin) {
@@ -83,30 +83,30 @@ bool getEDNSSubnetOptsFromString(const char* options, unsigned int len, EDNSSubn
   else {
     return false;
   }
-  eso->source = Netmask(address, esow.sourceMask);
-  /* 'address' has more bits set (potentially) than scopeMask. This leads to odd looking netmasks that promise
-     more precision than they have. For this reason we truncate the address to scopeMask bits */
+  eso->source = Netmask(address, esow.sourcePrefixLength);
+  /* 'address' has more bits set (potentially) than scopePrefixLength. This leads to odd looking netmasks that promise
+     more precision than they have. For this reason we truncate the address to scopePrefixLength bits */
 
-  address.truncate(esow.scopeMask); // truncate will not throw for odd scopeMasks
-  eso->scope = Netmask(address, esow.scopeMask);
+  address.truncate(esow.scopePrefixLength); // truncate will not throw for odd scopePrefixLengths
+  eso->scopeBits = esow.scopePrefixLength;
 
   return true;
 }
 
-std::string makeEDNSSubnetOptsString(const EDNSSubnetOpts& eso)
+std::string EDNSSubnetOpts::makeOptString() const
 {
   std::string ret;
   EDNSSubnetOptsWire esow{};
-  uint16_t family = htons(eso.source.getNetwork().sin4.sin_family == AF_INET ? 1 : 2);
+  uint16_t family = htons(source.getNetwork().sin4.sin_family == AF_INET ? 1 : 2);
   esow.family = family;
-  esow.sourceMask = eso.source.getBits();
-  esow.scopeMask = eso.scope.getBits();
+  esow.sourcePrefixLength = source.getBits();
+  esow.scopePrefixLength = scopeBits;
   // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
   ret.assign(reinterpret_cast<const char*>(&esow), sizeof(esow));
-  int octetsout = ((esow.sourceMask - 1) >> 3) + 1;
+  int octetsout = ((esow.sourcePrefixLength - 1) >> 3) + 1;
 
-  ComboAddress src = eso.source.getNetwork();
-  src.truncate(esow.sourceMask);
+  ComboAddress src = source.getNetwork();
+  src.truncate(esow.sourcePrefixLength);
 
   if (family == htons(1)) {
     ret.append(reinterpret_cast<const char*>(&src.sin4.sin_addr.s_addr), octetsout);
