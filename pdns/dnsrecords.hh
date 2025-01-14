@@ -852,7 +852,10 @@ public:
 
   [[nodiscard]] size_t sizeEstimate() const
   {
-    return  d_bitset ? nbTypes / 8 : d_set.size() * (2U + sizeof(std::set<uint16_t>)); // XXX
+    // for tree: size() nodes of roughly the size of the head node (very rough estimate as tree
+    // implementations can vary wildly on how they represent nodes of the tree, but we cannot access
+    // that private info)
+    return d_bitset ? nbTypes / 8 : d_set.size() * sizeof(std::set<uint16_t>);
   }
 
 private:
