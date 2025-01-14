@@ -4,6 +4,24 @@ Changelogs for 5.2.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.2.0
+  :released: 14th of January 2025
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15015
+    :tickets: 15010
+
+    Fix protobufServer(.. {taggedOnly=true}) logic for cache-returned responses (g0tar).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15020
+    :tickets: 15019
+
+    Explicitly log port of listening addresses.
+
+.. changelog::
   :version: 5.2.0-rc1
   :released: 13th of December 2024
 

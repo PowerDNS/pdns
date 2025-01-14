@@ -4,13 +4,18 @@ Upgrade Guide
 Before upgrading, it is advised to read the :doc:`changelog/index`.
 When upgrading several versions, please read **all** notes applying to the upgrade.
 
-5.1.0 to master
-----------------
+5.1.0 to 5.2.0 and master
+-------------------------
 
 Changed behaviour
 ^^^^^^^^^^^^^^^^^
-Parsing of old-style settings is no longer enabled by default.
-Convert your settings file to YAML (see :doc:`appendices/yamlconversion`) or pass ``--enable-old-settings`` on the command line.
+
+.. warning::
+
+  **Parsing of old-style settings is no longer enabled by default.**
+
+  This means that after upgrading an existing installation using old-style settings to 5.2.0 the updated install will fail to start.
+  Convert your settings file to YAML (see :doc:`appendices/yamlconversion`) or pass ``--enable-old-settings`` on the command line.
 
 The way :ref:`setting-yaml-incoming.max_tcp_clients` is enforced has changed.
 If there are too many incoming TCP connections, new connections will be accepted but then closed immediately.
@@ -24,6 +29,8 @@ A new ``rec_control reload-yaml`` command has been introduced as an alias for ``
 Both commands will (if YAML settings are active), reload the runtime reloadable parts of the YAML settings.
 These are the YAML settings that correspond to Lua configuration items, plus a few new settings that have no Lua equivalent.
 The documentation has been updated to state more clearly which settings can be modified at runtime.
+
+The built-in trust anchors now include the DS record for the new Key Signing Key (KSK-2024) which will be used by the root zone starting October 11th 2026. See `IANA's information page <https://www.iana.org/dnssec/files>`__.
 
 Changed settings
 ^^^^^^^^^^^^^^^^
