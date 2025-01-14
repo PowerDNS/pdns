@@ -60,36 +60,41 @@ GlobalConfiguration
 BackendConfiguration
 --------------------
 
-- **address**: String
-- **id**: String ``("")``
-- **name**: String ``("")``
-- **protocol**: String
-- **tls**: :ref:`OutgoingTlsConfiguration <yaml-settings-OutgoingTlsConfiguration>`
-- **doh**: :ref:`OutgoingDohConfiguration <yaml-settings-OutgoingDohConfiguration>`
-- **use_client_subnet**: Boolean ``(false)``
-- **use_proxy_protocol**: Boolean ``(false)``
-- **queries_per_second**: Unsigned integer ``(0)``
-- **order**: Unsigned integer ``(1)``
-- **weight**: Unsigned integer ``(1)``
-- **pools**: Sequence of String
-- **retries**: Unsigned integer ``(5)``
-- **tcp**: :ref:`OutgoingTcpConfiguration <yaml-settings-OutgoingTcpConfiguration>`
-- **ip_bind_addr_no_port**: Boolean ``(true)``
-- **health_checks**: :ref:`HealthCheckConfiguration <yaml-settings-HealthCheckConfiguration>`
-- **source**: String ``("")``
-- **sockets**: Unsigned integer ``(1)``
-- **disable_zero_scope**: Boolean ``(false)``
-- **reconnect_on_up**: Boolean ``(false)``
-- **max_in_flight**: Unsigned integer ``(1)``
-- **tcp_only**: Boolean ``(false)``
-- **auto_upgrade**: :ref:`OutgoingAutoUpgradeConfiguration <yaml-settings-OutgoingAutoUpgradeConfiguration>`
-- **max_concurrent_tcp_connections**: Unsigned integer ``(0)``
-- **ktls**: Boolean ``(false)``
-- **proxy_protocol_advertise_tls**: Boolean ``(false)``
-- **xsk_sockets**: Sequence of String
-- **mac_address**: String ``("")``
-- **cpus**: String ``("")``
-- **xsk**: String ``("")``
+Generic settings for backends
+
+- **address**: String - ``ip``:``port`` of the backend server (if unset, port defaults to 53 for Do53 backends, 853 for DoT and DoQ, and 443 for DoH and DoH3 ones
+- **id**: String ``("")`` - Use a pre-defined UUID instead of a random one
+- **name**: String ``("")`` - The name associated to this backend, for display purpose
+- **protocol**: String - The DNS protocol to use to contact this backend. Supported values are: Do53, DoT, DoH
+- **tls**: :ref:`OutgoingTlsConfiguration <yaml-settings-OutgoingTlsConfiguration>` - TLS-related settings for DoT and DoH backends
+- **doh**: :ref:`OutgoingDohConfiguration <yaml-settings-OutgoingDohConfiguration>` - DoH-related settings for DoH backends
+- **use_client_subnet**: Boolean ``(false)`` - Whether to add (or override, see :ref:`_yaml-settings-Edns_client_subnetConfiguration`) an EDNS Client Subnet to the DNS payload before forwarding it to the backend. Please see :doc:`../advanced/passing-source-address` for more information
+- **use_proxy_protocol**: Boolean ``(false)`` - Add a proxy protocol header to the query, passing along the client's IP address and port along with the original destination address and port
+- **queries_per_second**: Unsigned integer ``(0)`` - Limit the number of queries per second to ``number``, when using the ``firstAvailable`` policy
+- **order**: Unsigned integer ``(1)`` - The order of this server, used by the `leastOutstanding` and `firstAvailable` policies
+- **weight**: Unsigned integer ``(1)`` - The weight of this server, used by the `wrandom`, `whashed` and `chashed` policies, default: 1. Supported values are a minimum of 1, and a maximum of 2147483647
+- **pools**: Sequence of String - List of pools to place this backend into. By default a server is place in the default ("") pool
+- **tcp**: :ref:`OutgoingTcpConfiguration <yaml-settings-OutgoingTcpConfiguration>` - TCP-related settings for a backend
+- **ip_bind_addr_no_port**: Boolean ``(true)`` - Whether to enable ``IP_BIND_ADDRESS_NO_PORT`` if available
+- **health_checks**: :ref:`HealthCheckConfiguration <yaml-settings-HealthCheckConfiguration>` - Health-check settings
+- **source**: String ``("")`` - The source address or interface to use for queries to this backend, by default this is left to the kernel's address selection.
+The following formats are supported:
+
+ - address, e.g. ``""192.0.2.2""``
+ - interface name, e.g. ``""eth0""``
+ - address@interface, e.g. ``""192.0.2.2@eth0""``
+
+- **sockets**: Unsigned integer ``(1)`` - Number of UDP sockets (and thus source ports) used toward the backend server, defaults to a single one. Note that for backends which are multithreaded, this setting will have an effect on the number of cores that will be used to process traffic from dnsdist. For example you may want to set ``sockets`` to a number somewhat greater than the number of worker threads configured in the backend, particularly if the Linux kernel is being used to distribute traffic to multiple threads listening on the same socket (via ``reuseport``). See also ``randomize_outgoing_sockets_to_backend`` in :ref:`_yaml-settings-Udp_tuningConfiguration`
+- **disable_zero_scope**: Boolean ``(false)`` - Disable the EDNS Client Subnet :doc:`../advanced/zero-scope` feature, which does a cache lookup for an answer valid for all subnets (ECS scope of 0) before adding ECS information to the query and doing the regular lookup. Default is false. This requires the ``parse_ecs`` option of the corresponding cache to be set to true
+- **reconnect_on_up**: Boolean ``(false)`` - Close and reopen the sockets when a server transits from Down to Up. This helps when an interface is missing when dnsdist is started
+- **max_in_flight**: Unsigned integer ``(1)`` - Maximum number of in-flight queries. The default is 0, which disables out-of-order processing. It should only be enabled if the backend does support out-of-order processing. Out-of-order processing needs to be enabled on the frontend as well
+- **tcp_only**: Boolean ``(false)`` - Always forward queries to that backend over TCP, never over UDP. Always enabled for TLS backends
+- **auto_upgrade**: :ref:`OutgoingAutoUpgradeConfiguration <yaml-settings-OutgoingAutoUpgradeConfiguration>` - Auto-upgrade related settings
+- **max_concurrent_tcp_connections**: Unsigned integer ``(0)`` - Maximum number of TCP connections to that backend. When that limit is reached, queries routed to that backend that cannot be forwarded over an existing connection will be dropped. Default is 0 which means no limit
+- **proxy_protocol_advertise_tls**: Boolean ``(false)`` - Whether to set the SSL Proxy Protocol TLV in the proxy protocol payload sent to the backend if the query was received over an encrypted channel (DNSCrypt, DoQ, DoH or DoT). Requires ``use_proxy_protocol``
+- **mac_address**: String ``("")`` - When the ``xsk`` option is set, this parameter can be used to specify the destination MAC address to use to reach the backend. If this options is not specified, dnsdist will try to get it from the IP of the backend by looking into the system's MAC address table, but it will fail if the corresponding MAC address is not present
+- **cpus**: String ``("")`` - Set the CPU affinity for this thread, asking the scheduler to run it on a single CPU id, or a set of CPU ids. This parameter is only available if the OS provides the ``pthread_setaffinity_np()`` function
+- **xsk**: String ``("")`` - The name of an XSK sockets map to attach to this frontend, if any
 
 
 .. _yaml-settings-BindConfiguration:
@@ -97,21 +102,23 @@ BackendConfiguration
 BindConfiguration
 -----------------
 
+General settings for frontends
+
 - **listen_address**: String - Address and port to listen to
-- **reuseport**: Boolean ``(false)``
-- **protocol**: String ``(Do53)``
-- **threads**: Unsigned integer ``(1)``
-- **interface**: String ``("")``
-- **cpus**: String ``("")``
-- **enable_proxy_protocol**: Boolean ``(false)``
-- **tcp**: :ref:`IncomingTcpConfiguration <yaml-settings-IncomingTcpConfiguration>`
-- **tls**: :ref:`IncomingTlsConfiguration <yaml-settings-IncomingTlsConfiguration>`
-- **doh**: :ref:`IncomingDohConfiguration <yaml-settings-IncomingDohConfiguration>`
-- **doq**: :ref:`IncomingDoqConfiguration <yaml-settings-IncomingDoqConfiguration>`
-- **quic**: :ref:`IncomingQuicConfiguration <yaml-settings-IncomingQuicConfiguration>`
-- **dnscrypt**: :ref:`IncomingDnscryptConfiguration <yaml-settings-IncomingDnscryptConfiguration>`
-- **additional_addresses**: Sequence of String
-- **xsk**: String ``("")``
+- **reuseport**: Boolean ``(false)`` - Set the ``SO_REUSEPORT`` socket option, allowing several sockets to be listening on this address and port
+- **protocol**: String ``(Do53)`` - The DNS protocol for this frontend. Supported values are: Do53, DoT, DoH, DoQ, DoH3, DNSCrypt
+- **threads**: Unsigned integer ``(1)`` - Number of listening threads to create for this frontend
+- **interface**: String ``("")`` - Set the network interface to use
+- **cpus**: String ``("")`` - Set the CPU affinity for this listener thread, asking the scheduler to run it on a single CPU id, or a set of CPU ids. This parameter is only available if the OS provides the ``pthread_setaffinity_np()`` function
+- **enable_proxy_protocol**: Boolean ``(false)`` - Whether to expect a proxy protocol v2 header in front of incoming queries coming from an address allowed by the ACL in :ref:`_yaml-settings-Proxy_protocolConfiguration`. Default is ``true``, meaning that queries are expected to have a proxy protocol payload if they come from an address present in the proxy protocol ACL
+- **tcp**: :ref:`IncomingTcpConfiguration <yaml-settings-IncomingTcpConfiguration>` - TCP-specific settings
+- **tls**: :ref:`IncomingTlsConfiguration <yaml-settings-IncomingTlsConfiguration>` - TLS-specific settings
+- **doh**: :ref:`IncomingDohConfiguration <yaml-settings-IncomingDohConfiguration>` - DNS over HTTPS-specific settings
+- **doq**: :ref:`IncomingDoqConfiguration <yaml-settings-IncomingDoqConfiguration>` - DNS over QUIC-specific settings
+- **quic**: :ref:`IncomingQuicConfiguration <yaml-settings-IncomingQuicConfiguration>` - QUIC-specific settings
+- **dnscrypt**: :ref:`IncomingDnscryptConfiguration <yaml-settings-IncomingDnscryptConfiguration>` - DNSCrypt-specific settings
+- **additional_addresses**: Sequence of String - List of additional addresses (with port) to listen on. Using this option instead of creating a new frontend for each address avoids the creation of new thread and Frontend objects, reducing the memory usage. The drawback is that there will be a single set of metrics for all addresses
+- **xsk**: String ``("")`` - The name of an XSK sockets map to attach to this frontend, if any
 
 
 .. _yaml-settings-CDBKVStoreConfiguration:
@@ -192,7 +199,7 @@ Endpoint to send queries and/or responses data to, using the dnstap format
 - **flush_timeout**: Unsigned integer ``(0)`` - The number of seconds to allow unflushed data to remain in the output buffer. According to the libfstrm library, the minimum is 1 second, the maximum is 600 seconds (10 minutes), and the default is 1 second
 - **input_queue_size**: Unsigned integer ``(0)`` - The number of queue entries to allocate for each input queue. This value must be a power of 2. According to the fstrm library, the minimum is 2, the maximum is 16384, and the default is 512
 - **output_queue_size**: Unsigned integer ``(0)`` - The number of queue entries to allocate for each output queue. According to the libfstrm library, the minimum is 2, the maximum is system-dependent and based on ``IOV_MAX``, and the default is 64
-- **queue_notify_threshold**: Unsigned integer ``(0)`` - The number of outstanding queue entries to allow on an input queue before waking the I/O thread. Accordingg to the libfstrm library, the minimum is 1 and the default is 32
+- **queue_notify_threshold**: Unsigned integer ``(0)`` - The number of outstanding queue entries to allow on an input queue before waking the I/O thread. According to the libfstrm library, the minimum is 1 and the default is 32
 - **reopen_interval**: Unsigned integer ``(0)`` - The number of queue entries to allocate for each output queue. According to the libfstrm library, the minimum is 2, the maximum is system-dependent and based on IOV_MAX, and the default is 64
 
 
@@ -321,21 +328,23 @@ GeneralConfiguration
 Health_checkConfiguration
 -------------------------
 
-- **mode**: String ``(auto)``
-- **qname**: String ``("")``
-- **qclass**: String ``(IN)``
-- **qtype**: String ``(A)``
-- **function**: String ``("")``
-- **lua**: String ``("")``
-- **lua_file**: String ``("")``
-- **timeout**: Unsigned integer ``(1000)``
-- **set_cd**: Boolean ``(false)``
-- **max_failures**: Unsigned integer ``(1)``
-- **rise**: Unsigned integer ``(1)``
-- **interval**: Unsigned integer ``(1)``
-- **must_resolve**: Boolean ``(false)``
-- **use_tcp**: Boolean ``(false)``
-- **lazy**: :ref:`LazyHealthCheckConfiguration <yaml-settings-LazyHealthCheckConfiguration>`
+Health-checks related settings for backends
+
+- **mode**: String ``(auto)`` - The health-check mode to use: 'auto' which sends health-check queries every ``check_interval`` seconds, 'up' which considers that the backend is always available, 'down' that it is always not available, and 'lazy' which only sends health-check queries after a configurable amount of regular queries have failed (see :ref:`_yaml-settings-Lazy_health_checkConfiguration` for more information). Default is 'auto'. See :ref:`Healthcheck` for a more detailed explanation. Supported values are: auto, down, lazy, up
+- **qname**: String ``("")`` - The DNS name to use as QNAME in health-check queries
+- **qclass**: String ``(IN)`` - The DNS class to use in health-check queries
+- **qtype**: String ``(A)`` - The DNS type to use in health-check queries
+- **function**: String ``("")`` - The name of an optional Lua function to call to dynamically set the QNAME, QTYPE and QCLASS to use in the health-check query (see :ref:`Healthcheck`)
+- **lua**: String ``("")`` - The code of an optional Lua function to call to dynamically set the QNAME, QTYPE and QCLASS to use in the health-check query (see :ref:`Healthcheck`)
+- **lua_file**: String ``("")`` - A path to a file containing the code of an optional Lua function to call to dynamically set the QNAME, QTYPE and QCLASS to use in the health-check query (see :ref:`Healthcheck`)
+- **timeout**: Unsigned integer ``(1000)`` - The timeout (in milliseconds) of a health-check query, default: 1000 (1s)
+- **set_cd**: Boolean ``(false)`` - Set the CD (Checking Disabled) flag in the health-check query
+- **max_failures**: Unsigned integer ``(1)`` - Allow this many check failures before declaring the backend down
+- **rise**: Unsigned integer ``(1)`` - Require ``number`` consecutive successful checks before declaring the backend up
+- **interval**: Unsigned integer ``(1)`` - The time in seconds between health checks
+- **must_resolve**: Boolean ``(false)`` - Set to true when the health check MUST return a RCODE different from NXDomain, ServFail and Refused. Default is false, meaning that every RCODE except ServFail is considered valid
+- **use_tcp**: Boolean ``(false)`` - Whether to do healthcheck queries over TCP, instead of UDP. Always enabled for TCP-only, DNS over TLS and DNS over HTTPS backends
+- **lazy**: :ref:`LazyHealthCheckConfiguration <yaml-settings-LazyHealthCheckConfiguration>` - Settings for lazy health-checks
 
 
 .. _yaml-settings-Http_custom_response_headerConfiguration:
@@ -343,8 +352,10 @@ Health_checkConfiguration
 Http_custom_response_headerConfiguration
 ----------------------------------------
 
-- **key**: String
-- **value**: String
+List of custom HTTP headers
+
+- **key**: String - The key, or name, part of the header
+- **value**: String - The value part of the header
 
 
 .. _yaml-settings-Http_responses_mapConfiguration:
@@ -352,10 +363,14 @@ Http_custom_response_headerConfiguration
 Http_responses_mapConfiguration
 -------------------------------
 
-- **expression**: String
-- **status**: Unsigned integer
-- **content**: String
-- **headers**: Sequence of :ref:`HttpCustomResponseHeaderConfiguration <yaml-settings-HttpCustomResponseHeaderConfiguration>`
+An entry of an HTTP response map. Every query that matches the regular expression supplied in ``expression`` will be immediately answered with a HTTP response.
+The status of the HTTP response will be the one supplied by ``status``, and the content set to the one supplied by ``content``, except if the status is a redirection (3xx) in which case the content is expected to be the URL to redirect to.
+
+
+- **expression**: String - A regular expression to match the path against
+- **status**: Unsigned integer - The HTTP code to answer with
+- **content**: String - The content of the HTTP response, or a URL if the status is a redirection (3xx)
+- **headers**: Sequence of :ref:`HttpCustomResponseHeaderConfiguration <yaml-settings-HttpCustomResponseHeaderConfiguration>` - The custom headers to set for the HTTP response, if any. The default is to use the value of the ``custom_response_headers`` parameter of the frontend
 
 
 .. _yaml-settings-Incoming_dnscryptConfiguration:
@@ -363,8 +378,10 @@ Http_responses_mapConfiguration
 Incoming_dnscryptConfiguration
 ------------------------------
 
-- **provider_name**: String ``("")``
-- **certificates**: Sequence of :ref:`IncomingDnscryptCertificateKeyPairConfiguration <yaml-settings-IncomingDnscryptCertificateKeyPairConfiguration>`
+Settings for DNSCrypt frontends
+
+- **provider_name**: String ``("")`` - The DNSCrypt provider name for this frontend
+- **certificates**: Sequence of :ref:`IncomingDnscryptCertificateKeyPairConfiguration <yaml-settings-IncomingDnscryptCertificateKeyPairConfiguration>` - List of certificates and associated keys
 
 
 .. _yaml-settings-Incoming_dnscrypt_certificate_key_pairConfiguration:
@@ -372,8 +389,10 @@ Incoming_dnscryptConfiguration
 Incoming_dnscrypt_certificate_key_pairConfiguration
 ---------------------------------------------------
 
-- **certificate**: String
-- **key**: String
+Certificate and associated key for DNSCrypt frontends
+
+- **certificate**: String - The path to a DNSCrypt certificate file
+- **key**: String - The path to the private key file corresponding to the certificate, or a list of paths to such files, whose order should match the certFile(s) ones
 
 
 .. _yaml-settings-Incoming_dohConfiguration:
@@ -381,18 +400,20 @@ Incoming_dnscrypt_certificate_key_pairConfiguration
 Incoming_dohConfiguration
 -------------------------
 
-- **provider**: String ``(nghttp2)``
-- **paths**: Sequence of String ``(/dns-query)``
-- **idle_timeout**: Unsigned integer ``(30)``
-- **server_tokens**: String ``(h2o/dnsdist)``
-- **send_cache_control_headers**: Boolean ``(true)``
-- **keep_incoming_headers**: Boolean ``(false)``
-- **trust_forwarded_for_header**: Boolean ``(false)``
-- **early_acl_drop**: Boolean ``(true)``
-- **exact_path_matching**: Boolean ``(true)``
-- **internal_pipe_buffer_size**: Unsigned integer ``(1048576)``
-- **custom_response_headers**: Sequence of :ref:`HttpCustomResponseHeaderConfiguration <yaml-settings-HttpCustomResponseHeaderConfiguration>`
-- **responses_map**: Sequence of :ref:`HttpResponsesMapConfiguration <yaml-settings-HttpResponsesMapConfiguration>`
+The DNS over HTTP(s) parameters of a frontend
+
+- **provider**: String ``(nghttp2)``. Supported values are: nghttp2, h2o
+- **paths**: Sequence of String ``(/dns-query)`` - The path part of a URL, or a list of paths, to accept queries on. Any query with a path matching exactly one of these will be treated as a DoH query (sub-paths can be accepted by setting the ``exact_path_matching`` setting to false)
+- **idle_timeout**: Unsigned integer ``(30)`` - Set the idle timeout, in seconds
+- **server_tokens**: String ``("")`` - The content of the Server: HTTP header returned by dnsdist. The default is ``h2o/dnsdist`` when ``h2o`` is used, ``nghttp2-<version>/dnsdist`` when ``nghttp2`` is
+- **send_cache_control_headers**: Boolean ``(true)`` - Whether to parse the response to find the lowest TTL and set a HTTP Cache-Control header accordingly
+- **keep_incoming_headers**: Boolean ``(false)`` - Whether to retain the incoming headers in memory, to be able to use :func:`HTTPHeaderRule` or :meth:`DNSQuestion.getHTTPHeaders`
+- **trust_forwarded_for_header**: Boolean ``(false)`` - Whether to parse any existing X-Forwarded-For header in the HTTP query and use the right-most value as the client source address and port, for ACL checks, rules, logging and so on
+- **early_acl_drop**: Boolean ``(true)`` - Whether to apply the ACL right when the connection is established, immediately dropping queries that are not allowed by the ACL (true), or later when a query is received, sending a HTTP 403 response when it is not allowed
+- **exact_path_matching**: Boolean ``(true)`` - Whether to do exact path matching of the query path against the paths configured in ``paths`` (true) or to accepts sub-paths (false)
+- **internal_pipe_buffer_size**: Unsigned integer ``(1048576)`` - Set the size in bytes of the internal buffer of the pipes used internally to pass queries and responses between threads. Requires support for ``F_SETPIPE_SZ`` which is present in Linux since 2.6.35. The actual size might be rounded up to a multiple of a page size. 0 means that the OS default size is used.
+- **custom_response_headers**: Sequence of :ref:`HttpCustomResponseHeaderConfiguration <yaml-settings-HttpCustomResponseHeaderConfiguration>` - Set custom HTTP header(s) returned by dnsdist
+- **responses_map**: Sequence of :ref:`HttpResponsesMapConfiguration <yaml-settings-HttpResponsesMapConfiguration>` - Set a list of HTTP response rules allowing to intercept HTTP queries very early, before the DNS payload has been processed, and send custom responses including error pages, redirects and static content
 
 
 .. _yaml-settings-Incoming_doqConfiguration:
@@ -400,7 +421,9 @@ Incoming_dohConfiguration
 Incoming_doqConfiguration
 -------------------------
 
-- **max_concurrent_queries_per_connection**: Unsigned integer ``(65535)``
+Settings for DNS over QUIC frontends
+
+- **max_concurrent_queries_per_connection**: Unsigned integer ``(65535)`` - Maximum number of in-flight queries on a single connection
 
 
 .. _yaml-settings-Incoming_quicConfiguration:
@@ -408,9 +431,11 @@ Incoming_doqConfiguration
 Incoming_quicConfiguration
 --------------------------
 
-- **idle_timeout**: Unsigned integer ``(5)``
-- **congestion_control_algorithm**: String ``(reno)``
-- **internal_pipe_buffer_size**: Unsigned integer ``(1048576)``
+QUIC settings for DNS over QUIC and DNS over HTTP/3 frontends
+
+- **idle_timeout**: Unsigned integer ``(5)`` - Set the idle timeout, in seconds
+- **congestion_control_algorithm**: String ``(reno)`` - The congestion control algorithm to be used. Supported values are: reno, cubic, bbr
+- **internal_pipe_buffer_size**: Unsigned integer ``(1048576)`` - Set the size in bytes of the internal buffer of the pipes used internally to pass queries and responses between threads. Requires support for ``F_SETPIPE_SZ`` which is present in Linux since 2.6.35. The actual size might be rounded up to a multiple of a page size. 0 means that the OS default size is used
 
 
 .. _yaml-settings-Incoming_tcpConfiguration:
@@ -418,10 +443,12 @@ Incoming_quicConfiguration
 Incoming_tcpConfiguration
 -------------------------
 
-- **max_in_flight_queries**: Unsigned integer ``(0)``
-- **listen_queue_size**: Unsigned integer ``(0)``
-- **fast_open_queue_size**: Unsigned integer ``(0)``
-- **max_concurrent_connections**: Unsigned integer ``(0)``
+TCP-related settings for frontends
+
+- **max_in_flight_queries**: Unsigned integer ``(0)`` - Maximum number of in-flight queries over a single TCP connection. The default is 0, which disables out-of-order processing
+- **listen_queue_size**: Unsigned integer ``(0)`` - Set the size of the listen queue. Default is ``SOMAXCONN``
+- **fast_open_queue_size**: Unsigned integer ``(0)`` - Set the TCP Fast Open queue size, enabling TCP Fast Open when available and the value is larger than 0
+- **max_concurrent_connections**: Unsigned integer ``(0)`` - Maximum number of concurrent incoming TCP connections to this frontend. The default is 0 which means unlimited
 
 
 .. _yaml-settings-Incoming_tlsConfiguration:
@@ -432,27 +459,26 @@ Incoming_tlsConfiguration
 TLS parameters for frontends
 
 - **provider**: String ``(OpenSSL)`` - . Supported values are: OpenSSL, GnuTLS
-- **certificates**: Sequence of :ref:`IncomingTlsCertificateKeyPairConfiguration <yaml-settings-IncomingTlsCertificateKeyPairConfiguration>`
-- **ignore_errors**: Boolean ``(false)``
-- **ciphers**: String ``("")``
-- **ciphers_tls_13**: String ``("")``
-- **minimum_version**: String ``(tls1.0)``
-- **ticket_key_file**: String ``("")``
-- **tickets_keys_rotation_delay**: Unsigned integer ``(43200)``
-- **number_of_tickets_keys**: Unsigned integer ``(5)``
-- **prefer_server_ciphers**: Boolean ``(true)``
-- **session_timeout**: Unsigned integer ``(0)``
-- **session_tickets**: Boolean ``(true)``
-- **number_of_stored_sessions**: Unsigned integer ``(20480)``
-- **ocsp_response_files**: Sequence of String
-- **key_log_file**: String ``("")``
-- **release_buffers**: Boolean ``(true)``
-- **enable_renegotiation**: Boolean ``(false)``
-- **async_mode**: Boolean ``(false)``
-- **ktls**: Boolean ``(false)``
-- **read_ahead**: Boolean ``(true)``
-- **proxy_protocol_outside_tls**: Boolean ``(false)``
-- **ignore_configuration_errors**: Boolean ``(false)``
+- **certificates**: Sequence of :ref:`IncomingTlsCertificateKeyPairConfiguration <yaml-settings-IncomingTlsCertificateKeyPairConfiguration>` - List of TLS certificates and their associated keys
+- **ciphers**: String ``("")`` - The TLS ciphers to use, in OpenSSL format. Note that ``ciphers_tls_13`` should be used for TLS 1.3
+- **ciphers_tls_13**: String ``("")`` - The TLS ciphers to use for TLS 1.3, in OpenSSL format
+- **minimum_version**: String ``(tls1.0)`` - The minimum version of the TLS protocol to support. Supported values are: tls1.0, tls1.1, tls1.2, tls1.3
+- **ticket_key_file**: String ``("")`` - The path to a file from where TLS tickets keys should be loaded, to support :rfc:`5077`. These keys should be rotated often and never written to persistent storage to preserve forward secrecy. The default is to generate a random key. dnsdist supports several tickets keys to be able to decrypt existing sessions after the rotation. See :doc:`../advanced/tls-sessions-management` for more information
+- **tickets_keys_rotation_delay**: Unsigned integer ``(43200)`` - Set the delay before the TLS tickets key is rotated, in seconds. Default is 43200 (12h). A value of 0 disables the automatic rotation, which might be useful when ``ticket_key_file`` is used
+- **number_of_tickets_keys**: Unsigned integer ``(5)`` - The maximum number of tickets keys to keep in memory at the same time. Only one key is marked as active and used to encrypt new tickets while the remaining ones can still be used to decrypt existing tickets after a rotation
+- **prefer_server_ciphers**: Boolean ``(true)`` - Whether to prefer the order of ciphers set by the server instead of the one set by the client. Default is true, meaning that the order of the server is used. For OpenSSL >= 1.1.1, setting this option also enables the temporary re-prioritization of the ChaCha20-Poly1305 cipher if the client prioritizes it
+- **session_timeout**: Unsigned integer ``(0)`` - Set the TLS session lifetime in seconds, this is used both for TLS ticket lifetime and for sessions kept in memory
+- **session_tickets**: Boolean ``(true)`` - Whether session resumption via session tickets is enabled. Default is true, meaning tickets are enabled
+- **number_of_stored_sessions**: Unsigned integer ``(20480)`` - The maximum number of sessions kept in memory at the same time. Default is 20480. Setting this value to 0 disables stored session entirely
+- **ocsp_response_files**: Sequence of String - List of files containing OCSP responses, in the same order than the certificates and keys, that will be used to provide OCSP stapling responses
+- **key_log_file**: String ``("")`` - Write the TLS keys in the specified file so that an external program can decrypt TLS exchanges, in the format described in https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format. Note that this feature requires OpenSSL >= 1.1.1
+- **release_buffers**: Boolean ``(true)`` - Whether OpenSSL should release its I/O buffers when a connection goes idle, saving roughly 35 kB of memory per connection
+- **enable_renegotiation**: Boolean ``(false)`` - Whether secure TLS renegotiation should be enabled. Disabled by default since it increases the attack surface and is seldom used for DNS
+- **async_mode**: Boolean ``(false)`` - Whether to enable experimental asynchronous TLS I/O operations if the ``nghttp2`` library is used, ``OpenSSL`` is used as the TLS implementation and an asynchronous capable SSL engine (or provider) is loaded. See also :func:`loadTLSEngine` or :func:`loadTLSProvider` to load the engine (or provider)
+- **ktls**: Boolean ``(false)`` - Whether to enable the experimental kernel TLS support on Linux, if both the kernel and the OpenSSL library support it
+- **read_ahead**: Boolean ``(true)`` - When the TLS provider is set to OpenSSL, whether we tell the library to read as many input bytes as possible, which leads to better performance by reducing the number of syscalls
+- **proxy_protocol_outside_tls**: Boolean ``(false)`` - When the use of incoming proxy protocol is enabled, whether the payload is prepended after the start of the TLS session (so inside, meaning it is protected by the TLS layer providing encryption and authentication) or not (outside, meaning it is in clear-text). Default is false which means inside. Note that most third-party software like HAproxy expect the proxy protocol payload to be outside, in clear-text
+- **ignore_configuration_errors**: Boolean ``(false)`` - Ignore TLS configuration errors (such as invalid certificate path) and just issue a warning instead of aborting the whole process
 
 
 .. _yaml-settings-Incoming_tls_certificate_key_pairConfiguration:
@@ -570,13 +596,15 @@ LMDB-based key-value store
 Lazy_health_checkConfiguration
 ------------------------------
 
-- **interval**: Unsigned integer ``(30)``
-- **min_sample_count**: Unsigned integer ``(1)``
-- **mode**: String ``(TimeoutOrServFail)``
-- **sample_size**: Unsigned integer ``(100)``
-- **threshold**: Unsigned integer ``(20)``
-- **use_exponential_back_off**: Boolean ``(false)``
-- **max_back_off**: Unsigned integer ``(3600)``
+Lazy health-check related settings for backends
+
+- **interval**: Unsigned integer ``(30)`` - The interval, in seconds, between health-check queries in 'lazy' mode. Note that when ``use_exponential_back_off`` is set to true, the interval doubles between every queries. These queries are only sent when a threshold of failing regular queries has been reached, and until the backend is available again
+- **min_sample_count**: Unsigned integer ``(1)`` - The minimum amount of regular queries that should have been recorded before the ``threshold`` threshold can be applied
+- **mode**: String ``(TimeoutOrServFail)`` - The 'lazy' health-check mode: ``TimeoutOnly`` means that only timeout and I/O errors of regular queries will be considered for the ``threshold``, while ``TimeoutOrServFail`` will also consider ``Server Failure`` answers. Supported values are: TimeoutOnly, TimeoutOrServFail
+- **sample_size**: Unsigned integer ``(100)`` - The maximum size of the sample of queries to record and consider for the ``threshold``. Default is 100, which means the result (failure or success) of the last 100 queries will be considered
+- **threshold**: Unsigned integer ``(20)`` - The threshold, as a percentage, of queries that should fail for the 'lazy' health-check to be triggered. The default is 20 which means 20% of the last ``sample_size`` queries should fail for a health-check to be triggered
+- **use_exponential_back_off**: Boolean ``(false)`` - Whether the 'lazy' health-check should use an exponential back-off instead of a fixed value, between health-check probes. The default is false which means that after a backend has been moved to the ``down`` state health-check probes are sent every ``interval`` seconds. When set to true, the delay between each probe starts at ``interval`` seconds and doubles between every probe, capped at ``max_back_off`` seconds
+- **max_back_off**: Unsigned integer ``(3600)`` - This value, in seconds, caps the time between two health-check queries when ``use_exponential_back_off`` is set to true. The default is 3600 which means that at most one hour will pass between two health-check queries
 
 
 .. _yaml-settings-Load_balancing_policiesConfiguration:
@@ -608,12 +636,14 @@ Metrics-related settings
 Outgoing_auto_upgradeConfiguration
 ----------------------------------
 
-- **enabled**: Boolean ``(false)``
-- **interval**: Unsigned integer ``(3600)``
-- **keep**: Boolean ``(false)``
-- **pool**: String ``("")``
-- **doh_key**: Unsigned integer ``(7)``
-- **use_lazy_health_check**: Boolean ``(false)``
+Setting for the automatically upgraded backend to a more secure version of the DNS protocol
+
+- **enabled**: Boolean ``(false)`` - Whether to use the 'Discovery of Designated Resolvers' mechanism to automatically upgrade a Do53 backend to DoT or DoH, depending on the priorities present in the SVCB record returned by the backend
+- **interval**: Unsigned integer ``(3600)`` - If ``enabled`` is set, how often to check if an upgrade is available, in seconds
+- **keep**: Boolean ``(false)`` - If ``enabled`` is set, whether to keep the existing Do53 backend around after an upgrade. Default is false which means the Do53 backend will be replaced by the upgraded one
+- **pool**: String ``("")`` - If ``enabled`` is set, in which pool to place the newly upgraded backend. Default is empty which means the backend is placed in the default pool
+- **doh_key**: Unsigned integer ``(7)`` - If ``enabled`` is set, the value to use for the SVC key corresponding to the DoH path. Default is 7
+- **use_lazy_health_check**: Boolean ``(false)`` - Whether the auto-upgraded version of this backend should use the lazy health-checking mode. Default is false, which means it will use the regular health-checking mode
 
 
 .. _yaml-settings-Outgoing_dohConfiguration:
@@ -621,8 +651,10 @@ Outgoing_auto_upgradeConfiguration
 Outgoing_dohConfiguration
 -------------------------
 
-- **path**: String ``(/dns-query)``
-- **add_x_forwarded_headers**: Boolean ``(false)``
+DNS over HTTPS specific settings for backends
+
+- **path**: String ``(/dns-query)`` - The HTTP path to send queries to
+- **add_x_forwarded_headers**: Boolean ``(false)`` - Whether to add X-Forwarded-For, X-Forwarded-Port and X-Forwarded-Proto headers to the backend
 
 
 .. _yaml-settings-Outgoing_tcpConfiguration:
@@ -630,10 +662,13 @@ Outgoing_dohConfiguration
 Outgoing_tcpConfiguration
 -------------------------
 
-- **connect_timeout**: Unsigned integer ``(5)``
-- **send_timeout**: Unsigned integer ``(30)``
-- **receive_timeout**: Unsigned integer ``(30)``
-- **fast_open**: Boolean ``(false)``
+TCP-related settings for backends
+
+- **retries**: Unsigned integer ``(5)`` - The number of TCP connection attempts to the backend, for a given query
+- **connect_timeout**: Unsigned integer ``(5)`` - The timeout (in seconds) of a TCP connection attempt
+- **send_timeout**: Unsigned integer ``(30)`` - The timeout (in seconds) of a TCP write attempt
+- **receive_timeout**: Unsigned integer ``(30)`` - The timeout (in seconds) of a TCP read attempt
+- **fast_open**: Boolean ``(false)`` - Whether to enable TCP Fast Open
 
 
 .. _yaml-settings-Outgoing_tlsConfiguration:
@@ -641,17 +676,19 @@ Outgoing_tcpConfiguration
 Outgoing_tlsConfiguration
 -------------------------
 
-- **provider**: String ``(OpenSSL)``
-- **subject_name**: String ``("")``
-- **subject_address**: String ``("")``
-- **validate_certificate**: Boolean ``(true)``
-- **ca_store**: String ``("")``
-- **ciphers**: String ``("")``
-- **ciphers_tls_13**: String ``("")``
-- **key_log_file**: String ``("")``
-- **release_buffers**: Boolean ``(true)``
-- **enable_renegotiation**: Boolean ``(false)``
-- **ktls**: Boolean ``(false)``
+TLS parameters for backends
+
+- **provider**: String ``(OpenSSL)`` - . Supported values are: OpenSSL, GnuTLS
+- **subject_name**: String ``("")`` - The subject name passed in the SNI value of the TLS handshake, and against which to validate the certificate presented by the backend. Default is empty. If set this value supersedes any ``subject_addr`` one
+- **subject_address**: String ``("")`` - The subject IP address passed in the SNI value of the TLS handshake, and against which to validate the certificate presented by the backend
+- **validate_certificate**: Boolean ``(true)`` - Whether the certificate presented by the backend should be validated against the CA store (see ``ca_store``)
+- **ca_store**: String ``("")`` - Specifies the path to the CA certificate file, in PEM format, to use to check the certificate presented by the backend. Default is an empty string, which means to use the system CA store. Note that this directive is only used if ``validate_certificates`` is set
+- **ciphers**: String ``("")`` - The TLS ciphers to use. The exact format depends on the provider used. When the OpenSSL provider is used, ciphers for TLS 1.3 must be specified via ``ciphers_tls_13``
+- **ciphers_tls_13**: String ``("")`` - The ciphers to use for TLS 1.3, when the OpenSSL provider is used. When the GnuTLS provider is used, ``ciphers`` applies regardless of the TLS protocol and this setting is not used.
+- **key_log_file**: String ``("")`` - Write the TLS keys in the specified file so that an external program can decrypt TLS exchanges, in the format described in https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format. Note that this feature requires OpenSSL >= 1.1.1
+- **release_buffers**: Boolean ``(true)`` - Whether OpenSSL should release its I/O buffers when a connection goes idle, saving roughly 35 kB of memory per connection
+- **enable_renegotiation**: Boolean ``(false)`` - Whether secure TLS renegotiation should be enabled. Disabled by default since it increases the attack surface and is seldom used for DNS
+- **ktls**: Boolean ``(false)`` - Whether to enable the experimental kernel TLS support on Linux, if both the kernel and the OpenSSL library support it. Default is false. Currently both DoT and DoH backend support this option
 
 
 .. _yaml-settings-Packet_cacheConfiguration:
@@ -726,8 +763,10 @@ Proxy_protocolConfiguration
 Proxy_protocol_valueConfiguration
 ---------------------------------
 
-- **key**: Unsigned integer
-- **value**: String
+A proxy protocol Type-Length Value entry
+
+- **key**: Unsigned integer - The type of the proxy protocol entry
+- **value**: String - The value of the proxy protocol entry
 
 
 .. _yaml-settings-Query_countConfiguration:
@@ -746,10 +785,12 @@ Query_countConfiguration
 Query_ruleConfiguration
 -----------------------
 
-- **name**: String
-- **uuid**: String
-- **selector**: :ref:`Selector <yaml-settings-Selector>`
-- **action**: :ref:`Action <yaml-settings-Action>`
+A rule that can applied on queries
+
+- **name**: String ``("")`` - The name to assign to this rule
+- **uuid**: String - The UUID to assign to this rule, if any
+- **selector**: :ref:`Selector <yaml-settings-Selector>` - The selector to match queries against
+- **action**: :ref:`Action <yaml-settings-Action>` - The action taken if the selector matches
 
 
 .. _yaml-settings-Remote_loggingConfiguration:
@@ -768,10 +809,12 @@ Queries and/or responses remote logging settings
 Response_ruleConfiguration
 --------------------------
 
-- **name**: String
-- **uuid**: String
-- **selector**: :ref:`Selector <yaml-settings-Selector>`
-- **action**: :ref:`ResponseAction <yaml-settings-ResponseAction>`
+A rule that can applied on responses
+
+- **name**: String ``("")`` - The name to assign to this rule
+- **uuid**: String ``("")`` - The UUID to assign to this rule, if any
+- **selector**: :ref:`Selector <yaml-settings-Selector>` - The selector to match responses against
+- **action**: :ref:`ResponseAction <yaml-settings-ResponseAction>` - The action taken if the selector matches
 
 
 .. _yaml-settings-Ring_buffersConfiguration:
@@ -841,10 +884,12 @@ Tls_tuningConfiguration
 TuningConfiguration
 -------------------
 
-- **doh**: :ref:`DohTuningConfiguration <yaml-settings-DohTuningConfiguration>`
-- **tcp**: :ref:`TcpTuningConfiguration <yaml-settings-TcpTuningConfiguration>`
-- **tls**: :ref:`TlsTuningConfiguration <yaml-settings-TlsTuningConfiguration>`
-- **udp**: :ref:`UdpTuningConfiguration <yaml-settings-UdpTuningConfiguration>`
+Tuning settings
+
+- **doh**: :ref:`DohTuningConfiguration <yaml-settings-DohTuningConfiguration>` - DoH-related tuning settings
+- **tcp**: :ref:`TcpTuningConfiguration <yaml-settings-TcpTuningConfiguration>` - TCP-related tuning settings
+- **tls**: :ref:`TlsTuningConfiguration <yaml-settings-TlsTuningConfiguration>` - TLS-related tuning settings
+- **udp**: :ref:`UdpTuningConfiguration <yaml-settings-UdpTuningConfiguration>` - UDP-related tuning settings
 
 
 .. _yaml-settings-Udp_tuningConfiguration:
@@ -885,10 +930,12 @@ WebserverConfiguration
 XskConfiguration
 ----------------
 
-- **name**: String
-- **interface**: String
-- **queues**: Unsigned integer
-- **frames**: Unsigned integer ``(65536)``
+An ``XSK`` / ``AF_XDP`` sockets map
+
+- **name**: String - The name to give to this map
+- **interface**: String - The network interface to which the sockets will be associated
+- **queues**: Unsigned integer - The number of queues the network interface has (can be retrieved by looking at the ``Combined`` line in the output of ``sudo ethtool -l <interface name>``). It should match the number of threads of the frontend or backend associated to this map
+- **frames**: Unsigned integer ``(65536)`` - The number of frames to allocate for this map
 - **map_path**: String ``(/sys/fs/bpf/dnsdist/xskmap)``
 
 

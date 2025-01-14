@@ -361,7 +361,6 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dns
   backendConfig.d_qpsLimit = config.queries_per_second;
   backendConfig.order = config.order;
   backendConfig.d_weight = config.weight;
-  backendConfig.d_retries = config.retries;
   backendConfig.d_maxInFlightQueriesPerConn = config.max_in_flight;
   backendConfig.d_tcpConcurrentConnectionsLimit = config.max_concurrent_tcp_connections;
   backendConfig.name = std::string(config.name);
@@ -377,6 +376,7 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dns
   backendConfig.d_cpus = getCPUPiningFromStr("backend", std::string(config.cpus));
   backendConfig.d_tcpOnly = config.tcp_only;
 
+  backendConfig.d_retries = config.tcp.retries;
   backendConfig.tcpConnectTimeout = config.tcp.connect_timeout;
   backendConfig.tcpSendTimeout = config.tcp.send_timeout;
   backendConfig.tcpRecvTimeout = config.tcp.receive_timeout;

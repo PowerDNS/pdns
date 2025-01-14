@@ -17,7 +17,7 @@ DNSCrypt objects and functions
 
   :param string address: The address and port to listen on
   :param string provider: The provider name for this bind
-  :param str certFile(s): The path to a X.509 certificate file in PEM format, or a list of paths to such files.
+  :param str certFile(s): The path to a DNSCrypt certificate file, or a list of paths to such files.
   :param str keyFile(s): The path to the private key file corresponding to the certificate, or a list of paths to such files, whose order should match the certFile(s) ones.
   :param table options: A table with key: value pairs with options (see below)
 

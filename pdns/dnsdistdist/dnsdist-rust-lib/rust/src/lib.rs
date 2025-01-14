@@ -1490,8 +1490,6 @@ mod dnsdistsettings {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         certificates: Vec<IncomingTlsCertificateKeyPairConfiguration>,
         #[serde(default, skip_serializing_if = "crate::is_default")]
-        ignore_errors: bool,
-        #[serde(default, skip_serializing_if = "crate::is_default")]
         ciphers: String,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         ciphers_tls_13: String,
@@ -1584,7 +1582,7 @@ mod dnsdistsettings {
         paths: Vec<String>,
         #[serde(default = "crate::U64::<30>::value", skip_serializing_if = "crate::U64::<30>::is_equal")]
         idle_timeout: u64,
-        #[serde(default = "crate::default_value_incoming_doh_server_tokens", skip_serializing_if = "crate::default_value_equal_incoming_doh_server_tokens")]
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         server_tokens: String,
         #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
         send_cache_control_headers: bool,
@@ -1698,6 +1696,8 @@ mod dnsdistsettings {
     #[serde(deny_unknown_fields)]
     struct OutgoingTcpConfiguration {
         #[serde(default = "crate::U16::<5>::value", skip_serializing_if = "crate::U16::<5>::is_equal")]
+        retries: u16,
+        #[serde(default = "crate::U16::<5>::value", skip_serializing_if = "crate::U16::<5>::is_equal")]
         connect_timeout: u16,
         #[serde(default = "crate::U16::<30>::value", skip_serializing_if = "crate::U16::<30>::is_equal")]
         send_timeout: u16,
@@ -1810,8 +1810,6 @@ mod dnsdistsettings {
         weight: u32,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         pools: Vec<String>,
-        #[serde(default = "crate::U16::<5>::value", skip_serializing_if = "crate::U16::<5>::is_equal")]
-        retries: u16,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         tcp: OutgoingTcpConfiguration,
         #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
@@ -1835,11 +1833,7 @@ mod dnsdistsettings {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         max_concurrent_tcp_connections: u32,
         #[serde(default, skip_serializing_if = "crate::is_default")]
-        ktls: bool,
-        #[serde(default, skip_serializing_if = "crate::is_default")]
         proxy_protocol_advertise_tls: bool,
-        #[serde(default, skip_serializing_if = "crate::is_default")]
-        xsk_sockets: Vec<String>,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         mac_address: String,
         #[serde(default, skip_serializing_if = "crate::is_default")]
@@ -2814,15 +2808,6 @@ fn default_value_incoming_doh_provider() -> String {
 }
 fn default_value_equal_incoming_doh_provider(value: &str)-> bool {
     value == default_value_incoming_doh_provider()
-}
-
-
-// DEFAULT HANDLING for incoming_doh_server_tokens
-fn default_value_incoming_doh_server_tokens() -> String {
-    String::from("h2o/dnsdist")
-}
-fn default_value_equal_incoming_doh_server_tokens(value: &str)-> bool {
-    value == default_value_incoming_doh_server_tokens()
 }
 
 
