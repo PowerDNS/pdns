@@ -101,7 +101,11 @@ static std::string getSecPollStatus(const std::string& queriedName, int timeout=
 
   const auto& resolversForStub = getResolvers("/etc/resolv.conf");
 
-  for(const auto& dest : resolversForStub) {
+  if (resolversForStub.empty()) {
+    throw std::runtime_error("No resolver to query to check for Security Status update");
+  }
+
+  for (const auto& dest : resolversForStub) {
     Socket sock(dest.sin4.sin_family, SOCK_DGRAM);
     sock.setNonBlocking();
     sock.connect(dest);
@@ -155,7 +159,7 @@ static std::string getSecPollStatus(const std::string& queriedName, int timeout=
 
       /* no need to try another resolver if the domain does not exist */
       if (d.rcode == RCode::NXDomain) {
-        throw std::runtime_error("Unable to get a valid Security Status update");
+        throw std::runtime_error("Unable to get a valid Security Status update, domain does not exist");
       }
       continue;
     }
