@@ -83,8 +83,10 @@ public:
   bool d_haveEDNS{false};
 };
 
+struct EDNSSubnetOpts;
+
 LWResult::Result asendto(const void* data, size_t len, int flags, const ComboAddress& toAddress, uint16_t qid,
-                         const DNSName& domain, uint16_t qtype, bool ecs, int* fileDesc);
+                         const DNSName& domain, uint16_t qtype, const std::optional<EDNSSubnetOpts>& ecs, int* fileDesc, timeval& now);
 LWResult::Result arecvfrom(PacketBuffer& packet, int flags, const ComboAddress& fromAddr, size_t& len, uint16_t qid,
                            const DNSName& domain, uint16_t qtype, int fileDesc, const struct timeval& now);
 
