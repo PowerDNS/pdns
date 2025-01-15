@@ -423,16 +423,13 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
 
   string ping;
   bool weWantEDNSSubnet = false;
-  uint8_t outgoingECSBits = 0;
-  ComboAddress outgoingECSAddr;
+  std::optional<EDNSSubnetOpts> subnetOpts = std::nullopt;
   if (EDNS0Level > 0) {
     DNSPacketWriter::optvect_t opts;
     if (srcmask) {
-      EDNSSubnetOpts eo;
-      eo.source = *srcmask;
-      outgoingECSBits = srcmask->getBits();
-      outgoingECSAddr = srcmask->getNetwork();
-      opts.emplace_back(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(eo));
+      subnetOpts = EDNSSubnetOpts{};
+      subnetOpts->source = *srcmask;
+      opts.emplace_back(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(*subnetOpts));
       weWantEDNSSubnet = true;
     }
 
@@ -478,7 +475,7 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
   if (!doTCP) {
     int queryfd;
 
-    ret = asendto(vpacket.data(), vpacket.size(), 0, address, qid, domain, type, weWantEDNSSubnet, &queryfd, *now);
+    ret = asendto(vpacket.data(), vpacket.size(), 0, address, qid, domain, type, subnetOpts, &queryfd, *now);
 
     if (ret != LWResult::Result::Success) {
       return ret;
@@ -612,7 +609,8 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
                  IPv4 and IPv6. Still I'm pretty sure it doesn't matter in real life, so let's not duplicate
                  entries in our cache. */
               if (reso.scope.getBits()) {
-                uint8_t bits = std::min(reso.scope.getBits(), outgoingECSBits);
+                uint8_t bits = std::min(reso.scope.getBits(), subnetOpts->source.getBits());
+                auto outgoingECSAddr = subnetOpts->source.getNetwork();
                 outgoingECSAddr.truncate(bits);
                 srcmask = Netmask(outgoingECSAddr, bits);
               }
