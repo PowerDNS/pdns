@@ -65,7 +65,7 @@ BOOST_AUTO_TEST_CASE(test_getEDNSOption)
   BOOST_CHECK_EQUAL(res, 0);
 
   EDNSSubnetOpts eso;
-  BOOST_REQUIRE(EDNSSubnetOpts::getFromString(reinterpret_cast<const char*>(&query.at(pos + 9 + ecsStartPosition + 4)), ecsLen - 4, &eso));
+  BOOST_REQUIRE(EDNSSubnetOpts::getFromString(reinterpret_cast<const char*>(&query.at(pos + 9 + ecsStartPosition + 4)), ecsLen - 4, &eso)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
 
   BOOST_CHECK(eso.getSource() == ecs);
 }
