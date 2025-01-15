@@ -4328,6 +4328,90 @@ static int backendLookup(vector<string>& cmds)
   return 0;
 }
 
+static std::unordered_map<std::string, std::pair<bool, int (*)(std::vector<std::string>&)>> commands{
+  {"activate-tsig-key", {true, activateTSIGKey}},
+  {"activate-zone-key", {true, activateZoneKey}},
+  {"add-autoprimary", {true, addAutoprimary}},
+  {"add-meta", {true, setMeta}},
+  {"add-record", {true, addRecord}},
+  {"add-zone-key", {true, addZoneKey}},
+  {"b2b-migrate", {true, B2BMigrate}},
+  {"backend-cmd", {true, backendCmd}},
+  {"backend-lookup", {true, backendLookup}},
+  {"bench-db", {true, benchDb}},
+  {"change-secondary-zone-primary", {true, changeSecondaryZonePrimary}},
+  {"check-all-zones", {true, checkAllZones}},
+  {"check-zone", {true, checkZone}},
+  {"clear-zone", {true, clearZone}},
+  {"create-bind-db", {true, createBindDb}},
+  {"create-secondary-zone", {true, createSecondaryZone}},
+  {"create-zone", {true, createZone}},
+  {"deactivate-tsig-key", {true, deactivateTSIGKey}},
+  {"deactivate-zone-key", {true, deactivateZoneKey}},
+  {"delete-rrset", {true, deleteRRSet}},
+  {"delete-tsig-key", {true, deleteTSIGKey}},
+  {"delete-zone", {true, deleteZone}},
+  {"disable-dnssec", {true, disableDNSSEC}},
+  {"edit-zone", {true, editZone}},
+  {"export-zone-dnskey", {true, expotZoneDNSKey}},
+  {"export-zone-ds", {true, exportZoneDS}},
+  {"export-zone-key", {true, exportZoneKey}},
+  {"export-zone-key-pem", {true, exportZoneKeyPEM}},
+  {"generate-tsig-key", {true, generateTSIGKey}},
+  {"generate-zone-key", {true, generateZoneKey}},
+  {"get-meta", {true, getMeta}},
+  {"hash-password", {true, hashPassword}},
+  {"hash-zone-record", {true, hashZoneRecord}},
+  {"hsm", {true, HSM}},
+  {"import-tsig-key", {true, importTSIGKey}},
+  {"import-zone-key", {true, importZoneKey}},
+  {"import-zone-key-pem", {true, importZoneKeyPEM}},
+  {"increase-serial", {true, increaseSerial}},
+  {"ipdecrypt", {false, ipEncrypt}},
+  {"ipencrypt", {false, ipEncrypt}},
+  {"list-algorithms", {false, listAlgorithms}},
+  {"list-all-zones", {true, listAllZones}},
+  {"list-autoprimaries", {true, listAutoprimaries}},
+  {"list-keys", {true, listKeys}},
+  {"list-member-zones", {true, listMemberZones}},
+  {"list-tsig-keys", {true, listTSIGKeys}},
+  {"list-zone", {true, listZone}},
+  {"lmdb-get-backend-version", {false, lmdbGetBackendVersion}},
+  {"load-zone", {true, loadZone}},
+  {"publish-zone-key", {true, publishZoneKey}},
+  {"raw-lua-from-content", {true, rawLuaFromContent}},
+  {"rectify-all-zones", {true, rectifyAllZones}},
+  {"rectify-zone", {true, rectifyZone}},
+  {"remove-autoprimary", {true, removeAutoprimary}},
+  {"remove-zone-key", {true, removeZoneKey}},
+  {"replace-rrset", {true, replaceRRSet}},
+  {"secure-all-zones", {true, secureAllZones}},
+  {"secure-zone", {true, secureZone}},
+  {"set-account", {true, setAccount}},
+  {"set-catalog", {true, setCatalog}},
+  {"set-kind", {true, setKind}},
+  {"set-meta", {true, setMeta}},
+  {"set-nsec3", {true, setNsec3}},
+  {"set-option", {true, setOption}},
+  {"set-options-json", {true, setOptionsJson}},
+  {"set-presigned", {true, setPresigned}},
+  {"set-publish-cdnskey", {true, setPublishCDNSKey}},
+  {"set-publish-cds", {true, setPublishCDs}},
+  {"show-zone", {true, showZone}},
+  {"test-algorithm", {false, testAlgorithm}},
+  {"test-algorithms", {false, testAlgorithms}},
+  {"test-all-zones", {true, testAllZones}},
+  {"test-schema", {true, testSchema}},
+  {"test-speed", {true, testSpeed}},
+  {"test-zone", {true, testZone}},
+  {"unpublish-zone-key", {true, unpublishZoneKey}},
+  {"unset-nsec3", {true, unsetNSec3}},
+  {"unset-presigned", {true, unsetPresigned}},
+  {"unset-publish-cdnskey", {true, unsetPublishCDNSKey}},
+  {"unset-publish-cds", {true, unsetPublishCDs}},
+  {"verify-crypto", {true, verifyCrypto}},
+  {"zonemd-verify-file", {true, zonemdVerifyFile}}
+};
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity): TODO Clean this function up.
 int main(int argc, char** argv)
@@ -4485,261 +4569,17 @@ try
 
   loadMainConfig(g_vm["config-dir"].as<string>());
 
-  if (cmds.at(0) == "lmdb-get-backend-version") {
-    return lmdbGetBackendVersion(cmds);
-  }
-  if (cmds.at(0) == "test-algorithm") {
-    return testAlgorithm(cmds);
-  }
-
-  if (cmds.at(0) == "ipencrypt" || cmds.at(0) == "ipdecrypt") {
-    return ipEncrypt(cmds);
+  auto it = commands.find(cmds.at(0));
+  if (it != commands.end()) {
+    auto [initRequired, handler] = it->second;
+    if (initRequired) {
+      reportAllTypes();
+    }
+    return handler(cmds);
   }
 
-  if (cmds.at(0) == "test-algorithms") {
-    return testAlgorithms(cmds);
-  }
-
-  if (cmds.at(0) == "list-algorithms") {
-    return listAlgorithms(cmds);
-  }
-
-  reportAllTypes();
-
-  if (cmds.at(0) == "create-bind-db") {
-    return createBindDb(cmds);
-  }
-
-  if (cmds.at(0) == "raw-lua-from-content") {
-    return rawLuaFromContent(cmds);
-  }
-  else if (cmds.at(0) == "hash-password") {
-    return hashPassword(cmds);
-  }
-
-  if(cmds[0] == "zonemd-verify-file") {
-    return zonemdVerifyFile(cmds);
-  }
-
-  if (cmds.at(0) == "test-schema") {
-    return testSchema(cmds);
-  }
-  if (cmds.at(0) == "rectify-zone") {
-    return rectifyZone(cmds);
-  }
-  else if (cmds.at(0) == "rectify-all-zones") {
-    return rectifyAllZones(cmds);
-  }
-  else if (cmds.at(0) == "check-zone") {
-    return checkZone(cmds);
-  }
-  else if (cmds.at(0) == "bench-db") {
-    return benchDb(cmds);
-  }
-  else if (cmds.at(0) == "check-all-zones") {
-    return checkAllZones(cmds);
-  }
-  else if (cmds.at(0) == "list-all-zones") {
-    return listAllZones(cmds);
-  }
-  else if (cmds.at(0) == "list-member-zones") {
-    return listMemberZones(cmds);
-  }
-  else if (cmds.at(0) == "test-zone") {
-    return testZone(cmds);
-  }
-  else if (cmds.at(0) == "test-all-zones") {
-    return testAllZones(cmds);
-  }
-  else if (cmds.at(0) == "test-speed") {
-    return testSpeed(cmds);
-  }
-  else if (cmds.at(0) == "verify-crypto") {
-    return verifyCrypto(cmds);
-  }
-  else if (cmds.at(0) == "show-zone") {
-    return showZone(cmds);
-  }
-  else if (cmds.at(0) == "export-zone-ds") {
-    return exportZoneDS(cmds);
-  }
-  else if (cmds.at(0) == "disable-dnssec") {
-    return disableDNSSEC(cmds);
-  }
-  else if (cmds.at(0) == "activate-zone-key") {
-    return activateZoneKey(cmds);
-  }
-  else if (cmds.at(0) == "deactivate-zone-key") {
-    return deactivateZoneKey(cmds);
-  }
-  else if (cmds.at(0) == "publish-zone-key") {
-    return publishZoneKey(cmds);
-  }
-  else if (cmds.at(0) == "unpublish-zone-key") {
-    return unpublishZoneKey(cmds);
-  }
-
-  else if (cmds.at(0) == "add-zone-key") {
-    return addZoneKey(cmds);
-  }
-  else if (cmds.at(0) == "remove-zone-key") {
-    return removeZoneKey(cmds);
-  }
-  else if (cmds.at(0) == "delete-zone") {
-    return deleteZone(cmds);
-  }
-  else if (cmds.at(0) == "create-zone") {
-    return createZone(cmds);
-  }
-  else if (cmds.at(0) == "create-secondary-zone") {
-    return createSecondaryZone(cmds);
-  }
-  else if (cmds.at(0) == "change-secondary-zone-primary") {
-    return changeSecondaryZonePrimary(cmds);
-  }
-  else if (cmds.at(0) == "add-record") {
-    return addRecord(cmds);
-  }
-  else if (cmds.at(0) == "add-autoprimary") {
-    return addAutoprimary(cmds);
-  }
-  else if (cmds.at(0) == "remove-autoprimary") {
-    return removeAutoprimary(cmds);
-  }
-  else if (cmds.at(0) == "list-autoprimaries") {
-    return listAutoprimaries(cmds);
-  }
-  else if (cmds.at(0) == "replace-rrset") {
-    return replaceRRSet(cmds);
-  }
-  else if (cmds.at(0) == "delete-rrset") {
-    return deleteRRSet(cmds);
-  }
-  else if (cmds.at(0) == "list-zone") {
-    return listZone(cmds);
-  }
-  else if (cmds.at(0) == "edit-zone") {
-    return editZone(cmds);
-  }
-  else if (cmds.at(0) == "clear-zone") {
-    return clearZone(cmds);
-  }
-  else if (cmds.at(0) == "list-keys") {
-    return listKeys(cmds);
-  }
-  else if (cmds.at(0) == "load-zone") {
-    return loadZone(cmds);
-  }
-  else if (cmds.at(0) == "secure-zone") {
-    return secureZone(cmds);
-  }
-  else if (cmds.at(0) == "secure-all-zones") {
-    return secureAllZones(cmds);
-  }
-  else if (cmds.at(0) == "set-kind") {
-    return setKind(cmds);
-  }
-  else if (cmds.at(0) == "set-options-json") {
-    return setOptionsJson(cmds);
-  }
-  else if (cmds.at(0) == "set-option") {
-    return setOption(cmds);
-  }
-  else if (cmds.at(0) == "set-catalog") {
-    return setCatalog(cmds);
-  }
-  else if (cmds.at(0) == "set-account") {
-    return setAccount(cmds);
-  }
-  else if (cmds.at(0) == "set-nsec3") {
-    return setNsec3(cmds);
-  }
-  else if (cmds.at(0) == "set-presigned") {
-    return setPresigned(cmds);
-  }
-  else if (cmds.at(0) == "set-publish-cdnskey") {
-    return setPublishCDNSKey(cmds);
-  }
-  else if (cmds.at(0) == "set-publish-cds") {
-    return setPublishCDs(cmds);
-  }
-  else if (cmds.at(0) == "unset-presigned") {
-    return unsetPresigned(cmds);
-  }
-  else if (cmds.at(0) == "unset-publish-cdnskey") {
-    return unsetPublishCDNSKey(cmds);
-  }
-  else if (cmds.at(0) == "unset-publish-cds") {
-    return unsetPublishCDs(cmds);
-  }
-  else if (cmds.at(0) == "hash-zone-record") {
-    return hashZoneRecord(cmds);
-  }
-  else if (cmds.at(0) == "unset-nsec3") {
-    return unsetNSec3(cmds);
-  }
-  else if (cmds.at(0) == "export-zone-key") {
-    return exportZoneKey(cmds);
-  }
-  else if (cmds.at(0) == "export-zone-key-pem") {
-    return exportZoneKeyPEM(cmds);
-  }
-  else if (cmds.at(0) == "increase-serial") {
-    return increaseSerial(cmds);
-  }
-  else if (cmds.at(0) == "import-zone-key-pem") {
-    return importZoneKeyPEM(cmds);
-  }
-  else if (cmds.at(0) == "import-zone-key") {
-    return importZoneKey(cmds);
-  }
-  else if (cmds.at(0) == "export-zone-dnskey") {
-    return expotZoneDNSKey(cmds);
-  }
-  else if (cmds.at(0) == "generate-zone-key") {
-    return generateZoneKey(cmds);
-  }
-  else if (cmds.at(0) == "generate-tsig-key") {
-    return generateTSIGKey(cmds);
-  }
-  else if (cmds.at(0) == "import-tsig-key") {
-    return importTSIGKey(cmds);
-  }
-  else if (cmds.at(0) == "delete-tsig-key") {
-    return deleteTSIGKey(cmds);
-  }
-  else if (cmds.at(0) == "list-tsig-keys") {
-    return listTSIGKeys(cmds);
-  }
-  else if (cmds.at(0) == "activate-tsig-key") {
-    return activateTSIGKey(cmds);
-  }
-  else if (cmds.at(0) == "deactivate-tsig-key") {
-    return deactivateTSIGKey(cmds);
-  }
-  else if (cmds.at(0) == "get-meta") {
-    return getMeta(cmds);
-  }
-  else if (cmds.at(0) == "set-meta" || cmds.at(0) == "add-meta") {
-    return setMeta(cmds);
-  }
-  else if (cmds.at(0) == "hsm") {
-    return HSM(cmds);
-  }
-  else if (cmds.at(0) == "b2b-migrate") {
-    return B2BMigrate(cmds);
-  }
-  else if (cmds.at(0) == "backend-cmd") {
-    return backendCmd(cmds);
-  }
-  else if (cmds.at(0) == "backend-lookup") {
-    return backendLookup(cmds);
-  }
-  else {
-    cerr << "Unknown command '" << cmds.at(0) << "'" << endl;
-    return 1;
-  }
-  return 0;
+  cerr << "Unknown command '" << cmds.at(0) << "'" << endl;
+  return 1;
 }
 catch (PDNSException& ae) {
   cerr << "Error: " << ae.reason << endl;
