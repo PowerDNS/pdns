@@ -420,18 +420,12 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
   pw.getHeader()->cd = (sendRDQuery && g_dnssecmode != DNSSECMode::Off);
 
   string ping;
-  bool weWantEDNSSubnet = false;
-  uint8_t outgoingECSBits = 0;
-  ComboAddress outgoingECSAddr;
   std::optional<EDNSSubnetOpts> subnetOpts = std::nullopt;
   if (EDNS0Level > 0) {
     DNSPacketWriter::optvect_t opts;
     if (srcmask) {
       subnetOpts->setSource(*srcmask);
-      outgoingECSBits = srcmask->getBits();
-      outgoingECSAddr = srcmask->getNetwork();
       opts.emplace_back(EDNSOptionCode::ECS, subnetOpts->makeOptString());
-      weWantEDNSSubnet = true;
     }
 
     if (dnsOverTLS && g_paddingOutgoing) {
@@ -500,7 +494,7 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
 #endif /* HAVE_FSTRM */
 
     // sleep until we see an answer to this, interface to mtasker
-    ret = arecvfrom(buf, 0, address, len, qid, domain, type, queryfd, *now);
+    ret = arecvfrom(buf, 0, address, len, qid, domain, type, queryfd, subnetOpts, *now);
   }
   else {
     bool isNew;
@@ -601,17 +595,29 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
     if (EDNS0Level > 0 && getEDNSOpts(mdp, &edo)) {
       lwr->d_haveEDNS = true;
 
-      if (weWantEDNSSubnet) {
+      // If we sent out ECS, we can also expect to see a return with or without ECS, the absent case is
+      // not handled explicitly. If we do see a ECS in the reply, the source part *must* match with
+      // what we sent out See https://www.rfc-editor.org/rfc/rfc7871#section-7.3
+      if (subnetOpts) {
         for (const auto& opt : edo.d_options) {
           if (opt.first == EDNSOptionCode::ECS) {
             EDNSSubnetOpts reso;
             if (EDNSSubnetOpts::getFromString(opt.second, &reso)) {
+              if (!(reso.getSource() == subnetOpts->getSource())) {
+                g_slogout->info(Logr::Notice, "Incoming ECS does not match outgoing",
+                                "server", Logging::Loggable(address),
+                                "qname", Logging::Loggable(domain),
+                                "outgoing", Logging::Loggable(subnetOpts->getSource()),
+                                "incoming", Logging::Loggable(reso.getSource()));
+                return LWResult::Result::Spoofed; // XXXXX OK?
+              }
               /* rfc7871 states that 0 "indicate[s] that the answer is suitable for all addresses in FAMILY",
                  so we might want to still pass the information along to be able to differentiate between
                  IPv4 and IPv6. Still I'm pretty sure it doesn't matter in real life, so let's not duplicate
                  entries in our cache. */
               if (reso.getScopePrefixLength() != 0) {
-                uint8_t bits = std::min(reso.getScopePrefixLength(), outgoingECSBits);
+                uint8_t bits = std::min(reso.getScopePrefixLength(), subnetOpts->getSourcePrefixLength());
+                auto outgoingECSAddr = subnetOpts->getSource().getNetwork();
                 outgoingECSAddr.truncate(bits);
                 srcmask = Netmask(outgoingECSAddr, bits);
               }
