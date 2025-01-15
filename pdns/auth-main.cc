@@ -1026,11 +1026,11 @@ static int guardian(int argc, char** argv)
   int infd = 0, outfd = 1;
 
   DynListener dlg(g_programname);
-  dlg.registerFunc("QUIT", &DLQuitHandler, "quit daemon");
-  dlg.registerFunc("CYCLE", &DLCycleHandler, "restart instance");
-  dlg.registerFunc("PING", &DLPingHandler, "ping guardian");
-  dlg.registerFunc("STATUS", &DLStatusHandler, "get instance status from guardian");
-  dlg.registerRestFunc(&DLRestHandler);
+  DynListener::registerExitFunc("QUIT", &DLQuitHandler);
+  DynListener::registerFunc("CYCLE", &DLCycleHandler, "restart instance");
+  DynListener::registerFunc("PING", &DLPingHandler, "ping guardian");
+  DynListener::registerFunc("STATUS", &DLStatusHandler, "get instance status from guardian");
+  DynListener::registerRestFunc(&DLRestHandler);
   dlg.go();
   string progname = argv[0];
 
@@ -1415,7 +1415,7 @@ int main(int argc, char** argv)
     }
     DynListener::registerFunc("SHOW", &DLShowHandler, "show a specific statistic or * to get a list", "<statistic>");
     DynListener::registerFunc("RPING", &DLPingHandler, "ping instance");
-    DynListener::registerFunc("QUIT", &DLRQuitHandler, "quit daemon");
+    DynListener::registerExitFunc("QUIT", &DLRQuitHandler);
     DynListener::registerFunc("UPTIME", &DLUptimeHandler, "get instance uptime");
     DynListener::registerFunc("NOTIFY-HOST", &DLNotifyHostHandler, "notify host for specific zone", "<zone> <host>");
     DynListener::registerFunc("NOTIFY", &DLNotifyHandler, "queue a notification", "<zone>");
