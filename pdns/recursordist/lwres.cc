@@ -423,14 +423,14 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
   bool weWantEDNSSubnet = false;
   uint8_t outgoingECSBits = 0;
   ComboAddress outgoingECSAddr;
+  std::optional<EDNSSubnetOpts> subnetOpts = std::nullopt;
   if (EDNS0Level > 0) {
     DNSPacketWriter::optvect_t opts;
     if (srcmask) {
-      EDNSSubnetOpts subnetOpts;
-      subnetOpts.setSource(*srcmask);
+      subnetOpts->setSource(*srcmask);
       outgoingECSBits = srcmask->getBits();
       outgoingECSAddr = srcmask->getNetwork();
-      opts.emplace_back(EDNSOptionCode::ECS, subnetOpts.makeOptString());
+      opts.emplace_back(EDNSOptionCode::ECS, subnetOpts->makeOptString());
       weWantEDNSSubnet = true;
     }
 
@@ -476,7 +476,7 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
   if (!doTCP) {
     int queryfd;
 
-    ret = asendto(vpacket.data(), vpacket.size(), 0, address, qid, domain, type, weWantEDNSSubnet, &queryfd, *now);
+    ret = asendto(vpacket.data(), vpacket.size(), 0, address, qid, domain, type, subnetOpts, &queryfd, *now);
 
     if (ret != LWResult::Result::Success) {
       return ret;
