@@ -762,6 +762,8 @@ struct PacketID
   using chain_t = set<uint16_t>;
   mutable chain_t chain;
   shared_ptr<TCPIOHandler> tcphandler{nullptr};
+  timeval creationTime{};
+  std::optional<Netmask> ecsSubnet;
   string::size_type inPos{0}; // how far are we along in the inMSG
   size_t inWanted{0}; // if this is set, we'll read until inWanted bytes are read
   string::size_type outPos{0}; // how far we are along in the outMSG
@@ -801,10 +803,10 @@ struct PacketIDCompare
 {
   bool operator()(const std::shared_ptr<PacketID>& lhs, const std::shared_ptr<PacketID>& rhs) const
   {
-    if (std::tie(lhs->remote, lhs->tcpsock, lhs->type) < std::tie(rhs->remote, rhs->tcpsock, rhs->type)) {
+    if (std::tie(lhs->remote, lhs->tcpsock, lhs->type, lhs->ecsSubnet) < std::tie(rhs->remote, rhs->tcpsock, rhs->type, rhs->ecsSubnet)) {
       return true;
     }
-    if (std::tie(lhs->remote, lhs->tcpsock, lhs->type) > std::tie(rhs->remote, rhs->tcpsock, rhs->type)) {
+    if (std::tie(lhs->remote, lhs->tcpsock, lhs->type, lhs->ecsSubnet) > std::tie(rhs->remote, rhs->tcpsock, rhs->type, rhs->ecsSubnet)) {
       return false;
     }
 
@@ -816,10 +818,10 @@ struct PacketIDBirthdayCompare
 {
   bool operator()(const std::shared_ptr<PacketID>& lhs, const std::shared_ptr<PacketID>& rhs) const
   {
-    if (std::tie(lhs->remote, lhs->tcpsock, lhs->type) < std::tie(rhs->remote, rhs->tcpsock, rhs->type)) {
+    if (std::tie(lhs->remote, lhs->tcpsock, lhs->type, lhs->ecsSubnet) < std::tie(rhs->remote, rhs->tcpsock, rhs->type, rhs->ecsSubnet)) {
       return true;
     }
-    if (std::tie(lhs->remote, lhs->tcpsock, lhs->type) > std::tie(rhs->remote, rhs->tcpsock, rhs->type)) {
+    if (std::tie(lhs->remote, lhs->tcpsock, lhs->type, lhs->ecsSubnet) > std::tie(rhs->remote, rhs->tcpsock, rhs->type, rhs->ecsSubnet)) {
       return false;
     }
     return lhs->domain < rhs->domain;
