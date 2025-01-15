@@ -4398,7 +4398,7 @@ static int backendLookup(vector<string>& cmds)
   return 0;
 }
 
-static std::unordered_map<std::string, std::pair<bool, int (*)(std::vector<std::string>&)>> commands{
+static const std::unordered_map<std::string, std::pair<bool, int (*)(std::vector<std::string>&)>> commands{
   {"activate-tsig-key", {true, activateTSIGKey}},
   {"activate-zone-key", {true, activateZoneKey}},
   {"add-autoprimary", {true, addAutoprimary}},
@@ -4640,7 +4640,7 @@ try
 
   loadMainConfig(g_vm["config-dir"].as<string>());
 
-  auto iter = commands.find(cmds.at(0));
+  const auto iter = commands.find(cmds.at(0));
   if (iter != commands.end()) {
     auto [initRequired, handler] = iter->second;
     if (initRequired) {
