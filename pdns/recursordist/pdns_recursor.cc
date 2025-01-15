@@ -284,11 +284,13 @@ LWResult::Result asendto(const void* data, size_t len, int /* flags */,
   pident->domain = domain;
   pident->remote = toAddress;
   pident->type = qtype;
-
+  if (ecs) {
+    pident->ecsSubnet = ecs->source;
+  }
   // We cannot merge ECS-enabled queries based on the ECS source only, as the scope
   // of the response might be narrower, so instead we do not chain ECS-enabled queries
   // at all.
-  if (!ecs) {
+  if (true || !ecs) {
     // See if there is an existing outstanding request we can chain on to, using partial equivalence
     // function looking for the same query (qname and qtype) to the same host, but with a different
     // message ID.
@@ -342,7 +344,7 @@ LWResult::Result asendto(const void* data, size_t len, int /* flags */,
 }
 
 LWResult::Result arecvfrom(PacketBuffer& packet, int /* flags */, const ComboAddress& fromAddr, size_t& len,
-                           uint16_t qid, const DNSName& domain, uint16_t qtype, int fileDesc, const struct timeval& now)
+                           uint16_t qid, const DNSName& domain, uint16_t qtype, int fileDesc, const std::optional<EDNSSubnetOpts>& ecs, const struct timeval& now)
 {
   static const unsigned int nearMissLimit = ::arg().asNum("spoof-nearmiss-max");
 
@@ -353,7 +355,13 @@ LWResult::Result arecvfrom(PacketBuffer& packet, int /* flags */, const ComboAdd
   pident->type = qtype;
   pident->remote = fromAddr;
   pident->creationTime = now;
-
+  if (ecs) {
+    // We sent out the query using ecs
+    // We expect incoming source ECS to match, see https://www.rfc-editor.org/rfc/rfc7871#section-7.3
+    // But there's also section 11-2, which says we should treat absent incoming ecs as scope zero
+    // We fill in the search key with the ecs we sent out, so both cases are covered and accepted here.
+    pident->ecsSubnet = ecs->source;
+  }
   int ret = g_multiTasker->waitEvent(pident, &packet, authWaitTimeMSec(g_multiTasker), &now);
   len = 0;
 
