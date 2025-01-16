@@ -255,8 +255,8 @@ Adding a autoprimary can be done either directly in the database,
 or by using the 'pdnsutil add-autoprimary' command.
 
 .. warning::
-  When a secondary receives notification while bootstraping a new domain using autosecondary feature, it will send
-  SOA and NS queries to the IP address obtained from the ``supermasters`` table. These queries are **not** recursive.
+  When a secondary receives notification while bootstrapping a new domain using autosecondary feature, it will send
+  SOA and NS queries to the IP address matched in the ``supermasters`` table. These queries are **not** recursive.
   This will cause domain bootstrap to fail if the primary authoritative server is hidden behind a recursor,
   so make sure these queries go (or are forwarded by dnsdist) straight to the auth server.
 
