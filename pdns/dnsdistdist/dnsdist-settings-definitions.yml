@@ -667,15 +667,15 @@ dynamic_rules:
       description: "Number of bits of port to consider over IPv4, for CGNAT deployments. Default is 0 meaning that the port is not taken into account. For example passing ``2`` here, which only makes sense if the IPv4 parameter is set to ``32``, will split a given IPv4 address into four port ranges: ``0-16383``, ``16384-32767``, ``32768-49151`` and ``49152-65535``"
     - name: "exclude_ranges"
       type: "Vec<String>"
-      default: true
+      default: ""
       description: "Exclude this list of ranges, meaning that no dynamic block will ever be inserted for clients in that range. Default to empty, meaning rules are applied to all ranges. When used in combination with ``include_ranges`` the more specific entry wins"
     - name: "include_ranges"
       type: "Vec<String>"
-      default: true
+      default: ""
       description: "Include this list of ranges, meaning that dynamic rules will be inserted for clients in that range. When used in combination with ``exclude_ranges`` the more specific entry wins"
     - name: "exclude_domains"
       type: "Vec<String>"
-      default: true
+      default: ""
       description: "Exclude this list of domains, meaning that no dynamic rules will ever be inserted for this domain via ``suffix-match`` or ``suffix-match-ffi`` rules. Default to empty, meaning rules are applied to all domains"
     - name: "rules"
       type: "Vec<DynamicRuleConfiguration>"
@@ -796,7 +796,7 @@ incoming_tls:
       description: "The maximum number of sessions kept in memory at the same time. Default is 20480. Setting this value to 0 disables stored session entirely"
     - name: "ocsp_response_files"
       type: "Vec<String>"
-      default: true
+      default: ""
       description: "List of files containing OCSP responses, in the same order than the certificates and keys, that will be used to provide OCSP stapling responses"
     - name: "key_log_file"
       type: "String"
@@ -1111,7 +1111,7 @@ bind:
       description: "DNSCrypt-specific settings"
     - name: "additional_addresses"
       type: "Vec<String>"
-      default: true
+      default: ""
       description: "List of additional addresses (with port) to listen on. Using this option instead of creating a new frontend for each address avoids the creation of new thread and Frontend objects, reducing the memory usage. The drawback is that there will be a single set of metrics for all addresses"
     - name: "xsk"
       type: "String"
@@ -1335,8 +1335,8 @@ backend:
       description: "The weight of this server, used by the `wrandom`, `whashed` and `chashed` policies, default: 1. Supported values are a minimum of 1, and a maximum of 2147483647"
     - name: "pools"
       type: "Vec<String>"
-      default: true
-      description: "List of pools to place this backend into. By default a server is place in the default (\"\") pool"
+      default: ""
+      description: "List of pools to place this backend into. By default a server is placed in the default (\"\") pool"
     - name: "tcp"
       type: "OutgoingTcpConfiguration"
       default: true
@@ -1684,7 +1684,7 @@ general:
       runtime-configurable: true
     - name: "capabilities_to_retain"
       type: "Vec<String>"
-      default: true
+      default: ""
       lua-name: "addCapabilitiesToRetain"
       runtime-configurable: false
 
@@ -1732,7 +1732,7 @@ packet_cache:
       default: "0"
     - name: "options_to_skip"
       type: "Vec<String>"
-      default: true
+      default: ""
 
 proxy_protocol:
   parameters:

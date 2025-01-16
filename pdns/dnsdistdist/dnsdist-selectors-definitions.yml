@@ -156,7 +156,7 @@ Set the ``source`` parameter to ``false`` to match against destination address i
       default: ""
     - name: "netmasks"
       type: "Vec<String>"
-      default: true
+      default: ""
     - name: "source"
       type: "bool"
       default: "true"

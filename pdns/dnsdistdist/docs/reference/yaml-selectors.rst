@@ -277,7 +277,7 @@ Lua equivalent: :func:`NetmaskGroupRule`
 Parameters:
 
 - **netmask_group_name**: String ``("")``
-- **netmasks**: Sequence of String
+- **netmasks**: Sequence of String ``("")``
 - **source**: Boolean ``(true)``
 - **quiet**: Boolean ``(false)``
 

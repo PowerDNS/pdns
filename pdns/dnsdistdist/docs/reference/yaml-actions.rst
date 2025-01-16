@@ -324,7 +324,7 @@ Parameters:
 - **alter_function_file**: String ``("")``
 - **server_id**: String ``("")``
 - **ip_encrypt_key**: String ``("")``
-- **export_tags**: Sequence of String
+- **export_tags**: Sequence of String ``("")``
 - **metas**: Sequence of :ref:`ProtoBufMetaConfiguration <yaml-settings-ProtoBufMetaConfiguration>`
 
 

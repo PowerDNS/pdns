@@ -73,7 +73,7 @@ Generic settings for backends
 - **queries_per_second**: Unsigned integer ``(0)`` - Limit the number of queries per second to ``number``, when using the ``firstAvailable`` policy
 - **order**: Unsigned integer ``(1)`` - The order of this server, used by the `leastOutstanding` and `firstAvailable` policies
 - **weight**: Unsigned integer ``(1)`` - The weight of this server, used by the `wrandom`, `whashed` and `chashed` policies, default: 1. Supported values are a minimum of 1, and a maximum of 2147483647
-- **pools**: Sequence of String - List of pools to place this backend into. By default a server is place in the default ("") pool
+- **pools**: Sequence of String ``("")`` - List of pools to place this backend into. By default a server is placed in the default ("") pool
 - **tcp**: :ref:`OutgoingTcpConfiguration <yaml-settings-OutgoingTcpConfiguration>` - TCP-related settings for a backend
 - **ip_bind_addr_no_port**: Boolean ``(true)`` - Whether to enable ``IP_BIND_ADDRESS_NO_PORT`` if available
 - **health_checks**: :ref:`HealthCheckConfiguration <yaml-settings-HealthCheckConfiguration>` - Health-check settings
@@ -117,7 +117,7 @@ General settings for frontends
 - **doq**: :ref:`IncomingDoqConfiguration <yaml-settings-IncomingDoqConfiguration>` - DNS over QUIC-specific settings
 - **quic**: :ref:`IncomingQuicConfiguration <yaml-settings-IncomingQuicConfiguration>` - QUIC-specific settings
 - **dnscrypt**: :ref:`IncomingDnscryptConfiguration <yaml-settings-IncomingDnscryptConfiguration>` - DNSCrypt-specific settings
-- **additional_addresses**: Sequence of String - List of additional addresses (with port) to listen on. Using this option instead of creating a new frontend for each address avoids the creation of new thread and Frontend objects, reducing the memory usage. The drawback is that there will be a single set of metrics for all addresses
+- **additional_addresses**: Sequence of String ``("")`` - List of additional addresses (with port) to listen on. Using this option instead of creating a new frontend for each address avoids the creation of new thread and Frontend objects, reducing the memory usage. The drawback is that there will be a single set of metrics for all addresses
 - **xsk**: String ``("")`` - The name of an XSK sockets map to attach to this frontend, if any
 
 
@@ -252,9 +252,9 @@ Group of dynamic rules
 - **mask_ipv4**: Unsigned integer ``(32)`` - Number of bits to keep for IPv4 addresses
 - **mask_ipv6**: Unsigned integer ``(64)`` - Number of bits to keep for IPv6 addresses. In some scenarios it might make sense to block a whole /64 IPv6 range instead of a single address, for example
 - **mask_port**: Unsigned integer ``(0)`` - Number of bits of port to consider over IPv4, for CGNAT deployments. Default is 0 meaning that the port is not taken into account. For example passing ``2`` here, which only makes sense if the IPv4 parameter is set to ``32``, will split a given IPv4 address into four port ranges: ``0-16383``, ``16384-32767``, ``32768-49151`` and ``49152-65535``
-- **exclude_ranges**: Sequence of String - Exclude this list of ranges, meaning that no dynamic block will ever be inserted for clients in that range. Default to empty, meaning rules are applied to all ranges. When used in combination with ``include_ranges`` the more specific entry wins
-- **include_ranges**: Sequence of String - Include this list of ranges, meaning that dynamic rules will be inserted for clients in that range. When used in combination with ``exclude_ranges`` the more specific entry wins
-- **exclude_domains**: Sequence of String - Exclude this list of domains, meaning that no dynamic rules will ever be inserted for this domain via ``suffix-match`` or ``suffix-match-ffi`` rules. Default to empty, meaning rules are applied to all domains
+- **exclude_ranges**: Sequence of String ``("")`` - Exclude this list of ranges, meaning that no dynamic block will ever be inserted for clients in that range. Default to empty, meaning rules are applied to all ranges. When used in combination with ``include_ranges`` the more specific entry wins
+- **include_ranges**: Sequence of String ``("")`` - Include this list of ranges, meaning that dynamic rules will be inserted for clients in that range. When used in combination with ``exclude_ranges`` the more specific entry wins
+- **exclude_domains**: Sequence of String ``("")`` - Exclude this list of domains, meaning that no dynamic rules will ever be inserted for this domain via ``suffix-match`` or ``suffix-match-ffi`` rules. Default to empty, meaning rules are applied to all domains
 - **rules**: Sequence of :ref:`DynamicRuleConfiguration <yaml-settings-DynamicRuleConfiguration>` - List of dynamic rules in this group
 
 
@@ -320,7 +320,7 @@ GeneralConfiguration
 - **verbose_health_checks**: Boolean ``(false)``
 - **allow_empty_responses**: Boolean ``(false)``
 - **drop_empty_queries**: Boolean ``(false)``
-- **capabilities_to_retain**: Sequence of String
+- **capabilities_to_retain**: Sequence of String ``("")``
 
 
 .. _yaml-settings-HealthCheckConfiguration:
@@ -482,7 +482,7 @@ TLS parameters for frontends
 - **session_timeout**: Unsigned integer ``(0)`` - Set the TLS session lifetime in seconds, this is used both for TLS ticket lifetime and for sessions kept in memory
 - **session_tickets**: Boolean ``(true)`` - Whether session resumption via session tickets is enabled. Default is true, meaning tickets are enabled
 - **number_of_stored_sessions**: Unsigned integer ``(20480)`` - The maximum number of sessions kept in memory at the same time. Default is 20480. Setting this value to 0 disables stored session entirely
-- **ocsp_response_files**: Sequence of String - List of files containing OCSP responses, in the same order than the certificates and keys, that will be used to provide OCSP stapling responses
+- **ocsp_response_files**: Sequence of String ``("")`` - List of files containing OCSP responses, in the same order than the certificates and keys, that will be used to provide OCSP stapling responses
 - **key_log_file**: String ``("")`` - Write the TLS keys in the specified file so that an external program can decrypt TLS exchanges, in the format described in https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format. Note that this feature requires OpenSSL >= 1.1.1
 - **release_buffers**: Boolean ``(true)`` - Whether OpenSSL should release its I/O buffers when a connection goes idle, saving roughly 35 kB of memory per connection
 - **enable_renegotiation**: Boolean ``(false)`` - Whether secure TLS renegotiation should be enabled. Disabled by default since it increases the attack surface and is seldom used for DNS
@@ -710,7 +710,7 @@ PacketCacheConfiguration
 - **temporary_failure_ttl**: Unsigned integer ``(60)``
 - **cookie_hashing**: Boolean ``(false)``
 - **maximum_entry_size**: Unsigned integer ``(0)``
-- **options_to_skip**: Sequence of String
+- **options_to_skip**: Sequence of String ``("")``
 
 
 .. _yaml-settings-PoolConfiguration:

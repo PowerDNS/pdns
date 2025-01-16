@@ -236,7 +236,7 @@ The function will be invoked in a per-thread Lua state, without access to the gl
       default: ""
     - name: "export_tags"
       type: "Vec<String>"
-      default: true
+      default: ""
     - name: "metas"
       type: "Vec<ProtoBufMetaConfiguration>"
       default: true

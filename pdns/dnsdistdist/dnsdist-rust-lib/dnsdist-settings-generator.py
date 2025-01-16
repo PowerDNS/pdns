@@ -77,8 +77,7 @@ def is_value_rust_default(rust_type, value):
     if rust_type == 'String':
         return value == ''
     if rust_type == 'Vec<String>':
-        # FIXME
-        return True
+        return value == ''
     return False
 
 def get_rust_field_name(name):

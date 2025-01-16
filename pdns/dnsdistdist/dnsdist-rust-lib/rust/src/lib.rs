@@ -1317,7 +1317,7 @@ mod dnsdistsettings {
         password: String,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         api_key: String,
-        #[serde(default, skip_serializing_if = "crate::is_default")]
+        #[serde(default = "crate::default_value_webserver_acl", skip_serializing_if = "crate::default_value_equal_webserver_acl")]
         acl: Vec<String>,
         #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
         api_requires_authentication: bool,
@@ -1344,7 +1344,7 @@ mod dnsdistsettings {
         listen_address: String,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         key: String,
-        #[serde(default, skip_serializing_if = "crate::is_default")]
+        #[serde(default = "crate::default_value_console_acl", skip_serializing_if = "crate::default_value_equal_console_acl")]
         acl: Vec<String>,
         #[serde(default = "crate::U32::<10000000>::value", skip_serializing_if = "crate::U32::<10000000>::is_equal")]
         maximum_output_size: u32,
@@ -1578,7 +1578,7 @@ mod dnsdistsettings {
     struct IncomingDohConfiguration {
         #[serde(default = "crate::default_value_incoming_doh_provider", skip_serializing_if = "crate::default_value_equal_incoming_doh_provider")]
         provider: String,
-        #[serde(default, skip_serializing_if = "crate::is_default")]
+        #[serde(default = "crate::default_value_incoming_doh_paths", skip_serializing_if = "crate::default_value_equal_incoming_doh_paths")]
         paths: Vec<String>,
         #[serde(default = "crate::U64::<30>::value", skip_serializing_if = "crate::U64::<30>::is_equal")]
         idle_timeout: u64,
@@ -2324,7 +2324,7 @@ impl ResponseRuleConfigurationSerde {
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
     struct GlobalConfigurationSerde {
-        #[serde(default, skip_serializing_if = "crate::is_default")]
+        #[serde(default = "crate::default_value_global_acl", skip_serializing_if = "crate::default_value_equal_global_acl")]
         acl: Vec<String>,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         backends: Vec<dnsdistsettings::BackendConfiguration>,
@@ -2630,11 +2630,37 @@ impl Default for dnsdistsettings::KeyValueStoresConfiguration {
 }
 
 
+// DEFAULT HANDLING for webserver_acl
+fn default_value_webserver_acl() -> Vec<String> {
+    vec![
+        String::from("127.0.0.1"),
+        String::from("::1"),
+    ]
+}
+fn default_value_equal_webserver_acl(value: &Vec<String>) -> bool {
+    let def = default_value_webserver_acl();
+    &def == value
+}
+
+
 impl Default for dnsdistsettings::WebserverConfiguration {
     fn default() -> Self {
         let deserialized: dnsdistsettings::WebserverConfiguration = serde_yaml::from_str("").unwrap();
         deserialized
     }
+}
+
+
+// DEFAULT HANDLING for console_acl
+fn default_value_console_acl() -> Vec<String> {
+    vec![
+        String::from("127.0.0.1"),
+        String::from("::1"),
+    ]
+}
+fn default_value_equal_console_acl(value: &Vec<String>) -> bool {
+    let def = default_value_console_acl();
+    &def == value
 }
 
 
@@ -2802,6 +2828,18 @@ fn default_value_incoming_doh_provider() -> String {
 }
 fn default_value_equal_incoming_doh_provider(value: &str)-> bool {
     value == default_value_incoming_doh_provider()
+}
+
+
+// DEFAULT HANDLING for incoming_doh_paths
+fn default_value_incoming_doh_paths() -> Vec<String> {
+    vec![
+        String::from("/dns-query"),
+    ]
+}
+fn default_value_equal_incoming_doh_paths(value: &Vec<String>) -> bool {
+    let def = default_value_incoming_doh_paths();
+    &def == value
 }
 
 
@@ -3141,6 +3179,26 @@ impl Default for dnsdistsettings::XskConfiguration {
         let deserialized: dnsdistsettings::XskConfiguration = serde_yaml::from_str("").unwrap();
         deserialized
     }
+}
+
+
+// DEFAULT HANDLING for global_acl
+fn default_value_global_acl() -> Vec<String> {
+    vec![
+        String::from("127.0.0.0/8"),
+        String::from("10.0.0.0/8"),
+        String::from("100.64.0.0/10"),
+        String::from("169.254.0.0/16"),
+        String::from("192.168.0.0/16"),
+        String::from("172.16.0.0/12"),
+        String::from("::1/128"),
+        String::from("fc00::/7"),
+        String::from("fe80::/10"),
+    ]
+}
+fn default_value_equal_global_acl(value: &Vec<String>) -> bool {
+    let def = default_value_global_acl();
+    &def == value
 }
 
 
