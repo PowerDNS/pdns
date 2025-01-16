@@ -336,7 +336,7 @@ void convertRuntimeFlatSettingsFromRust(const dnsdist::rust::settings::GlobalCon
             internal_field_name = parameter['internal-field-name']
             rust_field_name = get_rust_field_name(parameter['name']) if not 'rename' in parameter else parameter['rename']
             default = parameter['default'] if parameter['type'] != 'String' else '"' + parameter['default'] + '"'
-            cxx_flat_settings_fp.write(f'  if (yamlConfig.{category_name}.{rust_field_name} != {default} && config.{internal_field_name} == {default}) {{\n')
+            cxx_flat_settings_fp.write(f'  if (config.{internal_field_name} == {default}) {{\n')
             if parameter['type'] != 'String':
                 cxx_flat_settings_fp.write(f'    config.{internal_field_name} = yamlConfig.{category_name}.{rust_field_name};\n')
             else:
@@ -363,7 +363,7 @@ void convertRuntimeFlatSettingsFromRust(const dnsdist::rust::settings::GlobalCon
             internal_field_name = parameter['internal-field-name']
             rust_field_name = get_rust_field_name(parameter['name']) if not 'rename' in parameter else parameter['rename']
             default = parameter['default'] if parameter['type'] != 'String' else '"' + parameter['default'] + '"'
-            cxx_flat_settings_fp.write(f'  if (yamlConfig.{category_name}.{rust_field_name} != {default} && config.{internal_field_name} == {default}) {{\n')
+            cxx_flat_settings_fp.write(f'  if (config.{internal_field_name} == {default}) {{\n')
             if parameter['type'] != 'String':
                 cxx_flat_settings_fp.write(f'    config.{internal_field_name} = yamlConfig.{category_name}.{rust_field_name};\n')
             else:
