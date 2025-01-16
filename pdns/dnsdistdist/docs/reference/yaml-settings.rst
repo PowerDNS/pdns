@@ -35,6 +35,7 @@ GlobalConfiguration
 - **general**: :ref:`GeneralConfiguration <yaml-settings-GeneralConfiguration>` - General settings
 - **key_value_stores**: :ref:`KeyValueStoresConfiguration <yaml-settings-KeyValueStoresConfiguration>` - Key-Value stores
 - **load_balancing_policies**: :ref:`LoadBalancingPoliciesConfiguration <yaml-settings-LoadBalancingPoliciesConfiguration>` - Load-balancing policies
+- **logging**: :ref:`LoggingConfiguration <yaml-settings-LoggingConfiguration>` - Logging settings
 - **metrics**: :ref:`MetricsConfiguration <yaml-settings-MetricsConfiguration>` - Metrics-related settings
 - **packet_caches**: Sequence of :ref:`PacketCacheConfiguration <yaml-settings-PacketCacheConfiguration>` - Packet-cache definitions
 - **pools**: Sequence of :ref:`PoolConfiguration <yaml-settings-PoolConfiguration>` - Pools of backends
@@ -276,11 +277,11 @@ EbpfConfiguration
 
 ``eBPF`` and ``XDP`` related settings
 
-- **ipv4**: :ref:`EbpfMapConfiguration <yaml-settings-EbpfMapConfiguration>` - IPv4 maps
-- **ipv6**: :ref:`EbpfMapConfiguration <yaml-settings-EbpfMapConfiguration>` - IPv6 maps
-- **cidr_ipv4**: :ref:`EbpfMapConfiguration <yaml-settings-EbpfMapConfiguration>` - IPv4 subnets maps
-- **cidr_ipv6**: :ref:`EbpfMapConfiguration <yaml-settings-EbpfMapConfiguration>` - IPv6 subnets maps
-- **qnames**: :ref:`EbpfMapConfiguration <yaml-settings-EbpfMapConfiguration>` - DNS names maps
+- **ipv4**: :ref:`EbpfMapConfiguration <yaml-settings-EbpfMapConfiguration>` - IPv4 map
+- **ipv6**: :ref:`EbpfMapConfiguration <yaml-settings-EbpfMapConfiguration>` - IPv6 map
+- **cidr_ipv4**: :ref:`EbpfMapConfiguration <yaml-settings-EbpfMapConfiguration>` - IPv4 subnets map
+- **cidr_ipv6**: :ref:`EbpfMapConfiguration <yaml-settings-EbpfMapConfiguration>` - IPv6 subnets map
+- **qnames**: :ref:`EbpfMapConfiguration <yaml-settings-EbpfMapConfiguration>` - DNS names map
 - **external**: Boolean ``(false)`` - If set to true, :program:`dnsdist` does not load the internal ``eBPF`` program. This is useful for ``AF_XDP`` and ``XDP`` maps
 
 
@@ -316,8 +317,6 @@ GeneralConfiguration
 - **add_edns_to_self_generated_answers**: Boolean ``(true)``
 - **truncate_tc_answers**: Boolean ``(false)``
 - **fixup_case**: Boolean ``(false)``
-- **verbose**: Boolean ``(false)``
-- **verbose_health_checks**: Boolean ``(false)``
 - **allow_empty_responses**: Boolean ``(false)``
 - **drop_empty_queries**: Boolean ``(false)``
 - **capabilities_to_retain**: Sequence of String ``("")``
@@ -621,6 +620,20 @@ LoadBalancingPoliciesConfiguration
 - **hash_perturbation**: Unsigned integer ``(0)``
 
 
+.. _yaml-settings-LoggingConfiguration:
+
+LoggingConfiguration
+--------------------
+
+Logging settings
+
+- **verbose**: Boolean ``(false)`` - Set whether log messages issued at the verbose level should be logged
+- **verbose_health_checks**: Boolean ``(false)`` - Set whether health check errors should be logged
+- **verbose_log_destination**: String ``("")`` - Set a destination file to write the ‘verbose’ log messages to, instead of sending them to syslog and/or the standard output which is the default. Note that these messages will no longer be sent to syslog or the standard output once this option has been set. There is no rotation or file size limit. Only use this feature for debugging under active operator control
+- **syslog_facility**: String ``("")`` - Set the syslog logging facility to the supplied value (values with or without the ``log_`` prefix are supported). Supported values are: local0, log_local0, local1, log_local1, local2, log_local2, local3, log_local3, local4, log_local4, local5, log_local5, local6, log_local6, local7, log_local7, kern, log_kern, user, log_user, mail, log_mail, daemon, log_daemon, auth, log_auth, syslog, log_syslog, lpr, log_lpr, news, log_news, uucp, log_uucp, cron, log_cron, authpriv, log_authpriv, ftp, log_ftp
+- **structured**: :ref:`StructuredLoggingConfiguration <yaml-settings-StructuredLoggingConfiguration>`
+
+
 .. _yaml-settings-MetricsConfiguration:
 
 MetricsConfiguration
@@ -850,6 +863,26 @@ SnmpConfiguration
 - **daemon_socket**: String ``("")``
 
 
+.. _yaml-settings-StructuredLoggingConfiguration:
+
+StructuredLoggingConfiguration
+------------------------------
+
+Structured-like logging settings
+
+- **enabled**: Boolean ``(false)`` - Set whether log messages should be in a structured-logging-like format. This is turned off by default.
+The resulting format looks like this (when timestamps are enabled via ``--log-timestamps`` and with ``level_prefix: prio`` and ``time_format: ISO8601``)::
+
+    ts=\"2023-11-06T12:04:58+0100\" prio=\"Info\" msg=\"Added downstream server 127.0.0.1:53\"
+
+And with ``level_prefix: level`` and ``time_format: numeric``)::
+
+    ts=\"1699268815.133\" level=\"Info\" msg=\"Added downstream server 127.0.0.1:53\"
+
+- **level_prefix**: String ``(prio)`` - Set the key name for the log level. There is unfortunately no standard name for this key, so in some setups it might be useful to set this value to a different name to have consistency across products
+- **time_format**: String ``(numeric)`` - Set the time format. Supported values are: ISO8601, numeric
+
+
 .. _yaml-settings-TcpTuningConfiguration:
 
 TcpTuningConfiguration
@@ -869,6 +902,17 @@ TcpTuningConfiguration
 - **fast_open_key**: String ``("")``
 
 
+.. _yaml-settings-TlsEngineConfiguration:
+
+TlsEngineConfiguration
+----------------------
+
+OpenSSL engine settings
+
+- **name**: String - The engine name
+- **default_string**: String ``("")`` - The default string to pass to the engine. The exact value depends on the engine but represents the algorithms to register with the engine, as a list of comma-separated keywords. For example 'RSA,EC,DSA,DH,PKEY,PKEY_CRYPTO,PKEY_ASN1'
+
+
 .. _yaml-settings-TlsTuningConfiguration:
 
 TlsTuningConfiguration
@@ -877,6 +921,8 @@ TlsTuningConfiguration
 - **outgoing_tickets_cache_cleanup_delay**: Unsigned integer ``(60)``
 - **outgoing_tickets_cache_validity**: Unsigned integer ``(600)``
 - **max_outgoing_tickets_per_backend**: Unsigned integer ``(20)``
+- **providers**: Sequence of String ``("")`` - Load OpenSSL providers. Providers can be used to accelerate cryptographic operations, like for example Intel QAT. At the moment up to a maximum of 32 loaded providers are supported, and that support is experimental. Note that this feature is only available when building against OpenSSL version >= 3.0 and with the ``-–enable-tls-provider`` configure flag on. In other cases, ``engines`` should be used instead. Some providers might actually degrade performance unless the TLS asynchronous mode of OpenSSL is enabled. To enable it see the ``async_mode`` parameter of TLS frontends
+- **engines**: Sequence of :ref:`TlsEngineConfiguration <yaml-settings-TlsEngineConfiguration>` - Load OpenSSL engines. Engines can be used to accelerate cryptographic operations, like for example Intel QAT. At the moment up to a maximum of 32 loaded engines are supported, and that support is experimental. Some engines might actually degrade performance unless the TLS asynchronous mode of OpenSSL is enabled. To enable it see the ``async_mode`` parameter of TLS frontends
 
 
 .. _yaml-settings-TuningConfiguration:

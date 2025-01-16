@@ -88,6 +88,12 @@ void convertRuntimeFlatSettingsFromRust(const dnsdist::rust::settings::GlobalCon
   if (config.d_secPollSuffix == "secpoll.powerdns.com.") {
     config.d_secPollSuffix = std::string(yamlConfig.security_polling.suffix);
   }
+  if (config.d_verbose == false) {
+    config.d_verbose = yamlConfig.logging.verbose;
+  }
+  if (config.d_verboseHealthChecks == false) {
+    config.d_verboseHealthChecks = yamlConfig.logging.verbose_health_checks;
+  }
   if (config.d_payloadSizeSelfGenAnswers == 1232) {
     config.d_payloadSizeSelfGenAnswers = yamlConfig.general.edns_udp_payload_size_self_generated_answers;
   }
@@ -99,12 +105,6 @@ void convertRuntimeFlatSettingsFromRust(const dnsdist::rust::settings::GlobalCon
   }
   if (config.d_fixupCase == false) {
     config.d_fixupCase = yamlConfig.general.fixup_case;
-  }
-  if (config.d_verbose == false) {
-    config.d_verbose = yamlConfig.general.verbose;
-  }
-  if (config.d_verboseHealthChecks == false) {
-    config.d_verboseHealthChecks = yamlConfig.general.verbose_health_checks;
   }
   if (config.d_allowEmptyResponse == false) {
     config.d_allowEmptyResponse = yamlConfig.general.allow_empty_responses;

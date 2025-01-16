@@ -65,6 +65,10 @@ global:
       type: "LoadBalancingPoliciesConfiguration"
       default: true
       description: "Load-balancing policies"
+    - name: "logging"
+      type: "LoggingConfiguration"
+      default: true
+      description: "Logging settings"
     - name: "metrics"
       type: "MetricsConfiguration"
       default: true
@@ -490,23 +494,23 @@ ebpf:
     - name: "ipv4"
       type: "EbpfMapConfiguration"
       default: true
-      description: "IPv4 maps"
+      description: "IPv4 map"
     - name: "ipv6"
       type: "EbpfMapConfiguration"
       default: true
-      description: "IPv6 maps"
+      description: "IPv6 map"
     - name: "cidr_ipv4"
       type: "EbpfMapConfiguration"
       default: true
-      description: "IPv4 subnets maps"
+      description: "IPv4 subnets map"
     - name: "cidr_ipv6"
       type: "EbpfMapConfiguration"
       default: true
-      description: "IPv6 subnets maps"
+      description: "IPv6 subnets map"
     - name: "qnames"
       type: "EbpfMapConfiguration"
       default: true
-      description: "DNS names maps"
+      description: "DNS names map"
     - name: "external"
       type: "bool"
       default: "false"
@@ -1546,6 +1550,17 @@ udp_tuning:
       internal-field-name: "d_randomizeIDsToBackend"
       runtime-configurable: false
 
+tls_engine:
+  description: "OpenSSL engine settings"
+  parameters:
+    - name: "name"
+      type: "String"
+      description: "The engine name"
+    - name: "default_string"
+      type: "String"
+      default: ""
+      description: "The default string to pass to the engine. The exact value depends on the engine but represents the algorithms to register with the engine, as a list of comma-separated keywords. For example 'RSA,EC,DSA,DH,PKEY,PKEY_CRYPTO,PKEY_ASN1'"
+
 tls_tuning:
   category: "tuning.tls"
   parameters:
@@ -1567,6 +1582,16 @@ tls_tuning:
       lua-name: "setOutgoingTLSSessionsCacheMaxTicketsPerBackend"
       internal-field-name: "d_tlsSessionCacheMaxSessionsPerBackend"
       runtime-configurable: true
+    - name: "providers"
+      type: "Vec<String>"
+      default: ""
+      lua-name: "loadTLSProvider"
+      description: "Load OpenSSL providers. Providers can be used to accelerate cryptographic operations, like for example Intel QAT. At the moment up to a maximum of 32 loaded providers are supported, and that support is experimental. Note that this feature is only available when building against OpenSSL version >= 3.0 and with the ``-–enable-tls-provider`` configure flag on. In other cases, ``engines`` should be used instead. Some providers might actually degrade performance unless the TLS asynchronous mode of OpenSSL is enabled. To enable it see the ``async_mode`` parameter of TLS frontends"
+    - name: "engines"
+      type: "Vec<TlsEngineConfiguration>"
+      default: true
+      lua-name: "loadTLSEngine"
+      description: "Load OpenSSL engines. Engines can be used to accelerate cryptographic operations, like for example Intel QAT. At the moment up to a maximum of 32 loaded engines are supported, and that support is experimental. Some engines might actually degrade performance unless the TLS asynchronous mode of OpenSSL is enabled. To enable it see the ``async_mode`` parameter of TLS frontends"
 
 doh_tuning:
   category: "tuning.doh"
@@ -1632,6 +1657,66 @@ security_polling:
       internal-field-name: "d_secPollSuffix"
       runtime-configurable: true
 
+structured_logging:
+  description: "Structured-like logging settings"
+  parameters:
+    - name: "enabled"
+      type: "bool"
+      default: "false"
+      description: |
+                   Set whether log messages should be in a structured-logging-like format. This is turned off by default.
+                   The resulting format looks like this (when timestamps are enabled via ``--log-timestamps`` and with ``level_prefix: prio`` and ``time_format: ISO8601``)::
+
+                       ts=\"2023-11-06T12:04:58+0100\" prio=\"Info\" msg=\"Added downstream server 127.0.0.1:53\"
+
+                   And with ``level_prefix: level`` and ``time_format: numeric``)::
+
+                       ts=\"1699268815.133\" level=\"Info\" msg=\"Added downstream server 127.0.0.1:53\"
+
+    - name: "level_prefix"
+      type: "String"
+      default: "prio"
+      description: "Set the key name for the log level. There is unfortunately no standard name for this key, so in some setups it might be useful to set this value to a different name to have consistency across products"
+    - name: "time_format"
+      type: "String"
+      default: "numeric"
+      description: "Set the time format"
+      supported-values:
+        - "ISO8601"
+        - "numeric"
+
+logging:
+  description: "Logging settings"
+  parameters:
+    - name: "verbose"
+      type: "bool"
+      default: "false"
+      lua-name: "setVerbose"
+      internal-field-name: "d_verbose"
+      runtime-configurable: true
+      description: "Set whether log messages issued at the verbose level should be logged"
+    - name: "verbose_health_checks"
+      type: "bool"
+      default: "false"
+      lua-name: "setVerboseHealthChecks"
+      internal-field-name: "d_verboseHealthChecks"
+      runtime-configurable: true
+      description: "Set whether health check errors should be logged"
+    - name: "verbose_log_destination"
+      type: "String"
+      default: ""
+      lua-name: "setVerboseLogDestination"
+      description: "Set a destination file to write the ‘verbose’ log messages to, instead of sending them to syslog and/or the standard output which is the default. Note that these messages will no longer be sent to syslog or the standard output once this option has been set. There is no rotation or file size limit. Only use this feature for debugging under active operator control"
+    - name: "syslog_facility"
+      type: "String"
+      default: ""
+      lua-name: "setSyslogFacility"
+      description: "Set the syslog logging facility to the supplied value (values with or without the ``log_`` prefix are supported)"
+      supported-values: [local0, log_local0, local1, log_local1, local2, log_local2, local3, log_local3, local4, log_local4, local5, log_local5, local6, log_local6, local7, log_local7, kern, log_kern, user, log_user, mail, log_mail, daemon, log_daemon, auth, log_auth, syslog, log_syslog, lpr, log_lpr, news, log_news, uucp, log_uucp, cron, log_cron, authpriv, log_authpriv, ftp, log_ftp]
+    - name: "structured"
+      type: "StructuredLoggingConfiguration"
+      default: true
+
 general:
   parameters:
     - name: "edns_udp_payload_size_self_generated_answers"
@@ -1657,18 +1742,6 @@ general:
       default: "false"
       lua-name: "fixupCase"
       internal-field-name: "d_fixupCase"
-      runtime-configurable: true
-    - name: "verbose"
-      type: "bool"
-      default: "false"
-      lua-name: "setVerbose"
-      internal-field-name: "d_verbose"
-      runtime-configurable: true
-    - name: "verbose_health_checks"
-      type: "bool"
-      default: "false"
-      lua-name: "setVerboseHealthChecks"
-      internal-field-name: "d_verboseHealthChecks"
       runtime-configurable: true
     - name: "allow_empty_responses"
       type: "bool"

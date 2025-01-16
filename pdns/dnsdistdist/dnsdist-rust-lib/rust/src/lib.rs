@@ -1140,6 +1140,7 @@ mod dnsdistsettings {
         general: GeneralConfiguration,
         key_value_stores: KeyValueStoresConfiguration,
         load_balancing_policies: LoadBalancingPoliciesConfiguration,
+        logging: LoggingConfiguration,
         metrics: MetricsConfiguration,
         packet_caches: Vec<PacketCacheConfiguration>,
         pools: Vec<PoolConfiguration>,
@@ -1905,6 +1906,14 @@ mod dnsdistsettings {
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
+    struct TlsEngineConfiguration {
+        name: String,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        default_string: String,
+    }
+
+    #[derive(Deserialize, Serialize, Debug, PartialEq)]
+    #[serde(deny_unknown_fields)]
     struct TlsTuningConfiguration {
         #[serde(default = "crate::U16::<60>::value", skip_serializing_if = "crate::U16::<60>::is_equal")]
         outgoing_tickets_cache_cleanup_delay: u16,
@@ -1912,6 +1921,10 @@ mod dnsdistsettings {
         outgoing_tickets_cache_validity: u16,
         #[serde(default = "crate::U16::<20>::value", skip_serializing_if = "crate::U16::<20>::is_equal")]
         max_outgoing_tickets_per_backend: u16,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        providers: Vec<String>,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        engines: Vec<TlsEngineConfiguration>,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
@@ -1949,6 +1962,32 @@ mod dnsdistsettings {
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
+    struct StructuredLoggingConfiguration {
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        enabled: bool,
+        #[serde(default = "crate::default_value_structured_logging_level_prefix", skip_serializing_if = "crate::default_value_equal_structured_logging_level_prefix")]
+        level_prefix: String,
+        #[serde(default = "crate::default_value_structured_logging_time_format", skip_serializing_if = "crate::default_value_equal_structured_logging_time_format")]
+        time_format: String,
+    }
+
+    #[derive(Deserialize, Serialize, Debug, PartialEq)]
+    #[serde(deny_unknown_fields)]
+    struct LoggingConfiguration {
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        verbose: bool,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        verbose_health_checks: bool,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        verbose_log_destination: String,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        syslog_facility: String,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        structured: StructuredLoggingConfiguration,
+    }
+
+    #[derive(Deserialize, Serialize, Debug, PartialEq)]
+    #[serde(deny_unknown_fields)]
     struct GeneralConfiguration {
         #[serde(default = "crate::U16::<1232>::value", skip_serializing_if = "crate::U16::<1232>::is_equal")]
         edns_udp_payload_size_self_generated_answers: u16,
@@ -1958,10 +1997,6 @@ mod dnsdistsettings {
         truncate_tc_answers: bool,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         fixup_case: bool,
-        #[serde(default, skip_serializing_if = "crate::is_default")]
-        verbose: bool,
-        #[serde(default, skip_serializing_if = "crate::is_default")]
-        verbose_health_checks: bool,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         allow_empty_responses: bool,
         #[serde(default, skip_serializing_if = "crate::is_default")]
@@ -2354,6 +2389,8 @@ impl ResponseRuleConfigurationSerde {
         key_value_stores: dnsdistsettings::KeyValueStoresConfiguration,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         load_balancing_policies: dnsdistsettings::LoadBalancingPoliciesConfiguration,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        logging: dnsdistsettings::LoggingConfiguration,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         metrics: dnsdistsettings::MetricsConfiguration,
         #[serde(default, skip_serializing_if = "crate::is_default")]
@@ -3042,6 +3079,14 @@ impl Default for dnsdistsettings::UdpTuningConfiguration {
 }
 
 
+impl Default for dnsdistsettings::TlsEngineConfiguration {
+    fn default() -> Self {
+        let deserialized: dnsdistsettings::TlsEngineConfiguration = serde_yaml::from_str("").unwrap();
+        deserialized
+    }
+}
+
+
 impl Default for dnsdistsettings::TlsTuningConfiguration {
     fn default() -> Self {
         let deserialized: dnsdistsettings::TlsTuningConfiguration = serde_yaml::from_str("").unwrap();
@@ -3078,6 +3123,40 @@ fn default_value_equal_security_polling_suffix(value: &str)-> bool {
 impl Default for dnsdistsettings::SecurityPollingConfiguration {
     fn default() -> Self {
         let deserialized: dnsdistsettings::SecurityPollingConfiguration = serde_yaml::from_str("").unwrap();
+        deserialized
+    }
+}
+
+
+// DEFAULT HANDLING for structured_logging_level_prefix
+fn default_value_structured_logging_level_prefix() -> String {
+    String::from("prio")
+}
+fn default_value_equal_structured_logging_level_prefix(value: &str)-> bool {
+    value == default_value_structured_logging_level_prefix()
+}
+
+
+// DEFAULT HANDLING for structured_logging_time_format
+fn default_value_structured_logging_time_format() -> String {
+    String::from("numeric")
+}
+fn default_value_equal_structured_logging_time_format(value: &str)-> bool {
+    value == default_value_structured_logging_time_format()
+}
+
+
+impl Default for dnsdistsettings::StructuredLoggingConfiguration {
+    fn default() -> Self {
+        let deserialized: dnsdistsettings::StructuredLoggingConfiguration = serde_yaml::from_str("").unwrap();
+        deserialized
+    }
+}
+
+
+impl Default for dnsdistsettings::LoggingConfiguration {
+    fn default() -> Self {
+        let deserialized: dnsdistsettings::LoggingConfiguration = serde_yaml::from_str("").unwrap();
         deserialized
     }
 }
@@ -3495,8 +3574,16 @@ impl dnsdistsettings::UdpTuningConfiguration {
         Ok(())
     }
 }
+impl dnsdistsettings::TlsEngineConfiguration {
+    fn validate(&self) -> Result<(), ValidationError> {
+        Ok(())
+    }
+}
 impl dnsdistsettings::TlsTuningConfiguration {
     fn validate(&self) -> Result<(), ValidationError> {
+        for sub_type in &self.engines {
+        sub_type.validate()?;
+    }
         Ok(())
     }
 }
@@ -3512,6 +3599,17 @@ impl dnsdistsettings::CacheSettingsConfiguration {
 }
 impl dnsdistsettings::SecurityPollingConfiguration {
     fn validate(&self) -> Result<(), ValidationError> {
+        Ok(())
+    }
+}
+impl dnsdistsettings::StructuredLoggingConfiguration {
+    fn validate(&self) -> Result<(), ValidationError> {
+        Ok(())
+    }
+}
+impl dnsdistsettings::LoggingConfiguration {
+    fn validate(&self) -> Result<(), ValidationError> {
+        self.structured.validate()?;
         Ok(())
     }
 }
@@ -3591,6 +3689,7 @@ impl GlobalConfigurationSerde {
         self.general.validate()?;
         self.key_value_stores.validate()?;
         self.load_balancing_policies.validate()?;
+        self.logging.validate()?;
         self.metrics.validate()?;
         for sub_type in &self.packet_caches {
         sub_type.validate()?;

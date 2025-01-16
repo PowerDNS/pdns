@@ -807,6 +807,73 @@ static void loadCustomPolicies(const ::rust::Vec<dnsdist::rust::settings::Custom
   }
 }
 
+static void handleOpenSSLSettings(const dnsdist::rust::settings::TlsTuningConfiguration& tlsSettings)
+{
+  for (const auto& engine : tlsSettings.engines) {
+#if defined(HAVE_LIBSSL) && !defined(HAVE_TLS_PROVIDERS)
+    auto [success, error] = libssl_load_engine(std::string(engine.name), !engine.default_string.empty() ? std::optional<std::string>(engine.default_string) : std::nullopt);
+    if (!success) {
+      warnlog("Error while trying to load TLS engine '%s': %s", std::string(engine.name), error);
+    }
+#else
+    warnlog("Ignoring TLS engine '%s' because OpenSSL engine support is not compiled in", std::string(engine.name));
+#endif /* HAVE_LIBSSL && !HAVE_TLS_PROVIDERS */
+  }
+
+  for (const auto& provider : tlsSettings.providers) {
+#if defined(HAVE_LIBSSL) && OPENSSL_VERSION_MAJOR >= 3 && defined(HAVE_TLS_PROVIDERS)
+    auto [success, error] = libssl_load_provider(std::string(provider));
+    if (!success) {
+      warnlog("Error while trying to load TLS provider '%s': %s", std::string(provider), error);
+    }
+#else
+    warnlog("Ignoring TLS provider '%s' because OpenSSL provider support is not compiled in", std::string(provider));
+#endif /* HAVE_LIBSSL && OPENSSL_VERSION_MAJOR >= 3 && HAVE_TLS_PROVIDERS */
+  }
+}
+
+static void handleLoggingConfiguration(const dnsdist::rust::settings::LoggingConfiguration& settings)
+{
+  if (!settings.verbose_log_destination.empty()) {
+    auto dest = std::string(settings.verbose_log_destination);
+    try {
+      auto stream = std::ofstream(dest.c_str());
+      dnsdist::logging::LoggingConfiguration::setVerboseStream(std::move(stream));
+    }
+    catch (const std::exception& e) {
+      errlog("Error while opening the verbose logging destination file %s: %s", dest, e.what());
+    }
+  }
+
+  if (!settings.syslog_facility.empty()) {
+    auto facilityLevel = logFacilityFromString(std::string(settings.syslog_facility));
+    if (!facilityLevel) {
+      warnlog("Unknown facility '%s' passed to logging.syslog_facility", std::string(settings.syslog_facility));
+    }
+    else {
+      setSyslogFacility(*facilityLevel);
+    }
+  }
+
+  if (settings.structured.enabled) {
+    auto levelPrefix = std::string(settings.structured.level_prefix);
+    auto timeFormat = std::string(settings.structured.time_format);
+    if (!timeFormat.empty()) {
+      if (timeFormat == "numeric") {
+        dnsdist::logging::LoggingConfiguration::setStructuredTimeFormat(dnsdist::logging::LoggingConfiguration::TimeFormat::Numeric);
+      }
+      else if (timeFormat == "ISO8601") {
+        dnsdist::logging::LoggingConfiguration::setStructuredTimeFormat(dnsdist::logging::LoggingConfiguration::TimeFormat::ISO8601);
+      }
+      else {
+        warnlog("Unknown value '%s' to logging.structured.time_format parameter", timeFormat);
+      }
+    }
+
+    dnsdist::logging::LoggingConfiguration::setStructuredLogging(true, levelPrefix);
+  }
+}
+
 #endif /* defined(HAVE_YAML_CONFIGURATION) */
 
 bool loadConfigurationFromFile(const std::string& fileName, bool isClient, bool configCheck)
@@ -830,6 +897,8 @@ bool loadConfigurationFromFile(const std::string& fileName, bool isClient, bool 
 
   try {
     auto globalConfig = dnsdist::rust::settings::from_yaml_string(*data);
+
+    handleLoggingConfiguration(globalConfig.logging);
 
     if (!globalConfig.console.listen_address.empty()) {
       const auto& consoleConf = globalConfig.console;
@@ -856,6 +925,8 @@ bool loadConfigurationFromFile(const std::string& fileName, bool isClient, bool 
         }
       });
     }
+
+    handleOpenSSLSettings(globalConfig.tuning.tls);
 
 #if defined(HAVE_EBPF)
     if (!configCheck && globalConfig.ebpf.ipv4.max_entries > 0 && globalConfig.ebpf.ipv6.max_entries > 0 && globalConfig.ebpf.qnames.max_entries > 0) {
