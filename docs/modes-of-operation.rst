@@ -257,8 +257,8 @@ or by using the 'pdnsutil add-autoprimary' command.
 .. warning::
   When a secondary receives notification while bootstraping a new domain using autosecondary feature, it will send
   SOA and NS queries to the IP address obtained from the ``supermasters`` table. These queries are **not** recursive.
-  It means that domain bootstrap will fail if your primary authoritative server is hidden behind recursor,
-  so make sure these queries goes (or routed by dnsdist) straight to auth server.
+  This will cause domain bootstrap to fail if the primary authoritative server is hidden behind a recursor,
+  so make sure these queries go (or are forwarded by dnsdist) straight to the auth server.
 
 .. note::
   Removal of zones provisioned using the autoprimary must be
