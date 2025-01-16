@@ -161,32 +161,44 @@ bool UeberBackend::addDomainKey(const DNSName& name, const DNSBackend::KeyData& 
 }
 bool UeberBackend::getDomainKeys(const DNSName& name, std::vector<DNSBackend::KeyData>& keys)
 {
+  bool ret = false;
   for (auto& backend : backends) {
     if (backend->getDomainKeys(name, keys)) {
-      return true;
+      ret = true;
+      if (!keys.empty()) {
+        return true;
+      }
     }
   }
-  return false;
+  return ret;
 }
 
 bool UeberBackend::getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string>>& meta)
 {
+  bool ret = false;
   for (auto& backend : backends) {
     if (backend->getAllDomainMetadata(name, meta)) {
-      return true;
+      ret = true;
+      if (!meta.empty()) {
+        return true;
+      }
     }
   }
-  return false;
+  return ret;
 }
 
 bool UeberBackend::getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta)
 {
+  bool ret = false;
   for (auto& backend : backends) {
     if (backend->getDomainMetadata(name, kind, meta)) {
-      return true;
+      ret = true;
+      if (!meta.empty()) {
+        return true;
+      }
     }
   }
-  return false;
+  return ret;
 }
 
 bool UeberBackend::getDomainMetadata(const DNSName& name, const std::string& kind, std::string& meta)
@@ -597,12 +609,16 @@ bool UeberBackend::autoPrimaryRemove(const AutoPrimary& primary)
 
 bool UeberBackend::autoPrimariesList(std::vector<AutoPrimary>& primaries)
 {
+  bool ret = false;
   for (auto& backend : backends) {
     if (backend->autoPrimariesList(primaries)) {
-      return true;
+      ret = true;
+      if (!primaries.empty()) {
+        return true;
+      }
     }
   }
-  return false;
+  return ret;
 }
 
 bool UeberBackend::autoPrimaryBackend(const string& ipAddr, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** dnsBackend)

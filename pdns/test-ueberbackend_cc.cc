@@ -1132,7 +1132,9 @@ BOOST_AUTO_TEST_CASE(test_multi_backends_metadata) {
       BOOST_CHECK_EQUAL(values.size(), 0U);
       values.clear();
       BOOST_CHECK(ub.getDomainMetadata(DNSName("powerdns.org."), "test-data-b", values));
-      BOOST_CHECK_EQUAL(values.size(), 0U);
+      BOOST_CHECK_EQUAL(values.size(), 2U);
+      BOOST_CHECK_EQUAL(values.at(0), "value1");
+      BOOST_CHECK_EQUAL(values.at(1), "value2");
     }
 
     {
