@@ -91,10 +91,9 @@ FROM debian:12-slim
 RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
 
 # - python3 and jinja2 (for startup script)
-# - python3-atomicwrites (for backend management)
 # - tini (for signal management)
 # - ca-certificates (for verifying downstream DoH/DoT certificates)
-RUN apt-get install -y python3 python3-jinja2 python3-atomicwrites tini libcap2-bin ca-certificates && apt-get clean
+RUN apt-get install -y python3 python3-jinja2 tini libcap2-bin ca-certificates && apt-get clean
 
 # Output from builder
 COPY --from=builder /build /
@@ -126,6 +125,5 @@ EXPOSE 8083/tcp
 WORKDIR /etc/dnsdist
 
 COPY dockerdata/dnsdist-resolver.lua /etc/dnsdist/
-COPY dockerdata/dnsdist-resolver.py /usr/local/bin/dnsdist-resolver
 
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/dnsdist-startup"]
