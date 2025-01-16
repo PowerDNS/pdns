@@ -254,6 +254,12 @@ Additionally, if a secondary selects multiple autoprimaries for a zone based on 
 Adding a autoprimary can be done either directly in the database,
 or by using the 'pdnsutil add-autoprimary' command.
 
+.. warning::
+  When secondary gets notification and is bootstraping a new domain using autosecondary feature it does
+  SOA and NS queries to IP address from ``supermasters`` table. These queries are NOT recursive!
+  It means that domain bootstrap will fail if your primary authoritative server is hidden behind recursor,
+  so make sure these queries goes (or routed by dnsdist) straight to auth server.
+
 .. note::
   Removal of zones provisioned using the autoprimary must be
   done on the secondaries themselves, as there is no way to signal this removal
