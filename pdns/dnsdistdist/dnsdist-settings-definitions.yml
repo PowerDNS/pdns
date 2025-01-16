@@ -245,7 +245,7 @@ dnstap_logger:
       default: 0
       description: "The number of queue entries to allocate for each output queue. According to the libfstrm library, the minimum is 2, the maximum is system-dependent and based on IOV_MAX, and the default is 64"
 
-ProtoBufMeta:
+proto_buf_meta:
   description: "Meta-data entry to be added to a Protocol Buffer message"
   parameters:
     - name: "key"
@@ -255,7 +255,7 @@ ProtoBufMeta:
       type: "String"
       description: "Value of the meta entry"
 
-LMDBKVStore:
+lmdb_kv_store:
   description: "LMDB-based key-value store"
   parameters:
     - name: "name"
@@ -272,7 +272,7 @@ LMDBKVStore:
       default: "false"
       description: "Whether to open the database with the ``MDB_NOLOCK`` flag"
 
-CDBKVStore:
+cdb_kv_store:
   description: "CDB-based key-value store"
   parameters:
     - name: "name"
@@ -285,7 +285,7 @@ CDBKVStore:
       type: "u32"
       description: "The delay in seconds between two checks of the database modification time. 0 means disabled"
 
-KVSLookupKeySourceIP:
+kvs_lookup_key_source_ip:
   description: "Lookup key that can be used with :ref:`_yaml-settings-KeyValueStoreLookupAction` or :ref:`_yaml-settings-KeyValueStoreLookupSelector`, will return the source IP of the client in network byte-order"
   parameters:
     - name: "name"
@@ -304,7 +304,7 @@ KVSLookupKeySourceIP:
       default: "false"
       description: "Whether to append the port (in network byte-order) after the address"
 
-KVSLookupKeyQName:
+kvs_lookup_key_qname:
   description: "Lookup key that can be used with :ref:`_yaml-settings-KeyValueStoreLookupAction` or :ref:`_yaml-settings-KeyValueStoreLookupSelector`, will return the qname of the query in DNS wire format"
   parameters:
     - name: "name"
@@ -315,7 +315,7 @@ KVSLookupKeyQName:
       default: "true"
       description: "Whether to do the lookup in wire format (default) or in plain text"
 
-KVSLookupKeySuffix:
+kvs_lookup_key_suffix:
   description: |
     Lookup key that can be used with :ref:`_yaml-settings-KeyValueStoreLookupAction` or :ref:`_yaml-settings-KeyValueStoreLookupSelector`, will return a vector of keys based on the labels of the qname in DNS wire format or plain text. For example if the qname is sub.domain.powerdns.com. the following keys will be returned:
 
@@ -344,7 +344,7 @@ KVSLookupKeySuffix:
       default: "true"
       description: "Whether to do the lookup in wire format (default) or in plain text"
 
-KVSLookupKeyTag:
+kvs_lookup_key_tag:
   description: "Lookup key that can be used with :ref:`_yaml-settings-KeyValueStoreLookupAction` or :ref:`_yaml-settings-KeyValueStoreLookupSelector`, will return the value of the corresponding tag for this query, if it exists"
   parameters:
     - name: "name"
@@ -352,35 +352,35 @@ KVSLookupKeyTag:
     - name: "tag"
       type: "String"
 
-KVSLookupKeys:
+kvs_lookup_keys:
   description: "List of look keys that can be used with :ref:`_yaml-settings-KeyValueStoreLookupAction` or :ref:`_yaml-settings-KeyValueStoreLookupSelector`"
   parameters:
     - name: "source_ip_keys"
-      type: "Vec<KVSLookupKeySourceIPConfiguration>"
+      type: "Vec<KvsLookupKeySourceIpConfiguration>"
       default: true
     - name: "qname_keys"
-      type: "Vec<KVSLookupKeyQNameConfiguration>"
+      type: "Vec<KvsLookupKeyQnameConfiguration>"
       default: true
     - name: "suffix_keys"
-      type: "Vec<KVSLookupKeySuffixConfiguration>"
+      type: "Vec<KvsLookupKeySuffixConfiguration>"
       default: true
     - name: "tag_keys"
-      type: "Vec<KVSLookupKeyTagConfiguration>"
+      type: "Vec<KvsLookupKeyTagConfiguration>"
       default: true
 
 key_value_stores:
   description: "List of key-value stores that can be used with :ref:`_yaml-settings-KeyValueStoreLookupAction` or :ref:`_yaml-settings-KeyValueStoreLookupSelector`"
   parameters:
     - name: "lmdb"
-      type: "Vec<LMDBKVStoreConfiguration>"
+      type: "Vec<LmdbKvStoreConfiguration>"
       default: true
       description: "List of LMDB-based key-value stores"
     - name: "cdb"
-      type: "Vec<CDBKVStoreConfiguration>"
+      type: "Vec<CdbKvStoreConfiguration>"
       default: true
       description: "List of CDB-based key-value stores"
     - name: "lookup_keys"
-      type: "KVSLookupKeysConfiguration"
+      type: "KvsLookupKeysConfiguration"
       default: true
       description: "List of lookup keys"
 

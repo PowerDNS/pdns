@@ -1231,7 +1231,7 @@ mod dnsdistsettings {
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
-    struct LMDBKVStoreConfiguration {
+    struct LmdbKvStoreConfiguration {
         name: String,
         file_name: String,
         database_name: String,
@@ -1241,7 +1241,7 @@ mod dnsdistsettings {
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
-    struct CDBKVStoreConfiguration {
+    struct CdbKvStoreConfiguration {
         name: String,
         file_name: String,
         refresh_delay: u32,
@@ -1249,7 +1249,7 @@ mod dnsdistsettings {
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
-    struct KVSLookupKeySourceIPConfiguration {
+    struct KvsLookupKeySourceIpConfiguration {
         name: String,
         #[serde(default = "crate::U8::<32>::value", skip_serializing_if = "crate::U8::<32>::is_equal")]
         v4_mask: u8,
@@ -1261,7 +1261,7 @@ mod dnsdistsettings {
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
-    struct KVSLookupKeyQNameConfiguration {
+    struct KvsLookupKeyQnameConfiguration {
         name: String,
         #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
         wire_format: bool,
@@ -1269,7 +1269,7 @@ mod dnsdistsettings {
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
-    struct KVSLookupKeySuffixConfiguration {
+    struct KvsLookupKeySuffixConfiguration {
         name: String,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         minimum_labels: u16,
@@ -1279,33 +1279,33 @@ mod dnsdistsettings {
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
-    struct KVSLookupKeyTagConfiguration {
+    struct KvsLookupKeyTagConfiguration {
         name: String,
         tag: String,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
-    struct KVSLookupKeysConfiguration {
+    struct KvsLookupKeysConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
-        source_ip_keys: Vec<KVSLookupKeySourceIPConfiguration>,
+        source_ip_keys: Vec<KvsLookupKeySourceIpConfiguration>,
         #[serde(default, skip_serializing_if = "crate::is_default")]
-        qname_keys: Vec<KVSLookupKeyQNameConfiguration>,
+        qname_keys: Vec<KvsLookupKeyQnameConfiguration>,
         #[serde(default, skip_serializing_if = "crate::is_default")]
-        suffix_keys: Vec<KVSLookupKeySuffixConfiguration>,
+        suffix_keys: Vec<KvsLookupKeySuffixConfiguration>,
         #[serde(default, skip_serializing_if = "crate::is_default")]
-        tag_keys: Vec<KVSLookupKeyTagConfiguration>,
+        tag_keys: Vec<KvsLookupKeyTagConfiguration>,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
     struct KeyValueStoresConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
-        lmdb: Vec<LMDBKVStoreConfiguration>,
+        lmdb: Vec<LmdbKvStoreConfiguration>,
         #[serde(default, skip_serializing_if = "crate::is_default")]
-        cdb: Vec<CDBKVStoreConfiguration>,
+        cdb: Vec<CdbKvStoreConfiguration>,
         #[serde(default, skip_serializing_if = "crate::is_default")]
-        lookup_keys: KVSLookupKeysConfiguration,
+        lookup_keys: KvsLookupKeysConfiguration,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
@@ -2320,12 +2320,6 @@ impl ResponseRuleConfigurationSerde {
     Ok(())
   }
 }
-
-impl dnsdistsettings::SharedDNSResponseAction {
-  fn validate(&self) -> Result<(), ValidationError> {
-    Ok(())
-  }
-}
 // END INCLUDE ./rust-middle-in.rs
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
@@ -2572,57 +2566,57 @@ impl Default for dnsdistsettings::ProtoBufMetaConfiguration {
 }
 
 
-impl Default for dnsdistsettings::LMDBKVStoreConfiguration {
+impl Default for dnsdistsettings::LmdbKvStoreConfiguration {
     fn default() -> Self {
-        let deserialized: dnsdistsettings::LMDBKVStoreConfiguration = serde_yaml::from_str("").unwrap();
+        let deserialized: dnsdistsettings::LmdbKvStoreConfiguration = serde_yaml::from_str("").unwrap();
         deserialized
     }
 }
 
 
-impl Default for dnsdistsettings::CDBKVStoreConfiguration {
+impl Default for dnsdistsettings::CdbKvStoreConfiguration {
     fn default() -> Self {
-        let deserialized: dnsdistsettings::CDBKVStoreConfiguration = serde_yaml::from_str("").unwrap();
+        let deserialized: dnsdistsettings::CdbKvStoreConfiguration = serde_yaml::from_str("").unwrap();
         deserialized
     }
 }
 
 
-impl Default for dnsdistsettings::KVSLookupKeySourceIPConfiguration {
+impl Default for dnsdistsettings::KvsLookupKeySourceIpConfiguration {
     fn default() -> Self {
-        let deserialized: dnsdistsettings::KVSLookupKeySourceIPConfiguration = serde_yaml::from_str("").unwrap();
+        let deserialized: dnsdistsettings::KvsLookupKeySourceIpConfiguration = serde_yaml::from_str("").unwrap();
         deserialized
     }
 }
 
 
-impl Default for dnsdistsettings::KVSLookupKeyQNameConfiguration {
+impl Default for dnsdistsettings::KvsLookupKeyQnameConfiguration {
     fn default() -> Self {
-        let deserialized: dnsdistsettings::KVSLookupKeyQNameConfiguration = serde_yaml::from_str("").unwrap();
+        let deserialized: dnsdistsettings::KvsLookupKeyQnameConfiguration = serde_yaml::from_str("").unwrap();
         deserialized
     }
 }
 
 
-impl Default for dnsdistsettings::KVSLookupKeySuffixConfiguration {
+impl Default for dnsdistsettings::KvsLookupKeySuffixConfiguration {
     fn default() -> Self {
-        let deserialized: dnsdistsettings::KVSLookupKeySuffixConfiguration = serde_yaml::from_str("").unwrap();
+        let deserialized: dnsdistsettings::KvsLookupKeySuffixConfiguration = serde_yaml::from_str("").unwrap();
         deserialized
     }
 }
 
 
-impl Default for dnsdistsettings::KVSLookupKeyTagConfiguration {
+impl Default for dnsdistsettings::KvsLookupKeyTagConfiguration {
     fn default() -> Self {
-        let deserialized: dnsdistsettings::KVSLookupKeyTagConfiguration = serde_yaml::from_str("").unwrap();
+        let deserialized: dnsdistsettings::KvsLookupKeyTagConfiguration = serde_yaml::from_str("").unwrap();
         deserialized
     }
 }
 
 
-impl Default for dnsdistsettings::KVSLookupKeysConfiguration {
+impl Default for dnsdistsettings::KvsLookupKeysConfiguration {
     fn default() -> Self {
-        let deserialized: dnsdistsettings::KVSLookupKeysConfiguration = serde_yaml::from_str("").unwrap();
+        let deserialized: dnsdistsettings::KvsLookupKeysConfiguration = serde_yaml::from_str("").unwrap();
         deserialized
     }
 }
@@ -3158,67 +3152,6 @@ impl Default for GlobalConfigurationSerde {
 }
 
 
-impl dnsdistsettings::GlobalConfiguration {
-    fn validate(&self) -> Result<(), ValidationError> {
-        for sub_type in &self.backends {
-        sub_type.validate()?;
-    }
-        for sub_type in &self.binds {
-        sub_type.validate()?;
-    }
-        for sub_type in &self.cache_hit_response_rules {
-        sub_type.validate()?;
-    }
-        for sub_type in &self.cache_inserted_response_rules {
-        sub_type.validate()?;
-    }
-        for sub_type in &self.cache_miss_rules {
-        sub_type.validate()?;
-    }
-        self.cache_settings.validate()?;
-        self.console.validate()?;
-        for sub_type in &self.dynamic_rules {
-        sub_type.validate()?;
-    }
-        self.dynamic_rules_settings.validate()?;
-        self.ebpf.validate()?;
-        self.edns_client_subnet.validate()?;
-        self.general.validate()?;
-        self.key_value_stores.validate()?;
-        self.load_balancing_policies.validate()?;
-        self.metrics.validate()?;
-        for sub_type in &self.packet_caches {
-        sub_type.validate()?;
-    }
-        for sub_type in &self.pools {
-        sub_type.validate()?;
-    }
-        self.proxy_protocol.validate()?;
-        self.query_count.validate()?;
-        for sub_type in &self.query_rules {
-        sub_type.validate()?;
-    }
-        self.remote_logging.validate()?;
-        for sub_type in &self.response_rules {
-        sub_type.validate()?;
-    }
-        self.ring_buffers.validate()?;
-        self.security_polling.validate()?;
-        for sub_type in &self.self_answered_response_rules {
-        sub_type.validate()?;
-    }
-        self.snmp.validate()?;
-        self.tuning.validate()?;
-        self.webserver.validate()?;
-        for sub_type in &self.xfr_response_rules {
-        sub_type.validate()?;
-    }
-        for sub_type in &self.xsk {
-        sub_type.validate()?;
-    }
-        Ok(())
-    }
-}
 impl dnsdistsettings::MetricsConfiguration {
     fn validate(&self) -> Result<(), ValidationError> {
         for sub_type in &self.carbon {
@@ -3253,42 +3186,37 @@ impl dnsdistsettings::DnstapLoggerConfiguration {
         Ok(())
     }
 }
-impl dnsdistsettings::ProtoBufMetaConfiguration {
+impl dnsdistsettings::LmdbKvStoreConfiguration {
     fn validate(&self) -> Result<(), ValidationError> {
         Ok(())
     }
 }
-impl dnsdistsettings::LMDBKVStoreConfiguration {
+impl dnsdistsettings::CdbKvStoreConfiguration {
     fn validate(&self) -> Result<(), ValidationError> {
         Ok(())
     }
 }
-impl dnsdistsettings::CDBKVStoreConfiguration {
+impl dnsdistsettings::KvsLookupKeySourceIpConfiguration {
     fn validate(&self) -> Result<(), ValidationError> {
         Ok(())
     }
 }
-impl dnsdistsettings::KVSLookupKeySourceIPConfiguration {
+impl dnsdistsettings::KvsLookupKeyQnameConfiguration {
     fn validate(&self) -> Result<(), ValidationError> {
         Ok(())
     }
 }
-impl dnsdistsettings::KVSLookupKeyQNameConfiguration {
+impl dnsdistsettings::KvsLookupKeySuffixConfiguration {
     fn validate(&self) -> Result<(), ValidationError> {
         Ok(())
     }
 }
-impl dnsdistsettings::KVSLookupKeySuffixConfiguration {
+impl dnsdistsettings::KvsLookupKeyTagConfiguration {
     fn validate(&self) -> Result<(), ValidationError> {
         Ok(())
     }
 }
-impl dnsdistsettings::KVSLookupKeyTagConfiguration {
-    fn validate(&self) -> Result<(), ValidationError> {
-        Ok(())
-    }
-}
-impl dnsdistsettings::KVSLookupKeysConfiguration {
+impl dnsdistsettings::KvsLookupKeysConfiguration {
     fn validate(&self) -> Result<(), ValidationError> {
         for sub_type in &self.source_ip_keys {
         sub_type.validate()?;
@@ -3464,11 +3392,6 @@ impl dnsdistsettings::OutgoingTcpConfiguration {
         Ok(())
     }
 }
-impl dnsdistsettings::ProxyProtocolValueConfiguration {
-    fn validate(&self) -> Result<(), ValidationError> {
-        Ok(())
-    }
-}
 impl dnsdistsettings::LazyHealthCheckConfiguration {
     fn validate(&self) -> Result<(), ValidationError> {
         Ok(())
@@ -3574,17 +3497,6 @@ impl dnsdistsettings::LoadBalancingPoliciesConfiguration {
         for sub_type in &self.custom_policies {
         sub_type.validate()?;
     }
-        Ok(())
-    }
-}
-impl dnsdistsettings::QueryRuleConfiguration {
-    fn validate(&self) -> Result<(), ValidationError> {
-        Ok(())
-    }
-}
-impl dnsdistsettings::ResponseRuleConfiguration {
-    fn validate(&self) -> Result<(), ValidationError> {
-        self.action.validate()?;
         Ok(())
     }
 }

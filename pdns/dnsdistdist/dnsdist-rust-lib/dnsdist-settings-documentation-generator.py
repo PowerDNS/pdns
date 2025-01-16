@@ -30,7 +30,7 @@ def get_rust_object_name(name):
     object_name = ''
     capitalize = True
     for char in name:
-        if char == '-':
+        if char in ['-', '_']:
             capitalize = True
             continue
         if capitalize:

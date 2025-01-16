@@ -121,22 +121,10 @@ General settings for frontends
 - **xsk**: String ``("")`` - The name of an XSK sockets map to attach to this frontend, if any
 
 
-.. _yaml-settings-CDBKVStoreConfiguration:
+.. _yaml-settings-CacheSettingsConfiguration:
 
-CDBKVStoreConfiguration
------------------------
-
-CDB-based key-value store
-
-- **name**: String - The name of this object
-- **file_name**: String - The path to an existing CDB database
-- **refresh_delay**: Unsigned integer - The delay in seconds between two checks of the database modification time. 0 means disabled
-
-
-.. _yaml-settings-Cache_settingsConfiguration:
-
-Cache_settingsConfiguration
----------------------------
+CacheSettingsConfiguration
+--------------------------
 
 - **stale_entries_ttl**: Unsigned integer ``(0)``
 - **cleaning_delay**: Unsigned integer ``(60)``
@@ -157,6 +145,18 @@ Carbon endpoint to send metrics to
 - **instance**: String ``("")`` - An optional string specifying the instance name that should be used
 
 
+.. _yaml-settings-CdbKvStoreConfiguration:
+
+CdbKvStoreConfiguration
+-----------------------
+
+CDB-based key-value store
+
+- **name**: String - The name of this object
+- **file_name**: String - The path to an existing CDB database
+- **refresh_delay**: Unsigned integer - The delay in seconds between two checks of the database modification time. 0 means disabled
+
+
 .. _yaml-settings-ConsoleConfiguration:
 
 ConsoleConfiguration
@@ -172,10 +172,10 @@ Console-related settings
 - **max_concurrent_connections**: Unsigned integer ``(0)`` - Set the maximum number of concurrent console connection
 
 
-.. _yaml-settings-Custom_load_balancing_policyConfiguration:
+.. _yaml-settings-CustomLoadBalancingPolicyConfiguration:
 
-Custom_load_balancing_policyConfiguration
------------------------------------------
+CustomLoadBalancingPolicyConfiguration
+--------------------------------------
 
 - **name**: String
 - **function_name**: String ``("")``
@@ -185,10 +185,10 @@ Custom_load_balancing_policyConfiguration
 - **per_thread**: Boolean ``(false)``
 
 
-.. _yaml-settings-Dnstap_loggerConfiguration:
+.. _yaml-settings-DnstapLoggerConfiguration:
 
-Dnstap_loggerConfiguration
---------------------------
+DnstapLoggerConfiguration
+-------------------------
 
 Endpoint to send queries and/or responses data to, using the dnstap format
 
@@ -203,10 +203,10 @@ Endpoint to send queries and/or responses data to, using the dnstap format
 - **reopen_interval**: Unsigned integer ``(0)`` - The number of queue entries to allocate for each output queue. According to the libfstrm library, the minimum is 2, the maximum is system-dependent and based on IOV_MAX, and the default is 64
 
 
-.. _yaml-settings-Doh_tuningConfiguration:
+.. _yaml-settings-DohTuningConfiguration:
 
-Doh_tuningConfiguration
------------------------
+DohTuningConfiguration
+----------------------
 
 - **outgoing_worker_threads**: Unsigned integer ``(10)``
 - **outgoing_max_idle_time**: Unsigned integer ``(300)``
@@ -214,10 +214,10 @@ Doh_tuningConfiguration
 - **outgoing_max_idle_connection_per_backend**: Unsigned integer ``(10)``
 
 
-.. _yaml-settings-Dynamic_ruleConfiguration:
+.. _yaml-settings-DynamicRuleConfiguration:
 
-Dynamic_ruleConfiguration
--------------------------
+DynamicRuleConfiguration
+------------------------
 
 Dynamic rule settings
 
@@ -241,10 +241,10 @@ Dynamic rule settings
 - **minimum_global_cache_hit_ratio**: Double ``(0.0)`` - The minimum global cache-hit ratio (over all pools, so ``cache-hits`` / (``cache-hits`` + ``cache-misses``)) for a ``cache-miss-ratio`` rule to be applied
 
 
-.. _yaml-settings-Dynamic_rulesConfiguration:
+.. _yaml-settings-DynamicRulesConfiguration:
 
-Dynamic_rulesConfiguration
---------------------------
+DynamicRulesConfiguration
+-------------------------
 
 Group of dynamic rules
 
@@ -258,10 +258,10 @@ Group of dynamic rules
 - **rules**: Sequence of :ref:`DynamicRuleConfiguration <yaml-settings-DynamicRuleConfiguration>` - List of dynamic rules in this group
 
 
-.. _yaml-settings-Dynamic_rules_settingsConfiguration:
+.. _yaml-settings-DynamicRulesSettingsConfiguration:
 
-Dynamic_rules_settingsConfiguration
------------------------------------
+DynamicRulesSettingsConfiguration
+---------------------------------
 
 Dynamic rules-related settings
 
@@ -284,10 +284,10 @@ EbpfConfiguration
 - **external**: Boolean ``(false)`` - If set to true, :program:`dnsdist` does not load the internal ``eBPF`` program. This is useful for ``AF_XDP`` and ``XDP`` maps
 
 
-.. _yaml-settings-Ebpf_mapConfiguration:
+.. _yaml-settings-EbpfMapConfiguration:
 
-Ebpf_mapConfiguration
----------------------
+EbpfMapConfiguration
+--------------------
 
 An ``eBPF`` map that is used to share data with kernel-land ``AF_XDP``/``XSK``, ``socket filter`` or ``XDP`` programs. Maps can be pinned to a filesystem path, which makes their content persistent across restarts and allows external programs to read their content and to add new entries. :program:`dnsdist` will try to load maps that are pinned to a filesystem path on startups, inheriting any existing entries, and fall back to creating them if they do not exist yet. Note that the user :program`dnsdist` is running under must have the right privileges to read and write to the given file, and to go through all the directories in the path leading to that file. The pinned path must be on a filesystem of type ``BPF``, usually below ``/sys/fs/bpf/``
 
@@ -295,10 +295,10 @@ An ``eBPF`` map that is used to share data with kernel-land ``AF_XDP``/``XSK``, 
 - **pinned_path**: String ``("")`` - The filesystem path this map should be pinned to
 
 
-.. _yaml-settings-Edns_client_subnetConfiguration:
+.. _yaml-settings-EdnsClientSubnetConfiguration:
 
-Edns_client_subnetConfiguration
--------------------------------
+EdnsClientSubnetConfiguration
+-----------------------------
 
 EDNS Client Subnet-related settings
 
@@ -323,10 +323,10 @@ GeneralConfiguration
 - **capabilities_to_retain**: Sequence of String
 
 
-.. _yaml-settings-Health_checkConfiguration:
+.. _yaml-settings-HealthCheckConfiguration:
 
-Health_checkConfiguration
--------------------------
+HealthCheckConfiguration
+------------------------
 
 Health-checks related settings for backends
 
@@ -347,10 +347,10 @@ Health-checks related settings for backends
 - **lazy**: :ref:`LazyHealthCheckConfiguration <yaml-settings-LazyHealthCheckConfiguration>` - Settings for lazy health-checks
 
 
-.. _yaml-settings-Http_custom_response_headerConfiguration:
+.. _yaml-settings-HttpCustomResponseHeaderConfiguration:
 
-Http_custom_response_headerConfiguration
-----------------------------------------
+HttpCustomResponseHeaderConfiguration
+-------------------------------------
 
 List of custom HTTP headers
 
@@ -358,10 +358,10 @@ List of custom HTTP headers
 - **value**: String - The value part of the header
 
 
-.. _yaml-settings-Http_responses_mapConfiguration:
+.. _yaml-settings-HttpResponsesMapConfiguration:
 
-Http_responses_mapConfiguration
--------------------------------
+HttpResponsesMapConfiguration
+-----------------------------
 
 An entry of an HTTP response map. Every query that matches the regular expression supplied in ``expression`` will be immediately answered with a HTTP response.
 The status of the HTTP response will be the one supplied by ``status``, and the content set to the one supplied by ``content``, except if the status is a redirection (3xx) in which case the content is expected to be the URL to redirect to.
@@ -373,21 +373,10 @@ The status of the HTTP response will be the one supplied by ``status``, and the 
 - **headers**: Sequence of :ref:`HttpCustomResponseHeaderConfiguration <yaml-settings-HttpCustomResponseHeaderConfiguration>` - The custom headers to set for the HTTP response, if any. The default is to use the value of the ``custom_response_headers`` parameter of the frontend
 
 
-.. _yaml-settings-Incoming_dnscryptConfiguration:
+.. _yaml-settings-IncomingDnscryptCertificateKeyPairConfiguration:
 
-Incoming_dnscryptConfiguration
-------------------------------
-
-Settings for DNSCrypt frontends
-
-- **provider_name**: String ``("")`` - The DNSCrypt provider name for this frontend
-- **certificates**: Sequence of :ref:`IncomingDnscryptCertificateKeyPairConfiguration <yaml-settings-IncomingDnscryptCertificateKeyPairConfiguration>` - List of certificates and associated keys
-
-
-.. _yaml-settings-Incoming_dnscrypt_certificate_key_pairConfiguration:
-
-Incoming_dnscrypt_certificate_key_pairConfiguration
----------------------------------------------------
+IncomingDnscryptCertificateKeyPairConfiguration
+-----------------------------------------------
 
 Certificate and associated key for DNSCrypt frontends
 
@@ -395,10 +384,21 @@ Certificate and associated key for DNSCrypt frontends
 - **key**: String - The path to the private key file corresponding to the certificate, or a list of paths to such files, whose order should match the certFile(s) ones
 
 
-.. _yaml-settings-Incoming_dohConfiguration:
+.. _yaml-settings-IncomingDnscryptConfiguration:
 
-Incoming_dohConfiguration
--------------------------
+IncomingDnscryptConfiguration
+-----------------------------
+
+Settings for DNSCrypt frontends
+
+- **provider_name**: String ``("")`` - The DNSCrypt provider name for this frontend
+- **certificates**: Sequence of :ref:`IncomingDnscryptCertificateKeyPairConfiguration <yaml-settings-IncomingDnscryptCertificateKeyPairConfiguration>` - List of certificates and associated keys
+
+
+.. _yaml-settings-IncomingDohConfiguration:
+
+IncomingDohConfiguration
+------------------------
 
 The DNS over HTTP(s) parameters of a frontend
 
@@ -416,20 +416,20 @@ The DNS over HTTP(s) parameters of a frontend
 - **responses_map**: Sequence of :ref:`HttpResponsesMapConfiguration <yaml-settings-HttpResponsesMapConfiguration>` - Set a list of HTTP response rules allowing to intercept HTTP queries very early, before the DNS payload has been processed, and send custom responses including error pages, redirects and static content
 
 
-.. _yaml-settings-Incoming_doqConfiguration:
+.. _yaml-settings-IncomingDoqConfiguration:
 
-Incoming_doqConfiguration
--------------------------
+IncomingDoqConfiguration
+------------------------
 
 Settings for DNS over QUIC frontends
 
 - **max_concurrent_queries_per_connection**: Unsigned integer ``(65535)`` - Maximum number of in-flight queries on a single connection
 
 
-.. _yaml-settings-Incoming_quicConfiguration:
+.. _yaml-settings-IncomingQuicConfiguration:
 
-Incoming_quicConfiguration
---------------------------
+IncomingQuicConfiguration
+-------------------------
 
 QUIC settings for DNS over QUIC and DNS over HTTP/3 frontends
 
@@ -438,10 +438,10 @@ QUIC settings for DNS over QUIC and DNS over HTTP/3 frontends
 - **internal_pipe_buffer_size**: Unsigned integer ``(1048576)`` - Set the size in bytes of the internal buffer of the pipes used internally to pass queries and responses between threads. Requires support for ``F_SETPIPE_SZ`` which is present in Linux since 2.6.35. The actual size might be rounded up to a multiple of a page size. 0 means that the OS default size is used
 
 
-.. _yaml-settings-Incoming_tcpConfiguration:
+.. _yaml-settings-IncomingTcpConfiguration:
 
-Incoming_tcpConfiguration
--------------------------
+IncomingTcpConfiguration
+------------------------
 
 TCP-related settings for frontends
 
@@ -451,10 +451,22 @@ TCP-related settings for frontends
 - **max_concurrent_connections**: Unsigned integer ``(0)`` - Maximum number of concurrent incoming TCP connections to this frontend. The default is 0 which means unlimited
 
 
-.. _yaml-settings-Incoming_tlsConfiguration:
+.. _yaml-settings-IncomingTlsCertificateKeyPairConfiguration:
 
-Incoming_tlsConfiguration
--------------------------
+IncomingTlsCertificateKeyPairConfiguration
+------------------------------------------
+
+A pair of TLS certificate and key, with an optional associated password
+
+- **certificate**: String - A path to a file containing the certificate, in ``PEM``, ``DER`` or ``PKCS12`` format
+- **key**: String ``("")`` - A path to a file containing the key corresponding to the certificate, in ``PEM``, ``DER`` or ``PKCS12`` format
+- **password**: String ``("")`` - Password protecting the PKCS12 file if appropriate
+
+
+.. _yaml-settings-IncomingTlsConfiguration:
+
+IncomingTlsConfiguration
+------------------------
 
 TLS parameters for frontends
 
@@ -481,21 +493,21 @@ TLS parameters for frontends
 - **ignore_configuration_errors**: Boolean ``(false)`` - Ignore TLS configuration errors (such as invalid certificate path) and just issue a warning instead of aborting the whole process
 
 
-.. _yaml-settings-Incoming_tls_certificate_key_pairConfiguration:
+.. _yaml-settings-KeyValueStoresConfiguration:
 
-Incoming_tls_certificate_key_pairConfiguration
-----------------------------------------------
+KeyValueStoresConfiguration
+---------------------------
 
-A pair of TLS certificate and key, with an optional associated password
+List of key-value stores that can be used with :ref:`_yaml-settings-KeyValueStoreLookupAction` or :ref:`_yaml-settings-KeyValueStoreLookupSelector`
 
-- **certificate**: String - A path to a file containing the certificate, in ``PEM``, ``DER`` or ``PKCS12`` format
-- **key**: String ``("")`` - A path to a file containing the key corresponding to the certificate, in ``PEM``, ``DER`` or ``PKCS12`` format
-- **password**: String ``("")`` - Password protecting the PKCS12 file if appropriate
+- **lmdb**: Sequence of :ref:`LmdbKvStoreConfiguration <yaml-settings-LmdbKvStoreConfiguration>` - List of LMDB-based key-value stores
+- **cdb**: Sequence of :ref:`CdbKvStoreConfiguration <yaml-settings-CdbKvStoreConfiguration>` - List of CDB-based key-value stores
+- **lookup_keys**: :ref:`KvsLookupKeysConfiguration <yaml-settings-KvsLookupKeysConfiguration>` - List of lookup keys
 
 
-.. _yaml-settings-KVSLookupKeyQNameConfiguration:
+.. _yaml-settings-KvsLookupKeyQnameConfiguration:
 
-KVSLookupKeyQNameConfiguration
+KvsLookupKeyQnameConfiguration
 ------------------------------
 
 Lookup key that can be used with :ref:`_yaml-settings-KeyValueStoreLookupAction` or :ref:`_yaml-settings-KeyValueStoreLookupSelector`, will return the qname of the query in DNS wire format
@@ -504,9 +516,9 @@ Lookup key that can be used with :ref:`_yaml-settings-KeyValueStoreLookupAction`
 - **wire_format**: Boolean ``(true)`` - Whether to do the lookup in wire format (default) or in plain text
 
 
-.. _yaml-settings-KVSLookupKeySourceIPConfiguration:
+.. _yaml-settings-KvsLookupKeySourceIpConfiguration:
 
-KVSLookupKeySourceIPConfiguration
+KvsLookupKeySourceIpConfiguration
 ---------------------------------
 
 Lookup key that can be used with :ref:`_yaml-settings-KeyValueStoreLookupAction` or :ref:`_yaml-settings-KeyValueStoreLookupSelector`, will return the source IP of the client in network byte-order
@@ -517,9 +529,9 @@ Lookup key that can be used with :ref:`_yaml-settings-KeyValueStoreLookupAction`
 - **include_port**: Boolean ``(false)`` - Whether to append the port (in network byte-order) after the address
 
 
-.. _yaml-settings-KVSLookupKeySuffixConfiguration:
+.. _yaml-settings-KvsLookupKeySuffixConfiguration:
 
-KVSLookupKeySuffixConfiguration
+KvsLookupKeySuffixConfiguration
 -------------------------------
 
 Lookup key that can be used with :ref:`_yaml-settings-KeyValueStoreLookupAction` or :ref:`_yaml-settings-KeyValueStoreLookupSelector`, will return a vector of keys based on the labels of the qname in DNS wire format or plain text. For example if the qname is sub.domain.powerdns.com. the following keys will be returned:
@@ -542,9 +554,9 @@ If ``min_labels`` is set to a value larger than ``0`` the lookup will only be do
 - **wire_format**: Boolean ``(true)`` - Whether to do the lookup in wire format (default) or in plain text
 
 
-.. _yaml-settings-KVSLookupKeyTagConfiguration:
+.. _yaml-settings-KvsLookupKeyTagConfiguration:
 
-KVSLookupKeyTagConfiguration
+KvsLookupKeyTagConfiguration
 ----------------------------
 
 Lookup key that can be used with :ref:`_yaml-settings-KeyValueStoreLookupAction` or :ref:`_yaml-settings-KeyValueStoreLookupSelector`, will return the value of the corresponding tag for this query, if it exists
@@ -553,48 +565,23 @@ Lookup key that can be used with :ref:`_yaml-settings-KeyValueStoreLookupAction`
 - **tag**: String
 
 
-.. _yaml-settings-KVSLookupKeysConfiguration:
+.. _yaml-settings-KvsLookupKeysConfiguration:
 
-KVSLookupKeysConfiguration
+KvsLookupKeysConfiguration
 --------------------------
 
 List of look keys that can be used with :ref:`_yaml-settings-KeyValueStoreLookupAction` or :ref:`_yaml-settings-KeyValueStoreLookupSelector`
 
-- **source_ip_keys**: Sequence of :ref:`KVSLookupKeySourceIPConfiguration <yaml-settings-KVSLookupKeySourceIPConfiguration>`
-- **qname_keys**: Sequence of :ref:`KVSLookupKeyQNameConfiguration <yaml-settings-KVSLookupKeyQNameConfiguration>`
-- **suffix_keys**: Sequence of :ref:`KVSLookupKeySuffixConfiguration <yaml-settings-KVSLookupKeySuffixConfiguration>`
-- **tag_keys**: Sequence of :ref:`KVSLookupKeyTagConfiguration <yaml-settings-KVSLookupKeyTagConfiguration>`
+- **source_ip_keys**: Sequence of :ref:`KvsLookupKeySourceIpConfiguration <yaml-settings-KvsLookupKeySourceIpConfiguration>`
+- **qname_keys**: Sequence of :ref:`KvsLookupKeyQnameConfiguration <yaml-settings-KvsLookupKeyQnameConfiguration>`
+- **suffix_keys**: Sequence of :ref:`KvsLookupKeySuffixConfiguration <yaml-settings-KvsLookupKeySuffixConfiguration>`
+- **tag_keys**: Sequence of :ref:`KvsLookupKeyTagConfiguration <yaml-settings-KvsLookupKeyTagConfiguration>`
 
 
-.. _yaml-settings-Key_value_storesConfiguration:
+.. _yaml-settings-LazyHealthCheckConfiguration:
 
-Key_value_storesConfiguration
------------------------------
-
-List of key-value stores that can be used with :ref:`_yaml-settings-KeyValueStoreLookupAction` or :ref:`_yaml-settings-KeyValueStoreLookupSelector`
-
-- **lmdb**: Sequence of :ref:`LMDBKVStoreConfiguration <yaml-settings-LMDBKVStoreConfiguration>` - List of LMDB-based key-value stores
-- **cdb**: Sequence of :ref:`CDBKVStoreConfiguration <yaml-settings-CDBKVStoreConfiguration>` - List of CDB-based key-value stores
-- **lookup_keys**: :ref:`KVSLookupKeysConfiguration <yaml-settings-KVSLookupKeysConfiguration>` - List of lookup keys
-
-
-.. _yaml-settings-LMDBKVStoreConfiguration:
-
-LMDBKVStoreConfiguration
-------------------------
-
-LMDB-based key-value store
-
-- **name**: String - The name of this object
-- **file_name**: String - The path to an existing ``LMDB`` database created with ``MDB_NOSUBDIR``
-- **database_name**: String - The name of the database to use
-- **no_lock**: Boolean ``(false)`` - Whether to open the database with the ``MDB_NOLOCK`` flag
-
-
-.. _yaml-settings-Lazy_health_checkConfiguration:
-
-Lazy_health_checkConfiguration
-------------------------------
+LazyHealthCheckConfiguration
+----------------------------
 
 Lazy health-check related settings for backends
 
@@ -607,10 +594,23 @@ Lazy health-check related settings for backends
 - **max_back_off**: Unsigned integer ``(3600)`` - This value, in seconds, caps the time between two health-check queries when ``use_exponential_back_off`` is set to true. The default is 3600 which means that at most one hour will pass between two health-check queries
 
 
-.. _yaml-settings-Load_balancing_policiesConfiguration:
+.. _yaml-settings-LmdbKvStoreConfiguration:
 
-Load_balancing_policiesConfiguration
-------------------------------------
+LmdbKvStoreConfiguration
+------------------------
+
+LMDB-based key-value store
+
+- **name**: String - The name of this object
+- **file_name**: String - The path to an existing ``LMDB`` database created with ``MDB_NOSUBDIR``
+- **database_name**: String - The name of the database to use
+- **no_lock**: Boolean ``(false)`` - Whether to open the database with the ``MDB_NOLOCK`` flag
+
+
+.. _yaml-settings-LoadBalancingPoliciesConfiguration:
+
+LoadBalancingPoliciesConfiguration
+----------------------------------
 
 - **default_policy**: String ``(leastOutstanding)``
 - **servfail_on_no_server**: Boolean ``(false)``
@@ -631,10 +631,10 @@ Metrics-related settings
 - **carbon**: Sequence of :ref:`CarbonConfiguration <yaml-settings-CarbonConfiguration>` - List of Carbon endpoints to send metrics to
 
 
-.. _yaml-settings-Outgoing_auto_upgradeConfiguration:
+.. _yaml-settings-OutgoingAutoUpgradeConfiguration:
 
-Outgoing_auto_upgradeConfiguration
-----------------------------------
+OutgoingAutoUpgradeConfiguration
+--------------------------------
 
 Setting for the automatically upgraded backend to a more secure version of the DNS protocol
 
@@ -646,10 +646,10 @@ Setting for the automatically upgraded backend to a more secure version of the D
 - **use_lazy_health_check**: Boolean ``(false)`` - Whether the auto-upgraded version of this backend should use the lazy health-checking mode. Default is false, which means it will use the regular health-checking mode
 
 
-.. _yaml-settings-Outgoing_dohConfiguration:
+.. _yaml-settings-OutgoingDohConfiguration:
 
-Outgoing_dohConfiguration
--------------------------
+OutgoingDohConfiguration
+------------------------
 
 DNS over HTTPS specific settings for backends
 
@@ -657,10 +657,10 @@ DNS over HTTPS specific settings for backends
 - **add_x_forwarded_headers**: Boolean ``(false)`` - Whether to add X-Forwarded-For, X-Forwarded-Port and X-Forwarded-Proto headers to the backend
 
 
-.. _yaml-settings-Outgoing_tcpConfiguration:
+.. _yaml-settings-OutgoingTcpConfiguration:
 
-Outgoing_tcpConfiguration
--------------------------
+OutgoingTcpConfiguration
+------------------------
 
 TCP-related settings for backends
 
@@ -671,10 +671,10 @@ TCP-related settings for backends
 - **fast_open**: Boolean ``(false)`` - Whether to enable TCP Fast Open
 
 
-.. _yaml-settings-Outgoing_tlsConfiguration:
+.. _yaml-settings-OutgoingTlsConfiguration:
 
-Outgoing_tlsConfiguration
--------------------------
+OutgoingTlsConfiguration
+------------------------
 
 TLS parameters for backends
 
@@ -691,10 +691,10 @@ TLS parameters for backends
 - **ktls**: Boolean ``(false)`` - Whether to enable the experimental kernel TLS support on Linux, if both the kernel and the OpenSSL library support it. Default is false. Currently both DoT and DoH backend support this option
 
 
-.. _yaml-settings-Packet_cacheConfiguration:
+.. _yaml-settings-PacketCacheConfiguration:
 
-Packet_cacheConfiguration
--------------------------
+PacketCacheConfiguration
+------------------------
 
 - **name**: String
 - **size**: Unsigned integer
@@ -734,10 +734,10 @@ Meta-data entry to be added to a Protocol Buffer message
 - **value**: String - Value of the meta entry
 
 
-.. _yaml-settings-Protobuf_loggerConfiguration:
+.. _yaml-settings-ProtobufLoggerConfiguration:
 
-Protobuf_loggerConfiguration
-----------------------------
+ProtobufLoggerConfiguration
+---------------------------
 
 Endpoint to send queries and/or responses data to, using the native PowerDNS format
 
@@ -748,20 +748,20 @@ Endpoint to send queries and/or responses data to, using the native PowerDNS for
 - **reconnect_wait_time**: Unsigned integer ``(1)`` - Time in seconds between reconnection attempts
 
 
-.. _yaml-settings-Proxy_protocolConfiguration:
+.. _yaml-settings-ProxyProtocolConfiguration:
 
-Proxy_protocolConfiguration
----------------------------
+ProxyProtocolConfiguration
+--------------------------
 
 - **acl**: Sequence of String ``("")``
 - **maximum_payload_size**: Unsigned integer ``(512)``
 - **apply_acl_to_proxied_clients**: Boolean ``(false)``
 
 
-.. _yaml-settings-Proxy_protocol_valueConfiguration:
+.. _yaml-settings-ProxyProtocolValueConfiguration:
 
-Proxy_protocol_valueConfiguration
----------------------------------
+ProxyProtocolValueConfiguration
+-------------------------------
 
 A proxy protocol Type-Length Value entry
 
@@ -769,10 +769,10 @@ A proxy protocol Type-Length Value entry
 - **value**: String - The value of the proxy protocol entry
 
 
-.. _yaml-settings-Query_countConfiguration:
+.. _yaml-settings-QueryCountConfiguration:
 
-Query_countConfiguration
-------------------------
+QueryCountConfiguration
+-----------------------
 
 - **enabled**: Boolean ``(false)``
 - **filter_function_name**: String ``("")``
@@ -780,10 +780,10 @@ Query_countConfiguration
 - **filter_function_file**: String ``("")``
 
 
-.. _yaml-settings-Query_ruleConfiguration:
+.. _yaml-settings-QueryRuleConfiguration:
 
-Query_ruleConfiguration
------------------------
+QueryRuleConfiguration
+----------------------
 
 A rule that can applied on queries
 
@@ -793,10 +793,10 @@ A rule that can applied on queries
 - **action**: :ref:`Action <yaml-settings-Action>` - The action taken if the selector matches
 
 
-.. _yaml-settings-Remote_loggingConfiguration:
+.. _yaml-settings-RemoteLoggingConfiguration:
 
-Remote_loggingConfiguration
----------------------------
+RemoteLoggingConfiguration
+--------------------------
 
 Queries and/or responses remote logging settings
 
@@ -804,10 +804,10 @@ Queries and/or responses remote logging settings
 - **dnstap_loggers**: Sequence of :ref:`DnstapLoggerConfiguration <yaml-settings-DnstapLoggerConfiguration>` - List of endpoints to send queries and/or responses data to, using the dnstap format
 
 
-.. _yaml-settings-Response_ruleConfiguration:
+.. _yaml-settings-ResponseRuleConfiguration:
 
-Response_ruleConfiguration
---------------------------
+ResponseRuleConfiguration
+-------------------------
 
 A rule that can applied on responses
 
@@ -817,10 +817,10 @@ A rule that can applied on responses
 - **action**: :ref:`ResponseAction <yaml-settings-ResponseAction>` - The action taken if the selector matches
 
 
-.. _yaml-settings-Ring_buffersConfiguration:
+.. _yaml-settings-RingBuffersConfiguration:
 
-Ring_buffersConfiguration
--------------------------
+RingBuffersConfiguration
+------------------------
 
 Settings for in-memory ring buffers, that are used for live traffic inspection and dynamic rules
 
@@ -831,10 +831,10 @@ Settings for in-memory ring buffers, that are used for live traffic inspection a
 - **record_responses**: Boolean ``(true)`` - Whether to record responses in the ring buffers
 
 
-.. _yaml-settings-Security_pollingConfiguration:
+.. _yaml-settings-SecurityPollingConfiguration:
 
-Security_pollingConfiguration
------------------------------
+SecurityPollingConfiguration
+----------------------------
 
 - **polling_interval**: Unsigned integer ``(3600)``
 - **suffix**: String ``(secpoll.powerdns.com.)``
@@ -850,10 +850,10 @@ SnmpConfiguration
 - **daemon_socket**: String ``("")``
 
 
-.. _yaml-settings-Tcp_tuningConfiguration:
+.. _yaml-settings-TcpTuningConfiguration:
 
-Tcp_tuningConfiguration
------------------------
+TcpTuningConfiguration
+----------------------
 
 - **worker_threads**: Unsigned integer ``(10)``
 - **receive_timeout**: Unsigned integer ``(2)``
@@ -869,10 +869,10 @@ Tcp_tuningConfiguration
 - **fast_open_key**: String ``("")``
 
 
-.. _yaml-settings-Tls_tuningConfiguration:
+.. _yaml-settings-TlsTuningConfiguration:
 
-Tls_tuningConfiguration
------------------------
+TlsTuningConfiguration
+----------------------
 
 - **outgoing_tickets_cache_cleanup_delay**: Unsigned integer ``(60)``
 - **outgoing_tickets_cache_validity**: Unsigned integer ``(600)``
@@ -892,10 +892,10 @@ Tuning settings
 - **udp**: :ref:`UdpTuningConfiguration <yaml-settings-UdpTuningConfiguration>` - UDP-related tuning settings
 
 
-.. _yaml-settings-Udp_tuningConfiguration:
+.. _yaml-settings-UdpTuningConfiguration:
 
-Udp_tuningConfiguration
------------------------
+UdpTuningConfiguration
+----------------------
 
 - **messages_per_round**: Unsigned integer ``(1)``
 - **send_buffer_size**: Unsigned integer ``(0)``

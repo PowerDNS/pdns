@@ -742,7 +742,8 @@ def generate_rust_selector_to_config(output):
 def handle_structures(generated_fp, definitions, default_functions, validation_functions):
     for definition_name, keys in definitions.items():
         generated_fp.write(get_rust_struct_from_definition(definition_name, keys, default_functions) + '\n')
-        validation_functions.append(get_struct_validation_function_from_definition(definition_name, keys['parameters'] if 'parameters' in keys else []))
+        if definition_name not in ['global', 'proto_buf_meta', 'proxy_protocol_value', 'query_rule', 'response_rule']:
+            validation_functions.append(get_struct_validation_function_from_definition(definition_name, keys['parameters'] if 'parameters' in keys else []))
 
 def get_temporary_file_for_generated_code(directory):
     generated_fp = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8', dir=directory, delete=False)

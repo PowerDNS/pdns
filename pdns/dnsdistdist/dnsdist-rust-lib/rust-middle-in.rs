@@ -95,9 +95,3 @@ impl ResponseRuleConfigurationSerde {
     Ok(())
   }
 }
-
-impl dnsdistsettings::SharedDNSResponseAction {
-  fn validate(&self) -> Result<(), ValidationError> {
-    Ok(())
-  }
-}
