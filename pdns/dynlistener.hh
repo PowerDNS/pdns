@@ -49,6 +49,7 @@ public:
   typedef struct { g_funk_t *func; string args; string usage; } g_funkwithusage_t;
   typedef map<string,g_funkwithusage_t> g_funkdb_t;
   
+  static void registerExitFunc(const string &name, g_funk_t *gf);
   static void registerFunc(const string &name, g_funk_t *gf, const string &usage="", const string &args="");
   static void registerRestFunc(g_funk_t *gf);
   static g_funk_t* getFunc(const string& fname) { return s_funcdb[fname].func; } 
@@ -72,5 +73,6 @@ private:
   ComboAddress d_socketaddress;
   static g_funkdb_t s_funcdb;
   static g_funk_t* s_restfunc;
+  static string s_exitfuncname;
   bool testLive(const string& fname);
 };
