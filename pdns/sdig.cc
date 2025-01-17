@@ -171,7 +171,7 @@ static void printReply(const string& reply, bool showflags, bool hidesoadetails,
         EDNSSubnetOpts reso;
         if (EDNSSubnetOpts::getFromString(iter->second, &reso)) {
           cerr << "EDNS Subnet response: " << reso.getSource().toString()
-               << ", scope: " << Netmask(reso.getSource().getNetwork(), reso.getScopePrefixLength()).toString()
+               << ", scope: " << reso.getScope().toString()
                << ", family = " << std::to_string(reso.getFamily())
                << endl;
         }

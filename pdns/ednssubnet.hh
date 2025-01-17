@@ -50,6 +50,10 @@ public:
   {
     return scopeBits;
   }
+  [[nodiscard]] Netmask getScope() const
+  {
+    return {source.getNetwork(), scopeBits};
+  }
   [[nodiscard]] std::string makeOptString() const;
   static bool getFromString(const std::string& options, EDNSSubnetOpts* eso);
   static bool getFromString(const char* options, unsigned int len, EDNSSubnetOpts* eso);

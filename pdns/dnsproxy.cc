@@ -289,7 +289,7 @@ void DNSProxy::mainloop()
         // update the EDNS options with info from the resolver - issue #5469
         // note that this relies on the ECS string encoder to use the source network, and only take the prefix length from scope
         iter->second.complete->d_eso.setScopePrefixLength(packet.d_eso.getScopePrefixLength());
-        DLOG(g_log << "from dnsproxy::mainLoop: updated EDNS options from resolver EDNS source: " << iter->second.complete->d_eso.getSource().toString() << " EDNS scope: " << Netmask(iter->second.complete->d_eso.getSource().getNetwork(), iter->second.complete->d_eso.getScopePrefixLength()).toString() << endl);
+        DLOG(g_log << "from dnsproxy::mainLoop: updated EDNS options from resolver EDNS source: " << iter->second.complete->d_eso.getSource().toString() << " EDNS scope: " << iter->second.complete->d_eso.getScope().toString() << endl);
 
         if (mdp.d_header.rcode == RCode::NoError) {
           for (const auto& answer : mdp.d_answers) {
