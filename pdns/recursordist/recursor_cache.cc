@@ -126,6 +126,41 @@ size_t MemRecursorCache::ecsIndexSize()
   return count;
 }
 
+size_t MemRecursorCache::CacheEntry::authRecsSizeEstimate() const
+{
+  size_t ret = 0;
+  if (d_authorityRecs) {
+    for (const auto& record : *d_authorityRecs) {
+      ret += record.sizeEstimate();
+    }
+  }
+  return ret;
+}
+
+size_t MemRecursorCache::CacheEntry::sigRecsSizeEstimate() const
+{
+  size_t ret = 0;
+  if (d_signatures) {
+    for (const auto& record : *d_signatures) {
+      ret += record->sizeEstimate();
+    }
+  }
+  return ret;
+}
+
+size_t MemRecursorCache::CacheEntry::sizeEstimate() const
+{
+  auto ret = sizeof(struct CacheEntry);
+  ret += d_qname.sizeEstimate();
+  ret += d_authZone.sizeEstimate();
+  for (const auto& record : d_records) {
+    ret += record->sizeEstimate();
+  }
+  ret += authRecsSizeEstimate();
+  ret += sigRecsSizeEstimate();
+  return ret;
+}
+
 // this function is too slow to poll!
 size_t MemRecursorCache::bytes()
 {
@@ -133,11 +168,7 @@ size_t MemRecursorCache::bytes()
   for (auto& shard : d_maps) {
     auto lockedShard = shard.lock();
     for (const auto& entry : lockedShard->d_map) {
-      ret += sizeof(struct CacheEntry);
-      ret += entry.d_qname.toString().length();
-      for (const auto& record : entry.d_records) {
-        ret += sizeof(record); // XXX WRONG we don't know the stored size!
-      }
+      ret += entry.sizeEstimate();
     }
   }
   return ret;
@@ -881,7 +912,11 @@ uint64_t MemRecursorCache::doDump(int fileDesc, size_t maxCacheEntries)
   for (auto& shard : d_maps) {
     auto lockedShard = shard.lock();
     const auto shardSize = lockedShard->d_map.size();
-    fprintf(filePtr.get(), "; record cache shard %zu; size %zu\n", shardNumber, shardSize);
+    size_t bytes = 0;
+    for (const auto& entry : lockedShard->d_map) {
+      bytes += entry.sizeEstimate();
+    }
+    fprintf(filePtr.get(), "; record cache shard %zu; size %zu bytes %zu\n", shardNumber, shardSize, bytes);
     min = std::min(min, shardSize);
     max = std::max(max, shardSize);
     shardNumber++;

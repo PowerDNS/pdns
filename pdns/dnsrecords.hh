@@ -36,16 +36,19 @@
 
 struct ReportIsOnlyCallableByReportAllTypes;
 
-#define includeboilerplate(RNAME)   RNAME##RecordContent(const DNSRecord& dr, PacketReader& pr); \
-  RNAME##RecordContent(const string& zoneData);                                                  \
-  static void report(const ReportIsOnlyCallableByReportAllTypes& guard);                         \
-  static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);          \
-  static std::shared_ptr<DNSRecordContent> make(const string& zonedata);                         \
-  string getZoneRepresentation(bool noDot=false) const override;                                 \
-  void toPacket(DNSPacketWriter& pw) const override;                                             \
-  uint16_t getType() const override { return QType::RNAME; }                                     \
-  template<class Convertor> void xfrPacket(Convertor& conv, bool noDot=false) const;             \
-  template<class Convertor> void xfrPacket(Convertor& conv, bool noDot=false);
+#define includeboilerplate(RNAME)                                                       \
+  RNAME##RecordContent(const DNSRecord& dr, PacketReader& pr);                          \
+  RNAME##RecordContent(const string& zoneData);                                         \
+  static void report(const ReportIsOnlyCallableByReportAllTypes& guard);                \
+  static std::shared_ptr<DNSRecordContent> make(const DNSRecord& dr, PacketReader& pr); \
+  static std::shared_ptr<DNSRecordContent> make(const string& zonedata);                \
+  string getZoneRepresentation(bool noDot = false) const override;                      \
+  void toPacket(DNSPacketWriter& pw) const override;                                    \
+  uint16_t getType() const override { return QType::RNAME; }                            \
+  template <class Convertor>                                                            \
+  void xfrPacket(Convertor& conv, bool noDot = false) const;                            \
+  template <class Convertor>                                                            \
+  void xfrPacket(Convertor& conv, bool noDot = false);
 
 class NAPTRRecordContent : public DNSRecordContent
 {
@@ -61,6 +64,10 @@ public:
   const DNSName& getReplacement() const
   {
     return d_replacement;
+  }
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_replacement.sizeEstimate() + d_flags.size() + d_services.size() + d_regexp.size();
   }
 private:
   uint16_t d_order, d_preference;
@@ -83,6 +90,10 @@ public:
       return false;
     return d_ip == dynamic_cast<const ARecordContent&>(rhs).d_ip;
   }
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this);
+  }
 private:
   uint32_t d_ip;
 };
@@ -99,6 +110,10 @@ public:
     if(typeid(*this) != typeid(rhs))
       return false;
     return d_ip6 == dynamic_cast<const decltype(this)>(&rhs)->d_ip6;
+  }
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_ip6.size();
   }
 private:
   string d_ip6; // why??
@@ -121,7 +136,10 @@ public:
     auto rrhs =dynamic_cast<const decltype(this)>(&rhs);
     return std::tie(d_preference, d_mxname) == std::tie(rrhs->d_preference, rrhs->d_mxname);
   }
-
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_mxname.sizeEstimate();
+  }
 };
 
 class KXRecordContent : public DNSRecordContent
@@ -131,6 +149,10 @@ public:
 
   includeboilerplate(KX)
 
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_exchanger.sizeEstimate();
+  }
 private:
   uint16_t d_preference;
   DNSName d_exchanger;
@@ -143,6 +165,10 @@ public:
 
   includeboilerplate(IPSECKEY)
 
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_gateway.sizeEstimate() + d_publickey.size() + d_ip6.size();
+  }
 private:
   uint32_t d_ip4;
   DNSName d_gateway;
@@ -155,6 +181,10 @@ class DHCIDRecordContent : public DNSRecordContent
 {
 public:
   includeboilerplate(DHCID)
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_content.size();
+  }
 
 private:
   string d_content;
@@ -167,6 +197,10 @@ public:
   SRVRecordContent(uint16_t preference, uint16_t weight, uint16_t port, DNSName  target);
 
   includeboilerplate(SRV)
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_target.sizeEstimate();
+  }
 
   uint16_t d_weight, d_port;
   DNSName d_target;
@@ -178,6 +212,10 @@ class TSIGRecordContent : public DNSRecordContent
 public:
   includeboilerplate(TSIG)
   TSIGRecordContent() = default;
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_algoName.sizeEstimate() + d_mac.size() + d_otherData.size();
+  }
 
   uint16_t d_origID{0};
   uint16_t d_fudge{0};
@@ -197,6 +235,11 @@ class TXTRecordContent : public DNSRecordContent
 public:
   includeboilerplate(TXT)
 
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_text.size();
+  }
+
   string d_text;
 };
 
@@ -205,6 +248,10 @@ class LUARecordContent : public DNSRecordContent
 {
 public:
   includeboilerplate(LUA)
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + getCode().size();
+  }
   string getCode() const;
   uint16_t d_type;
   string d_code;
@@ -215,6 +262,10 @@ class ENTRecordContent : public DNSRecordContent
 {
 public:
   includeboilerplate(ENT)
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this);
+  }
 };
 
 class SPFRecordContent : public DNSRecordContent
@@ -224,6 +275,10 @@ public:
   const std::string& getText() const
   {
     return d_text;
+  }
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_text.size();
   }
 
 private:
@@ -244,7 +299,10 @@ public:
     auto rrhs =dynamic_cast<const decltype(this)>(&rhs);
     return d_content == rrhs->d_content;
   }
-
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_content.sizeEstimate();
+  }
 private:
   DNSName d_content;
 };
@@ -255,6 +313,10 @@ public:
   includeboilerplate(PTR)
   explicit PTRRecordContent(const DNSName& content) : d_content(content){}
   const DNSName& getContent() const { return d_content; }
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_content.sizeEstimate();
+  }
 private:
   DNSName d_content;
 };
@@ -265,6 +327,10 @@ public:
   includeboilerplate(CNAME)
   CNAMERecordContent(const DNSName& content) : d_content(content){}
   DNSName getTarget() const { return d_content; }
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_content.sizeEstimate();
+  }
 private:
   DNSName d_content;
 };
@@ -279,6 +345,10 @@ public:
   {
     return d_content;
   }
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_content.sizeEstimate();
+  }
 private:
   DNSName d_content;
 };
@@ -290,6 +360,10 @@ public:
   includeboilerplate(DNAME)
   DNAMERecordContent(const DNSName& content) : d_content(content){}
   const DNSName& getTarget() const { return d_content; }
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_content.sizeEstimate();
+  }
 private:
   DNSName d_content;
 };
@@ -299,6 +373,10 @@ class MBRecordContent : public DNSRecordContent
 {
 public:
   includeboilerplate(MB)
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_madname.sizeEstimate();
+  }
 
 private:
   DNSName d_madname;
@@ -308,6 +386,10 @@ class MGRecordContent : public DNSRecordContent
 {
 public:
   includeboilerplate(MG)
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_mgmname.sizeEstimate();
+  }
 
 private:
   DNSName d_mgmname;
@@ -317,6 +399,10 @@ class MRRecordContent : public DNSRecordContent
 {
 public:
   includeboilerplate(MR)
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_alias.sizeEstimate();
+  }
 
 private:
   DNSName d_alias;
@@ -326,6 +412,10 @@ class MINFORecordContent : public DNSRecordContent
 {
 public:
   includeboilerplate(MINFO)
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_rmailbx.sizeEstimate() + d_emailbx.sizeEstimate();
+  }
 
 private:
   DNSName d_rmailbx;
@@ -338,6 +428,10 @@ public:
   OPTRecordContent() = default;
   includeboilerplate(OPT)
   void getData(vector<pair<uint16_t, string> > &opts) const;
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_data.size();
+  }
 private:
   string d_data;
 };
@@ -347,6 +441,10 @@ class HINFORecordContent : public DNSRecordContent
 {
 public:
   includeboilerplate(HINFO)
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_cpu.size() + d_host.size();
+  }
 
 private:
   string d_cpu, d_host;
@@ -356,7 +454,10 @@ class RPRecordContent : public DNSRecordContent
 {
 public:
   includeboilerplate(RP)
-
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_mbox.sizeEstimate() + d_info.sizeEstimate();
+  }
 private:
   DNSName d_mbox, d_info;
 };
@@ -378,6 +479,10 @@ public:
     return std::tie(d_flags, d_protocol, d_algorithm, d_key) <
       std::tie(rhs.d_flags, rhs.d_protocol, rhs.d_algorithm, rhs.d_key);
   }
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_key.size();
+  }
 };
 
 class CDNSKEYRecordContent : public DNSRecordContent
@@ -386,6 +491,10 @@ public:
   CDNSKEYRecordContent();
   includeboilerplate(CDNSKEY)
   uint16_t getTag();
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_key.size();
+  }
 
   uint16_t d_flags{0};
   uint8_t d_protocol{0};
@@ -412,6 +521,10 @@ public:
   }
 
   includeboilerplate(DS)
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_digest.size();
+  }
 
   uint16_t d_tag{0};
   uint8_t d_algorithm{0}, d_digesttype{0};
@@ -423,6 +536,10 @@ class CDSRecordContent : public DNSRecordContent
 public:
   CDSRecordContent();
   includeboilerplate(CDS)
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_digest.size();
+  }
 
   uint16_t d_tag{0};
   uint8_t d_algorithm{0}, d_digesttype{0};
@@ -434,6 +551,10 @@ class DLVRecordContent : public DNSRecordContent
 public:
   DLVRecordContent();
   includeboilerplate(DLV)
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_digest.size();
+  }
 
   uint16_t d_tag{0};
   uint8_t d_algorithm{0}, d_digesttype{0};
@@ -445,6 +566,10 @@ class SSHFPRecordContent : public DNSRecordContent
 {
 public:
   includeboilerplate(SSHFP)
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_fingerprint.size();
+  }
 
 private:
   uint8_t d_algorithm, d_fptype;
@@ -455,6 +580,10 @@ class KEYRecordContent : public DNSRecordContent
 {
 public:
   includeboilerplate(KEY)
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_certificate.size();
+  }
 
 private:
   uint16_t d_flags;
@@ -466,6 +595,10 @@ class AFSDBRecordContent : public DNSRecordContent
 {
 public:
   includeboilerplate(AFSDB)
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_hostname.sizeEstimate();
+  }
 
 private:
   uint16_t d_subtype;
@@ -481,6 +614,10 @@ class CERTRecordContent : public DNSRecordContent
 {
 public:
   includeboilerplate(CERT)
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_certificate.size();
+  }
 
 private:
   uint16_t d_type, d_tag;
@@ -492,6 +629,10 @@ class TLSARecordContent : public DNSRecordContent
 {
 public:
   includeboilerplate(TLSA)
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_cert.size();
+  }
 
 private:
   uint8_t d_certusage, d_selector, d_matchtype;
@@ -502,6 +643,10 @@ class SMIMEARecordContent : public DNSRecordContent
 {
 public:
   includeboilerplate(SMIMEA)
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_cert.size();
+  }
 
 private:
   uint8_t d_certusage, d_selector, d_matchtype;
@@ -512,6 +657,10 @@ class OPENPGPKEYRecordContent : public DNSRecordContent
 {
 public:
   includeboilerplate(OPENPGPKEY)
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_keyring.size();
+  }
 
 private:
   string d_keyring;
@@ -535,6 +684,11 @@ class SVCBBaseRecordContent : public DNSRecordContent
     // Get the parameter with |key|, will throw out_of_range if param isn't there
     SvcParam getParam(const SvcParam::SvcParamKey &key) const;
     virtual std::shared_ptr<SVCBBaseRecordContent> clone() const = 0;
+
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_params.size() * sizeof(SvcParam) + d_target.sizeEstimate();
+  }
 
   protected:
     std::set<SvcParam> d_params;
@@ -565,6 +719,10 @@ public:
   RRSIGRecordContent();
   includeboilerplate(RRSIG)
 
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_signer.sizeEstimate() + d_signature.size();
+  }
   uint16_t d_type{0};
   uint16_t d_tag{0};
   DNSName d_signer;
@@ -589,6 +747,10 @@ class RKEYRecordContent : public DNSRecordContent
 public:
   RKEYRecordContent();
   includeboilerplate(RKEY)
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_key.size();
+  }
   uint16_t d_flags{0};
   uint8_t d_protocol{0}, d_algorithm{0};
   string d_key;
@@ -600,6 +762,10 @@ public:
   includeboilerplate(SOA)
   SOARecordContent(DNSName  mname, DNSName  rname, const struct soatimes& st);
 
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_mname.sizeEstimate() + d_rname.sizeEstimate();
+  }
   DNSName d_mname;
   DNSName d_rname;
   struct soatimes d_st;
@@ -611,6 +777,10 @@ public:
   includeboilerplate(ZONEMD)
   //ZONEMDRecordContent(uint32_t serial, uint8_t scheme, uint8_t hashalgo, string digest);
 
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_digest.size();
+  }
   uint32_t d_serial;
   uint8_t d_scheme;
   uint8_t d_hashalgo;
@@ -680,6 +850,14 @@ public:
 
   static constexpr size_t const nbTypes = 65536;
 
+  [[nodiscard]] size_t sizeEstimate() const
+  {
+    // for tree: size() nodes of roughly the size of the head node (very rough estimate as tree
+    // implementations can vary wildly on how they represent nodes of the tree, but we cannot access
+    // that private info)
+    return d_bitset ? nbTypes / 8 : d_set.size() * sizeof(std::set<uint16_t>);
+  }
+
 private:
 
   void migrateToBitSet()
@@ -731,6 +909,10 @@ public:
     return d_bitmap.count();
   }
 
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_next.sizeEstimate() + d_bitmap.sizeEstimate();
+  }
   DNSName d_next;
 private:
   NSECBitmap d_bitmap;
@@ -778,6 +960,10 @@ public:
     return d_flags & 1;
   }
 
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_salt.size() + d_nexthash.size() + d_bitmap.sizeEstimate();
+  }
 private:
   NSECBitmap d_bitmap;
 };
@@ -804,6 +990,11 @@ public:
     d_bitmap.set(type);
   }
 
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_bitmap.sizeEstimate();
+  }
+
 private:
   uint32_t d_serial{0};
   uint16_t d_flags{0};
@@ -827,6 +1018,10 @@ public:
     return QType::NSEC3PARAM;
   }
 
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_salt.size();
+  }
 
   uint8_t d_algorithm{0}, d_flags{0};
   uint16_t d_iterations{0};
@@ -853,6 +1048,10 @@ public:
     return QType::LOC;
   }
 
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this);
+  }
 private:
 };
 
@@ -861,6 +1060,10 @@ class NIDRecordContent : public DNSRecordContent
 {
 public:
   includeboilerplate(NID);
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this);
+  }
 
 private:
   uint16_t d_preference;
@@ -871,6 +1074,10 @@ class L32RecordContent : public DNSRecordContent
 {
 public:
   includeboilerplate(L32);
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this);
+  }
 
 private:
   uint16_t d_preference;
@@ -881,6 +1088,10 @@ class L64RecordContent : public DNSRecordContent
 {
 public:
   includeboilerplate(L64);
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this);
+  }
 
 private:
   uint16_t d_preference;
@@ -891,6 +1102,10 @@ class LPRecordContent : public DNSRecordContent
 {
 public:
   includeboilerplate(LP);
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_fqdn.sizeEstimate();
+  }
 
 private:
   uint16_t d_preference;
@@ -907,6 +1122,10 @@ public:
   string getZoneRepresentation(bool noDot=false) const override;
   void toPacket(DNSPacketWriter& pw) const override;
   uint16_t getType() const override { return QType::EUI48; }
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this);
+  }
 private:
  // storage for the bytes
  uint8_t d_eui48[6];
@@ -922,6 +1141,10 @@ public:
   string getZoneRepresentation(bool noDot=false) const override;
   void toPacket(DNSPacketWriter& pw) const override;
   uint16_t getType() const override { return QType::EUI64; }
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this);
+  }
 private:
  // storage for the bytes
  uint8_t d_eui64[8];
@@ -944,6 +1167,10 @@ class APLRecordContent : public DNSRecordContent
 public:
   APLRecordContent() = default;
   includeboilerplate(APL)
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + aplrdata.size() * sizeof(APLRDataElement);
+  }
 private:
   std::vector<APLRDataElement> aplrdata;
   APLRDataElement parseAPLElement(const string &element);
@@ -955,6 +1182,10 @@ class TKEYRecordContent : public DNSRecordContent
 public:
   TKEYRecordContent();
   includeboilerplate(TKEY)
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_algo.sizeEstimate() + d_key.size() + d_other.size();
+  }
 
   // storage for the bytes
   uint16_t d_othersize{0};
@@ -974,15 +1205,23 @@ private:
 class URIRecordContent : public DNSRecordContent {
   public:
     includeboilerplate(URI)
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_target.size();
+  }
   private:
     uint16_t d_priority, d_weight;
     string d_target;
 };
 
 class CAARecordContent : public DNSRecordContent {
-  public:
-    includeboilerplate(CAA)
-  private:
+public:
+  includeboilerplate(CAA)
+  [[nodiscard]] size_t sizeEstimate() const override
+  {
+    return sizeof(*this) + d_tag.size() + d_value.size();
+  }
+private:
     uint8_t d_flags;
     string d_tag, d_value;
 };

@@ -179,6 +179,13 @@ public:
     return d_storage;
   }
 
+  [[nodiscard]] size_t sizeEstimate() const
+  {
+    return d_storage.size(); // knowingly overestimating small strings as most string
+                             // implementations have internal capacity and we always include
+                             // sizeof(*this)
+  }
+
   bool has8bitBytes() const; /* returns true if at least one byte of the labels forming the name is not included in [A-Za-z0-9_*./@ \\:-] */
 
   class RawLabelsVisitor
