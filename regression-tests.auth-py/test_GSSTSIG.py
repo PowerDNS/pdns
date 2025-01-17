@@ -34,6 +34,24 @@ dnsupdate-require-tsig=no
                  }
 
     @classmethod
+    def secureZone(cls, confdir, zonename, key=None):
+        # This particular test uses a sqlite-only configuration, unlike
+        # all the other tests in that directory. Because of this, we
+        # need to perform an explicit create-zone, otherwise import-zone-key
+        # would fail.
+        zone = '.' if zonename == 'ROOT' else zonename
+        pdnsutilCmd = [os.environ['PDNSUTIL'],
+                       '--config-dir=%s' % confdir,
+                       'create-zone',
+                       zone]
+        print(' '.join(pdnsutilCmd))
+        try:
+            subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as e:
+            raise AssertionError('%s failed (%d): %s' % (pdnsutilCmd, e.returncode, e.output))
+        super(GSSTSIGBase, cls).secureZone(confdir, zonename, key)
+
+    @classmethod
     def setUpClass(cls):
         super(GSSTSIGBase, cls).setUpClass()
         os.system("$PDNSUTIL --config-dir=configs/auth delete-zone example.net")
