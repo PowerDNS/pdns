@@ -147,11 +147,13 @@ static void addSignature(DNSSECKeeper& dk, UeberBackend& db, const DNSName& sign
                          uint32_t signTTL, DNSResourceRecord::Place signPlace,
                          sortedRecords_t& toSign, vector<DNSZoneRecord>& outsigned, uint32_t origTTL, DNSPacket* packet)
 {
+  static bool directDNSKEYSignature = ::arg().mustDo("direct-dnskey-signature");
+
   //cerr<<"Asked to sign '"<<signQName<<"'|"<<DNSRecordContent::NumberToType(signQType)<<", "<<toSign.size()<<" records\n";
   if(toSign.empty())
     return;
   vector<RRSIGRecordContent> rrcs;
-  if(dk.isPresigned(signer) || (::arg().mustDo("direct-dnskey-signature") && signQType == QType::DNSKEY)) {
+  if(dk.isPresigned(signer) || (directDNSKEYSignature && signQType == QType::DNSKEY)) {
     //cerr<<"Doing presignatures"<<endl;
     dk.getPreRRSIGs(db, outsigned, origTTL, packet); // does it all
   }
