@@ -942,7 +942,7 @@ void SyncRes::AuthDomain::addSOA(std::vector<DNSRecord>& records) const
   if (ziter != d_records.end()) {
     DNSRecord dnsRecord = *ziter;
     dnsRecord.d_place = DNSResourceRecord::AUTHORITY;
-    records.push_back(dnsRecord);
+    records.push_back(std::move(dnsRecord));
   }
 }
 
@@ -1028,7 +1028,7 @@ int SyncRes::AuthDomain::getRecords(const DNSName& qname, const QType qtype, std
       if (dnsRecord.d_type == qtype || qtype == QType::ANY || dnsRecord.d_type == QType::CNAME) {
         dnsRecord.d_name = qname;
         dnsRecord.d_place = DNSResourceRecord::ANSWER;
-        records.push_back(dnsRecord);
+        records.push_back(std::move(dnsRecord));
       }
     }
 
@@ -2592,7 +2592,7 @@ bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<
         break;
       }
       if (g_recCache->get(d_now.tv_sec, dnameName, QType::DNAME, flags, &cset, d_cacheRemote, d_routingTag, d_doDNSSEC ? &signatures : nullptr, d_doDNSSEC ? &authorityRecs : nullptr, &d_wasVariable, &context.state, &wasAuth, &authZone, &d_fromAuthIP) > 0) {
-        foundName = dnameName;
+        foundName = std::move(dnameName);
         foundQT = QType::DNAME;
         break;
       }
@@ -2664,13 +2664,13 @@ bool SyncRes::doCNAMECacheCheck(const DNSName& qname, const QType qtype, vector<
           sigdr.setContent(signature);
           sigdr.d_place = DNSResourceRecord::ANSWER;
           sigdr.d_class = QClass::IN;
-          ret.push_back(sigdr);
+          ret.push_back(std::move(sigdr));
         }
 
         for (const auto& rec : *authorityRecs) {
           DNSRecord authDR(rec);
           authDR.d_ttl = ttl;
-          ret.push_back(authDR);
+          ret.push_back(std::move(authDR));
         }
       }
 
@@ -3099,7 +3099,7 @@ bool SyncRes::doCacheCheck(const DNSName& qname, const DNSName& authname, bool w
       dnsRecord.setContent(signature);
       dnsRecord.d_place = DNSResourceRecord::ANSWER;
       dnsRecord.d_class = QClass::IN;
-      ret.push_back(dnsRecord);
+      ret.push_back(std::move(dnsRecord));
     }
 
     for (const auto& rec : *authorityRecs) {
@@ -4025,7 +4025,7 @@ vState SyncRes::getDNSKeys(const DNSName& signer, skeyset_t& keys, bool& servFai
         if (key.d_type == QType::DNSKEY) {
           auto content = getRR<DNSKEYRecordContent>(key);
           if (content) {
-            keys.insert(content);
+            keys.insert(std::move(content));
           }
         }
       }
@@ -4246,7 +4246,7 @@ static void allowAdditionalEntry(std::unordered_set<DNSName>& allowedAdditionals
         if (target.isRoot()) {
           target = rec.d_name;
         }
-        allowedAdditionals.insert(target);
+        allowedAdditionals.insert(std::move(target));
       }
       else {
         // FIXME: Alias mode not implemented yet
@@ -4710,7 +4710,7 @@ RCode::rcodes_ SyncRes::updateCacheFromRecords(unsigned int depth, const string&
         tcache[{rec.d_name, rec.d_type, rec.d_place}].d_ttl_time = d_now.tv_sec;
         dnsRecord.d_ttl += d_now.tv_sec;
         dnsRecord.d_place = DNSResourceRecord::ANSWER;
-        tcache[{rec.d_name, rec.d_type, rec.d_place}].records.push_back(dnsRecord);
+        tcache[{rec.d_name, rec.d_type, rec.d_place}].records.push_back(std::move(dnsRecord));
       }
     }
     else

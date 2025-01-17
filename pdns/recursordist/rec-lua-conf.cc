@@ -809,7 +809,7 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
 
   try {
     Lua->executeCode(ifs);
-    newLuaConfig = lci;
+    newLuaConfig = std::move(lci);
   }
   catch (const LuaContext::ExecutionErrorException& e) {
     SLOG(g_log << Logger::Error << "Unable to load Lua script from '" + fname + "': ",

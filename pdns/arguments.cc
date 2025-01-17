@@ -433,7 +433,7 @@ void ArgvMap::parseOne(const string& arg, const string& parseOnly, bool lax)
       }
       else {
         d_params[var] = val;
-        d_cleared.insert(var);
+        d_cleared.insert(std::move(var));
       }
     }
     else {

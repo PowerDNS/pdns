@@ -139,7 +139,7 @@ void RecursorLua4::DNSQuestion::addRecord(uint16_t type, const std::string& cont
   dnsRecord.d_type = type;
   dnsRecord.d_place = place;
   dnsRecord.setContent(DNSRecordContent::make(type, QClass::IN, content));
-  records.push_back(dnsRecord);
+  records.push_back(std::move(dnsRecord));
 }
 
 void RecursorLua4::DNSQuestion::addAnswer(uint16_t type, const std::string& content, boost::optional<int> ttl, boost::optional<string> name)

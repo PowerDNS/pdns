@@ -780,7 +780,7 @@ void SVCBBaseRecordContent::setHints(const SvcParam::SvcParamKey &key, const std
   try {
     auto newParam = SvcParam(key, std::move(h));
     d_params.erase(p);
-    d_params.insert(newParam);
+    d_params.insert(std::move(newParam));
   } catch (...) {
     // XXX maybe we should SERVFAIL instead?
     return;

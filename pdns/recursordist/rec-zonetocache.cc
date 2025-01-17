@@ -99,7 +99,7 @@ void ZoneData::parseDRForCache(DNSRecord& dnsRecord)
   case QType::NSEC3:
     break;
   case QType::RRSIG: {
-    const auto rrsig = getRR<RRSIGRecordContent>(dnsRecord);
+    auto rrsig = getRR<RRSIGRecordContent>(dnsRecord);
     if (rrsig == nullptr) {
       break;
     }
@@ -110,7 +110,7 @@ void ZoneData::parseDRForCache(DNSRecord& dnsRecord)
     }
     else {
       vector<shared_ptr<const RRSIGRecordContent>> sigsrr;
-      sigsrr.push_back(rrsig);
+      sigsrr.push_back(std::move(rrsig));
       d_sigs.insert({sigkey, sigsrr});
     }
     break;

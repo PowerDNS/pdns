@@ -408,7 +408,7 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val) // NOLINT(readabil
       try {
         auto p = SvcParam(key, std::move(hints));
         p.setAutoHint(doAuto);
-        val.insert(p);
+        val.insert(std::move(p));
       }
       catch (const std::invalid_argument& e) {
         throw RecordTextException(e.what());
@@ -880,7 +880,7 @@ void RecordTextWriter::xfrSVCBValueList(const vector<string> &val) {
       }
       unescaped += ch;
     }
-    escaped.push_back(unescaped);
+    escaped.push_back(std::move(unescaped));
   }
   if (shouldQuote) {
     d_string.append(1, '"');
