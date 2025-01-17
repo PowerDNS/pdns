@@ -120,7 +120,7 @@ static void loadMainConfig(const std::string& configdir)
   ::arg().set("max-generate-steps", "Maximum number of $GENERATE steps when loading a zone from a file")="0";
   ::arg().set("max-include-depth", "Maximum nested $INCLUDE depth when loading a zone from a file")="20";
   ::arg().setSwitch("upgrade-unknown-types","Transparently upgrade known TYPExxx records. Recommended to keep off, except for PowerDNS upgrades until data sources are cleaned up")="no";
-  ::arg().laxFile(configname.c_str());
+  ::arg().laxFile(configname);
 
   if(!::arg()["load-modules"].empty()) {
     vector<string> modules;
@@ -152,8 +152,9 @@ static void loadMainConfig(const std::string& configdir)
   ::arg().set("consistent-backends", "Assume individual zones are not divided over backends. Send only ANY lookup operations to the backend to reduce the number of lookups") = "yes";
 
   // Keep this line below all ::arg().set() statements
-  if (! ::arg().laxFile(configname.c_str()))
+  if (! ::arg().laxFile(configname)) {
     cerr<<"Warning: unable to read configuration file '"<<configname<<"': "<<stringerror()<<endl;
+  }
 
 #ifdef HAVE_LIBSODIUM
   if (sodium_init() == -1) {
@@ -209,7 +210,7 @@ static void dbBench(const std::string& fname)
     }
   }
   if(domains.empty())
-    domains.push_back("powerdns.com");
+    domains.emplace_back("powerdns.com");
 
   int n=0;
   DNSZoneRecord rr;
@@ -254,9 +255,10 @@ static bool rectifyAllZones(DNSSECKeeper &dk, bool quiet = false)
   return result;
 }
 
-static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vector<DNSResourceRecord>* suppliedrecords=nullptr) // NOLINTNEXTLINE(readability-function-cognitive-complexity)
+static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, const vector<DNSResourceRecord>* suppliedrecords=nullptr) // NOLINT(readability-function-cognitive-complexity,readability-identifier-length)
 {
-  uint64_t numerrors=0, numwarnings=0;
+  int numerrors=0;
+  int numwarnings=0;
 
   DomainInfo di;
   try {
@@ -298,7 +300,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
   NSEC3PARAMRecordContent ns3pr;
   bool narrow = false;
   bool haveNSEC3 = dk.getNSEC3PARAM(zone, &ns3pr, &narrow);
-  bool isOptOut=(haveNSEC3 && ns3pr.d_flags);
+  bool isOptOut=(haveNSEC3 && ns3pr.d_flags != 0);
 
   bool isSecure=dk.isSecuredZone(zone);
   bool presigned=dk.isPresigned(zone);
@@ -414,7 +416,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
 
       ostringstream o;
       o<<rr.content;
-      for(int pleft=parts.size(); pleft < 7; ++pleft) {
+      for(auto pleft=parts.size(); pleft < 7; ++pleft) {
         o<<" 0";
       }
       rr.content=o.str();
@@ -522,12 +524,12 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
     if (rr.qtype.getCode() != QType::TXT) {
       contentstr=toLower(contentstr);
     }
-    if (recordcontents.count(contentstr)) {
+    if (recordcontents.count(contentstr) != 0) {
       cout<<"[Error] Duplicate record found in rrset: '"<<rr.qname<<" IN "<<rr.qtype.toString()<<" "<<rr.content<<"'"<<endl;
       numerrors++;
       continue;
-    } else
-      recordcontents.insert(std::move(contentstr));
+    }
+    recordcontents.insert(std::move(contentstr));
 
     content.str("");
     content<<rr.qname<<" "<<rr.qtype.toString();
@@ -536,13 +538,13 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
       content<<" ("<<DNSRecordContent::NumberToType(rrc.d_type)<<")";
     }
     ret = ttl.insert(pair<string, unsigned int>(toLower(content.str()), rr.ttl));
-    if (ret.second == false && ret.first->second != rr.ttl) {
+    if (!ret.second && ret.first->second != rr.ttl) {
       cout<<"[Error] TTL mismatch in rrset: '"<<rr.qname<<" IN " <<rr.qtype.toString()<<" "<<rr.content<<"' ("<<ret.first->second<<" != "<<rr.ttl<<")"<<endl;
       numerrors++;
       continue;
     }
 
-    if (isSecure && isOptOut && (rr.qname.countLabels() && rr.qname.getRawLabels()[0] == "*")) {
+    if (isSecure && isOptOut && (rr.qname.countLabels() != 0 && rr.qname.getRawLabels()[0] == "*")) {
       cout<<"[Warning] wildcard record '"<<rr.qname<<" IN " <<rr.qtype.toString()<<" "<<rr.content<<"' is insecure"<<endl;
       cout<<"[Info] Wildcard records in opt-out zones are insecure. Disable the opt-out flag for this zone to avoid this warning. Command: pdnsutil set-nsec3 "<<zone<<endl;
       numwarnings++;
@@ -562,7 +564,8 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
         cout<<"[Error] SOA record not at apex '"<<rr.qname<<" IN "<<rr.qtype.toString()<<" "<<rr.content<<"' in zone '"<<zone<<"'"<<endl;
         numerrors++;
         continue;
-      } else if (rr.qtype.getCode() == QType::DNSKEY) {
+      }
+      if (rr.qtype.getCode() == QType::DNSKEY) {
         cout<<"[Warning] DNSKEY record not at apex '"<<rr.qname<<" IN "<<rr.qtype.toString()<<" "<<rr.content<<"' in zone '"<<zone<<"', should not be here."<<endl;
         numwarnings++;
       } else if (rr.qtype.getCode() == QType::NS) {
@@ -592,8 +595,9 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
     }
 
     if (rr.qtype.getCode() == QType::CNAME) {
-      if (!cnames.count(rr.qname))
+      if (cnames.count(rr.qname) == 0) {
         cnames.insert(rr.qname);
+      }
       else {
         cout<<"[Error] Duplicate CNAME found at '"<<rr.qname<<"'"<<endl;
         numerrors++;
@@ -639,9 +643,9 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
     }
   }
 
-  for(auto &i: cnames) {
-    if (noncnames.find(i) != noncnames.end()) {
-      cout<<"[Error] CNAME "<<i<<" found, but other records with same label exist."<<endl;
+  for(const auto &name: cnames) {
+    if (noncnames.find(name) != noncnames.end()) {
+      cout<<"[Error] CNAME "<<name<<" found, but other records with same label exist."<<endl;
       numerrors++;
     }
   }
@@ -736,7 +740,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
   }
 
   for(const auto &qname : checkglue) {
-    if (!glue.count(qname)) {
+    if (glue.count(qname) == 0) {
       cout<<"[Warning] Missing glue for '"<<qname<<"' in zone '"<<zone<<"'"<<endl;
       numwarnings++;
     }
@@ -801,7 +805,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
 
   bool ok, ds_ns, done;
   for( const auto &rr : records ) {
-    ok = ( rr.auth == 1 );
+    ok = rr.auth;
     ds_ns = false;
     done = (suppliedrecords != nullptr || !sd.db->doesDNSSEC());
     for( const auto &qname : checkOcclusion ) {
@@ -812,7 +816,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
         if ( done ) {
           continue;
         }
-        if( rr.auth == 0 ) {
+        if(!rr.auth) {
           if( rr.qname.isPartOf( qname.first ) && ( qname.first != rr.qname || rr.qtype != QType::DS ) ) {
             ok = done = true;
           }
@@ -845,7 +849,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
         if (seen.count(value) == 0) {
           seen.insert(value);
         }
-        else if (messaged.count(value) <= 0) {
+        else if (messaged.count(value) == 0) {
           cout << "[Error] Found duplicate metadata key value pair for zone " << zone << " with key '" << metaData.first << "' and value '" << value << "'" << endl;
           numerrors++;
           messaged.insert(value);
@@ -855,9 +859,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
   }
 
   cout<<"Checked "<<records.size()<<" records of '"<<zone<<"', "<<numerrors<<" errors, "<<numwarnings<<" warnings."<<endl;
-  if(!numerrors)
-    return EXIT_SUCCESS;
-  return EXIT_FAILURE;
+  return numerrors;
 }
 
 static int checkAllZones(DNSSECKeeper &dk, bool exitOnError)
@@ -895,13 +897,14 @@ static int checkAllZones(DNSSECKeeper &dk, bool exitOnError)
 
     seenInfos.insert(std::move(di));
 
-    if (errors && exitOnError) {
+    if (errors != 0 && exitOnError) {
       return EXIT_FAILURE;
     }
   }
   cout<<"Checked "<<domainInfo.size()<<" zones, "<<errors<<" had errors."<<endl;
-  if(!errors)
+  if(errors == 0) {
     return EXIT_SUCCESS;
+  }
   return EXIT_FAILURE;
 }
 
@@ -1013,9 +1016,8 @@ static void listKey(DomainInfo const &di, DNSSECKeeper& dk, bool printHeader = t
     if (key.first.getKey()->getBits() < 1) {
       cout<<"invalid "<<endl;
       continue;
-    } else {
-      cout<<key.first.getKey()->getBits()<<string(spacelen, ' ');
     }
+    cout<<key.first.getKey()->getBits()<<string(spacelen, ' ');
 
     string algname = DNSSECKeeper::algorithm2name(key.first.getAlgorithm());
     spacelen = (algname.length() >= 16) ? 1 : 16 - algname.length();
@@ -1026,7 +1028,9 @@ static void listKey(DomainInfo const &di, DNSSECKeeper& dk, bool printHeader = t
 
 #ifdef HAVE_P11KIT1
     auto stormap = key.first.getKey()->convertToISCVector();
-    string engine, slot, label = "";
+    string engine;
+    string slot;
+    string label;
     for (auto const &elem : stormap) {
       //cout<<elem.first<<" "<<elem.second<<endl;
       if (elem.first == "Engine")
@@ -1082,10 +1086,10 @@ static int listZone(const DNSName &zone) {
   di.backend->list(zone, di.id);
   DNSResourceRecord rr;
   cout<<"$ORIGIN ."<<endl;
-  cout.sync_with_stdio(false);
+  std::ostream::sync_with_stdio(false);
 
   while(di.backend->get(rr)) {
-    if(rr.qtype.getCode()) {
+    if(rr.qtype.getCode() != 0) {
       if ( (rr.qtype.getCode() == QType::NS || rr.qtype.getCode() == QType::SRV || rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::CNAME) && !rr.content.empty() && rr.content[rr.content.size()-1] != '.')
 	rr.content.append(1, '.');
 
@@ -1144,7 +1148,7 @@ class PDNSColors
 {
 public:
   PDNSColors(bool nocolors)
-    : d_colors(!nocolors && isatty(STDOUT_FILENO) && getenv("NO_COLORS") == nullptr)
+    : d_colors(!nocolors && isatty(STDOUT_FILENO) != 0 && getenv("NO_COLORS") == nullptr) // NOLINT(concurrency-mt-unsafe)
   {
   }
   [[nodiscard]] string red() const
@@ -1191,6 +1195,10 @@ static int editZone(const DNSName &zone, const PDNSColors& col) {
   struct deleteme {
     ~deleteme() { unlink(d_name.c_str()); }
     deleteme(string name) : d_name(std::move(name)) {}
+    deleteme(const deleteme &) = delete;
+    deleteme(deleteme &&) = delete;
+    deleteme operator=(const deleteme &) = delete;
+    deleteme operator=(deleteme &&) = delete;
     string d_name;
   } dm(tmpnam);
 
@@ -1211,8 +1219,9 @@ static int editZone(const DNSName &zone, const PDNSColors& col) {
       unixDie("Writing zone to temporary file");
     DNSResourceRecord rr;
     while(di.backend->get(rr)) {
-      if(!rr.qtype.getCode())
+      if(rr.qtype.getCode() == 0) {
         continue;
+      }
       DNSRecord dr(rr);
       pre.push_back(std::move(dr));
     }
@@ -1233,7 +1242,7 @@ static int editZone(const DNSName &zone, const PDNSColors& col) {
     cmdline+="+"+std::to_string(gotoline)+" ";
   cmdline += tmpnam;
   int err=system(cmdline.c_str());
-  if(err) {
+  if(err != 0) {
     unixDie("Editing file with: '"+cmdline+"', perhaps set EDITOR variable");
   }
   cmdline.clear();
@@ -1270,7 +1279,7 @@ static int editZone(const DNSName &zone, const PDNSColors& col) {
     drr.domain_id = di.id;
     checkrr.push_back(std::move(drr));
   }
-  if(checkZone(dk, B, zone, &checkrr)) {
+  if(checkZone(dk, B, zone, &checkrr) != 0) {
   reAsk:;
     cerr << col.red() << col.bold() << "There was a problem with your zone" << col.rst() << "\nOptions are: (e)dit your changes, (r)etry with original zone, (a)pply change anyhow, (q)uit: " << std::flush;
     int c=read1char();
@@ -1363,8 +1372,9 @@ static int editZone(const DNSName &zone, const PDNSColors& col) {
   cerr<<'\n';
   if(c=='q')
     return(EXIT_SUCCESS);
-  else if(c=='e')
+  if(c=='e') {
     goto editMore;
+  }
   else if(c=='r')
     goto editAgain;
   else if(changed.empty() || c!='a')
@@ -1425,9 +1435,8 @@ static int zonemdVerifyFile(const DNSName& zone, const string& fname) {
     if (validationOK) {
       cout << "zonemd-verify-file: Verification of ZONEMD record succeeded" << endl;
       return EXIT_SUCCESS;
-    } else {
-      cerr << "zonemd-verify-file: Verification of ZONEMD record(s) failed" << endl;
     }
+    cerr << "zonemd-verify-file: Verification of ZONEMD record(s) failed" << endl;
   }
   else {
     cerr << "zonemd-verify-file: No suitable ZONEMD record found to verify against" << endl;
@@ -1470,8 +1479,7 @@ static int loadZone(const DNSName& zone, const string& fname) {
     if (rr.qtype == QType::SOA) {
       if (haveSOA)
         continue;
-      else
-        haveSOA = true;
+      haveSOA = true;
     }
     try {
       DNSRecordContent::make(rr.qtype, QClass::IN, rr.content);
@@ -1874,7 +1882,7 @@ static void verifyCrypto(const string& zone)
 
   string msg = getMessageForRRSET(qname, rrc, toSign);
   cerr<<"Verify: "<<DNSCryptoKeyEngine::makeFromPublicKeyString(drc.d_algorithm, drc.d_key)->verify(msg, rrc.d_signature)<<endl;
-  if(dsrc.d_digesttype) {
+  if(dsrc.d_digesttype != 0) {
     cerr<<"Calculated DS: "<<apex.toString()<<" IN DS "<<makeDSFromDNSKey(apex, drc, dsrc.d_digesttype).getZoneRepresentation()<<endl;
     cerr<<"Original DS:   "<<apex.toString()<<" IN DS "<<dsrc.getZoneRepresentation()<<endl;
   }
@@ -2035,10 +2043,12 @@ static bool showZone(DNSSECKeeper& dnsseckeeper, const DNSName& zone, bool expor
       struct tm tm;
       localtime_r(&di.last_check, &tm);
       char buf[80];
-      if(di.last_check)
+      if(di.last_check != 0) {
         strftime(buf, sizeof(buf)-1, "%a %F %H:%M:%S", &tm);
-      else
+      }
+      else {
         strncpy(buf, "Never", sizeof(buf)-1);
+      }
       buf[sizeof(buf)-1] = '\0';
       cout << "Last time we got update from primary: " << buf << endl;
       SOAData sd;
@@ -2366,7 +2376,7 @@ static int testSchema(DNSSECKeeper& dk, const DNSName& zone)
       cout<<"Expected one record, got multiple, aborting"<<endl;
       return EXIT_FAILURE;
     }
-    int size=rrget.content.size();
+    auto size=rrget.content.size();
     if(size != 302)
     {
       cout<<"Expected 302 bytes, got "<<size<<", aborting"<<endl;
@@ -2434,9 +2444,8 @@ static int testSchema(DNSSECKeeper& dk, const DNSName& zone)
   if(di.notified_serial != 2147484148) {
     cout<<"[-] Set serial 2147484148, got back "<<di.notified_serial<<", aborting"<<endl;
     return EXIT_FAILURE;
-  } else {
-    cout<<"[+] Big serials work correctly"<<endl;
   }
+  cout<<"[+] Big serials work correctly"<<endl;
   cout<<endl;
   cout << "End of tests, please remove " << zone << " from zones+records" << endl;
 
