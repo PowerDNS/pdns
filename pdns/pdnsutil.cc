@@ -527,7 +527,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
       numerrors++;
       continue;
     } else
-      recordcontents.insert(contentstr);
+      recordcontents.insert(std::move(contentstr));
 
     content.str("");
     content<<rr.qname<<" "<<rr.qtype.toString();
@@ -717,7 +717,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
       }
     }
 
-    auto trueTarget = target.isRoot() ? name : target;
+    const auto& trueTarget = target.isRoot() ? name : target;
     if (prio > 0) {
       if(v4hintsAuto && arecords.find(trueTarget) == arecords.end()) {
         cout << "[warning] HTTPS record for "<< name << " has automatic IPv4 hints, but no A-record for the target at "<< trueTarget <<" exists."<<endl;
@@ -1214,7 +1214,7 @@ static int editZone(const DNSName &zone, const PDNSColors& col) {
       if(!rr.qtype.getCode())
         continue;
       DNSRecord dr(rr);
-      pre.push_back(dr);
+      pre.push_back(std::move(dr));
     }
     sort(pre.begin(), pre.end(), DNSRecord::prettyCompare);
     for(const auto& dr : pre) {
@@ -1268,7 +1268,7 @@ static int editZone(const DNSName &zone, const PDNSColors& col) {
   for(const DNSRecord& rr : post) {
     DNSResourceRecord drr = DNSResourceRecord::fromWire(rr);
     drr.domain_id = di.id;
-    checkrr.push_back(drr);
+    checkrr.push_back(std::move(drr));
   }
   if(checkZone(dk, B, zone, &checkrr)) {
   reAsk:;
@@ -1376,7 +1376,7 @@ static int editZone(const DNSName &zone, const PDNSColors& col) {
     for(const DNSRecord& rr : grouped[change.first]) {
       DNSResourceRecord crr = DNSResourceRecord::fromWire(rr);
       crr.domain_id = di.id;
-      vrr.push_back(crr);
+      vrr.push_back(std::move(crr));
     }
     di.backend->replaceRRSet(di.id, change.first.first, QType(change.first.second), vrr);
   }
@@ -3203,7 +3203,7 @@ static int secureZone(vector<string>& cmds)
     DNSName zone(cmds.at(n));
     dk.startTransaction(zone, -1);
     if(secureZone(dk, zone)) {
-      mustRectify.push_back(zone);
+      mustRectify.push_back(std::move(zone));
     } else {
       zoneErrors++;
     }
