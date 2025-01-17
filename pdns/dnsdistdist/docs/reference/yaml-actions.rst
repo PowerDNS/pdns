@@ -29,7 +29,7 @@ Lua equivalent: :func:`ContinueAction`
 
 Parameters:
 
-- **action**: :ref:`Action <yaml-settings-Action>`
+- **action**: :ref:`Action <yaml-settings-Action>` - The action to execute
 
 
 .. _yaml-settings-DelayAction:
@@ -43,7 +43,7 @@ Lua equivalent: :func:`DelayAction`
 
 Parameters:
 
-- **msec**: Unsigned integer
+- **msec**: Unsigned integer - The amount of milliseconds to delay the response
 
 
 .. _yaml-settings-DnstapLogAction:
@@ -57,11 +57,11 @@ Lua equivalent: :func:`DnstapLogAction`
 
 Parameters:
 
-- **identity**: String
-- **logger_name**: String
-- **alter_function_name**: String ``("")``
-- **alter_function_code**: String ``("")``
-- **alter_function_file**: String ``("")``
+- **identity**: String - Server identity to store in the dnstap message
+- **logger_name**: String - The name of dnstap logger
+- **alter_function_name**: String ``("")`` - The name of the Lua function that will alter the message
+- **alter_function_code**: String ``("")`` - The code of the Lua function that will alter the message
+- **alter_function_file**: String ``("")`` - The path to a file containing the code of the Lua function that will alter the message
 
 
 .. _yaml-settings-DropAction:
@@ -84,8 +84,8 @@ Lua equivalent: :func:`SetEDNSOptionAction`
 
 Parameters:
 
-- **code**: Unsigned integer
-- **data**: String
+- **code**: Unsigned integer - The EDNS option number
+- **data**: String - The EDNS0 option raw content
 
 
 .. _yaml-settings-ERCodeAction:
@@ -99,8 +99,8 @@ Lua equivalent: :func:`ERCodeAction`
 
 Parameters:
 
-- **rcode**: Unsigned integer
-- **vars**: :ref:`ResponseConfig <yaml-settings-ResponseConfig>`
+- **rcode**: Unsigned integer - The RCODE to respond with
+- **vars**: :ref:`ResponseConfig <yaml-settings-ResponseConfig>` - The response options
 
 
 .. _yaml-settings-HTTPStatusAction:
@@ -114,10 +114,10 @@ Lua equivalent: :func:`HTTPStatusAction`
 
 Parameters:
 
-- **status**: Unsigned integer
-- **body**: String
-- **content_type**: String ``("")``
-- **vars**: :ref:`ResponseConfig <yaml-settings-ResponseConfig>`
+- **status**: Unsigned integer - The HTTP status code to return
+- **body**: String - The body of the HTTP response, or a URL if the status code is a redirect (3xx)
+- **content_type**: String ``("")`` - The HTTP Content-Type header to return for a 200 response, ignored otherwise. Default is ``application/dns-message``
+- **vars**: :ref:`ResponseConfig <yaml-settings-ResponseConfig>` - The response options
 
 
 .. _yaml-settings-KeyValueStoreLookupAction:
@@ -131,9 +131,9 @@ Lua equivalent: :func:`KeyValueStoreLookupAction`
 
 Parameters:
 
-- **kvs_name**: String
-- **lookup_key_name**: String
-- **destination_tag**: String
+- **kvs_name**: String - The name of the KV store
+- **lookup_key_name**: String - The name of the key to use for the lookup
+- **destination_tag**: String - The name of the tag to store the result into
 
 
 .. _yaml-settings-KeyValueStoreRangeLookupAction:
@@ -147,9 +147,9 @@ Lua equivalent: :func:`KeyValueStoreRangeLookupAction`
 
 Parameters:
 
-- **kvs_name**: String
-- **lookup_key_name**: String
-- **destination_tag**: String
+- **kvs_name**: String - The name of the KV store
+- **lookup_key_name**: String - The name of the key to use for the lookup
+- **destination_tag**: String - The name of the tag to store the result into
 
 
 .. _yaml-settings-LogAction:
@@ -163,12 +163,12 @@ Lua equivalent: :func:`LogAction`
 
 Parameters:
 
-- **file_name**: String ``("")``
-- **binary**: Boolean ``(true)``
-- **append**: Boolean ``(false)``
-- **buffered**: Boolean ``(false)``
-- **verbose_only**: Boolean ``(true)``
-- **include_timestamp**: Boolean ``(false)``
+- **file_name**: String ``("")`` - File to log to. Set to an empty string to log to the normal stdout log, this only works when ``-v`` is set on the command line
+- **binary**: Boolean ``(true)`` - Whether to do binary logging
+- **append**: Boolean ``(false)`` - Whether to append to an existing file
+- **buffered**: Boolean ``(false)`` - Whether to use buffered I/O
+- **verbose_only**: Boolean ``(true)`` - Whether to log only in verbose mode when logging to stdout
+- **include_timestamp**: Boolean ``(false)`` - Whether to include a timestamp for every entry
 
 
 .. _yaml-settings-LuaAction:
@@ -182,9 +182,9 @@ Lua equivalent: :func:`LuaAction`
 
 Parameters:
 
-- **function_name**: String ``("")``
-- **function_code**: String ``("")``
-- **function_file**: String ``("")``
+- **function_name**: String ``("")`` - The name of the Lua function
+- **function_code**: String ``("")`` - The code of the Lua function
+- **function_file**: String ``("")`` - The path to a file containing the code of the Lua function
 
 
 .. _yaml-settings-LuaFFIAction:
@@ -198,9 +198,9 @@ Lua equivalent: :func:`LuaFFIAction`
 
 Parameters:
 
-- **function_name**: String ``("")``
-- **function_code**: String ``("")``
-- **function_file**: String ``("")``
+- **function_name**: String ``("")`` - The name of the Lua function
+- **function_code**: String ``("")`` - The code of the Lua function
+- **function_file**: String ``("")`` - The path to a file containing the code of the Lua function
 
 
 .. _yaml-settings-LuaFFIPerThreadAction:
@@ -214,7 +214,7 @@ Lua equivalent: :func:`LuaFFIPerThreadAction`
 
 Parameters:
 
-- **code**: String
+- **code**: String - The code of the Lua function
 
 
 .. _yaml-settings-NegativeAndSOAAction:
@@ -228,14 +228,14 @@ Lua equivalent: :func:`NegativeAndSOAAction`
 
 Parameters:
 
-- **nxd**: Boolean
-- **zone**: String
-- **ttl**: Unsigned integer
-- **mname**: String
-- **rname**: String
-- **soa_parameters**: :ref:`SOAParams <yaml-settings-SOAParams>`
-- **soa_in_authority**: Boolean ``(false)``
-- **vars**: :ref:`ResponseConfig <yaml-settings-ResponseConfig>`
+- **nxd**: Boolean - Whether the answer is a NXDOMAIN (true) or a NODATA (false)
+- **zone**: String - The owner name for the SOA record
+- **ttl**: Unsigned integer - The TTL of the SOA record
+- **mname**: String - The mname of the SOA record
+- **rname**: String - The rname of the SOA record
+- **soa_parameters**: :ref:`SOAParams <yaml-settings-SOAParams>` - The fields of the SOA record
+- **soa_in_authority**: Boolean ``(false)`` - Whether the SOA record should be the authority section for a complete NXDOMAIN/NODATA response that works as a cacheable negative response, rather than the RPZ-style response with a purely informational SOA in the additional section. Default is false (SOA in additional section)
+- **vars**: :ref:`ResponseConfig <yaml-settings-ResponseConfig>` - Response options
 
 
 .. _yaml-settings-NoneAction:
@@ -258,8 +258,8 @@ Lua equivalent: :func:`PoolAction`
 
 Parameters:
 
-- **pool_name**: String
-- **stop_processing**: Boolean ``(true)``
+- **pool_name**: String - The name of the pool
+- **stop_processing**: Boolean ``(true)`` - Whether subsequent rules should be executed after this one
 
 
 .. _yaml-settings-QPSAction:
@@ -273,7 +273,7 @@ Lua equivalent: :func:`QPSAction`
 
 Parameters:
 
-- **limit**: Unsigned integer
+- **limit**: Unsigned integer - The QPS limit
 
 
 .. _yaml-settings-QPSPoolAction:
@@ -287,9 +287,9 @@ Lua equivalent: :func:`QPSPoolAction`
 
 Parameters:
 
-- **limit**: Unsigned integer
-- **pool_name**: String
-- **stop_processing**: Boolean ``(true)``
+- **limit**: Unsigned integer - The QPS limit
+- **pool_name**: String - The name of the pool
+- **stop_processing**: Boolean ``(true)`` - Whether subsequent rules should be executed after this one
 
 
 .. _yaml-settings-RCodeAction:
@@ -303,8 +303,8 @@ Lua equivalent: :func:`RCodeAction`
 
 Parameters:
 
-- **rcode**: Unsigned integer
-- **vars**: :ref:`ResponseConfig <yaml-settings-ResponseConfig>`
+- **rcode**: Unsigned integer - The response code
+- **vars**: :ref:`ResponseConfig <yaml-settings-ResponseConfig>` - Response options
 
 
 .. _yaml-settings-RemoteLogAction:
@@ -318,14 +318,14 @@ Lua equivalent: :func:`RemoteLogAction`
 
 Parameters:
 
-- **logger_name**: String
-- **alter_function_name**: String ``("")``
-- **alter_function_code**: String ``("")``
-- **alter_function_file**: String ``("")``
-- **server_id**: String ``("")``
-- **ip_encrypt_key**: String ``("")``
-- **export_tags**: Sequence of String ``("")``
-- **metas**: Sequence of :ref:`ProtoBufMetaConfiguration <yaml-settings-ProtoBufMetaConfiguration>`
+- **logger_name**: String - The name of the protocol buffer logger
+- **alter_function_name**: String ``("")`` - The name of the Lua function
+- **alter_function_code**: String ``("")`` - The code of the Lua function
+- **alter_function_file**: String ``("")`` - The path to a file containing the code of the Lua function
+- **server_id**: String ``("")`` - Set the Server Identity field
+- **ip_encrypt_key**: String ``("")`` - A key, that can be generated via the :func:`makeIPCipherKey` function, to encrypt the IP address of the requestor for anonymization purposes. The encryption is done using ipcrypt for IPv4 and a 128-bit AES ECB operation for IPv6
+- **export_tags**: Sequence of String ``("")`` - The comma-separated list of keys of internal tags to export into the ``tags`` Protocol Buffer field, as ``key:value`` strings. Note that a tag with an empty value will be exported as ``<key>``, not ``<key>:``. An empty string means that no internal tag will be exported. The special value ``*`` means that all tags will be exported
+- **metas**: Sequence of :ref:`ProtoBufMetaConfiguration <yaml-settings-ProtoBufMetaConfiguration>` - A list of ``name``=``key`` pairs, for meta-data to be added to Protocol Buffer message
 
 
 .. _yaml-settings-SetAdditionalProxyProtocolValueAction:
@@ -339,8 +339,8 @@ Lua equivalent: :func:`SetAdditionalProxyProtocolValueAction`
 
 Parameters:
 
-- **proxy_type**: Unsigned integer
-- **value**: String
+- **proxy_type**: Unsigned integer - The proxy protocol type
+- **value**: String - The value
 
 
 .. _yaml-settings-SetDisableECSAction:
@@ -372,8 +372,8 @@ Lua equivalent: :func:`SetECSAction`
 
 Parameters:
 
-- **ipv4**: String
-- **ipv6**: String ``("")``
+- **ipv4**: String - The IPv4 netmask, for example 192.0.2.1/32
+- **ipv6**: String ``("")`` - The IPv6 netmask, if any
 
 
 .. _yaml-settings-SetECSOverrideAction:
@@ -387,7 +387,7 @@ Lua equivalent: :func:`SetECSOverrideAction`
 
 Parameters:
 
-- **override_existing**: Boolean
+- **override_existing**: Boolean - Whether to override an existing EDNS Client Subnet value
 
 
 .. _yaml-settings-SetECSPrefixLengthAction:
@@ -401,8 +401,8 @@ Lua equivalent: :func:`SetECSPrefixLengthAction`
 
 Parameters:
 
-- **ipv4**: Unsigned integer
-- **ipv6**: Unsigned integer
+- **ipv4**: Unsigned integer - The IPv4 netmask length
+- **ipv6**: Unsigned integer - The IPv6 netmask length
 
 
 .. _yaml-settings-SetExtendedDNSErrorAction:
@@ -416,8 +416,8 @@ Lua equivalent: :func:`SetExtendedDNSErrorAction`
 
 Parameters:
 
-- **info_code**: Unsigned integer
-- **extra_text**: String ``("")``
+- **info_code**: Unsigned integer - The EDNS Extended DNS Error code
+- **extra_text**: String ``("")`` - The optional EDNS Extended DNS Error extra text
 
 
 .. _yaml-settings-SetMacAddrAction:
@@ -425,13 +425,13 @@ Parameters:
 SetMacAddrAction
 ----------------
 
-Add the source MAC address to the query as EDNS0 option option. This action is currently only supported on Linux. Subsequent rules are processed after this action
+Add the source MAC address to the query as an EDNS0 option. This action is currently only supported on Linux. Subsequent rules are processed after this action
 
 Lua equivalent: :func:`SetMacAddrAction`
 
 Parameters:
 
-- **code**: Unsigned integer
+- **code**: Unsigned integer - The EDNS option code
 
 
 .. _yaml-settings-SetMaxReturnedTTLAction:
@@ -445,7 +445,7 @@ Lua equivalent: :func:`SetMaxReturnedTTLAction`
 
 Parameters:
 
-- **max**: Unsigned integer
+- **max**: Unsigned integer - The TTL cap
 
 
 .. _yaml-settings-SetNoRecurseAction:
@@ -468,7 +468,7 @@ Lua equivalent: :func:`SetProxyProtocolValuesAction`
 
 Parameters:
 
-- **values**: Sequence of :ref:`ProxyProtocolValueConfiguration <yaml-settings-ProxyProtocolValueConfiguration>`
+- **values**: Sequence of :ref:`ProxyProtocolValueConfiguration <yaml-settings-ProxyProtocolValueConfiguration>` - List of proxy protocol values
 
 
 .. _yaml-settings-SetSkipCacheAction:
@@ -491,8 +491,8 @@ Lua equivalent: :func:`SetTagAction`
 
 Parameters:
 
-- **tag**: String
-- **value**: String
+- **tag**: String - The tag name
+- **value**: String - The tag value
 
 
 .. _yaml-settings-SetTempFailureCacheTTLAction:
@@ -506,7 +506,7 @@ Lua equivalent: :func:`SetTempFailureCacheTTLAction`
 
 Parameters:
 
-- **maxTTL**: Unsigned integer
+- **ttl**: Unsigned integer - The TTL to use
 
 
 .. _yaml-settings-SNMPTrapAction:
@@ -520,7 +520,7 @@ Lua equivalent: :func:`SNMPTrapAction`
 
 Parameters:
 
-- **reason**: String ``("")``
+- **reason**: String ``("")`` - The SNMP trap reason
 
 
 .. _yaml-settings-SpoofAction:
@@ -534,8 +534,8 @@ Lua equivalent: :func:`SpoofAction`
 
 Parameters:
 
-- **ips**: Sequence of String
-- **vars**: :ref:`ResponseConfig <yaml-settings-ResponseConfig>`
+- **ips**: Sequence of String - List of IP addresses to spoof
+- **vars**: :ref:`ResponseConfig <yaml-settings-ResponseConfig>` - Response options
 
 
 .. _yaml-settings-SpoofCNAMEAction:
@@ -549,8 +549,8 @@ Lua equivalent: :func:`SpoofCNAMEAction`
 
 Parameters:
 
-- **cname**: String
-- **vars**: :ref:`ResponseConfig <yaml-settings-ResponseConfig>`
+- **cname**: String - The CNAME to use in the response
+- **vars**: :ref:`ResponseConfig <yaml-settings-ResponseConfig>` - Response options
 
 
 .. _yaml-settings-SpoofPacketAction:
@@ -564,8 +564,8 @@ Lua equivalent: :func:`SpoofPacketAction`
 
 Parameters:
 
-- **response**: String
-- **len**: Unsigned integer
+- **response**: String - The DNS packet
+- **len**: Unsigned integer - The length of the DNS packet
 
 
 .. _yaml-settings-SpoofRawAction:
@@ -574,14 +574,40 @@ SpoofRawAction
 --------------
 
 Forge a response with the specified raw bytes as record data
+.. code-block:: Lua
+
+  -- select queries for the 'raw.powerdns.com.' name and TXT type, and answer with both a "aaa" "bbbb" and "ccc" TXT record:
+  addAction(AndRule({QNameRule('raw.powerdns.com.'), QTypeRule(DNSQType.TXT)}), SpoofRawAction({"\003aaa\004bbbb", "\003ccc"}))
+  -- select queries for the 'raw-srv.powerdns.com.' name and SRV type, and answer with a '0 0 65535 srv.powerdns.com.' SRV record, setting the AA bit to 1 and the TTL to 3600s
+  addAction(AndRule({QNameRule('raw-srv.powerdns.com.'), QTypeRule(DNSQType.SRV)}), SpoofRawAction("\000\000\000\000\255\255\003srv\008powerdns\003com\000", { aa=true, ttl=3600 }))
+  -- select reverse queries for '127.0.0.1' and answer with 'localhost'
+  addAction(AndRule({QNameRule('1.0.0.127.in-addr.arpa.'), QTypeRule(DNSQType.PTR)}), SpoofRawAction("\009localhost\000"))
+  -- rfc8482: Providing Minimal-Sized Responses to DNS Queries That Have QTYPE=ANY via HINFO of value "rfc8482"
+  addAction(QTypeRule(DNSQType.ANY), SpoofRawAction("\007rfc\056\052\056\050\000", { typeForAny=DNSQType.HINFO }))
+
+:func:`DNSName:toDNSString` is convenient for converting names to wire format for passing to ``SpoofRawAction``.
+
+``sdig dumpluaraw`` and ``pdnsutil raw-lua-from-content`` from PowerDNS can generate raw answers for you:
+
+.. code-block:: Shell
+
+  $ pdnsutil raw-lua-from-content SRV '0 0 65535 srv.powerdns.com.'
+  "\000\000\000\000\255\255\003srv\008powerdns\003com\000"
+  $ sdig 127.0.0.1 53 open-xchange.com MX recurse dumpluaraw
+  Reply to question for qname='open-xchange.com.', qtype=MX
+  Rcode: 0 (No Error), RD: 1, QR: 1, TC: 0, AA: 0, opcode: 0
+  0 open-xchange.com. IN  MX  "\000c\004mx\049\049\012open\045xchange\003com\000"
+  0 open-xchange.com. IN  MX  "\000\010\003mx\049\012open\045xchange\003com\000"
+  0 open-xchange.com. IN  MX  "\000\020\003mx\050\012open\045xchange\003com\000"
+
 
 Lua equivalent: :func:`SpoofRawAction`
 
 Parameters:
 
-- **answers**: Sequence of String
-- **qtype_for_any**: String ``("")``
-- **vars**: :ref:`ResponseConfig <yaml-settings-ResponseConfig>`
+- **answers**: Sequence of String - A list of DNS record content entries to use in the response
+- **qtype_for_any**: String ``("")`` - The type to use for ANY queries
+- **vars**: :ref:`ResponseConfig <yaml-settings-ResponseConfig>` - Response options
 
 
 .. _yaml-settings-SpoofSVCAction:
@@ -595,8 +621,8 @@ Lua equivalent: :func:`SpoofSVCAction`
 
 Parameters:
 
-- **parameters**: Sequence of :ref:`SVCRecordParameters <yaml-settings-SVCRecordParameters>`
-- **vars**: :ref:`ResponseConfig <yaml-settings-ResponseConfig>`
+- **parameters**: Sequence of :ref:`SVCRecordParameters <yaml-settings-SVCRecordParameters>` - List of SVC record parameters
+- **vars**: :ref:`ResponseConfig <yaml-settings-ResponseConfig>` - Response options
 
 
 .. _yaml-settings-TCAction:
@@ -619,9 +645,9 @@ Lua equivalent: :func:`TeeAction`
 
 Parameters:
 
-- **rca**: String
-- **lca**: String ``("")``
-- **add_ecs**: Boolean ``(false)``
-- **add_proxy_protocol**: Boolean ``(false)``
+- **rca**: String - The address and port of the remote server
+- **lca**: String ``("")`` - The source address to use to send packets to the remote server
+- **add_ecs**: Boolean ``(false)`` - Whether to add EDNS Client Subnet to the query
+- **add_proxy_protocol**: Boolean ``(false)`` - Whether to add a proxy protocol payload to the query
 
 

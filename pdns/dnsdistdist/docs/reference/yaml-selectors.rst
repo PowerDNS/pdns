@@ -29,7 +29,7 @@ Lua equivalent: :func:`AndRule`
 
 Parameters:
 
-- **selectors**: Sequence of :ref:`Selector <yaml-settings-Selector>`
+- **selectors**: Sequence of :ref:`Selector <yaml-settings-Selector>` - List of selectors
 
 
 .. _yaml-settings-ByNameSelector:
@@ -64,7 +64,7 @@ Lua equivalent: :func:`DSTPortRule`
 
 Parameters:
 
-- **port**: Unsigned integer
+- **port**: Unsigned integer - Match destination port
 
 
 .. _yaml-settings-EDNSOptionSelector:
@@ -78,7 +78,7 @@ Lua equivalent: :func:`EDNSOptionRule`
 
 Parameters:
 
-- **option_code**: Unsigned integer
+- **option_code**: Unsigned integer - The option code as an integer
 
 
 .. _yaml-settings-EDNSVersionSelector:
@@ -92,7 +92,7 @@ Lua equivalent: :func:`EDNSVersionRule`
 
 Parameters:
 
-- **version**: Unsigned integer
+- **version**: Unsigned integer - The EDNS version to match on
 
 
 .. _yaml-settings-ERCodeSelector:
@@ -106,7 +106,7 @@ Lua equivalent: :func:`ERCodeRule`
 
 Parameters:
 
-- **rcode**: Unsigned integer
+- **rcode**: Unsigned integer - The full 16bit RCode will be matched. If no EDNS OPT RR is present, the upper 12 bits are treated as 0
 
 
 .. _yaml-settings-HTTPHeaderSelector:
@@ -120,8 +120,8 @@ Lua equivalent: :func:`HTTPHeaderRule`
 
 Parameters:
 
-- **header**: String
-- **expression**: String
+- **header**: String - The case-insensitive name of the HTTP header to match on
+- **expression**: String - A regular expression to match the content of the specified header
 
 
 .. _yaml-settings-HTTPPathSelector:
@@ -129,13 +129,13 @@ Parameters:
 HTTPPathSelector
 ----------------
 
-Matches DNS over HTTPS queries with a specific HTTP path
+Matches DNS over HTTPS queries with a specific HTTP path. For example, if the query has been sent to the https://192.0.2.1:443/PowerDNS?dns=... URL, the path would be '/PowerDNS'. Only valid DNS over HTTPS queries are matched. If you want to match all HTTP queries, see :meth:`DOHFrontend:setResponsesMap` instead
 
 Lua equivalent: :func:`HTTPPathRule`
 
 Parameters:
 
-- **path**: String
+- **path**: String - The exact HTTP path to match on
 
 
 .. _yaml-settings-HTTPPathRegexSelector:
@@ -143,13 +143,15 @@ Parameters:
 HTTPPathRegexSelector
 ---------------------
 
-Matches DNS over HTTPS queries with a path matching the supplied regular expression
+Matches DNS over HTTPS queries with a path matching the supplied regular expression. For example, if the query has been sent to the https://192.0.2.1:443/PowerDNS?dns=... URL, the path would be '/PowerDNS'.
+Only valid DNS over HTTPS queries are matched. If you want to match all HTTP queries, see :meth:`DOHFrontend:setResponsesMap` instead
+
 
 Lua equivalent: :func:`HTTPPathRegexRule`
 
 Parameters:
 
-- **expression**: String
+- **expression**: String - The regex to match on
 
 
 .. _yaml-settings-KeyValueStoreLookupSelector:
@@ -163,8 +165,8 @@ Lua equivalent: :func:`KeyValueStoreLookupRule`
 
 Parameters:
 
-- **kvs_name**: String
-- **lookup_key_name**: String
+- **kvs_name**: String - The key value store to query
+- **lookup_key_name**: String - The key to use for the lookup
 
 
 .. _yaml-settings-KeyValueStoreRangeLookupSelector:
@@ -178,8 +180,8 @@ Lua equivalent: :func:`KeyValueStoreRangeLookupRule`
 
 Parameters:
 
-- **kvs_name**: String
-- **lookup_key_name**: String
+- **kvs_name**: String - The key value store to query
+- **lookup_key_name**: String - The key to use for the lookup
 
 
 .. _yaml-settings-LuaSelector:
@@ -193,9 +195,9 @@ Lua equivalent: :func:`LuaRule`
 
 Parameters:
 
-- **function_name**: String ``("")``
-- **function_code**: String ``("")``
-- **function_file**: String ``("")``
+- **function_name**: String ``("")`` - The name of the Lua function
+- **function_code**: String ``("")`` - The code of the Lua function
+- **function_file**: String ``("")`` - The path to a file containing the code of the Lua function
 
 
 .. _yaml-settings-LuaFFISelector:
@@ -209,9 +211,9 @@ Lua equivalent: :func:`LuaFFIRule`
 
 Parameters:
 
-- **function_name**: String ``("")``
-- **function_code**: String ``("")``
-- **function_file**: String ``("")``
+- **function_name**: String ``("")`` - The name of the Lua function
+- **function_code**: String ``("")`` - The code of the Lua function
+- **function_file**: String ``("")`` - The path to a file containing the code of the Lua function
 
 
 .. _yaml-settings-LuaFFIPerThreadSelector:
@@ -226,7 +228,7 @@ Lua equivalent: :func:`LuaFFIPerThreadRule`
 
 Parameters:
 
-- **code**: String
+- **code**: String - The code of the Lua function
 
 
 .. _yaml-settings-MaxQPSSelector:
@@ -240,8 +242,8 @@ Lua equivalent: :func:`MaxQPSRule`
 
 Parameters:
 
-- **qps**: Unsigned integer
-- **burst**: Unsigned integer ``(0)``
+- **qps**: Unsigned integer - The number of queries per second allowed, above this number the traffic is **not** matched anymore
+- **burst**: Unsigned integer ``(0)`` - The number of burstable queries per second allowed. Default is same as qps
 
 
 .. _yaml-settings-MaxQPSIPSelector:
@@ -255,14 +257,14 @@ Lua equivalent: :func:`MaxQPSIPRule`
 
 Parameters:
 
-- **qps**: Unsigned integer
-- **ipv4_mask**: Unsigned integer ``(32)``
-- **ipv6_mask**: Unsigned integer ``(64)``
-- **burst**: Unsigned integer ``(0)``
-- **expiration**: Unsigned integer ``(300)``
-- **cleanup_delay**: Unsigned integer ``(60)``
-- **scan_fraction**: Unsigned integer ``(10)``
-- **shards**: Unsigned integer ``(10)``
+- **qps**: Unsigned integer - The number of queries per second allowed, above this number traffic is matched
+- **ipv4_mask**: Unsigned integer ``(32)`` - The IPv4 netmask to match on. Default is 32 (the whole address)
+- **ipv6_mask**: Unsigned integer ``(64)`` - he IPv6 netmask to match on
+- **burst**: Unsigned integer ``(0)`` - The number of burstable queries per second allowed. Default is same as qps
+- **expiration**: Unsigned integer ``(300)`` - How long to keep netmask or IP addresses after they have last been seen, in seconds
+- **cleanup_delay**: Unsigned integer ``(60)`` - The number of seconds between two cleanups
+- **scan_fraction**: Unsigned integer ``(10)`` - he maximum fraction of the store to scan for expired entries, for example 5 would scan at most 20% of it
+- **shards**: Unsigned integer ``(10)`` - How many shards to use, to decrease lock contention between threads. Default is 10 and is a safe default unless a very high number of threads are used to process incoming queries
 
 
 .. _yaml-settings-NetmaskGroupSelector:
@@ -276,10 +278,10 @@ Lua equivalent: :func:`NetmaskGroupRule`
 
 Parameters:
 
-- **netmask_group_name**: String ``("")``
-- **netmasks**: Sequence of String ``("")``
-- **source**: Boolean ``(true)``
-- **quiet**: Boolean ``(false)``
+- **netmask_group_name**: String ``("")`` - The name of the netmask group object to use
+- **netmasks**: Sequence of String ``("")`` - A list of netmasks to use instead of an existing netmask group object
+- **source**: Boolean ``(true)`` - Whether to match source or destination address of the packet. Defaults to true (matches source)
+- **quiet**: Boolean ``(false)`` - Do not display the list of matched netmasks in Rules. Default is false.
 
 
 .. _yaml-settings-NotSelector:
@@ -293,7 +295,7 @@ Lua equivalent: :func:`NotRule`
 
 Parameters:
 
-- **selector**: :ref:`Selector <yaml-settings-Selector>`
+- **selector**: :ref:`Selector <yaml-settings-Selector>` - The list of selectors
 
 
 .. _yaml-settings-OpcodeSelector:
@@ -307,7 +309,7 @@ Lua equivalent: :func:`OpcodeRule`
 
 Parameters:
 
-- **code**: Unsigned integer
+- **code**: Unsigned integer - The opcode to match
 
 
 .. _yaml-settings-OrSelector:
@@ -321,7 +323,7 @@ Lua equivalent: :func:`OrRule`
 
 Parameters:
 
-- **selectors**: Sequence of :ref:`Selector <yaml-settings-Selector>`
+- **selectors**: Sequence of :ref:`Selector <yaml-settings-Selector>` - The list of selectors
 
 
 .. _yaml-settings-PayloadSizeSelector:
@@ -335,8 +337,8 @@ Lua equivalent: :func:`PayloadSizeRule`
 
 Parameters:
 
-- **comparison**: String
-- **size**: Unsigned integer
+- **comparison**: String - The comparison operator to use. Supported values are: equal, greater, greaterOrEqual, smaller, smallerOrEqual
+- **size**: Unsigned integer - The size to compare to
 
 
 .. _yaml-settings-PoolAvailableSelector:
@@ -350,7 +352,7 @@ Lua equivalent: :func:`PoolAvailableRule`
 
 Parameters:
 
-- **pool**: String
+- **pool**: String - The name of the pool
 
 
 .. _yaml-settings-PoolOutstandingSelector:
@@ -364,8 +366,8 @@ Lua equivalent: :func:`PoolOutstandingRule`
 
 Parameters:
 
-- **pool**: String
-- **max_outstanding**: Unsigned integer
+- **pool**: String - The name of the pool
+- **max_outstanding**: Unsigned integer - The maximum number of outstanding queries in that pool
 
 
 .. _yaml-settings-ProbaSelector:
@@ -373,13 +375,13 @@ Parameters:
 ProbaSelector
 -------------
 
-Matches queries with a given probability. 1.0 means "always"
+Matches queries with a given probability. 1.0 means ``always``
 
 Lua equivalent: :func:`ProbaRule`
 
 Parameters:
 
-- **probability**: Double
+- **probability**: Double - Probability of a match
 
 
 .. _yaml-settings-ProxyProtocolValueSelector:
@@ -393,8 +395,8 @@ Lua equivalent: :func:`ProxyProtocolValueRule`
 
 Parameters:
 
-- **option_type**: Unsigned integer
-- **option_value**: String ``("")``
+- **option_type**: Unsigned integer - The type of the value, ranging from 0 to 255 (both included)
+- **option_value**: String ``("")`` - The optional binary-safe value to match
 
 
 .. _yaml-settings-QClassSelector:
@@ -408,8 +410,8 @@ Lua equivalent: :func:`QClassRule`
 
 Parameters:
 
-- **qclass**: String ``("")``
-- **numeric_value**: Unsigned integer ``(0)``
+- **qclass**: String ``("")`` - The Query Class to match on, as a string
+- **numeric_value**: Unsigned integer ``(0)`` - The Query Class to match on, as an integer
 
 
 .. _yaml-settings-QNameSelector:
@@ -423,7 +425,7 @@ Lua equivalent: :func:`QNameRule`
 
 Parameters:
 
-- **qname**: String
+- **qname**: String - Qname to match
 
 
 .. _yaml-settings-QNameLabelsCountSelector:
@@ -437,8 +439,8 @@ Lua equivalent: :func:`QNameLabelsCountRule`
 
 Parameters:
 
-- **min_labels_count**: Unsigned integer
-- **max_labels_count**: Unsigned integer
+- **min_labels_count**: Unsigned integer - Minimum number of labels
+- **max_labels_count**: Unsigned integer - Maximum number of labels
 
 
 .. _yaml-settings-QNameSetSelector:
@@ -452,7 +454,7 @@ Lua equivalent: :func:`QNameSetRule`
 
 Parameters:
 
-- **qnames**: Sequence of String
+- **qnames**: Sequence of String - List of qnames
 
 
 .. _yaml-settings-QNameSuffixSelector:
@@ -466,8 +468,8 @@ Lua equivalent: :func:`QNameSuffixRule`
 
 Parameters:
 
-- **suffixes**: Sequence of String
-- **quiet**: Boolean ``(false)``
+- **suffixes**: Sequence of String - List of suffixes
+- **quiet**: Boolean ``(false)`` - Do not display the list of matched domains in Rules
 
 
 .. _yaml-settings-QNameWireLengthSelector:
@@ -481,8 +483,8 @@ Lua equivalent: :func:`QNameWireLengthRule`
 
 Parameters:
 
-- **min**: Unsigned integer
-- **max**: Unsigned integer
+- **min**: Unsigned integer - Minimum number of bytes
+- **max**: Unsigned integer - Maximum number of bytes
 
 
 .. _yaml-settings-QTypeSelector:
@@ -496,8 +498,8 @@ Lua equivalent: :func:`QTypeRule`
 
 Parameters:
 
-- **qtype**: String
-- **numeric_value**: Unsigned integer ``(0)``
+- **qtype**: String - The qtype, as a string
+- **numeric_value**: Unsigned integer ``(0)`` - The qtype, as a numerical value
 
 
 .. _yaml-settings-RCodeSelector:
@@ -511,7 +513,7 @@ Lua equivalent: :func:`RCodeRule`
 
 Parameters:
 
-- **rcode**: Unsigned integer
+- **rcode**: Unsigned integer - The response code, as a numerical value
 
 
 .. _yaml-settings-RDSelector:
@@ -534,7 +536,7 @@ Lua equivalent: :func:`RE2Rule`
 
 Parameters:
 
-- **expression**: String
+- **expression**: String - The regular expression to match the QNAME
 
 
 .. _yaml-settings-RecordsCountSelector:
@@ -548,9 +550,9 @@ Lua equivalent: :func:`RecordsCountRule`
 
 Parameters:
 
-- **section**: Unsigned integer
-- **minimum**: Unsigned integer
-- **maximum**: Unsigned integer
+- **section**: Unsigned integer - The section to match on
+- **minimum**: Unsigned integer - The minimum number of entries
+- **maximum**: Unsigned integer - The maximum number of entries
 
 
 .. _yaml-settings-RecordsTypeCountSelector:
@@ -564,10 +566,10 @@ Lua equivalent: :func:`RecordsTypeCountRule`
 
 Parameters:
 
-- **section**: Unsigned integer
-- **record_type**: Unsigned integer
-- **minimum**: Unsigned integer
-- **maximum**: Unsigned integer
+- **section**: Unsigned integer - The section to match on
+- **record_type**: Unsigned integer - The record type to match on
+- **minimum**: Unsigned integer - The minimum number of entries
+- **maximum**: Unsigned integer - The maximum number of entries
 
 
 .. _yaml-settings-RegexSelector:
@@ -581,7 +583,7 @@ Lua equivalent: :func:`RegexRule`
 
 Parameters:
 
-- **expression**: String
+- **expression**: String - The regular expression to match the QNAME
 
 
 .. _yaml-settings-SNISelector:
@@ -595,7 +597,7 @@ Lua equivalent: :func:`SNIRule`
 
 Parameters:
 
-- **server_name**: String
+- **server_name**: String - The exact Server Name Indication value
 
 
 .. _yaml-settings-TagSelector:
@@ -609,8 +611,8 @@ Lua equivalent: :func:`TagRule`
 
 Parameters:
 
-- **tag**: String
-- **value**: String ``("")``
+- **tag**: String - The name of the tag that has to be set
+- **value**: String ``("")`` - If set, the value the tag has to be set to
 
 
 .. _yaml-settings-TCPSelector:
@@ -624,7 +626,7 @@ Lua equivalent: :func:`TCPRule`
 
 Parameters:
 
-- **tcp**: Boolean
+- **tcp**: Boolean - Match TCP traffic if true, UDP traffic if false
 
 
 .. _yaml-settings-TrailingDataSelector:

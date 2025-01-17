@@ -79,9 +79,9 @@ std::shared_ptr<DNSAction> getSetTagAction(const std::string& tag, const std::st
 {
   return std::shared_ptr<DNSAction>(new SetTagAction(tag, value));
 }
-std::shared_ptr<DNSAction> getSetTempFailureCacheTTLAction(uint32_t maxTTL)
+std::shared_ptr<DNSAction> getSetTempFailureCacheTTLAction(uint32_t ttl)
 {
-  return std::shared_ptr<DNSAction>(new SetTempFailureCacheTTLAction(maxTTL));
+  return std::shared_ptr<DNSAction>(new SetTempFailureCacheTTLAction(ttl));
 }
 std::shared_ptr<DNSAction> getSNMPTrapAction(const std::string& reason)
 {

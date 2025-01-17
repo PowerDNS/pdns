@@ -8,14 +8,14 @@ luaCtx.writeFunction("DelayResponseAction", [](uint32_t msec) {
 luaCtx.writeFunction("DropResponseAction", []() {
   return dnsdist::actions::getDropResponseAction();
 });
-luaCtx.writeFunction("LogResponseAction", [](boost::optional<std::string> fileName, boost::optional<bool> append, boost::optional<bool> buffered, boost::optional<bool> verboseOnly, boost::optional<bool> includeTimestamp) {
-  return dnsdist::actions::getLogResponseAction(fileName ? *fileName : "", append ? *append : false, buffered ? *buffered : false, verboseOnly ? *verboseOnly : true, includeTimestamp ? *includeTimestamp : false);
+luaCtx.writeFunction("LogResponseAction", [](boost::optional<std::string> file_name, boost::optional<bool> append, boost::optional<bool> buffered, boost::optional<bool> verbose_only, boost::optional<bool> include_timestamp) {
+  return dnsdist::actions::getLogResponseAction(file_name ? *file_name : "", append ? *append : false, buffered ? *buffered : false, verbose_only ? *verbose_only : true, include_timestamp ? *include_timestamp : false);
 });
 luaCtx.writeFunction("LuaFFIPerThreadResponseAction", [](std::string code) {
   return dnsdist::actions::getLuaFFIPerThreadResponseAction(code);
 });
-luaCtx.writeFunction("SetExtendedDNSErrorResponseAction", [](uint16_t infoCode, boost::optional<std::string> extraText) {
-  return dnsdist::actions::getSetExtendedDNSErrorResponseAction(infoCode, extraText ? *extraText : "");
+luaCtx.writeFunction("SetExtendedDNSErrorResponseAction", [](uint16_t info_code, boost::optional<std::string> extra_text) {
+  return dnsdist::actions::getSetExtendedDNSErrorResponseAction(info_code, extra_text ? *extra_text : "");
 });
 luaCtx.writeFunction("SetReducedTTLResponseAction", [](uint8_t percentage) {
   return dnsdist::actions::getSetReducedTTLResponseAction(percentage);

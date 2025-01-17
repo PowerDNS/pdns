@@ -1718,6 +1718,7 @@ logging:
       default: true
 
 general:
+  description: "General settings"
   parameters:
     - name: "edns_udp_payload_size_self_generated_answers"
       type: "u16"
@@ -1725,107 +1726,139 @@ general:
       lua-name: "setPayloadSizeOnSelfGeneratedAnswers"
       internal-field-name: "d_payloadSizeSelfGenAnswers"
       runtime-configurable: true
+      description: "Set the UDP payload size advertised via EDNS on self-generated responses. In accordance with :rfc:`RFC 6891 <6891#section-6.2.5>`, values lower than 512 will be treated as equal to 512"
     - name: "add_edns_to_self_generated_answers"
       type: "bool"
       default: "true"
       lua-name: "setAddEDNSToSelfGeneratedResponses"
       internal-field-name: "d_addEDNSToSelfGeneratedResponses"
       runtime-configurable: true
+      description: "Whether to add EDNS to self-generated responses, provided that the initial query had EDNS"
     - name: "truncate_tc_answers"
       type: "bool"
       default: "false"
       lua-name: "truncateTC"
       internal-field-name: "d_truncateTC"
       runtime-configurable: true
+      description: "Remove any left-over records in responses with the TC bit set, in accordance with :rfc:`RFC 6891 <6891#section-7>`"
     - name: "fixup_case"
       type: "bool"
       default: "false"
       lua-name: "fixupCase"
       internal-field-name: "d_fixupCase"
       runtime-configurable: true
+      description: "If set, ensure that the case of the DNS qname in the response matches the one from the query"
     - name: "allow_empty_responses"
       type: "bool"
       default: "false"
       lua-name: "setAllowEmptyResponse"
       internal-field-name: "d_allowEmptyResponse"
       runtime-configurable: true
+      description: "Set to true (defaults to false) to allow empty responses (qdcount=0) with a NoError or NXDomain rcode (default) from backends. dnsdist drops these responses by default because it can't match them against the initial query since they don't contain the qname, qtype and qclass, and therefore the risk of collision is much higher than with regular responses"
     - name: "drop_empty_queries"
       type: "bool"
       default: "false"
       lua-name: "setDropEmptyQueries"
       internal-field-name: "d_dropEmptyQueries"
       runtime-configurable: true
+      description: "Set to true (defaults to false) to drop empty queries (qdcount=0) right away, instead of answering with a NotImp rcode. dnsdist used to drop these queries by default because most rules and existing Lua code expects a query to have a qname, qtype and qclass. However :rfc:`7873` uses these queries to request a server cookie, and :rfc:`8906` as a conformance test, so answering these queries with NotImp is much better than not answering at all"
     - name: "capabilities_to_retain"
       type: "Vec<String>"
       default: ""
       lua-name: "addCapabilitiesToRetain"
       runtime-configurable: false
+      description: |
+                   Accept a Linux capability as a string, or a list of these, to retain after startup so that privileged operations can still be performed at runtime.
+                   Keeping ``CAP_SYS_ADMIN`` on kernel 5.8+ for example allows loading eBPF programs and altering eBPF maps at runtime even if the ``kernel.unprivileged_bpf_disabled`` sysctl is set.
+                   Note that this does not grant the capabilities to the process, doing so might be done by running it as root which we don't advise, or by adding capabilities via the systemd unit file, for example.
+                   Please also be aware that switching to a different user via ``--uid`` will still drop all capabilities."
 
 packet_cache:
+  description: "Packet-cache settings"
   parameters:
     - name: "name"
       type: "String"
+      description: "The name of the packet cache object"
     - name: "size"
       type: "u64"
+      description: "The maximum number of entries in this cache"
     - name: "deferrable_insert_lock"
       type: "bool"
       default: "true"
+      description: "Whether the cache should give up insertion if the lock is held by another thread, or simply wait to get the lock"
     - name: "dont_age"
       type: "bool"
       default: "false"
+      description: "Don’t reduce TTLs when serving from the cache. Use this when dnsdist fronts a cluster of authoritative servers"
     - name: "keep_stale_data"
       type: "bool"
       default: "false"
+      description: "Whether to suspend the removal of expired entries from the cache when there is no backend available in at least one of the pools using this cache"
     - name: "max_negative_ttl"
       type: "u32"
       default: "3600"
+      description: "Cache a NXDomain or NoData answer from the backend for at most this amount of seconds, even if the TTL of the SOA record is higher"
     - name: "max_ttl"
       type: "u32"
       default: "86400"
+      description: "Cap the TTL for records to his number"
     - name: "min_ttl"
       type: "u32"
       default: 0
+      description: "Don’t cache entries with a TTL lower than this"
     - name: "shards"
       type: "u32"
       default: "20"
+      description: "Number of shards to divide the cache into, to reduce lock contention"
     - name: "parse_ecs"
       type: "bool"
       default: "false"
+      description: "Whether any EDNS Client Subnet option present in the query should be extracted and stored to be able to detect hash collisions involving queries with the same qname, qtype and qclass but a different incoming ECS value. Enabling this option adds a parsing cost and only makes sense if at least one backend might send different responses based on the ECS value, so it's disabled by default. Enabling this option is required for the :doc:`../advanced/zero-scope` option to work"
     - name: "stale_ttl"
       type: "u32"
       default: "60"
+      description: "When the backend servers are not reachable, and global configuration setStaleCacheEntriesTTL is set appropriately, TTL that will be used when a stale cache entry is returned"
     - name: "temporary_failure_ttl"
       type: "u32"
       default: "60"
+      description: "On a SERVFAIL or REFUSED from the backend, cache for this amount of seconds"
     - name: "cookie_hashing"
       type: "bool"
       default: "false"
+      description: "If true, EDNS Cookie values will be hashed, resulting in separate entries for different cookies in the packet cache. This is required if the backend is sending answers with EDNS Cookies, otherwise a client might receive an answer with the wrong cookie"
     - name: "maximum_entry_size"
       type: "u32"
-      default: "0"
+      default: "4096"
+      description: "The maximum size, in bytes, of a DNS packet that can be inserted into the packet cache"
     - name: "options_to_skip"
       type: "Vec<String>"
       default: ""
+      description: "Extra list of EDNS option codes to skip when hashing the packet (if ``cookie_hashing`` above is false, EDNS cookie option number will be added to this list internally)"
 
 proxy_protocol:
+  description: "Proxy Protocol-related settings"
   parameters:
     - name: "acl"
       type: "Vec<String>"
       default: ""
+      description: "Set the list of netmasks from which a Proxy Protocol header will be required, over UDP, TCP and DNS over TLS. The default is empty. Note that a proxy protocol payload will be required from these clients, regular DNS queries will no longer be accepted if they are not preceded by a proxy protocol payload. Be also aware that, if ``apply_acl_to_proxied_clients`` is set (default is false), the general ACL will be applied to the source IP address as seen by dnsdist first, but also to the source IP address provided in the Proxy Protocol header."
     - name: "maximum_payload_size"
       type: "u32"
       default: "512"
       lua-name: "setProxyProtocolMaximumPayloadSize"
       internal-field-name: "d_proxyProtocolMaximumSize"
       runtime-configurable: true
+      description: "Set the maximum size of a Proxy Protocol payload that dnsdist is willing to accept, in bytes. The default is 512, which is more than enough except for very large TLV data. This setting can’t be set to a value lower than 16 since it would deny of Proxy Protocol headers"
     - name: "apply_acl_to_proxied_clients"
       type: "bool"
       default: "false"
       lua-name: "setProxyProtocolApplyACLToProxiedClients"
       internal-field-name: "d_applyACLToProxiedClients"
       runtime-configurable: true
+      description: "Whether the general ACL should be applied to the source IP address provided in the Proxy Protocol header, in addition to being applied to the source IP address as seen by dnsdist first"
 
 snmp:
+  description: "SNMP-related settings"
   parameters:
     - name: "enabled"
       type: "bool"
@@ -1833,105 +1866,132 @@ snmp:
       lua-name: "snmpAgent"
       internal-field-name: "d_snmpEnabled"
       runtime-configurable: false
+      description: "Enable SNMP support"
     - name: "traps_enabled"
       type: "bool"
       default: "false"
       lua-name: "snmpAgent"
       internal-field-name: "d_snmpTrapsEnabled"
       runtime-configurable: false
+      description: "Enable the sending of SNMP traps for specific events"
     - name: "daemon_socket"
       type: "String"
       default: ""
       lua-name: "snmpAgent"
       internal-field-name: "d_snmpDaemonSocketPath"
       runtime-configurable: false
+      description: "A string specifying how to connect to the daemon agent. This is usually the path to a UNIX socket, but e.g. ``tcp:localhost:705`` can be used as well. By default, SNMP agent’s default socket is used"
 
 query_count:
+  description: "Per-record Carbon statistics of the amount of queries. See :doc:`../guides/carbon`"
   parameters:
     - name: "enabled"
       type: "bool"
       default: "false"
+      description: "Enable per-record Carbon statistics of the amount of queries"
     - name: "filter_function_name"
       type: "String"
       default: ""
+      description: "The name of a Lua function to filter which query should be accounted for, and how"
     - name: "filter_function_code"
       type: "String"
       default: ""
+      description: "The code of a Lua function to filter which query should be accounted for, and how"
     - name: "filter_function_file"
       type: "String"
       default: ""
+      description: "The path to a file containing the code of a Lua function to filter which query should be accounted for, and how"
 
 pool:
+  description: "Settings for a pool of servers"
   parameters:
     - name: "name"
       type: "String"
+      description: "The name of this pool"
     - name: "packet_cache"
       type: "String"
-      default: true
+      default: ""
+      description: "The name of a packet cache object, if any"
     - name: "policy"
       type: "String"
-      default: "leastOutstanding"
+      default: ""
+      description: "The name of the load-balancing policy associated to this pool. If left empty, the global policy will be used"
 
 custom_load_balancing_policy:
+  description: "Settings for a custom load-balancing policy"
   parameters:
     - name: "name"
       type: "String"
+      description: "The name of this load-balancing policy"
     - name: "function_name"
       type: "String"
       default: ""
+      description: "The name of a Lua function implementing the custom load-balancing policy. If ``ffi`` is false, this function takes a table of :class:`Server` objects and a :class:`DNSQuestion` representing the current query, and must return the index of the selected server in the supplied table. If ``ffi`` is true, this function takes a ``const dnsdist_ffi_servers_list_t*`` and a ``dnsdist_ffi_dnsquestion_t*``"
     - name: "function_code"
       type: "String"
       default: ""
+      description: "Same than ``function_name` but contain actual Lua code returning a function instead of a name"
     - name: "function_file"
       type: "String"
       default: ""
+      description: "Same than ``function_name` but contain the path to a file containing actual Lua code returning a function instead of a name"
     - name: "ffi"
       type: "bool"
       default: "false"
+      description: "Whether the function uses the faster but more complicated Lua FFI API"
     - name: "per_thread"
       type: "bool"
       default: "false"
+      description: "If set, the resulting policy will be executed in a lock-free per-thread context, instead of running in the global Lua context. Note that ``function_name`` cannot be used, since this needs the Lua code to create the function in a new Lua context instead of just a function"
 
 load_balancing_policies:
+  description: "Setting for load-balancing policies"
   parameters:
     - name: "default_policy"
       type: "String"
       default: "leastOutstanding"
       lua-name: "setServerPolicy"
       runtime-configurable: true
+      description: "Set the default server selection policy"
     - name: "servfail_on_no_server"
       type: "bool"
       default: "false"
       lua-name: "setServFailWhenNoServer"
       internal-field-name: "d_servFailOnNoPolicy"
       runtime-configurable: true
+      description: "If set, return a ServFail when no servers are available, instead of the default behaviour of dropping the query"
     - name: "round_robin_servfail_on_no_server"
       type: "bool"
       default: "false"
       lua-name: "setRoundRobinFailOnNoServer"
       internal-field-name: "d_roundrobinFailOnNoServer"
       runtime-configurable: true
+      description: "By default the roundrobin load-balancing policy will still try to select a backend even if all backends are currently down. Setting this to true will make the policy fail and return that no server is available instead"
     - name: "weighted_balancing_factor"
       type: "f64"
       default: 0.0
       lua-name: "setWeightedBalancingFactor"
       internal-field-name: "d_weightedBalancingFactor"
       runtime-configurable: false
+      description: "Set the maximum imbalance between the number of outstanding queries intended for a given server, based on its weight, and the actual number, when using the ``whashed`` or ``wrandom`` load-balancing policy. Default is 0, which disables the bounded-load algorithm"
     - name: "consistent_hashing_balancing_factor"
       type: "f64"
       default: 0.0
       lua-name: "setConsistentHashingBalancingFactor"
       internal-field-name: "d_consistentHashBalancingFactor"
       runtime-configurable: false
+      description: "Set the maximum imbalance between the number of outstanding queries intended for a given server, based on its weight, and the actual number, when using the ``chashed`` consistent hashing load-balancing policy. Default is 0, which disables the bounded-load algorithm"
     - name: "custom_policies"
       type: "Vec<CustomLoadBalancingPolicyConfiguration>"
       default: true
+      description: "Custom load-balancing policies implemented in Lua"
     - name: "hash_perturbation"
       type: "u32"
       default: "0"
       lua-name: "setWHashedPertubation"
       internal-field-name: "d_hashPerturbation"
       runtime-configurable: false
+      description: "Set the hash perturbation value to be used in the ``whashed`` policy instead of a random one, allowing to have consistent ``whashed`` results on different instances"
 
 query_rule:
   description: "A rule that can applied on queries"

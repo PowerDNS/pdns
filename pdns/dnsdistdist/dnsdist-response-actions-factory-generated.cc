@@ -11,17 +11,17 @@ std::shared_ptr<DNSResponseAction> getDropResponseAction()
 {
   return std::shared_ptr<DNSResponseAction>(new DropResponseAction());
 }
-std::shared_ptr<DNSResponseAction> getLogResponseAction(const std::string& fileName, bool append, bool buffered, bool verboseOnly, bool includeTimestamp)
+std::shared_ptr<DNSResponseAction> getLogResponseAction(const std::string& file_name, bool append, bool buffered, bool verbose_only, bool include_timestamp)
 {
-  return std::shared_ptr<DNSResponseAction>(new LogResponseAction(fileName, append, buffered, verboseOnly, includeTimestamp));
+  return std::shared_ptr<DNSResponseAction>(new LogResponseAction(file_name, append, buffered, verbose_only, include_timestamp));
 }
 std::shared_ptr<DNSResponseAction> getLuaFFIPerThreadResponseAction(const std::string& code)
 {
   return std::shared_ptr<DNSResponseAction>(new LuaFFIPerThreadResponseAction(code));
 }
-std::shared_ptr<DNSResponseAction> getSetExtendedDNSErrorResponseAction(uint16_t infoCode, const std::string& extraText)
+std::shared_ptr<DNSResponseAction> getSetExtendedDNSErrorResponseAction(uint16_t info_code, const std::string& extra_text)
 {
-  return std::shared_ptr<DNSResponseAction>(new SetExtendedDNSErrorResponseAction(infoCode, extraText));
+  return std::shared_ptr<DNSResponseAction>(new SetExtendedDNSErrorResponseAction(info_code, extra_text));
 }
 std::shared_ptr<DNSResponseAction> getSetReducedTTLResponseAction(uint8_t percentage)
 {

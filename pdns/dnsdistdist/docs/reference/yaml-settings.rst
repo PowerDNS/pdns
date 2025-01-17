@@ -178,12 +178,14 @@ Console-related settings
 CustomLoadBalancingPolicyConfiguration
 --------------------------------------
 
-- **name**: String
-- **function_name**: String ``("")``
-- **function_code**: String ``("")``
-- **function_file**: String ``("")``
-- **ffi**: Boolean ``(false)``
-- **per_thread**: Boolean ``(false)``
+Settings for a custom load-balancing policy
+
+- **name**: String - The name of this load-balancing policy
+- **function_name**: String ``("")`` - The name of a Lua function implementing the custom load-balancing policy. If ``ffi`` is false, this function takes a table of :class:`Server` objects and a :class:`DNSQuestion` representing the current query, and must return the index of the selected server in the supplied table. If ``ffi`` is true, this function takes a ``const dnsdist_ffi_servers_list_t*`` and a ``dnsdist_ffi_dnsquestion_t*``
+- **function_code**: String ``("")`` - Same than ``function_name` but contain actual Lua code returning a function instead of a name
+- **function_file**: String ``("")`` - Same than ``function_name` but contain the path to a file containing actual Lua code returning a function instead of a name
+- **ffi**: Boolean ``(false)`` - Whether the function uses the faster but more complicated Lua FFI API
+- **per_thread**: Boolean ``(false)`` - If set, the resulting policy will be executed in a lock-free per-thread context, instead of running in the global Lua context. Note that ``function_name`` cannot be used, since this needs the Lua code to create the function in a new Lua context instead of just a function
 
 
 .. _yaml-settings-DnstapLoggerConfiguration:
@@ -313,13 +315,19 @@ EDNS Client Subnet-related settings
 GeneralConfiguration
 --------------------
 
-- **edns_udp_payload_size_self_generated_answers**: Unsigned integer ``(1232)``
-- **add_edns_to_self_generated_answers**: Boolean ``(true)``
-- **truncate_tc_answers**: Boolean ``(false)``
-- **fixup_case**: Boolean ``(false)``
-- **allow_empty_responses**: Boolean ``(false)``
-- **drop_empty_queries**: Boolean ``(false)``
-- **capabilities_to_retain**: Sequence of String ``("")``
+General settings
+
+- **edns_udp_payload_size_self_generated_answers**: Unsigned integer ``(1232)`` - Set the UDP payload size advertised via EDNS on self-generated responses. In accordance with :rfc:`RFC 6891 <6891#section-6.2.5>`, values lower than 512 will be treated as equal to 512
+- **add_edns_to_self_generated_answers**: Boolean ``(true)`` - Whether to add EDNS to self-generated responses, provided that the initial query had EDNS
+- **truncate_tc_answers**: Boolean ``(false)`` - Remove any left-over records in responses with the TC bit set, in accordance with :rfc:`RFC 6891 <6891#section-7>`
+- **fixup_case**: Boolean ``(false)`` - If set, ensure that the case of the DNS qname in the response matches the one from the query
+- **allow_empty_responses**: Boolean ``(false)`` - Set to true (defaults to false) to allow empty responses (qdcount=0) with a NoError or NXDomain rcode (default) from backends. dnsdist drops these responses by default because it can't match them against the initial query since they don't contain the qname, qtype and qclass, and therefore the risk of collision is much higher than with regular responses
+- **drop_empty_queries**: Boolean ``(false)`` - Set to true (defaults to false) to drop empty queries (qdcount=0) right away, instead of answering with a NotImp rcode. dnsdist used to drop these queries by default because most rules and existing Lua code expects a query to have a qname, qtype and qclass. However :rfc:`7873` uses these queries to request a server cookie, and :rfc:`8906` as a conformance test, so answering these queries with NotImp is much better than not answering at all
+- **capabilities_to_retain**: Sequence of String ``("")`` - Accept a Linux capability as a string, or a list of these, to retain after startup so that privileged operations can still be performed at runtime.
+Keeping ``CAP_SYS_ADMIN`` on kernel 5.8+ for example allows loading eBPF programs and altering eBPF maps at runtime even if the ``kernel.unprivileged_bpf_disabled`` sysctl is set.
+Note that this does not grant the capabilities to the process, doing so might be done by running it as root which we don't advise, or by adding capabilities via the systemd unit file, for example.
+Please also be aware that switching to a different user via ``--uid`` will still drop all capabilities."
+
 
 
 .. _yaml-settings-HealthCheckConfiguration:
@@ -611,13 +619,15 @@ LMDB-based key-value store
 LoadBalancingPoliciesConfiguration
 ----------------------------------
 
-- **default_policy**: String ``(leastOutstanding)``
-- **servfail_on_no_server**: Boolean ``(false)``
-- **round_robin_servfail_on_no_server**: Boolean ``(false)``
-- **weighted_balancing_factor**: Double ``(0.0)``
-- **consistent_hashing_balancing_factor**: Double ``(0.0)``
-- **custom_policies**: Sequence of :ref:`CustomLoadBalancingPolicyConfiguration <yaml-settings-CustomLoadBalancingPolicyConfiguration>`
-- **hash_perturbation**: Unsigned integer ``(0)``
+Setting for load-balancing policies
+
+- **default_policy**: String ``(leastOutstanding)`` - Set the default server selection policy
+- **servfail_on_no_server**: Boolean ``(false)`` - If set, return a ServFail when no servers are available, instead of the default behaviour of dropping the query
+- **round_robin_servfail_on_no_server**: Boolean ``(false)`` - By default the roundrobin load-balancing policy will still try to select a backend even if all backends are currently down. Setting this to true will make the policy fail and return that no server is available instead
+- **weighted_balancing_factor**: Double ``(0.0)`` - Set the maximum imbalance between the number of outstanding queries intended for a given server, based on its weight, and the actual number, when using the ``whashed`` or ``wrandom`` load-balancing policy. Default is 0, which disables the bounded-load algorithm
+- **consistent_hashing_balancing_factor**: Double ``(0.0)`` - Set the maximum imbalance between the number of outstanding queries intended for a given server, based on its weight, and the actual number, when using the ``chashed`` consistent hashing load-balancing policy. Default is 0, which disables the bounded-load algorithm
+- **custom_policies**: Sequence of :ref:`CustomLoadBalancingPolicyConfiguration <yaml-settings-CustomLoadBalancingPolicyConfiguration>` - Custom load-balancing policies implemented in Lua
+- **hash_perturbation**: Unsigned integer ``(0)`` - Set the hash perturbation value to be used in the ``whashed`` policy instead of a random one, allowing to have consistent ``whashed`` results on different instances
 
 
 .. _yaml-settings-LoggingConfiguration:
@@ -709,21 +719,23 @@ TLS parameters for backends
 PacketCacheConfiguration
 ------------------------
 
-- **name**: String
-- **size**: Unsigned integer
-- **deferrable_insert_lock**: Boolean ``(true)``
-- **dont_age**: Boolean ``(false)``
-- **keep_stale_data**: Boolean ``(false)``
-- **max_negative_ttl**: Unsigned integer ``(3600)``
-- **max_ttl**: Unsigned integer ``(86400)``
-- **min_ttl**: Unsigned integer ``(0)``
-- **shards**: Unsigned integer ``(20)``
-- **parse_ecs**: Boolean ``(false)``
-- **stale_ttl**: Unsigned integer ``(60)``
-- **temporary_failure_ttl**: Unsigned integer ``(60)``
-- **cookie_hashing**: Boolean ``(false)``
-- **maximum_entry_size**: Unsigned integer ``(0)``
-- **options_to_skip**: Sequence of String ``("")``
+Packet-cache settings
+
+- **name**: String - The name of the packet cache object
+- **size**: Unsigned integer - The maximum number of entries in this cache
+- **deferrable_insert_lock**: Boolean ``(true)`` - Whether the cache should give up insertion if the lock is held by another thread, or simply wait to get the lock
+- **dont_age**: Boolean ``(false)`` - Don’t reduce TTLs when serving from the cache. Use this when dnsdist fronts a cluster of authoritative servers
+- **keep_stale_data**: Boolean ``(false)`` - Whether to suspend the removal of expired entries from the cache when there is no backend available in at least one of the pools using this cache
+- **max_negative_ttl**: Unsigned integer ``(3600)`` - Cache a NXDomain or NoData answer from the backend for at most this amount of seconds, even if the TTL of the SOA record is higher
+- **max_ttl**: Unsigned integer ``(86400)`` - Cap the TTL for records to his number
+- **min_ttl**: Unsigned integer ``(0)`` - Don’t cache entries with a TTL lower than this
+- **shards**: Unsigned integer ``(20)`` - Number of shards to divide the cache into, to reduce lock contention
+- **parse_ecs**: Boolean ``(false)`` - Whether any EDNS Client Subnet option present in the query should be extracted and stored to be able to detect hash collisions involving queries with the same qname, qtype and qclass but a different incoming ECS value. Enabling this option adds a parsing cost and only makes sense if at least one backend might send different responses based on the ECS value, so it's disabled by default. Enabling this option is required for the :doc:`../advanced/zero-scope` option to work
+- **stale_ttl**: Unsigned integer ``(60)`` - When the backend servers are not reachable, and global configuration setStaleCacheEntriesTTL is set appropriately, TTL that will be used when a stale cache entry is returned
+- **temporary_failure_ttl**: Unsigned integer ``(60)`` - On a SERVFAIL or REFUSED from the backend, cache for this amount of seconds
+- **cookie_hashing**: Boolean ``(false)`` - If true, EDNS Cookie values will be hashed, resulting in separate entries for different cookies in the packet cache. This is required if the backend is sending answers with EDNS Cookies, otherwise a client might receive an answer with the wrong cookie
+- **maximum_entry_size**: Unsigned integer ``(4096)`` - The maximum size, in bytes, of a DNS packet that can be inserted into the packet cache
+- **options_to_skip**: Sequence of String ``("")`` - Extra list of EDNS option codes to skip when hashing the packet (if ``cookie_hashing`` above is false, EDNS cookie option number will be added to this list internally)
 
 
 .. _yaml-settings-PoolConfiguration:
@@ -731,9 +743,11 @@ PacketCacheConfiguration
 PoolConfiguration
 -----------------
 
-- **name**: String
-- **packet_cache**: String
-- **policy**: String ``(leastOutstanding)``
+Settings for a pool of servers
+
+- **name**: String - The name of this pool
+- **packet_cache**: String ``("")`` - The name of a packet cache object, if any
+- **policy**: String ``("")`` - The name of the load-balancing policy associated to this pool. If left empty, the global policy will be used
 
 
 .. _yaml-settings-ProtoBufMetaConfiguration:
@@ -766,9 +780,11 @@ Endpoint to send queries and/or responses data to, using the native PowerDNS for
 ProxyProtocolConfiguration
 --------------------------
 
-- **acl**: Sequence of String ``("")``
-- **maximum_payload_size**: Unsigned integer ``(512)``
-- **apply_acl_to_proxied_clients**: Boolean ``(false)``
+Proxy Protocol-related settings
+
+- **acl**: Sequence of String ``("")`` - Set the list of netmasks from which a Proxy Protocol header will be required, over UDP, TCP and DNS over TLS. The default is empty. Note that a proxy protocol payload will be required from these clients, regular DNS queries will no longer be accepted if they are not preceded by a proxy protocol payload. Be also aware that, if ``apply_acl_to_proxied_clients`` is set (default is false), the general ACL will be applied to the source IP address as seen by dnsdist first, but also to the source IP address provided in the Proxy Protocol header.
+- **maximum_payload_size**: Unsigned integer ``(512)`` - Set the maximum size of a Proxy Protocol payload that dnsdist is willing to accept, in bytes. The default is 512, which is more than enough except for very large TLV data. This setting can’t be set to a value lower than 16 since it would deny of Proxy Protocol headers
+- **apply_acl_to_proxied_clients**: Boolean ``(false)`` - Whether the general ACL should be applied to the source IP address provided in the Proxy Protocol header, in addition to being applied to the source IP address as seen by dnsdist first
 
 
 .. _yaml-settings-ProxyProtocolValueConfiguration:
@@ -787,10 +803,12 @@ A proxy protocol Type-Length Value entry
 QueryCountConfiguration
 -----------------------
 
-- **enabled**: Boolean ``(false)``
-- **filter_function_name**: String ``("")``
-- **filter_function_code**: String ``("")``
-- **filter_function_file**: String ``("")``
+Per-record Carbon statistics of the amount of queries. See :doc:`../guides/carbon`
+
+- **enabled**: Boolean ``(false)`` - Enable per-record Carbon statistics of the amount of queries
+- **filter_function_name**: String ``("")`` - The name of a Lua function to filter which query should be accounted for, and how
+- **filter_function_code**: String ``("")`` - The code of a Lua function to filter which query should be accounted for, and how
+- **filter_function_file**: String ``("")`` - The path to a file containing the code of a Lua function to filter which query should be accounted for, and how
 
 
 .. _yaml-settings-QueryRuleConfiguration:
@@ -858,9 +876,11 @@ SecurityPollingConfiguration
 SnmpConfiguration
 -----------------
 
-- **enabled**: Boolean ``(false)``
-- **traps_enabled**: Boolean ``(false)``
-- **daemon_socket**: String ``("")``
+SNMP-related settings
+
+- **enabled**: Boolean ``(false)`` - Enable SNMP support
+- **traps_enabled**: Boolean ``(false)`` - Enable the sending of SNMP traps for specific events
+- **daemon_socket**: String ``("")`` - A string specifying how to connect to the daemon agent. This is usually the path to a UNIX socket, but e.g. ``tcp:localhost:705`` can be used as well. By default, SNMP agent’s default socket is used
 
 
 .. _yaml-settings-StructuredLoggingConfiguration:

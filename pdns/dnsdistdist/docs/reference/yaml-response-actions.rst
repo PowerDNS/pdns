@@ -43,7 +43,7 @@ Lua equivalent: :func:`DelayResponseAction`
 
 Parameters:
 
-- **msec**: Unsigned integer
+- **msec**: Unsigned integer - The amount of milliseconds to delay the response
 
 
 .. _yaml-settings-DnstapLogResponseAction:
@@ -57,11 +57,11 @@ Lua equivalent: :func:`DnstapLogResponseAction`
 
 Parameters:
 
-- **identity**: String
-- **logger-name**: String
-- **alter-function_name**: String ``("")``
-- **alter-function-code**: String ``("")``
-- **alter-function-file**: String ``("")``
+- **identity**: String - Server identity to store in the dnstap message
+- **logger_name**: String - The name of dnstap logger
+- **alter_function_name**: String ``("")`` - The name of the Lua function that will alter the message
+- **alter_function_code**: String ``("")`` - The code of the Lua function that will alter the message
+- **alter_function_file**: String ``("")`` - The path to a file containing the code of the Lua function that will alter the message
 
 
 .. _yaml-settings-DropResponseAction:
@@ -84,9 +84,9 @@ Lua equivalent: :func:`LimitTTLResponseAction`
 
 Parameters:
 
-- **min**: Unsigned integer
-- **max**: Unsigned integer
-- **types**: Sequence of Unsigned integer
+- **min**: Unsigned integer - The minimum allowed value
+- **max**: Unsigned integer - The maximum allowed value
+- **types**: Sequence of Unsigned integer - The record types to cap the TTL for, as integers. Default is empty which means all records will be capped
 
 
 .. _yaml-settings-LogResponseAction:
@@ -94,17 +94,17 @@ Parameters:
 LogResponseAction
 -----------------
 
-Log a line for each response, to the specified file if any, to the console (require verbose) if the empty string is given as filename. If an empty string is supplied in the file name, the logging is done to stdout, and only in verbose mode by default. This can be changed by setting ``verbose-only`` to ``false``. When logging to a file, the ``binary`` parameter specifies whether we log in binary form (default) or in textual form. The ``append`` parameter specifies whether we open the file for appending or truncate each time (default). The ``buffered`` parameter specifies whether writes to the file are buffered (default) or not. Subsequent rules are processed after this action
+Log a line for each response, to the specified file if any, to the console (require verbose) if the empty string is given as filename. If an empty string is supplied in the file name, the logging is done to stdout, and only in verbose mode by default. This can be changed by setting ``verbose-only`` to ``false``. The ``append`` parameter specifies whether we open the file for appending or truncate each time (default). The ``buffered`` parameter specifies whether writes to the file are buffered (default) or not. Subsequent rules are processed after this action
 
 Lua equivalent: :func:`LogResponseAction`
 
 Parameters:
 
-- **file-name**: String ``("")``
-- **append**: Boolean ``(false)``
-- **buffered**: Boolean ``(false)``
-- **verbose-only**: Boolean ``(true)``
-- **include-timestamp**: Boolean ``(false)``
+- **file_name**: String ``("")`` - File to log to. Set to an empty string to log to the normal stdout log, this only works when ``-v`` is set on the command line
+- **append**: Boolean ``(false)`` - Whether to append to an existing file
+- **buffered**: Boolean ``(false)`` - Whether to use buffered I/O
+- **verbose_only**: Boolean ``(true)`` - Whether to log only in verbose mode when logging to stdout
+- **include_timestamp**: Boolean ``(false)`` - Whether to include a timestamp for every entry
 
 
 .. _yaml-settings-LuaResponseAction:
@@ -118,9 +118,9 @@ Lua equivalent: :func:`LuaResponseAction`
 
 Parameters:
 
-- **function-name**: String ``("")``
-- **function-code**: String ``("")``
-- **function-file**: String ``("")``
+- **function_name**: String ``("")`` - The name of the Lua function
+- **function_code**: String ``("")`` - The code of the Lua function
+- **function_file**: String ``("")`` - The path to a file containing the code of the Lua function
 
 
 .. _yaml-settings-LuaFFIResponseAction:
@@ -134,9 +134,9 @@ Lua equivalent: :func:`LuaFFIResponseAction`
 
 Parameters:
 
-- **function-name**: String ``("")``
-- **function-code**: String ``("")``
-- **function-file**: String ``("")``
+- **function_name**: String ``("")`` - The name of the Lua function
+- **function_code**: String ``("")`` - The code of the Lua function
+- **function_file**: String ``("")`` - The path to a file containing the code of the Lua function
 
 
 .. _yaml-settings-LuaFFIPerThreadResponseAction:
@@ -150,7 +150,7 @@ Lua equivalent: :func:`LuaFFIPerThreadResponseAction`
 
 Parameters:
 
-- **code**: String
+- **code**: String - The code of the Lua function
 
 
 .. _yaml-settings-RemoteLogResponseAction:
@@ -164,16 +164,16 @@ Lua equivalent: :func:`RemoteLogResponseAction`
 
 Parameters:
 
-- **logger-name**: String
-- **alter-function-name**: String ``("")``
-- **alter-function-code**: String ``("")``
-- **alter-function-file**: String ``("")``
-- **server-id**: String ``("")``
-- **ip-encrypt-key**: String ``("")``
-- **include-cname**: Boolean ``(false)``
-- **export-tags**: Sequence of String
-- **export-extended-errors-to-meta**: String ``("")``
-- **metas**: Sequence of :ref:`ProtoBufMetaConfiguration <yaml-settings-ProtoBufMetaConfiguration>`
+- **logger_name**: String - The name of the protocol buffer logger
+- **alter_function_name**: String ``("")`` - The name of the Lua function
+- **alter_function_code**: String ``("")`` - The code of the Lua function
+- **alter_function_file**: String ``("")`` - The path to a file containing the code of the Lua function
+- **server_id**: String ``("")`` - Set the Server Identity field
+- **ip_encrypt_key**: String ``("")`` - A key, that can be generated via the :func:`makeIPCipherKey` function, to encrypt the IP address of the requestor for anonymization purposes. The encryption is done using ipcrypt for IPv4 and a 128-bit AES ECB operation for IPv6
+- **include_cname**: Boolean ``(false)`` - Whether or not to parse and export CNAMEs
+- **export_tags**: Sequence of String ``("")`` - The comma-separated list of keys of internal tags to export into the ``tags`` Protocol Buffer field, as ``key:value`` strings. Note that a tag with an empty value will be exported as ``<key>``, not ``<key>:``. An empty string means that no internal tag will be exported. The special value ``*`` means that all tags will be exported
+- **export_extended_errors_to_meta**: String ``("")`` - Export Extended DNS Errors present in the DNS response, if any, into the ``meta`` Protocol Buffer field using the specified ``key``. The EDE info code will be exported as an integer value, and the EDE extra text, if present, as a string value
+- **metas**: Sequence of :ref:`ProtoBufMetaConfiguration <yaml-settings-ProtoBufMetaConfiguration>` - A list of ``name``=``key`` pairs, for meta-data to be added to Protocol Buffer message
 
 
 .. _yaml-settings-SetExtendedDNSErrorResponseAction:
@@ -187,8 +187,8 @@ Lua equivalent: :func:`SetExtendedDNSErrorResponseAction`
 
 Parameters:
 
-- **info-code**: Unsigned integer
-- **extra-text**: String ``("")``
+- **info_code**: Unsigned integer - The EDNS Extended DNS Error code
+- **extra_text**: String ``("")`` - The optional EDNS Extended DNS Error extra text
 
 
 .. _yaml-settings-SetMaxReturnedTTLResponseAction:
@@ -202,7 +202,7 @@ Lua equivalent: :func:`SetMaxReturnedTTLResponseAction`
 
 Parameters:
 
-- **max**: Unsigned integer
+- **max**: Unsigned integer - The TTL cap
 
 
 .. _yaml-settings-SetMaxTTLResponseAction:
@@ -216,7 +216,7 @@ Lua equivalent: :func:`SetMaxTTLResponseAction`
 
 Parameters:
 
-- **max**: Unsigned integer
+- **max**: Unsigned integer - The TTL cap
 
 
 .. _yaml-settings-SetMinTTLResponseAction:
@@ -230,7 +230,7 @@ Lua equivalent: :func:`SetMinTTLResponseAction`
 
 Parameters:
 
-- **min**: Unsigned integer
+- **min**: Unsigned integer - The TTL cap
 
 
 .. _yaml-settings-SetReducedTTLResponseAction:
@@ -244,7 +244,7 @@ Lua equivalent: :func:`SetReducedTTLResponseAction`
 
 Parameters:
 
-- **percentage**: Unsigned integer
+- **percentage**: Unsigned integer - The percentage to use
 
 
 .. _yaml-settings-SetSkipCacheResponseAction:
@@ -267,8 +267,8 @@ Lua equivalent: :func:`SetTagResponseAction`
 
 Parameters:
 
-- **tag**: String
-- **value**: String
+- **tag**: String - The tag name
+- **value**: String - The tag value
 
 
 .. _yaml-settings-SNMPTrapResponseAction:
@@ -282,7 +282,7 @@ Lua equivalent: :func:`SNMPTrapResponseAction`
 
 Parameters:
 
-- **reason**: String ``("")``
+- **reason**: String ``("")`` - The SNMP trap reason
 
 
 .. _yaml-settings-TCResponseAction:

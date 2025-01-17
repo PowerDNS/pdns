@@ -19,6 +19,6 @@ std::shared_ptr<DNSAction> getSetMacAddrAction(uint32_t code);
 std::shared_ptr<DNSAction> getSetNoRecurseAction();
 std::shared_ptr<DNSAction> getSetSkipCacheAction();
 std::shared_ptr<DNSAction> getSetTagAction(const std::string& tag, const std::string& value);
-std::shared_ptr<DNSAction> getSetTempFailureCacheTTLAction(uint32_t maxTTL);
+std::shared_ptr<DNSAction> getSetTempFailureCacheTTLAction(uint32_t ttl);
 std::shared_ptr<DNSAction> getSNMPTrapAction(const std::string& reason);
 std::shared_ptr<DNSAction> getTCAction();

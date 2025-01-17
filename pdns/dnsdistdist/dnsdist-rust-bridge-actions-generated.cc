@@ -131,7 +131,7 @@ std::shared_ptr<DNSActionWrapper> getSetTagAction(const SetTagActionConfiguratio
 }
 std::shared_ptr<DNSActionWrapper> getSetTempFailureCacheTTLAction(const SetTempFailureCacheTTLActionConfiguration& config)
 {
-  auto action = dnsdist::actions::getSetTempFailureCacheTTLAction(config.maxttl);
+  auto action = dnsdist::actions::getSetTempFailureCacheTTLAction(config.ttl);
   return newDNSActionWrapper(std::move(action), config.name);
 }
 std::shared_ptr<DNSActionWrapper> getSNMPTrapAction(const SNMPTrapActionConfiguration& config)

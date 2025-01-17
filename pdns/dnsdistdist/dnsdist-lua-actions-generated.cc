@@ -59,8 +59,8 @@ luaCtx.writeFunction("SetSkipCacheAction", []() {
 luaCtx.writeFunction("SetTagAction", [](std::string tag, std::string value) {
   return dnsdist::actions::getSetTagAction(tag, value);
 });
-luaCtx.writeFunction("SetTempFailureCacheTTLAction", [](uint32_t maxTTL) {
-  return dnsdist::actions::getSetTempFailureCacheTTLAction(maxTTL);
+luaCtx.writeFunction("SetTempFailureCacheTTLAction", [](uint32_t ttl) {
+  return dnsdist::actions::getSetTempFailureCacheTTLAction(ttl);
 });
 luaCtx.writeFunction("SNMPTrapAction", [](boost::optional<std::string> reason) {
   return dnsdist::actions::getSNMPTrapAction(reason ? *reason : "");
