@@ -424,6 +424,7 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
   if (EDNS0Level > 0) {
     DNSPacketWriter::optvect_t opts;
     if (srcmask) {
+      subnetOpts = EDNSSubnetOpts{};
       subnetOpts->setSource(*srcmask);
       opts.emplace_back(EDNSOptionCode::ECS, subnetOpts->makeOptString());
     }
