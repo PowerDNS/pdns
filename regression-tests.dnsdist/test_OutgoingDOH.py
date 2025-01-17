@@ -341,6 +341,80 @@ class TestOutgoingDOHGnuTLS(DNSDistTest, OutgoingDOHTests):
         cls._DOHResponder.daemon = True
         cls._DOHResponder.start()
 
+class TestOutgoingDOHOpenSSLYaml(DNSDistTest, OutgoingDOHTests):
+    _tlsBackendPort = pickAvailablePort()
+    _tlsProvider = 'openssl'
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+    _config_params = []
+    _config_template = ""
+    _yaml_config_template = """---
+console:
+  key: "%s"
+  listen_address: "127.0.0.1:%d"
+  acl:
+    - 127.0.0.0/8
+backends:
+  - address: "127.0.0.1:%d"
+    protocol: "DoH"
+    pools:
+      - ""
+      - "cache"
+    tls:
+      provider: "%s"
+      validate_certificate: true
+      ca_store: "ca.pem"
+      subject_name: "powerdns.com"
+    doh:
+      path: "/dns-query"
+    health_checks:
+      mode: "UP"
+webserver:
+  listen_address: "127.0.0.1:%d"
+  password: "%s"
+  api_key: "%s"
+  acl:
+    - 127.0.0.0/8
+tuning:
+  tcp:
+    worker_threads: 1
+pools:
+  - name: "cache"
+    packet_cache: "pc"
+packet_caches:
+  - name: "pc"
+    size: 100
+query_rules:
+  - name: "suffix to pool"
+    selector:
+      type: "QNameSuffix"
+      suffixes:
+        - "cached.outgoing-doh.test.powerdns.com."
+    action:
+      type: "Pool"
+      pool_name: "cache"
+"""
+    _yaml_config_params = ['_consoleKeyB64', '_consolePort', '_tlsBackendPort', '_tlsProvider', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
+
+    @staticmethod
+    def sniCallback(sslSocket, sni, sslContext):
+        assert(sni == 'powerdns.com')
+        return None
+
+    @classmethod
+    def startResponders(cls):
+        tlsContext = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        tlsContext.set_alpn_protocols(["h2"])
+        tlsContext.load_cert_chain('server.chain', 'server.key')
+        # requires Python 3.7+
+        if hasattr(tlsContext, 'sni_callback'):
+            tlsContext.sni_callback = cls.sniCallback
+
+        print("Launching DOH responder..")
+        cls._DOHResponder = threading.Thread(name='DOH Responder', target=cls.DOHResponder, args=[cls._tlsBackendPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, None, tlsContext])
+        cls._DOHResponder.daemon = True
+        cls._DOHResponder.start()
+
 class TestOutgoingDOHOpenSSLWrongCertName(DNSDistTest, BrokenOutgoingDOHTests):
     _tlsBackendPort = pickAvailablePort()
     _config_params = ['_tlsBackendPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']

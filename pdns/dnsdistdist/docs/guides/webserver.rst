@@ -16,6 +16,18 @@ Since 1.5.0, only connections from 127.0.0.1 and ::1 are allowed by default. To 
 
   setWebserverConfig({password="supersecretpassword", apiKey="supersecretAPIkey", acl="192.0.2.0/24, !192.0.2.1"})
 
+The equivalent ``yaml`` configuration would be:
+
+.. code-block:: yaml
+
+  webserver:
+    listen_address: "127.0.0.1:8083"
+    password: "supersecretpassword"
+    api_key: "supersecretAPIkey"
+    acl:
+      - "192.0.2.0/24"
+      - "!192.0.2.1"
+
 
 Security of the Webserver
 -------------------------

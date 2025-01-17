@@ -32,6 +32,7 @@
 #include "dnsdist-lua.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-rings.hh"
+#include "dnsdist-self-answers.hh"
 #include "dnsdist-svc.hh"
 #include "dnsdist-snmp.hh"
 #include "dolog.hh"
@@ -637,16 +638,15 @@ bool dnsdist_ffi_dnsquestion_set_trailing_data(dnsdist_ffi_dnsquestion_t* dq, co
 
 void dnsdist_ffi_dnsquestion_send_trap(dnsdist_ffi_dnsquestion_t* dq, const char* reason, size_t reasonLen)
 {
-  if (g_snmpAgent != nullptr && dnsdist::configuration::getCurrentRuntimeConfiguration().d_snmpTrapsEnabled) {
+  if (g_snmpAgent != nullptr && dnsdist::configuration::getImmutableConfiguration().d_snmpTrapsEnabled) {
     g_snmpAgent->sendDNSTrap(*dq->dq, std::string(reason, reasonLen));
   }
 }
 
 void dnsdist_ffi_dnsquestion_spoof_packet(dnsdist_ffi_dnsquestion_t* dq, const char* raw, size_t len)
 {
-  std::string result;
-  SpoofAction tempSpoofAction(raw, len);
-  tempSpoofAction(dq->dq, &result);
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+  dnsdist::self_answers::generateAnswerFromRawPacket(*dq->dq, PacketBuffer(raw, raw + len));
 }
 
 void dnsdist_ffi_dnsquestion_spoof_raw(dnsdist_ffi_dnsquestion_t* dq, const dnsdist_ffi_raw_value_t* values, size_t valuesCount)
@@ -658,9 +658,8 @@ void dnsdist_ffi_dnsquestion_spoof_raw(dnsdist_ffi_dnsquestion_t* dq, const dnsd
     data.emplace_back(values[idx].value, values[idx].size);
   }
 
-  std::string result;
-  SpoofAction tempSpoofAction(data, std::nullopt);
-  tempSpoofAction(dq->dq, &result);
+  dnsdist::ResponseConfig config{};
+  dnsdist::self_answers::generateAnswerFromRDataEntries(*dq->dq, data, std::nullopt, config);
 }
 
 void dnsdist_ffi_dnsquestion_spoof_addrs(dnsdist_ffi_dnsquestion_t* dq, const dnsdist_ffi_raw_value_t* values, size_t valuesCount)
@@ -687,9 +686,8 @@ void dnsdist_ffi_dnsquestion_spoof_addrs(dnsdist_ffi_dnsquestion_t* dq, const dn
     }
   }
 
-  std::string result;
-  SpoofAction tempSpoofAction(data);
-  tempSpoofAction(dq->dq, &result);
+  dnsdist::ResponseConfig config{};
+  dnsdist::self_answers::generateAnswerFromIPAddresses(*dq->dq, data, config);
 }
 
 void dnsdist_ffi_dnsquestion_set_max_returned_ttl(dnsdist_ffi_dnsquestion_t* dq, uint32_t max)
@@ -789,9 +787,7 @@ void dnsdist_ffi_dnsresponse_set_max_ttl(dnsdist_ffi_dnsresponse_t* dr, uint32_t
 void dnsdist_ffi_dnsresponse_limit_ttl(dnsdist_ffi_dnsresponse_t* dr, uint32_t min, uint32_t max)
 {
   if (dr != nullptr && dr->dr != nullptr) {
-    std::string result;
-    LimitTTLResponseAction ac(min, max);
-    ac(dr->dr, &result);
+    dnsdist::PacketMangling::restrictDNSPacketTTLs(dr->dr->getMutableData(), min, max);
   }
 }
 

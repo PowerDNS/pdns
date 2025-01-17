@@ -11,6 +11,8 @@ These ``DNSRule``\ s be one of the following items:
   * A list of :class:`DNSName`\ s
   * A (compounded) ``Rule``
 
+This page describes the ``Lua`` versions of these selectors, for the ``YAML`` version please see :doc:`yaml-selectors`.
+
 Selectors can be combined via :func:`AndRule`, :func:`OrRule` and :func:`NotRule`.
 
 .. function:: AllRule()

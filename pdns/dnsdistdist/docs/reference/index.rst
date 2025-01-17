@@ -31,3 +31,8 @@ These chapters contain extensive information on all functions and object availab
   svc
   custommetrics
   xsk
+  yaml-settings
+  yaml-selectors
+  yaml-actions
+  yaml-response-actions
+  yaml-support-structures

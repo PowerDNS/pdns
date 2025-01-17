@@ -8,12 +8,19 @@ AM_CPPFLAGS += $(SYSTEMD_CFLAGS) \
 	$(NGHTTP2_CFLAGS) \
 	$(LIBCAP_CFLAGS) \
 	-I$(top_srcdir)/ext/protozero/include \
+	-I$(top_srcdir)/dnsdist-rust-lib \
+	-I$(top_builddir)/dnsdist-rust-lib \
+	-I$(top_srcdir)/dnsdist-rust-lib/rust/src \
 	-DSYSCONFDIR=\"${sysconfdir}\" \
 	-DBOOST_CONTAINER_USE_STD_EXCEPTIONS
 
+DNSDIST_RUST_LIBS = $(top_builddir)/dnsdist-rust-lib/rust/libdnsdist_rust.a $(LIBDL)
+
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS=ext/arc4random \
+SUBDIRS=dnsdist-rust-lib \
+	dnsdist-rust-lib/rust \
+	ext/arc4random \
 	ext/ipcrypt \
 	ext/yahttp
 
@@ -28,7 +35,13 @@ dnslabeltext.cc: dnslabeltext.rl
 	$(AM_V_GEN)$(RAGEL) $< -o dnslabeltext.cc
 
 BUILT_SOURCES=htmlfiles.h \
+	dnsdist-actions-factory-generated.cc dnsdist-actions-factory-generated.hh \
 	dnsdist-lua-ffi-interface.inc \
+	dnsdist-lua-actions-generated.cc dnsdist-lua-response-actions-generated.cc \
+	dnsdist-response-actions-factory-generated.cc dnsdist-response-actions-factory-generated.hh \
+	dnsdist-rust-bridge-actions-generated.cc dnsdist-rust-bridge-actions-generated.hh \
+	dnsdist-rust-bridge-selectors-generated.cc dnsdist-rust-bridge-selectors-generated.hh \
+	dnsdist-selectors-factory-generated.cc dnsdist-selectors-factory-generated.hh \
 	dnslabeltext.cc
 
 htmlfiles.h: $(srcdir)/html/* $(srcdir)/incfiles
@@ -41,6 +54,11 @@ dnsdist-lua-ffi-interface.inc: dnsdist-lua-ffi-interface.h dnsdist-lua-inspectio
 	@echo ')FFIContent"' >> $@
 SRC_JS_FILES := $(wildcard src_js/*.js)
 MIN_JS_FILES := $(patsubst src_js/%.js,html/js/%.min.js,$(SRC_JS_FILES))
+
+dnsdist%generated.cc dnsdist%generated.hh: dnsdist-rules-generator.py dnsdist-actions-definitions.yml dnsdist-response-actions-definitions.yml dnsdist-selectors-definitions.yml
+	@if test "$(PYTHON)" = ":"; then echo "Actions or selectors definitions have changed, python is needed to regenerate the related files but python was not found. Please install python and re-run configure"; exit 1; fi
+	@if ! $(PYTHON) --version | grep -q "Python 3"; then echo $(PYTHON) should be at least version 3. Please install python 3 and re-run configure; exit 1; fi
+	$(PYTHON) dnsdist-rules-generator.py
 
 html/js/%.min.js: src_js/%.js
 	uglifyjs $< > $@
@@ -90,6 +108,16 @@ endif
 endif
 
 EXTRA_DIST=COPYING \
+	   dnsdist-rules-generator.py \
+	   dnsdist-actions-definitions.yml \
+	   dnsdist-response-actions-definitions.yml \
+	   dnsdist-rust-bridge.hh \
+	   dnsdist-rust-bridge-actions-generated.cc \
+	   dnsdist-rust-bridge-actions-generated.hh \
+	   dnsdist-rust-bridge-selectors-generated.cc \
+	   dnsdist-rust-bridge-selectors-generated.hh \
+	   dnsdist-selectors-definitions.yml \
+	   dnsdist-settings-definitions.yml \
 	   dnslabeltext.rl \
 	   dnsdist.conf-dist \
 	   dnsmessage.proto \
@@ -144,13 +172,17 @@ dnsdist_SOURCES = \
 	dns.cc dns.hh \
 	dns_random.hh \
 	dnscrypt.cc dnscrypt.hh \
-	dnsdist-actions.hh \
+	dnsdist-actions-factory-generated.hh \
+	dnsdist-actions-factory.cc dnsdist-actions-factory.hh \
+	dnsdist-actions.cc dnsdist-actions.hh \
 	dnsdist-async.cc dnsdist-async.hh \
 	dnsdist-backend.cc dnsdist-backend.hh \
 	dnsdist-backoff.hh \
 	dnsdist-cache.cc dnsdist-cache.hh \
 	dnsdist-carbon.cc dnsdist-carbon.hh \
 	dnsdist-concurrent-connections.hh \
+	dnsdist-configuration-yaml-internal.hh \
+	dnsdist-configuration-yaml.cc dnsdist-configuration-yaml.hh \
 	dnsdist-configuration.cc dnsdist-configuration.hh \
 	dnsdist-console.cc dnsdist-console.hh \
 	dnsdist-crypto.cc dnsdist-crypto.hh \
@@ -180,6 +212,7 @@ dnsdist_SOURCES = \
 	dnsdist-lua-bindings-protobuf.cc \
 	dnsdist-lua-bindings-rings.cc \
 	dnsdist-lua-bindings.cc \
+	dnsdist-lua-configuration-items.cc \
 	dnsdist-lua-ffi-interface.h dnsdist-lua-ffi-interface.inc \
 	dnsdist-lua-ffi.cc dnsdist-lua-ffi.hh \
 	dnsdist-lua-hooks.cc dnsdist-lua-hooks.hh \
@@ -203,8 +236,11 @@ dnsdist_SOURCES = \
 	dnsdist-resolver.cc dnsdist-resolver.hh \
 	dnsdist-rings.cc dnsdist-rings.hh \
 	dnsdist-rule-chains.cc dnsdist-rule-chains.hh \
+	dnsdist-rules-factory.hh \
 	dnsdist-rules.cc dnsdist-rules.hh \
 	dnsdist-secpoll.cc dnsdist-secpoll.hh \
+	dnsdist-selectors-factory-generated.hh \
+	dnsdist-self-answers.cc dnsdist-self-answers.hh \
 	dnsdist-session-cache.cc dnsdist-session-cache.hh \
 	dnsdist-snmp.cc dnsdist-snmp.hh \
 	dnsdist-svc.cc dnsdist-svc.hh \
@@ -274,6 +310,7 @@ testrunner_SOURCES = \
 	credentials.cc credentials.hh \
 	dns.cc dns.hh \
 	dnscrypt.cc dnscrypt.hh \
+	dnsdist-actions.cc dnsdist-actions.hh \
 	dnsdist-async.cc dnsdist-async.hh \
 	dnsdist-backend.cc dnsdist-backend.hh \
 	dnsdist-backoff.hh \
@@ -310,7 +347,9 @@ testrunner_SOURCES = \
 	dnsdist-resolver.cc dnsdist-resolver.hh \
 	dnsdist-rings.cc dnsdist-rings.hh \
 	dnsdist-rule-chains.cc dnsdist-rule-chains.hh \
+	dnsdist-rules-factory.hh \
 	dnsdist-rules.cc dnsdist-rules.hh \
+	dnsdist-self-answers.cc dnsdist-self-answers.hh \
 	dnsdist-session-cache.cc dnsdist-session-cache.hh \
 	dnsdist-svc.cc dnsdist-svc.hh \
 	dnsdist-tcp-downstream.cc \
@@ -419,6 +458,7 @@ endif
 
 if HAVE_RE2
 dnsdist_LDADD += $(RE2_LIBS)
+testrunner_LDADD += $(RE2_LIBS)
 endif
 
 if HAVE_LIBSSL
@@ -486,6 +526,11 @@ dnsdist_LDADD += $(QUICHE_LDFLAGS) $(QUICHE_LIBS)
 dnsdist_SOURCES += doq-common.cc
 testrunner_SOURCES += doq-common.cc
 testrunner_LDADD += $(QUICHE_LDFLAGS) $(QUICHE_LIBS)
+endif
+
+if HAVE_YAML_CONFIGURATION
+dnsdist_SOURCES += dnsdist-rust-lib/dnsdist-configuration-yaml-items-generated.cc
+dnsdist_LDADD += $(DNSDIST_RUST_LIBS)
 endif
 
 if !HAVE_LUA_HPP

@@ -25,6 +25,7 @@
 #include "dnsdist-ecs.hh"
 #include "dnsdist-internal-queries.hh"
 #include "dnsdist-lua.hh"
+#include "dnsdist-self-answers.hh"
 #include "dnsdist-snmp.hh"
 #include "dnsparser.hh"
 
@@ -174,7 +175,7 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
 
   luaCtx.registerFunction<void (DNSQuestion::*)(std::string)>("sendTrap", [](const DNSQuestion& dnsQuestion, boost::optional<std::string> reason) {
 #ifdef HAVE_NET_SNMP
-    if (g_snmpAgent != nullptr && dnsdist::configuration::getCurrentRuntimeConfiguration().d_snmpTrapsEnabled) {
+    if (g_snmpAgent != nullptr && dnsdist::configuration::getImmutableConfiguration().d_snmpTrapsEnabled) {
       g_snmpAgent->sendDNSTrap(dnsQuestion, reason ? *reason : "");
     }
 #endif /* HAVE_NET_SNMP */
@@ -254,6 +255,7 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
   });
 
   luaCtx.registerFunction<void (DNSQuestion::*)(const boost::variant<LuaArray<ComboAddress>, LuaArray<std::string>>&, boost::optional<uint16_t>)>("spoof", [](DNSQuestion& dnsQuestion, const boost::variant<LuaArray<ComboAddress>, LuaArray<std::string>>& response, boost::optional<uint16_t> typeForAny) {
+    dnsdist::ResponseConfig responseConfig;
     if (response.type() == typeid(LuaArray<ComboAddress>)) {
       std::vector<ComboAddress> data;
       auto responses = boost::get<LuaArray<ComboAddress>>(response);
@@ -261,9 +263,7 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
       for (const auto& resp : responses) {
         data.push_back(resp.second);
       }
-      std::string result;
-      SpoofAction tempSpoofAction(data);
-      tempSpoofAction(&dnsQuestion, &result);
+      dnsdist::self_answers::generateAnswerFromIPAddresses(dnsQuestion, data, responseConfig);
       return;
     }
     if (response.type() == typeid(LuaArray<std::string>)) {
@@ -273,9 +273,7 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
       for (const auto& resp : responses) {
         data.push_back(resp.second);
       }
-      std::string result;
-      SpoofAction tempSpoofAction(data, typeForAny ? *typeForAny : std::optional<uint16_t>());
-      tempSpoofAction(&dnsQuestion, &result);
+      dnsdist::self_answers::generateAnswerFromRDataEntries(dnsQuestion, data, typeForAny ? *typeForAny : std::optional<uint16_t>(), responseConfig);
       return;
     }
   });
@@ -505,7 +503,7 @@ void setupLuaBindingsDNSQuestion(LuaContext& luaCtx)
 
   luaCtx.registerFunction<void (DNSResponse::*)(std::string)>("sendTrap", [](const DNSResponse& dnsResponse, boost::optional<std::string> reason) {
 #ifdef HAVE_NET_SNMP
-    if (g_snmpAgent != nullptr && dnsdist::configuration::getCurrentRuntimeConfiguration().d_snmpTrapsEnabled) {
+    if (g_snmpAgent != nullptr && dnsdist::configuration::getImmutableConfiguration().d_snmpTrapsEnabled) {
       g_snmpAgent->sendDNSTrap(dnsResponse, reason ? *reason : "");
     }
 #endif /* HAVE_NET_SNMP */

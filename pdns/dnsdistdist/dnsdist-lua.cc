@@ -26,10 +26,6 @@
 #include <fstream>
 #include <cinttypes>
 
-// for OpenBSD, sys/socket.h needs to come before net/if.h
-#include <sys/socket.h>
-#include <net/if.h>
-
 #include <regex>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -328,17 +324,9 @@ static void handleNewServerHealthCheckParameters(boost::optional<newserver_t>& v
 
   if (getOptionalValue<std::string>(vars, "healthCheckMode", valueStr) > 0) {
     const auto& mode = valueStr;
-    if (pdns_iequals(mode, "auto")) {
-      config.availability = DownstreamState::Availability::Auto;
-    }
-    else if (pdns_iequals(mode, "lazy")) {
-      config.availability = DownstreamState::Availability::Lazy;
-    }
-    else if (pdns_iequals(mode, "up")) {
-      config.availability = DownstreamState::Availability::Up;
-    }
-    else if (pdns_iequals(mode, "down")) {
-      config.availability = DownstreamState::Availability::Down;
+    auto availability = DownstreamState::getAvailabilityFromStr(mode);
+    if (availability) {
+      config.availability = *availability;
     }
     else {
       warnlog("Ignoring unknown value '%s' for 'healthCheckMode' on 'newServer'", mode);
@@ -411,57 +399,18 @@ static void handleNewServerHealthCheckParameters(boost::optional<newserver_t>& v
 static void handleNewServerSourceParameter(boost::optional<newserver_t>& vars, DownstreamState::Config& config)
 {
   std::string source;
-  if (getOptionalValue<std::string>(vars, "source", source) > 0) {
-    /* handle source in the following forms:
-       - v4 address ("192.0.2.1")
-       - v6 address ("2001:DB8::1")
-       - interface name ("eth0")
-                              - v4 address and interface name ("192.0.2.1@eth0")
-                              - v6 address and interface name ("2001:DB8::1@eth0")
-    */
-    bool parsed = false;
-    std::string::size_type pos = source.find('@');
-    if (pos == std::string::npos) {
-      /* no '@', try to parse that as a valid v4/v6 address */
-      try {
-        config.sourceAddr = ComboAddress(source);
-        parsed = true;
-      }
-      catch (...) {
-      }
-    }
-
-    if (!parsed) {
-      /* try to parse as interface name, or v4/v6@itf */
-      config.sourceItfName = source.substr(pos == std::string::npos ? 0 : pos + 1);
-      unsigned int itfIdx = if_nametoindex(config.sourceItfName.c_str());
-      if (itfIdx != 0) {
-        if (pos == 0 || pos == std::string::npos) {
-          /* "eth0" or "@eth0" */
-          config.sourceItf = itfIdx;
-        }
-        else {
-          /* "192.0.2.1@eth0" */
-          config.sourceAddr = ComboAddress(source.substr(0, pos));
-          config.sourceItf = itfIdx;
-        }
-#ifdef SO_BINDTODEVICE
-        /* we need to retain CAP_NET_RAW to be able to set SO_BINDTODEVICE in the health checks */
-        dnsdist::configuration::updateImmutableConfiguration([](dnsdist::configuration::ImmutableConfiguration& currentConfig) {
-          currentConfig.d_capabilitiesToRetain.insert("CAP_NET_RAW");
-        });
-#endif
-      }
-      else {
-        warnlog("Dismissing source %s because '%s' is not a valid interface name", source, config.sourceItfName);
-      }
-    }
+  if (getOptionalValue<std::string>(vars, "source", source) <= 0) {
+    return;
   }
+
+  DownstreamState::parseSourceParameter(source, config);
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity,readability-function-size): this function declares Lua bindings, even with a good refactoring it will likely blow up the threshold
 static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 {
+  dnsdist::lua::setupConfigurationItems(luaCtx);
+
   luaCtx.writeFunction("inClientStartup", [client]() {
     return client && !dnsdist::configuration::isImmutableConfigurationDone();
   });
@@ -768,208 +717,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
                          server->stop();
                        });
-
-  struct BooleanConfigurationItems
-  {
-    const std::string name;
-    const std::function<void(dnsdist::configuration::RuntimeConfiguration& config, bool newValue)> mutator;
-  };
-  static const std::vector<BooleanConfigurationItems> booleanConfigItems{
-    {"truncateTC", [](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_truncateTC = newValue; }},
-    {"fixupCase", [](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_fixupCase = newValue; }},
-    {"setECSOverride", [](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_ecsOverride = newValue; }},
-    {"setQueryCount", [](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_queryCountConfig.d_enabled = newValue; }},
-    {"setVerbose", [](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_verbose = newValue; }},
-    {"setVerboseHealthChecks", [](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_verboseHealthChecks = newValue; }},
-    {"setServFailWhenNoServer", [](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_servFailOnNoPolicy = newValue; }},
-    {"setRoundRobinFailOnNoServer", [](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_roundrobinFailOnNoServer = newValue; }},
-    {"setDropEmptyQueries", [](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_dropEmptyQueries = newValue; }},
-    {"setAllowEmptyResponse", [](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_allowEmptyResponse = newValue; }},
-    {"setConsoleConnectionsLogging", [](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_logConsoleConnections = newValue; }},
-    {"setProxyProtocolApplyACLToProxiedClients", [](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_applyACLToProxiedClients = newValue; }},
-    {"setAddEDNSToSelfGeneratedResponses", [](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_addEDNSToSelfGeneratedResponses = newValue; }},
-  };
-  struct UnsignedIntegerConfigurationItems
-  {
-    const std::string name;
-    const std::function<void(dnsdist::configuration::RuntimeConfiguration& config, uint64_t value)> mutator;
-    const size_t maximumValue{std::numeric_limits<uint64_t>::max()};
-  };
-  static const std::vector<UnsignedIntegerConfigurationItems> unsignedIntegerConfigItems{
-    {"setCacheCleaningDelay", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_cacheCleaningDelay = newValue; }, std::numeric_limits<uint32_t>::max()},
-    {"setCacheCleaningPercentage", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_cacheCleaningPercentage = newValue; }, 100U},
-    {"setOutgoingTLSSessionsCacheMaxTicketsPerBackend", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_tlsSessionCacheMaxSessionsPerBackend = newValue; }, std::numeric_limits<uint16_t>::max()},
-    {"setOutgoingTLSSessionsCacheCleanupDelay", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_tlsSessionCacheCleanupDelay = newValue; }, std::numeric_limits<uint16_t>::max()},
-    {"setOutgoingTLSSessionsCacheMaxTicketValidity", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_tlsSessionCacheSessionValidity = newValue; }, std::numeric_limits<uint16_t>::max()},
-    {"setECSSourcePrefixV4", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_ECSSourcePrefixV4 = newValue; }, std::numeric_limits<uint16_t>::max()},
-    {"setECSSourcePrefixV6", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_ECSSourcePrefixV6 = newValue; }, std::numeric_limits<uint16_t>::max()},
-    {"setTCPRecvTimeout", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_tcpRecvTimeout = newValue; }, std::numeric_limits<uint16_t>::max()},
-    {"setTCPSendTimeout", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_tcpSendTimeout = newValue; }, std::numeric_limits<uint16_t>::max()},
-    {"setMaxTCPQueriesPerConnection", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_maxTCPQueriesPerConn = newValue; }, std::numeric_limits<uint64_t>::max()},
-    {"setMaxTCPConnectionDuration", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_maxTCPConnectionDuration = newValue; }, std::numeric_limits<uint32_t>::max()},
-    {"setStaleCacheEntriesTTL", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_staleCacheEntriesTTL = newValue; }, std::numeric_limits<uint32_t>::max()},
-    {"setConsoleOutputMaxMsgSize", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_consoleOutputMsgMaxSize = newValue; }, std::numeric_limits<uint32_t>::max()},
-#ifndef DISABLE_SECPOLL
-    {"setSecurityPollInterval", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_secPollInterval = newValue; }, std::numeric_limits<uint32_t>::max()},
-#endif /* DISABLE_SECPOLL */
-    {"setProxyProtocolMaximumPayloadSize", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_proxyProtocolMaximumSize = std::max(static_cast<uint64_t>(16), newValue); }, std::numeric_limits<uint32_t>::max()},
-    {"setPayloadSizeOnSelfGeneratedAnswers", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) {
-       if (newValue < 512) {
-         warnlog("setPayloadSizeOnSelfGeneratedAnswers() is set too low, using 512 instead!");
-         g_outputBuffer = "setPayloadSizeOnSelfGeneratedAnswers() is set too low, using 512 instead!";
-         newValue = 512;
-       }
-       if (newValue > dnsdist::configuration::s_udpIncomingBufferSize) {
-         warnlog("setPayloadSizeOnSelfGeneratedAnswers() is set too high, capping to %d instead!", dnsdist::configuration::s_udpIncomingBufferSize);
-         g_outputBuffer = "setPayloadSizeOnSelfGeneratedAnswers() is set too high, capping to " + std::to_string(dnsdist::configuration::s_udpIncomingBufferSize) + " instead";
-         newValue = dnsdist::configuration::s_udpIncomingBufferSize;
-       }
-       config.d_payloadSizeSelfGenAnswers = newValue;
-     },
-     std::numeric_limits<uint64_t>::max()},
-#ifndef DISABLE_DYNBLOCKS
-    {"setDynBlocksPurgeInterval", [](dnsdist::configuration::RuntimeConfiguration& config, uint64_t newValue) { config.d_dynBlocksPurgeInterval = newValue; }, std::numeric_limits<uint32_t>::max()},
-#endif /* DISABLE_DYNBLOCKS */
-  };
-
-  struct StringConfigurationItems
-  {
-    const std::string name;
-    const std::function<void(dnsdist::configuration::RuntimeConfiguration& config, const std::string& value)> mutator;
-  };
-  static const std::vector<StringConfigurationItems> stringConfigItems{
-#ifndef DISABLE_SECPOLL
-    {"setSecurityPollSuffix", [](dnsdist::configuration::RuntimeConfiguration& config, const std::string& newValue) { config.d_secPollSuffix = newValue; }},
-#endif /* DISABLE_SECPOLL */
-  };
-
-  for (const auto& item : booleanConfigItems) {
-    luaCtx.writeFunction(item.name, [&item](bool value) {
-      setLuaSideEffect();
-      dnsdist::configuration::updateRuntimeConfiguration([value, &item](dnsdist::configuration::RuntimeConfiguration& config) {
-        item.mutator(config, value);
-      });
-    });
-  }
-
-  for (const auto& item : unsignedIntegerConfigItems) {
-    luaCtx.writeFunction(item.name, [&item](uint64_t value) {
-      setLuaSideEffect();
-      checkParameterBound(item.name, value, item.maximumValue);
-      dnsdist::configuration::updateRuntimeConfiguration([value, &item](dnsdist::configuration::RuntimeConfiguration& config) {
-        item.mutator(config, value);
-      });
-    });
-  }
-
-  for (const auto& item : stringConfigItems) {
-    luaCtx.writeFunction(item.name, [&item](const std::string& value) {
-      setLuaSideEffect();
-      dnsdist::configuration::updateRuntimeConfiguration([value, &item](dnsdist::configuration::RuntimeConfiguration& config) {
-        item.mutator(config, value);
-      });
-    });
-  }
-
-  struct BooleanImmutableConfigurationItems
-  {
-    const std::string name;
-    const std::function<void(dnsdist::configuration::ImmutableConfiguration& config, bool newValue)> mutator;
-  };
-  static const std::vector<BooleanImmutableConfigurationItems> booleanImmutableConfigItems{
-    {"setRandomizedOutgoingSockets", [](dnsdist::configuration::ImmutableConfiguration& config, bool newValue) { config.d_randomizeUDPSocketsToBackend = newValue; }},
-    {"setRandomizedIdsOverUDP", [](dnsdist::configuration::ImmutableConfiguration& config, bool newValue) { config.d_randomizeIDsToBackend = newValue; }},
-  };
-  struct UnsignedIntegerImmutableConfigurationItems
-  {
-    const std::string name;
-    const std::function<void(dnsdist::configuration::ImmutableConfiguration& config, uint64_t value)> mutator;
-    const size_t maximumValue{std::numeric_limits<uint64_t>::max()};
-  };
-  static const std::vector<UnsignedIntegerImmutableConfigurationItems> unsignedIntegerImmutableConfigItems
-  {
-    {"setMaxTCPQueuedConnections", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_maxTCPQueuedConnections = newValue; }, std::numeric_limits<uint16_t>::max()},
-      {"setMaxTCPClientThreads", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_maxTCPClientThreads = newValue; }, std::numeric_limits<uint16_t>::max()},
-      {"setMaxTCPConnectionsPerClient", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_maxTCPConnectionsPerClient = newValue; }, std::numeric_limits<uint64_t>::max()},
-      {"setTCPInternalPipeBufferSize", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_tcpInternalPipeBufferSize = newValue; }, std::numeric_limits<uint64_t>::max()},
-      {"setMaxCachedTCPConnectionsPerDownstream", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_outgoingTCPMaxIdlePerBackend = newValue; }, std::numeric_limits<uint16_t>::max()},
-      {"setTCPDownstreamCleanupInterval", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_outgoingTCPCleanupInterval = newValue; }, std::numeric_limits<uint32_t>::max()},
-      {"setTCPDownstreamMaxIdleTime", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_outgoingTCPMaxIdleTime = newValue; }, std::numeric_limits<uint16_t>::max()},
-#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
-      {"setOutgoingDoHWorkerThreads", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_outgoingDoHWorkers = newValue; }, std::numeric_limits<uint16_t>::max()},
-      {"setMaxIdleDoHConnectionsPerDownstream", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_outgoingDoHMaxIdlePerBackend = newValue; }, std::numeric_limits<uint16_t>::max()},
-      {"setDoHDownstreamCleanupInterval", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_outgoingDoHCleanupInterval = newValue; }, std::numeric_limits<uint32_t>::max()},
-      {"setDoHDownstreamMaxIdleTime", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_outgoingDoHMaxIdleTime = newValue; }, std::numeric_limits<uint16_t>::max()},
-#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
-      {"setMaxUDPOutstanding", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_maxUDPOutstanding = newValue; }, std::numeric_limits<uint16_t>::max()},
-      {"setWHashedPertubation", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_hashPerturbation = newValue; }, std::numeric_limits<uint32_t>::max()},
-#ifndef DISABLE_RECVMMSG
-      {"setUDPMultipleMessagesVectorSize", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_udpVectorSize = newValue; }, std::numeric_limits<uint32_t>::max()},
-#endif /* DISABLE_RECVMMSG */
-      {"setUDPTimeout", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_udpTimeout = newValue; }, std::numeric_limits<uint8_t>::max()},
-      {"setConsoleMaximumConcurrentConnections", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_consoleMaxConcurrentConnections = newValue; }, std::numeric_limits<uint32_t>::max()},
-      {"setRingBuffersLockRetries", [](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_ringsNbLockTries = newValue; }, std::numeric_limits<uint64_t>::max()},
-  };
-
-  struct DoubleImmutableConfigurationItems
-  {
-    const std::string name;
-    const std::function<void(dnsdist::configuration::ImmutableConfiguration& config, double value)> mutator;
-    const double minimumValue{1.0};
-  };
-  static const std::vector<DoubleImmutableConfigurationItems> doubleImmutableConfigItems{
-    {"setConsistentHashingBalancingFactor", [](dnsdist::configuration::ImmutableConfiguration& config, double newValue) { config.d_consistentHashBalancingFactor = newValue; }, 1.0},
-    {"setWeightedBalancingFactor", [](dnsdist::configuration::ImmutableConfiguration& config, double newValue) { config.d_weightedBalancingFactor = newValue; }, 1.0},
-  };
-
-  for (const auto& item : booleanImmutableConfigItems) {
-    luaCtx.writeFunction(item.name, [&item](bool value) {
-      try {
-        dnsdist::configuration::updateImmutableConfiguration([value, &item](dnsdist::configuration::ImmutableConfiguration& config) {
-          item.mutator(config, value);
-        });
-      }
-      catch (const std::exception& exp) {
-        g_outputBuffer = item.name + " cannot be used at runtime!\n";
-        errlog("%s cannot be used at runtime!", item.name);
-      }
-    });
-  }
-
-  for (const auto& item : unsignedIntegerImmutableConfigItems) {
-    luaCtx.writeFunction(item.name, [&item](uint64_t value) {
-      checkParameterBound(item.name, value, item.maximumValue);
-      try {
-        dnsdist::configuration::updateImmutableConfiguration([value, &item](dnsdist::configuration::ImmutableConfiguration& config) {
-          item.mutator(config, value);
-        });
-      }
-      catch (const std::exception& exp) {
-        g_outputBuffer = item.name + " cannot be used at runtime!\n";
-        errlog("%s cannot be used at runtime!", item.name);
-      }
-    });
-  }
-  for (const auto& item : doubleImmutableConfigItems) {
-    luaCtx.writeFunction(item.name, [&item](double value) {
-      if (value != 0 && value < item.minimumValue) {
-        g_outputBuffer = "Invalid value passed to " + item.name + "()!\n";
-        errlog("Invalid value passed to %s()!", item.name);
-        return;
-      }
-
-      try {
-        dnsdist::configuration::updateImmutableConfiguration([value, &item](dnsdist::configuration::ImmutableConfiguration& config) {
-          item.mutator(config, value);
-        });
-      }
-      catch (const std::exception& exp) {
-        g_outputBuffer = item.name + " cannot be used at runtime!\n";
-        errlog("%s cannot be used at runtime!", item.name);
-      }
-      setLuaSideEffect();
-    });
-  }
 
   luaCtx.writeFunction("getVerbose", []() { return dnsdist::configuration::getCurrentRuntimeConfiguration().d_verbose; });
 
@@ -2242,28 +1989,18 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     if (client || configCheck) {
       return;
     }
-    if (!checkConfigurationTime("snmpAgent")) {
-      return;
-    }
 
-    {
-      if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_snmpEnabled) {
-        errlog("snmpAgent() cannot be used twice!");
-        g_outputBuffer = "snmpAgent() cannot be used twice!\n";
-        return;
-      }
-    }
-
-    dnsdist::configuration::updateRuntimeConfiguration([enableTraps](dnsdist::configuration::RuntimeConfiguration& config) {
+    dnsdist::configuration::updateImmutableConfiguration([enableTraps, &daemonSocket](dnsdist::configuration::ImmutableConfiguration& config) {
       config.d_snmpEnabled = true;
       config.d_snmpTrapsEnabled = enableTraps;
+      if (daemonSocket) {
+        config.d_snmpDaemonSocketPath = *daemonSocket;
+      }
     });
-
-    g_snmpAgent = std::make_unique<DNSDistSNMPAgent>("dnsdist", daemonSocket ? *daemonSocket : std::string());
   });
 
   luaCtx.writeFunction("sendCustomTrap", [](const std::string& str) {
-    if (g_snmpAgent != nullptr && dnsdist::configuration::getCurrentRuntimeConfiguration().d_snmpTrapsEnabled) {
+    if (g_snmpAgent != nullptr && dnsdist::configuration::getImmutableConfiguration().d_snmpTrapsEnabled) {
       g_snmpAgent->sendCustomTrap(str);
     }
   });
@@ -2367,57 +2104,13 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
     setLuaSideEffect();
     if (facility.type() == typeid(std::string)) {
-      static std::map<std::string, int> const facilities = {
-        {"local0", LOG_LOCAL0},
-        {"log_local0", LOG_LOCAL0},
-        {"local1", LOG_LOCAL1},
-        {"log_local1", LOG_LOCAL1},
-        {"local2", LOG_LOCAL2},
-        {"log_local2", LOG_LOCAL2},
-        {"local3", LOG_LOCAL3},
-        {"log_local3", LOG_LOCAL3},
-        {"local4", LOG_LOCAL4},
-        {"log_local4", LOG_LOCAL4},
-        {"local5", LOG_LOCAL5},
-        {"log_local5", LOG_LOCAL5},
-        {"local6", LOG_LOCAL6},
-        {"log_local6", LOG_LOCAL6},
-        {"local7", LOG_LOCAL7},
-        {"log_local7", LOG_LOCAL7},
-        /* most of these likely make very little sense
-           for dnsdist, but why not? */
-        {"kern", LOG_KERN},
-        {"log_kern", LOG_KERN},
-        {"user", LOG_USER},
-        {"log_user", LOG_USER},
-        {"mail", LOG_MAIL},
-        {"log_mail", LOG_MAIL},
-        {"daemon", LOG_DAEMON},
-        {"log_daemon", LOG_DAEMON},
-        {"auth", LOG_AUTH},
-        {"log_auth", LOG_AUTH},
-        {"syslog", LOG_SYSLOG},
-        {"log_syslog", LOG_SYSLOG},
-        {"lpr", LOG_LPR},
-        {"log_lpr", LOG_LPR},
-        {"news", LOG_NEWS},
-        {"log_news", LOG_NEWS},
-        {"uucp", LOG_UUCP},
-        {"log_uucp", LOG_UUCP},
-        {"cron", LOG_CRON},
-        {"log_cron", LOG_CRON},
-        {"authpriv", LOG_AUTHPRIV},
-        {"log_authpriv", LOG_AUTHPRIV},
-        {"ftp", LOG_FTP},
-        {"log_ftp", LOG_FTP}};
       auto facilityStr = boost::get<std::string>(facility);
-      toLowerInPlace(facilityStr);
-      auto facilityIt = facilities.find(facilityStr);
-      if (facilityIt == facilities.end()) {
+      auto facilityLevel = logFacilityFromString(facilityStr);
+      if (!facilityLevel) {
         g_outputBuffer = "Unknown facility '" + facilityStr + "' passed to setSyslogFacility()!\n";
         return;
       }
-      setSyslogFacility(facilityIt->second);
+      setSyslogFacility(*facilityLevel);
     }
     else {
       setSyslogFacility(boost::get<int>(facility));
@@ -3474,7 +3167,9 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 }
 
-void setupLua(LuaContext& luaCtx, bool client, bool configCheck, const std::string& config)
+namespace dnsdist::lua
+{
+void setupLua(LuaContext& luaCtx, bool client, bool configCheck)
 {
   setupLuaActions(luaCtx);
   setupLuaConfig(luaCtx, client, configCheck);
@@ -3497,7 +3192,13 @@ void setupLua(LuaContext& luaCtx, bool client, bool configCheck, const std::stri
 #ifdef LUAJIT_VERSION
   luaCtx.executeCode(getLuaFFIWrappers());
 #endif
+}
+}
 
+namespace dnsdist::configuration::lua
+{
+void loadLuaConfigurationFile(LuaContext& luaCtx, const std::string& config, bool configCheck)
+{
   std::ifstream ifs(config);
   if (!ifs) {
     if (configCheck) {
@@ -3510,4 +3211,5 @@ void setupLua(LuaContext& luaCtx, bool client, bool configCheck, const std::stri
   }
 
   luaCtx.executeCode(ifs);
+}
 }

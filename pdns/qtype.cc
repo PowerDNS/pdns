@@ -166,7 +166,23 @@ QType &QType::operator=(const string &s)
   return *this;
 }
 
-const std::string QClass::toString() const
+static const std::map<const std::string, uint16_t> s_classMap = {
+  {"IN", QClass::IN},
+  {"CHAOS", QClass::CHAOS},
+  {"NONE", QClass::NONE},
+  {"ANY", QClass::ANY},
+};
+
+QClass::QClass(const std::string& code)
+{
+  auto mapIt = s_classMap.find(code);
+  if (mapIt == s_classMap.end()) {
+    throw std::runtime_error("Invalid QClass '" + code + "'");
+  }
+  qclass = mapIt->second;
+}
+
+std::string QClass::toString() const
 {
   switch (qclass) {
   case IN:

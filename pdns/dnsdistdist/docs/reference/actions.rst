@@ -2,6 +2,8 @@ Rule Actions
 ============
 
 :doc:`selectors` need to be combined with an action for them to actually do something with the matched packets.
+This page describes the ``Lua`` versions of these actions, for the ``YAML`` version please see :doc:`yaml-actions` and :doc:`yaml-response-actions`.
+
 Some actions allow further processing of rules, this is noted in their description. Most of these start with 'Set' with a few exceptions, mostly for logging actions. These exceptions are:
 
 - :func:`ClearRecordTypesResponseAction`

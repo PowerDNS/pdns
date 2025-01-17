@@ -30,7 +30,6 @@
 #include "iputils.hh"
 
 #ifndef DISABLE_PROTOBUF
-#include "protozero.hh"
 
 class DnstapMessage
 {

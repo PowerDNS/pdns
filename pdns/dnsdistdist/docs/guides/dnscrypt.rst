@@ -6,6 +6,21 @@ To make :program:`dnsdist` listen to incoming DNSCrypt queries on 127.0.0.1 port
 
   addDNSCryptBind("127.0.0.1:8443", "2.providername", "/path/to/resolver.cert", "/path/to/resolver.key")
 
+
+And in ``yaml``:
+
+.. code-block:: yaml
+
+  binds:
+    - listen_address: "127.0.0.1:8443"
+      protocol: "DNSCrypt"
+      dnscrypt:
+        provider_name: "2.providername"
+        certificates:
+          - certificate: "/path/to/resolver.cert"
+            key: "/path/to/resolver.key"
+
+
 To generate the provider and resolver certificates and keys, you can simply do::
 
   > generateDNSCryptProviderKeys("/path/to/providerPublic.key", "/path/to/providerPrivate.key")

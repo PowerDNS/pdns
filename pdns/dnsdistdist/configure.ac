@@ -13,6 +13,9 @@ AC_DEFINE([DNSDIST], [1],
   [This is dnsdist]
 )
 
+# Warn when pkg.m4 is missing
+m4_pattern_forbid([^_?PKG_[A-Z_]+$], [*** pkg.m4 missing, please install pkg-config])
+
 LT_PREREQ([2.2.2])
 LT_INIT([disable-static])
 
@@ -132,6 +135,12 @@ AS_IF([test "x$enable_dns_over_http3" != "xno"], [
   ])
 ])
 
+DNSDIST_ENABLE_YAML
+
+AS_IF([test "x$enable_yaml" != "xno"], [
+  PDNS_CHECK_CARGO([1.64])
+])
+
 DNSDIST_WITH_CDB
 PDNS_CHECK_LMDB
 PDNS_ENABLE_IPCIPHER
@@ -190,6 +199,8 @@ AS_IF([test "x$PACKAGEVERSION" != "x"],
 )
 
 AC_CONFIG_FILES([Makefile
+        dnsdist-rust-lib/Makefile
+        dnsdist-rust-lib/rust/Makefile
         ext/arc4random/Makefile
         ext/yahttp/Makefile
         ext/yahttp/yahttp/Makefile
@@ -304,6 +315,10 @@ AS_IF([test "x$CDB_LIBS" != "x"],
 AS_IF([test "x$LMDB_LIBS" != "x"],
   [AC_MSG_NOTICE([lmdb: yes])],
   [AC_MSG_NOTICE([lmdb: no])]
+)
+AS_IF([test "x$enable_yaml" != "xno"],
+  [AC_MSG_NOTICE([YAML configuration: yes])],
+  [AC_MSG_NOTICE([YAML configuration: no])]
 )
 
 AC_MSG_NOTICE([])

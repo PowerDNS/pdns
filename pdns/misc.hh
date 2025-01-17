@@ -109,6 +109,7 @@ bool getTSIGHashEnum(const DNSName& algoName, TSIGHashEnum& algoEnum);
 DNSName getTSIGAlgoName(TSIGHashEnum& algoEnum);
 
 int logFacilityToLOG(unsigned int facility);
+std::optional<int> logFacilityFromString(std::string facilityStr);
 
 template<typename Container>
 void

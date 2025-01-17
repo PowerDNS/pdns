@@ -1,0 +1,5 @@
+/target
+/Makefile
+/Makefile.in
+/cxx.h
+/lib.rs.h

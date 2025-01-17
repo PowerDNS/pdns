@@ -23,6 +23,7 @@
 #include "config.h"
 
 #include <cstdint>
+#include <filesystem>
 #include <fstream>
 #include <getopt.h>
 #include <grp.h>
@@ -43,6 +44,7 @@
 #include "dnsdist-cache.hh"
 #include "dnsdist-carbon.hh"
 #include "dnsdist-configuration.hh"
+#include "dnsdist-configuration-yaml.hh"
 #include "dnsdist-console.hh"
 #include "dnsdist-crypto.hh"
 #include "dnsdist-discovery.hh"
@@ -57,7 +59,9 @@
 #include "dnsdist-proxy-protocol.hh"
 #include "dnsdist-random.hh"
 #include "dnsdist-rings.hh"
+#include "dnsdist-rules.hh"
 #include "dnsdist-secpoll.hh"
+#include "dnsdist-self-answers.hh"
 #include "dnsdist-snmp.hh"
 #include "dnsdist-tcp.hh"
 #include "dnsdist-tcp-downstream.hh"
@@ -520,9 +524,7 @@ bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse,
   }
 
   if (dnsResponse.ids.ttlCap > 0) {
-    std::string result;
-    LimitTTLResponseAction lrac(0, dnsResponse.ids.ttlCap, {});
-    lrac(&dnsResponse, &result);
+    dnsdist::PacketMangling::restrictDNSPacketTTLs(dnsResponse.getMutableData(), 0, dnsResponse.ids.ttlCap);
   }
 
   if (dnsResponse.ids.d_extendedError) {
@@ -832,28 +834,28 @@ static void spoofResponseFromString(DNSQuestion& dnsQuestion, const string& spoo
   string result;
 
   if (raw) {
+    dnsdist::ResponseConfig config;
     std::vector<std::string> raws;
     stringtok(raws, spoofContent, ",");
-    SpoofAction tempSpoofAction(raws, std::nullopt);
-    tempSpoofAction(&dnsQuestion, &result);
+    dnsdist::self_answers::generateAnswerFromRDataEntries(dnsQuestion, raws, std::nullopt, config);
   }
   else {
     std::vector<std::string> addrs;
     stringtok(addrs, spoofContent, " ,");
 
     if (addrs.size() == 1) {
+      dnsdist::ResponseConfig config;
       try {
         ComboAddress spoofAddr(spoofContent);
-        SpoofAction tempSpoofAction({spoofAddr});
-        tempSpoofAction(&dnsQuestion, &result);
+        dnsdist::self_answers::generateAnswerFromIPAddresses(dnsQuestion, {spoofAddr}, config);
       }
       catch (const PDNSException& e) {
         DNSName cname(spoofContent);
-        SpoofAction tempSpoofAction(cname); // CNAME then
-        tempSpoofAction(&dnsQuestion, &result);
+        dnsdist::self_answers::generateAnswerFromCNAME(dnsQuestion, cname, config);
       }
     }
     else {
+      dnsdist::ResponseConfig config;
       std::vector<ComboAddress> cas;
       for (const auto& addr : addrs) {
         try {
@@ -862,18 +864,15 @@ static void spoofResponseFromString(DNSQuestion& dnsQuestion, const string& spoo
         catch (...) {
         }
       }
-      SpoofAction tempSpoofAction(cas);
-      tempSpoofAction(&dnsQuestion, &result);
+      dnsdist::self_answers::generateAnswerFromIPAddresses(dnsQuestion, cas, config);
     }
   }
 }
 
 static void spoofPacketFromString(DNSQuestion& dnsQuestion, const string& spoofContent)
 {
-  string result;
-
-  SpoofAction tempSpoofAction(spoofContent.c_str(), spoofContent.size());
-  tempSpoofAction(&dnsQuestion, &result);
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+  dnsdist::self_answers::generateAnswerFromRawPacket(dnsQuestion, PacketBuffer(spoofContent.data(), spoofContent.data() + spoofContent.size()));
 }
 
 bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dnsQuestion, std::string& ruleresult, bool& drop)
@@ -1348,9 +1347,7 @@ static bool prepareOutgoingResponse(const ClientState& clientState, DNSQuestion&
   }
 
   if (dnsResponse.ids.ttlCap > 0) {
-    std::string result;
-    LimitTTLResponseAction ltrac(0, dnsResponse.ids.ttlCap, {});
-    ltrac(&dnsResponse, &result);
+    dnsdist::PacketMangling::restrictDNSPacketTTLs(dnsResponse.getMutableData(), 0, dnsResponse.ids.ttlCap);
   }
 
   if (dnsResponse.ids.d_extendedError) {
@@ -1500,7 +1497,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
 
       ++dnsdist::metrics::g_stats.cacheMisses;
 
-      //coverity[auto_causes_copy]
+      // coverity[auto_causes_copy]
       const auto existingPool = dnsQuestion.ids.poolName;
       const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
       const auto& cacheMissRuleActions = dnsdist::rules::getRuleChain(chains, dnsdist::rules::RuleChain::CacheMissRules);
@@ -2234,6 +2231,9 @@ static void maintThread()
           (*maintenanceCallback)();
         }
         dnsdist::lua::hooks::runMaintenanceHooks(*lua);
+#if !defined(DISABLE_DYNBLOCKS)
+        dnsdist::DynamicBlocks::runRegisteredGroups(*lua);
+#endif /* DISABLE_DYNBLOCKS */
         secondsToWaitLog = 0;
       }
       catch (const std::exception& e) {
@@ -2343,7 +2343,7 @@ static void healthChecksThread()
 
     std::unique_ptr<FDMultiplexer> mplexer{nullptr};
     // this points to the actual shared_ptrs!
-    //coverity[auto_causes_copy]
+    // coverity[auto_causes_copy]
     const auto servers = dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends;
     for (const auto& dss : servers) {
       dss->updateStatisticsInfo();
@@ -3271,6 +3271,44 @@ static ListeningSockets initListeningSockets()
   return result;
 }
 
+static std::optional<std::string> lookForTentativeConfigurationFileWithExtension(const std::string& configurationFile, const std::string& extension)
+{
+  auto dotPos = configurationFile.rfind('.');
+  if (dotPos == std::string::npos) {
+    return std::nullopt;
+  }
+  auto tentativeFile = configurationFile.substr(0, dotPos + 1) + extension;
+  if (!std::filesystem::exists(tentativeFile)) {
+    return std::nullopt;
+  }
+  return tentativeFile;
+}
+
+static bool loadConfigurationFromFile(const std::string& configurationFile, bool isClient, bool configCheck)
+{
+  if (boost::ends_with(configurationFile, ".yml")) {
+    if (auto tentativeLuaConfFile = lookForTentativeConfigurationFileWithExtension(configurationFile, "lua")) {
+      vinfolog("Loading configuration from auto-discovered Lua file %s", *tentativeLuaConfFile);
+      dnsdist::configuration::lua::loadLuaConfigurationFile(*(g_lua.lock()), *tentativeLuaConfFile, configCheck);
+    }
+    vinfolog("Loading configuration from YAML file %s", configurationFile);
+    return dnsdist::configuration::yaml::loadConfigurationFromFile(configurationFile, isClient, configCheck);
+  }
+  if (boost::ends_with(configurationFile, ".lua")) {
+    vinfolog("Loading configuration from Lua file %s", configurationFile);
+    dnsdist::configuration::lua::loadLuaConfigurationFile(*(g_lua.lock()), configurationFile, configCheck);
+    if (auto tentativeYamlConfFile = lookForTentativeConfigurationFileWithExtension(configurationFile, "yml")) {
+      vinfolog("Loading configuration from auto-discovered YAML file %s", *tentativeYamlConfFile);
+      return dnsdist::configuration::yaml::loadConfigurationFromFile(*tentativeYamlConfFile, isClient, configCheck);
+    }
+  }
+  else {
+    vinfolog("Loading configuration from Lua file %s", configurationFile);
+    dnsdist::configuration::lua::loadLuaConfigurationFile(*(g_lua.lock()), configurationFile, configCheck);
+  }
+  return true;
+}
+
 int main(int argc, char** argv)
 {
   try {
@@ -3320,7 +3358,14 @@ int main(int argc, char** argv)
     });
 
     if (cmdLine.beClient || !cmdLine.command.empty()) {
-      setupLua(*(g_lua.lock()), true, false, cmdLine.config);
+      dnsdist::lua::setupLua(*(g_lua.lock()), true, false);
+      if (!loadConfigurationFromFile(cmdLine.config, true, false)) {
+#ifdef COVERAGE
+        exit(EXIT_FAILURE);
+#else
+        _exit(EXIT_FAILURE);
+#endif
+      }
       if (clientAddress != ComboAddress()) {
         dnsdist::configuration::updateRuntimeConfiguration([&clientAddress](dnsdist::configuration::RuntimeConfiguration& config) {
           config.d_consoleServerAddress = clientAddress;
@@ -3350,7 +3395,14 @@ int main(int argc, char** argv)
     dnsdist::webserver::registerBuiltInWebHandlers();
 
     if (cmdLine.checkConfig) {
-      setupLua(*(g_lua.lock()), false, true, cmdLine.config);
+      dnsdist::lua::setupLua(*(g_lua.lock()), false, true);
+      if (!loadConfigurationFromFile(cmdLine.config, false, true)) {
+#ifdef COVERAGE
+        exit(EXIT_FAILURE);
+#else
+        _exit(EXIT_FAILURE);
+#endif
+      }
       // No exception was thrown
       infolog("Configuration '%s' OK!", cmdLine.config);
 #ifdef COVERAGE
@@ -3368,7 +3420,14 @@ int main(int argc, char** argv)
     /* create the default pool no matter what */
     createPoolIfNotExists("");
 
-    setupLua(*(g_lua.lock()), false, false, cmdLine.config);
+    dnsdist::lua::setupLua(*(g_lua.lock()), false, false);
+    if (!loadConfigurationFromFile(cmdLine.config, false, false)) {
+#ifdef COVERAGE
+      exit(EXIT_FAILURE);
+#else
+      _exit(EXIT_FAILURE);
+#endif
+    }
 
     setupPools();
 
@@ -3381,12 +3440,6 @@ int main(int argc, char** argv)
       else {
         ++tcpBindsCount;
       }
-    }
-
-    if (dnsdist::configuration::getImmutableConfiguration().d_maxTCPClientThreads == 0 && tcpBindsCount > 0) {
-      dnsdist::configuration::updateImmutableConfiguration([](dnsdist::configuration::ImmutableConfiguration& config) {
-        config.d_maxTCPClientThreads = static_cast<size_t>(10);
-      });
     }
 
     dnsdist::configuration::setImmutableConfigurationDone();
@@ -3450,9 +3503,12 @@ int main(int argc, char** argv)
     g_delay = std::make_unique<DelayPipe<DelayedPacket>>();
 #endif /* DISABLE_DELAY_PIPE */
 
-    if (g_snmpAgent != nullptr) {
+#if defined(HAVE_NET_SNMP)
+    if (dnsdist::configuration::getImmutableConfiguration().d_snmpEnabled) {
+      g_snmpAgent = std::make_unique<DNSDistSNMPAgent>("dnsdist", dnsdist::configuration::getImmutableConfiguration().d_snmpDaemonSocketPath);
       g_snmpAgent->run();
     }
+#endif /* HAVE_NET_SNMP */
 
     /* we need to create the TCP worker threads before the
        acceptor ones, otherwise we might crash when processing
@@ -3507,7 +3563,7 @@ int main(int argc, char** argv)
     checkFileDescriptorsLimits(udpBindsCount, tcpBindsCount);
 
     {
-      //coverity[auto_causes_copy]
+      // coverity[auto_causes_copy]
       const auto states = dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends; // it is a copy, but the internal shared_ptrs are the real deal
       auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent(states.size()));
       for (auto& dss : states) {

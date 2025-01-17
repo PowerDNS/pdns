@@ -19,6 +19,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+
+// for OpenBSD, sys/socket.h needs to come before net/if.h
+#include <sys/socket.h>
+#include <net/if.h>
+
 #include <boost/format.hpp>
 
 #include "config.h"
@@ -872,7 +877,7 @@ void DownstreamState::submitHealthCheckResult(bool initial, bool newResult)
     }
 
     setUpStatus(newState);
-    if (g_snmpAgent != nullptr && dnsdist::configuration::getCurrentRuntimeConfiguration().d_snmpTrapsEnabled) {
+    if (g_snmpAgent != nullptr && dnsdist::configuration::getImmutableConfiguration().d_snmpTrapsEnabled) {
       g_snmpAgent->sendBackendStatusChangeTrap(*this);
     }
   }
@@ -920,6 +925,71 @@ void DownstreamState::registerXsk(std::vector<std::shared_ptr<XskSocket>>& xsks)
   reconnect(false);
 }
 #endif /* HAVE_XSK */
+
+bool DownstreamState::parseSourceParameter(const std::string& source, DownstreamState::Config& config)
+{
+  /* handle source in the following forms:
+     - v4 address ("192.0.2.1")
+     - v6 address ("2001:DB8::1")
+     - interface name ("eth0")
+     - v4 address and interface name ("192.0.2.1@eth0")
+     - v6 address and interface name ("2001:DB8::1@eth0")
+  */
+  std::string::size_type pos = source.find('@');
+  if (pos == std::string::npos) {
+    /* no '@', try to parse that as a valid v4/v6 address */
+    try {
+      config.sourceAddr = ComboAddress(source);
+      return true;
+    }
+    catch (...) {
+    }
+  }
+
+  /* try to parse as interface name, or v4/v6@itf */
+  config.sourceItfName = source.substr(pos == std::string::npos ? 0 : pos + 1);
+  unsigned int itfIdx = if_nametoindex(config.sourceItfName.c_str());
+  if (itfIdx != 0) {
+    if (pos == 0 || pos == std::string::npos) {
+      /* "eth0" or "@eth0" */
+      config.sourceItf = itfIdx;
+    }
+    else {
+      /* "192.0.2.1@eth0" */
+      config.sourceAddr = ComboAddress(source.substr(0, pos));
+      config.sourceItf = itfIdx;
+    }
+#ifdef SO_BINDTODEVICE
+    if (!dnsdist::configuration::isImmutableConfigurationDone()) {
+      /* we need to retain CAP_NET_RAW to be able to set SO_BINDTODEVICE in the health checks */
+      dnsdist::configuration::updateImmutableConfiguration([](dnsdist::configuration::ImmutableConfiguration& currentConfig) {
+        currentConfig.d_capabilitiesToRetain.insert("CAP_NET_RAW");
+      });
+    }
+#endif
+    return true;
+  }
+
+  warnlog("Dismissing source %s because '%s' is not a valid interface name", source, config.sourceItfName);
+  return false;
+}
+
+std::optional<DownstreamState::Availability> DownstreamState::getAvailabilityFromStr(const std::string& mode)
+{
+  if (pdns_iequals(mode, "auto")) {
+    return DownstreamState::Availability::Auto;
+  }
+  if (pdns_iequals(mode, "lazy")) {
+    return DownstreamState::Availability::Lazy;
+  }
+  if (pdns_iequals(mode, "up")) {
+    return DownstreamState::Availability::Up;
+  }
+  if (pdns_iequals(mode, "down")) {
+    return DownstreamState::Availability::Down;
+  }
+  return std::nullopt;
+}
 
 size_t ServerPool::countServers(bool upOnly)
 {

@@ -551,7 +551,7 @@ LibsslTLSVersion libssl_tls_version_from_string(const std::string& str)
   if (str == "tls1.3") {
     return LibsslTLSVersion::TLS13;
   }
-  throw std::runtime_error("Unknown TLS version '" + str);
+  throw std::runtime_error("Unknown TLS version '" + str + "'");
 }
 
 const std::string& libssl_tls_version_to_string(LibsslTLSVersion version)

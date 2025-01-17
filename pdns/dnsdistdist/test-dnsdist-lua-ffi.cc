@@ -59,6 +59,7 @@ BOOST_AUTO_TEST_CASE(test_Query)
 
   DNSQuestion dq(ids, query);
   dnsdist_ffi_dnsquestion_t lightDQ(&dq);
+  const auto initialData = dq.getData();
 
   {
     // dnsdist_ffi_dnsquestion_get_qtype
@@ -260,14 +261,15 @@ BOOST_AUTO_TEST_CASE(test_Query)
   }
 
   {
-#if 0
-    // SpoofAction::operator() is a stub in the test runner
-    auto oldData = dq.getData();
+    dq.getMutableData() = initialData;
+    const auto oldData = dq.getData();
     std::vector<dnsdist_ffi_raw_value> values;
     ComboAddress v4("192.0.2.1");
     ComboAddress v6("[2001:db8::42]");
-    values.push_back({ reinterpret_cast<const char*>(&v4.sin4.sin_addr.s_addr), sizeof(v4.sin4.sin_addr.s_addr)});
-    values.push_back({ reinterpret_cast<const char*>(&v6.sin6.sin6_addr.s6_addr), sizeof(v6.sin6.sin6_addr.s6_addr)});
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    values.push_back({reinterpret_cast<const char*>(&v4.sin4.sin_addr.s_addr), sizeof(v4.sin4.sin_addr.s_addr)});
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    values.push_back({reinterpret_cast<const char*>(&v6.sin6.sin6_addr.s6_addr), sizeof(v6.sin6.sin6_addr.s6_addr)});
 
     dnsdist_ffi_dnsquestion_spoof_addrs(&lightDQ, values.data(), values.size());
     BOOST_CHECK(dq.getData().size() > oldData.size());
@@ -275,20 +277,17 @@ BOOST_AUTO_TEST_CASE(test_Query)
     MOADNSParser mdp(false, reinterpret_cast<const char*>(dq.getData().data()), dq.getData().size());
     BOOST_CHECK_EQUAL(mdp.d_qname, ids.qname);
     BOOST_CHECK_EQUAL(mdp.d_header.qdcount, 1U);
-    BOOST_CHECK_EQUAL(mdp.d_header.ancount, values.size());
+    /* only the A has been added since the query was not ANY */
+    BOOST_CHECK_EQUAL(mdp.d_header.ancount, 1U);
     BOOST_CHECK_EQUAL(mdp.d_header.nscount, 0U);
     BOOST_CHECK_EQUAL(mdp.d_header.arcount, 0U);
 
     BOOST_REQUIRE_EQUAL(mdp.d_answers.size(), 1U);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_type, static_cast<uint16_t>(QType::A));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_class, QClass::IN);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_name, ids.qname);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).first.d_type, static_cast<uint16_t>(QType::AAAA));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).first.d_class, QClass::IN);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).first.d_name, ids.qname);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_type, static_cast<uint16_t>(QType::A));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_class, QClass::IN);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_name, ids.qname);
 
     dq.getMutableData() = oldData;
-#endif
   }
 
   {

@@ -21,6 +21,10 @@
  */
 #pragma once
 
+#include <cstdint>
+#include <map>
+#include <string>
+
 /* so what could you do:
    drop,
    fake up nxdomain,
@@ -55,44 +59,8 @@ public:
     SpoofPacket,
     SetTag,
   };
-  static std::string typeToString(const Action& action)
-  {
-    switch (action) {
-    case Action::Drop:
-      return "Drop";
-    case Action::Nxdomain:
-      return "Send NXDomain";
-    case Action::Refused:
-      return "Send Refused";
-    case Action::Spoof:
-      return "Spoof an answer";
-    case Action::SpoofPacket:
-      return "Spoof a raw answer from bytes";
-    case Action::SpoofRaw:
-      return "Spoof an answer from raw bytes";
-    case Action::Allow:
-      return "Allow";
-    case Action::HeaderModify:
-      return "Modify the header";
-    case Action::Pool:
-      return "Route to a pool";
-    case Action::Delay:
-      return "Delay";
-    case Action::Truncate:
-      return "Truncate over UDP";
-    case Action::ServFail:
-      return "Send ServFail";
-    case Action::SetTag:
-      return "Set Tag";
-    case Action::None:
-    case Action::NoOp:
-      return "Do nothing";
-    case Action::NoRecurse:
-      return "Set rd=0";
-    }
-
-    return "Unknown";
-  }
+  static Action typeFromString(const std::string& str);
+  static std::string typeToString(Action action);
 
   virtual Action operator()(DNSQuestion*, std::string* ruleresult) const = 0;
   virtual ~DNSAction() = default;

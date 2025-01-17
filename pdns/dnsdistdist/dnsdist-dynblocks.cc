@@ -1039,6 +1039,24 @@ void clearSuffixDynamicRules()
   setSuffixDynamicRules(std::move(emptySMT));
 }
 
+LockGuarded<std::vector<std::shared_ptr<DynBlockRulesGroup>>> s_registeredDynamicBlockGroups;
+
+void registerGroup(std::shared_ptr<DynBlockRulesGroup>& group)
+{
+  s_registeredDynamicBlockGroups.lock()->push_back(group);
+}
+
+void runRegisteredGroups(LuaContext& luaCtx)
+{
+  // only used to make sure we hold the Lua context lock
+  (void)luaCtx;
+  timespec now{};
+  gettime(&now);
+  for (auto& group : *s_registeredDynamicBlockGroups.lock()) {
+    group->apply(now);
+  }
+}
+
 }
 
 #endif /* DISABLE_DYNBLOCKS */

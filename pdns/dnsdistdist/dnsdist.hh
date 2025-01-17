@@ -719,6 +719,9 @@ private:
   bool d_stopped{false};
 
 public:
+  static bool parseSourceParameter(const std::string& source, Config& config);
+  static std::optional<DownstreamState::Availability> getAvailabilityFromStr(const std::string& mode);
+
   void updateStatisticsInfo()
   {
     auto delta = sw.udiffAndSet() / 1000000.0;
@@ -891,17 +894,6 @@ public:
 void responderThread(std::shared_ptr<DownstreamState> dss);
 
 class DNSDistPacketCache;
-
-class DNSRule
-{
-public:
-  virtual ~DNSRule()
-  {
-  }
-  virtual bool matches(const DNSQuestion* dq) const = 0;
-  virtual string toString() const = 0;
-  mutable stat_t d_matches{0};
-};
 
 struct ServerPool
 {
