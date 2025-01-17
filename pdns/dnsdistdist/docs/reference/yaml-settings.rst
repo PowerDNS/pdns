@@ -69,7 +69,7 @@ Generic settings for backends
 - **protocol**: String - The DNS protocol to use to contact this backend. Supported values are: Do53, DoT, DoH
 - **tls**: :ref:`OutgoingTlsConfiguration <yaml-settings-OutgoingTlsConfiguration>` - TLS-related settings for DoT and DoH backends
 - **doh**: :ref:`OutgoingDohConfiguration <yaml-settings-OutgoingDohConfiguration>` - DoH-related settings for DoH backends
-- **use_client_subnet**: Boolean ``(false)`` - Whether to add (or override, see :ref:`_yaml-settings-Edns_client_subnetConfiguration`) an EDNS Client Subnet to the DNS payload before forwarding it to the backend. Please see :doc:`../advanced/passing-source-address` for more information
+- **use_client_subnet**: Boolean ``(false)`` - Whether to add (or override, see :ref:`yaml-settings-EdnsClientSubnetConfiguration`) an EDNS Client Subnet to the DNS payload before forwarding it to the backend. Please see :doc:`../advanced/passing-source-address` for more information
 - **use_proxy_protocol**: Boolean ``(false)`` - Add a proxy protocol header to the query, passing along the client's IP address and port along with the original destination address and port
 - **queries_per_second**: Unsigned integer ``(0)`` - Limit the number of queries per second to ``number``, when using the ``firstAvailable`` policy
 - **order**: Unsigned integer ``(1)`` - The order of this server, used by the `leastOutstanding` and `firstAvailable` policies
@@ -79,13 +79,13 @@ Generic settings for backends
 - **ip_bind_addr_no_port**: Boolean ``(true)`` - Whether to enable ``IP_BIND_ADDRESS_NO_PORT`` if available
 - **health_checks**: :ref:`HealthCheckConfiguration <yaml-settings-HealthCheckConfiguration>` - Health-check settings
 - **source**: String ``("")`` - The source address or interface to use for queries to this backend, by default this is left to the kernel's address selection.
-The following formats are supported:
+  The following formats are supported:
 
- - address, e.g. ``""192.0.2.2""``
- - interface name, e.g. ``""eth0""``
- - address@interface, e.g. ``""192.0.2.2@eth0""``
+  - address, e.g. ``""192.0.2.2""``
+  - interface name, e.g. ``""eth0""``
+  - address@interface, e.g. ``""192.0.2.2@eth0""``
 
-- **sockets**: Unsigned integer ``(1)`` - Number of UDP sockets (and thus source ports) used toward the backend server, defaults to a single one. Note that for backends which are multithreaded, this setting will have an effect on the number of cores that will be used to process traffic from dnsdist. For example you may want to set ``sockets`` to a number somewhat greater than the number of worker threads configured in the backend, particularly if the Linux kernel is being used to distribute traffic to multiple threads listening on the same socket (via ``reuseport``). See also ``randomize_outgoing_sockets_to_backend`` in :ref:`_yaml-settings-Udp_tuningConfiguration`
+- **sockets**: Unsigned integer ``(1)`` - Number of UDP sockets (and thus source ports) used toward the backend server, defaults to a single one. Note that for backends which are multithreaded, this setting will have an effect on the number of cores that will be used to process traffic from dnsdist. For example you may want to set ``sockets`` to a number somewhat greater than the number of worker threads configured in the backend, particularly if the Linux kernel is being used to distribute traffic to multiple threads listening on the same socket (via ``reuseport``). See also ``randomize_outgoing_sockets_to_backend`` in :ref:`yaml-settings-UdpTuningConfiguration`
 - **disable_zero_scope**: Boolean ``(false)`` - Disable the EDNS Client Subnet :doc:`../advanced/zero-scope` feature, which does a cache lookup for an answer valid for all subnets (ECS scope of 0) before adding ECS information to the query and doing the regular lookup. Default is false. This requires the ``parse_ecs`` option of the corresponding cache to be set to true
 - **reconnect_on_up**: Boolean ``(false)`` - Close and reopen the sockets when a server transits from Down to Up. This helps when an interface is missing when dnsdist is started
 - **max_in_flight**: Unsigned integer ``(1)`` - Maximum number of in-flight queries. The default is 0, which disables out-of-order processing. It should only be enabled if the backend does support out-of-order processing. Out-of-order processing needs to be enabled on the frontend as well
@@ -111,7 +111,7 @@ General settings for frontends
 - **threads**: Unsigned integer ``(1)`` - Number of listening threads to create for this frontend
 - **interface**: String ``("")`` - Set the network interface to use
 - **cpus**: String ``("")`` - Set the CPU affinity for this listener thread, asking the scheduler to run it on a single CPU id, or a set of CPU ids. This parameter is only available if the OS provides the ``pthread_setaffinity_np()`` function
-- **enable_proxy_protocol**: Boolean ``(false)`` - Whether to expect a proxy protocol v2 header in front of incoming queries coming from an address allowed by the ACL in :ref:`_yaml-settings-Proxy_protocolConfiguration`. Default is ``true``, meaning that queries are expected to have a proxy protocol payload if they come from an address present in the proxy protocol ACL
+- **enable_proxy_protocol**: Boolean ``(false)`` - Whether to expect a proxy protocol v2 header in front of incoming queries coming from an address allowed by the ACL in :ref:`yaml-settings-ProxyProtocolConfiguration`. Default is ``true``, meaning that queries are expected to have a proxy protocol payload if they come from an address present in the proxy protocol ACL
 - **tcp**: :ref:`IncomingTcpConfiguration <yaml-settings-IncomingTcpConfiguration>` - TCP-specific settings
 - **tls**: :ref:`IncomingTlsConfiguration <yaml-settings-IncomingTlsConfiguration>` - TLS-specific settings
 - **doh**: :ref:`IncomingDohConfiguration <yaml-settings-IncomingDohConfiguration>` - DNS over HTTPS-specific settings
@@ -182,8 +182,8 @@ Settings for a custom load-balancing policy
 
 - **name**: String - The name of this load-balancing policy
 - **function_name**: String ``("")`` - The name of a Lua function implementing the custom load-balancing policy. If ``ffi`` is false, this function takes a table of :class:`Server` objects and a :class:`DNSQuestion` representing the current query, and must return the index of the selected server in the supplied table. If ``ffi`` is true, this function takes a ``const dnsdist_ffi_servers_list_t*`` and a ``dnsdist_ffi_dnsquestion_t*``
-- **function_code**: String ``("")`` - Same than ``function_name` but contain actual Lua code returning a function instead of a name
-- **function_file**: String ``("")`` - Same than ``function_name` but contain the path to a file containing actual Lua code returning a function instead of a name
+- **function_code**: String ``("")`` - Same than ``function_name`` but contain actual Lua code returning a function instead of a name
+- **function_file**: String ``("")`` - Same than ``function_name`` but contain the path to a file containing actual Lua code returning a function instead of a name
 - **ffi**: Boolean ``(false)`` - Whether the function uses the faster but more complicated Lua FFI API
 - **per_thread**: Boolean ``(false)`` - If set, the resulting policy will be executed in a lock-free per-thread context, instead of running in the global Lua context. Note that ``function_name`` cannot be used, since this needs the Lua code to create the function in a new Lua context instead of just a function
 
@@ -305,9 +305,9 @@ EdnsClientSubnetConfiguration
 
 EDNS Client Subnet-related settings
 
-- **override_existing**: Boolean ``(false)`` - When ``useClientSubnet`` in :func:`newServer()` or ``use_client_subnet`` in :ref:`_yaml-settings-BackendConfiguration` are set, and :program:`dnsdist` adds an EDNS Client Subnet Client option to the query, override an existing option already present in the query, if any. Please see Passing the source address to the backend for more information. Note that it’s not recommended to enable this option in front of an authoritative server responding with EDNS Client Subnet information as mismatching data (ECS scopes) can confuse clients and lead to SERVFAIL responses on downstream nameservers
-- **source_prefix_v4**: Unsigned integer ``(32)`` - When ``useClientSubnet`` in :func:`newServer()` or ``use_client_subnet`` in :ref:`_yaml-settings-BackendConfiguration` are set, and :program:`dnsdist` adds an EDNS Client Subnet Client option to the query, truncate the requestor's IPv4 address to this number of bits
-- **source_prefix_v6**: Unsigned integer ``(56)`` - When ``useClientSubnet`` in :func:`newServer()` or ``use_client_subnet`` in :ref:`_yaml-settings-BackendConfiguration` are set, and :program:`dnsdist` adds an EDNS Client Subnet Client option to the query, truncate the requestor's IPv6 address to this number of bits
+- **override_existing**: Boolean ``(false)`` - When ``useClientSubnet`` in :func:`newServer()` or ``use_client_subnet`` in :ref:`yaml-settings-BackendConfiguration` are set, and :program:`dnsdist` adds an EDNS Client Subnet Client option to the query, override an existing option already present in the query, if any. Please see Passing the source address to the backend for more information. Note that it’s not recommended to enable this option in front of an authoritative server responding with EDNS Client Subnet information as mismatching data (ECS scopes) can confuse clients and lead to SERVFAIL responses on downstream nameservers
+- **source_prefix_v4**: Unsigned integer ``(32)`` - When ``useClientSubnet`` in :func:`newServer()` or ``use_client_subnet`` in :ref:`yaml-settings-BackendConfiguration` are set, and :program:`dnsdist` adds an EDNS Client Subnet Client option to the query, truncate the requestor's IPv4 address to this number of bits
+- **source_prefix_v6**: Unsigned integer ``(56)`` - When ``useClientSubnet`` in :func:`newServer()` or ``use_client_subnet`` in :ref:`yaml-settings-BackendConfiguration` are set, and :program:`dnsdist` adds an EDNS Client Subnet Client option to the query, truncate the requestor's IPv6 address to this number of bits
 
 
 .. _yaml-settings-GeneralConfiguration:
@@ -324,9 +324,9 @@ General settings
 - **allow_empty_responses**: Boolean ``(false)`` - Set to true (defaults to false) to allow empty responses (qdcount=0) with a NoError or NXDomain rcode (default) from backends. dnsdist drops these responses by default because it can't match them against the initial query since they don't contain the qname, qtype and qclass, and therefore the risk of collision is much higher than with regular responses
 - **drop_empty_queries**: Boolean ``(false)`` - Set to true (defaults to false) to drop empty queries (qdcount=0) right away, instead of answering with a NotImp rcode. dnsdist used to drop these queries by default because most rules and existing Lua code expects a query to have a qname, qtype and qclass. However :rfc:`7873` uses these queries to request a server cookie, and :rfc:`8906` as a conformance test, so answering these queries with NotImp is much better than not answering at all
 - **capabilities_to_retain**: Sequence of String ``("")`` - Accept a Linux capability as a string, or a list of these, to retain after startup so that privileged operations can still be performed at runtime.
-Keeping ``CAP_SYS_ADMIN`` on kernel 5.8+ for example allows loading eBPF programs and altering eBPF maps at runtime even if the ``kernel.unprivileged_bpf_disabled`` sysctl is set.
-Note that this does not grant the capabilities to the process, doing so might be done by running it as root which we don't advise, or by adding capabilities via the systemd unit file, for example.
-Please also be aware that switching to a different user via ``--uid`` will still drop all capabilities."
+  Keeping ``CAP_SYS_ADMIN`` on kernel 5.8+ for example allows loading eBPF programs and altering eBPF maps at runtime even if the ``kernel.unprivileged_bpf_disabled`` sysctl is set.
+  Note that this does not grant the capabilities to the process, doing so might be done by running it as root which we don't advise, or by adding capabilities via the systemd unit file, for example.
+  Please also be aware that switching to a different user via ``--uid`` will still drop all capabilities."
 
 
 
@@ -337,7 +337,7 @@ HealthCheckConfiguration
 
 Health-checks related settings for backends
 
-- **mode**: String ``(auto)`` - The health-check mode to use: 'auto' which sends health-check queries every ``check_interval`` seconds, 'up' which considers that the backend is always available, 'down' that it is always not available, and 'lazy' which only sends health-check queries after a configurable amount of regular queries have failed (see :ref:`_yaml-settings-Lazy_health_checkConfiguration` for more information). Default is 'auto'. See :ref:`Healthcheck` for a more detailed explanation. Supported values are: auto, down, lazy, up
+- **mode**: String ``(auto)`` - The health-check mode to use: 'auto' which sends health-check queries every ``check_interval`` seconds, 'up' which considers that the backend is always available, 'down' that it is always not available, and 'lazy' which only sends health-check queries after a configurable amount of regular queries have failed (see :ref:`yaml-settings-LazyHealthCheckConfiguration` for more information). Default is 'auto'. See :ref:`Healthcheck` for a more detailed explanation. Supported values are: auto, down, lazy, up
 - **qname**: String ``("")`` - The DNS name to use as QNAME in health-check queries
 - **qclass**: String ``(IN)`` - The DNS class to use in health-check queries
 - **qtype**: String ``(A)`` - The DNS type to use in health-check queries
@@ -505,7 +505,7 @@ TLS parameters for frontends
 KeyValueStoresConfiguration
 ---------------------------
 
-List of key-value stores that can be used with :ref:`_yaml-settings-KeyValueStoreLookupAction` or :ref:`_yaml-settings-KeyValueStoreLookupSelector`
+List of key-value stores that can be used with :ref:`yaml-settings-KeyValueStoreLookupAction` or :ref:`yaml-settings-KeyValueStoreLookupSelector`
 
 - **lmdb**: Sequence of :ref:`LmdbKvStoreConfiguration <yaml-settings-LmdbKvStoreConfiguration>` - List of LMDB-based key-value stores
 - **cdb**: Sequence of :ref:`CdbKvStoreConfiguration <yaml-settings-CdbKvStoreConfiguration>` - List of CDB-based key-value stores
@@ -517,7 +517,7 @@ List of key-value stores that can be used with :ref:`_yaml-settings-KeyValueStor
 KvsLookupKeyQnameConfiguration
 ------------------------------
 
-Lookup key that can be used with :ref:`_yaml-settings-KeyValueStoreLookupAction` or :ref:`_yaml-settings-KeyValueStoreLookupSelector`, will return the qname of the query in DNS wire format
+Lookup key that can be used with :ref:`yaml-settings-KeyValueStoreLookupAction` or :ref:`yaml-settings-KeyValueStoreLookupSelector`, will return the qname of the query in DNS wire format
 
 - **name**: String - The name of this lookup key
 - **wire_format**: Boolean ``(true)`` - Whether to do the lookup in wire format (default) or in plain text
@@ -528,7 +528,7 @@ Lookup key that can be used with :ref:`_yaml-settings-KeyValueStoreLookupAction`
 KvsLookupKeySourceIpConfiguration
 ---------------------------------
 
-Lookup key that can be used with :ref:`_yaml-settings-KeyValueStoreLookupAction` or :ref:`_yaml-settings-KeyValueStoreLookupSelector`, will return the source IP of the client in network byte-order
+Lookup key that can be used with :ref:`yaml-settings-KeyValueStoreLookupAction` or :ref:`yaml-settings-KeyValueStoreLookupSelector`, will return the source IP of the client in network byte-order
 
 - **name**: String - The name of this lookup key
 - **v4_mask**: Unsigned integer ``(32)`` - Mask applied to IPv4 addresses. Default is 32 (the whole address)
@@ -541,7 +541,7 @@ Lookup key that can be used with :ref:`_yaml-settings-KeyValueStoreLookupAction`
 KvsLookupKeySuffixConfiguration
 -------------------------------
 
-Lookup key that can be used with :ref:`_yaml-settings-KeyValueStoreLookupAction` or :ref:`_yaml-settings-KeyValueStoreLookupSelector`, will return a vector of keys based on the labels of the qname in DNS wire format or plain text. For example if the qname is sub.domain.powerdns.com. the following keys will be returned:
+Lookup key that can be used with :ref:`yaml-settings-KeyValueStoreLookupAction` or :ref:`yaml-settings-KeyValueStoreLookupSelector`, will return a vector of keys based on the labels of the qname in DNS wire format or plain text. For example if the qname is sub.domain.powerdns.com. the following keys will be returned:
 
 - ``\\3sub\\6domain\\8powerdns\\3com\\0``
 - ``\\6domain\\8powerdns\\3com\\0``
@@ -566,7 +566,7 @@ If ``min_labels`` is set to a value larger than ``0`` the lookup will only be do
 KvsLookupKeyTagConfiguration
 ----------------------------
 
-Lookup key that can be used with :ref:`_yaml-settings-KeyValueStoreLookupAction` or :ref:`_yaml-settings-KeyValueStoreLookupSelector`, will return the value of the corresponding tag for this query, if it exists
+Lookup key that can be used with :ref:`yaml-settings-KeyValueStoreLookupAction` or :ref:`yaml-settings-KeyValueStoreLookupSelector`, will return the value of the corresponding tag for this query, if it exists
 
 - **name**: String
 - **tag**: String
@@ -577,7 +577,7 @@ Lookup key that can be used with :ref:`_yaml-settings-KeyValueStoreLookupAction`
 KvsLookupKeysConfiguration
 --------------------------
 
-List of look keys that can be used with :ref:`_yaml-settings-KeyValueStoreLookupAction` or :ref:`_yaml-settings-KeyValueStoreLookupSelector`
+List of look keys that can be used with :ref:`yaml-settings-KeyValueStoreLookupAction` or :ref:`yaml-settings-KeyValueStoreLookupSelector`
 
 - **source_ip_keys**: Sequence of :ref:`KvsLookupKeySourceIpConfiguration <yaml-settings-KvsLookupKeySourceIpConfiguration>`
 - **qname_keys**: Sequence of :ref:`KvsLookupKeyQnameConfiguration <yaml-settings-KvsLookupKeyQnameConfiguration>`
@@ -891,13 +891,13 @@ StructuredLoggingConfiguration
 Structured-like logging settings
 
 - **enabled**: Boolean ``(false)`` - Set whether log messages should be in a structured-logging-like format. This is turned off by default.
-The resulting format looks like this (when timestamps are enabled via ``--log-timestamps`` and with ``level_prefix: prio`` and ``time_format: ISO8601``)::
+  The resulting format looks like this (when timestamps are enabled via ``--log-timestamps`` and with ``level_prefix: prio`` and ``time_format: ISO8601``)::
 
-    ts=\"2023-11-06T12:04:58+0100\" prio=\"Info\" msg=\"Added downstream server 127.0.0.1:53\"
+      ts=\"2023-11-06T12:04:58+0100\" prio=\"Info\" msg=\"Added downstream server 127.0.0.1:53\"
 
-And with ``level_prefix: level`` and ``time_format: numeric``)::
+  And with ``level_prefix: level`` and ``time_format: numeric``)::
 
-    ts=\"1699268815.133\" level=\"Info\" msg=\"Added downstream server 127.0.0.1:53\"
+      ts=\"1699268815.133\" level=\"Info\" msg=\"Added downstream server 127.0.0.1:53\"
 
 - **level_prefix**: String ``(prio)`` - Set the key name for the log level. There is unfortunately no standard name for this key, so in some setups it might be useful to set this value to a different name to have consistency across products
 - **time_format**: String ``(numeric)`` - Set the time format. Supported values are: ISO8601, numeric
