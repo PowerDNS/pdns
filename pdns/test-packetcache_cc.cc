@@ -349,8 +349,8 @@ BOOST_AUTO_TEST_CASE(test_AuthPacketCache) {
     }
 
     {
-      ecsOpts.source = Netmask(ComboAddress("192.0.2.1"), 32);
-      opts.emplace_back(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(ecsOpts));
+      ecsOpts.setSource(Netmask(ComboAddress("192.0.2.1"), 32));
+      opts.emplace_back(EDNSOptionCode::ECS, ecsOpts.makeOptString());
       DNSPacketWriter pw(pak, DNSName("www.powerdns.com"), QType::A);
       pw.addOpt(512, 0, 0, opts);
       pw.commit();
@@ -361,8 +361,8 @@ BOOST_AUTO_TEST_CASE(test_AuthPacketCache) {
 
     {
       DNSPacketWriter pw(pak, DNSName("www.powerdns.com"), QType::A);
-      ecsOpts.source = Netmask(ComboAddress("192.0.2.2"), 32);
-      opts.emplace_back(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(ecsOpts));
+      ecsOpts.setSource(Netmask(ComboAddress("192.0.2.2"), 32));
+      opts.emplace_back(EDNSOptionCode::ECS, ecsOpts.makeOptString());
       pw.addOpt(512, 0, 0, opts);
       pw.commit();
       ecs2.parse((char*)&pak[0], pak.size());
@@ -372,8 +372,8 @@ BOOST_AUTO_TEST_CASE(test_AuthPacketCache) {
 
     {
       DNSPacketWriter pw(pak, DNSName("www.powerdns.com"), QType::A);
-      ecsOpts.source = Netmask(ComboAddress("192.0.2.3"), 16);
-      opts.emplace_back(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(ecsOpts));
+      ecsOpts.setSource(Netmask(ComboAddress("192.0.2.3"), 16));
+      opts.emplace_back(EDNSOptionCode::ECS, ecsOpts.makeOptString());
       pw.addOpt(512, 0, 0, opts);
       pw.commit();
       ecs3.parse((char*)&pak[0], pak.size());

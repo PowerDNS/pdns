@@ -1138,7 +1138,7 @@ BOOST_AUTO_TEST_CASE(test_edns_subnet_by_domain)
   SyncRes::addEDNSDomain(target);
 
   EDNSSubnetOpts incomingECS;
-  incomingECS.source = Netmask("192.0.2.128/32");
+  incomingECS.setSource(Netmask("192.0.2.128/32"));
   sr->setQuerySource(ComboAddress(), boost::optional<const EDNSSubnetOpts&>(incomingECS));
 
   sr->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& srcmask, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
@@ -1198,7 +1198,7 @@ BOOST_AUTO_TEST_CASE(test_edns_subnet_by_addr)
   SyncRes::addEDNSRemoteSubnet("192.0.2.1/32");
 
   EDNSSubnetOpts incomingECS;
-  incomingECS.source = Netmask("2001:DB8::FF/128");
+  incomingECS.setSource(Netmask("2001:DB8::FF/128"));
   sr->setQuerySource(ComboAddress(), boost::optional<const EDNSSubnetOpts&>(incomingECS));
 
   sr->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& srcmask, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
@@ -1339,7 +1339,7 @@ BOOST_AUTO_TEST_CASE(test_ecs_honor_incoming_mask)
   SyncRes::clearEDNSLocalSubnets();
   SyncRes::addEDNSLocalSubnet("192.0.2.254/32");
   EDNSSubnetOpts incomingECS;
-  incomingECS.source = Netmask("192.0.0.0/16");
+  incomingECS.setSource(Netmask("192.0.0.0/16"));
   sr->setQuerySource(ComboAddress("192.0.2.127"), boost::optional<const EDNSSubnetOpts&>(incomingECS));
 
   sr->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& srcmask, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
@@ -1384,7 +1384,7 @@ BOOST_AUTO_TEST_CASE(test_ecs_honor_incoming_mask_zero)
   SyncRes::clearEDNSLocalSubnets();
   SyncRes::addEDNSLocalSubnet("192.0.2.254/32");
   EDNSSubnetOpts incomingECS;
-  incomingECS.source = Netmask("0.0.0.0/0");
+  incomingECS.setSource(Netmask("0.0.0.0/0"));
   sr->setQuerySource(ComboAddress("192.0.2.127"), boost::optional<const EDNSSubnetOpts&>(incomingECS));
 
   sr->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& srcmask, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {

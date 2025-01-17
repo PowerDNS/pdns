@@ -89,8 +89,8 @@ boost::optional<Netmask> RecursorLua4::DNSQuestion::getEDNSSubnet() const
     for (const auto& option : *ednsOptions) {
       if (option.first == EDNSOptionCode::ECS) {
         EDNSSubnetOpts eso;
-        if (getEDNSSubnetOptsFromString(option.second, &eso)) {
-          return eso.source;
+        if (EDNSSubnetOpts::getFromString(option.second, &eso)) {
+          return eso.getSource();
         }
         break;
       }

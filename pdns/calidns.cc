@@ -243,8 +243,8 @@ void parseQueryFile(const std::string& queryFile, vector<std::shared_ptr<vector<
 
     if (!subnet.empty() || addECS) {
       EDNSSubnetOpts opt;
-      opt.source = Netmask(subnet.empty() ? "0.0.0.0/32" : subnet);
-      ednsOptions.emplace_back(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(opt));
+      opt.setSource(Netmask(subnet.empty() ? "0.0.0.0/32" : subnet));
+      ednsOptions.emplace_back(EDNSOptionCode::ECS, opt.makeOptString());
     }
 
     if (!ednsOptions.empty() || (packetWriter.getHeader()->id % 2) != 0) {

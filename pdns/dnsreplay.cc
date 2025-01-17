@@ -558,14 +558,15 @@ static void addECSOption(char* packet, const size_t packetSize, uint16_t* len, c
   struct dnsheader* dh = (struct dnsheader*) packet;
 
   EDNSSubnetOpts eso;
-  if(stamp < 0)
-    eso.source = Netmask(remote);
+  if(stamp < 0) {
+    eso.setSource(Netmask(remote));
+  }
   else {
     ComboAddress stamped(remote);
     *((char*)&stamped.sin4.sin_addr.s_addr)=stamp;
-    eso.source = Netmask(stamped);
+    eso.setSource(Netmask(stamped));
   }
-  string optRData=makeEDNSSubnetOptsString(eso);
+  string optRData = eso.makeOptString();
   string record;
   generateEDNSOption(EDNSOptionCode::ECS, optRData, record);
   generateOptRR(record, EDNSRR);

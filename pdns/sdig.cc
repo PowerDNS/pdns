@@ -71,8 +71,8 @@ static void fillPacket(vector<uint8_t>& packet, const string& q, const string& t
     DNSPacketWriter::optvect_t opts;
     if (ednsnm) {
       EDNSSubnetOpts eo;
-      eo.source = *ednsnm;
-      opts.emplace_back(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(eo));
+      eo.setSource(*ednsnm);
+      opts.emplace_back(EDNSOptionCode::ECS, eo.makeOptString());
     }
 
     pw.addOpt(bufsize, 0, dnssec ? EDNSOpts::DNSSECOK : 0, opts);
@@ -169,10 +169,10 @@ static void printReply(const string& reply, bool showflags, bool hidesoadetails,
          iter != edo.d_options.end(); ++iter) {
       if (iter->first == EDNSOptionCode::ECS) { // 'EDNS subnet'
         EDNSSubnetOpts reso;
-        if (getEDNSSubnetOptsFromString(iter->second, &reso)) {
-          cerr << "EDNS Subnet response: " << reso.source.toString()
-               << ", scope: " << reso.scope.toString()
-               << ", family = " << reso.scope.getNetwork().sin4.sin_family
+        if (EDNSSubnetOpts::getFromString(iter->second, &reso)) {
+          cerr << "EDNS Subnet response: " << reso.getSource().toString()
+               << ", scope: " << reso.getScope().toString()
+               << ", family = " << std::to_string(reso.getFamily())
                << endl;
         }
       } else if (iter->first == EDNSOptionCode::PADDING) {

@@ -19,29 +19,28 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifdef HAVE_CONFIG_H
+
 #include "config.h"
-#endif
+
 #include "ednssubnet.hh"
-#include "dns.hh"
 
 namespace
 {
 struct EDNSSubnetOptsWire
 {
   uint16_t family;
-  uint8_t sourceMask;
-  uint8_t scopeMask;
+  uint8_t sourcePrefixLength;
+  uint8_t scopePrefixLength;
 } GCCPACKATTRIBUTE; // BRRRRR
 
 }
 
-bool getEDNSSubnetOptsFromString(const string& options, EDNSSubnetOpts* eso)
+bool EDNSSubnetOpts::getFromString(const std::string& options, EDNSSubnetOpts* eso)
 {
-  // cerr<<"options.size:"<<options.size()<<endl;
-  return getEDNSSubnetOptsFromString(options.c_str(), options.length(), eso);
+  return getFromString(options.c_str(), options.length(), eso);
 }
-bool getEDNSSubnetOptsFromString(const char* options, unsigned int len, EDNSSubnetOpts* eso)
+
+bool EDNSSubnetOpts::getFromString(const char* options, unsigned int len, EDNSSubnetOpts* eso)
 {
   EDNSSubnetOptsWire esow{};
   static_assert(sizeof(esow) == 4, "sizeof(EDNSSubnetOptsWire) must be 4 bytes");
@@ -50,10 +49,10 @@ bool getEDNSSubnetOptsFromString(const char* options, unsigned int len, EDNSSubn
   }
   memcpy(&esow, options, sizeof(esow));
   esow.family = ntohs(esow.family);
-  // cerr<<"Family when parsing from string: "<<esow.family<<endl;
+
   ComboAddress address;
-  unsigned int octetsin = esow.sourceMask > 0 ? (((esow.sourceMask - 1) >> 3) + 1) : 0;
-  // cerr<<"octetsin:"<<octetsin<<endl;
+  unsigned int octetsin = esow.sourcePrefixLength > 0 ? (((esow.sourcePrefixLength - 1) >> 3) + 1) : 0;
+
   if (esow.family == 1) {
     if (len != sizeof(esow) + octetsin) {
       return false;
@@ -84,35 +83,37 @@ bool getEDNSSubnetOptsFromString(const char* options, unsigned int len, EDNSSubn
   else {
     return false;
   }
-  eso->source = Netmask(address, esow.sourceMask);
-  /* 'address' has more bits set (potentially) than scopeMask. This leads to odd looking netmasks that promise
-     more precision than they have. For this reason we truncate the address to scopeMask bits */
+  eso->source = Netmask(address, esow.sourcePrefixLength);
+  /* 'address' has more bits set (potentially) than scopePrefixLength. This leads to odd looking netmasks that promise
+     more precision than they have. For this reason we truncate the address to scopePrefixLength bits */
 
-  address.truncate(esow.scopeMask); // truncate will not throw for odd scopeMasks
-  eso->scope = Netmask(address, esow.scopeMask);
+  address.truncate(esow.scopePrefixLength); // truncate will not throw for odd scopePrefixLengths
+  eso->scopeBits = esow.scopePrefixLength;
 
   return true;
 }
 
-string makeEDNSSubnetOptsString(const EDNSSubnetOpts& eso)
+std::string EDNSSubnetOpts::makeOptString() const
 {
-  string ret;
+  std::string ret;
   EDNSSubnetOptsWire esow{};
-  uint16_t family = htons(eso.source.getNetwork().sin4.sin_family == AF_INET ? 1 : 2);
+  uint16_t family = htons(source.getNetwork().sin4.sin_family == AF_INET ? 1 : 2);
   esow.family = family;
-  esow.sourceMask = eso.source.getBits();
-  esow.scopeMask = eso.scope.getBits();
-  ret.assign((const char*)&esow, sizeof(esow)); // NOLINT(cppcoreguidelines-pro-type-cstyle-cast)
-  int octetsout = ((esow.sourceMask - 1) >> 3) + 1;
+  esow.sourcePrefixLength = source.getBits();
+  esow.scopePrefixLength = scopeBits;
+  // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
+  ret.assign(reinterpret_cast<const char*>(&esow), sizeof(esow));
+  int octetsout = ((esow.sourcePrefixLength - 1) >> 3) + 1;
 
-  ComboAddress src = eso.source.getNetwork();
-  src.truncate(esow.sourceMask);
+  ComboAddress src = source.getNetwork();
+  src.truncate(esow.sourcePrefixLength);
 
   if (family == htons(1)) {
-    ret.append((const char*)&src.sin4.sin_addr.s_addr, octetsout); // NOLINT(cppcoreguidelines-pro-type-cstyle-cast)
+    ret.append(reinterpret_cast<const char*>(&src.sin4.sin_addr.s_addr), octetsout);
   }
   else {
-    ret.append((const char*)&src.sin6.sin6_addr.s6_addr, octetsout); // NOLINT(cppcoreguidelines-pro-type-cstyle-cast)
+    ret.append(reinterpret_cast<const char*>(&src.sin6.sin6_addr.s6_addr), octetsout);
   }
+  // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
   return ret;
 }

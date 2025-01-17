@@ -428,11 +428,11 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
   if (EDNS0Level > 0) {
     DNSPacketWriter::optvect_t opts;
     if (srcmask) {
-      EDNSSubnetOpts eo;
-      eo.source = *srcmask;
+      EDNSSubnetOpts subnetOpts;
+      subnetOpts.setSource(*srcmask);
       outgoingECSBits = srcmask->getBits();
       outgoingECSAddr = srcmask->getNetwork();
-      opts.emplace_back(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(eo));
+      opts.emplace_back(EDNSOptionCode::ECS, subnetOpts.makeOptString());
       weWantEDNSSubnet = true;
     }
 
@@ -607,13 +607,13 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
         for (const auto& opt : edo.d_options) {
           if (opt.first == EDNSOptionCode::ECS) {
             EDNSSubnetOpts reso;
-            if (getEDNSSubnetOptsFromString(opt.second, &reso)) {
+            if (EDNSSubnetOpts::getFromString(opt.second, &reso)) {
               /* rfc7871 states that 0 "indicate[s] that the answer is suitable for all addresses in FAMILY",
                  so we might want to still pass the information along to be able to differentiate between
                  IPv4 and IPv6. Still I'm pretty sure it doesn't matter in real life, so let's not duplicate
                  entries in our cache. */
-              if (reso.scope.getBits()) {
-                uint8_t bits = std::min(reso.scope.getBits(), outgoingECSBits);
+              if (reso.getScopePrefixLength() != 0) {
+                uint8_t bits = std::min(reso.getScopePrefixLength(), outgoingECSBits);
                 outgoingECSAddr.truncate(bits);
                 srcmask = Netmask(outgoingECSAddr, bits);
               }

@@ -631,7 +631,7 @@ void protobufLogResponse(const struct dnsheader* header, LocalStateHolder<LuaCon
   pbMessage.setId(header->id);
 
   pbMessage.setTime();
-  pbMessage.setEDNSSubnet(ednssubnet.source, ednssubnet.source.isIPv4() ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
+  pbMessage.setEDNSSubnet(ednssubnet.getSource(), ednssubnet.getSource().isIPv4() ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
   pbMessage.setRequestorId(requestorId);
   pbMessage.setDeviceId(deviceId);
   pbMessage.setDeviceName(deviceName);

@@ -325,7 +325,7 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
   {
     // this is an upper bound
     optsize += EDNS_OPTION_CODE_SIZE + EDNS_OPTION_LENGTH_SIZE + 2 + 1 + 1; // code+len+family+src len+scope len
-    optsize += d_eso.source.isIPv4() ? 4 : 16;
+    optsize += d_eso.getSource().isIPv4() ? 4 : 16;
   }
 
   if (d_haveednscookie) {
@@ -371,10 +371,10 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
       if(d_haveednssubnet) {
         EDNSSubnetOpts eso = d_eso;
         // use the scopeMask from the resolver, if it is greater - issue #5469
-        maxScopeMask = max(maxScopeMask, eso.scope.getBits());
-        eso.scope = Netmask(eso.source.getNetwork(), maxScopeMask);
+        maxScopeMask = max(maxScopeMask, eso.getScopePrefixLength());
+        eso.setScopePrefixLength(maxScopeMask);
 
-        string opt = makeEDNSSubnetOptsString(eso);
+        string opt = eso.makeOptString();
         opts.emplace_back(8, opt); // 'EDNS SUBNET'
       }
 
@@ -617,7 +617,7 @@ try
         d_wantsnsid=true;
       }
       else if(s_doEDNSSubnetProcessing && (option.first == EDNSOptionCode::ECS)) { // 'EDNS SUBNET'
-        if(getEDNSSubnetOptsFromString(option.second, &d_eso)) {
+        if (EDNSSubnetOpts::getFromString(option.second, &d_eso)) {
           //cerr<<"Parsed, source: "<<d_eso.source.toString()<<", scope: "<<d_eso.scope.toString()<<", family = "<<d_eso.scope.getNetwork().sin4.sin_family<<endl;
           d_haveednssubnet=true;
         }
@@ -716,13 +716,13 @@ bool DNSPacket::hasValidEDNSCookie() const
 }
 
 void DNSPacket::setRealRemote(const Netmask& netmask) {
-  d_eso.source = netmask;
+  d_eso.setSource(netmask);
   d_haveednssubnet = true;
 }
 
 Netmask DNSPacket::getRealRemote() const
 {
-  return d_haveednssubnet ? d_eso.source : Netmask{getInnerRemote()};
+  return d_haveednssubnet ? d_eso.getSource() : Netmask{getInnerRemote()};
 }
 
 void DNSPacket::setSocket(Utility::sock_t sock)

@@ -20,16 +20,45 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
-#include "namespaces.hh"
+
 #include "iputils.hh"
-#include "dnsname.hh"
 
-struct EDNSSubnetOpts
+class EDNSSubnetOpts
 {
-  Netmask source;
-  Netmask scope;
-};
+public:
+  void setSource(const Netmask& netmask)
+  {
+    source = netmask;
+  }
+  [[nodiscard]] const Netmask& getSource() const
+  {
+    return source;
+  }
+  [[nodiscard]] uint8_t getFamily() const
+  {
+    return source.getNetwork().sin4.sin_family;
+  }
+  [[nodiscard]] uint8_t getSourcePrefixLength() const
+  {
+    return source.getBits();
+  }
+  void setScopePrefixLength(uint8_t scope)
+  {
+    scopeBits = scope;
+  }
+  [[nodiscard]] uint8_t getScopePrefixLength() const
+  {
+    return scopeBits;
+  }
+  [[nodiscard]] Netmask getScope() const
+  {
+    return {source.getNetwork(), scopeBits};
+  }
+  [[nodiscard]] std::string makeOptString() const;
+  static bool getFromString(const std::string& options, EDNSSubnetOpts* eso);
+  static bool getFromString(const char* options, unsigned int len, EDNSSubnetOpts* eso);
 
-bool getEDNSSubnetOptsFromString(const string& options, EDNSSubnetOpts* eso);
-bool getEDNSSubnetOptsFromString(const char* options, unsigned int len, EDNSSubnetOpts* eso);
-string makeEDNSSubnetOptsString(const EDNSSubnetOpts& eso);
+private:
+  Netmask source;
+  uint8_t scopeBits{};
+};

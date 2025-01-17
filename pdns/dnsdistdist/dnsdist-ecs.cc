@@ -436,8 +436,8 @@ void generateECSOption(const ComboAddress& source, string& res, uint16_t ECSPref
 {
   Netmask sourceNetmask(source, ECSPrefixLength);
   EDNSSubnetOpts ecsOpts;
-  ecsOpts.source = sourceNetmask;
-  string payload = makeEDNSSubnetOptsString(ecsOpts);
+  ecsOpts.setSource(sourceNetmask);
+  string payload = ecsOpts.makeOptString();
   generateEDNSOption(EDNSOptionCode::ECS, payload, res);
 }
 

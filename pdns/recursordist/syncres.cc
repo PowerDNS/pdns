@@ -6114,10 +6114,10 @@ void SyncRes::setQuerySource(const ComboAddress& requestor, const boost::optiona
 {
   d_requestor = requestor;
 
-  if (incomingECS && incomingECS->source.getBits() > 0) {
-    d_cacheRemote = incomingECS->source.getMaskedNetwork();
-    uint8_t bits = std::min(incomingECS->source.getBits(), (incomingECS->source.isIPv4() ? s_ecsipv4limit : s_ecsipv6limit));
-    ComboAddress trunc = incomingECS->source.getNetwork();
+  if (incomingECS && incomingECS->getSourcePrefixLength() > 0) {
+    d_cacheRemote = incomingECS->getSource().getMaskedNetwork();
+    uint8_t bits = std::min(incomingECS->getSourcePrefixLength(), (incomingECS->getSource().isIPv4() ? s_ecsipv4limit : s_ecsipv6limit));
+    ComboAddress trunc = incomingECS->getSource().getNetwork();
     trunc.truncate(bits);
     d_outgoingECSNetwork = boost::optional<Netmask>(Netmask(trunc, bits));
   }
@@ -6130,7 +6130,7 @@ void SyncRes::setQuerySource(const ComboAddress& requestor, const boost::optiona
       trunc.truncate(bits);
       d_outgoingECSNetwork = boost::optional<Netmask>(Netmask(trunc, bits));
     }
-    else if (s_ecsScopeZero.source.getBits() > 0) {
+    else if (s_ecsScopeZero.getSourcePrefixLength() > 0) {
       /* RFC7871 says we MUST NOT send any ECS if the source scope is 0.
          But using an empty ECS in that case would mean inserting
          a non ECS-specific entry into the cache, preventing any further
@@ -6145,8 +6145,8 @@ void SyncRes::setQuerySource(const ComboAddress& requestor, const boost::optiona
          indicator of the applicable scope.  Subsequent Stub Resolver queries
          for /0 can then be answered from this cached response.
       */
-      d_outgoingECSNetwork = boost::optional<Netmask>(s_ecsScopeZero.source.getMaskedNetwork());
-      d_cacheRemote = s_ecsScopeZero.source.getNetwork();
+      d_outgoingECSNetwork = boost::optional<Netmask>(s_ecsScopeZero.getSource().getMaskedNetwork());
+      d_cacheRemote = s_ecsScopeZero.getSource().getNetwork();
     }
     else {
       // ECS disabled because no scope-zero address could be derived.

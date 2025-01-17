@@ -131,7 +131,7 @@ int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& r
 
   if (d_eso != nullptr) {
     // pass along EDNS subnet from client if given - issue #5469
-    string origECSOptionStr = makeEDNSSubnetOptsString(*d_eso);
+    string origECSOptionStr = d_eso->makeOptString();
     DNSPacketWriter::optvect_t opts;
     opts.emplace_back(EDNSOptionCode::ECS, origECSOptionStr);
     packetWriter.addOpt(512, 0, 0, opts);

@@ -1121,7 +1121,7 @@ BOOST_AUTO_TEST_CASE(test_dont_skip_negcache_for_variable_response)
   SyncRes::addEDNSDomain(DNSName("powerdns.com."));
 
   EDNSSubnetOpts incomingECS;
-  incomingECS.source = Netmask("192.0.2.128/32");
+  incomingECS.setSource(Netmask("192.0.2.128/32"));
   sr->setQuerySource(ComboAddress(), boost::optional<const EDNSSubnetOpts&>(incomingECS));
 
   sr->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& srcmask, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
@@ -1176,7 +1176,7 @@ BOOST_AUTO_TEST_CASE(test_ecs_cache_limit_allowed)
   SyncRes::addEDNSDomain(DNSName("powerdns.com."));
 
   EDNSSubnetOpts incomingECS;
-  incomingECS.source = Netmask("192.0.2.128/32");
+  incomingECS.setSource(Netmask("192.0.2.128/32"));
   sr->setQuerySource(ComboAddress(), boost::optional<const EDNSSubnetOpts&>(incomingECS));
   SyncRes::s_ecsipv4cachelimit = 24;
 
@@ -1215,7 +1215,7 @@ BOOST_AUTO_TEST_CASE(test_ecs_cache_limit_no_ttl_limit_allowed)
   SyncRes::addEDNSDomain(DNSName("powerdns.com."));
 
   EDNSSubnetOpts incomingECS;
-  incomingECS.source = Netmask("192.0.2.128/32");
+  incomingECS.setSource(Netmask("192.0.2.128/32"));
   sr->setQuerySource(ComboAddress(), boost::optional<const EDNSSubnetOpts&>(incomingECS));
   SyncRes::s_ecsipv4cachelimit = 16;
 
@@ -1254,7 +1254,7 @@ BOOST_AUTO_TEST_CASE(test_ecs_cache_ttllimit_allowed)
   SyncRes::addEDNSDomain(DNSName("powerdns.com."));
 
   EDNSSubnetOpts incomingECS;
-  incomingECS.source = Netmask("192.0.2.128/32");
+  incomingECS.setSource(Netmask("192.0.2.128/32"));
   sr->setQuerySource(ComboAddress(), boost::optional<const EDNSSubnetOpts&>(incomingECS));
   SyncRes::s_ecscachelimitttl = 30;
 
@@ -1293,7 +1293,7 @@ BOOST_AUTO_TEST_CASE(test_ecs_cache_ttllimit_and_scope_allowed)
   SyncRes::addEDNSDomain(DNSName("powerdns.com."));
 
   EDNSSubnetOpts incomingECS;
-  incomingECS.source = Netmask("192.0.2.128/32");
+  incomingECS.setSource(Netmask("192.0.2.128/32"));
   sr->setQuerySource(ComboAddress(), boost::optional<const EDNSSubnetOpts&>(incomingECS));
   SyncRes::s_ecscachelimitttl = 100;
   SyncRes::s_ecsipv4cachelimit = 24;
@@ -1333,7 +1333,7 @@ BOOST_AUTO_TEST_CASE(test_ecs_cache_ttllimit_notallowed)
   SyncRes::addEDNSDomain(DNSName("powerdns.com."));
 
   EDNSSubnetOpts incomingECS;
-  incomingECS.source = Netmask("192.0.2.128/32");
+  incomingECS.setSource(Netmask("192.0.2.128/32"));
   sr->setQuerySource(ComboAddress(), boost::optional<const EDNSSubnetOpts&>(incomingECS));
   SyncRes::s_ecscachelimitttl = 100;
   SyncRes::s_ecsipv4cachelimit = 16;
@@ -1667,7 +1667,7 @@ BOOST_AUTO_TEST_CASE(test_cache_min_max_ecs_ttl)
   const ComboAddress ns("192.0.2.1:53");
 
   EDNSSubnetOpts incomingECS;
-  incomingECS.source = Netmask("192.0.2.128/32");
+  incomingECS.setSource(Netmask("192.0.2.128/32"));
   sr->setQuerySource(ComboAddress(), boost::optional<const EDNSSubnetOpts&>(incomingECS));
   SyncRes::addEDNSDomain(target);
 

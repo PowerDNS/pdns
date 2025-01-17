@@ -1005,7 +1005,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
 
       for (const auto& option : edo.d_options) {
         if (option.first == EDNSOptionCode::ECS && g_useIncomingECS && !comboWriter->d_ecsParsed) {
-          comboWriter->d_ecsFound = getEDNSSubnetOptsFromString(option.second, &comboWriter->d_ednssubnet);
+          comboWriter->d_ecsFound = EDNSSubnetOpts::getFromString(option.second, &comboWriter->d_ednssubnet);
         }
         else if (option.first == EDNSOptionCode::NSID) {
           const static string mode_server_id = ::arg()["server-id"];
@@ -1129,7 +1129,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
       }
       // lookup failing cannot happen as dc->d_source != dc->d_mappedSource
     }
-    resolver.setQuerySource(useMapped ? comboWriter->d_mappedSource : comboWriter->d_source, g_useIncomingECS && !comboWriter->d_ednssubnet.source.empty() ? boost::optional<const EDNSSubnetOpts&>(comboWriter->d_ednssubnet) : boost::none);
+    resolver.setQuerySource(useMapped ? comboWriter->d_mappedSource : comboWriter->d_source, g_useIncomingECS && !comboWriter->d_ednssubnet.getSource().empty() ? boost::optional<const EDNSSubnetOpts&>(comboWriter->d_ednssubnet) : boost::none);
 
     resolver.setQueryReceivedOverTCP(comboWriter->d_tcp);
 
@@ -1163,7 +1163,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
                                                   "qtype", Logging::Loggable(QType(comboWriter->d_mdp.d_qtype)),
                                                   "remote", Logging::Loggable(comboWriter->getRemote()),
                                                   "proto", Logging::Loggable(comboWriter->d_tcp ? "tcp" : "udp"),
-                                                  "ecs", Logging::Loggable(comboWriter->d_ednssubnet.source.empty() ? "" : comboWriter->d_ednssubnet.source.toString()),
+                                                  "ecs", Logging::Loggable(comboWriter->d_ednssubnet.getSource().empty() ? "" : comboWriter->d_ednssubnet.getSource().toString()),
                                                   "mtid", Logging::Loggable(g_multiTasker->getTid()));
     RunningResolveGuard tcpGuard(comboWriter);
 
@@ -1187,8 +1187,8 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
       if (!g_slogStructured) {
         g_log << Logger::Warning << RecThreadInfo::id() << " [" << g_multiTasker->getTid() << "/" << g_multiTasker->numProcesses() << "] " << (comboWriter->d_tcp ? "TCP " : "") << "question for '" << comboWriter->d_mdp.d_qname << "|"
               << QType(comboWriter->d_mdp.d_qtype) << "' from " << comboWriter->getRemote();
-        if (!comboWriter->d_ednssubnet.source.empty()) {
-          g_log << " (ecs " << comboWriter->d_ednssubnet.source.toString() << ")";
+        if (!comboWriter->d_ednssubnet.getSource().empty()) {
+          g_log << " (ecs " << comboWriter->d_ednssubnet.getSource().toString() << ")";
         }
         g_log << endl;
       }
@@ -1589,12 +1589,12 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
 
     if (g_useIncomingECS && comboWriter->d_ecsFound && !resolver.wasVariable() && !variableAnswer) {
       EDNSSubnetOpts ednsOptions;
-      ednsOptions.source = comboWriter->d_ednssubnet.source;
+      ednsOptions.setSource(comboWriter->d_ednssubnet.getSource());
       ComboAddress sourceAddr;
       sourceAddr.reset();
-      sourceAddr.sin4.sin_family = ednsOptions.source.getNetwork().sin4.sin_family;
-      ednsOptions.scope = Netmask(sourceAddr, 0);
-      auto ecsPayload = makeEDNSSubnetOptsString(ednsOptions);
+      sourceAddr.sin4.sin_family = ednsOptions.getFamily();
+      ednsOptions.setScopePrefixLength(0);
+      auto ecsPayload = ednsOptions.makeOptString();
 
       // if we don't have enough space available let's just not set that scope of zero,
       // it will prevent some caching, mostly from dnsdist, but that's fine
@@ -1852,7 +1852,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
       pbMessage.setId(comboWriter->d_mdp.d_header.id);
 
       pbMessage.setTime();
-      pbMessage.setEDNSSubnet(comboWriter->d_ednssubnet.source, comboWriter->d_ednssubnet.source.isIPv4() ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
+      pbMessage.setEDNSSubnet(comboWriter->d_ednssubnet.getSource(), comboWriter->d_ednssubnet.getSource().isIPv4() ? luaconfsLocal->protobufMaskV4 : luaconfsLocal->protobufMaskV6);
       pbMessage.setRequestorId(dnsQuestion.requestorId);
       pbMessage.setDeviceId(dnsQuestion.deviceId);
       pbMessage.setDeviceName(dnsQuestion.deviceName);
@@ -2045,7 +2045,7 @@ void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uint16_t* 
         int res = getEDNSOption(reinterpret_cast<const char*>(&question.at(pos - sizeof(drh->d_clen))), questionLen - pos + sizeof(drh->d_clen), EDNSOptionCode::ECS, &ecsStartPosition, &ecsLen); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
         if (res == 0 && ecsLen > 4) {
           EDNSSubnetOpts eso;
-          if (getEDNSSubnetOptsFromString(&question.at(pos - sizeof(drh->d_clen) + ecsStartPosition + 4), ecsLen - 4, &eso)) {
+          if (EDNSSubnetOpts::getFromString(&question.at(pos - sizeof(drh->d_clen) + ecsStartPosition + 4), ecsLen - 4, &eso)) {
             *ednssubnet = eso;
             foundECS = true;
           }
@@ -2058,7 +2058,7 @@ void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uint16_t* 
           const auto& iter = options->find(EDNSOptionCode::ECS);
           if (iter != options->end() && !iter->second.values.empty() && iter->second.values.at(0).content != nullptr && iter->second.values.at(0).size > 0) {
             EDNSSubnetOpts eso;
-            if (getEDNSSubnetOptsFromString(iter->second.values.at(0).content, iter->second.values.at(0).size, &eso)) {
+            if (EDNSSubnetOpts::getFromString(iter->second.values.at(0).content, iter->second.values.at(0).size, &eso)) {
               *ednssubnet = eso;
               foundECS = true;
             }
@@ -2261,7 +2261,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         if (t_pdl) {
           try {
             if (t_pdl->hasGettagFFIFunc()) {
-              RecursorLua4::FFIParams params(qname, qtype, destaddr, fromaddr, destination, source, ednssubnet.source, data, policyTags, records, ednsOptions, proxyProtocolValues, requestorId, deviceId, deviceName, routingTag, rcode, ttlCap, variable, false, logQuery, logResponse, followCNAMEs, extendedErrorCode, extendedErrorExtra, responsePaddingDisabled, meta);
+              RecursorLua4::FFIParams params(qname, qtype, destaddr, fromaddr, destination, source, ednssubnet.getSource(), data, policyTags, records, ednsOptions, proxyProtocolValues, requestorId, deviceId, deviceName, routingTag, rcode, ttlCap, variable, false, logQuery, logResponse, followCNAMEs, extendedErrorCode, extendedErrorExtra, responsePaddingDisabled, meta);
 
               eventTrace.add(RecEventTrace::LuaGetTagFFI);
               ctag = t_pdl->gettag_ffi(params);
@@ -2269,7 +2269,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
             }
             else if (t_pdl->hasGettagFunc()) {
               eventTrace.add(RecEventTrace::LuaGetTag);
-              ctag = t_pdl->gettag(source, ednssubnet.source, destination, qname, qtype, &policyTags, data, ednsOptions, false, requestorId, deviceId, deviceName, routingTag, proxyProtocolValues);
+              ctag = t_pdl->gettag(source, ednssubnet.getSource(), destination, qname, qtype, &policyTags, data, ednsOptions, false, requestorId, deviceId, deviceName, routingTag, proxyProtocolValues);
               eventTrace.add(RecEventTrace::LuaGetTag, ctag, false);
             }
           }
@@ -2291,7 +2291,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
     RecursorPacketCache::OptPBData pbData{boost::none};
     if (t_protobufServers.servers) {
       if (logQuery && !(luaconfsLocal->protobufExportConfig.taggedOnly && policyTags.empty())) {
-        protobufLogQuery(luaconfsLocal, uniqueId, source, destination, mappedSource, ednssubnet.source, false, question.size(), qname, qtype, qclass, policyTags, requestorId, deviceId, deviceName, meta, ednsVersion, *dnsheader);
+        protobufLogQuery(luaconfsLocal, uniqueId, source, destination, mappedSource, ednssubnet.getSource(), false, question.size(), qname, qtype, qclass, policyTags, requestorId, deviceId, deviceName, meta, ednsVersion, *dnsheader);
       }
     }
 
