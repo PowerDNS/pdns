@@ -316,7 +316,7 @@ def gen_cxx_oldkvtobridgestruct(file, entries):
     file.write('const std::string& value, ::rust::String& section, ::rust::String& fieldname, ')
     file.write('::rust::String& type_name, pdns::rust::settings::rec::Value& rustvalue)')
     file.write('{ // NOLINT(readability-function-cognitive-complexity)\n')
-    file.write('  if (const auto newname = arg().isDeprecated(key); !newname.empty()) {\n')
+    file.write('  if (const auto& newname = arg().isDeprecated(key); !newname.empty()) {\n')
     file.write('    key = newname;\n')
     file.write('  }\n')
     for entry in entries:

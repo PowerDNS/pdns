@@ -1561,7 +1561,7 @@ DNSName getRegisteredName(const DNSName& dom)
   while (!parts.empty()) {
     if (parts.size() == 1 || binary_search(g_pubs.begin(), g_pubs.end(), parts)) {
 
-      string ret = last;
+      string ret = std::move(last);
       if (!ret.empty())
         ret += ".";
 
@@ -1643,7 +1643,7 @@ static string addDontThrottleNames(T begin, T end)
   while (begin != end) {
     try {
       auto d = DNSName(*begin);
-      toAdd.push_back(d);
+      toAdd.push_back(std::move(d));
     }
     catch (const std::exception& e) {
       return "Problem parsing '" + *begin + "': " + e.what() + ", nothing added\n";
@@ -1936,7 +1936,7 @@ RecursorControlChannel::Answer luaconfig(bool broadcast)
       lci = g_luaconfs.getCopy();
       if (broadcast) {
         startLuaConfigDelayedThreads(lci, lci.generation);
-        broadcastFunction([=] { return pleaseSupplantProxyMapping(proxyMapping); });
+        broadcastFunction([pmap = std::move(proxyMapping)] { return pleaseSupplantProxyMapping(pmap); });
       }
       else {
         // Initial proxy mapping

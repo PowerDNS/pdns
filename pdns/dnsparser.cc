@@ -631,7 +631,7 @@ void PacketReader::xfrSvcParamKeyVals(set<SvcParam> &kvs) {
           throw std::out_of_range("alpn length of 0");
         }
         xfrBlob(alpn, alpnLen);
-        alpns.push_back(alpn);
+        alpns.push_back(std::move(alpn));
       }
       kvs.insert(SvcParam(key, std::move(alpns)));
       break;
@@ -672,7 +672,7 @@ void PacketReader::xfrSvcParamKeyVals(set<SvcParam> &kvs) {
       bool doAuto{d_internal && len == 0};
       auto param = SvcParam(key, std::move(addresses));
       param.setAutoHint(doAuto);
-      kvs.insert(param);
+      kvs.insert(std::move(param));
       break;
     }
     case SvcParam::ech: {

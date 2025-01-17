@@ -814,7 +814,7 @@ int getFakePTRRecords(const DNSName& qname, vector<DNSRecord>& ret)
   record.setContent(std::make_shared<CNAMERecordContent>(newquery));
   // Copy the TTL of the synthesized CNAME from the actual answer
   record.d_ttl = (rcode == RCode::NoError && !answers.empty()) ? answers.at(0).d_ttl : SyncRes::s_minimumTTL;
-  ret.push_back(record);
+  ret.push_back(std::move(record));
 
   ret.insert(ret.end(), answers.begin(), answers.end());
 
