@@ -81,8 +81,8 @@ export LDFLAGS=-L/usr/lib64/boost169
 # We need to build with LLVM/clang to be able to use LTO, since we are linking against a static Rust library built with LLVM
 export CC=clang
 export CXX=clang++
-# build-id SHA1 prevents an issue with the debug symbols
-# and the --no-as-needed -ldl an issue with the dlsym not being found
+# build-id SHA1 prevents an issue with the debug symbols ("export: `-Wl,--build-id=sha1': not a valid identifier")
+# and the --no-as-needed -ldl an issue with the dlsym not being found ("ld.lld: error: undefined symbol: dlsym eferenced by weak.rs:142 (library/std/src/sys/pal/unix/weak.rs:142) [...] in archive ./dnsdist-rust-lib/rust/libdnsdist_rust.a)
 export LDFLAGS="-fuse-ld=lld -Wl,--build-id=sha1 -Wl,--no-as-needed -ldl"
 %endif
 
