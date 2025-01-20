@@ -442,7 +442,7 @@ SensitiveData CredentialsHolder::readFromTerminal()
   }
 
   struct std::map<int, struct sigaction> signals;
-  struct sigaction sigact // just sigaction does noty work, it clashes with sigaction(2)
+  struct sigaction sigact // just sigaction does not work, it clashes with sigaction(2)
   {
   };
   sigemptyset(&sigact.sa_mask);
