@@ -59,6 +59,7 @@ override_dh_auto_configure:
 	  --enable-dns-over-tls \
 	  --enable-dnscrypt \
 	  --enable-dnstap \
+	  --enable-yaml \
 	  --with-ebpf \
 	  --with-gnutls \
 	  --with-h2o \

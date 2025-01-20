@@ -9,6 +9,7 @@ Source: %{name}-%{getenv:BUILDER_VERSION}.tar.bz2
 BuildRequires: readline-devel
 BuildRequires: libedit-devel
 BuildRequires: openssl-devel
+BuildRequires: python3-pyyaml
 
 %if 0%{?suse_version}
 BuildRequires: lua-devel
@@ -109,6 +110,7 @@ export RANLIB=gcc-ranlib
   --enable-dns-over-quic \
   --enable-dns-over-http3 \
   --with-quiche \
+  --enable-yaml \
 %endif
   PKG_CONFIG_PATH=/usr/lib/pkgconfig:/opt/lib64/pkgconfig
 %endif

@@ -21,6 +21,7 @@ Build-Depends: debhelper (>= 10),
                libsystemd-dev [linux-any],
                libwslay-dev,
                pkg-config,
+               python3-yaml,
                ragel,
                systemd [linux-any]
 Standards-Version: 4.1.5
