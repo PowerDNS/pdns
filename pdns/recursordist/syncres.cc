@@ -1049,7 +1049,7 @@ int SyncRes::AuthDomain::getRecords(const DNSName& qname, const QType qtype, std
     for (ziter = range.first; ziter != range.second; ++ziter) {
       DNSRecord dnsRecord = *ziter;
       dnsRecord.d_place = DNSResourceRecord::AUTHORITY;
-      records.push_back(dnsRecord);
+      records.push_back(std::move(dnsRecord));
     }
   }
 
@@ -3105,7 +3105,7 @@ bool SyncRes::doCacheCheck(const DNSName& qname, const DNSName& authname, bool w
     for (const auto& rec : *authorityRecs) {
       DNSRecord dnsRecord(rec);
       dnsRecord.d_ttl = ttl;
-      ret.push_back(dnsRecord);
+      ret.push_back(std::move(dnsRecord));
     }
 
     LOG(endl);

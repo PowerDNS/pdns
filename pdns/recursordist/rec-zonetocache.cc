@@ -106,7 +106,7 @@ void ZoneData::parseDRForCache(DNSRecord& dnsRecord)
     const auto sigkey = pair(key.first, rrsig->d_type);
     auto found = d_sigs.find(sigkey);
     if (found != d_sigs.end()) {
-      found->second.push_back(rrsig);
+      found->second.push_back(std::move(rrsig));
     }
     else {
       vector<shared_ptr<const RRSIGRecordContent>> sigsrr;
