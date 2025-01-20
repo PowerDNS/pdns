@@ -463,9 +463,9 @@ ecs-ipv6-cache-bits=128
 
     def testSendECSInvalidScope(self):
         # test that the recursor does not cache with a more specific scope than the source it sent
-        expected = dns.rrset.from_text(nameECSInvalidScope, ttlECS, dns.rdataclass.IN, 'TXT', '192.0.2.0/24')
+        expected = dns.rrset.from_text(nameECSInvalidScope, ttlECS, dns.rdataclass.IN, 'TXT', '192.0.2.0/24/25')
 
-        ecso = clientsubnetoption.ClientSubnetOption('192.0.2.1', 32)
+        ecso = clientsubnetoption.ClientSubnetOption('192.0.2.1', 24)
         query = dns.message.make_query(nameECSInvalidScope, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
 
         self.sendECSQuery(query, expected)
@@ -589,7 +589,8 @@ class UDPECSResponder(DatagramProtocol):
 
                     # Send a scope more specific than the received source for nameECSInvalidScope
                     if request.question[0].name == dns.name.from_text(nameECSInvalidScope):
-                        ecso = clientsubnetoption.ClientSubnetOption("192.0.42.42", 32, 32)
+                        ecso = clientsubnetoption.ClientSubnetOption("192.0.2.1", 24, 25)
+                        text += "/25"
                     else:
                         ecso = clientsubnetoption.ClientSubnetOption(self.ipToStr(option), option.mask, option.mask)
 
