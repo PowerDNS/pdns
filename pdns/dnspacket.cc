@@ -23,6 +23,7 @@
 #include "config.h"
 #endif
 #include "utility.hh"
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <sys/types.h>
@@ -243,13 +244,11 @@ bool DNSPacket::couldBeCached() const
 
 unsigned int DNSPacket::getMinTTL()
 {
-  unsigned int minttl = UINT_MAX;
-  for(const DNSZoneRecord& rr :  d_rrs) {
-  if (rr.dr.d_ttl < minttl)
-      minttl = rr.dr.d_ttl;
+  auto iter = std::min_element(d_rrs.begin(), d_rrs.end());
+  if (iter != d_rrs.end()) {
+    return iter->dr.d_ttl;
   }
-
-  return minttl;
+  return UINT_MAX;
 }
 
 bool DNSPacket::isEmpty()

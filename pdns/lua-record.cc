@@ -1181,18 +1181,14 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
    * @example ifportup(443, { '1.2.3.4', '5.4.3.2' })"
    */
   lua.writeFunction("ifportup", [](int port, const boost::variant<iplist_t, ipunitlist_t>& ips, const boost::optional<std::unordered_map<string,string>> options) {
-      if (port < 0) {
-        port = 0;
-      }
-      if (port > std::numeric_limits<uint16_t>::max()) {
-        port = std::numeric_limits<uint16_t>::max();
-      }
+    port = std::max(port, 0);
+    port = std::min(port, static_cast<int>(std::numeric_limits<uint16_t>::max()));
 
-      auto checker = [](const ComboAddress& addr, const opts_t& opts) {
-        return g_up.isUp(addr, opts);
-      };
-      return genericIfUp(ips, options, checker, port);
-    });
+    auto checker = [](const ComboAddress& addr, const opts_t& opts) {
+      return g_up.isUp(addr, opts);
+    };
+    return genericIfUp(ips, options, checker, port);
+  });
 
   lua.writeFunction("ifurlextup", [](const vector<pair<int, opts_t> >& ipurls, boost::optional<opts_t> options) {
       vector<ComboAddress> candidates;
