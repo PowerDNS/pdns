@@ -9,7 +9,6 @@ Source: %{name}-%{getenv:BUILDER_VERSION}.tar.bz2
 BuildRequires: readline-devel
 BuildRequires: libedit-devel
 BuildRequires: openssl-devel
-BuildRequires: python3-pyyaml
 
 %if 0%{?suse_version}
 BuildRequires: lua-devel
@@ -22,6 +21,12 @@ BuildRequires: systemd-devel
 BuildRequires: boost169-devel
 %else
 BuildRequires: boost-devel
+BuildRequires: python3-pyyaml
+%endif
+
+%if 0%{?rhel} >= 8
+BuildRequires: clang
+BuildRequires: lld
 %endif
 
 %if 0%{?rhel} >= 7 || 0%{?amzn} == 2023
@@ -72,6 +77,14 @@ dnsdist is a high-performance DNS loadbalancer that is scriptable in Lua.
 export CPPFLAGS=-I/usr/include/boost169
 export LDFLAGS=-L/usr/lib64/boost169
 %endif
+%if 0%{?rhel} >= 8
+# We need to build with LLVM/clang to be able to use LTO, since we are linking against a static Rust library built with LLVM
+export CC=clang
+export CXX=clang++
+# build-id SHA1 prevents an issue with the debug symbols
+# and the --no-as-needed -ldl an issue with the dlsym not being found
+export LDFLAGS="-fuse-ld=lld -Wl,--build-id=sha1 -Wl,--no-as-needed -ldl"
+%endif
 
 export AR=gcc-ar
 export RANLIB=gcc-ranlib
@@ -110,6 +123,8 @@ export RANLIB=gcc-ranlib
   --enable-dns-over-quic \
   --enable-dns-over-http3 \
   --with-quiche \
+%endif
+%if 0%{?rhel} >= 8
   --enable-yaml \
 %endif
   PKG_CONFIG_PATH=/usr/lib/pkgconfig:/opt/lib64/pkgconfig
