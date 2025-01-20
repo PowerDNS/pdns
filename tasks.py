@@ -718,10 +718,10 @@ def ci_dnsdist_configure(c, features, builder, build_dir):
                             -DDISABLE_NPN'
 
     if builder == 'meson':
-        cmd = ci_dnsdist_configure_meson(features, additional_flags, build_dir)
+        cmd = ci_dnsdist_configure_meson(features, additional_flags, additional_ld_flags, build_dir)
         logfile = 'meson-logs/meson-log.txt'
     else:
-        cmd = ci_dnsdist_configure_autotools(features, additional_flags)
+        cmd = ci_dnsdist_configure_autotools(features, additional_flags, additional_ld_flags)
         logfile = 'config.log'
 
     res = c.run(cmd, warn=True)
@@ -729,7 +729,7 @@ def ci_dnsdist_configure(c, features, builder, build_dir):
         c.run(f'cat {logfile}')
         raise UnexpectedExit(res)
 
-def ci_dnsdist_configure_autotools(features, additional_flags):
+def ci_dnsdist_configure_autotools(features, additional_flags, additional_ld_flags):
     if features == 'full':
       features_set = '--enable-dnstap \
                       --enable-dnscrypt \
@@ -776,7 +776,7 @@ def ci_dnsdist_configure_autotools(features, additional_flags):
         '--prefix=/opt/dnsdist'
     ])
 
-def ci_dnsdist_configure_meson(features, additional_flags, build_dir):
+def ci_dnsdist_configure_meson(features, additional_flags, additional_ld_flags, build_dir):
     if features == 'full':
       features_set = '-D cdb=enabled \
                       -D dnscrypt=enabled \
@@ -825,9 +825,10 @@ def ci_dnsdist_configure_meson(features, additional_flags, build_dir):
     env = " ".join([
         tools,
         f'CFLAGS="{cflags}"',
+        f'LDFLAGS="{additional_ld_flags}"',
         f'CXXFLAGS="{cxxflags}"',
         f"CC='{get_c_compiler()}'",
-        f"CXX='{get_cxx_compiler()}'"
+        f"CXX='{get_cxx_compiler()}'",
     ])
     return " ".join([
         f'. {repo_home}/.venv/bin/activate && {env} meson setup {build_dir}',
