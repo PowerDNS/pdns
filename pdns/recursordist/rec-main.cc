@@ -3271,9 +3271,11 @@ int main(int argc, char** argv)
       }
       else {
         if (!::arg().mustDo("enable-old-settings")) {
-          startupLog->info(Logr::Error, "Old-style settings syntax not enabled by default anymore. Use YAML or enable with --enable-old-settings on the command line", "configname", Logging::Loggable(configname));
+          startupLog->info(Logr::Error, "Old-style settings syntax not supported by default anymore", "configname", Logging::Loggable(configname));
+          startupLog->info(Logr::Error, "Convert to YAML settings. If not feasible use --enable-old-settings on the command line. This option will be removed in a future release.");
           return EXIT_FAILURE;
         }
+        startupLog->info(Logr::Warning, "Convert to YAML settings. The --enable-old-settings option on the command line will be removed in a future release.");
       }
     }
 
