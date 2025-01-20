@@ -21,7 +21,7 @@
  */
 #pragma once
 
-#include <memory>
+#include <cstdint>
 #include <string>
 
 class SensitiveData
