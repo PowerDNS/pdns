@@ -582,7 +582,7 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
 
       // If we sent out ECS, we can also expect to see a return with or without ECS, the absent case is
       // not handled explicitly. If we do see a ECS in the reply, the source part *must* match with
-      // what we sent out See https://www.rfc-editor.org/rfc/rfc7871#section-7.3
+      // what we sent out. See https://www.rfc-editor.org/rfc/rfc7871#section-7.3
       if (subnetOpts) {
         for (const auto& opt : edo.d_options) {
           if (opt.first == EDNSOptionCode::ECS) {
