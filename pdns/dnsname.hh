@@ -24,6 +24,7 @@
 #include <cstring>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 #include <set>
 #include <strings.h>
@@ -306,7 +307,8 @@ extern const DNSName g_rootdnsname, g_wildcarddnsname;
 template<typename T>
 struct SuffixMatchTree
 {
-  SuffixMatchTree(const std::string& name="", bool endNode_=false) : d_name(name), endNode(endNode_)
+  SuffixMatchTree(std::string name = "", bool endNode_ = false) :
+    d_name(std::move(name)), endNode(endNode_)
   {}
 
   SuffixMatchTree(const SuffixMatchTree& rhs): d_name(rhs.d_name), children(rhs.children), endNode(rhs.endNode)

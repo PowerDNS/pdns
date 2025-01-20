@@ -26,6 +26,7 @@
 #include <boost/utility.hpp>
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Woverloaded-virtual"
+#include <utility>
 #include <yahttp/yahttp.hpp>
 #pragma GCC diagnostic pop
 
@@ -38,7 +39,8 @@
 
 class HttpRequest : public YaHTTP::Request {
 public:
-  HttpRequest(const string& logprefix_="") : YaHTTP::Request(), logprefix(logprefix_) { };
+  HttpRequest(string logprefix_ = "") :
+    YaHTTP::Request(), logprefix(std::move(logprefix_)) {};
 
   string logprefix;
   bool accept_yaml{false};
