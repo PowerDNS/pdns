@@ -162,7 +162,7 @@ A forward zone is defined as:
     - Socket Address
     - ...
   recurse: Boolean, default false
-  allow_notify: Boolean, default false
+  notify_allowed: Boolean, default false
 
 An example of a ``forward_zones`` entry, which consists of a sequence of `Forward Zone`_ entries:
 
@@ -499,7 +499,7 @@ As of version 5.2.0, a forwarding catalog zone entry is defined as:
      - name: optional group name
        forwarders: [] Sequence of SocketAddress
        recurse: bool, default false
-       notify: bool, default false
+       notify_allowed: bool, default false
 
 Names instead of IP addresess can be used for ``addresses`` if :ref:`setting-yaml-recursor.system_resolver_ttl` is set.
 An example of a :ref:`setting-yaml-recursor.forwarding_catalog_zones` entry, which is a sequence of `ForwardingCatalogZone`_:
