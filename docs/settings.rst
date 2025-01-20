@@ -573,6 +573,20 @@ Configure a delay to send out notifications, no delay by default.
 Read additional DNSKEY, CDS and CDNSKEY records from the records table/your BIND zonefile. If not
 set, DNSKEY, CDS and CDNSKEY records in the zonefiles are ignored.
 
+.. _setting-direct-dnskey-signature:
+
+``direct-dnskey-signature``
+-----------------
+
+-  Boolean
+-  Default: no
+
+.. versionadded:: 5.0.0
+
+Read signatures of DNSKEY records directly from the backend. 
+If not set and the record is not presigned, DNSKEY records will be signed directly by PDNS Authoritative.
+Please only use this if you are sure that you need it.
+
 .. _setting-disable-axfr:
 
 ``disable-axfr``

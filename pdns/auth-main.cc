@@ -296,6 +296,7 @@ static void declareArguments()
 
   ::arg().setSwitch("traceback-handler", "Enable the traceback handler (Linux only)") = "yes";
   ::arg().setSwitch("direct-dnskey", "Fetch DNSKEY, CDS and CDNSKEY RRs from backend during DNSKEY or CDS/CDNSKEY synthesis") = "no";
+  ::arg().setSwitch("direct-dnskey-signature", "Fetch signature of DNSKEY RRs from backend directly") = "no";
   ::arg().set("default-ksk-algorithm", "Default KSK algorithm") = "ecdsa256";
   ::arg().set("default-ksk-size", "Default KSK size (0 means default)") = "0";
   ::arg().set("default-zsk-algorithm", "Default ZSK algorithm") = "";
