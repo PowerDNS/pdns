@@ -244,9 +244,9 @@ bool DNSPacket::couldBeCached() const
 
 unsigned int DNSPacket::getMinTTL()
 {
-  auto it = std::min_element(d_rrs.begin(), d_rrs.end());
-  if (it != d_rrs.end()) {
-    return it->dr.d_ttl;
+  auto iter = std::min_element(d_rrs.begin(), d_rrs.end());
+  if (iter != d_rrs.end()) {
+    return iter->dr.d_ttl;
   }
   return UINT_MAX;
 }
