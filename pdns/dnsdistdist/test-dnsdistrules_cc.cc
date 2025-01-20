@@ -6,6 +6,7 @@
 #define BOOST_TEST_NO_MAIN
 
 #include <thread>
+#include <variant>
 #include <boost/test/unit_test.hpp>
 
 #include "dnsdist-rules.hh"
