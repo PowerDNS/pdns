@@ -822,13 +822,15 @@ def ci_dnsdist_configure_meson(features, additional_flags, build_dir):
     tools = f'''AR=llvm-ar-{clang_version} RANLIB=llvm-ranlib-{clang_version}''' if is_compiler_clang() else ''
     cflags = " ".join([get_cflags()])
     cxxflags = " ".join([get_cxxflags(), additional_flags])
-    return " ".join([
+    env = " ".join([
         tools,
         f'CFLAGS="{cflags}"',
         f'CXXFLAGS="{cxxflags}"',
         f"CC='{get_c_compiler()}'",
-        f"CXX='{get_cxx_compiler()}'",
-        f'. {repo_home}/.venv/bin/activate && meson setup {build_dir}',
+        f"CXX='{get_cxx_compiler()}'"
+    ])
+    return " ".join([
+        f'. {repo_home}/.venv/bin/activate && {env} meson setup {build_dir}',
         features_set,
         unittests,
         fuzztargets,
