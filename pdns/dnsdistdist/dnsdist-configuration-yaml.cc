@@ -49,6 +49,8 @@
 #include "dnsdist-configuration-yaml-internal.hh"
 
 #include <boost/uuid/string_generator.hpp>
+#include <variant>
+
 #endif /* HAVE_YAML_CONFIGURATION */
 
 namespace dnsdist::configuration::yaml
