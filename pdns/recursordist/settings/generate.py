@@ -100,6 +100,8 @@ class LType(Enum):
     ListDNSTapFrameStreamServers = auto()
     ListDNSTapNODFrameStreamServers = auto()
     ListForwardZones = auto()
+    ListForwardingCatalogZones = auto()
+    ListIncomingWSConfigs = auto()
     ListNegativeTrustAnchors = auto()
     ListProtobufServers = auto()
     ListProxyMappings = auto()
@@ -110,7 +112,6 @@ class LType(Enum):
     ListSubnets = auto()
     ListTrustAnchors = auto()
     ListZoneToCaches = auto()
-    ListForwardingCatalogZones = auto()
     String = auto()
     Uint64 = auto()
 
@@ -118,7 +119,7 @@ listOfStringTypes = (LType.ListSocketAddresses,  LType.ListStrings, LType.ListSu
 listOfStructuredTypes = (LType.ListAuthZones, LType.ListForwardZones, LType.ListTrustAnchors, LType.ListNegativeTrustAnchors,
                          LType.ListProtobufServers, LType.ListDNSTapFrameStreamServers, LType.ListDNSTapNODFrameStreamServers,
                          LType.ListSortLists, LType.ListRPZs, LType.ListZoneToCaches, LType.ListAllowedAdditionalQTypes,
-                         LType.ListProxyMappings, LType.ListForwardingCatalogZones)
+                         LType.ListProxyMappings, LType.ListForwardingCatalogZones, LType.ListIncomingWSConfigs)
 
 def get_olddoc_typename(typ):
     """Given a type from table.py, return the old-style type name"""
@@ -140,7 +141,7 @@ def get_olddoc_typename(typ):
         return 'Comma separated list of \'zonename=IP\' pairs'
     if typ == LType.ListAuthZones:
         return 'Comma separated list of \'zonename=filename\' pairs'
-    return 'Unknown' + str(typ)
+    return 'Unknown1' + str(typ)
 
 def get_newdoc_typename(typ):
     """Given a type from table.py, return the new-style type name"""
@@ -184,7 +185,7 @@ def get_newdoc_typename(typ):
         return 'Sequence of `ProxyMapping`_'
     if typ == LType.ListForwardingCatalogZones:
         return 'Sequence of `ForwardingCatalogZone`_'
-    return 'Unknown' + str(typ)
+    return 'Unknown2' + str(typ)
 
 def get_default_olddoc_value(typ, val):
     """Given a type and a value from table.py return the old doc representation of the value"""
@@ -225,7 +226,7 @@ def list_to_base_type(typ):
     if typeName.startswith('List') and typeName.endswith('s'):
         baseName = typeName[4:len(typeName) - 1]
         return baseName
-    return 'Unknown: ' + typeName
+    return 'Unknown3: ' + typeName
 
 def get_rust_type(typ):
     """Determine which Rust type is used for a logical type"""

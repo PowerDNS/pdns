@@ -985,20 +985,31 @@ void AsyncWebServer::go()
 
 void serveRustWeb()
 {
+  cerr << "SERVERUSTWEB" << endl;
+  ::rust::Vec<pdns::rust::web::rec::IncomingWSConfig> config;
+
+  if (g_yamlSettings) {
+    auto settings = g_yamlStruct.lock();
+    for (const auto& listen : settings->webservice.listen) {
+      pdns::rust::web::rec::IncomingWSConfig tmp;
+      for (const auto& address : listen.addresses) {
+        tmp.addresses.emplace_back(address);
+      }
+      tmp.tls = pdns::rust::web::rec::IncomingTLS{listen.tls.certificate, listen.tls.key, listen.tls.password};
+      config.emplace_back(tmp);
+    }
+  }
+  cerr << "Config ahs " << config.size() << " entries" << endl;
+  if (config.empty()) {
+    auto address = ComboAddress(arg()["webserver-address"], arg().asNum("webserver-port"));
+    pdns::rust::web::rec::IncomingWSConfig tmp{{::rust::String{address.toStringWithPort()}}, {}};
+    config.emplace_back(tmp);
+  }
+
   ::rust::Vec<::rust::String> urls;
   for (const auto& [url, _] : g_urlmap) {
     urls.emplace_back(url);
   }
-  auto address = ComboAddress(arg()["webserver-address"], arg().asNum("webserver-port"));
-  ::rust::Vec<::rust::String> addressList{address.toStringWithPort()};
-
-  if (g_yamlSettings) {
-    auto addresses = g_yamlStruct.lock()->webservice.addresses;
-    if (addresses.size() != 1 || addresses.at(0) != "127.0.0.1:8082") {
-      addressList = std::move(addresses);
-    }
-  }
-
   auto passwordString = arg()["webserver-password"];
   std::unique_ptr<CredentialsHolder> password;
   if (!passwordString.empty()) {
@@ -1013,7 +1024,8 @@ void serveRustWeb()
   acl.toMasks(::arg()["webserver-allow-from"]);
   auto aclPtr = std::make_unique<pdns::rust::web::rec::NetmaskGroup>(acl);
 
-  pdns::rust::web::rec::serveweb(addressList, ::rust::Slice<const ::rust::String>{urls.data(), urls.size()}, std::move(password), std::move(apikey), std::move(aclPtr));
+ cerr << "CALL SERVEWEB" << endl;
+   pdns::rust::web::rec::serveweb(config, ::rust::Slice<const ::rust::String>{urls.data(), urls.size()}, std::move(password), std::move(apikey), std::move(aclPtr));
 }
 
 static void fromCxxToRust(const HttpResponse& cxxresp, pdns::rust::web::rec::Response& rustResponse)

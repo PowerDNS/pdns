@@ -88,6 +88,20 @@ impl Default for ForwardingCatalogZone {
     }
 }
 
+impl Default for IncomingTLS {
+    fn default() -> Self {
+        let deserialized: IncomingTLS = serde_yaml::from_str("").unwrap();
+        deserialized
+    }
+}
+
+impl Default for IncomingWSConfig {
+    fn default() -> Self {
+        let deserialized: IncomingWSConfig = serde_yaml::from_str("").unwrap();
+        deserialized
+    }
+}
+
 pub fn validate_socket_address(field: &str, val: &String) -> Result<(), ValidationError> {
     let sa = SocketAddr::from_str(val);
     if sa.is_err() {
@@ -743,6 +757,13 @@ impl ForwardingCatalogZone {
         }
         insertseq(&mut map, "groups", &groupseq);
         serde_yaml::Value::Mapping(map)
+    }
+}
+
+impl IncomingWSConfig {
+    pub fn validate(&self, _field: &str) -> Result<(), ValidationError> {
+        // XXX
+        Ok(())
     }
 }
 

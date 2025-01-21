@@ -397,47 +397,102 @@ async fn process_request(
     Ok(rust_response)
 }
 
-async fn serveweb_async(listener: TcpListener, ctx: Arc<Context>) -> MyResult<()> {
+async fn serveweb_async(listener: TcpListener, config: crate::web::rustweb::IncomingTLS, ctx: Arc<Context>) -> MyResult<()> {
 
-    // We start a loop to continuously accept incoming connections
-    loop {
-        let ctx = Arc::clone(&ctx);
-        let (stream, _) = listener.accept().await?;
+    if !config.certificate.is_empty() {
+        let certs = load_certs(&config.certificate)?;
+        let key = load_private_key(&config.key)?;
+        let mut server_config = rustls::ServerConfig::builder()
+            .with_no_client_auth()
+            .with_single_cert(certs, key)
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+        server_config.alpn_protocols = vec![b"http/1.1".to_vec(), b"http/1.0".to_vec()]; // b"h2".to_vec()
+        let tls_acceptor = tokio_rustls::TlsAcceptor::from(Arc::new(server_config));
+        // We start a loop to continuously accept incoming connections
+        loop {
+            let ctx = Arc::clone(&ctx);
+            let (stream, _) = listener.accept().await?;
 
-        match stream.peer_addr() {
-            Ok(address) => {
-                eprintln!("Peer: {:?}", address);
-                let combo = rustweb::comboaddress(&address.to_string());
-                if !rustweb::matches(&ctx.acl, &combo) {
-                    eprintln!("No acl match! {:?}", address);
-                    continue;
+            match stream.peer_addr() {
+                Ok(address) => {
+                    eprintln!("Peer: {:?}", address);
+                    let combo = rustweb::comboaddress(&address.to_string());
+                    if !rustweb::matches(&ctx.acl, &combo) {
+                        eprintln!("No acl match! {:?}", address);
+                        continue;
+                    }
+                }
+                Err(err) => {
+                    eprintln!("Can't get: {:?}", err);
+                    continue; // If we can't determine the peer address, don't
                 }
             }
-            Err(err) => {
-                eprintln!("Can't get: {:?}", err);
-                continue; // If we can't determine the peer address, don't
-            }
-        }
-        // Use an adapter to access something implementing `tokio::io` traits as if they implement
-        // `hyper::rt` IO traits.
-        let io = TokioIo::new(stream);
-        let fut =
-            http1::Builder::new().serve_connection(io, service_fn(move |req| {
-                let ctx = Arc::clone(&ctx);
-                process_request(req, ctx)
-            }));
+            // Use an adapter to access something implementing `tokio::io` traits as if they implement
+            // `hyper::rt` IO traits.
+            let tls_acceptor = tls_acceptor.clone();
+            let tls_stream = match tls_acceptor.accept(stream).await {
+                Ok(tls_stream) => tls_stream,
+                Err(err) => {
+                    eprintln!("failed to perform tls handshake: {err:#}");
+                    continue;
+                }
+            };
+            let io = TokioIo::new(tls_stream);
+            let fut =
+                http1::Builder::new().serve_connection(io, service_fn(move |req| {
+                    let ctx = Arc::clone(&ctx);
+                    process_request(req, ctx)
+                }));
 
-        // Spawn a tokio task to serve the request
-        tokio::task::spawn(async move {
-            // Finally, we bind the incoming connection to our `process_request` service
-            if let Err(err) = fut.await {
-                eprintln!("Error serving connection: {:?}", err);
+            // Spawn a tokio task to serve the request
+            tokio::task::spawn(async move {
+                // Finally, we bind the incoming connection to our `process_request` service
+                if let Err(err) = fut.await {
+                    eprintln!("Error serving connection: {:?}", err);
+                }
+            });
+        }
+    }
+    else {
+        // We start a loop to continuously accept incoming connections
+        loop {
+            let ctx = Arc::clone(&ctx);
+            let (stream, _) = listener.accept().await?;
+
+            match stream.peer_addr() {
+                Ok(address) => {
+                    eprintln!("Peer: {:?}", address);
+                    let combo = rustweb::comboaddress(&address.to_string());
+                    if !rustweb::matches(&ctx.acl, &combo) {
+                        eprintln!("No acl match! {:?}", address);
+                        continue;
+                    }
+                }
+                Err(err) => {
+                    eprintln!("Can't get: {:?}", err);
+                    continue; // If we can't determine the peer address, don't
+                }
             }
-        });
+            let io = TokioIo::new(stream);
+            let fut =
+                http1::Builder::new().serve_connection(io, service_fn(move |req| {
+                    let ctx = Arc::clone(&ctx);
+                    process_request(req, ctx)
+                }));
+
+            // Spawn a tokio task to serve the request
+            tokio::task::spawn(async move {
+                // Finally, we bind the incoming connection to our `process_request` service
+                if let Err(err) = fut.await {
+                    eprintln!("Error serving connection: {:?}", err);
+                }
+            });
+        }
     }
 }
 
-pub fn serveweb(addresses: &Vec<String>, urls: &[String], password_ch: cxx::UniquePtr<rustweb::CredentialsHolder>, api_ch: cxx::UniquePtr<rustweb::CredentialsHolder>, acl: cxx::UniquePtr<rustweb::NetmaskGroup>) -> Result<(), std::io::Error> {
+pub fn serveweb(incoming: &Vec<rustweb::IncomingWSConfig>, urls: &[String], password_ch: cxx::UniquePtr<rustweb::CredentialsHolder>, api_ch: cxx::UniquePtr<rustweb::CredentialsHolder>, acl: cxx::UniquePtr<rustweb::NetmaskGroup>) -> Result<(), std::io::Error> {
+    println!("SERVEWEB");
     // Context, atomically reference counted
     let ctx = Arc::new(Context {
         urls: urls.to_vec(),
@@ -457,25 +512,34 @@ pub fn serveweb(addresses: &Vec<String>, urls: &[String], password_ch: cxx::Uniq
     // For each listening address we spawn a tokio handler an then a single Posix thread is created that
     // waits (forever) for all of them to complete by joining them all.
     let mut set = JoinSet::new();
-    for addr_str in addresses {
-        let addr = match SocketAddr::from_str(addr_str) {
-            Ok(val) => val,
-            Err(err) => {
-                let msg = format!("`{}' is not a IP:port combination: {}", addr_str, err);
-                return Err(std::io::Error::new(ErrorKind::Other, msg));
-            }
-        };
+    for config in incoming {
+        println!("Config");
+        for addr_str in &config.addresses {
+            println!("Config Addr {}", addr_str);
+            let addr = match SocketAddr::from_str(addr_str) {
+                Ok(val) => val,
+                Err(err) => {
+                    let msg = format!("`{}' is not a IP:port combination: {}", addr_str, err);
+                    return Err(std::io::Error::new(ErrorKind::Other, msg));
+                }
+            };
 
-        let listener = runtime.block_on(async { TcpListener::bind(addr).await });
-        let ctx = Arc::clone(&ctx);
-        match listener {
-            Ok(val) => {
-                println!("Listening on {}", addr);
-                set.spawn_on(serveweb_async(val, ctx), runtime.handle());
-            }
-            Err(err) => {
-                let msg = format!("Unable to bind web socket: {}", err);
-                return Err(std::io::Error::new(ErrorKind::Other, msg));
+            let listener = runtime.block_on(async { TcpListener::bind(addr).await });
+            let ctx = Arc::clone(&ctx);
+            match listener {
+                Ok(val) => {
+                    let tls = crate::web::rustweb::IncomingTLS {
+                        certificate: config.tls.certificate.clone(),
+                        key: config.tls.key.clone(),
+                        password: config.tls.password.clone(),
+                    };
+                    println!("Listening on {}", addr);
+                    set.spawn_on(serveweb_async(val, tls, ctx), runtime.handle());
+                }
+                Err(err) => {
+                    let msg = format!("Unable to bind web socket: {}", err);
+                    return Err(std::io::Error::new(ErrorKind::Other, msg));
+                }
             }
         }
     }
@@ -489,6 +553,28 @@ pub fn serveweb(addresses: &Vec<String>, urls: &[String], password_ch: cxx::Uniq
             });
         })?;
     Ok(())
+}
+
+// Load public certificate from file.
+fn load_certs(filename: &str) -> std::io::Result<Vec<pki_types::CertificateDer<'static>>> {
+    // Open certificate file.
+    let certfile = std::fs::File::open(filename)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("failed to open {}: {}", filename, e)))?;
+    let mut reader = std::io::BufReader::new(certfile);
+
+    // Load and return certificate.
+    rustls_pemfile::certs(&mut reader).collect()
+}
+
+// Load private key from file.
+fn load_private_key(filename: &str) -> std::io::Result<pki_types::PrivateKeyDer<'static>> {
+    // Open keyfile.
+    let keyfile = std::fs::File::open(filename)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("failed to open {}: {}", filename, e)))?;
+    let mut reader = std::io::BufReader::new(keyfile);
+
+    // Load and return a single private key.
+    rustls_pemfile::private_key(&mut reader).map(|key| key.unwrap())
 }
 
 // impl below needed because the classes are used in the Context, which gets passed around.
@@ -505,12 +591,22 @@ mod rustweb {
         type ComboAddress;
     }
 
+    pub struct IncomingTLS {
+        certificate: String,
+        key: String,
+        password: String,
+    }
+
+    struct IncomingWSConfig {
+        addresses: Vec<String>,
+        tls: IncomingTLS,
+    }
     /*
      * Functions callable from C++
      */
     extern "Rust" {
         // The main entry point, This function will return, but will setup thread(s) to handle requests.
-        fn serveweb(addreses: &Vec<String>, urls: &[String], pwch: UniquePtr<CredentialsHolder>, apikeych: UniquePtr<CredentialsHolder>, acl: UniquePtr<NetmaskGroup>) -> Result<()>;
+        fn serveweb(incoming: &Vec<IncomingWSConfig>, urls: &[String], pwch: UniquePtr<CredentialsHolder>, apikeych: UniquePtr<CredentialsHolder>, acl: UniquePtr<NetmaskGroup>) -> Result<()>;
     }
 
     struct KeyValue {

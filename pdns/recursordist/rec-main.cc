@@ -275,6 +275,7 @@ int RecThreadInfo::runThreads(Logr::log_t log)
 
     if (::arg().mustDo("webserver")) {
       extern void serveRustWeb();
+      cerr << "CALL serveRustWeb" << endl;
       serveRustWeb();
     }
 
@@ -358,9 +359,12 @@ int RecThreadInfo::runThreads(Logr::log_t log)
 
     if (::arg().mustDo("webserver")) {
       extern void serveRustWeb();
+      cerr << "WS is CALLED " << endl;
       serveRustWeb();
     }
-
+    else {
+      cerr << "WS is FALSE " << endl;
+    }
     for (auto& tInfo : RecThreadInfo::infos()) {
       tInfo.thread.join();
       if (tInfo.exitCode != 0) {

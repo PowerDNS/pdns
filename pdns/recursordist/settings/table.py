@@ -3204,13 +3204,13 @@ IP address for the webserver to listen on.
  ''',
     },
     {
-        'name' : 'addresses',
+        'name' : 'listen',
         'section' : 'webservice',
-        'type' : LType.ListSocketAddresses,
-        'default' : '127.0.0.1:8082',
-        'help' : 'IP Addresses of webserver to listen on',
+        'type' : LType.ListIncomingWSConfigs,
+        'default' : '',
+        'help' : 'XXXX',
         'doc' : '''
-IP addresses for the webserver to listen on.
+XXXXX IP addresses for the webserver to listen on.
 If this setting has a non-default value, :ref:`setting-yaml-webservice.address`  :ref:`setting-yaml-webservice.port` and will be ignored.
  ''',
         'skip-old': 'No equivalent old-style setting',

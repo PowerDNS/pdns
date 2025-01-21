@@ -21,6 +21,8 @@
  */
 #pragma once
 
+#include <memory>
+
 #include "rust/cxx.h"
 #include "credentials.hh"
 
@@ -41,6 +43,7 @@ using CredentialsHolder = ::CredentialsHolder;
 struct KeyValue;
 struct Request;
 struct Response;
+struct IncomingWSConfig;
 
 template <typename A>
 class Wrapper
