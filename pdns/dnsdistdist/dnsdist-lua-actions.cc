@@ -229,7 +229,7 @@ void setupLuaActions(LuaContext& luaCtx)
         capTypes.insert(QType(type));
       }
     }
-    return dnsdist::actions::getLimitTTLResponseAction(min, max, capTypes);
+    return dnsdist::actions::getLimitTTLResponseAction(min, max, std::move(capTypes));
   });
 
   luaCtx.writeFunction("SetMinTTLResponseAction", [](uint32_t min) {

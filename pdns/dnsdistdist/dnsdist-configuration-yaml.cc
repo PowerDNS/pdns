@@ -710,7 +710,7 @@ static void loadBinds(const ::rust::Vec<dnsdist::rust::settings::BindConfigurati
           /* also create the UDP listener */
           state = std::make_shared<ClientState>(ComboAddress(std::string(bind.listen_address), defaultPort), false, bind.reuseport, bind.tcp.fast_open_queue_size, std::string(bind.interface), cpus, false);
 #if defined(HAVE_DNSCRYPT)
-          state->dnscryptCtx = dnsCryptContext;
+          state->dnscryptCtx = std::move(dnsCryptContext);
 #endif /* defined(HAVE_DNSCRYPT) */
 #if defined(HAVE_XSK)
           if (xskMap) {
@@ -739,7 +739,7 @@ static void loadWebServer(const dnsdist::rust::settings::WebserverConfiguration&
   catch (const PDNSException& e) {
     throw std::runtime_error(std::string("Error parsing the bind address for the webserver: ") + e.reason);
   }
-  dnsdist::configuration::updateRuntimeConfiguration([local, webConfig](dnsdist::configuration::RuntimeConfiguration& config) {
+  dnsdist::configuration::updateRuntimeConfiguration([local, &webConfig](dnsdist::configuration::RuntimeConfiguration& config) {
     config.d_webServerAddress = local;
     if (!webConfig.password.empty()) {
       auto holder = std::make_shared<CredentialsHolder>(std::string(webConfig.password), webConfig.hash_plaintext_credentials);
@@ -872,7 +872,7 @@ static void handleLoggingConfiguration(const dnsdist::rust::settings::LoggingCon
       }
     }
 
-    dnsdist::logging::LoggingConfiguration::setStructuredLogging(true, levelPrefix);
+    dnsdist::logging::LoggingConfiguration::setStructuredLogging(true, std::move(levelPrefix));
   }
 }
 
@@ -1310,7 +1310,7 @@ std::shared_ptr<DNSResponseActionWrapper> getLimitTTLResponseAction(const LimitT
     capTypes.insert(QType(type));
   }
 
-  auto action = dnsdist::actions::getLimitTTLResponseAction(config.min, config.max, capTypes);
+  auto action = dnsdist::actions::getLimitTTLResponseAction(config.min, config.max, std::move(capTypes));
   return newDNSResponseActionWrapper(std::move(action), config.name);
 }
 
@@ -1432,7 +1432,7 @@ std::shared_ptr<DNSActionWrapper> getDnstapLogAction(const DnstapLogActionConfig
   }
   dnsdist::actions::DnstapAlterFunction alterFunc;
   dnsdist::configuration::yaml::getLuaFunctionFromConfiguration(alterFunc, config.alter_function_name, config.alter_function_code, config.alter_function_file, "dnstap log action");
-  auto action = dnsdist::actions::getDnstapLogAction(std::string(config.identity), logger, alterFunc);
+  auto action = dnsdist::actions::getDnstapLogAction(std::string(config.identity), std::move(logger), std::move(alterFunc));
   return newDNSActionWrapper(std::move(action), config.name);
 #endif
 }
@@ -1448,7 +1448,7 @@ std::shared_ptr<DNSResponseActionWrapper> getDnstapLogResponseAction(const Dnsta
   }
   dnsdist::actions::DnstapAlterResponseFunction alterFunc;
   dnsdist::configuration::yaml::getLuaFunctionFromConfiguration(alterFunc, config.alter_function_name, config.alter_function_code, config.alter_function_file, "dnstap log response action");
-  auto action = dnsdist::actions::getDnstapLogResponseAction(std::string(config.identity), logger, alterFunc);
+  auto action = dnsdist::actions::getDnstapLogResponseAction(std::string(config.identity), std::move(logger), std::move(alterFunc));
   return newDNSResponseActionWrapper(std::move(action), config.name);
 #endif
 }
