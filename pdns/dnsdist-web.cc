@@ -913,7 +913,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   output << "dnsdist_info{version=\"" << VERSION << "\"} " << "1" << "\n";
 
   resp.body = output.str();
-  resp.headers["Content-Type"] = "text/plain";
+  resp.headers["Content-Type"] = "text/plain; version=0.0.4";
 }
 #endif /* DISABLE_PROMETHEUS */
 
