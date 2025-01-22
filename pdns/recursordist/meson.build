@@ -11,6 +11,9 @@ project(
     'cpp_std=c++17',
   ],
 )
+
+meson.add_dist_script('meson-dist-script')
+
 add_project_arguments('-DRECURSOR', language: 'cpp')
 
 
