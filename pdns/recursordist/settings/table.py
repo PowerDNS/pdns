@@ -3577,7 +3577,7 @@ Load this Lua script on startup and shutdown and run the Lua function ``on_recur
         'default' : '',
         'help' : 'Sequence of ForwardingCatalogZone',
         'doc' : '''
-Sequence of ForwardingCatalogZone
+Sequence of ForwardingCatalogZone. This setting cannot be combined with :ref:`setting-lua-config-file`.
         ''',
         'skip-old' : 'No equivalent old style setting',
         'versionadded': '5.2.0',

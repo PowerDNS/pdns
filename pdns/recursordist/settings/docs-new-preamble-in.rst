@@ -501,6 +501,9 @@ As of version 5.2.0, a forwarding catalog zone entry is defined as:
        recurse: bool, default false
        notify_allowed: bool, default false
 
+While this setting has no equivalent old-style Lua configuration, it cannot appear together with :ref:`setting-lua-config-file` being set.
+If you want to use catalog zones to define forwards, you need to convert existing Lua configuration to YAML format.
+
 Names instead of IP addresess can be used for ``addresses`` if :ref:`setting-yaml-recursor.system_resolver_ttl` is set.
 An example of a :ref:`setting-yaml-recursor.forwarding_catalog_zones` entry, which is a sequence of `ForwardingCatalogZone`_:
 
