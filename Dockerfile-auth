@@ -33,10 +33,10 @@ ADD configure.ac Makefile.am /source/
 COPY builder/helpers/set-configure-ac-version.sh /usr/local/bin
 
 ARG MAKEFLAGS=
-ENV MAKEFLAGS ${MAKEFLAGS:--j2}
+ENV MAKEFLAGS=${MAKEFLAGS:--j2}
 
 ARG DOCKER_FAKE_RELEASE=NO
-ENV DOCKER_FAKE_RELEASE ${DOCKER_FAKE_RELEASE}
+ENV DOCKER_FAKE_RELEASE=${DOCKER_FAKE_RELEASE}
 
 RUN if [ "${DOCKER_FAKE_RELEASE}" = "YES" ]; then \
       BUILDER_VERSION="$(IS_RELEASE=YES BUILDER_MODULES=authoritative ./builder-support/gen-version | sed 's/\([0-9]\+\.[0-9]\+\.[0-9]\+\(\(alpha|beta|rc\)\d\+\)\)?.*/\1/')" set-configure-ac-version.sh;\

@@ -36,10 +36,10 @@ RUN cd /source/ && ./install_rust.sh
 WORKDIR /source/pdns/recursordist
 
 ARG MAKEFLAGS=
-ENV MAKEFLAGS ${MAKEFLAGS:--j2}
+ENV MAKEFLAGS=${MAKEFLAGS:--j2}
 
 ARG DOCKER_FAKE_RELEASE=NO
-ENV DOCKER_FAKE_RELEASE ${DOCKER_FAKE_RELEASE}
+ENV DOCKER_FAKE_RELEASE=${DOCKER_FAKE_RELEASE}
 
 # Manpage deps
 # RUN apt-get install -y python3-venv && apt-get clean
