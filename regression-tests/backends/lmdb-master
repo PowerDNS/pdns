@@ -85,6 +85,11 @@ __EOF__
             $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb load-zone catalog.invalid zones/catalog.invalid
             $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb set-kind catalog.invalid producer
 
+            $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb load-zone catalog2.invalid zones/catalog2.invalid
+            $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb set-kind catalog2.invalid producer
+            $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb set-catalog catalog2.invalid catalog.invalid
+            $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb set-catalog minimal.com$plusvariant catalog2.invalid
+
             $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb set-options-json test.com$plusvariant '{"producer":{"coo":"other-catalog.invalid","unique":"123"}}'
             $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb set-options-json tsig.com$plusvariant '{"producer":{"group":["pdns-group-x","pdns-group-y"]}}'
         fi

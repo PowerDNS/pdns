@@ -22,6 +22,7 @@ No keys for zone '.'.
 ..myroot
 2.0.192.in-addr.arpa
 catalog.invalid
+catalog2.invalid
 cdnskey-cds-test.com
 cryptokeys.org
 delegated.dnssec-parent.com
