@@ -41,6 +41,11 @@ __EOF__
 			$PDNSUTIL --config-dir=. --config-name=gmysql load-zone catalog.invalid zones/catalog.invalid
 			$PDNSUTIL --config-dir=. --config-name=gmysql set-kind catalog.invalid producer
 
+			$PDNSUTIL --config-dir=. --config-name=gmysql load-zone catalog2.invalid zones/catalog2.invalid
+			$PDNSUTIL --config-dir=. --config-name=gmysql set-kind catalog2.invalid producer
+			$PDNSUTIL --config-dir=. --config-name=gmysql set-catalog catalog2.invalid catalog.invalid
+			$PDNSUTIL --config-dir=. --config-name=gmysql set-catalog minimal.com catalog2.invalid
+
 			$PDNSUTIL --config-dir=. --config-name=gmysql set-option test.com producer coo other-catalog.invalid
 			$PDNSUTIL --config-dir=. --config-name=gmysql set-option test.com producer unique 123
 			$PDNSUTIL --config-dir=. --config-name=gmysql set-option tsig.com producer group pdns-group-x pdns-group-y

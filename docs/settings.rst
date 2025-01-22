@@ -1366,6 +1366,18 @@ Allow this many DNS queries in a single TCP transaction. 0 means
 unlimited. Note that exchanges related to an AXFR or IXFR are not
 affected by this setting.
 
+.. _setting-member-catalog-group
+
+``member-catalog-group``
+------------------------
+
+-  String
+-  Default: pdns-member-catalog
+
+.. versionadded:: 5.1.0
+
+Catalog group used to signal that a member zone is a catalog.
+
 .. _setting-module-dir:
 
 ``module-dir``
