@@ -22,6 +22,7 @@ autoreconf -vi
 # Generate man pages
 cd "$MESON_PROJECT_BUILD_ROOT"
 ninja man-pages
-cp -p rec-man-pages/*.1 "$MESON_PROJECT_DIST_ROOT"
-
+cp -vp rec-man-pages/*.1 "$MESON_PROJECT_DIST_ROOT"
+ninja  librec-dnslabeltext.a.p/dnslabeltext.cc
+cp -vp librec-dnslabeltext.a.p/dnslabeltext.cc "$MESON_PROJECT_DIST_ROOT"
 
