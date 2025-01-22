@@ -1,7 +1,7 @@
 project(
   'pdns-recursor',
   ['c', 'cpp'],
-  version: run_command('../../builder-support' / 'gen-version', check: true).stdout().strip(),
+  version: run_command(meson.current_source_dir() / 'builder-support' / 'gen-version', check: true).stdout().strip(),
   license: 'GPLv2',
   license_files: 'NOTICE',
   meson_version: '>= 1.2.1',
