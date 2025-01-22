@@ -1,4 +1,5 @@
 #!/bin/sh
 
 echo HI AM AM THE DIST SCRIPT
+pwd
 env
