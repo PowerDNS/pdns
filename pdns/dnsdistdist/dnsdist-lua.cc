@@ -2104,7 +2104,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
     setLuaSideEffect();
     if (facility.type() == typeid(std::string)) {
-      auto facilityStr = boost::get<std::string>(facility);
+      const auto& facilityStr = boost::get<std::string>(facility);
       auto facilityLevel = logFacilityFromString(facilityStr);
       if (!facilityLevel) {
         g_outputBuffer = "Unknown facility '" + facilityStr + "' passed to setSyslogFacility()!\n";
