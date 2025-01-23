@@ -101,6 +101,7 @@ struct DOH3Unit
   PacketBuffer serverConnID;
   dnsdist::doh3::h3_headers_t headers;
   std::shared_ptr<DownstreamState> downstream{nullptr};
+  std::shared_ptr<const std::string> sni{nullptr};
   std::string d_contentTypeOut;
   DOH3ServerConfig* dsc{nullptr};
   uint64_t streamID{0};
