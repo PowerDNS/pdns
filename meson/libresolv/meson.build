@@ -7,7 +7,7 @@ if not dep_libresolv.found()
     add_project_link_arguments('-lresolv', language: 'cpp')
     need = true
   else
-    lib_resolv = cxx.find_library('libresolv', disabler: true, required: false)
+    lib_resolv = cxx.find_library('resolv', disabler: true, required: false)
     if lib_resolv.found()
       if cxx.links(prog, name: '-lresolv is needed', dependencies: lib_resolv)
         need = true
