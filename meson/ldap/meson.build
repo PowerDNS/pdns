@@ -6,24 +6,12 @@ if get_option('module-ldap') != 'disabled'
   dep_krb5_internal = dependency('krb5', required: true)
 
   if not dep_ldap_internal.found()
-    lib_ldap_internal = cxx.find_library('ldap', disabler: true, required: false)
-    if lib_ldap_internal.found()
-      if cxx.links(prog, name: '-lldap is needed', dependencies: lib_ldap_internal)
-        dep_ldap_internal = declare_dependency(dependencies: lib_ldap_internal)
-      endif
-    endif
+    lib_ldap_internal = cxx.find_library('ldap', disabler: true, required: true)
+    dep_ldap_internal = declare_dependency(dependencies: lib_ldap_internal)
   endif
   if not dep_lber_internal.found()
-    lib_lber_internal = cxx.find_library('lber', disabler: true, required: false)
-    if lib_lber_internal.found()
-      if cxx.links(prog, name: '-lber is needed', dependencies: lib_lber_internal)
-        dep_lber_internal = declare_dependency(dependencies: lib_lber_internal)
-      endif
-    endif
-  endif
-
-  if not dep_ldap_internal.found()
-    error('module-ldap enabled but libldap not found')
+    lib_lber_internal = cxx.find_library('lber', disabler: true, required: true)
+    dep_lber_internal = declare_dependency(dependencies: lib_lber_internal)
   endif
 
   conf.set('HAVE_LIBLDAP', dep_ldap_internal.found(), description: 'Have libldap')
