@@ -24,9 +24,14 @@ cd "$MESON_PROJECT_BUILD_ROOT"
 ninja man-pages
 cp -vp rec-man-pages/*.1 "$MESON_PROJECT_DIST_ROOT"
 
+rm -rf "$MESON_PROJECT_DIST_ROOT"/autom4te.cache
+
+
 # Generate  a few files to reduce build dependencies
-ninja  librec-dnslabeltext.a.p/dnslabeltext.cc
+echo 'If the below command generates an error, remove dnslabeltext.cc from source dir (remains of an autotools build?) and start again with a clean meson setup'
+ninja librec-dnslabeltext.a.p/dnslabeltext.cc
 cp -vp librec-dnslabeltext.a.p/dnslabeltext.cc "$MESON_PROJECT_DIST_ROOT"
-ninja  effective_tld_names.dat
+echo 'If the below command generates an error, remove effective_tld_names.dat and pubsuffix.cc from source dir (remains of an autotools build?) and start again with a clean meson setup'
+ninja effective_tld_names.dat
 cp -vp effective_tld_names.dat "$MESON_PROJECT_DIST_ROOT"
 
