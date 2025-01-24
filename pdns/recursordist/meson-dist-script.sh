@@ -23,6 +23,10 @@ autoreconf -vi
 cd "$MESON_PROJECT_BUILD_ROOT"
 ninja man-pages
 cp -vp rec-man-pages/*.1 "$MESON_PROJECT_DIST_ROOT"
+
+# Generate  a few files to reduce build dependencies
 ninja  librec-dnslabeltext.a.p/dnslabeltext.cc
 cp -vp librec-dnslabeltext.a.p/dnslabeltext.cc "$MESON_PROJECT_DIST_ROOT"
+ninja  effective_tld_names.dat
+cp -vp effective_tld_names.dat "$MESON_PROJECT_DIST_ROOT"
 
