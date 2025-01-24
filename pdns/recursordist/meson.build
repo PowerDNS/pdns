@@ -297,6 +297,7 @@ deps = [
   dep_boost,
   dep_boost_context,
   dep_threads,
+  dep_arc4random,
   dep_json11,
   dep_libcrypto,
   dep_libresolv,
