@@ -1,6 +1,6 @@
 #!/bin/sh -e
 
-echo Runnig meson-dist-script
+echo Running meson-dist-script
 echo PWD=$(pwd)
 echo MESON_SOURCE_ROOT=$MESON_SOURCE_ROOT
 echo MESON_PROJECT_DIST_ROOT=$MESON_PROJECT_DIST_ROOT
