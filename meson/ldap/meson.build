@@ -21,7 +21,10 @@ if get_option('module-ldap') != 'disabled'
       endif
     endif
   endif
- 
+
+  if not dep_ldap_internal.found()
+    error('module-ldap enabled but libldap not found')
+  endif
 
   conf.set('HAVE_LIBLDAP', dep_ldap_internal.found(), description: 'Have libldap')
 
