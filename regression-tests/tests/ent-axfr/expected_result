@@ -5,13 +5,15 @@
 15.order.test.com.	3600	IN	NSEC	server1.test.com. A RRSIG NSEC
 _double._tcp.dc.test.com.	3600	IN	NSEC	_ldap._tcp.dc.test.com. SRV RRSIG NSEC
 _ldap._tcp.dc.test.com.	3600	IN	NSEC	_root._tcp.dc.test.com. SRV RRSIG NSEC
-_root._tcp.dc.test.com.	3600	IN	NSEC	enum.test.com. SRV RRSIG NSEC
+_root._tcp.dc.test.com.	3600	IN	NSEC	enam.test.com. SRV RRSIG NSEC
 _underscore.test.com.	3600	IN	NSEC	aland.test.com. TXT RRSIG NSEC
 aland.test.com.	3600	IN	NSEC	blah.test.com. TXT RRSIG NSEC
 b.c.test.com.	3600	IN	NSEC	*.a.b.c.test.com. A RRSIG NSEC
 blah.test.com.	3600	IN	NSEC	b.c.test.com. NS RRSIG NSEC
 counter.test.com.	3600	IN	NSEC	d.test.com. A RRSIG NSEC
 d.test.com.	3600	IN	NSEC	_double._tcp.dc.test.com. DNAME RRSIG NSEC
+enam.test.com.	3600	IN	NSEC	ensm.test.com. NAPTR RRSIG NSEC
+ensm.test.com.	3600	IN	NSEC	enum.test.com. NAPTR RRSIG NSEC
 enum.test.com.	3600	IN	NSEC	hightxt.test.com. NAPTR RRSIG NSEC
 hightxt.test.com.	3600	IN	NSEC	interrupted-rrset.test.com. TXT RRSIG NSEC SPF
 interrupted-rrset.test.com.	3600	IN	NSEC	ns1.test.com. A TXT RRSIG NSEC
