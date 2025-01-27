@@ -985,7 +985,6 @@ void AsyncWebServer::go()
 
 void serveRustWeb()
 {
-  cerr << "SERVERUSTWEB" << endl;
   ::rust::Vec<pdns::rust::web::rec::IncomingWSConfig> config;
 
   if (g_yamlSettings) {
@@ -999,7 +998,6 @@ void serveRustWeb()
       config.emplace_back(tmp);
     }
   }
-  cerr << "Config ahs " << config.size() << " entries" << endl;
   if (config.empty()) {
     auto address = ComboAddress(arg()["webserver-address"], arg().asNum("webserver-port"));
     pdns::rust::web::rec::IncomingWSConfig tmp{{::rust::String{address.toStringWithPort()}}, {}};
@@ -1024,10 +1022,17 @@ void serveRustWeb()
   acl.toMasks(::arg()["webserver-allow-from"]);
   auto aclPtr = std::make_unique<pdns::rust::web::rec::NetmaskGroup>(acl);
 
-  cerr << "CALL SERVEWEB" << endl;
   auto logPtr = std::make_unique<pdns::rust::web::rec::Logger>(g_slog->withName("webserver"));
 
-  pdns::rust::web::rec::serveweb(config, ::rust::Slice<const ::rust::String>{urls.data(), urls.size()}, std::move(password), std::move(apikey), std::move(aclPtr), std::move(logPtr));
+  pdns::rust::web::rec::LogLevel loglevel = pdns::rust::web::rec::LogLevel::Normal;
+  auto configLevel = ::arg()["webserver-loglevel"];
+  if (configLevel == "none") {
+    loglevel = pdns::rust::web::rec::LogLevel::Normal;
+  }
+  else if (configLevel == "detailed") {
+    loglevel = pdns::rust::web::rec::LogLevel::Detailed;
+  }
+  pdns::rust::web::rec::serveweb(config, ::rust::Slice<const ::rust::String>{urls.data(), urls.size()}, std::move(password), std::move(apikey), std::move(aclPtr), std::move(logPtr), loglevel);
 }
 
 static void fromCxxToRust(const HttpResponse& cxxresp, pdns::rust::web::rec::Response& rustResponse)

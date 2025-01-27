@@ -28,7 +28,6 @@ use tokio::task::JoinSet;
 use std::io::ErrorKind;
 use std::str::FromStr;
 use std::sync::Arc;
-use tokio::sync::Mutex;
 use base64::prelude::*;
 
 type GenericError = Box<dyn std::error::Error + Send + Sync>;
@@ -73,7 +72,6 @@ fn compare_authorization(ctx: &Context, reqheaders: &header::HeaderMap) -> bool
 
 fn unauthorized(response: &mut rustweb::Response, headers: &mut header::HeaderMap, auth: &str)
 {
-    // XXX log
     let status =  StatusCode::UNAUTHORIZED;
     response.status = status.as_u16();
     let val = format!("{} realm=\"PowerDNS\"", auth);
@@ -85,6 +83,7 @@ fn unauthorized(response: &mut rustweb::Response, headers: &mut header::HeaderMa
 }
 
 fn api_wrapper(
+    logger: &cxx::UniquePtr<rustweb::Logger>,
     ctx: &Context,
     handler: Func,
     request: &rustweb::Request,
@@ -100,6 +99,8 @@ fn api_wrapper(
         header::HeaderValue::from_static("*"),
     );
     if ctx.api_ch.is_null() {
+        rustweb::log(logger, rustweb::Priority::Error, "Authentication failed, API Key missing in config",
+                     &vec!(rustweb::KeyValue{key: "urlpath".to_string(), value: request.uri.to_owned()}));
         unauthorized(response, headers, "X-API-Key");
         return;
     }
@@ -128,6 +129,8 @@ fn api_wrapper(
         }
     }
     if !auth_ok {
+        rustweb::log(logger, rustweb::Priority::Error, "Authentication failed",
+                     &vec!(rustweb::KeyValue{key: "urlpath".to_string(), value: request.uri.to_owned()}));
         unauthorized(response, headers, "X-API-Key");
         return;
     }
@@ -172,7 +175,7 @@ struct Context {
     api_ch: cxx::UniquePtr<rustweb::CredentialsHolder>,
     acl: cxx::UniquePtr<rustweb::NetmaskGroup>,
     logger: cxx::UniquePtr<rustweb::Logger>,
-    counter: Mutex<u32>,
+    loglevel: rustweb::LogLevel,
 }
 
 // Serve a file
@@ -302,12 +305,60 @@ fn collect_options(path: &str, response: &mut rustweb::Response, my_logger: &cxx
     response.headers.push(rustweb::KeyValue{key: String::from("content-type"), value: String::from("text/plain")});
 }
 
-fn log_request(request: &rustweb::Request, remote: SocketAddr)
+fn log_request(loglevel: rustweb::LogLevel, request: &rustweb::Request, remote: SocketAddr)
 {
+    if loglevel != rustweb::LogLevel::Detailed { 
+        return;
+    }
+    let body;
+    match std::str::from_utf8(&request.body) {
+        Ok(cvt) => body = cvt,
+        Err(_) => body = "error: body is not utf8"
+    }
+    let mut vec = vec!(
+        rustweb::KeyValue{key: "remote".to_string(), value: remote.to_string()},
+        rustweb::KeyValue{key: "body".to_string(), value: body.to_string()}
+    );
+    let mut first = true;
+    let mut str = "".to_string();
+    for var in &request.vars {
+        if !first {
+            str.push_str(" ");
+        }
+        first = false;
+        let snippet = var.key.to_owned() + "=" + &var.value;
+        str.push_str(&snippet);
+    }
+    vec.push(rustweb::KeyValue{key: "getVars".to_string(), value: str.to_string()});
+    rustweb::log(&request.logger, rustweb::Priority::Info, "Request details", &vec);
 }
 
-fn log_response(response: &rustweb::Response, remote: SocketAddr)
+fn log_response(loglevel: rustweb::LogLevel, logger: &cxx::UniquePtr<rustweb::Logger>, response: &rustweb::Response, remote: SocketAddr)
 {
+    if loglevel != rustweb::LogLevel::Detailed {
+        return;
+    }
+    let body;
+    match std::str::from_utf8(&response.body) {
+        Ok(cvt) => body = cvt,
+        Err(_) => body = "error: body is not utf8"
+    }
+    let mut vec = vec!(
+        rustweb::KeyValue{key: "remote".to_string(), value: remote.to_string()},
+        rustweb::KeyValue{key: "body".to_string(), value: body.to_string()}
+    );
+    let mut first = true;
+    let mut str = "".to_string();
+    for var in &response.headers {
+        if !first {
+            str.push_str(" ");
+        }
+        first = false;
+        let snippet = var.key.to_owned() + "=" + &var.value;
+        str.push_str(&snippet);
+    }
+    vec.push(rustweb::KeyValue{key: "headers".to_string(), value: str.to_string()});
+    rustweb::log(logger, rustweb::Priority::Info, "Response details", &vec);
 }
 
 // Main entry point after a request arrived
@@ -316,11 +367,6 @@ async fn process_request(
     ctx: Arc<Context>,
     remote: SocketAddr,
 ) -> MyResult<Response<BoxBody>> {
-    {
-        // For demo purposes
-        let mut counter = ctx.counter.lock().await;
-        *counter += 1;
-    }
 
     let unique = uuid::Uuid::new_v4();
     let my_logger = rustweb::withValue(&ctx.logger, "uniqueid", &unique.to_string());
@@ -350,7 +396,7 @@ async fn process_request(
         logger: &my_logger,
     };
 
-    log_request(&request, remote);
+    log_request(ctx.loglevel, &request, remote);
 
     let mut response = rustweb::Response {
         status: 0,
@@ -366,7 +412,7 @@ async fn process_request(
 
     let path = rust_request.uri().path().to_owned();
     let version = rust_request.version().to_owned();
-    
+
     if method == Method::OPTIONS {
         collect_options(&path, &mut response, &my_logger);
     }
@@ -385,6 +431,7 @@ async fn process_request(
             }
             // This calls indirectly into C++
             api_wrapper(
+                &my_logger,
                 &ctx,
                 func,
                 &request,
@@ -412,18 +459,7 @@ async fn process_request(
     if method == Method::HEAD {
         len = 0;
     }
-    log_response(&response, remote);
-    if true { // XXX
-        let version = format!("{:?}", version);
-        rustweb::log(&my_logger, rustweb::Priority::Notice, "Request", &vec!(
-            rustweb::KeyValue{key: "remote".to_string(), value: remote.to_string()},
-            rustweb::KeyValue{key: "method".to_string(), value: method.to_string()},
-            rustweb::KeyValue{key: "urlpath".to_string(), value: path.to_string()},
-            rustweb::KeyValue{key: "HTTPVersion".to_string(), value: version},
-            rustweb::KeyValue{key: "status".to_string(), value: response.status.to_string()},
-            rustweb::KeyValue{key: "respsize".to_string(), value: len.to_string()},
-        ));
-    }
+    log_response(ctx.loglevel, &my_logger, &response, remote);
     // Throw away body for HEAD call
     let mut body = full(response.body);
     if method == Method::HEAD {
@@ -445,6 +481,17 @@ async fn process_request(
         header::CONNECTION,
         header::HeaderValue::from_str("close").unwrap(),
     );
+    if ctx.loglevel != rustweb::LogLevel::None {
+        let version = format!("{:?}", version);
+        rustweb::log(&my_logger, rustweb::Priority::Notice, "Request", &vec!(
+            rustweb::KeyValue{key: "remote".to_string(), value: remote.to_string()},
+            rustweb::KeyValue{key: "method".to_string(), value: method.to_string()},
+            rustweb::KeyValue{key: "urlpath".to_string(), value: path.to_string()},
+            rustweb::KeyValue{key: "HTTPVersion".to_string(), value: version},
+            rustweb::KeyValue{key: "status".to_string(), value: response.status.to_string()},
+            rustweb::KeyValue{key: "respsize".to_string(), value: len.to_string()},
+        ));
+    }
 
     Ok(rust_response)
 }
@@ -491,6 +538,7 @@ async fn serveweb_async(listener: TcpListener, config: crate::web::rustweb::Inco
                 }
             };
             let io = TokioIo::new(tls_stream);
+            let my_logger = rustweb::withValue(&ctx.logger, "tls", "true");
             let fut =
                 http1::Builder::new().serve_connection(io, service_fn(move |req| {
                     let ctx = Arc::clone(&ctx);
@@ -501,7 +549,7 @@ async fn serveweb_async(listener: TcpListener, config: crate::web::rustweb::Inco
             tokio::task::spawn(async move {
                 // Finally, we bind the incoming connection to our `process_request` service
                 if let Err(err) = fut.await {
-                    //rustweb::error(&ctx.logger, rustweb::Priority::Notice, &err.to_string(), "Error serving web connection", &vec!());
+                    rustweb::error(&my_logger, rustweb::Priority::Notice, &err.to_string(), "Error serving web connection", &vec!());
                 }
             });
         }
@@ -528,6 +576,7 @@ async fn serveweb_async(listener: TcpListener, config: crate::web::rustweb::Inco
                 }
             }
             let io = TokioIo::new(stream);
+            let my_logger = rustweb::withValue(&ctx.logger, "tls", "false");
             let fut =
                 http1::Builder::new().serve_connection(io, service_fn(move |req| {
                     let ctx = Arc::clone(&ctx);
@@ -538,14 +587,14 @@ async fn serveweb_async(listener: TcpListener, config: crate::web::rustweb::Inco
             tokio::task::spawn(async move {
                 // Finally, we bind the incoming connection to our `process_request` service
                 if let Err(err) = fut.await {
-                    //rustweb::error(&ctx.logger, rustweb::Priority::Notice, &err.to_string(), "Error serving web connection", &vec!());
+                    rustweb::error(&my_logger, rustweb::Priority::Notice, &err.to_string(), "Error serving web connection", &vec!());
                }
             });
         }
     }
 }
 
-pub fn serveweb(incoming: &Vec<rustweb::IncomingWSConfig>, urls: &[String], password_ch: cxx::UniquePtr<rustweb::CredentialsHolder>, api_ch: cxx::UniquePtr<rustweb::CredentialsHolder>, acl: cxx::UniquePtr<rustweb::NetmaskGroup>, logger: cxx::UniquePtr<rustweb::Logger>) -> Result<(), std::io::Error> {
+pub fn serveweb(incoming: &Vec<rustweb::IncomingWSConfig>, urls: &[String], password_ch: cxx::UniquePtr<rustweb::CredentialsHolder>, api_ch: cxx::UniquePtr<rustweb::CredentialsHolder>, acl: cxx::UniquePtr<rustweb::NetmaskGroup>, logger: cxx::UniquePtr<rustweb::Logger>, loglevel: rustweb::LogLevel) -> Result<(), std::io::Error> {
 
     // Context, atomically reference counted
     let ctx = Arc::new(Context {
@@ -554,7 +603,7 @@ pub fn serveweb(incoming: &Vec<rustweb::IncomingWSConfig>, urls: &[String], pass
         api_ch,
         acl,
         logger,
-        counter: Mutex::new(0), // more for educational purposes
+        loglevel,
     });
 
     // We use a single thread to handle all the requests, letting the runtime abstracts from this
@@ -674,7 +723,7 @@ mod rustweb {
      */
     extern "Rust" {
         // The main entry point, This function will return, but will setup thread(s) to handle requests.
-        fn serveweb(incoming: &Vec<IncomingWSConfig>, urls: &[String], pwch: UniquePtr<CredentialsHolder>, apikeych: UniquePtr<CredentialsHolder>, acl: UniquePtr<NetmaskGroup>, logger: UniquePtr<Logger>) -> Result<()>;
+        fn serveweb(incoming: &Vec<IncomingWSConfig>, urls: &[String], pwch: UniquePtr<CredentialsHolder>, apikeych: UniquePtr<CredentialsHolder>, acl: UniquePtr<NetmaskGroup>, logger: UniquePtr<Logger>, loglevel: LogLevel) -> Result<()>;
     }
 
     struct KeyValue {
@@ -706,7 +755,11 @@ mod rustweb {
         Info = 6,
         Debug = 7
     }
-    
+    enum LogLevel {
+        None,
+        Normal,
+        Detailed
+    }
     /*
      * Functions callable from Rust
      */
