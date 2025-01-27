@@ -1024,8 +1024,10 @@ void serveRustWeb()
   acl.toMasks(::arg()["webserver-allow-from"]);
   auto aclPtr = std::make_unique<pdns::rust::web::rec::NetmaskGroup>(acl);
 
- cerr << "CALL SERVEWEB" << endl;
-   pdns::rust::web::rec::serveweb(config, ::rust::Slice<const ::rust::String>{urls.data(), urls.size()}, std::move(password), std::move(apikey), std::move(aclPtr));
+  cerr << "CALL SERVEWEB" << endl;
+  auto logPtr = std::make_unique<pdns::rust::web::rec::Logger>(g_slog->withName("webserver"));
+
+  pdns::rust::web::rec::serveweb(config, ::rust::Slice<const ::rust::String>{urls.data(), urls.size()}, std::move(password), std::move(apikey), std::move(aclPtr), std::move(logPtr));
 }
 
 static void fromCxxToRust(const HttpResponse& cxxresp, pdns::rust::web::rec::Response& rustResponse)
