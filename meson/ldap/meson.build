@@ -1,9 +1,18 @@
 dep_ldap = dependency('', required: false)
 
 if get_option('module-ldap') != 'disabled'
-  dep_ldap_internal = dependency('ldap', required: true)
-  dep_lber_internal = dependency('lber', required: true)
+  dep_ldap_internal = dependency('ldap', required: false)
+  dep_lber_internal = dependency('lber', required: false)
   dep_krb5_internal = dependency('krb5', required: true)
+
+  if not dep_ldap_internal.found()
+    lib_ldap_internal = cxx.find_library('ldap', disabler: true, required: true)
+    dep_ldap_internal = declare_dependency(dependencies: lib_ldap_internal)
+  endif
+  if not dep_lber_internal.found()
+    lib_lber_internal = cxx.find_library('lber', disabler: true, required: true)
+    dep_lber_internal = declare_dependency(dependencies: lib_lber_internal)
+  endif
 
   conf.set('HAVE_LIBLDAP', dep_ldap_internal.found(), description: 'Have libldap')
 
