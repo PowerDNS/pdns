@@ -1074,7 +1074,7 @@ Queries for zones listed here will be forwarded to the IP address listed. i.e.
 .. code-block:: yaml
 
  recursor:
-    forward-zones:
+    forward_zones:
       - zone: example.org
         forwarders:
         - 203.0.113.210
@@ -1087,7 +1087,7 @@ Multiple IP addresses can be specified and port numbers other than 53 can be con
 .. code-block:: yaml
 
   recursor:
-    forward-zones:
+    forward_zones:
     - zone: example.org
       forwarders:
       - 203.0.113.210:5300
