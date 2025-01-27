@@ -371,8 +371,12 @@ async fn process_request(
         collect_options(&path, &mut response, &my_logger);
     }
     else {
-        // Find the right fucntion implementing what the request wants
-        matcher(&method, &path, &mut apifunc, &mut rawfunc, &mut filefunc, &mut allow_password, &mut request);
+        // Find the right function implementing what the request wants
+        let mut matchmethod = method.clone();
+        if method == Method::HEAD {
+            matchmethod = Method::GET;
+        }
+        matcher(&matchmethod, &path, &mut apifunc, &mut rawfunc, &mut filefunc, &mut allow_password, &mut request);
 
         if let Some(func) = apifunc {
             let reqheaders = rust_request.headers().clone();
@@ -404,6 +408,10 @@ async fn process_request(
         }
     }
 
+    let mut len = response.body.len();
+    if method == Method::HEAD {
+        len = 0;
+    }
     log_response(&response, remote);
     if true { // XXX
         let version = format!("{:?}", version);
@@ -413,7 +421,7 @@ async fn process_request(
             rustweb::KeyValue{key: "urlpath".to_string(), value: path.to_string()},
             rustweb::KeyValue{key: "HTTPVersion".to_string(), value: version},
             rustweb::KeyValue{key: "status".to_string(), value: response.status.to_string()},
-            rustweb::KeyValue{key: "respsize".to_string(), value: response.body.len().to_string()},
+            rustweb::KeyValue{key: "respsize".to_string(), value: len.to_string()},
         ));
     }
     // Throw away body for HEAD call
