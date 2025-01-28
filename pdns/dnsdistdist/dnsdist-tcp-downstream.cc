@@ -229,7 +229,7 @@ enum class ConnectionState : uint8_t {
   proxySent
 };
 
-static void prepareQueryForSending(TCPQuery& query, uint16_t id, ConnectionState connectionState)
+static void prepareQueryForSending(TCPQuery& query, uint16_t queryID, ConnectionState connectionState)
 {
   if (connectionState == ConnectionState::needProxy) {
     if (query.d_proxyProtocolPayload.size() > 0 && !query.d_proxyProtocolPayloadAdded) {
@@ -253,7 +253,7 @@ static void prepareQueryForSending(TCPQuery& query, uint16_t id, ConnectionState
     getSerialFromIXFRQuery(query);
   }
 
-  editPayloadID(query.d_buffer, id, query.d_proxyProtocolPayloadAdded ? query.d_idstate.d_proxyProtocolPayloadSize : 0, true);
+  editPayloadID(query.d_buffer, queryID, query.d_proxyProtocolPayloadAdded ? query.d_idstate.d_proxyProtocolPayloadSize : 0, true);
 }
 
 IOState TCPConnectionToBackend::queueNextQuery(std::shared_ptr<TCPConnectionToBackend>& conn)

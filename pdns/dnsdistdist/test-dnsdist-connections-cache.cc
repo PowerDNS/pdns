@@ -71,7 +71,7 @@ public:
   {
   }
 
-  void release(bool removeFromCache)
+  static void release(bool removeFromCache)
   {
     (void)removeFromCache;
   }

@@ -1045,7 +1045,7 @@ bool initDoHWorkers()
 #endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
 }
 
-bool sendH2Query([[maybe_unused]] const std::shared_ptr<DownstreamState>& ds, [[maybe_unused]] std::unique_ptr<FDMultiplexer>& mplexer, [[maybe_unused]] std::shared_ptr<TCPQuerySender>& sender, [[maybe_unused]] InternalQuery&& query, [[maybe_unused]] bool healthCheck)
+bool sendH2Query([[maybe_unused]] const std::shared_ptr<DownstreamState>& downstream, [[maybe_unused]] std::unique_ptr<FDMultiplexer>& mplexer, [[maybe_unused]] std::shared_ptr<TCPQuerySender>& sender, [[maybe_unused]] InternalQuery&& query, [[maybe_unused]] bool healthCheck)
 {
 #if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
   struct timeval now
@@ -1056,12 +1056,12 @@ bool sendH2Query([[maybe_unused]] const std::shared_ptr<DownstreamState>& ds, [[
 
   if (healthCheck) {
     /* always do health-checks over a new connection */
-    auto newConnection = std::make_shared<DoHConnectionToBackend>(ds, mplexer, now, std::move(query.d_proxyProtocolPayload));
+    auto newConnection = std::make_shared<DoHConnectionToBackend>(downstream, mplexer, now, std::move(query.d_proxyProtocolPayload));
     newConnection->setHealthCheck(healthCheck);
     newConnection->queueQuery(sender, std::move(query));
   }
   else {
-    auto connection = t_downstreamDoHConnectionsManager.getConnectionToDownstream(mplexer, ds, now, std::move(query.d_proxyProtocolPayload));
+    auto connection = t_downstreamDoHConnectionsManager.getConnectionToDownstream(mplexer, downstream, now, std::move(query.d_proxyProtocolPayload));
     connection->queueQuery(sender, std::move(query));
   }
 

@@ -2355,13 +2355,15 @@ std::shared_ptr<DNSAction> getKeyValueStoreRangeLookupAction(std::shared_ptr<Key
 }
 #endif /* defined(HAVE_LMDB) || defined(HAVE_CDB) */
 
-#ifdef HAVE_DNS_OVER_HTTPS
 std::shared_ptr<DNSAction> getHTTPStatusAction(uint16_t status, PacketBuffer&& body, const std::string& contentType, const dnsdist::ResponseConfig& responseConfig)
 {
+#if defined(HAVE_DNS_OVER_HTTPS)
   return std::shared_ptr<DNSAction>(new HTTPStatusAction(status, std::move(body), contentType, responseConfig));
+#else
+  throw std::runtime_error("Unsupported HTTPStatus action");
+#endif
 }
 
-#endif
 
 std::shared_ptr<DNSResponseAction> getLimitTTLResponseAction(uint32_t min, uint32_t max, std::unordered_set<QType> types)
 {

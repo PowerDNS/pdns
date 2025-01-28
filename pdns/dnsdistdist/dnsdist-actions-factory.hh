@@ -68,9 +68,7 @@ std::shared_ptr<DNSResponseAction> getLuaResponseAction(dnsdist::actions::LuaRes
 std::shared_ptr<DNSResponseAction> getLuaFFIResponseAction(dnsdist::actions::LuaResponseActionFFIFunction function);
 
 std::shared_ptr<DNSAction> getContinueAction(std::shared_ptr<DNSAction> action);
-#ifdef HAVE_DNS_OVER_HTTPS
 std::shared_ptr<DNSAction> getHTTPStatusAction(uint16_t status, PacketBuffer&& body, const std::string& contentType, const dnsdist::ResponseConfig& responseConfig);
-#endif
 std::shared_ptr<DNSAction> getNegativeAndSOAAction(bool nxd, const DNSName& zone, uint32_t ttl, const DNSName& mname, const DNSName& rname, const SOAParams& params, bool soaInAuthority, dnsdist::ResponseConfig responseConfig);
 std::shared_ptr<DNSAction> getSetProxyProtocolValuesAction(const std::vector<std::pair<uint8_t, std::string>>& values);
 std::shared_ptr<DNSAction> getRCodeAction(uint8_t rcode, const dnsdist::ResponseConfig& responseConfig);

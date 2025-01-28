@@ -41,7 +41,7 @@ void setupLuaWeb([[maybe_unused]] LuaContext& luaCtx)
   luaCtx.registerMember<std::string(YaHTTP::Request::*)>("path", [](const YaHTTP::Request& req) -> std::string { return req.url.path; }, [](YaHTTP::Request& req, const std::string& path) { (void)req; (void) path; });
   luaCtx.registerMember<int(YaHTTP::Request::*)>("version", [](const YaHTTP::Request& req) -> int { return req.version; }, [](YaHTTP::Request& req, int version) { (void)req; (void)version; });
   luaCtx.registerMember<std::string(YaHTTP::Request::*)>("method", [](const YaHTTP::Request& req) -> std::string { return req.method; }, [](YaHTTP::Request& req, const std::string& method) { (void)req; (void) method; });
-  luaCtx.registerMember<std::string(YaHTTP::Request::*)>("body", [](const YaHTTP::Request& req) -> const std::string { return req.body; }, [](YaHTTP::Request& req, const std::string& body) { (void)req; (void)body; });
+  luaCtx.registerMember<std::string(YaHTTP::Request::*)>("body", [](const YaHTTP::Request& req) -> std::string { return req.body; }, [](YaHTTP::Request& req, const std::string& body) { (void)req; (void)body; });
   luaCtx.registerMember<LuaAssociativeTable<std::string>(YaHTTP::Request::*)>("getvars", [](const YaHTTP::Request& req) {
     LuaAssociativeTable<std::string> values;
     for (const auto& entry : req.getvars) {
