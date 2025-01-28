@@ -54,7 +54,7 @@ jobs:
     runs-on: ubuntu-22.04
     needs: get-runner-container-image
     container:
-      image: "${{ matrix.container_image }}"
+      image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
         FUZZING_TARGETS: yes
         UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
@@ -62,11 +62,7 @@ jobs:
       options: --sysctl net.ipv6.conf.all.disable_ipv6=0
     strategy:
       matrix:
-        container_image: ["${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"]
         builder: [autotools, meson]
-        exclude:
-          - container_image: "ghcr.io/powerdns/base-pdns-ci-image/debian-11-pdns-base:${{ needs.get-runner-container-image.outputs.tag }}"
-            builder: meson
       fail-fast: false
     defaults:
       run:
