@@ -1,9 +1,7 @@
 /*
 TODO
 - Table based routing?
-- Logging
 - Authorization: metrics and plain files (and more?) are not subject to password auth plus the code needs a n careful audit.
-- TLS?
 - Code is now in settings dir. It's only possible to split the modules into separate Rust libs if we
   use shared libs (in theory, I did not try). Currently all CXX using Rust cargo's must be compiled
   as one and refer to a single static Rust runtime
@@ -82,6 +80,43 @@ fn unauthorized(response: &mut rustweb::Response, headers: &mut header::HeaderMa
     response.body = status.canonical_reason().unwrap().as_bytes().to_vec();
 }
 
+fn nonapi_wrapper(
+    ctx: &Context,
+    handler: Func,
+    request: &rustweb::Request,
+    response: &mut rustweb::Response,
+    reqheaders: &header::HeaderMap,
+    headers: &mut header::HeaderMap
+) {
+    let auth_ok = compare_authorization(ctx, reqheaders);
+    if !auth_ok {
+        rustweb::log(request.logger, rustweb::Priority::Debug, "Authentication failed",
+                     &vec!(rustweb::KeyValue{key: "urlpath".to_string(), value: request.uri.to_owned()}));
+        unauthorized(response, headers, "Basic");
+        return;
+    }
+    match handler(request, response) {
+        Ok(_) => {}
+        Err(_) => {
+            let status =  StatusCode::UNPROCESSABLE_ENTITY; // 422
+            response.status = status.as_u16();
+            response.body = status.canonical_reason().unwrap().as_bytes().to_vec();
+        }
+    }
+}
+
+fn file_wrapper(ctx: &Context, handler: FileFunc, method: &Method, path: &str, request: &rustweb::Request, response: &mut rustweb::Response, reqheaders: &header::HeaderMap, headers: &mut header::HeaderMap)
+{
+    let auth_ok = compare_authorization(ctx, reqheaders);
+    if !auth_ok {
+        rustweb::log(request.logger, rustweb::Priority::Debug, "Authentication failed",
+                     &vec!(rustweb::KeyValue{key: "urlpath".to_string(), value: request.uri.to_owned()}));
+        unauthorized(response, headers, "Basic");
+        return;
+    }
+    handler(ctx, method, path, request, response);
+}
+
 fn api_wrapper(
     logger: &cxx::UniquePtr<rustweb::Logger>,
     ctx: &Context,
@@ -124,6 +159,8 @@ fn api_wrapper(
     if !auth_ok && allow_password {
         auth_ok = compare_authorization(ctx, reqheaders);
         if !auth_ok {
+            rustweb::log(logger, rustweb::Priority::Debug, "Authentication failed",
+                     &vec!(rustweb::KeyValue{key: "urlpath".to_string(), value: request.uri.to_owned()}));
             unauthorized(response, headers, "Basic");
             return;
         }
@@ -443,15 +480,13 @@ async fn process_request(
         }
         else if let Some(func) = rawfunc {
             // Non-API func
-            if func(&request, &mut response).is_err() {
-                let status =  StatusCode::UNPROCESSABLE_ENTITY; // 422
-                response.status = status.as_u16();
-                response.body = status.canonical_reason().unwrap().as_bytes().to_vec();
-            }
+            let reqheaders = rust_request.headers().clone();
+            nonapi_wrapper(&ctx, func, &request, &mut response, &reqheaders, rust_response.headers_mut().expect("no headers?"));
         }
         else if let Some(func) = filefunc {
             // Server static file
-            func(&ctx, &method, rust_request.uri().path(), &request, &mut response);
+            let reqheaders = rust_request.headers().clone();
+            file_wrapper(&ctx, func, &method, rust_request.uri().path(), &request, &mut response, &reqheaders, rust_response.headers_mut().expect("no headers?"));
         }
     }
 
