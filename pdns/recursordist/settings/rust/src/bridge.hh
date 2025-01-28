@@ -41,7 +41,6 @@ void setThreadName(::rust::Str str);
 class NetmaskGroup;
 union ComboAddress;
 
-
 namespace pdns::rust::web::rec
 {
 using CredentialsHolder = ::CredentialsHolder;
@@ -73,7 +72,7 @@ private:
 using NetmaskGroup = Wrapper<::NetmaskGroup>;
 using ComboAddress = Wrapper<::ComboAddress>;
 using Logger = Wrapper<std::shared_ptr<::Logr::Logger>>;
-  
+
 void apiServer(const Request& rustRequest, Response& rustResponse);
 void apiDiscovery(const Request& rustRequest, Response& rustResponse);
 void apiDiscoveryV1(const Request& rustRequest, Response& rustResponse);
@@ -99,5 +98,5 @@ std::unique_ptr<ComboAddress> comboaddress(::rust::Str str);
 bool matches(const std::unique_ptr<NetmaskGroup>& nmg, const std::unique_ptr<ComboAddress>& address);
 std::unique_ptr<Logger> withValue(const std::unique_ptr<Logger>& logger, ::rust::Str key, ::rust::Str val);
 void log(const std::unique_ptr<Logger>& logger, Priority log_level, ::rust::Str msg, const ::rust::Vec<KeyValue>& values);
-  void error(const std::unique_ptr<Logger>& logger, Priority log_level, ::rust::Str err, ::rust::Str msg, const ::rust::Vec<KeyValue>& values);
+void error(const std::unique_ptr<Logger>& logger, Priority log_level, ::rust::Str err, ::rust::Str msg, const ::rust::Vec<KeyValue>& values);
 }

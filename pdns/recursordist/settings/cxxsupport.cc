@@ -1499,7 +1499,7 @@ void log(const std::unique_ptr<Logger>& logger, pdns::rust::web::rec::Priority l
   log->info(static_cast<Logr::Priority>(log_level), std::string(msg));
 }
 
-  void error(const std::unique_ptr<Logger>& logger, pdns::rust::web::rec::Priority log_level, ::rust::Str error, ::rust::Str msg, const ::rust::Vec<KeyValue>& values)
+void error(const std::unique_ptr<Logger>& logger, pdns::rust::web::rec::Priority log_level, ::rust::Str error, ::rust::Str msg, const ::rust::Vec<KeyValue>& values)
 {
   auto log = logger->get();
   for (const auto& [key, value] : values) {

@@ -1048,7 +1048,6 @@ static void fromCxxToRust(const HttpResponse& cxxresp, pdns::rust::web::rec::Res
   }
 }
 
-
 // Convert what we receive from Rust into C++ data, call funtions and convert results back to Rust data
 static void rustWrapper(const std::function<void(HttpRequest*, HttpResponse*)>& func, const pdns::rust::web::rec::Request& rustRequest, pdns::rust::web::rec::Response& rustResponse)
 {

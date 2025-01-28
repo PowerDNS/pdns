@@ -217,7 +217,8 @@ fn validate_address_family(
         let sa = SocketAddr::from_str(addr_str);
         if sa.is_err() {
             let ip = IpAddr::from_str(addr_str);
-            if ip.is_err() { // It is likely a name
+            if ip.is_err() {
+                // It is likely a name
                 continue;
             }
             let ip = ip.unwrap();
@@ -704,9 +705,13 @@ impl ForwardingCatalogZone {
     pub fn validate(&self, field: &str) -> Result<(), ValidationError> {
         self.xfr.tsig.validate(&(field.to_owned() + ".xfr.tsig"))?;
         if !self.xfr.addresses.is_empty() {
-            validate_address_family(&(field.to_owned() + ".xfr.addresses"), &(field.to_owned() + ".xfr.localAddress"), &self.xfr.addresses, &self.xfr.localAddress)?;
-        }
-        else {
+            validate_address_family(
+                &(field.to_owned() + ".xfr.addresses"),
+                &(field.to_owned() + ".xfr.localAddress"),
+                &self.xfr.addresses,
+                &self.xfr.localAddress,
+            )?;
+        } else {
             let msg = format!("{}.xfr.addresses: at least one address required", field);
             return Err(ValidationError { msg });
         }
