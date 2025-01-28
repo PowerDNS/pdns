@@ -789,7 +789,12 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
     zrrs.emplace_back(CatalogInfo::getCatalogVersionRecord(target));
 
     vector<CatalogInfo> members;
-    sd.db->getCatalogMembers(target, members, CatalogInfo::CatalogType::Producer);
+    if (!sd.db->getCatalogMembers(target, members, CatalogInfo::CatalogType::Producer)) {
+      g_log << Logger::Error << logPrefix << "getting catalog members failed, aborting AXFR" << endl;
+      outpacket->setRcode(RCode::ServFail);
+      sendPacket(outpacket, outsock);
+      return 0;
+    }
     for (const auto& ci : members) {
       ci.toDNSZoneRecords(target, zrrs);
     }
