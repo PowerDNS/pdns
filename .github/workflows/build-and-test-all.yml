@@ -763,18 +763,15 @@ jobs:
   swagger-syntax-check:
     if: ${{ !github.event.schedule || vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL }}
     runs-on: ubuntu-22.04
-    # FIXME: https://github.com/PowerDNS/pdns/pull/12880
-    # container:
-    #   image: ghcr.io/powerdns/base-pdns-ci-image/debian-11-pdns-base:master
-    #   options: --sysctl net.ipv6.conf.all.disable_ipv6=0
+    container:
+      image: ghcr.io/powerdns/base-pdns-ci-image/debian-12-pdns-base:master
+      options: --sysctl net.ipv6.conf.all.disable_ipv6=0
     steps:
-      - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v4
         with:
           fetch-depth: 5
           submodules: recursive
           ref: ${{ inputs.branch-name }}
-      - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
       - run: inv install-swagger-tools
       - run: inv swagger-syntax-check
 
