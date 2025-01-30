@@ -1155,13 +1155,14 @@ def test_ixfrdist(c):
     with c.cd('regression-tests.ixfrdist'):
         c.run('IXFRDISTBIN=/opt/pdns-auth/bin/ixfrdist ./runtests')
 
-@task
-def test_dnsdist(c):
+@task(optional=['skipXDP'])
+def test_dnsdist(c, skipXDP=False):
+    test_env_vars = 'ENABLE_SUDO_TESTS=1' if not skipXDP else ''
     c.run('chmod +x /opt/dnsdist/bin/*')
     c.run('ls -ald /var /var/agentx /var/agentx/master')
     c.run('ls -al /var/agentx/master')
     with c.cd('regression-tests.dnsdist'):
-        c.run('DNSDISTBIN=/opt/dnsdist/bin/dnsdist LD_LIBRARY_PATH=/opt/dnsdist/lib/ ENABLE_SUDO_TESTS=1 ./runtests')
+        c.run(f'DNSDISTBIN=/opt/dnsdist/bin/dnsdist LD_LIBRARY_PATH=/opt/dnsdist/lib/ {test_env_vars} ./runtests')
 
 @task
 def test_regression_recursor(c):
