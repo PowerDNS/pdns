@@ -70,6 +70,7 @@ public:
   void lookup(const QType& qtype, const DNSName& qdomain, int zoneId, DNSPacket* pkt_p = nullptr) override;
   bool list(const DNSName& target, int domain_id, bool include_disabled = false) override;
   bool get(DNSResourceRecord& rr) override;
+  bool getDomainInfo(const DNSName& domain, DomainInfo& di, bool getSerial = true) override;
   void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled) override;
 
   // Primary mode operation
@@ -77,8 +78,6 @@ public:
   void setNotified(uint32_t id, uint32_t serial) override;
 
 private:
-  vector<string> getLocations();
-
   //TypeDefs
   struct tag_zone
   {
@@ -95,6 +94,10 @@ private:
   typedef map<string, TDI_t> TDI_suffix_t;
   typedef TDI_t::index<tag_zone>::type TDIByZone_t;
   typedef TDI_t::index<tag_domainid>::type TDIById_t;
+
+  vector<string> getLocations();
+  static TDI_t::iterator updateState(DomainInfo& domain, TDI_t* state);
+  void getAllDomains_locked(vector<DomainInfo>* domains, bool getSerial);
 
   //data member variables
   uint64_t d_taiepoch;
