@@ -28,6 +28,8 @@ use tokio::net::TcpListener;
 use tokio::runtime::Builder;
 use tokio::task::JoinSet;
 
+use crate::misc::rustmisc;
+
 type GenericError = Box<dyn std::error::Error + Send + Sync>;
 type MyResult<T> = std::result::Result<T, GenericError>;
 type BoxBody = http_body_util::combinators::BoxBody<Bytes, hyper::Error>;
@@ -88,11 +90,11 @@ fn nonapi_wrapper(
 ) {
     let auth_ok = compare_authorization(ctx, reqheaders);
     if !auth_ok {
-        rustweb::log(
+        rustmisc::log(
             request.logger,
             rustweb::Priority::Debug,
             "Authentication failed",
-            &vec![rustweb::KeyValue {
+            &vec![rustmisc::KeyValue {
                 key: "urlpath".to_string(),
                 value: request.uri.to_owned(),
             }],
@@ -122,11 +124,11 @@ fn file_wrapper(
 ) {
     let auth_ok = compare_authorization(ctx, reqheaders);
     if !auth_ok {
-        rustweb::log(
+        rustmisc::log(
             request.logger,
             rustweb::Priority::Debug,
             "Authentication failed",
-            &vec![rustweb::KeyValue {
+            &vec![rustmisc::KeyValue {
                 key: "urlpath".to_string(),
                 value: request.uri.to_owned(),
             }],
@@ -153,11 +155,11 @@ fn api_wrapper(
         header::HeaderValue::from_static("*"),
     );
     if ctx.api_ch.is_null() {
-        rustweb::log(
+        rustmisc::log(
             logger,
             rustweb::Priority::Error,
             "Authentication failed, API Key missing in config",
-            &vec![rustweb::KeyValue {
+            &vec![rustmisc::KeyValue {
                 key: "urlpath".to_string(),
                 value: request.uri.to_owned(),
             }],
@@ -185,11 +187,11 @@ fn api_wrapper(
     if !auth_ok && allow_password {
         auth_ok = compare_authorization(ctx, reqheaders);
         if !auth_ok {
-            rustweb::log(
+            rustmisc::log(
                 logger,
                 rustweb::Priority::Debug,
                 "Authentication failed",
-                &vec![rustweb::KeyValue {
+                &vec![rustmisc::KeyValue {
                     key: "urlpath".to_string(),
                     value: request.uri.to_owned(),
                 }],
@@ -199,11 +201,11 @@ fn api_wrapper(
         }
     }
     if !auth_ok {
-        rustweb::log(
+        rustmisc::log(
             logger,
             rustweb::Priority::Error,
             "Authentication failed",
-            &vec![rustweb::KeyValue {
+            &vec![rustmisc::KeyValue {
                 key: "urlpath".to_string(),
                 value: request.uri.to_owned(),
             }],
@@ -250,9 +252,9 @@ struct Context {
     urls: Vec<String>,
     password_ch: cxx::UniquePtr<rustweb::CredentialsHolder>,
     api_ch: cxx::UniquePtr<rustweb::CredentialsHolder>,
-    acl: cxx::UniquePtr<rustweb::NetmaskGroup>,
-    logger: cxx::SharedPtr<rustweb::Logger>,
-    loglevel: rustweb::LogLevel,
+    acl: cxx::UniquePtr<rustmisc::NetmaskGroup>,
+    logger: cxx::SharedPtr<rustmisc::Logger>,
+    loglevel: rustmisc::LogLevel,
 }
 
 // Serve a file
@@ -272,16 +274,16 @@ fn file(
         .iter()
         .position(|x| String::from("/") + x == uripath);
     if pos.is_none() {
-        rustweb::log(
+        rustmisc::log(
             request.logger,
             rustweb::Priority::Debug,
             "not found",
             &vec![
-                rustweb::KeyValue {
+                rustmisc::KeyValue {
                     key: "method".to_string(),
                     value: method.to_string(),
                 },
-                rustweb::KeyValue {
+                rustmisc::KeyValue {
                     key: "uripath".to_string(),
                     value: uripath.to_string(),
                 },
@@ -294,16 +296,16 @@ fn file(
         // Return 404 not found response.
         response.status = StatusCode::NOT_FOUND.as_u16();
         response.body = NOTFOUND.to_vec();
-        rustweb::log(
+        rustmisc::log(
             request.logger,
             rustweb::Priority::Debug,
             "not found case 2",
             &vec![
-                rustweb::KeyValue {
+                rustmisc::KeyValue {
                     key: "method".to_string(),
                     value: method.to_string(),
                 },
-                rustweb::KeyValue {
+                rustmisc::KeyValue {
                     key: "uripath".to_string(),
                     value: uripath.to_string(),
                 },
@@ -407,7 +409,7 @@ fn matcher(
 fn collect_options(
     path: &str,
     response: &mut rustweb::Response,
-    my_logger: &cxx::SharedPtr<rustweb::Logger>,
+    my_logger: &cxx::SharedPtr<rustmisc::Logger>,
 ) {
     let mut methods = vec![];
     for method in [Method::GET, Method::POST, Method::PUT, Method::DELETE] {
@@ -465,17 +467,17 @@ fn collect_options(
     });
 }
 
-fn log_request(loglevel: rustweb::LogLevel, request: &rustweb::Request, remote: SocketAddr) {
-    if loglevel != rustweb::LogLevel::Detailed {
+fn log_request(loglevel: rustmisc::LogLevel, request: &rustweb::Request, remote: SocketAddr) {
+    if loglevel != rustmisc::LogLevel::Detailed {
         return;
     }
     let body = std::str::from_utf8(&request.body).unwrap_or("error: body is not utf8");
     let mut vec = vec![
-        rustweb::KeyValue {
+        rustmisc::KeyValue {
             key: "remote".to_string(),
             value: remote.to_string(),
         },
-        rustweb::KeyValue {
+        rustmisc::KeyValue {
             key: "body".to_string(),
             value: body.to_string(),
         },
@@ -490,34 +492,34 @@ fn log_request(loglevel: rustweb::LogLevel, request: &rustweb::Request, remote: 
         let snippet = var.key.to_owned() + "=" + &var.value;
         str.push_str(&snippet);
     }
-    vec.push(rustweb::KeyValue {
+    vec.push(rustmisc::KeyValue {
         key: "getVars".to_string(),
         value: str.to_string(),
     });
-    rustweb::log(
+    rustmisc::log(
         request.logger,
-        rustweb::Priority::Info,
+        rustmisc::Priority::Info,
         "Request details",
         &vec,
     );
 }
 
 fn log_response(
-    loglevel: rustweb::LogLevel,
-    logger: &cxx::SharedPtr<rustweb::Logger>,
+    loglevel: rustmisc::LogLevel,
+    logger: &cxx::SharedPtr<rustmisc::Logger>,
     response: &rustweb::Response,
     remote: SocketAddr,
 ) {
-    if loglevel != rustweb::LogLevel::Detailed {
+    if loglevel != rustmisc::LogLevel::Detailed {
         return;
     }
     let body = std::str::from_utf8(&response.body).unwrap_or("error: body is not utf8");
     let mut vec = vec![
-        rustweb::KeyValue {
+        rustmisc::KeyValue {
             key: "remote".to_string(),
             value: remote.to_string(),
         },
-        rustweb::KeyValue {
+        rustmisc::KeyValue {
             key: "body".to_string(),
             value: body.to_string(),
         },
@@ -532,11 +534,11 @@ fn log_response(
         let snippet = var.key.to_owned() + "=" + &var.value;
         str.push_str(&snippet);
     }
-    vec.push(rustweb::KeyValue {
+    vec.push(rustmisc::KeyValue {
         key: "headers".to_string(),
         value: str.to_string(),
     });
-    rustweb::log(logger, rustweb::Priority::Info, "Response details", &vec);
+    rustmisc::log(logger, rustmisc::Priority::Info, "Response details", &vec);
 }
 
 // Main entry point after a request arrived
@@ -546,7 +548,7 @@ async fn process_request(
     remote: SocketAddr,
 ) -> MyResult<Response<BoxBody>> {
     let unique = uuid::Uuid::new_v4();
-    let my_logger = rustweb::withValue(&ctx.logger, "uniqueid", &unique.to_string());
+    let my_logger = rustmisc::withValue(&ctx.logger, "uniqueid", &unique.to_string());
 
     // Convert  query part of URI into vars table
     let mut vars: Vec<rustweb::KeyValue> = vec![];
@@ -677,34 +679,34 @@ async fn process_request(
         header::CONNECTION,
         header::HeaderValue::from_str("close").unwrap(),
     );
-    if ctx.loglevel != rustweb::LogLevel::None {
+    if ctx.loglevel != rustmisc::LogLevel::None {
         let version = format!("{:?}", version);
-        rustweb::log(
+        rustmisc::log(
             &my_logger,
             rustweb::Priority::Notice,
             "Request",
             &vec![
-                rustweb::KeyValue {
+                rustmisc::KeyValue {
                     key: "remote".to_string(),
                     value: remote.to_string(),
                 },
-                rustweb::KeyValue {
+                rustmisc::KeyValue {
                     key: "method".to_string(),
                     value: method.to_string(),
                 },
-                rustweb::KeyValue {
+                rustmisc::KeyValue {
                     key: "urlpath".to_string(),
                     value: path.to_string(),
                 },
-                rustweb::KeyValue {
+                rustmisc::KeyValue {
                     key: "HTTPVersion".to_string(),
                     value: version,
                 },
-                rustweb::KeyValue {
+                rustmisc::KeyValue {
                     key: "status".to_string(),
                     value: response.status.to_string(),
                 },
-                rustweb::KeyValue {
+                rustmisc::KeyValue {
                     key: "respsize".to_string(),
                     value: len.to_string(),
                 },
@@ -738,13 +740,13 @@ async fn serveweb_async(
             match stream.peer_addr() {
                 Ok(addr) => {
                     address = addr;
-                    let combo = rustweb::comboaddress(&address.to_string());
-                    if !rustweb::matches(&ctx.acl, &combo) {
-                        rustweb::log(
+                    let combo = rustmisc::comboaddress(&address.to_string());
+                    if !rustmisc::matches(&ctx.acl, &combo) {
+                        rustmisc::log(
                             &ctx.logger,
                             rustweb::Priority::Debug,
                             "No ACL match",
-                            &vec![rustweb::KeyValue {
+                            &vec![rustmisc::KeyValue {
                                 key: "address".to_string(),
                                 value: address.to_string(),
                             }],
@@ -753,7 +755,7 @@ async fn serveweb_async(
                     }
                 }
                 Err(err) => {
-                    rustweb::error(
+                    rustmisc::error(
                         &ctx.logger,
                         rustweb::Priority::Error,
                         &err.to_string(),
@@ -769,7 +771,7 @@ async fn serveweb_async(
             let tls_stream = match tls_acceptor.accept(stream).await {
                 Ok(tls_stream) => tls_stream,
                 Err(err) => {
-                    rustweb::error(
+                    rustmisc::error(
                         &ctx.logger,
                         rustweb::Priority::Notice,
                         &err.to_string(),
@@ -780,7 +782,7 @@ async fn serveweb_async(
                 }
             };
             let io = TokioIo::new(tls_stream);
-            let my_logger = rustweb::withValue(&ctx.logger, "tls", "true");
+            let my_logger = rustmisc::withValue(&ctx.logger, "tls", "true");
             let fut = http1::Builder::new().serve_connection(
                 io,
                 service_fn(move |req| {
@@ -793,7 +795,7 @@ async fn serveweb_async(
             tokio::task::spawn(async move {
                 // Finally, we bind the incoming connection to our `process_request` service
                 if let Err(err) = fut.await {
-                    rustweb::error(
+                    rustmisc::error(
                         &my_logger,
                         rustweb::Priority::Notice,
                         &err.to_string(),
@@ -813,13 +815,13 @@ async fn serveweb_async(
             match stream.peer_addr() {
                 Ok(addr) => {
                     address = addr;
-                    let combo = rustweb::comboaddress(&address.to_string());
-                    if !rustweb::matches(&ctx.acl, &combo) {
-                        rustweb::log(
+                    let combo = rustmisc::comboaddress(&address.to_string());
+                    if !rustmisc::matches(&ctx.acl, &combo) {
+                        rustmisc::log(
                             &ctx.logger,
                             rustweb::Priority::Debug,
                             "No ACL match",
-                            &vec![rustweb::KeyValue {
+                            &vec![rustmisc::KeyValue {
                                 key: "address".to_string(),
                                 value: address.to_string(),
                             }],
@@ -828,9 +830,9 @@ async fn serveweb_async(
                     }
                 }
                 Err(err) => {
-                    rustweb::error(
+                    rustmisc::error(
                         &ctx.logger,
-                        rustweb::Priority::Error,
+                        rustmisc::Priority::Error,
                         &err.to_string(),
                         "Can't get peer address",
                         &vec![],
@@ -839,7 +841,7 @@ async fn serveweb_async(
                 }
             }
             let io = TokioIo::new(stream);
-            let my_logger = rustweb::withValue(&ctx.logger, "tls", "false");
+            let my_logger = rustmisc::withValue(&ctx.logger, "tls", "false");
             let fut = http1::Builder::new().serve_connection(
                 io,
                 service_fn(move |req| {
@@ -852,9 +854,9 @@ async fn serveweb_async(
             tokio::task::spawn(async move {
                 // Finally, we bind the incoming connection to our `process_request` service
                 if let Err(err) = fut.await {
-                    rustweb::error(
+                    rustmisc::error(
                         &my_logger,
-                        rustweb::Priority::Notice,
+                        rustmisc::Priority::Notice,
                         &err.to_string(),
                         "Error serving web connection",
                         &vec![],
@@ -870,9 +872,9 @@ pub fn serveweb(
     urls: &[String],
     password_ch: cxx::UniquePtr<rustweb::CredentialsHolder>,
     api_ch: cxx::UniquePtr<rustweb::CredentialsHolder>,
-    acl: cxx::UniquePtr<rustweb::NetmaskGroup>,
-    logger: cxx::SharedPtr<rustweb::Logger>,
-    loglevel: rustweb::LogLevel,
+    acl: cxx::UniquePtr<rustmisc::NetmaskGroup>,
+    logger: cxx::SharedPtr<rustmisc::Logger>,
+    loglevel: rustmisc::LogLevel,
 ) -> Result<(), std::io::Error> {
     // Context, atomically reference counted
     let ctx = Arc::new(Context {
@@ -895,7 +897,7 @@ pub fn serveweb(
     // waits (forever) for all of them to complete by joining them all.
     let mut set = JoinSet::new();
     for config in incoming {
-        rustweb::log(&ctx.logger, rustweb::Priority::Warning, "Config", &vec![]);
+        rustmisc::log(&ctx.logger, rustweb::Priority::Warning, "Config", &vec![]);
         for addr_str in &config.addresses {
             let addr = match SocketAddr::from_str(addr_str) {
                 Ok(val) => val,
@@ -913,21 +915,21 @@ pub fn serveweb(
                     let tls = crate::web::rustweb::IncomingTLS {
                         certificate: config.tls.certificate.clone(),
                         key: config.tls.key.clone(),
-                        password: config.tls.password.clone(),
+                        // password: config.tls.password.clone(), not supported (yet), ruttls does not handle it
                     };
                     if !tls.certificate.is_empty() {
                         tls_enabled = true;
                     }
-                    rustweb::log(
+                    rustmisc::log(
                         &ctx.logger,
                         rustweb::Priority::Info,
                         "web service listening",
                         &vec![
-                            rustweb::KeyValue {
+                            rustmisc::KeyValue {
                                 key: "address".to_string(),
                                 value: addr.to_string(),
                             },
-                            rustweb::KeyValue {
+                            rustmisc::KeyValue {
                                 key: "tls".to_string(),
                                 value: tls_enabled.to_string(),
                             },
@@ -937,12 +939,12 @@ pub fn serveweb(
                 }
                 Err(err) => {
                     let msg = format!("Unable to bind web socket: {}", err);
-                    rustweb::error(
+                    rustmisc::error(
                         &ctx.logger,
                         rustweb::Priority::Error,
                         &err.to_string(),
                         "Unable to bind to web socket",
-                        &vec![rustweb::KeyValue {
+                        &vec![rustmisc::KeyValue {
                             key: "address".to_string(),
                             value: addr.to_string(),
                         }],
@@ -958,9 +960,9 @@ pub fn serveweb(
             runtime.block_on(async {
                 while let Some(res) = set.join_next().await {
                     let msg = format!("{:?}", res);
-                    rustweb::error(
+                    rustmisc::error(
                         &ctx.logger,
-                        rustweb::Priority::Error,
+                        rustmisc::Priority::Error,
                         &msg,
                         "rustweb thread exited",
                         &vec![],
@@ -1004,24 +1006,31 @@ fn load_private_key(filename: &str) -> std::io::Result<pki_types::PrivateKeyDer<
 // impl below needed because the classes are used in the Context, which gets passed around.
 unsafe impl Send for rustweb::CredentialsHolder {}
 unsafe impl Sync for rustweb::CredentialsHolder {}
-unsafe impl Send for rustweb::NetmaskGroup {}
-unsafe impl Sync for rustweb::NetmaskGroup {}
-unsafe impl Send for rustweb::Logger {}
-unsafe impl Sync for rustweb::Logger {}
+unsafe impl Send for rustmisc::NetmaskGroup {}
+unsafe impl Sync for rustmisc::NetmaskGroup {}
+unsafe impl Send for rustmisc::Logger {}
+unsafe impl Sync for rustmisc::Logger {}
 
 #[cxx::bridge(namespace = "pdns::rust::web::rec")]
 mod rustweb {
     extern "C++" {
         type CredentialsHolder;
-        type NetmaskGroup;
-        type ComboAddress;
-        type Logger;
+        #[namespace = "pdns::rust::misc"]
+        type NetmaskGroup = crate::misc::rustmisc::NetmaskGroup;
+        //#[namespace = "pdns::rust::misc"]
+        //type ComboAddress = crate::misc::rustmisc::ComboAddress;
+        #[namespace = "pdns::rust::misc"]
+        type Priority = crate::misc::rustmisc::Priority;
+        #[namespace = "pdns::rust::misc"]
+        type LogLevel = crate::misc::rustmisc::LogLevel;
+        #[namespace = "pdns::rust::misc"]
+        type Logger = crate::misc::rustmisc::Logger;
     }
 
     pub struct IncomingTLS {
         certificate: String,
         key: String,
-        password: String,
+        // password: String, Not currently supported, as rusttls does not support that out of the box
     }
 
     struct IncomingWSConfig {
@@ -1063,26 +1072,12 @@ mod rustweb {
         headers: Vec<KeyValue>,
     }
 
-    enum Priority {
-        Absent = 0,
-        Alert = 1,
-        Critical = 2,
-        Error = 3,
-        Warning = 4,
-        Notice = 5,
-        Info = 6,
-        Debug = 7,
-    }
-    enum LogLevel {
-        None,
-        Normal,
-        Detailed,
-    }
     /*
      * Functions callable from Rust
      */
     unsafe extern "C++" {
         include!("bridge.hh");
+        fn matches(self: &CredentialsHolder, str: &CxxString) -> bool;
         fn apiDiscovery(request: &Request, response: &mut Response) -> Result<()>;
         fn apiDiscoveryV1(request: &Request, response: &mut Response) -> Result<()>;
         fn apiServer(request: &Request, response: &mut Response) -> Result<()>;
@@ -1110,18 +1105,5 @@ mod rustweb {
         fn jsonstat(request: &Request, response: &mut Response) -> Result<()>;
         fn prometheusMetrics(request: &Request, response: &mut Response) -> Result<()>;
         fn serveStuff(request: &Request, response: &mut Response) -> Result<()>;
-
-        fn matches(self: &CredentialsHolder, str: &CxxString) -> bool;
-        fn comboaddress(address: &str) -> UniquePtr<ComboAddress>;
-        fn matches(nmg: &UniquePtr<NetmaskGroup>, address: &UniquePtr<ComboAddress>) -> bool; // match is a keyword
-        fn withValue(logger: &SharedPtr<Logger>, key: &str, val: &str) -> SharedPtr<Logger>;
-        fn log(logger: &SharedPtr<Logger>, prio: Priority, msg: &str, values: &Vec<KeyValue>);
-        fn error(
-            logger: &SharedPtr<Logger>,
-            prio: Priority,
-            err: &str,
-            msg: &str,
-            values: &Vec<KeyValue>,
-        );
     }
 }

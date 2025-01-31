@@ -4,6 +4,9 @@ namespace pdns::rust::web::rec
 #define WRAPPER(A) \
   void A(const Request& /* unused */, Response& /* unused */) {}
 
+class Request;
+class Response;
+
 WRAPPER(apiDiscovery)
 WRAPPER(apiDiscoveryV1)
 WRAPPER(apiServer)

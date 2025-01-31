@@ -31,6 +31,7 @@ use std::sync::Mutex;
 use crate::helpers::OVERRIDE_TAG;
 use crate::recsettings::{self, *};
 use crate::{Merge, ValidationError};
+use crate::misc::rustmisc;
 
 impl Default for ForwardZone {
     fn default() -> Self {
@@ -123,9 +124,9 @@ fn is_port_number(str: &str) -> bool {
 
 pub fn validate_socket_address_or_name(field: &str, val: &String) -> Result<(), ValidationError> {
     let sa = validate_socket_address(field, val);
-    if sa.is_err() && !isValidHostname(val) {
+    if sa.is_err() && !rustmisc::isValidHostname(val) {
         let parts: Vec<&str> = val.split(':').collect();
-        if parts.len() != 2 || !isValidHostname(parts[0]) || !is_port_number(parts[1]) {
+        if parts.len() != 2 || !rustmisc::isValidHostname(parts[0]) || !is_port_number(parts[1]) {
             let msg = format!(
                 "{}: value `{}' is not an IP, IP:port, name or name:port combination",
                 field, val
@@ -137,7 +138,7 @@ pub fn validate_socket_address_or_name(field: &str, val: &String) -> Result<(), 
 }
 
 fn validate_qtype(field: &str, val: &String) -> Result<(), ValidationError> {
-    let code = qTypeStringToCode(val);
+    let code = rustmisc::qTypeStringToCode(val);
     if code == 0 {
         let msg = format!("{}: value `{}' is not a qtype", field, val);
         return Err(ValidationError { msg });

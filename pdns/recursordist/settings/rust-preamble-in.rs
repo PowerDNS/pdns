@@ -30,6 +30,8 @@ use helpers::*;
 mod bridge;
 use bridge::*;
 
+mod misc;
+
 mod web; // leaving this out causes link issues
 
 // Suppresses "Deserialize unused" warning

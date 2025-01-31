@@ -46,6 +46,7 @@
 #include "settings/cxxsettings.hh" // IWYU pragma: keep, needed by included generated file
 #include "settings/rust/src/bridge.hh"
 #include "settings/rust/web.rs.h"
+#include "settings/rust/misc.rs.h"
 
 using json11::Json;
 
@@ -994,7 +995,7 @@ void serveRustWeb()
       for (const auto& address : listen.addresses) {
         tmp.addresses.emplace_back(address);
       }
-      tmp.tls = pdns::rust::web::rec::IncomingTLS{listen.tls.certificate, listen.tls.key, listen.tls.password};
+      tmp.tls = pdns::rust::web::rec::IncomingTLS{listen.tls.certificate, listen.tls.key};
       config.emplace_back(tmp);
     }
   }
@@ -1020,17 +1021,17 @@ void serveRustWeb()
   }
   NetmaskGroup acl;
   acl.toMasks(::arg()["webserver-allow-from"]);
-  auto aclPtr = std::make_unique<pdns::rust::web::rec::NetmaskGroup>(acl);
+  auto aclPtr = std::make_unique<pdns::rust::misc::NetmaskGroup>(acl);
 
   auto logPtr = g_slog->withName("webserver");
 
-  pdns::rust::web::rec::LogLevel loglevel = pdns::rust::web::rec::LogLevel::Normal;
+  pdns::rust::misc::LogLevel loglevel = pdns::rust::misc::LogLevel::Normal;
   auto configLevel = ::arg()["webserver-loglevel"];
   if (configLevel == "none") {
-    loglevel = pdns::rust::web::rec::LogLevel::Normal;
+    loglevel = pdns::rust::misc::LogLevel::Normal;
   }
   else if (configLevel == "detailed") {
-    loglevel = pdns::rust::web::rec::LogLevel::Detailed;
+    loglevel = pdns::rust::misc::LogLevel::Detailed;
   }
   pdns::rust::web::rec::serveweb(config, ::rust::Slice<const ::rust::String>{urls.data(), urls.size()}, std::move(password), std::move(apikey), std::move(aclPtr), std::move(logPtr), loglevel);
 }

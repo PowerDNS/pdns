@@ -42,6 +42,7 @@
 #include "iputils.hh"
 #include "bridge.hh"
 #include "settings/rust/web.rs.h"
+#include "settings/rust/misc.rs.h"
 
 ::rust::Vec<::rust::String> pdns::settings::rec::getStrings(const std::string& name)
 {
@@ -1441,24 +1442,7 @@ pdns::settings::rec::YamlSettingsStatus pdns::settings::rec::tryReadYAML(const s
   return yamlstatus;
 }
 
-uint16_t pdns::rust::settings::rec::qTypeStringToCode(::rust::Str str)
-{
-  std::string tmp(str.data(), str.length());
-  return QType::chartocode(tmp.c_str());
-}
-
-bool pdns::rust::settings::rec::isValidHostname(::rust::Str str)
-{
-  try {
-    auto name = DNSName(string(str));
-    return name.isHostname();
-  }
-  catch (...) {
-    return false;
-  }
-}
-
-namespace pdns::rust::web::rec
+namespace pdns::rust::misc
 {
 
 template <typename M>
@@ -1478,7 +1462,25 @@ template <typename M>
 
 template class Wrapper<::NetmaskGroup>;
 template class Wrapper<::ComboAddress>;
-  //template class Wrapper<std::shared_ptr<::Logr::Logger>>;
+
+uint16_t qTypeStringToCode(::rust::Str str)
+{
+  std::string tmp(str.data(), str.length());
+  return QType::chartocode(tmp.c_str());
+}
+
+bool isValidHostname(::rust::Str str)
+{
+  try {
+    auto name = DNSName(string(str));
+    return name.isHostname();
+  }
+  catch (...) {
+    return false;
+  }
+}
+
+void findBetterSolution(const std::unique_ptr<CredentialsHolder>& /* x */){};
 
 std::unique_ptr<ComboAddress> comboaddress(::rust::Str str)
 {
@@ -1490,7 +1492,7 @@ bool matches(const std::unique_ptr<NetmaskGroup>& nmg, const std::unique_ptr<Com
   return nmg->get().match(address->get());
 }
 
-void log(const std::shared_ptr<Logger>& logger, pdns::rust::web::rec::Priority log_level, ::rust::Str msg, const ::rust::Vec<KeyValue>& values)
+  void log(const std::shared_ptr<Logger>& logger, pdns::rust::misc::Priority log_level, ::rust::Str msg, const ::rust::Vec<KeyValue>& values)
 {
   auto log = logger;
   for (const auto& [key, value] : values) {
@@ -1499,7 +1501,7 @@ void log(const std::shared_ptr<Logger>& logger, pdns::rust::web::rec::Priority l
   log->info(static_cast<Logr::Priority>(log_level), std::string(msg));
 }
 
-void error(const std::shared_ptr<Logger>& logger, pdns::rust::web::rec::Priority log_level, ::rust::Str error, ::rust::Str msg, const ::rust::Vec<KeyValue>& values)
+  void error(const std::shared_ptr<Logger>& logger, pdns::rust::misc::Priority log_level, ::rust::Str error, ::rust::Str msg, const ::rust::Vec<KeyValue>& values)
 {
   auto log = logger;
   for (const auto& [key, value] : values) {

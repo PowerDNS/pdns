@@ -20,15 +20,19 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
-#include <boost/utility.hpp>
-#include "namespaces.hh"
-#include "mplexer.hh"
+
 #include "webserver.hh"
 
 class HttpRequest;
 class HttpResponse;
+extern void serveRustWeb();
 
-#if 0
+#ifndef RUST_WS
+
+#include <boost/utility.hpp>
+#include "namespaces.hh"
+#include "mplexer.hh"
+
 class AsyncServer : public Server
 {
 public:

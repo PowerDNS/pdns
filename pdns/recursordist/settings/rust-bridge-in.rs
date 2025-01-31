@@ -310,8 +310,8 @@ pub struct IncomingTLS {
     certificate: String,
     #[serde(default, skip_serializing_if = "crate::is_default")]
     key: String,
-    #[serde(default, skip_serializing_if = "crate::is_default")]
-    password: String,
+    // #[serde(default, skip_serializing_if = "crate::is_default")]
+    // password: String, Not currently supported, as rusttls does not support this out of the box
 }
 #[derive(Deserialize, Serialize, Clone, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
@@ -410,8 +410,3 @@ extern "Rust" {
     fn api_delete_zones(file: &str) -> Result<()>;
 }
 
-unsafe extern "C++" {
-    include!("bridge.hh");
-    fn qTypeStringToCode(name: &str) -> u16;
-    fn isValidHostname(name: &str) -> bool;
-}
