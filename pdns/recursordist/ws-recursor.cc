@@ -1022,7 +1022,7 @@ void serveRustWeb()
   acl.toMasks(::arg()["webserver-allow-from"]);
   auto aclPtr = std::make_unique<pdns::rust::web::rec::NetmaskGroup>(acl);
 
-  auto logPtr = std::make_unique<pdns::rust::web::rec::Logger>(g_slog->withName("webserver"));
+  auto logPtr = g_slog->withName("webserver");
 
   pdns::rust::web::rec::LogLevel loglevel = pdns::rust::web::rec::LogLevel::Normal;
   auto configLevel = ::arg()["webserver-loglevel"];

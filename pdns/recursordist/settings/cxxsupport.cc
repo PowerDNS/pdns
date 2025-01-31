@@ -1478,7 +1478,7 @@ template <typename M>
 
 template class Wrapper<::NetmaskGroup>;
 template class Wrapper<::ComboAddress>;
-template class Wrapper<std::shared_ptr<::Logr::Logger>>;
+  //template class Wrapper<std::shared_ptr<::Logr::Logger>>;
 
 std::unique_ptr<ComboAddress> comboaddress(::rust::Str str)
 {
@@ -1490,28 +1490,28 @@ bool matches(const std::unique_ptr<NetmaskGroup>& nmg, const std::unique_ptr<Com
   return nmg->get().match(address->get());
 }
 
-void log(const std::unique_ptr<Logger>& logger, pdns::rust::web::rec::Priority log_level, ::rust::Str msg, const ::rust::Vec<KeyValue>& values)
+void log(const std::shared_ptr<Logger>& logger, pdns::rust::web::rec::Priority log_level, ::rust::Str msg, const ::rust::Vec<KeyValue>& values)
 {
-  auto log = logger->get();
+  auto log = logger;
   for (const auto& [key, value] : values) {
     log = log->withValues(std::string(key), Logging::Loggable(std::string(value)));
   }
   log->info(static_cast<Logr::Priority>(log_level), std::string(msg));
 }
 
-void error(const std::unique_ptr<Logger>& logger, pdns::rust::web::rec::Priority log_level, ::rust::Str error, ::rust::Str msg, const ::rust::Vec<KeyValue>& values)
+void error(const std::shared_ptr<Logger>& logger, pdns::rust::web::rec::Priority log_level, ::rust::Str error, ::rust::Str msg, const ::rust::Vec<KeyValue>& values)
 {
-  auto log = logger->get();
+  auto log = logger;
   for (const auto& [key, value] : values) {
     log = log->withValues(std::string(key), Logging::Loggable(std::string(value)));
   }
   log->error(static_cast<Logr::Priority>(log_level), std::string(error), std::string(msg));
 }
 
-std::unique_ptr<Logger> withValue(const std::unique_ptr<Logger>& logger, ::rust::Str key, ::rust::Str val)
+std::shared_ptr<Logger> withValue(const std::shared_ptr<Logger>& logger, ::rust::Str key, ::rust::Str val)
 {
-  auto ret = logger->get()->withValues(std::string(key), Logging::Loggable(std::string(val)));
-  return std::make_unique<Logger>(ret);
+  auto ret = logger->withValues(std::string(key), Logging::Loggable(std::string(val)));
+  return ret;
 }
 
 }

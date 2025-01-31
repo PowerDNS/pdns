@@ -138,7 +138,7 @@ fn file_wrapper(
 }
 
 fn api_wrapper(
-    logger: &cxx::UniquePtr<rustweb::Logger>,
+    logger: &cxx::SharedPtr<rustweb::Logger>,
     ctx: &Context,
     handler: Func,
     request: &rustweb::Request,
@@ -251,7 +251,7 @@ struct Context {
     password_ch: cxx::UniquePtr<rustweb::CredentialsHolder>,
     api_ch: cxx::UniquePtr<rustweb::CredentialsHolder>,
     acl: cxx::UniquePtr<rustweb::NetmaskGroup>,
-    logger: cxx::UniquePtr<rustweb::Logger>,
+    logger: cxx::SharedPtr<rustweb::Logger>,
     loglevel: rustweb::LogLevel,
 }
 
@@ -407,7 +407,7 @@ fn matcher(
 fn collect_options(
     path: &str,
     response: &mut rustweb::Response,
-    my_logger: &cxx::UniquePtr<rustweb::Logger>,
+    my_logger: &cxx::SharedPtr<rustweb::Logger>,
 ) {
     let mut methods = vec![];
     for method in [Method::GET, Method::POST, Method::PUT, Method::DELETE] {
@@ -504,7 +504,7 @@ fn log_request(loglevel: rustweb::LogLevel, request: &rustweb::Request, remote: 
 
 fn log_response(
     loglevel: rustweb::LogLevel,
-    logger: &cxx::UniquePtr<rustweb::Logger>,
+    logger: &cxx::SharedPtr<rustweb::Logger>,
     response: &rustweb::Response,
     remote: SocketAddr,
 ) {
@@ -871,7 +871,7 @@ pub fn serveweb(
     password_ch: cxx::UniquePtr<rustweb::CredentialsHolder>,
     api_ch: cxx::UniquePtr<rustweb::CredentialsHolder>,
     acl: cxx::UniquePtr<rustweb::NetmaskGroup>,
-    logger: cxx::UniquePtr<rustweb::Logger>,
+    logger: cxx::SharedPtr<rustweb::Logger>,
     loglevel: rustweb::LogLevel,
 ) -> Result<(), std::io::Error> {
     // Context, atomically reference counted
@@ -1039,7 +1039,7 @@ mod rustweb {
             pwch: UniquePtr<CredentialsHolder>,
             apikeych: UniquePtr<CredentialsHolder>,
             acl: UniquePtr<NetmaskGroup>,
-            logger: UniquePtr<Logger>,
+            logger: SharedPtr<Logger>,
             loglevel: LogLevel,
         ) -> Result<()>;
     }
@@ -1054,7 +1054,7 @@ mod rustweb {
         uri: String,
         vars: Vec<KeyValue>,
         parameters: Vec<KeyValue>,
-        logger: &'a UniquePtr<Logger>,
+        logger: &'a SharedPtr<Logger>,
     }
 
     struct Response {
@@ -1114,10 +1114,10 @@ mod rustweb {
         fn matches(self: &CredentialsHolder, str: &CxxString) -> bool;
         fn comboaddress(address: &str) -> UniquePtr<ComboAddress>;
         fn matches(nmg: &UniquePtr<NetmaskGroup>, address: &UniquePtr<ComboAddress>) -> bool; // match is a keyword
-        fn withValue(logger: &UniquePtr<Logger>, key: &str, val: &str) -> UniquePtr<Logger>;
-        fn log(logger: &UniquePtr<Logger>, prio: Priority, msg: &str, values: &Vec<KeyValue>);
+        fn withValue(logger: &SharedPtr<Logger>, key: &str, val: &str) -> SharedPtr<Logger>;
+        fn log(logger: &SharedPtr<Logger>, prio: Priority, msg: &str, values: &Vec<KeyValue>);
         fn error(
-            logger: &UniquePtr<Logger>,
+            logger: &SharedPtr<Logger>,
             prio: Priority,
             err: &str,
             msg: &str,
