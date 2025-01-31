@@ -13,6 +13,7 @@
 #include <mutex>
 #include <vector>
 #include <algorithm>
+#include <atomic>
 #include <arpa/inet.h>
 
 #ifndef DNSDIST
@@ -56,6 +57,9 @@ public:
   }
 
   MDB_dbi d_dbi;
+
+  static int mdb_dbi_open(MDB_txn *, const char *, unsigned int, MDB_dbi *);
+  static std::atomic<unsigned int> d_creationCount;
 };
 
 class MDBRWTransactionImpl;
