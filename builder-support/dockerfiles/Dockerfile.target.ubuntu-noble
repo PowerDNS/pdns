@@ -20,7 +20,7 @@ ADD builder-support/debian/recursor/debian-buster/ pdns-recursor-${BUILDER_VERSI
 @ENDIF
 
 @IF [ -n "$M_dnsdist$M_all" ]
-ADD builder-support/debian/dnsdist/debian-buster/ dnsdist-${BUILDER_VERSION}/debian/
+ADD builder-support/debian/dnsdist/debian-bookworm/ dnsdist-${BUILDER_VERSION}/debian/
 @ENDIF
 
 @INCLUDE Dockerfile.debbuild
