@@ -582,6 +582,7 @@ namespace {
 
 
 /** do the actual zone transfer. Return 0 in case of error, 1 in case of success */
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, int outsock)
 {
   string logPrefix="AXFR-out zone '"+target.toLogString()+"', client '"+q->getRemoteString()+"', ";
@@ -789,7 +790,12 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
     zrrs.emplace_back(CatalogInfo::getCatalogVersionRecord(target));
 
     vector<CatalogInfo> members;
-    sd.db->getCatalogMembers(target, members, CatalogInfo::CatalogType::Producer);
+    if (!sd.db->getCatalogMembers(target, members, CatalogInfo::CatalogType::Producer)) {
+      g_log << Logger::Error << logPrefix << "getting catalog members failed, aborting AXFR" << endl;
+      outpacket->setRcode(RCode::ServFail);
+      sendPacket(outpacket, outsock);
+      return 0;
+    }
     for (const auto& ci : members) {
       ci.toDNSZoneRecords(target, zrrs);
     }
