@@ -325,7 +325,7 @@ bool recvAsync(Socket& socket, PacketBuffer& buffer, ComboAddress& clientAddr, C
   return !buffer.empty();
 }
 
-std::string getSNIFromQuicheConnection(const QuicheConnection& conn)
+std::string getSNIFromQuicheConnection([[maybe_unused]] const QuicheConnection& conn)
 {
 #if defined(HAVE_QUICHE_CONN_SERVER_NAME)
   const uint8_t* sniPtr = nullptr;
