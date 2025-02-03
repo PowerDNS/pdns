@@ -1492,7 +1492,7 @@ bool matches(const std::unique_ptr<NetmaskGroup>& nmg, const std::unique_ptr<Com
   return nmg->get().match(address->get());
 }
 
-  void log(const std::shared_ptr<Logger>& logger, pdns::rust::misc::Priority log_level, ::rust::Str msg, const ::rust::Vec<KeyValue>& values)
+void log(const std::shared_ptr<Logger>& logger, pdns::rust::misc::Priority log_level, ::rust::Str msg, const ::rust::Vec<KeyValue>& values)
 {
   auto log = logger;
   for (const auto& [key, value] : values) {
@@ -1501,7 +1501,7 @@ bool matches(const std::unique_ptr<NetmaskGroup>& nmg, const std::unique_ptr<Com
   log->info(static_cast<Logr::Priority>(log_level), std::string(msg));
 }
 
-  void error(const std::shared_ptr<Logger>& logger, pdns::rust::misc::Priority log_level, ::rust::Str error, ::rust::Str msg, const ::rust::Vec<KeyValue>& values)
+void error(const std::shared_ptr<Logger>& logger, pdns::rust::misc::Priority log_level, ::rust::Str error, ::rust::Str msg, const ::rust::Vec<KeyValue>& values)
 {
   auto log = logger;
   for (const auto& [key, value] : values) {

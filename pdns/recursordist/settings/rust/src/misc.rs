@@ -42,6 +42,5 @@ pub mod rustmisc {
             msg: &str,
             values: &Vec<KeyValue>,
         );
-   }
+    }
 }
-

@@ -1058,6 +1058,8 @@ mod rustweb {
         value: String,
     }
 
+    // Clippy does not seem to understand what cxx does and complains about needless_lifetimes
+    // I was unable to silence that warning
     struct Request<'a> {
         body: Vec<u8>,
         uri: String,

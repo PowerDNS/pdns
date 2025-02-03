@@ -33,7 +33,8 @@ namespace Logr
 class Logger;
 }
 
-namespace pdns::rust::misc {
+namespace pdns::rust::misc
+{
 enum class Priority : uint8_t;
 enum class LogLevel : uint8_t;
 using Logger = ::Logr::Logger;
@@ -69,7 +70,6 @@ std::shared_ptr<Logger> withValue(const std::shared_ptr<Logger>& logger, ::rust:
 void log(const std::shared_ptr<Logger>& logger, Priority log_level, ::rust::Str msg, const ::rust::Vec<KeyValue>& values);
 void error(const std::shared_ptr<Logger>& logger, Priority log_level, ::rust::Str err, ::rust::Str msg, const ::rust::Vec<KeyValue>& values);
 }
-
 
 namespace pdns::rust::web::rec
 {

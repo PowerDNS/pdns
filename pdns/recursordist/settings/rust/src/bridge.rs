@@ -29,9 +29,9 @@ use std::str::FromStr;
 use std::sync::Mutex;
 
 use crate::helpers::OVERRIDE_TAG;
+use crate::misc::rustmisc;
 use crate::recsettings::{self, *};
 use crate::{Merge, ValidationError};
-use crate::misc::rustmisc;
 
 impl Default for ForwardZone {
     fn default() -> Self {
