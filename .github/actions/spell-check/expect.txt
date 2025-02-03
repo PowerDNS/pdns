@@ -1051,9 +1051,11 @@ postinst
 postresolve
 powerdnsrecursor
 powerdnssec
+powerdnssuffix
 powerldap
 pqpp
 Predota
+prefixpowerdns
 preoutquery
 Preproc
 prepublishkeyroll
