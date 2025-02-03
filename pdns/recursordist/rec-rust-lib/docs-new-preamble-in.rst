@@ -536,6 +536,35 @@ For catalog zone members in a group, the forwarding parameters will be taken fro
 
 The forwarding definitions will be written into a file ``$api_dir/catzone.$zonename``. :ref:`setting-yaml-webservice.api_dir` must be defined, the directory must exist and be writable by the :program:`Recursor` process.
 
+IncomingWSConfig
+^^^^^^^^^^^^^^^^^^^^^
+As of version 5.3.0, an incoming web server configuration is defined as
+
+.. code-block:: yaml
+
+   addresses: [] Sequence of SocketAddress
+   tls:
+     certificates: file containing full certificate chain in PEM format
+     key: file contaiing private key in PEM format
+
+
+A :ref:`setting-yaml-webservice.listen` section contains a sequence of `IncomingWSConfig`_, for example:
+
+.. code-block:: yaml
+
+  webservice:
+    listen:
+      - addresses: [127.0.0.1:8083, '[::]:8083']
+        tls:
+          certificate: fullchain.pem
+          key: keyfile.key
+      - addresses: [127.0.0.1:8084, '[::]:8084']
+
+If no ``tls`` section is present, plaintext ``http`` connections are accepted on the listed addresses.
+
+If a ``tls`` section is present, clienst are required to use ``https`` to contact any of the address-port combinations listen in addresses. At the moment it is not possible to list additional properties of the TLS listener and encrypted key files cannot be used.
+
+
 The YAML settings
 -----------------
 

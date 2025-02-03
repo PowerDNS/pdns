@@ -46,7 +46,7 @@ make -nwk  | /path/to/compiledb -o- > compile_commands.json
 to generate the compilation database.
 For the authoritative server, the configure command is run in the top level directory, while the compiledb command should be run in the `pdns` subdirectory.
 
-# Seting up the LSP client
+# Setting up the LSP client
 
 Once the compilation database is generated, you can now move onto setting up an LSP client in your editor or IDE.
 

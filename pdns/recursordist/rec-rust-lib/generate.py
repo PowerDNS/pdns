@@ -185,6 +185,8 @@ def get_newdoc_typename(typ):
         return 'Sequence of `ProxyMapping`_'
     if typ == LType.ListForwardingCatalogZones:
         return 'Sequence of `ForwardingCatalogZone`_'
+    if typ == LType.ListIncomingWSConfigs:
+        return 'Sequence of `IncomingWSConfig`_'
     return 'Unknown2' + str(typ)
 
 def get_default_olddoc_value(typ, val):
