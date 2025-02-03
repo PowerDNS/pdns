@@ -465,6 +465,12 @@ public:
     return false;
   }
 
+  //! Returns whether backend operations have caused files to be created.
+  virtual bool hasCreatedLocalFiles() const
+  {
+    return false;
+  }
+
   const string& getPrefix() { return d_prefix; };
 
 protected:

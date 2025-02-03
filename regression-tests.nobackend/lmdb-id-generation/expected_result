@@ -1,2 +1,8 @@
+WARNING: local files have been created as a result of this operation.
+Be sure to check the files owner, group and permission to make sure that
+the authoritative server can correctly use them.
 sequential generator generated 1 2 3 correctly
+WARNING: local files have been created as a result of this operation.
+Be sure to check the files owner, group and permission to make sure that
+the authoritative server can correctly use them.
 random generator generated something other than 1 2 3, good

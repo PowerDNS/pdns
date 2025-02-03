@@ -141,6 +141,8 @@ public:
 
   bool inTransaction();
 
+  bool hasCreatedLocalFiles();
+
 private:
   handle d_handle;
   vector<DNSZoneRecord> d_answers;

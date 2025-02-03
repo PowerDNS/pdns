@@ -104,7 +104,7 @@ std::pair<uint32_t, uint32_t> LMDBBackend::getSchemaVersionAndShards(std::string
   MDB_dbi dbi;
 
   {
-    int retCode = mdb_dbi_open(txn, "pdns", 0, &dbi);
+    int retCode = MDBDbi::mdb_dbi_open(txn, "pdns", 0, &dbi);
     if (retCode != 0) {
       if (retCode == MDB_NOTFOUND) {
         // this means nothing has been inited yet
@@ -432,7 +432,7 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
 
     MDB_dbi shdbi = 0;
 
-    const auto dbiOpenRc = mdb_dbi_open(shtxn, "records", 0, &shdbi);
+    const auto dbiOpenRc = MDBDbi::mdb_dbi_open(shtxn, "records", 0, &shdbi);
     if (dbiOpenRc != 0) {
       if (dbiOpenRc == MDB_NOTFOUND) {
         mdb_txn_abort(shtxn);
@@ -446,7 +446,7 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
 
     MDB_dbi shdbi2 = 0;
 
-    if (mdb_dbi_open(shtxn, "records_v5", MDB_CREATE, &shdbi2) != 0) {
+    if (MDBDbi::mdb_dbi_open(shtxn, "records_v5", MDB_CREATE, &shdbi2) != 0) {
       mdb_dbi_close(shenv, shdbi);
       mdb_txn_abort(shtxn);
       mdb_env_close(shenv);
@@ -480,14 +480,14 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
     std::string tdbname = dbname + "_v5";
 
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
-    if (mdb_dbi_open(txn, dbname.c_str(), 0, &fromtypeddbi[index]) != 0) {
+    if (MDBDbi::mdb_dbi_open(txn, dbname.c_str(), 0, &fromtypeddbi[index]) != 0) {
       mdb_txn_abort(txn);
       mdb_env_close(env);
-      throw std::runtime_error("mdb_dbi_open typeddbi failed");
+      throw std::runtime_error("MDBDbi::mdb_dbi_open typeddbi failed");
     }
 
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
-    if (mdb_dbi_open(txn, tdbname.c_str(), MDB_CREATE, &totypeddbi[index]) != 0) {
+    if (MDBDbi::mdb_dbi_open(txn, tdbname.c_str(), MDB_CREATE, &totypeddbi[index]) != 0) {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
       mdb_dbi_close(env, fromtypeddbi[index]);
       mdb_txn_abort(txn);
@@ -527,14 +527,14 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
     std::string tdbname = dbname + "_v5_0";
 
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
-    if (mdb_dbi_open(txn, fdbname.c_str(), 0, &fromindexdbi[index]) != 0) {
+    if (MDBDbi::mdb_dbi_open(txn, fdbname.c_str(), 0, &fromindexdbi[index]) != 0) {
       mdb_txn_abort(txn);
       mdb_env_close(env);
       throw std::runtime_error("mdb_dbi_open indexdbi failed");
     }
 
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
-    if (mdb_dbi_open(txn, tdbname.c_str(), MDB_CREATE, &toindexdbi[index]) != 0) {
+    if (MDBDbi::mdb_dbi_open(txn, tdbname.c_str(), MDB_CREATE, &toindexdbi[index]) != 0) {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
       mdb_dbi_close(env, fromindexdbi[index]);
       mdb_txn_abort(txn);
@@ -566,7 +566,7 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
   MDB_dbi dbi = 0;
 
   // finally, migrate the pdns db
-  if (mdb_dbi_open(txn, "pdns", 0, &dbi) != 0) {
+  if (MDBDbi::mdb_dbi_open(txn, "pdns", 0, &dbi) != 0) {
     mdb_txn_abort(txn);
     mdb_env_close(env);
     throw std::runtime_error("mdb_dbi_open pdns failed");
@@ -2829,6 +2829,16 @@ string LMDBBackend::directBackendCmd(const string& query)
   }
 
   return "unknown lmdbbackend command\n";
+}
+
+bool LMDBBackend::hasCreatedLocalFiles() const
+{
+  // Since the lmdb file creation counter is global, if multiple LMDB backends
+  // are used, they may end up all reporting having created files even if
+  // not all of them did.
+  // But since this information is for the sake of pdnsutil, this is not
+  // really a problem.
+  return MDBDbi::d_creationCount != 0;
 }
 
 class LMDBFactory : public BackendFactory

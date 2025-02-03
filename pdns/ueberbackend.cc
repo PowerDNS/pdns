@@ -886,6 +886,11 @@ bool UeberBackend::searchComments(const string& pattern, size_t maxResults, vect
   return ret;
 }
 
+bool UeberBackend::hasCreatedLocalFiles()
+{
+  return std::any_of(backends.begin(), backends.end(), [](std::unique_ptr<DNSBackend>& backend) { return backend->hasCreatedLocalFiles(); });
+}
+
 AtomicCounter UeberBackend::handle::instances(0);
 
 UeberBackend::handle::handle()

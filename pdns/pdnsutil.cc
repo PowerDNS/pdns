@@ -151,6 +151,7 @@ static void loadMainConfig(const std::string& configdir)
   ::arg().set("zone-metadata-cache-ttl", "Seconds to cache zone metadata from the database") = "60";
   ::arg().set("consistent-backends", "Assume individual zones are not divided over backends. Send only ANY lookup operations to the backend to reduce the number of lookups") = "yes";
 
+
   // Keep this line below all ::arg().set() statements
   if (! ::arg().laxFile(configname)) {
     cerr<<"Warning: unable to read configuration file '"<<configname<<"': "<<stringerror()<<endl;
@@ -174,6 +175,28 @@ static void loadMainConfig(const std::string& configdir)
   UeberBackend::go();
 }
 
+// This is a wrapper around UeberBackend, in order to be able to perform
+// a file creation check at destructor time.
+class UtilBackend : public UeberBackend
+{
+public:
+  UtilBackend(const string& pname = "default"): UeberBackend(pname) {}
+  UtilBackend(const UtilBackend &) = delete;
+  UtilBackend(UtilBackend &&) = delete;
+  UtilBackend& operator=(const UtilBackend&) = delete;
+  UtilBackend& operator=(UtilBackend&&) = delete;
+  ~UtilBackend();
+};
+
+UtilBackend::~UtilBackend()
+{
+  if (hasCreatedLocalFiles()) {
+    cout<<"WARNING: local files have been created as a result of this operation."<<endl
+        <<"Be sure to check the files owner, group and permission to make sure that"<<endl
+        <<"the authoritative server can correctly use them."<<endl;
+  }
+}
+
 static bool rectifyZone(DNSSECKeeper& dk, const DNSName& zone, bool quiet = false, bool rectifyTransaction = true)
 {
   string output;
@@ -195,7 +218,7 @@ static void dbBench(const std::string& fname)
 {
   ::arg().set("query-cache-ttl")="0";
   ::arg().set("negquery-cache-ttl")="0";
-  UeberBackend B("default");
+  UtilBackend B("default"); //NOLINT(readability-identifier-length)
 
   vector<string> domains;
   if(!fname.empty()) {
@@ -236,7 +259,7 @@ static void dbBench(const std::string& fname)
 
 static bool rectifyAllZones(DNSSECKeeper &dk, bool quiet = false)
 {
-  UeberBackend B("default");
+  UtilBackend B("default"); //NOLINT(readability-identifier-length)
   vector<DomainInfo> domainInfo;
   bool result = true;
 
@@ -864,7 +887,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
 
 static int checkAllZones(DNSSECKeeper &dk, bool exitOnError)
 {
-  UeberBackend B("default");
+  UtilBackend B("default"); //NOLINT(readability-identifier-length)
   vector<DomainInfo> domainInfo;
   multi_index_container<
     DomainInfo,
@@ -910,7 +933,7 @@ static int checkAllZones(DNSSECKeeper &dk, bool exitOnError)
 
 static int increaseSerial(const DNSName& zone, DNSSECKeeper &dk)
 {
-  UeberBackend B("default");
+  UtilBackend B("default"); //NOLINT(readability-identifier-length)
   SOAData sd;
   if(!B.getSOAUncached(zone, sd)) {
     cerr<<"No SOA for zone '"<<zone<<"'"<<endl;
@@ -960,7 +983,7 @@ static int increaseSerial(const DNSName& zone, DNSSECKeeper &dk)
 }
 
 static int deleteZone(const DNSName &zone) {
-  UeberBackend B;
+  UtilBackend B; //NOLINT(readability-identifier-length)
   DomainInfo di;
   if (! B.getDomainInfo(zone, di)) {
     cerr << "Zone '" << zone << "' not found!" << endl;
@@ -1054,7 +1077,7 @@ static void listKey(DomainInfo const &di, DNSSECKeeper& dk, bool printHeader = t
 }
 
 static int listKeys(const string &zname, DNSSECKeeper& dk){
-  UeberBackend B("default");
+  UtilBackend B("default"); //NOLINT(readability-identifier-length)
 
   if (!zname.empty()) {
     DomainInfo di;
@@ -1076,7 +1099,7 @@ static int listKeys(const string &zname, DNSSECKeeper& dk){
 }
 
 static int listZone(const DNSName &zone) {
-  UeberBackend B;
+  UtilBackend B; //NOLINT(readability-identifier-length)
   DomainInfo di;
 
   if (! B.getDomainInfo(zone, di)) {
@@ -1129,7 +1152,7 @@ static int read1char(){
 }
 
 static int clearZone(const DNSName &zone) {
-  UeberBackend B;
+  UtilBackend B; //NOLINT(readability-identifier-length)
   DomainInfo di;
 
   if (! B.getDomainInfo(zone, di)) {
@@ -1172,7 +1195,7 @@ private:
 };
 
 static int editZone(const DNSName &zone, const PDNSColors& col) {
-  UeberBackend B;
+  UtilBackend B; //NOLINT(readability-identifier-length)
   DomainInfo di;
   DNSSECKeeper dk(&B);
 
@@ -1445,7 +1468,7 @@ static int zonemdVerifyFile(const DNSName& zone, const string& fname) {
 }
 
 static int loadZone(const DNSName& zone, const string& fname) {
-  UeberBackend B;
+  UtilBackend B; //NOLINT(readability-identifier-length)
   DomainInfo di;
 
   if (B.getDomainInfo(zone, di)) {
@@ -1499,7 +1522,7 @@ static int loadZone(const DNSName& zone, const string& fname) {
 }
 
 static int createZone(const DNSName &zone, const DNSName& nsname) {
-  UeberBackend B;
+  UtilBackend B; //NOLINT(readability-identifier-length)
   DomainInfo di;
   if (B.getDomainInfo(zone, di)) {
     cerr << "Zone '" << zone << "' exists already" << endl;
@@ -1567,7 +1590,7 @@ static int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
   rr.qtype = DNSRecordContent::TypeToNumber(cmds.at(3));
   rr.ttl = ::arg().asNum("default-ttl");
 
-  UeberBackend B;
+  UtilBackend B; //NOLINT(readability-identifier-length)
   DomainInfo di;
   if(!B.getDomainInfo(zone, di)) {
     cerr << "Zone '" << zone << "' does not exist" << endl;
@@ -1649,7 +1672,7 @@ static int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
 // addAutoPrimary add a new autoprimary
 static int addAutoPrimary(const std::string& IP, const std::string& nameserver, const std::string& account)
 {
-  UeberBackend B("default");
+  UtilBackend B("default"); //NOLINT(readability-identifier-length)
   const AutoPrimary primary(IP, nameserver, account);
   if (B.autoPrimaryAdd(primary)) {
     return EXIT_SUCCESS;
@@ -1660,7 +1683,7 @@ static int addAutoPrimary(const std::string& IP, const std::string& nameserver, 
 
 static int removeAutoPrimary(const std::string &IP, const std::string &nameserver)
 {
-  UeberBackend B("default");
+  UtilBackend B("default"); //NOLINT(readability-identifier-length)
   const AutoPrimary primary(IP, nameserver, "");
   if ( B.autoPrimaryRemove(primary) ){
     return EXIT_SUCCESS;
@@ -1671,7 +1694,7 @@ static int removeAutoPrimary(const std::string &IP, const std::string &nameserve
 
 static int listAutoPrimaries()
 {
-  UeberBackend B("default");
+  UtilBackend B("default"); //NOLINT(readability-identifier-length)
   vector<AutoPrimary> primaries;
   if ( !B.autoPrimariesList(primaries) ){
     cerr<<"could not find a backend with autosecondary support"<<endl;
@@ -1688,7 +1711,7 @@ static int listAutoPrimaries()
 // delete-rrset zone name type
 static int deleteRRSet(const std::string& zone_, const std::string& name_, const std::string& type_)
 {
-  UeberBackend B;
+  UtilBackend B; //NOLINT(readability-identifier-length)
   DomainInfo di;
   DNSName zone(zone_);
   if(!B.getDomainInfo(zone, di)) {
@@ -1729,7 +1752,7 @@ static int listAllZones(const string &type="") {
     }
   }
 
-  UeberBackend B("default");
+  UtilBackend B("default"); //NOLINT(readability-identifier-length)
 
   vector<DomainInfo> domains;
   B.getAllDomains(&domains, false, g_verbose);
@@ -1755,7 +1778,7 @@ static int listAllZones(const string &type="") {
 static int listMemberZones(const string& catalog)
 {
 
-  UeberBackend B("default");
+  UtilBackend B("default"); //NOLINT(readability-identifier-length)
 
   DNSName catz(catalog);
   DomainInfo di;
@@ -1812,7 +1835,7 @@ static void testSpeed(const DNSName& zone, const string& /* remote */, int cores
   rr.auth=true;
   rr.qclass = QClass::IN;
 
-  UeberBackend db("key-only");
+  UtilBackend db("key-only"); //NOLINT(readability-identifier-length)
 
   if ( db.backends.empty() )
   {
@@ -1890,7 +1913,7 @@ static void verifyCrypto(const string& zone)
 
 static bool disableDNSSECOnZone(DNSSECKeeper& dk, const DNSName& zone)
 {
-  UeberBackend B("default");
+  UtilBackend B("default"); //NOLINT(readability-identifier-length)
   DomainInfo di;
 
   if (!B.getDomainInfo(zone, di)){
@@ -1908,7 +1931,7 @@ static bool disableDNSSECOnZone(DNSSECKeeper& dk, const DNSName& zone)
 
 static int setZoneOptionsJson(const DNSName& zone, const string& options)
 {
-  UeberBackend B("default");
+  UtilBackend B("default"); //NOLINT(readability-identifier-length)
   DomainInfo di;
 
   if (!B.getDomainInfo(zone, di)) {
@@ -1924,7 +1947,7 @@ static int setZoneOptionsJson(const DNSName& zone, const string& options)
 
 static int setZoneOption(const DNSName& zone, const string& type, const string& option, const set<string>& values)
 {
-  UeberBackend B("default");
+  UtilBackend B("default"); //NOLINT(readability-identifier-length)
   DomainInfo di;
   CatalogInfo ci;
 
@@ -1963,7 +1986,7 @@ static int setZoneOption(const DNSName& zone, const string& type, const string& 
 
 static int setZoneCatalog(const DNSName& zone, const DNSName& catalog)
 {
-  UeberBackend B("default");
+  UtilBackend B("default"); //NOLINT(readability-identifier-length)
   DomainInfo di;
 
   if (!B.getDomainInfo(zone, di)) {
@@ -1979,7 +2002,7 @@ static int setZoneCatalog(const DNSName& zone, const DNSName& catalog)
 
 static int setZoneAccount(const DNSName& zone, const string &account)
 {
-  UeberBackend B("default");
+  UtilBackend B("default"); //NOLINT(readability-identifier-length)
   DomainInfo di;
 
   if (!B.getDomainInfo(zone, di)){
@@ -1995,7 +2018,7 @@ static int setZoneAccount(const DNSName& zone, const string &account)
 
 static int setZoneKind(const DNSName& zone, const DomainInfo::DomainKind kind)
 {
-  UeberBackend B("default");
+  UtilBackend B("default"); //NOLINT(readability-identifier-length)
   DomainInfo di;
 
   if (!B.getDomainInfo(zone, di)){
@@ -2011,7 +2034,7 @@ static int setZoneKind(const DNSName& zone, const DomainInfo::DomainKind kind)
 
 static bool showZone(DNSSECKeeper& dnsseckeeper, const DNSName& zone, bool exportDS = false) // NOLINT(readability-function-cognitive-complexity)
 {
-  UeberBackend B("default");
+  UtilBackend B("default"); //NOLINT(readability-identifier-length)
   DomainInfo di;
 
   if (!B.getDomainInfo(zone, di)){
@@ -2266,7 +2289,7 @@ static bool secureZone(DNSSECKeeper& dk, const DNSName& zone)
   }
 
   DomainInfo di;
-  UeberBackend B("default");
+  UtilBackend B("default"); //NOLINT(readability-identifier-length)
   // di.backend and B are mostly identical
   if(!B.getDomainInfo(zone, di, false) || di.backend == nullptr) {
     cerr<<"Can't find a zone called '"<<zone<<"'"<<endl;
@@ -2333,7 +2356,7 @@ static int testSchema(DNSSECKeeper& dk, const DNSName& zone)
   cout<<endl;
   cout<<"If this test reports an error and aborts, please check your database schema."<<endl;
   cout<<"Constructing UeberBackend"<<endl;
-  UeberBackend B("default");
+  UtilBackend B("default"); //NOLINT(readability-identifier-length)
   cout<<"Picking first backend - if this is not what you want, edit launch line!"<<endl;
   DNSBackend *db = B.backends[0].get();
   cout << "Creating secondary zone " << zone << endl;
@@ -2453,7 +2476,7 @@ static int testSchema(DNSSECKeeper& dk, const DNSName& zone)
 }
 
 static int addOrSetMeta(const DNSName& zone, const string& kind, const vector<string>& values, bool clobber) {
-  UeberBackend B("default");
+  UtilBackend B("default"); //NOLINT(readability-identifier-length)
   DomainInfo di;
 
   if (!B.getDomainInfo(zone, di)) {
@@ -2677,7 +2700,7 @@ static int checkZone(vector<string>& cmds)
     return 0;
   }
   DNSSECKeeper dk; //NOLINT(readability-identifier-length)
-  UeberBackend B("default"); // NOLINT(readability-identifier-length)
+  UtilBackend B("default"); // NOLINT(readability-identifier-length)
   return checkZone(dk, B, DNSName(cmds.at(1)));
 }
 
@@ -2917,7 +2940,7 @@ static int addZoneKey(vector<string>& cmds)
   DNSSECKeeper dk; //NOLINT(readability-identifier-length)
   DNSName zone(cmds.at(1));
 
-  UeberBackend B("default"); //NOLINT(readability-identifier-length)
+  UtilBackend B("default"); //NOLINT(readability-identifier-length)
   DomainInfo di; //NOLINT(readability-identifier-length)
 
   if (!B.getDomainInfo(zone, di)){
@@ -3028,7 +3051,7 @@ static int createSecondaryZone(vector<string>& cmds)
     cerr << "Syntax: pdnsutil create-secondary-zone ZONE primary-ip [primary-ip..]" << endl;
     return 0;
   }
-  UeberBackend B; // NOLINT(readability-identifier-length)
+  UtilBackend B; // NOLINT(readability-identifier-length)
   DomainInfo di; // NOLINT(readability-identifier-length)
   DNSName zone(cmds.at(1));
   if (B.getDomainInfo(zone, di)) {
@@ -3054,7 +3077,7 @@ static int changeSecondaryZonePrimary(vector<string>& cmds)
     cerr << "Syntax: pdnsutil change-secondary-zone-primary ZONE primary-ip [primary-ip..]" << endl;
     return 0;
   }
-  UeberBackend B; // NOLINT(readability-identifier-length)
+  UtilBackend B; // NOLINT(readability-identifier-length)
   DomainInfo di; // NOLINT(readability-identifier-length)
   DNSName zone(cmds.at(1));
   if (!B.getDomainInfo(zone, di)) {
@@ -3237,7 +3260,7 @@ static int secureAllZones(vector<string>& cmds)
   }
 
   DNSSECKeeper dk; //NOLINT(readability-identifier-length)
-  UeberBackend B("default"); // NOLINT(readability-identifier-length)
+  UtilBackend B("default"); // NOLINT(readability-identifier-length)
 
   vector<DomainInfo> domainInfo;
   B.getAllDomains(&domainInfo, false, false);
@@ -3798,7 +3821,7 @@ static int generateTSIGKey(vector<string>& cmds)
     return 1;
   }
 
-  UeberBackend B("default"); // NOLINT(readability-identifier-length)
+  UtilBackend B("default"); // NOLINT(readability-identifier-length)
   if (B.setTSIGKey(name, DNSName(algo), key)) { // you are feeling bored, put up DNSName(algo) up earlier
     cout << "Create new TSIG key " << name << " " << algo << " " << key << endl;
   } else {
@@ -3818,7 +3841,7 @@ static int importTSIGKey(vector<string>& cmds)
   string algo = cmds.at(2);
   string key = cmds.at(3);
 
-  UeberBackend B("default"); // NOLINT(readability-identifier-length)
+  UtilBackend B("default"); // NOLINT(readability-identifier-length)
   if (B.setTSIGKey(name, DNSName(algo), key)) {
     cout << "Imported TSIG key " << name << " " << algo << endl;
   }
@@ -3837,7 +3860,7 @@ static int deleteTSIGKey(vector<string>& cmds)
   }
   DNSName name(cmds.at(1));
 
-  UeberBackend B("default"); // NOLINT(readability-identifier-length)
+  UtilBackend B("default"); // NOLINT(readability-identifier-length)
   if (B.deleteTSIGKey(name)) {
     cout << "Deleted TSIG key " << name << endl;
   }
@@ -3851,7 +3874,7 @@ static int deleteTSIGKey(vector<string>& cmds)
 static int listTSIGKeys([[maybe_unused]] vector<string>& cmds)
 {
   std::vector<struct TSIGKey> keys;
-  UeberBackend B("default"); // NOLINT(readability-identifier-length)
+  UtilBackend B("default"); // NOLINT(readability-identifier-length)
   if (B.getTSIGKeys(keys)) {
     for (const TSIGKey& key : keys) {
       cout << key.name.toString() << " " << key.algorithm.toString() << " " << key.key << endl;
@@ -3879,7 +3902,7 @@ static int activateTSIGKey(vector<string>& cmds)
     cerr << "Invalid parameter '" << cmds.at(3) << "', expected primary or secondary type" << endl;
     return 1;
   }
-  UeberBackend B("default"); // NOLINT(readability-identifier-length)
+  UtilBackend B("default"); // NOLINT(readability-identifier-length)
   DomainInfo di; // NOLINT(readability-identifier-length)
   if (!B.getDomainInfo(zname, di)) {
     cerr << "Zone '" << zname << "' does not exist" << endl;
@@ -3930,7 +3953,7 @@ static int deactivateTSIGKey(vector<string>& cmds)
     return 1;
   }
 
-  UeberBackend B("default"); // NOLINT(readability-identifier-length)
+  UtilBackend B("default"); // NOLINT(readability-identifier-length)
   DomainInfo di; // NOLINT(readability-identifier-length)
   if (!B.getDomainInfo(zname, di)) {
     cerr << "Zone '" << zname << "' does not exist" << endl;
@@ -3962,7 +3985,7 @@ static int deactivateTSIGKey(vector<string>& cmds)
 
 static int getMeta(vector<string>& cmds)
 {
-  UeberBackend B("default"); // NOLINT(readability-identifier-length)
+  UtilBackend B("default"); // NOLINT(readability-identifier-length)
   if (cmds.size() < 2) {
     cerr << "Syntax: " << cmds.at(0) << " zone [kind kind ..]" << endl;
     return 1;
@@ -4032,7 +4055,7 @@ static int HSMAssign(vector<string>& cmds)
     return 1;
   }
 
-  UeberBackend B("default"); // NOLINT(readability-identifier-length)
+  UtilBackend B("default"); // NOLINT(readability-identifier-length)
   DNSName zone(cmds.at(2));
 
   // verify zone
@@ -4113,7 +4136,7 @@ static int HSMCreateKey(vector<string>& cmds)
     cerr << "Usage: pdnsutil hsm create-key ZONE KEY-ID [BITS]" << endl;
     return 1;
   }
-  UeberBackend B("default"); // NOLINT(readability-identifier-length)
+  UtilBackend B("default"); // NOLINT(readability-identifier-length)
   DomainInfo di; // NOLINT(readability-identifier-length)
   DNSName zone(cmds.at(2));
   unsigned int id{0}; // NOLINT(readability-identifier-length)
