@@ -2364,7 +2364,6 @@ std::shared_ptr<DNSAction> getHTTPStatusAction(uint16_t status, PacketBuffer&& b
 #endif
 }
 
-
 std::shared_ptr<DNSResponseAction> getLimitTTLResponseAction(uint32_t min, uint32_t max, std::unordered_set<QType> types)
 {
   return std::shared_ptr<DNSResponseAction>(new LimitTTLResponseAction(min, max, std::move(types)));
