@@ -1,6 +1,6 @@
 FROM {{ os_image }}:{{ os_version }}
 
-RUN apt-get update && apt-get install -y curl gnupg dnsutils apt-transport-https
+RUN apt-get update && apt-get install -y curl gnupg bind9-dnsutils apt-transport-https
 
 {% if release.startswith('dnsdist-') %}
 COPY pkg-pin /etc/apt/preferences.d/dnsdist

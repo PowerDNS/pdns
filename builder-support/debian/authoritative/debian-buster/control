@@ -3,11 +3,11 @@ Section: net
 Maintainer: PowerDNS Autobuilder <powerdns.support@powerdns.com>
 Priority: optional
 Standards-Version: 4.5.1
-Build-Depends: bison,
+Build-Depends: bind9-dnsutils | dnsutils,
+               bison,
                curl,
                debhelper-compat (= 10),
                default-libmysqlclient-dev,
-               dnsutils,
                flex,
                libboost-all-dev,
                libcdb-dev,

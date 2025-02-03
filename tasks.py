@@ -60,7 +60,7 @@ rec_build_deps = [
 ]
 rec_bulk_deps = [
     'curl',
-    'dnsutils',
+    'bind9-dnsutils',
     'libboost-all-dev',
     'libcap2',
     'libfstrm0',
@@ -74,7 +74,7 @@ rec_bulk_deps = [
 ]
 rec_bulk_ubicloud_deps = [
     'curl',
-    'dnsutils',
+    'bind9-dnsutils',
     'libboost-context1.74.0',
     'libboost-system1.74.0',
     'libboost-filesystem1.74.0',
@@ -110,7 +110,7 @@ auth_test_deps = [   # FIXME: we should be generating some of these from shlibde
     'bind9utils',
     'curl',
     'default-jre-headless',
-    'dnsutils',
+    'bind9-dnsutils',
     'faketime',
     'gawk',
     'krb5-user',
