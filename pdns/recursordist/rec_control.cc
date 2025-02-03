@@ -32,7 +32,7 @@
 #include "credentials.hh"
 #include "namespaces.hh"
 #include "rec_channel.hh"
-#include "settings/cxxsettings.hh"
+#include "rec-rust-lib/cxxsettings.hh"
 #include "logger.hh"
 #include "logging.hh"
 

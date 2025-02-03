@@ -1,11 +1,11 @@
 [package]
-name = "settings"
+name = "recrust"
 # Convention: major/minor is equal to rec's major/minor
-version = "5.2.0"
+version = "5.3.0"
 edition = "2021"
 
 [lib]
-name = "settings"
+name = "recrust"
 crate-type = ["staticlib"]
 
 [dependencies]

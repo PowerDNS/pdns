@@ -74,7 +74,7 @@ subdir('meson' / 'libresolv')               # res_query
 subdir('meson' / 'dnstap')                  # DNSTAP through libfstream
 subdir('meson' / 'libcurl')                 # Curl
 
-subdir('settings')
+subdir('rec-rust-lib')
 
 common_sources = []
 
@@ -299,7 +299,7 @@ dep_metrics = declare_dependency(
 deps = [
   dep_pdns,
   dep_no_config_in_source,
-  dep_rust_settings,
+  dep_rust_recrust,
   dep_boost,
   dep_boost_context,
   dep_threads,
@@ -397,7 +397,7 @@ librec_common = declare_dependency(
     config_h,
     dependencies: [
       deps,
-      dep_settings_ch,
+      dep_recrust_ch,
       librec_dnslabeltext,
     ],
   )
@@ -424,8 +424,8 @@ tools = {
       dep_protozero,
       dep_yahttp_header_only,
       dep_json11,
-      dep_settings,
-      dep_rust_settings,
+      dep_recrust,
+      dep_rust_recrust,
       dep_systemd,
       librec_signers_openssl,
       librec_signers_sodium,
@@ -437,8 +437,8 @@ tools = {
     'manpages': ['rec_control.1'],
     'deps-extra': [
       dep_boost,
-      dep_settings,
-      dep_rust_settings,
+      dep_recrust,
+      dep_rust_recrust,
     ],
   },
 }
@@ -511,8 +511,8 @@ if get_option('unit-tests')
           dep_boost_test,
           dep_lua,
           dep_nod,
-          dep_settings,
-          dep_rust_settings,
+          dep_recrust,
+          dep_rust_recrust,
           librec_signers_openssl,
           librec_signers_sodium,
       ],

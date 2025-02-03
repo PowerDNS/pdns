@@ -39,12 +39,12 @@
 #include "secpoll-recursor.hh"
 #include "logging.hh"
 #include "dnsseckeeper.hh"
-#include "settings/cxxsettings.hh"
+#include "rec-rust-lib/cxxsettings.hh"
 #include "json.hh"
 #include "rec-system-resolve.hh"
 #include "root-dnssec.hh"
 #include "ratelimitedlog.hh"
-#include "settings/rust/web.rs.h"
+#include "rec-rust-lib/rust/web.rs.h"
 
 #ifdef NOD_ENABLED
 #include "nod.hh"

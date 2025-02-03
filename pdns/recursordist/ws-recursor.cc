@@ -43,10 +43,10 @@
 #include "rec-lua-conf.hh"
 #include "rpzloader.hh"
 #include "rec-main.hh"
-#include "settings/cxxsettings.hh" // IWYU pragma: keep, needed by included generated file
-#include "settings/rust/src/bridge.hh"
-#include "settings/rust/web.rs.h"
-#include "settings/rust/misc.rs.h"
+#include "rec-rust-lib/cxxsettings.hh" // IWYU pragma: keep, needed by included generated file
+#include "rec-rust-lib/rust/src/bridge.hh"
+#include "rec-rust-lib/rust/web.rs.h"
+#include "rec-rust-lib/rust/misc.rs.h"
 
 using json11::Json;
 

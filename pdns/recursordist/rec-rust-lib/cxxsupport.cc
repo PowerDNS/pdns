@@ -41,8 +41,8 @@
 #include "threadname.hh"
 #include "iputils.hh"
 #include "bridge.hh"
-#include "settings/rust/web.rs.h"
-#include "settings/rust/misc.rs.h"
+#include "rec-rust-lib/rust/web.rs.h"
+#include "rec-rust-lib/rust/misc.rs.h"
 
 ::rust::Vec<::rust::String> pdns::settings::rec::getStrings(const std::string& name)
 {

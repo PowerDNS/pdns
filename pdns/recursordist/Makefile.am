@@ -1,16 +1,16 @@
 JSON11_LIBS = $(top_builddir)/ext/json11/libjson11.la
 PROBDS_LIBS = $(top_builddir)/ext/probds/libprobds.la
 ARC4RANDOM_LIBS = $(top_builddir)/ext/arc4random/libarc4random.la
-RUST_LIBS = $(top_builddir)/settings/rust/libsettings.a $(LIBDL)
+RUST_LIBS = $(top_builddir)/rec-rust-lib/rust/librecrust.a $(LIBDL)
 
 AM_CPPFLAGS = $(LUA_CFLAGS) $(YAHTTP_CFLAGS) $(BOOST_CPPFLAGS) $(LIBSODIUM_CFLAGS) $(NET_SNMP_CFLAGS) $(LIBCAP_CFLAGS) $(SANITIZER_FLAGS) -O3 -Wall -pthread -DSYSCONFDIR=\"${sysconfdir}\" $(SYSTEMD_CFLAGS)
 
 AM_CPPFLAGS += \
 	-I$(top_srcdir)/ext/json11 \
 	-I$(top_srcdir)/ext/protozero/include \
-	-I$(top_srcdir)/settings \
-	-I$(top_builddir)/settings \
-	-I$(top_srcdir)/settings/rust/src \
+	-I$(top_srcdir)/rec-rust-lib \
+	-I$(top_builddir)/rec-rust-lib \
+	-I$(top_srcdir)/rec-rust-lib/rust/src \
 	$(YAHTTP_CFLAGS) \
 	$(LIBCRYPTO_INCLUDES) \
 	-DBOOST_CONTAINER_USE_STD_EXCEPTIONS
@@ -53,8 +53,8 @@ htmlfiles.h: incfiles ${srcdir}/html/* ${srcdir}/html/js/*
 rec-metrics-gen%h rec-prometheus-gen%h rec-snmp-gen%h rec-oids-gen%h RECURSOR-MIB%txt: metrics.py metrics_table.py RECURSOR-MIB.in
 	$(PYTHON) metrics.py
 
-# We explicitly build settings in two steps, as settings modifies files in the settings/rust subdir
-SUBDIRS=ext settings settings/rust
+# We explicitly build rec-rust-lib in two steps, as it modifies files in the rec-rust-lib/rust subdir
+SUBDIRS=ext rec-rust-lib rec-rust-lib/rust
 
 if LUA
 AM_CPPFLAGS +=$(LUA_CFLAGS)
@@ -188,6 +188,7 @@ pdns_recursor_SOURCES = \
 	rec-main.hh rec-main.cc \
 	rec-protozero.cc rec-protozero.hh \
 	rec-responsestats.hh rec-responsestats.cc \
+	rec-rust-lib/cxxsupport.cc \
 	rec-snmp.hh rec-snmp.cc \
 	rec-system-resolve.hh rec-system-resolve.cc \
 	rec-taskqueue.cc rec-taskqueue.hh \
@@ -211,7 +212,6 @@ pdns_recursor_SOURCES = \
 	rpzloader.cc rpzloader.hh \
 	secpoll-recursor.cc secpoll-recursor.hh \
 	secpoll.cc secpoll.hh \
-	settings/cxxsupport.cc \
 	sha.hh \
 	sholder.hh \
 	shuffle.cc shuffle.hh \
@@ -242,7 +242,7 @@ pdns_recursor_SOURCES = \
 	zoneparser-tng.cc zoneparser-tng.hh
 
 nodist_pdns_recursor_SOURCES = \
-	settings/cxxsettings-generated.cc
+	rec-rust-lib/cxxsettings-generated.cc
 
 if !HAVE_LUA_HPP
 BUILT_SOURCES += lua.hpp
@@ -324,6 +324,7 @@ testrunner_SOURCES = \
 	rcpgenerator.cc \
 	rec-eventtrace.cc rec-eventtrace.hh \
 	rec-responsestats.hh rec-responsestats.cc \
+	rec-rust-lib/cxxsupport.cc \
 	rec-system-resolve.hh rec-system-resolve.cc \
 	rec-taskqueue.cc rec-taskqueue.hh \
 	rec-tcounters.cc rec-tcounters.hh \
@@ -337,7 +338,6 @@ testrunner_SOURCES = \
 	root-dnssec.hh \
 	rpzloader.cc rpzloader.hh \
 	secpoll.cc \
-	settings/cxxsupport.cc \
 	sholder.hh \
 	shuffle.cc shuffle.hh \
 	sillyrecords.cc \
@@ -407,7 +407,7 @@ testrunner_SOURCES = \
 	zoneparser-tng.cc zoneparser-tng.hh
 
 nodist_testrunner_SOURCES = \
-	settings/cxxsettings-generated.cc
+	rec-rust-lib/cxxsettings-generated.cc
 
 testrunner_LDFLAGS = \
 	$(AM_LDFLAGS) \
@@ -540,11 +540,11 @@ rec_control_SOURCES = \
 	qtype.cc \
 	rcpgenerator.cc	rcpgenerator.hh \
 	rec-lua-conf.cc rec-lua-conf.hh \
+	rec-rust-lib/cxxsupport.cc \
 	rec-system-resolve.cc rec-system-resolve.hh \
 	rec-web-stubs.hh \
 	rec_channel.cc rec_channel.hh \
 	rec_control.cc \
-	settings/cxxsupport.cc \
 	sillyrecords.cc \
 	sortlist.cc sortlist.hh \
 	svc-records.cc svc-records.hh \
@@ -552,7 +552,7 @@ rec_control_SOURCES = \
 	unix_utility.cc
 
 nodist_rec_control_SOURCES = \
-	settings/cxxsettings-generated.cc
+	rec-rust-lib/cxxsettings-generated.cc
 
 dnslabeltext.cc: dnslabeltext.rl
 	$(AM_V_GEN)$(RAGEL) $< -o dnslabeltext.cc

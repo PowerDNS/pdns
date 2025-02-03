@@ -9,7 +9,7 @@
 #include <boost/format.hpp>
 #include <fstream>
 
-#include "settings/cxxsettings.hh"
+#include "rec-rust-lib/cxxsettings.hh"
 
 BOOST_AUTO_TEST_SUITE(test_settings)
 

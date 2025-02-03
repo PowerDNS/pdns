@@ -430,6 +430,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "recrust"
+version = "5.3.0"
+dependencies = [
+ "base64",
+ "bytes",
+ "cxx",
+ "cxx-build",
+ "form_urlencoded",
+ "http-body-util",
+ "hyper",
+ "hyper-rustls",
+ "hyper-util",
+ "ipnet",
+ "once_cell",
+ "rustls",
+ "rustls-pemfile",
+ "rustls-pki-types",
+ "serde",
+ "serde_yml",
+ "tokio",
+ "tokio-rustls",
+ "uuid",
+]
+
+[[package]]
 name = "ring"
 version = "0.17.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -534,31 +559,6 @@ dependencies = [
  "ryu",
  "serde",
  "version_check",
-]
-
-[[package]]
-name = "settings"
-version = "5.2.0"
-dependencies = [
- "base64",
- "bytes",
- "cxx",
- "cxx-build",
- "form_urlencoded",
- "http-body-util",
- "hyper",
- "hyper-rustls",
- "hyper-util",
- "ipnet",
- "once_cell",
- "rustls",
- "rustls-pemfile",
- "rustls-pki-types",
- "serde",
- "serde_yml",
- "tokio",
- "tokio-rustls",
- "uuid",
 ]
 
 [[package]]

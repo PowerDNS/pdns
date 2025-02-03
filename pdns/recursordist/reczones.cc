@@ -32,7 +32,7 @@
 #include "logger.hh"
 #include "syncres.hh"
 #include "zoneparser-tng.hh"
-#include "settings/cxxsettings.hh"
+#include "rec-rust-lib/cxxsettings.hh"
 #include "rec-system-resolve.hh"
 
 // XXX consider including rec-main.hh?

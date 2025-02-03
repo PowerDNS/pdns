@@ -1,8 +1,8 @@
 
-build = find_program('build_settings')
+build = find_program('build_recrust')
 cargo = find_program('cargo')
 infile = 'Cargo.toml'
-outfile = 'libsettings.a'
+outfile = 'librecrust.a'
 
 
 env = environment()
@@ -15,7 +15,7 @@ env.append('srcdir', meson.current_source_dir())
 env.append('RUST_TARGET', '')
 env.append('RUSTC_TARGET_ARCH', '')
 
-lib_settings = custom_target('libsettings.a',
+lib_recrust = custom_target('librecrust.a',
   output: [outfile, 'cxx.h'],
   input: infile,
   command: [build,
@@ -25,13 +25,13 @@ lib_settings = custom_target('libsettings.a',
     'src/bridge.rs',
     'src/helpers.rs',
   ],
-  depends: settings,
+  depends: recrust,
   env: env,
   console: true,
 )
 
-dep_rust_settings = declare_dependency(
-  link_with: lib_settings[0],
-  sources: lib_settings[1],
+dep_rust_recrust = declare_dependency(
+  link_with: lib_recrust[0],
+  sources: lib_recrust[1],
   include_directories: [include_directories('.'), include_directories('src')],
 )

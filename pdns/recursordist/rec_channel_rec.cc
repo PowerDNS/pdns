@@ -40,7 +40,7 @@
 #include "rec-main.hh"
 #include "rec-system-resolve.hh"
 
-#include "settings/cxxsettings.hh"
+#include "rec-rust-lib/cxxsettings.hh"
 
 /* g++ defines __SANITIZE_THREAD__
    clang++ supports the nice __has_feature(thread_sanitizer),

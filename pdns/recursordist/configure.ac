@@ -192,8 +192,8 @@ AC_CONFIG_FILES([Makefile
 	ext/probds/Makefile
 	ext/yahttp/Makefile
 	ext/yahttp/yahttp/Makefile
-	settings/Makefile
-	settings/rust/Makefile])
+	rec-rust-lib/Makefile
+	rec-rust-lib/rust/Makefile])
 
 AC_OUTPUT
 
