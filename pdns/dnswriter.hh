@@ -172,7 +172,7 @@ private:
   DNSName d_qname;
 
   uint16_t d_truncatemarker; // end of header, for truncate
-  DNSResourceRecord::Place d_recordplace;
+  DNSResourceRecord::Place d_recordplace{DNSResourceRecord::QUESTION};
   bool d_canonic{false}, d_lowerCase{false}, d_compress{false};
 };
 
