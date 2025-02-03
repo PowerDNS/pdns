@@ -110,7 +110,15 @@ incoming:
   allow_from_file: acl.list.yml
   allow_notify_from_file: acl-notify.list.yml
 webservice:
+  webserver: true
   api_dir: %(api_dir)s
+  listen:
+    - addresses: [ 127.0.0.1:"""+str(WEBPORT)+""" ]
+      tls:
+        certificate: server.chain
+        key: server.key
+  api_key: """+APIKEY+"""
+  password: """+WEBPASSWORD+"""
 recursor:
   include_dir: %(conf_dir)s
   devonly_regression_test_mode: true
@@ -159,6 +167,10 @@ common_args = [
     "--webserver=yes", "--webserver-port="+str(WEBPORT), "--webserver-address=127.0.0.1",
     "--webserver-password="+WEBPASSWORD,
     "--api-key="+APIKEY
+]
+rec_args = [
+    "--daemon=no", "--socket-dir=.", "--config-dir=.",
+    "--local-address=127.0.0.1", "--local-port="+str(DNSPORT),
 ]
 
 # Take sdig if it exists (recursor in travis), otherwise build it from Authoritative source.
@@ -237,7 +249,7 @@ else:
     with open(conf_dir+'/example.com.yml', 'w') as conf_file:
         conf_file.write(REC_EXAMPLE_COM_CONF_TPL)
 
-    servercmd = [pdns_recursor] + common_args
+    servercmd = [pdns_recursor] + rec_args
 
 
 # Now run pdns and the tests.
@@ -269,7 +281,10 @@ available = False
 time.sleep(1)
 for try_number in range(0, 10):
     try:
-        res = requests.get('http://127.0.0.1:%s/' % WEBPORT)
+        if daemon == 'authoritative':
+            res = requests.get('http://127.0.0.1:%s/' % WEBPORT)
+        else:
+            res = requests.get('https://127.0.0.1:%s/' % WEBPORT, verify=False)
         available = True
         break
     except HTTPError as http_err:

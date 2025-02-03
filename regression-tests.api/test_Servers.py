@@ -101,7 +101,7 @@ class Servers(ApiTestCase):
 
     @unittest.skipIf(is_auth(), "Not applicable")
     def test_read_statistics_using_password(self):
-        r = requests.get(self.url("/api/v1/servers/localhost/statistics"), auth=('admin', self.server_web_password))
+        r = requests.get(self.url("/api/v1/servers/localhost/statistics"), auth=('admin', self.server_web_password), verify=False)
         self.assertEqual(r.status_code, requests.codes.ok)
         self.assert_success_json(r)
 
