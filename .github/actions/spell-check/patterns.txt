@@ -186,3 +186,6 @@ DoH
 
 # Twitter status
 \btwitter\.com/[^/\s"')]*(?:/status/\d+(?:\?[-_0-9a-zA-Z&=]*|)|)
+
+# LaTex instructions in our RST documentation
+\\\w{2,}\{
