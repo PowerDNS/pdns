@@ -331,7 +331,7 @@ Selectors can be combined via :func:`AndRule`, :func:`OrRule` and :func:`NotRule
 
 .. function:: RE2Rule(regex)
 
-  Matches the query name against the supplied regex using the RE2 engine. Note that this rule requires a full match of the query name, meaning that for example the ``powerdns`` expression with match a query name of ``powerdns`` but not ``prefixpowerdns``, ``sub.powerdns``, ``powerdnssuffix`` or ``powerdns.tld``. In short, the expression is treated as if it started with a ``^`` and ended with a ``$``.
+  Matches the query name against the supplied regex using the RE2 engine. Note that this rule requires a full match of the query name, meaning that for example the ``powerdns`` expression will match a query name of ``powerdns`` but neither``prefixpowerdns``, ``sub.powerdns``, ``powerdnssuffix`` nor ``powerdns.tld``. In short, the expression is processed as if it started with a ``^`` and ended with a ``$``.
 
   For an example of usage, see :func:`RegexRule`.
 
