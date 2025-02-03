@@ -70,9 +70,6 @@ protected:
   };
 
 public:
-  FDMultiplexer() :
-    d_inrun(false)
-  {}
   virtual ~FDMultiplexer() = default;
 
   // The maximum number of events processed in a single run, not the maximum of watched descriptors
@@ -221,11 +218,11 @@ public:
     const auto tied = std::tie(tv.tv_sec, tv.tv_usec);
     auto& idx = writes ? d_writeCallbacks.get<TTDOrderedTag>() : d_readCallbacks.get<TTDOrderedTag>();
 
-    for (auto it = idx.begin(); it != idx.end(); ++it) {
-      if (it->d_ttd.tv_sec == 0 || tied <= std::tie(it->d_ttd.tv_sec, it->d_ttd.tv_usec)) {
+    for (const auto& t : idx) {
+      if (t.d_ttd.tv_sec == 0 || tied <= std::tie(t.d_ttd.tv_sec, t.d_ttd.tv_usec)) {
         break;
       }
-      ret.emplace_back(it->d_fd, it->d_parameter);
+      ret.emplace_back(t.d_fd, t.d_parameter);
     }
 
     return ret;
@@ -296,7 +293,7 @@ protected:
     callbackmap_t;
 
   callbackmap_t d_readCallbacks, d_writeCallbacks;
-  bool d_inrun;
+  bool d_inrun{false};
 
   void accountingAddFD(callbackmap_t& cbmap, int fd, callbackfunc_t toDo, const funcparam_t& parameter, const struct timeval* ttd)
   {

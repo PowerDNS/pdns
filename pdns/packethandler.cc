@@ -139,8 +139,7 @@ bool PacketHandler::addCDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r)
   }
 
   bool haveOne=false;
-  DNSSECKeeper::keyset_t entryPoints = d_dk.getEntryPoints(p.qdomain);
-  for(const auto& value: entryPoints) {
+  for (const auto& value : d_dk.getEntryPoints(p.qdomain)) {
     if (!value.second.published) {
       continue;
     }
@@ -173,8 +172,7 @@ bool PacketHandler::addDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r)
   DNSZoneRecord rr;
   bool haveOne=false;
 
-  DNSSECKeeper::keyset_t keyset = d_dk.getKeys(p.qdomain);
-  for(const auto& value: keyset) {
+  for (const auto& value : d_dk.getKeys(p.qdomain)) {
     if (!value.second.published) {
       continue;
     }
@@ -232,9 +230,7 @@ bool PacketHandler::addCDS(DNSPacket& p, std::unique_ptr<DNSPacket>& r)
 
   bool haveOne=false;
 
-  DNSSECKeeper::keyset_t keyset = d_dk.getEntryPoints(p.qdomain);
-
-  for(auto const &value : keyset) {
+  for (const auto& value : d_dk.getEntryPoints(p.qdomain)) {
     if (!value.second.published) {
       continue;
     }
@@ -1283,9 +1279,9 @@ bool PacketHandler::tryDNAME(DNSPacket& p, std::unique_ptr<DNSPacket>& r, DNSNam
   try {
     getBestDNAMESynth(p, target, rrset);
     if(!rrset.empty()) {
-      for(size_t i = 0; i < rrset.size(); i++) {
-        rrset.at(i).dr.d_place = DNSResourceRecord::ANSWER;
-        r->addRecord(std::move(rrset.at(i)));
+      for (auto& record : rrset) {
+        record.dr.d_place = DNSResourceRecord::ANSWER;
+        r->addRecord(std::move(record));
       }
       return true;
     }
@@ -1293,9 +1289,9 @@ bool PacketHandler::tryDNAME(DNSPacket& p, std::unique_ptr<DNSPacket>& r, DNSNam
     // Add the DNAME regardless, but throw to let the caller know we could not
     // synthesize a CNAME
     if(!rrset.empty()) {
-      for(size_t i = 0; i < rrset.size(); i++) {
-        rrset.at(i).dr.d_place = DNSResourceRecord::ANSWER;
-        r->addRecord(std::move(rrset.at(i)));
+      for (auto& record : rrset) {
+        record.dr.d_place = DNSResourceRecord::ANSWER;
+        r->addRecord(std::move(record));
       }
     }
     throw e;

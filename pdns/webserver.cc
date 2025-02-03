@@ -587,8 +587,8 @@ WebServer::WebServer(string listenaddress, int port) :
   d_listenaddress(std::move(listenaddress)),
   d_port(port),
   d_server(nullptr),
-  d_maxbodysize(2*1024*1024),
-  d_connectiontimeout(5)
+  d_maxbodysize(static_cast<ssize_t>(2 * 1024 * 1024))
+
 {
     YaHTTP::Router::Map("OPTIONS", "/<*url>", [](YaHTTP::Request *req, YaHTTP::Response *resp) {
       // look for url in routes

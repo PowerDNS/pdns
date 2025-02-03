@@ -205,8 +205,8 @@ void doSecPoll(const std::string& suffix)
     queriedName += '.';
   }
 
-  boost::replace_all(queriedName, "+", "_");
-  boost::replace_all(queriedName, "~", "_");
+  std::replace(queriedName.begin(), queriedName.end(), '+', '_');
+  std::replace(queriedName.begin(), queriedName.end(), '~', '_');
 
   try {
     std::string status = getSecPollStatus(queriedName);

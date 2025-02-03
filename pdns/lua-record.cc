@@ -930,7 +930,7 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
       vector<ComboAddress> candidates;
       // Getting something like 192-0-2-1.192-0-2-2.198-51-100-1.example.org
       for(auto l : s_lua_record_ctx->qname.getRawLabels()) {
-        boost::replace_all(l, "-", ".");
+        std::replace(l.begin(), l.end(), '-', '.');
         try {
           candidates.emplace_back(l);
         } catch (const PDNSException& e) {
@@ -1071,7 +1071,7 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
       }
       else if(parts.size()==1) {
         if (parts[0].find('-') != std::string::npos) {
-          boost::replace_all(parts[0],"-",":");
+          std::replace(parts[0].begin(), parts[0].end(), '-', ':');
           ComboAddress ca(parts[0]);
           return ca.toString();
         } else {
@@ -1130,7 +1130,7 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
         }
 
         string dashed=ip6.toString();
-        boost::replace_all(dashed, ":", "-");
+        std::replace(dashed.begin(), dashed.end(), ':', '-');
 
         // https://github.com/PowerDNS/pdns/issues/7524
         if (boost::ends_with(dashed, "-")) {

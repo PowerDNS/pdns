@@ -568,7 +568,7 @@ std::string getCarbonHostName()
     throw std::runtime_error(stringerror());
   }
 
-  boost::replace_all(*hostname, ".", "_");
+  std::replace(hostname->begin(), hostname->end(), '.', '_');
   return *hostname;
 }
 

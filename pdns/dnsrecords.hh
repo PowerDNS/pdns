@@ -30,6 +30,7 @@
 #include "rcpgenerator.hh"
 #include <set>
 #include <bitset>
+#include <utility>
 #include "namespaces.hh"
 #include "iputils.hh"
 #include "svc-records.hh"
@@ -289,8 +290,8 @@ private:
 class NSRecordContent : public DNSRecordContent
 {
 public:
-  includeboilerplate(NS)
-  explicit NSRecordContent(const DNSName& content) : d_content(content){}
+  includeboilerplate(NS) explicit NSRecordContent(DNSName content) :
+    d_content(std::move(content)) {}
   const DNSName& getNS() const { return d_content; }
   bool operator==(const DNSRecordContent& rhs) const override
   {
@@ -310,8 +311,8 @@ private:
 class PTRRecordContent : public DNSRecordContent
 {
 public:
-  includeboilerplate(PTR)
-  explicit PTRRecordContent(const DNSName& content) : d_content(content){}
+  includeboilerplate(PTR) explicit PTRRecordContent(DNSName content) :
+    d_content(std::move(content)) {}
   const DNSName& getContent() const { return d_content; }
   [[nodiscard]] size_t sizeEstimate() const override
   {
@@ -325,7 +326,8 @@ class CNAMERecordContent : public DNSRecordContent
 {
 public:
   includeboilerplate(CNAME)
-  CNAMERecordContent(const DNSName& content) : d_content(content){}
+    CNAMERecordContent(DNSName content) :
+    d_content(std::move(content)) {}
   DNSName getTarget() const { return d_content; }
   [[nodiscard]] size_t sizeEstimate() const override
   {
@@ -358,7 +360,8 @@ class DNAMERecordContent : public DNSRecordContent
 {
 public:
   includeboilerplate(DNAME)
-  DNAMERecordContent(const DNSName& content) : d_content(content){}
+    DNAMERecordContent(DNSName content) :
+    d_content(std::move(content)) {}
   const DNSName& getTarget() const { return d_content; }
   [[nodiscard]] size_t sizeEstimate() const override
   {

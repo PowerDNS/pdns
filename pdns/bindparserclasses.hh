@@ -32,9 +32,6 @@
 class BindDomainInfo 
 {
 public:
-  BindDomainInfo() : hadFileDirective(false), d_dev(0), d_ino(0)
-  {}
-
   void clear() 
   {
     name=DNSName();
@@ -50,10 +47,10 @@ public:
   vector<ComboAddress> primaries;
   set<string> alsoNotify;
   string type;
-  bool hadFileDirective;
-    
-  dev_t d_dev;
-  ino_t d_ino;
+  bool hadFileDirective{false};
+
+  dev_t d_dev{0};
+  ino_t d_ino{0};
 
   bool operator<(const BindDomainInfo& b) const
   {
@@ -66,14 +63,14 @@ extern FILE *yyin;
 class BindParser
 {
  public:
-  BindParser() : d_dir("."), d_verbose(false)
-  {
-    yyin=0;
-    extern int include_stack_ptr;
-    include_stack_ptr=0;
- 
-    bind_directory=d_dir.c_str(); 
-  }
+   BindParser()
+   {
+     yyin = 0;
+     extern int include_stack_ptr;
+     include_stack_ptr = 0;
+
+     bind_directory = d_dir.c_str();
+   }
   ~BindParser()
   {
     if(yyin) {
@@ -90,9 +87,9 @@ class BindParser
   void addAlsoNotify(const string &host);
   set<string> & getAlsoNotify() { return this->alsoNotify; } 
 private:
-  string d_dir;
+  string d_dir{"."};
   typedef map<DNSName,string> zonedomain_t;
   set<string> alsoNotify;
   vector<BindDomainInfo> d_zonedomains;
-  bool d_verbose;
+  bool d_verbose{false};
 };

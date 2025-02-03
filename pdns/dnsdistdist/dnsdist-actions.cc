@@ -45,7 +45,7 @@ DNSAction::Action DNSAction::typeFromString(const std::string& str)
   };
 
   auto lower = boost::to_lower_copy(str);
-  boost::replace_all(lower, "-", "");
+  lower.erase(std::remove(lower.begin(), lower.end(), '-'), lower.end());
   auto mappingIt = s_mappings.find(lower);
   if (mappingIt != s_mappings.end()) {
     return mappingIt->second;

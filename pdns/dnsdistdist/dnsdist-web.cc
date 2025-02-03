@@ -623,7 +623,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
       serverName = state->getName();
     }
 
-    boost::replace_all(serverName, ".", "_");
+    std::replace(serverName.begin(), serverName.end(), '.', '_');
 
     const std::string label = boost::str(boost::format(R"({server="%1%",address="%2%"})")
                                          % serverName % state->d_config.remote.toStringWithPort());

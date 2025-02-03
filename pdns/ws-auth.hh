@@ -61,7 +61,7 @@ private:
   void statThread(StatBag& stats);
 
   time_t d_start;
-  double d_min10, d_min5, d_min1;
+  double d_min10{0}, d_min5{0}, d_min1{0};
   Ewma d_queries, d_cachehits, d_cachemisses;
   Ewma d_qcachehits, d_qcachemisses;
   unique_ptr<WebServer> d_ws{nullptr};

@@ -485,8 +485,8 @@ private:
 class BackendFactory
 {
 public:
-  BackendFactory(const string& name) :
-    d_name(name) {}
+  BackendFactory(string name) :
+    d_name(std::move(name)) {}
   virtual ~BackendFactory() = default;
   virtual DNSBackend* make(const string& suffix) = 0;
   virtual DNSBackend* makeMetadataOnly(const string& suffix)

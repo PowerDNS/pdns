@@ -49,8 +49,8 @@ void doSecPoll(time_t* last_secpoll, Logr::log_t log)
     qstring += '.';
   }
 
-  boost::replace_all(qstring, "+", "_");
-  boost::replace_all(qstring, "~", "_");
+  std::replace(qstring.begin(), qstring.end(), '+', '_');
+  std::replace(qstring.begin(), qstring.end(), '~', '_');
 
   vState state = vState::Indeterminate;
   DNSName query(qstring);

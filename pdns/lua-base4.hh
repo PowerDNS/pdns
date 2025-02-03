@@ -1,6 +1,7 @@
 #pragma once
 #include "namespaces.hh"
 #include <boost/variant/variant.hpp>
+#include <utility>
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -13,7 +14,8 @@ protected:
   std::string d_include_path; // path where scripts to include at postLoad are
 
 public:
-  BaseLua4(const std::string &includePath) : d_include_path(includePath) {};
+  BaseLua4(std::string includePath) :
+    d_include_path(std::move(includePath)) {};
   void loadFile(const std::string &fname, bool doPostLoad=true);
   void loadString(const std::string &script);
   void loadStream(std::istream &stream, bool doPostLoad=true);

@@ -101,10 +101,8 @@ static const std::set<uint16_t> atApexTypes = {QType::SOA, QType::DNSKEY};
 static const std::set<uint16_t> nonApexTypes = {QType::DS};
 
 AuthWebServer::AuthWebServer() :
-  d_start(time(nullptr)),
-  d_min10(0),
-  d_min5(0),
-  d_min1(0)
+  d_start(time(nullptr))
+
 {
   if (arg().mustDo("webserver") || arg().mustDo("api")) {
     d_ws = std::make_unique<WebServer>(arg()["webserver-address"], arg().asNum("webserver-port"));

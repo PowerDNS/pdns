@@ -31,11 +31,11 @@ using pdns::resolver::parseResult;
 
 AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
                              const DNSName& domain,
-                             const TSIGTriplet& tt, 
+                             const TSIGTriplet& tsigConf,
                              const ComboAddress* laddr,
                              size_t maxReceivedBytes,
-                             uint16_t timeout)
-  : d_buf(65536), d_tsigVerifier(tt, remote, d_trc), d_receivedBytes(0), d_maxReceivedBytes(maxReceivedBytes)
+                             uint16_t timeout) :
+  d_buf(65536), d_tsigVerifier(tsigConf, remote, d_trc), d_maxReceivedBytes(maxReceivedBytes)
 {
   ComboAddress local;
   if (laddr != nullptr) {
@@ -59,17 +59,19 @@ AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
     vector<uint8_t> packet;
     DNSPacketWriter pw(packet, domain, QType::AXFR);
     pw.getHeader()->id = dns_random_uint16();
-  
-    if(!tt.name.empty()) {
-      if (tt.algo == DNSName("hmac-md5"))
-        d_trc.d_algoName = tt.algo + DNSName("sig-alg.reg.int");
-      else
-        d_trc.d_algoName = tt.algo;
+
+    if (!tsigConf.name.empty()) {
+      if (tsigConf.algo == DNSName("hmac-md5")) {
+        d_trc.d_algoName = tsigConf.algo + DNSName("sig-alg.reg.int");
+      }
+      else {
+        d_trc.d_algoName = tsigConf.algo;
+      }
       d_trc.d_time = time(nullptr);
       d_trc.d_fudge = 300;
       d_trc.d_origID=ntohs(pw.getHeader()->id);
       d_trc.d_eRcode=0;
-      addTSIG(pw, d_trc, tt.name, tt.secret, "", false);
+      addTSIG(pw, d_trc, tsigConf.name, tsigConf.secret, "", false);
     }
   
     uint16_t replen=htons(packet.size());
