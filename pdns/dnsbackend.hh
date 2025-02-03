@@ -353,7 +353,7 @@ public:
   }
 
   //! get list of all members in a catalog
-  virtual bool getCatalogMembers(const DNSName& /* catalog */, vector<CatalogInfo>& /* members */, CatalogInfo::CatalogType /* type */)
+  [[nodiscard]] virtual bool getCatalogMembers(const DNSName& /* catalog */, vector<CatalogInfo>& /* members */, CatalogInfo::CatalogType /* type */)
   {
     return false;
   }
