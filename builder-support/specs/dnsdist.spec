@@ -103,7 +103,6 @@ export RANLIB=gcc-ranlib
   --with-quiche \
   --enable-yaml \
   PKG_CONFIG_PATH=/usr/lib/pkgconfig:/opt/lib64/pkgconfig
-%endif
 
 make %{?_smp_mflags}
 
