@@ -3208,10 +3208,10 @@ IP address for the webserver to listen on.
         'section' : 'webservice',
         'type' : LType.ListIncomingWSConfigs,
         'default' : '',
-        'help' : 'XXXX',
+        'help' : 'IP addresses and associated attributes for the webserver to listen on',
         'doc' : '''
 IP addresses and associated attributes for the webserver to listen on.
-If this setting has a non-default value, :ref:`setting-yaml-webservice.address` and :ref:`setting-yaml-webservice.port` will be ignored.
+If this setting has a non-default value, :ref:`setting-yaml-webservice.address` and :ref:`setting-yaml-webservice.port` will be ignored. Note multiple listen addresses can be configured and https is supported as well, in contrast to earlier (pre 5.3.0) versions.
  ''',
         'skip-old': 'No equivalent old-style setting',
         'versionadded': '5.3.0',

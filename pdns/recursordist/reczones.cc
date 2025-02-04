@@ -34,11 +34,7 @@
 #include "zoneparser-tng.hh"
 #include "rec-rust-lib/cxxsettings.hh"
 #include "rec-system-resolve.hh"
-
-// XXX consider including rec-main.hh?
-extern int g_argc;
-extern char** g_argv;
-extern string g_yamlSettingsSuffix;
+#include "rec-main.hh"
 
 bool primeHints(time_t now)
 {
@@ -198,7 +194,6 @@ string reloadZoneConfiguration(bool yaml)
       oldAndNewDomains.insert(entry.first);
     }
 
-    extern LockGuarded<std::shared_ptr<SyncRes::domainmap_t>> g_initialDomainMap; // XXX
     {
       auto lock = g_initialDomainMap.lock();
       if (*lock) {
@@ -221,7 +216,6 @@ string reloadZoneConfiguration(bool yaml)
       wipeCaches(entry, true, 0xffff);
     }
     *g_initialDomainMap.lock() = std::move(newDomainMap);
-    extern LockGuarded<std::shared_ptr<notifyset_t>> g_initialAllowNotifyFor; // XXX
     *g_initialAllowNotifyFor.lock() = std::move(newNotifySet);
     return "ok\n";
   }
