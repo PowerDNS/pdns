@@ -959,7 +959,10 @@ pub fn serveweb(
         .spawn(move || {
             runtime.block_on(async {
                 while let Some(res) = set.join_next().await {
-                    let msg = format!("{:?}", res);
+                    let msg = match res {
+                        Ok(Err(wrapped)) => format!("{:?}", wrapped),
+                        _ => format!("{:?}", res)
+                    };
                     rustmisc::error(
                         &ctx.logger,
                         rustmisc::Priority::Error,
@@ -1000,7 +1003,15 @@ fn load_private_key(filename: &str) -> std::io::Result<pki_types::PrivateKeyDer<
     let mut reader = std::io::BufReader::new(keyfile);
 
     // Load and return a single private key.
-    rustls_pemfile::private_key(&mut reader).map(|key| key.unwrap())
+    match rustls_pemfile::private_key(&mut reader) {
+        Ok(Some(pkey)) => Ok(pkey),
+        Ok(None) => Err(
+            std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!("failed to parse private key from {}", filename),
+            )),
+        Err(e) => Err(e)
+    }
 }
 
 // impl below needed because the classes are used in the Context, which gets passed around.
