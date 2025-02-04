@@ -1,0 +1,7 @@
+Caddyfile export-ignore
+/README.md export-ignore
+docs export-ignore
+examples export-ignore
+make-ext-symlinks.py export-ignore
+recursor-lsan.supp export-ignore
+recursor-tsan.supp export-ignore
