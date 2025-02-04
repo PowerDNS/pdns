@@ -10,6 +10,10 @@ cd "$MESON_PROJECT_DIST_ROOT"
 # Get all symlinks
 symlinks=$(find . -type l)
 
+# If these two get out-of-sync, fix it! It used to be a symlink but that can no longer be as we are
+# working with a partial checkout in the dist root dir.
+cmp "$MESON_SOURCE_ROOT"/builder-support/gen-version "$MESON_PROJECT_DIST_ROOT"/builder-support/gen-version
+
 # Get the dereffed symbolic links (the actual files being pointed to) from the source dir
 # Extract them over the existing symbolic links
 tar -C "$MESON_SOURCE_ROOT" -hcf - $symlinks | tar -xf - -C "$MESON_PROJECT_DIST_ROOT"
