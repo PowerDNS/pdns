@@ -378,9 +378,9 @@ void convertRuntimeFlatSettingsFromRust(const dnsdist::rust::settings::GlobalCon
 
     os.rename(cxx_flat_settings_fp.name, out_file_path + '/dnsdist-configuration-yaml-items-generated.cc')
 
-def generate_actions_config(output, response, default_functions):
+def generate_actions_config(output, def_dir, response, default_functions):
     suffix = 'ResponseAction' if response else 'Action'
-    actions_definitions = get_actions_definitions(response)
+    actions_definitions = get_actions_definitions(def_dir, response)
     action_buffer = ''
     for action in actions_definitions:
         name = get_rust_object_name(action['name'])
@@ -405,9 +405,9 @@ def generate_actions_config(output, response, default_functions):
 
     output.write(action_buffer)
 
-def generate_selectors_config(output, default_functions):
+def generate_selectors_config(output, def_dir, default_functions):
     suffix = 'Selector'
-    selectors_definitions = get_selectors_definitions()
+    selectors_definitions = get_selectors_definitions(def_dir)
     selector_buffer = ''
     for selector in selectors_definitions:
         name = get_rust_object_name(selector['name'])
@@ -432,12 +432,12 @@ def generate_selectors_config(output, default_functions):
 
     output.write(selector_buffer)
 
-def generate_cpp_action_headers():
-    cpp_action_headers_fp = get_temporary_file_for_generated_code('..')
+def generate_cpp_action_headers(def_dir, cxx_dest_dir):
+    cpp_action_headers_fp = get_temporary_file_for_generated_code(cxx_dest_dir)
     header_buffer = ''
 
     # query actions
-    actions_definitions = get_actions_definitions(False)
+    actions_definitions = get_actions_definitions(def_dir, False)
     suffix = 'Action'
     for action in actions_definitions:
         name = get_rust_object_name(action['name'])
@@ -446,7 +446,7 @@ def generate_cpp_action_headers():
         header_buffer += f'std::shared_ptr<DNS{suffix}Wrapper> get{name}{suffix}(const {struct_name}& config);\n'
 
     # response actions
-    actions_definitions = get_actions_definitions(True)
+    actions_definitions = get_actions_definitions(def_dir, True)
     suffix = 'ResponseAction'
     for action in actions_definitions:
         name = get_rust_object_name(action['name'])
@@ -455,13 +455,13 @@ def generate_cpp_action_headers():
         header_buffer += f'std::shared_ptr<DNS{suffix}Wrapper> get{name}{suffix}(const {struct_name}& config);\n'
 
     cpp_action_headers_fp.write(header_buffer)
-    os.rename(cpp_action_headers_fp.name, '../dnsdist-rust-bridge-actions-generated.hh')
+    os.rename(cpp_action_headers_fp.name, f'{cxx_dest_dir}/dnsdist-rust-bridge-actions-generated.hh')
 
-def generate_cpp_selector_headers():
-    cpp_selector_headers_fp = get_temporary_file_for_generated_code('..')
+def generate_cpp_selector_headers(def_dir, cxx_dest_dir):
+    cpp_selector_headers_fp = get_temporary_file_for_generated_code(cxx_dest_dir)
     header_buffer = ''
 
-    selectors_definitions = get_selectors_definitions()
+    selectors_definitions = get_selectors_definitions(def_dir)
     suffix = 'Selector'
     for selector in selectors_definitions:
         name = get_rust_object_name(selector['name'])
@@ -469,9 +469,9 @@ def generate_cpp_selector_headers():
         header_buffer += f'struct {struct_name};\n'
         header_buffer += f'std::shared_ptr<DNS{suffix}> get{name}{suffix}(const {struct_name}& config);\n'
     cpp_selector_headers_fp.write(header_buffer)
-    os.rename(cpp_selector_headers_fp.name, '../dnsdist-rust-bridge-selectors-generated.hh')
+    os.rename(cpp_selector_headers_fp.name, f'{cxx_dest_dir}/dnsdist-rust-bridge-selectors-generated.hh')
 
-def get_cpp_parameters(struct_type, struct_name, parameters, skip_name):
+def get_cpp_parameters(struct_name, parameters, skip_name):
     output = ''
     for parameter in parameters:
         name = parameter['name']
@@ -499,19 +499,19 @@ def get_cpp_parameters(struct_type, struct_name, parameters, skip_name):
         output += field
     return output
 
-def generate_cpp_action_wrappers():
-    cpp_action_wrappers_fp = get_temporary_file_for_generated_code('..')
+def generate_cpp_action_wrappers(def_dir, cxx_dest_dir):
+    cpp_action_wrappers_fp = get_temporary_file_for_generated_code(cxx_dest_dir)
     wrappers_buffer = ''
 
     # query actions
-    actions_definitions = get_actions_definitions(False)
+    actions_definitions = get_actions_definitions(def_dir, False)
     suffix = 'Action'
     for action in actions_definitions:
         if 'skip-rust' in action and action['skip-rust']:
             continue
         name = get_rust_object_name(action['name'])
         struct_name = f'{name}{suffix}Configuration'
-        parameters = get_cpp_parameters(struct_name, 'config', action['parameters'], True) if 'parameters' in action else ''
+        parameters = get_cpp_parameters('config', action['parameters'], True) if 'parameters' in action else ''
         wrappers_buffer += f'''std::shared_ptr<DNS{suffix}Wrapper> get{name}{suffix}(const {struct_name}& config)
 {{
   auto action = dnsdist::actions::get{name}{suffix}({parameters});
@@ -520,14 +520,14 @@ def generate_cpp_action_wrappers():
 '''
 
     # response actions
-    actions_definitions = get_actions_definitions(True)
+    actions_definitions = get_actions_definitions(def_dir, True)
     suffix = 'ResponseAction'
     for action in actions_definitions:
         if 'skip-rust' in action and action['skip-rust']:
             continue
         name = get_rust_object_name(action['name'])
         struct_name = f'{name}{suffix}Configuration'
-        parameters = get_cpp_parameters(struct_name, 'config', action['parameters'], True) if 'parameters' in action else ''
+        parameters = get_cpp_parameters('config', action['parameters'], True) if 'parameters' in action else ''
         wrappers_buffer += f'''std::shared_ptr<DNS{suffix}Wrapper> get{name}{suffix}(const {struct_name}& config)
 {{
   auto action = dnsdist::actions::get{name}{suffix}({parameters});
@@ -536,20 +536,20 @@ def generate_cpp_action_wrappers():
 '''
 
     cpp_action_wrappers_fp.write(wrappers_buffer)
-    os.rename(cpp_action_wrappers_fp.name, '../dnsdist-rust-bridge-actions-generated.cc')
+    os.rename(cpp_action_wrappers_fp.name, f'{cxx_dest_dir}/dnsdist-rust-bridge-actions-generated.cc')
 
-def generate_cpp_selector_wrappers():
-    cpp_selector_wrappers_fp = get_temporary_file_for_generated_code('..')
+def generate_cpp_selector_wrappers(def_dir, cxx_dest_dir):
+    cpp_selector_wrappers_fp = get_temporary_file_for_generated_code(cxx_dest_dir)
     wrappers_buffer = ''
 
-    selectors_definitions = get_selectors_definitions()
+    selectors_definitions = get_selectors_definitions(def_dir)
     suffix = 'Selector'
     for selector in selectors_definitions:
         if 'skip-rust' in selector and selector['skip-rust']:
             continue
         name = get_rust_object_name(selector['name'])
         struct_name = f'{name}{suffix}Configuration'
-        parameters = get_cpp_parameters(struct_name, 'config', selector['parameters'], True) if 'parameters' in selector else ''
+        parameters = get_cpp_parameters('config', selector['parameters'], True) if 'parameters' in selector else ''
         wrappers_buffer += f'''std::shared_ptr<DNS{suffix}> get{name}{suffix}(const {struct_name}& config)
 {{
   auto selector = dnsdist::selectors::get{name}{suffix}({parameters});
@@ -558,11 +558,11 @@ def generate_cpp_selector_wrappers():
 '''
 
     cpp_selector_wrappers_fp.write(wrappers_buffer)
-    os.rename(cpp_selector_wrappers_fp.name, '../dnsdist-rust-bridge-selectors-generated.cc')
+    os.rename(cpp_selector_wrappers_fp.name, f'{cxx_dest_dir}/dnsdist-rust-bridge-selectors-generated.cc')
 
-def generate_rust_actions_enum(output, response):
+def generate_rust_actions_enum(output, def_dir, response):
     suffix = 'ResponseAction' if response else 'Action'
-    actions_definitions = get_actions_definitions(response)
+    actions_definitions = get_actions_definitions(def_dir, response)
     enum_buffer = f'''#[derive(Default, Serialize, Deserialize, Debug, PartialEq)]
 #[serde(tag = "type")]
 enum {suffix} {{
@@ -583,9 +583,9 @@ enum {suffix} {{
 
     output.write(enum_buffer)
 
-def generate_rust_selectors_enum(output):
+def generate_rust_selectors_enum(output, def_dir):
     suffix = 'Selector'
-    selectors_definitions = get_selectors_definitions()
+    selectors_definitions = get_selectors_definitions(def_dir)
     enum_buffer = f'''#[derive(Default, Serialize, Deserialize, Debug, PartialEq)]
 #[serde(tag = "type")]
 enum {suffix} {{
@@ -606,15 +606,15 @@ enum {suffix} {{
 
     output.write(enum_buffer)
 
-def get_actions_definitions(response):
-    def_file = '../dnsdist-response-actions-definitions.yml' if response else '../dnsdist-actions-definitions.yml'
+def get_actions_definitions(def_dir, response):
+    def_file = f'{def_dir}/dnsdist-response-actions-definitions.yml' if response else f'{def_dir}/dnsdist-actions-definitions.yml'
     return get_definitions_from_file(def_file)
 
-def get_selectors_definitions():
-    def_file = '../dnsdist-selectors-definitions.yml'
+def get_selectors_definitions(def_dir):
+    def_file = f'{def_dir}/dnsdist-selectors-definitions.yml'
     return get_definitions_from_file(def_file)
 
-def generate_cpp_action_selector_functions_callable_from_rust(output):
+def generate_cpp_action_selector_functions_callable_from_rust(output, def_dir):
     output_buffer = '''
     /*
      * Functions callable from Rust (actions and selectors)
@@ -622,21 +622,21 @@ def generate_cpp_action_selector_functions_callable_from_rust(output):
     unsafe extern "C++" {
 '''
     # first query actions
-    actions_definitions = get_actions_definitions(False)
+    actions_definitions = get_actions_definitions(def_dir, False)
     suffix = 'Action'
     for action in actions_definitions:
         name = get_rust_object_name(action['name'])
         output_buffer += f'        fn get{name}{suffix}(config: &{name}{suffix}Configuration) -> SharedPtr<DNS{suffix}Wrapper>;\n'
 
     # then response actions
-    actions_definitions = get_actions_definitions(True)
+    actions_definitions = get_actions_definitions(def_dir, True)
     suffix = 'ResponseAction'
     for action in actions_definitions:
         name = get_rust_object_name(action['name'])
         output_buffer += f'        fn get{name}{suffix}(config: &{name}{suffix}Configuration) -> SharedPtr<DNS{suffix}Wrapper>;\n'
 
     # then selectors
-    selectors_definitions = get_selectors_definitions()
+    selectors_definitions = get_selectors_definitions(def_dir)
     suffix = 'Selector'
     for selector in selectors_definitions:
         name = get_rust_object_name(selector['name'])
@@ -645,9 +645,9 @@ def generate_cpp_action_selector_functions_callable_from_rust(output):
     output_buffer += '    }\n'
     output.write(output_buffer)
 
-def generate_rust_action_to_config(output, response):
+def generate_rust_action_to_config(output, def_dir, response):
     suffix = 'ResponseAction' if response else 'Action'
-    actions_definitions = get_actions_definitions(response)
+    actions_definitions = get_actions_definitions(def_dir, response)
     function_name = 'get_one_action_from_serde' if not response else 'get_one_response_action_from_serde'
     enum_buffer = f'''fn {function_name}(action: &{suffix}) -> Option<dnsdistsettings::SharedDNS{suffix}> {{
     match action {{
@@ -656,7 +656,6 @@ def generate_rust_action_to_config(output, response):
 
     for action in actions_definitions:
         name = get_rust_object_name(action['name'])
-        var = name.lower()
         if name in ['Continue']:
             enum_buffer += f'''        {suffix}::{name}(cont) => {{
              let mut config: dnsdistsettings::{name}{suffix}Configuration = Default::default();
@@ -685,9 +684,9 @@ def generate_rust_action_to_config(output, response):
 
     output.write(enum_buffer)
 
-def generate_rust_selector_to_config(output):
+def generate_rust_selector_to_config(output, def_dir):
     suffix = 'Selector'
-    selectors_definitions = get_selectors_definitions()
+    selectors_definitions = get_selectors_definitions(def_dir)
     function_name = 'get_one_selector_from_serde'
     enum_buffer = f'''fn {function_name}(selector: &{suffix}) -> Option<dnsdistsettings::SharedDNS{suffix}> {{
     match selector {{
@@ -751,39 +750,36 @@ def get_temporary_file_for_generated_code(directory):
     return generated_fp
 
 def main():
-    if len(sys.argv) != 3 and len(sys.argv) != 4:
-        print(f'Usage: {sys.argv[0]} <path/to/definitions/file> <rust/output/dir> <cxx/output/dir>')
+    if len(sys.argv) != 4:
+        print(f'Usage: {sys.argv[0]} <path/to/definitions/files> <rust/output/dir> <cxx/output/dir>')
         sys.exit(1)
 
-    src_dir = sys.argv[2]
-    if len(sys.argv) != 4:
-        cxx_dest_dir = src_dir
-    else:
-        cxx_dest_dir = sys.argv[3]
-    definitions = get_definitions_from_file(sys.argv[1])
+    definitions_dir = sys.argv[1]
+    rust_dir = sys.argv[2]
+    cxx_dest_dir = sys.argv[3]
+    definitions = get_definitions_from_file(definitions_dir + '/dnsdist-settings-definitions.yml')
     default_functions = []
     validation_functions = []
-    global_objects = {}
 
-    generate_cpp_action_headers()
-    generate_cpp_action_wrappers()
-    generate_cpp_selector_headers()
-    generate_cpp_selector_wrappers()
+    generate_cpp_action_headers(definitions_dir, cxx_dest_dir)
+    generate_cpp_action_wrappers(definitions_dir, cxx_dest_dir)
+    generate_cpp_selector_headers(definitions_dir, cxx_dest_dir)
+    generate_cpp_selector_wrappers(definitions_dir, cxx_dest_dir)
 
-    generated_fp = get_temporary_file_for_generated_code(src_dir + '/rust/src/')
-    include_file(generated_fp, src_dir + '/rust-pre-in.rs')
+    generated_fp = get_temporary_file_for_generated_code(f'{rust_dir}/rust/src/')
+    include_file(generated_fp, f'{rust_dir}/rust-pre-in.rs')
 
-    generate_actions_config(generated_fp, False, default_functions)
-    generate_actions_config(generated_fp, True, default_functions)
-    generate_selectors_config(generated_fp, default_functions)
+    generate_actions_config(generated_fp, definitions_dir, False, default_functions)
+    generate_actions_config(generated_fp, definitions_dir, True, default_functions)
+    generate_selectors_config(generated_fp, definitions_dir, default_functions)
 
-    generate_flat_settings_for_cxx(definitions, src_dir, cxx_dest_dir)
+    generate_flat_settings_for_cxx(definitions, rust_dir, f'{cxx_dest_dir}/dnsdist-rust-lib/')
 
     handle_structures(generated_fp, definitions, default_functions, validation_functions)
 
-    generate_cpp_action_selector_functions_callable_from_rust(generated_fp)
+    generate_cpp_action_selector_functions_callable_from_rust(generated_fp, definitions_dir)
 
-    include_file(generated_fp, src_dir + '/rust-middle-in.rs')
+    include_file(generated_fp, f'{rust_dir}/rust-middle-in.rs')
     # we are now outside of the dnsdistsettings namespace
 
     # generate the special global configuration Serde structure
@@ -792,9 +788,9 @@ def main():
             generated_fp.write(get_rust_struct_from_definition(definition_name, keys, default_functions, special_serde_object=True) + '\n')
             validation_functions.append(get_struct_validation_function_from_definition(definition_name, keys['parameters'] if 'parameters' in keys else [], True))
 
-    generate_rust_actions_enum(generated_fp, False)
-    generate_rust_actions_enum(generated_fp, True)
-    generate_rust_selectors_enum(generated_fp)
+    generate_rust_actions_enum(generated_fp, definitions_dir, False)
+    generate_rust_actions_enum(generated_fp, definitions_dir, True)
+    generate_rust_selectors_enum(generated_fp, definitions_dir)
 
     # the generated functions for the default values and validation
     for function_def in default_functions:
@@ -803,13 +799,13 @@ def main():
     for function_def in validation_functions:
         generated_fp.write(function_def + '\n')
 
-    generate_rust_action_to_config(generated_fp, False)
-    generate_rust_action_to_config(generated_fp, True)
-    generate_rust_selector_to_config(generated_fp)
+    generate_rust_action_to_config(generated_fp, definitions_dir, False)
+    generate_rust_action_to_config(generated_fp, definitions_dir, True)
+    generate_rust_selector_to_config(generated_fp, definitions_dir)
 
-    include_file(generated_fp, src_dir + '/rust-post-in.rs')
+    include_file(generated_fp, rust_dir + '/rust-post-in.rs')
 
-    os.rename(generated_fp.name, src_dir + '/rust/src/lib.rs')
+    os.rename(generated_fp.name, rust_dir + '/rust/src/lib.rs')
 
 if __name__ == '__main__':
     main()
