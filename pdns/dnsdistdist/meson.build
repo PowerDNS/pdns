@@ -552,6 +552,10 @@ foreach tool, info: tools
   endif
 endforeach
 
+if get_option('unit-tests')
+  test('testrunner', testrunner)
+endif
+
 # Man-pages.
 py = import('python')
 python = py.find_installation('python3', modules: 'venv', required: false)
