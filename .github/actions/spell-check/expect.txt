@@ -918,7 +918,6 @@ nproxy
 NPTL
 NSes
 NSID
-nsid
 nsis
 nsrecord
 nsset
@@ -1500,7 +1499,6 @@ Viala
 viewcode
 visitedlinkcolor
 Vixie
-vixie
 vla
 Voegeli
 Volker

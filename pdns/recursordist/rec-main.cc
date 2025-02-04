@@ -2920,26 +2920,9 @@ static void recursorThread()
     }
 
     t_fdm = unique_ptr<FDMultiplexer>(getMultiplexer(log));
-#if 0
-    std::unique_ptr<RecursorWebServer> rws;
-#endif
     t_fdm->addReadFD(threadInfo.getPipes().readToThread, handlePipeRequest);
 
     if (threadInfo.isHandler()) {
-#if 0
-      if (::arg().mustDo("webserver")) {
-        SLOG(g_log << Logger::Warning << "Enabling web server" << endl,
-             log->info(Logr::Info, "Enabling web server"));
-        try {
-          rws = make_unique<RecursorWebServer>(t_fdm.get());
-        }
-        catch (const PDNSException& e) {
-          SLOG(g_log << Logger::Error << "Unable to start the internal web server: " << e.reason << endl,
-               log->error(Logr::Critical, e.reason, "Exception while starting internal web server"));
-          _exit(99);
-        }
-      }
-#endif
       SLOG(g_log << Logger::Info << "Enabled '" << t_fdm->getName() << "' multiplexer" << endl,
            log->info(Logr::Info, "Enabled multiplexer", "name", Logging::Loggable(t_fdm->getName())));
     }

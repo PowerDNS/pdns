@@ -1480,8 +1480,6 @@ bool isValidHostname(::rust::Str str)
   }
 }
 
-void findBetterSolution(const std::unique_ptr<CredentialsHolder>& /* x */){};
-
 std::unique_ptr<ComboAddress> comboaddress(::rust::Str str)
 {
   return std::make_unique<ComboAddress>(::ComboAddress(std::string(str)));

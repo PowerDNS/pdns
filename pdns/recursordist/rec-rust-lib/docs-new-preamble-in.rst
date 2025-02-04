@@ -537,7 +537,7 @@ For catalog zone members in a group, the forwarding parameters will be taken fro
 The forwarding definitions will be written into a file ``$api_dir/catzone.$zonename``. :ref:`setting-yaml-webservice.api_dir` must be defined, the directory must exist and be writable by the :program:`Recursor` process.
 
 IncomingWSConfig
-^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^
 As of version 5.3.0, an incoming web server configuration is defined as
 
 .. code-block:: yaml
@@ -562,7 +562,7 @@ A :ref:`setting-yaml-webservice.listen` section contains a sequence of `Incoming
 
 If no ``tls`` section is present, plaintext ``http`` connections are accepted on the listed addresses.
 
-If a ``tls`` section is present, clienst are required to use ``https`` to contact any of the address-port combinations listen in addresses. At the moment it is not possible to list additional properties of the TLS listener and encrypted key files cannot be used.
+If a ``tls`` section is present, clients are required to use ``https`` to contact any of the address-port combinations listen in addresses. At the moment it is not possible to list additional properties of the TLS listener and encrypted key files cannot be used.
 
 
 The YAML settings
