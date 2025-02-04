@@ -1084,9 +1084,9 @@ void setupLuaInspection(LuaContext& luaCtx)
         nowRealTime.tv_nsec -= 1000000000;
       }
 
-      return nowRealTime; }, [](DynBlock& block, [[maybe_unused]] timespec until) {});
+      return nowRealTime; }, []([[maybe_unused]] DynBlock& block, [[maybe_unused]] timespec until) {});
   luaCtx.registerMember<DynBlock, unsigned int>(
-    "blocks", [](const DynBlock& block) { return block.blocks.load(); }, [](DynBlock& block, [[maybe_unused]] unsigned int blocks) {});
+    "blocks", [](const DynBlock& block) { return block.blocks.load(); }, []([[maybe_unused]] DynBlock& block, [[maybe_unused]] unsigned int blocks) {});
   luaCtx.registerMember("action", &DynBlock::action);
   luaCtx.registerMember("warning", &DynBlock::warning);
   luaCtx.registerMember("bpf", &DynBlock::bpf);

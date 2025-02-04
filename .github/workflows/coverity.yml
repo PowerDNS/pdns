@@ -84,7 +84,7 @@ jobs:
         working-directory: ./pdns/dnsdistdist/
       - run: inv ci-build-and-install-quiche ${{ env.REPO_HOME }}
         working-directory: ./pdns/dnsdistdist/
-      - run: inv ci-dnsdist-configure full
+      - run: inv ci-dnsdist-configure full autotools build-dir
         working-directory: ./pdns/dnsdistdist/
       - run: inv coverity-make
         working-directory: ./pdns/dnsdistdist/

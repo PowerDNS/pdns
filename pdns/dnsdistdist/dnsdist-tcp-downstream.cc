@@ -224,17 +224,12 @@ static void editPayloadID(PacketBuffer& payload, uint16_t newId, size_t proxyPro
   memcpy(&payload.at(startOfHeaderOffset), &id, sizeof(id));
 }
 
-enum class QueryState : uint8_t {
-  hasSizePrepended,
-  noSize
-};
-
 enum class ConnectionState : uint8_t {
   needProxy,
   proxySent
 };
 
-static void prepareQueryForSending(TCPQuery& query, uint16_t id, QueryState queryState, ConnectionState connectionState)
+static void prepareQueryForSending(TCPQuery& query, uint16_t queryID, ConnectionState connectionState)
 {
   if (connectionState == ConnectionState::needProxy) {
     if (query.d_proxyProtocolPayload.size() > 0 && !query.d_proxyProtocolPayloadAdded) {
@@ -258,7 +253,7 @@ static void prepareQueryForSending(TCPQuery& query, uint16_t id, QueryState quer
     getSerialFromIXFRQuery(query);
   }
 
-  editPayloadID(query.d_buffer, id, query.d_proxyProtocolPayloadAdded ? query.d_idstate.d_proxyProtocolPayloadSize : 0, true);
+  editPayloadID(query.d_buffer, queryID, query.d_proxyProtocolPayloadAdded ? query.d_idstate.d_proxyProtocolPayloadSize : 0, true);
 }
 
 IOState TCPConnectionToBackend::queueNextQuery(std::shared_ptr<TCPConnectionToBackend>& conn)
@@ -266,7 +261,7 @@ IOState TCPConnectionToBackend::queueNextQuery(std::shared_ptr<TCPConnectionToBa
   conn->d_currentQuery = std::move(conn->d_pendingQueries.front());
 
   uint16_t id = conn->d_highestStreamID;
-  prepareQueryForSending(conn->d_currentQuery.d_query, id, QueryState::hasSizePrepended, conn->needProxyProtocolPayload() ? ConnectionState::needProxy : ConnectionState::proxySent);
+  prepareQueryForSending(conn->d_currentQuery.d_query, id, conn->needProxyProtocolPayload() ? ConnectionState::needProxy : ConnectionState::proxySent);
 
   conn->d_pendingQueries.pop_front();
   conn->d_state = State::sendingQueryToBackend;
@@ -277,6 +272,7 @@ IOState TCPConnectionToBackend::queueNextQuery(std::shared_ptr<TCPConnectionToBa
 
 IOState TCPConnectionToBackend::sendQuery(std::shared_ptr<TCPConnectionToBackend>& conn, const struct timeval& now)
 {
+  (void)now;
   DEBUGLOG("sending query to backend "<<conn->getDS()->getNameWithAddr()<<" over FD "<<conn->d_handler->getDescriptor());
 
   IOState state = conn->d_handler->tryWrite(conn->d_currentQuery.d_query.d_buffer, conn->d_currentPos, conn->d_currentQuery.d_query.d_buffer.size());
@@ -428,7 +424,7 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
               /* we need to edit this query so it has the correct ID */
               auto query = std::move(conn->d_currentQuery);
               uint16_t id = conn->d_highestStreamID;
-              prepareQueryForSending(query.d_query, id, QueryState::hasSizePrepended, ConnectionState::needProxy);
+              prepareQueryForSending(query.d_query, id, ConnectionState::needProxy);
               conn->d_currentQuery = std::move(query);
             }
 
@@ -542,7 +538,7 @@ void TCPConnectionToBackend::queueQuery(std::shared_ptr<TCPQuerySender>& sender,
     uint16_t id = d_highestStreamID;
 
     d_currentQuery = PendingRequest({sender, std::move(query)});
-    prepareQueryForSending(d_currentQuery.d_query, id, QueryState::hasSizePrepended, needProxyProtocolPayload() ? ConnectionState::needProxy : ConnectionState::proxySent);
+    prepareQueryForSending(d_currentQuery.d_query, id, needProxyProtocolPayload() ? ConnectionState::needProxy : ConnectionState::proxySent);
 
     struct timeval now;
     gettimeofday(&now, 0);

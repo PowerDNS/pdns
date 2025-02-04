@@ -197,6 +197,7 @@ void DoHConnectionToBackend::handleIOError()
 
 void DoHConnectionToBackend::handleTimeout(const struct timeval& now, bool write)
 {
+  (void)now;
   if (write) {
     if (d_firstWrite) {
       ++d_ds->tcpConnectTimeouts;
@@ -301,6 +302,8 @@ void DoHConnectionToBackend::queueQuery(std::shared_ptr<TCPQuerySender>& sender,
 
   data_provider.source.ptr = this;
   data_provider.read_callback = [](nghttp2_session* session, int32_t stream_id, uint8_t* buf, size_t length, uint32_t* data_flags, nghttp2_data_source* source, void* user_data) -> ssize_t {
+    (void)session;
+    (void)source;
     auto* conn = static_cast<DoHConnectionToBackend*>(user_data);
     auto& request = conn->d_currentStreams.at(stream_id);
     size_t toCopy = 0;
@@ -513,6 +516,8 @@ void DoHConnectionToBackend::watchForRemoteHostClosingConnection()
 
 ssize_t DoHConnectionToBackend::send_callback(nghttp2_session* session, const uint8_t* data, size_t length, int flags, void* user_data)
 {
+  (void)session;
+  (void)flags;
   DoHConnectionToBackend* conn = reinterpret_cast<DoHConnectionToBackend*>(user_data);
   bool bufferWasEmpty = conn->d_out.empty();
   if (!conn->d_proxyProtocolPayloadSent && !conn->d_proxyProtocolPayload.empty()) {
@@ -555,6 +560,7 @@ ssize_t DoHConnectionToBackend::send_callback(nghttp2_session* session, const ui
 
 int DoHConnectionToBackend::on_frame_recv_callback(nghttp2_session* session, const nghttp2_frame* frame, void* user_data)
 {
+  (void)session;
   DoHConnectionToBackend* conn = reinterpret_cast<DoHConnectionToBackend*>(user_data);
   // cerr<<"Frame type is "<<std::to_string(frame->hd.type)<<endl;
 #if 0
@@ -628,6 +634,8 @@ int DoHConnectionToBackend::on_frame_recv_callback(nghttp2_session* session, con
 
 int DoHConnectionToBackend::on_data_chunk_recv_callback(nghttp2_session* session, uint8_t flags, int32_t stream_id, const uint8_t* data, size_t len, void* user_data)
 {
+  (void)session;
+  (void)flags;
   DoHConnectionToBackend* conn = reinterpret_cast<DoHConnectionToBackend*>(user_data);
   // cerr<<"Got data of size "<<len<<" for stream "<<stream_id<<endl;
   auto stream = conn->d_currentStreams.find(stream_id);
@@ -676,6 +684,7 @@ int DoHConnectionToBackend::on_data_chunk_recv_callback(nghttp2_session* session
 
 int DoHConnectionToBackend::on_stream_close_callback(nghttp2_session* session, int32_t stream_id, uint32_t error_code, void* user_data)
 {
+  (void)session;
   DoHConnectionToBackend* conn = reinterpret_cast<DoHConnectionToBackend*>(user_data);
 
   if (error_code == 0) {
@@ -724,6 +733,8 @@ int DoHConnectionToBackend::on_stream_close_callback(nghttp2_session* session, i
 
 int DoHConnectionToBackend::on_header_callback(nghttp2_session* session, const nghttp2_frame* frame, const uint8_t* name, size_t namelen, const uint8_t* value, size_t valuelen, uint8_t flags, void* user_data)
 {
+  (void)session;
+  (void)flags;
   DoHConnectionToBackend* conn = reinterpret_cast<DoHConnectionToBackend*>(user_data);
 
   const std::string status(":status");
@@ -754,7 +765,8 @@ int DoHConnectionToBackend::on_header_callback(nghttp2_session* session, const n
 
 int DoHConnectionToBackend::on_error_callback(nghttp2_session* session, int lib_error_code, const char* msg, size_t len, void* user_data)
 {
-  vinfolog("Error in HTTP/2 connection: %s", std::string(msg, len));
+  (void)session;
+  vinfolog("Error in HTTP/2 connection: %s (%d)", std::string(msg, len), lib_error_code);
 
   DoHConnectionToBackend* conn = reinterpret_cast<DoHConnectionToBackend*>(user_data);
   conn->d_connectionDied = true;
@@ -821,6 +833,7 @@ DoHConnectionToBackend::DoHConnectionToBackend(const std::shared_ptr<DownstreamS
 
 static void handleCrossProtocolQuery(int pipefd, FDMultiplexer::funcparam_t& param)
 {
+  (void)pipefd;
   auto threadData = boost::any_cast<DoHClientThreadData*>(param);
 
   std::unique_ptr<CrossProtocolQuery> cpq{nullptr};
@@ -1032,7 +1045,7 @@ bool initDoHWorkers()
 #endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
 }
 
-bool sendH2Query(const std::shared_ptr<DownstreamState>& ds, std::unique_ptr<FDMultiplexer>& mplexer, std::shared_ptr<TCPQuerySender>& sender, InternalQuery&& query, bool healthCheck)
+bool sendH2Query([[maybe_unused]] const std::shared_ptr<DownstreamState>& downstream, [[maybe_unused]] std::unique_ptr<FDMultiplexer>& mplexer, [[maybe_unused]] std::shared_ptr<TCPQuerySender>& sender, [[maybe_unused]] InternalQuery&& query, [[maybe_unused]] bool healthCheck)
 {
 #if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
   struct timeval now
@@ -1043,12 +1056,12 @@ bool sendH2Query(const std::shared_ptr<DownstreamState>& ds, std::unique_ptr<FDM
 
   if (healthCheck) {
     /* always do health-checks over a new connection */
-    auto newConnection = std::make_shared<DoHConnectionToBackend>(ds, mplexer, now, std::move(query.d_proxyProtocolPayload));
+    auto newConnection = std::make_shared<DoHConnectionToBackend>(downstream, mplexer, now, std::move(query.d_proxyProtocolPayload));
     newConnection->setHealthCheck(healthCheck);
     newConnection->queueQuery(sender, std::move(query));
   }
   else {
-    auto connection = t_downstreamDoHConnectionsManager.getConnectionToDownstream(mplexer, ds, now, std::move(query.d_proxyProtocolPayload));
+    auto connection = t_downstreamDoHConnectionsManager.getConnectionToDownstream(mplexer, downstream, now, std::move(query.d_proxyProtocolPayload));
     connection->queueQuery(sender, std::move(query));
   }
 
@@ -1067,7 +1080,7 @@ size_t clearH2Connections()
   return cleared;
 }
 
-size_t handleH2Timeouts(FDMultiplexer& mplexer, const struct timeval& now)
+size_t handleH2Timeouts([[maybe_unused]] FDMultiplexer& mplexer, [[maybe_unused]] const struct timeval& now)
 {
   size_t got = 0;
 #if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
@@ -1094,21 +1107,21 @@ size_t handleH2Timeouts(FDMultiplexer& mplexer, const struct timeval& now)
   return got;
 }
 
-void setDoHDownstreamCleanupInterval(uint16_t max)
+void setDoHDownstreamCleanupInterval([[maybe_unused]] uint16_t max)
 {
 #if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
   DownstreamDoHConnectionsManager::setCleanupInterval(max);
 #endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
 }
 
-void setDoHDownstreamMaxIdleTime(uint16_t max)
+void setDoHDownstreamMaxIdleTime([[maybe_unused]] uint16_t max)
 {
 #if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
   DownstreamDoHConnectionsManager::setMaxIdleTime(max);
 #endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
 }
 
-void setDoHDownstreamMaxIdleConnectionsPerBackend(size_t max)
+void setDoHDownstreamMaxIdleConnectionsPerBackend([[maybe_unused]] size_t max)
 {
 #if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
   DownstreamDoHConnectionsManager::setMaxIdleConnectionsPerDownstream(max);

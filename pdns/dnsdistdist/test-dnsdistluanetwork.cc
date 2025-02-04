@@ -42,6 +42,7 @@ BOOST_AUTO_TEST_CASE(test_Basic)
   BOOST_REQUIRE(fd >= 0);
 
   listener.addUnixListeningEndpoint(socketPath, 0, [&received, payload](dnsdist::NetworkListener::EndpointID endpoint, std::string&& dgram, const std::string& from) {
+    (void)from;
     BOOST_CHECK_EQUAL(endpoint, 0U);
     BOOST_CHECK(dgram == payload);
     received = true;
@@ -76,7 +77,11 @@ BOOST_AUTO_TEST_CASE(test_Exceptions)
     /* invalid path */
     dnsdist::NetworkListener listener;
     BOOST_CHECK_THROW(listener.addUnixListeningEndpoint(std::string(), 0,
-                                                        [](dnsdist::NetworkListener::EndpointID endpoint, std::string&& dgram, const std::string& from) {}),
+                                                        [](dnsdist::NetworkListener::EndpointID endpoint, std::string&& dgram, const std::string& from) {
+                                                          (void)endpoint;
+                                                          (void)dgram;
+                                                          (void)from;
+                                                        }),
                       std::runtime_error);
 
     bool caught = false;
@@ -94,6 +99,9 @@ BOOST_AUTO_TEST_CASE(test_Exceptions)
     dnsdist::NetworkListener listener;
     bool received = false;
     listener.addUnixListeningEndpoint(socketPath, 0, [&received](dnsdist::NetworkListener::EndpointID endpoint, std::string&& dgram, const std::string& from) {
+      (void)endpoint;
+      (void)dgram;
+      (void)from;
       received = true;
     });
 
@@ -109,7 +117,11 @@ BOOST_AUTO_TEST_CASE(test_Exceptions)
     bool raised = false;
     try {
       listener.addUnixListeningEndpoint(otherSocketPath, 0,
-                                        [](dnsdist::NetworkListener::EndpointID endpoint, std::string&& dgram, const std::string& from) {});
+                                        [](dnsdist::NetworkListener::EndpointID endpoint, std::string&& dgram, const std::string& from) {
+                                          (void)endpoint;
+                                          (void)dgram;
+                                          (void)from;
+                                        });
     }
     catch (const std::runtime_error& e) {
       raised = true;
@@ -122,6 +134,9 @@ BOOST_AUTO_TEST_CASE(test_Exceptions)
     dnsdist::NetworkListener listener;
     bool received = false;
     listener.addUnixListeningEndpoint(socketPath, 0, [&received](dnsdist::NetworkListener::EndpointID endpoint, std::string&& dgram, const std::string& from) {
+      (void)endpoint;
+      (void)dgram;
+      (void)from;
       received = true;
       throw std::runtime_error("Test exception");
     });
@@ -142,6 +157,9 @@ BOOST_AUTO_TEST_CASE(test_Exceptions)
     dnsdist::NetworkListener listener;
     bool received = false;
     listener.addUnixListeningEndpoint(socketPath, 0, [&received](dnsdist::NetworkListener::EndpointID endpoint, std::string&& dgram, const std::string& from) {
+      (void)endpoint;
+      (void)dgram;
+      (void)from;
       received = true;
       throw UnexpectedException();
     });
@@ -169,6 +187,7 @@ BOOST_AUTO_TEST_CASE(test_Abstract)
   socketPath.insert(0, 1, 0);
 
   listener.addUnixListeningEndpoint(socketPath, 0, [&received, payload](dnsdist::NetworkListener::EndpointID endpoint, std::string&& dgram, const std::string& from) {
+    (void)from;
     BOOST_CHECK_EQUAL(endpoint, 0U);
     BOOST_CHECK(dgram == payload);
     received = true;
@@ -189,13 +208,20 @@ BOOST_AUTO_TEST_CASE(test_Abstract_Exceptions)
   socketPath.insert(0, 1, 0);
   bool received = false;
   listener.addUnixListeningEndpoint(socketPath, 0, [&received](dnsdist::NetworkListener::EndpointID endpoint, std::string&& dgram, const std::string& from) {
+    (void)endpoint;
+    (void)dgram;
+    (void)from;
     received = true;
   });
 
   /* try binding twice to the same path */
   bool raised = false;
   try {
-    listener.addUnixListeningEndpoint(socketPath, 0, [](dnsdist::NetworkListener::EndpointID endpoint, std::string&& dgram, const std::string& from) {});
+    listener.addUnixListeningEndpoint(socketPath, 0, [](dnsdist::NetworkListener::EndpointID endpoint, std::string&& dgram, const std::string& from) {
+      (void)endpoint;
+      (void)dgram;
+      (void)from;
+    });
   }
   catch (const std::runtime_error& e) {
     raised = true;

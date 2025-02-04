@@ -160,6 +160,8 @@ public:
   // This requires that the underlying store supports ordered keys, which is true for LMDB but not for CDB, for example.
   virtual bool getRangeValue(const std::string& key, std::string& value)
   {
+    (void)key;
+    (void)value;
     throw std::runtime_error("range-based lookups are not implemented for this Key-Value Store");
   }
   virtual bool reload()

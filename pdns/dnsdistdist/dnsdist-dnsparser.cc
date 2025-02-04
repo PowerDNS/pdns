@@ -217,6 +217,7 @@ namespace PacketMangling
   void restrictDNSPacketTTLs(PacketBuffer& packet, uint32_t minimumValue, uint32_t maximumValue, const std::unordered_set<QType>& types)
   {
     auto visitor = [minimumValue, maximumValue, types](uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl) {
+      (void)section;
       if (!types.empty() && qclass == QClass::IN && types.count(qtype) == 0) {
         return ttl;
       }

@@ -288,6 +288,7 @@ void IncomingTCPConnectionState::registerOwnedDownstreamConnection(std::shared_p
 /* called when the buffer has been set and the rules have been processed, and only from handleIO (sometimes indirectly via handleQuery) */
 IOState IncomingTCPConnectionState::sendResponse(const struct timeval& now, TCPResponse&& response)
 {
+  (void)now;
   d_state = State::sendingResponse;
 
   const auto responseSize = static_cast<uint16_t>(response.d_buffer.size());
@@ -1208,7 +1209,7 @@ void IncomingTCPConnectionState::notifyIOError(const struct timeval& now, TCPRes
   }
 }
 
-static bool processXFRResponse(PacketBuffer& response, DNSResponse& dnsResponse)
+static bool processXFRResponse(DNSResponse& dnsResponse)
 {
   const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
   const auto& xfrRespRuleActions = dnsdist::rules::getResponseRuleChain(chains, dnsdist::rules::ResponseRuleChain::XFRResponseRules);
@@ -1242,7 +1243,7 @@ void IncomingTCPConnectionState::handleXFRResponse(const struct timeval& now, TC
   dnsResponse.d_incomingTCPState = state;
   memcpy(&response.d_cleartextDH, dnsResponse.getHeader().get(), sizeof(response.d_cleartextDH));
 
-  if (!processXFRResponse(response.d_buffer, dnsResponse)) {
+  if (!processXFRResponse(dnsResponse)) {
     state->terminateClientConnection();
     return;
   }
@@ -1270,6 +1271,7 @@ void IncomingTCPConnectionState::handleTimeout(std::shared_ptr<IncomingTCPConnec
 
 static void handleIncomingTCPQuery(int pipefd, FDMultiplexer::funcparam_t& param)
 {
+  (void)pipefd;
   auto* threadData = boost::any_cast<TCPClientThreadData*>(param);
 
   std::unique_ptr<ConnectionInfo> citmp{nullptr};
@@ -1303,6 +1305,7 @@ static void handleIncomingTCPQuery(int pipefd, FDMultiplexer::funcparam_t& param
 
 static void handleCrossProtocolQuery(int pipefd, FDMultiplexer::funcparam_t& param)
 {
+  (void)pipefd;
   auto* threadData = boost::any_cast<TCPClientThreadData*>(param);
 
   std::unique_ptr<CrossProtocolQuery> cpq{nullptr};
@@ -1340,6 +1343,7 @@ static void handleCrossProtocolQuery(int pipefd, FDMultiplexer::funcparam_t& par
 
 static void handleCrossProtocolResponse(int pipefd, FDMultiplexer::funcparam_t& param)
 {
+  (void)pipefd;
   auto* threadData = boost::any_cast<TCPClientThreadData*>(param);
 
   std::unique_ptr<TCPCrossProtocolResponse> cpr{nullptr};
@@ -1509,6 +1513,7 @@ static void tcpClientThread(pdns::channel::Receiver<ConnectionInfo>&& queryRecei
     }
 
     auto acceptCallback = [&data](int socket, FDMultiplexer::funcparam_t& funcparam) {
+      (void)socket;
       const auto* acceptorParam = boost::any_cast<const TCPAcceptorParam*>(funcparam);
       acceptNewConnection(*acceptorParam, &data);
     };
@@ -1671,6 +1676,7 @@ void tcpAcceptorThread(const std::vector<ClientState*>& states)
   }
   else {
     auto acceptCallback = [](int socket, FDMultiplexer::funcparam_t& funcparam) {
+      (void)socket;
       const auto* acceptorParam = boost::any_cast<const TCPAcceptorParam*>(funcparam);
       acceptNewConnection(*acceptorParam, nullptr);
     };

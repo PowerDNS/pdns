@@ -169,12 +169,12 @@ jobs:
       if: matrix.product == 'dnsdist'
       working-directory: ./pdns/dnsdistdist/
       run: |
-        inv ci-dnsdist-configure full
+        inv ci-dnsdist-configure full autotools build-dir
     - name: Build dnsdist
       if: matrix.product == 'dnsdist'
       working-directory: ./pdns/dnsdistdist/
       run: |
-        inv ci-dnsdist-make-bear
+        inv ci-dnsdist-make-bear autotools
     - run: ln -s ../../.clang-tidy.full .clang-tidy
       if: matrix.product == 'dnsdist'
       working-directory: ./pdns/dnsdistdist/

@@ -895,7 +895,7 @@ bool OpenSSLTLSTicketKey::decrypt(const unsigned char* iv, EVP_CIPHER_CTX* ectx,
 }
 
 std::pair<std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>, std::vector<std::string>> libssl_init_server_context(const TLSConfig& config,
-                                                                                                                  std::map<int, std::string>& ocspResponses)
+                                                                                                                  [[maybe_unused]] std::map<int, std::string>& ocspResponses)
 {
   std::vector<std::string> warnings;
   auto ctx = std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>(SSL_CTX_new(SSLv23_server_method()), SSL_CTX_free);

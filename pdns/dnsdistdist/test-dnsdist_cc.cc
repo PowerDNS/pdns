@@ -45,26 +45,43 @@
 
 ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& selectedBackend)
 {
+  (void)dnsQuestion;
+  (void)selectedBackend;
   return ProcessQueryResult::Drop;
 }
 
 bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse, bool muted)
 {
+  (void)response;
+  (void)dnsResponse;
+  (void)muted;
   return false;
 }
 
 bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>& respRuleActions, DNSResponse& dnsResponse)
 {
+  (void)respRuleActions;
+  (void)dnsResponse;
   return true;
 }
 
 bool sendUDPResponse(int origFD, const PacketBuffer& response, const int delayMsec, const ComboAddress& origDest, const ComboAddress& origRemote)
 {
+  (void)origFD;
+  (void)response;
+  (void)delayMsec;
+  (void)origDest;
+  (void)origRemote;
   return false;
 }
 
 bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& downstream, uint16_t queryID, DNSQuestion& dnsQuestion, PacketBuffer& query, bool actuallySend)
 {
+  (void)downstream;
+  (void)queryID;
+  (void)dnsQuestion;
+  (void)query;
+  (void)actuallySend;
   return true;
 }
 
@@ -72,6 +89,8 @@ namespace dnsdist
 {
 std::unique_ptr<CrossProtocolQuery> getInternalQueryFromDQ(DNSQuestion& dnsQuestion, bool isResponse)
 {
+  (void)dnsQuestion;
+  (void)isResponse;
   return nullptr;
 }
 }
@@ -87,6 +106,8 @@ namespace dnsdist::xsk
 {
 bool XskProcessQuery(ClientState& clientState, XskPacket& packet)
 {
+  (void)clientState;
+  (void)packet;
   return false;
 }
 }
@@ -94,6 +115,9 @@ bool XskProcessQuery(ClientState& clientState, XskPacket& packet)
 
 bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer& response, InternalQueryState&& ids)
 {
+  (void)dss;
+  (void)response;
+  (void)ids;
   return false;
 }
 

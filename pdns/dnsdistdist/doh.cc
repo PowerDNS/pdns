@@ -485,6 +485,7 @@ public:
 
   void handleResponse(const struct timeval& now, TCPResponse&& response) override
   {
+    (void)now;
     if (!response.d_idstate.du) {
       return;
     }
@@ -546,6 +547,7 @@ public:
 
   void notifyIOError(const struct timeval& now, TCPResponse&& response) override
   {
+    (void)now;
     auto& query = response.d_idstate;
     if (!query.du) {
       return;
@@ -856,6 +858,7 @@ static void processDOHQuery(DOHUnitUniquePtr&& unit, bool inMainThread = false)
 /* called when a HTTP response is about to be sent, from the main DoH thread */
 static void on_response_ready_cb(struct st_h2o_filter_t *self, h2o_req_t *req, h2o_ostream_t **slot)
 {
+  (void)self;
   if (req == nullptr) {
     return;
   }
@@ -1294,6 +1297,7 @@ static void dnsdistclient(pdns::channel::Receiver<DOHUnit>&& receiver)
    */
 static void on_dnsdist(h2o_socket_t *listener, const char *err)
 {
+  (void)err;
   /* we want to read as many responses from the pipe as possible before
      giving up. Even if we are overloaded and fighting with the DoH connections
      for the CPU, the first thing we need to do is to send responses to free slots

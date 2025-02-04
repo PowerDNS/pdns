@@ -37,6 +37,7 @@
 
 bool dnsdist::webserver::addMetricDefinition(const dnsdist::prometheus::PrometheusMetricDefinition& def)
 {
+  (void)def;
   return true;
 }
 

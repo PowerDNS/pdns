@@ -71,8 +71,9 @@ public:
   {
   }
 
-  void release(bool removeFomCache)
+  static void release(bool removeFromCache)
   {
+    (void)removeFromCache;
   }
 
   std::shared_ptr<DownstreamState> getDS() const

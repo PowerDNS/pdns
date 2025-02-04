@@ -419,48 +419,48 @@ size_t dnsdist_ffi_dnsquestion_get_edns_options(dnsdist_ffi_dnsquestion_t* dq, c
   return totalCount;
 }
 
-size_t dnsdist_ffi_dnsquestion_get_http_headers(dnsdist_ffi_dnsquestion_t* dq, const dnsdist_ffi_http_header_t** out)
+size_t dnsdist_ffi_dnsquestion_get_http_headers(dnsdist_ffi_dnsquestion_t* ref, [[maybe_unused]] const dnsdist_ffi_http_header_t** out)
 {
 #if defined(HAVE_DNS_OVER_HTTPS) || defined(HAVE_DNS_OVER_HTTP3)
-  const auto processHeaders = [&dq](const std::unordered_map<std::string, std::string>& headers) {
+  const auto processHeaders = [&ref](const std::unordered_map<std::string, std::string>& headers) {
     if (headers.empty()) {
       return;
     }
-    dq->httpHeaders = std::make_unique<std::unordered_map<std::string, std::string>>(headers);
-    if (!dq->httpHeadersVect) {
-      dq->httpHeadersVect = std::make_unique<std::vector<dnsdist_ffi_http_header_t>>();
+    ref->httpHeaders = std::make_unique<std::unordered_map<std::string, std::string>>(headers);
+    if (!ref->httpHeadersVect) {
+      ref->httpHeadersVect = std::make_unique<std::vector<dnsdist_ffi_http_header_t>>();
     }
-    dq->httpHeadersVect->clear();
-    dq->httpHeadersVect->resize(dq->httpHeaders->size());
+    ref->httpHeadersVect->clear();
+    ref->httpHeadersVect->resize(ref->httpHeaders->size());
     size_t pos = 0;
-    for (const auto& header : *dq->httpHeaders) {
-      dq->httpHeadersVect->at(pos).name = header.first.c_str();
-      dq->httpHeadersVect->at(pos).value = header.second.c_str();
+    for (const auto& header : *ref->httpHeaders) {
+      ref->httpHeadersVect->at(pos).name = header.first.c_str();
+      ref->httpHeadersVect->at(pos).value = header.second.c_str();
       ++pos;
     }
   };
 
 #if defined(HAVE_DNS_OVER_HTTPS)
-  if (dq->dq->ids.du) {
-    const auto& headers = dq->dq->ids.du->getHTTPHeaders();
+  if (ref->dq->ids.du) {
+    const auto& headers = ref->dq->ids.du->getHTTPHeaders();
     processHeaders(headers);
   }
 #endif /* HAVE_DNS_OVER_HTTPS */
 #if defined(HAVE_DNS_OVER_HTTP3)
-  if (dq->dq->ids.doh3u) {
-    const auto& headers = dq->dq->ids.doh3u->getHTTPHeaders();
+  if (ref->dq->ids.doh3u) {
+    const auto& headers = ref->dq->ids.doh3u->getHTTPHeaders();
     processHeaders(headers);
   }
 #endif /* HAVE_DNS_OVER_HTTP3 */
 
-  if (!dq->httpHeadersVect) {
+  if (!ref->httpHeadersVect) {
     return 0;
   }
 
-  if (!dq->httpHeadersVect->empty()) {
-    *out = dq->httpHeadersVect->data();
+  if (!ref->httpHeadersVect->empty()) {
+    *out = ref->httpHeadersVect->data();
   }
-  return dq->httpHeadersVect->size();
+  return ref->httpHeadersVect->size();
 #else /* HAVE_DNS_OVER_HTTPS || HAVE_DNS_OVER_HTTP3 */
   return 0;
 #endif /* HAVE_DNS_OVER_HTTPS || HAVE_DNS_OVER_HTTP3 */
@@ -498,25 +498,25 @@ void dnsdist_ffi_dnsquestion_set_result(dnsdist_ffi_dnsquestion_t* dq, const cha
   dq->result = std::string(str, strSize);
 }
 
-void dnsdist_ffi_dnsquestion_set_http_response(dnsdist_ffi_dnsquestion_t* dq, uint16_t statusCode, const char* body, size_t bodyLen, const char* contentType)
+void dnsdist_ffi_dnsquestion_set_http_response(dnsdist_ffi_dnsquestion_t* ref, [[maybe_unused]] uint16_t statusCode, [[maybe_unused]] const char* body, [[maybe_unused]] size_t bodyLen, [[maybe_unused]] const char* contentType)
 {
 #if defined(HAVE_DNS_OVER_HTTPS)
-  if (dq->dq->ids.du) {
+  if (ref->dq->ids.du) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): C API
     PacketBuffer bodyVect(body, body + bodyLen);
-    dq->dq->ids.du->setHTTPResponse(statusCode, std::move(bodyVect), contentType);
-    dnsdist::PacketMangling::editDNSHeaderFromPacket(dq->dq->getMutableData(), [](dnsheader& header) {
+    ref->dq->ids.du->setHTTPResponse(statusCode, std::move(bodyVect), contentType);
+    dnsdist::PacketMangling::editDNSHeaderFromPacket(ref->dq->getMutableData(), [](dnsheader& header) {
       header.qr = true;
       return true;
     });
   }
 #endif
 #if defined(HAVE_DNS_OVER_HTTP3)
-  if (dq->dq->ids.doh3u) {
+  if (ref->dq->ids.doh3u) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): C API
     PacketBuffer bodyVect(body, body + bodyLen);
-    dq->dq->ids.doh3u->setHTTPResponse(statusCode, std::move(bodyVect), contentType);
-    dnsdist::PacketMangling::editDNSHeaderFromPacket(dq->dq->getMutableData(), [](dnsheader& header) {
+    ref->dq->ids.doh3u->setHTTPResponse(statusCode, std::move(bodyVect), contentType);
+    dnsdist::PacketMangling::editDNSHeaderFromPacket(ref->dq->getMutableData(), [](dnsheader& header) {
       header.qr = true;
       return true;
     });
@@ -729,12 +729,14 @@ static size_t dnsdist_ffi_servers_get_index_from_server(const ServerPolicy::Numb
 
 size_t dnsdist_ffi_servers_list_chashed(const dnsdist_ffi_servers_list_t* list, const dnsdist_ffi_dnsquestion_t* dq, size_t hash)
 {
+  (void)dq;
   auto server = chashedFromHash(list->servers, hash);
   return dnsdist_ffi_servers_get_index_from_server(list->servers, server);
 }
 
 size_t dnsdist_ffi_servers_list_whashed(const dnsdist_ffi_servers_list_t* list, const dnsdist_ffi_dnsquestion_t* dq, size_t hash)
 {
+  (void)dq;
   auto server = whashedFromHash(list->servers, hash);
   return dnsdist_ffi_servers_get_index_from_server(list->servers, server);
 }
@@ -1881,6 +1883,7 @@ void dnsdist_ffi_metric_set(const char* metricName, size_t metricNameLen, double
 
 double dnsdist_ffi_metric_get(const char* metricName, size_t metricNameLen, bool isCounter)
 {
+  (void)isCounter;
   auto result = dnsdist::metrics::getCustomMetric(std::string_view(metricName, metricNameLen), {});
   if (std::get_if<dnsdist::metrics::Error>(&result) != nullptr) {
     return 0.;

@@ -26,7 +26,7 @@
 
 #include "dolog.hh"
 
-void setupLuaBindingsDNSCrypt(LuaContext& luaCtx, bool client)
+void setupLuaBindingsDNSCrypt([[maybe_unused]] LuaContext& luaCtx, [[maybe_unused]] bool client)
 {
 #ifdef HAVE_DNSCRYPT
   /* DNSCryptContext bindings */

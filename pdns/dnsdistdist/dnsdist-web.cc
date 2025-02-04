@@ -214,7 +214,7 @@ private:
   Socket d_socket;
 };
 
-bool addMetricDefinition(const dnsdist::prometheus::PrometheusMetricDefinition& def)
+bool addMetricDefinition([[maybe_unused]] const dnsdist::prometheus::PrometheusMetricDefinition& def)
 {
 #ifndef DISABLE_PROMETHEUS
   return MetricDefinitionStorage::addMetricDefinition(def);
@@ -1737,7 +1737,7 @@ void clearWebHandlers()
 #ifndef DISABLE_BUILTIN_HTML
 #include "htmlfiles.h"
 
-static void redirectToIndex(const YaHTTP::Request& req, YaHTTP::Response& resp)
+static void redirectToIndex([[maybe_unused]] const YaHTTP::Request& req, YaHTTP::Response& resp)
 {
   const string charset = "; charset=utf-8";
   resp.body.assign(s_urlmap.at("index.html"));

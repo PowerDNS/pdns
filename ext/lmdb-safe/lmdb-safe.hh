@@ -598,6 +598,9 @@ private:
       // * so let's go back
     }
 #else /* ifndef DNSDIST */
+    (void)key;
+    (void)data;
+    (void)op;
     return rc;
 #endif
   }

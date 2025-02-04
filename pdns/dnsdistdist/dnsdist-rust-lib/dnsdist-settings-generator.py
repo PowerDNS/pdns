@@ -302,14 +302,15 @@ def get_definitions_from_file(def_file):
 
 def include_file(out_fp, include_file_name):
     with open(include_file_name, mode='r', encoding='utf-8') as in_fp:
-        out_fp.write(f'// START INCLUDE {include_file_name}\n')
+        basename = os.path.basename(include_file_name)
+        out_fp.write(f'// START INCLUDE {basename}\n')
         out_fp.write(in_fp.read())
-        out_fp.write(f'// END INCLUDE {include_file_name}\n')
+        out_fp.write(f'// END INCLUDE {basename}\n')
 
-def generate_flat_settings_for_cxx(definitions, out_file_path):
+def generate_flat_settings_for_cxx(definitions, src_dir, out_file_path):
     cxx_flat_settings_fp = get_temporary_file_for_generated_code(out_file_path)
 
-    include_file(cxx_flat_settings_fp, out_file_path + 'dnsdist-configuration-yaml-items-generated-pre-in.cc')
+    include_file(cxx_flat_settings_fp, src_dir + '/dnsdist-configuration-yaml-items-generated-pre-in.cc')
 
     # first we do runtime-settable settings
     cxx_flat_settings_fp.write('''#if defined(HAVE_YAML_CONFIGURATION)
@@ -375,7 +376,7 @@ void convertRuntimeFlatSettingsFromRust(const dnsdist::rust::settings::GlobalCon
 #endif /* defined(HAVE_YAML_CONFIGURATION) */
 ''')
 
-    os.rename(cxx_flat_settings_fp.name, out_file_path + 'dnsdist-configuration-yaml-items-generated.cc')
+    os.rename(cxx_flat_settings_fp.name, out_file_path + '/dnsdist-configuration-yaml-items-generated.cc')
 
 def generate_actions_config(output, response, default_functions):
     suffix = 'ResponseAction' if response else 'Action'
@@ -750,11 +751,15 @@ def get_temporary_file_for_generated_code(directory):
     return generated_fp
 
 def main():
-    if len(sys.argv) != 2:
-        print(f'Usage: {sys.argv[0]} <path/to/definitions/file>')
+    if len(sys.argv) != 3 and len(sys.argv) != 4:
+        print(f'Usage: {sys.argv[0]} <path/to/definitions/file> <rust/output/dir> <cxx/output/dir>')
         sys.exit(1)
 
-    src_dir = './'
+    src_dir = sys.argv[2]
+    if len(sys.argv) != 4:
+        cxx_dest_dir = src_dir
+    else:
+        cxx_dest_dir = sys.argv[3]
     definitions = get_definitions_from_file(sys.argv[1])
     default_functions = []
     validation_functions = []
@@ -766,19 +771,19 @@ def main():
     generate_cpp_selector_wrappers()
 
     generated_fp = get_temporary_file_for_generated_code(src_dir + '/rust/src/')
-    include_file(generated_fp, src_dir + 'rust-pre-in.rs')
+    include_file(generated_fp, src_dir + '/rust-pre-in.rs')
 
     generate_actions_config(generated_fp, False, default_functions)
     generate_actions_config(generated_fp, True, default_functions)
     generate_selectors_config(generated_fp, default_functions)
 
-    generate_flat_settings_for_cxx(definitions, src_dir)
+    generate_flat_settings_for_cxx(definitions, src_dir, cxx_dest_dir)
 
     handle_structures(generated_fp, definitions, default_functions, validation_functions)
 
     generate_cpp_action_selector_functions_callable_from_rust(generated_fp)
 
-    include_file(generated_fp, src_dir + 'rust-middle-in.rs')
+    include_file(generated_fp, src_dir + '/rust-middle-in.rs')
     # we are now outside of the dnsdistsettings namespace
 
     # generate the special global configuration Serde structure
@@ -802,7 +807,7 @@ def main():
     generate_rust_action_to_config(generated_fp, True)
     generate_rust_selector_to_config(generated_fp)
 
-    include_file(generated_fp, src_dir + 'rust-post-in.rs')
+    include_file(generated_fp, src_dir + '/rust-post-in.rs')
 
     os.rename(generated_fp.name, src_dir + '/rust/src/lib.rs')
 

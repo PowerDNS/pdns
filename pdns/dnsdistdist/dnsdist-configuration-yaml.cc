@@ -250,6 +250,7 @@ static bool handleTLSConfiguration(const dnsdist::rust::settings::BindConfigurat
     frontend->d_tlsConfig = std::move(tlsConfig);
     state.tlsFrontend = std::move(frontend);
   }
+#if defined(HAVE_DNS_OVER_QUIC)
   else if (protocol == "doq") {
     auto frontend = std::make_shared<DOQFrontend>();
     frontend->d_local = ComboAddress(std::string(bind.listen_address), 853);
@@ -263,6 +264,8 @@ static bool handleTLSConfiguration(const dnsdist::rust::settings::BindConfigurat
     frontend->d_internalPipeBufferSize = bind.quic.internal_pipe_buffer_size;
     state.doqFrontend = std::move(frontend);
   }
+#endif /* HAVE_DNS_OVER_QUIC */
+#if defined(HAVE_DNS_OVER_HTTP3)
   else if (protocol == "doh3") {
     auto frontend = std::make_shared<DOH3Frontend>();
     frontend->d_local = ComboAddress(std::string(bind.listen_address), 443);
@@ -275,6 +278,7 @@ static bool handleTLSConfiguration(const dnsdist::rust::settings::BindConfigurat
     frontend->d_internalPipeBufferSize = bind.quic.internal_pipe_buffer_size;
     state.doh3Frontend = std::move(frontend);
   }
+#endif /* HAVE_DNS_OVER_HTTP3 */
   else if (protocol == "doh") {
     auto frontend = std::make_shared<DOHFrontend>();
     frontend->d_tlsContext.d_provider = std::string(bind.tls.provider);

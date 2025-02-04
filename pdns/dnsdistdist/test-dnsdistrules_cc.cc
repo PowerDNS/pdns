@@ -44,6 +44,8 @@ ParameterType getRequiredRuleParameter(const std::string& ruleName, std::vector<
 template <typename ParameterType>
 ParameterType getOptionalRuleParameter(const std::string& ruleName, std::vector<RuleParameter>& parameters, const std::string& parameterName, ParameterType defaultValue)
 {
+  (void)ruleName;
+
   for (auto paramIt = parameters.begin(); paramIt != parameters.end(); ) {
     if (paramIt->name != parameterName) {
       ++paramIt;
@@ -69,6 +71,7 @@ public:
 
   bool matches(const DNSQuestion* dnsQuestion) const override
   {
+    (void)dnsQuestion;
     return true;
   }
 

@@ -17,5 +17,5 @@ rust/src/lib.rs dnsdist-configuration-yaml-items-generated.cc: dnsdist-settings-
 	@if test "$(PYTHON)" = ":"; then echo "Settings definitions have changed, python is needed to regenerate the related settings files but python was not found. Please install python and re-run configure"; exit 1; fi
 	@if ! $(PYTHON) --version | grep -q "Python 3"; then echo $(PYTHON) should be at least version 3. Please install python 3 and re-run configure; exit 1; fi
 	$(MAKE) -C rust clean
-	(cd ${srcdir} && $(PYTHON) dnsdist-settings-generator.py ../dnsdist-settings-definitions.yml)
+	(cd ${srcdir} && $(PYTHON) dnsdist-settings-generator.py ../dnsdist-settings-definitions.yml ./)
 	$(PYTHON) dnsdist-settings-documentation-generator.py

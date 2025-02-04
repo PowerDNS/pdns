@@ -367,9 +367,10 @@ void Carbon::run(const std::vector<Carbon::Endpoint>& endpoints)
 }
 #endif /* DISABLE_CARBON */
 
-static time_t s_start = time(nullptr);
+static const time_t s_start = time(nullptr);
 
 uint64_t uptimeOfProcess(const std::string& str)
 {
+  (void)str;
   return time(nullptr) - s_start;
 }

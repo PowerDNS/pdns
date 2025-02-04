@@ -413,10 +413,6 @@ conditional_sources = {
     'sources': [src_dir / 'lua-record.cc'],
     'condition': dep_lua_records.found(),
   },
-  'standalone-fuzz-target-runner': {
-    'sources': [src_dir / 'standalone_fuzz_target_runner.cc'],
-    'condition': get_option('fuzz-targets'),
-  },
 }
 
 foreach name, info: conditional_sources
@@ -928,6 +924,15 @@ if get_option('unit-tests')
 endif
 
 if get_option('fuzz-targets')
+  fuzz_extra_sources = []
+  fuzzer_ldflags = []
+  # https://github.com/harfbuzz/harfbuzz/pull/2549/files
+  if get_option('fuzzer_ldflags') == ''
+    fuzz_extra_sources += src_dir / 'standalone_fuzz_target_runner.cc'
+  else
+    fuzzer_ldflags += get_option('fuzzer_ldflags')
+  endif
+
   fuzz_targets = [
     'moadnsparser',
     'packetcache',
@@ -940,7 +945,9 @@ if get_option('fuzz-targets')
   foreach target: fuzz_targets
     source_file = src_dir / 'fuzz_' + target.underscorify() + '.cc'
     tools += {
-      'fuzz-target-' + target: { 'main': source_file }
+      'fuzz-target-' + target: { 'main': source_file,
+                                 'link-args': fuzzer_ldflags,
+                                 'files-extra': fuzz_extra_sources }
     }
   endforeach
 endif
@@ -968,6 +975,7 @@ foreach tool, info: tools
   export_dynamic = 'export-dynamic' in info ? info['export-dynamic'] : false
   files_extra = 'files-extra' in info ? info['files-extra'] : []
   deps_extra = 'deps-extra' in info ? info['deps-extra'] : []
+  link_args = 'link-args' in info ? info['link-args'] : []
 
   set_variable(
     var_name,
@@ -977,6 +985,7 @@ foreach tool, info: tools
       config_h,
       files_extra,
       export_dynamic: export_dynamic,
+      link_args: link_args,
       dependencies: [
         deps,
         libpdns_common,
