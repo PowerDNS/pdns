@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 import argparse
 import ctypes as ct
-import netaddr
 import socket
 
+import netaddr
 from bcc import BPF
 
 # Constants
@@ -26,14 +26,17 @@ blocked_qnames = [("localhost", "A", DROP_ACTION), ("test.com", "*", TC_ACTION)]
 
 # Main
 parser = argparse.ArgumentParser(description='XDP helper for DNSDist')
-parser.add_argument('--xsk', action='store_true', help='Enable XSK (AF_XDP) mode', default=False)
 parser.add_argument('--interface', '-i', type=str, default='eth0', help='The interface on which the filter will be attached')
+parser.add_argument('--maps-size', '-m', type=int, default=1024, help='Maximum number of entries in the eBPF maps')
+parser.add_argument('--number-of-queues', '-q', type=int, default=64, help='Maximum number of network queues in XSK (AF_XDP) mode')
+parser.add_argument('--xsk', action='store_true', help='Enable XSK (AF_XDP) mode', default=False)
 
 parameters = parser.parse_args()
-cflag = []
+cflag = [f'-DDDIST_MAX_NUMBER_OF_QUEUES={parameters.number_of_queues}',
+         f'-DDDIST_MAPS_SIZE={parameters.maps_size}']
 if parameters.xsk:
   print(f'Enabling XSK (AF_XDP) on {parameters.interface}..')
-  cflag.append("-DUseXsk")
+  cflag.append('-DUseXsk')
 else:
   Ports = [53]
   portsStr = ', '.join(str(port) for port in Ports)
@@ -51,6 +54,7 @@ v6filter = xdp.get_table("v6filter")
 cidr4filter = xdp.get_table("cidr4filter")
 cidr6filter = xdp.get_table("cidr6filter")
 qnamefilter = xdp.get_table("qnamefilter")
+xskDestinations = None
 
 if parameters.xsk:
   xskDestinations = xdp.get_table("xskDestinationsV4")
