@@ -16,8 +16,8 @@ RUN cd /pdns/builder-support/helpers/ && ./install_rust.sh
 @ENDIF
 
 @IF [ -n "$M_dnsdist$M_all" ]
-RUN cd /pdns/builder-support/helpers/ && ./install_rust.sh; \
-    yum install -y git cmake clang; \
+RUN cd /pdns/builder-support/helpers/ && ./install_rust.sh && \
+    yum install -y git cmake clang && \
     cd /pdns/builder-support/helpers/ && \
     ./install_quiche.sh
 @ENDIF
