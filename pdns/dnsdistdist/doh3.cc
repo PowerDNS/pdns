@@ -751,7 +751,11 @@ static void processH3HeaderEvent(ClientState& clientState, DOH3Frontend& fronten
   }
 
   if (headers.at(":method") == "POST") {
+#if defined(HAVE_QUICHE_H3_EVENT_HEADERS_HAS_MORE_FRAMES)
+    if (!quiche_h3_event_headers_has_more_frames(event)) {
+#else
     if (!quiche_h3_event_headers_has_body(event)) {
+#endif
       handleImmediateError("Empty POST query");
     }
     return;
