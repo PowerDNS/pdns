@@ -4,6 +4,7 @@ Priority: optional
 Maintainer: PowerDNS.COM BV <powerdns.support.sales@powerdns.com>
 Uploaders: PowerDNS.COM BV <powerdns.support.sales@powerdns.com>
 Build-Depends: debhelper (>= 10),
+               clang,
                libboost-all-dev,
                libcap-dev,
                libcdb-dev,
@@ -20,7 +21,9 @@ Build-Depends: debhelper (>= 10),
                libssl-dev,
                libsystemd-dev [linux-any],
                libwslay-dev,
+               lld,
                pkg-config,
+               python3-yaml,
                ragel,
                systemd [linux-any]
 Standards-Version: 4.1.5

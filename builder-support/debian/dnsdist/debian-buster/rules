@@ -10,6 +10,12 @@ include /usr/share/dpkg/default.mk
 
 # for atomic support on powerpc (automatic on mipsel)
 LDFLAGS += -latomic
+# We need clang (LLVM) to link the Rust static library and the C++ code with LTO enabled
+# build-id SHA1 prevents an issue with the debug symbols ("export: `-Wl,--build-id=sha1': not a valid identifier")
+# and the --no-as-needed -ldl an issue with the dlsym not being found ("ld.lld: error: undefined symbol: dlsym eferenced by weak.rs:142 (library/std/src/sys/pal/unix/weak.rs:142) [...] in archive ./dnsdist-rust-lib/rust/libdnsdist_rust.a)
+LDFLAGS += -fuse-ld=lld -Wl,--build-id=sha1 -Wl,--no-as-needed -ldl
+CC=clang
+CXX=clang++
 
 # Only enable systemd integration on Linux operating systems
 ifeq ($(DEB_HOST_ARCH_OS),linux)
@@ -52,6 +58,7 @@ override_dh_auto_configure:
 	  --enable-dns-over-tls \
 	  --enable-dnscrypt \
 	  --enable-dnstap \
+	  --enable-yaml \
 	  --with-ebpf \
 	  --with-gnutls \
 	  --with-h2o \

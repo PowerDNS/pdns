@@ -2,7 +2,7 @@ FROM alpine:3.18 as dnsdist
 ARG BUILDER_CACHE_BUSTER=
 
 RUN apk add --no-cache gcc g++ make tar autoconf automake protobuf-dev lua-dev \
-                       libtool file boost-dev ragel python3 git libedit-dev bash
+                       libtool file boost-dev ragel python3 py3-yaml git libedit-dev bash
 
 ADD builder/helpers/set-configure-ac-version.sh /dnsdist/builder/helpers/
 ADD COPYING /dnsdist/
@@ -19,4 +19,3 @@ RUN /dnsdist/builder/helpers/set-configure-ac-version.sh && \
     ./configure --disable-dependency-tracking && \
     make dist
 RUN cp dnsdist-${BUILDER_VERSION}.tar.bz2 /sdist/
-
