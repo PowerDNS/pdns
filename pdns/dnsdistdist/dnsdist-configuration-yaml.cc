@@ -42,6 +42,7 @@
 #include "fstrm_logger.hh"
 #include "iputils.hh"
 #include "remote_logger.hh"
+#include "remote_logger_pool.hh"
 #include "xsk.hh"
 
 #include "rust/cxx.h"
@@ -1533,7 +1534,18 @@ void registerProtobufLogger(const ProtobufLoggerConfiguration& config)
     dnsdist::configuration::yaml::registerType<RemoteLoggerInterface>(object, config.name);
     return;
   }
-  auto object = std::shared_ptr<RemoteLoggerInterface>(std::make_shared<RemoteLogger>(ComboAddress(std::string(config.address)), config.timeout, config.max_queued_entries * 100, config.reconnect_wait_time, false));
+  std::shared_ptr<RemoteLoggerInterface> object;
+  if (config.connection_count > 1) {
+    std::vector<std::shared_ptr<RemoteLoggerInterface>> loggers;
+    loggers.reserve(config.connection_count);
+    for (uint64_t i = 0; i < config.connection_count; i++) {
+      loggers.push_back(std::make_shared<RemoteLogger>(ComboAddress(std::string(config.address)), config.timeout, config.max_queued_entries * 100, config.reconnect_wait_time, dnsdist::configuration::yaml::s_inClientMode));
+    }
+    object = std::shared_ptr<RemoteLoggerInterface>(std::make_shared<RemoteLoggerPool>(std::move(loggers)));
+  }
+  else {
+    object = std::shared_ptr<RemoteLoggerInterface>(std::make_shared<RemoteLogger>(ComboAddress(std::string(config.address)), config.timeout, config.max_queued_entries * 100, config.reconnect_wait_time, dnsdist::configuration::yaml::s_inClientMode));
+  }
   dnsdist::configuration::yaml::registerType<RemoteLoggerInterface>(object, config.name);
 #endif
 }
@@ -1569,7 +1581,18 @@ void registerDnstapLogger(const DnstapLoggerConfiguration& config)
   options["queueNotifyThreshold"] = config.queue_notify_threshold;
   options["reopenInterval"] = config.reopen_interval;
 
-  auto object = std::shared_ptr<RemoteLoggerInterface>(std::make_shared<FrameStreamLogger>(family, std::string(config.address), false, options));
+  std::shared_ptr<RemoteLoggerInterface> object;
+  if (config.connection_count > 1) {
+    std::vector<std::shared_ptr<RemoteLoggerInterface>> loggers;
+    loggers.reserve(config.connection_count);
+    for (uint64_t i = 0; i < config.connection_count; i++) {
+      loggers.push_back(std::make_shared<FrameStreamLogger>(family, std::string(config.address), !dnsdist::configuration::yaml::s_inClientMode, options));
+    }
+    object = std::shared_ptr<RemoteLoggerInterface>(std::make_shared<RemoteLoggerPool>(std::move(loggers)));
+  }
+  else {
+    object = std::shared_ptr<RemoteLoggerInterface>(std::make_shared<FrameStreamLogger>(family, std::string(config.address), !dnsdist::configuration::yaml::s_inClientMode, options));
+  }
   dnsdist::configuration::yaml::registerType<RemoteLoggerInterface>(object, config.name);
 #endif
 }

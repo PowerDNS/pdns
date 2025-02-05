@@ -204,6 +204,7 @@ Endpoint to send queries and/or responses data to, using the dnstap format
 - **output_queue_size**: Unsigned integer ``(0)`` - The number of queue entries to allocate for each output queue. According to the libfstrm library, the minimum is 2, the maximum is system-dependent and based on ``IOV_MAX``, and the default is 64
 - **queue_notify_threshold**: Unsigned integer ``(0)`` - The number of outstanding queue entries to allow on an input queue before waking the I/O thread. According to the libfstrm library, the minimum is 1 and the default is 32
 - **reopen_interval**: Unsigned integer ``(0)`` - The number of queue entries to allocate for each output queue. According to the libfstrm library, the minimum is 2, the maximum is system-dependent and based on IOV_MAX, and the default is 64
+- **connection_count**: Unsigned integer ``(1)`` - Number of connections to open to the endpoint
 
 
 .. _yaml-settings-DohTuningConfiguration:
@@ -773,6 +774,7 @@ Endpoint to send queries and/or responses data to, using the native PowerDNS for
 - **timeout**: Unsigned integer ``(2)`` - TCP connect timeout in seconds
 - **max_queued_entries**: Unsigned integer ``(100)`` - Queue this many messages before dropping new ones (e.g. when the remote listener closes the connection)
 - **reconnect_wait_time**: Unsigned integer ``(1)`` - Time in seconds between reconnection attempts
+- **connection_count**: Unsigned integer ``(1)`` - Number of connections to open to the endpoint
 
 
 .. _yaml-settings-ProxyProtocolConfiguration:
