@@ -50,11 +50,11 @@ static void parseFSTRMOptions(boost::optional<LuaAssociativeTable<unsigned int>>
 void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
 {
 #ifdef HAVE_IPCIPHER
-  luaCtx.registerFunction<ComboAddress (ComboAddress::*)(const std::string& key) const>("ipencrypt", [](const ComboAddress& ca, const std::string& key) {
-    return encryptCA(ca, key);
+  luaCtx.registerFunction<ComboAddress (ComboAddress::*)(const std::string& key) const>("ipencrypt", [](const ComboAddress& comboAddress, const std::string& key) {
+    return encryptCA(comboAddress, key);
   });
-  luaCtx.registerFunction<ComboAddress (ComboAddress::*)(const std::string& key) const>("ipdecrypt", [](const ComboAddress& ca, const std::string& key) {
-    return decryptCA(ca, key);
+  luaCtx.registerFunction<ComboAddress (ComboAddress::*)(const std::string& key) const>("ipdecrypt", [](const ComboAddress& comboAddress, const std::string& key) {
+    return decryptCA(comboAddress, key);
   });
 
   luaCtx.writeFunction("makeIPCipherKey", [](const std::string& password) {
@@ -129,13 +129,12 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
     if (count > 1) {
       std::vector<std::shared_ptr<RemoteLoggerInterface>> loggers;
       for (uint64_t i = 0; i < count; i++) {
-        loggers.emplace_back(new RemoteLogger(ComboAddress(remote), timeout ? *timeout : 2, maxQueuedEntries ? (*maxQueuedEntries * 100) : 10000, reconnectWaitTime ? *reconnectWaitTime : 1, client));
+        loggers.push_back(std::make_shared<RemoteLogger>(ComboAddress(remote), timeout ? *timeout : 2, maxQueuedEntries ? (*maxQueuedEntries * 100) : 10000, reconnectWaitTime ? *reconnectWaitTime : 1, client));
       }
       return std::shared_ptr<RemoteLoggerInterface>(new RemoteLoggerPool(std::move(loggers)));
     }
-    else {
-      return std::shared_ptr<RemoteLoggerInterface>(new RemoteLogger(ComboAddress(remote), timeout ? *timeout : 2, maxQueuedEntries ? (*maxQueuedEntries * 100) : 10000, reconnectWaitTime ? *reconnectWaitTime : 1, client));
-    }
+
+    return std::shared_ptr<RemoteLoggerInterface>(new RemoteLogger(ComboAddress(remote), timeout ? *timeout : 2, maxQueuedEntries ? (*maxQueuedEntries * 100) : 10000, reconnectWaitTime ? *reconnectWaitTime : 1, client));
   });
 
   luaCtx.writeFunction("newFrameStreamUnixLogger", [client, configCheck]([[maybe_unused]] const std::string& address, [[maybe_unused]] boost::optional<LuaAssociativeTable<unsigned int>> params) {
@@ -153,15 +152,14 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
     if (count > 1) {
       std::vector<std::shared_ptr<RemoteLoggerInterface>> loggers;
       for (uint64_t i = 0; i < count; i++) {
-        loggers.emplace_back(new FrameStreamLogger(AF_UNIX, address, !client, options));
+        loggers.push_back(std::make_shared<FrameStreamLogger>(AF_UNIX, address, !client, options));
       }
       return std::shared_ptr<RemoteLoggerInterface>(new RemoteLoggerPool(std::move(loggers)));
     }
-    else {
-      return std::shared_ptr<RemoteLoggerInterface>(new FrameStreamLogger(AF_UNIX, address, !client, options));
-    }
+
+    return std::shared_ptr<RemoteLoggerInterface>(new FrameStreamLogger(AF_UNIX, address, !client, options));
 #else
-    throw std::runtime_error("fstrm support is required to build an AF_UNIX FrameStreamLogger");
+      throw std::runtime_error("fstrm support is required to build an AF_UNIX FrameStreamLogger");
 #endif /* HAVE_FSTRM */
   });
 
@@ -180,15 +178,14 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
     if (count > 1) {
       std::vector<std::shared_ptr<RemoteLoggerInterface>> loggers;
       for (uint64_t i = 0; i < count; i++) {
-        loggers.emplace_back(new FrameStreamLogger(AF_INET, address, !client, options));
+        loggers.push_back(std::make_shared<FrameStreamLogger>(AF_INET, address, !client, options));
       }
       return std::shared_ptr<RemoteLoggerInterface>(new RemoteLoggerPool(std::move(loggers)));
     }
-    else {
-      return std::shared_ptr<RemoteLoggerInterface>(new FrameStreamLogger(AF_INET, address, !client, options));
-    }
+
+    return std::shared_ptr<RemoteLoggerInterface>(new FrameStreamLogger(AF_INET, address, !client, options));
 #else
-    throw std::runtime_error("fstrm with TCP support is required to build an AF_INET FrameStreamLogger");
+      throw std::runtime_error("fstrm with TCP support is required to build an AF_INET FrameStreamLogger");
 #endif /* HAVE_FSTRM */
   });
 
