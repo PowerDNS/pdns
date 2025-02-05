@@ -545,7 +545,7 @@ As of version 5.3.0, an incoming web server configuration is defined as
    addresses: [] Sequence of SocketAddress
    tls:
      certificates: file containing full certificate chain in PEM format
-     key: file contaiing private key in PEM format
+     key: file containing private key in PEM format
 
 
 A :ref:`setting-yaml-webservice.listen` section contains a sequence of `IncomingWSConfig`_, for example:

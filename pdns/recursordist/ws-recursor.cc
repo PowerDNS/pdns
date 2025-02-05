@@ -1033,6 +1033,9 @@ void serveRustWeb()
   else if (configLevel == "detailed") {
     loglevel = pdns::rust::misc::LogLevel::Detailed;
   }
+  // This function returns after having created the web server object that handles the requests.
+  // That object and its runtime are associated with a Posix thread that waits until all tasks are
+  // done, which normally never happens. See rec-rust-lib/rust/src/web.rs for details
   pdns::rust::web::rec::serveweb(config, ::rust::Slice<const ::rust::String>{urls.data(), urls.size()}, std::move(password), std::move(apikey), std::move(aclPtr), std::move(logPtr), loglevel);
 }
 
@@ -1049,12 +1052,12 @@ static void fromCxxToRust(const HttpResponse& cxxresp, pdns::rust::web::rec::Res
   }
 }
 
-// Convert what we receive from Rust into C++ data, call funtions and convert results back to Rust data
+// Convert what we receive from Rust into C++ data, call functions and convert results back to Rust data
 static void rustWrapper(const std::function<void(HttpRequest*, HttpResponse*)>& func, const pdns::rust::web::rec::Request& rustRequest, pdns::rust::web::rec::Response& rustResponse)
 {
   HttpRequest request;
   HttpResponse response;
-  request.body = std::string(reinterpret_cast<const char*>(rustRequest.body.data()), rustRequest.body.size());
+  request.body = std::string(reinterpret_cast<const char*>(rustRequest.body.data()), rustRequest.body.size()); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
   request.url = std::string(rustRequest.uri);
   for (const auto& [key, value] : rustRequest.vars) {
     request.getvars[std::string(key)] = std::string(value);
@@ -1062,8 +1065,10 @@ static void rustWrapper(const std::function<void(HttpRequest*, HttpResponse*)>& 
   for (const auto& [key, value] : rustRequest.parameters) {
     request.parameters[std::string(key)] = std::string(value);
   }
-  request.d_slog = g_slog; // XXX
-  response.d_slog = g_slog; // XXX
+  // These two log objects are not used by the Rust code, as they take the logging object from the
+  // context, initalized from an argument to pdns::rust::web::rec::serveweb()
+  request.d_slog = g_slog;
+  response.d_slog = g_slog;
   try {
     func(&request, &response);
   }

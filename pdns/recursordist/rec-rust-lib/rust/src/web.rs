@@ -1,10 +1,28 @@
 /*
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+
+/*
 TODO
 - Table based routing?
-- Authorization: metrics and plain files (and more?) are not subject to password auth plus the code needs a n careful audit.
-- Code is now in settings dir. It's only possible to split the modules into separate Rust libs if we
-  use shared libs (in theory, I did not try). Currently all CXX using Rust cargo's must be compiled
-  as one and refer to a single static Rust runtime
 - Ripping out yahttp stuff, providing some basic classes only. ATM we do use a few yahttp include files (but no .cc)
 - Some classes (NetmaskGroup, ComboAddress) need a UniquePtr Wrapper to keep them opaque (iputils
   cannot be included without big headages in bridge.hh at the moment). We could seperate
@@ -112,6 +130,7 @@ fn nonapi_wrapper(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn file_wrapper(
     ctx: &Context,
     handler: FileFunc,
@@ -139,6 +158,7 @@ fn file_wrapper(
     handler(ctx, method, path, request, response);
 }
 
+#[allow(clippy::too_many_arguments)]
 fn api_wrapper(
     logger: &cxx::SharedPtr<rustweb::Logger>,
     ctx: &Context,
@@ -322,7 +342,7 @@ type FileFunc = fn(
     response: &mut rustweb::Response,
 );
 
-// Match a request and return the function that imlements it, this should probably be table based.
+// Match a request and return the function that implements it, this should probably be table based.
 fn matcher(
     method: &Method,
     path: &str,
@@ -1023,6 +1043,7 @@ unsafe impl Send for rustmisc::Logger {}
 unsafe impl Sync for rustmisc::Logger {}
 
 #[cxx::bridge(namespace = "pdns::rust::web::rec")]
+#[allow(clippy::needless_lifetimes)] // Needed to avoid clippy warning for Request
 mod rustweb {
     extern "C++" {
         type CredentialsHolder;
@@ -1070,7 +1091,7 @@ mod rustweb {
     }
 
     // Clippy does not seem to understand what cxx does and complains about needless_lifetimes
-    // I was unable to silence that warning
+    // The warning is silenced that warning above
     struct Request<'a> {
         body: Vec<u8>,
         uri: String,
