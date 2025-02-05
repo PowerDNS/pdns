@@ -71,6 +71,8 @@ public:
     OSLimitError = 3,
     Spoofed = 4, /* Spoofing attempt (too many near-misses) */
     ChainLimitError = 5,
+    BadCookie = 6,
+    BindError = 7,
   };
 
   [[nodiscard]] static bool isLimitError(Result res)
@@ -86,9 +88,12 @@ public:
   bool d_haveEDNS{false};
 };
 
-LWResult::Result asendto(const void* data, size_t len, int flags, const ComboAddress& toAddress, uint16_t qid,
+LWResult::Result asendto(const void* data, size_t len, int flags, const ComboAddress& toAddress,
+                         std::optional<ComboAddress>& localAddress, uint16_t qid,
                          const DNSName& domain, uint16_t qtype, bool ecs, int* fileDesc, timeval& now);
 LWResult::Result arecvfrom(PacketBuffer& packet, int flags, const ComboAddress& fromAddr, size_t& len, uint16_t qid,
                            const DNSName& domain, uint16_t qtype, int fileDesc, const struct timeval& now);
 
 LWResult::Result asyncresolve(const ComboAddress& address, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, const ResolveContext& context, const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstrmLoggers, const std::set<uint16_t>& exportTypes, LWResult* lwr, bool* chained);
+uint64_t dumpCookies(int fileDesc);
+void pruneCookies(time_t cutoff);
