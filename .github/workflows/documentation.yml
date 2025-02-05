@@ -45,30 +45,15 @@ jobs:
     name: Build docs
     runs-on: ubuntu-22.04
     env:
-      SERVICE_IP_ADDR: 127.0.0.1
       BRANCH_NAME: ${{ github.ref_name }}
-    services:
-      database:
-        image: epicwink/proxpi
-        ports:
-          - 5000:5000
-        options: >-
-          --restart always
     outputs:
       pdns_version: ${{ steps.get-version.outputs.pdns_version }}
-      pip-list-auth: ${{ steps.pip-logs-auth.outputs.list-auth }}
-      pip-list-rec: ${{ steps.pip-logs-rec.outputs.list-rec }}
-      pip-list-dnsdist: ${{ steps.pip-logs-dnsdist.outputs.list-dnsdist }}
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: pip config set global.index-url http://${{ env.SERVICE_IP_ADDR }}:5000/index/
-      - run: pip config set global.trusted-host ${{ env.SERVICE_IP_ADDR }}
-      - id: proxpi-docker
-        run: echo "id=$(docker ps | grep "epicwink/proxpi" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
       - run: build-scripts/gh-actions-setup-inv-no-dist-upgrade
       - run: inv install-doc-deps
       - run: inv install-doc-deps-pdf
@@ -92,10 +77,6 @@ jobs:
         with:
           name: PowerDNS-Authoritative-${{steps.get-version.outputs.pdns_version}}.pdf
           path: ./docs/_build/latex/PowerDNS-Authoritative.pdf
-      - run: docker logs ${{ steps.proxpi-docker.outputs.id }} 2>&1 | grep whl | awk '{print $8}' | cut -d "/" -f 4 | awk -F'-' '{print $1"=="$2}' | sort -u --ignore-case > /tmp/proxpi-auth.log
-      - id: pip-logs-auth
-        run: echo "list-auth=$(cat /tmp/proxpi-auth.log | base64 -w0)" >> "$GITHUB_OUTPUT"
-      - run: sudo sh -c "truncate -s 0 /var/lib/docker/containers/${{ steps.proxpi-docker.outputs.id }}*/${{ steps.proxpi-docker.outputs.id }}*-json.log"
       - name: Copy PDF to HTML docs directory
         run: |
           cp ./docs/_build/latex/PowerDNS-Authoritative.pdf ./docs/_build/auth-html-docs/
@@ -120,10 +101,6 @@ jobs:
         with:
           name: PowerDNS-Recursor-${{steps.get-version.outputs.pdns_version}}.pdf
           path: ./pdns/recursordist/docs/_build/latex/PowerDNS-Recursor.pdf
-      - run: docker logs ${{ steps.proxpi-docker.outputs.id }} 2>&1 | grep whl | awk '{print $8}' | cut -d "/" -f 4 | awk -F'-' '{print $1"=="$2}' | sort -u --ignore-case > /tmp/proxpi-rec.log
-      - id: pip-logs-rec
-        run: echo "list-rec=$(cat /tmp/proxpi-rec.log | base64 -w0)" >> "$GITHUB_OUTPUT"
-      - run: sudo sh -c "truncate -s 0 /var/lib/docker/containers/${{ steps.proxpi-docker.outputs.id }}*/${{ steps.proxpi-docker.outputs.id }}*-json.log"
       - name: Copy PDF to HTML docs directory
         run: |
           cp ./pdns/recursordist/docs/_build/latex/PowerDNS-Recursor.pdf ./pdns/recursordist/docs/_build/rec-html-docs/
@@ -145,9 +122,6 @@ jobs:
         with:
           name: dnsdist-${{steps.get-version.outputs.pdns_version}}.pdf
           path: ./pdns/dnsdistdist/docs/_build/latex/dnsdist.pdf
-      - run: docker logs ${{ steps.proxpi-docker.outputs.id }} 2>&1 | grep whl | awk '{print $8}' | cut -d "/" -f 4 | awk -F'-' '{print $1"=="$2}' | sort -u --ignore-case > /tmp/proxpi-dnsdist.log
-      - id: pip-logs-dnsdist
-        run: echo "list-dnsdist=$(cat /tmp/proxpi-dnsdist.log | base64 -w0)" >> "$GITHUB_OUTPUT"
       - name: Copy PDF to HTML docs directory
         run: |
           cp ./pdns/dnsdistdist/docs/_build/latex/dnsdist.pdf ./pdns/dnsdistdist/docs/_build/dnsdist-html-docs/
@@ -324,15 +298,3 @@ jobs:
             tar -xf artifacts/website-${{needs.build-docs.outputs.pdns_version}}/website.tar
             node .github/scripts/publish.js publish docs.powerdns.com website/docs.powerdns.com /
           fi
-
-  validate-pip-hashes:
-    name: Validate list of packages and hashes
-    runs-on: ubuntu-22.04
-    needs: build-docs
-    steps:
-      - uses: actions/checkout@v4
-      - run: for i in `echo "${{ needs.build-docs.outputs.pip-list-auth }}" | base64 -d | sed 's/_/-/' | egrep -v "pip==|setuptools==|wheel==|setuptools-git=="`; do grep -qq -i $i docs/requirements.txt || ( echo "$i not found" && exit 1 ); done
-      - run: for i in `echo "${{ needs.build-docs.outputs.pip-list-rec }}" | base64 -d | sed 's/_/-/' | egrep -v "pip==|setuptools==|wheel==|setuptools-git=="`; do grep -qq -i $i docs/requirements.txt || ( echo "$i not found" && exit 1 ); done
-        working-directory: ./pdns/recursordist
-      - run: for i in `echo "${{ needs.build-docs.outputs.pip-list-dnsdist }}" | base64 -d | sed 's/_/-/' | egrep -v "pip==|setuptools==|wheel==|setuptools-git=="`; do grep -qq -i $i docs/requirements.txt || ( echo "$i not found" && exit 1 ); done
-        working-directory: ./pdns/dnsdistdist
