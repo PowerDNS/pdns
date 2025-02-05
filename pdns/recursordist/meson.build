@@ -588,3 +588,99 @@ if python.found()
     ] + man_pages,
   )
 endif
+
+if dep_systemd.found()
+  systemd_service_conf = configuration_data()
+  systemd_service_conf.set('BinDir', get_option('prefix') / get_option('bindir'))
+  systemd_service_conf.set('StaticBinDir', get_option('prefix') / get_option('sbindir'))
+  systemd_service_user = get_option('systemd-service-user')
+  systemd_service_group = get_option('systemd-service-group')
+  systemd_service_conf.set('ServiceUser', systemd_service_user)
+  systemd_service_conf.set('ServiceGroup', systemd_service_group)
+  summary('Service User', systemd_service_user, section: 'Systemd')
+  summary('Service Group', systemd_service_group, section: 'Systemd')
+
+  # ProtectSystem=full will disallow write access to /etc and /usr, possibly not being
+  # able to write RPZ dumps or API related files.
+  systemd_service_conf.set(
+    'ProtectSystem', have_systemd_protect_system ? 'ProtectSystem=full' : '',
+  )
+  systemd_service_conf.set(
+    'SystemCallArchitectures',
+    have_systemd_system_call_architectures ? 'SystemCallArchitectures=native' : '',
+  )
+  systemd_system_call_filter = '~ @clock @debug @module @mount @raw-io @reboot @swap @cpu-emulation @obsolete'
+  systemd_service_conf.set(
+    'SystemCallFilter',
+    have_systemd_system_call_filter ? 'SystemCallFilter=' + systemd_system_call_filter : '',
+  )
+  systemd_service_conf.set(
+    'ProtectProc',
+    have_systemd_protect_proc ? 'ProtectProc=invisible' : '',
+  )
+
+  systemd_features = {
+    'LockPersonality': have_systemd_lock_personality,
+    'PrivateDevices': have_systemd_private_devices,
+    'PrivateTmp': have_systemd_private_tmp,
+    'PrivateUsers': false, # Setting it to true prevents us from opening our sockets.
+    'ProtectClock': have_systemd_protect_clock,
+    'ProtectControlGroups': have_systemd_protect_control_groups,
+    'ProtectHome': have_systemd_protect_home,
+    'ProtectHostname': have_systemd_protect_hostname,
+    'ProtectKernelLogs': have_systemd_protect_kernel_logs,
+    'ProtectKernelModules': have_systemd_protect_kernel_modules,
+    'ProtectKernelTunables': have_systemd_protect_kernel_tunables,
+    'RestrictNamespaces': have_systemd_restrict_namespaces,
+    'RestrictRealtime': have_systemd_restrict_realtime,
+    'RestrictSUIDSGID': have_systemd_restrict_suidsgid,
+    'PrivateIPC': have_systemd_private_ipc,
+    'RemoveIPC': have_systemd_remove_ipc,
+  }
+
+  foreach feature, enable_it: systemd_features
+    systemd_service_conf.set(feature, enable_it ? feature + '=true': '')
+  endforeach
+
+  rec_service_conf = configuration_data()
+  rec_service_conf.merge_from(systemd_service_conf)
+  # Disabled, it breaks LuaJIT.
+  rec_service_conf.set(
+    'MemoryDenyWriteExecute',
+    have_systemd_memory_deny_write_execute ? 'MemoryDenyWriteExecute=false' : '',
+  )
+  rec_service_conf.set(
+    'RestrictAddressFamilies',
+    have_systemd_restrict_address_families ? 'RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6' : '',
+  )
+
+  enable_socket_dir = (not have_systemd_with_runtime_dir_env) and have_systemd_percent_t
+
+  rec_service_conf_general = configuration_data()
+  rec_service_conf_general.merge_from(rec_service_conf)
+  rec_service_conf_general.set('Description', 'PowerDNS Recursor')
+  rec_service_conf_general.set('ConfigName', '')
+  rec_service_conf_general.set('SocketDir', enable_socket_dir ? '--socket-dir=%t/pdns-recursor' : '')
+  rec_service_conf_general.set('SyslogIdentifier', 'pdns-recursor')
+  rec_service_conf_general.set('RuntimeDirectory', 'pdns-recursor')
+
+  configure_file(
+    input: 'pdns-recursor.service.meson.in',
+    output: 'pdns-recursor.service',
+    configuration: rec_service_conf_general,
+  )
+
+  rec_service_conf_instance = configuration_data()
+  rec_service_conf_instance.merge_from(rec_service_conf)
+  rec_service_conf_instance.set('Description', 'PowerDNS Recursor %i')
+  rec_service_conf_instance.set('ConfigName', '--config-name=%i')
+  rec_service_conf_instance.set('SocketDir', enable_socket_dir ? '--socket-dir=%t/pdns-recursor-%i' : '')
+  rec_service_conf_instance.set('SyslogIdentifier', 'pdns-recursor-%i')
+  rec_service_conf_instance.set('RuntimeDirectory', have_systemd_percent_t ? 'pdns-recursor-%i' : 'pdns-recursor')
+
+  configure_file(
+    input: 'pdns-recursor.service.meson.in',
+    output: 'pdns-recursor@.service',
+    configuration: rec_service_conf_instance,
+  )
+endif
