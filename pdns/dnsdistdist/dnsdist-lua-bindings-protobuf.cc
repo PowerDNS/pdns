@@ -147,7 +147,7 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
 
       LuaAssociativeTable<unsigned int> options;
       parseFSTRMOptions(params, options);
-      checkAllParametersConsumed("newRemoteLogger", params);
+      checkAllParametersConsumed("newFrameStreamUnixLogger", params);
       auto connectionCount = options.find("connectionCount");
       auto count = connectionCount == options.end() ? 1 : connectionCount->second;
       options.erase(connectionCount);
