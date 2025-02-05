@@ -697,10 +697,10 @@ pdns-recursor@.service: pdns-recursor.service
 	$(AM_V_GEN)sed -e 's!/pdns_recursor!& --config-name=%i!' \
 	  -e 's!Recursor!& %i!' \
 	  -e 's!SyslogIdentifier=.*!&-%i!' \
-	  -e 's!--socket-dir=%t/pdns-recursor!--socket-dir=%t/pdns-recursor-%i --config-name=%i!' \
 	  < $< > $@
 if HAVE_SYSTEMD_PERCENT_T
-	$(AM_V_GEN)sed -e 's!RuntimeDirectory=.*!&-%i!' -i $@
+	$(AM_V_GEN)sed -e 's!RuntimeDirectory=.*!&-%i!' \
+	  -e 's!--socket-dir=%t/pdns-recursor!--config-name=%i --socket-dir=%t/pdns-recursor-%i!' -i $@
 if !HAVE_SYSTEMD_WITH_RUNTIME_DIR_ENV
 	$(AM_V_GEN)sed -e 's!--socket-dir=[^ ]\+!&-%i !' -i $@
 endif
