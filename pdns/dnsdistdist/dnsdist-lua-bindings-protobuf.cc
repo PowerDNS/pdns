@@ -63,7 +63,7 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
 #endif /* HAVE_IPCIPHER */
 
   /* ProtobufMessage */
-  pick luaCtx.registerFunction<void (DNSDistProtoBufMessage::*)(std::string)>("setTag", [](DNSDistProtoBufMessage& message, const std::string& strValue) {
+  luaCtx.registerFunction<void (DNSDistProtoBufMessage::*)(std::string)>("setTag", [](DNSDistProtoBufMessage& message, const std::string& strValue) {
     message.addTag(strValue);
   });
   luaCtx.registerFunction<void (DNSDistProtoBufMessage::*)(LuaArray<std::string>)>("setTagArray", [](DNSDistProtoBufMessage& message, const LuaArray<std::string>& tags) {
