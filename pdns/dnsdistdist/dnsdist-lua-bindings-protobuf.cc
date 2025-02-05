@@ -128,6 +128,7 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
     auto count = connectionCount ? *connectionCount : 1;
     if (count > 1) {
       std::vector<std::shared_ptr<RemoteLoggerInterface>> loggers;
+      loggers.reserve(count);
       for (uint64_t i = 0; i < count; i++) {
         loggers.push_back(std::make_shared<RemoteLogger>(ComboAddress(remote), timeout ? *timeout : 2, maxQueuedEntries ? (*maxQueuedEntries * 100) : 10000, reconnectWaitTime ? *reconnectWaitTime : 1, client));
       }
@@ -151,6 +152,7 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
     options.erase(connectionCount);
     if (count > 1) {
       std::vector<std::shared_ptr<RemoteLoggerInterface>> loggers;
+      loggers.reserve(count);
       for (uint64_t i = 0; i < count; i++) {
         loggers.push_back(std::make_shared<FrameStreamLogger>(AF_UNIX, address, !client, options));
       }
@@ -159,7 +161,7 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
 
     return std::shared_ptr<RemoteLoggerInterface>(new FrameStreamLogger(AF_UNIX, address, !client, options));
 #else
-      throw std::runtime_error("fstrm support is required to build an AF_UNIX FrameStreamLogger");
+    throw std::runtime_error("fstrm support is required to build an AF_UNIX FrameStreamLogger");
 #endif /* HAVE_FSTRM */
   });
 
@@ -177,6 +179,7 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
     options.erase(connectionCount);
     if (count > 1) {
       std::vector<std::shared_ptr<RemoteLoggerInterface>> loggers;
+      loggers.reserve(count);
       for (uint64_t i = 0; i < count; i++) {
         loggers.push_back(std::make_shared<FrameStreamLogger>(AF_INET, address, !client, options));
       }
@@ -185,7 +188,7 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
 
     return std::shared_ptr<RemoteLoggerInterface>(new FrameStreamLogger(AF_INET, address, !client, options));
 #else
-      throw std::runtime_error("fstrm with TCP support is required to build an AF_INET FrameStreamLogger");
+    throw std::runtime_error("fstrm with TCP support is required to build an AF_INET FrameStreamLogger");
 #endif /* HAVE_FSTRM */
   });
 
