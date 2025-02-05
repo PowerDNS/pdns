@@ -149,7 +149,9 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
     checkAllParametersConsumed("newFrameStreamUnixLogger", params);
     auto connectionCount = options.find("connectionCount");
     auto count = connectionCount == options.end() ? 1 : connectionCount->second;
-    options.erase(connectionCount);
+    if (connectionCount != options.end()) {
+      options.erase(connectionCount);
+    }
     if (count > 1) {
       std::vector<std::shared_ptr<RemoteLoggerInterface>> loggers;
       loggers.reserve(count);
@@ -176,7 +178,9 @@ void setupLuaBindingsProtoBuf(LuaContext& luaCtx, bool client, bool configCheck)
     checkAllParametersConsumed("newFrameStreamTcpLogger", params);
     auto connectionCount = options.find("connectionCount");
     auto count = connectionCount == options.end() ? 1 : connectionCount->second;
-    options.erase(connectionCount);
+    if (connectionCount != options.end()) {
+      options.erase(connectionCount);
+    }
     if (count > 1) {
       std::vector<std::shared_ptr<RemoteLoggerInterface>> loggers;
       loggers.reserve(count);
