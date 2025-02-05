@@ -65,6 +65,29 @@ string EDNSCookiesOpt::makeOptString() const
   return ret;
 }
 
+string EDNSCookiesOpt::toDisplayString() const
+{
+  std::string ret = makeHexDump(client, "");;
+  if (!server.empty()) {
+    ret += '|';
+    if (server.length() != 16) {
+      // It isn't a rfc9018 one
+      ret += makeHexDump(server, "");
+    }
+    else {
+       // It very likely is a rfc9018 one
+      ret += makeHexDump(server.substr(0, 1), ""); // Version
+      ret += '|';
+      ret += makeHexDump(server.substr(1, 3), ""); // Reserved
+      ret += '|';
+      ret += makeHexDump(server.substr(4, 4), ""); // Timestamp
+      ret += '|';
+      ret += makeHexDump(server.substr(8, 8), ""); // Hash
+    }
+  }
+  return ret;
+}
+
 void EDNSCookiesOpt::getEDNSCookiesOptFromString(const char* option, unsigned int len)
 {
   client.clear();
