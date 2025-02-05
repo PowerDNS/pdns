@@ -595,7 +595,7 @@ if dep_systemd.found()
   summary('Service Group', systemd_service_group, section: 'Systemd')
 
   # ProtectSystem=full will disallow write access to /etc and /usr, possibly not being
-  # able to write slaved-zones into sqlite3 or zonefiles.
+  # able to write RPZ dumps or API related files.
   systemd_service_conf.set(
     'ProtectSystem', have_systemd_protect_system ? 'ProtectSystem=full' : '',
   )
