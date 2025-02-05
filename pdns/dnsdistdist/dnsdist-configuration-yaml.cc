@@ -1435,9 +1435,12 @@ std::shared_ptr<DNSActionWrapper> getDnstapLogAction(const DnstapLogActionConfig
   if (!logger && !(dnsdist::configuration::yaml::s_inClientMode || dnsdist::configuration::yaml::s_inConfigCheckMode)) {
     throw std::runtime_error("Unable to find the dnstap logger named '" + std::string(config.logger_name) + "'");
   }
+  boost::optional<dnsdist::actions::DnstapAlterFunction> alterFuncHolder;
   dnsdist::actions::DnstapAlterFunction alterFunc;
-  dnsdist::configuration::yaml::getLuaFunctionFromConfiguration(alterFunc, config.alter_function_name, config.alter_function_code, config.alter_function_file, "dnstap log action");
-  auto action = dnsdist::actions::getDnstapLogAction(std::string(config.identity), std::move(logger), std::move(alterFunc));
+  if (dnsdist::configuration::yaml::getLuaFunctionFromConfiguration(alterFunc, config.alter_function_name, config.alter_function_code, config.alter_function_file, "dnstap log action")) {
+    alterFuncHolder = std::move(alterFunc);
+  }
+  auto action = dnsdist::actions::getDnstapLogAction(std::string(config.identity), std::move(logger), alterFuncHolder ? std::move(*alterFuncHolder) : std::optional<dnsdist::actions::DnstapAlterFunction>());
   return newDNSActionWrapper(std::move(action), config.name);
 #endif
 }
@@ -1451,9 +1454,12 @@ std::shared_ptr<DNSResponseActionWrapper> getDnstapLogResponseAction(const Dnsta
   if (!logger && !(dnsdist::configuration::yaml::s_inClientMode || dnsdist::configuration::yaml::s_inConfigCheckMode)) {
     throw std::runtime_error("Unable to find the dnstap logger named '" + std::string(config.logger_name) + "'");
   }
+  boost::optional<dnsdist::actions::DnstapAlterResponseFunction> alterFuncHolder;
   dnsdist::actions::DnstapAlterResponseFunction alterFunc;
-  dnsdist::configuration::yaml::getLuaFunctionFromConfiguration(alterFunc, config.alter_function_name, config.alter_function_code, config.alter_function_file, "dnstap log response action");
-  auto action = dnsdist::actions::getDnstapLogResponseAction(std::string(config.identity), std::move(logger), std::move(alterFunc));
+  if (dnsdist::configuration::yaml::getLuaFunctionFromConfiguration(alterFunc, config.alter_function_name, config.alter_function_code, config.alter_function_file, "dnstap log response action")) {
+    alterFuncHolder = std::move(alterFunc);
+  }
+  auto action = dnsdist::actions::getDnstapLogResponseAction(std::string(config.identity), std::move(logger), alterFuncHolder ? std::move(*alterFuncHolder) : std::optional<dnsdist::actions::DnstapAlterResponseFunction>());
   return newDNSResponseActionWrapper(std::move(action), config.name);
 #endif
 }
