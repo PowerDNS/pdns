@@ -99,9 +99,9 @@ GlobalStateHolder<NetmaskGroup> g_dontThrottleNetmasks;
 GlobalStateHolder<SuffixMatchNode> g_DoTToAuthNames;
 uint64_t g_latencyStatSize;
 
-LWResult::Result UDPClientSocks::getSocket(const ComboAddress& toaddr, int* fileDesc)
+LWResult::Result UDPClientSocks::getSocket(const ComboAddress& toaddr, const std::optional<ComboAddress>& localAddress, int* fileDesc)
 {
-  *fileDesc = makeClientSocket(toaddr.sin4.sin_family);
+  *fileDesc = makeClientSocket(toaddr.sin4.sin_family, localAddress);
   if (*fileDesc < 0) { // temporary error - receive exception otherwise
     return LWResult::Result::OSLimitError;
   }
@@ -147,7 +147,7 @@ void UDPClientSocks::returnSocket(int fileDesc)
 }
 
 // returns -1 for errors which might go away, throws for ones that won't
-int UDPClientSocks::makeClientSocket(int family)
+int UDPClientSocks::makeClientSocket(int family, const std::optional<ComboAddress>& localAddress)
 {
   int ret = socket(family, SOCK_DGRAM, 0); // turns out that setting CLO_EXEC and NONBLOCK from here is not a performance win on Linux (oddly enough)
 
@@ -179,7 +179,15 @@ int UDPClientSocks::makeClientSocket(int family)
       } while (g_avoidUdpSourcePorts.count(port) != 0);
     }
 
-    sin = pdns::getQueryLocalAddress(family, port); // does htons for us
+    if (localAddress) {
+      cerr << "Binding to local address associated with cookie: " << localAddress->toString() << endl;
+      sin = *localAddress;
+      sin.setPort(port);
+    }
+    else {
+      sin = pdns::getQueryLocalAddress(family, port); // does htons for us
+      cerr << "Bound to random local address " << sin.toString() << endl;
+    }
     if (::bind(ret, reinterpret_cast<struct sockaddr*>(&sin), sin.getSocklen()) >= 0) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
       break;
     }
@@ -276,7 +284,7 @@ unsigned int authWaitTimeMSec(const std::unique_ptr<MT_t>& mtasker)
 
 /* these two functions are used by LWRes */
 LWResult::Result asendto(const void* data, size_t len, int /* flags */,
-                         const ComboAddress& toAddress, uint16_t qid, const DNSName& domain, uint16_t qtype, const std::optional<EDNSSubnetOpts>& ecs, int* fileDesc, timeval& now)
+                         const ComboAddress& toAddress,  std::optional<ComboAddress>& localAddress, uint16_t qid, const DNSName& domain, uint16_t qtype, const std::optional<EDNSSubnetOpts>& ecs, int* fileDesc, timeval& now)
 {
 
   auto pident = std::make_shared<PacketID>();
@@ -316,7 +324,7 @@ LWResult::Result asendto(const void* data, size_t len, int /* flags */,
     }
   }
 
-  auto ret = t_udpclientsocks->getSocket(toAddress, fileDesc);
+  auto ret = t_udpclientsocks->getSocket(toAddress, localAddress, fileDesc);
   if (ret != LWResult::Result::Success) {
     return ret;
   }

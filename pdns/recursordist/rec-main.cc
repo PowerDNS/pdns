@@ -2554,6 +2554,11 @@ static void houseKeepingWork(Logr::log_t log)
       SyncRes::pruneSaveParentsNSSets(now.tv_sec);
     });
 
+    static PeriodicTask pruneCookiesTask{"pruneCookiesTask", 30};
+    pruneCookiesTask.runIfDue(now, [now]() {
+      pruneCookies(now.tv_sec - 1800);
+    });
+
     // By default, refresh at 80% of max-cache-ttl with a minimum period of 10s
     const unsigned int minRootRefreshInterval = 10;
     static PeriodicTask rootUpdateTask{"rootUpdateTask", std::max(SyncRes::s_maxcachettl * 8 / 10, minRootRefreshInterval)};

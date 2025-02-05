@@ -329,6 +329,7 @@ int main(int argc, char** argv)
 
   const set<string> fileCommands = {
     "dump-cache",
+    "dump-cookies",
     "dump-edns",
     "dump-ednsstatus",
     "dump-nsspeeds",
