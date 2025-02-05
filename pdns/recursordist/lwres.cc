@@ -54,10 +54,31 @@
 #include "rec-protozero.hh"
 #include "uuid-utils.hh"
 #include "rec-tcpout.hh"
+#include "rec-cookiestore.hh"
+
+static bool g_cookies = true;
 
 thread_local TCPOutConnectionManager t_tcp_manager;
 std::shared_ptr<Logr::Logger> g_slogout;
 bool g_paddingOutgoing;
+
+static LockGuarded<CookieStore> s_cookiestore;
+
+void pruneCookies(time_t cutoff)
+{
+  auto lock = s_cookiestore.lock();
+  lock->prune(cutoff);
+}
+
+uint64_t dumpCookies(int fileDesc)
+{
+  CookieStore copy;
+  {
+    auto lock = s_cookiestore.lock();
+    copy = *lock;
+  }
+  return CookieStore::dump(copy, fileDesc);
+}
 
 void remoteLoggerQueueData(RemoteLoggerInterface& rli, const std::string& data)
 {
@@ -423,6 +444,9 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
   bool weWantEDNSSubnet = false;
   uint8_t outgoingECSBits = 0;
   ComboAddress outgoingECSAddr;
+  std::optional<ComboAddress> addressToBindTo;
+  std::optional<EDNSCookiesOpt> cookieSentOut;
+
   if (EDNS0Level > 0) {
     DNSPacketWriter::optvect_t opts;
     if (srcmask) {
@@ -432,6 +456,34 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
       outgoingECSAddr = srcmask->getNetwork();
       opts.emplace_back(EDNSOptionCode::ECS, subnetOpts.makeOptString());
       weWantEDNSSubnet = true;
+    }
+
+    if (g_cookies) {
+      auto lock = s_cookiestore.lock();
+      auto found = lock->find(address);
+      if (found != lock->end()) {
+        if (found->d_support) {
+          cookieSentOut = found->d_cookie;
+          addressToBindTo = found->d_localaddress;
+          opts.emplace_back(EDNSOptionCode::COOKIE, cookieSentOut->makeOptString());
+          found->d_lastupdate = now->tv_sec;
+          cerr << "Sending stored cookie info to " << address.toString() << ": " << found->d_cookie.toDisplayString() << endl;
+        }
+        else {
+          cerr << "This server does not support cookies" << endl;
+        }
+      }
+      else {
+        CookieEntry entry;
+        entry.d_address = address;
+        entry.d_cookie.makeClientCookie();
+        cookieSentOut = entry.d_cookie;
+        entry.d_lastupdate = now->tv_sec;
+        entry.d_support = false;
+        lock->emplace(entry);
+        opts.emplace_back(EDNSOptionCode::COOKIE, cookieSentOut->makeOptString());
+        cerr << "We're sending new client cookie info from to " << address.toString() << ": " << entry.d_cookie.toDisplayString() << endl;
+      }
     }
 
     if (dnsOverTLS && g_paddingOutgoing) {
@@ -459,12 +511,12 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
 
   srcmask = boost::none; // this is also our return value, even if EDNS0Level == 0
 
-  // We only store the localip if needed for fstrm logging
+  // We only store the localip if needed for fstrm logging or cookie support
   ComboAddress localip;
-#ifdef HAVE_FSTRM
   bool fstrmQEnabled = false;
   bool fstrmREnabled = false;
 
+#ifdef HAVE_FSTRM
   if (isEnabledForQueries(fstrmLoggers)) {
     fstrmQEnabled = true;
   }
@@ -475,9 +527,18 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
 
   if (!doTCP) {
     int queryfd;
-
-    ret = asendto(vpacket.data(), vpacket.size(), 0, address, qid, domain, type, weWantEDNSSubnet, &queryfd, *now);
-
+    try {
+      ret = asendto(vpacket.data(), vpacket.size(), 0, address, addressToBindTo, qid, domain, type, weWantEDNSSubnet, &queryfd, *now);
+    }
+    catch (const PDNSException& e) {
+      if (addressToBindTo) {
+        // Cookie info already has been added to packet, so we must retry from a higher level
+        auto lock = s_cookiestore.lock();
+        lock->erase(address);
+        return LWResult::Result::BindError;
+      }
+      throw;
+    }
     if (ret != LWResult::Result::Success) {
       return ret;
     }
@@ -486,9 +547,8 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
       *chained = true;
     }
 
-#ifdef HAVE_FSTRM
     if (!*chained) {
-      if (fstrmQEnabled || fstrmREnabled) {
+      if (cookieSentOut || fstrmQEnabled || fstrmREnabled) {
         localip.sin4.sin_family = address.sin4.sin_family;
         socklen_t slen = address.getSocklen();
         (void)getsockname(queryfd, reinterpret_cast<sockaddr*>(&localip), &slen); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast))
@@ -497,7 +557,6 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
         logFstreamQuery(fstrmLoggers, queryTime, localip, address, DnstapMessage::ProtocolType::DoUDP, context.d_auth ? context.d_auth : boost::none, vpacket);
       }
     }
-#endif /* HAVE_FSTRM */
 
     // sleep until we see an answer to this, interface to mtasker
     ret = arecvfrom(buf, 0, address, len, qid, domain, type, queryfd, *now);
@@ -511,6 +570,7 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
         // peer has closed it on error, so we retry. At some point we
         // *will* get a new connection, so this loop is not endless.
         isNew = true; // tcpconnect() might throw for new connections. In that case, we want to break the loop, scanbuild complains here, which is a false positive afaik
+        // XXX cookie case: bind to local address
         isNew = tcpconnect(address, connection, dnsOverTLS, nsName);
         ret = tcpsendrecv(address, connection, localip, vpacket, len, buf);
 #ifdef HAVE_FSTRM
@@ -598,9 +658,46 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
     }
 
     EDNSOpts edo;
+    bool cookieFoundInReply = false;
     if (EDNS0Level > 0 && getEDNSOpts(mdp, &edo)) {
       lwr->d_haveEDNS = true;
-
+      if (g_cookies && !*chained) {
+        for (const auto& opt : edo.d_options) {
+          if (opt.first == EDNSOptionCode::COOKIE) {
+            EDNSCookiesOpt received;
+            if (received.makeFromString(opt.second)) {
+              cookieFoundInReply = true;
+              cerr << "Received cookie info back from " << address.toString() << ": " << received.toDisplayString() << endl;
+              auto lock = s_cookiestore.lock();
+              auto found = lock->find(address);
+              if (found != lock->end()) {
+                if (received.getClient() == cookieSentOut->getClient()) {
+                  cerr << "Client cookie matched! Storing with localAddress " << localip.toString() << endl;
+                  found->d_localaddress = localip;
+                  found->d_cookie = received;
+                  found->d_lastupdate = now->tv_sec;
+                  found->d_support = true;
+                  uint16_t ercode = (edo.d_extRCode << 4) | lwr->d_rcode;
+                  if (ercode == ERCode::BADCOOKIE) {
+                    lwr->d_validpacket = true;
+                    return LWResult::Result::BadCookie;
+                  }
+                }
+                else {
+                  // Server responded with a wrong client cookie, fall back to TCP
+                  lwr->d_validpacket = true;
+                  return LWResult::Result::BadCookie;
+                }
+              }
+              else {
+                // We sent a cookie out but forgot it?
+                lwr->d_validpacket = true;
+                return LWResult::Result::BadCookie;
+              }
+            }
+          }
+        }
+      }
       if (weWantEDNSSubnet) {
         for (const auto& opt : edo.d_options) {
           if (opt.first == EDNSOptionCode::ECS) {
@@ -619,6 +716,12 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
           }
         }
       }
+    }
+
+    // Case: we sent out a cookie but did not get one back
+    if (cookieSentOut && !cookieFoundInReply && !*chained) {
+      lwr->d_validpacket = true;
+      return LWResult::Result::BadCookie;
     }
 
     if (outgoingLoggers) {
