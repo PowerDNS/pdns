@@ -21,6 +21,7 @@
  */
 #pragma once
 #include "config.h"
+#include "lock.hh"
 #include "remote_logger.hh"
 #include <memory>
 #include <vector>
@@ -58,5 +59,5 @@ public:
 
 private:
   std::vector<std::shared_ptr<RemoteLoggerInterface>> d_pool;
-  std::vector<std::shared_ptr<RemoteLoggerInterface>>::iterator d_pool_it;
+  LockGuarded<std::vector<std::shared_ptr<RemoteLoggerInterface>>::iterator> d_pool_it;
 };

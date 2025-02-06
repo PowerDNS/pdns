@@ -1,16 +1,15 @@
 #include <memory>
-#include <numeric>
 #include <string>
 #include <unistd.h>
 #include <sys/un.h>
 
 #include "config.h"
+#include "lock.hh"
 #include "remote_logger_pool.hh"
 
 RemoteLoggerPool::RemoteLoggerPool(std::vector<std::shared_ptr<RemoteLoggerInterface>>&& pool) :
-  d_pool(std::move(pool))
+  d_pool(std::move(pool)), d_pool_it(d_pool.begin())
 {
-  d_pool_it = d_pool.begin();
 }
 
 [[nodiscard]] std::string RemoteLoggerPool::toString()
@@ -28,10 +27,11 @@ RemoteLoggerPool::RemoteLoggerPool(std::vector<std::shared_ptr<RemoteLoggerInter
 
 RemoteLoggerInterface::Result RemoteLoggerPool::queueData(const std::string& data)
 {
-  auto result = (*d_pool_it)->queueData(data);
-  d_pool_it++;
-  if (d_pool_it == d_pool.end()) {
-    d_pool_it = d_pool.begin();
+  auto pool_it = d_pool_it.lock();
+  auto result = (**pool_it)->queueData(data);
+  (*pool_it)++;
+  if (*pool_it == d_pool.end()) {
+    *pool_it = d_pool.begin();
   }
   return result;
 }
