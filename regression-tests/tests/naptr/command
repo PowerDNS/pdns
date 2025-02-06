@@ -1,3 +1,4 @@
 #!/bin/sh
 cleandig enum.test.com NAPTR
-
+cleandig ensm.test.com NAPTR
+cleandig enam.test.com NAPTR
