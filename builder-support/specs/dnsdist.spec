@@ -60,7 +60,6 @@ dnsdist is a high-performance DNS loadbalancer that is scriptable in Lua.
 %autosetup -p1 -n %{name}-%{getenv:BUILDER_VERSION}
 
 %build
-%if 0%{?rhel} >= 8
 # We need to build with LLVM/clang to be able to use LTO, since we are linking against a static Rust library built with LLVM
 export CC=clang
 export CXX=clang++
