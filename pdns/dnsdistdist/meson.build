@@ -188,6 +188,7 @@ common_sources += files(
   src_dir / 'dnsparser.cc',
   src_dir / 'dnswriter.cc',
   src_dir / 'dolog.cc',
+  src_dir / 'doh3.cc',
   src_dir / 'ednscookies.cc',
   src_dir / 'ednsextendederror.cc',
   src_dir / 'ednsoptions.cc',
@@ -222,12 +223,6 @@ conditional_sources = {
       src_dir / 'doh.cc',
     ],
     'condition': dep_libh2o_evloop.found(),
-   },
-  'doh3': {
-    'sources': [
-      src_dir / 'doh3.cc',
-    ],
-    'condition': get_option('dns-over-http3'),
    },
   'doq': {
     'sources': [
