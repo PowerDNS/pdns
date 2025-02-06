@@ -12,6 +12,6 @@ sphinxcontrib-fulltoc
 docutils!=0.15,<0.18
 jinja2<3.1.0
 alabaster==0.7.13
-pbr==6.1.0 # setup-requires for sphinxcontrib-fulltoc
+pbr # setup-requires for sphinxcontrib-fulltoc
 standard-imghdr
 standard-pipes
