@@ -27,11 +27,14 @@ RemoteLoggerPool::RemoteLoggerPool(std::vector<std::shared_ptr<RemoteLoggerInter
 
 RemoteLoggerInterface::Result RemoteLoggerPool::queueData(const std::string& data)
 {
-  auto pool_it = d_pool_it.lock();
-  auto result = (**pool_it)->queueData(data);
-  (*pool_it)++;
-  if (*pool_it == d_pool.end()) {
-    *pool_it = d_pool.begin();
+  std::shared_ptr<RemoteLoggerInterface> logger;
+  {
+    auto pool_it = d_pool_it.lock();
+    logger = **pool_it;
+    (*pool_it)++;
+    if (*pool_it == d_pool.end()) {
+      *pool_it = d_pool.begin();
+    }
   }
-  return result;
+  return logger->queueData(data);
 }
