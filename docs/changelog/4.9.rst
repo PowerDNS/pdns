@@ -2,6 +2,20 @@ Changelogs for 4.9.x
 ====================
 
 .. changelog::
+  :version: 4.9.4
+  :released: 7th of February 2025
+
+  This is release 4.9.4 of the Authoritative Server.
+  It contains a bug fix.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15094
+    :tickets: 15093
+
+    check return value of getCatalogMembers() (Kees Monshouwer)
+
+.. changelog::
   :version: 4.9.3
   :released: 17th of December 2024
 
