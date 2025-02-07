@@ -98,7 +98,7 @@ blocked_qnames = [("localhost", "A", DROP_ACTION),
 
 # Main
 parser = argparse.ArgumentParser(description='XDP helper for DNSDist')
-parser.add_argument('--interface', '-i', type=str, default=['eth0'], action='append',
+parser.add_argument('--interface', '-i', type=str, default=[], action='append',
                     help='The interface(s) on which the filter will be attached')
 parser.add_argument('--maps-size', '-m', type=int, default=1024,
                     help='Maximum number of entries in the eBPF maps')
@@ -111,6 +111,8 @@ parameters = parser.parse_args()
 cflag = [f'-DDDIST_MAX_NUMBER_OF_QUEUES={parameters.number_of_queues}',
          f'-DDDIST_MAPS_SIZE={parameters.maps_size}']
 interfaces = set(parameters.interface)
+if len(interfaces) == 0:
+    interfaces = ['eth0']
 
 if parameters.xsk:
     for interface in interfaces:
