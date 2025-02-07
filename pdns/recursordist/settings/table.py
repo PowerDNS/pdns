@@ -1106,9 +1106,9 @@ To forward to a recursive resolver use :ref:`setting-yaml-recursor.forward_zones
 .. warning::
   When using DNSSEC validation (which is default), forwards to non-delegated (e.g. internal) zones that have a DNSSEC signed parent zone will validate as ``Bogus``.
   To prevent this, add a Negative Trust Anchor (NTA) for this zone in the :ref:`setting-lua-config-file` with :func:`addNTA`.
-  If this forwarded zone is signed, instead of adding NTA, add the DS record to the :ref:`setting-lua-config-file` usinf :fun:adTA`.
+  If this forwarded zone is signed, instead of adding NTA, add the DS record to the :ref:`setting-lua-config-file` using :fun:adTA`.
   See the :doc:`dnssec` information.
-  When using trust anchors listend in YAML, use the :ref:`setting-yaml-dnssec.trustanchors` and :ref:`setting-yaml-dnssec.negative_trustanchors` clauses.
+  When using trust anchors listed in a YAML settings file, use the :ref:`setting-yaml-dnssec.trustanchors` and :ref:`setting-yaml-dnssec.negative_trustanchors` clauses.
 
 .. note::
   The ``recurse`` field of a `Forward Zone`_ is fixed to ``false`` in the context of :ref:`setting-yaml-recursor.forward_zones`.

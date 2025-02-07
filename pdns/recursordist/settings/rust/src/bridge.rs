@@ -302,7 +302,20 @@ impl ForwardZone {
             &(field.to_owned() + ".forwarders"),
             &self.forwarders,
             validate_socket_address_or_name,
-        )
+        )?;
+
+        let expected = match field {
+            "recursor.forward_zones" => Some(false),
+            // We cannot do the check below here as the override to true takes place later, the validation
+            // is run immediately after parsing
+            // "recursor.forward_zones_recurse" => Some(true),
+            _ => None,
+        };
+        if expected.is_some() && self.recurse != expected.unwrap() {
+            let msg = format!("{}.recurse has wrong value in this context", field);
+            return Err(ValidationError { msg });
+        }
+        Ok(())
     }
 
     fn to_yaml_map(&self) -> serde_yaml::Value {
