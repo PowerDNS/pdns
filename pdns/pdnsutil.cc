@@ -61,6 +61,7 @@ string g_programname="pdns";
 
 namespace {
   bool g_verbose;
+  bool g_force;
 }
 
 ArgvMap &arg()
@@ -945,6 +946,19 @@ static int increaseSerial(const DNSName& zone, DNSSECKeeper &dk)
     return -1;
   }
 
+  DomainInfo info;
+  if (!B.getDomainInfo(zone, info, false)) {
+    cout << "[Warning] Unable to get zone information for zone '" << zone << "'" << endl;
+    if (!g_force) {
+      throw PDNSException("Operation is not allowed unless --force");
+    }
+  }
+  else {
+    if (info.isSecondaryType() && !g_force) {
+      throw PDNSException("Operation on a secondary zone is not allowed unless --force");
+    }
+  }
+
   string soaEditKind;
   dk.getSoaEdit(zone, soaEditKind);
 
@@ -1202,6 +1216,28 @@ static int editZone(const DNSName &zone, const PDNSColors& col) {
   if (! B.getDomainInfo(zone, di)) {
     cerr << "Zone '" << zone << "' not found!" << endl;
     return EXIT_FAILURE;
+  }
+
+  if (isatty(STDIN_FILENO) == 0) {
+    cerr << "edit-zone requires a terminal" << endl;
+    return EXIT_FAILURE;
+  }
+
+  if (di.isSecondaryType() && !g_force) {
+    cout << "Zone '" << zone << "' is a secondary zone." << endl;
+    while (true) {
+      cout << "Edit the zone anyway? (N/y) " << std::flush;
+      int resp = read1char();
+      if (resp != '\n') {
+        cout << endl;
+      }
+      if (resp == 'y' || resp == 'Y') {
+        break;
+      }
+      if (resp == 'n' || resp == 'N' || resp == '\n') {
+        return EXIT_FAILURE;
+      }
+    }
   }
 
   /* ensure that the temporary file will only
@@ -1596,6 +1632,9 @@ static int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
     cerr << "Zone '" << zone << "' does not exist" << endl;
     return EXIT_FAILURE;
   }
+  if (di.isSecondaryType() && !g_force) {
+    throw PDNSException("Operation on a secondary zone is not allowed unless --force");
+  }
   rr.auth = true;
   rr.domain_id = di.id;
   rr.qname = name;
@@ -1717,6 +1756,9 @@ static int deleteRRSet(const std::string& zone_, const std::string& name_, const
   if(!B.getDomainInfo(zone, di)) {
     cerr << "Zone '" << zone << "' does not exist" << endl;
     return EXIT_FAILURE;
+  }
+  if (di.isSecondaryType() && !g_force) {
+    throw PDNSException("Operation on a secondary zone is not allowed unless --force");
   }
 
   DNSName name;
@@ -4582,6 +4624,7 @@ try
   }
 
   g_verbose = g_vm.count("verbose") != 0;
+  g_force = g_vm.count("force") != 0;
 
   if (g_vm.count("version") != 0) {
     cout<<"pdnsutil "<<VERSION<<endl;
