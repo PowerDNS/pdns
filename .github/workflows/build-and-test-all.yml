@@ -705,10 +705,11 @@ jobs:
           fail-on-error: false
 
   test-recursor-ubicloud-bulk:
-    if: ${{ vars.REC_BULKTEST_USE_UBICLOUD == '1' || github.repository == 'PowerDNS/pdns' }}
+    if: ${{ ! contains(needs.get-runner-container-image.outputs.id, 'debian-11') && ( vars.REC_BULKTEST_USE_UBICLOUD == '1' || github.repository == 'PowerDNS/pdns' ) }}
     name: 'test rec ubicloud bulk'
     needs:
       - build-recursor
+      - get-runner-container-image
     runs-on: ubicloud-standard-8-ubuntu-2404
     strategy:
       matrix:
