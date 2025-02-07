@@ -522,8 +522,8 @@ class TestDnstapOverRemotePoolTcpLogger(DNSDistTest):
     _poolConnectionCount = 5
     _config_params = ['_testServerPort', '_fstrmLoggerPort', '_poolConnectionCount']
     _config_template = """
-    newServer{address="127.0.0.1:%s", useClientSubnet=true}
-    fslu = newFrameStreamTcpLogger('127.0.0.1:%s', { connectionCount = %s })
+    newServer{address="127.0.0.1:%d", useClientSubnet=true}
+    fslu = newFrameStreamTcpLogger('127.0.0.1:%d', { connectionCount = %d })
 
     addAction(AllRule(), DnstapLogAction("a.server", fslu))
     """
