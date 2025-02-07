@@ -2,6 +2,41 @@ Changelogs for 4.7.x
 ====================
 
 .. changelog::
+  :version: 4.7.5
+  :released: 7th of February 2025
+
+  This is release 4.7.5 of the Authoritative Server.
+  It contains various bug fixes.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15097
+    :tickets: 15093
+
+    check return value of getCatalogMembers() (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14424
+    :tickets: 14405
+
+    dns.cc: use pdns::views::UnsignedCharView
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13334
+    :tickets: 13005
+
+    Fix incorrect optsize
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13272
+    :tickets: 13245
+
+    smysql: stop explicity setting MYSQL_OPT_RECONNECT to 0
+
+.. changelog::
   :version: 4.7.4
   :released: 17th of April 2023
 

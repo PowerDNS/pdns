@@ -2,6 +2,34 @@ Changelogs for 4.8.x
 ====================
 
 .. changelog::
+  :version: 4.8.5
+  :released: 7th of February 2025
+
+  This is release 4.8.5 of the Authoritative Server.
+  It contains various bug fixes.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15095
+    :tickets: 15093
+
+    check return value of getCatalogMembers() (Kees Monshouwer)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14423
+    :tickets: 14405
+
+    dns.cc: use pdns::views::UnsignedCharView
+
+  .. change::
+    :tags: New Features
+    :pullreq: 14246
+    :tickets: 14218
+
+    make request/response timeout configurable (Samir Aguiar)
+
+.. changelog::
   :version: 4.8.4
   :released: 21st of December 2023
 
