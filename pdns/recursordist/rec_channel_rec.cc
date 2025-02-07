@@ -1378,7 +1378,10 @@ void doExitGeneric(bool nicely)
 #if defined(__SANITIZE_THREAD__)
   _exit(0); // regression test check for exit 0
 #endif
-  g_slog->withName("runtime")->info(Logr::Notice, "Exiting on user request");
+  // Not safe from a signal handler!
+  // g_slog->withName("runtime")->info(Logr::Notice, "Exiting on user request")
+  static const string msg("Exiting on user request\n");
+  (void)write(STDERR_FILENO, msg.data(), msg.size());
 
   if (!g_pidfname.empty()) {
     unlink(g_pidfname.c_str()); // we can at least try..
