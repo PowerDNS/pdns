@@ -181,7 +181,7 @@ An example of a ``forward_zones_file`` contents, which consists of a sequence of
 
 .. note::
 
-  The ``recurse`` field is relevant only in a ``Foward Zone`` clause in a forwarding file.
+  The ``recurse`` field is relevant only in a ``Forward Zone`` clause in a forwarding file.
   It has a fixed value in the context of :ref:`setting-yaml-recursor.forward_zones` and :ref:`setting-yaml-recursor.forward_zones_recurse`.
 
 Starting with version 5.1.0, names can be used if
