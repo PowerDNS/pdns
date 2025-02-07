@@ -447,7 +447,7 @@ class TestDnstapOverFrameStreamTcpLogger(DNSDistTest):
     """
 
     @classmethod
-    def FrameStreamUnixListener(cls, port):
+    def FrameStreamTcpListener(cls, port):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             sock.bind(("127.0.0.1", port))
