@@ -559,7 +559,7 @@ class TestDnstapOverRemotePoolTcpLogger(DNSDistTest):
     def startResponders(cls):
         DNSDistTest.startResponders()
 
-        cls._fstrmLoggerListener = threading.Thread(name='FrameStreamUnixListener', target=cls.FrameStreamUnixListener, args=[cls._fstrmLoggerPort])
+        cls._fstrmLoggerListener = threading.Thread(name='FrameStreamTcpListener', target=cls.FrameStreamTcpListener, args=[cls._fstrmLoggerPort])
         cls._fstrmLoggerListener.daemon = True
         cls._fstrmLoggerListener.start()
 
