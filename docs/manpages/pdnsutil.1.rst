@@ -48,7 +48,7 @@ algorithms are supported:
 
 activate-zone-key *ZONE* *KEY-ID*
     Activate a key with id *KEY-ID* within a zone called *ZONE*.
-add-zone-key *ZONE* [**KSK**,\ **ZSK**] [**active**,\ **inactive**] [**published**,\ **unpublished**] *KEYBITS* *ALGORITHM*
+add-zone-key *ZONE* [**KSK**,\ **ZSK**] [**active**,\ **inactive**] [**published**,\ **unpublished**] [*KEYBITS*] [*ALGORITHM*]
     Create a new key for zone *ZONE*, and make it a KSK or a ZSK (default), with
     the specified algorithm. The key is inactive by default, set it to
     **active** to immediately use it to sign *ZONE*. The key is published
