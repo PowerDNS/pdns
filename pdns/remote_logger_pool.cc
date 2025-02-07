@@ -8,7 +8,7 @@
 #include "remote_logger_pool.hh"
 
 RemoteLoggerPool::RemoteLoggerPool(std::vector<std::shared_ptr<RemoteLoggerInterface>>&& pool) :
-  d_pool(std::move(pool)), d_pool_it(d_pool.begin())
+  d_pool(std::move(pool)), d_counter(0)
 {
 }
 
@@ -27,14 +27,6 @@ RemoteLoggerPool::RemoteLoggerPool(std::vector<std::shared_ptr<RemoteLoggerInter
 
 RemoteLoggerInterface::Result RemoteLoggerPool::queueData(const std::string& data)
 {
-  std::shared_ptr<RemoteLoggerInterface> logger;
-  {
-    auto pool_it = d_pool_it.lock();
-    logger = **pool_it;
-    (*pool_it)++;
-    if (*pool_it == d_pool.end()) {
-      *pool_it = d_pool.begin();
-    }
-  }
+  std::shared_ptr<RemoteLoggerInterface> logger = d_pool.at(d_counter++ % d_pool.size());
   return logger->queueData(data);
 }

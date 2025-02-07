@@ -21,14 +21,16 @@
  */
 #pragma once
 #include "config.h"
-#include "lock.hh"
 #include "remote_logger.hh"
+#include <atomic>
+#include <cstddef>
 #include <memory>
 #include <vector>
 
 class RemoteLoggerPool : public RemoteLoggerInterface
 {
 public:
+  // this expects a non-empty vector
   RemoteLoggerPool(std::vector<std::shared_ptr<RemoteLoggerInterface>>&& pool);
   RemoteLoggerPool(const RemoteLoggerPool&) = delete;
   RemoteLoggerPool(RemoteLoggerPool&&) = delete;
@@ -59,5 +61,5 @@ public:
 
 private:
   std::vector<std::shared_ptr<RemoteLoggerInterface>> d_pool;
-  LockGuarded<std::vector<std::shared_ptr<RemoteLoggerInterface>>::iterator> d_pool_it;
+  std::atomic<size_t> d_counter;
 };
