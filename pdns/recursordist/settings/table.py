@@ -1101,14 +1101,20 @@ Multiple IP addresses can be specified and port numbers other than 53 can be con
 Forwarded queries have the ``recursion desired (RD)`` bit set to ``0``, meaning that this setting is intended to forward queries to authoritative servers.
 If an ``NS`` record set for a subzone of the forwarded zone is learned, that record set will be used to determine addresses for name servers of the subzone.
 This allows e.g. a forward to a local authoritative server holding a copy of the root zone, delegations received from that server will work.
+To forward to a recursive resolver use :ref:`setting-yaml-recursor.forward_zones_recurse`.
 
-**Note**: When an ``NS`` record for a subzone is learned and the IP address for that nameserver is included in the IP ranges in :ref:`setting-dont-query`,
-SERVFAIL is returned.
+.. warning::
+  When using DNSSEC validation (which is default), forwards to non-delegated (e.g. internal) zones that have a DNSSEC signed parent zone will validate as ``Bogus``.
+  To prevent this, add a Negative Trust Anchor (NTA) for this zone in the :ref:`setting-lua-config-file` with :func:`addNTA`.
+  If this forwarded zone is signed, instead of adding NTA, add the DS record to the :ref:`setting-lua-config-file` using :func:`addTA`.
+  See the :doc:`dnssec` information.
+  When using trust anchors listed in a YAML settings file, use the :ref:`setting-yaml-dnssec.trustanchors` and :ref:`setting-yaml-dnssec.negative_trustanchors` clauses.
 
-**IMPORTANT**: When using DNSSEC validation (which is default), forwards to non-delegated (e.g. internal) zones that have a DNSSEC signed parent zone will validate as Bogus.
-To prevent this, add a Negative Trust Anchor (NTA) for this zone in the :ref:`setting-lua-config-file` with ``addNTA('your.zone', 'A comment')``.
-If this forwarded zone is signed, instead of adding NTA, add the DS record to the :ref:`setting-lua-config-file`.
-See the :doc:`dnssec` information.
+.. note::
+  The ``recurse`` field of a `Forward Zone`_ is fixed to ``false`` in the context of :ref:`setting-yaml-recursor.forward_zones`.
+
+.. note::
+  When an ``NS`` record for a subzone is learned and the IP address for that nameserver is included in the IP ranges in :ref:`setting-dont-query`, SERVFAIL is returned.
  ''',
         'versionchanged' : ('5.2.0',  'Zones having ``notify_allowed`` set will be added to :ref:`setting-yaml-incoming.allow_notify_for`.'),
         'runtime': ['reload-zones'],
@@ -1133,7 +1139,7 @@ Zones prefixed with a ``+`` are treated as with
 The DNSSEC notes from :ref:`setting-forward-zones` apply here as well.
  ''',
     'doc-new' : '''
-        Same as :ref:`setting-forward-zones`, parsed from a file as a sequence of `ZoneForward`.
+        Same as :ref:`setting-forward-zones`, parsed from a file as a sequence of `Forward Zone`_.
 
 .. code-block:: yaml
 
@@ -1161,9 +1167,19 @@ The DNSSEC notes from :ref:`setting-forward-zones` apply here as well.
         'default' : '',
         'help' : 'Zones for which we forward queries with recursion bit, comma separated domain=ip pairs',
         'doc' : '''
-Like regular :ref:`setting-forward-zones`, but forwarded queries have the ``recursion desired (RD)`` bit set to ``1``, meaning that this setting is intended to forward queries to other recursive servers.
+Like regular :ref:`setting-forward-zones`, but forwarded queries have the ``recursion desired (RD)`` bit set to ``1``, meaning that this setting is intended to forward queries to other recursive resolvers.
 In contrast to regular forwarding, the rule that delegations of the forwarded subzones are respected is not active.
 This is because we rely on the forwarder to resolve the query fully.
+
+See :ref:`setting-forward-zones` for additional options (such as supplying multiple recursive servers) and an important note about DNSSEC.
+ ''',
+        'doc-new' : '''
+Like regular :ref:`setting-forward-zones`, but forwarded queries have the ``recursion desired (RD)`` bit set to ``1``, meaning that this setting is intended to forward queries to other recursive resolvers.
+In contrast to regular forwarding, the rule that delegations of the forwarded subzones are respected is not active.
+This is because we rely on the forwarder to resolve the query fully.
+
+.. note::
+  The `recurse` field of a `Forward Zone`_ is fixed to ``true`` in the context of :ref:`setting-yaml-recursor.forward_zones_recurse`.
 
 See :ref:`setting-forward-zones` for additional options (such as supplying multiple recursive servers) and an important note about DNSSEC.
  ''',

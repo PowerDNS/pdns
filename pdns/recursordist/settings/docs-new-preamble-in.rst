@@ -161,10 +161,10 @@ A forward zone is defined as:
   forwarders:
     - Socket Address
     - ...
-  recurse: Boolean, default false
+  recurse: Boolean, default false (only relevant in a forwarding file)
   notify_allowed: Boolean, default false
 
-An example of a ``forward_zones`` entry, which consists of a sequence of `Forward Zone`_ entries:
+An example of a ``forward_zones_file`` contents, which consists of a sequence of `Forward Zone`_ entries:
 
 .. code-block:: yaml
 
@@ -178,6 +178,11 @@ An example of a ``forward_zones`` entry, which consists of a sequence of `Forwar
       - '::1'
     recurse: true
     notify_allowed: true
+
+.. note::
+
+  The ``recurse`` field is relevant only in a ``Forward Zone`` clause in a forwarding file.
+  It has a fixed value in the context of :ref:`setting-yaml-recursor.forward_zones` and :ref:`setting-yaml-recursor.forward_zones_recurse`.
 
 Starting with version 5.1.0, names can be used if
 :ref:`setting-yaml-recursor.system_resolver_ttl` is set.
