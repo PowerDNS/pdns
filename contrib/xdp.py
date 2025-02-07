@@ -98,8 +98,8 @@ blocked_qnames = [("localhost", "A", DROP_ACTION),
 
 # Main
 parser = argparse.ArgumentParser(description='XDP helper for DNSDist')
-parser.add_argument('--interface', '-i', type=str, default='eth0',
-                    help='The interface on which the filter will be attached')
+parser.add_argument('--interface', '-i', type=str, default=[], action='append',
+                    help='The interface(s) on which the filter will be attached')
 parser.add_argument('--maps-size', '-m', type=int, default=1024,
                     help='Maximum number of entries in the eBPF maps')
 parser.add_argument('--number-of-queues', '-q', type=int, default=64,
@@ -110,20 +110,27 @@ parser.add_argument('--xsk', action='store_true', default=False,
 parameters = parser.parse_args()
 cflag = [f'-DDDIST_MAX_NUMBER_OF_QUEUES={parameters.number_of_queues}',
          f'-DDDIST_MAPS_SIZE={parameters.maps_size}']
+interfaces = set(parameters.interface)
+if len(interfaces) == 0:
+    interfaces = ['eth0']
+
 if parameters.xsk:
-    print(f'Enabling XSK (AF_XDP) on {parameters.interface}..')
+    for interface in interfaces:
+        print(f'Enabling XSK (AF_XDP) on {interface}..')
     cflag.append('-DUseXsk')
 else:
     ports = [53]
     ports_str = ', '.join(str(port) for port in ports)
-    print(f'Enabling XDP on {parameters.interface} and ports {ports_str}..')
+    for interface in interfaces:
+        print(f'Enabling XDP on {interface} and ports {ports_str}..')
     IN_DNS_PORT_SET = "||".join("COMPARE_PORT((x),"+str(i)+")" for i in ports)
     cflag.append(r"-DIN_DNS_PORT_SET(x)=(" + IN_DNS_PORT_SET + r")")
 
 xdp = BPF(src_file="xdp-filter.ebpf.src", cflags=cflag)
 
 fn = xdp.load_func("xdp_dns_filter", BPF.XDP)
-xdp.attach_xdp(parameters.interface, fn, 0)
+for interface in interfaces:
+    xdp.attach_xdp(interface, fn, 0)
 
 v4filter = xdp.get_table("v4filter")
 v6filter = xdp.get_table("v6filter")
@@ -195,7 +202,8 @@ for qname in blocked_qnames:
     leaf.action = qname[2]
     qnamefilter[key] = leaf
 
-print(f"Filter is ready on {parameters.interface}")
+for interface in interfaces:
+    print(f"Filter is ready on {interface}")
 
 try:
     xdp.trace_print()
@@ -229,4 +237,5 @@ if parameters.xsk and (xsk_destinations4 or xsk_destinations6):
     for item in xsk_destinations6.items():
         print(f"- {str(socket.inet_ntop(socket.AF_INET6, item[0].addr))}:{str(socket.ntohs(item[0].port))}")
 
-xdp.remove_xdp(parameters.interface, 0)
+for interface in interfaces:
+    xdp.remove_xdp(interface, 0)
