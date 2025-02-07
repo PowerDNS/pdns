@@ -45,7 +45,7 @@ public:
 
   [[nodiscard]] std::string name() const override
   {
-    return "";
+    return "Pool of " + std::to_string(d_pool.size()) + " loggers";
   }
 
   [[nodiscard]] std::string toString() override;
