@@ -191,10 +191,9 @@ class TestRecursorDNSTap(RecursorTest):
                 if e.errno in (errno.EBADF, errno.EPIPE):
                     break
                 sys.stderr.write("Unexpected socket error %s\n" % str(e))
-                sys.exit(1)
-            except exception as e:
+            except Exception as e:
                 sys.stderr.write("Unexpected socket error %s\n" % str(e))
-                sys.exit(1)
+                break
         conn.close()
 
     @classmethod
@@ -208,8 +207,7 @@ class TestRecursorDNSTap(RecursorTest):
             sock.bind(param.path)
             sock.listen(100)
         except socket.error as e:
-            sys.stderr.write("Error binding/listening in the framestream listener: %s\n" % str(e))
-            sys.exit(1)
+            raise Exception("Error binding/listening in the framestream listener: %s\n" % str(e))
         DNSTapListeners.append(sock)
         while True:
             try:

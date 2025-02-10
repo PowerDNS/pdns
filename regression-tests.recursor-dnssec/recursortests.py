@@ -765,7 +765,7 @@ distributor-threads={threads}""".format(confdir=confdir,
     def killProcess(cls, p):
         # Don't try to kill it if it's already dead
         if p.poll() is not None:
-            return
+            return p
         try:
             p.terminate()
             for count in range(100): # tsan can be slow
@@ -791,8 +791,28 @@ distributor-threads={threads}""".format(confdir=confdir,
             cls.killProcess(auth);
 
     @classmethod
-    def tearDownRecursor(cls):
-        p = cls.killProcess(cls._recursor)
+    def tearDownRecursor(cls, subdir=None):
+        # We now kill the recursor in a friendly way, as systemd is doing the same.
+        if subdir is None:
+            confdir = os.path.join('configs', cls._confdir)
+        else:
+            confdir = os.path.join('configs', cls._confdir, subdir)
+        rec_controlCmd = [os.environ['RECCONTROL'],
+                          '--config-dir=%s' % confdir,
+                          '--timeout=20',
+                          'quit-nicely']
+        try:
+            subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as e:
+            raise AssertionError('%s failed (%d): %s' % (rec_controlCmd, e.returncode, e.output))
+        # Wait for it, as the process really should have exited
+        p = cls._recursor
+        for count in range(100): # tsan can be slow
+            if p.poll() is not None:
+                break;
+            time.sleep(0.1)
+        if p.poll() is None:
+            raise AssertionError('Process did not exit on request within 10s')
         if p.returncode not in (0, -15):
             raise AssertionError('Process exited with return code %d' % (p.returncode))
 

@@ -3,6 +3,9 @@
 if pgrep pdns_server; then
     echo 'There are (stray?) pdns_servers running that might interfere with these tests!'
 fi
+if pgrep pdns_recursor; then
+    echo 'There are (stray?) pdns_recursors running that might interfere with these tests!'
+fi
 
 export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
 
