@@ -392,7 +392,9 @@ When a primary zone is created via the API, and the request does not specify a c
 -  String
 -  Default: ecdsa256
 
-The algorithm that should be used for the KSK when running
+The default algorithm for creating zone keys when running
+:doc:`pdnsutil add-zone-key <manpages/pdnsutil.1>` if no algorithm is specified,
+and also the algorithm that should be used for the KSK when running
 :doc:`pdnsutil secure-zone <manpages/pdnsutil.1>` or using the :doc:`Zone API endpoint <http-api/cryptokey>`
 to enable DNSSEC. Must be one of:
 
@@ -524,7 +526,9 @@ TTL to use when none is provided.
 -  String
 -  Default: (empty)
 
-The algorithm that should be used for the ZSK when running
+The default algorithm for creating zone keys when running
+:doc:`pdnsutil add-zone-key <manpages/pdnsutil.1>` if no algorithm is specified,
+and also the algorithm that should be used for the ZSK when running
 :doc:`pdnsutil secure-zone <manpages/pdnsutil.1>` or using the :doc:`Zone API endpoint <http-api/cryptokey>`
 to enable DNSSEC. Must be one of:
 

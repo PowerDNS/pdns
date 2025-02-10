@@ -22,6 +22,14 @@ ixfrdist IPv6 support
 ``ixfrdist`` now binds listening sockets with `IPV6_V6ONLY set`, which means that ``[::]`` no longer accepts IPv4 connections.
 If you want to listen on both IPv4 and IPv6, you need to add a line with ``0.0.0.0`` to the ``listen`` section of your ixfrdist configuration.
 
+pdnsutil behaviour changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A few changes of behaviour have been implemented in ``pdnsutil``.
+
+* The ``add-zone-key`` command used to default to creating a ZSK,
+  if no key type was given. This default has changed to KSK.
+
 4.8.0 to 4.9.0
 --------------
 
