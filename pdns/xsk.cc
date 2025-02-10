@@ -1185,7 +1185,7 @@ bool XskWorker::hasIncomingFrames()
   return d_incomingPacketsQueue.read_available() != 0U;
 }
 
-void XskWorker::processIncomingFrames(const std::function<void(XskPacket& packet)>& callback)
+void XskWorker::processIncomingFrames(const std::function<void(XskPacket packet)>& callback)
 {
   if (d_type == Type::OutgoingOnly) {
     throw std::runtime_error("Looking for incoming packets in an outgoing-only XSK Worker");
@@ -1194,7 +1194,7 @@ void XskWorker::processIncomingFrames(const std::function<void(XskPacket& packet
   d_incomingPacketsQueue.consume_all(callback);
 }
 
-void XskWorker::processOutgoingFrames(const std::function<void(XskPacket& packet)>& callback)
+void XskWorker::processOutgoingFrames(const std::function<void(XskPacket packet)>& callback)
 {
   d_outgoingPacketsQueue.consume_all(callback);
 }
