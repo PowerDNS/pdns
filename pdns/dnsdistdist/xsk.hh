@@ -312,8 +312,8 @@ public:
   void pushToProcessingQueue(XskPacket& packet);
   void pushToSendQueue(XskPacket& packet);
   bool hasIncomingFrames();
-  void processIncomingFrames(const std::function<void(XskPacket& packet)>& callback);
-  void processOutgoingFrames(const std::function<void(XskPacket& packet)>& callback);
+  void processIncomingFrames(const std::function<void(XskPacket packet)>& callback);
+  void processOutgoingFrames(const std::function<void(XskPacket packet)>& callback);
   void markAsFree(const XskPacket& packet);
   // notify worker that at least one packet is available for processing
   void notifyWorker() const;
