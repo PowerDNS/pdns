@@ -416,6 +416,7 @@ tools = {
       dep_json11,
       dep_systemd,
     ],
+    'install': true,
   },
 }
 
@@ -523,6 +524,7 @@ foreach tool, info: tools
   files_extra = 'files-extra' in info ? info['files-extra'] : []
   deps_extra = 'deps-extra' in info ? info['deps-extra'] : []
   link_args = 'link-args' in info ? info['link-args'] : []
+  install = 'install' in info ? info['install'] : false
 
   set_variable(
     var_name,
@@ -537,12 +539,14 @@ foreach tool, info: tools
         libdnsdist_common,
         deps_extra,
       ],
+      install: install,
     )
   )
 
   if 'manpages' in info
     foreach man_page: info['manpages']
       man_pages += docs_dir / 'manpages' / (man_page + '.rst')
+      install_man(man_page)
     endforeach
   endif
 endforeach
@@ -570,5 +574,98 @@ if python.found()
       '--source-directory', docs_dir,
       '--target-directory', 'dnsdist-man-pages',
     ] + man_pages,
+  )
+endif
+
+if dep_systemd_prog.found()
+
+  systemd_system_unit_dir = dep_systemd_prog.get_variable(
+    'systemdsystemunitdir',
+  )
+
+  systemd_service_conf = configuration_data()
+  systemd_service_conf.set('Description', 'DNS Loadbalancer')
+  systemd_service_conf.set('BinDir', get_option('prefix') / get_option('bindir'))
+  systemd_service_user = get_option('systemd-service-user')
+  systemd_service_group = get_option('systemd-service-group')
+  systemd_service_conf.set('ServiceUser', systemd_service_user)
+  systemd_service_conf.set('ServiceGroup', systemd_service_group)
+  summary('Service User', systemd_service_user, section: 'Systemd')
+  summary('Service Group', systemd_service_group, section: 'Systemd')
+
+  systemd_service_conf.set(
+    'ProtectSystem', have_systemd_protect_system ? 'ProtectSystem=full' : '',
+  )
+  systemd_service_conf.set(
+    'SystemCallArchitectures',
+    have_systemd_system_call_architectures ? 'SystemCallArchitectures=native' : '',
+  )
+  systemd_system_call_filter = '~ @clock @debug @module @mount @raw-io @reboot @swap @cpu-emulation @obsolete'
+  systemd_service_conf.set(
+    'SystemCallFilter',
+    have_systemd_system_call_filter ? 'SystemCallFilter=' + systemd_system_call_filter : '',
+  )
+  systemd_service_conf.set(
+    'ProtectProc',
+    have_systemd_protect_proc ? 'ProtectProc=invisible' : '',
+  )
+
+  systemd_features = {
+    'LockPersonality': have_systemd_lock_personality,
+    'PrivateDevices': have_systemd_private_devices,
+    'PrivateTmp': have_systemd_private_tmp,
+    'PrivateUsers': false, # Setting it to true prevents us from opening our sockets.
+    'ProtectClock': have_systemd_protect_clock,
+    'ProtectControlGroups': have_systemd_protect_control_groups,
+    'ProtectHome': have_systemd_protect_home,
+    'ProtectHostname': have_systemd_protect_hostname,
+    'ProtectKernelLogs': have_systemd_protect_kernel_logs,
+    'ProtectKernelModules': have_systemd_protect_kernel_modules,
+    'ProtectKernelTunables': have_systemd_protect_kernel_tunables,
+    'RestrictNamespaces': have_systemd_restrict_namespaces,
+    'RestrictRealtime': have_systemd_restrict_realtime,
+    'RestrictSUIDSGID': have_systemd_restrict_suidsgid,
+    'PrivateIPC': have_systemd_private_ipc,
+    'RemoveIPC': have_systemd_remove_ipc,
+  }
+
+  foreach feature, enable_it: systemd_features
+    systemd_service_conf.set(feature, enable_it ? feature + '=true': '')
+  endforeach
+
+  # Disabled, it breaks LuaJIT.
+  systemd_service_conf.set(
+    'MemoryDenyWriteExecute',
+    have_systemd_memory_deny_write_execute ? 'MemoryDenyWriteExecute=false' : '',
+  )
+  systemd_service_conf.set(
+    'RestrictAddressFamilies',
+    have_systemd_restrict_address_families ? 'RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6' : '',
+  )
+
+  dnsdist_service_conf_general = configuration_data()
+  dnsdist_service_conf_general.set('Description', 'DNS Loadbalancer')
+  dnsdist_service_conf_general.merge_from(systemd_service_conf)
+  dnsdist_service_conf_general.set('SyslogIdentifier', 'dnsdist')
+
+  configure_file(
+    input: 'dnsdist.service.meson.in',
+    output: 'dnsdist.service',
+    configuration: dnsdist_service_conf_general,
+    install: true,
+    install_dir: systemd_system_unit_dir,
+  )
+
+  dnsdist_service_conf_instance = configuration_data()
+  dnsdist_service_conf_instance.merge_from(systemd_service_conf)
+  dnsdist_service_conf_instance.set('Description', 'DNS Loadbalancer %i')
+  dnsdist_service_conf_instance.set('SyslogIdentifier', 'dnsdist-%i')
+
+  configure_file(
+    input: 'dnsdist.service.meson.in',
+    output: 'dnsdist@.service',
+    configuration: dnsdist_service_conf_instance,
+    install: true,
+    install_dir: systemd_system_unit_dir,
   )
 endif

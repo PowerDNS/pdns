@@ -1,0 +1,1 @@
+../../../docs/generate-man-pages.py
