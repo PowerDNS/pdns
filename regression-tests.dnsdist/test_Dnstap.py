@@ -292,6 +292,233 @@ class TestDnstapOverRemoteLogger(DNSDistTest):
         checkDnstapResponse(self, dnstap, dnstap_pb2.TCP, response)
         checkDnstapExtra(self, dnstap, b"Type,Response")
 
+class TestDnstapOverRemoteLoggerPool(DNSDistTest):
+    _remoteLoggerServerPort = pickAvailablePort()
+    _remoteLoggerQueue = Queue()
+    _remoteLoggerCounter = 0
+    _poolConnectionCount = 8
+    _config_params = ['_testServerPort', '_remoteLoggerServerPort', '_poolConnectionCount']
+    _config_template = """
+    extrasmn = newSuffixMatchNode()
+    extrasmn:add(newDNSName('extra.dnstap.tests.powerdns.com.'))
+
+    luatarget = 'lua.dnstap.tests.powerdns.com.'
+
+    function alterDnstapQuery(dq, tap)
+      if extrasmn:check(dq.qname) then
+        tap:setExtra("Type,Query")
+      end
+    end
+
+    function alterDnstapResponse(dq, tap)
+      if extrasmn:check(dq.qname) then
+        tap:setExtra("Type,Response")
+      end
+    end
+
+    function luaFunc(dq)
+      dq.dh:setQR(true)
+      dq.dh:setRCode(DNSRCode.NXDOMAIN)
+      return DNSAction.None, ""
+    end
+
+    newServer{address="127.0.0.1:%d", useClientSubnet=true}
+    rl = newRemoteLogger('127.0.0.1:%d', 2, 100, 1, %d)
+
+    addAction(AllRule(), DnstapLogAction("a.server", rl, alterDnstapQuery))				-- Send dnstap message before lookup
+
+    addAction(luatarget, LuaAction(luaFunc))				-- Send dnstap message before lookup
+
+    addResponseAction(AllRule(), DnstapLogResponseAction("a.server", rl, alterDnstapResponse))	-- Send dnstap message after lookup
+
+    addAction('spoof.dnstap.tests.powerdns.com.', SpoofAction("192.0.2.1"))
+    """
+
+    @classmethod
+    def RemoteLoggerListener(cls, port):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+        try:
+            sock.bind(("127.0.0.1", port))
+        except socket.error as e:
+            print("Error binding in the protbuf listener: %s" % str(e))
+            sys.exit(1)
+
+        sock.listen(100)
+
+        def handle_connection(conn):
+            data = None
+            while True:
+                data = conn.recv(2)
+                if not data:
+                    break
+                (datalen,) = struct.unpack("!H", data)
+                data = conn.recv(datalen)
+                if not data:
+                    break
+
+                cls._remoteLoggerQueue.put(data, True, timeout=2.0)
+
+            conn.close()
+
+        threads = []
+        while True:
+            (conn, _) = sock.accept()
+            thread = threading.Thread(target=handle_connection, args=[conn])
+            threads.append(thread)
+            thread.start()
+
+        for thread in threads:
+            thread.join()
+        sock.close()
+
+    @classmethod
+    def startResponders(cls):
+        DNSDistTest.startResponders()
+
+        cls._remoteLoggerListener = threading.Thread(name='RemoteLogger Listener', target=cls.RemoteLoggerListener, args=[cls._remoteLoggerServerPort])
+        cls._remoteLoggerListener.daemon = True
+        cls._remoteLoggerListener.start()
+
+    def getFirstDnstap(self):
+        self.assertFalse(self._remoteLoggerQueue.empty())
+        data = self._remoteLoggerQueue.get(False)
+        self.assertTrue(data)
+        dnstap = dnstap_pb2.Dnstap()
+        dnstap.ParseFromString(data)
+        return dnstap
+
+    def testDnstap(self):
+        """
+        Dnstap: Send query and responses packed in dnstap to a remotelogger server
+        """
+        name = 'query.dnstap.tests.powerdns.com.'
+
+        target = 'target.dnstap.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.CNAME,
+                                    target)
+        response.answer.append(rrset)
+
+        rrset = dns.rrset.from_text(target,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
+
+        # give the dnstap messages time to get here
+        time.sleep(1)
+
+        # check the dnstap message corresponding to the UDP query
+        dnstap = self.getFirstDnstap()
+
+        checkDnstapQuery(self, dnstap, dnstap_pb2.UDP, query)
+        checkDnstapNoExtra(self, dnstap)
+
+        # check the dnstap message corresponding to the UDP response
+        dnstap = self.getFirstDnstap()
+        checkDnstapResponse(self, dnstap, dnstap_pb2.UDP, response)
+        checkDnstapNoExtra(self, dnstap)
+
+        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
+
+        # give the dnstap messages time to get here
+        time.sleep(1)
+
+        # check the dnstap message corresponding to the TCP query
+        dnstap = self.getFirstDnstap()
+
+        checkDnstapQuery(self, dnstap, dnstap_pb2.TCP, query)
+        checkDnstapNoExtra(self, dnstap)
+
+        # check the dnstap message corresponding to the TCP response
+        dnstap = self.getFirstDnstap()
+        checkDnstapResponse(self, dnstap, dnstap_pb2.TCP, response)
+        checkDnstapNoExtra(self, dnstap)
+
+    def testDnstapExtra(self):
+        """
+        DnstapExtra: Send query and responses packed in dnstap to a remotelogger server. Extra data is filled out.
+        """
+        name = 'extra.dnstap.tests.powerdns.com.'
+
+        target = 'target.dnstap.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.CNAME,
+                                    target)
+        response.answer.append(rrset)
+
+        rrset = dns.rrset.from_text(target,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
+
+        # give the dnstap messages time to get here
+        time.sleep(1)
+
+        # check the dnstap message corresponding to the UDP query
+        dnstap = self.getFirstDnstap()
+        checkDnstapQuery(self, dnstap, dnstap_pb2.UDP, query)
+        checkDnstapExtra(self, dnstap, b"Type,Query")
+
+        # check the dnstap message corresponding to the UDP response
+        dnstap = self.getFirstDnstap()
+        checkDnstapResponse(self, dnstap, dnstap_pb2.UDP, response)
+        checkDnstapExtra(self, dnstap, b"Type,Response")
+
+        (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
+
+        # give the dnstap messages time to get here
+        time.sleep(1)
+
+        # check the dnstap message corresponding to the TCP query
+        dnstap = self.getFirstDnstap()
+        checkDnstapQuery(self, dnstap, dnstap_pb2.TCP, query)
+        checkDnstapExtra(self, dnstap, b"Type,Query")
+
+        # check the dnstap message corresponding to the TCP response
+        dnstap = self.getFirstDnstap()
+        checkDnstapResponse(self, dnstap, dnstap_pb2.TCP, response)
+        checkDnstapExtra(self, dnstap, b"Type,Response")
+
+
 
 def fstrm_get_control_frame_type(data):
     (t,) = struct.unpack("!L", data[0:4])
