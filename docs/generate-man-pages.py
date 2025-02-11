@@ -3,7 +3,6 @@
 import argparse
 import glob
 import itertools
-import os
 import subprocess
 import sys
 import venv
@@ -14,8 +13,8 @@ def main():
     """Start the script."""
     args = create_argument_parser()
 
-    source_root = Path(os.environ["MESON_SOURCE_ROOT"])
-    build_root = Path(os.environ["MESON_BUILD_ROOT"])
+    source_root = args.source_root
+    build_root = args.build_root
 
     # Create the venv.
     venv_directory = build_root.joinpath(args.venv_name)
@@ -30,8 +29,8 @@ def main():
     # Install some stuff into the venv.
     requirements_file = source_root.joinpath(args.requirements_file)
     pip = venv_directory.joinpath("bin").joinpath("pip")
-    subprocess.run([pip, "install", "-U", "pip", "setuptools", "wheel"])
-    subprocess.run([pip, "install", "-r", requirements_file])
+    subprocess.run([pip, "install", "-U", "pip", "setuptools", "wheel"], check=True)
+    subprocess.run([pip, "install", "-r", requirements_file], check=True)
 
     # Run sphinx to generate the man-pages.
     source_directory = source_root.joinpath(args.source_directory)
@@ -47,7 +46,8 @@ def main():
             source_directory,
             target_directory,
         ]
-        + files
+        + files,
+        check=True
     )
 
 
@@ -55,6 +55,18 @@ def create_argument_parser():
     """Create command-line argument parser."""
     parser = argparse.ArgumentParser(
         description="Create a virtualenv from a requirements file"
+    )
+    parser.add_argument(
+        "--build-root",
+        type=Path,
+        required=True,
+        help="Build root",
+    )
+    parser.add_argument(
+        "--source-root",
+        type=Path,
+        required=True,
+        help="Source root",
     )
     parser.add_argument(
         "--venv-name",
