@@ -585,7 +585,7 @@ if get_option('man-pages') and python.found()
        '--venv-name', 'venv-dnsdist-man-pages',
        '--requirements-file', docs_dir / 'requirements.txt',
        '--source-directory', docs_dir,
-       '--target-directory', 'dnsdist-man-pages',
+       '--target-directory', '@BUILD_ROOT@',
      ] + man_pages,
   )
 endif

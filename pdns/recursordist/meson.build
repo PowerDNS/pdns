@@ -598,7 +598,7 @@ if python.found()
        '--venv-name', 'venv-rec-man-pages',
        '--requirements-file', docs_dir / 'requirements.txt',
        '--source-directory', docs_dir,
-       '--target-directory', 'rec-man-pages',
+       '--target-directory', '@BUILD_ROOT@',
      ] + man_pages,
   )
 endif
