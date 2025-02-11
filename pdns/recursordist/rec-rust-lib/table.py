@@ -1140,6 +1140,7 @@ The DNSSEC notes from :ref:`setting-forward-zones` apply here as well.
  ''',
     'doc-new' : '''
         Same as :ref:`setting-forward-zones`, parsed from a file as a sequence of `Forward Zone`_.
+        The filename MUST end in ``.yml`` for the content to be parsed as YAML.
 
 .. code-block:: yaml
 

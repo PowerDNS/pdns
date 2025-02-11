@@ -65,6 +65,9 @@ static void convertServersForAD(const std::string& zone, const std::string& inpu
 {
   vector<string> servers;
   stringtok(servers, input, sepa);
+  if (servers.empty()) {
+    throw PDNSException("empty list of forwarders for domain '" + zone + '"');
+  }
   authDomain.d_servers.clear();
 
   vector<string> addresses;
@@ -412,6 +415,9 @@ static void processForwardZonesFile(shared_ptr<SyncRes::domainmap_t>& newMap, sh
 
       try {
         convertServersForAD(domain, instructions, authDomain, ",; ", log, false);
+      }
+      catch (const PDNSException& e) {
+        throw PDNSException(e.reason + "on line " + std::to_string(linenum) + " of " + filename);
       }
       catch (...) {
         throw PDNSException("Conversion error parsing line " + std::to_string(linenum) + " of " + filename);
