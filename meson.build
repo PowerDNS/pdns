@@ -1011,16 +1011,30 @@ summary('Path', python.full_path(), section: 'Manual Pages')
 summary('Version', python.version(), section: 'Manual Pages')
 
 if python.found()
-  run_target(
-    'man-pages',
-    command: [
-      python,
-      product_source_dir / docs_dir / 'generate-man-pages.py',
-      '--venv-name', 'venv-auth-man-pages',
-      '--requirements-file', docs_dir / 'requirements.txt',
-      '--source-directory', docs_dir,
-      '--target-directory', 'auth-man-pages',
-    ] + man_pages,
+  generated_man_pages = []
+  foreach tool, info: tools
+    if 'manpages' in info
+      foreach man_page: info['manpages']
+        generated_man_pages += man_page
+      endforeach
+    endif
+  endforeach
+  custom_target(
+     'man-pages',
+     input: man_pages,
+     output: generated_man_pages,
+     install: true,
+     install_dir: join_paths(get_option('mandir'), 'man1'),
+     command: [
+       python,
+       product_source_dir / docs_dir / 'generate-man-pages.py',
+       '--build-root', '@BUILD_ROOT@',
+       '--source-root', '@SOURCE_ROOT@',
+       '--venv-name', 'venv-auth-man-pages',
+       '--requirements-file', docs_dir / 'requirements.txt',
+       '--source-directory', docs_dir,
+       '--target-directory', 'auth-man-pages',
+     ] + man_pages,
   )
 endif
 
