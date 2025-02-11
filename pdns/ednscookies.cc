@@ -151,9 +151,9 @@ void EDNSCookiesOpt::makeClientCookie()
   uint32_t lower = dns_random_uint32();
   uint32_t upper = dns_random_uint32();
   client = string();
-  client.resize(8);
+  client.resize(sizeof(lower) + sizeof(upper));
   memcpy(client.data(), &lower, sizeof(lower));
-  memcpy(&client.at(4), &upper, sizeof(upper));
+  memcpy(&client.at(sizeof(lower)), &upper, sizeof(upper));
 }
 
 bool EDNSCookiesOpt::makeServerCookie([[maybe_unused]] const string& secret, [[maybe_unused]] const ComboAddress& source)

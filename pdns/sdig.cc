@@ -63,8 +63,8 @@ static void fillPacket(vector<uint8_t>& packet, const string& q, const string& t
 {
   DNSPacketWriter pw(packet, DNSName(q), DNSRecordContent::TypeToNumber(t), qclass, opcode);
 
-  if (dnssec || ednsnm || getenv("SDIGBUFSIZE") != nullptr || cookie) { // NOLINT(concurrency-mt-unsafe) we'resingle threaded
-    char* sbuf = getenv("SDIGBUFSIZE"); // NOLINT(concurrency-mt-unsafe) we'resingle threaded
+  if (dnssec || ednsnm || getenv("SDIGBUFSIZE") != nullptr || cookie) { // NOLINT(concurrency-mt-unsafe) we're single threaded
+    char* sbuf = getenv("SDIGBUFSIZE"); // NOLINT(concurrency-mt-unsafe) we're single threaded
     int bufsize;
     if (sbuf)
       bufsize = atoi(sbuf);
@@ -246,7 +246,7 @@ try {
   bool dumpluaraw = false;
   std::optional<string> cookie;
 
-  // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic, concurrency-mt-unsafe) it's the argv API and w're single-threaded
+  // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic, concurrency-mt-unsafe) it's the argv API and we're single-threaded
   for (int i = 1; i < argc; i++) {
     if ((string)argv[i] == "--help") {
       usage();
