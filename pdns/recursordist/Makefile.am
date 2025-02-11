@@ -140,6 +140,7 @@ pdns_recursor_SOURCES = \
 	dnsseckeeper.hh \
 	dnswriter.cc dnswriter.hh \
 	dolog.hh \
+	ednscookies.cc ednscookies.hh \
 	ednsextendederror.cc ednsextendederror.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednspadding.cc ednspadding.hh \
@@ -358,6 +359,7 @@ testrunner_SOURCES = \
 	test-dnsparser_hh.cc \
 	test-dnsrecordcontent.cc \
 	test-dnsrecords_cc.cc \
+	test-ednscookie_cc.cc \
 	test-ednsoptions_cc.cc \
 	test-filterpo_cc.cc \
 	test-histogram_hh.cc \

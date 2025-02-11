@@ -57,6 +57,8 @@ tlsProvider *name*
     when using DoT, use TLS provider *name*. Currently supported (if compiled in): `openssl` and `gnutls`. Default is `openssl` if available.
 opcode *OPNUM*
     Use opcode *OPNUM* instead of 0 (Query). For example, ``sdig 192.0.2.1 53 example.com SOA opcode 4`` sends a ``NOTIFY``.
+cookie *COOKIE*
+    if *COOKIE* is ``-`` send a random client cookie. Otherwise send the given cookie, which should be a hex string received from a server earlier.
 
 Examples
 --------

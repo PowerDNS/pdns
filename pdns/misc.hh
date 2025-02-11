@@ -336,7 +336,7 @@ inline double getTime()
   throw runtime_error(why + ": " + stringerror(errno));
 }
 
-string makeHexDump(const string& str);
+string makeHexDump(const string& str, const string& sep = " ");
 //! Convert the hexstring in to a byte string
 string makeBytesFromHex(const string &in);
 
