@@ -682,3 +682,8 @@ if dep_systemd_prog.found()
     install_dir: systemd_system_unit_dir,
   )
 endif
+
+install_data(
+  'dnsdist.conf-dist',
+  install_dir : get_option('sysconfdir') / 'dnsdist'
+)
