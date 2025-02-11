@@ -195,8 +195,8 @@ struct Counters
       }
       return *this;
     }
-    static const size_t numberoOfRCodes = 16;
-    std::array<uint64_t, numberoOfRCodes> rcodeCounters;
+    static const size_t numberOfRCodes = 16;
+    std::array<uint64_t, numberOfRCodes> rcodeCounters;
   };
   // An RCodes histogram
   RCodeCounters auth{};
