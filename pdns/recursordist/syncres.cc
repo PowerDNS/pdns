@@ -5552,7 +5552,9 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
   }
 
   accountAuthLatency(lwr.d_usec, remoteIP.sin4.sin_family);
-  ++t_Counters.at(rec::RCode::auth).rcodeCounters.at(static_cast<uint8_t>(lwr.d_rcode));
+  if (lwr.d_rcode >= 0 && lwr.d_rcode < static_cast<decltype(lwr.d_rcode)>(rec::Counters::RCodeCounters::numberOfRCodes)) {
+    ++t_Counters.at(rec::RCode::auth).rcodeCounters.at(static_cast<uint8_t>(lwr.d_rcode));
+  }
 
   if (!dontThrottle) {
     dontThrottle = shouldNotThrottle(&nsName, &remoteIP);
