@@ -63,8 +63,8 @@ static void fillPacket(vector<uint8_t>& packet, const string& q, const string& t
 {
   DNSPacketWriter pw(packet, DNSName(q), DNSRecordContent::TypeToNumber(t), qclass, opcode);
 
-  if (dnssec || ednsnm || getenv("SDIGBUFSIZE") || cookie) {
-    char* sbuf = getenv("SDIGBUFSIZE");
+  if (dnssec || ednsnm || getenv("SDIGBUFSIZE") != nullptr || cookie) { // NOLINT(concurrency-mt-unsafe) we'resingle threaded
+    char* sbuf = getenv("SDIGBUFSIZE"); // NOLINT(concurrency-mt-unsafe) we'resingle threaded
     int bufsize;
     if (sbuf)
       bufsize = atoi(sbuf);
@@ -222,7 +222,7 @@ static void printReply(const string& reply, bool showflags, bool hidesoadetails,
   }
 }
 
-int main(int argc, char** argv)
+int main(int argc, char** argv) // NOLINT(readability-function-cognitive-complexity) XXX FIXME
 try {
   /* default timeout of 10s */
   struct timeval timeout{10,0};
@@ -246,6 +246,7 @@ try {
   bool dumpluaraw = false;
   std::optional<string> cookie;
 
+  // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic, concurrency-mt-unsafe) it's the argv API and w're single-threaded
   for (int i = 1; i < argc; i++) {
     if ((string)argv[i] == "--help") {
       usage();
@@ -353,6 +354,7 @@ try {
       }
     }
   }
+  // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic, concurrency-mt-unsafe)
 
   if (dot) {
     tcp = true;
