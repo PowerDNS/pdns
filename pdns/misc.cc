@@ -630,15 +630,16 @@ string U32ToIP(uint32_t val)
 }
 
 
-string makeHexDump(const string& str)
+string makeHexDump(const string& str, const string& sep)
 {
   std::array<char, 5> tmp;
   string ret;
-  ret.reserve(static_cast<size_t>(str.size()*2.2));
+  ret.reserve(static_cast<size_t>(str.size() * (2 + sep.size())));
 
   for (char n : str) {
-    snprintf(tmp.data(), tmp.size(), "%02x ", static_cast<unsigned char>(n));
+    snprintf(tmp.data(), tmp.size(), "%02x", static_cast<unsigned char>(n));
     ret += tmp.data();
+    ret += sep;
   }
   return ret;
 }

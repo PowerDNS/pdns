@@ -140,8 +140,8 @@ pdns_recursor_SOURCES = \
 	dnsseckeeper.hh \
 	dnswriter.cc dnswriter.hh \
 	dolog.hh \
-	ednsextendederror.cc ednsextendederror.hh \
 	ednscookies.cc ednscookies.hh \
+	ednsextendederror.cc ednsextendederror.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednspadding.cc ednspadding.hh \
 	ednssubnet.cc ednssubnet.hh \
