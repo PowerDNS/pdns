@@ -562,7 +562,7 @@ summary('Python', python.found(), bool_yn: true, section: 'Manual Pages')
 summary('Path', python.full_path(), section: 'Manual Pages')
 summary('Version', python.version(), section: 'Manual Pages')
 
-if python.found()
+if get_option('man-pages') and python.found()
   generated_man_pages = []
   foreach tool, info: tools
     if 'manpages' in info
