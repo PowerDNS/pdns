@@ -685,5 +685,5 @@ endif
 
 install_data(
   'dnsdist.conf-dist',
-  install_dir : get_option('sysconfdir') / 'dnsdist'
+  install_dir : get_option('sysconfdir')
 )
