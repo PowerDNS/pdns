@@ -1197,6 +1197,8 @@ mod dnsdistsettings {
         max_queued_entries: u64,
         #[serde(default = "crate::U8::<1>::value", skip_serializing_if = "crate::U8::<1>::is_equal")]
         reconnect_wait_time: u8,
+        #[serde(default = "crate::U64::<1>::value", skip_serializing_if = "crate::U64::<1>::is_equal")]
+        connection_count: u64,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
@@ -1217,6 +1219,8 @@ mod dnsdistsettings {
         queue_notify_threshold: u64,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         reopen_interval: u64,
+        #[serde(default = "crate::U64::<1>::value", skip_serializing_if = "crate::U64::<1>::is_equal")]
+        connection_count: u64,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]

@@ -42,6 +42,7 @@
 #include "fstrm_logger.hh"
 #include "iputils.hh"
 #include "remote_logger.hh"
+#include "remote_logger_pool.hh"
 #include "xsk.hh"
 
 #include "rust/cxx.h"
@@ -1434,9 +1435,12 @@ std::shared_ptr<DNSActionWrapper> getDnstapLogAction(const DnstapLogActionConfig
   if (!logger && !(dnsdist::configuration::yaml::s_inClientMode || dnsdist::configuration::yaml::s_inConfigCheckMode)) {
     throw std::runtime_error("Unable to find the dnstap logger named '" + std::string(config.logger_name) + "'");
   }
+  boost::optional<dnsdist::actions::DnstapAlterFunction> alterFuncHolder;
   dnsdist::actions::DnstapAlterFunction alterFunc;
-  dnsdist::configuration::yaml::getLuaFunctionFromConfiguration(alterFunc, config.alter_function_name, config.alter_function_code, config.alter_function_file, "dnstap log action");
-  auto action = dnsdist::actions::getDnstapLogAction(std::string(config.identity), std::move(logger), std::move(alterFunc));
+  if (dnsdist::configuration::yaml::getLuaFunctionFromConfiguration(alterFunc, config.alter_function_name, config.alter_function_code, config.alter_function_file, "dnstap log action")) {
+    alterFuncHolder = std::move(alterFunc);
+  }
+  auto action = dnsdist::actions::getDnstapLogAction(std::string(config.identity), std::move(logger), alterFuncHolder ? std::move(*alterFuncHolder) : std::optional<dnsdist::actions::DnstapAlterFunction>());
   return newDNSActionWrapper(std::move(action), config.name);
 #endif
 }
@@ -1450,9 +1454,12 @@ std::shared_ptr<DNSResponseActionWrapper> getDnstapLogResponseAction(const Dnsta
   if (!logger && !(dnsdist::configuration::yaml::s_inClientMode || dnsdist::configuration::yaml::s_inConfigCheckMode)) {
     throw std::runtime_error("Unable to find the dnstap logger named '" + std::string(config.logger_name) + "'");
   }
+  boost::optional<dnsdist::actions::DnstapAlterResponseFunction> alterFuncHolder;
   dnsdist::actions::DnstapAlterResponseFunction alterFunc;
-  dnsdist::configuration::yaml::getLuaFunctionFromConfiguration(alterFunc, config.alter_function_name, config.alter_function_code, config.alter_function_file, "dnstap log response action");
-  auto action = dnsdist::actions::getDnstapLogResponseAction(std::string(config.identity), std::move(logger), std::move(alterFunc));
+  if (dnsdist::configuration::yaml::getLuaFunctionFromConfiguration(alterFunc, config.alter_function_name, config.alter_function_code, config.alter_function_file, "dnstap log response action")) {
+    alterFuncHolder = std::move(alterFunc);
+  }
+  auto action = dnsdist::actions::getDnstapLogResponseAction(std::string(config.identity), std::move(logger), alterFuncHolder ? std::move(*alterFuncHolder) : std::optional<dnsdist::actions::DnstapAlterResponseFunction>());
   return newDNSResponseActionWrapper(std::move(action), config.name);
 #endif
 }
@@ -1533,7 +1540,18 @@ void registerProtobufLogger(const ProtobufLoggerConfiguration& config)
     dnsdist::configuration::yaml::registerType<RemoteLoggerInterface>(object, config.name);
     return;
   }
-  auto object = std::shared_ptr<RemoteLoggerInterface>(std::make_shared<RemoteLogger>(ComboAddress(std::string(config.address)), config.timeout, config.max_queued_entries * 100, config.reconnect_wait_time, false));
+  std::shared_ptr<RemoteLoggerInterface> object;
+  if (config.connection_count > 1) {
+    std::vector<std::shared_ptr<RemoteLoggerInterface>> loggers;
+    loggers.reserve(config.connection_count);
+    for (uint64_t i = 0; i < config.connection_count; i++) {
+      loggers.push_back(std::make_shared<RemoteLogger>(ComboAddress(std::string(config.address)), config.timeout, config.max_queued_entries * 100, config.reconnect_wait_time, dnsdist::configuration::yaml::s_inClientMode));
+    }
+    object = std::shared_ptr<RemoteLoggerInterface>(std::make_shared<RemoteLoggerPool>(std::move(loggers)));
+  }
+  else {
+    object = std::shared_ptr<RemoteLoggerInterface>(std::make_shared<RemoteLogger>(ComboAddress(std::string(config.address)), config.timeout, config.max_queued_entries * 100, config.reconnect_wait_time, dnsdist::configuration::yaml::s_inClientMode));
+  }
   dnsdist::configuration::yaml::registerType<RemoteLoggerInterface>(object, config.name);
 #endif
 }
@@ -1569,7 +1587,18 @@ void registerDnstapLogger(const DnstapLoggerConfiguration& config)
   options["queueNotifyThreshold"] = config.queue_notify_threshold;
   options["reopenInterval"] = config.reopen_interval;
 
-  auto object = std::shared_ptr<RemoteLoggerInterface>(std::make_shared<FrameStreamLogger>(family, std::string(config.address), false, options));
+  std::shared_ptr<RemoteLoggerInterface> object;
+  if (config.connection_count > 1) {
+    std::vector<std::shared_ptr<RemoteLoggerInterface>> loggers;
+    loggers.reserve(config.connection_count);
+    for (uint64_t i = 0; i < config.connection_count; i++) {
+      loggers.push_back(std::make_shared<FrameStreamLogger>(family, std::string(config.address), !dnsdist::configuration::yaml::s_inClientMode, options));
+    }
+    object = std::shared_ptr<RemoteLoggerInterface>(std::make_shared<RemoteLoggerPool>(std::move(loggers)));
+  }
+  else {
+    object = std::shared_ptr<RemoteLoggerInterface>(std::make_shared<FrameStreamLogger>(family, std::string(config.address), !dnsdist::configuration::yaml::s_inClientMode, options));
+  }
   dnsdist::configuration::yaml::registerType<RemoteLoggerInterface>(object, config.name);
 #endif
 }

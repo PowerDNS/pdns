@@ -202,6 +202,7 @@ common_sources += files(
   src_dir / 'proxy-protocol.cc',
   src_dir / 'qtype.cc',
   src_dir / 'remote_logger.cc',
+  src_dir / 'remote_logger_pool.cc',
   src_dir / 'snmp-agent.cc',
   src_dir / 'statnode.cc',
   src_dir / 'svc-records.cc',

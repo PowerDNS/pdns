@@ -13,6 +13,9 @@ To use FrameStream transport, :program:`dnsdist` must have been built with `libf
 
 .. function:: newFrameStreamUnixLogger(path [, options])
 
+  .. versionchanged:: 2.0.0
+    Added ``connectionCount`` option.
+
   .. versionchanged:: 1.5.0
     Added the optional parameter ``options``.
 
@@ -25,7 +28,8 @@ To use FrameStream transport, :program:`dnsdist` must have been built with `libf
   The following options apply to the settings of the `framestream library
   <https://github.com/farsightsec/fstrm>`. Refer to the documentation of that library for the default and
   allowed values for these options, as well as their exact descriptions. For all these options, absence or a
-  zero value has the effect of using the library-provided default value.
+  zero value has the effect of using the library-provided default value. ``connectionCount`` can be used to open
+  multiple connections to the socket, for potential throughput boost.
 
   * ``bufferHint=0``: unsigned
   * ``flushTimeout=0``: unsigned
@@ -33,8 +37,12 @@ To use FrameStream transport, :program:`dnsdist` must have been built with `libf
   * ``outputQueueSize=0``: unsigned
   * ``queueNotifyThreshold=0``: unsigned
   * ``reopenInterval=0``: unsigned
+  * ``connectionCount=1``: unsigned
 
 .. function:: newFrameStreamTcpLogger(address [, options])
+
+  .. versionchanged:: 2.0.0
+    Added ``connectionCount`` option.
 
   .. versionchanged:: 1.5.0
     Added the optional parameter ``options``.
@@ -49,7 +57,8 @@ To use FrameStream transport, :program:`dnsdist` must have been built with `libf
   The following options apply to the settings of the `framestream library
   <https://github.com/farsightsec/fstrm>`. Refer to the documentation of that library for the default and
   allowed values for these options, as well as their exact descriptions. For all these options, absence or a
-  zero value has the effect of using the library-provided default value.
+  zero value has the effect of using the library-provided default value. ``connectionCount`` can be used to open
+  multiple connections to the socket, for potential throughput boost.
 
   * ``bufferHint=0``: unsigned
   * ``flushTimeout=0``: unsigned
@@ -57,6 +66,7 @@ To use FrameStream transport, :program:`dnsdist` must have been built with `libf
   * ``outputQueueSize=0``: unsigned
   * ``queueNotifyThreshold=0``: unsigned
   * ``reopenInterval=0``: unsigned
+  * ``connectionCount=1``: unsigned
 
 .. class:: DnstapMessage
 

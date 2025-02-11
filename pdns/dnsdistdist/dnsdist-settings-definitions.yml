@@ -208,6 +208,10 @@ protobuf_logger:
       type: "u8"
       default: 1
       description: "Time in seconds between reconnection attempts"
+    - name: "connection_count"
+      type: "u64"
+      default: 1
+      description: "Number of connections to open to the endpoint"
 
 dnstap_logger:
   description: "Endpoint to send queries and/or responses data to, using the dnstap format"
@@ -248,6 +252,10 @@ dnstap_logger:
       type: "u64"
       default: 0
       description: "The number of queue entries to allocate for each output queue. According to the libfstrm library, the minimum is 2, the maximum is system-dependent and based on IOV_MAX, and the default is 64"
+    - name: "connection_count"
+      type: "u64"
+      default: 1
+      description: "Number of connections to open to the endpoint"
 
 proto_buf_meta:
   description: "Meta-data entry to be added to a Protocol Buffer message"

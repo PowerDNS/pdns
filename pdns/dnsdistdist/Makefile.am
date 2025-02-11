@@ -287,6 +287,7 @@ dnsdist_SOURCES = \
 	proxy-protocol.cc proxy-protocol.hh \
 	qtype.cc qtype.hh \
 	remote_logger.cc remote_logger.hh \
+	remote_logger_pool.cc remote_logger_pool.hh \
 	sholder.hh \
 	snmp-agent.cc snmp-agent.hh \
 	sstuff.hh \
