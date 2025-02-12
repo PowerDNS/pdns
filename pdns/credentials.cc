@@ -443,8 +443,7 @@ SensitiveData CredentialsHolder::readFromTerminal()
 
   struct std::map<int, struct sigaction> signals;
   struct sigaction sigact // just sigaction does not work, it clashes with sigaction(2)
-  {
-  };
+    {};
   sigemptyset(&sigact.sa_mask);
   sigact.sa_flags = 0;
   sigact.sa_handler = [](int /* s */) {};

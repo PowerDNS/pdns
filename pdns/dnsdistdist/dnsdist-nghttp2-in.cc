@@ -155,9 +155,7 @@ public:
     state.du = std::move(unit);
     TCPResponse resp(std::move(response), std::move(state), nullptr, nullptr);
     resp.d_ds = downstream_;
-    struct timeval now
-    {
-    };
+    struct timeval now{};
     gettimeofday(&now, nullptr);
     conn->handleResponse(now, std::move(resp));
   }
@@ -170,9 +168,7 @@ public:
       /* the connection has been closed in the meantime */
       return;
     }
-    struct timeval now
-    {
-    };
+    struct timeval now{};
     gettimeofday(&now, nullptr);
     TCPResponse resp;
     resp.d_idstate.d_streamID = d_streamID;
@@ -356,9 +352,7 @@ private:
 void IncomingHTTP2Connection::handleIO()
 {
   IOState iostate = IOState::Done;
-  struct timeval now
-  {
-  };
+  struct timeval now{};
   gettimeofday(&now, nullptr);
 
   try {
@@ -877,9 +871,7 @@ void IncomingHTTP2Connection::handleIncomingQuery(IncomingHTTP2Connection::Pendi
   }
 
   try {
-    struct timeval now
-    {
-    };
+    struct timeval now{};
     gettimeofday(&now, nullptr);
     auto processingResult = handleQuery(std::move(query.d_buffer), now, streamID);
 

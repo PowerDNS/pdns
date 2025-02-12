@@ -115,9 +115,7 @@ BOOST_AUTO_TEST_CASE(test_TimeoutFailClose)
   auto holder = std::make_unique<dnsdist::AsynchronousHolder>(false);
   uint16_t asyncID = 1;
   uint16_t queryID = 42;
-  struct timeval ttd
-  {
-  };
+  struct timeval ttd{};
 
   std::shared_ptr<DummyQuerySender> sender{nullptr};
   {

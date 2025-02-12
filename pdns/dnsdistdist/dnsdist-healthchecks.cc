@@ -51,10 +51,8 @@ struct HealthCheckData
   PacketBuffer d_buffer;
   Socket d_udpSocket;
   DNSName d_checkName;
-  struct timeval d_ttd
-  {
-    0, 0
-  };
+  struct timeval d_ttd{
+    0, 0};
   size_t d_bufferPos{0};
   uint16_t d_checkType;
   uint16_t d_checkClass;
@@ -462,9 +460,7 @@ void handleQueuedHealthChecks(FDMultiplexer& mplexer, bool initial)
 {
   const auto verboseHealthChecks = dnsdist::configuration::getCurrentRuntimeConfiguration().d_verboseHealthChecks;
   while (mplexer.getWatchedFDCount(false) > 0 || mplexer.getWatchedFDCount(true) > 0) {
-    struct timeval now
-    {
-    };
+    struct timeval now{};
     int ret = mplexer.run(&now, 100);
     if (ret == -1) {
       if (verboseHealthChecks) {

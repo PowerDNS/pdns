@@ -379,9 +379,7 @@ int HTTPConnector::send_message(const Json& input)
   // connect using tcp
   struct addrinfo* gAddr = nullptr;
   struct addrinfo* gAddrPtr = nullptr;
-  struct addrinfo hints
-  {
-  };
+  struct addrinfo hints{};
   std::string sPort = std::to_string(d_port);
   memset(&hints, 0, sizeof hints);
   hints.ai_family = AF_UNSPEC;

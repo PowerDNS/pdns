@@ -867,10 +867,8 @@ void AsyncWebServer::serveConnection(const std::shared_ptr<Socket>& socket) cons
     yarl.initialize(&req);
     socket->setNonBlocking();
 
-    const struct timeval timeout
-    {
-      g_networkTimeoutMsec / 1000, static_cast<suseconds_t>(g_networkTimeoutMsec) % 1000 * 1000
-    };
+    const struct timeval timeout{
+      g_networkTimeoutMsec / 1000, static_cast<suseconds_t>(g_networkTimeoutMsec) % 1000 * 1000};
     std::shared_ptr<TLSCtx> tlsCtx{nullptr};
     if (d_loglevel > WebServer::LogLevel::None) {
       socket->getRemote(remote);

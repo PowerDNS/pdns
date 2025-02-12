@@ -79,10 +79,8 @@ struct StopWatch
     return d_start;
   }
 
-  struct timespec d_start
-  {
-    0, 0
-  };
+  struct timespec d_start{
+    0, 0};
 
 private:
   struct timespec getCurrentTime() const

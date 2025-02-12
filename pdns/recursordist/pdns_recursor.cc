@@ -1563,9 +1563,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
 #ifdef HAVE_FSTRM
       if (hasUDR) {
         if (isEnabledForUDRs(t_nodFrameStreamServersInfo.servers)) {
-          struct timespec timeSpec
-          {
-          };
+          struct timespec timeSpec{};
           std::string str;
           if (g_useKernelTimestamp && comboWriter->d_kernelTimestamp.tv_sec != 0) {
             TIMEVAL_TO_TIMESPEC(&comboWriter->d_kernelTimestamp, &timeSpec); // NOLINT
@@ -1722,9 +1720,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
         nod = true;
 #ifdef HAVE_FSTRM
         if (isEnabledForNODs(t_nodFrameStreamServersInfo.servers)) {
-          struct timespec timeSpec
-          {
-          };
+          struct timespec timeSpec{};
           std::string str;
           if (g_useKernelTimestamp && comboWriter->d_kernelTimestamp.tv_sec != 0) {
             TIMEVAL_TO_TIMESPEC(&comboWriter->d_kernelTimestamp, &timeSpec); // NOLINT
@@ -1793,12 +1789,8 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
     }
 
     if (!comboWriter->d_tcp) {
-      struct msghdr msgh
-      {
-      };
-      struct iovec iov
-      {
-      };
+      struct msghdr msgh{};
+      struct iovec iov{};
       cmsgbuf_aligned cbuf{};
       fillMSGHdr(&msgh, &iov, &cbuf, 0, reinterpret_cast<char*>(&*packet.begin()), packet.size(), &comboWriter->d_remote); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
       msgh.msg_control = nullptr;
@@ -2313,12 +2305,8 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
                                  "qname", Logging::Loggable(qname), "qtype", Logging::Loggable(QType(qtype)),
                                  "source", Logging::Loggable(source), "remote", Logging::Loggable(fromaddr)));
         }
-        struct msghdr msgh
-        {
-        };
-        struct iovec iov
-        {
-        };
+        struct msghdr msgh{};
+        struct iovec iov{};
         cmsgbuf_aligned cbuf{};
         fillMSGHdr(&msgh, &iov, &cbuf, 0, reinterpret_cast<char*>(response.data()), response.length(), const_cast<ComboAddress*>(&fromaddr)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-type-const-cast)
         msgh.msg_control = nullptr;
@@ -2343,9 +2331,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
                      << stringerror(sendErr) << endl,
                g_slogudpin->error(Logr::Error, sendErr, "Sending UDP reply to client failed", "source", Logging::Loggable(source), "remote", Logging::Loggable(fromaddr)));
         }
-        struct timeval now
-        {
-        };
+        struct timeval now{};
         Utility::gettimeofday(&now, nullptr);
         uint64_t spentUsec = uSec(now - tval);
         t_Counters.at(rec::Histogram::cumulativeAnswers)(spentUsec);
@@ -2456,12 +2442,8 @@ static void handleNewUDPQuestion(int fileDesc, FDMultiplexer::funcparam_t& /* va
   ComboAddress fromaddr; // the address the query is coming from
   ComboAddress source; // the address we assume the query is coming from, might be set by proxy protocol
   ComboAddress destination; // the address we assume the query was sent to, might be set by proxy protocol
-  struct msghdr msgh
-  {
-  };
-  struct iovec iov
-  {
-  };
+  struct msghdr msgh{};
+  struct iovec iov{};
   cmsgbuf_aligned cbuf;
   bool firstQuery = true;
   std::vector<ProxyProtocolValue> proxyProtocolValues;

@@ -50,9 +50,7 @@ public:
   {
     EventKey key;
     std::shared_ptr<pdns_ucontext_t> context;
-    struct timeval ttd
-    {
-    };
+    struct timeval ttd{};
     int tid{};
   };
   struct KeyTag
@@ -266,18 +264,14 @@ int MTasker<EventKey, EventVal, Cmp>::waitEvent(EventKey& key, EventVal* val, un
   waiter.ttd.tv_sec = 0;
   waiter.ttd.tv_usec = 0;
   if (timeoutMsec != 0) {
-    struct timeval increment
-    {
-    };
+    struct timeval increment{};
     increment.tv_sec = timeoutMsec / 1000;
     increment.tv_usec = static_cast<decltype(increment.tv_usec)>(1000 * (timeoutMsec % 1000));
     if (now != nullptr) {
       waiter.ttd = increment + *now;
     }
     else {
-      struct timeval realnow
-      {
-      };
+      struct timeval realnow{};
       gettimeofday(&realnow, nullptr);
       waiter.ttd = increment + realnow;
     }

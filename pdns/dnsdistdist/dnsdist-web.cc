@@ -1678,9 +1678,7 @@ static void handleRings(const YaHTTP::Request& req, YaHTTP::Response& resp)
   size_t numberOfResponses = 0;
   Json::array queries;
   Json::array responses;
-  struct timespec now
-  {
-  };
+  struct timespec now{};
   gettime(&now);
 
   for (const auto& shard : g_rings.d_shards) {

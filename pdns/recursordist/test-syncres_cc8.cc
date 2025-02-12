@@ -1141,7 +1141,7 @@ BOOST_AUTO_TEST_CASE(test_nsec3_ent_opt_out)
    * A recently discovered corner case (see RFC Errata ID 3441 [Err3441])
    * shows that not only those delegations remain insecure but also the
    * empty non-terminal space that is derived from those delegations.
-  */
+   */
   /*
     We have a NSEC3 proving that was.here does exist, and a second
     one proving that ent.was.here. does not,

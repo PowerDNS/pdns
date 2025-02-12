@@ -55,9 +55,7 @@ void logTime(std::ostream& stream)
   std::array<char, 50> buffer{""};
 
   if (LoggingConfiguration::getStructuredLogging() && LoggingConfiguration::getStructuredLoggingTimeFormat() == LoggingConfiguration::TimeFormat::Numeric) {
-    struct timeval now
-    {
-    };
+    struct timeval now{};
     gettimeofday(&now, nullptr);
     snprintf(buffer.data(), buffer.size(), "%lld.%03ld", static_cast<long long>(now.tv_sec), static_cast<long>(now.tv_usec / 1000));
   }
@@ -69,9 +67,7 @@ void logTime(std::ostream& stream)
 
     time_t now{0};
     time(&now);
-    struct tm localNow
-    {
-    };
+    struct tm localNow{};
     localtime_r(&now, &localNow);
 
     {

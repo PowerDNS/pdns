@@ -372,7 +372,7 @@ public:
     if (d_req_bind) {
       for (int i = 0; i < d_parnum; i++) {
         if (d_req_bind[i].buffer)
-          delete[](char*) d_req_bind[i].buffer;
+          delete[] (char*)d_req_bind[i].buffer;
         if (d_req_bind[i].length)
           delete[] d_req_bind[i].length;
       }
@@ -431,7 +431,7 @@ private:
     if (d_req_bind) {
       for (int i = 0; i < d_parnum; i++) {
         if (d_req_bind[i].buffer)
-          delete[](char*) d_req_bind[i].buffer;
+          delete[] (char*)d_req_bind[i].buffer;
         if (d_req_bind[i].length)
           delete[] d_req_bind[i].length;
       }
@@ -441,7 +441,7 @@ private:
     if (d_res_bind) {
       for (int i = 0; i < d_fnum; i++) {
         if (d_res_bind[i].buffer)
-          delete[](char*) d_res_bind[i].buffer;
+          delete[] (char*)d_res_bind[i].buffer;
         if (d_res_bind[i].length)
           delete[] d_res_bind[i].length;
         if (d_res_bind[i].error)

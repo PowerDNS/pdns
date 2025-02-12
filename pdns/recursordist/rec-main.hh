@@ -118,10 +118,8 @@ struct DNSComboWriter
   string d_requestorId;
   string d_deviceId;
   string d_deviceName;
-  struct timeval d_kernelTimestamp
-  {
-    0, 0
-  };
+  struct timeval d_kernelTimestamp{
+    0, 0};
   std::string d_query;
   std::unordered_set<std::string> d_policyTags;
   std::unordered_set<std::string> d_gettagPolicyTags;

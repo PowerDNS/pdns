@@ -50,7 +50,7 @@ vector<string> TinyDNSBackend::getLocations()
   char key[6];
   key[0] = '\000';
   key[1] = '\045';
-  key[2] = (addr)&0xff;
+  key[2] = (addr) & 0xff;
   key[3] = (addr >> 8) & 0xff;
   key[4] = (addr >> 16) & 0xff;
   key[5] = (addr >> 24) & 0xff;

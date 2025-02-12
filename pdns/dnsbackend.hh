@@ -134,7 +134,7 @@ struct TSIGKey
 struct AutoPrimary
 {
   AutoPrimary(string new_ip, string new_nameserver, string new_account) :
-    ip(std::move(new_ip)), nameserver(std::move(new_nameserver)), account(std::move(new_account)){};
+    ip(std::move(new_ip)), nameserver(std::move(new_nameserver)), account(std::move(new_account)) {};
   std::string ip;
   std::string nameserver;
   std::string account;
@@ -534,7 +534,7 @@ public:
 struct SOAData
 {
   SOAData() :
-    domain_id(-1){};
+    domain_id(-1) {};
 
   DNSName qname;
   DNSName nameserver;

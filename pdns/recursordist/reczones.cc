@@ -296,9 +296,7 @@ static void processApiZonesFile(const string& file, shared_ptr<SyncRes::domainma
     return;
   }
   const auto filename = ::arg()["api-config-dir"] + "/" + file;
-  struct stat statStruct
-  {
-  };
+  struct stat statStruct{};
   // It's a TOCTU, but a harmless one
   if (stat(filename.c_str(), &statStruct) != 0) {
     return;

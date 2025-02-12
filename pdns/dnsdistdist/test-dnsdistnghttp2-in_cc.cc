@@ -513,9 +513,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
   TCPClientThreadData threadData;
   threadData.mplexer = std::make_unique<MockupFDMultiplexer>();
 
-  struct timeval now
-  {
-  };
+  struct timeval now{};
   gettimeofday(&now, nullptr);
 
   size_t counter = 0;

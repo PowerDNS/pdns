@@ -106,8 +106,8 @@ LdapBackend::LdapBackend(const string& suffix)
 LdapBackend::~LdapBackend()
 {
   d_search.reset(); // This is necessary otherwise d_pldap will get deleted first and
-    // we may hang in SearchResult::~SearchResult() waiting for the
-    // current operation to be abandoned
+                    // we may hang in SearchResult::~SearchResult() waiting for the
+                    // current operation to be abandoned
   delete (d_pldap);
   delete (d_authenticator);
   g_log << Logger::Notice << d_myname << " Ldap connection closed" << endl;
