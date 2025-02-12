@@ -572,7 +572,7 @@ pubsuffix.cc: $(srcdir)/effective_tld_names.dat
 sysconf_DATA = recursor.yml-dist
 
 recursor.yml-dist: pdns_recursor
-	dir=$$(mktemp -d) && touch "$$dir/recursor.yml" && ./pdns_recursor --config-dir="$$dir" --config=default 2> /dev/null > $@ && rm "$$dir/recursor.yml" && rmdir "$$dir"
+	./pdns_recursor --config-dir="$$dir" --config=default 2> /dev/null > $@
 
 ## Manpages
 MANPAGES=pdns_recursor.1 \

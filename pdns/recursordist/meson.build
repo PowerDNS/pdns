@@ -432,6 +432,8 @@ tools = {
       librec_signers_sodium,
       dep_pubsuffix,
     ],
+    'install': true,
+    'install_dir': get_option('sbindir'),
   },
   'rec_control': {
     'main': src_dir / 'rec_control.cc',
@@ -441,6 +443,7 @@ tools = {
       dep_recrust,
       dep_rust_recrust,
     ],
+    'install': true,
   },
 }
 
@@ -541,6 +544,8 @@ foreach tool, info: tools
   export_dynamic = 'export-dynamic' in info ? info['export-dynamic'] : false
   files_extra = 'files-extra' in info ? info['files-extra'] : []
   deps_extra = 'deps-extra' in info ? info['deps-extra'] : []
+  install = 'install' in info ? info['install'] : false
+  install_dir = 'install_dir' in info ? info['install_dir'] : get_option('bindir')
 
   set_variable(
     var_name,
@@ -554,6 +559,8 @@ foreach tool, info: tools
         librec_common,
         deps_extra,
       ],
+      install: install,
+      install_dir: install_dir,
     )
   )
 
@@ -605,6 +612,10 @@ if python.found()
 endif
 
 if dep_systemd.found()
+  systemd_system_unit_dir = dep_systemd_prog.get_variable(
+    'systemdsystemunitdir',
+  )
+
   systemd_service_conf = configuration_data()
   systemd_service_conf.set('BinDir', get_option('prefix') / get_option('bindir'))
   systemd_service_conf.set('StaticBinDir', get_option('prefix') / get_option('sbindir'))
@@ -684,6 +695,8 @@ if dep_systemd.found()
     input: 'pdns-recursor.service.meson.in',
     output: 'pdns-recursor.service',
     configuration: rec_service_conf_general,
+    install: true,
+    install_dir: systemd_system_unit_dir,
   )
 
   rec_service_conf_instance = configuration_data()
@@ -699,5 +712,18 @@ if dep_systemd.found()
     input: 'pdns-recursor.service.meson.in',
     output: 'pdns-recursor@.service',
     configuration: rec_service_conf_instance,
+    install: true,
+    install_dir: systemd_system_unit_dir,
   )
 endif
+
+
+dep_conf_distfile = custom_target(
+  'gen-conf-distfile',
+  command: [pdns_recursor, '--config=default'],
+  output: 'recursor.yml-dist',
+  capture: true,
+  install: true,
+  install_dir:  get_option('sysconfdir'),
+)
+
