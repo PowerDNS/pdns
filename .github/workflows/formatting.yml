@@ -21,7 +21,7 @@ jobs:
       - name: Update dependencies
         run: |
           sudo apt-get update
-          sudo apt-get -qq --no-install-recommends install git clang-19
+          sudo apt-get -qq --no-install-recommends install git clang-format-19
       - name: Run format-code on files that should be formatted
         run: |
            ./build-scripts/format-code $(find . -type f -name '*.[ch][ch]' | sort | comm -23 - .not-formatted)
