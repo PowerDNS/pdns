@@ -579,11 +579,11 @@ sdig_CPPFLAGS += $(LIBSSL_CFLAGS)
 sdig_LDADD += $(LIBSSL_LIBS)
 endif
 
+endif
+
 if LIBSODIUM
 sdig_CPPFLAGS +=$(LIBSODIUM_CFLAGS)
 sdig_LDADD += $(LIBSODIUM_LIBS)
-endif
-
 endif
 
 calidns_SOURCES = \
