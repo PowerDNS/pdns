@@ -155,7 +155,7 @@ fn file_wrapper(
         unauthorized(response, headers, "Basic");
         return;
     }
-    handler(ctx, method, path, request, response);
+    handler(method, path, request, response);
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -267,9 +267,8 @@ fn api_wrapper(
     }
 }
 
-// Data used by requests handlers, only counter is r/w.
+// Data used by requests handlers, if you add a r/w variable, make sure it's safe for concurrent access!
 struct Context {
-    urls: Vec<String>,
     password_ch: cxx::UniquePtr<rustweb::CredentialsHolder>,
     api_ch: cxx::UniquePtr<rustweb::CredentialsHolder>,
     acl: cxx::UniquePtr<rustmisc::NetmaskGroup>,
@@ -279,21 +278,16 @@ struct Context {
 
 // Serve a file
 fn file(
-    ctx: &Context,
     method: &Method,
     path: &str,
     request: &rustweb::Request,
     response: &mut rustweb::Response,
 ) {
-    let mut uripath = path;
-    if uripath == "/" {
-        uripath = "/index.html";
-    }
-    let pos = ctx
-        .urls
-        .iter()
-        .position(|x| String::from("/") + x == uripath);
-    if pos.is_none() {
+    // This calls into C++
+    if rustweb::serveStuff(request, response).is_err() {
+        // Return 404 not found response.
+        response.status = StatusCode::NOT_FOUND.as_u16();
+        response.body = NOTFOUND.to_vec();
         rustmisc::log(
             request.logger,
             rustweb::Priority::Debug,
@@ -304,30 +298,8 @@ fn file(
                     value: method.to_string(),
                 },
                 rustmisc::KeyValue {
-                    key: "uripath".to_string(),
-                    value: uripath.to_string(),
-                },
-            ],
-        );
-    }
-
-    // This calls into C++
-    if rustweb::serveStuff(request, response).is_err() {
-        // Return 404 not found response.
-        response.status = StatusCode::NOT_FOUND.as_u16();
-        response.body = NOTFOUND.to_vec();
-        rustmisc::log(
-            request.logger,
-            rustweb::Priority::Debug,
-            "not found case 2",
-            &vec![
-                rustmisc::KeyValue {
-                    key: "method".to_string(),
-                    value: method.to_string(),
-                },
-                rustmisc::KeyValue {
-                    key: "uripath".to_string(),
-                    value: uripath.to_string(),
+                    key: "path".to_string(),
+                    value: path.to_string(),
                 },
             ],
         );
@@ -335,7 +307,6 @@ fn file(
 }
 
 type FileFunc = fn(
-    ctx: &Context,
     method: &Method,
     path: &str,
     request: &rustweb::Request,
@@ -889,7 +860,6 @@ async fn serveweb_async(
 
 pub fn serveweb(
     incoming: &Vec<rustweb::IncomingWSConfig>,
-    urls: &[String],
     password_ch: cxx::UniquePtr<rustweb::CredentialsHolder>,
     api_ch: cxx::UniquePtr<rustweb::CredentialsHolder>,
     acl: cxx::UniquePtr<rustmisc::NetmaskGroup>,
@@ -898,7 +868,6 @@ pub fn serveweb(
 ) -> Result<(), std::io::Error> {
     // Context, atomically reference counted
     let ctx = Arc::new(Context {
-        urls: urls.to_vec(),
         password_ch,
         api_ch,
         acl,
@@ -1049,8 +1018,6 @@ mod rustweb {
         type CredentialsHolder;
         #[namespace = "pdns::rust::misc"]
         type NetmaskGroup = crate::misc::rustmisc::NetmaskGroup;
-        //#[namespace = "pdns::rust::misc"]
-        //type ComboAddress = crate::misc::rustmisc::ComboAddress;
         #[namespace = "pdns::rust::misc"]
         type Priority = crate::misc::rustmisc::Priority;
         #[namespace = "pdns::rust::misc"]
@@ -1073,10 +1040,9 @@ mod rustweb {
      * Functions callable from C++
      */
     extern "Rust" {
-        // The main entry point, This function will return, but will setup thread(s) to handle requests.
+        // The main entry point, This function will return, but will setup thread(s) and tokio runtime to handle requests.
         fn serveweb(
             incoming: &Vec<IncomingWSConfig>,
-            urls: &[String],
             pwch: UniquePtr<CredentialsHolder>,
             apikeych: UniquePtr<CredentialsHolder>,
             acl: UniquePtr<NetmaskGroup>,

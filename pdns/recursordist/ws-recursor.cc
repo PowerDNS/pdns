@@ -1005,10 +1005,6 @@ void serveRustWeb()
     config.emplace_back(tmp);
   }
 
-  ::rust::Vec<::rust::String> urls;
-  for (const auto& [url, _] : g_urlmap) {
-    urls.emplace_back(url);
-  }
   auto passwordString = arg()["webserver-password"];
   std::unique_ptr<CredentialsHolder> password;
   if (!passwordString.empty()) {
@@ -1036,7 +1032,7 @@ void serveRustWeb()
   // This function returns after having created the web server object that handles the requests.
   // That object and its runtime are associated with a Posix thread that waits until all tasks are
   // done, which normally never happens. See rec-rust-lib/rust/src/web.rs for details
-  pdns::rust::web::rec::serveweb(config, ::rust::Slice<const ::rust::String>{urls.data(), urls.size()}, std::move(password), std::move(apikey), std::move(aclPtr), std::move(logPtr), loglevel);
+  pdns::rust::web::rec::serveweb(config, std::move(password), std::move(apikey), std::move(aclPtr), std::move(logPtr), loglevel);
 }
 
 static void fromCxxToRust(const HttpResponse& cxxresp, pdns::rust::web::rec::Response& rustResponse)
