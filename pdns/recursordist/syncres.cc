@@ -1000,7 +1000,7 @@ int SyncRes::AuthDomain::getRecords(const DNSName& qname, const QType qtype, std
       // we hit a delegation point!
       DNSRecord dnsRecord = *ziter;
       dnsRecord.d_place = DNSResourceRecord::AUTHORITY;
-      records.push_back(dnsRecord);
+      records.push_back(std::move(dnsRecord));
     }
   }
 

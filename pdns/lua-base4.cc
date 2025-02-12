@@ -52,7 +52,7 @@ void BaseLua4::includePath(const std::string& directory) {
       if (stat(fullName.c_str(), &statInfo) != 0 || !S_ISREG(statInfo.st_mode)) {
         string msg = fullName + " is not a regular file";
         g_log << Logger::Error << msg << std::endl;
-        throw PDNSException(msg);
+        throw PDNSException(std::move(msg));
       }
       vec.emplace_back(fullName);
     }
@@ -63,7 +63,7 @@ void BaseLua4::includePath(const std::string& directory) {
     int err = errno;
     string msg = directory + " is not accessible: " + stringerror(err);
     g_log << Logger::Error << msg << std::endl;
-    throw PDNSException(msg);
+    throw PDNSException(std::move(msg));
   }
 
   std::sort(vec.begin(), vec.end(), CIStringComparePOSIX());
