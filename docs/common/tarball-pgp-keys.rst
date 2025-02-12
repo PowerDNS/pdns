@@ -3,7 +3,7 @@
 * `16E1 2866 B773 8C73 976A 5743 6FFC 3343 9B0D 04DF <https://pgp.mit.edu/pks/lookup?op=get&search=0x6FFC33439B0D04DF>`_
 * `990C 3D0E AC7C 275D C6B1 8436 EACA B90B 1963 EC2B <https://pgp.mit.edu/pks/lookup?op=get&search=0xEACAB90B1963EC2B>`_
 
-There is a PGP keyblock with these keys available on `https://doc.powerdns.com/powerdns-keyblock.asc <https://www.powerdns.com/powerdns-keyblock.asc>`_.
+There is a PGP keyblock with these keys available on `https://doc.powerdns.com/powerdns-keyblock.asc <https://doc.powerdns.com/powerdns-keyblock.asc>`_.
 
 Older releases (4.3.x and earlier) can also be signed with one of the following keys:
 
