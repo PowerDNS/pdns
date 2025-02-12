@@ -59,6 +59,9 @@ thread_local std::unique_ptr<boost::circular_buffer<pair<DNSName, uint16_t>>> t_
 thread_local std::shared_ptr<NetmaskGroup> t_allowFrom;
 thread_local std::shared_ptr<NetmaskGroup> t_allowNotifyFrom;
 thread_local std::shared_ptr<notifyset_t> t_allowNotifyFor;
+thread_local std::shared_ptr<NetmaskGroup> t_proxyProtocolACL;
+thread_local std::shared_ptr<std::set<ComboAddress>> t_proxyProtocolExceptions;
+
 __thread struct timeval g_now; // timestamp, updated (too) frequently
 
 using listenSocketsAddresses_t = map<int, ComboAddress>; // is shared across all threads right now
@@ -2150,7 +2153,16 @@ void requestWipeCaches(const DNSName& canon)
 
 bool expectProxyProtocol(const ComboAddress& from, const ComboAddress& listenAddress)
 {
-  return g_proxyProtocolACL.match(from) && g_proxyProtocolExceptions.count(listenAddress) == 0;
+  if (!t_proxyProtocolACL) {
+    return false;
+  }
+  if (t_proxyProtocolACL->match(from)) {
+    if (!t_proxyProtocolExceptions) {
+      return true;
+    }
+    return t_proxyProtocolExceptions->count(listenAddress) == 0;
+  }
+  return false;
 }
 
 // fromaddr: the address the query is coming from
@@ -2437,7 +2449,8 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
 
 static void handleNewUDPQuestion(int fileDesc, FDMultiplexer::funcparam_t& /* var */) // NOLINT(readability-function-cognitive-complexity): https://github.com/PowerDNS/pdns/issues/12791
 {
-  static const size_t maxIncomingQuerySize = g_proxyProtocolACL.empty() ? 512 : (512 + g_proxyProtocolMaximumSize);
+  const bool proxyActive = t_proxyProtocolACL && !t_proxyProtocolACL->empty();
+  static const size_t maxIncomingQuerySize = !proxyActive ? 512 : (512 + g_proxyProtocolMaximumSize);
   static thread_local std::string data;
   ComboAddress fromaddr; // the address the query is coming from
   ComboAddress source; // the address we assume the query is coming from, might be set by proxy protocol
