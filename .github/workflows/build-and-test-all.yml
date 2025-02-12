@@ -31,6 +31,7 @@ env:
   COVERAGE: ${{ github.repository == 'PowerDNS/pdns' && 'yes' || 'no' }}
   LLVM_PROFILE_FILE: "/tmp/code-%p.profraw"
   OPTIMIZATIONS: yes
+  INV_CMD: ". ${REPO_HOME}/.venv/bin/activate && inv"
 
 jobs:
   get-runner-container-image:
@@ -54,7 +55,7 @@ jobs:
     runs-on: ubuntu-22.04
     needs: get-runner-container-image
     container:
-      image: "${{ matrix.container_image }}"
+      image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
         FUZZING_TARGETS: yes
         UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
@@ -62,11 +63,7 @@ jobs:
       options: --sysctl net.ipv6.conf.all.disable_ipv6=0
     strategy:
       matrix:
-        container_image: ["${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"]
         builder: [autotools, meson]
-        exclude:
-          - container_image: "ghcr.io/powerdns/base-pdns-ci-image/debian-11-pdns-base:${{ needs.get-runner-container-image.outputs.tag }}"
-            builder: meson
       fail-fast: false
     defaults:
       run:
@@ -94,20 +91,25 @@ jobs:
       - name: set sanitizers
         run: echo "SANITIZERS=${{ matrix.builder == 'meson' && 'address,undefined' || 'asan+ubsan' }}" >> "$GITHUB_ENV"
         working-directory: .
-      - run: inv install-auth-build-deps
+      - name: install pip build dependencies
+        run: |
+          python3 -m venv ${REPO_HOME}/.venv
+          . ${REPO_HOME}/.venv/bin/activate && pip install -r ${REPO_HOME}/meson/requirements.txt
         working-directory: .
-      - run: inv ci-autoconf ${{ matrix.builder == 'meson' && '--meson' || '' }}
+      - run: ${{ env.INV_CMD }} install-auth-build-deps
         working-directory: .
-      - run: inv ci-auth-configure ${{ matrix.builder == 'meson' && '--meson' || '' }} -b pdns-${{ env.BUILDER_VERSION }}
+      - run: ${{ env.INV_CMD }} ci-autoconf ${{ matrix.builder == 'meson' && '--meson' || '' }}
         working-directory: .
-      - run: inv ci-auth-build ${{ matrix.builder == 'meson' && '--meson' || '' }} # This runs under pdns-$BUILDER_VERSION/pdns/ for make bear
-      - run: inv ci-auth-install-remotebackend-test-deps
+      - run: ${{ env.INV_CMD }} ci-auth-configure ${{ matrix.builder == 'meson' && '--meson' || '' }} -b pdns-${{ env.BUILDER_VERSION }}
+        working-directory: .
+      - run: ${{ env.INV_CMD }} ci-auth-build ${{ matrix.builder == 'meson' && '--meson' || '' }} # This runs under pdns-$BUILDER_VERSION/pdns/ for make bear
+      - run: ${{ env.INV_CMD }} ci-auth-install-remotebackend-test-deps
       - if: ${{ matrix.builder == 'meson' }}
-        run: inv install-auth-test-deps-only -b geoip
-      - run: inv ci-auth-run-unit-tests ${{ matrix.builder == 'meson' && '--meson' || '' }}
+        run: ${{ env.INV_CMD }} install-auth-test-deps-only -b geoip
+      - run: ${{ env.INV_CMD }} ci-auth-run-unit-tests ${{ matrix.builder == 'meson' && '--meson' || '' }}
         env:
           PDNS_BUILD_PATH: ../pdns-${{ env.BUILDER_VERSION }}
-      - run: inv generate-coverage-info ./testrunner $GITHUB_WORKSPACE
+      - run: ${{ env.INV_CMD }} generate-coverage-info ./testrunner $GITHUB_WORKSPACE
         if: ${{ env.COVERAGE == 'yes' && matrix.builder != 'meson' }}
         working-directory: ./pdns-${{ env.BUILDER_VERSION }}/pdns
       - name: Coveralls Parallel auth unit
@@ -119,7 +121,7 @@ jobs:
           parallel: true
           allow-empty: true
           fail-on-error: false
-      - run: inv ci-auth-install ${{ matrix.builder == 'meson' && '--meson' || '' }}
+      - run: ${{ env.INV_CMD }} ci-auth-install ${{ matrix.builder == 'meson' && '--meson' || '' }}
       - run: ccache -s
       - if: ${{ matrix.builder != 'meson' }}
         run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
@@ -176,17 +178,22 @@ jobs:
           path: ~/.ccache
           key: recursor-ccache-${{ matrix.builder }}-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ steps.get-stamp.outputs.stamp }}
           restore-keys: recursor-ccache-${{ matrix.builder }}-${{ matrix.features }}-${{ matrix.sanitizers }}
-      - run: inv install-rec-build-deps ${{ matrix.builder == 'meson' && '--meson' || '' }}
+      - name: install pip build dependencies
+        run: |
+          python3 -m venv ${REPO_HOME}/.venv
+          . ${REPO_HOME}/.venv/bin/activate && pip install -r ${REPO_HOME}/meson/requirements.txt
+        working-directory: .
+      - run: ${{ env.INV_CMD }} install-rec-build-deps
         working-directory: ./pdns/recursordist/
-      - run: inv ci-install-rust ${{ env.REPO_HOME }}
+      - run: ${{ env.INV_CMD }} ci-install-rust ${{ env.REPO_HOME }}
         working-directory: ./pdns/recursordist/
-      - run: inv ci-autoconf ${{ matrix.builder == 'meson' && '--meson' || '' }}
+      - run: ${{ env.INV_CMD }} ci-autoconf ${{ matrix.builder == 'meson' && '--meson' || '' }}
         working-directory: ./pdns/recursordist/
-      - run: inv ci-rec-configure -f ${{ matrix.features }} -b pdns-recursor-${{ env.BUILDER_VERSION }} ${{ matrix.builder == 'meson' && '--meson' || '' }}
+      - run: ${{ env.INV_CMD }} ci-rec-configure -f ${{ matrix.features }} -b pdns-recursor-${{ env.BUILDER_VERSION }} ${{ matrix.builder == 'meson' && '--meson' || '' }}
         working-directory: ./pdns/recursordist/
-      - run: inv ci-rec-build ${{ matrix.builder == 'meson' && '--meson' || '' }}
-      - run: inv ci-rec-run-unit-tests ${{ matrix.builder == 'meson' && '--meson' || '' }}
-      - run: inv generate-coverage-info ./testrunner $GITHUB_WORKSPACE
+      - run: ${{ env.INV_CMD }} ci-rec-build ${{ matrix.builder == 'meson' && '--meson' || '' }}
+      - run: ${{ env.INV_CMD }} ci-rec-run-unit-tests ${{ matrix.builder == 'meson' && '--meson' || '' }}
+      - run: ${{ env.INV_CMD }} generate-coverage-info ./testrunner $GITHUB_WORKSPACE
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' && matrix.builder != 'meson' }}
       - name: Coveralls Parallel rec unit
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' && matrix.builder != 'meson' }}
@@ -197,7 +204,7 @@ jobs:
           parallel: true
           allow-empty: true
           fail-on-error: false
-      - run: inv ci-rec-install ${{ matrix.builder == 'meson' && '--meson' || '' }}
+      - run: ${{ env.INV_CMD }} ci-rec-install ${{ matrix.builder == 'meson' && '--meson' || '' }}
       - run: ccache -s
       - if: ${{ matrix.builder != 'meson' }}
         run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
@@ -255,28 +262,30 @@ jobs:
           path: ~/.ccache
           key: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ matrix.builder}}-ccache-${{ steps.get-stamp.outputs.stamp }}
           restore-keys: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ matrix.builder}}-ccache-
-      - run: inv install-lld-linker-if-needed
+      - name: install pip build dependencies
+        run: |
+          python3 -m venv ${REPO_HOME}/.venv
+          . ${REPO_HOME}/.venv/bin/activate && pip install -r ${REPO_HOME}/meson/requirements.txt
+        working-directory: .
+      - run: ${{ env.INV_CMD }} install-lld-linker-if-needed
         working-directory: ./pdns/dnsdistdist/
-      - run: inv ci-install-meson
-        if: ${{ matrix.builder == 'meson' }}
+      - run: ${{ env.INV_CMD }} ci-install-rust ${{ env.REPO_HOME }}
         working-directory: ./pdns/dnsdistdist/
-      - run: inv ci-install-rust ${{ env.REPO_HOME }}
+      - run: ${{ env.INV_CMD }} ci-build-and-install-quiche ${{ env.REPO_HOME }}
         working-directory: ./pdns/dnsdistdist/
-      - run: inv ci-build-and-install-quiche ${{ env.REPO_HOME }}
-        working-directory: ./pdns/dnsdistdist/
-      - run: inv ci-autoconf
+      - run: ${{ env.INV_CMD }} ci-autoconf
         if: ${{ matrix.builder == 'autotools' }}
         working-directory: ./pdns/dnsdistdist/
-      - run: inv ci-dnsdist-configure ${{ matrix.features }} ${{ matrix.builder }} dnsdist-${{ env.BUILDER_VERSION }}
+      - run: ${{ env.INV_CMD }} ci-dnsdist-configure ${{ matrix.features }} ${{ matrix.builder }} dnsdist-${{ env.BUILDER_VERSION }}
         working-directory: ./pdns/dnsdistdist/
-      - run: inv ci-make-distdir
+      - run: ${{ env.INV_CMD }} ci-make-distdir
         if: ${{ matrix.builder == 'autotools' }}
         working-directory: ./pdns/dnsdistdist/
-      - run: inv ci-dnsdist-configure ${{ matrix.features }} ${{ matrix.builder }} dnsdist-${{ env.BUILDER_VERSION }}
+      - run: ${{ env.INV_CMD }} ci-dnsdist-configure ${{ matrix.features }} ${{ matrix.builder }} dnsdist-${{ env.BUILDER_VERSION }}
         if: ${{ matrix.builder == 'autotools' }}
-      - run: inv ci-dnsdist-make-bear ${{ matrix.builder }}
-      - run: inv ci-dnsdist-run-unit-tests ${{ matrix.builder }}
-      - run: inv generate-coverage-info ./testrunner $GITHUB_WORKSPACE
+      - run: ${{ env.INV_CMD }} ci-dnsdist-make-bear ${{ matrix.builder }}
+      - run: ${{ env.INV_CMD }} ci-dnsdist-run-unit-tests ${{ matrix.builder }}
+      - run: ${{ env.INV_CMD }} generate-coverage-info ./testrunner $GITHUB_WORKSPACE
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' && matrix.builder == 'autotools'}}
       - name: Coveralls Parallel dnsdist unit
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' && matrix.builder == 'autotools' }}
@@ -287,7 +296,7 @@ jobs:
           parallel: true
           allow-empty: true
           fail-on-error: false
-      - run: inv ci-make-install
+      - run: ${{ env.INV_CMD }} ci-make-install
         if: ${{ matrix.builder == 'autotools' }}
       - run: ccache -s
       - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
@@ -349,11 +358,15 @@ jobs:
         with:
           name: pdns-auth-${{ env.normalized-branch-name }}
           path: /opt/pdns-auth
-      - run: inv apt-fresh
-      - run: inv install-clang-runtime
-      - run: inv install-auth-test-deps -b ${{ matrix.backend }}
-      - run: inv test-api auth -b ${{ matrix.backend }}
-      - run: inv generate-coverage-info /opt/pdns-auth/sbin/pdns_server $GITHUB_WORKSPACE
+      - name: install pip build dependencies
+        run: |
+          python3 -m venv ${REPO_HOME}/.venv
+          . ${REPO_HOME}/.venv/bin/activate && pip install -r ${REPO_HOME}/meson/requirements.txt
+      - run: ${{ env.INV_CMD }} apt-fresh
+      - run: ${{ env.INV_CMD }} install-clang-runtime
+      - run: ${{ env.INV_CMD }} install-auth-test-deps -b ${{ matrix.backend }}
+      - run: ${{ env.INV_CMD }} test-api auth -b ${{ matrix.backend }}
+      - run: ${{ env.INV_CMD }} generate-coverage-info /opt/pdns-auth/sbin/pdns_server $GITHUB_WORKSPACE
         if: ${{ env.COVERAGE == 'yes' }}
       - name: Coveralls Parallel auth API ${{ matrix.backend }}
         if: ${{ env.COVERAGE == 'yes' }}
@@ -477,10 +490,14 @@ jobs:
           name: pdns-auth-${{ env.normalized-branch-name }}
           path: /opt/pdns-auth
       # FIXME: install recursor for backends that have ALIAS
-      - run: inv install-clang-runtime
-      - run: inv install-auth-test-deps -b ${{ matrix.backend }}
-      - run: inv test-auth-backend -b ${{ matrix.backend }}
-      - run: inv generate-coverage-info /opt/pdns-auth/sbin/pdns_server $GITHUB_WORKSPACE
+      - name: install pip build dependencies
+        run: |
+          python3 -m venv ${REPO_HOME}/.venv
+          . ${REPO_HOME}/.venv/bin/activate && pip install -r ${REPO_HOME}/meson/requirements.txt
+      - run: ${{ env.INV_CMD }} install-clang-runtime
+      - run: ${{ env.INV_CMD }} install-auth-test-deps -b ${{ matrix.backend }}
+      - run: ${{ env.INV_CMD }} test-auth-backend -b ${{ matrix.backend }}
+      - run: ${{ env.INV_CMD }} generate-coverage-info /opt/pdns-auth/sbin/pdns_server $GITHUB_WORKSPACE
         if: ${{ env.COVERAGE == 'yes' }}
       - name: Coveralls Parallel auth backend ${{ matrix.backend }}
         if: ${{ env.COVERAGE == 'yes' }}
@@ -515,10 +532,14 @@ jobs:
         with:
           name: pdns-auth-${{ env.normalized-branch-name }}
           path: /opt/pdns-auth
-      - run: inv install-clang-runtime
-      - run: inv install-auth-test-deps
-      - run: inv test-ixfrdist
-      - run: inv generate-coverage-info /opt/pdns-auth/bin/ixfrdist $GITHUB_WORKSPACE
+      - name: install pip build dependencies
+        run: |
+          python3 -m venv ${REPO_HOME}/.venv
+          . ${REPO_HOME}/.venv/bin/activate && pip install -r ${REPO_HOME}/meson/requirements.txt
+      - run: ${{ env.INV_CMD }} install-clang-runtime
+      - run: ${{ env.INV_CMD }} install-auth-test-deps
+      - run: ${{ env.INV_CMD }} test-ixfrdist
+      - run: ${{ env.INV_CMD }} generate-coverage-info /opt/pdns-auth/bin/ixfrdist $GITHUB_WORKSPACE
         if: ${{ env.COVERAGE == 'yes' }}
       - name: Coveralls Parallel ixfrdist
         if: ${{ env.COVERAGE == 'yes' }}
@@ -559,12 +580,16 @@ jobs:
         with:
           name: pdns-recursor-full-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
           path: /opt/pdns-recursor
-      - run: inv apt-fresh
-      - run: inv add-auth-repo ${{ matrix.dist_name }} $(. /etc/os-release && echo $VERSION_CODENAME) ${{ matrix.pdns_repo_version }}
-      - run: inv install-clang-runtime
-      - run: inv install-rec-test-deps
-      - run: inv test-api recursor
-      - run: inv generate-coverage-info /opt/pdns-recursor/sbin/pdns_recursor $GITHUB_WORKSPACE
+      - name: install pip build dependencies
+        run: |
+          python3 -m venv ${REPO_HOME}/.venv
+          . ${REPO_HOME}/.venv/bin/activate && pip install -r ${REPO_HOME}/meson/requirements.txt
+      - run: ${{ env.INV_CMD }} apt-fresh
+      - run: ${{ env.INV_CMD }} add-auth-repo ${{ matrix.dist_name }} $(. /etc/os-release && echo $VERSION_CODENAME) ${{ matrix.pdns_repo_version }}
+      - run: ${{ env.INV_CMD }} install-clang-runtime
+      - run: ${{ env.INV_CMD }} install-rec-test-deps
+      - run: ${{ env.INV_CMD }} test-api recursor
+      - run: ${{ env.INV_CMD }} generate-coverage-info /opt/pdns-recursor/sbin/pdns_recursor $GITHUB_WORKSPACE
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
       - name: Coveralls Parallel recursor API
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
@@ -607,12 +632,16 @@ jobs:
         with:
           name: pdns-recursor-full-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
           path: /opt/pdns-recursor
-      - run: inv apt-fresh
-      - run: inv add-auth-repo ${{ matrix.dist_name }} $(. /etc/os-release && echo $VERSION_CODENAME) ${{ matrix.pdns_repo_version }}
-      - run: inv install-clang-runtime
-      - run: inv install-rec-test-deps
-      - run: inv test-regression-recursor
-      - run: inv generate-coverage-info /opt/pdns-recursor/sbin/pdns_recursor $GITHUB_WORKSPACE
+      - name: install pip build dependencies
+        run: |
+          python3 -m venv ${REPO_HOME}/.venv
+          . ${REPO_HOME}/.venv/bin/activate && pip install -r ${REPO_HOME}/meson/requirements.txt
+      - run: ${{ env.INV_CMD }} apt-fresh
+      - run: ${{ env.INV_CMD }} add-auth-repo ${{ matrix.dist_name }} $(. /etc/os-release && echo $VERSION_CODENAME) ${{ matrix.pdns_repo_version }}
+      - run: ${{ env.INV_CMD }} install-clang-runtime
+      - run: ${{ env.INV_CMD }} install-rec-test-deps
+      - run: ${{ env.INV_CMD }} test-regression-recursor
+      - run: ${{ env.INV_CMD }} generate-coverage-info /opt/pdns-recursor/sbin/pdns_recursor $GITHUB_WORKSPACE
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
       - name: Coveralls Parallel recursor regression
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
@@ -656,10 +685,14 @@ jobs:
         with:
           name: pdns-recursor-full-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
           path: /opt/pdns-recursor
-      - run: inv install-clang-runtime
-      - run: inv install-rec-bulk-deps
-      - run: inv test-bulk-recursor 100 ${{ matrix.threads }} ${{ matrix.mthreads }} ${{ matrix.shards }} ${{ matrix.IPv6 }}
-      - run: inv generate-coverage-info /opt/pdns-recursor/sbin/pdns_recursor $GITHUB_WORKSPACE
+      - name: install pip build dependencies
+        run: |
+          python3 -m venv ${REPO_HOME}/.venv
+          . ${REPO_HOME}/.venv/bin/activate && pip install -r ${REPO_HOME}/meson/requirements.txt
+      - run: ${{ env.INV_CMD }} install-clang-runtime
+      - run: ${{ env.INV_CMD }} install-rec-bulk-deps
+      - run: ${{ env.INV_CMD }} test-bulk-recursor 100 ${{ matrix.threads }} ${{ matrix.mthreads }} ${{ matrix.shards }} ${{ matrix.IPv6 }}
+      - run: ${{ env.INV_CMD }} generate-coverage-info /opt/pdns-recursor/sbin/pdns_recursor $GITHUB_WORKSPACE
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
       - name: Coveralls Parallel recursor bulk
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
@@ -672,10 +705,11 @@ jobs:
           fail-on-error: false
 
   test-recursor-ubicloud-bulk:
-    if: ${{ vars.REC_BULKTEST_USE_UBICLOUD == '1' || github.repository == 'PowerDNS/pdns' }}
+    if: ${{ ! contains(needs.get-runner-container-image.outputs.id, 'debian-11') && ( vars.REC_BULKTEST_USE_UBICLOUD == '1' || github.repository == 'PowerDNS/pdns' ) }}
     name: 'test rec ubicloud bulk'
     needs:
       - build-recursor
+      - get-runner-container-image
     runs-on: ubicloud-standard-8-ubuntu-2404
     strategy:
       matrix:
@@ -697,14 +731,18 @@ jobs:
           name: pdns-recursor-full-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
           path: /opt/pdns-recursor
       - run: build-scripts/gh-actions-setup-inv-no-dist-upgrade
-      - run: inv install-rec-bulk-ubicloud-deps
-      - run: inv test-bulk-recursor 50000 ${{ matrix.threads }} ${{ matrix.mthreads }} ${{ matrix.shards }} ${{ matrix.IPv6 }}
+      - name: install pip build dependencies
+        run: |
+          python3 -m venv ${{ github.workspace }}/.venv
+          . ${{ github.workspace }}/.venv/bin/activate && pip install -r ${{ github.workspace }}/meson/requirements.txt
+      - run: . ${{ github.workspace }}/.venv/bin/activate && inv install-rec-bulk-ubicloud-deps
+      - run: . ${{ github.workspace }}/.venv/bin/activate && inv test-bulk-recursor 50000 ${{ matrix.threads }} ${{ matrix.mthreads }} ${{ matrix.shards }} ${{ matrix.IPv6 }}
         env:
           UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp'
           ASAN_OPTIONS: detect_leaks=0
           TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ github.workspace }}/pdns/recursordist/recursor-tsan.supp"
       #  Disabled, it gives us: "/bin/bash: line 1: llvm-profdata-13: command not found" due to mismatch between deb and ubuntu versions
-      #- run: inv generate-coverage-info /opt/pdns-recursor/sbin/pdns_recursor $GITHUB_WORKSPACE
+      #- run: . ${{ github.workspace }}/.venv/bin/activate && inv generate-coverage-info /opt/pdns-recursor/sbin/pdns_recursor $GITHUB_WORKSPACE
       #  if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
       #- name: Coveralls Parallel recursor bulk
       #  if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
@@ -749,10 +787,14 @@ jobs:
         with:
           name: dnsdist-full-${{ matrix.sanitizers }}-autotools-${{ env.normalized-branch-name }}
           path: /opt/dnsdist
-      - run: inv install-clang-runtime
-      - run: inv install-dnsdist-test-deps $([ "$(. /etc/os-release && echo $VERSION_CODENAME)" = "bullseye" ] && echo "--skipXDP=True")
-      - run: inv test-dnsdist
-      - run: inv generate-coverage-info /opt/dnsdist/bin/dnsdist $GITHUB_WORKSPACE
+      - name: install pip build dependencies
+        run: |
+          python3 -m venv ${REPO_HOME}/.venv
+          . ${REPO_HOME}/.venv/bin/activate && pip install -r ${REPO_HOME}/meson/requirements.txt
+      - run: ${{ env.INV_CMD }} install-clang-runtime
+      - run: ${{ env.INV_CMD }} install-dnsdist-test-deps $([ "$(. /etc/os-release && echo $VERSION_CODENAME)" = "bullseye" ] && echo "--skipXDP=True")
+      - run: ${{ env.INV_CMD }} test-dnsdist $([ "$(. /etc/os-release && echo $VERSION_CODENAME)" = "bullseye" ] && echo "--skipXDP=True")
+      - run: ${{ env.INV_CMD }} generate-coverage-info /opt/dnsdist/bin/dnsdist $GITHUB_WORKSPACE
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
       - name: Coveralls Parallel dnsdist regression
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
@@ -767,20 +809,21 @@ jobs:
   swagger-syntax-check:
     if: ${{ !github.event.schedule || vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL }}
     runs-on: ubuntu-22.04
-    # FIXME: https://github.com/PowerDNS/pdns/pull/12880
-    # container:
-    #   image: ghcr.io/powerdns/base-pdns-ci-image/debian-11-pdns-base:master
-    #   options: --sysctl net.ipv6.conf.all.disable_ipv6=0
+    container:
+      image: ghcr.io/powerdns/base-pdns-ci-image/debian-12-pdns-base:master
+      options: --sysctl net.ipv6.conf.all.disable_ipv6=0
     steps:
-      - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v4
         with:
           fetch-depth: 5
           submodules: recursive
           ref: ${{ inputs.branch-name }}
-      - run: build-scripts/gh-actions-setup-inv  # this runs apt update+upgrade
-      - run: inv install-swagger-tools
-      - run: inv swagger-syntax-check
+      - name: install pip build dependencies
+        run: |
+          python3 -m venv ${REPO_HOME}/.venv
+          . ${REPO_HOME}/.venv/bin/activate && pip install -r ${REPO_HOME}/meson/requirements.txt
+      - run: ${{ env.INV_CMD }} install-swagger-tools
+      - run: ${{ env.INV_CMD }} swagger-syntax-check
 
   collect:
     needs:
