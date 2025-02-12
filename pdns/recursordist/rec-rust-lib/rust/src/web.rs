@@ -198,7 +198,7 @@ fn api_wrapper(
     if !auth_ok {
         for kv in &request.vars {
             cxx::let_cxx_string!(s = &kv.value);
-            if kv.key == "x-api-key" && ctx.api_ch.as_ref().unwrap().matches(&s) {
+            if kv.key == "api-key" && ctx.api_ch.as_ref().unwrap().matches(&s) {
                 auth_ok = true;
                 break;
             }

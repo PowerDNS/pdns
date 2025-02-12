@@ -109,7 +109,7 @@ webservice:
     def testPrometheus(self):
         self.waitForTCPSocket("127.0.0.1", self._wsPort)
         url = 'https://user:' + self._wsPassword + '@127.0.0.1:' + str(self._wsPort) + '/metrics'
-        r = requests.get(url, timeout=self._wsTimeout, verify=False)
+        r = requests.get(url, timeout=self._wsTimeout, verify='ca.pem')
         self.assertTrue(r)
         self.assertEqual(r.status_code, 200)
         self.checkPrometheusContentBasic(r.text)

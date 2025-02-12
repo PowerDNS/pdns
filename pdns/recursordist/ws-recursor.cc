@@ -1066,7 +1066,7 @@ static void rustWrapper(const std::function<void(HttpRequest*, HttpResponse*)>& 
     request.parameters[std::string(key)] = std::string(value);
   }
   // These two log objects are not used by the Rust code, as they take the logging object from the
-  // context, initalized from an argument to pdns::rust::web::rec::serveweb()
+  // context, initialized from an argument to pdns::rust::web::rec::serveweb()
   request.d_slog = g_slog;
   response.d_slog = g_slog;
   try {

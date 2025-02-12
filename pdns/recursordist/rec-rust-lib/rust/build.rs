@@ -7,7 +7,7 @@ fn main() {
         .flag("-I../../..")
         .compile("settings");
 
-    // lib.rs is generated and take care of by parent Makefile
+    // lib.rs is generated and taken care of by parent Makefile
     println!("cargo:rerun-if-changed=src/misc.rs");
     println!("cargo:rerun-if-changed=src/web.rs");
 }

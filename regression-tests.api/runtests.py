@@ -284,7 +284,7 @@ for try_number in range(0, 10):
         if daemon == 'authoritative':
             res = requests.get('http://127.0.0.1:%s/' % WEBPORT)
         else:
-            res = requests.get('https://127.0.0.1:%s/' % WEBPORT, verify=False)
+            res = requests.get('https://127.0.0.1:%s/' % WEBPORT, verify='ca.pem')
         available = True
         break
     except HTTPError as http_err:

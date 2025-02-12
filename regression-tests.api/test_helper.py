@@ -40,7 +40,7 @@ class ApiTestCase(unittest.TestCase):
         self.session.headers = {'X-API-Key': os.environ.get('APIKEY', 'changeme-key'), 'Origin': 'http://%s:%s' % (self.server_address, self.server_port)}
         if is_recursor():
             self.server_url = 'https://%s:%s/' % (self.server_address, self.server_port)
-            self.session.verify = False
+            self.session.verify = 'ca.pem'
 
     def url(self, relative_url):
         return urljoin(self.server_url, relative_url)
