@@ -139,8 +139,6 @@ void disableStats(StatComponent component, const string& stats);
 
 void registerAllStats();
 
-void doExitGeneric(bool nicely);
-void doExit();
 void doExitNicely();
 RecursorControlChannel::Answer doQueueReloadLuaScript(vector<string>::const_iterator begin, vector<string>::const_iterator end);
 RecursorControlChannel::Answer luaconfig(bool broadcast);

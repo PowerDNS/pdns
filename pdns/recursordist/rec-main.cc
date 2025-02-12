@@ -952,7 +952,7 @@ static void daemonize(Logr::log_t log)
 
 static void termIntHandler([[maybe_unused]] int arg)
 {
-  doExit();
+  _exit(1);
 }
 
 static void usr1Handler([[maybe_unused]] int arg)
@@ -1962,10 +1962,6 @@ static int initForks(Logr::log_t log)
     signal(SIGTERM, termIntHandler);
     signal(SIGINT, termIntHandler);
   }
-#if defined(__SANITIZE_THREAD__) || (defined(__SANITIZE_ADDRESS__) && defined(HAVE_LEAK_SANITIZER_INTERFACE))
-  // If san is wanted, we dump the info ourselves
-  signal(SIGTERM, termIntHandler);
-#endif
 
   signal(SIGUSR1, usr1Handler);
   signal(SIGUSR2, usr2Handler);
