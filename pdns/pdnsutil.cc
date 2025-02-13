@@ -4468,7 +4468,7 @@ static const std::unordered_map<std::string, commandDispatcher> commands{
 #endif
         "]",
    "\tAdd a ZSK or KSK to zone with specific algorithm and size in bits.\n"
-   "\tIf zsk or ksk is omitted, defaults to zsk."}},
+   "\tIf zsk or ksk is omitted, defaults to zsk"}},
   {"b2b-migrate", {true, B2BMigrate, GROUP_OTHER,
    "b2b-migrate OLD NEW",
    "\tMove all data from one backend to another"}},
@@ -4556,9 +4556,9 @@ static const std::unordered_map<std::string, commandDispatcher> commands{
    "\tCalculate the NSEC3 hash for RNAME in ZONE"}},
   {"hsm", {true, HSM, GROUP_OTHER,
 #ifdef HAVE_P11KIT1
-   "hsm sub-command arguments...",
-   "\tHardware Signing Module-related command.\n"
-   "\tUse \"hsm help\" to get more information."
+   "hsm SUB_COMMAND [ARGUMENTS...]",
+   "\tHardware Signing Module-related commands.\n"
+   "\tUse \"hsm help\" to get more information"
 #else
    "", ""
 #endif
@@ -4655,9 +4655,8 @@ static const std::unordered_map<std::string, commandDispatcher> commands{
    "\tor consumer)"}},
   {"set-meta", {true, setMeta, GROUP_META,
    "set-meta ZONE KIND [VALUE...]",
-   "\tSet zone metadata, optionally providing a value. An omitted value clears\n"
-   "\tthe metadata.\n"
-   "\tNote - this will replace all metadata records of KIND!"}},
+   "\tSet zone metadata, replacing all existing records of KIND, optionally\n"
+   "\tproviding a value. An omitted value clears the metadata"}},
   {"set-nsec3", {true, setNsec3, GROUP_NSEC3,
    "set-nsec3 ZONE ['PARAMS' [narrow]]",
    "\tEnable NSEC3 with PARAMS (default: '1 0 0 -'). Optionally narrow"}},

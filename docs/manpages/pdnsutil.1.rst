@@ -405,8 +405,8 @@ get-meta *ZONE* [*KIND*]...
 
 set-meta *ZONE* *KIND* [*VALUE*]...
 
-    Set zone metadata *KIND* for *ZONE* to *VALUE*. An omitted value
-    clears it.
+    Set zone metadata *KIND* for *ZONE* to *VALUE*, replacing all existing
+    values of *KIND*. An omitted value clears it.
 
 set-presigned *ZONE*
 
