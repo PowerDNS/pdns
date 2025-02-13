@@ -36,7 +36,10 @@ void DNSResourceRecord::setContent(const string &cont) {
     case QType::MX:
       if (content.size() >= 2 && *(content.rbegin()+1) == ' ')
         return;
-      /* Falls through. */
+      [[fallthrough]];
+#if !defined(RECURSOR)
+    case QType::ALIAS:
+#endif
     case QType::CNAME:
     case QType::DNAME:
     case QType::NS:
@@ -64,6 +67,9 @@ string DNSResourceRecord::getZoneRepresentation(bool noDot) const {
       if (*(last.rbegin()) != '.' && !noDot)
         ret << ".";
       break;
+#if !defined(RECURSOR)
+    case QType::ALIAS:
+#endif
     case QType::CNAME:
     case QType::DNAME:
     case QType::NS:

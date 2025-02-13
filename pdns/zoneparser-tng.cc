@@ -607,7 +607,9 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
     }
     break;
 
-
+#if !defined(RECURSOR)
+  case QType::ALIAS:
+#endif
   case QType::NS:
   case QType::CNAME:
   case QType::DNAME:
