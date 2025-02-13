@@ -1,0 +1,61 @@
+[Unit]
+Description=@Description@
+Documentation=man:dnsdist(1)
+Documentation=https://dnsdist.org
+Wants=network-online.target
+After=network-online.target time-sync.target
+
+[Service]
+ExecStartPre=@BinDir@/dnsdist --check-config
+# Note: when editing the ExecStart command, keep --supervised and --disable-syslog
+ExecStart=@BinDir@/dnsdist --supervised --disable-syslog
+User=@ServiceUser@
+Group=@ServiceGroup@
+SyslogIdentifier=dnsdist
+Type=notify
+Restart=on-failure
+RestartSec=2
+TimeoutStopSec=5
+StartLimitInterval=0
+
+# Tuning
+TasksMax=8192
+LimitNOFILE=16384
+# Note: increasing the amount of lockable memory is required to use eBPF support
+# LimitMEMLOCK=infinity
+
+# Sandboxing
+# Note: adding CAP_SYS_ADMIN is required to use eBPF support,
+# and CAP_NET_RAW to be able to set the source interface to contact a backend
+# If an AppArmor policy is in use, it might have to be updated to allow dnsdist to keep the
+# capability: adding a 'capability sys_admin,' line to the policy is usually enough.
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+@LockPersonality@
+NoNewPrivileges=true
+@PrivateDevices@
+@PrivateTmp@
+# Setting PrivateUsers=true prevents us from opening our sockets
+@ProtectClock@
+@ProtectControlGroups@
+@ProtectHome@
+@ProtectHostname@
+@ProtectKernelLogs@
+@ProtectKernelModules@
+@ProtectKernelTunables@
+@ProtectSystem@
+@RestrictAddressFamilies@
+@RestrictNamespaces@
+@RestrictRealtime@
+@RestrictSUIDSGID@
+@SystemCallArchitectures@
+@SystemCallFilter@
+@ProtectProc@
+@PrivateIPC@
+@RemoveIPC@
+DevicePolicy=closed
+# Not enabled by default because it does not play well with LuaJIT
+@MemoryDenyWriteExecute@
+
+[Install]
+WantedBy=multi-user.target

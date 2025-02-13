@@ -37,3 +37,4 @@ option('fuzz-targets', type: 'boolean', value: false, description: 'Enable fuzzi
 option('ebpf', type: 'feature', value: 'disabled', description: 'Enable eBPF support')
 option('fuzzer_ldflags', type: 'string', value: '', description: 'Linker flags used for the fuzzing targets (a path to the libFuzzer static library, for example)')
 option('yaml', type: 'feature', value: 'disabled', description: 'Enable YAML configuration')
+option('man-pages', type: 'boolean', value: true, description: 'Generate man pages')
