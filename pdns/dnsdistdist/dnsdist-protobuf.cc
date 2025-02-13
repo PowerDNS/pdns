@@ -180,6 +180,9 @@ void DNSDistProtoBufMessage::serialize(std::string& data) const
     msg.setEDNSSubnet(*d_ednsSubnet, 128);
   }
 
+  if (d_dr != nullptr) {
+    msg.setPacketCacheHit(d_dr->ids.cacheHit);
+  }
   msg.startResponse();
   if (d_queryTime) {
     // coverity[store_truncates_time_t]

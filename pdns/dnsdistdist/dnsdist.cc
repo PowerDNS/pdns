@@ -1338,6 +1338,7 @@ static bool prepareOutgoingResponse([[maybe_unused]] const ClientState& clientSt
   DNSResponse dnsResponse(dnsQuestion.ids, dnsQuestion.getMutableData(), backend);
   dnsResponse.d_incomingTCPState = dnsQuestion.d_incomingTCPState;
   dnsResponse.ids.selfGenerated = true;
+  dnsResponse.ids.cacheHit = cacheHit;
 
   const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
   const auto& cacheHitRespRules = dnsdist::rules::getResponseRuleChain(chains, dnsdist::rules::ResponseRuleChain::CacheHitResponseRules);
