@@ -1171,14 +1171,15 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     setLuaSideEffect();
     ComboAddress local(str, 5199);
 
-    if (client || configCheck) {
-      return;
-    }
-
     dnsdist::configuration::updateRuntimeConfiguration([local](dnsdist::configuration::RuntimeConfiguration& config) {
       config.d_consoleServerAddress = local;
       config.d_consoleEnabled = true;
     });
+
+    if (client || configCheck) {
+      return;
+    }
+
 #if defined(HAVE_LIBSODIUM) || defined(HAVE_LIBCRYPTO)
     if (dnsdist::configuration::isImmutableConfigurationDone() && dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleKey.empty()) {
       warnlog("Warning, the console has been enabled via 'controlSocket()' but no key has been set with 'setKey()' so all connections will fail until a key has been set");
