@@ -1433,28 +1433,31 @@ private:
 };
 
 #ifndef DISABLE_PROTOBUF
-static DnstapMessage::ProtocolType ProtocolToDNSTap(dnsdist::Protocol protocol)
+std::tuple<DnstapMessage::ProtocolType, boost::optional<DnstapMessage::HttpProtocolType>> ProtocolToDNSTap(dnsdist::Protocol protocol)
 {
   if (protocol == dnsdist::Protocol::DoUDP) {
-    return DnstapMessage::ProtocolType::DoUDP;
+    return {DnstapMessage::ProtocolType::DoUDP, boost::none};
   }
   if (protocol == dnsdist::Protocol::DoTCP) {
-    return DnstapMessage::ProtocolType::DoTCP;
+    return {DnstapMessage::ProtocolType::DoTCP, boost::none};
   }
   if (protocol == dnsdist::Protocol::DoT) {
-    return DnstapMessage::ProtocolType::DoT;
+    return {DnstapMessage::ProtocolType::DoT, boost::none};
   }
-  if (protocol == dnsdist::Protocol::DoH || protocol == dnsdist::Protocol::DoH3) {
-    return DnstapMessage::ProtocolType::DoH;
+  if (protocol == dnsdist::Protocol::DoH) {
+    return {DnstapMessage::ProtocolType::DoH, DnstapMessage::HttpProtocolType::HTTP2};
+  }
+  if (protocol == dnsdist::Protocol::DoH3) {
+    return {DnstapMessage::ProtocolType::DoH, DnstapMessage::HttpProtocolType::HTTP3};
   }
   if (protocol == dnsdist::Protocol::DNSCryptUDP) {
-    return DnstapMessage::ProtocolType::DNSCryptUDP;
+    return {DnstapMessage::ProtocolType::DNSCryptUDP, boost::none};
   }
   if (protocol == dnsdist::Protocol::DNSCryptTCP) {
-    return DnstapMessage::ProtocolType::DNSCryptTCP;
+    return {DnstapMessage::ProtocolType::DNSCryptTCP, boost::none};
   }
   if (protocol == dnsdist::Protocol::DoQ) {
-    return DnstapMessage::ProtocolType::DoQ;
+    return {DnstapMessage::ProtocolType::DoQ, boost::none};
   }
   throw std::runtime_error("Unhandled protocol for dnstap: " + protocol.toPrettyString());
 }
@@ -1493,9 +1496,9 @@ public:
     static thread_local std::string data;
     data.clear();
 
-    DnstapMessage::ProtocolType protocol = ProtocolToDNSTap(dnsquestion->getProtocol());
+    auto [protocol, httpProtocol] = ProtocolToDNSTap(dnsquestion->getProtocol());
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    DnstapMessage message(std::move(data), !dnsquestion->getHeader()->qr ? DnstapMessage::MessageType::client_query : DnstapMessage::MessageType::client_response, d_identity, &dnsquestion->ids.origRemote, &dnsquestion->ids.origDest, protocol, reinterpret_cast<const char*>(dnsquestion->getData().data()), dnsquestion->getData().size(), &dnsquestion->getQueryRealTime(), nullptr);
+    DnstapMessage message(std::move(data), !dnsquestion->getHeader()->qr ? DnstapMessage::MessageType::client_query : DnstapMessage::MessageType::client_response, d_identity, &dnsquestion->ids.origRemote, &dnsquestion->ids.origDest, protocol, reinterpret_cast<const char*>(dnsquestion->getData().data()), dnsquestion->getData().size(), &dnsquestion->getQueryRealTime(), nullptr, boost::none, httpProtocol);
     {
       if (d_alterFunc) {
         auto lock = g_lua.lock();
@@ -1699,9 +1702,9 @@ public:
     gettime(&now, true);
     data.clear();
 
-    DnstapMessage::ProtocolType protocol = ProtocolToDNSTap(response->getProtocol());
+    auto [protocol, httpProtocol] = ProtocolToDNSTap(response->getProtocol());
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    DnstapMessage message(std::move(data), DnstapMessage::MessageType::client_response, d_identity, &response->ids.origRemote, &response->ids.origDest, protocol, reinterpret_cast<const char*>(response->getData().data()), response->getData().size(), &response->getQueryRealTime(), &now);
+    DnstapMessage message(std::move(data), DnstapMessage::MessageType::client_response, d_identity, &response->ids.origRemote, &response->ids.origDest, protocol, reinterpret_cast<const char*>(response->getData().data()), response->getData().size(), &response->getQueryRealTime(), &now, boost::none, httpProtocol);
     {
       if (d_alterFunc) {
         auto lock = g_lua.lock();
