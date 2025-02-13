@@ -411,14 +411,6 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 {
   dnsdist::lua::setupConfigurationItems(luaCtx);
 
-  luaCtx.writeFunction("inClientStartup", [client]() {
-    return client && !dnsdist::configuration::isImmutableConfigurationDone();
-  });
-
-  luaCtx.writeFunction("inConfigCheck", [configCheck]() {
-    return configCheck;
-  });
-
   luaCtx.writeFunction("newServer",
                        [client, configCheck](boost::variant<string, newserver_t> pvars, boost::optional<int> qps) {
                          setLuaSideEffect();
@@ -3165,10 +3157,20 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
 namespace dnsdist::lua
 {
-void setupLua(LuaContext& luaCtx, bool client, bool configCheck)
+void setupLuaBindingsOnly(LuaContext& luaCtx, bool client, bool configCheck)
 {
-  setupLuaActions(luaCtx);
-  setupLuaConfig(luaCtx, client, configCheck);
+  luaCtx.writeFunction("inClientStartup", [client]() {
+    return client && !dnsdist::configuration::isImmutableConfigurationDone();
+  });
+
+  luaCtx.writeFunction("inConfigCheck", [configCheck]() {
+    return configCheck;
+  });
+
+  luaCtx.writeFunction("enableLuaConfiguration", [&luaCtx, client, configCheck]() {
+    setupLuaConfigurationOptions(luaCtx, client, configCheck);
+  });
+
   setupLuaBindings(luaCtx, client, configCheck);
   setupLuaBindingsDNSCrypt(luaCtx, client);
   setupLuaBindingsDNSParser(luaCtx);
@@ -3179,15 +3181,32 @@ void setupLua(LuaContext& luaCtx, bool client, bool configCheck)
   setupLuaBindingsPacketCache(luaCtx, client);
   setupLuaBindingsProtoBuf(luaCtx, client, configCheck);
   setupLuaBindingsRings(luaCtx, client);
-  dnsdist::lua::hooks::setupLuaHooks(luaCtx);
   setupLuaInspection(luaCtx);
-  setupLuaRules(luaCtx);
   setupLuaVars(luaCtx);
   setupLuaWeb(luaCtx);
 
 #ifdef LUAJIT_VERSION
   luaCtx.executeCode(getLuaFFIWrappers());
 #endif
+}
+
+void setupLuaConfigurationOptions(LuaContext& luaCtx, bool client, bool configCheck)
+{
+  static std::atomic<bool> s_initialized{false};
+  if (s_initialized.exchange(true)) {
+    return;
+  }
+
+  setupLuaConfig(luaCtx, client, configCheck);
+  setupLuaActions(luaCtx);
+  setupLuaRules(luaCtx);
+  dnsdist::lua::hooks::setupLuaHooks(luaCtx);
+}
+
+void setupLua(LuaContext& luaCtx, bool client, bool configCheck)
+{
+  setupLuaBindingsOnly(luaCtx, client, configCheck);
+  setupLuaConfigurationOptions(luaCtx, client, configCheck);
 }
 }
 
