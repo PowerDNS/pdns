@@ -685,5 +685,6 @@ endif
 
 install_data(
   'dnsdist.conf-dist',
-  install_dir : get_option('sysconfdir')
+  install_dir : get_option('sysconfdir'),
+  follow_symlinks: true
 )
