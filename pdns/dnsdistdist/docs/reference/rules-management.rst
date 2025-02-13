@@ -203,7 +203,7 @@ For Rules related to responses:
   .. versionchanged:: 1.9.0
     Passing a string or list of strings instead of a :class:`DNSRule` is deprecated, use :func:`NetmaskGroupRule` or :func:`QNameSuffixRule` instead
 
-  Add a Rule and Action for responses to the existing rules.
+  Add a Rule and Action for responses to the existing rules. This won't be triggered if the response is due to a cache hit (see :func:`addCacheHitResponseAction`) or is self generated (see :func:`addSelfAnsweredResponseAction`).
   If a string (or list of) is passed as the first parameter instead of a :class:`DNSRule`, it behaves as if the string or list of strings was passed to :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule`.
 
   :param DNSrule rule: A :class:`DNSRule`, e.g. an :func:`AllRule`, or a compounded bunch of rules using e.g. :func:`AndRule`. Before 1.9.0 it was also possible to pass a string (or list of strings) but doing so is now deprecated.
