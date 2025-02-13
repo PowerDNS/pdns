@@ -580,7 +580,7 @@ set, DNSKEY, CDS and CDNSKEY records in the zonefiles are ignored.
 .. _setting-direct-dnskey-signature:
 
 ``direct-dnskey-signature``
------------------
+---------------------------
 
 -  Boolean
 -  Default: no
