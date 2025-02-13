@@ -1,6 +1,7 @@
 name: "Various daily checks"
 
 on:
+  pull_request:
   schedule:
     - cron: '34 4 * * *'
 
@@ -12,7 +13,7 @@ env:
 
 jobs:
   el7-devtoolset:
-    if: ${{ vars.SCHEDULED_MISC_DAILIES }}
+    if: ${{ github.event_name == 'schedule' && vars.SCHEDULED_MISC_DAILIES }}
     runs-on: ubuntu-22.04
 
     steps:
@@ -28,7 +29,7 @@ jobs:
         fi
 
   check-debian-autoremovals:
-    if: ${{ vars.SCHEDULED_MISC_DAILIES }}
+    if: ${{ github.event_name == 'schedule' && vars.SCHEDULED_MISC_DAILIES }}
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v4
@@ -41,7 +42,7 @@ jobs:
 
   coverity-auth:
     name: coverity scan of the auth
-    if: ${{ vars.SCHEDULED_MISC_DAILIES }}
+    if: ${{ github.event_name == 'schedule' && vars.SCHEDULED_MISC_DAILIES }}
     uses: PowerDNS/pdns/.github/workflows/coverity.yml@master
     with:
       product: 'authoritative'
@@ -51,7 +52,7 @@ jobs:
 
   coverity-dnsdist:
     name: coverity scan of dnsdist
-    if: ${{ vars.SCHEDULED_MISC_DAILIES }}
+    if: ${{ github.event_name == 'schedule' && vars.SCHEDULED_MISC_DAILIES }}
     uses: PowerDNS/pdns/.github/workflows/coverity.yml@master
     with:
       product: 'dnsdist'
@@ -61,7 +62,7 @@ jobs:
 
   coverity-rec:
     name: coverity scan of the rec
-    if: ${{ vars.SCHEDULED_MISC_DAILIES }}
+    if: ${{ github.event_name == 'schedule' && vars.SCHEDULED_MISC_DAILIES }}
     uses: PowerDNS/pdns/.github/workflows/coverity.yml@master
     with:
       product: 'recursor'
@@ -84,7 +85,7 @@ jobs:
   # to force the upgrade: "pip-compile --generate-hashes -U requirements.in" (this could include upgrading other packages).
 
   list-pip-requirement-files:
-    if: ${{ vars.SCHEDULED_MISC_DAILIES }}
+    if: ${{ github.event_name == 'pull_request' || vars.SCHEDULED_MISC_DAILIES }}
     runs-on: ubuntu-22.04
     outputs:
       req-files: ${{ steps.get-list-requirements.outputs.files }}
@@ -96,7 +97,7 @@ jobs:
         echo "files=$(find . -name 'requirements.txt' | jq -R -s -c 'split("\n")[:-1]')" >> "$GITHUB_OUTPUT"
 
   validate-pip-hashes:
-    if: ${{ vars.SCHEDULED_MISC_DAILIES }}
+    if: ${{ github.event_name == 'pull_request' || vars.SCHEDULED_MISC_DAILIES }}
     name: ${{ matrix.requirements-file }} - Validate list of packages and hashes
     runs-on: ubuntu-22.04
     needs: list-pip-requirement-files
@@ -134,7 +135,7 @@ jobs:
         run: for i in `cat /tmp/proxpi.log`; do grep -qq -i $i ${{ matrix.requirements-file }} || ( echo "$i not found" && exit 1 ); done
 
   run-rec-bulk-test-on-ubicloud:
-    if: ${{ vars.UBICLOUD_DAILY_REC_BULKTEST == '1' }}
+    if: ${{ github.event_name == 'schedule' && vars.SCHEDULED_MISC_DAILIES && vars.UBICLOUD_DAILY_REC_BULKTEST == '1' }}
     name: Run Recursor (master) Bulk Test On Ubicloud
     runs-on: ubicloud-standard-8-ubuntu-2404
     strategy:
