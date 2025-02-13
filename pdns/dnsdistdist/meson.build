@@ -4,7 +4,7 @@ project(
   version: run_command('../../builder-support' / 'gen-version', check: true).stdout().strip(),
   license: 'GPLv2',
   license_files: 'NOTICE',
-  meson_version: '>= 1.2.1',
+  meson_version: '>= 1.3.0',
   default_options: [
     'buildtype=debugoptimized',
     'warning_level=2',          # TODO Move this to 3 to enable -Wpedantic
