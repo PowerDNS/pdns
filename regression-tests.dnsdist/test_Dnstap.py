@@ -380,12 +380,23 @@ class TestDnstapOverRemoteLoggerPool(DNSDistTest):
         cls._remoteLoggerListener.daemon = True
         cls._remoteLoggerListener.start()
 
-    def getFirstDnstap(self):
+    def getFirstDnstap(self, messageType=None):
         self.assertFalse(self._remoteLoggerQueue.empty())
-        data = self._remoteLoggerQueue.get(False)
-        self.assertTrue(data)
-        dnstap = dnstap_pb2.Dnstap()
-        dnstap.ParseFromString(data)
+        unused = []
+        dnstap = None
+        while not self._remoteLoggerQueue.empty():
+            data = self._remoteLoggerQueue.get(False)
+            self.assertTrue(data)
+            dnstap = dnstap_pb2.Dnstap()
+            dnstap.ParseFromString(data)
+            if not messageType or dnstap.message.type == messageType:
+                break
+            unused.append(data)
+
+        # put back non-matching messages for later
+        for msg in reversed(unused):
+            self._remoteLoggerQueue.put(msg)
+
         return dnstap
 
     def testDnstap(self):
@@ -423,13 +434,13 @@ class TestDnstapOverRemoteLoggerPool(DNSDistTest):
         time.sleep(1)
 
         # check the dnstap message corresponding to the UDP query
-        dnstap = self.getFirstDnstap()
+        dnstap = self.getFirstDnstap(dnstap_pb2.Message.CLIENT_QUERY)
 
         checkDnstapQuery(self, dnstap, dnstap_pb2.UDP, query)
         checkDnstapNoExtra(self, dnstap)
 
         # check the dnstap message corresponding to the UDP response
-        dnstap = self.getFirstDnstap()
+        dnstap = self.getFirstDnstap(dnstap_pb2.Message.CLIENT_RESPONSE)
         checkDnstapResponse(self, dnstap, dnstap_pb2.UDP, response)
         checkDnstapNoExtra(self, dnstap)
 
@@ -444,13 +455,13 @@ class TestDnstapOverRemoteLoggerPool(DNSDistTest):
         time.sleep(1)
 
         # check the dnstap message corresponding to the TCP query
-        dnstap = self.getFirstDnstap()
+        dnstap = self.getFirstDnstap(dnstap_pb2.Message.CLIENT_QUERY)
 
         checkDnstapQuery(self, dnstap, dnstap_pb2.TCP, query)
         checkDnstapNoExtra(self, dnstap)
 
         # check the dnstap message corresponding to the TCP response
-        dnstap = self.getFirstDnstap()
+        dnstap = self.getFirstDnstap(dnstap_pb2.Message.CLIENT_RESPONSE)
         checkDnstapResponse(self, dnstap, dnstap_pb2.TCP, response)
         checkDnstapNoExtra(self, dnstap)
 
@@ -489,12 +500,12 @@ class TestDnstapOverRemoteLoggerPool(DNSDistTest):
         time.sleep(1)
 
         # check the dnstap message corresponding to the UDP query
-        dnstap = self.getFirstDnstap()
+        dnstap = self.getFirstDnstap(dnstap_pb2.Message.CLIENT_QUERY)
         checkDnstapQuery(self, dnstap, dnstap_pb2.UDP, query)
         checkDnstapExtra(self, dnstap, b"Type,Query")
 
         # check the dnstap message corresponding to the UDP response
-        dnstap = self.getFirstDnstap()
+        dnstap = self.getFirstDnstap(dnstap_pb2.Message.CLIENT_RESPONSE)
         checkDnstapResponse(self, dnstap, dnstap_pb2.UDP, response)
         checkDnstapExtra(self, dnstap, b"Type,Response")
 
@@ -509,12 +520,12 @@ class TestDnstapOverRemoteLoggerPool(DNSDistTest):
         time.sleep(1)
 
         # check the dnstap message corresponding to the TCP query
-        dnstap = self.getFirstDnstap()
+        dnstap = self.getFirstDnstap(dnstap_pb2.Message.CLIENT_QUERY)
         checkDnstapQuery(self, dnstap, dnstap_pb2.TCP, query)
         checkDnstapExtra(self, dnstap, b"Type,Query")
 
         # check the dnstap message corresponding to the TCP response
-        dnstap = self.getFirstDnstap()
+        dnstap = self.getFirstDnstap(dnstap_pb2.Message.CLIENT_RESPONSE)
         checkDnstapResponse(self, dnstap, dnstap_pb2.TCP, response)
         checkDnstapExtra(self, dnstap, b"Type,Response")
 
