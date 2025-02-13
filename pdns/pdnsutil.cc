@@ -2922,6 +2922,26 @@ static int unpublishZoneKey(vector<string>& cmds)
   return 0;
 }
 
+static int checkZoneKey(DNSSECKeeper &dsk, DNSName &zone, int64_t keyId)
+{
+  if (keyId == -1) {
+    cerr<<std::to_string(keyId)<<": Key was added, but backend does not support returning of key id"<<endl;
+    return 0;
+  }
+  if (keyId < -1) {
+    cerr<<std::to_string(keyId)<<": Key was added, but there was a failure while returning the key id"<<endl;
+    return 1;
+  }
+  try {
+    dsk.getKeyById(zone, keyId);
+    cout<<std::to_string(keyId)<<endl;
+  } catch (std::exception& exc) {
+    cerr<<std::to_string(keyId)<<": Key was added, but there was a failure while reading it back: " <<exc.what()<<endl;
+    return 1;
+  }
+  return 0;
+}
+
 static int addZoneKey(vector<string>& cmds)
 {
   if(cmds.size() < 2 ) {
@@ -3034,21 +3054,7 @@ static int addZoneKey(vector<string>& cmds)
   if (bits != 0) {
     cerr<<"Requested specific key size of "<<bits<<" bits"<<endl;
   }
-  if (id == -1) {
-    cerr<<std::to_string(id)<<": Key was added, but backend does not support returning of key id"<<endl;
-  } else if (id < -1) {
-    cerr<<std::to_string(id)<<": Key was added, but there was a failure while returning the key id"<<endl;
-    return 1;
-  } else {
-    try {
-      dk.getKeyById(zone, id);
-      cout<<std::to_string(id)<<endl;
-    } catch (std::exception& e) {
-      cerr<<std::to_string(id)<<": Key was added, but there was a failure while reading it back: " <<e.what()<<endl;
-      return 1;
-    }
-  }
-  return 0;
+  return checkZoneKey(dk, zone, id);
 }
 
 static int removeZoneKey(vector<string>& cmds)
@@ -3630,7 +3636,7 @@ static int importZoneKeyPEM(vector<string>& cmds)
     return 1;
   }
 
-  const string zone = cmds.at(1);
+  DNSName zone(cmds.at(1));
   const string filename = cmds.at(2);
   const auto algorithm = pdns::checked_stoi<unsigned int>(cmds.at(3));
 
@@ -3678,21 +3684,11 @@ static int importZoneKeyPEM(vector<string>& cmds)
 
   DNSSECKeeper dk; //NOLINT(readability-identifier-length)
   int64_t id{-1}; // NOLINT(readability-identifier-length)
-  if (!dk.addKey(DNSName(zone), dpk, id)) {
+  if (!dk.addKey(zone, dpk, id)) {
     cerr << "Adding key failed, perhaps DNSSEC not enabled in configuration?" << endl;
     return 1;
   }
-
-  if (id == -1) {
-    cerr << std::to_string(id) << "Key was added, but backend does not support returning of key id" << endl;
-    }
-  else if (id < -1) {
-    cerr << std::to_string(id) << "Key was added, but there was a failure while returning the key id" << endl;
-  }
-  else {
-    cout << std::to_string(id) << endl;
-  }
-  return 0;
+  return checkZoneKey(dk, zone, id);
 }
 
 static int importZoneKey(vector<string>& cmds)
@@ -3701,7 +3697,7 @@ static int importZoneKey(vector<string>& cmds)
     cerr<<"Syntax: pdnsutil import-zone-key ZONE FILE [ksk|zsk] [active|inactive]"<<endl;
     return 1;
   }
-  string zone = cmds.at(1);
+  DNSName zone(cmds.at(1));
   string fname = cmds.at(2);
   DNSKEYRecordContent drc;
   shared_ptr<DNSCryptoKeyEngine> key(DNSCryptoKeyEngine::makeFromISCFile(drc, fname.c_str()));
@@ -3744,18 +3740,11 @@ static int importZoneKey(vector<string>& cmds)
 
   DNSSECKeeper dk; //NOLINT(readability-identifier-length)
   int64_t id{-1}; // NOLINT(readability-identifier-length)
-  if (!dk.addKey(DNSName(zone), dpk, id, active, published)) {
+  if (!dk.addKey(zone, dpk, id, active, published)) {
     cerr<<"Adding key failed, perhaps DNSSEC not enabled in configuration?"<<endl;
     return 1;
   }
-  if (id == -1) {
-    cerr<<std::to_string(id)<<"Key was added, but backend does not support returning of key id"<<endl;
-  } else if (id < -1) {
-    cerr<<std::to_string(id)<<"Key was added, but there was a failure while returning the key id"<<endl;
-  } else {
-    cout<<std::to_string(id)<<endl;
-  }
-  return 0;
+  return checkZoneKey(dk, zone, id);
 }
 
 static int expotZoneDNSKey(vector<string>& cmds)
