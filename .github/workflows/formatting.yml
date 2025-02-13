@@ -11,8 +11,8 @@ permissions: # least privileges, see https://docs.github.com/en/actions/using-wo
 jobs:
   build:
     name: Verify source code formatting; check Makefile.am sort order
-    # on a ubuntu-20.04 VM
-    runs-on: ubuntu-20.04
+    # on a ubuntu-24.04 VM
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
@@ -21,7 +21,7 @@ jobs:
       - name: Update dependencies
         run: |
           sudo apt-get update
-          sudo apt-get -qq --no-install-recommends install git clang-11
+          sudo apt-get -qq --no-install-recommends install git clang-format-19
       - name: Run format-code on files that should be formatted
         run: |
            ./build-scripts/format-code $(find . -type f -name '*.[ch][ch]' | sort | comm -23 - .not-formatted)

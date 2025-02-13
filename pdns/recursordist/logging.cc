@@ -166,8 +166,7 @@ const char* Logging::toTimestampStringMilli(const struct timeval& tval, std::arr
     static std::mutex mutex;
     auto lock = std::lock_guard(mutex);
     struct tm theTime // clang-format insists on formatting it like this
-    {
-    };
+      {};
     len = strftime(buf.data(), buf.size(), format.c_str(), localtime_r(&tval.tv_sec, &theTime));
   }
   if (len == 0) {

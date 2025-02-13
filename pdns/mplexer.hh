@@ -42,7 +42,7 @@ public:
 };
 
 /** Very simple FD multiplexer, based on callbacks and boost::any parameters
-    As a special service, this parameter is kept around and can be modified, 
+    As a special service, this parameter is kept around and can be modified,
     allowing for state to be stored inside the multiplexer.
 
     It has some "interesting" semantics

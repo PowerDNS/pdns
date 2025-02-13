@@ -86,9 +86,7 @@ void AsynchronousHolder::stop()
 void AsynchronousHolder::mainThread(std::shared_ptr<Data> data)
 {
   setThreadName("dnsdist/async");
-  struct timeval now
-  {
-  };
+  struct timeval now{};
   std::list<std::pair<uint16_t, std::unique_ptr<CrossProtocolQuery>>> expiredEvents;
 
   auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent(1));
@@ -181,9 +179,7 @@ std::unique_ptr<CrossProtocolQuery> AsynchronousHolder::get(uint16_t asyncID, ui
   auto content = d_data->d_content.lock();
   auto contentIt = content->find(std::tie(queryID, asyncID));
   if (contentIt == content->end()) {
-    struct timeval now
-    {
-    };
+    struct timeval now{};
     gettimeofday(&now, nullptr);
     vinfolog("Asynchronous object %d not found at %d.%d", queryID, now.tv_sec, now.tv_usec);
     return nullptr;
@@ -231,9 +227,7 @@ static bool resumeResponse(std::unique_ptr<CrossProtocolQuery>&& response)
 
     auto sender = response->getTCPQuerySender();
     if (sender) {
-      struct timeval now
-      {
-      };
+      struct timeval now{};
       gettimeofday(&now, nullptr);
 
       TCPResponse resp(std::move(response->query.d_buffer), std::move(response->query.d_idstate), nullptr, response->downstream);
@@ -318,9 +312,7 @@ bool resumeQuery(std::unique_ptr<CrossProtocolQuery>&& query)
       return false;
     }
 
-    struct timeval now
-    {
-    };
+    struct timeval now{};
     gettimeofday(&now, nullptr);
 
     TCPResponse response(std::move(query->query.d_buffer), std::move(query->query.d_idstate), nullptr, query->downstream);
@@ -351,9 +343,7 @@ bool suspendQuery(DNSQuestion& dnsQuestion, uint16_t asyncID, uint16_t queryID, 
     return false;
   }
 
-  struct timeval now
-  {
-  };
+  struct timeval now{};
   gettimeofday(&now, nullptr);
   struct timeval ttd = now;
   ttd.tv_sec += timeoutMs / 1000;
@@ -373,9 +363,7 @@ bool suspendResponse(DNSResponse& dnsResponse, uint16_t asyncID, uint16_t queryI
     return false;
   }
 
-  struct timeval now
-  {
-  };
+  struct timeval now{};
   gettimeofday(&now, nullptr);
   struct timeval ttd = now;
   ttd.tv_sec += timeoutMs / 1000;

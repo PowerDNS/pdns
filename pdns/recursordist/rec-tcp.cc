@@ -291,9 +291,7 @@ static void doProtobufLogQuery(bool logQuery, LocalStateHolder<LuaConfigItems>& 
 static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, shared_ptr<TCPConnection>& conn, RunningTCPQuestionGuard& tcpGuard, int fileDesc)
 {
   RecThreadInfo::self().incNumberOfDistributedQueries();
-  struct timeval start
-  {
-  };
+  struct timeval start{};
   Utility::gettimeofday(&start, nullptr);
 
   DNSName qname;
@@ -453,19 +451,15 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
 
         bool hadError = sendResponseOverTCP(comboWriter, response);
         finishTCPReply(comboWriter, hadError, false);
-        struct timeval now
-        {
-        };
+        struct timeval now{};
         Utility::gettimeofday(&now, nullptr);
         uint64_t spentUsec = uSec(now - start);
         t_Counters.at(rec::Histogram::cumulativeAnswers)(spentUsec);
         comboWriter->d_eventTrace.add(RecEventTrace::AnswerSent);
 
         if (t_protobufServers.servers && comboWriter->d_logResponse && (!luaconfsLocal->protobufExportConfig.taggedOnly || (pbData && pbData->d_tagged))) {
-          struct timeval tval
-          {
-            0, 0
-          };
+          struct timeval tval{
+            0, 0};
           protobufLogResponse(dnsheader, luaconfsLocal, pbData, tval, true, comboWriter->d_source, comboWriter->d_destination, comboWriter->d_mappedSource, comboWriter->d_ednssubnet, comboWriter->d_uuid, comboWriter->d_requestorId, comboWriter->d_deviceId, comboWriter->d_deviceName, comboWriter->d_meta, comboWriter->d_eventTrace, comboWriter->d_policyTags);
         }
 

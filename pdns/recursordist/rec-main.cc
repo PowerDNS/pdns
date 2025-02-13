@@ -2500,19 +2500,15 @@ public:
   }
 
 private:
-  struct timeval last_run
-  {
-    0, 0
-  };
+  struct timeval last_run{
+    0, 0};
   struct timeval period;
   string name;
 };
 
 static void houseKeepingWork(Logr::log_t log)
 {
-  struct timeval now
-  {
-  };
+  struct timeval now{};
   Utility::gettimeofday(&now);
   t_Counters.updateSnap(now, g_regressionTestMode);
 
@@ -2726,15 +2722,11 @@ static void runLuaMaintenance(RecThreadInfo& threadInfo, time_t& last_lua_mainte
     if (threadInfo.isWorker()) { // either UDP of TCP worker
       // Only on threads processing queries
       if (g_now.tv_sec - last_lua_maintenance >= luaMaintenanceInterval) {
-        struct timeval start
-        {
-        };
+        struct timeval start{};
         Utility::gettimeofday(&start);
         t_pdl->maintenance();
         last_lua_maintenance = g_now.tv_sec;
-        struct timeval stop
-        {
-        };
+        struct timeval stop{};
         Utility::gettimeofday(&stop);
         t_Counters.at(rec::Counter::maintenanceUsec) += uSec(stop - start);
         ++t_Counters.at(rec::Counter::maintenanceCalls);

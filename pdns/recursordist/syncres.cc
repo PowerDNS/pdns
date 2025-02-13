@@ -1100,9 +1100,7 @@ bool SyncRes::isForwardOrAuth(const DNSName& qname)
 const char* isoDateTimeMillis(const struct timeval& tval, timebuf_t& buf)
 {
   const std::string s_timestampFormat = "%Y-%m-%dT%T";
-  struct tm tmval
-  {
-  };
+  struct tm tmval{};
   size_t len = strftime(buf.data(), buf.size(), s_timestampFormat.c_str(), localtime_r(&tval.tv_sec, &tmval));
   if (len == 0) {
     int ret = snprintf(buf.data(), buf.size(), "%lld", static_cast<long long>(tval.tv_sec));
@@ -1122,9 +1120,7 @@ const char* isoDateTimeMillis(const struct timeval& tval, timebuf_t& buf)
 static const char* timestamp(time_t arg, timebuf_t& buf)
 {
   const std::string s_timestampFormat = "%Y-%m-%dT%T";
-  struct tm tmval
-  {
-  };
+  struct tm tmval{};
   size_t len = strftime(buf.data(), buf.size(), s_timestampFormat.c_str(), localtime_r(&arg, &tmval));
   if (len == 0) {
     int ret = snprintf(buf.data(), buf.size(), "%lld", static_cast<long long>(arg));
@@ -6198,9 +6194,7 @@ int directResolve(const DNSName& qname, const QType qtype, const QClass qclass, 
 {
   auto log = slog->withValues("qname", Logging::Loggable(qname), "qtype", Logging::Loggable(qtype));
 
-  struct timeval now
-  {
-  };
+  struct timeval now{};
   gettimeofday(&now, nullptr);
 
   SyncRes resolver(now);

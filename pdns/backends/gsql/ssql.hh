@@ -92,6 +92,6 @@ public:
   {
     return true;
   }
-  virtual void reconnect(){};
+  virtual void reconnect() {};
   virtual ~SSql() = default;
 };

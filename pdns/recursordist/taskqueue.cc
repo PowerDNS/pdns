@@ -52,9 +52,7 @@ bool ResolveTask::run(bool logErrors) const
     log->error(Logr::Debug, "null task");
     return false;
   }
-  struct timeval now
-  {
-  };
+  struct timeval now{};
   Utility::gettimeofday(&now);
   if (d_deadline >= now.tv_sec) {
     d_func(now, logErrors, *this);

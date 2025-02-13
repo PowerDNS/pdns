@@ -2325,11 +2325,9 @@ static void healthChecksThread()
   setThreadName("dnsdist/healthC");
 
   constexpr int intervalUsec = 1000 * 1000;
-  struct timeval lastRound
-  {
+  struct timeval lastRound{
     .tv_sec = 0,
-    .tv_usec = 0
-  };
+    .tv_usec = 0};
 
   for (;;) {
     timeval now{};

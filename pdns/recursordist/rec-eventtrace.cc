@@ -21,10 +21,7 @@
  */
 #include "rec-eventtrace.hh"
 
-#define NameEntry(M) \
-  {                  \
-    M, #M            \
-  }
+#define NameEntry(M) {M, #M}
 
 const std::unordered_map<RecEventTrace::EventType, std::string> RecEventTrace::s_eventNames = {
   NameEntry(CustomEvent),

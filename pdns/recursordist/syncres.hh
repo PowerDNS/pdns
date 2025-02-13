@@ -908,7 +908,7 @@ class ImmediateServFailException
 {
 public:
   ImmediateServFailException(string reason_) :
-    reason(std::move(reason_)){};
+    reason(std::move(reason_)) {};
 
   string reason; //! Print this to tell the user what went wrong
 };

@@ -30,9 +30,7 @@ FrameStreamLogger::FrameStreamLogger(const int family, std::string address, bool
     }
 
     if (d_family == AF_UNIX) {
-      struct sockaddr_un local
-      {
-      };
+      struct sockaddr_un local{};
       if (makeUNsockaddr(d_address, &local) != 0) {
         throw std::runtime_error("FrameStreamLogger: Unable to use '" + d_address + "', it is not a valid UNIX socket path.");
       }

@@ -583,9 +583,7 @@ void ArgvMap::gatherIncludes(const std::string& directory, const std::string& su
       // build name
       string fullName = directory + "/" + std::string(name);
       // ensure it's readable file
-      struct stat statInfo
-      {
-      };
+      struct stat statInfo{};
       if (stat(fullName.c_str(), &statInfo) != 0 || !S_ISREG(statInfo.st_mode)) {
         string msg = fullName + " is not a regular file";
         SLOG(g_log << Logger::Error << msg << std::endl,

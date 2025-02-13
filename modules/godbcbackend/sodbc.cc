@@ -263,7 +263,7 @@ public:
 
     for (auto& i : d_req_bind) {
       if (i.ParameterType == SQL_VARCHAR)
-        delete[](char*) i.ParameterValuePtr;
+        delete[] (char*)i.ParameterValuePtr;
       else if (i.ParameterType == SQL_INTEGER)
         delete (ULONG*)i.ParameterValuePtr;
       else if (i.ParameterType == SQL_C_UBIGINT)

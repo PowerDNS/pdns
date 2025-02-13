@@ -39,7 +39,7 @@ PowerLDAP::SearchResult::~SearchResult()
 {
   if (!d_finished)
     ldap_abandon_ext(d_ld, d_msgid, NULL, NULL); // We don't really care about the return code as there's
-      // not much we can do now
+                                                 // not much we can do now
 }
 
 bool PowerLDAP::SearchResult::getNext(PowerLDAP::sentry_t& entry, bool dn, int /* timeout */)

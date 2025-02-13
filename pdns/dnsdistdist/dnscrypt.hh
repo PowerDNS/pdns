@@ -76,18 +76,12 @@ static_assert(crypto_box_curve25519xchacha20poly1305_BEFORENMBYTES == crypto_box
 
 #define DNSCRYPT_CERT_MAGIC_SIZE (4)
 #define DNSCRYPT_CERT_MAGIC_VALUE \
-  {                               \
-    0x44, 0x4e, 0x53, 0x43        \
-  }
+  {0x44, 0x4e, 0x53, 0x43}
 #define DNSCRYPT_CERT_PROTOCOL_MINOR_VERSION_VALUE \
-  {                                                \
-    0x00, 0x00                                     \
-  }
+  {0x00, 0x00}
 #define DNSCRYPT_CLIENT_MAGIC_SIZE (8)
-#define DNSCRYPT_RESOLVER_MAGIC                    \
-  {                                                \
-    0x72, 0x36, 0x66, 0x6e, 0x76, 0x57, 0x6a, 0x38 \
-  }
+#define DNSCRYPT_RESOLVER_MAGIC \
+  {0x72, 0x36, 0x66, 0x6e, 0x76, 0x57, 0x6a, 0x38}
 #define DNSCRYPT_RESOLVER_MAGIC_SIZE (8)
 #define DNSCRYPT_PADDED_BLOCK_SIZE (64)
 #define DNSCRYPT_MAX_TCP_PADDING_SIZE (256)
@@ -100,13 +94,9 @@ static_assert(crypto_box_curve25519xchacha20poly1305_BEFORENMBYTES == crypto_box
 static_assert(DNSCRYPT_CLIENT_MAGIC_SIZE <= DNSCRYPT_PUBLIC_KEY_SIZE, "DNSCrypt Client Nonce size should be smaller or equal to public key size.");
 
 #define DNSCRYPT_CERT_ES_VERSION1_VALUE \
-  {                                     \
-    0x00, 0x01                          \
-  }
+  {0x00, 0x01}
 #define DNSCRYPT_CERT_ES_VERSION2_VALUE \
-  {                                     \
-    0x00, 0x02                          \
-  }
+  {0x00, 0x02}
 
 class DNSCryptContext;
 

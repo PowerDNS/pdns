@@ -100,9 +100,7 @@ incoming:
   BOOST_CHECK_THROW({
     auto settings = pdns::rust::settings::rec::parse_yaml_string(yaml);
     auto back = settings.to_yaml_string();
-    settings.validate();
-  },
-                    rust::Error);
+    settings.validate(); }, rust::Error);
 }
 
 BOOST_AUTO_TEST_CASE(test_rust_validation_with_error2)
@@ -118,10 +116,7 @@ recursor:
 
   auto settings = pdns::rust::settings::rec::parse_yaml_string(yaml);
   auto back = settings.to_yaml_string();
-  BOOST_CHECK_THROW({
-    settings.validate();
-  },
-                    rust::Error);
+  BOOST_CHECK_THROW({ settings.validate(); }, rust::Error);
 }
 
 BOOST_AUTO_TEST_CASE(test_rust_validation_with_error3)
@@ -137,9 +132,7 @@ recursor:
   BOOST_CHECK_THROW({
     auto settings = pdns::rust::settings::rec::parse_yaml_string(yaml);
     auto back = settings.to_yaml_string();
-    settings.validate();
-  },
-                    rust::Error);
+    settings.validate(); }, rust::Error);
 }
 
 BOOST_AUTO_TEST_CASE(test_rust_validation_with_error4)
@@ -153,9 +146,7 @@ recursor:
   BOOST_CHECK_THROW({
     auto settings = pdns::rust::settings::rec::parse_yaml_string(yaml);
     auto back = settings.to_yaml_string();
-    settings.validate();
-  },
-                    rust::Error);
+    settings.validate(); }, rust::Error);
 }
 
 BOOST_AUTO_TEST_CASE(test_rust_validation_with_error5)
@@ -194,9 +185,7 @@ recursor:
     BOOST_CHECK_THROW({
       auto settings = pdns::rust::settings::rec::parse_yaml_string(yamltest.str());
       auto back = settings.to_yaml_string();
-      settings.validate();
-    },
-                      rust::Error);
+      settings.validate(); }, rust::Error);
   }
 }
 

@@ -52,7 +52,7 @@ class AsyncWebServer : public WebServer
 {
 public:
   AsyncWebServer(FDMultiplexer* fdm, const string& listenaddress, int port) :
-    WebServer(listenaddress, port), d_fdm(fdm){};
+    WebServer(listenaddress, port), d_fdm(fdm) {};
   void go();
 
 private:

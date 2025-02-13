@@ -130,10 +130,8 @@ uint32_t DoHConnectionToBackend::getConcurrentStreamsCount() const
 
 void DoHConnectionToBackend::handleResponse(PendingRequest&& request)
 {
-  struct timeval now
-  {
-    .tv_sec = 0, .tv_usec = 0
-  };
+  struct timeval now{
+    .tv_sec = 0, .tv_usec = 0};
 
   gettimeofday(&now, nullptr);
   try {
@@ -181,10 +179,8 @@ void DoHConnectionToBackend::handleIOError()
   d_connectionDied = true;
   nghttp2_session_terminate_session(d_session.get(), NGHTTP2_PROTOCOL_ERROR);
 
-  struct timeval now
-  {
-    .tv_sec = 0, .tv_usec = 0
-  };
+  struct timeval now{
+    .tv_sec = 0, .tv_usec = 0};
 
   gettimeofday(&now, nullptr);
   for (auto& request : d_currentStreams) {
@@ -379,10 +375,8 @@ void DoHConnectionToBackend::handleReadableIOCallback(int fd, FDMultiplexer::fun
           throw std::runtime_error("Fatal error while passing received data to nghttp2: " + std::string(nghttp2_strerror((int)readlen)));
         }
 
-        struct timeval now
-        {
-          .tv_sec = 0, .tv_usec = 0
-        };
+        struct timeval now{
+          .tv_sec = 0, .tv_usec = 0};
 
         gettimeofday(&now, nullptr);
         conn->d_lastDataReceivedTime = now;
@@ -473,10 +467,8 @@ void DoHConnectionToBackend::stopIO()
 
 void DoHConnectionToBackend::updateIO(IOState newState, const FDMultiplexer::callbackfunc_t& callback, bool noTTD)
 {
-  struct timeval now
-  {
-    .tv_sec = 0, .tv_usec = 0
-  };
+  struct timeval now{
+    .tv_sec = 0, .tv_usec = 0};
 
   gettimeofday(&now, nullptr);
   boost::optional<struct timeval> ttd{boost::none};
@@ -606,10 +598,8 @@ int DoHConnectionToBackend::on_frame_recv_callback(nghttp2_session* session, con
       }
       else {
         vinfolog("HTTP response has a non-200 status code: %d", request.d_responseCode);
-        struct timeval now
-        {
-          .tv_sec = 0, .tv_usec = 0
-        };
+        struct timeval now{
+          .tv_sec = 0, .tv_usec = 0};
 
         gettimeofday(&now, nullptr);
 
@@ -664,10 +654,8 @@ int DoHConnectionToBackend::on_data_chunk_recv_callback(nghttp2_session* session
     }
     else {
       vinfolog("HTTP response has a non-200 status code: %d", request.d_responseCode);
-      struct timeval now
-      {
-        .tv_sec = 0, .tv_usec = 0
-      };
+      struct timeval now{
+        .tv_sec = 0, .tv_usec = 0};
 
       gettimeofday(&now, nullptr);
 
@@ -701,10 +689,8 @@ int DoHConnectionToBackend::on_stream_close_callback(nghttp2_session* session, i
     return 0;
   }
 
-  struct timeval now
-  {
-    .tv_sec = 0, .tv_usec = 0
-  };
+  struct timeval now{
+    .tv_sec = 0, .tv_usec = 0};
 
   gettimeofday(&now, nullptr);
   auto request = std::move(stream->second);
@@ -848,10 +834,8 @@ static void handleCrossProtocolQuery(int pipefd, FDMultiplexer::funcparam_t& par
     throw std::runtime_error("Error while reading from the DoH cross-protocol channel:" + std::string(e.what()));
   }
 
-  struct timeval now
-  {
-    .tv_sec = 0, .tv_usec = 0
-  };
+  struct timeval now{
+    .tv_sec = 0, .tv_usec = 0};
   gettimeofday(&now, nullptr);
 
   std::shared_ptr<TCPQuerySender> tqs = cpq->getTCPQuerySender();
@@ -877,10 +861,8 @@ static void dohClientThread(pdns::channel::Receiver<CrossProtocolQuery>&& receiv
     DoHClientThreadData data(std::move(receiver));
     data.mplexer->addReadFD(data.d_receiver.getDescriptor(), handleCrossProtocolQuery, &data);
 
-    struct timeval now
-    {
-      .tv_sec = 0, .tv_usec = 0
-    };
+    struct timeval now{
+      .tv_sec = 0, .tv_usec = 0};
 
     gettimeofday(&now, nullptr);
     time_t lastTimeoutScan = now.tv_sec;
@@ -1048,10 +1030,8 @@ bool initDoHWorkers()
 bool sendH2Query([[maybe_unused]] const std::shared_ptr<DownstreamState>& downstream, [[maybe_unused]] std::unique_ptr<FDMultiplexer>& mplexer, [[maybe_unused]] std::shared_ptr<TCPQuerySender>& sender, [[maybe_unused]] InternalQuery&& query, [[maybe_unused]] bool healthCheck)
 {
 #if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
-  struct timeval now
-  {
-    .tv_sec = 0, .tv_usec = 0
-  };
+  struct timeval now{
+    .tv_sec = 0, .tv_usec = 0};
   gettimeofday(&now, nullptr);
 
   if (healthCheck) {

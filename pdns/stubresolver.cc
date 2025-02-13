@@ -50,9 +50,7 @@ bool resolversDefined()
  */
 static void parseLocalResolvConf_locked(vector<ComboAddress>& resolversForStub, const time_t& now)
 {
-  struct stat statResult
-  {
-  };
+  struct stat statResult{};
   s_localResolvConfLastCheck = now;
 
   if (stat(LOCAL_RESOLV_CONF_PATH, &statResult) != -1) {
@@ -159,9 +157,7 @@ int stubDoResolve(const DNSName& qname, uint16_t qtype, vector<DNSZoneRecord>& r
     retry:
       sock.read(reply); // this calls recv
       if (reply.size() > sizeof(struct dnsheader)) {
-        struct dnsheader dHeader
-        {
-        };
+        struct dnsheader dHeader{};
         memcpy(&dHeader, reply.c_str(), sizeof(dHeader));
         if (dHeader.id != packetWriter.getHeader()->id) {
           goto retry;

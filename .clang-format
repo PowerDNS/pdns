@@ -31,3 +31,9 @@ AllowAllParametersOfDeclarationOnNextLine: true
 BreakConstructorInitializers: AfterColon
 ConstructorInitializerAllOnOneLineOrOnePerLine: true
 SpaceInEmptyBlock: false
+
+# I'd rather have the default (Minimum 1) here, but that causes quite some churn
+SpacesInLineCommentPrefix:
+  Minimum: 0
+  Maximum: -1
+

@@ -335,8 +335,7 @@ void fillSOAData(const DNSZoneRecord& inZoneRecord, SOAData& soaData)
 
 std::shared_ptr<DNSRecordContent> makeSOAContent(const SOAData& soaData)
 {
-  struct soatimes soaTimes
-  {
+  struct soatimes soaTimes{
     .serial = soaData.serial,
     .refresh = soaData.refresh,
     .retry = soaData.retry,

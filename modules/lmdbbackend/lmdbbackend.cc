@@ -821,7 +821,7 @@ namespace serialization
       ar& std::string();
     }
     else {
-      ar& g.toDNSStringLC();
+      ar & g.toDNSStringLC();
     }
   }
 
@@ -829,7 +829,7 @@ namespace serialization
   void load(Archive& ar, DNSName& g, const unsigned int /* version */)
   {
     string tmp;
-    ar& tmp;
+    ar & tmp;
     if (tmp.empty()) {
       g = DNSName();
     }
@@ -841,44 +841,44 @@ namespace serialization
   template <class Archive>
   void save(Archive& ar, const QType& g, const unsigned int /* version */)
   {
-    ar& g.getCode();
+    ar & g.getCode();
   }
 
   template <class Archive>
   void load(Archive& ar, QType& g, const unsigned int /* version */)
   {
     uint16_t tmp;
-    ar& tmp;
+    ar & tmp;
     g = QType(tmp);
   }
 
   template <class Archive>
   void save(Archive& ar, const DomainInfo& g, const unsigned int /* version */)
   {
-    ar& g.zone;
-    ar& g.last_check;
-    ar& g.account;
-    ar& g.primaries;
-    ar& g.id;
-    ar& g.notified_serial;
-    ar& g.kind;
-    ar& g.options;
-    ar& g.catalog;
+    ar & g.zone;
+    ar & g.last_check;
+    ar & g.account;
+    ar & g.primaries;
+    ar & g.id;
+    ar & g.notified_serial;
+    ar & g.kind;
+    ar & g.options;
+    ar & g.catalog;
   }
 
   template <class Archive>
   void load(Archive& ar, DomainInfo& g, const unsigned int version)
   {
-    ar& g.zone;
-    ar& g.last_check;
-    ar& g.account;
-    ar& g.primaries;
-    ar& g.id;
-    ar& g.notified_serial;
-    ar& g.kind;
+    ar & g.zone;
+    ar & g.last_check;
+    ar & g.account;
+    ar & g.primaries;
+    ar & g.id;
+    ar & g.notified_serial;
+    ar & g.kind;
     if (version >= 1) {
-      ar& g.options;
-      ar& g.catalog;
+      ar & g.options;
+      ar & g.catalog;
     }
     else {
       g.options.clear();
@@ -889,21 +889,21 @@ namespace serialization
   template <class Archive>
   void serialize(Archive& ar, LMDBBackend::DomainMeta& g, const unsigned int /* version */)
   {
-    ar& g.domain& g.key& g.value;
+    ar & g.domain & g.key & g.value;
   }
 
   template <class Archive>
   void save(Archive& ar, const LMDBBackend::KeyDataDB& g, const unsigned int /* version */)
   {
-    ar& g.domain& g.content& g.flags& g.active& g.published;
+    ar & g.domain & g.content & g.flags & g.active & g.published;
   }
 
   template <class Archive>
   void load(Archive& ar, LMDBBackend::KeyDataDB& g, const unsigned int version)
   {
-    ar& g.domain& g.content& g.flags& g.active;
+    ar & g.domain & g.content & g.flags & g.active;
     if (version >= 1) {
-      ar& g.published;
+      ar & g.published;
     }
     else {
       g.published = true;
@@ -913,9 +913,9 @@ namespace serialization
   template <class Archive>
   void serialize(Archive& ar, TSIGKey& g, const unsigned int /* version */)
   {
-    ar& g.name;
-    ar& g.algorithm; // this is the ordername
-    ar& g.key;
+    ar & g.name;
+    ar & g.algorithm; // this is the ordername
+    ar & g.key;
   }
 
 } // namespace serialization
