@@ -441,7 +441,7 @@ backend-cmd *BACKEND* *CMD* [*CMD...*]
     take SQL commands, other backends may take different things. Be
     careful!
 
-backend-lookup *BACKEND* *NAME* [*TYPE* [*CLIENT-IP-SUBNET*]]
+backend-lookup *BACKEND* *NAME* [*TYPE* [*CLIENT_IP_SUBNET*]]
 
     Perform a backend record lookup.
 
@@ -459,12 +459,12 @@ b2b-migrate *OLD* *NEW*
     Migrate data from one backend to another.
     Needs ``launch=OLD,NEW`` in the configuration.
 
-ipencrypt *IP-ADDRESS* password [**key**]
+ipencrypt *IP_ADDRESS* password [**key**]
 
     Encrypt an IP address according to the 'ipcipher' standard. If the
     password as a base64 key, add the word "key" after it.
 
-ipdecrypt *IP-ADDRESS* password [**key**]
+ipdecrypt *IP_ADDRESS* password [**key**]
 
     Decrypt an IP address according to the 'ipcipher' standard. If the
     password as a base64 key, add the word "key" after it.

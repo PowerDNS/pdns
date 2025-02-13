@@ -4476,15 +4476,15 @@ static const std::unordered_map<std::string, commandDispatcher> commands{
    "backend-cmd BACKEND CMD [CMD...]",
    "\tPerform one or more backend commands"}},
   {"backend-lookup", {true, backendLookup, GROUP_OTHER,
-   "backend-lookup BACKEND NAME [TYPE] CLIENT-IP-SUBNET]",
+   "backend-lookup BACKEND NAME [[TYPE] CLIENT_IP_SUBNET]",
    "\tPerform a backend lookup of NAME, TYPE (defaulting to ANY) and\n"
-   "\tCLIENT-IP-SUBNET"}},
+   "\tCLIENT_IP_SUBNET"}},
   {"bench-db", {true, benchDb, GROUP_OTHER,
    "bench-db [filename]",
    "\tBenchmark database backend with queries, one zone per line"}},
   {"change-secondary-zone-primary", {true, changeSecondaryZonePrimary, GROUP_ZONE,
-   "change-secondary-zone-primary ZONE primary-ip [primary-ip...]",
-   "\tChange secondary zone ZONE primary IP address(es) to primary-ip"}},
+   "change-secondary-zone-primary ZONE primary_ip [primary_ip...]",
+   "\tChange secondary zone ZONE primary IP address(es) to primary_ip"}},
   {"check-all-zones", {true, checkAllZones, GROUP_ZONE,
    "check-all-zones [exit-on-error]",
    "\tCheck all zones for correctness. Use exit-on-error to exit immediately\n"
@@ -4499,8 +4499,8 @@ static const std::unordered_map<std::string, commandDispatcher> commands{
    "create-bind-db FILENAME",
    "\tCreate DNSSEC db for BIND backend (bind-dnssec-db)"}},
   {"create-secondary-zone", {true, createSecondaryZone, GROUP_ZONE,
-   "create-secondary-zone ZONE primary-ip [primary-ip...]",
-   "\tCreate secondary zone ZONE with primary IP address(es) primary-ip"}},
+   "create-secondary-zone ZONE primary_ip [primary_ip...]",
+   "\tCreate secondary zone ZONE with primary IP address(es) primary_ip"}},
   {"create-zone", {true, createZone, GROUP_ZONE,
    "create-zone ZONE [nsname]",
    "\tCreate empty zone ZONE"}},
@@ -4693,7 +4693,7 @@ static const std::unordered_map<std::string, commandDispatcher> commands{
    "test-schema ZONE",
    "\tTest DB schema - will create ZONE"}},
   {"test-speed", {true, testSpeed, GROUP_OTHER,
-   "test-speed numcores [signing-server]", ""}}, // TODO: short help line
+   "test-speed numcores [signing_server]", ""}}, // TODO: short help line
   {"test-zone", {true, testZone, GROUP_ZONE,
    "", ""}}, // TODO: synopsis and short help line
   {"unpublish-zone-key", {true, unpublishZoneKey, GROUP_ZONEKEY,
