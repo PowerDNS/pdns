@@ -3014,7 +3014,8 @@ static pair<int, bool> doConfig(Logr::log_t startupLog, const string& configname
       }
     }
     else if (config == "default" || config.empty()) {
-      cout << ::arg().configstring(false, true);
+      auto yaml = pdns::settings::rec::defaultsToYaml();
+      cout << yaml << endl;
     }
     else if (config == "diff") {
       if (!::arg().laxFile(configname)) {
@@ -3249,7 +3250,7 @@ int main(int argc, char** argv)
     }
     else {
       configname += ".conf";
-      startupLog->info(Logr::Warning, "Trying to read YAML from .yml or .conf failed, failing back to old-style config read", "configname", Logging::Loggable(configname));
+      startupLog->info(Logr::Warning, "Trying to read YAML from .yml or .conf failed, falling back to old-style config read", "configname", Logging::Loggable(configname));
       bool mustExit = false;
       std::tie(ret, mustExit) = doConfig(startupLog, configname, argc, argv);
       if (ret != 0 || mustExit) {

@@ -12,7 +12,7 @@ symlinks=$(find . -type l)
 
 # If these two get out-of-sync, fix it! It used to be a symlink but that can no longer be as we are
 # working with a partial checkout in the dist root dir.
-cmp "$MESON_SOURCE_ROOT"/builder-support/gen-version "$MESON_PROJECT_DIST_ROOT"/builder-support/gen-version
+cmp "$MESON_SOURCE_ROOT"/../../builder-support/gen-version "$MESON_PROJECT_DIST_ROOT"/builder-support/gen-version
 
 # Get the dereffed symbolic links (the actual files being pointed to) from the source dir
 # Extract them over the existing symbolic links
@@ -25,8 +25,8 @@ autoreconf -vi
 
 # Generate man pages
 cd "$MESON_PROJECT_BUILD_ROOT"
-ninja man-pages
-cp -vp rec-man-pages/*.1 "$MESON_PROJECT_DIST_ROOT"
+ninja pdns_recursor.1
+cp -vp *.1 "$MESON_PROJECT_DIST_ROOT"
 
 rm -rf "$MESON_PROJECT_DIST_ROOT"/autom4te.cache
 
