@@ -625,7 +625,7 @@ endif
 
 if HAVE_SYSTEMD
 pdns-recursor.service: pdns-recursor.service.in
-	$(AM_V_GEN)sed -e 's![@]sbindir[@]!$(sbindir)!' -e 's![@]service_user[@]!$(service_user)!' -e 's![@]service_group[@]!$(service_group)!' < $< > $@
+	$(AM_V_GEN)sed -e 's![@]bindir[@]!$(bindir)!' -e 's![@]sbindir[@]!$(sbindir)!' -e 's![@]service_user[@]!$(service_user)!' -e 's![@]service_group[@]!$(service_group)!' < $< > $@
 if !HAVE_SYSTEMD_WITH_RUNTIME_DIR_ENV
 if HAVE_SYSTEMD_PERCENT_T
 	$(AM_V_GEN)sed -e 's!/pdns_recursor!& --socket-dir=%t/pdns-recursor!' -i $@
@@ -701,7 +701,8 @@ pdns-recursor@.service: pdns-recursor.service
 	  -e 's!SyslogIdentifier=.*!&-%i!' \
 	  < $< > $@
 if HAVE_SYSTEMD_PERCENT_T
-	$(AM_V_GEN)sed -e 's!RuntimeDirectory=.*!&-%i!' -i $@
+	$(AM_V_GEN)sed -e 's!RuntimeDirectory=.*!&-%i!' \
+	  -e 's!--socket-dir=%t/pdns-recursor!--config-name=%i --socket-dir=%t/pdns-recursor-%i!' -i $@
 if !HAVE_SYSTEMD_WITH_RUNTIME_DIR_ENV
 	$(AM_V_GEN)sed -e 's!--socket-dir=[^ ]\+!&-%i !' -i $@
 endif

@@ -72,9 +72,9 @@ class FlagsTest(RecursorTest):
     @classmethod
     def tearDownClass(cls):
         cls.tearDownAuth()
-        for _, recursor in cls._recursors.items():
+        for subdir, recursor in cls._recursors.items():
             cls._recursor = recursor
-            cls.tearDownRecursor()
+            cls.tearDownRecursor(subdir)
 
     def getQueryForSecure(self, flags='', ednsflags=''):
         return self.createQuery('ns1.example.', 'A', flags, ednsflags)

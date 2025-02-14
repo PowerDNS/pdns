@@ -8,6 +8,7 @@ After=network-online.target time-sync.target
 
 [Service]
 ExecStart=@StaticBinDir@/pdns_recursor @ConfigName@ @SocketDir@ --daemon=no --write-pid=no --disable-syslog --log-timestamp=no
+ExecStop=@BinDir@/rec_control @ConfigName@ @RecControlSocketDir@ quit-nicely
 User=@ServiceUser@
 Group=@ServiceGroup@
 Type=notify

@@ -153,6 +153,13 @@ extern thread_local unique_ptr<FDMultiplexer> t_fdm;
 extern uint16_t g_minUdpSourcePort;
 extern uint16_t g_maxUdpSourcePort;
 extern bool g_regressionTestMode;
+struct DoneRunning
+{
+  std::mutex mutex;
+  std::condition_variable condVar;
+  std::atomic<bool> done{false};
+};
+extern DoneRunning g_doneRunning;
 
 // you can ask this class for a UDP socket to send a query from
 // this socket is not yours, don't even think about deleting it
@@ -535,6 +542,11 @@ public:
   void setMT(MT_t* theMT)
   {
     mt = theMT;
+  }
+
+  static void joinThread0()
+  {
+    info(0).thread.join();
   }
 
 private:

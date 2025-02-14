@@ -1373,13 +1373,13 @@ static auto clearLuaScript()
   return doQueueReloadLuaScript(empty.begin(), empty.end());
 }
 
-void doExitGeneric(bool nicely)
+// This code SHOUD *NOT* BE CALLED BY SIGNAL HANDLERS anymore
+static void doExitGeneric(bool nicely)
 {
 #if defined(__SANITIZE_THREAD__)
   _exit(0); // regression test check for exit 0
 #endif
-  g_log << Logger::Error << "Exiting on user request" << endl;
-  g_rcc.~RecursorControlChannel();
+  g_slog->withName("runtime")->info(Logr::Notice, "Exiting on user request", "nicely", Logging::Loggable(nicely));
 
   if (!g_pidfname.empty()) {
     unlink(g_pidfname.c_str()); // we can at least try..
@@ -1387,8 +1387,16 @@ void doExitGeneric(bool nicely)
 
   if (nicely) {
     RecursorControlChannel::stop = true;
+    {
+      std::unique_lock lock(g_doneRunning.mutex);
+      g_doneRunning.condVar.wait(lock, [] { return g_doneRunning.done.load(); });
+    }
+    // g_rcc.~RecursorControlChannel() do not call, caller still needs it!
+    // Caller will continue doing the orderly shutdown
   }
   else {
+    // rec_control quit case. Is that still used by test code? bulktests and regression test use quit-nicely
+    g_rcc.~RecursorControlChannel();
 #if defined(__SANITIZE_ADDRESS__) && defined(HAVE_LEAK_SANITIZER_INTERFACE)
     clearLuaScript();
     pdns::coverage::dumpCoverageData();
@@ -1401,7 +1409,7 @@ void doExitGeneric(bool nicely)
   }
 }
 
-void doExit()
+static void doExit()
 {
   doExitGeneric(false);
 }

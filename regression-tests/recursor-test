@@ -71,16 +71,16 @@ ${DNSBULKTEST} --www=false -qe 127.0.0.1 $port $limit < ${CSV} > bulktest.result
 kill -USR1 $(cat pdns_recursor.pid) || true
 ${RECCONTROL} --timeout=20 --socket-dir=. --config-dir=. get-all || true
 
-# give it a chance to write the log requested by the kill
 sleep 1
+${RECCONTROL} --timeout=20 --socket-dir=. --config-dir=. ping
+${RECCONTROL} --timeout=20 --socket-dir=. --config-dir=. quit-nicely
+#
+# Since quit-nicely is now synchronous, we should not need to wait for the log to be up-date-date anymore
+#sleep 1
 echo
 echo "=== RECURSOR LOG ==="
 cat recursor.log
 echo "=== END RECURSOR LOG ==="
-sleep 1
-${RECCONTROL} --timeout=20 --socket-dir=. --config-dir=. ping
-kill $(cat pdns_recursor.pid)
-sleep 5
 
 . ./bulktest.results
 
