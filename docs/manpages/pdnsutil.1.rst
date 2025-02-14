@@ -300,7 +300,7 @@ edit-zone *ZONE*
     from) in the editor set in the environment variable **EDITOR**. if
     **EDITOR** is empty, *pdnsutil* falls back to using *editor*.
 
-hash-password [*WORK-FACTOR*]
+hash-password [*WORK_FACTOR*]
 
     This convenience command reads a password (not echoed) from standard
     input and returns a hashed and salted version, for use as a webserver
@@ -375,9 +375,9 @@ set-kind *ZONE* *KIND*
     Change the kind of *ZONE* to *KIND* (primary, secondary, native, producer,
     consumer).
 
-set-options-json *ZONE* *JSON*
+set-options-json *ZONE* *JSONFILE*
 
-    Change the options of *ZONE* to the contents of the *JSON* file.
+    Change the options of *ZONE* to the contents of *JSONFILE*.
 
 set-option *ZONE* [*producer* | *consumer*] [*coo* | *unique* | *group*] *VALUE* [*VALUE* ...]
 
@@ -459,15 +459,15 @@ b2b-migrate *OLD* *NEW*
     Migrate data from one backend to another.
     Needs ``launch=OLD,NEW`` in the configuration.
 
-ipencrypt *IP_ADDRESS* password [**key**]
+ipencrypt *IP_ADDRESS* PASSPHRASE_OR_KEY [**key**]
 
     Encrypt an IP address according to the 'ipcipher' standard. If the
-    password as a base64 key, add the word "key" after it.
+    passphrase is a base64 key, add the word "key" after it.
 
-ipdecrypt *IP_ADDRESS* password [**key**]
+ipdecrypt *IP_ADDRESS* PASSPHRASE_OR_KEY [**key**]
 
     Decrypt an IP address according to the 'ipcipher' standard. If the
-    password as a base64 key, add the word "key" after it.
+    passphrase is a base64 key, add the word "key" after it.
 
 See also
 --------

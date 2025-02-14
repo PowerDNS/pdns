@@ -1832,7 +1832,7 @@ static bool testAlgorithms()
   return DNSCryptoKeyEngine::testAll();
 }
 
-static void testSpeed(const DNSName& zone, const string& /* remote */, int cores)
+static void testSpeed(const DNSName& zone, int cores)
 {
   DNSResourceRecord rr;
   rr.qname=DNSName("blah")+zone;
@@ -2747,10 +2747,10 @@ static int testAllZones([[maybe_unused]] vector<string>& cmds, [[maybe_unused]] 
 
 static int testSpeed(vector<string>& cmds, const std::string_view synopsis)
 {
-  if(cmds.size() < 2) {
+  if(cmds.size() < 3) {
     return usage(synopsis);
   }
-  testSpeed(DNSName(cmds.at(1)), (cmds.size() > 3) ? cmds.at(3) : "", pdns::checked_stoi<int>(cmds.at(2)));
+  testSpeed(DNSName(cmds.at(1)), pdns::checked_stoi<int>(cmds.at(2)));
   return 0;
 }
 
@@ -4449,13 +4449,13 @@ static const std::unordered_map<std::string, commandDispatcher> commands{
    "activate-zone-key ZONE KEY_ID",
    "\tActivate the key with key id KEY_ID in ZONE"}},
   {"add-autoprimary", {true, addAutoprimary, GROUP_AUTOPRIMARY,
-   "add-autoprimary IP NAMESERVER [account]",
+   "add-autoprimary IP NAMESERVER [ACCOUNT]",
    "\tAdd a new autoprimary "}},
   {"add-meta", {true, setMeta, GROUP_META,
    "add-meta ZONE KIND VALUE [VALUE...]",
    "\tAdd zone metadata, this adds to the existing KIND"}},
   {"add-record", {true, addRecord, GROUP_ZONE,
-   R"(add-record ZONE NAME TYPE [ttl] "content" ["content"...])",
+   R"(add-record ZONE NAME TYPE [TTL] "CONTENT" ["CONTENT"...])",
    "\tAdd one or more records to ZONE"}},
   {"add-zone-key", {true, addZoneKey, GROUP_ZONEKEY,
    "add-zone-key ZONE [zsk|ksk] [BITS] [active|inactive] [published|unpublished]\n"
@@ -4480,11 +4480,11 @@ static const std::unordered_map<std::string, commandDispatcher> commands{
    "\tPerform a backend lookup of NAME, TYPE (defaulting to ANY) and\n"
    "\tCLIENT_IP_SUBNET"}},
   {"bench-db", {true, benchDb, GROUP_OTHER,
-   "bench-db [filename]",
+   "bench-db [FILENAME]",
    "\tBenchmark database backend with queries, one zone per line"}},
   {"change-secondary-zone-primary", {true, changeSecondaryZonePrimary, GROUP_ZONE,
-   "change-secondary-zone-primary ZONE primary_ip [primary_ip...]",
-   "\tChange secondary zone ZONE primary IP address(es) to primary_ip"}},
+   "change-secondary-zone-primary ZONE PRIMARY_IP [PRIMARY_IP...]",
+   "\tChange secondary zone ZONE primary IP address(es) to PRIMARY_IP"}},
   {"check-all-zones", {true, checkAllZones, GROUP_ZONE,
    "check-all-zones [exit-on-error]",
    "\tCheck all zones for correctness. Use exit-on-error to exit immediately\n"
@@ -4499,10 +4499,10 @@ static const std::unordered_map<std::string, commandDispatcher> commands{
    "create-bind-db FILENAME",
    "\tCreate DNSSEC db for BIND backend (bind-dnssec-db)"}},
   {"create-secondary-zone", {true, createSecondaryZone, GROUP_ZONE,
-   "create-secondary-zone ZONE primary_ip [primary_ip...]",
-   "\tCreate secondary zone ZONE with primary IP address(es) primary_ip"}},
+   "create-secondary-zone ZONE PRIMARY_IP [PRIMARY_IP...]",
+   "\tCreate secondary zone ZONE with primary IP address(es) PRIMARY_IP"}},
   {"create-zone", {true, createZone, GROUP_ZONE,
-   "create-zone ZONE [nsname]",
+   "create-zone ZONE [NSNAME]",
    "\tCreate empty zone ZONE"}},
   {"deactivate-tsig-key", {true, deactivateTSIGKey, GROUP_TSIGKEY,
    "deactivate-tsig-key ZONE NAME {primary|secondary|producer|consumer}",
@@ -4560,7 +4560,7 @@ static const std::unordered_map<std::string, commandDispatcher> commands{
    "\tHardware Signing Module-related commands.\n"
    "\tUse \"hsm help\" to get more information"
 #else
-   "", ""
+   "", "" // not functional so hide it
 #endif
    }},
   {"import-tsig-key", {true, importTSIGKey, GROUP_TSIGKEY,
@@ -4577,10 +4577,10 @@ static const std::unordered_map<std::string, commandDispatcher> commands{
    "increase-serial ZONE",
    "\tIncreases the SOA-serial by 1. Uses SOA-EDIT"}},
   {"ipdecrypt", {false, ipEncrypt, GROUP_OTHER,
-   "ipdecrypt IP passphrase/key [key]",
+   "ipdecrypt IP_ADDRESS PASSPHRASE_OR_KEY [key]",
    "\tDecrypt IP address using passphrase or base64 key"}},
   {"ipencrypt", {false, ipEncrypt, GROUP_OTHER,
-   "ipencrypt IP passphrase/key [key]",
+   "ipencrypt IP_ADDRESS PASSPHRASE_OR_KEY [key]",
    "\tEncrypt IP address using passphrase or base64 key"}},
   {"list-algorithms", {false, listAlgorithms, GROUP_DNSSEC,
    "list-algorithms [with-backend]",
@@ -4634,7 +4634,7 @@ static const std::unordered_map<std::string, commandDispatcher> commands{
    "remove-zone-key ZONE KEY_ID",
    "\tRemove key with KEY_ID from ZONE"}},
   {"replace-rrset", {true, replaceRRSet, GROUP_RRSET,
-   R"(replace-rrset ZONE NAME TYPE [ttl] "content" ["content"...])",
+   R"(replace-rrset ZONE NAME TYPE [TTL] "CONTENT" ["CONTENT"...])",
    "\tReplace named RRSET from ZONE"}},
   {"secure-all-zones", {true, secureAllZones, GROUP_DNSSEC,
    "secure-all-zones [increase-serial]",
@@ -4693,7 +4693,7 @@ static const std::unordered_map<std::string, commandDispatcher> commands{
    "test-schema ZONE",
    "\tTest DB schema - will create ZONE"}},
   {"test-speed", {true, testSpeed, GROUP_OTHER,
-   "test-speed numcores [signing_server]", ""}}, // TODO: short help line
+   "test-speed ZONE NUM_CORES", ""}}, // TODO: short help line
   {"test-zone", {true, testZone, GROUP_ZONE,
    "", ""}}, // TODO: synopsis and short help line
   {"unpublish-zone-key", {true, unpublishZoneKey, GROUP_ZONEKEY,
