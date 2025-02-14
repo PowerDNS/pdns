@@ -265,20 +265,34 @@ jobs:
             exit 1
           fi
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      # Configure AWS Credentials
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          node-version: '20'
-      - name: Install AWS SDK v3
-        run: npm install @aws-sdk/client-s3 @aws-sdk/client-cloudfront
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+      # Install rclone
+      - name: Install rclone
+        run: |
+          curl https://rclone.org/install.sh | sudo bash
+      - name: Configure rclone
+        run: |
+          mkdir -p ~/.config/rclone
+          cat > ~/.config/rclone/rclone.conf << EOF
+          [docs-s3]
+          type = s3
+          provider = AWS
+          env_auth = true
+          region = ${{ vars.AWS_REGION }}
+          location_constraint = ${{ vars.AWS_REGION }}
+          EOF
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
       - name: Publish to AWS
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ vars.AWS_REGION }}
           AWS_S3_BUCKET_DOCS: ${{ vars.AWS_S3_BUCKET_DOCS }}
           AWS_CLOUDFRONT_DISTRIBUTION_ID_DNSDIST: ${{ vars.AWS_CLOUDFRONT_DISTRIBUTION_ID_DNSDIST }}
           AWS_CLOUDFRONT_DISTRIBUTION_ID_DOCS: ${{ vars.AWS_CLOUDFRONT_DISTRIBUTION_ID_DOCS }}
@@ -286,15 +300,31 @@ jobs:
           if [ -n "$AWS_CLOUDFRONT_DISTRIBUTION_ID_DNSDIST" ]; then
             tar -xf artifacts/dnsdist-html-docs-${{needs.build-docs.outputs.pdns_version}}/dnsdist-html-docs.tar
             cp artifacts/dnsdist-${{needs.build-docs.outputs.pdns_version}}.pdf/dnsdist.pdf dnsdist-html-docs/
-            node .github/scripts/publish.js publish dnsdist.org dnsdist-html-docs /
+            rclone sync --progress dnsdist-html-docs/ docs-s3:$AWS_S3_BUCKET_DOCS/dnsdist.org/
+            # Invalidate CloudFront cache for DNSdist
+            aws cloudfront create-invalidation \
+              --distribution-id $AWS_CLOUDFRONT_DISTRIBUTION_ID_DNSDIST \
+              --paths "/*"
           fi
           if [ -n "$AWS_CLOUDFRONT_DISTRIBUTION_ID_DOCS" ]; then
             tar -xf artifacts/recursor-html-docs-${{needs.build-docs.outputs.pdns_version}}/rec-html-docs.tar
             cp artifacts/PowerDNS-Recursor-${{needs.build-docs.outputs.pdns_version}}.pdf/PowerDNS-Recursor.pdf rec-html-docs/
-            node .github/scripts/publish.js publish docs.powerdns.com rec-html-docs /recursor
+            rclone sync --progress rec-html-docs/ docs-s3:$AWS_S3_BUCKET_DOCS/docs.powerdns.com/recursor/
+
             tar -xf artifacts/authoritative-html-docs-${{needs.build-docs.outputs.pdns_version}}/auth-html-docs.tar
             cp artifacts/PowerDNS-Authoritative-${{needs.build-docs.outputs.pdns_version}}.pdf/PowerDNS-Authoritative.pdf auth-html-docs/
-            node .github/scripts/publish.js publish docs.powerdns.com auth-html-docs /authoritative
+            rclone sync --progress auth-html-docs/ docs-s3:$AWS_S3_BUCKET_DOCS/docs.powerdns.com/authoritative/
+
             tar -xf artifacts/website-${{needs.build-docs.outputs.pdns_version}}/website.tar
-            node .github/scripts/publish.js publish docs.powerdns.com website/docs.powerdns.com /
+            rclone sync --progress website/docs.powerdns.com/ docs-s3:$AWS_S3_BUCKET_DOCS/docs.powerdns.com/
+
+            # Invalidate CloudFront cache for docs.powerdns.com
+            aws cloudfront create-invalidation \
+              --distribution-id $AWS_CLOUDFRONT_DISTRIBUTION_ID_DOCS \
+              --paths "/*"
           fi
+      # Cleanup credentials
+      - name: Cleanup rclone config
+        if: always()
+        run: |
+          rm -f ~/.config/rclone/rclone.conf
