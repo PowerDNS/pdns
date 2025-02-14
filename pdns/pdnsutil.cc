@@ -955,8 +955,8 @@ static int increaseSerial(const DNSName& zone, DNSSECKeeper &dk)
 
   auto rrs = vector<DNSResourceRecord>{rr};
   if (!sd.db->replaceRRSet(sd.domain_id, zone, rr.qtype, rrs)) {
-    sd.db->abortTransaction();
     cerr << "Backend did not replace SOA record. Backend might not support this operation." << endl;
+    sd.db->abortTransaction();
     return -1;
   }
 
@@ -997,7 +997,13 @@ static int deleteZone(const DNSName &zone) {
       return EXIT_SUCCESS;
     }
   } catch (...) {
-    di.backend->abortTransaction();
+    try {
+      di.backend->abortTransaction();
+    } catch (...) {
+      // Ignore this exception (which is likely "cannot rollback - no
+      // transaction is active"), we have a more important one we want to
+      // rethrow.
+    }
     throw;
   }
 
