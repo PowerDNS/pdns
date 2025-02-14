@@ -178,8 +178,8 @@ SQL-based backends, list all primaries servers separated by commas in the
 'master' field of the domains table. For the freshness check PowerDNS will
 randomly select one of the configured primaries. If the freshness checks fails
 for that primary, the zone will be checked again in the next cycle, again
-using randomly one of the configured primaries. Hence, even with multiple primaries
-make sure that always all of them are available for fast zone updates. If
+using one of the configured primaries, chosen at random. Hence, even with multiple primaries,
+make sure that all of them are always available for fast zone updates. If
 the zone refresh was triggered by a NOTIFY, PowerDNS will use the source of the
 NOTIFY as target for the freshness check. Subsequent zone transfer will always
 use the primary that was used for the freshness check.
