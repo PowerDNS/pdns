@@ -1,7 +1,8 @@
 namespace pdns::rust::web::rec
 {
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define WRAPPER(A) \
+#define WRAPPER(A)                                             \
+  void A(const Request& /* unused */, Response& /* unused */); \
   void A(const Request& /* unused */, Response& /* unused */) {}
 
 class Request;
