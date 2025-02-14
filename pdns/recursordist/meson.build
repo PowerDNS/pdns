@@ -13,7 +13,7 @@ project(
 )
 meson.add_dist_script('meson-dist-script.sh')
 
-# When runniog meson dist, the command below produces multiple lines on stderr:
+# When running meson dist, the command below produces multiple lines on stderr:
 # Unable to evaluate subdir([]) in AstInterpreter --> Skipping
 meson.add_dist_script('version.sh', 'set-dist', meson.project_version())
 
