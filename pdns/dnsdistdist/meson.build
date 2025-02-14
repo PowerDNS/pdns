@@ -1,7 +1,7 @@
 project(
   'dnsdist',
   ['c', 'cpp'],
-  version: run_command('../../builder-support' / 'gen-version', check: true).stdout().strip(),
+  version: run_command('version.sh', 'get-vcs', check: true).stdout().strip(),
   license: 'GPLv2',
   license_files: 'NOTICE',
   meson_version: '>= 1.3.0',
@@ -12,6 +12,12 @@ project(
     'b_pie=true',
   ],
 )
+meson.add_dist_script('meson-dist-script.sh')
+
+# When running meson dist, the command below produces multiple lines on stderr:
+# Unable to evaluate subdir([]) in AstInterpreter --> Skipping
+meson.add_dist_script('version.sh', 'set-dist', meson.project_version())
+
 add_project_arguments('-DDNSDIST', language: 'cpp')
 
 
