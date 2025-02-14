@@ -194,3 +194,66 @@ response_rules:
             receivedQuery.id = query.id
             self.assertEqual(receivedQuery, query)
             self.assertEqual(receivedResponse, response)
+
+class TestMixingYamlWithLua(DNSDistTest):
+
+    _yaml_config_template = """---
+binds:
+  - listen_address: "127.0.0.1:%d"
+    reuseport: true
+    protocol: Do53
+    threads: 2
+
+backends:
+  - address: "127.0.0.1:%d"
+    protocol: Do53
+    pools:
+      - "tcp-pool"
+      - "inline"
+query_rules:
+  - name: "refused"
+    selector:
+      type: "QNameSet"
+      qnames:
+        - "refused.yaml-lua-mix.test.powerdns.com."
+    action:
+      type: "RCode"
+      rcode: 5
+
+"""
+    _dnsDistPort = pickAvailablePort()
+    _testServerPort = pickAvailablePort()
+    _yaml_config_params = ['_dnsDistPort', '_testServerPort']
+    _config_params = []
+    _config_template = """
+enableLuaConfiguration()
+addAction(QNameRule("notimp-lua.yaml-lua-mix.test.powerdns.com."), RCodeAction(DNSRCode.NOTIMP))
+"""
+
+    def testRefusedFromYAML(self):
+        """
+        Yaml / Lua mix: Refused from YAML
+        """
+        name = 'refused.yaml-lua-mix.test.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.set_rcode(dns.rcode.REFUSED)
+        for method in ["sendUDPQuery", "sendTCPQuery"]:
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertEqual(receivedResponse, expectedResponse)
+
+    def testNotImpFromLua(self):
+        """
+        Yaml / Lua mix: Not imp from Lua
+        """
+        name = 'notimp-lua.yaml-lua-mix.test.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.set_rcode(dns.rcode.NOTIMP)
+        for method in ["sendUDPQuery", "sendTCPQuery"]:
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertEqual(receivedResponse, expectedResponse)
