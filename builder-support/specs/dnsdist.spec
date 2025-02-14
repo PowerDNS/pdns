@@ -89,54 +89,46 @@ export LDFLAGS="-fuse-ld=lld -Wl,--build-id=sha1 -Wl,--no-as-needed -ldl"
 export AR=gcc-ar
 export RANLIB=gcc-ranlib
 
-%configure \
-  --enable-option-checking=fatal \
-  --sysconfdir=/etc/dnsdist \
-  --disable-static \
-  --disable-dependency-tracking \
-  --disable-silent-rules \
-  --enable-unit-tests \
-  --enable-lto=thin \
-  --enable-dns-over-tls \
-  --with-h2o \
+%meson \
+  -Dsysconfdir=/etc/dnsdist
+  -Dunit-tests=true \
+  -Db_lto=true \
+  -Db_lto_mode=thin \
+  -Db_pie=true \
+  -Ddebug=true \
+  -Doptimization=3 \
+  -Ddns-over-tls=true \
 %if 0%{?suse_version}
-  --disable-dnscrypt \
-  --without-libsodium \
-  --without-re2 \
-  --enable-systemd --with-systemd=%{_unitdir} \
-  --without-net-snmp
+  -Ddnscrypt=disabled \
+  -Dsnmp=false
 %endif
 %if 0%{?rhel} >= 7 || 0%{?amzn} == 2023
-  --enable-dnstap \
-  --enable-dns-over-https \
-  --enable-systemd --with-systemd=%{_unitdir} \
-  --with-gnutls \
-  --with-libcap \
-  --with-lua=%{lua_implementation} \
-  --with-re2 \
+  -Ddnstap=enabled \
+  -Ddns-over-https=true \
+  -Dtls-gnutls=enabled \
+  -Dlibcap=enabled \
+  -Dlua=luajit \
+  -Dre2=enabled \
 %if 0%{?amzn} != 2023
-  --enable-dnscrypt \
-  --with-libsodium \
-  --with-net-snmp \
+  -Ddnscrypt=enabled \
+  -Dsnmp=true \
 %endif
 %if 0%{?rhel} >= 8 || 0%{?amzn} == 2023
-  --enable-dns-over-quic \
-  --enable-dns-over-http3 \
-  --with-quiche \
+  -Ddns-over-quic=true \
+  -Ddns-over-http3=true \
 %endif
 %if 0%{?rhel} >= 8
-  --enable-yaml \
+  -Dyaml=enabled \
 %endif
   PKG_CONFIG_PATH=/usr/lib/pkgconfig:/opt/lib64/pkgconfig
 %endif
-
-make %{?_smp_mflags}
+%meson_build
 
 %check
-make %{?_smp_mflags} check || (cat test-suite.log && false)
+%meson_test
 
 %install
-%make_install
+%meson_install
 install -d %{buildroot}/%{_sysconfdir}/dnsdist
 %if 0%{?rhel} >= 8 || 0%{?amzn} == 2023
 install -Dm644 /usr/lib/libdnsdist-quiche.so %{buildroot}/%{_libdir}/libdnsdist-quiche.so
