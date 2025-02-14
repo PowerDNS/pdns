@@ -419,7 +419,7 @@ size_t dnsdist_ffi_dnsquestion_get_edns_options(dnsdist_ffi_dnsquestion_t* dq, c
   return totalCount;
 }
 
-size_t dnsdist_ffi_dnsquestion_get_http_headers(dnsdist_ffi_dnsquestion_t* ref, [[maybe_unused]] const dnsdist_ffi_http_header_t** out)
+size_t dnsdist_ffi_dnsquestion_get_http_headers([[maybe_unused]] dnsdist_ffi_dnsquestion_t* ref, [[maybe_unused]] const dnsdist_ffi_http_header_t** out)
 {
 #if defined(HAVE_DNS_OVER_HTTPS) || defined(HAVE_DNS_OVER_HTTP3)
   const auto processHeaders = [&ref](const std::unordered_map<std::string, std::string>& headers) {
@@ -498,7 +498,7 @@ void dnsdist_ffi_dnsquestion_set_result(dnsdist_ffi_dnsquestion_t* dq, const cha
   dq->result = std::string(str, strSize);
 }
 
-void dnsdist_ffi_dnsquestion_set_http_response(dnsdist_ffi_dnsquestion_t* ref, [[maybe_unused]] uint16_t statusCode, [[maybe_unused]] const char* body, [[maybe_unused]] size_t bodyLen, [[maybe_unused]] const char* contentType)
+void dnsdist_ffi_dnsquestion_set_http_response([[maybe_unused]] dnsdist_ffi_dnsquestion_t* ref, [[maybe_unused]] uint16_t statusCode, [[maybe_unused]] const char* body, [[maybe_unused]] size_t bodyLen, [[maybe_unused]] const char* contentType)
 {
 #if defined(HAVE_DNS_OVER_HTTPS)
   if (ref->dq->ids.du) {

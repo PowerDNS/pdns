@@ -2417,7 +2417,7 @@ std::shared_ptr<DNSAction> getKeyValueStoreRangeLookupAction(std::shared_ptr<Key
 }
 #endif /* defined(HAVE_LMDB) || defined(HAVE_CDB) */
 
-std::shared_ptr<DNSAction> getHTTPStatusAction(uint16_t status, PacketBuffer&& body, const std::string& contentType, const dnsdist::ResponseConfig& responseConfig)
+std::shared_ptr<DNSAction> getHTTPStatusAction([[maybe_unused]] uint16_t status, [[maybe_unused]] PacketBuffer&& body, [[maybe_unused]] const std::string& contentType, [[maybe_unused]] const dnsdist::ResponseConfig& responseConfig)
 {
 #if defined(HAVE_DNS_OVER_HTTPS)
   return std::shared_ptr<DNSAction>(new HTTPStatusAction(status, std::move(body), contentType, responseConfig));

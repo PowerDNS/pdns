@@ -883,7 +883,7 @@ static void handleLoggingConfiguration(const dnsdist::rust::settings::LoggingCon
 
 #endif /* defined(HAVE_YAML_CONFIGURATION) */
 
-bool loadConfigurationFromFile(const std::string& fileName, bool isClient, bool configCheck)
+bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] bool isClient, [[maybe_unused]] bool configCheck)
 {
 #if defined(HAVE_YAML_CONFIGURATION)
   // this is not very elegant but passing a context to the functions called by the

@@ -2697,7 +2697,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       frontend->loadTicketsKey(key);
     }
   });
-  luaCtx.writeFunction("loadTicketsKey", [](const std::string& key) {
+  luaCtx.writeFunction("loadTicketsKey", []([[maybe_unused]] const std::string& key) {
     for (const auto& frontend : dnsdist::getFrontends()) {
       if (!frontend) {
         continue;
