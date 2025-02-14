@@ -1,7 +1,7 @@
 project(
   'dnsdist',
   ['c', 'cpp'],
-  version: run_command('../../builder-support' / 'gen-version', check: true).stdout().strip(),
+  version: run_command('version.sh', 'get-vcs', check: true).stdout().strip(),
   license: 'GPLv2',
   license_files: 'NOTICE',
   meson_version: '>= 1.3.0',
@@ -12,6 +12,12 @@ project(
     'b_pie=true',
   ],
 )
+meson.add_dist_script('meson-dist-script.sh')
+
+# When running meson dist, the command below produces multiple lines on stderr:
+# Unable to evaluate subdir([]) in AstInterpreter --> Skipping
+meson.add_dist_script('version.sh', 'set-dist', meson.project_version())
+
 add_project_arguments('-DDNSDIST', language: 'cpp')
 
 
@@ -568,27 +574,34 @@ if get_option('man-pages') and python.found()
   foreach tool, info: tools
     if 'manpages' in info
       foreach man_page: info['manpages']
-        generated_man_pages += man_page
+        if not fs.is_file(man_page)
+          generated_man_pages += man_page
+        endif
       endforeach
     endif
   endforeach
-  custom_target(
-     'man-pages',
-     input: man_pages,
-     output: generated_man_pages,
-     install: true,
-     install_dir: join_paths(get_option('mandir'), 'man1'),
-     command: [
-       python,
-       product_source_dir / docs_dir / 'generate-man-pages.py',
-       '--build-root', '@BUILD_ROOT@',
-       '--source-root', '@SOURCE_ROOT@',
-       '--venv-name', 'venv-dnsdist-man-pages',
-       '--requirements-file', docs_dir / 'requirements.txt',
-       '--source-directory', docs_dir,
-       '--target-directory', '@BUILD_ROOT@',
-     ] + man_pages,
-  )
+  if generated_man_pages.length() != 0
+    summary('Generating man pages', true, section: 'Manual Pages')
+    custom_target(
+       'man-pages',
+       input: man_pages,
+       output: generated_man_pages,
+       install: true,
+       install_dir: join_paths(get_option('mandir'), 'man1'),
+       command: [
+         python,
+         product_source_dir / docs_dir / 'generate-man-pages.py',
+         '--build-root', '@BUILD_ROOT@',
+         '--source-root', '@SOURCE_ROOT@',
+         '--venv-name', 'venv-dnsdist-man-pages',
+         '--requirements-file', docs_dir / 'requirements.txt',
+         '--source-directory', docs_dir,
+         '--target-directory', '@BUILD_ROOT@',
+       ] + man_pages,
+    )
+  else
+    summary('Generating man pages', false, section: 'Manual Pages')
+  endif
 endif
 
 if dep_systemd_prog.found()
