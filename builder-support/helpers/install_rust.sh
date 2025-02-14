@@ -14,7 +14,7 @@ if [ $# -ge 1 ]; then
 fi
 
 SITE=https://downloads.powerdns.com/rust
-RUST_TARBALL=$RUST_VERSION.tar.gz
+RUST_TARBALL=$RUST_VERSION.tar.xz
 
 SHA256SUM_x86_64=$(jq -r .SHA256SUM_x86_64 < rust.json)
 SHA256SUM_aarch64=$(jq -r .SHA256SUM_aarch64 < rust.json)
@@ -46,7 +46,7 @@ echo $0: Expecting hash $VALUE
 # Line below should echo two spaces between digest and name
 echo $VALUE"  "$RUST_TARBALL | sha256sum -c -
 rm -rf $RUST_VERSION
-tar -zxf $RUST_TARBALL
+tar -Jxf $RUST_TARBALL
 cd $RUST_VERSION
 ./install.sh --prefix=/usr --components=rustc,rust-std-$ARCH-unknown-linux-gnu,cargo
 
