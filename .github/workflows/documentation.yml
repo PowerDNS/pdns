@@ -84,7 +84,7 @@ jobs:
       - run: inv ci-metrics-rec-generate
         working-directory: ./pdns/recursordist
       - run: inv ci-docs-rec-generate
-        working-directory: ./pdns/recursordist/settings
+        working-directory: ./pdns/recursordist/rec-rust-lib
       - run: inv ci-docs-build
         working-directory: ./pdns/recursordist
       - run: mv html rec-html-docs
