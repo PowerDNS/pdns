@@ -4,7 +4,7 @@ fn main() {
         // .file("src/source.cc") Code callable from Rust is in ../cxxsupport.cc
         .flag_if_supported("-std=c++17")
         .flag("-Isrc")
-        .flag("-I../../..")
+        .flag("-I../..")
         .compile("settings");
 
     // lib.rs is generated and taken care of by parent Makefile
