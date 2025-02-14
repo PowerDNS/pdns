@@ -279,7 +279,7 @@ int RecThreadInfo::runThreads(Logr::log_t log)
     RecThreadInfo::setThreadId(currentThreadId);
     recursorThread();
 
-    // Skip handler thread (it might be still handling the quite-nicely) and 1, which is actually the main thread in this case
+    // Skip handler thread (it might be still handling the quit-nicely) and 1, which is actually the main thread in this case;
     // handler thread (0) will be handled in main().
     for (unsigned int thread = 2; thread < RecThreadInfo::numRecursorThreads(); thread++) {
       auto& tInfo = RecThreadInfo::info(thread);
