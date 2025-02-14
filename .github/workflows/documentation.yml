@@ -301,7 +301,7 @@ jobs:
           if [ -n "$AWS_CLOUDFRONT_DISTRIBUTION_ID_DNSDIST" ]; then
             tar -xf artifacts/dnsdist-html-docs-${{needs.build-docs.outputs.pdns_version}}/dnsdist-html-docs.tar
             cp artifacts/dnsdist-${{needs.build-docs.outputs.pdns_version}}.pdf/dnsdist.pdf dnsdist-html-docs/
-            rclone sync --progress dnsdist-html-docs/ docs-s3:$AWS_S3_BUCKET_DOCS/dnsdist.org/
+            rclone sync dnsdist-html-docs/ docs-s3:$AWS_S3_BUCKET_DOCS/dnsdist.org/
             # Invalidate CloudFront cache for DNSdist
             aws cloudfront create-invalidation \
               --distribution-id $AWS_CLOUDFRONT_DISTRIBUTION_ID_DNSDIST \
@@ -310,14 +310,14 @@ jobs:
           if [ -n "$AWS_CLOUDFRONT_DISTRIBUTION_ID_DOCS" ]; then
             tar -xf artifacts/recursor-html-docs-${{needs.build-docs.outputs.pdns_version}}/rec-html-docs.tar
             cp artifacts/PowerDNS-Recursor-${{needs.build-docs.outputs.pdns_version}}.pdf/PowerDNS-Recursor.pdf rec-html-docs/
-            rclone sync --progress rec-html-docs/ docs-s3:$AWS_S3_BUCKET_DOCS/docs.powerdns.com/recursor/
+            rclone sync rec-html-docs/ docs-s3:$AWS_S3_BUCKET_DOCS/docs.powerdns.com/recursor/
 
             tar -xf artifacts/authoritative-html-docs-${{needs.build-docs.outputs.pdns_version}}/auth-html-docs.tar
             cp artifacts/PowerDNS-Authoritative-${{needs.build-docs.outputs.pdns_version}}.pdf/PowerDNS-Authoritative.pdf auth-html-docs/
-            rclone sync --progress auth-html-docs/ docs-s3:$AWS_S3_BUCKET_DOCS/docs.powerdns.com/authoritative/
+            rclone sync auth-html-docs/ docs-s3:$AWS_S3_BUCKET_DOCS/docs.powerdns.com/authoritative/
 
             tar -xf artifacts/website-${{needs.build-docs.outputs.pdns_version}}/website.tar
-            rclone sync --progress website/docs.powerdns.com/ docs-s3:$AWS_S3_BUCKET_DOCS/docs.powerdns.com/
+            rclone sync website/docs.powerdns.com/ docs-s3:$AWS_S3_BUCKET_DOCS/docs.powerdns.com/
 
             # Invalidate CloudFront cache for docs.powerdns.com
             aws cloudfront create-invalidation \
