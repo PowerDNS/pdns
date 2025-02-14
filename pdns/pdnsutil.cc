@@ -1597,10 +1597,14 @@ static int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
   vector<DNSResourceRecord> newrrs;
   DNSName zone(cmds.at(1));
   DNSName name;
-  if (cmds.at(2) == "@")
-    name=zone;
-  else
+  if (cmds.at(2) == "@") {
+    name = zone;
+  } else if (isCanonical(cmds.at(2)) || boost::ends_with(cmds.at(2), cmds.at(1))) {
+    name = DNSName(cmds.at(2));
+  } else {
+    cerr << "Name " << cmds.at(2) << "' does not fit into zone '" << zone << "'. Interpreting as relative name." << endl;
     name = DNSName(cmds.at(2)) + zone;
+  }
 
   rr.qtype = DNSRecordContent::TypeToNumber(cmds.at(3));
   rr.ttl = ::arg().asNum("default-ttl");
@@ -1735,10 +1739,14 @@ static int deleteRRSet(const std::string& zone_, const std::string& name_, const
   }
 
   DNSName name;
-  if(name_=="@")
-    name=zone;
-  else
-    name=DNSName(name_)+zone;
+  if (name_ == "@") {
+    name = zone;
+  } else if (isCanonical(name_) || boost::ends_with(name_, zone_)) {
+    name = DNSName(name_);
+  } else {
+    cerr << "Name " << name_ << "' does not fit into zone '" << zone << "'. Interpreting as relative name." << endl;
+    name = DNSName(name_) + zone;
+  }
 
   QType qt(QType::chartocode(type_.c_str()));
   di.backend->startTransaction(zone, -1);
