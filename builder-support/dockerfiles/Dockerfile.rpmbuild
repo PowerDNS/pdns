@@ -29,6 +29,7 @@ RUN if ! $(grep -q 'release 7' /etc/redhat-release); then \
       cd /pdns/builder-support/helpers/ && \
       ./install_quiche.sh; \
     fi
+RUN cd /pdns/builder-support/helpers/ && ./install_meson.sh
 @ENDIF
 
 # Used for -p option to only build specific spec files
