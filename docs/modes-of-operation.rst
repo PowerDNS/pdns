@@ -115,7 +115,8 @@ the primary server. In some conditions, some primary servers answer with
 a truncated SOA response (indicating TCP is required), and the freshness
 check will fail. As a workaround, the signature check and DO flag can be
 turned off by disabling
-:ref:`setting-secondary-check-signature-freshness`.
+:ref:`setting-secondary-check-signature-freshness` (be warned, this can lead
+to expired signatures if the primary server is PowerDNS).
 
 When the freshness of a domain cannot be checked, e.g. because the
 primary is offline, PowerDNS will retry the domain after
@@ -128,7 +129,10 @@ between checks. With default settings, this means that PowerDNS will
 back off for 1, then 2, then 3, etc. minutes, to a maximum of 60 minutes
 between checks. The same hold back algorithm is also applied if the zone
 transfer fails due to problems on the primary, i.e. if zone transfer is
-not allowed.
+not allowed. Note: If the freshness check was triggered by a NOTIFY, but
+the following zone transfer fails, the zone transfer will not automatically
+be retried - only when a new NOTIFY is received or the refresh timer
+triggers a freshness check.
 
 Receiving a NOTIFY immediately clears the back-off period for the
 respective domain to allow immediate freshness checks for this domain.
@@ -171,7 +175,14 @@ first in first out order.
 PowerDNS supports multiple primaries. For the BIND backend, the native
 BIND configuration language suffices to specify multiple primaries, for
 SQL-based backends, list all primaries servers separated by commas in the
-'master' field of the domains table.
+'master' field of the domains table. For the freshness check PowerDNS will
+randomly select one of the configured primaries. If the freshness checks fails
+for that primary, the zone will be checked again in the next cycle, again
+using one of the configured primaries, chosen at random. Hence, even with multiple primaries,
+make sure that all of them are always available for fast zone updates. If
+the zone refresh was triggered by a NOTIFY, PowerDNS will use the source of the
+NOTIFY as target for the freshness check. Subsequent zone transfer will always
+use the primary that was used for the freshness check.
 
 Since version 4.0.0, PowerDNS requires that primaries sign their
 notifications. During transition and interoperation with other
