@@ -17,11 +17,11 @@ void pdns::ZoneMD::readRecords(ZoneParserTNG& zpt)
     }
     catch (const PDNSException& pe) {
       std::string err = "Bad record content in record for '" + dnsResourceRecord.qname.toStringNoDot() + "'|" + dnsResourceRecord.qtype.toString() + ": " + pe.reason;
-      throw PDNSException(err);
+      throw PDNSException(std::move(err));
     }
     catch (const std::exception& e) {
       std::string err = "Bad record content in record for '" + dnsResourceRecord.qname.toStringNoDot() + "|" + dnsResourceRecord.qtype.toString() + "': " + e.what();
-      throw PDNSException(err);
+      throw PDNSException(std::move(err));
     }
     DNSRecord rec;
     rec.d_name = dnsResourceRecord.qname;

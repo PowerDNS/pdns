@@ -588,7 +588,7 @@ void ArgvMap::gatherIncludes(const std::string& directory, const std::string& su
         string msg = fullName + " is not a regular file";
         SLOG(g_log << Logger::Error << msg << std::endl,
              d_log->info(Logr::Error, "Unable to open non-regular file", "name", Logging::Loggable(fullName)));
-        throw ArgException(msg);
+        throw ArgException(std::move(msg));
       }
       vec.emplace_back(fullName);
     }
@@ -600,7 +600,7 @@ void ArgvMap::gatherIncludes(const std::string& directory, const std::string& su
     string msg = directory + " is not accessible: " + stringerror(err);
     SLOG(g_log << Logger::Error << msg << std::endl,
          d_log->error(Logr::Error, err, "Directory is not accessible", "name", Logging::Loggable(directory)));
-    throw ArgException(msg);
+    throw ArgException(std::move(msg));
   }
 
   std::sort(vec.begin(), vec.end(), CIStringComparePOSIX());

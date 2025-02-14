@@ -335,7 +335,7 @@ struct SuffixMatchTree
   std::string d_name;
   mutable std::set<SuffixMatchTree, std::less<>> children;
   mutable bool endNode;
-  mutable T d_value;
+  mutable T d_value{};
 
   /* this structure is used to do a lookup without allocating and
      copying a string, using C++14's heterogeneous lookups in ordered
