@@ -15,8 +15,9 @@ RUN cd /pdns/builder-support/helpers/ && ./install_rust.sh
 
 @IF [ -n "$M_dnsdist$M_all" ]
 RUN cd /pdns/builder-support/helpers/ && ./install_rust.sh
-RUN DEBIAN_FRONTEND=noninteractive apt-get -y install --no-install-recommends git cmake clang
+RUN DEBIAN_FRONTEND=noninteractive apt-get -y install --no-install-recommends git cmake clang ninja-build
 RUN cd /pdns/builder-support/helpers/ && ./install_quiche.sh
+RUN cd /pdns/builder-support/helpers/ && ./install_meson.sh
 @ENDIF
 
 # Used for -p option to only build specific packages
