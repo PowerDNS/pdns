@@ -14,7 +14,7 @@ external.example.com	120	IN	CNAME	somewhere.else.net.
 external-mail.example.com	120	IN	MX	25 server1.test.com.
 france.example.com	120	IN	NS	ns1.otherprovider.net.
 france.example.com	120	IN	NS	ns2.otherprovider.net.
-google-alias.example.com	120	IN	ALIAS	google-public-dns-a.google.com
+google-alias.example.com	120	IN	ALIAS	google-public-dns-a.google.com.
 hightype.example.com	120	IN	A	192.168.1.5
 hightype.example.com	120	IN	TYPE65534	\# 5 07ed260001
 host-0.example.com	120	IN	A	192.168.1.0
@@ -20338,7 +20338,7 @@ external.example.com	120	IN	CNAME	somewhere.else.net.
 external-mail.example.com	120	IN	MX	25 server1.test.com.
 france.example.com	120	IN	NS	ns1.otherprovider.net.
 france.example.com	120	IN	NS	ns2.otherprovider.net.
-google-alias.example.com	120	IN	ALIAS	google-public-dns-a.google.com
+google-alias.example.com	120	IN	ALIAS	google-public-dns-a.google.com.
 hightype.example.com	120	IN	A	192.168.1.5
 hightype.example.com	120	IN	TYPE65534	\# 5 07ed260001
 host-0.example.com	120	IN	A	192.168.1.0

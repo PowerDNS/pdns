@@ -1113,8 +1113,17 @@ static int listZone(const DNSName &zone) {
 
   while(di.backend->get(rr)) {
     if(rr.qtype.getCode() != 0) {
-      if ( (rr.qtype.getCode() == QType::NS || rr.qtype.getCode() == QType::SRV || rr.qtype.getCode() == QType::MX || rr.qtype.getCode() == QType::CNAME) && !rr.content.empty() && rr.content[rr.content.size()-1] != '.')
-	rr.content.append(1, '.');
+      switch (rr.qtype.getCode()) {
+      case QType::ALIAS:
+      case QType::CNAME:
+      case QType::MX:
+      case QType::NS:
+      case QType::SRV:
+        if (!rr.content.empty() && rr.content[rr.content.size()-1] != '.') {
+          rr.content.append(1, '.');
+        }
+        break;
+      }
 
       cout<<rr.qname<<"\t"<<rr.ttl<<"\tIN\t"<<rr.qtype.toString()<<"\t"<<rr.content<<"\n";
     }
