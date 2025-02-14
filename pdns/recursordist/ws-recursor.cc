@@ -19,12 +19,13 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifdef HAVE_CONFIG_H
+
 #include "config.h"
-#endif
+
 #include "ws-recursor.hh"
 #include "json.hh"
 
+#include <algorithm>
 #include <string>
 #include "namespaces.hh"
 #include <iostream>
@@ -41,10 +42,11 @@
 #include "logging.hh"
 #include "rec-lua-conf.hh"
 #include "rpzloader.hh"
-#include "uuid-utils.hh"
-#include "tcpiohandler.hh"
 #include "rec-main.hh"
-#include "settings/cxxsettings.hh" // IWYU pragma: keep, needed by included generated file
+#include "rec-rust-lib/cxxsettings.hh" // IWYU pragma: keep, needed by included generated file
+#include "rec-rust-lib/rust/src/bridge.hh"
+#include "rec-rust-lib/rust/web.rs.h"
+#include "rec-rust-lib/rust/misc.rs.h"
 
 using json11::Json;
 
@@ -89,11 +91,13 @@ static void apiServerConfigACLGET(const std::string& aclType, HttpRequest* /* re
 {
   // Return currently configured ACLs
   vector<string> entries;
-  if (t_allowFrom && aclType == "allow-from") {
-    entries = t_allowFrom->toStringVector();
+  auto lock1 = g_initialAllowFrom.lock();
+  auto lock2 = g_initialAllowNotifyFrom.lock();
+  if (*lock1 && aclType == "allow-from") {
+    entries = (*lock1)->toStringVector();
   }
-  else if (t_allowNotifyFrom && aclType == "allow-notify-from") {
-    entries = t_allowNotifyFrom->toStringVector();
+  else if (*lock2 && aclType == "allow-notify-from") {
+    entries = (*lock2)->toStringVector();
   }
 
   resp->setJsonBody(Json::object{
@@ -181,10 +185,28 @@ static void apiServerConfigAllowNotifyFromPUT(HttpRequest* req, HttpResponse* re
   apiServerConfigACLPUT("allow-notify-from", req, resp);
 }
 
+static bool isAllowedNotify(DNSName qname)
+{
+  auto lock = g_initialAllowNotifyFor.lock();
+
+  if (*lock == nullptr || (*lock)->empty()) {
+    return false;
+  }
+
+  do {
+    auto ret = (*lock)->find(qname);
+    if (ret != (*lock)->end()) {
+      return true;
+    }
+  } while (qname.chopOff());
+  return false;
+}
+
 static void fillZone(const DNSName& zonename, HttpResponse* resp)
 {
-  auto iter = SyncRes::t_sstorage.domainmap->find(zonename);
-  if (iter == SyncRes::t_sstorage.domainmap->end()) {
+  auto lock = g_initialDomainMap.lock();
+  auto iter = (*lock)->find(zonename);
+  if (iter == (*lock)->end()) {
     throw ApiException("Could not find domain '" + zonename.toLogString() + "'");
   }
 
@@ -213,7 +235,7 @@ static void fillZone(const DNSName& zonename, HttpResponse* resp)
     {"kind", zone.d_servers.empty() ? "Native" : "Forwarded"},
     {"servers", servers},
     {"recursion_desired", zone.d_servers.empty() ? false : zone.d_rdForward},
-    {"notify_allowed", isAllowNotifyForZone(zonename)},
+    {"notify_allowed", isAllowedNotify(zonename)},
     {"records", records}};
 
   resp->setJsonBody(doc);
@@ -357,13 +379,14 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
   Json document = req->json();
 
   DNSName zonename = apiNameToDNSName(stringFromJson(document, "name"));
-
-  const auto& iter = SyncRes::t_sstorage.domainmap->find(zonename);
-  if (iter != SyncRes::t_sstorage.domainmap->cend()) {
-    throw ApiException("Zone already exists");
+  {
+    auto map = g_initialDomainMap.lock();
+    const auto& iter = (*map)->find(zonename);
+    if (iter != (*map)->cend()) {
+      throw ApiException("Zone already exists");
+    }
+    doCreateZone(document);
   }
-
-  doCreateZone(document);
   reloadZoneConfiguration(g_yamlSettings);
   fillZone(zonename, resp);
   resp->status = 201;
@@ -372,7 +395,8 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
 static void apiServerZonesGET(HttpRequest* /* req */, HttpResponse* resp)
 {
   Json::array doc;
-  for (const auto& val : *SyncRes::t_sstorage.domainmap) {
+  auto lock = g_initialDomainMap.lock();
+  for (const auto& val : **lock) {
     const SyncRes::AuthDomain& zone = val.second;
     Json::array servers;
     for (const auto& server : zone.d_servers) {
@@ -394,7 +418,8 @@ static void apiServerZonesGET(HttpRequest* /* req */, HttpResponse* resp)
 static inline DNSName findZoneById(HttpRequest* req)
 {
   auto zonename = apiZoneIdToName(req->parameters["id"]);
-  if (SyncRes::t_sstorage.domainmap->find(zonename) == SyncRes::t_sstorage.domainmap->end()) {
+  auto lock = g_initialDomainMap.lock();
+  if ((*lock)->find(zonename) == (*lock)->end()) {
     throw ApiException("Could not find domain '" + zonename.toLogString() + "'");
   }
   return zonename;
@@ -438,8 +463,9 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp)
     throw ApiException("Query q can't be blank");
   }
 
+  auto lock = g_initialDomainMap.lock();
   Json::array doc;
-  for (const SyncRes::domainmap_t::value_type& val : *SyncRes::t_sstorage.domainmap) {
+  for (const SyncRes::domainmap_t::value_type& val : **lock) {
     string zoneId = apiZoneNameToId(val.first);
     string zoneName = val.first.toString();
     if (pdns_ci_find(zoneName, qVar) != string::npos) {
@@ -612,6 +638,8 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::d_metrics
 #include "rec-prometheus-gen.h"
 };
 
+#ifndef RUST_WS
+
 constexpr bool CHECK_PROMETHEUS_METRICS = false;
 
 static void validatePrometheusMetrics()
@@ -692,8 +720,9 @@ RecursorWebServer::RecursorWebServer(FDMultiplexer* fdm)
   d_ws->registerWebHandler("/metrics", prometheusMetrics, "GET");
   d_ws->go();
 }
+#endif // !RUST_WS
 
-void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
+static void jsonstat(HttpRequest* req, HttpResponse* resp)
 {
   string command;
 
@@ -805,6 +834,8 @@ void RecursorWebServer::jsonstat(HttpRequest* req, HttpResponse* resp)
   }
   resp->setErrorResult("Command '" + command + "' not found", 404);
 }
+
+#ifndef RUST_WS
 
 void AsyncServerNewConnectionMT(void* arg)
 {
@@ -948,4 +979,133 @@ void AsyncWebServer::go()
     return;
   }
   server->asyncWaitForConnections(d_fdm, [this](const std::shared_ptr<Socket>& socket) { serveConnection(socket); });
+}
+#endif // !RUST_WS
+
+void serveRustWeb()
+{
+  ::rust::Vec<pdns::rust::web::rec::IncomingWSConfig> config;
+
+  if (g_yamlSettings) {
+    auto settings = g_yamlStruct.lock();
+    for (const auto& listen : settings->webservice.listen) {
+      pdns::rust::web::rec::IncomingWSConfig tmp;
+      for (const auto& address : listen.addresses) {
+        tmp.addresses.emplace_back(address);
+      }
+      tmp.tls = pdns::rust::web::rec::IncomingTLS{listen.tls.certificate, listen.tls.key};
+      config.emplace_back(tmp);
+    }
+  }
+  if (config.empty()) {
+    auto address = ComboAddress(arg()["webserver-address"], arg().asNum("webserver-port"));
+    pdns::rust::web::rec::IncomingWSConfig tmp{{::rust::String{address.toStringWithPort()}}, {}};
+    config.emplace_back(tmp);
+  }
+
+  auto passwordString = arg()["webserver-password"];
+  std::unique_ptr<CredentialsHolder> password;
+  if (!passwordString.empty()) {
+    password = std::make_unique<CredentialsHolder>(std::move(passwordString), arg().mustDo("webserver-hash-plaintext-credentials"));
+  }
+  auto apikeyString = arg()["api-key"];
+  std::unique_ptr<CredentialsHolder> apikey;
+  if (!apikeyString.empty()) {
+    apikey = std::make_unique<CredentialsHolder>(std::move(apikeyString), arg().mustDo("webserver-hash-plaintext-credentials"));
+  }
+  NetmaskGroup acl;
+  acl.toMasks(::arg()["webserver-allow-from"]);
+  auto aclPtr = std::make_unique<pdns::rust::misc::NetmaskGroup>(acl);
+
+  auto logPtr = g_slog->withName("webserver");
+
+  pdns::rust::misc::LogLevel loglevel = pdns::rust::misc::LogLevel::Normal;
+  auto configLevel = ::arg()["webserver-loglevel"];
+  if (configLevel == "none") {
+    loglevel = pdns::rust::misc::LogLevel::Normal;
+  }
+  else if (configLevel == "detailed") {
+    loglevel = pdns::rust::misc::LogLevel::Detailed;
+  }
+  // This function returns after having created the web server object that handles the requests.
+  // That object and its runtime are associated with a Posix thread that waits until all tasks are
+  // done, which normally never happens. See rec-rust-lib/rust/src/web.rs for details
+  pdns::rust::web::rec::serveweb(config, std::move(password), std::move(apikey), std::move(aclPtr), std::move(logPtr), loglevel);
+}
+
+static void fromCxxToRust(const HttpResponse& cxxresp, pdns::rust::web::rec::Response& rustResponse)
+{
+  if (cxxresp.status != 0) {
+    rustResponse.status = cxxresp.status;
+  }
+  rustResponse.body = ::rust::Vec<::rust::u8>();
+  rustResponse.body.reserve(cxxresp.body.size());
+  std::copy(cxxresp.body.cbegin(), cxxresp.body.cend(), std::back_inserter(rustResponse.body));
+  for (const auto& header : cxxresp.headers) {
+    rustResponse.headers.emplace_back(pdns::rust::web::rec::KeyValue{header.first, header.second});
+  }
+}
+
+// Convert what we receive from Rust into C++ data, call functions and convert results back to Rust data
+static void rustWrapper(const std::function<void(HttpRequest*, HttpResponse*)>& func, const pdns::rust::web::rec::Request& rustRequest, pdns::rust::web::rec::Response& rustResponse)
+{
+  HttpRequest request;
+  HttpResponse response;
+  request.body = std::string(reinterpret_cast<const char*>(rustRequest.body.data()), rustRequest.body.size()); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+  request.url = std::string(rustRequest.uri);
+  for (const auto& [key, value] : rustRequest.vars) {
+    request.getvars[std::string(key)] = std::string(value);
+  }
+  for (const auto& [key, value] : rustRequest.parameters) {
+    request.parameters[std::string(key)] = std::string(value);
+  }
+  // These two log objects are not used by the Rust code, as they take the logging object from the
+  // context, initialized from an argument to pdns::rust::web::rec::serveweb()
+  request.d_slog = g_slog;
+  response.d_slog = g_slog;
+  try {
+    func(&request, &response);
+  }
+  catch (HttpException& e) {
+    response.body = e.response().body;
+    response.status = e.response().status;
+  }
+  catch (const ApiException& e) {
+    response.setErrorResult(e.what(), 422);
+  }
+  catch (const JsonException& e) {
+    response.setErrorResult(e.what(), 422);
+  }
+  fromCxxToRust(response, rustResponse);
+}
+
+namespace pdns::rust::web::rec
+{
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define WRAPPER(A) \
+  void A(const Request& rustRequest, Response& rustResponse) { rustWrapper(::A, rustRequest, rustResponse); }
+
+WRAPPER(jsonstat)
+WRAPPER(apiDiscovery)
+WRAPPER(apiDiscoveryV1)
+WRAPPER(apiServer)
+WRAPPER(apiServerCacheFlush)
+WRAPPER(apiServerConfig)
+WRAPPER(apiServerConfigAllowFromGET)
+WRAPPER(apiServerConfigAllowFromPUT)
+WRAPPER(apiServerConfigAllowNotifyFromGET)
+WRAPPER(apiServerConfigAllowNotifyFromPUT)
+WRAPPER(apiServerDetail)
+WRAPPER(apiServerRPZStats)
+WRAPPER(apiServerSearchData)
+WRAPPER(apiServerStatistics)
+WRAPPER(apiServerZoneDetailDELETE)
+WRAPPER(apiServerZoneDetailGET)
+WRAPPER(apiServerZoneDetailPUT)
+WRAPPER(apiServerZonesGET)
+WRAPPER(apiServerZonesPOST)
+WRAPPER(prometheusMetrics)
+WRAPPER(serveStuff)
+
 }

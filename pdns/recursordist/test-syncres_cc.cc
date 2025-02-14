@@ -590,3 +590,5 @@ LWResult::Result basicRecordsForQnameMinimization(LWResult* res, const DNSName& 
   }
   return LWResult::Result::Timeout;
 }
+
+#include "rec-web-stubs.hh"

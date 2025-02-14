@@ -8,6 +8,9 @@ python -V
 pip install -U pip wheel | cat
 pip install -r requirements.txt | cat
 
+make clean-certs
+make certs
+
 if [ -z "${SDIG}" ]; then
   export SDIG=$(type -P sdig)
 fi

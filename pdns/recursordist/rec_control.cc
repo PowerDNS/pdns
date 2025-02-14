@@ -32,7 +32,7 @@
 #include "credentials.hh"
 #include "namespaces.hh"
 #include "rec_channel.hh"
-#include "settings/cxxsettings.hh"
+#include "rec-rust-lib/cxxsettings.hh"
 #include "logger.hh"
 #include "logging.hh"
 
@@ -448,3 +448,4 @@ int main(int argc, char** argv)
     return 1;
   }
 }
+#include "rec-web-stubs.hh"

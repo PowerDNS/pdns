@@ -7,11 +7,11 @@ from test_helper import ApiTestCase, is_auth
 class TestBasics(ApiTestCase):
 
     def test_unauth(self):
-        r = requests.get(self.url("/api/v1/servers/localhost"))
+        r = requests.get(self.url("/api/v1/servers/localhost"), verify=False)
         self.assertEqual(r.status_code, requests.codes.unauthorized)
 
     def test_index_html(self):
-        r = requests.get(self.url("/"), auth=('admin', self.server_web_password))
+        r = requests.get(self.url("/"), auth=('admin', self.server_web_password), verify=False)
         self.assertEqual(r.status_code, requests.codes.ok)
 
     def test_split_request(self):

@@ -1,0 +1,17 @@
+#!/bin/sh -e
+
+#echo "PWD=$PWD"
+#echo "srcdir=$srcdir"
+#echo "builddir=$builddir"
+
+$CARGO build --release $RUST_TARGET --target-dir=$builddir/target --manifest-path $srcdir/Cargo.toml
+
+cp -vp target/$RUSTC_TARGET_ARCH/release/librecrust.a $builddir/rec-rust-lib/rust/librecrust.a
+cp -vp target/$RUSTC_TARGET_ARCH/cxxbridge/recrust/src/lib.rs.h $srcdir/lib.rs.h
+cp -vp target/$RUSTC_TARGET_ARCH/cxxbridge/recrust/src/lib.rs.h $builddir/rec-rust-lib/rust/lib.rs.h
+cp -vp target/$RUSTC_TARGET_ARCH/cxxbridge/rust/cxx.h $srcdir/cxx.h
+cp -vp target/$RUSTC_TARGET_ARCH/cxxbridge/rust/cxx.h $builddir/rec-rust-lib/rust/cxx.h
+cp -vp target/$RUSTC_TARGET_ARCH/cxxbridge/recrust/src/web.rs.h $srcdir/web.rs.h
+cp -vp target/$RUSTC_TARGET_ARCH/cxxbridge/recrust/src/web.rs.h $builddir/rec-rust-lib/rust/web.rs.h
+cp -vp target/$RUSTC_TARGET_ARCH/cxxbridge/recrust/src/misc.rs.h $srcdir/misc.rs.h
+cp -vp target/$RUSTC_TARGET_ARCH/cxxbridge/recrust/src/misc.rs.h $builddir/rec-rust-lib/rust/misc.rs.h

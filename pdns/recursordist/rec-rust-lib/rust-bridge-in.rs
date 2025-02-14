@@ -303,6 +303,25 @@ pub struct ForwardingCatalogZone {
     groups: Vec<FCZDefault>,
 }
 
+#[derive(Deserialize, Serialize, Clone, Debug, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct IncomingTLS {
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    certificate: String,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    key: String,
+    // #[serde(default, skip_serializing_if = "crate::is_default")]
+    // password: String, Not currently supported, as rusttls does not support this out of the box
+}
+#[derive(Deserialize, Serialize, Clone, Debug, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct IncomingWSConfig {
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    addresses: Vec<String>,
+    #[serde(default, skip_serializing_if = "crate::is_default")]
+    tls: IncomingTLS,
+}
+
 // Two structs used to generated YAML based on a vector of name to value mappings
 // Cannot use Enum as CXX has only very basic Enum support
 struct Value {
@@ -391,8 +410,3 @@ extern "Rust" {
     fn api_delete_zones(file: &str) -> Result<()>;
 }
 
-unsafe extern "C++" {
-    include!("bridge.hh");
-    fn qTypeStringToCode(name: &str) -> u16;
-    fn isValidHostname(name: &str) -> bool;
-}

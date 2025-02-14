@@ -38,6 +38,11 @@
 #include "dnsrecords.hh"
 #include "base64.hh"
 #include "validate-recursor.hh"
+#include "threadname.hh"
+#include "iputils.hh"
+#include "bridge.hh"
+#include "rec-rust-lib/rust/web.rs.h"
+#include "rec-rust-lib/rust/misc.rs.h"
 
 ::rust::Vec<::rust::String> pdns::settings::rec::getStrings(const std::string& name)
 {
@@ -1437,13 +1442,34 @@ pdns::settings::rec::YamlSettingsStatus pdns::settings::rec::tryReadYAML(const s
   return yamlstatus;
 }
 
-uint16_t pdns::rust::settings::rec::qTypeStringToCode(::rust::Str str)
+namespace pdns::rust::misc
+{
+
+template <typename M>
+Wrapper<M>::Wrapper(const M& arg) :
+  d_ptr(std::make_unique<M>(arg))
+{
+}
+
+template <typename M>
+Wrapper<M>::~Wrapper<M>() = default;
+
+template <typename M>
+[[nodiscard]] const M& Wrapper<M>::get() const
+{
+  return *d_ptr;
+}
+
+template class Wrapper<::NetmaskGroup>;
+template class Wrapper<::ComboAddress>;
+
+uint16_t qTypeStringToCode(::rust::Str str)
 {
   std::string tmp(str.data(), str.length());
   return QType::chartocode(tmp.c_str());
 }
 
-bool pdns::rust::settings::rec::isValidHostname(::rust::Str str)
+bool isValidHostname(::rust::Str str)
 {
   try {
     auto name = DNSName(string(str));
@@ -1452,4 +1478,40 @@ bool pdns::rust::settings::rec::isValidHostname(::rust::Str str)
   catch (...) {
     return false;
   }
+}
+
+std::unique_ptr<ComboAddress> comboaddress(::rust::Str str)
+{
+  return std::make_unique<ComboAddress>(::ComboAddress(std::string(str)));
+}
+
+bool matches(const std::unique_ptr<NetmaskGroup>& nmg, const std::unique_ptr<ComboAddress>& address)
+{
+  return nmg->get().match(address->get());
+}
+
+void log(const std::shared_ptr<Logger>& logger, pdns::rust::misc::Priority log_level, ::rust::Str msg, const ::rust::Vec<KeyValue>& values)
+{
+  auto log = logger;
+  for (const auto& [key, value] : values) {
+    log = log->withValues(std::string(key), Logging::Loggable(std::string(value)));
+  }
+  log->info(static_cast<Logr::Priority>(log_level), std::string(msg));
+}
+
+void error(const std::shared_ptr<Logger>& logger, pdns::rust::misc::Priority log_level, ::rust::Str error, ::rust::Str msg, const ::rust::Vec<KeyValue>& values)
+{
+  auto log = logger;
+  for (const auto& [key, value] : values) {
+    log = log->withValues(std::string(key), Logging::Loggable(std::string(value)));
+  }
+  log->error(static_cast<Logr::Priority>(log_level), std::string(error), std::string(msg));
+}
+
+std::shared_ptr<Logger> withValue(const std::shared_ptr<Logger>& logger, ::rust::Str key, ::rust::Str val)
+{
+  auto ret = logger->withValues(std::string(key), Logging::Loggable(std::string(val)));
+  return ret;
+}
+
 }

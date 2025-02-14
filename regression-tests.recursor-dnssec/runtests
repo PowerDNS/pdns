@@ -21,6 +21,9 @@ protoc -I=../pdns/ --python_out=. ../pdns/dnsmessage.proto
 protoc -I=../pdns/ --python_out=. ../pdns/dnstap.proto
 
 
+make clean-certs
+make certs
+
 mkdir -p configs
 
 [ -f ./vars ] && . ./vars

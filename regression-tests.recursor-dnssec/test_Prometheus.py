@@ -81,3 +81,36 @@ api-key=%s
         self.assertEqual(r.status_code, 200)
         self.checkPrometheusContentBasic(r.text)
         self.checkPrometheusContentPromtool(r.content)
+
+class HttpsPrometheusTest(RecPrometheusTest):
+    _confdir = 'HttpsPrometheus'
+    _wsPort = 8042
+    _wsTimeout = 2
+    _wsPassword = 'secretpassword'
+    _apiKey = 'secretapikey'
+
+    _config_template = """
+webservice:
+  webserver: true
+  listen:
+   - addresses: [127.0.0.1:%s]
+     tls:
+       certificate: server.chain
+       key: server.key
+  password: %s
+  allow_from: [127.0.0.1]
+  api_key: %s
+""" % (_wsPort, _wsPassword, _apiKey)
+
+    @classmethod
+    def generateRecursorConfig(cls, confdir):
+        super(HttpsPrometheusTest, cls).generateRecursorYamlConfig(confdir)
+
+    def testPrometheus(self):
+        self.waitForTCPSocket("127.0.0.1", self._wsPort)
+        url = 'https://user:' + self._wsPassword + '@127.0.0.1:' + str(self._wsPort) + '/metrics'
+        r = requests.get(url, timeout=self._wsTimeout, verify='ca.pem')
+        self.assertTrue(r)
+        self.assertEqual(r.status_code, 200)
+        self.checkPrometheusContentBasic(r.text)
+        self.checkPrometheusContentPromtool(r.content)

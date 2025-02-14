@@ -198,6 +198,7 @@ using RemoteLoggerStats_t = std::unordered_map<std::string, RemoteLoggerInterfac
 
 extern bool g_yamlSettings;
 extern string g_yamlSettingsSuffix;
+extern LockGuarded<pdns::rust::settings::rec::Recursorsettings> g_yamlStruct;
 extern bool g_logCommonErrors;
 extern size_t g_proxyProtocolMaximumSize;
 extern std::atomic<bool> g_quiet;
@@ -233,10 +234,10 @@ extern std::atomic<bool> g_statsWanted;
 extern uint32_t g_disthashseed;
 extern int g_argc;
 extern char** g_argv;
-extern std::shared_ptr<SyncRes::domainmap_t> g_initialDomainMap; // new threads needs this to be setup
-extern std::shared_ptr<NetmaskGroup> g_initialAllowFrom; // new thread needs to be setup with this
-extern std::shared_ptr<NetmaskGroup> g_initialAllowNotifyFrom; // new threads need this to be setup
-extern std::shared_ptr<notifyset_t> g_initialAllowNotifyFor; // new threads need this to be setup
+extern LockGuarded<std::shared_ptr<SyncRes::domainmap_t>> g_initialDomainMap; // new threads needs this to be setup
+extern LockGuarded<std::shared_ptr<NetmaskGroup>> g_initialAllowFrom; // new thread needs to be setup with this
+extern LockGuarded<std::shared_ptr<NetmaskGroup>> g_initialAllowNotifyFrom; // new threads need this to be setup
+extern LockGuarded<std::shared_ptr<notifyset_t>> g_initialAllowNotifyFor; // new threads need this to be setup
 extern thread_local std::shared_ptr<Regex> t_traceRegex;
 extern thread_local FDWrapper t_tracefd;
 extern string g_programname;

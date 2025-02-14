@@ -32,13 +32,9 @@
 #include "logger.hh"
 #include "syncres.hh"
 #include "zoneparser-tng.hh"
-#include "settings/cxxsettings.hh"
+#include "rec-rust-lib/cxxsettings.hh"
 #include "rec-system-resolve.hh"
-
-// XXX consider including rec-main.hh?
-extern int g_argc;
-extern char** g_argv;
-extern string g_yamlSettingsSuffix;
+#include "rec-main.hh"
 
 bool primeHints(time_t now)
 {
@@ -112,7 +108,6 @@ static void* pleaseUseNewSDomainsMap(std::shared_ptr<SyncRes::domainmap_t> newma
 
 string reloadZoneConfiguration(bool yaml)
 {
-  std::shared_ptr<SyncRes::domainmap_t> original = SyncRes::getDomainMap();
   auto log = g_slog->withName("config");
 
   string configname = ::arg()["config-dir"] + "/recursor";
@@ -199,17 +194,20 @@ string reloadZoneConfiguration(bool yaml)
       oldAndNewDomains.insert(entry.first);
     }
 
-    if (original) {
-      for (const auto& entry : *original) {
-        oldAndNewDomains.insert(entry.first);
+    {
+      auto lock = g_initialDomainMap.lock();
+      if (*lock) {
+        for (const auto& entry : **lock) {
+          oldAndNewDomains.insert(entry.first);
+        }
       }
     }
 
     // these explicitly-named captures should not be necessary, as lambda
     // capture of tuple-like structured bindings is permitted, but some
     // compilers still don't allow it
-    broadcastFunction([dmap = std::move(newDomainMap)] { return pleaseUseNewSDomainsMap(dmap); });
-    broadcastFunction([nsset = std::move(newNotifySet)] { return pleaseSupplantAllowNotifyFor(nsset); });
+    broadcastFunction([dmap = newDomainMap] { return pleaseUseNewSDomainsMap(dmap); });
+    broadcastFunction([nsset = newNotifySet] { return pleaseSupplantAllowNotifyFor(nsset); });
 
     // Wipe the caches *after* the new auth domain info has been set
     // up, as a query during setting up might fill the caches
@@ -217,6 +215,8 @@ string reloadZoneConfiguration(bool yaml)
     for (const auto& entry : oldAndNewDomains) {
       wipeCaches(entry, true, 0xffff);
     }
+    *g_initialDomainMap.lock() = std::move(newDomainMap);
+    *g_initialAllowNotifyFor.lock() = std::move(newNotifySet);
     return "ok\n";
   }
   catch (const std::exception& e) {

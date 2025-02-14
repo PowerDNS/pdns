@@ -917,7 +917,7 @@ Novell
 nproxy
 NPTL
 NSes
-nsid
+NSID
 nsis
 nsrecord
 nsset
@@ -1016,9 +1016,9 @@ pickchashed
 pickclosest
 pickhashed
 picknamehashed
-pickselfweighted
 pickrandom
 pickrandomsample
+pickselfweighted
 pickwhashed
 pickwrandom
 piddir
@@ -1498,7 +1498,7 @@ versionmodified
 Viala
 viewcode
 visitedlinkcolor
-vixie
+Vixie
 vla
 Voegeli
 Volker

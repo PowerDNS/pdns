@@ -4,3 +4,11 @@
 /configs
 /vars
 /*_pb2.py
+/ca.key
+/ca.pem
+/ca.srl
+/server.chain
+/server.csr
+/server.key
+/server.pem
+/server.p12

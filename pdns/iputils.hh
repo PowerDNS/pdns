@@ -27,7 +27,6 @@
 #include <iostream>
 #include <cstdio>
 #include <functional>
-#include <bitset>
 #include "pdnsexception.hh"
 #include "misc.hh"
 #include <netdb.h>
