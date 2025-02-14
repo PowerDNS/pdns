@@ -449,7 +449,7 @@ void RecursorLua4::postPrepareContext() // NOLINT(readability-function-cognitive
     });
 
   d_lw->writeFunction("getRecursorThreadId", []() {
-    return RecThreadInfo::id();
+    return RecThreadInfo::thread_local_id();
   });
 
   d_lw->writeFunction("sendCustomSNMPTrap", [](const std::string& str) {
