@@ -286,15 +286,26 @@ jobs:
           if [ -n "$AWS_CLOUDFRONT_DISTRIBUTION_ID_DNSDIST" ]; then
             tar -xf artifacts/dnsdist-html-docs-${{needs.build-docs.outputs.pdns_version}}/dnsdist-html-docs.tar
             cp artifacts/dnsdist-${{needs.build-docs.outputs.pdns_version}}.pdf/dnsdist.pdf dnsdist-html-docs/
-            node .github/scripts/publish.js publish dnsdist.org dnsdist-html-docs /
-          fi
-          if [ -n "$AWS_CLOUDFRONT_DISTRIBUTION_ID_DOCS" ]; then
-            tar -xf artifacts/recursor-html-docs-${{needs.build-docs.outputs.pdns_version}}/rec-html-docs.tar
-            cp artifacts/PowerDNS-Recursor-${{needs.build-docs.outputs.pdns_version}}.pdf/PowerDNS-Recursor.pdf rec-html-docs/
-            node .github/scripts/publish.js publish docs.powerdns.com rec-html-docs /recursor
+            rclone copy dnsdist-html-docs/ docs-s3:$AWS_S3_BUCKET_DOCS/dnsdist.org/
+            # Invalidate CloudFront cache for DNSdist
+            aws cloudfront create-invalidation \
+              --distribution-id $AWS_CLOUDFRONT_DISTRIBUTION_ID_DNSDIST \
+              --paths "/*"
+                      fi
+                      if [ -n "$AWS_CLOUDFRONT_DISTRIBUTION_ID_DOCS" ]; then
+                        tar -xf artifacts/recursor-html-docs-${{needs.build-docs.outputs.pdns_version}}/rec-html-docs.tar
+                        cp artifacts/PowerDNS-Recursor-${{needs.build-docs.outputs.pdns_version}}.pdf/PowerDNS-Recursor.pdf rec-html-docs/
+            rclone copy rec-html-docs/ docs-s3:$AWS_S3_BUCKET_DOCS/docs.powerdns.com/recursor/
+
             tar -xf artifacts/authoritative-html-docs-${{needs.build-docs.outputs.pdns_version}}/auth-html-docs.tar
             cp artifacts/PowerDNS-Authoritative-${{needs.build-docs.outputs.pdns_version}}.pdf/PowerDNS-Authoritative.pdf auth-html-docs/
-            node .github/scripts/publish.js publish docs.powerdns.com auth-html-docs /authoritative
+            rclone copy auth-html-docs/ docs-s3:$AWS_S3_BUCKET_DOCS/docs.powerdns.com/authoritative/
+
             tar -xf artifacts/website-${{needs.build-docs.outputs.pdns_version}}/website.tar
-            node .github/scripts/publish.js publish docs.powerdns.com website/docs.powerdns.com /
-          fi
+            rclone copy website/docs.powerdns.com/ docs-s3:$AWS_S3_BUCKET_DOCS/docs.powerdns.com/
+
+            # Invalidate CloudFront cache for docs.powerdns.com
+            aws cloudfront create-invalidation \
+              --distribution-id $AWS_CLOUDFRONT_DISTRIBUTION_ID_DOCS \
+              --paths "/*"
+                      fi
