@@ -32,7 +32,7 @@ HTTPHeaderRule::HTTPHeaderRule(const std::string& header, const std::string& reg
 #endif /* HAVE_DNS_OVER_HTTPS || HAVE_DNS_OVER_HTTP3 */
 }
 
-bool HTTPHeaderRule::matches(const DNSQuestion* dnsQuestion) const
+bool HTTPHeaderRule::matches([[maybe_unused]] const DNSQuestion* dnsQuestion) const
 {
 #if defined(HAVE_DNS_OVER_HTTPS)
   if (dnsQuestion->ids.du) {
@@ -72,7 +72,7 @@ HTTPPathRule::HTTPPathRule(std::string path) :
 #endif /* HAVE_DNS_OVER_HTTPS || HAVE_DNS_OVER_HTTP3 */
 }
 
-bool HTTPPathRule::matches(const DNSQuestion* dnsQuestion) const
+bool HTTPPathRule::matches([[maybe_unused]] const DNSQuestion* dnsQuestion) const
 {
 #if defined(HAVE_DNS_OVER_HTTPS)
   if (dnsQuestion->ids.du) {
@@ -101,7 +101,7 @@ HTTPPathRegexRule::HTTPPathRegexRule(const std::string& regex) :
 #endif /* HAVE_DNS_OVER_HTTPS || HAVE_DNS_OVER_HTTP3 */
 }
 
-bool HTTPPathRegexRule::matches(const DNSQuestion* dnsQuestion) const
+bool HTTPPathRegexRule::matches([[maybe_unused]] const DNSQuestion* dnsQuestion) const
 {
 #if defined(HAVE_DNS_OVER_HTTPS)
   if (dnsQuestion->ids.du) {
