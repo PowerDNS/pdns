@@ -35,7 +35,6 @@ jobs:
       matrix:
         product: ['authoritative', 'recursor', 'dnsdist']
         os:
-          - el-7
           - el-8
           - centos-9-stream
           - ubuntu-noble
@@ -44,9 +43,6 @@ jobs:
           - debian-trixie
           - amazon-2023
         runner-os: ${{ fromJson(needs.prepare.outputs.runnerlist )}}
-        exclude:
-          - os: el-7
-            runner-os: ubicloud-standard-2-arm
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
