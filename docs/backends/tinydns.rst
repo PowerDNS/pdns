@@ -1,15 +1,21 @@
 TinyDNS Backend
 ===============
 
-- Native: Yes
-- Master: Yes
-- Slave: No
-- Superslave: No
-- DNSSEC: No
-- Zone caching: Yes
-- Multiple Instances: Yes
-- Module name: tinydns
-- Launch: ``tinydns``
+* Native: Yes
+* Primary: Yes
+* Secondary: No
+* Producer: No
+* Consumer: No
+* Autosecondary: No
+* DNS Update: No
+* DNSSEC: No
+* Disabled data: No
+* Comments: No
+* API: Read-only
+* Multiple Instances: Yes
+* Zone caching: Yes
+* Module name: tinydns
+* Launch: ``tinydns``
 
 The TinyDNS backend allows you to use
 `djbdns's <https://cr.yp.to/djbdns.html>`__ ``data.cdb`` file format as
