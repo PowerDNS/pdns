@@ -47,7 +47,7 @@ void MiniCurl::init()
   }
 }
 
-MiniCurl::MiniCurl(const string& useragent)
+MiniCurl::MiniCurl(const string& useragent, bool failonerror) : d_failonerror(failonerror)
 {
 #ifdef CURL_STRICTER
   d_curl = std::unique_ptr<CURL, decltype(&curl_easy_cleanup)>(curl_easy_init(), curl_easy_cleanup);
@@ -170,7 +170,7 @@ void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const C
 
   curl_easy_setopt(getCURLPtr(d_curl), CURLOPT_SSL_VERIFYPEER, verify);
   curl_easy_setopt(getCURLPtr(d_curl), CURLOPT_SSL_VERIFYHOST, verify ? 2 : 0);
-  curl_easy_setopt(getCURLPtr(d_curl), CURLOPT_FAILONERROR, true);
+  curl_easy_setopt(getCURLPtr(d_curl), CURLOPT_FAILONERROR, d_failonerror);
   curl_easy_setopt(getCURLPtr(d_curl), CURLOPT_URL, str.c_str());
   curl_easy_setopt(getCURLPtr(d_curl), CURLOPT_WRITEFUNCTION, write_callback);
   curl_easy_setopt(getCURLPtr(d_curl), CURLOPT_WRITEDATA, this);
@@ -198,14 +198,14 @@ void MiniCurl::setupURL(const std::string& str, const ComboAddress* rem, const C
   d_data.clear();
 }
 
-std::string MiniCurl::getURL(const std::string& str, const ComboAddress* rem, const ComboAddress* src, int timeout, [[maybe_unused]] bool fastopen, bool verify, size_t byteslimit)
+std::string MiniCurl::getURL(const std::string& str, const ComboAddress* rem, const ComboAddress* src, int timeout, [[maybe_unused]] bool fastopen, bool verify, size_t byteslimit, int http_status)
 {
   setupURL(str, rem, src, timeout, byteslimit, fastopen, verify);
   auto res = curl_easy_perform(getCURLPtr(d_curl));
   long http_code = 0;
   curl_easy_getinfo(getCURLPtr(d_curl), CURLINFO_RESPONSE_CODE, &http_code);
 
-  if ((res != CURLE_OK && res != CURLE_ABORTED_BY_CALLBACK) || http_code != 200)  {
+  if ((res != CURLE_OK && res != CURLE_ABORTED_BY_CALLBACK) || http_code != http_status)  {
     throw std::runtime_error("Unable to retrieve URL ("+std::to_string(http_code)+"): "+string(curl_easy_strerror(res)));
   }
   std::string ret = d_data;
