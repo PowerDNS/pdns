@@ -35,13 +35,8 @@ BuildRequires: libsodium-devel
 
 Requires(pre): shadow-utils
 
-%ifarch aarch64
 BuildRequires: lua-devel
 %define lua_implementation lua
-%else
-BuildRequires: luajit-devel
-%define lua_implementation luajit
-%endif
 
 Provides: powerdns = %{version}-%{release}
 %global backends %{backends} bind
@@ -140,22 +135,6 @@ BuildRequires: unixODBC-devel
 %description backend-odbc
 This package contains the godbc backend for %{name}
 
-%package backend-geoip
-Summary: Geo backend for %{name}
-Group: System Environment/Daemons
-Requires: %{name}%{?_isa} = %{version}-%{release}
-BuildRequires: yaml-cpp-devel
-%if 0%{?rhel} < 9 && 0%{?amzn} != 2023
-BuildRequires: geoip-devel
-%endif
-BuildRequires: libmaxminddb-devel
-%global backends %{backends} geoip
-
-%description backend-geoip
-This package contains the geoip backend for %{name}
-It allows different answers to DNS queries coming from different
-IP address ranges or based on the geoipgraphic location
-
 %package backend-lmdb
 Summary: LMDB backend for %{name}
 Group: System Environment/Daemons
@@ -175,16 +154,6 @@ BuildRequires: tinycdb-devel
 
 %description backend-tinydns
 This package contains the TinyDNS backend for %{name}
-
-%if 0%{?amzn} != 2
-%package ixfrdist
-BuildRequires: yaml-cpp-devel
-Summary: A program to redistribute zones over AXFR and IXFR
-Group: System Environment/Daemons
-
-%description ixfrdist
-This package contains the ixfrdist program.
-%endif
 
 %prep
 %autosetup -p1 -n %{name}-%{getenv:BUILDER_VERSION}
@@ -209,9 +178,6 @@ export LDFLAGS=-L/usr/lib64/boost169
   --enable-tools \
 %if 0%{?amzn} != 2023
   --with-libsodium \
-%endif
-%if 0%{?amzn} != 2
-  --enable-ixfrdist \
 %endif
   --enable-unit-tests \
   --enable-lua-records \
@@ -398,21 +364,8 @@ systemctl daemon-reload ||:
 %doc modules/godbcbackend/4.3.0_to_4.7.0_schema.mssql.sql
 %{_libdir}/%{name}/libgodbcbackend.so
 
-%files backend-geoip
-%{_libdir}/%{name}/libgeoipbackend.so
-
 %files backend-lmdb
 %{_libdir}/%{name}/liblmdbbackend.so
 
 %files backend-tinydns
 %{_libdir}/%{name}/libtinydnsbackend.so
-
-%if 0%{?amzn} != 2
-%files ixfrdist
-%{_bindir}/ixfrdist
-%{_mandir}/man1/ixfrdist.1.gz
-%{_mandir}/man5/ixfrdist.yml.5.gz
-%{_sysconfdir}/%{name}/ixfrdist.example.yml
-%{_unitdir}/ixfrdist.service
-%{_unitdir}/ixfrdist@.service
-%endif

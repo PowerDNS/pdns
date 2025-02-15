@@ -34,13 +34,8 @@ BuildRequires: gnutls-devel
 BuildRequires: libcap-devel
 BuildRequires: libnghttp2-devel
 BuildRequires: lmdb-devel
-%ifarch aarch64
 BuildRequires: lua-devel
 %define lua_implementation lua
-%else
-BuildRequires: luajit-devel
-%define lua_implementation luajit
-%endif
 BuildRequires: re2-devel
 BuildRequires: systemd
 BuildRequires: systemd-devel
@@ -98,7 +93,6 @@ export RANLIB=gcc-ranlib
   --enable-unit-tests \
   --enable-lto=thin \
   --enable-dns-over-tls \
-  --with-h2o \
 %if 0%{?suse_version}
   --disable-dnscrypt \
   --without-libsodium \

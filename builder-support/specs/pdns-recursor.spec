@@ -27,13 +27,8 @@ BuildRequires: net-snmp-devel
 BuildRequires: libsodium-devel
 %endif
 
-%ifarch aarch64
 BuildRequires: lua-devel
 %define lua_implementation lua
-%else
-BuildRequires: luajit-devel
-%define lua_implementation luajit
-%endif
 
 %ifarch ppc64 ppc64le
 BuildRequires: libatomic
