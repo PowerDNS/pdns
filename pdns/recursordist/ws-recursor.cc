@@ -1020,7 +1020,7 @@ void serveRustWeb()
   auto logPtr = g_slog->withName("webserver");
 
   pdns::rust::misc::LogLevel loglevel = pdns::rust::misc::LogLevel::Normal;
-  auto configLevel = ::arg()["webserver-loglevel"];
+  const auto& configLevel = ::arg()["webserver-loglevel"];
   if (configLevel == "none") {
     loglevel = pdns::rust::misc::LogLevel::Normal;
   }
