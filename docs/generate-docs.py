@@ -41,7 +41,7 @@ def main():
     sphinx_build = venv_directory.joinpath("bin").joinpath("sphinx-build")
 
     if args.pdf_name:
-        buildargs = [
+        build_args = [
             sphinx_build,
             "-M",
             "latexpdf",
@@ -49,7 +49,7 @@ def main():
             '.'
         ]
     else:
-        buildargs = [
+        build_args = [
             sphinx_build,
             "-b",
             "html",
@@ -57,7 +57,7 @@ def main():
             target_directory,
         ]
     subprocess.run(
-        buildargs + files, # default is to do all
+        build_args + files, # if files is empty, it means do all files
         check=True
     )
     if args.pdf_name:

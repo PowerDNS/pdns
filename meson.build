@@ -1124,47 +1124,48 @@ if get_option('unit-tests-backends')
   endforeach
 endif
 
-html_docs = custom_target(
-  'html-docs',
-  command: [
-      python,
-      product_source_dir / docs_dir / 'generate-docs.py',
-      '--build-root', '@BUILD_ROOT@',
-      '--source-root', '@SOURCE_ROOT@',
-      '--venv-name', 'venv-docs',
-      '--requirements-file', docs_dir / 'requirements.txt',
-      '--source-directory', docs_dir,
-      '--target-directory', '@BUILD_ROOT@' / 'html-docs',
-  ],
-  output: 'html-docs',
-  console: true,
-)
+if python.found()
+  html_docs = custom_target(
+    'html-docs',
+    command: [
+        python,
+        product_source_dir / docs_dir / 'generate-docs.py',
+        '--build-root', '@BUILD_ROOT@',
+        '--source-root', '@SOURCE_ROOT@',
+        '--venv-name', 'venv-docs',
+        '--requirements-file', docs_dir / 'requirements.txt',
+        '--source-directory', docs_dir,
+        '--target-directory', '@BUILD_ROOT@' / 'html-docs',
+    ],
+    output: 'html-docs',
+    console: true,
+  )
 
-docs_tarball = custom_target(
-  'html-docs.tar.bz2',
-  command: ['tar', 'cjf', 'html-docs.tar.bz2', html_docs],
-  output: 'html-docs.tar.bz2',
-)
+  docs_tarball = custom_target(
+    'html-docs.tar.bz2',
+    command: ['tar', 'cjf', 'html-docs.tar.bz2', html_docs],
+    output: 'html-docs.tar.bz2',
+  )
 
-pdf_docs = custom_target(
-  command: [
-      python,
-      product_source_dir / docs_dir / 'generate-docs.py',
-      '--build-root', '@BUILD_ROOT@',
-      '--source-root', '@SOURCE_ROOT@',
-      '--venv-name', 'venv-docs',
-      '--requirements-file', docs_dir / 'requirements.txt',
-      '--source-directory', docs_dir,
-      '--target-directory', '@BUILD_ROOT@',
-      '--pdf-name', 'PowerDNS-Authoritative.pdf',
-  ],
-  output: 'PowerDNS-Authoritative.pdf',
-  console: true,
-)
+  pdf_docs = custom_target(
+    command: [
+        python,
+        product_source_dir / docs_dir / 'generate-docs.py',
+        '--build-root', '@BUILD_ROOT@',
+        '--source-root', '@SOURCE_ROOT@',
+        '--venv-name', 'venv-docs',
+        '--requirements-file', docs_dir / 'requirements.txt',
+        '--source-directory', docs_dir,
+        '--target-directory', '@BUILD_ROOT@',
+        '--pdf-name', 'PowerDNS-Authoritative.pdf',
+    ],
+    output: 'PowerDNS-Authoritative.pdf',
+    console: true,
+  )
 
-run_target(
-  'all-docs',
-  # args mentioned in command line become auto-dependency
-  command: ['echo', 'Generated', html_docs, docs_tarball, pdf_docs],
-)
-
+  run_target(
+    'all-docs',
+    # args mentioned in command line become auto-dependency
+    command: ['echo', 'Generated', html_docs, docs_tarball, pdf_docs],
+  )
+endif
