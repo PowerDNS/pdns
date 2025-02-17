@@ -1635,7 +1635,7 @@ static int createZone(const DNSName &zone, const DNSName& nsname) {
 }
 
 // add-record ZONE name type [ttl] "content" ["content"]
-static int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
+static int addOrReplaceRecord(bool isAdd, const vector<string>& cmds) {
   DNSResourceRecord rr;
   vector<DNSResourceRecord> newrrs;
   DNSName zone(cmds.at(1));
@@ -1644,9 +1644,6 @@ static int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
     name=zone;
   else
     name = DNSName(cmds.at(2)) + zone;
-
-  rr.qtype = DNSRecordContent::TypeToNumber(cmds.at(3));
-  rr.ttl = ::arg().asNum("default-ttl");
 
   UtilBackend B; //NOLINT(readability-identifier-length)
   DomainInfo di;
@@ -1657,64 +1654,99 @@ static int addOrReplaceRecord(bool addOrReplace, const vector<string>& cmds) {
   if (di.isSecondaryType() && !g_force) {
     throw PDNSException("Operation on a secondary zone is not allowed unless --force");
   }
+
+  rr.qtype = DNSRecordContent::TypeToNumber(cmds.at(3));
+  rr.ttl = ::arg().asNum("default-ttl");
   rr.auth = true;
   rr.domain_id = di.id;
   rr.qname = name;
   DNSResourceRecord oldrr;
 
-  di.backend->startTransaction(zone, -1);
-
-  if(addOrReplace) { // the 'add' case
-    di.backend->lookup(rr.qtype, rr.qname, di.id);
-
-    while(di.backend->get(oldrr))
-      newrrs.push_back(oldrr);
-  }
-
   unsigned int contentStart = 4;
   if(cmds.size() > 5) {
-    rr.ttl = atoi(cmds.at(4).c_str());
-    if (std::to_string(rr.ttl) == cmds.at(4)) {
+    uint32_t ttl = atoi(cmds.at(4).c_str());
+    if (std::to_string(ttl) == cmds.at(4)) {
+      rr.ttl = ttl;
       contentStart++;
-    }
-    else {
-      rr.ttl = ::arg().asNum("default-ttl");
     }
   }
 
-  di.backend->lookup(QType(QType::ANY), rr.qname, di.id);
-  bool found=false;
-  if(rr.qtype.getCode() == QType::CNAME) { // this will save us SO many questions
+  di.backend->startTransaction(zone, -1);
 
-    while(di.backend->get(oldrr)) {
-      if(addOrReplace || oldrr.qtype.getCode() != QType::CNAME) // the replace case is ok if we replace one CNAME by the other
-        found=true;
+  // Enforce that CNAME records can not be mixed with any other.
+  // If we add a CNAME: there should be no existing records except for one
+  // possible previous CNAME, which will get replaced.
+  // If we add something else: there should be no existing CNAME record.
+  bool reject{false};
+  if (rr.qtype.getCode() == QType::CNAME) {
+    di.backend->lookup(QType(QType::ANY), rr.qname, static_cast<int>(di.id));
+    while (di.backend->get(oldrr)) {
+      if (oldrr.qtype.getCode() == QType::CNAME) {
+        if (not isAdd) {
+          // Replacement operation: ok to replace CNAME with another
+          continue;
+        }
+      }
+      reject = true;
     }
-    if(found) {
-      cerr<<"Attempting to add CNAME to "<<rr.qname<<" which already had existing records"<<endl;
+    if (reject) {
+      cerr<<"Attempting to add CNAME to "<<rr.qname<<" which already has existing records"<<endl;
       return EXIT_FAILURE;
     }
   }
   else {
-    while(di.backend->get(oldrr)) {
-      if(oldrr.qtype.getCode() == QType::CNAME)
-        found=true;
+    di.backend->lookup(QType(QType::CNAME), rr.qname, static_cast<int>(di.id));
+    // TODO: It would be nice to have a way to complete a lookup and release its
+    // resources without having to exhaust its results - here one successful
+    // get() is all we need to decide to reject the operation. I'm looking at
+    // you, lmdb backend.
+    while (di.backend->get(oldrr)) {
+      reject = true;
     }
-    if(found) {
-      cerr<<"Attempting to add record to "<<rr.qname<<" which already had a CNAME record"<<endl;
+    if (reject) {
+      cerr<<"Attempting to add record to "<<rr.qname<<" which already has a CNAME record"<<endl;
       return EXIT_FAILURE;
     }
   }
 
-  if(!addOrReplace) {
-    cout<<"Current records for "<<rr.qname<<" IN "<<rr.qtype.toString()<<" will be replaced"<<endl;
-  }
+  // Synthesize the new records.
   for(auto i = contentStart ; i < cmds.size() ; ++i) {
     rr.content = DNSRecordContent::make(rr.qtype.getCode(), QClass::IN, cmds.at(i))->getZoneRepresentation(true);
 
-    newrrs.push_back(rr);
+    bool skip{false};
+    for (const auto &record: newrrs) {
+      if (rr.content == record.content) {
+        cout<<R"(Ignoring duplicate record content ")"<<rr.content<<R"(")"<<endl;
+        skip = true;
+        break;
+      }
+    }
+    if (!skip) {
+      newrrs.push_back(rr);
+    }
   }
 
+  if(isAdd) {
+    // the 'add' case; preserve existing records...
+    size_t newRecordsCount = newrrs.size();
+    di.backend->lookup(rr.qtype, rr.qname, static_cast<int>(di.id));
+    while(di.backend->get(oldrr)) {
+      // ...unless their contents are identical to the records we are adding.
+      bool skip{false};
+      for (size_t idx = 0; idx < newRecordsCount; ++idx) {
+        if (newrrs.at(idx).content == oldrr.content) {
+          skip = true;
+          break;
+        }
+      }
+      if (!skip) {
+        newrrs.push_back(oldrr);
+      }
+    }
+  }
+  else {
+    cout<<"All existing records for "<<rr.qname<<" IN "<<rr.qtype.toString()<<" will be replaced"<<endl;
+  }
 
   if(!di.backend->replaceRRSet(di.id, name, rr.qtype, newrrs)) {
     cerr<<"backend did not accept the new RRset, aborting"<<endl;
