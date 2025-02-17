@@ -64,14 +64,6 @@ RUN touch /var/lib/rpm/* &&  if $(grep -q 'release 7' /etc/redhat-release); then
 @ENDIF
 
 @IF [ -n "$M_dnsdist$M_all" ]
-
-# --allowerasing does not exist on el7, so we fall back to just installing
-# this is fine because --allowerasing is only there to deal with libcurl conflicting with libcurl-minimal on some el9 images
-RUN touch /var/lib/rpm/* && mkdir /libh2o && cd /libh2o && \
-      yum install -y --allowerasing curl libcurl openssl-devel cmake || yum install -y curl libcurl openssl-devel cmake && \
-      cd /pdns/builder-support/helpers/ && \
-      ./install_h2o.sh
-
 RUN touch /var/lib/rpm/* && if $(grep -q 'release 7' /etc/redhat-release); then \
       scl enable devtoolset-11 -- builder/helpers/build-specs.sh builder-support/specs/dnsdist.spec; \
     elif $(grep -q 'release 8' /etc/redhat-release); then \
