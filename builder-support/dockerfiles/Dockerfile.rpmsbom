@@ -12,7 +12,7 @@ RUN cd /pdns/builder-support/helpers/ && \
 
 @IF [ -n "$M_dnsdist$M_all" ]
 RUN cd /pdns/builder-support/helpers/; \
-    python3 generate-sbom-dnf.py /dist/dnsdist-${BUILDER_VERSION}-${BUILDER_TARGET}.cyclonedx.json dnsdist rust.json quiche.json h2o.json
+    python3 generate-sbom-dnf.py /dist/dnsdist-${BUILDER_VERSION}-${BUILDER_TARGET}.cyclonedx.json dnsdist rust.json quiche.json
 @ENDIF
 
 @IF [ -n "$M_authoritative$M_all" ]
