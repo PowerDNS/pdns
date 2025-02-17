@@ -734,3 +734,16 @@ dep_conf_distfile = custom_target(
   install_dir:  get_option('sysconfdir'),
 )
 
+run_target(
+  'html-docs',
+  command: [
+      python,
+      product_source_dir / docs_dir / 'generate-docs.py',
+      '--build-root', '@BUILD_ROOT@',
+      '--source-root', '@SOURCE_ROOT@',
+      '--venv-name', 'venv-docs',
+      '--requirements-file', docs_dir / 'requirements.txt',
+      '--source-directory', docs_dir,
+      '--target-directory', '@BUILD_ROOT@' / 'html-docs',
+  ]
+)
