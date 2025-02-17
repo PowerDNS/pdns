@@ -102,7 +102,7 @@ subdir('ext' / 'luawrapper')
 subdir('ext' / 'protozero')
 subdir('ext' / 'yahttp')
 
-if get_option('lmdb').allowed()
+if dep_lmdb.found()
   subdir('ext' / 'lmdb-safe')
 else
   dep_lmdb_safe = declare_dependency()
