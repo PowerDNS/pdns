@@ -16,8 +16,8 @@ echo "${MESON_TARBALL_HASH}"  "${MESON_TARBALL}" | sha256sum -c -
 tar xf "${MESON_TARBALL}"
 cd "meson-${MESON_VERSION}"
 
-python setup.py build
-python setup.py install
+python3 setup.py build
+python3 setup.py install
 
 cd ..
 rm -rf "${MESON_TARBALL}" "meson-${MESON_VERSION}"
