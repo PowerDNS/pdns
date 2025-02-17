@@ -2233,7 +2233,10 @@ static int serviceMain(Logr::log_t log)
   }
   g_networkTimeoutMsec = ::arg().asNum("network-timeout");
 
-  std::tie(*g_initialDomainMap.lock(), *g_initialAllowNotifyFor.lock()) = parseZoneConfiguration(g_yamlSettings);
+  { // Reduce scope of locks (otherwise Coverity induces from this line the global vars below should be
+    // protected by a mutex)
+    std::tie(*g_initialDomainMap.lock(), *g_initialAllowNotifyFor.lock()) = parseZoneConfiguration(g_yamlSettings);
+  }
 
   g_latencyStatSize = ::arg().asNum("latency-statistic-size");
 
