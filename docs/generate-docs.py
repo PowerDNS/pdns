@@ -3,6 +3,7 @@
 import argparse
 import glob
 import itertools
+import os
 import subprocess
 import sys
 import venv
@@ -32,24 +33,35 @@ def main():
     subprocess.run([pip, "install", "-U", "pip", "setuptools", "wheel"], check=True)
     subprocess.run([pip, "install", "-r", requirements_file], check=True)
 
-    # Run sphinx to generate the man-pages.
+    # Run sphinx to generate the docs
     source_directory = source_root.joinpath(args.source_directory)
     target_directory = build_root.joinpath(args.target_directory)
     files = [glob.glob(str(source_root.joinpath(pat))) for pat in args.files]
     files = list(itertools.chain.from_iterable(files))
     sphinx_build = venv_directory.joinpath("bin").joinpath("sphinx-build")
-    subprocess.run(
-        [
+
+    if args.latex_name:
+        buildargs = [
+            sphinx_build,
+            "-M",
+            "latexpdf",
+            source_directory,
+            '.'
+        ]
+    else:
+        buildargs = [
             sphinx_build,
             "-b",
             "html",
             source_directory,
             target_directory,
         ]
-        + files, # default is to do all
+    subprocess.run(
+        buildargs + files, # default is to do all
         check=True
     )
-
+    if args.latex_name:
+        os.rename(build_root.joinpath('latex').joinpath(args.latex_name), args.latex_name)
 
 def create_argument_parser():
     """Create command-line argument parser."""
@@ -91,6 +103,12 @@ def create_argument_parser():
         type=Path,
         required=True,
         help="Target directory for man-pages relative to the build root",
+    )
+    parser.add_argument(
+        "--latex-name",
+        type=Path,
+        required=False,
+        help="Generate latex instead of html",
     )
     parser.add_argument(
         "files",
