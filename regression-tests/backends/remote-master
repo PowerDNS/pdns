@@ -89,6 +89,7 @@ case $context in
 
 
 		# generate pdns.conf for pdnsutil
+		backend=remote
 		cat > pdns-remote.conf <<EOF
 module-dir=$PDNS_BUILD_PATH/modules
 launch=remote

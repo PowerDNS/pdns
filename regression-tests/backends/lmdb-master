@@ -1,5 +1,6 @@
 case $context in
     lmdb | lmdb-nodnssec | lmdb-nsec3 | lmdb-nsec3-optout | lmdb-nsec3-narrow)
+        backend=lmdb
         cat > pdns-lmdb.conf << __EOF__
 module-dir=$PDNS_BUILD_PATH/modules
 launch=lmdb
