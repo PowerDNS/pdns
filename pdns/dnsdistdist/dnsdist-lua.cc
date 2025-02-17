@@ -1302,7 +1302,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     dnsdist::console::clearHistory();
   });
 
-  luaCtx.writeFunction("testCrypto", [](boost::optional<string> optTestMsg) {
+  luaCtx.writeFunction("testCrypto", []([[maybe_unused]] boost::optional<string> optTestMsg) {
     setLuaNoSideEffect();
 #if defined(HAVE_LIBSODIUM) || defined(HAVE_LIBCRYPTO)
     try {

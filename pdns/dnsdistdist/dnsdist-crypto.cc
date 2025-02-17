@@ -296,7 +296,7 @@ void Nonce::init()
 {
 }
 
-void Nonce::merge(const Nonce& lower, const Nonce& higher)
+void Nonce::merge(const Nonce&, const Nonce&)
 {
 }
 
@@ -304,21 +304,21 @@ void Nonce::increment()
 {
 }
 
-std::string encryptSym(const std::string_view& msg, const std::string& key, Nonce& nonce, bool incrementNonce)
+std::string encryptSym(const std::string_view& msg, const std::string&, Nonce&, bool)
 {
   return std::string(msg);
 }
-std::string decryptSym(const std::string_view& msg, const std::string& key, Nonce& nonce, bool incrementNonce)
+std::string decryptSym(const std::string_view& msg, const std::string&, Nonce&, bool)
 {
   return std::string(msg);
 }
 
-string newKey(bool base64Encoded)
+string newKey(bool)
 {
   return "\"plaintext\"";
 }
 
-bool isValidKey(const std::string& key)
+bool isValidKey(const std::string&)
 {
   return true;
 }
