@@ -40,7 +40,7 @@ def main():
     files = list(itertools.chain.from_iterable(files))
     sphinx_build = venv_directory.joinpath("bin").joinpath("sphinx-build")
 
-    if args.latex_name:
+    if args.pdf_name:
         buildargs = [
             sphinx_build,
             "-M",
@@ -60,8 +60,8 @@ def main():
         buildargs + files, # default is to do all
         check=True
     )
-    if args.latex_name:
-        os.rename(build_root.joinpath('latex').joinpath(args.latex_name), args.latex_name)
+    if args.pdf_name:
+        os.rename(build_root.joinpath('latex').joinpath(args.pdf_name), args.pdf_name)
 
 def create_argument_parser():
     """Create command-line argument parser."""
@@ -105,10 +105,10 @@ def create_argument_parser():
         help="Target directory for man-pages relative to the build root",
     )
     parser.add_argument(
-        "--latex-name",
+        "--pdf-name",
         type=Path,
         required=False,
-        help="Generate latex instead of html",
+        help="Generate pdf instead of html",
     )
     parser.add_argument(
         "files",

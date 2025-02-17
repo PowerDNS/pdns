@@ -712,7 +712,7 @@ docs_tarball = custom_target(
   output: 'html-docs.tar.bz2',
 )
 
-latex_docs = custom_target(
+pdf_docs = custom_target(
   command: [
       python,
       product_source_dir / docs_dir / 'generate-docs.py',
@@ -722,7 +722,7 @@ latex_docs = custom_target(
       '--requirements-file', docs_dir / 'requirements.txt',
       '--source-directory', docs_dir,
       '--target-directory', '@BUILD_ROOT@',
-      '--latex-name', 'dnsdist.pdf',
+      '--pdf-name', 'dnsdist.pdf',
   ],
   output: 'dnsdist.pdf',
   console: true,
@@ -730,5 +730,6 @@ latex_docs = custom_target(
 
 run_target(
   'all-docs',
-  command: ['echo', html_docs, docs_tarball, latex_docs],
+  # args mentioned in command line become auto-dependency
+  command: ['echo', 'Generated', html_docs, docs_tarball, pdf_docs],
 )
