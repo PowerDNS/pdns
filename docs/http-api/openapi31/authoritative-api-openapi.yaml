@@ -1200,6 +1200,8 @@ components:
           type: string
         zone:
           type: string
+        type:
+          type: string
 
     SearchResult:
       title: SearchResult
