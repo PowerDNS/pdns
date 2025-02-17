@@ -200,7 +200,6 @@ common_sources += files(
   src_dir / 'ednsoptions.cc',
   src_dir / 'ednssubnet.cc',
   src_dir / 'gettime.cc',
-  src_dir / 'ipcipher.cc',
   src_dir / 'iputils.cc',
   src_dir / 'libssl.cc',
   src_dir / 'misc.cc',
