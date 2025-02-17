@@ -176,6 +176,11 @@ paths:
           description: Limit output to the RRset of this type. Can only be used together with rrset_name.
           schema:
             type: string
+        - name: include_disabled
+          in: query
+          description: '“true” (default) or “false”, whether to include disabled RRsets in the response.'
+          schema:
+            type: boolean
       responses:
         '200':
           description: A Zone
@@ -520,7 +525,7 @@ paths:
       tags:
         - zonemetadata
       responses:
-        '200':
+        '204':
           description: OK
         default:
           $ref: "#/components/responses/Error"
