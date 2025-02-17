@@ -51,12 +51,6 @@ RUN touch /var/lib/rpm/* && if grep -q 'release 8' /etc/redhat-release; then \
 @ENDIF
 
 @IF [ -n "$M_dnsdist$M_all" ]
-
-RUN touch /var/lib/rpm/* && mkdir /libh2o && cd /libh2o && \
-      dnf install -y --allowerasing curl libcurl openssl-devel cmake && \
-      cd /pdns/builder-support/helpers/ && \
-      ./install_h2o.sh
-
 RUN touch /var/lib/rpm/* && if grep -q 'release 8' /etc/redhat-release; then \
       scl enable gcc-toolset-13 -- builder/helpers/build-specs.sh builder-support/specs/dnsdist.spec; \
     else \
