@@ -735,6 +735,9 @@ dep_conf_distfile = custom_target(
 )
 
 if python.found()
+  find_rst_files = run_command(['find', docs_dir, '-name', '*.rst'])
+  rst_files = find_rst_files.stdout().strip().split('\n')
+
   html_docs = custom_target(
     'html-docs',
     command: [
@@ -749,6 +752,7 @@ if python.found()
     ],
     output: 'html-docs',
     console: true,
+    depend_files: rst_files,
   )
 
   docs_tarball = custom_target(
@@ -771,6 +775,7 @@ if python.found()
     ],
     output: 'PowerDNS-Recursor.pdf',
     console: true,
+    depend_files: rst_files,
   )
 
   run_target(
