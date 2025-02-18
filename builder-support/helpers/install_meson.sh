@@ -16,8 +16,12 @@ echo "${MESON_TARBALL_HASH}"  "${MESON_TARBALL}" | sha256sum -c -
 tar xf "${MESON_TARBALL}"
 cd "meson-${MESON_VERSION}"
 
-python3 setup.py build
-python3 setup.py install
+install -Dpm0644 -t /usr/lib/rpm/macros.d/ data/macros.meson
+
+python3 -m pip install .
+ln -s /usr/local/bin/meson /usr/bin/meson
+PYVERS=$(python3 --version | sed 's/Python //' | cut -d. -f1,2)
+ln -s "/usr/local/lib/python${PYVERS}/site-packages/mesonbuild" /usr/lib/python${PYVERS}/site-packages/mesonbuild
 
 cd ..
 rm -rf "${MESON_TARBALL}" "meson-${MESON_VERSION}"

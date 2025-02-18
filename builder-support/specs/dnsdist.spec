@@ -5,7 +5,9 @@ Summary: Powerful and scriptable DNS loadbalancer
 License: GPLv2
 Vendor: PowerDNS.COM BV
 Group: System/DNS
-Source: %{name}-%{getenv:BUILDER_VERSION}.tar.bz2
+Source: %{name}-%{getenv:BUILDER_VERSION}.tar.xz
+BuildRequires: ninja-build
+BuildRequires: hostname
 BuildRequires: readline-devel
 BuildRequires: libedit-devel
 BuildRequires: openssl-devel
@@ -59,6 +61,13 @@ dnsdist is a high-performance DNS loadbalancer that is scriptable in Lua.
 %prep
 %autosetup -p1 -n %{name}-%{getenv:BUILDER_VERSION}
 
+%if 0%{?rhel} >= 9
+%global toolchain clang
+%else
+# we need to disable the hardened flags because they are GCC-only
+%undefine _hardened_build
+%endif
+
 %build
 # We need to build with LLVM/clang to be able to use LTO, since we are linking against a static Rust library built with LLVM
 export CC=clang
@@ -66,22 +75,28 @@ export CXX=clang++
 # build-id SHA1 prevents an issue with the debug symbols ("export: `-Wl,--build-id=sha1': not a valid identifier")
 # and the --no-as-needed -ldl an issue with the dlsym not being found ("ld.lld: error: undefined symbol: dlsym eferenced by weak.rs:142 (library/std/src/sys/pal/unix/weak.rs:142) [...] in archive ./dnsdist-rust-lib/rust/libdnsdist_rust.a)
 export LDFLAGS="-fuse-ld=lld -Wl,--build-id=sha1 -Wl,--no-as-needed -ldl"
+%if 0%{?rhel} < 9
+export CFLAGS="-O2 -g -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -fexceptions -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -gdwarf-4"
+export CXXFLAGS="-O2 -g -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -fexceptions -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -gdwarf-4"
+%endif
 
-export AR=gcc-ar
-export RANLIB=gcc-ranlib
+#export AR=gcc-ar
+#export RANLIB=gcc-ranlib
+export PKG_CONFIG_PATH=/usr/lib/pkgconfig:/opt/lib64/pkgconfig
 
 %meson \
-  -Dsysconfdir=/etc/dnsdist
+  --sysconfdir=/etc/dnsdist \
   -Dunit-tests=true \
   -Db_lto=true \
   -Db_lto_mode=thin \
   -Db_pie=true \
-  -Ddebug=true \
-  -Doptimization=3 \
   -Ddns-over-tls=true \
 %if 0%{?suse_version}
   -Ddnscrypt=disabled \
-  -Dsnmp=false
+  -Dsnmp=false \
+%else
+  -Ddnscrypt=enabled \
+  -Dsnmp=true \
 %endif
   -Ddnstap=enabled \
   -Ddns-over-https=true \
@@ -89,12 +104,9 @@ export RANLIB=gcc-ranlib
   -Dlibcap=enabled \
   -Dlua=luajit \
   -Dre2=enabled \
-  -Ddnscrypt=enabled \
-  -Dsnmp=true \
   -Ddns-over-quic=true \
   -Ddns-over-http3=true \
-  -Dyaml=enabled \
-  PKG_CONFIG_PATH=/usr/lib/pkgconfig:/opt/lib64/pkgconfig
+  -Dyaml=enabled
 %meson_build
 
 %check
