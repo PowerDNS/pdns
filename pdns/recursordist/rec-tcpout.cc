@@ -51,32 +51,32 @@ void TCPOutConnectionManager::cleanup(const struct timeval& now)
   }
 }
 
-void TCPOutConnectionManager::store(const struct timeval& now, const ComboAddress& remoteAddress, Connection&& connection)
+void TCPOutConnectionManager::store(const struct timeval& now, const pair_t& pair, Connection&& connection)
 {
   ++connection.d_numqueries;
   if (s_maxQueries > 0 && connection.d_numqueries >= s_maxQueries) {
     return;
   }
 
-  if (d_idle_connections.size() >= s_maxIdlePerThread || d_idle_connections.count(remoteAddress) >= s_maxIdlePerAuth) {
+  if (d_idle_connections.size() >= s_maxIdlePerThread || d_idle_connections.count(pair) >= s_maxIdlePerAuth) {
     cleanup(now);
   }
 
   if (d_idle_connections.size() >= s_maxIdlePerThread) {
     return;
   }
-  if (d_idle_connections.count(remoteAddress) >= s_maxIdlePerAuth) {
+  if (d_idle_connections.count(pair) >= s_maxIdlePerAuth) {
     return;
   }
 
   gettimeofday(&connection.d_last_used, nullptr);
-  d_idle_connections.emplace(remoteAddress, std::move(connection));
+  d_idle_connections.emplace(pair, std::move(connection));
 }
 
-TCPOutConnectionManager::Connection TCPOutConnectionManager::get(const ComboAddress& remoteAddress)
+TCPOutConnectionManager::Connection TCPOutConnectionManager::get(const pair_t& pair)
 {
-  if (d_idle_connections.count(remoteAddress) > 0) {
-    auto connection = d_idle_connections.extract(remoteAddress);
+  if (d_idle_connections.count(pair) > 0) {
+    auto connection = d_idle_connections.extract(pair);
     return connection.mapped();
   }
   return Connection{};

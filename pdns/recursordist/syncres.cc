@@ -5992,7 +5992,7 @@ int SyncRes::doResolveAt(NsSet& nameservers, DNSName auth, bool flawedNSSet, con
           if (SyncRes::s_dot_to_port_853 && remoteIP->getPort() == 853) {
             doDoT = true;
           }
-          bool forceTCP = doDoT;
+          bool forceTCP = doDoT | true;
 
           if (!doDoT && s_max_busy_dot_probes > 0) {
             submitTryDotTask(*remoteIP, auth, tns->first, d_now.tv_sec);
