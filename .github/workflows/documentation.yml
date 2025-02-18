@@ -290,11 +290,12 @@ jobs:
             # Invalidate CloudFront cache for DNSdist
             aws cloudfront create-invalidation \
               --distribution-id $AWS_CLOUDFRONT_DISTRIBUTION_ID_DNSDIST \
-              --paths "/*"
-                      fi
-                      if [ -n "$AWS_CLOUDFRONT_DISTRIBUTION_ID_DOCS" ]; then
-                        tar -xf artifacts/recursor-html-docs-${{needs.build-docs.outputs.pdns_version}}/rec-html-docs.tar
-                        cp artifacts/PowerDNS-Recursor-${{needs.build-docs.outputs.pdns_version}}.pdf/PowerDNS-Recursor.pdf rec-html-docs/
+              --paths "/*" \
+              --no-wait
+          fi
+          if [ -n "$AWS_CLOUDFRONT_DISTRIBUTION_ID_DOCS" ]; then
+            tar -xf artifacts/recursor-html-docs-${{needs.build-docs.outputs.pdns_version}}/rec-html-docs.tar
+            cp artifacts/PowerDNS-Recursor-${{needs.build-docs.outputs.pdns_version}}.pdf/PowerDNS-Recursor.pdf rec-html-docs/
             rclone copy rec-html-docs/ docs-s3:$AWS_S3_BUCKET_DOCS/docs.powerdns.com/recursor/
 
             tar -xf artifacts/authoritative-html-docs-${{needs.build-docs.outputs.pdns_version}}/auth-html-docs.tar
@@ -307,5 +308,11 @@ jobs:
             # Invalidate CloudFront cache for docs.powerdns.com
             aws cloudfront create-invalidation \
               --distribution-id $AWS_CLOUDFRONT_DISTRIBUTION_ID_DOCS \
-              --paths "/*"
-                      fi
+              --paths "/*" \
+              --no-wait
+          fi
+      # Cleanup credentials
+      - name: Cleanup rclone config
+        if: always()
+        run: |
+          rm -f ~/.config/rclone/rclone.conf
