@@ -306,22 +306,41 @@ static void logIncomingResponse(const std::shared_ptr<std::vector<std::unique_pt
   }
 }
 
-static bool tcpconnect(const ComboAddress& ip, TCPOutConnectionManager::Connection& connection, bool& dnsOverTLS, const std::string& nsName)
+class BindError
 {
-  dnsOverTLS = SyncRes::s_dot_to_port_853 && ip.getPort() == 853;
+};
 
-  connection = t_tcp_manager.get(ip);
+static bool tcpconnect(const ComboAddress& remote, const std::optional<ComboAddress> localBind, TCPOutConnectionManager::Connection& connection, bool& dnsOverTLS, const std::string& nsName)
+{
+  dnsOverTLS = SyncRes::s_dot_to_port_853 && remote.getPort() == 853;
+
+  connection = t_tcp_manager.get(std::make_pair(remote, localBind));
   if (connection.d_handler) {
     return false;
   }
 
   const struct timeval timeout{
     g_networkTimeoutMsec / 1000, static_cast<suseconds_t>(g_networkTimeoutMsec) % 1000 * 1000};
-  Socket s(ip.sin4.sin_family, SOCK_STREAM);
+  Socket s(remote.sin4.sin_family, SOCK_STREAM);
   s.setNonBlocking();
   setTCPNoDelay(s.getHandle());
-  ComboAddress localip = pdns::getQueryLocalAddress(ip.sin4.sin_family, 0);
-  s.bind(localip);
+  ComboAddress localip = localBind ? *localBind : pdns::getQueryLocalAddress(remote.sin4.sin_family, 0);
+  if (localBind) {
+    cerr << "Connecting TCP to " << remote.toString() << " with specific local address " << localip.toString() << endl;
+  }
+  else {
+    cerr << "Connecting TCP to " << remote.toString() << " with no specific local address" << endl;
+  }
+
+  try {
+    s.bind(localip);
+  }
+  catch (const NetworkError& e) {
+    if (localBind) {
+      throw BindError();
+    }
+    throw;
+  }
 
   std::shared_ptr<TLSCtx> tlsCtx{nullptr};
   if (dnsOverTLS) {
@@ -331,14 +350,15 @@ static bool tcpconnect(const ComboAddress& ip, TCPOutConnectionManager::Connecti
     // tlsParams.d_caStore
     tlsCtx = getTLSContext(tlsParams);
     if (tlsCtx == nullptr) {
-      g_slogout->info(Logr::Error, "DoT requested but not available", "server", Logging::Loggable(ip));
+      g_slogout->info(Logr::Error, "DoT requested but not available", "server", Logging::Loggable(remote));
       dnsOverTLS = false;
     }
   }
   connection.d_handler = std::make_shared<TCPIOHandler>(nsName, false, s.releaseHandle(), timeout, tlsCtx);
+  connection.d_local = localBind;
   // Returned state ignored
   // This can throw an exception, retry will need to happen at higher level
-  connection.d_handler->tryConnect(SyncRes::s_tcp_fast_open_connect, ip);
+  connection.d_handler->tryConnect(SyncRes::s_tcp_fast_open_connect, remote);
   return true;
 }
 
@@ -553,7 +573,7 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
     ret = arecvfrom(buf, 0, address, len, qid, domain, type, queryfd, subnetOpts, *now);
   }
   else {
-    bool isNew;
+    bool isNew{};
     do {
       try {
         // If we get a new (not re-used) TCP connection that does not
@@ -561,8 +581,7 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
         // peer has closed it on error, so we retry. At some point we
         // *will* get a new connection, so this loop is not endless.
         isNew = true; // tcpconnect() might throw for new connections. In that case, we want to break the loop, scanbuild complains here, which is a false positive afaik
-        // XXX cookie case: bind to local address
-        isNew = tcpconnect(address, connection, dnsOverTLS, nsName);
+        isNew = tcpconnect(address, addressToBindTo, connection, dnsOverTLS, nsName);
         ret = tcpsendrecv(address, connection, localip, vpacket, len, buf);
 #ifdef HAVE_FSTRM
         if (fstrmQEnabled) {
@@ -573,6 +592,12 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
           break;
         }
         connection.d_handler->close();
+      }
+      catch (const BindError&) {
+        // Cookie info already has been added to packet, so we must retry from a higher level
+        auto lock = s_cookiestore.lock();
+        lock->erase(address);
+        return LWResult::Result::BindError;
       }
       catch (const NetworkError&) {
         ret = LWResult::Result::OSLimitError; // OS limits error
@@ -772,7 +797,7 @@ LWResult::Result asyncresolve(const ComboAddress& address, const DNSName& domain
 
   if (doTCP) {
     if (connection.d_handler && lwr->d_validpacket) {
-      t_tcp_manager.store(*now, address, std::move(connection));
+      t_tcp_manager.store(*now, std::make_pair(address, connection.d_local), std::move(connection));
     }
   }
   return ret;
