@@ -92,6 +92,7 @@ SUMS$
 \.yml$
 \.zip$
 ^codedocs/doxygen\.conf$
+^docs/depfile.py$
 ^docs/http-api/tsigkey\.rst$
 ^docs/lua-records/reference/index\.rst$
 ^modules/remotebackend/example\.rb$
