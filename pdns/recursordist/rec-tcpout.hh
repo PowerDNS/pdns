@@ -39,7 +39,7 @@ public:
 
   struct Connection
   {
-    std::string toString() const
+    [[nodiscard]] std::string toString() const
     {
       if (d_handler) {
         return std::to_string(d_handler->getDescriptor()) + ' ' + std::to_string(d_handler.use_count());
@@ -52,17 +52,17 @@ public:
     size_t d_numqueries{0};
   };
 
-  void store(const struct timeval& now, const ComboAddress& ip, Connection&& connection);
-  Connection get(const ComboAddress& ip);
+  void store(const struct timeval& now, const ComboAddress& remoteAddress, Connection&& connection);
+  Connection get(const ComboAddress& remoteAddress);
   void cleanup(const struct timeval& now);
 
-  size_t size() const
+  [[nodiscard]] size_t size() const
   {
     return d_idle_connections.size();
   }
-  uint64_t* getSize() const
+  [[nodiscard]] uint64_t* getSize() const
   {
-    return new uint64_t(size());
+    return new uint64_t(size()); // NOLINT(cppcoreguidelines-owning-memory): it's the API
   }
 
 private:
