@@ -1125,9 +1125,6 @@ if get_option('unit-tests-backends')
 endif
 
 if python.found()
-  find_rst_files = run_command(['find', docs_dir, '-name', '*.rst'])
-  rst_files = find_rst_files.stdout().strip().split('\n')
-
   html_docs = custom_target(
     'html-docs',
     command: [
@@ -1140,9 +1137,9 @@ if python.found()
         '--source-directory', docs_dir,
         '--target-directory', '@BUILD_ROOT@' / 'html-docs',
     ],
-    output: 'html-docs',
+    output: 'sphinx.stamp',
     console: true,
-    depend_files: rst_files,
+    depfile: 'sphinx.d',
   )
 
   docs_tarball = custom_target(
@@ -1165,7 +1162,7 @@ if python.found()
     ],
     output: 'PowerDNS-Authoritative.pdf',
     console: true,
-    depend_files: rst_files,
+    depfile: 'sphinx.d',
   )
 
   run_target(
