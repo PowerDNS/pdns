@@ -8,13 +8,19 @@ ADD builder/helpers/set-configure-ac-version.sh /dnsdist/builder/helpers/
 ADD COPYING /dnsdist/
 @EXEC sdist_dirs=(build-aux m4 pdns ext)
 @EXEC for d in ${sdist_dirs[@]} ; do echo "COPY $d/ /dnsdist/$d/" ; done
+COPY .git/ /dnsdist/.git/
+COPY builder-support/ /dnsdist/builder-support/
+COPY docs/ /dnsdist/docs/
 ADD builder-support/gen-version /dnsdist/pdns/dnsdistdist/builder-support/gen-version
-WORKDIR /dnsdist/pdns/dnsdistdist
+WORKDIR /dnsdist/
 
 RUN mkdir /sdist
 
 ARG BUILDER_VERSION
-RUN /dnsdist/builder/helpers/set-configure-ac-version.sh && \
+
+RUN cd /dnsdist/pdns/dnsdistdist && \
+   /dnsdist/builder/helpers/set-configure-ac-version.sh && \
     meson setup build && \
     meson dist -C build
+WORKDIR /dnsdist/pdns/dnsdistdist
 RUN cp build/meson-dist/dnsdist-${BUILDER_VERSION}.tar.xz /sdist/
