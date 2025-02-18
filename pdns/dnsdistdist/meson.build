@@ -38,8 +38,6 @@ subdir('meson' / 'compiler-setup')          # Common compiler setup
 subdir('meson' / 'summary')                 # Print a system/project summary
 subdir('meson' / 'sysconfdir')              # Sysconfdir
 subdir('meson' / 'platform')                # Platform detection
-subdir('meson' / 'timet-size')              # Check the size of time_t
-subdir('meson' / 'timet-sign')              # Check the sign of time_t
 subdir('meson' / 'atomics')                 # Check atomics support
 subdir('meson' / 'pthread-headers')         # Check pthread headers
 subdir('meson' / 'pthread-setname')         # Pthread setname madness
