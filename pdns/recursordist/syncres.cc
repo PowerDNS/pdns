@@ -1621,7 +1621,6 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& address, bool 
 
       // Determine new mode
       if (ret == LWResult::Result::BindError) {
-        cerr << "BindError, retrying with new client cookie and no specific address to bind to" << endl;
         // BindError is only generated when cookies are active and we failed to bind to a local
         // address associated with a cookie, see RFC9018 section 3 last paragraph. We assume the
         // called code alread erased the cookie info.
@@ -1629,7 +1628,6 @@ LWResult::Result SyncRes::asyncresolveWrapper(const ComboAddress& address, bool 
         continue;
       }
       else if (res->d_validpacket && res->d_haveEDNS && ret == LWResult::Result::BadCookie) {
-        cerr << "Retrying with received server cookie" << endl;
         // We assume the received cookie was stored and will be used in the second iteration
         // This is the second path that re-iterates the loop
         continue;
@@ -5569,8 +5567,6 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
     ednsStats(ednsmask, qname, prefix);
   }
 
-  cerr << "asyncrW: returns " << int(resolveret) << " rcode is " << int(lwr.d_rcode) << endl;
-
   /* preoutquery killed the query by setting dq.rcode to -3 */
   if (preOutQueryRet == -3) {
     throw ImmediateServFailException("Query killed by policy");
@@ -5579,7 +5575,6 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
   d_totUsec += lwr.d_usec;
 
   if (resolveret == LWResult::Result::Spoofed || resolveret == LWResult::Result::BadCookie) {
-    cerr << "Acting as we got a spoof" << endl;
     spoofed = true;
     return false;
   }
@@ -6073,7 +6068,7 @@ int SyncRes::doResolveAt(NsSet& nameservers, DNSName auth, bool flawedNSSet, con
           if (SyncRes::s_dot_to_port_853 && remoteIP->getPort() == 853) {
             doDoT = true;
           }
-          bool forceTCP = doDoT | true;
+          bool forceTCP = doDoT;
 
           if (!doDoT && s_max_busy_dot_probes > 0) {
             submitTryDotTask(*remoteIP, auth, tns->first, d_now.tv_sec);
@@ -6084,7 +6079,6 @@ int SyncRes::doResolveAt(NsSet& nameservers, DNSName auth, bool flawedNSSet, con
           }
           if (forceTCP || (spoofed || (gotAnswer && truncated))) {
             /* retry, over TCP this time */
-            cerr << "Retry over TCP" << endl;
             gotAnswer = doResolveAtThisIP(prefix, qname, qtype, lwr, ednsmask, auth, sendRDQuery, wasForwarded,
                                           tns->first, *remoteIP, true, doDoT, truncated, spoofed, context.extendedError);
           }
