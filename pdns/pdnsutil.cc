@@ -1727,22 +1727,21 @@ static int addOrReplaceRecord(bool isAdd, const vector<string>& cmds) {
   }
 
   if(isAdd) {
-    // the 'add' case; preserve existing records...
-    size_t newRecordsCount = newrrs.size();
+    // the 'add' case; preserve existing records, making sure to discard
+    // would-be new records which contents are identical to the existing ones.
+    vector<DNSResourceRecord> oldrrs;
     di.backend->lookup(rr.qtype, rr.qname, static_cast<int>(di.id));
-    while(di.backend->get(oldrr)) {
-      // ...unless their contents are identical to the records we are adding.
-      bool skip{false};
-      for (size_t idx = 0; idx < newRecordsCount; ++idx) {
-        if (newrrs.at(idx).content == oldrr.content) {
-          skip = true;
+    while (di.backend->get(oldrr)) {
+      oldrrs.push_back(oldrr);
+      for (auto iter = newrrs.begin(); iter != newrrs.end(); ++iter) {
+        if (iter->content == oldrr.content) {
+          newrrs.erase(iter);
           break;
         }
       }
-      if (!skip) {
-        newrrs.push_back(oldrr);
-      }
     }
+    oldrrs.insert(oldrrs.end(), newrrs.begin(), newrrs.end());
+    newrrs = std::move(oldrrs);
   }
   else {
     cout<<"All existing records for "<<rr.qname<<" IN "<<rr.qtype.toString()<<" will be replaced"<<endl;
