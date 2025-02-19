@@ -1468,7 +1468,7 @@ bool LMDBBackend::list(const DNSName& target, int /* id */, bool include_disable
   d_matchkey = co(di.id);
 
   MDBOutVal key, val;
-  auto a = d_getcursor->lower_bound(d_matchkey, key, val);
+  auto a = d_getcursor->prefix(d_matchkey, key, val);
   auto b0 = key.getNoStripHeader<StringView>();
   auto b = b0.rfind(d_matchkey, 0);
   if (a || b != 0) {
@@ -1534,7 +1534,7 @@ void LMDBBackend::lookup(const QType& type, const DNSName& qdomain, int zoneId, 
     d_matchkey = co(zoneId, relqname, type.getCode());
   }
 
-  if (d_getcursor->lower_bound(d_matchkey, key, val) || key.getNoStripHeader<StringView>().rfind(d_matchkey, 0) != 0) {
+  if (d_getcursor->prefix(d_matchkey, key, val)) {
     d_getcursor.reset();
     if (d_dolog) {
       g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": " << d_dtime.udiffNoReset() << " us to execute (found nothing)" << endl;
@@ -1572,7 +1572,7 @@ bool LMDBBackend::get(DNSZoneRecord& zr)
 
       if (zr.dr.d_type == QType::NSEC3) {
         // Hit a magic NSEC3 skipping
-        if (d_getcursor->next(d_currentKey, d_currentVal) || d_currentKey.getNoStripHeader<StringView>().rfind(d_matchkey, 0) != 0) {
+        if (d_getcursor->next(d_currentKey, d_currentVal)) {
           // cerr<<"resetting d_getcursor 1"<<endl;
           d_getcursor.reset();
         }
@@ -1600,7 +1600,7 @@ bool LMDBBackend::get(DNSZoneRecord& zr)
 
       if (d_currentrrsetpos >= d_currentrrset.size()) {
         d_currentrrset.clear(); // will invalidate lrr
-        if (d_getcursor->next(d_currentKey, d_currentVal) || d_currentKey.getNoStripHeader<StringView>().rfind(d_matchkey, 0) != 0) {
+        if (d_getcursor->next(d_currentKey, d_currentVal)) {
           // cerr<<"resetting d_getcursor 2"<<endl;
           d_getcursor.reset();
         }
