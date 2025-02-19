@@ -809,6 +809,23 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
   d_dolog = ::arg().mustDo("query-logging");
 }
 
+LMDBBackend::~LMDBBackend()
+{
+  // LMDB internals require that, if we have multiple transactions active,
+  // we destroy them in the reverse order of their creation, thus we can't
+  // let the default destructor take care of d_rotxn and d_rwtxn.
+  if (d_txnorder) {
+    // RO transaction more recent than RW transaction
+    d_rotxn.reset();
+    d_rwtxn.reset();
+  }
+  else {
+    // RW transaction more recent than RO transaction
+    d_rwtxn.reset();
+    d_rotxn.reset();
+  }
+}
+
 namespace boost
 {
 namespace serialization
@@ -1073,6 +1090,7 @@ bool LMDBBackend::startTransaction(const DNSName& domain, int domain_id)
     throw DBException("Attempt to start a transaction while one was open already");
   }
   d_rwtxn = getRecordsRWTransaction(real_id);
+  d_txnorder = false;
 
   d_transactiondomain = domain;
   d_transactiondomainid = real_id;
@@ -1443,6 +1461,7 @@ bool LMDBBackend::list(const DNSName& target, int /* id */, bool include_disable
   }
 
   d_rotxn = getRecordsROTransaction(di.id, d_rwtxn);
+  d_txnorder = true;
   d_getcursor = std::make_shared<MDBROCursor>(d_rotxn->txn->getCursor(d_rotxn->db->dbi));
 
   compoundOrdername co;
@@ -1503,6 +1522,7 @@ void LMDBBackend::lookup(const QType& type, const DNSName& qdomain, int zoneId, 
   }
   // cout<<"get will look for "<<relqname<< " in zone "<<hunt<<" with id "<<zoneId<<" and type "<<type.toString()<<endl;
   d_rotxn = getRecordsROTransaction(zoneId, d_rwtxn);
+  d_txnorder = true;
 
   compoundOrdername co;
   d_getcursor = std::make_shared<MDBROCursor>(d_rotxn->txn->getCursor(d_rotxn->db->dbi));
