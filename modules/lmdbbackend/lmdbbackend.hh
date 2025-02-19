@@ -61,6 +61,7 @@ class LMDBBackend : public DNSBackend
 {
 public:
   explicit LMDBBackend(const string& suffix = "");
+  ~LMDBBackend();
 
   bool list(const DNSName& target, int id, bool include_disabled) override;
 
@@ -304,6 +305,7 @@ private:
 
   shared_ptr<RecordsROTransaction> d_rotxn; // for lookup and list
   shared_ptr<RecordsRWTransaction> d_rwtxn; // for feedrecord within begin/aborttransaction
+  bool d_txnorder{false}; // whether d_rotxn is more recent than d_rwtxn
   std::shared_ptr<RecordsRWTransaction> getRecordsRWTransaction(uint32_t id);
   std::shared_ptr<RecordsROTransaction> getRecordsROTransaction(uint32_t id, const std::shared_ptr<LMDBBackend::RecordsRWTransaction>& rwtxn = nullptr);
   int genChangeDomain(const DNSName& domain, const std::function<void(DomainInfo&)>& func);
