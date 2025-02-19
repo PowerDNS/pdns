@@ -3618,4 +3618,16 @@ Sequence of ForwardingCatalogZone. This setting cannot be combined with :ref:`se
         'versionadded': '5.2.0',
         'runtime': ['reload-lua-config', 'reload-yaml'],
     },
+    {
+        'name' : 'cookies',
+        'section' : 'outgoing',
+        'oldname': 'outgoing-cookies',
+        'type': LType.Bool,
+        'default': 'false',
+        'help': 'Enable DNS cookies when contacting authoritative servers or forwarders',
+        'doc': '''
+Enable DNS cookies (:rfc:`7873`, :rfc:`9018`) when contacting authoritative servers or forwarders.
+''',
+        'versionadded': '5.3.0',
+    },
 ]

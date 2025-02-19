@@ -56,7 +56,12 @@
 #include "rec-tcpout.hh"
 #include "rec-cookiestore.hh"
 
-static bool g_cookies = true;
+static bool g_cookies = false;
+
+void setAuthCookies(bool flag)
+{
+  g_cookies = flag;
+}
 
 thread_local TCPOutConnectionManager t_tcp_manager;
 std::shared_ptr<Logr::Logger> g_slogout;
