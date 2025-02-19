@@ -482,7 +482,7 @@ options {
         };""" % (zone, zonename))
 
     @classmethod
-    def generateAuthConfig(cls, confdir, threads):
+    def generateAuthConfig(cls, confdir, threads, extra=''):
         bind_dnssec_db = os.path.join(confdir, 'bind-dnssec.sqlite3')
 
         with open(os.path.join(confdir, 'pdns.conf'), 'w') as pdnsconf:
@@ -501,9 +501,11 @@ log-dns-details=yes
 loglevel=9
 enable-lua-records
 dname-processing=yes
-distributor-threads={threads}""".format(confdir=confdir,
-                                        bind_dnssec_db=bind_dnssec_db,
-                                        threads=threads))
+distributor-threads={threads}
+{extra}""".format(confdir=confdir,
+                  bind_dnssec_db=bind_dnssec_db,
+                  threads=threads,
+                  extra=extra))
 
         pdnsutilCmd = [os.environ['PDNSUTIL'],
                        '--config-dir=%s' % confdir,
@@ -726,6 +728,16 @@ distributor-threads={threads}""".format(confdir=confdir,
                           name]
         try:
             subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as e:
+            raise AssertionError('%s failed (%d): %s' % (rec_controlCmd, e.returncode, e.output))
+
+    @classmethod
+    def recControl(cls, confdir, *command):
+        rec_controlCmd = [os.environ['RECCONTROL'],
+                          '--config-dir=%s' % confdir
+                          ] + list(command)
+        try:
+            return subprocess.check_output(rec_controlCmd, text=True, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
             raise AssertionError('%s failed (%d): %s' % (rec_controlCmd, e.returncode, e.output))
 
