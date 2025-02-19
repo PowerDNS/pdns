@@ -2203,6 +2203,8 @@ static int serviceMain(Logr::log_t log)
   g_paddingOutgoing = ::arg().mustDo("edns-padding-out");
   g_ECSHardening = ::arg().mustDo("edns-subnet-harden");
 
+  setAuthCookies(::arg().mustDo("outgoing-cookies"));
+
   RecThreadInfo::setNumDistributorThreads(::arg().asNum("distributor-threads"));
   RecThreadInfo::setNumUDPWorkerThreads(::arg().asNum("threads"));
   if (RecThreadInfo::numUDPWorkers() < 1) {
