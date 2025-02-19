@@ -8,15 +8,15 @@ transfer of a domain if the request is signed with an authorized name.
 
 In PowerDNS, TSIG shared secrets are stored by the various backends. In
 case of the :doc:`backends/generic-sql`, they
-can be found in the 'tsigkeys' table. The name can be chosen freely, but
-the algorithm name will typically be 'hmac-md5'. Other supported
-algorithms are 'hmac-sha1', 'hmac-shaX' where X is 224, 256, 384 or 512.
+can be found in the ``tsigkeys`` table. The name can be chosen freely, but
+the algorithm name will typically be ``hmac-md5``. Other supported
+algorithms are ``hmac-sha1``, ``hmac-shaX`` where ``X`` is ``224``, ``256``, ``384`` or ``512``.
 The content is a Base64-encoded secret.
 
 .. note::
   Most backends require DNSSEC support to be enabled to support TSIG.
   For the Generic SQL Backend, make sure to use the DNSSEC-enabled schema
-  and to turn on the relevant '-dnssec' flag (for example,
+  and to turn on the relevant ``-dnssec`` flag (for example,
   ``gmysql-dnssec``)!
 
 Provisioning outbound AXFR access
