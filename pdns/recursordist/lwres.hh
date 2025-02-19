@@ -100,5 +100,6 @@ LWResult::Result arecvfrom(PacketBuffer& packet, int flags, const ComboAddress& 
 
 LWResult::Result asyncresolve(const ComboAddress& address, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, const ResolveContext& context, const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstrmLoggers, const std::set<uint16_t>& exportTypes, LWResult* lwr, bool* chained);
 uint64_t dumpCookies(int fileDesc);
+std::string clearCookies();
 void pruneCookies(time_t cutoff);
 void setAuthCookies(bool flag);

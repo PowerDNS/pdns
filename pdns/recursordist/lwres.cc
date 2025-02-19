@@ -70,6 +70,13 @@ bool g_ECSHardening;
 
 static LockGuarded<CookieStore> s_cookiestore;
 
+std::string clearCookies()
+{
+  auto lock = s_cookiestore.lock();
+  lock->clear();
+  return "";
+}
+
 void pruneCookies(time_t cutoff)
 {
   auto lock = s_cookiestore.lock();
@@ -737,15 +744,22 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
                 }
                 else {
                   // Server responded with a wrong client cookie, fall back to TCP
+                  cerr << "Wrong cookie" << endl;
                   lwr->d_validpacket = true;
-                  return LWResult::Result::BadCookie;
+                  return LWResult::Result::Spoofed;
                 }
               }
               else {
                 // We sent a cookie out but forgot it?
+                cerr << "Cookie not found back"<< endl;
                 lwr->d_validpacket = true;
-                return LWResult::Result::BadCookie;
+                return LWResult::Result::BadCookie; // XXX
               }
+            }
+            else {
+              cerr << "Malformed cookie in reply"<< endl;
+              lwr->d_validpacket = true;
+              return LWResult::Result::BadCookie; // XXX
             }
           }
         }
@@ -754,8 +768,9 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
 
     // Case: we sent out a cookie but did not get one back
     if (cookieSentOut && !cookieFoundInReply && !*chained) {
+      cerr << "No cookie in reply"<< endl;
       lwr->d_validpacket = true;
-      return LWResult::Result::BadCookie;
+      return LWResult::Result::BadCookie; // XXX
     }
 
     if (outgoingLoggers) {
