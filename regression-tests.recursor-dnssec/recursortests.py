@@ -734,6 +734,16 @@ distributor-threads={threads}
             raise AssertionError('%s failed (%d): %s' % (rec_controlCmd, e.returncode, e.output))
 
     @classmethod
+    def recControl(cls, confdir, *command):
+        rec_controlCmd = [os.environ['RECCONTROL'],
+                          '--config-dir=%s' % confdir
+                          ] + list(command)
+        try:
+            return subprocess.check_output(rec_controlCmd, text=True, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as e:
+            raise AssertionError('%s failed (%d): %s' % (rec_controlCmd, e.returncode, e.output))
+
+    @classmethod
     def setUpSockets(cls):
         print("Setting up UDP socket..")
         cls._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
