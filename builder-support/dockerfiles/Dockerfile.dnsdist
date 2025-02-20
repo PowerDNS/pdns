@@ -19,7 +19,6 @@ RUN mkdir /sdist
 ARG BUILDER_VERSION
 
 RUN cd /dnsdist/pdns/dnsdistdist && \
-   /dnsdist/builder/helpers/set-configure-ac-version.sh && \
     meson setup build && \
     meson dist -C build
 WORKDIR /dnsdist/pdns/dnsdistdist
