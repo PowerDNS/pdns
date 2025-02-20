@@ -96,9 +96,9 @@ identical records to before, with the important change that the RRSIG
 inception dates will be different.
 
 .. note::
-  Within PowerDNS, the 'algorithm' for RSASHA1 keys is modulated
-  based on the NSEC3 setting. So if an algorithm=7 key is imported in a
-  zone with no configured NSEC3, it will appear as algorithm 5!
+  Within PowerDNS, the ``algorithm`` for RSASHA1 keys is modulated
+  based on the NSEC3 setting. So if an ``algorithm=7`` key is imported in a
+  zone with no configured NSEC3, it will appear as ``algorithm 5``!
 
 Secure transfers
 ----------------
