@@ -48,7 +48,7 @@ void XskResponderThread(std::shared_ptr<DownstreamState> dss, std::shared_ptr<Xs
       if ((pollfds[0].revents & POLLIN) != 0) {
         needNotify = true;
         xskInfo->cleanSocketNotification();
-        xskInfo->processIncomingFrames([&](XskPacket& packet) {
+        xskInfo->processIncomingFrames([&](XskPacket packet) {
           if (packet.getDataLen() < sizeof(dnsheader)) {
             xskInfo->markAsFree(packet);
             return;
@@ -167,7 +167,7 @@ void XskRouter(std::shared_ptr<XskSocket> xsk)
         if ((fds.at(fdIndex).revents & POLLIN) != 0) {
           ready--;
           const auto& info = xsk->getWorkerByDescriptor(fds.at(fdIndex).fd);
-          info->processOutgoingFrames([&](XskPacket& packet) {
+          info->processOutgoingFrames([&](XskPacket packet) {
             if ((packet.getFlags() & XskPacket::UPDATE) == 0) {
               xsk->markAsFree(packet);
               return;
@@ -202,7 +202,7 @@ void XskClientThread(ClientState* clientState)
     while (!xskInfo->hasIncomingFrames()) {
       xskInfo->waitForXskSocket();
     }
-    xskInfo->processIncomingFrames([&](XskPacket& packet) {
+    xskInfo->processIncomingFrames([&](XskPacket packet) {
       if (XskProcessQuery(*clientState, holders, packet)) {
         packet.updatePacket();
         xskInfo->pushToSendQueue(packet);
