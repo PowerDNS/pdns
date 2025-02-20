@@ -25,7 +25,7 @@ If you want to listen on both IPv4 and IPv6, you need to add a line with ``0.0.0
 pdnsutil behaviour changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-A few changes of behaviour have been implemented in ``pdnsutil``.
+A few changes of behaviour have been implemented in :doc:`pdnsutil <pdnsutil>`.
 
 * The ``add-zone-key`` command used to default to creating a ZSK,
   if no key type was given. This default has changed to KSK.
