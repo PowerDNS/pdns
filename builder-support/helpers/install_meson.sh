@@ -18,10 +18,16 @@ cd "meson-${MESON_VERSION}"
 
 install -Dpm0644 -t /usr/lib/rpm/macros.d/ data/macros.meson
 
-python3 -m pip install .
+python3 -m pip install . --break-system-packages || python3 -m pip install .
 ln -s /usr/local/bin/meson /usr/bin/meson
 PYVERS=$(python3 --version | sed 's/Python //' | cut -d. -f1,2)
-ln -s "/usr/local/lib/python${PYVERS}/site-packages/mesonbuild" /usr/lib/python${PYVERS}/site-packages/mesonbuild
+if [ -d "/usr/local/lib/python${PYVERS}/dist-packages/mesonbuild" ]; then
+    # thanks, Debian and Ubuntu, much appreciated..
+    mkdir -p "/usr/lib/python${PYVERS}/dist-packages/mesonbuild"
+    ln -s "/usr/local/lib/python${PYVERS}/dist-packages/mesonbuild" "/usr/lib/python${PYVERS}/dist-packages/mesonbuild"
+else
+    ln -s "/usr/local/lib/python${PYVERS}/site-packages/mesonbuild" "/usr/lib/python${PYVERS}/site-packages/mesonbuild"
+fi
 
 cd ..
 rm -rf "${MESON_TARBALL}" "meson-${MESON_VERSION}"
