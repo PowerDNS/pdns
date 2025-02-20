@@ -16,11 +16,6 @@ RUN mv pdns-recursor*.deb /dist; mv pdns-recursor*.ddeb /dist || true
 @ENDIF
 
 @IF [ -n "$M_dnsdist$M_all" ]
-RUN mkdir /libh2o && cd /libh2o && \
-      apt-get update && apt-get install -y cmake curl libssl-dev zlib1g-dev && \
-      cd /pdns/builder-support/helpers/ && \
-      ./install_h2o.sh
-
 RUN builder/helpers/build-debs.sh dnsdist-${BUILDER_VERSION}
 
 RUN mv dnsdist*.deb /dist; mv dnsdist*.ddeb /dist || true

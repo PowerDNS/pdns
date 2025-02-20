@@ -15,8 +15,9 @@ RUN cd /pdns/builder-support/helpers/ && ./install_rust.sh
 
 @IF [ -n "$M_dnsdist$M_all" ]
 RUN cd /pdns/builder-support/helpers/ && ./install_rust.sh
-RUN DEBIAN_FRONTEND=noninteractive apt-get -y install --no-install-recommends git cmake clang ninja-build
+RUN DEBIAN_FRONTEND=noninteractive apt-get -y install --no-install-recommends git cmake clang
 RUN cd /pdns/builder-support/helpers/ && ./install_quiche.sh
+RUN DEBIAN_FRONTEND=noninteractive apt-get -y install --no-install-recommends python3-pip ninja-build
 RUN cd /pdns/builder-support/helpers/ && ./install_meson.sh
 @ENDIF
 
@@ -41,7 +42,7 @@ RUN cp /sdist/pdns-recursor-${BUILDER_VERSION}.tar.bz2 pdns-recursor_${BUILDER_V
 @ENDIF
 
 @IF [ -n "$M_dnsdist$M_all" ]
-RUN tar xvf /sdist/dnsdist-${BUILDER_VERSION}.tar.bz2
+RUN tar xvf /sdist/dnsdist-${BUILDER_VERSION}.tar.xz
 # create copy of source tarball with name that dpkg-source requires
-RUN cp /sdist/dnsdist-${BUILDER_VERSION}.tar.bz2 dnsdist_${BUILDER_VERSION}.orig.tar.bz2
+RUN cp /sdist/dnsdist-${BUILDER_VERSION}.tar.xz dnsdist_${BUILDER_VERSION}.orig.tar.zx
 @ENDIF
