@@ -3,7 +3,7 @@
 // This file contains the protobuf schemas for the "dnstap" structured event
 // replication format for DNS software.
 
-// Written in 2013-2014 by Farsight Security, Inc.
+// Written in 2013-2025 by the dnstap contributors.
 //
 // To the extent possible under law, the author(s) have dedicated all
 // copyright and related and neighboring rights to this file to the public
@@ -12,7 +12,7 @@
 // You should have received a copy of the CC0 Public Domain Dedication along
 // with this file. If not, see:
 //
-// <http://creativecommons.org/publicdomain/zero/1.0/>.
+// <https://creativecommons.org/publicdomain/zero/1.0/>.
 
 syntax = "proto2";
 package dnstap;
@@ -64,6 +64,15 @@ enum SocketProtocol {
     DOH = 4;         // DNS over HTTPS (RFC 8484)
     DNSCryptUDP = 5; // DNSCrypt over UDP (https://dnscrypt.info/protocol)
     DNSCryptTCP = 6; // DNSCrypt over TCP (https://dnscrypt.info/protocol)
+    DOQ = 7;         // DNS over QUIC (RFC 9250)
+}
+
+// HttpProtocol: the HTTP protocol version used to transport a DNS message over
+// an HTTP-based protocol such as DNS over HTTPS.
+enum HttpProtocol {
+    HTTP1 = 1; // HTTP/1
+    HTTP2 = 2; // HTTP/2
+    HTTP3 = 3; // HTTP/3
 }
 
 // Policy: information about any name server operator policy
@@ -215,13 +224,13 @@ message Message {
         // tool from a DNS server, from the perspective of the tool.
         TOOL_RESPONSE = 12;
 
-        // UPDATE_QUERY is a DNS update query message received from a resolver
+        // UPDATE_QUERY is a Dynamic DNS Update request (RFC 2136) received
         // by an authoritative name server, from the perspective of the
         // authoritative name server.
         UPDATE_QUERY = 13;
 
-        // UPDATE_RESPONSE is a DNS update response message sent from an
-        // authoritative name server to a resolver, from the perspective of the
+        // UPDATE_RESPONSE is a Dynamic DNS Update response (RFC 2136) sent
+        // from an authoritative name server, from the perspective of the
         // authoritative name server.
         UPDATE_RESPONSE = 14;
     }
@@ -284,6 +293,10 @@ message Message {
 
     // Operator policy applied to the processing of this message, if any.
     optional Policy             policy = 15;
+
+    // One of the HttpProtocol values described above. This field should only be
+    // set if socket_protocol is set to DOH.
+    optional HttpProtocol       http_protocol = 16;
 }
 
 // All fields except for 'type' in the Message schema are optional.
