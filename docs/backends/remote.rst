@@ -144,8 +144,8 @@ Methods
 Methods required for different features
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 :Always required: ``initialize``, ``lookup``
-:Master operation: ``list``, ``getUpdatedMasters``, ``setNotified``
-:Slave operation: ``getUnfreshSlaveInfos``, ``startTransaction``, ``commitTransaction``, ``abortTransaction``, ``feedRecord``, ``setFresh``
+:Primary operation: ``list``, ``getUpdatedMasters``, ``setNotified``
+:Secondary operation: ``getUnfreshSlaveInfos``, ``startTransaction``, ``commitTransaction``, ``abortTransaction``, ``feedRecord``, ``setFresh``
 :DNSSEC operation (live-signing): ``getDomainKeys``, ``getBeforeAndAfterNamesAbsolute``
 :Filling the Zone Cache: ``getAllDomains``
 
@@ -945,7 +945,7 @@ Response:
 ``isMaster``
 ~~~~~~~~~~~~
 
-Determines whether given IP is master for given domain name.
+Determines whether given IP is primary for given domain name.
 
 -  Mandatory: No
 -  Parameters: name,ip
@@ -987,7 +987,7 @@ Response:
 ``superMasterBackend``
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Creates new domain with given record(s) as master servers. IP address is
+Creates new domain with given record(s) as primary servers. IP address is
 the address where notify is received from. nsset is array of NS resource
 records.
 
@@ -1605,7 +1605,7 @@ Response:
 ``getUpdatedMasters``
 ~~~~~~~~~~~~~~~~~~~~~
 
-Used to find out any updates to master domains. This is used to trigger notifications in master mode.
+Used to find out any updates to primary domains. This is used to trigger notifications in primary mode.
 
 -  Mandatory: no
 -  Parameters: none
@@ -1647,7 +1647,7 @@ Response:
 ``getUnfreshSlaveInfos``
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Used to find out if slave zones need checking of the master's SOA Serial.
+Used to find out if primary zones need checking of the primary's SOA Serial.
 
 -  Mandatory: no
 -  Parameters: none
@@ -1689,8 +1689,8 @@ Response:
 ``setFresh``
 ~~~~~~~~~~~~
 
-Called when a slave freshness check succeeded. This does not indicate the
-zone was updated on the master.
+Called when a primary freshness check succeeded. This does not indicate the
+zone was updated on the primary.
 
 -  Mandatory: No
 -  Parameters: id

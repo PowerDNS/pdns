@@ -102,7 +102,7 @@ number. e.g.:
 AXFR-MASTER-TSIG
 ----------------
 
-Use this named TSIG key to retrieve this zone from its master, see :ref:`tsig-provision-signed-notify-axfr`.
+Use this named TSIG key to retrieve this zone from its primary, see :ref:`tsig-provision-signed-notify-axfr`.
 
 GSS-ALLOW-AXFR-PRINCIPAL
 ------------------------
@@ -194,7 +194,7 @@ SLAVE-RENOTIFY
 --------------
 .. versionadded:: 4.3.0
 
-If set to 1, will make PowerDNS renotify the secondaries after an AXFR is received from a master.
+If set to 1, will make PowerDNS renotify the secondaries after an AXFR is received from a primary.
 Any other value means that no renotifies are done. If not set at all, action will depend on
 the :ref:`setting-secondary-do-renotify` setting.
 

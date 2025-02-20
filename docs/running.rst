@@ -99,7 +99,7 @@ To communicate with PowerDNS Authoritative Server over the
 controlsocket, the ``pdns_control`` command is used. The syntax is
 simple: ``pdns_control command arguments``. Currently this is most
 useful for telling backends to rediscover domains or to force the
-transmission of notifications. See :ref:`master-operation`.
+transmission of notifications. See :ref:`primary-operation`.
 
 For all supported ``pdns_control`` commands and options, see :doc:`the
 manpage <../manpages/pdns_control.1>` and the output of

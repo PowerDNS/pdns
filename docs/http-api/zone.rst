@@ -42,7 +42,7 @@ When creating or updating a zone, the "api_rectify" field of the :json:object:`Z
 Backends might implement additional features (by coincidence or not).
 These things are not supported through the API.
 
-When creating a slave zone, it is recommended to not set any of
+When creating a secondary zone, it is recommended to not set any of
 ``nameservers``, ``rrsets`` or ``zone``.
 
 Examples

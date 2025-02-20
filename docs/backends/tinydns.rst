@@ -56,7 +56,7 @@ The last update was on `January 1st,
 -  Boolean
 -  Default: no
 
-Tell the TinyDNSBackend to notify all the slave nameservers on startup.
+Tell the TinyDNSBackend to notify all the primary nameservers on startup.
 This might cause broadcast storms.
 
 .. _setting-tinydns-ignore-bogus-records:
@@ -72,7 +72,7 @@ bad/corrupt RDATA. PowerDNS will crash when it tries to read that
 bad/corrupt data. This option (change to yes), allows you to ignore that
 bad RDATA to make PowerDNS operate when bad data is in your CDB file. Be
 aware that the records are then ignored, where tinydns would still send
-out the bogus data. The option is primarily useful in master mode, as
+out the bogus data. The option is primarily useful in primary mode, as
 that reads all the packets in the zone to find all the SOA records.
 
 .. _setting-tinydns-locations:
@@ -101,15 +101,15 @@ record will expire once the cache is expired and the backend is queried
 again. Please note that :ref:`setting-cache-ttl` is a
 performance related setting. See :doc:`../performance`. Location support only exists for IPv4!
 
-Master mode
------------
+Primary mode
+------------
 
-The TinyDNSBackend supports master mode. This allows it to notify slave
+The TinyDNSBackend supports primary mode. This allows it to notify secondary
 nameservers of updates to a zone. You simply need to rewrite the
 ``data.cdb`` file with an updated/increased serial and PowerDNS will
-notify the slave nameservers of that domain. The :ref:`setting-tinydns-notify-on-startup`
+notify the secondary nameservers of that domain. The :ref:`setting-tinydns-notify-on-startup`
 configuration setting tells the backend if it should notify all the
-slave nameservers just after startup.
+secondary nameservers just after startup.
 
 The CDB datafile does not allow PowerDNS to easily query for newly added
 domains or updated serial numbers. The CDB datafile requires us to do a

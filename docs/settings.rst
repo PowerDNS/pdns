@@ -77,7 +77,7 @@ will drop all incoming notifies.
 -  Default: yes
 
 Turning this off requires all autoprimary notifications to be signed by
-valid TSIG signature. It will accept any existing key on slave.
+valid TSIG signature. It will accept any existing key on secondaries.
 
 .. _setting-allow-unsigned-notify:
 
@@ -181,7 +181,7 @@ Maximum time in seconds for inbound AXFR to start or be idle after starting.
 -  Boolean
 -  Default: no
 
-Also AXFR a zone from a master with a lower serial.
+Also AXFR a zone from a primary with a lower serial.
 
 .. _setting-cache-ttl:
 
@@ -828,7 +828,7 @@ ALIAS is not impacted by this setting.
 -  Boolean
 -  Default: no
 
-Forward DNS updates sent to a slave to the master.
+Forward DNS updates sent to a secondary to the primary.
 
 .. _setting-forward-notify:
 
@@ -837,8 +837,8 @@ Forward DNS updates sent to a slave to the master.
 
 -  IP addresses, separated by commas
 
-IP addresses to forward received notifications to regardless of master
-or slave settings.
+IP addresses to forward received notifications to regardless of primary
+or secondary settings.
 
 .. note::
   The intended use is in anycast environments where it might be
@@ -1182,7 +1182,7 @@ When combining the ``"`` delimited chunks of a LUA record, whether to insert whi
 -  Boolean
 -  Default: no
 
-Turn on master support. See :ref:`master-operation`.
+Turn on primary support. See :ref:`primary-operation`.
 
 .. _setting-max-cache-entries:
 
@@ -1388,7 +1388,7 @@ this reason it is disabled by default.
 -  IP Ranges, separated by commas or whitespace
 -  Default: 0.0.0.0/0, ::/0
 
-For type=MASTER zones (or SLAVE zones with slave-renotify enabled)
+For type=MASTER zones (or SLAVE zones with :ref:`setting-secondary-do-renotify` enabled)
 PowerDNS automatically sends NOTIFYs to the name servers specified in
 the NS records. By specifying networks/mask as whitelist, the targets
 can be limited. The default is to notify the world. To completely
@@ -1414,11 +1414,11 @@ To notify all IP addresses apart from the 192.168.0.0/24 subnet use the followin
   :ref:`metadata-also-notify` zone metadata to avoid this potential bottleneck.
 
 .. note::
-  If your slaves support an Internet Protocol version, which your master does not,
+  If your secondaries support an Internet Protocol version, which your primary does not,
   then set ``only-notify`` to include only supported protocol version.
   Otherwise there will be error trying to resolve address.
 
-  For example, slaves support both IPv4 and IPv6, but PowerDNS master have only IPv4,
+  For example, secondaries support both IPv4 and IPv6, but PowerDNS primary have only IPv4,
   so allow only IPv4 with ``only-notify``:
 
   .. code-block:: ini
@@ -1471,7 +1471,7 @@ be dropped, and :ref:`stat-overload-drops` will be incremented.
 -  Default: yes
 
 PowerDNS Authoritative Server attempts to not send out notifications to
-itself in master mode. In very complicated situations we could guess
+itself in primary mode. In very complicated situations we could guess
 wrong and not notify a server that should be notified. In that case, set
 prevent-self-notification to "no".
 
@@ -1610,7 +1610,7 @@ Examples::
 -  Integer
 -  Default: 2
 
-Number of AXFR slave threads to start.
+Number of AXFR secondary threads to start.
 
 .. _setting-reuseport:
 
@@ -1703,7 +1703,7 @@ this to an empty string disables secpoll.
 If yes, outgoing NOTIFYs will be signed if a TSIG key is configured for the zone.
 If there are multiple TSIG keys configured for a zone, PowerDNS will use the
 first one retrieved from the backend, which may not be the correct one for the
-respective slave. Hence, in setups with multiple slaves with different TSIG keys
+respective secondary. Hence, in setups with multiple slaves with different TSIG keys
 it may be required to send NOTIFYs unsigned.
 
 .. _setting-server-id:
@@ -1775,9 +1775,9 @@ signing speed by changing this number.
 -  Boolean
 -  Default: no
 
-This setting will make PowerDNS renotify the slaves after an AXFR is
-*received* from a master. This is useful when running a
-signing-slave.
+This setting will make PowerDNS renotify the secondaries after an AXFR is
+*received* from a primary. This is useful when running a
+signing-secondary.
 
 See :ref:`metadata-slave-renotify` to set this per-zone.
 
@@ -1860,7 +1860,7 @@ and :doc:`Virtual Hosting <guides/virtual-instances>` how this can differ.
 -  Boolean
 -  Default: no
 
-Turn on supermaster support. See :ref:`supermaster-operation`.
+Turn on supermaster support. See :ref:`autoprimary-operation`.
 
 .. _setting-svc-autohints:
 

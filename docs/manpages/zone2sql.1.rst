@@ -15,8 +15,8 @@ on standard output, which can then be fed to your database.
 :program:`zone2sql` understands the BIND master file extension ``$GENERATE``
 and will also honour ``$ORIGIN`` and ``$TTL``.
 
-For backends supporting slave operation there is also an option to keep
-slave zones as slaves, and not convert them to native operation.
+For backends supporting secondary operation there is also an option to keep
+secondary zones as secondaries, and not convert them to native operation.
 
 :program:`zone2sql` can generate SQL for the Generic MySQL, Generic PostgreSQL,
 Generic SQLite3 backend.
@@ -67,7 +67,7 @@ OTHER Options
 --on-error-resume-next
     Ignore missing zone files during parsing. Dangerous.
 --secondary
-    Maintain slave status of zones listed in named.conf as being slaves.
+    Maintain secondary status of zones listed in named.conf as being slaves.
     The default behaviour is to convert all zones to native operation.
 --verbose
     Be verbose during conversion.

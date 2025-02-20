@@ -69,7 +69,7 @@ Provisioning signed notification and AXFR requests
 --------------------------------------------------
 
 To configure PowerDNS to send out TSIG signed AXFR requests for a zone
-to its master(s), set the ``AXFR-MASTER-TSIG`` metadata item for the
+to its primaries, set the ``AXFR-MASTER-TSIG`` metadata item for the
 relevant domain to the key that must be used.
 
 The actual TSIG key must also be provisioned, as outlined in the
@@ -113,7 +113,7 @@ quite) similar to the following BIND statements::
     };
 
 Except that in this case, TSIG will be used for all communications with
-the master, not just those about AXFR requests.
+the primary, not just those about AXFR requests.
 
 .. _tsig-gss-tsig:
 

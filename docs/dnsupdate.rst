@@ -58,8 +58,8 @@ unauthenticated agents operating from an allowed address range.
 ``forward-dnsupdate``
 ~~~~~~~~~~~~~~~~~~~~~
 
-Tell PowerDNS to forward to the master server if the zone is configured
-as slave. Masters are determined by the masters field in the domains
+Tell PowerDNS to forward to the primary server if the zone is configured
+as secondary. Primaries are determined by the masters field in the domains
 table. The default behaviour is enabled (yes), which means that it will
 try to forward. In the processing of the update packet, the
 ``allow-dnsupdate-from`` and ``TSIG-ALLOW-DNSUPDATE`` are processed
@@ -184,7 +184,7 @@ per domain.
 NOTIFY-DNSUPDATE
 ~~~~~~~~~~~~~~~~
 
-Send a notification to all slave servers after every update. This will
+Send a notification to all secondary servers after every update. This will
 speed up the propagation of changes and is very useful for acme
 verification::
 
@@ -305,7 +305,7 @@ This tells dhcpd to:
 For more information on this, consult the dhcpd.conf manual.
 
 Per subnet, you also have to tell **dhcpd** which (reverse-)domain it
-should update and on which master domain server it is running.
+should update and on which primary domain server it is running.
 
 ::
 
@@ -409,12 +409,12 @@ PowerDNS.
     send. The TSIG-ALLOW-DNSUPDATE domainmetadata setting is used to
     find which key belongs to the domain.
 7.  The backends are queried to find the backend for the given domain.
-8.  If the domain is a slave domain, the **forward-dnsupdate** option
-    and domainmetadata settings are checked. If forwarding to a master
-    is enabled, the message is forward to the master. If that fails, the
-    next master is tried until all masters are tried. If all masters
-    fail, ServFail is returned. If a master succeeds, the result from
-    that master is returned.
+8.  If the domain is a secondary domain, the **forward-dnsupdate** option
+    and domainmetadata settings are checked. If forwarding to a primary
+    is enabled, the message is forward to the primary. If that fails, the
+    next primary is tried until all primaries are tried. If all primaries
+    fail, ServFail is returned. If a primary succeeds, the result from
+    that primary is returned.
 9.  A check is performed to make sure all updates/prerequisites are for
     the given zone. NotZone is returned if this is not the case.
 10. The transaction with the backend is started.
