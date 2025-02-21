@@ -247,7 +247,7 @@ A list of changes since 3.6.1 follows.
    PowerDNS now polls the security status of a release at startup and
    periodically. More detail on this feature, and how to turn it off,
    can be found in `Security
-   polling <common/security.md#security-polling>`__.
+   polling <common/security.rst#security-polling>`__.
 -  `commit 5027429 <https://github.com/PowerDNS/pdns/commit/5027429>`__:
    We did not transmit the right 'local' socket address to Lua for
    TCP/IP queries in the recursor. In addition, we would attempt to
@@ -270,7 +270,7 @@ Released on the 10th of September 2014.
 
 PowerDNS Recursor 3.6.0 could crash with a specific sequence of packets.
 For more details, see `the
-advisory <security/powerdns-advisory-2014-01.md>`__. PowerDNS Recursor
+advisory <security/powerdns-advisory-2014-01.rst>`__. PowerDNS Recursor
 3.6.1 was very well tested, and is in full production already, so it
 should be a safe upgrade.
 
@@ -959,7 +959,7 @@ Released on the 7th of March 2010.
 
 **Warning**: Lua scripts from version 3.1.7.\* are fully compatible with
 version 3.2. However, scripts written for development snapshot releases,
-are NOT. Please see `Scripting <recursor/scripting.md>`__ for details!
+are NOT. Please see `Scripting <recursor/scripting.rst>`__ for details!
 
 The 3.2 release is the first major release of the PowerDNS Recursor in a
 long time. Partly this is because 3.1.7.\* functioned very well, and
@@ -1366,7 +1366,7 @@ It is hoped that the addition of Lua scripting will enable responsible
 DNS modification for those that need it.
 
 For more details about the Lua scripting, which can be modified, loaded
-and unloaded at runtime, see `Scripting <recursor/scripting.md>`__. Many
+and unloaded at runtime, see `Scripting <recursor/scripting.rst>`__. Many
 thanks are due to the #lua irc channel, for excellent near-realtime Lua
 support. In addition, a number of PowerDNS users have been
 enthusiastically testing prereleases of the scripting support, and have
@@ -1502,7 +1502,7 @@ Security related issues
    nameservers. This closes a slight security risk and simultaneously
    improves performance and stability. For more information, see
    **dont-query** in `pdns\_recursor
-   settings <recursor/settings.md#dont-query>`__. Implemented in `commit
+   settings <recursor/settings.rst#dont-query>`__. Implemented in `commit
    923 <http://wiki.powerdns.com/projects/trac/changeset/923>`__.
 -  Applied fix for `ticket
    110 <https://github.com/PowerDNS/pdns/issues/110>`__ ('PowerDNS
@@ -2157,7 +2157,7 @@ fix, configure the **local-address** setting with all addresses you want
 to listen on. Additionally, by default service is restricted to RFC 1918
 private IP addresses. Use **allow-from** to selectively open up the
 recursor for your own network. See `pdns\_recursor
-settings <recursor/settings.md#allow-from>`__ for details.
+settings <recursor/settings.rst#allow-from>`__ for details.
 
 Important new features of the PowerDNS recursor 3.0
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -2166,11 +2166,11 @@ Important new features of the PowerDNS recursor 3.0
    spoofing made harder by using a new network address for each query,
    PowerDNS detects when an attempt is made to spoof it, and temporarily
    ignores the data. For details, see
-   `Anti-spoofing <recursor/security.md>`__.
+   `Anti-spoofing <recursor/security.rst>`__.
 -  First nameserver to benefit from epoll/kqueue/Solaris completion
    ports event reporting framework, for stellar performance.
 -  Best statistics of any recursing nameserver we know of, see
-   `Statistics <recursor/stats.md>`__.
+   `Statistics <recursor/stats.rst>`__.
 -  Last-recently-used based cache cleanup algorithm, keeping the 'best'
    records in memory
 -  First class Solaris support, built on a 'try and buy' Sun CoolThreads
@@ -2178,7 +2178,7 @@ Important new features of the PowerDNS recursor 3.0
 -  Full IPv6 support, implemented natively.
 -  Access filtering, both for IPv4 and IPv6.
 -  Experimental SMP support for nearly double performance. See `PowerDNS
-   Recursor performance <recursor/performance.md>`__.
+   Recursor performance <recursor/performance.rst>`__.
 
 Many people helped package and test this release. Jorn Ekkelenkamp of
 ISP-Services helped find the '8000 SOAs' bug and spotted many other

@@ -73,7 +73,7 @@ PowerDNS Authoritative Server 3.4.7
 Released 3rd of November 2015
 
 This is a security release fixing `Security Advisory
-2015-03 <security/powerdns-advisory-2015-03.md>`__
+2015-03 <../security-advisories/powerdns-advisory-2015-03.rst>`__
 
 Bug fixes:
 
@@ -144,7 +144,7 @@ PowerDNS Authoritative Server 3.4.6
 Released 28th of August 2015
 
 This is a security release fixing `Security Advisory
-2015-02 <security/powerdns-advisory-2015-02.md>`__
+2015-02 <../security-advisories/powerdns-advisory-2015-02.rst>`__
 
 Bug fixes:
 
@@ -185,7 +185,7 @@ PowerDNS Authoritative Server 3.3.3
 Released 9th of June 2015
 
 This is a security release fixing `Security Advisory
-2015-01 <security/powerdns-advisory-2015-01.md>`__
+2015-01 <../security-advisories/powerdns-advisory-2015-01.rst>`__
 
 Bug fixes:
 
@@ -198,7 +198,7 @@ PowerDNS Authoritative Server 3.4.5
 Released 9th of June 2015
 
 This is a security release fixing `Security Advisory
-2015-01 <security/powerdns-advisory-2015-01.md>`__
+2015-01 <../security-advisories/powerdns-advisory-2015-01.rst>`__
 
 Bug fixes:
 
@@ -254,7 +254,7 @@ Released 1st of May, 2015
 
 Among other bug fixes and improvements (as listed below), this release
 incorporates a fix for CVE-2015-1868, as detailed in `PowerDNS Security
-Advisory 2015-01 <security/powerdns-advisory-2015-01.md>`__
+Advisory 2015-01 <../security-advisories/powerdns-advisory-2015-01.rst>`__
 
 If you are running DNSSEC with version 3.3.1 or below, and you cannot
 currently upgrade to 3.4.4, please consider upgrading to 3.3.2; it has a
@@ -339,13 +339,13 @@ Released 23rd of April, 2015
 major upgrade if you are coming from 2.9.x. Additionally, if you are
 coming from any 3.x version (including 3.3.1), there is a mandatory SQL
 schema upgrade. Please refer to the `Upgrade
-documentation <authoritative/upgrading.md>`__ for important information
+documentation <../upgrading.rst>`__ for important information
 on correct and stable operation, as well as notes on performance and
 memory use.
 
 Among other bug fixes and improvements (as listed below), this release
 incorporates a fix for CVE-2015-1868, as detailed in `PowerDNS Security
-Advisory 2015-01 <security/powerdns-advisory-2015-01.md>`__
+Advisory 2015-01 <../security-advisories/powerdns-advisory-2015-01.rst>`__
 
 Bug fixes:
 
@@ -444,7 +444,7 @@ PowerDNS Authoritative Server 3.4.3
 major upgrade if you are coming from 2.9.x. Additionally, if you are
 coming from any 3.x version (including 3.3.1), there is a mandatory SQL
 schema upgrade. Please refer to the `Upgrade
-documentation <authoritative/upgrading.md>`__ for important information
+documentation <../upgrading.rst>`__ for important information
 on correct and stable operation, as well as notes on performance and
 memory use.
 
@@ -508,7 +508,7 @@ PowerDNS Authoritative Server 3.4.2
 major upgrade if you are coming from 2.9.x. Additionally, if you are
 coming from any 3.x version (including 3.3.1), there is a mandatory SQL
 schema upgrade. Please refer to the `Upgrade
-documentation <authoritative/upgrading.md>`__ for important information
+documentation <../upgrading.rst>`__ for important information
 on correct and stable operation, as well as notes on performance and
 memory use.
 
@@ -647,7 +647,7 @@ PowerDNS Authoritative Server 3.4.1
 major upgrade if you are coming from 2.9.x. Additionally, if you are
 coming from any 3.x version (including 3.3.1), there is a mandatory SQL
 schema upgrade. Please refer to the `Upgrade
-documentation <authoritative/upgrading.md>`__ for important information
+documentation <../upgrading.rst>`__ for important information
 on correct and stable operation, as well as notes on performance and
 memory use.
 
@@ -667,7 +667,7 @@ A list of changes since 3.4.0 follows.
    PowerDNS now polls the security status of a release at startup and
    periodically. More detail on this feature, and how to turn it off,
    can be found in `Security
-   polling <common/security.md#security-polling>`__.
+   polling <../security.rst#security-polling>`__.
 -  `commit 5fe6dc0 <https://github.com/PowerDNS/pdns/commit/5fe6dc0>`__:
    API: Replace HTTP Basic auth with static key in custom header
    (X-API-Key)
@@ -693,7 +693,7 @@ contributors, to whom we are very grateful.
 major upgrade if you are coming from 2.9.x. Additionally, if you are
 coming from any 3.x version (including 3.3.1), there is a mandatory SQL
 schema upgrade. Please refer to the `Upgrade
-documentation <authoritative/upgrading.md>`__ for important information
+documentation <../upgrading.rst>`__ for important information
 on correct and stable operation, as well as notes on performance and
 memory use.
 
@@ -1480,7 +1480,7 @@ against other authoritative servers.
 **Warning**: Version 3.2 of the PowerDNS Authoritative Server is a major
 upgrade if you are coming from 2.9.x. There are also some important
 changes if you are coming from 3.0 or 3.1. Please refer to the `Upgrade
-documentation <authoritative/upgrading.md>`__ for important information
+documentation <../upgrading.rst>`__ for important information
 on correct and stable operation, as well as notes on performance and
 memory use.
 
@@ -1859,7 +1859,7 @@ Non-DNSSEC improvements/changes
    additional luabackend compile fixes in `commit
    2854 <http://wiki.powerdns.com/projects/trac/changeset/2854>`__.
 -  A new backend, the 'Remote backend' `Remote
-   Backend <authoritative/backend-remote.md>`__ was submitted by Aki
+   Backend <../backends/remote.rst>`__ was submitted by Aki
    Tuomi. It aims to replace the pipebackend with a better protocol and
    support for more connection methods, including HTTP. Code in `commit
    2755 <http://wiki.powerdns.com/projects/trac/changeset/2755>`__,
@@ -2085,7 +2085,7 @@ RC2 released on the 14th of April 2012 RC1 released on the 23th of March
 **Warning**: Version 3.1 of the PowerDNS Authoritative Server is a major
 upgrade if you are coming from 2.9.x. There are also some important
 changes if you are coming from 3.0. Please refer to the `Upgrade
-documentation <authoritative/upgrading.md>`__ for important information
+documentation <../upgrading.rst>`__ for important information
 on correct and stable operation, as well as notes on performance and
 memory use.
 
@@ -2680,7 +2680,7 @@ urge you to upgrade to a recent version of PowerDNS!
 2.9.22.5 is an interim release for those not yet ready to make the jump
 to 3.0, but do need a more recent version of the Authoritative Server.
 It also contains the patch from `PowerDNS Security Advisory
-2012-01 <security/powerdns-advisory-2012-01.md>`__.
+2012-01 <../security-advisories/powerdns-advisory-2012-01.rst>`__.
 
 -  Improved performance of master/slave engine, especially when hosting
    tens or hundreds of thousands of slave zones. Code in commits
@@ -2719,7 +2719,7 @@ PowerDNS Authoritative Server 3.0.1
 MUST upgrade to 3.1 or beyond!
 
 3.0.1 consists of 3.0, plus the patch from `PowerDNS Security Advisory
-2012-01 <security/powerdns-advisory-2012-01.md>`__
+2012-01 <../security-advisories/powerdns-advisory-2012-01.rst>`__
 
 PowerDNS Authoritative Server 3.0
 ---------------------------------
@@ -2730,7 +2730,7 @@ RC2 released on the 19th of April 2011 RC3 released on the 19th of July
 
 **Warning**: Version 3.0 of the PowerDNS Authoritative Server is a major
 upgrade if you are coming from 2.9.x. Please refer to the `Upgrade
-documentation <authoritative/upgrading.md>`__ for important information
+documentation <../upgrading.rst>`__ for important information
 on correct and stable operation, as well as notes on performance and
 memory use.
 
@@ -3261,7 +3261,7 @@ New features
    `1254 <http://wiki.powerdns.com/projects/trac/changeset/1254>`__,
    `1255 <http://wiki.powerdns.com/projects/trac/changeset/1255>`__.
 -  Implemented a notification proxy, see `"Notification proxy
-   (nproxy)" <tools/analysis.md#nproxy%22>`__. This work was sponsored
+   (nproxy)" <../manpages/nproxy.1.rst>`__. This work was sponsored
    by UPC Broadband. Implemented in commits
    `1075 <http://wiki.powerdns.com/projects/trac/changeset/1075>`__,
    `1077 <http://wiki.powerdns.com/projects/trac/changeset/1077>`__,
@@ -3531,7 +3531,7 @@ configurations do not run in single threaded mode, an upgrade is
 recommended.
 
 More detail can be found in `PowerDNS Security Advisory
-2008-02 <security/powerdns-advisory-2008-03.md>`__.
+2008-02 <../security-advisories/powerdns-advisory-2008-03.rst>`__.
 
 Authoritative Server version 2.9.21.1
 -------------------------------------
@@ -3547,7 +3547,7 @@ us quickly about this problem.
 This issue has been assigned CVE-2008-3337. The single patch is in
 `commit 1239 <http://wiki.powerdns.com/projects/trac/changeset/1239>`__.
 More detail can be found in `PowerDNS Security Advisory
-2008-02 <security/powerdns-advisory-2008-02.md>`__.
+2008-02 <../security-advisories/powerdns-advisory-2008-02.rst>`__.
 
 The implication is that while the PowerDNS Authoritative server itself
 does not face a security risk because of dropping these malformed
@@ -3731,7 +3731,7 @@ Features
 
 -  Thanks to `EasyDNS <http://www.easydns.com>`__, PowerDNS now supports
    multiple masters per domain. For configuration details, see `Slave
-   operation <authoritative/modes-of-operation.md#slave-operation>`__.
+   operation <../modes-of-operation.rst#slave-operation>`__.
    Implemented in `commit
    1018 <http://wiki.powerdns.com/projects/trac/changeset/1018>`__,
    `commit
@@ -4066,7 +4066,7 @@ Improvements
 -  PowerDNS recursor is now able to read its root-hints from disk, which
    is useful to operate with alternate roots, like the `Open Root Server
    Network <http://www.orsn.org>`__. See `PowerDNS
-   Recursor <recursor/index.md>`__.
+   Recursor <https://docs.powerdns.com/recursor/>`__.
 -  PowerDNS can now send out old-fashioned root-referrals when queried
    for domains for which it is not authoritative. Wastes some bandwidth
    but may solve incoming query floods if domains are delegated to you
@@ -4176,9 +4176,9 @@ release, can stand up to heavy duty ISP loads (over 20000
 queries/second) and in fact does so better than major other nameservers,
 giving more complete answers and being faster to boot.
 
-We invite ISPs who note recursor problems to record their problematic
-traffic and replay it using the tools described in `Tools to analyse DNS
-traffic <tools/analysis.md>`__ to discover if PowerDNS does a better
+We invited ISPs who noted recursor problems to record their problematic
+traffic and replay it using the tools described in "Tools to analyse DNS
+traffic" to discover if PowerDNS did a better
 job, and to let us know the results.
 
 Additionally, the bind2backend is almost ready to replace the stock bind
@@ -4249,7 +4249,7 @@ Improvements
 -  The Pipe Backend has been improved such that it can send out
    different answers based on the IP address the question was received
    ON. See `PipeBackend
-   protocol <authoritative/backend-pipe.md#pipebackend-protocol>`__ for
+   protocol <../backends/pipe.rst#pipebackend-protocol>`__ for
    how this changed the Pipe Backend protocol. Note that you need to set
    **pipebackend-abi-version** to benefit from this change, existing
    clients are not affected. Change and documentation contributed by
@@ -4310,10 +4310,8 @@ New technology
 -  'sdig', a simple dig work-alike with 'canonical' output, which is
    used for the regression tests. Based on the new DNS parser logic.
 -  **dnswasher**, **dnsreplay** and **dnsscope**, all DNS analysis
-   tools. See `Tools to analyse DNS traffic <tools/analysis.md>`__ for
-   more details.
--  Generic Oracle Backend, sponsored by Register.COM. See `Oracle
-   specifics <authoritative/backend-generic-oracle.md>`__.
+   tools.
+-  Generic Oracle Backend, sponsored by Register.COM.
 
 Version 2.9.17
 --------------
@@ -4582,7 +4580,7 @@ New features
 -  delegation-only, a Verisign special.
 -  Generic `SQLite <http://www.sqlite.org>`__ support, by Michel 'Who da
    man?' Stol. See `Generic SQLite
-   backend <authoritative/backend-generic-sqlite.md>`__.
+   backend <../backends/generic-sqlite3.rst>`__.
 -  init.d script for pdns\_recursor
 -  Recursor now actually purges its cache, saving memory.
 -  Slave configuration now no longer falls over when presented with a
@@ -4817,7 +4815,7 @@ this issue. We hope to resolve it soon.
 -  Simultaneous AXFRs may have been problematic on some backends. Thanks
    to Jorn of ISP-Services again for helping us resolve this issue.
 -  Added LDAP backend by Norbert Sendetzky, see `LDAP
-   Backend <authoritative/backend-ldap.md>`__.
+   Backend <../backends/ldap.rst>`__.
 -  Added Generic ODBC backend for Windows by Michel Stol.
 -  Simplified 'out of zone data' detection in incoming AXFR support,
    hopefully removing a case sensitivity bug there. Thanks again to
@@ -4928,7 +4926,7 @@ In preliminary tests, the recursor appears to be four times faster than
 BIND 9 on a naive benchmark starting from a cold cache. BIND 9 managed
 to get through to some slower nameservers however, which were given up
 on by PowerDNS. We will continue to tune the recursor. See `PowerDNS
-Recursor <recursor/index.md>`__ for further details.
+Recursor <https://docs.powerdns.com/recursor/>`__ for further details.
 
 The BIND Backend has also been tested (see the **bind-domain-status**
 item below) rather heavily by several parties. After some discussion
@@ -4950,9 +4948,9 @@ New features and improvements
 
 -  All SQL queries in the generic backends are now available for
    configuration. (Martin Klebermass, Bert Hubert). See `Generic SQL
-   backends <authoritative/backend-generic-sql.md>`__.
+   backends <../backends/generic-sql.rst>`__.
 -  A recursing nameserver! See `PowerDNS
-   Recursor <recursor/index.md>`__.
+   Recursor <https://docs.powerdns.com/recursor/>`__.
 -  An incoming AXFR now only starts a backend zone replacement
    transaction after the first record arrived successfully, thus making
    sure no work is done when a remote nameserver is unable/unwilling to
@@ -5065,9 +5063,9 @@ instructions. Without instructions, the right things also happen, but
 the operator is in charge.
 
 For more about all this coolness, see
-`“pdns\_control” <running.rst#pdnscontrol>`__ and
+`“pdns\_control” <../running.rst#pdnscontrol>`__ and
 `“pdns\_control
-commands” <backends/bind.rst#bind-control-commands>`__.
+commands” <../backends/bind.rst#bind-control-commands>`__.
 
 **Warning**: Again some changes in compilation instructions. The hybrid
 pgmysql backend has been split up into 'gmysql' and 'gpgsql', sharing a
@@ -5130,7 +5128,7 @@ Changes
    socket variety so it can transport large amounts of text, which is
    needed for the **bind-domain-status** command, for which see
    `Pdns\_control
-   commands <authoritative/backend-bind.md#bind-control-commands>`__.
+   commands <../backends/bind.rst#bind-control-commands>`__.
    This breaks compatibility with older pdns\_control and pdns\_server
    binaries!
 -  Bind backend now ignores 'hint' and 'forward' and other unsupported
@@ -5196,11 +5194,11 @@ Documentation
 ^^^^^^^^^^^^^
 
 -  Documented the 'random backend', see `Random
-   Backend <authoritative/backend-random.md>`__.
+   Backend <../backends/random.rst>`__.
 -  Wichert Akkerman contributed three manpages.
 -  Building PowerDNS on Unix is now documented somewhat more, see
    `Compiling PowerDNS on
-   Unix <appendix/compiling-powerdns.md#on-unix>`__.
+   Unix <../appendices/compiling.rst#on-unix>`__.
 
 Features
 ^^^^^^^^
@@ -5210,8 +5208,7 @@ Features
    PowerDNS compiles on OpenBSD but swiftly crashes. Help is welcome.
 -  ODBC backend (for Windows only) was missing from the distribution,
    now added.
--  xdb backend added - see `XDB
-   Backend <authoritative/backend-deprecated.md#xdb-backend>`__.
+-  xdb backend added.
    Designed for use by root-server operators.
 -  Dynamic modules are back which is good news for distributors who want
    to make a pdns packages that does not depend one every database under
@@ -5369,7 +5366,7 @@ stay away from these.
 
 Developers: this version needs the pdns-2.5.1 development kit, available
 on http://downloads.powerdns.com/releases/dev. See also `Backend
-writers' guide <appendix/backend-writers-guide.md>`__.
+writers' guide <../appendices/backend-writers-guide.rst>`__.
 
 Performance
 ^^^^^^^^^^^
@@ -5586,7 +5583,7 @@ kit, available on http://downloads.powerdns.com/releases/dev. See also
 This release adds the Generic MySQL backend which allows full
 master/slave semantics with MySQL and InnoDB tables (or other tables
 that support transactions). See `Generic MySQL
-backend <authoritative/backend-generic-mysql.md>`__.
+backend <../backends/generic-mysql.rst>`__.
 
 Other new features
 ^^^^^^^^^^^^^^^^^^
@@ -5664,7 +5661,7 @@ New features
 -  **pdns\_control purge** can now also purge based on suffix, allowing
    operators to purge an entire domain from the packet cache instead of
    only specific records. See also
-   `pdns\_control <running.rst#pdnscontrol>`__ Thanks to
+   `pdns\_control <../running.rst#pdnscontrol>`__ Thanks to
    Mike Benoit for this suggestion.
 -  **soa-serial-offset** for installations with small SOA serial numbers
    wishing to register .DE domains with DENIC which demands six-figure
@@ -5683,7 +5680,7 @@ restored by turning **lazy-recursion** off.
 
 Developers: this version has a new pdns-2.1 development kit, available
 on http://downloads.powerdns.com/releases/dev. See also `Backend
-writers' guide <appendix/backend-writers-guide.md>`__.
+writers' guide <../appendices/backend-writers-guide.rst>`__.
 
 **Warning**: Most users will run a static version of PowerDNS which has
 no dependencies on external libraries. However, some may need to run the
@@ -5729,11 +5726,11 @@ Features
    the Oracle backend. Zone2sql now outputs better SQL and the backend
    is now fully documented. Furthermore, the queries are compatible with
    the PowerDNS XML-RPC product, allowing PowerDNS express to run off
-   Oracle. See `Oracle backend <authoritative/backend-oracle.md>`__.
+   Oracle.
 -  Zone2sql now accepts ^^transactions to wrap zones in a transaction
    for PostgreSQL and Oracle output. This is a major speedup and also
    makes for better isolation of inserts. See
-   `Zone2sql <migration.rst#zone2sql>`__.
+   `Zone2sql <../migration.rst#zone2sql>`__.
 -  **pdns\_control** now has the ability to purge the PowerDNS cache or
    parts of it. This enables operators to raise the TTL of the Packet
    Cache to huge values and only to invalidate the cache when changes
@@ -5879,7 +5876,7 @@ Version 1.99.12 Prerelease
 --------------------------
 
 The Windows release! See `Installing on Microsoft
-Windows <authoritative/installation.md>`__. Beware, windows support is
+Windows <../installation.rst>`__. Beware, windows support is
 still very fresh and untested. Feedback is very welcome.
 
 Developers: this version is compatible with 1.99.11 backends.
@@ -5887,9 +5884,8 @@ Developers: this version is compatible with 1.99.11 backends.
 -  Windows 2000 code base merge completed. This resulted in quite some
    changes on the Unix end of things, so this may impact reliability.
 -  ODBC backend added for Windows. See `ODBC
-   backend <authoritative/backend-deprecated.md#odbc-backend>`__.
--  IBM DB2 Universal Database backend available for Linux. See `DB2
-   backend <authoritative/backend-deprecated.md#db2-backend>`__.
+   backend <../backends/generic-odbc.rst>`__.
+-  IBM DB2 Universal Database backend available for Linux.
 -  Zone2sql now understands $INCLUDE. Thanks to Amaze Internet for
    nagging about this
 -  The SOA Minimum TTL now has a configurable default
@@ -5901,7 +5897,7 @@ Bugs fixed
 ^^^^^^^^^^
 
 -  When operating in virtual hosting mode (See `Virtual
-   hosting <authoritative/running.md#virtual-hosting>`__), the
+   hosting <../running.rst#virtual-hosting>`__), the
    additional init.d scripts would not function correctly and interface
    with other pdns instances.
 -  PowerDNS neglected to conserve case on answers. So a query for
@@ -5925,7 +5921,7 @@ Features
 ^^^^^^^^
 
 -  pdns\_control (see
-   `pdns\_control <running.rst#pdnscontrol>`__) now opens
+   `pdns\_control <../running.rst#pdnscontrol>`__) now opens
    the local end of its socket in ``/tmp`` instead of next to the remote
    socket (by default ``/var/run``). This eases the way for allowing
    non-root access to pdns\_control. When running chrooted (see
@@ -5991,14 +5987,14 @@ Features
    of changes and allowing slaves to AXFR. Big rewording of replication
    support, domains are now either 'native', 'master' or 'slave'. See
    `Master/Slave operation &
-   replication <authoritative/modes-of-operation.md>`__ for lots of
+   replication <../modes-of-operation.rst>`__ for lots of
    details.
 -  **Zone2sql** in PostgreSQL mode now populates the 'domains' table for
    easy master, slave or native replication support.
 -  Ability to run on IPv6 transport only
 -  Logging can now happen under a 'facility' so all PowerDNS messages
    appear in their own file. See `Operational logging using
-   syslog <common/logging.md>`__.
+   syslog <../running.rst>`__.
 -  Different OS releases of PowerDNS now get different install path
    defaults. Thanks to Mark Lastdrager for nagging about this and to
    Nero Imhard and Frederique Rijsdijk for suggesting saner defaults.
@@ -6037,13 +6033,13 @@ Features
    using the **local-ipv6** setting.
 -  Very silly randombackend added which appears in the documentation as
    a sample backend. See `Backend writers'
-   guide <appendix/backend-writers-guide.md>`__.
+   guide <../appendices/backend-writers-guide.rst>`__.
 -  When transferring a slave zone from a master, out of zone data is now
    rejected. Malicious operators might try to insert bad records
    otherwise.
 -  'Supermaster' support for automatic provisioning from masters. See
    `Supermaster automatic provisioning of
-   slaves <authoritative/modes-of-operation.md#supermaster>`__.
+   slaves <../modes-of-operation.rst#supermaster>`__.
 -  Recursing backend can now live on a non-standard (!=53) port. See
    `Recursion <../guides/recursion.rst>`__.
 -  Slave zone retrieval is now queued instead of immediate, which scales
@@ -6058,7 +6054,7 @@ Internal
    generate them in special ways. PostgreSQL backend does so when
    operating as a slave.
 -  Writing backends is now a lot easier. See `Backend writers'
-   guide <appendix/backend-writers-guide.md>`__.
+   guide <../appendices/backend-writers-guide.rst>`__.
 -  Added Bindbackend to internal regression tests, confirming that it is
    compliant.
 
@@ -6095,7 +6091,7 @@ Feature enhancements
 
 -  Recursing backend. See `Recursion <../guides/recursion.rst>`__.
    Allows recursive and authoritative DNS on the same IP address.
--  `NAPTR support <appendices/types.rst#naptr>`__, which is especially useful for
+-  `NAPTR support <../appendices/types.rst#naptr>`__, which is especially useful for
    the ENUM/E.164 community.
 -  Zone transfers can now be allowed per `netmask instead of only per IP
    address <../settings.rst#allow-axfr-ips>`__.

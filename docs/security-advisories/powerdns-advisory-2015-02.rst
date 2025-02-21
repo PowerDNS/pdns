@@ -25,12 +25,12 @@ PowerDNS Authoritative Server 3.4.0-3.4.5 are affected. No other
 versions are affected. The PowerDNS Recursor is not affected.
 
 `PowerDNS Authoritative Server
-3.4.6 <../changelog.md#powerdns-authoritative-server-346>`__ contains a
+3.4.6 <../changelog.rst#powerdns-authoritative-server-346>`__ contains a
 fix to this issue. A minimal patch is `available
 here <https://downloads.powerdns.com/patches/2015-02/>`__.
 
 This issue is entirely unrelated to `Security Advisory
-2015-01 <powerdns-advisory-2015-01.md>`__/CVE-2015-1868.
+2015-01 <powerdns-advisory-2015-01.rst>`__/CVE-2015-1868.
 
 We'd like to thank Pyry Hakulinen and Ashish Shukla at Automattic for
 finding and subsequently reporting this bug.
