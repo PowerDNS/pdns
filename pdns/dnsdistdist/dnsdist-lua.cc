@@ -2226,7 +2226,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
       if (getOptionalValue<decltype(customResponseHeaders)>(vars, "customResponseHeaders", customResponseHeaders) > 0) {
         for (auto const& headerMap : customResponseHeaders) {
           auto headerResponse = std::pair(boost::to_lower_copy(headerMap.first), headerMap.second);
-          frontend->d_customResponseHeaders.insert(headerResponse);
+          frontend->d_customResponseHeaders.insert(std::move(headerResponse));
         }
       }
 
@@ -3082,7 +3082,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         checkAllParametersConsumed("declareMetric", vars);
       }
     }
-    auto result = dnsdist::metrics::declareCustomMetric(name, type, description, customName, withLabels);
+    auto result = dnsdist::metrics::declareCustomMetric(name, type, description, std::move(customName), withLabels);
     if (result) {
       g_outputBuffer += *result + "\n";
       errlog("Error in declareMetric: %s", *result);

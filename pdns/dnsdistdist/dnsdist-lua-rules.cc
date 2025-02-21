@@ -233,7 +233,7 @@ static void mvRule(IdentifierTypeT chainIdentifier, unsigned int from, unsigned 
     auto subject = rules[from];
     rules.erase(rules.begin() + from);
     if (destination > rules.size()) {
-      rules.push_back(subject);
+      rules.push_back(std::move(subject));
     }
     else {
       if (from < destination) {
