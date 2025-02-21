@@ -157,7 +157,7 @@ jobs:
       - name: Install Recursor Package and PDNS Tools
         run: sudo apt install pdns-recursor pdns-tools
       - name: Get Top Million Names
-        run: curl --no-progress-meter -LO http://s3-us-west-1.amazonaws.com/umbrella-static/top-1m.csv.zip && unzip top-1m.csv.zip -d .
+        run: curl --no-progress-meter -LO https://umbrella-static.s3.dualstack.us-west-1.amazonaws.com/top-1m.csv.zip && unzip top-1m.csv.zip -d .
         working-directory: regression-tests
       - name: Run Bulk Test
         run: ./recursor-test 5300 ${{ matrix.testsize }} 8 2048 1024
