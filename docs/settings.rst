@@ -1860,7 +1860,7 @@ and :doc:`Virtual Hosting <guides/virtual-instances>` how this can differ.
 -  Boolean
 -  Default: no
 
-Turn on supermaster support. See :ref:`autoprimary-operation`.
+Turn on autosecondary support. See :ref:`autoprimary-operation`.
 
 .. _setting-svc-autohints:
 
