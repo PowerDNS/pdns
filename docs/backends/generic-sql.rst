@@ -70,7 +70,7 @@ PowerDNS has support for multiple primaries per zone, and also port numbers for 
 Autoprimary operation
 ^^^^^^^^^^^^^^^^^^^^^
 
-To configure a :ref:`autoprimary <supermaster-operation>` with IP address 203.0.113.53 which lists this
+To configure a :ref:`autoprimary <autoprimary-operation>` with IP address 203.0.113.53 which lists this
 installation as 'autosecondary.example.com', issue the following::
 
     pdnsutil add-autoprimary 203.0.113.53 autosecondary.example.com internal

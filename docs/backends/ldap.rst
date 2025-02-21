@@ -202,18 +202,18 @@ whose attribute "active" is set to "yes".
 e.g. (&(:target:)(active=yes)) for returning only entries whose
 attribute "active" is set to "yes".
 
-Master Mode
------------
+Primary Mode
+------------
 
 Schema update
 ^^^^^^^^^^^^^
 
-First off adding master support to the LDAP backend needs a schema
+First off adding primary support to the LDAP backend needs a schema
 update. This is required as some metadata must be stored by PowerDNS,
 such as the last successful transfer to slaves. The new schema is
 available in schema/pdns-domaininfo.schema.
 
-Once the schema is loaded the zones for which you want to be a master
+Once the schema is loaded the zones for which you want to be a primary
 must be modified. The dn of the SOA record *must* have the object class
 ``PdnsDomain``, and thus the ``PdnsDomainId`` attribute. This attribute
 is an integer that *must* be unique across all zones served by the
@@ -223,7 +223,7 @@ backend. Furthermore the ``PdnsDomainType`` must be equal to 'master'
 Example
 ^^^^^^^
 
-Here is an example LDIF of a zone that's ready for master operation
+Here is an example LDIF of a zone that's ready for primary operation
 (assuming the 'tree' style):
 
 ::
@@ -242,7 +242,7 @@ Here is an example LDIF of a zone that's ready for master operation
     PdnsDomainType: master
     PdnsDomainMaster: 192.168.0.2
 
-You should have one attribute ``PdnsDomainMaster`` per master serving
+You should have one attribute ``PdnsDomainMaster`` per primary serving
 this zone.
 
 Example

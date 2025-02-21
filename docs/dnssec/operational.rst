@@ -87,7 +87,7 @@ default when the RRSIG dates are rolled.
 For zones that use :ref:`native-operation`
 replication PowerDNS will serve valid RRSIGs on all servers.
 
-For :ref:`primary <master-operation>` zones (where
+For :ref:`primary <primary-operation>` zones (where
 replication happens by means of AXFR), PowerDNS secondaries will
 automatically re-transfer the zone when it notices the RRSIGs have
 changed, even when the SOA serial is not increased. This ensures the
