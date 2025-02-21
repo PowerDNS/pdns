@@ -31,7 +31,8 @@ class TestSimpleEBPF(DNSDistTest):
 
     bpf = newBPFFilter({ipv4MaxItems=10, ipv6MaxItems=10, qnamesMaxItems=10})
     setDefaultBPFFilter(bpf)
-    bpf:blockQName(newDNSName("blocked.ebpf.tests.powerdns.com."), 255)
+    bpf:blockQName(newDNSName("blocked.ebpf.tests.powerdns.com."), 65535)
+    bpf:blockQName(newDNSName("blocked-any-only.ebpf.tests.powerdns.com."), 255)
 
     addTLSLocal("127.0.0.1:%d", "%s", "%s", { provider="openssl" })
     addDOHLocal("127.0.0.1:%d", "%s", "%s", {"/"}, {library="nghttp2"})
@@ -93,6 +94,35 @@ class TestSimpleEBPF(DNSDistTest):
             if method == 'sendDOQQueryWrapper':
                 # dnspython sets the ID to 0
                 receivedResponse.id = response.id
+            self.assertEqual(response, receivedResponse)
+
+    def testQNameBlockedOnylForAny(self):
+        # unblock 127.0.0.1, just in case
+        self.sendConsoleCommand('bpf:unblock(newCA("127.0.0.1"))')
+
+        name = 'blocked-any-only.ebpf.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'ANY', 'IN', use_edns=False)
+
+        # ANY should be blocked over Do53 UDP
+        for method in ["sendUDPQuery"]:
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False, timeout=0.5)
+            self.assertEqual(receivedResponse, None)
+
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+        # but A should NOT be blocked
+        for method in ["sendUDPQuery"]:
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response, timeout=1)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
             self.assertEqual(response, receivedResponse)
 
     def testClientIPBlocked(self):
