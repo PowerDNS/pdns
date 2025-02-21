@@ -90,7 +90,6 @@ bool PrefixDashNumberCompare::operator()(const std::string& a, const std::string
   return aa < bb;
 }
 
-static map<string, const uint32_t*> d_get32bitpointers;
 static map<string, const pdns::stat_t*> d_getatomics;
 static map<string, std::function<uint64_t()>> d_get64bitmembers;
 static map<string, std::function<StatsMap()>> d_getmultimembers;
@@ -122,14 +121,6 @@ void disableStats(StatComponent component, const string& stats)
   auto& map = s_disabledStats[component];
   for (const auto& st : disabledStats) {
     map.insert(st);
-  }
-}
-
-static void addGetStat(const string& name, const uint32_t* place)
-{
-  if (!d_get32bitpointers.emplace(name, place).second) {
-    cerr << "addGetStat: double def " << name << endl;
-    _exit(1);
   }
 }
 
@@ -190,12 +181,12 @@ static std::optional<uint64_t> get(const string& name)
 {
   std::optional<uint64_t> ret;
 
-  if (d_get32bitpointers.count(name))
-    return *d_get32bitpointers.find(name)->second;
-  if (d_getatomics.count(name))
+  if (d_getatomics.count(name) != 0) {
     return d_getatomics.find(name)->second->load();
-  if (d_get64bitmembers.count(name))
+  }
+  if (d_get64bitmembers.count(name) != 0) {
     return d_get64bitmembers.find(name)->second();
+  }
 
   {
     auto dm = d_dynmetrics.lock();
@@ -226,11 +217,6 @@ StatsMap getAllStatsMap(StatComponent component)
   StatsMap ret;
   const auto& disabledlistMap = s_disabledStats.at(component);
 
-  for (const auto& the32bits : d_get32bitpointers) {
-    if (disabledlistMap.count(the32bits.first) == 0) {
-      ret.emplace(the32bits.first, StatsMapEntry{getPrometheusName(the32bits.first), std::to_string(*the32bits.second)});
-    }
-  }
   for (const auto& atomic : d_getatomics) {
     if (disabledlistMap.count(atomic.first) == 0) {
       ret.emplace(atomic.first, StatsMapEntry{getPrometheusName(atomic.first), std::to_string(atomic.second->load())});
