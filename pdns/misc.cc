@@ -60,6 +60,7 @@
 #include <pwd.h>
 #include <grp.h>
 #include <climits>
+#include <unordered_map>
 #ifdef __FreeBSD__
 #  include <pthread_np.h>
 #endif
