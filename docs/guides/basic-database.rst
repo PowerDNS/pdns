@@ -77,9 +77,9 @@ Now, let's add a zone and some records::
 This should be done as the ``pdns`` user (or root), as sqlite3 requires write access to the directory of the database file.
 
 .. note::
-  ``pdnsutil`` is a tool that can manipulate zones, set DNSSEC parameters for zones and does :doc:`many other <../manpages/pdnsutil.1>` things.
-  It is *highly* recommended to use ``pdnsutil`` or the :doc:`HTTP API <../http-api/index>` to modify zones instead of using raw SQL,
-  as ``pdnsutil`` and the API perform checks on the data and post-store changes to prevent issues when serving DNS data.
+  :doc:`pdnsutil <pdnsutil>` is a tool that can manipulate zones, set DNSSEC parameters for zones and does :doc:`many other <../manpages/pdnsutil.1>` things.
+  It is *highly* recommended to use :doc:`pdnsutil <pdnsutil>` or the :doc:`HTTP API <../http-api/index>` to modify zones instead of using raw SQL,
+  as :doc:`pdnsutil <pdnsutil>` and the API perform checks on the data and post-store changes to prevent issues when serving DNS data.
 
 If we now requery our database, ``www.example.com`` should be present::
 

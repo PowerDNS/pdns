@@ -111,7 +111,7 @@ Backend manipulation
 ``pdnsutil``
 ~~~~~~~~~~~~
 
-To perform zone and record changes using inbuilt tools, the ``pdnsutil`` command can be used. All available options are described in the online :doc:`manual page <../manpages/pdnsutil.1>` as well as in ``man pdnsutil``.
+To perform zone and record changes using inbuilt tools, the :doc:`pdnsutil <pdnsutil>` command can be used. All available options are described in the online :doc:`manual page <../manpages/pdnsutil.1>` as well as in ``man pdnsutil``.
 
 The SysV init script
 --------------------

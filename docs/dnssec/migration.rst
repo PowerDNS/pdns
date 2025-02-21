@@ -81,7 +81,7 @@ automatically.
 From existing DNSSEC non-PowerDNS setups, live signing
 ------------------------------------------------------
 
-The ``pdnsutil`` tool features the option to import zone keys in the
+The :doc:`pdnsutil <pdnsutil>` tool features the option to import zone keys in the
 industry standard private key format, version 1.2. To import an existing
 KSK, use
 

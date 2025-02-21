@@ -234,7 +234,7 @@ and such.
   as 'overlay', makes the zone incompatible with some operations that
   assume that a single zone is always entirely stored in the same backend.
   Such operations include zone transfers, listing and editing zone content via
-  the API or ``pdnsutil``.
+  the API or :doc:`pdnsutil <pdnsutil>`.
 
 .. warning::
   When the content of a zone is spread across multiple backends, all the types
