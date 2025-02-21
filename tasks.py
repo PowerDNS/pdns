@@ -1172,7 +1172,7 @@ def test_regression_recursor(c):
 @task
 def test_bulk_recursor(c, size, threads, mthreads, shards, ipv6):
     with c.cd('regression-tests'):
-        c.run('curl --no-progress-meter -LO http://s3-us-west-1.amazonaws.com/umbrella-static/top-1m.csv.zip')
+        c.run('curl --no-progress-meter -LO https://umbrella-static.s3.dualstack.us-west-1.amazonaws.com/top-1m.csv.zip')
         c.run('unzip top-1m.csv.zip -d .')
         c.run('chmod +x /opt/pdns-recursor/bin/* /opt/pdns-recursor/sbin/*')
         c.run(f'DNSBULKTEST=/usr/bin/dnsbulktest RECURSOR=/opt/pdns-recursor/sbin/pdns_recursor RECCONTROL=/opt/pdns-recursor/bin/rec_control IPv6={ipv6} THRESHOLD=95 TRACE=no ./recursor-test 5300 {size} {threads} {mthreads} {shards}')
