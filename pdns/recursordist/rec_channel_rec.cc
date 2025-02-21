@@ -181,10 +181,10 @@ static std::optional<uint64_t> get(const string& name)
 {
   std::optional<uint64_t> ret;
 
-  if (d_getatomics.count(name)) {
+  if (d_getatomics.count(name) != 0) {
     return d_getatomics.find(name)->second->load();
   }
-  if (d_get64bitmembers.count(name)) {
+  if (d_get64bitmembers.count(name) != 0) {
     return d_get64bitmembers.find(name)->second();
   }
 
