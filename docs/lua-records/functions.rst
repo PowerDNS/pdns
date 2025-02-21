@@ -82,6 +82,8 @@ Record creation functions
   :param addresses: List of sets of addresses to check the URL on.
   :param options: Table of options for this specific check, see below.
 
+  .. _ifurlup-options:
+
   Various options can be set in the ``options`` parameter:
 
   - ``selector``: used to pick the address(es) from the subset of available addresses of the selected set. Choices include 'pickclosest', 'random', 'hashed', 'all' (default 'random').
@@ -106,7 +108,7 @@ Record creation functions
   This is useful when health checking already happens elsewhere, and that state is exposed over HTTP(S).
   Health checks are considered positive if the HTTP response code is 200 and optionally if the content matches the ``stringmatch`` option.
 
-  Options are identical to those for ``ifurlup``.
+  :ref:`Options <ifurlup-options>` are identical to those for ``ifurlup``.
 
   Example:
 
