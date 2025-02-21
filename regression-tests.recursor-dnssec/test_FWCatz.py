@@ -287,9 +287,22 @@ recursor:
         self.assertEqual(res.question[0].to_text(), 'forward.catz. IN SOA')
 
     def checkForwards(self, expected):
-        with open('configs/' + self._confdir + '/catzone.forward.catz.') as file:
-            reality = yaml.safe_load(file);
-            self.assertEqual(expected, reality)
+        attempts = 0
+        tries = 10
+        ex = None
+        while attempts < tries:
+            try:
+                with open('configs/' + self._confdir + '/catzone.forward.catz.') as file:
+                    reality = yaml.safe_load(file);
+                    if expected == reality:
+                        return
+            except Exception as e:
+                ex = e
+            attempts = attempts + 1
+            sleep(0.1)
+        if ex is not None:
+            raise ex
+        raise AssertionError('expected content not found')
 
     def waitUntilCorrectSerialIsLoaded(self, serial, timeout=5):
         global fwCatzServer
