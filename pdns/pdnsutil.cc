@@ -1567,6 +1567,13 @@ static int createZone(const DNSName &zone, const DNSName& nsname) {
     return EXIT_FAILURE;
   }
 
+  // Zone is not secured yet, apply default-soa-edit rule to the serial number,
+  // unless default-soa-content has provided a nonzero value.
+  if (sd.serial == 0) {
+    string edit_kind = ::arg()["default-soa-edit"];
+    sd.serial = calculateEditSOA(sd.serial, edit_kind, zone);
+  }
+
   rr.content = makeSOAContent(sd)->getZoneRepresentation(true);
 
   cerr<<"Creating empty zone '"<<zone<<"'"<<endl;
