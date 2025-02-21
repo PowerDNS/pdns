@@ -242,7 +242,7 @@ static T& initializeOrGetMetric(const std::string_view& name, std::map<std::stri
   auto metricEntry = metricEntries.find(combinationOfLabels);
   if (metricEntry == metricEntries.end()) {
     metricEntry = metricEntries.emplace(std::piecewise_construct, std::forward_as_tuple(combinationOfLabels), std::forward_as_tuple()).first;
-    g_stats.entries.write_lock()->emplace_back(Stats::EntryTriple{std::string(name), combinationOfLabels, &metricEntry->second.d_value});
+    g_stats.entries.write_lock()->emplace_back(Stats::EntryTriple{std::string(name), std::move(combinationOfLabels), &metricEntry->second.d_value});
   }
   return metricEntry->second;
 }

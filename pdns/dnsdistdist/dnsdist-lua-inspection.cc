@@ -715,7 +715,7 @@ void setupLuaInspection(LuaContext& luaCtx)
     for (const auto& entry : histo) {
       int stars = static_cast<int>(70.0 * entry.second / highest);
       char value = '*';
-      if (stars == 0 && entry.second != 0) {
+      if (stars == 0 && entry.second != 0 && highest != 0.0) {
         stars = 1; // you get 1 . to show something is there..
         if (70.0 * entry.second / highest > 0.5) {
           value = ':';

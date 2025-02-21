@@ -207,6 +207,7 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
       return empty;
     }
 
+    // coverity[auto_causes_copy]
     return *dnsQuestion.ids.qTag;
   });
 
@@ -552,9 +553,11 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
 
   luaCtx.registerFunction<LuaAssociativeTable<std::string> (DNSQuestion::*)(void) const>("getHTTPHeaders", [](const DNSQuestion& dnsQuestion) {
     if (dnsQuestion.ids.du) {
+      // coverity[auto_causes_copy]
       return dnsQuestion.ids.du->getHTTPHeaders();
     }
     if (dnsQuestion.ids.doh3u) {
+      // coverity[auto_causes_copy]
       return dnsQuestion.ids.doh3u->getHTTPHeaders();
     }
     return LuaAssociativeTable<std::string>();
