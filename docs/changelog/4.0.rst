@@ -395,7 +395,7 @@ In addition to this cleanup, 4.0.0 brings the following new features:
 -  Experimental support for ed25519 DNSSEC signatures (when compiled
    with libsodium support).
 -  IXFR consumption support.
--  Many new ``pdnsutil`` commands
+-  Many new :doc:`pdnsutil <pdnsutil>` commands
 
    -  ``help`` command now produces the help
    -  Warns if the configuration file cannot be read
@@ -417,7 +417,7 @@ The following backend have been dropped in 4.0.0:
 
 Important changes:
 
--  ``pdnssec`` has been renamed to ``pdnsutil``
+-  ``pdnssec`` has been renamed to :doc:`pdnsutil <pdnsutil>`
 -  PowerDNS Authoritative Server now listens by default on all IPv6
    addresses.
 -  The default for ``pdnsutil secure-zone`` has been changed from 1 2048

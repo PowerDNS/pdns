@@ -517,7 +517,7 @@ Changelogs for 4.1.x
 
   This is the second release in the 4.1 train.
 
-  This is a bug-fix only release, with fixes to the LDAP and MySQL backends, the ``pdnsutil`` tool, and PDNS internals.
+  This is a bug-fix only release, with fixes to the LDAP and MySQL backends, the :doc:`pdnsutil <pdnsutil>` tool, and PDNS internals.
 
   Changes since 4.1.1:
 
@@ -643,7 +643,7 @@ Changelogs for 4.1.x
   This is the third release candidate of the PowerDNS Authoritative Server in the 4.1 release train.
 
   This release features various bug fixes and some improvements to
-  ``pdnsutil``.
+  :doc:`pdnsutil <pdnsutil>`.
 
   .. change::
     :tags: Bug Fixes
@@ -682,7 +682,7 @@ Changelogs for 4.1.x
     :pullreq: 5883
     :tickets: 5853
 
-    Add ``add-meta`` command to ``pdnsutil`` that can be used to append
+    Add ``add-meta`` command to :doc:`pdnsutil <pdnsutil>` that can be used to append
     to existing metadata without clobbering it.
 
   .. change::

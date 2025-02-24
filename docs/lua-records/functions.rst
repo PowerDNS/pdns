@@ -43,6 +43,14 @@ Functions available
 Record creation functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
+  .. _if-first-run:
+
+.. warning::
+  For functions that require network traffic ``if...(..., addresses[...])``,
+  the first time they're called, they effectively treat all addresses as
+  failing which means that whatever fallback behavior is used will apply to
+  that first resolution.
+
 .. function:: ifportup(portnum, addresses[, options])
 
   Simplistic test to see if an IP address listens on a certain port. This will
@@ -52,8 +60,8 @@ Record creation functions
   list IPv4 addresses on an AAAA record, or IPv6 addresses on an A record.
 
   Will return a single address from the set of available addresses. If
-  no address is available, will return a random element of the set of
-  addresses supplied for testing.
+  no address is available (but also :ref:`on the first run <if-first-run>`),
+  will return a random element of the set of addresses supplied for testing.
 
   :param int portnum: The port number to test connections to.
   :param {str} addresses: The list of addresses to check connectivity for.
@@ -72,7 +80,8 @@ Record creation functions
 .. function:: ifurlup(url, addresses[, options])
 
   More sophisticated test that attempts an actual http(s) connection to
-  ``url``. In addition, a list of sets of IP addresses can be supplied. The
+  ``url`` (but results are not used :ref:`on the first run <if-first-run>`).
+  In addition, a list of sets of IP addresses can be supplied. The
   first set with at least one available address is selected. The ``selector`` then
   selects from the subset of available addresses of the selected set.
   An URL is considered available if the HTTP response code is 200 and optionally if
@@ -81,6 +90,8 @@ Record creation functions
   :param string url: The url to retrieve.
   :param addresses: List of sets of addresses to check the URL on.
   :param options: Table of options for this specific check, see below.
+
+  .. _ifurlup-options:
 
   Various options can be set in the ``options`` parameter:
 
@@ -106,7 +117,7 @@ Record creation functions
   This is useful when health checking already happens elsewhere, and that state is exposed over HTTP(S).
   Health checks are considered positive if the HTTP response code is 200 and optionally if the content matches the ``stringmatch`` option.
 
-  Options are identical to those for ``ifurlup``.
+  :ref:`Options <ifurlup-options>` are identical to those for ``ifurlup``.
 
   Example:
 

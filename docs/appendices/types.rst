@@ -246,7 +246,7 @@ SOA
 ---
 
 The Start of Authority record is one of the most complex available. It
-specifies a lot about a domain: the name of the master nameserver ('the
+specifies a lot about a domain: the name of the primary nameserver ('the
 primary'), the hostmaster and a set of numbers indicating how the data
 in this domain expires and how often it needs to be checked. Further
 more, it contains a serial number which should rise on each change of

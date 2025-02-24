@@ -139,12 +139,12 @@ private:
       try {
         weight = stoi(content);
         if(!status) {
-          g_log<<Logger::Info<<"LUA record monitoring declaring "<<remstring<<" UP for URL "<<cd.url<<"!"<<" with WEIGHT "<<content<<"!"<<endl;
+          g_log<<Logger::Info<<"Lua record monitoring declaring "<<remstring<<" UP for URL "<<cd.url<<"!"<<" with WEIGHT "<<content<<"!"<<endl;
         }
       }
       catch (const std::exception&) {
         if(!status) {
-          g_log<<Logger::Info<<"LUA record monitoring declaring "<<remstring<<" UP for URL "<<cd.url<<"!"<<endl;
+          g_log<<Logger::Info<<"Lua record monitoring declaring "<<remstring<<" UP for URL "<<cd.url<<"!"<<endl;
         }
       }
 
@@ -153,7 +153,7 @@ private:
     }
     catch(std::exception& ne) {
       if(status || first)
-        g_log<<Logger::Info<<"LUA record monitoring declaring "<<remstring<<" DOWN for URL "<<cd.url<<", error: "<<ne.what()<<endl;
+        g_log<<Logger::Info<<"Lua record monitoring declaring "<<remstring<<" DOWN for URL "<<cd.url<<", error: "<<ne.what()<<endl;
       setWeight(cd, 0);
       setDown(cd);
     }
@@ -387,7 +387,7 @@ static std::string getGeo(const std::string& ip, GeoIPInterface::GeoIPQueryAttri
   extern std::function<std::string(const std::string& ip, int)> g_getGeo;
   if(!g_getGeo) {
     if(!initialized) {
-      g_log<<Logger::Error<<"LUA Record attempted to use GeoIPBackend functionality, but backend not launched"<<endl;
+      g_log<<Logger::Error<<"Lua record attempted to use GeoIPBackend functionality, but backend not launched"<<endl;
       initialized=true;
     }
     return "unknown";
@@ -642,7 +642,7 @@ static vector<ComboAddress> useSelector(const std::string &selector, const Combo
   else if(selector=="hashed")
     ret.emplace_back(pickHashed<ComboAddress>(bestwho, candidates));
   else {
-    g_log<<Logger::Warning<<"LUA Record called with unknown selector '"<<selector<<"'"<<endl;
+    g_log<<Logger::Warning<<"Lua record called with unknown selector '"<<selector<<"'"<<endl;
     ret.emplace_back(pickRandom<ComboAddress>(candidates));
   }
 
@@ -1152,10 +1152,10 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
         return fmt.str();
       }
       catch(std::exception& ex) {
-        g_log<<Logger::Error<<"LUA Record exception: "<<ex.what()<<endl;
+        g_log<<Logger::Error<<"Lua record exception: "<<ex.what()<<endl;
       }
       catch(PDNSException& ex) {
-        g_log<<Logger::Error<<"LUA Record exception: "<<ex.reason<<endl;
+        g_log<<Logger::Error<<"Lua record exception: "<<ex.reason<<endl;
       }
       return std::string("unknown");
     });
@@ -1516,7 +1516,7 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
         }
       }
       catch(std::exception& e) {
-        g_log<<Logger::Error<<"Failed to load include record for LUArecord "<<rec<<": "<<e.what()<<endl;
+        g_log<<Logger::Error<<"Failed to load include record for Lua record "<<rec<<": "<<e.what()<<endl;
       }
     });
 }

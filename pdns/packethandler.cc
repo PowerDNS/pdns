@@ -409,11 +409,11 @@ bool PacketHandler::getBestWildcard(DNSPacket& p, const DNSName &target, DNSName
 #ifdef HAVE_LUA_RECORDS
       if (rr.dr.d_type == QType::LUA && !d_dk.isPresigned(d_sd.qname)) {
         if(!doLua) {
-          DLOG(g_log<<"Have a wildcard LUA match, but not doing LUA record for this zone"<<endl);
+          DLOG(g_log<<"Have a wildcard Lua match, but not doing Lua record for this zone"<<endl);
           continue;
         }
 
-        DLOG(g_log<<"Have a wildcard LUA match"<<endl);
+        DLOG(g_log<<"Have a wildcard Lua match"<<endl);
 
         auto rec=getRR<LUARecordContent>(rr.dr);
         if (!rec) {

@@ -42,8 +42,8 @@ Here is a very basic example using :func:`ifportup`::
 
      www    IN    LUA    A    "ifportup(443, {'192.0.2.1', '192.0.2.2'})"
 
-This turns the 'www' name within a zone into a special record that will
-randomly return 192.0.2.1 or 192.0.2.2, as long as both of these IP
+This turns the ``www`` name within a zone into a special record that will
+randomly return ``192.0.2.1`` or ``192.0.2.2``, as long as both of these IP
 addresses listen on port 443.
 
 If either IP address stops listening, only the other address will be

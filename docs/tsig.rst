@@ -8,15 +8,15 @@ transfer of a domain if the request is signed with an authorized name.
 
 In PowerDNS, TSIG shared secrets are stored by the various backends. In
 case of the :doc:`backends/generic-sql`, they
-can be found in the 'tsigkeys' table. The name can be chosen freely, but
-the algorithm name will typically be 'hmac-md5'. Other supported
-algorithms are 'hmac-sha1', 'hmac-shaX' where X is 224, 256, 384 or 512.
+can be found in the ``tsigkeys`` table. The name can be chosen freely, but
+the algorithm name will typically be ``hmac-md5``. Other supported
+algorithms are ``hmac-sha1``, ``hmac-shaX`` where ``X`` is ``224``, ``256``, ``384`` or ``512``.
 The content is a Base64-encoded secret.
 
 .. note::
   Most backends require DNSSEC support to be enabled to support TSIG.
   For the Generic SQL Backend, make sure to use the DNSSEC-enabled schema
-  and to turn on the relevant '-dnssec' flag (for example,
+  and to turn on the relevant ``-dnssec`` flag (for example,
   ``gmysql-dnssec``)!
 
 Provisioning outbound AXFR access
@@ -69,7 +69,7 @@ Provisioning signed notification and AXFR requests
 --------------------------------------------------
 
 To configure PowerDNS to send out TSIG signed AXFR requests for a zone
-to its master(s), set the ``AXFR-MASTER-TSIG`` metadata item for the
+to its primaries, set the ``AXFR-MASTER-TSIG`` metadata item for the
 relevant domain to the key that must be used.
 
 The actual TSIG key must also be provisioned, as outlined in the
@@ -113,7 +113,7 @@ quite) similar to the following BIND statements::
     };
 
 Except that in this case, TSIG will be used for all communications with
-the master, not just those about AXFR requests.
+the primary, not just those about AXFR requests.
 
 .. _tsig-gss-tsig:
 

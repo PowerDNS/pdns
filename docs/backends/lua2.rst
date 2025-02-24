@@ -92,8 +92,8 @@ OUTPUT:
  - string account - Associated account of this domain (default: <empty>)
  - string kind - Domain kind (NATIVE,MASTER,SLAVE) (default: NATIVE)
  - int id - Associated domain ID (default: -1)
- - int last_check - UNIX timestamp of last check from master (default: 0)
- - table of strings masters - Master servers for this domain (default: <empty>)
+ - int last_check - UNIX timestamp of last check from primary (default: 0)
+ - table of strings masters - Primary servers for this domain (default: <empty>)
  - long notified_serial - Notified serial to slaves (default: 0)
  - long serial - Current domain serial
 
@@ -101,7 +101,7 @@ NOTES:
  This function is **optional**.
  Defaults are used for omitted keys.
  ``last_check`` is for automatic serial.
- ``masters``, ``account``, ``notified_serial`` are for master/slave interaction only.
+ ``masters``, ``account``, ``notified_serial`` are for primary/secondary interaction only.
  If this function is missing, it will revert into looking up SOA record for the given domain,
  and uses that, if found.
 
@@ -114,7 +114,7 @@ OUTPUT:
  domaininfo. See :ref:`dns_get_domaininfo() <backends_lua2_dns_get_domaininfo>`.
 
 NOTES:
- This function is **optional**, except if you need master functionality.
+ This function is **optional**, except if you need primary functionality.
 
 ``dns_get_domain_metadata(domain, kind)``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -193,4 +193,4 @@ INPUT:
  - long serial - Notified serial
 
 NOTES:
- This function is **optional**. However, not implementing this can cause problems with master functionality.
+ This function is **optional**. However, not implementing this can cause problems with primary functionality.

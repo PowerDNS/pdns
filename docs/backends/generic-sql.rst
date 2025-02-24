@@ -70,7 +70,7 @@ PowerDNS has support for multiple primaries per zone, and also port numbers for 
 Autoprimary operation
 ^^^^^^^^^^^^^^^^^^^^^
 
-To configure a :ref:`autoprimary <supermaster-operation>` with IP address 203.0.113.53 which lists this
+To configure a :ref:`autoprimary <autoprimary-operation>` with IP address 203.0.113.53 which lists this
 installation as 'autosecondary.example.com', issue the following::
 
     pdnsutil add-autoprimary 203.0.113.53 autosecondary.example.com internal
@@ -101,7 +101,7 @@ setting "disabled" to ``1`` (for PostgreSQL: ``true``). By extension,
 when the SOA record for a domain is disabled, the entire domain is
 considered to be disabled.
 
-This value cannot be set with ``pdnsutil``.
+This value cannot be set with :doc:`pdnsutil <pdnsutil>`.
 
 Effects: the record (or domain, respectively) will not be visible to DNS
 clients. The REST API will still see the record (or domain). Even if a

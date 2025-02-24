@@ -37,7 +37,7 @@
 #include "uuid-utils.hh"
 #include <yahttp/router.hpp>
 #include <algorithm>
-#include <unordered_set>
+#include <bitset>
 
 json11::Json HttpRequest::json()
 {
