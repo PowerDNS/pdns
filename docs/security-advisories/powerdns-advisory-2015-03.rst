@@ -28,7 +28,7 @@ PowerDNS Authoritative Server 3.4.4 - 3.4.6 are affected. No other
 versions are affected. The PowerDNS Recursor is not affected.
 
 `PowerDNS Authoritative Server
-3.4.7 <../changelog.rst#powerdns-authoritative-server-347>`__ contains a
+3.4.7 <../changelog/pre-4.0.rst#powerdns-authoritative-server-347>`__ contains a
 fix to this issue. A minimal patch is `available
 here <https://downloads.powerdns.com/patches/2015-03/>`__.
 
