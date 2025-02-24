@@ -60,14 +60,14 @@ recursor:
   - zone: example.net
     file: another/file/name
   forward_zones:
-  - zone: '.'
+  - zone: .
     forwarders:
-    - '9.9.9.9'
+    - 9.9.9.9
   forward_zones_recurse:
-  - zone: '.'
+  - zone: .
     forwarders:
-    - '9.9.9.9'
-    - '1.2.3.4'
+    - 9.9.9.9
+    - 1.2.3.4
     - ::99
     recurse: true
 webservice:
@@ -112,7 +112,7 @@ recursor:
   forward_zones:
     - zone: "example.com"
       forwarders:
-        - '1.2.3.4'
+        - 1.2.3.4
         - '-a.b'
 )EOT";
 
@@ -131,7 +131,7 @@ recursor:
   forward_zones:
     - zone:
       forwarders:
-        - '1.2.3.4'
+        - 1.2.3.4
 )EOT";
 
   BOOST_CHECK_THROW({
@@ -222,10 +222,10 @@ BOOST_AUTO_TEST_CASE(test_rust_forwardzones_to_yaml)
 
   const std::string expected = R"EOT(- zone: zone1
   forwarders:
-  - '1.2.3.4'
+  - 1.2.3.4
 - zone: zone2
   forwarders:
-  - '1.2.3.4'
+  - 1.2.3.4
   - ::1
   recurse: true
   notify_allowed: true
@@ -244,9 +244,9 @@ example1.com= 1.2.3.4, 5.6.7.8; 8.9.0.1
 
   const std::string expected = R"EOT(- zone: example1.com
   forwarders:
-  - '1.2.3.4'
-  - '5.6.7.8'
-  - '8.9.0.1'
+  - 1.2.3.4
+  - 5.6.7.8
+  - 8.9.0.1
 - zone: example2.com
   forwarders:
   - ::1
@@ -919,13 +919,13 @@ BOOST_AUTO_TEST_CASE(test_yaml_to_luaconfigand_back)
 {
   const std::string yaml = R"EOT(dnssec:
   trustanchors:
-  - name: '.'
+  - name: .
     dsrecords:
-    - '10000 8 2 a06d44b80b8f1d39a95c0b0d7c65d08458e880409bbc683457104237c7f8ec8d'
+    - 10000 8 2 a06d44b80b8f1d39a95c0b0d7c65d08458e880409bbc683457104237c7f8ec8d
   - name: aa.
     dsrecords:
-    - '1234 8 2 a06d44b80b8f1d39a95c0b0d7c65d08458e880409bbc683457104237c7f8ec8d'
-    - '4567 8 2 b06d44b80b8f1d39a95c0b0d7c65d08458e880409bbc683457104237c7f8ec8d'
+    - 1234 8 2 a06d44b80b8f1d39a95c0b0d7c65d08458e880409bbc683457104237c7f8ec8d
+    - 4567 8 2 b06d44b80b8f1d39a95c0b0d7c65d08458e880409bbc683457104237c7f8ec8d
   negative_trustanchors:
   - name: aa.
     reason: aaa
@@ -935,24 +935,24 @@ BOOST_AUTO_TEST_CASE(test_yaml_to_luaconfigand_back)
   trustanchorfile_interval: 99
 incoming:
   proxymappings:
-  - subnet: '1.0.0.0/8'
-    address: '4.5.6.7'
-  - subnet: '3.4.5.6/32'
-    address: '6.7.8.9'
+  - subnet: 1.0.0.0/8
+    address: 4.5.6.7
+  - subnet: 3.4.5.6/32
+    address: 6.7.8.9
     domains:
     - a.
     - b.
     - c.
 recursor:
   sortlists:
-  - key: '1.0.0.0/8'
+  - key: 1.0.0.0/8
     subnets:
-    - subnet: '5.6.7.8/32'
+    - subnet: 5.6.7.8/32
       order: 99
   rpzs:
   - name: rpz.local
     addresses:
-    - '192.168.178.3:53'
+    - 192.168.178.3:53
     refresh: 10
     dumpFile: tmp/rpz.dump
     seedFile: tmp/rpz.dump
@@ -990,7 +990,7 @@ recursor:
 logging:
   protobuf_servers:
   - servers:
-    - '1.2.3.4:99'
+    - 1.2.3.4:99
     timeout: 100
     maxQueuedEntries: 101
     reconnectWaitTime: 102
@@ -1004,7 +1004,7 @@ logging:
     logMappedFrom: true
   outgoing_protobuf_servers:
   - servers:
-    - '1.2.3.6:101'
+    - 1.2.3.6:101
     timeout: 100
     maxQueuedEntries: 101
     reconnectWaitTime: 102
