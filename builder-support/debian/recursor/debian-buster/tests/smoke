@@ -8,9 +8,7 @@ restart_failed() {
     exit 1
 }
 
-cat <<EOF >>/etc/powerdns/recursor.conf
-auth-zones=example.org=/etc/powerdns/example.org.zone
-EOF
+sed -e '/recursor:/a \  auth_zones: [{zone: "example.org", file: "/etc/powerdns/example.org.zone"}]' -i /etc/powerdns/recursor.conf
 
 cat <<EOF >/etc/powerdns/example.org.zone
 example.org.           172800  IN      SOA     ns1.example.org. dns.example.org. 1 10800 3600 604800 3600
