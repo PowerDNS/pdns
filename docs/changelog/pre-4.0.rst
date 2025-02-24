@@ -986,7 +986,7 @@ Downloads
 ^^^^^^^^^
 
 -  `Official download
-   page <http://www.powerdns.com/content/downloads.html>`__
+   page <https://www.powerdns.com/downloads>`__
 -  `native RHEL5/6 packages from Kees
    Monshouwer <http://www.monshouwer.eu/download/3rd_party/pdns-server/>`__
 
@@ -1111,7 +1111,7 @@ Downloads
 ^^^^^^^^^
 
 -  `Official download
-   page <http://www.powerdns.com/content/downloads.html>`__
+   page <https://www.powerdns.com/downloads>`__
 -  `native RHEL5/6 packages from Kees
    Monshouwer <http://www.monshouwer.eu/download/3rd_party/pdns-server/>`__
 
@@ -1488,7 +1488,7 @@ Downloads
 ^^^^^^^^^
 
 -  `Official download
-   page <http://www.powerdns.com/content/downloads.html>`__
+   page <https://www.powerdns.com/downloads>`__
 -  `native RHEL5/6 packages from Kees
    Monshouwer <http://www.monshouwer.eu/download/3rd_party/pdns-server/>`__
 -  `additional third-party
@@ -2117,7 +2117,7 @@ Downloads
 ^^^^^^^^^
 
 -  `Official download
-   page <http://www.powerdns.com/content/downloads.html>`__
+   page <https://www.powerdns.com/downloads>`__
 -  `CentOS/RHEL 5/6
    RPMs <http://www.monshouwer.eu/download/3rd_party/pdns-server/>`__
    kindly provided by Kees Monshouwer.

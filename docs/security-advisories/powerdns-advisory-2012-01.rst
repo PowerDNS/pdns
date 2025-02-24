@@ -48,7 +48,7 @@ INPUT.
 To solve this issue, we recommend upgrading to the latest packages
 available for your system. Tarballs and new static builds (32/64bit,
 RPM/DEB) of 2.9.22.5 and 3.0.1 have been uploaded to `our download
-site <http://www.powerdns.com/content/downloads.html>`__. Kees
+site <https://www.powerdns.com/downloads>`__. Kees
 Monshouwer has provided updated CentOS/RHEL packages in `his
 repository <http://www.monshouwer.eu/download/3th_party/>`__. Debian,
 Fedora and SuSE should have packages available shortly after this
