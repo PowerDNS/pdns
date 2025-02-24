@@ -2197,7 +2197,9 @@ Note that once a Proxy Protocol header has been received, the source address fro
 The dnsdist docs have `more information about the PROXY protocol <https://dnsdist.org/advanced/passing-source-address.html#proxy-protocol>`_.
  ''',
         'versionadded' : '4.4.0',
-        'versionchanged' : ('5.0.5', 'YAML settings only: previously this was defined as a string instead of a sequence')
+        'versionchanged' : [('5.0.5', 'YAML settings only: previously this was defined as a string instead of a sequence'),
+                            ('5.3.0', '``rec_control reload-acls`` reloads this setting')],
+        'runtime': ['reload-acls (since 5.3.0)'],
     },
     {
         'name' : 'proxy_protocol_exceptions',
@@ -2211,6 +2213,8 @@ If no port is specified, port 53 is assumed.
 This is typically used to provide an easy to use address and port to send debug queries to.
  ''',
         'versionadded' : '5.1.0',
+        'versionchanged' : ('5.3.0', '``rec_control reload-acls`` reloads this setting'),
+        'runtime': ['reload-acls (since 5.3.0)'],
     },
     {
         'name' : 'proxy_protocol_maximum_size',

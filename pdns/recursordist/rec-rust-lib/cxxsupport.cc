@@ -448,6 +448,8 @@ void pdns::settings::rec::setArgsForACLRelatedSettings(Recursorsettings& setting
   ::arg().set("allow-from-file") = to_arg(settings.incoming.allow_from_file);
   ::arg().set("allow-notify-from") = to_arg(settings.incoming.allow_notify_from);
   ::arg().set("allow-notify-from-file") = to_arg(settings.incoming.allow_notify_from_file);
+  ::arg().set("proxy-protocol-from") = to_arg(settings.incoming.proxy_protocol_from);
+  ::arg().set("proxy-protocol-exceptions") = to_arg(settings.incoming.proxy_protocol_exceptions);
 }
 
 void pdns::settings::rec::to_yaml(uint64_t& field, const std::string& val)
