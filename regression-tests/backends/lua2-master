@@ -22,6 +22,7 @@ case $context in
 		fi
 
 		# generate pdns.conf for pdnsutil
+		backend=lua2
 		cat > pdns-lua2.conf <<EOF
 module-dir=$PDNS_BUILD_PATH/modules
 launch=lua2
