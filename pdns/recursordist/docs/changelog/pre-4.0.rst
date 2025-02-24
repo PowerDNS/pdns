@@ -1501,8 +1501,7 @@ Security related issues
 -  The Recursor will by default no longer query private-space
    nameservers. This closes a slight security risk and simultaneously
    improves performance and stability. For more information, see
-   **dont-query** in `pdns\_recursor
-   settings <recursor/settings.rst#dont-query>`__. Implemented in `commit
+   **dont-query** in :ref:`dont-query`. Implemented in `commit
    923 <http://wiki.powerdns.com/projects/trac/changeset/923>`__.
 -  Applied fix for `ticket
    110 <https://github.com/PowerDNS/pdns/issues/110>`__ ('PowerDNS
@@ -2156,8 +2155,7 @@ localhost, which means it does not resolve for hosts on your network. To
 fix, configure the **local-address** setting with all addresses you want
 to listen on. Additionally, by default service is restricted to RFC 1918
 private IP addresses. Use **allow-from** to selectively open up the
-recursor for your own network. See `pdns\_recursor
-settings <recursor/settings.rst#allow-from>`__ for details.
+recursor for your own network. See :ref:`allow-from` for details.
 
 Important new features of the PowerDNS recursor 3.0
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
