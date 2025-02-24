@@ -1064,16 +1064,21 @@ static void rustWrapper(const std::function<void(HttpRequest*, HttpResponse*)>& 
   request.d_slog = g_slog;
   response.d_slog = g_slog;
   try {
+    cerr << "0000" << endl;
     func(&request, &response);
+    cerr << "1000" << endl;
   }
   catch (HttpException& e) {
+    cerr << "11111111" << endl;
     response.body = e.response().body;
     response.status = e.response().status;
   }
   catch (const ApiException& e) {
+    cerr << "21111111" << endl;
     response.setErrorResult(e.what(), 422);
   }
   catch (const JsonException& e) {
+    cerr << "31111111" << endl;
     response.setErrorResult(e.what(), 422);
   }
   fromCxxToRust(response, rustResponse);

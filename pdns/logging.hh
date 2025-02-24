@@ -177,7 +177,7 @@ public:
 
   std::shared_ptr<Logr::Logger> v(size_t level) const override;
   std::shared_ptr<Logr::Logger> withValues(const std::map<std::string, std::string>& values) const override;
-  virtual std::shared_ptr<Logr::Logger> withName(const std::string& name) const override;
+  std::shared_ptr<Logr::Logger> withName(const std::string& name) const override;
 
   static std::shared_ptr<Logger> create(EntryLogger callback);
   static std::shared_ptr<Logger> create(EntryLogger callback, const std::string& name);
@@ -185,7 +185,7 @@ public:
   Logger(EntryLogger callback);
   Logger(EntryLogger callback, boost::optional<std::string> name);
   Logger(std::shared_ptr<const Logger> parent, boost::optional<std::string> name, size_t verbosity, size_t lvl, EntryLogger callback);
-  virtual ~Logger();
+  ~Logger() override;
 
   size_t getVerbosity() const;
   void setVerbosity(size_t verbosity);
