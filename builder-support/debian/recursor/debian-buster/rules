@@ -40,9 +40,6 @@ override_dh_auto_configure:
 # Stop installing the Lua config files once we fully moved to YAML configuration
 override_dh_auto_install:
 	dh_auto_install
-	install -d debian/pdns-recursor/usr/share/pdns-recursor/lua-config
-	install -m 644 -t debian/pdns-recursor/usr/share/pdns-recursor/lua-config debian/lua-config/rootkeys.lua
-	install -m 644 -t debian/pdns-recursor/etc/powerdns debian/recursor.lua
 	install -d debian/pdns-recursor/usr/share/pdns-recursor/snmp
 	install -m 644 -t debian/pdns-recursor/usr/share/pdns-recursor/snmp RECURSOR-MIB.txt
 	rm -f debian/pdns-recursor/etc/powerdns/recursor.conf-dist
