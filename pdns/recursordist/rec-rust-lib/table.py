@@ -282,7 +282,7 @@ DNSSEC is not supported. Example:
 .. code-block:: yaml
 
  recursor:
-    auth-zones:
+    auth_zones:
     - zone: example.org
       file: /var/zones/example.org
     - zone: powerdns.com
