@@ -265,11 +265,22 @@ jobs:
             exit 1
           fi
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: aws-actions/configure-aws-credentials@v4
         with:
-          node-version: '20'
-      - name: Install AWS SDK v3
-        run: npm install @aws-sdk/client-s3 @aws-sdk/client-cloudfront
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Install and configure rclone
+        run: |
+          apt-get update
+          apt-get install -y rclone
+          mkdir -p ~/.config/rclone/
+          cat > ~/.config/rclone/rclone.conf << EOF
+          [docs-s3]
+          type = s3
+          provider = AWS
+          env_auth = true
+          EOF
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -311,8 +322,4 @@ jobs:
               --paths "/*" \
               --no-wait
           fi
-      # Cleanup credentials
-      - name: Cleanup rclone config
-        if: always()
-        run: |
-          rm -f ~/.config/rclone/rclone.conf
+
