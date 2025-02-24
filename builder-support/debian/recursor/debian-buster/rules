@@ -47,20 +47,7 @@ override_dh_auto_install:
 	install -m 644 -t debian/pdns-recursor/usr/share/pdns-recursor/snmp RECURSOR-MIB.txt
 	rm -f debian/pdns-recursor/etc/powerdns/recursor.conf-dist
 	rm -f debian/pdns-recursor/etc/powerdns/recursor.yml-dist
-	@echo "\
-	dnssec:\n\
-	  # validation: process # default\n\
-	  trustanchorfile: /usr/share/dns/root.key\n\
-	recursor:\n\
-	  hint_file: /usr/share/dns/root.hints\n\
-	  include_dir: /etc/powerdns/recursor.d\n\
-	incoming:\n\
-	 # listen:\n\
-	 # - 127.0.0.1 # default\n\
-	outgoing:\n\
-	 # source_address:\n\
-	 # - 0.0.0.0 # default\n\
-	" > debian/pdns-recursor/etc/powerdns/recursor.conf
+	install -m 644 -t debian/pdns-recursor/etc/powerdns debian/recursor.conf
 
 override_dh_auto_test:
 ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
