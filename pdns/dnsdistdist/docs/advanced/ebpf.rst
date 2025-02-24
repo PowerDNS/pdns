@@ -31,16 +31,20 @@ The BPF filter can be used to block incoming queries manually::
   > bpf = newBPFFilter({ipv4MaxItems=1024, ipv6MaxItems=1024, qnamesMaxItems=1024})
   > bpf:attachToAllBinds()
   > bpf:block(newCA("2001:DB8::42"))
-  > bpf:blockQName(newDNSName("evildomain.com"), 255)
+  > bpf:blockQName(newDNSName("evildomain.com"), 65535)
   > bpf:getStats()
   [2001:DB8::42]: 0
-  evildomain.com. 255: 0
+  evildomain.com. 65535: 0
   > bpf:unblock(newCA("2001:DB8::42"))
-  > bpf:unblockQName(newDNSName("evildomain.com"), 255)
+  > bpf:unblockQName(newDNSName("evildomain.com"), 65535)
   > bpf:getStats()
 
+.. note::
+    Before 2.0.0 the value used to block queries for all types was 255. This was changed because it prevented blocking only queries for the ``ANY`` (255) qtype.
+
 The :meth:`BPFFilter:blockQName` method can be used to block queries based on the exact qname supplied, in a case-insensitive way, and an optional qtype.
-Using the 255 (ANY) qtype will block all queries for the qname, regardless of the qtype.
+Using the ``65535`` value for the qtype will block all queries for the qname, regardless of the qtype.
+
 Contrary to source address filtering, qname filtering only works over UDP. TCP qname filtering can be done the usual way::
 
   addAction(AndRule({TCPRule(true), QNameSuffixRule("evildomain.com")}), DropAction())

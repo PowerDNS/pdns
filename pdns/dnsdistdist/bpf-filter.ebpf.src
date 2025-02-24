@@ -389,7 +389,7 @@ int bpf_qname_filter(struct __sk_buff *skb)
 
     struct QNameValue* qvalue = qnamefilter.lookup(&qkey);
     if (qvalue &&
-      (qvalue->qtype == 255 || qtype == qvalue->qtype)) {
+      (qvalue->qtype == 65535 || qtype == qvalue->qtype)) {
       __sync_fetch_and_add(&qvalue->counter, 1);
       return 0;
     }
@@ -479,7 +479,7 @@ int bpf_dns_filter(struct __sk_buff *skb) {
 
     struct QNameValue* qvalue = qnamefilter.lookup(&qkey);
     if (qvalue &&
-      (qvalue->qtype == 255 || qtype == qvalue->qtype)) {
+      (qvalue->qtype == 65535 || qtype == qvalue->qtype)) {
       __sync_fetch_and_add(&qvalue->counter, 1);
       return 0;
     }
