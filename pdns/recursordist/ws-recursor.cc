@@ -564,7 +564,7 @@ static void prometheusMetrics(HttpRequest* /* req */, HttpResponse* resp)
          << "\n";
 
   resp->body = output.str();
-  resp->headers["Content-Type"] = "text/plain";
+  resp->headers["Content-Type"] = "text/plain; version=0.0.4";
   resp->status = 200;
 }
 
