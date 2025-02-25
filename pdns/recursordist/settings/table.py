@@ -3302,7 +3302,7 @@ If this check draws the wrong conclusion, you can disable it.
         'name' : 'trustanchors',
         'section' : 'dnssec',
         'type' : LType.ListTrustAnchors,
-        'default' : '[{name: ., dsrecords: [\'20326 8 2 e06d44b80b8f1d39a95c0b0d7c65d08458e880409bbc683457104237c7f8ec8d\']}]',
+        'default' : '[{name: ., dsrecords: [\'20326 8 2 e06d44b80b8f1d39a95c0b0d7c65d08458e880409bbc683457104237c7f8ec8d\', \'38696 8 2 683d2d0acb8c9b712a1948b27f741219298d0a450d612c483af444a4c0fb2b16\']}]',
         'docdefault' : '''
 
 .. code-block:: yaml
@@ -3310,6 +3310,7 @@ If this check draws the wrong conclusion, you can disable it.
    - name: .
      dsrecords:
      - 20326 8 2 e06d44b80b8f1d39a95c0b0d7c65d08458e880409bbc683457104237c7f8ec8d
+     - 38696 8 2 683d2d0acb8c9b712a1948b27f741219298d0a450d612c483af444a4c0fb2b16
 
 ''',
         'help' : 'Sequence of trust anchors',
