@@ -131,8 +131,7 @@ std::shared_ptr<Logr::Logger> g_slogudpout;
 static deferredAdd_t s_deferredUDPadds;
 static deferredAdd_t s_deferredTCPadds;
 
-/* first we have the handler thread, t_id == 0 (some other
-   helper threads like SNMP might have t_id == 0 as well)
+/* first we have the handler thread, t_id == 0 (threads not created as a RecursorThread have t_id = NOT_INITED)
    then the distributor threads if any
    and finally the workers */
 std::vector<RecThreadInfo> RecThreadInfo::s_threadInfos;
@@ -144,7 +143,7 @@ bool RecThreadInfo::s_weDistributeQueries; // if true, 1 or more threads listen 
 unsigned int RecThreadInfo::s_numDistributorThreads;
 unsigned int RecThreadInfo::s_numUDPWorkerThreads;
 unsigned int RecThreadInfo::s_numTCPWorkerThreads;
-thread_local unsigned int RecThreadInfo::t_id;
+thread_local unsigned int RecThreadInfo::t_id{RecThreadInfo::TID_NOT_INITED};
 
 pdns::RateLimitedLog g_rateLimitedLogger;
 
@@ -358,7 +357,8 @@ int RecThreadInfo::runThreads(Logr::log_t log)
       serveRustWeb();
     }
     for (auto& tInfo : RecThreadInfo::infos()) {
-      if (tInfo.getName() == "web+stat") { // XXX testing for isHandler() does not work as expected!
+      // who handles the handler? the caller!
+      if (tInfo.isHandler()) {
         continue;
       }
       tInfo.thread.join();
@@ -562,7 +562,7 @@ void protobufLogQuery(LocalStateHolder<LuaConfigItems>& luaconfsLocal, const boo
   msg.setRequestorId(requestorId);
   msg.setDeviceId(deviceId);
   msg.setDeviceName(deviceName);
-  msg.setWorkerId(RecThreadInfo::id());
+  msg.setWorkerId(RecThreadInfo::thread_local_id());
   // For queries, packetCacheHit and outgoingQueries are not relevant
 
   if (!policyTags.empty()) {
@@ -646,7 +646,7 @@ void protobufLogResponse(const struct dnsheader* header, LocalStateHolder<LuaCon
   pbMessage.setDeviceId(deviceId);
   pbMessage.setDeviceName(deviceName);
   pbMessage.setToPort(destination.getPort());
-  pbMessage.setWorkerId(RecThreadInfo::id());
+  pbMessage.setWorkerId(RecThreadInfo::thread_local_id());
   // this method is only used for PC cache hits
   pbMessage.setPacketCacheHit(true);
   // we do not set outgoingQueries, it is not relevant for PC cache hits
@@ -1116,7 +1116,7 @@ static void loggerSDBackend(const Logging::Entry& entry)
   }
   // Thread id filled in by backend, since the SL code does not know about RecursorThreads
   // We use the Recursor thread, other threads get id 0. May need to revisit.
-  appendKeyAndVal("TID", std::to_string(RecThreadInfo::id()));
+  appendKeyAndVal("TID", std::to_string(RecThreadInfo::thread_local_id()));
 
   vector<iovec> iov;
   iov.reserve(strings.size());
@@ -1144,7 +1144,7 @@ static void loggerJSONBackend(const Logging::Entry& entry)
     {"level", std::to_string(entry.level)},
     // Thread id filled in by backend, since the SL code does not know about RecursorThreads
     // We use the Recursor thread, other threads get id 0. May need to revisit.
-    {"tid", std::to_string(RecThreadInfo::id())},
+    {"tid", std::to_string(RecThreadInfo::thread_local_id())},
     {"ts", Logging::toTimestampStringMilli(entry.d_timestamp, timebuf)},
   };
 
@@ -1197,7 +1197,7 @@ static void loggerBackend(const Logging::Entry& entry)
   }
   // Thread id filled in by backend, since the SL code does not know about RecursorThreads
   // We use the Recursor thread, other threads get id 0. May need to revisit.
-  buf << " tid=" << std::quoted(std::to_string(RecThreadInfo::id()));
+  buf << " tid=" << std::quoted(std::to_string(RecThreadInfo::thread_local_id()));
   std::array<char, 64> timebuf{};
   buf << " ts=" << std::quoted(Logging::toTimestampStringMilli(entry.d_timestamp, timebuf));
   for (auto const& value : entry.values) {
@@ -1491,11 +1491,11 @@ void parseACLs()
 
 void broadcastFunction(const pipefunc_t& func)
 {
-  /* This function might be called by the worker with t_id 0 during startup
+  /* This function might be called by the worker with t_id not inited during startup
      for the initialization of ACLs and domain maps. After that it should only
      be called by the handler. */
 
-  if (RecThreadInfo::infos().empty() && RecThreadInfo::id() == 0) {
+  if (RecThreadInfo::infos().empty() && !RecThreadInfo::is_thread_inited()) {
     /* the handler and  distributors will call themselves below, but
        during startup we get called while g_threadInfos has not been
        populated yet to update the ACL or domain maps, so we need to
@@ -1506,7 +1506,7 @@ void broadcastFunction(const pipefunc_t& func)
 
   unsigned int thread = 0;
   for (const auto& threadInfo : RecThreadInfo::infos()) {
-    if (thread++ == RecThreadInfo::id()) {
+    if (thread++ == RecThreadInfo::thread_local_id()) {
       func(); // don't write to ourselves!
       continue;
     }
@@ -1576,16 +1576,15 @@ static RemoteLoggerStats_t& operator+=(RemoteLoggerStats_t& lhs, const RemoteLog
 template <class T>
 T broadcastAccFunction(const std::function<T*()>& func)
 {
-  if (!RecThreadInfo::self().isHandler()) {
-    SLOG(g_log << Logger::Error << "broadcastAccFunction has been called by a worker (" << RecThreadInfo::id() << ")" << endl,
-         g_slog->withName("runtime")->info(Logr::Critical, "broadcastAccFunction has been called by a worker")); // tid will be added
+  if (RecThreadInfo::thread_local_id() != 0) {
+    g_slog->withName("runtime")->info(Logr::Critical, "broadcastAccFunction has been called by a worker"); // tid will be added
     _exit(1);
   }
 
   unsigned int thread = 0;
   T ret = T();
   for (const auto& threadInfo : RecThreadInfo::infos()) {
-    if (thread++ == RecThreadInfo::id()) {
+    if (thread++ == RecThreadInfo::thread_local_id()) {
       continue;
     }
 
@@ -1892,7 +1891,7 @@ static unsigned int initDistribution(Logr::log_t log)
   g_reusePort = ::arg().mustDo("reuseport");
 #endif
 
-  RecThreadInfo::infos().resize(RecThreadInfo::numRecursorThreads());
+  RecThreadInfo::resize(RecThreadInfo::numRecursorThreads());
 
   if (g_reusePort) {
     unsigned int threadNum = 1;
@@ -3357,14 +3356,14 @@ static RecursorControlChannel::Answer* doReloadLuaScript()
       t_pdl->loadFile(fname);
     }
     catch (std::runtime_error& ex) {
-      string msg = std::to_string(RecThreadInfo::id()) + " Retaining current script, could not read '" + fname + "': " + ex.what();
+      string msg = std::to_string(RecThreadInfo::thread_local_id()) + " Retaining current script, could not read '" + fname + "': " + ex.what();
       SLOG(g_log << Logger::Error << msg << endl,
            log->error(Logr::Error, ex.what(), "Retaining current script, could not read new script"));
       return new RecursorControlChannel::Answer{1, msg + "\n"};
     }
   }
   catch (std::exception& e) {
-    SLOG(g_log << Logger::Error << RecThreadInfo::id() << " Retaining current script, error from '" << fname << "': " << e.what() << endl,
+    SLOG(g_log << Logger::Error << RecThreadInfo::thread_local_id() << " Retaining current script, error from '" << fname << "': " << e.what() << endl,
          log->error(Logr::Error, e.what(), "Retaining current script, error in new script"));
     return new RecursorControlChannel::Answer{1, string("retaining current script, error from '" + fname + "': " + e.what() + "\n")};
   }
