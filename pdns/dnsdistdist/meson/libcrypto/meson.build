@@ -56,7 +56,7 @@ endif
 if not dep_libcrypto.found()
   err_msg = 'Could not find libcrypto in ' + ', '.join(ssldirs)
 
-  if opt_libcrypto == 'auto'
+  if opt_libcrypto.auto()
     # We could not find libcrypto anywhere, and the user did not require it.
     warning(err_msg)
     summary('OpenSSL libcrypto', false, bool_yn: true, section: 'Crypto')
@@ -69,7 +69,7 @@ endif
 if not cxx.links(fs.read('bn_new.cc'), name: 'libcrypto test program', dependencies: dep_libcrypto)
   err_msg = 'Cannot link against libcrypto'
 
-  if opt_libcrypto == 'auto'
+  if opt_libcrypto.auto()
     # We could not link against libcrypto, and the user did not require it.
     warning(err_msg)
     summary('OpenSSL libcrypto', false, bool_yn: true, section: 'Crypto')
