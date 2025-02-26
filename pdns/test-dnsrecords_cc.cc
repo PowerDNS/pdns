@@ -117,7 +117,13 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
      (CASE_L(QType::LOC, "32 7 19 S 116 2 25 E 10m", "32 7 19.000 S 116 2 25.000 E 10.00m 1.00m 10000.00m 10.00m", "\x00\x12\x16\x13\x79\x1b\x7d\x28\x98\xe6\x48\x68\x00\x98\x9a\x68"))
      (CASE_L(QType::LOC, "42 21 54 N 71 06 18 W -24m 30m", "42 21 54.000 N 71 6 18.000 W -24.00m 30.00m 10000.00m 10.00m", "\x00\x33\x16\x13\x89\x17\x2d\xd0\x70\xbe\x15\xf0\x00\x98\x8d\x20"))
      (CASE_L(QType::LOC, "42 21 43.952 N 71 5 6.344 W -24m 1m 200m", "42 21 43.952 N 71 5 6.344 W -24.00m 1.00m 200.00m 10.00m", "\x00\x12\x24\x13\x89\x17\x06\x90\x70\xbf\x2d\xd8\x00\x98\x8d\x20"))
+     (CASE_L(QType::LOC, "57 9 0.000 N 2 7 9.998 W 0.00m 0.00m 0.00m 0.00m", "57 9 0.000 N 2 7 9.998 W 0.00m 0.00m 0.00m 0.00m", "\x00\x00\x00\x00\x8c\x43\x57\xe0\x7f\x8b\x93\x52\x00\x98\x96\x80"))
+     (CASE_L(QType::LOC, "57 8 59.999 N 2 7 9.998 W 0.00m 0.00m 0.00m 0.00m", "57 8 59.999 N 2 7 9.998 W 0.00m 0.00m 0.00m 0.00m", "\x00\x00\x00\x00\x8c\x43\x57\xdf\x7f\x8b\x93\x52\x00\x98\x96\x80"))
 // local name
+     (CASE_L(QType::LOC, "51 11 60.000 N 2 12 5.080 W 0.00m 0.00m 0.00m 0.00m", "51 12 0.000 N 2 12 5.080 W 0.00m 0.00m 0.00m 0.00m", "\x00\x00\x00\x00\x8a\xfc\x80\x00\x7f\x87\x12\xa8\x00\x98\x96\x80"))
+     (CASE_L(QType::LOC, "51 11 59.999 N 2 12 5.080 W 0.00m 0.00m 0.00m 0.00m", "51 11 59.999 N 2 12 5.080 W 0.00m 0.00m 0.00m 0.00m", "\x00\x00\x00\x00\x8a\xfc\x7f\xff\x7f\x87\x12\xa8\x00\x98\x96\x80"))
+     (CASE_L(QType::LOC, "49 18 0.000 N 10 35 0.000 E 409.00m 1.00m 10000.00m 10.00m", "49 18 0.000 N 10 35 0.000 E 409.00m 1.00m 10000.00m 10.00m", "\x00\x12\x16\x13\x8a\x94\x21\x40\x82\x45\x5c\x20\x00\x99\x36\x44"))
+     (CASE_L(QType::LOC, "49 18 0.000 S 10 35 0.000 W 409.00m 1.00m 10000.00m 10.00m", "49 18 0.000 S 10 35 0.000 W 409.00m 1.00m 10000.00m 10.00m", "\x00\x12\x16\x13\x75\x6b\xde\xc0\x7d\xba\xa3\xe0\x00\x99\x36\x44"))
      (CASE_S(QType::SRV, "10 10 5060 sip.rec.test.", "\x00\x0a\x00\x0a\x13\xc4\x03sip\x03rec\x04test\x00"))
 // non-local name
      (CASE_S(QType::SRV, "10 10 5060 sip.example.com.", "\x00\x0a\x00\x0a\x13\xc4\x03sip\x07""example\x03""com\x00"))
