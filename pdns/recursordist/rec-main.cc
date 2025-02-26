@@ -131,7 +131,7 @@ std::shared_ptr<Logr::Logger> g_slogudpout;
 static deferredAdd_t s_deferredUDPadds;
 static deferredAdd_t s_deferredTCPadds;
 
-/* first we have the handler thread, t_id == 0 (thread not created as a RecursorThread have t_id = NOT_INITED)
+/* first we have the handler thread, t_id == 0 (threads not created as a RecursorThread have t_id = NOT_INITED)
    then the distributor threads if any
    and finally the workers */
 std::vector<RecThreadInfo> RecThreadInfo::s_threadInfos;

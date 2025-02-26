@@ -588,7 +588,7 @@ private:
   std::string name;
   std::thread thread;
   int exitCode{0};
-  unsigned int d_myid{TID_NOT_INITED}; // should always equal to the thread_local tid;
+  unsigned int d_myid{TID_NOT_INITED}; // should always be equal to the thread_local tid;
 
   // handle the web server, carbon, statistics and the control channel
   bool handler{false};
