@@ -284,6 +284,7 @@ defpol
 defttl
 Dehaine
 DENIC
+depfile
 descclassname
 descname
 Dessel
