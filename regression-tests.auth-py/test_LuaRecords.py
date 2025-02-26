@@ -1046,6 +1046,8 @@ class TestLuaRecords(BaseLuaTest):
                 "ip40414243": "64.65.66.67",
                 "ipp40414243": "64.65.66.67",
                 "ip4041424": "0.0.0.0",
+                "ip-441424": "0.0.0.0",
+                "ip-5abcdef": "0.0.0.0",
                 "host64-22-33-44": "64.22.33.44",
                 "2.2.2.2": "0.0.0.0"   # filtered
             }),
@@ -1057,7 +1059,8 @@ class TestLuaRecords(BaseLuaTest):
                 "2001--db8" : "2001::db8",
                 "20010002000300040005000600070db8" : "2001:2:3:4:5:6:7:db8",
                 "blabla20010002000300040005000600070db8" : "2001:2:3:4:5:6:7:db8",
-                "4000-db8--1" : "fe80::1"   # filtered, with fallback address override
+                "4000-db8--1" : "fe80::1",   # filtered, with fallback address override
+                "l1.l2.l3.l4.l5.l6.l7.l8" : "fe80::1"
             }),
             ".createreverse6.example.org." : (dns.rdatatype.PTR, {
                 "8.b.d.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.1.0.0.2" : "2001--db8.example.com.",
