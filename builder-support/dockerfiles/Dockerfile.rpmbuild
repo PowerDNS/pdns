@@ -1,11 +1,6 @@
 FROM dist-base as package-builder
-RUN touch /var/lib/rpm/* && if $(grep -q 'release 7' /etc/redhat-release); then \
-      yum upgrade -y && \
-      yum install -y rpm-build rpmdevtools python2 python3 curl jq "@Development Tools"; \
-    else \
-      yum upgrade -y && \
-      yum install --allowerasing -y rpm-build rpmdevtools python3 curl jq "@Development Tools"; \
-    fi
+RUN yum upgrade -y && \
+    yum install --allowerasing -y rpm-build rpmdevtools python3 curl jq "@Development Tools"
 
 RUN mkdir /dist /pdns
 WORKDIR /pdns
@@ -21,14 +16,10 @@ RUN cd /pdns/builder-support/helpers/ && ./install_rust.sh
 @ENDIF
 
 @IF [ -n "$M_dnsdist$M_all" ]
-# We do not build Quiche (DNS over QUIC support) on el-7 because the clang
-# version is too old to build the 'boring-sys' crate needed by Quiche
-RUN if ! $(grep -q 'release 7' /etc/redhat-release); then \
-      cd /pdns/builder-support/helpers/ && ./install_rust.sh; \
-      yum install -y git cmake clang; \
-      cd /pdns/builder-support/helpers/ && \
-      ./install_quiche.sh; \
-    fi
+RUN cd /pdns/builder-support/helpers/ && ./install_rust.sh && \
+    yum install -y git cmake clang && \
+    cd /pdns/builder-support/helpers/ && \
+    ./install_quiche.sh
 @ENDIF
 
 # Used for -p option to only build specific spec files
@@ -43,9 +34,7 @@ ADD builder-support/specs/ /pdns/builder-support/specs
 RUN find /pdns/builder-support/specs/ -not -name '*.spec' -exec ln -s {} /root/rpmbuild/SOURCES/ \;
 
 @IF [ -n "$M_authoritative$M_all" ]
-RUN touch /var/lib/rpm/* && if $(grep -q 'release 7' /etc/redhat-release); then \
-      scl enable devtoolset-11 -- builder/helpers/build-specs.sh builder-support/specs/pdns.spec; \
-    elif $(grep -q 'release 8' /etc/redhat-release); then \
+RUN touch /var/lib/rpm/* && if grep -q 'release 8' /etc/redhat-release; then \
       scl enable gcc-toolset-13 -- builder/helpers/build-specs.sh builder-support/specs/pdns.spec; \
     else \
       builder/helpers/build-specs.sh builder-support/specs/pdns.spec; \
@@ -53,9 +42,7 @@ RUN touch /var/lib/rpm/* && if $(grep -q 'release 7' /etc/redhat-release); then 
 @ENDIF
 
 @IF [ -n "$M_recursor$M_all" ]
-RUN touch /var/lib/rpm/* &&  if $(grep -q 'release 7' /etc/redhat-release); then \
-      scl enable devtoolset-11 -- builder/helpers/build-specs.sh builder-support/specs/pdns-recursor.spec; \
-    elif $(grep -q 'release 8' /etc/redhat-release); then \
+RUN touch /var/lib/rpm/* && if grep -q 'release 8' /etc/redhat-release; then \
       scl enable gcc-toolset-13 -- builder/helpers/build-specs.sh builder-support/specs/pdns-recursor.spec; \
     else \
       builder/helpers/build-specs.sh builder-support/specs/pdns-recursor.spec; \
@@ -64,16 +51,12 @@ RUN touch /var/lib/rpm/* &&  if $(grep -q 'release 7' /etc/redhat-release); then
 
 @IF [ -n "$M_dnsdist$M_all" ]
 
-# --allowerasing does not exist on el7, so we fall back to just installing
-# this is fine because --allowerasing is only there to deal with libcurl conflicting with libcurl-minimal on some el9 images
 RUN touch /var/lib/rpm/* && mkdir /libh2o && cd /libh2o && \
-      yum install -y --allowerasing curl libcurl openssl-devel cmake || yum install -y curl libcurl openssl-devel cmake && \
+      dnf install -y --allowerasing curl libcurl openssl-devel cmake && \
       cd /pdns/builder-support/helpers/ && \
       ./install_h2o.sh
 
-RUN touch /var/lib/rpm/* && if $(grep -q 'release 7' /etc/redhat-release); then \
-      scl enable devtoolset-11 -- builder/helpers/build-specs.sh builder-support/specs/dnsdist.spec; \
-    elif $(grep -q 'release 8' /etc/redhat-release); then \
+RUN touch /var/lib/rpm/* && if grep -q 'release 8' /etc/redhat-release; then \
       scl enable gcc-toolset-13 -- builder/helpers/build-specs.sh builder-support/specs/dnsdist.spec; \
     else \
       builder/helpers/build-specs.sh builder-support/specs/dnsdist.spec; \
@@ -81,12 +64,7 @@ RUN touch /var/lib/rpm/* && if $(grep -q 'release 7' /etc/redhat-release); then 
 @ENDIF
 
 # Generate provenance
-@IF [ "${BUILDER_TARGET}" = "el-7" -o "${BUILDER_TARGET}" = "centos-7" ]
-@EVAL RUN python builder/helpers/generate-yum-provenance.py /dist/packages-${BUILDER_TARGET}.json || python3 builder/helpers/generate-yum-provenance.py /dist/packages-${BUILDER_TARGET}.json
-@ENDIF
-@IF [ "${BUILDER_TARGET}" != "el-7" -a "${BUILDER_TARGET}" != "centos-7" ]
 @EVAL RUN python builder/helpers/generate-dnf-provenance.py /dist/packages-${BUILDER_TARGET}.json || python3 builder/helpers/generate-dnf-provenance.py /dist/packages-${BUILDER_TARGET}.json
-@ENDIF
 
 # mv across layers with overlay2 is buggy in some kernel versions (results in empty dirs)
 # See: https://github.com/moby/moby/issues/33733

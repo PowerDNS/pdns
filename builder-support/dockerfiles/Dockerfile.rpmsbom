@@ -1,32 +1,23 @@
 ARG BUILDER_VERSION
 @EVAL ARG BUILDER_TARGET=${BUILDER_TARGET}
 
-# No SBOM on el-7, which only has Python 2 and will be EOL soon anyway
 RUN touch /var/lib/rpm/* && \
-    if ! $(grep -q 'release 7' /etc/redhat-release); then \
-      yum install -y python3 python3-dnf; \
-    fi
+    yum install -y python3 python3-dnf
 ADD builder-support/helpers/ /pdns/builder-support/helpers/
 
 @IF [ -n "$M_recursor$M_all" ]
 RUN cd /pdns/builder-support/helpers/ && \
-    if ! $(grep -q 'release 7' /etc/redhat-release); then \
-      python3 generate-sbom-dnf.py /dist/pdns-recursor-${BUILDER_VERSION}-${BUILDER_TARGET}.cyclonedx.json pdns-recursor rust.json; \
-    fi
+    python3 generate-sbom-dnf.py /dist/pdns-recursor-${BUILDER_VERSION}-${BUILDER_TARGET}.cyclonedx.json pdns-recursor rust.json
 @ENDIF
 
 @IF [ -n "$M_dnsdist$M_all" ]
 RUN cd /pdns/builder-support/helpers/; \
-    if ! $(grep -q 'release 7' /etc/redhat-release); then \
-       python3 generate-sbom-dnf.py /dist/dnsdist-${BUILDER_VERSION}-${BUILDER_TARGET}.cyclonedx.json dnsdist rust.json quiche.json h2o.json; \
-    fi
+    python3 generate-sbom-dnf.py /dist/dnsdist-${BUILDER_VERSION}-${BUILDER_TARGET}.cyclonedx.json dnsdist rust.json quiche.json h2o.json
 @ENDIF
 
 @IF [ -n "$M_authoritative$M_all" ]
 RUN cd /pdns/builder-support/helpers/ && \
-    if ! $(grep -q 'release 7' /etc/redhat-release); then \
-      for pkg in $(dnf list installed 'pdns*' | grep -E ^'pdns' | grep -vE '\-debuginfo|\-debugsource' | cut -d. -f1); do \
+    for pkg in $(dnf list installed 'pdns*' | grep -E ^'pdns' | grep -vE '\-debuginfo|\-debugsource' | cut -d. -f1); do \
         python3 generate-sbom-dnf.py /dist/${pkg}-${BUILDER_VERSION}-${BUILDER_TARGET}.cyclonedx.json ${pkg}; \
-      done; \
-    fi
+    done
 @ENDIF
