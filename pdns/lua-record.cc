@@ -988,93 +988,96 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
     });
   lua.writeFunction("createForward", []() {
       static string allZerosIP{"0.0.0.0"};
-      DNSName record_name{s_lua_record_ctx->zone_record.dr.d_name};
-      if (!record_name.isWildcard()) {
-        return allZerosIP;
-      }
-      record_name.chopOff();
-      DNSName rel{s_lua_record_ctx->qname.makeRelative(record_name)};
-
-      // parts is something like ["1", "2", "3", "4", "static"] or
-      // ["1", "2", "3", "4"] or ["ip40414243", "ip-addresses", ...]
-      auto parts = rel.getRawLabels();
-      // Yes, this still breaks if an 1-2-3-4.XXXX is nested too deeply...
-      if(parts.size()>=4) {
-        try {
-          ComboAddress ca(parts[0]+"."+parts[1]+"."+parts[2]+"."+parts[3]);
-          return ca.toString();
-        } catch (const PDNSException &e) {
+      try {
+        DNSName record_name{s_lua_record_ctx->zone_record.dr.d_name};
+        if (!record_name.isWildcard()) {
           return allZerosIP;
         }
-      } else if (!parts.empty()) {
-        auto& input = parts.at(0);
+        record_name.chopOff();
+        DNSName rel{s_lua_record_ctx->qname.makeRelative(record_name)};
 
-        // allow a word without - in front, as long as it does not contain anything that could be a number
-        size_t nonhexprefix = strcspn(input.c_str(), "0123456789abcdefABCDEF");
-        if (nonhexprefix > 0) {
-          input = input.substr(nonhexprefix);
+        // parts is something like ["1", "2", "3", "4", "static"] or
+        // ["1", "2", "3", "4"] or ["ip40414243", "ip-addresses", ...]
+        auto parts = rel.getRawLabels();
+        // Yes, this still breaks if an 1-2-3-4.XXXX is nested too deeply...
+        if (parts.size() >= 4) {
+          ComboAddress address(parts[0]+"."+parts[1]+"."+parts[2]+"."+parts[3]);
+          return address.toString();
         }
+	if (!parts.empty()) {
+          auto& input = parts.at(0);
 
-        // either hex string, or 12-13-14-15
-        vector<string> ip_parts;
+          // allow a word without - in front, as long as it does not contain anything that could be a number
+          size_t nonhexprefix = strcspn(input.c_str(), "0123456789abcdefABCDEF");
+          if (nonhexprefix > 0) {
+            input = input.substr(nonhexprefix);
+          }
 
-        stringtok(ip_parts, input, "-");
-        unsigned int x1, x2, x3, x4;
-        if (ip_parts.size() >= 4) {
-          // 1-2-3-4 with any prefix (e.g. ip-foo-bar-1-2-3-4)
-          string ret;
-          for (size_t index=4; index > 0; index--) {
-            auto octet = ip_parts[ip_parts.size() - index];
-            try {
-              auto octetVal = std::stol(octet);
+          // either hex string, or 12-13-14-15
+          vector<string> ip_parts;
+
+          stringtok(ip_parts, input, "-");
+          if (ip_parts.size() >= 4) {
+            // 1-2-3-4 with any prefix (e.g. ip-foo-bar-1-2-3-4)
+            string ret;
+            for (size_t index=4; index > 0; index--) {
+              auto octet = ip_parts.at(ip_parts.size() - index);
+              auto octetVal = std::stol(octet); // may throw
               if (octetVal >= 0 && octetVal <= 255) {
-                ret += ip_parts.at(ip_parts.size() - index) + ".";
+                ret += octet + ".";
               } else {
                 return allZerosIP;
               }
-            } catch (const std::exception &e) {
-              return allZerosIP;
+            }
+            ret.resize(ret.size() - 1); // remove trailing dot after last octet
+            return ret;
+          }
+          if (input.length() >= 8) {
+            auto last8 = input.substr(input.length()-8);
+            unsigned int part1{0};
+            unsigned int part2{0};
+            unsigned int part3{0};
+            unsigned int part4{0};
+            if (sscanf(last8.c_str(), "%02x%02x%02x%02x", &part1, &part2, &part3, &part4) == 4) {
+              ComboAddress address(std::to_string(part1) + "." + std::to_string(part2) + "." + std::to_string(part3) + "." + std::to_string(part4));
+              return address.toString();
             }
           }
-          ret.resize(ret.size() - 1); // remove trailing dot after last octet
-          return ret;
         }
-        if(input.length() >= 8) {
-          auto last8 = input.substr(input.length()-8);
-          if(sscanf(last8.c_str(), "%02x%02x%02x%02x", &x1, &x2, &x3, &x4)==4) {
-            return std::to_string(x1) + "." + std::to_string(x2) + "." + std::to_string(x3) + "." + std::to_string(x4);
-          }
-        }
+        return allZerosIP;
+      } catch (const PDNSException &e) {
+        return allZerosIP;
       }
-      return allZerosIP;
     });
 
   lua.writeFunction("createForward6", []() {
       static string allZerosIP{"::"};
-      DNSName record_name{s_lua_record_ctx->zone_record.dr.d_name};
-      if (!record_name.isWildcard()) {
-        return allZerosIP;
-      }
-      record_name.chopOff();
-      DNSName rel{s_lua_record_ctx->qname.makeRelative(record_name)};
-
-      auto parts = rel.getRawLabels();
-      if(parts.size()==8) {
-        string tot;
-        for(int i=0; i<8; ++i) {
-          if(i)
-            tot.append(1,':');
-          tot+=parts[i];
+      try {
+        DNSName record_name{s_lua_record_ctx->zone_record.dr.d_name};
+        if (!record_name.isWildcard()) {
+          return allZerosIP;
         }
-        ComboAddress ca(tot);
-        return ca.toString();
-      }
-      else if(parts.size()==1) {
-        if (parts[0].find('-') != std::string::npos) {
-          std::replace(parts[0].begin(), parts[0].end(), '-', ':');
-          ComboAddress ca(parts[0]);
-          return ca.toString();
-        } else {
+        record_name.chopOff();
+        DNSName rel{s_lua_record_ctx->qname.makeRelative(record_name)};
+
+        auto parts = rel.getRawLabels();
+        if (parts.size() == 8) {
+          string tot;
+          for (int chunk = 0; chunk < 8; ++chunk) {
+            if (chunk != 0) {
+              tot.append(1, ':');
+	      }
+            tot += parts.at(chunk);
+          }
+          ComboAddress address(tot);
+          return address.toString();
+        }
+        if (parts.size() == 1) {
+          if (parts[0].find('-') != std::string::npos) {
+            std::replace(parts[0].begin(), parts[0].end(), '-', ':');
+            ComboAddress address(parts[0]);
+            return address.toString();
+          }
           if (parts[0].size() >= 32) {
             auto ippart = parts[0].substr(parts[0].size()-32);
             auto fulladdress =
@@ -1087,45 +1090,49 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
               ippart.substr(24, 4) + ":" +
               ippart.substr(28, 4);
 
-            ComboAddress ca(fulladdress);
-            return ca.toString();
+            ComboAddress address(fulladdress);
+            return address.toString();
           }
         }
+        return allZerosIP;
+      } catch (const PDNSException &e) {
+        return allZerosIP;
       }
-
-      return allZerosIP;
     });
-  lua.writeFunction("createReverse6", [](string format, boost::optional<std::unordered_map<string,string>> e){
+  lua.writeFunction("createReverse6", [](const string &format, boost::optional<std::unordered_map<string,string>> excp){
       vector<ComboAddress> candidates;
 
       try {
         auto labels= s_lua_record_ctx->qname.getRawLabels();
-        if(labels.size()<32)
+        if (labels.size()<32) {
           return std::string("unknown");
+	}
         boost::format fmt(format);
         fmt.exceptions( boost::io::all_error_bits ^ ( boost::io::too_many_args_bit | boost::io::too_few_args_bit )  );
 
 
         string together;
         vector<string> quads;
-        for(int i=0; i<8; ++i) {
-          if(i)
-            together+=":";
+        for (int chunk = 0; chunk < 8; ++chunk) {
+          if (chunk != 0) {
+            together += ":";
+	  }
           string lquad;
-          for(int j=0; j <4; ++j) {
-            lquad.append(1, labels[31-i*4-j][0]);
-            together += labels[31-i*4-j][0];
+          for (int quartet = 0; quartet < 4; ++quartet) {
+            lquad.append(1, labels[31 - chunk * 4 - quartet][0]);
+            together += labels[31 - chunk * 4 - quartet][0];
           }
           quads.push_back(lquad);
         }
-        ComboAddress ip6(together,0);
+	ComboAddress ip6(together,0);
 
-        if(e) {
-          auto& addrs=*e;
+	if (excp) {
+          auto& addrs=*excp;
           for(const auto& addr: addrs) {
             // this makes sure we catch all forms of the address
-            if(ComboAddress(addr.first,0)==ip6)
+            if (ComboAddress(addr.first, 0) == ip6) {
               return addr.second;
+	    }
           }
         }
 
@@ -1142,12 +1149,14 @@ static void setupLuaRecords(LuaContext& lua) // NOLINT(readability-function-cogn
           dashed.insert(0, "0");
         }
 
-        for(int i=31; i>=0; --i)
-          fmt % labels[i];
+        for (int byte = 31; byte >= 0; --byte) {
+          fmt % labels[byte];
+	}
         fmt % dashed;
 
-        for(const auto& lquad : quads)
+        for(const auto& lquad : quads) {
           fmt % lquad;
+	}
 
         return fmt.str();
       }
