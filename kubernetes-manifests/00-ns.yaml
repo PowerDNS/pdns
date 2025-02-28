@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: powerdns-clients-<ENV_ROLE>
+  labels:
+    kubernetes.io/metadata.name: powerdns-clients
+    pod-security.kubernetes.io/enforce: privileged # if you use kubernetes over talos or you have a baseline security policy applied on the cluster.

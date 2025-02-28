@@ -1,0 +1,45 @@
+variables:
+  ENV_ROLE: $CI_COMMIT_REF_NAME
+  JOBID: $CI_JOB_ID # usefull for rolling the pod using pipeline execution process
+stages:
+  - deploy
+deploy-pwdns-as:
+  stage: deploy
+  image: alpine/k8s:1.28.3
+  script:
+    - sed -i "s|<ENV_ROLE>|${ENV_ROLE}|g" $CI_PROJECT_DIR/00-ns.yaml
+    - sed -i "s|<ENV_ROLE>|${ENV_ROLE}|g" $CI_PROJECT_DIR/01-pwdns-as-cm.yaml
+    - sed -i "s|<ENV_ROLE>|${ENV_ROLE}|g" $CI_PROJECT_DIR/02-pwdns-as-deployment.yaml
+    - sed -i "s|<JOBID>|${JOBID}|g" $CI_PROJECT_DIR/02-pwdns-as-deployment.yaml
+    - sed -i "s|<ENV_ROLE>|${ENV_ROLE}|g" $CI_PROJECT_DIR/03-pwdns-as-svc.yaml
+    - sed -i "s|<ENV_ROLE>|${ENV_ROLE}|g" $CI_PROJECT_DIR/04-pwdns-as-ingress.yaml
+    - kubectl apply -f $CI_PROJECT_DIR/01-pwdns-as-cm.yaml
+    - kubectl apply -f $CI_PROJECT_DIR/02-pwdns-as-deployment.yaml
+    - kubectl apply -f $CI_PROJECT_DIR/03-pwdns-as-svc.yaml
+    - kubectl apply -f $CI_PROJECT_DIR/04-pwdns-as-ingress.yaml
+deploy-pwdns-res:
+  stage: deploy
+  image: alpine/k8s:1.28.3
+  script:
+    - sed -i "s|<ENV_ROLE>|${ENV_ROLE}|g" $CI_PROJECT_DIR/01-pwdns-res-cm.yaml
+    - sed -i "s|<ENV_ROLE>|${ENV_ROLE}|g" $CI_PROJECT_DIR/02-pwdns-res-deployment.yaml
+    - sed -i "s|<JOBID>|${JOBID}|g" $CI_PROJECT_DIR/02-pwdns-res-deployment.yaml
+    - sed -i "s|<ENV_ROLE>|${ENV_ROLE}|g" $CI_PROJECT_DIR/03-pwdns-res-svc.yaml
+    - sed -i "s|<ENV_ROLE>|${ENV_ROLE}|g" $CI_PROJECT_DIR/04-pwdns-res-ingress.yaml
+    - kubectl apply -f $CI_PROJECT_DIR/01-pwdns-res-cm.yaml
+    - kubectl apply -f $CI_PROJECT_DIR/02-pwdns-res-deployment.yaml
+    - kubectl apply -f $CI_PROJECT_DIR/03-pwdns-res-svc.yaml
+    - kubectl apply -f $CI_PROJECT_DIR/04-pwdns-res-ingress.yaml
+deploy-pwdns-dist:
+  stage: deploy
+  image: alpine/k8s:1.28.3
+  script:
+    - sed -i "s|<ENV_ROLE>|${ENV_ROLE}|g" $CI_PROJECT_DIR/01-pwdns-dist-cm.yaml
+    - sed -i "s|<ENV_ROLE>|${ENV_ROLE}|g" $CI_PROJECT_DIR/02-pwdns-dist-deployment.yaml
+    - sed -i "s|<JOBID>|${JOBID}|g" $CI_PROJECT_DIR/02-pwdns-dist-deployment.yaml
+    - sed -i "s|<ENV_ROLE>|${ENV_ROLE}|g" $CI_PROJECT_DIR/03-pwdns-dist-svc.yaml
+    - sed -i "s|<ENV_ROLE>|${ENV_ROLE}|g" $CI_PROJECT_DIR/04-pwdns-dist-ingress.yaml
+    - kubectl apply -f $CI_PROJECT_DIR/01-pwdns-dist-cm.yaml
+    - kubectl apply -f $CI_PROJECT_DIR/02-pwdns-dist-deployment.yaml
+    - kubectl apply -f $CI_PROJECT_DIR/03-pwdns-dist-svc.yaml
+    - kubectl apply -f $CI_PROJECT_DIR/04-pwdns-dist-ingress.yaml

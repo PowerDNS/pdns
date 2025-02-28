@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: powerdns-clients-as
+  namespace: powerdns-clients-<ENV_ROLE>
+data:
+  pdns.conf: |
+    config-name=as-1
+    local-address=0.0.0.0
+    local-port=5353
+    loglevel=6
+    query-logging=yes
+    version-string=powerdns
+    webserver-loglevel=normal
+    webserver-allow-from=0.0.0.0/0
+    webserver-address=0.0.0.0
+    webserver=yes
+    api=yes
