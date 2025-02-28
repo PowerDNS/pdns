@@ -1390,7 +1390,7 @@ static string lua_pickclosest(const iplist_t& ips)
   return pickclosest(s_lua_record_ctx->bestwho, conv).toString();
 }
 
-static string lua_report(string /* event */, boost::optional<string> /* line */)
+static void lua_report(string /* event */, boost::optional<string> /* line */)
 {
   throw std::runtime_error("Script took too long");
 }
@@ -1583,30 +1583,38 @@ static std::unordered_map<std::string, int> lua_variables{
 
 static void setupLuaRecords(LuaContext& lua)
 {
-  lua.writeFunction("latlon", []() {
+  if (g_luaRecordExecLimit > 0) {
+    lua.executeCode(boost::str(boost::format("debug.sethook(report, '', %d)") % g_luaRecordExecLimit));
+  }
+
+  lua.writeFunction("report", [](string event, boost::optional<string> line) -> void {
+      lua_report(event, line);
+    });
+
+  lua.writeFunction("latlon", []() -> string {
       return lua_latlon();
     });
-  lua.writeFunction("latlonloc", []() {
+  lua.writeFunction("latlonloc", []() -> string {
       return lua_latlonloc();
     });
-  lua.writeFunction("closestMagic", []() {
+  lua.writeFunction("closestMagic", []() -> string {
       return lua_closestMagic();
     });
-  lua.writeFunction("latlonMagic", [](){
+  lua.writeFunction("latlonMagic", []()-> string {
       return lua_latlonMagic();
     });
 
-  lua.writeFunction("createForward", []() {
+  lua.writeFunction("createForward", []() -> string {
       return lua_createForward();
     });
-  lua.writeFunction("createForward6", []() {
+  lua.writeFunction("createForward6", []() -> string {
       return lua_createForward6();
     });
 
-  lua.writeFunction("createReverse", [](string format, boost::optional<std::unordered_map<string,string>> e){
+  lua.writeFunction("createReverse", [](string format, boost::optional<std::unordered_map<string,string>> e) -> string {
       return lua_createReverse(format, e);
     });
-  lua.writeFunction("createReverse6", [](const string &format, boost::optional<std::unordered_map<string,string>> excp){
+  lua.writeFunction("createReverse6", [](const string &format, boost::optional<std::unordered_map<string,string>> excp) -> string {
       return lua_createReverse6(format, excp);
     });
 
@@ -1614,105 +1622,97 @@ static void setupLuaRecords(LuaContext& lua)
       return lua_filterForward(address, nmg, fallback);
     });
 
-  lua.writeFunction("ifportup", [](int port, const boost::variant<iplist_t, ipunitlist_t>& ips, const boost::optional<std::unordered_map<string,string>> options) {
+  lua.writeFunction("ifportup", [](int port, const boost::variant<iplist_t, ipunitlist_t>& ips, const boost::optional<std::unordered_map<string,string>> options) -> vector<string> {
       return lua_ifportup(port, ips, options);
     });
 
-  lua.writeFunction("ifurlextup", [](const vector<pair<int, opts_t> >& ipurls, boost::optional<opts_t> options) {
+  lua.writeFunction("ifurlextup", [](const vector<pair<int, opts_t> >& ipurls, boost::optional<opts_t> options) -> vector<string> {
       return lua_ifurlextup(ipurls, options);
     });
 
-  lua.writeFunction("ifurlup", [](const std::string& url, const boost::variant<iplist_t, ipunitlist_t>& ips, boost::optional<opts_t> options) {
+  lua.writeFunction("ifurlup", [](const std::string& url, const boost::variant<iplist_t, ipunitlist_t>& ips, boost::optional<opts_t> options) -> vector<string> {
       return lua_ifurlup(url, ips, options);
     });
 
-  lua.writeFunction("pickrandom", [](const iplist_t& ips) {
+  lua.writeFunction("pickrandom", [](const iplist_t& ips) -> string {
       return lua_pickrandom(ips);
     });
 
-  lua.writeFunction("pickselfweighted", [](const std::string& url, const iplist_t& ips, boost::optional<opts_t> options) {
+  lua.writeFunction("pickselfweighted", [](const std::string& url, const iplist_t& ips, boost::optional<opts_t> options) -> string {
       return lua_pickselfweighted(url, ips, options);
     });
 
-  lua.writeFunction("pickrandomsample", [](int n, const iplist_t& ips) {
+  lua.writeFunction("pickrandomsample", [](int n, const iplist_t& ips) -> vector<string> {
       return lua_pickrandomsample(n, ips);
     });
 
-  lua.writeFunction("pickhashed", [](const iplist_t& ips) {
+  lua.writeFunction("pickhashed", [](const iplist_t& ips) -> string {
       return lua_pickhashed(ips);
     });
-  lua.writeFunction("pickwrandom", [](std::unordered_map<int, wiplist_t> ips) {
+  lua.writeFunction("pickwrandom", [](std::unordered_map<int, wiplist_t> ips) -> string {
       return lua_pickwrandom(ips);
     });
 
-  lua.writeFunction("pickwhashed", [](std::unordered_map<int, wiplist_t > ips) {
+  lua.writeFunction("pickwhashed", [](std::unordered_map<int, wiplist_t > ips) -> string {
       return lua_pickwhashed(ips);
     });
 
-  lua.writeFunction("picknamehashed", [](std::unordered_map<int, wiplist_t > ips) {
+  lua.writeFunction("picknamehashed", [](std::unordered_map<int, wiplist_t > ips) -> string {
       return lua_picknamehashed(ips);
     });
-  lua.writeFunction("pickchashed", [](const std::unordered_map<int, wiplist_t>& ips) {
+  lua.writeFunction("pickchashed", [](const std::unordered_map<int, wiplist_t>& ips) -> string {
       return lua_pickchashed(ips);
     });
 
-  lua.writeFunction("pickclosest", [](const iplist_t& ips) {
+  lua.writeFunction("pickclosest", [](const iplist_t& ips) -> string {
       return lua_pickclosest(ips);
     });
 
-  if (g_luaRecordExecLimit > 0) {
-      lua.executeCode(boost::str(boost::format("debug.sethook(report, '', %d)") % g_luaRecordExecLimit));
-  }
-
-  lua.writeFunction("report", [](string event, boost::optional<string> line){
-      return lua_report(event, line);
-    });
-
-  lua.writeFunction("geoiplookup", [](const string &ip, const GeoIPInterface::GeoIPQueryAttribute attr) {
+  lua.writeFunction("geoiplookup", [](const string &ip, const GeoIPInterface::GeoIPQueryAttribute attr) -> string {
       return lua_geoiplookup(ip, attr);
     });
 
-  lua.writeVariable("GeoIPQueryAttribute", lua_variables);
-
-  lua.writeFunction("asnum", [](const combovar_t& asns) {
+  lua.writeFunction("asnum", [](const combovar_t& asns) -> bool {
       return lua_asnum(asns);
     });
-  lua.writeFunction("continent", [](const combovar_t& continent) {
+  lua.writeFunction("continent", [](const combovar_t& continent) -> bool {
       return lua_continent(continent);
     });
-  lua.writeFunction("continentCode", []() {
+  lua.writeFunction("continentCode", []() -> string {
       return lua_continentCode();
     });
-  lua.writeFunction("country", [](const combovar_t& var) {
+  lua.writeFunction("country", [](const combovar_t& var) -> bool {
       return lua_country(var);
     });
-  lua.writeFunction("countryCode", []() {
+  lua.writeFunction("countryCode", []() -> string {
       return lua_countryCode();
     });
-  lua.writeFunction("region", [](const combovar_t& var) {
+  lua.writeFunction("region", [](const combovar_t& var) -> bool {
       return lua_region(var);
     });
-  lua.writeFunction("regionCode", []() {
+  lua.writeFunction("regionCode", []() -> string {
       return lua_regionCode();
     });
-  lua.writeFunction("netmask", [](const iplist_t& ips) {
+  lua.writeFunction("netmask", [](const iplist_t& ips) -> bool {
       return lua_netmask(ips);
     });
-  lua.writeFunction("view", [](const vector<pair<int, vector<pair<int, iplist_t> > > >& in) {
+  lua.writeFunction("view", [](const vector<pair<int, vector<pair<int, iplist_t> > > >& in) -> string {
       return lua_view(in);
     });
 
-  lua.writeFunction("all", [](const vector< pair<int,string> >& ips) {
+  lua.writeFunction("all", [](const vector< pair<int,string> >& ips) -> vector<string> {
       return lua_all(ips);
     });
 
-  lua.writeFunction("dblookup", [](const string& record, uint16_t qtype) {
+  lua.writeFunction("dblookup", [](const string& record, uint16_t qtype) -> vector<string> {
       return lua_dblookup(record, qtype);
     });
 
-  lua.writeFunction("include", [&lua](string record) {
+  lua.writeFunction("include", [&lua](string record) -> void {
       lua_include(lua, record);
     });
+
+  lua.writeVariable("GeoIPQueryAttribute", lua_variables);
 }
 
 std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, const DNSName& query, const DNSZoneRecord& zone_record, const DNSName& zone, const DNSPacket& dnsp, uint16_t qtype, unique_ptr<AuthLua4>& LUA)
