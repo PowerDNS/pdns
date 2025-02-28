@@ -1468,10 +1468,7 @@ bool LMDBBackend::list(const DNSName& target, int /* id */, bool include_disable
   d_matchkey = co(di.id);
 
   MDBOutVal key, val;
-  auto a = d_getcursor->prefix(d_matchkey, key, val);
-  auto b0 = key.getNoStripHeader<StringView>();
-  auto b = b0.rfind(d_matchkey, 0);
-  if (a || b != 0) {
+  if (d_getcursor->prefix(d_matchkey, key, val)) {
     d_getcursor.reset();
   }
 
