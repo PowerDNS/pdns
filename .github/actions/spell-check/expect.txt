@@ -1,6 +1,5 @@
 aaaarecord
 aaldering
-abi
 aborttransaction
 Abraitis
 ACLTo
@@ -26,7 +25,6 @@ alexa
 algoroll
 allocs
 Altpeter
-amd
 Anderton
 anewid
 anid
@@ -53,8 +51,6 @@ Ascio
 Asenov
 ASEP
 Ashish
-asnum
-aspx
 associateddomain
 asyncresolve
 Atlassian
@@ -121,7 +117,6 @@ Binero
 binlog
 bitmaps
 bla
-blackhole
 Bleker
 blockfilter
 blogpost
@@ -173,7 +168,6 @@ cds
 Cegetel
 Cerb
 certusage
-CFLAGS
 CGNAT
 changeme
 changetype
@@ -189,13 +183,13 @@ Cloos
 closesocket
 clusions
 cmouse
-cmsg
 cmsghdr
-cname
+cmsgs
 cnamechainresolution
 CNAMEd
 CNAMEDNS
 cnamerecord
+cnames
 cnf
 cnn
 cockroachlabs
@@ -213,12 +207,10 @@ conaxis
 configfile
 configname
 configsetting
-configurability
 confs
 conntrack
 Conntracking
 Consolas
-constexpr
 controllen
 controlsocket
 coprocess
@@ -229,7 +221,6 @@ corpit
 costypetrisor
 coverity
 cppcheck
-createdb
 createslavedomain
 Cremers
 criteo
@@ -263,20 +254,17 @@ dbfile
 dblfilename
 dbpf
 dbr
-DBX
 dcobject
 ddns
 deactivatedomainkey
 debian
 deboynepollard
 Deduktiva
-dedup
 defcontent
 defpol
 defttl
 Dehaine
 DENIC
-deref
 descclassname
 descname
 Dessel
@@ -295,7 +283,6 @@ dilinger
 Dimitrios
 Directi
 Disqus
-distro
 djbdns
 dlerror
 dlg
@@ -317,7 +304,6 @@ dnsdomain
 dnsext
 dnsgram
 dnskey
-dnsmessage
 dnsname
 dnsnameset
 dnsop
@@ -328,6 +314,7 @@ dnsquestion
 DNSR
 dnsrecord
 dnsreplay
+dnsresourcerecord
 dnsscan
 dnsscope
 dnssec
@@ -343,9 +330,7 @@ dnswasher
 dnszone
 Dobrawy
 docnamecachelookup
-documentclass
 documentwrapper
-dofile
 Dohmen
 domaininfo
 domainmetadata
@@ -381,7 +366,6 @@ ech
 econds
 ECSDA
 ecswho
-EDE
 editline
 edns
 ednsbufsiz
@@ -393,7 +377,6 @@ edu
 ejones
 Ekkelenkamp
 elgoog
-Emph
 Enden
 ent
 envoutput
@@ -416,7 +399,6 @@ ezdns
 Faerch
 failedservers
 farsightsec
-fcgi
 fcontext
 fedoraproject
 feedents
@@ -430,7 +412,6 @@ firewalled
 firewalls
 fixednow
 Florus
-fontname
 footerbgcolor
 footertextcolor
 forfun
@@ -456,7 +437,6 @@ gaba
 gacogne
 gatech
 Gavarret
-gcc
 gdpr
 Geijn
 genindex
@@ -475,7 +455,6 @@ getcarbonhostname
 getdomaininfo
 getdomainkeys
 getdomainmetadata
-gethostname
 getifaddrs
 getlocaladdress
 getn
@@ -483,7 +462,6 @@ getrandom
 getregisteredname
 gettag
 gettime
-gettimeofday
 gettsigkey
 Geuze
 GFm
@@ -493,7 +471,6 @@ Gillstrom
 Gkey
 gmake
 Gmb
-gmtime
 GMy
 gmysql
 gmysqlbackend
@@ -515,11 +492,9 @@ gsql
 gsqlite
 gss
 gssapi
-gsub
 gtld
 guilabel
 Gyselinck
-hackerone
 Hakulinen
 Hannu
 Harker
@@ -552,7 +527,6 @@ Hotmail
 howto
 hpecorp
 hpiers
-hpp
 htbp
 htmlescape
 htmlhelp
@@ -561,17 +535,14 @@ httpdomain
 hubert
 iana
 icann
-ico
 ict
 idprotect
-idx
 iers
 ietf
 ifportup
 ifurlextup
 ifurlup
 ihsinme
-illumos
 Imhard
 incbin
 includeboilerplate
@@ -598,8 +569,7 @@ iputils
 isane
 ismaster
 isoc
-isp
-ispell
+ISPs
 isql
 ixfr
 ixfrdist
@@ -635,7 +605,6 @@ Kerkhof
 KEYBITS
 keyblock
 keydir
-keyfile
 keyname
 keypair
 keypairgen
@@ -697,7 +666,6 @@ letterpaper
 libatomic
 libcrypto
 libcryptopp
-libcurl
 libdecaf
 libdir
 libedit
@@ -751,7 +719,6 @@ loweralpha
 lowerroman
 Lrhazi
 lsock
-lto
 luaaction
 luabackend
 luac
@@ -772,7 +739,6 @@ malcrafted
 mallocs
 malware
 Mamane
-manpages
 mapasync
 Mapbox
 mariadb
@@ -801,7 +767,6 @@ metricnames
 metricscarbon
 Meulen
 Michiel
-middleware
 Miek
 Miell
 Mieslinger
@@ -809,7 +774,6 @@ Milas
 Mimimization
 minbody
 mindex
-MINFO
 minipatch
 Mischan
 mjt
@@ -854,7 +818,6 @@ mysqld
 myuser
 mywebapp
 namedroppers
-nameserver
 nameserving
 naptr
 Nauck
@@ -891,7 +854,6 @@ noaction
 noad
 noall
 nocookie
-NODELAY
 noedns
 noerrors
 NOLOCK
@@ -905,7 +867,6 @@ noout
 noping
 noport
 norve
-nosniff
 nostrip
 NOSUBDIR
 nosync
@@ -921,7 +882,6 @@ NPTL
 NSes
 nsid
 nsis
-nsl
 nsrecord
 nsset
 nsspeeds
@@ -943,7 +903,6 @@ obidos
 objectclass
 Obser
 obspm
-odbc
 odbcbackend
 odbcinst
 Oddy
@@ -951,7 +910,6 @@ Odintsov
 Oestreicher
 offsite
 oftc
-OIDs
 Olafur
 Omroep
 openapis
@@ -959,6 +917,7 @@ opendbx
 openpgpkey
 openports
 opensc
+opensuse
 openwall
 Opmeer
 OPNUM
@@ -969,7 +928,6 @@ oraclebackend
 ordername
 orsn
 Oservers
-OSX
 otherdomain
 otherpool
 ourname
@@ -985,8 +943,6 @@ packethandler
 papersize
 paramater
 PARAMKEYWORDS
-passthrough
-passthru
 PATC
 patchlevels
 pathconfig
@@ -1016,7 +972,6 @@ pgmysql
 pgmysqlbackend
 pgp
 pgpsql
-pgsql
 phishing
 phonedph
 pickclosest
@@ -1061,14 +1016,9 @@ Preproc
 prequery
 prerpz
 presignedness
-PRId
 primetime
-princ
 prioritization
-privatekey
 privs
-progid
-protobuf
 protozero
 providername
 proxymapping
@@ -1078,7 +1028,6 @@ pseudonymize
 pseudorecord
 pthread
 ptrrecord
-ptrs
 Publieke
 publishdomainkey
 pullreq
@@ -1091,7 +1040,6 @@ qlen
 Qlim
 qname
 qperq
-qps
 QPSIP
 qpslimits
 QRate
@@ -1153,7 +1101,7 @@ removedomainkey
 replacerrset
 requery
 resolv
-respawn
+respawned
 respawning
 respout
 respsizes
@@ -1162,6 +1110,7 @@ retransfering
 reuseds
 reuseport
 RFCs
+rhel
 Rietz
 rightsidebar
 Rijsdijk
@@ -1173,13 +1122,11 @@ rocommunity
 Roel
 Rosmalen
 roundrobin
-RPATH
 rping
 rpms
 rpz
 rpzstatistics
 rrcontent
-rrd
 rrdata
 rrdtool
 rrname
@@ -1241,7 +1188,6 @@ shnya
 showdetails
 showflags
 Shukla
-sid
 sidebarbgcolor
 sidebarbtncolor
 sidebarbutton
@@ -1258,7 +1204,6 @@ Signingpiper
 signpipe
 signttl
 signzone
-sigs
 singlethreaded
 Sipek
 siphash
@@ -1273,9 +1218,6 @@ smn
 Smurthwaite
 Snarked
 sndbuf
-snmp
-snmpd
-snprintf
 soa
 soadata
 soarecord
@@ -1308,7 +1250,6 @@ srandom
 srcname
 SRecord
 Srule
-srv
 sshfp
 ssi
 SSQ
@@ -1333,13 +1274,11 @@ Storesund
 stou
 strcasestr
 stringmatch
-strpos
 stubquery
 stubresolver
 Stussy
 stutiredboy
-subdomain
-subkey
+subkeys
 submitters
 subnetmask
 suffixmatchtree
@@ -1369,7 +1308,6 @@ taskqueue
 tbhandler
 tcely
 TCounters
-tcp
 tcpconnecttimeouts
 tcpdump
 TCPKEEPALIVE
@@ -1382,7 +1320,6 @@ tds
 teeaction
 Telenet
 testsdir
-textcolor
 Tful
 thel
 thelog
@@ -1404,15 +1341,12 @@ tinydns
 tinydnsbackend
 tisr
 tlsa
-tlsresumptions
-tmp
 tmpfs
 tobool
 toctree
 todos
 toint
 tokenuser
-tolower
 Tolstov
 Toosarani
 Toshifumi
@@ -1423,7 +1357,6 @@ trusteer
 trx
 trxid
 TSAN
-tsc
 tsig
 tsigalgo
 tsigkey
@@ -1440,7 +1373,6 @@ Tushuizen
 Tuxis
 TVJRU
 tylerneylon
-typedefs
 typenames
 ualberta
 udpqueryresponse
@@ -1451,7 +1383,6 @@ UIDs
 Uisms
 unauth
 unbreak
-uncached
 unescaping
 unfresh
 unhash
@@ -1474,10 +1405,8 @@ upgradeable
 upperalpha
 upperroman
 urandom
-usec
 usecase
 userbase
-userspace
 uwaterloo
 Valentei
 Valentini
@@ -1525,7 +1454,6 @@ Wielicki
 Wijk
 Wijnand
 Wijngaards
-wikipedia
 wil
 wildcarded
 Willcott
@@ -1536,7 +1464,7 @@ wirelength
 Wisiol
 wmem
 Wojas
-workaround
+workarounds
 Worldnic
 would've
 wouter
@@ -1562,7 +1490,6 @@ Yehuda
 yeswehack
 Yiu
 Ylitalo
-yml
 YMMV
 Yogesh
 yourcompany
