@@ -2748,18 +2748,6 @@ static int listMemberZones(vector<string>& cmds, const std::string_view synopsis
   return listMemberZones(cmds.at(1));
 }
 
-static int testZone([[maybe_unused]] vector<string>& cmds, [[maybe_unused]] const std::string_view synopsis)
-{
-  cerr << "Did you mean check-zone?"<<endl;
-  return 0;
-}
-
-static int testAllZones([[maybe_unused]] vector<string>& cmds, [[maybe_unused]] const std::string_view synopsis)
-{
-  cerr << "Did you mean check-all-zones?"<<endl;
-  return 0;
-}
-
 static int testSpeed(vector<string>& cmds, const std::string_view synopsis)
 {
   if(cmds.size() < 3) {
@@ -4702,15 +4690,11 @@ static const std::unordered_map<std::string, commandDispatcher> commands{
    ""}}, // TODO: short help line
   {"test-algorithms", {false, testAlgorithms, GROUP_OTHER,
    "", ""}}, // TODO: synopsis and short help line
-  {"test-all-zones", {true, testAllZones, GROUP_ZONE,
-   "", ""}}, // TODO: synopsis and short help line
   {"test-schema", {true, testSchema, GROUP_OTHER,
    "test-schema ZONE",
    "\tTest DB schema - will create ZONE"}},
   {"test-speed", {true, testSpeed, GROUP_OTHER,
    "test-speed ZONE NUM_CORES", ""}}, // TODO: short help line
-  {"test-zone", {true, testZone, GROUP_ZONE,
-   "", ""}}, // TODO: synopsis and short help line
   {"unpublish-zone-key", {true, unpublishZoneKey, GROUP_ZONEKEY,
    "unpublish-zone-key ZONE KEY_ID",
    "\tUnpublish the zone key with key id KEY_ID in ZONE"}},
@@ -4733,6 +4717,11 @@ static const std::unordered_map<std::string, commandDispatcher> commands{
    "\tValidate ZONEMD for ZONE"}}
 };
 // clang-format on
+
+static const std::unordered_map<std::string, std::string> aliases{
+  {"test-zone", "check-zone"},
+  {"test-all-zones", "check-all-zones"}
+};
 
 int main(int argc, char** argv)
 try
@@ -4797,13 +4786,22 @@ try
 
   loadMainConfig(g_vm["config-dir"].as<string>());
 
-  const auto iter = commands.find(cmds.at(0));
-  if (iter != commands.end()) {
-    const auto dispatcher = iter->second;
-    if (dispatcher.requiresInitialization) {
+  const commandDispatcher* dispatcher{nullptr};
+  if (const auto iter = commands.find(cmds.at(0)); iter != commands.end()) {
+    dispatcher = &iter->second;
+  }
+  if (dispatcher == nullptr) {
+    if (const auto alias = aliases.find(cmds.at(0)); alias != aliases.end()) {
+      if (const auto iter = commands.find(alias->second); iter != commands.end()) {
+        dispatcher = &iter->second;
+      }
+    }
+  }
+  if (dispatcher != nullptr) {
+    if (dispatcher->requiresInitialization) {
       reportAllTypes();
     }
-    return dispatcher.handler(cmds, dispatcher.synopsis);
+    return dispatcher->handler(cmds, dispatcher->synopsis);
   }
 
   cerr << "Unknown command '" << cmds.at(0) << "'" << endl;
