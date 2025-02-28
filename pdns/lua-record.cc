@@ -619,7 +619,7 @@ static bool getAuth(const DNSName& name, uint16_t qtype, SOAData* soaData)
   }
 }
 
-static std::string getOptionValue(const boost::optional<std::unordered_map<string, string>>& options, const std::string &name, const std::string &defaultValue)
+static std::string getOptionValue(const boost::optional<opts_t>& options, const std::string &name, const std::string &defaultValue)
 {
   string selector=defaultValue;
   if(options) {
@@ -956,7 +956,7 @@ static string lua_latlonMagic()
    return std::to_string(lat)+" "+std::to_string(lon);
 }
 
-static string lua_createReverse(string format, boost::optional<std::unordered_map<string,string>> e)
+static string lua_createReverse(string format, boost::optional<opts_t> e)
 {
   try {
     auto labels = s_lua_record_ctx->qname.getRawLabels();
@@ -1110,7 +1110,7 @@ static string lua_createForward6()
   }
 }
 
-static string lua_createReverse6(const string &format, boost::optional<std::unordered_map<string,string>> excp)
+static string lua_createReverse6(const string &format, boost::optional<opts_t> excp)
 {
   vector<ComboAddress> candidates;
 
@@ -1212,7 +1212,7 @@ static vector<string> lua_filterForward(const string& address, NetmaskGroup& nmg
  *
  * @example ifportup(443, { '1.2.3.4', '5.4.3.2' })"
  */
-static vector<string> lua_ifportup(int port, const boost::variant<iplist_t, ipunitlist_t>& ips, const boost::optional<std::unordered_map<string,string>> options)
+static vector<string> lua_ifportup(int port, const boost::variant<iplist_t, ipunitlist_t>& ips, const boost::optional<opts_t> options)
 {
   port = std::max(port, 0);
   port = std::min(port, static_cast<int>(std::numeric_limits<uint16_t>::max()));
@@ -1611,10 +1611,10 @@ static void setupLuaRecords(LuaContext& lua)
       return lua_createForward6();
     });
 
-  lua.writeFunction("createReverse", [](string format, boost::optional<std::unordered_map<string,string>> e) -> string {
+  lua.writeFunction("createReverse", [](string format, boost::optional<opts_t> e) -> string {
       return lua_createReverse(format, e);
     });
-  lua.writeFunction("createReverse6", [](const string &format, boost::optional<std::unordered_map<string,string>> excp) -> string {
+  lua.writeFunction("createReverse6", [](const string &format, boost::optional<opts_t> excp) -> string {
       return lua_createReverse6(format, excp);
     });
 
@@ -1622,7 +1622,7 @@ static void setupLuaRecords(LuaContext& lua)
       return lua_filterForward(address, nmg, fallback);
     });
 
-  lua.writeFunction("ifportup", [](int port, const boost::variant<iplist_t, ipunitlist_t>& ips, const boost::optional<std::unordered_map<string,string>> options) -> vector<string> {
+  lua.writeFunction("ifportup", [](int port, const boost::variant<iplist_t, ipunitlist_t>& ips, const boost::optional<opts_t> options) -> vector<string> {
       return lua_ifportup(port, ips, options);
     });
 
