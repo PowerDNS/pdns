@@ -2487,7 +2487,7 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
 
   auto cursor = txn->txn->getCursor(txn->db->dbi);
   MDBOutVal key, val;
-  if (cursor.lower_bound(matchkey, key, val)) {
+  if (cursor.prefix(matchkey, key, val)) {
     // cout << "Could not find anything"<<endl;
     return false;
   }
@@ -2495,7 +2495,7 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
   bool hasOrderName = !ordername.empty();
   bool needNSEC3 = hasOrderName;
 
-  for (; key.getNoStripHeader<StringView>().rfind(matchkey, 0) == 0;) {
+  do {
     vector<LMDBResourceRecord> lrrs;
 
     if (co.getQType(key.getNoStripHeader<StringView>()) != QType::NSEC3) {
@@ -2521,9 +2521,7 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
       }
     }
 
-    if (cursor.next(key, val))
-      break;
-  }
+  } while (cursor.next(key, val) == 0);
 
   bool del = false;
   LMDBResourceRecord lrr;
