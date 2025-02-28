@@ -1468,7 +1468,7 @@ bool LMDBBackend::list(const DNSName& target, int /* id */, bool include_disable
   d_matchkey = co(di.id);
 
   MDBOutVal key, val;
-  if (d_getcursor->prefix(d_matchkey, key, val)) {
+  if (d_getcursor->prefix(d_matchkey, key, val) != 0) {
     d_getcursor.reset();
   }
 
@@ -1531,7 +1531,7 @@ void LMDBBackend::lookup(const QType& type, const DNSName& qdomain, int zoneId, 
     d_matchkey = co(zoneId, relqname, type.getCode());
   }
 
-  if (d_getcursor->prefix(d_matchkey, key, val)) {
+  if (d_getcursor->prefix(d_matchkey, key, val) != 0) {
     d_getcursor.reset();
     if (d_dolog) {
       g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": " << d_dtime.udiffNoReset() << " us to execute (found nothing)" << endl;
@@ -1569,7 +1569,7 @@ bool LMDBBackend::get(DNSZoneRecord& zr)
 
       if (zr.dr.d_type == QType::NSEC3) {
         // Hit a magic NSEC3 skipping
-        if (d_getcursor->next(d_currentKey, d_currentVal)) {
+        if (d_getcursor->next(d_currentKey, d_currentVal) != 0) {
           // cerr<<"resetting d_getcursor 1"<<endl;
           d_getcursor.reset();
         }
@@ -1597,7 +1597,7 @@ bool LMDBBackend::get(DNSZoneRecord& zr)
 
       if (d_currentrrsetpos >= d_currentrrset.size()) {
         d_currentrrset.clear(); // will invalidate lrr
-        if (d_getcursor->next(d_currentKey, d_currentVal)) {
+        if (d_getcursor->next(d_currentKey, d_currentVal) != 0) {
           // cerr<<"resetting d_getcursor 2"<<endl;
           d_getcursor.reset();
         }
@@ -2484,7 +2484,7 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
 
   auto cursor = txn->txn->getCursor(txn->db->dbi);
   MDBOutVal key, val;
-  if (cursor.prefix(matchkey, key, val)) {
+  if (cursor.prefix(matchkey, key, val) != 0) {
     // cout << "Could not find anything"<<endl;
     return false;
   }
