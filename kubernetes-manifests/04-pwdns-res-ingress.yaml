@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: powerdns-clients-res
+  namespace: powerdns-clients-<ENV_ROLE>
+  annotations:
+    cert-manager.io/cluster-issuer: selfsigned-issuer
+    cert-manager.io/common-name: pwdns-res.<ENV_ROLE>.somedomain.io
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - pwdns-res.<ENV_ROLE>.somedomain.io
+      secretName: pwdns-res-tls-<ENV_ROLE>
+  rules:
+  - host: pwdns-res.<ENV_ROLE>.somedomain.io
+    http:
+      paths:
+      - path: /
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: powerdns-clients-res-gui
+            port:
+              number: 8082
+---

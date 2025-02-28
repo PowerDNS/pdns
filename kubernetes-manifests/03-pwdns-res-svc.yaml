@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: powerdns-clients-res
+  namespace: powerdns-clients-<ENV_ROLE>
+  labels:
+    app: powerdns-clients-res
+spec:
+  ports:
+    - name: pwds-as-udp
+      protocol: UDP
+      port: 5353
+      targetPort: 5353
+    - name: pwds-as-tcp
+      protocol: TCP
+      port: 5353
+      targetPort: 5353
+  selector:
+    app: powerdns-clients-res
+  type: ClusterIP
+  sessionAffinity: None
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: powerdns-clients-res-gui
+  namespace: powerdns-clients-<ENV_ROLE>
+  labels:
+    app: powerdns-clients-res
+spec:
+  ports:
+    - name: pwds-res-web
+      protocol: TCP
+      port: 8082
+      targetPort: 8082
+  selector:
+    app: powerdns-clients-res
+  type: ClusterIP
+  sessionAffinity: None
+
+
