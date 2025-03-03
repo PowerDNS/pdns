@@ -2,6 +2,7 @@
 	rm -f pdns.sqlite32
 	sqlite3 pdns.sqlite32 < ../modules/gsqlite3backend/schema.sqlite3.sql
 
+	backend=gsqlite32
 	cat > pdns-gsqlite32.conf << __EOF__
 module-dir=./modules
 launch=gsqlite3
