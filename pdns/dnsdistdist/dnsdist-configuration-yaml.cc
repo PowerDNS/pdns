@@ -239,7 +239,7 @@ static bool validateTLSConfiguration(const dnsdist::rust::settings::BindConfigur
   return true;
 }
 
-static bool handleTLSConfiguration(const dnsdist::rust::settings::BindConfiguration& bind, ClientState& state)
+static bool handleTLSConfiguration(const dnsdist::rust::settings::BindConfiguration& bind, ClientState& state, std::shared_ptr<const TLSFrontend> parent)
 {
   auto tlsConfig = getTLSConfigFromRustIncomingTLS(bind.tls);
   if (!validateTLSConfiguration(bind, tlsConfig)) {
@@ -249,6 +249,7 @@ static bool handleTLSConfiguration(const dnsdist::rust::settings::BindConfigurat
   auto protocol = boost::to_lower_copy(std::string(bind.protocol));
   if (protocol == "dot") {
     auto frontend = std::make_shared<TLSFrontend>(TLSFrontend::ALPN::DoT);
+    frontend->setParent(parent);
     frontend->d_provider = std::string(bind.tls.provider);
     boost::algorithm::to_lower(frontend->d_provider);
     frontend->d_proxyProtocolOutsideTLS = bind.tls.proxy_protocol_outside_tls;
@@ -286,8 +287,9 @@ static bool handleTLSConfiguration(const dnsdist::rust::settings::BindConfigurat
 #endif /* HAVE_DNS_OVER_HTTP3 */
   else if (protocol == "doh") {
     auto frontend = std::make_shared<DOHFrontend>();
-    frontend->d_tlsContext.d_provider = std::string(bind.tls.provider);
-    boost::algorithm::to_lower(frontend->d_tlsContext.d_provider);
+    auto& tlsContext = frontend->d_tlsContext;
+    tlsContext->d_provider = std::string(bind.tls.provider);
+    boost::algorithm::to_lower(tlsContext->d_provider);
     frontend->d_library = std::string(bind.doh.provider);
     if (frontend->d_library == "h2o") {
 #ifdef HAVE_LIBH2OEVLOOP
@@ -343,16 +345,17 @@ static bool handleTLSConfiguration(const dnsdist::rust::settings::BindConfigurat
     }
 
     if (!tlsConfig.d_certKeyPairs.empty()) {
-      frontend->d_tlsContext.d_addr = ComboAddress(std::string(bind.listen_address), 443);
+      tlsContext->d_addr = ComboAddress(std::string(bind.listen_address), 443);
       infolog("DNS over HTTPS configured");
     }
     else {
-      frontend->d_tlsContext.d_addr = ComboAddress(std::string(bind.listen_address), 80);
-      infolog("No certificate provided for DoH endpoint %s, running in DNS over HTTP mode instead of DNS over HTTPS", frontend->d_tlsContext.d_addr.toStringWithPort());
+      tlsContext->d_addr = ComboAddress(std::string(bind.listen_address), 80);
+      infolog("No certificate provided for DoH endpoint %s, running in DNS over HTTP mode instead of DNS over HTTPS", tlsContext->d_addr.toStringWithPort());
     }
 
-    frontend->d_tlsContext.d_proxyProtocolOutsideTLS = bind.tls.proxy_protocol_outside_tls;
-    frontend->d_tlsContext.d_tlsConfig = std::move(tlsConfig);
+    tlsContext->d_proxyProtocolOutsideTLS = bind.tls.proxy_protocol_outside_tls;
+    tlsContext->d_tlsConfig = std::move(tlsConfig);
+    tlsContext->setParent(parent);
     state.dohFrontend = std::move(frontend);
   }
   else if (protocol != "do53") {
@@ -672,6 +675,7 @@ static void loadBinds(const ::rust::Vec<dnsdist::rust::settings::BindConfigurati
         }
       }
 
+      std::shared_ptr<const TLSFrontend> tlsFrontendParent;
       for (size_t idx = 0; idx < bind.threads; idx++) {
 #if defined(HAVE_DNSCRYPT)
         std::shared_ptr<DNSCryptContext> dnsCryptContext;
@@ -710,8 +714,11 @@ static void loadBinds(const ::rust::Vec<dnsdist::rust::settings::BindConfigurati
 #endif /* defined(HAVE_DNSCRYPT) */
         }
         else if (protocol != "do53") {
-          if (!handleTLSConfiguration(bind, *state)) {
+          if (!handleTLSConfiguration(bind, *state, tlsFrontendParent)) {
             continue;
+          }
+          if (tlsFrontendParent == nullptr) {
+            tlsFrontendParent = state->getTLSFrontend();
           }
         }
 
