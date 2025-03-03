@@ -29,6 +29,9 @@ A few changes of behaviour have been implemented in :doc:`pdnsutil <pdnsutil>`.
 
 * The ``add-zone-key`` command used to default to creating a ZSK,
   if no key type was given. This default has changed to KSK.
+* The ``create-zone`` command will now apply the :ref:`setting-default-soa-edit`
+  recipe to compute the serial number of the zone, unless the serial number
+  found in :ref:`setting-default-soa-content` is a non-zero value.
 
 4.8.0 to 4.9.0
 --------------
