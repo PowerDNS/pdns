@@ -1,6 +1,7 @@
 dep_atomics = dependency('', required: false)
 need_latomic = false
 
+fs = import('fs')
 prog = fs.read('atomic_add_fetch.cc')
 if not cxx.links(prog, name: '-latomic is not needed for using __atomic builtins')
   lib_atomic = cxx.find_library('atomic', disabler: true, required: false)

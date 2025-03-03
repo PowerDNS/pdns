@@ -5,7 +5,9 @@ Summary: Powerful and scriptable DNS loadbalancer
 License: GPLv2
 Vendor: PowerDNS.COM BV
 Group: System/DNS
-Source: %{name}-%{getenv:BUILDER_VERSION}.tar.bz2
+Source: %{name}-%{getenv:BUILDER_VERSION}.tar.xz
+BuildRequires: ninja-build
+BuildRequires: hostname
 BuildRequires: readline-devel
 BuildRequires: libedit-devel
 BuildRequires: openssl-devel
@@ -72,6 +74,13 @@ dnsdist is a high-performance DNS loadbalancer that is scriptable in Lua.
 %prep
 %autosetup -p1 -n %{name}-%{getenv:BUILDER_VERSION}
 
+%if 0%{?rhel} >= 9
+%global toolchain clang
+%else
+# we need to disable the hardened flags because they are GCC-only
+%undefine _hardened_build
+%endif
+
 %build
 %if 0%{?rhel} < 8
 export CPPFLAGS=-I/usr/include/boost169
@@ -84,59 +93,77 @@ export CXX=clang++
 # build-id SHA1 prevents an issue with the debug symbols ("export: `-Wl,--build-id=sha1': not a valid identifier")
 # and the --no-as-needed -ldl an issue with the dlsym not being found ("ld.lld: error: undefined symbol: dlsym eferenced by weak.rs:142 (library/std/src/sys/pal/unix/weak.rs:142) [...] in archive ./dnsdist-rust-lib/rust/libdnsdist_rust.a)
 export LDFLAGS="-fuse-ld=lld -Wl,--build-id=sha1 -Wl,--no-as-needed -ldl"
+%if 0%{?rhel} < 9
+export CFLAGS="-O2 -g -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -fexceptions -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -gdwarf-4"
+export CXXFLAGS="-O2 -g -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -fexceptions -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -gdwarf-4"
+%endif
 %endif
 
-export AR=gcc-ar
-export RANLIB=gcc-ranlib
+#export AR=gcc-ar
+#export RANLIB=gcc-ranlib
+export PKG_CONFIG_PATH=/usr/lib/pkgconfig:/opt/lib64/pkgconfig
 
-%configure \
-  --enable-option-checking=fatal \
+# /usr/bin/meson setup \
+#   --buildtype=plain \
+#   --prefix=/usr \
+#   --libdir=/usr/lib64 \
+#   --libexecdir=/usr/libexec \
+#   --bindir=/usr/bin \
+#   --sbindir=/usr/sbin \
+#   --includedir=/usr/include \
+#   --datadir=/usr/share \
+#   --mandir=/usr/share/man \
+#   --infodir=/usr/share/info \
+#   --localedir=/usr/share/locale \
+#   --sysconfdir=/etc/dnsdist \
+#   --localstatedir=/var \
+#   --sharedstatedir=/var/lib \
+#   --wrap-mode=nodownload \
+#   --auto-features=enabled \
+#   . \
+#   redhat-linux-build \
+
+#  -Ddebug=true \
+#  -Doptimization=3 \
+
+%meson \
   --sysconfdir=/etc/dnsdist \
-  --disable-static \
-  --disable-dependency-tracking \
-  --disable-silent-rules \
-  --enable-unit-tests \
-  --enable-lto=thin \
-  --enable-dns-over-tls \
-  --with-h2o \
+  -Dunit-tests=true \
+  -Db_lto=true \
+  -Db_lto_mode=thin \
+  -Db_pie=true \
+  -Ddns-over-tls=true \
 %if 0%{?suse_version}
-  --disable-dnscrypt \
-  --without-libsodium \
-  --without-re2 \
-  --enable-systemd --with-systemd=%{_unitdir} \
-  --without-net-snmp
+  -Ddnscrypt=disabled \
+  -Dsnmp=false
 %endif
 %if 0%{?rhel} >= 7 || 0%{?amzn} == 2023
-  --enable-dnstap \
-  --enable-dns-over-https \
-  --enable-systemd --with-systemd=%{_unitdir} \
-  --with-gnutls \
-  --with-libcap \
-  --with-lua=%{lua_implementation} \
-  --with-re2 \
+  -Ddnstap=enabled \
+  -Ddns-over-https=true \
+  -Dtls-gnutls=enabled \
+  -Dlibcap=enabled \
+  -Dlua=luajit \
+  -Dre2=enabled \
 %if 0%{?amzn} != 2023
-  --enable-dnscrypt \
-  --with-libsodium \
-  --with-net-snmp \
+  -Ddnscrypt=enabled \
+  -Dsnmp=true \
 %endif
 %if 0%{?rhel} >= 8 || 0%{?amzn} == 2023
-  --enable-dns-over-quic \
-  --enable-dns-over-http3 \
-  --with-quiche \
+  -Ddns-over-quic=true \
+  -Ddns-over-http3=true \
 %endif
 %if 0%{?rhel} >= 8
-  --enable-yaml \
-%endif
-  PKG_CONFIG_PATH=/usr/lib/pkgconfig:/opt/lib64/pkgconfig
+  -Dyaml=enabled \
 %endif
 
-make %{?_smp_mflags}
+%endif
+%meson_build
 
 %check
-make %{?_smp_mflags} check || (cat test-suite.log && false)
+%meson_test
 
 %install
-%make_install
+%meson_install
 install -d %{buildroot}/%{_sysconfdir}/dnsdist
 %if 0%{?rhel} >= 8 || 0%{?amzn} == 2023
 install -Dm644 /usr/lib/libdnsdist-quiche.so %{buildroot}/%{_libdir}/libdnsdist-quiche.so
