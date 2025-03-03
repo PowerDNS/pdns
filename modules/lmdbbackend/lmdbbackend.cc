@@ -1813,8 +1813,6 @@ void LMDBBackend::getAllDomainsFiltered(vector<DomainInfo>* domains, const std::
 
 void LMDBBackend::getAllDomains(vector<DomainInfo>* domains, bool /* doSerial */, bool include_disabled)
 {
-  domains->clear();
-
   getAllDomainsFiltered(domains, [this, include_disabled](DomainInfo& di) {
     if (!getSerial(di) && !include_disabled) {
       return false;
