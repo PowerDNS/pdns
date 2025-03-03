@@ -239,7 +239,7 @@ static bool validateTLSConfiguration(const dnsdist::rust::settings::BindConfigur
   return true;
 }
 
-static bool handleTLSConfiguration(const dnsdist::rust::settings::BindConfiguration& bind, ClientState& state, std::shared_ptr<const TLSFrontend> parent)
+static bool handleTLSConfiguration(const dnsdist::rust::settings::BindConfiguration& bind, ClientState& state, const std::shared_ptr<const TLSFrontend>& parent)
 {
   auto tlsConfig = getTLSConfigFromRustIncomingTLS(bind.tls);
   if (!validateTLSConfiguration(bind, tlsConfig)) {
@@ -717,7 +717,7 @@ static void loadBinds(const ::rust::Vec<dnsdist::rust::settings::BindConfigurati
           if (!handleTLSConfiguration(bind, *state, tlsFrontendParent)) {
             continue;
           }
-          if (tlsFrontendParent == nullptr) {
+          if (tlsFrontendParent == nullptr && (protocol == "dot" || protocol == "doh")) {
             tlsFrontendParent = state->getTLSFrontend();
           }
         }
