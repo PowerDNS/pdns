@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   prepare:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       image-name-suffix: ${{ steps.get-image-version.outputs.version }}
       image-tag: ${{ steps.get-image-tag.outputs.tag }}

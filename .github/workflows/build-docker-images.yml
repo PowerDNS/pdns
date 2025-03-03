@@ -53,7 +53,7 @@ permissions: # least privileges, see https://docs.github.com/en/actions/using-wo
 jobs:
   validate-push-image:
     name: Check only images built from tags and master are pushed
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
@@ -67,7 +67,7 @@ jobs:
 
   build:
     name: build docker image for a product
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: validate-push-image
     outputs:
       image-digest: ${{ steps.build-image.outputs.digest }}
@@ -121,7 +121,7 @@ jobs:
     name: generate runner list
     if: ${{ inputs.push }}
     needs: build
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       runnerlist: ${{ steps.get-runnerlist.outputs.runnerlist }}
       skiptests: ${{ steps.get-runnerlist.outputs.skiptests }}
@@ -130,12 +130,12 @@ jobs:
       - id: get-runnerlist
         run: |
           runner_os=()
-          [[ -n "${{ contains(inputs.platforms, 'amd64') && 'ubuntu-22.04' || '' }}" ]] && runner_os+=('ubuntu-22.04')
+          [[ -n "${{ contains(inputs.platforms, 'amd64') && 'ubuntu-24.04' || '' }}" ]] && runner_os+=('ubuntu-24.04')
           [[ -n "${{ vars.ARM64_USE_UBICLOUD == '1' && contains(inputs.platforms, 'arm64') || '' }}" ]] && runner_os+=('ubicloud-standard-2-arm')
           echo "runnerlist=$(jo -a ${runner_os[@]})" >> "$GITHUB_OUTPUT"
           # Skip tests if no runner is suitable for running them. Set a default runner to avoid CI failure
           if [[ -z "${runner_os[@]}" ]]; then
-            echo "runnerlist=$(jo -a ubuntu-22.04)" >> "$GITHUB_OUTPUT"
+            echo "runnerlist=$(jo -a ubuntu-24.04)" >> "$GITHUB_OUTPUT"
             echo "skiptests=1" >> "$GITHUB_OUTPUT"
           fi
 
