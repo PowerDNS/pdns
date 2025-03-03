@@ -90,10 +90,10 @@ public:
   void removeSocket(int sock);
   void block(const ComboAddress& addr, MatchAction action);
   void addRangeRule(const Netmask& address, bool force, BPFFilter::MatchAction action);
-  void block(const DNSName& qname, MatchAction action, uint16_t qtype = 255);
+  void block(const DNSName& qname, MatchAction action, uint16_t qtype = 65535);
   void unblock(const ComboAddress& addr);
   void rmRangeRule(const Netmask& address);
-  void unblock(const DNSName& qname, uint16_t qtype = 255);
+  void unblock(const DNSName& qname, uint16_t qtype = 65535);
 
   std::vector<std::pair<ComboAddress, uint64_t>> getAddrStats();
   std::vector<std::pair<Netmask, CounterAndActionValue>> getRangeRule();

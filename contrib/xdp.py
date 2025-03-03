@@ -7,8 +7,9 @@ import netaddr
 from bcc import BPF
 
 # Constants
-QTYPES = {'LOC': 29,
-          '*': 255,
+QTYPES = {'*': 65535,
+          'LOC': 29,
+          'ANY': 255,
           'IXFR': 251,
           'UINFO': 100,
           'NSEC3': 50,

@@ -143,8 +143,8 @@ static inline struct map_value* check_qname(struct cursor* c)
     return value;
   }
 
-  // check with Qtype 255 (*)
-  qkey.qtype = 255;
+  // check with Qtype 65535 (*)
+  qkey.qtype = 65535;
 
   return qnamefilter.lookup(&qkey);
 }
