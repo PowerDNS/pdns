@@ -43,11 +43,11 @@ public:
 
   static void init();
 
-  MiniCurl(const string& useragent="MiniCurl/0.0");
+  MiniCurl(const string& useragent="MiniCurl/0.0", bool failonerror=true);
   ~MiniCurl();
   MiniCurl& operator=(const MiniCurl&) = delete;
 
-  std::string getURL(const std::string& str, const ComboAddress* rem=nullptr, const ComboAddress* src=nullptr, int timeout = 2, bool fastopen = false, bool verify = false, size_t byteslimit = 0);
+  std::string getURL(const std::string& str, const ComboAddress* rem=nullptr, const ComboAddress* src=nullptr, int timeout = 2, bool fastopen = false, bool verify = false, size_t byteslimit = 0, int http_status = 200);
   std::string postURL(const std::string& str, const std::string& postdata, MiniCurlHeaders& headers, int timeout = 2, bool fastopen = false, bool verify = false);
 
 private:
@@ -70,6 +70,7 @@ private:
   std::string d_data;
   size_t d_byteslimit{};
   bool d_fresh{true};
+  bool d_failonerror;
 
   void setupURL(const std::string& str, const ComboAddress* rem, const ComboAddress* src, int timeout, size_t byteslimit, bool fastopen, bool verify);
   void setHeaders(const MiniCurlHeaders& headers);
