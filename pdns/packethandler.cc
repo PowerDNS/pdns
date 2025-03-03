@@ -1652,10 +1652,12 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
                 rr.scopeMask = p.getRealRemote().getBits(); // this makes sure answer is a specific as your question
                 rrset.push_back(rr);
               }
-              if(rec->d_type == QType::CNAME && p.qtype.getCode() != QType::CNAME)
+              if(rec->d_type == QType::CNAME && (p.qtype.getCode() != QType::ANY && p.qtype.getCode() != QType::CNAME)) {
                 weRedirected = true;
-              else
+	      }
+              else {
                 weDone = true;
+	      }
             }
           }
           catch(std::exception &e) {
@@ -1682,8 +1684,9 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
       if((rr.dr.d_type == p.qtype.getCode() && !rr.auth) || (rr.dr.d_type == QType::NS && (!rr.auth || !(d_sd.qname==rr.dr.d_name))))
         weHaveUnauth=true;
 
-      if(rr.dr.d_type == QType::CNAME && p.qtype.getCode() != QType::CNAME)
-        weRedirected=true;
+      if (rr.dr.d_type == QType::CNAME && (p.qtype.getCode() != QType::ANY && p.qtype.getCode() != QType::CNAME)) {
+        weRedirected = true;
+      }
 
       if (DP && rr.dr.d_type == QType::ALIAS && (p.qtype.getCode() == QType::A || p.qtype.getCode() == QType::AAAA || p.qtype.getCode() == QType::ANY) && !d_dk.isPresigned(d_sd.qname)) {
         if (!d_doExpandALIAS) {
