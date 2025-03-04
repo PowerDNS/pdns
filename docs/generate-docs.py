@@ -1,8 +1,9 @@
-"""Generate manpages using sphinx in a venv."""
+"""Generate docs using sphinx in a venv."""
 
 import argparse
 import glob
 import itertools
+import os
 import subprocess
 import sys
 import venv
@@ -32,29 +33,40 @@ def main():
     subprocess.run([pip, "install", "-U", "pip", "setuptools", "wheel"], check=True)
     subprocess.run([pip, "install", "-r", requirements_file], check=True)
 
-    # Run sphinx to generate the man-pages.
+    # Run sphinx to generate the docs
     source_directory = source_root.joinpath(args.source_directory)
     target_directory = build_root.joinpath(args.target_directory)
     files = [glob.glob(str(source_root.joinpath(pat))) for pat in args.files]
     files = list(itertools.chain.from_iterable(files))
     sphinx_build = venv_directory.joinpath("bin").joinpath("sphinx-build")
-    subprocess.run(
-        [
+
+    if args.pdf_name:
+        build_args = [
+            sphinx_build,
+            "-M",
+            "latexpdf",
+            source_directory,
+            '.'
+        ]
+    else:
+        build_args = [
             sphinx_build,
             "-b",
-            "man",
+            "html",
             source_directory,
             target_directory,
         ]
-        + files,
+    subprocess.run(
+        build_args + files, # if files is empty, it means do all files
         check=True
     )
-
+    if args.pdf_name:
+        os.rename(build_root.joinpath('latex').joinpath(args.pdf_name), args.pdf_name)
 
 def create_argument_parser():
     """Create command-line argument parser."""
     parser = argparse.ArgumentParser(
-        description="Build man pages for PowerDNS open source products"
+        description="Build html and pdf docs for PowerDNS open source products"
     )
     parser.add_argument(
         "--build-root",
@@ -90,12 +102,18 @@ def create_argument_parser():
         "--target-directory",
         type=Path,
         required=True,
-        help="Target directory for man-pages relative to the build root",
+        help="Target directory relative to the build root",
+    )
+    parser.add_argument(
+        "--pdf-name",
+        type=Path,
+        required=False,
+        help="Generate pdf instead of html",
     )
     parser.add_argument(
         "files",
         type=Path,
-        nargs="+",
+        nargs="*",
         help="Input files relative to the source root",
     )
     return parser.parse_args()
