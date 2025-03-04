@@ -54,7 +54,7 @@ def main():
 def create_argument_parser():
     """Create command-line argument parser."""
     parser = argparse.ArgumentParser(
-        description="Create a virtualenv from a requirements file"
+        description="Build man pages for PowerDNS open source products"
     )
     parser.add_argument(
         "--build-root",

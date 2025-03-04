@@ -66,7 +66,7 @@ def main():
 def create_argument_parser():
     """Create command-line argument parser."""
     parser = argparse.ArgumentParser(
-        description="Create a virtualenv from a requirements file"
+        description="Build html and pdf docs for PowerDNS open source products"
     )
     parser.add_argument(
         "--build-root",
@@ -102,7 +102,7 @@ def create_argument_parser():
         "--target-directory",
         type=Path,
         required=True,
-        help="Target directory for man-pages relative to the build root",
+        help="Target directory relative to the build root",
     )
     parser.add_argument(
         "--pdf-name",
