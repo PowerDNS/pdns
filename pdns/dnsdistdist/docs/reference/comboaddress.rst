@@ -66,7 +66,7 @@ ComboAddresses can be IPv4 or IPv6, and unless you want to know, you don't need 
 
   .. method:: ComboAddress:getRaw() -> string
 
-    Returns in raw bytes format format
+    Returns in raw bytes format
 
   .. method:: ComboAddress:tostringWithPort() -> string
                    ComboAddress:toStringWithPort() -> string
