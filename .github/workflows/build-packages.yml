@@ -15,10 +15,8 @@ on:
         # please remember to update the pkghashes below when you
         # update this list, as well as the one in builder-dispatch.yml
         default: >-
-          el-7
           el-8
           el-9
-          debian-buster
           debian-bullseye
           debian-bookworm
           ubuntu-focal
@@ -73,20 +71,14 @@ jobs:
       matrix:
         os: ${{fromJson(needs.prepare.outputs.oslist)}}
         runner-os: ${{ fromJson(needs.prepare.outputs.runnerlist )}}
-        exclude:
-          - os: el-7
-            runner-os: ubicloud-standard-2-arm
       fail-fast: false
     outputs:
       product-name: ${{ steps.normalize-name.outputs.normalized-package-name }}
       version: ${{ steps.getversion.outputs.version }}
-      pkghashes-el-7-x86_64: ${{ steps.pkghashes.outputs.pkghashes-el-7-x86_64 }}
       pkghashes-el-8-x86_64: ${{ steps.pkghashes.outputs.pkghashes-el-8-x86_64 }}
       pkghashes-el-8-aarch64: ${{ steps.pkghashes.outputs.pkghashes-el-8-aarch64 }}
       pkghashes-el-9-x86_64: ${{ steps.pkghashes.outputs.pkghashes-el-9-x86_64 }}
       pkghashes-el-9-aarch64: ${{ steps.pkghashes.outputs.pkghashes-el-9-aarch64 }}
-      pkghashes-debian-buster-x86_64: ${{ steps.pkghashes.outputs.pkghashes-debian-buster-x86_64 }}
-      pkghashes-debian-buster-aarch64: ${{ steps.pkghashes.outputs.pkghashes-debian-buster-aarch64 }}
       pkghashes-debian-bullseye-x86_64: ${{ steps.pkghashes.outputs.pkghashes-debian-bullseye-x86_64 }}
       pkghashes-debian-bullseye-aarch64: ${{ steps.pkghashes.outputs.pkghashes-debian-bullseye-aarch64 }}
       pkghashes-debian-bookworm-x86_64: ${{ steps.pkghashes.outputs.pkghashes-debian-bookworm-x86_64 }}
@@ -173,7 +165,7 @@ jobs:
         run: |
           for os in ${{ inputs.os }}; do
             for architecture in x86_64 ${{ vars.ARM64_USE_UBICLOUD == '1' && 'aarch64' || '' }}; do
-              [[ "$os" != "el-7" || "$architecture" != "aarch64"  ]] && echo "\"pkghashes-$os-$architecture\"" | tee -a /tmp/os-inputs.txt
+              echo "\"pkghashes-$os-$architecture\"" | tee -a /tmp/os-inputs.txt
             done
           done
           sort -o /tmp/os-inputs.txt /tmp/os-inputs.txt
@@ -188,9 +180,6 @@ jobs:
       matrix:
         os: ${{fromJson(needs.prepare.outputs.oslist)}}
         architecture: ${{ fromJson(needs.prepare.outputs.archlist )}}
-        exclude:
-          - os: el-7
-            architecture: aarch64
     permissions:
       actions: read   # To read the workflow path.
       id-token: write # To sign the provenance.
@@ -224,9 +213,6 @@ jobs:
       matrix:
         os: ${{fromJson(needs.prepare.outputs.oslist)}}
         architecture: ${{ fromJson(needs.prepare.outputs.archlist )}}
-        exclude:
-          - os: el-7
-            architecture: aarch64
     steps:
       - name: Download source tarball provenance for ${{ inputs.product }} (${{ inputs.ref }})
         id: download-src-provenance
