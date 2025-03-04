@@ -217,9 +217,9 @@ Base64 encoded TSIG secret
 
 refresh
 ^^^^^^^
-An integer describing the interval between checks for updates.
-By default, the RPZ zone's default is used.
-If allowed by :ref:`setting-allow-notify-for` and :ref:`setting-allow-notify-from`, a ``notify`` for an RPZ zone will initiate a freshness check.
+An integer describing the interval in seconds between checks for updates.
+By default, the refresh interval mentioned in the RPZ's SOA record is used.
+Since version 5.1.0, if allowed by :ref:`setting-allow-notify-for` and :ref:`setting-allow-notify-from`, a ``notify`` for an RPZ zone will initiate a freshness check.
 
 maxReceivedMBytes
 ^^^^^^^^^^^^^^^^^
