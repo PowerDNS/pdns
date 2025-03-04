@@ -36,7 +36,7 @@ env:
 jobs:
   get-runner-container-image:
     name: generate docker runner image name
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       id: ${{ steps.get-runner-image.outputs.image-id }}
       tag: ${{ steps.get-runner-image.outputs.tag }}
@@ -52,7 +52,7 @@ jobs:
   build-auth:
     name: build auth (${{ matrix.builder }})
     if: ${{ !github.event.schedule || vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: get-runner-container-image
     container:
       image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
@@ -136,7 +136,7 @@ jobs:
   build-recursor:
     name: build recursor
     if: ${{ !github.event.schedule || vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: get-runner-container-image
     strategy:
       matrix:
@@ -219,7 +219,7 @@ jobs:
   build-dnsdist:
     name: build dnsdist
     if: ${{ !github.event.schedule || vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: get-runner-container-image
     strategy:
       matrix:
@@ -312,7 +312,7 @@ jobs:
     needs:
       - build-auth
       - get-runner-container-image
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     container:
       image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
@@ -382,7 +382,7 @@ jobs:
     needs:
       - build-auth
       - get-runner-container-image
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     container:
       image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
@@ -513,7 +513,7 @@ jobs:
     needs:
       - build-auth
       - get-runner-container-image
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     container:
       image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
@@ -555,7 +555,7 @@ jobs:
     needs:
       - build-recursor
       - get-runner-container-image
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         sanitizers: [asan+ubsan, tsan]
@@ -605,7 +605,7 @@ jobs:
     needs:
       - build-recursor
       - get-runner-container-image
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         sanitizers: [asan+ubsan, tsan]
@@ -658,7 +658,7 @@ jobs:
     needs:
       - build-recursor
       - get-runner-container-image
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         sanitizers: [asan+ubsan, tsan]
@@ -758,7 +758,7 @@ jobs:
     needs:
       - build-dnsdist
       - get-runner-container-image
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         sanitizers: [asan+ubsan, tsan]
@@ -808,7 +808,7 @@ jobs:
 
   swagger-syntax-check:
     if: ${{ !github.event.schedule || vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     container:
       image: ghcr.io/powerdns/base-pdns-ci-image/debian-12-pdns-base:master
       options: --sysctl net.ipv6.conf.all.disable_ipv6=0
@@ -840,7 +840,7 @@ jobs:
       - test-recursor-bulk
       - test-recursor-ubicloud-bulk
     if: success() || failure()
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Coveralls Parallel Finished
         if: ${{ env.COVERAGE == 'yes' }}

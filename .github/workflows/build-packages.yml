@@ -46,7 +46,7 @@ permissions: # least privileges, see https://docs.github.com/en/actions/using-wo
 jobs:
   prepare:
     name: generate OS runner and arch list
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       oslist: ${{ steps.get-oslist.outputs.oslist }}
       runnerlist: ${{ steps.get-runnerlist.outputs.runnerlist }}
@@ -59,7 +59,7 @@ jobs:
       - id: get-oslist
         run: echo "oslist=$(jo -a ${{ inputs.os }})" >> "$GITHUB_OUTPUT"
       - id: get-runnerlist
-        run: echo "runnerlist=$(jo -a ubuntu-22.04 ${{ vars.ARM64_USE_UBICLOUD == '1' && 'ubicloud-standard-2-arm' || '' }})" >> "$GITHUB_OUTPUT"
+        run: echo "runnerlist=$(jo -a ubuntu-24.04 ${{ vars.ARM64_USE_UBICLOUD == '1' && 'ubicloud-standard-2-arm' || '' }})" >> "$GITHUB_OUTPUT"
       - id: get-archlist
         run: echo "archlist=$(jo -a  x86_64 ${{ vars.ARM64_USE_UBICLOUD == '1' && 'aarch64' || '' }})" >> "$GITHUB_OUTPUT"
 
@@ -157,7 +157,7 @@ jobs:
   check-hashes:
     needs: build
     name: Check if hashes were created for all requested targets
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Get list of outputs from build jobs
         run: echo '${{ toJSON(needs.build.outputs) }}' | jq 'keys[]' | grep -vE 'version|product-name' | tee /tmp/build-outputs.txt
@@ -208,7 +208,7 @@ jobs:
   upload-provenance:
     needs: [prepare, build, provenance-src, provenance-pkgs]
     name: Upload the provenance artifacts to downloads.powerdns.com
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         os: ${{fromJson(needs.prepare.outputs.oslist)}}
