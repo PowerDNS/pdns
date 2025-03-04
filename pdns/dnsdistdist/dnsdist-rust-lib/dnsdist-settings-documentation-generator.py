@@ -138,6 +138,8 @@ Since 2.0.0, :program:`dnsdist` supports the YAML configuration format in additi
 
 If the configuration file passed to :program:`dnsdist` via the ``-C`` command-line switch ends in ``.yml``, it is assumed to be in the new YAML format, and an attempt to load a Lua configuration file with the same name but the ``.lua`` will be done before loading the YAML configuration. If the names ends in ``.lua``, there will also be an attempt to find a file with the same name but ending in ``.yml``. Otherwise the existing Lua configuration format is assumed.
 
+By default, when a YAML configuration file is used, any Lua configuration file used along the YAML configuration should only contain functions, and ideally even those should be defined either inline in the YAML file or in separate files included from the YAML configuration, for clarity. It is however possible to change this behaviour using the :func:`enableLuaConfiguration` directive to enable Lua configuration directives, but it is strongly advised not to use this directive unless absolutely necessary, and to prefer doing all the configuration in either Lua or YAML but to not mix them.
+
 A YAML configuration file contains several sections, that are described below.
 
 .. code-block:: yaml\n

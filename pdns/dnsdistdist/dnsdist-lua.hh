@@ -65,6 +65,8 @@ void setupLuaLoadBalancingContext(LuaContext& luaCtx);
 namespace dnsdist::lua
 {
 void setupLua(LuaContext& luaCtx, bool client, bool configCheck);
+void setupLuaBindingsOnly(LuaContext& luaCtx, bool client, bool configCheck);
+void setupLuaConfigurationOptions(LuaContext& luaCtx, bool client, bool configCheck);
 void setupConfigurationItems(LuaContext& luaCtx);
 
 template <class FunctionType>

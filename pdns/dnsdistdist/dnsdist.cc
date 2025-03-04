@@ -3289,11 +3289,20 @@ static bool loadConfigurationFromFile(const std::string& configurationFile, bool
   if (boost::ends_with(configurationFile, ".yml")) {
     if (auto tentativeLuaConfFile = lookForTentativeConfigurationFileWithExtension(configurationFile, "lua")) {
       vinfolog("Loading configuration from auto-discovered Lua file %s", *tentativeLuaConfFile);
+      dnsdist::lua::setupLuaBindingsOnly(*(g_lua.lock()), isClient, configCheck);
       dnsdist::configuration::lua::loadLuaConfigurationFile(*(g_lua.lock()), *tentativeLuaConfFile, configCheck);
     }
     vinfolog("Loading configuration from YAML file %s", configurationFile);
-    return dnsdist::configuration::yaml::loadConfigurationFromFile(configurationFile, isClient, configCheck);
+    if (!dnsdist::configuration::yaml::loadConfigurationFromFile(configurationFile, isClient, configCheck)) {
+      return false;
+    }
+    if (!isClient && !configCheck) {
+      dnsdist::lua::setupLuaConfigurationOptions(*(g_lua.lock()), false, false);
+    }
+    return true;
   }
+
+  dnsdist::lua::setupLua(*(g_lua.lock()), isClient, configCheck);
   if (boost::ends_with(configurationFile, ".lua")) {
     vinfolog("Loading configuration from Lua file %s", configurationFile);
     dnsdist::configuration::lua::loadLuaConfigurationFile(*(g_lua.lock()), configurationFile, configCheck);
@@ -3358,7 +3367,6 @@ int main(int argc, char** argv)
     });
 
     if (cmdLine.beClient || !cmdLine.command.empty()) {
-      dnsdist::lua::setupLua(*(g_lua.lock()), true, false);
       if (!loadConfigurationFromFile(cmdLine.config, true, false)) {
 #ifdef COVERAGE
         exit(EXIT_FAILURE);
@@ -3395,7 +3403,6 @@ int main(int argc, char** argv)
     dnsdist::webserver::registerBuiltInWebHandlers();
 
     if (cmdLine.checkConfig) {
-      dnsdist::lua::setupLua(*(g_lua.lock()), false, true);
       if (!loadConfigurationFromFile(cmdLine.config, false, true)) {
 #ifdef COVERAGE
         exit(EXIT_FAILURE);
@@ -3420,7 +3427,6 @@ int main(int argc, char** argv)
     /* create the default pool no matter what */
     createPoolIfNotExists("");
 
-    dnsdist::lua::setupLua(*(g_lua.lock()), false, false);
     if (!loadConfigurationFromFile(cmdLine.config, false, false)) {
 #ifdef COVERAGE
       exit(EXIT_FAILURE);
