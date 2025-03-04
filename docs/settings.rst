@@ -469,6 +469,8 @@ This value is used when a zone is created without providing a SOA record. @ is r
 
 Use this soa-edit value for all zones if no
 :ref:`metadata-soa-edit` metadata value is set.
+This value is also used by :doc:`pdnsutil create-zone <manpages/pdnsutil.1>`
+unless :ref:`setting-default-soa-content` contains a non-zero serial number.
 
 .. _setting-default-soa-edit-signed:
 
