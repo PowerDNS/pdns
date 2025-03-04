@@ -257,8 +257,9 @@ MDBRWTransactionImpl::MDBRWTransactionImpl(MDBEnv *parent, MDB_txn *txn):
 MDB_txn *MDBRWTransactionImpl::openRWTransaction(MDBEnv *env, MDB_txn *parent, int flags)
 {
   MDB_txn *result;
-  if(env->getROTX() || env->getRWTX())
+  if(env->getRWTX() != 0) {
     throw std::runtime_error("Duplicate RW transaction");
+  }
 
   if(int rc=mdb_txn_begin(env->d_env, parent, flags, &result))
     throw std::runtime_error("Unable to start RW transaction: "+std::string(mdb_strerror(rc)));
