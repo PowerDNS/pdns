@@ -33,9 +33,9 @@ std::shared_ptr<const Logger> Logger::getptr() const
   return shared_from_this();
 }
 
-bool Logger::enabled(Logr::Priority p) const
+bool Logger::enabled(Logr::Priority prio) const
 {
-  return _level <= _verbosity || p != Logr::Absent;
+  return _level <= _verbosity || prio != Logr::Absent;
 }
 
 void Logger::info(const std::string& msg) const
@@ -43,9 +43,9 @@ void Logger::info(const std::string& msg) const
   logMessage(msg, Logr::Absent, boost::none);
 }
 
-void Logger::info(Logr::Priority p, const std::string& msg) const
+void Logger::info(Logr::Priority prio, const std::string& msg) const
 {
-  logMessage(msg, p, boost::none);
+  logMessage(msg, prio, boost::none);
 }
 
 void Logger::logMessage(const std::string& msg, boost::optional<const std::string> err) const
@@ -53,14 +53,14 @@ void Logger::logMessage(const std::string& msg, boost::optional<const std::strin
   return logMessage(msg, Logr::Absent, std::move(err));
 }
 
-void Logger::logMessage(const std::string& msg, Logr::Priority p, boost::optional<const std::string> err) const
+void Logger::logMessage(const std::string& msg, Logr::Priority prio, boost::optional<const std::string> err) const
 {
-  if (!enabled(p)) {
+  if (!enabled(prio)) {
     return;
   }
   Entry entry;
   entry.level = _level;
-  entry.d_priority = p;
+  entry.d_priority = prio;
   Utility::gettimeofday(&entry.d_timestamp);
   entry.name = _name;
   entry.message = msg;
@@ -74,19 +74,19 @@ void Logger::logMessage(const std::string& msg, Logr::Priority p, boost::optiona
   _callback(entry);
 }
 
-void Logger::error(Logr::Priority p, int err, const std::string& msg) const
+void Logger::error(Logr::Priority prio, int err, const std::string& msg) const
 {
-  logMessage(msg, p, std::string(std::strerror(err)));
+  logMessage(msg, prio, std::string(stringerror(err)));
 }
 
-void Logger::error(Logr::Priority p, const std::string& err, const std::string& msg) const
+void Logger::error(Logr::Priority prio, const std::string& err, const std::string& msg) const
 {
-  logMessage(msg, p, err);
+  logMessage(msg, prio, err);
 }
 
 void Logger::error(int err, const std::string& msg) const
 {
-  logMessage(msg, Logr::Absent, std::string(std::strerror(err)));
+  logMessage(msg, Logr::Absent, std::string(stringerror(err)));
 }
 
 void Logger::error(const std::string& err, const std::string& msg) const
@@ -151,9 +151,7 @@ Logger::Logger(std::shared_ptr<const Logger> parent, boost::optional<std::string
 {
 }
 
-Logger::~Logger()
-{
-}
+Logger::~Logger() = default;
 };
 
 std::shared_ptr<Logging::Logger> g_slog{nullptr};
