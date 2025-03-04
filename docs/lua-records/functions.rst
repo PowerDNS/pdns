@@ -160,6 +160,7 @@ Record creation functions
   - ``stringmatch``: check ``url`` for this string, only declare 'up' if found
   - ``useragent``: Set the HTTP "User-Agent" header in the requests. By default it is set to "PowerDNS Authoritative Server"
   - ``byteslimit``: Limit the maximum download size to ``byteslimit`` bytes (default 0 meaning no limit).
+  - ``httpcode``: Set the HTTP status code to match in response. (default is 200)
 
   An example of a list of address sets:
 
