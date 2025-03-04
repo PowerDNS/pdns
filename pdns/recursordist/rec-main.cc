@@ -106,8 +106,8 @@ std::unique_ptr<nod::UniqueResponseDB> g_udrDBp;
 std::atomic<bool> statsWanted;
 uint32_t g_disthashseed;
 bool g_useIncomingECS;
-NetmaskGroup g_proxyProtocolACL;
-std::set<ComboAddress> g_proxyProtocolExceptions;
+static shared_ptr<NetmaskGroup> g_initialProxyProtocolACL;
+static shared_ptr<std::set<ComboAddress>> g_initialProxyProtocolExceptions;
 boost::optional<ComboAddress> g_dns64Prefix{boost::none};
 DNSName g_dns64PrefixReverse;
 unsigned int g_maxChainLength;
@@ -1388,11 +1388,25 @@ void* pleaseSupplantAllowNotifyFor(std::shared_ptr<notifyset_t> allowNotifyFor)
   return nullptr;
 }
 
+void* pleaseSupplantProxyProtocolSettings(std::shared_ptr<NetmaskGroup> acl, std::shared_ptr<std::set<ComboAddress>> except)
+{
+  t_proxyProtocolACL = std::move(acl);
+  t_proxyProtocolExceptions = std::move(except);
+  return nullptr;
+}
+
 void parseACLs()
 {
   auto log = g_slog->withName("config");
 
   static bool l_initialized;
+  const std::array<string, 6> aclNames = {
+    "allow-from-file",
+    "allow-from",
+    "allow-notify-from-file",
+    "allow-notify-from",
+    "proxy-protocol-from",
+    "proxy-protocol-exceptions"};
 
   if (l_initialized) { // only reload configuration file on second call
 
@@ -1434,6 +1448,8 @@ void parseACLs()
         throw runtime_error("Unable to re-parse configuration file '" + configName + "'");
       }
       ::arg().preParseFile(configName, "allow-notify-from");
+      ::arg().preParseFile(configName, "proxy-protocol-from");
+      ::arg().preParseFile(configName, "proxy-protocol-exceptions");
 
       ::arg().preParseFile(configName, "include-dir");
       ::arg().preParse(g_argc, g_argv, "include-dir");
@@ -1443,28 +1459,18 @@ void parseACLs()
       ::arg().gatherIncludes(::arg()["include-dir"], ".conf", extraConfigs);
 
       for (const std::string& fileName : extraConfigs) {
-        if (!::arg().preParseFile(fileName, "allow-from-file", ::arg()["allow-from-file"])) {
-          throw runtime_error("Unable to re-parse configuration file include '" + fileName + "'");
-        }
-        if (!::arg().preParseFile(fileName, "allow-from", ::arg()["allow-from"])) {
-          throw runtime_error("Unable to re-parse configuration file include '" + fileName + "'");
-        }
-
-        if (!::arg().preParseFile(fileName, "allow-notify-from-file", ::arg()["allow-notify-from-file"])) {
-          throw runtime_error("Unable to re-parse configuration file include '" + fileName + "'");
-        }
-        if (!::arg().preParseFile(fileName, "allow-notify-from", ::arg()["allow-notify-from"])) {
-          throw runtime_error("Unable to re-parse configuration file include '" + fileName + "'");
+        for (const auto& aclName : aclNames) {
+          if (!::arg().preParseFile(fileName, aclName, ::arg()[aclName])) {
+            throw runtime_error("Unable to re-parse configuration file include '" + fileName + "'");
+          }
         }
       }
     }
   }
   // Process command line args potentially overriding settings read from file
-  ::arg().preParse(g_argc, g_argv, "allow-from-file");
-  ::arg().preParse(g_argc, g_argv, "allow-from");
-
-  ::arg().preParse(g_argc, g_argv, "allow-notify-from-file");
-  ::arg().preParse(g_argc, g_argv, "allow-notify-from");
+  for (const auto& aclName : aclNames) {
+    ::arg().preParse(g_argc, g_argv, aclName);
+  }
 
   auto allowFrom = parseACL("allow-from-file", "allow-from", log);
 
@@ -1485,6 +1491,28 @@ void parseACLs()
   *g_initialAllowNotifyFrom.lock() = allowNotifyFrom;
   // coverity[copy_constructor_call] maybe this can be avoided, but be careful as pointers get passed to other threads
   broadcastFunction([=] { return pleaseSupplantAllowNotifyFrom(allowNotifyFrom); });
+
+  std::shared_ptr<NetmaskGroup> proxyProtocolACL;
+  std::shared_ptr<std::set<ComboAddress>> proxyProtocolExceptions;
+  if (!::arg()["proxy-protocol-from"].empty()) {
+    proxyProtocolACL = std::make_shared<NetmaskGroup>();
+    proxyProtocolACL->toMasks(::arg()["proxy-protocol-from"]);
+
+    std::vector<std::string> vec;
+    stringtok(vec, ::arg()["proxy-protocol-exceptions"], ", ");
+    if (!vec.empty()) {
+      proxyProtocolExceptions = std::make_shared<std::set<ComboAddress>>();
+      for (const auto& sockAddrStr : vec) {
+        ComboAddress sockAddr(sockAddrStr, 53);
+        proxyProtocolExceptions->emplace(sockAddr);
+      }
+    }
+  }
+  g_initialProxyProtocolACL = proxyProtocolACL;
+  g_initialProxyProtocolExceptions = proxyProtocolExceptions;
+
+  // coverity[copy_constructor_call] maybe this can be avoided, but be careful as pointers get passed to other threads
+  broadcastFunction([=] { return pleaseSupplantProxyProtocolSettings(proxyProtocolACL, proxyProtocolExceptions); });
 
   l_initialized = true;
 }
@@ -2215,13 +2243,18 @@ static int serviceMain(Logr::log_t log)
     return ret;
   }
 
-  g_proxyProtocolACL.toMasks(::arg()["proxy-protocol-from"]);
-  {
+  if (!::arg()["proxy-protocol-from"].empty()) {
+    g_initialProxyProtocolACL = std::make_shared<NetmaskGroup>();
+    g_initialProxyProtocolACL->toMasks(::arg()["proxy-protocol-from"]);
+
     std::vector<std::string> vec;
     stringtok(vec, ::arg()["proxy-protocol-exceptions"], ", ");
-    for (const auto& sockAddrStr : vec) {
-      ComboAddress sockAddr(sockAddrStr, 53);
-      g_proxyProtocolExceptions.emplace(sockAddr);
+    if (!vec.empty()) {
+      g_initialProxyProtocolExceptions = std::make_shared<std::set<ComboAddress>>();
+      for (const auto& sockAddrStr : vec) {
+        ComboAddress sockAddr(sockAddrStr, 53);
+        g_initialProxyProtocolExceptions->emplace(sockAddr);
+      }
     }
   }
   g_proxyProtocolMaximumSize = ::arg().asNum("proxy-protocol-maximum-size");
@@ -2836,6 +2869,8 @@ static void recursorThread()
       t_allowFrom = *g_initialAllowFrom.lock();
       t_allowNotifyFrom = *g_initialAllowNotifyFrom.lock();
       t_allowNotifyFor = *g_initialAllowNotifyFor.lock();
+      t_proxyProtocolACL = g_initialProxyProtocolACL;
+      t_proxyProtocolExceptions = g_initialProxyProtocolExceptions;
       t_udpclientsocks = std::make_unique<UDPClientSocks>();
       t_tcpClientCounts = std::make_unique<tcpClientCounts_t>();
       if (g_proxyMapping) {

@@ -5,6 +5,7 @@ import struct
 import sys
 import time
 import requests
+import subprocess
 
 try:
     range = xrange
@@ -709,3 +710,46 @@ class ProxyProtocolExceptionTest(ProxyProtocolTest):
             res = sender(query, False, '127.0.0.42', '255.255.255.255', 0, 65535, [ [0, b'foo' ], [ 255, b'bar'] ])
             self.assertEqual(res, None)
 
+class ProxyProtocolConfigReloadTest(ProxyProtocolTest):
+    _confdir = 'ProxyProtocolConfigReload'
+    _lua_dns_script_file = """
+
+    function preresolve(dq)
+      dq:addAnswer(pdns.A, '192.0.2.1', 60)
+      return true
+    end
+    """
+
+    _config_template = """
+    proxy-protocol-from=128.0.0.1/32
+    allow-from=127.0.0.0/24, ::1/128
+"""
+
+    def testIPv4ProxyProtocol(self):
+        qname = 'ipv4.proxy-protocol-not-allowed.recursor-tests.powerdns.com.'
+        expected = dns.rrset.from_text(qname, 0, dns.rdataclass.IN, 'A', '192.0.2.1')
+
+        query = dns.message.make_query(qname, 'A', want_dnssec=True)
+        for method in ("sendUDPQueryWithProxyProtocol", "sendTCPQueryWithProxyProtocol"):
+            sender = getattr(self, method)
+            res = sender(query, False, '127.0.0.42', '255.255.255.255', 0, 65535, [ [0, b'foo' ], [ 255, b'bar'] ])
+            self.assertEqual(res, None)
+        ProxyProtocolConfigReloadTest._config_template = """
+        proxy-protocol-from=127.0.0.1/32
+        allow-from=127.0.0.0/24, ::1/128
+"""
+        confdir = os.path.join('configs', ProxyProtocolConfigReloadTest._confdir)
+        ProxyProtocolConfigReloadTest.generateRecursorConfig(confdir)
+        rec_controlCmd = [os.environ['RECCONTROL'],
+                          '--config-dir=%s' % confdir,
+                          'reload-acls']
+        try:
+            subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as e:
+            raise AssertionError('%s failed (%d): %s' % (rec_controlCmd, e.returncode, e.output))
+
+        for method in ("sendUDPQueryWithProxyProtocol", "sendTCPQueryWithProxyProtocol"):
+            sender = getattr(self, method)
+            res = sender(query, False, '127.0.0.42', '255.255.255.255', 0, 65535, [ [0, b'foo' ], [ 255, b'bar'] ])
+            self.assertRcodeEqual(res, dns.rcode.NOERROR)
+            self.assertRRsetInAnswer(res, expected)
