@@ -60,7 +60,7 @@ Functions and methods of a ``ComboAddress``
 
   .. method:: ComboAddress:getRaw() -> string
 
-    Returns in raw bytes format format
+    Returns in raw bytes format
 
   .. method:: ComboAddress:toStringWithPort() -> string
 

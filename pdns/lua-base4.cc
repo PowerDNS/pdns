@@ -147,22 +147,16 @@ void BaseLua4::prepareContext() {
   d_lw->registerFunction<bool(DNSResourceRecord::*)()>("disabled", [](DNSResourceRecord& rec) { return rec.disabled; });
 
   // ComboAddress
-  d_lw->registerFunction<bool(ComboAddress::*)()>("isIPv4", [](const ComboAddress& ca) { return ca.sin4.sin_family == AF_INET; });
-  d_lw->registerFunction<bool(ComboAddress::*)()>("isIPv6", [](const ComboAddress& ca) { return ca.sin4.sin_family == AF_INET6; });
-  d_lw->registerFunction<uint16_t(ComboAddress::*)()>("getPort", [](const ComboAddress& ca) { return ntohs(ca.sin4.sin_port); } );
-  d_lw->registerFunction<bool(ComboAddress::*)()>("isMappedIPv4", [](const ComboAddress& ca) { return ca.isMappedIPv4(); });
-  d_lw->registerFunction<ComboAddress(ComboAddress::*)()>("mapToIPv4", [](const ComboAddress& ca) { return ca.mapToIPv4(); });
-  d_lw->registerFunction<void(ComboAddress::*)(unsigned int)>("truncate", [](ComboAddress& ca, unsigned int bits) { ca.truncate(bits); });
-  d_lw->registerFunction<string(ComboAddress::*)()>("toString", [](const ComboAddress& ca) { return ca.toString(); });
-  d_lw->registerToStringFunction<string(ComboAddress::*)()>([](const ComboAddress& ca) { return ca.toString(); });
-  d_lw->registerFunction<string(ComboAddress::*)()>("toStringWithPort", [](const ComboAddress& ca) { return ca.toStringWithPort(); });
-  d_lw->registerFunction<string(ComboAddress::*)()>("getRaw", [](const ComboAddress& ca) {
-      if(ca.sin4.sin_family == AF_INET) {
-        auto t=ca.sin4.sin_addr.s_addr; return string((const char*)&t, 4);
-      }
-      else
-        return string((const char*)&ca.sin6.sin6_addr.s6_addr, 16);
-    } );
+  d_lw->registerFunction<bool(ComboAddress::*)()>("isIPv4", [](const ComboAddress& addr) { return addr.sin4.sin_family == AF_INET; });
+  d_lw->registerFunction<bool(ComboAddress::*)()>("isIPv6", [](const ComboAddress& addr) { return addr.sin4.sin_family == AF_INET6; });
+  d_lw->registerFunction<uint16_t(ComboAddress::*)()>("getPort", [](const ComboAddress& addr) { return ntohs(addr.sin4.sin_port); } );
+  d_lw->registerFunction<bool(ComboAddress::*)()>("isMappedIPv4", [](const ComboAddress& addr) { return addr.isMappedIPv4(); });
+  d_lw->registerFunction<ComboAddress(ComboAddress::*)()>("mapToIPv4", [](const ComboAddress& addr) { return addr.mapToIPv4(); });
+  d_lw->registerFunction<void(ComboAddress::*)(unsigned int)>("truncate", [](ComboAddress& addr, unsigned int bits) { addr.truncate(bits); });
+  d_lw->registerFunction<string(ComboAddress::*)()>("toString", [](const ComboAddress& addr) { return addr.toString(); });
+  d_lw->registerToStringFunction<string(ComboAddress::*)()>([](const ComboAddress& addr) { return addr.toString(); });
+  d_lw->registerFunction<string(ComboAddress::*)()>("toStringWithPort", [](const ComboAddress& addr) { return addr.toStringWithPort(); });
+  d_lw->registerFunction<string(ComboAddress::*)()>("getRaw", [](const ComboAddress& addr) { return addr.toByteString(); });
 
   d_lw->writeFunction("newCA", [](const std::string& a) { return ComboAddress(a); });
   d_lw->writeFunction("newCAFromRaw", [](const std::string& raw, boost::optional<uint16_t> port) {
