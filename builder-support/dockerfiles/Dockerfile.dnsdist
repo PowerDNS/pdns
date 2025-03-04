@@ -9,6 +9,7 @@ ADD COPYING /dnsdist/
 @EXEC sdist_dirs=(build-aux m4 pdns ext)
 @EXEC for d in ${sdist_dirs[@]} ; do echo "COPY $d/ /dnsdist/$d/" ; done
 ADD builder-support/gen-version /dnsdist/pdns/dnsdistdist/builder-support/gen-version
+ADD docs/depfile.py /dnsdist/pdns/dnsdistdist/docs/depfile.py
 WORKDIR /dnsdist/pdns/dnsdistdist
 
 RUN mkdir /sdist
