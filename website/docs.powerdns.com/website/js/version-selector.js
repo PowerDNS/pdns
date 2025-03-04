@@ -87,8 +87,9 @@ async function loadVersionSelector(baseUrl, targetElementId, legacyVersion = nul
         let versions = [];
         
         try {
-            // Attempt to fetch versions.json
-            const response = await fetch(`${baseUrl}/versions.json`);
+            // Attempt to fetch versions.json with cache-busting
+            const timestamp = new Date().getTime();
+            const response = await fetch(`${baseUrl}/versions.json?t=${timestamp}`);
             if (response.ok) {
                 const fetchedVersions = await response.json();
                 versions = [...fetchedVersions];
