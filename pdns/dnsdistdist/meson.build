@@ -38,8 +38,6 @@ subdir('meson' / 'compiler-setup')          # Common compiler setup
 subdir('meson' / 'summary')                 # Print a system/project summary
 subdir('meson' / 'sysconfdir')              # Sysconfdir
 subdir('meson' / 'platform')                # Platform detection
-subdir('meson' / 'timet-size')              # Check the size of time_t
-subdir('meson' / 'timet-sign')              # Check the sign of time_t
 subdir('meson' / 'atomics')                 # Check atomics support
 subdir('meson' / 'pthread-headers')         # Check pthread headers
 subdir('meson' / 'pthread-setname')         # Pthread setname madness
@@ -102,7 +100,7 @@ subdir('ext' / 'luawrapper')
 subdir('ext' / 'protozero')
 subdir('ext' / 'yahttp')
 
-if get_option('lmdb').allowed()
+if dep_lmdb.found()
   subdir('ext' / 'lmdb-safe')
 else
   dep_lmdb_safe = declare_dependency()
@@ -200,7 +198,6 @@ common_sources += files(
   src_dir / 'ednsoptions.cc',
   src_dir / 'ednssubnet.cc',
   src_dir / 'gettime.cc',
-  src_dir / 'ipcipher.cc',
   src_dir / 'iputils.cc',
   src_dir / 'libssl.cc',
   src_dir / 'misc.cc',
@@ -576,6 +573,11 @@ if get_option('man-pages') and python.found()
       foreach man_page: info['manpages']
         if not fs.is_file(man_page)
           generated_man_pages += man_page
+        else
+          install_man(
+            man_page,
+            install_dir: join_paths(get_option('mandir'), 'man1'),
+          )
         endif
       endforeach
     endif
