@@ -4194,6 +4194,7 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
   /* list of names for which we will allow A and AAAA records in the additional section
      to remain */
   std::unordered_set<DNSName> allowedAdditionals = {qname};
+  bool cnameSeen = false;
   bool haveAnswers = false;
   bool isNXDomain = false;
   bool isNXQType = false;
@@ -4251,6 +4252,9 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
     }
 
     if (rec->d_place == DNSResourceRecord::ANSWER) {
+      if (rec->d_type == QType::CNAME) {
+        cnameSeen = cnameSeen || qname == rec->d_name;
+      }
       allowAdditionalEntry(allowedAdditionals, *rec);
     }
 
@@ -4323,6 +4327,18 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
     }
 
     ++rec;
+  }
+
+  if (cnameSeen) {
+    for (auto rec = lwr.d_records.begin(); rec != lwr.d_records.end();) {
+      // If we have a CNAME, skip answer records for the requested type
+      if (rec->d_place == DNSResourceRecord::ANSWER && rec->d_type == qtype && rec->d_name == qname && qtype != QType::CNAME) {
+        LOG(prefix << qname << ": Removing answer record in presence of CNAME record '" << rec->d_name << "|" << DNSRecordContent::NumberToType(rec->d_type) << "|" << rec->getContent()->getZoneRepresentation() << "' in the ANSWER section received from " << auth << endl);
+        rec = lwr.d_records.erase(rec);
+        continue;
+      }
+      ++rec;
+    }
   }
 }
 
@@ -5605,6 +5621,11 @@ bool SyncRes::processAnswer(unsigned int depth, const string& prefix, LWResult& 
 
   bool done = processRecords(prefix, qname, qtype, auth, lwr, sendRDQuery, ret, nsset, newtarget, newauth, realreferral, negindic, state, needWildcardProof, gatherWildcardProof, wildcardLabelsCount, *rcode, negIndicHasSignatures, depth);
 
+  // If we both have a CNAME and an answer, let the CNAME take precedence. This *should* not happen
+  // (because CNAMEs cannot co-exist with other records), but reality says otherwise. Other
+  // resolvers choose to follow the CNAME in this case as well. We removed the answer record from
+  // the records received from the auth when sanitizing, so `done' should not be set when a CNAME is
+  // present.
   if (done) {
     LOG(prefix << qname << ": Status=got results, this level of recursion done" << endl);
     LOG(prefix << qname << ": Validation status is " << state << endl);
