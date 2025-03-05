@@ -325,6 +325,13 @@ private:
   }
 };
 
+// The return value of this function can be one of three sets of values:
+// - positive integer: the target is up, the return value is its weight.
+//   (1 if weights are not used)
+// - zero: the target is down.
+// - negative integer: the check for this target has not completed yet.
+//   (this value is only reported if the failOnIncompleteCheck option is
+//    set, otherwise zero will be returned)
 //NOLINTNEXTLINE(readability-identifier-length)
 int IsUpOracle::isUp(const CheckDesc& cd)
 {
@@ -352,6 +359,14 @@ int IsUpOracle::isUp(const CheckDesc& cd)
     // Make sure we don't insert new entry twice now we have the lock
     if (statuses->find(cd) == statuses->end()) {
       (*statuses)[cd] = std::make_unique<CheckState>(now);
+    }
+  }
+  // If explicitly asked to fail on incomplete checks, report this (as
+  // a negative value).
+  static const std::string foic{"failOnIncompleteCheck"};
+  if (cd.opts.count(foic) != 0) {
+    if (cd.opts.at(foic) == "true") {
+      return -1;
     }
   }
   return 0;
@@ -887,7 +902,7 @@ static std::string pickConsistentWeightedHashed(const ComboAddress& bestwho, con
   return {};
 }
 
-static vector<string> genericIfUp(const boost::variant<iplist_t, ipunitlist_t>& ips, boost::optional<opts_t> options, const std::function<bool(const ComboAddress&, const opts_t&)>& upcheckf, uint16_t port = 0)
+static vector<string> genericIfUp(const boost::variant<iplist_t, ipunitlist_t>& ips, boost::optional<opts_t> options, const std::function<int(const ComboAddress&, const opts_t&)>& upcheckf, uint16_t port = 0)
 {
   vector<vector<ComboAddress> > candidates;
   opts_t opts;
@@ -897,11 +912,16 @@ static vector<string> genericIfUp(const boost::variant<iplist_t, ipunitlist_t>& 
 
   candidates = convMultiComboAddressList(ips, port);
 
-  for (const auto& unit : candidates) {
+  bool incompleteCheck{true};
+  for(const auto& unit : candidates) {
     vector<ComboAddress> available;
     for(const auto& address : unit) {
-      if (upcheckf(address, opts)) {
+      int status = upcheckf(address, opts);
+      if (status > 0) {
         available.push_back(address);
+      }
+      if (status >= 0) {
+        incompleteCheck = false;
       }
     }
     if(!available.empty()) {
@@ -910,7 +930,12 @@ static vector<string> genericIfUp(const boost::variant<iplist_t, ipunitlist_t>& 
     }
   }
 
-  // All units down, apply backupSelector on all candidates
+  // All units down or have not completed their checks yet.
+  if (incompleteCheck) {
+    throw std::runtime_error("if{url,port}up health check has not completed yet");
+  }
+
+  // Apply backupSelector on all candidates
   vector<ComboAddress> ret{};
   for(const auto& unit : candidates) {
     ret.insert(ret.end(), unit.begin(), unit.end());
@@ -1228,8 +1253,8 @@ static vector<string> lua_ifportup(int port, const boost::variant<iplist_t, ipun
   port = std::max(port, 0);
   port = std::min(port, static_cast<int>(std::numeric_limits<uint16_t>::max()));
 
-  auto checker = [](const ComboAddress& addr, const opts_t& opts) -> bool {
-    return g_up.isUp(addr, opts) != 0;
+  auto checker = [](const ComboAddress& addr, const opts_t& opts) -> int {
+    return g_up.isUp(addr, opts);
   };
   return genericIfUp(ips, std::move(options), checker, port);
 }
@@ -1246,6 +1271,7 @@ static vector<string> lua_ifurlextup(const vector<pair<int, opts_t> >& ipurls, b
   ca_unspec.sin4.sin_family=AF_UNSPEC;
 
   // ipurls: { { ["192.0.2.1"] = "https://example.com", ["192.0.2.2"] = "https://example.com/404" } }
+  bool incompleteCheck{true};
   for (const auto& [count, unitmap] : ipurls) {
     // unitmap: 1 = { ["192.0.2.1"] = "https://example.com", ["192.0.2.2"] = "https://example.com/404" }
     vector<ComboAddress> available;
@@ -1254,8 +1280,12 @@ static vector<string> lua_ifurlextup(const vector<pair<int, opts_t> >& ipurls, b
       // unit: ["192.0.2.1"] = "https://example.com"
       ComboAddress address(ipStr);
       candidates.push_back(address);
-      if (g_up.isUp(ca_unspec, url, opts) != 0) {
+      int status = g_up.isUp(ca_unspec, url, opts);
+      if (status > 0) {
         available.push_back(address);
+      }
+      if (status >= 0) {
+        incompleteCheck = false;
       }
     }
     if(!available.empty()) {
@@ -1264,15 +1294,20 @@ static vector<string> lua_ifurlextup(const vector<pair<int, opts_t> >& ipurls, b
     }
   }
 
-  // All units down, apply backupSelector on all candidates
+  // All units down or have not completed their checks yet.
+  if (incompleteCheck) {
+    throw std::runtime_error("ifexturlup health check has not completed yet");
+  }
+
+  // Apply backupSelector on all candidates
   vector<ComboAddress> res = useSelector(getOptionValue(options, "backupSelector", "random"), s_lua_record_ctx->bestwho, candidates);
   return convComboAddressListToString(res);
 }
 
 static vector<string> lua_ifurlup(const std::string& url, const boost::variant<iplist_t, ipunitlist_t>& ips, boost::optional<opts_t> options)
 {
-  auto checker = [&url](const ComboAddress& addr, const opts_t& opts) -> bool {
-    return g_up.isUp(addr, url, opts) != 0;
+  auto checker = [&url](const ComboAddress& addr, const opts_t& opts) -> int {
+    return g_up.isUp(addr, url, opts);
   };
   return genericIfUp(ips, std::move(options), checker);
 }
