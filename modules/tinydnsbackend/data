@@ -20196,6 +20196,9 @@ Zexample.com:ns1.example.com.:ahu.example.com.:2847484148:28800:7200:604800:8640
 :hightxt.test.com:16:\042v\075spf1\040mx\040ip4\07278.46.192.210\040\342\200\223all:3600
 :hightxt.test.com:99:\042v\075spf1\040mx\040ip4\07278.46.192.210\040\342\200\223all:3600
 :interrupted-rrset.test.com:16:\023check\040AXFR\040signpipe:3600
+:naptr.test.com:35:\000d\0002\001a\007e2u\053sip\000\007server1\004test\003com\000:3600
+:naptr.test.com:35:\000d\0002\001s\007e2u\053sip\000\007_double\004_tcp\002dc\004test\003com\000:3600
+:naptr.test.com:35:\000d\0002\001u\007e2u\053sip\000\007server1\004test\003com\000:3600
 :server1.test.com:17:\003ahu\004ds9a\002nl\000\007counter\004test\003com\000:3600
 :urc65226.test.com:65226:ABC:3600
 :very-long-txt.test.com:16:\377A\040very\040long\040TXT\040record\041\040boy\040you\040won\047t\040believe\040how\040long.\040A\040very\040long\040TXT\040record\041\040boy\040you\040won\047t\040believe\040how\040long.\040A\040very\040long\040TXT\040record\041\040boy\040you\040won\047t\040believe\040how\040long.\040A\040very\040long\040TXT\040record\041\040boy\040you\040won\047t\040believe\040how\040long.\040A\040very\040long\040TXT\040record\041\040boy\040you\030\040won\047t\040believe\040how\040long\041:3600

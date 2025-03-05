@@ -11,3 +11,11 @@ Reply to question for qname='ensm.test.com.', qtype=NAPTR
 2	server1.test.com.	3600	IN	A	1.2.3.4
 Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
 Reply to question for qname='enam.test.com.', qtype=NAPTR
+0	naptr.test.com.	3600	IN	NAPTR	100 50 "a" "e2u+sip" "" server1.test.com.
+0	naptr.test.com.	3600	IN	NAPTR	100 50 "s" "e2u+sip" "" _double._tcp.dc.test.com.
+0	naptr.test.com.	3600	IN	NAPTR	100 50 "u" "e2u+sip" "" server1.test.com.
+2	_double._tcp.dc.test.com.	3600	IN	SRV	0 100 389 server1.test.com.
+2	_double._tcp.dc.test.com.	3600	IN	SRV	1 100 389 server1.test.com.
+2	server1.test.com.	3600	IN	A	1.2.3.4
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='naptr.test.com.', qtype=NAPTR
