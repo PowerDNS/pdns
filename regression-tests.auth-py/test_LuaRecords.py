@@ -1345,6 +1345,30 @@ lua-health-checks-interval=5
         self.assertAnyRRsetInAnswer(res, reachable_rrs)
         self.assertNoneRRsetInAnswer(res, unreachable_rrs)
 
+class TestLuaRecordsExecLimit(BaseLuaTest):
+     # This configuration is similar to BaseLuaTest, but the exec limit is
+     # set to a very low value.
+    _config_template = """
+geoip-database-files=../modules/geoipbackend/regression-tests/GeoLiteCity.mmdb
+edns-subnet-processing=yes
+launch=bind geoip
+any-to-tcp=no
+enable-lua-records
+lua-records-insert-whitespace=yes
+lua-records-exec-limit=1
+"""
+
+    def testA(self):
+        """
+        Test A query against `any`, failing due to exec-limit
+        """
+        name = 'any.example.org.'
+
+        query = dns.message.make_query(name, 'A')
+
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
+
 if __name__ == '__main__':
     unittest.main()
     exit(0)
