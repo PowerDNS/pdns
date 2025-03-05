@@ -116,6 +116,10 @@ mix.ifurlup  IN    LUA    A   ("ifurlup('http://www.other.org:8080/ping.json', "
                                "{{ '192.168.42.101', '{prefix}.101' }},        "
                                "{{ stringmatch='pong' }})                      ")
 
+usa-404      IN    LUA    A   ( ";include('config')                         "
+                                "return ifurlup('http://www.lua.org:8080/404', "
+                                "USAips, {{ httpcode='404' }})              ")
+
 ifurlextup   IN    LUA    A   "ifurlextup({{{{['192.168.0.1']='http://{prefix}.101:8080/404',['192.168.0.2']='http://{prefix}.102:8080/404'}}, {{['192.168.0.3']='http://{prefix}.101:8080/'}}}})"
 
 nl           IN    LUA    A   ( ";include('config')                                "
@@ -458,6 +462,34 @@ class TestLuaRecords(BaseLuaTest):
         self.assertAnyRRsetInAnswer(res, all_rrs)
 
         # the timeout in the LUA health checker is 1 second, so we make sure to wait slightly longer here
+        time.sleep(3)
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertAnyRRsetInAnswer(res, reachable_rrs)
+
+    def testIfurlupHTTPCode(self):
+        """
+        Basic ifurlup() test, with non-default HTTP code
+        """
+        reachable = [
+            '{prefix}.103'.format(prefix=self._PREFIX)
+        ]
+        unreachable = ['192.168.42.105']
+        ips = reachable + unreachable
+        all_rrs = []
+        reachable_rrs = []
+        for ip in ips:
+            rr = dns.rrset.from_text('usa-404.example.org.', 0, dns.rdataclass.IN, 'A', ip)
+            all_rrs.append(rr)
+            if ip in reachable:
+                reachable_rrs.append(rr)
+
+        query = dns.message.make_query('usa-404.example.org', 'A')
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertAnyRRsetInAnswer(res, all_rrs)
+
+        # the timeout in the LUA health checker is 2 second, so we make sure to wait slightly longer here
         time.sleep(3)
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
