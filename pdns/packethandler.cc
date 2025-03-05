@@ -536,6 +536,9 @@ void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPack
         case QType::SVCB: /* fall-through */
         case QType::HTTPS: {
           auto rrc = getRR<SVCBBaseRecordContent>(rr.dr);
+          if (!rrc) {
+            break;
+          }
           content = rrc->getTarget();
           if (content.isRoot()) {
             content = rr.dr.d_name;
@@ -547,6 +550,9 @@ void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPack
         }
         case QType::NAPTR: {
           auto naptrContent = getRR<NAPTRRecordContent>(rr.dr);
+          if (!naptrContent) {
+            break;
+          }
           auto flags = naptrContent->getFlags();
           toLowerInPlace(flags);
           if (flags.find('a') != string::npos) {
