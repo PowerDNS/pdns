@@ -1462,6 +1462,53 @@ BOOST_AUTO_TEST_CASE(test_following_cname)
   BOOST_CHECK_EQUAL(ret[1].d_name, cnameTarget);
 }
 
+BOOST_AUTO_TEST_CASE(test_following_cname_with_a)
+{
+  std::unique_ptr<SyncRes> resolver;
+  initSR(resolver);
+
+  primeHints();
+
+  const DNSName target("cname.powerdns.com.");
+  const DNSName cnameTarget("cname-target.powerdns.com");
+
+  resolver->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
+    if (isRootServer(address)) {
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, domain, QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
+      addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+      return LWResult::Result::Success;
+    }
+    if (address == ComboAddress("192.0.2.1:53")) {
+
+      if (domain == target) {
+        setLWResult(res, 0, true, false, false);
+        addRecordToLW(res, domain, QType::CNAME, cnameTarget.toString());
+        addRecordToLW(res, domain, QType::A, "192.1.1.1");
+        return LWResult::Result::Success;
+      }
+      if (domain == cnameTarget) {
+        setLWResult(res, 0, true, false, false);
+        addRecordToLW(res, domain, QType::A, "192.0.2.2");
+      }
+
+      return LWResult::Result::Success;
+    }
+
+    return LWResult::Result::Timeout;
+  });
+
+  vector<DNSRecord> ret;
+  int res = resolver->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2U);
+  BOOST_CHECK(ret[0].d_type == QType::CNAME);
+  BOOST_CHECK_EQUAL(ret[0].d_name, target);
+  BOOST_CHECK(ret[1].d_type == QType::A);
+  BOOST_CHECK_EQUAL(ret[1].d_name, cnameTarget);
+  BOOST_CHECK_EQUAL(ret[1].getContent()->getZoneRepresentation(), "192.0.2.2");
+}
+
 BOOST_AUTO_TEST_CASE(test_cname_nxdomain)
 {
   std::unique_ptr<SyncRes> sr;

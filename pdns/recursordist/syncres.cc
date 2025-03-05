@@ -4275,6 +4275,7 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
      to remain */
   std::unordered_set<DNSName> allowedAdditionals = {qname};
   std::unordered_set<DNSName> allowedAnswerNames = {qname};
+  std::unordered_set<DNSName> cnamesSeen;
   bool haveAnswers = false;
   bool isNXDomain = false;
   bool isNXQType = false;
@@ -4350,6 +4351,7 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
         if (auto cnametarget = getRR<CNAMERecordContent>(*rec); cnametarget != nullptr) {
           allowedAnswerNames.insert(cnametarget->getTarget());
         }
+        cnamesSeen.insert(rec->d_name);
       }
       else if (rec->d_type == QType::DNAME) {
         // We have checked the DNAME rec->d_name above, the actual answer will be synthesized in a later step
@@ -4417,10 +4419,10 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
     }
   } // end of first loop, handled answer and most of authority section
 
-  sanitizeRecordsPass2(prefix, lwr, qname, auth, allowedAnswerNames, allowedAdditionals, isNXDomain, isNXQType, skipvec, skipCount);
+  sanitizeRecordsPass2(prefix, lwr, qname, auth, allowedAnswerNames, allowedAdditionals, cnamesSeen, isNXDomain, isNXQType, skipvec, skipCount);
 }
 
-void SyncRes::sanitizeRecordsPass2(const std::string& prefix, LWResult& lwr, const DNSName& qname, const DNSName& auth, std::unordered_set<DNSName>& allowedAnswerNames, std::unordered_set<DNSName>& allowedAdditionals, bool isNXDomain, bool isNXQType, std::vector<bool>& skipvec, unsigned int& skipCount)
+void SyncRes::sanitizeRecordsPass2(const std::string& prefix, LWResult& lwr, const DNSName& qname, const DNSName& auth, std::unordered_set<DNSName>& allowedAnswerNames, std::unordered_set<DNSName>& allowedAdditionals, const std::unordered_set<DNSName>& cnamesSeen, bool isNXDomain, bool isNXQType, std::vector<bool>& skipvec, unsigned int& skipCount)
 {
   // Second loop, we know now if the answer was NxDomain or NoData
   unsigned int counter = 0;
@@ -4437,6 +4439,12 @@ void SyncRes::sanitizeRecordsPass2(const std::string& prefix, LWResult& lwr, con
     if (rec->d_place == DNSResourceRecord::ANSWER) {
       if (allowedAnswerNames.count(rec->d_name) == 0) {
         LOG(prefix << qname << ": Removing irrelevent record '" << rec->toString() << "' in the ANSWER section received from " << auth << endl);
+        skipvec[counter] = true;
+        ++skipCount;
+      }
+      // If we have a CNAME, skip other records types for that name except RRSIGs
+      if (cnamesSeen.find(rec->d_name) != cnamesSeen.end() && rec->d_type != QType::CNAME && rec->d_type != QType::RRSIG) {
+        LOG(prefix << qname << ": Removing irrelevant non-CNAME record '" << rec->toString() << "' in the ANSWER section received from " << auth << endl);
         skipvec[counter] = true;
         ++skipCount;
         continue;
@@ -5777,7 +5785,10 @@ bool SyncRes::processAnswer(unsigned int depth, const string& prefix, LWResult& 
 
   bool done = processRecords(prefix, qname, qtype, auth, lwr, sendRDQuery, ret, nsset, newtarget, newauth, realreferral, negindic, state, needWildcardProof, gatherWildcardProof, wildcardLabelsCount, *rcode, negIndicHasSignatures, depth);
 
-  if (done) {
+  // If we both have a CNAME and an answer, let the CNAME take precedence. This *should* not happen
+  // (because CNAMEs cannot co-exist with other records), but reality says otherwise. Other
+  // resolvers choose to follow the CNAME in this case as well.
+  if (done && newtarget.empty()) {
     LOG(prefix << qname << ": Status=got results, this level of recursion done" << endl);
     LOG(prefix << qname << ": Validation status is " << state << endl);
     return true;
