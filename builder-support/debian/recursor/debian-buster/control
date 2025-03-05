@@ -3,10 +3,9 @@ Section: net
 Maintainer: PowerDNS Autobuilder <powerdns.support@powerdns.com>
 Priority: optional
 Standards-Version: 4.5.1
-Build-Conflicts: libboost-context-dev [mips mipsel]
 Build-Depends: debhelper (>= 10),
                dh-autoreconf,
-               libboost-context-dev [amd64 arm64 armel armhf i386 ppc64el],
+               libboost-context-dev,
                libboost-dev,
                libboost-filesystem-dev,
                libboost-program-options-dev,
@@ -22,10 +21,11 @@ Build-Depends: debhelper (>= 10),
                libsodium-dev,
                libssl-dev,
                libsystemd-dev,
-               pkg-config,
+               pkgconf | pkg-config,
                protobuf-compiler,
                ragel,
-               systemd
+               systemd,
+               systemd-dev | systemd,
 Homepage: https://www.powerdns.com/
 Rules-Requires-Root: no
 
