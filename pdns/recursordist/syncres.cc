@@ -4444,7 +4444,7 @@ void SyncRes::sanitizeRecordsPass2(const std::string& prefix, LWResult& lwr, con
       }
       // If we have a CNAME, skip other records types for that name except RRSIGs
       if (cnamesSeen.find(rec->d_name) != cnamesSeen.end() && rec->d_type != QType::CNAME && rec->d_type != QType::RRSIG) {
-        LOG(prefix << qname << ": Removing irrelevent non-CNAME record '" << rec->toString() << "' in the ANSWER section received from " << auth << endl);
+        LOG(prefix << qname << ": Removing irrelevant non-CNAME record '" << rec->toString() << "' in the ANSWER section received from " << auth << endl);
         skipvec[counter] = true;
         ++skipCount;
         continue;
@@ -5785,8 +5785,8 @@ bool SyncRes::processAnswer(unsigned int depth, const string& prefix, LWResult& 
 
   bool done = processRecords(prefix, qname, qtype, auth, lwr, sendRDQuery, ret, nsset, newtarget, newauth, realreferral, negindic, state, needWildcardProof, gatherWildcardProof, wildcardLabelsCount, *rcode, negIndicHasSignatures, depth);
 
-  // If we both have a CNAME and a answer, let the CNAME take precedence. This *should* not happen
-  // (because CNAMEs cannot co-exist with other records), but it reality says otherwise. Other
+  // If we both have a CNAME and an answer, let the CNAME take precedence. This *should* not happen
+  // (because CNAMEs cannot co-exist with other records), but reality says otherwise. Other
   // resolvers choose to follow the CNAME in this case as well.
   if (done && newtarget.empty()) {
     LOG(prefix << qname << ": Status=got results, this level of recursion done" << endl);
