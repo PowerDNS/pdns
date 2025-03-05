@@ -1,0 +1,39 @@
+#!/bin/sh
+
+# The first invocation of pdnsutil is redirected to /dev/null to hide the
+# "local files have been created" message if using lmdb as backend.
+# All other pdnsutil invocation have the Ueberbackend destructor messages from
+# --enable-verbose-logging removed.
+# Invocations which will output zone contents are passed through sort(1), as
+# the order of entries for records having multiple entries is backend-specific
+# and not guaranteed to be in any particular order.
+$PDNSUTIL --config-dir=. --config-name=$backend \
+	create-zone bug.less \
+	> /dev/null 2>&1
+$PDNSUTIL --config-dir=. --config-name=$backend \
+	add-record bug.less cname CNAME host \
+	2>&1 | grep -v Ueber
+$PDNSUTIL --config-dir=. --config-name=$backend \
+	add-record bug.less host A 127.0.0.1 \
+	2>&1 | grep -v Ueber
+# Duplicate records should be omitted
+$PDNSUTIL --config-dir=. --config-name=$backend \
+	add-record bug.less host2 A 127.0.0.2 127.0.0.2 \
+	2>&1 | sort | grep -v Ueber
+# Can't add non-CNAME record to a CNAME record
+$PDNSUTIL --config-dir=. --config-name=$backend \
+	add-record bug.less cname A 127.0.0.1 \
+	2>&1 | grep -v Ueber
+# Can't add CNAME record if other records exist
+$PDNSUTIL --config-dir=. --config-name=$backend \
+	add-record bug.less host CNAME host2 \
+	2>&1 | grep -v Ueber
+# Adding existing record should ignore duplicates
+$PDNSUTIL --config-dir=. --config-name=$backend \
+	add-record bug.less host2 A 127.0.0.2 127.0.0.3 \
+	2>&1 | sort | grep -v Ueber
+
+# Display zone contents for final verification
+$PDNSUTIL --config-dir=. --config-name=$backend \
+	list-zone bug.less \
+	2>&1 | sort | grep -v Ueber

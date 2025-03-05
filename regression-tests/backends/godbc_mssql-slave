@@ -5,6 +5,7 @@
 		echo "drop table $table" | $ISQL -b
 	done
 	$ISQL < ../modules/godbcbackend/schema.mssql.sql
+	backend=godbc2
 	cat > pdns-godbc2.conf << __EOF__
 module-dir=./modules
 launch=godbc

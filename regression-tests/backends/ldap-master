@@ -16,6 +16,7 @@ __EOF__
 
 		$ZONE2LDAP --dnsttl=yes --basedn=$LDAPBASEDN --layout=$layout --named-conf=named.conf | ldapmodify -D $LDAPUSER -w $LDAPPASSWD -H $LDAPHOST -c > /dev/null || true
 
+		backend=ldap
 		cat > pdns-ldap.conf << __EOF__
 module-dir=$PDNS_BUILD_PATH/modules
 launch=ldap

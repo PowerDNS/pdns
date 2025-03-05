@@ -1,5 +1,6 @@
 case $context in
     bind)
+        backend=bind
         cat > pdns-bind.conf << __EOF__
 module-dir=$PDNS_BUILD_PATH/modules
 launch=bind
@@ -17,6 +18,7 @@ __EOF__
 
     bind-dnssec | bind-dnssec-nsec3 | bind-hybrid-nsec3 | bind-dnssec-nsec3-optout | bind-dnssec-nsec3-narrow)
         rm -f dnssec.sqlite3
+        backend=bind
         cat > pdns-bind.conf << __EOF__
 module-dir=$PDNS_BUILD_PATH/modules
 launch=bind
