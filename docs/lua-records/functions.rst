@@ -75,6 +75,7 @@ Record creation functions
   - ``timeout``: Maximum time in seconds that you allow the check to take (default 2)
   - ``interval``: Time interval between two checks, in seconds. Defaults to :ref:`setting-lua-health-checks-interval` if not specified.
   - ``minimumFailures``: The number of unsuccessful checks in a row required to mark the address as down. Defaults to 1 if not specified, i.e. report as down on the first unsuccessful check.
+  - ``failOnIncompleteCheck``: if set to ``true``, return SERVFAIL instead of applying ``backupSelector``, if none of the addresses have completed their background health check yet.
 
 
 .. function:: ifurlup(url, addresses[, options])
@@ -104,6 +105,7 @@ Record creation functions
   - ``useragent``: Set the HTTP "User-Agent" header in the requests. By default it is set to "PowerDNS Authoritative Server"
   - ``byteslimit``: Limit the maximum download size to ``byteslimit`` bytes (default 0 meaning no limit).
   - ``minimumFailures``: The number of unsuccessful checks in a row required to mark the address as down. Defaults to 1 if not specified, i.e. report as down on the first unsuccessful check.
+  - ``failOnIncompleteCheck``: if set to ``true``, return SERVFAIL instead of applying ``backupSelector``, if none of the addresses have completed their background health check yet.
 
   An example of a list of address sets:
 

@@ -112,6 +112,11 @@ usa-slowcheck IN   LUA    A   ( ";settings={{stringmatch='Programming in Lua', i
                                 "return ifurlup('http://www.lua.org:8080/', "
                                 "USAips, settings)                          ")
 
+usa-failincomplete IN LUA A   ( ";settings={{stringmatch='Programming in Lua', failOnIncompleteCheck='true'}} "
+                                "USAips={{'192.168.42.105'}}"
+                                "return ifurlup('http://www.lua.org:8080/', "
+                                "USAips, settings)                          ")
+
 mix.ifurlup  IN    LUA    A   ("ifurlup('http://www.other.org:8080/ping.json', "
                                "{{ '192.168.42.101', '{prefix}.101' }},        "
                                "{{ stringmatch='pong' }})                      ")
@@ -1376,6 +1381,30 @@ lua-health-checks-interval=5
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertAnyRRsetInAnswer(res, reachable_rrs)
         self.assertNoneRRsetInAnswer(res, unreachable_rrs)
+
+    def testIfurlupFailOnIncompleteCheck(self):
+        """
+        Simple ifurlup() test with failOnIncompleteCheck option set.
+        """
+        ips = ['192.168.42.105']
+        all_rrs = []
+        for ip in ips:
+            rr = dns.rrset.from_text('usa-failincomplete.example.org.', 0, dns.rdataclass.IN, 'A', ip)
+            all_rrs.append(rr)
+
+        query = dns.message.make_query('usa-failincomplete.example.org', 'A')
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
+
+        # The above request being sent at time T, the following events occur:
+        # T+00: SERVFAIL returned as no data available yet
+        # T+00: checker thread starts
+        # T+02: 192.168.42.105 found down and marked as such
+
+        time.sleep(3)
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertAnyRRsetInAnswer(res, all_rrs)
 
 class TestLuaRecordsExecLimit(BaseLuaTest):
      # This configuration is similar to BaseLuaTest, but the exec limit is
