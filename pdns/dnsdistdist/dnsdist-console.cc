@@ -529,6 +529,7 @@ static const std::vector<dnsdist::console::ConsoleKeyword> s_consoleKeywords{
   {"dynBlockRulesGroup", true, "", "return a new DynBlockRulesGroup object"},
   {"EDNSVersionRule", true, "version", "matches queries with the specified EDNS version"},
   {"EDNSOptionRule", true, "optcode", "matches queries with the specified EDNS0 option present"},
+  {"enableLuaConfiguration", true, "", "Enable using Lua configuration directives along with a YAML configuration file. It is strongly advised not to use this directive unless absolutely necessary, and to prefer doing all the configuration in either Lua or YAML"},
   {"ERCodeAction", true, "ercode", "Reply immediately by turning the query into a response with the specified EDNS extended rcode"},
   {"ERCodeRule", true, "rcode", "matches responses with the specified extended rcode (EDNS0)"},
   {"exceedNXDOMAINs", true, "rate, seconds", "get set of addresses that exceed `rate` NXDOMAIN/s over `seconds` seconds"},
