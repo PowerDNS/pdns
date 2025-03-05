@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: powerdns-clients-dist
+  namespace: powerdns-clients-<ENV_ROLE>
+  labels:
+    app: powerdns-clients-dist
+  annotations:
+    metallb.universe.tf/address-pool: default-powerdns-clients
+    metallb.universe.tf/allow-shared-ip: key-to-share-a.b.c.d
+    metallb.universe.tf/loadBalancerIPs: xxx.xxx.xxx.xxx
+spec:
+  ports:
+    - name: pwds-as-udp
+      protocol: UDP
+      port: 53
+      targetPort: 5353
+    - name: pwds-as-tcp
+      protocol: TCP
+      port: 53
+      targetPort: 5353
+  selector:
+    app: powerdns-clients-dist
+  type: LoadBalancer
+  sessionAffinity: None
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: powerdns-clients-dist-gui
+  namespace: powerdns-clients-<ENV_ROLE>
+  labels:
+    app: powerdns-clients-dist
+spec:
+  ports:
+    - name: pwds-dist-web
+      protocol: TCP
+      port: 8083
+      targetPort: 8083
+  selector:
+    app: powerdns-clients-dist
+  type: ClusterIP
+  sessionAffinity: None
+
+
