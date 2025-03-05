@@ -1202,6 +1202,9 @@ class TestLuaRecords(BaseLuaTest):
 
 
 class TestLuaRecordsShared(TestLuaRecords):
+    # The lua-records-exec-limit parameter needs to be increased from the
+    # default value of 1000, for the testGeoIPQueryAttribute test would hit
+    # the limit.
     _config_template = """
 geoip-database-files=../modules/geoipbackend/regression-tests/GeoLiteCity.mmdb
 edns-subnet-processing=yes
@@ -1210,6 +1213,7 @@ any-to-tcp=no
 enable-lua-records=shared
 lua-records-insert-whitespace=yes
 lua-health-checks-interval=1
+lua-records-exec-limit=1500
 """
 
     def testCounter(self):

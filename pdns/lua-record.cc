@@ -1590,13 +1590,13 @@ static std::unordered_map<std::string, int> lua_variables{
 
 static void setupLuaRecords(LuaContext& lua)
 {
-  if (g_luaRecordExecLimit > 0) {
-    lua.executeCode(boost::str(boost::format("debug.sethook(report, '', %d)") % g_luaRecordExecLimit));
-  }
-
   lua.writeFunction("report", [](const string& event, const boost::optional<string>& line) -> void {
       lua_report(event, line);
     });
+
+  if (g_luaRecordExecLimit > 0) {
+    lua.executeCode(boost::str(boost::format("debug.sethook(report, '', %d)") % g_luaRecordExecLimit));
+  }
 
   lua.writeFunction("latlon", []() -> string {
       return lua_latlon();
