@@ -1454,7 +1454,7 @@ Wrapper<M>::Wrapper(const M& arg) :
 }
 
 template <typename M>
-Wrapper<M>::~Wrapper<M>() = default;
+Wrapper<M>::~Wrapper() = default;
 
 template <typename M>
 [[nodiscard]] const M& Wrapper<M>::get() const
