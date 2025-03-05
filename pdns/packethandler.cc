@@ -563,7 +563,7 @@ void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPack
                 lookup.emplace(content);
               }
               dzr.dr.d_place=DNSResourceRecord::ADDITIONAL;
-              r->addRecord(std::move(dzr));
+              extraRecords.emplace_back(std::move(dzr));
             }
             content.clear();
           }
