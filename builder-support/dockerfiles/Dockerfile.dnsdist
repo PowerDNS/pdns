@@ -13,6 +13,6 @@ ARG BUILDER_VERSION
 
 RUN cd /dnsdist/pdns/dnsdistdist && \
     meson setup build && \
-    meson dist -C build
+    meson dist -C build --no-tests
 WORKDIR /dnsdist/pdns/dnsdistdist
 RUN cp build/meson-dist/dnsdist-${BUILDER_VERSION}.tar.xz /sdist/
