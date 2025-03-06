@@ -18,10 +18,16 @@ if [ $(uname) = Darwin ]; then
   SOEXT=dylib
 fi
 LIBDIR="${INSTALL_PREFIX}/lib"
-if [ -d "${INSTALL_PREFIX}/lib64" ]; then
-  # RHEL and co
-  LIBDIR="${INSTALL_PREFIX}/lib64"
+
+if [ $(uname) != Darwin ]; then
+  for tentative in "${INSTALL_PREFIX}/lib/x86_64-linux-gnu" "${INSTALL_PREFIX}/lib/aarch64-linux-gnu" "${INSTALL_PREFIX}/lib64" "${INSTALL_PREFIX}/lib"; do
+    if [ -f "${tentative}/libc.so" ]; then
+      LIBDIR="${tentative}"
+      break
+    fi
+  done
 fi
+echo "LIBDIR is ${LIBDIR}"
 
 cd /tmp
 echo $0: Downloading ${QUICHE_TARBALL}
