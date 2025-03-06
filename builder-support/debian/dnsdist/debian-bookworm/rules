@@ -42,13 +42,10 @@ override_dh_auto_clean:
 #LDFLAGS += -latomic
 # We need clang (LLVM) to link the Rust static library and the C++ code with LTO enabled
 # build-id SHA1 prevents an issue with the debug symbols ("export: `-Wl,--build-id=sha1': not a valid identifier")
-# and the --no-as-needed -ldl an issue with the dlsym not being found ("ld.lld: error: undefined symbol: dlsym eferenced by weak.rs:142 (library/std/src/sys/pal/unix/weak.rs:142) [...] in archive ./dnsdist-rust-lib/rust/libdnsdist_rust.a)
-# LDFLAGS += -fuse-ld=lld -Wl,--build-id=sha1 -Wl,--no-as-needed -ldl
-# CC=clang
-# CXX=clang++
+# and the -ldl an issue with the dlsym not being found ("ld.lld: error: undefined symbol: dlsym eferenced by weak.rs:142 (library/std/src/sys/pal/unix/weak.rs:142) [...] in archive ./dnsdist-rust-lib/rust/libdnsdist_rust.a)
 
 override_dh_auto_configure:
-	LDFLAGS="-latomic -fuse-ld=lld -Wl,--build-id=sha1 -Wl,--no-as-needed -ldl" \
+	LDFLAGS="-latomic -fuse-ld=lld -Wl,--build-id=sha1 -ldl" \
 	CC=clang \
 	CXX=clang++ \
 	PKG_CONFIG_PATH=/opt/lib/pkgconfig dh_auto_configure -- \
