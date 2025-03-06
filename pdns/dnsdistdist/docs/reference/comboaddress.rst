@@ -12,6 +12,14 @@ ComboAddresses can be IPv4 or IPv6, and unless you want to know, you don't need 
 
   :param string address: The IP address, with optional port, to represent.
 
+.. function:: newCAFromRaw(rawaddress[, port]) -> ComboAddress
+
+  Returns a new :class:`ComboAddress` object based on the 4- or 16-octet string.
+  For example, ``newCAFromRaw('ABCD')`` makes a ``ComboAddress`` object holding the IP ``65.66.67.68``, because those are the ASCII values for those four letters.
+
+  :param string rawaddress: The IPv4 of IPv6 address as a 4/16 octet string
+  :param int port: The optional port number
+
 .. class:: ComboAddress
 
   A ``ComboAddress`` represents an IP address with possibly a port number.
@@ -55,6 +63,10 @@ ComboAddresses can be IPv4 or IPv6, and unless you want to know, you don't need 
                    ComboAddress:toString() -> string
 
     Returns in human-friendly format
+
+  .. method:: ComboAddress:getRaw() -> string
+
+    Returns in raw bytes format
 
   .. method:: ComboAddress:tostringWithPort() -> string
                    ComboAddress:toStringWithPort() -> string
