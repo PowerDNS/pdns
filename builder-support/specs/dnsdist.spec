@@ -115,7 +115,7 @@ export PKG_CONFIG_PATH=/usr/lib/pkgconfig:/opt/lib64/pkgconfig
 %install
 %meson_install
 install -d %{buildroot}/%{_sysconfdir}/dnsdist
-install -Dm644 /usr/lib/libdnsdist-quiche.so %{buildroot}/%{_libdir}/libdnsdist-quiche.so
+install -Dm644 %{_libdir}/libdnsdist-quiche.so %{buildroot}/%{_libdir}/libdnsdist-quiche.so
 %{__mv} %{buildroot}%{_sysconfdir}/dnsdist/dnsdist.conf-dist %{buildroot}%{_sysconfdir}/dnsdist/dnsdist.conf
 chmod 0640 %{buildroot}/%{_sysconfdir}/dnsdist/dnsdist.conf
 
