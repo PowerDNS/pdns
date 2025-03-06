@@ -1219,11 +1219,12 @@ def ci_build_and_install_quiche(c, repo):
 
     # cannot use c.sudo() inside a cd() context, see https://github.com/pyinvoke/invoke/issues/687
     for tentative in ['lib/x86_64-linux-gnu', 'lib/aarch64-linux-gnu', 'lib64', 'lib']:
-        quiche_lib = f'/usr/{tentative}/libdnsdist-quiche.so'
+        tentative_libdir = f'/usr/{tentative}'
+        quiche_lib = f'{tentative_libdir}/libdnsdist-quiche.so'
         if not os.path.isfile(quiche_lib):
             continue
         c.run(f'sudo mv {quiche_lib} /usr/lib/libquiche.so')
-        c.run("sudo sed -i 's,^Libs:.*,Libs: -lquiche,g' /usr/lib/pkgconfig/quiche.pc")
+        c.run(f"sudo sed -i 's,^Libs:.*,Libs: -lquiche,g' {tentative_libdir}/pkgconfig/quiche.pc")
         c.run('mkdir -p /opt/dnsdist/lib')
         c.run('cp /usr/lib/libquiche.so /opt/dnsdist/lib/libquiche.so')
         break
