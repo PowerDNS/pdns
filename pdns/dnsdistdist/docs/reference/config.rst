@@ -52,6 +52,7 @@ Global configuration
 
   Enable using Lua configuration directives along with a YAML configuration file. By default, when a YAML configuration file is used, any Lua configuration file used along the YAML configuration should only contain functions, and ideally even those should be defined either inline in the YAML file or in separate files included from the YAML configuration, for clarity.
   It is strongly advised not to use this directive unless absolutely necessary, and to prefer doing all the configuration in either Lua or YAML but to not mix them.
+  Note that Lua directives that can be used at runtime are always available via the :doc:`../guides/console`, regardless of whether they are enabled during configuration.
 
 .. function:: includeDirectory(path)
 
