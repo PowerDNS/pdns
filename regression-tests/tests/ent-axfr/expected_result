@@ -16,7 +16,8 @@ enam.test.com.	3600	IN	NSEC	ensm.test.com. NAPTR RRSIG NSEC
 ensm.test.com.	3600	IN	NSEC	enum.test.com. NAPTR RRSIG NSEC
 enum.test.com.	3600	IN	NSEC	hightxt.test.com. NAPTR RRSIG NSEC
 hightxt.test.com.	3600	IN	NSEC	interrupted-rrset.test.com. TXT RRSIG NSEC SPF
-interrupted-rrset.test.com.	3600	IN	NSEC	ns1.test.com. A TXT RRSIG NSEC
+interrupted-rrset.test.com.	3600	IN	NSEC	naptr.test.com. A TXT RRSIG NSEC
+naptr.test.com.	3600	IN	NSEC	ns1.test.com. NAPTR RRSIG NSEC
 ns1.test.com.	3600	IN	NSEC	ns2.test.com. A RRSIG NSEC
 ns2.test.com.	3600	IN	NSEC	10.order.test.com. A RRSIG NSEC
 server1.test.com.	3600	IN	NSEC	*.test.test.com. A RP RRSIG NSEC
