@@ -1,5 +1,7 @@
 import os
 import time
+import json
+import requests
 from invoke import task
 from invoke.exceptions import Failure, UnexpectedExit
 
@@ -1254,6 +1256,179 @@ def ci_build_and_install_quiche(c, repo):
         c.run('mkdir -p /opt/dnsdist/lib')
         c.run('cp /usr/lib/libquiche.so /opt/dnsdist/lib/libquiche.so')
         break
+
+pulp_cmd_prefix = " ".join([
+    "pulp",
+    f"--base-url {os.getenv('PULP_URL', '')}",
+    f"--username {os.getenv('PULP_CI_USERNAME', '')}",
+    f"--password {os.getenv('PULP_CI_PASSWORD', '')}"
+])
+
+def run_pulp_cmd(c, cmd):
+    res = c.run(f'{pulp_cmd_prefix} {cmd}')
+    if res.exited != 0:
+        raise UnexpectedExit(res)
+    return res.stdout
+
+@task
+def validate_pulp_credentials(c):
+    # Basic pulp command that require credentials to succeed
+    repo_name = os.getenv("PULP_REPO_NAME", '')
+    cmd = f'file repository show --repository {repo_name}'
+    run_pulp_cmd(c, cmd)
+
+@task
+def pulp_upload_file_packages_by_folder(c, source):
+    repo_name = os.getenv("PULP_REPO_NAME", '')
+    for root, dirs, files in os.walk(source):
+        for path in files:
+            file = os.path.join(root, path).split('/',1)[1]
+            # file repositories have been configured with autopublish set to true
+            cmd = f'file content upload --repository {repo_name} --file {source}/{file} --relative-path {file}'
+            run_pulp_cmd(c, cmd)
+
+@task
+def pulp_create_rpm_publication(c, product, list_os_rel, list_arch):
+    rpm_distros = ["centos", "el"]
+    for os_rel in json.loads(list_os_rel):
+        if not "el-" in os_rel:
+            break
+        release = os_rel.split('-')[1]
+        for arch in json.loads(list_arch):
+            for distro in rpm_distros:
+                repo_name = f"repo-{distro}-{release}-{arch}-{product}"
+                cmd = f'rpm publication create --repository {repo_name} --checksum-type sha256'
+                run_pulp_cmd(c, cmd)
+
+@task
+def pulp_create_deb_publication(c):
+    deb_distros = ["debian", "ubuntu"]
+    for distro in deb_distros:
+        repo_name = f"repo-{distro}"
+        cmd = f'deb publication create --repository {repo_name}'
+        run_pulp_cmd(c, cmd)
+
+@task
+def pulp_upload_rpm_packages_by_folder(c, source, product):
+    rpm_distros = ["centos", "el"]
+    builds = os.listdir(source)
+
+    for build_folder in builds:
+        release = build_folder.split('.')[0].split('-')[1]
+        arch = build_folder.split('.')[1]
+        for distro in rpm_distros:
+            repo_name = f"repo-{distro}-{release}-{arch}-{product}"
+            for root, dirs, files in os.walk(f"{source}/{build_folder}"):
+                for path in files:
+                    file = os.path.join(root, path).split('/',1)[1]
+                    # Set chunk size to 500MB to avoid creating an "upload" instead of a file. Required for signing RPMs.
+                    cmd = f'rpm content -t package upload --file {source}/{file} --repository {repo_name} --no-publish --chunk-size 500MB'
+                    run_pulp_cmd(c, cmd)
+
+def get_pulp_repository_href(c, repo_name, repo_type):
+    cmd = f"{repo_type} repository show --name {repo_name} | jq -r '.pulp_href' | tr -d '\n'"
+    href = run_pulp_cmd(c, cmd)
+    return href
+
+def is_pulp_task_completed(c, task_href):
+    elapsed_time = 0
+    check_interval = 5
+    max_wait_time = 60
+
+    while elapsed_time < max_wait_time:
+        cmd = f"task show --href {task_href} | jq -r .state | tr -d '\n'"
+        task_state = run_pulp_cmd(c, cmd)
+        if task_state == "completed":
+            return True
+        time.sleep(check_interval)
+        elapsed_time += check_interval
+
+    return False
+
+@task
+def pulp_upload_deb_packages_by_folder(c, source, product):
+    builds = os.listdir(source)
+    upload_url = os.getenv('PULP_URL', '') + "/pulp/api/v3/content/deb/packages/"
+    headers = {"Content-Type": "application/json"}
+    auth = requests.auth.HTTPBasicAuth(os.getenv("PULP_CI_USERNAME", ""), os.getenv("PULP_CI_PASSWORD", ""))
+
+    for build_folder in builds:
+        distro = build_folder.split('-')[0]
+        distribution = f"{build_folder.split('-')[1]}-{product}"
+        repo_name = f"repo-{distro}"
+        repository_href = get_pulp_repository_href(c, repo_name, "deb")
+
+        for root, dirs, files in os.walk(source):
+            for path in files:
+                file = os.path.join(root, path).split('/',1)[1]
+                cmd = f"artifact upload --file {source}/{file} | jq -r '.pulp_href' | tr -d '\n'"
+                artifact_href = run_pulp_cmd(c, cmd)
+
+                package_data = {
+                    "repository": repository_href,
+                    "distribution": distribution,
+                    "component": "main",
+                    "artifact": artifact_href
+                }
+
+                try:
+                    res = requests.post(upload_url, auth=auth, headers=headers, json=package_data)
+                    res.raise_for_status()
+                except requests.exceptions.HTTPError as e:
+                    raise Failure(f'Error creating DEB upload: {e}')
+
+                task_href = res.json().get('task')
+                if not is_pulp_task_completed(c, task_href):
+                    raise Failure('Error uploading DEB packages into Pulp')
+
+@task
+def test_install_package(c, product_name, distro_release, content_url, gpgkey_url, package_name, package_version):
+    distro, release = distro_release.split('-')[:2]
+    repo_domain = content_url.split('/')[2]
+    is_rpm = True if distro == 'centos' or distro == 'el' else False
+
+    if is_rpm:
+        image_name = 'oraclelinux'
+    else:
+        image_name = distro
+        # pdns package is called pdns-server for debian/ubuntu
+        package_name = 'pdns-server' if package_name == 'pdns' else package_name
+
+    # version of packages from master or not releases have a different order than the package name
+    parts = package_version.split('.')
+    if len(parts) > 4:
+        if distro == 'el':
+            if 'master' in package_version:
+                package_version = f"{'.'.join(parts[:3])}.{parts[4]}.{parts[3]}.{'.'.join(parts[5:])}"
+            else:
+                package_version = f"{'.'.join(parts[:3])}-{parts[4]}.{parts[3]}.{'.'.join(parts[5:])}"
+        else:
+            package_version = f"{'.'.join(parts[:3])}+{parts[4]}.{parts[3]}.{'.'.join(parts[5:])}"
+
+    # Add wildcards to work with and without releases
+    parts = package_version.split('-')
+    if len(parts) > 1:
+        package_version = f"{parts[0]}*{parts[1]}" if is_rpm else f"{parts[0]}~{parts[1]}"
+
+    dockerfile_rpm = f'''
+FROM {image_name}:{release}
+RUN curl -L {content_url}/repo-files/{distro}-{product_name}.repo -o /etc/yum.repos.d/{distro}-{product_name}.repo
+RUN yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-{release}.noarch.rpm
+RUN yum install -y {package_name}-{package_version}*
+'''
+    dockerfile_deb = f'''
+FROM {image_name}:{release}
+RUN apt update && apt install -y curl libluajit-5.1-dev adduser
+RUN install -d /etc/apt/keyrings && curl -L {gpgkey_url} -o /etc/apt/keyrings/{product_name}-pub.asc
+RUN echo "deb [signed-by=/etc/apt/keyrings/{product_name}-pub.asc] {content_url}/{distro} {release}-{product_name} main" | tee /etc/apt/sources.list.d/pdns.list
+RUN bash -c 'echo -e "Package: auth*\\nPin: origin {repo_domain}\\nPin-Priority: 600" | tee /etc/apt/preferences.d/{product_name}'
+RUN apt-get update && apt-get install -y {package_name}={package_version}*
+'''
+    dockerfile = dockerfile_rpm if is_rpm else dockerfile_deb
+    with open('/tmp/Dockerfile', "w") as f:
+        f.write(dockerfile)
+
+    c.run(f'docker build . -t test-build-{product_name}-{distro_release}:latest -f /tmp/Dockerfile')
 
 # this is run always
 def setup():
