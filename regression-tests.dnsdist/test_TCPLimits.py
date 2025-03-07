@@ -21,11 +21,13 @@ class TestTCPLimits(DNSDistTest):
     _maxTCPConnsPerClient = 3
     _maxTCPConnDuration = 5
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
-    setTCPRecvTimeout(%s)
-    setMaxTCPQueriesPerConnection(%s)
-    setMaxTCPConnectionsPerClient(%s)
-    setMaxTCPConnectionDuration(%s)
+    newServer{address="127.0.0.1:%d"}
+    setTCPRecvTimeout(%d)
+    setMaxTCPQueriesPerConnection(%d)
+    setMaxTCPConnectionsPerClient(%d)
+    setMaxTCPConnectionDuration(%d)
+    -- disable "near limits" otherwise our tests are broken because connections are forcibly closed
+    setTCPConnectionsOverloadThreshold(0)
     """
     _config_params = ['_testServerPort', '_tcpIdleTimeout', '_maxTCPQueriesPerConn', '_maxTCPConnsPerClient', '_maxTCPConnDuration']
     _verboseMode = True
@@ -141,8 +143,10 @@ class TestTCPFrontendLimits(DNSDistTest):
     _tcpIdleTimeout = 2
     _maxTCPConnsPerFrontend = 10
     _config_template = """
-    newServer{address="127.0.0.1:%s"}
+    newServer{address="127.0.0.1:%d"}
     setLocal("%s:%d", {maxConcurrentTCPConnections=%d})
+    -- disable "near limits" otherwise our tests are broken because connections are forcibly closed
+    setTCPConnectionsOverloadThreshold(0)
     """
     _config_params = ['_testServerPort', '_dnsDistListeningAddr', '_dnsDistPort', '_maxTCPConnsPerFrontend']
     _verboseMode = True
