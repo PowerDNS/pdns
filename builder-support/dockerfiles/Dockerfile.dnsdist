@@ -12,7 +12,6 @@ RUN mkdir /sdist
 ARG BUILDER_VERSION
 
 RUN cd /dnsdist/pdns/dnsdistdist && \
-    meson setup build && \
-    meson dist -C build --no-tests
-WORKDIR /dnsdist/pdns/dnsdistdist
-RUN cp build/meson-dist/dnsdist-${BUILDER_VERSION}.tar.xz /sdist/
+    meson setup /tmp/dnsdist-meson-dist-build && \
+    meson dist -C /tmp/dnsdist-meson-dist-build --no-tests
+RUN cp /tmp/dnsdist-meson-dist-build/meson-dist/dnsdist-${BUILDER_VERSION}.tar.xz /sdist/
