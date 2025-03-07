@@ -288,9 +288,6 @@ extern boost::container::flat_set<uint16_t> g_avoidUdpSourcePorts;
 /* without reuseport, all listeners share the same sockets */
 typedef vector<pair<int, std::function<void(int, boost::any&)>>> deferredAdd_t;
 
-typedef map<ComboAddress, uint32_t, ComboAddress::addressOnlyLessThan> tcpClientCounts_t;
-extern thread_local std::unique_ptr<tcpClientCounts_t> t_tcpClientCounts;
-
 inline MT_t* getMT()
 {
   return g_multiTasker ? g_multiTasker.get() : nullptr;

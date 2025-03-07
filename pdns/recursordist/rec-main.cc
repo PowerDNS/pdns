@@ -2872,7 +2872,6 @@ static void recursorThread()
       t_proxyProtocolACL = g_initialProxyProtocolACL;
       t_proxyProtocolExceptions = g_initialProxyProtocolExceptions;
       t_udpclientsocks = std::make_unique<UDPClientSocks>();
-      t_tcpClientCounts = std::make_unique<tcpClientCounts_t>();
       if (g_proxyMapping) {
         t_proxyMapping = make_unique<ProxyMapping>(*g_proxyMapping);
       }
