@@ -546,11 +546,11 @@ private:
 class RE2Rule : public DNSRule
 {
 public:
-  RE2Rule(const std::string& re2)
+  RE2Rule(const std::string& /* re2 */)
   {
     throw std::runtime_error("RE2 support is disabled");
   }
-  bool matches(const DNSQuestion* dq) const override
+  bool matches(const DNSQuestion* /* dq */) const override
   {
     return false;
   }

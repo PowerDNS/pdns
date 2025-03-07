@@ -23,7 +23,7 @@
 #include "dnsdist-kvs.hh"
 #include "dnsdist-lua.hh"
 
-void setupLuaBindingsKVS(LuaContext& luaCtx, bool client)
+void setupLuaBindingsKVS([[maybe_unused]] LuaContext& luaCtx, [[maybe_unused]] bool client)
 {
 #ifdef HAVE_LMDB
   luaCtx.writeFunction("newLMDBKVStore", [client](const std::string& fname, const std::string& dbName, boost::optional<bool> noLock) {

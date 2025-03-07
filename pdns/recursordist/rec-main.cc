@@ -1388,7 +1388,7 @@ void* pleaseSupplantAllowNotifyFor(std::shared_ptr<notifyset_t> allowNotifyFor)
   return nullptr;
 }
 
-void* pleaseSupplantProxyProtocolSettings(std::shared_ptr<NetmaskGroup> acl, std::shared_ptr<std::set<ComboAddress>> except)
+static void* pleaseSupplantProxyProtocolSettings(std::shared_ptr<NetmaskGroup> acl, std::shared_ptr<std::set<ComboAddress>> except)
 {
   t_proxyProtocolACL = std::move(acl);
   t_proxyProtocolExceptions = std::move(except);
