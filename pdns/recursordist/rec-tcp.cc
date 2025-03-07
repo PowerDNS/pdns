@@ -68,7 +68,8 @@ bool g_anyToTcp;
 
 uint16_t TCPConnection::s_maxInFlight;
 
-thread_local std::unique_ptr<tcpClientCounts_t> t_tcpClientCounts;
+using tcpClientCounts_t = map<ComboAddress, uint32_t, ComboAddress::addressOnlyLessThan>;
+static thread_local std::unique_ptr<tcpClientCounts_t> t_tcpClientCounts = std::make_unique<tcpClientCounts_t>();
 
 static void handleRunningTCPQuestion(int fileDesc, FDMultiplexer::funcparam_t& var);
 
