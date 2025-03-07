@@ -4,6 +4,7 @@ import dns
 import selectors
 import socket
 import ssl
+import requests
 import struct
 import sys
 import threading
@@ -132,16 +133,42 @@ class TestProxyProtocol(ProxyProtocolTest):
     _config_template = """
     newServer{address="127.0.0.1:%d", useProxyProtocol=true}
 
+    webserver("127.0.0.1:%d")
+    setWebserverConfig{password="%s", apiKey="%s"}
+
     function addValues(dq)
       local values = { [0]="foo", [42]="bar" }
       dq:setProxyProtocolValues(values)
       return DNSAction.None
     end
 
+    local counter = 1
+    function addRandomValue(dq)
+      dq:addProxyProtocolValue(0xEE, tostring(counter))
+      counter = counter + 1
+      return DNSAction.None
+    end
+
     addAction("values-lua.proxy.tests.powerdns.com.", LuaAction(addValues))
     addAction("values-action.proxy.tests.powerdns.com.", SetProxyProtocolValuesAction({ ["1"]="dnsdist", ["255"]="proxy-protocol"}))
+    addAction("random-values.proxy.tests.powerdns.com.", LuaAction(addRandomValue))
     """
-    _config_params = ['_proxyResponderPort']
+    _webServerPort = pickAvailablePort()
+    _webServerBasicAuthPassword = 'secret'
+    _webServerBasicAuthPasswordHashed = '$scrypt$ln=10,p=1,r=8$6DKLnvUYEeXWh3JNOd3iwg==$kSrhdHaRbZ7R74q3lGBqO1xetgxRxhmWzYJ2Qvfm7JM='
+    _webServerAPIKey = 'apisecret'
+    _webServerAPIKeyHashed = '$scrypt$ln=10,p=1,r=8$9v8JxDfzQVyTpBkTbkUqYg==$bDQzAOHeK1G9UvTPypNhrX48w974ZXbFPtRKS34+aso='
+    _config_params = ['_proxyResponderPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
+
+    def getServerStats(self):
+      headers = {'x-api-key': self._webServerAPIKey}
+      url = 'http://127.0.0.1:' + str(self._webServerPort) + '/api/v1/servers/localhost'
+      r = requests.get(url, headers=headers, timeout=1)
+      self.assertTrue(r)
+      self.assertEqual(r.status_code, 200)
+      self.assertTrue(r.json())
+      content = r.json()
+      return content['servers']
 
     def testProxyUDP(self):
         """
@@ -346,6 +373,9 @@ class TestProxyProtocol(ProxyProtocolTest):
       query = dns.message.make_query(name, 'A', 'IN')
       response = dns.message.make_response(query)
 
+      new_conn_before = self.getServerStats()[0]['tcpNewConnections']
+      reused_conn_before = self.getServerStats()[0]['tcpReusedConnections']
+
       conn = self.openTCPConnection(2.0)
       data = query.to_wire()
 
@@ -369,6 +399,58 @@ class TestProxyProtocol(ProxyProtocolTest):
         self.assertEqual(receivedQuery, query)
         self.assertEqual(receivedResponse, response)
         self.checkMessageProxyProtocol(receivedProxyPayload, '127.0.0.1', '127.0.0.1', True, [])
+
+      # check:
+      # - only one concurrent connection to the backend
+      # - no more than 1 new connection to the backend was opened
+      server = self.getServerStats()[0]
+      self.assertEqual(server['tcpNewConnections'], new_conn_before + 1)
+      self.assertEqual(server['tcpReusedConnections'], reused_conn_before + 9)
+      self.assertEqual(server['tcpMaxConcurrentConnections'], 1)
+
+    def testProxyTCPSeveralQueriesWithRandomTLVOnSameConnection(self):
+      """
+        Proxy Protocol: Several queries with random TLV on the same TCP connection
+      """
+      name = 'random-values.proxy.tests.powerdns.com.'
+      query = dns.message.make_query(name, 'A', 'IN')
+      response = dns.message.make_response(query)
+
+      new_conn_before = self.getServerStats()[0]['tcpNewConnections']
+      reused_conn_before = self.getServerStats()[0]['tcpReusedConnections']
+
+      conn = self.openTCPConnection(2.0)
+      data = query.to_wire()
+
+      number_of_queries = 10
+      for idx in range(number_of_queries):
+        toProxyQueue.put(response, True, 2.0)
+        self.sendTCPQueryOverConnection(conn, data, rawQuery=True)
+        receivedResponse = None
+        try:
+          receivedResponse = self.recvTCPResponseOverConnection(conn)
+        except socket.timeout:
+          print('timeout')
+
+        (receivedProxyPayload, receivedDNSData) = fromProxyQueue.get(True, 2.0)
+        self.assertTrue(receivedProxyPayload)
+        self.assertTrue(receivedDNSData)
+        self.assertTrue(receivedResponse)
+
+        receivedQuery = dns.message.from_wire(receivedDNSData)
+        receivedQuery.id = query.id
+        receivedResponse.id = response.id
+        self.assertEqual(receivedQuery, query)
+        self.assertEqual(receivedResponse, response)
+        self.checkMessageProxyProtocol(receivedProxyPayload, '127.0.0.1', '127.0.0.1', True, [[238, str(idx + 1).encode('UTF-8')]])
+
+      # check:
+      # - only one concurrent connection to the backend
+      # - no more than number_of_queries connections to the backend were opened
+      server = self.getServerStats()[0]
+      self.assertEqual(server['tcpNewConnections'], new_conn_before + number_of_queries)
+      self.assertEqual(server['tcpReusedConnections'], reused_conn_before)
+      self.assertEqual(server['tcpMaxConcurrentConnections'], 1)
 
 class TestProxyProtocolIncoming(ProxyProtocolTest):
     """
