@@ -51,7 +51,7 @@ override_dh_auto_configure:
 	PKG_CONFIG_PATH=/opt/lib/pkgconfig dh_auto_configure -- \
 	  --sysconfdir=/etc/dnsdist \
 	  -Dunit-tests=true \
-          -Db_lto=true \
+	  -Db_lto=true \
 	  -Db_lto_mode=thin \
 	  -Db_pie=true \
 	  -Ddns-over-https=true \
