@@ -113,6 +113,7 @@ static std::pair<std::shared_ptr<TCPConnectionToBackend>, bool> getOwnedDownstre
       if (conn->matchesTLVs(tlvs)) {
         DEBUGLOG("Got one owned connection accepting more for " << backend->getName());
         conn->setReused();
+        ++backend->tcpReusedConnections;
         return {conn, tlvsMismatch};
       }
       DEBUGLOG("Found one connection to " << backend->getName() << " but with different TLV values");
@@ -129,6 +130,10 @@ std::shared_ptr<TCPConnectionToBackend> IncomingTCPConnectionState::getDownstrea
   auto [downstream, tlvsMismatch] = getOwnedDownstreamConnection(d_ownedConnectionsToBackend, backend, tlvs);
 
   if (!downstream) {
+    if (backend->d_config.useProxyProtocol && tlvsMismatch) {
+      clearOwnedDownstreamConnections(backend);
+    }
+
     /* we don't have a connection to this backend owned yet, let's get one (it might not be a fresh one, though) */
     downstream = t_downstreamTCPConnectionsManager.getConnectionToDownstream(d_threadData.mplexer, backend, now, std::string());
     // if we had an existing connection but the TLVs are different, they are likely unique per query so do not bother keeping the connection
@@ -307,6 +312,11 @@ void IncomingTCPConnectionState::registerOwnedDownstreamConnection(std::shared_p
   if (queue.size() > maxCachedOutgoingConnections) {
     queue.pop_back();
   }
+}
+
+void IncomingTCPConnectionState::clearOwnedDownstreamConnections(const std::shared_ptr<DownstreamState>& downstream)
+{
+  d_ownedConnectionsToBackend.erase(downstream);
 }
 
 /* called when the buffer has been set and the rules have been processed, and only from handleIO (sometimes indirectly via handleQuery) */
