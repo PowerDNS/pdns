@@ -162,7 +162,8 @@ public:
   }
 
   //! Bind the socket to a specified endpoint
-  void bind(const ComboAddress& local, bool reuseaddr = true) const
+  template <typename T>
+  void bind(const T& local, bool reuseaddr = true) const
   {
     int tmp = 1;
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
