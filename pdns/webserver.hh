@@ -179,7 +179,7 @@ public:
   }
   virtual ~Server() = default;
 
-  ComboAddress d_local;
+  SockaddrWrapper d_local;
 
   std::shared_ptr<Socket> accept() {
     return std::shared_ptr<Socket>(d_server_socket.accept());
