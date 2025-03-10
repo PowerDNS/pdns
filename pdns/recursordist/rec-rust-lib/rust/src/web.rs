@@ -291,7 +291,7 @@ fn file(
         rustmisc::log(
             request.logger,
             rustweb::Priority::Debug,
-            "not found",
+            "Not found",
             &vec![
                 rustmisc::KeyValue {
                     key: "method".to_string(),
@@ -886,7 +886,6 @@ pub fn serveweb(
     // waits (forever) for all of them to complete by joining them all.
     let mut set = JoinSet::new();
     for config in incoming {
-        rustmisc::log(&ctx.logger, rustweb::Priority::Warning, "Config", &vec![]);
         for addr_str in &config.addresses {
             let addr = match SocketAddr::from_str(addr_str) {
                 Ok(val) => val,
@@ -912,7 +911,7 @@ pub fn serveweb(
                     rustmisc::log(
                         &ctx.logger,
                         rustweb::Priority::Info,
-                        "web service listening",
+                        "Web service listening",
                         &vec![
                             rustmisc::KeyValue {
                                 key: "address".to_string(),
@@ -927,7 +926,6 @@ pub fn serveweb(
                     set.spawn_on(serveweb_async(val, tls, ctx), runtime.handle());
                 }
                 Err(err) => {
-                    let msg = format!("Unable to bind web socket: {}", err);
                     rustmisc::error(
                         &ctx.logger,
                         rustweb::Priority::Error,
@@ -938,6 +936,7 @@ pub fn serveweb(
                             value: addr.to_string(),
                         }],
                     );
+                    let msg = format!("Unable to bind web socket: {}", err);
                     return Err(std::io::Error::new(ErrorKind::Other, msg));
                 }
             }
@@ -956,7 +955,7 @@ pub fn serveweb(
                         &ctx.logger,
                         rustmisc::Priority::Error,
                         &msg,
-                        "rustweb thread exited",
+                        "Rustweb thread exited",
                         &vec![],
                     );
                 }
@@ -971,7 +970,7 @@ fn load_certs(filename: &str) -> std::io::Result<Vec<pki_types::CertificateDer<'
     let certfile = std::fs::File::open(filename).map_err(|e| {
         std::io::Error::new(
             std::io::ErrorKind::Other,
-            format!("failed to open {}: {}", filename, e),
+            format!("Failed to open {}: {}", filename, e),
         )
     })?;
     let mut reader = std::io::BufReader::new(certfile);
@@ -986,7 +985,7 @@ fn load_private_key(filename: &str) -> std::io::Result<pki_types::PrivateKeyDer<
     let keyfile = std::fs::File::open(filename).map_err(|e| {
         std::io::Error::new(
             std::io::ErrorKind::Other,
-            format!("failed to open {}: {}", filename, e),
+            format!("Failed to open {}: {}", filename, e),
         )
     })?;
     let mut reader = std::io::BufReader::new(keyfile);
@@ -997,7 +996,7 @@ fn load_private_key(filename: &str) -> std::io::Result<pki_types::PrivateKeyDer<
         Ok(None) => Err(
             std::io::Error::new(
                 std::io::ErrorKind::Other,
-                format!("failed to parse private key from {}", filename),
+                format!("Failed to parse private key from {}", filename),
             )),
         Err(e) => Err(e)
     }
