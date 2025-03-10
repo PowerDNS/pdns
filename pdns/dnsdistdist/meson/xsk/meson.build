@@ -1,7 +1,7 @@
 opt_xsk = get_option('xsk')
 if opt_xsk.allowed()
-  dep_libbpf = dependency('libbpf', required: opt_xsk)
-  dep_libxdp = dependency('libxdp', required: opt_xsk)
+  dep_libbpf = dependency('libbpf', required: opt_xsk.enabled())
+  dep_libxdp = dependency('libxdp', required: opt_xsk.enabled())
 
   conf.set('HAVE_BPF', dep_libbpf.found(), description: 'BPF library')
   conf.set('HAVE_XDP', dep_libxdp.found(), description: 'XDP library')
