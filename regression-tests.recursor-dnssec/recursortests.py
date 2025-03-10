@@ -1234,8 +1234,8 @@ distributor-threads={threads}""".format(confdir=confdir,
                 if entry['name'] == key:
                     value = int(entry['value'])
                     if callable(expected):
-                        self.assertTrue(expected(value))
+                        self.assertTrue(expected(value), key + ": value " + str(value) + " is not expected")
                     else:
-                        self.assertEqual(value, expected)
+                        self.assertEqual(value, expected, key + ": value " + str(value) + " is not expected")
                     count += 1
         self.assertEqual(count, len(map))
