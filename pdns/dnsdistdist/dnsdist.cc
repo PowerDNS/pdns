@@ -2321,6 +2321,16 @@ static void secPollThread()
 }
 #endif /* DISABLE_SECPOLL */
 
+static std::atomic<bool> s_exiting{false};
+void doExitNicely(int exitCode = EXIT_SUCCESS);
+
+static void checkExiting()
+{
+  if (s_exiting) {
+    doExitNicely();
+  }
+}
+
 static void healthChecksThread()
 {
   setThreadName("dnsdist/healthC");
@@ -2331,6 +2341,8 @@ static void healthChecksThread()
     .tv_usec = 0};
 
   for (;;) {
+    checkExiting();
+
     timeval now{};
     gettimeofday(&now, nullptr);
     auto elapsedTimeUsec = uSec(now - lastRound);
@@ -2751,8 +2763,9 @@ static void usage()
 #endif
 
 #if defined(COVERAGE) || (defined(__SANITIZE_ADDRESS__) && defined(HAVE_LEAK_SANITIZER_INTERFACE))
-static void cleanupLuaObjects()
+static void cleanupLuaObjects(LuaContext& /* luaCtx */)
 {
+  dnsdist::lua::hooks::clearExitCallbacks();
   /* when our coverage mode is enabled, we need to make sure
      that the Lua objects are destroyed before the Lua contexts. */
   dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
@@ -2766,29 +2779,20 @@ static void cleanupLuaObjects()
 }
 #endif /* defined(COVERAGE) || (defined(__SANITIZE_ADDRESS__) && defined(HAVE_LEAK_SANITIZER_INTERFACE)) */
 
-#if defined(COVERAGE)
-static void sigTermHandler(int)
+void doExitNicely(int exitCode)
 {
-  cleanupLuaObjects();
-  pdns::coverage::dumpCoverageData();
-  _exit(EXIT_SUCCESS);
-}
-#else
-static void sigTermHandler([[maybe_unused]] int sig)
-{
-#if !defined(__SANITIZE_THREAD__)
-  /* TSAN is rightfully unhappy about this:
-     WARNING: ThreadSanitizer: signal-unsafe call inside of a signal
-     This is not a real problem for us, as the worst case is that
-     we crash trying to exit, but let's try to avoid the warnings
-     in our tests.
-  */
-  if (dnsdist::logging::LoggingConfiguration::getSyslog()) {
-    syslog(LOG_INFO, "Exiting on user request");
+  if (s_exiting) {
+    if (dnsdist::logging::LoggingConfiguration::getSyslog()) {
+      syslog(LOG_INFO, "Exiting on user request");
+    }
+    std::cout << "Exiting on user request" << std::endl;
   }
-  std::cout << "Exiting on user request" << std::endl;
-#endif /* __SANITIZE_THREAD__ */
-#if defined(__SANITIZE_ADDRESS__) && defined(HAVE_LEAK_SANITIZER_INTERFACE)
+
+#ifdef HAVE_SYSTEMD
+  sd_notify(0, "STOPPING=1");
+#endif /* HAVE_SYSTEMD */
+
+#if defined(COVERAGE) || (defined(__SANITIZE_ADDRESS__) && defined(HAVE_LEAK_SANITIZER_INTERFACE))
   if (dnsdist::g_asyncHolder) {
     dnsdist::g_asyncHolder->stop();
   }
@@ -2796,17 +2800,36 @@ static void sigTermHandler([[maybe_unused]] int sig)
   for (auto& backend : dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends) {
     backend->stop();
   }
+#endif
 
   {
     auto lock = g_lua.lock();
-    cleanupLuaObjects();
+    dnsdist::lua::hooks::runExitCallbacks(*lock);
+#if defined(COVERAGE) || (defined(__SANITIZE_ADDRESS__) && defined(HAVE_LEAK_SANITIZER_INTERFACE))
+    cleanupLuaObjects(*lock);
     *lock = LuaContext();
+#endif
   }
+
+#if defined(__SANITIZE_ADDRESS__) && defined(HAVE_LEAK_SANITIZER_INTERFACE)
   __lsan_do_leak_check();
 #endif /* __SANITIZE_ADDRESS__ && HAVE_LEAK_SANITIZER_INTERFACE */
-  _exit(EXIT_SUCCESS);
+
+#ifdef COVERAGE
+  pdns::coverage::dumpCoverageData();
+#endif
+
+  /* do not call destructors, because we have some
+     dependencies between objects that are not trivial
+     to solve.
+  */
+  _exit(exitCode);
 }
-#endif /* COVERAGE */
+
+static void sigTermHandler(int /* sig */)
+{
+  s_exiting.store(true);
+}
 
 static void reportFeatures()
 {
@@ -3413,12 +3436,7 @@ int main(int argc, char** argv)
       }
       // No exception was thrown
       infolog("Configuration '%s' OK!", cmdLine.config);
-#ifdef COVERAGE
-      cleanupLuaObjects();
-      exit(EXIT_SUCCESS);
-#else
-      _exit(EXIT_SUCCESS);
-#endif
+      doExitNicely();
     }
 
     infolog("dnsdist %s comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it according to the terms of the GPL version 2", VERSION);
@@ -3625,12 +3643,7 @@ int main(int argc, char** argv)
       healththread.detach();
       dnsdist::console::doConsole();
     }
-#ifdef COVERAGE
-    cleanupLuaObjects();
-    exit(EXIT_SUCCESS);
-#else
-    _exit(EXIT_SUCCESS);
-#endif
+    doExitNicely();
   }
   catch (const LuaContext::ExecutionErrorException& e) {
     try {
@@ -3643,29 +3656,14 @@ int main(int argc, char** argv)
     catch (const PDNSException& ae) {
       errlog("Fatal pdns error: %s", ae.reason);
     }
-#ifdef COVERAGE
-    cleanupLuaObjects();
-    exit(EXIT_FAILURE);
-#else
-    _exit(EXIT_FAILURE);
-#endif
+    doExitNicely(EXIT_FAILURE);
   }
   catch (const std::exception& e) {
     errlog("Fatal error: %s", e.what());
-#ifdef COVERAGE
-    cleanupLuaObjects();
-    exit(EXIT_FAILURE);
-#else
-    _exit(EXIT_FAILURE);
-#endif
+    doExitNicely(EXIT_FAILURE);
   }
   catch (const PDNSException& ae) {
     errlog("Fatal pdns error: %s", ae.reason);
-#ifdef COVERAGE
-    cleanupLuaObjects();
-    exit(EXIT_FAILURE);
-#else
-    _exit(EXIT_FAILURE);
-#endif
+    doExitNicely(EXIT_FAILURE);
   }
 }

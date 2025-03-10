@@ -29,5 +29,7 @@ namespace dnsdist::lua::hooks
 {
 void runMaintenanceHooks(const LuaContext& context);
 void clearMaintenanceHooks();
+void runExitCallbacks(const LuaContext& context);
+void clearExitCallbacks();
 void setupLuaHooks(LuaContext& luaCtx);
 }
