@@ -75,15 +75,24 @@ export CXX=clang++
 # build-id SHA1 prevents an issue with the debug symbols ("export: `-Wl,--build-id=sha1': not a valid identifier")
 # and -ldl an issue with the dlsym not being found ("ld.lld: error: undefined symbol: dlsym eferenced by weak.rs:142 (library/std/src/sys/pal/unix/weak.rs:142) [...] in archive ./dnsdist-rust-lib/rust/libdnsdist_rust.a)
 export LDFLAGS="-fuse-ld=lld -Wl,--build-id=sha1 -ldl"
+
 %if 0%{?rhel} < 9
-export CFLAGS="-O2 -g -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -fexceptions -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -gdwarf-4"
-export CXXFLAGS="-O2 -g -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -fexceptions -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -gdwarf-4"
+# starting with EL-9 we get these hardening settings for free by just setting the right toolchain (see above)
+%ifarch aarch64
+%define cf_protection %{nil}
+%else
+%define cf_protection -fcf-protection
+%endif
+export CFLAGS="-O2 -g -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -fexceptions -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection %{cf_protection} -gdwarf-4"
+export CXXFLAGS="-O2 -g -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -fexceptions -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection %{cf_protection} -gdwarf-4"
 %endif
 
 #export AR=gcc-ar
 #export RANLIB=gcc-ranlib
 export PKG_CONFIG_PATH=/usr/lib/pkgconfig:/opt/lib64/pkgconfig
 
+# Note that the RPM meson macro "helpfully" sets
+# --auto-features=enabled so our auto-detection is broken
 %meson \
   --sysconfdir=/etc/dnsdist \
   -Dunit-tests=true \
@@ -106,6 +115,9 @@ export PKG_CONFIG_PATH=/usr/lib/pkgconfig:/opt/lib64/pkgconfig
   -Dre2=enabled \
   -Ddns-over-quic=true \
   -Ddns-over-http3=true \
+%ifarch aarch64
+  -Dxsk=disabled \
+%endif
   -Dyaml=enabled
 %meson_build
 
