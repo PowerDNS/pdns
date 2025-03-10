@@ -31,6 +31,7 @@
 #include "misc.hh"
 #include <netdb.h>
 #include <sstream>
+#include <sys/un.h>
 
 #include "namespaces.hh"
 
@@ -487,6 +488,134 @@ union ComboAddress
     }
     return boost::join(strs, ",");
   };
+};
+
+union SockaddrWrapper
+{
+  sockaddr_in sin4{};
+  sockaddr_in6 sin6;
+  sockaddr_un sinun;
+
+  [[nodiscard]] socklen_t getSocklen() const
+  {
+    if (sin4.sin_family == AF_INET) {
+      return sizeof(sin4);
+    }
+    if (sin6.sin6_family == AF_INET6) {
+      return sizeof(sin6);
+    }
+    if (sinun.sun_family == AF_UNIX) {
+      return sizeof(sinun);
+    }
+    return 0;
+  }
+
+  SockaddrWrapper()
+  {
+    sin4.sin_family = AF_INET;
+    sin4.sin_addr.s_addr = 0;
+    sin4.sin_port = 0;
+  }
+
+  SockaddrWrapper(const struct sockaddr* socketAddress, socklen_t salen)
+  {
+    setSockaddr(socketAddress, salen);
+  };
+
+  SockaddrWrapper(const struct sockaddr_in6* socketAddress)
+  {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    setSockaddr(reinterpret_cast<const struct sockaddr*>(socketAddress), sizeof(struct sockaddr_in6));
+  };
+
+  SockaddrWrapper(const struct sockaddr_in* socketAddress)
+  {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    setSockaddr(reinterpret_cast<const struct sockaddr*>(socketAddress), sizeof(struct sockaddr_in));
+  };
+
+  SockaddrWrapper(const struct sockaddr_un* socketAddress)
+  {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    setSockaddr(reinterpret_cast<const struct sockaddr*>(socketAddress), sizeof(struct sockaddr_un));
+  };
+
+  void setSockaddr(const struct sockaddr* socketAddress, socklen_t salen)
+  {
+    if (salen > sizeof(struct sockaddr_un)) {
+      throw PDNSException("ComboAddress can't handle other than sockaddr_in, sockaddr_in6 or sockaddr_un");
+    }
+    memcpy(this, socketAddress, salen);
+  }
+
+  explicit SockaddrWrapper(const string& str, uint16_t port = 0)
+  {
+    memset(&sinun, 0, sizeof(sinun));
+    sin4.sin_family = AF_INET;
+    sin4.sin_port = 0;
+    if (str == "\"\"" || str == "''") {
+      throw PDNSException("Stray quotation marks in address.");
+    }
+    if (makeIPv4sockaddr(str, &sin4) != 0) {
+      sin6.sin6_family = AF_INET6;
+      if (makeIPv6sockaddr(str, &sin6) < 0) {
+        sinun.sun_family = AF_UNIX;
+        // only attempt Unix socket address if address candidate does not contain a port
+        if (str.find(':') != string::npos || makeUNsockaddr(str, &sinun) < 0) {
+          throw PDNSException("Unable to convert presentation address '" + str + "'");
+        }
+      }
+    }
+    if (sinun.sun_family != AF_UNIX && sin4.sin_port == 0) { // 'str' overrides port!
+      sin4.sin_port = htons(port);
+    }
+  }
+
+  [[nodiscard]] bool isIPv6() const
+  {
+    return sin4.sin_family == AF_INET6;
+  }
+  [[nodiscard]] bool isIPv4() const
+  {
+    return sin4.sin_family == AF_INET;
+  }
+  [[nodiscard]] bool isUnixSocket() const
+  {
+    return sin4.sin_family == AF_UNIX;
+  }
+
+  [[nodiscard]] string toString() const
+  {
+    if (sinun.sun_family == AF_UNIX) {
+      return sinun.sun_path;
+    }
+    std::array<char, 1024> host{};
+    if (sin4.sin_family != 0) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+      int retval = getnameinfo(reinterpret_cast<const struct sockaddr*>(this), getSocklen(), host.data(), host.size(), nullptr, 0, NI_NUMERICHOST);
+      if (retval == 0) {
+        return host.data();
+      }
+      return "invalid " + string(gai_strerror(retval));
+    }
+    return "invalid";
+  }
+
+  [[nodiscard]] string toStringWithPort() const
+  {
+    if (sinun.sun_family == AF_UNIX) {
+      return toString();
+    }
+    if (sin4.sin_family == AF_INET) {
+      return toString() + ":" + std::to_string(ntohs(sin4.sin_port));
+    }
+    return "[" + toString() + "]:" + std::to_string(ntohs(sin4.sin_port));
+  }
+
+  void reset()
+  {
+    memset(&sinun, 0, sizeof(sinun));
+  }
 };
 
 /** This exception is thrown by the Netmask class and by extension by the NetmaskGroup class */

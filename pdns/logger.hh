@@ -109,6 +109,7 @@ public:
   Logger& operator<<(const string& s); //!< log a string
   Logger& operator<<(const DNSName&);
   Logger& operator<<(const ComboAddress&); //!< log an address
+  Logger& operator<<(const SockaddrWrapper&); //!< log an address
   Logger& operator<<(Urgency); //!< set the urgency, << style
 
   Logger& operator<<(const QType& qtype)
