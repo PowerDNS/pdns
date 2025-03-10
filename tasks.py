@@ -5,6 +5,7 @@ import json
 import os
 import sys
 import time
+import requests
 
 auth_backend_ip_addr = os.getenv('AUTH_BACKEND_IP_ADDR', '127.0.0.1')
 
@@ -1225,6 +1226,222 @@ def ci_build_and_install_quiche(c, repo):
     c.run("sudo sed -i 's,^Libs:.*,Libs: -lquiche,g' /usr/lib/pkgconfig/quiche.pc")
     c.run('mkdir -p /opt/dnsdist/lib')
     c.run('cp /usr/lib/libquiche.so /opt/dnsdist/lib/libquiche.so')
+
+@task
+def install_pulpcli(c):
+    c.run(f'python3 -m venv {repo_home}/.venv')
+    c.run(f'. {repo_home}/.venv/bin/activate && pip install pulp-cli==0.29.2 pulp-cli-deb==0.3.1')
+
+pulp_cmd = " ".join([
+    "pulp",
+    f"--base-url {os.getenv('PULP_URL', '')}",
+    f"--username {os.getenv('PULP_CI_USERNAME', '')}",
+    f"--password {os.getenv('PULP_CI_PASSWORD', '')}"
+])
+
+@task
+def pulp_upload_file_packages_by_folder(c, source):
+    max_push_attempts = 3
+    repo_name = os.getenv("PULP_REPO_NAME", '')
+
+    for root, dirs, files in os.walk(source):
+        for path in files:
+            attempts = 0
+            while attempts < max_push_attempts:
+                try:
+                    file = os.path.join(root, path).split('/',1)[1]
+                    # file repositories have been configured with autopublish set to true
+                    c.run(f'. {repo_home}/.venv/bin/activate && {pulp_cmd} file content upload --repository {repo_name} --file {source}/{file} --relative-path {file}')
+                    break
+                except UnexpectedExit:
+                    attempts += 1
+                    time.sleep(5)
+                    print(f'Next attempt: {attempts}')
+                    if attempts == max_push_attempts:
+                        raise Failure(f'Error uploading file package')
+
+@task
+def pulp_create_rpm_publication(c, product, list_os_rel, list_arch):
+    max_push_attempts = 3
+    rpm_distros = ["centos", "el"]
+    for os_rel in json.loads(list_os_rel):
+        if not "el-" in os_rel:
+            break
+        release = os_rel.split('-')[1]
+        for arch in json.loads(list_arch):
+            for distro in rpm_distros:
+                repo_name = f"repo-{distro}-{release}-{arch}-{product}"
+                attempts = 0
+                while attempts < max_push_attempts:
+                    try:
+                        c.run(f'. {repo_home}/.venv/bin/activate && {pulp_cmd} rpm publication create --repository {repo_name} --checksum-type sha512')
+                        break
+                    except UnexpectedExit:
+                        attempts += 1
+                        time.sleep(5)
+                        print(f'Next attempt: {attempts}')
+                        if attempts == max_push_attempts:
+                            raise Failure(f'Error creating rpm publication')
+
+@task
+def pulp_create_deb_publication(c):
+    max_push_attempts = 3
+    deb_distros = ["debian", "ubuntu"]
+    for distro in deb_distros:
+        repo_name = f"repo-{distro}"
+        attempts = 0
+        while attempts < max_push_attempts:
+            try:
+                c.run(f'. {repo_home}/.venv/bin/activate && {pulp_cmd} deb publication create --repository {repo_name}')
+                break
+            except UnexpectedExit:
+                attempts += 1
+                time.sleep(5)
+                print(f'Next attempt: {attempts}')
+                if attempts == max_push_attempts:
+                    raise Failure(f'Error creating deb publication')
+
+@task
+def pulp_upload_rpm_packages_by_folder(c, source, product):
+    max_push_attempts = 3
+    rpm_distros = ["centos", "el"]
+    builds = os.listdir(source)
+
+    for build_folder in builds:
+        release = build_folder.split('.')[0].split('-')[1]
+        arch = build_folder.split('.')[1]
+        for distro in rpm_distros:
+            repo_name = f"repo-{distro}-{release}-{arch}-{product}"
+            for root, dirs, files in os.walk(f"{source}/{build_folder}"):
+                for path in files:
+                    attempts = 0
+                    while attempts < max_push_attempts:
+                        try:
+                            file = os.path.join(root, path).split('/',1)[1]
+                            # Set chunk size to 500MB to avoid creating an "upload" instead of a file. Required for singing RPMs.
+                            c.run(f'. {repo_home}/.venv/bin/activate && {pulp_cmd} rpm content -t package upload --file {source}/{file} --repository {repo_name} --no-publish --chunk-size 500MB')
+                            break
+                        except UnexpectedExit:
+                            attempts += 1
+                            time.sleep(5)
+                            print(f'Next attempt: {attempts}')
+                            if attempts == max_push_attempts:
+                                raise Failure(f'Error uploading rpm package')
+
+def get_pulp_repository_href(c, repo_name, repo_type):
+    res = c.run(f". {repo_home}/.venv/bin/activate && {pulp_cmd} {repo_type} repository show --name {repo_name} | jq -r '.pulp_href' | tr -d '\n'")
+    if res.exited != 0:
+        raise UnexpectedExit(res)
+    return res.stdout
+
+def is_pulp_task_completed(c, task_href):
+    elapsed_time = 0
+    check_interval = 5
+    max_wait_time = 60
+
+    while elapsed_time < max_wait_time:
+        res = c.run(f". {repo_home}/.venv/bin/activate && {pulp_cmd} task show --href {task_href} | jq -r .state | tr -d '\n'")
+        if res.exited != 0:
+            raise UnexpectedExit(res)
+        elif res.stdout == "completed":
+            return True
+        time.sleep(check_interval)
+        elapsed_time += check_interval
+
+    return False
+
+@task
+def pulp_upload_deb_packages_by_folder(c, source, product):
+    max_push_attempts = 3
+    builds = os.listdir(source)
+    upload_url = os.getenv('PULP_URL', '') + "/pulp/api/v3/content/deb/packages/"
+    headers = {"Content-Type": "application/json"}
+    auth = requests.auth.HTTPBasicAuth(os.getenv("PULP_CI_USERNAME", ""), os.getenv("PULP_CI_PASSWORD", ""))
+
+    for build_folder in builds:
+        distro = build_folder.split('-')[0]
+        distribution = f"{build_folder.split('-')[1]}-{product}"
+        repo_name = f"repo-{distro}"
+        repository_href = get_pulp_repository_href(c, repo_name, "deb")
+
+        for root, dirs, files in os.walk(source):
+            for path in files:
+                attempts = 0
+                while attempts < max_push_attempts:
+                    try:
+                        file = os.path.join(root, path).split('/',1)[1]
+                        res = c.run(f". {repo_home}/.venv/bin/activate && {pulp_cmd} artifact upload --file {source}/{file} | jq -r '.pulp_href' | tr -d '\n'")
+                        if res.exited != 0:
+                            raise UnexpectedExit(res)
+                        artifact_href = res.stdout
+
+                        package_data = {
+                            "repository": repository_href,
+                            "distribution": distribution,
+                            "component": "main",
+                            "artifact": artifact_href
+                        }
+                        res = requests.post(upload_url, auth=auth, headers=headers, json=package_data)
+                        res.raise_for_status()
+                        task_href = res.json().get('task')
+                        if not is_pulp_task_completed(c, task_href):
+                            raise Failure('Error uploading DEB packages into Pulp')
+                        break
+                    except UnexpectedExit:
+                        attempts += 1
+                        time.sleep(5)
+                        print(f'Next attempt: {attempts}')
+                        if attempts == max_push_attempts:
+                            raise Failure(f'Error uploading rpm package')
+
+@task
+def test_install_package(c, product_name, distro_release, content_url, gpgkey_url, package_name, package_version):
+    distro, release = distro_release.split('-')
+    repo_domain = content_url.split('/')[2]
+
+    if 'el' in distro_release:
+        image_name = 'oraclelinux'
+    else:
+        image_name = distro
+        # pdns package is called pdns-server for debian/ubuntu
+        package_name = 'pdns-server' if package_name == 'pdns' else package_name
+
+    # version of packages from master or not releases have a different order than the package name
+    parts = package_version.split('.')
+    if len(parts) > 4:
+        if 'el' in distro_release:
+            package_version = f"{'.'.join(parts[:3])}.{parts[4]}.{parts[3]}.{'.'.join(parts[5:])}"
+        else:
+            package_version = f"{'.'.join(parts[:3])}+{parts[4]}.{parts[3]}.{'.'.join(parts[5:])}"
+
+    # Add wilcards to work with and without releases
+    parts = package_version.split('-')
+    if len(parts) > 1:
+        package_version = f"{parts[0]}*{parts[1]}" if 'el' in distro_release else f"{parts[0]}~{parts[1]}"
+
+    dockerfile_rpm = f'''
+FROM {image_name}:{release}
+RUN curl -L {content_url}/repo-files/{distro}-{product_name}.repo -o /etc/yum.repos.d/{distro}-{product_name}.repo
+RUN yum install -y epel-release
+RUN yum install -y {package_name}-{package_version}*
+'''
+    dockerfile_deb = f'''
+FROM {image_name}:{release}
+RUN apt update && apt install -y curl libluajit-5.1-dev adduser
+RUN install -d /etc/apt/keyrings && curl -L {gpgkey_url} -o /etc/apt/keyrings/{product_name}-pub.asc
+RUN echo "deb [signed-by=/etc/apt/keyrings/{product_name}-pub.asc] {content_url}/{distro} {release}-{product_name} main" | tee /etc/apt/sources.list.d/pdns.list
+RUN bash -c 'echo -e "Package: auth*\\nPin: origin {repo_domain}\\nPin-Priority: 600" | tee /etc/apt/preferences.d/{product_name}'
+RUN apt-get update && apt-get install -y {package_name}={package_version}*
+'''
+    dockerfile = dockerfile_rpm if 'el-' in distro_release else dockerfile_deb
+    with open('/tmp/Dockerfile', "w") as f:
+        f.write(dockerfile)
+
+    c.run(f'docker build . -t test-build-{product_name}-{distro_release}:latest -f /tmp/Dockerfile')
+
+@task
+def pulp_get_repos(c):
+    c.run(f'. {repo_home}/.venv/bin/activate && {pulp_cmd} repository list')
 
 # this is run always
 def setup():
