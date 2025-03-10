@@ -122,6 +122,7 @@ extern "C"
   // ASAN_OPTIONS=detect_stack_use_after_return=0 or completely disable it by compiling with
   // -fsanitize-address-use-after-return=never.  On debian clang versions up and including 14 do
   // not seem to trigger a problem here, but starting from version 15 they do.
+  // Attempts at using function attributes to silence the error did not work.
   threadWrapper(transfer_t const theThread)
   {
 #endif
