@@ -1,10 +1,7 @@
+import os
+import time
 from invoke import task
 from invoke.exceptions import Failure, UnexpectedExit
-
-import json
-import os
-import sys
-import time
 
 auth_backend_ip_addr = os.getenv('AUTH_BACKEND_IP_ADDR', '127.0.0.1')
 
@@ -1221,10 +1218,16 @@ def ci_build_and_install_quiche(c, repo):
         c.run(f'sudo {repo}/builder-support/helpers/install_quiche.sh')
 
     # cannot use c.sudo() inside a cd() context, see https://github.com/pyinvoke/invoke/issues/687
-    c.run('sudo mv /usr/lib/libdnsdist-quiche.so /usr/lib/libquiche.so')
-    c.run("sudo sed -i 's,^Libs:.*,Libs: -lquiche,g' /usr/lib/pkgconfig/quiche.pc")
-    c.run('mkdir -p /opt/dnsdist/lib')
-    c.run('cp /usr/lib/libquiche.so /opt/dnsdist/lib/libquiche.so')
+    for tentative in ['lib/x86_64-linux-gnu', 'lib/aarch64-linux-gnu', 'lib64', 'lib']:
+        tentative_libdir = f'/usr/{tentative}'
+        quiche_lib = f'{tentative_libdir}/libdnsdist-quiche.so'
+        if not os.path.isfile(quiche_lib):
+            continue
+        c.run(f'sudo mv {quiche_lib} /usr/lib/libquiche.so')
+        c.run(f"sudo sed -i 's,^Libs:.*,Libs: -lquiche,g' {tentative_libdir}/pkgconfig/quiche.pc")
+        c.run('mkdir -p /opt/dnsdist/lib')
+        c.run('cp /usr/lib/libquiche.so /opt/dnsdist/lib/libquiche.so')
+        break
 
 # this is run always
 def setup():

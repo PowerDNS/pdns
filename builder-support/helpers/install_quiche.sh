@@ -17,6 +17,17 @@ if [ $(uname) = Darwin ]; then
   INSTALL_PREFIX="${HOMEBREW_PREFIX}"
   SOEXT=dylib
 fi
+LIBDIR="${INSTALL_PREFIX}/lib"
+
+if [ $(uname) != Darwin ]; then
+  for tentative in "${INSTALL_PREFIX}/lib/x86_64-linux-gnu" "${INSTALL_PREFIX}/lib/aarch64-linux-gnu" "${INSTALL_PREFIX}/lib64" "${INSTALL_PREFIX}/lib"; do
+    if [ -f "${tentative}/libc.so" ]; then
+      LIBDIR="${tentative}"
+      break
+    fi
+  done
+fi
+echo "LIBDIR is ${LIBDIR}"
 
 cd /tmp
 echo $0: Downloading ${QUICHE_TARBALL}
@@ -32,23 +43,23 @@ sed -i 's,cdylib_link_lines::metabuild();,//cdylib_link_lines::metabuild();,' qu
 RUST_BACKTRACE=1 cargo build --release --no-default-features --features ffi,boringssl-boring-crate --package quiche
 
 install -m644 quiche/include/quiche.h "${INSTALL_PREFIX}"/include
-install -m644 target/release/libquiche.${SOEXT} "${INSTALL_PREFIX}"/lib/libdnsdist-quiche.${SOEXT}
+install -m644 target/release/libquiche.${SOEXT} "${LIBDIR}"/libdnsdist-quiche.${SOEXT}
 
 if [ $(uname) = Darwin ]; then
-  install_name_tool -id "${INSTALL_PREFIX}"/lib/libdnsdist-quiche.${SOEXT} "${INSTALL_PREFIX}"/lib/libdnsdist-quiche.${SOEXT}
+  install_name_tool -id "${LIBDIR}/libdnsdist-quiche.${SOEXT}" "${LIBDIR}"libdnsdist-quiche.${SOEXT}
 fi
 
-if [ ! -d "${INSTALL_PREFIX}"/lib/pkgconfig/ ]; then
-    mkdir "${INSTALL_PREFIX}"/lib/pkgconfig/
+if [ ! -d "${LIBDIR}"/pkgconfig/ ]; then
+    mkdir "${LIBDIR}"/pkgconfig/
 fi
-install -m644 /dev/stdin "${INSTALL_PREFIX}"/lib/pkgconfig/quiche.pc <<PC
+install -m644 /dev/stdin "${LIBDIR}"/pkgconfig/quiche.pc <<PC
 # quiche
 Name: quiche
 Description: quiche library
 URL: https://github.com/cloudflare/quiche
 Version: ${QUICHE_VERSION}
 Cflags: -I${INSTALL_PREFIX}/include
-Libs: -L${INSTALL_PREFIX}/lib -ldnsdist-quiche
+Libs: -L${LIBDIR} -ldnsdist-quiche
 PC
 
 cd ..

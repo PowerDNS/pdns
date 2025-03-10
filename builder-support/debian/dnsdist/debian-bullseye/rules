@@ -16,13 +16,6 @@ else
 MESON_ARGS += -Dsystemd=disabled
 endif
 
-# Only enable BPF/XDP on Linux operating systems
-ifeq ($(DEB_HOST_ARCH_OS),linux)
-MESON_ARGS += -Dxsk=enabled
-else
-MESON_ARGS += -Dxsk=disabled
-endif
-
 # Only disable luajit on arm64
 ifneq ($(DEB_HOST_ARCH),arm64)
 MESON_ARGS += -Dlua=luajit
@@ -71,6 +64,7 @@ override_dh_auto_configure:
 	  -Dre2=enabled \
 	  -Dsystemd-service-user='_dnsdist' \
 	  -Dsystemd-service-group='_dnsdist' \
+	  -Dxsk=disabled \
 	  $(MESON_ARGS)
 
 override_dh_auto_build-arch:

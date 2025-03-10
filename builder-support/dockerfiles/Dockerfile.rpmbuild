@@ -1,6 +1,11 @@
 FROM dist-base as package-builder
-RUN yum upgrade -y && \
-    yum install --allowerasing -y rpm-build rpmdevtools python3 curl jq "@Development Tools"
+RUN if $(grep -q 'release 8' /etc/redhat-release); then \
+      yum upgrade -y && \
+      yum install --allowerasing -y rpm-build rpmdevtools python3.11 curl jq "@Development Tools" ninja-build hostname python3.11-pip python3.11-yaml ; \
+    else \
+      yum upgrade -y && \
+      yum install --allowerasing -y rpm-build rpmdevtools python3 curl jq "@Development Tools" ninja-build hostname python3-pip python3-yaml ; \
+    fi
 
 RUN mkdir /dist /pdns
 WORKDIR /pdns
@@ -20,6 +25,7 @@ RUN cd /pdns/builder-support/helpers/ && ./install_rust.sh && \
     yum install -y git cmake clang && \
     cd /pdns/builder-support/helpers/ && \
     ./install_quiche.sh
+RUN cd /pdns/builder-support/helpers/ && ./install_meson.sh
 @ENDIF
 
 # Used for -p option to only build specific spec files
@@ -50,12 +56,6 @@ RUN touch /var/lib/rpm/* && if grep -q 'release 8' /etc/redhat-release; then \
 @ENDIF
 
 @IF [ -n "$M_dnsdist$M_all" ]
-
-RUN touch /var/lib/rpm/* && mkdir /libh2o && cd /libh2o && \
-      dnf install -y --allowerasing curl libcurl openssl-devel cmake && \
-      cd /pdns/builder-support/helpers/ && \
-      ./install_h2o.sh
-
 RUN touch /var/lib/rpm/* && if grep -q 'release 8' /etc/redhat-release; then \
       scl enable gcc-toolset-13 -- builder/helpers/build-specs.sh builder-support/specs/dnsdist.spec; \
     else \
@@ -64,6 +64,7 @@ RUN touch /var/lib/rpm/* && if grep -q 'release 8' /etc/redhat-release; then \
 @ENDIF
 
 # Generate provenance
+RUN yum install --allowerasing -y python3
 @EVAL RUN python builder/helpers/generate-dnf-provenance.py /dist/packages-${BUILDER_TARGET}.json || python3 builder/helpers/generate-dnf-provenance.py /dist/packages-${BUILDER_TARGET}.json
 
 # mv across layers with overlay2 is buggy in some kernel versions (results in empty dirs)

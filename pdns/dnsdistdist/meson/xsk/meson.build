@@ -8,6 +8,6 @@ if opt_xsk.allowed()
   conf.set('HAVE_XSK', dep_libbpf.found() and dep_libxdp.found(), description: 'AF_XDP (XSK) support enabled')
   summary('AF_XDP (XSK)', dep_libbpf.found() and dep_libxdp.found(), bool_yn: true, section: 'XSK')
 else
-  dep_libpf = declare_dependency()
+  dep_libbpf = declare_dependency()
   dep_libxdp = declare_dependency()
 endif
