@@ -203,20 +203,26 @@ def run (tag, arch='x86_64'):
         cp = subprocess.run(['docker', 'run', '--platform', 'linux/arm64/v8',
                              tag],
                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    version = re.search(r'(PowerDNS Authoritative Server|PowerDNS Recursor|' +
+    _version = re.search(r'(PowerDNS Authoritative Server|PowerDNS Recursor|' +
                         r'dnsdist) (\d+\.\d+\.\d+(-\w+)?[^ ]*)',
                         cp.stdout.decode())
+    _features = re.search(r'[Ff]eatures: (.*)', cp.stdout.decode())
+
+    version = features = None
+    if _version:
+        version = _version.group(2)
+
+    if _features:
+        features = _features.group(1)
+
     if g_verbose:
         print(cp.stdout.decode())
     # for some reason 99 is returned on  `cmd --version` :shrug:
     if cp.returncode != 0 and cp.returncode != 99:
         # FIXME write failed output to log
         print('Error running {}: {}'.format(tag, repr(cp.returncode)))
-        return cp.returncode, None
-    if version and version.group(2):
-        return cp.returncode, version.group(2)
-    else:
-        return cp.returncode, None
+
+    return cp.returncode, version, features
 
 
 def collect_dockerfiles (release):
@@ -252,13 +258,13 @@ def test_release (release, arch='x86_64'):
             print('Skipping running {} due to undetermined tag.'.format(df))
             failed_builds.append((str(df), returncode))
         else:
-            (returncode, return_version) = run(tag, arch)
+            (returncode, return_version, return_features) = run(tag, arch)
             # for some reason 99 is returned on `cmd --version` :shrug:
             # (not sure if this is true since using `stdout=PIPE...`)
             if returncode != 0 and returncode != 99:
                 failed_runs.append((tag, returncode))
             if return_version:
-                returned_versions.append((tag, return_version))
+                returned_versions.append((tag, return_version, return_features))
     print('Test done.')
     if len(failed_builds) > 0:
         print('- failed builds:')
@@ -271,7 +277,7 @@ def test_release (release, arch='x86_64'):
     if len(returned_versions) > 0:
         print('- returned versions:')
         for rv in returned_versions:
-            print('    - {}: {}'.format(rv[0], rv[1]))
+            print('    - {}: {} ({})'.format(rv[0], rv[1], rv[2]))
     else:
         print('- ERROR: no returned versions (unsupported product?)')
 
