@@ -91,6 +91,8 @@ export CXXFLAGS="-O2 -g -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURC
 #export RANLIB=gcc-ranlib
 export PKG_CONFIG_PATH=/usr/lib/pkgconfig:/opt/lib64/pkgconfig
 
+# Note that the RPM meson macro "helpfully" sets
+# --auto-features=enabled so our auto-detection is broken
 %meson \
   --sysconfdir=/etc/dnsdist \
   -Dunit-tests=true \
@@ -113,6 +115,9 @@ export PKG_CONFIG_PATH=/usr/lib/pkgconfig:/opt/lib64/pkgconfig
   -Dre2=enabled \
   -Ddns-over-quic=true \
   -Ddns-over-http3=true \
+%ifarch aarch64
+  -Dxsk=disabled \
+%endif
   -Dyaml=enabled
 %meson_build
 
