@@ -1638,6 +1638,16 @@ static void checkNewRecords(vector<DNSResourceRecord>& records, const DNSName& z
       throw ApiException("RRset " + rec.qname.toString() + " IN " + rec.qtype.toString() + ": " + e.what());
     }
 
+    if (rec.qtype.getCode() == QType::ALIAS && rec.qname == DNSName(rec.content))
+    {
+      throw ApiException("ALIAS records cannot point at themselves " + rec.qname.toString());
+    }
+
+    if (rec.qtype.getCode() == QType::CNAME && rec.qname == DNSName(rec.content))
+    {
+      throw ApiException("CNAME records cannot point at themselves - " + rec.qname.toString());
+    }
+
     previous = rec;
   }
 }
