@@ -71,6 +71,45 @@ BOOST_AUTO_TEST_CASE(test_ComboAddress) {
   BOOST_CHECK_THROW(ComboAddress("[::1]:-6"), PDNSException); // Port no. too low
 }
 
+BOOST_AUTO_TEST_CASE(test_SockaddrWrapper) {
+  SockaddrWrapper local("127.0.0.1", 53);
+  BOOST_CHECK_EQUAL(local.sin4.sin_family, AF_INET);
+  BOOST_CHECK_EQUAL(local.sin4.sin_port, htons(53));
+  BOOST_CHECK_EQUAL(local.sin4.sin_addr.s_addr, htonl(0x7f000001UL));
+
+  SockaddrWrapper localun("/run/pdns/http.sock", 0);
+  BOOST_CHECK_EQUAL(localun.sinun.sun_family, AF_UNIX);
+
+  SockaddrWrapper withport("213.244.168.210:53");
+  BOOST_CHECK_EQUAL(withport.sin4.sin_port, htons(53));
+
+  SockaddrWrapper withportO("213.244.168.210:53", 5300);
+  BOOST_CHECK_EQUAL(withportO.sin4.sin_port, htons(53));
+
+  withport = SockaddrWrapper("[::]:53");
+  BOOST_CHECK_EQUAL(withport.sin4.sin_port, htons(53));
+
+  withport = SockaddrWrapper("[::]:5300", 53);
+  BOOST_CHECK_EQUAL(withport.sin4.sin_port, htons(5300));
+
+  SockaddrWrapper defaultport("213.244.168.210");
+  BOOST_CHECK_EQUAL(defaultport.sin4.sin_port, htons(0));
+
+  defaultport = SockaddrWrapper("[::1]");
+  BOOST_CHECK_EQUAL(defaultport.sin4.sin_port, htons(0));
+
+  defaultport = SockaddrWrapper("::1");
+  BOOST_CHECK_EQUAL(defaultport.sin4.sin_port, htons(0));
+
+  BOOST_CHECK_THROW(SockaddrWrapper("127.0.0.1:70000"), PDNSException); // Port no. too high
+  BOOST_CHECK_THROW(SockaddrWrapper("127.0.0.1:-6"), PDNSException); // Port no. too low
+  BOOST_CHECK_THROW(SockaddrWrapper("[::1]:70000"), PDNSException); // Port no. too high
+  BOOST_CHECK_THROW(SockaddrWrapper("[::1]:-6"), PDNSException); // Port no. too low
+
+  BOOST_CHECK_THROW(SockaddrWrapper("\"\""), PDNSException);
+  BOOST_CHECK_THROW(SockaddrWrapper("''"), PDNSException);
+}
+
 BOOST_AUTO_TEST_CASE(test_ComboAddressCompare) {
   ComboAddress a, b;
   a.reset();
