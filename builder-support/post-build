@@ -23,16 +23,14 @@ fi
 for prog in pdns-recursor dnsdist; do
   if [ $(find ${SRCDIR}/dist -name "${prog}*" 2>/dev/null | wc -l) -ne 0 ]; then
     extension="tar.bz2"
-    tar_compression_flag="j"
     if [ "$prog" = "dnsdist" ]; then
       extension="tar.xz"
-      tar_compression_flag="J"
     fi
     dst=${DESTDIR}/${prog}/${BUILDER_VERSION}
     mkdir -p ${dst}
     cp ${BUILDER_TMP}/${BUILDER_VERSION}/sdist/${prog}*.${extension} ${dst}
     tardirname=${prog}-${BUILDER_VERSION}-${BUILDER_TARGET}
-    "$tar" -c${tar_compression_flag}f ${dst}/${tardirname}.${extension} --transform="s,.*/,${tardirname}/,g"  $(find ${SRCDIR} -type f)
+    "$tar" -cjf ${dst}/${tardirname}.tar.bz2 --transform="s,.*/,${tardirname}/,g"  $(find ${SRCDIR} -type f)
   fi
 done
 prog=pdns
