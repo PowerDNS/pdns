@@ -217,6 +217,12 @@ Logger& Logger::operator<<(const ComboAddress& ca)
   return *this;
 }
 
+Logger& Logger::operator<<(const SockaddrWrapper& sockaddr)
+{
+  *this << sockaddr.toString();
+  return *this;
+}
+
 void addTraceTS(const timeval& start, ostringstream& str)
 {
   const auto& content = str.str();
