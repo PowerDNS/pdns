@@ -65,9 +65,15 @@ RUN mkdir /build && \
       PKG_CONFIG_PATH=/opt/lib/pkgconfig && \
     make clean && \
     make $MAKEFLAGS install DESTDIR=/build && make clean && \
-    strip /build/usr/local/bin/* &&\
-    mkdir -p /build/usr/lib/ && \
-    cp -rf /usr/lib/libdnsdist-quiche.so /build/usr/lib/
+    strip /build/usr/local/bin/*
+
+RUN for tentative in "lib/x86_64-linux-gnu" "lib/aarch64-linux-gnu" "lib64" "lib"; do \
+      if [ -f "/usr/${tentative}/libdnsdist-quiche.so" ]; then \
+        mkdir -p "/build/usr/${tentative}/"; \
+        cp "/usr/${tentative}/libdnsdist-quiche.so" "/build/usr/${tentative}/"; \
+        break; \
+      fi; \
+    done
 
 RUN cd /tmp && mkdir /build/tmp/ && mkdir debian && \
     echo 'Source: docker-deps-for-pdns' > debian/control && \
