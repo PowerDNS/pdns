@@ -5,6 +5,7 @@
 # - PUBLISH_DOCS_TO_AWS: Set to 'true' to enable publishing to AWS
 # - PUBLISH_DOCS_TO_NETLIFY: Set to 'true' to enable publishing to Netlify
 # - PUBLISH_DOCS_TO_WEB1: Set to 'true' to enable publishing to Web1
+# - DOCS_WORKFLOW_BRANCH_OVERRIDE: Set to 'true' to allow publishing from non-master branches (for testing)
 
 # - AWS_REGION: AWS region for S3 and CloudFront
 # - AWS_S3_BUCKET_DOCS: S3 bucket name for documentation
@@ -140,7 +141,7 @@ jobs:
   publish-to-netlify:
     name: Publish to Netlify
     needs: build-docs
-    if: ${{ vars.PUBLISH_DOCS_TO_NETLIFY == 'true' && github.ref_name == 'master' }}
+    if: ${{ (github.ref_name == 'master' || vars.DOCS_WORKFLOW_BRANCH_OVERRIDE == 'true') && vars.PUBLISH_DOCS_TO_NETLIFY == 'true' }}
     runs-on: ubuntu-22.04
     env:
       NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_API_TOKEN }}
@@ -194,7 +195,7 @@ jobs:
   publish-to-web1:
     name: Publish to Web1
     needs: build-docs
-    if: ${{ github.ref_name == 'master' && vars.PUBLISH_DOCS_TO_WEB1 == 'true' }}
+    if: ${{ (github.ref_name == 'master' || vars.DOCS_WORKFLOW_BRANCH_OVERRIDE == 'true') && vars.PUBLISH_DOCS_TO_WEB1 == 'true' }}
     runs-on: ubuntu-22.04
     steps:
       - name: Check required secrets
@@ -250,7 +251,7 @@ jobs:
   publish-to-aws:
     name: Publish to AWS
     needs: build-docs
-    if: ${{ github.ref_name == 'master' && vars.PUBLISH_DOCS_TO_AWS == 'true' }}
+    if: ${{ (github.ref_name == 'master' || vars.DOCS_WORKFLOW_BRANCH_OVERRIDE == 'true') && vars.PUBLISH_DOCS_TO_AWS == 'true' }}
     runs-on: ubuntu-22.04
     steps:
       - name: Check required secrets
@@ -274,8 +275,8 @@ jobs:
           aws-region: ${{ vars.AWS_REGION }}
       - name: Install and configure rclone
         run: |
-          apt-get update
-          apt-get install -y rclone
+          sudo apt-get update
+          sudo apt-get install -y rclone
           mkdir -p ~/.config/rclone/
           cat > ~/.config/rclone/rclone.conf << EOF
           [docs-s3]
