@@ -29,6 +29,12 @@ jobs:
     with:
       branch-name: rel/auth-4.7.x
 
+  call-builder-rec-52:
+    if: ${{ vars.SCHEDULED_JOBS_BUILDER }}
+    uses: PowerDNS/pdns/.github/workflows/builder.yml@rel/rec-5.2.x
+    with:
+      branch-name: rel/rec-5.2.x
+
   call-builder-rec-51:
     if: ${{ vars.SCHEDULED_JOBS_BUILDER }}
     uses: PowerDNS/pdns/.github/workflows/builder.yml@rel/rec-5.1.x
@@ -40,12 +46,6 @@ jobs:
     uses: PowerDNS/pdns/.github/workflows/builder.yml@rel/rec-5.0.x
     with:
       branch-name: rel/rec-5.0.x
-
-  call-builder-rec-49:
-    if: ${{ vars.SCHEDULED_JOBS_BUILDER }}
-    uses: PowerDNS/pdns/.github/workflows/builder.yml@rel/rec-4.9.x
-    with:
-      branch-name: rel/rec-4.9.x
 
   call-builder-dnsdist-19:
     if: ${{ vars.SCHEDULED_JOBS_BUILDER }}
