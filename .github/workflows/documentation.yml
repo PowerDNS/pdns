@@ -298,60 +298,44 @@ jobs:
           AWS_CLOUDFRONT_DISTRIBUTION_ID_DNSDIST: ${{ vars.AWS_CLOUDFRONT_DISTRIBUTION_ID_DNSDIST }}
           AWS_CLOUDFRONT_DISTRIBUTION_ID_DOCS: ${{ vars.AWS_CLOUDFRONT_DISTRIBUTION_ID_DOCS }}
         run: |
-          # Function to check if rclone output indicates any changes were made
-          check_rclone_changes() {
-            local log_file=$1
-            grep -q "Copied (new\|replaced existing)" "$log_file"
-            return $?
-          }
-          
           if [ -n "$AWS_CLOUDFRONT_DISTRIBUTION_ID_DNSDIST" ]; then
             tar -xf artifacts/dnsdist-html-docs-${{needs.build-docs.outputs.pdns_version}}/dnsdist-html-docs.tar
             cp artifacts/dnsdist-${{needs.build-docs.outputs.pdns_version}}.pdf/dnsdist.pdf dnsdist-html-docs/
             
-            # Capture rclone output
-            DNSDIST_RCLONE_LOG="/tmp/dnsdist-rclone.log"
-            rclone copy -v --checksum dnsdist-html-docs/ docs-s3:$AWS_S3_BUCKET_DOCS/dnsdist.org/ 2>&1 | tee "$DNSDIST_RCLONE_LOG"
+            # Copy files to S3
+            echo "Copying DNSdist docs to S3..."
+            rclone copy -v --checksum dnsdist-html-docs/ docs-s3:$AWS_S3_BUCKET_DOCS/dnsdist.org/
             
-            # Check if any files were changed
-            if check_rclone_changes "$DNSDIST_RCLONE_LOG"; then
-              echo "Files changed for DNSdist, running CloudFront invalidation..."
-              aws cloudfront create-invalidation \
-                --distribution-id $AWS_CLOUDFRONT_DISTRIBUTION_ID_DNSDIST \
-                --paths "/*"
-              echo "Invalidation completed."
-            else
-              echo "No files changed for DNSdist, skipping CloudFront invalidation."
-            fi
+            # Always run invalidation
+            echo "Running CloudFront invalidation for DNSdist..."
+            aws cloudfront create-invalidation \
+              --distribution-id $AWS_CLOUDFRONT_DISTRIBUTION_ID_DNSDIST \
+              --paths "/*"
+            echo "Invalidation completed."
           fi
           
           if [ -n "$AWS_CLOUDFRONT_DISTRIBUTION_ID_DOCS" ]; then
             tar -xf artifacts/recursor-html-docs-${{needs.build-docs.outputs.pdns_version}}/rec-html-docs.tar
             cp artifacts/PowerDNS-Recursor-${{needs.build-docs.outputs.pdns_version}}.pdf/PowerDNS-Recursor.pdf rec-html-docs/
             
-            # Capture all rclone output for PowerDNS docs
-            PDNS_RCLONE_LOG="/tmp/pdns-rclone.log"
-            echo "Copying recursor docs..." | tee -a "$PDNS_RCLONE_LOG"
-            rclone copy -v --checksum rec-html-docs/ docs-s3:$AWS_S3_BUCKET_DOCS/docs.powerdns.com/recursor/ 2>&1 | tee -a "$PDNS_RCLONE_LOG"
+            # Copy all PowerDNS docs to S3
+            echo "Copying Recursor docs to S3..."
+            rclone copy -v --checksum rec-html-docs/ docs-s3:$AWS_S3_BUCKET_DOCS/docs.powerdns.com/recursor/
 
             tar -xf artifacts/authoritative-html-docs-${{needs.build-docs.outputs.pdns_version}}/auth-html-docs.tar
             cp artifacts/PowerDNS-Authoritative-${{needs.build-docs.outputs.pdns_version}}.pdf/PowerDNS-Authoritative.pdf auth-html-docs/
-            echo "Copying authoritative docs..." | tee -a "$PDNS_RCLONE_LOG"
-            rclone copy -v --checksum auth-html-docs/ docs-s3:$AWS_S3_BUCKET_DOCS/docs.powerdns.com/authoritative/ 2>&1 | tee -a "$PDNS_RCLONE_LOG"
+            echo "Copying Authoritative docs to S3..."
+            rclone copy -v --checksum auth-html-docs/ docs-s3:$AWS_S3_BUCKET_DOCS/docs.powerdns.com/authoritative/
 
             tar -xf artifacts/website-${{needs.build-docs.outputs.pdns_version}}/website.tar
-            echo "Copying website files..." | tee -a "$PDNS_RCLONE_LOG"
-            rclone copy -v --checksum website/docs.powerdns.com/ docs-s3:$AWS_S3_BUCKET_DOCS/docs.powerdns.com/ 2>&1 | tee -a "$PDNS_RCLONE_LOG"
+            echo "Copying website files to S3..."
+            rclone copy -v --checksum website/docs.powerdns.com/ docs-s3:$AWS_S3_BUCKET_DOCS/docs.powerdns.com/
 
-            # Check if any files were changed for PowerDNS docs
-            if check_rclone_changes "$PDNS_RCLONE_LOG"; then
-              echo "Files changed for PowerDNS docs, running CloudFront invalidation..."
-              aws cloudfront create-invalidation \
-                --distribution-id $AWS_CLOUDFRONT_DISTRIBUTION_ID_DOCS \
-                --paths "/*"
-              echo "Invalidation completed."
-            else
-              echo "No files changed for PowerDNS docs, skipping CloudFront invalidation."
-            fi
+            # Always run invalidation
+            echo "Running CloudFront invalidation for PowerDNS docs..."
+            aws cloudfront create-invalidation \
+              --distribution-id $AWS_CLOUDFRONT_DISTRIBUTION_ID_DOCS \
+              --paths "/*"
+            echo "Invalidation completed."
           fi
 
