@@ -18,6 +18,13 @@ jobs:
       is_release: 'NO'
       product: 'authoritative'
       ref: master
+      os: >-
+          el-8
+          el-9
+          debian-bullseye
+          debian-bookworm
+          ubuntu-jammy
+          ubuntu-noble
     secrets:
       DOWNLOADS_AUTOBUILT_SECRET: ${{ secrets.DOWNLOADS_AUTOBUILT_SECRET }}
       DOWNLOADS_AUTOBUILT_RSYNCTARGET: ${{ secrets.DOWNLOADS_AUTOBUILT_RSYNCTARGET }}
@@ -30,6 +37,13 @@ jobs:
       is_release: 'NO'
       product: 'dnsdist'
       ref: master
+      os: >-
+          el-8
+          el-9
+          debian-bullseye
+          debian-bookworm
+          ubuntu-jammy
+          ubuntu-noble
     secrets:
       DOWNLOADS_AUTOBUILT_SECRET: ${{ secrets.DOWNLOADS_AUTOBUILT_SECRET }}
       DOWNLOADS_AUTOBUILT_RSYNCTARGET: ${{ secrets.DOWNLOADS_AUTOBUILT_RSYNCTARGET }}
@@ -42,6 +56,13 @@ jobs:
       is_release: 'NO'
       product: 'recursor'
       ref: master
+      os: >-
+          el-8
+          el-9
+          debian-bullseye
+          debian-bookworm
+          ubuntu-jammy
+          ubuntu-noble
     secrets:
       DOWNLOADS_AUTOBUILT_SECRET: ${{ secrets.DOWNLOADS_AUTOBUILT_SECRET }}
       DOWNLOADS_AUTOBUILT_RSYNCTARGET: ${{ secrets.DOWNLOADS_AUTOBUILT_RSYNCTARGET }}
