@@ -283,6 +283,7 @@ jobs:
           type = s3
           provider = AWS
           env_auth = true
+          region = ${{ vars.AWS_REGION }}
           EOF
       - name: Download artifacts
         uses: actions/download-artifact@v4
@@ -301,11 +302,12 @@ jobs:
             tar -xf artifacts/dnsdist-html-docs-${{needs.build-docs.outputs.pdns_version}}/dnsdist-html-docs.tar
             cp artifacts/dnsdist-${{needs.build-docs.outputs.pdns_version}}.pdf/dnsdist.pdf dnsdist-html-docs/
             rclone copy dnsdist-html-docs/ docs-s3:$AWS_S3_BUCKET_DOCS/dnsdist.org/
-            # Invalidate CloudFront cache for DNSdist
+            # Invalidate CloudFront cache for DNSdist in background
+            echo "Starting CloudFront invalidation for DNSdist in background..."
             aws cloudfront create-invalidation \
               --distribution-id $AWS_CLOUDFRONT_DISTRIBUTION_ID_DNSDIST \
-              --paths "/*" \
-              --no-wait
+              --paths "/*" &
+            echo "Invalidation process started in background. Continuing..."
           fi
           if [ -n "$AWS_CLOUDFRONT_DISTRIBUTION_ID_DOCS" ]; then
             tar -xf artifacts/recursor-html-docs-${{needs.build-docs.outputs.pdns_version}}/rec-html-docs.tar
@@ -319,10 +321,11 @@ jobs:
             tar -xf artifacts/website-${{needs.build-docs.outputs.pdns_version}}/website.tar
             rclone copy website/docs.powerdns.com/ docs-s3:$AWS_S3_BUCKET_DOCS/docs.powerdns.com/
 
-            # Invalidate CloudFront cache for docs.powerdns.com
+            # Invalidate CloudFront cache for docs.powerdns.com in background
+            echo "Starting CloudFront invalidation for docs.powerdns.com in background..."
             aws cloudfront create-invalidation \
               --distribution-id $AWS_CLOUDFRONT_DISTRIBUTION_ID_DOCS \
-              --paths "/*" \
-              --no-wait
+              --paths "/*"
+            echo "Invalidation process started in background. Continuing..."
           fi
 
