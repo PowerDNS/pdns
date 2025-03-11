@@ -40,14 +40,8 @@ RUN if [ "${DOCKER_FAKE_RELEASE}" = "YES" ]; then \
     fi && \
     BUILDER_MODULES=dnsdist autoreconf -vfi
 
-
-RUN mkdir /libh2o && cd /libh2o && \
-      apt-get update && apt-get install -y cmake curl jq libssl-dev zlib1g-dev && \
-      cd /source/builder-support/helpers/ && \
-      ./install_h2o.sh
-
 RUN mkdir /quiche && cd /quiche && \
-    apt-get install -y libclang-dev && \
+    apt-get install -y cmake curl jq libclang-dev && \
     apt-get clean && \
     cd /source/builder-support/helpers/ && \
     ./install_rust.sh && \
@@ -65,7 +59,6 @@ RUN mkdir /build && \
       --enable-dns-over-tls \
       --enable-dns-over-https \
       --with-re2 \
-      --with-h2o \
       --enable-dns-over-quic \
       --enable-dns-over-http3 \
       --with-quiche \
