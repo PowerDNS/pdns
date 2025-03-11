@@ -4183,6 +4183,7 @@ static void allowAdditionalEntry(std::unordered_set<DNSName>& allowedAdditionals
   }
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DNSName& qname, const QType qtype, const DNSName& auth, bool wasForwarded, bool rdQuery)
 {
   const bool wasForwardRecurse = wasForwarded && rdQuery;

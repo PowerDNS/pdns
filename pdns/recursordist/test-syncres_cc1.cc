@@ -1483,6 +1483,7 @@ BOOST_AUTO_TEST_CASE(test_following_cname_with_a)
   const DNSName target("cname.powerdns.com.");
   const DNSName cnameTarget("cname-target.powerdns.com");
 
+  // NOLINTNEXTLINE(performance-unnecessary-value-param)
   resolver->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
     if (isRootServer(address)) {
       setLWResult(res, 0, false, false, true);
@@ -1531,6 +1532,7 @@ BOOST_AUTO_TEST_CASE(test_following_cname_chain_with_a)
   const DNSName cnameTarget1("cname-target1.powerdns.com");
   const DNSName cnameTarget("cname-target.powerdns.com");
 
+  // NOLINTNEXTLINE(performance-unnecessary-value-param)
   resolver->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, boost::optional<const ResolveContext&> /* context */, LWResult* res, bool* /* chained */) {
     if (isRootServer(address)) {
       setLWResult(res, 0, false, false, true);
