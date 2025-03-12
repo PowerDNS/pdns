@@ -135,7 +135,7 @@ deps = [
   dep_dlopen,
   dep_pkcs11,
   dep_gss_tsig,
-  dep_systemd,
+  dep_libsystemd,
   dep_arc4random,
   dep_ipcrypt,
   dep_json11,
@@ -157,7 +157,7 @@ deps = [
   dep_boost_test,
 ]
 
-if dep_systemd.found()
+if dep_libsystemd.found()
   systemd_service_conf = configuration_data()
   systemd_service_conf.set('BinDir', get_option('prefix') / get_option('bindir'))
   systemd_service_conf.set('StaticBinDir', get_option('prefix') / get_option('sbindir'))

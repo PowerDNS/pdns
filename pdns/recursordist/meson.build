@@ -440,7 +440,7 @@ tools = {
       dep_json11,
       dep_recrust,
       dep_rust_recrust,
-      dep_systemd,
+      dep_libsystemd,
       librec_signers_openssl,
       librec_signers_sodium,
       dep_pubsuffix,
@@ -633,7 +633,7 @@ if python.found()
   endif
 endif
 
-if dep_systemd.found()
+if dep_libsystemd.found()
   systemd_system_unit_dir = dep_systemd_prog.get_variable(
     'systemdsystemunitdir',
   )

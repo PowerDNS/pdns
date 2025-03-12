@@ -20,7 +20,7 @@ option('dns-over-http3', type: 'boolean', value: false, description: 'Enable DNS
 option('dns-over-quic', type: 'boolean', value: false, description: 'Enable DNS over QUIC')
 option('unit-tests', type: 'boolean', value: false, description: 'Build and run unit tests')
 option('reproducible', type: 'boolean', value: false, description: 'Reproducible builds (for distro maintainers, makes debugging difficult)')
-option('systemd', type: 'feature', value: 'auto', description: 'Systemd notification (requires libsystemd)')
+option('systemd-service', type: 'feature', value: 'auto', description: 'Systemd integration (requires libsystemd)')
 option('systemd-service-user', type: 'string', value: 'dnsdist', description: 'Systemd service user (setuid and unit file; user is not created)')
 option('systemd-service-group', type: 'string', value: 'dnsdist', description: 'Systemd service group (setgid and unit file; group is not created)')
 option('auto-var-init', type: 'combo', value: 'disabled', choices: ['zero', 'pattern', 'disabled'], description: 'Enable initialization of automatic variables')

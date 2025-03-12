@@ -1,4 +1,6 @@
-dep_systemd_prog = dependency('systemd', required: false)
+opt_systemd = get_option('systemd-service')
+
+dep_systemd_prog = dependency('systemd', required: opt_systemd)
 summary('Systemd', dep_systemd_prog.found(), bool_yn: true, section: 'Configuration')
 
 # Map systemd features to systemd/systemctl version.

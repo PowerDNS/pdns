@@ -602,7 +602,7 @@ def ci_rec_configure_meson(c, features, build_dir):
             "-D dns-over-tls=false",
             "-D dnstap=disabled",
             "-D nod=false",
-            "-D systemd=disabled",
+            "-D system-service=disabled",
             "-D lua=luajit",
             "-D libcap=disabled",
             "-D libcurl=disabled",
@@ -775,7 +775,7 @@ def ci_dnsdist_configure_meson(features, additional_flags, additional_ld_flags, 
                       -D lmdb=enabled \
                       -D nghttp2=enabled \
                       -D re2=enabled \
-                      -D systemd=enabled \
+                      -D systemd-service=enabled \
                       -D tls-gnutls=enabled \
                       -D dns-over-https=true \
                       -D dns-over-http3=true \
@@ -795,7 +795,7 @@ def ci_dnsdist_configure_meson(features, additional_flags, additional_ld_flags, 
                       -D lmdb=disabled \
                       -D nghttp2=disabled \
                       -D re2=disabled \
-                      -D systemd=disabled \
+                      -D systemd-service=disabled \
                       -D tls-gnutls=disabled \
                       -D dns-over-https=false \
                       -D dns-over-http3=false \

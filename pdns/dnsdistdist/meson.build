@@ -411,7 +411,7 @@ tools = {
       dep_lua,
       dep_protozero,
       dep_json11,
-      dep_systemd,
+      dep_libsystemd,
       dep_yahttp,
     ],
     'install': true,
@@ -607,7 +607,7 @@ if get_option('man-pages') and python.found()
   endif
 endif
 
-if dep_systemd_prog.found()
+if dep_libsystemd.found()
 
   systemd_system_unit_dir = dep_systemd_prog.get_variable(
     'systemdsystemunitdir',
