@@ -22,5 +22,5 @@ option('socket-dir', type: 'string', value: '/var/run', description: 'Where the 
 option('snmp', type: 'boolean', value: false, description: 'Enable SNMP')
 option('dnstap', type: 'feature', value: 'auto', description: 'Enable DNSTAP support through libfstrm')
 option('libcurl', type: 'feature', value: 'auto', description: 'Enable Curl support')
-option('nod', type: 'boolean', value: true, description: 'Enable Newly Obserbed Domains')
+option('nod', type: 'boolean', value: true, description: 'Enable Newly Observed Domains')
 option('libcap', type: 'feature', value: 'auto', description: 'Enable libcap for capabilities handling')
