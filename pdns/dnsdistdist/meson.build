@@ -157,10 +157,8 @@ common_sources += files(
   src_dir / 'dnsdist-lua-bindings-rings.cc',
   src_dir / 'dnsdist-lua-configuration-items.cc',
   src_dir / 'dnsdist-lua.cc',
-  src_dir / 'dnsdist-lua-ffi.cc',
   src_dir / 'dnsdist-lua-hooks.cc',
   src_dir / 'dnsdist-lua-inspection.cc',
-  src_dir / 'dnsdist-lua-inspection-ffi.cc',
   src_dir / 'dnsdist-lua-network.cc',
   src_dir / 'dnsdist-lua-rules.cc',
   src_dir / 'dnsdist-lua-vars.cc',
@@ -338,7 +336,6 @@ deps = [
   dep_boost,
   dep_cdb,
   dep_dnstap,
-  dep_ffi_interface,
   dep_htmlfiles,
   dep_ipcrypt,
   dep_libcap,
@@ -382,22 +379,14 @@ if not fs.is_file(libdnsdist_dnslabeltext_gen)
   libdnsdist_dnslabeltext_gen = ragel_generator.process(libdnsdist_dnslabeltext_source)
 endif
 
-libdnsdist_dnslabeltext = declare_dependency(
-  link_with: static_library(
-    'dnsdist-dnslabeltext',
-    libdnsdist_dnslabeltext_gen,
-    dependencies: deps,
-  )
-)
-
 libdnsdist_common = declare_dependency(
   link_with: static_library(
     'dnsdist-common',
     common_sources,
     config_h,
+    libdnsdist_dnslabeltext_gen,
     dependencies: [
       deps,
-      libdnsdist_dnslabeltext,
     ],
   )
 )
@@ -408,17 +397,22 @@ tools = {
     'files-extra': [
       src_dir / 'dnstap.cc',
       src_dir / 'fstrm_logger.cc',
+      # FFI files are directly added to the binary, because otherwise the visibility
+      # is ignored and the functions that are not used in the binary are not exported
+      src_dir / 'dnsdist-lua-ffi.cc',
+      src_dir / 'dnsdist-lua-inspection-ffi.cc',
       mplexer_sources,
     ],
     'manpages': ['dnsdist.1'],
     'deps-extra': [
-      dep_pdns,
       dep_boost,
+      dep_pdns,
+      dep_ffi_interface,
       dep_lua,
       dep_protozero,
-      dep_yahttp,
       dep_json11,
       dep_systemd,
+      dep_yahttp,
     ],
     'install': true,
   },
@@ -511,9 +505,16 @@ if get_option('unit-tests')
           src_dir / 'testrunner.cc',
           mplexer_sources,
         ],
+        'files-extra': [
+          # FFI files are directly added to the binary, because otherwise the visibility
+          # is ignored and the functions that are not used in the binary are not exported
+          src_dir / 'dnsdist-lua-ffi.cc',
+        ],
         'deps-extra': [
           libdnsdist_test,
           dep_boost_test,
+          dep_ffi_interface,
+          dep_lua,
         ],
     }
   }

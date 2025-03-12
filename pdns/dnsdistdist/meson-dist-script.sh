@@ -34,5 +34,5 @@ rm -rf "$MESON_PROJECT_DIST_ROOT"/autom4te.cache
 
 # Generate a few files to reduce build dependencies
 echo 'If the below command generates an error, remove dnslabeltext.cc from source dir (remains of an autotools build?) and start again with a clean meson setup'
-ninja libdnsdist-dnslabeltext.a.p/dnslabeltext.cc
-cp -vp libdnsdist-dnslabeltext.a.p/dnslabeltext.cc "$MESON_PROJECT_DIST_ROOT"
+ninja libdnsdist-common.a.p/dnslabeltext.cc
+cp -vp libdnsdist-common.a.p/dnslabeltext.cc "$MESON_PROJECT_DIST_ROOT"

@@ -20,7 +20,6 @@ on:
           el-9
           debian-bullseye
           debian-bookworm
-          ubuntu-focal
           ubuntu-jammy
           ubuntu-noble
       ref:
