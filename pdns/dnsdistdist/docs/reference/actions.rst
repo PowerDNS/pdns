@@ -797,7 +797,7 @@ The following actions exist.
   Forge a response with the specified IPv4 (for an A query) or IPv6 (for an AAAA) addresses.
   If you specify multiple addresses, all that match the query type (A, AAAA or ANY) will get spoofed in.
 
-  Note that if you only specify only addresses of one type (e.g. only IPv4 addresses), then queries for the other type (in this case AAAA queries), will **not** be spoofed.
+  Note that if you only specify addresses of one type (e.g. only IPv4 addresses), then queries for the other type (in this case AAAA queries), will **not** be spoofed.
   This means that for most practical cases, you'd need to specify at least one IPv4 and one IPv6 address.
 
   :param string ip: An IPv4 and/or IPv6 address to spoof
