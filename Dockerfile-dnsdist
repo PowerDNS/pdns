@@ -60,7 +60,7 @@ RUN mkdir /build && \
     CXX=clang++ \
     PKG_CONFIG_PATH=/opt/lib/pkgconfig meson setup ${BUILDDIR} \
       --sysconfdir=/etc/dnsdist \
-      -Dlua=${LUAVER} \
+      -Dlua=auto \
       -Db_lto=true \
       -Db_lto_mode=thin \
       -Db_pie=true \
