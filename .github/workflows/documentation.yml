@@ -304,7 +304,7 @@ jobs:
             
             # Copy files to S3
             echo "Copying DNSdist docs to S3..."
-            rclone copy -v --checksum dnsdist-html-docs/ docs-s3:$AWS_S3_BUCKET_DOCS/dnsdist.org/
+            rclone copy --checksum dnsdist-html-docs/ docs-s3:$AWS_S3_BUCKET_DOCS/dnsdist.org/
             
             # Always run invalidation
             echo "Running CloudFront invalidation for DNSdist..."
@@ -320,16 +320,16 @@ jobs:
             
             # Copy all PowerDNS docs to S3
             echo "Copying Recursor docs to S3..."
-            rclone copy -v --checksum rec-html-docs/ docs-s3:$AWS_S3_BUCKET_DOCS/docs.powerdns.com/recursor/
+            rclone copy --checksum rec-html-docs/ docs-s3:$AWS_S3_BUCKET_DOCS/docs.powerdns.com/recursor/
 
             tar -xf artifacts/authoritative-html-docs-${{needs.build-docs.outputs.pdns_version}}/auth-html-docs.tar
             cp artifacts/PowerDNS-Authoritative-${{needs.build-docs.outputs.pdns_version}}.pdf/PowerDNS-Authoritative.pdf auth-html-docs/
             echo "Copying Authoritative docs to S3..."
-            rclone copy -v --checksum auth-html-docs/ docs-s3:$AWS_S3_BUCKET_DOCS/docs.powerdns.com/authoritative/
+            rclone copy --checksum auth-html-docs/ docs-s3:$AWS_S3_BUCKET_DOCS/docs.powerdns.com/authoritative/
 
             tar -xf artifacts/website-${{needs.build-docs.outputs.pdns_version}}/website.tar
             echo "Copying website files to S3..."
-            rclone copy -v --checksum website/docs.powerdns.com/ docs-s3:$AWS_S3_BUCKET_DOCS/docs.powerdns.com/
+            rclone copy --checksum website/docs.powerdns.com/ docs-s3:$AWS_S3_BUCKET_DOCS/docs.powerdns.com/
 
             # Always run invalidation
             echo "Running CloudFront invalidation for PowerDNS docs..."
