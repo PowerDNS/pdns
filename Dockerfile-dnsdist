@@ -40,14 +40,8 @@ RUN if [ "${DOCKER_FAKE_RELEASE}" = "YES" ]; then \
     fi && \
     BUILDER_MODULES=dnsdist autoreconf -vfi
 
-
-RUN mkdir /libh2o && cd /libh2o && \
-      apt-get update && apt-get install -y cmake curl jq libssl-dev zlib1g-dev && \
-      cd /source/builder-support/helpers/ && \
-      ./install_h2o.sh
-
 RUN mkdir /quiche && cd /quiche && \
-    apt-get install -y libclang-dev && \
+    apt-get install -y cmake curl jq libclang-dev && \
     apt-get clean && \
     cd /source/builder-support/helpers/ && \
     ./install_rust.sh && \
@@ -65,16 +59,21 @@ RUN mkdir /build && \
       --enable-dns-over-tls \
       --enable-dns-over-https \
       --with-re2 \
-      --with-h2o \
       --enable-dns-over-quic \
       --enable-dns-over-http3 \
       --with-quiche \
       PKG_CONFIG_PATH=/opt/lib/pkgconfig && \
     make clean && \
     make $MAKEFLAGS install DESTDIR=/build && make clean && \
-    strip /build/usr/local/bin/* &&\
-    mkdir -p /build/usr/lib/ && \
-    cp -rf /usr/lib/libdnsdist-quiche.so /build/usr/lib/
+    strip /build/usr/local/bin/*
+
+RUN for tentative in "lib/x86_64-linux-gnu" "lib/aarch64-linux-gnu" "lib64" "lib"; do \
+      if [ -f "/usr/${tentative}/libdnsdist-quiche.so" ]; then \
+        mkdir -p "/build/usr/${tentative}/"; \
+        cp "/usr/${tentative}/libdnsdist-quiche.so" "/build/usr/${tentative}/"; \
+        break; \
+      fi; \
+    done
 
 RUN cd /tmp && mkdir /build/tmp/ && mkdir debian && \
     echo 'Source: docker-deps-for-pdns' > debian/control && \
