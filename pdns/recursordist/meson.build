@@ -18,7 +18,14 @@ meson.add_dist_script('meson-dist-script.sh')
 meson.add_dist_script('version.sh', 'set-dist', meson.project_version())
 
 add_project_arguments('-DRECURSOR', language: 'cpp')
-
+add_project_arguments(
+  '-Wshadow',
+  '-Wmissing-declarations',
+  '-Wredundant-decls',
+  '-Wno-ignored-attributes',
+  '-fvisibility=hidden',
+  language: ['c', 'cpp'],
+)
 
 product_source_dir = meson.current_source_dir()
 product_build_dir = meson.current_build_dir()
@@ -407,6 +414,10 @@ librec_common = declare_dependency(
 tools = {
   'pdns_recursor': {
     'main': src_dir / 'rec-main.cc',
+    'link-args': [
+	'-Wl,--export-dynamic-symbol=pdns_ffi_*',
+	'-Wl,--export-dynamic-symbol=pdns_postresolve_ffi_*',
+    ],
     'files-extra': [
       src_dir / 'capabilities.cc',
       src_dir / 'channel.cc',
@@ -542,6 +553,7 @@ foreach tool, info: tools
   main = files(info['main'])
 
   export_dynamic = 'export-dynamic' in info ? info['export-dynamic'] : false
+  link_args = 'link-args' in info ? info['link-args'] : []
   files_extra = 'files-extra' in info ? info['files-extra'] : []
   deps_extra = 'deps-extra' in info ? info['deps-extra'] : []
   install = 'install' in info ? info['install'] : false
@@ -555,6 +567,7 @@ foreach tool, info: tools
       config_h,
       files_extra,
       export_dynamic: export_dynamic,
+      link_args: link_args,
       dependencies: [
         librec_common,
         deps_extra,
