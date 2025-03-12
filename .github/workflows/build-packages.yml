@@ -56,8 +56,26 @@ jobs:
       # but, as this whole workflow needs at least 30 minutes to run, I prefer spending a few seconds here
       # so that the command remains readable, because jo is simpler to use.
       - run: sudo apt-get update && sudo apt-get -y install jo
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          submodules: recursive
+          ref: ${{ inputs.ref }}
       - id: get-oslist
-        run: echo "oslist=$(jo -a ${{ inputs.os }})" >> "$GITHUB_OUTPUT"
+        run: |
+          available_targets=$(ls builder-support/dockerfiles/Dockerfile.target.* )
+          for i in $(echo "${{ inputs.os }}"); do
+            if echo $available_targets | grep -qq $i; then
+              targets+=($i)
+            else
+              if [[ "${{ inputs.ref }}" == "master" ]]; then
+                echo "::error title=Dockerfile not found for ${i}::OS ${i} not available as target in ${{ inputs.ref }}" && exit 1
+              else
+                echo "::warning title=Packages will not be generated for ${i}::OS ${i} not available as target in ${{ inputs.ref }}"
+              fi
+            fi
+          done
+          echo "oslist=$(jo -a ${targets[*]})" >> "$GITHUB_OUTPUT"
       - id: get-runnerlist
         run: echo "runnerlist=$(jo -a ubuntu-24.04 ${{ vars.ARM64_USE_UBICLOUD == '1' && 'ubicloud-standard-2-arm' || '' }})" >> "$GITHUB_OUTPUT"
       - id: get-archlist
@@ -155,7 +173,7 @@ jobs:
           rsync -4rlptD built_pkgs/* "$RSYNCTARGET"
 
   check-hashes:
-    needs: build
+    needs: [prepare, build]
     name: Check if hashes were created for all requested targets
     runs-on: ubuntu-24.04
     steps:
@@ -163,7 +181,7 @@ jobs:
         run: echo '${{ toJSON(needs.build.outputs) }}' | jq 'keys[]' | grep -vE 'version|product-name' | tee /tmp/build-outputs.txt
       - name: Get list of OS inputs
         run: |
-          for os in ${{ inputs.os }}; do
+          for os in $(echo '${{ needs.prepare.outputs.oslist }}' | jq -r '.[]'); do
             for architecture in x86_64 ${{ vars.ARM64_USE_UBICLOUD == '1' && 'aarch64' || '' }}; do
               echo "\"pkghashes-$os-$architecture\"" | tee -a /tmp/os-inputs.txt
             done
