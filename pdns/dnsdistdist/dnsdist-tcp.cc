@@ -306,7 +306,7 @@ void IncomingTCPConnectionState::registerOwnedDownstreamConnection(std::shared_p
   incomingMaxInFlightQueriesPerConn = std::max(incomingMaxInFlightQueriesPerConn, static_cast<size_t>(1U));
   auto outgoingMaxInFlightQueriesPerConn = downstream->d_config.d_maxInFlightQueriesPerConn;
   outgoingMaxInFlightQueriesPerConn = std::max(outgoingMaxInFlightQueriesPerConn, static_cast<size_t>(1U));
-  size_t maxCachedOutgoingConnections = std::min(static_cast<size_t>(std::round(incomingMaxInFlightQueriesPerConn / outgoingMaxInFlightQueriesPerConn)), static_cast<size_t>(5U));
+  size_t maxCachedOutgoingConnections = std::min(static_cast<size_t>(incomingMaxInFlightQueriesPerConn / outgoingMaxInFlightQueriesPerConn), static_cast<size_t>(5U));
 
   queue.push_front(conn);
   if (queue.size() > maxCachedOutgoingConnections) {
