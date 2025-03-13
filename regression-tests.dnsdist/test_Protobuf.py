@@ -548,6 +548,69 @@ class TestProtobufExtendedDNSErrorTags(DNSDistProtobufTest):
         self.assertIn(15, msg.meta[0].value.intVal)
         self.assertIn('Blocked by RPZ!', msg.meta[0].value.stringVal)
 
+class TestProtobufCacheHit(DNSDistProtobufTest):
+    _config_params = ['_testServerPort', '_protobufServerPort']
+    _config_template = """
+    newServer{address="127.0.0.1:%s"}
+    rl = newRemoteLogger('127.0.0.1:%d')
+    pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
+    getPool(""):setCache(pc)
+
+    addResponseAction(AllRule(), RemoteLogResponseAction(rl, nil, false, {serverID='dnsdist-server-1'}))
+    addCacheHitResponseAction(AllRule(), RemoteLogResponseAction(rl, nil, false, {serverID='dnsdist-server-1'}))
+    """
+
+    def testProtobufExtendedError(self):
+        """
+        Protobuf: CacheHit field
+        """
+        name = 'cachehit.protobuf.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        # fill the cache
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
+
+        if self._protobufQueue.empty():
+            # let the protobuf messages the time to get there
+            time.sleep(1)
+
+        # check the protobuf message corresponding to the UDP response
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, response)
+        self.assertTrue(msg.HasField('packetCacheHit'))
+        self.assertFalse(msg.packetCacheHit)
+        self.assertTrue(msg.HasField('outgoingQueries'))
+        self.assertEqual(msg.outgoingQueries, 1)
+
+        # now shoud be a cache hit
+        (_, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedResponse)
+        self.assertEqual(response, receivedResponse)
+
+        if self._protobufQueue.empty():
+            # let the protobuf messages the time to get there
+            time.sleep(1)
+
+        # check the protobuf message corresponding to the UDP response
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, response)
+        self.assertTrue(msg.HasField('packetCacheHit'))
+        self.assertTrue(msg.packetCacheHit)
+        self.assertTrue(msg.HasField('outgoingQueries'))
+        self.assertEqual(msg.outgoingQueries, 0)
+
 class TestProtobufMetaDOH(DNSDistProtobufTest):
 
     _serverKey = 'server.key'
