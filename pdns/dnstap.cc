@@ -132,6 +132,7 @@ DnstapMessage::DnstapMessage(std::string&& buffer, DnstapMessage::MessageType ty
     }
   }
   if (httpProtocol) {
+    // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
     pbf_message.add_enum(DnstapMessageFields::http_protocol, static_cast<protozero::pbf_tag_type>(*httpProtocol));
   }
 
