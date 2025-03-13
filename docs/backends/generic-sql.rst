@@ -364,11 +364,11 @@ basic-query for the Generic MySQL backend would appear as:
 
 ::
 
-    gmysql-basic-query=SELECT content,ttl,prio,type,domain_id,disabled,name,auth FROM records WHERE disabled=0 and type=? and name=?
+    gmysql-basic-query=SELECT content,ttl,prio,type,domain_id,disabled,name,auth FROM records WHERE (disabled=0 or ?) and type=? and name=?
 
 Queries can span multiple lines, like this:
 
 ::
 
     gmysql-basic-query=SELECT content,ttl,prio,type,domain_id,disabled,name,auth \
-    FROM records WHERE disabled=0 and type=? and name=?
+    FROM records WHERE (disabled=0 or ?) and type=? and name=?

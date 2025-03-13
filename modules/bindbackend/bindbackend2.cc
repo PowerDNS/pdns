@@ -1148,7 +1148,7 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qn
   }
 }
 
-void Bind2Backend::lookup(const QType& qtype, const DNSName& qname, int zoneId, DNSPacket* /* pkt_p */)
+void Bind2Backend::lookup(const QType& qtype, const DNSName& qname, int zoneId, DNSPacket* /* p */, bool /* include_disabled */)
 {
   d_handle.reset();
 

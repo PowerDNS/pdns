@@ -152,7 +152,7 @@ void PipeBackend::cleanup()
   d_abiVersion = 0;
 }
 
-void PipeBackend::lookup(const QType& qtype, const DNSName& qname, int zoneId, DNSPacket* pkt_p)
+void PipeBackend::lookup(const QType& qtype, const DNSName& qname, int zoneId, DNSPacket* pkt_p, bool /* include_disabled */)
 {
   try {
     launch();

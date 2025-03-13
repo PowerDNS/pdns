@@ -55,10 +55,10 @@ protected:
   virtual void allocateStatements()
   {
     if (d_db) {
-      d_NoIdQuery_stmt = d_db->prepare(d_NoIdQuery, 2);
-      d_IdQuery_stmt = d_db->prepare(d_IdQuery, 3);
-      d_ANYNoIdQuery_stmt = d_db->prepare(d_ANYNoIdQuery, 1);
-      d_ANYIdQuery_stmt = d_db->prepare(d_ANYIdQuery, 2);
+      d_NoIdQuery_stmt = d_db->prepare(d_NoIdQuery, 3);
+      d_IdQuery_stmt = d_db->prepare(d_IdQuery, 4);
+      d_ANYNoIdQuery_stmt = d_db->prepare(d_ANYNoIdQuery, 2);
+      d_ANYIdQuery_stmt = d_db->prepare(d_ANYIdQuery, 3);
       d_listQuery_stmt = d_db->prepare(d_listQuery, 2);
       d_listSubZoneQuery_stmt = d_db->prepare(d_listSubZoneQuery, 3);
       d_PrimaryOfDomainsZoneQuery_stmt = d_db->prepare(d_PrimaryOfDomainsZoneQuery, 1);
@@ -194,7 +194,7 @@ protected:
   }
 
 public:
-  void lookup(const QType &, const DNSName &qdomain, int zoneId, DNSPacket *p=nullptr) override;
+  void lookup(const QType &qtype, const DNSName &qname, int domain_id, DNSPacket *pkt_p=nullptr, bool include_disabled = false) override;
   bool list(const DNSName &target, int domain_id, bool include_disabled=false) override;
   bool get(DNSResourceRecord &r) override;
   void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled) override;

@@ -67,7 +67,7 @@ class TinyDNSBackend : public DNSBackend
 public:
   // Methods for simple operation
   TinyDNSBackend(const string& suffix);
-  void lookup(const QType& qtype, const DNSName& qdomain, int zoneId, DNSPacket* pkt_p = nullptr) override;
+  void lookup(const QType& qtype, const DNSName& qdomain, int zoneId, DNSPacket* pkt_p = nullptr, bool include_disabled = false) override;
   bool list(const DNSName& target, int domain_id, bool include_disabled = false) override;
   bool get(DNSResourceRecord& rr) override;
   bool getDomainInfo(const DNSName& domain, DomainInfo& di, bool getSerial = true) override;

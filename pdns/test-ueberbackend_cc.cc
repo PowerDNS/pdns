@@ -134,7 +134,7 @@ public:
     return true;
   }
 
-  void lookup(const QType& qtype, const DNSName& qdomain, int zoneId = -1, DNSPacket *pkt_p = nullptr) override
+  void lookup(const QType& qtype, const DNSName& qdomain, int zoneId = -1, DNSPacket *pkt_p = nullptr, bool /* include_disabled */ = false) override
   {
     d_currentScopeMask = 0;
     findZone(qdomain, zoneId, d_records, d_currentZone);

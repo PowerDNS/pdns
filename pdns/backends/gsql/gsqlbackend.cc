@@ -1397,7 +1397,7 @@ bool GSQLBackend::setDomainMetadata(const DNSName& name, const std::string& kind
   return true;
 }
 
-void GSQLBackend::lookup(const QType& qtype, const DNSName& qname, int domain_id, DNSPacket* /* pkt_p */)
+void GSQLBackend::lookup(const QType& qtype, const DNSName& qname, int domain_id, DNSPacket* /* pkt_p */, bool include_disabled)
 {
   try {
     reconnectIfNeeded();
@@ -1408,6 +1408,7 @@ void GSQLBackend::lookup(const QType& qtype, const DNSName& qname, int domain_id
         d_query_stmt = &d_NoIdQuery_stmt;
         // clang-format off
         (*d_query_stmt)->
+          bind("include_disabled", (int)include_disabled)->
           bind("qtype", qtype.toString())->
           bind("qname", qname);
         // clang-format on
@@ -1416,6 +1417,7 @@ void GSQLBackend::lookup(const QType& qtype, const DNSName& qname, int domain_id
         d_query_stmt = &d_IdQuery_stmt;
         // clang-format off
         (*d_query_stmt)->
+          bind("include_disabled", (int)include_disabled)->
           bind("qtype", qtype.toString())->
           bind("qname", qname)->
           bind("domain_id", domain_id);
@@ -1428,6 +1430,7 @@ void GSQLBackend::lookup(const QType& qtype, const DNSName& qname, int domain_id
         d_query_stmt = &d_ANYNoIdQuery_stmt;
         // clang-format off
         (*d_query_stmt)->
+          bind("include_disabled", (int)include_disabled)->
           bind("qname", qname);
         // clang-format on
       } else {
@@ -1435,6 +1438,7 @@ void GSQLBackend::lookup(const QType& qtype, const DNSName& qname, int domain_id
         d_query_stmt = &d_ANYIdQuery_stmt;
         // clang-format off
         (*d_query_stmt)->
+          bind("include_disabled", (int)include_disabled)->
           bind("qname", qname)->
           bind("domain_id", domain_id);
         // clang-format on

@@ -200,7 +200,7 @@ public:
     return true;
   }
 
-  void lookup(const QType& qtype, const DNSName& qname, int domain_id, DNSPacket* p = nullptr) override
+  void lookup(const QType& qtype, const DNSName& qname, int domain_id, DNSPacket* p = nullptr, bool /* include_disabled */ = false) override
   {
     if (d_result.size() != 0)
       throw PDNSException("lookup attempted while another was running");

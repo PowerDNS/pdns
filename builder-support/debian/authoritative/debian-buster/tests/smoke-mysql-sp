@@ -40,13 +40,13 @@ chgrp pdns /etc/powerdns/pdns.d/gmysql.conf
 
 cat <<EOF | mysql -uroot $DBNAME
 DELIMITER //
-CREATE PROCEDURE basic_query(incoming_type varchar(10), incoming_name varchar(255))
+CREATE PROCEDURE basic_query(incoming_include_disabled int, incoming_type varchar(10), incoming_name varchar(255))
 BEGIN
-SELECT content,ttl,prio,type,domain_id,disabled,name,auth FROM records WHERE disabled=0 and type=incoming_type and name=incoming_name;
+SELECT content,ttl,prio,type,domain_id,disabled,name,auth FROM records WHERE (disabled=0 or incoming_include_disabled) and type=incoming_type and name=incoming_name;
 END//
 EOF
 cat <<EOF >>/etc/powerdns/pdns.d/gmysql.conf
-gmysql-basic-query=CALL basic_query(?, ?)
+gmysql-basic-query=CALL basic_query(?, ?, ?)
 EOF
 
 #####################################################################

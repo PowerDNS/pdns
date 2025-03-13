@@ -77,7 +77,7 @@ public:
   bool replaceComments(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<Comment>& comments) override;
 
   void getAllDomains(vector<DomainInfo>* domains, bool doSerial, bool include_disabled) override;
-  void lookup(const QType& type, const DNSName& qdomain, int zoneId, DNSPacket* p = nullptr) override;
+  void lookup(const QType& type, const DNSName& qdomain, int zoneId, DNSPacket* p = nullptr, bool include_disabled = false) override;
   bool get(DNSResourceRecord& rr) override;
   bool get(DNSZoneRecord& dzr) override;
 
