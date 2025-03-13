@@ -42,8 +42,8 @@ conf.set('HAVE_LUA', dep_lua.found(), description: 'Lua')
 conf.set('HAVE_LUA_HPP', have_luahpp, description: 'Have <lua.hpp>')
 
 if dep_lua.found() and dep_lua.name() == 'luajit'
- # export all symbols with default visibility, to be able to use the Lua FFI interface
- add_project_link_arguments('-rdynamic', language: ['c', 'cpp'])
+  # export FFI interfaces symbols, to be able to use the Lua FFI interface
+  add_project_link_arguments('-Wl,--export-dynamic-symbol=dnsdist_ffi_*', language: ['c', 'cpp'])
 endif
 
 summary('Lua', dep_lua.found(), bool_yn: true, section: 'Lua')
