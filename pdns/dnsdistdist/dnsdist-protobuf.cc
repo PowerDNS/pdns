@@ -182,6 +182,7 @@ void DNSDistProtoBufMessage::serialize(std::string& data) const
 
   if (d_dr != nullptr) {
     msg.setPacketCacheHit(d_dr->ids.cacheHit);
+    msg.setOutgoingQueries((d_dr->ids.cacheHit || d_dr->ids.selfGenerated) ? 0 : 1);
   }
   msg.startResponse();
   if (d_queryTime) {

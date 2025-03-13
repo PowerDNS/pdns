@@ -591,6 +591,8 @@ class TestProtobufCacheHit(DNSDistProtobufTest):
         self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, response)
         self.assertTrue(msg.HasField('packetCacheHit'))
         self.assertFalse(msg.packetCacheHit)
+        self.assertTrue(msg.HasField('outgoingQueries'))
+        self.assertEqual(msg.outgoingQueries, 1)
 
         # now shoud be a cache hit
         (_, receivedResponse) = self.sendUDPQuery(query, response)
@@ -606,6 +608,8 @@ class TestProtobufCacheHit(DNSDistProtobufTest):
         self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, response)
         self.assertTrue(msg.HasField('packetCacheHit'))
         self.assertTrue(msg.packetCacheHit)
+        self.assertTrue(msg.HasField('outgoingQueries'))
+        self.assertEqual(msg.outgoingQueries, 0)
 
 class TestProtobufMetaDOH(DNSDistProtobufTest):
 
