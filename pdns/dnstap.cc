@@ -1,6 +1,7 @@
 #include <boost/uuid/uuid.hpp>
 #include "config.h"
 #include "gettime.hh"
+#include "protozero/types.hpp"
 #include "dnstap.hh"
 
 #ifndef DISABLE_PROTOBUF
@@ -53,7 +54,9 @@ enum : protozero::pbf_tag_type
   query_zone = 11,
   response_time_sec = 12,
   response_time_nsec = 13,
-  response_message = 14
+  response_message = 14,
+  policy = 15,
+  http_protocol = 16,
 };
 }
 
@@ -62,7 +65,7 @@ std::string&& DnstapMessage::getBuffer()
   return std::move(d_buffer);
 }
 
-DnstapMessage::DnstapMessage(std::string&& buffer, DnstapMessage::MessageType type, const std::string& identity, const ComboAddress* requestor, const ComboAddress* responder, DnstapMessage::ProtocolType protocol, const char* packet, const size_t len, const struct timespec* queryTime, const struct timespec* responseTime, const boost::optional<const DNSName&>& auth) :
+DnstapMessage::DnstapMessage(std::string&& buffer, DnstapMessage::MessageType type, const std::string& identity, const ComboAddress* requestor, const ComboAddress* responder, DnstapMessage::ProtocolType protocol, const char* packet, const size_t len, const struct timespec* queryTime, const struct timespec* responseTime, const boost::optional<const DNSName&>& auth, const boost::optional<HttpProtocolType> httpProtocol) :
   d_buffer(std::move(buffer))
 {
   protozero::pbf_writer pbf{d_buffer};
@@ -127,6 +130,10 @@ DnstapMessage::DnstapMessage(std::string&& buffer, DnstapMessage::MessageType ty
     else {
       pbf_message.add_bytes(DnstapMessageFields::response_message, packet, len);
     }
+  }
+  if (httpProtocol) {
+    // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
+    pbf_message.add_enum(DnstapMessageFields::http_protocol, static_cast<protozero::pbf_tag_type>(*httpProtocol));
   }
 
   if (auth) {
