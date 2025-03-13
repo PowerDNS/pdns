@@ -43,6 +43,11 @@ Options
 --minimum-success-rate <NUM>   Stop the test as soon as the success rate drops below this value,
                                in percent.
 --plot-file <FILE>             Write results to the specified file.
+--proxy-protocol               Send a Proxy Protocol payload in front of outgoing queries using
+                               random addresses from the specified range (IPv4 only) as the initial
+                               source IP.
+--proxy-protocol-from-file     Read IP or subnet values from the query file and use them as the
+                               source IP in Proxy Protocol payloads in front of outgoing queries.
 --quiet                        Whether to run quietly, outputting only the maximum QPS reached.
                                This option is mostly useful when used with ``--minimum-success-rate``.
 --want-recursion               Set this flag to send queries with the Recursion Desired flag set.
