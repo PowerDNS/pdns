@@ -8,6 +8,8 @@ ENV NO_LUA_JIT="s390x arm64"
 # Reusable layer for base update
 RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
 
+# Unable backports to get a recent enough version of meson
+RUN echo "deb http://deb.debian.org/debian bookworm-backports main" > /etc/apt/sources.list.d/bookworm-backports.list
 # devscripts gives us mk-build-deps (and a lot of other stuff)
 RUN apt-get update && apt-get -y dist-upgrade && apt-get install -y  --no-install-recommends devscripts equivs git && apt-get clean
 
@@ -15,8 +17,10 @@ COPY builder-support /source/builder-support
 
 # TODO: control file is not in tarballs at all right now
 RUN mk-build-deps -i -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends' /source/builder-support/debian/dnsdist/debian-bookworm/control && \
+    apt-get install -y -t bookworm-backports meson && \
     apt-get clean
 
+COPY meson /source/meson
 COPY pdns /source/pdns
 COPY build-aux /source/build-aux
 COPY m4 /source/m4
@@ -49,23 +53,38 @@ RUN mkdir /quiche && cd /quiche && \
 
 RUN mkdir /build && \
     LUAVER=$([ -z "${NO_LUA_JIT##*$(dpkg --print-architecture)*}" ] && echo 'lua5.3' || echo 'luajit') && \
-    apt-get install -y lib${LUAVER}-*dev && \
-    ./configure \
-      --with-lua=${LUAVER} \
-      LDFLAGS=-rdynamic \
+    apt-get install -y lib${LUAVER}-*dev ninja-build && \
+    BUILDDIR=$(mktemp -d) && \
+    LDFLAGS="-latomic -fuse-ld=lld -Wl,--build-id=sha1 -ldl" \
+    CC=clang \
+    CXX=clang++ \
+    PKG_CONFIG_PATH=/opt/lib/pkgconfig meson setup ${BUILDDIR} \
       --sysconfdir=/etc/dnsdist \
-      --enable-option-checking=fatal \
-      --enable-dnscrypt \
-      --enable-dns-over-tls \
-      --enable-dns-over-https \
-      --with-re2 \
-      --enable-dns-over-quic \
-      --enable-dns-over-http3 \
-      --with-quiche \
-      PKG_CONFIG_PATH=/opt/lib/pkgconfig && \
-    make clean && \
-    make $MAKEFLAGS install DESTDIR=/build && make clean && \
-    strip /build/usr/local/bin/*
+      -Dlua=auto \
+      -Db_lto=true \
+      -Db_lto_mode=thin \
+      -Db_pie=true \
+      -Ddns-over-https=true \
+      -Ddns-over-quic=true \
+      -Ddns-over-http3=true \
+      -Ddns-over-tls=true \
+      -Ddnscrypt=enabled \
+      -Ddnstap=enabled \
+      -Dyaml=enabled \
+      -Debpf=enabled \
+      -Dyaml=enabled \
+      -Dtls-gnutls=enabled \
+      -Dsnmp=true \
+      -Dlibcap=enabled \
+      -Dlibsodium=enabled \
+      -Dquiche=enabled \
+      -Dre2=enabled \
+      -Dsystemd=disabled \
+      -Dxsk=enabled && \
+    meson compile -C ${BUILDDIR} && \
+    meson install -C ${BUILDDIR} --destdir /build && \
+    strip /build/usr/local/bin/* && \
+    rm -rf /build/lib # remove systemd unit files, we do not need them and copying /lib to the run-time image breaks it
 
 RUN for tentative in "lib/x86_64-linux-gnu" "lib/aarch64-linux-gnu" "lib64" "lib"; do \
       if [ -f "/usr/${tentative}/libdnsdist-quiche.so" ]; then \
