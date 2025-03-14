@@ -1433,7 +1433,7 @@ private:
 };
 
 #ifndef DISABLE_PROTOBUF
-std::tuple<DnstapMessage::ProtocolType, boost::optional<DnstapMessage::HttpProtocolType>> ProtocolToDNSTap(dnsdist::Protocol protocol)
+static std::tuple<DnstapMessage::ProtocolType, boost::optional<DnstapMessage::HttpProtocolType>> ProtocolToDNSTap(dnsdist::Protocol protocol)
 {
   if (protocol == dnsdist::Protocol::DoUDP) {
     return {DnstapMessage::ProtocolType::DoUDP, boost::none};
