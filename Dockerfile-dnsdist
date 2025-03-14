@@ -79,7 +79,7 @@ RUN mkdir /build && \
       -Dlibsodium=enabled \
       -Dquiche=enabled \
       -Dre2=enabled \
-      -Dsystemd=disabled \
+      -Dsystemd-service=disabled \
       -Dxsk=enabled && \
     meson compile -C ${BUILDDIR} && \
     meson install -C ${BUILDDIR} --destdir /build && \
