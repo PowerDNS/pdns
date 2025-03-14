@@ -19,10 +19,6 @@ meson.add_dist_script('version.sh', 'set-dist', meson.project_version())
 
 add_project_arguments('-DRECURSOR', language: 'cpp')
 add_project_arguments(
-  '-Wshadow',
-  '-Wmissing-declarations',
-  '-Wredundant-decls',
-  '-Wno-ignored-attributes',
   '-fvisibility=hidden',
   language: ['c', 'cpp'],
 )
@@ -413,13 +409,20 @@ librec_common = declare_dependency(
   )
 )
 
+
+if target_machine.system() != 'darwin'
+    rec_link_args = [
+	'-Wl,--export-dynamic-symbol=pdns_ffi_*',
+	'-Wl,--export-dynamic-symbol=pdns_postresolve_ffi_*',
+    ]
+else
+    rec_link_args = ['-rdynamic']
+endif
+
 tools = {
   'pdns_recursor': {
     'main': src_dir / 'rec-main.cc',
-    'link-args': [
-	'-Wl,--export-dynamic-symbol=pdns_ffi_*',
-	'-Wl,--export-dynamic-symbol=pdns_postresolve_ffi_*',
-    ],
+    'link-args': rec_link_args,
     'files-extra': [
       src_dir / 'capabilities.cc',
       src_dir / 'channel.cc',
