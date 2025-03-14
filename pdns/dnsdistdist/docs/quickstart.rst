@@ -15,7 +15,7 @@ This will make dnsdist listen on IP address 127.0.0.1, port 5300 and forward all
 ``dnsdist`` Console and Configuration
 -------------------------------------
 
-Here is more complete configuration, save it to ``dnsdist.conf``::
+Here is more complete configuration, save it to ``dnsdist.conf``:
 
 .. code-block:: lua
 
