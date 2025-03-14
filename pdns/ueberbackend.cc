@@ -335,7 +335,7 @@ bool UeberBackend::inTransaction()
 bool UeberBackend::fillSOAFromZoneRecord(DNSName& shorter, const int zoneId, SOAData* const soaData)
 {
   // Zone exists in zone cache, directly look up SOA.
-  lookup(QType(QType::SOA), shorter, zoneId, nullptr);
+  lookup(QType(QType::SOA), shorter, zoneId, nullptr, false);
 
   DNSZoneRecord zoneRecord;
   if (!get(zoneRecord)) {
@@ -699,7 +699,7 @@ UeberBackend::~UeberBackend()
 }
 
 // this handle is more magic than most
-void UeberBackend::lookup(const QType& qtype, const DNSName& qname, int zoneId, DNSPacket* pkt_p)
+void UeberBackend::lookup(const QType& qtype, const DNSName& qname, int zoneId, DNSPacket* pkt_p, bool include_disabled)
 {
   if (d_stale) {
     g_log << Logger::Error << "Stale ueberbackend received question, signalling that we want to be recycled" << endl;
@@ -721,6 +721,7 @@ void UeberBackend::lookup(const QType& qtype, const DNSName& qname, int zoneId, 
   d_handle.qname = qname;
   d_handle.zoneId = zoneId;
   d_handle.pkt_p = pkt_p;
+  d_handle.include_disabled = include_disabled;
 
   if (backends.empty()) {
     g_log << Logger::Error << "No database backends available - unable to answer questions." << endl;
@@ -737,7 +738,7 @@ void UeberBackend::lookup(const QType& qtype, const DNSName& qname, int zoneId, 
     //      cout<<"UeberBackend::lookup("<<qname<<"|"<<DNSRecordContent::NumberToType(qtype.getCode())<<"): uncached"<<endl;
     d_negcached = d_cached = false;
     d_answers.clear();
-    (d_handle.d_hinterBackend = backends[d_handle.i++].get())->lookup(d_handle.qtype, d_handle.qname, d_handle.zoneId, d_handle.pkt_p);
+    (d_handle.d_hinterBackend = backends[d_handle.i++].get())->lookup(d_handle.qtype, d_handle.qname, d_handle.zoneId, d_handle.pkt_p, d_handle.include_disabled);
     ++(*s_backendQueries);
   }
   else if (cacheResult == CacheResult::NegativeMatch) {
@@ -914,7 +915,7 @@ bool UeberBackend::handle::get(DNSZoneRecord& record)
                  << " out of answers, taking next" << endl);
 
       d_hinterBackend = parent->backends[i++].get();
-      d_hinterBackend->lookup(qtype, qname, zoneId, pkt_p);
+      d_hinterBackend->lookup(qtype, qname, zoneId, pkt_p, include_disabled);
       ++(*s_backendQueries);
     }
     else {

@@ -102,7 +102,7 @@ bool LdapBackend::list_strict(const DNSName& target, int domain_id)
   return list_simple(target, domain_id);
 }
 
-void LdapBackend::lookup(const QType& qtype, const DNSName& qname, int zoneid, DNSPacket* dnspkt)
+void LdapBackend::lookup(const QType& qtype, const DNSName& qname, int zoneid, DNSPacket* dnspkt, bool /* include_disabled */)
 {
   try {
     d_in_list = false;

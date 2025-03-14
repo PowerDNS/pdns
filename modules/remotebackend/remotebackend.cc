@@ -193,7 +193,7 @@ int RemoteBackend::build()
  * The functions here are just remote json stubs that send and receive the method call
  * data is mainly left alone, some defaults are assumed.
  */
-void RemoteBackend::lookup(const QType& qtype, const DNSName& qdomain, int zoneId, DNSPacket* pkt_p)
+void RemoteBackend::lookup(const QType& qtype, const DNSName& qdomain, int zoneId, DNSPacket* pkt_p, bool include_disabled)
 {
   if (d_index != -1) {
     throw PDNSException("Attempt to lookup while one running");
@@ -211,7 +211,7 @@ void RemoteBackend::lookup(const QType& qtype, const DNSName& qdomain, int zoneI
 
   Json query = Json::object{
     {"method", "lookup"},
-    {"parameters", Json::object{{"qtype", qtype.toString()}, {"qname", qdomain.toString()}, {"remote", remoteIP}, {"local", localIP}, {"real-remote", realRemote}, {"zone-id", zoneId}}}};
+    {"parameters", Json::object{{"qtype", qtype.toString()}, {"qname", qdomain.toString()}, {"remote", remoteIP}, {"local", localIP}, {"real-remote", realRemote}, {"zone-id", zoneId}, {"include_disabled", include_disabled}}}};
 
   if (!this->send(query) || !this->recv(d_result)) {
     return;

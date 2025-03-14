@@ -256,7 +256,7 @@ bool TinyDNSBackend::list(const DNSName& target, int /* domain_id */, bool /* in
   return d_cdbReader->searchSuffix(key);
 }
 
-void TinyDNSBackend::lookup(const QType& qtype, const DNSName& qdomain, int /* zoneId */, DNSPacket* pkt_p)
+void TinyDNSBackend::lookup(const QType& qtype, const DNSName& qdomain, int /* zoneId */, DNSPacket* pkt_p, bool /* include_disabled */)
 {
   d_isAxfr = false;
   d_isGetDomains = false;

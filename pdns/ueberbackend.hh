@@ -88,12 +88,13 @@ public:
     unsigned int i{0};
     QType qtype;
     int zoneId{-1};
+    bool include_disabled{false}; // for lookup() requests
 
   private:
     static AtomicCounter instances;
   };
 
-  void lookup(const QType& qtype, const DNSName& qname, int zoneId, DNSPacket* pkt_p = nullptr);
+  void lookup(const QType& qtype, const DNSName& qname, int zoneId, DNSPacket* pkt_p = nullptr, bool include_disabled = false);
   /** Read a single record from a lookup(...) result. */
   bool get(DNSZoneRecord& resourceRecord);
   /** Close state created by lookup(...). */

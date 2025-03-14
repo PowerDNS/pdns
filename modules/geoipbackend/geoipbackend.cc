@@ -485,7 +485,7 @@ bool GeoIPBackend::lookup_static(const GeoIPDomain& dom, const DNSName& search, 
   return false;
 };
 
-void GeoIPBackend::lookup(const QType& qtype, const DNSName& qdomain, int zoneId, DNSPacket* pkt_p)
+void GeoIPBackend::lookup(const QType& qtype, const DNSName& qdomain, int zoneId, DNSPacket* pkt_p, bool /* include_disabled */)
 {
   ReadLock rl(&s_state_lock);
   const GeoIPDomain* dom;
