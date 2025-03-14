@@ -426,13 +426,16 @@ e 3600 IN A 192.0.2.42
         incr = .1
         # There's a file base race here, so do a few attempts
         while attempts < timeout:
-            zone = dns.zone.from_file(file, 'zone.rpz', relativize=False, check_origin=False, allow_include=False)
-            soa = zone['']
-            rdataset = soa.find_rdataset(dns.rdataclass.IN, dns.rdatatype.SOA)
-            # if the above call did not throw an exception the SOA has the right owner, continue
-            soa = zone.get_soa()
-            if soa.serial == serial and soa.mname == dns.name.from_text('ns.zone.rpz.'):
-                return # we found what we expected
+            try:
+                zone = dns.zone.from_file(file, 'zone.rpz', relativize=False, check_origin=False, allow_include=False)
+                soa = zone['']
+                rdataset = soa.find_rdataset(dns.rdataclass.IN, dns.rdatatype.SOA)
+                # if the above call did not throw an exception the SOA has the right owner, continue
+                soa = zone.get_soa()
+                if soa.serial == serial and soa.mname == dns.name.from_text('ns.zone.rpz.'):
+                    return # we found what we expected
+            except e as FileNotFoundError:
+                pass
             attempts = attempts + incr
             time.sleep(incr)
         raise AssertionError("Waited %d seconds for the dumpfile to be updated to %d but the serial is still %d" % (timeout, serial, soa.serial))
