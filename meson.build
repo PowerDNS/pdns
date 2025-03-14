@@ -157,7 +157,7 @@ deps = [
   dep_boost_test,
 ]
 
-if dep_libsystemd.found()
+if dep_systemd_prog.found()
   systemd_service_conf = configuration_data()
   systemd_service_conf.set('BinDir', get_option('prefix') / get_option('bindir'))
   systemd_service_conf.set('StaticBinDir', get_option('prefix') / get_option('sbindir'))

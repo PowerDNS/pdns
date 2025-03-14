@@ -490,7 +490,7 @@ def get_base_configure_cmd_meson(build_dir, additional_c_flags='', additional_cx
     ])
     return " ".join([
         f'{env} meson setup {build_dir}',
-        "-D systemd={}".format("enabled" if enable_systemd else "disabled"),
+        "-D systemd-service={}".format("enabled" if enable_systemd else "disabled"),
         "-D signers-libsodium={}".format("enabled" if enable_sodium else "disabled"),
         "-D hardening-fortify-source=auto",
         "-D auto-var-init=pattern",
@@ -602,7 +602,7 @@ def ci_rec_configure_meson(c, features, build_dir):
             "-D dns-over-tls=false",
             "-D dnstap=disabled",
             "-D nod=false",
-            "-D system-service=disabled",
+            "-D systemd-service=disabled",
             "-D lua=luajit",
             "-D libcap=disabled",
             "-D libcurl=disabled",

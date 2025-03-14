@@ -633,7 +633,7 @@ if python.found()
   endif
 endif
 
-if dep_libsystemd.found()
+if dep_systemd_prog.found()
   systemd_system_unit_dir = dep_systemd_prog.get_variable(
     'systemdsystemunitdir',
   )
