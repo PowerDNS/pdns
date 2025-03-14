@@ -581,32 +581,33 @@ def ci_auth_configure(c, build_dir=None, meson=False):
                 ci_auth_configure_autotools(c)
 
 def ci_rec_configure_meson(c, features, build_dir):
-    # XXX features
     unittests = get_unit_tests(meson=True, auth=False)
     if features == "full":
         configure_cmd = " ".join([
             "LDFLAGS='-L/usr/local/lib -Wl,-rpath,/usr/local/lib'",
             get_base_configure_cmd_meson(build_dir),
+            "-D prefix=/opt/pdns-recursor",
             "-D dns-over-tls=true",
             "-D nod=true",
-            "-D snmp=true",
+            "-D libcap=enabled",
             "-D lua=luajit",
-            "-D prefix=/opt/pdns-recursor",
+            "-D snmp=true",
             unittests,
         ])
     else:
         configure_cmd = " ".join([
             "LDFLAGS='-L/usr/local/lib -Wl,-rpath,/usr/local/lib'",
             get_base_configure_cmd_meson(build_dir),
+            "-D prefix=/opt/pdns-recursor",
             "-D dns-over-tls=false",
             "-D dnstap=disabled",
-            "-D libcurl=disabled",
-            "-D lua=luajit",
             "-D nod=false",
-            "-D prefix=/opt/pdns-recursor",
+            "-D systemd=disabled",
+            "-D lua=luajit",
+            "-D libcap=disabled",
+            "-D libcurl=disabled",
             "-D signers-libsodium=disabled",
             "-D snmp=false",
-            "-D systemd=disabled",
             unittests,
         ])
     res = c.run(configure_cmd, warn=True)

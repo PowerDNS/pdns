@@ -80,6 +80,7 @@ subdir('meson' / 'various-headers')         # Various Headers
 subdir('meson' / 'libresolv')               # res_query
 subdir('meson' / 'dnstap')                  # DNSTAP through libfstream
 subdir('meson' / 'libcurl')                 # Curl
+subdir('meson' / 'libcap')                  # Capabilities
 
 subdir('rec-rust-lib')
 
@@ -325,6 +326,7 @@ deps = [
   dep_dnstap,
   dep_libcurl,
   dep_metrics,
+  dep_libcap,
 ]
 
 # Conditional sources that need to be separated into standalone libraries for special
