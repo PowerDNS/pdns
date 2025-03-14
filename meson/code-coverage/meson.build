@@ -1,7 +1,7 @@
 coverage = get_option('b_coverage')
 
 if coverage
-  add_project_arguments('-DCOVERAGE', language: 'cpp')
+  add_project_arguments('-DCOVERAGE', language: ['c', 'cpp'])
 
   if get_option('buildtype') != 'debug'
     warning('Coverage is enabled, using `builtype=debug` would produce better reports')
