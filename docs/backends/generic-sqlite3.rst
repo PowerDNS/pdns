@@ -2,12 +2,17 @@ Generic SQLite 3 backend
 ========================
 
 * Native: Yes
-* Master: Yes
-* Slave: Yes
-* Superslave: Yes
+* Primary: Yes
+* Secondary: Yes
+* Producer: Yes
+* Consumer: Yes
+* Autosecondary: Yes
+* DNS Update: Yes
 * DNSSEC: Yes
 * Disabled data: Yes
 * Comments: Yes
+* API: Read-Write
+* Multiple instances: yes
 * Zone caching: Yes
 * Module name: gsqlite3
 * Launch name: ``gsqlite3``

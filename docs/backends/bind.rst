@@ -2,14 +2,18 @@ BIND zone file backend
 ======================
 
 * Native: Yes
-* Master: Yes
-* Slave: Yes
-* Superslave: Experimental
+* Primary: Yes
+* Secondary: Yes
+* Producer: No
+* Consumer: No
+* Autosecondary: Experimental
+* DNS Update: No
 * DNSSEC: Yes
 * Disabled data: No
 * Comments: No
 * API: Read-only
-* Zone caching: Yes (except in hybrid mode)
+* Multiple instances: No
+* Zone caching: Yes
 * Module name: bind
 * Launch: ``bind``
 
