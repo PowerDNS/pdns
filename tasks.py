@@ -490,7 +490,7 @@ def get_base_configure_cmd_meson(build_dir, additional_c_flags='', additional_cx
     ])
     return " ".join([
         f'{env} meson setup {build_dir}',
-        "-D systemd={}".format("enabled" if enable_systemd else "disabled"),
+        "-D systemd-service={}".format("enabled" if enable_systemd else "disabled"),
         "-D signers-libsodium={}".format("enabled" if enable_sodium else "disabled"),
         "-D hardening-fortify-source=auto",
         "-D auto-var-init=pattern",
@@ -602,7 +602,7 @@ def ci_rec_configure_meson(c, features, build_dir):
             "-D dns-over-tls=false",
             "-D dnstap=disabled",
             "-D nod=false",
-            "-D systemd=disabled",
+            "-D systemd-service=disabled",
             "-D lua=luajit",
             "-D libcap=disabled",
             "-D libcurl=disabled",
@@ -775,7 +775,7 @@ def ci_dnsdist_configure_meson(features, additional_flags, additional_ld_flags, 
                       -D lmdb=enabled \
                       -D nghttp2=enabled \
                       -D re2=enabled \
-                      -D systemd=enabled \
+                      -D systemd-service=enabled \
                       -D tls-gnutls=enabled \
                       -D dns-over-https=true \
                       -D dns-over-http3=true \
@@ -795,7 +795,7 @@ def ci_dnsdist_configure_meson(features, additional_flags, additional_ld_flags, 
                       -D lmdb=disabled \
                       -D nghttp2=disabled \
                       -D re2=disabled \
-                      -D systemd=disabled \
+                      -D systemd-service=disabled \
                       -D tls-gnutls=disabled \
                       -D dns-over-https=false \
                       -D dns-over-http3=false \

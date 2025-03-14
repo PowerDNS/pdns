@@ -10,10 +10,10 @@ include /usr/share/dpkg/default.mk
 
 # Only enable systemd integration on Linux operating systems
 ifeq ($(DEB_HOST_ARCH_OS),linux)
-MESON_ARGS += -Dsystemd=enabled
+MESON_ARGS += -Dsystemd-service=enabled
 DH_ARGS += --with systemd
 else
-MESON_ARGS += -Dsystemd=disabled
+MESON_ARGS += -Dsystemd-service=disabled
 endif
 
 # Only enable BPF/XDP on Linux operating systems

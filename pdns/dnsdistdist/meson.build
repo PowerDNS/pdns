@@ -411,7 +411,7 @@ tools = {
       dep_lua,
       dep_protozero,
       dep_json11,
-      dep_systemd,
+      dep_libsystemd,
       dep_yahttp,
     ],
     'install': true,
