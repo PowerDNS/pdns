@@ -453,6 +453,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          getOptionalIntegerValue("newServer", vars, "tcpConnectTimeout", config.tcpConnectTimeout);
                          getOptionalIntegerValue("newServer", vars, "tcpSendTimeout", config.tcpSendTimeout);
                          getOptionalIntegerValue("newServer", vars, "tcpRecvTimeout", config.tcpRecvTimeout);
+                         getOptionalIntegerValue("newServer", vars, "udpTimeout", config.udpTimeout);
 
                          handleNewServerHealthCheckParameters(vars, config);
 

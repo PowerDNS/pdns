@@ -1345,6 +1345,10 @@ backend:
       type: "u32"
       default: 1
       description: "The weight of this server, used by the `wrandom`, `whashed` and `chashed` policies, default: 1. Supported values are a minimum of 1, and a maximum of 2147483647"
+    - name: "udp_timeout"
+      type: "u8"
+      default: 0
+      description: "The udp backend query timeout value in seconds, default: 0. Supported values are a minimum of 1, and a maximum of 255. Value greater than 0 will override global UDP timeout setting"
     - name: "pools"
       type: "Vec<String>"
       default: ""

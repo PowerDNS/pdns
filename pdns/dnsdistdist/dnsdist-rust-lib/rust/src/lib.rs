@@ -1810,6 +1810,8 @@ mod dnsdistsettings {
         #[serde(default = "crate::U32::<1>::value", skip_serializing_if = "crate::U32::<1>::is_equal")]
         weight: u32,
         #[serde(default, skip_serializing_if = "crate::is_default")]
+        udp_timeout: u8,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         pools: Vec<String>,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         tcp: OutgoingTcpConfiguration,
