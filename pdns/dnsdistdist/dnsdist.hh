@@ -589,6 +589,7 @@ struct DownstreamState : public std::enable_shared_from_this<DownstreamState>
     LazyHealthCheckMode d_lazyHealthCheckMode{LazyHealthCheckMode::TimeoutOrServFail};
     uint8_t maxCheckFailures{1};
     uint8_t minRiseSuccesses{1};
+    uint8_t udpTimeout{0};
     Availability availability{Availability::Auto};
     bool d_tlsSubjectIsAddr{false};
     bool mustResolve{false};

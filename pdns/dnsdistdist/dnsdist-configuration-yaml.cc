@@ -404,6 +404,7 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dns
   backendConfig.mustResolve = hcConf.must_resolve;
   backendConfig.maxCheckFailures = hcConf.max_failures;
   backendConfig.minRiseSuccesses = hcConf.rise;
+  backendConfig.udpTimeout = config.udp_timeout;
 
   getLuaFunctionFromConfiguration<DownstreamState::checkfunc_t>(backendConfig.checkFunction, hcConf.function, hcConf.lua, hcConf.lua_file, "backend health-check");
 
