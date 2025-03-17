@@ -242,6 +242,8 @@ jobs:
     defaults:
       run:
         working-directory: ./pdns/dnsdistdist/dnsdist-${{ env.BUILDER_VERSION }}
+    env:
+      CLANG_VERSION: ${{ contains(needs.get-runner-container-image.outputs.id, 'debian-11') && '13' || '19' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -266,6 +268,8 @@ jobs:
         run: |
           python3 -m venv ${REPO_HOME}/.venv
           . ${REPO_HOME}/.venv/bin/activate && pip install -r ${REPO_HOME}/meson/requirements.txt
+        working-directory: .
+      - run: ${{ env.INV_CMD }} install-clang
         working-directory: .
       - run: ${{ env.INV_CMD }} install-lld-linker-if-needed
         working-directory: ./pdns/dnsdistdist/
@@ -775,6 +779,8 @@ jobs:
         SANITIZERS: ${{ matrix.sanitizers }}
         COVERAGE: yes
       options: --sysctl net.ipv6.conf.all.disable_ipv6=0 --privileged
+    env:
+      CLANG_VERSION: ${{ contains(needs.get-runner-container-image.outputs.id, 'debian-11') && '13' || '19' }}
     steps:
       - uses: actions/checkout@v4
         with:

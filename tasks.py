@@ -178,7 +178,10 @@ def install_clang(c):
     """
     install clang and llvm
     """
-    c.sudo(f'apt-get -y --no-install-recommends install clang-{clang_version} llvm-{clang_version}')
+    if int(clang_version) >= 14:
+        c.sudo(f'apt-get -y --no-install-recommends install clang-{clang_version} llvm-{clang_version} llvm-{clang_version}-dev libclang-rt-{clang_version}-dev')
+    else:
+        c.sudo(f'apt-get -y --no-install-recommends install clang-{clang_version} llvm-{clang_version} llvm-{clang_version}-dev')
 
 @task
 def install_clang_tidy_tools(c):
@@ -187,7 +190,10 @@ def install_clang_tidy_tools(c):
 @task
 def install_clang_runtime(c):
     # this gives us the symbolizer, for symbols in asan/ubsan traces
-    c.sudo(f'apt-get -y --no-install-recommends install clang-{clang_version}')
+    # on Debian we need llvm-symbolizer-XX
+    #c.sudo(f'apt-get -y --no-install-recommends install llvm-symbolizer-{clang_version}')
+    # on Ubuntu we need llvm-XX instead
+    c.sudo(f'apt-get -y --no-install-recommends install llvm-{clang_version}')
 
 @task
 def ci_install_rust(c, repo):
