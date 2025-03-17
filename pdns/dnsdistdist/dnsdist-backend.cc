@@ -488,7 +488,7 @@ void DownstreamState::handleUDPTimeouts()
   }
 
   const auto& config = dnsdist::configuration::getImmutableConfiguration();
-  const auto udpTimeout = d_config.udpTimeout ? d_config.udpTimeout : config.d_udpTimeout;
+  const auto udpTimeout = d_config.udpTimeout > 0 ? d_config.udpTimeout : config.d_udpTimeout;
   if (config.d_randomizeIDsToBackend) {
     auto map = d_idStatesMap.lock();
     for (auto it = map->begin(); it != map->end(); ) {
