@@ -234,7 +234,6 @@ jobs:
     container:
       image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
-        CLANG_VERSION: '19'
         SANITIZERS: ${{ matrix.sanitizers }}
         UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
         UNIT_TESTS: yes
@@ -243,6 +242,8 @@ jobs:
     defaults:
       run:
         working-directory: ./pdns/dnsdistdist/dnsdist-${{ env.BUILDER_VERSION }}
+    env:
+      CLANG_VERSION: ${{ contains(needs.get-runner-container-image.outputs.id, 'debian-11') && '13' || '19' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -768,7 +769,6 @@ jobs:
     container:
       image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
-        CLANG_VERSION: '19'
         UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp"
         # Disabling (intercept_send=0) the custom send wrappers for ASAN and TSAN because they cause the tools to report a race that doesn't exist on actual implementations of send(), see https://github.com/google/sanitizers/issues/1498
         ASAN_OPTIONS: intercept_send=0
@@ -779,6 +779,8 @@ jobs:
         SANITIZERS: ${{ matrix.sanitizers }}
         COVERAGE: yes
       options: --sysctl net.ipv6.conf.all.disable_ipv6=0 --privileged
+    env:
+      CLANG_VERSION: ${{ contains(needs.get-runner-container-image.outputs.id, 'debian-11') && '13' || '19' }}
     steps:
       - uses: actions/checkout@v4
         with:
