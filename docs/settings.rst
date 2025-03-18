@@ -2189,8 +2189,9 @@ If enabled, only a single RR will be put into each AXFR chunk, making some zones
 
 On a primary, this is the amount of seconds between the primary checking
 the SOA serials in its database to determine to send out NOTIFYs to the
-secondaries. On secondaries, this is the number of seconds between the secondary
-checking for updates to zones.
+secondaries. On secondaries, this is the number of seconds between the
+check for zones where the REFRESH period has expired. For zones where
+that is the case, secondaries will request updates from the primary.
 
 .. _setting-xfr-max-received-mbytes:
 
