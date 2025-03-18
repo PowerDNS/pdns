@@ -11,6 +11,8 @@ Upgrade Guide
 
 Our eBPF filtering code no longer treats the ``255``/``ANY`` qtype as a special value intended to block queries for all types, and will only block ``ANY`` queries instead. The reserved ``65535`` value now can be used to block queries for all qtypes.
 
+XPF support has been removed.
+
 1.8.x to 1.9.0
 --------------
 
