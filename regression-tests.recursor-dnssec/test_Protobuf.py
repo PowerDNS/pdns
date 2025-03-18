@@ -32,7 +32,7 @@ def ProtobufConnectionHandler(queue, conn):
         if not data:
             break
 
-        queue.put(data, True, timeout=2.0)
+        queue.put_nowait(data)
 
     conn.close()
 
@@ -91,24 +91,20 @@ class TestRecursorProtobuf(RecursorTest):
                'zones': ['example']}
     }
 
-    def getFirstProtobufMessage(self, retries=1, waitTime=1):
+    def getFirstProtobufMessage(self, retries=10, waitTime=0.1):
         msg = None
-
         #print("in getFirstProtobufMessage")
         for param in protobufServersParameters:
-          #print(param.port)
           failed = 0
 
           while param.queue.empty():
-            #print(failed)
-            #print(retries)
             if failed >= retries:
               break
-
             failed = failed + 1
-            #print("waiting")
+            #print(str(failed) + '...')
             time.sleep(waitTime)
 
+          #print(str(failed) + ' ' + str(param.queue.empty()))
           self.assertFalse(param.queue.empty())
           data = param.queue.get(False)
           self.assertTrue(data)
@@ -117,8 +113,6 @@ class TestRecursorProtobuf(RecursorTest):
           msg.ParseFromString(data)
           if oldmsg is not None:
             self.assertEqual(msg, oldmsg)
-
-        #print(msg)
         return msg
 
     def emptyProtoBufQueue(self):
@@ -300,9 +294,6 @@ class TestRecursorProtobuf(RecursorTest):
         # Make sure the queue is empty, in case
         # a previous test failed
         self.emptyProtoBufQueue()
-        # wait long enough to be sure that the housekeeping has
-        # prime the root NS
-        time.sleep(1)
 
     @classmethod
     def generateRecursorConfig(cls, confdir):
@@ -969,12 +960,12 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
 
           # check the protobuf message corresponding to the UDP response
           # the first query and answer are not tagged, so there is nothing in the queue
-          time.sleep(1)
+          #time.sleep(1)
 
           self.checkNoRemainingMessage()
           # Again to check PC case
           res = sender(query)
-          time.sleep(1)
+          #time.sleep(1)
           self.checkNoRemainingMessage()
 
     def testTagged(self):
