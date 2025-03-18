@@ -190,7 +190,7 @@ class RPZServer(object):
 
             for b in lenprefix:
                 conn.send(bytes([b]))
-                time.sleep(0.5)
+                time.sleep(0.1)
 
             conn.send(wire)
             self._currentSerial = serial
@@ -446,6 +446,7 @@ e 3600 IN A 192.0.2.42
         rpzServer.moveToSerial(serial)
 
         attempts = 0
+        incr = .1
         while attempts < timeout:
             currentSerial = rpzServer.getCurrentSerial()
             if currentSerial > serial:
@@ -455,8 +456,8 @@ e 3600 IN A 192.0.2.42
                 self.checkDump(serial)
                 return
 
-            attempts = attempts + 1
-            time.sleep(1)
+            attempts = attempts + incr
+            time.sleep(incr)
 
         raise AssertionError("Waited %d seconds for the serial to be updated to %d but the serial is still %d" % (timeout, serial, currentSerial))
 
