@@ -254,6 +254,7 @@ cvstrac
 CXXFLAGS
 cxxsettings
 cxxsupport
+daemonized
 daemonizing
 daemontools
 Daganoto
@@ -643,6 +644,7 @@ jsrender
 Juergen
 jumpbox
 Juraj
+Kadyshev
 Kaminsky
 Kaseorg
 Kdhcp
@@ -735,6 +737,7 @@ localip
 localtoc
 locaweb
 lochiiconnectivity
+lockfree
 loglevels
 logmessage
 Loopia
@@ -867,6 +870,7 @@ Netblock
 netfilter
 netherlabs
 netinet
+NETLINK
 netmaskgroup
 netmasks
 netms

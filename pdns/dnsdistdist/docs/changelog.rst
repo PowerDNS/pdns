@@ -2,6 +2,273 @@ Changelog
 =========
 
 .. changelog::
+  :version: 2.0.0-alpha1
+  :released: 18th of March 2025
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15165
+
+    Update Quiche to 0.23.2
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15164
+
+    Update Rust to 1.84.1 for our packages
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13920
+
+    Shrink InternalQueryState's size by reordering its fields
+
+  .. change::
+    :tags: New Features
+    :pullreq: 13923
+
+    Add a new response chain for XFR responses
+
+  .. change::
+    :tags: New Features
+    :pullreq: 13922
+
+    Add a new query rules chain triggered after a cache miss
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14083
+
+    Change home directory to /var/lib/<product> on EL-based OSs
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14130
+
+    Fix TCP I/O timeout and callback being used for HTTP/2
+
+  .. change::
+    :tags: Removals
+    :pullreq: 14184
+
+    Remove XPF support
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14195
+
+    Get rid of ``assert()``
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14205
+
+    Delint the DNSCrypt code base
+
+  .. change::
+    :tags: New Features
+    :pullreq: 14182
+    :tickets: 13750, 13374
+
+    Add the ability to set tags from dynamic block rules
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14330
+
+    Snmp-agent: Move net-snmp headers out of our headers
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14326
+
+    Use ``pdns::checked_stoi`` instead of ``sscanf`` for ``grepq``'s ms
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14392
+
+    Handle Quiche >= 0.22.0
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14376
+
+    Fix a race when accessing a backend health status
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14367
+
+    Refactoring of the configuration
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14495
+
+    Use atomic variables for the per-protocol latencies
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14588
+
+    Add configure args to --version output
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14577
+
+    Add Lua FFI accessors for EDNS version and extended rcode
+
+  .. change::
+    :tags: New Features, DNS over HTTPS, DNS over TLS
+    :pullreq: 14938
+
+    Allow setting keyLogFile to DoT/DoH backends (Karel Bilek)
+
+  .. change::
+    :tags: New Features, DNS over HTTP3
+    :pullreq: 15002
+
+    Add DoH3 headers, query string, path and scheme bindings
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14970
+
+    Boost > std optional (Rosen Penev)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14948
+
+    Clang-tidy: simplify some algorithms (Rosen Penev)
+
+  .. change::
+    :tags: New Features, DNS over HTTP3
+    :pullreq: 15029
+
+    Add the ability to set custom HTTP responses over DoH3
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15036
+
+    Improve error messages on security polling failures
+
+  .. change::
+    :tags: Removals
+    :pullreq: 15030
+
+    Remove ``TLSContext``
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15032
+
+    Use getAddressInfo() instead python daemonized subprocess (Denis Kadyshev)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15046
+
+    Better error when we cannot connect a backend socket
+
+  .. change::
+    :tags: New Features
+    :pullreq: 14969
+
+    Add a new, optional, YAML-based configuration format
+
+  .. change::
+    :tags: New Features, DNS over QUIC, DNS over HTTP3
+    :pullreq: 15024
+    :tickets: 14048
+
+    Gather Server Name Indication on QUIC (DoQ, DoH3) connections
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14724, 15115, 15138, 15149, 15163, 15184
+
+    Add meson support
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15118, 14134
+
+    Handle Quiche >= 0.23.0 since the API changed
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15120
+
+    Make hard-coded values configurable in xdp.py
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15132
+
+    Add support for multiple network interfaces in the XDP helper
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15137
+
+    Fix compatibility with ``boost::lockfree`` >= 1.87.0
+
+  .. change::
+    :tags: Improvements, Protobuf, DNSTAP
+    :pullreq: 15123
+    :tickets: 14861
+
+    Add pooling support for ``RemoteLoggerInterface`` (Ensar Sarajčić)
+
+  .. change::
+    :tags: Bug Fixes,
+    :pullreq: 15199
+
+    Use ``65535`` instead of ``255`` to block all types via eBPF
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15247
+    :tickets: 15246
+
+    Lua comboaddress: raw docs, cleanups, dnsdist add getRaw (Karel Bilek)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15158
+
+    Disable Lua configuration directives in YAML mode
+
+  .. change::
+    :tags: Improvements, DNSTAP
+    :pullreq: 15151
+    :tickets: 15108
+
+    Add support for dnstap new http_protocol field
+
+  .. change::
+    :tags: Improvements, Protobuf
+    :pullreq: 15298
+
+    Protobuf, support packetCacheHit and outgoingQueries fields
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15300
+
+    Allow ``AF_NETLINK`` and ``AF_XDP`` under ``systemd``
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15257
+
+    Limit # of proxy protocol-enabled outgoing TCP connections
+
+.. changelog::
   :version: 1.9.8
   :released: 17th of December 2024
 
