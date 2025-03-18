@@ -5,6 +5,7 @@ from recursortests import RecursorTest
 
 class OOOTCPTest(RecursorTest):
     _confdir = 'OOOTCP'
+    _auth_zones = RecursorTest._default_auth_zones
 
     _config_template = """dnssec=validate
 """

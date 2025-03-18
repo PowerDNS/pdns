@@ -6,6 +6,7 @@ import subprocess
 class basicNSEC3Test(BasicDNSSEC):
     __test__ = True
     _confdir = 'basicNSEC3'
+    _auth_zones = BasicDNSSEC._auth_zones
 
     @classmethod
     def secureZone(cls, confdir, zonename, key=None):

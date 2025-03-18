@@ -3,6 +3,7 @@ from recursortests import RecursorTest
 
 class NTATest(RecursorTest):
     _confdir = 'NTA'
+    _auth_zones = RecursorTest._default_auth_zones
 
     _config_template = """dnssec=validate"""
     _lua_config_file = """addNTA("bogus.example")

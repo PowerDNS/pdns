@@ -4,6 +4,7 @@ from recursortests import RecursorTest
 
 class SortlistTest(RecursorTest):
     _confdir = 'Sortlist'
+    _auth_zones = RecursorTest._default_auth_zones
 
     _config_template = """dnssec=off"""
     _lua_config_file = """addSortList("0.0.0.0/0", 

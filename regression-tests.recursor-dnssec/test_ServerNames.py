@@ -8,6 +8,7 @@ class ServerNamesTest(RecursorTest):
     """
 
     _confdir = 'ServerNames'
+    _auth_zones = RecursorTest._default_auth_zones
     _servername = 'awesome-pdns1.example.com'
     _versionbind = 'Awesome!'
     _versionbind_expected = dns.rrset.from_text('version.bind.', 86400, 'CH', 'TXT', _versionbind)

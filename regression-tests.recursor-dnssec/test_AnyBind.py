@@ -5,6 +5,7 @@ from recursortests import RecursorTest
 
 class AnyBindTest(RecursorTest):
     _confdir = 'AnyBind'
+    _auth_zones = RecursorTest._default_auth_zones
 
     _config_template = """dnssec=validate
     local-address=0.0.0.0

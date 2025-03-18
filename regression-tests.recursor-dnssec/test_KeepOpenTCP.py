@@ -7,6 +7,7 @@ from recursortests import RecursorTest
 
 class KeepOpenTCPTest(RecursorTest):
     _confdir = 'KeepOpenTCP'
+    _auth_zones = RecursorTest._default_auth_zones
 
     _config_template = """dnssec=validate
 packetcache-ttl=10

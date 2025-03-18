@@ -16,18 +16,6 @@ forward-zones-recurse=.=1.1.1.1:853;8.8.8.8:853;9.9.9.9:853
 devonly-regression-test-mode
     """
 
-    @classmethod
-    def setUpClass(cls):
-
-        # we don't need all the auth stuff
-        cls.setUpSockets()
-
-        confdir = os.path.join('configs', cls._confdir)
-        cls.createConfigDir(confdir)
-
-        cls.generateRecursorConfig(confdir)
-        cls.startRecursor(confdir, cls._recursorPort)
-
     @pytest.mark.external
     def testA(self):
         expected = dns.rrset.from_text('dns.google.', 0, dns.rdataclass.IN, 'A', '8.8.8.8', '8.8.4.4')

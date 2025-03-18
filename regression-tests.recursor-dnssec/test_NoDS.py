@@ -4,6 +4,7 @@ from recursortests import RecursorTest
 
 class NoDSTest(RecursorTest):
     _confdir = 'NoDS'
+    _auth_zones = RecursorTest._default_auth_zones
 
     _config_template = """dnssec=validate"""
     _lua_config_file = """clearDS(".")"""

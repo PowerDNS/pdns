@@ -6,6 +6,7 @@ from recursortests import RecursorTest
 class DNS64Test(RecursorTest):
 
     _confdir = 'DNS64'
+    _auth_zones = RecursorTest._default_auth_zones
     _config_template = """
     serve-rfc6303=no
     auth-zones=example.dns64=configs/%s/example.dns64.zone

@@ -4,7 +4,7 @@ from recursortests import RecursorTest
 
 class AdditionalsDefaultTest(RecursorTest):
     _confdir = 'AdditionalsDefault'
-
+    _auth_zones = RecursorTest._default_auth_zones
     _config_template = """
     dnssec=validate
     disable-packetcache
@@ -42,6 +42,7 @@ class AdditionalsDefaultTest(RecursorTest):
 
 class AdditionalsResolveImmediatelyTest(RecursorTest):
     _confdir = 'AdditionalsResolveImmediately'
+    _auth_zones = RecursorTest._default_auth_zones
     _config_template = """
     dnssec=validate
     disable-packetcache
@@ -104,6 +105,7 @@ class AdditionalsResolveImmediatelyTest(RecursorTest):
 
 class AdditionalsResolveCacheOnlyTest(RecursorTest):
     _confdir = 'AdditionalsResolveCacheOnly'
+    _auth_zones = RecursorTest._default_auth_zones
     _config_template = """
     dnssec=validate
     disable-packetcache

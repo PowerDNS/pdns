@@ -4,6 +4,7 @@ from recursortests import RecursorTest
 
 class SimpleYAMLTest(RecursorTest):
     _confdir = 'SimpleYAML'
+    _auth_zones = RecursorTest._default_auth_zones
 
     _config_template = """
 recursor:

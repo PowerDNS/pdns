@@ -4,6 +4,7 @@ from recursortests import RecursorTest
 
 class SimpleTest(RecursorTest):
     _confdir = 'Simple'
+    _auth_zones = RecursorTest._default_auth_zones
 
     _config_template = """dnssec=validate
 auth-zones=authzone.example=configs/%s/authzone.zone""" % _confdir

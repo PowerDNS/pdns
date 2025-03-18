@@ -10,28 +10,14 @@ from recursortests import RecursorTest
 class RecursorEDNSPaddingTest(RecursorTest):
 
     _confdir = 'RecursorEDNSPadding'
-
-    @classmethod
-    def setUpClass(cls):
-        cls.setUpSockets()
-
-        cls.startResponders()
-
-        confdir = os.path.join('configs', cls._confdir)
-        cls.createConfigDir(confdir)
-        cls.generateAllAuthConfig(confdir)
-
-        # we only need these auths and this cuts the needed time in half
-        if cls._auth_zones:
-            for auth_suffix in ['8', '9', '10']:
-                authconfdir = os.path.join(confdir, 'auth-%s' % auth_suffix)
-                ipaddress = cls._PREFIX + '.' + auth_suffix
-                cls.startAuth(authconfdir, ipaddress)
-
-        cls.generateRecursorConfig(confdir)
-        cls.startRecursor(confdir, cls._recursorPort)
-
-        print("Launching tests..")
+    _auth_zones = {
+        '8': {'threads': 1,
+              'zones': ['ROOT']},
+        '9': {'threads': 1,
+              'zones': ['secure.example', 'islandofsecurity.example']},
+        '10': {'threads': 1,
+            'zones': ['example']},
+    }
 
     def checkPadding(self, message, numberOfBytes=None):
         self.assertEqual(message.edns, 0)
