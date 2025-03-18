@@ -148,6 +148,7 @@ jobs:
             features: least
           - builder: meson
             sanitizers: tsan
+      fail-fast: false
     container:
       image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
@@ -231,6 +232,7 @@ jobs:
             features: least
           - sanitizers: tsan
             builder: meson
+      fail-fast: false
     container:
       image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
@@ -565,6 +567,7 @@ jobs:
         sanitizers: [asan+ubsan, tsan]
         dist_name: [debian]
         pdns_repo_version: ['48']
+      fail-fast: false
     container:
       image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
@@ -615,6 +618,7 @@ jobs:
         sanitizers: [asan+ubsan, tsan]
         dist_name: [debian]
         pdns_repo_version: ['48']
+      fail-fast: false
     container:
       image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
@@ -670,6 +674,7 @@ jobs:
         mthreads: [2048]
         shards: [1, 2, 1024]
         IPv6: [0]
+      fail-fast: false
     container:
       image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
@@ -766,6 +771,7 @@ jobs:
     strategy:
       matrix:
         sanitizers: [asan+ubsan, tsan]
+      fail-fast: false
     container:
       image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
