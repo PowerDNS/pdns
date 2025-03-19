@@ -29,7 +29,7 @@ Build-Depends: debhelper (>= 10),
                pkg-config,
                python3-yaml,
                ragel,
-               systemd [linux-any]
+               dev-systemd | systemd [linux-any]
 Standards-Version: 4.1.5
 Homepage: https://dnsdist.org
 
