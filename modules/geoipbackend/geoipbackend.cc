@@ -392,12 +392,20 @@ void GeoIPBackend::initialize()
     g_log << Logger::Warning << "No GeoIP database files loaded!" << endl;
   }
 
-  if (!getArg("zones-file").empty()) {
+  std::string zonesFile{getArg("zones-file")};
+  if (!zonesFile.empty()) {
     try {
-      config = YAML::LoadFile(getArg("zones-file"));
+      config = YAML::LoadFile(zonesFile);
     }
     catch (YAML::Exception& ex) {
-      throw PDNSException(string("Cannot read config file ") + ex.msg);
+      std::string description{};
+      if (!ex.mark.is_null()) {
+        description = "Configuration error in " + zonesFile + ", line " + std::to_string(ex.mark.line + 1) + ", column " + std::to_string(ex.mark.column + 1);
+      }
+      else {
+        description = "Cannot read config file " + zonesFile;
+      }
+      throw PDNSException(description + ": " + ex.msg);
     }
   }
 
