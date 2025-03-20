@@ -912,20 +912,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
 
+  void doExitNicely(int exitCode = EXIT_SUCCESS);
+
   luaCtx.writeFunction("shutdown", []() {
-#ifdef HAVE_SYSTEMD
-    sd_notify(0, "STOPPING=1");
-#endif /* HAVE_SYSTEMD */
-#if 0
-    // Useful for debugging leaks, but might lead to race under load
-    // since other threads are still running.
-    for (auto& frontend : getDoTFrontends()) {
-      frontend->cleanup();
-    }
-    g_rings.clear();
-#endif /* 0 */
-    pdns::coverage::dumpCoverageData();
-    _exit(0);
+    doExitNicely();
   });
 
   typedef LuaAssociativeTable<boost::variant<bool, std::string>> showserversopts_t;

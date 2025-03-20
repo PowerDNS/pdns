@@ -498,6 +498,7 @@ static const std::vector<dnsdist::console::ConsoleKeyword> s_consoleKeywords{
   {"addCacheHitResponseAction", true, R"(DNS rule, DNS response action [, {uuid="UUID", name="name"}}])", "add a cache hit response rule"},
   {"addCacheInsertedResponseAction", true, R"(DNS rule, DNS response action [, {uuid="UUID", name="name"}}])", "add a cache inserted response rule"},
   {"addMaintenanceCallback", true, "callback", "register a function to be called as part of the maintenance hook, every second"},
+  {"addExitCallback", true, "callback", "register a function to be called when DNSdist exits"},
   {"addResponseAction", true, R"(DNS rule, DNS response action [, {uuid="UUID", name="name"}}])", "add a response rule"},
   {"addSelfAnsweredResponseAction", true, R"(DNS rule, DNS response action [, {uuid="UUID", name="name"}}])", "add a self-answered response rule"},
   {"addXFRResponseAction", true, R"(DNS rule, DNS response action [, {uuid="UUID", name="name"}}])", "add a XFR response rule"},
