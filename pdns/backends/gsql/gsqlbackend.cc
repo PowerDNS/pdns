@@ -63,6 +63,9 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_ANYNoIdQuery=getArg("any-query");
   d_ANYIdQuery=getArg("any-id-query");
 
+  d_APIIdQuery=getArg("api-id-query");
+  d_APIANYIdQuery=getArg("api-any-id-query");
+
   d_listQuery=getArg("list-query");
   d_listSubZoneQuery=getArg("list-subzone-query");
 
@@ -140,6 +143,8 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_IdQuery_stmt = nullptr;
   d_ANYNoIdQuery_stmt = nullptr;
   d_ANYIdQuery_stmt = nullptr;
+  d_APIIdQuery_stmt = nullptr;
+  d_APIANYIdQuery_stmt = nullptr;
   d_listQuery_stmt = nullptr;
   d_listSubZoneQuery_stmt = nullptr;
   d_InfoOfDomainsZoneQuery_stmt = nullptr;
@@ -1450,6 +1455,44 @@ void GSQLBackend::lookup(const QType& qtype, const DNSName& qname, int domain_id
   }
   catch(SSqlException &e) {
     throw PDNSException("GSQLBackend unable to lookup '" + qname.toLogString() + "|" + qtype.toString() + "':"+e.txtReason());
+  }
+
+  d_list=false;
+  d_qname=qname;
+}
+
+void GSQLBackend::APILookup(const QType& qtype, const DNSName& qname, int domain_id, DNSPacket* /* pkt_p */, bool include_disabled)
+{
+  try {
+    reconnectIfNeeded();
+
+    if(qtype.getCode()!=QType::ANY) {
+      d_query_name = "api-id-query";
+      d_query_stmt = &d_APIIdQuery_stmt;
+      // clang-format off
+      (*d_query_stmt)->
+        bind("include_disabled", (int)include_disabled)->
+        bind("qtype", qtype.toString())->
+        bind("qname", qname)->
+        bind("domain_id", domain_id);
+      // clang-format on
+    } else {
+      // qtype==ANY
+      d_query_name = "api-any-id-query";
+      d_query_stmt = &d_APIANYIdQuery_stmt;
+      // clang-format off
+      (*d_query_stmt)->
+        bind("include_disabled", (int)include_disabled)->
+        bind("qname", qname)->
+        bind("domain_id", domain_id);
+      // clang-format on
+    }
+
+    (*d_query_stmt)->
+      execute();
+  }
+  catch(SSqlException &e) {
+    throw PDNSException("GSQLBackend unable to APILookup '" + qname.toLogString() + "(" + std::to_string(domain_id) + ")|" + qtype.toString() + "':"+e.txtReason());
   }
 
   d_list=false;

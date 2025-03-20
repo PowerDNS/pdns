@@ -67,6 +67,12 @@ int DNSBackend::getArgAsNum(const string& key)
   return arg().asNum(d_prefix + "-" + key);
 }
 
+// Default API lookup has no support for disabled records and simply wraps lookup()
+void DNSBackend::APILookup(const QType& qtype, const DNSName& qdomain, int zoneId, DNSPacket* pkt_p, bool /* include_disabled */)
+{
+  lookup(qtype, qdomain, zoneId, pkt_p);
+}
+
 void BackendFactory::declare(const string& suffix, const string& param, const string& explanation, const string& value)
 {
   string fullname = d_name + suffix + "-" + param;
