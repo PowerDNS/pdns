@@ -876,8 +876,9 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
         self.assertEqual(data['name'], 'example.com.')
 
     def test_get_zone_rrset(self):
-        rz = self.session.get(self.url("/api/v1/servers/localhost/zones"))
-        domains = rz.json()
+        name = 'host-18000.example.com.'
+        r = self.session.get(self.url("/api/v1/servers/localhost/zones"))
+        domains = r.json()
         example_com = [domain for domain in domains if domain['name'] == u'example.com.'][0]
 
         # verify single record from name that has a single record
@@ -888,7 +889,7 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
             [
                 {
                     'comments': [],
-                    'name': 'host-18000.example.com.',
+                    'name': name,
                     'records':
                     [
                         {
@@ -901,6 +902,39 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
                 }
             ]
         )
+
+        # disable previous record
+        rrset = {
+            'changetype': 'replace',
+            'name': name,
+            'type': 'A',
+            'ttl': 120,
+            'records':
+            [
+                {
+                    'content': '192.168.1.80',
+                    'disabled': True
+                }
+            ]
+        }
+        payload = {'rrsets': [rrset]}
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/example.com"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assert_success(r)
+
+        # verify that the changed record is not found when asking for
+        # disabled records not to be included
+        data = self.get_zone(example_com['id'], rrset_name="host-18000.example.com.", include_disabled="false")
+        self.assertEqual(len(data['rrsets']), 0)
+
+        # verify that the changed record is found when explicitly asking for
+        # disabled records, and by default.
+        data = self.get_zone(example_com['id'], rrset_name="host-18000.example.com.", include_disabled="true")
+        self.assertEqual(get_rrset(data, name, 'A')['records'], rrset['records'])
+        data = self.get_zone(example_com['id'], rrset_name="host-18000.example.com.")
+        self.assertEqual(get_rrset(data, name, 'A')['records'], rrset['records'])
 
         # verify two RRsets from a name that has two types with one record each
         powerdnssec_org = [domain for domain in domains if domain['name'] == u'powerdnssec.org.'][0]
