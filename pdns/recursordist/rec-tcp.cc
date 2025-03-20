@@ -108,7 +108,7 @@ TCPConnection::~TCPConnection()
          g_slogtcpin->error(Logr::Error, e.reason, "Error closing TCPConnection socket", "exception", Logging::Loggable("PDNSException")));
   }
 
-  if (t_tcpClientCounts->count(d_remote) != 0 && (*t_tcpClientCounts)[d_remote]-- == 0) {
+  if (t_tcpClientCounts && t_tcpClientCounts->count(d_remote) != 0 && (*t_tcpClientCounts)[d_remote]-- == 0) {
     t_tcpClientCounts->erase(d_remote);
   }
   --s_currentConnections;
