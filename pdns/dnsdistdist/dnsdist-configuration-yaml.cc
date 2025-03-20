@@ -1371,8 +1371,9 @@ std::shared_ptr<DNSSelector> getNetmaskGroupSelector(const NetmaskGroupSelectorC
   return newDNSSelector(std::move(selector), config.name);
 }
 
-std::shared_ptr<DNSActionWrapper> getKeyValueStoreLookupAction(const KeyValueStoreLookupActionConfiguration& config)
+std::shared_ptr<DNSActionWrapper> getKeyValueStoreLookupAction([[maybe_unused]] const KeyValueStoreLookupActionConfiguration& config)
 {
+#if defined(HAVE_LMDB) || defined(HAVE_CDB)
   auto kvs = dnsdist::configuration::yaml::getRegisteredTypeByName<KeyValueStore>(std::string(config.kvs_name));
   if (!kvs && !(dnsdist::configuration::yaml::s_inClientMode || dnsdist::configuration::yaml::s_inConfigCheckMode)) {
     throw std::runtime_error("Unable to find the key-value store named '" + std::string(config.kvs_name) + "'");
@@ -1383,10 +1384,14 @@ std::shared_ptr<DNSActionWrapper> getKeyValueStoreLookupAction(const KeyValueSto
   }
   auto action = dnsdist::actions::getKeyValueStoreLookupAction(kvs, lookupKey, std::string(config.destination_tag));
   return newDNSActionWrapper(std::move(action), config.name);
+#else
+  throw std::runtime_error("Unable to create KVS action: neitherCDB nor LMDB support are enabled");
+#endif
 }
 
-std::shared_ptr<DNSActionWrapper> getKeyValueStoreRangeLookupAction(const KeyValueStoreRangeLookupActionConfiguration& config)
+std::shared_ptr<DNSActionWrapper> getKeyValueStoreRangeLookupAction([[maybe_unused]] const KeyValueStoreRangeLookupActionConfiguration& config)
 {
+#if defined(HAVE_LMDB) || defined(HAVE_CDB)
   auto kvs = dnsdist::configuration::yaml::getRegisteredTypeByName<KeyValueStore>(std::string(config.kvs_name));
   if (!kvs && !(dnsdist::configuration::yaml::s_inClientMode || dnsdist::configuration::yaml::s_inConfigCheckMode)) {
     throw std::runtime_error("Unable to find the key-value store named '" + std::string(config.kvs_name) + "'");
@@ -1397,10 +1402,14 @@ std::shared_ptr<DNSActionWrapper> getKeyValueStoreRangeLookupAction(const KeyVal
   }
   auto action = dnsdist::actions::getKeyValueStoreRangeLookupAction(kvs, lookupKey, std::string(config.destination_tag));
   return newDNSActionWrapper(std::move(action), config.name);
+#else
+  throw std::runtime_error("Unable to create KVS action: neitherCDB nor LMDB support are enabled");
+#endif
 }
 
-std::shared_ptr<DNSSelector> getKeyValueStoreLookupSelector(const KeyValueStoreLookupSelectorConfiguration& config)
+std::shared_ptr<DNSSelector> getKeyValueStoreLookupSelector([[maybe_unused]] const KeyValueStoreLookupSelectorConfiguration& config)
 {
+#if defined(HAVE_LMDB) || defined(HAVE_CDB)
   auto kvs = dnsdist::configuration::yaml::getRegisteredTypeByName<KeyValueStore>(std::string(config.kvs_name));
   if (!kvs && !(dnsdist::configuration::yaml::s_inClientMode || dnsdist::configuration::yaml::s_inConfigCheckMode)) {
     throw std::runtime_error("Unable to find the key-value store named '" + std::string(config.kvs_name) + "'");
@@ -1411,10 +1420,14 @@ std::shared_ptr<DNSSelector> getKeyValueStoreLookupSelector(const KeyValueStoreL
   }
   auto selector = dnsdist::selectors::getKeyValueStoreLookupSelector(kvs, lookupKey);
   return newDNSSelector(std::move(selector), config.name);
+#else
+  throw std::runtime_error("Unable to create KVS action: neitherCDB nor LMDB support are enabled");
+#endif
 }
 
-std::shared_ptr<DNSSelector> getKeyValueStoreRangeLookupSelector(const KeyValueStoreRangeLookupSelectorConfiguration& config)
+std::shared_ptr<DNSSelector> getKeyValueStoreRangeLookupSelector([[maybe_unused]] const KeyValueStoreRangeLookupSelectorConfiguration& config)
 {
+#if defined(HAVE_LMDB) || defined(HAVE_CDB)
   auto kvs = dnsdist::configuration::yaml::getRegisteredTypeByName<KeyValueStore>(std::string(config.kvs_name));
   if (!kvs && !(dnsdist::configuration::yaml::s_inClientMode || dnsdist::configuration::yaml::s_inConfigCheckMode)) {
     throw std::runtime_error("Unable to find the key-value store named '" + std::string(config.kvs_name) + "'");
@@ -1425,6 +1438,9 @@ std::shared_ptr<DNSSelector> getKeyValueStoreRangeLookupSelector(const KeyValueS
   }
   auto selector = dnsdist::selectors::getKeyValueStoreRangeLookupSelector(kvs, lookupKey);
   return newDNSSelector(std::move(selector), config.name);
+#else
+  throw std::runtime_error("Unable to create KVS action: neitherCDB nor LMDB support are enabled");
+#endif
 }
 
 std::shared_ptr<DNSActionWrapper> getDnstapLogAction(const DnstapLogActionConfiguration& config)
@@ -1604,9 +1620,11 @@ void registerDnstapLogger(const DnstapLoggerConfiguration& config)
 #endif
 }
 
-void registerKVSObjects(const KeyValueStoresConfiguration& config)
+void registerKVSObjects([[maybe_unused]] const KeyValueStoresConfiguration& config)
 {
+#if defined(HAVE_LMDB) || defined(HAVE_CDB)
   bool createObjects = !dnsdist::configuration::yaml::s_inClientMode && !dnsdist::configuration::yaml::s_inConfigCheckMode;
+#endif /* defined(HAVE_LMDB) || defined(HAVE_CDB) */
 #if defined(HAVE_LMDB)
   for (const auto& lmdb : config.lmdb) {
     auto store = createObjects ? std::shared_ptr<KeyValueStore>(std::make_shared<LMDBKVStore>(std::string(lmdb.file_name), std::string(lmdb.database_name), lmdb.no_lock)) : std::shared_ptr<KeyValueStore>();
