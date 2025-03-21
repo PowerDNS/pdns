@@ -19,7 +19,7 @@ $PDNSUTIL --config-dir=. --config-name=$backend \
 # Duplicate records should be omitted
 $PDNSUTIL --config-dir=. --config-name=$backend \
 	add-record bug.less host2 A 127.0.0.2 127.0.0.2 \
-	2>&1 | sort | grep -v Ueber
+	2>&1 | LC_ALL=C sort | grep -v Ueber
 # Can't add non-CNAME record to a CNAME record
 $PDNSUTIL --config-dir=. --config-name=$backend \
 	add-record bug.less cname A 127.0.0.1 \
@@ -31,9 +31,9 @@ $PDNSUTIL --config-dir=. --config-name=$backend \
 # Adding existing record should ignore duplicates
 $PDNSUTIL --config-dir=. --config-name=$backend \
 	add-record bug.less host2 A 127.0.0.2 127.0.0.3 \
-	2>&1 | sort | grep -v Ueber
+	2>&1 | LC_ALL=C sort | grep -v Ueber
 
 # Display zone contents for final verification
 $PDNSUTIL --config-dir=. --config-name=$backend \
 	list-zone bug.less \
-	2>&1 | sort | grep -v Ueber
+	2>&1 | LC_ALL=C sort | grep -v Ueber
