@@ -1,5 +1,5 @@
 opt_hardening = get_option('hardening')
-if opt_hardening.enabled() or opt_hardening.auto()
+if opt_hardening.allowed()
   hardening_features = []
 
   # PIE
