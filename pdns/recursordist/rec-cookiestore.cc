@@ -53,7 +53,7 @@ uint64_t CookieStore::dump(const CookieStore& copy, int fileDesc)
     fprintf(filePtr.get(), "%s\t%s\t%s\t%s\t%s\n",
             entry.d_address.toString().c_str(), entry.d_localaddress.toString().c_str(),
             entry.d_cookie.toDisplayString().c_str(),
-            entry.d_support ? "yes" : "no",
+            CookieEntry::toString(entry.d_support).c_str(),
             timestamp(entry.d_lastupdate, tmp));
   }
   return count;
