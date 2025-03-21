@@ -46,10 +46,10 @@ override_dh_auto_configure:
 	  -Db_lto=true \
 	  -Db_lto_mode=thin \
 	  -Db_pie=true \
-	  -Ddns-over-https=true \
-	  -Ddns-over-quic=true \
-	  -Ddns-over-http3=true \
-	  -Ddns-over-tls=true \
+	  -Ddns-over-https=enabled \
+	  -Ddns-over-quic=enabled \
+	  -Ddns-over-http3=enabled \
+	  -Ddns-over-tls=enabled \
 	  -Ddnscrypt=enabled \
 	  -Ddnstap=enabled \
 	  -Dyaml=enabled \

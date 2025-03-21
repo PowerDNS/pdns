@@ -232,7 +232,7 @@ conditional_sources = {
     'sources': [
       src_dir / 'doq.cc',
     ],
-    'condition': get_option('dns-over-quic'),
+    'condition': get_option('dns-over-quic').allowed() and dep_libquiche.found(),
    },
   'ipcipher': {
     'sources': [

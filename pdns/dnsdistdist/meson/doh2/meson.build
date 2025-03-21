@@ -1,7 +1,6 @@
 opt_doh2 = get_option('dns-over-https')
-conf.set('HAVE_DNS_OVER_HTTPS', opt_doh2, description: 'DNS over HTTP/2 (DoH)')
 
-if opt_doh2
+if opt_doh2.enabled()
   if not dep_libssl.found() and not dep_gnutls.found()
     error('DNS over HTTP/2 support was requested but neither OpenSSL libssl nor GnuTLS support is enabled')
   endif
@@ -10,4 +9,9 @@ if opt_doh2
   endif
 endif
 
-summary('DNS over HTTP/2', opt_doh2, bool_yn: true, section: 'Configuration')
+if opt_doh2.allowed() and (dep_libssl.found() or dep_gnutls.found()) and (dep_libnghttp2.found() or dep_libh2o_evloop.found())
+  conf.set('HAVE_DNS_OVER_HTTPS', true, description: 'DNS over HTTP/2 (DoH)')
+  summary('DNS over HTTP/2', true, bool_yn: true, section: 'Configuration')
+else
+  summary('DNS over HTTP/2', false, bool_yn: true, section: 'Configuration')
+endif
