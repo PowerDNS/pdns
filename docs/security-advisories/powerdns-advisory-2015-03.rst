@@ -28,13 +28,13 @@ PowerDNS Authoritative Server 3.4.4 - 3.4.6 are affected. No other
 versions are affected. The PowerDNS Recursor is not affected.
 
 `PowerDNS Authoritative Server
-3.4.7 <../changelog.md#powerdns-authoritative-server-347>`__ contains a
+3.4.7 <../changelog/pre-4.0.rst#powerdns-authoritative-server-347>`__ contains a
 fix to this issue. A minimal patch is `available
 here <https://downloads.powerdns.com/patches/2015-03/>`__.
 
 This issue is unrelated to the issues in our previous two Security
-Announcements (`2015-01 <powerdns-advisory-2015-01.md>`__ and
-`2015-02 <powerdns-advisory-2015-02.md>`__).
+Announcements (`2015-01 <powerdns-advisory-2015-01.rst>`__ and
+`2015-02 <powerdns-advisory-2015-02.rst>`__).
 
 We'd like to thank Chris Hofstaedtler of Deduktiva GmbH for finding
 and reporting this issue.
