@@ -5997,7 +5997,7 @@ int SyncRes::doResolveAt(NsSet& nameservers, DNSName auth, bool flawedNSSet, con
             gotAnswer = doResolveAtThisIP(prefix, qname, qtype, lwr, ednsmask, auth, sendRDQuery, wasForwarded,
                                           tns->first, *remoteIP, false, false, truncated, spoofed, context.extendedError);
           }
-          cerr << "Got spoofed?!" << spoofed << endl;
+          if (spoofed) cerr << "Got spoofed! " << spoofed << endl;
           if (forceTCP || (spoofed || (gotAnswer && truncated))) {
             /* retry, over TCP this time */
             gotAnswer = doResolveAtThisIP(prefix, qname, qtype, lwr, ednsmask, auth, sendRDQuery, wasForwarded,
