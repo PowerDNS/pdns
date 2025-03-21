@@ -56,7 +56,7 @@ override_dh_auto_configure:
 	  -Debpf=enabled \
 	  -Dyaml=enabled \
 	  -Dtls-gnutls=enabled \
-	  -Dsnmp=true \
+	  -Dsnmp=enabled \
 	  -Dlibcap=enabled \
 	  -Dlibsodium=enabled \
 	  -Dquiche=enabled \

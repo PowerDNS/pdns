@@ -101,10 +101,10 @@ export PKG_CONFIG_PATH=/usr/lib/pkgconfig:/opt/lib64/pkgconfig
   -Ddns-over-tls=true \
 %if 0%{?suse_version}
   -Ddnscrypt=disabled \
-  -Dsnmp=false \
+  -Dsnmp=disabled \
 %else
   -Ddnscrypt=enabled \
-  -Dsnmp=true \
+  -Dsnmp=enabled \
 %endif
   -Ddnstap=enabled \
   -Ddns-over-https=true \

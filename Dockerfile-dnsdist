@@ -75,7 +75,7 @@ RUN mkdir /build && \
       -Debpf=enabled \
       -Dyaml=enabled \
       -Dtls-gnutls=enabled \
-      -Dsnmp=true \
+      -Dsnmp=enabled \
       -Dlibcap=enabled \
       -Dlibsodium=enabled \
       -Dquiche=enabled \
