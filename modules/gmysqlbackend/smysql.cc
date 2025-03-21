@@ -116,7 +116,12 @@ public:
       releaseStatement();
       throw SSqlException("Attempt to bind more parameters than query has: " + d_query);
     }
-    d_req_bind[d_paridx].buffer_type = MYSQL_TYPE_LONG;
+    if constexpr (sizeof(long) == 4) {
+      d_req_bind[d_paridx].buffer_type = MYSQL_TYPE_LONG; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    }
+    else {
+      d_req_bind[d_paridx].buffer_type = MYSQL_TYPE_LONGLONG; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    }
     d_req_bind[d_paridx].buffer = new long[1];
     *((long*)d_req_bind[d_paridx].buffer) = value;
     d_paridx++;
@@ -129,7 +134,12 @@ public:
       releaseStatement();
       throw SSqlException("Attempt to bind more parameters than query has: " + d_query);
     }
-    d_req_bind[d_paridx].buffer_type = MYSQL_TYPE_LONG;
+    if constexpr (sizeof(long) == 4) {
+      d_req_bind[d_paridx].buffer_type = MYSQL_TYPE_LONG; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    }
+    else {
+      d_req_bind[d_paridx].buffer_type = MYSQL_TYPE_LONGLONG; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    }
     d_req_bind[d_paridx].buffer = new unsigned long[1];
     d_req_bind[d_paridx].is_unsigned = 1;
     *((unsigned long*)d_req_bind[d_paridx].buffer) = value;
