@@ -108,7 +108,7 @@ auth_test_deps = [   # FIXME: we should be generating some of these from shlibde
     'curl',
     'default-jre-headless',
     'bind9-dnsutils',
-    'faketime',
+    'datefudge',
     'gawk',
     'krb5-user',
     'ldnsutils',
