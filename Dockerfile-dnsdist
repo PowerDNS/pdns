@@ -55,6 +55,7 @@ RUN mkdir /build && \
     LUAVER=$([ -z "${NO_LUA_JIT##*$(dpkg --print-architecture)*}" ] && echo 'lua5.3' || echo 'luajit') && \
     apt-get install -y lib${LUAVER}-*dev ninja-build && \
     BUILDDIR=$(mktemp -d) && \
+    IS_RELEASE="${DOCKER_FAKE_RELEASE}" \
     LDFLAGS="-latomic -fuse-ld=lld -Wl,--build-id=sha1 -ldl" \
     CC=clang \
     CXX=clang++ \
