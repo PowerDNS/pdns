@@ -789,7 +789,8 @@ def ci_dnsdist_configure_meson(features, additional_flags, additional_ld_flags, 
                       -D dns-over-quic=enabled \
                       -D dns-over-tls=enabled \
                       -D reproducible=true \
-                      -D snmp=enabled'
+                      -D snmp=enabled \
+                      -D yaml=enabled'
     else:
       features_set = '-D cdb=disabled \
                       -D dnscrypt=disabled \
@@ -809,7 +810,8 @@ def ci_dnsdist_configure_meson(features, additional_flags, additional_ld_flags, 
                       -D dns-over-quic=disabled \
                       -D dns-over-tls=disabled \
                       -D reproducible=false \
-                      -D snmp=disabled'
+                      -D snmp=disabled \
+                      -D yaml=disabled'
     unittests = get_unit_tests(meson=True)
     fuzztargets = get_fuzzing_targets(meson=True)
     tools = f'''AR=llvm-ar-{clang_version} RANLIB=llvm-ranlib-{clang_version}''' if is_compiler_clang() else ''
