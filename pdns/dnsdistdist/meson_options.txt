@@ -11,7 +11,6 @@ option('hardening-experimental-cf', type: 'combo', choices: ['disabled', 'full',
 option('hardening-experimental-scp', type: 'feature', value: 'disabled', description: 'Stack Clash Protection')
 option('hardening-fortify-source', type: 'combo', choices: ['auto', 'disabled', '1', '2', '3'], value: '2', description: 'Source fortification level')
 option('ipcipher', type: 'feature', value: 'auto', description: 'IPCipher')
-#option('rng-kiss', type: 'boolean', value: false, description: 'Use the unsafe KISS RNG')
 option('tls-libssl', type: 'feature', value: 'auto', description: 'OpenSSL-based TLS')
 option('tls-libssl-providers', type: 'boolean', value: false, description: 'OpenSSL-based TLS with TLS providers')
 option('dns-over-tls', type: 'boolean', value: false, description: 'DNS over TLS (requires GnuTLS or OpenSSL)')

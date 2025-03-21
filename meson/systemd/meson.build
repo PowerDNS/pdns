@@ -1,9 +1,10 @@
 opt_systemd = get_option('systemd-service')
 
-dep_systemd_prog = dependency('', required: false)
 
 if opt_systemd.allowed()
   dep_systemd_prog = dependency('systemd', required: opt_systemd)
+else
+  dep_systemd_prog = dependency('', required: false)
 endif
 
 if dep_systemd_prog.found()
