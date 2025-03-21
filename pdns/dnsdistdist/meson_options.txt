@@ -12,6 +12,7 @@ option('hardening-experimental-scp', type: 'feature', value: 'disabled', descrip
 option('hardening-fortify-source', type: 'combo', choices: ['auto', 'disabled', '1', '2', '3'], value: '2', description: 'Source fortification level')
 option('ipcipher', type: 'feature', value: 'auto', description: 'IPCipher')
 option('tls-libssl', type: 'feature', value: 'auto', description: 'OpenSSL-based TLS')
+option('tls-libssl-engines', type: 'boolean', value: false, description: 'OpenSSL-based TLS with TLS engines')
 option('tls-libssl-providers', type: 'boolean', value: false, description: 'OpenSSL-based TLS with TLS providers')
 option('dns-over-tls', type: 'feature', value: 'auto', description: 'DNS over TLS (requires GnuTLS or OpenSSL)')
 option('dns-over-https', type: 'feature', value: 'auto', description: 'DNS over HTTP/2 (requires GnuTLS or OpenSSL)')
