@@ -2,15 +2,22 @@ Lua2 Backend
 ============
 
 * Native: Yes
-* Master: Yes
-* Slave: No
-* Superslave: No
+* Primary: Yes
+* Secondary: No
+* Producer: No
+* Consumer: No
+* Autosecondary: No
+* DNS Update: No
 * DNSSEC: Yes
 * Disabled data: No
 * Comments: No
-* Zone caching: Yes
+* API: Read-Write
+* Multiple instances: Yes
+* Zone caching: Yes\*
 * Module name: lua2
 * Launch name: ``lua2``
+
+\* If provided by the responder (your script).
 
 This is a rewrite of existing Lua backend.
 This backend is stub between your Lua script and PowerDNS authoritative server.
