@@ -153,6 +153,7 @@ common_sources += files(
   src_dir / 'rec-zonetocache.cc',
   src_dir / 'rec_channel.cc',
   src_dir / 'rec_channel_rec.cc',
+  src_dir / 'rec-cookiestore.cc',
   src_dir / 'rec-xfr.cc',
   src_dir / 'rec-xfrtracker.cc',
   src_dir / 'recpacketcache.cc',

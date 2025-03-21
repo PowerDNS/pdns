@@ -485,24 +485,30 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
       auto lock = s_cookiestore.lock();
       auto found = lock->find(address);
       if (found != lock->end()) {
-        if (found->d_support) {
+        switch (found->getSupport()) {
+        case CookieEntry::Support::Supported:
+        case CookieEntry::Support::Probing:
           cookieSentOut = found->d_cookie;
           addressToBindTo = found->d_localaddress;
           opts.emplace_back(EDNSOptionCode::COOKIE, cookieSentOut->makeOptString());
           found->d_lastupdate = now->tv_sec;
           cerr << "Sending stored cookie info to " << address.toString() << ": " << found->d_cookie.toDisplayString() << endl;
-        }
-        else {
-          cerr << "This server does not support cookies" << endl;
+          break;
+        case CookieEntry::Support::Unknown:
+          assert(0);
+        case CookieEntry::Support::Unsupported:
+        default:
+          cerr << "This server does not support cookies or we don't know yet:" << endl;
         }
       }
       else {
+        // Server not in table
         CookieEntry entry;
         entry.d_address = address;
         entry.d_cookie.makeClientCookie();
         cookieSentOut = entry.d_cookie;
         entry.d_lastupdate = now->tv_sec;
-        entry.d_support = false;
+        entry.setSupport(CookieEntry::Support::Probing);
         lock->emplace(entry);
         opts.emplace_back(EDNSOptionCode::COOKIE, cookieSentOut->makeOptString());
         cerr << "We're sending new client cookie info from to " << address.toString() << ": " << entry.d_cookie.toDisplayString() << endl;
@@ -735,7 +741,7 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
                   found->d_localaddress = localip;
                   found->d_cookie = received;
                   found->d_lastupdate = now->tv_sec;
-                  found->d_support = true;
+                  found->setSupport(CookieEntry::Support::Supported);
                   uint16_t ercode = (edo.d_extRCode << 4) | lwr->d_rcode;
                   if (ercode == ERCode::BADCOOKIE) {
                     lwr->d_validpacket = true;
@@ -750,7 +756,7 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
                 }
               }
               else {
-                // We sent a cookie out but forgot it?
+                // We sent a cookie out but it's not in the table?
                 cerr << "Cookie not found back"<< endl;
                 lwr->d_validpacket = true;
                 return LWResult::Result::BadCookie; // XXX
