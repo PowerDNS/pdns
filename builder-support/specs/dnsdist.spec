@@ -98,22 +98,22 @@ export PKG_CONFIG_PATH=/usr/lib/pkgconfig:/opt/lib64/pkgconfig
   -Db_lto=true \
   -Db_lto_mode=thin \
   -Db_pie=true \
-  -Ddns-over-tls=true \
+  -Ddns-over-tls=enabled \
 %if 0%{?suse_version}
   -Ddnscrypt=disabled \
-  -Dsnmp=false \
+  -Dsnmp=disabled \
 %else
   -Ddnscrypt=enabled \
-  -Dsnmp=true \
+  -Dsnmp=enabled \
 %endif
   -Ddnstap=enabled \
-  -Ddns-over-https=true \
+  -Ddns-over-https=enabled \
   -Dtls-gnutls=enabled \
   -Dlibcap=enabled \
   -Dlua=%{lua_implementation} \
   -Dre2=enabled \
-  -Ddns-over-quic=true \
-  -Ddns-over-http3=true \
+  -Ddns-over-quic=enabled \
+  -Ddns-over-http3=enabled \
 %ifarch aarch64
   -Dxsk=disabled \
 %endif

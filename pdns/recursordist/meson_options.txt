@@ -8,7 +8,7 @@ option('signers-libsodium', type: 'feature', value: 'auto', description: 'Enable
 option('signers-libcrypto', type: 'feature', value: 'auto', description: 'Enable OpenSSL libcrypto-based signers)')
 option('signers-libcrypto-path', type: 'string', value: '', description: 'Custom path to find OpenSSL libcrypto')
 option('tls-libssl', type: 'feature', value: 'auto', description: 'OpenSSL-based TLS')
-option('dns-over-tls', type: 'boolean', value: false, description: 'DNS over TLS (requires GnuTLS or OpenSSL)')
+option('dns-over-tls', type: 'feature', value: 'auto', description: 'DNS over TLS (requires GnuTLS or OpenSSL)')
 option('unit-tests', type: 'boolean', value: false, description: 'Build and run unit tests')
 # not relevant for rec, but accessed by boost meson.build
 option('unit-tests-backends', type: 'boolean', value: false, description: 'Build and run backend unit tests')
@@ -19,7 +19,7 @@ option('systemd-service-group', type: 'string', value: 'pdns', description: 'Sys
 option('auto-var-init', type: 'combo', value: 'disabled', choices: ['zero', 'pattern', 'disabled'], description: 'Enable initialization of automatic variables')
 option('malloc-trace', type: 'boolean', value: false, description: 'Enable malloc-trace')
 option('socket-dir', type: 'string', value: '/var/run', description: 'Where the control socket lives')
-option('snmp', type: 'boolean', value: false, description: 'Enable SNMP')
+option('snmp', type: 'feature', value: 'disabled', description: 'Enable SNMP')
 option('dnstap', type: 'feature', value: 'auto', description: 'Enable DNSTAP support through libfstrm')
 option('libcurl', type: 'feature', value: 'auto', description: 'Enable Curl support')
 option('nod', type: 'boolean', value: true, description: 'Enable Newly Observed Domains')
