@@ -11,6 +11,12 @@ upgrade notes if your version is older than 3.4.2.
 4.9.0 to 5.0.0/master
 ---------------------
 
+LOC record parsing
+~~~~~~~~~~~~~~~~~~
+
+The parsing and validation of LOC records is modified to be conforming to the `rfc:1876`.
+This may cause records previously rejected to be accepted and vice versa.
+
 LUA records whitespace insertion
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
