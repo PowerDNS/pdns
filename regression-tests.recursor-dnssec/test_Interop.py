@@ -9,6 +9,7 @@ import threading
 
 class InteropTest(RecursorTest):
     _confdir = 'Interop'
+    _auth_zones = RecursorTest._default_auth_zones
 
     _config_template = """dnssec=validate
 packetcache-ttl=0 # explicitly disable packetcache
@@ -153,6 +154,7 @@ forward-zones+=undelegated.insecure.example=%s.12
 
 class InteropProcessTest(RecursorTest):
     _confdir = 'InteropProcess'
+    _auth_zones = RecursorTest._default_auth_zones
 
     _config_template = """dnssec=process
 packetcache-ttl=0 # explicitly disable packetcache

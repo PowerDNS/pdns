@@ -35,6 +35,7 @@ class RootNXTrustRecursorTest(RecursorTest):
 
 class RootNXTrustDisabledTest(RootNXTrustRecursorTest):
     _confdir = 'RootNXTrustDisabled'
+    _auth_zones = RecursorTest._default_auth_zones
     _wsPort = 8042
     _wsTimeout = 2
     _wsPassword = 'secretpassword'
@@ -88,6 +89,7 @@ extended-resolution-errors
 
 class RootNXTrustEnabledTest(RootNXTrustRecursorTest):
     _confdir = 'RootNXTrustEnabled'
+    _auth_zones = RecursorTest._default_auth_zones
     _wsPort = 8042
     _wsTimeout = 2
     _wsPassword = 'secretpassword'

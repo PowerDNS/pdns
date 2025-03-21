@@ -8,6 +8,7 @@ class ChainTest(RecursorTest):
     """
     These regression tests test the chaining of outgoing requests.
     """
+    _auth_zones = RecursorTest._default_auth_zones
     _chainSize = 200
     _confdir = 'Chain'
     _wsPort = 8042

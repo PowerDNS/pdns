@@ -56,23 +56,6 @@ extended-resolution-errors=yes
     _roothints = None
 
     @classmethod
-    def setUpClass(cls):
-
-        # we don't need all the auth stuff
-        cls.setUpSockets()
-        cls.startResponders()
-
-        confdir = os.path.join('configs', cls._confdir)
-        cls.createConfigDir(confdir)
-
-        cls.generateRecursorConfig(confdir)
-        cls.startRecursor(confdir, cls._recursorPort)
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tearDownRecursor()
-
-    @classmethod
     def generateRecursorConfig(cls, confdir):
         rpzFilePath = os.path.join(confdir, 'zone.rpz')
         with open(rpzFilePath, 'w') as rpzZone:
@@ -219,27 +202,6 @@ dnssec=validate
 extended-resolution-errors=no
     """
     _roothints = None
-
-    @classmethod
-    def setUpClass(cls):
-
-        # we don't need all the auth stuff
-        cls.setUpSockets()
-        cls.startResponders()
-
-        confdir = os.path.join('configs', cls._confdir)
-        cls.createConfigDir(confdir)
-
-        cls.generateRecursorConfig(confdir)
-        cls.startRecursor(confdir, cls._recursorPort)
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tearDownRecursor()
-
-    @classmethod
-    def generateRecursorConfig(cls, confdir):
-        super(NoExtendedErrorsTest, cls).generateRecursorConfig(confdir)
 
     @pytest.mark.external
     def testNotIncepted(self):

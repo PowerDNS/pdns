@@ -18,19 +18,6 @@ devonly-regression-test-mode
 
     _roothints = None
 
-    @classmethod
-    def setUpClass(cls):
-
-        # we don't need all the auth stuff
-        cls.setUpSockets()
-        cls.startResponders()
-
-        confdir = os.path.join('configs', cls._confdir)
-        cls.createConfigDir(confdir)
-
-        cls.generateRecursorConfig(confdir)
-        cls.startRecursor(confdir, cls._recursorPort)
-
     @pytest.mark.external
     def testTXT(self):
         expected = dns.rrset.from_text('dot-test-target.powerdns.org.', 0, dns.rdataclass.IN, 'TXT', 'https://github.com/PowerDNS/pdns/pull/12825')

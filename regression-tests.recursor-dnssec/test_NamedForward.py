@@ -17,18 +17,6 @@ forward-zones-recurse=.=dns.quad9.net;dns.google;one.one.one.one
 system-resolver-ttl=10
     """
 
-    @classmethod
-    def setUpClass(cls):
-
-        # we don't need all the auth stuff
-        cls.setUpSockets()
-
-        confdir = os.path.join('configs', cls._confdir)
-        cls.createConfigDir(confdir)
-
-        cls.generateRecursorConfig(confdir)
-        cls.startRecursor(confdir, cls._recursorPort)
-
     def testA(self):
         expected = dns.rrset.from_text('dns.google.', 0, dns.rdataclass.IN, 'A', '8.8.8.8', '8.8.4.4')
         query = dns.message.make_query('dns.google', 'A', want_dnssec=True)

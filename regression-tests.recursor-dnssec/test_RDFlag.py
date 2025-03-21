@@ -4,6 +4,7 @@ from recursortests import RecursorTest
 
 class RDNotAllowedTest(RecursorTest):
     _confdir = 'RDNotAllowed'
+    _auth_zones = RecursorTest._default_auth_zones
 
     _config_template = """
 """
@@ -19,6 +20,7 @@ class RDNotAllowedTest(RecursorTest):
 
 class RDAllowedTest(RecursorTest):
     _confdir = 'RDAllowed'
+    _auth_zones = RecursorTest._default_auth_zones
 
     _config_template = """
     disable-packetcache=yes

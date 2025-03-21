@@ -14,6 +14,7 @@ class ExpiredTest(RecursorTest):
     because they are expired.
     """
     _confdir = 'Expired'
+    _auth_zones = RecursorTest._default_auth_zones
 
     _config_template = """dnssec=validate"""
 
@@ -32,6 +33,7 @@ class ExpiredWithEDETest(RecursorTest):
     because they are expired.
     """
     _confdir = 'ExpiredWithEDE'
+    _auth_zones = RecursorTest._default_auth_zones
 
     _config_template = """
     dnssec=validate

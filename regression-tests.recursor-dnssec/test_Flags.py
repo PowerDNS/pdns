@@ -7,6 +7,7 @@ from recursortests import RecursorTest
 
 class FlagsTest(RecursorTest):
     _confdir = 'Flags'
+    _auth_zones = RecursorTest._default_auth_zones
     _config_template = """dnssec=%s"""
     _config_params = ['_dnssec_setting']
     _dnssec_setting = None

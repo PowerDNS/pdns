@@ -87,20 +87,6 @@ ecs-add-for=0.0.0.0/0
             cls._UDPResponder.start()
 
     @classmethod
-    def setUpClass(cls):
-        cls.setUpSockets()
-
-        cls.startResponders()
-
-        confdir = os.path.join('configs', cls._confdir)
-        cls.createConfigDir(confdir)
-
-        cls.generateRecursorConfig(confdir)
-        cls.startRecursor(confdir, cls._recursorPort)
-
-        print("Launching tests..")
-
-    @classmethod
     def tearDownClass(cls):
         cls.tearDownRecursor()
         os.unlink('tagfile')

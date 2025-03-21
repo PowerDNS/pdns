@@ -4,6 +4,7 @@ from recursortests import RecursorTest
 
 class BogusMaxTTLTest(RecursorTest):
     _confdir = 'BogusMaxTTL'
+    _auth_zones = RecursorTest._default_auth_zones
 
     _config_template = """dnssec=validate
 max-cache-bogus-ttl=5"""

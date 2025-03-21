@@ -3,6 +3,7 @@ from recursortests import RecursorTest
 
 class NoDSYAMLTest(RecursorTest):
     _confdir = 'NoDSYAML'
+    _auth_zones = RecursorTest._default_auth_zones
 
     _config_template = """
 dnssec:

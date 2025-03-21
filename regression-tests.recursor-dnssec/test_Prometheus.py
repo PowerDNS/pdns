@@ -6,23 +6,6 @@ import unittest
 from recursortests import RecursorTest
 
 class RecPrometheusTest(RecursorTest):
-
-    @classmethod
-    def setUpClass(cls):
-
-        # we don't need all the auth stuff
-        cls.setUpSockets()
-        cls.startResponders()
-
-        confdir = os.path.join('configs', cls._confdir)
-        cls.createConfigDir(confdir)
-
-        cls.generateRecursorConfig(confdir)
-        cls.startRecursor(confdir, cls._recursorPort)
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tearDownRecursor()
  
     def checkPrometheusContentBasic(self, content):
         for line in content.splitlines():

@@ -409,7 +409,7 @@ PrivateKey: Ep9uo6+wwjb4MaOmqq7LHav2FLrjotVOeZg8JT1Qk04=
     # This dict is keyed with the suffix of the IP address and its value
     # is a list of zones hosted on that IP. Note that delegations should
     # go into the _zones's zonecontent
-    _auth_zones = {
+    _default_auth_zones = {
         '8': {'threads': 1,
               'zones': ['ROOT']},
         '9': {'threads': 1,
@@ -434,6 +434,7 @@ PrivateKey: Ep9uo6+wwjb4MaOmqq7LHav2FLrjotVOeZg8JT1Qk04=
         '18': {'threads': 1,
                'zones': ['example']}
     }
+    _auth_zones = {}
     # Other IPs used:
     #  2: test_Interop.py
     #  3-7: free?

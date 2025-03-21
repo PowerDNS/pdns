@@ -10,6 +10,7 @@ class LockedCacheTest(RecursorTest):
     Test that a locked cached entry is *not* updated by the same additional encountered in a second query
     """
     _confdir = 'LockedCache'
+    _auth_zones = RecursorTest._default_auth_zones
 
     _config_template = """
     dnssec=validate
@@ -60,6 +61,7 @@ class NotLockedCacheTest(RecursorTest):
     Test that a not locked cached entry *is* updated by the same additional encountered in a second query
     """
     _confdir = 'NotLockedCache'
+    _auth_zones = RecursorTest._default_auth_zones
 
     _config_template = """
     dnssec=validate

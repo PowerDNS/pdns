@@ -12,23 +12,6 @@ trace=fail
 forward-zones-recurse=.=127.0.0.1:9999
 """
 
-    @classmethod
-    def setUpClass(cls):
-
-        # we don't need all the auth stuff
-        cls.setUpSockets()
-        cls.startResponders()
-
-        confdir = os.path.join('configs', cls._confdir)
-        cls.createConfigDir(confdir)
-
-        cls.generateRecursorConfig(confdir)
-        cls.startRecursor(confdir, cls._recursorPort)
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tearDownRecursor()
-
     def testA(self):
         query = dns.message.make_query('example', 'A', want_dnssec=False)
         res = self.sendUDPQuery(query)

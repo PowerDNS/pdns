@@ -116,19 +116,6 @@ class GettagRecursorTest(RecursorTest):
     end
     """
 
-    @classmethod
-    def setUpClass(cls):
-
-        cls.setUpSockets()
-        confdir = os.path.join('configs', cls._confdir)
-        cls.createConfigDir(confdir)
-        cls.generateRecursorConfig(confdir)
-        cls.startRecursor(confdir, cls._recursorPort)
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tearDownRecursor()
-
     def testA(self):
         name = 'gettag.lua.'
         expected = [
@@ -353,24 +340,6 @@ quiet=no
             cls._UDPResponder.setDaemon(True)
             cls._UDPResponder.start()
 
-    @classmethod
-    def setUpClass(cls):
-        cls.setUpSockets()
-
-        cls.startResponders()
-
-        confdir = os.path.join('configs', cls._confdir)
-        cls.createConfigDir(confdir)
-
-        cls.generateRecursorConfig(confdir)
-        cls.startRecursor(confdir, cls._recursorPort)
-
-        print("Launching tests..")
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tearDownRecursor()
-
     def testNoData(self):
         expected = dns.rrset.from_text('nodata.luahooks.example.', 3600, dns.rdataclass.IN, 'AAAA', '2001:DB8::1')
         query = dns.message.make_query('nodata.luahooks.example.', 'AAAA', 'IN')
@@ -459,6 +428,7 @@ class LuaDNS64Test(RecursorTest):
     """Tests the dq.followupAction("getFakeAAAARecords")"""
 
     _confdir = 'LuaDNS64'
+    _auth_zones = RecursorTest._default_auth_zones
     _config_template = """
     """
     _lua_dns_script_file = """
@@ -752,6 +722,7 @@ class PolicyEventFilterOnFollowUpTest(RecursorTest):
     """
 
     _confdir = 'PolicyEventFilterOnFollowUp'
+    _auth_zones = RecursorTest._default_auth_zones
     _config_template = """
     """
     _lua_config_file = """
@@ -803,6 +774,7 @@ class PolicyEventFilterOnFollowUpWithNativeDNS64Test(RecursorTest):
     """
 
     _confdir = 'PolicyEventFilterOnFollowUpWithNativeDNS64'
+    _auth_zones = RecursorTest._default_auth_zones
     _config_template = """
     dns64-prefix=1234::/96
     """
@@ -839,6 +811,7 @@ class LuaPostResolveFFITest(RecursorTest):
     """Tests postresolve_ffi interface"""
 
     _confdir = 'LuaPostResolveFFI'
+    _auth_zones = RecursorTest._default_auth_zones
     _config_template = """
     """
     _lua_dns_script_file = """

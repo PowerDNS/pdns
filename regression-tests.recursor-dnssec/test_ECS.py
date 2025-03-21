@@ -98,24 +98,6 @@ ecs-add-for=0.0.0.0/0
             cls._UDPResponder.daemon = True
             cls._UDPResponder.start()
 
-    @classmethod
-    def setUpClass(cls):
-        cls.setUpSockets()
-
-        cls.startResponders()
-
-        confdir = os.path.join('configs', cls._confdir)
-        cls.createConfigDir(confdir)
-
-        cls.generateRecursorConfig(confdir)
-        cls.startRecursor(confdir, cls._recursorPort)
-
-        print("Launching tests..")
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tearDownRecursor()
-
 class NoECSTest(ECSTest):
     _confdir = 'NoECS'
 
@@ -554,22 +536,6 @@ dnssec=validate
 
     _roothints = None
 
-    @classmethod
-    def setUpClass(cls):
-
-        # we don't need all the auth stuff
-        cls.setUpSockets()
-        cls.startResponders()
-
-        confdir = os.path.join('configs', cls._confdir)
-        cls.createConfigDir(confdir)
-
-        cls.generateRecursorConfig(confdir)
-        cls.startRecursor(confdir, cls._recursorPort)
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tearDownRecursor()
 
     @classmethod
     def generateRecursorConfig(cls, confdir):

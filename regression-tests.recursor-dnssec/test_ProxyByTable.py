@@ -7,6 +7,7 @@ class ProxyByTableTest(RecursorTest):
     This test makes sure that we correctly use the proxy-mapped address during the ACL check
     """
     _confdir = 'ProxyByTable'
+    _auth_zones = RecursorTest._default_auth_zones
 
     _config_template = """dnssec=validate
     auth-zones=authzone.example=configs/%s/authzone.zone
