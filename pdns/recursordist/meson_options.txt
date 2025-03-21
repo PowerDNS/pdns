@@ -19,7 +19,7 @@ option('systemd-service-group', type: 'string', value: 'pdns', description: 'Sys
 option('auto-var-init', type: 'combo', value: 'disabled', choices: ['zero', 'pattern', 'disabled'], description: 'Enable initialization of automatic variables')
 option('malloc-trace', type: 'boolean', value: false, description: 'Enable malloc-trace')
 option('socket-dir', type: 'string', value: '/var/run', description: 'Where the control socket lives')
-option('snmp', type: 'boolean', value: false, description: 'Enable SNMP')
+option('snmp', type: 'feature', value: 'disabled', description: 'Enable SNMP')
 option('dnstap', type: 'feature', value: 'auto', description: 'Enable DNSTAP support through libfstrm')
 option('libcurl', type: 'feature', value: 'auto', description: 'Enable Curl support')
 option('nod', type: 'boolean', value: true, description: 'Enable Newly Observed Domains')

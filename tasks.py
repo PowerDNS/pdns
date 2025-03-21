@@ -597,7 +597,7 @@ def ci_rec_configure_meson(c, features, build_dir):
             "-D nod=true",
             "-D libcap=enabled",
             "-D lua=luajit",
-            "-D snmp=true",
+            "-D snmp=enabled",
             unittests,
         ])
     else:
@@ -613,7 +613,7 @@ def ci_rec_configure_meson(c, features, build_dir):
             "-D libcap=disabled",
             "-D libcurl=disabled",
             "-D signers-libsodium=disabled",
-            "-D snmp=false",
+            "-D snmp=disabled",
             unittests,
         ])
     res = c.run(configure_cmd, warn=True)
@@ -788,7 +788,7 @@ def ci_dnsdist_configure_meson(features, additional_flags, additional_ld_flags, 
                       -D dns-over-quic=true \
                       -D dns-over-tls=true \
                       -D reproducible=true \
-                      -D snmp=true'
+                      -D snmp=enabled'
     else:
       features_set = '-D cdb=disabled \
                       -D dnscrypt=disabled \
@@ -808,7 +808,7 @@ def ci_dnsdist_configure_meson(features, additional_flags, additional_ld_flags, 
                       -D dns-over-quic=false \
                       -D dns-over-tls=false \
                       -D reproducible=false \
-                      -D snmp=false'
+                      -D snmp=disabled'
     unittests = get_unit_tests(meson=True)
     fuzztargets = get_fuzzing_targets(meson=True)
     tools = f'''AR=llvm-ar-{clang_version} RANLIB=llvm-ranlib-{clang_version}''' if is_compiler_clang() else ''
