@@ -497,8 +497,8 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
         case CookieEntry::Support::Unknown:
           assert(0);
         case CookieEntry::Support::Unsupported:
-        default:
-          cerr << "This server does not support cookies or we don't know yet:" << endl;
+          cerr << "This server does not support cookies" << endl;
+          break;
         }
       }
       else {
@@ -745,27 +745,33 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
                   uint16_t ercode = (edo.d_extRCode << 4) | lwr->d_rcode;
                   if (ercode == ERCode::BADCOOKIE) {
                     lwr->d_validpacket = true;
-                    return LWResult::Result::BadCookie;
+                    return LWResult::Result::BadCookie; // proper use of BacCookie, we did update he entry
                   }
                 }
                 else {
-                  // Server responded with a wrong client cookie, fall back to TCP
-                  cerr << "Wrong cookie" << endl;
-                  lwr->d_validpacket = true;
-                  return LWResult::Result::Spoofed;
+                  if (!doTCP) {
+                    // Server responded with a wrong client cookie, fall back to TCP
+                    cerr << "Wrong cookie" << endl;
+                    lwr->d_validpacket = true;
+                    return LWResult::Result::Spoofed;
+                  }
+                  // ignore bad cookie when already doing TCP
                 }
               }
               else {
-                // We sent a cookie out but it's not in the table?
+                // We receivd cookie (we might have sent one out) but it's not in the table?
                 cerr << "Cookie not found back"<< endl;
-                lwr->d_validpacket = true;
-                return LWResult::Result::BadCookie; // XXX
+                lwr->d_rcode = RCode::FormErr;
+                lwr->d_validpacket = false;
+                return LWResult::Result::Success; // success - oddly enough
               }
             }
             else {
-              cerr << "Malformed cookie in reply"<< endl;
-              lwr->d_validpacket = true;
-              return LWResult::Result::BadCookie; // XXX
+              cerr << "Malformed cookie in reply" << endl;
+              // Do something special if we get malformed repeatedly? And or consider current status: Supported
+              lwr->d_rcode = RCode::FormErr;
+              lwr->d_validpacket = false;
+              return LWResult::Result::Success; // succes - odly enough
             }
           }
         }
@@ -775,8 +781,27 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
     // Case: we sent out a cookie but did not get one back
     if (cookieSentOut && !cookieFoundInReply && !*chained) {
       cerr << "No cookie in reply"<< endl;
-      lwr->d_validpacket = true;
-      return LWResult::Result::BadCookie; // XXX
+      auto lock = s_cookiestore.lock();
+      auto found = lock->find(address);
+      if (found != lock->end()) {
+        switch (found->getSupport()) {
+        case CookieEntry::Support::Unknown:
+          assert(0);
+        case CookieEntry::Support::Probing:
+          cerr << "Was probing, setting support to Unsupported" << endl;
+          found->setSupport(CookieEntry::Support::Unsupported);
+          break;
+        case CookieEntry::Support::Unsupported:
+          break;
+        case CookieEntry::Support::Supported:
+          lwr->d_validpacket = true;
+          return LWResult::Result::BadCookie; // XXX, we did not update cookie info...
+          break;
+        }
+      }
+      else {
+        // Table entry lost? XXX
+      }
     }
 
     if (outgoingLoggers) {

@@ -12,14 +12,13 @@ from recursortests import RecursorTest
 
 class CookiesTest(RecursorTest):
     _confdir = 'Cookies'
-
     _config_template = """
 recursor:
   forward_zones:
   - zone: cookies.example
-    forwarders: [%s.25]
+    forwarders: [%s.25, %s.26]
 outgoing:
-  cookies: true""" %  (os.environ['PREFIX'])
+  cookies: true""" % (os.environ['PREFIX'], os.environ['PREFIX'])
 
     _expectedCookies = 'no'
     @classmethod
@@ -48,28 +47,28 @@ outgoing:
     def startResponders(cls):
         print("Launching responders..")
 
-        address = cls._PREFIX + '.25'
+        address1 = cls._PREFIX + '.25'
+        address2 = cls._PREFIX + '.26'
         port = 53
 
-        reactor.listenUDP(port, UDPResponder(), interface=address)
-        reactor.listenTCP(port, TCPFactory(), interface=address)
+        reactor.listenUDP(port, UDPResponder(), interface=address1)
+        reactor.listenTCP(port, TCPFactory(), interface=address1)
+        reactor.listenUDP(port, UDPResponder(), interface=address2)
+        reactor.listenTCP(port, TCPFactory(), interface=address2)
 
         if not reactor.running:
             cls.Responder = threading.Thread(name='Responder', target=reactor.run, args=(False,))
             cls.Responder.daemon = True
             cls.Responder.start()
-            #cls._TCPResponder = threading.Thread(name='TCP Responder', target=reactor.run, args=(False,))
-            #cls._TCPResponder.daemon = True
-            #cls._TCPResponder.start()
 
-    def checkCookies(self, support):
+    def checkCookies(self, support, server='127.0.0.25'):
         confdir = os.path.join('configs', self._confdir)
         output = self.recControl(confdir, 'dump-cookies', '-')
         for line in output.splitlines():
             tokens = line.split()
-            if tokens[0] != '127.0.0.25':
+            if tokens[0] != server:
                 continue
-            print(tokens)
+            #print(tokens)
             self.assertEqual(len(tokens), 5)
             self.assertEqual(tokens[3], support)
 
@@ -81,7 +80,7 @@ outgoing:
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertRRsetInAnswer(res, expected)
-        self.checkCookies('no')
+        self.checkCookies('Unsupported')
 
     def testAuthRepliesWithCookies(self):
         confdir = os.path.join('configs', self._confdir)
@@ -92,7 +91,7 @@ outgoing:
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertRRsetInAnswer(res, expected)
-        self.checkCookies('yes')
+        self.checkCookies('Supported')
 
         # Case: we get a an correct client and server cookie back
         # We do not clear the cookie tables, so the old server cookie gets re-used
@@ -101,19 +100,18 @@ outgoing:
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertRRsetInAnswer(res, expected)
-        self.checkCookies('yes')
+        self.checkCookies('Supported')
 
     def testAuthSendsIncorrectClientCookie(self):
         confdir = os.path.join('configs', self._confdir)
-        # Case: rec gets a an incorrect client cookie back
-        # Fails at the moment, as we do not do the right thing yet server side XXXX
+        # Case: rec gets a an incorrect client cookie back, we ignore that over TCP
         self.recControl(confdir, 'clear-cookies')
         query = dns.message.make_query('d.cookies.example.', 'A')
         expected = dns.rrset.from_text('d.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertRRsetInAnswer(res, expected)
-        self.checkCookies('yes')
+        self.checkCookies('Probing')
 
     def testAuthSendsBADCOOKIEOverUDP(self):
         confdir = os.path.join('configs', self._confdir)
@@ -124,7 +122,19 @@ outgoing:
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertRRsetInAnswer(res, expected)
-        self.checkCookies('yes')
+        self.checkCookies('Supported')
+
+    def testAuthSendsMalformedCookie(self):
+        confdir = os.path.join('configs', self._confdir)
+        # Case: rec gets a malformed cookie, should ignore packet
+        self.recControl(confdir, 'clear-cookies')
+        query = dns.message.make_query('f.cookies.example.', 'A')
+        expected = dns.rrset.from_text('f.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertRRsetInAnswer(res, expected)
+        self.checkCookies('Probing', '127.0.0.25')
+        self.checkCookies('Supported', '127.0.0.26')
 
 
 class UDPResponder(DatagramProtocol):
@@ -191,6 +201,19 @@ class UDPResponder(DatagramProtocol):
                 response.use_edns(options = [self.createCookie(clientcookie)])
                 if not tcp:
                     response.set_rcode(23) # BADCOOKIE
+            response.answer.append(answer)
+
+        # Case send malformed cookie for server .25
+        elif question.name == dns.name.from_text('f.cookies.example.') and question.rdtype == dns.rdatatype.A:
+            answer = dns.rrset.from_text('f.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
+            clientcookie = self.getCookie(request)
+            print(self.transport.getHost().host)
+            if self.transport.getHost().host == os.environ['PREFIX'] + '.26':
+                if clientcookie is not None:
+                    response.use_edns(options = [self.createCookie(clientcookie)])
+            else:
+                full = dns.edns.GenericOption(dns.edns.COOKIE, '')
+                response.use_edns(options = [full])
             response.answer.append(answer)
 
         return response.to_wire()
