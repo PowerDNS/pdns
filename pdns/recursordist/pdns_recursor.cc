@@ -180,13 +180,11 @@ int UDPClientSocks::makeClientSocket(int family, const std::optional<ComboAddres
     }
 
     if (localAddress) {
-      cerr << "Binding to local address associated with cookie: " << localAddress->toString() << endl;
       sin = *localAddress;
       sin.setPort(port);
     }
     else {
       sin = pdns::getQueryLocalAddress(family, port); // does htons for us
-      cerr << "Bound to random local address " << sin.toString() << endl;
     }
     if (::bind(ret, reinterpret_cast<struct sockaddr*>(&sin), sin.getSocklen()) >= 0) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
       break;

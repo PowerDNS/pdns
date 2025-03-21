@@ -322,7 +322,7 @@ class BindError
 {
 };
 
-static bool tcpconnect(const ComboAddress& remote, const std::optional<ComboAddress> localBind, TCPOutConnectionManager::Connection& connection, bool& dnsOverTLS, const std::string& nsName)
+static bool tcpconnect(const OptLog& log, const ComboAddress& remote, const std::optional<ComboAddress> localBind, TCPOutConnectionManager::Connection& connection, bool& dnsOverTLS, const std::string& nsName)
 {
   dnsOverTLS = SyncRes::s_dot_to_port_853 && remote.getPort() == 853;
 
@@ -338,10 +338,10 @@ static bool tcpconnect(const ComboAddress& remote, const std::optional<ComboAddr
   setTCPNoDelay(s.getHandle());
   ComboAddress localip = localBind ? *localBind : pdns::getQueryLocalAddress(remote.sin4.sin_family, 0);
   if (localBind) {
-    cerr << "Connecting TCP to " << remote.toString() << " with specific local address " << localip.toString() << endl;
+    VLOG(log, "Connecting TCP to " << remote.toString() << " with specific local address " << localip.toString() << endl);
   }
   else {
-    cerr << "Connecting TCP to " << remote.toString() << " with no specific local address" << endl;
+    VLOG(log, "Connecting TCP to " << remote.toString() << " with no specific local address" << endl);
   }
 
   try {
@@ -439,7 +439,7 @@ static void addPadding(const DNSPacketWriter& pw, size_t bufsize, DNSPacketWrite
     Never throws!
  */
 // NOLINTNEXTLINE(readability-function-cognitive-complexity): https://github.com/PowerDNS/pdns/issues/12791
-static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, const ResolveContext& context, const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, [[maybe_unused]] const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstrmLoggers, const std::set<uint16_t>& exportTypes, LWResult* lwr, bool* chained, TCPOutConnectionManager::Connection& connection)
+static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& address, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, const ResolveContext& context, const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, [[maybe_unused]] const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstrmLoggers, const std::set<uint16_t>& exportTypes, LWResult* lwr, bool* chained, TCPOutConnectionManager::Connection& connection)
 {
   size_t len;
   size_t bufsize = g_outgoingEDNSBufsize;
@@ -492,12 +492,12 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
           addressToBindTo = found->d_localaddress;
           opts.emplace_back(EDNSOptionCode::COOKIE, cookieSentOut->makeOptString());
           found->d_lastupdate = now->tv_sec;
-          cerr << "Sending stored cookie info to " << address.toString() << ": " << found->d_cookie.toDisplayString() << endl;
+          VLOG(log, "Sending stored cookie info to " << address.toString() << ": " << found->d_cookie.toDisplayString() << endl);
           break;
         case CookieEntry::Support::Unknown:
           assert(0);
         case CookieEntry::Support::Unsupported:
-          cerr << "This server does not support cookies" << endl;
+          VLOG(log, "Server << " << address.toString() << " does not support cookies" << endl);
           break;
         }
       }
@@ -511,7 +511,7 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
         entry.setSupport(CookieEntry::Support::Probing);
         lock->emplace(entry);
         opts.emplace_back(EDNSOptionCode::COOKIE, cookieSentOut->makeOptString());
-        cerr << "We're sending new client cookie info from to " << address.toString() << ": " << entry.d_cookie.toDisplayString() << endl;
+        VLOG(log, "Sending new client cookie info to " << address.toString() << ": " << entry.d_cookie.toDisplayString() << endl);
       }
     }
 
@@ -599,7 +599,7 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
         // peer has closed it on error, so we retry. At some point we
         // *will* get a new connection, so this loop is not endless.
         isNew = true; // tcpconnect() might throw for new connections. In that case, we want to break the loop, scanbuild complains here, which is a false positive afaik
-        isNew = tcpconnect(address, addressToBindTo, connection, dnsOverTLS, nsName);
+        isNew = tcpconnect(log, address, addressToBindTo, connection, dnsOverTLS, nsName);
         ret = tcpsendrecv(address, connection, localip, vpacket, len, buf);
 #ifdef HAVE_FSTRM
         if (fstrmQEnabled) {
@@ -732,12 +732,12 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
             EDNSCookiesOpt received;
             if (received.makeFromString(opt.second)) {
               cookieFoundInReply = true;
-              cerr << "Received cookie info back from " << address.toString() << ": " << received.toDisplayString() << endl;
+              VLOG(log, "Received cookie info back from " << address.toString() << ": " << received.toDisplayString() << endl);
               auto lock = s_cookiestore.lock();
               auto found = lock->find(address);
               if (found != lock->end()) {
                 if (received.getClient() == cookieSentOut->getClient()) {
-                  cerr << "Client cookie matched! Storing with localAddress " << localip.toString() << endl;
+                  VLOG(log, "Client cookie matched! Storing with localAddress " << localip.toString() << endl);
                   found->d_localaddress = localip;
                   found->d_cookie = received;
                   found->d_lastupdate = now->tv_sec;
@@ -745,13 +745,14 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
                   uint16_t ercode = (edo.d_extRCode << 4) | lwr->d_rcode;
                   if (ercode == ERCode::BADCOOKIE) {
                     lwr->d_validpacket = true;
+                    VLOG(log, "Server: " << localip.toString() << " returned BADCOOKIE " << endl);
                     return LWResult::Result::BadCookie; // proper use of BacCookie, we did update he entry
                   }
                 }
                 else {
                   if (!doTCP) {
                     // Server responded with a wrong client cookie, fall back to TCP
-                    cerr << "Wrong cookie" << endl;
+                    VLOG(log, "Server responded with wrong client cookie, fall back to TCP" << endl);
                     lwr->d_validpacket = true;
                     return LWResult::Result::Spoofed;
                   }
@@ -760,14 +761,14 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
               }
               else {
                 // We receivd cookie (we might have sent one out) but it's not in the table?
-                cerr << "Cookie not found back"<< endl;
+                VLOG(log, "Cookie not found back in table" << endl);
                 lwr->d_rcode = RCode::FormErr;
                 lwr->d_validpacket = false;
                 return LWResult::Result::Success; // success - oddly enough
               }
             }
             else {
-              cerr << "Malformed cookie in reply" << endl;
+              VLOG(log, "Malformed cookie in reply" << endl);
               // Do something special if we get malformed repeatedly? And or consider current status: Supported
               lwr->d_rcode = RCode::FormErr;
               lwr->d_validpacket = false;
@@ -780,7 +781,6 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
 
     // Case: we sent out a cookie but did not get one back
     if (cookieSentOut && !cookieFoundInReply && !*chained) {
-      cerr << "No cookie in reply"<< endl;
       auto lock = s_cookiestore.lock();
       auto found = lock->find(address);
       if (found != lock->end()) {
@@ -788,10 +788,11 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
         case CookieEntry::Support::Unknown:
           assert(0);
         case CookieEntry::Support::Probing:
-          cerr << "Was probing, setting support to Unsupported" << endl;
+          VLOG(log, "No cookie in repy, was probing, setting support to Unsupported" << endl);
           found->setSupport(CookieEntry::Support::Unsupported);
           break;
         case CookieEntry::Support::Unsupported:
+          // We could have detected the server does not support cookies in the meantime
           break;
         case CookieEntry::Support::Supported:
           lwr->d_validpacket = true;
@@ -841,10 +842,10 @@ out:
   return LWResult::Result::PermanentError;
 }
 
-LWResult::Result asyncresolve(const ComboAddress& address, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, const ResolveContext& context, const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstrmLoggers, const std::set<uint16_t>& exportTypes, LWResult* lwr, bool* chained)
+LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& address, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, const ResolveContext& context, const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstrmLoggers, const std::set<uint16_t>& exportTypes, LWResult* lwr, bool* chained)
 {
   TCPOutConnectionManager::Connection connection;
-  auto ret = asyncresolve(address, domain, type, doTCP, sendRDQuery, EDNS0Level, now, srcmask, context, outgoingLoggers, fstrmLoggers, exportTypes, lwr, chained, connection);
+  auto ret = asyncresolve(log, address, domain, type, doTCP, sendRDQuery, EDNS0Level, now, srcmask, context, outgoingLoggers, fstrmLoggers, exportTypes, lwr, chained, connection);
 
   if (doTCP) {
     if (connection.d_handler && lwr->d_validpacket) {
