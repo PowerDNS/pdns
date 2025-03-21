@@ -180,7 +180,7 @@ EXTRA_PROGRAMS = \
 	sdig \
 	speedtest \
 	testrunner \
-	tsig-tests \
+	tsig_tests \
 	zone2ldap
 
 pdns_server_SOURCES = \
@@ -931,6 +931,10 @@ tsig_tests_SOURCES += pkcs11signers.cc pkcs11signers.hh
 tsig_tests_LDADD += $(P11KIT1_LIBS)
 endif
 
+if GSS_TSIG
+tsig_tests_LDADD += $(GSS_LIBS)
+endif
+
 speedtest_SOURCES = \
 	arguments.cc arguments.hh \
 	base32.cc \
@@ -1510,7 +1514,7 @@ pdns_control_LDFLAGS = \
        $(AM_LDFLAGS) \
        $(LIBCRYPTO_LDFLAGS)
 
-noinst_PROGRAMS = speedtest
+noinst_PROGRAMS = speedtest tsig_tests
 
 if UNIT_TESTS
 noinst_PROGRAMS += testrunner
