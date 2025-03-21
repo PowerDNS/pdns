@@ -73,8 +73,7 @@ dnsdist is a high-performance DNS loadbalancer that is scriptable in Lua.
 export CC=clang
 export CXX=clang++
 # build-id SHA1 prevents an issue with the debug symbols ("export: `-Wl,--build-id=sha1': not a valid identifier")
-# and -ldl an issue with the dlsym not being found ("ld.lld: error: undefined symbol: dlsym eferenced by weak.rs:142 (library/std/src/sys/pal/unix/weak.rs:142) [...] in archive ./dnsdist-rust-lib/rust/libdnsdist_rust.a)
-export LDFLAGS="-fuse-ld=lld -Wl,--build-id=sha1 -ldl"
+export LDFLAGS="-fuse-ld=lld -Wl,--build-id=sha1"
 
 %if 0%{?rhel} < 9
 # starting with EL-9 we get these hardening settings for free by just setting the right toolchain (see above)

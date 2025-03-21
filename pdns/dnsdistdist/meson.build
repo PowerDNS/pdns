@@ -108,8 +108,10 @@ endif
 
 if get_option('yaml').allowed()
   subdir('dnsdist-rust-lib')
+  subdir('meson' / 'dlopen') # our Rust static library needs dlopen
 else
   dep_dnsdist_rust_lib = declare_dependency()
+  dep_dlopen = declare_dependency()
 endif
 
 common_sources += files(
@@ -335,6 +337,7 @@ deps = [
   dep_arc4random,
   dep_boost,
   dep_cdb,
+  dep_dlopen,
   dep_dnstap,
   dep_htmlfiles,
   dep_ipcrypt,
