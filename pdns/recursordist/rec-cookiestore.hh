@@ -52,11 +52,48 @@ using namespace ::boost::multi_index;
 
 struct CookieEntry
 {
+  enum class Support : uint8_t
+  {
+    Unknown,
+    Unsupported,
+    Supported,
+    Probing
+  };
+
+  static std::string toString(Support support)
+  {
+    static const std::array<std::string, 4> names = {
+      "Unknown",
+      "Unsupported",
+      "Supported",
+      "Probing"};
+    const auto index = static_cast<uint8_t>(support);
+    if (index >= names.size()) {
+      return "?";
+    }
+    return names.at(index);
+  }
+
+  Support getSupport() const
+  {
+    return d_support;
+  }
+
+  void setSupport(Support support) const // modifying mutable field
+  {
+    d_support = support;
+  }
+
+  bool supported() const
+  {
+    return d_support == Support::Supported;
+  }
+
   ComboAddress d_address;
   mutable ComboAddress d_localaddress; // The address we were bound to, see RFC 9018
   mutable EDNSCookiesOpt d_cookie; // Contains both client and server cookie
   mutable time_t d_lastupdate{};
-  mutable bool d_support;
+  mutable Support d_support{Support::Unknown};
 };
 
 class CookieStore : public multi_index_container < CookieEntry,
