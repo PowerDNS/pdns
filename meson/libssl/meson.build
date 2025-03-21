@@ -31,11 +31,6 @@ if dep_libssl.found()
     has,
     description: 'Have OpenSSL libssl SSL_CTX_set_min_proto_version',
   )
-  conf.set(
-    'OPENSSL_NO_ENGINE',
-    true,
-    description: 'Disable engine support for auth in libssl.cc',
-  )
 endif
 
 conf.set('HAVE_LIBSSL', dep_libssl.found(), description: 'OpenSSL libssl')

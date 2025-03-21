@@ -53,6 +53,7 @@ subdir('meson' / 'libedit')                 # Libedit
 subdir('meson' / 'libsodium')               # Libsodium
 subdir('meson' / 'libcrypto')               # OpenSSL libcrypto
 subdir('meson' / 'libssl')                  # OpenSSL libssl
+subdir('meson' / 'libssl-engines')          # OpenSSL libssl engines
 subdir('meson' / 'libssl-providers')        # OpenSSL libssl providers
 subdir('meson' / 'libsnmp')                 # SNMP
 subdir('meson' / 'clock-gettime')           # Clock_gettime
