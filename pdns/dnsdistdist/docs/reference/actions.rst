@@ -798,7 +798,7 @@ The following actions exist.
   If you specify multiple addresses, all that match the query type (A, AAAA or ANY) will get spoofed in.
 
   Note that if you only specify addresses of one type (e.g. only IPv4 addresses), then queries for the other type (in this case AAAA queries), will **not** be spoofed.
-  This means that for most practical cases, you'd need to specify at least one IPv4 and one IPv6 address.
+  If you want to spoof the request for an A record, but not return an IPv6 address on AAAA requests, you could limit this function to A queries and  :func:`NegativeAndSOAAction()` for AAAA queries.
 
   :param string ip: An IPv4 and/or IPv6 address to spoof
   :param {string} ips: A table of IPv4 and/or IPv6 addresses to spoof
