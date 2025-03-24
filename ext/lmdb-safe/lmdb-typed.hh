@@ -286,14 +286,19 @@ public:
     // }
 
     //! Get item with id, from main table directly
-    bool get(uint32_t id, T& t)
+    int get2(uint32_t itemId, T& value)
     {
-      MDBOutVal data;
-      if((*d_parent.d_txn)->get(d_parent.d_parent->d_main, id, data))
-        return false;
-
-      serFromString(data.get<std::string>(), t);
-      return true;
+      MDBOutVal data{};
+      int rc;
+      rc = (*d_parent.d_txn)->get(d_parent.d_parent->d_main, itemId, data);
+      if (rc == 0) {
+        serFromString(data.get<std::string>(), value);
+      }
+      return rc;
+    }
+    bool get(uint32_t itemId, T& value)
+    {
+      return get2(itemId, value) == 0;
     }
 
     //! Get item through index N, then via the main database
@@ -311,17 +316,24 @@ public:
       // because we know we only want one item, pass onlyOldest=true to consistently get the same one out of a set of duplicates
       get_multi<N>(key, ids, true);
 
-      if (ids.size() == 0) {
+      switch (ids.size()) {
+      case 0:
         return 0;
-      }
-
-      if (ids.size() == 1) {
-        if (get(ids[0], out)) {
+      case 1: {
+        auto rc = get2(ids[0], out);
+        if (rc == 0) {
           return ids[0];
         }
+        if (rc == MDB_NOTFOUND) {
+          /* element not present, or has been marked deleted */
+          return 0;
+        }
+        throw std::runtime_error("in index get, failed (" + std::to_string(rc) + ")");
+        break;
       }
-
-      throw std::runtime_error("in index get, found more than one item");
+      default:
+        throw std::runtime_error("in index get, found more than one item");
+      }
     }
 
     // //! Cardinality of index N
