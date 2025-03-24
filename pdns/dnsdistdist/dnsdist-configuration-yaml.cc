@@ -144,7 +144,11 @@ template <class FuncType>
 static bool getLuaFunctionFromConfiguration(FuncType& destination, const ::rust::string& functionName, const ::rust::string& functionCode, const ::rust::string& functionFile, const std::string& context)
 {
   if (!functionName.empty()) {
-    return getOptionalLuaFunction<FuncType>(destination, functionName);
+    auto found = getOptionalLuaFunction<FuncType>(destination, functionName);
+    if (found) {
+      return true;
+    }
+    throw std::runtime_error("Unable to locate the Lua function named '" + std::string(functionName) + "', referenced by a lua directive in " + context + " context");
   }
   if (!functionCode.empty()) {
     auto function = dnsdist::lua::getFunctionFromLuaCode<FuncType>(std::string(functionCode), context);
