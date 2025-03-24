@@ -81,10 +81,7 @@ ecs-add-for=0.0.0.0/0
             reactor.listenUDP(port, UDPRoutingResponder(), interface=address)
             routingReactorRunning = True
 
-        if not reactor.running:
-            cls._UDPResponder = threading.Thread(name='UDP Routing Responder', target=reactor.run, args=(False,))
-            cls._UDPResponder.setDaemon(True)
-            cls._UDPResponder.start()
+        cls.startReactor()
 
     @classmethod
     def tearDownClass(cls):

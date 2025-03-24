@@ -13,6 +13,8 @@ import unittest
 import dns
 import dns.message
 import requests
+import threading
+from twisted.internet import reactor
 
 from proxyprotocol import ProxyProtocol
 
@@ -444,6 +446,8 @@ PrivateKey: Ep9uo6+wwjb4MaOmqq7LHav2FLrjotVOeZg8JT1Qk04=
     # 22: test_EDNSBuffer.py
     # 23: test_Lua.py
     # 24: test_RoutingTag.py
+    # 25: test_Cookies.py
+    # 26: test_Cookies.py
 
     _auth_cmd = ['authbind',
                  os.environ['PDNS']]
@@ -1252,3 +1256,10 @@ distributor-threads={threads}
                         self.assertEqual(value, expected, key + ": value " + str(value) + " is not expected")
                     count += 1
         self.assertEqual(count, len(map))
+
+    @classmethod
+    def startReactor(cls):
+        if not reactor.running:
+            cls.Responder = threading.Thread(name='Responder', target=reactor.run, args=(False,))
+            cls.Responder.daemon = True
+            cls.Responder.start()
