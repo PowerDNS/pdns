@@ -1631,6 +1631,15 @@ static int createZone(const DNSName &zone, const DNSName& nsname) {
 
   di.backend->commitTransaction();
 
+  // Zone is not secured yet, suggest applying default-soa-edit rule to the
+  // serial number, if applicable.
+  if (sd.serial == 0) {
+    string edit_kind = ::arg()["default-soa-edit"];
+    if (!edit_kind.empty() && !pdns_iequals(edit_kind, "NONE")) {
+      cout << "Consider invoking 'pdnsutil increase-serial " << zone << "'" << endl;
+    }
+  }
+
   return EXIT_SUCCESS;
 }
 
