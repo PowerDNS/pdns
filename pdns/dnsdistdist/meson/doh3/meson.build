@@ -6,9 +6,5 @@ if opt_doh3.enabled()
   endif
 endif
 
-if opt_doh3.allowed() and dep_libquiche.found()
-  conf.set('HAVE_DNS_OVER_HTTP3', true, description: 'DNS over HTTP/3 (DoH3)')
-  summary('DNS over HTTP/3', true, bool_yn: true, section: 'Configuration')
-else
-  summary('DNS over HTTP/3', false, bool_yn: true, section: 'Configuration')
-endif
+conf.set('HAVE_DNS_OVER_HTTP3', opt_doh3.allowed() and dep_libquiche.found(), description: 'DNS over HTTP/3 (DoH3)')
+summary('DNS over HTTP/3', opt_doh3.allowed() and dep_libquiche.found(), bool_yn: true, section: 'Configuration')

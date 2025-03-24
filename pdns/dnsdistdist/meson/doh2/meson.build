@@ -9,9 +9,5 @@ if opt_doh2.enabled()
   endif
 endif
 
-if opt_doh2.allowed() and (dep_libssl.found() or dep_gnutls.found()) and (dep_libnghttp2.found() or dep_libh2o_evloop.found())
-  conf.set('HAVE_DNS_OVER_HTTPS', true, description: 'DNS over HTTP/2 (DoH)')
-  summary('DNS over HTTP/2', true, bool_yn: true, section: 'Configuration')
-else
-  summary('DNS over HTTP/2', false, bool_yn: true, section: 'Configuration')
-endif
+conf.set('HAVE_DNS_OVER_HTTPS', opt_doh2.allowed() and (dep_libssl.found() or dep_gnutls.found()) and (dep_libnghttp2.found() or dep_libh2o_evloop.found()), description: 'DNS over HTTP/2 (DoH)')
+summary('DNS over HTTP/2', opt_doh2.allowed() and (dep_libssl.found() or dep_gnutls.found()) and (dep_libnghttp2.found() or dep_libh2o_evloop.found()), bool_yn: true, section: 'Configuration')

@@ -6,9 +6,5 @@ if opt_doq.enabled()
   endif
 endif
 
-if opt_doq.allowed() and dep_libquiche.found()
-  conf.set('HAVE_DNS_OVER_QUIC', true, description: 'DNS over QUIC (DoQ)')
-  summary('DNS over QUIC', true, bool_yn: true, section: 'Configuration')
-else
-  summary('DNS over QUIC', false, bool_yn: true, section: 'Configuration')
-endif
+conf.set('HAVE_DNS_OVER_QUIC', opt_doq.allowed() and dep_libquiche.found(), description: 'DNS over QUIC (DoQ)')
+summary('DNS over QUIC', opt_doq.allowed() and dep_libquiche.found(), bool_yn: true, section: 'Configuration')
