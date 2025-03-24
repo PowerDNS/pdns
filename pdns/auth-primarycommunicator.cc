@@ -198,7 +198,7 @@ void CommunicatorClass::primaryUpdateCheck(PacketHandler* P)
     g_log << Logger::Info << "no primary or producer domains need notifications" << endl;
   }
   else {
-    g_log << Logger::Info << cmdomains.size() << " domain" << addS(cmdomains.size()) << " for which we are primary or consumer need" << addS(cmdomains.size()) << " notifications" << endl;
+    g_log << Logger::Info << cmdomains.size() << " domain" << addS(cmdomains.size()) << " for which we are primary or producer need" << addS(cmdomains.size()) << " notifications" << endl;
   }
 
   for (auto& di : cmdomains) {
