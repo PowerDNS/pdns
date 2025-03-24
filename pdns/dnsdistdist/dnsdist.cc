@@ -3288,9 +3288,11 @@ static std::optional<std::string> lookForTentativeConfigurationFileWithExtension
 static bool loadConfigurationFromFile(const std::string& configurationFile, bool isClient, bool configCheck)
 {
   if (boost::ends_with(configurationFile, ".yml")) {
+    // the bindings are always needed, for example for inline Lua
+    dnsdist::lua::setupLuaBindingsOnly(*(g_lua.lock()), isClient, configCheck);
+
     if (auto tentativeLuaConfFile = lookForTentativeConfigurationFileWithExtension(configurationFile, "lua")) {
       vinfolog("Loading configuration from auto-discovered Lua file %s", *tentativeLuaConfFile);
-      dnsdist::lua::setupLuaBindingsOnly(*(g_lua.lock()), isClient, configCheck);
       dnsdist::configuration::lua::loadLuaConfigurationFile(*(g_lua.lock()), *tentativeLuaConfFile, configCheck);
     }
     vinfolog("Loading configuration from YAML file %s", configurationFile);
