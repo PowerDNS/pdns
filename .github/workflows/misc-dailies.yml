@@ -85,7 +85,7 @@ jobs:
 
   list-pip-requirement-files:
     if: ${{ vars.SCHEDULED_MISC_DAILIES }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       req-files: ${{ steps.get-list-requirements.outputs.files }}
     steps:
@@ -98,7 +98,7 @@ jobs:
   validate-pip-hashes:
     if: ${{ vars.SCHEDULED_MISC_DAILIES }}
     name: ${{ matrix.requirements-file }} - Validate list of packages and hashes
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: list-pip-requirement-files
     env:
       SERVICE_IP_ADDR: 127.0.0.1
@@ -120,12 +120,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      # Configure pip index-url set to proxpi
-      - run: pip config set global.index-url http://${{ env.SERVICE_IP_ADDR }}:5000/index/
-      - run: pip config set global.trusted-host ${{ env.SERVICE_IP_ADDR }}
+      - name: setup pip and test install the packages
+        run: |
+          python3 -m venv ${GITHUB_WORKSPACE}/.venv
+          . ${GITHUB_WORKSPACE}/.venv/bin/activate
+          pip config set global.index-url http://${{ env.SERVICE_IP_ADDR }}:5000/index/
+          pip config set global.trusted-host ${{ env.SERVICE_IP_ADDR }}
+          pip install -U pip setuptools==77.0.3 setuptools-git wheel
+          pip install -r ${{ matrix.requirements-file }}
       - id: proxpi-docker
         run: echo "id=$(docker ps | grep "epicwink/proxpi" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
-      - run: pip install -r ${{ matrix.requirements-file }}
       - name: Get the list of packages requested to the pip proxy
         run: |
           docker logs ${{ steps.proxpi-docker.outputs.id }} 2>&1 | grep whl | awk '{print $8}' | cut -d "/" -f 4 | awk -F'-' '{print $1"=="$2}' | sort -u --ignore-case | sed 's/_/-/' | egrep -v "pip==|setuptools==|wheel==|setuptools-git==" > /tmp/proxpi.log
