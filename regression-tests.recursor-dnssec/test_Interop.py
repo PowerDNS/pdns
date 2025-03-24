@@ -147,10 +147,7 @@ forward-zones+=undelegated.insecure.example=%s.12
 
         reactor.listenUDP(port, UDPResponder(), interface=address)
 
-        if not reactor.running:
-            cls._UDPResponder = threading.Thread(name='UDP Responder', target=reactor.run, args=(False,))
-            cls._UDPResponder.setDaemon(True)
-            cls._UDPResponder.start()
+        cls.startReactor()
 
 class InteropProcessTest(RecursorTest):
     _confdir = 'InteropProcess'

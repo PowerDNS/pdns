@@ -2,13 +2,18 @@ import dns
 import socket
 import os
 import time
-import threading
+
 from twisted.internet.protocol import Factory
 from twisted.internet.protocol import Protocol
 from twisted.internet.protocol import DatagramProtocol
 from twisted.internet import reactor
 
+import clientsubnetoption
+import cookiesoption
+
 from recursortests import RecursorTest
+
+cookieReactorRunning = False
 
 class CookiesTest(RecursorTest):
     _confdir = 'Cookies'
@@ -45,21 +50,21 @@ outgoing:
 
     @classmethod
     def startResponders(cls):
+        global cookieReactorRunning
         print("Launching responders..")
 
         address1 = cls._PREFIX + '.25'
         address2 = cls._PREFIX + '.26'
         port = 53
 
-        reactor.listenUDP(port, UDPResponder(), interface=address1)
-        reactor.listenTCP(port, TCPFactory(), interface=address1)
-        reactor.listenUDP(port, UDPResponder(), interface=address2)
-        reactor.listenTCP(port, TCPFactory(), interface=address2)
+        if not cookieReactorRunning:
+            reactor.listenUDP(port, UDPResponder(), interface=address1)
+            reactor.listenTCP(port, TCPFactory(), interface=address1)
+            reactor.listenUDP(port, UDPResponder(), interface=address2)
+            reactor.listenTCP(port, TCPFactory(), interface=address2)
+            cookieReactorRunning = True
 
-        if not reactor.running:
-            cls.Responder = threading.Thread(name='Responder', target=reactor.run, args=(False,))
-            cls.Responder.daemon = True
-            cls.Responder.start()
+        cls.startReactor()
 
     def checkCookies(self, support, server='127.0.0.25'):
         confdir = os.path.join('configs', self._confdir)
@@ -140,8 +145,11 @@ outgoing:
 class UDPResponder(DatagramProtocol):
     def getCookie(self, message):
         for option in message.options:
-            if option.otype == dns.edns.COOKIE: #and isinstance(option, dns.edns.CookieOption):
-                return option.data
+            if option.otype == dns.edns.COOKIE and isinstance(option, cookiesoption.CookiesOption):
+                data = option.client
+                if option.server is not None:
+                    data += option.server
+                return data
         return None
 
     def createCookie(self, clientcookie):
