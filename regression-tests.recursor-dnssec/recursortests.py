@@ -445,6 +445,8 @@ PrivateKey: Ep9uo6+wwjb4MaOmqq7LHav2FLrjotVOeZg8JT1Qk04=
     # 22: test_EDNSBuffer.py
     # 23: test_Lua.py
     # 24: test_RoutingTag.py
+    # 25: test_Cookies.py
+    # 26: test_Cookies.py
 
     _auth_cmd = ['authbind',
                  os.environ['PDNS']]

@@ -4,6 +4,7 @@ from recursortests import RecursorTest
 
 class SimpleCookiesTest(RecursorTest):
     _confdir = 'SimpleCookies'
+    _auth_zones = RecursorTest._default_auth_zones
 
     _config_template = """
 recursor:
@@ -15,7 +16,7 @@ dnssec:
 outgoing:
   cookies: true""" % _confdir
 
-    _expectedCookies = 'no'
+    _expectedCookies = 'Unsupported'
     @classmethod
     def generateRecursorConfig(cls, confdir):
         authzonepath = os.path.join(confdir, 'authzone.zone')
@@ -134,7 +135,8 @@ outgoing:
 
 class SimpleCookiesAuthEnabledTest(SimpleCookiesTest):
     _confdir = 'SimpleCookiesAuthEnabled'
-    _expectedCookies = 'yes'
+    _auth_zones = SimpleCookiesTest._auth_zones
+    _expectedCookies = 'Supported'
 
     @classmethod
     def generateAuthConfig(cls, confdir, threads):
