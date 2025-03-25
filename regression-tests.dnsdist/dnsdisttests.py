@@ -161,8 +161,11 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             if not cls._yaml_config_template:
               conf.write("\n")
               conf.write("setSecurityPollSuffix('')")
-        elif os.path.exists(luaConfFile):
-          os.unlink(luaConfFile)
+        else:
+          try:
+            os.unlink(luaConfFile)
+          except OSError:
+            pass
 
         if cls._skipListeningOnCL:
           dnsdistcmd = [os.environ['DNSDISTBIN'], '--supervised', '-C', confFile ]
