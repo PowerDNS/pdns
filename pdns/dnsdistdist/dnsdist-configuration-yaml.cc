@@ -148,7 +148,7 @@ static bool getLuaFunctionFromConfiguration(FuncType& destination, const ::rust:
     if (found) {
       return true;
     }
-    throw std::runtime_error("Unable to locate the Lua function named '" + std::string(functionName) + "', referenced by a lua directive in " + context + " context");
+    throw std::runtime_error("Unable to locate the Lua function named '" + std::string(functionName) + "', referenced by a Lua directive in " + context + " context");
   }
   if (!functionCode.empty()) {
     auto function = dnsdist::lua::getFunctionFromLuaCode<FuncType>(std::string(functionCode), context);
