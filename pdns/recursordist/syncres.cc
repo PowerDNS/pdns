@@ -1524,7 +1524,7 @@ LWResult::Result SyncRes::asyncresolveWrapper(const OptLog& log, const ComboAddr
         // This is the first path that re-iterates the loop
         continue;
       }
-      else if (res->d_validpacket && res->d_haveEDNS && ret == LWResult::Result::BadCookie) {
+      if (res->d_validpacket && res->d_haveEDNS && ret == LWResult::Result::BadCookie) {
         // We assume the received cookie was stored and will be used in the second iteration
         // This is the second path that re-iterates the loop
         continue;

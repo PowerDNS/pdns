@@ -435,6 +435,96 @@ static void addPadding(const DNSPacketWriter& pw, size_t bufsize, DNSPacketWrite
   }
 }
 
+static void outgoingCookie(const OptLog& log, const ComboAddress& address, const timeval& now, DNSPacketWriter::optvect_t& opts, std::optional<EDNSCookiesOpt>& cookieSentOut, std::optional<ComboAddress>& addressToBindTo)
+{
+  auto lock = s_cookiestore.lock();
+  auto found = lock->find(address);
+  if (found != lock->end()) {
+    switch (found->getSupport()) {
+    case CookieEntry::Support::Supported:
+    case CookieEntry::Support::Probing:
+      cookieSentOut = found->d_cookie;
+      addressToBindTo = found->d_localaddress;
+      opts.emplace_back(EDNSOptionCode::COOKIE, cookieSentOut->makeOptString());
+      found->d_lastupdate = now.tv_sec;
+      VLOG(log, "Sending stored cookie info to " << address.toString() << ": " << found->d_cookie.toDisplayString() << endl);
+      break;
+    case CookieEntry::Support::Unsupported:
+      VLOG(log, "Server " << address.toString() << " does not support cookies" << endl);
+      break;
+    }
+  }
+  else {
+    // Server not in table, it's either new or was purged
+    CookieEntry entry;
+    entry.d_address = address;
+    entry.d_cookie.makeClientCookie();
+    cookieSentOut = entry.d_cookie;
+    entry.setSupport(CookieEntry::Support::Probing, now.tv_sec);
+    lock->emplace(entry);
+    opts.emplace_back(EDNSOptionCode::COOKIE, cookieSentOut->makeOptString());
+    VLOG(log, "Sending new client cookie info to " << address.toString() << ": " << entry.d_cookie.toDisplayString() << endl);
+  }
+}
+
+static std::pair<bool, LWResult::Result> incomingCookie(const OptLog& log, const ComboAddress& address, const ComboAddress& localip, const timeval& now, const std::optional<EDNSCookiesOpt>& cookieSentOut, const EDNSOpts& edo, bool doTCP, LWResult& lwr, bool& cookieFoundInReply)
+{
+  auto lock = s_cookiestore.lock();
+  auto found = lock->find(address);
+
+  if (found == lock->end()) {
+    // We receivd cookie (we might have sent one out) but the server is not in the table?
+    // This is a case of cannot happen, unless rec_control clear-cookies was called
+    VLOG(log, "Cookie from " << address.toString() << " not found back in table" << endl);
+    lwr.d_rcode = RCode::FormErr;
+    lwr.d_validpacket = false;
+    return {true, LWResult::Result::Success}; // success - oddly enough
+  }
+
+  // We have stored cookie info, scan for COOKIE option in EDNS
+  for (const auto& opt : edo.d_options) {
+    if (opt.first == EDNSOptionCode::COOKIE) {
+      if (EDNSCookiesOpt received; received.makeFromString(opt.second)) {
+        cookieFoundInReply = true;
+        VLOG(log, "Received cookie info back from " << address.toString() << ": " << received.toDisplayString() << endl);
+        if (received.getClient() == cookieSentOut->getClient()) {
+          VLOG(log, "Client cookie from " << address.toString() << " matched! Storing with localAddress " << localip.toString() << endl);
+          found->d_localaddress = localip;
+          found->d_cookie = received;
+          found->setSupport(CookieEntry::Support::Supported, now.tv_sec);
+          // check extended error code
+          uint16_t ercode = (edo.d_extRCode << 4) | lwr.d_rcode;
+          if (ercode == ERCode::BADCOOKIE) {
+            lwr.d_validpacket = true;
+            VLOG(log, "Server " << localip.toString() << " returned BADCOOKIE " << endl);
+            return {true, LWResult::Result::BadCookie}; // We did update the entry, retry should succeed
+          }
+        }
+        else {
+          if (!doTCP) {
+            // Server responded with a wrong client cookie, fall back to TCP, RFC 7873 5.3
+            VLOG(log, "Server " << localip.toString() << " responded with wrong client cookie, fall back to TCP" << endl);
+            lwr.d_validpacket = true;
+            return {true, LWResult::Result::Spoofed};
+          }
+          // mismatched cookie when already doing TCP, ignore that
+          VLOG(log, "Server " << localip.toString() << " responded with wrong client cookie over TCP, ignoring that" << endl);
+        }
+      }
+      else {
+        VLOG(log, "Malformed cookie in reply from " << address.toString() << ", dropping as if was a timeout" << endl);
+        // Do something special if we get malformed repeatedly? And or consider current status?
+        lwr.d_validpacket = false;
+        return {true, LWResult::Result::Timeout};
+      }
+      break; // only consider first cookie option found, RFC 7873 5.3
+    } // COOKIE option found
+  } // for
+
+  // The cases where something special needs to be done have been handled above
+  return {false, LWResult::Result::Success};
+}
+
 /** lwr is only filled out in case 1 was returned, and even when returning 1 for 'success', lwr might contain DNS errors
     Never throws!
  */
@@ -482,37 +572,7 @@ static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& addr
     }
 
     if (g_cookies) {
-      auto lock = s_cookiestore.lock();
-      auto found = lock->find(address);
-      if (found != lock->end()) {
-        switch (found->getSupport()) {
-        case CookieEntry::Support::Supported:
-        case CookieEntry::Support::Probing:
-          cookieSentOut = found->d_cookie;
-          addressToBindTo = found->d_localaddress;
-          opts.emplace_back(EDNSOptionCode::COOKIE, cookieSentOut->makeOptString());
-          found->d_lastupdate = now->tv_sec;
-          VLOG(log, "Sending stored cookie info to " << address.toString() << ": " << found->d_cookie.toDisplayString() << endl);
-          break;
-        case CookieEntry::Support::Unknown:
-          assert(0);
-        case CookieEntry::Support::Unsupported:
-          VLOG(log, "Server << " << address.toString() << " does not support cookies" << endl);
-          break;
-        }
-      }
-      else {
-        // Server not in table
-        CookieEntry entry;
-        entry.d_address = address;
-        entry.d_cookie.makeClientCookie();
-        cookieSentOut = entry.d_cookie;
-        entry.d_lastupdate = now->tv_sec;
-        entry.setSupport(CookieEntry::Support::Probing);
-        lock->emplace(entry);
-        opts.emplace_back(EDNSOptionCode::COOKIE, cookieSentOut->makeOptString());
-        VLOG(log, "Sending new client cookie info to " << address.toString() << ": " << entry.d_cookie.toDisplayString() << endl);
-      }
+      outgoingCookie(log, address, *now, opts, cookieSentOut, addressToBindTo);
     }
 
     if (dnsOverTLS && g_paddingOutgoing) {
@@ -727,54 +787,9 @@ static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& addr
         }
       }
       if (g_cookies && !*chained) {
-        for (const auto& opt : edo.d_options) {
-          if (opt.first == EDNSOptionCode::COOKIE) {
-            EDNSCookiesOpt received;
-            if (received.makeFromString(opt.second)) {
-              cookieFoundInReply = true;
-              VLOG(log, "Received cookie info back from " << address.toString() << ": " << received.toDisplayString() << endl);
-              auto lock = s_cookiestore.lock();
-              auto found = lock->find(address);
-              if (found != lock->end()) {
-                if (received.getClient() == cookieSentOut->getClient()) {
-                  VLOG(log, "Client cookie matched! Storing with localAddress " << localip.toString() << endl);
-                  found->d_localaddress = localip;
-                  found->d_cookie = received;
-                  found->d_lastupdate = now->tv_sec;
-                  found->setSupport(CookieEntry::Support::Supported);
-                  uint16_t ercode = (edo.d_extRCode << 4) | lwr->d_rcode;
-                  if (ercode == ERCode::BADCOOKIE) {
-                    lwr->d_validpacket = true;
-                    VLOG(log, "Server: " << localip.toString() << " returned BADCOOKIE " << endl);
-                    return LWResult::Result::BadCookie; // proper use of BacCookie, we did update he entry
-                  }
-                }
-                else {
-                  if (!doTCP) {
-                    // Server responded with a wrong client cookie, fall back to TCP
-                    VLOG(log, "Server responded with wrong client cookie, fall back to TCP" << endl);
-                    lwr->d_validpacket = true;
-                    return LWResult::Result::Spoofed;
-                  }
-                  // ignore bad cookie when already doing TCP
-                }
-              }
-              else {
-                // We receivd cookie (we might have sent one out) but it's not in the table?
-                VLOG(log, "Cookie not found back in table" << endl);
-                lwr->d_rcode = RCode::FormErr;
-                lwr->d_validpacket = false;
-                return LWResult::Result::Success; // success - oddly enough
-              }
-            }
-            else {
-              VLOG(log, "Malformed cookie in reply" << endl);
-              // Do something special if we get malformed repeatedly? And or consider current status: Supported
-              lwr->d_rcode = RCode::FormErr;
-              lwr->d_validpacket = false;
-              return LWResult::Result::Success; // succes - odly enough
-            }
-          }
+        auto [done, result] = incomingCookie(log, address, localip, *now, cookieSentOut, edo, doTCP, *lwr, cookieFoundInReply);
+        if (done) {
+          return result;
         }
       }
     }
@@ -785,23 +800,24 @@ static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& addr
       auto found = lock->find(address);
       if (found != lock->end()) {
         switch (found->getSupport()) {
-        case CookieEntry::Support::Unknown:
-          assert(0);
         case CookieEntry::Support::Probing:
-          VLOG(log, "No cookie in repy, was probing, setting support to Unsupported" << endl);
-          found->setSupport(CookieEntry::Support::Unsupported);
+          VLOG(log, "No cookie in repy from " << address.toString() << ", was probing, setting support to Unsupported" << endl);
+          found->setSupport(CookieEntry::Support::Unsupported, now->tv_sec);
           break;
         case CookieEntry::Support::Unsupported:
           // We could have detected the server does not support cookies in the meantime
+          VLOG(log, "No cookie in repy from " << address.toString() << ", cookie state is Unsupported, fine" << endl);
           break;
         case CookieEntry::Support::Supported:
-          lwr->d_validpacket = true;
-          return LWResult::Result::BadCookie; // XXX, we did not update cookie info...
+          // RFC says: ignore rpolies not containing any cookie info, equivalent to timeout
+          VLOG(log, "No cookie in repy from " << address.toString() << ", cookie state is Supported, dropping packet as if it timed out)" << endl);
+          return LWResult::Result::Timeout;
           break;
         }
       }
       else {
-        // Table entry lost? XXX
+        VLOG(log, "No cookie in repy from " << address.toString() << ", cookie state is Unknown, dropping packet as if it timed out" << endl);
+        return LWResult::Result::Timeout;
       }
     }
 

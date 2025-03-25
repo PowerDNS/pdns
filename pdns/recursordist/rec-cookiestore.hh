@@ -54,7 +54,6 @@ struct CookieEntry
 {
   enum class Support : uint8_t
   {
-    Unknown,
     Unsupported,
     Supported,
     Probing
@@ -63,7 +62,6 @@ struct CookieEntry
   static std::string toString(Support support)
   {
     static const std::array<std::string, 4> names = {
-      "Unknown",
       "Unsupported",
       "Supported",
       "Probing"};
@@ -79,8 +77,9 @@ struct CookieEntry
     return d_support;
   }
 
-  void setSupport(Support support) const // modifying mutable field
+  void setSupport(Support support, time_t now) const // modifying mutable field
   {
+    d_lastupdate = now;
     d_support = support;
   }
 
@@ -93,7 +92,7 @@ struct CookieEntry
   mutable ComboAddress d_localaddress; // The address we were bound to, see RFC 9018
   mutable EDNSCookiesOpt d_cookie; // Contains both client and server cookie
   mutable time_t d_lastupdate{};
-  mutable Support d_support{Support::Unknown};
+  mutable Support d_support{Support::Unsupported};
 };
 
 class CookieStore : public multi_index_container < CookieEntry,
