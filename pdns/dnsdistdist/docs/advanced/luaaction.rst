@@ -9,20 +9,26 @@ To write a custom selector in Lua, one can do:
 
 .. code-block:: lua
 
-  function luaselector(dq)
+  function lua_selector(dq)
     return dq.qtype == DNSQType.A
   end
-  addAction(LuaRule(luaselector), DropAction())
+  addAction(LuaRule(lua_selector), DropAction())
 
 
 And for a custom action:
 
 .. code-block:: lua
 
-  function luapoolaction(dq)
-    return DNSAction.Pool, "abuse" -- send to abuse pool
+  function lua_route_tc_to_abuse_pool(dq)
+    local tc = dq.dh:getTC()
+    -- The TC (truncated) bit should not be set in a query
+    if tc then
+      return DNSAction.Pool, "abuse" -- send to abuse pool
+    end
+    -- otherwise we keep processing subsequent rules, if any
+    return DNSAction.None
   end
-  addAction(AllRule(), LuaAction(luapoolaction))
+  addAction(AllRule(), LuaAction(lua_route_tc_to_abuse_pool))
 
 If the YAML configuration is used, there are three different ways of calling a Lua function. The first option is to declare the Lua function in
 a global Lua file that will loaded before the YAML configuration is parsed. This is done by creating a Lua file with the exact same name as
@@ -31,8 +37,14 @@ a file named ``/etc/dnsdist/dnsdist.lua`` containing:
 
 .. code-block:: lua
 
-  function luapoolaction(dq)
-    return DNSAction.Pool, "abuse" -- send to abuse pool
+  function lua_route_tc_to_abuse_pool(dq)
+    local tc = dq.dh:getTC()
+    -- The TC (truncated) bit should not be set in a query
+    if tc then
+      return DNSAction.Pool, "abuse" -- send to abuse pool
+    end
+    -- otherwise we keep processing subsequent rules, if any
+    return DNSAction.None
   end
 
 it is now possible to call this function from the YAML configuration at ``/etc/dnsdist/dnsdist.yml``
@@ -40,22 +52,22 @@ it is now possible to call this function from the YAML configuration at ``/etc/d
 .. code-block:: yaml
 
   query_rules:
-    - name: "route powerdns.com to the abuse pool"
+    - name: "route truncated queries for powerdns.com to the abuse pool"
       selector:
         type: "QNameSet"
         qnames:
           - "powerdns.com."
       action:
         type: "Lua"
-        function_name: "luapoolaction"
+        function_name: "lua_route_tc_to_abuse_pool"
 
 
-A second option is to declare the Lua code inline in the YAML configuration file, which requires returning a Lua function, which does not have to be named:
+A second option is to declare the Lua code inline in the YAML configuration file, which requires returning a Lua function, which does not need to be named:
 
 .. code-block:: yaml
 
   query_rules:
-    - name: "route powerdns.com to the abuse pool"
+    - name: "route truncated queries for powerdns.com to the abuse pool"
       selector:
         type: "QNameSet"
         qnames:
@@ -63,8 +75,14 @@ A second option is to declare the Lua code inline in the YAML configuration file
       action:
         type: "Lua"
         function_code: |
-          return function(dq)
-            return DNSAction.Pool, "abuse" -- send to abuse pool
+          return function lua_route_tc_to_abuse_pool(dq)
+            local tc = dq.dh:getTC()
+            -- The TC (truncated) bit should not be set in a query
+            if tc then
+              return DNSAction.Pool, "abuse" -- send to abuse pool
+            end
+            -- otherwise we keep processing subsequent rules, if any
+            return DNSAction.None
           end
 
 
@@ -73,20 +91,26 @@ Finally the third option is to declare the Lua code in a separate file which is 
 .. code-block:: yaml
 
   query_rules:
-    - name: "route powerdns.com to the abuse pool"
+    - name: "route truncated queries for powerdns.com to the abuse pool"
       selector:
         type: "QNameSet"
         qnames:
           - "powerdns.com."
       action:
         type: "Lua"
-        function_file: "/etc/dnsdist/lua-to-pool-abuse.lua"
+        function_file: "/etc/dnsdist/truncated-to-pool-abuse.lua"
 
 
-where the ``/etc/dnsdist/lua-to-pool-abuse.lua`` file contains:
+where the ``/etc/dnsdist/truncated-to-pool-abuse.lua`` file contains:
 
 .. code-block:: lua
 
   return function(dq)
-    return DNSAction.Pool, "abuse" -- send to abuse pool
+    local tc = dq.dh:getTC()
+    -- The TC (truncated) bit should not be set in a query
+    if tc then
+      return DNSAction.Pool, "abuse" -- send to abuse pool
+    end
+    -- otherwise we keep processing subsequent rules, if any
+    return DNSAction.None
   end
