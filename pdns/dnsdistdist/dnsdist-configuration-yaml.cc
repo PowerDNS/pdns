@@ -486,8 +486,8 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dns
     if (!xskMap) {
       throw std::runtime_error("XSK map " + std::string(config.xsk) + " attached to backend " + std::string(config.address) + " not found");
     }
-    downstream->registerXsk(*xskMap);
     if (!configCheck) {
+      downstream->registerXsk(*xskMap);
       infolog("Added downstream server %s via XSK in %s mode", std::string(config.address), xskMap->at(0)->getXDPMode());
     }
   }
