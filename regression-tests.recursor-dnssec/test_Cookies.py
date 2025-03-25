@@ -23,9 +23,13 @@ recursor:
   - zone: cookies.example
     forwarders: [%s.25, %s.26]
 outgoing:
-  cookies: true""" % (os.environ['PREFIX'], os.environ['PREFIX'])
+  cookies: true
+packetcache:
+  disable: true
+""" % (os.environ['PREFIX'], os.environ['PREFIX'])
 
     _expectedCookies = 'no'
+
     @classmethod
     def generateRecursorConfig(cls, confdir):
         super(CookiesTest, cls).generateRecursorYamlConfig(confdir)
@@ -80,19 +84,19 @@ outgoing:
     def testAuthDoesnotSendCookies(self):
         confdir = os.path.join('configs', self._confdir)
         # Case: rec does not get a cookie back
-        expected = dns.rrset.from_text('a.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
-        query = dns.message.make_query('a.cookies.example.', 'A')
+        expected = dns.rrset.from_text('unsupported.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
+        query = dns.message.make_query('unsupported.cookies.example.', 'A')
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertRRsetInAnswer(res, expected)
         self.checkCookies('Unsupported')
 
-    def testAuthRepliesWithCookies(self):
+    def testAuthRepliesWithCookie(self):
         confdir = os.path.join('configs', self._confdir)
         # Case: rec gets a proper client and server cookie back
         self.recControl(confdir, 'clear-cookies')
-        query = dns.message.make_query('b.cookies.example.', 'A')
-        expected = dns.rrset.from_text('b.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
+        query = dns.message.make_query('supported.cookies.example.', 'A')
+        expected = dns.rrset.from_text('supported.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertRRsetInAnswer(res, expected)
@@ -100,8 +104,8 @@ outgoing:
 
         # Case: we get a an correct client and server cookie back
         # We do not clear the cookie tables, so the old server cookie gets re-used
-        query = dns.message.make_query('c.cookies.example.', 'A')
-        expected = dns.rrset.from_text('c.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
+        query = dns.message.make_query('supported2.cookies.example.', 'A')
+        expected = dns.rrset.from_text('supported2.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertRRsetInAnswer(res, expected)
@@ -111,8 +115,8 @@ outgoing:
         confdir = os.path.join('configs', self._confdir)
         # Case: rec gets a an incorrect client cookie back, we ignore that over TCP
         self.recControl(confdir, 'clear-cookies')
-        query = dns.message.make_query('d.cookies.example.', 'A')
-        expected = dns.rrset.from_text('d.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
+        query = dns.message.make_query('wrongcc.cookies.example.', 'A')
+        expected = dns.rrset.from_text('wrongcc.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertRRsetInAnswer(res, expected)
@@ -122,8 +126,8 @@ outgoing:
         confdir = os.path.join('configs', self._confdir)
         # Case: rec gets a BADCOOKIE, even on retry and should fall back to TCP
         self.recControl(confdir, 'clear-cookies')
-        query = dns.message.make_query('e.cookies.example.', 'A')
-        expected = dns.rrset.from_text('e.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
+        query = dns.message.make_query('badcookie.cookies.example.', 'A')
+        expected = dns.rrset.from_text('badcookie.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertRRsetInAnswer(res, expected)
@@ -133,14 +137,34 @@ outgoing:
         confdir = os.path.join('configs', self._confdir)
         # Case: rec gets a malformed cookie, should ignore packet
         self.recControl(confdir, 'clear-cookies')
-        query = dns.message.make_query('f.cookies.example.', 'A')
-        expected = dns.rrset.from_text('f.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
+        query = dns.message.make_query('malformed.cookies.example.', 'A')
+        expected = dns.rrset.from_text('malformed.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
         self.assertRRsetInAnswer(res, expected)
         self.checkCookies('Probing', '127.0.0.25')
         self.checkCookies('Supported', '127.0.0.26')
 
+    def testForgottenCookie(self):
+        confdir = os.path.join('configs', self._confdir)
+        # Case: rec gets a proper client and server cookie back
+        self.recControl(confdir, 'clear-cookies')
+        query = dns.message.make_query('supported3.cookies.example.', 'A')
+        expected = dns.rrset.from_text('supported3.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertRRsetInAnswer(res, expected)
+        self.checkCookies('Supported')
+
+        # Case: we get a an correct client and server cookie back
+        # We HAVE cleared the cookie tables, so the old server cookie is fogotten
+        self.recControl(confdir, 'clear-cookies')
+        query = dns.message.make_query('supported4.cookies.example.', 'A')
+        expected = dns.rrset.from_text('supported4.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
+        res = self.sendUDPQuery(query)
+        self.assertRcodeEqual(res, dns.rcode.NOERROR)
+        self.assertRRsetInAnswer(res, expected)
+        self.checkCookies('Supported')
 
 class UDPResponder(DatagramProtocol):
     def getCookie(self, message):
@@ -169,21 +193,21 @@ class UDPResponder(DatagramProtocol):
         question = request.question[0]
 
         # Case: do not send cookie back
-        if question.name == dns.name.from_text('a.cookies.example.') and question.rdtype == dns.rdatatype.A:
-            answer = dns.rrset.from_text('a.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
+        if question.name == dns.name.from_text('unsupported.cookies.example.') and question.rdtype == dns.rdatatype.A:
+            answer = dns.rrset.from_text('unsupported.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
             response.answer.append(answer)
 
         # Case: do send cookie back
-        elif question.name == dns.name.from_text('b.cookies.example.') and question.rdtype == dns.rdatatype.A:
-            answer = dns.rrset.from_text('b.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
+        elif question.name == dns.name.from_text('supported.cookies.example.') and question.rdtype == dns.rdatatype.A:
+            answer = dns.rrset.from_text('supported.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
             clientcookie = self.getCookie(request)
             if clientcookie is not None:
                 response.use_edns(options = [self.createCookie(clientcookie)])
             response.answer.append(answer)
 
         # We get a good client and server cookie
-        elif question.name == dns.name.from_text('c.cookies.example.') and question.rdtype == dns.rdatatype.A:
-            answer = dns.rrset.from_text('c.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
+        elif question.name == dns.name.from_text('supported2.cookies.example.') and question.rdtype == dns.rdatatype.A:
+            answer = dns.rrset.from_text('supported2.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
             clientcookie = self.getCookie(request)
             if len(clientcookie) != 24:
                 raise AssertionError("expected full cookie, got len " + str(len(clientcookie)))
@@ -191,9 +215,25 @@ class UDPResponder(DatagramProtocol):
                 response.use_edns(options = [self.createCookie(clientcookie)])
             response.answer.append(answer)
 
+        # Case: do send cookie back
+        elif question.name == dns.name.from_text('supported3.cookies.example.') and question.rdtype == dns.rdatatype.A:
+            answer = dns.rrset.from_text('supported3.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
+            clientcookie = self.getCookie(request)
+            if clientcookie is not None:
+                response.use_edns(options = [self.createCookie(clientcookie)])
+            response.answer.append(answer)
+
+        # We get a new client cookie as the cookie store was cleared
+        elif question.name == dns.name.from_text('supported4.cookies.example.') and question.rdtype == dns.rdatatype.A:
+            answer = dns.rrset.from_text('supported4.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
+            clientcookie = self.getCookie(request)
+            if clientcookie is not None:
+                response.use_edns(options = [self.createCookie(clientcookie)])
+            response.answer.append(answer)
+
         # Case: do send incorrect client cookie back
-        elif question.name == dns.name.from_text('d.cookies.example.') and question.rdtype == dns.rdatatype.A:
-            answer = dns.rrset.from_text('d.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
+        elif question.name == dns.name.from_text('wrongcc.cookies.example.') and question.rdtype == dns.rdatatype.A:
+            answer = dns.rrset.from_text('wrongcc.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
             clientcookie = self.getCookie(request)
             if clientcookie is not None:
                 mod = bytearray(clientcookie)
@@ -202,8 +242,8 @@ class UDPResponder(DatagramProtocol):
             response.answer.append(answer)
 
         # Case: do send BADCOOKIE cookie back if UDP
-        elif question.name == dns.name.from_text('e.cookies.example.') and question.rdtype == dns.rdatatype.A:
-            answer = dns.rrset.from_text('e.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
+        elif question.name == dns.name.from_text('badcookie.cookies.example.') and question.rdtype == dns.rdatatype.A:
+            answer = dns.rrset.from_text('badcookie.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
             clientcookie = self.getCookie(request)
             if clientcookie is not None:
                 response.use_edns(options = [self.createCookie(clientcookie)])
@@ -212,8 +252,8 @@ class UDPResponder(DatagramProtocol):
             response.answer.append(answer)
 
         # Case send malformed cookie for server .25
-        elif question.name == dns.name.from_text('f.cookies.example.') and question.rdtype == dns.rdatatype.A:
-            answer = dns.rrset.from_text('f.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
+        elif question.name == dns.name.from_text('malformed.cookies.example.') and question.rdtype == dns.rdatatype.A:
+            answer = dns.rrset.from_text('malformed.cookies.example.', 15, dns.rdataclass.IN, 'A', '127.0.0.1')
             clientcookie = self.getCookie(request)
             print(self.transport.getHost().host)
             if self.transport.getHost().host == os.environ['PREFIX'] + '.26':
