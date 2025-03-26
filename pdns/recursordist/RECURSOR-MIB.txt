@@ -1291,6 +1291,70 @@ tcpOverflow OBJECT-TYPE
         "Incoming TCP limits reached"
     ::= { stats 152 }
 
+cookieMalformed OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Malformed cookies received"
+    ::= { stats 153 }
+
+cookieMatched OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Matching cookies recieved"
+    ::= { stats 154 }
+
+cookieMismatchTcp OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Mismatched cookies received over TCP"
+    ::= { stats 155 }
+
+cookieMismatchUdp OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Mismatched cookies received over UDP"
+    ::= { stats 156 }
+
+cookieNotInReply OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Authoritative serve sent a reply bnack without cookie"
+    ::= { stats 157 }
+
+cookieRetry OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Retries because authoritative server sent a BADCOOKIE reply"
+    ::= { stats 158 }
+
+cookiesSupported OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of authoritative server IPs marked as supporting cookies"
+    ::= { stats 159 }
+
+cookiesUnsupported OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of authoritative server IPs marked as not supporting cookies"
+    ::= { stats 160 }
+
 ---
 --- Traps / Notifications
 ---
@@ -1489,7 +1553,15 @@ recGroup OBJECT-GROUP
         maxChainLength,
         maxChainWeight,
         chainLimits,
-        tcpOverflow
+        tcpOverflow,
+        cookieMalformed,
+        cookieMatched,
+        cookieMismatchTcp,
+        cookieMismatchUdp,
+        cookieNotInReply,
+        cookieRetry,
+        cookiesSupported,
+        cookiesUnsupported
     }
     STATUS current
     DESCRIPTION "Objects conformance group for PowerDNS Recursor"

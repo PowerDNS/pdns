@@ -1357,6 +1357,54 @@
         'snmp': 152,
     },
     {
+        'name': 'cookie-malformed',
+        'lambda': '[] { return g_Counters.sum(rec::Counter::cookieMalformed); }',
+        'desc': 'Malformed cookies received',
+        'snmp': 153,
+    },
+    {
+        'name': 'cookie-matched',
+        'lambda': '[] { return g_Counters.sum(rec::Counter::cookieMatched); }',
+        'desc': 'Matching cookies recieved',
+        'snmp': 154,
+    },
+    {
+        'name': 'cookie-mismatch-tcp',
+        'lambda': '[] { return g_Counters.sum(rec::Counter::cookieMismatchedOverTCP); }',
+        'desc': 'Mismatched cookies received over TCP',
+        'snmp': 155,
+    },
+    {
+        'name': 'cookie-mismatch-udp',
+        'lambda': '[] { return g_Counters.sum(rec::Counter::cookieMismatchedOverUDP); }',
+        'desc': 'Mismatched cookies received over UDP',
+        'snmp': 156,
+    },
+    {
+        'name': 'cookie-not-in-reply',
+        'lambda': '[] { return g_Counters.sum(rec::Counter::cookieNotInReply); }',
+        'desc': 'Authoritative serve sent a reply bnack without cookie',
+        'snmp': 157,
+    },
+    {
+        'name': 'cookie-retry',
+        'lambda': '[] { return g_Counters.sum(rec::Counter::cookieRetry); }',
+        'desc': 'Retries because authoritative server sent a BADCOOKIE reply',
+        'snmp': 158,
+    },
+    {
+        'name': 'cookies-supported',
+        'lambda': '[] { return g_Counters.sum(rec::Counter::cookiesSupported); }',
+        'desc': 'Number of authoritative server IPs marked as supporting cookies',
+        'snmp': 159,
+    },
+    {
+        'name': 'cookies-unsupported',
+        'lambda': '[] { return g_Counters.sum(rec::Counter::cookiesUnsupported); }',
+        'desc': 'Number of authoritative server IPs marked as not supporting cookies',
+        'snmp': 160,
+    },
+    {
         'name': 'remote-logger-count',
         'lambda':  '''[]() {
     return toRemoteLoggerStatsMap("remote-logger-count");
@@ -1401,4 +1449,5 @@
         'pname': 'proxy-mapping-total-n-0', # For multicounters, state the first
         # No SNMP
     },
+    
 ]
