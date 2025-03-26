@@ -67,7 +67,7 @@ string EDNSCookiesOpt::makeOptString() const
 
 string EDNSCookiesOpt::toDisplayString() const
 {
-  std::string ret = makeHexDump(client, "");;
+  std::string ret = makeHexDump(client, "");
   if (!server.empty()) {
     ret += '|';
     if (server.length() != 16) {
@@ -75,7 +75,7 @@ string EDNSCookiesOpt::toDisplayString() const
       ret += makeHexDump(server, "");
     }
     else {
-       // It very likely is a rfc9018 one
+      // It very likely is a rfc9018 one
       ret += makeHexDump(server.substr(0, 1), ""); // Version
       ret += '|';
       ret += makeHexDump(server.substr(1, 3), ""); // Reserved
