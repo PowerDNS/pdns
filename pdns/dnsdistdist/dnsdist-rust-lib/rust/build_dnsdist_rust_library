@@ -3,11 +3,17 @@
 #echo "PWD=$PWD"
 #echo "srcdir=$srcdir"
 #echo "builddir=$builddir"
+# cxx/cxxbridge generate the files lib.rs.h and cxx.h inside $CARGO_TARGET_DIR if it is set
+# otherwise it uses target
+#echo "CARGO_TARGET_DIR=${CARGO_TARGET_DIR}"
+mytarget=${CARGO_TARGET_DIR-target}
+#echo "mytarget=${mytarget}"
 
 $CARGO build --release $RUST_TARGET --target-dir=$builddir/target --manifest-path $srcdir/Cargo.toml
 
 cp -p target/$RUSTC_TARGET_ARCH/release/libdnsdist_rust.a $builddir/dnsdist-rust-lib/rust/libdnsdist_rust.a
-cp -p target/$RUSTC_TARGET_ARCH/cxxbridge/dnsdist-rust/src/lib.rs.h $srcdir/lib.rs.h
-cp -p target/$RUSTC_TARGET_ARCH/cxxbridge/dnsdist-rust/src/lib.rs.h $builddir/dnsdist-rust-lib/rust/lib.rs.h
-cp -p target/$RUSTC_TARGET_ARCH/cxxbridge/rust/cxx.h $srcdir/cxx.h
-cp -p target/$RUSTC_TARGET_ARCH/cxxbridge/rust/cxx.h $builddir/dnsdist-rust-lib/rust/cxx.h
+
+cp -p $mytarget/$RUSTC_TARGET_ARCH/cxxbridge/dnsdist-rust/src/lib.rs.h $srcdir/lib.rs.h
+cp -p $mytarget/$RUSTC_TARGET_ARCH/cxxbridge/dnsdist-rust/src/lib.rs.h $builddir/dnsdist-rust-lib/rust/lib.rs.h
+cp -p $mytarget/$RUSTC_TARGET_ARCH/cxxbridge/rust/cxx.h $srcdir/cxx.h
+cp -p $mytarget/$RUSTC_TARGET_ARCH/cxxbridge/rust/cxx.h $builddir/dnsdist-rust-lib/rust/cxx.h
