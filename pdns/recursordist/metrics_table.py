@@ -1449,5 +1449,4 @@
         'pname': 'proxy-mapping-total-n-0', # For multicounters, state the first
         # No SNMP
     },
-    
 ]
