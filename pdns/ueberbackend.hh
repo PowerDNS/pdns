@@ -181,4 +181,76 @@ private:
 
   bool fillSOAFromZoneRecord(DNSName& shorter, int zoneId, SOAData* soaData);
   CacheResult fillSOAFromCache(SOAData* soaData, DNSName& shorter);
+
+  // Sugar used by methods which simply walk over the backends list, either
+  // unconditionally or until one backend returns true.
+
+  // general case with only reference arguments
+  template <class... Args>
+  void backendIterator(void (DNSBackend::*fn)(Args&...), Args&... args)
+  {
+    for (auto& backend : backends) {
+      ((*backend).*fn)(args...);
+    }
+  }
+  // general case with only non-reference arguments
+  template <class... Args>
+  void backendIterator(void (DNSBackend::*fn)(Args...), Args... args)
+  {
+    for (auto& backend : backends) {
+      ((*backend).*fn)(args...);
+    }
+  }
+  // special case for alsoNotifies()
+  template <class Arg1, class... Args>
+  void backendIterator(void (DNSBackend::*fn)(Arg1&, Args...), Arg1& arg1, Args... args)
+  {
+    for (auto& backend : backends) {
+      ((*backend).*fn)(arg1, args...);
+    }
+  }
+  // general case with only reference arguments
+  template <class... Args>
+  bool firstCapableBackend(bool (DNSBackend::*fn)(Args&...), Args&... args)
+  {
+    for (auto& backend : backends) {
+      if (((*backend).*fn)(args...)) {
+        return true;
+      }
+    }
+    return false;
+  }
+  // special case for CreateDomain()
+  template <class Arg1, class... Args>
+  bool firstCapableBackend(bool (DNSBackend::*fn)(const DNSName&, Arg1, Args&...), const DNSName& domain, Arg1 arg1, Args&... args)
+  {
+    for (auto& backend : backends) {
+      if (((*backend).*fn)(domain, arg1, args...)) {
+        return true;
+      }
+    }
+    return false;
+  }
+  // special case for getDomainInfo()
+  template <class Arg1, class Arg2, class... Args>
+  bool firstCapableBackend(bool (DNSBackend::*fn)(const DNSName&, Arg1&, Arg2, Args&...), const DNSName& domain, Arg1& arg1, Arg2 arg2, Args&... args)
+  {
+    for (auto& backend : backends) {
+      if (((*backend).*fn)(domain, arg1, arg2, args...)) {
+        return true;
+      }
+    }
+    return false;
+  }
+  // special case for autoPrimaryBackend()
+  template <class Arg1, class Arg2, class Arg3, class Arg4, class... Args>
+  bool firstCapableBackend(bool (DNSBackend::*fn)(Arg1&, Arg2&, Arg3&, Arg4, Args...), Arg1& arg1, Arg2& arg2, Arg3& arg3, Arg4 arg4, Args... args)
+  {
+    for (auto& backend : backends) {
+      if (((*backend).*fn)(arg1, arg2, arg3, arg4, args...)) {
+        return true;
+      }
+    }
+    return false;
+  }
 };

@@ -121,72 +121,37 @@ void UeberBackend::go()
 
 bool UeberBackend::getDomainInfo(const DNSName& domain, DomainInfo& domainInfo, bool getSerial)
 {
-  for (auto& backend : backends) {
-    if (backend->getDomainInfo(domain, domainInfo, getSerial)) {
-      return true;
-    }
-  }
-  return false;
+  return firstCapableBackend(&DNSBackend::getDomainInfo, domain, domainInfo, getSerial);
 }
 
 bool UeberBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account)
 {
-  for (auto& backend : backends) {
-    if (backend->createDomain(domain, kind, primaries, account)) {
-      return true;
-    }
-  }
-  return false;
+  return firstCapableBackend(&DNSBackend::createDomain, domain, kind, primaries, account);
 }
 
 bool UeberBackend::doesDNSSEC()
 {
-  for (auto& backend : backends) {
-    if (backend->doesDNSSEC()) {
-      return true;
-    }
-  }
-  return false;
+  return firstCapableBackend(&DNSBackend::doesDNSSEC);
 }
 
 bool UeberBackend::addDomainKey(const DNSName& name, const DNSBackend::KeyData& key, int64_t& keyID)
 {
   keyID = -1;
-  for (auto& backend : backends) {
-    if (backend->addDomainKey(name, key, keyID)) {
-      return true;
-    }
-  }
-  return false;
+  return firstCapableBackend(&DNSBackend::addDomainKey, name, key, keyID);
 }
 bool UeberBackend::getDomainKeys(const DNSName& name, std::vector<DNSBackend::KeyData>& keys)
 {
-  for (auto& backend : backends) {
-    if (backend->getDomainKeys(name, keys)) {
-      return true;
-    }
-  }
-  return false;
+  return firstCapableBackend(&DNSBackend::getDomainKeys, name, keys);
 }
 
 bool UeberBackend::getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string>>& meta)
 {
-  for (auto& backend : backends) {
-    if (backend->getAllDomainMetadata(name, meta)) {
-      return true;
-    }
-  }
-  return false;
+  return firstCapableBackend(&DNSBackend::getAllDomainMetadata, name, meta);
 }
 
 bool UeberBackend::getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta)
 {
-  for (auto& backend : backends) {
-    if (backend->getDomainMetadata(name, kind, meta)) {
-      return true;
-    }
-  }
-  return false;
+  return firstCapableBackend(&DNSBackend::getDomainMetadata, name, kind, meta);
 }
 
 bool UeberBackend::getDomainMetadata(const DNSName& name, const std::string& kind, std::string& meta)
@@ -202,12 +167,7 @@ bool UeberBackend::getDomainMetadata(const DNSName& name, const std::string& kin
 
 bool UeberBackend::setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta)
 {
-  for (auto& backend : backends) {
-    if (backend->setDomainMetadata(name, kind, meta)) {
-      return true;
-    }
-  }
-  return false;
+  return firstCapableBackend(&DNSBackend::setDomainMetadata, name, kind, meta);
 }
 
 bool UeberBackend::setDomainMetadata(const DNSName& name, const std::string& kind, const std::string& meta)
@@ -221,59 +181,32 @@ bool UeberBackend::setDomainMetadata(const DNSName& name, const std::string& kin
 
 bool UeberBackend::activateDomainKey(const DNSName& name, unsigned int keyID)
 {
-  for (auto& backend : backends) {
-    if (backend->activateDomainKey(name, keyID)) {
-      return true;
-    }
-  }
-  return false;
+  return firstCapableBackend(&DNSBackend::activateDomainKey, name, keyID);
 }
 
 bool UeberBackend::deactivateDomainKey(const DNSName& name, unsigned int keyID)
 {
-  for (auto& backend : backends) {
-    if (backend->deactivateDomainKey(name, keyID)) {
-      return true;
-    }
-  }
-  return false;
+  return firstCapableBackend(&DNSBackend::deactivateDomainKey, name, keyID);
 }
 
 bool UeberBackend::publishDomainKey(const DNSName& name, unsigned int keyID)
 {
-  for (auto& backend : backends) {
-    if (backend->publishDomainKey(name, keyID)) {
-      return true;
-    }
-  }
-  return false;
+  return firstCapableBackend(&DNSBackend::publishDomainKey, name, keyID);
 }
 
 bool UeberBackend::unpublishDomainKey(const DNSName& name, unsigned int keyID)
 {
-  for (auto& backend : backends) {
-    if (backend->unpublishDomainKey(name, keyID)) {
-      return true;
-    }
-  }
-  return false;
+  return firstCapableBackend(&DNSBackend::unpublishDomainKey, name, keyID);
 }
 
 bool UeberBackend::removeDomainKey(const DNSName& name, unsigned int keyID)
 {
-  for (auto& backend : backends) {
-    if (backend->removeDomainKey(name, keyID)) {
-      return true;
-    }
-  }
-  return false;
+  return firstCapableBackend(&DNSBackend::removeDomainKey, name, keyID);
 }
 
 void UeberBackend::reload()
 {
-  for (auto& backend : backends) {
-    backend->reload();
-  }
+  backendIterator(&DNSBackend::reload);
 }
 
 void UeberBackend::updateZoneCache()
@@ -310,26 +243,17 @@ void UeberBackend::rediscover(string* status)
 
 void UeberBackend::getUnfreshSecondaryInfos(vector<DomainInfo>* domains)
 {
-  for (auto& backend : backends) {
-    backend->getUnfreshSecondaryInfos(domains);
-  }
+  backendIterator(&DNSBackend::getUnfreshSecondaryInfos, domains);
 }
 
 void UeberBackend::getUpdatedPrimaries(vector<DomainInfo>& domains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes)
 {
-  for (auto& backend : backends) {
-    backend->getUpdatedPrimaries(domains, catalogs, catalogHashes);
-  }
+  backendIterator(&DNSBackend::getUpdatedPrimaries, domains, catalogs, catalogHashes);
 }
 
 bool UeberBackend::inTransaction()
 {
-  for (auto& backend : backends) {
-    if (backend->inTransaction()) {
-      return true;
-    }
-  }
-  return false;
+  return firstCapableBackend(&DNSBackend::inTransaction);
 }
 
 bool UeberBackend::fillSOAFromZoneRecord(DNSName& shorter, const int zoneId, SOAData* const soaData)
@@ -577,42 +501,22 @@ bool UeberBackend::getSOAUncached(const DNSName& domain, SOAData& soaData)
 
 bool UeberBackend::autoPrimaryAdd(const AutoPrimary& primary)
 {
-  for (auto& backend : backends) {
-    if (backend->autoPrimaryAdd(primary)) {
-      return true;
-    }
-  }
-  return false;
+  return firstCapableBackend(&DNSBackend::autoPrimaryAdd, primary);
 }
 
 bool UeberBackend::autoPrimaryRemove(const AutoPrimary& primary)
 {
-  for (auto& backend : backends) {
-    if (backend->autoPrimaryRemove(primary)) {
-      return true;
-    }
-  }
-  return false;
+  return firstCapableBackend(&DNSBackend::autoPrimaryRemove, primary);
 }
 
 bool UeberBackend::autoPrimariesList(std::vector<AutoPrimary>& primaries)
 {
-  for (auto& backend : backends) {
-    if (backend->autoPrimariesList(primaries)) {
-      return true;
-    }
-  }
-  return false;
+  return firstCapableBackend(&DNSBackend::autoPrimariesList, primaries);
 }
 
 bool UeberBackend::autoPrimaryBackend(const string& ipAddr, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** dnsBackend)
 {
-  for (auto& backend : backends) {
-    if (backend->autoPrimaryBackend(ipAddr, domain, nsset, nameserver, account, dnsBackend)) {
-      return true;
-    }
-  }
-  return false;
+  return firstCapableBackend(&DNSBackend::autoPrimaryBackend, ipAddr, domain, nsset, nameserver, account, dnsBackend);
 }
 
 UeberBackend::UeberBackend(const string& pname)
@@ -680,9 +584,7 @@ void UeberBackend::addCache(const Question& question, vector<DNSZoneRecord>&& rr
 
 void UeberBackend::alsoNotifies(const DNSName& domain, set<string>* ips)
 {
-  for (auto& backend : backends) {
-    backend->alsoNotifies(domain, ips);
-  }
+  backendIterator(&DNSBackend::alsoNotifies, domain, ips);
 }
 
 UeberBackend::~UeberBackend()
@@ -758,9 +660,7 @@ void UeberBackend::lookup(const QType& qtype, const DNSName& qname, int zoneId, 
 
 void UeberBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled)
 {
-  for (auto& backend : backends) {
-    backend->getAllDomains(domains, getSerial, include_disabled);
-  }
+  backendIterator(&DNSBackend::getAllDomains, domains, getSerial, include_disabled);
 }
 
 bool UeberBackend::get(DNSZoneRecord& resourceRecord)
@@ -819,12 +719,7 @@ void UeberBackend::lookupEnd()
 //
 bool UeberBackend::setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content)
 {
-  for (auto& backend : backends) {
-    if (backend->setTSIGKey(name, algorithm, content)) {
-      return true;
-    }
-  }
-  return false;
+  return firstCapableBackend(&DNSBackend::setTSIGKey, name, algorithm, content);
 }
 
 bool UeberBackend::getTSIGKey(const DNSName& name, DNSName& algorithm, string& content)
@@ -832,10 +727,8 @@ bool UeberBackend::getTSIGKey(const DNSName& name, DNSName& algorithm, string& c
   algorithm.clear();
   content.clear();
 
-  for (auto& backend : backends) {
-    if (backend->getTSIGKey(name, algorithm, content)) {
-      break;
-    }
+  if (!firstCapableBackend(&DNSBackend::getTSIGKey, name, algorithm, content)) {
+    return false;
   }
   return (!algorithm.empty() && !content.empty());
 }
@@ -843,23 +736,12 @@ bool UeberBackend::getTSIGKey(const DNSName& name, DNSName& algorithm, string& c
 bool UeberBackend::getTSIGKeys(std::vector<struct TSIGKey>& keys)
 {
   keys.clear();
-
-  for (auto& backend : backends) {
-    if (backend->getTSIGKeys(keys)) {
-      return true;
-    }
-  }
-  return false;
+  return firstCapableBackend(&DNSBackend::getTSIGKeys, keys);
 }
 
 bool UeberBackend::deleteTSIGKey(const DNSName& name)
 {
-  for (auto& backend : backends) {
-    if (backend->deleteTSIGKey(name)) {
-      return true;
-    }
-  }
-  return false;
+  return firstCapableBackend(&DNSBackend::deleteTSIGKey, name);
 }
 
 // API Search
