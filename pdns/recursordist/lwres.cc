@@ -489,13 +489,18 @@ static std::pair<bool, LWResult::Result> incomingCookie(const OptLog& log, const
         VLOG(log, "Received cookie info back from " << address.toString() << ": " << received.toDisplayString() << endl);
         if (received.getClient() == cookieSentOut->getClient()) {
           VLOG(log, "Client cookie from " << address.toString() << " matched! Storing with localAddress " << localip.toString() << endl);
+          ++t_Counters.at(rec::Counter::cookieMatched);
           found->d_localaddress = localip;
           found->d_cookie = received;
+          if (found->getSupport() == CookieEntry::Support::Probing) {
+            ++t_Counters.at(rec::Counter::cookiesSupported);
+          }
           found->setSupport(CookieEntry::Support::Supported, now.tv_sec);
           // check extended error code
           uint16_t ercode = (edo.d_extRCode << 4) | lwr.d_rcode;
           if (ercode == ERCode::BADCOOKIE) {
             lwr.d_validpacket = true;
+            ++t_Counters.at(rec::Counter::cookieRetry);
             VLOG(log, "Server " << localip.toString() << " returned BADCOOKIE " << endl);
             return {true, LWResult::Result::BadCookie}; // We did update the entry, retry should succeed
           }
@@ -505,16 +510,19 @@ static std::pair<bool, LWResult::Result> incomingCookie(const OptLog& log, const
             // Server responded with a wrong client cookie, fall back to TCP, RFC 7873 5.3
             VLOG(log, "Server " << localip.toString() << " responded with wrong client cookie, fall back to TCP" << endl);
             lwr.d_validpacket = true;
+            ++t_Counters.at(rec::Counter::cookieMismatchedOverUDP);
             return {true, LWResult::Result::Spoofed};
           }
           // mismatched cookie when already doing TCP, ignore that
           VLOG(log, "Server " << localip.toString() << " responded with wrong client cookie over TCP, ignoring that" << endl);
+          ++t_Counters.at(rec::Counter::cookieMismatchedOverTCP);
         }
       }
       else {
         VLOG(log, "Malformed cookie in reply from " << address.toString() << ", dropping as if was a timeout" << endl);
         // Do something special if we get malformed repeatedly? And or consider current status?
         lwr.d_validpacket = false;
+        ++t_Counters.at(rec::Counter::cookieMalformed);
         return {true, LWResult::Result::Timeout};
       }
       break; // only consider first cookie option found, RFC 7873 5.3
@@ -796,6 +804,7 @@ static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& addr
 
     // Case: we sent out a cookie but did not get one back
     if (cookieSentOut && !cookieFoundInReply && !*chained) {
+      ++t_Counters.at(rec::Counter::cookieNotInReply);
       auto lock = s_cookiestore.lock();
       auto found = lock->find(address);
       if (found != lock->end()) {
@@ -803,13 +812,14 @@ static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& addr
         case CookieEntry::Support::Probing:
           VLOG(log, "No cookie in repy from " << address.toString() << ", was probing, setting support to Unsupported" << endl);
           found->setSupport(CookieEntry::Support::Unsupported, now->tv_sec);
+          ++t_Counters.at(rec::Counter::cookiesUnsupported);
           break;
         case CookieEntry::Support::Unsupported:
           // We could have detected the server does not support cookies in the meantime
           VLOG(log, "No cookie in repy from " << address.toString() << ", cookie state is Unsupported, fine" << endl);
           break;
         case CookieEntry::Support::Supported:
-          // RFC says: ignore rpolies not containing any cookie info, equivalent to timeout
+          // RFC says: ignore replies not containing any cookie info, equivalent to timeout
           VLOG(log, "No cookie in repy from " << address.toString() << ", cookie state is Supported, dropping packet as if it timed out)" << endl);
           return LWResult::Result::Timeout;
           break;

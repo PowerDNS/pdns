@@ -99,6 +99,14 @@ enum class Counter : uint8_t
   maxChainWeight,
   chainLimits,
   ecsMissingCount,
+  cookieMalformed,
+  cookieMatched,
+  cookieMismatchedOverTCP,
+  cookieMismatchedOverUDP,
+  cookieNotInReply,
+  cookieRetry,
+  cookiesSupported,
+  cookiesUnsupported,
 
   numberOfCounters
 };
