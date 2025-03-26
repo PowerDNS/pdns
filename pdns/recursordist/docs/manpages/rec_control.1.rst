@@ -94,6 +94,9 @@ dump-cache *FILENAME* [*TYPE*...]
     select specific caches specify one or more *TYPE*s, separated
     by spaces. The value of *TYPE* can be r, n, p or a.
 
+dump-cookies *FILENAME*
+    Dump the cookie store.
+
 dump-dot-probe-map *FILENAME*
     Dump the contents of the DoT probe map to the *FILENAME* mentioned.
 
