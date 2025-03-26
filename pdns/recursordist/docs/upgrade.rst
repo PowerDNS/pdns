@@ -4,6 +4,20 @@ Upgrade Guide
 Before upgrading, it is advised to read the :doc:`changelog/index`.
 When upgrading several versions, please read **all** notes applying to the upgrade.
 
+5.3.0 to master
+---------------
+
+New Settings
+^^^^^^^^^^^^
+
+- The :ref:`setting-yaml-outgoing.cookies` settings has been introduced to implement cookie support for contacting authoritative servers and forwarders. See :rfc:`7873` and :rfc:`9018`.
+
+:program:`rec_control`
+^^^^^^^^^^^^^^^^^^^^^^
+
+The ``dump-cookies`` subcommand has been added to dump a table showing cookie support for each
+authoritative server contacted recently.
+
 5.2.0 to 5.3.0
 --------------
 
