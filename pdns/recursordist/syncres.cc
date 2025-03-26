@@ -1474,9 +1474,7 @@ LWResult::Result SyncRes::asyncresolveWrapper(const OptLog& log, const ComboAddr
   int EDNSLevel = 0;
   auto luaconfsLocal = g_luaconfs.getLocal();
   ResolveContext ctx(d_initialRequestId, nsName);
-#ifdef HAVE_FSTRM
   ctx.d_auth = auth;
-#endif
 
   LWResult::Result ret{};
 

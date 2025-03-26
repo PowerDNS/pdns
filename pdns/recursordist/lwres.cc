@@ -118,8 +118,9 @@ void remoteLoggerQueueData(RemoteLoggerInterface& rli, const std::string& data)
   }
 }
 
-#ifdef HAVE_FSTRM
 #include "dnstap.hh"
+
+#ifdef HAVE_FSTRM
 #include "fstrm_logger.hh"
 
 static bool isEnabledForQueries(const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstreamLoggers)
@@ -650,9 +651,11 @@ static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& addr
         socklen_t slen = address.getSocklen();
         (void)getsockname(queryfd, reinterpret_cast<sockaddr*>(&localip), &slen); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast))
       }
+#ifdef HAVE_FSTRM
       if (fstrmQEnabled) {
         logFstreamQuery(fstrmLoggers, queryTime, localip, address, DnstapMessage::ProtocolType::DoUDP, context.d_auth ? context.d_auth : boost::none, vpacket);
       }
+#endif
     }
 
     // sleep until we see an answer to this, interface to mtasker
