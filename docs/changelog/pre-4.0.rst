@@ -1389,7 +1389,7 @@ Other changes
    correct bogus use of poll(2) related constants, improving non-Linux
    portability. Thanks Wouter de Jong.
 -  `commit 27ff60a <https://github.com/PowerDNS/pdns/commit/27ff60a>`__:
-   make sure our NSEC(3)s for names with spaces in them are correct.
+   make sure our NSEC/NSEC3 records for names with spaces in them are correct.
    Reported by Jimmy Bergman. Includes test.
 -  `commit 116e28a <https://github.com/PowerDNS/pdns/commit/116e28a>`__:
    reduce log level of successful gpgsql/gsqlite3 connection to Info

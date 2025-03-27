@@ -170,7 +170,7 @@ Changelogs for 4.6.X
     :pullreq: 11357
     :tickets: 11225
 
-    Reject non-apex NSEC(3)s that have both the NS and SOA bits set.
+    Reject non-apex NSEC/NSEC3 records that have both the NS and SOA bits set.
 
   .. change::
     :tags: Improvements
@@ -415,7 +415,7 @@ Changelogs for 4.6.X
     :tags: Improvements
     :pullreq: 10599
 
-    Be more strict when validating DS with respect to parent/child NSEC(3)s.
+    Be more strict when validating DS with respect to parent/child NSEC/NSEC3 records.
 
   .. change::
     :tags: Bug Fixes
