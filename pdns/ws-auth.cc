@@ -2649,6 +2649,146 @@ static void prometheusMetrics(HttpRequest* /* req */, HttpResponse* resp)
   resp->status = 200;
 }
 
+// Views
+
+// Serialize a list of ZoneName as a JSON array of strings
+static void jsonFillZoneNameArray(Json::array& array, std::vector<ZoneName>& zones)
+{
+  for (const auto& zone : zones) {
+    // Remember ZoneName::toString() intentionally omits the variant
+    std::string name(zone.toString());
+    if (zone.hasVariant()) {
+      name.push_back('.');
+      name += zone.getVariant();
+    }
+    array.emplace_back(name);
+  }
+}
+
+// GET /views           returns the list of all views (tags)
+static void apiServerViewsAllGET(HttpRequest* /* req */, HttpResponse* resp)
+{
+  std::vector<std::string> views;
+  UeberBackend backend;
+
+  backend.viewList(views);
+
+  Json::object jsonresult{
+    {"views", std::move(views)}};
+  resp->setJsonBody(jsonresult);
+}
+
+// GET /views/<view>     returns the list of all ZoneName in the given "view" view
+static void apiServerViewsGET(HttpRequest* req, HttpResponse* resp)
+{
+  std::string view{req->parameters["view"]};
+  std::vector<ZoneName> zones;
+  UeberBackend backend;
+
+  backend.viewListZones(view, zones);
+
+  if (zones.empty()) {
+    throw HttpNotFoundException(); // view does not exist
+  }
+
+  Json::array jsonarray;
+  jsonFillZoneNameArray(jsonarray, zones);
+  Json::object jsonresult{
+    {"zones", jsonarray}}; // FIXME: this should probably be a list of zone objects that at least have name and variant (perhaps separated?) and a path for .../zones/[encoded domain name with variant]
+  resp->setJsonBody(jsonresult);
+}
+
+// POST /views/<view> + name in json adds ZoneName "name" to view "view"
+static void apiServerViewsPOST(HttpRequest* req, HttpResponse* resp)
+{
+  UeberBackend backend;
+  DomainInfo domainInfo;
+  const auto& document = req->json();
+  ZoneName zonename = apiNameToZoneName(stringFromJson(document, "name"));
+
+  if (!backend.getDomainInfo(zonename, domainInfo)) {
+    throw ApiException("Zone " + zonename.toString() + "does not exist");
+  }
+  std::string view{req->parameters["view"]};
+
+  if (!domainInfo.backend->viewAddZone(view, zonename)) {
+    throw ApiException("Failed to add " + zonename.toString() + " to view " + view);
+  }
+
+  resp->body = "";
+  resp->status = 204;
+}
+
+// DELETE /views/<view>/<id>     removes ZoneName "id" from view "view"
+static void apiServerViewsDELETE(HttpRequest* req, HttpResponse* resp)
+{
+  ZoneData zoneData{req};
+  std::string view{req->parameters["view"]};
+
+  if (!zoneData.domainInfo.backend->viewDelZone(view, zoneData.zoneName)) {
+    throw ApiException("Failed to remove " + zoneData.zoneName.toString() + " from view " + view);
+  }
+
+  resp->body = "";
+  resp->status = 204;
+}
+
+// Networks
+
+// GET /networks                return the list of all registered networks and views (only one view per network)
+// GET /networks/<ip>/<prefixlen> return the name of the view for the given network
+static void apiServerNetworksGET(HttpRequest* req, HttpResponse* resp)
+{
+  Netmask network;
+  if (req->parameters.count("ip") != 0 && req->parameters.count("prefixlen") != 0) {
+    std::string subnet{req->parameters["ip"]};
+    std::string prefixlen{req->parameters["prefixlen"]};
+    network = subnet + "/" + prefixlen;
+  }
+
+  UeberBackend backend;
+  std::vector<pair<Netmask, string>> networks;
+  backend.networkList(networks);
+  Json::array jsonarray;
+  Json::object item;
+  for (const auto& pair : networks) {
+    if (!network.empty() && !(pair.first == network)) { // FIXME: should this case handled by a separate call networkGet, to be implemented in lmdbbackend?
+      continue;
+    }
+    item["network"] = pair.first.toString();
+    item["view"] = pair.second;
+    jsonarray.emplace_back(item);
+    item.clear();
+  }
+
+  if (!network.empty() && jsonarray.empty()) {
+    throw HttpNotFoundException(); // no views configured for that network
+  }
+
+  Json::object jsonresult{
+    {"networks", std::move(jsonarray)}};
+  resp->setJsonBody(jsonresult);
+}
+
+// PUT /networks/<ip>/<prefixlen> sets the name of the view for the given network
+static void apiServerNetworksPUT(HttpRequest* req, HttpResponse* resp)
+{
+  std::string subnet{req->parameters["ip"]};
+  std::string prefixlen{req->parameters["prefixlen"]};
+  Netmask network(subnet + "/" + prefixlen);
+
+  const auto& document = req->json();
+  std::string view = stringFromJson(document, "view");
+
+  UeberBackend backend;
+  if (!backend.networkSet(network, view)) {
+    throw ApiException("Failed to setup view " + view + " for network " + network.toString());
+  }
+
+  resp->body = "";
+  resp->status = 204;
+}
+
 static void cssfunction(HttpRequest* /* req */, HttpResponse* resp)
 {
   resp->headers["Cache-Control"] = "max-age=86400";
@@ -2697,11 +2837,18 @@ void AuthWebServer::webThread()
       d_ws->registerApiHandler("/api/v1/servers/localhost/autoprimaries/<ip>/<nameserver>", &apiServerAutoprimaryDetailDELETE, "DELETE");
       d_ws->registerApiHandler("/api/v1/servers/localhost/autoprimaries", &apiServerAutoprimariesGET, "GET");
       d_ws->registerApiHandler("/api/v1/servers/localhost/autoprimaries", &apiServerAutoprimariesPOST, "POST");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/networks", apiServerNetworksGET, "GET");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/networks/<ip>/<prefixlen>", apiServerNetworksGET, "GET");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/networks/<ip>/<prefixlen>", apiServerNetworksPUT, "PUT");
       d_ws->registerApiHandler("/api/v1/servers/localhost/tsigkeys/<id>", apiServerTSIGKeyDetailGET, "GET");
       d_ws->registerApiHandler("/api/v1/servers/localhost/tsigkeys/<id>", apiServerTSIGKeyDetailPUT, "PUT");
       d_ws->registerApiHandler("/api/v1/servers/localhost/tsigkeys/<id>", apiServerTSIGKeyDetailDELETE, "DELETE");
       d_ws->registerApiHandler("/api/v1/servers/localhost/tsigkeys", apiServerTSIGKeysGET, "GET");
       d_ws->registerApiHandler("/api/v1/servers/localhost/tsigkeys", apiServerTSIGKeysPOST, "POST");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/views", apiServerViewsAllGET, "GET");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/views/<view>", apiServerViewsGET, "GET");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/views/<view>", apiServerViewsPOST, "POST");
+      d_ws->registerApiHandler("/api/v1/servers/localhost/views/<view>/<id>", apiServerViewsDELETE, "DELETE");
       d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/axfr-retrieve", apiServerZoneAxfrRetrieve, "PUT");
       d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/cryptokeys/<key_id>", apiZoneCryptokeysGET, "GET");
       d_ws->registerApiHandler("/api/v1/servers/localhost/zones/<id>/cryptokeys/<key_id>", apiZoneCryptokeysPOST, "POST");
