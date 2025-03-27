@@ -143,7 +143,7 @@ signing mode, or can be pre-signed using tools like OpenDNSSEC, ldns-signzone,
 and dnssec-signzone.
 
 Even in this mode, PowerDNS will synthesize NSEC/NSEC3 records itself
-because of its architecture. RRSIGs of these NSEC/NSEC3 will still need to
+because of its architecture. RRSIGs of these records will still need to
 be imported. See the :ref:`Presigned migration guide <dnssec-migration-presigned>`.
 
 Front-signing
