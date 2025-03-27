@@ -1,5 +1,4 @@
 funcs = [
-  'strcasestr',
   'localtime_r',
   'gmtime_r',
   'recvmmsg',
