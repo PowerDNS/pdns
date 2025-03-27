@@ -562,7 +562,7 @@ def ci_auth_configure_meson(c, build_dir):
         "-D module-remote-zeromq=true",
         "-D module-tinydns=static",
         "-D tools=true",
-        "-D dns-over-tls=true",
+        "-D dns-over-tls=enabled",
         "-D experimental-pkcs11=enabled",
         "-D experimental-gss-tsig=enabled",
         "-D prefix=/opt/pdns-auth",
@@ -593,11 +593,11 @@ def ci_rec_configure_meson(c, features, build_dir):
             "LDFLAGS='-L/usr/local/lib -Wl,-rpath,/usr/local/lib'",
             get_base_configure_cmd_meson(build_dir),
             "-D prefix=/opt/pdns-recursor",
-            "-D dns-over-tls=true",
+            "-D dns-over-tls=enabled",
             "-D nod=true",
             "-D libcap=enabled",
             "-D lua=luajit",
-            "-D snmp=true",
+            "-D snmp=enabled",
             unittests,
         ])
     else:
@@ -605,7 +605,7 @@ def ci_rec_configure_meson(c, features, build_dir):
             "LDFLAGS='-L/usr/local/lib -Wl,-rpath,/usr/local/lib'",
             get_base_configure_cmd_meson(build_dir),
             "-D prefix=/opt/pdns-recursor",
-            "-D dns-over-tls=false",
+            "-D dns-over-tls=disabled",
             "-D dnstap=disabled",
             "-D nod=false",
             "-D systemd-service=disabled",
@@ -613,7 +613,7 @@ def ci_rec_configure_meson(c, features, build_dir):
             "-D libcap=disabled",
             "-D libcurl=disabled",
             "-D signers-libsodium=disabled",
-            "-D snmp=false",
+            "-D snmp=disabled",
             unittests,
         ])
     res = c.run(configure_cmd, warn=True)
@@ -783,12 +783,12 @@ def ci_dnsdist_configure_meson(features, additional_flags, additional_ld_flags, 
                       -D re2=enabled \
                       -D systemd-service=enabled \
                       -D tls-gnutls=enabled \
-                      -D dns-over-https=true \
-                      -D dns-over-http3=true \
-                      -D dns-over-quic=true \
-                      -D dns-over-tls=true \
+                      -D dns-over-https=enabled \
+                      -D dns-over-http3=enabled \
+                      -D dns-over-quic=enabled \
+                      -D dns-over-tls=enabled \
                       -D reproducible=true \
-                      -D snmp=true'
+                      -D snmp=enabled'
     else:
       features_set = '-D cdb=disabled \
                       -D dnscrypt=disabled \
@@ -803,12 +803,12 @@ def ci_dnsdist_configure_meson(features, additional_flags, additional_ld_flags, 
                       -D re2=disabled \
                       -D systemd-service=disabled \
                       -D tls-gnutls=disabled \
-                      -D dns-over-https=false \
-                      -D dns-over-http3=false \
-                      -D dns-over-quic=false \
-                      -D dns-over-tls=false \
+                      -D dns-over-https=disabled \
+                      -D dns-over-http3=disabled \
+                      -D dns-over-quic=disabled \
+                      -D dns-over-tls=disabled \
                       -D reproducible=false \
-                      -D snmp=false'
+                      -D snmp=disabled'
     unittests = get_unit_tests(meson=True)
     fuzztargets = get_fuzzing_targets(meson=True)
     tools = f'''AR=llvm-ar-{clang_version} RANLIB=llvm-ranlib-{clang_version}''' if is_compiler_clang() else ''

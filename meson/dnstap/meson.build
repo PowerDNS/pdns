@@ -14,4 +14,3 @@ endif
 
 conf.set('HAVE_FSTRM', dep_dnstap.found(), description: 'libfstrm')
 summary('DNSTAP', dep_dnstap.found(), bool_yn: true, section: 'Configuration')
-

@@ -1,9 +1,12 @@
-dep_cdb = dependency('libcdb', required: false)
+opt_cdb = get_option('cdb')
+dep_cdb = dependency('libcdb', required: opt_cdb)
 
-if not dep_cdb.found()
-  if cxx.has_header('cdb.h', required: false)
-    if cxx.has_function('cdb_find', args: ['-lcdb'])
-      dep_cdb = declare_dependency(link_args: ['-lcdb'])
+if opt_cdb.allowed()
+  if not dep_cdb.found()
+    if cxx.has_header('cdb.h', required: false)
+      if cxx.has_function('cdb_find', args: ['-lcdb'])
+        dep_cdb = declare_dependency(link_args: ['-lcdb'])
+      endif
     endif
   endif
 endif
