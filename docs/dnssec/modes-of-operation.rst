@@ -142,8 +142,8 @@ Such zones can either be served as secondary from a remote primary in online
 signing mode, or can be pre-signed using tools like OpenDNSSEC, ldns-signzone,
 and dnssec-signzone.
 
-Even in this mode, PowerDNS will synthesize NSEC(3) records itself
-because of its architecture. RRSIGs of these NSEC(3) will still need to
+Even in this mode, PowerDNS will synthesize NSEC/NSEC3 records itself
+because of its architecture. RRSIGs of these records will still need to
 be imported. See the :ref:`Presigned migration guide <dnssec-migration-presigned>`.
 
 Front-signing

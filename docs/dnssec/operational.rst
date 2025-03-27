@@ -217,10 +217,7 @@ Note that the NSEC/NSEC3 records proving those negatives will get the high TTL i
 
 .. note::
 
-  This behaviour was changed in version 4.3.0.
-  We believe the language in RFC 4034 and 5155 about the NSEC(3) TTL is a mistake, and we have chosen to honour its spirit instead of its words.
+  NSEC/NSEC3 records get the negative TTL (which is the lowest of the SOA TTL and the SOA minimum), which means their TTL matches that of a response such as NXDOMAIN.
+  This conforms to :rfc:`RFC 9077 <9077#section-3>`.
 
-  This unfortunate wording was eventually corrected in :rfc:`RFC 9077 <9077#section-3>`.
-
-  NSEC(3) records now get the negative TTL (which is the lowest of the SOA TTL and the SOA minimum), which means their TTL matches that of an error such as NXDOMAIN.
-  This conforms to RFC9077.
+  Prior to version 4.3.0, the behaviour was based on language in :rfc:`RFC 4034 <4034>` and :rfc:`RFC 5155 <5155>` about the NSEC/NSEC3 TTL.

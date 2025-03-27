@@ -470,7 +470,7 @@ following major new features:
 -  RPZ aka Response Policy Zone support
 -  IXFR slaving in the PowerDNS Recursor for RPZ
 -  DNSSEC processing in Recursor (Authoritative has had this for years)
--  DNSSEC validation (without NSEC(3) proof validation)
+-  DNSSEC validation (without NSEC/NSEC3 proof validation)
 -  EDNS Client Subnet support in PowerDNS Recursor (Authoritative has
    had this for years)
 -  Lua asynchronous queries for per-IP/per-domain status

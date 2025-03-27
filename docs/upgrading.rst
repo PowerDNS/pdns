@@ -323,10 +323,10 @@ The previous set of indexes for the gsqlite3 backend was found to be poor.
 4.2.x to 4.3.0
 --------------
 
-NSEC(3) TTL changed
-^^^^^^^^^^^^^^^^^^^
+NSEC/NSEC3 TTL changed
+^^^^^^^^^^^^^^^^^^^^^^
 
-NSEC(3) records now use the negative TTL, instead of the SOA minimum TTL.
+NSEC/NSEC3 records now use the negative TTL, instead of the SOA minimum TTL.
 See :ref:`the DNSSEC TTL notes <dnssec-ttl-notes>`  for more information.
 
 Lua Netmask class methods changed
