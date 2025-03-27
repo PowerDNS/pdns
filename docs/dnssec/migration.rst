@@ -74,7 +74,7 @@ Putting them in the database might cause duplicate records in responses.
 automatically.
 
 .. warning::
-  Right now, you will also need to configure NSEC(3) settings
+  Right now, you will also need to configure NSEC/NSEC3 settings
   for pre-signed zones using ``pdnsutil set-nsec3``. Default is NSEC, in
   which case no further configuration is necessary.
 

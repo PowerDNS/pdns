@@ -1730,7 +1730,7 @@ DNSSEC changes in 3.2
    cause trouble. Reported by Kees Monshouwer and fixed by him in
    `commit 25cee6b9448744d3b6428ceb38cda9de0efd327c <https://github.com/PowerDNS/pdns/commit/25cee6b9448744d3b6428ceb38cda9de0efd327c>`__.
 -  When a name is matched only by a wildcard, but the type in the query
-   is not present, we would be lacking one NSEC(3) record to prove the
+   is not present, we would be lacking one NSEC/NSEC3 record to prove the
    existence of the wildcard. Fixed by Kees Monshouwer in `commit 7bb8e2026c204f3356bfde3634a297f05aad0b4e <https://github.com/PowerDNS/pdns/commit/7bb8e2026c204f3356bfde3634a297f05aad0b4e>`__ and
    `commit 1012b0399b0353b04edaa61b8a42be10da4290f7 <https://github.com/PowerDNS/pdns/commit/1012b0399b0353b04edaa61b8a42be10da4290f7>`__.
 -  Luuk Hendriks spotted that our PolarSSL RSA key generation code was
@@ -1984,7 +1984,7 @@ Changes between RC2 and RC3
    Presumably fixed in `commit b87bd70860f12824262b995dd791423661f68182 <https://github.com/PowerDNS/pdns/commit/b87bd70860f12824262b995dd791423661f68182>`__.
 -  Updated a bunch of internal counters to be threadsafe. Code in
    `commit 16f7d28d81099077def2b44436a4942893afc306 <https://github.com/PowerDNS/pdns/commit/16f7d28d81099077def2b44436a4942893afc306>`__.
--  NSEC(3) bitmaps can now cover RRtypes above 255. Reported by Michael
+-  NSEC/NSEC3 bitmaps can now cover RRtypes above 255. Reported by Michael
    Braunoeder, patch by Aki Tuomi in `commit 5b7f65461b656ce554d392e903c92091370a0dfd <https://github.com/PowerDNS/pdns/commit/5b7f65461b656ce554d392e903c92091370a0dfd>`__.
 -  pdnssec check-zone now reports MBOXFW and URL records (as those are
    unsupported since 3.0). Reported by Gerwin Krist of Digitalus, patch
