@@ -122,6 +122,10 @@ void UeberBackend::go()
 bool UeberBackend::getDomainInfo(const ZoneName& domain, DomainInfo& domainInfo, bool getSerial)
 {
   for (auto& backend : backends) {
+    // Do not risk passing variant zones to variant-unaware backends.
+    if (domain.hasVariant() && (backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      continue;
+    }
     if (backend->getDomainInfo(domain, domainInfo, getSerial)) {
       return true;
     }
@@ -132,6 +136,10 @@ bool UeberBackend::getDomainInfo(const ZoneName& domain, DomainInfo& domainInfo,
 bool UeberBackend::createDomain(const ZoneName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account)
 {
   for (auto& backend : backends) {
+    // Do not risk passing variant zones to variant-unaware backends.
+    if (domain.hasVariant() && (backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      continue;
+    }
     if (backend->createDomain(domain, kind, primaries, account)) {
       return true;
     }
@@ -153,6 +161,10 @@ bool UeberBackend::addDomainKey(const ZoneName& name, const DNSBackend::KeyData&
 {
   keyID = -1;
   for (auto& backend : backends) {
+    // Do not risk passing variant zones to variant-unaware backends.
+    if (name.hasVariant() && (backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      continue;
+    }
     if (backend->addDomainKey(name, key, keyID)) {
       return true;
     }
@@ -162,6 +174,10 @@ bool UeberBackend::addDomainKey(const ZoneName& name, const DNSBackend::KeyData&
 bool UeberBackend::getDomainKeys(const ZoneName& name, std::vector<DNSBackend::KeyData>& keys)
 {
   for (auto& backend : backends) {
+    // Do not risk passing variant zones to variant-unaware backends.
+    if (name.hasVariant() && (backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      continue;
+    }
     if (backend->getDomainKeys(name, keys)) {
       return true;
     }
@@ -172,6 +188,10 @@ bool UeberBackend::getDomainKeys(const ZoneName& name, std::vector<DNSBackend::K
 bool UeberBackend::getAllDomainMetadata(const ZoneName& name, std::map<std::string, std::vector<std::string>>& meta)
 {
   for (auto& backend : backends) {
+    // Do not risk passing variant zones to variant-unaware backends.
+    if (name.hasVariant() && (backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      continue;
+    }
     if (backend->getAllDomainMetadata(name, meta)) {
       return true;
     }
@@ -182,6 +202,10 @@ bool UeberBackend::getAllDomainMetadata(const ZoneName& name, std::map<std::stri
 bool UeberBackend::getDomainMetadata(const ZoneName& name, const std::string& kind, std::vector<std::string>& meta)
 {
   for (auto& backend : backends) {
+    // Do not risk passing variant zones to variant-unaware backends.
+    if (name.hasVariant() && (backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      continue;
+    }
     if (backend->getDomainMetadata(name, kind, meta)) {
       return true;
     }
@@ -203,6 +227,10 @@ bool UeberBackend::getDomainMetadata(const ZoneName& name, const std::string& ki
 bool UeberBackend::setDomainMetadata(const ZoneName& name, const std::string& kind, const std::vector<std::string>& meta)
 {
   for (auto& backend : backends) {
+    // Do not risk passing variant zones to variant-unaware backends.
+    if (name.hasVariant() && (backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      continue;
+    }
     if (backend->setDomainMetadata(name, kind, meta)) {
       return true;
     }
@@ -222,6 +250,10 @@ bool UeberBackend::setDomainMetadata(const ZoneName& name, const std::string& ki
 bool UeberBackend::activateDomainKey(const ZoneName& name, unsigned int keyID)
 {
   for (auto& backend : backends) {
+    // Do not risk passing variant zones to variant-unaware backends.
+    if (name.hasVariant() && (backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      continue;
+    }
     if (backend->activateDomainKey(name, keyID)) {
       return true;
     }
@@ -232,6 +264,10 @@ bool UeberBackend::activateDomainKey(const ZoneName& name, unsigned int keyID)
 bool UeberBackend::deactivateDomainKey(const ZoneName& name, unsigned int keyID)
 {
   for (auto& backend : backends) {
+    // Do not risk passing variant zones to variant-unaware backends.
+    if (name.hasVariant() && (backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      continue;
+    }
     if (backend->deactivateDomainKey(name, keyID)) {
       return true;
     }
@@ -242,6 +278,10 @@ bool UeberBackend::deactivateDomainKey(const ZoneName& name, unsigned int keyID)
 bool UeberBackend::publishDomainKey(const ZoneName& name, unsigned int keyID)
 {
   for (auto& backend : backends) {
+    // Do not risk passing variant zones to variant-unaware backends.
+    if (name.hasVariant() && (backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      continue;
+    }
     if (backend->publishDomainKey(name, keyID)) {
       return true;
     }
@@ -252,6 +292,10 @@ bool UeberBackend::publishDomainKey(const ZoneName& name, unsigned int keyID)
 bool UeberBackend::unpublishDomainKey(const ZoneName& name, unsigned int keyID)
 {
   for (auto& backend : backends) {
+    // Do not risk passing variant zones to variant-unaware backends.
+    if (name.hasVariant() && (backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      continue;
+    }
     if (backend->unpublishDomainKey(name, keyID)) {
       return true;
     }
@@ -262,6 +306,10 @@ bool UeberBackend::unpublishDomainKey(const ZoneName& name, unsigned int keyID)
 bool UeberBackend::removeDomainKey(const ZoneName& name, unsigned int keyID)
 {
   for (auto& backend : backends) {
+    // Do not risk passing variant zones to variant-unaware backends.
+    if (name.hasVariant() && (backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      continue;
+    }
     if (backend->removeDomainKey(name, keyID)) {
       return true;
     }
@@ -552,6 +600,10 @@ bool UeberBackend::getSOAUncached(const ZoneName& domain, SOAData& soaData)
   d_question.zoneId = -1;
 
   for (auto& backend : backends) {
+    // Do not risk passing variant zones to variant-unaware backends.
+    if (domain.hasVariant() && (backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      continue;
+    }
     if (backend->getSOA(domain, soaData)) {
       if (domain.operator const DNSName&() != soaData.qname) {
         throw PDNSException("getSOA() returned an SOA for the wrong zone. Question: '" + domain.toLogString() + "', answer: '" + soaData.qname.toLogString() + "'");
@@ -609,6 +661,10 @@ bool UeberBackend::autoPrimariesList(std::vector<AutoPrimary>& primaries)
 bool UeberBackend::autoPrimaryBackend(const string& ipAddr, const ZoneName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** dnsBackend)
 {
   for (auto& backend : backends) {
+    // Do not risk passing variant zones to variant-unaware backends.
+    if (domain.hasVariant() && (backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      continue;
+    }
     if (backend->autoPrimaryBackend(ipAddr, domain, nsset, nameserver, account, dnsBackend)) {
       return true;
     }
@@ -682,6 +738,10 @@ void UeberBackend::addCache(const Question& question, vector<DNSZoneRecord>&& rr
 void UeberBackend::alsoNotifies(const ZoneName& domain, set<string>* ips)
 {
   for (auto& backend : backends) {
+    // Do not risk passing variant zones to variant-unaware backends.
+    if (domain.hasVariant() && (backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      continue;
+    }
     backend->alsoNotifies(domain, ips);
   }
 }
@@ -861,6 +921,78 @@ bool UeberBackend::deleteTSIGKey(const DNSName& name)
     }
   }
   return false;
+}
+
+void UeberBackend::viewList(vector<string>& result)
+{
+  for (auto& backend : backends) {
+    backend->viewList(result);
+  }
+}
+
+void UeberBackend::viewListZones(const string& view, vector<ZoneName>& result)
+{
+  for (auto& backend : backends) {
+    backend->viewListZones(view, result);
+  }
+}
+
+// FIXME: The logic in viewAddZone and viewDelZone causes view information to
+// be stored in the first views-capable backend, and could cause serious hair
+// pulling in setups with multiple views-capable backends (are we sure we
+// ever want to support that?)
+
+bool UeberBackend::viewAddZone(const string& view, const ZoneName& zone)
+{
+  for (auto& backend : backends) {
+    // Skip non-views-capable backends.
+    if ((backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      continue;
+    }
+    if (backend->viewAddZone(view, zone)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool UeberBackend::viewDelZone(const string& view, const ZoneName& zone)
+{
+  for (auto& backend : backends) {
+    // Skip non-views-capable backends.
+    if ((backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      continue;
+    }
+    if (backend->viewDelZone(view, zone)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool UeberBackend::networkSet(const Netmask& net, std::string& tag)
+{
+  for (auto& backend : backends) {
+    // Skip non-views-capable backends.
+    if ((backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      continue;
+    }
+    if (backend->networkSet(net, tag)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void UeberBackend::networkList(vector<pair<Netmask, string>>& networks)
+{
+  for (auto& backend : backends) {
+    // Skip non-views-capable backends.
+    if ((backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      continue;
+    }
+    backend->networkList(networks);
+  }
 }
 
 // API Search

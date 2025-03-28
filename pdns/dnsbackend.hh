@@ -163,6 +163,7 @@ public:
     CAP_DIRECT = 1 << 2, // Backend supports direct commands
     CAP_LIST = 1 << 3, // Backend supports record enumeration
     CAP_CREATE = 1 << 4, // Backend supports domain creation
+    CAP_VIEWS = 1 << 5, // Backend supports views
   };
 
   virtual unsigned int getCapabilities() = 0;
@@ -475,6 +476,34 @@ public:
 
   //! Search for comments, returns true if search was done successfully.
   virtual bool searchComments(const string& /* pattern */, size_t /* maxResults */, vector<Comment>& /* result */)
+  {
+    return false;
+  }
+
+  virtual void viewList(vector<string>& /* result */)
+  {
+  }
+
+  virtual void viewListZones(const string& /* view */, vector<ZoneName>& /* result */)
+  {
+  }
+
+  virtual bool viewAddZone(const string& /* view */, const ZoneName& /* zone */)
+  {
+    return false;
+  }
+
+  virtual bool viewDelZone(const string& /* view */, const ZoneName& /* zone */)
+  {
+    return false;
+  }
+
+  virtual bool networkSet(const Netmask& /* net */, std::string& /* tag */)
+  {
+    return false;
+  }
+
+  virtual bool networkList(vector<pair<Netmask, string>>& /* networks */)
   {
     return false;
   }
