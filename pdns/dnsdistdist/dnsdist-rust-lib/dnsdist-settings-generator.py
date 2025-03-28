@@ -626,21 +626,21 @@ def generate_cpp_action_selector_functions_callable_from_rust(output, def_dir):
     suffix = 'Action'
     for action in actions_definitions:
         name = get_rust_object_name(action['name'])
-        output_buffer += f'        fn get{name}{suffix}(config: &{name}{suffix}Configuration) -> SharedPtr<DNS{suffix}Wrapper>;\n'
+        output_buffer += f'        fn get{name}{suffix}(config: &{name}{suffix}Configuration) -> Result<SharedPtr<DNS{suffix}Wrapper>>;\n'
 
     # then response actions
     actions_definitions = get_actions_definitions(def_dir, True)
     suffix = 'ResponseAction'
     for action in actions_definitions:
         name = get_rust_object_name(action['name'])
-        output_buffer += f'        fn get{name}{suffix}(config: &{name}{suffix}Configuration) -> SharedPtr<DNS{suffix}Wrapper>;\n'
+        output_buffer += f'        fn get{name}{suffix}(config: &{name}{suffix}Configuration) -> Result<SharedPtr<DNS{suffix}Wrapper>>;\n'
 
     # then selectors
     selectors_definitions = get_selectors_definitions(def_dir)
     suffix = 'Selector'
     for selector in selectors_definitions:
         name = get_rust_object_name(selector['name'])
-        output_buffer += f'        fn get{name}{suffix}(config: &{name}{suffix}Configuration) -> SharedPtr<DNS{suffix}>;\n'
+        output_buffer += f'        fn get{name}{suffix}(config: &{name}{suffix}Configuration) -> Result<SharedPtr<DNS{suffix}>>;\n'
 
     output_buffer += '    }\n'
     output.write(output_buffer)
@@ -649,7 +649,7 @@ def generate_rust_action_to_config(output, def_dir, response):
     suffix = 'ResponseAction' if response else 'Action'
     actions_definitions = get_actions_definitions(def_dir, response)
     function_name = 'get_one_action_from_serde' if not response else 'get_one_response_action_from_serde'
-    enum_buffer = f'''fn {function_name}(action: &{suffix}) -> Option<dnsdistsettings::SharedDNS{suffix}> {{
+    enum_buffer = f'''fn {function_name}(action: &{suffix}) -> Result<dnsdistsettings::SharedDNS{suffix}, cxx::Exception> {{
     match action {{
         {suffix}::Default => {{}}
 '''
@@ -659,26 +659,22 @@ def generate_rust_action_to_config(output, def_dir, response):
         if name in ['Continue']:
             enum_buffer += f'''        {suffix}::{name}(cont) => {{
              let mut config: dnsdistsettings::{name}{suffix}Configuration = Default::default();
-             let new_action = get_one_action_from_serde(&*cont.action);
-             if new_action.is_some() {{
-                 config.action = new_action.unwrap();
-             }}
-             return Some(dnsdistsettings::SharedDNS{suffix} {{
-                 action: dnsdistsettings::get{name}{suffix}(&config),
+             config.action = get_one_action_from_serde(&*cont.action)?;
+             return Ok(dnsdistsettings::SharedDNS{suffix} {{
+                 action: dnsdistsettings::get{name}{suffix}(&config)?,
              }});
         }}
 '''
         else:
             enum_buffer += f'''        {suffix}::{name}(config) => {{
-                let tmp_action = dnsdistsettings::get{name}{suffix}(&config);
-                return Some(dnsdistsettings::SharedDNS{suffix} {{
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNS{suffix} {{
+                    action: dnsdistsettings::get{name}{suffix}(&config)?,
                 }});
             }}
 '''
 
     enum_buffer += '''    }
-    None
+    panic!("no action")
 }
 '''
 
@@ -688,7 +684,7 @@ def generate_rust_selector_to_config(output, def_dir):
     suffix = 'Selector'
     selectors_definitions = get_selectors_definitions(def_dir)
     function_name = 'get_one_selector_from_serde'
-    enum_buffer = f'''fn {function_name}(selector: &{suffix}) -> Option<dnsdistsettings::SharedDNS{suffix}> {{
+    enum_buffer = f'''fn {function_name}(selector: &{suffix}) -> Result<dnsdistsettings::SharedDNS{suffix}, cxx::Exception> {{
     match selector {{
         {suffix}::Default => {{}}
 '''
@@ -700,39 +696,41 @@ def generate_rust_selector_to_config(output, def_dir):
             enum_buffer += f'''        {suffix}::{name}({var}) => {{
              let mut config: dnsdistsettings::{name}{suffix}Configuration = Default::default();
              for sub_selector in &{var}.selectors {{
-                 let new_selector = get_one_selector_from_serde(&sub_selector);
-                 if new_selector.is_some() {{
-                     config.selectors.push(new_selector.unwrap());
-                 }}
+                 config.selectors.push(get_one_selector_from_serde(&sub_selector)?)
              }}
-             return Some(dnsdistsettings::SharedDNS{suffix} {{
-                 selector: dnsdistsettings::get{name}{suffix}(&config),
-             }});
+             return Ok(dnsdistsettings::SharedDNS{suffix} {{
+                       selector: dnsdistsettings::get{name}{suffix}(&config)?
+             }})
         }}
 '''
         elif name in ['Not']:
             enum_buffer += f'''        {suffix}::{name}({var}) => {{
              let mut config: dnsdistsettings::{name}{suffix}Configuration = Default::default();
-             let new_selector = get_one_selector_from_serde(&*{var}.selector);
-             if new_selector.is_some() {{
-                 config.selector = new_selector.unwrap();
+             match get_one_selector_from_serde(&*{var}.selector) {{
+                 Ok(sel) => config.selector = sel,
+                 Err(e) => return Err(e),
              }}
-             return Some(dnsdistsettings::SharedDNS{suffix} {{
-                 selector: dnsdistsettings::get{name}{suffix}(&config),
-             }});
+             match dnsdistsettings::get{name}{suffix}(&config) {{
+                 Ok(sel) => return Ok(dnsdistsettings::SharedDNS{suffix} {{
+                                   selector: sel,
+                            }}),
+                 Err(e) => return Err(e),
+             }}
         }}
 '''
         else:
             enum_buffer += f'''        {suffix}::{name}({var}) => {{
-            let tmp_selector = dnsdistsettings::get{name}{suffix}(&{var});
-            return Some(dnsdistsettings::SharedDNS{suffix} {{
-                selector: tmp_selector,
-            }});
+            match dnsdistsettings::get{name}{suffix}(&{var}) {{
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNS{suffix} {{
+                                  selector: sel,
+                           }}),
+                Err(e) => return Err(e),
+            }}
         }}
 '''
 
     enum_buffer += '''    }
-    None
+    panic!("No selector")
 }
 '''
 
