@@ -16,7 +16,7 @@ generated = [
 python = find_program('python3')
 
 rust_lib_sources = custom_target(
-  command: [python, '@INPUT0@', '@SOURCE_ROOT@', '@SOURCE_ROOT@/dnsdist-rust-lib', '@BUILD_ROOT@'],
+  command: [python, '@INPUT0@', '@SOURCE_ROOT@', '@SOURCE_ROOT@/dnsdist-rust-lib', '@SOURCE_ROOT@'],
   input: sources,
   output: generated,
 )
