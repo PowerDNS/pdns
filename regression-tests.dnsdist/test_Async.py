@@ -515,6 +515,8 @@ class TestAsyncFFI(DNSDistTest, AsyncTests):
       collectgarbage()
     end
 
+    addExitCallback(atExit)
+
     -- this only matters for tests actually reaching the backend
     addAction('tcp-only.async.tests.powerdns.com', PoolAction('tcp-only', false))
     addAction('cache.async.tests.powerdns.com', PoolAction('cache', false))
@@ -627,6 +629,8 @@ class TestAsyncLua(DNSDistTest, AsyncTests):
       listener = nil
       collectgarbage()
     end
+
+    addExitCallback(atExit)
 
     -- this only matters for tests actually reaching the backend
     addAction('tcp-only.async.tests.powerdns.com', PoolAction('tcp-only', false))

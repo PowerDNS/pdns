@@ -2161,9 +2161,17 @@ These values can be set at configuration time via:
 Other functions
 ---------------
 
+.. function:: addExitCallback(callback)
+
+  .. versionadded:: 2.0.0
+
+  Register a Lua function to be called when :program:`dnsdist` exists.
+
+  :param function callback: The function to be called. It takes no parameter and returns no value.
+
 .. function:: addMaintenanceCallback(callback)
 
-  .. versionadded:: 1.10.0
+  .. versionadded:: 1.9.0
 
   Register a Lua function to be called as part of the ``maintenance`` hook, which is executed roughly every second.
   The function should not block for a long period of time, as it would otherwise delay the execution of the other functions registered for this hook, as well as the execution of the :func:`maintenance` function.
