@@ -335,7 +335,7 @@ jobs:
           - backend: gmysql
             image: mysql:5
           - backend: gpgsql
-            image: postgres:9
+            image: postgres:14
           - backend: lmdb
             image: coscale/docker-sleep
       fail-fast: false
@@ -418,7 +418,7 @@ jobs:
             ports:
             - 3306:3306
           - backend: gpgsql
-            image: postgres:9
+            image: postgres:14
             env:
               POSTGRES_USER: runner
               POSTGRES_HOST_AUTH_METHOD: trust
