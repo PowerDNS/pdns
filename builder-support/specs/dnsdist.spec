@@ -82,8 +82,13 @@ export LDFLAGS="-fuse-ld=lld -Wl,--build-id=sha1"
 %else
 %define cf_protection -fcf-protection
 %endif
-export CFLAGS="-O2 -g -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -fexceptions -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection %{cf_protection} -gdwarf-4"
-export CXXFLAGS="-O2 -g -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -fexceptions -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection %{cf_protection} -gdwarf-4"
+%if "%{_arch}" == "aarch64" && 0%{?amzn2023}
+%define stack_clash_protection %{nil}
+%else
+%define stack_clash_protection -fstack-clash-protection
+%endif
+export CFLAGS="-O2 -g -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -fexceptions -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables %{stack_clash_protection} %{cf_protection} -gdwarf-4"
+export CXXFLAGS="-O2 -g -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -fexceptions -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables %{stack_clash_protection} %{cf_protection} -gdwarf-4"
 %endif
 
 #export AR=gcc-ar
@@ -114,7 +119,7 @@ export PKG_CONFIG_PATH=/usr/lib/pkgconfig:/opt/lib64/pkgconfig
   -Dre2=enabled \
   -Ddns-over-quic=enabled \
   -Ddns-over-http3=enabled \
-%ifarch aarch64
+%if "%{_arch}" == "aarch64" || 0%{?amzn2023}
   -Dxsk=disabled \
 %endif
   -Dyaml=enabled
