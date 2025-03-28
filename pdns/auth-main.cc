@@ -239,7 +239,7 @@ static void declareArguments()
 
   ::arg().setSwitch("webserver", "Start a webserver for monitoring (api=yes also enables the HTTP listener)") = "no";
   ::arg().setSwitch("webserver-print-arguments", "If the webserver should print arguments") = "no";
-  ::arg().set("webserver-address", "IP Address of webserver/API to listen on") = "127.0.0.1";
+  ::arg().set("webserver-address", "IP Address or path to UNIX domain socket for webserver/API to listen on") = "127.0.0.1";
   ::arg().set("webserver-port", "Port of webserver/API to listen on") = "8081";
   ::arg().set("webserver-password", "Password required for accessing the webserver") = "";
   ::arg().set("webserver-allow-from", "Webserver/API access is only allowed from these subnets") = "127.0.0.1,::1";

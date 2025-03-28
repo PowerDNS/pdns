@@ -2036,7 +2036,7 @@ Start a webserver for monitoring. See :doc:`performance`".
 -  IP Address
 -  Default: 127.0.0.1
 
-IP Address for webserver/API to listen on.
+IP Address or path to UNIX domain socket for webserver/API to listen on.
 
 .. _setting-webserver-allow-from:
 
@@ -2047,6 +2047,7 @@ IP Address for webserver/API to listen on.
 -  Default: 127.0.0.1,::1
 
 Webserver/API access is only allowed from these subnets.
+Ignored if ``webserver-address`` is set to a UNIX domain socket.
 
 .. _setting-webserver-hash-plaintext-credentials:
 
@@ -2142,6 +2143,7 @@ Password required to access the webserver. Since 4.6.0 the password can be hashe
 -  Default: 8081
 
 The port where webserver/API will listen on.
+Ignored if ``webserver-address`` is set to a UNIX domain socket.
 
 .. _setting-webserver-print-arguments:
 

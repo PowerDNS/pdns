@@ -38,6 +38,10 @@
 #include <yahttp/router.hpp>
 #include <algorithm>
 #include <bitset>
+#include <unistd.h>
+#include <filesystem>
+
+namespace filesystem = std::filesystem;
 
 json11::Json HttpRequest::json()
 {
@@ -626,10 +630,25 @@ WebServer::WebServer(string listenaddress, int port) :
 
 void WebServer::bind()
 {
+  if (filesystem::is_socket(d_listenaddress.c_str())) {
+    int err=unlink(d_listenaddress.c_str());
+    if(err < 0 && errno!=ENOENT) {
+      SLOG(g_log<<Logger::Error<<d_logprefix<<"Listening on HTTP socket failed, unable to remove existing socket at "<<d_listenaddress<<endl,
+           d_slog->error(Logr::Error, e.what(), "Listening on HTTP socket failed, unable to remove existing socket", "exception", d_listenaddress));
+      d_server = nullptr;
+      return;
+    }
+  }
+
   try {
     d_server = createServer();
-    SLOG(g_log<<Logger::Warning<<d_logprefix<<"Listening for HTTP requests on "<<d_server->d_local.toStringWithPort()<<endl,
-         d_slog->info(Logr::Info, "Listening for HTTP requests", "address", Logging::Loggable(d_server->d_local)));
+    if (d_server->d_local.isUnixSocket()) {
+      SLOG(g_log<<Logger::Warning<<d_logprefix<<"Listening for HTTP requests on "<<d_listenaddress<<endl,
+           d_slog->info(Logr::Info, "Listening for HTTP requests", "path", Logging::Loggable(d_listenaddress)));
+    } else {
+        SLOG(g_log<<Logger::Warning<<d_logprefix<<"Listening for HTTP requests on "<<d_server->d_local.toStringWithPort()<<endl,
+             d_slog->info(Logr::Info, "Listening for HTTP requests", "address", Logging::Loggable(d_server->d_local)));
+    }
   }
   catch(NetworkError &e) {
     SLOG(g_log<<Logger::Error<<d_logprefix<<"Listening on HTTP socket failed: "<<e.what()<<endl,
@@ -651,7 +670,7 @@ void WebServer::go()
         if (!client) {
           continue;
         }
-        if (client->acl(d_acl)) {
+        if (d_server->d_local.isUnixSocket() || client->acl(d_acl)) {
           std::thread webHandler(WebServerConnectionThreadStart, this, client);
           webHandler.detach();
         } else {
