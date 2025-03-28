@@ -21,47 +21,25 @@
  */
 #pragma once
 
-#include <map>
 #include "iputils.hh"
-#include "lock.hh"
-#include "dnsdist-configuration.hh"
 
 namespace dnsdist
 {
 class IncomingConcurrentTCPConnectionsManager
 {
 public:
-  static bool accountNewTCPConnection(const ComboAddress& from)
+  enum class NewConnectionResult : uint8_t
   {
-    const auto maxConnsPerClient = dnsdist::configuration::getImmutableConfiguration().d_maxTCPConnectionsPerClient;
-    if (maxConnsPerClient == 0) {
-      return true;
-    }
-    auto db = s_tcpClientsConcurrentConnectionsCount.lock();
-    auto& count = (*db)[from];
-    if (count >= maxConnsPerClient) {
-      return false;
-    }
-    ++count;
-    return true;
-  }
-
-  static void accountClosedTCPConnection(const ComboAddress& from)
-  {
-    const auto maxConnsPerClient = dnsdist::configuration::getImmutableConfiguration().d_maxTCPConnectionsPerClient;
-    if (maxConnsPerClient == 0) {
-      return;
-    }
-    auto db = s_tcpClientsConcurrentConnectionsCount.lock();
-    auto& count = db->at(from);
-    count--;
-    if (count == 0) {
-      db->erase(from);
-    }
-  }
-
-private:
-  static LockGuarded<std::map<ComboAddress, size_t, ComboAddress::addressOnlyLessThan>> s_tcpClientsConcurrentConnectionsCount;
+    Allowed = 0,
+    Denied = 1,
+    Restricted = 2,
+  };
+  static NewConnectionResult accountNewTCPConnection(const ComboAddress& from, bool isTLS);
+  static bool isClientOverThreshold(const ComboAddress& from);
+  static void accountTLSNewSession(const ComboAddress& from);
+  static void accountTLSResumedSession(const ComboAddress& from);
+  static void accountClosedTCPConnection(const ComboAddress& from);
+  static void banClientFor(const ComboAddress& from, time_t now, uint32_t seconds);
+  static void cleanup(time_t now);
 };
-
 }
