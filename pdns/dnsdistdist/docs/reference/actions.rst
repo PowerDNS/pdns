@@ -797,6 +797,9 @@ The following actions exist.
   Forge a response with the specified IPv4 (for an A query) or IPv6 (for an AAAA) addresses.
   If you specify multiple addresses, all that match the query type (A, AAAA or ANY) will get spoofed in.
 
+  Note that if you only specify addresses of one type (e.g. only IPv4 addresses), then queries for the other type (in this case AAAA queries), will **not** be spoofed.
+  If you want to spoof the request for an A record, but not return an IPv6 address on AAAA requests, you could limit this function to A queries and  :func:`NegativeAndSOAAction()` for AAAA queries.
+
   :param string ip: An IPv4 and/or IPv6 address to spoof
   :param {string} ips: A table of IPv4 and/or IPv6 addresses to spoof
   :param table options: A table with key: value pairs with options.
