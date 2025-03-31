@@ -62,6 +62,7 @@ public:
   explicit LMDBBackend(const string& suffix = "");
   ~LMDBBackend();
 
+  unsigned int getCapabilities() override { return CAP_DNSSEC | CAP_DIRECT | CAP_LIST; }
   bool list(const DNSName& target, int id, bool include_disabled) override;
 
   bool getDomainInfo(const DNSName& domain, DomainInfo& di, bool getserial = true) override;
@@ -142,11 +143,6 @@ public:
   bool updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype = QType::ANY) override;
 
   bool updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& insert, set<DNSName>& erase, bool remove) override;
-
-  bool doesDNSSEC() override
-  {
-    return true;
-  }
 
   // other
   string directBackendCmd(const string& query) override;

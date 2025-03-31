@@ -156,6 +156,16 @@ class DNSPacket;
 class DNSBackend
 {
 public:
+  enum Capabilities : unsigned int
+  {
+    CAP_DNSSEC = 1 << 0, // Backend supports DNSSEC
+    CAP_COMMENTS = 1 << 1, // Backend supports comments
+    CAP_DIRECT = 1 << 2, // Backend supports direct commands
+    CAP_LIST = 1 << 3, // Backend supports record enumeration
+  };
+
+  virtual unsigned int getCapabilities() = 0;
+
   //! lookup() initiates a lookup. A lookup without results should not throw!
   virtual void lookup(const QType& qtype, const DNSName& qdomain, int zoneId = -1, DNSPacket* pkt_p = nullptr) = 0;
   virtual bool get(DNSResourceRecord&) = 0; //!< retrieves one DNSResource record, returns false if no more were available
@@ -255,9 +265,9 @@ public:
     return false;
   }
 
-  virtual bool doesDNSSEC()
+  bool doesDNSSEC()
   {
-    return false;
+    return (getCapabilities() & CAP_DNSSEC) != 0;
   }
 
   // end DNSSEC

@@ -55,6 +55,16 @@ public:
   GeoIPBackend(const std::string& suffix = "");
   ~GeoIPBackend() override;
 
+  unsigned int getCapabilities() override
+  {
+    if (d_dnssec) {
+      return CAP_DNSSEC;
+    }
+    else {
+      return 0;
+    }
+  }
+
   void lookup(const QType& qtype, const DNSName& qdomain, int zoneId, DNSPacket* pkt_p = nullptr) override;
   bool list(const DNSName& /* target */, int /* domain_id */, bool /* include_disabled */ = false) override { return false; } // not supported
   bool get(DNSResourceRecord& r) override;
@@ -64,7 +74,6 @@ public:
   void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled) override;
 
   // dnssec support
-  bool doesDNSSEC() override { return d_dnssec; };
   bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string>>& meta) override;
   bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta) override;
   bool getDomainKeys(const DNSName& name, std::vector<DNSBackend::KeyData>& keys) override;
