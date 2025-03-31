@@ -11,6 +11,7 @@ Lua2 Backend
 * DNSSEC: Yes
 * Disabled data: No
 * Comments: No
+* Search: No
 * API: Read-Write
 * Multiple instances: Yes
 * Zone caching: Yes\*
