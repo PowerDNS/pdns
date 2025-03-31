@@ -15,9 +15,8 @@ def AsyncResponder(listenPath, responsePath):
     # Make sure the socket does not already exist
     try:
         os.unlink(listenPath)
-    except OSError:
-        if os.path.exists(listenPath):
-            raise
+    except FileNotFoundError:
+        pass
 
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
     try:
