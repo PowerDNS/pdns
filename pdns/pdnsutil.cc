@@ -304,6 +304,11 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const DNSName& zone, con
     }
   }
 
+  if (suppliedrecords == nullptr && (di.backend->getCapabilities() & DNSBackend::CAP_LIST) == 0) {
+    cout << "Backend for zone '" << zone << "' does not support listing its contents." << endl;
+    return 1;
+  }
+
   SOAData sd;
   try {
     if (!B.getSOAUncached(zone, sd)) {
@@ -1133,6 +1138,11 @@ static int listZone(const DNSName &zone) {
     cerr << "Zone '" << zone << "' not found!" << endl;
     return EXIT_FAILURE;
   }
+  if ((di.backend->getCapabilities() & DNSBackend::CAP_LIST) == 0) {
+    cerr << "Backend for zone '" << zone << "' does not support listing its contents," << endl;
+    return EXIT_FAILURE;
+  }
+
   di.backend->list(zone, di.id);
   DNSResourceRecord rr;
   cout<<"$ORIGIN ."<<endl;
@@ -1237,6 +1247,10 @@ static int editZone(const DNSName &zone, const PDNSColors& col) {
 
   if (! B.getDomainInfo(zone, di)) {
     cerr << "Zone '" << zone << "' not found!" << endl;
+    return EXIT_FAILURE;
+  }
+  if ((di.backend->getCapabilities() & DNSBackend::CAP_LIST) == 0) {
+    cerr << "Backend for zone '" << zone << "' does not support listing its contents," << endl;
     return EXIT_FAILURE;
   }
 
@@ -4299,6 +4313,10 @@ static int B2BMigrate(vector<string>& cmds, const std::string_view synopsis)
     return 1;
   }
 
+  if ((src->getCapabilities() & DNSBackend::CAP_LIST) == 0) {
+    cerr << "Source backend does not support listing zone contents." << endl;
+    return 1;
+  }
   cout<<"Moving zone(s) from "<<src->getPrefix()<<" to "<<tgt->getPrefix()<<endl;
 
   vector<DomainInfo> domains;
@@ -4347,12 +4365,15 @@ static int B2BMigrate(vector<string>& cmds, const std::string_view synopsis)
     // move comments
     nc=0;
     if (src->listComments(di.id)) {
+      if ((tgt->getCapabilities() & DNSBackend::CAP_COMMENTS) == 0) {
+        throw PDNSException("Target backend does not support comments - remove them first");
+      }
       Comment c; // NOLINT(readability-identifier-length)
       while(src->getComment(c)) {
         // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
         c.domain_id = di_new.id;
         if (!tgt->feedComment(c)) {
-          throw PDNSException("Target backend does not support comments - remove them first");
+          throw PDNSException("Failed to feed zone comments");
         }
         nc++;
       }
@@ -4417,6 +4438,11 @@ static int backendCmd(vector<string>& cmds, const std::string_view synopsis)
 
   if (matchingBackend == nullptr) {
     cerr << "Unknown backend '" << cmds.at(1) << "'" << endl;
+    return 1;
+  }
+
+  if ((matchingBackend->getCapabilities() & DNSBackend::CAP_DIRECT) == 0) {
+    cerr << "Backend '" << cmds.at(1) << "' does not support direct commands" << endl;
     return 1;
   }
 
