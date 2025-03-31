@@ -149,6 +149,7 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
       str << base << "tcpmaxconcurrentconnections" << ' ' << front->tcpMaxConcurrentConnections.load() << " " << now << "\r\n";
       str << base << "tcpavgqueriesperconnection" << ' ' << front->tcpAvgQueriesPerConnection.load() << " " << now << "\r\n";
       str << base << "tcpavgconnectionduration" << ' ' << front->tcpAvgConnectionDuration.load() << " " << now << "\r\n";
+      str << base << "tcpavgreadios" << ' ' << front->tcpAvgIOsPerConnection.load() << " " << now << "\r\n";
       str << base << "tls10-queries" << ' ' << front->tls10queries.load() << " " << now << "\r\n";
       str << base << "tls11-queries" << ' ' << front->tls11queries.load() << " " << now << "\r\n";
       str << base << "tls12-queries" << ' ' << front->tls12queries.load() << " " << now << "\r\n";
