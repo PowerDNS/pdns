@@ -167,6 +167,7 @@ public:
   RemoteBackend(const std::string& suffix = "");
   ~RemoteBackend() override;
 
+  unsigned int getCapabilities() override;
   void lookup(const QType& qtype, const DNSName& qdomain, int zoneId = -1, DNSPacket* pkt_p = nullptr) override;
   bool get(DNSResourceRecord& rr) override;
   bool list(const DNSName& target, int domain_id, bool include_disabled = false) override;
@@ -185,7 +186,6 @@ public:
   bool unpublishDomainKey(const DNSName& name, unsigned int id) override;
   bool getDomainInfo(const DNSName& domain, DomainInfo& di, bool getSerial = true) override;
   void setNotified(uint32_t id, uint32_t serial) override;
-  bool doesDNSSEC() override;
   bool autoPrimaryBackend(const string& ip, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** ddb) override;
   bool createSecondaryDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account) override;
   bool replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset) override;

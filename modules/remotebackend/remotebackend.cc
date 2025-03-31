@@ -506,9 +506,12 @@ bool RemoteBackend::unpublishDomainKey(const DNSName& name, unsigned int id)
   return this->send(query) && this->recv(answer);
 }
 
-bool RemoteBackend::doesDNSSEC()
+unsigned int RemoteBackend::getCapabilities()
 {
-  return d_dnssec;
+  if (d_dnssec) {
+    return CAP_DNSSEC | CAP_DIRECT | CAP_LIST;
+  }
+  return CAP_DIRECT | CAP_LIST;
 }
 
 bool RemoteBackend::getTSIGKey(const DNSName& name, DNSName& algorithm, std::string& content)
