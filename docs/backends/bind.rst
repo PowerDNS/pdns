@@ -8,6 +8,7 @@ BIND zone file backend
 * DNSSEC: Yes
 * Disabled data: No
 * Comments: No
+* Search: Yes
 * API: Read-only
 * Zone caching: Yes (except in hybrid mode)
 * Module name: bind

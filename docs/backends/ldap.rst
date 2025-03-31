@@ -8,6 +8,7 @@ LDAP backend
 * DNSSEC: No
 * Disabled data: No
 * Comments: No
+* Search: No
 * Zone caching: No
 * Module name: ldap
 * Launch name: ``ldap``

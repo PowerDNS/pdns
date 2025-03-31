@@ -9,6 +9,7 @@ Generic PostgreSQL backend
 * DNSSEC: Yes (set ``gpgsql-dnssec``)
 * Disabled data: Yes
 * Comments: Yes
+* Search: Yes
 * Zone caching: Yes
 * Module name: gpgsql
 * Launch name: ``gpgsql``
