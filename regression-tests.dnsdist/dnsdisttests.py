@@ -230,7 +230,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
             return
         try:
             p.terminate()
-            for count in range(20):
+            for count in range(50):
                 x = p.poll()
                 if x is not None:
                     break
@@ -240,7 +240,10 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
                 p.kill()
                 p.wait()
             if p.returncode != 0:
-              raise AssertionError('Process exited with return code %d' % (p.returncode))
+              if p.returncode < 0:
+                raise AssertionError('Process was killed by signal %d' % (-p.returncode))
+              else:
+                raise AssertionError('Process exited with return code %d' % (p.returncode))
         except OSError as e:
             # There is a race-condition with the poll() and
             # kill() statements, when the process is dead on the
