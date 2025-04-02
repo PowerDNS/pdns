@@ -1883,6 +1883,14 @@ bool TLSFrontend::setupTLS()
 {
 #if defined(HAVE_DNS_OVER_TLS) || defined(HAVE_DNS_OVER_HTTPS)
   std::shared_ptr<TLSCtx> newCtx{nullptr};
+  if (d_parentFrontend) {
+    newCtx = d_parentFrontend->getContext();
+    if (newCtx) {
+      std::atomic_store_explicit(&d_ctx, std::move(newCtx), std::memory_order_release);
+      return true;
+    }
+  }
+
   /* get the "best" available provider */
 #if defined(HAVE_GNUTLS)
   if (d_provider == "gnutls") {

@@ -751,7 +751,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
           errorCounters = &front->tlsFrontend->d_tlsCounters;
         }
         else if (front->dohFrontend != nullptr) {
-          errorCounters = &front->dohFrontend->d_tlsContext.d_tlsCounters;
+          errorCounters = &front->dohFrontend->d_tlsContext->d_tlsCounters;
         }
 
         if (errorCounters != nullptr) {
@@ -789,7 +789,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
 #ifdef HAVE_DNS_OVER_HTTPS
   std::map<std::string,uint64_t> dohFrontendDuplicates;
   for(const auto& doh : dnsdist::getDoHFrontends()) {
-    const string frontName = doh->d_tlsContext.d_addr.toStringWithPort();
+    const string frontName = doh->d_tlsContext->d_addr.toStringWithPort();
     uint64_t threadNumber = 0;
     auto dupPair = frontendDuplicates.emplace(frontName, 1);
     if (!dupPair.second) {
@@ -1188,7 +1188,7 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
       errorCounters = &front->tlsFrontend->d_tlsCounters;
     }
     else if (front->dohFrontend != nullptr) {
-      errorCounters = &front->dohFrontend->d_tlsContext.d_tlsCounters;
+      errorCounters = &front->dohFrontend->d_tlsContext->d_tlsCounters;
     }
     if (errorCounters != nullptr) {
       frontend["tlsHandshakeFailuresDHKeyTooSmall"] = (double)errorCounters->d_dhKeyTooSmall;
@@ -1212,7 +1212,7 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
     for (const auto& doh : dohFrontends) {
       dohs.emplace_back(Json::object{
         {"id", num++},
-        {"address", doh->d_tlsContext.d_addr.toStringWithPort()},
+        {"address", doh->d_tlsContext->d_addr.toStringWithPort()},
         {"http-connects", (double)doh->d_httpconnects},
         {"http1-queries", (double)doh->d_http1Stats.d_nbQueries},
         {"http2-queries", (double)doh->d_http2Stats.d_nbQueries},

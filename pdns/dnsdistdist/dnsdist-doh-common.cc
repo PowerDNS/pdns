@@ -26,17 +26,17 @@
 #ifdef HAVE_DNS_OVER_HTTPS
 void DOHFrontend::rotateTicketsKey(time_t now)
 {
-  return d_tlsContext.rotateTicketsKey(now);
+  return d_tlsContext->rotateTicketsKey(now);
 }
 
 void DOHFrontend::loadTicketsKeys(const std::string& keyFile)
 {
-  return d_tlsContext.loadTicketsKeys(keyFile);
+  return d_tlsContext->loadTicketsKeys(keyFile);
 }
 
 void DOHFrontend::loadTicketsKey(const std::string& key)
 {
-  return d_tlsContext.loadTicketsKey(key);
+  return d_tlsContext->loadTicketsKey(key);
 }
 
 void DOHFrontend::handleTicketsKeyRotation()
@@ -45,26 +45,26 @@ void DOHFrontend::handleTicketsKeyRotation()
 
 std::string DOHFrontend::getNextTicketsKeyRotation() const
 {
-  return d_tlsContext.getNextTicketsKeyRotation();
+  return d_tlsContext->getNextTicketsKeyRotation();
 }
 
 size_t DOHFrontend::getTicketsKeysCount()
 {
-  return d_tlsContext.getTicketsKeysCount();
+  return d_tlsContext->getTicketsKeysCount();
 }
 
 void DOHFrontend::reloadCertificates()
 {
   if (isHTTPS()) {
-    d_tlsContext.setupTLS();
+    d_tlsContext->setupTLS();
   }
 }
 
 void DOHFrontend::setup()
 {
   if (isHTTPS()) {
-    if (!d_tlsContext.setupTLS()) {
-      throw std::runtime_error("Error setting up TLS context for DoH listener on '" + d_tlsContext.d_addr.toStringWithPort());
+    if (!d_tlsContext->setupTLS()) {
+      throw std::runtime_error("Error setting up TLS context for DoH listener on '" + d_tlsContext->d_addr.toStringWithPort());
     }
   }
 }

@@ -81,11 +81,12 @@ private:
 
 struct DOHFrontend
 {
-  DOHFrontend()
+  DOHFrontend() :
+    d_tlsContext(std::make_shared<TLSFrontend>(TLSFrontend::ALPN::DoH))
   {
   }
   DOHFrontend(std::shared_ptr<TLSCtx> tlsCtx) :
-    d_tlsContext(std::move(tlsCtx))
+    d_tlsContext(std::make_shared<TLSFrontend>(std::move(tlsCtx)))
   {
   }
 
@@ -95,7 +96,7 @@ struct DOHFrontend
 
   std::shared_ptr<DOHServerConfig> d_dsc{nullptr};
   std::shared_ptr<std::vector<std::shared_ptr<DOHResponseMapEntry>>> d_responsesMap;
-  TLSFrontend d_tlsContext{TLSFrontend::ALPN::DoH};
+  std::shared_ptr<TLSFrontend> d_tlsContext;
   std::string d_serverTokens{"h2o/dnsdist"};
   std::unordered_map<std::string, std::string> d_customResponseHeaders;
   std::string d_library;
@@ -141,12 +142,12 @@ struct DOHFrontend
 
   time_t getTicketsKeyRotationDelay() const
   {
-    return d_tlsContext.d_tlsConfig.d_ticketsKeyRotationDelay;
+    return d_tlsContext->d_tlsConfig.d_ticketsKeyRotationDelay;
   }
 
   bool isHTTPS() const
   {
-    return !d_tlsContext.d_tlsConfig.d_certKeyPairs.empty();
+    return !d_tlsContext->d_tlsConfig.d_certKeyPairs.empty();
   }
 
 #ifndef HAVE_DNS_OVER_HTTPS

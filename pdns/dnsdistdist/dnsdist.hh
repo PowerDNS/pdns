@@ -396,10 +396,10 @@ struct ClientState
     return tlsFrontend != nullptr || (dohFrontend != nullptr && dohFrontend->isHTTPS());
   }
 
-  const TLSFrontend& getTLSFrontend() const
+  const std::shared_ptr<const TLSFrontend> getTLSFrontend() const
   {
     if (tlsFrontend != nullptr) {
-      return *tlsFrontend;
+      return tlsFrontend;
     }
     if (dohFrontend) {
       return dohFrontend->d_tlsContext;

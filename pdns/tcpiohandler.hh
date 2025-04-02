@@ -155,28 +155,33 @@ public:
 
   void rotateTicketsKey(time_t now)
   {
-    if (d_ctx != nullptr) {
+    if (d_ctx != nullptr && d_parentFrontend == nullptr) {
       d_ctx->rotateTicketsKey(now);
     }
   }
 
   void loadTicketsKeys(const std::string& file)
   {
-    if (d_ctx != nullptr) {
+    if (d_ctx != nullptr && d_parentFrontend == nullptr) {
       d_ctx->loadTicketsKeys(file);
     }
   }
 
   void loadTicketsKey(const std::string& key)
   {
-    if (d_ctx != nullptr) {
+    if (d_ctx != nullptr && d_parentFrontend == nullptr) {
       d_ctx->loadTicketsKey(key);
     }
   }
 
-  std::shared_ptr<TLSCtx> getContext()
+  std::shared_ptr<TLSCtx> getContext() const
   {
     return std::atomic_load_explicit(&d_ctx, std::memory_order_acquire);
+  }
+
+  void setParent(std::shared_ptr<const TLSFrontend> parent)
+  {
+    std::atomic_store_explicit(&d_parentFrontend, std::move(parent), std::memory_order_release);
   }
 
   void cleanup()
@@ -242,6 +247,7 @@ public:
   bool d_proxyProtocolOutsideTLS{false};
 protected:
   std::shared_ptr<TLSCtx> d_ctx{nullptr};
+  std::shared_ptr<const TLSFrontend> d_parentFrontend{nullptr};
 };
 
 class TCPIOHandler
