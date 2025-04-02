@@ -2,6 +2,8 @@
 set -e
 
 export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
+# requires Quiche >= 0.23.2
+export ENABLE_SNI_TESTS_WITH_QUICHE=yes
 
 if [ ! -d .venv ]; then
   python3 -m venv .venv
