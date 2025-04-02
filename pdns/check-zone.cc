@@ -53,24 +53,27 @@ void checkRRSet(vector<DNSResourceRecord>& records, const ZoneName& zone)
     if (previous.qname == rec.qname) {
       if (previous.qtype == rec.qtype) {
         if (onlyOneEntryTypes.count(rec.qtype.getCode()) != 0) {
-          rejectRecord(rec, " has more than one record");
+          rejectRecord(rec, ": only one such record allowed");
         }
         if (previous.content == rec.content) {
-          throw CheckException("Duplicate record in RRset " + rec.qname.toString() + " IN " + rec.qtype.toString() + " with content \"" + rec.content + "\"");
+          rejectRecord(rec, std::string{": duplicate record with content \""} + rec.content + "\"");
         }
       }
-      else if (QType::exclusiveEntryTypes.count(rec.qtype.getCode()) != 0 || QType::exclusiveEntryTypes.count(previous.qtype.getCode()) != 0) {
-        rejectRecord(rec, ": Conflicts with another RRset");
+      else {
+        if (QType::exclusiveEntryTypes.count(rec.qtype.getCode()) != 0
+            || QType::exclusiveEntryTypes.count(previous.qtype.getCode()) != 0) {
+          rejectRecord(rec, std::string{": conflicts with existing "} + previous.qtype.toString() + " RRset of the same name");
+        }
       }
     }
 
     if (rec.qname == zone.operator const DNSName&()) {
       if (nonApexTypes.count(rec.qtype.getCode()) != 0) {
-        rejectRecord(rec, " is not allowed at apex");
+        rejectRecord(rec, ": is not allowed at apex");
       }
     }
     else if (atApexTypes.count(rec.qtype.getCode()) != 0) {
-      rejectRecord(rec, " is only allowed at apex");
+      rejectRecord(rec, ": is only allowed at apex");
     }
 
     // Check if the DNSNames that should be hostnames, are hostnames
