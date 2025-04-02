@@ -197,3 +197,7 @@ std::string QClass::toString() const
     return "CLASS" + std::to_string(qclass);
   }
 }
+
+const std::set<uint16_t> QType::exclusiveEntryTypes = {
+  QType::CNAME
+};
