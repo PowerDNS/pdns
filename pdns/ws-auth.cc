@@ -53,6 +53,7 @@
 #include "auth-zonecache.hh"
 #include "threadname.hh"
 #include "tsigutils.hh"
+#include "check-zone.hh"
 
 using json11::Json;
 
@@ -93,15 +94,6 @@ double Ewma::getMax() const
 }
 
 static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInfo& domainInfo, const vector<Json>& rrsets, HttpResponse* resp);
-
-// QTypes that MUST NOT have multiple records of the same type in a given RRset.
-static const std::set<uint16_t> onlyOneEntryTypes = {QType::CNAME, QType::DNAME, QType::SOA};
-// QTypes that MUST NOT be used with any other QType on the same name.
-static const std::set<uint16_t> exclusiveEntryTypes = {QType::CNAME};
-// QTypes that MUST be at apex.
-static const std::set<uint16_t> atApexTypes = {QType::SOA, QType::DNSKEY};
-// QTypes that are NOT allowed at apex.
-static const std::set<uint16_t> nonApexTypes = {QType::DS};
 
 AuthWebServer::AuthWebServer() :
   d_start(time(nullptr))
@@ -1673,46 +1665,11 @@ static void gatherRecordsFromZone(const std::string& zonestring, vector<DNSResou
  */
 static void checkNewRecords(vector<DNSResourceRecord>& records, const ZoneName& zone)
 {
-  sort(records.begin(), records.end(),
-       [](const DNSResourceRecord& rec_a, const DNSResourceRecord& rec_b) -> bool {
-         /* we need _strict_ weak ordering */
-         return std::tie(rec_a.qname, rec_a.qtype, rec_a.content) < std::tie(rec_b.qname, rec_b.qtype, rec_b.content);
-       });
-
-  DNSResourceRecord previous;
-  for (const auto& rec : records) {
-    if (previous.qname == rec.qname) {
-      if (previous.qtype == rec.qtype) {
-        if (onlyOneEntryTypes.count(rec.qtype.getCode()) != 0) {
-          throw ApiException("RRset " + rec.qname.toString() + " IN " + rec.qtype.toString() + " has more than one record");
-        }
-        if (previous.content == rec.content) {
-          throw ApiException("Duplicate record in RRset " + rec.qname.toString() + " IN " + rec.qtype.toString() + " with content \"" + rec.content + "\"");
-        }
-      }
-      else if (exclusiveEntryTypes.count(rec.qtype.getCode()) != 0 || exclusiveEntryTypes.count(previous.qtype.getCode()) != 0) {
-        throw ApiException("RRset " + rec.qname.toString() + " IN " + rec.qtype.toString() + ": Conflicts with another RRset");
-      }
-    }
-
-    if (rec.qname == zone.operator const DNSName&()) {
-      if (nonApexTypes.count(rec.qtype.getCode()) != 0) {
-        throw ApiException("Record " + rec.qname.toString() + " IN " + rec.qtype.toString() + " is not allowed at apex");
-      }
-    }
-    else if (atApexTypes.count(rec.qtype.getCode()) != 0) {
-      throw ApiException("Record " + rec.qname.toString() + " IN " + rec.qtype.toString() + " is only allowed at apex");
-    }
-
-    // Check if the DNSNames that should be hostnames, are hostnames
-    try {
-      checkHostnameCorrectness(rec);
-    }
-    catch (const std::exception& e) {
-      throw ApiException("RRset " + rec.qname.toString() + " IN " + rec.qtype.toString() + ": " + e.what());
-    }
-
-    previous = rec;
+  try {
+    Check::checkRRSet(records, zone);
+  }
+  catch (CheckException& e) {
+    throw ApiException(e.what());
   }
 }
 
@@ -2426,8 +2383,8 @@ static void replaceZoneRecords(DomainInfo& domainInfo, const ZoneName& zonename,
     dname_seen |= resourceRecord.qtype == QType::DNAME;
     ns_seen |= resourceRecord.qtype == QType::NS;
     if (qtype.getCode() != resourceRecord.qtype.getCode()
-        && (exclusiveEntryTypes.count(qtype.getCode()) != 0
-            || exclusiveEntryTypes.count(resourceRecord.qtype.getCode()) != 0)) {
+        && (QType::exclusiveEntryTypes.count(qtype.getCode()) != 0
+            || QType::exclusiveEntryTypes.count(resourceRecord.qtype.getCode()) != 0)) {
       // leave database handle in a consistent state
       domainInfo.backend->lookupEnd();
       throw ApiException("RRset " + qname.toString() + " IN " + qtype.toString() + ": Conflicts with pre-existing RRset");
