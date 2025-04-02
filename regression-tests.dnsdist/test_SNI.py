@@ -38,8 +38,7 @@ class TestSNI(DNSDistTest):
     """
     _config_params = ['_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey', '_dohWithNGHTTP2ServerPort', '_serverCert', '_serverKey', '_doqServerPort', '_serverCert', '_serverKey', '_doh3ServerPort', '_serverCert', '_serverKey', '_serverName']
 
-    # enable these once Quiche > 0.22 is available, including https://github.com/cloudflare/quiche/pull/1895
-    @unittest.skipUnless('ENABLE_SNI_TESTS_WITH_QUICHE' in os.environ, "SNI tests with Quicheare disabled")
+    @unittest.skipUnless('ENABLE_SNI_TESTS_WITH_QUICHE' in os.environ, "SNI tests with Quiche are disabled")
     def testServerNameIndicationWithQuiche(self):
         name = 'simple.sni.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
