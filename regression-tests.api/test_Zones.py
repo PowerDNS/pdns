@@ -2491,6 +2491,8 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         ("contains unsupported characters", [{'name': 'test:.$NAME$', 'type': 'NS', 'ttl': 3600, 'records': [{"content": "ns1.example.org."}]}]),
         ("unknown type", [{'name': '$NAME$', 'type': 'INVALID', 'ttl': 3600, 'records': [{"content": "192.0.2.1"}]}]),
         ("Conflicts with another RRset", [{'name': '$NAME$', 'type': 'CNAME', 'ttl': 3600, 'records': [{"content": "example.org."}]}]),
+        ("ALIAS records cannot point at themselves", [{'name': '$NAME$', 'type': 'ALIAS', 'ttl': 3600, 'records': [{"content": '$NAME$'}]}]),
+        ("CNAME records cannot point at themselves", [{'name': 'cname.$NAME$', 'type': 'CNAME', 'ttl': 3600, 'records': [{"content": 'cname.$NAME$'}]}]),
     ])
     def test_zone_replace_rrsets_invalid(self, expected_error, invalid_rrsets):
         """Test validation of RRsets before replacing them"""
@@ -2501,7 +2503,6 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         ]
         rrsets = base_rrsets + templated_rrsets(invalid_rrsets, name)
         self.put_zone(name, {'rrsets': rrsets}, expect_error=expected_error)
-
 
 @unittest.skipIf(not is_auth(), "Not applicable")
 class AuthRootZone(ApiTestCase, AuthZonesHelperMixin):
