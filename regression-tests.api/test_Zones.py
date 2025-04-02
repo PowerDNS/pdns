@@ -1202,7 +1202,7 @@ $ORIGIN %NAME%
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertEqual(r.status_code, 422)
-        self.assertIn('Conflicts with another RRset', r.json()['error'])
+        self.assertIn('conflicts with existing NS RRset', r.json()['error'])
 
     def test_export_zone_json(self):
         name, payload, zone = self.create_zone(nameservers=['ns1.foo.com.', 'ns2.foo.com.'], soa_edit_api='')
@@ -1437,7 +1437,7 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertEqual(r.status_code, 422)
-        self.assertIn('Duplicate record in RRset', r.json()['error'])
+        self.assertIn('duplicate record with content', r.json()['error'])
 
     def test_zone_rr_update_duplicate_rrset(self):
         name, payload, zone = self.create_zone()
@@ -1720,7 +1720,7 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         r = self.session.patch(self.url("/api/v1/servers/localhost/zones/" + name), data=json.dumps(payload),
                                headers={'content-type': 'application/json'})
         self.assertEqual(r.status_code, 422)
-        self.assertIn('IN ' + qtype + ' has more than one record', r.json()['error'])
+        self.assertIn('IN ' + qtype + ': only one such record', r.json()['error'])
 
     def test_rrset_zone_apex(self):
         name, payload, zone = self.create_zone()
@@ -2542,7 +2542,7 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         ("out of zone", [{'name': 'not-in-zone.', 'type': 'NS', 'ttl': 3600, 'records': [{"content": "ns1.example.org."}]}]),
         ("contains unsupported characters", [{'name': 'test:.$NAME$', 'type': 'NS', 'ttl': 3600, 'records': [{"content": "ns1.example.org."}]}]),
         ("unknown type", [{'name': '$NAME$', 'type': 'INVALID', 'ttl': 3600, 'records': [{"content": "192.0.2.1"}]}]),
-        ("Conflicts with another RRset", [{'name': '$NAME$', 'type': 'CNAME', 'ttl': 3600, 'records': [{"content": "example.org."}]}]),
+        ("conflicts with existing NS RRset", [{'name': '$NAME$', 'type': 'CNAME', 'ttl': 3600, 'records': [{"content": "example.org."}]}]),
     ])
     def test_zone_replace_rrsets_invalid(self, expected_error, invalid_rrsets):
         """Test validation of RRsets before replacing them"""
