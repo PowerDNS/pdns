@@ -5,8 +5,8 @@ host.bug.less. 3600 IN A 127.0.0.1
 Ignoring duplicate record content "127.0.0.2"
 New rrset:
 host2.bug.less. 3600 IN A 127.0.0.2
-RRset cname.bug.less. IN CNAME: Conflicts with another RRset
-RRset host.bug.less. IN CNAME: Conflicts with another RRset
+RRset cname.bug.less. IN CNAME: conflicts with existing A RRset of the same name
+RRset host.bug.less. IN CNAME: conflicts with existing A RRset of the same name
 New rrset:
 host2.bug.less. 3600 IN A 127.0.0.2
 host2.bug.less. 3600 IN A 127.0.0.3
