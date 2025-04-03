@@ -891,6 +891,15 @@ bool UeberBackend::hasCreatedLocalFiles()
   return std::any_of(backends.begin(), backends.end(), [](std::unique_ptr<DNSBackend>& backend) { return backend->hasCreatedLocalFiles(); });
 }
 
+unsigned int UeberBackend::getCapabilities()
+{
+  unsigned int capabilities{0};
+  for (auto& backend : backends) {
+    capabilities |= backend->getCapabilities();
+  }
+  return capabilities;
+}
+
 AtomicCounter UeberBackend::handle::instances(0);
 
 UeberBackend::handle::handle()

@@ -1547,11 +1547,16 @@ static int loadZone(const DNSName& zone, const string& fname) {
     cerr << "Zone '" << zone << "' exists already, replacing contents" << endl;
   }
   else {
+    if ((B.getCapabilities() & DNSBackend::CAP_CREATE) == 0) {
+      cerr << "None of the configured backends support zone creation." << endl;
+      cerr << "Zone '" << zone << "' was not created." << endl;
+      return EXIT_FAILURE;
+    }
     cerr<<"Creating '"<<zone<<"'"<<endl;
     B.createDomain(zone, DomainInfo::Native, vector<ComboAddress>(), "");
 
     if(!B.getDomainInfo(zone, di)) {
-      cerr << "Zone '" << zone << "' was not created - perhaps backend (" << ::arg()["launch"] << ") does not support storing new zones." << endl;
+      cerr << "Zone '" << zone << "' was not created." << endl;
       return EXIT_FAILURE;
     }
   }
@@ -1598,6 +1603,11 @@ static int createZone(const DNSName &zone, const DNSName& nsname) {
   DomainInfo di;
   if (B.getDomainInfo(zone, di)) {
     cerr << "Zone '" << zone << "' exists already" << endl;
+    return EXIT_FAILURE;
+  }
+  if ((B.getCapabilities() & DNSBackend::CAP_CREATE) == 0) {
+    cerr << "None of the configured backends support zone creation." << endl;
+    cerr << "Zone '" << zone << "' was not created." << endl;
     return EXIT_FAILURE;
   }
 
@@ -3175,6 +3185,11 @@ static int createSecondaryZone(vector<string>& cmds, const std::string_view syno
     cerr << "Zone '" << zone << "' exists already" << endl;
     return EXIT_FAILURE;
   }
+  if ((B.getCapabilities() & DNSBackend::CAP_CREATE) == 0) {
+    cerr << "None of the configured backends support zone creation." << endl;
+    cerr << "Zone '" << zone << "' was not created." << endl;
+    return EXIT_FAILURE;
+  }
   vector<ComboAddress> primaries;
   for (unsigned i=2; i < cmds.size(); i++) {
     primaries.emplace_back(cmds.at(i), 53);
@@ -4317,6 +4332,11 @@ static int B2BMigrate(vector<string>& cmds, const std::string_view synopsis)
     cerr << "Source backend does not support listing zone contents." << endl;
     return 1;
   }
+  if ((tgt->getCapabilities() & DNSBackend::CAP_CREATE) == 0) {
+    cerr << "Target backend does not support zone creation." << endl;
+    return 1;
+  }
+
   cout<<"Moving zone(s) from "<<src->getPrefix()<<" to "<<tgt->getPrefix()<<endl;
 
   vector<DomainInfo> domains;
