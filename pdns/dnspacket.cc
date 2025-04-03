@@ -658,6 +658,7 @@ try
   return 0;
 }
 catch(std::exception& e) {
+  g_log << Logger::Debug << "Parse error in packet from " << getRemoteString() << ": " << e.what() << endl;
   return -1;
 }
 
