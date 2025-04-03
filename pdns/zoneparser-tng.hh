@@ -53,6 +53,11 @@ public:
   {
     d_maxIncludes = max;
   }
+  void setDefaultTTL(int ttl)
+  {
+    d_defaultttl = ttl;
+    d_havespecificttl = true;
+  }
 private:
   bool getLine();
   bool getTemplateLine();
@@ -81,7 +86,7 @@ private:
   size_t d_maxIncludes{20};
   int d_defaultttl;
   uint32_t d_templatecounter, d_templatestop, d_templatestep;
-  bool d_havedollarttl;
+  bool d_havespecificttl;
   bool d_fromfile;
   bool d_generateEnabled{true};
   bool d_upgradeContent;
