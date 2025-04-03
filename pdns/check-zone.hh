@@ -20,13 +20,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-class CheckException : public runtime_error
-{
-public:
-  CheckException(const string& what_arg) :
-    runtime_error(what_arg) {}
-};
-
 namespace Check
 {
 
@@ -38,6 +31,6 @@ namespace Check
  *   *) no duplicates for QTypes that can only be present once per RRset
  *   *) hostnames are hostnames
  */
-void checkRRSet(vector<DNSResourceRecord>& records, const ZoneName& zone);
+void checkRRSet(vector<DNSResourceRecord>& records, const ZoneName& zone, vector<pair<DNSResourceRecord, string>>& errors, bool stopAtFirstError);
 
 } // namespace Check
