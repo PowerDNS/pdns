@@ -542,6 +542,11 @@ static void loadRulesConfiguration(const dnsdist::rust::settings::GlobalConfigur
       boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
       dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::XFRResponseRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
     }
+
+    for (const auto& rule : globalConfig.timeout_response_rules) {
+      boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
+      dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::TimeoutResponseRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
+    }
   });
 }
 

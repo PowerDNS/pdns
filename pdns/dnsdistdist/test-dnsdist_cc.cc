@@ -65,6 +65,15 @@ bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>&
   return true;
 }
 
+bool handleTimeoutResponseRules(const std::vector<dnsdist::rules::ResponseRuleAction>& rules, InternalQueryState& ids, std::shared_ptr<DownstreamState> ds, std::shared_ptr<TCPQuerySender> sender)
+{
+  (void)rules;
+  (void)ids;
+  (void)ds;
+  (void)sender;
+  return false;
+}
+
 bool sendUDPResponse(int origFD, const PacketBuffer& response, const int delayMsec, const ComboAddress& origDest, const ComboAddress& origRemote)
 {
   (void)origFD;

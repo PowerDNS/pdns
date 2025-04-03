@@ -202,6 +202,8 @@ struct DOHFrontend
 
 struct DownstreamState;
 
+class TCPQuerySender;
+
 #ifndef HAVE_DNS_OVER_HTTPS
 struct DOHUnitInterface
 {
@@ -228,6 +230,7 @@ struct DOHUnitInterface
   virtual const std::string& getHTTPHost() const = 0;
   virtual const std::string& getHTTPScheme() const = 0;
   virtual const std::unordered_map<std::string, std::string>& getHTTPHeaders() const = 0;
+  virtual std::shared_ptr<TCPQuerySender> getQuerySender() const = 0;
   virtual void setHTTPResponse(uint16_t statusCode, PacketBuffer&& body, const std::string& contentType = "") = 0;
   virtual void handleTimeout() = 0;
   virtual void handleUDPResponse(PacketBuffer&& response, InternalQueryState&& state, const std::shared_ptr<DownstreamState>&) = 0;

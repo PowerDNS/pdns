@@ -71,6 +71,7 @@ enum class ResponseRuleChain : uint8_t
   CacheInsertedResponseRules = 2,
   SelfAnsweredResponseRules = 3,
   XFRResponseRules = 4,
+  TimeoutResponseRules = 5,
 };
 
 struct ResponseRuleChainDescription
@@ -89,6 +90,7 @@ struct RuleChains
   std::vector<ResponseRuleAction> d_selfansweredrespruleactions;
   std::vector<ResponseRuleAction> d_cacheInsertedRespRuleActions;
   std::vector<ResponseRuleAction> d_XFRRespRuleActions;
+  std::vector<ResponseRuleAction> d_TimeoutRespRuleActions;
 };
 
 const std::vector<RuleChainDescription>& getRuleChainDescriptions();
