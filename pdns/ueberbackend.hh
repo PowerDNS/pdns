@@ -143,6 +143,8 @@ public:
 
   bool hasCreatedLocalFiles();
 
+  unsigned int getCapabilities();
+
 private:
   handle d_handle;
   vector<DNSZoneRecord> d_answers;
