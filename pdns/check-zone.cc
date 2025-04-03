@@ -28,12 +28,7 @@
 namespace Check
 {
 
-static void rejectRecord(const DNSResourceRecord& rec, const std::string& why)
-{
-  throw CheckException("RRset " + rec.qname.toString() + " IN " + rec.qtype.toString() + why);
-}
-
-void checkRRSet(vector<DNSResourceRecord>& records, const ZoneName& zone)
+void checkRRSet(vector<DNSResourceRecord>& records, const ZoneName& zone, vector<pair<DNSResourceRecord, string>>& errors, bool stopAtFirstError)
 {
   // QTypes that MUST NOT have multiple records of the same type in a given RRset.
   static const std::set<uint16_t> onlyOneEntryTypes = {QType::CNAME, QType::DNAME, QType::SOA};
@@ -41,6 +36,10 @@ void checkRRSet(vector<DNSResourceRecord>& records, const ZoneName& zone)
   static const std::set<uint16_t> atApexTypes = {QType::SOA, QType::DNSKEY};
   // QTypes that are NOT allowed at apex.
   static const std::set<uint16_t> nonApexTypes = {QType::DS};
+
+  if (stopAtFirstError) {
+    errors.reserve(1);
+  }
 
   sort(records.begin(), records.end(),
        [](const DNSResourceRecord& rec_a, const DNSResourceRecord& rec_b) -> bool {
@@ -53,27 +52,42 @@ void checkRRSet(vector<DNSResourceRecord>& records, const ZoneName& zone)
     if (previous.qname == rec.qname) {
       if (previous.qtype == rec.qtype) {
         if (onlyOneEntryTypes.count(rec.qtype.getCode()) != 0) {
-          rejectRecord(rec, ": only one such record allowed");
+          errors.emplace_back(std::make_pair(rec, ": only one such record allowed"));
+          if (stopAtFirstError) {
+            break;
+          }
         }
         if (previous.content == rec.content) {
-          rejectRecord(rec, std::string{": duplicate record with content \""} + rec.content + "\"");
+          errors.emplace_back(std::make_pair(rec, std::string{": duplicate record with content \""} + rec.content + "\""));
+          if (stopAtFirstError) {
+            break;
+          }
         }
       }
       else {
         if (QType::exclusiveEntryTypes.count(rec.qtype.getCode()) != 0
             || QType::exclusiveEntryTypes.count(previous.qtype.getCode()) != 0) {
-          rejectRecord(rec, std::string{": conflicts with existing "} + previous.qtype.toString() + " RRset of the same name");
+          errors.emplace_back(std::make_pair(rec, std::string{": conflicts with existing "} + previous.qtype.toString() + " RRset of the same name"));
+          if (stopAtFirstError) {
+            break;
+          }
         }
       }
     }
 
     if (rec.qname == zone.operator const DNSName&()) {
       if (nonApexTypes.count(rec.qtype.getCode()) != 0) {
-        rejectRecord(rec, ": is not allowed at apex");
+        errors.emplace_back(std::make_pair(rec, ": is not allowed at apex"));
+        if (stopAtFirstError) {
+          break;
+        }
       }
     }
     else if (atApexTypes.count(rec.qtype.getCode()) != 0) {
-      rejectRecord(rec, ": is only allowed at apex");
+      errors.emplace_back(std::make_pair(rec, ": is only allowed at apex"));
+      if (stopAtFirstError) {
+        break;
+      }
     }
 
     // Check if the DNSNames that should be hostnames, are hostnames
@@ -81,7 +95,10 @@ void checkRRSet(vector<DNSResourceRecord>& records, const ZoneName& zone)
       checkHostnameCorrectness(rec);
     }
     catch (const std::exception& e) {
-      rejectRecord(rec, std::string{": "} + e.what());
+      errors.emplace_back(std::make_pair(rec, std::string{": "} + e.what()));
+      if (stopAtFirstError) {
+        break;
+      }
     }
 
     previous = rec;

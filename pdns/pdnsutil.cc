@@ -2558,13 +2558,16 @@ static int addOrReplaceRecord(bool isAdd, const vector<string>& cmds)
     newrrs = std::move(oldrrs);
   }
 
-  try {
-    Check::checkRRSet(newrrs, zone);
-  }
-  catch (CheckException& e) {
-    cerr << e.what() << endl;
+  std::vector<std::pair<DNSResourceRecord, string>> errors;
+  Check::checkRRSet(newrrs, zone, errors, false);
+  if (!errors.empty()) {
+    for (const auto& error : errors) {
+      const auto [rec, why] = error;
+      cerr << "RRset " << rec.qname.toString() << " IN " << rec.qtype.toString() << why << endl;
+    }
     return EXIT_FAILURE;
   }
+
   if (isAdd) {
     // We had collected all record types earlier in order to be able to
     // perform the proper checks. Trim the list to only keep those of the

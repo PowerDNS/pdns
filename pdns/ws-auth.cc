@@ -1665,11 +1665,12 @@ static void gatherRecordsFromZone(const std::string& zonestring, vector<DNSResou
  */
 static void checkNewRecords(vector<DNSResourceRecord>& records, const ZoneName& zone)
 {
-  try {
-    Check::checkRRSet(records, zone);
-  }
-  catch (CheckException& e) {
-    throw ApiException(e.what());
+  std::vector<std::pair<DNSResourceRecord, string>> errors;
+
+  Check::checkRRSet(records, zone, errors, true);
+  if (!errors.empty()) {
+    const auto [rec, why] = errors.front();
+    throw ApiException("RRset " + rec.qname.toString() + " IN " + rec.qtype.toString() + why);
   }
 }
 
