@@ -62,7 +62,7 @@ public:
   explicit LMDBBackend(const string& suffix = "");
   ~LMDBBackend();
 
-  unsigned int getCapabilities() override { return CAP_DNSSEC | CAP_DIRECT | CAP_LIST; }
+  unsigned int getCapabilities() override { return CAP_DNSSEC | CAP_DIRECT | CAP_LIST | CAP_CREATE; }
   bool list(const DNSName& target, int id, bool include_disabled) override;
 
   bool getDomainInfo(const DNSName& domain, DomainInfo& di, bool getserial = true) override;
