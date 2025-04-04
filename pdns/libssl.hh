@@ -147,16 +147,30 @@ bool libssl_generate_ocsp_response(const std::string& certFile, const std::strin
 #endif
 #endif /* DISABLE_OCSP_STAPLING */
 
-void libssl_set_error_counters_callback(std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>& ctx, TLSErrorCounters* counters);
+void libssl_set_error_counters_callback(SSL_CTX& ctx, TLSErrorCounters* counters);
 
 LibsslTLSVersion libssl_tls_version_from_string(const std::string& str);
 const std::string& libssl_tls_version_to_string(LibsslTLSVersion version);
-bool libssl_set_min_tls_version(std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>& ctx, LibsslTLSVersion version);
+
+
+namespace pdns::libssl {
+class ServerContext
+{
+public:
+  using SharedContext = std::shared_ptr<SSL_CTX>;
+  using SNIToContextMap  = std::map<std::string, SharedContext, std::less<>>;
+
+  SharedContext d_defaultContext;
+  SNIToContextMap d_sniMap;
+  std::map<int, std::string> d_ocspResponses;
+};
+}
 
 /* return the created context, and a list of warning messages for issues not severe enough
    to trigger raising an exception, like failing to load an OCSP response file */
-std::pair<std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>, std::vector<std::string>> libssl_init_server_context(const TLSConfig& config,
-                                                                                                            std::map<int, std::string>& ocspResponses);
+std::pair<std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>, std::vector<std::string>> libssl_init_server_context_no_sni(const TLSConfig& config,
+                                                                                                                         std::map<int, std::string>& ocspResponses);
+std::pair<pdns::libssl::ServerContext, std::vector<std::string>> libssl_init_server_context(const TLSConfig& config);
 
 pdns::UniqueFilePtr libssl_set_key_log_file(SSL_CTX* ctx, const std::string& logFile);
 

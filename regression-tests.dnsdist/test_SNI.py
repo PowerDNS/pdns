@@ -4,13 +4,19 @@ import dns
 import os
 import unittest
 import pycurl
+import ssl
 
 from dnsdisttests import DNSDistTest, pickAvailablePort
 
 class TestSNI(DNSDistTest):
     _serverKey = 'server.key'
     _serverCert = 'server.chain'
+    _serverKeyEC = 'server-ec.key'
+    _serverCertEC = 'server-ec.chain'
+    _serverKey2 = 'server2.key'
+    _serverCert2 = 'server2.chain'
     _serverName = 'tls.tests.dnsdist.org'
+    _serverName2 = 'tls2.tests.dnsdist.org'
     _caCert = 'ca.pem'
     _tlsServerPort = pickAvailablePort()
     _dohWithNGHTTP2ServerPort = pickAvailablePort()
@@ -22,21 +28,28 @@ class TestSNI(DNSDistTest):
     _config_template = """
     newServer{address="127.0.0.1:%d"}
 
-    addTLSLocal("127.0.0.1:%d", "%s", "%s", { provider="openssl" })
-    addDOHLocal("127.0.0.1:%d", "%s", "%s", {"/"}, {library="nghttp2"})
-    addDOQLocal("127.0.0.1:%d", "%s", "%s")
-    addDOH3Local("127.0.0.1:%d", "%s", "%s")
+    local certs = {"%s", "%s", "%s"}
+    local keys = {"%s", "%s", "%s"}
+    local single_cert = "%s"
+    local single_key = "%s"
+    addTLSLocal("127.0.0.1:%d", certs, keys, { provider="openssl" })
+    addDOHLocal("127.0.0.1:%d", certs, keys, {"/"}, {library="nghttp2"})
+    addDOQLocal("127.0.0.1:%d", single_cert, single_key)
+    addDOH3Local("127.0.0.1:%d", single_cert, single_key)
 
-    function displaySNI(dq)
+    function checkSNI(dq)
       local sni = dq:getServerNameIndication()
-      if sni ~= '%s' then
+      if tostring(dq.qname) == 'simple.sni.tests.powerdns.com' and sni ~= '%s' then
         return DNSAction.Spoof, '1.2.3.4'
+      end
+      if tostring(dq.qname) == 'name2.sni.tests.powerdns.com' and sni ~= '%s' then
+        return DNSAction.Spoof, '2.3.4.5'
       end
       return DNSAction.Allow
     end
-    addAction(AllRule(), LuaAction(displaySNI))
+    addAction(AllRule(), LuaAction(checkSNI))
     """
-    _config_params = ['_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey', '_dohWithNGHTTP2ServerPort', '_serverCert', '_serverKey', '_doqServerPort', '_serverCert', '_serverKey', '_doh3ServerPort', '_serverCert', '_serverKey', '_serverName']
+    _config_params = ['_testServerPort', '_serverCert', '_serverCertEC', '_serverCert2', '_serverKey', '_serverKeyEC', '_serverKey2', '_serverCert', '_serverKey', '_tlsServerPort', '_dohWithNGHTTP2ServerPort', '_doqServerPort', '_doh3ServerPort', '_serverName', '_serverName2']
 
     @unittest.skipUnless('ENABLE_SNI_TESTS_WITH_QUICHE' in os.environ, "SNI tests with Quiche are disabled")
     def testServerNameIndicationWithQuiche(self):
@@ -74,6 +87,26 @@ class TestSNI(DNSDistTest):
         for method in ["sendDOTQueryWrapper", "sendDOHWithNGHTTP2QueryWrapper"]:
             sender = getattr(self, method)
             (receivedQuery, receivedResponse) = sender(query, response, timeout=1)
+            self.assertTrue(receivedQuery)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.assertTrue(receivedResponse)
+            self.assertEqual(response, receivedResponse)
+
+        # check second certificate
+        name = 'name2.sni.tests.powerdns.com.'
+        self._dohWithNGHTTP2BaseURL = ("https://%s:%d/" % (self._serverName2, self._dohWithNGHTTP2ServerPort))
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+        for method in ["sendDOTQueryWrapper", "sendDOHWithNGHTTP2QueryWrapper"]:
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response, timeout=1, serverName=self._serverName2)
             self.assertTrue(receivedQuery)
             receivedQuery.id = query.id
             self.assertEqual(query, receivedQuery)
