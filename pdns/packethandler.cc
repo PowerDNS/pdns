@@ -1537,32 +1537,32 @@ bool PacketHandler::opcodeQueryInner(DNSPacket& pkt, queryState &state)
     state.r->setA(false);
   }
 
-  bool result{false};
-  do {
+  int retargetcount{0};
+  while (true) {
     state.retargeted = false;
-    result = opcodeQueryInner2(pkt, state);
-    state.retargetcount++;
-  } while (state.retargeted);
-
-  return result;
+    bool result = opcodeQueryInner2(pkt, state, retargetcount != 0);
+    if (!state.retargeted) {
+      return result;
+    }
+    retargetcount++;
+    if (retargetcount > 10) {
+      g_log<<Logger::Warning<<"Abort CNAME chain resolution after "<<--retargetcount<<" redirects, sending out servfail. Initial query: '"<<pkt.qdomain<<"'"<<endl;
+      state.r=pkt.replyPacket();
+      state.r->setRcode(RCode::ServFail);
+      return false;
+    }
+  }
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity): TODO continue splitting this into smaller pieces
-bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state)
+bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool retargeted)
 {
   DNSZoneRecord zrr;
 #ifdef HAVE_LUA_RECORDS
   bool doLua=g_doLuaRecord;
 #endif
 
-  if(state.retargetcount > 10) {    // XXX FIXME, retargetcount++?
-    g_log<<Logger::Warning<<"Abort CNAME chain resolution after "<<--state.retargetcount<<" redirects, sending out servfail. Initial query: '"<<pkt.qdomain<<"'"<<endl;
-    state.r=pkt.replyPacket();
-    state.r->setRcode(RCode::ServFail);
-    return false;
-  }
-
-  if (state.retargetcount > 0 && !d_doResolveAcrossZones && !state.target.isPartOf(state.r->qdomainzone)) {
+  if (retargeted && !d_doResolveAcrossZones && !state.target.isPartOf(state.r->qdomainzone)) {
     // We are following a retarget outside the initial zone (and do not need to check getAuth to know this). Config asked us not to do that.
     // This is a performance optimization, the generic case is checked after getAuth below.
     return true;
@@ -1570,7 +1570,7 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state)
 
   if(!B.getAuth(state.target, pkt.qtype, &d_sd)) {
     DLOG(g_log<<Logger::Error<<"We have no authority over zone '"<<state.target<<"'"<<endl);
-    if (state.retargetcount == 0) {
+    if (!retargeted) {
       state.r->setA(false); // drop AA if we never had a SOA in the first place
       state.r->setRcode(RCode::Refused); // send REFUSED - but only on empty 'no idea'
     }
@@ -1578,7 +1578,7 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state)
   }
   DLOG(g_log<<Logger::Error<<"We have authority, zone='"<<d_sd.qname<<"', id="<<d_sd.domain_id<<endl);
 
-  if (state.retargetcount == 0) {
+  if (!retargeted) {
     state.r->qdomainzone = d_sd.qname;
   } else if (!d_doResolveAcrossZones && state.r->qdomainzone != d_sd.qname) {
     // We are following a retarget outside the initial zone. Config asked us not to do that.
@@ -1636,7 +1636,7 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state)
   }
 
   DLOG(g_log<<"Checking for referrals first, unless this is a DS query"<<endl);
-  if(pkt.qtype.getCode() != QType::DS && tryReferral(pkt, state.r, state.target, state.retargetcount != 0)) {
+  if(pkt.qtype.getCode() != QType::DS && tryReferral(pkt, state.r, state.target, retargeted)) {
     return true;
   }
 
@@ -1782,7 +1782,7 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state)
     }
     if(doReferral) {
       DLOG(g_log<<"DS query found no direct result, trying referral now"<<endl);
-      if(tryReferral(pkt, state.r, state.target, state.retargetcount != 0)) {
+      if(tryReferral(pkt, state.r, state.target, retargeted)) {
         DLOG(g_log<<"Got referral for DS query"<<endl);
         return true;
       }
@@ -1796,7 +1796,7 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state)
     DNSName wildcard;
     if(tryWildcard(pkt, state.r, state.target, wildcard, wereRetargeted, nodata)) {
       if(wereRetargeted) {
-        if (state.retargetcount == 0) {
+        if (!retargeted) {
           state.r->qdomainwild=wildcard;
         }
         state.retargeted = true;
@@ -1819,7 +1819,7 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state)
       return true;
     }
 
-    if (!(((pkt.qtype.getCode() == QType::CNAME) || (pkt.qtype.getCode() == QType::ANY)) && state.retargetcount > 0)) {
+    if (!(((pkt.qtype.getCode() == QType::CNAME) || (pkt.qtype.getCode() == QType::ANY)) && retargeted)) {
       makeNXDomain(pkt, state.r, state.target, wildcard);
     }
 
@@ -1870,7 +1870,7 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state)
   }
   else if(weHaveUnauth) {
     DLOG(g_log<<"Have unauth data, so need to hunt for best NS records"<<endl);
-    if (tryReferral(pkt, state.r, state.target, state.retargetcount != 0)) {
+    if (tryReferral(pkt, state.r, state.target, retargeted)) {
       return true;
     }
     // check whether this could be fixed easily

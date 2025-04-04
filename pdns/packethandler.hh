@@ -113,13 +113,12 @@ private:
     std::unique_ptr<DNSPacket> r{nullptr};
     set<DNSName> authSet;
     DNSName target;
-    int retargetcount{0};
     bool doSigs{false};
     bool noCache{false};
     bool retargeted{false};
   };
   bool opcodeQueryInner(DNSPacket&, queryState&);
-  bool opcodeQueryInner2(DNSPacket&, queryState&);
+  bool opcodeQueryInner2(DNSPacket&, queryState&, bool);
   std::unique_ptr<DNSPacket> opcodeQuery(DNSPacket&, bool);
   std::unique_ptr<DNSPacket> opcodeNotify(DNSPacket&, bool);
   std::unique_ptr<DNSPacket> opcodeUpdate(DNSPacket&, bool);
