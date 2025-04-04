@@ -1591,20 +1591,22 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
 
   if(d_sd.qname==pkt.qdomain) {
     if(!d_dk.isPresigned(d_sd.qname)) {
-      if(pkt.qtype.getCode() == QType::DNSKEY) {
+      switch (pkt.qtype.getCode()) {
+      case QType::DNSKEY:
         if(addDNSKEY(pkt, state.r)) {
           return true;
         }
-      }
-      else if(pkt.qtype.getCode() == QType::CDNSKEY) {
+        break;
+      case QType::CDNSKEY:
         if(addCDNSKEY(pkt,state.r)) {
           return true;
         }
-      }
-      else if(pkt.qtype.getCode() == QType::CDS) {
+        break;
+      case QType::CDS:
         if(addCDS(pkt,state.r)) {
           return true;
         }
+        break;
       }
     }
     if(pkt.qtype.getCode() == QType::NSEC3PARAM) {
