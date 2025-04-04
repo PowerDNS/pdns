@@ -57,6 +57,7 @@ bool shouldDoVerboseLogging()
 
 #include "libssl.hh"
 
+static int sni_server_name_callback(SSL* ssl, int* /* alert */, void* arg);
 
 class OpenSSLFrontendContext
 {
@@ -65,11 +66,16 @@ public:
   {
     registerOpenSSLUser();
 
-    auto [ctx, warnings] = libssl_init_server_context(tlsConfig, d_ocspResponses);
+    auto [ctx, warnings] = libssl_init_server_context(tlsConfig);
     for (const auto& warning : warnings) {
       warnlog("%s", warning);
     }
-    d_tlsCtx = std::move(ctx);
+    d_ocspResponses = std::move(ctx.d_ocspResponses);
+    d_tlsCtx = std::move(ctx.d_defaultContext);
+    d_sniMap = std::move(ctx.d_sniMap);
+    for (auto& entry : d_sniMap) {
+      SSL_CTX_set_tlsext_servername_callback(entry.second.get(), &sni_server_name_callback);
+    }
 
     if (!d_tlsCtx) {
       ERR_print_errors_fp(stderr);
@@ -86,9 +92,37 @@ public:
 
   OpenSSLTLSTicketKeysRing d_ticketKeys;
   std::map<int, std::string> d_ocspResponses;
-  std::unique_ptr<SSL_CTX, void(*)(SSL_CTX*)> d_tlsCtx{nullptr, SSL_CTX_free};
+  pdns::libssl::ServerContext::SNIToContextMap d_sniMap;
+  std::shared_ptr<SSL_CTX> d_tlsCtx{nullptr};
   pdns::UniqueFilePtr d_keyLogFile{nullptr};
 };
+
+
+static int sni_server_name_callback(SSL* ssl, int* /* alert */, void* /* arg */)
+{
+  const auto* serverName = SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name);
+  if (serverName == nullptr) {
+    return SSL_TLSEXT_ERR_NOACK;
+  }
+  auto* frontendCtx = reinterpret_cast<OpenSSLFrontendContext*>(libssl_get_ticket_key_callback_data(ssl));
+  if (frontendCtx == nullptr) {
+    return SSL_TLSEXT_ERR_OK;
+  }
+
+  auto serverNameView = std::string_view(serverName);
+
+  auto it = frontendCtx->d_sniMap.find(serverNameView);
+  if (it == frontendCtx->d_sniMap.end()) {
+    /* keep the default certificate */
+    return SSL_TLSEXT_ERR_OK;
+  }
+
+  /* if it fails there is nothing we can do,
+     let's hope OpenSSL will fallback to the existing,
+     default certificate*/
+  SSL_set_SSL_CTX(ssl, it->second.get());
+  return SSL_TLSEXT_ERR_OK;
+}
 
 class OpenSSLSession : public TLSSession
 {
@@ -649,33 +683,36 @@ public:
 
     d_ticketsKeyRotationDelay = frontend.d_tlsConfig.d_ticketsKeyRotationDelay;
 
-    if (frontend.d_tlsConfig.d_enableTickets && frontend.d_tlsConfig.d_numberOfTicketsKeys > 0) {
-      /* use our own ticket keys handler so we can rotate them */
+    for (auto& entry : d_feContext->d_sniMap) {
+      auto* ctx = entry.second.get();
+      if (frontend.d_tlsConfig.d_enableTickets && frontend.d_tlsConfig.d_numberOfTicketsKeys > 0) {
+        /* use our own ticket keys handler so we can rotate them */
 #if OPENSSL_VERSION_MAJOR >= 3
-      SSL_CTX_set_tlsext_ticket_key_evp_cb(d_feContext->d_tlsCtx.get(), &OpenSSLTLSIOCtx::ticketKeyCb);
+        SSL_CTX_set_tlsext_ticket_key_evp_cb(ctx, &OpenSSLTLSIOCtx::ticketKeyCb);
 #else
-      SSL_CTX_set_tlsext_ticket_key_cb(d_feContext->d_tlsCtx.get(), &OpenSSLTLSIOCtx::ticketKeyCb);
+        SSL_CTX_set_tlsext_ticket_key_cb(ctx, &OpenSSLTLSIOCtx::ticketKeyCb);
 #endif
-      libssl_set_ticket_key_callback_data(d_feContext->d_tlsCtx.get(), d_feContext.get());
-    }
+        libssl_set_ticket_key_callback_data(ctx, d_feContext.get());
+      }
 
 #ifndef DISABLE_OCSP_STAPLING
-    if (!d_feContext->d_ocspResponses.empty()) {
-      SSL_CTX_set_tlsext_status_cb(d_feContext->d_tlsCtx.get(), &OpenSSLTLSIOCtx::ocspStaplingCb);
-      SSL_CTX_set_tlsext_status_arg(d_feContext->d_tlsCtx.get(), &d_feContext->d_ocspResponses);
-    }
+      if (!d_feContext->d_ocspResponses.empty()) {
+        SSL_CTX_set_tlsext_status_cb(ctx, &OpenSSLTLSIOCtx::ocspStaplingCb);
+        SSL_CTX_set_tlsext_status_arg(ctx, &d_feContext->d_ocspResponses);
+      }
 #endif /* DISABLE_OCSP_STAPLING */
 
-    if (frontend.d_tlsConfig.d_readAhead) {
-      SSL_CTX_set_read_ahead(d_feContext->d_tlsCtx.get(), 1);
-    }
+      if (frontend.d_tlsConfig.d_readAhead) {
+        SSL_CTX_set_read_ahead(ctx, 1);
+      }
 
-    libssl_set_error_counters_callback(d_feContext->d_tlsCtx, &frontend.d_tlsCounters);
+      libssl_set_error_counters_callback(*ctx, &frontend.d_tlsCounters);
 
-    libssl_set_alpn_select_callback(d_feContext->d_tlsCtx.get(), alpnServerSelectCallback, this);
+      libssl_set_alpn_select_callback(ctx, alpnServerSelectCallback, this);
 
-    if (!frontend.d_tlsConfig.d_keyLogFile.empty()) {
-      d_feContext->d_keyLogFile = libssl_set_key_log_file(d_feContext->d_tlsCtx.get(), frontend.d_tlsConfig.d_keyLogFile);
+      if (!frontend.d_tlsConfig.d_keyLogFile.empty()) {
+        d_feContext->d_keyLogFile = libssl_set_key_log_file(ctx, frontend.d_tlsConfig.d_keyLogFile);
+      }
     }
 
     try {
