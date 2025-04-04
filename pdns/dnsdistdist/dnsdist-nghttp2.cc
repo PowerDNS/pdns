@@ -189,7 +189,8 @@ void DoHConnectionToBackend::handleIOError()
   for (auto& request : d_currentStreams) {
     if (!d_healthCheckQuery && handleTimeoutResponseRules(timeoutRespRules, request.second.d_query.d_idstate, d_ds, request.second.d_sender)) {
       d_ds->reportTimeoutOrError();
-    } else {
+    }
+    else {
       handleResponseError(std::move(request.second), now);
     }
   }

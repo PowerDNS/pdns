@@ -66,6 +66,7 @@
 #include "dnsdist-snmp.hh"
 #include "dnsdist-tcp.hh"
 #include "dnsdist-tcp-downstream.hh"
+#include "dnsdist-tcp-upstream.hh"
 #include "dnsdist-web.hh"
 #include "dnsdist-xsk.hh"
 
@@ -1572,11 +1573,14 @@ bool handleTimeoutResponseRules(const std::vector<dnsdist::rules::ResponseRuleAc
 
   vinfolog("Handling timeout response rules for incoming protocol = %s", protocol.toString());
   if (protocol == dnsdist::Protocol::DoH) {
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
     dnsResponse.d_incomingTCPState = std::dynamic_pointer_cast<IncomingHTTP2Connection>(sender);
+#endif
     if (!dnsResponse.d_incomingTCPState || !sender || !sender->active()) {
       return false;
     }
-  } else if (protocol == dnsdist::Protocol::DoTCP || protocol == dnsdist::Protocol::DNSCryptTCP || protocol == dnsdist::Protocol::DoT) {
+  }
+  else if (protocol == dnsdist::Protocol::DoTCP || protocol == dnsdist::Protocol::DNSCryptTCP || protocol == dnsdist::Protocol::DoT) {
     dnsResponse.d_incomingTCPState = std::dynamic_pointer_cast<IncomingTCPConnectionState>(sender);
     if (!dnsResponse.d_incomingTCPState || !sender || !sender->active()) {
       return false;

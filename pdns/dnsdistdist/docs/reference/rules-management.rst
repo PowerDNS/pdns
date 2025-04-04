@@ -514,7 +514,7 @@ Functions for manipulating Self-Answered Response Rules:
 Timeout
 -------
 
-For Rules related to timeed out queries:
+For Rules related to timed out queries:
 
 .. function:: addTimeoutResponseAction(DNSRule, action [, options])
 
@@ -522,7 +522,7 @@ For Rules related to timeed out queries:
 
   Add a Rule and Action for timeout responses to the existing rules.
 
-  :param DNSrule rule: A :class:`DNSRule`, e.g. an :func:`AllRule`, or a compounded bunch of rules using e.g. :func:`AndRule`. Before 1.9.0 it was also possible to pass a string (or list of strings) but doing so is now deprecated.
+  :param DNSrule rule: A :class:`DNSRule`, e.g. an :func:`AllRule`, or a compounded bunch of rules using e.g. :func:`AndRule`.
   :param action: The action to take
   :param table options: A table with key: value pairs with options.
 
