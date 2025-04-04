@@ -9,6 +9,7 @@ LMDB backend
 * DNSSEC: Yes
 * Disabled data: Yes
 * Comments: No
+* Search: No
 * Multiple instances: No
 * Zone caching: Yes
 * Module name: lmdb

@@ -9,6 +9,7 @@ Pipe Backend
 * DNSSEC: Partial, no delegation, no key storage
 * Disabled data: No
 * Comments: No
+* Search: No
 * Zone caching: No
 * Module name: pipe
 * Launch name: ``pipe``

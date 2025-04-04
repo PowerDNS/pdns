@@ -9,6 +9,7 @@ Generic MySQL/MariaDB  backend
 * DNSSEC: Yes (set ``gmysql-dnssec``)
 * Disabled data: Yes
 * Comments: Yes
+* Search: Yes
 * Zone caching: Yes
 * Module name: gmysql
 * Launch name: ``gmysql``
