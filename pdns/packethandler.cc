@@ -1360,100 +1360,104 @@ bool PacketHandler::tryWildcard(DNSPacket& p, std::unique_ptr<DNSPacket>& r, DNS
 }
 
 //! Called by the Distributor to ask a question. Returns 0 in case of an error
-// NOLINTNEXTLINE(readability-function-cognitive-complexity): TODO Clean this function up.
-std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
+std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& pkt)
 {
   bool noCache=false;
 
-  if(p.d.qr) { // QR bit from dns packet (thanks RA from N)
-    if(d_logDNSDetails)
-      g_log<<Logger::Error<<"Received an answer (non-query) packet from "<<p.getRemoteString()<<", dropping"<<endl;
+  if(pkt.d.qr) { // QR bit from dns packet (thanks RA from N)
+    if(d_logDNSDetails) {
+      g_log<<Logger::Error<<"Received an answer (non-query) packet from "<<pkt.getRemoteString()<<", dropping"<<endl;
+    }
     S.inc("corrupt-packets");
-    S.ringAccount("remotes-corrupt", p.getInnerRemote());
+    S.ringAccount("remotes-corrupt", pkt.getInnerRemote());
     return nullptr;
   }
 
-  if(p.d.tc) { // truncated query. MOADNSParser would silently parse this packet in an incomplete way.
-    if(d_logDNSDetails)
-      g_log<<Logger::Error<<"Received truncated query packet from "<<p.getRemoteString()<<", dropping"<<endl;
+  if(pkt.d.tc) { // truncated query. MOADNSParser would silently parse this packet in an incomplete way.
+    if(d_logDNSDetails) {
+      g_log<<Logger::Error<<"Received truncated query packet from "<<pkt.getRemoteString()<<", dropping"<<endl;
+    }
     S.inc("corrupt-packets");
-    S.ringAccount("remotes-corrupt", p.getInnerRemote());
+    S.ringAccount("remotes-corrupt", pkt.getInnerRemote());
     return nullptr;
   }
 
-  if (p.hasEDNS()) {
-    if(p.getEDNSVersion() > 0) {
-      auto r = p.replyPacket();
+  if (pkt.hasEDNS()) {
+    if(pkt.getEDNSVersion() > 0) {
+      auto resp = pkt.replyPacket();
       // PacketWriter::addOpt will take care of setting this correctly in the packet
-      r->setEDNSRcode(ERCode::BADVERS);
-      return r;
+      resp->setEDNSRcode(ERCode::BADVERS);
+      return resp;
     }
-    if (p.hasEDNSCookie()) {
-      if (!p.hasWellFormedEDNSCookie()) {
-        auto r = p.replyPacket();
-        r->setRcode(RCode::FormErr);
-        return r;
+    if (pkt.hasEDNSCookie()) {
+      if (!pkt.hasWellFormedEDNSCookie()) {
+        auto resp = pkt.replyPacket();
+        resp->setRcode(RCode::FormErr);
+        return resp;
       }
-      if (!p.hasValidEDNSCookie() && !p.d_tcp) {
-        auto r = p.replyPacket();
-        r->setEDNSRcode(ERCode::BADCOOKIE);
-        return r;
+      if (!pkt.hasValidEDNSCookie() && !pkt.d_tcp) {
+        auto resp = pkt.replyPacket();
+        resp->setEDNSRcode(ERCode::BADCOOKIE);
+        return resp;
       }
     }
   }
 
-  if(p.d_havetsig) {
+  if(pkt.d_havetsig) {
     DNSName tsigkeyname;
     string secret;
     TSIGRecordContent trc;
-    if (!checkForCorrectTSIG(p, &tsigkeyname, &secret, &trc)) {
-      auto r=p.replyPacket();  // generate an empty reply packet
-      if(d_logDNSDetails)
+    if (!checkForCorrectTSIG(pkt, &tsigkeyname, &secret, &trc)) {
+      auto resp=pkt.replyPacket();  // generate an empty reply packet
+      if(d_logDNSDetails) {
         g_log<<Logger::Error<<"Received a TSIG signed message with a non-validating key"<<endl;
-      // RFC3007 describes that a non-secure message should be sending Refused for DNS Updates
-      if (p.d.opcode == Opcode::Update)
-        r->setRcode(RCode::Refused);
-      else
-        r->setRcode(RCode::NotAuth);
-      return r;
-    } else {
-      getTSIGHashEnum(trc.d_algoName, p.d_tsig_algo);
-#ifdef ENABLE_GSS_TSIG
-      if (g_doGssTSIG && p.d_tsig_algo == TSIG_GSS) {
-        GssContext gssctx(tsigkeyname);
-        if (!gssctx.getPeerPrincipal(p.d_peer_principal)) {
-          g_log<<Logger::Warning<<"Failed to extract peer principal from GSS context with keyname '"<<tsigkeyname<<"'"<<endl;
-        }
       }
-#endif
+      // RFC3007 describes that a non-secure message should be sending Refused for DNS Updates
+      if (pkt.d.opcode == Opcode::Update) {
+        resp->setRcode(RCode::Refused);
+      }
+      else {
+        resp->setRcode(RCode::NotAuth);
+      }
+      return resp;
     }
-    p.setTSIGDetails(trc, tsigkeyname, secret, trc.d_mac); // this will get copied by replyPacket()
+    getTSIGHashEnum(trc.d_algoName, pkt.d_tsig_algo);
+#ifdef ENABLE_GSS_TSIG
+    if (g_doGssTSIG && pkt.d_tsig_algo == TSIG_GSS) {
+      GssContext gssctx(tsigkeyname);
+      if (!gssctx.getPeerPrincipal(pkt.d_peer_principal)) {
+        g_log<<Logger::Warning<<"Failed to extract peer principal from GSS context with keyname '"<<tsigkeyname<<"'"<<endl;
+      }
+    }
+#endif
+    pkt.setTSIGDetails(trc, tsigkeyname, secret, trc.d_mac); // this will get copied by replyPacket()
     noCache=true;
   }
 
-  if (p.qtype == QType::TKEY) {
-    auto r=p.replyPacket();  // generate an empty reply packet, possibly with TSIG details inside
-    this->tkeyHandler(p, r);
-    return r;
+  if (pkt.qtype == QType::TKEY) {
+    auto resp=pkt.replyPacket();  // generate an empty reply packet, possibly with TSIG details inside
+    this->tkeyHandler(pkt, resp);
+    return resp;
   }
 
   try {
 
     // XXX FIXME do this in DNSPacket::parse ?
 
-    if(!validDNSName(p.qdomain)) {
-      if(d_logDNSDetails)
-        g_log<<Logger::Error<<"Received a malformed qdomain from "<<p.getRemoteString()<<", '"<<p.qdomain<<"': sending servfail"<<endl;
+    if(!validDNSName(pkt.qdomain)) {
+      if(d_logDNSDetails) {
+        g_log<<Logger::Error<<"Received a malformed qdomain from "<<pkt.getRemoteString()<<", '"<<pkt.qdomain<<"': sending servfail"<<endl;
+      }
       S.inc("corrupt-packets");
-      S.ringAccount("remotes-corrupt", p.getInnerRemote());
+      S.ringAccount("remotes-corrupt", pkt.getInnerRemote());
       S.inc("servfail-packets");
-      auto r=p.replyPacket();  // generate an empty reply packet
-      r->setRcode(RCode::ServFail);
-      return r;
+      auto resp=pkt.replyPacket();  // generate an empty reply packet
+      resp->setRcode(RCode::ServFail);
+      return resp;
     }
 
     using opcodeHandler = std::unique_ptr<DNSPacket> (PacketHandler::*)(DNSPacket&, bool);
-    const static opcodeHandler opcodeHandlers[16] = {
+    const static std::array<opcodeHandler, 16> opcodeHandlers = {
       &PacketHandler::opcodeQuery,
       &PacketHandler::opcodeNotImplemented,
       &PacketHandler::opcodeNotImplemented,
@@ -1473,88 +1477,87 @@ std::unique_ptr<DNSPacket> PacketHandler::doQuestion(DNSPacket& p)
       &PacketHandler::opcodeNotImplemented
     };
 
-    return (this->*(opcodeHandlers[p.d.opcode]))(p, noCache);
+    return (this->*(opcodeHandlers.at(pkt.d.opcode)))(pkt, noCache);
   }
   catch(const DBException &e) {
     g_log<<Logger::Error<<"Backend reported condition which prevented lookup ("+e.reason+") sending out servfail"<<endl;
-    auto r=p.replyPacket(); // generate an empty reply packet
-    r->setRcode(RCode::ServFail);
+    auto resp=pkt.replyPacket(); // generate an empty reply packet
+    resp->setRcode(RCode::ServFail);
     S.inc("servfail-packets");
-    S.ringAccount("servfail-queries", p.qdomain, p.qtype);
-    return r;
+    S.ringAccount("servfail-queries", pkt.qdomain, pkt.qtype);
+    return resp;
   }
   catch(const PDNSException &e) {
     g_log<<Logger::Error<<"Backend reported permanent error which prevented lookup ("+e.reason+"), aborting"<<endl;
     throw; // we WANT to die at this point
   }
   catch(const std::exception &e) {
-    g_log<<Logger::Error<<"Exception building answer packet for "<<p.qdomain<<"/"<<p.qtype.toString()<<" ("<<e.what()<<") sending out servfail"<<endl;
-    auto r=p.replyPacket(); // generate an empty reply packet
-    r->setRcode(RCode::ServFail);
+    g_log<<Logger::Error<<"Exception building answer packet for "<<pkt.qdomain<<"/"<<pkt.qtype.toString()<<" ("<<e.what()<<") sending out servfail"<<endl;
+    auto resp=pkt.replyPacket(); // generate an empty reply packet
+    resp->setRcode(RCode::ServFail);
     S.inc("servfail-packets");
-    S.ringAccount("servfail-queries", p.qdomain, p.qtype);
-    return r;
+    S.ringAccount("servfail-queries", pkt.qdomain, pkt.qtype);
+    return resp;
   }
 }
 
-bool PacketHandler::opcodeQueryInner(DNSPacket& p, queryState &state)
+bool PacketHandler::opcodeQueryInner(DNSPacket& pkt, queryState &state)
 {
-  state.r=p.replyPacket();  // generate an empty reply packet, possibly with TSIG details inside
+  state.r=pkt.replyPacket();  // generate an empty reply packet, possibly with TSIG details inside
 
-  // g_log<<Logger::Warning<<"Query for '"<<p.qdomain<<"' "<<p.qtype.toString()<<" from "<<p.getRemoteString()<< " (tcp="<<p.d_tcp<<")"<<endl;
+  // g_log<<Logger::Warning<<"Query for '"<<pkt.qdomain<<"' "<<pkt.qtype.toString()<<" from "<<pkt.getRemoteString()<< " (tcp="<<pkt.d_tcp<<")"<<endl;
 
-  if(p.qtype.getCode()==QType::IXFR) {
+  if(pkt.qtype.getCode()==QType::IXFR) {
     state.r->setRcode(RCode::Refused);
     return false;
   }
 
-  state.target=p.qdomain;
+  state.target=pkt.qdomain;
 
   // catch chaos qclass requests
-  if(p.qclass == QClass::CHAOS) {
-    if (doChaosRequest(p,state.r,state.target) == 0) {
-      return false;
-    }
-    return true;
+  if(pkt.qclass == QClass::CHAOS) {
+    return doChaosRequest(pkt,state.r,state.target) != 0;
   }
 
   // we only know about qclass IN (and ANY), send Refused for everything else.
-  if(p.qclass != QClass::IN && p.qclass!=QClass::ANY) {
+  if(pkt.qclass != QClass::IN && pkt.qclass!=QClass::ANY) {
     state.r->setRcode(RCode::Refused);
     return false;
   }
 
   // send TC for udp ANY query if any-to-tcp is enabled.
-  if(p.qtype.getCode() == QType::ANY && !p.d_tcp && g_anyToTcp) {
+  if(pkt.qtype.getCode() == QType::ANY && !pkt.d_tcp && g_anyToTcp) {
     state.r->d.tc = 1;
     state.r->commitD();
     return false;
   }
 
   // for qclass ANY the response should never be authoritative unless the response covers all classes.
-  if(p.qclass==QClass::ANY)
+  if(pkt.qclass==QClass::ANY) {
     state.r->setA(false);
+  }
 
-  bool result;
+  bool result{false};
   do {
     state.retargeted = false;
-    result = opcodeQueryInner2(p, state);
+    result = opcodeQueryInner2(pkt, state);
     state.retargetcount++;
   } while (state.retargeted);
 
   return result;
 }
 
-bool PacketHandler::opcodeQueryInner2(DNSPacket& p, queryState &state)
+// NOLINTNEXTLINE(readability-function-cognitive-complexity): TODO continue splitting this into smaller pieces
+bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state)
 {
-  DNSZoneRecord rr;
+  DNSZoneRecord zrr;
 #ifdef HAVE_LUA_RECORDS
   bool doLua=g_doLuaRecord;
 #endif
 
   if(state.retargetcount > 10) {    // XXX FIXME, retargetcount++?
-    g_log<<Logger::Warning<<"Abort CNAME chain resolution after "<<--state.retargetcount<<" redirects, sending out servfail. Initial query: '"<<p.qdomain<<"'"<<endl;
-    state.r=p.replyPacket();
+    g_log<<Logger::Warning<<"Abort CNAME chain resolution after "<<--state.retargetcount<<" redirects, sending out servfail. Initial query: '"<<pkt.qdomain<<"'"<<endl;
+    state.r=pkt.replyPacket();
     state.r->setRcode(RCode::ServFail);
     return false;
   }
@@ -1565,9 +1568,9 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& p, queryState &state)
     return true;
   }
 
-  if(!B.getAuth(state.target, p.qtype, &d_sd)) {
+  if(!B.getAuth(state.target, pkt.qtype, &d_sd)) {
     DLOG(g_log<<Logger::Error<<"We have no authority over zone '"<<state.target<<"'"<<endl);
-    if(!state.retargetcount) {
+    if (state.retargetcount == 0) {
       state.r->setA(false); // drop AA if we never had a SOA in the first place
       state.r->setRcode(RCode::Refused); // send REFUSED - but only on empty 'no idea'
     }
@@ -1583,57 +1586,59 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& p, queryState &state)
   }
 
   state.authSet.insert(d_sd.qname);
-  d_dnssec=(p.d_dnssecOk && d_dk.isSecuredZone(d_sd.qname));
+  d_dnssec=(pkt.d_dnssecOk && d_dk.isSecuredZone(d_sd.qname));
   state.doSigs |= d_dnssec;
 
-  if(d_sd.qname==p.qdomain) {
+  if(d_sd.qname==pkt.qdomain) {
     if(!d_dk.isPresigned(d_sd.qname)) {
-      if(p.qtype.getCode() == QType::DNSKEY)
-      {
-        if(addDNSKEY(p, state.r))
+      if(pkt.qtype.getCode() == QType::DNSKEY) {
+        if(addDNSKEY(pkt, state.r)) {
           return true;
+        }
       }
-      else if(p.qtype.getCode() == QType::CDNSKEY)
-      {
-        if(addCDNSKEY(p,state.r))
+      else if(pkt.qtype.getCode() == QType::CDNSKEY) {
+        if(addCDNSKEY(pkt,state.r)) {
           return true;
+        }
       }
-      else if(p.qtype.getCode() == QType::CDS)
-      {
-        if(addCDS(p,state.r))
+      else if(pkt.qtype.getCode() == QType::CDS) {
+        if(addCDS(pkt,state.r)) {
           return true;
+        }
       }
     }
-    if(p.qtype.getCode() == QType::NSEC3PARAM)
-    {
-      if(addNSEC3PARAM(p,state.r))
+    if(pkt.qtype.getCode() == QType::NSEC3PARAM) {
+      if(addNSEC3PARAM(pkt,state.r)) {
         return true;
+      }
     }
   }
 
-  if(p.qtype.getCode() == QType::SOA && d_sd.qname==p.qdomain) {
-    rr=makeEditedDNSZRFromSOAData(d_dk, d_sd);
-    state.r->addRecord(std::move(rr));
+  if(pkt.qtype.getCode() == QType::SOA && d_sd.qname==pkt.qdomain) {
+    zrr=makeEditedDNSZRFromSOAData(d_dk, d_sd);
+    state.r->addRecord(std::move(zrr));
     return true;
   }
 
   // this TRUMPS a cname!
-  if(d_dnssec && p.qtype.getCode() == QType::NSEC && !d_dk.getNSEC3PARAM(d_sd.qname, nullptr)) {
-    addNSEC(p, state.r, state.target, DNSName(), 5);
-    if (!state.r->isEmpty())
+  if(d_dnssec && pkt.qtype.getCode() == QType::NSEC && !d_dk.getNSEC3PARAM(d_sd.qname, nullptr)) {
+    addNSEC(pkt, state.r, state.target, DNSName(), 5);
+    if (!state.r->isEmpty()) {
       return true;
+    }
   }
 
   // this TRUMPS a cname!
-  if(p.qtype.getCode() == QType::RRSIG) {
-    g_log<<Logger::Info<<"Direct RRSIG query for "<<state.target<<" from "<<p.getRemoteString()<<endl;
+  if(pkt.qtype.getCode() == QType::RRSIG) {
+    g_log<<Logger::Info<<"Direct RRSIG query for "<<state.target<<" from "<<pkt.getRemoteString()<<endl;
     state.r->setRcode(RCode::Refused);
     return true;
   }
 
   DLOG(g_log<<"Checking for referrals first, unless this is a DS query"<<endl);
-  if(p.qtype.getCode() != QType::DS && tryReferral(p, state.r, state.target, state.retargetcount))
+  if(pkt.qtype.getCode() != QType::DS && tryReferral(pkt, state.r, state.target, state.retargetcount != 0)) {
     return true;
+  }
 
   DLOG(g_log<<"Got no referrals, trying ANY"<<endl);
 
@@ -1646,94 +1651,105 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& p, queryState &state)
 #endif
 
   // see what we get..
-  B.lookup(QType(QType::ANY), state.target, d_sd.domain_id, &p);
+  B.lookup(QType(QType::ANY), state.target, d_sd.domain_id, &pkt);
   vector<DNSZoneRecord> rrset;
   DNSName haveAlias;
   uint8_t aliasScopeMask = 0;
-  bool weDone=false, weRedirected=false, weHaveUnauth=false;
+  bool weDone{false};
+  bool weRedirected{false};
+  bool weHaveUnauth{false};
 
-  while(B.get(rr)) {
+  while(B.get(zrr)) {
 #ifdef HAVE_LUA_RECORDS
-    if (rr.dr.d_type == QType::LUA && !d_dk.isPresigned(d_sd.qname)) {
-      if(!doLua)
+    if (zrr.dr.d_type == QType::LUA && !d_dk.isPresigned(d_sd.qname)) {
+      if(!doLua) {
         continue;
-      auto rec=getRR<LUARecordContent>(rr.dr);
+      }
+      auto rec=getRR<LUARecordContent>(zrr.dr);
       if (!rec) {
         continue;
       }
-      if(rec->d_type == QType::CNAME || rec->d_type == p.qtype.getCode() || (p.qtype.getCode() == QType::ANY && rec->d_type != QType::RRSIG)) {
+      if(rec->d_type == QType::CNAME || rec->d_type == pkt.qtype.getCode() || (pkt.qtype.getCode() == QType::ANY && rec->d_type != QType::RRSIG)) {
         state.noCache=true;
         try {
-          auto recvec=luaSynth(rec->getCode(), state.target, rr, d_sd.qname, p, rec->d_type, s_LUA);
+          auto recvec=luaSynth(rec->getCode(), state.target, zrr, d_sd.qname, pkt, rec->d_type, s_LUA);
           if(!recvec.empty()) {
             for (const auto& r_it : recvec) {
-              rr.dr.d_type = rec->d_type; // might be CNAME
-              rr.dr.setContent(r_it);
-              rr.scopeMask = p.getRealRemote().getBits(); // this makes sure answer is a specific as your question
-              rrset.push_back(rr);
+              zrr.dr.d_type = rec->d_type; // might be CNAME
+              zrr.dr.setContent(r_it);
+              zrr.scopeMask = pkt.getRealRemote().getBits(); // this makes sure answer is a specific as your question
+              rrset.push_back(zrr);
             }
-            if(rec->d_type == QType::CNAME && p.qtype.getCode() != QType::CNAME)
+            if(rec->d_type == QType::CNAME && pkt.qtype.getCode() != QType::CNAME) {
               weRedirected = true;
-            else
+            }
+            else {
               weDone = true;
+            }
           }
         }
         catch(std::exception &e) {
           B.lookupEnd();              // don't leave DB handle in bad state
 
-          state.r=p.replyPacket();
+          state.r=pkt.replyPacket();
           state.r->setRcode(RCode::ServFail);
           return false;
         }
       }
     }
 #endif
-    //cerr<<"got content: ["<<rr.content<<"]"<<endl;
-    if (!d_dnssec && p.qtype.getCode() == QType::ANY && (rr.dr.d_type == QType:: DNSKEY || rr.dr.d_type == QType::NSEC3PARAM))
+    //cerr<<"got content: ["<<zrr.content<<"]"<<endl;
+    if (!d_dnssec && pkt.qtype.getCode() == QType::ANY && (zrr.dr.d_type == QType:: DNSKEY || zrr.dr.d_type == QType::NSEC3PARAM)) {
       continue; // Don't send dnssec info.
-    if (rr.dr.d_type == QType::RRSIG) // RRSIGS are added later any way.
+    }
+    if (zrr.dr.d_type == QType::RRSIG) { // RRSIGS are added later any way.
       continue; // TODO: this actually means addRRSig should check if the RRSig is already there
+    }
 
-    // cerr<<"Auth: "<<rr.auth<<", "<<(rr.dr.d_type == p.qtype)<<", "<<rr.dr.d_type.toString()<<endl;
-    if((p.qtype.getCode() == QType::ANY || rr.dr.d_type == p.qtype.getCode()) && rr.auth)
+    // cerr<<"Auth: "<<zrr.auth<<", "<<(zrr.dr.d_type == pkt.qtype)<<", "<<zrr.dr.d_type.toString()<<endl;
+    if((pkt.qtype.getCode() == QType::ANY || zrr.dr.d_type == pkt.qtype.getCode()) && zrr.auth) {
       weDone=true;
+    }
     // the line below fakes 'unauth NS' for delegations for non-DNSSEC backends.
-    if((rr.dr.d_type == p.qtype.getCode() && !rr.auth) || (rr.dr.d_type == QType::NS && (!rr.auth || !(d_sd.qname==rr.dr.d_name))))
+    if((zrr.dr.d_type == pkt.qtype.getCode() && !zrr.auth) || (zrr.dr.d_type == QType::NS && (!zrr.auth || !(d_sd.qname==zrr.dr.d_name)))) {
       weHaveUnauth=true;
+    }
 
-    if(rr.dr.d_type == QType::CNAME && p.qtype.getCode() != QType::CNAME)
+    if(zrr.dr.d_type == QType::CNAME && pkt.qtype.getCode() != QType::CNAME) {
       weRedirected=true;
+    }
 
-    if (DP && rr.dr.d_type == QType::ALIAS && (p.qtype.getCode() == QType::A || p.qtype.getCode() == QType::AAAA || p.qtype.getCode() == QType::ANY) && !d_dk.isPresigned(d_sd.qname)) {
+    if (DP && zrr.dr.d_type == QType::ALIAS && (pkt.qtype.getCode() == QType::A || pkt.qtype.getCode() == QType::AAAA || pkt.qtype.getCode() == QType::ANY) && !d_dk.isPresigned(d_sd.qname)) {
       if (!d_doExpandALIAS) {
         g_log<<Logger::Info<<"ALIAS record found for "<<state.target<<", but ALIAS expansion is disabled."<<endl;
         continue;
       }
-      haveAlias=getRR<ALIASRecordContent>(rr.dr)->getContent();
-      aliasScopeMask=rr.scopeMask;
+      haveAlias=getRR<ALIASRecordContent>(zrr.dr)->getContent();
+      aliasScopeMask=zrr.scopeMask;
     }
 
     // Filter out all SOA's and add them in later
-    if(rr.dr.d_type == QType::SOA)
+    if(zrr.dr.d_type == QType::SOA) {
       continue;
+    }
 
-    rrset.push_back(rr);
+    rrset.push_back(zrr);
   }
 
   /* Add in SOA if required */
   if(state.target==d_sd.qname) {
-      rr=makeEditedDNSZRFromSOAData(d_dk, d_sd);
-      rrset.push_back(rr);
+      zrr=makeEditedDNSZRFromSOAData(d_dk, d_sd);
+      rrset.push_back(zrr);
   }
 
   DLOG(g_log<<"After first ANY query for '"<<state.target<<"', id="<<d_sd.domain_id<<": weDone="<<weDone<<", weHaveUnauth="<<weHaveUnauth<<", weRedirected="<<weRedirected<<", haveAlias='"<<haveAlias<<"'"<<endl);
-  if(p.qtype.getCode() == QType::DS && weHaveUnauth &&  !weDone && !weRedirected) {
+  if(pkt.qtype.getCode() == QType::DS && weHaveUnauth &&  !weDone && !weRedirected) {
     DLOG(g_log<<"Q for DS of a name for which we do have NS, but for which we don't have DS; need to provide an AUTH answer that shows we don't"<<endl);
-    makeNOError(p, state.r, state.target, DNSName(), 1);
+    makeNOError(pkt, state.r, state.target, DNSName(), 1);
     return true;
   }
 
-  if(!haveAlias.empty() && (!weDone || p.qtype.getCode() == QType::ANY)) {
+  if(!haveAlias.empty() && (!weDone || pkt.qtype.getCode() == QType::ANY)) {
     DLOG(g_log<<Logger::Warning<<"Found nothing that matched for '"<<state.target<<"', but did get alias to '"<<haveAlias<<"', referring"<<endl);
     DP->completePacket(state.r, haveAlias, state.target, aliasScopeMask);
     state.r = nullptr;
@@ -1741,7 +1757,7 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& p, queryState &state)
   }
 
   // referral for DS query
-  if(p.qtype.getCode() == QType::DS) {
+  if(pkt.qtype.getCode() == QType::DS) {
     DLOG(g_log<<"Qtype is DS"<<endl);
     bool doReferral = true;
     if(d_dk.doesDNSSEC()) {
@@ -1766,8 +1782,7 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& p, queryState &state)
     }
     if(doReferral) {
       DLOG(g_log<<"DS query found no direct result, trying referral now"<<endl);
-      if(tryReferral(p, state.r, state.target, state.retargetcount))
-      {
+      if(tryReferral(pkt, state.r, state.target, state.retargetcount != 0)) {
         DLOG(g_log<<"Got referral for DS query"<<endl);
         return true;
       }
@@ -1776,21 +1791,25 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& p, queryState &state)
 
   if(rrset.empty()) {
     DLOG(g_log<<Logger::Warning<<"Found nothing in the by-name ANY, but let's try wildcards.."<<endl);
-    bool wereRetargeted(false), nodata(false);
+    bool wereRetargeted{false};
+    bool nodata{false};
     DNSName wildcard;
-    if(tryWildcard(p, state.r, state.target, wildcard, wereRetargeted, nodata)) {
+    if(tryWildcard(pkt, state.r, state.target, wildcard, wereRetargeted, nodata)) {
       if(wereRetargeted) {
-        if(!state.retargetcount) state.r->qdomainwild=wildcard;
+        if (state.retargetcount == 0) {
+          state.r->qdomainwild=wildcard;
+        }
         state.retargeted = true;
         return true;
       }
-      if(nodata)
-        makeNOError(p, state.r, state.target, wildcard, 2);
+      if(nodata) {
+        makeNOError(pkt, state.r, state.target, wildcard, 2);
+      }
 
       return true;
     }
     try {
-      if (tryDNAME(p, state.r, state.target)) {
+      if (tryDNAME(pkt, state.r, state.target)) {
         state.retargeted = true;
         return true;
       }
@@ -1800,8 +1819,9 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& p, queryState &state)
       return true;
     }
 
-    if (!(((p.qtype.getCode() == QType::CNAME) || (p.qtype.getCode() == QType::ANY)) && state.retargetcount > 0))
-      makeNXDomain(p, state.r, state.target, wildcard);
+    if (!(((pkt.qtype.getCode() == QType::CNAME) || (pkt.qtype.getCode() == QType::ANY)) && state.retargetcount > 0)) {
+      makeNXDomain(pkt, state.r, state.target, wildcard);
+    }
 
     return true;
   }
@@ -1831,100 +1851,105 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& p, queryState &state)
         continue;
       }
 #endif
-      if ((p.qtype.getCode() == QType::ANY || loopRR.dr.d_type == p.qtype.getCode()) && loopRR.auth) {
+      if ((pkt.qtype.getCode() == QType::ANY || loopRR.dr.d_type == pkt.qtype.getCode()) && loopRR.auth) {
         state.r->addRecord(DNSZoneRecord(loopRR));
         haveRecords = true;
       }
     }
 
     if (haveRecords) {
-      if(d_dnssec && p.qtype.getCode() == QType::ANY)
-        completeANYRecords(p, state.r, state.target);
+      if(d_dnssec && pkt.qtype.getCode() == QType::ANY) {
+        completeANYRecords(pkt, state.r, state.target);
+      }
     }
-    else
-      makeNOError(p, state.r, state.target, DNSName(), 0);
+    else {
+      makeNOError(pkt, state.r, state.target, DNSName(), 0);
+    }
 
     return true;
   }
   else if(weHaveUnauth) {
     DLOG(g_log<<"Have unauth data, so need to hunt for best NS records"<<endl);
-    if(tryReferral(p, state.r, state.target, state.retargetcount))
+    if (tryReferral(pkt, state.r, state.target, state.retargetcount != 0)) {
       return true;
+    }
     // check whether this could be fixed easily
-    // if (*(rr.dr.d_name.rbegin()) == '.') {
-    //      g_log<<Logger::Error<<"Should not get here ("<<p.qdomain<<"|"<<p.qtype.toString()<<"): you have a trailing dot, this could be the problem (or run pdnsutil rectify-zone " <<d_sd.qname<<")"<<endl;
+    // if (*(zrr.dr.d_name.rbegin()) == '.') {
+    //      g_log<<Logger::Error<<"Should not get here ("<<pkt.qdomain<<"|"<<pkt.qtype.toString()<<"): you have a trailing dot, this could be the problem (or run pdnsutil rectify-zone " <<d_sd.qname<<")"<<endl;
     // } else {
-         g_log<<Logger::Error<<"Should not get here ("<<p.qdomain<<"|"<<p.qtype.toString()<<"): please run pdnsutil rectify-zone "<<d_sd.qname<<endl;
+         g_log<<Logger::Error<<"Should not get here ("<<pkt.qdomain<<"|"<<pkt.qtype.toString()<<"): please run pdnsutil rectify-zone "<<d_sd.qname<<endl;
     // }
   }
   else {
     DLOG(g_log<<"Have some data, but not the right data"<<endl);
-    makeNOError(p, state.r, state.target, DNSName(), 0);
+    makeNOError(pkt, state.r, state.target, DNSName(), 0);
   }
   return true;
 }
 
-std::unique_ptr<DNSPacket> PacketHandler::opcodeQuery(DNSPacket& p, bool noCache)
+std::unique_ptr<DNSPacket> PacketHandler::opcodeQuery(DNSPacket& pkt, bool noCache)
 {
   queryState state;
   state.noCache = noCache;
 
-  if (opcodeQueryInner(p, state)) {
-    doAdditionalProcessing(p, state.r);
+  if (opcodeQueryInner(pkt, state)) {
+    doAdditionalProcessing(pkt, state.r);
 
     for(const auto& loopRR: state.r->getRRS()) {
-      if(loopRR.scopeMask) {
+      if (loopRR.scopeMask != 0) {
         state.noCache=true;
         break;
       }
     }
-    if(state.doSigs)
-      addRRSigs(d_dk, B, state.authSet, state.r->getRRS(), &p);
+    if (state.doSigs) {
+      addRRSigs(d_dk, B, state.authSet, state.r->getRRS(), &pkt);
+    }
 
-    if(PC.enabled() && !state.noCache && p.couldBeCached())
-      PC.insert(p, *state.r, state.r->getMinTTL()); // in the packet cache
+    if (PC.enabled() && !state.noCache && pkt.couldBeCached()) {
+      PC.insert(pkt, *state.r, state.r->getMinTTL()); // in the packet cache
+    }
   }
 
   return std::move(state.r);
 }
 
-std::unique_ptr<DNSPacket> PacketHandler::opcodeNotify(DNSPacket& p, bool /* noCache */)
+std::unique_ptr<DNSPacket> PacketHandler::opcodeNotify(DNSPacket& pkt, bool /* noCache */)
 {
-  std::unique_ptr<DNSPacket> r{nullptr};
   S.inc("incoming-notifications");
-  int res=processNotify(p);
+  int res=processNotify(pkt);
   if(res>=0) {
-    r=p.replyPacket();  // generate an empty reply packet
-    r->setRcode(res);
-    r->setOpcode(Opcode::Notify);
-    return r;
+    auto resp=pkt.replyPacket();  // generate an empty reply packet
+    resp->setRcode(res);
+    resp->setOpcode(Opcode::Notify);
+    return resp;
   }
   return nullptr;
 }
 
-std::unique_ptr<DNSPacket> PacketHandler::opcodeUpdate(DNSPacket& p, bool /* noCache */)
+std::unique_ptr<DNSPacket> PacketHandler::opcodeUpdate(DNSPacket& pkt, bool /* noCache */)
 {
-  std::unique_ptr<DNSPacket> r{nullptr};
   S.inc("dnsupdate-queries");
-  int res=processUpdate(p);
-  if (res == RCode::Refused)
+  int res=processUpdate(pkt);
+  if (res == RCode::Refused) {
     S.inc("dnsupdate-refused");
-  else if (res != RCode::ServFail)
+  }
+  else if (res != RCode::ServFail) {
     S.inc("dnsupdate-answers");
-  r=p.replyPacket();  // generate an empty reply packet
-  r->setRcode(res);
-  r->setOpcode(Opcode::Update);
-  return r;
+  }
+  auto resp=pkt.replyPacket();  // generate an empty reply packet
+  resp->setRcode(res);
+  resp->setOpcode(Opcode::Update);
+  return resp;
 }
 
-std::unique_ptr<DNSPacket> PacketHandler::opcodeNotImplemented(DNSPacket& p, bool /* noCache */)
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static): can't make it static as it is used through member method pointer in doQuestion()
+std::unique_ptr<DNSPacket> PacketHandler::opcodeNotImplemented(DNSPacket& pkt, bool /* noCache */)
 {
-  std::unique_ptr<DNSPacket> r{nullptr};
-  g_log<<Logger::Error<<"Received an unknown opcode "<<p.d.opcode<<" from "<<p.getRemoteString()<<" for "<<p.qdomain<<endl;
+  g_log<<Logger::Error<<"Received an unknown opcode "<<pkt.d.opcode<<" from "<<pkt.getRemoteString()<<" for "<<pkt.qdomain<<endl;
 
-  r=p.replyPacket();  // generate an empty reply packet
-  r->setRcode(RCode::NotImp);
-  return r;
+  auto resp=pkt.replyPacket();  // generate an empty reply packet
+  resp->setRcode(RCode::NotImp);
+  return resp;
 }
 
 bool PacketHandler::checkForCorrectTSIG(const DNSPacket& packet, DNSName* tsigkeyname, string* secret, TSIGRecordContent* tsigContent)
