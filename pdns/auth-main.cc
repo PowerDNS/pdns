@@ -96,9 +96,9 @@ string g_programname = "pdns"; // used in packethandler.cc
 const char* funnytext = "*****************************************************************************\n"
                         "Ok, you just ran pdns-auth through 'strings' hoping to find funny messages.  \n"
                         "Well, you found one.                                                         \n"
-                        "Two ions are flying through their particle accelerator, says the one to the  \n"
-                        "other 'I think I've lost an electron!'                                       \n"
-                        "So the other one says, 'Are you sure?'. 'YEAH! I'M POSITIVE!'                \n"
+                        "A minister, a priest and a rabbit enter a bar. The bartender asks the rabbit,\n"
+                        "'what will you have?' The rabbit answers, 'oh, I'm only here because of      \n"
+                        "autocorrect!'                                                                \n"
                         "                                                                             \n"
                         "                                            the pdns crew - pdns@powerdns.com\n"
                         "*****************************************************************************\n";
