@@ -170,6 +170,7 @@ public:
   ~LdapBackend() override;
 
   // Native backend
+  unsigned int getCapabilities() override { return CAP_LIST; }
   bool list(const DNSName& target, int domain_id, bool include_disabled = false) override;
   void lookup(const QType& qtype, const DNSName& qdomain, int zoneid, DNSPacket* p = nullptr) override;
   bool get(DNSResourceRecord& rr) override;

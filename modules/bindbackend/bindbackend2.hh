@@ -181,6 +181,7 @@ class Bind2Backend : public DNSBackend
 public:
   Bind2Backend(const string& suffix = "", bool loadZones = true);
   ~Bind2Backend() override;
+  unsigned int getCapabilities() override;
   void getUnfreshSecondaryInfos(vector<DomainInfo>* unfreshDomains) override;
   void getUpdatedPrimaries(vector<DomainInfo>& changedDomains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes) override;
   bool getDomainInfo(const DNSName& domain, DomainInfo& di, bool getSerial = true) override;
@@ -220,7 +221,6 @@ public:
   bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content) override;
   bool deleteTSIGKey(const DNSName& name) override;
   bool getTSIGKeys(std::vector<struct TSIGKey>& keys) override;
-  bool doesDNSSEC() override;
   // end of DNSSEC
 
   typedef multi_index_container<BB2DomainInfo,

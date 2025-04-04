@@ -66,14 +66,14 @@ following methods are relevant:
         class DNSBackend
         {
         public:
-
+        virtual unsigned int getCapabilities()=0;
         virtual void lookup(const QType &qtype, const string &qdomain, int zoneId=-1, DNSPacket *pkt_p=nullptr)=0;
         virtual bool list(const string &target, int domain_id)=0;
         virtual bool get(DNSResourceRecord &r)=0;
         virtual bool getSOA(const string &name, SOAData &soadata);
         };
 
-Note that the first three methods must be implemented. ``getSOA()`` has
+Note that the first four methods must be implemented. ``getSOA()`` has
 a useful default implementation.
 
 The semantics are simple. Each instance of your class only handles one
@@ -162,9 +162,11 @@ furthermore, only about its A record:
     class RandomBackend : public DNSBackend
     {
     public:
+      unsigned int getCapabilities() override { return 0; }
+
       bool list(const string &target, int id)
       {
-        return false; // we don't support AXFR
+        return false; // we don't support pdnsutil list-zone or AXFR
       }
 
       void lookup(const QType &type, const string &qdomain, int zoneId, DNSPacket *p)
@@ -234,7 +236,7 @@ and such.
   as 'overlay', makes the zone incompatible with some operations that
   assume that a single zone is always entirely stored in the same backend.
   Such operations include zone transfers, listing and editing zone content via
-  the API or :doc:`pdnsutil <pdnsutil>`.
+  the API or :doc:`pdnsutil <../manpages/pdnsutil.1>`.
 
 .. warning::
   When the content of a zone is spread across multiple backends, all the types
@@ -344,6 +346,14 @@ Classes
 
 Methods
 ~~~~~~~
+
+.. cpp:function:: unsigned int getCapabilities()
+
+  This function returns a bitmask representing various capabilities of
+  the backend. The currently used capabilities are:
+
+* `CAP_DNSSEC`     Backend implements :ref:`backend-dnssec`.
+* `CAP_LIST`       Backend implements `list`, for AXFR or `pdnsutil list-zone`
 
 .. cpp:function:: void DNSBackend::lookup(const QType &qtype, const string &qdomain, int zoneId=-1, DNSPacket *pkt=nullptr)
 
@@ -855,6 +865,8 @@ In order for a backend to support the storage of TSIG keys, the following operat
       /* ... */
     }
 
+.. _backend-dnssec:
+
 DNSSEC support
 --------------
 
@@ -872,8 +884,9 @@ In order for a backend to support DNSSEC, quite a few number of additional opera
 
     class DNSBackend {
     public:
+      virtual unsigned int getCapabilities();
+
       /* ... */
-      virtual bool doesDNSSEC();
       virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after);
 
       /* update operations */
@@ -894,9 +907,8 @@ In order for a backend to support DNSSEC, quite a few number of additional opera
       /* ... */
     }
 
-.. cpp:function:: virtual bool doesDNSSEC()
-
-  Returns true if that backend supports DNSSEC.
+In addition to these methods, the return value of `getCapabilities` must
+contain `CAP_DNSSEC` if that backend supports DNSSEC.
 
 .. cpp:function:: virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after)
 
