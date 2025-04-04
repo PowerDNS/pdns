@@ -109,6 +109,11 @@ private:
 
   void tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& r); //<! process TKEY record, and adds TKEY record to (r)eply, or error code.
 
+  std::unique_ptr<DNSPacket> opcodeQuery(DNSPacket&, bool);
+  std::unique_ptr<DNSPacket> opcodeNotify(DNSPacket&, bool);
+  std::unique_ptr<DNSPacket> opcodeUpdate(DNSPacket&, bool);
+  std::unique_ptr<DNSPacket> opcodeNotImplemented(DNSPacket&, bool);
+
   static AtomicCounter s_count;
   static std::mutex s_rfc2136lock;
   bool d_logDNSDetails;
