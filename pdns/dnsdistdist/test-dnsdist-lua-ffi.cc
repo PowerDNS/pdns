@@ -440,7 +440,10 @@ BOOST_AUTO_TEST_CASE(test_Server)
 
 BOOST_AUTO_TEST_CASE(test_PacketCache)
 {
-  auto packetCache = std::make_shared<DNSDistPacketCache>(10);
+  DNSDistPacketCache::CacheSettings settings{
+    .d_maxEntries = 10,
+  };
+  auto packetCache = std::make_shared<DNSDistPacketCache>(settings);
 
   ComboAddress ipv4("192.0.2.1");
   InternalQueryState ids;
