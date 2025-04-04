@@ -12,6 +12,8 @@ project(
   ],
 )
 
+add_project_arguments('-DPDNS_AUTH', language: 'cpp')
+
 product_source_dir = meson.current_source_dir()
 product_build_dir = meson.current_build_dir()
 summary('Source Dir', product_source_dir, section: 'Build')

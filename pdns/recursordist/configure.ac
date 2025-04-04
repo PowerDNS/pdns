@@ -27,9 +27,7 @@ AC_LANG([C++])
 
 PDNS_CHECK_TIME_T
 
-AC_DEFINE([RECURSOR], [1],
-  [This is the PowerDNS Recursor]
-)
+CPPFLAGS="-DRECURSOR $CPPFLAGS"
 
 # Warn when pkg.m4 is missing
 m4_pattern_forbid([^_?PKG_[A-Z_]+$], [*** pkg.m4 missing, please install pkg-config])
