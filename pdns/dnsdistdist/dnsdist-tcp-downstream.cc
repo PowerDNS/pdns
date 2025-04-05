@@ -609,13 +609,18 @@ void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, F
     }
   };
 
+  const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
+  const auto& timeoutRespRules = dnsdist::rules::getResponseRuleChain(chains, dnsdist::rules::ResponseRuleChain::TimeoutResponseRules);
+
   try {
     if (d_state == State::sendingQueryToBackend) {
       increaseCounters(d_currentQuery.d_query.d_idstate.cs);
       auto sender = std::move(d_currentQuery.d_sender);
       if (sender->active()) {
-        TCPResponse response(std::move(d_currentQuery.d_query));
-        sender->notifyIOError(now, std::move(response));
+        if (!handleTimeoutResponseRules(timeoutRespRules, d_currentQuery.d_query.d_idstate, d_ds, sender)) {
+          TCPResponse response(std::move(d_currentQuery.d_query));
+          sender->notifyIOError(now, std::move(response));
+        }
       }
     }
 
@@ -623,8 +628,10 @@ void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, F
       increaseCounters(query.d_query.d_idstate.cs);
       auto sender = std::move(query.d_sender);
       if (sender->active()) {
-        TCPResponse response(std::move(query.d_query));
-        sender->notifyIOError(now, std::move(response));
+        if (!handleTimeoutResponseRules(timeoutRespRules, query.d_query.d_idstate, d_ds, sender)) {
+          TCPResponse response(std::move(query.d_query));
+          sender->notifyIOError(now, std::move(response));
+        }
       }
     }
 
@@ -632,8 +639,10 @@ void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, F
       increaseCounters(response.second.d_query.d_idstate.cs);
       auto sender = std::move(response.second.d_sender);
       if (sender->active()) {
-        TCPResponse tresp(std::move(response.second.d_query));
-        sender->notifyIOError(now, std::move(tresp));
+        if (!handleTimeoutResponseRules(timeoutRespRules, response.second.d_query.d_idstate, d_ds, sender)) {
+          TCPResponse tresp(std::move(response.second.d_query));
+          sender->notifyIOError(now, std::move(tresp));
+        }
       }
     }
   }

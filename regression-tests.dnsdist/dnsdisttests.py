@@ -63,6 +63,12 @@ def pickAvailablePort():
     workerPorts[workerID] = port
     return port
 
+class DropAction(object):
+    """
+    An object to indicate a drop action shall be taken
+    """
+    pass
+
 class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     """
     Set up a dnsdist instance and responder threads.
@@ -351,6 +357,8 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
 
             if not wire:
               continue
+            elif isinstance(wire, DropAction):
+              continue
 
             sock.sendto(wire, addr)
 
@@ -391,6 +399,8 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
 
       if not wire:
         conn.close()
+        return
+      elif isinstance(wire, DropAction):
         return
 
       wireLen = struct.pack("!H", len(wire))
@@ -555,6 +565,8 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
                         if not wire:
                             conn.close()
                             conn = None
+                            break
+                        elif isinstance(wire, DropAction):
                             break
 
                         headers = [

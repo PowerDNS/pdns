@@ -56,6 +56,7 @@ GlobalConfiguration
 - **webserver**: :ref:`WebserverConfiguration <yaml-settings-WebserverConfiguration>` - Internal web server configuration
 - **xfr_response_rules**: Sequence of :ref:`ResponseRuleConfiguration <yaml-settings-ResponseRuleConfiguration>` - List of rules executed when a XFR response is received
 - **xsk**: Sequence of :ref:`XskConfiguration <yaml-settings-XskConfiguration>` - List of AF_XDP / XSK objects
+- **timeout_response_rules**: Sequence of :ref:`ResponseRuleConfiguration <yaml-settings-ResponseRuleConfiguration>` - List of rules executed when a timeout event occurred
 
 
 

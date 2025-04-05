@@ -142,6 +142,11 @@ global:
       type: "Vec<XskConfiguration>"
       default: true
       description: "List of AF_XDP / XSK objects"
+    - name: "timeout_response_rules"
+      type: "Vec<ResponseRuleConfiguration>"
+      default: true
+      skip-serde: true
+      description: "List of rules executed when a timeout event occurred"
 
 metrics:
   description: "Metrics-related settings"

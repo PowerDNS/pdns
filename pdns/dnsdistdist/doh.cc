@@ -273,6 +273,10 @@ struct DOHUnit : public DOHUnitInterface
   [[nodiscard]] const std::string& getHTTPHost() const override;
   [[nodiscard]] const std::string& getHTTPScheme() const override;
   [[nodiscard]] const std::unordered_map<std::string, std::string>& getHTTPHeaders() const override;
+  [[nodiscard]] std::shared_ptr<TCPQuerySender> getQuerySender() const override
+  {
+    return nullptr;
+  }
   void setHTTPResponse(uint16_t statusCode, PacketBuffer&& body, const std::string& contentType="") override;
   void handleTimeout() override;
   void handleUDPResponse(PacketBuffer&& response, InternalQueryState&& state, [[maybe_unused]] const std::shared_ptr<DownstreamState>& downstream) override;
