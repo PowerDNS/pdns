@@ -757,4 +757,92 @@ void DNSName::makeUsRelative(const ZoneName& zone)
 {
   makeUsRelative(zone.operator const DNSName&());
 }
+
+ZoneName::ZoneName(std::string_view name)
+{
+  if (auto sep = name.find(c_separator); sep != std::string_view::npos) {
+    d_variant = name.substr(sep + c_separator.size());
+    if (d_variant.find_first_not_of("abcdefghijklmnopqrstuvwxyz0123456789_-") != std::string::npos) {
+      throw std::out_of_range("invalid character in variant name '" + d_variant + "'");
+    }
+    name = name.substr(0, sep + c_separator.size() - 1); // keep trailing dot
+  }
+  d_name = DNSName(name);
+}
+
+std::string ZoneName::toLogString() const
+{
+  std::string ret = d_name.toLogString();
+  if (!d_variant.empty()) {
+    // Because toLogString() above uses toStringRootDot(), we do not want to
+    // output one too many dots if this is a root-with-variant.
+    if (d_name.isRoot()) {
+      ret += c_separator.substr(1);
+    }
+    else {
+      ret += c_separator;
+    }
+    ret += d_variant;
+  }
+  return ret;
+}
+
+size_t ZoneName::hash(size_t init) const
+{
+  if (!d_variant.empty()) {
+    init = burtleCI((const unsigned char *)d_variant.data(), d_variant.length(), init);
+  }
+  return d_name.hash(init);
+}
+
+bool ZoneName::operator<(const ZoneName& rhs)  const
+{
+  // Order by DNSName first, by variant second.
+  // Unfortunately we can't use std::lexicographical_compare_three_way() yet
+  // as this would require C++20.
+  const auto *iter1 = d_name.getStorage().cbegin();
+  const auto *last1 = d_name.getStorage().cend();
+  const auto *iter2 = rhs.d_name.getStorage().cbegin();
+  const auto *last2 = rhs.d_name.getStorage().cend();
+  while (iter1 != last1 && iter2 != last2) {
+    auto char1 = dns_tolower(*iter1);
+    auto char2 = dns_tolower(*iter2);
+    if (char1 < char2) {
+      return true;
+    }
+    if (char1 > char2) {
+      return false;
+    }
+    ++iter1;
+    ++iter2;
+  }
+  if (iter1 == last1) {
+    if (iter2 != last2) {
+      return true; // our DNSName is shorter (subset) than the other
+    }
+  }
+  else {
+    return false; // our DNSName is longer (superset) than the other
+  }
+  // At this point, both DNSName compare equal, we have to compare
+  // variants (which are case-sensitive).
+  return d_variant < rhs.d_variant;
+}
+
+bool ZoneName::canonCompare(const ZoneName& rhs) const
+{
+  // Similarly to operator< above, this compares DNSName first, variant
+  // second. Unfortunately because DNSName::canonCompare() is complicated,
+  // it can't pragmatically be duplicated here, hence the two calls.
+  // TODO: change DNSName::canonCompare() to return a three-state value
+  // (lt, eq, ge) in order to be able to call it only once.
+  if (!d_name.canonCompare(rhs.d_name)) {
+    return false;
+  }
+  if (!rhs.d_name.canonCompare(d_name)) {
+    return true;
+  }
+  // Both DNSName compare equal.
+  return d_variant < rhs.d_variant;
+}
 #endif // ]
