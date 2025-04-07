@@ -868,10 +868,11 @@ bool GSQLBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& inse
 
 unsigned int GSQLBackend::getCapabilities()
 {
+  unsigned int caps = CAP_COMMENTS | CAP_DIRECT | CAP_LIST | CAP_CREATE;
   if (d_dnssecQueries) {
-    return CAP_DNSSEC | CAP_COMMENTS | CAP_DIRECT | CAP_LIST | CAP_CREATE;
+    caps |= CAP_DNSSEC;
   }
-  return CAP_COMMENTS | CAP_DIRECT | CAP_LIST | CAP_CREATE;
+  return caps;
 }
 
 bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after)

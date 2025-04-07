@@ -131,12 +131,11 @@ public:
 
   unsigned int getCapabilities() override
   {
+    unsigned int caps = CAP_DIRECT | CAP_LIST;
     if (d_dnssec) {
-      return CAP_DNSSEC | CAP_DIRECT | CAP_LIST;
+      caps |= CAP_DNSSEC;
     }
-    else {
-      return CAP_DIRECT | CAP_LIST;
-    }
+    return caps;
   }
 
   void parseLookup(const lookup_result_t& result)

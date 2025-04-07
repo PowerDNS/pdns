@@ -508,10 +508,11 @@ bool RemoteBackend::unpublishDomainKey(const DNSName& name, unsigned int id)
 
 unsigned int RemoteBackend::getCapabilities()
 {
+  unsigned int caps = CAP_DIRECT | CAP_LIST;
   if (d_dnssec) {
-    return CAP_DNSSEC | CAP_DIRECT | CAP_LIST;
+    caps |= CAP_DNSSEC;
   }
-  return CAP_DIRECT | CAP_LIST;
+  return caps;
 }
 
 bool RemoteBackend::getTSIGKey(const DNSName& name, DNSName& algorithm, std::string& content)

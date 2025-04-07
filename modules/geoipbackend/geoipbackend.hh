@@ -57,12 +57,11 @@ public:
 
   unsigned int getCapabilities() override
   {
+    unsigned int caps = 0;
     if (d_dnssec) {
-      return CAP_DNSSEC;
+      caps |= CAP_DNSSEC;
     }
-    else {
-      return 0;
-    }
+    return caps;
   }
 
   void lookup(const QType& qtype, const DNSName& qdomain, int zoneId, DNSPacket* pkt_p = nullptr) override;

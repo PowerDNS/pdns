@@ -38,12 +38,11 @@ void Bind2Backend::setupDNSSEC()
 
 unsigned int Bind2Backend::getCapabilities()
 {
+  unsigned int caps = CAP_LIST;
   if (d_hybrid) {
-    return CAP_DNSSEC | CAP_LIST;
+    caps |= CAP_DNSSEC;
   }
-  else {
-    return CAP_LIST;
-  }
+  return caps;
 }
 
 bool Bind2Backend::getNSEC3PARAM(const DNSName& /* name */, NSEC3PARAMRecordContent* /* ns3p */)
@@ -204,10 +203,11 @@ void Bind2Backend::freeStatements()
 
 unsigned int Bind2Backend::getCapabilities()
 {
+  unsigned int caps = CAP_LIST;
   if (d_dnssecdb || d_hybrid) {
-    return CAP_DNSSEC | CAP_LIST;
+    caps |= CAP_DNSSEC;
   }
-  return CAP_LIST;
+  return caps;
 }
 
 bool Bind2Backend::getNSEC3PARAM(const DNSName& name, NSEC3PARAMRecordContent* ns3p)
