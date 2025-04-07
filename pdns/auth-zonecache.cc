@@ -23,6 +23,7 @@
 #include "config.h"
 #endif
 
+#include "pdns/misc.hh"
 #include "auth-zonecache.hh"
 #include "logger.hh"
 #include "statbag.hh"
@@ -42,8 +43,32 @@ AuthZoneCache::AuthZoneCache(size_t mapsCount) :
   d_statnumentries = S.getPointer("zone-cache-size");
 }
 
-bool AuthZoneCache::getEntry(const ZoneName& zone, int& zoneId)
+bool AuthZoneCache::getEntry(ZoneName& zone, int& zoneId, Netmask* net)
 {
+  string view;
+
+  try {
+    if (net != nullptr) {
+      auto* netview = d_nets.lookup(net->getNetwork());
+      if (netview != nullptr) {
+        view = netview->second;
+      }
+    }
+  }
+  catch (...) {
+    // this handles the "empty" case, but might hide other errors
+  }
+
+  string variant;
+  if (d_views.count(view) == 1) { // FIXME lock
+    auto& viewmap = d_views.at(view);
+    if (viewmap.count(DNSName(zone)) == 1) {
+      variant = viewmap.at(DNSName(zone));
+    }
+  }
+
+  zone.setVariant(variant);
+
   auto& mc = getMap(zone);
   bool found = false;
   {
@@ -131,6 +156,20 @@ void AuthZoneCache::replace(const vector<std::tuple<ZoneName, int>>& zone_indice
 
     d_statnumentries->store(count);
   }
+}
+
+void AuthZoneCache::replace(NetmaskTree<string> nettree)
+{
+  // FIXME: lock
+
+  d_nets.swap(nettree);
+}
+
+void AuthZoneCache::replace(ViewsMap viewsmap)
+{
+  // FIXME: lock
+
+  d_views.swap(viewsmap);
 }
 
 void AuthZoneCache::add(const ZoneName& zone, const int zoneId)
