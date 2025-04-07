@@ -1,6 +1,7 @@
 #include "dnsname.hh"
 #include "dnsparser.hh"
 #include "dnsrecords.hh"
+#include "iputils.hh"
 #include "qtype.hh"
 #include <boost/smart_ptr/make_shared_array.hpp>
 #ifdef HAVE_CONFIG_H
@@ -122,6 +123,7 @@ static void loadMainConfig(const std::string& configdir)
   ::arg().set("max-generate-steps", "Maximum number of $GENERATE steps when loading a zone from a file")="0";
   ::arg().set("max-include-depth", "Maximum nested $INCLUDE depth when loading a zone from a file")="20";
   ::arg().setSwitch("upgrade-unknown-types","Transparently upgrade known TYPExxx records. Recommended to keep off, except for PowerDNS upgrades until data sources are cleaned up")="no";
+  ::arg().setSwitch("views", "Enable views (variants) of zones, for backends which support them") = "no";
   ::arg().laxFile(configname);
 
   if(!::arg()["load-modules"].empty()) {
@@ -1554,6 +1556,11 @@ static int loadZone(const ZoneName& zone, const string& fname) {
       cerr << "Zone '" << zone << "' was not created." << endl;
       return EXIT_FAILURE;
     }
+    if (zone.hasVariant() && (B.getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      cerr << "None of the configured backends support views." << endl;
+      cerr << "Zone '" << zone << "' was not created." << endl;
+      return EXIT_FAILURE;
+    }
     cerr<<"Creating '"<<zone<<"'"<<endl;
     B.createDomain(zone, DomainInfo::Native, vector<ComboAddress>(), "");
 
@@ -1612,6 +1619,11 @@ static int createZone(const ZoneName &zone, const DNSName& nsname) {
     cerr << "Zone '" << zone << "' was not created." << endl;
     return EXIT_FAILURE;
   }
+  if (zone.hasVariant() && (B.getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+    cerr << "None of the configured backends support views." << endl;
+    cerr << "Zone '" << zone << "' was not created." << endl;
+    return EXIT_FAILURE;
+  }
 
   DNSResourceRecord rr;
   rr.qname = zone.operator const DNSName&();
@@ -1641,7 +1653,7 @@ static int createZone(const ZoneName &zone, const DNSName& nsname) {
   cerr<<"Creating empty zone '"<<zone<<"'"<<endl;
   B.createDomain(zone, DomainInfo::Native, vector<ComboAddress>(), "");
   if(!B.getDomainInfo(zone, di)) {
-    cerr << "Zone '" << zone << "' was not created!" << endl;
+    cerr << "Zone '" << zone << "' was not created." << endl;
     return EXIT_FAILURE;
   }
 
@@ -1885,6 +1897,10 @@ static int listAllZones(const std::string_view synopsis, const string &type="") 
 
   vector<DomainInfo> domains;
   B.getAllDomains(&domains, false, g_verbose);
+
+  // Sort results, so that domains which have variants will appear
+  // grouped in the output.
+  std::sort(domains.begin(), domains.end());
 
   int count = 0;
   for (const auto& di: domains) {
@@ -2176,6 +2192,10 @@ static bool showZone(DNSSECKeeper& dnsseckeeper, const ZoneName& zone, bool expo
   }
   if (!exportDS) {
     cout<<"This is a "<<DomainInfo::getKindString(di.kind)<<" zone"<<endl;
+    auto variant = di.zone.getVariant();
+    if (!variant.empty()) {
+      cout<<"Variant: " << variant << endl;
+    }
     if (di.isPrimaryType()) {
       cout<<"Last SOA serial number we notified: "<<di.notified_serial<<" ";
       SOAData sd;
@@ -3192,6 +3212,11 @@ static int createSecondaryZone(vector<string>& cmds, const std::string_view syno
     cerr << "Zone '" << zone << "' was not created." << endl;
     return EXIT_FAILURE;
   }
+  if (zone.hasVariant() && (B.getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+    cerr << "None of the configured backends support views." << endl;
+    cerr << "Zone '" << zone << "' was not created." << endl;
+    return EXIT_FAILURE;
+  }
   vector<ComboAddress> primaries;
   for (unsigned i=2; i < cmds.size(); i++) {
     primaries.emplace_back(cmds.at(i), 53);
@@ -3199,7 +3224,7 @@ static int createSecondaryZone(vector<string>& cmds, const std::string_view syno
   cerr << "Creating secondary zone '" << zone << "', with primaries '" << comboAddressVecToString(primaries) << "'" << endl;
   B.createDomain(zone, DomainInfo::Secondary, primaries, "");
   if(!B.getDomainInfo(zone, di)) {
-    cerr << "Zone '" << zone << "' was not created!" << endl;
+    cerr << "Zone '" << zone << "' was not created." << endl;
     return EXIT_FAILURE;
   }
   return EXIT_SUCCESS;
@@ -4359,8 +4384,12 @@ static int B2BMigrate(vector<string>& cmds, const std::string_view synopsis)
     DNSResourceRecord rr; // NOLINT(readability-identifier-length)
     cout<<"Processing '"<<di.zone<<"'"<<endl;
     // create zone
+    if (di.zone.hasVariant() && (tgt->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      cerr << "Target backend does not support views." << endl;
+      throw PDNSException("Failed to create zone");
+    }
     if (!tgt->createDomain(di.zone, di.kind, di.primaries, di.account)) {
-       throw PDNSException("Failed to create zone");
+      throw PDNSException("Failed to create zone");
     }
     if (!tgt->getDomainInfo(di.zone, di_new)) {
       throw PDNSException("Failed to create zone");
@@ -4530,6 +4559,107 @@ static int backendLookup(vector<string>& cmds, const std::string_view synopsis)
   return 0;
 }
 
+static int viewList(vector<string>& cmds, const std::string_view synopsis)
+{
+  if (cmds.size() > 2) {
+    return usage(synopsis);
+  }
+
+  UtilBackend B("default"); //NOLINT(readability-identifier-length)
+
+  if (cmds.size() == 1) {
+    vector<string> ret;
+    B.viewList(ret);
+
+    for (const auto& view : ret) {
+      cout << view << endl;
+    }
+  }
+  else {
+    vector<ZoneName> ret;
+    B.viewListZones(cmds.at(1), ret);
+
+    for (const auto& zone : ret) {
+      cout << zone << endl;
+    }
+  }
+  return 0;
+}
+
+static int viewAddZone(vector<string>& cmds, const std::string_view synopsis)
+{
+  if (cmds.size() < 3) {
+    return usage(synopsis);
+  }
+
+  UtilBackend B("default"); //NOLINT(readability-identifier-length)
+
+  string view{cmds.at(1)};
+  ZoneName zone{cmds.at(2)};
+  if (!B.viewAddZone(view, zone)) {
+    cerr<<"Operation failed."<<endl;
+    return 1;
+ }
+  return 0;
+}
+
+static int viewDelZone(vector<string>& cmds, const std::string_view synopsis)
+{
+  if (cmds.size() < 3) {
+    return usage(synopsis);
+  }
+
+  UtilBackend B("default"); //NOLINT(readability-identifier-length)
+
+  string view{cmds.at(1)};
+  ZoneName zone{cmds.at(2)};
+  if (!B.viewDelZone(view, zone)) {
+    cerr<<"Operation failed."<<endl;
+    return 1;
+ }
+  return 0;
+}
+
+static int networkList(vector<string>& cmds, const std::string_view synopsis)
+{
+  if (cmds.size() < 1) {
+    return usage(synopsis);
+  }
+
+  UtilBackend B("default"); //NOLINT(readability-identifier-length)
+
+  vector<pair<Netmask, string> > ret;
+
+  B.networkList(ret);
+
+  for (auto &[net, view] : ret) {
+    cout<<net.toString()<<"\t"<<view<<endl; // FIXME: this prints "invalid" when there is no match
+  }
+  return 0;
+}
+
+static int networkSet(vector<string>& cmds, const std::string_view synopsis)
+{
+  if (cmds.size() < 2) {
+    // FIXME: should there be backend choice here at all?
+    // alternatively, should backend choice be a generic pdnsutil feature?
+    return usage(synopsis);
+  }
+
+  UtilBackend B("default"); //NOLINT(readability-identifier-length)
+
+  Netmask net{cmds.at(1)};
+  string view{};
+  if (cmds.size() > 2) {
+    view = cmds.at(2);
+  }
+  if (!B.networkSet(net, view)) {
+    cerr<<"Operation failed."<<endl;
+    return 1;
+ }
+  return 0;
+}
+
 enum commandGroup {
   GROUP_AUTOPRIMARY,
   GROUP_CATALOG,
@@ -4541,6 +4671,7 @@ enum commandGroup {
   GROUP_NSEC3,
   GROUP_TSIGKEY,
   GROUP_ZONEKEY,
+  GROUP_VIEWS,
   GROUP_OTHER,
   GROUP_LAST,
   GROUP_FIRST = GROUP_AUTOPRIMARY,
@@ -4557,6 +4688,7 @@ static const std::array<std::string_view, GROUP_LAST> groupNames{
   "NSEC3",
   "TSIG key",
   "Zone key",
+  "Views",
   "Other"
 };
 
@@ -4743,6 +4875,12 @@ static const std::unordered_map<std::string, commandDispatcher> commands{
    "\tLoad ZONE from FILENAME, possibly creating zone or atomically replacing\n"
    "\tcontents; --verbose or -v will also include the keys for disabled or\n"
    "\tempty zones"}},
+  {"network-list", {true, networkList, GROUP_VIEWS,
+   "network-list",
+   "\tList all defined networks with their chosen views"}},
+  {"network-set", {true, networkSet, GROUP_VIEWS,
+   "network-set NET [VIEW]",
+   "\tSet the view for a network, or delete if no view argument."}},
   {"publish-zone-key", {true, publishZoneKey, GROUP_ZONEKEY,
    "publish-zone-key ZONE KEY_ID",
    "\tPublish the zone key with key id KEY_ID in ZONE"}},
@@ -4838,6 +4976,15 @@ static const std::unordered_map<std::string, commandDispatcher> commands{
    "\tDisable sending CDS responses for ZONE"}},
   {"verify-crypto", {true, verifyCrypto, GROUP_OTHER,
    "verify-crypto FILENAME", ""}}, // TODO: short help line
+  {"view-list", {true, viewList, GROUP_VIEWS,
+   "view-list [VIEW]",
+   "\tList all view names, or all zones within a given view"}},
+  {"view-add-zone", {true, viewAddZone, GROUP_VIEWS,
+   "view-add-zone VIEW ZONE..VARIANT",
+   "\tAdd a zone variant to a view"}},
+  {"view-del-zone", {true, viewDelZone, GROUP_VIEWS,
+   "view-del-zone VIEW ZONE..VARIANT",
+   "\tRemove a zone variant from a view"}},
   {"zonemd-verify-file", {true, zonemdVerifyFile, GROUP_ZONE,
    "zonemd-verify-file ZONE FILENAME",
    "\tValidate ZONEMD for ZONE"}}
