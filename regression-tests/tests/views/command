@@ -1,0 +1,9 @@
+#!/bin/sh
+cleandig example.com TXT ednssubnet 192.0.2.0/32
+cleandig example.com TXT ednssubnet 192.0.2.200/32
+
+cleandig cname.example.com TXT ednssubnet 192.0.2.0/32
+cleandig cname.example.com TXT ednssubnet 192.0.2.200/32
+
+cleandig cname-nxd.example.com TXT ednssubnet 192.0.2.0/32
+cleandig cname-nxd.example.com TXT ednssubnet 192.0.2.200/32
