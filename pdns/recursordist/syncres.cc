@@ -1718,22 +1718,34 @@ int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord
   LOG(prefix << qname << ": doResolve" << endl);
 
   // Look in cache only
+  vector<DNSRecord> retq;
   bool old = setCacheOnly(true);
   bool fromCache = false;
   // For cache peeking, we tell doResolveNoQNameMinimization not to consider the (non-recursive) forward case.
   // Otherwise all queries in a forward domain will be forwarded, while we want to consult the cache.
-  const auto retSizeBeforeCall = ret.size();
-  int res = doResolveNoQNameMinimization(qname, qtype, ret, depth, beenthere, context, &fromCache, nullptr);
+  int res{};
+  try {
+    // The cache lookup below can have three types of result:
+    // Case 1: successful. In that case the records will be added to the end result below and we're done.
+    // Case 2: unsuccessful. In that case the records in retq wil be discarded. E.g. there
+    // might be records as the lookup found a CNAME chain, but the target is missing from the cache.
+    // Case 3: an exception is thrown, in that case we're still interested in the (partial) results in retq.
+    // This can e.g. happen on a too-long CNAME chain.
+    res = doResolveNoQNameMinimization(qname, qtype, retq, depth, beenthere, context, &fromCache, nullptr);
+  }
+  catch (...) {
+    ret.insert(ret.end(), std::make_move_iterator(retq.begin()), std::make_move_iterator(retq.end()));
+    throw;
+  }
   setCacheOnly(old);
   if (fromCache) {
     LOG(prefix << qname << ": Step0 Found in cache" << endl);
     if (d_appliedPolicy.d_type != DNSFilterEngine::PolicyType::None && (d_appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NXDOMAIN || d_appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::NODATA)) {
       ret.clear();
     }
+    ret.insert(ret.end(), std::make_move_iterator(retq.begin()), std::make_move_iterator(retq.end()));
     return res;
   }
-  // Erase unwanted cache lookup preliminary results in the returned records
-  ret.resize(retSizeBeforeCall);
   LOG(prefix << qname << ": Step0 Not cached" << endl);
 
   const unsigned int qnamelen = qname.countLabels();
@@ -1830,7 +1842,7 @@ int SyncRes::doResolve(const DNSName& qname, const QType qtype, vector<DNSRecord
       LOG(prefix << qname << ": Step4 Resolve A for child " << child << endl);
       bool oldFollowCNAME = d_followCNAME;
       d_followCNAME = false;
-      vector<DNSRecord> retq;
+      retq.clear();
       StopAtDelegation stopAtDelegation = Stop;
       res = doResolveNoQNameMinimization(child, QType::A, retq, depth, beenthere, context, nullptr, &stopAtDelegation);
       d_followCNAME = oldFollowCNAME;
