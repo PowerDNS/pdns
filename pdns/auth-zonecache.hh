@@ -26,18 +26,39 @@
 #include "dnsname.hh"
 #include "lock.hh"
 #include "misc.hh"
+#include "iputils.hh"
 
 class AuthZoneCache : public boost::noncopyable
 {
 public:
   AuthZoneCache(size_t mapsCount = 1024);
 
+  using ViewsMap = std::map<std::string, std::map<DNSName, std::string>>;
+
+  // Zone maintainance
   void replace(const vector<std::tuple<ZoneName, int>>& zone);
+  void replace(NetmaskTree<string> nettree);
+  void replace(ViewsMap viewsmap);
   void add(const ZoneName& zone, const int zoneId);
   void remove(const ZoneName& zone);
   void setReplacePending(); //!< call this when data collection for the subsequent replace() call starts.
 
-  bool getEntry(const ZoneName& zone, int& zoneId);
+  // Views maintainance
+  void addToView(const std::string& view, const ZoneName& zone);
+  void removeFromView(const std::string& view, const ZoneName& zone);
+
+  // Network maintainance
+  void updateNetwork(const Netmask& network, const std::string& view);
+
+  // Zone lookup
+  bool getEntry(const ZoneName& zone, domainid_t& zoneId);
+
+  // View lookup
+  std::string getViewFromNetwork(Netmask* net);
+
+  // Variant lookup
+  std::string getVariantFromView(const ZoneName& zone, const std::string& view);
+  void setZoneVariant(std::unique_ptr<DNSPacket>& packet);
 
   size_t size() { return *d_statnumentries; } //!< number of entries in the cache
 
@@ -57,6 +78,9 @@ public:
   void clear();
 
 private:
+  SharedLockGuarded<NetmaskTree<string>> d_nets;
+  SharedLockGuarded<ViewsMap> d_views;
+
   struct CacheValue
   {
     int zoneId{-1};

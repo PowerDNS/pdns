@@ -341,6 +341,32 @@ void UeberBackend::updateZoneCache()
     }
   }
   g_zoneCache.replace(zone_indices);
+
+  NetmaskTree<string> nettree;
+  for (auto& backend : backends) {
+    vector<pair<Netmask, string>> nettag;
+    backend->networkList(nettag);
+    for (auto& [net, tag] : nettag) {
+      nettree.insert_or_assign(net, tag);
+    }
+  }
+  g_zoneCache.replace(nettree); // FIXME: this needs some smart pending stuff too
+
+  AuthZoneCache::ViewsMap viewsmap;
+  for (auto& backend : backends) {
+    vector<string> views;
+    backend->viewList(views);
+    for (auto& view : views) {
+      vector<ZoneName> zones;
+      backend->viewListZones(view, zones);
+      for (ZoneName& zone : zones) {
+        auto zonename = DNSName(zone);
+        auto variant = zone.getVariant();
+        viewsmap[view][zonename] = variant;
+      }
+    }
+  }
+  g_zoneCache.replace(viewsmap);
 }
 
 void UeberBackend::rediscover(string* status)
@@ -493,7 +519,7 @@ static bool foundTarget(const ZoneName& target, const ZoneName& shorter, const Q
   return false;
 }
 
-bool UeberBackend::getAuth(const ZoneName& target, const QType& qtype, SOAData* soaData, bool cachedOk)
+bool UeberBackend::getAuth(const ZoneName& target, const QType& qtype, SOAData* soaData, bool cachedOk, DNSPacket* pkt_p)
 {
   // A backend can respond to our authority request with the 'best' match it
   // has. For example, when asked for a.b.c.example.com. it might respond with
@@ -506,6 +532,20 @@ bool UeberBackend::getAuth(const ZoneName& target, const QType& qtype, SOAData* 
   ZoneName shorter(target);
   vector<pair<size_t, SOAData>> bestMatches(backends.size(), pair(target.operator const DNSName&().wirelength() + 1, SOAData()));
 
+  Netmask remote;
+  if (pkt_p != nullptr) {
+    remote = pkt_p->getRealRemote();
+  }
+  std::string view{};
+  if (g_zoneCache.isEnabled()) {
+    Netmask _remote(remote);
+    view = g_zoneCache.getViewFromNetwork(&_remote);
+    // Remember the view netmask, if applicable, for ECS responses.
+    if (!view.empty() && pkt_p != nullptr) {
+      pkt_p->d_span = _remote;
+    }
+  }
+
   bool first = true;
   while (first || shorter.chopOff()) {
     first = false;
@@ -513,8 +553,13 @@ bool UeberBackend::getAuth(const ZoneName& target, const QType& qtype, SOAData* 
     int zoneId{-1};
 
     if (cachedOk && g_zoneCache.isEnabled()) {
-      if (g_zoneCache.getEntry(shorter, zoneId)) {
-        if (fillSOAFromZoneRecord(shorter, zoneId, soaData)) {
+      std::string variant = g_zoneCache.getVariantFromView(shorter, view);
+      ZoneName _shorter(shorter.operator const DNSName&(), variant);
+      if (g_zoneCache.getEntry(_shorter, zoneId)) {
+        if (fillSOAFromZoneRecord(_shorter, zoneId, soaData)) {
+          // Need to invoke foundTarget() with the same variant part in the
+          // first two arguments, since they are compared as ZoneName, hence
+          // the use of `shorter' rather than `_shorter' here.
           if (foundTarget(target, shorter, qtype, soaData, found)) {
             return true;
           }

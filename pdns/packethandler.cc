@@ -1596,7 +1596,7 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
     return true;
   }
 
-  if(!B.getAuth(ZoneName(state.target), pkt.qtype, &d_sd)) {
+  if(!B.getAuth(ZoneName(state.target), pkt.qtype, &d_sd, true, &pkt)) {
     DLOG(g_log<<Logger::Error<<"We have no authority over zone '"<<state.target<<"'"<<endl);
     if (!retargeted) {
       state.r->setA(false); // drop AA if we never had a SOA in the first place
