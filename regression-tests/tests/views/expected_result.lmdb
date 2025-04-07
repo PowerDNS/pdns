@@ -1,0 +1,26 @@
+0	example.com.	3600	IN	TXT	"hello from the bar variant"
+2	.	0	IN	OPT	AAgACAABIADAAAIA
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='example.com.', qtype=TXT
+0	example.com.	3600	IN	TXT	"hello from the foo variant"
+2	.	0	IN	OPT	AAgACAABIADAAALI
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='example.com.', qtype=TXT
+0	cname.example.com.	3600	IN	CNAME	target.example.org.
+2	.	0	IN	OPT	AAgACAABIADAAAIA
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='cname.example.com.', qtype=TXT
+0	cname.example.com.	3600	IN	CNAME	target.example.org.
+0	target.example.org.	3600	IN	TXT	"hello from target..foo"
+2	.	0	IN	OPT	AAgACAABIADAAALI
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='cname.example.com.', qtype=TXT
+0	cname-nxd.example.com.	3600	IN	CNAME	nxd.example.org.
+2	.	0	IN	OPT	AAgACAABIADAAAIA
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='cname-nxd.example.com.', qtype=TXT
+0	cname-nxd.example.com.	3600	IN	CNAME	nxd.example.org.
+1	example.org.	3600	IN	SOA	a.misconfigured.dns.server.invalid. hostmaster.example.org. 0 10800 3600 604800 3600
+2	.	0	IN	OPT	AAgACAABIADAAALI
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='cname-nxd.example.com.', qtype=TXT
