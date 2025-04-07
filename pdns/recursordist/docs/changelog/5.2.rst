@@ -4,6 +4,16 @@ Changelogs for 5.2.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.2.1
+  :released: 7th of April 2025
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15396
+
+    Fix PowerDNS Security Advisory 2025-01 (CVE-2025-30195): A crafted zone can lead to an illegal memory access in the Recursor.
+
+.. changelog::
   :version: 5.2.0
   :released: 14th of January 2025
 
