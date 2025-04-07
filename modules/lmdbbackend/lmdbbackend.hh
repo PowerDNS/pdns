@@ -59,7 +59,12 @@ std::string keyConv(const T& t)
 template <class T, typename std::enable_if<std::is_same<T, ZoneName>::value, T>::type* = nullptr>
 std::string keyConv(const T& t)
 {
-  return keyConv(t.operator const DNSName&());
+  if (t.hasVariant()) {
+    return keyConv(t.operator const DNSName&()) + string(1, (char)0) + keyConv(t.getVariant());
+  }
+  else {
+    return keyConv(t.operator const DNSName&());
+  }
 }
 
 class LMDBBackend : public DNSBackend
@@ -68,7 +73,7 @@ public:
   explicit LMDBBackend(const string& suffix = "");
   ~LMDBBackend();
 
-  unsigned int getCapabilities() override { return CAP_DNSSEC | CAP_DIRECT | CAP_LIST | CAP_CREATE; }
+  unsigned int getCapabilities() override;
   bool list(const ZoneName& target, domainid_t domainId, bool include_disabled) override;
 
   bool getDomainInfo(const ZoneName& domain, DomainInfo& info, bool getserial = true) override;
@@ -82,6 +87,14 @@ public:
   bool feedEnts3(domainid_t domain_id, const DNSName& domain, map<DNSName, bool>& nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow) override;
   bool replaceRRSet(domainid_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset) override;
   bool replaceComments(domainid_t domain_id, const DNSName& qname, const QType& qt, const vector<Comment>& comments) override;
+
+  void viewList(vector<string>& /* result */) override;
+  void viewListZones(const string& /* view */, vector<ZoneName>& /* result */) override;
+  bool viewAddZone(const string& /* view */, const ZoneName& /* zone */) override;
+  bool viewDelZone(const string& /* view */, const ZoneName& /* zone */) override;
+
+  bool networkSet(const Netmask& net, std::string& view) override;
+  bool networkList(vector<pair<Netmask, string>>& networks) override;
 
   void getAllDomains(vector<DomainInfo>* domains, bool doSerial, bool include_disabled) override;
   void lookup(const QType& type, const DNSName& qdomain, domainid_t zoneId, DNSPacket* p = nullptr) override { lookupInternal(type, qdomain, zoneId, p, false); }
@@ -306,6 +319,8 @@ private:
   shared_ptr<tmeta_t> d_tmeta;
   shared_ptr<tkdb_t> d_tkdb;
   shared_ptr<ttsig_t> d_ttsig;
+  MDBDbi d_tnetworks;
+  MDBDbi d_tviews;
 
   shared_ptr<RecordsROTransaction> d_rotxn; // for lookup and list
   shared_ptr<RecordsRWTransaction> d_rwtxn; // for feedrecord within begin/aborttransaction
@@ -337,5 +352,6 @@ private:
   bool d_dolog;
   bool d_random_ids;
   bool d_handle_dups;
+  bool d_views;
   DTime d_dtime; // used only for logging
 };
