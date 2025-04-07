@@ -50,6 +50,8 @@ class PipeBackend : public DNSBackend
 public:
   PipeBackend(const string& suffix = "");
   ~PipeBackend() override;
+
+  unsigned int getCapabilities() override { return CAP_DIRECT | CAP_LIST; }
   void lookup(const QType&, const DNSName& qdomain, int zoneId, DNSPacket* p = nullptr) override;
   bool list(const DNSName& target, int domain_id, bool include_disabled = false) override;
   bool get(DNSResourceRecord& r) override;

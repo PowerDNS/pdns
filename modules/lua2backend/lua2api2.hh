@@ -129,9 +129,13 @@ public:
     }
   }
 
-  bool doesDNSSEC() override
+  unsigned int getCapabilities() override
   {
-    return d_dnssec;
+    unsigned int caps = CAP_DIRECT | CAP_LIST;
+    if (d_dnssec) {
+      caps |= CAP_DNSSEC;
+    }
+    return caps;
   }
 
   void parseLookup(const lookup_result_t& result)

@@ -107,6 +107,8 @@ public:
   {
   }
 
+  unsigned int getCapabilities() override { return CAP_LIST; }
+
   bool findZone(const DNSName& qdomain, int zoneId, std::shared_ptr<RecordStorage>& records, uint64_t& currentZoneId) const
   {
     currentZoneId = -1;
