@@ -396,6 +396,7 @@ public:
 
   bool hasVariant() const { return !d_variant.empty(); }
   std::string getVariant() const { return d_variant; }
+  void setVariant(std::string_view);
 
 private:
   DNSName d_name;

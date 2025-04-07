@@ -49,7 +49,8 @@ BOOST_AUTO_TEST_CASE(test_replace)
   cache.replace(zone_indices);
 
   int zoneId = 0;
-  bool found = cache.getEntry(ZoneName("example.org."), zoneId);
+  ZoneName zone("example.org");
+  bool found = cache.getEntry(zone, zoneId);
   if (!found || zoneId != 1) {
     BOOST_FAIL("zone added in replace() not found");
   }
@@ -67,7 +68,8 @@ BOOST_AUTO_TEST_CASE(test_add_while_pending_replace)
   cache.replace(zone_indices);
 
   int zoneId = 0;
-  bool found = cache.getEntry(ZoneName("example.org."), zoneId);
+  ZoneName zone("example.org");
+  bool found = cache.getEntry(zone, zoneId);
   if (!found || zoneId != 2) {
     BOOST_FAIL("zone added while replace was pending not found");
   }
@@ -85,7 +87,8 @@ BOOST_AUTO_TEST_CASE(test_remove_while_pending_replace)
   cache.replace(zone_indices);
 
   int zoneId = 0;
-  bool found = cache.getEntry(ZoneName("example.org."), zoneId);
+  ZoneName zone("example.org");
+  bool found = cache.getEntry(zone, zoneId);
   if (found) {
     BOOST_FAIL("zone removed while replace was pending is found");
   }
@@ -106,7 +109,8 @@ BOOST_AUTO_TEST_CASE(test_add_while_pending_replace_duplicate)
   cache.replace(zone_indices);
 
   int zoneId = 0;
-  bool found = cache.getEntry(ZoneName("example.org."), zoneId);
+  ZoneName zone("example.org");
+  bool found = cache.getEntry(zone, zoneId);
   if (!found || zoneId == 0) {
     BOOST_FAIL("zone added while replace was pending not found");
   }
