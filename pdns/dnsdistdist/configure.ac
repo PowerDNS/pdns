@@ -9,9 +9,7 @@ AC_PROG_CC
 AC_PROG_CXX
 AC_LANG([C++])
 
-AC_DEFINE([DNSDIST], [1],
-  [This is dnsdist]
-)
+CPPFLAGS="-DDNSDIST $CPPFLAGS"
 
 # Warn when pkg.m4 is missing
 m4_pattern_forbid([^_?PKG_[A-Z_]+$], [*** pkg.m4 missing, please install pkg-config])
