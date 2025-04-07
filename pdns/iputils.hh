@@ -337,6 +337,9 @@ union ComboAddress
         return host.data();
       }
     }
+    else {
+      return "invalid";
+    }
     return "invalid " + stringerror();
   }
 
@@ -736,20 +739,36 @@ public:
     }
   }
 
-  //! Constructor supplies the mask, which cannot be changed
-  Netmask(const string& mask)
+  enum stringType
   {
-    pair<string, string> split = splitField(mask, '/');
-    d_network = makeComboAddress(split.first);
+    humanString,
+    byteString,
+  };
+  //! Constructor supplies the mask, which cannot be changed
+  Netmask(const string& mask, stringType type = humanString)
+  {
+    if (type == byteString) {
+      uint8_t afi = mask.at(0);
+      size_t len = afi == 4 ? 4 : 16;
+      uint8_t bits = mask.at(len + 1);
 
-    if (!split.second.empty()) {
-      setBits(pdns::checked_stoi<uint8_t>(split.second));
-    }
-    else if (d_network.sin4.sin_family == AF_INET) {
-      setBits(32);
+      d_network = makeComboAddressFromRaw(afi, mask.substr(1, len));
+
+      setBits(bits);
     }
     else {
-      setBits(128);
+      pair<string, string> split = splitField(mask, '/');
+      d_network = makeComboAddress(split.first);
+
+      if (!split.second.empty()) {
+        setBits(pdns::checked_stoi<uint8_t>(split.second));
+      }
+      else if (d_network.sin4.sin_family == AF_INET) {
+        setBits(32);
+      }
+      else {
+        setBits(128);
+      }
     }
   }
 
@@ -812,6 +831,17 @@ public:
   [[nodiscard]] string toStringNoMask() const
   {
     return d_network.toStringNoInterface();
+  }
+
+  [[nodiscard]] string toByteString() const
+  {
+    ostringstream tmp;
+
+    tmp << (d_network.isIPv4() ? "\x04" : "\x06")
+        << d_network.toByteString()
+        << getBits();
+
+    return tmp.str();
   }
 
   [[nodiscard]] const ComboAddress& getNetwork() const
