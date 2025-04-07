@@ -6,6 +6,8 @@ module-dir=$PDNS_BUILD_PATH/modules
 launch=lmdb
 lmdb-filename=./pdns.lmdb
 lmdb-random-ids=yes
+edns-subnet-processing
+views=yes
 __EOF__
 
         rm -f pdns.lmdb*
@@ -68,6 +70,26 @@ __EOF__
             $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb set-options-json test.com '{"producer":{"coo":"other-catalog.invalid","unique":"123"}}'
             $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb set-options-json tsig.com '{"producer":{"group":["pdns-group-x","pdns-group-y"]}}'
         fi
+
+        for variant in foo bar
+        do
+          $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb create-zone example.com..$variant
+          $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb list-all-zones
+          $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb show-zone example.com..$variant
+          $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb add-record example.com..$variant '' TXT '"hello from the '$variant' variant"'
+          $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb add-record example.com..$variant cname CNAME target.example.org
+          $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb add-record example.com..$variant cname-nxd CNAME nxd.example.org
+        done
+
+        $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb view-add-zone view1 example.com..foo
+        $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb view-add-zone view2 example.com..bar
+
+        $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb create-zone example.org..foo
+        $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb add-record example.org..foo target TXT '"hello from target..foo"'
+        $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb view-add-zone view1 example.org..foo
+
+        $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb network-set 192.0.2.0/24 view1
+        $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb network-set 192.0.2.0/25 view2
 
         $RUNWRAPPER $PDNS --loglevel=7 --daemon=no --local-address=$address --local-port=$port --config-dir=. \
             --config-name=lmdb --socket-dir=./ --no-shuffle \
