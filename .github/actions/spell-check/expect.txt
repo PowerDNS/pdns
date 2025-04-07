@@ -588,6 +588,7 @@ ifportup
 ifurlextup
 ifurlup
 ihsinme
+Ilyin
 imenu
 Imhard
 incbin
@@ -1508,6 +1509,7 @@ Vixie
 vla
 Voegeli
 Volker
+Volodymyr
 voxel
 Vranken
 vulns
