@@ -1,0 +1,2 @@
+Tests for views management.
+The expected result for non-LMDB backends is failure.
