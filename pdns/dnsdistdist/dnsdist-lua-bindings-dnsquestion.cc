@@ -512,69 +512,92 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
 
 #if defined(HAVE_DNS_OVER_HTTPS) || defined(HAVE_DNS_OVER_HTTP3)
   luaCtx.registerFunction<std::string (DNSQuestion::*)(void) const>("getHTTPPath", [](const DNSQuestion& dnsQuestion) {
+#if defined(HAVE_DNS_OVER_HTTPS)
     if (dnsQuestion.ids.du) {
       return dnsQuestion.ids.du->getHTTPPath();
     }
+#endif /* defined(HAVE_DNS_OVER_HTTPS) */
+#if defined(HAVE_DNS_OVER_HTTP3)
     if (dnsQuestion.ids.doh3u) {
       return dnsQuestion.ids.doh3u->getHTTPPath();
     }
+#endif /* defined(HAVE_DNS_OVER_HTTP3) */
     return std::string();
   });
 
   luaCtx.registerFunction<std::string (DNSQuestion::*)(void) const>("getHTTPQueryString", [](const DNSQuestion& dnsQuestion) {
+#if defined(HAVE_DNS_OVER_HTTPS)
     if (dnsQuestion.ids.du) {
       return dnsQuestion.ids.du->getHTTPQueryString();
     }
+#endif /* defined(HAVE_DNS_OVER_HTTPS) */
+#if defined(HAVE_DNS_OVER_HTTP3)
     if (dnsQuestion.ids.doh3u) {
       return dnsQuestion.ids.doh3u->getHTTPQueryString();
     }
+#endif /* defined(HAVE_DNS_OVER_HTTP3) */
     return std::string();
   });
 
   luaCtx.registerFunction<std::string (DNSQuestion::*)(void) const>("getHTTPHost", [](const DNSQuestion& dnsQuestion) {
+#if defined(HAVE_DNS_OVER_HTTPS)
     if (dnsQuestion.ids.du) {
       return dnsQuestion.ids.du->getHTTPHost();
     }
+#endif /* defined(HAVE_DNS_OVER_HTTPS) */
+#if defined(HAVE_DNS_OVER_HTTP3)
     if (dnsQuestion.ids.doh3u) {
       return dnsQuestion.ids.doh3u->getHTTPHost();
     }
+#endif /* defined(HAVE_DNS_OVER_HTTP3) */
     return std::string();
   });
 
   luaCtx.registerFunction<std::string (DNSQuestion::*)(void) const>("getHTTPScheme", [](const DNSQuestion& dnsQuestion) {
+#if defined(HAVE_DNS_OVER_HTTPS)
     if (dnsQuestion.ids.du) {
       return dnsQuestion.ids.du->getHTTPScheme();
     }
+#endif /* defined(HAVE_DNS_OVER_HTTPS) */
+#if defined(HAVE_DNS_OVER_HTTP3)
     if (dnsQuestion.ids.doh3u) {
       return dnsQuestion.ids.doh3u->getHTTPScheme();
     }
+#endif /* defined(HAVE_DNS_OVER_HTTP3) */
     return std::string();
   });
 
   luaCtx.registerFunction<LuaAssociativeTable<std::string> (DNSQuestion::*)(void) const>("getHTTPHeaders", [](const DNSQuestion& dnsQuestion) {
+#if defined(HAVE_DNS_OVER_HTTPS)
     if (dnsQuestion.ids.du) {
       // coverity[auto_causes_copy]
       return dnsQuestion.ids.du->getHTTPHeaders();
     }
+#endif /* defined(HAVE_DNS_OVER_HTTPS) */
+#if defined(HAVE_DNS_OVER_HTTP3)
     if (dnsQuestion.ids.doh3u) {
       // coverity[auto_causes_copy]
       return dnsQuestion.ids.doh3u->getHTTPHeaders();
     }
+#endif /* defined(HAVE_DNS_OVER_HTTP3) */
     return LuaAssociativeTable<std::string>();
   });
 
-  luaCtx.registerFunction<void (DNSQuestion::*)(uint64_t statusCode, const std::string& body, const boost::optional<std::string> contentType)>("setHTTPResponse", [](DNSQuestion& dnsQuestion, uint64_t statusCode, const std::string& body, const boost::optional<std::string>& contentType) {
+  luaCtx.registerFunction<void (DNSQuestion::*)(uint64_t statusCode, const std::string& body, const boost::optional<std::string> contentType)>("setHTTPResponse", [](DNSQuestion& dnsQuestion, uint64_t statusCode, const std::string& body, [[maybe_unused]] const boost::optional<std::string>& contentType) {
     if (dnsQuestion.ids.du == nullptr && dnsQuestion.ids.doh3u == nullptr) {
       return;
     }
     checkParameterBound("DNSQuestion::setHTTPResponse", statusCode, std::numeric_limits<uint16_t>::max());
     PacketBuffer vect(body.begin(), body.end());
+#if defined(HAVE_DNS_OVER_HTTPS)
     if (dnsQuestion.ids.du) {
       dnsQuestion.ids.du->setHTTPResponse(statusCode, std::move(vect), contentType ? *contentType : "");
+      return;
     }
-    else {
-      dnsQuestion.ids.doh3u->setHTTPResponse(statusCode, std::move(vect), contentType ? *contentType : "");
-    }
+#endif /* defined(HAVE_DNS_OVER_HTTPS) */
+#if defined(HAVE_DNS_OVER_HTTP3)
+    dnsQuestion.ids.doh3u->setHTTPResponse(statusCode, std::move(vect), contentType ? *contentType : "");
+#endif /* defined(HAVE_DNS_OVER_HTTP3) */
   });
 #endif /* HAVE_DNS_OVER_HTTPS HAVE_DNS_OVER_HTTP3 */
 

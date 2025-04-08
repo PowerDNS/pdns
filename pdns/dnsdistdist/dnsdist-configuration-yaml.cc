@@ -284,6 +284,7 @@ static bool handleTLSConfiguration(const dnsdist::rust::settings::BindConfigurat
     state.doh3Frontend = std::move(frontend);
   }
 #endif /* HAVE_DNS_OVER_HTTP3 */
+#if defined(HAVE_DNS_OVER_HTTPS)
   else if (protocol == "doh") {
     auto frontend = std::make_shared<DOHFrontend>();
     frontend->d_tlsContext.d_provider = std::string(bind.tls.provider);
@@ -355,6 +356,7 @@ static bool handleTLSConfiguration(const dnsdist::rust::settings::BindConfigurat
     frontend->d_tlsContext.d_tlsConfig = std::move(tlsConfig);
     state.dohFrontend = std::move(frontend);
   }
+#endif /* defined(HAVE_DNS_OVER_HTTPS) */
   else if (protocol != "do53") {
     errlog("Bind %s is configured to use an unknown protocol ('%s')", bind.listen_address, protocol);
     return false;
