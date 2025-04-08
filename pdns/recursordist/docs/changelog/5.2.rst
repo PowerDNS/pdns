@@ -4,6 +4,45 @@ Changelogs for 5.2.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.2.2
+  :released: 9th of April 2025
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15279
+    :tickets: 15254
+
+    If we see both a CNAME and answer records, follow CNAME and discard the answer records.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15212
+    :tickets: 15203
+
+    Switch back to serde_yaml as serde_yml is maintained poorly.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15211
+    :tickets: 15072
+
+    Adjust Content-Type header for Prometheus endpoint to include version.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15210
+    :tickets: 15063
+
+    Include cstdint to get uint64_t.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15209
+    :tickets: 15023
+
+    Remove spurious ] in configure.ac.
+
+.. changelog::
   :version: 5.2.1
   :released: 7th of April 2025
 

@@ -4,6 +4,24 @@ Changelogs for 5.0.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.0.10
+  :released: 9th of April 2025
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15281
+    :tickets: 15254
+
+    If we see both a CNAME and answer records, follow CNAME and discard the answer records.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15214
+    :tickets: 14525
+
+    Add new root trust anchor.
+
+.. changelog::
   :version: 5.0.9
   :released: 3rd of October 2024
 
