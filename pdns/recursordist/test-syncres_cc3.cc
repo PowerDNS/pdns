@@ -1477,6 +1477,139 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_oob_cname)
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Indeterminate);
 }
 
+BOOST_AUTO_TEST_CASE(test_auth_cname_to_oob_target)
+{
+  std::unique_ptr<SyncRes> resolver;
+  initSR(resolver, false, false);
+
+  resolver->setQNameMinimization();
+  primeHints();
+
+  size_t queriesCount = 0;
+  const DNSName target("cname.example.com.");
+  const DNSName existingname("existing.test.xx.");
+  const DNSName target1Cname("cname1.example.com.");
+  const DNSName authZone("test.xx");
+
+  SyncRes::AuthDomain authDomain;
+
+  DNSRecord record;
+  record.d_place = DNSResourceRecord::ANSWER;
+  record.d_name = existingname;
+  record.d_type = QType::A;
+  record.d_ttl = 1800;
+  record.setContent(std::make_shared<ARecordContent>("127.0.0.1"));
+  authDomain.d_records.insert(record);
+
+  (*SyncRes::t_sstorage.domainmap)[authZone] = authDomain;
+
+  resolver->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
+    queriesCount++;
+    if (isRootServer(address) || domain == DNSName("com") || domain == DNSName("example.com")) {
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, domain, QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
+      addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+      return LWResult::Result::Success;
+    }
+    if (domain == target) {
+      setLWResult(res, 0, true, false, false);
+      addRecordToLW(res, domain, QType::CNAME, target1Cname.toString());
+      return LWResult::Result::Success;
+    }
+    if (domain == target1Cname) {
+      setLWResult(res, 0, true, false, false);
+      addRecordToLW(res, domain, QType::CNAME, existingname.toString());
+      return LWResult::Result::Success;
+    }
+
+    return LWResult::Result::Timeout;
+  });
+
+  vector<DNSRecord> ret;
+  int res = resolver->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, 0);
+  BOOST_REQUIRE_EQUAL(ret.size(), 3U);
+  BOOST_CHECK(ret[0].d_type == QType::CNAME);
+  BOOST_CHECK(ret[1].d_type == QType::CNAME);
+  BOOST_CHECK(ret[2].d_type == QType::A);
+  BOOST_CHECK_EQUAL(resolver->getValidationState(), vState::Indeterminate);
+
+  /* a second time, from the cache */
+  ret.clear();
+  res = resolver->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, 0);
+  BOOST_REQUIRE_EQUAL(ret.size(), 3U);
+  BOOST_CHECK(ret[0].d_type == QType::CNAME);
+  BOOST_CHECK(ret[1].d_type == QType::CNAME);
+  BOOST_CHECK(ret[2].d_type == QType::A);
+  BOOST_CHECK_EQUAL(resolver->getValidationState(), vState::Indeterminate);
+}
+
+BOOST_AUTO_TEST_CASE(test_auth_cname_to_non_existent_oob_target)
+{
+  std::unique_ptr<SyncRes> resolver;
+  initSR(resolver, false, false);
+
+  resolver->setQNameMinimization();
+  primeHints();
+
+  const DNSName target("cname.example.com.");
+  const DNSName existingname("existing.test.xx.");
+  const DNSName target1Cname("cname1.example.com.");
+  const DNSName target2Cname("cname-target.test.xx.");
+  const DNSName authZone("test.xx");
+
+  SyncRes::AuthDomain authDomain;
+
+  DNSRecord record;
+  record.d_place = DNSResourceRecord::ANSWER;
+  record.d_name = existingname;
+  record.d_type = QType::A;
+  record.d_ttl = 1800;
+  record.setContent(std::make_shared<ARecordContent>("127.0.0.1"));
+  authDomain.d_records.insert(record);
+
+  (*SyncRes::t_sstorage.domainmap)[authZone] = authDomain;
+
+  resolver->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
+    if (isRootServer(address) || domain == DNSName("com") || domain == DNSName("example.com")) {
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, domain, QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
+      addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+      return LWResult::Result::Success;
+    }
+    if (domain == target) {
+      setLWResult(res, 0, true, false, false);
+      addRecordToLW(res, domain, QType::CNAME, target1Cname.toString());
+      return LWResult::Result::Success;
+    }
+    if (domain == target1Cname) {
+      setLWResult(res, 0, true, false, false);
+      addRecordToLW(res, domain, QType::CNAME, target2Cname.toString());
+      return LWResult::Result::Success;
+    }
+
+    return LWResult::Result::Timeout;
+  });
+
+  vector<DNSRecord> ret;
+  int res = resolver->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, 3);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2U);
+  BOOST_CHECK(ret[0].d_type == QType::CNAME);
+  BOOST_CHECK(ret[1].d_type == QType::CNAME);
+  BOOST_CHECK_EQUAL(resolver->getValidationState(), vState::Indeterminate);
+
+  /* a second time, from the cache */
+  ret.clear();
+  res = resolver->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, 3);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2U);
+  BOOST_CHECK(ret[0].d_type == QType::CNAME);
+  BOOST_CHECK(ret[1].d_type == QType::CNAME);
+  BOOST_CHECK_EQUAL(resolver->getValidationState(), vState::Indeterminate);
+}
+
 BOOST_AUTO_TEST_CASE(test_auth_zone)
 {
   std::unique_ptr<SyncRes> sr;
