@@ -30,6 +30,8 @@ mkdir -p configs
 
 export PDNS=${PDNS:-${PWD}/../pdns/pdns_server}
 export PDNSUTIL=${PDNSUTIL:-${PWD}/../pdns/pdnsutil}
+export PDNSMODULEDIR=${PDNSMODULEDIR:-${PWD}/../regression-tests/modules}
+
 export PDNSRECURSOR=${PDNSRECURSOR:-${PWD}/../pdns/recursordist/pdns_recursor}
 export RECCONTROL=${RECCONTROL:-${PWD}/../pdns/recursordist/rec_control}
 

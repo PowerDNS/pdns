@@ -482,12 +482,12 @@ options {
         };""" % (zone, zonename))
 
     @classmethod
-    def generateAuthConfig(cls, confdir, threads):
+    def generateAuthConfig(cls, confdir, threads, extra=''):
         bind_dnssec_db = os.path.join(confdir, 'bind-dnssec.sqlite3')
 
         with open(os.path.join(confdir, 'pdns.conf'), 'w') as pdnsconf:
             pdnsconf.write("""
-module-dir=../regression-tests/modules
+module-dir={moduledir}
 launch=bind
 daemon=no
 bind-config={confdir}/named.conf
@@ -501,9 +501,12 @@ log-dns-details=yes
 loglevel=9
 enable-lua-records
 dname-processing=yes
-distributor-threads={threads}""".format(confdir=confdir,
-                                        bind_dnssec_db=bind_dnssec_db,
-                                        threads=threads))
+distributor-threads={threads}
+{extra}""".format(moduledir=os.environ['PDNSMODULEDIR'],
+                  confdir=confdir,
+                  bind_dnssec_db=bind_dnssec_db,
+                  threads=threads,
+                  extra=extra))
 
         pdnsutilCmd = [os.environ['PDNSUTIL'],
                        '--config-dir=%s' % confdir,
