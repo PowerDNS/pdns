@@ -93,10 +93,7 @@ ecs-add-for=0.0.0.0/0
             reactor.listenUDP(53000, UDPECSResponder(), interface='::1')
             ecsReactorv6Running = True
 
-        if not reactor.running:
-            cls._UDPResponder = threading.Thread(name='UDP Responder', target=reactor.run, args=(False,))
-            cls._UDPResponder.daemon = True
-            cls._UDPResponder.start()
+        cls.startReactor()
 
 class NoECSTest(ECSTest):
     _confdir = 'NoECS'

@@ -352,6 +352,11 @@ static uint64_t dumpAggressiveNSECCache(int fd)
   return g_aggressiveNSECCache->dumpToFile(filePtr, now);
 }
 
+static uint64_t* pleaseDumpCookiesMap(int fd)
+{
+  return new uint64_t(dumpCookies(fd));
+}
+
 static uint64_t* pleaseDumpEDNSMap(int fd)
 {
   return new uint64_t(SyncRes::doEDNSDump(fd));
@@ -1850,12 +1855,14 @@ static RecursorControlChannel::Answer help()
           "add-nta DOMAIN [REASON]          add a Negative Trust Anchor for DOMAIN with the comment REASON\n"
           "add-ta DOMAIN DSRECORD           add a Trust Anchor for DOMAIN with data DSRECORD\n"
           "current-queries                  show currently active queries\n"
+          // "clear-cookies                    clear cookie table\n" XXX undocumented for now
           "clear-dont-throttle-names [N...] remove names that are not allowed to be throttled. If N is '*', remove all\n"
           "clear-dont-throttle-netmasks [N...]\n"
           "                                 remove netmasks that are not allowed to be throttled. If N is '*', remove all\n"
           "clear-nta [DOMAIN]...            Clear the Negative Trust Anchor for DOMAINs, if no DOMAIN is specified, remove all\n"
           "clear-ta [DOMAIN]...             Clear the Trust Anchor for DOMAINs\n"
           "dump-cache <filename> [type...]  dump cache contents to the named file, type is r, n, p or a\n"
+          "dump-cookies <filename>          dump the contents of the cookie data to the namewd file\n"
           "dump-dot-probe-map <filename>    dump the contents of the DoT probe map to the named file\n"
           "dump-edns [status] <filename>    dump EDNS status to the named file\n"
           "dump-failedservers <filename>    dump the failed servers to the named file\n"
@@ -2068,6 +2075,12 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int socket, cons
   }
   if (cmd == "dump-cache") {
     return doDumpCache(socket, begin, end);
+  }
+  if (cmd == "clear-cookies") {
+    return {0, clearCookies()};
+  }
+  if (cmd == "dump-cookies") {
+    return doDumpToFile(socket, pleaseDumpCookiesMap, cmd, false);
   }
   if (cmd == "dump-dot-probe-map") {
     return doDumpToFile(socket, pleaseDumpDoTProbeMap, cmd, false);
