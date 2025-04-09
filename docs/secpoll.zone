@@ -1,4 +1,4 @@
-@       86400   IN  SOA pdns-public-ns1.powerdns.com. peter\.van\.dijk.powerdns.com. 2025040701 10800 3600 604800 10800
+@       86400   IN  SOA pdns-public-ns1.powerdns.com. peter\.van\.dijk.powerdns.com. 2025040900 10800 3600 604800 10800
 @       3600    IN  NS  pdns-public-ns1.powerdns.com.
 @       3600    IN  NS  pdns-public-ns2.powerdns.com.
 
@@ -396,6 +396,7 @@ recursor-5.0.6.security-status                          60 IN TXT "3 Upgrade now
 recursor-5.0.7.security-status                          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2024-04.html"
 recursor-5.0.8.security-status                          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2024-04.html"
 recursor-5.0.9.security-status                          60 IN TXT "1 OK"
+recursor-5.0.10.security-status                          60 IN TXT "1 OK"
 recursor-5.1.0-alpha1.security-status                   60 IN TXT "3 Superseded pre-release (known vulnerabilities)"
 recursor-5.1.0-beta1.security-status                    60 IN TXT "3 Superseded pre-release (known vulnerabilities)"
 recursor-5.1.0-rc1.security-status                      60 IN TXT "3 Superseded pre-release (known vulnerabilities)"
@@ -403,11 +404,13 @@ recursor-5.1.0.security-status                          60 IN TXT "3 Upgrade now
 recursor-5.1.1.security-status                          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2024-04.html"
 recursor-5.1.2.security-status                          60 IN TXT "1 OK"
 recursor-5.1.3.security-status                          60 IN TXT "1 OK"
+recursor-5.1.4.security-status                          60 IN TXT "1 OK"
 recursor-5.2.0-alpha1.security-status                   60 IN TXT "3 Superseded pre-release (known vulnerabilities)"
 recursor-5.2.0-beta1.security-status                    60 IN TXT "3 Superseded pre-release (known vulnerabilities)"
 recursor-5.2.0-rc1.security-status                      60 IN TXT "3 Superseded pre-release (known vulnerabilities)"
 recursor-5.2.0.security-status                          60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/recursor/security-advisories/powerdns-advisory-2025-01.html"
 recursor-5.2.1.security-status                          60 IN TXT "1 OK"
+recursor-5.2.2.security-status                          60 IN TXT "1 OK"
 
 ; Recursor Debian
 recursor-3.6.2-2.debian.security-status                 60 IN TXT "3 Upgrade now, see https://doc.powerdns.com/3/security/powerdns-advisory-2015-01/ and https://doc.powerdns.com/3/security/powerdns-advisory-2016-02/"
