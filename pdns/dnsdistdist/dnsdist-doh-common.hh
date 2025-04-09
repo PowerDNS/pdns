@@ -207,48 +207,13 @@ class TCPQuerySender;
 #ifndef HAVE_DNS_OVER_HTTPS
 struct DOHUnitInterface
 {
-  std::string stubStr;
-  std::unordered_map<std::string, std::string> stubHeaders;
-
   virtual ~DOHUnitInterface()
   {
-  }
-
-  virtual std::string getHTTPPath()
-  {
-    return std::string();
-  }
-
-  virtual std::string getHTTPQueryString()
-  {
-    return std::string();
-  }
-
-  virtual const std::string& getHTTPHost()
-  {
-    return stubStr;
-  }
-
-  virtual const std::string& getHTTPScheme()
-  {
-    return stubStr;
-  }
-
-  virtual const std::unordered_map<std::string, std::string>& getHTTPHeaders()
-  {
-    return stubHeaders;
   }
 
   virtual std::shared_ptr<TCPQuerySender> getQuerySender() const
   {
     return nullptr;
-  }
-
-  virtual void setHTTPResponse(uint16_t statusCode, PacketBuffer&& body, const std::string& contentType = "")
-  {
-    (void)statusCode;
-    (void)body;
-    (void)contentType;
   }
 
   static void handleTimeout(std::unique_ptr<DOHUnitInterface>)

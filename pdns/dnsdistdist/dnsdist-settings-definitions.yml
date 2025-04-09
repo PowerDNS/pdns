@@ -146,7 +146,7 @@ global:
       type: "Vec<ResponseRuleConfiguration>"
       default: true
       skip-serde: true
-      description: "List of rules executed when a timeout event occurred"
+      description: "List of rules executed when a timeout event triggered from timer expiration or I/O error"
 
 metrics:
   description: "Metrics-related settings"

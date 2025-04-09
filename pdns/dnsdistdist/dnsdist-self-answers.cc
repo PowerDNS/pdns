@@ -240,4 +240,28 @@ bool generateAnswerFromRawPacket(DNSQuestion& dnsQuestion, const PacketBuffer& p
   return true;
 }
 
+bool generateAnswerForTimeoutQuery(const PacketBuffer& query, PacketBuffer& answer, const DNSName& dnsQName, uint16_t qtype, uint16_t qclass)
+{
+  auto& qname = dnsQName.getStorage();
+  if (query.size() < sizeof(dnsheader) || qname.length() <= 1) {
+    return false;
+  }
+  std::vector<uint8_t> qtc = {static_cast<uint8_t>(qtype>>8), static_cast<uint8_t>(qtype&0xff), static_cast<uint8_t>(qclass>>8), static_cast<uint8_t>(qclass&0xff)};
+
+  answer.resize(sizeof(dnsheader) + qname.length() + 4);
+  memcpy(&answer.at(0), &query.at(0), sizeof(dnsheader));
+  memcpy(&answer.at(sizeof(dnsheader)), qname.c_str(), qname.length());
+  memcpy(&answer.at(sizeof(dnsheader)+qname.length()), &qtc.at(0), 4);
+
+  dnsdist::PacketMangling::editDNSHeaderFromPacket(answer, [](dnsheader& header) {
+    header.qr = true;
+    header.qdcount = htons(1);
+    header.ancount = 0;
+    header.nscount = 0;
+    header.arcount = 0;
+    return true;
+  });
+  return true;
+}
+
 }

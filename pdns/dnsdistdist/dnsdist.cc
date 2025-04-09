@@ -1565,10 +1565,18 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
   return ProcessQueryResult::Drop;
 }
 
-bool handleTimeoutResponseRules(const std::vector<dnsdist::rules::ResponseRuleAction>& rules, InternalQueryState& ids, std::shared_ptr<DownstreamState> ds, std::shared_ptr<TCPQuerySender> sender)
+bool handleTimeoutResponseRules(const std::vector<dnsdist::rules::ResponseRuleAction>& rules, InternalQueryState& ids, const std::shared_ptr<DownstreamState>& d_ds, const std::shared_ptr<TCPQuerySender>& sender)
 {
-  PacketBuffer empty;
-  DNSResponse dnsResponse(ids, empty, ds);
+  if (!ids.d_packet || ids.d_packet->size() < sizeof(struct dnsheader)) {
+    return false;
+  }
+
+  PacketBuffer answer;
+  if (!dnsdist::self_answers::generateAnswerForTimeoutQuery(*ids.d_packet, answer, ids.qname, ids.qtype, ids.qclass)) {
+    return false;
+  }
+
+  DNSResponse dnsResponse(ids, answer, d_ds);
   auto protocol = dnsResponse.getProtocol();
 
   vinfolog("Handling timeout response rules for incoming protocol = %s", protocol.toString());

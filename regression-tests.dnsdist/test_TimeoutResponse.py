@@ -2,7 +2,7 @@
 import ssl
 import threading
 import dns
-from dnsdisttests import DNSDistTest, pickAvailablePort, DropAction
+from dnsdisttests import DNSDistTest, pickAvailablePort, ResponderDropAction
 
 _common_config = """
     addDOHLocal("127.0.0.1:%d", "server.chain", "server.key", {'/dns-query'}, {library='nghttp2'})
@@ -28,7 +28,7 @@ _common_config = """
 """
 
 def timeoutResponseCallback(request):
-    return DropAction()
+    return ResponderDropAction()
 
 def normalResponseCallback(request):
     response = dns.message.make_response(request)
@@ -62,8 +62,8 @@ class TestTimeoutBackendUdpTcp(DNSDistTest):
     _dohBaseURL = ("https://%s:%d/" % (_serverName, _doh3ServerPort))
 
     _config_template = """
-    newServer{address="127.0.0.1:%d",pool='restarted',udpTimeout=2,tcpRecvTimeout=2}:setUp()
-    newServer{address="127.0.0.1:%d",pool='',udpTimeout=2,tcpRecvTimeout=2}:setUp()
+    newServer{address="127.0.0.1:%d",pool='restarted',udpTimeout=1,tcpRecvTimeout=1}:setUp()
+    newServer{address="127.0.0.1:%d",pool='',udpTimeout=1,tcpRecvTimeout=1}:setUp()
     """ + _common_config
     _config_params = ['_testNormalServerPort', '_testTimeoutServerPort', '_dohWithNGHTTP2ServerPort', '_doqServerPort', '_doh3ServerPort', '_tlsServerPort']
     _verboseMode = True
@@ -102,15 +102,15 @@ class TestTimeoutBackendUdpTcp(DNSDistTest):
 
         for method in ("sendUDPQuery", "sendTCPQuery", "sendDOQQueryWrapper", "sendDOH3QueryWrapper", "sendDOTQueryWrapper", "sendDOHWithNGHTTP2QueryWrapper"):
             sender = getattr(self, method)
-            (_, receivedResponse) = sender(query, response=None, useQueue=False, timeout=6)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False, timeout=3)
             self.assertTrue(receivedResponse)
             self.assertEqual(receivedResponse, expectedResponse)
 
 class TestTimeoutBackendDOH(TestTimeoutBackendUdpTcp):
 
     _config_template = """
-    newServer{address="127.0.0.1:%d",pool='restarted',udpTimeout=2,tcpRecvTimeout=2,tls='openssl',validateCertificates=true,caStore='ca.pem',subjectName='powerdns.com',dohPath='/dns-query'}:setUp()
-    newServer{address="127.0.0.1:%d",pool='',udpTimeout=2,tcpRecvTimeout=2,tls='openssl',validateCertificates=true,caStore='ca.pem',subjectName='powerdns.com',dohPath='/dns-query'}:setUp()
+    newServer{address="127.0.0.1:%d",pool='restarted',udpTimeout=1,tcpRecvTimeout=1,tls='openssl',validateCertificates=true,caStore='ca.pem',subjectName='powerdns.com',dohPath='/dns-query'}:setUp()
+    newServer{address="127.0.0.1:%d",pool='',udpTimeout=1,tcpRecvTimeout=1,tls='openssl',validateCertificates=true,caStore='ca.pem',subjectName='powerdns.com',dohPath='/dns-query'}:setUp()
     """ + _common_config
 
     @classmethod
@@ -132,8 +132,8 @@ class TestTimeoutBackendDOH(TestTimeoutBackendUdpTcp):
 class TestTimeoutBackendDOT(TestTimeoutBackendUdpTcp):
 
     _config_template = """
-    newServer{address="127.0.0.1:%d",pool='restarted',udpTimeout=2,tcpRecvTimeout=2,tls='openssl',validateCertificates=true,caStore='ca.pem',subjectName='powerdns.com'}:setUp()
-    newServer{address="127.0.0.1:%d",pool='',udpTimeout=2,tcpRecvTimeout=2,tls='openssl',validateCertificates=true,caStore='ca.pem',subjectName='powerdns.com'}:setUp()
+    newServer{address="127.0.0.1:%d",pool='restarted',udpTimeout=1,tcpRecvTimeout=1,tls='openssl',validateCertificates=true,caStore='ca.pem',subjectName='powerdns.com'}:setUp()
+    newServer{address="127.0.0.1:%d",pool='',udpTimeout=1,tcpRecvTimeout=1,tls='openssl',validateCertificates=true,caStore='ca.pem',subjectName='powerdns.com'}:setUp()
     """ + _common_config
 
     @classmethod
