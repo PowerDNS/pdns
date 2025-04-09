@@ -36,7 +36,7 @@
 /nproxy
 /speedtest
 /tcpbench
-/tsig-tests
+/tsig_tests
 version_generated.h
 /zone2ldap
 /zone2sql
