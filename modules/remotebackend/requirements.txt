@@ -102,3 +102,7 @@ pyzmq==25.1.2 \
     --hash=sha256:faf79a302f834d9e8304fafdc11d0d042266667ac45209afa57e5efc998e3872 \
     --hash=sha256:fc31baa0c32a2ca660784d5af3b9487e13b61b3032cb01a115fce6588e1bed30
     # via -r requirements.in
+wheel==0.45.1 \
+    --hash=sha256:661e1abd9198507b1409a20c02106d9670b2576e916d58f520316666abca6729 \
+    --hash=sha256:708e7481cc80179af0e556bbf0cc00b8444c7321e2700b8d8580231d13017248
+    # via -r requirements.in
