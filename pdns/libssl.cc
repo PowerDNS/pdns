@@ -522,7 +522,7 @@ bool libssl_generate_ocsp_response(const std::string& certFile, const std::strin
 static int libssl_get_last_key_type(SSL_CTX& ctx)
 {
 #ifdef HAVE_SSL_CTX_GET0_PRIVATEKEY
-  auto pkey = SSL_CTX_get0_privatekey(&ctx);
+  auto* pkey = SSL_CTX_get0_privatekey(&ctx);
 #else
   auto temp = std::unique_ptr<SSL, void(*)(SSL*)>(SSL_new(&ctx), SSL_free);
   if (!temp) {
@@ -560,6 +560,7 @@ static std::unordered_set<std::string> get_names_from_certificate(const X509* ce
       if (ASN1_STRING_to_UTF8(&str, name->d.dNSName) < 0) {
         continue;
       }
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): OpenSSL's API
       result.emplace(reinterpret_cast<const char*>(str));
       OPENSSL_free(str);
     }
@@ -567,7 +568,7 @@ static std::unordered_set<std::string> get_names_from_certificate(const X509* ce
 
   auto* name = X509_get_subject_name(certificate);
   if (name != nullptr) {
-    ssize_t idx = -1;
+    int idx = -1;
     while ((idx = X509_NAME_get_index_by_NID(name, NID_commonName, idx)) != -1) {
       const auto* entry = X509_NAME_get_entry(name, idx);
       const auto* value = X509_NAME_ENTRY_get_data(entry);
@@ -575,6 +576,7 @@ static std::unordered_set<std::string> get_names_from_certificate(const X509* ce
       if (ASN1_STRING_to_UTF8(&str, value) < 0) {
         continue;
       }
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): OpenSSL's API
       result.emplace(reinterpret_cast<const char*>(str));
       OPENSSL_free(str);
     }
@@ -1006,7 +1008,7 @@ static std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)> getNewServerContext(con
 #endif
 
   SSL_CTX_set_options(ctx.get(), sslOptions);
-  if (!libssl_set_min_tls_version(*ctx.get(), config.d_minTLSVersion)) {
+  if (!libssl_set_min_tls_version(*ctx, config.d_minTLSVersion)) {
     throw std::runtime_error("Failed to set the minimum version to '" + libssl_tls_version_to_string(config.d_minTLSVersion));
   }
 
@@ -1138,7 +1140,7 @@ std::pair<std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>, std::vector<std::st
       throw std::runtime_error("The key from '" + pair.d_key.value() + "' does not match the certificate from '" + pair.d_cert + "'");
     }
     /* store the type of the new key, we might need it later to select the right OCSP stapling response */
-    auto keyType = libssl_get_last_key_type(*ctx.get());
+    auto keyType = libssl_get_last_key_type(*ctx);
     if (keyType < 0) {
       throw std::runtime_error("The key from '" + pair.d_key.value() + "' has an unknown type");
     }
@@ -1193,17 +1195,17 @@ std::pair<pdns::libssl::ServerContext, std::vector<std::string>> libssl_init_ser
       EVP_PKEY *keyptr = nullptr;
       X509 *certptr = nullptr;
       STACK_OF(X509) *captr = nullptr;
-      if (!PKCS12_parse(p12.get(), (pair.d_password ? pair.d_password->c_str() : nullptr), &keyptr, &certptr, &captr)) {
+      if (PKCS12_parse(p12.get(), (pair.d_password ? pair.d_password->c_str() : nullptr), &keyptr, &certptr, &captr) != 1) {
 #if defined(OPENSSL_VERSION_MAJOR) && OPENSSL_VERSION_MAJOR >= 3
         bool failed = true;
         /* we might be opening a PKCS12 file that uses RC2 CBC or 3DES CBC which, since OpenSSL 3.0.0, requires loading the legacy provider */
-        auto libCtx = OSSL_LIB_CTX_get0_global_default();
+        auto* libCtx = OSSL_LIB_CTX_get0_global_default();
         /* check whether the legacy provider is already loaded */
-        if (!OSSL_PROVIDER_available(libCtx, "legacy")) {
+        if (OSSL_PROVIDER_available(libCtx, "legacy") == 0) {
           /* it's not */
-          auto provider = OSSL_PROVIDER_load(libCtx, "legacy");
+          auto* provider = OSSL_PROVIDER_load(libCtx, "legacy");
           if (provider != nullptr) {
-            if (PKCS12_parse(p12.get(), (pair.d_password ? pair.d_password->c_str() : nullptr), &keyptr, &certptr, &captr)) {
+            if (PKCS12_parse(p12.get(), (pair.d_password ? pair.d_password->c_str() : nullptr), &keyptr, &certptr, &captr) == 1) {
               failed = false;
             }
             /* we do not want to keep that provider around after that */
@@ -1220,10 +1222,10 @@ std::pair<pdns::libssl::ServerContext, std::vector<std::string>> libssl_init_ser
       }
       auto key = std::unique_ptr<EVP_PKEY, void(*)(EVP_PKEY*)>(keyptr, EVP_PKEY_free);
       auto cert = std::unique_ptr<X509, void(*)(X509*)>(certptr, X509_free);
-      auto ca = std::unique_ptr<STACK_OF(X509), void(*)(STACK_OF(X509)*)>(captr, [](STACK_OF(X509)* st){ sk_X509_free(st); });
+      auto caList = std::unique_ptr<STACK_OF(X509), void(*)(STACK_OF(X509)*)>(captr, [](STACK_OF(X509)* stack){ sk_X509_free(stack); });
 
-      auto addCertificateAndKey = [&pair, &key, &cert, &ca](std::shared_ptr<SSL_CTX>& tlsContext) {
-        if (SSL_CTX_use_cert_and_key(tlsContext.get(), cert.get(), key.get(), ca.get(), 1) != 1) {
+      auto addCertificateAndKey = [&pair, &key, &cert, &caList](std::shared_ptr<SSL_CTX>& tlsContext) {
+        if (SSL_CTX_use_cert_and_key(tlsContext.get(), cert.get(), key.get(), caList.get(), 1) != 1) {
           ERR_print_errors_fp(stderr);
           throw std::runtime_error("An error occurred while trying to load the TLS certificate and key from PKCS12 file " + pair.d_cert);
         }
@@ -1257,7 +1259,7 @@ std::pair<pdns::libssl::ServerContext, std::vector<std::string>> libssl_init_ser
       throw std::runtime_error("The key from '" + pair.d_key.value() + "' does not match the certificate from '" + pair.d_cert + "'");
     }
     /* store the type of the new key, we might need it later to select the right OCSP stapling response */
-    auto keyType = libssl_get_last_key_type(*ctx.get());
+    auto keyType = libssl_get_last_key_type(*ctx);
     if (keyType < 0) {
       throw std::runtime_error("The key from '" + pair.d_key.value() + "' has an unknown type");
     }

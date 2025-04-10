@@ -70,8 +70,11 @@ public:
     for (const auto& warning : warnings) {
       warnlog("%s", warning);
     }
+    // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer): it cannot be initialized before calling libssl_init_server_context()
     d_ocspResponses = std::move(ctx.d_ocspResponses);
+    // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer): it cannot be initialized before calling libssl_init_server_context()
     d_tlsCtx = std::move(ctx.d_defaultContext);
+    // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer): it cannot be initialized before calling libssl_init_server_context()
     d_sniMap = std::move(ctx.d_sniMap);
     for (auto& entry : d_sniMap) {
       SSL_CTX_set_tlsext_servername_callback(entry.second.get(), &sni_server_name_callback);
@@ -104,6 +107,7 @@ static int sni_server_name_callback(SSL* ssl, int* /* alert */, void* /* arg */)
   if (serverName == nullptr) {
     return SSL_TLSEXT_ERR_NOACK;
   }
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): OpenSSL's API
   auto* frontendCtx = reinterpret_cast<OpenSSLFrontendContext*>(libssl_get_ticket_key_callback_data(ssl));
   if (frontendCtx == nullptr) {
     return SSL_TLSEXT_ERR_OK;
@@ -111,8 +115,8 @@ static int sni_server_name_callback(SSL* ssl, int* /* alert */, void* /* arg */)
 
   auto serverNameView = std::string_view(serverName);
 
-  auto it = frontendCtx->d_sniMap.find(serverNameView);
-  if (it == frontendCtx->d_sniMap.end()) {
+  auto mapIt = frontendCtx->d_sniMap.find(serverNameView);
+  if (mapIt == frontendCtx->d_sniMap.end()) {
     /* keep the default certificate */
     return SSL_TLSEXT_ERR_OK;
   }
@@ -120,7 +124,7 @@ static int sni_server_name_callback(SSL* ssl, int* /* alert */, void* /* arg */)
   /* if it fails there is nothing we can do,
      let's hope OpenSSL will fallback to the existing,
      default certificate*/
-  SSL_set_SSL_CTX(ssl, it->second.get());
+  SSL_set_SSL_CTX(ssl, mapIt->second.get());
   return SSL_TLSEXT_ERR_OK;
 }
 
