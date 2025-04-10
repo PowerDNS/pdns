@@ -146,7 +146,7 @@ global:
       type: "Vec<ResponseRuleConfiguration>"
       default: true
       skip-serde: true
-      description: "List of rules executed when a timeout event triggered from timer expiration or I/O error"
+      description: "List of rules executed when a timeout event triggered from timer expiration or network I/O error. Note that this rule is intent only for an action to restart a timed-out or network I/O failed query."
 
 metrics:
   description: "Metrics-related settings"

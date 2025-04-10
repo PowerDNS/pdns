@@ -456,6 +456,9 @@ bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>&
         return true;
         break;
       case DNSResponseAction::Action::ServFail:
+        if (dnsResponse.getData().size() < sizeof(dnsheader)) {
+          return false;
+        }
         dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsResponse.getMutableData(), [](dnsheader& header) {
           header.rcode = RCode::ServFail;
           return true;
@@ -463,6 +466,9 @@ bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>&
         return true;
         break;
       case DNSResponseAction::Action::Truncate:
+        if (dnsResponse.getData().size() < sizeof(dnsheader)) {
+          return false;
+        }
         if (!dnsResponse.overTCP()) {
           dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsResponse.getMutableData(), [](dnsheader& header) {
             header.tc = true;
@@ -1567,16 +1573,8 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
 
 bool handleTimeoutResponseRules(const std::vector<dnsdist::rules::ResponseRuleAction>& rules, InternalQueryState& ids, const std::shared_ptr<DownstreamState>& d_ds, const std::shared_ptr<TCPQuerySender>& sender)
 {
-  if (!ids.d_packet || ids.d_packet->size() < sizeof(struct dnsheader)) {
-    return false;
-  }
-
-  PacketBuffer answer;
-  if (!dnsdist::self_answers::generateAnswerForTimeoutQuery(*ids.d_packet, answer, ids.qname, ids.qtype, ids.qclass)) {
-    return false;
-  }
-
-  DNSResponse dnsResponse(ids, answer, d_ds);
+  PacketBuffer empty;
+  DNSResponse dnsResponse(ids, empty, d_ds);
   auto protocol = dnsResponse.getProtocol();
 
   vinfolog("Handling timeout response rules for incoming protocol = %s", protocol.toString());

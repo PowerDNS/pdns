@@ -520,7 +520,7 @@ For Rules related to timed out queries:
 
   .. versionadded:: 2.0.0
 
-  Add a Rule and Action for timeout triggered from timer expiration or I/O error.
+  Add a Rule and Action for timeout triggered from timer expiration or network I/O error. Note that this rule is intent only for an action to restart a timed-out or network I/O failed query.
 
   :param DNSrule rule: A :class:`DNSRule`, e.g. an :func:`AllRule`, or a compounded bunch of rules using e.g. :func:`AndRule`.
   :param action: The action to take
