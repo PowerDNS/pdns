@@ -44,6 +44,7 @@ public:
     uint32_t d_minTTL{0};
     uint32_t d_tempFailureTTL{60};
     uint32_t d_maxNegativeTTL{3600};
+    uint32_t d_truncatedTTL{0};
     uint32_t d_staleTTL{60};
     uint32_t d_shardCount{1};
     bool d_dontAge{false};

@@ -151,7 +151,14 @@ void DNSDistPacketCache::insert(uint32_t key, const boost::optional<Netmask>& su
 
     /* no TTL found, we don't want to cache this */
     if (minTTL == std::numeric_limits<uint32_t>::max()) {
-      return;
+      if (d_settings.d_truncatedTTL == 0) {
+        return;
+      }
+      dnsheader_aligned dh_aligned(response.data());
+      if (dh_aligned->tc == 0) {
+        return;
+      }
+      minTTL = d_settings.d_truncatedTTL;
     }
 
     if (rcode == RCode::NXDomain || (rcode == RCode::NoError && seenAuthSOA)) {
@@ -267,9 +274,8 @@ bool DNSDistPacketCache::get(DNSQuestion& dnsQuestion, uint16_t queryId, uint32_
     }
 
     if (!truncatedOK) {
-      dnsheader dnsHeader{};
-      memcpy(&dnsHeader, value.value.data(), sizeof(dnsHeader));
-      if (dnsHeader.tc != 0) {
+      dnsheader_aligned dh_aligned(value.value.data());
+      if (dh_aligned->tc != 0) {
         return false;
       }
     }
@@ -548,9 +554,8 @@ std::set<DNSName> DNSDistPacketCache::getDomainsContainingRecords(const ComboAdd
           continue;
         }
 
-        dnsheader dnsHeader{};
-        memcpy(&dnsHeader, value.value.data(), sizeof(dnsheader));
-        if (dnsHeader.rcode != RCode::NoError || (dnsHeader.ancount == 0 && dnsHeader.nscount == 0 && dnsHeader.arcount == 0)) {
+        dnsheader_aligned dnsHeader(value.value.data());
+        if (dnsHeader->rcode != RCode::NoError || (dnsHeader->ancount == 0 && dnsHeader->nscount == 0 && dnsHeader->arcount == 0)) {
           continue;
         }
 
@@ -606,13 +611,12 @@ std::set<ComboAddress> DNSDistPacketCache::getRecordsForDomain(const DNSName& do
           continue;
         }
 
-        dnsheader dnsHeader{};
         if (value.len < sizeof(dnsheader)) {
           continue;
         }
 
-        memcpy(&dnsHeader, value.value.data(), sizeof(dnsheader));
-        if (dnsHeader.rcode != RCode::NoError || (dnsHeader.ancount == 0 && dnsHeader.nscount == 0 && dnsHeader.arcount == 0)) {
+        dnsheader_aligned dnsHeader(value.value.data());
+        if (dnsHeader->rcode != RCode::NoError || (dnsHeader->ancount == 0 && dnsHeader->nscount == 0 && dnsHeader->arcount == 0)) {
           continue;
         }
 
