@@ -963,12 +963,10 @@ static bool isValidMetadataKind(const string& kind, bool readonly)
     "SOA-EDIT-DNSUPDATE",
     "TSIG-ALLOW-AXFR",
     "TSIG-ALLOW-DNSUPDATE",
-    "TSIG-ALLOW-DNSUPDATE",
   };
 
   // the following options do not allow modifications via API
   static vector<string> protectedOptions{
-    "API-RECTIFY",
     "AXFR-MASTER-TSIG",
     "LUA-AXFR-SCRIPT",
     "NSEC3NARROW",
