@@ -943,18 +943,16 @@ static bool isValidMetadataKind(const string& kind, bool readonly)
 {
   static vector<string> builtinOptions{
     "ALLOW-AXFR-FROM",
-    "AXFR-SOURCE",
     "ALLOW-DNSUPDATE-FROM",
-    "TSIG-ALLOW-DNSUPDATE",
-    "FORWARD-DNSUPDATE",
-    "SOA-EDIT-DNSUPDATE",
-    "NOTIFY-DNSUPDATE",
     "ALSO-NOTIFY",
     "AXFR-MASTER-TSIG",
-    "GSS-ALLOW-AXFR-PRINCIPAL",
+    "AXFR-SOURCE",
+    "FORWARD-DNSUPDATE",
     "GSS-ACCEPTOR-PRINCIPAL",
+    "GSS-ALLOW-AXFR-PRINCIPAL",
     "IXFR",
     "LUA-AXFR-SCRIPT",
+    "NOTIFY-DNSUPDATE",
     "NSEC3NARROW",
     "NSEC3PARAM",
     "PRESIGNED",
@@ -962,7 +960,9 @@ static bool isValidMetadataKind(const string& kind, bool readonly)
     "PUBLISH-CDS",
     "SLAVE-RENOTIFY",
     "SOA-EDIT",
+    "SOA-EDIT-DNSUPDATE",
     "TSIG-ALLOW-AXFR",
+    "TSIG-ALLOW-DNSUPDATE",
     "TSIG-ALLOW-DNSUPDATE",
   };
 
@@ -970,10 +970,10 @@ static bool isValidMetadataKind(const string& kind, bool readonly)
   static vector<string> protectedOptions{
     "API-RECTIFY",
     "AXFR-MASTER-TSIG",
+    "LUA-AXFR-SCRIPT",
     "NSEC3NARROW",
     "NSEC3PARAM",
     "PRESIGNED",
-    "LUA-AXFR-SCRIPT",
     "TSIG-ALLOW-AXFR",
   };
 
