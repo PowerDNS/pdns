@@ -22,6 +22,7 @@
 #include "dnsbackend.hh"
 #include "webserver.hh"
 #include <array>
+#include <string_view>
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -941,61 +942,41 @@ static void updateDomainSettingsFromDocument(UeberBackend& backend, DomainInfo& 
 
 static bool isValidMetadataKind(const string& kind, bool readonly)
 {
-  static vector<string> builtinOptions{
-    "ALLOW-AXFR-FROM",
-    "AXFR-SOURCE",
-    "ALLOW-DNSUPDATE-FROM",
-    "TSIG-ALLOW-DNSUPDATE",
-    "FORWARD-DNSUPDATE",
-    "SOA-EDIT-DNSUPDATE",
-    "NOTIFY-DNSUPDATE",
-    "ALSO-NOTIFY",
-    "AXFR-MASTER-TSIG",
-    "GSS-ALLOW-AXFR-PRINCIPAL",
-    "GSS-ACCEPTOR-PRINCIPAL",
-    "IXFR",
-    "LUA-AXFR-SCRIPT",
-    "NSEC3NARROW",
-    "NSEC3PARAM",
-    "PRESIGNED",
-    "PUBLISH-CDNSKEY",
-    "PUBLISH-CDS",
-    "SLAVE-RENOTIFY",
-    "SOA-EDIT",
-    "TSIG-ALLOW-AXFR",
-    "TSIG-ALLOW-DNSUPDATE",
-  };
-
-  // the following options do not allow modifications via API
-  static vector<string> protectedOptions{
-    "API-RECTIFY",
-    "AXFR-MASTER-TSIG",
-    "NSEC3NARROW",
-    "NSEC3PARAM",
-    "PRESIGNED",
-    "LUA-AXFR-SCRIPT",
-    "TSIG-ALLOW-AXFR",
+  const static vector<std::pair<std::string_view, bool /* readonly */>> builtinOptions{
+    {"ALLOW-AXFR-FROM", false},
+    {"ALLOW-DNSUPDATE-FROM", false},
+    {"ALSO-NOTIFY", false},
+    {"AXFR-MASTER-TSIG", true},
+    {"AXFR-SOURCE", false},
+    {"FORWARD-DNSUPDATE", false},
+    {"GSS-ACCEPTOR-PRINCIPAL", false},
+    {"GSS-ALLOW-AXFR-PRINCIPAL", false},
+    {"IXFR", false},
+    {"LUA-AXFR-SCRIPT", true},
+    {"NOTIFY-DNSUPDATE", false},
+    {"NSEC3NARROW", true},
+    {"NSEC3PARAM", true},
+    {"PRESIGNED", true},
+    {"PUBLISH-CDNSKEY", false},
+    {"PUBLISH-CDS", false},
+    {"SLAVE-RENOTIFY", false},
+    {"SOA-EDIT", true},
+    {"SOA-EDIT-DNSUPDATE", false},
+    {"TSIG-ALLOW-AXFR", false},
+    {"TSIG-ALLOW-DNSUPDATE", false},
   };
 
   if (kind.find("X-") == 0) {
     return true;
   }
 
-  bool found = false;
-
-  for (const string& builtinOption : builtinOptions) {
-    if (kind == builtinOption) {
-      for (const string& protectedOption : protectedOptions) {
-        if (!readonly && builtinOption == protectedOption) {
-          return false;
-        }
-      }
-      found = true;
-      break;
+  for (const auto& builtinOption : builtinOptions) {
+    if (kind == builtinOption.first) {
+      return readonly || !builtinOption.second;
     }
   }
 
-  return found;
+  return false;
 }
 
 /* Return OpenAPI document describing the supported API.
