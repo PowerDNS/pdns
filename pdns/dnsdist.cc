@@ -1447,6 +1447,9 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dq, LocalHolders& holders
     if (selectedBackend && selectedBackend->isTCPOnly()) {
       willBeForwardedOverUDP = false;
     }
+    else if (!selectedBackend) {
+      willBeForwardedOverUDP = !serverPool->isTCPOnly();
+    }
 
     uint32_t allowExpired = selectedBackend ? 0 : g_staleCacheEntriesTTL;
 
