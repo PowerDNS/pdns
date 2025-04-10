@@ -112,7 +112,7 @@ General settings for frontends
 - **listen_address**: String - Address and port to listen to
 - **reuseport**: Boolean ``(false)`` - Set the ``SO_REUSEPORT`` socket option, allowing several sockets to be listening on this address and port
 - **protocol**: String ``(Do53)`` - The DNS protocol for this frontend. Supported values are: Do53, DoT, DoH, DoQ, DoH3, DNSCrypt
-- **threads**: Unsigned integer ``(1)`` - Number of listening threads to create for this frontend
+- **threads**: Unsigned integer ``(1)`` - Number of listening threads to create for this frontend. Note that each listening thread will have its own metrics, but identical DoT and DoH threads will share the same TLS Session Ticket Encryption Keys to improve session resumption rates. One side-effect is that rotating / altering the STEKs on all threads in a frontend group except the first one will be ignored, to prevent unwanted actions by existing code. :func:`reloadAllCertificates` properly handles frontend groups.
 - **interface**: String ``("")`` - Set the network interface to use
 - **cpus**: String ``("")`` - Set the CPU affinity for this listener thread, asking the scheduler to run it on a single CPU id, or a set of CPU ids. This parameter is only available if the OS provides the ``pthread_setaffinity_np()`` function
 - **enable_proxy_protocol**: Boolean ``(false)`` - Whether to expect a proxy protocol v2 header in front of incoming queries coming from an address allowed by the ACL in :ref:`yaml-settings-ProxyProtocolConfiguration`. Default is ``true``, meaning that queries are expected to have a proxy protocol payload if they come from an address present in the proxy protocol ACL

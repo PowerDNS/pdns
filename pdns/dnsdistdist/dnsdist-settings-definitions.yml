@@ -1084,7 +1084,7 @@ bind:
     - name: "threads"
       type: "u32"
       default: "1"
-      description: "Number of listening threads to create for this frontend"
+      description: "Number of listening threads to create for this frontend. Note that each listening thread will have its own metrics, but identical DoT and DoH threads will share the same TLS Session Ticket Encryption Keys to improve session resumption rates. One side-effect is that rotating / altering the STEKs on all threads in a frontend group except the first one will be ignored, to prevent unwanted actions by existing code. :func:`reloadAllCertificates` properly handles frontend groups."
     - name: "interface"
       type: "String"
       default: ""

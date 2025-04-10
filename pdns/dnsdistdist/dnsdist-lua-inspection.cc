@@ -778,7 +778,7 @@ void setupLuaInspection(LuaContext& luaCtx)
         errorCounters = &frontend->tlsFrontend->d_tlsCounters;
       }
       else if (frontend->dohFrontend != nullptr) {
-        errorCounters = &frontend->dohFrontend->d_tlsContext.d_tlsCounters;
+        errorCounters = &frontend->dohFrontend->d_tlsContext->d_tlsCounters;
       }
       if (errorCounters == nullptr) {
         continue;
