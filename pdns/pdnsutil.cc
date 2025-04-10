@@ -1539,6 +1539,21 @@ static int zonemdVerifyFile(const DNSName& zone, const string& fname) {
   return EXIT_FAILURE;
 }
 
+// Wrapper around UeberBackend::createDomain, which will also set up the
+// default metadata, matching the behaviour of the REST API.
+static bool createZoneWithDefaults(UtilBackend &backend, DomainInfo &info, const DNSName& zone, DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries)
+{
+  backend.createDomain(zone, kind, primaries, "");
+  if (!backend.getDomainInfo(zone, info)) {
+    cerr << "Zone '" << zone << "' was not created!" << endl;
+    return false;
+  }
+  info.backend->startTransaction(zone, static_cast<int>(info.id));
+  info.backend->setDomainMetadataOne(zone, "SOA-EDIT-API", "DEFAULT");
+  info.backend->commitTransaction();
+  return true;
+}
+
 static int loadZone(const DNSName& zone, const string& fname) {
   UtilBackend B; //NOLINT(readability-identifier-length)
   DomainInfo di;
@@ -1553,10 +1568,7 @@ static int loadZone(const DNSName& zone, const string& fname) {
       return EXIT_FAILURE;
     }
     cerr<<"Creating '"<<zone<<"'"<<endl;
-    B.createDomain(zone, DomainInfo::Native, vector<ComboAddress>(), "");
-
-    if(!B.getDomainInfo(zone, di)) {
-      cerr << "Zone '" << zone << "' was not created." << endl;
+    if (!createZoneWithDefaults(B, di, zone, DomainInfo::Native, vector<ComboAddress>())) {
       return EXIT_FAILURE;
     }
   }
@@ -1637,9 +1649,7 @@ static int createZone(const DNSName &zone, const DNSName& nsname) {
   rr.content = makeSOAContent(sd)->getZoneRepresentation(true);
 
   cerr<<"Creating empty zone '"<<zone<<"'"<<endl;
-  B.createDomain(zone, DomainInfo::Native, vector<ComboAddress>(), "");
-  if(!B.getDomainInfo(zone, di)) {
-    cerr << "Zone '" << zone << "' was not created!" << endl;
+  if (!createZoneWithDefaults(B, di, zone, DomainInfo::Native, vector<ComboAddress>())) {
     return EXIT_FAILURE;
   }
 
@@ -3195,8 +3205,7 @@ static int createSecondaryZone(vector<string>& cmds, const std::string_view syno
     primaries.emplace_back(cmds.at(i), 53);
   }
   cerr << "Creating secondary zone '" << zone << "', with primaries '" << comboAddressVecToString(primaries) << "'" << endl;
-  B.createDomain(zone, DomainInfo::Secondary, primaries, "");
-  if(!B.getDomainInfo(zone, di)) {
+  if (!createZoneWithDefaults(B, di, zone, DomainInfo::Secondary, primaries)) {
     cerr << "Zone '" << zone << "' was not created!" << endl;
     return EXIT_FAILURE;
   }
