@@ -5,7 +5,7 @@ if opt_libssl_providers
   if not opt_libssl.allowed()
     error('OpenSSL TLS providers requested but libssl is not enabled')
   endif
-  dep_libssl_3_later = dependency('libssl >= 3.0', required: false)
+  dep_libssl_3_later = dependency('libssl', version: '>= 3.0', required: false)
 
   if not dep_libssl_3_later.found()
     error('OpenSSL TLS providers requested but libssl is not >= 3.0')
