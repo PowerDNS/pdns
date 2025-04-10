@@ -7,7 +7,7 @@ mode=${1-}
 progdir=${abs_srcdir-$PWD}
 
 if [ ! -d venv ]; then
-  flock .create_testenv bash -c "python3 -m venv venv && source venv/bin/activate && pip install wheel && pip install -r ${progdir}/requirements.txt"
+  flock .create_testenv bash -c "python3 -m venv venv && source venv/bin/activate && pip install -r ${progdir}/requirements.txt"
   rm .create_testenv
 fi
 

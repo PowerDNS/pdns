@@ -5,7 +5,6 @@ if [ ! -d .venv ]; then
 fi
 . .venv/bin/activate
 python -V
-pip install -U pip wheel | cat
 pip install -r requirements.txt | cat
 
 make clean-certs

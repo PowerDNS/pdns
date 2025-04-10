@@ -97,7 +97,7 @@ api-swagger.yaml: $(wildcard ${srcdir}/../docs/http-api/swagger/authoritative-ap
 if HAVE_VENV
 api-swagger.json: api-swagger.yaml requirements.txt
 	$(PYTHON) -m venv .venv
-	.venv/bin/pip install -U pip setuptools setuptools-git wheel
+	.venv/bin/pip install -U pip setuptools
 	.venv/bin/pip install -r ${srcdir}/requirements.txt
 	.venv/bin/python ${srcdir}/convert-yaml-to-json.py $< $@
 else # if HAVE_VENV

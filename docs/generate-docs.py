@@ -30,7 +30,7 @@ def main():
     # Install some stuff into the venv.
     requirements_file = source_root.joinpath(args.requirements_file)
     pip = venv_directory.joinpath("bin").joinpath("pip")
-    subprocess.run([pip, "install", "-U", "pip", "setuptools", "wheel"], check=True)
+    subprocess.run([pip, "install", "-U", "pip", "setuptools"], check=True)
     subprocess.run([pip, "install", "-r", requirements_file], check=True)
 
     # Run sphinx to generate the docs

@@ -66,7 +66,7 @@ mans/.complete: .venv
 
 .venv: requirements.txt
 	$(PYTHON) -m venv .venv
-	.venv/bin/pip install -U pip setuptools setuptools-git wheel
+	.venv/bin/pip install -U pip setuptools
 	.venv/bin/pip install -r ${srcdir}/requirements.txt
 
 .NOTPARALLEL: \

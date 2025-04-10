@@ -1,6 +1,8 @@
 # To generate requirements.txt, install pip-tools and run:
 #  pip-compile --generate-hashes -U requirements.in
 
+wheel==0.45.1
+setuptools-git==1.2
 Sphinx>=1.5.0,!=1.8.0,<2.0
 alabaster==0.7.13 # higher versions require Sphinx>3.4
 https://github.com/PowerDNS/sphinx-lua/archive/refs/heads/pdns.zip

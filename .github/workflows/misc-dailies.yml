@@ -128,7 +128,7 @@ jobs:
       - run: pip install -r ${{ matrix.requirements-file }}
       - name: Get the list of packages requested to the pip proxy
         run: |
-          docker logs ${{ steps.proxpi-docker.outputs.id }} 2>&1 | grep whl | awk '{print $8}' | cut -d "/" -f 4 | awk -F'-' '{print $1"=="$2}' | sort -u --ignore-case | sed 's/_/-/' | egrep -v "pip==|setuptools==|wheel==|setuptools-git==" > /tmp/proxpi.log
+          docker logs ${{ steps.proxpi-docker.outputs.id }} 2>&1 | grep whl | awk '{print $8}' | cut -d "/" -f 4 | awk -F'-' '{print $1"=="$2}' | sort -u --ignore-case | sed 's/_/-/' | egrep -v "pip==|setuptools==" > /tmp/proxpi.log
           cat /tmp/proxpi.log
       - name: check only listed packages were installed
         run: for i in `cat /tmp/proxpi.log`; do grep -qq -i $i ${{ matrix.requirements-file }} || ( echo "$i not found" && exit 1 ); done
