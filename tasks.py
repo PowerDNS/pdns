@@ -825,7 +825,7 @@ def ci_dnsdist_configure_meson(features, additional_flags, additional_ld_flags, 
         f"CXX='{get_cxx_compiler()}'",
     ])
     return " ".join([
-        f'. {repo_home}/.venv/bin/activate && {env} meson setup {build_dir}',
+        f'{env} meson setup {build_dir}',
         features_set,
         unittests,
         fuzztargets,
@@ -870,7 +870,7 @@ def ci_dnsdist_make(c):
     c.run(f'make -j{get_build_concurrency(4)} -k V=1')
 
 def ci_dnsdist_run_ninja(c):
-    c.run(f'. {repo_home}/.venv/bin/activate && ninja -j{get_build_concurrency()} --verbose')
+    c.run(f'ninja -j{get_build_concurrency(4)} --verbose')
 
 @task
 def ci_dnsdist_make_bear(c, builder):
@@ -916,7 +916,7 @@ def ci_dnsdist_run_unit_tests(c, builder):
     if builder == 'meson':
         suite_timeout_sec = 120
         logfile = 'meson-logs/testlog.txt'
-        res = c.run(f'. {repo_home}/.venv/bin/activate && meson test --verbose -t {suite_timeout_sec}', warn=True)
+        res = c.run(f'meson test --verbose -t {suite_timeout_sec}', warn=True)
     else:
         logfile = 'test-suite.log'
         res = c.run('make check', warn=True)
