@@ -1562,6 +1562,7 @@ static int loadZone(const DNSName& zone, const string& fname) {
   }
   DNSBackend* db = di.backend;
   ZoneParserTNG zpt(fname, zone);
+  zpt.setDefaultTTL(::arg().asNum("default-ttl"));
   zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
 
   DNSResourceRecord rr;
