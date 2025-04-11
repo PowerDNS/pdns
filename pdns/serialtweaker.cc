@@ -38,7 +38,7 @@ uint32_t localtime_format_YYYYMMDDSS(time_t t, uint32_t seq)
     + seq;
 }
 
-uint32_t calculateEditSOA(uint32_t old_serial, const string& kind, const DNSName& zonename)
+uint32_t calculateEditSOA(uint32_t old_serial, const string& kind, const ZoneName& zonename)
 {
   if(pdns_iequals(kind,"INCEPTION-INCREMENT")) {
     time_t inception = getStartOfWeek();
@@ -79,14 +79,14 @@ uint32_t calculateEditSOA(uint32_t old_serial, const string& kind, const DNSName
   return old_serial;
 }
 
-uint32_t calculateEditSOA(uint32_t old_serial, DNSSECKeeper& dk, const DNSName& zonename) {
+uint32_t calculateEditSOA(uint32_t old_serial, DNSSECKeeper& dk, const ZoneName& zonename) {
   string kind;
   dk.getSoaEdit(zonename, kind);
   return calculateEditSOA(old_serial, kind, zonename);
 }
 
 /** Used for SOA-EDIT-DNSUPDATE and SOA-EDIT-API. */
-static uint32_t calculateIncreaseSOA(uint32_t old_serial, const string& increaseKind, const string& editKind, const DNSName& zonename) {
+static uint32_t calculateIncreaseSOA(uint32_t old_serial, const string& increaseKind, const string& editKind, const ZoneName& zonename) {
   if (pdns_iequals(increaseKind, "SOA-EDIT-INCREASE")) {
     uint32_t new_serial = old_serial;
     if (!editKind.empty()) {

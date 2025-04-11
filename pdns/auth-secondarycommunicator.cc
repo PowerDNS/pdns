@@ -48,7 +48,7 @@
 
 #include "ixfr.hh"
 
-void CommunicatorClass::addSuckRequest(const DNSName& domain, const ComboAddress& primary, SuckRequest::RequestPriority priority, bool force)
+void CommunicatorClass::addSuckRequest(const ZoneName& domain, const ComboAddress& primary, SuckRequest::RequestPriority priority, bool force)
 {
   auto data = d_data.lock();
   SuckRequest sr;
@@ -94,7 +94,7 @@ static bool catalogDiff(const DomainInfo& di, vector<CatalogInfo>& fromXFR, vect
   bool doTransaction{true};
   bool inTransaction{false};
   CatalogInfo ciCreate, ciRemove;
-  std::unordered_map<DNSName, bool> clearCache;
+  std::unordered_map<ZoneName, bool> clearCache;
   vector<CatalogInfo> retrieve;
 
   try {
@@ -309,7 +309,7 @@ static bool catalogProcess(const DomainInfo& di, vector<DNSResourceRecord>& rrs,
   logPrefix += "Catalog-Zone ";
 
   vector<CatalogInfo> fromXFR, fromDB;
-  std::unordered_set<DNSName> dupcheck;
+  std::unordered_set<ZoneName> dupcheck;
 
   // From XFR
   bool hasSOA{false};
@@ -425,7 +425,7 @@ static bool catalogProcess(const DomainInfo& di, vector<DNSResourceRecord>& rrs,
   return catalogDiff(di, fromXFR, fromDB, logPrefix);
 }
 
-void CommunicatorClass::ixfrSuck(const DNSName& domain, const TSIGTriplet& tt, const ComboAddress& laddr, const ComboAddress& remote, ZoneStatus& zs, vector<DNSRecord>* axfr)
+void CommunicatorClass::ixfrSuck(const ZoneName& domain, const TSIGTriplet& tt, const ComboAddress& laddr, const ComboAddress& remote, ZoneStatus& zs, vector<DNSRecord>* axfr)
 {
   string logPrefix = "IXFR-in zone '" + domain.toLogString() + "', primary '" + remote.toString() + "', ";
 
@@ -471,7 +471,7 @@ void CommunicatorClass::ixfrSuck(const DNSName& domain, const TSIGTriplet& tt, c
       // this means that we must group updates by {qname,qtype}, retrieve the RRSET, apply
       // the add/remove updates, and replaceRRSet the whole thing.
 
-      map<pair<DNSName, uint16_t>, pair<vector<DNSRecord>, vector<DNSRecord>>> grouped;
+      map<pair<ZoneName, uint16_t>, pair<vector<DNSRecord>, vector<DNSRecord>>> grouped;
 
       for (const auto& x : remove)
         grouped[{x.d_name, x.d_type}].first.push_back(x);
@@ -636,7 +636,7 @@ static vector<DNSResourceRecord> doAxfr(const ComboAddress& raddr, const DNSName
   return rrs;
 }
 
-void CommunicatorClass::suck(const DNSName& domain, const ComboAddress& remote, bool force) // NOLINT(readability-function-cognitive-complexity)
+void CommunicatorClass::suck(const ZoneName& domain, const ComboAddress& remote, bool force) // NOLINT(readability-function-cognitive-complexity)
 {
   {
     auto data = d_data.lock();
@@ -1391,9 +1391,9 @@ void CommunicatorClass::secondaryRefresh(PacketHandler* P)
   }
 }
 
-vector<pair<DNSName, ComboAddress>> CommunicatorClass::getSuckRequests()
+vector<pair<ZoneName, ComboAddress>> CommunicatorClass::getSuckRequests()
 {
-  vector<pair<DNSName, ComboAddress>> ret;
+  vector<pair<ZoneName, ComboAddress>> ret;
   auto data = d_data.lock();
   ret.reserve(data->d_suckdomains.size());
   for (auto const& d : data->d_suckdomains) {

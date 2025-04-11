@@ -42,7 +42,7 @@ extern StatBag S;
 // this is so the geoipbackend can set this pointer if loaded for lua-record.cc
 std::function<std::string(const std::string&, int)> g_getGeo;
 
-bool DNSBackend::getAuth(const DNSName& target, SOAData* soaData)
+bool DNSBackend::getAuth(const ZoneName& target, SOAData* soaData)
 {
   return this->getSOA(target, *soaData);
 }
@@ -242,7 +242,7 @@ vector<std::unique_ptr<DNSBackend>> BackendMakerClass::all(bool metadataOnly)
     \param sd SOAData which is filled with the SOA details
     \param unmodifiedSerial bool if set, serial will be returned as stored in the backend (maybe 0)
 */
-bool DNSBackend::getSOA(const DNSName& domain, SOAData& soaData)
+bool DNSBackend::getSOA(const ZoneName& domain, SOAData& soaData)
 {
   this->lookup(QType(QType::SOA), domain, -1);
   S.inc("backend-queries");
@@ -300,7 +300,7 @@ bool DNSBackend::get(DNSZoneRecord& zoneRecord)
   return true;
 }
 
-bool DNSBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonename, const DNSName& qname, DNSName& before, DNSName& after)
+bool DNSBackend::getBeforeAndAfterNames(uint32_t id, const ZoneName& zonename, const DNSName& qname, DNSName& before, DNSName& after)
 {
   DNSName unhashed;
   bool ret = this->getBeforeAndAfterNamesAbsolute(id, qname.makeRelative(zonename).makeLowerCase(), unhashed, before, after);

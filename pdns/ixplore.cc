@@ -73,7 +73,7 @@ int main(int argc, char** argv) {
     }
     if(command=="diff") {
       records_t before, after;
-      DNSName zone(argv[2]);
+      ZoneName zone(argv[2]);
       cout<<"Loading before from "<<argv[3]<<endl;
       loadZoneFromDisk(before, argv[3], zone);
       cout<<"Parsed "<<before.size()<<" records"<<endl;
@@ -108,7 +108,7 @@ int main(int argc, char** argv) {
 
        Next up, loop this every REFRESH seconds */
 
-    DNSName zone(argv[4]);
+    ZoneName zone(argv[4]);
     ComboAddress primary(argv[2], atoi(argv[3]));
     string directory(argv[5]);
     records_t records;

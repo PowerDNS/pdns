@@ -629,7 +629,7 @@ static std::vector<DNSZoneRecord> lookup(const DNSName& name, uint16_t qtype, in
   return ret;
 }
 
-static bool getAuth(const DNSName& name, uint16_t qtype, SOAData* soaData)
+static bool getAuth(const ZoneName& name, uint16_t qtype, SOAData* soaData)
 {
   static LockGuarded<UeberBackend> s_ub;
 
@@ -1567,10 +1567,10 @@ static vector<string> lua_all(const vector< pair<int,string> >& ips)
 
 static vector<string> lua_dblookup(const string& record, uint16_t qtype)
 {
-  DNSName rec;
+  ZoneName rec;
   vector<string> ret;
   try {
-    rec = DNSName(record);
+    rec = ZoneName(record);
   }
   catch (const std::exception& e) {
     g_log << Logger::Error << "DB lookup cannot be performed, the name (" << record << ") is malformed: " << e.what() << endl;

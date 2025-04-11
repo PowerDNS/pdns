@@ -17,7 +17,7 @@ static void testZoneMD(const std::string& zone, const std::string& file, bool ex
   if (!p) {
     p = ".";
   }
-  DNSName z(zone);
+  ZoneName z(zone);
   std::ostringstream pathbuf;
   pathbuf << p << "/../regression-tests/zones/" + file;
   ZoneParserTNG zpt(pathbuf.str(), z);

@@ -225,7 +225,7 @@ void RemoteBackend::lookup(const QType& qtype, const DNSName& qdomain, int zoneI
   d_index = 0;
 }
 
-bool RemoteBackend::list(const DNSName& target, int domain_id, bool include_disabled)
+bool RemoteBackend::list(const ZoneName& target, int domain_id, bool include_disabled)
 {
   if (d_index != -1) {
     throw PDNSException("Attempt to lookup while one running");
@@ -304,7 +304,7 @@ bool RemoteBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& q
   return true;
 }
 
-bool RemoteBackend::getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string>>& meta)
+bool RemoteBackend::getAllDomainMetadata(const ZoneName& name, std::map<std::string, std::vector<std::string>>& meta)
 {
   Json query = Json::object{
     {"method", "getAllDomainMetadata"},
@@ -336,7 +336,7 @@ bool RemoteBackend::getAllDomainMetadata(const DNSName& name, std::map<std::stri
   return true;
 }
 
-bool RemoteBackend::getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta)
+bool RemoteBackend::getDomainMetadata(const ZoneName& name, const std::string& kind, std::vector<std::string>& meta)
 {
   Json query = Json::object{
     {"method", "getDomainMetadata"},
@@ -366,7 +366,7 @@ bool RemoteBackend::getDomainMetadata(const DNSName& name, const std::string& ki
   return true;
 }
 
-bool RemoteBackend::setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta)
+bool RemoteBackend::setDomainMetadata(const ZoneName& name, const std::string& kind, const std::vector<std::string>& meta)
 {
   Json query = Json::object{
     {"method", "setDomainMetadata"},
@@ -380,7 +380,7 @@ bool RemoteBackend::setDomainMetadata(const DNSName& name, const std::string& ki
   return boolFromJson(answer, "result", false);
 }
 
-bool RemoteBackend::getDomainKeys(const DNSName& name, std::vector<DNSBackend::KeyData>& keys)
+bool RemoteBackend::getDomainKeys(const ZoneName& name, std::vector<DNSBackend::KeyData>& keys)
 {
   // no point doing dnssec if it's not supported
   if (!d_dnssec) {
@@ -411,7 +411,7 @@ bool RemoteBackend::getDomainKeys(const DNSName& name, std::vector<DNSBackend::K
   return true;
 }
 
-bool RemoteBackend::removeDomainKey(const DNSName& name, unsigned int id)
+bool RemoteBackend::removeDomainKey(const ZoneName& name, unsigned int id)
 {
   // no point doing dnssec if it's not supported
   if (!d_dnssec) {
@@ -426,7 +426,7 @@ bool RemoteBackend::removeDomainKey(const DNSName& name, unsigned int id)
   return this->send(query) && this->recv(answer);
 }
 
-bool RemoteBackend::addDomainKey(const DNSName& name, const KeyData& key, int64_t& id)
+bool RemoteBackend::addDomainKey(const ZoneName& name, const KeyData& key, int64_t& id)
 {
   // no point doing dnssec if it's not supported
   if (!d_dnssec) {
@@ -446,7 +446,7 @@ bool RemoteBackend::addDomainKey(const DNSName& name, const KeyData& key, int64_
   return id >= 0;
 }
 
-bool RemoteBackend::activateDomainKey(const DNSName& name, unsigned int id)
+bool RemoteBackend::activateDomainKey(const ZoneName& name, unsigned int id)
 {
   // no point doing dnssec if it's not supported
   if (!d_dnssec) {
@@ -461,7 +461,7 @@ bool RemoteBackend::activateDomainKey(const DNSName& name, unsigned int id)
   return this->send(query) && this->recv(answer);
 }
 
-bool RemoteBackend::deactivateDomainKey(const DNSName& name, unsigned int id)
+bool RemoteBackend::deactivateDomainKey(const ZoneName& name, unsigned int id)
 {
   // no point doing dnssec if it's not supported
   if (!d_dnssec) {
@@ -476,7 +476,7 @@ bool RemoteBackend::deactivateDomainKey(const DNSName& name, unsigned int id)
   return this->send(query) && this->recv(answer);
 }
 
-bool RemoteBackend::publishDomainKey(const DNSName& name, unsigned int id)
+bool RemoteBackend::publishDomainKey(const ZoneName& name, unsigned int id)
 {
   // no point doing dnssec if it's not supported
   if (!d_dnssec) {
@@ -491,7 +491,7 @@ bool RemoteBackend::publishDomainKey(const DNSName& name, unsigned int id)
   return this->send(query) && this->recv(answer);
 }
 
-bool RemoteBackend::unpublishDomainKey(const DNSName& name, unsigned int id)
+bool RemoteBackend::unpublishDomainKey(const ZoneName& name, unsigned int id)
 {
   // no point doing dnssec if it's not supported
   if (!d_dnssec) {
@@ -595,7 +595,7 @@ bool RemoteBackend::getTSIGKeys(std::vector<struct TSIGKey>& keys)
 void RemoteBackend::parseDomainInfo(const Json& obj, DomainInfo& di)
 {
   di.id = intFromJson(obj, "id", -1);
-  di.zone = DNSName(stringFromJson(obj, "zone"));
+  di.zone = ZoneName(stringFromJson(obj, "zone"));
   for (const auto& primary : obj["masters"].array_items()) {
     di.primaries.emplace_back(primary.string_value(), 53);
   }
@@ -620,7 +620,7 @@ void RemoteBackend::parseDomainInfo(const Json& obj, DomainInfo& di)
   di.backend = this;
 }
 
-bool RemoteBackend::getDomainInfo(const DNSName& domain, DomainInfo& di, bool /* getSerial */)
+bool RemoteBackend::getDomainInfo(const ZoneName& domain, DomainInfo& di, bool /* getSerial */)
 {
   if (domain.empty()) {
     return false;
@@ -651,7 +651,7 @@ void RemoteBackend::setNotified(uint32_t id, uint32_t serial)
   }
 }
 
-bool RemoteBackend::autoPrimaryBackend(const string& ip, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** ddb)
+bool RemoteBackend::autoPrimaryBackend(const string& ip, const ZoneName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** ddb)
 {
   Json::array rrset;
 
@@ -688,7 +688,7 @@ bool RemoteBackend::autoPrimaryBackend(const string& ip, const DNSName& domain, 
   return true;
 }
 
-bool RemoteBackend::createSecondaryDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account)
+bool RemoteBackend::createSecondaryDomain(const string& ip, const ZoneName& domain, const string& nameserver, const string& account)
 {
   Json query = Json::object{
     {"method", "createSlaveDomain"},
@@ -775,7 +775,7 @@ bool RemoteBackend::feedEnts3(int domain_id, const DNSName& domain, map<DNSName,
   return this->send(query) && this->recv(answer);
 }
 
-bool RemoteBackend::startTransaction(const DNSName& domain, int domain_id)
+bool RemoteBackend::startTransaction(const ZoneName& domain, int domain_id)
 {
   this->d_trxid = time((time_t*)nullptr);
 

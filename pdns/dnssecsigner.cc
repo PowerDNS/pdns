@@ -106,7 +106,7 @@ static void fillOutRRSIG(DNSSECPrivateKey& dpk, const DNSName& signQName, RRSIGR
 
 /* this is where the RRSIGs begin, keys are retrieved,
    but the actual signing happens in fillOutRRSIG */
-static int getRRSIGsForRRSET(DNSSECKeeper& dk, const DNSName& signer, const DNSName& signQName, uint16_t signQType, uint32_t signTTL,
+static int getRRSIGsForRRSET(DNSSECKeeper& dk, const ZoneName& signer, const DNSName& signQName, uint16_t signQType, uint32_t signTTL,
                              const sortedRecords_t& toSign, vector<RRSIGRecordContent>& rrcs)
 {
   if(toSign.empty())
@@ -143,7 +143,7 @@ static int getRRSIGsForRRSET(DNSSECKeeper& dk, const DNSName& signer, const DNSN
 }
 
 // this is the entrypoint from DNSPacket
-static void addSignature(DNSSECKeeper& dk, UeberBackend& db, const DNSName& signer, const DNSName& signQName, const DNSName& wildcardname, uint16_t signQType,
+static void addSignature(DNSSECKeeper& dk, UeberBackend& db, const ZoneName& signer, const DNSName& signQName, const DNSName& wildcardname, uint16_t signQType,
                          uint32_t signTTL, DNSResourceRecord::Place signPlace,
                          sortedRecords_t& toSign, vector<DNSZoneRecord>& outsigned, uint32_t origTTL, DNSPacket* packet)
 {
@@ -190,10 +190,10 @@ static bool rrsigncomp(const DNSZoneRecord& a, const DNSZoneRecord& b)
   return std::tie(a.dr.d_place, a.dr.d_type) < std::tie(b.dr.d_place, b.dr.d_type);
 }
 
-static bool getBestAuthFromSet(const set<DNSName>& authSet, const DNSName& name, DNSName& auth)
+static bool getBestAuthFromSet(const set<ZoneName>& authSet, const DNSName& name, ZoneName& auth)
 {
   auth.trimToLabels(0);
-  DNSName sname(name);
+  ZoneName sname(name);
   do {
     if(authSet.find(sname) != authSet.end()) {
       auth = sname;
@@ -205,7 +205,7 @@ static bool getBestAuthFromSet(const set<DNSName>& authSet, const DNSName& name,
   return false;
 }
 
-void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const set<DNSName>& authSet, vector<DNSZoneRecord>& rrs, DNSPacket* packet)
+void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const set<ZoneName>& authSet, vector<DNSZoneRecord>& rrs, DNSPacket* packet)
 {
   stable_sort(rrs.begin(), rrs.end(), rrsigncomp);
 
@@ -220,7 +220,7 @@ void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const set<DNSName>& authSet, 
   vector<DNSZoneRecord> signedRecords;
   signedRecords.reserve(rrs.size()*1.5);
   //  cout<<rrs.size()<<", "<<sizeof(DNSZoneRecord)<<endl;
-  DNSName signer;
+  ZoneName signer;
   for(auto pos = rrs.cbegin(); pos != rrs.cend(); ++pos) {
     if(pos != rrs.cbegin() && (signQType != pos->dr.d_type  || signQName != pos->dr.d_name)) {
       if (getBestAuthFromSet(authSet, authQName, signer))

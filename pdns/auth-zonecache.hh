@@ -32,12 +32,12 @@ class AuthZoneCache : public boost::noncopyable
 public:
   AuthZoneCache(size_t mapsCount = 1024);
 
-  void replace(const vector<std::tuple<DNSName, int>>& zone);
-  void add(const DNSName& zone, const int zoneId);
-  void remove(const DNSName& zone);
+  void replace(const vector<std::tuple<ZoneName, int>>& zone);
+  void add(const ZoneName& zone, const int zoneId);
+  void remove(const ZoneName& zone);
   void setReplacePending(); //!< call this when data collection for the subsequent replace() call starts.
 
-  bool getEntry(const DNSName& zone, int& zoneId);
+  bool getEntry(const ZoneName& zone, int& zoneId);
 
   size_t size() { return *d_statnumentries; } //!< number of entries in the cache
 
@@ -62,7 +62,7 @@ private:
     int zoneId{-1};
   };
 
-  typedef std::unordered_map<DNSName, CacheValue, std::hash<DNSName>> cmap_t;
+  typedef std::unordered_map<ZoneName, CacheValue, std::hash<ZoneName>> cmap_t;
 
   struct MapCombo
   {
@@ -75,11 +75,11 @@ private:
   };
 
   vector<MapCombo> d_maps;
-  size_t getMapIndex(const DNSName& zone)
+  size_t getMapIndex(const ZoneName& zone)
   {
     return zone.hash() % d_maps.size();
   }
-  MapCombo& getMap(const DNSName& qname)
+  MapCombo& getMap(const ZoneName& qname)
   {
     return d_maps[getMapIndex(qname)];
   }
@@ -92,7 +92,7 @@ private:
 
   struct PendingData
   {
-    std::vector<std::tuple<DNSName, int, bool>> d_pendingUpdates;
+    std::vector<std::tuple<ZoneName, int, bool>> d_pendingUpdates;
     bool d_replacePending{false};
   };
   LockGuarded<PendingData> d_pending;

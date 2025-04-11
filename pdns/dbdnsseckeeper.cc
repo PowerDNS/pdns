@@ -58,7 +58,7 @@ bool DNSSECKeeper::doesDNSSEC()
   return d_keymetadb->doesDNSSEC();
 }
 
-bool DNSSECKeeper::isSecuredZone(const DNSName& zone, bool useCache)
+bool DNSSECKeeper::isSecuredZone(const ZoneName& zone, bool useCache)
 {
   if(isPresigned(zone, useCache))
     return true;
@@ -73,7 +73,7 @@ bool DNSSECKeeper::isSecuredZone(const DNSName& zone, bool useCache)
   return false;
 }
 
-bool DNSSECKeeper::isPresigned(const DNSName& name, bool useCache)
+bool DNSSECKeeper::isPresigned(const ZoneName& name, bool useCache)
 {
   string meta;
   if (useCache) {
@@ -86,7 +86,7 @@ bool DNSSECKeeper::isPresigned(const DNSName& name, bool useCache)
 }
 
 
-bool DNSSECKeeper::addKey(const DNSName& name, bool setSEPBit, int algorithm, int64_t& id, int bits, bool active, bool published)
+bool DNSSECKeeper::addKey(const ZoneName& name, bool setSEPBit, int algorithm, int64_t& id, int bits, bool active, bool published)
 {
   if(!bits) {
     if(algorithm <= 10)
@@ -121,26 +121,26 @@ void DNSSECKeeper::clearAllCaches() {
 
 /* This function never fails, the return value is to simplify call chains
    elsewhere so we can do mutate<cache> && clear<cache> */
-bool DNSSECKeeper::clearKeyCache(const DNSName& name)
+bool DNSSECKeeper::clearKeyCache(const ZoneName& name)
 {
   s_keycache.write_lock()->erase(name);
   return true;
 }
 
-bool DNSSECKeeper::clearMetaCache(const DNSName& name)
+bool DNSSECKeeper::clearMetaCache(const ZoneName& name)
 {
   s_metacache.write_lock()->erase(name);
   ++s_metaCacheCleanActions;
   return true;
 }
 
-void DNSSECKeeper::clearCaches(const DNSName& name)
+void DNSSECKeeper::clearCaches(const ZoneName& name)
 {
   (void)clearKeyCache(name);
   (void)clearMetaCache(name);
 }
 
-bool DNSSECKeeper::addKey(const DNSName& name, const DNSSECPrivateKey& dpk, int64_t& id, bool active, bool published)
+bool DNSSECKeeper::addKey(const ZoneName& name, const DNSSECPrivateKey& dpk, int64_t& id, bool active, bool published)
 {
   DNSBackend::KeyData kd;
   kd.flags = dpk.getFlags(); // the dpk doesn't get stored, only they key part
@@ -158,7 +158,7 @@ static bool keyCompareByKindAndID(const DNSSECKeeper::keyset_t::value_type& a, c
          pair(!b.second.keyType, b.second.id);
 }
 
-DNSSECPrivateKey DNSSECKeeper::getKeyById(const DNSName& zname, unsigned int id)
+DNSSECPrivateKey DNSSECKeeper::getKeyById(const ZoneName& zname, unsigned int id)
 {
   vector<DNSBackend::KeyData> keys;
   d_keymetadb->getDomainKeys(zname, keys);
@@ -177,32 +177,32 @@ DNSSECPrivateKey DNSSECKeeper::getKeyById(const DNSName& zname, unsigned int id)
 }
 
 
-bool DNSSECKeeper::removeKey(const DNSName& zname, unsigned int id)
+bool DNSSECKeeper::removeKey(const ZoneName& zname, unsigned int id)
 {
   return d_keymetadb->removeDomainKey(zname, id) && clearKeyCache(zname);
 }
 
-bool DNSSECKeeper::deactivateKey(const DNSName& zname, unsigned int id)
+bool DNSSECKeeper::deactivateKey(const ZoneName& zname, unsigned int id)
 {
   return d_keymetadb->deactivateDomainKey(zname, id) && clearKeyCache(zname);
 }
 
-bool DNSSECKeeper::activateKey(const DNSName& zname, unsigned int id)
+bool DNSSECKeeper::activateKey(const ZoneName& zname, unsigned int id)
 {
   return d_keymetadb->activateDomainKey(zname, id) && clearKeyCache(zname);
 }
 
-bool DNSSECKeeper::unpublishKey(const DNSName& zname, unsigned int id)
+bool DNSSECKeeper::unpublishKey(const ZoneName& zname, unsigned int id)
 {
   return d_keymetadb->unpublishDomainKey(zname, id) && clearKeyCache(zname);
 }
 
-bool DNSSECKeeper::publishKey(const DNSName& zname, unsigned int id)
+bool DNSSECKeeper::publishKey(const ZoneName& zname, unsigned int id)
 {
   return d_keymetadb->publishDomainKey(zname, id) && clearKeyCache(zname);
 }
 
-void DNSSECKeeper::getFromMetaOrDefault(const DNSName& zname, const std::string& key, std::string& value, const std::string& defaultvalue)
+void DNSSECKeeper::getFromMetaOrDefault(const ZoneName& zname, const std::string& key, std::string& value, const std::string& defaultvalue)
 {
   if (getFromMeta(zname, key, value))
     return;
@@ -210,7 +210,7 @@ void DNSSECKeeper::getFromMetaOrDefault(const DNSName& zname, const std::string&
     value = defaultvalue;
 }
 
-bool DNSSECKeeper::getFromMeta(const DNSName& zname, const std::string& key, std::string& value)
+bool DNSSECKeeper::getFromMeta(const ZoneName& zname, const std::string& key, std::string& value)
 {
   if (d_metaUpdate) {
     if (d_keymetadb->inTransaction()) {
@@ -273,7 +273,7 @@ bool DNSSECKeeper::getFromMeta(const DNSName& zname, const std::string& key, std
   return ret;
 }
 
-bool DNSSECKeeper::getFromMetaNoCache(const DNSName& name, const std::string& kind, std::string& value)
+bool DNSSECKeeper::getFromMetaNoCache(const ZoneName& name, const std::string& kind, std::string& value)
 {
   std::vector<std::string> meta;
   if (d_keymetadb->getDomainMetadata(name, kind, meta)) {
@@ -285,7 +285,7 @@ bool DNSSECKeeper::getFromMetaNoCache(const DNSName& name, const std::string& ki
   return false;
 }
 
-void DNSSECKeeper::getSoaEdit(const DNSName& zname, std::string& value, bool useCache)
+void DNSSECKeeper::getSoaEdit(const ZoneName& zname, std::string& value, bool useCache)
 {
   static const string soaEdit(::arg()["default-soa-edit"]);
   static const string soaEditSigned(::arg()["default-soa-edit-signed"]);
@@ -318,7 +318,7 @@ uint64_t DNSSECKeeper::dbdnssecCacheSizes(const std::string& str)
   return (uint64_t)-1;
 }
 
-bool DNSSECKeeper::getNSEC3PARAM(const DNSName& zname, NSEC3PARAMRecordContent* ns3p, bool* narrow, bool useCache)
+bool DNSSECKeeper::getNSEC3PARAM(const ZoneName& zname, NSEC3PARAMRecordContent* ns3p, bool* narrow, bool useCache)
 {
   string value;
   if(useCache) {
@@ -381,7 +381,7 @@ bool DNSSECKeeper::checkNSEC3PARAM(const NSEC3PARAMRecordContent& ns3p, string& 
   return ret;
 }
 
-bool DNSSECKeeper::setNSEC3PARAM(const DNSName& zname, const NSEC3PARAMRecordContent& ns3p, const bool& narrow)
+bool DNSSECKeeper::setNSEC3PARAM(const ZoneName& zname, const NSEC3PARAMRecordContent& ns3p, const bool& narrow)
 {
   if (d_keymetadb->inTransaction()) {
     d_metaUpdate = true;
@@ -405,7 +405,7 @@ bool DNSSECKeeper::setNSEC3PARAM(const DNSName& zname, const NSEC3PARAMRecordCon
   return false;
 }
 
-bool DNSSECKeeper::unsetNSEC3PARAM(const DNSName& zname)
+bool DNSSECKeeper::unsetNSEC3PARAM(const ZoneName& zname)
 {
   if (d_keymetadb->inTransaction()) {
     d_metaUpdate = true;
@@ -415,7 +415,7 @@ bool DNSSECKeeper::unsetNSEC3PARAM(const DNSName& zname)
 }
 
 
-bool DNSSECKeeper::setPresigned(const DNSName& zname)
+bool DNSSECKeeper::setPresigned(const ZoneName& zname)
 {
   if (d_keymetadb->inTransaction()) {
     d_metaUpdate = true;
@@ -426,7 +426,7 @@ bool DNSSECKeeper::setPresigned(const DNSName& zname)
   return d_keymetadb->setDomainMetadata(zname, "PRESIGNED", meta) && clearMetaCache(zname);
 }
 
-bool DNSSECKeeper::unsetPresigned(const DNSName& zname)
+bool DNSSECKeeper::unsetPresigned(const ZoneName& zname)
 {
   if (d_keymetadb->inTransaction()) {
     d_metaUpdate = true;
@@ -438,13 +438,13 @@ bool DNSSECKeeper::unsetPresigned(const DNSName& zname)
 /**
  * Add domainmetadata to allow publishing CDS records for zone zname
  *
- * @param zname        DNSName of the zone
+ * @param zname        ZoneName of the zone
  * @param digestAlgos  string with comma-separated numbers that describe the
  *                     used digest algorithms. This is copied to the database
  *                     verbatim
  * @return             true if the data was inserted, false otherwise
  */
-bool DNSSECKeeper::setPublishCDS(const DNSName& zname, const string& digestAlgos)
+bool DNSSECKeeper::setPublishCDS(const ZoneName& zname, const string& digestAlgos)
 {
   if (d_keymetadb->inTransaction()) {
     d_metaUpdate = true;
@@ -455,7 +455,7 @@ bool DNSSECKeeper::setPublishCDS(const DNSName& zname, const string& digestAlgos
   return d_keymetadb->setDomainMetadata(zname, "PUBLISH-CDS", meta) && clearMetaCache(zname);
 }
 
-void DNSSECKeeper::getPublishCDS(const DNSName& zname, std::string& value)
+void DNSSECKeeper::getPublishCDS(const ZoneName& zname, std::string& value)
 {
   getFromMetaOrDefault(zname, "PUBLISH-CDS", value, ::arg()["default-publish-cds"]);
 }
@@ -463,10 +463,10 @@ void DNSSECKeeper::getPublishCDS(const DNSName& zname, std::string& value)
 /**
  * Remove domainmetadata to stop publishing CDS records for zone zname
  *
- * @param zname        DNSName of the zone
+ * @param zname        ZoneName of the zone
  * @return             true if the operation was successful, false otherwise
  */
-bool DNSSECKeeper::unsetPublishCDS(const DNSName& zname)
+bool DNSSECKeeper::unsetPublishCDS(const ZoneName& zname)
 {
   if (d_keymetadb->inTransaction()) {
     d_metaUpdate = true;
@@ -478,10 +478,10 @@ bool DNSSECKeeper::unsetPublishCDS(const DNSName& zname)
 /**
  * Add domainmetadata to allow publishing CDNSKEY records.for zone zname
  *
- * @param zname        DNSName of the zone
+ * @param zname        ZoneName of the zone
  * @return             true if the data was inserted, false otherwise
  */
-bool DNSSECKeeper::setPublishCDNSKEY(const DNSName& zname, bool deleteAlg)
+bool DNSSECKeeper::setPublishCDNSKEY(const ZoneName& zname, bool deleteAlg)
 {
   if (d_keymetadb->inTransaction()) {
     d_metaUpdate = true;
@@ -492,7 +492,7 @@ bool DNSSECKeeper::setPublishCDNSKEY(const DNSName& zname, bool deleteAlg)
   return d_keymetadb->setDomainMetadata(zname, "PUBLISH-CDNSKEY", meta) && clearMetaCache(zname);
 }
 
-void DNSSECKeeper::getPublishCDNSKEY(const DNSName& zname, std::string& value)
+void DNSSECKeeper::getPublishCDNSKEY(const ZoneName& zname, std::string& value)
 {
   getFromMetaOrDefault(zname, "PUBLISH-CDNSKEY", value, ::arg()["default-publish-cdnskey"]);
 }
@@ -500,10 +500,10 @@ void DNSSECKeeper::getPublishCDNSKEY(const DNSName& zname, std::string& value)
 /**
  * Remove domainmetadata to stop publishing CDNSKEY records for zone zname
  *
- * @param zname        DNSName of the zone
+ * @param zname        ZoneName of the zone
  * @return             true if the operation was successful, false otherwise
  */
-bool DNSSECKeeper::unsetPublishCDNSKEY(const DNSName& zname)
+bool DNSSECKeeper::unsetPublishCDNSKEY(const ZoneName& zname)
 {
   if (d_keymetadb->inTransaction()) {
     d_metaUpdate = true;
@@ -515,11 +515,11 @@ bool DNSSECKeeper::unsetPublishCDNSKEY(const DNSName& zname)
 /**
  * Returns all keys that are used to sign the DNSKEY RRSet in a zone
  *
- * @param zname        DNSName of the zone
+ * @param zname        ZoneName of the zone
  * @return             a keyset_t with all keys that are used to sign the DNSKEY
  *                     RRSet (these are the entrypoint(s) to the zone)
  */
-DNSSECKeeper::keyset_t DNSSECKeeper::getEntryPoints(const DNSName& zname)
+DNSSECKeeper::keyset_t DNSSECKeeper::getEntryPoints(const ZoneName& zname)
 {
   DNSSECKeeper::keyset_t ret;
   DNSSECKeeper::keyset_t keys = getKeys(zname);
@@ -530,7 +530,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getEntryPoints(const DNSName& zname)
   return ret;
 }
 
-DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const DNSName& zone, bool useCache)
+DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const ZoneName& zone, bool useCache)
 {
   static int ttl = ::arg().asNum("dnssec-key-cache-ttl");
   // coverity[store_truncates_time_t]
@@ -615,7 +615,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const DNSName& zone, bool useCache)
   return retkeyset;
 }
 
-bool DNSSECKeeper::checkKeys(const DNSName& zone, std::optional<std::reference_wrapper<std::vector<std::string>>> errorMessages)
+bool DNSSECKeeper::checkKeys(const ZoneName& zone, std::optional<std::reference_wrapper<std::vector<std::string>>> errorMessages)
 {
   vector<DNSBackend::KeyData> dbkeyset;
   d_keymetadb->getDomainKeys(zone, dbkeyset);
@@ -655,7 +655,7 @@ void DNSSECKeeper::getPreRRSIGs(UeberBackend& db, vector<DNSZoneRecord>& rrs, ui
   }
 }
 
-bool DNSSECKeeper::TSIGGrantsAccess(const DNSName& zone, const DNSName& keyname)
+bool DNSSECKeeper::TSIGGrantsAccess(const ZoneName& zone, const DNSName& keyname)
 {
   vector<string> allowed;
 
@@ -668,7 +668,7 @@ bool DNSSECKeeper::TSIGGrantsAccess(const DNSName& zone, const DNSName& keyname)
   return false;
 }
 
-bool DNSSECKeeper::getTSIGForAccess(const DNSName& zone, const ComboAddress& /* primary */, DNSName* keyname)
+bool DNSSECKeeper::getTSIGForAccess(const ZoneName& zone, const ComboAddress& /* primary */, DNSName* keyname)
 {
   vector<string> keynames;
   d_keymetadb->getDomainMetadata(zone, "AXFR-MASTER-TSIG", keynames);
@@ -682,7 +682,7 @@ bool DNSSECKeeper::getTSIGForAccess(const DNSName& zone, const ComboAddress& /* 
   return false;
 }
 
-bool DNSSECKeeper::unSecureZone(const DNSName& zone, string& error) {
+bool DNSSECKeeper::unSecureZone(const ZoneName& zone, string& error) {
   // Not calling isSecuredZone(), as it will return false for zones with zero
   // active keys.
   DNSSECKeeper::keyset_t keyset=getKeys(zone);
@@ -718,7 +718,8 @@ struct RecordStatus
  * \param info& A string where informational messages are added
  * \param doTransaction Whether or not to wrap the rectify in a transaction
  */
-bool DNSSECKeeper::rectifyZone(const DNSName& zone, string& error, string& info, bool doTransaction) {
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
+bool DNSSECKeeper::rectifyZone(const ZoneName& zone, string& error, string& info, bool doTransaction) {
   if (isPresigned(zone, doTransaction)) {
     error =  "Rectify presigned zone '"+zone.toLogString()+"' is not allowed/necessary.";
     return false;

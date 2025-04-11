@@ -139,7 +139,7 @@ string DLPurgeHandler(const vector<string>& parts, Utility::pid_t /* ppid */)
       g_log<<Logger::Warning<<"Cache clear request for '"<<*i<<"' received from operator"<<endl;
       ret+=purgeAuthCaches(*i);
       if(!boost::ends_with(*i, "$"))
-        DNSSECKeeper::clearCaches(DNSName(*i));
+        DNSSECKeeper::clearCaches(ZoneName(*i));
       else
         DNSSECKeeper::clearAllCaches(); // at least we do what we promise.. and a bit more!
     }
@@ -247,9 +247,9 @@ string DLNotifyRetrieveHandler(const vector<string>& parts, Utility::pid_t /* pp
   if(parts.size()!=2 && parts.size()!=3)
     return "syntax: retrieve zone [ip]";
 
-  DNSName domain;
+  ZoneName domain;
   try {
-    domain = DNSName(parts[1]);
+    domain = ZoneName(parts[1]);
   } catch (...) {
     return "Failed to parse zone as valid DNS name";
   }
@@ -295,9 +295,9 @@ string DLNotifyHostHandler(const vector<string>& parts, Utility::pid_t /* ppid *
   if(!::arg().mustDo("primary") && !(::arg().mustDo("secondary") && ::arg().mustDo("secondary-do-renotify")))
     return "PowerDNS not configured as primary, or secondary with re-notifications";
 
-  DNSName domain;
+  ZoneName domain;
   try {
-    domain = DNSName(parts[1]);
+    domain = ZoneName(parts[1]);
   } catch (...) {
     return "Failed to parse zone as valid DNS name";
   }
@@ -342,13 +342,13 @@ string DLNotifyHandler(const vector<string>& parts, Utility::pid_t /* ppid */)
       return std::to_string(notified)+" out of "+std::to_string(total)+" zones added to queue - see log";
     return "Added " + std::to_string(total) + " MASTER/SLAVE/PRODUCER/CONSUMER zones to queue";
   } else {
-    DNSName domain;
+    ZoneName domain;
     try {
-      domain = DNSName(parts[1]);
+      domain = ZoneName(parts[1]);
     } catch (...) {
       return "Failed to parse zone as valid DNS name";
     }
-    if(!Communicator.notifyDomain(DNSName(parts[1]), &B))
+    if(!Communicator.notifyDomain(domain, &B))
       return "Failed to add to the queue - see log";
     return "Added to queue";
   }

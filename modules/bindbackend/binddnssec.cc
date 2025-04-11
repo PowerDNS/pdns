@@ -45,62 +45,62 @@ unsigned int Bind2Backend::getCapabilities()
   return caps;
 }
 
-bool Bind2Backend::getNSEC3PARAM(const DNSName& /* name */, NSEC3PARAMRecordContent* /* ns3p */)
+bool Bind2Backend::getNSEC3PARAM(const ZoneName& /* name */, NSEC3PARAMRecordContent* /* ns3p */)
 {
   return false;
 }
 
-bool Bind2Backend::getNSEC3PARAMuncached(const DNSName& /* name */, NSEC3PARAMRecordContent* /* ns3p */)
+bool Bind2Backend::getNSEC3PARAMuncached(const ZoneName& /* name */, NSEC3PARAMRecordContent* /* ns3p */)
 {
   return false;
 }
 
-bool Bind2Backend::getAllDomainMetadata(const DNSName& /* name */, std::map<std::string, std::vector<std::string>>& /* meta */)
+bool Bind2Backend::getAllDomainMetadata(const ZoneName& /* name */, std::map<std::string, std::vector<std::string>>& /* meta */)
 {
   return false;
 }
 
-bool Bind2Backend::getDomainMetadata(const DNSName& /* name */, const std::string& /* kind */, std::vector<std::string>& /* meta */)
+bool Bind2Backend::getDomainMetadata(const ZoneName& /* name */, const std::string& /* kind */, std::vector<std::string>& /* meta */)
 {
   return false;
 }
 
-bool Bind2Backend::setDomainMetadata(const DNSName& /* name */, const std::string& /* kind */, const std::vector<std::string>& /* meta */)
+bool Bind2Backend::setDomainMetadata(const ZoneName& /* name */, const std::string& /* kind */, const std::vector<std::string>& /* meta */)
 {
   return false;
 }
 
-bool Bind2Backend::getDomainKeys(const DNSName& /* name */, std::vector<KeyData>& /* keys */)
+bool Bind2Backend::getDomainKeys(const ZoneName& /* name */, std::vector<KeyData>& /* keys */)
 {
   return false;
 }
 
-bool Bind2Backend::removeDomainKey(const DNSName& /* name */, unsigned int /* id */)
+bool Bind2Backend::removeDomainKey(const ZoneName& /* name */, unsigned int /* id */)
 {
   return false;
 }
 
-bool Bind2Backend::addDomainKey(const DNSName& /* name */, const KeyData& /* key */, int64_t& /* id */)
+bool Bind2Backend::addDomainKey(const ZoneName& /* name */, const KeyData& /* key */, int64_t& /* id */)
 {
   return false;
 }
 
-bool Bind2Backend::activateDomainKey(const DNSName& /* name */, unsigned int /* id */)
+bool Bind2Backend::activateDomainKey(const ZoneName& /* name */, unsigned int /* id */)
 {
   return false;
 }
 
-bool Bind2Backend::deactivateDomainKey(const DNSName& /* name */, unsigned int /* id */)
+bool Bind2Backend::deactivateDomainKey(const ZoneName& /* name */, unsigned int /* id */)
 {
   return false;
 }
 
-bool Bind2Backend::publishDomainKey(const DNSName& /* name */, unsigned int /* id */)
+bool Bind2Backend::publishDomainKey(const ZoneName& /* name */, unsigned int /* id */)
 {
   return false;
 }
 
-bool Bind2Backend::unpublishDomainKey(const DNSName& /* name */, unsigned int /* id */)
+bool Bind2Backend::unpublishDomainKey(const ZoneName& /* name */, unsigned int /* id */)
 {
   return false;
 }
@@ -210,7 +210,7 @@ unsigned int Bind2Backend::getCapabilities()
   return caps;
 }
 
-bool Bind2Backend::getNSEC3PARAM(const DNSName& name, NSEC3PARAMRecordContent* ns3p)
+bool Bind2Backend::getNSEC3PARAM(const ZoneName& name, NSEC3PARAMRecordContent* ns3p)
 {
   BB2DomainInfo bbd;
   if (!safeGetBBDomainInfo(name, &bbd))
@@ -223,7 +223,7 @@ bool Bind2Backend::getNSEC3PARAM(const DNSName& name, NSEC3PARAMRecordContent* n
   return bbd.d_nsec3zone;
 }
 
-bool Bind2Backend::getNSEC3PARAMuncached(const DNSName& name, NSEC3PARAMRecordContent* ns3p)
+bool Bind2Backend::getNSEC3PARAMuncached(const ZoneName& name, NSEC3PARAMRecordContent* ns3p)
 {
   if (!d_dnssecdb || d_hybrid)
     return false;
@@ -255,7 +255,7 @@ bool Bind2Backend::getNSEC3PARAMuncached(const DNSName& name, NSEC3PARAMRecordCo
   return true;
 }
 
-bool Bind2Backend::getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string>>& meta)
+bool Bind2Backend::getAllDomainMetadata(const ZoneName& name, std::map<std::string, std::vector<std::string>>& meta)
 {
   if (!d_dnssecdb || d_hybrid)
     return false;
@@ -277,7 +277,7 @@ bool Bind2Backend::getAllDomainMetadata(const DNSName& name, std::map<std::strin
   return true;
 }
 
-bool Bind2Backend::getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta)
+bool Bind2Backend::getDomainMetadata(const ZoneName& name, const std::string& kind, std::vector<std::string>& meta)
 {
   if (!d_dnssecdb || d_hybrid)
     return false;
@@ -299,7 +299,7 @@ bool Bind2Backend::getDomainMetadata(const DNSName& name, const std::string& kin
   return true;
 }
 
-bool Bind2Backend::setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta)
+bool Bind2Backend::setDomainMetadata(const ZoneName& name, const std::string& kind, const std::vector<std::string>& meta)
 {
   if (!d_dnssecdb || d_hybrid)
     return false;
@@ -318,7 +318,7 @@ bool Bind2Backend::setDomainMetadata(const DNSName& name, const std::string& kin
   return true;
 }
 
-bool Bind2Backend::getDomainKeys(const DNSName& name, std::vector<KeyData>& keys)
+bool Bind2Backend::getDomainKeys(const ZoneName& name, std::vector<KeyData>& keys)
 {
   if (!d_dnssecdb || d_hybrid)
     return false;
@@ -346,7 +346,7 @@ bool Bind2Backend::getDomainKeys(const DNSName& name, std::vector<KeyData>& keys
   return true;
 }
 
-bool Bind2Backend::removeDomainKey(const DNSName& name, unsigned int id)
+bool Bind2Backend::removeDomainKey(const ZoneName& name, unsigned int id)
 {
   if (!d_dnssecdb || d_hybrid)
     return false;
@@ -360,7 +360,7 @@ bool Bind2Backend::removeDomainKey(const DNSName& name, unsigned int id)
   return true;
 }
 
-bool Bind2Backend::addDomainKey(const DNSName& name, const KeyData& key, int64_t& id)
+bool Bind2Backend::addDomainKey(const ZoneName& name, const KeyData& key, int64_t& id)
 {
   if (!d_dnssecdb || d_hybrid)
     return false;
@@ -395,7 +395,7 @@ bool Bind2Backend::addDomainKey(const DNSName& name, const KeyData& key, int64_t
   }
 }
 
-bool Bind2Backend::activateDomainKey(const DNSName& name, unsigned int id)
+bool Bind2Backend::activateDomainKey(const ZoneName& name, unsigned int id)
 {
   if (!d_dnssecdb || d_hybrid)
     return false;
@@ -409,7 +409,7 @@ bool Bind2Backend::activateDomainKey(const DNSName& name, unsigned int id)
   return true;
 }
 
-bool Bind2Backend::deactivateDomainKey(const DNSName& name, unsigned int id)
+bool Bind2Backend::deactivateDomainKey(const ZoneName& name, unsigned int id)
 {
   if (!d_dnssecdb || d_hybrid)
     return false;
@@ -423,7 +423,7 @@ bool Bind2Backend::deactivateDomainKey(const DNSName& name, unsigned int id)
   return true;
 }
 
-bool Bind2Backend::publishDomainKey(const DNSName& name, unsigned int id)
+bool Bind2Backend::publishDomainKey(const ZoneName& name, unsigned int id)
 {
   if (!d_dnssecdb || d_hybrid)
     return false;
@@ -437,7 +437,7 @@ bool Bind2Backend::publishDomainKey(const DNSName& name, unsigned int id)
   return true;
 }
 
-bool Bind2Backend::unpublishDomainKey(const DNSName& name, unsigned int id)
+bool Bind2Backend::unpublishDomainKey(const ZoneName& name, unsigned int id)
 {
   if (!d_dnssecdb || d_hybrid)
     return false;

@@ -24,7 +24,7 @@
 #include "ldapbackend.hh"
 #include <cstdlib>
 
-bool LdapBackend::list(const DNSName& target, int domain_id, bool /* include_disabled */)
+bool LdapBackend::list(const ZoneName& target, int domain_id, bool /* include_disabled */)
 {
   try {
     d_in_list = true;
@@ -57,7 +57,7 @@ bool LdapBackend::list(const DNSName& target, int domain_id, bool /* include_dis
   return false;
 }
 
-bool LdapBackend::list_simple(const DNSName& target, int /* domain_id */)
+bool LdapBackend::list_simple(const ZoneName& target, int /* domain_id */)
 {
   string dn;
   string filter;
@@ -92,7 +92,7 @@ bool LdapBackend::list_simple(const DNSName& target, int /* domain_id */)
   return true;
 }
 
-bool LdapBackend::list_strict(const DNSName& target, int domain_id)
+bool LdapBackend::list_strict(const ZoneName& target, int domain_id)
 {
   if (target.isPartOf(DNSName("in-addr.arpa")) || target.isPartOf(DNSName("ip6.arpa"))) {
     g_log << Logger::Warning << d_myname << " Request for reverse zone AXFR, but this is not supported in strict mode" << endl;
@@ -318,7 +318,7 @@ bool LdapBackend::get(DNSResourceRecord& rr)
   return true;
 }
 
-bool LdapBackend::getDomainInfo(const DNSName& domain, DomainInfo& di, bool /* getSerial */)
+bool LdapBackend::getDomainInfo(const ZoneName& domain, DomainInfo& di, bool /* getSerial */)
 {
   string filter;
   SOAData sd;
@@ -369,7 +369,7 @@ bool LdapBackend::getDomainInfo(const DNSName& domain, DomainInfo& di, bool /* g
       di.id = 0;
 
     di.serial = sd.serial;
-    di.zone = DNSName(domain);
+    di.zone = domain;
 
     if (result.count("PdnsDomainLastCheck") && !result["PdnsDomainLastCheck"].empty())
       pdns::checked_stoi_into(di.last_check, result["PdnsDomainLastCheck"][0]);

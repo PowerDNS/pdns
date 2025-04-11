@@ -195,7 +195,7 @@ void PipeBackend::lookup(const QType& qtype, const DNSName& qname, int zoneId, D
   d_qname = qname;
 }
 
-bool PipeBackend::list(const DNSName& target, int inZoneId, bool /* include_disabled */)
+bool PipeBackend::list(const ZoneName& target, int inZoneId, bool /* include_disabled */)
 {
   try {
     launch();
