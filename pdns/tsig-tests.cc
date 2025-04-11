@@ -64,7 +64,7 @@ try
   tt.name=keyname;
   tt.algo=DNSName("hmac-md5");
   tt.secret=key;
-  AXFRRetriever axfr(dest, DNSName("b.aa"), tt);
+  AXFRRetriever axfr(dest, ZoneName("b.aa"), tt);
   vector<DNSResourceRecord> res;
   while(axfr.getChunk(res)) {
   }

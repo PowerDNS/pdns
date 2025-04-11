@@ -183,7 +183,7 @@ public:
       g_log << Logger::Debug << "[" << getPrefix() << "] Got empty result" << endl;
   }
 
-  bool list(const DNSName& target, int domain_id, bool /* include_disabled */ = false) override
+  bool list(const ZoneName& target, int domain_id, bool /* include_disabled */ = false) override
   {
     if (f_list == nullptr) {
       g_log << Logger::Error << "[" << getPrefix() << "] dns_list missing - cannot do AXFR" << endl;
@@ -279,7 +279,7 @@ public:
     logResult("zone=" << di.zone << ",serial=" << di.serial << ",kind=" << di.getKindString());
   }
 
-  bool getDomainInfo(const DNSName& domain, DomainInfo& di, bool /* getSerial */ = true) override
+  bool getDomainInfo(const ZoneName& domain, DomainInfo& di, bool /* getSerial */ = true) override
   {
     if (f_get_domaininfo == nullptr) {
       // use getAuth instead
@@ -320,7 +320,7 @@ public:
     }
   }
 
-  bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string>>& meta) override
+  bool getAllDomainMetadata(const ZoneName& name, std::map<std::string, std::vector<std::string>>& meta) override
   {
     if (f_get_all_domain_metadata == nullptr)
       return false;
@@ -340,7 +340,7 @@ public:
     return true;
   }
 
-  bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta) override
+  bool getDomainMetadata(const ZoneName& name, const std::string& kind, std::vector<std::string>& meta) override
   {
     if (f_get_domain_metadata == nullptr)
       return false;
@@ -358,7 +358,7 @@ public:
     return true;
   }
 
-  bool getDomainKeys(const DNSName& name, std::vector<DNSBackend::KeyData>& keys) override
+  bool getDomainKeys(const ZoneName& name, std::vector<DNSBackend::KeyData>& keys) override
   {
     if (f_get_domain_keys == nullptr)
       return false;

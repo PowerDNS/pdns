@@ -187,43 +187,43 @@ public:
 
   static uint64_t dbdnssecCacheSizes(const std::string& str);
   static void clearAllCaches();
-  static bool clearKeyCache(const DNSName& name);
-  static bool clearMetaCache(const DNSName& name);
-  static void clearCaches(const DNSName& name);
+  static bool clearKeyCache(const ZoneName& name);
+  static bool clearMetaCache(const ZoneName& name);
+  static void clearCaches(const ZoneName& name);
 
   bool doesDNSSEC();
-  bool isSecuredZone(const DNSName& zone, bool useCache=true);
-  keyset_t getEntryPoints(const DNSName& zname);
-  keyset_t getKeys(const DNSName& zone, bool useCache = true);
-  DNSSECPrivateKey getKeyById(const DNSName& zone, unsigned int id);
-  bool addKey(const DNSName& zname, bool setSEPBit, int algorithm, int64_t& id, int bits=0, bool active=true, bool published=true);
-  bool addKey(const DNSName& zname, const DNSSECPrivateKey& dpk, int64_t& id, bool active=true, bool published=true);
-  bool removeKey(const DNSName& zname, unsigned int id);
-  bool activateKey(const DNSName& zname, unsigned int id);
-  bool deactivateKey(const DNSName& zname, unsigned int id);
-  bool publishKey(const DNSName& zname, unsigned int id);
-  bool unpublishKey(const DNSName& zname, unsigned int id);
-  bool checkKeys(const DNSName& zname, std::optional<std::reference_wrapper<std::vector<std::string>>> errorMessages);
+  bool isSecuredZone(const ZoneName& zone, bool useCache=true);
+  keyset_t getEntryPoints(const ZoneName& zname);
+  keyset_t getKeys(const ZoneName& zone, bool useCache = true);
+  DNSSECPrivateKey getKeyById(const ZoneName& zname, unsigned int keyId);
+  bool addKey(const ZoneName& zname, bool setSEPBit, int algorithm, int64_t& keyId, int bits=0, bool active=true, bool published=true);
+  bool addKey(const ZoneName& zname, const DNSSECPrivateKey& dpk, int64_t& keyId, bool active=true, bool published=true);
+  bool removeKey(const ZoneName& zname, unsigned int keyId);
+  bool activateKey(const ZoneName& zname, unsigned int keyId);
+  bool deactivateKey(const ZoneName& zname, unsigned int keyId);
+  bool publishKey(const ZoneName& zname, unsigned int keyId);
+  bool unpublishKey(const ZoneName& zname, unsigned int keyId);
+  bool checkKeys(const ZoneName& zone, std::optional<std::reference_wrapper<std::vector<std::string>>> errorMessages);
 
-  bool getNSEC3PARAM(const DNSName& zname, NSEC3PARAMRecordContent* n3p=nullptr, bool* narrow=nullptr, bool useCache=true);
+  bool getNSEC3PARAM(const ZoneName& zname, NSEC3PARAMRecordContent* ns3p=nullptr, bool* narrow=nullptr, bool useCache=true);
   bool checkNSEC3PARAM(const NSEC3PARAMRecordContent& ns3p, string& msg);
-  bool setNSEC3PARAM(const DNSName& zname, const NSEC3PARAMRecordContent& n3p, const bool& narrow=false);
-  bool unsetNSEC3PARAM(const DNSName& zname);
+  bool setNSEC3PARAM(const ZoneName& zname, const NSEC3PARAMRecordContent& ns3p, const bool& narrow=false);
+  bool unsetNSEC3PARAM(const ZoneName& zname);
   void getPreRRSIGs(UeberBackend& db, vector<DNSZoneRecord>& rrs, uint32_t signTTL, DNSPacket* p=nullptr);
-  bool isPresigned(const DNSName& zname, bool useCache=true);
-  bool setPresigned(const DNSName& zname);
-  bool unsetPresigned(const DNSName& zname);
-  bool setPublishCDNSKEY(const DNSName& zname, bool deleteAlg);
-  void getPublishCDNSKEY(const DNSName& zname, std::string& value);
-  bool unsetPublishCDNSKEY(const DNSName& zname);
-  bool setPublishCDS(const DNSName& zname, const string& digestAlgos);
-  void getPublishCDS(const DNSName& zname, std::string& value);
-  bool unsetPublishCDS(const DNSName& zname);
+  bool isPresigned(const ZoneName& zname, bool useCache=true);
+  bool setPresigned(const ZoneName& zname);
+  bool unsetPresigned(const ZoneName& zname);
+  bool setPublishCDNSKEY(const ZoneName& zname, bool deleteAlg);
+  void getPublishCDNSKEY(const ZoneName& zname, std::string& value);
+  bool unsetPublishCDNSKEY(const ZoneName& zname);
+  bool setPublishCDS(const ZoneName& zname, const string& digestAlgos);
+  void getPublishCDS(const ZoneName& zname, std::string& value);
+  bool unsetPublishCDS(const ZoneName& zname);
 
-  bool TSIGGrantsAccess(const DNSName& zone, const DNSName& keyname);
-  bool getTSIGForAccess(const DNSName& zone, const ComboAddress& primary, DNSName* keyname);
+  bool TSIGGrantsAccess(const ZoneName& zone, const DNSName& keyname);
+  bool getTSIGForAccess(const ZoneName& zone, const ComboAddress& primary, DNSName* keyname);
 
-  void startTransaction(const DNSName& zone, int zone_id)
+  void startTransaction(const ZoneName& zone, int zone_id)
   {
     (*d_keymetadb->backends.begin())->startTransaction(zone, zone_id);
   }
@@ -233,17 +233,17 @@ public:
     (*d_keymetadb->backends.begin())->commitTransaction();
   }
 
-  void getFromMetaOrDefault(const DNSName& zname, const std::string& key, std::string& value, const std::string& defaultvalue);
-  bool getFromMeta(const DNSName& zname, const std::string& key, std::string& value);
-  void getSoaEdit(const DNSName& zname, std::string& value, bool useCache=true);
-  bool unSecureZone(const DNSName& zone, std::string& error);
-  bool rectifyZone(const DNSName& zone, std::string& error, std::string& info, bool doTransaction);
+  void getFromMetaOrDefault(const ZoneName& zname, const std::string& key, std::string& value, const std::string& defaultvalue);
+  bool getFromMeta(const ZoneName& zname, const std::string& key, std::string& value);
+  void getSoaEdit(const ZoneName& zname, std::string& value, bool useCache=true);
+  bool unSecureZone(const ZoneName& zone, std::string& error);
+  bool rectifyZone(const ZoneName& zone, std::string& error, std::string& info, bool doTransaction);
 
   static void setMaxEntries(size_t maxEntries);
 
   typedef std::map<std::string, std::vector<std::string> > METAValues;
 private:
-  bool getFromMetaNoCache(const DNSName& name, const std::string& kind, std::string& value);
+  bool getFromMetaNoCache(const ZoneName& name, const std::string& kind, std::string& value);
 
   int64_t d_metaCacheCleanAction{0};
   bool d_metaUpdate{false};
@@ -257,7 +257,7 @@ private:
       return d_ttd < now;
     }
 
-    DNSName d_domain;
+    ZoneName d_domain;
     mutable keys_t d_keys;
     unsigned int d_ttd;
   };
@@ -269,7 +269,7 @@ private:
       return d_ttd < now;
     }
 
-    DNSName d_domain;
+    ZoneName d_domain;
     mutable METAValues d_value;
     time_t d_ttd;
   };
@@ -281,7 +281,7 @@ private:
   typedef multi_index_container<
     KeyCacheEntry,
     indexed_by<
-      hashed_unique<tag<KeyCacheTag>,member<KeyCacheEntry, DNSName, &KeyCacheEntry::d_domain> >,
+      hashed_unique<tag<KeyCacheTag>,member<KeyCacheEntry, ZoneName, &KeyCacheEntry::d_domain> >,
       sequenced<tag<SequencedTag>>
     >
   > keycache_t;
@@ -289,7 +289,7 @@ private:
   typedef multi_index_container<
     METACacheEntry,
     indexed_by<
-      ordered_unique<member<METACacheEntry, DNSName, &METACacheEntry::d_domain> >,
+      ordered_unique<member<METACacheEntry, ZoneName, &METACacheEntry::d_domain> >,
       sequenced<tag<SequencedTag>>
     >
   > metacache_t;
@@ -306,8 +306,8 @@ private:
 
 uint32_t localtime_format_YYYYMMDDSS(time_t t, uint32_t seq);
 // for SOA-EDIT
-uint32_t calculateEditSOA(uint32_t old_serial, DNSSECKeeper& dk, const DNSName& zonename);
-uint32_t calculateEditSOA(uint32_t old_serial, const string& kind, const DNSName& zonename);
+uint32_t calculateEditSOA(uint32_t old_serial, DNSSECKeeper& dsk, const ZoneName& zonename);
+uint32_t calculateEditSOA(uint32_t old_serial, const string& kind, const ZoneName& zonename);
 // for SOA-EDIT-DNSUPDATE/API
 bool increaseSOARecord(DNSResourceRecord& dr, const string& increaseKind, const string& editKind);
 bool makeIncreasedSOARecord(SOAData& sd, const string& increaseKind, const string& editKind, DNSResourceRecord& rrout);

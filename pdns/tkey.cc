@@ -40,7 +40,7 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
     if (g_doGssTSIG) {
       if (tkey_in.d_algo == DNSName("gss-tsig.")) {
         std::vector<std::string> meta;
-        DNSName tmpName(name);
+        ZoneName tmpName(name);
         do {
           if (B.getDomainMetadata(tmpName, "GSS-ACCEPTOR-PRINCIPAL", meta) && meta.size()>0) {
             break;

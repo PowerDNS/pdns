@@ -56,9 +56,9 @@ typedef multi_index_container <
     > /* indexed_by */
 > /* multi_index_container */ records_t;
 
-uint32_t getSerialFromPrimary(const ComboAddress& primary, const DNSName& zone, shared_ptr<const SOARecordContent>& sr, const TSIGTriplet& tt = TSIGTriplet(), const uint16_t timeout = 2);
+uint32_t getSerialFromPrimary(const ComboAddress& primary, const ZoneName& zone, shared_ptr<const SOARecordContent>& soarecord, const TSIGTriplet& tsig = TSIGTriplet(), const uint16_t timeout = 2);
 uint32_t getSerialFromDir(const std::string& dir);
 uint32_t getSerialFromRecords(const records_t& records, DNSRecord& soaret);
-void writeZoneToDisk(const records_t& records, const DNSName& zone, const std::string& directory);
-void loadZoneFromDisk(records_t& records, const string& fname, const DNSName& zone);
-void loadSOAFromDisk(const DNSName& zone, const string& fname, shared_ptr<const SOARecordContent>& soa, uint32_t& soaTTL);
+void writeZoneToDisk(const records_t& records, const ZoneName& zone, const std::string& directory);
+void loadZoneFromDisk(records_t& records, const string& fname, const ZoneName& zone);
+void loadSOAFromDisk(const ZoneName& zone, const string& fname, shared_ptr<const SOARecordContent>& soa, uint32_t& soaTTL);

@@ -31,14 +31,14 @@
 class ZoneParserTNG
 {
 public:
-  ZoneParserTNG(const string& fname, DNSName  zname=g_rootdnsname, string  reldir="", bool upgradeContent=false);
-  ZoneParserTNG(const vector<string>& zonedata, DNSName  zname, bool upgradeContent=false);
+  ZoneParserTNG(const string& fname, ZoneName zname=g_rootdnsname, string reldir="", bool upgradeContent=false);
+  ZoneParserTNG(const vector<string>& zonedata, ZoneName zname, bool upgradeContent=false);
 
   ~ZoneParserTNG();
   bool get(DNSResourceRecord& rr, std::string* comment=0);
   typedef runtime_error exception;
   typedef std::deque<pair<string::size_type, string::size_type> > parts_t;
-  DNSName getZoneName();
+  ZoneName getZoneName();
   string getLineOfFile(); // for error reporting purposes
   pair<string,int> getLineNumAndFile(); // idem
   void disableGenerate()
@@ -71,7 +71,7 @@ private:
   string d_reldir;
   string d_line;
   DNSName d_prevqname;
-  DNSName d_zonename;
+  ZoneName d_zonename;
   string d_templateline;
   vector<string> d_zonedata;
   vector<string>::iterator d_zonedataline;

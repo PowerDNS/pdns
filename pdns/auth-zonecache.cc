@@ -42,7 +42,7 @@ AuthZoneCache::AuthZoneCache(size_t mapsCount) :
   d_statnumentries = S.getPointer("zone-cache-size");
 }
 
-bool AuthZoneCache::getEntry(const DNSName& zone, int& zoneId)
+bool AuthZoneCache::getEntry(const ZoneName& zone, int& zoneId)
 {
   auto& mc = getMap(zone);
   bool found = false;
@@ -74,7 +74,7 @@ void AuthZoneCache::clear()
   purgeLockedCollectionsVector(d_maps);
 }
 
-void AuthZoneCache::replace(const vector<std::tuple<DNSName, int>>& zone_indices)
+void AuthZoneCache::replace(const vector<std::tuple<ZoneName, int>>& zone_indices)
 {
   if (!d_refreshinterval)
     return;
@@ -133,7 +133,7 @@ void AuthZoneCache::replace(const vector<std::tuple<DNSName, int>>& zone_indices
   }
 }
 
-void AuthZoneCache::add(const DNSName& zone, const int zoneId)
+void AuthZoneCache::add(const ZoneName& zone, const int zoneId)
 {
   if (!d_refreshinterval)
     return;
@@ -163,7 +163,7 @@ void AuthZoneCache::add(const DNSName& zone, const int zoneId)
   }
 }
 
-void AuthZoneCache::remove(const DNSName& zone)
+void AuthZoneCache::remove(const ZoneName& zone)
 {
   if (!d_refreshinterval)
     return;

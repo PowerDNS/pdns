@@ -49,7 +49,7 @@ bool g_pdnsinfo;
 unsigned int g_domainid;
 string g_basedn;
 string g_metadatadn;
-DNSName g_zonename;
+ZoneName g_zonename;
 map<DNSName,bool> g_objects;
 map<string, bool> g_entries;
 map<DNSName,bool> g_recorddata;
@@ -345,7 +345,7 @@ int main( int argc, char* argv[] )
                                         return 1;
                         }
 
-                        g_zonename = DNSName(args["zone-name"]);
+                        g_zonename = ZoneName(args["zone-name"]);
                         ZoneParserTNG zpt(args["zone-file"], g_zonename);
                         zpt.setMaxGenerateSteps(args.asNum("max-generate-steps"));
                         DNSResourceRecord rr;

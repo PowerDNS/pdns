@@ -90,7 +90,7 @@ double Ewma::getMax() const
   return d_max;
 }
 
-static void patchZone(UeberBackend& backend, const DNSName& zonename, DomainInfo& domainInfo, HttpRequest* req, HttpResponse* resp);
+static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInfo& domainInfo, HttpRequest* req, HttpResponse* resp);
 
 // QTypes that MUST NOT have multiple records of the same type in a given RRset.
 static const std::set<uint16_t> onlyOneEntryTypes = {QType::CNAME, QType::DNAME, QType::SOA};
@@ -385,7 +385,7 @@ static bool shouldDoRRSets(HttpRequest* req)
   throw ApiException("'rrsets' request parameter value '" + req->getvars["rrsets"] + "' is not supported");
 }
 
-static void fillZone(UeberBackend& backend, const DNSName& zonename, HttpResponse* resp, HttpRequest* req)
+static void fillZone(UeberBackend& backend, const ZoneName& zonename, HttpResponse* resp, HttpRequest* req)
 {
   DomainInfo domainInfo;
 
@@ -668,7 +668,7 @@ static void checkDefaultDNSSECAlgos()
   }
 }
 
-static void throwUnableToSecure(const DNSName& zonename)
+static void throwUnableToSecure(const ZoneName& zonename)
 {
   throw ApiException("No backend was able to secure '" + zonename.toString() + "', most likely because no DNSSEC"
                      + "capable backends are loaded, or because the backends have DNSSEC disabled. Check your configuration.");
@@ -677,7 +677,7 @@ static void throwUnableToSecure(const DNSName& zonename)
 /*
  * Add KSK and ZSK to an existing zone. Algorithms and sizes will be chosen per configuration.
  */
-static void addDefaultDNSSECKeys(DNSSECKeeper& dnssecKeeper, const DNSName& zonename)
+static void addDefaultDNSSECKeys(DNSSECKeeper& dnssecKeeper, const ZoneName& zonename)
 {
   checkDefaultDNSSECAlgos();
   int k_algo = DNSSECKeeper::shorthand2algorithm(::arg()["default-ksk-algorithm"]);
@@ -710,7 +710,7 @@ static bool isZoneApiRectifyEnabled(const DomainInfo& domainInfo)
   return api_rectify == "1";
 }
 
-static void extractDomainInfoFromDocument(const Json& document, std::optional<DomainInfo::DomainKind>& kind, std::optional<vector<ComboAddress>>& primaries, std::optional<DNSName>& catalog, std::optional<string>& account)
+static void extractDomainInfoFromDocument(const Json& document, std::optional<DomainInfo::DomainKind>& kind, std::optional<vector<ComboAddress>>& primaries, std::optional<ZoneName>& catalog, std::optional<string>& account)
 {
   if (document["kind"].is_string()) {
     kind = DomainInfo::stringToKind(stringFromJson(document, "kind"));
@@ -740,7 +740,7 @@ static void extractDomainInfoFromDocument(const Json& document, std::optional<Do
 
   if (document["catalog"].is_string()) {
     string catstring = document["catalog"].string_value();
-    catalog = (!catstring.empty() ? DNSName(catstring) : DNSName());
+    catalog = (!catstring.empty() ? ZoneName(catstring) : ZoneName());
   }
   else {
     catalog = std::nullopt;
@@ -773,11 +773,11 @@ static void extractJsonTSIGKeyIds(UeberBackend& backend, const Json& jsonArray, 
 }
 
 // Must be called within backend transaction.
-static void updateDomainSettingsFromDocument(UeberBackend& backend, DomainInfo& domainInfo, const DNSName& zonename, const Json& document, bool zoneWasModified)
+static void updateDomainSettingsFromDocument(UeberBackend& backend, DomainInfo& domainInfo, const ZoneName& zonename, const Json& document, bool zoneWasModified)
 {
   std::optional<DomainInfo::DomainKind> kind;
   std::optional<vector<ComboAddress>> primaries;
-  std::optional<DNSName> catalog;
+  std::optional<ZoneName> catalog;
   std::optional<string> account;
 
   extractDomainInfoFromDocument(document, kind, primaries, catalog, account);
@@ -1013,7 +1013,7 @@ public:
     }
   }
 
-  DNSName zoneName;
+  ZoneName zoneName;
   UeberBackend backend{};
   DNSSECKeeper dnssecKeeper;
   DomainInfo domainInfo{};
@@ -1192,7 +1192,7 @@ static void apiZoneMetadataKindDELETE(HttpRequest* req, HttpResponse* resp)
 }
 
 // Throws 404 if the key with inquireKeyId does not exist
-static void apiZoneCryptoKeysCheckKeyExists(const DNSName& zonename, int inquireKeyId, DNSSECKeeper* dnssecKeeper)
+static void apiZoneCryptoKeysCheckKeyExists(const ZoneName& zonename, int inquireKeyId, DNSSECKeeper* dnssecKeeper)
 {
   DNSSECKeeper::keyset_t keyset = dnssecKeeper->getKeys(zonename, false);
   bool found = false;
@@ -1207,7 +1207,7 @@ static void apiZoneCryptoKeysCheckKeyExists(const DNSName& zonename, int inquire
   }
 }
 
-static inline int getInquireKeyId(HttpRequest* req, const DNSName& zonename, DNSSECKeeper* dnsseckeeper)
+static inline int getInquireKeyId(HttpRequest* req, const ZoneName& zonename, DNSSECKeeper* dnsseckeeper)
 {
   int inquireKeyId = -1;
   if (req->parameters.count("key_id") == 1) {
@@ -1217,7 +1217,7 @@ static inline int getInquireKeyId(HttpRequest* req, const DNSName& zonename, DNS
   return inquireKeyId;
 }
 
-static void apiZoneCryptokeysExport(const DNSName& zonename, int64_t inquireKeyId, HttpResponse* resp, DNSSECKeeper* dnssec_dk)
+static void apiZoneCryptokeysExport(const ZoneName& zonename, int64_t inquireKeyId, HttpResponse* resp, DNSSECKeeper* dnssec_dk)
 {
   DNSSECKeeper::keyset_t keyset = dnssec_dk->getKeys(zonename, false);
 
@@ -1538,7 +1538,7 @@ static void apiZoneCryptokeysPUT(HttpRequest* req, HttpResponse* resp)
   resp->status = 204;
 }
 
-static void gatherRecordsFromZone(const std::string& zonestring, vector<DNSResourceRecord>& new_records, const DNSName& zonename)
+static void gatherRecordsFromZone(const std::string& zonestring, vector<DNSResourceRecord>& new_records, const ZoneName& zonename)
 {
   DNSResourceRecord resourceRecord;
   vector<string> zonedata;
@@ -1578,7 +1578,7 @@ static void gatherRecordsFromZone(const std::string& zonestring, vector<DNSResou
  *   *) no duplicates for QTypes that can only be present once per RRset
  *   *) hostnames are hostnames
  */
-static void checkNewRecords(vector<DNSResourceRecord>& records, const DNSName& zone)
+static void checkNewRecords(vector<DNSResourceRecord>& records, const ZoneName& zone)
 {
   sort(records.begin(), records.end(),
        [](const DNSResourceRecord& rec_a, const DNSResourceRecord& rec_b) -> bool {
@@ -1843,7 +1843,7 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
   DNSSECKeeper dnssecKeeper(&backend);
   DomainInfo domainInfo;
   const auto& document = req->json();
-  DNSName zonename = apiNameToDNSName(stringFromJson(document, "name"));
+  ZoneName zonename = apiNameToDNSName(stringFromJson(document, "name"));
   apiCheckNameAllowedCharacters(zonename.toString());
   zonename.makeUsLowerCase();
 
@@ -1854,7 +1854,7 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
 
   std::optional<DomainInfo::DomainKind> kind;
   std::optional<vector<ComboAddress>> primaries;
-  std::optional<DNSName> catalog;
+  std::optional<ZoneName> catalog;
   std::optional<string> account;
   extractDomainInfoFromDocument(document, kind, primaries, catalog, account);
 
@@ -2039,7 +2039,7 @@ static void apiServerZonesGET(HttpRequest* req, HttpResponse* resp)
   if (req->getvars.count("zone") != 0) {
     string zone = req->getvars["zone"];
     apiCheckNameAllowedCharacters(zone);
-    DNSName zonename = apiNameToDNSName(zone);
+    ZoneName zonename = apiNameToDNSName(zone);
     zonename.makeUsLowerCase();
     DomainInfo domainInfo;
     if (backend.getDomainInfo(zonename, domainInfo)) {
@@ -2284,7 +2284,7 @@ static void apiServerZoneRectify(HttpRequest* req, HttpResponse* resp)
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity): TODO Refactor this function.
-static void patchZone(UeberBackend& backend, const DNSName& zonename, DomainInfo& domainInfo, HttpRequest* req, HttpResponse* resp)
+static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInfo& domainInfo, HttpRequest* req, HttpResponse* resp)
 {
   bool zone_disabled = false;
   SOAData soaData;
@@ -2309,11 +2309,11 @@ static void patchZone(UeberBackend& backend, const DNSName& zonename, DomainInfo
     domainInfo.backend->getDomainMetadataOne(zonename, "SOA-EDIT", soa_edit_kind);
     bool soa_edit_done = false;
 
-    set<std::tuple<DNSName, QType, string>> seen;
+    set<std::tuple<ZoneName, QType, string>> seen;
 
     for (const auto& rrset : rrsets.array_items()) {
       string changetype = toUpper(stringFromJson(rrset, "changetype"));
-      DNSName qname = apiNameToDNSName(stringFromJson(rrset, "name"));
+      ZoneName qname = apiNameToDNSName(stringFromJson(rrset, "name"));
       apiCheckQNameAllowedCharacters(qname.toString());
       QType qtype;
       qtype = stringFromJson(rrset, "type");
@@ -2587,7 +2587,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp)
 
 static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp)
 {
-  DNSName canon = apiNameToDNSName(req->getvars["domain"]);
+  ZoneName canon = apiNameToDNSName(req->getvars["domain"]);
 
   if (g_zoneCache.isEnabled()) {
     DomainInfo domainInfo;

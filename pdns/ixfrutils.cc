@@ -31,18 +31,18 @@
 #include "zoneparser-tng.hh"
 #include "dnsparser.hh"
 
-uint32_t getSerialFromPrimary(const ComboAddress& primary, const DNSName& zone, shared_ptr<const SOARecordContent>& sr, const TSIGTriplet& tt, const uint16_t timeout)
+uint32_t getSerialFromPrimary(const ComboAddress& primary, const ZoneName& zone, shared_ptr<const SOARecordContent>& soarecord, const TSIGTriplet& tsig, const uint16_t timeout)
 {
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, zone, QType::SOA);
-  if(!tt.algo.empty()) {
+  if(!tsig.algo.empty()) {
     TSIGRecordContent trc;
-    trc.d_algoName = tt.algo;
+    trc.d_algoName = tsig.algo;
     trc.d_time = time(nullptr);
     trc.d_fudge = 300;
     trc.d_origID=ntohs(pw.getHeader()->id);
     trc.d_eRcode=0;
-    addTSIG(pw, trc, tt.name, tt.secret, "", false);
+    addTSIG(pw, trc, tsig.name, tsig.secret, "", false);
   }
 
   Socket s(primary.sin4.sin_family, SOCK_DGRAM);
@@ -66,9 +66,9 @@ uint32_t getSerialFromPrimary(const ComboAddress& primary, const DNSName& zone, 
   }
   for(const auto& r: mdp.d_answers) {
     if(r.d_type == QType::SOA) {
-      sr = getRR<SOARecordContent>(r);
-      if(sr != nullptr) {
-        return sr->d_st.serial;
+      soarecord = getRR<SOARecordContent>(r);
+      if(soarecord != nullptr) {
+        return soarecord->d_st.serial;
       }
     }
   }
@@ -126,7 +126,7 @@ static void writeRecords(FILE* fp, const records_t& records)
   }
 }
 
-void writeZoneToDisk(const records_t& records, const DNSName& zone, const std::string& directory)
+void writeZoneToDisk(const records_t& records, const ZoneName& zone, const std::string& directory)
 {
   DNSRecord soa;
   auto serial = getSerialFromRecords(records, soa);
@@ -169,7 +169,7 @@ void writeZoneToDisk(const records_t& records, const DNSName& zone, const std::s
   }
 }
 
-void loadZoneFromDisk(records_t& records, const string& fname, const DNSName& zone)
+void loadZoneFromDisk(records_t& records, const string& fname, const ZoneName& zone)
 {
   ZoneParserTNG zpt(fname, zone);
 
@@ -197,7 +197,7 @@ void loadZoneFromDisk(records_t& records, const string& fname, const DNSName& zo
  * Load the zone `zone` from `fname` and put the first found SOA into `soa`
  * Does NOT check for nullptr
  */
-void loadSOAFromDisk(const DNSName& zone, const string& fname, shared_ptr<const SOARecordContent>& soa, uint32_t& soaTTL)
+void loadSOAFromDisk(const ZoneName& zone, const string& fname, shared_ptr<const SOARecordContent>& soa, uint32_t& soaTTL)
 {
   ZoneParserTNG zpt(fname, zone);
   zpt.disableGenerate();

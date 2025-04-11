@@ -40,7 +40,7 @@ struct TinyDomainInfo
 {
   uint32_t id;
   uint32_t notified_serial;
-  DNSName zone;
+  ZoneName zone;
 
   bool operator<(const TinyDomainInfo& tdi) const
   {
@@ -70,9 +70,9 @@ public:
 
   unsigned int getCapabilities() override { return CAP_LIST; }
   void lookup(const QType& qtype, const DNSName& qdomain, int zoneId, DNSPacket* pkt_p = nullptr) override;
-  bool list(const DNSName& target, int domain_id, bool include_disabled = false) override;
+  bool list(const ZoneName& target, int domain_id, bool include_disabled = false) override;
   bool get(DNSResourceRecord& rr) override;
-  bool getDomainInfo(const DNSName& domain, DomainInfo& di, bool getSerial = true) override;
+  bool getDomainInfo(const ZoneName& domain, DomainInfo& di, bool getSerial = true) override;
   void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled) override;
 
   // Primary mode operation
@@ -90,7 +90,7 @@ private:
   typedef multi_index_container<
     TinyDomainInfo,
     indexed_by<
-      hashed_unique<tag<tag_zone>, member<TinyDomainInfo, DNSName, &TinyDomainInfo::zone>>,
+      hashed_unique<tag<tag_zone>, member<TinyDomainInfo, ZoneName, &TinyDomainInfo::zone>>,
       hashed_unique<tag<tag_domainid>, member<TinyDomainInfo, uint32_t, &TinyDomainInfo::id>>>>
     TDI_t;
   typedef map<string, TDI_t> TDI_suffix_t;

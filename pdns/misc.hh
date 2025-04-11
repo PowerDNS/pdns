@@ -45,6 +45,7 @@
 #include "namespaces.hh"
 
 class DNSName;
+using ZoneName = DNSName;
 
 // Do not change to "using TSIGHashEnum ..." until you know CodeQL does not choke on it
 typedef enum
@@ -476,7 +477,7 @@ inline bool isCanonical(const string& qname)
   return qname[qname.size()-1]=='.';
 }
 
-inline DNSName toCanonic(const DNSName& zone, const string& qname)
+inline DNSName toCanonic(const ZoneName& zone, const string& qname)
 {
   if(qname.size()==1 && qname[0]=='@')
     return zone;

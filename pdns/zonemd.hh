@@ -50,7 +50,7 @@ public:
     ValidationFailure
   };
 
-  ZoneMD(DNSName zone) :
+  ZoneMD(ZoneName zone) :
     d_zone(std::move(zone))
   {}
   void readRecords(ZoneParserTNG& zpt);
@@ -148,7 +148,7 @@ private:
   ContentSigPair d_nsecs;
   map<DNSName, ContentSigPair> d_nsec3s;
   DNSName d_nsec3label;
-  const DNSName d_zone;
+  const ZoneName d_zone;
   const ContentSigPair empty;
 };
 

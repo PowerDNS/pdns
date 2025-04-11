@@ -257,7 +257,7 @@ std::string DNSName::toString(const std::string& separator, const bool trailing)
 void DNSName::toString(std::string& output, const std::string& separator, const bool trailing) const
 {
   if (empty()) {
-    throw std::out_of_range("Attempt to print an unset dnsname");
+    throw std::out_of_range("Attempt to print an unset DNSName");
   }
 
   if (isRoot()) {
@@ -298,7 +298,7 @@ std::string DNSName::toLogString() const
 std::string DNSName::toDNSString() const
 {
   if (empty()) {
-    throw std::out_of_range("Attempt to DNSString an unset dnsname");
+    throw std::out_of_range("Attempt to DNSString an unset DNSName");
   }
 
   return std::string(d_storage.c_str(), d_storage.length());
@@ -324,7 +324,7 @@ size_t DNSName::wirelength() const {
 bool DNSName::isPartOf(const DNSName& parent) const
 {
   if(parent.empty() || empty()) {
-    throw std::out_of_range("empty dnsnames aren't part of anything");
+    throw std::out_of_range("empty DNSNames aren't part of anything");
   }
 
   if(parent.d_storage.size() > d_storage.size()) {
@@ -346,7 +346,7 @@ bool DNSName::isPartOf(const DNSName& parent) const
       return true;
     }
     if (static_cast<uint8_t>(*us) > 63) {
-      throw std::out_of_range("illegal label length in dnsname");
+      throw std::out_of_range("illegal label length in DNSName");
     }
   }
   return false;

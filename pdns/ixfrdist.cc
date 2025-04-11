@@ -78,7 +78,7 @@ ArgvMap &arg()
 }
 /* END Needed because of deeper dependencies */
 
-// Allows reading/writing ComboAddresses and DNSNames in YAML-cpp
+// Allows reading/writing ComboAddresses and ZoneNames in YAML-cpp
 namespace YAML {
 template<>
 struct convert<ComboAddress> {
@@ -101,16 +101,16 @@ struct convert<ComboAddress> {
 };
 
 template<>
-struct convert<DNSName> {
-  static Node encode(const DNSName& rhs) {
+struct convert<ZoneName> {
+  static Node encode(const ZoneName& rhs) {
     return Node(rhs.toStringRootDot());
   }
-  static bool decode(const Node& node, DNSName& rhs) {
+  static bool decode(const Node& node, ZoneName& rhs) {
     if (!node.IsScalar()) {
       return false;
     }
     try {
-      rhs = DNSName(node.as<string>());
+      rhs = ZoneName(node.as<string>());
       return true;
     } catch(const runtime_error &e) {
       return false;
@@ -165,14 +165,14 @@ struct ixfrdistdomain_t {
 };
 
 // This contains the configuration for each domain
-static map<DNSName, ixfrdistdomain_t> g_domainConfigs;
+static map<ZoneName, ixfrdistdomain_t> g_domainConfigs;
 
 // Map domains and their data
-static LockGuarded<std::map<DNSName, std::shared_ptr<ixfrinfo_t>>> g_soas;
+static LockGuarded<std::map<ZoneName, std::shared_ptr<ixfrinfo_t>>> g_soas;
 
 // Queue of received NOTIFYs, already verified against their primary IPs
 // Lazily implemented as a set
-static LockGuarded<std::set<DNSName>> g_notifiesReceived;
+static LockGuarded<std::set<ZoneName>> g_notifiesReceived;
 
 // Queue of outgoing NOTIFY
 static LockGuarded<NotificationQueue> g_notificationQueue;
@@ -217,7 +217,7 @@ static bool sortSOA(uint32_t i, uint32_t j) {
   return rfc1982LessThan(i, j);
 }
 
-static void cleanUpDomain(const DNSName& domain, const uint16_t& keep, const string& workdir) {
+static void cleanUpDomain(const ZoneName& domain, const uint16_t& keep, const string& workdir) {
   string dir = workdir + "/" + domain.toString();
   vector<uint32_t> zoneVersions;
   auto directoryError = pdns::visit_directory(dir, [&zoneVersions]([[maybe_unused]] ino_t inodeNumber, const std::string_view& name) {
@@ -288,12 +288,12 @@ static void makeIXFRDiff(const records_t& from, const records_t& to, std::shared
 }
 
 /* you can _never_ alter the content of the resulting shared pointer */
-static std::shared_ptr<ixfrinfo_t> getCurrentZoneInfo(const DNSName& domain)
+static std::shared_ptr<ixfrinfo_t> getCurrentZoneInfo(const ZoneName& domain)
 {
   return (*g_soas.lock())[domain];
 }
 
-static void updateCurrentZoneInfo(const DNSName& domain, std::shared_ptr<ixfrinfo_t>& newInfo)
+static void updateCurrentZoneInfo(const ZoneName& domain, std::shared_ptr<ixfrinfo_t>& newInfo)
 {
   auto soas = g_soas.lock();
   (*soas)[domain] = newInfo;
@@ -301,7 +301,7 @@ static void updateCurrentZoneInfo(const DNSName& domain, std::shared_ptr<ixfrinf
   // FIXME: also report zone size?
 }
 
-static void sendNotification(int sock, const DNSName& domain, const ComboAddress& remote, uint16_t notificationId)
+static void sendNotification(int sock, const ZoneName& domain, const ComboAddress& remote, uint16_t notificationId)
 {
   std::vector<std::string> meta;
   std::vector<uint8_t> packet;
@@ -356,7 +356,7 @@ static void communicatorReceiveNotificationAnswers(const int sock4, const int so
 
 static void communicatorSendNotifications(const int sock4, const int sock6)
 {
-  DNSName domain;
+  ZoneName domain;
   string destinationIp;
   uint16_t notificationId = 0;
   bool purged{false};
@@ -407,11 +407,11 @@ static void communicatorThread()
 
 static void updateThread(const string& workdir, const uint16_t& keep, const uint16_t& axfrTimeout, const uint16_t& soaRetry, const uint32_t axfrMaxRecords) { // NOLINT(readability-function-cognitive-complexity) 13400 https://github.com/PowerDNS/pdns/issues/13400 Habbie:  ixfrdist: reduce complexity
   setThreadName("ixfrdist/update");
-  std::map<DNSName, time_t> lastCheck;
+  std::map<ZoneName, time_t> lastCheck;
 
   // Initialize the serials we have
   for (const auto &domainConfig : g_domainConfigs) {
-    DNSName domain = domainConfig.first;
+    ZoneName domain = domainConfig.first;
     lastCheck[domain] = 0;
     string dir = workdir + "/" + domain.toString();
     try {
@@ -464,7 +464,7 @@ static void updateThread(const string& workdir, const uint16_t& keep, const uint
         break;
       }
 
-      DNSName domain = domainConfig.first;
+      ZoneName domain = domainConfig.first;
       shared_ptr<const SOARecordContent> current_soa;
       const auto& zoneInfo = getCurrentZoneInfo(domain);
       if (zoneInfo != nullptr) {
@@ -1391,7 +1391,7 @@ static bool parseAndCheckConfig(const string& configpath, YAML::Node& config) {
           retval = false;
           continue;
         }
-        domain["domain"].as<DNSName>();
+        domain["domain"].as<ZoneName>();
       } catch (const runtime_error &e) {
         g_log<<Logger::Error<<"Unable to read domain '"<<domain["domain"].as<string>()<<"': "<<e.what()<<endl;
       }
@@ -1556,12 +1556,12 @@ static std::optional<IXFRDistConfiguration> parseConfiguration(int argc, char** 
     for (auto const &domain : config["domains"]) {
       set<ComboAddress> s;
       s.insert(domain["master"].as<ComboAddress>());
-      g_domainConfigs[domain["domain"].as<DNSName>()].primaries = s;
+      g_domainConfigs[domain["domain"].as<ZoneName>()].primaries = s;
       if (domain["max-soa-refresh"].IsDefined()) {
-        g_domainConfigs[domain["domain"].as<DNSName>()].maxSOARefresh = domain["max-soa-refresh"].as<uint32_t>();
+        g_domainConfigs[domain["domain"].as<ZoneName>()].maxSOARefresh = domain["max-soa-refresh"].as<uint32_t>();
       }
       if (domain["notify"].IsDefined()) {
-        auto& listset = g_domainConfigs[domain["domain"].as<DNSName>()].notify;
+        auto& listset = g_domainConfigs[domain["domain"].as<ZoneName>()].notify;
         if (domain["notify"].IsScalar()) {
           auto remote = domain["notify"].as<std::string>();
           try {
@@ -1582,7 +1582,7 @@ static std::optional<IXFRDistConfiguration> parseConfiguration(int argc, char** 
           }
         }
       }
-      g_stats.registerDomain(domain["domain"].as<DNSName>());
+      g_stats.registerDomain(domain["domain"].as<ZoneName>());
     }
 
     for (const auto &addr : config["acl"].as<vector<string>>()) {

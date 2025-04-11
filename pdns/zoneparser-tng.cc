@@ -38,7 +38,7 @@
 
 const static string g_INstr("IN");
 
-ZoneParserTNG::ZoneParserTNG(const string& fname, DNSName  zname, string  reldir, bool upgradeContent):
+ZoneParserTNG::ZoneParserTNG(const string& fname, ZoneName zname, string reldir, bool upgradeContent):
   d_reldir(std::move(reldir)), d_zonename(std::move(zname)), d_defaultttl(3600),
   d_templatecounter(0), d_templatestop(0), d_templatestep(0),
   d_havedollarttl(false), d_fromfile(true), d_upgradeContent(upgradeContent)
@@ -46,7 +46,7 @@ ZoneParserTNG::ZoneParserTNG(const string& fname, DNSName  zname, string  reldir
   stackFile(fname);
 }
 
-ZoneParserTNG::ZoneParserTNG(const vector<string>& zonedata, DNSName  zname, bool upgradeContent):
+ZoneParserTNG::ZoneParserTNG(const vector<string>& zonedata, ZoneName zname, bool upgradeContent):
   d_zonename(std::move(zname)), d_zonedata(zonedata), d_defaultttl(3600),
   d_templatecounter(0), d_templatestop(0), d_templatestep(0),
   d_havedollarttl(false), d_fromfile(false), d_upgradeContent(upgradeContent)
@@ -314,7 +314,7 @@ static bool findAndElide(string& line, char c)
   return false;
 }
 
-DNSName ZoneParserTNG::getZoneName()
+ZoneName ZoneParserTNG::getZoneName()
 {
   return d_zonename;
 }
@@ -372,7 +372,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
       stackFile(fname);
     }
     else if(pdns_iequals(command, "$ORIGIN") && d_parts.size() > 1) {
-      d_zonename = DNSName(makeString(d_line, d_parts[1]));
+      d_zonename = ZoneName(makeString(d_line, d_parts[1]));
     }
     else if(pdns_iequals(command, "$GENERATE") && d_parts.size() > 2) {
       if (!d_generateEnabled) {

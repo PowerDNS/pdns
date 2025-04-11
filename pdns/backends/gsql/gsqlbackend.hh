@@ -196,34 +196,34 @@ protected:
 public:
   unsigned int getCapabilities() override;
   void lookup(const QType &, const DNSName &qdomain, int zoneId, DNSPacket *p=nullptr) override;
-  bool list(const DNSName &target, int domain_id, bool include_disabled=false) override;
+  bool list(const ZoneName &target, int domain_id, bool include_disabled=false) override;
   bool get(DNSResourceRecord &r) override;
   void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled) override;
-  bool startTransaction(const DNSName &domain, int domain_id=-1) override;
+  bool startTransaction(const ZoneName &domain, int domain_id=-1) override;
   bool commitTransaction() override;
   bool abortTransaction() override;
   bool feedRecord(const DNSResourceRecord &r, const DNSName &ordername, bool ordernameIsNSEC3=false) override;
   bool feedEnts(int domain_id, map<DNSName,bool>& nonterm) override;
   bool feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow) override;
-  bool createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account) override;
-  bool createSecondaryDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account) override;
-  bool deleteDomain(const DNSName &domain) override;
+  bool createDomain(const ZoneName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account) override;
+  bool createSecondaryDomain(const string& ipAddress, const ZoneName& domain, const string& nameserver, const string& account) override;
+  bool deleteDomain(const ZoneName &domain) override;
   bool autoPrimaryAdd(const AutoPrimary& primary) override;
   bool autoPrimaryRemove(const AutoPrimary& primary) override;
   bool autoPrimariesList(std::vector<AutoPrimary>& primaries) override;
-  bool autoPrimaryBackend(const string& ip, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** db) override;
+  bool autoPrimaryBackend(const string& ipAddress, const ZoneName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** db) override;
   void setStale(uint32_t domain_id) override;
   void setFresh(uint32_t domain_id) override;
   void getUnfreshSecondaryInfos(vector<DomainInfo>* domains) override;
   void getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes) override;
-  bool getCatalogMembers(const DNSName& catalog, vector<CatalogInfo>& members, CatalogInfo::CatalogType type) override;
-  bool getDomainInfo(const DNSName &domain, DomainInfo &di, bool getSerial=true) override;
+  bool getCatalogMembers(const ZoneName& catalog, vector<CatalogInfo>& members, CatalogInfo::CatalogType type) override;
+  bool getDomainInfo(const ZoneName &domain, DomainInfo &info, bool getSerial=true) override;
   void setNotified(uint32_t domain_id, uint32_t serial) override;
-  bool setPrimaries(const DNSName& domain, const vector<ComboAddress>& primaries) override;
-  bool setKind(const DNSName &domain, const DomainInfo::DomainKind kind) override;
-  bool setOptions(const DNSName& domain, const string& options) override;
-  bool setCatalog(const DNSName& domain, const DNSName& catalog) override;
-  bool setAccount(const DNSName &domain, const string &account) override;
+  bool setPrimaries(const ZoneName& domain, const vector<ComboAddress>& primaries) override;
+  bool setKind(const ZoneName &domain, const DomainInfo::DomainKind kind) override;
+  bool setOptions(const ZoneName& domain, const string& options) override;
+  bool setCatalog(const ZoneName& domain, const ZoneName& catalog) override;
+  bool setAccount(const ZoneName &domain, const string &account) override;
 
   bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) override;
   bool updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t=QType::ANY) override;
@@ -231,18 +231,18 @@ public:
   bool updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& insert ,set<DNSName>& erase, bool remove) override;
 
   bool replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset) override;
-  bool listSubZone(const DNSName &zone, int domain_id) override;
-  bool addDomainKey(const DNSName& name, const KeyData& key, int64_t& id) override;
-  bool getDomainKeys(const DNSName& name, std::vector<KeyData>& keys) override;
-  bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta) override;
-  bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta) override;
-  bool setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta) override;
+  bool listSubZone(const ZoneName &zone, int domain_id) override;
+  bool addDomainKey(const ZoneName& name, const KeyData& key, int64_t& id) override;
+  bool getDomainKeys(const ZoneName& name, std::vector<KeyData>& keys) override;
+  bool getAllDomainMetadata(const ZoneName& name, std::map<std::string, std::vector<std::string> >& meta) override;
+  bool getDomainMetadata(const ZoneName& name, const std::string& kind, std::vector<std::string>& meta) override;
+  bool setDomainMetadata(const ZoneName& name, const std::string& kind, const std::vector<std::string>& meta) override;
 
-  bool removeDomainKey(const DNSName& name, unsigned int id) override;
-  bool activateDomainKey(const DNSName& name, unsigned int id) override;
-  bool deactivateDomainKey(const DNSName& name, unsigned int id) override;
-  bool publishDomainKey(const DNSName& name, unsigned int id) override;
-  bool unpublishDomainKey(const DNSName& name, unsigned int id) override;
+  bool removeDomainKey(const ZoneName& name, unsigned int keyId) override;
+  bool activateDomainKey(const ZoneName& name, unsigned int keyId) override;
+  bool deactivateDomainKey(const ZoneName& name, unsigned int keyId) override;
+  bool publishDomainKey(const ZoneName& name, unsigned int keyId) override;
+  bool unpublishDomainKey(const ZoneName& name, unsigned int keyId) override;
 
   bool getTSIGKey(const DNSName& name, DNSName& algorithm, string& content) override;
   bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content) override;

@@ -57,11 +57,6 @@ inline unsigned char dns_tolower(unsigned char c)
 #include "burtle.hh"
 #include "views.hh"
 
-// #include "dns.hh"
-// #include "logger.hh"
-
-//#include <ext/vstring.h>
-
 /* Quest in life:
      accept escaped ascii presentations of DNS names and store them "natively"
      accept a DNS packet with an offset, and extract a DNS name from it
@@ -74,6 +69,14 @@ inline unsigned char dns_tolower(unsigned char c)
    NOTE: For now, everything MUST be . terminated, otherwise it is an error
 */
 
+// DNSName: represents a case-insensitive string, allowing for non-printable
+// characters. It is used for all kinds of name (of hosts, domains, keys,
+// algorithm...) overall the PowerDNS codebase.
+//
+// The following type traits are provided:
+// - EqualityComparable
+// - LessThanComparable
+// - Hash
 class DNSName
 {
 public:
@@ -303,6 +306,11 @@ inline DNSName operator+(const DNSName& lhs, const DNSName& rhs)
 }
 
 extern const DNSName g_rootdnsname, g_wildcarddnsname;
+
+// ZoneName: this is equivalent to DNSName, but intended to only store zone
+// names. For the time being, they are strictly identical.
+using ZoneName = DNSName;
+using CanonZoneNameCompare = CanonDNSNameCompare;
 
 template<typename T>
 struct SuffixMatchTree

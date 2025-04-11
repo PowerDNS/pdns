@@ -17,15 +17,15 @@ static void testZoneMD(const std::string& zone, const std::string& file, bool ex
   if (!p) {
     p = ".";
   }
-  DNSName z(zone);
+  ZoneName zonename(zone);
   std::ostringstream pathbuf;
   pathbuf << p << "/../regression-tests/zones/" + file;
-  ZoneParserTNG zpt(pathbuf.str(), z);
+  ZoneParserTNG zpt(pathbuf.str(), zonename);
 
   bool validationDone = false, validationOK = false;
 
   try {
-    auto zonemd = pdns::ZoneMD(z);
+    auto zonemd = pdns::ZoneMD(zonename);
     zonemd.readRecords(zpt);
     zonemd.verify(validationDone, validationOK);
   }

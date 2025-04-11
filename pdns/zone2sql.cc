@@ -111,7 +111,7 @@ static void startNewTransaction()
     cout<<"BEGIN TRANSACTION;"<<endl;
 }
 
-static void emitDomain(const DNSName& domain, const vector<ComboAddress>* primaries = nullptr)
+static void emitDomain(const ZoneName& domain, const vector<ComboAddress>* primaries = nullptr)
 {
   string iDomain = domain.toStringRootDot();
   if (!::arg().mustDo("secondary")) {
@@ -134,7 +134,7 @@ static void emitDomain(const DNSName& domain, const vector<ComboAddress>* primar
 }
 
 bool g_doJSONComments;
-static void emitRecord(const DNSName& zoneName, const DNSName &DNSqname, const string &qtype, const string &ocontent, int ttl, const string& comment="")
+static void emitRecord(const ZoneName& zoneName, const DNSName &DNSqname, const string &qtype, const string &ocontent, int ttl, const string& comment="")
 {
   string qname = DNSqname.toStringRootDot();
   string zname = zoneName.toStringRootDot();
@@ -331,9 +331,9 @@ try
       cerr<<"\r100% done\033\133\113"<<endl;
     }
     else {
-      DNSName zonename;
+      ZoneName zonename;
       if(!::arg()["zone-name"].empty())
-        zonename = DNSName(::arg()["zone-name"]);
+        zonename = ZoneName(::arg()["zone-name"]);
 
       ZoneParserTNG zpt(zonefile, zonename);
       zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));

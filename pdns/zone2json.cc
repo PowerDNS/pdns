@@ -203,7 +203,7 @@ try
       cerr<<"\r100% done\033\133\113"<<endl;
     }
     else {
-      ZoneParserTNG zpt(zonefile, DNSName(::arg()["zone-name"]));
+      ZoneParserTNG zpt(zonefile, ZoneName(::arg()["zone-name"]));
       zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
       DNSResourceRecord rr;
       string zname;

@@ -59,7 +59,7 @@ catch(...) {
   return nullptr;
 }
 
-ChunkedSigningPipe::ChunkedSigningPipe(DNSName signerName, bool mustSign, unsigned int workers, unsigned int maxChunkRecords) :
+ChunkedSigningPipe::ChunkedSigningPipe(ZoneName signerName, bool mustSign, unsigned int workers, unsigned int maxChunkRecords) :
   d_signed(0), d_numworkers(workers), d_signer(std::move(signerName)), d_maxchunkrecords(maxChunkRecords), d_threads(d_numworkers), d_mustSign(mustSign)
 {
   d_rrsetToSign = make_unique<rrset_t>();
@@ -287,7 +287,7 @@ try
     if(res < 0)
       unixDie("reading object pointer to sign from pdns");
     try {
-      set<DNSName> authSet;
+      set<ZoneName> authSet;
       authSet.insert(d_signer);
       addRRSigs(dk, db, authSet, *chunk);
       ++d_signed;
