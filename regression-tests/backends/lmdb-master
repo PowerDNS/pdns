@@ -87,7 +87,7 @@ __EOF__
             $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb set-options-json tsig.com$plusvariant '{"producer":{"group":["pdns-group-x","pdns-group-y"]}}'
         fi
 
-        [ -n "$plusvariant" ] && $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb network-set 0.0.0.0/0 variant-view
+        [ -n "$plusvariant" ] && $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb set-network 0.0.0.0/0 variant-view
 
         for variant in foo bar
         do
@@ -106,8 +106,8 @@ __EOF__
         $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb add-record example.org..foo target TXT '"hello from target..foo"'
         $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb view-add-zone view1 example.org..foo
 
-        $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb network-set 192.0.2.0/24 view1
-        $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb network-set 192.0.2.0/25 view2
+        $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb set-network 192.0.2.0/24 view1
+        $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb set-network 192.0.2.0/25 view2
 
         $RUNWRAPPER $PDNS --loglevel=7 --daemon=no --local-address=$address --local-port=$port --config-dir=. \
             --config-name=lmdb --socket-dir=./ --no-shuffle \
