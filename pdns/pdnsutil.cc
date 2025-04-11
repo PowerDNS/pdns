@@ -205,11 +205,11 @@ static int usage(const std::string_view synopsis)
   return EXIT_FAILURE;
 }
 
-static bool rectifyZone(DNSSECKeeper& dk, const ZoneName& zone, bool quiet = false, bool rectifyTransaction = true)
+static bool rectifyZone(DNSSECKeeper& dsk, const ZoneName& zone, bool quiet = false, bool rectifyTransaction = true)
 {
   string output;
   string error;
-  bool ret = dk.rectifyZone(zone, error, output, rectifyTransaction);
+  bool ret = dsk.rectifyZone(zone, error, output, rectifyTransaction);
   if (!quiet || !ret) {
     // When quiet, only print output if there was an error
     if (!output.empty()) {
@@ -944,7 +944,7 @@ static int checkAllZones(DNSSECKeeper &dk, bool exitOnError)
   return EXIT_FAILURE;
 }
 
-static int increaseSerial(const ZoneName& zone, DNSSECKeeper &dk)
+static int increaseSerial(const ZoneName& zone, DNSSECKeeper &dsk)
 {
   UtilBackend B("default"); //NOLINT(readability-identifier-length)
   SOAData sd;
@@ -953,7 +953,7 @@ static int increaseSerial(const ZoneName& zone, DNSSECKeeper &dk)
     return -1;
   }
 
-  if (dk.isPresigned(zone)) {
+  if (dsk.isPresigned(zone)) {
     cerr<<"Serial increase of presigned zone '"<<zone<<"' is not allowed."<<endl;
     return -1;
   }
@@ -972,7 +972,7 @@ static int increaseSerial(const ZoneName& zone, DNSSECKeeper &dk)
   }
 
   string soaEditKind;
-  dk.getSoaEdit(zone, soaEditKind);
+  dsk.getSoaEdit(zone, soaEditKind);
 
   DNSResourceRecord rr;
   makeIncreasedSOARecord(sd, "SOA-EDIT-INCREASE", soaEditKind, rr);
@@ -989,7 +989,7 @@ static int increaseSerial(const ZoneName& zone, DNSSECKeeper &dk)
   if (sd.db->doesDNSSEC()) {
     NSEC3PARAMRecordContent ns3pr;
     bool narrow = false;
-    bool haveNSEC3=dk.getNSEC3PARAM(zone, &ns3pr, &narrow);
+    bool haveNSEC3=dsk.getNSEC3PARAM(zone, &ns3pr, &narrow);
 
     DNSName ordername;
     if(haveNSEC3) {
@@ -2038,7 +2038,7 @@ static void verifyCrypto(const string& zone)
   }
 }
 
-static bool disableDNSSECOnZone(DNSSECKeeper& dk, const ZoneName& zone)
+static bool disableDNSSECOnZone(DNSSECKeeper& dsk, const ZoneName& zone)
 {
   UtilBackend B("default"); //NOLINT(readability-identifier-length)
   DomainInfo di;
@@ -2049,7 +2049,7 @@ static bool disableDNSSECOnZone(DNSSECKeeper& dk, const ZoneName& zone)
   }
 
   string error, info;
-  bool ret = dk.unSecureZone(zone, error);
+  bool ret = dsk.unSecureZone(zone, error);
   if (!ret) {
     cerr << error << endl;
   }
@@ -2387,7 +2387,7 @@ static bool showZone(DNSSECKeeper& dnsseckeeper, const ZoneName& zone, bool expo
   return true;
 }
 
-static bool secureZone(DNSSECKeeper& dk, const ZoneName& zone)
+static bool secureZone(DNSSECKeeper& dsk, const ZoneName& zone)
 {
   // temp var for addKey
   int64_t id{-1};
@@ -2410,7 +2410,7 @@ static bool secureZone(DNSSECKeeper& dk, const ZoneName& zone)
      throw runtime_error("ZSK key size must be equal to or greater than 0");
   }
 
-  if(dk.isSecuredZone(zone)) {
+  if(dsk.isSecuredZone(zone)) {
     cerr << "Zone '"<<zone<<"' already secure, remove keys with pdnsutil remove-zone-key if needed"<<endl;
     return false;
   }
@@ -2438,7 +2438,7 @@ static bool secureZone(DNSSECKeeper& dk, const ZoneName& zone)
 
     int k_real_algo = DNSSECKeeper::shorthand2algorithm(k_algo);
 
-    if (!dk.addKey(zone, true, k_real_algo, id, k_size, true, true)) {
+    if (!dsk.addKey(zone, true, k_real_algo, id, k_size, true, true)) {
       cerr<<"No backend was able to secure '"<<zone<<"', most likely because no DNSSEC"<<endl;
       cerr<<"capable backends are loaded, or because the backends have DNSSEC disabled."<<endl;
       cerr<<"For the Generic SQL backends, set the 'gsqlite3-dnssec', 'gmysql-dnssec' or"<<endl;
@@ -2452,7 +2452,7 @@ static bool secureZone(DNSSECKeeper& dk, const ZoneName& zone)
 
     int z_real_algo = DNSSECKeeper::shorthand2algorithm(z_algo);
 
-    if (!dk.addKey(zone, false, z_real_algo, id, z_size, true, true)) {
+    if (!dsk.addKey(zone, false, z_real_algo, id, z_size, true, true)) {
       cerr<<"No backend was able to secure '"<<zone<<"', most likely because no DNSSEC"<<endl;
       cerr<<"capable backends are loaded, or because the backends have DNSSEC disabled."<<endl;
       cerr<<"For the Generic SQL backends, set the 'gsqlite3-dnssec', 'gmysql-dnssec' or"<<endl;
@@ -2461,7 +2461,7 @@ static bool secureZone(DNSSECKeeper& dk, const ZoneName& zone)
     }
   }
 
-  if(!dk.isSecuredZone(zone)) {
+  if(!dsk.isSecuredZone(zone)) {
     cerr<<"Failed to secure zone. Is your backend dnssec enabled? (set "<<endl;
     cerr<<"gsqlite3-dnssec, or gmysql-dnssec etc). Check this first."<<endl;
     cerr<<"If you run with the BIND backend, make sure you have configured"<<endl;
@@ -2470,13 +2470,13 @@ static bool secureZone(DNSSECKeeper& dk, const ZoneName& zone)
     return false;
   }
 
-  // rectifyZone(dk, zone);
-  // showZone(dk, zone);
+  // rectifyZone(dsk, zone);
+  // showZone(dsk, zone);
   cout<<"Zone "<<zone<<" secured"<<endl;
   return true;
 }
 
-static int testSchema(DNSSECKeeper& dk, const ZoneName& zone)
+static int testSchema(DNSSECKeeper& dsk, const ZoneName& zone)
 {
   cout<<"Note: test-schema will try to create the zone, but it will not remove it."<<endl;
   cout<<"Please clean up after this."<<endl;
@@ -2557,9 +2557,9 @@ static int testSchema(DNSSECKeeper& dk, const ZoneName& zone)
   db->commitTransaction();
 
   cout<<"Securing zone"<<endl;
-  secureZone(dk, zone);
+  secureZone(dsk, zone);
   cout<<"Rectifying zone"<<endl;
-  rectifyZone(dk, zone);
+  rectifyZone(dsk, zone);
   cout<<"Checking underscore ordering"<<endl;
   DNSName before, after;
   db->getBeforeAndAfterNames(di.id, zone, DNSName("z")+zone, before, after);

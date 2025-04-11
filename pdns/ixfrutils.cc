@@ -31,18 +31,18 @@
 #include "zoneparser-tng.hh"
 #include "dnsparser.hh"
 
-uint32_t getSerialFromPrimary(const ComboAddress& primary, const ZoneName& zone, shared_ptr<const SOARecordContent>& sr, const TSIGTriplet& tt, const uint16_t timeout)
+uint32_t getSerialFromPrimary(const ComboAddress& primary, const ZoneName& zone, shared_ptr<const SOARecordContent>& soarecord, const TSIGTriplet& tsig, const uint16_t timeout)
 {
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, zone, QType::SOA);
-  if(!tt.algo.empty()) {
+  if(!tsig.algo.empty()) {
     TSIGRecordContent trc;
-    trc.d_algoName = tt.algo;
+    trc.d_algoName = tsig.algo;
     trc.d_time = time(nullptr);
     trc.d_fudge = 300;
     trc.d_origID=ntohs(pw.getHeader()->id);
     trc.d_eRcode=0;
-    addTSIG(pw, trc, tt.name, tt.secret, "", false);
+    addTSIG(pw, trc, tsig.name, tsig.secret, "", false);
   }
 
   Socket s(primary.sin4.sin_family, SOCK_DGRAM);
@@ -66,9 +66,9 @@ uint32_t getSerialFromPrimary(const ComboAddress& primary, const ZoneName& zone,
   }
   for(const auto& r: mdp.d_answers) {
     if(r.d_type == QType::SOA) {
-      sr = getRR<SOARecordContent>(r);
-      if(sr != nullptr) {
-        return sr->d_st.serial;
+      soarecord = getRR<SOARecordContent>(r);
+      if(soarecord != nullptr) {
+        return soarecord->d_st.serial;
       }
     }
   }

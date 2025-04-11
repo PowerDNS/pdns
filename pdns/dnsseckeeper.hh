@@ -195,19 +195,19 @@ public:
   bool isSecuredZone(const ZoneName& zone, bool useCache=true);
   keyset_t getEntryPoints(const ZoneName& zname);
   keyset_t getKeys(const ZoneName& zone, bool useCache = true);
-  DNSSECPrivateKey getKeyById(const ZoneName& zone, unsigned int id);
-  bool addKey(const ZoneName& zname, bool setSEPBit, int algorithm, int64_t& id, int bits=0, bool active=true, bool published=true);
-  bool addKey(const ZoneName& zname, const DNSSECPrivateKey& dpk, int64_t& id, bool active=true, bool published=true);
-  bool removeKey(const ZoneName& zname, unsigned int id);
-  bool activateKey(const ZoneName& zname, unsigned int id);
-  bool deactivateKey(const ZoneName& zname, unsigned int id);
-  bool publishKey(const ZoneName& zname, unsigned int id);
-  bool unpublishKey(const ZoneName& zname, unsigned int id);
-  bool checkKeys(const ZoneName& zname, std::optional<std::reference_wrapper<std::vector<std::string>>> errorMessages);
+  DNSSECPrivateKey getKeyById(const ZoneName& zname, unsigned int keyId);
+  bool addKey(const ZoneName& zname, bool setSEPBit, int algorithm, int64_t& keyId, int bits=0, bool active=true, bool published=true);
+  bool addKey(const ZoneName& zname, const DNSSECPrivateKey& dpk, int64_t& keyId, bool active=true, bool published=true);
+  bool removeKey(const ZoneName& zname, unsigned int keyId);
+  bool activateKey(const ZoneName& zname, unsigned int keyId);
+  bool deactivateKey(const ZoneName& zname, unsigned int keyId);
+  bool publishKey(const ZoneName& zname, unsigned int keyId);
+  bool unpublishKey(const ZoneName& zname, unsigned int keyId);
+  bool checkKeys(const ZoneName& zone, std::optional<std::reference_wrapper<std::vector<std::string>>> errorMessages);
 
-  bool getNSEC3PARAM(const ZoneName& zname, NSEC3PARAMRecordContent* n3p=nullptr, bool* narrow=nullptr, bool useCache=true);
+  bool getNSEC3PARAM(const ZoneName& zname, NSEC3PARAMRecordContent* ns3p=nullptr, bool* narrow=nullptr, bool useCache=true);
   bool checkNSEC3PARAM(const NSEC3PARAMRecordContent& ns3p, string& msg);
-  bool setNSEC3PARAM(const ZoneName& zname, const NSEC3PARAMRecordContent& n3p, const bool& narrow=false);
+  bool setNSEC3PARAM(const ZoneName& zname, const NSEC3PARAMRecordContent& ns3p, const bool& narrow=false);
   bool unsetNSEC3PARAM(const ZoneName& zname);
   void getPreRRSIGs(UeberBackend& db, vector<DNSZoneRecord>& rrs, uint32_t signTTL, DNSPacket* p=nullptr);
   bool isPresigned(const ZoneName& zname, bool useCache=true);
@@ -306,7 +306,7 @@ private:
 
 uint32_t localtime_format_YYYYMMDDSS(time_t t, uint32_t seq);
 // for SOA-EDIT
-uint32_t calculateEditSOA(uint32_t old_serial, DNSSECKeeper& dk, const ZoneName& zonename);
+uint32_t calculateEditSOA(uint32_t old_serial, DNSSECKeeper& dsk, const ZoneName& zonename);
 uint32_t calculateEditSOA(uint32_t old_serial, const string& kind, const ZoneName& zonename);
 // for SOA-EDIT-DNSUPDATE/API
 bool increaseSOARecord(DNSResourceRecord& dr, const string& increaseKind, const string& editKind);

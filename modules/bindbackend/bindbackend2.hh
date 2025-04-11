@@ -184,12 +184,12 @@ public:
   unsigned int getCapabilities() override;
   void getUnfreshSecondaryInfos(vector<DomainInfo>* unfreshDomains) override;
   void getUpdatedPrimaries(vector<DomainInfo>& changedDomains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes) override;
-  bool getDomainInfo(const ZoneName& domain, DomainInfo& di, bool getSerial = true) override;
+  bool getDomainInfo(const ZoneName& domain, DomainInfo& info, bool getSerial = true) override;
   time_t getCtime(const string& fname);
   // DNSSEC
   bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) override;
   void lookup(const QType&, const DNSName& qdomain, int zoneId, DNSPacket* p = nullptr) override;
-  bool list(const ZoneName& target, int id, bool include_disabled = false) override;
+  bool list(const ZoneName& target, int domainId, bool include_disabled = false) override;
   bool get(DNSResourceRecord&) override;
   void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled = false) override;
 
@@ -199,7 +199,7 @@ public:
   void setStale(uint32_t domain_id) override;
   void setFresh(uint32_t domain_id) override;
   void setNotified(uint32_t id, uint32_t serial) override;
-  bool startTransaction(const ZoneName& qname, int id) override;
+  bool startTransaction(const ZoneName& qname, int domainId) override;
   bool feedRecord(const DNSResourceRecord& rr, const DNSName& ordername, bool ordernameIsNSEC3 = false) override;
   bool commitTransaction() override;
   bool abortTransaction() override;
@@ -211,12 +211,12 @@ public:
   bool getDomainMetadata(const ZoneName& name, const std::string& kind, std::vector<std::string>& meta) override;
   bool setDomainMetadata(const ZoneName& name, const std::string& kind, const std::vector<std::string>& meta) override;
   bool getDomainKeys(const ZoneName& name, std::vector<KeyData>& keys) override;
-  bool removeDomainKey(const ZoneName& name, unsigned int id) override;
-  bool addDomainKey(const ZoneName& name, const KeyData& key, int64_t& id) override;
-  bool activateDomainKey(const ZoneName& name, unsigned int id) override;
-  bool deactivateDomainKey(const ZoneName& name, unsigned int id) override;
-  bool publishDomainKey(const ZoneName& name, unsigned int id) override;
-  bool unpublishDomainKey(const ZoneName& name, unsigned int id) override;
+  bool removeDomainKey(const ZoneName& name, unsigned int keyId) override;
+  bool addDomainKey(const ZoneName& name, const KeyData& key, int64_t& keyId) override;
+  bool activateDomainKey(const ZoneName& name, unsigned int keyId) override;
+  bool deactivateDomainKey(const ZoneName& name, unsigned int keyId) override;
+  bool publishDomainKey(const ZoneName& name, unsigned int keyId) override;
+  bool unpublishDomainKey(const ZoneName& name, unsigned int keyId) override;
   bool getTSIGKey(const DNSName& name, DNSName& algorithm, string& content) override;
   bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content) override;
   bool deleteTSIGKey(const DNSName& name) override;
@@ -234,9 +234,9 @@ public:
 
   // for autoprimary support
   bool autoPrimariesList(std::vector<AutoPrimary>& primaries) override;
-  bool autoPrimaryBackend(const string& ip, const ZoneName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** db) override;
+  bool autoPrimaryBackend(const string& ipAddress, const ZoneName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** backend) override;
   static std::mutex s_autosecondary_config_lock;
-  bool createSecondaryDomain(const string& ip, const ZoneName& domain, const string& nameserver, const string& account) override;
+  bool createSecondaryDomain(const string& ipAddress, const ZoneName& domain, const string& nameserver, const string& account) override;
 
 private:
   void setupDNSSEC();
@@ -313,7 +313,7 @@ private:
 
   void queueReloadAndStore(unsigned int id);
   static bool findBeforeAndAfterUnhashed(std::shared_ptr<const recordstorage_t>& records, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after);
-  static void insertRecord(std::shared_ptr<recordstorage_t>& records, const ZoneName& zoneName, const DNSName& qname, const QType& qtype, const string& content, int ttl, const std::string& hashed = string(), bool* auth = nullptr);
+  static void insertRecord(std::shared_ptr<recordstorage_t>& records, const ZoneName& zoneName, const DNSName& qname, const QType& qtype, const string& content, int ttl, const std::string& hashed = string(), const bool* auth = nullptr);
   void reload() override;
   static string DLDomStatusHandler(const vector<string>& parts, Utility::pid_t ppid);
   static string DLDomExtendedStatusHandler(const vector<string>& parts, Utility::pid_t ppid);

@@ -74,7 +74,7 @@ BOOST_AUTO_TEST_CASE(test_axfr_queue_insert_and_priority_order_after_modify)
     {ZoneName("test4.com"), ComboAddress("0.0.0.0"), false, {SuckRequest::PdnsControl, 4}},
     {ZoneName("test5.com"), ComboAddress("0.0.0.0"), false, {SuckRequest::PdnsControl, 3}},
   };
-  SuckRequest rr = {ZoneName("test3.com"), ComboAddress("0.0.0.0"), false, {SuckRequest::PdnsControl, 5}};
+  SuckRequest rr1 = {ZoneName("test3.com"), ComboAddress("0.0.0.0"), false, {SuckRequest::PdnsControl, 5}};
   SuckRequest rr2 = {ZoneName("test4.com"), ComboAddress("0.0.0.0"), false, {SuckRequest::Api, 6}};
 
   UniQueue suckDomains;
@@ -85,9 +85,9 @@ BOOST_AUTO_TEST_CASE(test_axfr_queue_insert_and_priority_order_after_modify)
   suckDomains.insert(sr[3]);
   suckDomains.insert(sr[4]);
 
-  auto res = suckDomains.insert(rr);
+  auto res = suckDomains.insert(rr1);
   BOOST_CHECK(!res.second);
-  suckDomains.modify(res.first, [priorityAndOrder = rr.priorityAndOrder](SuckRequest& so) {
+  suckDomains.modify(res.first, [priorityAndOrder = rr1.priorityAndOrder](SuckRequest& so) {
     if (priorityAndOrder.first < so.priorityAndOrder.first) {
       so.priorityAndOrder = priorityAndOrder;
     }

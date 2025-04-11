@@ -202,21 +202,21 @@ void Bind2Backend::setFresh(uint32_t domain_id)
   setLastCheck(domain_id, time(nullptr));
 }
 
-bool Bind2Backend::startTransaction(const ZoneName& qname, int id)
+bool Bind2Backend::startTransaction(const ZoneName& qname, int domainId)
 {
-  if (id < 0) {
+  if (domainId < 0) {
     d_transaction_tmpname.clear();
-    d_transaction_id = id;
+    d_transaction_id = domainId;
     return false;
   }
-  if (id == 0) {
+  if (domainId == 0) {
     throw DBException("domain_id 0 is invalid for this backend.");
   }
 
-  d_transaction_id = id;
+  d_transaction_id = domainId;
   d_transaction_qname = qname;
   BB2DomainInfo bbd;
-  if (safeGetBBDomainInfo(id, &bbd)) {
+  if (safeGetBBDomainInfo(domainId, &bbd)) {
     d_transaction_tmpname = bbd.d_filename + "XXXXXX";
     int fd = mkstemp(&d_transaction_tmpname.at(0));
     if (fd == -1) {
@@ -436,26 +436,26 @@ void Bind2Backend::getUnfreshSecondaryInfos(vector<DomainInfo>* unfreshDomains)
   }
 }
 
-bool Bind2Backend::getDomainInfo(const ZoneName& domain, DomainInfo& di, bool getSerial)
+bool Bind2Backend::getDomainInfo(const ZoneName& domain, DomainInfo& info, bool getSerial)
 {
   BB2DomainInfo bbd;
   if (!safeGetBBDomainInfo(domain, &bbd))
     return false;
 
-  di.id = bbd.d_id;
-  di.zone = domain;
-  di.primaries = bbd.d_primaries;
-  di.last_check = bbd.d_lastcheck;
-  di.backend = this;
-  di.kind = bbd.d_kind;
-  di.serial = 0;
+  info.id = bbd.d_id;
+  info.zone = domain;
+  info.primaries = bbd.d_primaries;
+  info.last_check = bbd.d_lastcheck;
+  info.backend = this;
+  info.kind = bbd.d_kind;
+  info.serial = 0;
   if (getSerial) {
     try {
       SOAData sd;
       sd.serial = 0;
 
       getSOA(bbd.d_name, sd); // we might not *have* a SOA yet
-      di.serial = sd.serial;
+      info.serial = sd.serial;
     }
     catch (...) {
     }
@@ -525,7 +525,7 @@ void Bind2Backend::parseZoneFile(BB2DomainInfo* bbd)
 
 /** THIS IS AN INTERNAL FUNCTION! It does moadnsparser prio impedance matching
     Much of the complication is due to the efforts to benefit from std::string reference counting copy on write semantics */
-void Bind2Backend::insertRecord(std::shared_ptr<recordstorage_t>& records, const ZoneName& zoneName, const DNSName& qname, const QType& qtype, const string& content, int ttl, const std::string& hashed, bool* auth)
+void Bind2Backend::insertRecord(std::shared_ptr<recordstorage_t>& records, const ZoneName& zoneName, const DNSName& qname, const QType& qtype, const string& content, int ttl, const std::string& hashed, const bool* auth)
 {
   Bind2DNSRecord bdr;
   bdr.qname = qname;
@@ -1291,15 +1291,15 @@ bool Bind2Backend::handle::get_normal(DNSResourceRecord& r)
   return true;
 }
 
-bool Bind2Backend::list(const ZoneName& /* target */, int id, bool /* include_disabled */)
+bool Bind2Backend::list(const ZoneName& /* target */, int domainId, bool /* include_disabled */)
 {
   BB2DomainInfo bbd;
 
-  if (!safeGetBBDomainInfo(id, &bbd))
+  if (!safeGetBBDomainInfo(domainId, &bbd))
     return false;
 
   d_handle.reset();
-  DLOG(g_log << "Bind2Backend constructing handle for list of " << id << endl);
+  DLOG(g_log << "Bind2Backend constructing handle for list of " << domainId << endl);
 
   if (!bbd.d_loaded) {
     throw PDNSException("zone was not loaded, perhaps because of: " + bbd.d_status);
@@ -1309,7 +1309,7 @@ bool Bind2Backend::list(const ZoneName& /* target */, int id, bool /* include_di
   d_handle.d_qname_iter = d_handle.d_records->begin();
   d_handle.d_qname_end = d_handle.d_records->end(); // iter now points to a vector of pointers to vector<BBResourceRecords>
 
-  d_handle.id = id;
+  d_handle.id = domainId;
   d_handle.domain = bbd.d_name;
   d_handle.d_list = true;
   return true;
@@ -1355,7 +1355,7 @@ bool Bind2Backend::autoPrimariesList(std::vector<AutoPrimary>& primaries)
   return true;
 }
 
-bool Bind2Backend::autoPrimaryBackend(const string& ip, const ZoneName& /* domain */, const vector<DNSResourceRecord>& /* nsset */, string* /* nameserver */, string* account, DNSBackend** db)
+bool Bind2Backend::autoPrimaryBackend(const string& ipAddress, const ZoneName& /* domain */, const vector<DNSResourceRecord>& /* nsset */, string* /* nameserver */, string* account, DNSBackend** backend)
 {
   // Check whether we have a configfile available.
   if (getArg("autoprimary-config").empty())
@@ -1373,18 +1373,18 @@ bool Bind2Backend::autoPrimaryBackend(const string& ip, const ZoneName& /* domai
   while (getline(c_if, line)) {
     std::istringstream ii(line);
     ii >> sip;
-    if (sip == ip) {
+    if (sip == ipAddress) {
       ii >> saccount;
       break;
     }
   }
   c_if.close();
 
-  if (sip != ip) // ip not found in authorization list - reject
+  if (sip != ipAddress) // ip not found in authorization list - reject
     return false;
 
   // ip authorized as autoprimary - accept
-  *db = this;
+  *backend = this;
   if (saccount.length() > 0)
     *account = saccount.c_str();
 
@@ -1414,13 +1414,13 @@ BB2DomainInfo Bind2Backend::createDomainEntry(const ZoneName& domain, const stri
   return bbd;
 }
 
-bool Bind2Backend::createSecondaryDomain(const string& ip, const ZoneName& domain, const string& /* nameserver */, const string& account)
+bool Bind2Backend::createSecondaryDomain(const string& ipAddress, const ZoneName& domain, const string& /* nameserver */, const string& account)
 {
   string filename = getArg("autoprimary-destdir") + '/' + domain.toStringNoDot();
 
   g_log << Logger::Warning << d_logprefix
         << " Writing bind config zone statement for superslave zone '" << domain
-        << "' from autoprimary " << ip << endl;
+        << "' from autoprimary " << ipAddress << endl;
 
   {
     std::lock_guard<std::mutex> l2(s_autosecondary_config_lock);
@@ -1436,14 +1436,14 @@ bool Bind2Backend::createSecondaryDomain(const string& ip, const ZoneName& domai
     c_of << "zone \"" << domain.toStringNoDot() << "\" {" << endl;
     c_of << "\ttype secondary;" << endl;
     c_of << "\tfile \"" << filename << "\";" << endl;
-    c_of << "\tprimaries { " << ip << "; };" << endl;
+    c_of << "\tprimaries { " << ipAddress << "; };" << endl;
     c_of << "};" << endl;
     c_of.close();
   }
 
   BB2DomainInfo bbd = createDomainEntry(domain, filename);
   bbd.d_kind = DomainInfo::Secondary;
-  bbd.d_primaries.push_back(ComboAddress(ip, 53));
+  bbd.d_primaries.push_back(ComboAddress(ipAddress, 53));
   bbd.setCtime();
   safePutBBDomainInfo(bbd);
 

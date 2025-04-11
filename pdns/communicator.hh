@@ -169,16 +169,16 @@ public:
   time_t doNotifications(PacketHandler* P);
   void go();
 
-  void drillHole(const ZoneName& domain, const string& ip);
-  bool justNotified(const ZoneName& domain, const string& ip);
+  void drillHole(const ZoneName& domain, const string& ipAddress);
+  bool justNotified(const ZoneName& domain, const string& ipAddress);
   void addSuckRequest(const ZoneName& domain, const ComboAddress& primary, SuckRequest::RequestPriority, bool force = false);
   void addSecondaryCheckRequest(const DomainInfo& di, const ComboAddress& remote);
   void addTryAutoPrimaryRequest(const DNSPacket& p);
-  void notify(const ZoneName& domain, const string& ip);
+  void notify(const ZoneName& domain, const string& ipAddress);
   void mainloop();
   void retrievalLoopThread();
-  void sendNotification(int sock, const ZoneName& domain, const ComboAddress& remote, uint16_t id, UeberBackend* B);
-  bool notifyDomain(const ZoneName& domain, UeberBackend* B);
+  static void sendNotification(int sock, const ZoneName& domain, const ComboAddress& remote, uint16_t notificationId, UeberBackend* ueber);
+  bool notifyDomain(const ZoneName& domain, UeberBackend* ueber);
   vector<pair<ZoneName, ComboAddress>> getSuckRequests();
   size_t getSuckRequestsWaiting();
 
@@ -190,7 +190,7 @@ private:
   LockGuarded<map<pair<ZoneName, string>, time_t>> d_holes;
 
   void suck(const ZoneName& domain, const ComboAddress& remote, bool force = false);
-  void ixfrSuck(const ZoneName& domain, const TSIGTriplet& tt, const ComboAddress& laddr, const ComboAddress& remote, ZoneStatus& zs, vector<DNSRecord>* axfr);
+  static void ixfrSuck(const ZoneName& domain, const TSIGTriplet& tsig, const ComboAddress& laddr, const ComboAddress& remote, ZoneStatus& status, vector<DNSRecord>* axfr);
 
   void secondaryRefresh(PacketHandler* P);
   void primaryUpdateCheck(PacketHandler* P);

@@ -318,7 +318,7 @@ bool LdapBackend::get(DNSResourceRecord& rr)
   return true;
 }
 
-bool LdapBackend::getDomainInfo(const ZoneName& domain, DomainInfo& di, bool /* getSerial */)
+bool LdapBackend::getDomainInfo(const ZoneName& domain, DomainInfo& info, bool /* getSerial */)
 {
   string filter;
   SOAData sd;
@@ -347,7 +347,7 @@ bool LdapBackend::getDomainInfo(const ZoneName& domain, DomainInfo& di, bool /* 
   catch (LDAPNoConnection& lnc) {
     g_log << Logger::Warning << d_myname << " Connection to LDAP lost, trying to reconnect" << endl;
     if (reconnect())
-      this->getDomainInfo(domain, di);
+      this->getDomainInfo(domain, info);
     else
       throw PDNSException("Failed to reconnect to LDAP server");
   }
@@ -364,42 +364,42 @@ bool LdapBackend::getDomainInfo(const ZoneName& domain, DomainInfo& di, bool /* 
     fillSOAData(result["sOARecord"][0], sd);
 
     if (result.count("PdnsDomainId") && !result["PdnsDomainId"].empty())
-      di.id = std::stoi(result["PdnsDomainId"][0]);
+      info.id = std::stoi(result["PdnsDomainId"][0]);
     else
-      di.id = 0;
+      info.id = 0;
 
-    di.serial = sd.serial;
-    di.zone = domain;
+    info.serial = sd.serial;
+    info.zone = domain;
 
     if (result.count("PdnsDomainLastCheck") && !result["PdnsDomainLastCheck"].empty())
-      pdns::checked_stoi_into(di.last_check, result["PdnsDomainLastCheck"][0]);
+      pdns::checked_stoi_into(info.last_check, result["PdnsDomainLastCheck"][0]);
     else
-      di.last_check = 0;
+      info.last_check = 0;
 
     if (result.count("PdnsDomainNotifiedSerial") && !result["PdnsDomainNotifiedSerial"].empty())
-      pdns::checked_stoi_into(di.notified_serial, result["PdnsDomainNotifiedSerial"][0]);
+      pdns::checked_stoi_into(info.notified_serial, result["PdnsDomainNotifiedSerial"][0]);
     else
-      di.notified_serial = 0;
+      info.notified_serial = 0;
 
     if (result.count("PdnsDomainMaster") && !result["PdnsDomainMaster"].empty()) {
       for (const auto& m : result["PdnsDomainMaster"])
-        di.primaries.emplace_back(m, 53);
+        info.primaries.emplace_back(m, 53);
     }
 
     if (result.count("PdnsDomainType") && !result["PdnsDomainType"].empty()) {
       string kind = result["PdnsDomainType"][0];
       if (kind == "master")
-        di.kind = DomainInfo::Primary;
+        info.kind = DomainInfo::Primary;
       else if (kind == "slave")
-        di.kind = DomainInfo::Secondary;
+        info.kind = DomainInfo::Secondary;
       else
-        di.kind = DomainInfo::Native;
+        info.kind = DomainInfo::Native;
     }
     else {
-      di.kind = DomainInfo::Native;
+      info.kind = DomainInfo::Native;
     }
 
-    di.backend = this;
+    info.backend = this;
     return true;
   }
 

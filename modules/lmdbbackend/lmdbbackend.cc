@@ -1655,7 +1655,7 @@ bool LMDBBackend::getSerial(DomainInfo& di)
   return false;
 }
 
-bool LMDBBackend::getDomainInfo(const ZoneName& domain, DomainInfo& di, bool getserial)
+bool LMDBBackend::getDomainInfo(const ZoneName& domain, DomainInfo& info, bool getserial)
 {
   {
     auto txn = d_tdomains->getROTransaction();
@@ -1665,22 +1665,22 @@ bool LMDBBackend::getDomainInfo(const ZoneName& domain, DomainInfo& di, bool get
 
     // for (auto& iter = range.first ; iter != range.second; ++iter) {
     //   found = true;
-    //   di.id = iter.getID();
-    //   di.backend = this;
+    //   info.id = iter.getID();
+    //   info.backend = this;
     // }
 
     // if (!found) {
     //   return false;
     // }
-    if (!(di.id = txn.get<0>(domain, di))) {
+    if (!(info.id = txn.get<0>(domain, info))) {
       return false;
     }
 
-    di.backend = this;
+    info.backend = this;
   }
 
   if (getserial) {
-    getSerial(di);
+    getSerial(info);
   }
 
   return true;
@@ -2017,38 +2017,38 @@ bool LMDBBackend::getDomainKeys(const ZoneName& name, std::vector<KeyData>& keys
   return true;
 }
 
-bool LMDBBackend::removeDomainKey(const ZoneName& name, unsigned int id)
+bool LMDBBackend::removeDomainKey(const ZoneName& name, unsigned int keyId)
 {
   auto txn = d_tkdb->getRWTransaction();
   KeyDataDB kdb;
-  if (txn.get(id, kdb)) {
+  if (txn.get(keyId, kdb)) {
     if (kdb.domain == name) {
-      txn.del(id);
+      txn.del(keyId);
       txn.commit();
       return true;
     }
   }
-  // cout << "??? wanted to remove domain key for domain "<<name<<" with id "<<id<<", could not find it"<<endl;
+  // cout << "??? wanted to remove domain key for domain "<<name<<" with id "<<keyId<<", could not find it"<<endl;
   return true;
 }
 
-bool LMDBBackend::addDomainKey(const ZoneName& name, const KeyData& key, int64_t& id)
+bool LMDBBackend::addDomainKey(const ZoneName& name, const KeyData& key, int64_t& keyId)
 {
   auto txn = d_tkdb->getRWTransaction();
   KeyDataDB kdb{name, key.content, key.flags, key.active, key.published};
-  id = txn.put(kdb, 0, d_random_ids);
+  keyId = txn.put(kdb, 0, d_random_ids);
   txn.commit();
 
   return true;
 }
 
-bool LMDBBackend::activateDomainKey(const ZoneName& name, unsigned int id)
+bool LMDBBackend::activateDomainKey(const ZoneName& name, unsigned int keyId)
 {
   auto txn = d_tkdb->getRWTransaction();
   KeyDataDB kdb;
-  if (txn.get(id, kdb)) {
+  if (txn.get(keyId, kdb)) {
     if (kdb.domain == name) {
-      txn.modify(id, [](KeyDataDB& kdbarg) {
+      txn.modify(keyId, [](KeyDataDB& kdbarg) {
         kdbarg.active = true;
       });
       txn.commit();
@@ -2056,34 +2056,34 @@ bool LMDBBackend::activateDomainKey(const ZoneName& name, unsigned int id)
     }
   }
 
-  // cout << "??? wanted to activate domain key for domain "<<name<<" with id "<<id<<", could not find it"<<endl;
+  // cout << "??? wanted to activate domain key for domain "<<name<<" with id "<<keyId<<", could not find it"<<endl;
   return true;
 }
 
-bool LMDBBackend::deactivateDomainKey(const ZoneName& name, unsigned int id)
+bool LMDBBackend::deactivateDomainKey(const ZoneName& name, unsigned int keyId)
 {
   auto txn = d_tkdb->getRWTransaction();
   KeyDataDB kdb;
-  if (txn.get(id, kdb)) {
+  if (txn.get(keyId, kdb)) {
     if (kdb.domain == name) {
-      txn.modify(id, [](KeyDataDB& kdbarg) {
+      txn.modify(keyId, [](KeyDataDB& kdbarg) {
         kdbarg.active = false;
       });
       txn.commit();
       return true;
     }
   }
-  // cout << "??? wanted to deactivate domain key for domain "<<name<<" with id "<<id<<", could not find it"<<endl;
+  // cout << "??? wanted to deactivate domain key for domain "<<name<<" with id "<<keyId<<", could not find it"<<endl;
   return true;
 }
 
-bool LMDBBackend::publishDomainKey(const ZoneName& name, unsigned int id)
+bool LMDBBackend::publishDomainKey(const ZoneName& name, unsigned int keyId)
 {
   auto txn = d_tkdb->getRWTransaction();
   KeyDataDB kdb;
-  if (txn.get(id, kdb)) {
+  if (txn.get(keyId, kdb)) {
     if (kdb.domain == name) {
-      txn.modify(id, [](KeyDataDB& kdbarg) {
+      txn.modify(keyId, [](KeyDataDB& kdbarg) {
         kdbarg.published = true;
       });
       txn.commit();
@@ -2091,24 +2091,24 @@ bool LMDBBackend::publishDomainKey(const ZoneName& name, unsigned int id)
     }
   }
 
-  // cout << "??? wanted to hide domain key for domain "<<name<<" with id "<<id<<", could not find it"<<endl;
+  // cout << "??? wanted to hide domain key for domain "<<name<<" with id "<<keyId<<", could not find it"<<endl;
   return true;
 }
 
-bool LMDBBackend::unpublishDomainKey(const ZoneName& name, unsigned int id)
+bool LMDBBackend::unpublishDomainKey(const ZoneName& name, unsigned int keyId)
 {
   auto txn = d_tkdb->getRWTransaction();
   KeyDataDB kdb;
-  if (txn.get(id, kdb)) {
+  if (txn.get(keyId, kdb)) {
     if (kdb.domain == name) {
-      txn.modify(id, [](KeyDataDB& kdbarg) {
+      txn.modify(keyId, [](KeyDataDB& kdbarg) {
         kdbarg.published = false;
       });
       txn.commit();
       return true;
     }
   }
-  // cout << "??? wanted to unhide domain key for domain "<<name<<" with id "<<id<<", could not find it"<<endl;
+  // cout << "??? wanted to unhide domain key for domain "<<name<<" with id "<<keyId<<", could not find it"<<endl;
   return true;
 }
 
@@ -2331,22 +2331,22 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
   return true;
 }
 
-bool LMDBBackend::getBeforeAndAfterNames(uint32_t id, const ZoneName& zonenameU, const DNSName& qname, DNSName& before, DNSName& after)
+bool LMDBBackend::getBeforeAndAfterNames(uint32_t domainId, const ZoneName& zonenameU, const DNSName& qname, DNSName& before, DNSName& after)
 {
   ZoneName zonename = zonenameU.makeLowerCase();
-  //  cout << __PRETTY_FUNCTION__<< ": "<<id <<", "<<zonename << ", '"<<qname<<"'"<<endl;
+  //  cout << __PRETTY_FUNCTION__<< ": "<<domainId <<", "<<zonename << ", '"<<qname<<"'"<<endl;
 
-  auto txn = getRecordsROTransaction(id);
+  auto txn = getRecordsROTransaction(domainId);
   compoundOrdername co;
   DNSName qname2 = qname.makeRelative(zonename);
-  string matchkey = co(id, qname2);
+  string matchkey = co(domainId, qname2);
   auto cursor = txn->txn->getCursor(txn->db->dbi);
   MDBOutVal key, val;
   // cout<<"Lower_bound for "<<qname2<<endl;
   if (cursor.lower_bound(matchkey, key, val)) {
     // cout << "Hit end of database, bummer"<<endl;
     cursor.last(key, val);
-    if (co.getDomainID(key.getNoStripHeader<string_view>()) == id) {
+    if (co.getDomainID(key.getNoStripHeader<string_view>()) == domainId) {
       before = co.getQName(key.getNoStripHeader<string_view>()) + zonename;
       after = zonename;
     }
@@ -2356,7 +2356,7 @@ bool LMDBBackend::getBeforeAndAfterNames(uint32_t id, const ZoneName& zonenameU,
   }
   // cout<<"Cursor is at "<<co.getQName(key.get<string_view>()) <<", in zone id "<<co.getDomainID(key.get<string_view>())<< endl;
 
-  if (co.getQType(key.getNoStripHeader<string_view>()).getCode() && co.getDomainID(key.getNoStripHeader<string_view>()) == id && co.getQName(key.getNoStripHeader<string_view>()) == qname2) { // don't match ENTs
+  if (co.getQType(key.getNoStripHeader<string_view>()).getCode() && co.getDomainID(key.getNoStripHeader<string_view>()) == domainId && co.getQName(key.getNoStripHeader<string_view>()) == qname2) { // don't match ENTs
     // cout << "Had an exact match!"<<endl;
     before = qname2 + zonename;
     int rc;
@@ -2365,14 +2365,14 @@ bool LMDBBackend::getBeforeAndAfterNames(uint32_t id, const ZoneName& zonenameU,
       if (rc)
         break;
 
-      if (co.getDomainID(key.getNoStripHeader<string_view>()) == id && key.getNoStripHeader<StringView>().rfind(matchkey, 0) == 0)
+      if (co.getDomainID(key.getNoStripHeader<string_view>()) == domainId && key.getNoStripHeader<StringView>().rfind(matchkey, 0) == 0)
         continue;
       LMDBResourceRecord lrr;
       deserializeFromBuffer(val.get<StringView>(), lrr);
       if (co.getQType(key.getNoStripHeader<string_view>()).getCode() && (lrr.auth || co.getQType(key.getNoStripHeader<string_view>()).getCode() == QType::NS))
         break;
     }
-    if (rc || co.getDomainID(key.getNoStripHeader<string_view>()) != id) {
+    if (rc || co.getDomainID(key.getNoStripHeader<string_view>()) != domainId) {
       // cout << "We hit the end of the zone or database. 'after' is apex" << endl;
       after = zonename;
       return false;
@@ -2381,7 +2381,7 @@ bool LMDBBackend::getBeforeAndAfterNames(uint32_t id, const ZoneName& zonenameU,
     return true;
   }
 
-  if (co.getDomainID(key.getNoStripHeader<string_view>()) != id) {
+  if (co.getDomainID(key.getNoStripHeader<string_view>()) != domainId) {
     // cout << "Ended up in next zone, 'after' is zonename" <<endl;
     after = zonename;
     // cout << "Now hunting for previous" << endl;
@@ -2393,8 +2393,8 @@ bool LMDBBackend::getBeforeAndAfterNames(uint32_t id, const ZoneName& zonenameU,
         return false;
       }
 
-      if (co.getDomainID(key.getNoStripHeader<string_view>()) != id) {
-        // cout<<"Reversed into zone, but found wrong zone id " << co.getDomainID(key.getNoStripHeader<string_view>()) << " != "<<id<<endl;
+      if (co.getDomainID(key.getNoStripHeader<string_view>()) != domainId) {
+        // cout<<"Reversed into zone, but found wrong zone id " << co.getDomainID(key.getNoStripHeader<string_view>()) << " != "<<domainId<<endl;
         // "this can't happen"
         return false;
       }
@@ -2425,7 +2425,7 @@ bool LMDBBackend::getBeforeAndAfterNames(uint32_t id, const ZoneName& zonenameU,
     int rc = cursor.next(key, val);
     if (!rc)
       ++skips;
-    if (rc || co.getDomainID(key.getNoStripHeader<string_view>()) != id) {
+    if (rc || co.getDomainID(key.getNoStripHeader<string_view>()) != domainId) {
       // cout << "  oops, hit end of database or zone. This means after is apex" <<endl;
       after = zonename;
       break;
@@ -2437,7 +2437,7 @@ bool LMDBBackend::getBeforeAndAfterNames(uint32_t id, const ZoneName& zonenameU,
 
   for (;;) {
     int rc = cursor.prev(key, val);
-    if (rc || co.getDomainID(key.getNoStripHeader<string_view>()) != id) {
+    if (rc || co.getDomainID(key.getNoStripHeader<string_view>()) != domainId) {
       // XX I don't think this case can happen
       // cout << "We hit the beginning of the zone or database.. now what" << endl;
       return false;

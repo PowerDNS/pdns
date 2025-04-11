@@ -300,10 +300,10 @@ bool DNSBackend::get(DNSZoneRecord& zoneRecord)
   return true;
 }
 
-bool DNSBackend::getBeforeAndAfterNames(uint32_t id, const ZoneName& zonename, const DNSName& qname, DNSName& before, DNSName& after)
+bool DNSBackend::getBeforeAndAfterNames(uint32_t domainId, const ZoneName& zonename, const DNSName& qname, DNSName& before, DNSName& after)
 {
   DNSName unhashed;
-  bool ret = this->getBeforeAndAfterNamesAbsolute(id, qname.makeRelative(zonename).makeLowerCase(), unhashed, before, after);
+  bool ret = this->getBeforeAndAfterNamesAbsolute(domainId, qname.makeRelative(zonename).makeLowerCase(), unhashed, before, after);
   DNSName lczonename = zonename.makeLowerCase();
   before += lczonename;
   after += lczonename;

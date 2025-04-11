@@ -79,9 +79,9 @@ uint32_t calculateEditSOA(uint32_t old_serial, const string& kind, const ZoneNam
   return old_serial;
 }
 
-uint32_t calculateEditSOA(uint32_t old_serial, DNSSECKeeper& dk, const ZoneName& zonename) {
+uint32_t calculateEditSOA(uint32_t old_serial, DNSSECKeeper& dsk, const ZoneName& zonename) {
   string kind;
-  dk.getSoaEdit(zonename, kind);
+  dsk.getSoaEdit(zonename, kind);
   return calculateEditSOA(old_serial, kind, zonename);
 }
 

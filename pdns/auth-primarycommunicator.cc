@@ -111,14 +111,14 @@ void CommunicatorClass::queueNotifyDomain(const DomainInfo& di, UeberBackend* B)
     g_log << Logger::Warning << "Request to queue notification for domain '" << di.zone << "' was processed, but no valid nameservers or ALSO-NOTIFYs found. Not notifying!" << endl;
 }
 
-bool CommunicatorClass::notifyDomain(const ZoneName& domain, UeberBackend* B)
+bool CommunicatorClass::notifyDomain(const ZoneName& domain, UeberBackend* ueber)
 {
   DomainInfo di;
-  if (!B->getDomainInfo(domain, di)) {
+  if (!ueber->getDomainInfo(domain, di)) {
     g_log << Logger::Warning << "No such domain '" << domain << "' in our database" << endl;
     return false;
   }
-  queueNotifyDomain(di, B);
+  queueNotifyDomain(di, ueber);
   // call backend and tell them we sent out the notification - even though that is premature
   if (di.serial != di.notified_serial)
     di.backend->setNotified(di.id, di.serial);
@@ -265,7 +265,7 @@ time_t CommunicatorClass::doNotifications(PacketHandler* P)
           continue;
         }
 
-        sendNotification(remote.sin4.sin_family == AF_INET ? d_nsock4 : d_nsock6, domain, remote, id, B);
+	CommunicatorClass::sendNotification(remote.sin4.sin_family == AF_INET ? d_nsock4 : d_nsock6, domain, remote, id, B);
         drillHole(domain, ip);
       }
       catch (ResolverException& re) {
@@ -280,7 +280,7 @@ time_t CommunicatorClass::doNotifications(PacketHandler* P)
   return d_nq.earliest();
 }
 
-void CommunicatorClass::sendNotification(int sock, const ZoneName& domain, const ComboAddress& remote, uint16_t id, UeberBackend* B)
+void CommunicatorClass::sendNotification(int sock, const ZoneName& domain, const ComboAddress& remote, uint16_t notificationId, UeberBackend* ueber)
 {
   vector<string> meta;
   DNSName tsigkeyname;
@@ -288,17 +288,17 @@ void CommunicatorClass::sendNotification(int sock, const ZoneName& domain, const
   string tsigsecret64;
   string tsigsecret;
 
-  if (::arg().mustDo("send-signed-notify") && B->getDomainMetadata(domain, "TSIG-ALLOW-AXFR", meta) && meta.size() > 0) {
+  if (::arg().mustDo("send-signed-notify") && ueber->getDomainMetadata(domain, "TSIG-ALLOW-AXFR", meta) && meta.size() > 0) {
     tsigkeyname = DNSName(meta[0]);
   }
 
   vector<uint8_t> packet;
   DNSPacketWriter pw(packet, domain, QType::SOA, 1, Opcode::Notify);
-  pw.getHeader()->id = id;
+  pw.getHeader()->id = notificationId;
   pw.getHeader()->aa = true;
 
   if (tsigkeyname.empty() == false) {
-    if (!B->getTSIGKey(tsigkeyname, tsigalgorithm, tsigsecret64)) {
+    if (!ueber->getTSIGKey(tsigkeyname, tsigalgorithm, tsigsecret64)) {
       g_log << Logger::Error << "TSIG key '" << tsigkeyname << "' for domain '" << domain << "' not found" << endl;
       return;
     }
@@ -309,7 +309,7 @@ void CommunicatorClass::sendNotification(int sock, const ZoneName& domain, const
       trc.d_algoName = tsigalgorithm;
     trc.d_time = time(nullptr);
     trc.d_fudge = 300;
-    trc.d_origID = ntohs(id);
+    trc.d_origID = ntohs(notificationId);
     trc.d_eRcode = 0;
     if (B64Decode(tsigsecret64, tsigsecret) == -1) {
       g_log << Logger::Error << "Unable to Base-64 decode TSIG key '" << tsigkeyname << "' for domain '" << domain << "'" << endl;
@@ -323,15 +323,15 @@ void CommunicatorClass::sendNotification(int sock, const ZoneName& domain, const
   }
 }
 
-void CommunicatorClass::drillHole(const ZoneName& domain, const string& ip)
+void CommunicatorClass::drillHole(const ZoneName& domain, const string& ipAddress)
 {
-  (*d_holes.lock())[pair(domain, ip)] = time(nullptr);
+  (*d_holes.lock())[pair(domain, ipAddress)] = time(nullptr);
 }
 
-bool CommunicatorClass::justNotified(const ZoneName& domain, const string& ip)
+bool CommunicatorClass::justNotified(const ZoneName& domain, const string& ipAddress)
 {
   auto holes = d_holes.lock();
-  auto it = holes->find(pair(domain, ip));
+  auto it = holes->find(pair(domain, ipAddress));
   if (it == holes->end()) {
     // no hole
     return false;
@@ -362,7 +362,7 @@ void CommunicatorClass::makeNotifySockets()
   }
 }
 
-void CommunicatorClass::notify(const ZoneName& domain, const string& ip)
+void CommunicatorClass::notify(const ZoneName& domain, const string& ipAddress)
 {
-  d_nq.add(domain, ip);
+  d_nq.add(domain, ipAddress);
 }

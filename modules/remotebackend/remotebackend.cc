@@ -411,7 +411,7 @@ bool RemoteBackend::getDomainKeys(const ZoneName& name, std::vector<DNSBackend::
   return true;
 }
 
-bool RemoteBackend::removeDomainKey(const ZoneName& name, unsigned int id)
+bool RemoteBackend::removeDomainKey(const ZoneName& name, unsigned int keyId)
 {
   // no point doing dnssec if it's not supported
   if (!d_dnssec) {
@@ -420,13 +420,13 @@ bool RemoteBackend::removeDomainKey(const ZoneName& name, unsigned int id)
 
   Json query = Json::object{
     {"method", "removeDomainKey"},
-    {"parameters", Json::object{{"name", name.toString()}, {"id", static_cast<int>(id)}}}};
+    {"parameters", Json::object{{"name", name.toString()}, {"id", static_cast<int>(keyId)}}}};
 
   Json answer;
   return this->send(query) && this->recv(answer);
 }
 
-bool RemoteBackend::addDomainKey(const ZoneName& name, const KeyData& key, int64_t& id)
+bool RemoteBackend::addDomainKey(const ZoneName& name, const KeyData& key, int64_t& keyId)
 {
   // no point doing dnssec if it's not supported
   if (!d_dnssec) {
@@ -442,11 +442,11 @@ bool RemoteBackend::addDomainKey(const ZoneName& name, const KeyData& key, int64
     return false;
   }
 
-  id = answer["result"].int_value();
-  return id >= 0;
+  keyId = answer["result"].int_value();
+  return keyId >= 0;
 }
 
-bool RemoteBackend::activateDomainKey(const ZoneName& name, unsigned int id)
+bool RemoteBackend::activateDomainKey(const ZoneName& name, unsigned int keyId)
 {
   // no point doing dnssec if it's not supported
   if (!d_dnssec) {
@@ -455,13 +455,13 @@ bool RemoteBackend::activateDomainKey(const ZoneName& name, unsigned int id)
 
   Json query = Json::object{
     {"method", "activateDomainKey"},
-    {"parameters", Json::object{{"name", name.toString()}, {"id", static_cast<int>(id)}}}};
+    {"parameters", Json::object{{"name", name.toString()}, {"id", static_cast<int>(keyId)}}}};
 
   Json answer;
   return this->send(query) && this->recv(answer);
 }
 
-bool RemoteBackend::deactivateDomainKey(const ZoneName& name, unsigned int id)
+bool RemoteBackend::deactivateDomainKey(const ZoneName& name, unsigned int keyId)
 {
   // no point doing dnssec if it's not supported
   if (!d_dnssec) {
@@ -470,13 +470,13 @@ bool RemoteBackend::deactivateDomainKey(const ZoneName& name, unsigned int id)
 
   Json query = Json::object{
     {"method", "deactivateDomainKey"},
-    {"parameters", Json::object{{"name", name.toString()}, {"id", static_cast<int>(id)}}}};
+    {"parameters", Json::object{{"name", name.toString()}, {"id", static_cast<int>(keyId)}}}};
 
   Json answer;
   return this->send(query) && this->recv(answer);
 }
 
-bool RemoteBackend::publishDomainKey(const ZoneName& name, unsigned int id)
+bool RemoteBackend::publishDomainKey(const ZoneName& name, unsigned int keyId)
 {
   // no point doing dnssec if it's not supported
   if (!d_dnssec) {
@@ -485,13 +485,13 @@ bool RemoteBackend::publishDomainKey(const ZoneName& name, unsigned int id)
 
   Json query = Json::object{
     {"method", "publishDomainKey"},
-    {"parameters", Json::object{{"name", name.toString()}, {"id", static_cast<int>(id)}}}};
+    {"parameters", Json::object{{"name", name.toString()}, {"id", static_cast<int>(keyId)}}}};
 
   Json answer;
   return this->send(query) && this->recv(answer);
 }
 
-bool RemoteBackend::unpublishDomainKey(const ZoneName& name, unsigned int id)
+bool RemoteBackend::unpublishDomainKey(const ZoneName& name, unsigned int keyId)
 {
   // no point doing dnssec if it's not supported
   if (!d_dnssec) {
@@ -500,7 +500,7 @@ bool RemoteBackend::unpublishDomainKey(const ZoneName& name, unsigned int id)
 
   Json query = Json::object{
     {"method", "unpublishDomainKey"},
-    {"parameters", Json::object{{"name", name.toString()}, {"id", static_cast<int>(id)}}}};
+    {"parameters", Json::object{{"name", name.toString()}, {"id", static_cast<int>(keyId)}}}};
 
   Json answer;
   return this->send(query) && this->recv(answer);
@@ -620,7 +620,7 @@ void RemoteBackend::parseDomainInfo(const Json& obj, DomainInfo& di)
   di.backend = this;
 }
 
-bool RemoteBackend::getDomainInfo(const ZoneName& domain, DomainInfo& di, bool /* getSerial */)
+bool RemoteBackend::getDomainInfo(const ZoneName& domain, DomainInfo& info, bool /* getSerial */)
 {
   if (domain.empty()) {
     return false;
@@ -635,7 +635,7 @@ bool RemoteBackend::getDomainInfo(const ZoneName& domain, DomainInfo& di, bool /
     return false;
   }
 
-  this->parseDomainInfo(answer["result"], di);
+  this->parseDomainInfo(answer["result"], info);
   return true;
 }
 
@@ -651,7 +651,7 @@ void RemoteBackend::setNotified(uint32_t id, uint32_t serial)
   }
 }
 
-bool RemoteBackend::autoPrimaryBackend(const string& ip, const ZoneName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** ddb)
+bool RemoteBackend::autoPrimaryBackend(const string& ipAddress, const ZoneName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** ddb)
 {
   Json::array rrset;
 
@@ -667,7 +667,7 @@ bool RemoteBackend::autoPrimaryBackend(const string& ip, const ZoneName& domain,
 
   Json query = Json::object{
     {"method", "superMasterBackend"},
-    {"parameters", Json::object{{"ip", ip}, {"domain", domain.toString()}, {"nsset", rrset}}}};
+    {"parameters", Json::object{{"ip", ipAddress}, {"domain", domain.toString()}, {"nsset", rrset}}}};
 
   *ddb = nullptr;
 
@@ -688,12 +688,12 @@ bool RemoteBackend::autoPrimaryBackend(const string& ip, const ZoneName& domain,
   return true;
 }
 
-bool RemoteBackend::createSecondaryDomain(const string& ip, const ZoneName& domain, const string& nameserver, const string& account)
+bool RemoteBackend::createSecondaryDomain(const string& ipAddress, const ZoneName& domain, const string& nameserver, const string& account)
 {
   Json query = Json::object{
     {"method", "createSlaveDomain"},
     {"parameters", Json::object{
-                     {"ip", ip},
+                     {"ip", ipAddress},
                      {"domain", domain.toString()},
                      {"nameserver", nameserver},
                      {"account", account},

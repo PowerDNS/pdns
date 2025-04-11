@@ -62,8 +62,9 @@ void LdapBackend::getUpdatedPrimaries(vector<DomainInfo>& domains, std::unordere
       continue;
 
     DomainInfo di;
-    if (!getDomainInfo(ZoneName(result["associatedDomain"][0]), di))
+    if (!getDomainInfo(ZoneName(result["associatedDomain"][0]), di)) {
       continue;
+    }
 
     if (di.notified_serial < di.serial)
       domains.push_back(di);

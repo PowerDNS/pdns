@@ -351,7 +351,7 @@ bool GSQLBackend::setAccount(const ZoneName &domain, const string &account)
   return true;
 }
 
-bool GSQLBackend::getDomainInfo(const ZoneName &domain, DomainInfo &di, bool getSerial)
+bool GSQLBackend::getDomainInfo(const ZoneName &domain, DomainInfo &info, bool getSerial)
 {
   /* fill DomainInfo from database info:
      id,name,master IP(s),last_check,notified_serial,type,account */
@@ -376,34 +376,34 @@ bool GSQLBackend::getDomainInfo(const ZoneName &domain, DomainInfo &di, bool get
 
   ASSERT_ROW_COLUMNS("info-zone-query", d_result[0], 9);
 
-  pdns::checked_stoi_into(di.id, d_result[0][0]);
+  pdns::checked_stoi_into(info.id, d_result[0][0]);
   try {
-    di.zone=ZoneName(d_result[0][1]);
-    di.catalog = (!d_result[0][7].empty() ? ZoneName(d_result[0][7]) : ZoneName());
+    info.zone=ZoneName(d_result[0][1]);
+    info.catalog = (!d_result[0][7].empty() ? ZoneName(d_result[0][7]) : ZoneName());
   } catch (...) {
     return false;
   }
   string type=d_result[0][5];
-  di.options = d_result[0][6];
-  di.account = d_result[0][8];
-  di.kind = DomainInfo::stringToKind(type);
+  info.options = d_result[0][6];
+  info.account = d_result[0][8];
+  info.kind = DomainInfo::stringToKind(type);
 
   vector<string> primaries;
   stringtok(primaries, d_result[0][2], " ,\t");
   for (const auto& m : primaries)
-    di.primaries.emplace_back(m, 53);
-  pdns::checked_stoi_into(di.last_check, d_result[0][3]);
-  pdns::checked_stoi_into(di.notified_serial, d_result[0][4]);
-  di.backend=this;
+    info.primaries.emplace_back(m, 53);
+  pdns::checked_stoi_into(info.last_check, d_result[0][3]);
+  pdns::checked_stoi_into(info.notified_serial, d_result[0][4]);
+  info.backend=this;
 
-  di.serial = 0;
+  info.serial = 0;
   if(getSerial) {
     try {
       SOAData sd;
       if(!getSOA(domain, sd))
         g_log<<Logger::Notice<<"No serial for '"<<domain<<"' found - zone is missing?"<<endl;
       else
-        di.serial = sd.serial;
+        info.serial = sd.serial;
     }
     catch(PDNSException &ae){
       g_log<<Logger::Error<<"Error retrieving serial for '"<<domain<<"': "<<ae.reason<<endl;
@@ -989,7 +989,7 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
   return true;
 }
 
-bool GSQLBackend::addDomainKey(const ZoneName& name, const KeyData& key, int64_t& id)
+bool GSQLBackend::addDomainKey(const ZoneName& name, const KeyData& key, int64_t& keyId)
 {
   if(!d_dnssecQueries)
     return false;
@@ -1010,7 +1010,7 @@ bool GSQLBackend::addDomainKey(const ZoneName& name, const KeyData& key, int64_t
     if (d_AddDomainKeyQuery_stmt->hasNextRow()) {
       SSqlStatement::row_t row;
       d_AddDomainKeyQuery_stmt->nextRow(row);
-      id = std::stoi(row[0]);
+      keyId = std::stoi(row[0]);
       d_AddDomainKeyQuery_stmt->reset();
       return true;
     } else {
@@ -1026,27 +1026,27 @@ bool GSQLBackend::addDomainKey(const ZoneName& name, const KeyData& key, int64_t
 
     d_GetLastInsertedKeyIdQuery_stmt->execute();
     if (!d_GetLastInsertedKeyIdQuery_stmt->hasNextRow()) {
-      id = -2;
+      keyId = -2;
       return true;
     }
     SSqlStatement::row_t row;
     d_GetLastInsertedKeyIdQuery_stmt->nextRow(row);
     ASSERT_ROW_COLUMNS("get-last-inserted-key-id-query", row, 1);
-    id = std::stoi(row[0]);
+    keyId = std::stoi(row[0]);
     d_GetLastInsertedKeyIdQuery_stmt->reset();
-    if (id == 0) {
+    if (keyId == 0) {
       // No insert took place, report as error.
-      id = -1;
+      keyId = -1;
     }
     return true;
   }
   catch (SSqlException &e) {
-    id = -2;
+    keyId = -2;
     return true;
   }
 }
 
-bool GSQLBackend::activateDomainKey(const ZoneName& name, unsigned int id)
+bool GSQLBackend::activateDomainKey(const ZoneName& name, unsigned int keyId)
 {
   if(!d_dnssecQueries)
     return false;
@@ -1057,18 +1057,18 @@ bool GSQLBackend::activateDomainKey(const ZoneName& name, unsigned int id)
     // clang-format off
     d_ActivateDomainKeyQuery_stmt->
       bind("domain", name)->
-      bind("key_id", id)->
+      bind("key_id", keyId)->
       execute()->
       reset();
     // clang-format on
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to activate key with id "+ std::to_string(id) + " for domain '" + name.toLogString() + "': "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to activate key with id "+ std::to_string(keyId) + " for domain '" + name.toLogString() + "': "+e.txtReason());
   }
   return true;
 }
 
-bool GSQLBackend::deactivateDomainKey(const ZoneName& name, unsigned int id)
+bool GSQLBackend::deactivateDomainKey(const ZoneName& name, unsigned int keyId)
 {
   if(!d_dnssecQueries)
     return false;
@@ -1079,18 +1079,18 @@ bool GSQLBackend::deactivateDomainKey(const ZoneName& name, unsigned int id)
     // clang-format off
     d_DeactivateDomainKeyQuery_stmt->
       bind("domain", name)->
-      bind("key_id", id)->
+      bind("key_id", keyId)->
       execute()->
       reset();
     // clang-format on
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to deactivate key with id "+ std::to_string(id) + " for domain '" + name.toLogString() + "': "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to deactivate key with id "+ std::to_string(keyId) + " for domain '" + name.toLogString() + "': "+e.txtReason());
   }
   return true;
 }
 
-bool GSQLBackend::publishDomainKey(const ZoneName& name, unsigned int id)
+bool GSQLBackend::publishDomainKey(const ZoneName& name, unsigned int keyId)
 {
   if(!d_dnssecQueries)
     return false;
@@ -1101,18 +1101,18 @@ bool GSQLBackend::publishDomainKey(const ZoneName& name, unsigned int id)
     // clang-format off
     d_PublishDomainKeyQuery_stmt->
       bind("domain", name)->
-      bind("key_id", id)->
+      bind("key_id", keyId)->
       execute()->
       reset();
     // clang-format on
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to publish key with id "+ std::to_string(id) + " for domain '" + name.toLogString() + "': "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to publish key with id "+ std::to_string(keyId) + " for domain '" + name.toLogString() + "': "+e.txtReason());
   }
   return true;
 }
 
-bool GSQLBackend::unpublishDomainKey(const ZoneName& name, unsigned int id)
+bool GSQLBackend::unpublishDomainKey(const ZoneName& name, unsigned int keyId)
 {
   if(!d_dnssecQueries)
     return false;
@@ -1123,20 +1123,20 @@ bool GSQLBackend::unpublishDomainKey(const ZoneName& name, unsigned int id)
     // clang-format off
     d_UnpublishDomainKeyQuery_stmt->
       bind("domain", name)->
-      bind("key_id", id)->
+      bind("key_id", keyId)->
       execute()->
       reset();
     // clang-format on
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to unpublish key with id "+ std::to_string(id) + " for domain '" + name.toLogString() + "': "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to unpublish key with id "+ std::to_string(keyId) + " for domain '" + name.toLogString() + "': "+e.txtReason());
   }
   return true;
 }
 
 
 
-bool GSQLBackend::removeDomainKey(const ZoneName& name, unsigned int id)
+bool GSQLBackend::removeDomainKey(const ZoneName& name, unsigned int keyId)
 {
   if(!d_dnssecQueries)
     return false;
@@ -1147,13 +1147,13 @@ bool GSQLBackend::removeDomainKey(const ZoneName& name, unsigned int id)
     // clang-format off
     d_RemoveDomainKeyQuery_stmt->
       bind("domain", name)->
-      bind("key_id", id)->
+      bind("key_id", keyId)->
       execute()->
       reset();
     // clang-format on
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to remove key with id "+ std::to_string(id) + " for domain '" + name.toLogString() + "': "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to remove key with id "+ std::to_string(keyId) + " for domain '" + name.toLogString() + "': "+e.txtReason());
   }
   return true;
 }
@@ -1609,7 +1609,7 @@ bool GSQLBackend::autoPrimariesList(std::vector<AutoPrimary>& primaries)
   return true;
 }
 
-bool GSQLBackend::autoPrimaryBackend(const string& ip, const ZoneName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** ddb)
+bool GSQLBackend::autoPrimaryBackend(const string& ipAddress, const ZoneName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** ddb)
 {
   // check if we know the ip/ns couple in the database
   for(const auto & i : nsset) {
@@ -1618,7 +1618,7 @@ bool GSQLBackend::autoPrimaryBackend(const string& ip, const ZoneName& domain, c
 
       // clang-format off
       d_AutoPrimaryInfoQuery_stmt->
-        bind("ip", ip)->
+        bind("ip", ipAddress)->
         bind("nameserver", i.content)->
         execute()->
         getResult(d_result)->
@@ -1626,7 +1626,7 @@ bool GSQLBackend::autoPrimaryBackend(const string& ip, const ZoneName& domain, c
       // clang-format on
     }
     catch (SSqlException &e) {
-      throw PDNSException("GSQLBackend unable to search for a autoprimary with IP " + ip + " and nameserver name '" + i.content + "' for domain '" + domain.toLogString() + "': " + e.txtReason());
+      throw PDNSException("GSQLBackend unable to search for a autoprimary with IP " + ipAddress + " and nameserver name '" + i.content + "' for domain '" + domain.toLogString() + "': " + e.txtReason());
     }
     if(!d_result.empty()) {
       ASSERT_ROW_COLUMNS("autoprimary-query", d_result[0], 1);
@@ -1666,10 +1666,10 @@ bool GSQLBackend::createDomain(const ZoneName& domain, const DomainInfo::DomainK
   return true;
 }
 
-bool GSQLBackend::createSecondaryDomain(const string& ip, const ZoneName& domain, const string& nameserver, const string& account)
+bool GSQLBackend::createSecondaryDomain(const string& ipAddress, const ZoneName& domain, const string& nameserver, const string& account)
 {
   string name;
-  vector<ComboAddress> primaries({ComboAddress(ip, 53)});
+  vector<ComboAddress> primaries({ComboAddress(ipAddress, 53)});
   try {
     if (!nameserver.empty()) {
       // figure out all IP addresses for the primary

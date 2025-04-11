@@ -175,7 +175,7 @@ public:
   void lookup(const QType& qtype, const DNSName& qdomain, int zoneid, DNSPacket* p = nullptr) override;
   bool get(DNSResourceRecord& rr) override;
 
-  bool getDomainInfo(const ZoneName& domain, DomainInfo& di, bool getSerial = true) override;
+  bool getDomainInfo(const ZoneName& domain, DomainInfo& info, bool getSerial = true) override;
 
   // Primary backend
   void getUpdatedPrimaries(vector<DomainInfo>& domains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes) override;

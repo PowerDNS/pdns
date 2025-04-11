@@ -348,8 +348,9 @@ string DLNotifyHandler(const vector<string>& parts, Utility::pid_t /* ppid */)
     } catch (...) {
       return "Failed to parse zone as valid DNS name";
     }
-    if(!Communicator.notifyDomain(domain, &B))
+    if(!Communicator.notifyDomain(domain, &B)) {
       return "Failed to add to the queue - see log";
+    }
     return "Added to queue";
   }
 }

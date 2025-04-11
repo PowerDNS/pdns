@@ -425,7 +425,7 @@ static bool catalogProcess(const DomainInfo& di, vector<DNSResourceRecord>& rrs,
   return catalogDiff(di, fromXFR, fromDB, logPrefix);
 }
 
-void CommunicatorClass::ixfrSuck(const ZoneName& domain, const TSIGTriplet& tt, const ComboAddress& laddr, const ComboAddress& remote, ZoneStatus& zs, vector<DNSRecord>* axfr)
+void CommunicatorClass::ixfrSuck(const ZoneName& domain, const TSIGTriplet& tsig, const ComboAddress& laddr, const ComboAddress& remote, ZoneStatus& status, vector<DNSRecord>* axfr)
 {
   string logPrefix = "IXFR-in zone '" + domain.toLogString() + "', primary '" + remote.toString() + "', ";
 
@@ -451,8 +451,8 @@ void CommunicatorClass::ixfrSuck(const ZoneName& domain, const TSIGTriplet& tt, 
     soatimes drsoa_soatimes = {di.serial, 0, 0, 0, 0};
     DNSRecord drsoa;
     drsoa.setContent(std::make_shared<SOARecordContent>(g_rootdnsname, g_rootdnsname, drsoa_soatimes));
-    auto deltas = getIXFRDeltas(remote, domain, drsoa, xfrTimeout, false, tt, laddr.sin4.sin_family ? &laddr : nullptr, ((size_t)::arg().asNum("xfr-max-received-mbytes")) * 1024 * 1024);
-    zs.numDeltas = deltas.size();
+    auto deltas = getIXFRDeltas(remote, domain, drsoa, xfrTimeout, false, tsig, laddr.sin4.sin_family ? &laddr : nullptr, ((size_t)::arg().asNum("xfr-max-received-mbytes")) * 1024 * 1024);
+    status.numDeltas = deltas.size();
     //    cout<<"Got "<<deltas.size()<<" deltas from serial "<<di.serial<<", applying.."<<endl;
 
     for (const auto& d : deltas) {
@@ -510,7 +510,7 @@ void CommunicatorClass::ixfrSuck(const ZoneName& domain, const TSIGTriplet& tt, 
           if (dr.d_type == QType::SOA) {
             //            cout<<"New SOA: "<<x.d_content->getZoneRepresentation()<<endl;
             auto sr = getRR<SOARecordContent>(dr);
-            zs.soa_serial = sr->d_st.serial;
+            status.soa_serial = sr->d_st.serial;
           }
 
           replacement.push_back(rr);
@@ -752,7 +752,7 @@ void CommunicatorClass::suck(const ZoneName& domain, const ComboAddress& remote,
         logPrefix = "I" + logPrefix; // XFR -> IXFR
         vector<DNSRecord> axfr;
         g_log << Logger::Notice << logPrefix << "starting IXFR" << endl;
-        ixfrSuck(domain, tt, laddr, remote, zs, &axfr);
+        CommunicatorClass::ixfrSuck(domain, tt, laddr, remote, zs, &axfr);
         if (!axfr.empty()) {
           g_log << Logger::Notice << logPrefix << "IXFR turned into an AXFR" << endl;
           logPrefix[0] = 'A'; // IXFR -> AXFR

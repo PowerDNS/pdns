@@ -86,7 +86,7 @@ bool DNSSECKeeper::isPresigned(const ZoneName& name, bool useCache)
 }
 
 
-bool DNSSECKeeper::addKey(const ZoneName& name, bool setSEPBit, int algorithm, int64_t& id, int bits, bool active, bool published)
+bool DNSSECKeeper::addKey(const ZoneName& name, bool setSEPBit, int algorithm, int64_t& keyId, int bits, bool active, bool published)
 {
   if(!bits) {
     if(algorithm <= 10)
@@ -111,7 +111,7 @@ bool DNSSECKeeper::addKey(const ZoneName& name, bool setSEPBit, int algorithm, i
   }
   DNSSECPrivateKey dspk;
   dspk.setKey(dpk, setSEPBit ? 257 : 256, algorithm);
-  return addKey(name, dspk, id, active, published) && clearKeyCache(name);
+  return addKey(name, dspk, keyId, active, published) && clearKeyCache(name);
 }
 
 void DNSSECKeeper::clearAllCaches() {
@@ -140,7 +140,7 @@ void DNSSECKeeper::clearCaches(const ZoneName& name)
   (void)clearMetaCache(name);
 }
 
-bool DNSSECKeeper::addKey(const ZoneName& name, const DNSSECPrivateKey& dpk, int64_t& id, bool active, bool published)
+bool DNSSECKeeper::addKey(const ZoneName& name, const DNSSECPrivateKey& dpk, int64_t& keyId, bool active, bool published)
 {
   DNSBackend::KeyData kd;
   kd.flags = dpk.getFlags(); // the dpk doesn't get stored, only they key part
@@ -148,7 +148,7 @@ bool DNSSECKeeper::addKey(const ZoneName& name, const DNSSECPrivateKey& dpk, int
   kd.published = published;
   kd.content = dpk.getKey()->convertToISC();
  // now store it
-  return d_keymetadb->addDomainKey(name, kd, id) && clearKeyCache(name);
+  return d_keymetadb->addDomainKey(name, kd, keyId) && clearKeyCache(name);
 }
 
 
@@ -158,12 +158,12 @@ static bool keyCompareByKindAndID(const DNSSECKeeper::keyset_t::value_type& a, c
          pair(!b.second.keyType, b.second.id);
 }
 
-DNSSECPrivateKey DNSSECKeeper::getKeyById(const ZoneName& zname, unsigned int id)
+DNSSECPrivateKey DNSSECKeeper::getKeyById(const ZoneName& zname, unsigned int keyId)
 {
   vector<DNSBackend::KeyData> keys;
   d_keymetadb->getDomainKeys(zname, keys);
   for(const DNSBackend::KeyData& kd :  keys) {
-    if(kd.id != id)
+    if(kd.id != keyId)
       continue;
 
     DNSKEYRecordContent dkrc;
@@ -173,33 +173,33 @@ DNSSECPrivateKey DNSSECKeeper::getKeyById(const ZoneName& zname, unsigned int id
 
     return dpk;
   }
-  throw runtime_error("Can't find a key with id "+std::to_string(id)+" for zone '"+zname.toLogString()+"'");
+  throw runtime_error("Can't find a key with id "+std::to_string(keyId)+" for zone '"+zname.toLogString()+"'");
 }
 
 
-bool DNSSECKeeper::removeKey(const ZoneName& zname, unsigned int id)
+bool DNSSECKeeper::removeKey(const ZoneName& zname, unsigned int keyId)
 {
-  return d_keymetadb->removeDomainKey(zname, id) && clearKeyCache(zname);
+  return d_keymetadb->removeDomainKey(zname, keyId) && clearKeyCache(zname);
 }
 
-bool DNSSECKeeper::deactivateKey(const ZoneName& zname, unsigned int id)
+bool DNSSECKeeper::deactivateKey(const ZoneName& zname, unsigned int keyId)
 {
-  return d_keymetadb->deactivateDomainKey(zname, id) && clearKeyCache(zname);
+  return d_keymetadb->deactivateDomainKey(zname, keyId) && clearKeyCache(zname);
 }
 
-bool DNSSECKeeper::activateKey(const ZoneName& zname, unsigned int id)
+bool DNSSECKeeper::activateKey(const ZoneName& zname, unsigned int keyId)
 {
-  return d_keymetadb->activateDomainKey(zname, id) && clearKeyCache(zname);
+  return d_keymetadb->activateDomainKey(zname, keyId) && clearKeyCache(zname);
 }
 
-bool DNSSECKeeper::unpublishKey(const ZoneName& zname, unsigned int id)
+bool DNSSECKeeper::unpublishKey(const ZoneName& zname, unsigned int keyId)
 {
-  return d_keymetadb->unpublishDomainKey(zname, id) && clearKeyCache(zname);
+  return d_keymetadb->unpublishDomainKey(zname, keyId) && clearKeyCache(zname);
 }
 
-bool DNSSECKeeper::publishKey(const ZoneName& zname, unsigned int id)
+bool DNSSECKeeper::publishKey(const ZoneName& zname, unsigned int keyId)
 {
-  return d_keymetadb->publishDomainKey(zname, id) && clearKeyCache(zname);
+  return d_keymetadb->publishDomainKey(zname, keyId) && clearKeyCache(zname);
 }
 
 void DNSSECKeeper::getFromMetaOrDefault(const ZoneName& zname, const std::string& key, std::string& value, const std::string& defaultvalue)

@@ -210,6 +210,7 @@ unsigned int Bind2Backend::getCapabilities()
   return caps;
 }
 
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 bool Bind2Backend::getNSEC3PARAM(const ZoneName& name, NSEC3PARAMRecordContent* ns3p)
 {
   BB2DomainInfo bbd;
@@ -346,13 +347,13 @@ bool Bind2Backend::getDomainKeys(const ZoneName& name, std::vector<KeyData>& key
   return true;
 }
 
-bool Bind2Backend::removeDomainKey(const ZoneName& name, unsigned int id)
+bool Bind2Backend::removeDomainKey(const ZoneName& name, unsigned int keyId)
 {
   if (!d_dnssecdb || d_hybrid)
     return false;
 
   try {
-    d_deleteDomainKeyQuery_stmt->bind("domain", name)->bind("key_id", id)->execute()->reset();
+    d_deleteDomainKeyQuery_stmt->bind("domain", name)->bind("key_id", keyId)->execute()->reset();
   }
   catch (SSqlException& se) {
     throw PDNSException("Error accessing DNSSEC database in BIND backend, removeDomainKeys(): " + se.txtReason());
@@ -360,7 +361,7 @@ bool Bind2Backend::removeDomainKey(const ZoneName& name, unsigned int id)
   return true;
 }
 
-bool Bind2Backend::addDomainKey(const ZoneName& name, const KeyData& key, int64_t& id)
+bool Bind2Backend::addDomainKey(const ZoneName& name, const KeyData& key, int64_t& keyId)
 {
   if (!d_dnssecdb || d_hybrid)
     return false;
@@ -375,33 +376,33 @@ bool Bind2Backend::addDomainKey(const ZoneName& name, const KeyData& key, int64_
   try {
     d_GetLastInsertedKeyIdQuery_stmt->execute();
     if (!d_GetLastInsertedKeyIdQuery_stmt->hasNextRow()) {
-      id = -2;
+      keyId = -2;
       return true;
     }
     SSqlStatement::row_t row;
     d_GetLastInsertedKeyIdQuery_stmt->nextRow(row);
     ASSERT_ROW_COLUMNS("get-last-inserted-key-id-query", row, 1);
-    id = std::stoi(row[0]);
+    keyId = std::stoi(row[0]);
     d_GetLastInsertedKeyIdQuery_stmt->reset();
-    if (id == 0) {
+    if (keyId == 0) {
       // No insert took place, report as error.
-      id = -1;
+      keyId = -1;
     }
     return true;
   }
   catch (SSqlException& e) {
-    id = -2;
+    keyId = -2;
     return true;
   }
 }
 
-bool Bind2Backend::activateDomainKey(const ZoneName& name, unsigned int id)
+bool Bind2Backend::activateDomainKey(const ZoneName& name, unsigned int keyId)
 {
   if (!d_dnssecdb || d_hybrid)
     return false;
 
   try {
-    d_activateDomainKeyQuery_stmt->bind("domain", name)->bind("key_id", id)->execute()->reset();
+    d_activateDomainKeyQuery_stmt->bind("domain", name)->bind("key_id", keyId)->execute()->reset();
   }
   catch (SSqlException& se) {
     throw PDNSException("Error accessing DNSSEC database in BIND backend, activateDomainKey(): " + se.txtReason());
@@ -409,13 +410,13 @@ bool Bind2Backend::activateDomainKey(const ZoneName& name, unsigned int id)
   return true;
 }
 
-bool Bind2Backend::deactivateDomainKey(const ZoneName& name, unsigned int id)
+bool Bind2Backend::deactivateDomainKey(const ZoneName& name, unsigned int keyId)
 {
   if (!d_dnssecdb || d_hybrid)
     return false;
 
   try {
-    d_deactivateDomainKeyQuery_stmt->bind("domain", name)->bind("key_id", id)->execute()->reset();
+    d_deactivateDomainKeyQuery_stmt->bind("domain", name)->bind("key_id", keyId)->execute()->reset();
   }
   catch (SSqlException& se) {
     throw PDNSException("Error accessing DNSSEC database in BIND backend, deactivateDomainKey(): " + se.txtReason());
@@ -423,13 +424,13 @@ bool Bind2Backend::deactivateDomainKey(const ZoneName& name, unsigned int id)
   return true;
 }
 
-bool Bind2Backend::publishDomainKey(const ZoneName& name, unsigned int id)
+bool Bind2Backend::publishDomainKey(const ZoneName& name, unsigned int keyId)
 {
   if (!d_dnssecdb || d_hybrid)
     return false;
 
   try {
-    d_publishDomainKeyQuery_stmt->bind("domain", name)->bind("key_id", id)->execute()->reset();
+    d_publishDomainKeyQuery_stmt->bind("domain", name)->bind("key_id", keyId)->execute()->reset();
   }
   catch (SSqlException& se) {
     throw PDNSException("Error accessing DNSSEC database in BIND backend, publishDomainKey(): " + se.txtReason());
@@ -437,13 +438,13 @@ bool Bind2Backend::publishDomainKey(const ZoneName& name, unsigned int id)
   return true;
 }
 
-bool Bind2Backend::unpublishDomainKey(const ZoneName& name, unsigned int id)
+bool Bind2Backend::unpublishDomainKey(const ZoneName& name, unsigned int keyId)
 {
   if (!d_dnssecdb || d_hybrid)
     return false;
 
   try {
-    d_unpublishDomainKeyQuery_stmt->bind("domain", name)->bind("key_id", id)->execute()->reset();
+    d_unpublishDomainKeyQuery_stmt->bind("domain", name)->bind("key_id", keyId)->execute()->reset();
   }
   catch (SSqlException& se) {
     throw PDNSException("Error accessing DNSSEC database in BIND backend, unpublishDomainKey(): " + se.txtReason());

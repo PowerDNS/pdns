@@ -63,9 +63,9 @@ public:
   ~LMDBBackend();
 
   unsigned int getCapabilities() override { return CAP_DNSSEC | CAP_DIRECT | CAP_LIST | CAP_CREATE; }
-  bool list(const ZoneName& target, int id, bool include_disabled) override;
+  bool list(const ZoneName& target, int domainId, bool include_disabled) override;
 
-  bool getDomainInfo(const ZoneName& domain, DomainInfo& di, bool getserial = true) override;
+  bool getDomainInfo(const ZoneName& domain, DomainInfo& info, bool getserial = true) override;
   bool createDomain(const ZoneName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account) override;
 
   bool startTransaction(const ZoneName& domain, int domain_id = -1) override;
@@ -94,7 +94,7 @@ public:
   // catalog zones
   bool getCatalogMembers(const ZoneName& catalog, vector<CatalogInfo>& members, CatalogInfo::CatalogType type) override;
   bool setOptions(const ZoneName& domain, const std::string& options) override;
-  bool setCatalog(const ZoneName& domain, const ZoneName& options) override;
+  bool setCatalog(const ZoneName& domain, const ZoneName& catalog) override;
 
   bool setPrimaries(const ZoneName& domain, const vector<ComboAddress>& primaries) override;
   bool setKind(const ZoneName& domain, const DomainInfo::DomainKind kind) override;
@@ -121,12 +121,12 @@ public:
   bool deleteDomain(const ZoneName& domain) override;
 
   bool getDomainKeys(const ZoneName& name, std::vector<KeyData>& keys) override;
-  bool removeDomainKey(const ZoneName& name, unsigned int id) override;
-  bool addDomainKey(const ZoneName& name, const KeyData& key, int64_t& id) override;
-  bool activateDomainKey(const ZoneName& name, unsigned int id) override;
-  bool deactivateDomainKey(const ZoneName& name, unsigned int id) override;
-  bool publishDomainKey(const ZoneName& name, unsigned int id) override;
-  bool unpublishDomainKey(const ZoneName& name, unsigned int id) override;
+  bool removeDomainKey(const ZoneName& name, unsigned int keyId) override;
+  bool addDomainKey(const ZoneName& name, const KeyData& key, int64_t& keyId) override;
+  bool activateDomainKey(const ZoneName& name, unsigned int keyId) override;
+  bool deactivateDomainKey(const ZoneName& name, unsigned int keyId) override;
+  bool publishDomainKey(const ZoneName& name, unsigned int keyId) override;
+  bool unpublishDomainKey(const ZoneName& name, unsigned int keyId) override;
 
   // TSIG
   bool getTSIGKey(const DNSName& name, DNSName& algorithm, string& content) override;
@@ -138,7 +138,7 @@ public:
 
   bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) override;
 
-  bool getBeforeAndAfterNames(uint32_t id, const ZoneName& zonename, const DNSName& qname, DNSName& before, DNSName& after) override;
+  bool getBeforeAndAfterNames(uint32_t domainId, const ZoneName& zonename, const DNSName& qname, DNSName& before, DNSName& after) override;
 
   bool updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype = QType::ANY) override;
 

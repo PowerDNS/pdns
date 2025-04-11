@@ -76,12 +76,12 @@ public:
   bool getAllDomainMetadata(const ZoneName& name, std::map<std::string, std::vector<std::string>>& meta) override;
   bool getDomainMetadata(const ZoneName& name, const std::string& kind, std::vector<std::string>& meta) override;
   bool getDomainKeys(const ZoneName& name, std::vector<DNSBackend::KeyData>& keys) override;
-  bool removeDomainKey(const ZoneName& name, unsigned int id) override;
-  bool addDomainKey(const ZoneName& name, const KeyData& key, int64_t& id) override;
-  bool activateDomainKey(const ZoneName& name, unsigned int id) override;
-  bool deactivateDomainKey(const ZoneName& name, unsigned int id) override;
-  bool publishDomainKey(const ZoneName& name, unsigned int id) override;
-  bool unpublishDomainKey(const ZoneName& name, unsigned int id) override;
+  bool removeDomainKey(const ZoneName& name, unsigned int keyId) override;
+  bool addDomainKey(const ZoneName& name, const KeyData& key, int64_t& keyId) override;
+  bool activateDomainKey(const ZoneName& name, unsigned int keyId) override;
+  bool deactivateDomainKey(const ZoneName& name, unsigned int keyId) override;
+  bool publishDomainKey(const ZoneName& name, unsigned int keyId) override;
+  bool unpublishDomainKey(const ZoneName& name, unsigned int keyId) override;
 
 private:
   static ReadWriteLock s_state_lock;
