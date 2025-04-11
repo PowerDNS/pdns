@@ -124,12 +124,12 @@ uint16_t dnsdist_ffi_dnsquestion_get_remote_port(const dnsdist_ffi_dnsquestion_t
   return dq->dq->ids.origRemote.getPort();
 }
 
-const char* dnsdist_ffi_dnsquestion_get_incoming_interface(const dnsdist_ffi_dnsquestion_t* dq)
+const char* dnsdist_ffi_dnsquestion_get_incoming_interface(const dnsdist_ffi_dnsquestion_t* dnsQuestion)
 {
-  if (dq == nullptr || dq->dq == nullptr || dq->dq->ids.cs == nullptr) {
+  if (dnsQuestion == nullptr || dnsQuestion->dq == nullptr || dnsQuestion->dq->ids.cs == nullptr) {
     return nullptr;
   }
-  return dq->dq->ids.cs->interface.c_str();
+  return dnsQuestion->dq->ids.cs->interface.c_str();
 }
 
 void dnsdist_ffi_dnsquestion_get_qname_raw(const dnsdist_ffi_dnsquestion_t* dq, const char** qname, size_t* qnameSize)
