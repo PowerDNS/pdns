@@ -28,7 +28,8 @@ env:
   # github.workspace variable points to the Runner home folder. Container home folder defined below.
   REPO_HOME: '/__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}'
   BUILDER_VERSION: '0.0.0-git1'
-  COVERAGE: ${{ github.repository == 'PowerDNS/pdns' && 'yes' || 'no' }}
+  # COVERAGE: ${{ github.repository == 'PowerDNS/pdns' && 'yes' || 'no' }}
+  COVERAGE: no
   LLVM_PROFILE_FILE: "/tmp/code-%p.profraw"
   OPTIMIZATIONS: yes
   INV_CMD: ". ${REPO_HOME}/.venv/bin/activate && inv"
@@ -799,7 +800,7 @@ jobs:
         # IncludeDir tests are disabled because of a weird interaction between TSAN and these tests which ever only happens on GH actions
         SKIP_INCLUDEDIR_TESTS: yes
         SANITIZERS: ${{ matrix.sanitizers }}
-        COVERAGE: yes
+        COVERAGE: no
       options: --sysctl net.ipv6.conf.all.disable_ipv6=0 --privileged
     env:
       CLANG_VERSION: ${{ contains(needs.get-runner-container-image.outputs.id, 'debian-11') && '13' || '19' }}
