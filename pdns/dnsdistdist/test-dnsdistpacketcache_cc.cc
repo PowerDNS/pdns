@@ -495,62 +495,82 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheNXDomainTTL)
 
 BOOST_AUTO_TEST_CASE(test_PacketCacheTruncated)
 {
-  const DNSDistPacketCache::CacheSettings settings{
-    .d_maxEntries = 150000,
-    .d_maxTTL = 86400,
-    .d_minTTL = 1,
-    .d_tempFailureTTL = 60,
-    .d_maxNegativeTTL = 1,
-  };
-  DNSDistPacketCache localCache(settings);
-
   InternalQueryState ids;
   ids.qtype = QType::A;
   ids.qclass = QClass::IN;
   ids.protocol = dnsdist::Protocol::DoUDP;
   ids.queryRealTime.start(); // does not have to be accurate ("realTime") in tests
+  ids.qname = DNSName("truncated");
   bool dnssecOK = false;
+  PacketBuffer query;
+  GenericDNSPacketWriter<PacketBuffer> pwQ(query, ids.qname, QType::A, QClass::IN, 0);
+  pwQ.getHeader()->rd = 1;
 
-  try {
-    ids.qname = DNSName("truncated");
-    PacketBuffer query;
-    GenericDNSPacketWriter<PacketBuffer> pwQ(query, ids.qname, QType::A, QClass::IN, 0);
-    pwQ.getHeader()->rd = 1;
+  PacketBuffer response;
+  GenericDNSPacketWriter<PacketBuffer> pwR(response, ids.qname, QType::A, QClass::IN, 0);
+  pwR.getHeader()->rd = 1;
+  pwR.getHeader()->ra = 0;
+  pwR.getHeader()->qr = 1;
+  pwR.getHeader()->tc = 1;
+  pwR.getHeader()->rcode = RCode::NoError;
+  pwR.getHeader()->id = pwQ.getHeader()->id;
+  pwR.commit();
 
-    PacketBuffer response;
-    GenericDNSPacketWriter<PacketBuffer> pwR(response, ids.qname, QType::A, QClass::IN, 0);
-    pwR.getHeader()->rd = 1;
-    pwR.getHeader()->ra = 0;
-    pwR.getHeader()->qr = 1;
-    pwR.getHeader()->tc = 1;
-    pwR.getHeader()->rcode = RCode::NoError;
-    pwR.getHeader()->id = pwQ.getHeader()->id;
-    pwR.commit();
-    pwR.startRecord(ids.qname, QType::A, 7200, QClass::IN, DNSResourceRecord::ANSWER);
-    pwR.xfr32BitInt(0x01020304);
-    pwR.commit();
+  uint32_t key = 0;
+  boost::optional<Netmask> subnet;
+  DNSQuestion dnsQuestion(ids, query);
+  bool allowTruncated = true;
 
-    uint32_t key = 0;
-    boost::optional<Netmask> subnet;
-    DNSQuestion dnsQuestion(ids, query);
-    bool found = localCache.get(dnsQuestion, 0, &key, subnet, dnssecOK, receivedOverUDP);
-    BOOST_CHECK_EQUAL(found, false);
+  {
+    /* truncated answers are not cached by default */
+    const DNSDistPacketCache::CacheSettings settings{
+      .d_maxEntries = 150000,
+      .d_maxTTL = 86400,
+      .d_minTTL = 1,
+      .d_tempFailureTTL = 60,
+      .d_maxNegativeTTL = 1,
+    };
+    DNSDistPacketCache localCache(settings);
+    BOOST_CHECK_EQUAL(localCache.getSize(), 0U);
+
+    bool found = localCache.get(dnsQuestion, 0, &key, subnet, dnssecOK, receivedOverUDP, 0, false, allowTruncated);
+    BOOST_REQUIRE_EQUAL(found, false);
     BOOST_CHECK(!subnet);
 
-    localCache.insert(key, subnet, *(getFlagsFromDNSHeader(dnsQuestion.getHeader().get())), dnssecOK, ids.qname, QType::A, QClass::IN, response, receivedOverUDP, RCode::NXDomain, boost::none);
+    localCache.insert(key, subnet, *(getFlagsFromDNSHeader(dnsQuestion.getHeader().get())), dnssecOK, ids.qname, QType::A, QClass::IN, response, receivedOverUDP, 0, boost::none);
 
-    bool allowTruncated = true;
-    found = localCache.get(dnsQuestion, pwR.getHeader()->id, &key, subnet, dnssecOK, receivedOverUDP, 0, true, allowTruncated);
-    BOOST_CHECK_EQUAL(found, true);
+    found = localCache.get(dnsQuestion, pwR.getHeader()->id, &key, subnet, dnssecOK, receivedOverUDP, 0, false, allowTruncated);
+    BOOST_REQUIRE_EQUAL(found, false);
+  }
+
+  {
+    /* enable caching of truncated answers */
+    const DNSDistPacketCache::CacheSettings settings{
+      .d_maxEntries = 150000,
+      .d_maxTTL = 86400,
+      .d_minTTL = 1,
+      .d_truncatedTTL = 60,
+    };
+    DNSDistPacketCache localCache(settings);
+    BOOST_CHECK_EQUAL(localCache.getSize(), 0U);
+
+    bool found = localCache.get(dnsQuestion, 0, &key, subnet, dnssecOK, receivedOverUDP, 0, false, allowTruncated);
+    BOOST_REQUIRE_EQUAL(found, false);
     BOOST_CHECK(!subnet);
+
+    localCache.insert(key, subnet, *(getFlagsFromDNSHeader(dnsQuestion.getHeader().get())), dnssecOK, ids.qname, QType::A, QClass::IN, response, receivedOverUDP, 0, boost::none);
 
     allowTruncated = false;
-    found = localCache.get(dnsQuestion, pwR.getHeader()->id, &key, subnet, dnssecOK, receivedOverUDP, 0, true, allowTruncated);
-    BOOST_CHECK_EQUAL(found, false);
-  }
-  catch (const PDNSException& e) {
-    cerr << "Had error: " << e.reason << endl;
-    throw;
+    found = localCache.get(dnsQuestion, pwR.getHeader()->id, &key, subnet, dnssecOK, receivedOverUDP, 0, false, allowTruncated);
+    BOOST_REQUIRE_EQUAL(found, false);
+
+    allowTruncated = true;
+    found = localCache.get(dnsQuestion, pwR.getHeader()->id, &key, subnet, dnssecOK, receivedOverUDP, 0, false, allowTruncated);
+    BOOST_REQUIRE_EQUAL(found, true);
+    BOOST_REQUIRE_EQUAL(dnsQuestion.getData().size(), response.size());
+    int match = memcmp(dnsQuestion.getData().data(), response.data(), dnsQuestion.getData().size());
+    BOOST_CHECK_EQUAL(match, 0);
+    BOOST_CHECK(!subnet);
   }
 }
 

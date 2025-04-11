@@ -1834,6 +1834,10 @@ packet_cache:
       type: "u32"
       default: "60"
       description: "On a SERVFAIL or REFUSED from the backend, cache for this amount of seconds"
+    - name: "truncated_ttl"
+      type: "u32"
+      default: 0
+      description: "On a truncated (TC=1, no records) response from the backend, cache for this amount of seconds. 0, the default, means that truncated answers are not cached"
     - name: "cookie_hashing"
       type: "bool"
       default: "false"

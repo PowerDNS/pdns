@@ -2033,6 +2033,8 @@ mod dnsdistsettings {
         #[serde(default = "crate::U32::<60>::value", skip_serializing_if = "crate::U32::<60>::is_equal")]
         temporary_failure_ttl: u32,
         #[serde(default, skip_serializing_if = "crate::is_default")]
+        truncated_ttl: u32,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         cookie_hashing: bool,
         #[serde(default = "crate::U32::<4096>::value", skip_serializing_if = "crate::U32::<4096>::is_equal")]
         maximum_entry_size: u32,

@@ -80,6 +80,23 @@ class TestCaching(DNSDistTest):
 
         self.assertEqual(total, 1)
 
+    def testEmptyTruncated(self):
+        """
+        Cache: Empty TC=1 is not cached by default
+        """
+        name = 'empty-tc.cache.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'AAAA', 'IN')
+        response = dns.message.make_response(query)
+        response.flags |= dns.flags.TC
+
+        for _ in range(2):
+            (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(receivedResponse, response)
+
     def testDOCached(self):
         """
         Cache: Served from cache, query has DO bit set
@@ -3020,3 +3037,38 @@ class TestCachingOfVeryLargeAnswers(DNSDistTest):
         self.assertFalse(receivedResponse)
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
+
+class TestCacheEmptyTC(DNSDistTest):
+
+    _truncated_ttl = 42
+    _config_template = """
+    pc = newPacketCache(100, {maxTTL=86400, minTTL=1, truncatedTTL=%d})
+    getPool(""):setCache(pc)
+    newServer{address="127.0.0.1:%d"}
+    """
+    _config_params = ['_truncated_ttl', '_testServerPort']
+
+    def testEmptyTruncated(self):
+        """
+        Cache: Empty TC=1 should be cached
+        """
+        name = 'cache-empty-tc.cache.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'AAAA', 'IN')
+        response = dns.message.make_response(query)
+        response.flags |= dns.flags.TC
+
+        # first to fill the cache
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(receivedResponse, response)
+
+        # now it should be cached
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertEqual(receivedResponse, response)

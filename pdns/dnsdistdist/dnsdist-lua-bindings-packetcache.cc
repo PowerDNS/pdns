@@ -51,6 +51,7 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
     getOptionalValue<bool>(vars, "parseECS", settings.d_parseECS);
     getOptionalValue<size_t>(vars, "staleTTL", settings.d_staleTTL);
     getOptionalValue<size_t>(vars, "temporaryFailureTTL", settings.d_tempFailureTTL);
+    getOptionalValue<size_t>(vars, "truncatedTTL", settings.d_truncatedTTL);
     getOptionalValue<bool>(vars, "cookieHashing", cookieHashing);
     getOptionalValue<size_t>(vars, "maximumEntrySize", maximumEntrySize);
 
