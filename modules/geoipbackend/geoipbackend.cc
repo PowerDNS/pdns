@@ -903,7 +903,7 @@ void GeoIPBackend::rediscover(string* /* status */)
   reload();
 }
 
-bool GeoIPBackend::getDomainInfo(const ZoneName& domain, DomainInfo& di, bool /* getSerial */)
+bool GeoIPBackend::getDomainInfo(const ZoneName& domain, DomainInfo& info, bool /* getSerial */)
 {
   ReadLock rl(&s_state_lock);
 
@@ -911,11 +911,11 @@ bool GeoIPBackend::getDomainInfo(const ZoneName& domain, DomainInfo& di, bool /*
     if (dom.domain == domain) {
       SOAData sd;
       this->getSOA(domain, sd);
-      di.id = dom.id;
-      di.zone = dom.domain;
-      di.serial = sd.serial;
-      di.kind = DomainInfo::Native;
-      di.backend = this;
+      info.id = dom.id;
+      info.zone = dom.domain;
+      info.serial = sd.serial;
+      info.kind = DomainInfo::Native;
+      info.backend = this;
       return true;
     }
   }

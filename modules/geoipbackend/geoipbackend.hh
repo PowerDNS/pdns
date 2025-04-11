@@ -69,7 +69,7 @@ public:
   bool get(DNSResourceRecord& r) override;
   void reload() override;
   void rediscover(string* status = nullptr) override;
-  bool getDomainInfo(const ZoneName& domain, DomainInfo& di, bool getSerial = true) override;
+  bool getDomainInfo(const ZoneName& domain, DomainInfo& info, bool getSerial = true) override;
   void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled) override;
 
   // dnssec support
