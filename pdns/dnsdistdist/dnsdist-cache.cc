@@ -149,8 +149,10 @@ void DNSDistPacketCache::insert(uint32_t key, const boost::optional<Netmask>& su
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     minTTL = getMinTTL(reinterpret_cast<const char*>(response.data()), response.size(), &seenAuthSOA);
 
-    /* no TTL found, we don't want to cache this */
     if (minTTL == std::numeric_limits<uint32_t>::max()) {
+      /* no TTL found, we probably don't want to cache this
+         unless it's an empty (no records) truncated answer,
+         and we have been asked to cache these */
       if (d_settings.d_truncatedTTL == 0) {
         return;
       }
