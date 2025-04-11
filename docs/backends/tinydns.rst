@@ -11,6 +11,7 @@ TinyDNS Backend
 * DNSSEC: No
 * Disabled data: No
 * Comments: No
+* Search: No
 * API: Read-only
 * Multiple Instances: Yes
 * Zone caching: Yes
