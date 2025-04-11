@@ -31,8 +31,8 @@
 #include "base64.hh"
 
 // NOLINTNEXTLINE(bugprone-easily-swappable-parameters): too cumbersome to change at this point
-DNSDistPacketCache::DNSDistPacketCache(const CacheSettings& settings) :
-  d_settings(settings)
+DNSDistPacketCache::DNSDistPacketCache(CacheSettings settings) :
+  d_settings(std::move(settings))
 {
   if (d_settings.d_maxEntries == 0) {
     throw std::runtime_error("Trying to create a 0-sized packet-cache");
