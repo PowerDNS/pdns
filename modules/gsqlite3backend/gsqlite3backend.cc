@@ -88,6 +88,9 @@ public:
     declare(suffix, "any-query", "Any query", record_query + " disabled=0 and name=:qname");
     declare(suffix, "any-id-query", "Any with ID query", record_query + " disabled=0 and name=:qname and domain_id=:domain_id");
 
+    declare(suffix, "api-id-query", "API basic with ID query", record_query + " (disabled=0 or :include_disabled) and type=:qtype and name=:qname and domain_id=:domain_id");
+    declare(suffix, "api-any-id-query", "API any with ID query", record_query + " (disabled=0 or :include_disabled) and name=:qname and domain_id=:domain_id");
+
     declare(suffix, "list-query", "AXFR query", "SELECT content,ttl,prio,type,domain_id,disabled,name,auth,ordername FROM records WHERE (disabled=0 OR :include_disabled) and domain_id=:domain_id order by name, type");
     declare(suffix, "list-subzone-query", "Subzone listing", record_query + " disabled=0 and (name=:zone OR name like :wildzone) and domain_id=:domain_id");
 
