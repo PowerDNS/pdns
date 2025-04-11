@@ -151,6 +151,9 @@ public:
   const static map<const string, uint16_t> names;
   const static map<uint16_t, const string> numbers;
 
+  // QTypes that MUST NOT be used with any other QType on the same name.
+  const static std::set<uint16_t> exclusiveEntryTypes;
+
 private:
 
   uint16_t code;
