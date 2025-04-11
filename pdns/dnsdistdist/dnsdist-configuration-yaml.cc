@@ -1062,23 +1062,29 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
     }
 
     for (const auto& cache : globalConfig.packet_caches) {
-      auto packetCacheObj = std::make_shared<DNSDistPacketCache>(cache.size, cache.max_ttl, cache.min_ttl, cache.temporary_failure_ttl, cache.max_negative_ttl, cache.stale_ttl, cache.dont_age, cache.shards, cache.deferrable_insert_lock, cache.parse_ecs);
-
-      packetCacheObj->setKeepStaleData(cache.keep_stale_data);
-      std::unordered_set<uint16_t> optionsToSkip{EDNSOptionCode::COOKIE};
-
+      DNSDistPacketCache::CacheSettings settings{
+        .d_maxEntries = cache.size,
+        .d_maxTTL = cache.max_ttl,
+        .d_minTTL = cache.min_ttl,
+        .d_tempFailureTTL = cache.temporary_failure_ttl,
+        .d_maxNegativeTTL = cache.max_negative_ttl,
+        .d_staleTTL = cache.stale_ttl,
+        .d_shardCount = cache.shards,
+        .d_dontAge = cache.dont_age,
+        .d_deferrableInsertLock = cache.deferrable_insert_lock,
+        .d_parseECS = cache.parse_ecs,
+        .d_keepStaleData = cache.keep_stale_data,
+      };
       for (const auto& option : cache.options_to_skip) {
-        optionsToSkip.insert(pdns::checked_stoi<uint16_t>(std::string(option)));
+        settings.d_optionsToSkip.insert(pdns::checked_stoi<uint16_t>(std::string(option)));
       }
-
       if (cache.cookie_hashing) {
-        optionsToSkip.erase(EDNSOptionCode::COOKIE);
+        settings.d_optionsToSkip.erase(EDNSOptionCode::COOKIE);
       }
-
-      packetCacheObj->setSkippedOptions(optionsToSkip);
       if (cache.maximum_entry_size >= sizeof(dnsheader)) {
-        packetCacheObj->setMaximumEntrySize(cache.maximum_entry_size);
+        settings.d_maximumEntrySize = cache.maximum_entry_size;
       }
+      auto packetCacheObj = std::make_shared<DNSDistPacketCache>(settings);
 
       registerType<DNSDistPacketCache>(packetCacheObj, cache.name);
     }

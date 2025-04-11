@@ -32,14 +32,21 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
   }
 
   /* dnsdist's version */
-  DNSDistPacketCache pcSkipCookies(10000);
   // By default, cookies are not hashed
-  pcSkipCookies.setECSParsingEnabled(true);
+  DNSDistPacketCache::CacheSettings skipCookieSettings{
+    .d_maxEntries = 10000,
+    .d_parseECS = true,
+  };
+  DNSDistPacketCache pcSkipCookies(skipCookieSettings);
 
-  DNSDistPacketCache pcHashCookies(10000);
-  pcHashCookies.setECSParsingEnabled(true);
   // Do not skip cookies
-  pcHashCookies.setSkippedOptions({});
+  DNSDistPacketCache::CacheSettings parseCookieSettings{
+    .d_optionsToSkip = {},
+    .d_maxEntries = 10000,
+    .d_parseECS = true,
+
+  };
+  DNSDistPacketCache pcHashCookies(parseCookieSettings);
 
   try {
     uint16_t qtype;
