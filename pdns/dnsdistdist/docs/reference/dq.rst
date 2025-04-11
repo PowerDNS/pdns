@@ -182,6 +182,18 @@ This state can be modified from the various hooks.
 
     :returns: The scheme of the DoH query, for example ``http`` or ``https``
 
+  .. method:: DNSQuestion:getIncomingInterface() -> string
+
+    .. versionadded:: 2.0.0
+
+    Return the name of the network interface this query was received on, but only if the corresponding frontend
+    has been bound to a specific network interface via the ``interface`` parameter to :func:`addLocal`, :func:`setLocal`,
+    :func:`addTLSLocal`, :func:`addDOHLocal`, :func:`addDOQLocal` or :func:`AddDOH3Local`, or the ``interface`` parameter
+    of a :ref:`frontend <yaml-settings-BindConfiguration>` when the YAML format is used. This is useful in Virtual Routing
+    and Forwarding (VRF) environments where the destination IP address might not be enough to identify the VRF.
+
+    :returns: The name of the network interface this query was received on, or an empty string.
+
   .. method:: DNSQuestion:getProtocol() -> string
 
     .. versionadded:: 1.7.0
