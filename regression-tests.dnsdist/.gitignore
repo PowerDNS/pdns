@@ -14,7 +14,12 @@
 /server.csr
 /server.key
 /server.pem
+/server2.chain
+/server2.csr
+/server2.key
+/server2.pem
 /server.p12
+/server-ec.*
 /server-doq.*
 /server-doh3.*
 /server-ocsp.chain

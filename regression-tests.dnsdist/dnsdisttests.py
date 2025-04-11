@@ -1129,23 +1129,23 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         cls._response_headers = response_headers.getvalue()
         return (receivedQuery, message)
 
-    def sendDOHQueryWrapper(self, query, response, useQueue=True, timeout=2):
-        return self.sendDOHQuery(self._dohServerPort, self._serverName, self._dohBaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue, timeout=timeout)
+    def sendDOHQueryWrapper(self, query, response, useQueue=True, timeout=2, serverName=None):
+        return self.sendDOHQuery(self._dohServerPort, self._serverName if not serverName else serverName, self._dohBaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue, timeout=timeout)
 
-    def sendDOHWithNGHTTP2QueryWrapper(self, query, response, useQueue=True, timeout=2):
-        return self.sendDOHQuery(self._dohWithNGHTTP2ServerPort, self._serverName, self._dohWithNGHTTP2BaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue, timeout=timeout)
+    def sendDOHWithNGHTTP2QueryWrapper(self, query, response, useQueue=True, timeout=2, serverName=None):
+        return self.sendDOHQuery(self._dohWithNGHTTP2ServerPort, self._serverName if not serverName else serverName, self._dohWithNGHTTP2BaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue, timeout=timeout)
 
-    def sendDOHWithH2OQueryWrapper(self, query, response, useQueue=True, timeout=2):
-        return self.sendDOHQuery(self._dohWithH2OServerPort, self._serverName, self._dohWithH2OBaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue, timeout=timeout)
+    def sendDOHWithH2OQueryWrapper(self, query, response, useQueue=True, timeout=2, serverName=None):
+        return self.sendDOHQuery(self._dohWithH2OServerPort, self._serverName if not serverName else serverName, self._dohWithH2OBaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue, timeout=timeout)
 
-    def sendDOTQueryWrapper(self, query, response, useQueue=True, timeout=2):
-        return self.sendDOTQuery(self._tlsServerPort, self._serverName, query, response, self._caCert, useQueue=useQueue, timeout=timeout)
+    def sendDOTQueryWrapper(self, query, response, useQueue=True, timeout=2, serverName=None):
+        return self.sendDOTQuery(self._tlsServerPort, self._serverName if not serverName else serverName, query, response, self._caCert, useQueue=useQueue, timeout=timeout)
 
-    def sendDOQQueryWrapper(self, query, response, useQueue=True, timeout=2):
-        return self.sendDOQQuery(self._doqServerPort, query, response=response, caFile=self._caCert, useQueue=useQueue, serverName=self._serverName, timeout=timeout)
+    def sendDOQQueryWrapper(self, query, response, useQueue=True, timeout=2, serverName=None):
+        return self.sendDOQQuery(self._doqServerPort, query, response=response, caFile=self._caCert, useQueue=useQueue, serverName=self._serverName if not serverName else serverName, timeout=timeout)
 
-    def sendDOH3QueryWrapper(self, query, response, useQueue=True, timeout=2):
-        return self.sendDOH3Query(self._doh3ServerPort, self._dohBaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue, serverName=self._serverName, timeout=timeout)
+    def sendDOH3QueryWrapper(self, query, response, useQueue=True, timeout=2, serverName=None):
+        return self.sendDOH3Query(self._doh3ServerPort, self._dohBaseURL, query, response=response, caFile=self._caCert, useQueue=useQueue, serverName=self._serverName if not serverName else serverName, timeout=timeout)
     @classmethod
     def getDOQConnection(cls, port, caFile=None, source=None, source_port=0):
 
