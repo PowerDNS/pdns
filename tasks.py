@@ -222,7 +222,7 @@ def is_coverage_enabled():
 
 def get_coverage(meson=False):
     if meson:
-        return '-D b_coverage=true' if os.getenv('COVERAGE') == 'yes' else ''
+        return '-D b_coverage=true' if is_coverage_enabled() else ''
     return '--enable-coverage=clang' if is_coverage_enabled() else ''
 
 @task
