@@ -182,9 +182,17 @@ void DoHConnectionToBackend::handleIOError()
   struct timeval now{
     .tv_sec = 0, .tv_usec = 0};
 
+  const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
+  const auto& timeoutRespRules = dnsdist::rules::getResponseRuleChain(chains, dnsdist::rules::ResponseRuleChain::TimeoutResponseRules);
+
   gettimeofday(&now, nullptr);
   for (auto& request : d_currentStreams) {
-    handleResponseError(std::move(request.second), now);
+    if (!d_healthCheckQuery && handleTimeoutResponseRules(timeoutRespRules, request.second.d_query.d_idstate, d_ds, request.second.d_sender)) {
+      d_ds->reportTimeoutOrError();
+    }
+    else {
+      handleResponseError(std::move(request.second), now);
+    }
   }
 
   d_currentStreams.clear();

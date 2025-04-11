@@ -649,7 +649,7 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
   });
 
   luaCtx.registerFunction<bool (DNSResponse::*)()>("restart", [](DNSResponse& dnsResponse) {
-    if (!dnsResponse.ids.d_packet) {
+    if (!dnsResponse.ids.d_packet || dnsResponse.ids.d_packet->size() < sizeof(struct dnsheader)) {
       return false;
     }
     dnsResponse.asynchronous = true;

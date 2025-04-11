@@ -442,13 +442,19 @@ void DownstreamState::handleUDPTimeout(IDState& ids)
 {
   ids.age = 0;
   ids.inUse = false;
-  DOHUnitInterface::handleTimeout(std::move(ids.internal.du));
   ++reuseds;
   --outstanding;
   ++dnsdist::metrics::g_stats.downstreamTimeouts; // this is an 'actively' discovered timeout
   vinfolog("Had a downstream timeout from %s (%s) for query for %s|%s from %s",
            d_config.remote.toStringWithPort(), getName(),
            ids.internal.qname.toLogString(), QType(ids.internal.qtype).toString(), ids.internal.origRemote.toStringWithPort());
+
+  const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
+  const auto& timeoutRespRules = dnsdist::rules::getResponseRuleChain(chains, dnsdist::rules::ResponseRuleChain::TimeoutResponseRules);
+  auto sender = ids.internal.du == nullptr ? nullptr : ids.internal.du->getQuerySender();
+  if (!handleTimeoutResponseRules(timeoutRespRules, ids.internal, shared_from_this(), std::move(sender))) {
+    DOHUnitInterface::handleTimeout(std::move(ids.internal.du));
+  }
 
   if (g_rings.shouldRecordResponses()) {
     struct timespec ts;

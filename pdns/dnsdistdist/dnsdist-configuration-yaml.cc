@@ -515,37 +515,42 @@ static void loadRulesConfiguration(const dnsdist::rust::settings::GlobalConfigur
   dnsdist::configuration::updateRuntimeConfiguration([&globalConfig](dnsdist::configuration::RuntimeConfiguration& config) {
     for (const auto& rule : globalConfig.query_rules) {
       boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
-      dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::RuleChain::Rules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
+      dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::RuleChain::Rules, rule.selector.selector->d_rule, rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
     }
 
     for (const auto& rule : globalConfig.cache_miss_rules) {
       boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
-      dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::RuleChain::CacheMissRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
+      dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::RuleChain::CacheMissRules, rule.selector.selector->d_rule, rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
     }
 
     for (const auto& rule : globalConfig.response_rules) {
       boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
-      dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::ResponseRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
+      dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::ResponseRules, rule.selector.selector->d_rule, rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
     }
 
     for (const auto& rule : globalConfig.cache_hit_response_rules) {
       boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
-      dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::CacheHitResponseRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
+      dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::CacheHitResponseRules, rule.selector.selector->d_rule, rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
     }
 
     for (const auto& rule : globalConfig.cache_inserted_response_rules) {
       boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
-      dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
+      dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules, rule.selector.selector->d_rule, rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
     }
 
     for (const auto& rule : globalConfig.self_answered_response_rules) {
       boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
-      dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::SelfAnsweredResponseRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
+      dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::SelfAnsweredResponseRules, rule.selector.selector->d_rule, rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
     }
 
     for (const auto& rule : globalConfig.xfr_response_rules) {
       boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
-      dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::XFRResponseRules, std::move(rule.selector.selector->d_rule), rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
+      dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::XFRResponseRules, rule.selector.selector->d_rule, rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
+    }
+
+    for (const auto& rule : globalConfig.timeout_response_rules) {
+      boost::uuids::uuid ruleUniqueID = rule.uuid.empty() ? getUniqueID() : getUniqueID(std::string(rule.uuid));
+      dnsdist::rules::add(config.d_ruleChains, dnsdist::rules::ResponseRuleChain::TimeoutResponseRules, rule.selector.selector->d_rule, rule.action.action->d_action, std::string(rule.name), ruleUniqueID, 0);
     }
   });
 }
