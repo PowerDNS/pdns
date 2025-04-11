@@ -64,7 +64,7 @@ bool dnsdist_ffi_dnsquestion_is_remote_v6(const dnsdist_ffi_dnsquestion_t* dnsQu
 void dnsdist_ffi_dnsquestion_get_remoteaddr(const dnsdist_ffi_dnsquestion_t* dq, const void** addr, size_t* addrSize) __attribute__ ((visibility ("default")));
 void dnsdist_ffi_dnsquestion_get_masked_remoteaddr(dnsdist_ffi_dnsquestion_t* dq, const void** addr, size_t* addrSize, uint8_t bits) __attribute__ ((visibility ("default")));
 uint16_t dnsdist_ffi_dnsquestion_get_remote_port(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
-const char* dnsdist_ffi_dnsquestion_get_incoming_interface(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
+const char* dnsdist_ffi_dnsquestion_get_incoming_interface(const dnsdist_ffi_dnsquestion_t* dnsQuestion) __attribute__ ((visibility ("default")));
 void dnsdist_ffi_dnsquestion_get_qname_raw(const dnsdist_ffi_dnsquestion_t* dq, const char** qname, size_t* qnameSize) __attribute__ ((visibility ("default")));
 size_t dnsdist_ffi_dnsquestion_get_qname_hash(const dnsdist_ffi_dnsquestion_t* dq, size_t init) __attribute__ ((visibility ("default")));
 uint16_t dnsdist_ffi_dnsquestion_get_qtype(const dnsdist_ffi_dnsquestion_t* dq) __attribute__ ((visibility ("default")));
