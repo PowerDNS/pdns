@@ -161,6 +161,13 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
     return dnsQuestion.sni;
   });
 
+  luaCtx.registerFunction<std::string (DNSQuestion::*)() const>("getIncomingInterface", [](const DNSQuestion& dnsQuestion) -> std::string {
+    if (dnsQuestion.ids.cs != nullptr) {
+      return dnsQuestion.ids.cs->interface;
+    }
+    return {};
+  });
+
   luaCtx.registerFunction<std::string (DNSQuestion::*)() const>("getProtocol", [](const DNSQuestion& dnsQuestion) {
     return dnsQuestion.getProtocol().toPrettyString();
   });
@@ -500,6 +507,13 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
 
   luaCtx.registerFunction<double (DNSResponse::*)() const>("getElapsedUs", [](const DNSResponse& dnsResponse) {
     return dnsResponse.ids.queryRealTime.udiff();
+  });
+
+  luaCtx.registerFunction<std::string (DNSResponse::*)() const>("getIncomingInterface", [](const DNSResponse& dnsResponse) -> std::string {
+    if (dnsResponse.ids.cs != nullptr) {
+      return dnsResponse.ids.cs->interface;
+    }
+    return {};
   });
 
   luaCtx.registerFunction<void (DNSResponse::*)(std::string)>("sendTrap", []([[maybe_unused]] const DNSResponse& dnsResponse, [[maybe_unused]] boost::optional<std::string> reason) {
