@@ -1122,10 +1122,10 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
     return true;
   }
   catch (const ::rust::Error& exp) {
-    errlog("Rust error while opening YAML file %s: %s", fileName, exp.what());
+    errlog("Error while parsing YAML file %s: %s", fileName, exp.what());
   }
   catch (const std::exception& exp) {
-    errlog("C++ error while opening YAML file %s: %s", fileName, exp.what());
+    errlog("Error while processing YAML configuration from file %s: %s", fileName, exp.what());
   }
   s_registeredTypesMap.lock()->clear();
   return false;
