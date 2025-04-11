@@ -108,7 +108,7 @@ auth_test_deps = [   # FIXME: we should be generating some of these from shlibde
     'curl',
     'default-jre-headless',
     'bind9-dnsutils',
-    'faketime',
+    'datefudge',
     'gawk',
     'krb5-user',
     'ldnsutils',
@@ -222,7 +222,7 @@ def is_coverage_enabled():
 
 def get_coverage(meson=False):
     if meson:
-        return '-D b_coverage=true' if os.getenv('COVERAGE') == 'yes' else ''
+        return '-D b_coverage=true' if is_coverage_enabled() else ''
     return '--enable-coverage=clang' if is_coverage_enabled() else ''
 
 @task
@@ -272,7 +272,7 @@ def install_auth_test_deps_only(c, backend):
 def install_auth_test_deps(c, backend): # FIXME: rename this, we do way more than apt-get
     install_auth_test_deps_only(c, backend)
 
-    c.run('chmod +x /opt/pdns-auth/bin/* /opt/pdns-auth/sbin/*')
+    c.run('chmod +x /opt/pdns-auth/bin/*')
     # c.run('''if [ ! -e $HOME/bin/jdnssec-verifyzone ]; then
     #               wget https://github.com/dblacka/jdnssec-tools/releases/download/0.14/jdnssec-tools-0.14.tar.gz
     #               tar xfz jdnssec-tools-0.14.tar.gz -C $HOME
@@ -286,12 +286,12 @@ def install_auth_test_deps(c, backend): # FIXME: rename this, we do way more tha
 @task
 def install_rec_bulk_deps(c): # FIXME: rename this, we do way more than apt-get
     c.sudo('apt-get --no-install-recommends -y install ' + ' '.join(rec_bulk_deps))
-    c.run('chmod +x /opt/pdns-recursor/bin/* /opt/pdns-recursor/sbin/*')
+    c.run('chmod +x /opt/pdns-recursor/bin/*')
 
 @task
 def install_rec_bulk_ubicloud_deps(c): # FIXME: rename this, we do way more than apt-get
     c.sudo('apt-get --no-install-recommends -y install ' + ' '.join(rec_bulk_ubicloud_deps))
-    c.run('chmod +x /opt/pdns-recursor/bin/* /opt/pdns-recursor/sbin/*')
+    c.run('chmod +x /opt/pdns-recursor/bin/*')
 
 @task
 def install_rec_test_deps(c): # FIXME: rename this, we do way more than apt-get
@@ -300,8 +300,7 @@ def install_rec_test_deps(c): # FIXME: rename this, we do way more than apt-get
               jq libfaketime lua-posix lua-socket bc authbind \
               python3-venv python3-dev default-libmysqlclient-dev libpq-dev \
               protobuf-compiler snmpd prometheus')
-
-    c.run('chmod +x /opt/pdns-recursor/bin/* /opt/pdns-recursor/sbin/*')
+    c.run('chmod +x /opt/pdns-recursor/bin/*')
 
     setup_authbind(c)
 
@@ -789,7 +788,8 @@ def ci_dnsdist_configure_meson(features, additional_flags, additional_ld_flags, 
                       -D dns-over-quic=enabled \
                       -D dns-over-tls=enabled \
                       -D reproducible=true \
-                      -D snmp=enabled'
+                      -D snmp=enabled \
+                      -D yaml=enabled'
     else:
       features_set = '-D cdb=disabled \
                       -D dnscrypt=disabled \
@@ -809,7 +809,8 @@ def ci_dnsdist_configure_meson(features, additional_flags, additional_ld_flags, 
                       -D dns-over-quic=disabled \
                       -D dns-over-tls=disabled \
                       -D reproducible=false \
-                      -D snmp=disabled'
+                      -D snmp=disabled \
+                      -D yaml=disabled'
     unittests = get_unit_tests(meson=True)
     fuzztargets = get_fuzzing_targets(meson=True)
     tools = f'''AR=llvm-ar-{clang_version} RANLIB=llvm-ranlib-{clang_version}''' if is_compiler_clang() else ''
@@ -869,7 +870,7 @@ def ci_dnsdist_make(c):
     c.run(f'make -j{get_build_concurrency(4)} -k V=1')
 
 def ci_dnsdist_run_ninja(c):
-    c.run(f'. {repo_home}/.venv/bin/activate && ninja -j{get_build_concurrency()} --verbose')
+    c.run(f'. {repo_home}/.venv/bin/activate && ninja -j{get_build_concurrency(4)} --verbose')
 
 @task
 def ci_dnsdist_make_bear(c, builder):
@@ -959,10 +960,10 @@ def add_auth_repo(c, dist_name, dist_release_name, pdns_repo_version):
 def test_api(c, product, backend=''):
     if product == 'recursor':
         with c.cd('regression-tests.api'):
-            c.run(f'PDNSRECURSOR=/opt/pdns-recursor/sbin/pdns_recursor ./runtests recursor {backend}')
+            c.run(f'PDNSRECURSOR=/opt/pdns-recursor/bin/pdns_recursor ./runtests recursor {backend}')
     elif product == 'auth':
         with c.cd('regression-tests.api'):
-            c.run(f'PDNSSERVER=/opt/pdns-auth/sbin/pdns_server PDNSUTIL=/opt/pdns-auth/bin/pdnsutil SDIG=/opt/pdns-auth/bin/sdig MYSQL_HOST={auth_backend_ip_addr} PGHOST={auth_backend_ip_addr} PGPORT=5432 ./runtests authoritative {backend}')
+            c.run(f'PDNSSERVER=/opt/pdns-auth/bin/pdns-auth PDNSUTIL=/opt/pdns-auth/bin/pdns-auth-util SDIG=/opt/pdns-auth/bin/sdig MYSQL_HOST={auth_backend_ip_addr} PGHOST={auth_backend_ip_addr} PGPORT=5432 ./runtests authoritative {backend}')
     else:
         raise Failure('unknown product')
 
@@ -1106,7 +1107,7 @@ def setup_softhsm(c):
 
 @task
 def test_auth_backend(c, backend):
-    pdns_auth_env_vars = f'PDNS=/opt/pdns-auth/sbin/pdns_server PDNS2=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig NOTIFY=/opt/pdns-auth/bin/pdns_notify NSEC3DIG=/opt/pdns-auth/bin/nsec3dig SAXFR=/opt/pdns-auth/bin/saxfr ZONE2SQL=/opt/pdns-auth/bin/zone2sql ZONE2LDAP=/opt/pdns-auth/bin/zone2ldap ZONE2JSON=/opt/pdns-auth/bin/zone2json PDNSUTIL=/opt/pdns-auth/bin/pdnsutil PDNSCONTROL=/opt/pdns-auth/bin/pdns_control PDNSSERVER=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig GMYSQLHOST={auth_backend_ip_addr} GMYSQL2HOST={auth_backend_ip_addr} MYSQL_HOST={auth_backend_ip_addr} PGHOST={auth_backend_ip_addr} PGPORT=5432'
+    pdns_auth_env_vars = f'PDNS=/opt/pdns-auth/bin/pdns-auth PDNS2=/opt/pdns-auth/bin/pdns-auth SDIG=/opt/pdns-auth/bin/sdig NOTIFY=/opt/pdns-auth/bin/pdns-auth-notify NSEC3DIG=/opt/pdns-auth/bin/nsec3dig SAXFR=/opt/pdns-auth/bin/saxfr ZONE2SQL=/opt/pdns-auth/bin/pdns-zone2sql ZONE2LDAP=/opt/pdns-auth/bin/pdns-zone2ldap ZONE2JSON=/opt/pdns-auth/bin/pdns-zone2json PDNSUTIL=/opt/pdns-auth/bin/pdns-auth-util PDNSCONTROL=/opt/pdns-auth/bin/pdns-auth-control PDNSSERVER=/opt/pdns-auth/bin/pdns-auth SDIG=/opt/pdns-auth/bin/sdig GMYSQLHOST={auth_backend_ip_addr} GMYSQL2HOST={auth_backend_ip_addr} MYSQL_HOST={auth_backend_ip_addr} PGHOST={auth_backend_ip_addr} PGPORT=5432'
     backend_env_vars = ''
 
     if backend == 'remote':
@@ -1152,7 +1153,7 @@ def test_auth_backend(c, backend):
             pdns_auth_env_vars += ' context=noipv6'
         with c.cd('regression-tests.nobackend'):
             c.run(f'{pdns_auth_env_vars} ./runtests')
-        c.run('/opt/pdns-auth/bin/pdnsutil test-algorithms')
+        c.run('/opt/pdns-auth/bin/pdns-auth-util test-algorithms')
         return
 
 @task
@@ -1171,16 +1172,16 @@ def test_dnsdist(c, skipXDP=False):
 
 @task
 def test_regression_recursor(c):
-    c.run('/opt/pdns-recursor/sbin/pdns_recursor --version')
-    c.run('PDNSRECURSOR=/opt/pdns-recursor/sbin/pdns_recursor RECCONTROL=/opt/pdns-recursor/bin/rec_control ./build-scripts/test-recursor')
+    c.run('/opt/pdns-recursor/bin/pdns_recursor --version')
+    c.run('PDNSRECURSOR=/opt/pdns-recursor/bin/pdns_recursor RECCONTROL=/opt/pdns-recursor/bin/rec_control ./build-scripts/test-recursor')
 
 @task
 def test_bulk_recursor(c, size, threads, mthreads, shards, ipv6):
     with c.cd('regression-tests'):
         c.run('curl --no-progress-meter -LO https://umbrella-static.s3.dualstack.us-west-1.amazonaws.com/top-1m.csv.zip')
         c.run('unzip top-1m.csv.zip -d .')
-        c.run('chmod +x /opt/pdns-recursor/bin/* /opt/pdns-recursor/sbin/*')
-        c.run(f'DNSBULKTEST=/usr/bin/dnsbulktest RECURSOR=/opt/pdns-recursor/sbin/pdns_recursor RECCONTROL=/opt/pdns-recursor/bin/rec_control IPv6={ipv6} THRESHOLD=95 TRACE=no ./recursor-test 5300 {size} {threads} {mthreads} {shards}')
+        c.run('chmod +x /opt/pdns-recursor/bin/*')
+        c.run(f'DNSBULKTEST=/usr/bin/dnsbulktest RECURSOR=/opt/pdns-recursor/bin/pdns_recursor RECCONTROL=/opt/pdns-recursor/bin/rec_control IPv6={ipv6} THRESHOLD=95 TRACE=no ./recursor-test 5300 {size} {threads} {mthreads} {shards}')
 
 @task
 def install_swagger_tools(c):
