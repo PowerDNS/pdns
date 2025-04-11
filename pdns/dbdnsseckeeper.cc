@@ -163,8 +163,9 @@ DNSSECPrivateKey DNSSECKeeper::getKeyById(const ZoneName& zname, unsigned int ke
   vector<DNSBackend::KeyData> keys;
   d_keymetadb->getDomainKeys(zname, keys);
   for(const DNSBackend::KeyData& kd :  keys) {
-    if(kd.id != keyId)
+    if(kd.id != keyId) {
       continue;
+    }
 
     DNSKEYRecordContent dkrc;
     auto key = shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(dkrc, kd.content));

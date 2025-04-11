@@ -87,17 +87,17 @@ BOOST_AUTO_TEST_CASE(test_axfr_queue_insert_and_priority_order_after_modify)
 
   auto res = suckDomains.insert(rr1);
   BOOST_CHECK(!res.second);
-  suckDomains.modify(res.first, [priorityAndOrder = rr1.priorityAndOrder](SuckRequest& so) {
-    if (priorityAndOrder.first < so.priorityAndOrder.first) {
-      so.priorityAndOrder = priorityAndOrder;
+  suckDomains.modify(res.first, [priorityAndOrder = rr1.priorityAndOrder](SuckRequest& request) {
+    if (priorityAndOrder.first < request.priorityAndOrder.first) {
+      request.priorityAndOrder = priorityAndOrder;
     }
   });
 
   res = suckDomains.insert(rr2);
   BOOST_CHECK(!res.second);
-  suckDomains.modify(res.first, [priorityAndOrder = rr2.priorityAndOrder](SuckRequest& so) {
-    if (priorityAndOrder.first < so.priorityAndOrder.first) {
-      so.priorityAndOrder = priorityAndOrder;
+  suckDomains.modify(res.first, [priorityAndOrder = rr2.priorityAndOrder](SuckRequest& request) {
+    if (priorityAndOrder.first < request.priorityAndOrder.first) {
+      request.priorityAndOrder = priorityAndOrder;
     }
   });
 

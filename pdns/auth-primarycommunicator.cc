@@ -288,7 +288,7 @@ void CommunicatorClass::sendNotification(int sock, const ZoneName& domain, const
   string tsigsecret64;
   string tsigsecret;
 
-  if (::arg().mustDo("send-signed-notify") && ueber->getDomainMetadata(domain, "TSIG-ALLOW-AXFR", meta) && meta.size() > 0) {
+  if (::arg().mustDo("send-signed-notify") && ueber->getDomainMetadata(domain, "TSIG-ALLOW-AXFR", meta) && !meta.empty()) {
     tsigkeyname = DNSName(meta[0]);
   }
 
@@ -331,13 +331,13 @@ void CommunicatorClass::drillHole(const ZoneName& domain, const string& ipAddres
 bool CommunicatorClass::justNotified(const ZoneName& domain, const string& ipAddress)
 {
   auto holes = d_holes.lock();
-  auto it = holes->find(pair(domain, ipAddress));
-  if (it == holes->end()) {
+  auto iter = holes->find(pair(domain, ipAddress));
+  if (iter == holes->end()) {
     // no hole
     return false;
   }
 
-  if (it->second > time(nullptr) - 900) {
+  if (iter->second > time(nullptr) - 900) {
     // recent hole
     return true;
   }

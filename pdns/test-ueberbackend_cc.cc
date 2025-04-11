@@ -271,7 +271,7 @@ public:
       fillSOAData(range.first->d_content, *soadata);
       soadata->ttl = range.first->d_ttl;
       soadata->qname = best;
-      soadata->domain_id = zoneId;
+      soadata->domain_id = static_cast<int>(zoneId);
       return true;
     }
 

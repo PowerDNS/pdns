@@ -1295,8 +1295,9 @@ bool Bind2Backend::list(const ZoneName& /* target */, int domainId, bool /* incl
 {
   BB2DomainInfo bbd;
 
-  if (!safeGetBBDomainInfo(domainId, &bbd))
+  if (!safeGetBBDomainInfo(domainId, &bbd)) {
     return false;
+  }
 
   d_handle.reset();
   DLOG(g_log << "Bind2Backend constructing handle for list of " << domainId << endl);
@@ -1380,8 +1381,9 @@ bool Bind2Backend::autoPrimaryBackend(const string& ipAddress, const ZoneName& /
   }
   c_if.close();
 
-  if (sip != ipAddress) // ip not found in authorization list - reject
+  if (sip != ipAddress) { // ip not found in authorization list - reject
     return false;
+  }
 
   // ip authorized as autoprimary - accept
   *backend = this;
@@ -1443,7 +1445,7 @@ bool Bind2Backend::createSecondaryDomain(const string& ipAddress, const ZoneName
 
   BB2DomainInfo bbd = createDomainEntry(domain, filename);
   bbd.d_kind = DomainInfo::Secondary;
-  bbd.d_primaries.push_back(ComboAddress(ipAddress, 53));
+  bbd.d_primaries.emplace_back(ComboAddress(ipAddress, 53));
   bbd.setCtime();
   safePutBBDomainInfo(bbd);
 

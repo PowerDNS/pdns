@@ -1112,7 +1112,7 @@ bool GeoIPBackend::activateDomainKey(const ZoneName& name, unsigned int keyId)
         for (size_t i = 0; i < glob_result.gl_pathc; i++) {
           if (regexec(&reg, glob_result.gl_pathv[i], 5, regm, 0) == 0) {
             auto kid = pdns::checked_stoi<unsigned int>(glob_result.gl_pathv[i] + regm[3].rm_so);
-            if (kid == keyId && !strcmp(glob_result.gl_pathv[i] + regm[4].rm_so, "0")) {
+            if (kid == keyId && strcmp(glob_result.gl_pathv[i] + regm[4].rm_so, "0") == 0) { // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
               ostringstream newpath;
               newpath << getArg("dnssec-keydir") << "/" << dom.domain.toStringNoDot() << "." << pdns::checked_stoi<unsigned int>(glob_result.gl_pathv[i] + regm[2].rm_so) << "." << kid << ".1.key";
               if (rename(glob_result.gl_pathv[i], newpath.str().c_str())) {
@@ -1147,7 +1147,7 @@ bool GeoIPBackend::deactivateDomainKey(const ZoneName& name, unsigned int keyId)
         for (size_t i = 0; i < glob_result.gl_pathc; i++) {
           if (regexec(&reg, glob_result.gl_pathv[i], 5, regm, 0) == 0) {
             auto kid = pdns::checked_stoi<unsigned int>(glob_result.gl_pathv[i] + regm[3].rm_so);
-            if (kid == keyId && !strcmp(glob_result.gl_pathv[i] + regm[4].rm_so, "1")) {
+            if (kid == keyId && strcmp(glob_result.gl_pathv[i] + regm[4].rm_so, "1") == 0) { // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
               ostringstream newpath;
               newpath << getArg("dnssec-keydir") << "/" << dom.domain.toStringNoDot() << "." << pdns::checked_stoi<unsigned int>(glob_result.gl_pathv[i] + regm[2].rm_so) << "." << kid << ".0.key";
               if (rename(glob_result.gl_pathv[i], newpath.str().c_str())) {

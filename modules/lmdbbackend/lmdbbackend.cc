@@ -1672,7 +1672,7 @@ bool LMDBBackend::getDomainInfo(const ZoneName& domain, DomainInfo& info, bool g
     // if (!found) {
     //   return false;
     // }
-    if (!(info.id = txn.get<0>(domain, info))) {
+    if ((info.id = txn.get<0>(domain, info)) == 0) {
       return false;
     }
 
@@ -2346,7 +2346,7 @@ bool LMDBBackend::getBeforeAndAfterNames(uint32_t domainId, const ZoneName& zone
   if (cursor.lower_bound(matchkey, key, val)) {
     // cout << "Hit end of database, bummer"<<endl;
     cursor.last(key, val);
-    if (co.getDomainID(key.getNoStripHeader<string_view>()) == domainId) {
+    if (compoundOrdername::getDomainID(key.getNoStripHeader<string_view>()) == domainId) {
       before = co.getQName(key.getNoStripHeader<string_view>()) + zonename;
       after = zonename;
     }
@@ -2354,9 +2354,9 @@ bool LMDBBackend::getBeforeAndAfterNames(uint32_t domainId, const ZoneName& zone
     // cout << "We were at end of database, but this zone is not there?!"<<endl;
     return true;
   }
-  // cout<<"Cursor is at "<<co.getQName(key.get<string_view>()) <<", in zone id "<<co.getDomainID(key.get<string_view>())<< endl;
+  // cout<<"Cursor is at "<<co.getQName(key.get<string_view>()) <<", in zone id "<<compoundOrdername::getDomainID(key.get<string_view>())<< endl;
 
-  if (co.getQType(key.getNoStripHeader<string_view>()).getCode() && co.getDomainID(key.getNoStripHeader<string_view>()) == domainId && co.getQName(key.getNoStripHeader<string_view>()) == qname2) { // don't match ENTs
+  if (compoundOrdername::getQType(key.getNoStripHeader<string_view>()).getCode() != 0 && compoundOrdername::getDomainID(key.getNoStripHeader<string_view>()) == domainId && compoundOrdername::getQName(key.getNoStripHeader<string_view>()) == qname2) { // don't match ENTs
     // cout << "Had an exact match!"<<endl;
     before = qname2 + zonename;
     int rc;
@@ -2365,14 +2365,15 @@ bool LMDBBackend::getBeforeAndAfterNames(uint32_t domainId, const ZoneName& zone
       if (rc)
         break;
 
-      if (co.getDomainID(key.getNoStripHeader<string_view>()) == domainId && key.getNoStripHeader<StringView>().rfind(matchkey, 0) == 0)
+      if (compoundOrdername::getDomainID(key.getNoStripHeader<string_view>()) == domainId && key.getNoStripHeader<StringView>().rfind(matchkey, 0) == 0) {
         continue;
+      }
       LMDBResourceRecord lrr;
       deserializeFromBuffer(val.get<StringView>(), lrr);
       if (co.getQType(key.getNoStripHeader<string_view>()).getCode() && (lrr.auth || co.getQType(key.getNoStripHeader<string_view>()).getCode() == QType::NS))
         break;
     }
-    if (rc || co.getDomainID(key.getNoStripHeader<string_view>()) != domainId) {
+    if (rc != 0 || compoundOrdername::getDomainID(key.getNoStripHeader<string_view>()) != domainId) {
       // cout << "We hit the end of the zone or database. 'after' is apex" << endl;
       after = zonename;
       return false;
@@ -2381,7 +2382,7 @@ bool LMDBBackend::getBeforeAndAfterNames(uint32_t domainId, const ZoneName& zone
     return true;
   }
 
-  if (co.getDomainID(key.getNoStripHeader<string_view>()) != domainId) {
+  if (compoundOrdername::getDomainID(key.getNoStripHeader<string_view>()) != domainId) {
     // cout << "Ended up in next zone, 'after' is zonename" <<endl;
     after = zonename;
     // cout << "Now hunting for previous" << endl;
@@ -2393,8 +2394,8 @@ bool LMDBBackend::getBeforeAndAfterNames(uint32_t domainId, const ZoneName& zone
         return false;
       }
 
-      if (co.getDomainID(key.getNoStripHeader<string_view>()) != domainId) {
-        // cout<<"Reversed into zone, but found wrong zone id " << co.getDomainID(key.getNoStripHeader<string_view>()) << " != "<<domainId<<endl;
+      if (compoundOrdername::getDomainID(key.getNoStripHeader<string_view>()) != domainId) {
+        // cout<<"Reversed into zone, but found wrong zone id " << compoundOrdername::getDomainID(key.getNoStripHeader<string_view>()) << " != "<<domainId<<endl;
         // "this can't happen"
         return false;
       }
@@ -2425,7 +2426,7 @@ bool LMDBBackend::getBeforeAndAfterNames(uint32_t domainId, const ZoneName& zone
     int rc = cursor.next(key, val);
     if (!rc)
       ++skips;
-    if (rc || co.getDomainID(key.getNoStripHeader<string_view>()) != domainId) {
+    if (rc != 0 || compoundOrdername::getDomainID(key.getNoStripHeader<string_view>()) != domainId) {
       // cout << "  oops, hit end of database or zone. This means after is apex" <<endl;
       after = zonename;
       break;
@@ -2437,7 +2438,7 @@ bool LMDBBackend::getBeforeAndAfterNames(uint32_t domainId, const ZoneName& zone
 
   for (;;) {
     int rc = cursor.prev(key, val);
-    if (rc || co.getDomainID(key.getNoStripHeader<string_view>()) != domainId) {
+    if (rc != 0 || compoundOrdername::getDomainID(key.getNoStripHeader<string_view>()) != domainId) {
       // XX I don't think this case can happen
       // cout << "We hit the beginning of the zone or database.. now what" << endl;
       return false;
