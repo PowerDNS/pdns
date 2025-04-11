@@ -51,69 +51,9 @@ public:
 
   void resetForNewQuery();
 
-  boost::optional<struct timeval> getClientReadTTD(struct timeval now) const
-  {
-    const auto& runtimeConfiguration = dnsdist::configuration::getCurrentRuntimeConfiguration();
-    if (runtimeConfiguration.d_maxTCPConnectionDuration == 0 && runtimeConfiguration.d_tcpRecvTimeout == 0) {
-      return boost::none;
-    }
-
-    if (runtimeConfiguration.d_maxTCPConnectionDuration > 0) {
-      auto elapsed = now.tv_sec - d_connectionStartTime.tv_sec;
-      if (elapsed < 0 || (static_cast<size_t>(elapsed) >= runtimeConfiguration.d_maxTCPConnectionDuration)) {
-        return now;
-      }
-      auto remaining = runtimeConfiguration.d_maxTCPConnectionDuration - elapsed;
-      if (runtimeConfiguration.d_tcpRecvTimeout == 0 || remaining <= static_cast<size_t>(runtimeConfiguration.d_tcpRecvTimeout)) {
-        now.tv_sec += remaining;
-        return now;
-      }
-    }
-
-    now.tv_sec += runtimeConfiguration.d_tcpRecvTimeout;
-    return now;
-  }
-
-  boost::optional<struct timeval> getClientWriteTTD(const struct timeval& now) const
-  {
-    const auto& runtimeConfiguration = dnsdist::configuration::getCurrentRuntimeConfiguration();
-    if (runtimeConfiguration.d_maxTCPConnectionDuration == 0 && runtimeConfiguration.d_tcpSendTimeout == 0) {
-      return boost::none;
-    }
-
-    timeval res(now);
-
-    if (runtimeConfiguration.d_maxTCPConnectionDuration > 0) {
-      auto elapsed = res.tv_sec - d_connectionStartTime.tv_sec;
-      if (elapsed < 0 || static_cast<size_t>(elapsed) >= runtimeConfiguration.d_maxTCPConnectionDuration) {
-        return res;
-      }
-      auto remaining = runtimeConfiguration.d_maxTCPConnectionDuration - elapsed;
-      if (runtimeConfiguration.d_tcpSendTimeout == 0 || remaining <= static_cast<size_t>(runtimeConfiguration.d_tcpSendTimeout)) {
-        res.tv_sec += remaining;
-        return res;
-      }
-    }
-
-    res.tv_sec += runtimeConfiguration.d_tcpSendTimeout;
-    return res;
-  }
-
-  bool maxConnectionDurationReached(unsigned int maxConnectionDuration, const struct timeval& now)
-  {
-    if (maxConnectionDuration) {
-      time_t curtime = now.tv_sec;
-      unsigned int elapsed = 0;
-      if (curtime > d_connectionStartTime.tv_sec) { // To prevent issues when time goes backward
-        elapsed = curtime - d_connectionStartTime.tv_sec;
-      }
-      if (elapsed >= maxConnectionDuration) {
-        return true;
-      }
-    }
-
-    return false;
-  }
+  boost::optional<timeval> getClientReadTTD(timeval now) const;
+  boost::optional<timeval> getClientWriteTTD(const timeval& now) const;
+  bool maxConnectionDurationReached(unsigned int maxConnectionDuration, const timeval& now) const;
 
   std::shared_ptr<TCPConnectionToBackend> getDownstreamConnection(std::shared_ptr<DownstreamState>& backend, const std::unique_ptr<std::vector<ProxyProtocolValue>>& tlvs, const struct timeval& now);
   void registerOwnedDownstreamConnection(std::shared_ptr<TCPConnectionToBackend>& conn);
@@ -186,6 +126,7 @@ public:
   IOState handleIncomingQueryReceived(const struct timeval& now);
   void handleExceptionDuringIO(const std::exception& exp);
   bool readIncomingQuery(const timeval& now, IOState& iostate);
+  bool isNearTCPLimits() const;
 
   enum class State : uint8_t { starting, doingHandshake, readingProxyProtocolHeader, waitingForQuery, readingQuerySize, readingQuery, sendingResponse, idle /* in case of XFR, we stop processing queries */ };
 
@@ -206,12 +147,14 @@ public:
   std::unique_ptr<IOStateHandler> d_ioState{nullptr};
   std::unique_ptr<std::vector<ProxyProtocolValue>> d_proxyProtocolValues{nullptr};
   TCPClientThreadData& d_threadData;
+  uint64_t d_readIOsTotal{0};
   size_t d_currentPos{0};
   size_t d_proxyProtocolNeed{0};
   size_t d_queriesCount{0};
   size_t d_currentQueriesCount{0};
   std::thread::id d_creatorThreadID;
   uint16_t d_querySize{0};
+  uint16_t d_readIOsCurrentQuery{0};
   State d_state{State::starting};
   bool d_isXFR{false};
   bool d_proxyProtocolPayloadHasTLV{false};

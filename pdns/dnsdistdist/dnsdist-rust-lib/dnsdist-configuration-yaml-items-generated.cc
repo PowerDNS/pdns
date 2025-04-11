@@ -166,6 +166,39 @@ void convertImmutableFlatSettingsFromRust(const dnsdist::rust::settings::GlobalC
   if (config.d_maxTCPConnectionsPerClient == 0) {
     config.d_maxTCPConnectionsPerClient = yamlConfig.tuning.tcp.max_connections_per_client;
   }
+  if (config.d_tcpConnectionsOverloadThreshold == 90) {
+    config.d_tcpConnectionsOverloadThreshold = yamlConfig.tuning.tcp.connections_overload_threshold;
+  }
+  if (config.d_maxTCPConnectionsRatePerClient == 0) {
+    config.d_maxTCPConnectionsRatePerClient = yamlConfig.tuning.tcp.max_connection_rate_per_client;
+  }
+  if (config.d_tcpConnectionsRatePerClientInterval == 5) {
+    config.d_tcpConnectionsRatePerClientInterval = yamlConfig.tuning.tcp.connection_rate_interval;
+  }
+  if (config.d_maxTLSNewSessionsRatePerClient == 0) {
+    config.d_maxTLSNewSessionsRatePerClient = yamlConfig.tuning.tcp.max_tls_new_session_rate_per_client;
+  }
+  if (config.d_maxTLSResumedSessionsRatePerClient == 0) {
+    config.d_maxTLSResumedSessionsRatePerClient = yamlConfig.tuning.tcp.max_tls_resumed_session_rate_per_client;
+  }
+  if (config.d_maxTCPReadIOsPerQuery == 50) {
+    config.d_maxTCPReadIOsPerQuery = yamlConfig.tuning.tcp.max_read_ios_per_query;
+  }
+  if (config.d_tcpBanDurationForExceedingMaxReadIOsPerQuery == 60) {
+    config.d_tcpBanDurationForExceedingMaxReadIOsPerQuery = yamlConfig.tuning.tcp.ban_duration_for_exceeding_max_read_ios_per_query;
+  }
+  if (config.d_tcpBanDurationForExceedingTCPTLSRate == 10) {
+    config.d_tcpBanDurationForExceedingTCPTLSRate = yamlConfig.tuning.tcp.ban_duration_for_exceeding_tcp_tls_rate;
+  }
+  if (config.d_tcpConnectionsMaskV4 == 32) {
+    config.d_tcpConnectionsMaskV4 = yamlConfig.tuning.tcp.connections_mask_v4;
+  }
+  if (config.d_tcpConnectionsMaskV6 == 128) {
+    config.d_tcpConnectionsMaskV6 = yamlConfig.tuning.tcp.connections_mask_v6;
+  }
+  if (config.d_tcpConnectionsMaskV4Port == 0) {
+    config.d_tcpConnectionsMaskV4Port = yamlConfig.tuning.tcp.connections_mask_v4_port;
+  }
   if (config.d_udpVectorSize == 1) {
     config.d_udpVectorSize = yamlConfig.tuning.udp.messages_per_round;
   }

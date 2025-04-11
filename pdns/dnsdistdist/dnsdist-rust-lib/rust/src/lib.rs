@@ -1885,6 +1885,28 @@ mod dnsdistsettings {
         max_connections_per_client: u32,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         fast_open_key: String,
+        #[serde(default = "crate::U8::<90>::value", skip_serializing_if = "crate::U8::<90>::is_equal")]
+        connections_overload_threshold: u8,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        max_connection_rate_per_client: u64,
+        #[serde(default = "crate::U64::<5>::value", skip_serializing_if = "crate::U64::<5>::is_equal")]
+        connection_rate_interval: u64,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        max_tls_new_session_rate_per_client: u64,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        max_tls_resumed_session_rate_per_client: u64,
+        #[serde(default = "crate::U32::<50>::value", skip_serializing_if = "crate::U32::<50>::is_equal")]
+        max_read_ios_per_query: u32,
+        #[serde(default = "crate::U32::<60>::value", skip_serializing_if = "crate::U32::<60>::is_equal")]
+        ban_duration_for_exceeding_max_read_ios_per_query: u32,
+        #[serde(default = "crate::U32::<10>::value", skip_serializing_if = "crate::U32::<10>::is_equal")]
+        ban_duration_for_exceeding_tcp_tls_rate: u32,
+        #[serde(default = "crate::U8::<32>::value", skip_serializing_if = "crate::U8::<32>::is_equal")]
+        connections_mask_v4: u8,
+        #[serde(default = "crate::U8::<128>::value", skip_serializing_if = "crate::U8::<128>::is_equal")]
+        connections_mask_v6: u8,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        connections_mask_v4_port: u8,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
