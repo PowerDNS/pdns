@@ -927,10 +927,15 @@ struct ServerPool
   const std::shared_ptr<const ServerPolicy::NumberedServerVector> getServers();
   void addServer(shared_ptr<DownstreamState>& server);
   void removeServer(shared_ptr<DownstreamState>& server);
+  bool isTCPOnly() const
+  {
+    return d_tcpOnly;
+  }
 
 private:
   SharedLockGuarded<std::shared_ptr<const ServerPolicy::NumberedServerVector>> d_servers;
   bool d_useECS{false};
+  bool d_tcpOnly{false};
 };
 
 enum ednsHeaderFlags
