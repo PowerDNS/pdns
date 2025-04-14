@@ -35,6 +35,7 @@ public:
 
   using ViewsMap = std::map<std::string, std::map<DNSName, std::string>>;
 
+  // Zone maintainance
   void replace(const vector<std::tuple<ZoneName, int>>& zone);
   void replace(NetmaskTree<string> nettree);
   void replace(ViewsMap viewsmap);
@@ -42,9 +43,15 @@ public:
   void remove(const ZoneName& zone);
   void setReplacePending(); //!< call this when data collection for the subsequent replace() call starts.
 
-  bool getEntry(ZoneName& zone, int& zoneId, Netmask* net = nullptr);
+  // Views maintainance
+  void addToView(const std::string& view, const ZoneName& zone);
+  void removeFromView(const std::string& view, const ZoneName& zone);
 
-  size_t size() { return *d_statnumentries; } //!< number of entries in the cache
+  // Network maintainance
+  void updateNetwork(const Netmask& network, const std::string& view);
+
+  // Zone lookup, on behalf of an optional network
+  bool getEntry(ZoneName& zone, int& zoneId, Netmask* net = nullptr);
 
   uint32_t getRefreshInterval() const
   {
@@ -62,8 +69,8 @@ public:
   void clear();
 
 private:
-  NetmaskTree<string> d_nets;
-  ViewsMap d_views;
+  SharedLockGuarded<NetmaskTree<string>> d_nets;
+  SharedLockGuarded<ViewsMap> d_views;
 
   struct CacheValue
   {
