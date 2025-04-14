@@ -119,7 +119,7 @@ void UeberBackend::go()
   d_cond.notify_all();
 }
 
-bool UeberBackend::getDomainInfo(const DNSName& domain, DomainInfo& domainInfo, bool getSerial)
+bool UeberBackend::getDomainInfo(const ZoneName& domain, DomainInfo& domainInfo, bool getSerial)
 {
   for (auto& backend : backends) {
     if (backend->getDomainInfo(domain, domainInfo, getSerial)) {
@@ -129,7 +129,7 @@ bool UeberBackend::getDomainInfo(const DNSName& domain, DomainInfo& domainInfo, 
   return false;
 }
 
-bool UeberBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account)
+bool UeberBackend::createDomain(const ZoneName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account)
 {
   for (auto& backend : backends) {
     if (backend->createDomain(domain, kind, primaries, account)) {
@@ -149,7 +149,7 @@ bool UeberBackend::doesDNSSEC()
   return false;
 }
 
-bool UeberBackend::addDomainKey(const DNSName& name, const DNSBackend::KeyData& key, int64_t& keyID)
+bool UeberBackend::addDomainKey(const ZoneName& name, const DNSBackend::KeyData& key, int64_t& keyID)
 {
   keyID = -1;
   for (auto& backend : backends) {
@@ -159,7 +159,7 @@ bool UeberBackend::addDomainKey(const DNSName& name, const DNSBackend::KeyData& 
   }
   return false;
 }
-bool UeberBackend::getDomainKeys(const DNSName& name, std::vector<DNSBackend::KeyData>& keys)
+bool UeberBackend::getDomainKeys(const ZoneName& name, std::vector<DNSBackend::KeyData>& keys)
 {
   for (auto& backend : backends) {
     if (backend->getDomainKeys(name, keys)) {
@@ -169,7 +169,7 @@ bool UeberBackend::getDomainKeys(const DNSName& name, std::vector<DNSBackend::Ke
   return false;
 }
 
-bool UeberBackend::getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string>>& meta)
+bool UeberBackend::getAllDomainMetadata(const ZoneName& name, std::map<std::string, std::vector<std::string>>& meta)
 {
   for (auto& backend : backends) {
     if (backend->getAllDomainMetadata(name, meta)) {
@@ -179,7 +179,7 @@ bool UeberBackend::getAllDomainMetadata(const DNSName& name, std::map<std::strin
   return false;
 }
 
-bool UeberBackend::getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta)
+bool UeberBackend::getDomainMetadata(const ZoneName& name, const std::string& kind, std::vector<std::string>& meta)
 {
   for (auto& backend : backends) {
     if (backend->getDomainMetadata(name, kind, meta)) {
@@ -189,7 +189,7 @@ bool UeberBackend::getDomainMetadata(const DNSName& name, const std::string& kin
   return false;
 }
 
-bool UeberBackend::getDomainMetadata(const DNSName& name, const std::string& kind, std::string& meta)
+bool UeberBackend::getDomainMetadata(const ZoneName& name, const std::string& kind, std::string& meta)
 {
   meta.clear();
   std::vector<string> tmp;
@@ -200,7 +200,7 @@ bool UeberBackend::getDomainMetadata(const DNSName& name, const std::string& kin
   return ret;
 }
 
-bool UeberBackend::setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta)
+bool UeberBackend::setDomainMetadata(const ZoneName& name, const std::string& kind, const std::vector<std::string>& meta)
 {
   for (auto& backend : backends) {
     if (backend->setDomainMetadata(name, kind, meta)) {
@@ -210,7 +210,7 @@ bool UeberBackend::setDomainMetadata(const DNSName& name, const std::string& kin
   return false;
 }
 
-bool UeberBackend::setDomainMetadata(const DNSName& name, const std::string& kind, const std::string& meta)
+bool UeberBackend::setDomainMetadata(const ZoneName& name, const std::string& kind, const std::string& meta)
 {
   std::vector<string> tmp;
   if (!meta.empty()) {
@@ -219,7 +219,7 @@ bool UeberBackend::setDomainMetadata(const DNSName& name, const std::string& kin
   return setDomainMetadata(name, kind, tmp);
 }
 
-bool UeberBackend::activateDomainKey(const DNSName& name, unsigned int keyID)
+bool UeberBackend::activateDomainKey(const ZoneName& name, unsigned int keyID)
 {
   for (auto& backend : backends) {
     if (backend->activateDomainKey(name, keyID)) {
@@ -229,7 +229,7 @@ bool UeberBackend::activateDomainKey(const DNSName& name, unsigned int keyID)
   return false;
 }
 
-bool UeberBackend::deactivateDomainKey(const DNSName& name, unsigned int keyID)
+bool UeberBackend::deactivateDomainKey(const ZoneName& name, unsigned int keyID)
 {
   for (auto& backend : backends) {
     if (backend->deactivateDomainKey(name, keyID)) {
@@ -239,7 +239,7 @@ bool UeberBackend::deactivateDomainKey(const DNSName& name, unsigned int keyID)
   return false;
 }
 
-bool UeberBackend::publishDomainKey(const DNSName& name, unsigned int keyID)
+bool UeberBackend::publishDomainKey(const ZoneName& name, unsigned int keyID)
 {
   for (auto& backend : backends) {
     if (backend->publishDomainKey(name, keyID)) {
@@ -249,7 +249,7 @@ bool UeberBackend::publishDomainKey(const DNSName& name, unsigned int keyID)
   return false;
 }
 
-bool UeberBackend::unpublishDomainKey(const DNSName& name, unsigned int keyID)
+bool UeberBackend::unpublishDomainKey(const ZoneName& name, unsigned int keyID)
 {
   for (auto& backend : backends) {
     if (backend->unpublishDomainKey(name, keyID)) {
@@ -259,7 +259,7 @@ bool UeberBackend::unpublishDomainKey(const DNSName& name, unsigned int keyID)
   return false;
 }
 
-bool UeberBackend::removeDomainKey(const DNSName& name, unsigned int keyID)
+bool UeberBackend::removeDomainKey(const ZoneName& name, unsigned int keyID)
 {
   for (auto& backend : backends) {
     if (backend->removeDomainKey(name, keyID)) {
@@ -282,7 +282,7 @@ void UeberBackend::updateZoneCache()
     return;
   }
 
-  vector<std::tuple<DNSName, int>> zone_indices;
+  vector<std::tuple<ZoneName, int>> zone_indices;
   g_zoneCache.setReplacePending();
 
   for (auto& backend : backends) {
@@ -332,7 +332,7 @@ bool UeberBackend::inTransaction()
   return false;
 }
 
-bool UeberBackend::fillSOAFromZoneRecord(DNSName& shorter, const int zoneId, SOAData* const soaData)
+bool UeberBackend::fillSOAFromZoneRecord(ZoneName& shorter, const int zoneId, SOAData* const soaData)
 {
   // Zone exists in zone cache, directly look up SOA.
   lookup(QType(QType::SOA), shorter, zoneId, nullptr);
@@ -373,7 +373,7 @@ bool UeberBackend::fillSOAFromZoneRecord(DNSName& shorter, const int zoneId, SOA
   return true;
 }
 
-UeberBackend::CacheResult UeberBackend::fillSOAFromCache(SOAData* soaData, DNSName& shorter)
+UeberBackend::CacheResult UeberBackend::fillSOAFromCache(SOAData* soaData, ZoneName& shorter)
 {
   auto cacheResult = cacheHas(d_question, d_answers);
 
@@ -391,7 +391,7 @@ UeberBackend::CacheResult UeberBackend::fillSOAFromCache(SOAData* soaData, DNSNa
   return cacheResult;
 }
 
-static std::vector<std::unique_ptr<DNSBackend>>::iterator findBestMatchingBackend(std::vector<std::unique_ptr<DNSBackend>>& backends, std::vector<std::pair<std::size_t, SOAData>>& bestMatches, const DNSName& shorter, SOAData* soaData)
+static std::vector<std::unique_ptr<DNSBackend>>::iterator findBestMatchingBackend(std::vector<std::unique_ptr<DNSBackend>>& backends, std::vector<std::pair<std::size_t, SOAData>>& bestMatches, const ZoneName& shorter, SOAData* soaData)
 {
   auto backend = backends.begin();
   for (auto bestMatch = bestMatches.begin(); backend != backends.end() && bestMatch != bestMatches.end(); ++backend, ++bestMatch) {
@@ -444,7 +444,7 @@ static bool foundTarget(const DNSName& target, const DNSName& shorter, const QTy
   return false;
 }
 
-bool UeberBackend::getAuth(const DNSName& target, const QType& qtype, SOAData* soaData, bool cachedOk)
+bool UeberBackend::getAuth(const ZoneName& target, const QType& qtype, SOAData* soaData, bool cachedOk)
 {
   // A backend can respond to our authority request with the 'best' match it
   // has. For example, when asked for a.b.c.example.com. it might respond with
@@ -454,7 +454,7 @@ bool UeberBackend::getAuth(const DNSName& target, const QType& qtype, SOAData* s
   // If a backend has no match it may respond with an empty qname.
 
   bool found = false;
-  DNSName shorter(target);
+  ZoneName shorter(target);
   vector<pair<size_t, SOAData>> bestMatches(backends.size(), pair(target.wirelength() + 1, SOAData()));
 
   bool first = true;
@@ -544,7 +544,7 @@ bool UeberBackend::getAuth(const DNSName& target, const QType& qtype, SOAData* s
   return found;
 }
 
-bool UeberBackend::getSOAUncached(const DNSName& domain, SOAData& soaData)
+bool UeberBackend::getSOAUncached(const ZoneName& domain, SOAData& soaData)
 {
   d_question.qtype = QType::SOA;
   d_question.qname = domain;
@@ -605,7 +605,7 @@ bool UeberBackend::autoPrimariesList(std::vector<AutoPrimary>& primaries)
   return false;
 }
 
-bool UeberBackend::autoPrimaryBackend(const string& ipAddr, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** dnsBackend)
+bool UeberBackend::autoPrimaryBackend(const string& ipAddr, const ZoneName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** dnsBackend)
 {
   for (auto& backend : backends) {
     if (backend->autoPrimaryBackend(ipAddr, domain, nsset, nameserver, account, dnsBackend)) {
@@ -678,7 +678,7 @@ void UeberBackend::addCache(const Question& question, vector<DNSZoneRecord>&& rr
   QC.insert(question.qname, question.qtype, std::move(rrs), d_cache_ttl, question.zoneId);
 }
 
-void UeberBackend::alsoNotifies(const DNSName& domain, set<string>* ips)
+void UeberBackend::alsoNotifies(const ZoneName& domain, set<string>* ips)
 {
   for (auto& backend : backends) {
     backend->alsoNotifies(domain, ips);

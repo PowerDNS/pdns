@@ -28,7 +28,7 @@
 
 struct DomainInfo;
 
-typedef map<DNSName, pdns::SHADigest> CatalogHashMap;
+typedef map<ZoneName, pdns::SHADigest> CatalogHashMap;
 
 class CatalogInfo
 {
@@ -48,7 +48,7 @@ public:
 
   CatalogInfo() :
     d_id(0), d_type(CatalogType::None) {}
-  CatalogInfo(uint32_t id, const DNSName& zone, const std::string& options, CatalogType type)
+  CatalogInfo(uint32_t id, const ZoneName& zone, const std::string& options, CatalogType type)
   {
     d_id = id;
     d_zone = zone;
@@ -61,8 +61,8 @@ public:
 
   void updateHash(CatalogHashMap& hashes, const DomainInfo& di) const;
   DNSName getUnique() const { return DNSName(toBase32Hex(hashQNameWithSalt(std::to_string(d_id), 0, d_zone))); } // salt with domain id to detect recreated zones
-  static DNSZoneRecord getCatalogVersionRecord(const DNSName& zone);
-  void toDNSZoneRecords(const DNSName& zone, vector<DNSZoneRecord>& dzrs) const;
+  static DNSZoneRecord getCatalogVersionRecord(const ZoneName& zone);
+  void toDNSZoneRecords(const ZoneName& zone, vector<DNSZoneRecord>& dzrs) const;
 
   bool operator<(const CatalogInfo& rhs) const
   {
@@ -70,7 +70,8 @@ public:
   }
 
   uint32_t d_id;
-  DNSName d_zone, d_coo, d_unique;
+  ZoneName d_zone;
+  DNSName d_coo, d_unique;
   std::set<std::string> d_group;
   vector<ComboAddress> d_primaries;
 

@@ -42,14 +42,14 @@ BOOST_AUTO_TEST_CASE(test_replace)
   AuthZoneCache cache;
   cache.setRefreshInterval(3600);
 
-  vector<std::tuple<DNSName, int>> zone_indices{
-    {DNSName("example.org."), 1},
+  vector<std::tuple<ZoneName, int>> zone_indices{
+    {ZoneName("example.org."), 1},
   };
   cache.setReplacePending();
   cache.replace(zone_indices);
 
   int zoneId = 0;
-  bool found = cache.getEntry(DNSName("example.org."), zoneId);
+  bool found = cache.getEntry(ZoneName("example.org."), zoneId);
   if (!found || zoneId != 1) {
     BOOST_FAIL("zone added in replace() not found");
   }
@@ -60,14 +60,14 @@ BOOST_AUTO_TEST_CASE(test_add_while_pending_replace)
   AuthZoneCache cache;
   cache.setRefreshInterval(3600);
 
-  vector<std::tuple<DNSName, int>> zone_indices{
-    {DNSName("powerdns.org."), 1}};
+  vector<std::tuple<ZoneName, int>> zone_indices{
+    {ZoneName("powerdns.org."), 1}};
   cache.setReplacePending();
-  cache.add(DNSName("example.org."), 2);
+  cache.add(ZoneName("example.org."), 2);
   cache.replace(zone_indices);
 
   int zoneId = 0;
-  bool found = cache.getEntry(DNSName("example.org."), zoneId);
+  bool found = cache.getEntry(ZoneName("example.org."), zoneId);
   if (!found || zoneId != 2) {
     BOOST_FAIL("zone added while replace was pending not found");
   }
@@ -78,14 +78,14 @@ BOOST_AUTO_TEST_CASE(test_remove_while_pending_replace)
   AuthZoneCache cache;
   cache.setRefreshInterval(3600);
 
-  vector<std::tuple<DNSName, int>> zone_indices{
-    {DNSName("powerdns.org."), 1}};
+  vector<std::tuple<ZoneName, int>> zone_indices{
+    {ZoneName("powerdns.org."), 1}};
   cache.setReplacePending();
-  cache.remove(DNSName("powerdns.org."));
+  cache.remove(ZoneName("powerdns.org."));
   cache.replace(zone_indices);
 
   int zoneId = 0;
-  bool found = cache.getEntry(DNSName("example.org."), zoneId);
+  bool found = cache.getEntry(ZoneName("example.org."), zoneId);
   if (found) {
     BOOST_FAIL("zone removed while replace was pending is found");
   }
@@ -97,16 +97,16 @@ BOOST_AUTO_TEST_CASE(test_add_while_pending_replace_duplicate)
   AuthZoneCache cache;
   cache.setRefreshInterval(3600);
 
-  vector<std::tuple<DNSName, int>> zone_indices{
-    {DNSName("powerdns.org."), 1},
-    {DNSName("example.org."), 2},
+  vector<std::tuple<ZoneName, int>> zone_indices{
+    {ZoneName("powerdns.org."), 1},
+    {ZoneName("example.org."), 2},
   };
   cache.setReplacePending();
-  cache.add(DNSName("example.org."), 3);
+  cache.add(ZoneName("example.org."), 3);
   cache.replace(zone_indices);
 
   int zoneId = 0;
-  bool found = cache.getEntry(DNSName("example.org."), zoneId);
+  bool found = cache.getEntry(ZoneName("example.org."), zoneId);
   if (!found || zoneId == 0) {
     BOOST_FAIL("zone added while replace was pending not found");
   }

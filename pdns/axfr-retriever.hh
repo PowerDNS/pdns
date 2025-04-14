@@ -30,7 +30,7 @@ class AXFRRetriever : public boost::noncopyable
 {
   public:
     AXFRRetriever(const ComboAddress& remote,
-                  const DNSName& zone,
+                  const ZoneName& zone,
                   const TSIGTriplet& tt = TSIGTriplet(),
                   const ComboAddress* laddr = NULL,
                   size_t maxReceivedBytes=0,

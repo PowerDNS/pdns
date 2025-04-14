@@ -173,7 +173,7 @@ void TinyDNSBackend::getAllDomains_locked(vector<DomainInfo>* domains, bool getS
       DomainInfo di;
       di.id = -1; // Will be overridden by caller
       di.backend = this;
-      di.zone = rr.qname;
+      di.zone = ZoneName(rr.qname);
       di.kind = DomainInfo::Primary;
       di.last_check = time(0);
 
@@ -214,7 +214,7 @@ void TinyDNSBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, 
 }
 
 //NOLINTNEXTLINE(readability-identifier-length)
-bool TinyDNSBackend::getDomainInfo(const DNSName& domain, DomainInfo& di, bool getSerial)
+bool TinyDNSBackend::getDomainInfo(const ZoneName& domain, DomainInfo& di, bool getSerial)
 {
   auto domainInfo = s_domainInfo.lock(); //TODO: We could actually lock less if we do it per suffix.
   if (domainInfo->count(d_suffix) == 0) {
@@ -240,7 +240,7 @@ bool TinyDNSBackend::getDomainInfo(const DNSName& domain, DomainInfo& di, bool g
   return found;
 }
 
-bool TinyDNSBackend::list(const DNSName& target, int /* domain_id */, bool /* include_disabled */)
+bool TinyDNSBackend::list(const ZoneName& target, int /* domain_id */, bool /* include_disabled */)
 {
   d_isAxfr = true;
   d_isGetDomains = false;

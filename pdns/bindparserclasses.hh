@@ -34,14 +34,14 @@ class BindDomainInfo
 public:
   void clear() 
   {
-    name=DNSName();
+    name=ZoneName();
     filename=type="";
     primaries.clear();
     alsoNotify.clear();
     d_dev=0;
     d_ino=0;
   }
-  DNSName name;
+  ZoneName name;
   string viewName;
   string filename;
   vector<ComboAddress> primaries;
@@ -88,7 +88,6 @@ class BindParser
   set<string> & getAlsoNotify() { return this->alsoNotify; } 
 private:
   string d_dir{"."};
-  typedef map<DNSName,string> zonedomain_t;
   set<string> alsoNotify;
   vector<BindDomainInfo> d_zonedomains;
   bool d_verbose{false};

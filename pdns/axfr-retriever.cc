@@ -30,7 +30,7 @@
 using pdns::resolver::parseResult;
 
 AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
-                             const DNSName& domain,
+                             const ZoneName& domain,
                              const TSIGTriplet& tsigConf,
                              const ComboAddress* laddr,
                              size_t maxReceivedBytes,

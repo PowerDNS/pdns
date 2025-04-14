@@ -54,8 +54,8 @@ struct DomainInfo
 {
   DomainInfo() = default;
 
-  DNSName zone;
-  DNSName catalog;
+  ZoneName zone;
+  ZoneName catalog;
   time_t last_check{};
   string options;
   string account;
@@ -177,19 +177,19 @@ public:
       if the backend does not consider itself responsible for the id passed.
       \param domain_id ID of which a list is requested
   */
-  virtual bool list(const DNSName& target, int domain_id, bool include_disabled = false) = 0;
+  virtual bool list(const ZoneName& target, int domain_id, bool include_disabled = false) = 0;
 
   virtual ~DNSBackend() = default;
 
   //! fills the soadata struct with the SOA details. Returns false if there is no SOA.
-  virtual bool getSOA(const DNSName& domain, SOAData& soaData);
+  virtual bool getSOA(const ZoneName& domain, SOAData& soaData);
 
   virtual bool replaceRRSet(uint32_t /* domain_id */, const DNSName& /* qname */, const QType& /* qt */, const vector<DNSResourceRecord>& /* rrset */)
   {
     return false;
   }
 
-  virtual bool listSubZone(const DNSName& /* zone */, int /* domain_id */)
+  virtual bool listSubZone(const ZoneName& /* zone */, int /* domain_id */)
   {
     return false;
   }
@@ -199,9 +199,9 @@ public:
   {
     return (name == "PRESIGNED" || name == "NSEC3PARAM" || name == "NSEC3NARROW");
   }
-  virtual bool getAllDomainMetadata(const DNSName& /* name */, std::map<std::string, std::vector<std::string>>& /* meta */) { return false; };
-  virtual bool getDomainMetadata(const DNSName& /* name */, const std::string& /* kind */, std::vector<std::string>& /* meta */) { return false; }
-  virtual bool getDomainMetadataOne(const DNSName& name, const std::string& kind, std::string& value)
+  virtual bool getAllDomainMetadata(const ZoneName& /* name */, std::map<std::string, std::vector<std::string>>& /* meta */) { return false; };
+  virtual bool getDomainMetadata(const ZoneName& /* name */, const std::string& /* kind */, std::vector<std::string>& /* meta */) { return false; }
+  virtual bool getDomainMetadataOne(const ZoneName& name, const std::string& kind, std::string& value)
   {
     std::vector<std::string> meta;
     if (getDomainMetadata(name, kind, meta)) {
@@ -213,8 +213,8 @@ public:
     return false;
   }
 
-  virtual bool setDomainMetadata(const DNSName& /* name */, const std::string& /* kind */, const std::vector<std::string>& /* meta */) { return false; }
-  virtual bool setDomainMetadataOne(const DNSName& name, const std::string& kind, const std::string& value)
+  virtual bool setDomainMetadata(const ZoneName& /* name */, const std::string& /* kind */, const std::vector<std::string>& /* meta */) { return false; }
+  virtual bool setDomainMetadataOne(const ZoneName& name, const std::string& kind, const std::string& value)
   {
     const std::vector<std::string> meta(1, value);
     return setDomainMetadata(name, kind, meta);
@@ -223,7 +223,7 @@ public:
   virtual void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled);
 
   /** Determines if we are authoritative for a zone, and at what level */
-  virtual bool getAuth(const DNSName& target, SOAData* /* sd */);
+  virtual bool getAuth(const ZoneName& target, SOAData* /* sd */);
 
   struct KeyData
   {
@@ -234,13 +234,13 @@ public:
     bool published{false};
   };
 
-  virtual bool getDomainKeys(const DNSName& /* name */, std::vector<KeyData>& /* keys */) { return false; }
-  virtual bool removeDomainKey(const DNSName& /* name */, unsigned int /* id */) { return false; }
-  virtual bool addDomainKey(const DNSName& /* name */, const KeyData& /* key */, int64_t& /* id */) { return false; }
-  virtual bool activateDomainKey(const DNSName& /* name */, unsigned int /* id */) { return false; }
-  virtual bool deactivateDomainKey(const DNSName& /* name */, unsigned int /* id */) { return false; }
-  virtual bool publishDomainKey(const DNSName& /* name */, unsigned int /* id */) { return false; }
-  virtual bool unpublishDomainKey(const DNSName& /* name */, unsigned int /* id */) { return false; }
+  virtual bool getDomainKeys(const ZoneName& /* name */, std::vector<KeyData>& /* keys */) { return false; }
+  virtual bool removeDomainKey(const ZoneName& /* name */, unsigned int /* id */) { return false; }
+  virtual bool addDomainKey(const ZoneName& /* name */, const KeyData& /* key */, int64_t& /* id */) { return false; }
+  virtual bool activateDomainKey(const ZoneName& /* name */, unsigned int /* id */) { return false; }
+  virtual bool deactivateDomainKey(const ZoneName& /* name */, unsigned int /* id */) { return false; }
+  virtual bool publishDomainKey(const ZoneName& /* name */, unsigned int /* id */) { return false; }
+  virtual bool unpublishDomainKey(const ZoneName& /* name */, unsigned int /* id */) { return false; }
 
   virtual bool setTSIGKey(const DNSName& /* name */, const DNSName& /* algorithm */, const string& /* content */) { return false; }
   virtual bool getTSIGKey(const DNSName& /* name */, DNSName& /* algorithm */, string& /* content */) { return false; }
@@ -254,7 +254,7 @@ public:
     return false;
   }
 
-  virtual bool getBeforeAndAfterNames(uint32_t /* id */, const DNSName& zonename, const DNSName& qname, DNSName& before, DNSName& after);
+  virtual bool getBeforeAndAfterNames(uint32_t /* id */, const ZoneName& zonename, const DNSName& qname, DNSName& before, DNSName& after);
 
   virtual bool updateDNSSECOrderNameAndAuth(uint32_t /* domain_id */, const DNSName& /* qname */, const DNSName& /* ordername */, bool /* auth */, const uint16_t /* qtype */ = QType::ANY)
   {
@@ -295,8 +295,12 @@ public:
   }
 
   //! returns true if primary ip is primary for domain name.
-  //! starts the transaction for updating domain qname (FIXME: what is id?)
-  virtual bool startTransaction(const DNSName& /* qname */, int /* id */ = -1)
+  //! starts the transaction for updating domain qname, destroying all
+  //! existing data for that domain if id is >= 0. In this case, the id MUST
+  //! match the DomainInfo information for qname, or very bad things will
+  //! happen.
+  //! FIXME: replace this with a bool to make this a less error-prone interface.
+  virtual bool startTransaction(const ZoneName& /* qname */, int /* id */ = -1)
   {
     return false;
   }
@@ -341,7 +345,7 @@ public:
   }
 
   //! if this returns true, DomainInfo di contains information about the domain
-  virtual bool getDomainInfo(const DNSName& /* domain */, DomainInfo& /* di */, bool /* getSerial */ = true)
+  virtual bool getDomainInfo(const ZoneName& /* domain */, DomainInfo& /* di */, bool /* getSerial */ = true)
   {
     return false;
   }
@@ -351,7 +355,7 @@ public:
   }
 
   //! get a list of IP addresses that should also be notified for a domain
-  virtual void alsoNotifies(const DNSName& domain, set<string>* ips)
+  virtual void alsoNotifies(const ZoneName& domain, set<string>* ips)
   {
     std::vector<std::string> meta;
     getDomainMetadata(domain, "ALSO-NOTIFY", meta);
@@ -364,7 +368,7 @@ public:
   }
 
   //! get list of all members in a catalog
-  [[nodiscard]] virtual bool getCatalogMembers(const DNSName& /* catalog */, vector<CatalogInfo>& /* members */, CatalogInfo::CatalogType /* type */)
+  [[nodiscard]] virtual bool getCatalogMembers(const ZoneName& /* catalog */, vector<CatalogInfo>& /* members */, CatalogInfo::CatalogType /* type */)
   {
     return false;
   }
@@ -385,31 +389,31 @@ public:
   }
 
   //! Called when the Primary list of a domain should be changed
-  virtual bool setPrimaries(const DNSName& /* domain */, const vector<ComboAddress>& /* primaries */)
+  virtual bool setPrimaries(const ZoneName& /* domain */, const vector<ComboAddress>& /* primaries */)
   {
     return false;
   }
 
   //! Called when the Kind of a domain should be changed (primary -> native and similar)
-  virtual bool setKind(const DNSName& /* domain */, const DomainInfo::DomainKind /* kind */)
+  virtual bool setKind(const ZoneName& /* domain */, const DomainInfo::DomainKind /* kind */)
   {
     return false;
   }
 
   //! Called when the options of a domain should be changed
-  virtual bool setOptions(const DNSName& /* domain */, const string& /* options */)
+  virtual bool setOptions(const ZoneName& /* domain */, const string& /* options */)
   {
     return false;
   }
 
   //! Called when the catalog of a domain should be changed
-  virtual bool setCatalog(const DNSName& /* domain */, const DNSName& /* catalog */)
+  virtual bool setCatalog(const ZoneName& /* domain */, const ZoneName& /* catalog */)
   {
     return false;
   }
 
   //! Called when the Account of a domain should be changed
-  virtual bool setAccount(const DNSName& /* domain */, const string& /* account */)
+  virtual bool setAccount(const ZoneName& /* domain */, const string& /* account */)
   {
     return false;
   }
@@ -436,25 +440,25 @@ public:
   }
 
   //! determine if ip is a autoprimary or a domain
-  virtual bool autoPrimaryBackend(const string& /* ip */, const DNSName& /* domain */, const vector<DNSResourceRecord>& /* nsset */, string* /* nameserver */, string* /* account */, DNSBackend** /* db */)
+  virtual bool autoPrimaryBackend(const string& /* ip */, const ZoneName& /* domain */, const vector<DNSResourceRecord>& /* nsset */, string* /* nameserver */, string* /* account */, DNSBackend** /* db */)
   {
     return false;
   }
 
   //! called by PowerDNS to create a new domain
-  virtual bool createDomain(const DNSName& /* domain */, const DomainInfo::DomainKind /* kind */, const vector<ComboAddress>& /* primaries */, const string& /* account */)
+  virtual bool createDomain(const ZoneName& /* domain */, const DomainInfo::DomainKind /* kind */, const vector<ComboAddress>& /* primaries */, const string& /* account */)
   {
     return false;
   }
 
   //! called by PowerDNS to create a secondary record for a autoPrimary
-  virtual bool createSecondaryDomain(const string& /* ip */, const DNSName& /* domain */, const string& /* nameserver */, const string& /* account */)
+  virtual bool createSecondaryDomain(const string& /* ip */, const ZoneName& /* domain */, const string& /* nameserver */, const string& /* account */)
   {
     return false;
   }
 
   //! called to delete a domain, incl. all metadata, zone contents, etc.
-  virtual bool deleteDomain(const DNSName& /* domain */)
+  virtual bool deleteDomain(const ZoneName& /* domain */)
   {
     return false;
   }

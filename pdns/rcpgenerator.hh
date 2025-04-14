@@ -40,7 +40,7 @@ public:
 class RecordTextReader
 {
 public:
-  RecordTextReader(string  str, DNSName  zone=DNSName(""));
+  RecordTextReader(string  str, ZoneName  zone=ZoneName(""));
   void xfrNodeOrLocatorID(NodeOrLocatorID& val);
   void xfr64BitInt(uint64_t& val);
   void xfr48BitInt(uint64_t& val);
@@ -76,7 +76,7 @@ public:
   bool eof();
 private:
   string d_string;
-  DNSName d_zone;
+  ZoneName d_zone;
   string::size_type d_pos{0};
   string::size_type d_end;
   void skipSpaces();

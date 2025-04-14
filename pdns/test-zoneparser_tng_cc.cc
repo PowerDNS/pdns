@@ -26,12 +26,12 @@ BOOST_AUTO_TEST_CASE(test_tng_record_types) {
   if(!p)
     p = ".";
   pathbuf << p << "/../regression-tests/zones/unit.test";
-  ZoneParserTNG zp(pathbuf.str(), DNSName("unit.test"));
+  ZoneParserTNG zoneparser(pathbuf.str(), ZoneName("unit.test"));
   DNSResourceRecord rr;
 
   ifstream ifs(pathbuf.str());
 
-  while(zp.get(rr)) {
+  while(zoneparser.get(rr)) {
     // make sure these concur.
     std::string host, type, data;
     unsigned int ttl;
@@ -63,7 +63,7 @@ BOOST_AUTO_TEST_CASE(test_tng_record_generate) {
 
   {
     /* simple case */
-    ZoneParserTNG zp(pathbuf.str(), DNSName("unit2.test"));
+    ZoneParserTNG zoneparser(pathbuf.str(), ZoneName("unit2.test"));
 
     const vector<string> expected = {
       "0.01.0003.000005.00000007.unit2.test.",
@@ -87,7 +87,7 @@ BOOST_AUTO_TEST_CASE(test_tng_record_generate) {
 
     for (auto const & exp : expected) {
       DNSResourceRecord rr;
-      zp.get(rr);
+      zoneparser.get(rr);
       BOOST_CHECK_EQUAL(rr.qname.toString(), exp);
       BOOST_CHECK_EQUAL(rr.ttl, 86400U);
       BOOST_CHECK_EQUAL(rr.qclass, 1U);
@@ -98,7 +98,7 @@ BOOST_AUTO_TEST_CASE(test_tng_record_generate) {
 
   {
     /* GENERATE with a step of 2, and the template radix defaulting to 'd' */
-    ZoneParserTNG zp(std::vector<std::string>({"$GENERATE 0-4/2 $.${1,2,o}.${3,4}.${5,6,X}.${7,8,x}	86400	IN	A 1.2.3.4"}), DNSName("unit2.test"));
+    ZoneParserTNG zoneparser(std::vector<std::string>({"$GENERATE 0-4/2 $.${1,2,o}.${3,4}.${5,6,X}.${7,8,x}	86400	IN	A 1.2.3.4"}), ZoneName("unit2.test"));
 
     const vector<string> expected = {
       "0.01.0003.000005.00000007.unit2.test.",
@@ -108,7 +108,7 @@ BOOST_AUTO_TEST_CASE(test_tng_record_generate) {
 
     for (auto const & exp : expected) {
       DNSResourceRecord rr;
-      zp.get(rr);
+      zoneparser.get(rr);
       BOOST_CHECK_EQUAL(rr.qname.toString(), exp);
       BOOST_CHECK_EQUAL(rr.ttl, 86400U);
       BOOST_CHECK_EQUAL(rr.qclass, 1U);
@@ -117,13 +117,13 @@ BOOST_AUTO_TEST_CASE(test_tng_record_generate) {
     }
     {
       DNSResourceRecord rr;
-      BOOST_CHECK(!zp.get(rr));
+      BOOST_CHECK(!zoneparser.get(rr));
     }
   }
 
   {
     /* GENERATE with a larger initial counter and a large stop */
-    ZoneParserTNG zp(std::vector<std::string>({"$GENERATE 4294967294-4294967295/2 $	86400	IN	A 1.2.3.4"}), DNSName("unit2.test"));
+    ZoneParserTNG zoneparser(std::vector<std::string>({"$GENERATE 4294967294-4294967295/2 $	86400	IN	A 1.2.3.4"}), ZoneName("unit2.test"));
 
     const vector<string> expected = {
       "4294967294.unit2.test.",
@@ -131,7 +131,7 @@ BOOST_AUTO_TEST_CASE(test_tng_record_generate) {
 
     for (auto const & exp : expected) {
       DNSResourceRecord rr;
-      zp.get(rr);
+      zoneparser.get(rr);
       BOOST_CHECK_EQUAL(rr.qname.toString(), exp);
       BOOST_CHECK_EQUAL(rr.ttl, 86400U);
       BOOST_CHECK_EQUAL(rr.qclass, 1U);
@@ -140,84 +140,84 @@ BOOST_AUTO_TEST_CASE(test_tng_record_generate) {
     }
     {
       DNSResourceRecord rr;
-      BOOST_CHECK(!zp.get(rr));
+      BOOST_CHECK(!zoneparser.get(rr));
     }
   }
 
   {
     /* test invalid generate parameters: stop greater than start */
-    ZoneParserTNG zp(std::vector<std::string>({"$GENERATE 5-4 $.${1,2,o}.${3,4,d}.${5,6,X}.${7,8,x}	86400	IN	A 1.2.3.4"}), DNSName("test"));
+    ZoneParserTNG zoneparser(std::vector<std::string>({"$GENERATE 5-4 $.${1,2,o}.${3,4,d}.${5,6,X}.${7,8,x}	86400	IN	A 1.2.3.4"}), ZoneName("test"));
     DNSResourceRecord rr;
-    BOOST_CHECK_THROW(zp.get(rr), std::exception);
+    BOOST_CHECK_THROW(zoneparser.get(rr), std::exception);
   }
 
   {
     /* test invalid generate parameters: no stop */
-    ZoneParserTNG zp(std::vector<std::string>({"$GENERATE 5 $.${1,2,o}.${3,4,d}.${5,6,X}.${7,8,x}	86400	IN	A 1.2.3.4"}), DNSName("test"));
+    ZoneParserTNG zoneparser(std::vector<std::string>({"$GENERATE 5 $.${1,2,o}.${3,4,d}.${5,6,X}.${7,8,x}	86400	IN	A 1.2.3.4"}), ZoneName("test"));
     DNSResourceRecord rr;
-    BOOST_CHECK_THROW(zp.get(rr), std::exception);
+    BOOST_CHECK_THROW(zoneparser.get(rr), std::exception);
   }
 
   {
     /* test invalid generate parameters: invalid step */
-    ZoneParserTNG zp(std::vector<std::string>({"$GENERATE 0-4/0 $.${1,2,o}.${3,4,d}.${5,6,X}.${7,8,x}	86400	IN	A 1.2.3.4"}), DNSName("test"));
+    ZoneParserTNG zoneparser(std::vector<std::string>({"$GENERATE 0-4/0 $.${1,2,o}.${3,4,d}.${5,6,X}.${7,8,x}	86400	IN	A 1.2.3.4"}), ZoneName("test"));
     DNSResourceRecord rr;
-    BOOST_CHECK_THROW(zp.get(rr), std::exception);
+    BOOST_CHECK_THROW(zoneparser.get(rr), std::exception);
   }
 
   {
     /* test invalid generate parameters: negative counter */
-    ZoneParserTNG zp(std::vector<std::string>({"$GENERATE -1-4/1 $.${1,2,o}.${3,4,d}.${5,6,X}.${7,8,x}	86400	IN	A 1.2.3.4"}), DNSName("test"));
+    ZoneParserTNG zoneparser(std::vector<std::string>({"$GENERATE -1-4/1 $.${1,2,o}.${3,4,d}.${5,6,X}.${7,8,x}	86400	IN	A 1.2.3.4"}), ZoneName("test"));
     DNSResourceRecord rr;
-    BOOST_CHECK_THROW(zp.get(rr), std::exception);
+    BOOST_CHECK_THROW(zoneparser.get(rr), std::exception);
   }
   {
     /* test invalid generate parameters: counter out of bounds */
-    ZoneParserTNG zp(std::vector<std::string>({"$GENERATE 4294967296-4/1 $.${1,2,o}.${3,4,d}.${5,6,X}.${7,8,x}	86400	IN	A 1.2.3.4"}), DNSName("test"));
+    ZoneParserTNG zoneparser(std::vector<std::string>({"$GENERATE 4294967296-4/1 $.${1,2,o}.${3,4,d}.${5,6,X}.${7,8,x}	86400	IN	A 1.2.3.4"}), ZoneName("test"));
     DNSResourceRecord rr;
-    BOOST_CHECK_THROW(zp.get(rr), std::exception);
+    BOOST_CHECK_THROW(zoneparser.get(rr), std::exception);
   }
 
   {
     /* test invalid generate parameters: negative stop */
-    ZoneParserTNG zp(std::vector<std::string>({"$GENERATE 0--4/1 $.${1,2,o}.${3,4,d}.${5,6,X}.${7,8,x}	86400	IN	A 1.2.3.4"}), DNSName("test"));
+    ZoneParserTNG zoneparser(std::vector<std::string>({"$GENERATE 0--4/1 $.${1,2,o}.${3,4,d}.${5,6,X}.${7,8,x}	86400	IN	A 1.2.3.4"}), ZoneName("test"));
     DNSResourceRecord rr;
-    BOOST_CHECK_THROW(zp.get(rr), std::exception);
+    BOOST_CHECK_THROW(zoneparser.get(rr), std::exception);
   }
 
   {
     /* test invalid generate parameters: stop out of bounds */
-    ZoneParserTNG zp(std::vector<std::string>({"$GENERATE 0-4294967296/1 $.${1,2,o}.${3,4,d}.${5,6,X}.${7,8,x}	86400	IN	A 1.2.3.4"}), DNSName("test"));
+    ZoneParserTNG zoneparser(std::vector<std::string>({"$GENERATE 0-4294967296/1 $.${1,2,o}.${3,4,d}.${5,6,X}.${7,8,x}	86400	IN	A 1.2.3.4"}), ZoneName("test"));
     DNSResourceRecord rr;
-    BOOST_CHECK_THROW(zp.get(rr), std::exception);
+    BOOST_CHECK_THROW(zoneparser.get(rr), std::exception);
   }
 
   {
     /* test invalid generate parameters: negative step */
-    ZoneParserTNG zp(std::vector<std::string>({"$GENERATE 0-4/-1 $.${1,2,o}.${3,4,d}.${5,6,X}.${7,8,x}	86400	IN	A 1.2.3.4"}), DNSName("test"));
+    ZoneParserTNG zoneparser(std::vector<std::string>({"$GENERATE 0-4/-1 $.${1,2,o}.${3,4,d}.${5,6,X}.${7,8,x}	86400	IN	A 1.2.3.4"}), ZoneName("test"));
     DNSResourceRecord rr;
-    BOOST_CHECK_THROW(zp.get(rr), std::exception);
+    BOOST_CHECK_THROW(zoneparser.get(rr), std::exception);
   }
 
   {
     /* test invalid generate parameters: no offset */
-    ZoneParserTNG zp(std::vector<std::string>({"$GENERATE 0-4/1 $.${}.${3,4,d}.${5,6,X}.${7,8,x}	86400	IN	A 1.2.3.4"}), DNSName("test"));
+    ZoneParserTNG zoneparser(std::vector<std::string>({"$GENERATE 0-4/1 $.${}.${3,4,d}.${5,6,X}.${7,8,x}	86400	IN	A 1.2.3.4"}), ZoneName("test"));
     DNSResourceRecord rr;
-    BOOST_CHECK_THROW(zp.get(rr), PDNSException);
+    BOOST_CHECK_THROW(zoneparser.get(rr), PDNSException);
   }
 
   {
     /* test invalid generate parameters: invalid offset */
-    ZoneParserTNG zp(std::vector<std::string>({"$GENERATE 0-4/1 $.${a,2,o}.${3,4,d}.${5,6,X}.${7,8,x}	86400	IN	A 1.2.3.4"}), DNSName("test"));
+    ZoneParserTNG zoneparser(std::vector<std::string>({"$GENERATE 0-4/1 $.${a,2,o}.${3,4,d}.${5,6,X}.${7,8,x}	86400	IN	A 1.2.3.4"}), ZoneName("test"));
     DNSResourceRecord rr;
-    BOOST_CHECK_THROW(zp.get(rr), PDNSException);
+    BOOST_CHECK_THROW(zoneparser.get(rr), PDNSException);
   }
 }
 
 BOOST_AUTO_TEST_CASE(test_tng_upgrade) {
-  ZoneParserTNG zp(std::vector<std::string>({"foo.test. 86400 IN TYPE1 \\# 4 c0000304"}), DNSName("test"), true);
+  ZoneParserTNG zoneparser(std::vector<std::string>({"foo.test. 86400 IN TYPE1 \\# 4 c0000304"}), ZoneName("test"), true);
   DNSResourceRecord rr;
-  zp.get(rr);
+  zoneparser.get(rr);
 
   BOOST_CHECK_EQUAL(rr.qtype.toString(), QType(QType::A).toString());
   BOOST_CHECK_EQUAL(rr.content, std::string("192.0.3.4"));

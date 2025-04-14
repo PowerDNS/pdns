@@ -885,7 +885,7 @@ class NSECRecordContent : public DNSRecordContent
 public:
   static void report(const ReportIsOnlyCallableByReportAllTypes& guard);
   NSECRecordContent() = default;
-  NSECRecordContent(const string& content, const DNSName& zone=DNSName());
+  NSECRecordContent(const string& content, const ZoneName& zone=ZoneName());
 
   static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);
   static std::shared_ptr<DNSRecordContent> make(const string& content);
@@ -926,7 +926,7 @@ class NSEC3RecordContent : public DNSRecordContent
 public:
   static void report(const ReportIsOnlyCallableByReportAllTypes& guard);
   NSEC3RecordContent() = default;
-  NSEC3RecordContent(const string& content, const DNSName& zone=DNSName());
+  NSEC3RecordContent(const string& content, const ZoneName& zone=ZoneName());
 
   static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);
   static std::shared_ptr<DNSRecordContent> make(const string& content);
@@ -976,7 +976,7 @@ class CSYNCRecordContent : public DNSRecordContent
 public:
   static void report(const ReportIsOnlyCallableByReportAllTypes& guard);
   CSYNCRecordContent() = default;
-  CSYNCRecordContent(const string& content, const DNSName& zone=DNSName());
+  CSYNCRecordContent(const string& content, const ZoneName& zone=ZoneName());
 
   static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);
   static std::shared_ptr<DNSRecordContent> make(const string& content);
@@ -1009,7 +1009,7 @@ class NSEC3PARAMRecordContent : public DNSRecordContent
 public:
   static void report(const ReportIsOnlyCallableByReportAllTypes& guard);
   NSEC3PARAMRecordContent() = default;
-  NSEC3PARAMRecordContent(const string& content, const DNSName& zone=DNSName());
+  NSEC3PARAMRecordContent(const string& content, const ZoneName& zone=ZoneName());
 
   static std::shared_ptr<DNSRecordContent> make(const DNSRecord &dr, PacketReader& pr);
   static std::shared_ptr<DNSRecordContent> make(const string& content);

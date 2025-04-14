@@ -688,7 +688,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
   DNSZoneRecord soa = makeEditedDNSZRFromSOAData(dk, sd);
   outpacket->addRecord(DNSZoneRecord(soa));
   if(securedZone && !presignedZone) {
-    set<DNSName> authSet;
+    set<ZoneName> authSet;
     authSet.insert(target);
     addRRSigs(dk, db, authSet, outpacket->getRRS());
   }
@@ -1261,7 +1261,7 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
   }
 
   if (serialPermitsIXFR) {
-    DNSName target = q->qdomain;
+    ZoneName target = q->qdomain;
     TSIGRecordContent trc;
     DNSName tsigkeyname;
     string tsigsecret;
@@ -1291,7 +1291,7 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
     DNSZoneRecord soa = makeEditedDNSZRFromSOAData(dk, sd);
     outpacket->addRecord(std::move(soa));
     if(securedZone && outpacket->d_dnssecOk) {
-      set<DNSName> authSet;
+      set<ZoneName> authSet;
       authSet.insert(target);
       addRRSigs(dk, db, authSet, outpacket->getRRS());
     }

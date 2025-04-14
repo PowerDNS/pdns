@@ -42,7 +42,7 @@ public:
   
   ChunkedSigningPipe(const ChunkedSigningPipe&) = delete;
   void operator=(const ChunkedSigningPipe&) = delete;
-  ChunkedSigningPipe(DNSName  signerName, bool mustSign, unsigned int numWorkers, unsigned int maxChunkRecords);
+  ChunkedSigningPipe(ZoneName  signerName, bool mustSign, unsigned int numWorkers, unsigned int maxChunkRecords);
   ~ChunkedSigningPipe();
   bool submit(const DNSZoneRecord& rr);
   chunk_t getChunk(bool final=false);
@@ -67,7 +67,7 @@ private:
 
   std::unique_ptr<rrset_t> d_rrsetToSign;
   std::deque< std::vector<DNSZoneRecord> > d_chunks;
-  DNSName d_signer;
+  ZoneName d_signer;
   
   chunk_t::size_type d_maxchunkrecords;
   

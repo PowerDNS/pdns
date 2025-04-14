@@ -113,7 +113,7 @@ void CatalogInfo::updateHash(CatalogHashMap& hashes, const DomainInfo& di) const
   }
 }
 
-DNSZoneRecord CatalogInfo::getCatalogVersionRecord(const DNSName& zone)
+DNSZoneRecord CatalogInfo::getCatalogVersionRecord(const ZoneName& zone)
 {
   DNSZoneRecord dzr;
   dzr.dr.d_name = DNSName("version") + zone;
@@ -123,7 +123,7 @@ DNSZoneRecord CatalogInfo::getCatalogVersionRecord(const DNSName& zone)
   return dzr;
 }
 
-void CatalogInfo::toDNSZoneRecords(const DNSName& zone, vector<DNSZoneRecord>& dzrs) const
+void CatalogInfo::toDNSZoneRecords(const ZoneName& zone, vector<DNSZoneRecord>& dzrs) const
 {
   DNSName prefix;
   if (d_unique.empty()) {

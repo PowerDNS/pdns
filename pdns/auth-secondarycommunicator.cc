@@ -48,7 +48,7 @@
 
 #include "ixfr.hh"
 
-void CommunicatorClass::addSuckRequest(const DNSName& domain, const ComboAddress& primary, SuckRequest::RequestPriority priority, bool force)
+void CommunicatorClass::addSuckRequest(const ZoneName& domain, const ComboAddress& primary, SuckRequest::RequestPriority priority, bool force)
 {
   auto data = d_data.lock();
   SuckRequest sr;
@@ -84,7 +84,7 @@ struct ZoneStatus
   unsigned int soa_serial{0};
   set<DNSName> nsset, qnames, secured;
   uint32_t domain_id;
-  int numDeltas{0};
+  size_t numDeltas{0};
 };
 
 static bool catalogDiff(const DomainInfo& di, vector<CatalogInfo>& fromXFR, vector<CatalogInfo>& fromDB, const string& logPrefix)
@@ -94,7 +94,7 @@ static bool catalogDiff(const DomainInfo& di, vector<CatalogInfo>& fromXFR, vect
   bool doTransaction{true};
   bool inTransaction{false};
   CatalogInfo ciCreate, ciRemove;
-  std::unordered_map<DNSName, bool> clearCache;
+  std::unordered_map<ZoneName, bool> clearCache;
   vector<CatalogInfo> retrieve;
 
   try {
@@ -309,7 +309,7 @@ static bool catalogProcess(const DomainInfo& di, vector<DNSResourceRecord>& rrs,
   logPrefix += "Catalog-Zone ";
 
   vector<CatalogInfo> fromXFR, fromDB;
-  std::unordered_set<DNSName> dupcheck;
+  std::unordered_set<ZoneName> dupcheck;
 
   // From XFR
   bool hasSOA{false};
@@ -425,7 +425,7 @@ static bool catalogProcess(const DomainInfo& di, vector<DNSResourceRecord>& rrs,
   return catalogDiff(di, fromXFR, fromDB, logPrefix);
 }
 
-void CommunicatorClass::ixfrSuck(const DNSName& domain, const TSIGTriplet& tt, const ComboAddress& laddr, const ComboAddress& remote, ZoneStatus& zs, vector<DNSRecord>* axfr)
+void CommunicatorClass::ixfrSuck(const ZoneName& domain, const TSIGTriplet& tsig, const ComboAddress& laddr, const ComboAddress& remote, ZoneStatus& status, vector<DNSRecord>* axfr)
 {
   string logPrefix = "IXFR-in zone '" + domain.toLogString() + "', primary '" + remote.toString() + "', ";
 
@@ -451,8 +451,8 @@ void CommunicatorClass::ixfrSuck(const DNSName& domain, const TSIGTriplet& tt, c
     soatimes drsoa_soatimes = {di.serial, 0, 0, 0, 0};
     DNSRecord drsoa;
     drsoa.setContent(std::make_shared<SOARecordContent>(g_rootdnsname, g_rootdnsname, drsoa_soatimes));
-    auto deltas = getIXFRDeltas(remote, domain, drsoa, xfrTimeout, false, tt, laddr.sin4.sin_family ? &laddr : nullptr, ((size_t)::arg().asNum("xfr-max-received-mbytes")) * 1024 * 1024);
-    zs.numDeltas = deltas.size();
+    auto deltas = getIXFRDeltas(remote, domain, drsoa, xfrTimeout, false, tsig, laddr.sin4.sin_family != 0 ? &laddr : nullptr, ((size_t)::arg().asNum("xfr-max-received-mbytes")) * 1024 * 1024);
+    status.numDeltas = deltas.size();
     //    cout<<"Got "<<deltas.size()<<" deltas from serial "<<di.serial<<", applying.."<<endl;
 
     for (const auto& d : deltas) {
@@ -471,7 +471,7 @@ void CommunicatorClass::ixfrSuck(const DNSName& domain, const TSIGTriplet& tt, c
       // this means that we must group updates by {qname,qtype}, retrieve the RRSET, apply
       // the add/remove updates, and replaceRRSet the whole thing.
 
-      map<pair<DNSName, uint16_t>, pair<vector<DNSRecord>, vector<DNSRecord>>> grouped;
+      map<pair<ZoneName, uint16_t>, pair<vector<DNSRecord>, vector<DNSRecord>>> grouped;
 
       for (const auto& x : remove)
         grouped[{x.d_name, x.d_type}].first.push_back(x);
@@ -510,7 +510,7 @@ void CommunicatorClass::ixfrSuck(const DNSName& domain, const TSIGTriplet& tt, c
           if (dr.d_type == QType::SOA) {
             //            cout<<"New SOA: "<<x.d_content->getZoneRepresentation()<<endl;
             auto sr = getRR<SOARecordContent>(dr);
-            zs.soa_serial = sr->d_st.serial;
+            status.soa_serial = sr->d_st.serial;
           }
 
           replacement.push_back(rr);
@@ -636,7 +636,7 @@ static vector<DNSResourceRecord> doAxfr(const ComboAddress& raddr, const DNSName
   return rrs;
 }
 
-void CommunicatorClass::suck(const DNSName& domain, const ComboAddress& remote, bool force) // NOLINT(readability-function-cognitive-complexity)
+void CommunicatorClass::suck(const ZoneName& domain, const ComboAddress& remote, bool force) // NOLINT(readability-function-cognitive-complexity)
 {
   {
     auto data = d_data.lock();
@@ -752,7 +752,7 @@ void CommunicatorClass::suck(const DNSName& domain, const ComboAddress& remote, 
         logPrefix = "I" + logPrefix; // XFR -> IXFR
         vector<DNSRecord> axfr;
         g_log << Logger::Notice << logPrefix << "starting IXFR" << endl;
-        ixfrSuck(domain, tt, laddr, remote, zs, &axfr);
+        CommunicatorClass::ixfrSuck(domain, tt, laddr, remote, zs, &axfr);
         if (!axfr.empty()) {
           g_log << Logger::Notice << logPrefix << "IXFR turned into an AXFR" << endl;
           logPrefix[0] = 'A'; // IXFR -> AXFR
@@ -1391,9 +1391,9 @@ void CommunicatorClass::secondaryRefresh(PacketHandler* P)
   }
 }
 
-vector<pair<DNSName, ComboAddress>> CommunicatorClass::getSuckRequests()
+vector<pair<ZoneName, ComboAddress>> CommunicatorClass::getSuckRequests()
 {
-  vector<pair<DNSName, ComboAddress>> ret;
+  vector<pair<ZoneName, ComboAddress>> ret;
   auto data = d_data.lock();
   ret.reserve(data->d_suckdomains.size());
   for (auto const& d : data->d_suckdomains) {

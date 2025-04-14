@@ -195,7 +195,7 @@ void PipeBackend::lookup(const QType& qtype, const DNSName& qname, int zoneId, D
   d_qname = qname;
 }
 
-bool PipeBackend::list(const DNSName& target, int inZoneId, bool /* include_disabled */)
+bool PipeBackend::list(const ZoneName& target, int domain_id, bool /* include_disabled */)
 {
   try {
     launch();
@@ -205,16 +205,16 @@ bool PipeBackend::list(const DNSName& target, int inZoneId, bool /* include_disa
 
     // type    qname           qclass  qtype   id      ip-address
     if (d_abiVersion >= 4)
-      query << "AXFR\t" << inZoneId << "\t" << target.toStringRootDot();
+      query << "AXFR\t" << domain_id << "\t" << target.toStringRootDot();
     else
-      query << "AXFR\t" << inZoneId;
+      query << "AXFR\t" << domain_id;
 
     d_coproc->send(query.str());
   }
   catch (PDNSException& ae) {
     g_log << Logger::Error << kBackendId << " Error from coprocess: " << ae.reason << endl;
   }
-  d_qname = DNSName(std::to_string(inZoneId)); // why do we store a number here??
+  d_qname = DNSName(std::to_string(domain_id)); // why do we store a number here??
   return true;
 }
 

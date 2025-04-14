@@ -174,7 +174,7 @@ std::shared_ptr<DNSRecordContent> NSECRecordContent::make(const string& content)
   return std::make_shared<NSECRecordContent>(content);
 }
 
-NSECRecordContent::NSECRecordContent(const string& content, const DNSName& zone)
+NSECRecordContent::NSECRecordContent(const string& content, const ZoneName& zone)
 {
   RecordTextReader rtr(content, zone);
   rtr.xfrName(d_next);
@@ -223,7 +223,7 @@ std::shared_ptr<DNSRecordContent> NSEC3RecordContent::make(const string& content
   return std::make_shared<NSEC3RecordContent>(content);
 }
 
-NSEC3RecordContent::NSEC3RecordContent(const string& content, const DNSName& zone)
+NSEC3RecordContent::NSEC3RecordContent(const string& content, const ZoneName& zone)
 {
   RecordTextReader rtr(content, zone);
   rtr.xfr8BitInt(d_algorithm);
@@ -297,7 +297,7 @@ std::shared_ptr<DNSRecordContent> NSEC3PARAMRecordContent::make(const string& co
   return std::make_shared<NSEC3PARAMRecordContent>(content);
 }
 
-NSEC3PARAMRecordContent::NSEC3PARAMRecordContent(const string& content, const DNSName& zone)
+NSEC3PARAMRecordContent::NSEC3PARAMRecordContent(const string& content, const ZoneName& zone)
 {
   RecordTextReader rtr(content, zone);
   rtr.xfr8BitInt(d_algorithm);
@@ -353,7 +353,7 @@ std::shared_ptr<DNSRecordContent> CSYNCRecordContent::make(const string& content
   return std::make_shared<CSYNCRecordContent>(content);
 }
 
-CSYNCRecordContent::CSYNCRecordContent(const string& content, const DNSName& zone)
+CSYNCRecordContent::CSYNCRecordContent(const string& content, const ZoneName& zone)
 {
   RecordTextReader rtr(content, zone);
   rtr.xfr32BitInt(d_serial);
