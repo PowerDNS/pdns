@@ -978,7 +978,7 @@ void ServerPool::addServer(shared_ptr<DownstreamState>& server)
   if ((*servers)->size() == 1) {
     d_tcpOnly = server->isTCPOnly();
   }
-  else if (d_tcpOnly && !server->isTCPOnly()) {
+  else if (!server->isTCPOnly()) {
     d_tcpOnly = false;
   }
 }
