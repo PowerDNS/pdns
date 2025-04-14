@@ -535,7 +535,8 @@ The following actions exist.
 
   .. versionadded:: 1.6.0
 
-  Disable the sending of ECS to the backend.
+  Disable the addition of EDNS Client Subnet information by :program:`dnsdist` before passing queries to the backend.
+  This does not remove any existing EDNS Client Subnet value sent by the client, please have a look at :func:`SetEDNSOptionAction` instead.
   Subsequent rules are processed after this action.
   Note that this function was called :func:`DisableECSAction` before 1.6.0.
 
