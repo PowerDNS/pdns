@@ -125,11 +125,23 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.registerFunction("isUp", &DownstreamState::isUp);
   luaCtx.registerFunction("setDown", &DownstreamState::setDown);
   luaCtx.registerFunction("setUp", &DownstreamState::setUp);
+  luaCtx.registerFunction<std::string (DownstreamState::*)() const>("getHealthCheckMode", [](const DownstreamState& state) -> std::string {
+    if (state.d_config.d_healthCheckMode == DownstreamState::HealthCheckMode::Active) {
+      return "active";
+    }
+    return "lazy";
+  });
   luaCtx.registerFunction<void (DownstreamState::*)(boost::optional<bool> newStatus)>("setAuto", [](DownstreamState& state, boost::optional<bool> newStatus) {
     if (newStatus) {
       state.setUpStatus(*newStatus);
     }
     state.setAuto();
+  });
+  luaCtx.registerFunction<void (DownstreamState::*)(boost::optional<bool> newStatus)>("setActiveAuto", [](DownstreamState& state, boost::optional<bool> newStatus) {
+    if (newStatus) {
+      state.setUpStatus(*newStatus);
+    }
+    state.setActiveAuto();
   });
   luaCtx.registerFunction<void (DownstreamState::*)(boost::optional<bool> newStatus)>("setLazyAuto", [](DownstreamState& state, boost::optional<bool> newStatus) {
     if (newStatus) {

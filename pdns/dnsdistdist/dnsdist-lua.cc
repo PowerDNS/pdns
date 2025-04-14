@@ -324,11 +324,7 @@ static void handleNewServerHealthCheckParameters(boost::optional<newserver_t>& v
 
   if (getOptionalValue<std::string>(vars, "healthCheckMode", valueStr) > 0) {
     const auto& mode = valueStr;
-    auto availability = DownstreamState::getAvailabilityFromStr(mode);
-    if (availability) {
-      config.availability = *availability;
-    }
-    else {
+    if (!DownstreamState::parseAvailabilityConfigFromStr(config, valueStr)) {
       warnlog("Ignoring unknown value '%s' for 'healthCheckMode' on 'newServer'", mode);
     }
   }

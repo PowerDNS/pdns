@@ -309,7 +309,7 @@ DownstreamState::DownstreamState(DownstreamState::Config&& config, std::shared_p
     setWeight(d_config.d_weight);
   }
 
-  if (d_config.availability == Availability::Lazy && d_config.d_lazyHealthCheckSampleSize > 0) {
+  if (d_config.d_availability == Availability::Auto && d_config.d_healthCheckMode == HealthCheckMode::Lazy && d_config.d_lazyHealthCheckSampleSize > 0) {
     d_lazyHealthCheckStats.lock()->d_lastResults.set_capacity(d_config.d_lazyHealthCheckSampleSize);
     setUpStatus(true);
   }
@@ -468,7 +468,7 @@ void DownstreamState::handleUDPTimeout(IDState& ids)
 
 void DownstreamState::reportResponse(uint8_t rcode)
 {
-  if (d_config.availability == Availability::Lazy && d_config.d_lazyHealthCheckSampleSize > 0) {
+  if (d_config.d_availability == Availability::Auto && d_config.d_healthCheckMode == HealthCheckMode::Lazy && d_config.d_lazyHealthCheckSampleSize > 0) {
     bool failure = d_config.d_lazyHealthCheckMode == LazyHealthCheckMode::TimeoutOrServFail ? rcode == RCode::ServFail : false;
     d_lazyHealthCheckStats.lock()->d_lastResults.push_back(failure);
   }
@@ -476,7 +476,7 @@ void DownstreamState::reportResponse(uint8_t rcode)
 
 void DownstreamState::reportTimeoutOrError()
 {
-  if (d_config.availability == Availability::Lazy && d_config.d_lazyHealthCheckSampleSize > 0) {
+  if (d_config.d_availability == Availability::Auto && d_config.d_healthCheckMode == HealthCheckMode::Lazy && d_config.d_lazyHealthCheckSampleSize > 0) {
     d_lazyHealthCheckStats.lock()->d_lastResults.push_back(true);
   }
 }
@@ -667,7 +667,11 @@ std::optional<InternalQueryState> DownstreamState::getState(uint16_t id)
 
 bool DownstreamState::healthCheckRequired(std::optional<time_t> currentTime)
 {
-  if (d_config.availability == DownstreamState::Availability::Lazy) {
+  if (d_config.d_availability != DownstreamState::Availability::Auto) {
+    return false;
+  }
+
+  if (d_config.d_healthCheckMode == DownstreamState::HealthCheckMode::Lazy) {
     auto stats = d_lazyHealthCheckStats.lock();
     if (stats->d_status == LazyHealthCheckStats::LazyStatus::PotentialFailure) {
       vinfolog("Sending health-check query for %s which is still in the Potential Failure state", getNameWithAddr());
@@ -716,7 +720,7 @@ bool DownstreamState::healthCheckRequired(std::optional<time_t> currentTime)
 
     return false;
   }
-  else if (d_config.availability == DownstreamState::Availability::Auto) {
+  else if (d_config.d_healthCheckMode == DownstreamState::HealthCheckMode::Active) {
 
     if (d_nextCheck > 1) {
       --d_nextCheck;
@@ -800,7 +804,7 @@ void DownstreamState::submitHealthCheckResult(bool initial, bool newResult)
     setUpStatus(newResult);
     if (newResult == false) {
       currentCheckFailures++;
-      if (d_config.availability == DownstreamState::Availability::Lazy) {
+      if (d_config.d_healthCheckMode == DownstreamState::HealthCheckMode::Lazy) {
         auto stats = d_lazyHealthCheckStats.lock();
         stats->d_status = LazyHealthCheckStats::LazyStatus::Failed;
         updateNextLazyHealthCheck(*stats, false);
@@ -825,7 +829,7 @@ void DownstreamState::submitHealthCheckResult(bool initial, bool newResult)
            and we didn't reach the threshold yet, let's stay down */
         newState = false;
 
-        if (d_config.availability == DownstreamState::Availability::Lazy) {
+        if (d_config.d_healthCheckMode == DownstreamState::HealthCheckMode::Lazy) {
           auto stats = d_lazyHealthCheckStats.lock();
           updateNextLazyHealthCheck(*stats, false);
         }
@@ -833,7 +837,7 @@ void DownstreamState::submitHealthCheckResult(bool initial, bool newResult)
     }
 
     if (newState) {
-      if (d_config.availability == DownstreamState::Availability::Lazy) {
+      if (d_config.d_healthCheckMode == DownstreamState::HealthCheckMode::Lazy) {
         auto stats = d_lazyHealthCheckStats.lock();
         vinfolog("Backend %s had %d successful checks, moving to Healthy", getNameWithAddr(), std::to_string(consecutiveSuccessfulChecks));
         stats->d_status = LazyHealthCheckStats::LazyStatus::Healthy;
@@ -856,7 +860,7 @@ void DownstreamState::submitHealthCheckResult(bool initial, bool newResult)
            and we did not reach the threshold yet, let's stay up */
         newState = true;
       }
-      else if (d_config.availability == DownstreamState::Availability::Lazy) {
+      else if (d_config.d_healthCheckMode == DownstreamState::HealthCheckMode::Lazy) {
         auto stats = d_lazyHealthCheckStats.lock();
         vinfolog("Backend %s failed its health-check, moving from Potential failure to Failed", getNameWithAddr());
         stats->d_status = LazyHealthCheckStats::LazyStatus::Failed;
@@ -974,21 +978,27 @@ bool DownstreamState::parseSourceParameter(const std::string& source, Downstream
   return false;
 }
 
-std::optional<DownstreamState::Availability> DownstreamState::getAvailabilityFromStr(const std::string& mode)
+bool DownstreamState::parseAvailabilityConfigFromStr(DownstreamState::Config& config, const std::string str)
 {
-  if (pdns_iequals(mode, "auto")) {
-    return DownstreamState::Availability::Auto;
+  if (pdns_iequals(str, "auto")) {
+    config.d_availability = DownstreamState::Availability::Auto;
+    config.d_healthCheckMode = DownstreamState::HealthCheckMode::Active;
+    return true;
   }
-  if (pdns_iequals(mode, "lazy")) {
-    return DownstreamState::Availability::Lazy;
+  if (pdns_iequals(str, "lazy")) {
+    config.d_availability = DownstreamState::Availability::Auto;
+    config.d_healthCheckMode = DownstreamState::HealthCheckMode::Lazy;
+    return true;
   }
-  if (pdns_iequals(mode, "up")) {
-    return DownstreamState::Availability::Up;
+  if (pdns_iequals(str, "up")) {
+    config.d_availability = DownstreamState::Availability::Up;
+    return true;
   }
-  if (pdns_iequals(mode, "down")) {
-    return DownstreamState::Availability::Down;
+  if (pdns_iequals(str, "down")) {
+    config.d_availability = DownstreamState::Availability::Down;
+    return true;
   }
-  return std::nullopt;
+  return false;
 }
 
 size_t ServerPool::countServers(bool upOnly)
