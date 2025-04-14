@@ -348,7 +348,7 @@ Parameters:
 SetDisableECSAction
 -------------------
 
-Disable the sending of ECS to the backend. Subsequent rules are processed after this action
+Disable the sending of ECS to the backend. This does not remove any existing EDNS Client Subnet value sent by the client, please have a look at :ref:`yaml-settings-SetEDNSOptionAction` instead. Subsequent rules are processed after this action
 
 Lua equivalent: :func:`SetDisableECSAction`
 
