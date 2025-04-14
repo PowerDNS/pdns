@@ -25,7 +25,6 @@ then
     export PKG_CONFIG_PATH="${BREW_CURL_PREFIX}/lib/pkgconfig"
   fi
 fi
-pip install -U pip wheel | cat
 pip install -r requirements.txt | cat
 
 protoc -I=../pdns/ --python_out=. ../pdns/dnsmessage.proto
