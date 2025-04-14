@@ -842,7 +842,7 @@ public:
     return d_config.d_tcpOnly || d_config.d_tcpCheck || d_tlsCtx != nullptr;
   }
 
-  bool isTCPOnly() const
+  [[nodiscard]] bool isTCPOnly() const
   {
     return d_config.d_tcpOnly || d_tlsCtx != nullptr;
   }
