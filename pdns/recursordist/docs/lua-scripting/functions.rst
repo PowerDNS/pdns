@@ -65,3 +65,9 @@ These are some functions that don't really have a place in one of the other cate
    Note that setting both limits to zero can produce very large strings. It is wise to set at least one of the limits.
    Additionally, setting ``maxSize`` to zero can lead to less efficient memory management while producing the dump.
 
+.. function:: getConfigDirAndName() -> str, str
+
+   .. versionadded:: 5.2.3
+
+   Get the configuration directory and the instance name.
+   These two values correspond to the :ref:`setting-yaml-recursor.config_dir` and :ref:`setting-yaml-recursor.config_name` settings.
