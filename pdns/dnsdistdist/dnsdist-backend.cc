@@ -452,7 +452,7 @@ void DownstreamState::handleUDPTimeout(IDState& ids)
   const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
   const auto& timeoutRespRules = dnsdist::rules::getResponseRuleChain(chains, dnsdist::rules::ResponseRuleChain::TimeoutResponseRules);
   auto sender = ids.internal.du == nullptr ? nullptr : ids.internal.du->getQuerySender();
-  if (!handleTimeoutResponseRules(timeoutRespRules, ids.internal, shared_from_this(), std::move(sender))) {
+  if (!handleTimeoutResponseRules(timeoutRespRules, ids.internal, shared_from_this(), sender)) {
     DOHUnitInterface::handleTimeout(std::move(ids.internal.du));
   }
 
