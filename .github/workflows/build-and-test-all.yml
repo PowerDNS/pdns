@@ -110,10 +110,10 @@ jobs:
         env:
           PDNS_BUILD_PATH: ../pdns-${{ env.BUILDER_VERSION }}
       - run: ${{ env.INV_CMD }} generate-coverage-info ./testrunner $GITHUB_WORKSPACE
-        if: ${{ env.COVERAGE == 'yes' && matrix.builder != 'meson' }}
-        working-directory: ./pdns-${{ env.BUILDER_VERSION }}/pdns
+        if: ${{ env.COVERAGE == 'yes' && matrix.builder == 'meson' }}
+        working-directory: ./pdns-${{ env.BUILDER_VERSION }}${{ matrix.builder == 'meson' && '' || '/pdns' }}
       - name: Coveralls Parallel auth unit
-        if: ${{ env.COVERAGE == 'yes' && matrix.builder != 'meson' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.builder == 'meson' }}
         uses: coverallsapp/github-action@v2
         with:
           flag-name: auth-unit-${{ env.SANITIZERS }}
@@ -198,9 +198,9 @@ jobs:
       - run: ${{ env.INV_CMD }} ci-rec-build ${{ matrix.builder == 'meson' && '--meson' || '' }}
       - run: ${{ env.INV_CMD }} ci-rec-run-unit-tests ${{ matrix.builder == 'meson' && '--meson' || '' }}
       - run: ${{ env.INV_CMD }} generate-coverage-info ./testrunner $GITHUB_WORKSPACE
-        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' && matrix.builder != 'meson' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' && matrix.builder == 'meson' }}
       - name: Coveralls Parallel rec unit
-        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' && matrix.builder != 'meson' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' && matrix.builder == 'meson' }}
         uses: coverallsapp/github-action@v2
         with:
           flag-name: rec-unit-${{ matrix.features }}-${{ matrix.sanitizers }}
@@ -293,9 +293,9 @@ jobs:
       - run: ${{ env.INV_CMD }} ci-dnsdist-make-bear ${{ matrix.builder }}
       - run: ${{ env.INV_CMD }} ci-dnsdist-run-unit-tests ${{ matrix.builder }}
       - run: ${{ env.INV_CMD }} generate-coverage-info ./testrunner $GITHUB_WORKSPACE
-        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' && matrix.builder == 'autotools'}}
+        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' && matrix.builder == 'meson'}}
       - name: Coveralls Parallel dnsdist unit
-        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' && matrix.builder == 'autotools' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' && matrix.builder == 'meson' }}
         uses: coverallsapp/github-action@v2
         with:
           flag-name: dnsdist-unit-${{ matrix.features }}-${{ matrix.sanitizers }}
