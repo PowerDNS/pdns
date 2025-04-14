@@ -896,6 +896,10 @@ public:
   {
     return std::tie(d_network, d_bits) == std::tie(rhs.d_network, rhs.d_bits);
   }
+  bool operator!=(const Netmask& rhs) const
+  {
+    return !operator==(rhs);
+  }
 
   [[nodiscard]] bool empty() const
   {

@@ -2716,6 +2716,10 @@ static void apiServerViewsPOST(HttpRequest* req, HttpResponse* resp)
   if (!domainInfo.backend->viewAddZone(view, zonename)) {
     throw ApiException("Failed to add " + zonename.toString() + " to view " + view);
   }
+  // Notify zone cache of the new association
+  if (g_zoneCache.isEnabled()) {
+    g_zoneCache.addToView(view, zonename);
+  }
 
   resp->body = "";
   resp->status = 204;
@@ -2729,6 +2733,10 @@ static void apiServerViewsDELETE(HttpRequest* req, HttpResponse* resp)
 
   if (!zoneData.domainInfo.backend->viewDelZone(view, zoneData.zoneName)) {
     throw ApiException("Failed to remove " + zoneData.zoneName.toString() + " from view " + view);
+  }
+  // Notify zone cache of the removed association
+  if (g_zoneCache.isEnabled()) {
+    g_zoneCache.removeFromView(view, zoneData.zoneName);
   }
 
   resp->body = "";
@@ -2785,6 +2793,10 @@ static void apiServerNetworksPUT(HttpRequest* req, HttpResponse* resp)
   UeberBackend backend;
   if (!backend.networkSet(network, view)) {
     throw ApiException("Failed to setup view " + view + " for network " + network.toString());
+  }
+  // Notify zone cache of the new association
+  if (g_zoneCache.isEnabled()) {
+    g_zoneCache.updateNetwork(network, view);
   }
 
   resp->body = "";
