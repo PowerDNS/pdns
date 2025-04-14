@@ -829,6 +829,15 @@ A server object returned by :func:`getServer` can be manipulated with these func
 
     :returns: The number of dropped queries
 
+  .. method:: Server:getHealthCheckMode() -> str
+
+    .. versionadded:: 2.0.0
+
+    Get the current health-check mode, ``active`` or ``lazy``. Note that health-checks might be disabled because :meth:`Server:setUp` or :meth:`Server:setDown`
+    were called, in which case this method will return the health-check more that will be restored ud :meth:`Server:setAuto` is called.
+
+    :returns: The current health-check mode
+
   .. method:: Server:getOutstanding() -> int
 
     Get the number of outstanding queries for this server.
@@ -839,7 +848,7 @@ A server object returned by :func:`getServer` can be manipulated with these func
 
     Returns the up status of the server.
     Result is based on the administrative status of the server (as set by either :meth:`Server:setDown` or :meth:`Server:setUp`).
-    If no administrative status is set (see :meth:`Server:setAuto` and :meth:`Server:setLazyAuto`), result is based on :attr:`Server.upStatus`
+    If no administrative status is set (see :meth:`Server:setAuto`, :meth:`Server:setActiveAuto` and :meth:`Server:setLazyAuto`), result is based on :attr:`Server.upStatus`
 
     :returns: true when the server is up, false otherwise
 
@@ -849,11 +858,23 @@ A server object returned by :func:`getServer` can be manipulated with these func
 
     :param str pool: The pool to remove the server from
 
+  .. method:: Server:setActiveAuto([status])
+
+    .. versionadded:: 2.0.0
+
+    Set the server in the 'active' health-check mode, which will send health-check queries to the backend every ``checkInterval`` seconds.
+    See also :meth:`Server:setLazyAuto` for a passive mode where health-check queries are only sent after a configurable threshold of regular queries failing,
+    and :ref:`Healthcheck` for a more detailed explanation.
+
+    :param bool status: Set the initial status of the server to ``up`` (true) or ``down`` (false) instead of using the last known status
+
   .. method:: Server:setAuto([status])
 
-    Set the server in the default ``auto`` state, regularly sending health-check queries to the backend. See also :meth:`Server:setLazyAuto` for a
-    passive mode where health-check queries are only sent after a configurable threshold of regular queries failing.
-    This will enable health check queries that will set the server ``up`` and ``down`` appropriately.
+    .. versionchanged:: 2.0.0
+      Before 2.0.0 this option forced the health-check mode to ``active`` (see :meth:`Server:setActiveAuto`). After 2.0.0 it restores the previous health-check mode instead.
+
+    Set the server in the default ``auto`` state, enabling health check queries that will set the server ``up`` and ``down`` appropriately.
+    See :meth:`Server:setActiveAuto`, :meth:`Server:setLazyAuto` and :ref:`Healthcheck` to understand the different health-check modes.
 
     :param bool status: Set the initial status of the server to ``up`` (true) or ``down`` (false) instead of using the last known status
 

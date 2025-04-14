@@ -1069,10 +1069,10 @@ static void handleJSONStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
 static void addServerToJSON(Json::array& servers, int identifier, const std::shared_ptr<DownstreamState>& backend)
 {
   string status;
-  if (backend->d_config.availability == DownstreamState::Availability::Up) {
+  if (backend->d_config.d_availability == DownstreamState::Availability::Up) {
     status = "UP";
   }
-  else if (backend->d_config.availability == DownstreamState::Availability::Down) {
+  else if (backend->d_config.d_availability == DownstreamState::Availability::Down) {
     status = "DOWN";
   }
   else {
@@ -1127,7 +1127,7 @@ static void addServerToJSON(Json::array& servers, int identifier, const std::sha
     {"dropRate", (double)backend->dropRate}};
 
   /* sending a latency for a DOWN server doesn't make sense */
-  if (backend->d_config.availability == DownstreamState::Availability::Down) {
+  if (backend->d_config.d_availability == DownstreamState::Availability::Down) {
     server["latency"] = nullptr;
     server["tcpLatency"] = nullptr;
   }

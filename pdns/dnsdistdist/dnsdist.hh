@@ -534,7 +534,11 @@ struct DownstreamState : public std::enable_shared_from_this<DownstreamState>
   {
     Up,
     Down,
-    Auto,
+    Auto
+  };
+  enum class HealthCheckMode : uint8_t
+  {
+    Active,
     Lazy
   };
   enum class LazyHealthCheckMode : uint8_t
@@ -595,7 +599,8 @@ struct DownstreamState : public std::enable_shared_from_this<DownstreamState>
     uint8_t minRiseSuccesses{1};
     uint8_t udpTimeout{0};
     uint8_t dscp{0};
-    Availability availability{Availability::Auto};
+    Availability d_availability{Availability::Auto};
+    HealthCheckMode d_healthCheckMode{HealthCheckMode::Active};
     bool d_tlsSubjectIsAddr{false};
     bool mustResolve{false};
     bool useECS{false};
@@ -726,7 +731,7 @@ private:
 
 public:
   static bool parseSourceParameter(const std::string& source, Config& config);
-  static std::optional<DownstreamState::Availability> getAvailabilityFromStr(const std::string& mode);
+  static bool parseAvailabilityConfigFromStr(DownstreamState::Config& config, const std::string str);
 
   void updateStatisticsInfo()
   {
@@ -740,10 +745,10 @@ public:
 
   bool isUp() const
   {
-    if (d_config.availability == Availability::Down) {
+    if (d_config.d_availability == Availability::Down) {
       return false;
     }
-    else if (d_config.availability == Availability::Up) {
+    else if (d_config.d_availability == Availability::Up) {
       return true;
     }
     return upStatus.load(std::memory_order_relaxed);
@@ -751,7 +756,7 @@ public:
 
   void setUp()
   {
-    d_config.availability = Availability::Up;
+    d_config.d_availability = Availability::Up;
   }
 
   void setUpStatus(bool newStatus)
@@ -764,17 +769,23 @@ public:
   }
   void setDown()
   {
-    d_config.availability = Availability::Down;
+    d_config.d_availability = Availability::Down;
     latencyUsec = 0.0;
     latencyUsecTCP = 0.0;
   }
   void setAuto()
   {
-    d_config.availability = Availability::Auto;
+    d_config.d_availability = Availability::Auto;
+  }
+  void setActiveAuto()
+  {
+    d_config.d_availability = Availability::Auto;
+    d_config.d_healthCheckMode = HealthCheckMode::Active;
   }
   void setLazyAuto()
   {
-    d_config.availability = Availability::Lazy;
+    d_config.d_availability = Availability::Auto;
+    d_config.d_healthCheckMode = HealthCheckMode::Lazy;
     d_lazyHealthCheckStats.lock()->d_lastResults.set_capacity(d_config.d_lazyHealthCheckSampleSize);
   }
   bool healthCheckRequired(std::optional<time_t> currentTime = std::nullopt);
@@ -796,10 +807,10 @@ public:
   string getStatus() const
   {
     string status;
-    if (d_config.availability == DownstreamState::Availability::Up) {
+    if (d_config.d_availability == DownstreamState::Availability::Up) {
       status = "UP";
     }
-    else if (d_config.availability == DownstreamState::Availability::Down) {
+    else if (d_config.d_availability == DownstreamState::Availability::Down) {
       status = "DOWN";
     }
     else {

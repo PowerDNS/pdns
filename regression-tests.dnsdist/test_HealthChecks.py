@@ -56,6 +56,7 @@ class TestDefaultHealthCheck(HealthCheckTest):
 
         self.sendConsoleCommand("getServer(0):setUp()")
         self.assertEqual(self.getBackendStatus(), 'up')
+        self.assertEqual(self.sendConsoleCommand("getServer(0):getHealthCheckMode()").rstrip(), "active")
 
         before = TestDefaultHealthCheck._healthCheckCounter
         time.sleep(1.5)
@@ -71,6 +72,7 @@ class TestDefaultHealthCheck(HealthCheckTest):
         self.sendConsoleCommand("getServer(0):setAuto()")
         # we get back the previous state, which was up
         self.assertEqual(self.getBackendStatus(), 'up')
+        self.assertEqual(self.sendConsoleCommand("getServer(0):getHealthCheckMode()").rstrip(), "active")
 
         before = TestDefaultHealthCheck._healthCheckCounter
         time.sleep(1.5)
@@ -79,6 +81,7 @@ class TestDefaultHealthCheck(HealthCheckTest):
 
         self.sendConsoleCommand("getServer(0):setDown()")
         self.assertEqual(self.getBackendStatus(), 'down')
+        self.assertEqual(self.sendConsoleCommand("getServer(0):getHealthCheckMode()").rstrip(), "active")
         self.sendConsoleCommand("getServer(0):setAuto(false)")
 
         before = TestDefaultHealthCheck._healthCheckCounter
@@ -86,6 +89,15 @@ class TestDefaultHealthCheck(HealthCheckTest):
         self.assertGreater(TestDefaultHealthCheck._healthCheckCounter, before)
         self.assertEqual(self.getBackendStatus(), 'up')
         self.assertEqual(self.getBackendMetric(0, 'healthCheckFailures'), 0)
+        self.assertEqual(self.sendConsoleCommand("getServer(0):getHealthCheckMode()").rstrip(), "active")
+
+        self.sendConsoleCommand("getServer(0):setLazyAuto()")
+        self.assertEqual(self.sendConsoleCommand("getServer(0):getHealthCheckMode()").rstrip(), "lazy")
+        self.sendConsoleCommand("getServer(0):setDown()")
+        self.sendConsoleCommand("getServer(0):setAuto()")
+        self.assertEqual(self.sendConsoleCommand("getServer(0):getHealthCheckMode()").rstrip(), "lazy")
+        self.sendConsoleCommand("getServer(0):setActiveAuto()")
+        self.assertEqual(self.sendConsoleCommand("getServer(0):getHealthCheckMode()").rstrip(), "active")
 
 class TestHealthCheckForcedUP(HealthCheckTest):
     # this test suite uses a different responder port
