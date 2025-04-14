@@ -13,6 +13,8 @@ import unittest
 import dns
 import dns.message
 import requests
+import threading
+from twisted.internet import reactor
 
 from proxyprotocol import ProxyProtocol
 
@@ -444,6 +446,8 @@ PrivateKey: Ep9uo6+wwjb4MaOmqq7LHav2FLrjotVOeZg8JT1Qk04=
     # 22: test_EDNSBuffer.py
     # 23: test_Lua.py
     # 24: test_RoutingTag.py
+    # 25: test_Cookies.py
+    # 26: test_Cookies.py
 
     _auth_cmd = ['authbind',
                  os.environ['PDNS']]
@@ -482,7 +486,7 @@ options {
         };""" % (zone, zonename))
 
     @classmethod
-    def generateAuthConfig(cls, confdir, threads):
+    def generateAuthConfig(cls, confdir, threads, extra=''):
         bind_dnssec_db = os.path.join(confdir, 'bind-dnssec.sqlite3')
 
         with open(os.path.join(confdir, 'pdns.conf'), 'w') as pdnsconf:
@@ -501,9 +505,11 @@ log-dns-details=yes
 loglevel=9
 enable-lua-records
 dname-processing=yes
-distributor-threads={threads}""".format(confdir=confdir,
-                                        bind_dnssec_db=bind_dnssec_db,
-                                        threads=threads))
+distributor-threads={threads}
+{extra}""".format(confdir=confdir,
+                  bind_dnssec_db=bind_dnssec_db,
+                  threads=threads,
+                  extra=extra))
 
         pdnsutilCmd = [os.environ['PDNSUTIL'],
                        '--config-dir=%s' % confdir,
@@ -726,6 +732,16 @@ distributor-threads={threads}""".format(confdir=confdir,
                           name]
         try:
             subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as e:
+            raise AssertionError('%s failed (%d): %s' % (rec_controlCmd, e.returncode, e.output))
+
+    @classmethod
+    def recControl(cls, confdir, *command):
+        rec_controlCmd = [os.environ['RECCONTROL'],
+                          '--config-dir=%s' % confdir
+                          ] + list(command)
+        try:
+            return subprocess.check_output(rec_controlCmd, text=True, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
             raise AssertionError('%s failed (%d): %s' % (rec_controlCmd, e.returncode, e.output))
 
@@ -1240,3 +1256,10 @@ distributor-threads={threads}""".format(confdir=confdir,
                         self.assertEqual(value, expected, key + ": value " + str(value) + " is not expected")
                     count += 1
         self.assertEqual(count, len(map))
+
+    @classmethod
+    def startReactor(cls):
+        if not reactor.running:
+            cls.Responder = threading.Thread(name='Responder', target=reactor.run, args=(False,))
+            cls.Responder.daemon = True
+            cls.Responder.start()
