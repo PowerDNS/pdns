@@ -2034,6 +2034,8 @@ mod dnsdistsettings {
         #[serde(default = "crate::U32::<60>::value", skip_serializing_if = "crate::U32::<60>::is_equal")]
         temporary_failure_ttl: u32,
         #[serde(default, skip_serializing_if = "crate::is_default")]
+        truncated_ttl: u32,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
         cookie_hashing: bool,
         #[serde(default = "crate::U32::<4096>::value", skip_serializing_if = "crate::U32::<4096>::is_equal")]
         maximum_entry_size: u32,
@@ -2152,113 +2154,113 @@ mod dnsdistsettings {
      * Functions callable from Rust (actions and selectors)
      */
     unsafe extern "C++" {
-        fn getAllowAction(config: &AllowActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getContinueAction(config: &ContinueActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getDelayAction(config: &DelayActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getDnstapLogAction(config: &DnstapLogActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getDropAction(config: &DropActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getSetEDNSOptionAction(config: &SetEDNSOptionActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getERCodeAction(config: &ERCodeActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getHTTPStatusAction(config: &HTTPStatusActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getKeyValueStoreLookupAction(config: &KeyValueStoreLookupActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getKeyValueStoreRangeLookupAction(config: &KeyValueStoreRangeLookupActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getLogAction(config: &LogActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getLuaAction(config: &LuaActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getLuaFFIAction(config: &LuaFFIActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getLuaFFIPerThreadAction(config: &LuaFFIPerThreadActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getNegativeAndSOAAction(config: &NegativeAndSOAActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getNoneAction(config: &NoneActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getPoolAction(config: &PoolActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getQPSAction(config: &QPSActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getQPSPoolAction(config: &QPSPoolActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getRCodeAction(config: &RCodeActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getRemoteLogAction(config: &RemoteLogActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getSetAdditionalProxyProtocolValueAction(config: &SetAdditionalProxyProtocolValueActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getSetDisableECSAction(config: &SetDisableECSActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getSetDisableValidationAction(config: &SetDisableValidationActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getSetECSAction(config: &SetECSActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getSetECSOverrideAction(config: &SetECSOverrideActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getSetECSPrefixLengthAction(config: &SetECSPrefixLengthActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getSetExtendedDNSErrorAction(config: &SetExtendedDNSErrorActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getSetMacAddrAction(config: &SetMacAddrActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getSetMaxReturnedTTLAction(config: &SetMaxReturnedTTLActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getSetNoRecurseAction(config: &SetNoRecurseActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getSetProxyProtocolValuesAction(config: &SetProxyProtocolValuesActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getSetSkipCacheAction(config: &SetSkipCacheActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getSetTagAction(config: &SetTagActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getSetTempFailureCacheTTLAction(config: &SetTempFailureCacheTTLActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getSNMPTrapAction(config: &SNMPTrapActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getSpoofAction(config: &SpoofActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getSpoofCNAMEAction(config: &SpoofCNAMEActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getSpoofPacketAction(config: &SpoofPacketActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getSpoofRawAction(config: &SpoofRawActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getSpoofSVCAction(config: &SpoofSVCActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getTCAction(config: &TCActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getTeeAction(config: &TeeActionConfiguration) -> SharedPtr<DNSActionWrapper>;
-        fn getAllowResponseAction(config: &AllowResponseActionConfiguration) -> SharedPtr<DNSResponseActionWrapper>;
-        fn getClearRecordTypesResponseAction(config: &ClearRecordTypesResponseActionConfiguration) -> SharedPtr<DNSResponseActionWrapper>;
-        fn getDelayResponseAction(config: &DelayResponseActionConfiguration) -> SharedPtr<DNSResponseActionWrapper>;
-        fn getDnstapLogResponseAction(config: &DnstapLogResponseActionConfiguration) -> SharedPtr<DNSResponseActionWrapper>;
-        fn getDropResponseAction(config: &DropResponseActionConfiguration) -> SharedPtr<DNSResponseActionWrapper>;
-        fn getLimitTTLResponseAction(config: &LimitTTLResponseActionConfiguration) -> SharedPtr<DNSResponseActionWrapper>;
-        fn getLogResponseAction(config: &LogResponseActionConfiguration) -> SharedPtr<DNSResponseActionWrapper>;
-        fn getLuaResponseAction(config: &LuaResponseActionConfiguration) -> SharedPtr<DNSResponseActionWrapper>;
-        fn getLuaFFIResponseAction(config: &LuaFFIResponseActionConfiguration) -> SharedPtr<DNSResponseActionWrapper>;
-        fn getLuaFFIPerThreadResponseAction(config: &LuaFFIPerThreadResponseActionConfiguration) -> SharedPtr<DNSResponseActionWrapper>;
-        fn getRemoteLogResponseAction(config: &RemoteLogResponseActionConfiguration) -> SharedPtr<DNSResponseActionWrapper>;
-        fn getSetExtendedDNSErrorResponseAction(config: &SetExtendedDNSErrorResponseActionConfiguration) -> SharedPtr<DNSResponseActionWrapper>;
-        fn getSetMaxReturnedTTLResponseAction(config: &SetMaxReturnedTTLResponseActionConfiguration) -> SharedPtr<DNSResponseActionWrapper>;
-        fn getSetMaxTTLResponseAction(config: &SetMaxTTLResponseActionConfiguration) -> SharedPtr<DNSResponseActionWrapper>;
-        fn getSetMinTTLResponseAction(config: &SetMinTTLResponseActionConfiguration) -> SharedPtr<DNSResponseActionWrapper>;
-        fn getSetReducedTTLResponseAction(config: &SetReducedTTLResponseActionConfiguration) -> SharedPtr<DNSResponseActionWrapper>;
-        fn getSetSkipCacheResponseAction(config: &SetSkipCacheResponseActionConfiguration) -> SharedPtr<DNSResponseActionWrapper>;
-        fn getSetTagResponseAction(config: &SetTagResponseActionConfiguration) -> SharedPtr<DNSResponseActionWrapper>;
-        fn getSNMPTrapResponseAction(config: &SNMPTrapResponseActionConfiguration) -> SharedPtr<DNSResponseActionWrapper>;
-        fn getTCResponseAction(config: &TCResponseActionConfiguration) -> SharedPtr<DNSResponseActionWrapper>;
-        fn getAllSelector(config: &AllSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getAndSelector(config: &AndSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getByNameSelector(config: &ByNameSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getDNSSECSelector(config: &DNSSECSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getDSTPortSelector(config: &DSTPortSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getEDNSOptionSelector(config: &EDNSOptionSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getEDNSVersionSelector(config: &EDNSVersionSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getERCodeSelector(config: &ERCodeSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getHTTPHeaderSelector(config: &HTTPHeaderSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getHTTPPathSelector(config: &HTTPPathSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getHTTPPathRegexSelector(config: &HTTPPathRegexSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getKeyValueStoreLookupSelector(config: &KeyValueStoreLookupSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getKeyValueStoreRangeLookupSelector(config: &KeyValueStoreRangeLookupSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getLuaSelector(config: &LuaSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getLuaFFISelector(config: &LuaFFISelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getLuaFFIPerThreadSelector(config: &LuaFFIPerThreadSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getMaxQPSSelector(config: &MaxQPSSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getMaxQPSIPSelector(config: &MaxQPSIPSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getNetmaskGroupSelector(config: &NetmaskGroupSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getNotSelector(config: &NotSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getOpcodeSelector(config: &OpcodeSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getOrSelector(config: &OrSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getPayloadSizeSelector(config: &PayloadSizeSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getPoolAvailableSelector(config: &PoolAvailableSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getPoolOutstandingSelector(config: &PoolOutstandingSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getProbaSelector(config: &ProbaSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getProxyProtocolValueSelector(config: &ProxyProtocolValueSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getQClassSelector(config: &QClassSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getQNameSelector(config: &QNameSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getQNameLabelsCountSelector(config: &QNameLabelsCountSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getQNameSetSelector(config: &QNameSetSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getQNameSuffixSelector(config: &QNameSuffixSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getQNameWireLengthSelector(config: &QNameWireLengthSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getQTypeSelector(config: &QTypeSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getRCodeSelector(config: &RCodeSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getRDSelector(config: &RDSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getRE2Selector(config: &RE2SelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getRecordsCountSelector(config: &RecordsCountSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getRecordsTypeCountSelector(config: &RecordsTypeCountSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getRegexSelector(config: &RegexSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getSNISelector(config: &SNISelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getTagSelector(config: &TagSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getTCPSelector(config: &TCPSelectorConfiguration) -> SharedPtr<DNSSelector>;
-        fn getTrailingDataSelector(config: &TrailingDataSelectorConfiguration) -> SharedPtr<DNSSelector>;
+        fn getAllowAction(config: &AllowActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getContinueAction(config: &ContinueActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getDelayAction(config: &DelayActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getDnstapLogAction(config: &DnstapLogActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getDropAction(config: &DropActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getSetEDNSOptionAction(config: &SetEDNSOptionActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getERCodeAction(config: &ERCodeActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getHTTPStatusAction(config: &HTTPStatusActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getKeyValueStoreLookupAction(config: &KeyValueStoreLookupActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getKeyValueStoreRangeLookupAction(config: &KeyValueStoreRangeLookupActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getLogAction(config: &LogActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getLuaAction(config: &LuaActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getLuaFFIAction(config: &LuaFFIActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getLuaFFIPerThreadAction(config: &LuaFFIPerThreadActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getNegativeAndSOAAction(config: &NegativeAndSOAActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getNoneAction(config: &NoneActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getPoolAction(config: &PoolActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getQPSAction(config: &QPSActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getQPSPoolAction(config: &QPSPoolActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getRCodeAction(config: &RCodeActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getRemoteLogAction(config: &RemoteLogActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getSetAdditionalProxyProtocolValueAction(config: &SetAdditionalProxyProtocolValueActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getSetDisableECSAction(config: &SetDisableECSActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getSetDisableValidationAction(config: &SetDisableValidationActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getSetECSAction(config: &SetECSActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getSetECSOverrideAction(config: &SetECSOverrideActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getSetECSPrefixLengthAction(config: &SetECSPrefixLengthActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getSetExtendedDNSErrorAction(config: &SetExtendedDNSErrorActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getSetMacAddrAction(config: &SetMacAddrActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getSetMaxReturnedTTLAction(config: &SetMaxReturnedTTLActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getSetNoRecurseAction(config: &SetNoRecurseActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getSetProxyProtocolValuesAction(config: &SetProxyProtocolValuesActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getSetSkipCacheAction(config: &SetSkipCacheActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getSetTagAction(config: &SetTagActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getSetTempFailureCacheTTLAction(config: &SetTempFailureCacheTTLActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getSNMPTrapAction(config: &SNMPTrapActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getSpoofAction(config: &SpoofActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getSpoofCNAMEAction(config: &SpoofCNAMEActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getSpoofPacketAction(config: &SpoofPacketActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getSpoofRawAction(config: &SpoofRawActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getSpoofSVCAction(config: &SpoofSVCActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getTCAction(config: &TCActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getTeeAction(config: &TeeActionConfiguration) -> Result<SharedPtr<DNSActionWrapper>>;
+        fn getAllowResponseAction(config: &AllowResponseActionConfiguration) -> Result<SharedPtr<DNSResponseActionWrapper>>;
+        fn getClearRecordTypesResponseAction(config: &ClearRecordTypesResponseActionConfiguration) -> Result<SharedPtr<DNSResponseActionWrapper>>;
+        fn getDelayResponseAction(config: &DelayResponseActionConfiguration) -> Result<SharedPtr<DNSResponseActionWrapper>>;
+        fn getDnstapLogResponseAction(config: &DnstapLogResponseActionConfiguration) -> Result<SharedPtr<DNSResponseActionWrapper>>;
+        fn getDropResponseAction(config: &DropResponseActionConfiguration) -> Result<SharedPtr<DNSResponseActionWrapper>>;
+        fn getLimitTTLResponseAction(config: &LimitTTLResponseActionConfiguration) -> Result<SharedPtr<DNSResponseActionWrapper>>;
+        fn getLogResponseAction(config: &LogResponseActionConfiguration) -> Result<SharedPtr<DNSResponseActionWrapper>>;
+        fn getLuaResponseAction(config: &LuaResponseActionConfiguration) -> Result<SharedPtr<DNSResponseActionWrapper>>;
+        fn getLuaFFIResponseAction(config: &LuaFFIResponseActionConfiguration) -> Result<SharedPtr<DNSResponseActionWrapper>>;
+        fn getLuaFFIPerThreadResponseAction(config: &LuaFFIPerThreadResponseActionConfiguration) -> Result<SharedPtr<DNSResponseActionWrapper>>;
+        fn getRemoteLogResponseAction(config: &RemoteLogResponseActionConfiguration) -> Result<SharedPtr<DNSResponseActionWrapper>>;
+        fn getSetExtendedDNSErrorResponseAction(config: &SetExtendedDNSErrorResponseActionConfiguration) -> Result<SharedPtr<DNSResponseActionWrapper>>;
+        fn getSetMaxReturnedTTLResponseAction(config: &SetMaxReturnedTTLResponseActionConfiguration) -> Result<SharedPtr<DNSResponseActionWrapper>>;
+        fn getSetMaxTTLResponseAction(config: &SetMaxTTLResponseActionConfiguration) -> Result<SharedPtr<DNSResponseActionWrapper>>;
+        fn getSetMinTTLResponseAction(config: &SetMinTTLResponseActionConfiguration) -> Result<SharedPtr<DNSResponseActionWrapper>>;
+        fn getSetReducedTTLResponseAction(config: &SetReducedTTLResponseActionConfiguration) -> Result<SharedPtr<DNSResponseActionWrapper>>;
+        fn getSetSkipCacheResponseAction(config: &SetSkipCacheResponseActionConfiguration) -> Result<SharedPtr<DNSResponseActionWrapper>>;
+        fn getSetTagResponseAction(config: &SetTagResponseActionConfiguration) -> Result<SharedPtr<DNSResponseActionWrapper>>;
+        fn getSNMPTrapResponseAction(config: &SNMPTrapResponseActionConfiguration) -> Result<SharedPtr<DNSResponseActionWrapper>>;
+        fn getTCResponseAction(config: &TCResponseActionConfiguration) -> Result<SharedPtr<DNSResponseActionWrapper>>;
+        fn getAllSelector(config: &AllSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getAndSelector(config: &AndSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getByNameSelector(config: &ByNameSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getDNSSECSelector(config: &DNSSECSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getDSTPortSelector(config: &DSTPortSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getEDNSOptionSelector(config: &EDNSOptionSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getEDNSVersionSelector(config: &EDNSVersionSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getERCodeSelector(config: &ERCodeSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getHTTPHeaderSelector(config: &HTTPHeaderSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getHTTPPathSelector(config: &HTTPPathSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getHTTPPathRegexSelector(config: &HTTPPathRegexSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getKeyValueStoreLookupSelector(config: &KeyValueStoreLookupSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getKeyValueStoreRangeLookupSelector(config: &KeyValueStoreRangeLookupSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getLuaSelector(config: &LuaSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getLuaFFISelector(config: &LuaFFISelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getLuaFFIPerThreadSelector(config: &LuaFFIPerThreadSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getMaxQPSSelector(config: &MaxQPSSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getMaxQPSIPSelector(config: &MaxQPSIPSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getNetmaskGroupSelector(config: &NetmaskGroupSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getNotSelector(config: &NotSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getOpcodeSelector(config: &OpcodeSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getOrSelector(config: &OrSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getPayloadSizeSelector(config: &PayloadSizeSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getPoolAvailableSelector(config: &PoolAvailableSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getPoolOutstandingSelector(config: &PoolOutstandingSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getProbaSelector(config: &ProbaSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getProxyProtocolValueSelector(config: &ProxyProtocolValueSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getQClassSelector(config: &QClassSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getQNameSelector(config: &QNameSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getQNameLabelsCountSelector(config: &QNameLabelsCountSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getQNameSetSelector(config: &QNameSetSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getQNameSuffixSelector(config: &QNameSuffixSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getQNameWireLengthSelector(config: &QNameWireLengthSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getQTypeSelector(config: &QTypeSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getRCodeSelector(config: &RCodeSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getRDSelector(config: &RDSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getRE2Selector(config: &RE2SelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getRecordsCountSelector(config: &RecordsCountSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getRecordsTypeCountSelector(config: &RecordsTypeCountSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getRegexSelector(config: &RegexSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getSNISelector(config: &SNISelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getTagSelector(config: &TagSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getTCPSelector(config: &TCPSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
+        fn getTrailingDataSelector(config: &TrailingDataSelectorConfiguration) -> Result<SharedPtr<DNSSelector>>;
     }
 // START INCLUDE rust-middle-in.rs
     /*
@@ -3722,739 +3724,746 @@ impl GlobalConfigurationSerde {
         Ok(())
     }
 }
-fn get_one_action_from_serde(action: &Action) -> Option<dnsdistsettings::SharedDNSAction> {
+fn get_one_action_from_serde(action: &Action) -> Result<dnsdistsettings::SharedDNSAction, cxx::Exception> {
     match action {
         Action::Default => {}
         Action::Allow(config) => {
-                let tmp_action = dnsdistsettings::getAllowAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getAllowAction(&config)?,
                 });
             }
         Action::Continue(cont) => {
              let mut config: dnsdistsettings::ContinueActionConfiguration = Default::default();
-             let new_action = get_one_action_from_serde(&*cont.action);
-             if new_action.is_some() {
-                 config.action = new_action.unwrap();
-             }
-             return Some(dnsdistsettings::SharedDNSAction {
-                 action: dnsdistsettings::getContinueAction(&config),
+             config.action = get_one_action_from_serde(&*cont.action)?;
+             return Ok(dnsdistsettings::SharedDNSAction {
+                 action: dnsdistsettings::getContinueAction(&config)?,
              });
         }
         Action::Delay(config) => {
-                let tmp_action = dnsdistsettings::getDelayAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getDelayAction(&config)?,
                 });
             }
         Action::DnstapLog(config) => {
-                let tmp_action = dnsdistsettings::getDnstapLogAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getDnstapLogAction(&config)?,
                 });
             }
         Action::Drop(config) => {
-                let tmp_action = dnsdistsettings::getDropAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getDropAction(&config)?,
                 });
             }
         Action::SetEDNSOption(config) => {
-                let tmp_action = dnsdistsettings::getSetEDNSOptionAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getSetEDNSOptionAction(&config)?,
                 });
             }
         Action::ERCode(config) => {
-                let tmp_action = dnsdistsettings::getERCodeAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getERCodeAction(&config)?,
                 });
             }
         Action::HTTPStatus(config) => {
-                let tmp_action = dnsdistsettings::getHTTPStatusAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getHTTPStatusAction(&config)?,
                 });
             }
         Action::KeyValueStoreLookup(config) => {
-                let tmp_action = dnsdistsettings::getKeyValueStoreLookupAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getKeyValueStoreLookupAction(&config)?,
                 });
             }
         Action::KeyValueStoreRangeLookup(config) => {
-                let tmp_action = dnsdistsettings::getKeyValueStoreRangeLookupAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getKeyValueStoreRangeLookupAction(&config)?,
                 });
             }
         Action::Log(config) => {
-                let tmp_action = dnsdistsettings::getLogAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getLogAction(&config)?,
                 });
             }
         Action::Lua(config) => {
-                let tmp_action = dnsdistsettings::getLuaAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getLuaAction(&config)?,
                 });
             }
         Action::LuaFFI(config) => {
-                let tmp_action = dnsdistsettings::getLuaFFIAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getLuaFFIAction(&config)?,
                 });
             }
         Action::LuaFFIPerThread(config) => {
-                let tmp_action = dnsdistsettings::getLuaFFIPerThreadAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getLuaFFIPerThreadAction(&config)?,
                 });
             }
         Action::NegativeAndSOA(config) => {
-                let tmp_action = dnsdistsettings::getNegativeAndSOAAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getNegativeAndSOAAction(&config)?,
                 });
             }
         Action::None(config) => {
-                let tmp_action = dnsdistsettings::getNoneAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getNoneAction(&config)?,
                 });
             }
         Action::Pool(config) => {
-                let tmp_action = dnsdistsettings::getPoolAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getPoolAction(&config)?,
                 });
             }
         Action::QPS(config) => {
-                let tmp_action = dnsdistsettings::getQPSAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getQPSAction(&config)?,
                 });
             }
         Action::QPSPool(config) => {
-                let tmp_action = dnsdistsettings::getQPSPoolAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getQPSPoolAction(&config)?,
                 });
             }
         Action::RCode(config) => {
-                let tmp_action = dnsdistsettings::getRCodeAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getRCodeAction(&config)?,
                 });
             }
         Action::RemoteLog(config) => {
-                let tmp_action = dnsdistsettings::getRemoteLogAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getRemoteLogAction(&config)?,
                 });
             }
         Action::SetAdditionalProxyProtocolValue(config) => {
-                let tmp_action = dnsdistsettings::getSetAdditionalProxyProtocolValueAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getSetAdditionalProxyProtocolValueAction(&config)?,
                 });
             }
         Action::SetDisableECS(config) => {
-                let tmp_action = dnsdistsettings::getSetDisableECSAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getSetDisableECSAction(&config)?,
                 });
             }
         Action::SetDisableValidation(config) => {
-                let tmp_action = dnsdistsettings::getSetDisableValidationAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getSetDisableValidationAction(&config)?,
                 });
             }
         Action::SetECS(config) => {
-                let tmp_action = dnsdistsettings::getSetECSAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getSetECSAction(&config)?,
                 });
             }
         Action::SetECSOverride(config) => {
-                let tmp_action = dnsdistsettings::getSetECSOverrideAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getSetECSOverrideAction(&config)?,
                 });
             }
         Action::SetECSPrefixLength(config) => {
-                let tmp_action = dnsdistsettings::getSetECSPrefixLengthAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getSetECSPrefixLengthAction(&config)?,
                 });
             }
         Action::SetExtendedDNSError(config) => {
-                let tmp_action = dnsdistsettings::getSetExtendedDNSErrorAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getSetExtendedDNSErrorAction(&config)?,
                 });
             }
         Action::SetMacAddr(config) => {
-                let tmp_action = dnsdistsettings::getSetMacAddrAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getSetMacAddrAction(&config)?,
                 });
             }
         Action::SetMaxReturnedTTL(config) => {
-                let tmp_action = dnsdistsettings::getSetMaxReturnedTTLAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getSetMaxReturnedTTLAction(&config)?,
                 });
             }
         Action::SetNoRecurse(config) => {
-                let tmp_action = dnsdistsettings::getSetNoRecurseAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getSetNoRecurseAction(&config)?,
                 });
             }
         Action::SetProxyProtocolValues(config) => {
-                let tmp_action = dnsdistsettings::getSetProxyProtocolValuesAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getSetProxyProtocolValuesAction(&config)?,
                 });
             }
         Action::SetSkipCache(config) => {
-                let tmp_action = dnsdistsettings::getSetSkipCacheAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getSetSkipCacheAction(&config)?,
                 });
             }
         Action::SetTag(config) => {
-                let tmp_action = dnsdistsettings::getSetTagAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getSetTagAction(&config)?,
                 });
             }
         Action::SetTempFailureCacheTTL(config) => {
-                let tmp_action = dnsdistsettings::getSetTempFailureCacheTTLAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getSetTempFailureCacheTTLAction(&config)?,
                 });
             }
         Action::SNMPTrap(config) => {
-                let tmp_action = dnsdistsettings::getSNMPTrapAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getSNMPTrapAction(&config)?,
                 });
             }
         Action::Spoof(config) => {
-                let tmp_action = dnsdistsettings::getSpoofAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getSpoofAction(&config)?,
                 });
             }
         Action::SpoofCNAME(config) => {
-                let tmp_action = dnsdistsettings::getSpoofCNAMEAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getSpoofCNAMEAction(&config)?,
                 });
             }
         Action::SpoofPacket(config) => {
-                let tmp_action = dnsdistsettings::getSpoofPacketAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getSpoofPacketAction(&config)?,
                 });
             }
         Action::SpoofRaw(config) => {
-                let tmp_action = dnsdistsettings::getSpoofRawAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getSpoofRawAction(&config)?,
                 });
             }
         Action::SpoofSVC(config) => {
-                let tmp_action = dnsdistsettings::getSpoofSVCAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getSpoofSVCAction(&config)?,
                 });
             }
         Action::TC(config) => {
-                let tmp_action = dnsdistsettings::getTCAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getTCAction(&config)?,
                 });
             }
         Action::Tee(config) => {
-                let tmp_action = dnsdistsettings::getTeeAction(&config);
-                return Some(dnsdistsettings::SharedDNSAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSAction {
+                    action: dnsdistsettings::getTeeAction(&config)?,
                 });
             }
     }
-    None
+    panic!("no action")
 }
-fn get_one_response_action_from_serde(action: &ResponseAction) -> Option<dnsdistsettings::SharedDNSResponseAction> {
+fn get_one_response_action_from_serde(action: &ResponseAction) -> Result<dnsdistsettings::SharedDNSResponseAction, cxx::Exception> {
     match action {
         ResponseAction::Default => {}
         ResponseAction::Allow(config) => {
-                let tmp_action = dnsdistsettings::getAllowResponseAction(&config);
-                return Some(dnsdistsettings::SharedDNSResponseAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSResponseAction {
+                    action: dnsdistsettings::getAllowResponseAction(&config)?,
                 });
             }
         ResponseAction::ClearRecordTypes(config) => {
-                let tmp_action = dnsdistsettings::getClearRecordTypesResponseAction(&config);
-                return Some(dnsdistsettings::SharedDNSResponseAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSResponseAction {
+                    action: dnsdistsettings::getClearRecordTypesResponseAction(&config)?,
                 });
             }
         ResponseAction::Delay(config) => {
-                let tmp_action = dnsdistsettings::getDelayResponseAction(&config);
-                return Some(dnsdistsettings::SharedDNSResponseAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSResponseAction {
+                    action: dnsdistsettings::getDelayResponseAction(&config)?,
                 });
             }
         ResponseAction::DnstapLog(config) => {
-                let tmp_action = dnsdistsettings::getDnstapLogResponseAction(&config);
-                return Some(dnsdistsettings::SharedDNSResponseAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSResponseAction {
+                    action: dnsdistsettings::getDnstapLogResponseAction(&config)?,
                 });
             }
         ResponseAction::Drop(config) => {
-                let tmp_action = dnsdistsettings::getDropResponseAction(&config);
-                return Some(dnsdistsettings::SharedDNSResponseAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSResponseAction {
+                    action: dnsdistsettings::getDropResponseAction(&config)?,
                 });
             }
         ResponseAction::LimitTTL(config) => {
-                let tmp_action = dnsdistsettings::getLimitTTLResponseAction(&config);
-                return Some(dnsdistsettings::SharedDNSResponseAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSResponseAction {
+                    action: dnsdistsettings::getLimitTTLResponseAction(&config)?,
                 });
             }
         ResponseAction::Log(config) => {
-                let tmp_action = dnsdistsettings::getLogResponseAction(&config);
-                return Some(dnsdistsettings::SharedDNSResponseAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSResponseAction {
+                    action: dnsdistsettings::getLogResponseAction(&config)?,
                 });
             }
         ResponseAction::Lua(config) => {
-                let tmp_action = dnsdistsettings::getLuaResponseAction(&config);
-                return Some(dnsdistsettings::SharedDNSResponseAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSResponseAction {
+                    action: dnsdistsettings::getLuaResponseAction(&config)?,
                 });
             }
         ResponseAction::LuaFFI(config) => {
-                let tmp_action = dnsdistsettings::getLuaFFIResponseAction(&config);
-                return Some(dnsdistsettings::SharedDNSResponseAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSResponseAction {
+                    action: dnsdistsettings::getLuaFFIResponseAction(&config)?,
                 });
             }
         ResponseAction::LuaFFIPerThread(config) => {
-                let tmp_action = dnsdistsettings::getLuaFFIPerThreadResponseAction(&config);
-                return Some(dnsdistsettings::SharedDNSResponseAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSResponseAction {
+                    action: dnsdistsettings::getLuaFFIPerThreadResponseAction(&config)?,
                 });
             }
         ResponseAction::RemoteLog(config) => {
-                let tmp_action = dnsdistsettings::getRemoteLogResponseAction(&config);
-                return Some(dnsdistsettings::SharedDNSResponseAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSResponseAction {
+                    action: dnsdistsettings::getRemoteLogResponseAction(&config)?,
                 });
             }
         ResponseAction::SetExtendedDNSError(config) => {
-                let tmp_action = dnsdistsettings::getSetExtendedDNSErrorResponseAction(&config);
-                return Some(dnsdistsettings::SharedDNSResponseAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSResponseAction {
+                    action: dnsdistsettings::getSetExtendedDNSErrorResponseAction(&config)?,
                 });
             }
         ResponseAction::SetMaxReturnedTTL(config) => {
-                let tmp_action = dnsdistsettings::getSetMaxReturnedTTLResponseAction(&config);
-                return Some(dnsdistsettings::SharedDNSResponseAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSResponseAction {
+                    action: dnsdistsettings::getSetMaxReturnedTTLResponseAction(&config)?,
                 });
             }
         ResponseAction::SetMaxTTL(config) => {
-                let tmp_action = dnsdistsettings::getSetMaxTTLResponseAction(&config);
-                return Some(dnsdistsettings::SharedDNSResponseAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSResponseAction {
+                    action: dnsdistsettings::getSetMaxTTLResponseAction(&config)?,
                 });
             }
         ResponseAction::SetMinTTL(config) => {
-                let tmp_action = dnsdistsettings::getSetMinTTLResponseAction(&config);
-                return Some(dnsdistsettings::SharedDNSResponseAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSResponseAction {
+                    action: dnsdistsettings::getSetMinTTLResponseAction(&config)?,
                 });
             }
         ResponseAction::SetReducedTTL(config) => {
-                let tmp_action = dnsdistsettings::getSetReducedTTLResponseAction(&config);
-                return Some(dnsdistsettings::SharedDNSResponseAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSResponseAction {
+                    action: dnsdistsettings::getSetReducedTTLResponseAction(&config)?,
                 });
             }
         ResponseAction::SetSkipCache(config) => {
-                let tmp_action = dnsdistsettings::getSetSkipCacheResponseAction(&config);
-                return Some(dnsdistsettings::SharedDNSResponseAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSResponseAction {
+                    action: dnsdistsettings::getSetSkipCacheResponseAction(&config)?,
                 });
             }
         ResponseAction::SetTag(config) => {
-                let tmp_action = dnsdistsettings::getSetTagResponseAction(&config);
-                return Some(dnsdistsettings::SharedDNSResponseAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSResponseAction {
+                    action: dnsdistsettings::getSetTagResponseAction(&config)?,
                 });
             }
         ResponseAction::SNMPTrap(config) => {
-                let tmp_action = dnsdistsettings::getSNMPTrapResponseAction(&config);
-                return Some(dnsdistsettings::SharedDNSResponseAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSResponseAction {
+                    action: dnsdistsettings::getSNMPTrapResponseAction(&config)?,
                 });
             }
         ResponseAction::TC(config) => {
-                let tmp_action = dnsdistsettings::getTCResponseAction(&config);
-                return Some(dnsdistsettings::SharedDNSResponseAction {
-                    action: tmp_action,
+                return Ok(dnsdistsettings::SharedDNSResponseAction {
+                    action: dnsdistsettings::getTCResponseAction(&config)?,
                 });
             }
     }
-    None
+    panic!("no action")
 }
-fn get_one_selector_from_serde(selector: &Selector) -> Option<dnsdistsettings::SharedDNSSelector> {
+fn get_one_selector_from_serde(selector: &Selector) -> Result<dnsdistsettings::SharedDNSSelector, cxx::Exception> {
     match selector {
         Selector::Default => {}
         Selector::All(all) => {
-            let tmp_selector = dnsdistsettings::getAllSelector(&all);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getAllSelector(&all) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::And(and) => {
              let mut config: dnsdistsettings::AndSelectorConfiguration = Default::default();
              for sub_selector in &and.selectors {
-                 let new_selector = get_one_selector_from_serde(&sub_selector);
-                 if new_selector.is_some() {
-                     config.selectors.push(new_selector.unwrap());
-                 }
+                 config.selectors.push(get_one_selector_from_serde(&sub_selector)?)
              }
-             return Some(dnsdistsettings::SharedDNSSelector {
-                 selector: dnsdistsettings::getAndSelector(&config),
-             });
+             return Ok(dnsdistsettings::SharedDNSSelector {
+                       selector: dnsdistsettings::getAndSelector(&config)?
+             })
         }
         Selector::ByName(byname) => {
-            let tmp_selector = dnsdistsettings::getByNameSelector(&byname);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getByNameSelector(&byname) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::DNSSEC(dnssec) => {
-            let tmp_selector = dnsdistsettings::getDNSSECSelector(&dnssec);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getDNSSECSelector(&dnssec) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::DSTPort(dstport) => {
-            let tmp_selector = dnsdistsettings::getDSTPortSelector(&dstport);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getDSTPortSelector(&dstport) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::EDNSOption(ednsoption) => {
-            let tmp_selector = dnsdistsettings::getEDNSOptionSelector(&ednsoption);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getEDNSOptionSelector(&ednsoption) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::EDNSVersion(ednsversion) => {
-            let tmp_selector = dnsdistsettings::getEDNSVersionSelector(&ednsversion);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getEDNSVersionSelector(&ednsversion) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::ERCode(ercode) => {
-            let tmp_selector = dnsdistsettings::getERCodeSelector(&ercode);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getERCodeSelector(&ercode) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::HTTPHeader(httpheader) => {
-            let tmp_selector = dnsdistsettings::getHTTPHeaderSelector(&httpheader);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getHTTPHeaderSelector(&httpheader) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::HTTPPath(httppath) => {
-            let tmp_selector = dnsdistsettings::getHTTPPathSelector(&httppath);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getHTTPPathSelector(&httppath) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::HTTPPathRegex(httppathregex) => {
-            let tmp_selector = dnsdistsettings::getHTTPPathRegexSelector(&httppathregex);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getHTTPPathRegexSelector(&httppathregex) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::KeyValueStoreLookup(keyvaluestorelookup) => {
-            let tmp_selector = dnsdistsettings::getKeyValueStoreLookupSelector(&keyvaluestorelookup);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getKeyValueStoreLookupSelector(&keyvaluestorelookup) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::KeyValueStoreRangeLookup(keyvaluestorerangelookup) => {
-            let tmp_selector = dnsdistsettings::getKeyValueStoreRangeLookupSelector(&keyvaluestorerangelookup);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getKeyValueStoreRangeLookupSelector(&keyvaluestorerangelookup) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::Lua(lua) => {
-            let tmp_selector = dnsdistsettings::getLuaSelector(&lua);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getLuaSelector(&lua) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::LuaFFI(luaffi) => {
-            let tmp_selector = dnsdistsettings::getLuaFFISelector(&luaffi);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getLuaFFISelector(&luaffi) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::LuaFFIPerThread(luaffiperthread) => {
-            let tmp_selector = dnsdistsettings::getLuaFFIPerThreadSelector(&luaffiperthread);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getLuaFFIPerThreadSelector(&luaffiperthread) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::MaxQPS(maxqps) => {
-            let tmp_selector = dnsdistsettings::getMaxQPSSelector(&maxqps);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getMaxQPSSelector(&maxqps) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::MaxQPSIP(maxqpsip) => {
-            let tmp_selector = dnsdistsettings::getMaxQPSIPSelector(&maxqpsip);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getMaxQPSIPSelector(&maxqpsip) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::NetmaskGroup(netmaskgroup) => {
-            let tmp_selector = dnsdistsettings::getNetmaskGroupSelector(&netmaskgroup);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getNetmaskGroupSelector(&netmaskgroup) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::Not(not) => {
              let mut config: dnsdistsettings::NotSelectorConfiguration = Default::default();
-             let new_selector = get_one_selector_from_serde(&*not.selector);
-             if new_selector.is_some() {
-                 config.selector = new_selector.unwrap();
+             match get_one_selector_from_serde(&*not.selector) {
+                 Ok(sel) => config.selector = sel,
+                 Err(e) => return Err(e),
              }
-             return Some(dnsdistsettings::SharedDNSSelector {
-                 selector: dnsdistsettings::getNotSelector(&config),
-             });
+             match dnsdistsettings::getNotSelector(&config) {
+                 Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                   selector: sel,
+                            }),
+                 Err(e) => return Err(e),
+             }
         }
         Selector::Opcode(opcode) => {
-            let tmp_selector = dnsdistsettings::getOpcodeSelector(&opcode);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getOpcodeSelector(&opcode) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::Or(or) => {
              let mut config: dnsdistsettings::OrSelectorConfiguration = Default::default();
              for sub_selector in &or.selectors {
-                 let new_selector = get_one_selector_from_serde(&sub_selector);
-                 if new_selector.is_some() {
-                     config.selectors.push(new_selector.unwrap());
-                 }
+                 config.selectors.push(get_one_selector_from_serde(&sub_selector)?)
              }
-             return Some(dnsdistsettings::SharedDNSSelector {
-                 selector: dnsdistsettings::getOrSelector(&config),
-             });
+             return Ok(dnsdistsettings::SharedDNSSelector {
+                       selector: dnsdistsettings::getOrSelector(&config)?
+             })
         }
         Selector::PayloadSize(payloadsize) => {
-            let tmp_selector = dnsdistsettings::getPayloadSizeSelector(&payloadsize);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getPayloadSizeSelector(&payloadsize) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::PoolAvailable(poolavailable) => {
-            let tmp_selector = dnsdistsettings::getPoolAvailableSelector(&poolavailable);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getPoolAvailableSelector(&poolavailable) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::PoolOutstanding(pooloutstanding) => {
-            let tmp_selector = dnsdistsettings::getPoolOutstandingSelector(&pooloutstanding);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getPoolOutstandingSelector(&pooloutstanding) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::Proba(proba) => {
-            let tmp_selector = dnsdistsettings::getProbaSelector(&proba);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getProbaSelector(&proba) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::ProxyProtocolValue(proxyprotocolvalue) => {
-            let tmp_selector = dnsdistsettings::getProxyProtocolValueSelector(&proxyprotocolvalue);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getProxyProtocolValueSelector(&proxyprotocolvalue) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::QClass(qclass) => {
-            let tmp_selector = dnsdistsettings::getQClassSelector(&qclass);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getQClassSelector(&qclass) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::QName(qname) => {
-            let tmp_selector = dnsdistsettings::getQNameSelector(&qname);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getQNameSelector(&qname) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::QNameLabelsCount(qnamelabelscount) => {
-            let tmp_selector = dnsdistsettings::getQNameLabelsCountSelector(&qnamelabelscount);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getQNameLabelsCountSelector(&qnamelabelscount) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::QNameSet(qnameset) => {
-            let tmp_selector = dnsdistsettings::getQNameSetSelector(&qnameset);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getQNameSetSelector(&qnameset) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::QNameSuffix(qnamesuffix) => {
-            let tmp_selector = dnsdistsettings::getQNameSuffixSelector(&qnamesuffix);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getQNameSuffixSelector(&qnamesuffix) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::QNameWireLength(qnamewirelength) => {
-            let tmp_selector = dnsdistsettings::getQNameWireLengthSelector(&qnamewirelength);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getQNameWireLengthSelector(&qnamewirelength) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::QType(qtype) => {
-            let tmp_selector = dnsdistsettings::getQTypeSelector(&qtype);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getQTypeSelector(&qtype) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::RCode(rcode) => {
-            let tmp_selector = dnsdistsettings::getRCodeSelector(&rcode);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getRCodeSelector(&rcode) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::RD(rd) => {
-            let tmp_selector = dnsdistsettings::getRDSelector(&rd);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getRDSelector(&rd) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::RE2(re2) => {
-            let tmp_selector = dnsdistsettings::getRE2Selector(&re2);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getRE2Selector(&re2) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::RecordsCount(recordscount) => {
-            let tmp_selector = dnsdistsettings::getRecordsCountSelector(&recordscount);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getRecordsCountSelector(&recordscount) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::RecordsTypeCount(recordstypecount) => {
-            let tmp_selector = dnsdistsettings::getRecordsTypeCountSelector(&recordstypecount);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getRecordsTypeCountSelector(&recordstypecount) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::Regex(regex) => {
-            let tmp_selector = dnsdistsettings::getRegexSelector(&regex);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getRegexSelector(&regex) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::SNI(sni) => {
-            let tmp_selector = dnsdistsettings::getSNISelector(&sni);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getSNISelector(&sni) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::Tag(tag) => {
-            let tmp_selector = dnsdistsettings::getTagSelector(&tag);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getTagSelector(&tag) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::TCP(tcp) => {
-            let tmp_selector = dnsdistsettings::getTCPSelector(&tcp);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getTCPSelector(&tcp) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
         Selector::TrailingData(trailingdata) => {
-            let tmp_selector = dnsdistsettings::getTrailingDataSelector(&trailingdata);
-            return Some(dnsdistsettings::SharedDNSSelector {
-                selector: tmp_selector,
-            });
+            match dnsdistsettings::getTrailingDataSelector(&trailingdata) {
+                Ok(sel) => return Ok(dnsdistsettings::SharedDNSSelector {
+                                  selector: sel,
+                           }),
+                Err(e) => return Err(e),
+            }
         }
     }
-    None
+    panic!("No selector")
 }
 // START INCLUDE rust-post-in.rs
 fn get_selectors_from_serde(
     selectors_from_serde: &Vec<Selector>,
-) -> Vec<dnsdistsettings::SharedDNSSelector> {
+) -> Result<Vec<dnsdistsettings::SharedDNSSelector>, cxx::Exception> {
     let mut results: Vec<dnsdistsettings::SharedDNSSelector> = Vec::new();
 
     for rule in selectors_from_serde {
-        let selector = get_one_selector_from_serde(&rule);
-        if selector.is_some() {
-            results.push(selector.unwrap());
-        }
+        results.push(get_one_selector_from_serde(&rule)?)
     }
-    results
+    Ok(results)
 }
 
 fn get_query_rules_from_serde(
     rules_from_serde: &Vec<QueryRuleConfigurationSerde>,
-) -> Vec<dnsdistsettings::QueryRuleConfiguration> {
+) -> Result<Vec<dnsdistsettings::QueryRuleConfiguration>, cxx::Exception> {
     let mut results: Vec<dnsdistsettings::QueryRuleConfiguration> = Vec::new();
 
     for rule in rules_from_serde {
-        let selector = get_one_selector_from_serde(&rule.selector);
-        let action = get_one_action_from_serde(&rule.action);
-        if selector.is_some() && action.is_some() {
-            results.push(dnsdistsettings::QueryRuleConfiguration {
-              name: rule.name.clone(),
-              uuid: rule.uuid.clone(),
-              selector: selector.unwrap(),
-              action: action.unwrap(),
-            });
-        }
+        let selector = get_one_selector_from_serde(&rule.selector)?;
+        let action = get_one_action_from_serde(&rule.action)?;
+        results.push(dnsdistsettings::QueryRuleConfiguration {
+            name: rule.name.clone(),
+            uuid: rule.uuid.clone(),
+            selector: selector,
+            action: action,
+        });
     }
-    results
+    Ok(results)
 }
 
 fn get_response_rules_from_serde(
     rules_from_serde: &Vec<ResponseRuleConfigurationSerde>,
-) -> Vec<dnsdistsettings::ResponseRuleConfiguration> {
+) -> Result<Vec<dnsdistsettings::ResponseRuleConfiguration>, cxx::Exception> {
     let mut results: Vec<dnsdistsettings::ResponseRuleConfiguration> = Vec::new();
 
     for rule in rules_from_serde {
-        let selector = get_one_selector_from_serde(&rule.selector);
-        let action = get_one_response_action_from_serde(&rule.action);
-        if selector.is_some() && action.is_some() {
-            results.push(dnsdistsettings::ResponseRuleConfiguration {
-              name: rule.name.clone(),
-              uuid: rule.uuid.clone(),
-              selector: selector.unwrap(),
-              action: action.unwrap(),
-            });
-        }
+        let selector = get_one_selector_from_serde(&rule.selector)?;
+        let action = get_one_response_action_from_serde(&rule.action)?;
+        results.push(dnsdistsettings::ResponseRuleConfiguration {
+            name: rule.name.clone(),
+            uuid: rule.uuid.clone(),
+            selector: selector,
+            action: action,
+        });
     }
-    results
+    Ok(results)
 }
 
 fn register_remote_loggers(
@@ -4470,7 +4479,7 @@ fn register_remote_loggers(
 
 fn get_global_configuration_from_serde(
     serde: GlobalConfigurationSerde,
-) -> dnsdistsettings::GlobalConfiguration {
+) -> Result<dnsdistsettings::GlobalConfiguration, cxx::Exception> {
     let mut config: dnsdistsettings::GlobalConfiguration = Default::default();
     config.key_value_stores = serde.key_value_stores;
     config.webserver = serde.webserver;
@@ -4500,32 +4509,35 @@ fn get_global_configuration_from_serde(
     dnsdistsettings::registerKVSObjects(&config.key_value_stores);
     // this needs to be done BEFORE the rules so that they can refer to the selectors
     // by name
-    config.selectors = get_selectors_from_serde(&serde.selectors);
-    config.query_rules = get_query_rules_from_serde(&serde.query_rules);
-    config.cache_miss_rules = get_query_rules_from_serde(&serde.cache_miss_rules);
-    config.response_rules = get_response_rules_from_serde(&serde.response_rules);
-    config.cache_hit_response_rules = get_response_rules_from_serde(&serde.cache_hit_response_rules);
-    config.cache_inserted_response_rules = get_response_rules_from_serde(&serde.cache_inserted_response_rules);
-    config.self_answered_response_rules = get_response_rules_from_serde(&serde.self_answered_response_rules);
-    config.xfr_response_rules = get_response_rules_from_serde(&serde.xfr_response_rules);
-    config.timeout_response_rules = get_response_rules_from_serde(&serde.timeout_response_rules);
-    config
+    config.selectors = get_selectors_from_serde(&serde.selectors)?;
+    config.query_rules = get_query_rules_from_serde(&serde.query_rules)?;
+    config.cache_miss_rules = get_query_rules_from_serde(&serde.cache_miss_rules)?;
+    config.response_rules = get_response_rules_from_serde(&serde.response_rules)?;
+    config.cache_hit_response_rules = get_response_rules_from_serde(&serde.cache_hit_response_rules)?;
+    config.cache_inserted_response_rules = get_response_rules_from_serde(&serde.cache_inserted_response_rules)?;
+    config.self_answered_response_rules = get_response_rules_from_serde(&serde.self_answered_response_rules)?;
+    config.xfr_response_rules = get_response_rules_from_serde(&serde.xfr_response_rules)?;
+    config.timeout_response_rules = get_response_rules_from_serde(&serde.timeout_response_rules)?;
+    Ok(config)
 }
 
 pub fn from_yaml_string(
     str: &str,
-) -> Result<dnsdistsettings::GlobalConfiguration, serde_yaml::Error> {
+) -> Result<dnsdistsettings::GlobalConfiguration, String> {
     let serde_config: Result<GlobalConfigurationSerde, serde_yaml::Error> =
         serde_yaml::from_str(str);
 
-    if !serde_config.is_err() {
-      let validation_result = serde_config.as_ref().unwrap().validate();
-      if let Err(e) = validation_result {
-          println!("Error validating the configuration loaded from {}: {}", str, e);
-      }
+    if let Err(e) = serde_config {
+      return Err(e.to_string().into());
     }
-    let config: dnsdistsettings::GlobalConfiguration =
-        get_global_configuration_from_serde(serde_config?);
-    return Ok(config);
+    let serde_config = serde_config.unwrap();
+    let validation_result = serde_config.validate();
+    if let Err(e) = validation_result {
+      return Err(e.to_string().into())
+    }
+    match get_global_configuration_from_serde(serde_config) {
+      Ok(config) => return Ok(config),
+      Err(e) => return Err(e.to_string().into()),
+    }
 }
 // END INCLUDE rust-post-in.rs

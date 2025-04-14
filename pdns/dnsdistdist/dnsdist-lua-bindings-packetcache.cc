@@ -33,66 +33,56 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
   /* PacketCache */
   luaCtx.writeFunction("newPacketCache", [client](size_t maxEntries, boost::optional<LuaAssociativeTable<boost::variant<bool, size_t, LuaArray<uint16_t>>>> vars) {
 
-    bool keepStaleData = false;
-    size_t maxTTL = 86400;
-    size_t minTTL = 0;
-    size_t tempFailTTL = 60;
-    size_t maxNegativeTTL = 3600;
-    size_t staleTTL = 60;
-    size_t numberOfShards = 20;
-    size_t maxEntrySize{0};
-    bool dontAge = false;
-    bool deferrableInsertLock = true;
-    bool ecsParsing = false;
+    DNSDistPacketCache::CacheSettings settings {
+      .d_maxEntries = maxEntries,
+      .d_shardCount = 20,
+    };
     bool cookieHashing = false;
     LuaArray<uint16_t> skipOptions;
-    std::unordered_set<uint16_t> optionsToSkip{EDNSOptionCode::COOKIE};
+    size_t maximumEntrySize{4096};
 
-    getOptionalValue<bool>(vars, "deferrableInsertLock", deferrableInsertLock);
-    getOptionalValue<bool>(vars, "dontAge", dontAge);
-    getOptionalValue<bool>(vars, "keepStaleData", keepStaleData);
-    getOptionalValue<size_t>(vars, "maxNegativeTTL", maxNegativeTTL);
-    getOptionalValue<size_t>(vars, "maxTTL", maxTTL);
-    getOptionalValue<size_t>(vars, "minTTL", minTTL);
-    getOptionalValue<size_t>(vars, "numberOfShards", numberOfShards);
-    getOptionalValue<bool>(vars, "parseECS", ecsParsing);
-    getOptionalValue<size_t>(vars, "staleTTL", staleTTL);
-    getOptionalValue<size_t>(vars, "temporaryFailureTTL", tempFailTTL);
+    getOptionalValue<bool>(vars, "deferrableInsertLock", settings.d_deferrableInsertLock);
+    getOptionalValue<bool>(vars, "dontAge", settings.d_dontAge);
+    getOptionalValue<bool>(vars, "keepStaleData", settings.d_keepStaleData);
+    getOptionalValue<size_t>(vars, "maxNegativeTTL", settings.d_maxNegativeTTL);
+    getOptionalValue<size_t>(vars, "maxTTL", settings.d_maxTTL);
+    getOptionalValue<size_t>(vars, "minTTL", settings.d_minTTL);
+    getOptionalValue<size_t>(vars, "numberOfShards", settings.d_shardCount);
+    getOptionalValue<bool>(vars, "parseECS", settings.d_parseECS);
+    getOptionalValue<size_t>(vars, "staleTTL", settings.d_staleTTL);
+    getOptionalValue<size_t>(vars, "temporaryFailureTTL", settings.d_tempFailureTTL);
+    getOptionalValue<size_t>(vars, "truncatedTTL", settings.d_truncatedTTL);
     getOptionalValue<bool>(vars, "cookieHashing", cookieHashing);
-    getOptionalValue<size_t>(vars, "maximumEntrySize", maxEntrySize);
+    getOptionalValue<size_t>(vars, "maximumEntrySize", maximumEntrySize);
+
+    if (maximumEntrySize >= sizeof(dnsheader)) {
+      settings.d_maximumEntrySize = maximumEntrySize;
+    }
 
     if (getOptionalValue<decltype(skipOptions)>(vars, "skipOptions", skipOptions) > 0) {
       for (const auto& option : skipOptions) {
-        optionsToSkip.insert(option.second);
+        settings.d_optionsToSkip.insert(option.second);
       }
     }
 
     if (cookieHashing) {
-      optionsToSkip.erase(EDNSOptionCode::COOKIE);
+      settings.d_optionsToSkip.erase(EDNSOptionCode::COOKIE);
     }
 
     checkAllParametersConsumed("newPacketCache", vars);
 
-    if (maxEntries < numberOfShards) {
-      warnlog("The number of entries (%d) in the packet cache is smaller than the number of shards (%d), decreasing the number of shards to %d", maxEntries, numberOfShards, maxEntries);
-      g_outputBuffer += "The number of entries (" + std::to_string(maxEntries) + " in the packet cache is smaller than the number of shards (" + std::to_string(numberOfShards) + "), decreasing the number of shards to " + std::to_string(maxEntries);
-      numberOfShards = maxEntries;
+    if (maxEntries < settings.d_shardCount) {
+      warnlog("The number of entries (%d) in the packet cache is smaller than the number of shards (%d), decreasing the number of shards to %d", maxEntries, settings.d_shardCount, maxEntries);
+      g_outputBuffer += "The number of entries (" + std::to_string(maxEntries) + " in the packet cache is smaller than the number of shards (" + std::to_string(settings.d_shardCount) + "), decreasing the number of shards to " + std::to_string(maxEntries);
+      settings.d_shardCount = maxEntries;
     }
 
     if (client) {
-      maxEntries = 1;
-      numberOfShards = 1;
+      settings.d_maxEntries = 1;
+      settings.d_shardCount = 1;
     }
 
-    auto res = std::make_shared<DNSDistPacketCache>(maxEntries, maxTTL, minTTL, tempFailTTL, maxNegativeTTL, staleTTL, dontAge, numberOfShards, deferrableInsertLock, ecsParsing);
-
-    res->setKeepStaleData(keepStaleData);
-    res->setSkippedOptions(optionsToSkip);
-    if (maxEntrySize >= sizeof(dnsheader)) {
-      res->setMaximumEntrySize(maxEntrySize);
-    }
-
-    return res;
+    return std::make_shared<DNSDistPacketCache>(settings);
   });
 
 #ifndef DISABLE_PACKETCACHE_BINDINGS

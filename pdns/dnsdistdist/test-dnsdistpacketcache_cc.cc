@@ -22,8 +22,12 @@ static bool receivedOverUDP = true;
 
 BOOST_AUTO_TEST_CASE(test_PacketCacheSimple)
 {
-  const size_t maxEntries = 150000;
-  DNSDistPacketCache localCache(maxEntries, 86400, 1);
+  const DNSDistPacketCache::CacheSettings settings{
+    .d_maxEntries = 150000,
+    .d_maxTTL = 86400,
+    .d_minTTL = 1,
+  };
+  DNSDistPacketCache localCache(settings);
   BOOST_CHECK_EQUAL(localCache.getSize(), 0U);
 
   size_t counter = 0;
@@ -131,9 +135,17 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSimple)
 
 BOOST_AUTO_TEST_CASE(test_PacketCacheSharded)
 {
-  const size_t maxEntries = 150000;
-  const size_t numberOfShards = 10;
-  DNSDistPacketCache localCache(maxEntries, 86400, 1, 60, 3600, 60, false, numberOfShards);
+  const DNSDistPacketCache::CacheSettings settings{
+    .d_maxEntries = 150000,
+    .d_maxTTL = 86400,
+    .d_minTTL = 1,
+    .d_tempFailureTTL = 60,
+    .d_maxNegativeTTL = 3600,
+    .d_staleTTL = 60,
+    .d_shardCount = 10,
+    .d_dontAge = false,
+  };
+  DNSDistPacketCache localCache(settings);
   BOOST_CHECK_EQUAL(localCache.getSize(), 0U);
 
   size_t counter = 0;
@@ -233,8 +245,12 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheSharded)
 
 BOOST_AUTO_TEST_CASE(test_PacketCacheTCP)
 {
-  const size_t maxEntries = 150000;
-  DNSDistPacketCache localCache(maxEntries, 86400, 1);
+  const DNSDistPacketCache::CacheSettings settings{
+    .d_maxEntries = 150000,
+    .d_maxTTL = 86400,
+    .d_minTTL = 1,
+  };
+  DNSDistPacketCache localCache(settings);
   InternalQueryState ids;
   ids.qtype = QType::A;
   ids.qclass = QClass::IN;
@@ -299,8 +315,12 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheTCP)
 
 BOOST_AUTO_TEST_CASE(test_PacketCacheServFailTTL)
 {
-  const size_t maxEntries = 150000;
-  DNSDistPacketCache localCache(maxEntries, 86400, 1);
+  const DNSDistPacketCache::CacheSettings settings{
+    .d_maxEntries = 150000,
+    .d_maxTTL = 86400,
+    .d_minTTL = 1,
+  };
+  DNSDistPacketCache localCache(settings);
   InternalQueryState ids;
   ids.qtype = QType::A;
   ids.qclass = QClass::IN;
@@ -351,8 +371,14 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheServFailTTL)
 
 BOOST_AUTO_TEST_CASE(test_PacketCacheNoDataTTL)
 {
-  const size_t maxEntries = 150000;
-  DNSDistPacketCache localCache(maxEntries, /* maxTTL */ 86400, /* minTTL */ 1, /* tempFailureTTL */ 60, /* maxNegativeTTL */ 1);
+  const DNSDistPacketCache::CacheSettings settings{
+    .d_maxEntries = 150000,
+    .d_maxTTL = 86400,
+    .d_minTTL = 1,
+    .d_tempFailureTTL = 60,
+    .d_maxNegativeTTL = 1,
+  };
+  DNSDistPacketCache localCache(settings);
 
   ComboAddress remote;
   bool dnssecOK = false;
@@ -407,8 +433,14 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheNoDataTTL)
 
 BOOST_AUTO_TEST_CASE(test_PacketCacheNXDomainTTL)
 {
-  const size_t maxEntries = 150000;
-  DNSDistPacketCache localCache(maxEntries, /* maxTTL */ 86400, /* minTTL */ 1, /* tempFailureTTL */ 60, /* maxNegativeTTL */ 1);
+  const DNSDistPacketCache::CacheSettings settings{
+    .d_maxEntries = 150000,
+    .d_maxTTL = 86400,
+    .d_minTTL = 1,
+    .d_tempFailureTTL = 60,
+    .d_maxNegativeTTL = 1,
+  };
+  DNSDistPacketCache localCache(settings);
 
   InternalQueryState ids;
   ids.qtype = QType::A;
@@ -463,63 +495,87 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheNXDomainTTL)
 
 BOOST_AUTO_TEST_CASE(test_PacketCacheTruncated)
 {
-  const size_t maxEntries = 150000;
-  DNSDistPacketCache localCache(maxEntries, /* maxTTL */ 86400, /* minTTL */ 1, /* tempFailureTTL */ 60, /* maxNegativeTTL */ 1);
-
   InternalQueryState ids;
   ids.qtype = QType::A;
   ids.qclass = QClass::IN;
   ids.protocol = dnsdist::Protocol::DoUDP;
   ids.queryRealTime.start(); // does not have to be accurate ("realTime") in tests
+  ids.qname = DNSName("truncated");
   bool dnssecOK = false;
+  PacketBuffer query;
+  GenericDNSPacketWriter<PacketBuffer> pwQ(query, ids.qname, QType::A, QClass::IN, 0);
+  pwQ.getHeader()->rd = 1;
 
-  try {
-    ids.qname = DNSName("truncated");
-    PacketBuffer query;
-    GenericDNSPacketWriter<PacketBuffer> pwQ(query, ids.qname, QType::A, QClass::IN, 0);
-    pwQ.getHeader()->rd = 1;
+  PacketBuffer response;
+  GenericDNSPacketWriter<PacketBuffer> pwR(response, ids.qname, QType::A, QClass::IN, 0);
+  pwR.getHeader()->rd = 1;
+  pwR.getHeader()->ra = 0;
+  pwR.getHeader()->qr = 1;
+  pwR.getHeader()->tc = 1;
+  pwR.getHeader()->rcode = RCode::NoError;
+  pwR.getHeader()->id = pwQ.getHeader()->id;
+  pwR.commit();
 
-    PacketBuffer response;
-    GenericDNSPacketWriter<PacketBuffer> pwR(response, ids.qname, QType::A, QClass::IN, 0);
-    pwR.getHeader()->rd = 1;
-    pwR.getHeader()->ra = 0;
-    pwR.getHeader()->qr = 1;
-    pwR.getHeader()->tc = 1;
-    pwR.getHeader()->rcode = RCode::NoError;
-    pwR.getHeader()->id = pwQ.getHeader()->id;
-    pwR.commit();
-    pwR.startRecord(ids.qname, QType::A, 7200, QClass::IN, DNSResourceRecord::ANSWER);
-    pwR.xfr32BitInt(0x01020304);
-    pwR.commit();
+  uint32_t key = 0;
+  boost::optional<Netmask> subnet;
+  DNSQuestion dnsQuestion(ids, query);
+  bool allowTruncated = true;
 
-    uint32_t key = 0;
-    boost::optional<Netmask> subnet;
-    DNSQuestion dnsQuestion(ids, query);
-    bool found = localCache.get(dnsQuestion, 0, &key, subnet, dnssecOK, receivedOverUDP);
-    BOOST_CHECK_EQUAL(found, false);
+  {
+    /* truncated answers are not cached by default */
+    const DNSDistPacketCache::CacheSettings settings{
+      .d_maxEntries = 150000,
+      .d_maxTTL = 86400,
+      .d_minTTL = 1,
+      .d_tempFailureTTL = 60,
+      .d_maxNegativeTTL = 1,
+    };
+    DNSDistPacketCache localCache(settings);
+    BOOST_CHECK_EQUAL(localCache.getSize(), 0U);
+
+    bool found = localCache.get(dnsQuestion, 0, &key, subnet, dnssecOK, receivedOverUDP, 0, false, allowTruncated);
+    BOOST_REQUIRE_EQUAL(found, false);
     BOOST_CHECK(!subnet);
 
-    localCache.insert(key, subnet, *(getFlagsFromDNSHeader(dnsQuestion.getHeader().get())), dnssecOK, ids.qname, QType::A, QClass::IN, response, receivedOverUDP, RCode::NXDomain, boost::none);
+    localCache.insert(key, subnet, *(getFlagsFromDNSHeader(dnsQuestion.getHeader().get())), dnssecOK, ids.qname, QType::A, QClass::IN, response, receivedOverUDP, 0, boost::none);
 
-    bool allowTruncated = true;
-    found = localCache.get(dnsQuestion, pwR.getHeader()->id, &key, subnet, dnssecOK, receivedOverUDP, 0, true, allowTruncated);
-    BOOST_CHECK_EQUAL(found, true);
+    found = localCache.get(dnsQuestion, pwR.getHeader()->id, &key, subnet, dnssecOK, receivedOverUDP, 0, false, allowTruncated);
+    BOOST_REQUIRE_EQUAL(found, false);
+  }
+
+  {
+    /* enable caching of truncated answers */
+    const DNSDistPacketCache::CacheSettings settings{
+      .d_maxEntries = 150000,
+      .d_maxTTL = 86400,
+      .d_minTTL = 1,
+      .d_truncatedTTL = 60,
+    };
+    DNSDistPacketCache localCache(settings);
+    BOOST_CHECK_EQUAL(localCache.getSize(), 0U);
+
+    bool found = localCache.get(dnsQuestion, 0, &key, subnet, dnssecOK, receivedOverUDP, 0, false, allowTruncated);
+    BOOST_REQUIRE_EQUAL(found, false);
     BOOST_CHECK(!subnet);
+
+    localCache.insert(key, subnet, *(getFlagsFromDNSHeader(dnsQuestion.getHeader().get())), dnssecOK, ids.qname, QType::A, QClass::IN, response, receivedOverUDP, 0, boost::none);
 
     allowTruncated = false;
-    found = localCache.get(dnsQuestion, pwR.getHeader()->id, &key, subnet, dnssecOK, receivedOverUDP, 0, true, allowTruncated);
-    BOOST_CHECK_EQUAL(found, false);
-  }
-  catch (const PDNSException& e) {
-    cerr << "Had error: " << e.reason << endl;
-    throw;
+    found = localCache.get(dnsQuestion, pwR.getHeader()->id, &key, subnet, dnssecOK, receivedOverUDP, 0, false, allowTruncated);
+    BOOST_REQUIRE_EQUAL(found, false);
+
+    allowTruncated = true;
+    found = localCache.get(dnsQuestion, pwR.getHeader()->id, &key, subnet, dnssecOK, receivedOverUDP, 0, false, allowTruncated);
+    BOOST_REQUIRE_EQUAL(found, true);
+    BOOST_REQUIRE_EQUAL(dnsQuestion.getData().size(), response.size());
+    int match = memcmp(dnsQuestion.getData().data(), response.data(), dnsQuestion.getData().size());
+    BOOST_CHECK_EQUAL(match, 0);
+    BOOST_CHECK(!subnet);
   }
 }
 
 BOOST_AUTO_TEST_CASE(test_PacketCacheMaximumSize)
 {
-  const size_t maxEntries = 150000;
-  DNSDistPacketCache packetCache(maxEntries, 86400, 1);
   InternalQueryState ids;
   ids.qtype = QType::A;
   ids.qclass = QClass::IN;
@@ -550,74 +606,89 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheMaximumSize)
     pwR.commit();
   }
 
-  /* first, we set the maximum entry size to the response packet size */
-  packetCache.setMaximumEntrySize(response.size());
-
   {
-    /* UDP */
-    uint32_t key = 0;
-    boost::optional<Netmask> subnet;
-    DNSQuestion dnsQuestion(ids, query);
-    bool found = packetCache.get(dnsQuestion, 0, &key, subnet, dnssecOK, receivedOverUDP);
-    BOOST_CHECK_EQUAL(found, false);
-    BOOST_CHECK(!subnet);
+    /* first, we set the maximum entry size to the response packet size */
+    const DNSDistPacketCache::CacheSettings settings{
+      .d_maxEntries = 150000,
+      .d_maximumEntrySize = response.size(),
+      .d_maxTTL = 86400,
+      .d_minTTL = 1,
+    };
+    DNSDistPacketCache packetCache(settings);
 
-    packetCache.insert(key, subnet, *(getFlagsFromDNSHeader(dnsQuestion.getHeader().get())), dnssecOK, ids.qname, QType::A, QClass::IN, response, receivedOverUDP, RCode::NoError, boost::none);
-    found = packetCache.get(dnsQuestion, queryID, &key, subnet, dnssecOK, receivedOverUDP, 0, true);
-    BOOST_CHECK_EQUAL(found, true);
-    BOOST_CHECK(!subnet);
+    {
+      /* UDP */
+      uint32_t key = 0;
+      boost::optional<Netmask> subnet;
+      DNSQuestion dnsQuestion(ids, query);
+      bool found = packetCache.get(dnsQuestion, 0, &key, subnet, dnssecOK, receivedOverUDP);
+      BOOST_CHECK_EQUAL(found, false);
+      BOOST_CHECK(!subnet);
+
+      packetCache.insert(key, subnet, *(getFlagsFromDNSHeader(dnsQuestion.getHeader().get())), dnssecOK, ids.qname, QType::A, QClass::IN, response, receivedOverUDP, RCode::NoError, boost::none);
+      found = packetCache.get(dnsQuestion, queryID, &key, subnet, dnssecOK, receivedOverUDP, 0, true);
+      BOOST_CHECK_EQUAL(found, true);
+      BOOST_CHECK(!subnet);
+    }
+
+    {
+      /* same but over TCP */
+      uint32_t key = 0;
+      boost::optional<Netmask> subnet;
+      ids.protocol = dnsdist::Protocol::DoTCP;
+      DNSQuestion dnsQuestion(ids, query);
+      bool found = packetCache.get(dnsQuestion, 0, &key, subnet, dnssecOK, !receivedOverUDP);
+      BOOST_CHECK_EQUAL(found, false);
+      BOOST_CHECK(!subnet);
+
+      packetCache.insert(key, subnet, *(getFlagsFromDNSHeader(dnsQuestion.getHeader().get())), dnssecOK, ids.qname, QType::A, QClass::IN, response, !receivedOverUDP, RCode::NoError, boost::none);
+      found = packetCache.get(dnsQuestion, queryID, &key, subnet, dnssecOK, !receivedOverUDP, 0, true);
+      BOOST_CHECK_EQUAL(found, true);
+      BOOST_CHECK(!subnet);
+    }
   }
 
   {
-    /* same but over TCP */
-    uint32_t key = 0;
-    boost::optional<Netmask> subnet;
-    ids.protocol = dnsdist::Protocol::DoTCP;
-    DNSQuestion dnsQuestion(ids, query);
-    bool found = packetCache.get(dnsQuestion, 0, &key, subnet, dnssecOK, !receivedOverUDP);
-    BOOST_CHECK_EQUAL(found, false);
-    BOOST_CHECK(!subnet);
+    /* then we set it slightly below response packet size */
+    const DNSDistPacketCache::CacheSettings settings{
+      .d_maxEntries = 150000,
+      .d_maximumEntrySize = response.size() - 1,
+      .d_maxTTL = 86400,
+      .d_minTTL = 1,
+    };
+    DNSDistPacketCache packetCache(settings);
 
-    packetCache.insert(key, subnet, *(getFlagsFromDNSHeader(dnsQuestion.getHeader().get())), dnssecOK, ids.qname, QType::A, QClass::IN, response, !receivedOverUDP, RCode::NoError, boost::none);
-    found = packetCache.get(dnsQuestion, queryID, &key, subnet, dnssecOK, !receivedOverUDP, 0, true);
-    BOOST_CHECK_EQUAL(found, true);
-    BOOST_CHECK(!subnet);
-  }
+    {
+      /* UDP */
+      uint32_t key = 0;
+      boost::optional<Netmask> subnet;
+      DNSQuestion dnsQuestion(ids, query);
+      bool found = packetCache.get(dnsQuestion, 0, &key, subnet, dnssecOK, receivedOverUDP);
+      BOOST_CHECK_EQUAL(found, false);
+      BOOST_CHECK(!subnet);
 
-  /* then we set it slightly below response packet size */
-  packetCache.expunge(0);
-  packetCache.setMaximumEntrySize(response.size() - 1);
-  {
-    /* UDP */
-    uint32_t key = 0;
-    boost::optional<Netmask> subnet;
-    DNSQuestion dnsQuestion(ids, query);
-    bool found = packetCache.get(dnsQuestion, 0, &key, subnet, dnssecOK, receivedOverUDP);
-    BOOST_CHECK_EQUAL(found, false);
-    BOOST_CHECK(!subnet);
+      packetCache.insert(key, subnet, *(getFlagsFromDNSHeader(dnsQuestion.getHeader().get())), dnssecOK, ids.qname, QType::A, QClass::IN, response, receivedOverUDP, RCode::NoError, boost::none);
+      found = packetCache.get(dnsQuestion, queryID, &key, subnet, dnssecOK, receivedOverUDP, 0, true);
+      BOOST_CHECK_EQUAL(found, false);
+    }
 
-    packetCache.insert(key, subnet, *(getFlagsFromDNSHeader(dnsQuestion.getHeader().get())), dnssecOK, ids.qname, QType::A, QClass::IN, response, receivedOverUDP, RCode::NoError, boost::none);
-    found = packetCache.get(dnsQuestion, queryID, &key, subnet, dnssecOK, receivedOverUDP, 0, true);
-    BOOST_CHECK_EQUAL(found, false);
-  }
+    {
+      /* same but over TCP */
+      uint32_t key = 0;
+      boost::optional<Netmask> subnet;
+      ids.protocol = dnsdist::Protocol::DoTCP;
+      DNSQuestion dnsQuestion(ids, query);
+      bool found = packetCache.get(dnsQuestion, 0, &key, subnet, dnssecOK, !receivedOverUDP);
+      BOOST_CHECK_EQUAL(found, false);
+      BOOST_CHECK(!subnet);
 
-  {
-    /* same but over TCP */
-    uint32_t key = 0;
-    boost::optional<Netmask> subnet;
-    ids.protocol = dnsdist::Protocol::DoTCP;
-    DNSQuestion dnsQuestion(ids, query);
-    bool found = packetCache.get(dnsQuestion, 0, &key, subnet, dnssecOK, !receivedOverUDP);
-    BOOST_CHECK_EQUAL(found, false);
-    BOOST_CHECK(!subnet);
-
-    packetCache.insert(key, subnet, *(getFlagsFromDNSHeader(dnsQuestion.getHeader().get())), dnssecOK, ids.qname, QType::A, QClass::IN, response, !receivedOverUDP, RCode::NoError, boost::none);
-    found = packetCache.get(dnsQuestion, queryID, &key, subnet, dnssecOK, !receivedOverUDP, 0, true);
-    BOOST_CHECK_EQUAL(found, false);
+      packetCache.insert(key, subnet, *(getFlagsFromDNSHeader(dnsQuestion.getHeader().get())), dnssecOK, ids.qname, QType::A, QClass::IN, response, !receivedOverUDP, RCode::NoError, boost::none);
+      found = packetCache.get(dnsQuestion, queryID, &key, subnet, dnssecOK, !receivedOverUDP, 0, true);
+      BOOST_CHECK_EQUAL(found, false);
+    }
   }
 
   /* now we generate a very big response packet, it should be cached over TCP and UDP (although in practice dnsdist will refuse to cache it for the UDP case)  */
-  packetCache.expunge(0);
   response.clear();
   {
     GenericDNSPacketWriter<PacketBuffer> pwR(response, ids.qname, QType::AAAA, QClass::IN, 0);
@@ -634,39 +705,52 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheMaximumSize)
   }
 
   BOOST_REQUIRE_GT(response.size(), 4096U);
-  packetCache.setMaximumEntrySize(response.size());
 
   {
-    /* UDP */
-    uint32_t key = 0;
-    boost::optional<Netmask> subnet;
-    DNSQuestion dnsQuestion(ids, query);
-    bool found = packetCache.get(dnsQuestion, 0, &key, subnet, dnssecOK, receivedOverUDP);
-    BOOST_CHECK_EQUAL(found, false);
-    BOOST_CHECK(!subnet);
+    /* then we set it slightly below response packet size */
+    const DNSDistPacketCache::CacheSettings settings{
+      .d_maxEntries = 150000,
+      .d_maximumEntrySize = response.size(),
+      .d_maxTTL = 86400,
+      .d_minTTL = 1,
+    };
+    DNSDistPacketCache packetCache(settings);
 
-    packetCache.insert(key, subnet, *(getFlagsFromDNSHeader(dnsQuestion.getHeader().get())), dnssecOK, ids.qname, QType::A, QClass::IN, response, receivedOverUDP, RCode::NoError, boost::none);
-    found = packetCache.get(dnsQuestion, queryID, &key, subnet, dnssecOK, receivedOverUDP, 0, true);
-    BOOST_CHECK_EQUAL(found, true);
-  }
+    {
+      /* UDP */
+      uint32_t key = 0;
+      boost::optional<Netmask> subnet;
+      DNSQuestion dnsQuestion(ids, query);
+      bool found = packetCache.get(dnsQuestion, 0, &key, subnet, dnssecOK, receivedOverUDP);
+      BOOST_CHECK_EQUAL(found, false);
+      BOOST_CHECK(!subnet);
 
-  {
-    /* same but over TCP */
-    uint32_t key = 0;
-    boost::optional<Netmask> subnet;
-    ids.protocol = dnsdist::Protocol::DoTCP;
-    DNSQuestion dnsQuestion(ids, query);
-    bool found = packetCache.get(dnsQuestion, 0, &key, subnet, dnssecOK, !receivedOverUDP);
-    BOOST_CHECK_EQUAL(found, false);
-    BOOST_CHECK(!subnet);
+      packetCache.insert(key, subnet, *(getFlagsFromDNSHeader(dnsQuestion.getHeader().get())), dnssecOK, ids.qname, QType::A, QClass::IN, response, receivedOverUDP, RCode::NoError, boost::none);
+      found = packetCache.get(dnsQuestion, queryID, &key, subnet, dnssecOK, receivedOverUDP, 0, true);
+      BOOST_CHECK_EQUAL(found, true);
+    }
 
-    packetCache.insert(key, subnet, *(getFlagsFromDNSHeader(dnsQuestion.getHeader().get())), dnssecOK, ids.qname, QType::A, QClass::IN, response, !receivedOverUDP, RCode::NoError, boost::none);
-    found = packetCache.get(dnsQuestion, queryID, &key, subnet, dnssecOK, !receivedOverUDP, 0, true);
-    BOOST_CHECK_EQUAL(found, true);
+    {
+      /* same but over TCP */
+      uint32_t key = 0;
+      boost::optional<Netmask> subnet;
+      ids.protocol = dnsdist::Protocol::DoTCP;
+      DNSQuestion dnsQuestion(ids, query);
+      bool found = packetCache.get(dnsQuestion, 0, &key, subnet, dnssecOK, !receivedOverUDP);
+      BOOST_CHECK_EQUAL(found, false);
+      BOOST_CHECK(!subnet);
+
+      packetCache.insert(key, subnet, *(getFlagsFromDNSHeader(dnsQuestion.getHeader().get())), dnssecOK, ids.qname, QType::A, QClass::IN, response, !receivedOverUDP, RCode::NoError, boost::none);
+      found = packetCache.get(dnsQuestion, queryID, &key, subnet, dnssecOK, !receivedOverUDP, 0, true);
+      BOOST_CHECK_EQUAL(found, true);
+    }
   }
 }
 
-static DNSDistPacketCache s_localCache(500000);
+const DNSDistPacketCache::CacheSettings s_localCacheSettings{
+  .d_maxEntries = 500000,
+};
+static DNSDistPacketCache s_localCache(s_localCacheSettings);
 
 static void threadMangler(unsigned int offset)
 {
@@ -777,8 +861,19 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheThreaded)
 
 BOOST_AUTO_TEST_CASE(test_PCCollision)
 {
-  const size_t maxEntries = 150000;
-  DNSDistPacketCache localCache(maxEntries, 86400, 1, 60, 3600, 60, false, 1, true, true);
+  const DNSDistPacketCache::CacheSettings settings{
+    .d_maxEntries = 150000,
+    .d_maxTTL = 86400,
+    .d_minTTL = 1,
+    .d_tempFailureTTL = 60,
+    .d_maxNegativeTTL = 3600,
+    .d_staleTTL = 60,
+    .d_shardCount = 1,
+    .d_dontAge = false,
+    .d_deferrableInsertLock = true,
+    .d_parseECS = true,
+  };
+  DNSDistPacketCache localCache(settings);
   BOOST_CHECK_EQUAL(localCache.getSize(), 0U);
 
   InternalQueryState ids;
@@ -862,7 +957,10 @@ BOOST_AUTO_TEST_CASE(test_PCCollision)
 #if 0
   /* to be able to compute a new collision if the packet cache hashing code is updated */
   {
-    DNSDistPacketCache pc(10000);
+    const DNSDistPacketCache::CacheSettings settings{
+      .d_maxEntries = 10000,
+    };
+    DNSDistPacketCache pc(settings);
     GenericDNSPacketWriter<PacketBuffer>::optvect_t ednsOptions;
     EDNSSubnetOpts opt;
     std::map<uint32_t, Netmask> colMap;
@@ -903,8 +1001,19 @@ BOOST_AUTO_TEST_CASE(test_PCCollision)
 
 BOOST_AUTO_TEST_CASE(test_PCDNSSECCollision)
 {
-  const size_t maxEntries = 150000;
-  DNSDistPacketCache localCache(maxEntries, 86400, 1, 60, 3600, 60, false, 1, true, true);
+  const DNSDistPacketCache::CacheSettings settings{
+    .d_maxEntries = 150000,
+    .d_maxTTL = 86400,
+    .d_minTTL = 1,
+    .d_tempFailureTTL = 60,
+    .d_maxNegativeTTL = 3600,
+    .d_staleTTL = 60,
+    .d_shardCount = 1,
+    .d_dontAge = false,
+    .d_deferrableInsertLock = true,
+    .d_parseECS = true,
+  };
+  DNSDistPacketCache localCache(settings);
   BOOST_CHECK_EQUAL(localCache.getSize(), 0U);
 
   InternalQueryState ids;
@@ -958,8 +1067,12 @@ BOOST_AUTO_TEST_CASE(test_PCDNSSECCollision)
 
 BOOST_AUTO_TEST_CASE(test_PacketCacheInspection)
 {
-  const size_t maxEntries = 100;
-  DNSDistPacketCache localCache(maxEntries, 86400, 1);
+  const DNSDistPacketCache::CacheSettings settings{
+    .d_maxEntries = 150000,
+    .d_maxTTL = 86400,
+    .d_minTTL = 1,
+  };
+  DNSDistPacketCache localCache(settings);
   BOOST_CHECK_EQUAL(localCache.getSize(), 0U);
 
   ComboAddress remote;
@@ -1200,8 +1313,12 @@ BOOST_AUTO_TEST_CASE(test_PacketCacheInspection)
 
 BOOST_AUTO_TEST_CASE(test_PacketCacheXFR)
 {
-  const size_t maxEntries = 150000;
-  DNSDistPacketCache localCache(maxEntries, 86400, 1);
+  const DNSDistPacketCache::CacheSettings settings{
+    .d_maxEntries = 150000,
+    .d_maxTTL = 86400,
+    .d_minTTL = 1,
+  };
+  DNSDistPacketCache localCache(settings);
   BOOST_CHECK_EQUAL(localCache.getSize(), 0U);
 
   const std::set<QType> xfrTypes = {QType::AXFR, QType::IXFR};

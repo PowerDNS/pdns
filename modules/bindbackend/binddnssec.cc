@@ -36,9 +36,13 @@ void Bind2Backend::setupDNSSEC()
   }
 }
 
-bool Bind2Backend::doesDNSSEC()
+unsigned int Bind2Backend::getCapabilities()
 {
-  return d_hybrid;
+  unsigned int caps = CAP_LIST;
+  if (d_hybrid) {
+    caps |= CAP_DNSSEC;
+  }
+  return caps;
 }
 
 bool Bind2Backend::getNSEC3PARAM(const DNSName& /* name */, NSEC3PARAMRecordContent* /* ns3p */)
@@ -197,9 +201,13 @@ void Bind2Backend::freeStatements()
   d_getTSIGKeysQuery_stmt.reset();
 }
 
-bool Bind2Backend::doesDNSSEC()
+unsigned int Bind2Backend::getCapabilities()
 {
-  return d_dnssecdb || d_hybrid;
+  unsigned int caps = CAP_LIST;
+  if (d_dnssecdb || d_hybrid) {
+    caps |= CAP_DNSSEC;
+  }
+  return caps;
 }
 
 bool Bind2Backend::getNSEC3PARAM(const DNSName& name, NSEC3PARAMRecordContent* ns3p)

@@ -2,13 +2,16 @@ LMDB backend
 ============
 
 * Native: Yes
-* Master: Yes
-* Slave: Yes
-* Superslave: No
-* Case: All lower
+* Primary: Yes
+* Secondary: Yes
+* Producer: Yes
+* Consumer: Yes
+* Autosecondary: No
+* DNS Update: No
 * DNSSEC: Yes
 * Disabled data: Yes
 * Comments: No
+* API: Read-Write
 * Multiple instances: No
 * Zone caching: Yes
 * Module name: lmdb

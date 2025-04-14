@@ -675,7 +675,7 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
         return sock
 
     @classmethod
-    def openTLSConnection(cls, port, serverName, caCert=None, timeout=2.0, alpn=[]):
+    def openTLSConnection(cls, port, serverName, caCert=None, timeout=2.0, alpn=[], sslctx=None, session=None):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         if timeout:
@@ -683,10 +683,11 @@ class DNSDistTest(AssertEqualDNSMessageMixin, unittest.TestCase):
 
         # 2.7.9+
         if hasattr(ssl, 'create_default_context'):
-            sslctx = ssl.create_default_context(cafile=caCert)
-            if len(alpn)> 0 and hasattr(sslctx, 'set_alpn_protocols'):
-              sslctx.set_alpn_protocols(alpn)
-            sslsock = sslctx.wrap_socket(sock, server_hostname=serverName)
+            if not sslctx:
+                sslctx = ssl.create_default_context(cafile=caCert)
+                if len(alpn)> 0 and hasattr(sslctx, 'set_alpn_protocols'):
+                    sslctx.set_alpn_protocols(alpn)
+            sslsock = sslctx.wrap_socket(sock, server_hostname=serverName, session=session)
         else:
             sslsock = ssl.wrap_socket(sock, ca_certs=caCert, cert_reqs=ssl.CERT_REQUIRED)
 

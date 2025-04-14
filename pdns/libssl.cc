@@ -203,7 +203,7 @@ std::pair<bool, std::string> libssl_load_provider(const std::string& providerNam
 }
 #endif /* HAVE_LIBSSL && OPENSSL_VERSION_MAJOR >= 3 && HAVE_TLS_PROVIDERS */
 
-#if defined(HAVE_LIBSSL) && !HAVE_TLS_PROVIDERS
+#if defined(HAVE_LIBSSL) && !defined(HAVE_TLS_PROVIDERS)
 std::pair<bool, std::string> libssl_load_engine([[maybe_unused]] const std::string& engineName, [[maybe_unused]] const std::optional<std::string>& defaultString)
 {
 #if defined(OPENSSL_NO_ENGINE)

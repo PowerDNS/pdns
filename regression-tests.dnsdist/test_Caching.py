@@ -80,6 +80,23 @@ class TestCaching(DNSDistTest):
 
         self.assertEqual(total, 1)
 
+    def testEmptyTruncated(self):
+        """
+        Cache: Empty TC=1 is not cached by default
+        """
+        name = 'empty-tc.cache.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'AAAA', 'IN')
+        response = dns.message.make_response(query)
+        response.flags |= dns.flags.TC
+
+        for _ in range(2):
+            (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(receivedResponse, response)
+
     def testDOCached(self):
         """
         Cache: Served from cache, query has DO bit set
@@ -1151,15 +1168,19 @@ class TestCachingStale(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
     _staleCacheTTL = 60
-    _config_params = ['_staleCacheTTL', '_consoleKeyB64', '_consolePort', '_testServerPort']
+    _config_params = ['_staleCacheTTL', '_consoleKeyB64', '_consolePort', '_testServerPort', '_testServerPort']
     _config_template = """
     pc = newPacketCache(100, {maxTTL=86400, minTTL=1, temporaryFailureTTL=0, staleTTL=%d})
     getPool(""):setCache(pc)
+    getPool("tcp-only"):setCache(pc)
     setStaleCacheEntriesTTL(600)
     setKey("%s")
     controlSocket("127.0.0.1:%d")
     newServer{address="127.0.0.1:%d"}
+    newServer{address="127.0.0.1:%d", tcpOnly=true, pool='tcp-only'}
+    addAction(QNameRule('stale-tcp-only.cache.tests.powerdns.com.'), PoolAction('tcp-only'))
     """
+
     def testCacheStale(self):
         """
         Cache: Cache entry, set backend down, get stale entry
@@ -1192,6 +1213,53 @@ class TestCachingStale(DNSDistTest):
 
         # ok, we mark the backend as down
         self.sendConsoleCommand("getServer(0):setDown()")
+        # and we wait for the entry to expire
+        time.sleep(ttl + 1)
+
+        # we should get a cached, stale, entry
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEqual(receivedResponse, response)
+        for an in receivedResponse.answer:
+            self.assertEqual(an.ttl, self._staleCacheTTL)
+
+        total = 0
+        for key in self._responsesCounter:
+            total += self._responsesCounter[key]
+
+        self.assertEqual(total, misses)
+
+    def testCacheStaleTCPOnly(self):
+        """
+        Cache: Cache entry from TCP-only backend, set backend down, get stale entry
+
+        """
+        misses = 0
+        ttl = 2
+        name = 'stale-tcp-only.cache.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    ttl,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        # Miss
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
+        misses += 1
+
+        # next queries should hit the cache
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEqual(receivedResponse, response)
+
+        # ok, we mark the backend as down
+        self.sendConsoleCommand("getServer(1):setDown()")
         # and we wait for the entry to expire
         time.sleep(ttl + 1)
 
@@ -3020,3 +3088,38 @@ class TestCachingOfVeryLargeAnswers(DNSDistTest):
         self.assertFalse(receivedResponse)
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
+
+class TestCacheEmptyTC(DNSDistTest):
+
+    _truncated_ttl = 42
+    _config_template = """
+    pc = newPacketCache(100, {maxTTL=86400, minTTL=1, truncatedTTL=%d})
+    getPool(""):setCache(pc)
+    newServer{address="127.0.0.1:%d"}
+    """
+    _config_params = ['_truncated_ttl', '_testServerPort']
+
+    def testEmptyTruncated(self):
+        """
+        Cache: Empty TC=1 should be cached
+        """
+        name = 'cache-empty-tc.cache.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'AAAA', 'IN')
+        response = dns.message.make_response(query)
+        response.flags |= dns.flags.TC
+
+        # first to fill the cache
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(receivedResponse, response)
+
+        # now it should be cached
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertEqual(receivedResponse, response)

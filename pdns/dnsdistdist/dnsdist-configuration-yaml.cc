@@ -239,7 +239,7 @@ static bool validateTLSConfiguration(const dnsdist::rust::settings::BindConfigur
   return true;
 }
 
-static bool handleTLSConfiguration(const dnsdist::rust::settings::BindConfiguration& bind, ClientState& state)
+static bool handleTLSConfiguration(const dnsdist::rust::settings::BindConfiguration& bind, ClientState& state, const std::shared_ptr<const TLSFrontend>& parent)
 {
   auto tlsConfig = getTLSConfigFromRustIncomingTLS(bind.tls);
   if (!validateTLSConfiguration(bind, tlsConfig)) {
@@ -249,6 +249,7 @@ static bool handleTLSConfiguration(const dnsdist::rust::settings::BindConfigurat
   auto protocol = boost::to_lower_copy(std::string(bind.protocol));
   if (protocol == "dot") {
     auto frontend = std::make_shared<TLSFrontend>(TLSFrontend::ALPN::DoT);
+    frontend->setParent(parent);
     frontend->d_provider = std::string(bind.tls.provider);
     boost::algorithm::to_lower(frontend->d_provider);
     frontend->d_proxyProtocolOutsideTLS = bind.tls.proxy_protocol_outside_tls;
@@ -284,10 +285,12 @@ static bool handleTLSConfiguration(const dnsdist::rust::settings::BindConfigurat
     state.doh3Frontend = std::move(frontend);
   }
 #endif /* HAVE_DNS_OVER_HTTP3 */
+#if defined(HAVE_DNS_OVER_HTTPS)
   else if (protocol == "doh") {
     auto frontend = std::make_shared<DOHFrontend>();
-    frontend->d_tlsContext.d_provider = std::string(bind.tls.provider);
-    boost::algorithm::to_lower(frontend->d_tlsContext.d_provider);
+    auto& tlsContext = frontend->d_tlsContext;
+    tlsContext->d_provider = std::string(bind.tls.provider);
+    boost::algorithm::to_lower(tlsContext->d_provider);
     frontend->d_library = std::string(bind.doh.provider);
     if (frontend->d_library == "h2o") {
 #ifdef HAVE_LIBH2OEVLOOP
@@ -343,18 +346,20 @@ static bool handleTLSConfiguration(const dnsdist::rust::settings::BindConfigurat
     }
 
     if (!tlsConfig.d_certKeyPairs.empty()) {
-      frontend->d_tlsContext.d_addr = ComboAddress(std::string(bind.listen_address), 443);
+      tlsContext->d_addr = ComboAddress(std::string(bind.listen_address), 443);
       infolog("DNS over HTTPS configured");
     }
     else {
-      frontend->d_tlsContext.d_addr = ComboAddress(std::string(bind.listen_address), 80);
-      infolog("No certificate provided for DoH endpoint %s, running in DNS over HTTP mode instead of DNS over HTTPS", frontend->d_tlsContext.d_addr.toStringWithPort());
+      tlsContext->d_addr = ComboAddress(std::string(bind.listen_address), 80);
+      infolog("No certificate provided for DoH endpoint %s, running in DNS over HTTP mode instead of DNS over HTTPS", tlsContext->d_addr.toStringWithPort());
     }
 
-    frontend->d_tlsContext.d_proxyProtocolOutsideTLS = bind.tls.proxy_protocol_outside_tls;
-    frontend->d_tlsContext.d_tlsConfig = std::move(tlsConfig);
+    tlsContext->d_proxyProtocolOutsideTLS = bind.tls.proxy_protocol_outside_tls;
+    tlsContext->d_tlsConfig = std::move(tlsConfig);
+    tlsContext->setParent(parent);
     state.dohFrontend = std::move(frontend);
   }
+#endif /* defined(HAVE_DNS_OVER_HTTPS) */
   else if (protocol != "do53") {
     errlog("Bind %s is configured to use an unknown protocol ('%s')", bind.listen_address, protocol);
     return false;
@@ -677,6 +682,7 @@ static void loadBinds(const ::rust::Vec<dnsdist::rust::settings::BindConfigurati
         }
       }
 
+      std::shared_ptr<const TLSFrontend> tlsFrontendParent;
       for (size_t idx = 0; idx < bind.threads; idx++) {
 #if defined(HAVE_DNSCRYPT)
         std::shared_ptr<DNSCryptContext> dnsCryptContext;
@@ -715,8 +721,11 @@ static void loadBinds(const ::rust::Vec<dnsdist::rust::settings::BindConfigurati
 #endif /* defined(HAVE_DNSCRYPT) */
         }
         else if (protocol != "do53") {
-          if (!handleTLSConfiguration(bind, *state)) {
+          if (!handleTLSConfiguration(bind, *state, tlsFrontendParent)) {
             continue;
+          }
+          if (tlsFrontendParent == nullptr && (protocol == "dot" || protocol == "doh")) {
+            tlsFrontendParent = state->getTLSFrontend();
           }
         }
 
@@ -1058,23 +1067,29 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
     }
 
     for (const auto& cache : globalConfig.packet_caches) {
-      auto packetCacheObj = std::make_shared<DNSDistPacketCache>(cache.size, cache.max_ttl, cache.min_ttl, cache.temporary_failure_ttl, cache.max_negative_ttl, cache.stale_ttl, cache.dont_age, cache.shards, cache.deferrable_insert_lock, cache.parse_ecs);
-
-      packetCacheObj->setKeepStaleData(cache.keep_stale_data);
-      std::unordered_set<uint16_t> optionsToSkip{EDNSOptionCode::COOKIE};
-
+      DNSDistPacketCache::CacheSettings settings{
+        .d_maxEntries = cache.size,
+        .d_maxTTL = cache.max_ttl,
+        .d_minTTL = cache.min_ttl,
+        .d_tempFailureTTL = cache.temporary_failure_ttl,
+        .d_maxNegativeTTL = cache.max_negative_ttl,
+        .d_staleTTL = cache.stale_ttl,
+        .d_shardCount = cache.shards,
+        .d_dontAge = cache.dont_age,
+        .d_deferrableInsertLock = cache.deferrable_insert_lock,
+        .d_parseECS = cache.parse_ecs,
+        .d_keepStaleData = cache.keep_stale_data,
+      };
       for (const auto& option : cache.options_to_skip) {
-        optionsToSkip.insert(pdns::checked_stoi<uint16_t>(std::string(option)));
+        settings.d_optionsToSkip.insert(pdns::checked_stoi<uint16_t>(std::string(option)));
       }
-
       if (cache.cookie_hashing) {
-        optionsToSkip.erase(EDNSOptionCode::COOKIE);
+        settings.d_optionsToSkip.erase(EDNSOptionCode::COOKIE);
       }
-
-      packetCacheObj->setSkippedOptions(optionsToSkip);
       if (cache.maximum_entry_size >= sizeof(dnsheader)) {
-        packetCacheObj->setMaximumEntrySize(cache.maximum_entry_size);
+        settings.d_maximumEntrySize = cache.maximum_entry_size;
       }
+      auto packetCacheObj = std::make_shared<DNSDistPacketCache>(settings);
 
       registerType<DNSDistPacketCache>(packetCacheObj, cache.name);
     }
@@ -1112,10 +1127,10 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
     return true;
   }
   catch (const ::rust::Error& exp) {
-    errlog("Rust error while opening YAML file %s: %s", fileName, exp.what());
+    errlog("Error while parsing YAML file %s: %s", fileName, exp.what());
   }
   catch (const std::exception& exp) {
-    errlog("C++ error while opening YAML file %s: %s", fileName, exp.what());
+    errlog("Error while processing YAML configuration from file %s: %s", fileName, exp.what());
   }
   s_registeredTypesMap.lock()->clear();
   return false;

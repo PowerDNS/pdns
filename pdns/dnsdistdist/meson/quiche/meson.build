@@ -15,6 +15,18 @@ if (opt_quic.allowed() or opt_doh3.allowed()) and opt_libquiche.allowed()
   else
     dep_libquiche = dependency('quiche', version: '>= 0.15.0', required: opt_libquiche.enabled() or opt_quic.enabled() or opt_doh3.enabled())
   endif
+
+  if dep_libquiche.found()
+    funcs = [
+      'quiche_conn_server_name',
+    ]
+
+    foreach func: funcs
+      has = cxx.has_function(func, dependencies: dep_libquiche)
+      conf.set('HAVE_' + func.to_upper(), has, description: 'Have Quiche ' + func)
+    endforeach
+  endif
+
 else
   dep_libquiche = dependency('', required: false)
 endif

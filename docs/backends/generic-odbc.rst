@@ -2,13 +2,17 @@ Generic ODBC Backend
 ====================
 
 * Native: Yes
-* Master: Yes
-* Slave: Yes
-* Superslave: Yes
-* Case: All lower
+* Primary: Yes
+* Secondary: Yes
+* Producer: Yes
+* Consumer: Yes
+* Autosecondary: Yes
+* DNS Update: Yes
 * DNSSEC: Yes
 * Disabled data: Yes
 * Comments: Yes
+* API: Read-Write
+* Multiple instances: yes
 * Zone caching: Yes
 * Module name: godbc
 * Launch name: ``godbc``
