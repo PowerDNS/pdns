@@ -299,7 +299,7 @@ recursor:
             except Exception as e:
                 ex = e
             attempts = attempts + 1
-            sleep(0.1)
+            time.sleep(0.1)
         if ex is not None:
             raise ex
         raise AssertionError('expected content not found')
