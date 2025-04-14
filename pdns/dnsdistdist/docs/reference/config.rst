@@ -838,7 +838,7 @@ A server object returned by :func:`getServer` can be manipulated with these func
 
     Returns the up status of the server.
     Result is based on the administrative status of the server (as set by either :meth:`Server:setDown` or :meth:`Server:setUp`).
-    If no administrative status is set (see :meth:`Server:setAuto`), result is based on :attr:`Server.upStatus`
+    If no administrative status is set (see :meth:`Server:setAuto` and :meth:`Server:setLazyAuto`), result is based on :attr:`Server.upStatus`
 
     :returns: true when the server is up, false otherwise
 
@@ -850,7 +850,8 @@ A server object returned by :func:`getServer` can be manipulated with these func
 
   .. method:: Server:setAuto([status])
 
-    Set the server in the default auto state.
+    Set the server in the default ``auto`` state, regularly sending health-check queries to the backend. See also :meth:`Server:setLazyAuto` for a
+    passive mode where health-check queries are only sent after a configurable threshold of regular queries failing.
     This will enable health check queries that will set the server ``up`` and ``down`` appropriately.
 
     :param bool status: Set the initial status of the server to ``up`` (true) or ``down`` (false) instead of using the last known status
@@ -864,8 +865,8 @@ A server object returned by :func:`getServer` can be manipulated with these func
 
     .. versionadded:: 1.8.0
 
-    Set the server in the 'lazy' health-check mode.
-    This will enable health check queries, but only after a configurable threshold of failing regular queries has been reached and
+    Set the server in the ``lazy`` health-check mode.
+    This will only enable active health check queries after a configurable threshold of failing regular queries has been reached, and
     only for a short time. See :ref:`Healthcheck` for a more detailed explanation.
 
     :param bool status: Set the initial status of the server to ``up`` (true) or ``down`` (false) instead of using the last known status
