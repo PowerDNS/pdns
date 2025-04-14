@@ -8,6 +8,7 @@ option('signers-libsodium', type: 'feature', value: 'auto', description: 'Enable
 option('signers-libcrypto', type: 'feature', value: 'auto', description: 'Enable OpenSSL libcrypto-based signers)')
 option('signers-libcrypto-path', type: 'string', value: '', description: 'Custom path to find OpenSSL libcrypto')
 option('tls-libssl', type: 'feature', value: 'auto', description: 'OpenSSL-based TLS')
+option('tls-libssl-dir', type: 'string', value: '', description: 'Alternate OpenSSL location')
 option('tls-gnutls', type: 'feature', value: 'auto', description: 'GnuTLS-based TLS')
 option('dns-over-tls', type: 'feature', value: 'auto', description: 'DNS over TLS (requires GnuTLS or OpenSSL)')
 option('ipcipher', type: 'feature', value: 'auto', description: 'IPcipher (requires libcrypto)')
