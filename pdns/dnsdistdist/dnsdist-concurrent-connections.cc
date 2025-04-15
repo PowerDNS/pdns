@@ -76,7 +76,7 @@ static std::vector<LockGuarded<map_t>> s_tcpClientsConnectionMetrics{10};
 static AddressAndPortRange getRange(const ComboAddress& from)
 {
   const auto& immutable = dnsdist::configuration::getImmutableConfiguration();
-  return AddressAndPortRange(from, from.isIPv4() ? immutable.d_tcpConnectionsMaskV4 : immutable.d_tcpConnectionsMaskV6, from.isIPv4() ? immutable.d_tcpConnectionsMaskV4Port : 0);
+  return AddressAndPortRange(from, from.isIPv4() ? immutable.d_tcpConnectionsMaskV4 : immutable.d_tcpConnectionsMaskV6, from.isIPv4() && immutable.d_tcpConnectionsMaskV4 == 32 ? immutable.d_tcpConnectionsMaskV4Port : 0);
 }
 
 static size_t getShardID(const AddressAndPortRange& from)
