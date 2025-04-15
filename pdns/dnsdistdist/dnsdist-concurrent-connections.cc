@@ -269,61 +269,54 @@ void IncomingConcurrentTCPConnectionsManager::banClientFor(const ComboAddress& f
   vinfolog("Banned TCP client %s for %d seconds", from.toStringWithPort(), seconds);
 }
 
+static void editEntryIfPresent(const ComboAddress& from, const std::function<void(const ClientEntry& entry)>& callback)
+{
+  auto addr = getRange(from);
+  auto shardID = getShardID(addr);
+  {
+    auto db = s_tcpClientsConnectionMetrics.at(shardID).lock();
+    auto it = db->find(addr);
+    if (it == db->end()) {
+      return;
+    }
+    callback(*it);
+  }
+}
+
 void IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(const ComboAddress& from)
 {
   const auto maxConnsPerClient = dnsdist::configuration::getImmutableConfiguration().d_maxTCPConnectionsPerClient;
   if (maxConnsPerClient == 0) {
     return;
   }
-  auto addr = getRange(from);
-  auto shardID = getShardID(addr);
-  {
-    auto db = s_tcpClientsConnectionMetrics.at(shardID).lock();
-    auto it = db->find(addr);
-    if (it == db->end()) {
-      return;
-    }
-    auto& count = it->d_concurrentConnections;
+  editEntryIfPresent(from, [](const ClientEntry& entry) {
+    auto& count = entry.d_concurrentConnections;
     count--;
-  }
+  });
 }
 
 void IncomingConcurrentTCPConnectionsManager::accountTLSNewSession(const ComboAddress& from)
 {
-  const auto maxRate = dnsdist::configuration::getImmutableConfiguration().d_maxTLSNewSessionsRatePerClient > 0;
+  const auto maxRate = dnsdist::configuration::getImmutableConfiguration().d_maxTLSNewSessionsRatePerClient;
   if (maxRate == 0) {
     return;
   }
-  auto addr = getRange(from);
-  auto shardID = getShardID(addr);
-  {
-    auto db = s_tcpClientsConnectionMetrics.at(shardID).lock();
-    auto it = db->find(addr);
-    if (it == db->end()) {
-      return;
-    }
-    auto& count = getCurrentClientActivity(*it, time(nullptr)).tlsNewSessions;
+  editEntryIfPresent(from, [](const ClientEntry& entry) {
+    auto& count = getCurrentClientActivity(entry, time(nullptr)).tlsNewSessions;
     count++;
-  }
+  });
 }
 
 void IncomingConcurrentTCPConnectionsManager::accountTLSResumedSession(const ComboAddress& from)
 {
-  const auto maxRate = dnsdist::configuration::getImmutableConfiguration().d_maxTLSResumedSessionsRatePerClient > 0;
+  const auto maxRate = dnsdist::configuration::getImmutableConfiguration().d_maxTLSResumedSessionsRatePerClient;
   if (maxRate == 0) {
     return;
   }
-  auto addr = getRange(from);
-  auto shardID = getShardID(addr);
-  {
-    auto db = s_tcpClientsConnectionMetrics.at(shardID).lock();
-    auto it = db->find(addr);
-    if (it == db->end()) {
-      return;
-    }
-    auto& count = getCurrentClientActivity(*it, time(nullptr)).tlsResumedSessions;
+  editEntryIfPresent(from, [](const ClientEntry& entry) {
+    auto& count = getCurrentClientActivity(entry, time(nullptr)).tlsResumedSessions;
     count++;
-  }
+  });
 }
 
 }
