@@ -266,6 +266,13 @@ union ComboAddress {
     return true;
   }
 
+  [[nodiscard]] bool isUnspecified() const
+  {
+    const ComboAddress unspecifiedV4("0.0.0.0:0");
+    const ComboAddress unspecifiedV6("[::]:0");
+    return *this == unspecifiedV4 || *this == unspecifiedV6;
+  }
+
   ComboAddress mapToIPv4() const
   {
     if(!isMappedIPv4())
