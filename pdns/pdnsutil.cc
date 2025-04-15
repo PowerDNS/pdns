@@ -2654,7 +2654,7 @@ static int addOrSetMeta(const ZoneName& zone, const string& kind, const vector<s
 
 static int lmdbGetBackendVersion([[maybe_unused]] vector<string>& cmds, [[maybe_unused]] const std::string_view synopsis)
 {
-  cout << "5" << endl; // FIXME this should reuse the constant from lmdbbackend but that is currently a #define in a .cc
+  cout << "6" << endl; // FIXME this should reuse the constant from lmdbbackend but that is currently a #define in a .cc
   return 0;
 }
 

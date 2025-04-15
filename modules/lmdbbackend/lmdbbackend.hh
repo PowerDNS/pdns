@@ -172,6 +172,7 @@ public:
   // functions to use without constructing a backend object
   static std::pair<uint32_t, uint32_t> getSchemaVersionAndShards(std::string& filename);
   static bool upgradeToSchemav5(std::string& filename);
+  static bool upgradeToSchemav6(std::string& filename);
 
 private:
   struct compoundOrdername
@@ -325,6 +326,7 @@ private:
   shared_ptr<RecordsROTransaction> d_rotxn; // for lookup and list
   shared_ptr<RecordsRWTransaction> d_rwtxn; // for feedrecord within begin/aborttransaction
   bool d_txnorder{false}; // whether d_rotxn is more recent than d_rwtxn
+  void openAllTheDatabases(uint64_t mapSize);
   std::shared_ptr<RecordsRWTransaction> getRecordsRWTransaction(domainid_t id);
   std::shared_ptr<RecordsROTransaction> getRecordsROTransaction(domainid_t id, const std::shared_ptr<LMDBBackend::RecordsRWTransaction>& rwtxn = nullptr);
   int genChangeDomain(const ZoneName& domain, const std::function<void(DomainInfo&)>& func);
