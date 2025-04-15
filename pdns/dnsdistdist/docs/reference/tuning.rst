@@ -183,8 +183,6 @@ Tuning related functions
 
   :param int num: Number of bits to keep
 
-Number of bits of port to consider when enforcing ``max_connection_rate_per_client``, ``max_tls_new_session_rate_per_client`` and ``max_tls_resumed_session_rate_per_client`` over IPv4, for CGNAT deployments.
-
 .. function:: setTCPConnectionsMaskV6(num)
 
   .. versionadded:: 2.0.0
