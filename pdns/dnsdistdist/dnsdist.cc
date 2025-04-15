@@ -3631,8 +3631,8 @@ int main(int argc, char** argv)
       auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent(states.size()));
       for (auto& dss : states) {
 
-        if (dss->d_config.availability == DownstreamState::Availability::Auto || dss->d_config.availability == DownstreamState::Availability::Lazy) {
-          if (dss->d_config.availability == DownstreamState::Availability::Auto) {
+        if (dss->d_config.d_availability == DownstreamState::Availability::Auto) {
+          if (dss->d_config.d_healthCheckMode == DownstreamState::HealthCheckMode::Active) {
             dss->d_nextCheck = dss->d_config.checkInterval;
           }
 
