@@ -932,14 +932,14 @@ static void handleSocketReadable(DOH3Frontend& frontend, ClientState& clientStat
       if (!quiche_version_is_supported(version)) {
         DEBUGLOG("Unsupported version");
         ++frontend.d_doh3UnsupportedVersionErrors;
-        handleVersionNegociation(sock, clientConnID, serverConnID, client, localAddr, buffer);
+        handleVersionNegotiation(sock, clientConnID, serverConnID, client, localAddr, buffer, clientState.local.isUnspecified());
         continue;
       }
 
       if (token_len == 0) {
         /* stateless retry */
         DEBUGLOG("No token received");
-        handleStatelessRetry(sock, clientConnID, serverConnID, client, localAddr, version, buffer);
+        handleStatelessRetry(sock, clientConnID, serverConnID, client, localAddr, version, buffer, clientState.local.isUnspecified());
         continue;
       }
 
@@ -986,7 +986,7 @@ static void handleSocketReadable(DOH3Frontend& frontend, ClientState& clientStat
 
       processH3Events(clientState, frontend, conn->get(), client, serverConnID, buffer);
 
-      flushEgress(sock, conn->get().d_conn, client, localAddr, buffer);
+      flushEgress(sock, conn->get().d_conn, client, localAddr, buffer, clientState.local.isUnspecified());
     }
     else {
       DEBUGLOG("Connection not established");
@@ -1031,7 +1031,7 @@ void doh3Thread(ClientState* clientState)
         for (auto conn = frontend->d_server_config->d_connections.begin(); conn != frontend->d_server_config->d_connections.end();) {
           quiche_conn_on_timeout(conn->second.d_conn.get());
 
-          flushEgress(sock, conn->second.d_conn, conn->second.d_peer, conn->second.d_localAddr, buffer);
+          flushEgress(sock, conn->second.d_conn, conn->second.d_peer, conn->second.d_localAddr, buffer, clientState->local.isUnspecified());
 
           if (quiche_conn_is_closed(conn->second.d_conn.get())) {
 #ifdef DEBUGLOG_ENABLED
