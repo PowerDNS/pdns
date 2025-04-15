@@ -834,7 +834,7 @@ A server object returned by :func:`getServer` can be manipulated with these func
     .. versionadded:: 2.0.0
 
     Get the current health-check mode, ``active`` or ``lazy``. Note that health-checks might be disabled because :meth:`Server:setUp` or :meth:`Server:setDown`
-    were called, in which case this method will return the health-check more that will be restored ud :meth:`Server:setAuto` is called.
+    were called, in which case this method will return the health-check mode that will be restored if :meth:`Server:setAuto` is called.
 
     :returns: The current health-check mode
 
