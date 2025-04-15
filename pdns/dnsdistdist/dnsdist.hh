@@ -726,7 +726,7 @@ private:
 
 public:
   static bool parseSourceParameter(const std::string& source, Config& config);
-  static bool parseAvailabilityConfigFromStr(DownstreamState::Config& config, const std::string str);
+  static bool parseAvailabilityConfigFromStr(DownstreamState::Config& config, const std::string& str);
 
   void updateStatisticsInfo()
   {
