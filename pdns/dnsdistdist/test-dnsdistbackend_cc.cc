@@ -305,22 +305,22 @@ BOOST_AUTO_TEST_CASE(test_CheckAutoRestorePreviousHealthCheckMode)
   /* prevents a re-connection */
   config.remote = ComboAddress("0.0.0.0");
 
-  DownstreamState ds(std::move(config), nullptr, false);
-  BOOST_CHECK(ds.d_config.d_availability == DownstreamState::Availability::Auto);
-  BOOST_CHECK(ds.d_config.d_healthCheckMode == DownstreamState::HealthCheckMode::Lazy);
-  ds.setUp();
-  BOOST_CHECK(ds.d_config.d_availability == DownstreamState::Availability::Up);
-  ds.setAuto();
-  BOOST_CHECK(ds.d_config.d_availability == DownstreamState::Availability::Auto);
-  BOOST_CHECK(ds.d_config.d_healthCheckMode == DownstreamState::HealthCheckMode::Lazy);
-  ds.setActiveAuto();
-  BOOST_CHECK(ds.d_config.d_availability == DownstreamState::Availability::Auto);
-  BOOST_CHECK(ds.d_config.d_healthCheckMode == DownstreamState::HealthCheckMode::Active);
-  ds.setUp();
-  BOOST_CHECK(ds.d_config.d_availability == DownstreamState::Availability::Up);
-  ds.setAuto();
-  BOOST_CHECK(ds.d_config.d_availability == DownstreamState::Availability::Auto);
-  BOOST_CHECK(ds.d_config.d_healthCheckMode == DownstreamState::HealthCheckMode::Active);
+  DownstreamState downstream(std::move(config), nullptr, false);
+  BOOST_CHECK(downstream.d_config.d_availability == DownstreamState::Availability::Auto);
+  BOOST_CHECK(downstream.d_config.d_healthCheckMode == DownstreamState::HealthCheckMode::Lazy);
+  downstream.setUp();
+  BOOST_CHECK(downstream.d_config.d_availability == DownstreamState::Availability::Up);
+  downstream.setAuto();
+  BOOST_CHECK(downstream.d_config.d_availability == DownstreamState::Availability::Auto);
+  BOOST_CHECK(downstream.d_config.d_healthCheckMode == DownstreamState::HealthCheckMode::Lazy);
+  downstream.setActiveAuto();
+  BOOST_CHECK(downstream.d_config.d_availability == DownstreamState::Availability::Auto);
+  BOOST_CHECK(downstream.d_config.d_healthCheckMode == DownstreamState::HealthCheckMode::Active);
+  downstream.setUp();
+  BOOST_CHECK(downstream.d_config.d_availability == DownstreamState::Availability::Up);
+  downstream.setAuto();
+  BOOST_CHECK(downstream.d_config.d_availability == DownstreamState::Availability::Auto);
+  BOOST_CHECK(downstream.d_config.d_healthCheckMode == DownstreamState::HealthCheckMode::Active);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

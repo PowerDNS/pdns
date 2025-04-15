@@ -727,7 +727,7 @@ bool DownstreamState::healthCheckRequired(std::optional<time_t> currentTime)
 
     return false;
   }
-  else if (d_config.d_healthCheckMode == DownstreamState::HealthCheckMode::Active) {
+  if (d_config.d_healthCheckMode == DownstreamState::HealthCheckMode::Active) {
 
     if (d_nextCheck > 1) {
       --d_nextCheck;
@@ -985,7 +985,7 @@ bool DownstreamState::parseSourceParameter(const std::string& source, Downstream
   return false;
 }
 
-bool DownstreamState::parseAvailabilityConfigFromStr(DownstreamState::Config& config, const std::string str)
+bool DownstreamState::parseAvailabilityConfigFromStr(DownstreamState::Config& config, const std::string& str)
 {
   if (pdns_iequals(str, "auto")) {
     config.d_availability = DownstreamState::Availability::Auto;
