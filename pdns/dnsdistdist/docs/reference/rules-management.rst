@@ -511,6 +511,92 @@ Functions for manipulating Self-Answered Response Rules:
 
   Move the last self answered response rule to the first position.
 
+Timeout
+-------
+
+For Rules related to timed out queries:
+
+.. function:: addTimeoutResponseAction(DNSRule, action [, options])
+
+  .. versionadded:: 2.0.0
+
+  Add a Rule and Action for timeout triggered from timer expiration or network I/O error. Note that this rule is intent only for an action to restart a timed-out or network I/O failed query.
+
+  :param DNSrule rule: A :class:`DNSRule`, e.g. an :func:`AllRule`, or a compounded bunch of rules using e.g. :func:`AndRule`.
+  :param action: The action to take
+  :param table options: A table with key: value pairs with options.
+
+  Options:
+
+  * ``uuid``: string - UUID to assign to the new rule. By default a random UUID is generated for each rule.
+  * ``name``: string - Name to assign to the new rule.
+
+.. function:: clearTimeoutResponseRules()
+
+  .. versionadded:: 2.0.0
+
+  Remove all current timeout response rules.
+
+.. function:: getTimeoutResponseRule(selector) -> DNSDistResponseRuleAction
+
+  .. versionadded:: 2.0.0
+
+  Return the timeout response rule corresponding to the selector, if any.
+  The selector can be the position of the rule in the list, as an integer,
+  its name as a string or its UUID as a string as well.
+
+  :param int or str selector: The position in the list, name or UUID of the rule to return.
+
+.. function:: getTopTimeoutResponseRule() -> DNSDistResponseRuleAction
+
+  .. versionadded:: 2.0.0
+
+  Return the current top timeout response rule.
+
+.. function:: mvTimeoutResponseRule(from, to)
+
+  .. versionadded:: 2.0.0
+
+  Move timeout response rule ``from`` to a position where it is in front of ``to``.
+  ``to`` can be one larger than the largest rule, in which case the rule will be moved to the last position.
+
+  :param int from: Rule number to move
+  :param int to: Location to more the Rule to
+
+.. function:: mvTimeoutResponseRuleToTop()
+
+  .. versionadded:: 2.0.0
+
+  This function moves the last timeout response rule to the first position.
+
+.. function:: rmTimeoutResponseRule(id)
+
+  .. versionadded:: 2.0.0
+    ``id`` can now be a string representing the name of the rule.
+
+  Remove timeout response rule ``id``.
+
+  :param int id: The position of the rule to remove if ``id`` is numerical, its UUID or name otherwise
+
+.. function:: showTimeoutResponseRules([options])
+
+  .. versionadded:: 2.0.0
+
+  Show all defined timeout response rules, optionally displaying their UUIDs.
+
+  :param table options: A table with key: value pairs with display options.
+
+  Options:
+
+  * ``showUUIDs=false``: bool - Whether to display the UUIDs, defaults to false.
+  * ``truncateRuleWidth=-1``: int - Truncate rules output to ``truncateRuleWidth`` size. Defaults to ``-1`` to display the full rule.
+
+.. function:: topTimeoutResponseRules()
+
+  .. versionadded:: 2.0.0
+
+  Show all defined timeout response rules, sorted top-down by match hits.
+
 XFR
 ---
 

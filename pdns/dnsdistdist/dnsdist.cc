@@ -56,6 +56,7 @@
 #include "dnsdist-lua.hh"
 #include "dnsdist-lua-hooks.hh"
 #include "dnsdist-nghttp2.hh"
+#include "dnsdist-nghttp2-in.hh"
 #include "dnsdist-proxy-protocol.hh"
 #include "dnsdist-random.hh"
 #include "dnsdist-rings.hh"
@@ -65,6 +66,7 @@
 #include "dnsdist-snmp.hh"
 #include "dnsdist-tcp.hh"
 #include "dnsdist-tcp-downstream.hh"
+#include "dnsdist-tcp-upstream.hh"
 #include "dnsdist-web.hh"
 #include "dnsdist-xsk.hh"
 
@@ -454,6 +456,9 @@ bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>&
         return true;
         break;
       case DNSResponseAction::Action::ServFail:
+        if (dnsResponse.getData().size() < sizeof(dnsheader)) {
+          return false;
+        }
         dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsResponse.getMutableData(), [](dnsheader& header) {
           header.rcode = RCode::ServFail;
           return true;
@@ -461,6 +466,9 @@ bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>&
         return true;
         break;
       case DNSResponseAction::Action::Truncate:
+        if (dnsResponse.getData().size() < sizeof(dnsheader)) {
+          return false;
+        }
         if (!dnsResponse.overTCP()) {
           dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsResponse.getMutableData(), [](dnsheader& header) {
             header.tc = true;
@@ -1564,6 +1572,31 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
     vinfolog("Got an error while parsing a %s query (after applying rules)  from %s, id %d: %s", (dnsQuestion.overTCP() ? "TCP" : "UDP"), dnsQuestion.ids.origRemote.toStringWithPort(), queryId, e.what());
   }
   return ProcessQueryResult::Drop;
+}
+
+bool handleTimeoutResponseRules(const std::vector<dnsdist::rules::ResponseRuleAction>& rules, InternalQueryState& ids, const std::shared_ptr<DownstreamState>& d_ds, const std::shared_ptr<TCPQuerySender>& sender)
+{
+  PacketBuffer empty;
+  DNSResponse dnsResponse(ids, empty, d_ds);
+  auto protocol = dnsResponse.getProtocol();
+
+  vinfolog("Handling timeout response rules for incoming protocol = %s", protocol.toString());
+  if (protocol == dnsdist::Protocol::DoH) {
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
+    dnsResponse.d_incomingTCPState = std::dynamic_pointer_cast<IncomingHTTP2Connection>(sender);
+#endif
+    if (!dnsResponse.d_incomingTCPState || !sender || !sender->active()) {
+      return false;
+    }
+  }
+  else if (protocol == dnsdist::Protocol::DoTCP || protocol == dnsdist::Protocol::DNSCryptTCP || protocol == dnsdist::Protocol::DoT) {
+    dnsResponse.d_incomingTCPState = std::dynamic_pointer_cast<IncomingTCPConnectionState>(sender);
+    if (!dnsResponse.d_incomingTCPState || !sender || !sender->active()) {
+      return false;
+    }
+  }
+  (void)applyRulesToResponse(rules, dnsResponse);
+  return dnsResponse.isAsynchronous();
 }
 
 class UDPTCPCrossQuerySender : public TCPQuerySender

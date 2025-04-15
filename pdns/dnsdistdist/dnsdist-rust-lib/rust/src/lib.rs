@@ -1154,6 +1154,7 @@ mod dnsdistsettings {
         webserver: WebserverConfiguration,
         xfr_response_rules: Vec<ResponseRuleConfiguration>,
         xsk: Vec<XskConfiguration>,
+        timeout_response_rules: Vec<ResponseRuleConfiguration>,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
@@ -2429,6 +2430,8 @@ impl ResponseRuleConfigurationSerde {
         xfr_response_rules: Vec<ResponseRuleConfigurationSerde>,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         xsk: Vec<dnsdistsettings::XskConfiguration>,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        timeout_response_rules: Vec<ResponseRuleConfigurationSerde>,
     }
 
 #[derive(Default, Serialize, Deserialize, Debug, PartialEq)]
@@ -3715,6 +3718,9 @@ impl GlobalConfigurationSerde {
         for sub_type in &self.xsk {
         sub_type.validate()?;
     }
+        for sub_type in &self.timeout_response_rules {
+        sub_type.validate()?;
+    }
         Ok(())
     }
 }
@@ -4511,6 +4517,7 @@ fn get_global_configuration_from_serde(
     config.cache_inserted_response_rules = get_response_rules_from_serde(&serde.cache_inserted_response_rules)?;
     config.self_answered_response_rules = get_response_rules_from_serde(&serde.self_answered_response_rules)?;
     config.xfr_response_rules = get_response_rules_from_serde(&serde.xfr_response_rules)?;
+    config.timeout_response_rules = get_response_rules_from_serde(&serde.timeout_response_rules)?;
     Ok(config)
 }
 
