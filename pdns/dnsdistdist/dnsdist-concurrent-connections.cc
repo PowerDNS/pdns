@@ -37,7 +37,7 @@
 namespace dnsdist
 {
 
-static constexpr size_t NB_SHARDS = 10;
+static constexpr size_t NB_SHARDS = 16;
 
 struct ClientActivity
 {
