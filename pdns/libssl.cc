@@ -1110,7 +1110,7 @@ static void libssl_key_log_file_callback(const SSL* ssl, const char* line)
 }
 #endif /* HAVE_SSL_CTX_SET_KEYLOG_CALLBACK */
 
-pdns::UniqueFilePtr libssl_set_key_log_file(SSL_CTX* ctx, const std::string& logFile)
+pdns::UniqueFilePtr libssl_set_key_log_file([[maybe_unused]] SSL_CTX* ctx, [[maybe_unused]] const std::string& logFile)
 {
 #ifdef HAVE_SSL_CTX_SET_KEYLOG_CALLBACK
   auto filePtr = pdns::openFileForWriting(logFile, 0600, false, true);
@@ -1127,14 +1127,14 @@ pdns::UniqueFilePtr libssl_set_key_log_file(SSL_CTX* ctx, const std::string& log
 }
 
 /* called in a client context, if the client advertised more than one ALPN value and the server returned more than one as well, to select the one to use. */
-void libssl_set_alpn_select_callback(SSL_CTX* ctx, int (*cb)(SSL* s, const unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen, void* arg), void* arg)
+void libssl_set_alpn_select_callback([[maybe_unused]] SSL_CTX* ctx, [[maybe_unused]] int (*callback)(SSL* ssl, const unsigned char** out, unsigned char* outlen, const unsigned char* inPtr, unsigned int inlen, void* arg), [[maybe_unused]] void* arg)
 {
 #ifdef HAVE_SSL_CTX_SET_ALPN_SELECT_CB
-  SSL_CTX_set_alpn_select_cb(ctx, cb, arg);
+  SSL_CTX_set_alpn_select_cb(ctx, callback, arg);
 #endif
 }
 
-bool libssl_set_alpn_protos(SSL_CTX* ctx, const std::vector<std::vector<uint8_t>>& protos)
+bool libssl_set_alpn_protos([[maybe_unused]] SSL_CTX* ctx, [[maybe_unused]] const std::vector<std::vector<uint8_t>>& protos)
 {
 #ifdef HAVE_SSL_CTX_SET_ALPN_PROTOS
   std::vector<uint8_t> wire;

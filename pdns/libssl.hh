@@ -161,7 +161,7 @@ std::pair<std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>, std::vector<std::st
 pdns::UniqueFilePtr libssl_set_key_log_file(SSL_CTX* ctx, const std::string& logFile);
 
 /* called in a server context, to select an ALPN value advertised by the client if any */
-void libssl_set_alpn_select_callback(SSL_CTX* ctx, int (*cb)(SSL* s, const unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen, void* arg), void* arg);
+void libssl_set_alpn_select_callback(SSL_CTX* ctx, int (*callback)(SSL* ssl, const unsigned char** out, unsigned char* outlen, const unsigned char* inPtr, unsigned int inlen, void* arg), void* arg);
 /* set the supported ALPN protos in client context */
 bool libssl_set_alpn_protos(SSL_CTX* ctx, const std::vector<std::vector<uint8_t>>& protos);
 
