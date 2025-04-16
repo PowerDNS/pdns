@@ -7,9 +7,9 @@ outfile = 'librecrust.a'
 
 env = environment()
 env.append('CARGO', cargo.full_path())
-env.append('SYSCONFDIR', conf.get('SYSCONFDIR'))
-env.append('NODCACHEDIRNOD', conf.get('NODCACHEDIRNOD'))
-env.append('NODCACHEDIRUDR', conf.get('NODCACHEDIRUDR'))
+env.append('SYSCONFDIR', conf.get('SYSCONFDIR').strip('"'))
+env.append('NODCACHEDIRNOD', conf.get('NODCACHEDIRNOD').strip('"'))
+env.append('NODCACHEDIRUDR', conf.get('NODCACHEDIRUDR').strip('"'))
 env.append('builddir', '.')
 env.append('srcdir', meson.current_source_dir())
 env.append('RUST_TARGET', '')
