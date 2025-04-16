@@ -759,6 +759,7 @@ Servers
     ``xskSockets``                            ``array``            "An array of :class:`XskSocket` objects to enable ``XSK`` / ``AF_XDP`` support for this backend. See :doc:`../advanced/xsk` for more information."
     ``MACAddr``                              ``str``               "When the ``xskSocket`` option is set, this parameter can be used to specify the destination MAC address to use to reach the backend. If this options is not specified, dnsdist will try to get it from the IP of the backend by looking into the system's MAC address table, but it will fail if the corresponding MAC address is not present."
     ``keyLogFile``                           ``str``               "Write the TLS keys in the specified file so that an external program can decrypt TLS exchanges, in the format described in https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSS/Key_Log_Format. Note that this feature requires OpenSSL >= 1.1.1."
+    ``dscp``                                 ``number``            "The DSCP marking value to be applied. Range 0-63. Default is 0 which means no action for DSCP marking."
 
 .. function:: getServer(index) -> Server
 

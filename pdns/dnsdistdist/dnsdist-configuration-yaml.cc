@@ -507,6 +507,8 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dns
     dnsdist::ServiceDiscovery::addUpgradeableServer(downstream, autoUpgradeConf.interval, std::string(autoUpgradeConf.pool), autoUpgradeConf.doh_key, autoUpgradeConf.keep);
   }
 
+  backendConfig.dscp = config.dscp;
+
   return downstream;
 }
 

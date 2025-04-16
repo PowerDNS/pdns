@@ -1082,6 +1082,36 @@ bool setReuseAddr(int sock)
   return true;
 }
 
+void setDscp(int sock, unsigned short family, uint8_t dscp)
+{
+  int val;
+  unsigned int len;
+
+  if (dscp == 0 || dscp > 63) {
+    // No DSCP marking
+    return;
+  }
+
+  if (family == AF_INET) {
+    if (getsockopt(sock, IPPROTO_IP, IP_TOS, &val, &len)<0) {
+      throw std::runtime_error(string("Set DSCP failed: ")+stringerror());
+    }
+    val = (dscp<<2) | (val&0x3);
+    if (setsockopt(sock, IPPROTO_IP, IP_TOS, &val, sizeof(val))<0) {
+      throw std::runtime_error(string("Set DSCP failed: ")+stringerror());
+    }
+  }
+  else if (family == AF_INET6) {
+    if (getsockopt(sock, IPPROTO_IPV6, IPV6_TCLASS, &val, &len)<0) {
+      throw std::runtime_error(string("Set DSCP failed: ")+stringerror());
+    }
+    val = (dscp<<2) | (val&0x3);
+    if (setsockopt(sock, IPPROTO_IPV6, IPV6_TCLASS, &val, sizeof(val))<0) {
+      throw std::runtime_error(string("Set DSCP failed: ")+stringerror());
+    }
+  }
+}
+
 bool isNonBlocking(int sock)
 {
   int flags=fcntl(sock,F_GETFL,0);
