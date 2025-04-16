@@ -398,12 +398,13 @@ static std::vector<std::unique_ptr<DNSBackend>>::iterator findBestMatchingBacken
 
     DLOG(g_log << Logger::Error << "backend: " << backend - backends.begin() << ", qname: " << shorter << endl);
 
-    if (bestMatch->first < shorter.wirelength()) {
+    auto wirelength = shorter.operator const DNSName&().wirelength();
+    if (bestMatch->first < wirelength) {
       DLOG(g_log << Logger::Error << "skipped, we already found a shorter best match in this backend: " << bestMatch->second.qname << endl);
       continue;
     }
 
-    if (bestMatch->first == shorter.wirelength()) {
+    if (bestMatch->first == wirelength) {
       DLOG(g_log << Logger::Error << "use shorter best match: " << bestMatch->second.qname << endl);
       *soaData = bestMatch->second;
       break;
@@ -455,7 +456,7 @@ bool UeberBackend::getAuth(const ZoneName& target, const QType& qtype, SOAData* 
 
   bool found = false;
   ZoneName shorter(target);
-  vector<pair<size_t, SOAData>> bestMatches(backends.size(), pair(target.wirelength() + 1, SOAData()));
+  vector<pair<size_t, SOAData>> bestMatches(backends.size(), pair(target.operator const DNSName&().wirelength() + 1, SOAData()));
 
   bool first = true;
   while (first || shorter.chopOff()) {
