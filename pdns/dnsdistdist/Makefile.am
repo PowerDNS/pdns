@@ -180,7 +180,7 @@ dnsdist_SOURCES = \
 	dnsdist-backoff.hh \
 	dnsdist-cache.cc dnsdist-cache.hh \
 	dnsdist-carbon.cc dnsdist-carbon.hh \
-	dnsdist-concurrent-connections.hh \
+	dnsdist-concurrent-connections.cc dnsdist-concurrent-connections.hh \
 	dnsdist-configuration-yaml-internal.hh \
 	dnsdist-configuration-yaml.cc dnsdist-configuration-yaml.hh \
 	dnsdist-configuration.cc dnsdist-configuration.hh \
@@ -316,7 +316,7 @@ testrunner_SOURCES = \
 	dnsdist-backend.cc dnsdist-backend.hh \
 	dnsdist-backoff.hh \
 	dnsdist-cache.cc dnsdist-cache.hh \
-	dnsdist-concurrent-connections.hh \
+	dnsdist-concurrent-connections.cc dnsdist-concurrent-connections.hh \
 	dnsdist-configuration.cc dnsdist-configuration.hh \
 	dnsdist-crypto.cc dnsdist-crypto.hh \
 	dnsdist-dnsparser.cc dnsdist-dnsparser.hh \

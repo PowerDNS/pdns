@@ -688,6 +688,8 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   output << "# TYPE " << frontsbase << "tcpavgqueriesperconnection " << "gauge" << "\n";
   output << "# HELP " << frontsbase << "tcpavgconnectionduration " << "The average duration of a TCP connection (ms)" << "\n";
   output << "# TYPE " << frontsbase << "tcpavgconnectionduration " << "gauge" << "\n";
+  output << "# HELP " << frontsbase << "tcpavgreadios " << "The average number of read IO operations per query over a TCP connection" << "\n";
+  output << "# TYPE " << frontsbase << "tcpavgreadios " << "gauge" << "\n";
   output << "# HELP " << frontsbase << "tlsqueries " << "Number of queries received by dnsdist over TLS, by TLS version" << "\n";
   output << "# TYPE " << frontsbase << "tlsqueries " << "counter" << "\n";
   output << "# HELP " << frontsbase << "tlsnewsessions " << "Amount of new TLS sessions negotiated" << "\n";
@@ -734,6 +736,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
       output << frontsbase << "tcpmaxconcurrentconnections" << label << front->tcpMaxConcurrentConnections.load() << "\n";
       output << frontsbase << "tcpavgqueriesperconnection" << label << front->tcpAvgQueriesPerConnection.load() << "\n";
       output << frontsbase << "tcpavgconnectionduration" << label << front->tcpAvgConnectionDuration.load() << "\n";
+      output << frontsbase << "tcpavgreadios" << label << front->tcpAvgIOsPerConnection << "\n";
       if (front->hasTLS()) {
         output << frontsbase << "tlsnewsessions" << label << front->tlsNewSessions.load() << "\n";
         output << frontsbase << "tlsresumptions" << label << front->tlsResumptions.load() << "\n";

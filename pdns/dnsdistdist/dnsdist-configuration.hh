@@ -80,6 +80,10 @@ struct ImmutableConfiguration
   uint64_t d_outgoingDoHMaxIdlePerBackend{10};
   uint64_t d_outgoingTCPMaxIdlePerBackend{10};
   uint64_t d_maxTCPClientThreads{10};
+  uint64_t d_maxTCPConnectionsRatePerClient{0};
+  uint64_t d_maxTLSResumedSessionsRatePerClient{0};
+  uint64_t d_maxTLSNewSessionsRatePerClient{0};
+  uint64_t d_tcpConnectionsRatePerClientInterval{5};
   size_t d_maxTCPConnectionsPerClient{0};
   size_t d_udpVectorSize{1};
   size_t d_ringsCapacity{10000};
@@ -88,8 +92,15 @@ struct ImmutableConfiguration
   uint32_t d_socketUDPSendBuffer{0};
   uint32_t d_socketUDPRecvBuffer{0};
   uint32_t d_hashPerturbation{0};
+  uint32_t d_maxTCPReadIOsPerQuery{50};
+  uint32_t d_tcpBanDurationForExceedingMaxReadIOsPerQuery{60};
+  uint32_t d_tcpBanDurationForExceedingTCPTLSRate{10};
   uint16_t d_maxUDPOutstanding{std::numeric_limits<uint16_t>::max()};
   uint8_t d_udpTimeout{2};
+  uint8_t d_tcpConnectionsOverloadThreshold{90};
+  uint8_t d_tcpConnectionsMaskV4{32};
+  uint8_t d_tcpConnectionsMaskV6{128};
+  uint8_t d_tcpConnectionsMaskV4Port{0};
   bool d_randomizeUDPSocketsToBackend{false};
   bool d_randomizeIDsToBackend{false};
   bool d_ringsRecordQueries{true};

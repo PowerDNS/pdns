@@ -293,7 +293,8 @@ bool IncomingHTTP2Connection::checkALPN()
 void IncomingHTTP2Connection::handleConnectionReady()
 {
   constexpr std::array<nghttp2_settings_entry, 1> settings{{{NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS, 100U}}};
-  auto ret = nghttp2_submit_settings(d_session.get(), NGHTTP2_FLAG_NONE, settings.data(), settings.size());
+  constexpr std::array<nghttp2_settings_entry, 1> nearLimitsSettings{{{NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS, 1U}}};
+  auto ret = nghttp2_submit_settings(d_session.get(), NGHTTP2_FLAG_NONE, isNearTCPLimits() ? nearLimitsSettings.data() : settings.data(), isNearTCPLimits() ? nearLimitsSettings.size() : settings.size());
   if (ret != 0) {
     throw std::runtime_error("Fatal error: " + std::string(nghttp2_strerror(ret)));
   }
