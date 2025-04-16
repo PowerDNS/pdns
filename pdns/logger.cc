@@ -212,9 +212,9 @@ Logger& Logger::operator<<(const DNSName& d)
 }
 
 #if defined(PDNS_AUTH)
-Logger& Logger::operator<<(const ZoneName& d)
+Logger& Logger::operator<<(const ZoneName& zone)
 {
-  *this << d.toLogString();
+  *this << zone.toLogString();
 
   return *this;
 }

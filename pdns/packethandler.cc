@@ -455,6 +455,7 @@ bool PacketHandler::getBestWildcard(DNSPacket& p, const DNSName &target, DNSName
         ret->push_back(rr);
       }
 
+      // NOLINTNEXTLINE(readability-misleading-indentation): go home, clang-tidy, you're drunk
       wildcard=g_wildcarddnsname+subdomain;
       haveSomething=true;
     }
@@ -711,7 +712,7 @@ void PacketHandler::emitNSEC(std::unique_ptr<DNSPacket>& r, const DNSName& name,
     }
     else
 #endif
-      if (d_doExpandALIAS && rr.dr.d_type == QType::ALIAS) {
+    if (d_doExpandALIAS && rr.dr.d_type == QType::ALIAS) {
       // Set the A and AAAA in the NSEC bitmap so aggressive NSEC
       // does not falsely deny the type for this name.
       // This does NOT add the ALIAS to the bitmap, as that record cannot
@@ -797,7 +798,7 @@ void PacketHandler::emitNSEC3(std::unique_ptr<DNSPacket>& r, const NSEC3PARAMRec
       }
       else
 #endif
-        if (d_doExpandALIAS && rr.dr.d_type == QType::ALIAS) {
+      if (d_doExpandALIAS && rr.dr.d_type == QType::ALIAS) {
         // Set the A and AAAA in the NSEC3 bitmap so aggressive NSEC
         // does not falsely deny the type for this name.
         // This does NOT add the ALIAS to the bitmap, as that record cannot
@@ -1114,6 +1115,7 @@ int PacketHandler::tryAutoPrimarySynchronous(const DNSPacket& p, const DNSName& 
       g_log << Logger::Error << "Failed to create " << zonename << " for potential autoprimary " << remote << endl;
       return RCode::ServFail;
     }
+    // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
     g_zoneCache.add(zonename, di.id);
     if (tsigkeyname.empty() == false) {
       vector<string> meta;
@@ -1164,7 +1166,7 @@ int PacketHandler::processNotify(const DNSPacket& p)
       return RCode::Refused;
     }
     vector<string> meta;
-    if (B.getDomainMetadata(zonename,"AXFR-MASTER-TSIG",meta) && meta.size() > 0) {
+    if (B.getDomainMetadata(zonename,"AXFR-MASTER-TSIG",meta) && !meta.empty()) {
       DNSName expected{meta[0]};
       if (p.getTSIGKeyname() != expected) {
         g_log<<Logger::Warning<<"Received secure NOTIFY for "<<zonename<<" from "<<p.getRemoteString()<<": expected TSIG key '"<<expected<<"', got '"<<p.getTSIGKeyname()<<"' (Refused)"<<endl;
@@ -1176,7 +1178,7 @@ int PacketHandler::processNotify(const DNSPacket& p)
   // Domain verification
   //
   DomainInfo di;
-  if(!B.getDomainInfo(zonename, di, false) || !di.backend) {
+  if(!B.getDomainInfo(zonename, di, false) || di.backend == nullptr) {
     if(::arg().mustDo("autosecondary")) {
       g_log << Logger::Warning << "Received NOTIFY for " << zonename << " from " << p.getRemoteString() << " for which we are not authoritative, trying autoprimary" << endl;
       return tryAutoPrimary(p, p.getTSIGKeyname());

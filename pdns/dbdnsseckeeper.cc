@@ -779,8 +779,9 @@ bool DNSSECKeeper::rectifyZone(const ZoneName& zone, string& error, string& info
     if (rr.qtype.getCode())
     {
       qnames.insert(rr.qname);
-      if(rr.qtype.getCode() == QType::NS && rr.qname != zone.operator const DNSName&())
+      if(rr.qtype.getCode() == QType::NS && rr.qname != zone.operator const DNSName&()) {
         nsset.insert(rr.qname);
+      }
       if(rr.qtype.getCode() == QType::DS)
         dsnames.insert(rr.qname);
       rrs.emplace_back(rr);

@@ -53,6 +53,7 @@ void CommunicatorClass::queueNotifyDomain(const DomainInfo& di, UeberBackend* B)
 
   try {
     if (d_onlyNotify.size()) {
+      // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
       B->lookup(QType(QType::NS), di.zone.operator const DNSName&(), di.id);
       while (B->get(rr))
         nsset.insert(getRR<NSRecordContent>(rr.dr)->getNS());
@@ -139,7 +140,7 @@ void CommunicatorClass::getUpdatedProducers(UeberBackend* B, vector<DomainInfo>&
   std::string metaHash;
   std::string mapHash;
   for (auto& ch : catalogHashes) {
-    if (!catalogs.count(ch.first.operator const DNSName&())) {
+    if (catalogs.count(ch.first.operator const DNSName&()) == 0) {
       g_log << Logger::Warning << "orphaned member zones found with catalog '" << ch.first << "'" << endl;
       continue;
     }
@@ -293,9 +294,9 @@ void CommunicatorClass::sendNotification(int sock, const ZoneName& domain, const
   }
 
   vector<uint8_t> packet;
-  DNSPacketWriter pw(packet, domain.operator const DNSName&(), QType::SOA, 1, Opcode::Notify);
-  pw.getHeader()->id = notificationId;
-  pw.getHeader()->aa = true;
+  DNSPacketWriter pwriter(packet, domain.operator const DNSName&(), QType::SOA, 1, Opcode::Notify);
+  pwriter.getHeader()->id = notificationId;
+  pwriter.getHeader()->aa = true;
 
   if (tsigkeyname.empty() == false) {
     if (!ueber->getTSIGKey(tsigkeyname, tsigalgorithm, tsigsecret64)) {
@@ -315,7 +316,7 @@ void CommunicatorClass::sendNotification(int sock, const ZoneName& domain, const
       g_log << Logger::Error << "Unable to Base-64 decode TSIG key '" << tsigkeyname << "' for domain '" << domain << "'" << endl;
       return;
     }
-    addTSIG(pw, trc, tsigkeyname, tsigsecret, "", false);
+    addTSIG(pwriter, trc, tsigkeyname, tsigsecret, "", false);
   }
 
   if (sendto(sock, &packet[0], packet.size(), 0, (struct sockaddr*)(&remote), remote.getSocklen()) < 0) {

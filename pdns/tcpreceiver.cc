@@ -1265,7 +1265,7 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
   }
 
   if (serialPermitsIXFR) {
-    ZoneName target = zonename;
+    const ZoneName& target = zonename;
     TSIGRecordContent trc;
     DNSName tsigkeyname;
     string tsigsecret;
