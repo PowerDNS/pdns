@@ -381,9 +381,9 @@ private:
   DNSName d_name;
 };
 
-size_t hash_value(ZoneName const& d);
+size_t hash_value(ZoneName const& zone);
 
-std::ostream & operator<<(std::ostream &os, const ZoneName& d);
+std::ostream & operator<<(std::ostream &ostr, const ZoneName& zone);
 namespace std {
     template <>
     struct hash<ZoneName> {

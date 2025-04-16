@@ -732,14 +732,14 @@ bool DNSName::RawLabelsVisitor::empty() const
 }
 
 #if defined(PDNS_AUTH) // [
-std::ostream & operator<<(std::ostream &os, const ZoneName& d)
+std::ostream & operator<<(std::ostream &ostr, const ZoneName& zone)
 {
-  return os <<d.toLogString();
+  return ostr << zone.toLogString();
 }
 
-size_t hash_value(ZoneName const& d)
+size_t hash_value(ZoneName const& zone)
 {
-  return d.hash();
+  return zone.hash();
 }
 
 // Sugar while ZoneName::operator DNSName are made explicit. These can't be
