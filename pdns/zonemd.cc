@@ -43,7 +43,7 @@ void pdns::ZoneMD::readRecords(const vector<DNSRecord>& records)
 
 void pdns::ZoneMD::processRecord(const DNSRecord& record)
 {
-  if (record.d_class == QClass::IN && record.d_name == d_zone) {
+  if (record.d_class == QClass::IN && record.d_name == DNSName(d_zone)) {
     switch (record.d_type) {
     case QType::SOA: {
       d_soaRecordContent = getRR<SOARecordContent>(record);
@@ -104,8 +104,8 @@ void pdns::ZoneMD::processRecord(const DNSRecord& record)
         return;
       }
       d_nsec3params.emplace_back(param);
-      d_nsec3label = d_zone;
-      d_nsec3label.prependRawLabel(toBase32Hex(hashQNameWithSalt(param->d_salt, param->d_iterations, d_zone)));
+      d_nsec3label = DNSName(d_zone);
+      d_nsec3label.prependRawLabel(toBase32Hex(hashQNameWithSalt(param->d_salt, param->d_iterations, DNSName(d_zone))));
       // Zap the NSEC3 at labels that we now know are not relevant
       for (auto item = d_nsec3s.begin(); item != d_nsec3s.end();) {
         if (item->first != d_nsec3label) {
@@ -123,7 +123,7 @@ void pdns::ZoneMD::processRecord(const DNSRecord& record)
 
 void pdns::ZoneMD::readRecord(const DNSRecord& record)
 {
-  if (!record.d_name.isPartOf(d_zone) && record.d_name != d_zone) {
+  if (!record.d_name.isPartOf(d_zone) && record.d_name != DNSName(d_zone)) {
     return;
   }
   if (record.d_class == QClass::IN && record.d_type == QType::SOA && d_soaRecordContent) {
@@ -218,7 +218,7 @@ void pdns::ZoneMD::verify(bool& validationDone, bool& validationOK)
   for (auto& rrset : d_resourceRecordSets) {
     const auto& qname = rrset.first.first;
     const auto& qtype = rrset.first.second;
-    if (qtype == QType::ZONEMD && qname == d_zone) {
+    if (qtype == QType::ZONEMD && qname == DNSName(d_zone)) {
       continue; // the apex ZONEMD is not digested
     }
 
@@ -226,7 +226,7 @@ void pdns::ZoneMD::verify(bool& validationDone, bool& validationOK)
     for (auto& resourceRecord : rrset.second) {
       if (qtype == QType::RRSIG) {
         const auto rrsig = std::dynamic_pointer_cast<const RRSIGRecordContent>(resourceRecord);
-        if (rrsig->d_type == QType::ZONEMD && qname == d_zone) {
+        if (rrsig->d_type == QType::ZONEMD && qname == DNSName(d_zone)) {
           continue;
         }
       }

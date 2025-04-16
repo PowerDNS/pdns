@@ -113,7 +113,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
     return 0;
   }
 
-  if ((rrType == QType::NSEC3PARAM || rrType == QType::DNSKEY) && rr->d_name != di->zone) {
+  if ((rrType == QType::NSEC3PARAM || rrType == QType::DNSKEY) && rr->d_name != di->zone.operator const DNSName&()) {
     g_log<<Logger::Warning<<msgPrefix<<"Trying to add/update/delete "<<rr->d_name<<"|"<<rrType.toString()<<", "<<rrType.toString()<<" must be at zone apex, ignoring!"<<endl;
     return 0;
   }
@@ -259,13 +259,13 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
       delnonterm.insert(rr->d_name); // always remove any ENT's in the place where we're going to add a record.
       auto newRec = DNSResourceRecord::fromWire(*rr);
       newRec.domain_id = di->id;
-      newRec.auth = (rr->d_name == di->zone || rrType.getCode() != QType::NS);
+      newRec.auth = (rr->d_name == di->zone.operator const DNSName&() || rrType.getCode() != QType::NS);
       di->backend->feedRecord(newRec, DNSName());
       changedRecords++;
 
 
       // because we added a record, we need to fix DNSSEC data.
-      DNSName shorter(rr->d_name);
+      ZoneName shorter(rr->d_name);
       bool auth=newRec.auth;
       bool fixDS = (rrType == QType::DS);
 
@@ -276,18 +276,18 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
             break;
 
           bool foundShorter = false;
-          di->backend->lookup(QType(QType::ANY), shorter, di->id);
+          di->backend->lookup(QType(QType::ANY), shorter.operator const DNSName&(), di->id);
           while (di->backend->get(rec)) {
             if (rec.qname == rr->d_name && rec.qtype == QType::DS)
               fixDS = true;
-            if (shorter != rr->d_name)
+            if (shorter.operator const DNSName&() != rr->d_name)
               foundShorter = true;
             if (rec.qtype == QType::NS) // are we inserting below a delegate?
               auth=false;
           }
 
-          if (!foundShorter && auth && shorter != rr->d_name) // haven't found any record at current level, insert ENT.
-            insnonterm.insert(shorter);
+          if (!foundShorter && auth && shorter.operator const DNSName&() != rr->d_name) // haven't found any record at current level, insert ENT.
+            insnonterm.insert(shorter.operator const DNSName&());
           if (foundShorter)
             break; // if we find a shorter record, we can stop searching
         } while(shorter.chopOff());
@@ -335,7 +335,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
         DLOG(g_log<<msgPrefix<<"Going to fix auth flags below "<<rr->d_name<<endl);
         insnonterm.clear(); // No ENT's are needed below delegates (auth=0)
         vector<DNSName> qnames;
-        di->backend->listSubZone(rr->d_name, di->id);
+        di->backend->listSubZone(ZoneName(rr->d_name), di->id);
         while(di->backend->get(rec)) {
           if (rec.qtype.getCode() && rec.qtype.getCode() != QType::DS && rr->d_name != rec.qname) // Skip ENT, DS and our already corrected record.
             qnames.push_back(rec.qname);
@@ -375,11 +375,11 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
     if (rrType == QType::NSEC3PARAM) {
       g_log<<Logger::Notice<<msgPrefix<<"Deleting NSEC3PARAM from zone, resetting ordernames."<<endl;
       if (rr->d_class == QClass::ANY)
-        d_dk.unsetNSEC3PARAM(rr->d_name);
+        d_dk.unsetNSEC3PARAM(ZoneName(rr->d_name));
       else if (rr->d_class == QClass::NONE) {
         NSEC3PARAMRecordContent nsec3rr(rr->getContent()->getZoneRepresentation(), di->zone);
         if (*haveNSEC3 && ns3pr->getZoneRepresentation() == nsec3rr.getZoneRepresentation())
-          d_dk.unsetNSEC3PARAM(rr->d_name);
+          d_dk.unsetNSEC3PARAM(ZoneName(rr->d_name));
         else
           return 0;
       } else
@@ -401,7 +401,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
     di->backend->lookup(rrType, rr->d_name, di->id);
     while(di->backend->get(rec)) {
       if (rr->d_class == QClass::ANY) { // 3.4.2.3
-        if (rec.qname == di->zone && (rec.qtype == QType::NS || rec.qtype == QType::SOA)) // Never delete all SOA and NS's
+        if (rec.qname == di->zone.operator const DNSName&() && (rec.qtype == QType::NS || rec.qtype == QType::SOA)) // Never delete all SOA and NS's
           rrset.push_back(rec);
         else
           recordsToDelete.push_back(rec);
@@ -431,9 +431,9 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
 
 
       // If we've removed a delegate, we need to reset ordername/auth for some records.
-      if (rrType == QType::NS && rr->d_name != di->zone) { 
+      if (rrType == QType::NS && rr->d_name != di->zone.operator const DNSName&()) { 
         vector<DNSName> belowOldDelegate, nsRecs, updateAuthFlag;
-        di->backend->listSubZone(rr->d_name, di->id);
+        di->backend->listSubZone(ZoneName(rr->d_name), di->id);
         while (di->backend->get(rec)) {
           if (rec.qtype.getCode()) // skip ENT records, they are always auth=false
             belowOldDelegate.push_back(rec.qname);
@@ -474,7 +474,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
       // on that level. If so, we must insert an ENT record.
       // We take extra care here to not 'include' the record that we just deleted. Some backends will still return it as they only reload on a commit.
       bool foundDeeper = false, foundOtherWithSameName = false;
-      di->backend->listSubZone(rr->d_name, di->id);
+      di->backend->listSubZone(ZoneName(rr->d_name), di->id);
       while (di->backend->get(rec)) {
         if (rec.qname == rr->d_name && !count(recordsToDelete.begin(), recordsToDelete.end(), rec))
           foundOtherWithSameName = true;
@@ -487,7 +487,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
       } else if (!foundOtherWithSameName) {
         // If we didn't have to insert an ENT, we might have deleted a record at very deep level
         // and we must then clean up the ENT's above the deleted record.
-        DNSName shorter(rr->d_name);
+        ZoneName shorter(rr->d_name);
         while (shorter != di->zone) {
           shorter.chopOff();
           bool foundRealRR = false;
@@ -509,7 +509,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
           }
           if (!foundRealRR) {
             if (foundEnt) // only delete the ENT if we actually found one.
-              delnonterm.insert(shorter);
+              delnonterm.insert(shorter.operator const DNSName&());
           } else
             break;
         }
@@ -542,7 +542,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
 
 int PacketHandler::forwardPacket(const string &msgPrefix, const DNSPacket& p, const DomainInfo& di) {
   vector<string> forward;
-  B.getDomainMetadata(p.qdomain, "FORWARD-DNSUPDATE", forward);
+  B.getDomainMetadata(ZoneName(p.qdomain), "FORWARD-DNSUPDATE", forward);
 
   if (forward.size() == 0 && ! ::arg().mustDo("forward-dnsupdate")) {
     g_log << Logger::Notice << msgPrefix << "Not configured to forward to primary, returning Refused." << endl;
@@ -665,7 +665,8 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
   if (! ::arg().mustDo("dnsupdate"))
     return RCode::Refused;
 
-  string msgPrefix="UPDATE (" + std::to_string(packet.d.id) + ") from " + packet.getRemoteString() + " for " + packet.qdomain.toLogString() + ": ";
+  ZoneName zonename(packet.qdomain);
+  string msgPrefix="UPDATE (" + std::to_string(packet.d.id) + ") from " + packet.getRemoteString() + " for " + zonename.toLogString() + ": ";
   g_log<<Logger::Info<<msgPrefix<<"Processing started."<<endl;
 
   // if there is policy, we delegate all checks to it
@@ -673,7 +674,7 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
 
     // Check permissions - IP based
     vector<string> allowedRanges;
-    B.getDomainMetadata(packet.qdomain, "ALLOW-DNSUPDATE-FROM", allowedRanges);
+    B.getDomainMetadata(zonename, "ALLOW-DNSUPDATE-FROM", allowedRanges);
     if (! ::arg()["allow-dnsupdate-from"].empty())
       stringtok(allowedRanges, ::arg()["allow-dnsupdate-from"], ", \t" );
 
@@ -690,7 +691,7 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
 
     // Check permissions - TSIG based.
     vector<string> tsigKeys;
-    B.getDomainMetadata(packet.qdomain, "TSIG-ALLOW-DNSUPDATE", tsigKeys);
+    B.getDomainMetadata(zonename, "TSIG-ALLOW-DNSUPDATE", tsigKeys);
     if (tsigKeys.size() > 0) {
       bool validKey = false;
 
@@ -758,8 +759,8 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
 
   DomainInfo di;
   di.backend=nullptr;
-  if(!B.getDomainInfo(packet.qdomain, di) || (di.backend == nullptr)) {
-    g_log<<Logger::Error<<msgPrefix<<"Can't determine backend for domain '"<<packet.qdomain<<"' (or backend does not support DNS update operation)"<<endl;
+  if(!B.getDomainInfo(zonename, di) || (di.backend == nullptr)) {
+    g_log<<Logger::Error<<msgPrefix<<"Can't determine backend for domain '"<<zonename<<"' (or backend does not support DNS update operation)"<<endl;
     return RCode::NotAuth;
   }
 
@@ -784,8 +785,8 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
 
   std::lock_guard<std::mutex> l(s_rfc2136lock); //TODO: i think this lock can be per zone, not for everything
   g_log<<Logger::Info<<msgPrefix<<"starting transaction."<<endl;
-  if (!di.backend->startTransaction(packet.qdomain, -1)) { // Not giving the domain_id means that we do not delete the existing records.
-    g_log<<Logger::Error<<msgPrefix<<"Backend for domain "<<packet.qdomain<<" does not support transaction. Can't do Update packet."<<endl;
+  if (!di.backend->startTransaction(zonename, -1)) { // Not giving the domain_id means that we do not delete the existing records.
+    g_log<<Logger::Error<<msgPrefix<<"Backend for domain "<<zonename<<" does not support transaction. Can't do Update packet."<<endl;
     return RCode::NotImp;
   }
 
@@ -907,7 +908,7 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
       if (dnsRecord->d_place == DNSResourceRecord::AUTHORITY) {
         /* see if it's permitted by policy */
         if (this->d_update_policy_lua != nullptr) {
-          if (!this->d_update_policy_lua->updatePolicy(dnsRecord->d_name, QType(dnsRecord->d_type), di.zone, packet)) {
+          if (!this->d_update_policy_lua->updatePolicy(dnsRecord->d_name, QType(dnsRecord->d_type), di.zone.operator const DNSName&(), packet)) {
             g_log<<Logger::Warning<<msgPrefix<<"Refusing update for " << dnsRecord->d_name << "/" << QType(dnsRecord->d_type).toString() << ": Not permitted by policy"<<endl;
             continue;
           } else {
@@ -915,7 +916,7 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
           }
         }
 
-        if (dnsRecord->d_class == QClass::NONE  && dnsRecord->d_type == QType::NS && dnsRecord->d_name == di.zone) {
+        if (dnsRecord->d_class == QClass::NONE  && dnsRecord->d_type == QType::NS && dnsRecord->d_name == di.zone.operator const DNSName&()) {
           nsRRtoDelete.push_back(dnsRecord);
         }
         else if (dnsRecord->d_class == QClass::IN &&  dnsRecord->d_ttl > 0) {
@@ -962,7 +963,7 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
     if (nsRRtoDelete.size()) {
       vector<DNSResourceRecord> nsRRInZone;
       DNSResourceRecord rec;
-      di.backend->lookup(QType(QType::NS), di.zone, di.id);
+      di.backend->lookup(QType(QType::NS), di.zone.operator const DNSName&(), di.id);
       while (di.backend->get(rec)) {
         nsRRInZone.push_back(rec);
       }
@@ -999,7 +1000,7 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
       // Notify secondaries
       if (di.kind == DomainInfo::Primary) {
         vector<string> notify;
-        B.getDomainMetadata(packet.qdomain, "NOTIFY-DNSUPDATE", notify);
+        B.getDomainMetadata(zonename, "NOTIFY-DNSUPDATE", notify);
         if (!notify.empty() && notify.front() == "1") {
           Communicator.notifyDomain(di.zone, &B);
         }

@@ -56,6 +56,12 @@ std::string keyConv(const T& t)
   return ret;
 }
 
+template <class T, typename std::enable_if<std::is_same<T, ZoneName>::value, T>::type* = nullptr>
+std::string keyConv(const T& t)
+{
+  return keyConv(t.operator const DNSName&());
+}
+
 class LMDBBackend : public DNSBackend
 {
 public:

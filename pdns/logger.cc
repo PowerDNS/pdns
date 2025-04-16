@@ -211,6 +211,15 @@ Logger& Logger::operator<<(const DNSName& d)
   return *this;
 }
 
+#if defined(PDNS_AUTH)
+Logger& Logger::operator<<(const ZoneName& d)
+{
+  *this << d.toLogString();
+
+  return *this;
+}
+#endif
+
 Logger& Logger::operator<<(const ComboAddress& ca)
 {
   *this << ca.toLogString();

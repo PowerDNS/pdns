@@ -57,7 +57,7 @@ AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
     d_soacount = 0;
   
     vector<uint8_t> packet;
-    DNSPacketWriter pw(packet, domain, QType::AXFR);
+    DNSPacketWriter pw(packet, DNSName(domain), QType::AXFR);
     pw.getHeader()->id = dns_random_uint16();
 
     if (!tsigConf.name.empty()) {

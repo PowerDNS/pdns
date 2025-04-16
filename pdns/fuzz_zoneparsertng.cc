@@ -49,7 +49,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     std::string tmp(reinterpret_cast<const char*>(data), size);
     boost::split(lines, tmp, boost::is_any_of("\n"));
 
-    ZoneParserTNG zpt(lines, g_rootdnsname);
+    ZoneParserTNG zpt(lines, ZoneName(g_rootdnsname));
     /* limit the number of steps for '$GENERATE' entries */
     zpt.setMaxGenerateSteps(10000);
     zpt.setMaxIncludes(20);

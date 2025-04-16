@@ -77,6 +77,9 @@ inline unsigned char dns_tolower(unsigned char c)
 // - EqualityComparable
 // - LessThanComparable
 // - Hash
+#if defined(PDNS_AUTH)
+class ZoneName;
+#endif
 class DNSName
 {
 public:
@@ -219,6 +222,13 @@ public:
   };
   RawLabelsVisitor getRawLabelsVisitor() const;
 
+#if defined(PDNS_AUTH) // [
+  // Sugar while ZoneName::operator DNSName are made explicit
+  bool isPartOf(const ZoneName& rhs) const;
+  DNSName makeRelative(const ZoneName& zone) const;
+  void makeUsRelative(const ZoneName& zone);
+#endif // ]
+
 private:
   string_t d_storage;
 
@@ -308,9 +318,111 @@ inline DNSName operator+(const DNSName& lhs, const DNSName& rhs)
 extern const DNSName g_rootdnsname, g_wildcarddnsname;
 
 // ZoneName: this is equivalent to DNSName, but intended to only store zone
-// names. For the time being, they are strictly identical.
+// names.
+#if defined(PDNS_AUTH) // [
+// Conversions between DNSName and ZoneName are allowed, but must be explicit.
+class ZoneName
+{
+public:
+  ZoneName() = default; //!< Constructs an *empty* ZoneName, NOT the root!
+  // Work around assertion in some boost versions that do not like self-assignment of boost::container::string
+  ZoneName& operator=(const ZoneName& rhs)
+  {
+    if (this != &rhs) {
+      d_name = rhs.d_name;
+    }
+    return *this;
+  }
+  ZoneName& operator=(ZoneName&& rhs) noexcept
+  {
+    if (this != &rhs) {
+      d_name = std::move(rhs.d_name);
+    }
+    return *this;
+  }
+  ZoneName(const ZoneName& a) = default;
+  ZoneName(ZoneName&& a) = default;
+
+  explicit ZoneName(std::string_view name) : d_name(name) {}
+  explicit ZoneName(const DNSName& name) : d_name(name) {}
+
+  bool isPartOf(const ZoneName& rhs) const { return d_name.isPartOf(rhs.d_name); }
+  bool isPartOf(const DNSName& rhs) const { return d_name.isPartOf(rhs); }
+  bool operator==(const ZoneName& rhs) const { return d_name == rhs.d_name; }
+  bool operator!=(const ZoneName& rhs) const { return d_name != rhs.d_name; }
+
+  std::string toString(const std::string& separator=".", const bool trailing=true) const { return d_name.toString(separator, trailing); }
+  void toString(std::string& output, const std::string& separator=".", const bool trailing=true) const { d_name.toString(output, separator, trailing); }
+  std::string toLogString() const { return d_name.toLogString(); }
+  std::string toStringNoDot() const { return d_name.toStringNoDot(); }
+  std::string toStringRootDot() const { return d_name.toStringRootDot(); }
+  std::string toDNSString() const { return d_name.toDNSString(); }
+  std::string toDNSStringLC() const { return d_name.toDNSStringLC(); }
+
+  bool chopOff() { return d_name.chopOff(); }
+  ZoneName makeRelative(const ZoneName& zone) const
+  {
+    ZoneName ret(*this);
+    ret.d_name.makeUsRelative(zone.d_name);
+    return ret;
+  }
+  ZoneName makeLowerCase() const
+  {
+    ZoneName ret(*this);
+    ret.d_name.makeUsLowerCase();
+    return ret;
+  }
+  void makeUsLowerCase() { d_name.makeUsLowerCase(); }
+  void makeUsRelative(const ZoneName& zone) { d_name.makeUsRelative(zone.d_name); }
+  bool isWildcard() const { return d_name.isWildcard(); }
+  bool isHostname() const { return d_name.isHostname(); }
+  size_t wirelength() const { return d_name.wirelength(); }
+  bool empty() const { return d_name.empty(); }
+  bool isRoot() const { return d_name.isRoot(); }
+  void clear() { d_name.clear(); }
+  void trimToLabels(unsigned int trim) { d_name.trimToLabels(trim); }
+  size_t hash(size_t init=0) const { return d_name.hash(init); }
+
+  bool operator<(const ZoneName& rhs) const { return d_name.operator<(rhs.d_name); }
+
+  bool canonCompare(const ZoneName& rhs) const { return d_name.canonCompare(rhs.d_name); }
+
+  typedef boost::container::string string_t;
+
+  const string_t& getStorage() const { return d_name.getStorage(); }
+
+  [[nodiscard]] size_t sizeEstimate() const { return d_name.sizeEstimate(); }
+
+  bool has8bitBytes() const { return d_name.has8bitBytes(); }
+
+  // Conversion from ZoneName to DNSName
+  explicit operator const DNSName&() const { return d_name; }
+  explicit operator DNSName&() { return d_name; }
+private:
+  DNSName d_name;
+};
+
+size_t hash_value(ZoneName const& d);
+
+std::ostream & operator<<(std::ostream &os, const ZoneName& d);
+namespace std {
+    template <>
+    struct hash<ZoneName> {
+        size_t operator () (const ZoneName& dn) const { return dn.hash(0); }
+    };
+}
+
+struct CanonZoneNameCompare
+{
+  bool operator()(const ZoneName& a, const ZoneName& b) const
+  {
+    return a.canonCompare(b);
+  }
+};
+#else // ] [
 using ZoneName = DNSName;
 using CanonZoneNameCompare = CanonDNSNameCompare;
+#endif // ]
 
 template<typename T>
 struct SuffixMatchTree
