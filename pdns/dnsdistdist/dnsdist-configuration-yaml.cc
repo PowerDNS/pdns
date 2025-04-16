@@ -487,6 +487,8 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dns
     tlsCtx = getTLSContext(backendConfig.d_tlsParams);
   }
 
+  backendConfig.dscp = config.dscp;
+
   auto downstream = std::make_shared<DownstreamState>(std::move(backendConfig), std::move(tlsCtx), !configCheck);
 
 #if defined(HAVE_XSK)
@@ -506,8 +508,6 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dns
   if (autoUpgradeConf.enabled && downstream->getProtocol() != dnsdist::Protocol::DoT && downstream->getProtocol() != dnsdist::Protocol::DoH) {
     dnsdist::ServiceDiscovery::addUpgradeableServer(downstream, autoUpgradeConf.interval, std::string(autoUpgradeConf.pool), autoUpgradeConf.doh_key, autoUpgradeConf.keep);
   }
-
-  backendConfig.dscp = config.dscp;
 
   return downstream;
 }
