@@ -1084,8 +1084,8 @@ bool setReuseAddr(int sock)
 
 void setDscp(int sock, unsigned short family, uint8_t dscp)
 {
-  int val;
-  unsigned int len;
+  int val = 0;
+  unsigned int len = 0;
 
   if (dscp == 0 || dscp > 63) {
     // No DSCP marking
