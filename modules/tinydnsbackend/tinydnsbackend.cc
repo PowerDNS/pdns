@@ -244,7 +244,7 @@ bool TinyDNSBackend::list(const ZoneName& target, int /* domain_id */, bool /* i
 {
   d_isAxfr = true;
   d_isGetDomains = false;
-  string key = target.toDNSStringLC();
+  string key = target.operator const DNSName&().toDNSStringLC();
   try {
     d_cdbReader = std::make_unique<CDB>(getArg("dbfile"));
   }

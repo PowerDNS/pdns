@@ -345,9 +345,10 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& zone, co
   bool validKeys=dk.checkKeys(zone, checkKeyErrors);
 
   if (haveNSEC3) {
-    if(isSecure && zone.wirelength() > 222) {
+    auto wirelength = zone.operator const DNSName&().wirelength();
+    if(isSecure && wirelength > 222) {
       numerrors++;
-      cout<<"[Error] zone '" << zone << "' has NSEC3 semantics but is too long to have the hash prepended. Zone name is " << zone.wirelength() << " bytes long, whereas the maximum is 222 bytes." << endl;
+      cout<<"[Error] zone '" << zone << "' has NSEC3 semantics but is too long to have the hash prepended. Zone name is " << wirelength << " bytes long, whereas the maximum is 222 bytes." << endl;
     }
 
     vector<DNSBackend::KeyData> dbkeyset;
@@ -3496,8 +3497,8 @@ static int setNsec3(vector<string>& cmds, const std::string_view synopsis)
 
   DNSSECKeeper dk; //NOLINT(readability-identifier-length)
   ZoneName zone(cmds.at(1));
-  if (zone.wirelength() > 222) {
-    cerr<<"Cannot enable NSEC3 for " << zone << " as it is too long (" << zone.wirelength() << " bytes, maximum is 222 bytes)"<<endl;
+  if (auto wirelength = zone.operator const DNSName&().wirelength(); wirelength > 222) {
+    cerr<<"Cannot enable NSEC3 for " << zone << " as it is too long (" << wirelength << " bytes, maximum is 222 bytes)"<<endl;
     return 1;
   }
   if(ns3pr.d_algorithm != 1) {
