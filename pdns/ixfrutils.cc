@@ -34,7 +34,7 @@
 uint32_t getSerialFromPrimary(const ComboAddress& primary, const ZoneName& zone, shared_ptr<const SOARecordContent>& soarecord, const TSIGTriplet& tsig, const uint16_t timeout)
 {
   vector<uint8_t> packet;
-  DNSPacketWriter pw(packet, zone, QType::SOA);
+  DNSPacketWriter pw(packet, zone.operator const DNSName&(), QType::SOA);
   if(!tsig.algo.empty()) {
     TSIGRecordContent trc;
     trc.d_algoName = tsig.algo;

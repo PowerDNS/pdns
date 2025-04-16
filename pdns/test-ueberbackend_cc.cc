@@ -139,7 +139,7 @@ public:
   void lookup(const QType& qtype, const DNSName& qdomain, int zoneId = -1, DNSPacket *pkt_p = nullptr) override
   {
     d_currentScopeMask = 0;
-    findZone(qdomain, zoneId, d_records, d_currentZone);
+    findZone(ZoneName(qdomain), zoneId, d_records, d_currentZone);
 
     if (d_records) {
       if (qdomain == DNSName("geo.powerdns.com.") && pkt_p != nullptr) {
@@ -263,14 +263,14 @@ public:
       }
 
       auto& idx = records->get<OrderedNameTypeTag>();
-      auto range = idx.equal_range(std::tuple(best, QType::SOA));
+      auto range = idx.equal_range(std::tuple(best.operator const DNSName&(), QType::SOA));
       if (range.first == range.second) {
         return false;
       }
 
       fillSOAData(range.first->d_content, *soadata);
       soadata->ttl = range.first->d_ttl;
-      soadata->qname = best;
+      soadata->qname = best.operator const DNSName&();
       soadata->domain_id = static_cast<int>(zoneId);
       return true;
     }

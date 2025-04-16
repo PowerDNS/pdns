@@ -28,7 +28,7 @@ bool LdapBackend::list(const ZoneName& target, int domain_id, bool /* include_di
 {
   try {
     d_in_list = true;
-    d_qname = target;
+    d_qname = target.operator const DNSName&();
     d_qtype = QType::ANY;
     d_results_cache.clear();
 

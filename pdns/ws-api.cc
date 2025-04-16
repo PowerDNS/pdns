@@ -266,6 +266,13 @@ DNSName apiNameToDNSName(const string& name)
   }
 }
 
+#if defined(PDNS_AUTH)
+ZoneName apiNameToZoneName(const string& name)
+{
+  return ZoneName(apiNameToDNSName(name));
+}
+#endif
+
 ZoneName apiZoneIdToName(const string& identifier)
 {
   string zonename;

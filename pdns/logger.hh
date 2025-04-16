@@ -108,6 +108,9 @@ public:
   Logger& operator<<(const char* s);
   Logger& operator<<(const string& s); //!< log a string
   Logger& operator<<(const DNSName&);
+#if defined(PDNS_AUTH)
+  Logger& operator<<(const ZoneName&);
+#endif
   Logger& operator<<(const ComboAddress&); //!< log an address
   Logger& operator<<(const SockaddrWrapper&); //!< log an address
   Logger& operator<<(Urgency); //!< set the urgency, << style

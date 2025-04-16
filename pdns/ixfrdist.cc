@@ -305,7 +305,7 @@ static void sendNotification(int sock, const ZoneName& domain, const ComboAddres
 {
   std::vector<std::string> meta;
   std::vector<uint8_t> packet;
-  DNSPacketWriter packetWriter(packet, domain, QType::SOA, 1, Opcode::Notify);
+  DNSPacketWriter packetWriter(packet, domain.operator const DNSName&(), QType::SOA, 1, Opcode::Notify);
   packetWriter.getHeader()->id = notificationId;
   packetWriter.getHeader()->aa = true;
 
@@ -345,7 +345,7 @@ static void communicatorReceiveNotificationAnswers(const int sock4, const int so
       g_log << Logger::Warning << "Received unsuccessful notification report for '" << packet.qdomain << "' from " << from.toStringWithPort() << ", error: " << RCode::to_s(packet.d.rcode) << endl;
     }
 
-    if (g_notificationQueue.lock()->removeIf(from, packet.d.id, packet.qdomain)) {
+    if (g_notificationQueue.lock()->removeIf(from, packet.d.id, ZoneName(packet.qdomain))) {
       g_log << Logger::Notice << "Removed from notification list: '" << packet.qdomain << "' to " << from.toStringWithPort() << " " << (packet.d.rcode != 0 ? RCode::to_s(packet.d.rcode) : "(was acknowledged)") << endl;
     }
     else {
@@ -625,7 +625,7 @@ static ResponseType maybeHandleNotify(const MOADNSParser& mdp, const ComboAddres
 
   g_log<<Logger::Info<<logPrefix<<"NOTIFY for "<<mdp.d_qname<<"|"<<QType(mdp.d_qtype).toString()<<" "<< Opcode::to_s(mdp.d_header.opcode) <<" from "<<saddr.toStringWithPort()<<endl;
 
-  auto found = g_domainConfigs.find(mdp.d_qname);
+  auto found = g_domainConfigs.find(ZoneName(mdp.d_qname));
   if (found == g_domainConfigs.end()) {
     g_log<<Logger::Info<<("Domain name '" + mdp.d_qname.toLogString() + "' is not configured for notification")<<endl;
     return ResponseType::RefusedQuery;
@@ -643,12 +643,12 @@ static ResponseType maybeHandleNotify(const MOADNSParser& mdp, const ComboAddres
   }
 
   if (primaryFound) {
-    g_notifiesReceived.lock()->insert(mdp.d_qname);
+    g_notifiesReceived.lock()->insert(ZoneName(mdp.d_qname));
 
     if (!found->second.notify.empty()) {
       for (const auto& address : found->second.notify) {
         g_log << Logger::Debug << logPrefix << "Queuing notification for " << mdp.d_qname << " to " << address.toStringWithPort() << std::endl;
-        g_notificationQueue.lock()->add(mdp.d_qname, address);
+        g_notificationQueue.lock()->add(ZoneName(mdp.d_qname), address);
       }
     }
     return ResponseType::EmptyNoError;
@@ -680,12 +680,12 @@ static ResponseType checkQuery(const MOADNSParser& mdp, const ComboAddress& sadd
     }
 
     {
-      if (g_domainConfigs.find(mdp.d_qname) == g_domainConfigs.end()) {
+      if (g_domainConfigs.find(ZoneName(mdp.d_qname)) == g_domainConfigs.end()) {
         info_msg.push_back("Domain name '" + mdp.d_qname.toLogString() + "' is not configured for distribution");
         ret = ResponseType::RefusedQuery;
       }
       else {
-        const auto zoneInfo = getCurrentZoneInfo(mdp.d_qname);
+        const auto zoneInfo = getCurrentZoneInfo(ZoneName(mdp.d_qname));
         if (zoneInfo == nullptr) {
           info_msg.emplace_back("Domain has not been transferred yet");
           ret = ResponseType::RefusedQuery;
@@ -735,7 +735,7 @@ static bool makeEmptyNoErrorPacket(const MOADNSParser& mdp, vector<uint8_t>& pac
  */
 static bool makeSOAPacket(const MOADNSParser& mdp, vector<uint8_t>& packet) {
 
-  auto zoneInfo = getCurrentZoneInfo(mdp.d_qname);
+  auto zoneInfo = getCurrentZoneInfo(ZoneName(mdp.d_qname));
   if (zoneInfo == nullptr) {
     return false;
   }
@@ -872,9 +872,9 @@ static bool handleAXFR(int fd, const MOADNSParser& mdp) {
      until we release it.
   */
 
-  g_stats.incrementAXFRinQueries(mdp.d_qname);
+  g_stats.incrementAXFRinQueries(ZoneName(mdp.d_qname));
 
-  auto zoneInfo = getCurrentZoneInfo(mdp.d_qname);
+  auto zoneInfo = getCurrentZoneInfo(ZoneName(mdp.d_qname));
   if (zoneInfo == nullptr) {
     return false;
   }
@@ -912,9 +912,9 @@ static bool handleIXFR(int fd, const MOADNSParser& mdp, const shared_ptr<const S
      until we release it.
   */
 
-  g_stats.incrementIXFRinQueries(mdp.d_qname);
+  g_stats.incrementIXFRinQueries(ZoneName(mdp.d_qname));
 
-  auto zoneInfo = getCurrentZoneInfo(mdp.d_qname);
+  auto zoneInfo = getCurrentZoneInfo(ZoneName(mdp.d_qname));
   if (zoneInfo == nullptr) {
     return false;
   }
@@ -1075,12 +1075,12 @@ try
      * Let's not complicate this with IXFR over UDP (and looking if we need to truncate etc).
      * Just send the current SOA and let the client try over TCP
      */
-    g_stats.incrementSOAinQueries(mdp.d_qname); // FIXME: this also counts IXFR queries (but the response is the same as to a SOA query)
+    g_stats.incrementSOAinQueries(ZoneName(mdp.d_qname)); // FIXME: this also counts IXFR queries (but the response is the same as to a SOA query)
     makeSOAPacket(mdp, packet);
   } else if (respt == ResponseType::EmptyNoError) {
     makeEmptyNoErrorPacket(mdp, packet);
   } else if (respt == ResponseType::RefusedQuery) {
-    g_stats.incrementUnknownDomainInQueries(mdp.d_qname);
+    g_stats.incrementUnknownDomainInQueries(ZoneName(mdp.d_qname));
     makeRefusedPacket(mdp, packet);
   } else if (respt == ResponseType::RefusedOpcode) {
     g_stats.incrementNotImplemented(mdp.d_header.opcode);

@@ -178,7 +178,7 @@ public:
   bool getDomainKeys(const ZoneName& name, std::vector<DNSBackend::KeyData>& keys) override;
   bool getTSIGKey(const DNSName& name, DNSName& algorithm, std::string& content) override;
   bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) override;
-  bool setDomainMetadata(const DNSName& name, const string& kind, const std::vector<std::basic_string<char>>& meta) override;
+  bool setDomainMetadata(const ZoneName& name, const string& kind, const std::vector<std::basic_string<char>>& meta) override;
   bool removeDomainKey(const ZoneName& name, unsigned int keyId) override;
   bool addDomainKey(const ZoneName& name, const KeyData& key, int64_t& keyId) override;
   bool activateDomainKey(const ZoneName& name, unsigned int keyId) override;
