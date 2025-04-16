@@ -14,6 +14,14 @@ For example, to load two certificates, one ``RSA`` and one ``ECDSA`` one:
 
   addTLSLocal("192.0.2.1:853", { "/path/to/rsa/pem", "/path/to/ecdsa/pem" }, { "/path/to/rsa/key", "/path/to/ecdsa/key" })
 
+Before 2.0.0 the ``OpenSSL`` provider did not support selecting the certificate to provide to the client based on the value sent in ``Server Name Indication`` extension of the ``Client Hello`` message, so providing more than one certificate only made sense to support different algorithms, like ``RSA`` and ``ECDSA``. The ``GnuTLS`` provider had no such limitation.
+Since 2.0.0, the ``OpenSSL`` provider is capable of selecting the certificate based on the ``SNI`` value, so loading several certificates for different hostnames is now possible.
+
+.. code-block:: lua
+
+  addTLSLocal("192.0.2.1:853", { "/path/to/cert-hostname1", "/path/to/cert-hostname2" }, { "/path/to/key-hostname1", "/path/to/key-hostname2" })
+
+
 Password-protected PKCS12 files
 -------------------------------
 

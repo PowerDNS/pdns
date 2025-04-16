@@ -1486,7 +1486,7 @@ static void setupTLSContext(DOHAcceptContext& acceptCtx,
     tlsConfig.d_ciphers = DOH_DEFAULT_CIPHERS.data();
   }
 
-  auto [ctx, warnings] = libssl_init_server_context(tlsConfig, acceptCtx.d_ocspResponses);
+  auto [ctx, warnings] = libssl_init_server_context_no_sni(tlsConfig, acceptCtx.d_ocspResponses);
   for (const auto& warning : warnings) {
     warnlog("%s", warning);
   }
@@ -1508,7 +1508,7 @@ static void setupTLSContext(DOHAcceptContext& acceptCtx,
   }
 #endif /* DISABLE_OCSP_STAPLING */
 
-  libssl_set_error_counters_callback(ctx, &counters);
+  libssl_set_error_counters_callback(*ctx.get(), &counters);
 
   if (!tlsConfig.d_keyLogFile.empty()) {
     acceptCtx.d_keyLogFile = libssl_set_key_log_file(ctx.get(), tlsConfig.d_keyLogFile);
