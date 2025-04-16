@@ -937,14 +937,14 @@ def ci_auth_install(c, meson=False):
 @task
 def ci_rec_install(c, meson=False):
     if meson:
-        c.run('meson install')
+        c.sudo(f"bash -c 'source {repo_home}/.venv/bin/activate && meson install'")
     else:
         c.run('make install')
 
 @task
 def ci_dnsdist_install(c, meson=False):
     if meson:
-        c.run('meson install')
+        c.sudo(f"bash -c 'source {repo_home}/.venv/bin/activate && meson install'")
     else:
         c.run('make install')
 
