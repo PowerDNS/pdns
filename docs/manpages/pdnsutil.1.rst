@@ -19,8 +19,9 @@ Options
 -------
 
 -h, --help              Show summary of options
--v, --verbose           Be more verbose.
---force                 Force an action
+-v, --verbose           Be more verbose
+-f, --force             Force an action
+-q, --quiet             Be quiet
 --config-name <NAME>    Virtual configuration name
 --config-dir <DIR>      Location of pdns.conf. Default is /etc/powerdns.
 
