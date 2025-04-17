@@ -101,6 +101,7 @@ Generic settings for backends
 - **mac_address**: String ``("")`` - When the ``xsk`` option is set, this parameter can be used to specify the destination MAC address to use to reach the backend. If this options is not specified, dnsdist will try to get it from the IP of the backend by looking into the system's MAC address table, but it will fail if the corresponding MAC address is not present
 - **cpus**: String ``("")`` - Set the CPU affinity for this thread, asking the scheduler to run it on a single CPU id, or a set of CPU ids. This parameter is only available if the OS provides the ``pthread_setaffinity_np()`` function
 - **xsk**: String ``("")`` - The name of an XSK sockets map to attach to this frontend, if any
+- **dscp**: Unsigned integer ``(0)`` - The DSCP marking value to be applied. Range 0-63. Default is 0 which means no action for DSCP marking.
 
 
 .. _yaml-settings-BindConfiguration:

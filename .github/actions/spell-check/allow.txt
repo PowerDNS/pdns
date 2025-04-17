@@ -864,6 +864,8 @@ drsoa
 dsa
 DSANSEC
 dsc
+dscp
+DSCP
 dsdelegation
 dsdigestalgorithm
 dses

@@ -503,6 +503,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                          getOptionalValue<bool>(vars, "enableRenegotiation", config.d_tlsParams.d_enableRenegotiation);
                          getOptionalValue<bool>(vars, "ktls", config.d_tlsParams.d_ktls);
                          getOptionalValue<std::string>(vars, "subjectName", config.d_tlsSubjectName);
+                         getOptionalIntegerValue("newServer", vars, "dscp", config.dscp);
 
                          if (vars->count("keyLogFile") > 0) {
 #ifdef HAVE_SSL_CTX_SET_KEYLOG_CALLBACK

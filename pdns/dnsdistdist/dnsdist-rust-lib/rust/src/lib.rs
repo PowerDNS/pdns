@@ -1844,6 +1844,8 @@ mod dnsdistsettings {
         cpus: String,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         xsk: String,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        dscp: u8,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
