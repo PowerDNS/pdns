@@ -60,8 +60,9 @@ po::variables_map g_vm;
 string g_programname="pdns";
 
 namespace {
-  bool g_verbose;
   bool g_force;
+  bool g_quiet;
+  bool g_verbose;
 }
 
 ArgvMap &arg()
@@ -191,7 +192,7 @@ public:
 
 UtilBackend::~UtilBackend()
 {
-  if (hasCreatedLocalFiles()) {
+  if (!g_quiet && hasCreatedLocalFiles()) {
     cout<<"WARNING: local files have been created as a result of this operation."<<endl
         <<"Be sure to check the files owner, group and permission to make sure that"<<endl
         <<"the authoritative server can correctly use them."<<endl;
@@ -2806,7 +2807,7 @@ static int rectifyAllZones(vector<string>& cmds, [[maybe_unused]] const std::str
 {
   bool quiet = (cmds.size() >= 2 && cmds.at(1) == "quiet");
   DNSSECKeeper dk; //NOLINT(readability-identifier-length)
-  if (!rectifyAllZones(dk, quiet)) {
+  if (!rectifyAllZones(dk, quiet || g_quiet)) {
     return 1;
   }
   return 0;
@@ -4859,7 +4860,8 @@ try
     ("help,h", "produce help message")
     ("version", "show version")
     ("verbose,v", "be verbose")
-    ("force", "force an action")
+    ("force,f", "force an action")
+    ("quiet,q", "be quiet")
     ("config-name", po::value<string>()->default_value(""), "virtual configuration name")
     ("config-dir", po::value<string>()->default_value(SYSCONFDIR), "location of pdns.conf")
     ("no-colors", "do not use colors in output")
@@ -4876,8 +4878,9 @@ try
     cmds = g_vm["commands"].as<vector<string> >();
   }
 
-  g_verbose = g_vm.count("verbose") != 0;
   g_force = g_vm.count("force") != 0;
+  g_quiet = g_vm.count("quiet") != 0;
+  g_verbose = g_vm.count("verbose") != 0;
 
   if (g_vm.count("version") != 0) {
     cout<<"pdnsutil "<<VERSION<<endl;
