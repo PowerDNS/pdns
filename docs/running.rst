@@ -113,44 +113,6 @@ Backend manipulation
 
 To perform zone and record changes using inbuilt tools, the :doc:`pdnsutil <pdnsutil>` command can be used. All available options are described in the online :doc:`manual page <../manpages/pdnsutil.1>` as well as in ``man pdnsutil``.
 
-The SysV init script
---------------------
-
-This script supplied with the PowerDNS source accepts the following
-commands:
-
--  ``monitor``: Monitor is a special way to view the daemon. It executes
-   PowerDNS in the foreground with a lot of logging turned on, which
-   helps in determining startup problems. Besides running in the
-   foreground, the raw PowerDNS control socket is made available. All
-   external communication with the daemon is normally sent over this
-   socket. While useful, the control console is not an officially
-   supported feature. Commands which work are: ``QUIT``, ``SHOW *``,
-   ``SHOW varname``, ``RPING``.
--  ``start``: Start PowerDNS in the background. Launches the daemon but
-   makes no special effort to determine success, as making database
-   connections may take a while. Use ``status`` to query success. You
-   can safely run ``start`` many times, it will not start additional
-   PowerDNS instances.
--  ``restart``: Restarts PowerDNS if it was running, starts it
-   otherwise.
--  ``status``: Query PowerDNS for status. This can be used to figure out
-   if a launch was successful. The status found is prefixed by the PID
-   of the main PowerDNS process.
--  ``stop``: Requests that PowerDNS stop. Again, does not confirm
-   success. Success can be ascertained with the ``status`` command.
--  ``dump``: Dumps a lot of statistics of a running PowerDNS daemon. It
-   is also possible to single out specific variable by using the
-   ``show`` command.
--  ``show variable``: Show a single statistic, as present in the output
-   of the ``dump``.
--  ``mrtg``: Dump statistics in mrtg format. See the performance
-   :ref:`counters` documentation.
-
-.. note::
-  Packages provided by Operating System vendors might support
-  different or less commands.
-
 Running in the foreground
 -------------------------
 
