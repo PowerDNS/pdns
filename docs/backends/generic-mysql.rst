@@ -11,6 +11,7 @@ Generic MySQL/MariaDB  backend
 * DNSSEC: Yes (set ``gmysql-dnssec``)
 * Disabled data: Yes
 * Comments: Yes
+* Search: Yes
 * API: Read-Write
 * Multiple instances: yes
 * Zone caching: Yes

@@ -11,6 +11,7 @@ BIND zone file backend
 * DNSSEC: Yes
 * Disabled data: No
 * Comments: No
+* Search: Yes
 * API: Read-only
 * Multiple instances: No
 * Zone caching: Yes
