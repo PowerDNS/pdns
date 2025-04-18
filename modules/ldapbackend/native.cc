@@ -378,6 +378,11 @@ bool LdapBackend::get(DNSResourceRecord& rr)
   return true;
 }
 
+void LdapBackend::lookupEnd()
+{
+  d_results_cache.clear();
+}
+
 bool LdapBackend::getDomainInfo(const ZoneName& domain, DomainInfo& info, bool /* getSerial */)
 {
   string filter;
