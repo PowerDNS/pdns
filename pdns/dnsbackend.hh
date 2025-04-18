@@ -171,6 +171,8 @@ public:
   virtual void lookup(const QType& qtype, const DNSName& qdomain, int zoneId = -1, DNSPacket* pkt_p = nullptr) = 0;
   virtual bool get(DNSResourceRecord&) = 0; //!< retrieves one DNSResource record, returns false if no more were available
   virtual bool get(DNSZoneRecord& zoneRecord);
+  //! Close state created by lookup(...).
+  virtual void lookupEnd();
 
   //! Initiates a list of the specified domain
   /** Once initiated, DNSResourceRecord objects can be retrieved using get(). Should return false
