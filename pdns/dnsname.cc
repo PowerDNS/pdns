@@ -730,3 +730,31 @@ bool DNSName::RawLabelsVisitor::empty() const
 {
   return d_position == 0;
 }
+
+#if defined(PDNS_AUTH) // [
+std::ostream & operator<<(std::ostream &ostr, const ZoneName& zone)
+{
+  return ostr << zone.toLogString();
+}
+
+size_t hash_value(ZoneName const& zone)
+{
+  return zone.hash();
+}
+
+// Sugar while ZoneName::operator DNSName are made explicit. These can't be
+// made inline in class DNSName due to chicken-and-egg declaration order
+// between DNSName and ZoneName.
+bool DNSName::isPartOf(const ZoneName& rhs) const
+{
+  return isPartOf(rhs.operator const DNSName&());
+}
+DNSName DNSName::makeRelative(const ZoneName& zone) const
+{
+  return makeRelative(zone.operator const DNSName&());
+}
+void DNSName::makeUsRelative(const ZoneName& zone)
+{
+  makeUsRelative(zone.operator const DNSName&());
+}
+#endif // ]

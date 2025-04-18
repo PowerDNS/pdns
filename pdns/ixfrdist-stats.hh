@@ -102,7 +102,7 @@ class ixfrdistStats {
     std::array<std::atomic<uint64_t>, 16> notimpStats{};
     programStats progStats;
 
-    std::map<ZoneName, perDomainStat>::iterator getRegisteredDomain(const DNSName& d) {
+    std::map<ZoneName, perDomainStat>::iterator getRegisteredDomain(const ZoneName& d) {
       auto ret = domainStats.find(d);
       if (ret == domainStats.end()) {
         throw PDNSException("Domain '" + d.toLogString() + "' not defined in the statistics map");

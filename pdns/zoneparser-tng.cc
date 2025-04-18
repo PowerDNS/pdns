@@ -481,9 +481,9 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
       goto retry;
   }
   if(qname=="@")
-    rr.qname=d_zonename;
+    rr.qname=DNSName(d_zonename);
   else if(!prevqname && !isCanonical(qname))
-    rr.qname += d_zonename;
+    rr.qname += DNSName(d_zonename);
   d_prevqname=rr.qname;
 
   if(d_parts.empty())

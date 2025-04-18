@@ -119,7 +119,7 @@ static int getRRSIGsForRRSET(DNSSECKeeper& dsk, const ZoneName& signer, const DN
   rrc.d_originalttl=signTTL;
   rrc.d_siginception=startOfWeek - 7*86400; // XXX should come from zone metadata
   rrc.d_sigexpire=startOfWeek + 14*86400;
-  rrc.d_signer = signer;
+  rrc.d_signer = signer.operator const DNSName&();
   rrc.d_tag = 0;
 
   DNSSECKeeper::keyset_t keys = dsk.getKeys(signer);

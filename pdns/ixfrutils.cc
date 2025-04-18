@@ -34,15 +34,15 @@
 uint32_t getSerialFromPrimary(const ComboAddress& primary, const ZoneName& zone, shared_ptr<const SOARecordContent>& soarecord, const TSIGTriplet& tsig, const uint16_t timeout)
 {
   vector<uint8_t> packet;
-  DNSPacketWriter pw(packet, zone, QType::SOA);
+  DNSPacketWriter pwriter(packet, zone.operator const DNSName&(), QType::SOA);
   if(!tsig.algo.empty()) {
     TSIGRecordContent trc;
     trc.d_algoName = tsig.algo;
     trc.d_time = time(nullptr);
     trc.d_fudge = 300;
-    trc.d_origID=ntohs(pw.getHeader()->id);
+    trc.d_origID=ntohs(pwriter.getHeader()->id);
     trc.d_eRcode=0;
-    addTSIG(pw, trc, tsig.name, tsig.secret, "", false);
+    addTSIG(pwriter, trc, tsig.name, tsig.secret, "", false);
   }
 
   Socket s(primary.sin4.sin_family, SOCK_DGRAM);

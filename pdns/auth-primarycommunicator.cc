@@ -53,7 +53,8 @@ void CommunicatorClass::queueNotifyDomain(const DomainInfo& di, UeberBackend* B)
 
   try {
     if (d_onlyNotify.size()) {
-      B->lookup(QType(QType::NS), di.zone, di.id);
+      // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
+      B->lookup(QType(QType::NS), di.zone.operator const DNSName&(), di.id);
       while (B->get(rr))
         nsset.insert(getRR<NSRecordContent>(rr.dr)->getNS());
 
@@ -139,7 +140,7 @@ void CommunicatorClass::getUpdatedProducers(UeberBackend* B, vector<DomainInfo>&
   std::string metaHash;
   std::string mapHash;
   for (auto& ch : catalogHashes) {
-    if (!catalogs.count(ch.first)) {
+    if (catalogs.count(ch.first.operator const DNSName&()) == 0) {
       g_log << Logger::Warning << "orphaned member zones found with catalog '" << ch.first << "'" << endl;
       continue;
     }
@@ -169,7 +170,7 @@ void CommunicatorClass::getUpdatedProducers(UeberBackend* B, vector<DomainInfo>&
 
         DNSResourceRecord rr;
         makeIncreasedSOARecord(sd, "EPOCH", "", rr);
-        di.backend->startTransaction(sd.qname, -1);
+        di.backend->startTransaction(ZoneName(sd.qname), -1);
         if (!di.backend->replaceRRSet(di.id, rr.qname, rr.qtype, vector<DNSResourceRecord>(1, rr))) {
           di.backend->abortTransaction();
           throw PDNSException("backend hosting producer zone '" + sd.qname.toLogString() + "' does not support editing records");
@@ -202,7 +203,7 @@ void CommunicatorClass::primaryUpdateCheck(PacketHandler* P)
   }
 
   for (auto& di : cmdomains) {
-    purgeAuthCachesExact(di.zone);
+    purgeAuthCachesExact(di.zone.operator const DNSName&());
     g_zoneCache.add(di.zone, di.id);
     queueNotifyDomain(di, B);
     di.backend->setNotified(di.id, di.serial);
@@ -237,7 +238,7 @@ time_t CommunicatorClass::doNotifications(PacketHandler* P)
       g_log << Logger::Warning << "Received unsuccessful notification report for '" << p.qdomain << "' from " << from.toStringWithPort() << ", error: " << RCode::to_s(p.d.rcode) << endl;
     }
 
-    if (d_nq.removeIf(from, p.d.id, p.qdomain)) {
+    if (d_nq.removeIf(from, p.d.id, ZoneName(p.qdomain))) {
       g_log << Logger::Notice << "Removed from notification list: '" << p.qdomain << "' to " << from.toStringWithPort() << " " << (p.d.rcode ? RCode::to_s(p.d.rcode) : "(was acknowledged)") << endl;
     }
     else {
@@ -293,9 +294,9 @@ void CommunicatorClass::sendNotification(int sock, const ZoneName& domain, const
   }
 
   vector<uint8_t> packet;
-  DNSPacketWriter pw(packet, domain, QType::SOA, 1, Opcode::Notify);
-  pw.getHeader()->id = notificationId;
-  pw.getHeader()->aa = true;
+  DNSPacketWriter pwriter(packet, domain.operator const DNSName&(), QType::SOA, 1, Opcode::Notify);
+  pwriter.getHeader()->id = notificationId;
+  pwriter.getHeader()->aa = true;
 
   if (tsigkeyname.empty() == false) {
     if (!ueber->getTSIGKey(tsigkeyname, tsigalgorithm, tsigsecret64)) {
@@ -315,7 +316,7 @@ void CommunicatorClass::sendNotification(int sock, const ZoneName& domain, const
       g_log << Logger::Error << "Unable to Base-64 decode TSIG key '" << tsigkeyname << "' for domain '" << domain << "'" << endl;
       return;
     }
-    addTSIG(pw, trc, tsigkeyname, tsigsecret, "", false);
+    addTSIG(pwriter, trc, tsigkeyname, tsigsecret, "", false);
   }
 
   if (sendto(sock, &packet[0], packet.size(), 0, (struct sockaddr*)(&remote), remote.getSocklen()) < 0) {

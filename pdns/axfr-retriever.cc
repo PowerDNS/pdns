@@ -57,8 +57,8 @@ AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
     d_soacount = 0;
   
     vector<uint8_t> packet;
-    DNSPacketWriter pw(packet, domain, QType::AXFR);
-    pw.getHeader()->id = dns_random_uint16();
+    DNSPacketWriter pwriter(packet, DNSName(domain), QType::AXFR);
+    pwriter.getHeader()->id = dns_random_uint16();
 
     if (!tsigConf.name.empty()) {
       if (tsigConf.algo == DNSName("hmac-md5")) {
@@ -69,9 +69,9 @@ AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
       }
       d_trc.d_time = time(nullptr);
       d_trc.d_fudge = 300;
-      d_trc.d_origID=ntohs(pw.getHeader()->id);
+      d_trc.d_origID=ntohs(pwriter.getHeader()->id);
       d_trc.d_eRcode=0;
-      addTSIG(pw, d_trc, tsigConf.name, tsigConf.secret, "", false);
+      addTSIG(pwriter, d_trc, tsigConf.name, tsigConf.secret, "", false);
     }
   
     uint16_t replen=htons(packet.size());
