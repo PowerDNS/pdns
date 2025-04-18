@@ -1481,14 +1481,14 @@ bool LMDBBackend::list(const ZoneName& target, int /* id */, bool include_disabl
   return true;
 }
 
-void LMDBBackend::lookup(const QType& type, const DNSName& qdomain, int zoneId, DNSPacket* /* p */)
+void LMDBBackend::lookupInternal(const QType& type, const DNSName& qdomain, int zoneId, DNSPacket* /* p */, bool include_disabled)
 {
   if (d_dolog) {
     g_log << Logger::Warning << "Got lookup for " << qdomain << "|" << type.toString() << " in zone " << zoneId << endl;
     d_dtime.set();
   }
 
-  d_includedisabled = false;
+  d_includedisabled = include_disabled;
 
   DNSName hunt(qdomain);
   DomainInfo di;
