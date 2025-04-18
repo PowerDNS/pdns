@@ -174,6 +174,7 @@ public:
   bool list(const ZoneName& target, int domain_id, bool include_disabled = false) override;
   void lookup(const QType& qtype, const DNSName& qdomain, int zoneid, DNSPacket* p = nullptr) override;
   bool get(DNSResourceRecord& rr) override;
+  void lookupEnd() override;
 
   bool getDomainInfo(const ZoneName& domain, DomainInfo& info, bool getSerial = true) override;
 
