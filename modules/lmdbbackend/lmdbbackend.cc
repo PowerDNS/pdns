@@ -1438,7 +1438,9 @@ bool LMDBBackend::searchRecords(const string& pattern, size_t maxResults, vector
     DNSResourceRecord rec;
     while (get(rec)) {
       if (maxResults == 0) {
-        continue;
+        // No need to look any further
+        lookupEnd();
+        break;
       }
       if (simpleMatch.match(rec.qname.toStringNoDot()) || simpleMatch.match(rec.content)) {
         result.emplace_back(rec);
