@@ -282,4 +282,4 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 2
-    - run: if [[ "$(file -i --dereference $(git diff --name-only HEAD^..HEAD -- . :^fuzzing/corpus) | grep binary | grep -v 'image/' | grep -v 'inode/x-empty' | grep -v 'inode/directory' | grep -v '^website/docs.powerdns.com/website/fonts/' | grep -v '^website/docs.powerdns.com/website/img/' | grep -v '^modules/tinydnsbackend/data.cdb' | tee /dev/stderr)" != "" ]]; then exit 1; fi
+    - run: if [[ "$(file -i --dereference $(git diff --name-only HEAD^..HEAD -- . :^fuzzing/corpus) | grep binary | grep -v 'image/' | grep -v 'inode/x-empty' | grep -v 'inode/directory' | grep -v '^modules/lmdbbackend/test-assets/' | grep -v '^website/docs.powerdns.com/website/fonts/' | grep -v '^website/docs.powerdns.com/website/img/' | grep -v '^modules/tinydnsbackend/data.cdb' | tee /dev/stderr)" != "" ]]; then exit 1; fi
