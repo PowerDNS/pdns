@@ -880,9 +880,19 @@ void PacketHandler::addNSEC3(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const 
 
   if (d_sd.db == nullptr) {
     if(!B.getSOAUncached(d_sd.qname, d_sd)) {
-      DLOG(g_log<<"Could not get SOA for domain");
+      DLOG(g_log<<"Could not get SOA for domain"<<endl);
       return;
     }
+  }
+
+  if (!d_sd.db->doesDNSSEC()) {
+    // We are in a configuration where the zone is primarily served by a
+    // non-DNSSEC-capable backend, but DNSSEC keys have been added to the
+    // zone in a second, DNSSEC-capable backend, which caused d_dnssec to
+    // be set to true. While it would be nice to support such a zone
+    // configuration, we don't. Log a warning and skip DNSSEC processing.
+    g_log << Logger::Notice << "Backend for zone '" << d_sd.qname << "' does not support DNSSEC operation, not adding NSEC3 hashes" << endl;
+    return;
   }
 
   bool doNextcloser = false;
@@ -968,6 +978,16 @@ void PacketHandler::addNSEC(DNSPacket& /* p */, std::unique_ptr<DNSPacket>& r, c
       DLOG(g_log<<"Could not get SOA for domain"<<endl);
       return;
     }
+  }
+
+  if (!d_sd.db->doesDNSSEC()) {
+    // We are in a configuration where the zone is primarily served by a
+    // non-DNSSEC-capable backend, but DNSSEC keys have been added to the
+    // zone in a second, DNSSEC-capable backend, which caused d_dnssec to
+    // be set to true. While it would be nice to support such a zone
+    // configuration, we don't. Log a warning and skip DNSSEC processing.
+    g_log << Logger::Notice << "Backend for zone '" << d_sd.qname << "' does not support DNSSEC operation, not adding NSEC hashes" << endl;
+    return;
   }
 
   DNSName before,after;

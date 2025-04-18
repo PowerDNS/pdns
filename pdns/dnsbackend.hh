@@ -247,11 +247,9 @@ public:
   virtual bool getTSIGKeys(std::vector<struct TSIGKey>& /* keys */) { return false; }
   virtual bool deleteTSIGKey(const DNSName& /* name */) { return false; }
 
-  virtual bool getBeforeAndAfterNamesAbsolute(uint32_t /* id */, const DNSName& /* qname */, DNSName& /* unhashed */, DNSName& /* before */, DNSName& /* after */)
+  virtual bool getBeforeAndAfterNamesAbsolute(uint32_t /* id */, const DNSName& qname, DNSName& /* unhashed */, DNSName& /* before */, DNSName& /* after */)
   {
-    std::cerr << "Default beforeAndAfterAbsolute called!" << std::endl;
-    abort();
-    return false;
+    throw PDNSException("DNSSEC operation invoked on non-DNSSEC capable backend, qname: '" + qname.toString() + "'");
   }
 
   virtual bool getBeforeAndAfterNames(uint32_t /* id */, const ZoneName& zonename, const DNSName& qname, DNSName& before, DNSName& after);
