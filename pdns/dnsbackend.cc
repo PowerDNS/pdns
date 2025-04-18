@@ -349,6 +349,18 @@ bool DNSBackend::get(DNSZoneRecord& zoneRecord)
   return true;
 }
 
+// This is a naive implementation which invokes get() until there are no more
+// records available and the backend closes any database handle it might have
+// allocated. Backends which can do better shall override this with smarter
+// code.
+void DNSBackend::lookupEnd()
+{
+  DNSZoneRecord zoneRecord;
+  while (get(zoneRecord)) {
+    // do nothing
+  }
+}
+
 bool DNSBackend::getBeforeAndAfterNames(domainid_t domainId, const ZoneName& zonename, const DNSName& qname, DNSName& before, DNSName& after)
 {
   DNSName unhashed;
