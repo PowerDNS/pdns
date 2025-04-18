@@ -191,6 +191,7 @@ public:
   void lookup(const QType&, const DNSName& qdomain, int zoneId, DNSPacket* p = nullptr) override;
   bool list(const ZoneName& target, int domainId, bool include_disabled = false) override;
   bool get(DNSResourceRecord&) override;
+  void lookupEnd() override;
   void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled = false) override;
 
   static DNSBackend* maker();

@@ -81,6 +81,7 @@ public:
   void lookup(const QType& type, const DNSName& qdomain, int zoneId, DNSPacket* p = nullptr) override;
   bool get(DNSResourceRecord& rr) override;
   bool get(DNSZoneRecord& dzr) override;
+  void lookupEnd() override;
 
   // secondary support
   void getUnfreshSecondaryInfos(vector<DomainInfo>* domains) override;
