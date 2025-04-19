@@ -938,6 +938,8 @@ paths:
 definitions:
   Server:
     title: Server
+    type: object
+    additionalProperties: False
     properties:
       type:
         type: string
@@ -969,6 +971,8 @@ definitions:
   Zone:
     title: Zone
     description: This represents an authoritative DNS Zone.
+    type: object
+    additionalProperties: False
     properties:
       id:
         type: string
@@ -1068,11 +1072,13 @@ definitions:
   RRSet:
     title: RRSet
     description: This represents a Resource Record Set (all records with the same name and type).
+    type: object
+    additionalProperties: False
     required:
       - name
       - type
       - ttl
-      - changetype
+#      - changetype
       - records
     properties:
       name:
@@ -1101,6 +1107,8 @@ definitions:
   Record:
     title: Record
     description: The RREntry object represents a single record.
+    type: object
+    additionalProperties: False
     required:
       - content
     properties:
@@ -1114,6 +1122,8 @@ definitions:
   Comment:
     title: Comment
     description: A comment about an RRSet.
+    type: object
+    additionalProperties: False
     properties:
       content:
         type: string
@@ -1128,6 +1138,8 @@ definitions:
   TSIGKey:
     title: TSIGKey
     description: A TSIG key that can be used to authenticate NOTIFY, AXFR, and DNSUPDATE queries.
+    type: object
+    additionalProperties: False
     properties:
       name:
         type: string
@@ -1148,21 +1160,26 @@ definitions:
         readOnly: true
 
   Autoprimary:
-     title: Autoprimary server
-     description: An autoprimary server that can provision new domains.
-     properties:
-       ip:
-         type: string
-         description: "IP address of the autoprimary server"
-       nameserver:
-         type: string
-         description: "DNS name of the autoprimary server"
-       account:
-         type: string
-         description: "Account name for the autoprimary server"
+    title: Autoprimary server
+    description: An autoprimary server that can provision new domains.
+    type: object
+    additionalProperties: False
+     
+    properties:
+      ip:
+        type: string
+        description: "IP address of the autoprimary server"
+      nameserver:
+        type: string
+        description: "DNS name of the autoprimary server"
+      account:
+        type: string
+        description: "Account name for the autoprimary server"
 
   ConfigSetting:
     title: ConfigSetting
+    type: object
+    additionalProperties: False
     properties:
       name:
         type: string
@@ -1177,6 +1194,7 @@ definitions:
   SimpleStatisticItem:
     title: SimpleStatisticItem
     type: object
+    additionalProperties: False
     properties:
       name:
           type: string
@@ -1187,6 +1205,8 @@ definitions:
 
   StatisticItem:
     title: StatisticItem
+    type: object
+    additionalProperties: False
     properties:
       name:
         type: string
@@ -1200,6 +1220,8 @@ definitions:
 
   MapStatisticItem:
     title: MapStatisticItem
+    type: object
+    additionalProperties: False
     properties:
       name:
         type: string
@@ -1215,6 +1237,8 @@ definitions:
 
   RingStatisticItem:
     title: RingStatisticItem
+    type: object
+    additionalProperties: False
     properties:
       name:
         type: string
@@ -1233,6 +1257,8 @@ definitions:
 
   SearchResultZone:
     title: SearchResultZone
+    type: object
+    additionalProperties: False
     properties:
       name:
         type: string
@@ -1244,6 +1270,8 @@ definitions:
 
   SearchResultRecord:
     title: SearchResultRecord
+    type: object
+    additionalProperties: False
     properties:
       content:
         type: string
@@ -1265,6 +1293,8 @@ definitions:
 
   SearchResultComment:
     title: SearchResultComment
+    type: object
+    additionalProperties: False
     properties:
       content:
         type: string
@@ -1288,6 +1318,8 @@ definitions:
 # Since we can't do 'anyOf' at the moment, we create a 'superset object'
   SearchResult:
     title: SearchResult
+    type: object
+    additionalProperties: False
     properties:
       content:
         type: string
@@ -1315,6 +1347,8 @@ definitions:
   Metadata:
     title: Metadata
     description: Represents zone metadata
+    type: object
+    additionalProperties: False
     properties:
       kind:
         type: string
@@ -1328,6 +1362,8 @@ definitions:
   Cryptokey:
     title: Cryptokey
     description: 'Describes a DNSSEC cryptographic key'
+    type: object
+    additionalProperties: False
     properties:
       type:
         type: string
@@ -1370,6 +1406,8 @@ definitions:
   Error:
     title: Error
     description: 'Returned when the server encounters an error, either in client input or internally'
+    type: object
+    additionalProperties: False
     properties:
       error:
         type: string
@@ -1385,6 +1423,8 @@ definitions:
   CacheFlushResult:
     title: CacheFlushResult
     description: 'The result of a cache-flush'
+    type: object
+    additionalProperties: False
     properties:
       count:
         type: number
