@@ -51,6 +51,7 @@ void remoteLoggerQueueData(RemoteLoggerInterface&, const std::string&);
 
 extern std::shared_ptr<Logr::Logger> g_slogout;
 extern bool g_paddingOutgoing;
+extern bool g_ECSHardening;
 
 class LWResException : public PDNSException
 {
@@ -71,6 +72,7 @@ public:
     OSLimitError = 3,
     Spoofed = 4, /* Spoofing attempt (too many near-misses) */
     ChainLimitError = 5,
+    ECSMissing = 6,
   };
 
   [[nodiscard]] static bool isLimitError(Result res)

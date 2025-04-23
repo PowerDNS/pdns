@@ -30,8 +30,8 @@
 #include "rec-taskqueue.hh"
 #include "shuffle.hh"
 #include "validate-recursor.hh"
-
 #include "ratelimitedlog.hh"
+#include "ednsoptions.hh"
 
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
@@ -230,7 +230,6 @@ static void handleGenUDPQueryResponse(int fileDesc, FDMultiplexer::funcparam_t& 
   else {
     PacketBuffer empty;
     g_multiTasker->sendEvent(pident, &empty);
-    //    cerr<<"Had some kind of error: "<<ret<<", "<<stringerror()<<endl;
   }
 }
 
@@ -293,37 +292,33 @@ LWResult::Result asendto(const void* data, size_t len, int /* flags */,
   if (ecs) {
     pident->ecsSubnet = ecs->source;
   }
-  // We cannot merge ECS-enabled queries based on the ECS source only, as the scope
-  // of the response might be narrower, so instead we do not chain ECS-enabled queries
-  // at all.
-  if (true || !ecs) {
-    // See if there is an existing outstanding request we can chain on to, using partial equivalence
-    // function looking for the same query (qname and qtype) to the same host, but with a different
-    // message ID.
-    auto chain = g_multiTasker->getWaiters().equal_range(pident, PacketIDBirthdayCompare());
 
-    for (; chain.first != chain.second; chain.first++) {
-      // Line below detected an issue with the two ways of ordering PacketIDs (birthday and non-birthday)
-      assert(chain.first->key->domain == pident->domain); // NOLINT
-      // don't chain onto existing chained waiter or a chain already processed
-      if (chain.first->key->fd > -1 && !chain.first->key->closed) {
-        auto currentChainSize = chain.first->key->authReqChain.size();
-        *fileDesc = -static_cast<int>(currentChainSize + 1); // value <= -1, gets used in waitEvent / sendEvent later on
-        if (g_maxChainLength > 0 && currentChainSize >= g_maxChainLength) {
-          return LWResult::Result::ChainLimitError;
-        }
-        assert(uSec(chain.first->key->creationTime) != 0); // NOLINT
-        auto age = now - chain.first->key->creationTime;
-        if (uSec(age) > static_cast<uint64_t>(1000) * authWaitTimeMSec(g_multiTasker) * 2 / 3) {
-          return LWResult::Result::ChainLimitError;
-        }
-        chain.first->key->authReqChain.emplace(*fileDesc, qid); // we can chain
-        auto maxLength = t_Counters.at(rec::Counter::maxChainLength);
-        if (currentChainSize > maxLength) {
-          t_Counters.at(rec::Counter::maxChainLength) = currentChainSize;
-        }
-        return LWResult::Result::Success;
+  // See if there is an existing outstanding request we can chain on to, using partial equivalence
+  // function looking for the same query (qname, qtype and ecs if applicable) to the same host, but
+  // with a different message ID.
+  auto chain = g_multiTasker->getWaiters().equal_range(pident, PacketIDBirthdayCompare());
+
+  for (; chain.first != chain.second; chain.first++) {
+    // Line below detected an issue with the two ways of ordering PacketIDs (birthday and non-birthday)
+    assert(chain.first->key->domain == pident->domain); // NOLINT
+    // don't chain onto existing chained waiter or a chain already processed
+    if (chain.first->key->fd > -1 && !chain.first->key->closed) {
+      auto currentChainSize = chain.first->key->authReqChain.size();
+      *fileDesc = -static_cast<int>(currentChainSize + 1); // value <= -1, gets used in waitEvent / sendEvent later on
+      if (g_maxChainLength > 0 && currentChainSize >= g_maxChainLength) {
+        return LWResult::Result::ChainLimitError;
       }
+      assert(uSec(chain.first->key->creationTime) != 0); // NOLINT
+      auto age = now - chain.first->key->creationTime;
+      if (uSec(age) > static_cast<uint64_t>(1000) * authWaitTimeMSec(g_multiTasker) * 2 / 3) {
+        return LWResult::Result::ChainLimitError;
+      }
+      chain.first->key->authReqChain.emplace(*fileDesc, qid); // we can chain
+      auto maxLength = t_Counters.at(rec::Counter::maxChainLength);
+      if (currentChainSize + 1 > maxLength) {
+        t_Counters.at(rec::Counter::maxChainLength) = currentChainSize + 1;
+      }
+      return LWResult::Result::Success;
     }
   }
 
@@ -380,6 +375,10 @@ LWResult::Result arecvfrom(PacketBuffer& packet, int /* flags */, const ComboAdd
 
     len = packet.size();
 
+    if (g_ECSHardening && pident->ecsSubnet && !*pident->ecsReceived) {
+      t_Counters.at(rec::Counter::ecsMissingCount)++;
+      return LWResult::Result::ECSMissing;
+    }
     if (nearMissLimit > 0 && pident->nearMisses > nearMissLimit) {
       /* we have received more than nearMissLimit answers on the right IP and port, from the right source (we are using connected sockets),
          for the correct qname and qtype, but with an unexpected message ID. That looks like a spoofing attempt. */
@@ -2677,7 +2676,6 @@ static void handleNewUDPQuestion(int fileDesc, FDMultiplexer::funcparam_t& /* va
       }
     }
     else {
-      // cerr<<t_id<<" had error: "<<stringerror()<<endl;
       if (firstQuery && errno == EAGAIN) {
         t_Counters.at(rec::Counter::noPacketError)++;
       }
@@ -2889,13 +2887,17 @@ void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
 }
 
 // resend event to everybody chained onto it
-static void doResends(MT_t::waiters_t::iterator& iter, const std::shared_ptr<PacketID>& resend, const PacketBuffer& content)
+static void doResends(MT_t::waiters_t::iterator& iter, const std::shared_ptr<PacketID>& resend, const PacketBuffer& content, const std::optional<bool>& ecsReceived)
 {
   // We close the chain for new entries, since they won't be processed anyway
   iter->key->closed = true;
 
   if (iter->key->authReqChain.empty()) {
     return;
+  }
+
+  if (ecsReceived) {
+    iter->key->ecsReceived = ecsReceived;
   }
 
   auto maxWeight = t_Counters.at(rec::Counter::maxChainWeight);
@@ -2924,6 +2926,31 @@ void mthreadSleep(unsigned int jitterMsec)
   assert(g_multiTasker->waitEvent(neverHappens, nullptr, jitterMsec) != -1); // NOLINT
 }
 
+static bool checkIncomingECSSource(const PacketBuffer& packet, const Netmask& subnet)
+{
+  bool foundMatchingECS = false;
+
+  // We sent out ECS, check if the response has the expected ECS info
+  EDNSOptionViewMap ednsOptions;
+  if (slowParseEDNSOptions(packet, ednsOptions)) {
+    // check content
+    auto option = ednsOptions.find(EDNSOptionCode::ECS);
+    if (option != ednsOptions.end()) {
+      // found an ECS option
+      EDNSSubnetOpts ecs;
+      for (const auto& value : option->second.values) {
+        if (getEDNSSubnetOptsFromString(value.content, value.size, &ecs)) {
+          if (ecs.source == subnet) {
+            foundMatchingECS = true;
+          }
+        }
+        break; // only look at first
+      }
+    }
+  }
+  return foundMatchingECS;
+}
+
 static void handleUDPServerResponse(int fileDesc, FDMultiplexer::funcparam_t& var)
 {
   auto pid = boost::any_cast<std::shared_ptr<PacketID>>(var);
@@ -2943,7 +2970,7 @@ static void handleUDPServerResponse(int fileDesc, FDMultiplexer::funcparam_t& va
     PacketBuffer empty;
     auto iter = g_multiTasker->getWaiters().find(pid);
     if (iter != g_multiTasker->getWaiters().end()) {
-      doResends(iter, pid, empty);
+      doResends(iter, pid, empty, false);
     }
     g_multiTasker->sendEvent(pid, &empty); // this denotes error (does retry lookup using other NS)
     return;
@@ -3004,7 +3031,10 @@ static void handleUDPServerResponse(int fileDesc, FDMultiplexer::funcparam_t& va
   if (!pident->domain.empty()) {
     auto iter = g_multiTasker->getWaiters().find(pident);
     if (iter != g_multiTasker->getWaiters().end()) {
-      doResends(iter, pident, packet);
+      if (g_ECSHardening) {
+        iter->key->ecsReceived = iter->key->ecsSubnet && checkIncomingECSSource(packet, *iter->key->ecsSubnet);
+      }
+      doResends(iter, pident, packet, iter->key->ecsReceived);
     }
   }
 
@@ -3024,7 +3054,6 @@ retryWithName:
 
       // be a bit paranoid here since we're weakening our matching
       if (pident->domain.empty() && !d_waiter.key->domain.empty() && pident->type == 0 && d_waiter.key->type != 0 && pident->id == d_waiter.key->id && d_waiter.key->remote == pident->remote) {
-        // cerr<<"Empty response, rest matches though, sending to a waiter"<<endl;
         pident->domain = d_waiter.key->domain;
         pident->type = d_waiter.key->type;
         goto retryWithName; // note that this only passes on an error, lwres will still reject the packet NOLINT(cppcoreguidelines-avoid-goto)

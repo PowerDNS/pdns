@@ -99,6 +99,7 @@ enum class Counter : uint8_t
   maxChainLength,
   maxChainWeight,
   chainLimits,
+  ecsMissingCount,
 
   numberOfCounters
 };

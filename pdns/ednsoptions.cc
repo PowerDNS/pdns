@@ -22,6 +22,7 @@
 #include "dns.hh"
 #include "ednsoptions.hh"
 #include "iputils.hh"
+#include "dnsparser.hh"
 
 bool getNextEDNSOption(const char* data, size_t dataLen, uint16_t& optionCode, uint16_t& optionLen)
 {
@@ -91,6 +92,61 @@ int getEDNSOption(const char* optRR, const size_t len, uint16_t wantedOption, si
   }
 
   return ENOENT;
+}
+
+bool slowParseEDNSOptions(const PacketBuffer& packet, EDNSOptionViewMap& options)
+{
+  if (packet.size() < sizeof(dnsheader)) {
+    return false;
+  }
+
+  const dnsheader_aligned dnsHeader(packet.data());
+
+  if (ntohs(dnsHeader->qdcount) == 0) {
+    return false;
+  }
+
+  if (ntohs(dnsHeader->arcount) == 0) {
+    throw std::runtime_error("slowParseEDNSOptions() should not be called for queries that have no EDNS");
+  }
+
+  try {
+    uint64_t numrecords = ntohs(dnsHeader->ancount) + ntohs(dnsHeader->nscount) + ntohs(dnsHeader->arcount);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-pro-type-const-cast)
+    DNSPacketMangler dpm(const_cast<char*>(reinterpret_cast<const char*>(packet.data())), packet.size());
+    uint64_t index{};
+    for (index = 0; index < ntohs(dnsHeader->qdcount); ++index) {
+      dpm.skipDomainName();
+      /* type and class */
+      dpm.skipBytes(4);
+    }
+
+    for (index = 0; index < numrecords; ++index) {
+      dpm.skipDomainName();
+
+      uint8_t section = index < ntohs(dnsHeader->ancount) ? 1 : (index < (ntohs(dnsHeader->ancount) + ntohs(dnsHeader->nscount)) ? 2 : 3);
+      uint16_t dnstype = dpm.get16BitInt();
+      dpm.get16BitInt();
+      dpm.skipBytes(4); /* TTL */
+
+      if (section == 3 && dnstype == QType::OPT) {
+        uint32_t offset = dpm.getOffset();
+        if (offset >= packet.size()) {
+          return false;
+        }
+        /* if we survive this call, we can parse it safely */
+        dpm.skipRData();
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+        return getEDNSOptions(reinterpret_cast<const char*>(&packet.at(offset)), packet.size() - offset, options) == 0;
+      }
+      dpm.skipRData();
+    }
+  }
+  catch (...) {
+    return false;
+  }
+
+  return true;
 }
 
 /* extract all EDNS0 options from a pointer on the beginning rdLen of the OPT RR */

@@ -58,6 +58,7 @@
 thread_local TCPOutConnectionManager t_tcp_manager;
 std::shared_ptr<Logr::Logger> g_slogout;
 bool g_paddingOutgoing;
+bool g_ECSHardening{false};
 
 void remoteLoggerQueueData(RemoteLoggerInterface& rli, const std::string& data)
 {
@@ -597,15 +598,16 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
     if (EDNS0Level > 0 && getEDNSOpts(mdp, &edo)) {
       lwr->d_haveEDNS = true;
 
-      // If we sent out ECS, we can also expect to see a return with or without ECS, the absent case is
-      // not handled explicitly. If we do see a ECS in the reply, the source part *must* match with
-      // what we sent out. See https://www.rfc-editor.org/rfc/rfc7871#section-7.3
+      // If we sent out ECS, we can also expect to see a return with or without ECS, the absent case
+      // is not handled explicitly. In hardening mode, if we do see a ECS in the reply, the source
+      // part *must* match with what we sent out. See
+      // https://www.rfc-editor.org/rfc/rfc7871#section-7.3
       if (subnetOpts) {
         for (const auto& opt : edo.d_options) {
           if (opt.first == EDNSOptionCode::ECS) {
             EDNSSubnetOpts reso;
             if (getEDNSSubnetOptsFromString(opt.second, &reso)) {
-              if (!(reso.source == subnetOpts->source)) {
+              if (g_ECSHardening && !(reso.source == subnetOpts->source)) {
                 g_slogout->info(Logr::Notice, "Incoming ECS does not match outgoing",
                                 "server", Logging::Loggable(address),
                                 "qname", Logging::Loggable(domain),
