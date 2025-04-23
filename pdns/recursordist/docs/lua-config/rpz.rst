@@ -147,13 +147,13 @@ extendedErrorCode
 ^^^^^^^^^^^^^^^^^
 .. versionadded:: 4.5.0
 
-An extended error code (:rfc:`8914`) to set on RPZ hits. See :ref:`setting-extended-resolution-errors`.
+An extended error code (:rfc:`8914`) to set on RPZ hits. See :ref:`setting-yaml-recursor.extended_resolution_errors`.
 
 extendedErrorExtra
 ^^^^^^^^^^^^^^^^^^
 .. versionadded:: 4.5.0
 
-An extended error extra text (:rfc:`8914`) to set on RPZ hits. See :ref:`setting-extended-resolution-errors`.
+An extended error extra text (:rfc:`8914`) to set on RPZ hits. See :ref:`setting-yaml-recursor.extended_resolution_errors`.
 
 includeSOA
 ^^^^^^^^^^
@@ -219,7 +219,7 @@ refresh
 ^^^^^^^
 An integer describing the interval in seconds between checks for updates.
 By default, the refresh interval mentioned in the RPZ's SOA record is used.
-Since version 5.1.0, if allowed by :ref:`setting-allow-notify-for` and :ref:`setting-allow-notify-from`, a ``notify`` for an RPZ zone will initiate a freshness check.
+Since version 5.1.0, if allowed by :ref:`setting-yaml-incoming.allow_notify_for` and :ref:`setting-yaml-incoming.allow_notify_from`, a ``notify`` for an RPZ zone will initiate a freshness check.
 
 maxReceivedMBytes
 ^^^^^^^^^^^^^^^^^
@@ -229,7 +229,7 @@ The default value of 0 means no restriction.
 localAddress
 ^^^^^^^^^^^^
 The source IP address to use when transferring the RPZ.
-When unset, :ref:`setting-query-local-address` is used.
+When unset, :ref:`setting-yaml-outgoing.source_address` is used.
 
 axfrTimeout
 ^^^^^^^^^^^

@@ -1,7 +1,7 @@
 Advanced Configuration Using Lua
-================================================================================
+================================
 
-Since version 4.0.0, the PowerDNS Recursor supports additional configuration options that have to be loaded through :ref:`setting-lua-config-file`.
+:program:`PowerDNS Recursor` supports additional configuration options that can be loaded through :ref:`setting-yaml-recursor.lua_config_file`.
 
 .. toctree::
 

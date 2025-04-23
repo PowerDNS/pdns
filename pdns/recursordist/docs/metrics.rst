@@ -5,7 +5,7 @@ The PowerDNS Recursor collects many statistics about itself.
 
 Regular Statistics Log
 ----------------------
-Every half hour or so (configurable with :ref:`setting-statistics-interval`, the recursor outputs a line with statistics.
+Every half hour or so (configurable with :ref:`setting-yaml-logging.statistics_interval`, the recursor outputs a line with statistics.
 To force the output of statistics, send the process a SIGUSR1. A line of statistics looks like this::
 
   stats: 346362 questions, 7388 cache entries, 1773 negative entries, 18% cache hits
@@ -56,13 +56,13 @@ Care has been taken to make the sending of statistics as unobtrusive as possible
 
 To benefit from our carbon/graphite support, either install Graphite, or use our own lightweight statistics daemon, Metronome, currently available on `GitHub <https://github.com/ahupowerdns/metronome/>`_.
 
-To enable sending metrics, set :ref:`setting-carbon-server`, possibly :ref:`setting-carbon-interval` and possibly :ref:`setting-carbon-ourname` in the configuration.
+To enable sending metrics, set :ref:`setting-yaml-carbon.server`, possibly :ref:`setting-yaml-carbon.interval` and possibly :ref:`setting-yaml-carbon.ourname` in the configuration.
 
 .. warning::
 
   If your hostname includes dots, they will be replaced by underscores so as not to confuse the namespace.
 
-  If you include dots in :ref:`setting-carbon-ourname`, they will **not** be replaced by underscores.
+  If you include dots in :ref:`setting-yaml-carbon.ourname`, they will **not** be replaced by underscores.
   As PowerDNS assumes you know what you are doing if you override your hostname.
 
 
@@ -108,7 +108,7 @@ For example::
 Sending metrics over SNMP
 -------------------------
 
-The recursor can export statistics over SNMP and send traps from :doc:`Lua <lua-scripting/index>`, provided support is compiled into the Recursor and :ref:`setting-snmp-agent` set.
+The recursor can export statistics over SNMP and send traps from :doc:`Lua <lua-scripting/index>`, provided support is compiled into the Recursor and :ref:`setting-yaml-snmp.agent` set.
 
 For the details of all values that can be retrieved using SNMP, see the `SNMP MIB <https://github.com/PowerDNS/pdns/blob/master/pdns/recursordist/RECURSOR-MIB.txt>`_.
 

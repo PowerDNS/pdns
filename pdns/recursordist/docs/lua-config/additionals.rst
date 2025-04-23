@@ -20,7 +20,7 @@ Examples of useful information are the related ``A`` and ``AAAA`` records to a q
   mx2.example.net.          86374   IN      AAAA    2001:db8::2
 
 The default is that the Recursor never adds additional records to an answer it sends to the client.
-The default behavior can be changed by using the :func:`addAllowedAdditionalQType` function in the :ref:`setting-lua-config-file`.
+The default behavior can be changed by using the :func:`addAllowedAdditionalQType` function in the :ref:`setting-yaml-recursor.lua_config_file`.
 For each query type allowing additional record processing the Recursor has code to determine the target name to add.
 The target qtypes to add are configurable as is the mode, specifying how to retrieve the records to add.
 

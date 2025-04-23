@@ -85,7 +85,7 @@
         'lambda': 'doGetCacheBytes',
         'ptype': 'gauge',
         'desc': 'Size of the cache in bytes',
-        'longdesc': '''Since version 5.3.0 this metric computes a rough estimate of the number of bytes allocated by the record cache. Older versions return a number that cannot be relied upon. Disabled by default, as computing this number is CPU intensive, see :ref:`setting-stats-rec-control-disabled-list`.''',
+        'longdesc': '''Since version 5.3.0 this metric computes a rough estimate of the number of bytes allocated by the record cache. Older versions return a number that cannot be relied upon. Disabled by default, as computing this number is CPU intensive, see :ref:`setting-yaml-recursor.stats_rec_control_disabled_list`.''',
         'snmp': 7,
     },
     {
@@ -112,7 +112,7 @@
         'lambda': '[] { return g_packetCache ? g_packetCache->bytes() : 0; }',
         'ptype': 'gauge',
         'desc': 'Size of the packetcache in bytes',
-        'longdesc': '''Disabled by default, see :ref:`setting-stats-rec-control-disabled-list`. This metric is currently broken, it always is 0.''',
+        'longdesc': '''Disabled by default, see :ref:`setting-yaml-recursor.stats_rec_control_disabled_list`. This metric is currently broken, it always is 0.''',
         'snmp': 11,
     },
     {
@@ -1020,121 +1020,121 @@
           return total;
          }''',
         'if': '::arg()["x-dnssec-names"].length() > 0',
-        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-x-dnssec-names`.'
+        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-yaml-dnssec.x_dnssec_names`.'
     },
     {
         'name': 'x-dnssec-result-bogus-no-valid-dnskey',
         'lambda': '[] { return g_Counters.sum(rec::DNSSECHistogram::xdnssec).at(vState::BogusNoValidDNSKEY); }',
         'if': '::arg()["x-dnssec-names"].length() > 0',
-        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-x-dnssec-names`.'
+        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-yaml-dnssec.x_dnssec_names`.'
     },
     {
         'name': 'x-dnssec-result-bogus-invalid-denial',
         'lambda': '[] { return g_Counters.sum(rec::DNSSECHistogram::xdnssec).at(vState::BogusInvalidDenial); }',
         'if': '::arg()["x-dnssec-names"].length() > 0',
-        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-x-dnssec-names`.'
+        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-yaml-dnssec.x_dnssec_names`.'
     },
     {
         'name': 'x-dnssec-result-bogus-unable-to-get-dss',
         'lambda': '[] { return g_Counters.sum(rec::DNSSECHistogram::xdnssec).at(vState::BogusUnableToGetDSs); }',
         'if': '::arg()["x-dnssec-names"].length() > 0',
-        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-x-dnssec-names`.'
+        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-yaml-dnssec.x_dnssec_names`.'
     },
     {
         'name': 'x-dnssec-result-bogus-unable-to-get-dnskeys',
         'lambda': '[] { return g_Counters.sum(rec::DNSSECHistogram::xdnssec).at(vState::BogusUnableToGetDNSKEYs); }',
         'if': '::arg()["x-dnssec-names"].length() > 0',
-        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-x-dnssec-names`.'
+        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-yaml-dnssec.x_dnssec_names`.'
     },
     {
         'name': 'x-dnssec-result-bogus-self-signed-ds',
         'lambda': '[] { return g_Counters.sum(rec::DNSSECHistogram::xdnssec).at(vState::BogusSelfSignedDS); }',
         'if': '::arg()["x-dnssec-names"].length() > 0',
-        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-x-dnssec-names`.'
+        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-yaml-dnssec.x_dnssec_names`.'
     },
     {
         'name': 'x-dnssec-result-bogus-no-rrsig',
         'lambda': '[] { return g_Counters.sum(rec::DNSSECHistogram::xdnssec).at(vState::BogusNoRRSIG); }',
         'if': '::arg()["x-dnssec-names"].length() > 0',
-        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-x-dnssec-names`.'
+        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-yaml-dnssec.x_dnssec_names`.'
     },
     {
         'name': 'x-dnssec-result-bogus-no-valid-rrsig',
         'lambda': '[] { return g_Counters.sum(rec::DNSSECHistogram::xdnssec).at(vState::BogusNoValidRRSIG); }',
         'if': '::arg()["x-dnssec-names"].length() > 0',
-        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-x-dnssec-names`.'
+        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-yaml-dnssec.x_dnssec_names`.'
     },
     {
         'name': 'x-dnssec-result-bogus-missing-negative-indication',
         'lambda': '[] { return g_Counters.sum(rec::DNSSECHistogram::xdnssec).at(vState::BogusMissingNegativeIndication); }',
         'if': '::arg()["x-dnssec-names"].length() > 0',
-        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-x-dnssec-names`.'
+        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-yaml-dnssec.x_dnssec_names`.'
     },
     {
         'name': 'x-dnssec-result-bogus-signature-not-yet-valid',
         'lambda': '[] { return g_Counters.sum(rec::DNSSECHistogram::xdnssec).at(vState::BogusSignatureNotYetValid); }',
         'if': '::arg()["x-dnssec-names"].length() > 0',
-        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-x-dnssec-names`.'
+        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-yaml-dnssec.x_dnssec_names`.'
     },
     {
         'name': 'x-dnssec-result-bogus-signature-expired',
         'lambda': '[] { return g_Counters.sum(rec::DNSSECHistogram::xdnssec).at(vState::BogusSignatureExpired); }',
         'if': '::arg()["x-dnssec-names"].length() > 0',
-        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-x-dnssec-names`.'
+        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-yaml-dnssec.x_dnssec_names`.'
     },
     {
         'name': 'x-dnssec-result-bogus-unsupported-dnskey-algo',
         'lambda': '[] { return g_Counters.sum(rec::DNSSECHistogram::xdnssec).at(vState::BogusUnsupportedDNSKEYAlgo); }',
         'if': '::arg()["x-dnssec-names"].length() > 0',
-        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-x-dnssec-names`.'
+        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-yaml-dnssec.x_dnssec_names`.'
     },
     {
         'name': 'x-dnssec-result-bogus-unsupported-ds-digest-type',
         'lambda': '[] { return g_Counters.sum(rec::DNSSECHistogram::xdnssec).at(vState::BogusUnsupportedDSDigestType); }',
         'if': '::arg()["x-dnssec-names"].length() > 0',
-        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-x-dnssec-names`.'
+        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-yaml-dnssec.x_dnssec_names`.'
     },
     {
         'name': 'x-dnssec-result-bogus-no-zone-key-bit-set',
         'lambda': '[] { return g_Counters.sum(rec::DNSSECHistogram::xdnssec).at(vState::BogusNoZoneKeyBitSet); }',
         'if': '::arg()["x-dnssec-names"].length() > 0',
-        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-x-dnssec-names`.'
+        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-yaml-dnssec.x_dnssec_names`.'
     },
     {
         'name': 'x-dnssec-result-bogus-revoked-dnskey',
         'lambda': '[] { return g_Counters.sum(rec::DNSSECHistogram::xdnssec).at(vState::BogusRevokedDNSKEY); }',
         'if': '::arg()["x-dnssec-names"].length() > 0',
-        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-x-dnssec-names`.'
+        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-yaml-dnssec.x_dnssec_names`.'
     },
     {
         'name': 'x-dnssec-result-bogus-invalid-dnskey-protocol',
         'lambda': '[] { return g_Counters.sum(rec::DNSSECHistogram::xdnssec).at(vState::BogusInvalidDNSKEYProtocol); }',
         'if': '::arg()["x-dnssec-names"].length() > 0',
-        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-x-dnssec-names`.'
+        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-yaml-dnssec.x_dnssec_names`.'
     },
     {
         'name': 'x-dnssec-result-indeterminate',
         'lambda': '[] { return g_Counters.sum(rec::DNSSECHistogram::xdnssec).at(vState::Indeterminate); }',
         'if': '::arg()["x-dnssec-names"].length() > 0',
-        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-x-dnssec-names`.'
+        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-yaml-dnssec.x_dnssec_names`.'
     },
     {
         'name': 'x-dnssec-result-nta',
         'lambda': '[] { return g_Counters.sum(rec::DNSSECHistogram::xdnssec).at(vState::NTA); }',
         'if': '::arg()["x-dnssec-names"].length() > 0',
-        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-x-dnssec-names`.'
+        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-yaml-dnssec.x_dnssec_names`.'
     },
     {
         'name': 'x-dnssec-result-insecure',
         'lambda': '[] { return g_Counters.sum(rec::DNSSECHistogram::xdnssec).at(vState::Insecure); }',
         'if': '::arg()["x-dnssec-names"].length() > 0',
-        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-x-dnssec-names`.'
+        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-yaml-dnssec.x_dnssec_names`.'
     },
     {
         'name': 'x-dnssec-result-secure',
         'lambda': '[] { return g_Counters.sum(rec::DNSSECHistogram::xdnssec).at(vState::Secure); }',
         'if': '::arg()["x-dnssec-names"].length() > 0',
-        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-x-dnssec-names`.'
+        'desc': 'Same as corresponding metric without ``x-`` prefix, for names in :ref:`setting-yaml-dnssec.x_dnssec_names`.'
     },
     {
         'name': 'idle-tcpout-connections',
@@ -1370,7 +1370,7 @@
         'name': 'cumul-clientanswers-x',
         # No lambda
         'desc': 'Cumulative counts of answer times of authoritative servers in buckets less than x microseconds.',
-        'longdesc': 'Disabled by default, see :ref:`setting-stats-rec-control-disabled-list`. These metrics are useful for Prometheus and not listed in other outputs by default.',
+        'longdesc': 'Disabled by default, see :ref:`setting-yaml-recursor.stats_rec_control_disabled_list`. These metrics are useful for Prometheus and not listed in other outputs by default.',
         'ptype': 'histogram',
         'pname': 'cumul-clientanswers-count', # For cumulative histogram, state the xxx_count name where xxx matches the name in rec_channel_rec
         # No SNMP
@@ -1379,7 +1379,7 @@
         'name': 'cumul-authanswers-x',
         # No lambda
         'desc': 'Cumulative counts of answer times to clients in buckets less than x microseconds.',
-        'longdesc': 'Disabled by default, see :ref:`setting-stats-rec-control-disabled-list`. These metrics are useful for Prometheus and not listed in other outputs by default.',
+        'longdesc': 'Disabled by default, see :ref:`setting-yaml-recursor.stats_rec_control_disabled_list`. These metrics are useful for Prometheus and not listed in other outputs by default.',
         'ptype': 'histogram',
         'pname': 'cumul-authanswers-count4', # For cumulative histogram, state the xxx_count name where xxx matches the name in rec_channel_rec
         # No SNMP

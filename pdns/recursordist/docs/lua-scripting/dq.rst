@@ -15,19 +15,19 @@ The DNSQuestion object contains at least the following fields:
 
       .. versionadded:: 4.5.0
 
-      Whether the response will get EDNS Padding. See :ref:`setting-edns-padding-from` and :ref:`setting-edns-padding-mode`.
+      Whether the response will get EDNS Padding. See :ref:`setting-yaml-incoming.edns_padding_from` and :ref:`setting-yaml-incoming.edns_padding_mode`.
 
   .. attribute:: DNSQuestion.extendedErrorCode
 
       .. versionadded:: 4.5.0
 
-      The extended error code, if any. See :ref:`setting-extended-resolution-errors`.
+      The extended error code, if any. See :ref:`setting-yaml-recursor.extended_resolution_errors`.
 
   .. attribute:: DNSQuestion.extendedErrorExtra
 
       .. versionadded:: 4.5.0
 
-      The extended error extra text, as a string, if any. See :ref:`setting-extended-resolution-errors`.
+      The extended error extra text, as a string, if any. See :ref:`setting-yaml-recursor.extended_resolution_errors`.
 
   .. attribute:: DNSQuestion.qname
 

@@ -9,7 +9,7 @@ However, if ``example.com`` does not actually have an IPv6 address, what we do i
 We do this by retrieving the A records for ``www.example.com``, and translating them to AAAA records.
 Elsewhere, a NAT64 device listens on these IPv6 addresses, and extracts the IPv4 address from each packet, and proxies it on.
 
-As of 4.4.0, an efficient implementation is built the recursor and can be enabled via the using the :ref:`dns64-prefix setting <setting-dns64-prefix>`.
+As of 4.4.0, an efficient implementation is built the recursor and can be enabled via the using the :ref:`dns64-prefix setting <setting-yaml-recursor.dns64_prefix>`.
 
 Native DNS64 support
 --------------------
@@ -17,7 +17,7 @@ Native DNS64 processing will happen after calling a ``nodata`` or ``nxdomain`` L
 
 To consider native DNS64 processing the following conditions must be met:
 
-- The :ref:`setting-dns64-prefix` is defined.
+- The :ref:`setting-yaml-recursor.dns64_prefix` is defined.
 - A ``nodata`` or ``nxdomain`` Lua hook did not return ``true``.
 - The original query type was ``AAAA``.
 - The result code of the ``AAAA`` query was not ``NXDomain``.
@@ -41,7 +41,7 @@ To setup DNS64, with both forward and reverse records, create the following Lua 
     :language: lua
 
 Where fe80::21b:77ff:0:0 is your "Pref64" translation prefix and the "ip6.arpa" string is the reversed form of this Pref64 address.
-Now ensure your script gets loaded by specifying it with :ref:`lua-dns-script=dns64.lua <setting-lua-dns-script>`.
+Now ensure your script gets loaded by specifying it with :ref:`setting-yaml-recursor.lua_dns_script`.
 
 On our wiki, a user has kindly supplied `an example script with support for multiple prefixes <https://github.com/PowerDNS/pdns/wiki/DNS64-with-multiple-prefixes>`_.
 
