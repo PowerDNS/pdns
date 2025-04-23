@@ -5,7 +5,7 @@ The API allows searching for data in :json:object:`Zone`\ s, :json:object:`Comme
 
 .. note::
 
-  Not all backends support search operation.
+  Not all backends support searching in records or comments.
 
 
 Endpoints
