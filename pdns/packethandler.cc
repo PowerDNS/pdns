@@ -885,7 +885,7 @@ void PacketHandler::addNSEC3(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const 
     }
   }
 
-  if (!d_sd.db->doesDNSSEC()) {
+  if (!d_sd.db->doesDNSSEC() && !narrow) {
     // We are in a configuration where the zone is primarily served by a
     // non-DNSSEC-capable backend, but DNSSEC keys have been added to the
     // zone in a second, DNSSEC-capable backend, which caused d_dnssec to
