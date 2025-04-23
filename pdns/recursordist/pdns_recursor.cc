@@ -30,8 +30,8 @@
 #include "rec-taskqueue.hh"
 #include "shuffle.hh"
 #include "validate-recursor.hh"
-
 #include "ratelimitedlog.hh"
+#include "ednsoptions.hh"
 
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
@@ -230,7 +230,6 @@ static void handleGenUDPQueryResponse(int fileDesc, FDMultiplexer::funcparam_t& 
   else {
     PacketBuffer empty;
     g_multiTasker->sendEvent(pident, &empty);
-    //    cerr<<"Had some kind of error: "<<ret<<", "<<stringerror()<<endl;
   }
 }
 
@@ -269,7 +268,7 @@ thread_local std::unique_ptr<UDPClientSocks> t_udpclientsocks;
 
 /* these two functions are used by LWRes */
 LWResult::Result asendto(const void* data, size_t len, int /* flags */,
-                         const ComboAddress& toAddress, uint16_t qid, const DNSName& domain, uint16_t qtype, const std::optional<EDNSSubnetOpts>& ecs, int* fileDesc, timeval& now)
+                         const ComboAddress& toAddress, uint16_t qid, const DNSName& domain, uint16_t qtype, const std::optional<EDNSSubnetOpts>& ecs, int* fileDesc)
 {
 
   auto pident = std::make_shared<PacketID>();
@@ -279,24 +278,19 @@ LWResult::Result asendto(const void* data, size_t len, int /* flags */,
   if (ecs) {
     pident->ecsSubnet = ecs->source;
   }
-  // We cannot merge ECS-enabled queries based on the ECS source only, as the scope
-  // of the response might be narrower, so instead we do not chain ECS-enabled queries
-  // at all.
-  if (true || !ecs) {
-    // See if there is an existing outstanding request we can chain on to, using partial equivalence
-    // function looking for the same query (qname and qtype) to the same host, but with a different
-    // message ID.
-    auto chain = g_multiTasker->d_waiters.equal_range(pident, PacketIDBirthdayCompare());
 
-    for (; chain.first != chain.second; chain.first++) {
-      // Line below detected an issue with the two ways of ordering PacketIDs (birthday and non-birthday)
-      assert(chain.first->key->domain == pident->domain); // NOLINT
-      // don't chain onto existing chained waiter or a chain already processed
-      if (chain.first->key->fd > -1 && !chain.first->key->closed) {
-        chain.first->key->chain.insert(qid); // we can chain
-        *fileDesc = -1; // gets used in waitEvent / sendEvent later on
-        return LWResult::Result::Success;
-      }
+  // See if there is an existing outstanding request we can chain on to, using partial equivalence
+  // function looking for the same query (qname, qtype and ecs if applicable) to the same host, but
+  // with a different message ID.
+  auto chain = g_multiTasker->d_waiters.equal_range(pident, PacketIDBirthdayCompare());
+
+  for (; chain.first != chain.second; chain.first++) {
+    // Line below detected an issue with the two ways of ordering PacketIDs (birthday and non-birthday)
+    assert(chain.first->key->domain == pident->domain); // NOLINT
+    // don't chain onto existing chained waiter or a chain already processed
+    if (chain.first->key->fd > -1 && !chain.first->key->closed) {
+      *fileDesc = -1;
+      return LWResult::Result::Success;
     }
   }
 
@@ -353,6 +347,10 @@ LWResult::Result arecvfrom(PacketBuffer& packet, int /* flags */, const ComboAdd
 
     len = packet.size();
 
+    if (g_ECSHardening && pident->ecsSubnet && !*pident->ecsReceived) {
+      t_Counters.at(rec::Counter::ecsMissingCount)++;
+      return LWResult::Result::ECSMissing;
+    }
     if (nearMissLimit > 0 && pident->nearMisses > nearMissLimit) {
       /* we have received more than nearMissLimit answers on the right IP and port, from the right source (we are using connected sockets),
          for the correct qname and qtype, but with an unexpected message ID. That looks like a spoofing attempt. */
@@ -2649,7 +2647,6 @@ static void handleNewUDPQuestion(int fileDesc, FDMultiplexer::funcparam_t& /* va
       }
     }
     else {
-      // cerr<<t_id<<" had error: "<<stringerror()<<endl;
       if (firstQuery && errno == EAGAIN) {
         t_Counters.at(rec::Counter::noPacketError)++;
       }
@@ -2861,13 +2858,17 @@ void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
 }
 
 // resend event to everybody chained onto it
-static void doResends(MT_t::waiters_t::iterator& iter, const std::shared_ptr<PacketID>& resend, const PacketBuffer& content)
+static void doResends(MT_t::waiters_t::iterator& iter, const std::shared_ptr<PacketID>& resend, const PacketBuffer& content, const std::optional<bool>& ecsReceived)
 {
   // We close the chain for new entries, since they won't be processed anyway
   iter->key->closed = true;
 
   if (iter->key->chain.empty()) {
     return;
+  }
+
+  if (ecsReceived) {
+    iter->key->ecsReceived = ecsReceived;
   }
   for (auto i = iter->key->chain.begin(); i != iter->key->chain.end(); ++i) {
     auto packetID = std::make_shared<PacketID>(*resend);
@@ -2876,6 +2877,42 @@ static void doResends(MT_t::waiters_t::iterator& iter, const std::shared_ptr<Pac
     g_multiTasker->sendEvent(packetID, &content);
     t_Counters.at(rec::Counter::chainResends)++;
   }
+}
+
+void mthreadSleep(unsigned int jitterMsec)
+{
+  auto neverHappens = std::make_shared<PacketID>();
+  neverHappens->id = dns_random_uint16();
+  neverHappens->type = dns_random_uint16();
+  neverHappens->remote = ComboAddress("100::"); // discard-only
+  neverHappens->remote.setPort(dns_random_uint16());
+  neverHappens->fd = -1;
+  assert(g_multiTasker->waitEvent(neverHappens, nullptr, jitterMsec) != -1); // NOLINT
+}
+
+static bool checkIncomingECSSource(const PacketBuffer& packet, const Netmask& subnet)
+{
+  bool foundMatchingECS = false;
+
+  // We sent out ECS, check if the response has the expected ECS info
+  EDNSOptionViewMap ednsOptions;
+  if (slowParseEDNSOptions(packet, ednsOptions)) {
+    // check content
+    auto option = ednsOptions.find(EDNSOptionCode::ECS);
+    if (option != ednsOptions.end()) {
+      // found an ECS option
+      EDNSSubnetOpts ecs;
+      for (const auto& value : option->second.values) {
+        if (getEDNSSubnetOptsFromString(value.content, value.size, &ecs)) {
+          if (ecs.source == subnet) {
+            foundMatchingECS = true;
+          }
+        }
+        break; // only look at first
+      }
+    }
+  }
+  return foundMatchingECS;
 }
 
 static void handleUDPServerResponse(int fileDesc, FDMultiplexer::funcparam_t& var)
@@ -2895,9 +2932,9 @@ static void handleUDPServerResponse(int fileDesc, FDMultiplexer::funcparam_t& va
     t_udpclientsocks->returnSocket(fileDesc);
 
     PacketBuffer empty;
-    MT_t::waiters_t::iterator iter = g_multiTasker->d_waiters.find(pid);
+    auto iter = g_multiTasker->d_waiters.find(pid);
     if (iter != g_multiTasker->d_waiters.end()) {
-      doResends(iter, pid, empty);
+      doResends(iter, pid, empty, false);
     }
     g_multiTasker->sendEvent(pid, &empty); // this denotes error (does retry lookup using other NS)
     return;
@@ -2956,9 +2993,12 @@ static void handleUDPServerResponse(int fileDesc, FDMultiplexer::funcparam_t& va
   }
 
   if (!pident->domain.empty()) {
-    MT_t::waiters_t::iterator iter = g_multiTasker->d_waiters.find(pident);
+    auto iter = g_multiTasker->d_waiters.find(pident);
     if (iter != g_multiTasker->d_waiters.end()) {
-      doResends(iter, pident, packet);
+      if (g_ECSHardening) {
+        iter->key->ecsReceived = iter->key->ecsSubnet && checkIncomingECSSource(packet, *iter->key->ecsSubnet);
+      }
+      doResends(iter, pident, packet, iter->key->ecsReceived);
     }
   }
 
@@ -2978,7 +3018,6 @@ retryWithName:
 
       // be a bit paranoid here since we're weakening our matching
       if (pident->domain.empty() && !d_waiter.key->domain.empty() && pident->type == 0 && d_waiter.key->type != 0 && pident->id == d_waiter.key->id && d_waiter.key->remote == pident->remote) {
-        // cerr<<"Empty response, rest matches though, sending to a waiter"<<endl;
         pident->domain = d_waiter.key->domain;
         pident->type = d_waiter.key->type;
         goto retryWithName; // note that this only passes on an error, lwres will still reject the packet NOLINT(cppcoreguidelines-avoid-goto)

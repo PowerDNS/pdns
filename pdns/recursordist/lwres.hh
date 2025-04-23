@@ -51,6 +51,7 @@ void remoteLoggerQueueData(RemoteLoggerInterface&, const std::string&);
 
 extern std::shared_ptr<Logr::Logger> g_slogout;
 extern bool g_paddingOutgoing;
+extern bool g_ECSHardening;
 
 class LWResException : public PDNSException
 {
@@ -72,7 +73,8 @@ public:
     Success = 1,
     PermanentError = 2 /* not transport related */,
     OSLimitError = 3,
-    Spoofed = 4 /* Spoofing attempt (too many near-misses) */
+    Spoofed = 4, /* Spoofing attempt (too many near-misses) */
+    ECSMissing = 5,
   };
 
   vector<DNSRecord> d_records;
@@ -86,7 +88,7 @@ public:
 struct EDNSSubnetOpts;
 
 LWResult::Result asendto(const void* data, size_t len, int flags, const ComboAddress& toAddress, uint16_t qid,
-                         const DNSName& domain, uint16_t qtype, const std::optional<EDNSSubnetOpts>& ecs, int* fileDesc, timeval& now);
+                         const DNSName& domain, uint16_t qtype, const std::optional<EDNSSubnetOpts>& ecs, int* fileDesc);
 LWResult::Result arecvfrom(PacketBuffer& packet, int flags, const ComboAddress& fromAddr, size_t& len, uint16_t qid,
                            const DNSName& domain, uint16_t qtype, int fileDesc, const std::optional<EDNSSubnetOpts>& ecs, const struct timeval& now);
 

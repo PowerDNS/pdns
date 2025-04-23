@@ -96,6 +96,7 @@ enum class Counter : uint8_t
   maintenanceCalls,
   nodCount,
   udrCount,
+  ecsMissingCount,
 
   numberOfCounters
 };
