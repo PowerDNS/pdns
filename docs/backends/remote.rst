@@ -11,6 +11,7 @@ Remote Backend
 * DNSSEC: Yes\*
 * Disabled data: No
 * Comments: No
+* Search: Yes\*
 * API: Read-Write
 * Multiple instances: Yes
 * Zone caching: Yes\*
