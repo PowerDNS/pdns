@@ -103,18 +103,20 @@ After processing ``extra.yml`` the value will be set to the empty sequence, as e
 
    .. code-block:: yaml
 
-     forward_zones:
-       - zone: example.net
-         forwarders:
-           - '::1'
+     recursor:
+       forward_zones:
+         - zone: example.net
+           forwarders:
+             - '::1'
 
    and another settings file contains
 
    .. code-block:: yaml
 
-     forward_zones:
-       - zone: example.net
-         forwarders:
+     recursor:
+       forward_zones:
+         - zone: example.net
+           forwarders:
            - '::2'
 
    The result will *not* be a a single forward with two IP addresses, but two entries for ``example.net``.
@@ -144,10 +146,11 @@ For example, ``allow-from`` takes a sequence of subnets:
 
 .. code-block:: yaml
 
-   allow_from:
-     - '2001:DB8::/32'
-     - 128.66.0.0/16
-     - '!128.66.1.2'
+  incoming:
+    allow_from:
+      - '2001:DB8::/32'
+      - 128.66.0.0/16
+      - '!128.66.1.2'
 
 In this case the address ``128.66.1.2`` is excluded from the addresses allowed access.
 
@@ -203,11 +206,12 @@ An example of a ``auth_zones`` entry, consisting of a sequence of `Auth Zone`_:
 
 .. code-block:: yaml
 
-   auth_zones:
-     - zone: example.com
-       file: zones/example.com.zone
-     - zone: example.net
-       file: zones/example.net.zone
+   recursor:
+     auth_zones:
+       - zone: example.com
+         file: zones/example.com.zone
+       - zone: example.net
+         file: zones/example.net.zone
 
 
 Description of YAML syntax corresponding to Lua config items
@@ -229,10 +233,11 @@ An example of a ``trustanchors`` entry, which is a sequence of `TrustAnchor`_:
 
 .. code-block:: yaml
 
-   trustanchors:
-     - name: example.com
-       dsrecords:
-       - 10000 8 2 a06d44b80b8f1d39a95c0b0d7c65d08458e880409bbc683457104237c7f8ec8d
+   dnssec:
+     trustanchors:
+       - name: example.com
+         dsrecords:
+         - 10000 8 2 a06d44b80b8f1d39a95c0b0d7c65d08458e880409bbc683457104237c7f8ec8d
 
 NegativeTrustAnchor
 ^^^^^^^^^^^^^^^^^^^
@@ -247,9 +252,10 @@ An example of a ``negative_trustanchors`` entry, which is a sequence of `Negativ
 
 .. code-block:: yaml
 
-   negative_trustanchors:
-     - name: example.com
-       reason: an example
+   dnssec:
+     negative_trustanchors:
+       - name: example.com
+         reason: an example
 
 ProtobufServer
 ^^^^^^^^^^^^^^
@@ -272,13 +278,14 @@ An example of a ``protobuf_servers`` entry, which is a sequence of `ProtobufServ
 
 .. code-block:: yaml
 
-  protobuf_servers:
-    - servers: [127.0.0.1:4578]
-      exportTypes: [A, AAAA]
-    - servers: ['[2001:DB8::1]':7891]
-      logQueries: false
-      logResponses: true
-      exportTypes: [A]
+  logging:
+    protobuf_servers:
+      - servers: [127.0.0.1:4578]
+        exportTypes: [A, AAAA]
+      - servers: ['[2001:DB8::1]':7891]
+        logQueries: false
+        logResponses: true
+        exportTypes: [A]
 
 DNSTapFrameStreamServers
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -300,10 +307,11 @@ An example of a ``dnstap_framestream_servers`` entry, which is a sequence of `DN
 
 .. code-block:: yaml
 
-  dnstap_framestream_servers:
-    - servers: [127.0.0.1:2024]
-      logQueries: false
-      logResponses: true
+  logging:
+    dnstap_framestream_servers:
+      - servers: [127.0.0.1:2024]
+        logQueries: false
+        logResponses: true
 
 DNSTapNODFrameStreamServers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -325,10 +333,11 @@ An example of a ``dnstap_nod_framestream_servers`` entry, which is a sequence of
 
 .. code-block:: yaml
 
-  dnstap_nop_framestream_servers:
-    - servers: [127.0.0.1:2024]
-      logNODs: false
-      logUDRs: true
+  logging:
+    dnstap_nop_framestream_servers:
+      - servers: [127.0.0.1:2024]
+        logNODs: false
+        logUDRs: true
 
 SortList
 ^^^^^^^^
@@ -338,24 +347,25 @@ As of version 5.1.0, a sortlist entry is defined as
 
    - key: Subnet
      subnets:
-      - subnet: Subnet
-        order: number
+       - subnet: Subnet
+         order: number
 
 An example of a ``sortlists`` entry, which is a sequence of `SortList`_:
 
 .. code-block:: yaml
 
-  sortlists:
-    - key: 198.18.0.0/8
-      subnets:
-       - subnet: 233.252.0.0/24
-         order: 10
-    - key: 198.18.1.0/8
-      subnets:
-        - subnet: 198.18.0.0/16
-          order: 20
-        - subnet: 203.0.113.0/24
-          order: 20
+   recursor:
+     sortlists:
+       - key: 198.18.0.0/8
+         subnets:
+           - subnet: 233.252.0.0/24
+             order: 10
+       - key: 198.18.1.0/8
+         subnets:
+           - subnet: 198.18.0.0/16
+             order: 20
+           - subnet: 203.0.113.0/24
+             order: 20
 
 RPZ
 ^^^
@@ -398,11 +408,12 @@ An example of an ``rpzs`` entry, which is a sequence of `RPZ`_:
 
 .. code-block:: yaml
 
-  rpzs:
-    - name: 'path/to/a/file'
-    - name: 'remote.rpz'
-      addresses: ['192.168.178.99']
-      policyName: mypolicy
+  recursor:
+    rpzs:
+      - name: 'path/to/a/file'
+      - name: 'remote.rpz'
+        addresses: ['192.168.178.99']
+        policyName: mypolicy
 
 ZoneToCache
 ^^^^^^^^^^^
@@ -429,13 +440,14 @@ An example of an ``zonetocaches`` entry, which is a sequence of `ZoneToCache`_:
 
 .. code-block:: yaml
 
-   zonetocaches:
-     - zone: .
-       method: url
-       sources: ['https://www.example.com/path']
-     - zone: example.com
-       method: file
-       sources: ['dir/example.com.zone']
+   recursor:
+     zonetocaches:
+       - zone: .
+         method: url
+         sources: ['https://www.example.com/path']
+       - zone: example.com
+         method: file
+         sources: ['dir/example.com.zone']
 
 AllowedAdditionalQType
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -451,12 +463,13 @@ An example of an ``allowed_additional_qtypes`` entry, which is a sequence of `Al
 
 .. code-block:: yaml
 
-   allowed_additional_qtypes:
-   - qtype: MX
-     targets: [A, AAAA]
-   - qtype: NAPTR
-     targets: [A, AAAA, SRV]
-     mode: ResolveDeferred
+   recursor:
+     allowed_additional_qtypes:
+     - qtype: MX
+       targets: [A, AAAA]
+     - qtype: NAPTR
+       targets: [A, AAAA, SRV]
+       mode: ResolveDeferred
 
 ProxyMapping
 ^^^^^^^^^^^^
@@ -472,14 +485,15 @@ An example of an ``proxymappings`` entry, which is a sequence of `ProxyMapping`_
 
 .. code-block:: yaml
 
-   proxymappings:
-     - subnet: 192.168.178.0/24
-       address: 128.66.1.2
-     - subnet: 192.168.179.0/24
-       address: 128.66.1.3
-       domains:
-         - example.com
-         - example.net
+   incoming:
+     proxymappings:
+       - subnet: 192.168.178.0/24
+         address: 128.66.1.2
+       - subnet: 192.168.179.0/24
+         address: 128.66.1.3
+         domains:
+           - example.com
+           - example.net
 
 ForwardingCatalogZone
 ^^^^^^^^^^^^^^^^^^^^^
@@ -514,21 +528,22 @@ An example of a :ref:`setting-yaml-recursor.forwarding_catalog_zones` entry, whi
 
 .. code-block:: yaml
 
-   forwarding_catalog_zones:
-   - zone: 'forward.example'
-     xfr:
-       addresses: [128.66.1.2]
-     groups:
-      - forwarders: [192.168.178.1] # default forwarder
-      - name: mygroup
-        forwarders: [192.168.179.2] # forwarder for catalog zone members in mygroup
-        recurse: true
-        notify_allowed: true
-   - zone: 'forward2.example'
-     xfr:
-       addresses: [128.66.1.3]
-     groups:
-      - forwarders: [192.168.178.3] # only default forwarder for 2nd catalog zone
+   recursor:
+     forwarding_catalog_zones:
+     - zone: 'forward.example'
+       xfr:
+         addresses: [128.66.1.2]
+       groups:
+         - forwarders: [192.168.178.1] # default forwarder
+         - name: mygroup
+           forwarders: [192.168.179.2] # forwarder for catalog zone members in mygroup
+           recurse: true
+           notify_allowed: true
+     - zone: 'forward2.example'
+       xfr:
+         addresses: [128.66.1.3]
+       groups:
+         - forwarders: [192.168.178.3] # only default forwarder for 2nd catalog zone
 
 :program:`Recursor` will transfer the catalog zone from the authoritative server using IXFR (falling back to AXFR if needed) and add forwarding clauses for all members of the catalog zone.
 The forwarding parameters will be taken from the default group entry (the one without a name) defined in the YAML settings.

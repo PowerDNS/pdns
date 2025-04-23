@@ -273,7 +273,7 @@ DNSSEC is not supported. Example:
 
 .. code-block:: none
 
-    auth-zones=example.org=/var/zones/example.org, powerdns.com=/var/zones/powerdns.com
+ auth-zones=example.org=/var/zones/example.org, powerdns.com=/var/zones/powerdns.com
  ''',
         'doc-new' : '''
 Zones read from these files (in BIND format) are served authoritatively (but without the AA bit set in responses).
@@ -281,12 +281,12 @@ DNSSEC is not supported. Example:
 
 .. code-block:: yaml
 
- recursor:
+  recursor:
     auth_zones:
-    - zone: example.org
-      file: /var/zones/example.org
-    - zone: powerdns.com
-      file: /var/zones/powerdns.com
+      - zone: example.org
+        file: /var/zones/example.org
+      - zone: powerdns.com
+        file: /var/zones/powerdns.com
  ''',
         'runtime': ['reload-zones'],
     },
@@ -1074,13 +1074,13 @@ Queries for zones listed here will be forwarded to the IP address listed. i.e.
 .. code-block:: yaml
 
  recursor:
-    forward_zones:
-      - zone: example.org
-        forwarders:
-        - 203.0.113.210
-      - zone: powerdns.com
-        forwarders:
-        - 2001:DB8::BEEF:5
+   forward_zones:
+     - zone: example.org
+       forwarders:
+       - 203.0.113.210
+     - zone: powerdns.com
+       forwarders:
+       - 2001:DB8::BEEF:5
 
 Multiple IP addresses can be specified and port numbers other than 53 can be configured:
 
@@ -1088,15 +1088,15 @@ Multiple IP addresses can be specified and port numbers other than 53 can be con
 
   recursor:
     forward_zones:
-    - zone: example.org
-      forwarders:
-      - 203.0.113.210:5300
-      - 127.0.0.1
-    - zone: powerdns.com
-      forwarders:
-      - 127.0.0.1
-      - 198.51.100.10:530
-      - '[2001:DB8::1:3]:5300'
+      - zone: example.org
+        forwarders:
+          - 203.0.113.210:5300
+          - 127.0.0.1
+      - zone: powerdns.com
+        forwarders:
+          - 127.0.0.1
+          - 198.51.100.10:530
+          - '[2001:DB8::1:3]:5300'
 
 Forwarded queries have the ``recursion desired (RD)`` bit set to ``0``, meaning that this setting is intended to forward queries to authoritative servers.
 If an ``NS`` record set for a subzone of the forwarded zone is learned, that record set will be used to determine addresses for name servers of the subzone.
@@ -1146,12 +1146,12 @@ The DNSSEC notes from :ref:`setting-forward-zones` apply here as well.
 
   - zone: example1.com
     forwarders:
-    - 127.0.0.1
-    - 127.0.0.1:5353
-    - '[::1]:53'
+      - 127.0.0.1
+      - 127.0.0.1:5353
+      - '[::1]:53'
   - zone: example2.com
     forwarders:
-    - ::1
+      - ::1
     recurse: true
     notify_allowed: true
 
@@ -3017,9 +3017,9 @@ A sequence of UDP port numbers to avoid when binding. For example:
 
  outgoing:
    udp_source_port_avoid:
-   - 4791
-   - 5300
-   - 11211
+     - 4791
+     - 5300
+     - 11211
 
 See :ref:`setting-udp-source-port-min`.
  ''',
@@ -3375,10 +3375,11 @@ If this check draws the wrong conclusion, you can disable it.
 
 .. code-block:: yaml
 
-   - name: .
-     dsrecords:
-     - 20326 8 2 e06d44b80b8f1d39a95c0b0d7c65d08458e880409bbc683457104237c7f8ec8d
-     - 38696 8 2 683d2d0acb8c9b712a1948b27f741219298d0a450d612c483af444a4c0fb2b16
+   dnssec:
+     - name: .
+       dsrecords:
+         - 20326 8 2 e06d44b80b8f1d39a95c0b0d7c65d08458e880409bbc683457104237c7f8ec8d
+         - 38696 8 2 683d2d0acb8c9b712a1948b27f741219298d0a450d612c483af444a4c0fb2b16
 
 ''',
         'help' : 'Sequence of trust anchors',
