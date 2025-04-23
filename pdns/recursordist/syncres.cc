@@ -5441,17 +5441,29 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
     LOG(prefix << qname << ": Query handled by Lua" << endl);
   }
   else {
-    ednsmask = getEDNSSubnetMask(qname, remoteIP);
-    if (ednsmask) {
-      LOG(prefix << qname << ": Adding EDNS Client Subnet Mask " << ednsmask->toString() << " to query" << endl);
-      s_ecsqueries++;
+    bool sendECSIfRelevant = true;
+    for (int count = 0; count < 2; ++count) {
+      ednsmask = sendECSIfRelevant ? getEDNSSubnetMask(qname, remoteIP) : boost::none;
+      if (ednsmask) {
+        LOG(prefix << qname << ": Adding EDNS Client Subnet Mask " << ednsmask->toString() << " to query" << endl);
+        s_ecsqueries++;
+      }
+      updateQueryCounts(prefix, qname, remoteIP, doTCP, doDoT);
+      auto match = d_eventTrace.add(RecEventTrace::AuthRequest, qname.toLogString() + '/' + qtype.toString(), true, 0);
+      resolveret = asyncresolveWrapper(remoteIP, d_doDNSSEC, qname, auth, qtype.getCode(),
+                                       doTCP, sendRDQuery, &d_now, ednsmask, &lwr, &chained, nsName); // <- we go out on the wire!
+      d_eventTrace.add(RecEventTrace::AuthRequest, static_cast<int64_t>(lwr.d_rcode), false, match);
+      ednsStats(ednsmask, qname, prefix);
+      if (resolveret == LWResult::Result::ECSMissing) {
+        if (sendECSIfRelevant) {
+          sendECSIfRelevant = false;
+          LOG(prefix << qname << ": Answer has no ECS, trying again without EDNS Client Subnet Mask" << endl);
+          continue;
+        }
+        assert(0); // should not happen
+      }
+      break; // when no ECS shenanigans happened, only one pass through the loop
     }
-    updateQueryCounts(prefix, qname, remoteIP, doTCP, doDoT);
-    auto match = d_eventTrace.add(RecEventTrace::AuthRequest, qname.toLogString() + '/' + qtype.toString(), true, 0);
-    resolveret = asyncresolveWrapper(remoteIP, d_doDNSSEC, qname, auth, qtype.getCode(),
-                                     doTCP, sendRDQuery, &d_now, ednsmask, &lwr, &chained, nsName); // <- we go out on the wire!
-    d_eventTrace.add(RecEventTrace::AuthRequest, static_cast<int64_t>(lwr.d_rcode), false, match);
-    ednsStats(ednsmask, qname, prefix);
   }
 
   /* preoutquery killed the query by setting dq.rcode to -3 */

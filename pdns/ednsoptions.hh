@@ -22,6 +22,8 @@
 #pragma once
 #include "namespaces.hh"
 
+#include "noinitvector.hh"
+
 struct EDNSOptionCode
 {
   // Temporary code assigned for OpenTelemetry TraceID and SpanID
@@ -55,3 +57,4 @@ bool getEDNSOptionsFromContent(const std::string& content, std::vector<std::pair
 bool getNextEDNSOption(const char* data, size_t dataLen, uint16_t& optionCode, uint16_t& optionLen);
 
 void generateEDNSOption(uint16_t optionCode, const std::string& payload, std::string& res);
+bool slowParseEDNSOptions(const PacketBuffer& packet, EDNSOptionViewMap& options);

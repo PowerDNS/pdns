@@ -803,6 +803,7 @@ struct PacketID
   bool inIncompleteOkay{false};
   uint16_t id{0}; // wait for a specific id/remote pair
   uint16_t type{0}; // and this is its type
+  std::optional<bool> ecsReceived; // only set in ecsHardened mode
   TCPAction highState{TCPAction::DoingRead};
   IOState lowState{IOState::NeedRead};
 
