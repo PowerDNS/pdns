@@ -225,6 +225,33 @@ void RemoteBackend::lookup(const QType& qtype, const DNSName& qdomain, int zoneI
   d_index = 0;
 }
 
+// Similar to lookup above, but passes an extra include_disabled parameter.
+void RemoteBackend::APILookup(const QType& qtype, const DNSName& qdomain, int zoneId, bool include_disabled)
+{
+  if (d_index != -1) {
+    throw PDNSException("Attempt to lookup while one running");
+  }
+
+  string localIP = "0.0.0.0";
+  string remoteIP = "0.0.0.0";
+  string realRemote = "0.0.0.0/0";
+
+  Json query = Json::object{
+    {"method", "APILookup"},
+    {"parameters", Json::object{{"qtype", qtype.toString()}, {"qname", qdomain.toString()}, {"remote", remoteIP}, {"local", localIP}, {"real-remote", realRemote}, {"zone-id", zoneId}, {"include-disabled", include_disabled}}}};
+
+  if (!this->send(query) || !this->recv(d_result)) {
+    return;
+  }
+
+  // OK. we have result parameters in result. do not process empty result.
+  if (!d_result["result"].is_array() || d_result["result"].array_items().empty()) {
+    return;
+  }
+
+  d_index = 0;
+}
+
 bool RemoteBackend::list(const ZoneName& target, int domain_id, bool include_disabled)
 {
   if (d_index != -1) {

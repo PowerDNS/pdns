@@ -196,6 +196,10 @@ paths:
           in: query
           description: Limit output to the RRset of this type. Can only be used together with rrset_name.
           type: string
+        - name: include_disabled
+          in: query
+          description: '“true” (default) or “false”, whether to include disabled RRsets in the response.'
+          type: boolean
       responses:
         '200':
           description: A Zone

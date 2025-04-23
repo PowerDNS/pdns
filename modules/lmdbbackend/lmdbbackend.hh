@@ -78,7 +78,8 @@ public:
   bool replaceComments(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<Comment>& comments) override;
 
   void getAllDomains(vector<DomainInfo>* domains, bool doSerial, bool include_disabled) override;
-  void lookup(const QType& type, const DNSName& qdomain, int zoneId, DNSPacket* p = nullptr) override;
+  void lookup(const QType& type, const DNSName& qdomain, int zoneId, DNSPacket* p = nullptr) override { lookupInternal(type, qdomain, zoneId, p, false); }
+  void APILookup(const QType& type, const DNSName& qdomain, int zoneId, bool include_disabled = false) override { lookupInternal(type, qdomain, zoneId, nullptr, include_disabled); }
   bool get(DNSResourceRecord& rr) override;
   bool get(DNSZoneRecord& dzr) override;
 
@@ -311,6 +312,7 @@ private:
 
   void getAllDomainsFiltered(vector<DomainInfo>* domains, const std::function<bool(DomainInfo&)>& allow);
 
+  void lookupInternal(const QType& type, const DNSName& qdomain, int zoneId, DNSPacket* p, bool include_disabled);
   bool getSerial(DomainInfo& di);
 
   bool upgradeToSchemav3();

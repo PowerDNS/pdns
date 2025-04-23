@@ -59,6 +59,8 @@ protected:
       d_IdQuery_stmt = d_db->prepare(d_IdQuery, 3);
       d_ANYNoIdQuery_stmt = d_db->prepare(d_ANYNoIdQuery, 1);
       d_ANYIdQuery_stmt = d_db->prepare(d_ANYIdQuery, 2);
+      d_APIIdQuery_stmt = d_db->prepare(d_APIIdQuery, 4);
+      d_APIANYIdQuery_stmt = d_db->prepare(d_APIANYIdQuery, 3);
       d_listQuery_stmt = d_db->prepare(d_listQuery, 2);
       d_listSubZoneQuery_stmt = d_db->prepare(d_listSubZoneQuery, 3);
       d_PrimaryOfDomainsZoneQuery_stmt = d_db->prepare(d_PrimaryOfDomainsZoneQuery, 1);
@@ -129,6 +131,8 @@ protected:
     d_IdQuery_stmt.reset();
     d_ANYNoIdQuery_stmt.reset();
     d_ANYIdQuery_stmt.reset();
+    d_APIIdQuery_stmt.reset();
+    d_APIANYIdQuery_stmt.reset();
     d_listQuery_stmt.reset();
     d_listSubZoneQuery_stmt.reset();
     d_PrimaryOfDomainsZoneQuery_stmt.reset();
@@ -196,6 +200,7 @@ protected:
 public:
   unsigned int getCapabilities() override;
   void lookup(const QType &, const DNSName &qdomain, int zoneId, DNSPacket *p=nullptr) override;
+  void APILookup(const QType &qtype, const DNSName &qname, int domain_id, bool include_disabled = false) override;
   bool list(const ZoneName &target, int domain_id, bool include_disabled=false) override;
   bool get(DNSResourceRecord &r) override;
   void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled) override;
@@ -294,6 +299,9 @@ private:
   string d_ANYNoIdQuery;
   string d_ANYIdQuery;
 
+  string d_APIIdQuery;
+  string d_APIANYIdQuery;
+
   string d_listQuery;
   string d_listSubZoneQuery;
   string d_logprefix;
@@ -375,6 +383,8 @@ private:
   unique_ptr<SSqlStatement> d_IdQuery_stmt;
   unique_ptr<SSqlStatement> d_ANYNoIdQuery_stmt;
   unique_ptr<SSqlStatement> d_ANYIdQuery_stmt;
+  unique_ptr<SSqlStatement> d_APIIdQuery_stmt;
+  unique_ptr<SSqlStatement> d_APIANYIdQuery_stmt;
   unique_ptr<SSqlStatement> d_listQuery_stmt;
   unique_ptr<SSqlStatement> d_listSubZoneQuery_stmt;
   unique_ptr<SSqlStatement> d_PrimaryOfDomainsZoneQuery_stmt;

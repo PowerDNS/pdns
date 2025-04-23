@@ -157,6 +157,7 @@ Methods required for different features
 :Secondary operation: ``getUnfreshSlaveInfos``, ``startTransaction``, ``commitTransaction``, ``abortTransaction``, ``feedRecord``, ``setFresh``
 :DNSSEC operation (live-signing): ``getDomainKeys``, ``getBeforeAndAfterNamesAbsolute``
 :Filling the Zone Cache: ``getAllDomains``
+:HTTP API specific: ``APILookup``
 
 ``initialize``
 ~~~~~~~~~~~~~~
@@ -164,7 +165,7 @@ Methods required for different features
 Called to initialize the backend. This is not called for HTTP connector.
 You should do your initializations here.
 
--  Mandatory: Yes (except HTTP connector)
+-  Mandatory: yes (except HTTP connector)
 -  Parameters: all parameters in connection string
 -  Reply: true on success / false on failure
 
@@ -191,7 +192,7 @@ Response:
 This method is used to do the basic query. You can omit auth, but if you
 are using DNSSEC this can lead into trouble.
 
--  Mandatory: Yes
+-  Mandatory: yes
 -  Parameters: qtype, qname, zone_id
 -  Optional parameters: remote, local, real-remote
 -  Reply: array of ``qtype,qname,content,ttl,domain_id,scopeMask,auth``
@@ -237,6 +238,20 @@ Response:
 
     {"result":[{"qtype":"A", "qname":"www.example.com", "content":"203.0.113.2", "ttl": 60}]}
 
+``APILookup``
+~~~~~~~~~~~~~
+
+This method is similar to :ref:`remote-lookup`, but also returns disabled
+records. It allows for an extra optional parameter, ``include_disabled`` which, 
+if present and set to false, will only return non-disabled records (in which
+case, the behaviour is equivalent to the ``lookup`` method.)
+
+-  Mandatory: no (required if the HTTP API is to be used)
+-  Parameters: qtype, qname, zone_id
+-  Optional parameters: remote, local, real-remote, include_disabled
+-  Reply: array of ``qtype,qname,content,ttl,domain_id,scopeMask,auth,disabled``
+-  Optional values: scopeMask and auth
+
 ``list``
 ~~~~~~~~
 
@@ -244,7 +259,7 @@ Lists all records for the zonename. If you are running DNSSEC, you
 should take care of setting auth to appropriate value, otherwise things
 can go wrong.
 
--  Mandatory: No (Gives AXFR support)
+-  Mandatory: no (gives AXFR support)
 -  Parameters: zonename, domain_id
 -  Optional parameters: domain_id
 -  Reply: array of ``qtype,qname,content,ttl,domain_id,scopeMask,auth``
@@ -386,7 +401,7 @@ one of NSEC3PARAM, PRESIGNED, SOA-EDIT. Can be others, too. You **must**
 always return something, if there are no values, you shall return an empty
 array.
 
--  Mandatory: No
+-  Mandatory: no
 -  Parameters: name, kind
 -  Reply: array of strings
 
@@ -430,7 +445,7 @@ Replaces the value(s) on domain name for variable kind to string(s) on
 array value. The old value is discarded. Value can be an empty array,
 which can be interpreted as deletion request.
 
--  Mandatory: No
+-  Mandatory: no
 -  Parameters: name, kind, value
 -  Reply: true on success, false on failure
 
@@ -544,7 +559,7 @@ Response:
 
 Adds key into local storage. See :ref:`remote-getdomainkeys` for more information.
 
--  Mandatory: No
+-  Mandatory: no
 -  Parameters: name, key=\ ``<flags,active,published,content>``, id
 -  Reply: true for success, false for failure
 
@@ -608,7 +623,7 @@ Response:
 
 Removes key id from domain name.
 
--  Mandatory: No
+-  Mandatory: no
 -  Parameters: name, id
 -  Reply: true for success, false for failure
 
@@ -650,7 +665,7 @@ Response:
 
 Activates key id for domain name.
 
--  Mandatory: No
+-  Mandatory: no
 -  Parameters: name, id
 -  Reply: true for success, false for failure
 
@@ -692,7 +707,7 @@ Response:
 
 Deactivates key id for domain name.
 
--  Mandatory: No
+-  Mandatory: no
 -  Parameters: name, id
 -  Reply: true for success, false for failure
 
@@ -734,7 +749,7 @@ Response:
 
 Publish key id for domain name.
 
--  Mandatory: No
+-  Mandatory: no
 -  Parameters: name, id
 -  Reply: true for success, false for failure
 
@@ -777,7 +792,7 @@ Response:
 
 Unpublish key id for domain name.
 
--  Mandatory: No
+-  Mandatory: no
 -  Parameters: name, id
 -  Reply: true for success, false for failure
 
@@ -820,7 +835,7 @@ Response:
 
 Retrieves the key needed to sign AXFR.
 
--  Mandatory: No
+-  Mandatory: no
 -  Parameters: name
 -  Reply: algorithm, content
 
@@ -866,7 +881,7 @@ Everything else will default to something. Default values: serial:0,
 kind:NATIVE, id:-1, notified_serial:-1, last_check:0, masters: [].
 Masters, if present, must be array of strings.
 
--  Mandatory: No
+-  Mandatory: no
 -  Parameters: name
 -  Reply: zone
 -  Optional values: serial, kind, id, notified_serial, last_check,
@@ -910,7 +925,7 @@ Response:
 
 Updates last notified serial for the domain id. Any errors are ignored.
 
--  Mandatory: No
+-  Mandatory: no
 -  Parameters: id, serial
 -  Reply: true for success, false for failure
 
@@ -956,7 +971,7 @@ Response:
 
 Determines whether given IP is primary for given domain name.
 
--  Mandatory: No
+-  Mandatory: no
 -  Parameters: name,ip
 -  Reply: true for success, false for failure.
 
@@ -1000,7 +1015,7 @@ Creates new domain with given record(s) as primary servers. IP address is
 the address where notify is received from. nsset is array of NS resource
 records.
 
--  Mandatory: No
+-  Mandatory: no
 -  Parameters: ip,domain,nsset,account
 -  Reply: true for success, false for failure. can also return
    account=>name of account< and nameserver.
@@ -1062,7 +1077,7 @@ Alternative response
 Creates new domain. This method is called when NOTIFY is received and
 you are superslaving.
 
- - Mandatory: No
+ - Mandatory: no
  - Parameters: ip, domain
  - Optional parameters: nameserver, account
  - Reply: true for success, false for failure
@@ -1108,7 +1123,7 @@ Response:
 This method replaces a given resource record with new set. The new qtype
 can be different from the old.
 
--  Mandatory: No
+-  Mandatory: no
 -  Parameters: domain_id, qname, qtype, rrset
 -  Reply: true for success, false for failure
 
@@ -1155,7 +1170,7 @@ Response:
 Asks to feed new record into system. If startTransaction was called,
 trxId identifies a transaction. It is not always called by PowerDNS.
 
--  Mandatory: No
+-  Mandatory: no
 -  Parameters: rr, trxid
 -  Reply: true for success, false for failure
 
@@ -1207,7 +1222,7 @@ _sip._upd.example.com, but no _udp.example.com. PowerDNS requires
 that there exists a non-terminal in between, and this instructs you to
 add one. If startTransaction is called, trxid identifies a transaction.
 
--  Mandatory: No
+-  Mandatory: no
 -  Parameters: nonterm, trxid
 -  Reply: true for success, false for failure
 
@@ -1254,7 +1269,7 @@ Response:
 Same as :ref:`remote-feedents`, but provides NSEC3 hashing
 parameters. Note that salt is BYTE value, and can be non-readable text.
 
--  Mandatory: No
+-  Mandatory: no
 -  Parameters: trxid, domain_id, domain, times, salt, narrow, nonterm
 -  Reply: true for success, false for failure
 
@@ -1301,7 +1316,7 @@ Response:
 Starts a new transaction. Transaction ID is chosen for you. Used to
 identify f.ex. AXFR transfer.
 
--  Mandatory: No
+-  Mandatory: no
 -  Parameters: domain_id, domain, trxid
 -  Reply: true for success, false for failure
 
@@ -1348,7 +1363,7 @@ Response:
 Signals successful transfer and asks to commit data into permanent
 storage.
 
--  Mandatory: No
+-  Mandatory: no
 -  Parameters: trxid
 -  Reply: true for success, false for failure
 
@@ -1392,7 +1407,7 @@ Response:
 
 Signals failed transaction, and that you should rollback any changes.
 
--  Mandatory: No
+-  Mandatory: no
 -  Parameters: trxid
 -  Reply: true for success, false for failure
 
@@ -1437,7 +1452,7 @@ Response:
 Asks you to calculate a new serial based on the given data and update
 the serial.
 
--  Mandatory: No
+-  Mandatory: no
 -  Parameters: domain,sd
 -  Reply: true for success, false for failure
 
@@ -1701,7 +1716,7 @@ Response:
 Called when a primary freshness check succeeded. This does not indicate the
 zone was updated on the primary.
 
--  Mandatory: No
+-  Mandatory: no
 -  Parameters: id
 -  Reply: true for success, false for failure
 

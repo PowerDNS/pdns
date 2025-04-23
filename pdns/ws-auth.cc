@@ -373,16 +373,16 @@ static Json::object getZoneInfo(const DomainInfo& domainInfo, DNSSECKeeper* dnss
   return obj;
 }
 
-static bool shouldDoRRSets(HttpRequest* req)
+static bool boolFromHttpRequest(HttpRequest* req, const std::string& var)
 {
-  if (req->getvars.count("rrsets") == 0 || req->getvars["rrsets"] == "true") {
+  if (req->getvars.count(var) == 0 || req->getvars[var] == "true") {
     return true;
   }
-  if (req->getvars["rrsets"] == "false") {
+  if (req->getvars[var] == "false") {
     return false;
   }
 
-  throw ApiException("'rrsets' request parameter value '" + req->getvars["rrsets"] + "' is not supported");
+  throw ApiException("'" + var + "' request parameter value '" + req->getvars[var] + "' is not supported");
 }
 
 static void fillZone(UeberBackend& backend, const ZoneName& zonename, HttpResponse* resp, HttpRequest* req)
@@ -440,7 +440,7 @@ static void fillZone(UeberBackend& backend, const ZoneName& zonename, HttpRespon
   }
   doc["slave_tsig_key_ids"] = tsig_secondary_keys;
 
-  if (shouldDoRRSets(req)) {
+  if (boolFromHttpRequest(req, "rrsets")) {
     vector<DNSResourceRecord> records;
     vector<Comment> comments;
 
@@ -458,7 +458,8 @@ static void fillZone(UeberBackend& backend, const ZoneName& zonename, HttpRespon
         if (req->getvars.count("rrset_type") != 0) {
           qType = req->getvars["rrset_type"];
         }
-        domainInfo.backend->lookup(qType, qName, static_cast<int>(domainInfo.id));
+        bool include_disabled = boolFromHttpRequest(req, "include_disabled");
+        domainInfo.backend->APILookup(qType, qName, static_cast<int>(domainInfo.id), include_disabled);
       }
       while (domainInfo.backend->get(resourceRecord)) {
         if (resourceRecord.qtype.getCode() == 0) {
@@ -2380,7 +2381,7 @@ static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInf
           bool dname_seen = false;
           bool ns_seen = false;
 
-          domainInfo.backend->lookup(QType(QType::ANY), qname, static_cast<int>(domainInfo.id));
+          domainInfo.backend->APILookup(QType(QType::ANY), qname, static_cast<int>(domainInfo.id), false);
           DNSResourceRecord resourceRecord;
           while (domainInfo.backend->get(resourceRecord)) {
             if (resourceRecord.qtype.getCode() == QType::ENT) {
