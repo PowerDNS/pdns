@@ -249,7 +249,7 @@ public:
 
   virtual bool getBeforeAndAfterNamesAbsolute(uint32_t /* id */, const DNSName& qname, DNSName& /* unhashed */, DNSName& /* before */, DNSName& /* after */)
   {
-    throw PDNSException("DNSSEC operation invoked on non-DNSSEC capable backend, qname: '" + qname.toString() + "'");
+    throw PDNSException("DNSSEC operation invoked on non-DNSSEC capable backend, qname: '" + qname.toLogString() + "'");
   }
 
   virtual bool getBeforeAndAfterNames(uint32_t /* id */, const ZoneName& zonename, const DNSName& qname, DNSName& before, DNSName& after);

@@ -986,7 +986,7 @@ void PacketHandler::addNSEC(DNSPacket& /* p */, std::unique_ptr<DNSPacket>& r, c
     // zone in a second, DNSSEC-capable backend, which caused d_dnssec to
     // be set to true. While it would be nice to support such a zone
     // configuration, we don't. Log a warning and skip DNSSEC processing.
-    g_log << Logger::Notice << "Backend for zone '" << d_sd.qname << "' does not support DNSSEC operation, not adding NSEC hashes" << endl;
+    g_log << Logger::Notice << "Backend for zone '" << d_sd.qname << "' does not support DNSSEC operation, not adding NSEC records" << endl;
     return;
   }
 
