@@ -200,7 +200,7 @@ protected:
 public:
   unsigned int getCapabilities() override;
   void lookup(const QType &, const DNSName &qdomain, int zoneId, DNSPacket *p=nullptr) override;
-  void APILookup(const QType &qtype, const DNSName &qname, int domain_id, DNSPacket *p=nullptr, bool include_disabled = false) override;
+  void APILookup(const QType &qtype, const DNSName &qname, int domain_id, bool include_disabled = false) override;
   bool list(const ZoneName &target, int domain_id, bool include_disabled=false) override;
   bool get(DNSResourceRecord &r) override;
   void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled) override;

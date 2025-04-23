@@ -1461,7 +1461,7 @@ void GSQLBackend::lookup(const QType& qtype, const DNSName& qname, int domain_id
   d_qname=qname;
 }
 
-void GSQLBackend::APILookup(const QType& qtype, const DNSName& qname, int domain_id, DNSPacket* /* pkt_p */, bool include_disabled)
+void GSQLBackend::APILookup(const QType& qtype, const DNSName& qname, int domain_id, bool include_disabled)
 {
   try {
     reconnectIfNeeded();

@@ -459,7 +459,7 @@ static void fillZone(UeberBackend& backend, const ZoneName& zonename, HttpRespon
           qType = req->getvars["rrset_type"];
         }
         bool include_disabled = boolFromHttpRequest(req, "include_disabled");
-        domainInfo.backend->APILookup(qType, qName, static_cast<int>(domainInfo.id), nullptr, include_disabled);
+        domainInfo.backend->APILookup(qType, qName, static_cast<int>(domainInfo.id), include_disabled);
       }
       while (domainInfo.backend->get(resourceRecord)) {
         if (resourceRecord.qtype.getCode() == 0) {
@@ -2381,7 +2381,7 @@ static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInf
           bool dname_seen = false;
           bool ns_seen = false;
 
-          domainInfo.backend->APILookup(QType(QType::ANY), qname, static_cast<int>(domainInfo.id), nullptr, false);
+          domainInfo.backend->APILookup(QType(QType::ANY), qname, static_cast<int>(domainInfo.id), false);
           DNSResourceRecord resourceRecord;
           while (domainInfo.backend->get(resourceRecord)) {
             if (resourceRecord.qtype.getCode() == QType::ENT) {

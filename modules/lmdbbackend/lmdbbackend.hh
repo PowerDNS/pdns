@@ -79,7 +79,7 @@ public:
 
   void getAllDomains(vector<DomainInfo>* domains, bool doSerial, bool include_disabled) override;
   void lookup(const QType& type, const DNSName& qdomain, int zoneId, DNSPacket* p = nullptr) override { lookupInternal(type, qdomain, zoneId, p, false); }
-  void APILookup(const QType& type, const DNSName& qdomain, int zoneId, DNSPacket* p = nullptr, bool include_disabled = false) override { lookupInternal(type, qdomain, zoneId, p, include_disabled); }
+  void APILookup(const QType& type, const DNSName& qdomain, int zoneId, bool include_disabled = false) override { lookupInternal(type, qdomain, zoneId, nullptr, include_disabled); }
   bool get(DNSResourceRecord& rr) override;
   bool get(DNSZoneRecord& dzr) override;
 
