@@ -434,7 +434,7 @@ static std::vector<std::unique_ptr<DNSBackend>>::iterator findBestMatchingBacken
   return backend;
 }
 
-static bool foundTarget(const DNSName& target, const DNSName& shorter, const QType& qtype, [[maybe_unused]] SOAData* soaData, const bool found)
+static bool foundTarget(const ZoneName& target, const ZoneName& shorter, const QType& qtype, [[maybe_unused]] SOAData* soaData, const bool found)
 {
   if (found == (qtype == QType::DS) || target != shorter) {
     DLOG(g_log << Logger::Error << "found: " << soaData->qname << endl);
@@ -467,7 +467,7 @@ bool UeberBackend::getAuth(const ZoneName& target, const QType& qtype, SOAData* 
     if (cachedOk && g_zoneCache.isEnabled()) {
       if (g_zoneCache.getEntry(shorter, zoneId)) {
         if (fillSOAFromZoneRecord(shorter, zoneId, soaData)) {
-          if (foundTarget(target.operator const DNSName&(), shorter.operator const DNSName&(), qtype, soaData, found)) {
+          if (foundTarget(target, shorter, qtype, soaData, found)) {
             return true;
           }
 
@@ -489,7 +489,7 @@ bool UeberBackend::getAuth(const ZoneName& target, const QType& qtype, SOAData* 
     if (cachedOk && (d_cache_ttl != 0 || d_negcache_ttl != 0)) {
       auto cacheResult = fillSOAFromCache(soaData, shorter);
       if (cacheResult == CacheResult::Hit) {
-        if (foundTarget(target.operator const DNSName&(), shorter.operator const DNSName&(), qtype, soaData, found)) {
+        if (foundTarget(target, shorter, qtype, soaData, found)) {
           return true;
         }
 
@@ -535,7 +535,7 @@ bool UeberBackend::getAuth(const ZoneName& target, const QType& qtype, SOAData* 
       }
     }
 
-    if (foundTarget(target.operator const DNSName&(), shorter.operator const DNSName&(), qtype, soaData, found)) {
+    if (foundTarget(target, shorter, qtype, soaData, found)) {
       return true;
     }
 
