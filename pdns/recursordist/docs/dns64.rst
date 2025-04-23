@@ -40,8 +40,13 @@ To setup DNS64, with both forward and reverse records, create the following Lua 
 .. literalinclude:: ../contrib/dns64.lua
     :language: lua
 
-Where fe80::21b:77ff:0:0 is your "Pref64" translation prefix and the "ip6.arpa" string is the reversed form of this Pref64 address.
-Now ensure your script gets loaded by specifying it with :ref:`setting-yaml-recursor.lua_dns_script`.
+Where ``fe80::21b:77ff:0:0`` is your ``Pref64`` translation prefix and the ``ip6.arpa`` string is the reversed form of this Pref64 address.
+Now ensure your script gets loaded by specifying its pathname as the value of :ref:`setting-yaml-recursor.lua_dns_script`:
+
+.. code-block:: yaml
+
+   recursor:
+     lua_dns_script: .../dns64.lua
 
 On our wiki, a user has kindly supplied `an example script with support for multiple prefixes <https://github.com/PowerDNS/pdns/wiki/DNS64-with-multiple-prefixes>`_.
 
