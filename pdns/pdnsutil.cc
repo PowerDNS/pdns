@@ -1574,7 +1574,7 @@ static int loadZone(const ZoneName& zone, const string& fname) {
   rr.domain_id=di.id;
   bool haveSOA = false;
   while(zpt.get(rr)) {
-    if(!rr.qname.isPartOf(zone) && rr.qname!=zone.operator const DNSName&()) {
+    if(!rr.qname.isPartOf(zone)) {
       cerr<<"File contains record named '"<<rr.qname<<"' which is not part of zone '"<<zone<<"'"<<endl;
       return EXIT_FAILURE;
     }

@@ -123,7 +123,7 @@ void pdns::ZoneMD::processRecord(const DNSRecord& record)
 
 void pdns::ZoneMD::readRecord(const DNSRecord& record)
 {
-  if (!record.d_name.isPartOf(d_zone) && record.d_name != DNSName(d_zone)) {
+  if (!record.d_name.isPartOf(d_zone)) {
     return;
   }
   if (record.d_class == QClass::IN && record.d_type == QType::SOA && d_soaRecordContent) {

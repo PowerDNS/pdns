@@ -1915,7 +1915,7 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
 
   for (auto& resourceRecord : new_records) {
     resourceRecord.qname.makeUsLowerCase();
-    if (!resourceRecord.qname.isPartOf(zonename) && resourceRecord.qname != zonename.operator const DNSName&()) {
+    if (!resourceRecord.qname.isPartOf(zonename)) {
       throw ApiException("RRset " + resourceRecord.qname.toString() + " IN " + resourceRecord.qtype.toString() + ": Name is out of zone");
     }
 
@@ -2123,7 +2123,7 @@ static void apiServerZoneDetailPUT(HttpRequest* req, HttpResponse* resp)
 
     for (auto& resourceRecord : new_records) {
       resourceRecord.qname.makeUsLowerCase();
-      if (!resourceRecord.qname.isPartOf(zoneData.zoneName) && resourceRecord.qname != zoneData.zoneName.operator const DNSName&()) {
+      if (!resourceRecord.qname.isPartOf(zoneData.zoneName)) {
         throw ApiException("RRset " + resourceRecord.qname.toString() + " IN " + resourceRecord.qtype.toString() + ": Name is out of zone");
       }
       apiCheckQNameAllowedCharacters(resourceRecord.qname.toString());
@@ -2335,7 +2335,7 @@ static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInf
       }
       else if (changetype == "REPLACE") {
         // we only validate for REPLACE, as DELETE can be used to "fix" out of zone records.
-        if (!qname.isPartOf(zonename) && qname != zonename.operator const DNSName&()) {
+        if (!qname.isPartOf(zonename)) {
           throw ApiException("RRset " + qname.toString() + " IN " + qtype.toString() + ": Name is out of zone");
         }
 
