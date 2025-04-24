@@ -275,7 +275,7 @@ public:
       return true;
     }
 
-    return getSOA(target, *soadata);
+    return getSOA(target, UnknownDomainID, *soadata);
   }
 
   size_t d_authLookupCount{0};

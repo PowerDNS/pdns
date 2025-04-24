@@ -282,7 +282,13 @@ public:
   bool getDomainInfo(const ZoneName& domain, DomainInfo& di, bool /* getSerial */ = true) override
   {
     if (f_get_domaininfo == nullptr) {
-      // use getAuth instead
+      // use getAuth instead... but getAuth wraps getSOA which will call
+      // getDomainInfo if this is a domain variant, so protect against this
+      // would-be infinite recursion.
+      if (domain.hasVariant()) {
+        g_log << Logger::Info << "Unable to return domain information for '" << domain.toLogString() << "' due to unimplemented dns_get_domaininfo" << endl;
+        return false;
+      }
       SOAData sd;
       if (!getAuth(domain, &sd))
         return false;
