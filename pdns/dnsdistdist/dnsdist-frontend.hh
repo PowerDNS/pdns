@@ -34,7 +34,7 @@ struct DOH3Frontend;
 namespace dnsdist
 {
 const std::vector<std::shared_ptr<ClientState>>& getFrontends();
-std::vector<std::shared_ptr<DNSCryptContext>> getDNSCryptFrontends();
+std::vector<std::shared_ptr<DNSCryptContext>> getDNSCryptFrontends(bool udpOnly);
 std::vector<std::shared_ptr<TLSFrontend>> getDoTFrontends();
 std::vector<std::shared_ptr<DOHFrontend>> getDoHFrontends();
 std::vector<std::shared_ptr<DOQFrontend>> getDoQFrontends();

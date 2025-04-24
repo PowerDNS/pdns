@@ -32,11 +32,11 @@ const std::vector<std::shared_ptr<ClientState>>& getFrontends()
   return dnsdist::configuration::getImmutableConfiguration().d_frontends;
 }
 
-std::vector<std::shared_ptr<DNSCryptContext>> getDNSCryptFrontends()
+std::vector<std::shared_ptr<DNSCryptContext>> getDNSCryptFrontends(bool udpOnly)
 {
   std::vector<std::shared_ptr<DNSCryptContext>> results;
   for (const auto& frontend : getFrontends()) {
-    if (frontend->getProtocol() == dnsdist::Protocol::DNSCryptUDP || frontend->getProtocol() == dnsdist::Protocol::DNSCryptTCP) {
+    if (frontend->getProtocol() == dnsdist::Protocol::DNSCryptUDP || (!udpOnly && frontend->getProtocol() == dnsdist::Protocol::DNSCryptTCP)) {
       results.push_back(frontend->dnscryptCtx);
     }
   }
