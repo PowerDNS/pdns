@@ -149,6 +149,18 @@ static const std::map<std::string, UnsignedIntegerImmutableConfigurationItems> s
   {"setUDPTimeout", {[](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_udpTimeout = newValue; }, std::numeric_limits<uint8_t>::max()}},
   {"setConsoleMaximumConcurrentConnections", {[](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_consoleMaxConcurrentConnections = newValue; }, std::numeric_limits<uint32_t>::max()}},
   {"setRingBuffersLockRetries", {[](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_ringsNbLockTries = newValue; }, std::numeric_limits<uint64_t>::max()}},
+  {"setMaxTCPConnectionRatePerClient", {[](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_maxTCPConnectionsRatePerClient = newValue; }, std::numeric_limits<uint64_t>::max()}},
+  {"setMaxTLSResumedSessionRatePerClient", {[](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_maxTLSResumedSessionsRatePerClient = newValue; }, std::numeric_limits<uint64_t>::max()}},
+  {"setMaxTLSNewSessionRatePerClient", {[](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_maxTLSNewSessionsRatePerClient = newValue; }, std::numeric_limits<uint64_t>::max()}},
+  {"setTCPConnectionRateInterval", {[](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_tcpConnectionsRatePerClientInterval = newValue; }, std::numeric_limits<uint64_t>::max()}},
+  {"setMaxTCPReadIOsPerQuery", {[](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_maxTCPReadIOsPerQuery = newValue; }, std::numeric_limits<uint32_t>::max()}},
+  {"setBanDurationForExceedingMaxReadIOsPerQuery", {[](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_tcpBanDurationForExceedingMaxReadIOsPerQuery = newValue; }, std::numeric_limits<uint32_t>::max()}},
+  {"setBanDurationForExceedingTCPTLSRate", {[](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_tcpBanDurationForExceedingTCPTLSRate = newValue; }, std::numeric_limits<uint32_t>::max()}},
+  {"setTCPConnectionsOverloadThreshold", {[](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_tcpConnectionsOverloadThreshold = newValue; }, std::numeric_limits<uint8_t>::max()}},
+  {"setTCPConnectionsMaskV4", {[](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_tcpConnectionsMaskV4 = newValue; }, std::numeric_limits<uint8_t>::max()}},
+  {"setTCPConnectionsMaskV6", {[](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_tcpConnectionsMaskV6 = newValue; }, std::numeric_limits<uint8_t>::max()}},
+  {"setTCPConnectionsMaskV4Port", {[](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_tcpConnectionsMaskV4Port = newValue; }, std::numeric_limits<uint8_t>::max()}},
+  {"setTCPConnectionsOverloadThreshold", {[](dnsdist::configuration::ImmutableConfiguration& config, uint64_t newValue) { config.d_tcpConnectionsOverloadThreshold = newValue; }, 100}},
 };
 
 static const std::map<std::string, DoubleImmutableConfigurationItems> s_doubleImmutableConfigItems{

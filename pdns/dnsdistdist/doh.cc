@@ -331,7 +331,7 @@ static void on_socketclose(void *data)
       auto diff = now - conn->d_connectionStartTime;
 
       conn->d_acceptCtx->decrementConcurrentConnections();
-      conn->d_acceptCtx->d_cs->updateTCPMetrics(conn->d_nbQueries, diff.tv_sec * 1000 + diff.tv_usec / 1000);
+      conn->d_acceptCtx->d_cs->updateTCPMetrics(conn->d_nbQueries, diff.tv_sec * 1000 + diff.tv_usec / 1000, 0);
     }
 
     dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(conn->d_remote);
@@ -1396,8 +1396,8 @@ static void on_accept(h2o_socket_t *listener, const char *err)
     return;
   }
 
-  if (!dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(remote)) {
-    vinfolog("Dropping DoH connection from %s because we have too many from this client already", remote.toStringWithPort());
+  auto connectionResult = dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(remote, false);
+  if (connectionResult == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Denied) {
     h2o_socket_close(sock);
     return;
   }

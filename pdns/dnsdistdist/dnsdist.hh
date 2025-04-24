@@ -346,6 +346,7 @@ struct ClientState
   stat_t tls12queries{0}; // valid DNS queries received via TLSv1.2
   stat_t tls13queries{0}; // valid DNS queries received via TLSv1.3
   stat_t tlsUnknownqueries{0}; // valid DNS queries received via unknown TLS version
+  pdns::stat_double_t tcpAvgIOsPerConnection{0.0};
   pdns::stat_double_t tcpAvgQueriesPerConnection{0.0};
   /* in ms */
   pdns::stat_double_t tcpAvgConnectionDuration{0.0};
@@ -510,10 +511,11 @@ struct ClientState
     d_filter = bpf;
   }
 
-  void updateTCPMetrics(size_t nbQueries, uint64_t durationMs)
+  void updateTCPMetrics(size_t nbQueries, uint64_t durationMs, size_t nbIOs)
   {
     tcpAvgQueriesPerConnection = (99.0 * tcpAvgQueriesPerConnection / 100.0) + (nbQueries / 100.0);
     tcpAvgConnectionDuration = (99.0 * tcpAvgConnectionDuration / 100.0) + (durationMs / 100.0);
+    tcpAvgIOsPerConnection = (99.0 * tcpAvgIOsPerConnection / 100.0) + (nbIOs / 100.0);
   }
 };
 

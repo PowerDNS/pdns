@@ -129,6 +129,7 @@ common_sources += files(
   src_dir / 'dnsdist-backend.cc',
   src_dir / 'dnsdist-cache.cc',
   src_dir / 'dnsdist-carbon.cc',
+  src_dir / 'dnsdist-concurrent-connections.cc',
   src_dir / 'dnsdist-configuration.cc',
   src_dir / 'dnsdist-configuration-yaml.cc',
   src_dir / 'dnsdist-console.cc',
