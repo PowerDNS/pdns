@@ -628,7 +628,7 @@ try {
 
       if (PC.enabled() && (question.d.opcode != Opcode::Notify && question.d.opcode != Opcode::Update) && question.couldBeCached()) {
         start = diff;
-        bool haveSomething = PC.get(question, cached); // does the PacketCache recognize this question?
+        bool haveSomething = PC.get(question, cached, &accountremote); // does the PacketCache recognize this question?
         if (haveSomething) {
           if (logDNSQueries)
             g_log << ": packetcache HIT" << endl;

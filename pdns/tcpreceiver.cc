@@ -389,7 +389,7 @@ void TCPNameserver::doConnection(int fd)
       }
 
       if(PC.enabled()) {
-        if(packet->couldBeCached() && PC.get(*packet, *cached)) { // short circuit - does the PacketCache recognize this question?
+        if(packet->couldBeCached() && PC.get(*packet, *cached, &packet->d_remote)) { // short circuit - does the PacketCache recognize this question?
           if(logDNSQueries)
             g_log<<": packetcache HIT"<<endl;
           cached->setRemote(&packet->d_remote);

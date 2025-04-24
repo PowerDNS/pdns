@@ -22,6 +22,7 @@
 #pragma once
 #include <string>
 #include <map>
+#include <optional>
 #include "dns.hh"
 #include <boost/version.hpp>
 #include "namespaces.hh"
@@ -35,12 +36,17 @@ using namespace ::boost::multi_index;
 
 #include "dnspacket.hh"
 #include "lock.hh"
+#include "lock.hh"
 #include "packetcache.hh"
 
 /** This class performs 'whole packet caching'. Feed it a question packet and it will
     try to find an answer. If you have an answer, insert it to have it cached for later use. 
     Take care not to replace existing cache entries. While this works, it is wasteful. Only
-    insert packets that where not found by get()
+    insert packets that were not found by get()
+
+    Packets may be added to the cache with a Netmask. In this case, lookup will
+    ignore packets with matching content if the originating ComboAddress is
+    not part of the netmask.
 
     Locking! 
 
@@ -53,14 +59,15 @@ class AuthPacketCache : public PacketCache
 public:
   AuthPacketCache(size_t mapsCount=1024);
 
-  void insert(DNSPacket& q, DNSPacket& r, uint32_t maxTTL);  //!< We copy the contents of *p into our cache. Do not needlessly call this to insert questions already in the cache as it wastes resources
+  void insert(DNSPacket& q, DNSPacket& r, uint32_t maxTTL, std::optional<Netmask> netmask = std::nullopt);  //!< We copy the contents of *p into our cache. Do not needlessly call this to insert questions already in the cache as it wastes resources
 
-  bool get(DNSPacket& p, DNSPacket& q); //!< You need to spoof in the right ID with the DNSPacket.spoofID() method.
+  bool get(DNSPacket& p, DNSPacket& q, ComboAddress* from = nullptr); //!< You need to spoof in the right ID with the DNSPacket.spoofID() method.
 
   void cleanup(); //!< force the cache to preen itself from expired packets
   uint64_t purge();
   uint64_t purge(const std::string& match); // could be $ terminated. Is not a dnsname!
   uint64_t purgeExact(const DNSName& qname); // no wildcard matching here
+  uint64_t purgeNetmask(const Netmask& netmask);
 
   uint64_t size() const { return *d_statnumentries; };
 
@@ -86,6 +93,7 @@ private:
     mutable string query;
     mutable string value;
     DNSName qname;
+    std::optional<Netmask> netmask;
 
     mutable time_t created{0};
     mutable time_t ttd{0};
@@ -127,7 +135,7 @@ private:
   }
 
   static bool entryMatches(cmap_t::index<HashTag>::type::iterator& iter, const std::string& query, const DNSName& qname, uint16_t qtype, bool tcp);
-  bool getEntryLocked(const cmap_t& map, const std::string& query, uint32_t hash, const DNSName &qname, uint16_t qtype, bool tcp, time_t now, string& entry);
+  bool getEntryLocked(const cmap_t& map, const std::string& query, uint32_t hash, const DNSName &qname, uint16_t qtype, bool tcp, time_t now, ComboAddress *from, string& entry);
   void cleanupIfNeeded();
 
   AtomicCounter d_ops{0};

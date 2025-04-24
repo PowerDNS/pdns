@@ -177,6 +177,8 @@ public:
   void cleanupGSS(int rcode);
 #endif
 
+  Netmask d_span{}; // network matching this packet, when views are used
+
 private:
   void pasteQ(const char *question, int length); //!< set the question of this packet, useful for crafting replies
 
