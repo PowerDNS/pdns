@@ -430,13 +430,13 @@ static void fillZone(UeberBackend& backend, const ZoneName& zonename, HttpRespon
 
   Json::array tsig_primary_keys;
   for (const auto& keyname : tsig_primary) {
-    tsig_primary_keys.emplace_back(apiZoneNameToId(DNSName(keyname)));
+    tsig_primary_keys.emplace_back(apiZoneNameToId(ZoneName(keyname)));
   }
   doc["master_tsig_key_ids"] = tsig_primary_keys;
 
   Json::array tsig_secondary_keys;
   for (const auto& keyname : tsig_secondary) {
-    tsig_secondary_keys.emplace_back(apiZoneNameToId(DNSName(keyname)));
+    tsig_secondary_keys.emplace_back(apiZoneNameToId(ZoneName(keyname)));
   }
   doc["slave_tsig_key_ids"] = tsig_secondary_keys;
 
@@ -763,7 +763,7 @@ static void extractDomainInfoFromDocument(const Json& document, std::optional<Do
 static void extractJsonTSIGKeyIds(UeberBackend& backend, const Json& jsonArray, vector<string>& metadata)
 {
   for (const auto& value : jsonArray.array_items()) {
-    auto keyname(apiZoneIdToName(value.string_value()));
+    DNSName keyname(apiZoneIdToName(value.string_value()));
     DNSName keyAlgo;
     string keyContent;
     if (!backend.getTSIGKey(keyname, keyAlgo, keyContent)) {
@@ -1270,7 +1270,7 @@ static void apiZoneCryptokeysExport(const ZoneName& zonename, int64_t inquireKey
       Json::array dses;
       for (const uint8_t keyid : {DNSSECKeeper::DIGEST_SHA256, DNSSECKeeper::DIGEST_SHA384}) {
         try {
-          string dsRecordContent = makeDSFromDNSKey(zonename, value.first.getDNSKEY(), keyid).getZoneRepresentation();
+          string dsRecordContent = makeDSFromDNSKey(zonename.operator const DNSName&(), value.first.getDNSKEY(), keyid).getZoneRepresentation();
 
           dses.emplace_back(dsRecordContent);
 
@@ -1603,7 +1603,7 @@ static void checkNewRecords(vector<DNSResourceRecord>& records, const ZoneName& 
       }
     }
 
-    if (rec.qname == zone) {
+    if (rec.qname == zone.operator const DNSName&()) {
       if (nonApexTypes.count(rec.qtype.getCode()) != 0) {
         throw ApiException("Record " + rec.qname.toString() + " IN " + rec.qtype.toString() + " is not allowed at apex");
       }
@@ -1647,7 +1647,7 @@ static Json::object makeJSONTSIGKey(const DNSName& keyname, const DNSName& algo,
 {
   Json::object tsigkey = {
     {"name", keyname.toStringNoDot()},
-    {"id", apiZoneNameToId(keyname)},
+    {"id", apiZoneNameToId(ZoneName(keyname))},
     {"algorithm", algo.toStringNoDot()},
     {"key", content},
     {"type", "TSIGKey"}};
@@ -1708,7 +1708,7 @@ class TSIGKeyData
 {
 public:
   TSIGKeyData(HttpRequest* req) :
-    keyName(apiZoneIdToName(req->parameters["id"]))
+    keyName(apiZoneIdToName(req->parameters["id"]).operator const DNSName&())
   {
     try {
       if (!backend.getTSIGKey(keyName, algo, content)) {
@@ -1844,7 +1844,7 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
   DNSSECKeeper dnssecKeeper(&backend);
   DomainInfo domainInfo;
   const auto& document = req->json();
-  ZoneName zonename = apiNameToDNSName(stringFromJson(document, "name"));
+  ZoneName zonename = apiNameToZoneName(stringFromJson(document, "name"));
   apiCheckNameAllowedCharacters(zonename.toString());
   zonename.makeUsLowerCase();
 
@@ -1915,23 +1915,23 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
 
   for (auto& resourceRecord : new_records) {
     resourceRecord.qname.makeUsLowerCase();
-    if (!resourceRecord.qname.isPartOf(zonename) && resourceRecord.qname != zonename) {
+    if (!resourceRecord.qname.isPartOf(zonename)) {
       throw ApiException("RRset " + resourceRecord.qname.toString() + " IN " + resourceRecord.qtype.toString() + ": Name is out of zone");
     }
 
     apiCheckQNameAllowedCharacters(resourceRecord.qname.toString());
 
-    if (resourceRecord.qtype.getCode() == QType::SOA && resourceRecord.qname == zonename) {
+    if (resourceRecord.qtype.getCode() == QType::SOA && resourceRecord.qname == zonename.operator const DNSName&()) {
       have_soa = true;
     }
-    if (resourceRecord.qtype.getCode() == QType::NS && resourceRecord.qname == zonename) {
+    if (resourceRecord.qtype.getCode() == QType::NS && resourceRecord.qname == zonename.operator const DNSName&()) {
       have_zone_ns = true;
     }
   }
 
   // synthesize RRs as needed
   DNSResourceRecord autorr;
-  autorr.qname = zonename;
+  autorr.qname = zonename.operator const DNSName&();
   autorr.auth = true;
   autorr.ttl = ::arg().asNum("default-ttl");
 
@@ -2018,7 +2018,7 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
   if (!catalog && kind == DomainInfo::Primary) {
     const auto& defaultCatalog = ::arg()["default-catalog-zone"];
     if (!defaultCatalog.empty()) {
-      domainInfo.backend->setCatalog(zonename, DNSName(defaultCatalog));
+      domainInfo.backend->setCatalog(zonename, ZoneName(defaultCatalog));
     }
   }
 
@@ -2040,7 +2040,7 @@ static void apiServerZonesGET(HttpRequest* req, HttpResponse* resp)
   if (req->getvars.count("zone") != 0) {
     string zone = req->getvars["zone"];
     apiCheckNameAllowedCharacters(zone);
-    ZoneName zonename = apiNameToDNSName(zone);
+    ZoneName zonename = apiNameToZoneName(zone);
     zonename.makeUsLowerCase();
     DomainInfo domainInfo;
     if (backend.getDomainInfo(zonename, domainInfo)) {
@@ -2123,12 +2123,12 @@ static void apiServerZoneDetailPUT(HttpRequest* req, HttpResponse* resp)
 
     for (auto& resourceRecord : new_records) {
       resourceRecord.qname.makeUsLowerCase();
-      if (!resourceRecord.qname.isPartOf(zoneData.zoneName) && resourceRecord.qname != zoneData.zoneName) {
+      if (!resourceRecord.qname.isPartOf(zoneData.zoneName)) {
         throw ApiException("RRset " + resourceRecord.qname.toString() + " IN " + resourceRecord.qtype.toString() + ": Name is out of zone");
       }
       apiCheckQNameAllowedCharacters(resourceRecord.qname.toString());
 
-      if (resourceRecord.qtype.getCode() == QType::SOA && resourceRecord.qname == zoneData.zoneName) {
+      if (resourceRecord.qtype.getCode() == QType::SOA && resourceRecord.qname == zoneData.zoneName.operator const DNSName&()) {
         haveSoa = true;
       }
     }
@@ -2310,11 +2310,11 @@ static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInf
     domainInfo.backend->getDomainMetadataOne(zonename, "SOA-EDIT", soa_edit_kind);
     bool soa_edit_done = false;
 
-    set<std::tuple<ZoneName, QType, string>> seen;
+    set<std::tuple<DNSName, QType, string>> seen;
 
     for (const auto& rrset : rrsets.array_items()) {
       string changetype = toUpper(stringFromJson(rrset, "changetype"));
-      ZoneName qname = apiNameToDNSName(stringFromJson(rrset, "name"));
+      DNSName qname = apiNameToDNSName(stringFromJson(rrset, "name"));
       apiCheckQNameAllowedCharacters(qname.toString());
       QType qtype;
       qtype = stringFromJson(rrset, "type");
@@ -2335,7 +2335,7 @@ static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInf
       }
       else if (changetype == "REPLACE") {
         // we only validate for REPLACE, as DELETE can be used to "fix" out of zone records.
-        if (!qname.isPartOf(zonename) && qname != zonename) {
+        if (!qname.isPartOf(zonename)) {
           throw ApiException("RRset " + qname.toString() + " IN " + qtype.toString() + ": Name is out of zone");
         }
 
@@ -2357,7 +2357,7 @@ static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInf
 
             for (DNSResourceRecord& resourceRecord : new_records) {
               resourceRecord.domain_id = static_cast<int>(domainInfo.id);
-              if (resourceRecord.qtype.getCode() == QType::SOA && resourceRecord.qname == zonename) {
+              if (resourceRecord.qtype.getCode() == QType::SOA && resourceRecord.qname == zonename.operator const DNSName&()) {
                 soa_edit_done = increaseSOARecord(resourceRecord, soa_edit_api_kind, soa_edit_kind);
               }
             }
@@ -2408,7 +2408,7 @@ static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInf
             }
           }
 
-          if (dname_seen && ns_seen && qname != zonename) {
+          if (dname_seen && ns_seen && qname != zonename.operator const DNSName&()) {
             throw ApiException("RRset " + qname.toString() + " IN " + qtype.toString() + ": Cannot have both NS and DNAME except in zone apex");
           }
           if (!new_records.empty() && domainInfo.kind == DomainInfo::Consumer) {
@@ -2588,7 +2588,7 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp)
 
 static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp)
 {
-  ZoneName canon = apiNameToDNSName(req->getvars["domain"]);
+  ZoneName canon = apiNameToZoneName(req->getvars["domain"]);
 
   if (g_zoneCache.isEnabled()) {
     DomainInfo domainInfo;

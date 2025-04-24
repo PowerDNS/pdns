@@ -88,12 +88,12 @@ int main(int argc, char** argv) {
 
       set_difference(before.cbegin(), before.cend(), after.cbegin(), after.cend(), back_inserter(diff), before.value_comp());
       for(const auto& d : diff) {
-        cout<<'-'<< (d.d_name+zone) <<" IN "<<DNSRecordContent::NumberToType(d.d_type)<<" "<<d.getContent()->getZoneRepresentation()<<endl;
+        cout<<'-'<< (d.d_name+zone.operator const DNSName&()) <<" IN "<<DNSRecordContent::NumberToType(d.d_type)<<" "<<d.getContent()->getZoneRepresentation()<<endl;
       }
       diff.clear();
       set_difference(after.cbegin(), after.cend(), before.cbegin(), before.cend(), back_inserter(diff), before.value_comp());
       for(const auto& d : diff) {
-        cout<<'+'<< (d.d_name+zone) <<" IN "<<DNSRecordContent::NumberToType(d.d_type)<<" "<<d.getContent()->getZoneRepresentation()<<endl;
+        cout<<'+'<< (d.d_name+zone.operator const DNSName&()) <<" IN "<<DNSRecordContent::NumberToType(d.d_type)<<" "<<d.getContent()->getZoneRepresentation()<<endl;
       }
       exit(1);
     }
@@ -189,7 +189,7 @@ int main(int argc, char** argv) {
       }
 
       cout<<"got new serial: "<<serial<<", initiating IXFR!"<<endl;
-      auto deltas = getIXFRDeltas(primary, zone, ourSoa, 20, false, tt);
+      auto deltas = getIXFRDeltas(primary, zone.operator const DNSName&(), ourSoa, 20, false, tt);
       cout<<"Got "<<deltas.size()<<" deltas, applying.."<<endl;
 
       for(const auto& delta : deltas) {
@@ -216,7 +216,7 @@ int main(int argc, char** argv) {
         bool stop=false;
 
         for(const auto& rr : remove) {
-          report<<'-'<< (rr.d_name+zone) <<" IN "<<DNSRecordContent::NumberToType(rr.d_type)<<" "<<rr.getContent()->getZoneRepresentation()<<endl;
+          report<<'-'<< (rr.d_name+zone.operator const DNSName&()) <<" IN "<<DNSRecordContent::NumberToType(rr.d_type)<<" "<<rr.getContent()->getZoneRepresentation()<<endl;
           auto range = records.equal_range(std::tie(rr.d_name, rr.d_type, rr.d_class, rr.getContent()));
           if(range.first == range.second) {
             cout<<endl<<" !! Could not find record "<<rr.d_name<<" to remove!!"<<endl;
@@ -227,7 +227,7 @@ int main(int argc, char** argv) {
         }
 
         for(const auto& rr : add) {
-          report<<'+'<< (rr.d_name+zone) <<" IN "<<DNSRecordContent::NumberToType(rr.d_type)<<" "<<rr.getContent()->getZoneRepresentation()<<endl;
+          report<<'+'<< (rr.d_name+zone.operator const DNSName&()) <<" IN "<<DNSRecordContent::NumberToType(rr.d_type)<<" "<<rr.getContent()->getZoneRepresentation()<<endl;
           records.insert(rr);
         }
         if(stop) {

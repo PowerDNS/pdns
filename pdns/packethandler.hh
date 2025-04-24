@@ -111,7 +111,7 @@ private:
 
   struct queryState {
     std::unique_ptr<DNSPacket> r{nullptr};
-    set<DNSName> authSet;
+    set<ZoneName> authSet;
     DNSName target;
     bool doSigs{false};
     bool noCache{false};

@@ -1583,7 +1583,7 @@ static vector<string> lua_dblookup(const string& record, uint16_t qtype)
       return ret;
     }
 
-    vector<DNSZoneRecord> drs = lookup(rec, qtype, soaData.domain_id);
+    vector<DNSZoneRecord> drs = lookup(rec.operator const DNSName&(), qtype, soaData.domain_id);
     for (const auto& drec : drs) {
       ret.push_back(drec.dr.getContent()->getZoneRepresentation());
     }

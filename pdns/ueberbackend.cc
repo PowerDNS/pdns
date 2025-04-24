@@ -335,7 +335,7 @@ bool UeberBackend::inTransaction()
 bool UeberBackend::fillSOAFromZoneRecord(ZoneName& shorter, const int zoneId, SOAData* const soaData)
 {
   // Zone exists in zone cache, directly look up SOA.
-  lookup(QType(QType::SOA), shorter, zoneId, nullptr);
+  lookup(QType(QType::SOA), shorter.operator const DNSName&(), zoneId, nullptr);
 
   DNSZoneRecord zoneRecord;
   if (!get(zoneRecord)) {
@@ -343,7 +343,7 @@ bool UeberBackend::fillSOAFromZoneRecord(ZoneName& shorter, const int zoneId, SO
     return false;
   }
 
-  if (zoneRecord.dr.d_name != shorter) {
+  if (zoneRecord.dr.d_name != shorter.operator const DNSName&()) {
     throw PDNSException("getAuth() returned an SOA for the wrong zone. Zone '" + zoneRecord.dr.d_name.toLogString() + "' is not equal to looked up zone '" + shorter.toLogString() + "'");
   }
 
@@ -382,7 +382,7 @@ UeberBackend::CacheResult UeberBackend::fillSOAFromCache(SOAData* soaData, ZoneN
     fillSOAData(d_answers[0], *soaData);
 
     soaData->db = backends.size() == 1 ? backends.begin()->get() : nullptr;
-    soaData->qname = shorter;
+    soaData->qname = shorter.operator const DNSName&();
   }
   else if (cacheResult == CacheResult::NegativeMatch && d_negcache_ttl != 0U) {
     DLOG(g_log << Logger::Error << "has neg cache entry: " << shorter << endl);
@@ -398,12 +398,13 @@ static std::vector<std::unique_ptr<DNSBackend>>::iterator findBestMatchingBacken
 
     DLOG(g_log << Logger::Error << "backend: " << backend - backends.begin() << ", qname: " << shorter << endl);
 
-    if (bestMatch->first < shorter.wirelength()) {
+    auto wirelength = shorter.operator const DNSName&().wirelength();
+    if (bestMatch->first < wirelength) {
       DLOG(g_log << Logger::Error << "skipped, we already found a shorter best match in this backend: " << bestMatch->second.qname << endl);
       continue;
     }
 
-    if (bestMatch->first == shorter.wirelength()) {
+    if (bestMatch->first == wirelength) {
       DLOG(g_log << Logger::Error << "use shorter best match: " << bestMatch->second.qname << endl);
       *soaData = bestMatch->second;
       break;
@@ -421,7 +422,7 @@ static std::vector<std::unique_ptr<DNSBackend>>::iterator findBestMatchingBacken
       bestMatch->first = soaData->qname.wirelength();
       bestMatch->second = *soaData;
 
-      if (soaData->qname == shorter) {
+      if (soaData->qname == shorter.operator const DNSName&()) {
         break;
       }
     }
@@ -433,7 +434,7 @@ static std::vector<std::unique_ptr<DNSBackend>>::iterator findBestMatchingBacken
   return backend;
 }
 
-static bool foundTarget(const DNSName& target, const DNSName& shorter, const QType& qtype, [[maybe_unused]] SOAData* soaData, const bool found)
+static bool foundTarget(const ZoneName& target, const ZoneName& shorter, const QType& qtype, [[maybe_unused]] SOAData* soaData, const bool found)
 {
   if (found == (qtype == QType::DS) || target != shorter) {
     DLOG(g_log << Logger::Error << "found: " << soaData->qname << endl);
@@ -455,7 +456,7 @@ bool UeberBackend::getAuth(const ZoneName& target, const QType& qtype, SOAData* 
 
   bool found = false;
   ZoneName shorter(target);
-  vector<pair<size_t, SOAData>> bestMatches(backends.size(), pair(target.wirelength() + 1, SOAData()));
+  vector<pair<size_t, SOAData>> bestMatches(backends.size(), pair(target.operator const DNSName&().wirelength() + 1, SOAData()));
 
   bool first = true;
   while (first || shorter.chopOff()) {
@@ -481,7 +482,7 @@ bool UeberBackend::getAuth(const ZoneName& target, const QType& qtype, SOAData* 
     }
 
     d_question.qtype = QType::SOA;
-    d_question.qname = shorter;
+    d_question.qname = shorter.operator const DNSName&();
     d_question.zoneId = zoneId;
 
     // Check cache.
@@ -509,7 +510,7 @@ bool UeberBackend::getAuth(const ZoneName& target, const QType& qtype, SOAData* 
       if (backend == backends.end()) {
         if (d_negcache_ttl != 0U) {
           DLOG(g_log << Logger::Error << "add neg cache entry:" << shorter << endl);
-          d_question.qname = shorter;
+          d_question.qname = shorter.operator const DNSName&();
           addNegCache(d_question);
         }
 
@@ -547,12 +548,12 @@ bool UeberBackend::getAuth(const ZoneName& target, const QType& qtype, SOAData* 
 bool UeberBackend::getSOAUncached(const ZoneName& domain, SOAData& soaData)
 {
   d_question.qtype = QType::SOA;
-  d_question.qname = domain;
+  d_question.qname = domain.operator const DNSName&();
   d_question.zoneId = -1;
 
   for (auto& backend : backends) {
     if (backend->getSOA(domain, soaData)) {
-      if (domain != soaData.qname) {
+      if (domain.operator const DNSName&() != soaData.qname) {
         throw PDNSException("getSOA() returned an SOA for the wrong zone. Question: '" + domain.toLogString() + "', answer: '" + soaData.qname.toLogString() + "'");
       }
       if (d_cache_ttl != 0U) {

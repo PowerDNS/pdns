@@ -45,7 +45,11 @@
 #include "namespaces.hh"
 
 class DNSName;
+#if defined(PDNS_AUTH)
+class ZoneName;
+#else
 using ZoneName = DNSName;
+#endif
 
 // Do not change to "using TSIGHashEnum ..." until you know CodeQL does not choke on it
 typedef enum
@@ -480,10 +484,10 @@ inline bool isCanonical(const string& qname)
 inline DNSName toCanonic(const ZoneName& zone, const string& qname)
 {
   if(qname.size()==1 && qname[0]=='@')
-    return zone;
+    return DNSName(zone);
   if(isCanonical(qname))
     return DNSName(qname);
-  return DNSName(qname) += zone;
+  return DNSName(qname) += DNSName(zone);
 }
 
 string stripDot(const string& dom);
@@ -571,6 +575,12 @@ public:
   bool match(const DNSName& name) const {
     return match(name.toStringNoDot());
   }
+
+#if defined(PDNS_AUTH) // [
+  bool match(const ZoneName& name) const {
+    return match(name.toStringNoDot());
+  }
+#endif // ]
 
 private:
   const string d_mask;

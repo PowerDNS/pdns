@@ -137,7 +137,7 @@ bool increaseSOARecord(DNSResourceRecord& rr, const string& increaseKind, const 
   SOAData sd;
   fillSOAData(rr.content, sd);
 
-  sd.serial = calculateIncreaseSOA(sd.serial, increaseKind, editKind, rr.qname);
+  sd.serial = calculateIncreaseSOA(sd.serial, increaseKind, editKind, ZoneName(rr.qname));
   rr.content = makeSOAContent(sd)->getZoneRepresentation(true);
   return true;
 }
@@ -152,7 +152,7 @@ bool makeIncreasedSOARecord(SOAData& sd, const string& increaseKind, const strin
   if (increaseKind.empty())
     return false;
 
-  sd.serial = calculateIncreaseSOA(sd.serial, increaseKind, editKind, sd.qname);
+  sd.serial = calculateIncreaseSOA(sd.serial, increaseKind, editKind, ZoneName(sd.qname));
   rrout.qname = sd.qname;
   rrout.content = makeSOAContent(sd)->getZoneRepresentation(true);
   rrout.qtype = QType::SOA;
@@ -165,7 +165,7 @@ bool makeIncreasedSOARecord(SOAData& sd, const string& increaseKind, const strin
 
 DNSZoneRecord makeEditedDNSZRFromSOAData(DNSSECKeeper& dk, const SOAData& sd, DNSResourceRecord::Place place) {
   SOAData edited = sd;
-  edited.serial = calculateEditSOA(sd.serial, dk, sd.qname);
+  edited.serial = calculateEditSOA(sd.serial, dk, ZoneName(sd.qname));
 
   DNSRecord soa;
   soa.d_name = sd.qname;

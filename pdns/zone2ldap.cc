@@ -95,7 +95,7 @@ static void callback_simple( unsigned int domain_id, const DNSName &domain, cons
         dn += g_zonename.toStringNoDot() + "," + g_basedn;
         cout << "dn: " << dn << endl;
 
-        if( host.countLabels() == 0 ) { host = g_zonename; }
+        if( host.countLabels() == 0 ) { host = g_zonename.operator const DNSName&(); }
 
         if( !g_entries[dn] )
         {
@@ -312,7 +312,7 @@ int main( int argc, char* argv[] )
                                 }
                                 try
                                 {
-                                  if( i.name != g_rootdnsname && i.name != DNSName("localhost") && i.name != DNSName("0.0.127.in-addr.arpa") )
+                                  if( i.name != ZoneName(g_rootdnsname) && i.name != ZoneName("localhost") && i.name != ZoneName("0.0.127.in-addr.arpa") )
                                         {
                                                 cerr << "Parsing file: " << i.filename << ", domain: " << i.name << endl;
                                                 g_zonename = i.name;

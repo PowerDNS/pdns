@@ -271,10 +271,10 @@ void RecordTextReader::xfrName(DNSName& val, bool, bool)
   }
 
   if (sval.empty()) {
-    sval = d_zone;
+    sval = DNSName(d_zone);
   }
   else if (!d_zone.empty()) {
-    sval += d_zone;
+    sval += DNSName(d_zone);
   }
   val = std::move(sval);
 }

@@ -31,7 +31,7 @@
 class ZoneParserTNG
 {
 public:
-  ZoneParserTNG(const string& fname, ZoneName zname=g_rootdnsname, string reldir="", bool upgradeContent=false);
+  ZoneParserTNG(const string& fname, ZoneName zname=ZoneName(g_rootdnsname), string reldir="", bool upgradeContent=false);
   ZoneParserTNG(const vector<string>& zonedata, ZoneName zname, bool upgradeContent=false);
 
   ~ZoneParserTNG();

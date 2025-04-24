@@ -60,7 +60,7 @@ public:
   void setType(CatalogType type) { d_type = type; }
 
   void updateHash(CatalogHashMap& hashes, const DomainInfo& di) const;
-  DNSName getUnique() const { return DNSName(toBase32Hex(hashQNameWithSalt(std::to_string(d_id), 0, d_zone))); } // salt with domain id to detect recreated zones
+  DNSName getUnique() const { return DNSName(toBase32Hex(hashQNameWithSalt(std::to_string(d_id), 0, DNSName(d_zone)))); } // salt with domain id to detect recreated zones
   static DNSZoneRecord getCatalogVersionRecord(const ZoneName& zone);
   void toDNSZoneRecords(const ZoneName& zone, vector<DNSZoneRecord>& dzrs) const;
 
