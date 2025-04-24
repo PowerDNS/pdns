@@ -27,6 +27,7 @@
 #include "lock.hh"
 #include "misc.hh"
 #include "iputils.hh"
+#include "dnspacket.hh"
 
 class AuthZoneCache : public boost::noncopyable
 {

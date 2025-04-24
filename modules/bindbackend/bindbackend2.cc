@@ -348,7 +348,7 @@ void Bind2Backend::getUpdatedPrimaries(vector<DomainInfo>& changedDomains, std::
   for (DomainInfo& di : consider) {
     soadata.serial = 0;
     try {
-      this->getSOA(di.zone, soadata); // we might not *have* a SOA yet, but this might trigger a load of it
+      this->getSOA(di.zone, di.id, soadata); // we might not *have* a SOA yet, but this might trigger a load of it
     }
     catch (...) {
       continue;
@@ -394,7 +394,7 @@ void Bind2Backend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, bo
       if (di.backend != this)
         continue;
       try {
-        this->getSOA(di.zone, soadata);
+        this->getSOA(di.zone, di.id, soadata);
       }
       catch (...) {
         continue;
@@ -430,7 +430,7 @@ void Bind2Backend::getUnfreshSecondaryInfos(vector<DomainInfo>* unfreshDomains)
     soadata.refresh = 0;
     soadata.serial = 0;
     try {
-      getSOA(sd.zone, soadata); // we might not *have* a SOA yet
+      getSOA(sd.zone, sd.id, soadata); // we might not *have* a SOA yet
     }
     catch (...) {
     }
@@ -459,7 +459,7 @@ bool Bind2Backend::getDomainInfo(const ZoneName& domain, DomainInfo& info, bool 
       SOAData sd;
       sd.serial = 0;
 
-      getSOA(bbd.d_name, sd); // we might not *have* a SOA yet
+      getSOA(bbd.d_name, bbd.d_id, sd); // we might not *have* a SOA yet
       info.serial = sd.serial;
     }
     catch (...) {

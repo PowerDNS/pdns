@@ -649,7 +649,7 @@ bool UeberBackend::getSOAUncached(const ZoneName& domain, SOAData& soaData)
     if (domain.hasVariant() && (backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
       continue;
     }
-    if (backend->getSOA(domain, soaData)) {
+    if (backend->getSOA(domain, UnknownDomainID, soaData)) {
       if (domain.operator const DNSName&() != soaData.qname) {
         throw PDNSException("getSOA() returned an SOA for the wrong zone. Question: '" + domain.toLogString() + "', answer: '" + soaData.qname.toLogString() + "'");
       }

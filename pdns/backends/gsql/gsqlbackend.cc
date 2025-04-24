@@ -405,8 +405,9 @@ bool GSQLBackend::getDomainInfo(const ZoneName &domain, DomainInfo &info, bool g
   if(getSerial) {
     try {
       SOAData sd;
-      if(!getSOA(domain, sd))
+      if(!getSOA(domain, info.id, sd)) {
         g_log<<Logger::Notice<<"No serial for '"<<domain<<"' found - zone is missing?"<<endl;
+      }
       else
         info.serial = sd.serial;
     }

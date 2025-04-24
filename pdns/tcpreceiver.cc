@@ -19,6 +19,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#include "pdns/auth-zonecache.hh"
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -368,12 +369,14 @@ void TCPNameserver::doConnection(int fd)
 
       if(packet->qtype.getCode()==QType::AXFR) {
         packet->d_xfr=true;
-        doAXFR(packet->qdomain, packet, fd);
+        g_zoneCache.setZoneVariant(packet);
+        doAXFR(packet->qdomainzone, packet, fd);
         continue;
       }
 
       if(packet->qtype.getCode()==QType::IXFR) {
         packet->d_xfr=true;
+        g_zoneCache.setZoneVariant(packet);
         doIXFR(packet, fd);
         continue;
       }
@@ -460,8 +463,7 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR, std::u
   if(::arg().mustDo("disable-axfr"))
     return false;
 
-  ZoneName zonename(q->qdomain);
-  string logPrefix=string(isAXFR ? "A" : "I")+"XFR-out zone '"+zonename.toLogString()+"', client '"+q->getInnerRemote().toStringWithPort()+"', ";
+  string logPrefix=string(isAXFR ? "A" : "I")+"XFR-out zone '"+q->qdomainzone.toLogString()+"', client '"+q->getInnerRemote().toStringWithPort()+"', ";
 
   if(q->d_havetsig) { // if you have one, it must be good
     TSIGRecordContent tsigContent;
@@ -485,18 +487,18 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR, std::u
 #ifdef ENABLE_GSS_TSIG
     if (g_doGssTSIG && q->d_tsig_algo == TSIG_GSS) {
       vector<string> princs;
-      packetHandler->getBackend()->getDomainMetadata(zonename, "GSS-ALLOW-AXFR-PRINCIPAL", princs);
+      packetHandler->getBackend()->getDomainMetadata(q->qdomainzone, "GSS-ALLOW-AXFR-PRINCIPAL", princs);
       for(const std::string& princ :  princs) {
         if (q->d_peer_principal == princ) {
-          g_log<<Logger::Warning<<"AXFR of domain '"<<zonename<<"' allowed: TSIG signed request with authorized principal '"<<q->d_peer_principal<<"' and algorithm 'gss-tsig'"<<endl;
+          g_log<<Logger::Warning<<"AXFR of domain '"<<q->qdomainzone<<"' allowed: TSIG signed request with authorized principal '"<<q->d_peer_principal<<"' and algorithm 'gss-tsig'"<<endl;
           return true;
         }
       }
-      g_log<<Logger::Warning<<"AXFR of domain '"<<zonename<<"' denied: TSIG signed request with principal '"<<q->d_peer_principal<<"' and algorithm 'gss-tsig' is not permitted"<<endl;
+      g_log<<Logger::Warning<<"AXFR of domain '"<<q->qdomainzone<<"' denied: TSIG signed request with principal '"<<q->d_peer_principal<<"' and algorithm 'gss-tsig' is not permitted"<<endl;
       return false;
     }
 #endif
-    if(!dk.TSIGGrantsAccess(zonename, tsigkeyname)) {
+    if(!dk.TSIGGrantsAccess(q->qdomainzone, tsigkeyname)) {
       g_log<<Logger::Warning<<logPrefix<<"denied: key with name '"<<tsigkeyname<<"' and algorithm '"<<getTSIGAlgoName(q->d_tsig_algo)<<"' does not grant access"<<endl;
       return false;
     }
@@ -516,10 +518,10 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR, std::u
 
   // cerr<<"doing per-zone-axfr-acls"<<endl;
   SOAData sd;
-  if(packetHandler->getBackend()->getSOAUncached(zonename,sd)) {
+  if(packetHandler->getBackend()->getSOAUncached(q->qdomainzone,sd)) {
     // cerr<<"got backend and SOA"<<endl;
     vector<string> acl;
-    packetHandler->getBackend()->getDomainMetadata(zonename, "ALLOW-AXFR-FROM", acl);
+    packetHandler->getBackend()->getDomainMetadata(q->qdomainzone, "ALLOW-AXFR-FROM", acl);
     for (const auto & i : acl) {
       // cerr<<"matching against "<<*i<<endl;
       if(pdns_iequals(i, "AUTO-NS")) {
@@ -560,7 +562,7 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR, std::u
 
   extern CommunicatorClass Communicator;
 
-  if(Communicator.justNotified(zonename, q->getInnerRemote().toString())) { // we just notified this ip
+  if(Communicator.justNotified(q->qdomainzone, q->getInnerRemote().toString())) { // we just notified this ip
     g_log<<Logger::Notice<<logPrefix<<"allowed: client IP is from recently notified secondary"<<endl;
     return true;
   }
@@ -589,9 +591,9 @@ namespace {
 
 
 /** do the actual zone transfer. Return 0 in case of error, 1 in case of success */
-int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, int outsock)  // NOLINT(readability-function-cognitive-complexity)
+int TCPNameserver::doAXFR(const ZoneName &targetZone, std::unique_ptr<DNSPacket>& q, int outsock)  // NOLINT(readability-function-cognitive-complexity)
 {
-  ZoneName targetZone(target);
+  DNSName target = targetZone.operator const DNSName&();
   string logPrefix="AXFR-out zone '"+targetZone.toLogString()+"', client '"+q->getRemoteStringWithPort()+"', ";
 
   std::unique_ptr<DNSPacket> outpacket= getFreshAXFRPacket(q);
@@ -713,9 +715,8 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
   if(securedZone && !presignedZone) { // this is where the DNSKEYs, CDNSKEYs and CDSs go in
     bool doCDNSKEY = true, doCDS = true;
     string publishCDNSKEY, publishCDS;
-    ZoneName zonename(q->qdomain);
-    dk.getPublishCDNSKEY(zonename, publishCDNSKEY);
-    dk.getPublishCDS(zonename, publishCDS);
+    dk.getPublishCDNSKEY(q->qdomainzone, publishCDNSKEY);
+    dk.getPublishCDS(q->qdomainzone, publishCDS);
 
     set<uint32_t> entryPointIds;
     DNSSECKeeper::keyset_t entryPoints = dk.getEntryPoints(targetZone);
@@ -1189,8 +1190,7 @@ send:
 
 int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
 {
-  ZoneName zonename(q->qdomain);
-  string logPrefix="IXFR-out zone '"+zonename.toLogString()+"', client '"+q->getRemoteStringWithPort()+"', ";
+  string logPrefix="IXFR-out zone '"+q->qdomainzone.toLogString()+"', client '"+q->getRemoteStringWithPort()+"', ";
 
   std::unique_ptr<DNSPacket> outpacket=getFreshAXFRPacket(q);
   if(q->d_dnssecOk)
@@ -1242,7 +1242,7 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
     }
 
     // canDoAXFR does all the ACL checks, and has the if(disable-axfr) shortcut, call it first.
-    if(!canDoAXFR(q, false, *packetHandler) || !(*packetHandler)->getBackend()->getSOAUncached(zonename, sd)) {
+    if(!canDoAXFR(q, false, *packetHandler) || !(*packetHandler)->getBackend()->getSOAUncached(q->qdomainzone, sd)) {
       g_log<<Logger::Warning<<logPrefix<<"failed: not authoritative"<<endl;
       outpacket->setRcode(RCode::NotAuth);
       sendPacket(outpacket,outsock);
@@ -1250,10 +1250,10 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
     }
 
     DNSSECKeeper dk((*packetHandler)->getBackend());
-    DNSSECKeeper::clearCaches(zonename);
+    DNSSECKeeper::clearCaches(q->qdomainzone);
     bool narrow = false;
-    securedZone = dk.isSecuredZone(zonename);
-    if(dk.getNSEC3PARAM(zonename, nullptr, &narrow)) {
+    securedZone = dk.isSecuredZone(q->qdomainzone);
+    if(dk.getNSEC3PARAM(q->qdomainzone, nullptr, &narrow)) {
       if(narrow) {
         g_log<<Logger::Warning<<logPrefix<<"not doing IXFR of an NSEC3 narrow zone"<<endl;
         outpacket->setRcode(RCode::Refused);
@@ -1266,7 +1266,7 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
   }
 
   if (serialPermitsIXFR) {
-    const ZoneName& target = zonename;
+    const ZoneName& target = q->qdomainzone;
     TSIGRecordContent trc;
     DNSName tsigkeyname;
     string tsigsecret;
@@ -1312,7 +1312,7 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
   }
 
   g_log<<Logger::Notice<<logPrefix<<"IXFR fallback to AXFR"<<endl;
-  return doAXFR(q->qdomain, q, outsock);
+  return doAXFR(q->qdomainzone, q, outsock);
 }
 
 TCPNameserver::~TCPNameserver() = default;
