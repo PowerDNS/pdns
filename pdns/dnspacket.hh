@@ -58,7 +58,7 @@ public:
   const string& getString(bool throwsOnTruncation=false); //!< for serialization - just passes the whole packet. If throwsOnTruncation is set, an exception will be raised if the records are too large to fit inside a single DNS payload, instead of setting the TC bit
 
   // address & socket manipulation
-  void setRemote(const ComboAddress*, std::optional<ComboAddress> = std::nullopt);
+  void setRemote(const ComboAddress*);
   ComboAddress getRemote() const;
   ComboAddress getInnerRemote() const; // for proxy protocol
   Netmask getRealRemote() const;

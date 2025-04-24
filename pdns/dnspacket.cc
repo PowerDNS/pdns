@@ -673,15 +673,10 @@ void DNSPacket::setMaxReplyLen(int bytes)
 }
 
 //! Use this to set where this packet was received from or should be sent to
-void DNSPacket::setRemote(const ComboAddress *outer, std::optional<ComboAddress> inner)
+void DNSPacket::setRemote(const ComboAddress *outer)
 {
   d_remote=*outer;
-  if (inner) {
-    d_inner_remote=*inner;
-  }
-  else {
-    d_inner_remote.reset();
-  }
+  d_inner_remote.reset();
 }
 
 bool DNSPacket::hasEDNSSubnet() const
