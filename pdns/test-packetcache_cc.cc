@@ -482,4 +482,136 @@ BOOST_AUTO_TEST_CASE(test_AuthPacketCache) {
   }
 }
 
+static void feedPacketCache(AuthPacketCache& PC, uint32_t bits, std::optional<Netmask> netmask)
+{
+  for (unsigned int counter = 0; counter < 128; ++counter) {
+    std::vector<uint8_t> storage;
+    DNSName qname = DNSName("network" + std::to_string(counter));
+    DNSPacketWriter qwriter(storage, qname, QType::A);
+    DNSPacket query(true);
+    query.parse((char*)&storage[0], storage.size());
+    storage.clear();
+    DNSPacketWriter rwriter(storage, qname, QType::A);
+    rwriter.startRecord(qname, QType::A, 3600, QClass::IN, DNSResourceRecord::ANSWER);
+    rwriter.xfrIP(htonl((counter << 24) | bits));
+    rwriter.commit();
+    DNSPacket response(false);
+    response.parse((char*)&storage[0], storage.size());
+    // magic copied from threadPCMangler() above
+    query.setHash(PC.canHashPacket(query.getString()));
+    PC.insert(query, response, 2600, netmask);
+  }
+}
+
+static void slurpPacketCache(AuthPacketCache& PC, std::string bits, ComboAddress* from)
+{
+  for (unsigned int counter = 0; counter < 128; ++counter) {
+    std::vector<uint8_t> storage;
+    DNSName qname = DNSName("network" + std::to_string(counter));
+    DNSPacketWriter qwriter(storage, qname, QType::A);
+    DNSPacket query(true);
+    query.parse((char*)&storage[0], storage.size());
+
+    DNSPacket response(false);
+    bool hit = PC.get(query, response, from);
+    BOOST_CHECK_EQUAL(hit, true);
+    if (!hit) {
+      continue;
+    }
+    BOOST_CHECK_EQUAL(response.qdomain, query.qdomain);
+    const std::string& wiresponse = response.getString();
+    MOADNSParser parser(false, wiresponse.c_str(), wiresponse.size());
+    BOOST_REQUIRE_EQUAL(parser.d_answers.size(), 1U);
+    const auto& record = parser.d_answers.at(0);
+    BOOST_REQUIRE_EQUAL(record.d_type, QType::A);
+    BOOST_REQUIRE_EQUAL(record.d_class, QClass::IN);
+    auto content = getRR<ARecordContent>(record);
+    BOOST_REQUIRE(content);
+    BOOST_REQUIRE_EQUAL(content->getCA().toString(), std::to_string(counter) + bits);
+  }
+}
+
+static void skirtPacketCache(AuthPacketCache& PC, ComboAddress* from)
+{
+  for (unsigned int counter = 0; counter < 128; ++counter) {
+    std::vector<uint8_t> storage;
+    DNSName qname = DNSName("network" + std::to_string(counter));
+    DNSPacketWriter qwriter(storage, qname, QType::A);
+    DNSPacket query(true);
+    query.parse((char*)&storage[0], storage.size());
+
+    DNSPacket response(false);
+    bool hit = PC.get(query, response, from);
+    BOOST_CHECK_EQUAL(hit, false);
+    if (hit) {
+      break; // test failure, no need to have the whole loop in error
+    }
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_AuthPacketCacheNetmasks) {
+  try {
+    ::arg().setSwitch("no-shuffle","Set this to prevent random shuffling of answers - for regression testing")="off";
+
+    AuthPacketCache PC;
+    PC.setMaxEntries(1000000);
+    PC.setTTL(0xc0ffee); // cache works better when programmer is cafeinated and doesn't forget to enable it
+
+    // Set up a few packets with no netmask.
+    feedPacketCache(PC, 0x00010203, std::nullopt);
+    BOOST_REQUIRE_EQUAL(PC.size(), 128 * 1);
+
+    // Set up a few packets with a netmask and different A result.
+    Netmask nm1("10.0.0.0/8");
+    feedPacketCache(PC, 0x00020406, nm1);
+    BOOST_REQUIRE_EQUAL(PC.size(), 128 * 2);
+
+    // Set up a few packets with yet another netmask and yet another different A result.
+    Netmask nm2("20.25.0.0/16");
+    feedPacketCache(PC, 0x00030609, nm2);
+    BOOST_REQUIRE_EQUAL(PC.size(), 128 * 3);
+
+    // Now check that we are getting cache hits for all the packets we've added,
+    // with the correct answers
+    slurpPacketCache(PC, ".1.2.3", nullptr);
+    ComboAddress within1("10.10.10.10");
+    slurpPacketCache(PC, ".2.4.6", &within1);
+    ComboAddress within2("20.25.30.35");
+    slurpPacketCache(PC, ".3.6.9", &within2);
+
+    // Purge one view
+    BOOST_REQUIRE_EQUAL(PC.size(), 128 * 3);
+    uint64_t evicted = PC.purgeNetmask(nm1);
+    BOOST_REQUIRE_EQUAL(evicted, 128);
+    BOOST_REQUIRE_EQUAL(PC.size(), 128 * 2);
+
+    // Confirm there are no more results from that view
+    skirtPacketCache(PC, &within1);
+
+    // Confirm that the other view has been unaffected
+    slurpPacketCache(PC, ".3.6.9", &within2);
+
+    // Confirm that the view-less results have been unaffected
+    slurpPacketCache(PC, ".1.2.3", nullptr);
+
+    // Refill the first view
+    feedPacketCache(PC, 0x00020406, nm1);
+    BOOST_REQUIRE_EQUAL(PC.size(), 128 * 3);
+
+    // Purge the first view with a subset netmask
+    evicted = PC.purgeNetmask(Netmask("10.10.0.0/16"));
+    BOOST_REQUIRE_EQUAL(evicted, 128);
+    BOOST_REQUIRE_EQUAL(PC.size(), 128 * 2);
+
+    // Purge the second view with a superset netmask
+    evicted = PC.purgeNetmask(Netmask("20.0.0.0/8"));
+    BOOST_REQUIRE_EQUAL(evicted, 128);
+    BOOST_REQUIRE_EQUAL(PC.size(), 128 * 1);
+  }
+  catch(PDNSException& e) {
+    cerr<<"Had error in AuthPacketCache: "<<e.reason<<endl;
+    throw;
+  }
+}
+
 BOOST_AUTO_TEST_SUITE_END()
