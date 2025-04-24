@@ -168,13 +168,16 @@ class TestTCPLimitsReadIO(DNSDistTest):
             try:
                 conn.send(payload[count].to_bytes())
                 count = count + 1
-            except Exception as e:
+                time.sleep(0.001)
+            except:
                 failed = True
                 break
 
         if not failed:
             try:
                 response = self.recvTCPResponseOverConnection(conn)
+                if not response:
+                  failed = True
             except:
                 failed = True
 
@@ -188,7 +191,7 @@ class TestTCPLimitsReadIO(DNSDistTest):
             response = self.recvTCPResponseOverConnection(conn)
             if response is None:
               failed = True
-        except Exception as e:
+        except:
             failed = True
         finally:
             conn.close()
