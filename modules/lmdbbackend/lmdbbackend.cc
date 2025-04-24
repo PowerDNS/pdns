@@ -1337,16 +1337,16 @@ bool LMDBBackend::replaceComments([[maybe_unused]] domainid_t domain_id, [[maybe
 }
 
 // FIXME: this is not very efficient
-static DNSName keyUnconv(std::string& in)
+static DNSName keyUnconv(std::string& instr)
 {
-  // in is now com0example0
+  // instr is now com0example0
   vector<string> labels;
-  boost::split(labels, in, [](char c) { return c == '\0'; });
+  boost::split(labels, instr, [](char chr) { return chr == '\0'; });
 
   // we get a spurious empty label at the end, drop it
   labels.resize(labels.size() - 1);
 
-  if (labels.size() == 1 && labels[0].size() == 0) {
+  if (labels.size() == 1 && labels[0].empty()) {
     // this is the root
     return g_rootdnsname;
   }

@@ -93,7 +93,7 @@ public:
   bool viewAddZone(const string& /* view */, const ZoneName& /* zone */) override;
   bool viewDelZone(const string& /* view */, const ZoneName& /* zone */) override;
 
-  bool networkSet(const Netmask& net, std::string& tag) override;
+  bool networkSet(const Netmask& net, std::string& view) override;
   bool networkList(vector<pair<Netmask, string>>& networks) override;
 
   void getAllDomains(vector<DomainInfo>* domains, bool doSerial, bool include_disabled) override;

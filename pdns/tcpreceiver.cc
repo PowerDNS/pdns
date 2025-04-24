@@ -226,6 +226,7 @@ void TCPNameserver::decrementClientCount(const ComboAddress& remote)
   }
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void TCPNameserver::doConnection(int fd)
 {
   setThreadName("pdns/tcpConnect");
@@ -592,14 +593,15 @@ namespace {
 
 
 /** do the actual zone transfer. Return 0 in case of error, 1 in case of success */
-int TCPNameserver::doAXFR(const ZoneName &targetZone, std::unique_ptr<DNSPacket>& q, int outsock)  // NOLINT(readability-function-cognitive-complexity)
+int TCPNameserver::doAXFR(const ZoneName &targetZone, std::unique_ptr<DNSPacket>& qry, int outsock)  // NOLINT(readability-function-cognitive-complexity)
 {
-  DNSName target = targetZone.operator const DNSName&();
-  string logPrefix="AXFR-out zone '"+targetZone.toLogString()+"', client '"+q->getRemoteStringWithPort()+"', ";
+  const DNSName& target = targetZone.operator const DNSName&();
+  string logPrefix="AXFR-out zone '"+targetZone.toLogString()+"', client '"+qry->getRemoteStringWithPort()+"', ";
 
-  std::unique_ptr<DNSPacket> outpacket= getFreshAXFRPacket(q);
-  if(q->d_dnssecOk)
+  std::unique_ptr<DNSPacket> outpacket= getFreshAXFRPacket(qry);
+  if(qry->d_dnssecOk) {
     outpacket->d_dnssecOk=true; // RFC 5936, 2.2.5 'SHOULD'
+  }
 
   g_log<<Logger::Warning<<logPrefix<<"transfer initiated"<<endl;
 
@@ -614,7 +616,7 @@ int TCPNameserver::doAXFR(const ZoneName &targetZone, std::unique_ptr<DNSPacket>
     }
 
     // canDoAXFR does all the ACL checks, and has the if(disable-axfr) shortcut, call it first.
-    if (!canDoAXFR(q, true, *packetHandler)) {
+    if (!canDoAXFR(qry, true, *packetHandler)) {
       g_log<<Logger::Warning<<logPrefix<<"failed: client may not request AXFR"<<endl;
       outpacket->setRcode(RCode::NotAuth);
       sendPacket(outpacket,outsock);
@@ -668,7 +670,7 @@ int TCPNameserver::doAXFR(const ZoneName &targetZone, std::unique_ptr<DNSPacket>
   DNSName tsigkeyname;
   string tsigsecret;
 
-  bool haveTSIGDetails = q->getTSIGDetails(&trc, &tsigkeyname);
+  bool haveTSIGDetails = qry->getTSIGDetails(&trc, &tsigkeyname);
 
   if(haveTSIGDetails && !tsigkeyname.empty()) {
     string tsig64;
@@ -704,7 +706,7 @@ int TCPNameserver::doAXFR(const ZoneName &targetZone, std::unique_ptr<DNSPacket>
   sendPacket(outpacket, outsock, false);
 
   trc.d_mac = outpacket->d_trc.d_mac;
-  outpacket = getFreshAXFRPacket(q);
+  outpacket = getFreshAXFRPacket(qry);
 
 
   DNSZoneRecord zrr;
@@ -716,7 +718,7 @@ int TCPNameserver::doAXFR(const ZoneName &targetZone, std::unique_ptr<DNSPacket>
   if(securedZone && !presignedZone) { // this is where the DNSKEYs, CDNSKEYs and CDSs go in
     bool doCDNSKEY = true, doCDS = true;
     string publishCDNSKEY, publishCDS;
-    ZoneName zonename(q->qdomainzone);
+    ZoneName zonename(qry->qdomainzone);
     dk.getPublishCDNSKEY(zonename, publishCDNSKEY);
     dk.getPublishCDS(zonename, publishCDS);
 
@@ -1052,7 +1054,7 @@ send:
             outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true);
           sendPacket(outpacket, outsock, false);
           trc.d_mac=outpacket->d_trc.d_mac;
-          outpacket=getFreshAXFRPacket(q);
+          outpacket=getFreshAXFRPacket(qry);
         }
         else
           break;
@@ -1105,7 +1107,7 @@ send:
                   outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true);
                 sendPacket(outpacket, outsock, false);
                 trc.d_mac=outpacket->d_trc.d_mac;
-                outpacket=getFreshAXFRPacket(q);
+                outpacket=getFreshAXFRPacket(qry);
               }
               else
                 break;
@@ -1139,7 +1141,7 @@ send:
               outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true);
             sendPacket(outpacket, outsock, false);
             trc.d_mac=outpacket->d_trc.d_mac;
-            outpacket=getFreshAXFRPacket(q);
+            outpacket=getFreshAXFRPacket(qry);
           }
           else
             break;
@@ -1165,7 +1167,7 @@ send:
         throw PDNSException("during axfr-out of "+target.toString()+", this happened: "+pe.reason);
       }
       trc.d_mac=outpacket->d_trc.d_mac;
-      outpacket=getFreshAXFRPacket(q);
+      outpacket=getFreshAXFRPacket(qry);
     }
     else
       break;
@@ -1177,7 +1179,7 @@ send:
 
   DLOG(g_log<<logPrefix<<"done writing out records"<<endl);
   /* and terminate with yet again the SOA record */
-  outpacket=getFreshAXFRPacket(q);
+  outpacket=getFreshAXFRPacket(qry);
   outpacket->addRecord(std::move(soa));
   if(haveTSIGDetails && !tsigkeyname.empty())
     outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true);

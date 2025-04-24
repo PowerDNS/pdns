@@ -149,17 +149,16 @@ BOOST_AUTO_TEST_CASE(test_netmask)
   cache.addToView(outer, blo);
 
   domainid_t zoneId{0};
-  bool found;
   ZoneName search{};
 
   // Query from no known address
-  found = cache.getEntry(bl, zoneId);
+  bool found = cache.getEntry(bl, zoneId);
   if (found) {
     BOOST_FAIL("bug.less lookup should have failed");
   }
 
   // Query from inner zone
-  Netmask nm(makeComboAddress("20.25.4.24"));
+  Netmask nm(makeComboAddress("20.25.4.24")); // NOLINT(readability-identifier-length)
   search = bl;
   found = cache.getEntry(search, zoneId, &nm);
   if (!found) {

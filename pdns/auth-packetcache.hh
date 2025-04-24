@@ -59,9 +59,9 @@ class AuthPacketCache : public PacketCache
 public:
   AuthPacketCache(size_t mapsCount=1024);
 
-  void insert(DNSPacket& q, DNSPacket& r, uint32_t maxTTL, std::optional<Netmask> netmask = std::nullopt);  //!< We copy the contents of *p into our cache. Do not needlessly call this to insert questions already in the cache as it wastes resources
+  void insert(DNSPacket& query, DNSPacket& response, uint32_t maxTTL, std::optional<Netmask> netmask = std::nullopt);  //!< We copy the contents of *p into our cache. Do not needlessly call this to insert questions already in the cache as it wastes resources
 
-  bool get(DNSPacket& p, DNSPacket& q, ComboAddress* from = nullptr); //!< You need to spoof in the right ID with the DNSPacket.spoofID() method.
+  bool get(DNSPacket& pkt, DNSPacket& cached, ComboAddress* from = nullptr); //!< You need to spoof in the right ID with the DNSPacket.spoofID() method.
 
   void cleanup(); //!< force the cache to preen itself from expired packets
   uint64_t purge();
@@ -135,7 +135,7 @@ private:
   }
 
   static bool entryMatches(cmap_t::index<HashTag>::type::iterator& iter, const std::string& query, const DNSName& qname, uint16_t qtype, bool tcp);
-  bool getEntryLocked(const cmap_t& map, const std::string& query, uint32_t hash, const DNSName &qname, uint16_t qtype, bool tcp, time_t now, ComboAddress *from, string& entry);
+  static bool getEntryLocked(const cmap_t& map, const std::string& query, uint32_t hash, const DNSName &qname, uint16_t qtype, bool tcp, time_t now, ComboAddress *from, string& value);
   void cleanupIfNeeded();
 
   AtomicCounter d_ops{0};
