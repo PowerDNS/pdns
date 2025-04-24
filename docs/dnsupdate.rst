@@ -23,8 +23,8 @@ support DNS update:
 Configuration options
 ---------------------
 
-There are two configuration parameters that can be used within the
-powerdns configuration file.
+There are several configuration parameters that can be used within the
+powerdns configuration file to influence DNS update behavior.
 
 ``dnsupdate``
 ~~~~~~~~~~~~~
@@ -45,6 +45,20 @@ be left empty to disallow everything, this then should be used in
 combination with the ``ALLOW-DNSUPDATE-FROM`` :doc:`domain metadata <domainmetadata>` setting per
 zone. Setting a range here and in ``ALLOW-DNSUPDATE-FROM`` enables updates
 from either address range.
+
+The semantics are that first a dynamic update has to be allowed either
+by the global :ref:`setting-allow-dnsupdate-from` setting, or by a per-zone
+``ALLOW-DNSUPDATE-FROM`` metadata setting.
+
+Secondly, if a zone has a ``TSIG-ALLOW-DNSUPDATE`` metadata setting, that
+must match too.
+
+So to only allow dynamic DNS updates to a zone based on TSIG key, and
+regardless of IP address, set :ref:`setting-allow-dnsupdate-from` to empty, set
+``ALLOW-DNSUPDATE-FROM`` to "0.0.0.0/0" and "::/0" and set the
+``TSIG-ALLOW-DNSUPDATE`` to the proper key name.
+
+Further information can be found :ref:`below <dnsupdate-how-it-works>`.
 
 ``dnsupdate-require-tsig``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -77,20 +91,6 @@ each update. This will ``TURN OFF`` all other
 authorization methods, and you are expected to take care of everything
 yourself. See :ref:`dnsupdate-update-policy` for details and
 examples.
-
-The semantics are that first a dynamic update has to be allowed either
-by the global :ref:`setting-allow-dnsupdate-from` setting, or by a per-zone
-``ALLOW-DNSUPDATE-FROM`` metadata setting.
-
-Secondly, if a zone has a ``TSIG-ALLOW-DNSUPDATE`` metadata setting, that
-must match too.
-
-So to only allow dynamic DNS updates to a zone based on TSIG key, and
-regardless of IP address, set :ref:`setting-allow-dnsupdate-from` to empty, set
-``ALLOW-DNSUPDATE-FROM`` to "0.0.0.0/0" and "::/0" and set the
-``TSIG-ALLOW-DNSUPDATE`` to the proper key name.
-
-Further information can be found :ref:`below <dnsupdate-how-it-works>`.
 
 .. _dnsupdate-metadata:
 
