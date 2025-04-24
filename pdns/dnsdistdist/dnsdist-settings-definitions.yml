@@ -1425,6 +1425,10 @@ backend:
       type: "String"
       default: ""
       description: "The name of an XSK sockets map to attach to this frontend, if any"
+    - name: "dscp"
+      type: "u8"
+      default: 0
+      description: "The DSCP marking value to be applied. Range 0-63. Default is 0 which means no action for DSCP marking."
 
 tuning:
   description: "Tuning settings"

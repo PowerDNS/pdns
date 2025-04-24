@@ -603,6 +603,8 @@ bool setSocketTimestamps(int fd);
 //! Sets the socket into blocking mode.
 bool setBlocking( int sock );
 
+void setDscp(int sock, unsigned short family, uint8_t dscp);
+
 //! Sets the socket into non-blocking mode.
 bool setNonBlocking( int sock );
 bool setTCPNoDelay(int sock);

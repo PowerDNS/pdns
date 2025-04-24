@@ -81,6 +81,7 @@ bool ConnectionToBackend::reconnect()
          the other end to acknowledge our initial packet before we could
          send the rest. */
       setTCPNoDelay(socket.getHandle());
+      setDscp(socket.getHandle(), d_ds->d_config.remote.sin4.sin_family, d_ds->d_config.dscp);
 
 #ifdef SO_BINDTODEVICE
       if (!d_ds->d_config.sourceItfName.empty()) {
