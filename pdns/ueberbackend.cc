@@ -540,8 +540,9 @@ bool UeberBackend::getAuth(const ZoneName& target, const QType& qtype, SOAData* 
   if (g_zoneCache.isEnabled()) {
     Netmask _remote(remote);
     view = g_zoneCache.getViewFromNetwork(&_remote);
-    // Remember the view netmask, if applicable, for ECS responses.
+    // Remember the view and its netmask, if applicable, for ECS responses.
     if (!view.empty() && pkt_p != nullptr) {
+      pkt_p->d_view = view;
       pkt_p->d_span = _remote;
     }
   }

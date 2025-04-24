@@ -388,18 +388,26 @@ void TCPNameserver::doConnection(int fd)
         "', do = " <<packet->d_dnssecOk <<", bufsize = "<< packet->getMaxReplyLen();
       }
 
-      if(PC.enabled()) {
-        if(packet->couldBeCached() && PC.get(*packet, *cached)) { // short circuit - does the PacketCache recognize this question?
-          if(logDNSQueries)
-            g_log<<": packetcache HIT"<<endl;
-          cached->setRemote(&packet->d_remote);
-          cached->d_inner_remote = packet->d_inner_remote;
-          cached->d.id=packet->d.id;
-          cached->d.rd=packet->d.rd; // copy in recursion desired bit
-          cached->commitD(); // commit d to the packet                        inlined
+      if (PC.enabled()) {
+        if (packet->couldBeCached()) {
+          std::string view{};
+          if (g_views) {
+            Netmask netmask(packet->d_remote);
+            view = g_zoneCache.getViewFromNetwork(&netmask);
+          }
+          if (PC.get(*packet, *cached, view)) { // short circuit - does the PacketCache recognize this question?
+            if(logDNSQueries) {
+              g_log<<": packetcache HIT"<<endl;
+	    }
+            cached->setRemote(&packet->d_remote);
+            cached->d_inner_remote = packet->d_inner_remote;
+            cached->d.id=packet->d.id;
+            cached->d.rd=packet->d.rd; // copy in recursion desired bit
+            cached->commitD(); // commit d to the packet                        inlined
 
-          sendPacket(cached, fd); // presigned, don't do it again
-          continue;
+            sendPacket(cached, fd); // presigned, don't do it again
+            continue;
+          }
         }
         if(logDNSQueries)
             g_log<<": packetcache MISS"<<endl;

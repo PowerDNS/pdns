@@ -628,7 +628,12 @@ try {
 
       if (PC.enabled() && (question.d.opcode != Opcode::Notify && question.d.opcode != Opcode::Update) && question.couldBeCached()) {
         start = diff;
-        bool haveSomething = PC.get(question, cached); // does the PacketCache recognize this question?
+        std::string view{};
+        if (g_views) {
+          Netmask netmask(accountremote);
+          view = g_zoneCache.getViewFromNetwork(&netmask);
+        }
+        bool haveSomething = PC.get(question, cached, view); // does the PacketCache recognize this question?
         if (haveSomething) {
           if (logDNSQueries)
             g_log << ": packetcache HIT" << endl;

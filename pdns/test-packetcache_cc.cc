@@ -13,6 +13,9 @@
 #include "statbag.hh"
 #include "auth-packetcache.hh"
 #include "auth-querycache.hh"
+#ifdef PDNS_AUTH
+#include "auth-zonecache.hh"
+#endif
 #include "arguments.hh"
 #include <utility>
 #include <thread>
@@ -41,7 +44,7 @@ BOOST_AUTO_TEST_CASE(test_AuthQueryCacheSimple) {
 
       QC.insert(a, QType(QType::A), vector<DNSZoneRecord>(records), 3600, 1);
       if(!QC.purge(a.toString()))
-	BOOST_FAIL("Could not remove entry we just added to the query cache!");
+        BOOST_FAIL("Could not remove entry we just added to the query cache!");
       QC.insert(a, QType(QType::A), vector<DNSZoneRecord>(records), 3600, 1);
     }
 
@@ -60,7 +63,7 @@ BOOST_AUTO_TEST_CASE(test_AuthQueryCacheSimple) {
     int64_t expected=counter-delcounter;
     for(; delcounter < counter; ++delcounter) {
       if(QC.getEntry(DNSName("hello ")+DNSName(std::to_string(delcounter)), QType(QType::A), entry, 1)) {
-	matches++;
+        matches++;
       }
     }
     BOOST_CHECK_EQUAL(matches, expected);
@@ -171,7 +174,7 @@ try
     q.setHash(g_PC->canHashPacket(q.getString()));
 
     const unsigned int maxTTL = 3600;
-    g_PC->insert(q, r, maxTTL);
+    g_PC->insert(q, r, maxTTL, "");
   }
 }
  catch(PDNSException& e) {
@@ -393,7 +396,7 @@ BOOST_AUTO_TEST_CASE(test_AuthPacketCache) {
     /* this call is required so the correct hash is set into q->d_hash */
     BOOST_CHECK_EQUAL(PC.get(q, r2), false);
 
-    PC.insert(q, r, 3600);
+    PC.insert(q, r, 3600, "");
     BOOST_CHECK_EQUAL(PC.size(), 1U);
 
     BOOST_CHECK_EQUAL(PC.get(q, r2), true);
@@ -406,7 +409,7 @@ BOOST_AUTO_TEST_CASE(test_AuthPacketCache) {
     /* with EDNS, should not match */
     BOOST_CHECK_EQUAL(PC.get(ednsQ, r2), false);
     /* inserting the EDNS-enabled one too */
-    PC.insert(ednsQ, r, 3600);
+    PC.insert(ednsQ, r, 3600, "");
     BOOST_CHECK_EQUAL(PC.size(), 2U);
 
     /* different EDNS versions, should not match */
@@ -422,7 +425,7 @@ BOOST_AUTO_TEST_CASE(test_AuthPacketCache) {
 
     /* inserting the version with ECS Client Subnet set,
      it should NOT replace the existing EDNS one. */
-    PC.insert(ecs1, r, 3600);
+    PC.insert(ecs1, r, 3600, "");
     BOOST_CHECK_EQUAL(PC.size(), 3U);
 
     /* different subnet of same size, should NOT match
@@ -437,7 +440,7 @@ BOOST_AUTO_TEST_CASE(test_AuthPacketCache) {
     BOOST_CHECK_EQUAL(PC.get(q, r2), false);
     BOOST_CHECK_EQUAL(PC.size(), 0U);
 
-    PC.insert(q, r, 3600);
+    PC.insert(q, r, 3600, "");
     BOOST_CHECK_EQUAL(PC.size(), 1U);
     BOOST_CHECK_EQUAL(PC.get(q, r2), true);
     BOOST_CHECK_EQUAL(r2.qdomain, r.qdomain);
@@ -445,7 +448,7 @@ BOOST_AUTO_TEST_CASE(test_AuthPacketCache) {
     BOOST_CHECK_EQUAL(PC.get(q, r2), false);
     BOOST_CHECK_EQUAL(PC.size(), 0U);
 
-    PC.insert(q, r, 3600);
+    PC.insert(q, r, 3600, "");
     BOOST_CHECK_EQUAL(PC.size(), 1U);
     BOOST_CHECK_EQUAL(PC.get(q, r2), true);
     BOOST_CHECK_EQUAL(r2.qdomain, r.qdomain);
@@ -453,7 +456,7 @@ BOOST_AUTO_TEST_CASE(test_AuthPacketCache) {
     BOOST_CHECK_EQUAL(PC.get(q, r2), false);
     BOOST_CHECK_EQUAL(PC.size(), 0U);
 
-    PC.insert(q, r, 3600);
+    PC.insert(q, r, 3600, "");
     BOOST_CHECK_EQUAL(PC.size(), 1U);
     BOOST_CHECK_EQUAL(PC.get(q, r2), true);
     BOOST_CHECK_EQUAL(r2.qdomain, r.qdomain);
@@ -461,7 +464,7 @@ BOOST_AUTO_TEST_CASE(test_AuthPacketCache) {
     BOOST_CHECK_EQUAL(PC.get(q, r2), false);
     BOOST_CHECK_EQUAL(PC.size(), 0U);
 
-    PC.insert(q, r, 3600);
+    PC.insert(q, r, 3600, "");
     BOOST_CHECK_EQUAL(PC.size(), 1U);
     BOOST_CHECK_EQUAL(PC.purge("www.powerdns.net"), 0U);
     BOOST_CHECK_EQUAL(PC.get(q, r2), true);
@@ -481,5 +484,231 @@ BOOST_AUTO_TEST_CASE(test_AuthPacketCache) {
     throw;
   }
 }
+
+static void feedPacketCache(AuthPacketCache& PC, uint32_t bits, const std::string& view) // NOLINT(readability-identifier-length)
+{
+  for (unsigned int counter = 0; counter < 128; ++counter) {
+    std::vector<uint8_t> storage;
+    DNSName qname = DNSName("network" + std::to_string(counter));
+    DNSPacketWriter qwriter(storage, qname, QType::A);
+    DNSPacket query(true);
+    query.parse(reinterpret_cast<char*>(storage.data()), storage.size()); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast): can't static_cast because of sign difference
+    storage.clear();
+    DNSPacketWriter rwriter(storage, qname, QType::A);
+    rwriter.startRecord(qname, QType::A, 3600, QClass::IN, DNSResourceRecord::ANSWER);
+    rwriter.xfrIP(htonl((counter << 24) | bits));
+    rwriter.commit();
+    DNSPacket response(false);
+    response.parse(reinterpret_cast<char*>(storage.data()), storage.size()); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast): can't static_cast because of sign difference
+    // magic copied from threadPCMangler() above
+    query.setHash(PacketCache::canHashPacket(query.getString()));
+    PC.insert(query, response, 2600, view);
+  }
+}
+
+static void slurpPacketCache(AuthPacketCache& PC, const std::string& bits, const std::string& view) // NOLINT(readability-identifier-length)
+{
+  for (unsigned int counter = 0; counter < 128; ++counter) {
+    std::vector<uint8_t> storage;
+    DNSName qname = DNSName("network" + std::to_string(counter));
+    DNSPacketWriter qwriter(storage, qname, QType::A);
+    DNSPacket query(true);
+    query.parse(reinterpret_cast<char*>(storage.data()), storage.size()); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast): can't static_cast because of sign difference
+
+    DNSPacket response(false);
+    bool hit = PC.get(query, response, view);
+    BOOST_CHECK_EQUAL(hit, true);
+    if (!hit) {
+      continue;
+    }
+    BOOST_CHECK_EQUAL(response.qdomain, query.qdomain);
+    const std::string& wiresponse = response.getString();
+    MOADNSParser parser(false, wiresponse.c_str(), wiresponse.size());
+    BOOST_REQUIRE_EQUAL(parser.d_answers.size(), 1U);
+    const auto& record = parser.d_answers.at(0);
+    BOOST_REQUIRE_EQUAL(record.d_type, QType::A);
+    BOOST_REQUIRE_EQUAL(record.d_class, QClass::IN);
+    auto content = getRR<ARecordContent>(record);
+    BOOST_REQUIRE(content);
+    BOOST_REQUIRE_EQUAL(content->getCA().toString(), std::to_string(counter) + bits);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_AuthPacketCacheNetmasks) {
+  try {
+    ::arg().setSwitch("no-shuffle","Set this to prevent random shuffling of answers - for regression testing")="off";
+
+    AuthPacketCache PC; // NOLINT(readability-identifier-length) 
+    PC.setMaxEntries(1000000);
+    PC.setTTL(0xc0ffee); // cache works better when programmer is cafeinated and doesn't forget to enable it
+
+    std::string view1{"view1"};
+    std::string view2{"view2"};
+
+    // Set up a few packets with no view.
+    feedPacketCache(PC, 0x00010203, "");
+    BOOST_REQUIRE_EQUAL(PC.size(), 128 * 1);
+
+    // Set up a few packets with a view and different A result.
+    feedPacketCache(PC, 0x00020406, view1);
+    BOOST_REQUIRE_EQUAL(PC.size(), 128 * 2);
+
+    // Set up a few packets with yet another view and yet another different A result.
+    feedPacketCache(PC, 0x00030609, view2);
+    BOOST_REQUIRE_EQUAL(PC.size(), 128 * 3);
+
+    // Now check that we are getting cache hits for all the packets we've added,
+    // with the correct answers
+    slurpPacketCache(PC, ".1.2.3", "");
+    slurpPacketCache(PC, ".2.4.6", view1);
+    slurpPacketCache(PC, ".3.6.9", view2);
+  }
+  catch(PDNSException& e) {
+    cerr<<"Had error in AuthPacketCache: "<<e.reason<<endl;
+    throw;
+  }
+}
+
+#ifdef PDNS_AUTH // [
+// Combined packet cache and zone cache test to exercize views
+
+static DNSPacket buildQuery(const DNSName& qname)
+{
+  std::vector<uint8_t> storage;
+  DNSPacketWriter qwriter(storage, qname, QType::A);
+  DNSPacket query(true);
+  query.parse(reinterpret_cast<char*>(storage.data()), storage.size()); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast): can't static_cast because of sign difference
+  storage.clear();
+  // magic copied from threadPCMangler() above
+  query.setHash(PacketCache::canHashPacket(query.getString()));
+  return query;
+}
+
+static void feedPacketCache2(AuthPacketCache& PC, const std::string& view, uint32_t ipAddress, const DNSName& qname) // NOLINT(readability-identifier-length)
+{
+  DNSPacket query = buildQuery(qname);
+
+  std::vector<uint8_t> storage;
+  DNSPacketWriter rwriter(storage, qname, QType::A);
+  rwriter.startRecord(qname, QType::A, 3600, QClass::IN, DNSResourceRecord::ANSWER);
+  rwriter.xfrIP(htonl(ipAddress));
+  rwriter.commit();
+  DNSPacket response(false);
+  response.parse(reinterpret_cast<char*>(storage.data()), storage.size()); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast): can't static_cast because of sign difference
+
+  PC.insert(query, response, 2600, view);
+}
+
+static bool queryPacketCache2(AuthPacketCache& PC, AuthZoneCache& ZC, ComboAddress from, const DNSName& qname, const Netmask& expectedMask, const std::string& expectedView, const std::string& expectedAddress) // NOLINT(readability-identifier-length)
+{
+  DNSPacket query = buildQuery(qname);
+  DNSPacket response(false);
+
+  Netmask netmask(from);
+  std::string view = ZC.getViewFromNetwork(&netmask);
+  BOOST_REQUIRE(netmask == expectedMask);
+  BOOST_REQUIRE(view == expectedView);
+
+  bool hit = PC.get(query, response, view);
+  if (hit) {
+    BOOST_CHECK_EQUAL(response.qdomain, query.qdomain);
+    const std::string& wiresponse = response.getString();
+    MOADNSParser parser(false, wiresponse.c_str(), wiresponse.size());
+    BOOST_REQUIRE_EQUAL(parser.d_answers.size(), 1U);
+    const auto& record = parser.d_answers.at(0);
+    BOOST_REQUIRE_EQUAL(record.d_type, QType::A);
+    BOOST_REQUIRE_EQUAL(record.d_class, QClass::IN);
+    auto content = getRR<ARecordContent>(record);
+    BOOST_REQUIRE(content);
+    BOOST_REQUIRE_EQUAL(content->getCA().toString(), expectedAddress);
+  }
+  return hit;
+}
+
+BOOST_AUTO_TEST_CASE(test_AuthViews)
+{
+  // Setup Zone Cache
+
+  AuthZoneCache ZC; // NOLINT(readability-identifier-length) 
+  ZC.setRefreshInterval(3600);
+
+  // Declare a few zones
+  ZoneName foo("example.com..foo");
+  ZoneName bar("example.com..bar");
+  ZC.add(foo, static_cast<domainid_t>('F'));
+  ZC.add(bar, static_cast<domainid_t>('B'));
+
+  // Declare a few networks
+  std::string view1{"view1"};
+  std::string view2{"view2"};
+  Netmask outerMask("192.0.2.0/24");
+  Netmask innerMask("192.0.2.0/25");
+  ZC.updateNetwork(outerMask, view1);
+  ZC.updateNetwork(innerMask, view2);
+
+  // Declare a few views
+  ZC.addToView(view1, foo);
+  ZC.addToView(view2, bar);
+
+  // Setup Packet Cache
+
+  AuthPacketCache PC; // NOLINT(readability-identifier-length) 
+  PC.setMaxEntries(1000000);
+  PC.setTTL(0xc0ffee); // cache works better when programmer is cafeinated and doesn't forget to enable it
+
+  // Cache answer for query in view2
+  DNSName qname("example.com");
+  feedPacketCache2(PC, view2, 0x02020202, qname);
+  BOOST_CHECK_EQUAL(PC.size(), 1);
+
+  // Check that requesting from view1 causes a cache miss
+  BOOST_CHECK_EQUAL(queryPacketCache2(PC, ZC, ComboAddress("192.0.2.128"), qname, outerMask, view1, "1.1.1.1"), false);
+
+  // Check that requesting from view2 causes a cache hit
+  BOOST_CHECK_EQUAL(queryPacketCache2(PC, ZC, ComboAddress("192.0.2.1"), qname, innerMask, view2, "2.2.2.2"), true);
+
+  // Cache answer for query in view1
+  feedPacketCache2(PC, view1, 0x01010101, qname);
+  BOOST_CHECK_EQUAL(PC.size(), 2);
+
+  // Check that requesting from view1 causes a cache hit with the right data
+  BOOST_CHECK_EQUAL(queryPacketCache2(PC, ZC, ComboAddress("192.0.2.128"), qname, outerMask, view1, "1.1.1.1"), true);
+
+  // Check that requesting from view2 causes a cache hit with the right data
+  BOOST_CHECK_EQUAL(queryPacketCache2(PC, ZC, ComboAddress("192.0.2.1"), qname, innerMask, view2, "2.2.2.2"), true);
+
+  // Purge view2
+  BOOST_CHECK_EQUAL(PC.purgeExact(view2, qname), 1);
+  BOOST_CHECK_EQUAL(PC.size(), 1);
+
+  // Check that requesting from view2 causes a cache miss
+  BOOST_CHECK_EQUAL(queryPacketCache2(PC, ZC, ComboAddress("192.0.2.1"), qname, innerMask, view2, "2.2.2.2"), false);
+
+  // Check that requesting from view1 causes a cache hit with the right data
+  BOOST_CHECK_EQUAL(queryPacketCache2(PC, ZC, ComboAddress("192.0.2.128"), qname, outerMask, view1, "1.1.1.1"), true);
+
+  // Purge view1
+  BOOST_CHECK_EQUAL(PC.purgeExact(view1, qname), 1);
+  BOOST_CHECK_EQUAL(PC.size(), 0);
+
+  // Check that requesting from view1 causes a cache miss
+  BOOST_CHECK_EQUAL(queryPacketCache2(PC, ZC, ComboAddress("192.0.2.128"), qname, outerMask, view1, "1.1.1.1"), false);
+
+  // Cache answers for view1 and view2 again
+  feedPacketCache2(PC, view1, 0x01010101, qname);
+  feedPacketCache2(PC, view2, 0x02020202, qname);
+  BOOST_CHECK_EQUAL(PC.size(), 2);
+
+  // Purge all views
+  BOOST_CHECK_EQUAL(PC.purgeExact(qname), 2);
+  BOOST_CHECK_EQUAL(PC.size(), 0);
+
+  // Check that requesting from view1 causes a cache miss
+  BOOST_CHECK_EQUAL(queryPacketCache2(PC, ZC, ComboAddress("192.0.2.128"), qname, outerMask, view1, "1.1.1.1"), false);
+
+  // Check that requesting from view2 causes a cache miss
+  BOOST_CHECK_EQUAL(queryPacketCache2(PC, ZC, ComboAddress("192.0.2.1"), qname, innerMask, view2, "2.2.2.2"), false);
+}
+#endif // ] PDNS_AUTH
 
 BOOST_AUTO_TEST_SUITE_END()

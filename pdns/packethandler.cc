@@ -1937,7 +1937,7 @@ std::unique_ptr<DNSPacket> PacketHandler::opcodeQuery(DNSPacket& pkt, bool noCac
     }
 
     if (PC.enabled() && !state.noCache && pkt.couldBeCached()) {
-      PC.insert(pkt, *state.r, state.r->getMinTTL()); // in the packet cache
+      PC.insert(pkt, *state.r, state.r->getMinTTL(), pkt.d_view); // in the packet cache
     }
   }
 
