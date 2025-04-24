@@ -482,35 +482,35 @@ BOOST_AUTO_TEST_CASE(test_AuthPacketCache) {
   }
 }
 
-static void feedPacketCache(AuthPacketCache& PC, uint32_t bits, std::optional<Netmask> netmask)
+static void feedPacketCache(AuthPacketCache& PC, uint32_t bits, std::optional<Netmask> netmask) // NOLINT(readability-identifier-length)
 {
   for (unsigned int counter = 0; counter < 128; ++counter) {
     std::vector<uint8_t> storage;
     DNSName qname = DNSName("network" + std::to_string(counter));
     DNSPacketWriter qwriter(storage, qname, QType::A);
     DNSPacket query(true);
-    query.parse((char*)&storage[0], storage.size());
+    query.parse(reinterpret_cast<char*>(storage.data()), storage.size()); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast): can't static_cast because of sign difference
     storage.clear();
     DNSPacketWriter rwriter(storage, qname, QType::A);
     rwriter.startRecord(qname, QType::A, 3600, QClass::IN, DNSResourceRecord::ANSWER);
     rwriter.xfrIP(htonl((counter << 24) | bits));
     rwriter.commit();
     DNSPacket response(false);
-    response.parse((char*)&storage[0], storage.size());
+    response.parse(reinterpret_cast<char*>(storage.data()), storage.size()); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast): can't static_cast because of sign difference
     // magic copied from threadPCMangler() above
-    query.setHash(PC.canHashPacket(query.getString()));
+    query.setHash(PacketCache::canHashPacket(query.getString()));
     PC.insert(query, response, 2600, netmask);
   }
 }
 
-static void slurpPacketCache(AuthPacketCache& PC, std::string bits, ComboAddress* from)
+static void slurpPacketCache(AuthPacketCache& PC, const std::string& bits, ComboAddress* from) // NOLINT(readability-identifier-length)
 {
   for (unsigned int counter = 0; counter < 128; ++counter) {
     std::vector<uint8_t> storage;
     DNSName qname = DNSName("network" + std::to_string(counter));
     DNSPacketWriter qwriter(storage, qname, QType::A);
     DNSPacket query(true);
-    query.parse((char*)&storage[0], storage.size());
+    query.parse(reinterpret_cast<char*>(storage.data()), storage.size()); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast): can't static_cast because of sign difference
 
     DNSPacket response(false);
     bool hit = PC.get(query, response, from);
@@ -531,14 +531,14 @@ static void slurpPacketCache(AuthPacketCache& PC, std::string bits, ComboAddress
   }
 }
 
-static void skirtPacketCache(AuthPacketCache& PC, ComboAddress* from)
+static void skirtPacketCache(AuthPacketCache& PC, ComboAddress* from) // NOLINT(readability-identifier-length)
 {
   for (unsigned int counter = 0; counter < 128; ++counter) {
     std::vector<uint8_t> storage;
     DNSName qname = DNSName("network" + std::to_string(counter));
     DNSPacketWriter qwriter(storage, qname, QType::A);
     DNSPacket query(true);
-    query.parse((char*)&storage[0], storage.size());
+    query.parse(reinterpret_cast<char*>(storage.data()), storage.size()); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast): can't static_cast because of sign difference
 
     DNSPacket response(false);
     bool hit = PC.get(query, response, from);
@@ -553,7 +553,7 @@ BOOST_AUTO_TEST_CASE(test_AuthPacketCacheNetmasks) {
   try {
     ::arg().setSwitch("no-shuffle","Set this to prevent random shuffling of answers - for regression testing")="off";
 
-    AuthPacketCache PC;
+    AuthPacketCache PC; // NOLINT(readability-identifier-length) 
     PC.setMaxEntries(1000000);
     PC.setTTL(0xc0ffee); // cache works better when programmer is cafeinated and doesn't forget to enable it
 

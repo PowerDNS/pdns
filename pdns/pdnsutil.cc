@@ -4625,7 +4625,7 @@ static int viewDelZone(vector<string>& cmds, const std::string_view synopsis)
 
 static int networkList(vector<string>& cmds, const std::string_view synopsis)
 {
-  if (cmds.size() < 1) {
+  if (cmds.empty()) {
     return usage(synopsis);
   }
 
