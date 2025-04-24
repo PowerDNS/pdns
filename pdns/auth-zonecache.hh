@@ -27,6 +27,7 @@
 #include "lock.hh"
 #include "misc.hh"
 #include "iputils.hh"
+#include "dnspacket.hh"
 
 class AuthZoneCache : public boost::noncopyable
 {
@@ -52,6 +53,7 @@ public:
 
   // Zone lookup, on behalf of an optional network
   bool getEntry(ZoneName& zone, int& zoneId, Netmask* net = nullptr);
+  void setZoneVariant(std::unique_ptr<DNSPacket>& packet);
 
   uint32_t getRefreshInterval() const
   {

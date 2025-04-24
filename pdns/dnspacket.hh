@@ -139,7 +139,7 @@ public:
 
   DNSName qdomain;  //!< qname of the question 4 - unsure how this is used
   DNSName qdomainwild;  //!< wildcard matched by qname, used by LuaPolicyEngine
-  ZoneName qdomainzone;  //!< zone name for the answer (as reflected in SOA for negative responses), used by LuaPolicyEngine
+  ZoneName qdomainzone;  //!< zone name for the answer (as reflected in SOA for negative responses), used by LuaPolicyEngine and AXFR
   string d_peer_principal;
   const DNSName& getTSIGKeyname() const;
 
