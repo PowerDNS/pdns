@@ -546,6 +546,11 @@ bool UeberBackend::getAuth(const ZoneName& target, const QType& qtype, SOAData* 
       }
       ZoneName _shorter(shorter); // don't want getEntry to mutate the one we're chopping off
       if (g_zoneCache.getEntry(_shorter, zoneId, &remote)) {
+        // Update the DNSPacket, so that the packet cache can use
+        // the appropriate network when caching a result for that packet.
+        if (pkt_p != nullptr && !remote.empty()) {
+          pkt_p->d_span = remote;
+        }
         if (fillSOAFromZoneRecord(_shorter, zoneId, soaData)) {
           if (foundTarget(target, _shorter, qtype, soaData, found)) {
             return true;

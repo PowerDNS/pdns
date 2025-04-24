@@ -50,7 +50,7 @@ void AuthPacketCache::MapCombo::reserve(size_t numberOfEntries)
 #endif /* BOOST_VERSION >= 105600 */
 }
 
-bool AuthPacketCache::get(DNSPacket& p, DNSPacket& cached)
+bool AuthPacketCache::get(DNSPacket& p, DNSPacket& cached, ComboAddress* from)
 {
   if(!d_ttl) {
     return false;
@@ -73,7 +73,7 @@ bool AuthPacketCache::get(DNSPacket& p, DNSPacket& cached)
       return false;
     }
 
-    haveSomething = getEntryLocked(*map, p.getString(), hash, p.qdomain, p.qtype.getCode(), p.d_tcp, now, value);
+    haveSomething = getEntryLocked(*map, p.getString(), hash, p.qdomain, p.qtype.getCode(), p.d_tcp, now, from, value);
   }
 
   if (!haveSomething) {
@@ -99,7 +99,7 @@ bool AuthPacketCache::entryMatches(cmap_t::index<HashTag>::type::iterator& iter,
   return iter->tcp == tcp && iter->qtype == qtype && iter->qname == qname && queryMatches(iter->query, query, qname, skippedEDNSTypes);
 }
 
-void AuthPacketCache::insert(DNSPacket& q, DNSPacket& r, unsigned int maxTTL)
+void AuthPacketCache::insert(DNSPacket& q, DNSPacket& r, unsigned int maxTTL, std::optional<Netmask> netmask)
 {
   if(!d_ttl) {
     return;
@@ -117,7 +117,7 @@ void AuthPacketCache::insert(DNSPacket& q, DNSPacket& r, unsigned int maxTTL)
   uint32_t ourttl = std::min(d_ttl, maxTTL);
   if (ourttl == 0) {
     return;
-  }  
+  }
 
   uint32_t hash = q.getHash();
   time_t now = time(nullptr);
@@ -130,7 +130,10 @@ void AuthPacketCache::insert(DNSPacket& q, DNSPacket& r, unsigned int maxTTL)
   entry.value = r.getString();
   entry.tcp = r.d_tcp;
   entry.query = q.getString();
-  
+  if (netmask) {
+    entry.netmask = netmask->getNormalized();
+  }
+
   auto& mc = getMap(entry.qname);
   {
     auto map = mc.d_map.try_write_lock();
@@ -144,7 +147,7 @@ void AuthPacketCache::insert(DNSPacket& q, DNSPacket& r, unsigned int maxTTL)
     auto iter = range.first;
 
     for( ; iter != range.second ; ++iter)  {
-      if (!entryMatches(iter, entry.query, entry.qname, entry.qtype, entry.tcp)) {
+      if (!entryMatches(iter, entry.query, entry.qname, entry.qtype, entry.tcp) || netmask != iter->netmask) {
         continue;
       }
 
@@ -169,10 +172,12 @@ void AuthPacketCache::insert(DNSPacket& q, DNSPacket& r, unsigned int maxTTL)
   }
 }
 
-bool AuthPacketCache::getEntryLocked(const cmap_t& map, const std::string& query, uint32_t hash, const DNSName &qname, uint16_t qtype, bool tcp, time_t now, string& value)
+bool AuthPacketCache::getEntryLocked(const cmap_t& map, const std::string& query, uint32_t hash, const DNSName &qname, uint16_t qtype, bool tcp, time_t now, ComboAddress* from, string& value)
 {
   auto& idx = map.get<HashTag>();
   auto range = idx.equal_range(hash);
+  const Netmask *lastmask{nullptr};
+  bool found{false}; // if set, implies lastmask is not nullptr
 
   for(auto iter = range.first; iter != range.second ; ++iter)  {
     if (iter->ttd < now) {
@@ -182,12 +187,34 @@ bool AuthPacketCache::getEntryLocked(const cmap_t& map, const std::string& query
     if (!entryMatches(iter, query, qname, qtype, tcp)) {
       continue;
     }
+    // Check network origin if applicable:
+    // - if we don't pass an address, only consider entries with no netmask
+    // - if we pass an address, only consider entries with a netmask matching that address
+    if (from == nullptr) {
+      if (iter->netmask) {
+        continue;
+      }
+      value = iter->value;
+      return true;
+    }
 
+    if (!iter->netmask || !iter->netmask->match(*from)) {
+      continue;
+    }
+    // If we had a candidate value already, only update it if this netmask
+    // is narrower.
+    if (found && iter->netmask->getBits() < lastmask->getBits()) {
+      continue;
+    }
+    // When we are searching with an address, we need to loop over all entries
+    // in order to pick the narrowest match, so don't return this possible
+    // match yet.
     value = iter->value;
-    return true;
+    lastmask = &(*iter->netmask);
+    found = true;
   }
 
-  return false;
+  return found;
 }
 
 /* clears the entire cache. */
@@ -231,7 +258,50 @@ uint64_t AuthPacketCache::purge(const string &match)
 
   return delcount;
 }
-			   
+
+// Arguably belongs to pdns/cachecleaner.hh. But better kept here where we can
+// be sure the netmask argument has been normalized.
+template <typename S, typename T>
+uint64_t pruneNetmask(T& collection, const Netmask& netmask)
+{
+  uint64_t erased = 0;
+  auto& sidx = collection.template get<S>();
+
+  for (auto iter = sidx.begin(); iter != sidx.end();) {
+    if (!iter->netmask) {
+      ++iter;
+      continue;
+    }
+    // We want to remove all elements which cover the given netmask, even
+    // if they have a larger span, so simply check for overlap.
+    if (netmask.match(&iter->netmask->getNetwork()) ||
+      iter->netmask->match(&netmask.getNetwork())) {
+      iter = sidx.erase(iter);
+      ++erased;
+    }
+    else {
+      ++iter;
+    }
+  }
+
+  return erased;
+}
+
+uint64_t AuthPacketCache::purgeNetmask(const Netmask& netmask)
+{
+  uint64_t delcount = 0;
+  Netmask normalized = netmask.getNormalized();
+
+  // This is slow because we do not perform an exact Netmask comparison.
+  for (auto& shard : d_maps) {
+    auto map = shard.d_map.write_lock();
+    delcount += pruneNetmask<SequencedTag>(*map, normalized);
+  }
+
+  *d_statnumentries -= delcount;
+  return delcount;
+}
+
 void AuthPacketCache::cleanup()
 {
   uint64_t totErased = pruneLockedCollectionsVector<SequencedTag>(d_maps);

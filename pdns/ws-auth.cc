@@ -48,6 +48,7 @@
 #include "zoneparser-tng.hh"
 #include "auth-main.hh"
 #include "auth-caches.hh"
+#include "auth-packetcache.hh"
 #include "auth-zonecache.hh"
 #include "threadname.hh"
 #include "tsigutils.hh"
@@ -2720,6 +2721,10 @@ static void apiServerViewsPOST(HttpRequest* req, HttpResponse* resp)
   if (g_zoneCache.isEnabled()) {
     g_zoneCache.addToView(view, zonename);
   }
+  // Purge packet cache for that zone
+  if (PC.enabled()) {
+    (void)PC.purgeExact(zonename.operator const DNSName&());
+  }
 
   resp->body = "";
   resp->status = 204;
@@ -2737,6 +2742,10 @@ static void apiServerViewsDELETE(HttpRequest* req, HttpResponse* resp)
   // Notify zone cache of the removed association
   if (g_zoneCache.isEnabled()) {
     g_zoneCache.removeFromView(view, zoneData.zoneName);
+  }
+  // Purge packet cache for that zone
+  if (PC.enabled()) {
+    (void)PC.purgeExact(zoneData.zoneName.operator const DNSName&());
   }
 
   resp->body = "";
@@ -2797,6 +2806,10 @@ static void apiServerNetworksPUT(HttpRequest* req, HttpResponse* resp)
   // Notify zone cache of the new association
   if (g_zoneCache.isEnabled()) {
     g_zoneCache.updateNetwork(network, view);
+  }
+  // Clear packet cache for that netmask
+  if (PC.enabled()) {
+    (void)PC.purgeNetmask(network);
   }
 
   resp->body = "";

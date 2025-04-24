@@ -48,16 +48,26 @@ bool AuthZoneCache::getEntry(ZoneName& zone, int& zoneId, Netmask* net)
   string view;
 
   try {
-    if (net != nullptr) {
+    if (net != nullptr && !net->empty()) {
       auto nets = d_nets.read_lock();
       const auto* netview = nets->lookup(net->getNetwork());
       if (netview != nullptr) {
+        // Tell our caller the span of the network being hit...
+        *net = netview->first;
+        // ...and which view it covers.
         view = netview->second;
       }
     }
   }
   catch (...) {
     // this handles the "empty" case, but might hide other errors
+  }
+
+  // If this network doesn't match a view, then we want to clear the netmask
+  // information, as our caller might submit it to the packet cache and there
+  // is no reason to narrow caching for views-agnostic queries.
+  if (view.empty() && net != nullptr) {
+    *net = Netmask();
   }
 
   string variant;
