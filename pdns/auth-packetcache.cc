@@ -50,7 +50,7 @@ void AuthPacketCache::MapCombo::reserve(size_t numberOfEntries)
 #endif /* BOOST_VERSION >= 105600 */
 }
 
-bool AuthPacketCache::get(DNSPacket& p, DNSPacket& cached, ComboAddress* from)
+bool AuthPacketCache::get(DNSPacket& pkt, DNSPacket& cached, ComboAddress* from)
 {
   if(!d_ttl) {
     return false;
@@ -59,21 +59,21 @@ bool AuthPacketCache::get(DNSPacket& p, DNSPacket& cached, ComboAddress* from)
   cleanupIfNeeded();
 
   static const std::unordered_set<uint16_t> optionsToSkip{ EDNSOptionCode::COOKIE};
-  uint32_t hash = canHashPacket(p.getString(), /* don't skip ECS */optionsToSkip);
-  p.setHash(hash);
+  uint32_t hash = canHashPacket(pkt.getString(), /* don't skip ECS */optionsToSkip);
+  pkt.setHash(hash);
 
   string value;
   bool haveSomething;
   time_t now = time(nullptr);
-  auto& mc = getMap(p.qdomain);
+  auto& mapcombo = getMap(pkt.qdomain);
   {
-    auto map = mc.d_map.try_read_lock();
+    auto map = mapcombo.d_map.try_read_lock();
     if (!map.owns_lock()) {
       S.inc("deferred-packetcache-lookup");
       return false;
     }
 
-    haveSomething = getEntryLocked(*map, p.getString(), hash, p.qdomain, p.qtype.getCode(), p.d_tcp, now, from, value);
+    haveSomething = AuthPacketCache::getEntryLocked(*map, pkt.getString(), hash, pkt.qdomain, pkt.qtype.getCode(), pkt.d_tcp, now, from, value);
   }
 
   if (!haveSomething) {
@@ -86,9 +86,9 @@ bool AuthPacketCache::get(DNSPacket& p, DNSPacket& cached, ComboAddress* from)
   }
 
   (*d_statnumhit)++;
-  cached.spoofQuestion(p); // for correct case
-  cached.qdomain = p.qdomain;
-  cached.qtype = p.qtype;
+  cached.spoofQuestion(pkt); // for correct case
+  cached.qdomain = pkt.qdomain;
+  cached.qtype = pkt.qtype;
 
   return true;
 }
@@ -99,7 +99,7 @@ bool AuthPacketCache::entryMatches(cmap_t::index<HashTag>::type::iterator& iter,
   return iter->tcp == tcp && iter->qtype == qtype && iter->qname == qname && queryMatches(iter->query, query, qname, skippedEDNSTypes);
 }
 
-void AuthPacketCache::insert(DNSPacket& q, DNSPacket& r, unsigned int maxTTL, std::optional<Netmask> netmask)
+void AuthPacketCache::insert(DNSPacket& query, DNSPacket& response, unsigned int maxTTL, std::optional<Netmask> netmask)
 {
   if(!d_ttl) {
     return;
@@ -107,29 +107,30 @@ void AuthPacketCache::insert(DNSPacket& q, DNSPacket& r, unsigned int maxTTL, st
 
   cleanupIfNeeded();
 
-  if (ntohs(q.d.qdcount) != 1) {
+  if (ntohs(query.d.qdcount) != 1) {
     return; // do not try to cache packets with multiple questions
   }
 
-  if (q.qclass != QClass::IN) // we only cache the INternet
+  if (query.qclass != QClass::IN) { // we only cache the INternet
     return;
+  }
 
   uint32_t ourttl = std::min(d_ttl, maxTTL);
   if (ourttl == 0) {
     return;
   }
 
-  uint32_t hash = q.getHash();
+  uint32_t hash = query.getHash();
   time_t now = time(nullptr);
   CacheEntry entry;
   entry.hash = hash;
   entry.created = now;
   entry.ttd = now + ourttl;
-  entry.qname = q.qdomain;
-  entry.qtype = q.qtype.getCode();
-  entry.value = r.getString();
-  entry.tcp = r.d_tcp;
-  entry.query = q.getString();
+  entry.qname = query.qdomain;
+  entry.qtype = query.qtype.getCode();
+  entry.value = response.getString();
+  entry.tcp = response.d_tcp;
+  entry.query = query.getString();
   if (netmask) {
     entry.netmask = netmask->getNormalized();
   }
