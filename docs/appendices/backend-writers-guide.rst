@@ -70,7 +70,7 @@ following methods are relevant:
         virtual void lookup(const QType &qtype, const string &qdomain, domainid_t zoneId=UnknownDomainID, DNSPacket *pkt_p=nullptr)=0;
         virtual bool list(const string &target, domainid_t domain_id)=0;
         virtual bool get(DNSResourceRecord &r)=0;
-        virtual bool getSOA(const string &name, SOAData &soadata);
+        virtual bool getSOA(const string &name, domainid_t zoneId, SOAData &soadata);
         };
 
 Note that the first four methods must be implemented. ``getSOA()`` has
@@ -143,8 +143,8 @@ The following lists the contents of a zone called "powerdns.com".
 .. code-block:: cpp
 
         SOAData sd;
-        if(!yb.getSOA("powerdns.com",sd))  // are we authoritative over powerdns.com?
-          return RCode::NotAuth;           // no
+        if(!yb.getSOA("powerdns.com", UnknownDomainID, sd))  // are we authoritative over powerdns.com?
+          return RCode::NotAuth;                // no
 
         yb.list(sd.domain_id);
         while(yb.get(rr))
@@ -422,10 +422,11 @@ Methods
 
   Should throw an PDNSException in case a database error occurred.
 
-.. cpp:function:: bool DNSBackend::getSOA(const string &name, SOAData &soadata)
+.. cpp:function:: bool DNSBackend::getSOA(const string &name, domainid_t zoneId, SOAData &soadata)
 
-  If the backend considers itself authoritative over domain ``name``, this
-  method should fill out the passed **SOAData** structure and return true.
+  If the backend considers itself authoritative over domain ``name``, of
+  id ``zoneId`` if known (otherwise, ``UnknownDomainID``), this method should
+  fill out the passed **SOAData** structure and return true.
   If the backend is functioning correctly, but does not consider itself
   authoritative, it should return false. In case of errors, an
   PDNSException should be thrown.

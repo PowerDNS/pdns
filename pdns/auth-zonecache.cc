@@ -93,6 +93,20 @@ bool AuthZoneCache::getEntry(ZoneName& zone, int& zoneId, Netmask* net)
   return found;
 }
 
+void AuthZoneCache::setZoneVariant(std::unique_ptr<DNSPacket>& packet)
+{
+  ZoneName zone{packet->qdomain};
+  domainid_t zoneId{};
+  Netmask net = packet->getRealRemote();
+
+  if (getEntry(zone, zoneId, &net)) {
+    packet->qdomainzone = zone;
+  }
+  else {
+    packet->qdomainzone = ZoneName(packet->qdomain);
+  }
+}
+
 bool AuthZoneCache::isEnabled() const
 {
   return d_refreshinterval > 0;

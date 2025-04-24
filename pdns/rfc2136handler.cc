@@ -1047,7 +1047,7 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
 
 void PacketHandler::increaseSerial(const string &msgPrefix, const DomainInfo *di, const string& soaEditSetting,  bool haveNSEC3, bool narrow, const NSEC3PARAMRecordContent *ns3pr) {
   SOAData sd;
-  if (!di->backend->getSOA(di->zone, sd)) {
+  if (!di->backend->getSOA(di->zone, di->id, sd)) {
     throw PDNSException("SOA-Serial update failed because there was no SOA. Wowie.");
   }
 
