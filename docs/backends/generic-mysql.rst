@@ -48,6 +48,11 @@ domains table. The following SQL does the job:
 .. literalinclude:: ../../modules/gmysqlbackend/enable-foreign-keys.mysql.sql
    :language: SQL
 
+.. warning::
+  Please note, however, that setting up these foreign key constraints prevents
+  the PowerDNS database from being usable with mysql group replication, if you
+  are using multiple servers.
+
 Using MySQL/MariaDB replication
 -------------------------------
 
