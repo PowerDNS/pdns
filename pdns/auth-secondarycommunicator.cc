@@ -479,12 +479,11 @@ void CommunicatorClass::ixfrSuck(const ZoneName& domain, const TSIGTriplet& tsig
       for (const auto& x : add)
         grouped[{ZoneName(x.d_name), x.d_type}].second.push_back(x);
 
-      di.backend->startTransaction(domain, -1);
+      di.backend->startTransaction(domain, UnknownDomainID);
       for (const auto& g : grouped) {
         vector<DNSRecord> rrset;
         {
           DNSZoneRecord zrr;
-          // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
           di.backend->lookup(QType(g.first.second), g.first.first.operator const DNSName&() + domain.operator const DNSName&(), di.id);
           while (di.backend->get(zrr)) {
             zrr.dr.d_name.makeUsRelative(domain);
@@ -946,7 +945,6 @@ void CommunicatorClass::suck(const ZoneName& domain, const ComboAddress& remote,
     // Insert empty non-terminals
     if (doent && !nonterm.empty()) {
       if (zs.isNSEC3) {
-        // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
         di.backend->feedEnts3(zs.domain_id, domain.operator const DNSName&(), nonterm, zs.ns3pr, zs.isNarrow);
       }
       else
@@ -1316,7 +1314,6 @@ void CommunicatorClass::secondaryRefresh(PacketHandler* P)
     SOAData sd;
     try {
       // Use UeberBackend cache for SOA. Cache gets cleared after AXFR/IXFR.
-      // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
       B->lookup(QType(QType::SOA), di.zone.operator const DNSName&(), di.id, nullptr);
       DNSZoneRecord zr;
       hasSOA = B->get(zr);
@@ -1340,7 +1337,6 @@ void CommunicatorClass::secondaryRefresh(PacketHandler* P)
     else if (hasSOA && theirserial == ourserial) {
       uint32_t maxExpire = 0, maxInception = 0;
       if (checkSignatures && dk.isPresigned(di.zone)) {
-        // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
         B->lookup(QType(QType::RRSIG), di.zone.operator const DNSName&(), di.id); // can't use DK before we are done with this lookup!
         DNSZoneRecord zr;
         while (B->get(zr)) {

@@ -835,7 +835,7 @@ bool DNSSECKeeper::rectifyZone(const ZoneName& zone, string& error, string& info
   }
 
   if (doTransaction)
-    sd.db->startTransaction(zone, -1);
+    sd.db->startTransaction(zone, UnknownDomainID);
 
   bool realrr=true;
   bool doent=true;

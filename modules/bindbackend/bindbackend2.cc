@@ -131,7 +131,8 @@ void BB2DomainInfo::setCtime()
   d_ctime = buf.st_ctime;
 }
 
-bool Bind2Backend::safeGetBBDomainInfo(int id, BB2DomainInfo* bbd)
+// NOLINTNEXTLINE(readability-identifier-length)
+bool Bind2Backend::safeGetBBDomainInfo(domainid_t id, BB2DomainInfo* bbd)
 {
   auto state = s_state.read_lock();
   state_t::const_iterator iter = state->find(id);
@@ -174,7 +175,8 @@ void Bind2Backend::safePutBBDomainInfo(const BB2DomainInfo& bbd)
   replacing_insert(*state, bbd);
 }
 
-void Bind2Backend::setNotified(uint32_t id, uint32_t serial)
+// NOLINTNEXTLINE(readability-identifier-length)
+void Bind2Backend::setNotified(domainid_t id, uint32_t serial)
 {
   BB2DomainInfo bbd;
   if (!safeGetBBDomainInfo(id, &bbd))
@@ -183,7 +185,8 @@ void Bind2Backend::setNotified(uint32_t id, uint32_t serial)
   safePutBBDomainInfo(bbd);
 }
 
-void Bind2Backend::setLastCheck(uint32_t domain_id, time_t lastcheck)
+// NOLINTNEXTLINE(readability-identifier-length)
+void Bind2Backend::setLastCheck(domainid_t domain_id, time_t lastcheck)
 {
   BB2DomainInfo bbd;
   if (safeGetBBDomainInfo(domain_id, &bbd)) {
@@ -192,21 +195,22 @@ void Bind2Backend::setLastCheck(uint32_t domain_id, time_t lastcheck)
   }
 }
 
-void Bind2Backend::setStale(uint32_t domain_id)
+void Bind2Backend::setStale(domainid_t domain_id)
 {
-  setLastCheck(domain_id, 0);
+  Bind2Backend::setLastCheck(domain_id, 0);
 }
 
-void Bind2Backend::setFresh(uint32_t domain_id)
+void Bind2Backend::setFresh(domainid_t domain_id)
 {
-  setLastCheck(domain_id, time(nullptr));
+  Bind2Backend::setLastCheck(domain_id, time(nullptr));
 }
 
-bool Bind2Backend::startTransaction(const ZoneName& qname, int domainId)
+bool Bind2Backend::startTransaction(const ZoneName& qname, domainid_t domainId)
 {
-  if (domainId < 0) {
+  if (domainId == UnknownDomainID) {
     d_transaction_tmpname.clear();
-    d_transaction_id = domainId;
+    d_transaction_id = UnknownDomainID;
+    // No support for domain contents deletion
     return false;
   }
   if (domainId == 0) {
@@ -245,8 +249,9 @@ bool Bind2Backend::startTransaction(const ZoneName& qname, int domainId)
 
 bool Bind2Backend::commitTransaction()
 {
-  if (d_transaction_id < 0)
+  if (d_transaction_id == UnknownDomainID) {
     return false;
+  }
   d_of.reset();
 
   BB2DomainInfo bbd;
@@ -256,7 +261,7 @@ bool Bind2Backend::commitTransaction()
     queueReloadAndStore(bbd.d_id);
   }
 
-  d_transaction_id = 0;
+  d_transaction_id = UnknownDomainID;
 
   return true;
 }
@@ -266,10 +271,10 @@ bool Bind2Backend::abortTransaction()
   // -1 = dnssec speciality
   // 0  = invalid transact
   // >0 = actual transaction
-  if (d_transaction_id > 0) {
+  if (d_transaction_id != UnknownDomainID) {
     unlink(d_transaction_tmpname.c_str());
     d_of.reset();
-    d_transaction_id = 0;
+    d_transaction_id = UnknownDomainID;
   }
 
   return true;
@@ -277,7 +282,7 @@ bool Bind2Backend::abortTransaction()
 
 bool Bind2Backend::feedRecord(const DNSResourceRecord& rr, const DNSName& /* ordername */, bool /* ordernameIsNSEC3 */)
 {
-  if (d_transaction_id < 1) {
+  if (d_transaction_id == UnknownDomainID) {
     throw DBException("Bind2Backend::feedRecord() called outside of transaction");
   }
 
@@ -748,7 +753,7 @@ Bind2Backend::Bind2Backend(const string& suffix, bool loadZones)
     throw PDNSException("bind-hybrid and the zone cache currently interoperate badly. Please disable the zone cache or stop using bind-hybrid");
   }
 
-  d_transaction_id = 0;
+  d_transaction_id = UnknownDomainID;
   s_ignore_broken_records = mustDo("ignore-broken-records");
   d_upgradeContent = ::arg().mustDo("upgrade-unknown-types");
 
@@ -1042,7 +1047,8 @@ void Bind2Backend::loadConfig(string* status) // NOLINT(readability-function-cog
   }
 }
 
-void Bind2Backend::queueReloadAndStore(unsigned int id)
+// NOLINTNEXTLINE(readability-identifier-length)
+void Bind2Backend::queueReloadAndStore(domainid_t id)
 {
   BB2DomainInfo bbold;
   try {
@@ -1110,7 +1116,8 @@ bool Bind2Backend::findBeforeAndAfterUnhashed(std::shared_ptr<const recordstorag
   return true;
 }
 
-bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after)
+// NOLINTNEXTLINE(readability-identifier-length)
+bool Bind2Backend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after)
 {
   BB2DomainInfo bbd;
   if (!safeGetBBDomainInfo(id, &bbd))
@@ -1148,7 +1155,7 @@ bool Bind2Backend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qn
   }
 }
 
-void Bind2Backend::lookup(const QType& qtype, const DNSName& qname, int zoneId, DNSPacket* /* pkt_p */)
+void Bind2Backend::lookup(const QType& qtype, const DNSName& qname, domainid_t zoneId, DNSPacket* /* pkt_p */)
 {
   d_handle.reset();
 
@@ -1161,7 +1168,7 @@ void Bind2Backend::lookup(const QType& qtype, const DNSName& qname, int zoneId, 
   if (mustlog)
     g_log << Logger::Warning << "Lookup for '" << qtype.toString() << "' of '" << qname << "' within zoneID " << zoneId << endl;
 
-  if (zoneId >= 0) {
+  if (zoneId != UnknownDomainID) {
     if ((found = (safeGetBBDomainInfo(zoneId, &bbd) && qname.isPartOf(bbd.d_name)))) {
       domain = std::move(bbd.d_name);
     }
@@ -1291,7 +1298,7 @@ bool Bind2Backend::handle::get_normal(DNSResourceRecord& r)
   return true;
 }
 
-bool Bind2Backend::list(const ZoneName& /* target */, int domainId, bool /* include_disabled */)
+bool Bind2Backend::list(const ZoneName& /* target */, domainid_t domainId, bool /* include_disabled */)
 {
   BB2DomainInfo bbd;
 
@@ -1396,7 +1403,7 @@ bool Bind2Backend::autoPrimaryBackend(const string& ipAddress, const ZoneName& /
 
 BB2DomainInfo Bind2Backend::createDomainEntry(const ZoneName& domain, const string& filename)
 {
-  int newid = 1;
+  domainid_t newid = 1;
   { // Find a free zone id nr.
     auto state = s_state.read_lock();
     if (!state->empty()) {

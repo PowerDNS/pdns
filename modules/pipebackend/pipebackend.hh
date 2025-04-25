@@ -52,8 +52,8 @@ public:
   ~PipeBackend() override;
 
   unsigned int getCapabilities() override { return CAP_DIRECT | CAP_LIST; }
-  void lookup(const QType&, const DNSName& qdomain, int zoneId, DNSPacket* p = nullptr) override;
-  bool list(const ZoneName& target, int domain_id, bool include_disabled = false) override;
+  void lookup(const QType& qtype, const DNSName& qname, domainid_t zoneId, DNSPacket* pkt_p = nullptr) override;
+  bool list(const ZoneName& target, domainid_t domain_id, bool include_disabled = false) override;
   bool get(DNSResourceRecord& r) override;
   string directBackendCmd(const string& query) override;
   static DNSBackend* maker();

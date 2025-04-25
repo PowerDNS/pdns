@@ -42,6 +42,10 @@
 #include <arpa/inet.h>
 #include "pipebackend.hh"
 
+// The following requirement guarantees UnknownDomainID will get output as "-1"
+// for compatibility.
+static_assert(std::is_signed<domainid_t>::value);
+
 static const char* kBackendId = "[PIPEBackend]";
 
 CoWrapper::CoWrapper(const string& command, int timeout, int abiVersion)
@@ -152,7 +156,7 @@ void PipeBackend::cleanup()
   d_abiVersion = 0;
 }
 
-void PipeBackend::lookup(const QType& qtype, const DNSName& qname, int zoneId, DNSPacket* pkt_p)
+void PipeBackend::lookup(const QType& qtype, const DNSName& qname, domainid_t zoneId, DNSPacket* pkt_p)
 {
   try {
     launch();
@@ -195,7 +199,7 @@ void PipeBackend::lookup(const QType& qtype, const DNSName& qname, int zoneId, D
   d_qname = qname;
 }
 
-bool PipeBackend::list(const ZoneName& target, int domain_id, bool /* include_disabled */)
+bool PipeBackend::list(const ZoneName& target, domainid_t domain_id, bool /* include_disabled */)
 {
   try {
     launch();

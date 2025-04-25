@@ -56,7 +56,7 @@ struct GeoIPService
 
 struct GeoIPDomain
 {
-  std::uint32_t id{};
+  domainid_t id{};
   ZoneName domain;
   int ttl{};
   map<DNSName, GeoIPService> services;
@@ -130,7 +130,7 @@ static bool validateMappingLookupFormats(const vector<string>& formats)
 static vector<GeoIPDNSResourceRecord> makeDNSResourceRecord(GeoIPDomain& dom, DNSName name)
 {
   GeoIPDNSResourceRecord resourceRecord;
-  resourceRecord.domain_id = static_cast<int>(dom.id);
+  resourceRecord.domain_id = dom.id;
   resourceRecord.ttl = dom.ttl;
   resourceRecord.qname = std::move(name);
   resourceRecord.qtype = QType(0); // empty non terminal
@@ -215,7 +215,7 @@ void GeoIPBackend::setupNetmasks(const YAML::Node& domain, GeoIPDomain& dom)
   }
 }
 
-bool GeoIPBackend::loadDomain(const YAML::Node& domain, std::uint32_t domainID, GeoIPDomain& dom)
+bool GeoIPBackend::loadDomain(const YAML::Node& domain, domainid_t domainID, GeoIPDomain& dom)
 {
   try {
     dom.id = domainID;
@@ -229,7 +229,7 @@ bool GeoIPBackend::loadDomain(const YAML::Node& domain, std::uint32_t domainID, 
       for (auto item = recs->second.begin(); item != recs->second.end(); item++) {
         auto rec = item->begin();
         GeoIPDNSResourceRecord rr;
-        rr.domain_id = static_cast<int>(dom.id);
+        rr.domain_id = dom.id;
         rr.ttl = dom.ttl;
         rr.qname = qname.operator const DNSName&();
         if (rec->first.IsNull()) {
@@ -493,7 +493,7 @@ bool GeoIPBackend::lookup_static(const GeoIPDomain& dom, const DNSName& search, 
   return false;
 };
 
-void GeoIPBackend::lookup(const QType& qtype, const DNSName& qdomain, int zoneId, DNSPacket* pkt_p)
+void GeoIPBackend::lookup(const QType& qtype, const DNSName& qdomain, domainid_t zoneId, DNSPacket* pkt_p)
 {
   ReadLock rl(&s_state_lock);
   const GeoIPDomain* dom;
@@ -505,8 +505,9 @@ void GeoIPBackend::lookup(const QType& qtype, const DNSName& qdomain, int zoneId
 
   d_result.clear();
 
-  if (zoneId > -1 && zoneId < static_cast<int>(s_domains.size()))
+  if (zoneId >= 0 && zoneId < static_cast<domainid_t>(s_domains.size())) {
     dom = &(s_domains[zoneId]);
+  }
   else {
     for (const GeoIPDomain& i : s_domains) { // this is arguably wrong, we should probably find the most specific match
       if (qdomain.isPartOf(i.domain)) {

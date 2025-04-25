@@ -71,7 +71,8 @@ void LdapBackend::getUpdatedPrimaries(vector<DomainInfo>& domains, std::unordere
   }
 }
 
-void LdapBackend::setNotified(uint32_t id, uint32_t serial)
+// NOLINTNEXTLINE(readability-identifier-length)
+void LdapBackend::setNotified(domainid_t id, uint32_t serial)
 {
   string filter;
   PowerLDAP::SearchResult::Ptr search;

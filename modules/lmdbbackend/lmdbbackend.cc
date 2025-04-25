@@ -900,7 +900,7 @@ namespace serialization
     ar & g.last_check;
     ar & g.account;
     ar & g.primaries;
-    ar & g.id;
+    ar& static_cast<uint32_t>(g.id);
     ar & g.notified_serial;
     ar & g.kind;
     ar & g.options;
@@ -914,7 +914,9 @@ namespace serialization
     ar & g.last_check;
     ar & g.account;
     ar & g.primaries;
-    ar & g.id;
+    uint32_t domainId{0};
+    ar & domainId;
+    g.id = static_cast<domainid_t>(domainId);
     ar & g.notified_serial;
     ar & g.kind;
     if (version >= 1) {
@@ -1068,7 +1070,7 @@ static std::shared_ptr<DNSRecordContent> deserializeContentZR(uint16_t qtype, co
 #define StringView string
 #endif
 
-void LMDBBackend::deleteDomainRecords(RecordsRWTransaction& txn, uint32_t domain_id, uint16_t qtype)
+void LMDBBackend::deleteDomainRecords(RecordsRWTransaction& txn, domainid_t domain_id, uint16_t qtype)
 {
   compoundOrdername co;
   string match = co(domain_id);
@@ -1098,11 +1100,11 @@ void LMDBBackend::deleteDomainRecords(RecordsRWTransaction& txn, uint32_t domain
 
 */
 
-bool LMDBBackend::startTransaction(const ZoneName& domain, int domain_id)
+bool LMDBBackend::startTransaction(const ZoneName& domain, domainid_t domain_id)
 {
   // cout <<"startTransaction("<<domain<<", "<<domain_id<<")"<<endl;
-  int real_id = domain_id;
-  if (real_id < 0) {
+  domainid_t real_id = domain_id;
+  if (real_id == UnknownDomainID) {
     auto rotxn = d_tdomains->getROTransaction();
     DomainInfo di;
     real_id = rotxn.get<0>(domain, di);
@@ -1118,8 +1120,8 @@ bool LMDBBackend::startTransaction(const ZoneName& domain, int domain_id)
 
   d_transactiondomain = domain;
   d_transactiondomainid = real_id;
-  if (domain_id >= 0) {
-    deleteDomainRecords(*d_rwtxn, domain_id);
+  if (domain_id != UnknownDomainID) {
+    LMDBBackend::deleteDomainRecords(*d_rwtxn, domain_id);
   }
 
   return true;
@@ -1188,7 +1190,7 @@ bool LMDBBackend::feedRecord(const DNSResourceRecord& r, const DNSName& ordernam
   return true;
 }
 
-bool LMDBBackend::feedEnts(int domain_id, map<DNSName, bool>& nonterm)
+bool LMDBBackend::feedEnts(domainid_t domain_id, map<DNSName, bool>& nonterm)
 {
   LMDBResourceRecord lrr;
   lrr.ttl = 0;
@@ -1204,7 +1206,7 @@ bool LMDBBackend::feedEnts(int domain_id, map<DNSName, bool>& nonterm)
   return true;
 }
 
-bool LMDBBackend::feedEnts3(int domain_id, const DNSName& domain, map<DNSName, bool>& nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow)
+bool LMDBBackend::feedEnts3(domainid_t domain_id, const DNSName& domain, map<DNSName, bool>& nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow)
 {
   string ser;
   DNSName ordername;
@@ -1237,7 +1239,8 @@ bool LMDBBackend::feedEnts3(int domain_id, const DNSName& domain, map<DNSName, b
 }
 
 // might be called within a transaction, might also be called alone
-bool LMDBBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset)
+// NOLINTNEXTLINE(readability-identifier-length)
+bool LMDBBackend::replaceRRSet(domainid_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset)
 {
   // zonk qname/qtype within domain_id (go through qname, check domain_id && qtype)
   shared_ptr<RecordsRWTransaction> txn;
@@ -1284,7 +1287,8 @@ bool LMDBBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const Q
   return true;
 }
 
-bool LMDBBackend::replaceComments([[maybe_unused]] const uint32_t domain_id, [[maybe_unused]] const DNSName& qname, [[maybe_unused]] const QType& qt, const vector<Comment>& comments)
+// NOLINTNEXTLINE(readability-identifier-length)
+bool LMDBBackend::replaceComments([[maybe_unused]] domainid_t domain_id, [[maybe_unused]] const DNSName& qname, [[maybe_unused]] const QType& qt, const vector<Comment>& comments)
 {
   // if the vector is empty, good, that's what we do here (LMDB does not store comments)
   // if it's not, report failure
@@ -1292,7 +1296,8 @@ bool LMDBBackend::replaceComments([[maybe_unused]] const uint32_t domain_id, [[m
 }
 
 // tempting to templatize these two functions but the pain is not worth it
-std::shared_ptr<LMDBBackend::RecordsRWTransaction> LMDBBackend::getRecordsRWTransaction(uint32_t id)
+// NOLINTNEXTLINE(readability-identifier-length)
+std::shared_ptr<LMDBBackend::RecordsRWTransaction> LMDBBackend::getRecordsRWTransaction(domainid_t id)
 {
   auto& shard = d_trecords[id % s_shards];
   if (!shard.env) {
@@ -1306,7 +1311,8 @@ std::shared_ptr<LMDBBackend::RecordsRWTransaction> LMDBBackend::getRecordsRWTran
   return ret;
 }
 
-std::shared_ptr<LMDBBackend::RecordsROTransaction> LMDBBackend::getRecordsROTransaction(uint32_t id, const std::shared_ptr<LMDBBackend::RecordsRWTransaction>& rwtxn)
+// NOLINTNEXTLINE(readability-identifier-length)
+std::shared_ptr<LMDBBackend::RecordsROTransaction> LMDBBackend::getRecordsROTransaction(domainid_t id, const std::shared_ptr<LMDBBackend::RecordsRWTransaction>& rwtxn)
 {
   auto& shard = d_trecords[id % s_shards];
   if (!shard.env) {
@@ -1403,7 +1409,7 @@ bool LMDBBackend::deleteDomain(const ZoneName& domain)
   return true;
 }
 
-bool LMDBBackend::list(const ZoneName& target, int /* id */, bool include_disabled)
+bool LMDBBackend::list(const ZoneName& target, domainid_t /* id */, bool include_disabled)
 {
   d_includedisabled = include_disabled;
 
@@ -1440,7 +1446,7 @@ bool LMDBBackend::list(const ZoneName& target, int /* id */, bool include_disabl
   return true;
 }
 
-void LMDBBackend::lookupInternal(const QType& type, const DNSName& qdomain, int zoneId, DNSPacket* /* p */, bool include_disabled)
+void LMDBBackend::lookupInternal(const QType& type, const DNSName& qdomain, domainid_t zoneId, DNSPacket* /* p */, bool include_disabled)
 {
   if (d_dolog) {
     g_log << Logger::Warning << "Got lookup for " << qdomain << "|" << type.toString() << " in zone " << zoneId << endl;
@@ -1451,13 +1457,13 @@ void LMDBBackend::lookupInternal(const QType& type, const DNSName& qdomain, int 
 
   ZoneName hunt(qdomain);
   DomainInfo di;
-  if (zoneId < 0) {
+  if (zoneId == UnknownDomainID) {
     auto rotxn = d_tdomains->getROTransaction();
 
     do {
       zoneId = rotxn.get<0>(hunt, di);
-    } while (!zoneId && type != QType::SOA && hunt.chopOff());
-    if (zoneId <= 0) {
+    } while (zoneId == 0 && type != QType::SOA && hunt.chopOff());
+    if (zoneId == 0) {
       //      cout << "Did not find zone for "<< qdomain<<endl;
       d_getcursor.reset();
       return;
@@ -1659,7 +1665,8 @@ int LMDBBackend::genChangeDomain(const ZoneName& domain, const std::function<voi
   return true;
 }
 
-int LMDBBackend::genChangeDomain(uint32_t id, const std::function<void(DomainInfo&)>& func)
+// NOLINTNEXTLINE(readability-identifier-length)
+int LMDBBackend::genChangeDomain(domainid_t id, const std::function<void(DomainInfo&)>& func)
 {
   DomainInfo di;
 
@@ -1812,14 +1819,14 @@ void LMDBBackend::getUnfreshSecondaryInfos(vector<DomainInfo>* domains)
   });
 }
 
-void LMDBBackend::setStale(uint32_t domain_id)
+void LMDBBackend::setStale(domainid_t domain_id)
 {
   genChangeDomain(domain_id, [](DomainInfo& di) {
     di.last_check = 0;
   });
 }
 
-void LMDBBackend::setFresh(uint32_t domain_id)
+void LMDBBackend::setFresh(domainid_t domain_id)
 {
   genChangeDomain(domain_id, [](DomainInfo& di) {
     di.last_check = time(nullptr);
@@ -1855,7 +1862,7 @@ void LMDBBackend::getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::u
   });
 }
 
-void LMDBBackend::setNotified(uint32_t domain_id, uint32_t serial)
+void LMDBBackend::setNotified(domainid_t domain_id, uint32_t serial)
 {
   genChangeDomain(domain_id, [serial](DomainInfo& di) {
     di.notified_serial = serial;
@@ -2071,7 +2078,8 @@ bool LMDBBackend::unpublishDomainKey(const ZoneName& name, unsigned int keyId)
   return true;
 }
 
-bool LMDBBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after)
+// NOLINTNEXTLINE(readability-function-cognitive-complexity,readability-identifier-length)
+bool LMDBBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after)
 {
   //  cout << __PRETTY_FUNCTION__<< ": "<<id <<", "<<qname << " " << unhashed<<endl;
 
@@ -2290,7 +2298,7 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
   return true;
 }
 
-bool LMDBBackend::getBeforeAndAfterNames(uint32_t domainId, const ZoneName& zonenameU, const DNSName& qname, DNSName& before, DNSName& after)
+bool LMDBBackend::getBeforeAndAfterNames(domainid_t domainId, const ZoneName& zonenameU, const DNSName& qname, DNSName& before, DNSName& after)
 {
   ZoneName zonename = zonenameU.makeLowerCase();
   //  cout << __PRETTY_FUNCTION__<< ": "<<domainId <<", "<<zonename << ", '"<<qname<<"'"<<endl;
@@ -2414,7 +2422,7 @@ bool LMDBBackend::getBeforeAndAfterNames(uint32_t domainId, const ZoneName& zone
   return true;
 }
 
-bool LMDBBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype)
+bool LMDBBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype)
 {
   //  cout << __PRETTY_FUNCTION__<< ": "<< domain_id <<", '"<<qname <<"', '"<<ordername<<"', "<<auth<< ", " << qtype << endl;
   shared_ptr<RecordsRWTransaction> txn;
@@ -2523,7 +2531,7 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
   return false;
 }
 
-bool LMDBBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& insert, set<DNSName>& erase, bool remove)
+bool LMDBBackend::updateEmptyNonTerminals(domainid_t domain_id, set<DNSName>& insert, set<DNSName>& erase, bool remove)
 {
   // cout << __PRETTY_FUNCTION__<< ": "<< domain_id << ", insert.size() "<<insert.size()<<", "<<erase.size()<<", " <<remove<<endl;
 
@@ -2541,7 +2549,7 @@ bool LMDBBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& inse
 
   // if remove is set, all ENTs should be removed & nothing else should be done
   if (remove) {
-    deleteDomainRecords(*txn, domain_id, 0);
+    LMDBBackend::deleteDomainRecords(*txn, domain_id, 0);
   }
   else {
     DomainInfo di;
@@ -2784,10 +2792,10 @@ string LMDBBackend::directBackendCmd(const string& query)
         return "can only refresh in the domains index\n";
       }
 
-      uint32_t id = 0;
+      domainid_t id = 0; // NOLINT(readability-identifier-length)
 
       try {
-        id = pdns::checked_stoi<uint32_t>(argv[3]);
+        pdns::checked_stoi_into(id, argv[3]);
       }
       catch (const std::out_of_range& e) {
         return "ID out of range\n";

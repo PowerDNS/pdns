@@ -53,7 +53,6 @@ void CommunicatorClass::queueNotifyDomain(const DomainInfo& di, UeberBackend* B)
 
   try {
     if (d_onlyNotify.size()) {
-      // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
       B->lookup(QType(QType::NS), di.zone.operator const DNSName&(), di.id);
       while (B->get(rr))
         nsset.insert(getRR<NSRecordContent>(rr.dr)->getNS());
@@ -170,7 +169,7 @@ void CommunicatorClass::getUpdatedProducers(UeberBackend* B, vector<DomainInfo>&
 
         DNSResourceRecord rr;
         makeIncreasedSOARecord(sd, "EPOCH", "", rr);
-        di.backend->startTransaction(ZoneName(sd.qname), -1);
+        di.backend->startTransaction(ZoneName(sd.qname), UnknownDomainID);
         if (!di.backend->replaceRRSet(di.id, rr.qname, rr.qtype, vector<DNSResourceRecord>(1, rr))) {
           di.backend->abortTransaction();
           throw PDNSException("backend hosting producer zone '" + sd.qname.toLogString() + "' does not support editing records");

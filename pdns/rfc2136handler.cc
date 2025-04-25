@@ -277,7 +277,6 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
             break;
 
           bool foundShorter = false;
-          // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
           di->backend->lookup(QType(QType::ANY), shorter.operator const DNSName&(), di->id);
           while (di->backend->get(rec)) {
             if (rec.qname == rr->d_name && rec.qtype == QType::DS)
@@ -339,7 +338,6 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
         DLOG(g_log<<msgPrefix<<"Going to fix auth flags below "<<rr->d_name<<endl);
         insnonterm.clear(); // No ENT's are needed below delegates (auth=0)
         vector<DNSName> qnames;
-        // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
         di->backend->listSubZone(ZoneName(rr->d_name), di->id);
         while(di->backend->get(rec)) {
           if (rec.qtype.getCode() && rec.qtype.getCode() != QType::DS && rr->d_name != rec.qname) // Skip ENT, DS and our already corrected record.
@@ -439,7 +437,6 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
       // If we've removed a delegate, we need to reset ordername/auth for some records.
       if (rrType == QType::NS && rr->d_name != di->zone.operator const DNSName&()) { 
         vector<DNSName> belowOldDelegate, nsRecs, updateAuthFlag;
-        // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
         di->backend->listSubZone(ZoneName(rr->d_name), di->id);
         while (di->backend->get(rec)) {
           if (rec.qtype.getCode()) // skip ENT records, they are always auth=false
@@ -481,7 +478,6 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
       // on that level. If so, we must insert an ENT record.
       // We take extra care here to not 'include' the record that we just deleted. Some backends will still return it as they only reload on a commit.
       bool foundDeeper = false, foundOtherWithSameName = false;
-      // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
       di->backend->listSubZone(ZoneName(rr->d_name), di->id);
       while (di->backend->get(rec)) {
         if (rec.qname == rr->d_name && !count(recordsToDelete.begin(), recordsToDelete.end(), rec))
@@ -793,7 +789,7 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
 
   std::lock_guard<std::mutex> l(s_rfc2136lock); //TODO: i think this lock can be per zone, not for everything
   g_log<<Logger::Info<<msgPrefix<<"starting transaction."<<endl;
-  if (!di.backend->startTransaction(zonename, -1)) { // Not giving the domain_id means that we do not delete the existing records.
+  if (!di.backend->startTransaction(zonename, UnknownDomainID)) { // Not giving the domain_id means that we do not delete the existing records.
     g_log<<Logger::Error<<msgPrefix<<"Backend for domain "<<zonename<<" does not support transaction. Can't do Update packet."<<endl;
     return RCode::NotImp;
   }
@@ -971,7 +967,6 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
     if (nsRRtoDelete.size()) {
       vector<DNSResourceRecord> nsRRInZone;
       DNSResourceRecord rec;
-      // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
       di.backend->lookup(QType(QType::NS), di.zone.operator const DNSName&(), di.id);
       while (di.backend->get(rec)) {
         nsRRInZone.push_back(rec);

@@ -33,6 +33,6 @@ public:
   string account; //!< account last updating this comment
   string content; //!< The actual comment. Example: blah blah
 
-  int domain_id{0};
+  domainid_t domain_id{0};
   QType qtype; //!< qtype of the associated RRset, ie A, CNAME, MX etc
 };

@@ -28,7 +28,7 @@
 #include <utility>
 
 static string backendname = "[TinyDNSBackend] ";
-uint32_t TinyDNSBackend::s_lastId;
+domainid_t TinyDNSBackend::s_lastId;
 LockGuarded<TinyDNSBackend::TDI_suffix_t> TinyDNSBackend::s_domainInfo;
 
 vector<string> TinyDNSBackend::getLocations()
@@ -131,7 +131,8 @@ void TinyDNSBackend::getUpdatedPrimaries(vector<DomainInfo>& retDomains, std::un
   }
 }
 
-void TinyDNSBackend::setNotified(uint32_t id, uint32_t serial)
+// NOLINTNEXTLINE(readability-identifier-length)
+void TinyDNSBackend::setNotified(domainid_t id, uint32_t serial)
 {
   auto domainInfo = s_domainInfo.lock();
   if (!domainInfo->count(d_suffix)) {
@@ -171,7 +172,7 @@ void TinyDNSBackend::getAllDomains_locked(vector<DomainInfo>* domains, bool getS
   while (get(rr)) {
     if (rr.qtype.getCode() == QType::SOA && dupcheck.insert(rr.qname).second) {
       DomainInfo di;
-      di.id = -1; // Will be overridden by caller
+      di.id = UnknownDomainID; // Will be overridden by caller
       di.backend = this;
       di.zone = ZoneName(rr.qname);
       di.kind = DomainInfo::Primary;
@@ -240,7 +241,7 @@ bool TinyDNSBackend::getDomainInfo(const ZoneName& domain, DomainInfo& di, bool 
   return found;
 }
 
-bool TinyDNSBackend::list(const ZoneName& target, int /* domain_id */, bool /* include_disabled */)
+bool TinyDNSBackend::list(const ZoneName& target, domainid_t /* domain_id */, bool /* include_disabled */)
 {
   d_isAxfr = true;
   d_isGetDomains = false;
@@ -256,7 +257,7 @@ bool TinyDNSBackend::list(const ZoneName& target, int /* domain_id */, bool /* i
   return d_cdbReader->searchSuffix(key);
 }
 
-void TinyDNSBackend::lookup(const QType& qtype, const DNSName& qdomain, int /* zoneId */, DNSPacket* pkt_p)
+void TinyDNSBackend::lookup(const QType& qtype, const DNSName& qdomain, domainid_t /* zoneId */, DNSPacket* pkt_p)
 {
   d_isAxfr = false;
   d_isGetDomains = false;

@@ -69,34 +69,34 @@ public:
   ~LMDBBackend();
 
   unsigned int getCapabilities() override { return CAP_DNSSEC | CAP_DIRECT | CAP_LIST | CAP_CREATE; }
-  bool list(const ZoneName& target, int domainId, bool include_disabled) override;
+  bool list(const ZoneName& target, domainid_t domainId, bool include_disabled) override;
 
   bool getDomainInfo(const ZoneName& domain, DomainInfo& info, bool getserial = true) override;
   bool createDomain(const ZoneName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account) override;
 
-  bool startTransaction(const ZoneName& domain, int domain_id = -1) override;
+  bool startTransaction(const ZoneName& domain, domainid_t domain_id = UnknownDomainID) override;
   bool commitTransaction() override;
   bool abortTransaction() override;
   bool feedRecord(const DNSResourceRecord& r, const DNSName& ordername, bool ordernameIsNSEC3 = false) override;
-  bool feedEnts(int domain_id, map<DNSName, bool>& nonterm) override;
-  bool feedEnts3(int domain_id, const DNSName& domain, map<DNSName, bool>& nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow) override;
-  bool replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset) override;
-  bool replaceComments(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<Comment>& comments) override;
+  bool feedEnts(domainid_t domain_id, map<DNSName, bool>& nonterm) override;
+  bool feedEnts3(domainid_t domain_id, const DNSName& domain, map<DNSName, bool>& nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow) override;
+  bool replaceRRSet(domainid_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset) override;
+  bool replaceComments(domainid_t domain_id, const DNSName& qname, const QType& qt, const vector<Comment>& comments) override;
 
   void getAllDomains(vector<DomainInfo>* domains, bool doSerial, bool include_disabled) override;
-  void lookup(const QType& type, const DNSName& qdomain, int zoneId, DNSPacket* p = nullptr) override { lookupInternal(type, qdomain, zoneId, p, false); }
-  void APILookup(const QType& type, const DNSName& qdomain, int zoneId, bool include_disabled = false) override { lookupInternal(type, qdomain, zoneId, nullptr, include_disabled); }
+  void lookup(const QType& type, const DNSName& qdomain, domainid_t zoneId, DNSPacket* p = nullptr) override { lookupInternal(type, qdomain, zoneId, p, false); }
+  void APILookup(const QType& type, const DNSName& qdomain, domainid_t zoneId, bool include_disabled = false) override { lookupInternal(type, qdomain, zoneId, nullptr, include_disabled); }
   bool get(DNSResourceRecord& rr) override;
   bool get(DNSZoneRecord& dzr) override;
 
   // secondary support
   void getUnfreshSecondaryInfos(vector<DomainInfo>* domains) override;
-  void setStale(uint32_t domain_id) override;
-  void setFresh(uint32_t domain_id) override;
+  void setStale(domainid_t domain_id) override;
+  void setFresh(domainid_t domain_id) override;
 
   // primary support
   void getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes) override;
-  void setNotified(uint32_t id, uint32_t serial) override;
+  void setNotified(domainid_t id, uint32_t serial) override;
 
   // catalog zones
   bool getCatalogMembers(const ZoneName& catalog, vector<CatalogInfo>& members, CatalogInfo::CatalogType type) override;
@@ -143,13 +143,13 @@ public:
 
   // DNSSEC
 
-  bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) override;
+  bool getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) override;
 
-  bool getBeforeAndAfterNames(uint32_t domainId, const ZoneName& zonename, const DNSName& qname, DNSName& before, DNSName& after) override;
+  bool getBeforeAndAfterNames(domainid_t domainId, const ZoneName& zonename, const DNSName& qname, DNSName& before, DNSName& after) override;
 
-  bool updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype = QType::ANY) override;
+  bool updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype = QType::ANY) override;
 
-  bool updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& insert, set<DNSName>& erase, bool remove) override;
+  bool updateEmptyNonTerminals(domainid_t domain_id, set<DNSName>& insert, set<DNSName>& erase, bool remove) override;
 
   // other
   string directBackendCmd(const string& query) override;
@@ -190,11 +190,11 @@ private:
       return operator()(rr.domain_id, rr.qname, rr.qtype.getCode());
     }
 
-    static uint32_t getDomainID(const string_view& key)
+    static domainid_t getDomainID(const string_view& key)
     {
       uint32_t ret;
       memcpy(&ret, &key[0], sizeof(ret));
-      return ntohl(ret);
+      return static_cast<domainid_t>(ntohl(ret));
     }
 
     static DNSName getQName(const string_view& key)
@@ -310,15 +310,15 @@ private:
   shared_ptr<RecordsROTransaction> d_rotxn; // for lookup and list
   shared_ptr<RecordsRWTransaction> d_rwtxn; // for feedrecord within begin/aborttransaction
   bool d_txnorder{false}; // whether d_rotxn is more recent than d_rwtxn
-  std::shared_ptr<RecordsRWTransaction> getRecordsRWTransaction(uint32_t id);
-  std::shared_ptr<RecordsROTransaction> getRecordsROTransaction(uint32_t id, const std::shared_ptr<LMDBBackend::RecordsRWTransaction>& rwtxn = nullptr);
+  std::shared_ptr<RecordsRWTransaction> getRecordsRWTransaction(domainid_t id);
+  std::shared_ptr<RecordsROTransaction> getRecordsROTransaction(domainid_t id, const std::shared_ptr<LMDBBackend::RecordsRWTransaction>& rwtxn = nullptr);
   int genChangeDomain(const ZoneName& domain, const std::function<void(DomainInfo&)>& func);
-  int genChangeDomain(uint32_t id, const std::function<void(DomainInfo&)>& func);
-  void deleteDomainRecords(RecordsRWTransaction& txn, uint32_t domain_id, uint16_t qtype = QType::ANY);
+  int genChangeDomain(domainid_t id, const std::function<void(DomainInfo&)>& func);
+  static void deleteDomainRecords(RecordsRWTransaction& txn, domainid_t domain_id, uint16_t qtype = QType::ANY);
 
   void getAllDomainsFiltered(vector<DomainInfo>* domains, const std::function<bool(DomainInfo&)>& allow);
 
-  void lookupInternal(const QType& type, const DNSName& qdomain, int zoneId, DNSPacket* p, bool include_disabled);
+  void lookupInternal(const QType& type, const DNSName& qdomain, domainid_t zoneId, DNSPacket* p, bool include_disabled);
   bool getSerial(DomainInfo& di);
 
   bool get_list(DNSZoneRecord& rr);
@@ -333,7 +333,7 @@ private:
   bool d_includedisabled;
 
   ZoneName d_transactiondomain;
-  uint32_t d_transactiondomainid;
+  domainid_t d_transactiondomainid;
   bool d_dolog;
   bool d_random_ids;
   bool d_handle_dups;

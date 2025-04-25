@@ -908,7 +908,7 @@ static int checkAllZones(DNSSECKeeper &dk, bool exitOnError)
     DomainInfo,
     indexed_by<
       ordered_non_unique< member<DomainInfo,ZoneName,&DomainInfo::zone>, CanonZoneNameCompare >,
-      ordered_non_unique< member<DomainInfo,uint32_t,&DomainInfo::id> >
+      ordered_non_unique< member<DomainInfo,domainid_t,&DomainInfo::id> >
     >
   > seenInfos;
   auto& seenNames = seenInfos.get<0>();
@@ -979,7 +979,7 @@ static int increaseSerial(const ZoneName& zone, DNSSECKeeper &dsk)
   DNSResourceRecord rr;
   makeIncreasedSOARecord(sd, "SOA-EDIT-INCREASE", soaEditKind, rr);
 
-  sd.db->startTransaction(zone, -1);
+  sd.db->startTransaction(zone, UnknownDomainID);
 
   auto rrs = vector<DNSResourceRecord>{rr};
   if (!sd.db->replaceRRSet(sd.domain_id, zone.operator const DNSName&(), rr.qtype, rrs)) {
@@ -1018,7 +1018,7 @@ static int deleteZone(const ZoneName &zone) {
     return EXIT_FAILURE;
   }
 
-  di.backend->startTransaction(zone, -1);
+  di.backend->startTransaction(zone, UnknownDomainID);
   try {
     if(di.backend->deleteDomain(zone)) {
       di.backend->commitTransaction();
@@ -1477,7 +1477,7 @@ static int editZone(const ZoneName &zone, const PDNSColors& col) {
   else if(changed.empty() || c!='a')
     goto reAsk2;
 
-  di.backend->startTransaction(zone, -1);
+  di.backend->startTransaction(zone, UnknownDomainID);
   for(const auto& change : changed) {
     vector<DNSResourceRecord> vrr;
     for(const DNSRecord& rr : grouped[change.first]) {
@@ -1706,7 +1706,7 @@ static int addOrReplaceRecord(bool isAdd, const vector<string>& cmds) {
     }
   }
 
-  di.backend->startTransaction(zone, -1);
+  di.backend->startTransaction(zone, UnknownDomainID);
 
   // Enforce that CNAME records can not be mixed with any other.
   // If we add a CNAME: there should be no existing records except for one
@@ -1856,7 +1856,7 @@ static int deleteRRSet(const std::string& zone_, const std::string& name_, const
     name=DNSName(name_)+zone.operator const DNSName&();
 
   QType qt(QType::chartocode(type_.c_str()));
-  di.backend->startTransaction(zone, -1);
+  di.backend->startTransaction(zone, UnknownDomainID);
   di.backend->replaceRRSet(di.id, name, qt, vector<DNSResourceRecord>());
   di.backend->commitTransaction();
   return EXIT_SUCCESS;
@@ -2265,7 +2265,6 @@ static bool showZone(DNSSECKeeper& dnsseckeeper, const ZoneName& zone, bool expo
     vector<DNSKEYRecordContent> keys;
     DNSZoneRecord zr;
 
-    // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
     di.backend->lookup(QType(QType::DNSKEY), zone.operator const DNSName&(), di.id );
     while(di.backend->get(zr)) {
       keys.push_back(*getRR<DNSKEYRecordContent>(zr.dr));
@@ -2520,7 +2519,6 @@ static int testSchema(DNSSECKeeper& dsk, const ZoneName& zone)
   cout<<"Committing"<<endl;
   db->commitTransaction();
   cout<<"Querying TXT"<<endl;
-  // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
   db->lookup(QType(QType::TXT), zone.operator const DNSName&(), di.id);
   if(db->get(rrget))
   {
@@ -3357,7 +3355,7 @@ static int secureZone(vector<string>& cmds, const std::string_view synopsis)
   unsigned int zoneErrors=0;
   for(unsigned int n = 1; n < cmds.size(); ++n) { // NOLINT(readability-identifier-length)
     ZoneName zone(cmds.at(n));
-    dk.startTransaction(zone, -1);
+    dk.startTransaction(zone, UnknownDomainID);
     if(secureZone(dk, zone)) {
       mustRectify.push_back(std::move(zone));
     } else {
@@ -4368,17 +4366,14 @@ static int B2BMigrate(vector<string>& cmds, const std::string_view synopsis)
       throw PDNSException("Failed to create zone");
     }
     // move records
-    // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
     if (!src->list(di.zone, di.id, true)) {
       throw PDNSException("Failed to list records");
     }
     nr=0;
 
-    // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
     tgt->startTransaction(di.zone, di_new.id);
 
     while(src->get(rr)) {
-      // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
       rr.domain_id = di_new.id;
       if (!tgt->feedRecord(rr, DNSName())) {
         throw PDNSException("Failed to feed record");
@@ -4394,7 +4389,6 @@ static int B2BMigrate(vector<string>& cmds, const std::string_view synopsis)
       }
       Comment c; // NOLINT(readability-identifier-length)
       while(src->getComment(c)) {
-        // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
         c.domain_id = di_new.id;
         if (!tgt->feedComment(c)) {
           throw PDNSException("Failed to feed zone comments");

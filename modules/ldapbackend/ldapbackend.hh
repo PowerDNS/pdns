@@ -82,15 +82,15 @@ class LdapBackend : public DNSBackend
   PowerLDAP* d_pldap;
   LdapAuthenticator* d_authenticator;
 
-  bool (LdapBackend::*d_list_fcnt)(const ZoneName&, int);
-  void (LdapBackend::*d_lookup_fcnt)(const QType&, const DNSName&, DNSPacket*, int);
+  bool (LdapBackend::*d_list_fcnt)(const ZoneName&, domainid_t);
+  void (LdapBackend::*d_lookup_fcnt)(const QType&, const DNSName&, DNSPacket*, domainid_t);
 
-  bool list_simple(const ZoneName& target, int domain_id);
-  bool list_strict(const ZoneName& target, int domain_id);
+  bool list_simple(const ZoneName& target, domainid_t domain_id);
+  bool list_strict(const ZoneName& target, domainid_t domain_id);
 
-  void lookup_simple(const QType& qtype, const DNSName& qdomain, DNSPacket* p, int zoneid);
-  void lookup_strict(const QType& qtype, const DNSName& qdomain, DNSPacket* p, int zoneid);
-  void lookup_tree(const QType& qtype, const DNSName& qdomain, DNSPacket* p, int zoneid);
+  void lookup_simple(const QType& qtype, const DNSName& qname, DNSPacket* p, domainid_t zoneid);
+  void lookup_strict(const QType& qtype, const DNSName& qname, DNSPacket* p, domainid_t zoneid);
+  void lookup_tree(const QType& qtype, const DNSName& qname, DNSPacket* p, domainid_t zoneid);
 
   bool reconnect();
 
@@ -111,13 +111,13 @@ public:
 
   // Native backend
   unsigned int getCapabilities() override { return CAP_LIST; }
-  bool list(const ZoneName& target, int domain_id, bool include_disabled = false) override;
-  void lookup(const QType& qtype, const DNSName& qdomain, int zoneid, DNSPacket* p = nullptr) override;
+  bool list(const ZoneName& target, domainid_t domain_id, bool include_disabled = false) override;
+  void lookup(const QType& qtype, const DNSName& qname, domainid_t zoneid, DNSPacket* dnspkt = nullptr) override;
   bool get(DNSResourceRecord& rr) override;
 
   bool getDomainInfo(const ZoneName& domain, DomainInfo& info, bool getSerial = true) override;
 
   // Primary backend
   void getUpdatedPrimaries(vector<DomainInfo>& domains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes) override;
-  void setNotified(uint32_t id, uint32_t serial) override;
+  void setNotified(domainid_t id, uint32_t serial) override;
 };

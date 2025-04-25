@@ -1997,7 +1997,7 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
     throw ApiException("Creating domain '" + zonename.toString() + "' failed: lookup of domain ID failed");
   }
 
-  domainInfo.backend->startTransaction(zonename, static_cast<int>(domainInfo.id));
+  domainInfo.backend->startTransaction(zonename, domainInfo.id);
 
   // will be overridden by updateDomainSettingsFromDocument, if given in document.
   domainInfo.backend->setDomainMetadataOne(zonename, "SOA-EDIT-API", "DEFAULT");
@@ -2144,7 +2144,7 @@ static void apiServerZoneDetailPUT(HttpRequest* req, HttpResponse* resp)
 
     checkNewRecords(new_records, zoneData.zoneName);
 
-    zoneData.domainInfo.backend->startTransaction(zoneData.zoneName, static_cast<int>(zoneData.domainInfo.id));
+    zoneData.domainInfo.backend->startTransaction(zoneData.zoneName, zoneData.domainInfo.id);
     for (auto& resourceRecord : new_records) {
       resourceRecord.domain_id = static_cast<int>(zoneData.domainInfo.id);
       zoneData.domainInfo.backend->feedRecord(resourceRecord, DNSName());
@@ -2160,7 +2160,7 @@ static void apiServerZoneDetailPUT(HttpRequest* req, HttpResponse* resp)
   }
   else {
     // avoid deleting current zone contents
-    zoneData.domainInfo.backend->startTransaction(zoneData.zoneName, -1);
+    zoneData.domainInfo.backend->startTransaction(zoneData.zoneName, UnknownDomainID);
   }
 
   // updateDomainSettingsFromDocument will rectify the zone and update SOA serial.
@@ -2179,7 +2179,7 @@ static void apiServerZoneDetailDELETE(HttpRequest* req, HttpResponse* resp)
 
   // delete domain
 
-  zoneData.domainInfo.backend->startTransaction(zoneData.zoneName, -1);
+  zoneData.domainInfo.backend->startTransaction(zoneData.zoneName, UnknownDomainID);
   try {
     if (!zoneData.domainInfo.backend->deleteDomain(zoneData.zoneName)) {
       throw ApiException("Deleting domain '" + zoneData.zoneName.toString() + "' failed: backend delete failed/unsupported");

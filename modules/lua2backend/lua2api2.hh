@@ -35,10 +35,10 @@ private:
   typedef std::vector<std::pair<string, string>> lookup_context_t;
 
   typedef std::vector<std::pair<int, std::vector<std::pair<string, boost::variant<bool, int, DNSName, string, QType>>>>> lookup_result_t;
-  typedef std::function<lookup_result_t(const QType& qtype, const DNSName& qname, int domain_id, const lookup_context_t& ctx)> lookup_call_t;
+  typedef std::function<lookup_result_t(const QType& qtype, const DNSName& qname, domainid_t domain_id, const lookup_context_t& ctx)> lookup_call_t;
 
   typedef boost::variant<bool, lookup_result_t> list_result_t;
-  typedef std::function<list_result_t(const DNSName& qname, int domain_id)> list_call_t;
+  typedef std::function<list_result_t(const DNSName& qname, domainid_t domain_id)> list_call_t;
 
   typedef vector<pair<string, boost::variant<bool, long, string, vector<string>>>> domaininfo_result_t;
   typedef boost::variant<bool, domaininfo_result_t> get_domaininfo_result_t;
@@ -58,9 +58,9 @@ private:
 
   typedef std::vector<std::pair<string, boost::variant<string, DNSName>>> before_and_after_names_result_t;
   typedef boost::variant<bool, before_and_after_names_result_t> get_before_and_after_names_absolute_result_t;
-  typedef std::function<get_before_and_after_names_absolute_result_t(int id, const DNSName& qname)> get_before_and_after_names_absolute_call_t;
+  typedef std::function<get_before_and_after_names_absolute_result_t(domainid_t id, const DNSName& qname)> get_before_and_after_names_absolute_call_t;
 
-  typedef std::function<void(int, long)> set_notified_call_t;
+  typedef std::function<void(domainid_t, long)> set_notified_call_t;
 
   typedef std::function<string(const string& cmd)> direct_backend_cmd_call_t;
 
@@ -183,7 +183,7 @@ public:
       g_log << Logger::Debug << "[" << getPrefix() << "] Got empty result" << endl;
   }
 
-  bool list(const ZoneName& target, int domain_id, bool /* include_disabled */ = false) override
+  bool list(const ZoneName& target, domainid_t domain_id, bool /* include_disabled */ = false) override
   {
     if (f_list == nullptr) {
       g_log << Logger::Error << "[" << getPrefix() << "] dns_list missing - cannot do AXFR" << endl;
@@ -204,7 +204,7 @@ public:
     return true;
   }
 
-  void lookup(const QType& qtype, const DNSName& qname, int domain_id, DNSPacket* p = nullptr) override
+  void lookup(const QType& qtype, const DNSName& qname, domainid_t domain_id, DNSPacket* p = nullptr) override
   {
     if (d_result.size() != 0)
       throw PDNSException("lookup attempted while another was running");
@@ -246,12 +246,12 @@ public:
     return f(par);
   }
 
-  void setNotified(uint32_t id, uint32_t serial) override
+  void setNotified(domainid_t id, uint32_t serial) override
   {
     if (f_set_notified == NULL)
       return;
-    logCall("dns_set_notified", "id=" << static_cast<int>(id) << ",serial=" << serial);
-    f_set_notified(static_cast<int>(id), serial);
+    logCall("dns_set_notified", "id=" << id << ",serial=" << serial);
+    f_set_notified(id, serial);
   }
 
   void parseDomainInfo(const domaininfo_result_t& row, DomainInfo& di)
@@ -265,7 +265,7 @@ public:
         for (const auto& primary : boost::get<vector<string>>(item.second))
           di.primaries.push_back(ComboAddress(primary, 53));
       else if (item.first == "id")
-        di.id = static_cast<int>(boost::get<long>(item.second));
+        di.id = static_cast<domainid_t>(boost::get<long>(item.second));
       else if (item.first == "notified_serial")
         di.notified_serial = static_cast<unsigned int>(boost::get<long>(item.second));
       else if (item.first == "serial")
@@ -393,7 +393,7 @@ public:
     return true;
   }
 
-  bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) override
+  bool getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) override
   {
     if (f_get_before_and_after_names_absolute == nullptr)
       return false;
