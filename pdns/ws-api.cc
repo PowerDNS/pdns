@@ -357,14 +357,14 @@ string apiZoneNameToId(const ZoneName& dname)
   return identifier;
 }
 
-void apiCheckNameAllowedCharacters(const string& name)
+void apiCheckNameAllowedCharacters(std::string_view name)
 {
   if (name.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890_/.-") != std::string::npos) {
-    throw ApiException("Name '" + name + "' contains unsupported characters");
+    throw ApiException("Name '" + std::string(name) + "' contains unsupported characters");
   }
 }
 
-void apiCheckQNameAllowedCharacters(const string& qname)
+void apiCheckQNameAllowedCharacters(std::string_view qname)
 {
   if (qname.compare(0, 2, "*.") == 0) {
     apiCheckNameAllowedCharacters(qname.substr(2));
