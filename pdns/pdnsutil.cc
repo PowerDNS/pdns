@@ -253,11 +253,13 @@ static void dbBench(const std::string& fname)
   unsigned int hits=0, misses=0;
   for(; n < 10000; ++n) {
     DNSName domain(domains[dns_random(domains.size())]);
-    B.lookup(QType(QType::NS), domain, -1);
+    // Safe to pass UnknownDomainID here
+    B.lookup(QType(QType::NS), domain, UnknownDomainID);
     while(B.get(rr)) {
       hits++;
     }
-    B.lookup(QType(QType::A), DNSName(std::to_string(dns_random_uint32()))+domain, -1);
+    // Safe to pass UnknownDomainID here
+    B.lookup(QType(QType::A), DNSName(std::to_string(dns_random_uint32()))+domain, UnknownDomainID);
     while(B.get(rr)) {
     }
     misses++;

@@ -168,8 +168,8 @@ public:
   ~RemoteBackend() override;
 
   unsigned int getCapabilities() override;
-  void lookup(const QType& qtype, const DNSName& qdomain, domainid_t zoneId = UnknownDomainID, DNSPacket* pkt_p = nullptr) override;
-  void APILookup(const QType& qtype, const DNSName& qdomain, domainid_t zoneId = UnknownDomainID, bool include_disabled = false) override;
+  void lookup(const QType& qtype, const DNSName& qdomain, domainid_t zoneId, DNSPacket* pkt_p = nullptr) override;
+  void APILookup(const QType& qtype, const DNSName& qdomain, domainid_t zoneId, bool include_disabled = false) override;
   bool get(DNSResourceRecord& rr) override;
   bool list(const ZoneName& target, domainid_t domain_id, bool include_disabled = false) override;
 

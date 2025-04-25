@@ -67,7 +67,7 @@ following methods are relevant:
         {
         public:
         virtual unsigned int getCapabilities()=0;
-        virtual void lookup(const QType &qtype, const string &qdomain, domainid_t zoneId=UnknownDomainID, DNSPacket *pkt_p=nullptr)=0;
+        virtual void lookup(const QType &qtype, const string &qdomain, domainid_t zoneId, DNSPacket *pkt_p=nullptr)=0;
         virtual bool list(const string &target, domainid_t domain_id)=0;
         virtual bool get(DNSResourceRecord &r)=0;
         virtual bool getSOA(const string &name, domainid_t zoneId, SOAData &soadata);
@@ -355,7 +355,7 @@ Methods
 * `CAP_DNSSEC`     Backend implements :ref:`backend-dnssec`.
 * `CAP_LIST`       Backend implements `list`, for AXFR or `pdnsutil list-zone`
 
-.. cpp:function:: void DNSBackend::lookup(const QType &qtype, const string &qdomain, domainid_t zoneId=UnknownDomainID, DNSPacket *pkt=nullptr)
+.. cpp:function:: void DNSBackend::lookup(const QType &qtype, const string &qdomain, domainid_t zoneId, DNSPacket *pkt=nullptr)
 
   This function is used to initiate a straight lookup for a record of name
   'qdomain' and type 'qtype'. A QType can be converted into an integer by

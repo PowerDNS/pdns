@@ -169,8 +169,8 @@ public:
   virtual unsigned int getCapabilities() = 0;
 
   //! lookup() initiates a lookup. A lookup without results should not throw!
-  virtual void lookup(const QType& qtype, const DNSName& qdomain, domainid_t zoneId = UnknownDomainID, DNSPacket* pkt_p = nullptr) = 0;
-  virtual void APILookup(const QType& qtype, const DNSName& qdomain, domainid_t zoneId = UnknownDomainID, bool include_disabled = false);
+  virtual void lookup(const QType& qtype, const DNSName& qdomain, domainid_t zoneId, DNSPacket* pkt_p = nullptr) = 0;
+  virtual void APILookup(const QType& qtype, const DNSName& qdomain, domainid_t zoneId, bool include_disabled = false);
   virtual bool get(DNSResourceRecord&) = 0; //!< retrieves one DNSResource record, returns false if no more were available
   virtual bool get(DNSZoneRecord& zoneRecord);
 
