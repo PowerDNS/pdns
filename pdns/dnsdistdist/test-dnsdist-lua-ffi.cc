@@ -445,6 +445,10 @@ BOOST_AUTO_TEST_CASE(test_Response)
     dnsdist_ffi_dnsresponse_clear_records_type(nullptr, QType::A);
     dnsdist_ffi_dnsresponse_clear_records_type(&lightDR, QType::A);
   }
+
+  {
+    BOOST_CHECK_EQUAL(dnsdist_ffi_dnsresponse_get_stale_cache_hit(&lightDR), false);
+  }
 }
 
 BOOST_AUTO_TEST_CASE(test_Server)

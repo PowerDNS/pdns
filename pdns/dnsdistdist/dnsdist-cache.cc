@@ -307,6 +307,7 @@ bool DNSDistPacketCache::get(DNSQuestion& dnsQuestion, uint16_t queryId, uint32_
     }
     else {
       age = (value.validity - value.added) - d_settings.d_staleTTL;
+      dnsQuestion.ids.staleCacheHit = true;
     }
   }
 

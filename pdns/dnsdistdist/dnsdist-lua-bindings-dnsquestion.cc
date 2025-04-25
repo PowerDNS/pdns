@@ -661,5 +661,9 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
   luaCtx.registerFunction<std::shared_ptr<DownstreamState> (DNSResponse::*)(void) const>("getSelectedBackend", [](const DNSResponse& dnsResponse) {
     return dnsResponse.d_downstream;
   });
+
+  luaCtx.registerFunction<bool (DNSResponse::*)()>("getStaleCacheHit", [](DNSResponse& dnsResponse) {
+    return dnsResponse.ids.staleCacheHit;
+  });
 #endif /* DISABLE_NON_FFI_DQ_BINDINGS */
 }
