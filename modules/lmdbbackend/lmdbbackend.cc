@@ -1582,7 +1582,7 @@ void LMDBBackend::lookupInternal(const QType& type, const DNSName& qdomain, int 
     g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": " << d_dtime.udiffNoReset() << " us to execute" << endl;
   }
 
-  d_lookupdomain = hunt;
+  d_lookupdomain = std::move(hunt);
 
   // Make sure we start with fresh data
   d_currentrrset.clear();
@@ -2049,7 +2049,7 @@ bool LMDBBackend::getDomainKeys(const ZoneName& name, std::vector<KeyData>& keys
   for (auto id : ids) {
     if (txn.get(id, key)) {
       KeyData kd{key.content, id, key.flags, key.active, key.published};
-      keys.push_back(kd);
+      keys.emplace_back(std::move(kd));
     }
   }
 

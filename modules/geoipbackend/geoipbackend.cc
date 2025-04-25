@@ -1009,7 +1009,7 @@ bool GeoIPBackend::getDomainKeys(const ZoneName& name, std::vector<DNSBackend::K
             }
             ifs.close();
             kd.content = content.str();
-            keys.push_back(kd);
+            keys.emplace_back(std::move(kd));
           }
         }
       }

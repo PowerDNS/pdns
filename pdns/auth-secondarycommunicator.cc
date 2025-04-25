@@ -515,7 +515,7 @@ void CommunicatorClass::ixfrSuck(const ZoneName& domain, const TSIGTriplet& tsig
             status.soa_serial = sr->d_st.serial;
           }
 
-          replacement.push_back(rr);
+          replacement.emplace_back(std::move(rr));
         }
 
         di.backend->replaceRRSet(di.id, g.first.first.operator const DNSName&() + domain.operator const DNSName&(), QType(g.first.second), replacement);
@@ -772,7 +772,7 @@ void CommunicatorClass::suck(const ZoneName& domain, const ComboAddress& remote,
               auto sd = getRR<SOARecordContent>(dr);
               zs.soa_serial = sd->d_st.serial;
             }
-            rrs.push_back(rr);
+            rrs.emplace_back(std::move(rr));
           }
         }
         else {

@@ -432,7 +432,7 @@ bool RemoteBackend::getDomainKeys(const ZoneName& name, std::vector<DNSBackend::
     key.active = asBool(jsonKey["active"]);
     key.published = boolFromJson(jsonKey, "published", true);
     key.content = stringFromJson(jsonKey, "content");
-    keys.push_back(key);
+    keys.emplace_back(std::move(key));
   }
 
   return true;
