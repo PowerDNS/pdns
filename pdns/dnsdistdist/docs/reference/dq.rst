@@ -438,11 +438,17 @@ DNSResponse object
   If the value is really needed while the response is being processed, it is possible to set a tag while the query is processed, as tags will be passed to the response object.
   It also has additional methods:
 
-  .. method:: DNSResponse.getSelectedBackend() -> Server
+  .. method:: DNSResponse:getSelectedBackend() -> Server
 
     .. versionadded:: 1.9.0
 
     Get the selected backend :class:`Server` or nil
+
+  .. method:: DNSResponse:getStaleCacheHit() -> bool
+
+    .. versionadded:: 2.0.0
+
+    Get the indicator of whether the cache lookup hit a stale entry.
 
   .. method:: DNSResponse:editTTLs(func)
 
