@@ -1079,6 +1079,7 @@ void ServerPool::removeServer(shared_ptr<DownstreamState>& server)
   bool tcpOnly = true;
   for (auto it = newServers->begin(); it != newServers->end();) {
     if (found) {
+      tcpOnly = tcpOnly && it->second->isTCPOnly();
       /* we need to renumber the servers placed
          after the removed one, for Lua (custom policies) */
       it->first = idx++;
@@ -1088,10 +1089,10 @@ void ServerPool::removeServer(shared_ptr<DownstreamState>& server)
       it = newServers->erase(it);
       found = true;
     } else {
+      tcpOnly = tcpOnly && it->second->isTCPOnly();
       idx++;
       it++;
     }
-    tcpOnly = tcpOnly && it->second->isTCPOnly();
   }
   d_tcpOnly = tcpOnly;
   *servers = std::move(newServers);
