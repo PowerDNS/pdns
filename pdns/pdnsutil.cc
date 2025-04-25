@@ -253,11 +253,13 @@ static void dbBench(const std::string& fname)
   unsigned int hits=0, misses=0;
   for(; n < 10000; ++n) {
     DNSName domain(domains[dns_random(domains.size())]);
-    B.lookup(QType(QType::NS), domain, -1);
+    // Safe to pass UnknownDomainID here
+    B.lookup(QType(QType::NS), domain, UnknownDomainID);
     while(B.get(rr)) {
       hits++;
     }
-    B.lookup(QType(QType::A), DNSName(std::to_string(dns_random_uint32()))+domain, -1);
+    // Safe to pass UnknownDomainID here
+    B.lookup(QType(QType::A), DNSName(std::to_string(dns_random_uint32()))+domain, UnknownDomainID);
     while(B.get(rr)) {
     }
     misses++;
@@ -4534,7 +4536,8 @@ static int backendLookup(vector<string>& cmds, const std::string_view synopsis)
     queryPacket.setRealRemote(clientNetmask);
   }
 
-  matchingBackend->lookup(type, name, -1, &queryPacket);
+  // Safe to pass UnknownDomainID here, no use of ZoneName
+  matchingBackend->lookup(type, name, UnknownDomainID, &queryPacket);
 
   bool found = false;
   DNSZoneRecord resultZoneRecord;
