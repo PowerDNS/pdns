@@ -883,6 +883,29 @@ A server object returned by :func:`getServer` can be manipulated with these func
     Administratively set the server in an ``UP`` state.
     This server will still receive queries and health checks are disabled
 
+  .. method:: Server:setHealthCheckParams([parameter_table])
+
+    .. versionadded:: 2.0.0
+
+    Set multiple health check related parameters for this server.
+
+  :param table parameter_table: A table with key=value pairs. Empty parameter or table, and unknown keys/values are safely ignored.
+
+  The supported parameters are in below table, for descriptions of each parameter, please refer to the same field in :func:`newServer`
+
+  .. csv-table::
+    :delim: space
+    :header: Keyword, Type
+    :widths: auto
+
+    ``checkName``                            ``string``
+    ``checkType``                            ``string``
+    ``checkTimeout``                         ``number``
+    ``checkInterval``                        ``number``
+    ``maxCheckFailures``                     ``number``
+    ``rise``                                 ``number``
+    ``checkTCP``                             ``bool``
+
   Apart from the functions, a :class:`Server` object has these attributes:
 
   .. attribute:: Server.name
