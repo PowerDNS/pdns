@@ -1,8 +1,15 @@
 Running and Operating
 =====================
 
-On Linux, PowerDNS is controlled by a systemd service called ``pdns.service``.
-The service definition file should be installed by the binary package, and can also be found in the tarball (``pdns.service.in`` template file).
+On Linux, PowerDNS is controlled by a systemd service called ``pdns.service``
+and optionally by a systemd socket called ``pdns.socket``. The service definition
+file should be installed by the binary package, and can also be found in the tarball
+(``pdns.service.in`` template file).
+
+On Linux, optionally, when  the ``pdns.socket`` is installed, systemd listens for
+incoming requests. When the first request is received on one of these sockets,
+PowerDNS is handed over the systemd sockets, listens for new incoming connections,
+and ignores the ``local-address`` and ``local-port`` settings.
 
 On non-Linux systems, a SysV-style init script can be used, and should be supplied by the operating system packages.
 
