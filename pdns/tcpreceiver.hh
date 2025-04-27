@@ -55,6 +55,8 @@ private:
   static bool canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR, std::unique_ptr<PacketHandler>& packetHandler);
   static void doConnection(int fd);
   static void decrementClientCount(const ComboAddress& remote);
+  void constructLocalAddress();
+  void listenSystemdAddress();
   void thread();
   static LockGuarded<std::map<ComboAddress,size_t,ComboAddress::addressOnlyLessThan>> s_clientsCount;
   static LockGuarded<std::unique_ptr<PacketHandler>> s_P;

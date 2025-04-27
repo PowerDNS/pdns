@@ -86,10 +86,13 @@ public:
   };
   
 private:
+  void bindAddresses();
+  void bindLocalAddresses();
+  void listenSystemdAddresses();
+
   bool d_additional_socket;
   bool d_can_reuseport{false};
   vector<int> d_sockets;
-  void bindAddresses();
   vector<pollfd> d_rfds;
 };
 

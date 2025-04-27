@@ -39,6 +39,9 @@
 #include <string>
 #include "tcpreceiver.hh"
 #include "sstuff.hh"
+#ifdef HAVE_SYSTEMD
+#include <systemd/sd-daemon.h>
+#endif
 
 #include <cerrno>
 #include <csignal>
@@ -1316,6 +1319,37 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
 
 TCPNameserver::~TCPNameserver() = default;
 TCPNameserver::TCPNameserver()
+{
+#ifdef HAVE_SYSTEMD
+	if (sd_listen_fds(0) == 0) {
+		constructLocalAddress();
+	} else {
+		listenSystemdAddress();
+	}
+#else
+	constructLocalAddress();
+#endif
+}
+
+void TCPNameserver::listenSystemdAddress()
+{
+	for (int i = 0; i <  sd_listen_fds(0); i++) {
+		int s = SD_LISTEN_FDS_START + i;
+		if (sd_is_socket(s, AF_INET, SOCK_STREAM, -1) < 0 ||
+				sd_is_socket(s, AF_INET6, SOCK_STREAM, -1) < 0) 
+			continue;
+		listen(s, 128);
+		g_log<<Logger::Error<<"TCP server listening on "<<s<<endl;
+		d_sockets.push_back(s);
+		struct pollfd pfd;
+		memset(&pfd, 0, sizeof(pfd));
+		pfd.fd = s;
+		pfd.events = POLLIN;
+		d_prfds.push_back(pfd);
+	}
+}
+
+void TCPNameserver::constructLocalAddress()
 {
   d_maxTransactionsPerConn = ::arg().asNum("max-tcp-transactions-per-conn");
   d_idleTimeout = ::arg().asNum("tcp-idle-timeout");
