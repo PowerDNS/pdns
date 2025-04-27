@@ -458,7 +458,7 @@ class TestUpdateHCParamsCombo1(HealthCheckUpdateParams):
         self.assertEqual(self.getBackendMetric(0, 'healthCheckFailures'), 0)
         self.assertEqual(self.getBackendStatus(), 'up')
 
-        self.sendConsoleCommand("getServer(0):setHealthCheckParams({checkName='drop.hc.dnsdist.org',checkType='TXT',maxCheckFailures=2,rise=2})")
+        self.sendConsoleCommand("getServer(0):setHealthCheckParams({checkName='drop.hc.dnsdist.org',maxCheckFailures=2,rise=2})")
 
         # wait for 1st failure
         for i in [1,2,3]:
