@@ -604,6 +604,8 @@ BOOST_AUTO_TEST_CASE(test_xfrSvcParamKeyVals_ech) {
         BOOST_CHECK_THROW(rtr4.xfrSvcParamKeyVals(v), RecordTextException);
 }
 
+// TODO: implement dohpath, ohttp, tls-supported-groups
+
 BOOST_AUTO_TEST_CASE(test_xfrNodeOrLocatorID) {
   string source("0000:0000:0000:0001");
   RecordTextReader rtr(source);
