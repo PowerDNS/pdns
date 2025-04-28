@@ -104,7 +104,7 @@ Interception Functions
     :param ComboAddress localip: The IP address the query was received on
     :param DNSName qname: The domain name the query is for
     :param int qtype: The query type of the query
-    :param ednsoptions: A table whose keys are EDNS option codes and values are :class:`EDNSOptionView` objects. This table is empty unless the :ref:`setting-gettag-needs-edns-options` option is set.
+    :param ednsoptions: A table whose keys are EDNS option codes and values are :class:`EDNSOptionView` objects. This table is empty unless the :ref:`setting-yaml-incoming.gettag_needs_edns_options` option is set.
     :param bool tcp: Added in 4.1.0, a boolean indicating whether the query was received over UDP (false) or TCP (true).
     :param proxyprotocolvalues: Added in 4.4.0, a table of :class:`ProxyProtocolValue` objects representing the Type-Length Values received via the Proxy Protocol, if any.
 
@@ -454,4 +454,4 @@ This function expects no argument and doesn't return any value.
         -- Perform here your maintenance
     end
 
-The interval can be configured through the :ref:`setting-lua-maintenance-interval` setting.
+The interval can be configured through the :ref:`setting-yaml-recursor.lua_maintenance_interval` setting.

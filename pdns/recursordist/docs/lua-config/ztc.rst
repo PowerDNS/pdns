@@ -21,7 +21,7 @@ Starting with version 4.7.0, the Recursor will do validation of the zone retriev
 Validation consists of two parts: ``DNSSEC`` and ``ZONEMD``.
 ``ZONEMD`` is described in :rfc:`8976`.
 
-For the ``DNSSEC`` part, if the global :ref:`setting-dnssec` setting is not ``off`` or ``process-no-validate`` and the `DS` record from the parent zone or trust anchor indicates the zone is ``DNSSEC`` signed, the recursor will validate the ``DNSKEY`` records of the zone.
+For the ``DNSSEC`` part, if the global :ref:`setting-yaml-dnssec.validation` setting is not ``off`` or ``process-no-validate`` and the `DS` record from the parent zone or trust anchor indicates the zone is ``DNSSEC`` signed, the recursor will validate the ``DNSKEY`` records of the zone.
 If a ``ZONEMD`` record is present, it will also validate the ``ZONEMD`` record.
 If no ``ZONEMD`` is present, the ``NSEC`` or ``NSEC3`` denial of the ``ZONEMD`` record will be validated.
 Note that this is not a full validation of the signatures of all records.
@@ -92,7 +92,7 @@ The default value of 0 means no restriction.
 localAddress
 ~~~~~~~~~~~~
 The source IP address to use when transferring using the ``axfr`` or ``url`` methods.
-For the ``axfr`` method :ref:`setting-query-local-address` is used by default.
+For the ``axfr`` method :ref:`setting-yaml-outgoing.source_address` is used by default.
 The default used for ``url`` method is system dependent.
 
 zonemd

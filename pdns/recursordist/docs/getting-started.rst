@@ -42,30 +42,32 @@ See :doc:`appendices/compiling` for instructions on how to build :program:`Recur
 
 Configuring :program:`PowerDNS Recursor`
 ----------------------------------------
-The configuration file is called ``recursor.conf`` and is located in the ``SYSCONFDIR`` defined at compile-time.
+The configuration file is called ``recursor.conf`` or ``recursor.yml`` and is located in the ``SYSCONFDIR`` defined at compile-time.
 This is usually ``/etc/powerdns``, ``/etc/pdns``, ``/etc/pdns-recursor``, ``/usr/local/etc`` or similar.
+Since version 5.0 :program:`Recursor` also supports YAML style settings and since version 5.2 the old style settings format is deprecated.
 
-Run ``pdns_recursor --config=default | grep config-dir`` to find this location on your installation.
-Many packages provide a default configuration file that sets :ref:`setting-include-dir`.
-Consider putting local ``.conf`` files into this directory, to make it clear which settings were locally modified.
+Run ``pdns_recursor --config=default | grep config_dir`` to find this location on your installation.
+Many packages provide a default configuration file that sets :ref:`setting-yaml-recursor.include_dir`.
+Consider putting local configuration files into this directory, to make it clear which settings were locally modified.
 
-:program:`Recursor` listens on the local loopback interface by default, this can be changed with the :ref:`setting-local-address` setting.
+:program:`Recursor` listens on the local loopback interface by default, this can be changed with the :ref:`setting-yaml-incoming.listen` setting.
 
 Now access will need to be granted to the :program:`Recursor`.
-The :ref:`setting-allow-from` setting lists the subnets that can communicate with :program:`Recursor`.
+The :ref:`setting-yaml-incoming.allow_from` setting lists the subnets that can communicate with :program:`Recursor`.
 
 An example configuration is shown below.
 Change this to match the local infrastructure.
 
-.. code-block:: none
+.. code-block:: yaml
 
-    local-address=192.0.2.25, 2001:DB8::1:25
-    allow-from=192.0.2.0/24, 2001:DB8::1:/64
+  incoming:
+    listen: [192.0.2.25, '2001:DB8::1:25']
+    allow_from: [192.0.2.0/24, '2001:DB8::1:/64']
 
 After a restart of :program:`Recursor`, it will answer queries on 192.0.2.25 and 2001:DB8::1:25, but only for queries with a source address in the 192.0.2.0/24 and 2001:DB8::1:/64 networks.
 
 :program:`Recursor` is now ready to be used.
-For more options that can be set in ``recursor.conf`` see the :doc:`PowerDNS Recursor Settings<settings>`.
+For more options that can be set in the recursor configuration see the :doc:`PowerDNS Recursor Settings<yamlsettings>`.
 Guidance on interaction with :program:`Recursor` is documented in :doc:`Operating PowerDNS Recursor<running>`.
 If dynamic answer generation is needed or policies need to be applied to queries, the :doc:`Scripting PowerDNS Recursor <lua-scripting/index>` will come in handy.
 

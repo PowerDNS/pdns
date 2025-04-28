@@ -5,7 +5,7 @@ Prometheus Data Endpoint
 
 .. http:get:: /metrics
 
-    Get statistics from Recursor in `Prometheus <https://prometheus.io>`_ format. Uses :ref:`setting-webserver-password` and returned list can be controlled with :ref:`setting-stats-api-blacklist`
+    Get statistics from Recursor in `Prometheus <https://prometheus.io>`_ format. Uses :ref:`setting-yaml-webservice.password` and returned list can be controlled with :ref:`setting-yaml-recursor.stats_api_disabled_list`
 
   **Example request**:
    .. sourcecode:: bash
