@@ -94,32 +94,34 @@ vector<ComboAddress> g_localaddresses; // not static, our unit tests need to pok
 void UDPNameserver::bindAddresses()
 {
 #ifdef HAVE_SYSTEMD
-	if (sd_listen_fds(0) == 0) {
-		bindLocalAddresses();
-	} else {
-		listenSystemdAddresses();
-	}
+  if (sd_listen_fds(0) == 0) {
+    bindLocalAddresses();
+  } else {
+    listenSystemdAddresses();
+  }
 #else
 	bindLocalAddresses();
 #endif
 }
 
+#ifdef HAVE_SYSTEMD
 void UDPNameserver::listenSystemdAddresses()
 {
-	for (int i = 0; i <  sd_listen_fds(0); i++) {
-		int s = SD_LISTEN_FDS_START + i;
-		if (sd_is_socket(s, AF_INET, SOCK_DGRAM, -1) < 0 ||
-				sd_is_socket(s, AF_INET6, SOCK_DGRAM, -1) < 0) 
-			continue;
-		d_sockets.push_back(s);
-		struct pollfd pfd;
-		pfd.fd = s;
-		pfd.events = POLLIN;
-		pfd.revents = 0;
-		d_rfds.push_back(pfd);
-		g_log<<Logger::Error<<"UDP server listening on"<<s<<endl;
-	}
+  for (int i = 0; i < sd_listen_fds(0); i++) {
+    int s = SD_LISTEN_FDS_START + i;
+    if (sd_is_socket(s, AF_INET, SOCK_DGRAM, -1) < 0 ||
+        sd_is_socket(s, AF_INET6, SOCK_DGRAM, -1) < 0)
+      continue;
+    d_sockets.push_back(s);
+    struct pollfd pfd;
+    pfd.fd = s;
+    pfd.events = POLLIN;
+    pfd.revents = 0;
+    d_rfds.push_back(pfd);
+    g_log<<Logger::Error<<"UDP server listening on"<<s<<endl;
+  }
 }
+#endif
 
 void UDPNameserver::bindLocalAddresses()
 {

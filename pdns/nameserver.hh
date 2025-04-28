@@ -88,7 +88,9 @@ public:
 private:
   void bindAddresses();
   void bindLocalAddresses();
+#ifdef HAVE_SYSTEMD
   void listenSystemdAddresses();
+#endif
 
   bool d_additional_socket;
   bool d_can_reuseport{false};

@@ -56,7 +56,9 @@ private:
   static void doConnection(int fd);
   static void decrementClientCount(const ComboAddress& remote);
   void constructLocalAddress();
+#ifdef HAVE_SYSTEMD
   void listenSystemdAddress();
+#endif
   void thread();
   static LockGuarded<std::map<ComboAddress,size_t,ComboAddress::addressOnlyLessThan>> s_clientsCount;
   static LockGuarded<std::unique_ptr<PacketHandler>> s_P;
