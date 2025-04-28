@@ -46,7 +46,7 @@ RUST_BACKTRACE=1 cargo build --release --no-default-features --features ffi,bori
 # packaged rustc puts it in anyway.
 # See (https://sources.debian.org/patches/rustc/1.85.0%2Bdfsg2-3/behaviour/d-rustc-add-soname.patch/).
 # So if it is present, patch it to the correct name.
-if objdump -p target/release/libquiche.${SOEXT} | fgrep -q SONAME
+if objdump -p target/release/libquiche.${SOEXT} | grep -F -q SONAME
 then
   patchelf --set-soname libdnsdist-quiche.so target/release/libquiche.${SOEXT}
 fi
