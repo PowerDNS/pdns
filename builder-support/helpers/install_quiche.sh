@@ -42,6 +42,15 @@ sed -i 's/ffi = \["dep:cdylib-link-lines"\]/ffi = \[\]/' quiche/Cargo.toml
 sed -i 's,cdylib_link_lines::metabuild();,//cdylib_link_lines::metabuild();,' quiche/src/build.rs
 RUST_BACKTRACE=1 cargo build --release --no-default-features --features ffi,boringssl-boring-crate --package quiche
 
+# While we tried to get rid of the SONAME in libquiche.so, on debian trixie's
+# packaged rustc puts it in anyway.
+# See (https://sources.debian.org/patches/rustc/1.85.0%2Bdfsg2-3/behaviour/d-rustc-add-soname.patch/).
+# So if it is present, patch it to the correct name.
+if objdump -p target/release/libquiche.${SOEXT} | grep -F -q SONAME
+then
+  patchelf --set-soname libdnsdist-quiche.so target/release/libquiche.${SOEXT}
+fi
+
 install -m644 quiche/include/quiche.h "${INSTALL_PREFIX}"/include
 install -m644 target/release/libquiche.${SOEXT} "${LIBDIR}"/libdnsdist-quiche.${SOEXT}
 
