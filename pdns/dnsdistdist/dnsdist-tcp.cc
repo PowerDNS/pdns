@@ -1212,7 +1212,7 @@ void IncomingTCPConnectionState::handleIO()
     }
 
     const auto& immutable = dnsdist::configuration::getImmutableConfiguration();
-    if (d_readIOsCurrentQuery >= immutable.d_maxTCPReadIOsPerQuery) {
+    if (immutable.d_maxTCPReadIOsPerQuery > 0 && d_readIOsCurrentQuery >= immutable.d_maxTCPReadIOsPerQuery) {
       vinfolog("Terminating TCP connection from %s for reaching the maximum number of read IO events per query (%d)", d_ci.remote.toStringWithPort(), immutable.d_maxTCPReadIOsPerQuery);
       dnsdist::IncomingConcurrentTCPConnectionsManager::banClientFor(d_ci.remote, time(nullptr), immutable.d_tcpBanDurationForExceedingMaxReadIOsPerQuery);
       return;

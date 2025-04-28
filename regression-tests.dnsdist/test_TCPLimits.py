@@ -29,6 +29,9 @@ class TestTCPLimits(DNSDistTest):
     setMaxTCPConnectionDuration(%d)
     -- disable "near limits" otherwise our tests are broken because connections are forcibly closed
     setTCPConnectionsOverloadThreshold(0)
+    -- disable the maximum number of read IOs per query, otherwise the maximum duration (testTCPDuration)
+    -- test gets us banned very quickly
+    setMaxTCPReadIOsPerQuery(0)
     """
     _config_params = ['_testServerPort', '_tcpIdleTimeout', '_maxTCPQueriesPerConn', '_maxTCPConnsPerClient', '_maxTCPConnDuration']
 
@@ -161,6 +164,7 @@ class TestTCPLimitsReadIO(DNSDistTest):
         self.assertGreater(len(payload), self._maxTCPReadIOsPerQuery)
 
         conn = self.openTCPConnection()
+        conn.send(struct.pack("!H", len(payload)))
 
         count = 0
         failed = False
