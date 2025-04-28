@@ -552,7 +552,12 @@ IOState IncomingHTTP2Connection::sendResponse(const struct timeval& now, TCPResp
   if (response.d_idstate.d_streamID == -1) {
     throw std::runtime_error("Invalid DoH stream ID while sending response");
   }
-  auto& context = d_currentStreams.at(response.d_idstate.d_streamID);
+  auto streamIt = d_currentStreams.find(response.d_idstate.d_streamID);
+  if (streamIt == d_currentStreams.end()) {
+    /* it might have been closed by the remote end in the meantime */
+    return hasPendingWrite() ? IOState::NeedWrite : IOState::Done;
+  }
+  auto& context = streamIt->second;
 
   uint32_t statusCode = 200U;
   std::string contentType;
@@ -587,7 +592,12 @@ void IncomingHTTP2Connection::notifyIOError(const struct timeval& now, TCPRespon
     throw std::runtime_error("Invalid DoH stream ID while handling I/O error notification");
   }
 
-  auto& context = d_currentStreams.at(response.d_idstate.d_streamID);
+  auto streamIt = d_currentStreams.find(response.d_idstate.d_streamID);
+  if (streamIt == d_currentStreams.end()) {
+    /* it might have been closed by the remote end in the meantime */
+    return;
+  }
+  auto& context = streamIt->second;
   context.d_buffer = std::move(response.d_buffer);
   sendResponse(response.d_idstate.d_streamID, context, 502, d_ci.cs->dohFrontend->d_customResponseHeaders);
 }
