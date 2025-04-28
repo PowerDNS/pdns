@@ -441,6 +441,15 @@ template <typename Container> void GenericDNSPacketWriter<Container>::xfrSvcPara
       xfr16BitInt(param.getECH().size()); // size
       xfrBlobNoSpaces(param.getECH());
       break;
+    case SvcParam::ohttp:
+      xfr16BitInt(0); // no size
+      break;
+    case SvcParam::tls_supported_groups:
+      xfr16BitInt(2 * param.getTLSSupportedGroups().size()); // size
+      for (const auto& group: param.getTLSSupportedGroups()) {
+        xfr16BitInt(group);
+      }
+      break;
     default:
       xfr16BitInt(param.getValue().size());
       xfrBlob(param.getValue());

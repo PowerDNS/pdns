@@ -1,6 +1,8 @@
 0	bar.svcb.example.com.	120	IN	SVCB	1 . alpn=h2
 0	bar.svcb.example.com.	120	IN	SVCB	3 . alpn=h3 port=1500
 0	bar.svcb.example.com.	120	IN	SVCB	4 . alpn=h3 port=1501
+0	bar.svcb.example.com.	120	IN	SVCB	5 . no-default-alpn port=8004 dohpath="/dns-query{?dns}" ohttp tls-supported-groups=29,23
+0	bar.svcb.example.com.	120	IN	SVCB	6 . key997="quoted" key998="foo" key999="bar"
 2	.	32768	IN	OPT	
 2	bar.svcb.example.com.	120	IN	A	192.0.2.1
 2	bar.svcb.example.com.	120	IN	AAAA	2001:db8::3:1
