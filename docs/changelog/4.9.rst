@@ -2,6 +2,42 @@ Changelogs for 4.9.x
 ====================
 
 .. changelog::
+  :version: 4.9.5
+  :released: 7th of May 2025
+
+  This is release 4.9.5 of the Authoritative Server.
+  It contains an LMDB performance optimization and bug fixes.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15237
+    :tickets: 15176
+
+    Faster LMDB list/lookup/get operations
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15347
+    :tickets: 15339
+
+    Correctly handle marked-as-deleted elements in LMDB read-only queries
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15345
+    :tickets: 15340
+
+    Fix MySQL operation on 64-bit big-endian platforms
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15228
+    :tickets: 15222
+
+    Fix incorrect behaviour of Lua createForward and createForward6 functions
+    leading to possible SERVFAIL answers, when processing certain data.
+
+.. changelog::
   :version: 4.9.4
   :released: 7th of February 2025
 
