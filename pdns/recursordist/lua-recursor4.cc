@@ -33,6 +33,7 @@
 #include "filterpo.hh"
 #include "rec-snmp.hh"
 #include "rec-main.hh"
+#include "arguments.hh"
 
 boost::optional<dnsheader> RecursorLua4::DNSQuestion::getDH() const
 {
@@ -513,6 +514,13 @@ void RecursorLua4::postPrepareContext() // NOLINT(readability-function-cognitive
       log->info(Logr::Notice, "Lua thread exiting");
     });
     thread.detach();
+  });
+
+  d_lw->writeFunction("getConfigDirAndName", []() -> std::tuple<std::string, std::string> {
+      std::string dir = ::arg()["config-dir"];
+      cleanSlashes(dir);
+      std::string name = ::arg()["config-name"];
+      return {dir, name};
   });
 
 
