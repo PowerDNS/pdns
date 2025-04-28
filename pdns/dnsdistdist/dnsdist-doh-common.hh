@@ -245,16 +245,16 @@ struct DOHUnitInterface
   static void handleTimeout(std::unique_ptr<DOHUnitInterface> unit)
   {
     if (unit) {
-      unit->handleTimeout();
-      unit.release();
+      auto* ptr = unit.release();
+      ptr->handleTimeout();
     }
   }
 
   static void handleUDPResponse(std::unique_ptr<DOHUnitInterface> unit, PacketBuffer&& response, InternalQueryState&& state, const std::shared_ptr<DownstreamState>& ds)
   {
     if (unit) {
-      unit->handleUDPResponse(std::move(response), std::move(state), ds);
-      unit.release();
+      auto* ptr = unit.release();
+      ptr->handleUDPResponse(std::move(response), std::move(state), ds);
     }
   }
 
