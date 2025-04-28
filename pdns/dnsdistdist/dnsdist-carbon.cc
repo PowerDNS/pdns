@@ -90,8 +90,8 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
       str << base << "queries" << ' ' << state->queries.load() << " " << now << "\r\n";
       str << base << "responses" << ' ' << state->responses.load() << " " << now << "\r\n";
       str << base << "drops" << ' ' << state->reuseds.load() << " " << now << "\r\n";
-      str << base << "latency" << ' ' << (state->d_config.availability != DownstreamState::Availability::Down ? state->latencyUsec / 1000.0 : 0) << " " << now << "\r\n";
-      str << base << "latencytcp" << ' ' << (state->d_config.availability != DownstreamState::Availability::Down ? state->latencyUsecTCP / 1000.0 : 0) << " " << now << "\r\n";
+      str << base << "latency" << ' ' << (state->d_config.d_availability != DownstreamState::Availability::Down ? state->latencyUsec / 1000.0 : 0) << " " << now << "\r\n";
+      str << base << "latencytcp" << ' ' << (state->d_config.d_availability != DownstreamState::Availability::Down ? state->latencyUsecTCP / 1000.0 : 0) << " " << now << "\r\n";
       str << base << "senderrors" << ' ' << state->sendErrors.load() << " " << now << "\r\n";
       str << base << "outstanding" << ' ' << state->outstanding.load() << " " << now << "\r\n";
       str << base << "tcpdiedsendingquery" << ' ' << state->tcpDiedSendingQuery.load() << " " << now << "\r\n";

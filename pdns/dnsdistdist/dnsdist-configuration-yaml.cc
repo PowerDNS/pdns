@@ -417,10 +417,7 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dns
 
   getLuaFunctionFromConfiguration<DownstreamState::checkfunc_t>(backendConfig.checkFunction, hcConf.function, hcConf.lua, hcConf.lua_file, "backend health-check");
 
-  auto availability = DownstreamState::getAvailabilityFromStr(std::string(hcConf.mode));
-  if (availability) {
-    backendConfig.availability = *availability;
-  }
+  DownstreamState::parseAvailabilityConfigFromStr(backendConfig, std::string(hcConf.mode));
 
   backendConfig.d_lazyHealthCheckSampleSize = hcConf.lazy.sample_size;
   backendConfig.d_lazyHealthCheckMinSampleCount = hcConf.lazy.min_sample_count;

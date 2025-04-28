@@ -13,6 +13,8 @@ Our eBPF filtering code no longer treats the ``255``/``ANY`` qtype as a special 
 
 XPF support has been removed.
 
+:meth:`Server:setAuto` used to reset the health-check mode to ``active`` even if it had previously been set to ``lazy`` via :meth:`Server:setLazyAuto`. This is no longer the case, and :meth:`Server:setActiveAuto` should be used instead to set the health-check mode to ``Active``.
+
 1.8.x to 1.9.0
 --------------
 
