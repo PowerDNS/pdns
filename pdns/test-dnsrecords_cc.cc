@@ -259,6 +259,11 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
      (CASE_L(QType::SVCB, R"XXX(16 foo.example.org. alpn=f\\\092oo\092,bar,h2)XXX", R"XXX(16 foo.example.org. alpn=f\\\\oo\\,bar,h2)XXX", "\x00\x10\3foo\7example\3org\x00\x00\x01\x00\x0c\x08\x66\\oo,bar\x02h2"))
      // END SVCB draft test vectors
 
+     (CASE_S(QType::SVCB, "1 foo.powerdns.org. dohpath=\"path\"", "\0\x01\3foo\x08powerdns\x03org\x00\x00\x07\0\x04path"))
+     (CASE_S(QType::SVCB, "1 foo.powerdns.org. ohttp", "\0\x01\3foo\x08powerdns\x03org\x00\x00\x08\x00\x00"))
+     (CASE_S(QType::SVCB, "1 foo.powerdns.org. tls-supported-groups=29,23", "\0\x01\3foo\x08powerdns\x03org\x00\x00\x09\x00\x04\x00\x1d\x00\x17"))
+     (CASE_S(QType::SVCB, "1 foo.powerdns.org. port=8004 tls-supported-groups=29,23", "\0\x01\3foo\x08powerdns\x03org\x00\x00\x03\x00\x02\x1f\x44\0\x09\x00\x04\x00\x1d\x00\x17"))
+
      (CASE_S(QType::SPF, "\"v=spf1 a:mail.rec.test ~all\"", "\x1bv=spf1 a:mail.rec.test ~all"))
 
      (CASE_S(QType::NID, "15 0123:4567:89AB:CDEF", "\x00\x0F\x01\x23\x45\x67\x89\xab\xcd\xef"))
