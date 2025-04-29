@@ -146,9 +146,12 @@ Context
     :param DNSCryptPrivateKey key: The private key corresponding to the certificate
     :param bool active: Whether the certificate should be advertised to clients. Default is true
 
-  .. method:: DNSCryptContext:generateAndLoadInMemoryCertificate(keyfile, serial, begin, end [, version])
+  .. method:: DNSCryptContext:generateAndLoadInMemoryCertificate(keyfile, serial, begin, end [, version]) -> bool
 
-    Generate a new resolver key and the associated certificate in-memory, sign it with the provided provider key, and add it to the context
+  .. versionchanged:: 2.0.0
+    A return value indicating whether the certificate was correctly loaded has been added. Before 2.0.0 the method did not return any value.
+
+    Generate a new resolver key and the associated certificate in-memory, sign it with the provided provider key, and add it to the context. Returns true if the certificate was correctly loaded, false otherwise.
 
     :param string keyfile: Path to the provider key file to use
     :param int serial: The serial number of the certificate
