@@ -251,7 +251,7 @@ cve
 cvename
 cvs
 cvstrac
-cwe
+CWE
 CXXFLAGS
 cxxsettings
 cxxsupport

@@ -22,6 +22,6 @@ CVSS Score: 7.5, see https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector
 
 The remedy is: upgrade to the patched 1.9.9 version.
 
-A work-around is to temporarily switch to the h2o provider until DNSdist has been upgraded to a fixed version.
+A workaround is to temporarily switch to the h2o provider until DNSdist has been upgraded to a fixed version.
 
 We would like to thank Charles Howes for bringing this issue to our attention.
