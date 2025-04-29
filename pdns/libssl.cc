@@ -28,6 +28,7 @@
 #endif /* defined(OPENSSL_VERSION_MAJOR) && OPENSSL_VERSION_MAJOR >= 3 */
 #include <openssl/rand.h>
 #include <openssl/ssl.h>
+#include <openssl/x509v3.h>
 #include <fcntl.h>
 
 #if OPENSSL_VERSION_MAJOR >= 3
@@ -353,10 +354,10 @@ static void libssl_info_callback(const SSL *ssl, int where, int /* ret */)
   }
 }
 
-void libssl_set_error_counters_callback(std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>& ctx, TLSErrorCounters* counters)
+void libssl_set_error_counters_callback(SSL_CTX& ctx, TLSErrorCounters* counters)
 {
-  SSL_CTX_set_ex_data(ctx.get(), s_countersIndex, counters);
-  SSL_CTX_set_info_callback(ctx.get(), libssl_info_callback);
+  SSL_CTX_set_ex_data(&ctx, s_countersIndex, counters);
+  SSL_CTX_set_info_callback(&ctx, libssl_info_callback);
 }
 
 #ifndef DISABLE_OCSP_STAPLING
@@ -518,12 +519,12 @@ bool libssl_generate_ocsp_response(const std::string& certFile, const std::strin
 #endif /* HAVE_OCSP_BASIC_SIGN */
 #endif /* DISABLE_OCSP_STAPLING */
 
-static int libssl_get_last_key_type(std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>& ctx)
+static int libssl_get_last_key_type(SSL_CTX& ctx)
 {
 #ifdef HAVE_SSL_CTX_GET0_PRIVATEKEY
-  auto pkey = SSL_CTX_get0_privatekey(ctx.get());
+  auto* pkey = SSL_CTX_get0_privatekey(&ctx);
 #else
-  auto temp = std::unique_ptr<SSL, void(*)(SSL*)>(SSL_new(ctx.get()), SSL_free);
+  auto temp = std::unique_ptr<SSL, void(*)(SSL*)>(SSL_new(&ctx), SSL_free);
   if (!temp) {
     return -1;
   }
@@ -535,6 +536,70 @@ static int libssl_get_last_key_type(std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_f
   }
 
   return EVP_PKEY_base_id(pkey);
+}
+
+struct StackOfNamesDeleter
+{
+  void operator()(STACK_OF(GENERAL_NAME)* ptr) const noexcept {
+    sk_GENERAL_NAME_pop_free(ptr, GENERAL_NAME_free);
+  }
+};
+
+#if defined(OPENSSL_IS_BORINGSSL)
+/* return type of OpenSSL's sk_XXX_num() */
+using SSLStackIndex size_t;
+#else
+using SSLStackIndex = int;
+#endif
+
+static std::unordered_set<std::string> get_names_from_certificate(const X509* certificate)
+{
+  std::unordered_set<std::string> result;
+  auto names = std::unique_ptr<STACK_OF(GENERAL_NAME), StackOfNamesDeleter>(static_cast<STACK_OF(GENERAL_NAME)*>(X509_get_ext_d2i(certificate, NID_subject_alt_name, nullptr, nullptr)));
+  if (names) {
+    for (SSLStackIndex idx = 0; idx < sk_GENERAL_NAME_num(names.get()); idx++) {
+      const auto* name = sk_GENERAL_NAME_value(names.get(), idx);
+      if (name->type != GEN_DNS) {
+        /* ignore GEN_IPADD / name->d.iPAddress (raw IP address bytes), it cannot be used in SNI anyway */
+        continue;
+      }
+      unsigned char* str = nullptr;
+      if (ASN1_STRING_to_UTF8(&str, name->d.dNSName) < 0) {
+        continue;
+      }
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): OpenSSL's API
+      result.emplace(reinterpret_cast<const char*>(str));
+      OPENSSL_free(str);
+    }
+  }
+
+  auto* name = X509_get_subject_name(certificate);
+  if (name != nullptr) {
+    int idx = -1;
+    while ((idx = X509_NAME_get_index_by_NID(name, NID_commonName, idx)) != -1) {
+      const auto* entry = X509_NAME_get_entry(name, idx);
+      const auto* value = X509_NAME_ENTRY_get_data(entry);
+      unsigned char* str = nullptr;
+      if (ASN1_STRING_to_UTF8(&str, value) < 0) {
+        continue;
+      }
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): OpenSSL's API
+      result.emplace(reinterpret_cast<const char*>(str));
+      OPENSSL_free(str);
+    }
+  }
+
+  return result;
+}
+
+static std::unordered_set<std::string> get_names_from_last_certificate(const SSL_CTX& ctx)
+{
+  const auto* cert = SSL_CTX_get0_certificate(&ctx);
+  if (cert == nullptr) {
+    return {};
+  }
+
+  return get_names_from_certificate(cert);
 }
 
 LibsslTLSVersion libssl_tls_version_from_string(const std::string& str)
@@ -570,7 +635,7 @@ const std::string& libssl_tls_version_to_string(LibsslTLSVersion version)
   return it->second;
 }
 
-bool libssl_set_min_tls_version(std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>& ctx, LibsslTLSVersion version)
+static bool libssl_set_min_tls_version(SSL_CTX& ctx, LibsslTLSVersion version)
 {
 #if defined(HAVE_SSL_CTX_SET_MIN_PROTO_VERSION) || defined(SSL_CTX_set_min_proto_version)
   /* These functions have been introduced in 1.1.0, and the use of SSL_OP_NO_* is deprecated
@@ -597,7 +662,7 @@ bool libssl_set_min_tls_version(std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)
     return false;
   }
 
-  if (SSL_CTX_set_min_proto_version(ctx.get(), vers) != 1) {
+  if (SSL_CTX_set_min_proto_version(&ctx, vers) != 1) {
     return false;
   }
   return true;
@@ -619,8 +684,8 @@ bool libssl_set_min_tls_version(std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)
     return false;
   }
 
-  long options = SSL_CTX_get_options(ctx.get());
-  SSL_CTX_set_options(ctx.get(), options | vers);
+  long options = SSL_CTX_get_options(&ctx);
+  SSL_CTX_set_options(&ctx, options | vers);
   return true;
 #endif
 }
@@ -894,10 +959,8 @@ bool OpenSSLTLSTicketKey::decrypt(const unsigned char* iv, EVP_CIPHER_CTX* ectx,
   return true;
 }
 
-std::pair<std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>, std::vector<std::string>> libssl_init_server_context(const TLSConfig& config,
-                                                                                                                  [[maybe_unused]] std::map<int, std::string>& ocspResponses)
+static std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)> getNewServerContext(const TLSConfig& config, [[maybe_unused]] std::vector<std::string>& warnings)
 {
-  std::vector<std::string> warnings;
   auto ctx = std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>(SSL_CTX_new(SSLv23_server_method()), SSL_CTX_free);
 
   if (!ctx) {
@@ -952,7 +1015,7 @@ std::pair<std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>, std::vector<std::st
 #endif
 
   SSL_CTX_set_options(ctx.get(), sslOptions);
-  if (!libssl_set_min_tls_version(ctx, config.d_minTLSVersion)) {
+  if (!libssl_set_min_tls_version(*ctx, config.d_minTLSVersion)) {
     throw std::runtime_error("Failed to set the minimum version to '" + libssl_tls_version_to_string(config.d_minTLSVersion));
   }
 
@@ -991,6 +1054,29 @@ std::pair<std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>, std::vector<std::st
      otherwise it will not stored in the session and will not be accessible when the
      session is resumed, causing SSL_get_servername to return nullptr */
   SSL_CTX_set_tlsext_servername_callback(ctx.get(), &libssl_server_name_callback);
+
+  return ctx;
+}
+
+static void mergeNewCertificateAndKey(pdns::libssl::ServerContext& serverContext, pdns::libssl::ServerContext::SharedContext newContext, std::unordered_set<std::string>& names, const std::function<void(pdns::libssl::ServerContext::SharedContext&)>& existingContextCallback)
+{
+  for (const auto& name : names) {
+    auto [existingEntry, inserted] = serverContext.d_sniMap.emplace(name, newContext);
+    if (!inserted) {
+      auto& existingContext = existingEntry->second;
+      existingContextCallback(existingContext);
+    }
+    else if (serverContext.d_sniMap.size() == 1) {
+      serverContext.d_defaultContext = newContext;
+    }
+  }
+}
+
+std::pair<std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>, std::vector<std::string>> libssl_init_server_context_no_sni(const TLSConfig& config,
+                                                                                                                         [[maybe_unused]] std::map<int, std::string>& ocspResponses)
+{
+  std::vector<std::string> warnings;
+  auto ctx = getNewServerContext(config, warnings);
 
   std::vector<int> keyTypes;
   /* load certificate and private key */
@@ -1055,12 +1141,13 @@ std::pair<std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>, std::vector<std::st
         throw std::runtime_error("An error occurred while trying to load the TLS server private key file: " + pair.d_key.value());
       }
     }
+
     if (SSL_CTX_check_private_key(ctx.get()) != 1) {
       ERR_print_errors_fp(stderr);
       throw std::runtime_error("The key from '" + pair.d_key.value() + "' does not match the certificate from '" + pair.d_cert + "'");
     }
     /* store the type of the new key, we might need it later to select the right OCSP stapling response */
-    auto keyType = libssl_get_last_key_type(ctx);
+    auto keyType = libssl_get_last_key_type(*ctx);
     if (keyType < 0) {
       throw std::runtime_error("The key from '" + pair.d_key.value() + "' has an unknown type");
     }
@@ -1089,6 +1176,128 @@ std::pair<std::unique_ptr<SSL_CTX, decltype(&SSL_CTX_free)>, std::vector<std::st
 #endif /* HAVE_SSL_CTX_SET_CIPHERSUITES */
 
   return {std::move(ctx), std::move(warnings)};
+}
+
+std::pair<pdns::libssl::ServerContext, std::vector<std::string>> libssl_init_server_context(const TLSConfig& config)
+{
+  std::vector<std::string> warnings;
+  pdns::libssl::ServerContext serverContext;
+
+  std::vector<int> keyTypes;
+  /* load certificate and private key */
+  for (const auto& pair : config.d_certKeyPairs) {
+    auto uniqueCtx = getNewServerContext(config, warnings);
+    auto ctx = std::shared_ptr<SSL_CTX>(uniqueCtx.release(), SSL_CTX_free);
+    if (!pair.d_key) {
+#if defined(HAVE_SSL_CTX_USE_CERT_AND_KEY)
+      // If no separate key is given, treat it as a pkcs12 file
+      auto filePtr = pdns::UniqueFilePtr(fopen(pair.d_cert.c_str(), "r"));
+      if (!filePtr) {
+        throw std::runtime_error("Unable to open file " + pair.d_cert);
+      }
+      auto p12 = std::unique_ptr<PKCS12, void(*)(PKCS12*)>(d2i_PKCS12_fp(filePtr.get(), nullptr), PKCS12_free);
+      if (!p12) {
+        throw std::runtime_error("Unable to open PKCS12 file " + pair.d_cert);
+      }
+      EVP_PKEY *keyptr = nullptr;
+      X509 *certptr = nullptr;
+      STACK_OF(X509) *captr = nullptr;
+      if (PKCS12_parse(p12.get(), (pair.d_password ? pair.d_password->c_str() : nullptr), &keyptr, &certptr, &captr) != 1) {
+#if defined(OPENSSL_VERSION_MAJOR) && OPENSSL_VERSION_MAJOR >= 3
+        bool failed = true;
+        /* we might be opening a PKCS12 file that uses RC2 CBC or 3DES CBC which, since OpenSSL 3.0.0, requires loading the legacy provider */
+        auto* libCtx = OSSL_LIB_CTX_get0_global_default();
+        /* check whether the legacy provider is already loaded */
+        if (OSSL_PROVIDER_available(libCtx, "legacy") == 0) {
+          /* it's not */
+          auto* provider = OSSL_PROVIDER_load(libCtx, "legacy");
+          if (provider != nullptr) {
+            if (PKCS12_parse(p12.get(), (pair.d_password ? pair.d_password->c_str() : nullptr), &keyptr, &certptr, &captr) == 1) {
+              failed = false;
+            }
+            /* we do not want to keep that provider around after that */
+            OSSL_PROVIDER_unload(provider);
+          }
+        }
+        if (failed) {
+#endif /* defined(OPENSSL_VERSION_MAJOR) && OPENSSL_VERSION_MAJOR >= 3 */
+          ERR_print_errors_fp(stderr);
+          throw std::runtime_error("An error occured while parsing PKCS12 file " + pair.d_cert);
+#if defined(OPENSSL_VERSION_MAJOR) && OPENSSL_VERSION_MAJOR >= 3
+        }
+#endif /* defined(OPENSSL_VERSION_MAJOR) && OPENSSL_VERSION_MAJOR >= 3 */
+      }
+      auto key = std::unique_ptr<EVP_PKEY, void(*)(EVP_PKEY*)>(keyptr, EVP_PKEY_free);
+      auto cert = std::unique_ptr<X509, void(*)(X509*)>(certptr, X509_free);
+      auto caList = std::unique_ptr<STACK_OF(X509), void(*)(STACK_OF(X509)*)>(captr, [](STACK_OF(X509)* stack){ sk_X509_free(stack); });
+
+      auto addCertificateAndKey = [&pair, &key, &cert, &caList](std::shared_ptr<SSL_CTX>& tlsContext) {
+        if (SSL_CTX_use_cert_and_key(tlsContext.get(), cert.get(), key.get(), caList.get(), 1) != 1) {
+          ERR_print_errors_fp(stderr);
+          throw std::runtime_error("An error occurred while trying to load the TLS certificate and key from PKCS12 file " + pair.d_cert);
+        }
+      };
+
+      addCertificateAndKey(ctx);
+      auto names = get_names_from_last_certificate(*ctx);
+      mergeNewCertificateAndKey(serverContext, ctx, names, addCertificateAndKey);
+#else
+      throw std::runtime_error("PKCS12 files are not supported by your openssl version");
+#endif /* HAVE_SSL_CTX_USE_CERT_AND_KEY */
+    } else {
+      auto addCertificateAndKey = [&pair](std::shared_ptr<SSL_CTX>& tlsContext) {
+        if (SSL_CTX_use_certificate_chain_file(tlsContext.get(), pair.d_cert.c_str()) != 1) {
+          ERR_print_errors_fp(stderr);
+          throw std::runtime_error("An error occurred while trying to load the TLS server certificate file: " + pair.d_cert);
+        }
+        if (SSL_CTX_use_PrivateKey_file(tlsContext.get(), pair.d_key->c_str(), SSL_FILETYPE_PEM) != 1) {
+          ERR_print_errors_fp(stderr);
+          throw std::runtime_error("An error occurred while trying to load the TLS server private key file: " + pair.d_key.value());
+        }
+      };
+
+      addCertificateAndKey(ctx);
+      auto names = get_names_from_last_certificate(*ctx);
+      mergeNewCertificateAndKey(serverContext, ctx, names, addCertificateAndKey);
+    }
+
+    if (SSL_CTX_check_private_key(ctx.get()) != 1) {
+      ERR_print_errors_fp(stderr);
+      throw std::runtime_error("The key from '" + pair.d_key.value() + "' does not match the certificate from '" + pair.d_cert + "'");
+    }
+    /* store the type of the new key, we might need it later to select the right OCSP stapling response */
+    auto keyType = libssl_get_last_key_type(*ctx);
+    if (keyType < 0) {
+      throw std::runtime_error("The key from '" + pair.d_key.value() + "' has an unknown type");
+    }
+    keyTypes.push_back(keyType);
+ }
+
+#ifndef DISABLE_OCSP_STAPLING
+  if (!config.d_ocspFiles.empty()) {
+    try {
+      serverContext.d_ocspResponses = libssl_load_ocsp_responses(config.d_ocspFiles, std::move(keyTypes), warnings);
+    }
+    catch(const std::exception& e) {
+      throw std::runtime_error("Unable to load OCSP responses: " + std::string(e.what()));
+    }
+  }
+#endif /* DISABLE_OCSP_STAPLING */
+
+  for (auto& entry : serverContext.d_sniMap) {
+    auto& ctx = entry.second;
+    if (!config.d_ciphers.empty() && SSL_CTX_set_cipher_list(ctx.get(), config.d_ciphers.c_str()) != 1) {
+      throw std::runtime_error("The TLS ciphers could not be set: " + config.d_ciphers);
+    }
+
+#ifdef HAVE_SSL_CTX_SET_CIPHERSUITES
+    if (!config.d_ciphers13.empty() && SSL_CTX_set_ciphersuites(ctx.get(), config.d_ciphers13.c_str()) != 1) {
+      throw std::runtime_error("The TLS 1.3 ciphers could not be set: " + config.d_ciphers13);
+    }
+#endif /* HAVE_SSL_CTX_SET_CIPHERSUITES */
+  }
+
+  return {std::move(serverContext), std::move(warnings)};
 }
 
 #ifdef HAVE_SSL_CTX_SET_KEYLOG_CALLBACK

@@ -227,12 +227,12 @@ void configureQuiche(QuicheConfig& config, const QuicheParams& params, bool isHT
   for (const auto& pair : params.d_tlsConfig.d_certKeyPairs) {
     auto res = quiche_config_load_cert_chain_from_pem_file(config.get(), pair.d_cert.c_str());
     if (res != 0) {
-      throw std::runtime_error("Error loading the server certificate: " + std::to_string(res));
+      throw std::runtime_error("Error loading the server certificate from '" + pair.d_cert + "': " + std::to_string(res));
     }
     if (pair.d_key) {
       res = quiche_config_load_priv_key_from_pem_file(config.get(), pair.d_key->c_str());
       if (res != 0) {
-        throw std::runtime_error("Error loading the server key: " + std::to_string(res));
+        throw std::runtime_error("Error loading the server key from '" + *(pair.d_key) + "': " + std::to_string(res));
       }
     }
   }

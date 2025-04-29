@@ -228,8 +228,7 @@ static bool validateTLSConfiguration(const dnsdist::rust::settings::BindConfigur
   // we are asked to try to load the certificates so we can return a potential error
   // and properly ignore the frontend before actually launching it
   try {
-    std::map<int, std::string> ocspResponses = {};
-    auto ctx = libssl_init_server_context(tlsConfig, ocspResponses);
+    auto ctx = libssl_init_server_context(tlsConfig);
   }
   catch (const std::runtime_error& e) {
     errlog("Ignoring %s frontend: '%s'", bind.protocol, e.what());
