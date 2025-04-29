@@ -1590,7 +1590,11 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   luaCtx.writeFunction("getDNSCryptBind", [](uint64_t idx) {
     setLuaNoSideEffect();
     std::shared_ptr<DNSCryptContext> ret = nullptr;
-    auto frontends = dnsdist::getDNSCryptFrontends();
+    /* we are only interested in distinct DNSCrypt binds,
+       and we have two frontends (UDP and TCP) per bind
+       sharing the same context so we need to retrieve
+       the UDP ones only . */
+    auto frontends = dnsdist::getDNSCryptFrontends(true);
     if (idx < frontends.size()) {
       ret = frontends.at(idx);
     }
@@ -1599,7 +1603,11 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
   luaCtx.writeFunction("getDNSCryptBindCount", []() {
     setLuaNoSideEffect();
-    return dnsdist::getDNSCryptFrontends().size();
+    /* we are only interested in distinct DNSCrypt binds,
+       and we have two frontends (UDP and TCP) per bind
+       sharing the same context so we need to retrieve
+       the UDP ones only . */
+    return dnsdist::getDNSCryptFrontends(true).size();
   });
 #endif /* HAVE_DNSCRYPT */
 
