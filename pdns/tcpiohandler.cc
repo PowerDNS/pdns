@@ -122,7 +122,7 @@ static int sni_server_name_callback(SSL* ssl, int* /* alert */, void* /* arg */)
   }
 
   /* if it fails there is nothing we can do,
-     let's hope OpenSSL will fallback to the existing,
+     let's hope OpenSSL will fall back to the existing,
      default certificate*/
   SSL_set_SSL_CTX(ssl, mapIt->second.get());
   return SSL_TLSEXT_ERR_OK;

@@ -123,7 +123,7 @@ class TestSNI(DNSDistTest):
             self.assertTrue(receivedResponse)
             self.assertEqual(response, receivedResponse)
 
-        # check SNI for an unkown name, we should get the first certificate
+        # check SNI for an unknown name, we should get the first certificate
         name = 'unknown.sni.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN', use_edns=False)
         response = dns.message.make_response(query)
