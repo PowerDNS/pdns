@@ -545,12 +545,19 @@ struct StackOfNamesDeleter
   }
 };
 
+#if defined(OPENSSL_IS_BORINGSSL)
+/* return type of OpenSSL's sk_XXX_num() */
+using SSLStackIndex size_t;
+#else
+using SSLStackIndex = int;
+#endif
+
 static std::unordered_set<std::string> get_names_from_certificate(const X509* certificate)
 {
   std::unordered_set<std::string> result;
   auto names = std::unique_ptr<STACK_OF(GENERAL_NAME), StackOfNamesDeleter>(static_cast<STACK_OF(GENERAL_NAME)*>(X509_get_ext_d2i(certificate, NID_subject_alt_name, nullptr, nullptr)));
   if (names) {
-    for (int idx = 0; idx < sk_GENERAL_NAME_num(names.get()); idx++) {
+    for (SSLStackIndex idx = 0; idx < sk_GENERAL_NAME_num(names.get()); idx++) {
       const auto* name = sk_GENERAL_NAME_value(names.get(), idx);
       if (name->type != GEN_DNS) {
         /* ignore GEN_IPADD / name->d.iPAddress (raw IP address bytes), it cannot be used in SNI anyway */
