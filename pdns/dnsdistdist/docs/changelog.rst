@@ -2,6 +2,41 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.9.9
+  :released: 29th of April 2025
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15118
+
+    Handle Quiche >= 0.23.0 since the API changed
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15137
+
+    Fix compatibility with `boost::lockfree` >= 1.87.0
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15164
+
+    Update Rust to 1.84.1 for our packages
+
+  .. change::
+    :tags: Security, Bug Fixes, DNS over HTTPS
+    :pullreq: 15482
+    :tickets: 15475
+
+    Fix a crash when processing timeouts for incoming DoH queries
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 15485
+
+    Gracefully handle timeout/response for a closed HTTP stream
+
+.. changelog::
   :version: 2.0.0-alpha1
   :released: 18th of March 2025
 
