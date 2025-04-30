@@ -109,7 +109,7 @@ BOOST_AUTO_TEST_CASE(any)
   testAny(bytes);
 }
 
-BOOST_AUTO_TEST_CASE(traces)
+BOOST_AUTO_TEST_CASE(traces1)
 {
   pdns::trace::Span span = {
     .trace_id = {0x5B, 0x8E, 0xFF, 0xF7, 0x98, 0x03, 0x81, 0x03, 0xD2, 0x69, 0xB6, 0x33, 0x81, 0x3F, 0xC6, 0x0C},
@@ -157,4 +157,64 @@ BOOST_AUTO_TEST_CASE(traces)
   copy.encode(copyWriter);
   BOOST_CHECK_EQUAL(makeHexDump(data, " "), expected);
 }
+
+BOOST_AUTO_TEST_CASE(traces2)
+{
+  pdns::trace::Span span1{
+    .trace_id = {0x5B, 0x8E, 0xFF, 0xF7, 0x98, 0x03, 0x81, 0x03, 0xD2, 0x69, 0xB6, 0x33, 0x81, 0x3F, 0xC6, 0x0C},
+    .span_id = {0xEE, 0xE1, 0x9B, 0x7E, 0xC3, 0xC1, 0xB1, 0x74},
+    .parent_span_id = {0xEE, 0xE1, 0x9B, 0x7E, 0xC3, 0xC1, 0xB1, 0x73},
+    .name = "I'm a server span",
+    .kind = pdns::trace::Span::SpanKind::SPAN_KINSERVER,
+    .start_time_unix_nano = 1544712660000000000UL,
+    .end_time_unix_nano = 1544712661000000000UL,
+    .attributes = {{"my.span.attr", {"some value"}}, {"attr2", {1.0}}},
+    .dropped_attributes_count = 1,
+    .events = {
+      {.time_unix_nano = 100,
+       .name = "event1",
+       .attributes = {{"a", {"b"}}, {"c", {"d"}}},
+       .dropped_attributes_count = 101},
+      {.time_unix_nano = 200,
+       .name = "event2",
+       .attributes = {{"c", {"d"}}, {"e", {""}}},
+       .dropped_attributes_count = 201},
+    },
+    .dropped_events_count = 2,
+    .links = {
+      {.trace_id = {0x1}, .span_id = {0x4}, .trace_state = "state1", .attributes = {{"foo", {"bar"}}, {"bar", {true}}}, .dropped_attributes_count = 1000, .flags = static_cast<uint32_t>(pdns::trace::SpanFlags::SPAN_FLAGS_TRACE_FLAGS_MASK)},
+      {.trace_id = {0x2}, .span_id = {0x3}, .trace_state = "state2", .attributes = {{"foo", {"bar"}}, {"bar", {true}}}, .dropped_attributes_count = 1001, .flags = static_cast<uint32_t>(pdns::trace::SpanFlags::SPAN_FLAGS_TRACE_FLAGS_MASK)},
+    },
+    .dropped_links_count = 3,
+    .status = {"hi", pdns::trace::Status::StatusCode::STATUS_CODE_OK},
+  };
+  pdns::trace::Span span2{span1};
+  pdns::trace::Span span3{span1};
+  pdns::trace::Span span4{span1};
+  pdns::trace::InstrumentationScope scope{"name", "version", {{"key1", {0.1}}, {"key2", {false}}}, 100};
+  pdns::trace::ScopeSpans scopespans1{scope, {span1, span2}, "url"};
+  pdns::trace::ScopeSpans scopespans2{scope, {span3, span4}, "url"};
+  pdns::trace::Resource res{.attributes = {{"key1", {"foo"}}, {"key2", {"bar"}}},
+                            .dropped_attributes_count = 99,
+                            .entity_refs = {{"url1", "type1", {"id_key1", "id_key2"}, {"desc_key1", "desc_key2"}},
+                                            {"url2", "type2", {"id_key3", "id_key4"}, {"desc_key3", "desc_key4"}}}};
+  pdns::trace::ResourceSpans resspans1{res, {scopespans1, scopespans2}, "url"};
+  pdns::trace::ResourceSpans resspans2{res, {scopespans1, scopespans2}, "url"};
+  pdns::trace::TracesData traces{{resspans1, resspans2}};
+
+  std::string data;
+  protozero::pbf_writer writer{data};
+  traces.encode(writer);
+#if 1
+  std::ofstream x("x");
+  x << data;
+#endif
+  protozero::pbf_reader reader{data};
+  auto copy = pdns::trace::TracesData::decode(reader);
+  string copyData;
+  protozero::pbf_writer copyWriter{copyData};
+  copy.encode(copyWriter);
+  BOOST_CHECK_EQUAL(data, copyData);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

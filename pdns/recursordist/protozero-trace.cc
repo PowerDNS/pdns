@@ -236,7 +236,7 @@ void Span::Event::encode(protozero::pbf_writer& writer) const
   pdns::trace::encodeFixed(writer, 1, time_unix_nano);
   pdns::trace::encode(writer, 2, name);
   pdns::trace::encode(writer, 3, attributes);
-  pdns::trace::encode(writer, 4, dropped_attribute_count);
+  pdns::trace::encode(writer, 4, dropped_attributes_count);
 }
 
 Span::Event Span::Event::decode(protozero::pbf_reader& reader)
@@ -256,7 +256,7 @@ Span::Event Span::Event::decode(protozero::pbf_reader& reader)
       break;
     }
     case 4:
-      ret.dropped_attribute_count = reader.get_uint32();
+      ret.dropped_attributes_count = reader.get_uint32();
     default:
       break;
     }
@@ -270,7 +270,7 @@ void Span::Link::encode(protozero::pbf_writer& writer) const
   pdns::trace::encode(writer, 2, span_id);
   pdns::trace::encode(writer, 3, trace_state);
   pdns::trace::encode(writer, 4, attributes);
-  pdns::trace::encode(writer, 5, dropped_attribute_count);
+  pdns::trace::encode(writer, 5, dropped_attributes_count);
   pdns::trace::encodeFixed(writer, 6, flags);
 }
 
@@ -294,10 +294,10 @@ Span::Link Span::Link::decode(protozero::pbf_reader& reader)
       break;
     }
     case 5:
-      ret.dropped_attribute_count = reader.get_uint32();
+      ret.dropped_attributes_count = reader.get_uint32();
       break;
     case 6:
-      ret.flags = reader.get_uint32();
+      ret.flags = reader.get_fixed32();
     default:
       break;
     }
@@ -316,7 +316,7 @@ void Span::encode(protozero::pbf_writer& writer) const
   pdns::trace::encodeFixed(writer, 7, start_time_unix_nano);
   pdns::trace::encodeFixed(writer, 8, end_time_unix_nano);
   pdns::trace::encode(writer, 9, attributes);
-  pdns::trace::encode(writer, 10, dropped_attribute_count);
+  pdns::trace::encode(writer, 10, dropped_attributes_count);
   pdns::trace::encode(writer, 11, events);
   pdns::trace::encode(writer, 12, dropped_events_count);
   pdns::trace::encode(writer, 13, links);
@@ -362,7 +362,7 @@ Span Span::decode(protozero::pbf_reader& reader)
       break;
     }
     case 10:
-      ret.dropped_attribute_count = reader.get_uint32();
+      ret.dropped_attributes_count = reader.get_uint32();
       break;
     case 11: {
       auto sub = reader.get_message();

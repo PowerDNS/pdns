@@ -282,13 +282,13 @@ struct Span
   uint64_t start_time_unix_nano{0}; // = 7
   uint64_t end_time_unix_nano{0}; // = 8
   std::vector<KeyValue> attributes; // = 9
-  uint32_t dropped_attribute_count{0}; // = 10
+  uint32_t dropped_attributes_count{0}; // = 10
   struct Event
   {
     uint64_t time_unix_nano; // = 1
     std::string name; // = 2
     std::vector<KeyValue> attributes; // = 3
-    uint32_t dropped_attribute_count{0}; // = 4
+    uint32_t dropped_attributes_count{0}; // = 4
 
     void encode(protozero::pbf_writer& writer) const;
     static Event decode(protozero::pbf_reader& reader);
@@ -301,7 +301,7 @@ struct Span
     SpanID span_id; // = 2
     std::string trace_state; // = 3
     std::vector<KeyValue> attributes; // = 4
-    uint32_t dropped_attribute_count{0}; // = 5
+    uint32_t dropped_attributes_count{0}; // = 5
     uint32_t flags{0}; // = 6
 
     void encode(protozero::pbf_writer& writer) const;
@@ -315,6 +315,14 @@ struct Span
   static Span decode(protozero::pbf_reader& reader);
 };
 
+enum class SpanFlags : uint16_t
+{
+  SPAN_FLAGS_DO_NOT_USE = 0,
+  SPAN_FLAGS_TRACE_FLAGS_MASK = 0x000000FF,
+  SPAN_FLAGS_CONTEXT_HAS_IS_REMOTE_MASK = 0x00000100,
+  SPAN_FLAGS_CONTEXT_IS_REMOTE_MASK = 0x00000200
+};
+  
 struct ScopeSpans
 {
   InstrumentationScope scope; // = 1
