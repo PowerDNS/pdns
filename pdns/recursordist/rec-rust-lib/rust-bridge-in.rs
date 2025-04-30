@@ -55,21 +55,21 @@ pub struct ProtobufServer {
     servers: Vec<String>,
     #[serde(default = "crate::U64::<2>::value", skip_serializing_if = "crate::U64::<2>::is_equal")]
     timeout: u64,
-    #[serde(default = "crate::U64::<100>::value", skip_serializing_if = "crate::U64::<100>::is_equal")]
+    #[serde(default = "crate::U64::<100>::value", skip_serializing_if = "crate::U64::<100>::is_equal", alias = "max_queued_entries")]
     maxQueuedEntries: u64,
-    #[serde(default = "crate::U64::<1>::value", skip_serializing_if = "crate::U64::<1>::is_equal")]
+    #[serde(default = "crate::U64::<1>::value", skip_serializing_if = "crate::U64::<1>::is_equal", alias = "reconnect_wait_time")]
     reconnectWaitTime: u64,
-    #[serde(default, skip_serializing_if = "crate::is_default")]
+    #[serde(default, skip_serializing_if = "crate::is_default", alias = "tagged_only")]
     taggedOnly: bool,
-    #[serde(default, skip_serializing_if = "crate::is_default")]
+    #[serde(default, skip_serializing_if = "crate::is_default", alias = "async_connect")]
     asyncConnect: bool,
-    #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
+    #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true", alias = "log_queries")]
     logQueries: bool,
-    #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
+    #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true", alias = "log_responses")]
     logResponses: bool,
-    #[serde(default = "crate::def_pb_export_qtypes", skip_serializing_if = "crate::default_value_equal_pb_export_qtypes")]
+    #[serde(default = "crate::def_pb_export_qtypes", skip_serializing_if = "crate::default_value_equal_pb_export_qtypes", alias = "export_types")]
     exportTypes: Vec<String>,
-    #[serde(default, skip_serializing_if = "crate::is_default")]
+    #[serde(default, skip_serializing_if = "crate::is_default", alias = "log_mapped_from")]
     logMappedFrom: bool,
 }
 
@@ -79,21 +79,21 @@ pub struct ProtobufServer {
 pub struct DNSTapFrameStreamServer {
     #[serde(default, skip_serializing_if = "crate::is_default")]
     servers: Vec<String>,
-    #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
+    #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true", alias = "log_queries")]
     logQueries: bool,
-    #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
+    #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true", alias = "log_responses")]
     logResponses: bool,
-    #[serde(default, skip_serializing_if = "crate::is_default")]
+    #[serde(default, skip_serializing_if = "crate::is_default", alias = "buffer_hint")]
     bufferHint: u64,
-    #[serde(default, skip_serializing_if = "crate::is_default")]
+    #[serde(default, skip_serializing_if = "crate::is_default", alias = "flush_timeout")]
     flushTimeout: u64,
-    #[serde(default, skip_serializing_if = "crate::is_default")]
+    #[serde(default, skip_serializing_if = "crate::is_default", alias = "input_queue_size")]
     inputQueueSize: u64,
-    #[serde(default, skip_serializing_if = "crate::is_default")]
+    #[serde(default, skip_serializing_if = "crate::is_default", alias = "output_queue_size")]
     outputQueueSize: u64,
-    #[serde(default, skip_serializing_if = "crate::is_default")]
+    #[serde(default, skip_serializing_if = "crate::is_default", alias = "queue_notify_threshold")]
     queueNotifyThreshold: u64,
-    #[serde(default, skip_serializing_if = "crate::is_default")]
+    #[serde(default, skip_serializing_if = "crate::is_default", alias = "reopen_interval")]
     reopenInterval: u64,
 }
 
@@ -103,21 +103,21 @@ pub struct DNSTapFrameStreamServer {
 pub struct DNSTapNODFrameStreamServer {
     #[serde(default, skip_serializing_if = "crate::is_default")]
     servers: Vec<String>,
-    #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
+    #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true", alias = "log_nods")]
     logNODs: bool,
-    #[serde(default, skip_serializing_if = "crate::is_default")]
+    #[serde(default, skip_serializing_if = "crate::is_default", alias = "log_udrs")]
     logUDRs: bool,
-    #[serde(default, skip_serializing_if = "crate::is_default")]
+    #[serde(default, skip_serializing_if = "crate::is_default", alias = "buffer_hint")]
     bufferHint: u64,
-    #[serde(default, skip_serializing_if = "crate::is_default")]
+    #[serde(default, skip_serializing_if = "crate::is_default", alias = "flush_timeout")]
     flushTimeout: u64,
-    #[serde(default, skip_serializing_if = "crate::is_default")]
+    #[serde(default, skip_serializing_if = "crate::is_default", alias = "input_queue_size")]
     inputQueueSize: u64,
-    #[serde(default, skip_serializing_if = "crate::is_default")]
+    #[serde(default, skip_serializing_if = "crate::is_default", alias = "output_queue_size")]
     outputQueueSize: u64,
-    #[serde(default, skip_serializing_if = "crate::is_default")]
+    #[serde(default, skip_serializing_if = "crate::is_default", alias = "queue_notify_threshold")]
     queueNotifyThreshold: u64,
-    #[serde(default, skip_serializing_if = "crate::is_default")]
+    #[serde(default, skip_serializing_if = "crate::is_default", alias = "reopen_interval")]
     reopenInterval: u64,
 }
 
@@ -143,41 +143,41 @@ pub struct RPZ {
     defcontent: String,
     #[serde(default, skip_serializing_if = "crate::is_default")]
     defpol: String,
-    #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
+    #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true", alias = "defpol_override_local_data")]
     defpolOverrideLocalData: bool,
     #[serde(default = "crate::U32::<{u32::MAX}>::value", skip_serializing_if = "crate::U32::<{u32::MAX}>::is_equal")]
     defttl: u32,
-    #[serde(default = "crate::U32::<{u32::MAX}>::value", skip_serializing_if = "crate::U32::<{u32::MAX}>::is_equal")]
+    #[serde(default = "crate::U32::<{u32::MAX}>::value", skip_serializing_if = "crate::U32::<{u32::MAX}>::is_equal", alias = "extended_error_code")]
     extendedErrorCode: u32,
-    #[serde(default, skip_serializing_if = "crate::is_default")]
+    #[serde(default, skip_serializing_if = "crate::is_default", alias = "extended_error_extra")]
     extendedErrorExtra: String,
-    #[serde(default, skip_serializing_if = "crate::is_default")]
+    #[serde(default, skip_serializing_if = "crate::is_default", alias = "include_soa")]
     includeSOA: bool,
-    #[serde(default, skip_serializing_if = "crate::is_default")]
+    #[serde(default, skip_serializing_if = "crate::is_default", alias = "ignore_suplicates")]
     ignoreDuplicates: bool,
-    #[serde(default = "crate::U32::<{u32::MAX}>::value", skip_serializing_if = "crate::U32::<{u32::MAX}>::is_equal")]
+    #[serde(default = "crate::U32::<{u32::MAX}>::value", skip_serializing_if = "crate::U32::<{u32::MAX}>::is_equal", alias = "max_ttl")]
     maxTTL: u32,
-    #[serde(default, skip_serializing_if = "crate::is_default")]
+    #[serde(default, skip_serializing_if = "crate::is_default", alias = "policy_name")]
     policyName: String,
     #[serde(default, skip_serializing_if = "crate::is_default")]
     tags: Vec<String>,
-    #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
+    #[serde(default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true", alias = "overrides_gettag")]
     overridesGettag: bool,
-    #[serde(default, skip_serializing_if = "crate::is_default")]
+    #[serde(default, skip_serializing_if = "crate::is_default", alias = "zone_size_hint")]
     zoneSizeHint: u32,
     #[serde(default, skip_serializing_if = "crate::is_default")]
     tsig: TSIGTriplet,
     #[serde(default, skip_serializing_if = "crate::is_default")]
     refresh: u32,
-    #[serde(default, skip_serializing_if = "crate::is_default")]
+    #[serde(default, skip_serializing_if = "crate::is_default", alias = "max_received_mbytes")]
     maxReceivedMBytes: u32,
-    #[serde(default, skip_serializing_if = "crate::is_default")]
+    #[serde(default, skip_serializing_if = "crate::is_default", alias = "local_address")]
     localAddress: String,
-    #[serde(default = "crate::U32::<20>::value", skip_serializing_if = "crate::U32::<20>::is_equal")]
+    #[serde(default = "crate::U32::<20>::value", skip_serializing_if = "crate::U32::<20>::is_equal", alias = "axfr_rimeout")]
     axfrTimeout: u32,
-    #[serde(default, skip_serializing_if = "crate::is_default")]
+    #[serde(default, skip_serializing_if = "crate::is_default", alias = "dump_file")]
     dumpFile: String,
-    #[serde(default, skip_serializing_if = "crate::is_default")]
+    #[serde(default, skip_serializing_if = "crate::is_default", alias = "seed_file")]
     seedFile: String,
 }
 
@@ -194,13 +194,13 @@ pub struct ZoneToCache {
     timeout: u64,
     #[serde(default, skip_serializing_if = "crate::is_default")]
     tsig: TSIGTriplet,
-    #[serde(default = "crate::U64::<86400>::value", skip_serializing_if = "crate::U64::<86400>::is_equal")]
+    #[serde(default = "crate::U64::<86400>::value", skip_serializing_if = "crate::U64::<86400>::is_equal", alias = "refresh_period")]
     refreshPeriod: u64,
-    #[serde(default = "crate::U64::<60>::value", skip_serializing_if = "crate::U64::<60>::is_equal")]
+    #[serde(default = "crate::U64::<60>::value", skip_serializing_if = "crate::U64::<60>::is_equal", alias = "retry_on_error_period")]
     retryOnErrorPeriod: u64,
-    #[serde(default, skip_serializing_if = "crate::is_default")]
+    #[serde(default, skip_serializing_if = "crate::is_default", alias = "max_received_mbytes")]
     maxReceivedMBytes: u64,
-    #[serde(default, skip_serializing_if = "crate::is_default")]
+    #[serde(default, skip_serializing_if = "crate::is_default", alias = "local_address")]
     localAddress: String,
     #[serde(default = "crate::def_ztc_validate", skip_serializing_if = "crate::def_value_equals_ztc_validate")]
     zonemd: String,
@@ -269,11 +269,11 @@ pub struct XFR {
     tsig: TSIGTriplet,
     #[serde(default, skip_serializing_if = "crate::is_default")]
     refresh: u32,
-    #[serde(default, skip_serializing_if = "crate::is_default")]
+    #[serde(default, skip_serializing_if = "crate::is_default", alias = "max_received_mbytes")]
     maxReceivedMBytes: u32,
-    #[serde(default, skip_serializing_if = "crate::is_default")]
+    #[serde(default, skip_serializing_if = "crate::is_default", alias = "local_address")]
     localAddress: String,
-    #[serde(default = "crate::U32::<20>::value", skip_serializing_if = "crate::U32::<20>::is_equal")]
+    #[serde(default = "crate::U32::<20>::value", skip_serializing_if = "crate::U32::<20>::is_equal", alias = "axfr_timeout")]
     axfrTimeout: u32,
 }
 
