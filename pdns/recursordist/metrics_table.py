@@ -1365,7 +1365,7 @@
     {
         'name': 'cookie-matched',
         'lambda': '[] { return g_Counters.sum(rec::Counter::cookieMatched); }',
-        'desc': 'Matching cookies recieved',
+        'desc': 'Matching cookies received',
         'snmp': 154,
     },
     {
@@ -1383,7 +1383,7 @@
     {
         'name': 'cookie-not-in-reply',
         'lambda': '[] { return g_Counters.sum(rec::Counter::cookieNotInReply); }',
-        'desc': 'Authoritative serve sent a reply bnack without cookie',
+        'desc': 'Authoritative serve sent a reply back without cookie',
         'snmp': 157,
     },
     {
