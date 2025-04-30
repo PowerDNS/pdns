@@ -1005,7 +1005,7 @@ private:
 #include <gnutls/gnutls.h>
 #include <gnutls/x509.h>
 
-static void safe_memory_lock(void* data, size_t size)
+static void safe_memory_lock([[maybe_unused]] void* data, [[maybe_unused]] size_t size)
 {
 #ifdef HAVE_LIBSODIUM
   sodium_mlock(data, size);

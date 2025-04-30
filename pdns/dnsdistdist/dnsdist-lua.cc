@@ -2775,6 +2775,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 
       bool ignoreTLSConfigurationErrors = false;
       if (getOptionalValue<bool>(vars, "ignoreTLSConfigurationErrors", ignoreTLSConfigurationErrors) > 0 && ignoreTLSConfigurationErrors) {
+#if defined(HAVE_LIBSSL)
         // we are asked to try to load the certificates so we can return a potential error
         // and properly ignore the frontend before actually launching it
         try {
@@ -2784,6 +2785,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
           errlog("Ignoring TLS frontend: '%s'", e.what());
           return;
         }
+#endif /* HAVE_LIBSSL */
       }
 
       checkAllParametersConsumed("addTLSLocal", vars);
