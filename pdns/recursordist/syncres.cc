@@ -1518,7 +1518,7 @@ LWResult::Result SyncRes::asyncresolveWrapper(const OptLog& log, const ComboAddr
       if (ret == LWResult::Result::BindError) {
         // BindError is only generated when cookies are active and we failed to bind to a local
         // address associated with a cookie, see RFC9018 section 3 last paragraph. We assume the
-        // called code alread erased the cookie info.
+        // called code has already erased the cookie info.
         // This is the first path that re-iterates the loop
         continue;
       }
