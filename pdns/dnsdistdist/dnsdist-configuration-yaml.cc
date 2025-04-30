@@ -1473,7 +1473,7 @@ std::shared_ptr<DNSSelector> getKeyValueStoreRangeLookupSelector([[maybe_unused]
 #endif
 }
 
-std::shared_ptr<DNSActionWrapper> getDnstapLogAction(const DnstapLogActionConfiguration& config)
+std::shared_ptr<DNSActionWrapper> getDnstapLogAction([[maybe_unused]] const DnstapLogActionConfiguration& config)
 {
 #if defined(DISABLE_PROTOBUF) || !defined(HAVE_FSTRM)
   throw std::runtime_error("Unable to create dnstap log action: dnstap support is not enabled");
@@ -1492,7 +1492,7 @@ std::shared_ptr<DNSActionWrapper> getDnstapLogAction(const DnstapLogActionConfig
 #endif
 }
 
-std::shared_ptr<DNSResponseActionWrapper> getDnstapLogResponseAction(const DnstapLogResponseActionConfiguration& config)
+std::shared_ptr<DNSResponseActionWrapper> getDnstapLogResponseAction([[maybe_unused]] const DnstapLogResponseActionConfiguration& config)
 {
 #if defined(DISABLE_PROTOBUF) || !defined(HAVE_FSTRM)
   throw std::runtime_error("Unable to create dnstap log action: dnstap support is not enabled");
@@ -1603,7 +1603,7 @@ void registerProtobufLogger(const ProtobufLoggerConfiguration& config)
 #endif
 }
 
-void registerDnstapLogger(const DnstapLoggerConfiguration& config)
+void registerDnstapLogger([[maybe_unused]] const DnstapLoggerConfiguration& config)
 {
 #if defined(DISABLE_PROTOBUF) || !defined(HAVE_FSTRM)
   throw std::runtime_error("Unable to create dnstap logger: dnstap support is disabled");
