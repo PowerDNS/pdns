@@ -272,6 +272,7 @@ bool DNSBackend::getSOA(const ZoneName& domain, domainid_t zoneId, SOAData& soaD
       }
       hits++;
       soaData.qname = domain.operator const DNSName&();
+      soaData.zonename = domain;
       soaData.ttl = resourceRecord.ttl;
       soaData.db = this;
       soaData.domain_id = resourceRecord.domain_id;

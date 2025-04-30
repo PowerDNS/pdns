@@ -716,7 +716,7 @@ int TCPNameserver::doAXFR(const ZoneName &targetZone, std::unique_ptr<DNSPacket>
   if(securedZone && !presignedZone) { // this is where the DNSKEYs, CDNSKEYs and CDSs go in
     bool doCDNSKEY = true, doCDS = true;
     string publishCDNSKEY, publishCDS;
-    ZoneName zonename(q->qdomain);
+    ZoneName zonename(q->qdomainzone);
     dk.getPublishCDNSKEY(zonename, publishCDNSKEY);
     dk.getPublishCDS(zonename, publishCDS);
 
