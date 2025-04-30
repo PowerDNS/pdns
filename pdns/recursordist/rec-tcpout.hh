@@ -56,7 +56,7 @@ public:
   using pair_t = std::pair<ComboAddress, std::optional<ComboAddress>>;
 
   void store(const struct timeval& now, const pair_t& pair, Connection&& connection);
-  Connection get(const pair_t& remoteAddress);
+  Connection get(const pair_t& pair);
   void cleanup(const struct timeval& now);
 
   [[nodiscard]] size_t size() const

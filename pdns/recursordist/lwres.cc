@@ -334,9 +334,9 @@ static bool tcpconnect(const OptLog& log, const ComboAddress& remote, const std:
 
   const struct timeval timeout{
     g_networkTimeoutMsec / 1000, static_cast<suseconds_t>(g_networkTimeoutMsec) % 1000 * 1000};
-  Socket s(remote.sin4.sin_family, SOCK_STREAM);
-  s.setNonBlocking();
-  setTCPNoDelay(s.getHandle());
+  Socket sock(remote.sin4.sin_family, SOCK_STREAM);
+  sock.setNonBlocking();
+  setTCPNoDelay(sock.getHandle());
   ComboAddress localip = localBind ? *localBind : pdns::getQueryLocalAddress(remote.sin4.sin_family, 0);
   if (localBind) {
     VLOG(log, "Connecting TCP to " << remote.toString() << " with specific local address " << localip.toString() << endl);
@@ -346,7 +346,7 @@ static bool tcpconnect(const OptLog& log, const ComboAddress& remote, const std:
   }
 
   try {
-    s.bind(localip);
+    sock.bind(localip);
   }
   catch (const NetworkError& e) {
     if (localBind) {
@@ -367,7 +367,7 @@ static bool tcpconnect(const OptLog& log, const ComboAddress& remote, const std:
       dnsOverTLS = false;
     }
   }
-  connection.d_handler = std::make_shared<TCPIOHandler>(nsName, false, s.releaseHandle(), timeout, tlsCtx);
+  connection.d_handler = std::make_shared<TCPIOHandler>(nsName, false, sock.releaseHandle(), timeout, tlsCtx);
   connection.d_local = localBind;
   // Returned state ignored
   // This can throw an exception, retry will need to happen at higher level

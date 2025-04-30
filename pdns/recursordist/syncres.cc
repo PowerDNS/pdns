@@ -5507,26 +5507,28 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
 
   if (resolveret != LWResult::Result::Success) {
     /* Error while resolving */
-    if (resolveret == LWResult::Result::Timeout) {
+    switch (resolveret) {
+    case LWResult::Result::Timeout:
       LOG(prefix << qname << ": Timeout resolving after " << lwr.d_usec / 1000.0 << " ms " << (doTCP ? "over TCP" : "") << endl);
       incTimeoutStats(remoteIP);
-    }
-    else if (resolveret == LWResult::Result::OSLimitError) {
+      break;
+    case LWResult::Result::OSLimitError:
       /* OS resource limit reached */
       LOG(prefix << qname << ": Hit a local resource limit resolving" << (doTCP ? " over TCP" : "") << ", probable error: " << stringerror() << endl);
       t_Counters.at(rec::Counter::resourceLimits)++;
-    }
-    else if (resolveret == LWResult::Result::ChainLimitError) {
+      break;
+    case LWResult::Result::ChainLimitError:
       /* Chain resource limit reached */
       LOG(prefix << qname << ": Hit a chain limit resolving" << (doTCP ? " over TCP" : ""));
       t_Counters.at(rec::Counter::chainLimits)++;
-    }
-    else {
+      break;
+    default:
       /* LWResult::Result::PermanentError */
       t_Counters.at(rec::Counter::unreachables)++;
       d_unreachables++;
       // XXX questionable use of errno
       LOG(prefix << qname << ": Error resolving from " << remoteIP.toString() << (doTCP ? " over TCP" : "") << ", possible error: " << stringerror() << endl);
+      break;
     }
 
     // don't account for resource limits, they are our own fault
