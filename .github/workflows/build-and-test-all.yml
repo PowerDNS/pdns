@@ -20,7 +20,7 @@ permissions: # least privileges, see https://docs.github.com/en/actions/using-wo
 jobs:
   build-auth:
     name: build auth
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
       ASAN_OPTIONS: detect_leaks=0
@@ -62,7 +62,7 @@ jobs:
 
   test-auth-api:
     needs: build-auth
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
       ASAN_OPTIONS: detect_leaks=0
@@ -114,7 +114,7 @@ jobs:
 
   test-auth-backend:
     needs: build-auth
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
       ASAN_OPTIONS: detect_leaks=0
@@ -227,7 +227,7 @@ jobs:
 
   test-ixfrdist:
     needs: build-auth
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
       ASAN_OPTIONS: detect_leaks=0
@@ -250,7 +250,7 @@ jobs:
       - run: inv test-ixfrdist
 
   swagger-syntax-check:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v4
