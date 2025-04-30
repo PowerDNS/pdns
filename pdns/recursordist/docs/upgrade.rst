@@ -10,7 +10,7 @@ When upgrading several versions, please read **all** notes applying to the upgra
 New Settings
 ^^^^^^^^^^^^
 
-- The :ref:`setting-yaml-outgoing.cookies` settings has been introduced to implement cookie support for contacting authoritative servers and forwarders. See :rfc:`7873` and :rfc:`9018`.
+- The :ref:`setting-yaml-outgoing.cookies` setting has been introduced to implement cookie support for contacting authoritative servers and forwarders. See :rfc:`7873` and :rfc:`9018`.
 
 :program:`rec_control`
 ^^^^^^^^^^^^^^^^^^^^^^

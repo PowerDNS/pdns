@@ -27,15 +27,14 @@
 
   - Cookies are stored with an auth IP address as primary index and are generated randomly.
 
-  - If the the does not support cookies, this is marked as such and no cookies will be sent to it
+  - If an auth does not support cookies, it is marked as such and no cookies will be sent to it
     for a period of time. When a cookie is sent again, it must be a newly generated one.
 
-  - A cookie is stored together with the local IP (as rec can have many). If a server is to be
+  - A cookie is stored together with the local IP (as rec can have many). If an auth is to be
     contacted again, it should use the same bound IP.
 
   - Although it is perfectly fine for a client cookie to live for a long time, this design will
     flush entries older that a certain period of time, to avoid an ever growing CookieStore.
-
 */
 
 #include <boost/utility.hpp>
