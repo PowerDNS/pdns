@@ -1383,7 +1383,7 @@
     {
         'name': 'cookie-not-in-reply',
         'lambda': '[] { return g_Counters.sum(rec::Counter::cookieNotInReply); }',
-        'desc': 'Authoritative serve sent a reply back without cookie',
+        'desc': 'Authoritative server sent a reply back without cookie',
         'snmp': 157,
     },
     {

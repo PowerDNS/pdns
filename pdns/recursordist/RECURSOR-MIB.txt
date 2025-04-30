@@ -15,11 +15,14 @@ IMPORTS
         FROM SNMPv2-CONF;
 
 rec MODULE-IDENTITY
-    LAST-UPDATED "202408280000Z"
+    LAST-UPDATED "202504290000Z"
     ORGANIZATION "PowerDNS BV"
     CONTACT-INFO "support@powerdns.com"
     DESCRIPTION
        "This MIB module describes information gathered through PowerDNS Recursor."
+
+    REVISION "202504290000Z"
+    DESCRIPTION "Added metrics related to cookies"
 
     REVISION "202408280000Z"
     DESCRIPTION "Added metric for too many incoming TCP connections"
@@ -1304,7 +1307,7 @@ cookieMatched OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Matching cookies recieved"
+        "Matching cookies received"
     ::= { stats 154 }
 
 cookieMismatchTcp OBJECT-TYPE
@@ -1328,7 +1331,7 @@ cookieNotInReply OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Authoritative serve sent a reply bnack without cookie"
+        "Authoritative server sent a reply back without cookie"
     ::= { stats 157 }
 
 cookieRetry OBJECT-TYPE
