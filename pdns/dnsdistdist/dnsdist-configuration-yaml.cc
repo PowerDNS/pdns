@@ -202,7 +202,13 @@ static TLSConfig getTLSConfigFromRustIncomingTLS(const dnsdist::rust::settings::
   }
   out.d_ciphers = std::string(incomingTLSConfig.ciphers);
   out.d_ciphers13 = std::string(incomingTLSConfig.ciphers_tls_13);
+#if defined(HAVE_LIBSSL)
   out.d_minTLSVersion = libssl_tls_version_from_string(std::string(incomingTLSConfig.minimum_version));
+#else /* HAVE_LIBSSL */
+  if (!incomingTLSConfig.minimum_version.empty()) {
+    warnlog("bind.tls.minimum_version has no effect with the chosen TLS library");
+  }
+#endif /* HAVE_LIBSSL */
   out.d_ticketKeyFile = std::string(incomingTLSConfig.ticket_key_file);
   out.d_keyLogFile = std::string(incomingTLSConfig.key_log_file);
   out.d_maxStoredSessions = incomingTLSConfig.number_of_stored_sessions;
@@ -219,12 +225,13 @@ static TLSConfig getTLSConfigFromRustIncomingTLS(const dnsdist::rust::settings::
   return out;
 }
 
-static bool validateTLSConfiguration(const dnsdist::rust::settings::BindConfiguration& bind, const TLSConfig& tlsConfig)
+static bool validateTLSConfiguration(const dnsdist::rust::settings::BindConfiguration& bind, [[maybe_unused]] const TLSConfig& tlsConfig)
 {
   if (!bind.tls.ignore_configuration_errors) {
     return true;
   }
 
+#if defined(HAVE_LIBSSL)
   // we are asked to try to load the certificates so we can return a potential error
   // and properly ignore the frontend before actually launching it
   try {
@@ -234,6 +241,7 @@ static bool validateTLSConfiguration(const dnsdist::rust::settings::BindConfigur
     errlog("Ignoring %s frontend: '%s'", bind.protocol, e.what());
     return false;
   }
+#endif /* HAVE_LIBSSL */
 
   return true;
 }
