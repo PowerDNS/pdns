@@ -422,7 +422,8 @@ bool UeberBackend::fillSOAFromZoneRecord(ZoneName& shorter, const domainid_t zon
   }
 
   // Fill soaData.
-  soaData->qname = zoneRecord.dr.d_name;
+  soaData->qname = zoneRecord.dr.d_name.makeLowerCase();
+  soaData->zonename = shorter.makeLowerCase();
 
   try {
     fillSOAData(zoneRecord, *soaData);
@@ -456,7 +457,8 @@ UeberBackend::CacheResult UeberBackend::fillSOAFromCache(SOAData* soaData, ZoneN
     fillSOAData(d_answers[0], *soaData);
 
     soaData->db = backends.size() == 1 ? backends.begin()->get() : nullptr;
-    soaData->qname = shorter.operator const DNSName&();
+    soaData->qname = shorter.operator const DNSName&().makeLowerCase();
+    soaData->zonename = shorter.makeLowerCase();
   }
   else if (cacheResult == CacheResult::NegativeMatch && d_negcache_ttl != 0U) {
     DLOG(g_log << Logger::Error << "has neg cache entry: " << shorter << endl);
@@ -558,6 +560,7 @@ bool UeberBackend::getAuth(const ZoneName& target, const QType& qtype, SOAData* 
       ZoneName _shorter(shorter.operator const DNSName&(), variant);
       if (g_zoneCache.getEntry(_shorter, zoneId)) {
         if (fillSOAFromZoneRecord(_shorter, zoneId, soaData)) {
+          soaData->zonename = _shorter.makeLowerCase();
           // Need to invoke foundTarget() with the same variant part in the
           // first two arguments, since they are compared as ZoneName, hence
           // the use of `shorter' rather than `_shorter' here.

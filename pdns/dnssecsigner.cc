@@ -195,9 +195,11 @@ static bool getBestAuthFromSet(const set<ZoneName>& authSet, const DNSName& name
   signer.trimToLabels(0);
   ZoneName sname(name);
   do {
-    if(authSet.find(sname) != authSet.end()) {
-      signer = std::move(sname);
-      return true;
+    for (const auto& auth : authSet) {
+      if (auth.operator const DNSName&() == sname.operator const DNSName&()) {
+        signer = auth;
+        return true;
+      }
     }
   }
   while(sname.chopOff());

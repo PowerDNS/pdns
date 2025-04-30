@@ -226,6 +226,7 @@ void TCPNameserver::decrementClientCount(const ComboAddress& remote)
   }
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void TCPNameserver::doConnection(int fd)
 {
   setThreadName("pdns/tcpConnect");
@@ -599,14 +600,16 @@ namespace {
 
 
 /** do the actual zone transfer. Return 0 in case of error, 1 in case of success */
+// NOLINTNEXTLINE(readability-identifier-length)
 int TCPNameserver::doAXFR(const ZoneName &targetZone, std::unique_ptr<DNSPacket>& q, int outsock)  // NOLINT(readability-function-cognitive-complexity)
 {
-  DNSName target = targetZone.operator const DNSName&();
+  const DNSName& target = targetZone.operator const DNSName&();
   string logPrefix="AXFR-out zone '"+targetZone.toLogString()+"', client '"+q->getRemoteStringWithPort()+"', ";
 
   std::unique_ptr<DNSPacket> outpacket= getFreshAXFRPacket(q);
-  if(q->d_dnssecOk)
+  if(q->d_dnssecOk) {
     outpacket->d_dnssecOk=true; // RFC 5936, 2.2.5 'SHOULD'
+  }
 
   g_log<<Logger::Warning<<logPrefix<<"transfer initiated"<<endl;
 
