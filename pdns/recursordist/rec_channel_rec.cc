@@ -352,45 +352,47 @@ static uint64_t dumpAggressiveNSECCache(int fd)
   return g_aggressiveNSECCache->dumpToFile(filePtr, now);
 }
 
-static uint64_t* pleaseDumpCookiesMap(int fd)
+// NOLINTBEGIN(cppcoreguidelines-owning-memory)
+static uint64_t* pleaseDumpCookiesMap(int fileDesc)
 {
-  return new uint64_t(dumpCookies(fd));
+  return new uint64_t(dumpCookies(fileDesc));
 }
 
-static uint64_t* pleaseDumpEDNSMap(int fd)
+static uint64_t* pleaseDumpEDNSMap(int fileDesc)
 {
-  return new uint64_t(SyncRes::doEDNSDump(fd));
+  return new uint64_t(SyncRes::doEDNSDump(fileDesc));
 }
 
-static uint64_t* pleaseDumpNSSpeeds(int fd)
+static uint64_t* pleaseDumpNSSpeeds(int fileDesc)
 {
-  return new uint64_t(SyncRes::doDumpNSSpeeds(fd));
+  return new uint64_t(SyncRes::doDumpNSSpeeds(fileDesc));
 }
 
-static uint64_t* pleaseDumpThrottleMap(int fd)
+static uint64_t* pleaseDumpThrottleMap(int fileDesc)
 {
-  return new uint64_t(SyncRes::doDumpThrottleMap(fd));
+  return new uint64_t(SyncRes::doDumpThrottleMap(fileDesc));
 }
 
-static uint64_t* pleaseDumpFailedServers(int fd)
+static uint64_t* pleaseDumpFailedServers(int fileDesc)
 {
-  return new uint64_t(SyncRes::doDumpFailedServers(fd));
+  return new uint64_t(SyncRes::doDumpFailedServers(fileDesc));
 }
 
-static uint64_t* pleaseDumpSavedParentNSSets(int fd)
+static uint64_t* pleaseDumpSavedParentNSSets(int fileDesc)
 {
-  return new uint64_t(SyncRes::doDumpSavedParentNSSets(fd));
+  return new uint64_t(SyncRes::doDumpSavedParentNSSets(fileDesc));
 }
 
-static uint64_t* pleaseDumpNonResolvingNS(int fd)
+static uint64_t* pleaseDumpNonResolvingNS(int fileDesc)
 {
-  return new uint64_t(SyncRes::doDumpNonResolvingNS(fd));
+  return new uint64_t(SyncRes::doDumpNonResolvingNS(fileDesc));
 }
 
-static uint64_t* pleaseDumpDoTProbeMap(int fd)
+static uint64_t* pleaseDumpDoTProbeMap(int fileDesc)
 {
-  return new uint64_t(SyncRes::doDumpDoTProbeMap(fd));
+  return new uint64_t(SyncRes::doDumpDoTProbeMap(fileDesc));
 }
+// NOLINTEND(cppcoreguidelines-owning-memory)
 
 // Generic dump to file command
 static RecursorControlChannel::Answer doDumpToFile(int s, uint64_t* (*function)(int s), const string& name, bool threads = true)
