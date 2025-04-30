@@ -894,20 +894,6 @@ namespace serialization
   }
 
   template <class Archive>
-  void save(Archive& ar, const QType& g, const unsigned int /* version */)
-  {
-    ar & g.getCode();
-  }
-
-  template <class Archive>
-  void load(Archive& ar, QType& g, const unsigned int /* version */)
-  {
-    uint16_t tmp;
-    ar & tmp;
-    g = QType(tmp);
-  }
-
-  template <class Archive>
   void save(Archive& ar, const DomainInfo& g, const unsigned int /* version */)
   {
     ar & g.zone;
@@ -978,7 +964,6 @@ namespace serialization
 
 BOOST_SERIALIZATION_SPLIT_FREE(DNSName);
 BOOST_SERIALIZATION_SPLIT_FREE(ZoneName);
-BOOST_SERIALIZATION_SPLIT_FREE(QType);
 BOOST_SERIALIZATION_SPLIT_FREE(LMDBBackend::KeyDataDB);
 BOOST_SERIALIZATION_SPLIT_FREE(DomainInfo);
 BOOST_IS_BITWISE_SERIALIZABLE(ComboAddress);
@@ -1345,71 +1330,6 @@ std::shared_ptr<LMDBBackend::RecordsROTransaction> LMDBBackend::getRecordsROTran
   }
 }
 
-#if 0
-// FIXME reinstate soon
-bool LMDBBackend::upgradeToSchemav3()
-{
-  g_log << Logger::Warning << "Upgrading LMDB schema" << endl;
-
-  for (auto i = 0; i < s_shards; i++) {
-    string filename = getArg("filename") + "-" + std::to_string(i);
-    if (rename(filename.c_str(), (filename + "-old").c_str()) < 0) {
-      if (errno == ENOENT) {
-        // apparently this shard doesn't exist yet, moving on
-        continue;
-      }
-      unixDie("Rename failed during LMDB upgrade");
-    }
-
-    LMDBBackend::RecordsDB oldShard, newShard;
-
-    oldShard.env = getMDBEnv((filename + "-old").c_str(),
-                             MDB_NOSUBDIR | d_asyncFlag, 0600);
-    oldShard.dbi = oldShard.env->openDB("records", MDB_CREATE | MDB_DUPSORT);
-    auto txn = oldShard.env->getROTransaction();
-    auto cursor = txn->getROCursor(oldShard.dbi);
-
-    newShard.env = getMDBEnv((filename).c_str(),
-                             MDB_NOSUBDIR | d_asyncFlag, 0600);
-    newShard.dbi = newShard.env->openDB("records", MDB_CREATE);
-    auto newTxn = newShard.env->getRWTransaction();
-
-    MDBOutVal key, val;
-    if (cursor.first(key, val) != 0) {
-      cursor.close();
-      txn->abort();
-      newTxn->abort();
-      continue;
-    }
-    string_view currentKey;
-    string value;
-    for (;;) {
-      auto newKey = key.getNoStripHeader<string_view>();
-      if (currentKey.compare(newKey) != 0) {
-        if (value.size() > 0) {
-          newTxn->put(newShard.dbi, currentKey, value);
-        }
-        currentKey = newKey;
-        value = "";
-      }
-      value += val.get<string>();
-      if (cursor.next(key, val) != 0) {
-        if (value.size() > 0) {
-          newTxn->put(newShard.dbi, currentKey, value);
-        }
-        break;
-      }
-    }
-
-    cursor.close();
-    txn->commit();
-    newTxn->commit();
-  }
-
-  return true;
-}
-#endif
-
 bool LMDBBackend::deleteDomain(const ZoneName& domain)
 {
   if (!d_rwtxn) {
@@ -1582,7 +1502,7 @@ void LMDBBackend::lookupInternal(const QType& type, const DNSName& qdomain, int 
     g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": " << d_dtime.udiffNoReset() << " us to execute" << endl;
   }
 
-  d_lookupdomain = hunt;
+  d_lookupdomain = std::move(hunt);
 
   // Make sure we start with fresh data
   d_currentrrset.clear();
@@ -2049,7 +1969,7 @@ bool LMDBBackend::getDomainKeys(const ZoneName& name, std::vector<KeyData>& keys
   for (auto id : ids) {
     if (txn.get(id, key)) {
       KeyData kd{key.content, id, key.flags, key.active, key.published};
-      keys.push_back(kd);
+      keys.emplace_back(std::move(kd));
     }
   }
 

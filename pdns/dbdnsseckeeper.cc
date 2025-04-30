@@ -394,7 +394,7 @@ bool DNSSECKeeper::setNSEC3PARAM(const ZoneName& zname, const NSEC3PARAMRecordCo
 
   string descr = ns3p.getZoneRepresentation();
   vector<string> meta;
-  meta.push_back(descr);
+  meta.emplace_back(std::move(descr));
   if (d_keymetadb->setDomainMetadata(zname, "NSEC3PARAM", meta)) {
     meta.clear();
 

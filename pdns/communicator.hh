@@ -91,7 +91,7 @@ public:
     nr.id = dns_random_uint16();
     nr.next = time(nullptr) + delay;
 
-    d_nqueue.push_back(nr);
+    d_nqueue.push_back(std::move(nr));
   }
 
   bool removeIf(const ComboAddress& remote, uint16_t id, const ZoneName& domain)

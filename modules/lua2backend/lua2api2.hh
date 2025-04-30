@@ -387,7 +387,7 @@ public:
           g_log << Logger::Warning << "[" << getPrefix() << "] Unsupported key '" << item.first << "' in keydata result" << endl;
       }
       logResult("id=" << key.id << ",flags=" << key.flags << ",active=" << (key.active ? "true" : "false") << ",published=" << (key.published ? "true" : "false"));
-      keys.push_back(key);
+      keys.emplace_back(std::move(key));
     }
 
     return true;

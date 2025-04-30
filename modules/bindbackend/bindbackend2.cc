@@ -540,8 +540,7 @@ void Bind2Backend::insertRecord(std::shared_ptr<recordstorage_t>& records, const
       g_log << Logger::Warning << msg << " ignored" << endl;
       return;
     }
-    else
-      throw PDNSException(msg);
+    throw PDNSException(std::move(msg));
   }
 
   //  bdr.qname.swap(bdr.qname);
