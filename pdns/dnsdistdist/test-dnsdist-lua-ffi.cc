@@ -373,6 +373,30 @@ BOOST_AUTO_TEST_CASE(test_Query)
   BOOST_CHECK_EQUAL(ids.d_protoBufData->d_deviceID, deviceID);
   BOOST_CHECK_EQUAL(ids.d_protoBufData->d_deviceName, deviceName);
   BOOST_CHECK_EQUAL(ids.d_protoBufData->d_requestorID, requestorID);
+
+  /* no frontend yet */
+  BOOST_CHECK(dnsdist_ffi_dnsquestion_get_incoming_interface(nullptr) == nullptr);
+  BOOST_CHECK(dnsdist_ffi_dnsquestion_get_incoming_interface(&lightDQ) == nullptr);
+  {
+    /* frontend without and interface set */
+    const std::string interface{};
+    ClientState frontend(ids.origDest, false, false, 0, interface, {}, false);
+    ids.cs = &frontend;
+    const auto* itfPtr = dnsdist_ffi_dnsquestion_get_incoming_interface(&lightDQ);
+    BOOST_REQUIRE(itfPtr != nullptr);
+    BOOST_CHECK_EQUAL(std::string(itfPtr), interface);
+    ids.cs = nullptr;
+  }
+  {
+    /* frontend with interface set */
+    const std::string interface{"interface-name-0"};
+    ClientState frontend(ids.origDest, false, false, 0, interface, {}, false);
+    ids.cs = &frontend;
+    const auto* itfPtr = dnsdist_ffi_dnsquestion_get_incoming_interface(&lightDQ);
+    BOOST_REQUIRE(itfPtr != nullptr);
+    BOOST_CHECK_EQUAL(std::string(itfPtr), interface);
+    ids.cs = nullptr;
+  }
 }
 
 BOOST_AUTO_TEST_CASE(test_Response)
