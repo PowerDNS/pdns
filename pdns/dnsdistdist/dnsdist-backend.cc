@@ -979,6 +979,13 @@ void ServerPool::addServer(shared_ptr<DownstreamState>& server)
     serv.first = idx++;
   }
   *servers = std::make_shared<const ServerPolicy::NumberedServerVector>(std::move(newServers));
+
+  if ((*servers)->size() == 1) {
+    d_tcpOnly = server->isTCPOnly();
+  }
+  else if (!server->isTCPOnly()) {
+    d_tcpOnly = false;
+  }
 }
 
 void ServerPool::removeServer(shared_ptr<DownstreamState>& server)
@@ -989,8 +996,10 @@ void ServerPool::removeServer(shared_ptr<DownstreamState>& server)
   auto newServers = std::make_shared<ServerPolicy::NumberedServerVector>(*(*servers));
   size_t idx = 1;
   bool found = false;
+  bool tcpOnly = true;
   for (auto it = newServers->begin(); it != newServers->end();) {
     if (found) {
+      tcpOnly = tcpOnly && it->second->isTCPOnly();
       /* we need to renumber the servers placed
          after the removed one, for Lua (custom policies) */
       it->first = idx++;
@@ -1000,9 +1009,11 @@ void ServerPool::removeServer(shared_ptr<DownstreamState>& server)
       it = newServers->erase(it);
       found = true;
     } else {
+      tcpOnly = tcpOnly && it->second->isTCPOnly();
       idx++;
       it++;
     }
   }
+  d_tcpOnly = tcpOnly;
   *servers = std::move(newServers);
 }
