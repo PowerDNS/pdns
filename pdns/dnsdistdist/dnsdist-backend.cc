@@ -144,7 +144,12 @@ bool DownstreamState::reconnect(bool initialAttempt)
     }
     catch (const std::runtime_error& error) {
       if (initialAttempt || g_verbose) {
-        infolog("Error connecting to new server with address %s: %s", d_config.remote.toStringWithPort(), error.what());
+        if (!IsAnyAddress(d_config.sourceAddr) || !d_config.sourceItfName.empty()) {
+          infolog("Error connecting to new server with address %s (source address: %s, source interface: %s): %s", d_config.remote.toStringWithPort(), IsAnyAddress(d_config.sourceAddr) ? "not set" : d_config.sourceAddr.toString(), d_config.sourceItfName.empty() ? "not set" : d_config.sourceItfName, error.what());
+        }
+        else {
+          infolog("Error connecting to new server with address %s: %s", d_config.remote.toStringWithPort(), error.what());
+        }
       }
       connected = false;
       break;
