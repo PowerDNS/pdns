@@ -24,6 +24,66 @@
 #include "ldapbackend.hh"
 #include <cstdlib>
 
+/*
+ *  Known DNS RR types
+ *  Types which aren't active are currently not supported by PDNS
+ */
+
+static const char* ldap_attrany[] = { // NOLINT(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
+  "associatedDomain", // needs to be first, code below depends on this
+  "dNSTTL",
+  "ALIASRecord",
+  "aRecord",
+  "nSRecord",
+  "cNAMERecord",
+  "sOARecord",
+  "pTRRecord",
+  "hInfoRecord",
+  "mXRecord",
+  "tXTRecord",
+  "rPRecord",
+  "aFSDBRecord",
+  //  "SigRecord",
+  "KeyRecord",
+  //  "gPosRecord",
+  "aAAARecord",
+  "lOCRecord",
+  "sRVRecord",
+  "nAPTRRecord",
+  "kXRecord",
+  "certRecord",
+  //  "a6Record",
+  "dNameRecord",
+  //  "aPLRecord",
+  "dSRecord",
+  "sSHFPRecord",
+  "iPSecKeyRecord",
+  "rRSIGRecord",
+  "nSECRecord",
+  "dNSKeyRecord",
+  "dHCIDRecord",
+  "nSEC3Record",
+  "nSEC3PARAMRecord",
+  "tLSARecord",
+  "cDSRecord",
+  "cDNSKeyRecord",
+  "openPGPKeyRecord",
+  "SVCBRecord",
+  "HTTPSRecord",
+  "sPFRecord",
+  "EUI48Record",
+  "EUI64Record",
+  "tKeyRecord",
+  "uRIRecord",
+  "cAARecord",
+  "TYPE65226Record",
+  "TYPE65534Record",
+  "modifyTimestamp",
+  "PdnsRecordTTL",
+  "PdnsRecordAuth",
+  "PdnsRecordOrdername",
+  nullptr};
+
 bool LdapBackend::list(const ZoneName& target, int domain_id, bool /* include_disabled */)
 {
   try {

@@ -46,66 +46,6 @@ using std::vector;
 
 class LdapAuthenticator;
 
-/*
- *  Known DNS RR types
- *  Types which aren't active are currently not supported by PDNS
- */
-
-__attribute__((unused)) static const char* ldap_attrany[] = {
-  "associatedDomain",
-  "dNSTTL",
-  "ALIASRecord",
-  "aRecord",
-  "nSRecord",
-  "cNAMERecord",
-  "sOARecord",
-  "pTRRecord",
-  "hInfoRecord",
-  "mXRecord",
-  "tXTRecord",
-  "rPRecord",
-  "aFSDBRecord",
-  //  "SigRecord",
-  "KeyRecord",
-  //  "gPosRecord",
-  "aAAARecord",
-  "lOCRecord",
-  "sRVRecord",
-  "nAPTRRecord",
-  "kXRecord",
-  "certRecord",
-  //  "a6Record",
-  "dNameRecord",
-  //  "aPLRecord",
-  "dSRecord",
-  "sSHFPRecord",
-  "iPSecKeyRecord",
-  "rRSIGRecord",
-  "nSECRecord",
-  "dNSKeyRecord",
-  "dHCIDRecord",
-  "nSEC3Record",
-  "nSEC3PARAMRecord",
-  "tLSARecord",
-  "cDSRecord",
-  "cDNSKeyRecord",
-  "openPGPKeyRecord",
-  "SVCBRecord",
-  "HTTPSRecord",
-  "sPFRecord",
-  "EUI48Record",
-  "EUI64Record",
-  "tKeyRecord",
-  "uRIRecord",
-  "cAARecord",
-  "TYPE65226Record",
-  "TYPE65534Record",
-  "modifyTimestamp",
-  "PdnsRecordTTL",
-  "PdnsRecordAuth",
-  "PdnsRecordOrdername",
-  NULL};
-
 class LdapBackend : public DNSBackend
 {
   string d_myname;
