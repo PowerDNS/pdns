@@ -137,16 +137,23 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
     }
     state.setLazyAuto();
   });
-  luaCtx.registerFunction<void (DownstreamState::*)(boost::optional<LuaAssociativeTable<boost::variant<bool,size_t,std::string>>>)>("setHealthCheckParams", [](DownstreamState& state, boost::optional<LuaAssociativeTable<boost::variant<bool,size_t,std::string>>> vars) {
-    std::string valueStr;
-    getOptionalValue<size_t>(vars, "maxCheckFailures", state.d_config.maxCheckFailures);
-    getOptionalValue<size_t>(vars, "rise", state.d_config.minRiseSuccesses);
-    getOptionalValue<size_t>(vars, "checkTimeout", state.d_config.checkTimeout);
-    getOptionalValue<size_t>(vars, "checkInterval", state.d_config.checkInterval);
-    getOptionalValue<std::string>(vars, "checkType", state.d_config.checkType);
-    getOptionalValue<bool>(vars, "checkTCP", state.d_config.d_tcpCheck);
-    if (getOptionalValue<std::string>(vars, "checkName", valueStr) > 0) {
-      state.d_config.checkName = DNSName(valueStr);
+  luaCtx.registerFunction<void (DownstreamState::*)(boost::optional<LuaAssociativeTable<boost::variant<size_t>>>)>("setHealthCheckParams", [](DownstreamState& state, boost::optional<LuaAssociativeTable<boost::variant<size_t>>> vars) {
+    size_t value = 0;
+    getOptionalValue<size_t>(vars, "maxCheckFailures", value);
+    if (value > 0) {
+      state.d_config.maxCheckFailures.store(value);
+    }
+    getOptionalValue<size_t>(vars, "rise", value);
+    if (value > 0) {
+      state.d_config.minRiseSuccesses.store(value);
+    }
+    getOptionalValue<size_t>(vars, "checkTimeout", value);
+    if (value > 0) {
+      state.d_config.checkTimeout.store(value);
+    }
+    getOptionalValue<size_t>(vars, "checkInterval", value);
+    if (value > 0) {
+      state.d_config.checkInterval.store(value);
     }
   });
   luaCtx.registerFunction<std::string (DownstreamState::*)() const>("getName", [](const DownstreamState& state) -> const std::string& { return state.getName(); });

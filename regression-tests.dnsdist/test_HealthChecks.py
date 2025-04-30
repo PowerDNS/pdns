@@ -5,7 +5,7 @@ import ssl
 import threading
 import time
 import dns
-from queue import Queue
+import queue
 from dnsdisttests import DNSDistTest, pickAvailablePort, ResponderDropAction
 
 class HealthCheckTest(DNSDistTest):
@@ -402,45 +402,32 @@ class TestLazyHealthChecks(HealthCheckTest):
 
 class HealthCheckUpdateParams(HealthCheckTest):
 
-    _healthQueue = Queue()
+    _healthQueue = queue.Queue()
+    _dropHealthCheck = False
 
     @classmethod
     def startResponders(cls):
         print("Launching responders..")
-        cls._UDPResponder = threading.Thread(name='UDP Responder', target=cls.UDPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue, False, cls.healthCallbackUdp])
+        cls._UDPResponder = threading.Thread(name='UDP Responder', target=cls.UDPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue, False, cls.healthCallback])
         cls._UDPResponder.daemon = True
         cls._UDPResponder.start()
-        cls._TCPResponder = threading.Thread(name='TCP Responder', target=cls.TCPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, cls.healthCallbackTcp])
-        cls._TCPResponder.daemon = True
-        cls._TCPResponder.start()
 
     @classmethod
-    def healthCallbackUdp(cls, request):
-        qn, qt= str(request.question[0].name), request.question[0].rdtype
+    def healthCallback(cls, request):
+        if cls._dropHealthCheck:
+          cls._healthQueue.put(False)
+          return ResponderDropAction()
         response = dns.message.make_response(request)
-        if qn.endswith("drop.hc.dnsdist.org.") or qn.endswith("tcponly.hc.dnsdist.org."):
-            response = None
-        if response is None:
-            cls._healthQueue.put((False, qn, qt))
-            return ResponderDropAction()
-        cls._healthQueue.put((True, qn, qt))
+        cls._healthQueue.put(True)
         return response.to_wire()
 
     @classmethod
-    def healthCallbackTcp(cls, request):
-        qn, qt= str(request.question[0].name), request.question[0].rdtype
-        response = dns.message.make_response(request)
-        if qn.endswith("drop.hc.dnsdist.org."):
-            response = None
-        if response is None:
-            cls._healthQueue.put((False, qn, qt))
-            return ResponderDropAction()
-        cls._healthQueue.put((True, qn, qt))
-        return response.to_wire()
+    def wait1(cls, block=True):
+        return cls._healthQueue.get(block)
 
     @classmethod
-    def wait1(cls):
-        return cls._healthQueue.get()
+    def setDrop(cls, flag=True):
+        cls._dropHealthCheck = flag
 
 class TestUpdateHCParamsCombo1(HealthCheckUpdateParams):
 
@@ -449,42 +436,43 @@ class TestUpdateHCParamsCombo1(HealthCheckUpdateParams):
 
     def testCombo1(self):
         """
-        HealthChecks: Update checkName, maxCheckFailures, rise, checkTCP
+        HealthChecks: Update maxCheckFailures, rise
         """
         # consume health checks upon sys init
-        for _ in [1, 2]: rc, qn, qt = self.wait1()
-        self.assertEqual(rc, True)
+        try:
+          while self.wait1(False): pass
+        except queue.Empty: pass
+
+        self.assertEqual(self.wait1(), True)
         time.sleep(0.1)
         self.assertEqual(self.getBackendMetric(0, 'healthCheckFailures'), 0)
         self.assertEqual(self.getBackendStatus(), 'up')
 
-        self.sendConsoleCommand("getServer(0):setHealthCheckParams({checkName='drop.hc.dnsdist.org',maxCheckFailures=2,rise=2})")
+        self.sendConsoleCommand("getServer(0):setHealthCheckParams({maxCheckFailures=2,rise=2})")
+        self.setDrop()
 
         # wait for 1st failure
         for i in [1,2,3]:
-            rc, qn, qt = self.wait1()
+            rc = self.wait1()
             if rc is False: break
         self.assertGreater(3, i)
-        self.assertEqual(qn, 'drop.hc.dnsdist.org.')
         time.sleep(1.1)
         # should have failures but still up
         self.assertGreater(self.getBackendMetric(0, 'healthCheckFailures'), 0)
         self.assertEqual(self.getBackendStatus(), 'up')
 
         # wait for 2nd failure
-        rc, qn, qt = self.wait1()
-        self.assertEqual(rc, False)
-        self.assertEqual(qn, 'drop.hc.dnsdist.org.')
+        self.assertEqual(self.wait1(), False)
         time.sleep(1.1)
         # should have more failures and down
         self.assertGreater(self.getBackendMetric(0, 'healthCheckFailures'), 1)
         self.assertEqual(self.getBackendStatus(), 'down')
 
-        self.sendConsoleCommand("getServer(0):setHealthCheckParams({checkName='tcponly.hc.powerdns.com',checkTCP=true})")
+        self.setDrop(False)
 
         # wait for 1st success
         for i in [1,2,3]:
-            rc, qn, qt = self.wait1()
+            rc = self.wait1()
             if rc is True: break
         self.assertGreater(3, i)
         time.sleep(0.1)
@@ -494,8 +482,7 @@ class TestUpdateHCParamsCombo1(HealthCheckUpdateParams):
         beforeFailure = self.getBackendMetric(0, 'healthCheckFailures')
 
         # wati for 2nd success
-        rc, qn, qt = self.wait1()
-        self.assertEqual(rc, True)
+        self.assertEqual(self.wait1(), True)
         time.sleep(0.1)
         # should have no more failures, back to up
         self.assertEqual(self.getBackendMetric(0, 'healthCheckFailures'), beforeFailure)
@@ -508,34 +495,34 @@ class TestUpdateHCParamsCombo2(HealthCheckUpdateParams):
 
     def testCombo2(self):
         """
-        HealthChecks: Update checkType, checkTimeout, checkInterval
+        HealthChecks: Update checkTimeout, checkInterval
         """
         # consume health checks upon sys init
-        for _ in [1, 2]: rc, qn, qt = self.wait1()
-        self.assertEqual(rc, True)
+        try:
+          while self.wait1(False): pass
+        except queue.Empty: pass
+
+        self.assertEqual(self.wait1(), True)
         time.sleep(0.1)
         self.assertEqual(self.getBackendMetric(0, 'healthCheckFailures'), 0)
         self.assertEqual(self.getBackendStatus(), 'up')
 
-        self.sendConsoleCommand("getServer(0):setHealthCheckParams({checkType='TXT',checkInterval=2})")
+        self.sendConsoleCommand("getServer(0):setHealthCheckParams({checkInterval=2})")
 
         # start timing
-        rc, qn, qt = self.wait1()
+        self.assertEqual(self.wait1(), True)
         t1 = time.time()
-        self.assertEqual(rc, True)
-        self.assertEqual(qt, dns.rdatatype.TXT)
-        rc, qn, qt = self.wait1()
+        self.assertEqual(self.wait1(), True)
         t2 = time.time()
-        self.assertEqual(rc, True)
-        self.assertEqual(qt, dns.rdatatype.TXT)
         # intervals shall be greater than 1
         self.assertGreater(t2-t1, 1.5)
 
-        self.sendConsoleCommand("getServer(0):setHealthCheckParams({checkName='drop.hc.dnsdist.org',checkTimeout=2000})")
+        self.sendConsoleCommand("getServer(0):setHealthCheckParams({checkTimeout=2000})")
+        self.setDrop()
 
         # wait for 1st failure
         for i in [1,2,3]:
-            rc, qn, qt = self.wait1()
+            rc = self.wait1()
             if rc is False: break
         self.assertGreater(3, i)
 

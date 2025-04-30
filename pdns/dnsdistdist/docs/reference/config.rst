@@ -898,13 +898,10 @@ A server object returned by :func:`getServer` can be manipulated with these func
     :header: Keyword, Type
     :widths: auto
 
-    ``checkName``                            ``string``
-    ``checkType``                            ``string``
     ``checkTimeout``                         ``number``
     ``checkInterval``                        ``number``
     ``maxCheckFailures``                     ``number``
     ``rise``                                 ``number``
-    ``checkTCP``                             ``bool``
 
   Apart from the functions, a :class:`Server` object has these attributes:
 
