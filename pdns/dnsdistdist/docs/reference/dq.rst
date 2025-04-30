@@ -184,7 +184,7 @@ This state can be modified from the various hooks.
 
   .. method:: DNSQuestion:getIncomingInterface() -> string
 
-    .. versionadded:: 2.0.0
+    .. versionadded:: 1.9.10
 
     Return the name of the network interface this query was received on, but only if the corresponding frontend
     has been bound to a specific network interface via the ``interface`` parameter to :func:`addLocal`, :func:`setLocal`,
