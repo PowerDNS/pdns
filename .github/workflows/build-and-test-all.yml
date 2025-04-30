@@ -21,7 +21,7 @@ jobs:
   build-auth:
     name: build auth
     if: ${{ !github.event.schedule || vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       ASAN_OPTIONS: detect_leaks=0
       FUZZING_TARGETS: yes
@@ -90,7 +90,7 @@ jobs:
 
   test-auth-api:
     needs: build-auth
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
       ASAN_OPTIONS: detect_leaks=0
@@ -142,7 +142,7 @@ jobs:
 
   test-auth-backend:
     needs: build-auth
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
       ASAN_OPTIONS: detect_leaks=0
@@ -255,7 +255,7 @@ jobs:
 
   test-ixfrdist:
     needs: build-auth
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
       ASAN_OPTIONS: detect_leaks=0
@@ -279,7 +279,7 @@ jobs:
 
   swagger-syntax-check:
     if: ${{ !github.event.schedule || vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v4
@@ -293,7 +293,7 @@ jobs:
 
   check-clang-tidy:
     needs: [build-auth]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     name: Check whether clang-tidy succeeded
     steps:
     - run: |

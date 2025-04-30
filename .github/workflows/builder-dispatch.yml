@@ -37,7 +37,7 @@ permissions: # least privileges, see https://docs.github.com/en/actions/using-wo
 jobs:
   prepare:
     name: generate OS list
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     outputs:
       oslist: ${{ steps.get-oslist.outputs.oslist }}
     steps:
@@ -51,8 +51,8 @@ jobs:
   build:
     needs: prepare
     name: build ${{ github.event.inputs.product }} (${{ github.event.inputs.ref }}) for ${{ matrix.os }}
-    # on a ubuntu-20.04 VM
-    runs-on: ubuntu-20.04
+    # on a ubuntu-22.04 VM
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         os: ${{fromJson(needs.prepare.outputs.oslist)}}
