@@ -610,15 +610,18 @@ struct DownstreamState : public std::enable_shared_from_this<DownstreamState>
     bool d_upgradeToLazyHealthChecks{false};
   };
 
-  struct Config : public BaseConfig {
-    Config(): BaseConfig()
+  struct Config : public BaseConfig
+  {
+    Config() :
+      BaseConfig()
     {
     }
     Config(const ComboAddress& remote_) :
       BaseConfig(remote_)
     {
     }
-    Config(const Config& c) : BaseConfig(c)
+    Config(const Config& c) :
+      BaseConfig(c)
     {
       checkInterval.store(c.checkInterval.load());
       checkTimeout.store(c.checkTimeout.load());
