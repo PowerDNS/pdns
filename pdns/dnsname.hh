@@ -424,6 +424,8 @@ using ZoneName = DNSName;
 using CanonZoneNameCompare = CanonDNSNameCompare;
 #endif // ]
 
+extern const ZoneName g_rootzonename;
+
 template<typename T>
 struct SuffixMatchTree
 {
