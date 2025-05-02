@@ -30,6 +30,7 @@
 #include <boost/functional/hash.hpp>
 
 const DNSName g_rootdnsname("."), g_wildcarddnsname("*");
+const ZoneName g_rootzonename(".");
 
 /* raw storage
    in DNS label format, with trailing 0. W/o trailing 0, we are 'empty'
