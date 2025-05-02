@@ -422,7 +422,7 @@ bool UeberBackend::fillSOAFromZoneRecord(ZoneName& shorter, const int zoneId, SO
   }
 
   // Fill soaData.
-  soaData->qname = zoneRecord.dr.d_name;
+  soaData->qname = zoneRecord.dr.d_name.makeLowerCase();
   soaData->zonename = shorter.makeLowerCase();
 
   try {
@@ -457,7 +457,7 @@ UeberBackend::CacheResult UeberBackend::fillSOAFromCache(SOAData* soaData, ZoneN
     fillSOAData(d_answers[0], *soaData);
 
     soaData->db = backends.size() == 1 ? backends.begin()->get() : nullptr;
-    soaData->qname = shorter.operator const DNSName&();
+    soaData->qname = shorter.operator const DNSName&().makeLowerCase();
     soaData->zonename = shorter.makeLowerCase();
   }
   else if (cacheResult == CacheResult::NegativeMatch && d_negcache_ttl != 0U) {
