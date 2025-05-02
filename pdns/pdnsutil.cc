@@ -1744,6 +1744,18 @@ static int addOrReplaceRecord(bool isAdd, const vector<string>& cmds) {
     }
   }
 
+  if (rr.qtype.getCode() == QType::ALIAS && name == DNSName(cmds.at(contentStart)))
+  {
+    cerr << "ALIAS records cannot point at themselves " << name << rr.qname.toString() << endl;
+    return EXIT_FAILURE;
+  }
+
+  if (rr.qtype.getCode() == QType::CNAME && name == DNSName(cmds.at(contentStart)))
+  {
+    cerr << "CNAME records cannot point at themselves " << rr.qname.toString() << endl;
+    return EXIT_FAILURE;
+  }
+
   // Synthesize the new records.
   for(auto i = contentStart ; i < cmds.size() ; ++i) {
     rr.content = DNSRecordContent::make(rr.qtype.getCode(), QClass::IN, cmds.at(i))->getZoneRepresentation(true);
