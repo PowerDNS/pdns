@@ -1343,7 +1343,7 @@ static int editZone(const ZoneName &zone, const PDNSColors& col) {
     unixDie("Editing file with: '"+cmdline+"', perhaps set EDITOR variable");
   }
   cmdline.clear();
-  ZoneParserTNG zpt(static_cast<const char *>(tmpnam), ZoneName(g_rootdnsname));
+  ZoneParserTNG zpt(static_cast<const char *>(tmpnam), g_rootzonename);
   zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
   zpt.setMaxIncludes(::arg().asNum("max-include-depth"));
   DNSResourceRecord zrr;

@@ -312,7 +312,7 @@ int main( int argc, char* argv[] )
                                 }
                                 try
                                 {
-                                  if( i.name != ZoneName(g_rootdnsname) && i.name != ZoneName("localhost") && i.name != ZoneName("0.0.127.in-addr.arpa") )
+                                  if( i.name != g_rootzonename && i.name != ZoneName("localhost") && i.name != ZoneName("0.0.127.in-addr.arpa") )
                                         {
                                                 cerr << "Parsing file: " << i.filename << ", domain: " << i.name << endl;
                                                 g_zonename = i.name;
