@@ -23,7 +23,7 @@ env:
   # github.workspace variable points to the Runner home folder. Container home folder defined below.
   REPO_HOME: '/__w/${{ github.event.repository.name }}/${{ github.event.repository.name }}'
   BUILDER_VERSION: '0.0.0-git1'
-  COVERAGE: ${{ github.repository == 'PowerDNS/pdns' && 'yes' || 'no' }}
+  COVERAGE: no
   LLVM_PROFILE_FILE: "/tmp/code-%p.profraw"
   OPTIMIZATIONS: yes
   DECAF_SUPPORT: yes
