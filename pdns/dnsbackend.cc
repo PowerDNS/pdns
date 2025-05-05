@@ -68,7 +68,7 @@ int DNSBackend::getArgAsNum(const string& key)
 }
 
 // Default API lookup has no support for disabled records and simply wraps lookup()
-void DNSBackend::APILookup(const QType& qtype, const DNSName& qdomain, int zoneId, bool /* include_disabled */)
+void DNSBackend::APILookup(const QType& qtype, const DNSName& qdomain, domainid_t zoneId, bool /* include_disabled */)
 {
   lookup(qtype, qdomain, zoneId, nullptr);
 }
@@ -306,7 +306,7 @@ bool DNSBackend::get(DNSZoneRecord& zoneRecord)
   return true;
 }
 
-bool DNSBackend::getBeforeAndAfterNames(uint32_t domainId, const ZoneName& zonename, const DNSName& qname, DNSName& before, DNSName& after)
+bool DNSBackend::getBeforeAndAfterNames(domainid_t domainId, const ZoneName& zonename, const DNSName& qname, DNSName& before, DNSName& after)
 {
   DNSName unhashed;
   bool ret = this->getBeforeAndAfterNamesAbsolute(domainId, qname.makeRelative(zonename).makeLowerCase(), unhashed, before, after);

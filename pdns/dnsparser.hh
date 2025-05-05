@@ -444,7 +444,7 @@ public:
 
 struct DNSZoneRecord
 {
-  int domain_id{-1};
+  domainid_t domain_id{UnknownDomainID};
   uint8_t scopeMask{0};
   int signttl{0};
   DNSName wildcardname;

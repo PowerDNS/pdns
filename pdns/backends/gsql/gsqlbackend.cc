@@ -208,7 +208,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_SearchCommentsQuery_stmt = nullptr;
 }
 
-void GSQLBackend::setNotified(uint32_t domain_id, uint32_t serial)
+void GSQLBackend::setNotified(domainid_t domain_id, uint32_t serial)
 {
   try {
     reconnectIfNeeded();
@@ -226,7 +226,7 @@ void GSQLBackend::setNotified(uint32_t domain_id, uint32_t serial)
   }
 }
 
-void GSQLBackend::setLastCheck(uint32_t domain_id, time_t lastcheck)
+void GSQLBackend::setLastCheck(domainid_t domain_id, time_t lastcheck)
 {
   try {
     reconnectIfNeeded();
@@ -243,12 +243,12 @@ void GSQLBackend::setLastCheck(uint32_t domain_id, time_t lastcheck)
   }
 }
 
-void GSQLBackend::setStale(uint32_t domain_id)
+void GSQLBackend::setStale(domainid_t domain_id)
 {
   setLastCheck(domain_id, 0);
 }
 
-void GSQLBackend::setFresh(uint32_t domain_id)
+void GSQLBackend::setFresh(domainid_t domain_id)
 {
   setLastCheck(domain_id, time(nullptr));
 }
@@ -731,7 +731,7 @@ bool GSQLBackend::getCatalogMembers(const ZoneName& catalog, vector<CatalogInfo>
   return true;
 }
 
-bool GSQLBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype)
+bool GSQLBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype)
 {
   if(!d_dnssecQueries)
     return false;
@@ -812,7 +812,7 @@ bool GSQLBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
   return true;
 }
 
-bool GSQLBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& insert, set<DNSName>& erase, bool remove)
+bool GSQLBackend::updateEmptyNonTerminals(domainid_t domain_id, set<DNSName>& insert, set<DNSName>& erase, bool remove)
 {
   if(remove) {
     try {
@@ -880,7 +880,8 @@ unsigned int GSQLBackend::getCapabilities()
   return caps;
 }
 
-bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after)
+// NOLINTNEXTLINE(readability-identifier-length)
+bool GSQLBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after)
 {
   if(!d_dnssecQueries)
     return false;
@@ -1406,13 +1407,13 @@ bool GSQLBackend::setDomainMetadata(const ZoneName& name, const std::string& kin
   return true;
 }
 
-void GSQLBackend::lookup(const QType& qtype, const DNSName& qname, int domain_id, DNSPacket* /* pkt_p */)
+void GSQLBackend::lookup(const QType& qtype, const DNSName& qname, domainid_t domain_id, DNSPacket* /* pkt_p */)
 {
   try {
     reconnectIfNeeded();
 
     if(qtype.getCode()!=QType::ANY) {
-      if(domain_id < 0) {
+      if(domain_id == UnknownDomainID) {
         d_query_name = "basic-query";
         d_query_stmt = &d_NoIdQuery_stmt;
         // clang-format off
@@ -1432,7 +1433,7 @@ void GSQLBackend::lookup(const QType& qtype, const DNSName& qname, int domain_id
       }
     } else {
       // qtype==ANY
-      if(domain_id < 0) {
+      if(domain_id == UnknownDomainID) {
         d_query_name = "any-query";
         d_query_stmt = &d_ANYNoIdQuery_stmt;
         // clang-format off
@@ -1461,7 +1462,7 @@ void GSQLBackend::lookup(const QType& qtype, const DNSName& qname, int domain_id
   d_qname=qname;
 }
 
-void GSQLBackend::APILookup(const QType& qtype, const DNSName& qname, int domain_id, bool include_disabled)
+void GSQLBackend::APILookup(const QType& qtype, const DNSName& qname, domainid_t domain_id, bool include_disabled)
 {
   try {
     reconnectIfNeeded();
@@ -1499,7 +1500,7 @@ void GSQLBackend::APILookup(const QType& qtype, const DNSName& qname, int domain
   d_qname=qname;
 }
 
-bool GSQLBackend::list(const ZoneName &target, int domain_id, bool include_disabled)
+bool GSQLBackend::list(const ZoneName &target, domainid_t domain_id, bool include_disabled)
 {
   DLOG(g_log<<"GSQLBackend constructing handle for list of domain id '"<<domain_id<<"'"<<endl);
 
@@ -1525,7 +1526,7 @@ bool GSQLBackend::list(const ZoneName &target, int domain_id, bool include_disab
   return true;
 }
 
-bool GSQLBackend::listSubZone(const ZoneName &zone, int domain_id) {
+bool GSQLBackend::listSubZone(const ZoneName &zone, domainid_t domain_id) {
 
   string wildzone = "%." + zone.makeLowerCase().toStringNoDot();
 
@@ -1878,7 +1879,8 @@ void GSQLBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, boo
   }
 }
 
-bool GSQLBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset)
+// NOLINTNEXTLINE(readability-identifier-length)
+bool GSQLBackend::replaceRRSet(domainid_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset)
 {
   try {
     reconnectIfNeeded();
@@ -1991,7 +1993,7 @@ bool GSQLBackend::feedRecord(const DNSResourceRecord& r, const DNSName& ordernam
   return true; // XXX FIXME this API should not return 'true' I think -ahu
 }
 
-bool GSQLBackend::feedEnts(int domain_id, map<DNSName,bool>& nonterm)
+bool GSQLBackend::feedEnts(domainid_t domain_id, map<DNSName,bool>& nonterm)
 {
   for(const auto& nt: nonterm) {
     try {
@@ -2014,7 +2016,7 @@ bool GSQLBackend::feedEnts(int domain_id, map<DNSName,bool>& nonterm)
   return true;
 }
 
-bool GSQLBackend::feedEnts3(int domain_id, const DNSName& /* domain */, map<DNSName, bool>& nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow)
+bool GSQLBackend::feedEnts3(domainid_t domain_id, const DNSName& /* domain */, map<DNSName, bool>& nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow)
 {
   if(!d_dnssecQueries)
       return false;
@@ -2056,7 +2058,7 @@ bool GSQLBackend::feedEnts3(int domain_id, const DNSName& /* domain */, map<DNSN
   return true;
 }
 
-bool GSQLBackend::startTransaction(const ZoneName &domain, int domain_id)
+bool GSQLBackend::startTransaction(const ZoneName &domain, domainid_t domain_id)
 {
   try {
     reconnectIfNeeded();
@@ -2066,7 +2068,7 @@ bool GSQLBackend::startTransaction(const ZoneName &domain, int domain_id)
     }
     d_db->startTransaction();
     d_inTransaction = true;
-    if(domain_id >= 0) {
+    if(domain_id != UnknownDomainID) {
       // clang-format off
       d_DeleteZoneQuery_stmt->
         bind("domain_id", domain_id)->
@@ -2109,7 +2111,7 @@ bool GSQLBackend::abortTransaction()
   return true;
 }
 
-bool GSQLBackend::listComments(const uint32_t domain_id)
+bool GSQLBackend::listComments(const domainid_t domain_id)
 {
   try {
     reconnectIfNeeded();
@@ -2183,7 +2185,8 @@ bool GSQLBackend::feedComment(const Comment& comment)
   return true;
 }
 
-bool GSQLBackend::replaceComments(const uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<Comment>& comments)
+// NOLINTNEXTLINE(readability-identifier-length)
+bool GSQLBackend::replaceComments(const domainid_t domain_id, const DNSName& qname, const QType& qt, const vector<Comment>& comments)
 {
   try {
     reconnectIfNeeded();

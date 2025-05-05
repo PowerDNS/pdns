@@ -1115,7 +1115,6 @@ int PacketHandler::tryAutoPrimarySynchronous(const DNSPacket& p, const DNSName& 
       g_log << Logger::Error << "Failed to create " << zonename << " for potential autoprimary " << remote << endl;
       return RCode::ServFail;
     }
-    // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
     g_zoneCache.add(zonename, di.id);
     if (tsigkeyname.empty() == false) {
       vector<string> meta;

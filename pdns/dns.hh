@@ -52,6 +52,13 @@ public:
   static std::string to_s(uint8_t opcode);
 };
 
+// This needs to be a signed type, so that serialization of UnknownDomainID
+// as text is "-1", for compatibility with the remote and pipe backends.
+// See static_assert there for details.
+using domainid_t = int32_t;
+
+constexpr domainid_t UnknownDomainID{-1};
+
 //! This class represents a resource record
 class DNSResourceRecord
 {
@@ -83,7 +90,7 @@ public:
   uint32_t ttl{}; //!< Time To Live of this record
   uint32_t signttl{}; //!< If non-zero, use this TTL as original TTL in the RRSIG
 
-  int domain_id{-1}; //!< If a backend implements this, the domain_id of the zone this record is in
+  domainid_t domain_id{UnknownDomainID}; //!< If a backend implements this, the domain_id of the zone this record is in
   QType qtype; //!< qtype of this record, ie A, CNAME, MX etc
   uint16_t qclass{1}; //!< class of this record
 

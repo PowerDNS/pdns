@@ -25,6 +25,14 @@
 #endif
 #include "remotebackend.hh"
 
+// The following requirement guarantees UnknownDomainID will get output as "-1"
+// in the Json data for compatibility.
+static_assert(std::is_signed<domainid_t>::value);
+
+// The following requirement is a consequency of JsonInt not able to store
+// anything larger than "int".
+static_assert(sizeof(domainid_t) <= sizeof(int));
+
 static const char* kBackendId = "[RemoteBackend]";
 
 /**
@@ -193,7 +201,7 @@ int RemoteBackend::build()
  * The functions here are just remote json stubs that send and receive the method call
  * data is mainly left alone, some defaults are assumed.
  */
-void RemoteBackend::lookup(const QType& qtype, const DNSName& qdomain, int zoneId, DNSPacket* pkt_p)
+void RemoteBackend::lookup(const QType& qtype, const DNSName& qdomain, domainid_t zoneId, DNSPacket* pkt_p)
 {
   if (d_index != -1) {
     throw PDNSException("Attempt to lookup while one running");
@@ -226,7 +234,7 @@ void RemoteBackend::lookup(const QType& qtype, const DNSName& qdomain, int zoneI
 }
 
 // Similar to lookup above, but passes an extra include_disabled parameter.
-void RemoteBackend::APILookup(const QType& qtype, const DNSName& qdomain, int zoneId, bool include_disabled)
+void RemoteBackend::APILookup(const QType& qtype, const DNSName& qdomain, domainid_t zoneId, bool include_disabled)
 {
   if (d_index != -1) {
     throw PDNSException("Attempt to lookup while one running");
@@ -252,7 +260,7 @@ void RemoteBackend::APILookup(const QType& qtype, const DNSName& qdomain, int zo
   d_index = 0;
 }
 
-bool RemoteBackend::list(const ZoneName& target, int domain_id, bool include_disabled)
+bool RemoteBackend::list(const ZoneName& target, domainid_t domain_id, bool include_disabled)
 {
   if (d_index != -1) {
     throw PDNSException("Attempt to lookup while one running");
@@ -284,7 +292,7 @@ bool RemoteBackend::get(DNSResourceRecord& rr)
   rr.qclass = QClass::IN;
   rr.content = stringFromJson(d_result["result"][d_index], "content");
   rr.ttl = d_result["result"][d_index]["ttl"].int_value();
-  rr.domain_id = intFromJson(d_result["result"][d_index], "domain_id", -1);
+  rr.domain_id = static_cast<domainid_t>(intFromJson(d_result["result"][d_index], "domain_id", UnknownDomainID));
   if (d_dnssec) {
     rr.auth = (intFromJson(d_result["result"][d_index], "auth", 1) != 0);
   }
@@ -302,7 +310,8 @@ bool RemoteBackend::get(DNSResourceRecord& rr)
   return true;
 }
 
-bool RemoteBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after)
+// NOLINTNEXTLINE(readability-identifier-length)
+bool RemoteBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after)
 {
   // no point doing dnssec if it's not supported
   if (!d_dnssec) {
@@ -311,7 +320,7 @@ bool RemoteBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& q
 
   Json query = Json::object{
     {"method", "getBeforeAndAfterNamesAbsolute"},
-    {"parameters", Json::object{{"id", Json(static_cast<double>(id))}, {"qname", qname.toString()}}}};
+    {"parameters", Json::object{{"id", Json(id)}, {"qname", qname.toString()}}}};
   Json answer;
 
   if (!this->send(query) || !this->recv(answer)) {
@@ -621,7 +630,7 @@ bool RemoteBackend::getTSIGKeys(std::vector<struct TSIGKey>& keys)
 
 void RemoteBackend::parseDomainInfo(const Json& obj, DomainInfo& di)
 {
-  di.id = intFromJson(obj, "id", -1);
+  di.id = static_cast<domainid_t>(intFromJson(obj, "id", UnknownDomainID));
   di.zone = ZoneName(stringFromJson(obj, "zone"));
   for (const auto& primary : obj["masters"].array_items()) {
     di.primaries.emplace_back(primary.string_value(), 53);
@@ -666,11 +675,12 @@ bool RemoteBackend::getDomainInfo(const ZoneName& domain, DomainInfo& info, bool
   return true;
 }
 
-void RemoteBackend::setNotified(uint32_t id, uint32_t serial)
+// NOLINTNEXTLINE(readability-identifier-length)
+void RemoteBackend::setNotified(domainid_t id, uint32_t serial)
 {
   Json query = Json::object{
     {"method", "setNotified"},
-    {"parameters", Json::object{{"id", static_cast<double>(id)}, {"serial", static_cast<double>(serial)}}}};
+    {"parameters", Json::object{{"id", id}, {"serial", static_cast<double>(serial)}}}};
 
   Json answer;
   if (!this->send(query) || !this->recv(answer)) {
@@ -730,7 +740,7 @@ bool RemoteBackend::createSecondaryDomain(const string& ipAddress, const ZoneNam
   return this->send(query) && this->recv(answer);
 }
 
-bool RemoteBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qtype, const vector<DNSResourceRecord>& rrset)
+bool RemoteBackend::replaceRRSet(domainid_t domain_id, const DNSName& qname, const QType& qtype, const vector<DNSResourceRecord>& rrset)
 {
   Json::array json_rrset;
   for (const auto& rr : rrset) {
@@ -745,7 +755,7 @@ bool RemoteBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const
 
   Json query = Json::object{
     {"method", "replaceRRSet"},
-    {"parameters", Json::object{{"domain_id", static_cast<double>(domain_id)}, {"qname", qname.toString()}, {"qtype", qtype.toString()}, {"trxid", static_cast<double>(d_trxid)}, {"rrset", json_rrset}}}};
+    {"parameters", Json::object{{"domain_id", domain_id}, {"qname", qname.toString()}, {"qtype", qtype.toString()}, {"trxid", static_cast<double>(d_trxid)}, {"rrset", json_rrset}}}};
 
   Json answer;
   return this->send(query) && this->recv(answer);
@@ -764,7 +774,7 @@ bool RemoteBackend::feedRecord(const DNSResourceRecord& rr, const DNSName& order
   return this->send(query) && this->recv(answer); // XXX FIXME this API should not return 'true' I think -ahu
 }
 
-bool RemoteBackend::feedEnts(int domain_id, map<DNSName, bool>& nonterm)
+bool RemoteBackend::feedEnts(domainid_t domain_id, map<DNSName, bool>& nonterm)
 {
   Json::array nts;
 
@@ -783,7 +793,7 @@ bool RemoteBackend::feedEnts(int domain_id, map<DNSName, bool>& nonterm)
   return this->send(query) && this->recv(answer);
 }
 
-bool RemoteBackend::feedEnts3(int domain_id, const DNSName& domain, map<DNSName, bool>& nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow)
+bool RemoteBackend::feedEnts3(domainid_t domain_id, const DNSName& domain, map<DNSName, bool>& nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow)
 {
   Json::array nts;
 
@@ -802,7 +812,7 @@ bool RemoteBackend::feedEnts3(int domain_id, const DNSName& domain, map<DNSName,
   return this->send(query) && this->recv(answer);
 }
 
-bool RemoteBackend::startTransaction(const ZoneName& domain, int domain_id)
+bool RemoteBackend::startTransaction(const ZoneName& domain, domainid_t domain_id)
 {
   this->d_trxid = time((time_t*)nullptr);
 
@@ -889,7 +899,7 @@ bool RemoteBackend::searchRecords(const string& pattern, size_t maxResults, vect
     rr.qclass = QClass::IN;
     rr.content = stringFromJson(row, "content");
     rr.ttl = row["ttl"].int_value();
-    rr.domain_id = intFromJson(row, "domain_id", -1);
+    rr.domain_id = static_cast<domainid_t>(intFromJson(row, "domain_id", UnknownDomainID));
     if (d_dnssec) {
       rr.auth = (intFromJson(row, "auth", 1) != 0);
     }
@@ -977,11 +987,11 @@ void RemoteBackend::getUnfreshSecondaryInfos(vector<DomainInfo>* domains)
   }
 }
 
-void RemoteBackend::setStale(uint32_t domain_id)
+void RemoteBackend::setStale(domainid_t domain_id)
 {
   Json query = Json::object{
     {"method", "setStale"},
-    {"parameters", Json::object{{"id", static_cast<double>(domain_id)}}}};
+    {"parameters", Json::object{{"id", domain_id}}}};
 
   Json answer;
   if (!this->send(query) || !this->recv(answer)) {
@@ -989,11 +999,11 @@ void RemoteBackend::setStale(uint32_t domain_id)
   }
 }
 
-void RemoteBackend::setFresh(uint32_t domain_id)
+void RemoteBackend::setFresh(domainid_t domain_id)
 {
   Json query = Json::object{
     {"method", "setFresh"},
-    {"parameters", Json::object{{"id", static_cast<double>(domain_id)}}}};
+    {"parameters", Json::object{{"id", domain_id}}}};
 
   Json answer;
   if (!this->send(query) || !this->recv(answer)) {

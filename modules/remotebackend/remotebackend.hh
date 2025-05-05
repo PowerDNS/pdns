@@ -168,16 +168,16 @@ public:
   ~RemoteBackend() override;
 
   unsigned int getCapabilities() override;
-  void lookup(const QType& qtype, const DNSName& qdomain, int zoneId = -1, DNSPacket* pkt_p = nullptr) override;
-  void APILookup(const QType& qtype, const DNSName& qdomain, int zoneId = -1, bool include_disabled = false) override;
+  void lookup(const QType& qtype, const DNSName& qdomain, domainid_t zoneId = UnknownDomainID, DNSPacket* pkt_p = nullptr) override;
+  void APILookup(const QType& qtype, const DNSName& qdomain, domainid_t zoneId = UnknownDomainID, bool include_disabled = false) override;
   bool get(DNSResourceRecord& rr) override;
-  bool list(const ZoneName& target, int domain_id, bool include_disabled = false) override;
+  bool list(const ZoneName& target, domainid_t domain_id, bool include_disabled = false) override;
 
   bool getAllDomainMetadata(const ZoneName& name, std::map<std::string, std::vector<std::string>>& meta) override;
   bool getDomainMetadata(const ZoneName& name, const std::string& kind, std::vector<std::string>& meta) override;
   bool getDomainKeys(const ZoneName& name, std::vector<DNSBackend::KeyData>& keys) override;
   bool getTSIGKey(const DNSName& name, DNSName& algorithm, std::string& content) override;
-  bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) override;
+  bool getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) override;
   bool setDomainMetadata(const ZoneName& name, const string& kind, const std::vector<std::basic_string<char>>& meta) override;
   bool removeDomainKey(const ZoneName& name, unsigned int keyId) override;
   bool addDomainKey(const ZoneName& name, const KeyData& key, int64_t& keyId) override;
@@ -186,14 +186,14 @@ public:
   bool publishDomainKey(const ZoneName& name, unsigned int keyId) override;
   bool unpublishDomainKey(const ZoneName& name, unsigned int keyId) override;
   bool getDomainInfo(const ZoneName& domain, DomainInfo& info, bool getSerial = true) override;
-  void setNotified(uint32_t id, uint32_t serial) override;
+  void setNotified(domainid_t id, uint32_t serial) override;
   bool autoPrimaryBackend(const string& ipAddress, const ZoneName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** ddb) override;
   bool createSecondaryDomain(const string& ipAddress, const ZoneName& domain, const string& nameserver, const string& account) override;
-  bool replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset) override;
+  bool replaceRRSet(domainid_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset) override;
   bool feedRecord(const DNSResourceRecord& r, const DNSName& ordername, bool ordernameIsNSEC3 = false) override;
-  bool feedEnts(int domain_id, map<DNSName, bool>& nonterm) override;
-  bool feedEnts3(int domain_id, const DNSName& domain, map<DNSName, bool>& nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow) override;
-  bool startTransaction(const ZoneName& domain, int domain_id) override;
+  bool feedEnts(domainid_t domain_id, map<DNSName, bool>& nonterm) override;
+  bool feedEnts3(domainid_t domain_id, const DNSName& domain, map<DNSName, bool>& nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow) override;
+  bool startTransaction(const ZoneName& domain, domainid_t domain_id) override;
   bool commitTransaction() override;
   bool abortTransaction() override;
   bool setTSIGKey(const DNSName& name, const DNSName& algorithm, const string& content) override;
@@ -205,8 +205,8 @@ public:
   void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled) override;
   void getUpdatedPrimaries(vector<DomainInfo>& domains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes) override;
   void getUnfreshSecondaryInfos(vector<DomainInfo>* domains) override;
-  void setStale(uint32_t domain_id) override;
-  void setFresh(uint32_t domain_id) override;
+  void setStale(domainid_t domain_id) override;
+  void setFresh(domainid_t domain_id) override;
 
   static DNSBackend* maker();
 

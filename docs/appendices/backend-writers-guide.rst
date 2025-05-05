@@ -67,8 +67,8 @@ following methods are relevant:
         {
         public:
         virtual unsigned int getCapabilities()=0;
-        virtual void lookup(const QType &qtype, const string &qdomain, int zoneId=-1, DNSPacket *pkt_p=nullptr)=0;
-        virtual bool list(const string &target, int domain_id)=0;
+        virtual void lookup(const QType &qtype, const string &qdomain, domainid_t zoneId=UnknownDomainID, DNSPacket *pkt_p=nullptr)=0;
+        virtual bool list(const string &target, domainid_t domain_id)=0;
         virtual bool get(DNSResourceRecord &r)=0;
         virtual bool getSOA(const string &name, SOAData &soadata);
         };
@@ -164,12 +164,12 @@ furthermore, only about its A record:
     public:
       unsigned int getCapabilities() override { return 0; }
 
-      bool list(const string &target, int id)
+      bool list(const string &target, domainid_t id)
       {
         return false; // we don't support pdnsutil list-zone or AXFR
       }
 
-      void lookup(const QType &type, const string &qdomain, int zoneId, DNSPacket *p)
+      void lookup(const QType &type, const string &qdomain, domainid_t zoneId, DNSPacket *p)
       {
         if(type.getCode()!=QType::A || qdomain!="random.powerdns.com")  // we only know about random.powerdns.com A
           d_answer="";                                                  // no answer
@@ -292,7 +292,7 @@ Classes
 
   Time To Live of this record
 
-.. cpp:member:: int DNSResourceRecord::domain_id
+.. cpp:member:: domainid_t DNSResourceRecord::domain_id
 
   ID of the domain this record belongs to
 
@@ -336,7 +336,7 @@ Classes
 
   Minimum acceptable value for TTL
 
-.. cpp:member:: int SOAData::domain_id
+.. cpp:member:: domainid_t SOAData::domain_id
 
   The ID of the domain within this backend. Must be filled!
 
@@ -355,7 +355,7 @@ Methods
 * `CAP_DNSSEC`     Backend implements :ref:`backend-dnssec`.
 * `CAP_LIST`       Backend implements `list`, for AXFR or `pdnsutil list-zone`
 
-.. cpp:function:: void DNSBackend::lookup(const QType &qtype, const string &qdomain, int zoneId=-1, DNSPacket *pkt=nullptr)
+.. cpp:function:: void DNSBackend::lookup(const QType &qtype, const string &qdomain, domainid_t zoneId=UnknownDomainID, DNSPacket *pkt=nullptr)
 
   This function is used to initiate a straight lookup for a record of name
   'qdomain' and type 'qtype'. A QType can be converted into an integer by
@@ -392,7 +392,7 @@ Methods
   It is legal to return here, and have the first call to ``get()`` return
   false. This is interpreted as 'no data'.
 
-.. cpp:function:: bool DNSBackend::list(int domain_id, bool include_disabled=false)
+.. cpp:function:: bool DNSBackend::list(domainid_t domain_id, bool include_disabled=false)
 
   Initiates a list of the indicated domain. Records should then be made
   available via the ``get()`` method. Need not include the SOA record. If
@@ -563,12 +563,12 @@ The following excerpt from the DNSBackend shows the relevant functions:
                /* ... */
                virtual bool getDomainInfo(const string &domain, DomainInfo &di, bool getSerial = true);
                virtual bool isPrimary(const ComboAddress& ipAddress);
-               virtual bool startTransaction(const string &qname, int id);
+               virtual bool startTransaction(const string &qname, domainid_t id);
                virtual bool commitTransaction();
                virtual bool abortTransaction();
                virtual bool feedRecord(const DNSResourceRecord &rr, const DNSName &ordername, bool ordernameIsNSEC3 = false);
                virtual void getUnfreshSecondaryInfos(vector<DomainInfo>* domains);
-               virtual void setFresh(uint32_t id);
+               virtual void setFresh(domainid_t id);
                /* ... */
          }
 
@@ -576,7 +576,7 @@ The mentioned DomainInfo struct looks like this:
 
 .. cpp:struct:: DomainInfo
 
-.. cpp:member:: uint32_t DomainInfo::id
+.. cpp:member:: domainid_t DomainInfo::id
 
   ID of this zone within this backend
 
@@ -633,11 +633,13 @@ this zone.
   backend considers itself authoritative for the named zone, ``di`` should
   be filled out, and 'true' be returned. Otherwise return false.
 
-.. cpp:function:: bool DomainInfo::startTransaction(const string &qname, int id)
+.. cpp:function:: bool DomainInfo::startTransaction(const string &qname, domainid_t id)
 
   When called, the backend should start a transaction that can be
   committed or rolled back atomically later on. In SQL terms, this
-  function should **BEGIN** a transaction and **DELETE** all records.
+  function should **BEGIN** a transaction, and **DELETE** all records for
+  the domain matching the given ``id``, unless its value is
+  ``UnknownDomainID``.
 
 .. cpp:function:: bool DomainInfo::feedRecord(const DNSResourceRecord &rr, const DNSName &ordername, bool ordernameIsNSEC3)
 
@@ -651,7 +653,7 @@ this zone.
 
   Abort changes. In SQL terms, execute **ABORT**.
 
-.. cpp:function:: bool DomainInfo::setFresh()
+.. cpp:function:: bool DomainInfo::setFresh(domainid_t id)
 
   Indicate that a domain has either been updated or refreshed without the
   need for a retransfer. This causes the domain to vanish from the vector
@@ -729,7 +731,7 @@ The following excerpt from the DNSBackend shows the relevant functions:
           public:
                /* ... */
            virtual void getUpdatedPrimaries(vector<DomainInfo>* domains, std::unordered_set<DNSName> &catalogs, CatalogHashMap &catalogHashes);
-           virtual void setNotified(uint32_t id, uint32_t serial);
+           virtual void setNotified(domainid_t id, uint32_t serial);
                /* ... */
          }
 
@@ -745,7 +747,7 @@ this zone.
   When called, the backend should examine its list of primary domains and
   add any changed ones to the :cpp:class:`DomainInfo` vector.
 
-.. cpp:function:: void DNSBackend::setNotified(uint32_t domain_id, uint32_t serial)
+.. cpp:function:: void DNSBackend::setNotified(domainid_t domain_id, uint32_t serial)
 
   Indicate that notifications have been queued for this domain and that it
   need not be considered 'updated' anymore.
@@ -763,20 +765,20 @@ other update/remove functionality at a later stage.
     class DNSBackend {
     public:
       /* ... */
-      virtual bool startTransaction(const DNSName &qname, int id);
+      virtual bool startTransaction(const DNSName &qname, domainid_t id);
       virtual bool commitTransaction();
       virtual bool abortTransaction();
       virtual bool feedRecord(const DNSResourceRecord &rr, DNSName &ordername, bool ordernameIsNSEC3);
-      virtual bool replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset)
-      virtual bool listSubZone(const DNSName &zone, int domain_id);
+      virtual bool replaceRRSet(domainid_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset)
+      virtual bool listSubZone(const DNSName &zone, domainid_t domain_id);
       /* ... */
     }
 
-.. cpp:function:: virtual bool DNSBackend::startTransaction(const DNSName &qname, int id)
+.. cpp:function:: virtual bool DNSBackend::startTransaction(const DNSName &qname, domainid_t id)
 
   See :cpp:func:`above <DNSBackend::beginTransaction>`. Please
-  note that this function now receives a negative number (-1), which
-  indicates that the current zone data should NOT be deleted.
+  note that if this function receives ``UnknownDomainID`` as the ``id``,
+  the current zone data should NOT be deleted.
 
 .. cpp:function:: virtual bool DNSBackend::commitTransaction()
 
@@ -793,7 +795,7 @@ other update/remove functionality at a later stage.
   Please keep in mind that the zone is not empty because
   ``startTransaction()`` was called differently.
 
-.. cpp:function:: virtual bool DNSBackend::listSubZone(const DNSName &name, int domain_id)
+.. cpp:function:: virtual bool DNSBackend::listSubZone(const DNSName &name, domainid_t domain_id)
 
   This method is needed for rectification of a zone after NS-records have
   been added. For DNSSEC, we need to know which records are below the
@@ -808,7 +810,7 @@ other update/remove functionality at a later stage.
   ENT-records in PowerDNS. Make sure it returns every record in the tree
   below the given record.
 
-.. cpp:function:: virtual bool DNSBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset)
+.. cpp:function:: virtual bool DNSBackend::replaceRRSet(domainid_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset)
 
   This method should remove all the records with ``qname`` of type ``qt``.
   ``qt`` might also be ANY, which means all the records with that
@@ -887,13 +889,13 @@ In order for a backend to support DNSSEC, quite a few number of additional opera
       virtual unsigned int getCapabilities();
 
       /* ... */
-      virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after);
+      virtual bool getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after);
 
       /* update operations */
-      virtual bool updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype=QType::ANY);
-      virtual bool updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& insert, set<DNSName>& erase, bool remove);
-      virtual bool feedEnts(int domain_id, map<DNSName,bool> &nonterm);
-      virtual bool feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow);
+      virtual bool updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype=QType::ANY);
+      virtual bool updateEmptyNonTerminals(domainid_t domain_id, set<DNSName>& insert, set<DNSName>& erase, bool remove);
+      virtual bool feedEnts(domainid_t domain_id, map<DNSName,bool> &nonterm);
+      virtual bool feedEnts3(domainid_t domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow);
 
       /* keys management */
       virtual bool getDomainKeys(const DNSName& name, std::vector<KeyData>& keys);
@@ -910,24 +912,24 @@ In order for a backend to support DNSSEC, quite a few number of additional opera
 In addition to these methods, the return value of `getCapabilities` must
 contain `CAP_DNSSEC` if that backend supports DNSSEC.
 
-.. cpp:function:: virtual bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after)
+.. cpp:function:: virtual bool getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after)
 
   Asks the names before and after qname for NSEC and NSEC3. The qname will be hashed when using NSEC3. Care must be taken to handle wrap-around when qname is the first or last in the ordered list of zone names.
   Please note that in case the requested name is present in the zone, it should be returned as the "before" name.
 
-.. cpp:function:: virtual bool updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype=QType::ANY)
+.. cpp:function:: virtual bool updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype=QType::ANY)
 
   Updates the ordername and auth fields.
 
-.. cpp:function:: virtual bool updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& insert, set<DNSName>& erase, bool remove)
+.. cpp:function:: virtual bool updateEmptyNonTerminals(domainid_t domain_id, set<DNSName>& insert, set<DNSName>& erase, bool remove)
 
   Updates ENT after a zone has been rectified. If 'remove' is false, 'erase' contains a list of ENTs to remove from the zone before adding any. Otherwise all ENTs should be removed from the zone before adding any. 'insert' contains the list of ENTs to add to the zone after the removals have been done.
 
-.. cpp:function:: virtual bool feedEnts(int domain_id, map<DNSName,bool> &nonterm)
+.. cpp:function:: virtual bool feedEnts(domainid_t domain_id, map<DNSName,bool> &nonterm)
 
   This method is used by ``pdnsutil rectify-zone`` to populate missing non-terminals. This is used when you have, say, record like _sip._upd.example.com, but no _udp.example.com. PowerDNS requires that there exists a non-terminal in between, and this instructs you to add one.
 
-.. cpp:function:: virtual bool feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow)
+.. cpp:function:: virtual bool feedEnts3(domainid_t domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow)
 
   Same as feedEnts, but provides NSEC3 hashing parameters.
 
@@ -982,7 +984,7 @@ Below, we'll show the class definitions of each (with some details omitted, but 
 
   struct DNSZoneRecord
   {
-    int domain_id{-1};
+    domainid_t domain_id{UnknownDomainID};
     uint8_t scopeMask{0};
     int signttl{0};
     DNSName wildcardname;
@@ -1061,7 +1063,7 @@ It is subclassed for all supported types:
   class DNSResourceRecord
   {
   public:
-    DNSResourceRecord() : last_modified(0), ttl(0), signttl(0), domain_id(-1), qclass(1), scopeMask(0), auth(true), disabled(false) {};
+    DNSResourceRecord() : last_modified(0), ttl(0), signttl(0), domain_id(UnknownDomainID), qclass(1), scopeMask(0), auth(true), disabled(false) {};
     static DNSResourceRecord fromWire(const DNSRecord& d);
 
     void setContent(const string& content);
@@ -1075,7 +1077,7 @@ It is subclassed for all supported types:
     uint32_t ttl; //!< Time To Live of this record
     uint32_t signttl; //!< If non-zero, use this TTL as original TTL in the RRSIG
 
-    int domain_id; //!< If a backend implements this, the domain_id of the zone this record is in
+    domainid_t domain_id; //!< If a backend implements this, the domain_id of the zone this record is in
     QType qtype; //!< qtype of this record, ie A, CNAME, MX etc
     uint16_t qclass; //!< class of this record
 

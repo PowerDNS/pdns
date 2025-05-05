@@ -38,7 +38,7 @@ using namespace ::boost::multi_index;
 
 struct TinyDomainInfo
 {
-  uint32_t id;
+  domainid_t id;
   uint32_t notified_serial;
   ZoneName zone;
 
@@ -69,15 +69,15 @@ public:
   TinyDNSBackend(const string& suffix);
 
   unsigned int getCapabilities() override { return CAP_LIST; }
-  void lookup(const QType& qtype, const DNSName& qdomain, int zoneId, DNSPacket* pkt_p = nullptr) override;
-  bool list(const ZoneName& target, int domain_id, bool include_disabled = false) override;
+  void lookup(const QType& qtype, const DNSName& qdomain, domainid_t zoneId, DNSPacket* pkt_p = nullptr) override;
+  bool list(const ZoneName& target, domainid_t domain_id, bool include_disabled = false) override;
   bool get(DNSResourceRecord& rr) override;
   bool getDomainInfo(const ZoneName& domain, DomainInfo& di, bool getSerial = true) override;
   void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled) override;
 
   // Primary mode operation
   void getUpdatedPrimaries(vector<DomainInfo>& domains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes) override;
-  void setNotified(uint32_t id, uint32_t serial) override;
+  void setNotified(domainid_t id, uint32_t serial) override;
 
 private:
   //TypeDefs
@@ -91,7 +91,7 @@ private:
     TinyDomainInfo,
     indexed_by<
       hashed_unique<tag<tag_zone>, member<TinyDomainInfo, ZoneName, &TinyDomainInfo::zone>>,
-      hashed_unique<tag<tag_domainid>, member<TinyDomainInfo, uint32_t, &TinyDomainInfo::id>>>>
+      hashed_unique<tag<tag_domainid>, member<TinyDomainInfo, domainid_t, &TinyDomainInfo::id>>>>
     TDI_t;
   typedef map<string, TDI_t> TDI_suffix_t;
   typedef TDI_t::index<tag_zone>::type TDIByZone_t;
@@ -115,5 +115,5 @@ private:
 
   // Statics
   static LockGuarded<TDI_suffix_t> s_domainInfo;
-  static uint32_t s_lastId; // used to give a domain an id.
+  static domainid_t s_lastId; // used to give a domain an id.
 };

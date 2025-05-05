@@ -84,7 +84,7 @@ static const char* ldap_attrany[] = { // NOLINT(cppcoreguidelines-avoid-c-arrays
   "PdnsRecordOrdername",
   nullptr};
 
-bool LdapBackend::list(const ZoneName& target, int domain_id, bool /* include_disabled */)
+bool LdapBackend::list(const ZoneName& target, domainid_t domain_id, bool /* include_disabled */)
 {
   try {
     d_in_list = true;
@@ -117,7 +117,7 @@ bool LdapBackend::list(const ZoneName& target, int domain_id, bool /* include_di
   return false;
 }
 
-bool LdapBackend::list_simple(const ZoneName& target, int /* domain_id */)
+bool LdapBackend::list_simple(const ZoneName& target, domainid_t /* domain_id */)
 {
   string dn;
   string filter;
@@ -152,7 +152,7 @@ bool LdapBackend::list_simple(const ZoneName& target, int /* domain_id */)
   return true;
 }
 
-bool LdapBackend::list_strict(const ZoneName& target, int domain_id)
+bool LdapBackend::list_strict(const ZoneName& target, domainid_t domain_id)
 {
   if (target.isPartOf(DNSName("in-addr.arpa")) || target.isPartOf(DNSName("ip6.arpa"))) {
     g_log << Logger::Warning << d_myname << " Request for reverse zone AXFR, but this is not supported in strict mode" << endl;
@@ -162,7 +162,7 @@ bool LdapBackend::list_strict(const ZoneName& target, int domain_id)
   return list_simple(target, domain_id);
 }
 
-void LdapBackend::lookup(const QType& qtype, const DNSName& qname, int zoneid, DNSPacket* dnspkt)
+void LdapBackend::lookup(const QType& qtype, const DNSName& qname, domainid_t zoneid, DNSPacket* dnspkt)
 {
   try {
     d_in_list = false;
@@ -196,7 +196,7 @@ void LdapBackend::lookup(const QType& qtype, const DNSName& qname, int zoneid, D
   }
 }
 
-void LdapBackend::lookup_simple(const QType& qtype, const DNSName& qname, DNSPacket* /* dnspkt */, int /* zoneid */)
+void LdapBackend::lookup_simple(const QType& qtype, const DNSName& qname, DNSPacket* /* dnspkt */, domainid_t /* zoneid */)
 {
   string filter, attr, qesc;
   const char** attributes = ldap_attrany + 1; // skip associatedDomain
@@ -218,7 +218,7 @@ void LdapBackend::lookup_simple(const QType& qtype, const DNSName& qname, DNSPac
   d_search = d_pldap->search(getArg("basedn"), LDAP_SCOPE_SUBTREE, filter, attributes);
 }
 
-void LdapBackend::lookup_strict(const QType& qtype, const DNSName& qname, DNSPacket* /* dnspkt */, int /* zoneid */)
+void LdapBackend::lookup_strict(const QType& qtype, const DNSName& qname, DNSPacket* /* dnspkt */, domainid_t /* zoneid */)
 {
   int len;
   vector<string> parts;
@@ -260,7 +260,7 @@ void LdapBackend::lookup_strict(const QType& qtype, const DNSName& qname, DNSPac
   d_search = d_pldap->search(getArg("basedn"), LDAP_SCOPE_SUBTREE, filter, attributes);
 }
 
-void LdapBackend::lookup_tree(const QType& qtype, const DNSName& qname, DNSPacket* /* dnspkt */, int /* zoneid */)
+void LdapBackend::lookup_tree(const QType& qtype, const DNSName& qname, DNSPacket* /* dnspkt */, domainid_t /* zoneid */)
 {
   string filter, attr, qesc, dn;
   const char** attributes = ldap_attrany + 1; // skip associatedDomain
@@ -424,7 +424,7 @@ bool LdapBackend::getDomainInfo(const ZoneName& domain, DomainInfo& info, bool /
     fillSOAData(result["sOARecord"][0], sd);
 
     if (result.count("PdnsDomainId") && !result["PdnsDomainId"].empty())
-      info.id = std::stoi(result["PdnsDomainId"][0]);
+      info.id = static_cast<domainid_t>(std::stoll(result["PdnsDomainId"][0]));
     else
       info.id = 0;
 

@@ -199,17 +199,17 @@ protected:
 
 public:
   unsigned int getCapabilities() override;
-  void lookup(const QType &, const DNSName &qdomain, int zoneId, DNSPacket *p=nullptr) override;
-  void APILookup(const QType &qtype, const DNSName &qname, int domain_id, bool include_disabled = false) override;
-  bool list(const ZoneName &target, int domain_id, bool include_disabled=false) override;
+  void lookup(const QType& qtype, const DNSName& qname, domainid_t domain_id, DNSPacket *p=nullptr) override;
+  void APILookup(const QType &qtype, const DNSName &qname, domainid_t domain_id, bool include_disabled = false) override;
+  bool list(const ZoneName &target, domainid_t domain_id, bool include_disabled=false) override;
   bool get(DNSResourceRecord &r) override;
   void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled) override;
-  bool startTransaction(const ZoneName &domain, int domain_id=-1) override;
+  bool startTransaction(const ZoneName &domain, domainid_t domain_id=UnknownDomainID) override;
   bool commitTransaction() override;
   bool abortTransaction() override;
   bool feedRecord(const DNSResourceRecord &r, const DNSName &ordername, bool ordernameIsNSEC3=false) override;
-  bool feedEnts(int domain_id, map<DNSName,bool>& nonterm) override;
-  bool feedEnts3(int domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow) override;
+  bool feedEnts(domainid_t domain_id, map<DNSName,bool>& nonterm) override;
+  bool feedEnts3(domainid_t domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow) override;
   bool createDomain(const ZoneName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account) override;
   bool createSecondaryDomain(const string& ipAddress, const ZoneName& domain, const string& nameserver, const string& account) override;
   bool deleteDomain(const ZoneName &domain) override;
@@ -217,26 +217,26 @@ public:
   bool autoPrimaryRemove(const AutoPrimary& primary) override;
   bool autoPrimariesList(std::vector<AutoPrimary>& primaries) override;
   bool autoPrimaryBackend(const string& ipAddress, const ZoneName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** db) override;
-  void setStale(uint32_t domain_id) override;
-  void setFresh(uint32_t domain_id) override;
+  void setStale(domainid_t domain_id) override;
+  void setFresh(domainid_t domain_id) override;
   void getUnfreshSecondaryInfos(vector<DomainInfo>* domains) override;
   void getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::unordered_set<DNSName>& catalogs, CatalogHashMap& catalogHashes) override;
   bool getCatalogMembers(const ZoneName& catalog, vector<CatalogInfo>& members, CatalogInfo::CatalogType type) override;
   bool getDomainInfo(const ZoneName &domain, DomainInfo &info, bool getSerial=true) override;
-  void setNotified(uint32_t domain_id, uint32_t serial) override;
+  void setNotified(domainid_t domain_id, uint32_t serial) override;
   bool setPrimaries(const ZoneName& domain, const vector<ComboAddress>& primaries) override;
   bool setKind(const ZoneName &domain, const DomainInfo::DomainKind kind) override;
   bool setOptions(const ZoneName& domain, const string& options) override;
   bool setCatalog(const ZoneName& domain, const ZoneName& catalog) override;
   bool setAccount(const ZoneName &domain, const string &account) override;
 
-  bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) override;
-  bool updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t=QType::ANY) override;
+  bool getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) override;
+  bool updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t=QType::ANY) override;
 
-  bool updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& insert ,set<DNSName>& erase, bool remove) override;
+  bool updateEmptyNonTerminals(domainid_t domain_id, set<DNSName>& insert ,set<DNSName>& erase, bool remove) override;
 
-  bool replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset) override;
-  bool listSubZone(const ZoneName &zone, int domain_id) override;
+  bool replaceRRSet(domainid_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset) override;
+  bool listSubZone(const ZoneName &zone, domainid_t domain_id) override;
   bool addDomainKey(const ZoneName& name, const KeyData& key, int64_t& id) override;
   bool getDomainKeys(const ZoneName& name, std::vector<KeyData>& keys) override;
   bool getAllDomainMetadata(const ZoneName& name, std::map<std::string, std::vector<std::string> >& meta) override;
@@ -254,10 +254,10 @@ public:
   bool deleteTSIGKey(const DNSName& name) override;
   bool getTSIGKeys(std::vector< struct TSIGKey > &keys) override;
 
-  bool listComments(const uint32_t domain_id) override;
+  bool listComments(const domainid_t domain_id) override;
   bool getComment(Comment& comment) override;
   bool feedComment(const Comment& comment) override;
-  bool replaceComments(const uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<Comment>& comments) override;
+  bool replaceComments(const domainid_t domain_id, const DNSName& qname, const QType& qt, const vector<Comment>& comments) override;
   string directBackendCmd(const string &query) override;
   bool searchRecords(const string &pattern, size_t maxResults, vector<DNSResourceRecord>& result) override;
   bool searchComments(const string &pattern, size_t maxResults, vector<Comment>& result) override;
@@ -266,7 +266,7 @@ protected:
   string pattern2SQLPattern(const string& pattern);
   void extractRecord(SSqlStatement::row_t& row, DNSResourceRecord& rr);
   void extractComment(SSqlStatement::row_t& row, Comment& c);
-  void setLastCheck(uint32_t domain_id, time_t lastcheck);
+  void setLastCheck(domainid_t domain_id, time_t lastcheck);
   bool isConnectionUsable() {
     if (d_db) {
       return d_db->isConnectionUsable();

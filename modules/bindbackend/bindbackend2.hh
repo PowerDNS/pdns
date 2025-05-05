@@ -187,19 +187,19 @@ public:
   bool getDomainInfo(const ZoneName& domain, DomainInfo& info, bool getSerial = true) override;
   time_t getCtime(const string& fname);
   // DNSSEC
-  bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) override;
-  void lookup(const QType&, const DNSName& qdomain, int zoneId, DNSPacket* p = nullptr) override;
-  bool list(const ZoneName& target, int domainId, bool include_disabled = false) override;
+  bool getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) override;
+  void lookup(const QType& qtype, const DNSName& qname, domainid_t zoneId, DNSPacket* p = nullptr) override;
+  bool list(const ZoneName& target, domainid_t domainId, bool include_disabled = false) override;
   bool get(DNSResourceRecord&) override;
   void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled = false) override;
 
   static DNSBackend* maker();
   static std::mutex s_startup_lock;
 
-  void setStale(uint32_t domain_id) override;
-  void setFresh(uint32_t domain_id) override;
-  void setNotified(uint32_t id, uint32_t serial) override;
-  bool startTransaction(const ZoneName& qname, int domainId) override;
+  void setStale(domainid_t domain_id) override;
+  void setFresh(domainid_t domain_id) override;
+  void setNotified(domainid_t id, uint32_t serial) override;
+  bool startTransaction(const ZoneName& qname, domainid_t domainId) override;
   bool feedRecord(const DNSResourceRecord& rr, const DNSName& ordername, bool ordernameIsNSEC3 = false) override;
   bool commitTransaction() override;
   bool abortTransaction() override;
@@ -242,13 +242,13 @@ private:
   void setupDNSSEC();
   void setupStatements();
   void freeStatements();
-  static bool safeGetBBDomainInfo(int id, BB2DomainInfo* bbd);
+  static bool safeGetBBDomainInfo(domainid_t id, BB2DomainInfo* bbd);
   static void safePutBBDomainInfo(const BB2DomainInfo& bbd);
   static bool safeGetBBDomainInfo(const ZoneName& name, BB2DomainInfo* bbd);
   static bool safeRemoveBBDomainInfo(const ZoneName& name);
   shared_ptr<SSQLite3> d_dnssecdb;
   bool getNSEC3PARAM(const ZoneName& name, NSEC3PARAMRecordContent* ns3p);
-  void setLastCheck(uint32_t domain_id, time_t lastcheck);
+  static void setLastCheck(domainid_t domain_id, time_t lastcheck);
   bool getNSEC3PARAMuncached(const ZoneName& name, NSEC3PARAMRecordContent* ns3p);
   class handle
   {
@@ -269,7 +269,7 @@ private:
     DNSName qname;
     ZoneName domain;
 
-    int id{-1};
+    domainid_t id{UnknownDomainID};
     QType qtype;
     bool d_list{false};
     bool mustlog{false};
@@ -304,14 +304,14 @@ private:
   handle d_handle;
   static string s_binddirectory; //!< this is used to store the 'directory' setting of the bind configuration
   static int s_first; //!< this is raised on construction to prevent multiple instances of us being generated
-  int d_transaction_id;
+  domainid_t d_transaction_id;
   static bool s_ignore_broken_records;
   bool d_hybrid;
   bool d_upgradeContent;
 
   BB2DomainInfo createDomainEntry(const ZoneName& domain, const string& filename); //!< does not insert in s_state
 
-  void queueReloadAndStore(unsigned int id);
+  void queueReloadAndStore(domainid_t id);
   static bool findBeforeAndAfterUnhashed(std::shared_ptr<const recordstorage_t>& records, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after);
   static void insertRecord(std::shared_ptr<recordstorage_t>& records, const ZoneName& zoneName, const DNSName& qname, const QType& qtype, const string& content, int ttl, const std::string& hashed = string(), const bool* auth = nullptr);
   void reload() override;

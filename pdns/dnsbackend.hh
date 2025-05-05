@@ -62,7 +62,7 @@ struct DomainInfo
   vector<ComboAddress> primaries;
   DNSBackend* backend{};
 
-  uint32_t id{};
+  domainid_t id{};
   uint32_t notified_serial{};
 
   bool receivedNotify{};
@@ -168,8 +168,8 @@ public:
   virtual unsigned int getCapabilities() = 0;
 
   //! lookup() initiates a lookup. A lookup without results should not throw!
-  virtual void lookup(const QType& qtype, const DNSName& qdomain, int zoneId = -1, DNSPacket* pkt_p = nullptr) = 0;
-  virtual void APILookup(const QType& qtype, const DNSName& qdomain, int zoneId = -1, bool include_disabled = false);
+  virtual void lookup(const QType& qtype, const DNSName& qdomain, domainid_t zoneId = UnknownDomainID, DNSPacket* pkt_p = nullptr) = 0;
+  virtual void APILookup(const QType& qtype, const DNSName& qdomain, domainid_t zoneId = UnknownDomainID, bool include_disabled = false);
   virtual bool get(DNSResourceRecord&) = 0; //!< retrieves one DNSResource record, returns false if no more were available
   virtual bool get(DNSZoneRecord& zoneRecord);
 
@@ -178,19 +178,19 @@ public:
       if the backend does not consider itself responsible for the id passed.
       \param domain_id ID of which a list is requested
   */
-  virtual bool list(const ZoneName& target, int domain_id, bool include_disabled = false) = 0;
+  virtual bool list(const ZoneName& target, domainid_t domain_id, bool include_disabled = false) = 0;
 
   virtual ~DNSBackend() = default;
 
   //! fills the soadata struct with the SOA details. Returns false if there is no SOA.
   virtual bool getSOA(const ZoneName& domain, SOAData& soaData);
 
-  virtual bool replaceRRSet(uint32_t /* domain_id */, const DNSName& /* qname */, const QType& /* qt */, const vector<DNSResourceRecord>& /* rrset */)
+  virtual bool replaceRRSet(domainid_t /* domain_id */, const DNSName& /* qname */, const QType& /* qt */, const vector<DNSResourceRecord>& /* rrset */)
   {
     return false;
   }
 
-  virtual bool listSubZone(const ZoneName& /* zone */, int /* domain_id */)
+  virtual bool listSubZone(const ZoneName& /* zone */, domainid_t /* domain_id */)
   {
     return false;
   }
@@ -248,19 +248,19 @@ public:
   virtual bool getTSIGKeys(std::vector<struct TSIGKey>& /* keys */) { return false; }
   virtual bool deleteTSIGKey(const DNSName& /* name */) { return false; }
 
-  virtual bool getBeforeAndAfterNamesAbsolute(uint32_t /* id */, const DNSName& qname, DNSName& /* unhashed */, DNSName& /* before */, DNSName& /* after */)
+  virtual bool getBeforeAndAfterNamesAbsolute(domainid_t /* id */, const DNSName& qname, DNSName& /* unhashed */, DNSName& /* before */, DNSName& /* after */)
   {
     throw PDNSException("DNSSEC operation invoked on non-DNSSEC capable backend, qname: '" + qname.toLogString() + "'");
   }
 
-  virtual bool getBeforeAndAfterNames(uint32_t /* id */, const ZoneName& zonename, const DNSName& qname, DNSName& before, DNSName& after);
+  virtual bool getBeforeAndAfterNames(domainid_t /* id */, const ZoneName& zonename, const DNSName& qname, DNSName& before, DNSName& after);
 
-  virtual bool updateDNSSECOrderNameAndAuth(uint32_t /* domain_id */, const DNSName& /* qname */, const DNSName& /* ordername */, bool /* auth */, const uint16_t /* qtype */ = QType::ANY)
+  virtual bool updateDNSSECOrderNameAndAuth(domainid_t /* domain_id */, const DNSName& /* qname */, const DNSName& /* ordername */, bool /* auth */, const uint16_t /* qtype */ = QType::ANY)
   {
     return false;
   }
 
-  virtual bool updateEmptyNonTerminals(uint32_t /* domain_id */, set<DNSName>& /* insert */, set<DNSName>& /* erase */, bool /* remove */)
+  virtual bool updateEmptyNonTerminals(domainid_t /* domain_id */, set<DNSName>& /* insert */, set<DNSName>& /* erase */, bool /* remove */)
   {
     return false;
   }
@@ -273,7 +273,7 @@ public:
   // end DNSSEC
 
   // comments support
-  virtual bool listComments(uint32_t /* domain_id */)
+  virtual bool listComments(domainid_t /* domain_id */)
   {
     return false; // unsupported by this backend
   }
@@ -288,18 +288,18 @@ public:
     return false;
   }
 
-  virtual bool replaceComments(const uint32_t /* domain_id */, const DNSName& /* qname */, const QType& /* qt */, const vector<Comment>& /* comments */)
+  virtual bool replaceComments(const domainid_t /* domain_id */, const DNSName& /* qname */, const QType& /* qt */, const vector<Comment>& /* comments */)
   {
     return false;
   }
 
   //! returns true if primary ip is primary for domain name.
   //! starts the transaction for updating domain qname, destroying all
-  //! existing data for that domain if id is >= 0. In this case, the id MUST
-  //! match the DomainInfo information for qname, or very bad things will
-  //! happen.
+  //! existing data for that domain if id is != UnknownDomainID. In this case,
+  //! the id MUST match the DomainInfo information for qname, or very bad things
+  //! will happen.
   //! FIXME: replace this with a bool to make this a less error-prone interface.
-  virtual bool startTransaction(const ZoneName& /* qname */, int /* id */ = -1)
+  virtual bool startTransaction(const ZoneName& /* qname */, domainid_t /* id */ = UnknownDomainID)
   {
     return false;
   }
@@ -334,11 +334,11 @@ public:
   {
     return false; // no problem!
   }
-  virtual bool feedEnts(int /* domain_id */, map<DNSName, bool>& /* nonterm */)
+  virtual bool feedEnts(domainid_t /* domain_id */, map<DNSName, bool>& /* nonterm */)
   {
     return false;
   }
-  virtual bool feedEnts3(int /* domain_id */, const DNSName& /* domain */, map<DNSName, bool>& /* nonterm */, const NSEC3PARAMRecordContent& /* ns3prc */, bool /* narrow */)
+  virtual bool feedEnts3(domainid_t /* domain_id */, const DNSName& /* domain */, map<DNSName, bool>& /* nonterm */, const NSEC3PARAMRecordContent& /* ns3prc */, bool /* narrow */)
   {
     return false;
   }
@@ -373,17 +373,17 @@ public:
   }
 
   //! Called by PowerDNS to inform a backend that a domain need to be checked for freshness
-  virtual void setStale(uint32_t /* domain_id */)
+  virtual void setStale(domainid_t /* domain_id */)
   {
   }
 
   //! Called by PowerDNS to inform a backend that a domain has been checked for freshness
-  virtual void setFresh(uint32_t /* domain_id */)
+  virtual void setFresh(domainid_t /* domain_id */)
   {
   }
 
   //! Called by PowerDNS to inform a backend that the changes in the domain have been reported to secondaries
-  virtual void setNotified(uint32_t /* id */, uint32_t /* serial */)
+  virtual void setNotified(domainid_t /* id */, uint32_t /* serial */)
   {
   }
 
@@ -548,7 +548,7 @@ public:
 struct SOAData
 {
   SOAData() :
-    domain_id(-1) {};
+    domain_id(UnknownDomainID) {};
 
   DNSName qname;
   DNSName nameserver;
@@ -560,7 +560,7 @@ struct SOAData
   uint32_t expire{};
   uint32_t minimum{};
   DNSBackend* db{};
-  int domain_id{};
+  domainid_t domain_id{};
 
   [[nodiscard]] uint32_t getNegativeTTL() const { return min(ttl, minimum); }
 };
