@@ -1,5 +1,5 @@
 opt_libedit = get_option('libedit')
-dep_libedit = dependency('libedit', required: false)
+dep_libedit = dependency('libedit', required: opt_libedit)
 
 if not dep_libedit.found()
   dep_libedit = cxx.find_library('edit', required: opt_libedit)
