@@ -613,7 +613,7 @@ static ComboAddress pickclosest(const ComboAddress& bestwho, const vector<ComboA
   return ranked.begin()->second[dns_random(ranked.begin()->second.size())];
 }
 
-static std::vector<DNSZoneRecord> lookup(const DNSName& name, uint16_t qtype, int zoneid)
+static std::vector<DNSZoneRecord> lookup(const DNSName& name, uint16_t qtype, domainid_t zoneid)
 {
   static LockGuarded<UeberBackend> s_ub;
 
@@ -823,7 +823,7 @@ static void cleanZoneHashes()
   }
 }
 
-static std::vector<std::shared_ptr<EntryHashesHolder>> getCHashedEntries(const int zoneId, const std::string& queryName, const std::vector<std::pair<int, std::string>>& items)
+static std::vector<std::shared_ptr<EntryHashesHolder>> getCHashedEntries(const domainid_t zoneId, const std::string& queryName, const std::vector<std::pair<int, std::string>>& items)
 {
   std::vector<std::shared_ptr<EntryHashesHolder>> result{};
   std::map<zone_hashes_key_t, std::shared_ptr<EntryHashesHolder>> newEntries{};

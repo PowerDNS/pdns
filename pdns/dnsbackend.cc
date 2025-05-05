@@ -260,7 +260,7 @@ bool DNSBackend::getSOA(const ZoneName& domain, domainid_t zoneId, SOAData& soaD
     }
     zoneId = domaininfo.id;
   }
-  // Safe for zoneId to be -1 here - it won't be the case for variants, see above
+  // Safe for zoneId to be UnknownDomainID here - it won't be the case for variants, see above
   this->lookup(QType(QType::SOA), domain.operator const DNSName&(), zoneId);
   S.inc("backend-queries");
 

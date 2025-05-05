@@ -43,7 +43,7 @@ AuthZoneCache::AuthZoneCache(size_t mapsCount) :
   d_statnumentries = S.getPointer("zone-cache-size");
 }
 
-bool AuthZoneCache::getEntry(ZoneName& zone, int& zoneId, Netmask* net)
+bool AuthZoneCache::getEntry(ZoneName& zone, domainid_t& zoneId, Netmask* net)
 {
   string view;
 
@@ -133,7 +133,7 @@ void AuthZoneCache::clear()
   }
 }
 
-void AuthZoneCache::replace(const vector<std::tuple<ZoneName, int>>& zone_indices)
+void AuthZoneCache::replace(const vector<std::tuple<ZoneName, domainid_t>>& zone_indices)
 {
   if (!d_refreshinterval)
     return;
@@ -204,7 +204,7 @@ void AuthZoneCache::replace(ViewsMap viewsmap)
   views->swap(viewsmap);
 }
 
-void AuthZoneCache::add(const ZoneName& zone, const int zoneId)
+void AuthZoneCache::add(const ZoneName& zone, const domainid_t zoneId)
 {
   if (!d_refreshinterval)
     return;
@@ -219,7 +219,7 @@ void AuthZoneCache::add(const ZoneName& zone, const int zoneId)
   CacheValue val;
   val.zoneId = zoneId;
 
-  int mapIndex = getMapIndex(zone);
+  auto mapIndex = getMapIndex(zone);
   {
     auto& mc = d_maps[mapIndex];
     auto map = mc.d_map.write_lock();
@@ -242,11 +242,11 @@ void AuthZoneCache::remove(const ZoneName& zone)
   {
     auto pending = d_pending.lock();
     if (pending->d_replacePending) {
-      pending->d_pendingUpdates.emplace_back(zone, -1, false);
+      pending->d_pendingUpdates.emplace_back(zone, UnknownDomainID, false);
     }
   }
 
-  int mapIndex = getMapIndex(zone);
+  auto mapIndex = getMapIndex(zone);
   {
     auto& mc = d_maps[mapIndex];
     auto map = mc.d_map.write_lock();
