@@ -23,6 +23,7 @@
 
 #include "config.h"
 
+#include <atomic>
 #include <condition_variable>
 #include <memory>
 #include <mutex>
@@ -547,12 +548,12 @@ struct DownstreamState : public std::enable_shared_from_this<DownstreamState>
     TimeoutOrServFail
   };
 
-  struct Config
+  struct BaseConfig
   {
-    Config()
+    BaseConfig()
     {
     }
-    Config(const ComboAddress& remote_) :
+    BaseConfig(const ComboAddress& remote_) :
       remote(remote_)
     {
     }
@@ -583,20 +584,16 @@ struct DownstreamState : public std::enable_shared_from_this<DownstreamState>
     int tcpRecvTimeout{30};
     int tcpSendTimeout{30};
     int d_qpsLimit{0};
-    unsigned int checkInterval{1};
     unsigned int sourceItf{0};
     QType checkType{QType::A};
     uint16_t checkClass{QClass::IN};
     uint16_t d_retries{5};
-    uint16_t checkTimeout{1000}; /* in milliseconds */
     uint16_t d_lazyHealthCheckSampleSize{100};
     uint16_t d_lazyHealthCheckMinSampleCount{1};
     uint16_t d_lazyHealthCheckFailedInterval{30};
     uint16_t d_lazyHealthCheckMaxBackOff{3600};
     uint8_t d_lazyHealthCheckThreshold{20};
     LazyHealthCheckMode d_lazyHealthCheckMode{LazyHealthCheckMode::TimeoutOrServFail};
-    uint8_t maxCheckFailures{1};
-    uint8_t minRiseSuccesses{1};
     uint8_t udpTimeout{0};
     uint8_t dscp{0};
     Availability d_availability{Availability::Auto};
@@ -616,6 +613,31 @@ struct DownstreamState : public std::enable_shared_from_this<DownstreamState>
     bool d_addXForwardedHeaders{false}; // for DoH backends
     bool d_lazyHealthCheckUseExponentialBackOff{false};
     bool d_upgradeToLazyHealthChecks{false};
+  };
+
+  struct Config : public BaseConfig
+  {
+    Config() :
+      BaseConfig()
+    {
+    }
+    Config(const ComboAddress& remote_) :
+      BaseConfig(remote_)
+    {
+    }
+    Config(const Config& c) :
+      BaseConfig(c)
+    {
+      checkInterval.store(c.checkInterval.load());
+      checkTimeout.store(c.checkTimeout.load());
+      maxCheckFailures.store(c.maxCheckFailures.load());
+      minRiseSuccesses.store(c.minRiseSuccesses.load());
+    }
+
+    std::atomic<unsigned int> checkInterval{1};
+    std::atomic<uint16_t> checkTimeout{1000}; /* in milliseconds */
+    std::atomic<uint8_t> maxCheckFailures{1};
+    std::atomic<uint8_t> minRiseSuccesses{1};
   };
 
   struct HealthCheckMetrics

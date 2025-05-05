@@ -149,6 +149,25 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
     }
     state.setLazyAuto();
   });
+  luaCtx.registerFunction<void (DownstreamState::*)(boost::optional<LuaAssociativeTable<boost::variant<size_t>>>)>("setHealthCheckParams", [](DownstreamState& state, boost::optional<LuaAssociativeTable<boost::variant<size_t>>> vars) {
+    size_t value = 0;
+    getOptionalValue<size_t>(vars, "maxCheckFailures", value);
+    if (value > 0) {
+      state.d_config.maxCheckFailures.store(value);
+    }
+    getOptionalValue<size_t>(vars, "rise", value);
+    if (value > 0) {
+      state.d_config.minRiseSuccesses.store(value);
+    }
+    getOptionalValue<size_t>(vars, "checkTimeout", value);
+    if (value > 0) {
+      state.d_config.checkTimeout.store(value);
+    }
+    getOptionalValue<size_t>(vars, "checkInterval", value);
+    if (value > 0) {
+      state.d_config.checkInterval.store(value);
+    }
+  });
   luaCtx.registerFunction<std::string (DownstreamState::*)() const>("getName", [](const DownstreamState& state) -> const std::string& { return state.getName(); });
   luaCtx.registerFunction<std::string (DownstreamState::*)() const>("getNameWithAddr", [](const DownstreamState& state) -> const std::string& { return state.getNameWithAddr(); });
   luaCtx.registerMember<bool(DownstreamState::*)>(
