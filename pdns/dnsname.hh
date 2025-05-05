@@ -363,8 +363,8 @@ public:
 
   bool isPartOf(const ZoneName& rhs) const { return d_name.isPartOf(rhs.d_name); }
   bool isPartOf(const DNSName& rhs) const { return d_name.isPartOf(rhs); }
-  bool operator==(const ZoneName& rhs) const { return d_name == rhs.d_name; }
-  bool operator!=(const ZoneName& rhs) const { return d_name != rhs.d_name; }
+  bool operator==(const ZoneName& rhs) const { return d_name == rhs.d_name && d_variant == rhs.d_variant; }
+  bool operator!=(const ZoneName& rhs) const { return !operator==(rhs); }
 
   // IMPORTANT! None of the "toString" routines will output the variant, but toLogString().
   std::string toString(const std::string& separator=".", const bool trailing=true) const { return d_name.toString(separator, trailing); }
@@ -396,6 +396,7 @@ public:
 
   bool hasVariant() const { return !d_variant.empty(); }
   std::string getVariant() const { return d_variant; }
+  void clearVariant() { d_variant.clear(); }
   void setVariant(std::string_view);
 
 private:
