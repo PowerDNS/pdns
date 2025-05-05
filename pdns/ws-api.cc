@@ -343,7 +343,11 @@ ZoneName apiZoneIdToName(const string& identifier)
 
 string apiZoneNameToId(const ZoneName& dname)
 {
-  string name = dname.toString();
+  return apiNameToId(dname.toString());
+}
+
+string apiNameToId(const string& name)
+{
   ostringstream outputStringStream;
 
   for (char iter : name) {

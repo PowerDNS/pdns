@@ -270,7 +270,8 @@ public:
 
       fillSOAData(range.first->d_content, *soadata);
       soadata->ttl = range.first->d_ttl;
-      soadata->qname = best.operator const DNSName&();
+      soadata->zonename = best;
+      soadata->qname = soadata->zonename.operator const DNSName&();
       soadata->domain_id = static_cast<int>(zoneId);
       return true;
     }
@@ -1008,7 +1009,7 @@ BOOST_AUTO_TEST_CASE(test_child_zone) {
       // test getAuth() for DS
       SOAData sd;
       BOOST_REQUIRE(ub.getAuth(ZoneName("powerdns.com."), QType::DS, &sd));
-      BOOST_CHECK_EQUAL(sd.qname.toString(), "com.");
+      BOOST_CHECK_EQUAL(sd.zonename.toString(), "com.");
       BOOST_CHECK_EQUAL(sd.domain_id, 1);
     }
 
@@ -1016,7 +1017,7 @@ BOOST_AUTO_TEST_CASE(test_child_zone) {
       // test getAuth() for A
       SOAData sd;
       BOOST_REQUIRE(ub.getAuth(ZoneName("powerdns.com."), QType::A, &sd));
-      BOOST_CHECK_EQUAL(sd.qname.toString(), "powerdns.com.");
+      BOOST_CHECK_EQUAL(sd.zonename.toString(), "powerdns.com.");
       BOOST_CHECK_EQUAL(sd.domain_id, 2);
     }
 
@@ -1068,7 +1069,7 @@ BOOST_AUTO_TEST_CASE(test_multi_backends_best_soa) {
       // test getAuth()
       SOAData sd;
       BOOST_REQUIRE(ub.getAuth(ZoneName("2.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa."), QType::PTR, &sd));
-      BOOST_CHECK_EQUAL(sd.qname.toString(), "d.0.1.0.0.2.ip6.arpa.");
+      BOOST_CHECK_EQUAL(sd.zonename.toString(), "d.0.1.0.0.2.ip6.arpa.");
       BOOST_CHECK_EQUAL(sd.domain_id, 1);
 
       // check that at most one auth lookup occurred to this backend (O with caching enabled)

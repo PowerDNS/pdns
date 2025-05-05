@@ -422,8 +422,8 @@ bool UeberBackend::fillSOAFromZoneRecord(ZoneName& shorter, const domainid_t zon
   }
 
   // Fill soaData.
-  soaData->qname = zoneRecord.dr.d_name.makeLowerCase();
   soaData->zonename = shorter.makeLowerCase();
+  soaData->qname = soaData->zonename.operator const DNSName&();
 
   try {
     fillSOAData(zoneRecord, *soaData);
@@ -457,8 +457,8 @@ UeberBackend::CacheResult UeberBackend::fillSOAFromCache(SOAData* soaData, ZoneN
     fillSOAData(d_answers[0], *soaData);
 
     soaData->db = backends.size() == 1 ? backends.begin()->get() : nullptr;
-    soaData->qname = shorter.operator const DNSName&().makeLowerCase();
     soaData->zonename = shorter.makeLowerCase();
+    soaData->qname = soaData->zonename.operator const DNSName&();
   }
   else if (cacheResult == CacheResult::NegativeMatch && d_negcache_ttl != 0U) {
     DLOG(g_log << Logger::Error << "has neg cache entry: " << shorter << endl);
