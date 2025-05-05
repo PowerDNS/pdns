@@ -12,6 +12,7 @@ Lua2 Backend
 * Disabled data: No
 * Comments: No
 * Search: No
+* Views: No
 * API: Read-Write
 * Multiple instances: Yes
 * Zone caching: Yes\*

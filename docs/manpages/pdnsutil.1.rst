@@ -31,7 +31,7 @@ Commands
 There are many available commands, this section splits them up into
 their respective uses.
 
-DNSSEC-related Commands
+DNSSEC-RELATED COMMANDS
 -----------------------
 
 Several commands manipulate the DNSSEC keys and options for zones. Some
@@ -432,6 +432,29 @@ raw-lua-from-content *TYPE* *CONTENT*
 zonemd-verify-file *ZONE* *FILE*
 
     Validate ZONEMD for *ZONE* read from *FILE*.
+
+VIEWS COMMANDS
+--------------
+
+network-list
+
+    List all defined networks with their chosen views.
+
+network-set *NET* [*VIEW*]
+
+    Set the *VIEW* for a the *NET* network, or delete if no *VIEW* argument.
+
+view-add-zone *VIEW* *ZONE..VARIANT*
+
+    Add the given *ZONE* *VARIANT* to a *VIEW*.
+
+view-del-zone *VIEW* *ZONE..VARIANT*
+
+    Remove a *ZONE* *VARIANT* from a *VIEW*.
+
+view-list [*VIEW*]
+
+    List all view names, or all zones within a given *VIEW*.
 
 DEBUGGING TOOLS
 ---------------
