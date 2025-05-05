@@ -1,6 +1,6 @@
 swagger: '2.0'
 info:
-  version: "0.0.15"
+  version: "0.0.16"
   title: PowerDNS Authoritative HTTP API
   license:
     name: MIT
@@ -939,6 +939,182 @@ paths:
           description: 'OK, key was deleted'
         <<: *commonErrors
 
+  '/servers/{server_id}/views':
+    get:
+      summary: List all views in a server
+      operationId: listViews
+      tags:
+        - views
+      parameters:
+        - name: server_id
+          in: path
+          required: true
+          description: The id of the server to retrieve
+          type: string
+      responses:
+        '200':
+          description: An array of view names
+          schema:
+            $ref: '#/definitions/Views'
+        <<: *commonErrors
+
+  '/servers/{server_id}/views/{view}':
+    get:
+      summary: List the contents of a given view
+      operationId: listView
+      tags:
+        - views
+      parameters:
+        - name: server_id
+          in: path
+          required: true
+          description: The id of the server to retrieve
+          type: string
+        - name: view
+          type: string
+          in: path
+          required: true
+          description: The name of the view to retrieve
+      responses:
+        '200':
+          description: An array of zone names
+          schema:
+            $ref: '#/definitions/View'
+        <<: *commonErrors
+    post:
+      summary: Adds a zone to a given view, creating it if needed
+      operationId: addToView
+      tags:
+        - views
+      parameters:
+        - name: server_id
+          in: path
+          required: true
+          description: The id of the server to retrieve
+          type: string
+        - name: view
+          type: string
+          in: path
+          required: true
+          description: The name of the view to update
+        - name: name
+          description: The zone to add to the view
+          required: true
+          in: body
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'Returns 204 No Content on success.'
+        <<: *commonErrors
+
+  '/servers/{server_id}/views/{view}/{id}':
+    delete:
+      summary: Removes the given zone from the given view
+      operationId: deleteFromView
+      tags:
+        - views
+      parameters:
+        - name: server_id
+          in: path
+          required: true
+          description: The id of the server to retrieve
+          type: string
+        - name: view
+          type: string
+          in: path
+          required: true
+          description: The name of the view to update
+        - name: id
+          description: The zone to remove from the view
+          required: true
+          in: path
+          type: string
+      responses:
+        '204':
+          description: 'Returns 204 No Content on success.'
+        <<: *commonErrors
+
+  '/servers/{server_id}/networks':
+    get:
+      summary: List all registered networks and views in a server
+      operationId: listNetworks
+      tags:
+        - networks
+      parameters:
+        - name: server_id
+          in: path
+          required: true
+          description: The id of the server to retrieve
+          type: string
+      responses:
+        '200':
+          description: An array of networks
+          schema:
+            $ref: '#/definitions/Networks'
+        <<: *commonErrors
+
+  '/servers/{server_id}/networks/{ip}/{prefixlen}':
+    get:
+      summary: Return the view associated to the given network
+      operationId: getNetwork
+      tags:
+        - networks
+      parameters:
+        - name: server_id
+          in: path
+          required: true
+          description: The id of the server to retrieve
+          type: string
+        - name: ip
+          type: string
+          in: path
+          required: true
+          description: The base address of the network
+        - name: prefixlen
+          type: string
+          in: path
+          required: true
+          description: The length of the network prefix
+      responses:
+        '200':
+          description: An array of networks
+          schema:
+            $ref: '#/definitions/Networks'
+        <<: *commonErrors
+    put:
+      summary: Sets the view associated to the given network
+      operationId: setNetwork
+      tags:
+        - networks
+      parameters:
+        - name: server_id
+          in: path
+          required: true
+          description: The id of the server to retrieve
+          type: string
+        - name: ip
+          type: string
+          in: path
+          required: true
+          description: The base address of the network
+        - name: prefixlen
+          type: string
+          in: path
+          required: true
+          description: The length of the network prefix
+        - name: view
+          type: string
+          required: true
+          description: The name of the view to use for to this network
+          in: body
+          schema:
+            type: string
+      responses:
+        '204':
+          description: 'Returns 204 No Content on success.'
+        <<: *commonErrors
+
 definitions:
   Server:
     title: Server
@@ -1396,3 +1572,40 @@ definitions:
       result:
         type: string
         description: 'A message about the result like "Flushed cache"'
+
+  View:
+    title: View
+    properties:
+      zones:
+        type: array
+        items:
+          type: string
+        description: 'An array of zone names'
+
+  Views:
+    title: Views
+    properties:
+      views:
+        type: array
+        items:
+          type: string
+        description: 'An array of view names'
+
+  Network:
+    title: Network
+    properties:
+      network:
+        type: string
+        description: 'Network specification in human-readable form base address/prefix length'
+      view:
+        type: string
+        description: 'The name of the view'
+
+  Networks:
+    title: Networks
+    properties:
+      networks:
+        type: array
+        items:
+          $ref: '#/definitions/Network'
+          
