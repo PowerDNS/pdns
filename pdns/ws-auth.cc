@@ -431,13 +431,13 @@ static void fillZone(UeberBackend& backend, const ZoneName& zonename, HttpRespon
 
   Json::array tsig_primary_keys;
   for (const auto& keyname : tsig_primary) {
-    tsig_primary_keys.emplace_back(apiZoneNameToId(ZoneName(keyname)));
+    tsig_primary_keys.emplace_back(apiNameToId(keyname));
   }
   doc["master_tsig_key_ids"] = tsig_primary_keys;
 
   Json::array tsig_secondary_keys;
   for (const auto& keyname : tsig_secondary) {
-    tsig_secondary_keys.emplace_back(apiZoneNameToId(ZoneName(keyname)));
+    tsig_secondary_keys.emplace_back(apiNameToId(keyname));
   }
   doc["slave_tsig_key_ids"] = tsig_secondary_keys;
 
@@ -1648,7 +1648,7 @@ static Json::object makeJSONTSIGKey(const DNSName& keyname, const DNSName& algo,
 {
   Json::object tsigkey = {
     {"name", keyname.toStringNoDot()},
-    {"id", apiZoneNameToId(ZoneName(keyname))},
+    {"id", apiNameToId(keyname.toString())},
     {"algorithm", algo.toStringNoDot()},
     {"key", content},
     {"type", "TSIGKey"}};

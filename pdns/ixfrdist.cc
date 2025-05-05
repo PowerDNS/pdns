@@ -625,7 +625,8 @@ static ResponseType maybeHandleNotify(const MOADNSParser& mdp, const ComboAddres
 
   g_log<<Logger::Info<<logPrefix<<"NOTIFY for "<<mdp.d_qname<<"|"<<QType(mdp.d_qtype).toString()<<" "<< Opcode::to_s(mdp.d_header.opcode) <<" from "<<saddr.toStringWithPort()<<endl;
 
-  auto found = g_domainConfigs.find(ZoneName(mdp.d_qname));
+  ZoneName zonename(mdp.d_qname);
+  auto found = g_domainConfigs.find(zonename);
   if (found == g_domainConfigs.end()) {
     g_log<<Logger::Info<<("Domain name '" + mdp.d_qname.toLogString() + "' is not configured for notification")<<endl;
     return ResponseType::RefusedQuery;
@@ -643,12 +644,12 @@ static ResponseType maybeHandleNotify(const MOADNSParser& mdp, const ComboAddres
   }
 
   if (primaryFound) {
-    g_notifiesReceived.lock()->insert(ZoneName(mdp.d_qname));
+    g_notifiesReceived.lock()->insert(zonename);
 
     if (!found->second.notify.empty()) {
       for (const auto& address : found->second.notify) {
         g_log << Logger::Debug << logPrefix << "Queuing notification for " << mdp.d_qname << " to " << address.toStringWithPort() << std::endl;
-        g_notificationQueue.lock()->add(ZoneName(mdp.d_qname), address);
+        g_notificationQueue.lock()->add(zonename, address);
       }
     }
     return ResponseType::EmptyNoError;
@@ -680,12 +681,13 @@ static ResponseType checkQuery(const MOADNSParser& mdp, const ComboAddress& sadd
     }
 
     {
-      if (g_domainConfigs.find(ZoneName(mdp.d_qname)) == g_domainConfigs.end()) {
+      ZoneName zonename(mdp.d_qname);
+      if (g_domainConfigs.find(zonename) == g_domainConfigs.end()) {
         info_msg.push_back("Domain name '" + mdp.d_qname.toLogString() + "' is not configured for distribution");
         ret = ResponseType::RefusedQuery;
       }
       else {
-        const auto zoneInfo = getCurrentZoneInfo(ZoneName(mdp.d_qname));
+        const auto zoneInfo = getCurrentZoneInfo(zonename);
         if (zoneInfo == nullptr) {
           info_msg.emplace_back("Domain has not been transferred yet");
           ret = ResponseType::RefusedQuery;
@@ -872,9 +874,10 @@ static bool handleAXFR(int fd, const MOADNSParser& mdp) {
      until we release it.
   */
 
-  g_stats.incrementAXFRinQueries(ZoneName(mdp.d_qname));
+  ZoneName zonename(mdp.d_qname);
+  g_stats.incrementAXFRinQueries(zonename);
 
-  auto zoneInfo = getCurrentZoneInfo(ZoneName(mdp.d_qname));
+  auto zoneInfo = getCurrentZoneInfo(zonename);
   if (zoneInfo == nullptr) {
     return false;
   }
@@ -912,9 +915,10 @@ static bool handleIXFR(int fd, const MOADNSParser& mdp, const shared_ptr<const S
      until we release it.
   */
 
-  g_stats.incrementIXFRinQueries(ZoneName(mdp.d_qname));
+  ZoneName zonename(mdp.d_qname);
+  g_stats.incrementIXFRinQueries(zonename);
 
-  auto zoneInfo = getCurrentZoneInfo(ZoneName(mdp.d_qname));
+  auto zoneInfo = getCurrentZoneInfo(zonename);
   if (zoneInfo == nullptr) {
     return false;
   }

@@ -273,8 +273,8 @@ bool DNSBackend::getSOA(const ZoneName& domain, domainid_t zoneId, SOAData& soaD
         throw PDNSException("Got non-SOA record when asking for SOA, zone: '" + domain.toLogString() + "'");
       }
       hits++;
-      soaData.qname = domain.operator const DNSName&().makeLowerCase();
       soaData.zonename = domain.makeLowerCase();
+      soaData.qname = soaData.zonename.operator const DNSName&();
       soaData.ttl = resourceRecord.ttl;
       soaData.db = this;
       soaData.domain_id = resourceRecord.domain_id;
