@@ -845,7 +845,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
     if (client || configCheck) {
       return;
     }
-    std::thread newThread(dnsdist::resolver::asynchronousResolver, std::move(hostname), [callback=std::move(callback)](const std::string& resolvedHostname, std::vector<ComboAddress>& ips) {
+    std::thread newThread(dnsdist::resolver::asynchronousResolver, std::move(hostname), [callback = std::move(callback)](const std::string& resolvedHostname, std::vector<ComboAddress>& ips) mutable {
       LuaArray<ComboAddress> result;
       result.reserve(ips.size());
       for (const auto& entry : ips) {
@@ -853,7 +853,15 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
       }
       {
         auto lua = g_lua.lock();
-        callback(resolvedHostname, result);
+        try {
+          callback(resolvedHostname, result);
+        }
+        catch (const std::exception& exp) {
+          vinfolog("Error during execution of getAddressInfo callback: %s", exp.what());
+        }
+        // this _needs_ to be done while we are holding the lock,
+        // otherwise the destructor will corrupt the stack
+        callback = nullptr;
         dnsdist::handleQueuedAsynchronousEvents();
       }
     });
