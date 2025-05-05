@@ -555,6 +555,11 @@ bool UeberBackend::getAuth(const ZoneName& target, const QType& qtype, SOAData* 
         }
         if (fillSOAFromZoneRecord(_shorter, zoneId, soaData)) {
           soaData->zonename = _shorter.makeLowerCase();
+          // Now that we have saved the possible variant in soaData, we need
+          // to reset _shorter's variant to be the same as target, since
+          // foundTarget() compares ZoneName, not DNSName.
+          _shorter.clearVariant();
+          _shorter.setVariant(target.getVariant());
           if (foundTarget(target, _shorter, qtype, soaData, found)) {
             return true;
           }
