@@ -12,6 +12,7 @@ LMDB backend
 * Disabled data: Yes
 * Comments: No
 * Search: No
+* Views: Yes
 * API: Read-Write
 * Multiple instances: No
 * Zone caching: Yes

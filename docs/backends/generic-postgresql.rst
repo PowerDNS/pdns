@@ -12,6 +12,7 @@ Generic PostgreSQL backend
 * Disabled data: Yes
 * Comments: Yes
 * Search: Yes
+* Views: No
 * API: Read-Write
 * Multiple instances: yes
 * Zone caching: Yes
