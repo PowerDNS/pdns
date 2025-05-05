@@ -406,7 +406,7 @@ bool UeberBackend::inTransaction()
   return false;
 }
 
-bool UeberBackend::fillSOAFromZoneRecord(ZoneName& shorter, const int zoneId, SOAData* const soaData)
+bool UeberBackend::fillSOAFromZoneRecord(ZoneName& shorter, const domainid_t zoneId, SOAData* const soaData)
 {
   // Zone exists in zone cache, directly look up SOA.
   lookup(QType(QType::SOA), shorter.operator const DNSName&(), zoneId, nullptr);
@@ -551,7 +551,7 @@ bool UeberBackend::getAuth(const ZoneName& target, const QType& qtype, SOAData* 
   while (first || shorter.chopOff()) {
     first = false;
 
-    int zoneId{-1};
+    domainid_t zoneId{UnknownDomainID};
 
     if (cachedOk && g_zoneCache.isEnabled()) {
       std::string variant = g_zoneCache.getVariantFromView(shorter, view);
@@ -643,7 +643,7 @@ bool UeberBackend::getSOAUncached(const ZoneName& domain, SOAData& soaData)
 {
   d_question.qtype = QType::SOA;
   d_question.qname = domain.operator const DNSName&();
-  d_question.zoneId = -1;
+  d_question.zoneId = UnknownDomainID;
 
   for (auto& backend : backends) {
     // Do not risk passing variant zones to variant-unaware backends.
@@ -806,7 +806,7 @@ UeberBackend::~UeberBackend()
 }
 
 // this handle is more magic than most
-void UeberBackend::lookup(const QType& qtype, const DNSName& qname, int zoneId, DNSPacket* pkt_p)
+void UeberBackend::lookup(const QType& qtype, const DNSName& qname, domainid_t zoneId, DNSPacket* pkt_p)
 {
   if (d_stale) {
     g_log << Logger::Error << "Stale ueberbackend received question, signalling that we want to be recycled" << endl;

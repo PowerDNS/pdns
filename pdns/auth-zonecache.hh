@@ -37,10 +37,10 @@ public:
   using ViewsMap = std::map<std::string, std::map<DNSName, std::string>>;
 
   // Zone maintainance
-  void replace(const vector<std::tuple<ZoneName, int>>& zone);
+  void replace(const vector<std::tuple<ZoneName, domainid_t>>& zone);
   void replace(NetmaskTree<string> nettree);
   void replace(ViewsMap viewsmap);
-  void add(const ZoneName& zone, const int zoneId);
+  void add(const ZoneName& zone, const domainid_t zoneId);
   void remove(const ZoneName& zone);
   void setReplacePending(); //!< call this when data collection for the subsequent replace() call starts.
 
@@ -84,7 +84,7 @@ private:
 
   struct CacheValue
   {
-    int zoneId{-1};
+    domainid_t zoneId{UnknownDomainID};
   };
 
   typedef std::unordered_map<ZoneName, CacheValue, std::hash<ZoneName>> cmap_t;
@@ -117,7 +117,7 @@ private:
 
   struct PendingData
   {
-    std::vector<std::tuple<ZoneName, int, bool>> d_pendingUpdates;
+    std::vector<std::tuple<ZoneName, domainid_t, bool>> d_pendingUpdates;
     bool d_replacePending{false};
   };
   LockGuarded<PendingData> d_pending;

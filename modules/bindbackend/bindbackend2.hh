@@ -157,7 +157,7 @@ public:
   time_t d_ctime{0}; //!< last known ctime of the file on disk
   time_t d_lastcheck{0}; //!< last time domain was checked for freshness
   uint32_t d_lastnotified{0}; //!< Last serial number we notified our secondaries of
-  unsigned int d_id{0}; //!< internal id of the domain
+  domainid_t d_id{0}; //!< internal id of the domain
   mutable bool d_checknow; //!< if this domain has been flagged for a check
   bool d_loaded{false}; //!< if a domain is loaded
   bool d_wasRejectedLastReload{false}; //!< if the domain was rejected during Bind2Backend::queueReloadAndStore
@@ -224,7 +224,7 @@ public:
   // end of DNSSEC
 
   typedef multi_index_container<BB2DomainInfo,
-                                indexed_by<ordered_unique<member<BB2DomainInfo, unsigned int, &BB2DomainInfo::d_id>>,
+                                indexed_by<ordered_unique<member<BB2DomainInfo, domainid_t, &BB2DomainInfo::d_id>>,
                                            ordered_unique<tag<NameTag>, member<BB2DomainInfo, ZoneName, &BB2DomainInfo::d_name>>>>
     state_t;
   static SharedLockGuarded<state_t> s_state;

@@ -42,9 +42,9 @@ class AuthQueryCache : public boost::noncopyable
 public:
   AuthQueryCache(size_t mapsCount=1024);
 
-  void insert(const DNSName &qname, const QType& qtype, vector<DNSZoneRecord>&& content, uint32_t ttl, int zoneID);
+  void insert(const DNSName &qname, const QType& qtype, vector<DNSZoneRecord>&& value, uint32_t ttl, domainid_t zoneID);
 
-  bool getEntry(const DNSName &qname, const QType& qtype, vector<DNSZoneRecord>& entry, int zoneID);
+  bool getEntry(const DNSName &qname, const QType& qtype, vector<DNSZoneRecord>& value, domainid_t zoneID);
 
   size_t size() { return *d_statnumentries; } //!< number of entries in the cache
   void cleanup(); //!< force the cache to preen itself from expired queries
@@ -69,7 +69,7 @@ private:
     mutable vector<DNSZoneRecord> drs;
     mutable time_t ttd{0};
     uint16_t qtype{0};
-    int zoneID{-1};
+    domainid_t zoneID{UnknownDomainID};
   };
 
   struct HashTag{};
@@ -108,7 +108,7 @@ private:
     return d_maps[qname.hash() % d_maps.size()];
   }
 
-  bool getEntryLocked(const cmap_t& map, const DNSName &content, uint16_t qtype, vector<DNSZoneRecord>& entry, int zoneID, time_t now);
+  bool getEntryLocked(const cmap_t& map, const DNSName &qname, uint16_t qtype, vector<DNSZoneRecord>& value, domainid_t zoneID, time_t now);
   void cleanupIfNeeded();
 
   AtomicCounter d_ops{0};

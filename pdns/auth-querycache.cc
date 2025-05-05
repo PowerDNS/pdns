@@ -52,7 +52,7 @@ void AuthQueryCache::MapCombo::reserve(size_t numberOfEntries)
 }
 
 // called from ueberbackend
-bool AuthQueryCache::getEntry(const DNSName &qname, const QType& qtype, vector<DNSZoneRecord>& value, int zoneID)
+bool AuthQueryCache::getEntry(const DNSName &qname, const QType& qtype, vector<DNSZoneRecord>& value, domainid_t zoneID)
 {
   cleanupIfNeeded();
 
@@ -70,7 +70,7 @@ bool AuthQueryCache::getEntry(const DNSName &qname, const QType& qtype, vector<D
   }
 }
 
-void AuthQueryCache::insert(const DNSName &qname, const QType& qtype, vector<DNSZoneRecord>&& value, uint32_t ttl, int zoneID)
+void AuthQueryCache::insert(const DNSName &qname, const QType& qtype, vector<DNSZoneRecord>&& value, uint32_t ttl, domainid_t zoneID)
 {
   cleanupIfNeeded();
 
@@ -115,7 +115,7 @@ void AuthQueryCache::insert(const DNSName &qname, const QType& qtype, vector<DNS
   }
 }
 
-bool AuthQueryCache::getEntryLocked(const cmap_t& map, const DNSName &qname, uint16_t qtype, vector<DNSZoneRecord>& value, int zoneID, time_t now)
+bool AuthQueryCache::getEntryLocked(const cmap_t& map, const DNSName &qname, uint16_t qtype, vector<DNSZoneRecord>& value, domainid_t zoneID, time_t now)
 {
   auto& idx = boost::multi_index::get<HashTag>(map);
   auto iter = idx.find(std::tie(qname, qtype, zoneID));

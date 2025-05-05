@@ -87,13 +87,13 @@ public:
     //! Index of the current backend within the backends vector
     unsigned int i{0};
     QType qtype;
-    int zoneId{-1};
+    domainid_t zoneId{UnknownDomainID};
 
   private:
     static AtomicCounter instances;
   };
 
-  void lookup(const QType& qtype, const DNSName& qname, int zoneId, DNSPacket* pkt_p = nullptr);
+  void lookup(const QType& qtype, const DNSName& qname, domainid_t zoneId, DNSPacket* pkt_p = nullptr);
   /** Read a single record from a lookup(...) result. */
   bool get(DNSZoneRecord& resourceRecord);
   /** Close state created by lookup(...). */
@@ -164,7 +164,7 @@ private:
   struct Question
   {
     DNSName qname;
-    int zoneId;
+    domainid_t zoneId;
     QType qtype;
   } d_question;
 
@@ -189,6 +189,6 @@ private:
   void addNegCache(const Question& question) const;
   void addCache(const Question& question, vector<DNSZoneRecord>&& rrs) const;
 
-  bool fillSOAFromZoneRecord(ZoneName& shorter, int zoneId, SOAData* soaData);
+  bool fillSOAFromZoneRecord(ZoneName& shorter, domainid_t zoneId, SOAData* soaData);
   CacheResult fillSOAFromCache(SOAData* soaData, ZoneName& shorter);
 };
