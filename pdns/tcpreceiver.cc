@@ -1267,7 +1267,7 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
       }
     }
 
-    serialPermitsIXFR = !rfc1982LessThan(serial, calculateEditSOA(sd.serial, dk, ZoneName(sd.qname)));
+    serialPermitsIXFR = !rfc1982LessThan(serial, calculateEditSOA(sd.serial, dk, sd.zonename));
   }
 
   if (serialPermitsIXFR) {
