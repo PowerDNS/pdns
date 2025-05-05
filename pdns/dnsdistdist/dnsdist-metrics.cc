@@ -70,8 +70,11 @@ struct MutableGauge
   mutable pdns::stat_double_t d_value{0};
 };
 
-static SharedLockGuarded<std::map<std::string, std::map<std::string, MutableCounter>, std::less<>>> s_customCounters;
-static SharedLockGuarded<std::map<std::string, std::map<std::string, MutableGauge>, std::less<>>> s_customGauges;
+/* map of metric name -> map of labels -> metric value */
+template <class MetricType>
+using LabelsToMetricMap = std::map<std::string, MetricType>;
+static SharedLockGuarded<std::map<std::string, LabelsToMetricMap<MutableCounter>, std::less<>>> s_customCounters;
+static SharedLockGuarded<std::map<std::string, LabelsToMetricMap<MutableGauge>, std::less<>>> s_customGauges;
 
 Stats::Stats() :
   entries{std::vector<EntryTriple>{
@@ -227,64 +230,91 @@ static string prometheusLabelValueEscape(const string& value)
   return ret;
 }
 
-static std::string generateCombinationOfLabels(const std::unordered_map<std::string, std::string>& labels)
+static std::string generateCombinationOfLabels(const Labels& optLabels)
 {
+  if (!optLabels || optLabels->get().empty()) {
+    return {};
+  }
+  const auto& labels = optLabels->get();
   auto ordered = std::map(labels.begin(), labels.end());
   return std::accumulate(ordered.begin(), ordered.end(), std::string(), [](const std::string& acc, const std::pair<std::string, std::string>& label) {
     return acc + (acc.empty() ? std::string() : ",") + label.first + "=" + "\"" + prometheusLabelValueEscape(label.second) + "\"";
   });
 }
 
-template <typename T>
-static T& initializeOrGetMetric(const std::string_view& name, std::map<std::string, T>& metricEntries, const std::unordered_map<std::string, std::string>& labels)
+template <typename MetricType, typename MetricValueType>
+static std::variant<MetricValueType, Error> updateMetric(const std::string_view& name, SharedLockGuarded<std::map<std::string, LabelsToMetricMap<MetricType>, std::less<>>>& metricMap, const Labels& labels, const std::function<void(const MetricType&)>& callback)
 {
   auto combinationOfLabels = generateCombinationOfLabels(labels);
-  auto metricEntry = metricEntries.find(combinationOfLabels);
-  if (metricEntry == metricEntries.end()) {
+  /* be optimistic first, and see if the metric and labels exist */
+  {
+    auto readLockedMap = metricMap.read_lock();
+    auto labelsMapIt = readLockedMap->find(name);
+    if (labelsMapIt == readLockedMap->end()) {
+      if constexpr (std::is_same_v<MetricType, MutableCounter>) {
+        return std::string("Unable to update custom metric '") + std::string(name) + "': no such counter";
+      }
+      else {
+        return std::string("Unable to update custom metric '") + std::string(name) + "': no such gauge";
+      }
+    }
+
+    auto& metricEntries = labelsMapIt->second;
+    auto metricEntry = metricEntries.find(combinationOfLabels);
+    if (metricEntry != metricEntries.end()) {
+      callback(metricEntry->second);
+      return metricEntry->second.d_value.load();
+    }
+  }
+
+  /* OK, so we the metric exists (otherwise we would have returned an Error) but the label doesn't yet */
+  {
+    auto writeLockedMap = metricMap.write_lock();
+    auto labelsMapIt = writeLockedMap->find(name);
+    if (labelsMapIt == writeLockedMap->end()) {
+      if constexpr (std::is_same_v<MetricType, MutableCounter>) {
+        return std::string("Unable to update custom metric '") + std::string(name) + "': no such counter";
+      }
+      else {
+        return std::string("Unable to update custom metric '") + std::string(name) + "': no such gauge";
+      }
+    }
+    /* we need to check again, it might have been inserted in the meantime */
+    auto& metricEntries = labelsMapIt->second;
+    auto metricEntry = metricEntries.find(combinationOfLabels);
+    if (metricEntry != metricEntries.end()) {
+      callback(metricEntry->second);
+      return metricEntry->second.d_value.load();
+    }
     metricEntry = metricEntries.emplace(std::piecewise_construct, std::forward_as_tuple(combinationOfLabels), std::forward_as_tuple()).first;
     g_stats.entries.write_lock()->emplace_back(Stats::EntryTriple{std::string(name), std::move(combinationOfLabels), &metricEntry->second.d_value});
+    callback(metricEntry->second);
+    return metricEntry->second.d_value.load();
   }
-  return metricEntry->second;
 }
 
-std::variant<uint64_t, Error> incrementCustomCounter(const std::string_view& name, uint64_t step, const std::unordered_map<std::string, std::string>& labels)
+std::variant<uint64_t, Error> incrementCustomCounter(const std::string_view& name, uint64_t step, const Labels& labels)
 {
-  auto customCounters = s_customCounters.write_lock();
-  auto metric = customCounters->find(name);
-  if (metric != customCounters->end()) {
-    auto& metricEntry = initializeOrGetMetric(name, metric->second, labels);
-    metricEntry.d_value += step;
-    return metricEntry.d_value.load();
-  }
-  return std::string("Unable to increment custom metric '") + std::string(name) + "': no such counter";
+  return updateMetric<MutableCounter, uint64_t>(name, s_customCounters, labels, [step](const MutableCounter& counter) -> void {
+    counter.d_value += step;
+  });
 }
 
-std::variant<uint64_t, Error> decrementCustomCounter(const std::string_view& name, uint64_t step, const std::unordered_map<std::string, std::string>& labels)
+std::variant<uint64_t, Error> decrementCustomCounter(const std::string_view& name, uint64_t step, const Labels& labels)
 {
-  auto customCounters = s_customCounters.write_lock();
-  auto metric = customCounters->find(name);
-  if (metric != customCounters->end()) {
-    auto& metricEntry = initializeOrGetMetric(name, metric->second, labels);
-    metricEntry.d_value -= step;
-    return metricEntry.d_value.load();
-  }
-  return std::string("Unable to decrement custom metric '") + std::string(name) + "': no such counter";
+  return updateMetric<MutableCounter, uint64_t>(name, s_customCounters, labels, [step](const MutableCounter& counter) {
+    counter.d_value -= step;
+  });
 }
 
-std::variant<double, Error> setCustomGauge(const std::string_view& name, const double value, const std::unordered_map<std::string, std::string>& labels)
+std::variant<double, Error> setCustomGauge(const std::string_view& name, const double value, const Labels& labels)
 {
-  auto customGauges = s_customGauges.write_lock();
-  auto metric = customGauges->find(name);
-  if (metric != customGauges->end()) {
-    auto& metricEntry = initializeOrGetMetric(name, metric->second, labels);
-    metricEntry.d_value = value;
-    return value;
-  }
-
-  return std::string("Unable to set metric '") + std::string(name) + "': no such gauge";
+  return updateMetric<MutableGauge, double>(name, s_customGauges, labels, [value](const MutableGauge& gauge) {
+    gauge.d_value = value;
+  });
 }
 
-std::variant<double, Error> getCustomMetric(const std::string_view& name, const std::unordered_map<std::string, std::string>& labels)
+std::variant<double, Error> getCustomMetric(const std::string_view& name, const Labels& labels)
 {
   {
     auto customCounters = s_customCounters.read_lock();
