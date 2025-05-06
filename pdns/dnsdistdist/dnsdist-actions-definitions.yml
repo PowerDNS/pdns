@@ -79,7 +79,7 @@
     - name: "vars"
       type: "ResponseConfig"
       default: true
-      description: "The response options"
+      description: "The response options (deprecated since 2.0.0, do not use)"
 - name: "KeyValueStoreLookup"
   description: "Does a lookup into the key value store using the key returned by ``lookup_key_name``, and storing the result if any into the tag named ``destination_tag``. The store can be a ``CDB`` or a ``LMDB`` database.  The key can be based on the qname, source IP or the value of an existing tag. Subsequent rules are processed after this action. Note that the tag is always created, even if there was no match, but in that case the content is empty"
   skip-cpp: true

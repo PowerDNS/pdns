@@ -15,6 +15,8 @@ XPF support has been removed.
 
 :meth:`Server:setAuto` used to reset the health-check mode to ``active`` even if it had previously been set to ``lazy`` via :meth:`Server:setLazyAuto`. This is no longer the case, and :meth:`Server:setActiveAuto` should be used instead to set the health-check mode to ``Active``.
 
+The ``options`` parameter of :func:`HTTPStatusAction` has been deprecated because it had unexpected side-effects, and should thus no longer be used.
+
 1.8.x to 1.9.0
 --------------
 

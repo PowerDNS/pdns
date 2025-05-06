@@ -174,12 +174,15 @@ The following actions exist.
   .. versionchanged:: 1.5.0
     Added the optional parameter ``options``.
 
+  .. versionchanged:: 2.0.0
+    The ``options`` parameter is now deprecated.
+
   Return an HTTP response with a status code of ''status''. For HTTP redirects, ''body'' should be the redirect URL.
 
   :param int status: The HTTP status code to return.
   :param string body: The body of the HTTP response, or a URL if the status code is a redirect (3xx).
   :param string contentType: The HTTP Content-Type header to return for a 200 response, ignored otherwise. Default is ''application/dns-message''.
-  :param table options: A table with key: value pairs with options.
+  :param table options: A table with key: value pairs with options. Deprecated since 2.0.0 as it had unexpected side-effects.
 
   Options:
 
