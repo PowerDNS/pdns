@@ -157,7 +157,7 @@ def install_clang(c):
 
 @task
 def install_clang_tidy_tools(c):
-    c.sudo('apt-get -y --no-install-recommends install clang-tidy-12 clang-tools-12 bear python-yaml')
+    c.sudo('apt-get -y --no-install-recommends install clang-tidy-12 clang-tools-12 bear python3-yaml')
 
 @task
 def install_clang_runtime(c):
