@@ -153,7 +153,7 @@ bool makeIncreasedSOARecord(SOAData& sd, const string& increaseKind, const strin
     return false;
 
   sd.serial = calculateIncreaseSOA(sd.serial, increaseKind, editKind, sd.zonename);
-  rrout.qname = sd.qname;
+  rrout.qname = sd.qname();
   rrout.content = makeSOAContent(sd)->getZoneRepresentation(true);
   rrout.qtype = QType::SOA;
   rrout.domain_id = sd.domain_id;
@@ -168,7 +168,7 @@ DNSZoneRecord makeEditedDNSZRFromSOAData(DNSSECKeeper& dk, const SOAData& sd, DN
   edited.serial = calculateEditSOA(sd.serial, dk, sd.zonename);
 
   DNSRecord soa;
-  soa.d_name = sd.qname;
+  soa.d_name = sd.qname();
   soa.d_type = QType::SOA;
   soa.d_ttl = sd.ttl;
   soa.d_place = place;
