@@ -782,7 +782,7 @@ static string makeTSIGPayload(const string& previous, const char* packetBegin, s
   DNSPacketWriter dw(signVect, DNSName(), 0);
   auto pos=signVect.size();
   if(!timersonly) {
-    dw.xfrName(tsigKeyName, false);
+    dw.xfrName(tsigKeyName.makeLowerCase(), false);
     dw.xfr16BitInt(QClass::ANY); // class
     dw.xfr32BitInt(0);    // TTL
     dw.xfrName(trc.d_algoName.makeLowerCase(), false);
