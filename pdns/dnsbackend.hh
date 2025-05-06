@@ -579,8 +579,12 @@ struct SOAData
   SOAData() :
     domain_id(UnknownDomainID) {};
 
-  DNSName qname; // FIXME: now mostly redundant with zonename, simplify usage
+#if defined(PDNS_AUTH)
+  const DNSName& qname() const { return zonename.operator const DNSName&(); }
   ZoneName zonename;
+#else
+  DNSName qname;
+#endif
   DNSName nameserver;
   DNSName rname;
   uint32_t ttl{};

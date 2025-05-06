@@ -1034,7 +1034,7 @@ send:
     if(securedZone && (loopZRR.auth || loopZRR.dr.d_type == QType::NS)) {
       if (NSEC3Zone || loopZRR.dr.d_type) {
         if (presignedZone && NSEC3Zone && loopZRR.dr.d_type == QType::RRSIG && getRR<RRSIGRecordContent>(loopZRR.dr)->d_type == QType::NSEC3) {
-          keyname = loopZRR.dr.d_name.makeRelative(sd.qname);
+          keyname = loopZRR.dr.d_name.makeRelative(sd.qname());
         } else {
           keyname = NSEC3Zone ? DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, loopZRR.dr.d_name))) : loopZRR.dr.d_name;
         }
@@ -1099,7 +1099,7 @@ send:
               inext = nsecxrepo.begin();
           }
           n3rc.d_nexthash = fromBase32Hex(inext->first.toStringNoDot());
-          zrr.dr.d_name = iter->first+sd.qname;
+          zrr.dr.d_name = iter->first+sd.qname();
 
           zrr.dr.d_ttl = sd.getNegativeTTL();
           zrr.dr.setContent(std::make_shared<NSEC3RecordContent>(std::move(n3rc)));
