@@ -1,4 +1,4 @@
-# this tests Networks
+# this tests Networks and Views
 
 import subprocess
 import json
@@ -6,6 +6,7 @@ import unittest
 import os
 
 from test_helper import ApiTestCase, is_auth, is_auth_lmdb, pdnsutil
+from test_Zones import AuthZonesHelperMixin
 
 @unittest.skipIf(not is_auth(), "Not applicable")
 @unittest.skipIf(not is_auth_lmdb(), "Views require the LMDB backend")
@@ -75,3 +76,88 @@ class Networks(ApiTestCase):
             ret[net] = view
 
         return ret
+
+@unittest.skipIf(not is_auth(), "Not applicable")
+@unittest.skipIf(not is_auth_lmdb(), "Views require the LMDB backend")
+class Views(ApiTestCase, AuthZonesHelperMixin):
+    def setUp(self):
+        super(Views, self).setUp()
+        self.create_zone('example.com..spiceoflife')
+
+    def tearDown(self):
+        super(Views, self).tearDown()
+        self.session.delete(self.url("/api/v1/servers/localhost/zones/example.com..spiceoflife"))
+
+    def _test_views(self, variant=''):
+        zone = 'example.com.' + variant
+        r = self.set_view_zone('view1', zone)
+        self.assertEqual(r.status_code, 204)
+        self.assertEqual(r.content, b"")
+
+        # Check view presence
+        r = self.get_views()
+        self.assertEqual(r.status_code, 200)
+        self.assertIn('view1', r.json()["views"])
+
+        # Check individual fetch
+        r = self.get_view('view1')
+        print(r)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()["zones"], [zone])
+
+        r = self.del_view_zone('view1', zone)
+        print(r.content)
+        self.assertEqual(r.status_code, 204)
+        self.assertEqual(r.content, b"")
+
+        # Check view absence
+        r = self.get_views()
+        self.assertEqual(r.status_code, 200)
+        self.assertNotIn('view1', r.json()["views"])
+
+        # Check individual fetch
+        r = self.get_view('view1')
+        print(r.content)
+        self.assertEqual(r.status_code, 404)
+
+    def test_views_novariant(self):
+        return self._test_views()
+
+    def test_views_variant(self):
+        return self._test_views('.spiceoflife')
+
+    def set_view_zone(self, view, zone):
+        r = self.session.post(
+            self.url("/api/v1/servers/localhost/views/"+view),
+            data=json.dumps(dict(name=zone)),
+            headers={'content-type': 'application/json'})
+
+        self.assertEqual(r.status_code, 204)
+
+        return r
+
+    def del_view_zone(self, view, zone):
+        r = self.session.delete(
+            self.url("/api/v1/servers/localhost/views/"+view+"/"+zone),
+            data=json.dumps(dict(name=zone)),
+            headers={'content-type': 'application/json'})
+
+        self.assertEqual(r.status_code, 204)
+
+        return r
+
+    def get_view(self, view):
+        r = self.session.get(
+            self.url("/api/v1/servers/localhost/views/"+view),
+            headers={'content-type': 'application/json'})
+
+        return r
+
+    def get_views(self):
+        r = self.session.get(
+            self.url("/api/v1/servers/localhost/views"),
+            headers={'content-type': 'application/json'})
+
+        self.assertEqual(r.status_code, 200)
+
+        return r
