@@ -107,7 +107,7 @@ For Rules related to the incoming query after a cache miss:
 
 .. function:: addCacheMissAction(DNSrule, action [, options])
 
-  .. versionadded:: 1.10
+  .. versionadded:: 2.0.0
 
   Add a Rule and Action to the existing cache miss rules.
   If a string (or list of) is passed as the first parameter instead of a :class:`DNSRule`, it behaves as if the string or list of strings was passed to :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule`.
@@ -123,13 +123,13 @@ For Rules related to the incoming query after a cache miss:
 
 .. function:: clearCacheMissRules()
 
-  .. versionadded:: 1.10
+  .. versionadded:: 2.0.0
 
   Remove all current cache miss rules.
 
 .. function:: getCacheMissAction(n) -> DNSDistRuleAction
 
-  .. versionadded:: 1.10
+  .. versionadded:: 2.0.0
 
   Returns the :class:`DNSDistRuleAction` associated with cache miss rule ``n``.
 
@@ -137,7 +137,7 @@ For Rules related to the incoming query after a cache miss:
 
 .. function:: getCacheMissRule(selector) -> DNSDistRuleAction
 
-  .. versionadded:: 1.10
+  .. versionadded:: 2.0.0
 
   Return the cache miss rule corresponding to the selector, if any.
   The selector can be the position of the rule in the list, as an integer,
@@ -147,7 +147,7 @@ For Rules related to the incoming query after a cache miss:
 
 .. function:: mvCacheMissRule(from, to)
 
-  .. versionadded:: 1.10
+  .. versionadded:: 2.0.0
 
   Move cache miss rule ``from`` to a position where it is in front of ``to``.
   ``to`` can be one larger than the largest rule, in which case the rule will be moved to the last position.
@@ -157,13 +157,13 @@ For Rules related to the incoming query after a cache miss:
 
 .. function:: mvCacheMissRuleToTop()
 
-  .. versionadded:: 1.10
+  .. versionadded:: 2.0.0
 
   This function moves the last cache miss rule to the first position.
 
 .. function:: setCacheMissRules(rules)
 
-  .. versionadded:: 1.10
+  .. versionadded:: 2.0.0
 
   Replace the current cache miss rules with the supplied list of pairs of DNS Rules and DNS Actions (see :func:`newRuleAction`)
 
@@ -171,7 +171,7 @@ For Rules related to the incoming query after a cache miss:
 
 .. function:: showCacheMissRules([options])
 
-  .. versionadded:: 1.10
+  .. versionadded:: 2.0.0
 
   Show all defined cache miss rules for queries, optionally displaying their UUIDs.
 
@@ -184,7 +184,7 @@ For Rules related to the incoming query after a cache miss:
 
 .. function:: rmCacheMissRule(id)
 
-  .. versionadded:: 1.10
+  .. versionadded:: 2.0.0
 
   Remove rule ``id``.
 
@@ -217,7 +217,7 @@ For Rules related to responses:
 
 .. function:: clearResponseRules()
 
-  .. versionadded:: 1.10
+  .. versionadded:: 2.0.0
 
   Remove all current response rules.
 
@@ -299,7 +299,7 @@ Functions for manipulating Cache Hit Response Rules:
 
 .. function:: clearCacheHitResponseRules()
 
-  .. versionadded:: 1.10
+  .. versionadded:: 2.0.0
 
   Remove all current cache-hit response rules.
 
@@ -378,7 +378,7 @@ Functions for manipulating Cache Inserted Response Rules:
 
 .. function:: clearCacheInsertedResponseRules()
 
-  .. versionadded:: 1.10
+  .. versionadded:: 2.0.0
 
   Remove all current cache-inserted response rules.
 
@@ -454,7 +454,7 @@ Functions for manipulating Self-Answered Response Rules:
 
 .. function:: clearSelfAnsweredResponseRules()
 
-  .. versionadded:: 1.10
+  .. versionadded:: 2.0.0
 
   Remove all current self-answered response rules.
 
@@ -618,7 +618,7 @@ Functions for manipulating zone transfer (AXFR, IXFR) Response Rules:
 
 .. function:: addXFRResponseAction(DNSRule, action [, options])
 
-  .. versionadded:: 1.10
+  .. versionadded:: 2.0.0
 
   Add a Rule and ResponseAction for zone transfers (XFR) to the existing rules.
   If a string (or list of) is passed as the first parameter instead of a :class:`DNSRule`, it behaves as if the string or list of strings was passed to :func:`NetmaskGroupRule` or :func:`SuffixMatchNodeRule`.
@@ -634,7 +634,7 @@ Functions for manipulating zone transfer (AXFR, IXFR) Response Rules:
 
 .. function:: mvXFRResponseRule(from, to)
 
-  .. versionadded:: 1.10
+  .. versionadded:: 2.0.0
 
   Move XFR response rule ``from`` to a position where it is in front of ``to``.
   ``to`` can be one larger than the largest rule, in which case the rule will be moved to the last position.
@@ -644,19 +644,19 @@ Functions for manipulating zone transfer (AXFR, IXFR) Response Rules:
 
 .. function:: mvXFRResponseRuleToTop()
 
-  .. versionadded:: 1.10
+  .. versionadded:: 2.0.0
 
   This function moves the last XFR response rule to the first position.
 
 .. function:: rmXFRResponseRule(id)
 
-  .. versionadded:: 1.10
+  .. versionadded:: 2.0.0
 
   :param int id: The position of the rule to remove if ``id`` is numerical, its UUID or name otherwise
 
 .. function:: showXFRResponseRules([options])
 
-  .. versionadded:: 1.10
+  .. versionadded:: 2.0.0
 
   Show all defined XFR response rules, optionally displaying their UUIDs.
 
