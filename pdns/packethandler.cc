@@ -334,14 +334,16 @@ vector<DNSZoneRecord> PacketHandler::getBestReferralNS(DNSPacket& p, const DNSNa
   DNSZoneRecord rr;
   DNSName subdomain(target);
   do {
-    if(subdomain == d_sd.qname()) // stop at SOA
+    if(subdomain == d_sd.qname()) { // stop at SOA
       break;
+    }
     B.lookup(QType(QType::NS), subdomain, d_sd.domain_id, &p);
     while(B.get(rr)) {
       ret.push_back(rr); // this used to exclude auth NS records for some reason
     }
-    if(!ret.empty())
+    if(!ret.empty()) {
       return ret;
+    }
   } while( subdomain.chopOff() );   // 'www.powerdns.org' -> 'powerdns.org' -> 'org' -> ''
   return ret;
 }
@@ -365,12 +367,15 @@ void PacketHandler::getBestDNAMESynth(DNSPacket& p, DNSName &target, vector<DNSZ
       target = getRR<CNAMERecordContent>(rr.dr)->getTarget();
       ret.push_back(rr);
     }
-    if(!ret.empty())
+    if(!ret.empty()) {
       return;
-    if(subdomain.countLabels())
+    }
+    if(subdomain.countLabels()) {
       prefix.appendRawLabel(subdomain.getRawLabels()[0]); // XXX DNSName pain this feels wrong
-    if(subdomain == d_sd.qname()) // stop at SOA
+    }
+    if(subdomain == d_sd.qname()) { // stop at SOA
       break;
+    }
 
   } while( subdomain.chopOff() );   // 'www.powerdns.org' -> 'powerdns.org' -> 'org' -> ''
   return;
@@ -458,8 +463,9 @@ bool PacketHandler::getBestWildcard(DNSPacket& p, const DNSName &target, DNSName
       haveSomething=true;
     }
 
-    if ( subdomain == d_sd.qname() || haveSomething ) // stop at SOA or result
+    if ( subdomain == d_sd.qname() || haveSomething ) { // stop at SOA or result
       break;
+    }
 
     B.lookup(QType(QType::ANY), subdomain, d_sd.domain_id, &p);
     if (B.get(rr)) {
