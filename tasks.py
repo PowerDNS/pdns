@@ -60,7 +60,6 @@ rec_bulk_deps = [
     'libluajit-5.1-2',
     'libsnmp35',
     'libsodium23',
-    'libssl1.1',
     'libsystemd0',
     'moreutils',
     'pdns-tools',
@@ -90,12 +89,13 @@ auth_test_deps = [   # FIXME: we should be generating some of these from shlibde
     'gawk',
     'krb5-user',
     'ldnsutils',
-    'libboost-serialization1.71.0',
+    '"libboost-serialization1.7[1-9]+"',
+    'libboost-program-options-dev',
     'libcdb1',
     'libcurl4',
     'libgeoip1',
     'libkrb5-3',
-    'libldap-2.4-2',
+    '"libldap-2.[1-9]+"',
     'liblmdb0',
     'libluajit-5.1-2',
     'libmaxminddb0',
@@ -104,9 +104,8 @@ auth_test_deps = [   # FIXME: we should be generating some of these from shlibde
     'libpq5',
     'libsodium23',
     'libsqlite3-dev',
-    'libssl1.1',
     'libsystemd0',
-    'libyaml-cpp0.6',
+    '"libyaml-cpp0.[1-9]+"',
     'libzmq3-dev',
     'lmdb-utils',
     'prometheus',
@@ -266,7 +265,7 @@ def install_dnsdist_test_deps(c): # FIXME: rename this, we do way more than apt-
               libh2o-evloop0.13 \
               liblmdb0 \
               libnghttp2-14 \
-              libre2-5 \
+              "libre2-[1-9]+" \
               libssl-dev \
               libsystemd0 \
               libsodium23 \
