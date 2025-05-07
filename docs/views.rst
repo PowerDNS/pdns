@@ -38,9 +38,9 @@ Variant names are made of lowercase letters, digits, underscore and dashes only.
 
 For example, the following variants are valid:
 
-- ``example.org.variant01``
-- ``example.org.1st_variant``
-- ``example.org.othervariant``
+- ``example.org..variant01``
+- ``example.org..1st_variant``
+- ``example.org..othervariant``
 
 and a variant of the root zone would be:
 
@@ -61,6 +61,10 @@ Networks are set up either with :doc:`pdnsutil <manpages/pdnsutil.1>` or the
 
 Every network is associated to a unique view name.
 
+Note that in PowerDNS, unlike Bind, the order in which networks are configured
+does not matter. When deciding which network to use to answer a DNS query, the
+narrowest (smallest) network will always be chosen.
+
 Views
 ^^^^^
 
@@ -76,6 +80,14 @@ that view, as their variantless contents.
 
 Only one variant per zone may appear in a view; setting a new zone variant will
 replace the previous one in the view.
+
+Configuration tweaks
+--------------------
+
+When views are used, the :ref:`packet-cache` will cache result results for each
+network independently, even for zones without variants. If your configuration
+benefits from the packet cache, you might need to multiply its capacity
+(:ref:`setting-max-packet-cache-entries`) by the number of networks in use.
 
 Examples
 --------
@@ -100,8 +112,8 @@ Let's start by defining the specific networks::
 
 Once these commands have been run, queries originating from these particular
 networks will select either the "internal" or "trusted" view, while queries
-originating from other address will default to the unbiased view, which you may
-consider a default, nameless, view.
+originating from other addresses will default to the unbiased view, which you
+may consider an always-existing default (nameless) view.
 
 You can check the result of these commands with::
 
@@ -186,4 +198,3 @@ The equivalent PowerDNS setup would be::
 
   pdnsutil load-zone example.com..internal internal/master.example.com
   pdnsutil load-zone example.com..external external/master.example.com
-
