@@ -1720,9 +1720,13 @@ bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& downstrea
   bool doh = dnsQuestion.ids.du != nullptr;
 
   bool failed = false;
+  dnsQuestion.ids.d_proxyProtocolPayloadSize = 0;
   if (downstream->d_config.useProxyProtocol) {
     try {
-      addProxyProtocol(dnsQuestion, &dnsQuestion.ids.d_proxyProtocolPayloadSize);
+      size_t proxyProtocolPayloadSize = 0;
+      if (addProxyProtocol(dnsQuestion, &proxyProtocolPayloadSize)) {
+        dnsQuestion.ids.d_proxyProtocolPayloadSize = proxyProtocolPayloadSize;
+      }
     }
     catch (const std::exception& e) {
       vinfolog("Adding proxy protocol payload to %s query from %s failed: %s", (dnsQuestion.ids.du ? "DoH" : ""), dnsQuestion.ids.origDest.toStringWithPort(), e.what());
