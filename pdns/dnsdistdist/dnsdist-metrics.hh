@@ -22,6 +22,7 @@
 #pragma once
 
 #include <cinttypes>
+#include <functional>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -34,12 +35,13 @@
 namespace dnsdist::metrics
 {
 using Error = std::string;
+using Labels = std::optional<std::reference_wrapper<const std::unordered_map<std::string, std::string>>>;
 
 [[nodiscard]] std::optional<Error> declareCustomMetric(const std::string& name, const std::string& type, const std::string& description, std::optional<std::string> customName, bool withLabels);
-[[nodiscard]] std::variant<uint64_t, Error> incrementCustomCounter(const std::string_view& name, uint64_t step, const std::unordered_map<std::string, std::string>& labels);
-[[nodiscard]] std::variant<uint64_t, Error> decrementCustomCounter(const std::string_view& name, uint64_t step, const std::unordered_map<std::string, std::string>& labels);
-[[nodiscard]] std::variant<double, Error> setCustomGauge(const std::string_view& name, const double value, const std::unordered_map<std::string, std::string>& labels);
-[[nodiscard]] std::variant<double, Error> getCustomMetric(const std::string_view& name, const std::unordered_map<std::string, std::string>& labels);
+[[nodiscard]] std::variant<uint64_t, Error> incrementCustomCounter(const std::string_view& name, uint64_t step, const Labels& labels);
+[[nodiscard]] std::variant<uint64_t, Error> decrementCustomCounter(const std::string_view& name, uint64_t step, const Labels& labels);
+[[nodiscard]] std::variant<double, Error> setCustomGauge(const std::string_view& name, const double value, const Labels& labels);
+[[nodiscard]] std::variant<double, Error> getCustomMetric(const std::string_view& name, const Labels& labels);
 
 using pdns::stat_t;
 
