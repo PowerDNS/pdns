@@ -439,13 +439,19 @@ class TestBackendDiscoveryByHostname(DNSDistTest):
             self.assertTrue(len(tokens) == 13 or len(tokens) == 14)
             backends[tokens[1]] = tokens[2]
 
-        if len(backends) != 4:
+        if len(backends) == 4:
+            for expected in ['9.9.9.9:53', '149.112.112.112:53', '[2620:fe::9]:53', '[2620:fe::fe]:53']:
+                self.assertIn(expected, backends)
+        elif len(backends) == 2:
+            # looks like we are not getting the IPv6 addresses, thanks GitHub!
+            for expected in ['9.9.9.9:53', '149.112.112.112:53']:
+                self.assertIn(expected, backends)
+        else:
             return False
 
-        for expected in ['9.9.9.9:53', '149.112.112.112:53', '[2620:fe::9]:53', '[2620:fe::fe]:53']:
-            self.assertIn(expected, backends)
         for backend in backends:
-            self.assertTrue(backends[backend])
+            self.assertEqual(backends[backend], 'up')
+
         return True
 
     def testBackendFromHostname(self):
