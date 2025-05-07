@@ -1095,6 +1095,9 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
       if (cache.maximum_entry_size >= sizeof(dnsheader)) {
         settings.d_maximumEntrySize = cache.maximum_entry_size;
       }
+      if (!cache.parse_ecs) {
+        settings.d_skipHashingAR = cache.skip_hashing_ar;
+      }
       auto packetCacheObj = std::make_shared<DNSDistPacketCache>(settings);
 
       registerType<DNSDistPacketCache>(packetCacheObj, cache.name);

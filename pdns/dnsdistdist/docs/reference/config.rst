@@ -1042,6 +1042,9 @@ See :doc:`../guides/cache` for a how to.
   .. versionchanged:: 2.0.0
     ``truncatedTTL`` parameter added.
 
+  .. versionchanged:: 2.0.0
+    ``skipHashingAR`` parameter added.
+
   Creates a new :class:`PacketCache` with the settings specified.
 
   :param int maxEntries: The maximum number of entries in this cache
@@ -1062,6 +1065,7 @@ See :doc:`../guides/cache` for a how to.
   * ``cookieHashing=false``: bool - If true, EDNS Cookie values will be hashed, resulting in separate entries for different cookies in the packet cache. This is required if the backend is sending answers with EDNS Cookies, otherwise a client might receive an answer with the wrong cookie.
   * ``skipOptions={}``: Extra list of EDNS option codes to skip when hashing the packet (if ``cookieHashing`` above is false, EDNS cookie option number will be added to this list internally).
   * ``maximumEntrySize=4096``: int - The maximum size, in bytes, of a DNS packet that can be inserted into the packet cache. Default is 4096 bytes, which was the fixed size before 1.9.0, and is also a hard limit for UDP responses.
+  * ``skipHashingAR=false``: bool - If true, the whole Additional Resource Record section (including all EDNS options) will be skipped when hashing the packet. This will allow cache entry sharing between multiple clients who will use different EDNS0 payload size in its request for the same query name/type/class. However, if ``parseECS`` abvoe is true, this parameter is ignored since the answer to the same query name/type/class might be different if ECS option is used.
 
 .. class:: PacketCache
 

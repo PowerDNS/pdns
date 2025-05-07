@@ -38,6 +38,7 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
       .d_shardCount = 20,
     };
     bool cookieHashing = false;
+    bool skipHashingAR = false;
     LuaArray<uint16_t> skipOptions;
     size_t maximumEntrySize{4096};
 
@@ -54,6 +55,7 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
     getOptionalValue<size_t>(vars, "truncatedTTL", settings.d_truncatedTTL);
     getOptionalValue<bool>(vars, "cookieHashing", cookieHashing);
     getOptionalValue<size_t>(vars, "maximumEntrySize", maximumEntrySize);
+    getOptionalValue<bool>(vars, "skipHashingAR", skipHashingAR);
 
     if (maximumEntrySize >= sizeof(dnsheader)) {
       settings.d_maximumEntrySize = maximumEntrySize;
@@ -80,6 +82,9 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
     if (client) {
       settings.d_maxEntries = 1;
       settings.d_shardCount = 1;
+    }
+    if (!settings.d_parseECS) {
+      settings.d_skipHashingAR = skipHashingAR;
     }
 
     return std::make_shared<DNSDistPacketCache>(settings);

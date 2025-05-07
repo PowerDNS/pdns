@@ -51,6 +51,7 @@ public:
     bool d_deferrableInsertLock{true};
     bool d_parseECS{false};
     bool d_keepStaleData{false};
+    bool d_skipHashingAR{false};
   };
 
   DNSDistPacketCache(CacheSettings settings);

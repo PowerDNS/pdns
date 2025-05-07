@@ -1936,6 +1936,10 @@ packet_cache:
       type: "Vec<String>"
       default: ""
       description: "Extra list of EDNS option codes to skip when hashing the packet (if ``cookie_hashing`` above is false, EDNS cookie option number will be added to this list internally)"
+    - name: "skip_hashing_ar"
+      type: "bool"
+      default: "false"
+      description: "If true, the whole Additional Resource Record section (including all EDNS options) will be skipped when hashing the packet. This will allow cache entry sharing between multiple clients who will use different EDNS0 payload size in its request for the same query name/type/class. However, if ``parse_ecs`` abvoe is true, this parameter is ignored since the answer to the same query name/type/class might be different if ECS option is used"
 
 proxy_protocol:
   description: "Proxy Protocol-related settings"
