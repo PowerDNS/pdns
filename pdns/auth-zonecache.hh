@@ -53,7 +53,7 @@ public:
 
   // Zone lookup, on behalf of an optional network
   bool getEntry(ZoneName& zone, domainid_t& zoneId, Netmask* net = nullptr);
-  void setZoneVariant(std::unique_ptr<DNSPacket>& packet);
+  void setZoneVariant(DNSPacket& packet);
 
   uint32_t getRefreshInterval() const
   {
