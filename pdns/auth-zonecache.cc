@@ -103,17 +103,17 @@ bool AuthZoneCache::getEntry(ZoneName& zone, domainid_t& zoneId, Netmask* net)
   return found;
 }
 
-void AuthZoneCache::setZoneVariant(std::unique_ptr<DNSPacket>& packet)
+void AuthZoneCache::setZoneVariant(DNSPacket& packet)
 {
-  ZoneName zone{packet->qdomain};
+  ZoneName zone{packet.qdomain};
   domainid_t zoneId{};
-  Netmask net = packet->getRealRemote();
+  Netmask net = packet.getRealRemote();
 
   if (getEntry(zone, zoneId, &net)) {
-    packet->qdomainzone = zone;
+    packet.qdomainzone = zone;
   }
   else {
-    packet->qdomainzone = ZoneName(packet->qdomain);
+    packet.qdomainzone = ZoneName(packet.qdomain);
   }
 }
 
