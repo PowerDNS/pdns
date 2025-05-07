@@ -417,6 +417,7 @@ class TestBackendDiscoveryByHostname(DNSDistTest):
     _config_template = """
     setKey("%s")
     controlSocket("127.0.0.1:%d")
+    setVerboseHealthChecks(true)
 
     function resolveCB(hostname, ips)
       print('Got response for '..hostname)
@@ -428,6 +429,8 @@ class TestBackendDiscoveryByHostname(DNSDistTest):
 
     getAddressInfo('dns.quad9.net.', resolveCB)
     """
+    _verboseMode = True
+
     def checkBackends(self):
         output = self.sendConsoleCommand('showServers()')
         print(output)
@@ -450,7 +453,8 @@ class TestBackendDiscoveryByHostname(DNSDistTest):
             return False
 
         for backend in backends:
-            self.assertEqual(backends[backend], 'up')
+            if backends[backend] != 'up':
+                return False
 
         return True
 
@@ -461,5 +465,10 @@ class TestBackendDiscoveryByHostname(DNSDistTest):
         # enough time for resolution to happen
         time.sleep(4)
         if not self.checkBackends():
-            time.sleep(4)
-            self.assertTrue(self.checkBackends())
+            valid = False
+            for _ in range(8):
+                time.sleep(0.5)
+                if self.checkBackends():
+                    valid = True
+                    break
+            self.assertTrue(valid)
