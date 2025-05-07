@@ -42,14 +42,19 @@ bool addProxyProtocol(DNSQuestion& dq, const std::string& payload)
   return addProxyProtocol(dq.getMutableData(), payload);
 }
 
-bool addProxyProtocol(DNSQuestion& dq, size_t* payloadSize)
+bool addProxyProtocol(DNSQuestion& dnsQuestion, size_t* proxyProtocolPayloadSize)
 {
-  auto payload = getProxyProtocolPayload(dq);
-  if (payloadSize != nullptr) {
-    *payloadSize = payload.size();
+  auto payload = getProxyProtocolPayload(dnsQuestion);
+  size_t payloadSize = payload.size();
+
+  if (!addProxyProtocol(dnsQuestion, payload)) {
+    return false;
   }
 
-  return addProxyProtocol(dq, payload);
+  if (proxyProtocolPayloadSize != nullptr) {
+    *proxyProtocolPayloadSize = payloadSize;
+  }
+  return true;
 }
 
 bool addProxyProtocol(PacketBuffer& buffer, const std::string& payload)
