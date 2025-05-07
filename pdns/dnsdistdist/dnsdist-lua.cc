@@ -1914,7 +1914,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
     dnsdist::configuration::updateRuntimeConfiguration([writable, &apiConfigDir](dnsdist::configuration::RuntimeConfiguration& config) {
       config.d_apiReadWrite = writable;
-      if (!(*apiConfigDir).empty()) {
+      if (apiConfigDir && !(*apiConfigDir).empty()) {
         config.d_apiConfigDirectory = *apiConfigDir;
       }
     });
