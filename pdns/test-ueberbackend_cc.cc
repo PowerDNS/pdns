@@ -1007,7 +1007,7 @@ BOOST_AUTO_TEST_CASE(test_child_zone) {
     {
       // test getAuth() for DS
       SOAData sd;
-      BOOST_REQUIRE(ub.getAuth(ZoneName("powerdns.com."), QType::DS, &sd));
+      BOOST_REQUIRE(ub.getAuth(ZoneName("powerdns.com."), QType::DS, &sd, Netmask{}));
       BOOST_CHECK_EQUAL(sd.zonename.toString(), "com.");
       BOOST_CHECK_EQUAL(sd.domain_id, 1);
     }
@@ -1015,7 +1015,7 @@ BOOST_AUTO_TEST_CASE(test_child_zone) {
     {
       // test getAuth() for A
       SOAData sd;
-      BOOST_REQUIRE(ub.getAuth(ZoneName("powerdns.com."), QType::A, &sd));
+      BOOST_REQUIRE(ub.getAuth(ZoneName("powerdns.com."), QType::A, &sd, Netmask{}));
       BOOST_CHECK_EQUAL(sd.zonename.toString(), "powerdns.com.");
       BOOST_CHECK_EQUAL(sd.domain_id, 2);
     }
@@ -1067,7 +1067,7 @@ BOOST_AUTO_TEST_CASE(test_multi_backends_best_soa) {
 
       // test getAuth()
       SOAData sd;
-      BOOST_REQUIRE(ub.getAuth(ZoneName("2.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa."), QType::PTR, &sd));
+      BOOST_REQUIRE(ub.getAuth(ZoneName("2.4.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa."), QType::PTR, &sd, Netmask{}));
       BOOST_CHECK_EQUAL(sd.zonename.toString(), "d.0.1.0.0.2.ip6.arpa.");
       BOOST_CHECK_EQUAL(sd.domain_id, 1);
 
