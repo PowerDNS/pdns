@@ -519,7 +519,7 @@ static bool foundTarget(const ZoneName& target, const ZoneName& shorter, const Q
   return false;
 }
 
-bool UeberBackend::getAuth(const ZoneName& target, const QType& qtype, SOAData* soaData, bool cachedOk, DNSPacket* pkt_p)
+bool UeberBackend::getAuth(const ZoneName& target, const QType& qtype, SOAData* soaData, Netmask remote, bool cachedOk, DNSPacket* pkt_p)
 {
   // A backend can respond to our authority request with the 'best' match it
   // has. For example, when asked for a.b.c.example.com. it might respond with
@@ -532,10 +532,6 @@ bool UeberBackend::getAuth(const ZoneName& target, const QType& qtype, SOAData* 
   ZoneName shorter(target);
   vector<pair<size_t, SOAData>> bestMatches(backends.size(), pair(target.operator const DNSName&().wirelength() + 1, SOAData()));
 
-  Netmask remote;
-  if (pkt_p != nullptr) {
-    remote = pkt_p->getRealRemote();
-  }
   std::string view{};
   if (g_zoneCache.isEnabled()) {
     Netmask _remote(remote);
