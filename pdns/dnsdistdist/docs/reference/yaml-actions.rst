@@ -117,7 +117,7 @@ Parameters:
 - **status**: Unsigned integer - The HTTP status code to return
 - **body**: String - The body of the HTTP response, or a URL if the status code is a redirect (3xx)
 - **content_type**: String ``("")`` - The HTTP Content-Type header to return for a 200 response, ignored otherwise. Default is ``application/dns-message``
-- **vars**: :ref:`ResponseConfig <yaml-settings-ResponseConfig>` - The response options
+- **vars**: :ref:`ResponseConfig <yaml-settings-ResponseConfig>` - The response options (deprecated since 2.0.0, do not use)
 
 
 .. _yaml-settings-KeyValueStoreLookupAction:
