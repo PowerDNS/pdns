@@ -1701,7 +1701,7 @@ bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& downstrea
     try {
       size_t proxyProtocolPayloadSize = 0;
       if (addProxyProtocol(dnsQuestion, &proxyProtocolPayloadSize)) {
-        dnsQuestion.ids.d_proxyProtocolPayloadSize = proxyProtocolPayloadSize;
+        dnsQuestion.ids.d_proxyProtocolPayloadSize += proxyProtocolPayloadSize;
       }
     }
     catch (const std::exception& e) {
