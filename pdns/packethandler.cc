@@ -370,7 +370,7 @@ void PacketHandler::getBestDNAMESynth(DNSPacket& p, DNSName &target, vector<DNSZ
     if(!ret.empty()) {
       return;
     }
-    if(subdomain.countLabels()) {
+    if(subdomain.countLabels() != 0) {
       prefix.appendRawLabel(subdomain.getRawLabels()[0]); // XXX DNSName pain this feels wrong
     }
     if(subdomain == d_sd.qname()) { // stop at SOA
@@ -1959,6 +1959,14 @@ std::unique_ptr<DNSPacket> PacketHandler::opcodeNotify(DNSPacket& pkt, bool /* n
 
 std::unique_ptr<DNSPacket> PacketHandler::opcodeUpdate(DNSPacket& pkt, bool /* noCache */)
 {
+  if (g_views) {
+    // Make this variant-aware without performing the complete UeberBackend::getAuth work
+    g_zoneCache.setZoneVariant(pkt);
+  }
+  else {
+    pkt.qdomainzone = ZoneName(pkt.qdomain);
+  }
+
   S.inc("dnsupdate-queries");
   int res=processUpdate(pkt);
   if (res == RCode::Refused) {

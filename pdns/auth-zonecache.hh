@@ -59,7 +59,7 @@ public:
 
   // Variant lookup
   std::string getVariantFromView(const ZoneName& zone, const std::string& view);
-  void setZoneVariant(std::unique_ptr<DNSPacket>& packet);
+  void setZoneVariant(DNSPacket& packet);
 
   size_t size() { return *d_statnumentries; } //!< number of entries in the cache
 

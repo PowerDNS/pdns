@@ -377,12 +377,16 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
 
     if (rrType == QType::NSEC3PARAM) {
       g_log<<Logger::Notice<<msgPrefix<<"Deleting NSEC3PARAM from zone, resetting ordernames."<<endl;
-      if (rr->d_class == QClass::ANY)
-        d_dk.unsetNSEC3PARAM(ZoneName(rr->d_name));
+      // Be sure to use a ZoneName with a variant matching the domain we are
+      // working on, for the sake of unsetNSEC3PARAM.
+      ZoneName zonename(rr->d_name, di->zone.getVariant());
+      if (rr->d_class == QClass::ANY) {
+        d_dk.unsetNSEC3PARAM(zonename);
+      }
       else if (rr->d_class == QClass::NONE) {
         NSEC3PARAMRecordContent nsec3rr(rr->getContent()->getZoneRepresentation(), di->zone);
         if (*haveNSEC3 && ns3pr->getZoneRepresentation() == nsec3rr.getZoneRepresentation())
-          d_dk.unsetNSEC3PARAM(ZoneName(rr->d_name));
+          d_dk.unsetNSEC3PARAM(zonename);
         else
           return 0;
       } else
@@ -546,7 +550,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
 
 int PacketHandler::forwardPacket(const string &msgPrefix, const DNSPacket& p, const DomainInfo& di) {
   vector<string> forward;
-  B.getDomainMetadata(ZoneName(p.qdomain), "FORWARD-DNSUPDATE", forward);
+  B.getDomainMetadata(p.qdomainzone, "FORWARD-DNSUPDATE", forward);
 
   if (forward.size() == 0 && ! ::arg().mustDo("forward-dnsupdate")) {
     g_log << Logger::Notice << msgPrefix << "Not configured to forward to primary, returning Refused." << endl;
@@ -669,8 +673,7 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
   if (! ::arg().mustDo("dnsupdate"))
     return RCode::Refused;
 
-  ZoneName zonename(packet.qdomain);
-  string msgPrefix="UPDATE (" + std::to_string(packet.d.id) + ") from " + packet.getRemoteString() + " for " + zonename.toLogString() + ": ";
+  string msgPrefix="UPDATE (" + std::to_string(packet.d.id) + ") from " + packet.getRemoteString() + " for " + packet.qdomainzone.toLogString() + ": ";
   g_log<<Logger::Info<<msgPrefix<<"Processing started."<<endl;
 
   // if there is policy, we delegate all checks to it
@@ -678,7 +681,7 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
 
     // Check permissions - IP based
     vector<string> allowedRanges;
-    B.getDomainMetadata(zonename, "ALLOW-DNSUPDATE-FROM", allowedRanges);
+    B.getDomainMetadata(packet.qdomainzone, "ALLOW-DNSUPDATE-FROM", allowedRanges);
     if (! ::arg()["allow-dnsupdate-from"].empty())
       stringtok(allowedRanges, ::arg()["allow-dnsupdate-from"], ", \t" );
 
@@ -695,7 +698,7 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
 
     // Check permissions - TSIG based.
     vector<string> tsigKeys;
-    B.getDomainMetadata(zonename, "TSIG-ALLOW-DNSUPDATE", tsigKeys);
+    B.getDomainMetadata(packet.qdomainzone, "TSIG-ALLOW-DNSUPDATE", tsigKeys);
     if (tsigKeys.size() > 0) {
       bool validKey = false;
 
@@ -763,8 +766,8 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
 
   DomainInfo di;
   di.backend=nullptr;
-  if(!B.getDomainInfo(zonename, di) || (di.backend == nullptr)) {
-    g_log<<Logger::Error<<msgPrefix<<"Can't determine backend for domain '"<<zonename<<"' (or backend does not support DNS update operation)"<<endl;
+  if(!B.getDomainInfo(packet.qdomainzone, di) || (di.backend == nullptr)) {
+    g_log<<Logger::Error<<msgPrefix<<"Can't determine backend for domain '"<<packet.qdomainzone<<"' (or backend does not support DNS update operation)"<<endl;
     return RCode::NotAuth;
   }
 
@@ -789,8 +792,8 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
 
   std::lock_guard<std::mutex> l(s_rfc2136lock); //TODO: i think this lock can be per zone, not for everything
   g_log<<Logger::Info<<msgPrefix<<"starting transaction."<<endl;
-  if (!di.backend->startTransaction(zonename, UnknownDomainID)) { // Not giving the domain_id means that we do not delete the existing records.
-    g_log<<Logger::Error<<msgPrefix<<"Backend for domain "<<zonename<<" does not support transaction. Can't do Update packet."<<endl;
+  if (!di.backend->startTransaction(packet.qdomainzone, UnknownDomainID)) { // Not giving the domain_id means that we do not delete the existing records.
+    g_log<<Logger::Error<<msgPrefix<<"Backend for domain "<<packet.qdomainzone<<" does not support transaction. Can't do Update packet."<<endl;
     return RCode::NotImp;
   }
 
@@ -1004,7 +1007,7 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
       // Notify secondaries
       if (di.kind == DomainInfo::Primary) {
         vector<string> notify;
-        B.getDomainMetadata(zonename, "NOTIFY-DNSUPDATE", notify);
+        B.getDomainMetadata(packet.qdomainzone, "NOTIFY-DNSUPDATE", notify);
         if (!notify.empty() && notify.front() == "1") {
           Communicator.notifyDomain(di.zone, &B);
         }

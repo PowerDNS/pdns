@@ -2359,7 +2359,7 @@ static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInf
             for (DNSResourceRecord& resourceRecord : new_records) {
               resourceRecord.domain_id = static_cast<int>(domainInfo.id);
               if (resourceRecord.qtype.getCode() == QType::SOA && resourceRecord.qname == zonename.operator const DNSName&()) {
-                soa_edit_done = increaseSOARecord(resourceRecord, soa_edit_api_kind, soa_edit_kind);
+                soa_edit_done = increaseSOARecord(resourceRecord, soa_edit_api_kind, soa_edit_kind, zonename);
               }
             }
             checkNewRecords(new_records, zonename);

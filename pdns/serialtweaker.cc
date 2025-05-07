@@ -130,14 +130,15 @@ static uint32_t calculateIncreaseSOA(uint32_t old_serial, const string& increase
  *
  * @return true if changes may have been made
  */
-bool increaseSOARecord(DNSResourceRecord& rr, const string& increaseKind, const string& editKind) {
+bool increaseSOARecord(DNSResourceRecord& rr, const string& increaseKind, const string& editKind, const ZoneName& zonename) { // NOLINT(readability-identifier-length)
   if (increaseKind.empty())
     return false;
 
   SOAData sd;
+  sd.zonename = zonename;
   fillSOAData(rr.content, sd);
 
-  sd.serial = calculateIncreaseSOA(sd.serial, increaseKind, editKind, ZoneName(rr.qname));
+  sd.serial = calculateIncreaseSOA(sd.serial, increaseKind, editKind, zonename);
   rr.content = makeSOAContent(sd)->getZoneRepresentation(true);
   return true;
 }

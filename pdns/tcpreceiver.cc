@@ -370,14 +370,14 @@ void TCPNameserver::doConnection(int fd)
 
       if(packet->qtype.getCode()==QType::AXFR) {
         packet->d_xfr=true;
-        g_zoneCache.setZoneVariant(packet);
+        g_zoneCache.setZoneVariant(*packet);
         doAXFR(packet->qdomainzone, packet, fd);
         continue;
       }
 
       if(packet->qtype.getCode()==QType::IXFR) {
         packet->d_xfr=true;
-        g_zoneCache.setZoneVariant(packet);
+        g_zoneCache.setZoneVariant(*packet);
         doIXFR(packet, fd);
         continue;
       }

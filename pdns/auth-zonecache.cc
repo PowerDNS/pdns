@@ -108,13 +108,13 @@ std::string AuthZoneCache::getVariantFromView(const ZoneName& zone, const std::s
   return variant;
 }
 
-void AuthZoneCache::setZoneVariant(std::unique_ptr<DNSPacket>& packet)
+void AuthZoneCache::setZoneVariant(DNSPacket& packet)
 {
-  Netmask net = packet->getRealRemote();
+  Netmask net = packet.getRealRemote();
   string view = getViewFromNetwork(&net);
-  packet->qdomainzone = ZoneName(packet->qdomain);
-  string variant = getVariantFromView(packet->qdomainzone, view);
-  packet->qdomainzone.setVariant(variant);
+  packet.qdomainzone = ZoneName(packet.qdomain);
+  string variant = getVariantFromView(packet.qdomainzone, view);
+  packet.qdomainzone.setVariant(variant);
 }
 #endif // ] PDNS_AUTH
 
