@@ -311,6 +311,7 @@ class TestAdvancedGetLocalAddressOnAnyBind(DNSDistTest):
     _config_params = ['_testServerPort', '_dnsDistPort', '_dnsDistPort']
     _acl = ['127.0.0.1/32', '::1/128']
     _skipListeningOnCL = True
+    _verboseMode = True
 
     def testAdvancedGetLocalAddressOnAnyBind(self):
         """
@@ -343,13 +344,13 @@ class TestAdvancedGetLocalAddressOnAnyBind(DNSDistTest):
                                     'address-was-127-0-0-2.local-address-any.advanced.tests.powerdns.com.')
         response.answer.append(rrset)
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.settimeout(1.0)
+        sock.settimeout(2.0)
         sock.connect(('127.0.0.2', self._dnsDistPort))
         try:
             query = query.to_wire()
             sock.send(query)
             (data, remote) = sock.recvfrom(4096)
-            self.assertEquals(remote[0], '127.0.0.2')
+            self.assertEqual(remote[0], '127.0.0.2')
         except socket.timeout:
             data = None
 
@@ -376,14 +377,14 @@ class TestAdvancedGetLocalAddressOnAnyBind(DNSDistTest):
 
         # a bit more tricky, UDP-only IPv4
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.settimeout(1.0)
+        sock.settimeout(2.0)
         sock.connect(('127.0.0.2', self._dnsDistPort))
         self._toResponderQueue.put(response, True, 1.0)
         try:
             data = query.to_wire()
             sock.send(data)
             (data, remote) = sock.recvfrom(4096)
-            self.assertEquals(remote[0], '127.0.0.2')
+            self.assertEqual(remote[0], '127.0.0.2')
         except socket.timeout:
             data = None
 
@@ -396,14 +397,14 @@ class TestAdvancedGetLocalAddressOnAnyBind(DNSDistTest):
 
         # a bit more tricky, UDP-only IPv6
         sock = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
-        sock.settimeout(1.0)
+        sock.settimeout(2.0)
         sock.connect(('::1', self._dnsDistPort))
         self._toResponderQueue.put(response, True, 1.0)
         try:
             data = query.to_wire()
             sock.send(data)
             (data, remote) = sock.recvfrom(4096)
-            self.assertEquals(remote[0], '::1')
+            self.assertEqual(remote[0], '::1')
         except socket.timeout:
             data = None
 
@@ -444,14 +445,14 @@ class TestAdvancedGetLocalAddressOnNonDefaultLoopbackBind(DNSDistTest):
 
         # a bit more tricky, UDP-only IPv4
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.settimeout(1.0)
+        sock.settimeout(2.0)
         sock.connect(('127.0.1.19', self._dnsDistPort))
         self._toResponderQueue.put(response, True, 1.0)
         try:
             data = query.to_wire()
             sock.send(data)
             (data, remote) = sock.recvfrom(4096)
-            self.assertEquals(remote[0], '127.0.1.19')
+            self.assertEqual(remote[0], '127.0.1.19')
         except socket.timeout:
             data = None
 

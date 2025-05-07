@@ -592,6 +592,18 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   output << "# TYPE " << statesbase << "tlsresumptions "                  << "counter"                                                                              << "\n";
   output << "# HELP " << statesbase << "tcplatency "                      << "Server's latency when answering TCP questions in milliseconds"                        << "\n";
   output << "# TYPE " << statesbase << "tcplatency "                      << "gauge"                                                                                << "\n";
+  output << "# HELP " << statesbase << "healthcheckfailures "             << "Number of health check attempts that failed (total)"                                  << "\n";
+  output << "# TYPE " << statesbase << "healthcheckfailures "             << "counter"                                                                              << "\n";
+  output << "# HELP " << statesbase << "healthcheckfailuresparsing "      << "Number of health check attempts where the response could not be parsed"               << "\n";
+  output << "# TYPE " << statesbase << "healthcheckfailuresparsing "      << "counter"                                                                              << "\n";
+  output << "# HELP " << statesbase << "healthcheckfailurestimeout "      << "Number of health check attempts where the response did not arrive in time"            << "\n";
+  output << "# TYPE " << statesbase << "healthcheckfailurestimeout "      << "counter"                                                                              << "\n";
+  output << "# HELP " << statesbase << "healthcheckfailuresnetwork "      << "Number of health check attempts that experienced a network issue"                     << "\n";
+  output << "# TYPE " << statesbase << "healthcheckfailuresnetwork "      << "counter"                                                                              << "\n";
+  output << "# HELP " << statesbase << "healthcheckfailuresmismatch "     << "Number of health check attempts where the response did not match the query"           << "\n";
+  output << "# TYPE " << statesbase << "healthcheckfailuresmismatch "     << "counter"                                                                              << "\n";
+  output << "# HELP " << statesbase << "healthcheckfailuresinvalid "      << "Number of health check attempts where the DNS response was invalid"                   << "\n";
+  output << "# TYPE " << statesbase << "healthcheckfailuresinvalid "      << "counter"                                                                              << "\n";
 
   for (const auto& state : *states) {
     string serverName;
@@ -635,6 +647,12 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
     output << statesbase << "tcpavgqueriesperconn"             << label << " " << state->tcpAvgQueriesPerConnection      << "\n";
     output << statesbase << "tcpavgconnduration"               << label << " " << state->tcpAvgConnectionDuration        << "\n";
     output << statesbase << "tlsresumptions"                   << label << " " << state->tlsResumptions                  << "\n";
+    output << statesbase << "healthcheckfailures"              << label << " " << state->d_healthCheckMetrics.d_failures << "\n";
+    output << statesbase << "healthcheckfailuresparsing"       << label << " " << state->d_healthCheckMetrics.d_parseErrors << "\n";
+    output << statesbase << "healthcheckfailurestimeout"       << label << " " << state->d_healthCheckMetrics.d_timeOuts << "\n";
+    output << statesbase << "healthcheckfailuresnetwork"       << label << " " << state->d_healthCheckMetrics.d_networkErrors << "\n";
+    output << statesbase << "healthcheckfailuresmismatch"      << label << " " << state->d_healthCheckMetrics.d_mismatchErrors << "\n";
+    output << statesbase << "healthcheckfailuresinvalid"        << label << " " << state->d_healthCheckMetrics.d_invalidResponseErrors << "\n";
   }
 
   const string frontsbase = "dnsdist_frontend_";
@@ -672,7 +690,6 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   output << "# TYPE " << frontsbase << "tlsunknownticketkeys " << "counter" << "\n";
   output << "# HELP " << frontsbase << "tlsinactiveticketkeys " << "Amount of TLS sessions resumed from an inactive key" << "\n";
   output << "# TYPE " << frontsbase << "tlsinactiveticketkeys " << "counter" << "\n";
-
   output << "# HELP " << frontsbase << "tlshandshakefailures " << "Amount of TLS handshake failures" << "\n";
   output << "# TYPE " << frontsbase << "tlshandshakefailures " << "counter" << "\n";
 
@@ -1084,6 +1101,12 @@ static void addServerToJSON(Json::array& servers, int id, const std::shared_ptr<
     {"tcpAvgConnectionDuration", (double)a->tcpAvgConnectionDuration},
     {"tlsResumptions", (double)a->tlsResumptions},
     {"tcpLatency", (double)(a->latencyUsecTCP/1000.0)},
+    {"healthCheckFailures", (double)(a->d_healthCheckMetrics.d_failures)},
+    {"healthCheckFailuresParsing", (double)(a->d_healthCheckMetrics.d_parseErrors)},
+    {"healthCheckFailuresTimeout", (double)(a->d_healthCheckMetrics.d_timeOuts)},
+    {"healthCheckFailuresNetwork", (double)(a->d_healthCheckMetrics.d_networkErrors)},
+    {"healthCheckFailuresMismatch", (double)(a->d_healthCheckMetrics.d_mismatchErrors)},
+    {"healthCheckFailuresInvalid", (double)(a->d_healthCheckMetrics.d_invalidResponseErrors)},
     {"dropRate", (double)a->dropRate}
   };
 

@@ -955,6 +955,12 @@ JSON Objects
   :property integer tlsResumptions: The number of times a TLS session has been resumed
   :property integer weight: The weight assigned to this server
   :property float dropRate: The amount of packets dropped (timing out) per second by this server
+  :property integer healthCheckFailures: Number of health check attempts that failed (total)
+  :property integer healthCheckFailureParsing: Number of health check attempts that failed because the payload could not be parsed
+  :property integer healthCheckFailureTimeout: Number of health check attempts that failed because the response was not received in time
+  :property integer healthCheckFailureNetwork: Number of health check attempts that failed because of a network error
+  :property integer healthCheckFailureMismatch: Number of health check attempts that failed because the ID, qname, qtype or qclass did not match
+  :property integer healthCheckFailureInvalid: Number of health check attempts that failed because the DNS response was not valid
 
 .. json:object:: StatisticItem
 

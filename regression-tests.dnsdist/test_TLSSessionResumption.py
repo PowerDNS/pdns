@@ -7,7 +7,7 @@ import subprocess
 import tempfile
 import time
 import unittest
-from dnsdisttests import DNSDistTest
+from dnsdisttests import DNSDistTest, pickAvailablePort
 try:
   range = xrange
 except NameError:
@@ -65,7 +65,7 @@ class TestNoTLSSessionResumptionDOH(DNSDistTLSSessionResumptionTest):
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
-    _dohServerPort = 8443
+    _dohServerPort = pickAvailablePort()
     _numberOfKeys = 0
     _config_template = """
     newServer{address="127.0.0.1:%s"}
@@ -88,7 +88,7 @@ class TestTLSSessionResumptionDOH(DNSDistTLSSessionResumptionTest):
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
-    _dohServerPort = 8443
+    _dohServerPort = pickAvailablePort()
     _numberOfKeys = 5
     _config_template = """
     setKey("%s")
@@ -182,7 +182,7 @@ class TestNoTLSSessionResumptionDOT(DNSDistTLSSessionResumptionTest):
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
-    _tlsServerPort = 8443
+    _tlsServerPort = pickAvailablePort()
     _numberOfKeys = 0
     _config_template = """
     newServer{address="127.0.0.1:%s"}
@@ -204,7 +204,7 @@ class TestTLSSessionResumptionDOT(DNSDistTLSSessionResumptionTest):
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
-    _tlsServerPort = 8443
+    _tlsServerPort = pickAvailablePort()
     _numberOfKeys = 5
     _config_template = """
     setKey("%s")

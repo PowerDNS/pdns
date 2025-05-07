@@ -47,7 +47,7 @@ permissions: # least privileges, see https://docs.github.com/en/actions/using-wo
 jobs:
   prepare:
     name: generate OS list
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     outputs:
       oslist: ${{ steps.get-oslist.outputs.oslist }}
     steps:
@@ -60,8 +60,8 @@ jobs:
   build:
     needs: prepare
     name: build ${{ inputs.product }} (${{ inputs.ref }}) for ${{ matrix.os }}
-    # on a ubuntu-20.04 VM
-    runs-on: ubuntu-20.04
+    # on a ubuntu-22.04 VM
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         os: ${{fromJson(needs.prepare.outputs.oslist)}}
@@ -139,7 +139,7 @@ jobs:
   check-hashes:
     needs: build
     name: Check if hashes were created for all requested targets
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Get list of outputs from build jobs
         run: echo '${{ toJSON(needs.build.outputs) }}' | jq 'keys[]' | grep -v version | tee /tmp/build-outputs.txt
@@ -180,7 +180,7 @@ jobs:
   upload-provenance:
     needs: [prepare, build, provenance-src, provenance-pkgs]
     name: Upload the provenance artifacts to downloads.powerdns.com
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         os: ${{fromJson(needs.prepare.outputs.oslist)}}

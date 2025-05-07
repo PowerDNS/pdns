@@ -700,6 +700,10 @@ void DownstreamState::updateNextLazyHealthCheck(LazyHealthCheckStats& stats, boo
 
 void DownstreamState::submitHealthCheckResult(bool initial, bool newResult)
 {
+  if (!newResult) {
+    ++d_healthCheckMetrics.d_failures;
+  }
+
   if (initial) {
     /* if this is the initial health-check, at startup, we do not care
        about the minimum number of failed/successful health-checks */

@@ -39,7 +39,7 @@ class XPFTest(DNSDistTest):
         expectedQuery = dns.message.make_query(name, 'A', 'IN')
         # 0x04 is IPv4, 0x11 (17) is UDP then 127.0.0.1 as source and destination
         # and finally the ports, zeroed because we have no way to know them beforehand
-        xpfData = "\# 14 04117f0000017f00000100000000"
+        xpfData = "\\# 14 04117f0000017f00000100000000"
         rdata = dns.rdata.from_text(dns.rdataclass.IN, self._xpfCode, xpfData)
         rrset = dns.rrset.from_rdata(".", 0, rdata)
         expectedQuery.additional.append(rrset)
@@ -58,7 +58,7 @@ class XPFTest(DNSDistTest):
         expectedQuery = dns.message.make_query(name, 'A', 'IN')
         # 0x04 is IPv4, 0x06 (6) is TCP then 127.0.0.1 as source and destination
         # and finally the ports, zeroed because we have no way to know them beforehand
-        xpfData = "\# 14 04067f0000017f00000100000000"
+        xpfData = "\\# 14 04067f0000017f00000100000000"
         rdata = dns.rdata.from_text(dns.rdataclass.IN, self._xpfCode, xpfData)
         rrset = dns.rrset.from_rdata(".", 0, rdata)
         expectedQuery.additional.append(rrset)

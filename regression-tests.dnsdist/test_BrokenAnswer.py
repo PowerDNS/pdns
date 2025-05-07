@@ -2,7 +2,7 @@
 import threading
 import clientsubnetoption
 import dns
-from dnsdisttests import DNSDistTest
+from dnsdisttests import DNSDistTest, pickAvailablePort
 
 def responseCallback(request):
     if len(request.question) != 1:
@@ -33,7 +33,7 @@ class TestBrokenAnswerECS(DNSDistTest):
     # this test suite uses a different responder port
     # because, contrary to the other ones, its
     # responders send raw, broken data
-    _testServerPort = 5400
+    _testServerPort = pickAvailablePort()
     _config_template = """
     setECSSourcePrefixV4(32)
     newServer{address="127.0.0.1:%s", useClientSubnet=true}
@@ -44,12 +44,12 @@ class TestBrokenAnswerECS(DNSDistTest):
 
         # Returns broken data for non-healthcheck queries
         cls._UDPResponder = threading.Thread(name='UDP Responder', target=cls.UDPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue, False, responseCallback])
-        cls._UDPResponder.setDaemon(True)
+        cls._UDPResponder.daemon = True
         cls._UDPResponder.start()
 
         # Returns broken data for non-healthcheck queries
         cls._TCPResponder = threading.Thread(name='TCP Responder', target=cls.TCPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, responseCallback])
-        cls._TCPResponder.setDaemon(True)
+        cls._TCPResponder.daemon = True
         cls._TCPResponder.start()
 
     def testUDPWithInvalidAnswer(self):

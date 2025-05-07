@@ -5,14 +5,14 @@ import socket
 import struct
 import sys
 import time
-from dnsdisttests import DNSDistTest, Queue
+from dnsdisttests import DNSDistTest, pickAvailablePort, Queue
 from proxyprotocol import ProxyProtocol
 
 import dns
 import dnsmessage_pb2
 
 class DNSDistProtobufTest(DNSDistTest):
-    _protobufServerPort = 4242
+    _protobufServerPort = pickAvailablePort()
     _protobufQueue = Queue()
     _protobufServerID = 'dnsdist-server-1'
     _protobufCounter = 0
@@ -58,15 +58,15 @@ class DNSDistProtobufTest(DNSDistTest):
     @classmethod
     def startResponders(cls):
         cls._UDPResponder = threading.Thread(name='UDP Responder', target=cls.UDPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue])
-        cls._UDPResponder.setDaemon(True)
+        cls._UDPResponder.daemon = True
         cls._UDPResponder.start()
 
         cls._TCPResponder = threading.Thread(name='TCP Responder', target=cls.TCPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue])
-        cls._TCPResponder.setDaemon(True)
+        cls._TCPResponder.daemon = True
         cls._TCPResponder.start()
 
         cls._protobufListener = threading.Thread(name='Protobuf Listener', target=cls.ProtobufListener, args=[cls._protobufServerPort])
-        cls._protobufListener.setDaemon(True)
+        cls._protobufListener.daemon = True
         cls._protobufListener.start()
 
     def getFirstProtobufMessage(self):
@@ -491,8 +491,8 @@ class TestProtobufMetaDOH(DNSDistProtobufTest):
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
-    _tlsServerPort = 8453
-    _dohServerPort = 8443
+    _tlsServerPort = pickAvailablePort()
+    _dohServerPort = pickAvailablePort()
     _dohBaseURL = ("https://%s:%d/dns-query" % (_serverName, _dohServerPort))
     _config_params = ['_testServerPort', '_protobufServerPort', '_tlsServerPort', '_serverCert', '_serverKey', '_dohServerPort', '_serverCert', '_serverKey']
     _config_template = """

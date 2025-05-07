@@ -60,6 +60,7 @@ static bool handleResponse(std::shared_ptr<HealthCheckData>& data)
   auto& ds = data->d_ds;
   try {
     if (data->d_buffer.size() < sizeof(dnsheader)) {
+      ++data->d_ds->d_healthCheckMetrics.d_parseErrors;
       if (g_verboseHealthChecks) {
         infolog("Invalid health check response of size %d from backend %s, expecting at least %d", data->d_buffer.size(), ds->getNameWithAddr(), sizeof(dnsheader));
       }
@@ -68,6 +69,7 @@ static bool handleResponse(std::shared_ptr<HealthCheckData>& data)
 
     const dnsheader * responseHeader = reinterpret_cast<const dnsheader*>(data->d_buffer.data());
     if (responseHeader->id != data->d_queryID) {
+      ++data->d_ds->d_healthCheckMetrics.d_mismatchErrors;
       if (g_verboseHealthChecks) {
         infolog("Invalid health check response id %d from backend %s, expecting %d", responseHeader->id, ds->getNameWithAddr(), data->d_queryID);
       }
@@ -75,6 +77,7 @@ static bool handleResponse(std::shared_ptr<HealthCheckData>& data)
     }
 
     if (!responseHeader->qr) {
+      ++data->d_ds->d_healthCheckMetrics.d_invalidResponseErrors;
       if (g_verboseHealthChecks) {
         infolog("Invalid health check response from backend %s, expecting QR to be set", ds->getNameWithAddr());
       }
@@ -82,6 +85,7 @@ static bool handleResponse(std::shared_ptr<HealthCheckData>& data)
     }
 
     if (responseHeader->rcode == RCode::ServFail) {
+      ++data->d_ds->d_healthCheckMetrics.d_invalidResponseErrors;
       if (g_verboseHealthChecks) {
         infolog("Backend %s responded to health check with ServFail", ds->getNameWithAddr());
       }
@@ -89,6 +93,7 @@ static bool handleResponse(std::shared_ptr<HealthCheckData>& data)
     }
 
     if (ds->d_config.mustResolve && (responseHeader->rcode == RCode::NXDomain || responseHeader->rcode == RCode::Refused)) {
+      ++data->d_ds->d_healthCheckMetrics.d_invalidResponseErrors;
       if (g_verboseHealthChecks) {
         infolog("Backend %s responded to health check with %s while mustResolve is set", ds->getNameWithAddr(), responseHeader->rcode == RCode::NXDomain ? "NXDomain" : "Refused");
       }
@@ -100,13 +105,15 @@ static bool handleResponse(std::shared_ptr<HealthCheckData>& data)
     DNSName receivedName(reinterpret_cast<const char*>(data->d_buffer.data()), data->d_buffer.size(), sizeof(dnsheader), false, &receivedType, &receivedClass);
 
     if (receivedName != data->d_checkName || receivedType != data->d_checkType || receivedClass != data->d_checkClass) {
+      ++data->d_ds->d_healthCheckMetrics.d_mismatchErrors;
       if (g_verboseHealthChecks) {
         infolog("Backend %s responded to health check with an invalid qname (%s vs %s), qtype (%s vs %s) or qclass (%d vs %d)", ds->getNameWithAddr(), receivedName.toLogString(), data->d_checkName.toLogString(), QType(receivedType).toString(), QType(data->d_checkType).toString(), receivedClass, data->d_checkClass);
       }
       return false;
     }
   }
-  catch(const std::exception& e) {
+  catch (const std::exception& e) {
+    ++data->d_ds->d_healthCheckMetrics.d_parseErrors;
     if (g_verboseHealthChecks) {
       infolog("Error checking the health of backend %s: %s", ds->getNameWithAddr(), e.what());
     }
@@ -151,6 +158,7 @@ public:
 
   void notifyIOError(InternalQueryState&& query, const struct timeval& now) override
   {
+    ++d_data->d_ds->d_healthCheckMetrics.d_networkErrors;
     d_data->d_ds->submitHealthCheckResult(d_data->d_initial, false);
   }
 
@@ -173,6 +181,7 @@ static void healthCheckUDPCallback(int fd, FDMultiplexer::funcparam_t& param)
     if (g_verboseHealthChecks) {
       infolog("Error receiving health check response from %s: %s", data->d_ds->d_config.remote.toStringWithPort(), stringerror(savederrno));
     }
+    ++data->d_ds->d_healthCheckMetrics.d_networkErrors;
     data->d_ds->submitHealthCheckResult(data->d_initial, false);
     return;
   }
@@ -183,6 +192,7 @@ static void healthCheckUDPCallback(int fd, FDMultiplexer::funcparam_t& param)
     if (g_verboseHealthChecks) {
       infolog("Invalid health check response received from %s, expecting one from %s", from.toStringWithPort(), data->d_ds->d_config.remote.toStringWithPort());
     }
+    ++data->d_ds->d_healthCheckMetrics.d_networkErrors;
     data->d_ds->submitHealthCheckResult(data->d_initial, false);
     return;
   }
@@ -248,6 +258,7 @@ static void healthCheckTCPCallback(int fd, FDMultiplexer::funcparam_t& param)
     ioGuard.release();
   }
   catch (const std::exception& e) {
+    ++data->d_ds->d_healthCheckMetrics.d_networkErrors;
     data->d_ds->submitHealthCheckResult(data->d_initial, false);
     if (g_verboseHealthChecks) {
       infolog("Error checking the health of backend %s: %s", data->d_ds->getNameWithAddr(), e.what());
@@ -444,6 +455,7 @@ void handleQueuedHealthChecks(FDMultiplexer& mplexer, bool initial)
           infolog("Timeout while waiting for the health check response (ID %d) from backend %s", data->d_queryID, data->d_ds->getNameWithAddr());
         }
 
+        ++data->d_ds->d_healthCheckMetrics.d_timeOuts;
         data->d_ds->submitHealthCheckResult(initial, false);
       }
       catch (const std::exception& e) {
@@ -471,6 +483,7 @@ void handleQueuedHealthChecks(FDMultiplexer& mplexer, bool initial)
           infolog("Timeout while waiting for the health check response (ID %d) from backend %s", data->d_queryID, data->d_ds->getNameWithAddr());
         }
 
+        ++data->d_ds->d_healthCheckMetrics.d_timeOuts;
         data->d_ds->submitHealthCheckResult(initial, false);
       }
       catch (const std::exception& e) {

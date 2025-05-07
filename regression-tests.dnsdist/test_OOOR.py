@@ -4,7 +4,7 @@ import socket
 import struct
 import time
 import threading
-from dnsdisttests import DNSDistTest
+from dnsdisttests import DNSDistTest, pickAvailablePort
 
 class OOORTCPResponder(object):
 
@@ -62,7 +62,7 @@ class OOORTCPResponder(object):
             thread = threading.Thread(name='Connection Handler',
                                       target=self.handleConnection,
                                       args=[conn])
-            thread.setDaemon(True)
+            thread.daemon = True
             thread.start()
 
         sock.close()
@@ -132,20 +132,20 @@ class ReverseOOORTCPResponder(OOORTCPResponder):
             thread = threading.Thread(name='Connection Handler',
                                       target=self.handleConnection,
                                       args=[conn])
-            thread.setDaemon(True)
+            thread.daemon = True
             thread.start()
 
         sock.close()
 
 
-OOORResponderPort = 5371
+OOORResponderPort = pickAvailablePort()
 ooorTCPResponder = threading.Thread(name='TCP Responder', target=OOORTCPResponder, args=[OOORResponderPort])
-ooorTCPResponder.setDaemon(True)
+ooorTCPResponder.daemon = True
 ooorTCPResponder.start()
 
-ReverseOOORResponderPort = 5372
+ReverseOOORResponderPort = pickAvailablePort()
 ReverseOoorTCPResponder = threading.Thread(name='TCP Responder', target=ReverseOOORTCPResponder, args=[ReverseOOORResponderPort])
-ReverseOoorTCPResponder.setDaemon(True)
+ReverseOoorTCPResponder.daemon = True
 ReverseOoorTCPResponder.start()
 
 class TestOOORWithClientNotBackend(DNSDistTest):

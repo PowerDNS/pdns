@@ -8,7 +8,7 @@ import sys
 import threading
 import time
 
-from dnsdisttests import DNSDistTest
+from dnsdisttests import DNSDistTest, pickAvailablePort
 from proxyprotocol import ProxyProtocol
 from dnsdistdohtests import DNSDistDOHTest
 
@@ -132,13 +132,13 @@ def ProxyProtocolTCPResponder(port, fromQueue, toQueue):
 
 toProxyQueue = Queue()
 fromProxyQueue = Queue()
-proxyResponderPort = 5470
+proxyResponderPort = pickAvailablePort()
 
 udpResponder = threading.Thread(name='UDP Proxy Protocol Responder', target=ProxyProtocolUDPResponder, args=[proxyResponderPort, toProxyQueue, fromProxyQueue])
-udpResponder.setDaemon(True)
+udpResponder.daemon = True
 udpResponder.start()
 tcpResponder = threading.Thread(name='TCP Proxy Protocol Responder', target=ProxyProtocolTCPResponder, args=[proxyResponderPort, toProxyQueue, fromProxyQueue])
-tcpResponder.setDaemon(True)
+tcpResponder.daemon = True
 tcpResponder.start()
 
 class ProxyProtocolTest(DNSDistTest):
@@ -729,7 +729,7 @@ class TestDOHWithOutgoingProxyProtocol(DNSDistDOHTest):
     _serverCert = 'server.chain'
     _serverName = 'tls.tests.dnsdist.org'
     _caCert = 'ca.pem'
-    _dohServerPort = 8443
+    _dohServerPort = pickAvailablePort()
     _dohBaseURL = ("https://%s:%d/dns-query" % (_serverName, _dohServerPort))
     _proxyResponderPort = proxyResponderPort
     _config_template = """

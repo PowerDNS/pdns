@@ -21,7 +21,7 @@ jobs:
   build-dnsdist:
     name: build dnsdist
     if: ${{ !github.event.schedule || vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         sanitizers: [ubsan+asan, tsan]
@@ -29,6 +29,7 @@ jobs:
         exclude:
           - sanitizers: tsan
             features: least
+      fail-fast: false
     env:
       ASAN_OPTIONS: detect_leaks=0
       SANITIZERS: ${{ matrix.sanitizers }}
@@ -75,10 +76,11 @@ jobs:
 
   test-dnsdist-regression:
     needs: build-dnsdist
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         sanitizers: [ubsan+asan, tsan]
+      fail-fast: false
     env:
       UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/build-scripts/UBSan.supp"
       # Disabling (intercept_send=0) the custom send wrappers for ASAN and TSAN because they cause the tools to report a race that doesn't exist on actual implementations of send(), see https://github.com/google/sanitizers/issues/1498

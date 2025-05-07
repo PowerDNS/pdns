@@ -1,28 +1,48 @@
 #!/usr/bin/env python
 import base64
+import requests
+import ssl
 import threading
 import time
-import ssl
 import dns
-from dnsdisttests import DNSDistTest
+from dnsdisttests import DNSDistTest, pickAvailablePort
 
 class HealthCheckTest(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
-    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort']
+    _webTimeout = 2.0
+    _webServerPort = pickAvailablePort()
+    _webServerAPIKey = 'apisecret'
+    _webServerAPIKeyHashed = '$scrypt$ln=10,p=1,r=8$9v8JxDfzQVyTpBkTbkUqYg==$bDQzAOHeK1G9UvTPypNhrX48w974ZXbFPtRKS34+aso='
+    _config_params = ['_consoleKeyB64', '_consolePort', '_webServerPort', '_webServerAPIKeyHashed', '_testServerPort']
     _config_template = """
     setKey("%s")
     controlSocket("127.0.0.1:%d")
+    webserver("127.0.0.1:%s")
+    setWebserverConfig({apiKey="%s"})
     newServer{address="127.0.0.1:%d"}
     """
 
     def getBackendStatus(self):
         return self.sendConsoleCommand("if getServer(0):isUp() then return 'up' else return 'down' end").strip("\n")
 
+    def getBackendMetric(self, backendID, metricName):
+        headers = {'x-api-key': self._webServerAPIKey}
+        url = 'http://127.0.0.1:' + str(self._webServerPort) + '/api/v1/servers/localhost'
+        r = requests.get(url, headers=headers, timeout=self._webTimeout)
+        self.assertTrue(r)
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.json())
+        content = r.json()
+        self.assertIn('servers', content)
+        servers = content['servers']
+        server = servers[backendID]
+        return int(server[metricName])
+
 class TestDefaultHealthCheck(HealthCheckTest):
     # this test suite uses a different responder port
     # because we need fresh counters
-    _testServerPort = 5380
+    _testServerPort = pickAvailablePort()
 
     def testDefault(self):
         """
@@ -31,6 +51,7 @@ class TestDefaultHealthCheck(HealthCheckTest):
         before = TestDefaultHealthCheck._healthCheckCounter
         time.sleep(1.5)
         self.assertGreater(TestDefaultHealthCheck._healthCheckCounter, before)
+        self.assertEqual(self.getBackendMetric(0, 'healthCheckFailures'), 0)
         self.assertEqual(self.getBackendStatus(), 'up')
 
         self.sendConsoleCommand("getServer(0):setUp()")
@@ -64,15 +85,18 @@ class TestDefaultHealthCheck(HealthCheckTest):
         time.sleep(1.5)
         self.assertGreater(TestDefaultHealthCheck._healthCheckCounter, before)
         self.assertEqual(self.getBackendStatus(), 'up')
+        self.assertEqual(self.getBackendMetric(0, 'healthCheckFailures'), 0)
 
 class TestHealthCheckForcedUP(HealthCheckTest):
     # this test suite uses a different responder port
     # because we need fresh counters
-    _testServerPort = 5381
+    _testServerPort = pickAvailablePort()
 
     _config_template = """
     setKey("%s")
     controlSocket("127.0.0.1:%d")
+    webserver("127.0.0.1:%s")
+    setWebserverConfig({apiKey="%s"})
     srv = newServer{address="127.0.0.1:%d"}
     srv:setUp()
     """
@@ -85,15 +109,18 @@ class TestHealthCheckForcedUP(HealthCheckTest):
         time.sleep(1.5)
         self.assertEqual(TestHealthCheckForcedUP._healthCheckCounter, before)
         self.assertEqual(self.getBackendStatus(), 'up')
+        self.assertEqual(self.getBackendMetric(0, 'healthCheckFailures'), 0)
 
 class TestHealthCheckForcedDown(HealthCheckTest):
     # this test suite uses a different responder port
     # because we need fresh counters
-    _testServerPort = 5382
+    _testServerPort = pickAvailablePort()
 
     _config_template = """
     setKey("%s")
     controlSocket("127.0.0.1:%d")
+    webserver("127.0.0.1:%s")
+    setWebserverConfig({apiKey="%s"})
     srv = newServer{address="127.0.0.1:%d"}
     srv:setDown()
     """
@@ -105,17 +132,20 @@ class TestHealthCheckForcedDown(HealthCheckTest):
         before = TestHealthCheckForcedDown._healthCheckCounter
         time.sleep(1.5)
         self.assertEqual(TestHealthCheckForcedDown._healthCheckCounter, before)
+        self.assertEqual(self.getBackendMetric(0, 'healthCheckFailures'), 0)
 
 class TestHealthCheckCustomName(HealthCheckTest):
     # this test suite uses a different responder port
     # because it uses a different health check name
-    _testServerPort = 5383
+    _testServerPort = pickAvailablePort()
 
     _healthCheckName = 'powerdns.com.'
-    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_healthCheckName']
+    _config_params = ['_consoleKeyB64', '_consolePort', '_webServerPort', '_webServerAPIKeyHashed', '_testServerPort', '_healthCheckName']
     _config_template = """
     setKey("%s")
     controlSocket("127.0.0.1:%d")
+    webserver("127.0.0.1:%s")
+    setWebserverConfig({apiKey="%s"})
     srv = newServer{address="127.0.0.1:%d", checkName='%s'}
     """
 
@@ -127,16 +157,19 @@ class TestHealthCheckCustomName(HealthCheckTest):
         time.sleep(1.5)
         self.assertGreater(TestHealthCheckCustomName._healthCheckCounter, before)
         self.assertEqual(self.getBackendStatus(), 'up')
+        self.assertEqual(self.getBackendMetric(0, 'healthCheckFailures'), 0)
 
 class TestHealthCheckCustomNameNoAnswer(HealthCheckTest):
     # this test suite uses a different responder port
     # because it uses a different health check configuration
-    _testServerPort = 5384
+    _testServerPort = pickAvailablePort()
 
     _answerUnexpected = False
     _config_template = """
     setKey("%s")
     controlSocket("127.0.0.1:%d")
+    webserver("127.0.0.1:%s")
+    setWebserverConfig({apiKey="%s"})
     srv = newServer{address="127.0.0.1:%d", checkName='powerdns.com.'}
     """
 
@@ -148,17 +181,21 @@ class TestHealthCheckCustomNameNoAnswer(HealthCheckTest):
         time.sleep(1.5)
         self.assertEqual(TestHealthCheckCustomNameNoAnswer._healthCheckCounter, before)
         self.assertEqual(self.getBackendStatus(), 'down')
+        self.assertGreater(self.getBackendMetric(0, 'healthCheckFailures'), 0)
+        self.assertGreater(self.getBackendMetric(0, 'healthCheckFailuresTimeout'), 0)
 
 class TestHealthCheckCustomFunction(HealthCheckTest):
     # this test suite uses a different responder port
     # because it uses a different health check configuration
-    _testServerPort = 5385
+    _testServerPort = pickAvailablePort()
     _answerUnexpected = False
 
     _healthCheckName = 'powerdns.com.'
     _config_template = """
     setKey("%s")
     controlSocket("127.0.0.1:%d")
+    webserver("127.0.0.1:%s")
+    setWebserverConfig({apiKey="%s"})
 
     function myHealthCheckFunction(qname, qtype, qclass, dh)
       dh:setCD(true)
@@ -184,9 +221,9 @@ _dohHealthCheckQueries = 0
 
 class TestLazyHealthChecks(HealthCheckTest):
     _extraStartupSleep = 1
-    _do53Port = 10700
-    _dotPort = 10701
-    _dohPort = 10702
+    _do53Port = pickAvailablePort()
+    _dotPort = pickAvailablePort()
+    _dohPort = pickAvailablePort()
 
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
@@ -245,19 +282,19 @@ class TestLazyHealthChecks(HealthCheckTest):
         tlsContext.load_cert_chain('server.chain', 'server.key')
 
         Do53Responder = threading.Thread(name='Do53 Lazy Responder', target=cls.UDPResponder, args=[cls._do53Port, cls._toResponderQueue, cls._fromResponderQueue, False, cls.Do53Callback])
-        Do53Responder.setDaemon(True)
+        Do53Responder.daemon = True
         Do53Responder.start()
 
         Do53TCPResponder = threading.Thread(name='Do53 TCP Lazy Responder', target=cls.TCPResponder, args=[cls._do53Port, cls._toResponderQueue, cls._fromResponderQueue, False, False, cls.Do53Callback])
-        Do53TCPResponder.setDaemon(True)
+        Do53TCPResponder.daemon = True
         Do53TCPResponder.start()
 
         DoTResponder = threading.Thread(name='DoT Lazy Responder', target=cls.TCPResponder, args=[cls._dotPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, cls.DoTCallback, tlsContext])
-        DoTResponder.setDaemon(True)
+        DoTResponder.daemon = True
         DoTResponder.start()
 
         DoHResponder = threading.Thread(name='DoH Lazy Responder', target=cls.DOHResponder, args=[cls._dohPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, cls.DoHCallback, tlsContext])
-        DoHResponder.setDaemon(True)
+        DoHResponder.daemon = True
         DoHResponder.start()
 
     def testDo53Lazy(self):

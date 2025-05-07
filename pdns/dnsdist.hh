@@ -851,6 +851,16 @@ struct DownstreamState: public std::enable_shared_from_this<DownstreamState>
     bool d_upgradeToLazyHealthChecks{false};
   };
 
+  struct HealthCheckMetrics
+  {
+    stat_t d_failures{0};
+    stat_t d_timeOuts{0};
+    stat_t d_parseErrors{0};
+    stat_t d_networkErrors{0};
+    stat_t d_mismatchErrors{0};
+    stat_t d_invalidResponseErrors{0};
+  };
+
   DownstreamState(DownstreamState::Config&& config, std::shared_ptr<TLSCtx> tlsCtx, bool connect);
   DownstreamState(const ComboAddress& remote): DownstreamState(DownstreamState::Config(remote), nullptr, false)
   {
@@ -859,6 +869,7 @@ struct DownstreamState: public std::enable_shared_from_this<DownstreamState>
   ~DownstreamState();
 
   Config d_config;
+  HealthCheckMetrics d_healthCheckMetrics;
   stat_t sendErrors{0};
   stat_t outstanding{0};
   stat_t reuseds{0};
@@ -917,18 +928,20 @@ public:
   double latencyUsecTCP{0.0};
   unsigned int d_nextCheck{0};
   uint16_t currentCheckFailures{0};
-  uint8_t consecutiveSuccessfulChecks{0};
   std::atomic<bool> hashesComputed{false};
   std::atomic<bool> connected{false};
   bool upStatus{false};
 
 private:
+  void handleUDPTimeout(IDState& ids);
+  void updateNextLazyHealthCheck(LazyHealthCheckStats& stats, bool checkScheduled, std::optional<time_t> currentTime = std::nullopt);
   void connectUDPSockets();
 
   std::thread tid;
   std::mutex connectLock;
   std::condition_variable d_connectedWait;
   std::atomic_flag threadStarted;
+  uint8_t consecutiveSuccessfulChecks{0};
   bool d_stopped{false};
 public:
 
@@ -1085,9 +1098,6 @@ public:
   static int s_udpTimeout;
   static bool s_randomizeSockets;
   static bool s_randomizeIDs;
-private:
-  void handleUDPTimeout(IDState& ids);
-  void updateNextLazyHealthCheck(LazyHealthCheckStats& stats, bool checkScheduled, std::optional<time_t> currentTime = std::nullopt);
 };
 using servers_t = vector<std::shared_ptr<DownstreamState>>;
 

@@ -2,7 +2,7 @@
 import threading
 import time
 import dns
-from dnsdisttests import DNSDistTest
+from dnsdisttests import DNSDistTest, pickAvailablePort
 
 class TestAXFR(DNSDistTest):
 
@@ -10,7 +10,7 @@ class TestAXFR(DNSDistTest):
     # because, contrary to the other ones, its
     # TCP responder allows multiple responses and we don't want
     # to mix things up.
-    _testServerPort = 5370
+    _testServerPort = pickAvailablePort()
     _config_template = """
     newServer{address="127.0.0.1:%s"}
     """
@@ -21,10 +21,10 @@ class TestAXFR(DNSDistTest):
         print("Launching responders..")
 
         cls._UDPResponder = threading.Thread(name='UDP Responder', target=cls.UDPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue])
-        cls._UDPResponder.setDaemon(True)
+        cls._UDPResponder.daemon = True
         cls._UDPResponder.start()
         cls._TCPResponder = threading.Thread(name='TCP Responder', target=cls.TCPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue, False, True, None, None, True])
-        cls._TCPResponder.setDaemon(True)
+        cls._TCPResponder.daemon = True
         cls._TCPResponder.start()
 
     def setUp(self):
