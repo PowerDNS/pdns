@@ -519,7 +519,7 @@ static bool foundTarget(const ZoneName& target, const ZoneName& shorter, const Q
   return false;
 }
 
-bool UeberBackend::getAuth(const ZoneName& target, const QType& qtype, SOAData* soaData, bool cachedOk, DNSPacket* pkt_p)
+bool UeberBackend::getAuth(const ZoneName& target, const QType& qtype, SOAData* soaData, Netmask remote, bool cachedOk, DNSPacket* pkt_p)
 {
   // A backend can respond to our authority request with the 'best' match it
   // has. For example, when asked for a.b.c.example.com. it might respond with
@@ -539,17 +539,13 @@ bool UeberBackend::getAuth(const ZoneName& target, const QType& qtype, SOAData* 
     domainid_t zoneId{UnknownDomainID};
 
     if (cachedOk && g_zoneCache.isEnabled()) {
-      Netmask remote;
-
-      if (pkt_p != nullptr) {
-        remote = pkt_p->getRealRemote(); // we lose the prefix len from ECS here
-      }
+      Netmask _remote(remote);
       ZoneName _shorter(shorter); // don't want getEntry to mutate the one we're chopping off
-      if (g_zoneCache.getEntry(_shorter, zoneId, &remote)) {
+      if (g_zoneCache.getEntry(_shorter, zoneId, &_remote)) {
         // Update the DNSPacket, so that the packet cache can use
         // the appropriate network when caching a result for that packet.
-        if (pkt_p != nullptr && !remote.empty()) {
-          pkt_p->d_span = remote;
+        if (pkt_p != nullptr && !_remote.empty()) {
+          pkt_p->d_span = _remote;
         }
         if (fillSOAFromZoneRecord(_shorter, zoneId, soaData)) {
           soaData->zonename = _shorter.makeLowerCase();
