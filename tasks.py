@@ -157,7 +157,8 @@ def install_clang(c):
 @task
 def install_clang_runtime(c):
     # this gives us the symbolizer, for symbols in asan/ubsan traces
-    c.sudo('apt-get -qq -y --no-install-recommends install clang-12')
+    # starting with Ubuntu 22, clang-12 no longer depends on llvm-12 so we need llvm-12
+    c.sudo('apt-get -qq -y --no-install-recommends install clang-12 llvm-12')
 
 def install_libdecaf(c, product):
     c.run('git clone https://git.code.sf.net/p/ed448goldilocks/code /tmp/libdecaf')
