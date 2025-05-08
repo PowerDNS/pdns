@@ -27,7 +27,7 @@ See the online documentation for all options. The most important ones are:
 --control-console       Run the server in a special monitor mode. This enables detailed
                         logging and exposes the raw control socket.
 --loglevel=<LEVEL>      Set the logging level.
---config                Show the currently configuration. There are three optional values:
+--config                Show the current configuration. There are three optional values:
 
                         --config=default       show the default configuration.
                         --config=diff          show modified options in the current configuration.
