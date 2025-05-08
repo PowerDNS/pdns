@@ -58,7 +58,7 @@
 thread_local TCPOutConnectionManager t_tcp_manager;
 std::shared_ptr<Logr::Logger> g_slogout;
 bool g_paddingOutgoing;
-bool g_ECSHardening{false};
+bool g_ECSHardening;
 
 void remoteLoggerQueueData(RemoteLoggerInterface& r, const std::string& data)
 {
