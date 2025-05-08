@@ -61,7 +61,6 @@ rec_bulk_deps = [
     'libluajit-5.1-2',
     'libsnmp35',
     'libsodium23',
-    'libssl1.1',
     'libsystemd0',
     'moreutils',
     'pdns-tools',
@@ -90,12 +89,13 @@ auth_test_deps = [   # FIXME: we should be generating some of these from shlibde
     'gawk',
     'krb5-user',
     'ldnsutils',
-    'libboost-serialization1.71.0',
+    '"libboost-serialization1.7[1-9]+"',
+    'libboost-program-options-dev',
     'libcdb1',
     'libcurl4',
     'libgeoip1',
     'libkrb5-3',
-    'libldap-2.4-2',
+    '"libldap-2.[1-9]+"',
     'liblmdb0',
     'libluajit-5.1-2',
     'libmaxminddb0',
@@ -104,9 +104,8 @@ auth_test_deps = [   # FIXME: we should be generating some of these from shlibde
     'libpq5',
     'libsodium23',
     'libsqlite3-dev',
-    'libssl1.1',
     'libsystemd0',
-    'libyaml-cpp0.6',
+    '"libyaml-cpp0.[1-9]+"',
     'libzmq3-dev',
     'lmdb-utils',
     'prometheus',
@@ -145,7 +144,6 @@ doc_deps_pdf = [
 
 @task
 def apt_fresh(c):
-    c.sudo('sed -i \'s/azure\.//\' /etc/apt/sources.list')
     c.sudo('apt-get update')
     c.sudo('apt-get -y --allow-downgrades dist-upgrade')
 
@@ -158,7 +156,7 @@ def install_clang(c):
 
 @task
 def install_clang_tidy_tools(c):
-    c.sudo('apt-get -y --no-install-recommends install clang-tidy-12 clang-tools-12 bear python-yaml')
+    c.sudo('apt-get -y --no-install-recommends install clang-tidy-12 clang-tools-12 bear python3-yaml')
 
 @task
 def install_clang_runtime(c):
@@ -532,7 +530,7 @@ def ci_auth_make(c):
 def ci_auth_make_bear(c):
     # Needed for clang-tidy -line-filter vs project structure shenanigans
     with c.cd('pdns'):
-        c.run('bear --append make -j8 -k V=1 -C ..')
+        c.run('bear --append -- make -j8 -k V=1 -C ..')
 
 @task
 def ci_rec_make(c):
@@ -541,7 +539,7 @@ def ci_rec_make(c):
 @task
 def ci_rec_make_bear(c):
     # Assumed to be running under ./pdns/recursordist/
-    c.run('bear --append make -j8 -k V=1')
+    c.run('bear --append -- make -j8 -k V=1')
 
 @task
 def ci_dnsdist_make(c):
@@ -550,7 +548,7 @@ def ci_dnsdist_make(c):
 @task
 def ci_dnsdist_make_bear(c):
     # Assumed to be running under ./pdns/dnsdistdist/
-    c.run('bear --append make -j4 -k V=1')
+    c.run('bear --append -- make -j4 -k V=1')
 
 @task
 def ci_auth_install_remotebackend_test_deps(c):

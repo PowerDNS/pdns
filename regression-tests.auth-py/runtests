@@ -31,13 +31,13 @@ if [ "${PDNS_DEBUG}" = "YES" ]; then
   set -x
 fi
 
-ignore="-I test_GSSTSIG.py"
+ignore="--ignore=test_GSSTSIG.py"
 if [ "${WITHKERBEROS}" = "YES" ]; then
     ignore=""
     (cd kerberos-server && docker compose up --detach --build)
 fi
 
-nosetests --with-xunit $ignore $@
+pytest --junitxml=pytest.xml $ignore $@
 ret=$?
 
 if [ "${WITHKERBEROS}" = "YES" ]; then
