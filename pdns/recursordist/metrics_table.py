@@ -1401,4 +1401,10 @@
         'pname': 'proxy-mapping-total-n-0', # For multicounters, state the first
         # No SNMP
     },
+    {
+        'name': 'ecs-missing',
+        'lambda': '[] { return g_Counters.sum(rec::Counter::ecsMissingCount); }',
+        'desc': 'Number of answers where ECS info was missing',
+        'snmp': 153,
+    },
 ]

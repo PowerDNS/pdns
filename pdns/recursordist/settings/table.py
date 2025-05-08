@@ -952,6 +952,18 @@ By default, this option is empty, meaning no EDNS Client Subnet information is s
     'versionadded': '4.5.0'
     },
     {
+        'name' : 'edns_subnet_harden',
+        'section' : 'outgoing',
+        'type' : LType.Bool,
+        'default' : 'false',
+        'help' : 'Do more strict checking or EDNS Client Subnet information returned by authoritative servers',
+        'doc' : '''
+Do more strict checking or EDNS Client Subnet information returned by authoritative servers.
+Answers missing ECS information will be ignored and followed up by an ECS-less query.
+ ''',
+    'versionadded': ['5.2.x', '5.1.x', '5.0.x']
+    },
+    {
         'name' : 'enable_old_settings',
         'section' : 'recursor',
         'type' : LType.Bool,
