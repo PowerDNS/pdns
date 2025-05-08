@@ -22,4 +22,4 @@ fi
 rm -rf ixfrdist.dir
 mkdir ixfrdist.dir
 
-nosetests --with-xunit $@
+pytest --junitxml=pytest.xml $@
