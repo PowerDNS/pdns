@@ -100,7 +100,7 @@ public:
   void lookupEnd();
 
   /** Determines if we are authoritative for a zone, and at what level */
-  bool getAuth(const ZoneName& target, const QType& qtype, SOAData* soaData, bool cachedOk = true);
+  bool getAuth(const ZoneName& target, const QType& qtype, SOAData* soaData, Netmask remote, bool cachedOk = true, DNSPacket* pkt_p = nullptr);
   /** Load SOA info from backends, ignoring the cache.*/
   bool getSOAUncached(const ZoneName& domain, SOAData& soaData);
   void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled);
@@ -133,6 +133,14 @@ public:
   bool getTSIGKey(const DNSName& name, DNSName& algorithm, string& content);
   bool getTSIGKeys(std::vector<struct TSIGKey>& keys);
   bool deleteTSIGKey(const DNSName& name);
+
+  void viewList(vector<string>& result);
+  void viewListZones(const string& view, vector<ZoneName>& result);
+  bool viewAddZone(const string& /* view */, const ZoneName& /* zone */);
+  bool viewDelZone(const string& /* view */, const ZoneName& /* zone */);
+
+  bool networkSet(const Netmask& net, std::string& tag);
+  void networkList(vector<pair<Netmask, string>>& networks);
 
   bool searchRecords(const string& pattern, vector<DNSResourceRecord>::size_type maxResults, vector<DNSResourceRecord>& result);
   bool searchComments(const string& pattern, size_t maxResults, vector<Comment>& result);

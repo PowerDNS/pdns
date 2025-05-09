@@ -12,6 +12,7 @@ Remote Backend
 * Disabled data: No
 * Comments: No
 * Search: Yes\*
+* Views: No
 * API: Read-Write
 * Multiple instances: Yes
 * Zone caching: Yes\*

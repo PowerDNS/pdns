@@ -19,6 +19,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#include "pdns/auth-zonecache.hh"
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -225,6 +226,7 @@ void TCPNameserver::decrementClientCount(const ComboAddress& remote)
   }
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void TCPNameserver::doConnection(int fd)
 {
   setThreadName("pdns/tcpConnect");
@@ -368,12 +370,14 @@ void TCPNameserver::doConnection(int fd)
 
       if(packet->qtype.getCode()==QType::AXFR) {
         packet->d_xfr=true;
-        doAXFR(packet->qdomain, packet, fd);
+        g_zoneCache.setZoneVariant(*packet);
+        doAXFR(packet->qdomainzone, packet, fd);
         continue;
       }
 
       if(packet->qtype.getCode()==QType::IXFR) {
         packet->d_xfr=true;
+        g_zoneCache.setZoneVariant(*packet);
         doIXFR(packet, fd);
         continue;
       }
@@ -386,7 +390,7 @@ void TCPNameserver::doConnection(int fd)
       }
 
       if(PC.enabled()) {
-        if(packet->couldBeCached() && PC.get(*packet, *cached)) { // short circuit - does the PacketCache recognize this question?
+        if(packet->couldBeCached() && PC.get(*packet, *cached, &packet->d_remote)) { // short circuit - does the PacketCache recognize this question?
           if(logDNSQueries)
             g_log<<": packetcache HIT"<<endl;
           cached->setRemote(&packet->d_remote);
@@ -460,7 +464,7 @@ bool TCPNameserver::canDoAXFR(std::unique_ptr<DNSPacket>& q, bool isAXFR, std::u
   if(::arg().mustDo("disable-axfr"))
     return false;
 
-  ZoneName zonename(q->qdomain);
+  ZoneName zonename(q->qdomainzone);
   string logPrefix=string(isAXFR ? "A" : "I")+"XFR-out zone '"+zonename.toLogString()+"', client '"+q->getInnerRemote().toStringWithPort()+"', ";
 
   if(q->d_havetsig) { // if you have one, it must be good
@@ -589,14 +593,15 @@ namespace {
 
 
 /** do the actual zone transfer. Return 0 in case of error, 1 in case of success */
-int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, int outsock)  // NOLINT(readability-function-cognitive-complexity)
+int TCPNameserver::doAXFR(const ZoneName &targetZone, std::unique_ptr<DNSPacket>& qry, int outsock)  // NOLINT(readability-function-cognitive-complexity)
 {
-  ZoneName targetZone(target);
-  string logPrefix="AXFR-out zone '"+targetZone.toLogString()+"', client '"+q->getRemoteStringWithPort()+"', ";
+  const DNSName& target = targetZone.operator const DNSName&();
+  string logPrefix="AXFR-out zone '"+targetZone.toLogString()+"', client '"+qry->getRemoteStringWithPort()+"', ";
 
-  std::unique_ptr<DNSPacket> outpacket= getFreshAXFRPacket(q);
-  if(q->d_dnssecOk)
+  std::unique_ptr<DNSPacket> outpacket= getFreshAXFRPacket(qry);
+  if(qry->d_dnssecOk) {
     outpacket->d_dnssecOk=true; // RFC 5936, 2.2.5 'SHOULD'
+  }
 
   g_log<<Logger::Warning<<logPrefix<<"transfer initiated"<<endl;
 
@@ -611,7 +616,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
     }
 
     // canDoAXFR does all the ACL checks, and has the if(disable-axfr) shortcut, call it first.
-    if (!canDoAXFR(q, true, *packetHandler)) {
+    if (!canDoAXFR(qry, true, *packetHandler)) {
       g_log<<Logger::Warning<<logPrefix<<"failed: client may not request AXFR"<<endl;
       outpacket->setRcode(RCode::NotAuth);
       sendPacket(outpacket,outsock);
@@ -665,7 +670,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
   DNSName tsigkeyname;
   string tsigsecret;
 
-  bool haveTSIGDetails = q->getTSIGDetails(&trc, &tsigkeyname);
+  bool haveTSIGDetails = qry->getTSIGDetails(&trc, &tsigkeyname);
 
   if(haveTSIGDetails && !tsigkeyname.empty()) {
     string tsig64;
@@ -701,7 +706,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
   sendPacket(outpacket, outsock, false);
 
   trc.d_mac = outpacket->d_trc.d_mac;
-  outpacket = getFreshAXFRPacket(q);
+  outpacket = getFreshAXFRPacket(qry);
 
 
   DNSZoneRecord zrr;
@@ -713,7 +718,7 @@ int TCPNameserver::doAXFR(const DNSName &target, std::unique_ptr<DNSPacket>& q, 
   if(securedZone && !presignedZone) { // this is where the DNSKEYs, CDNSKEYs and CDSs go in
     bool doCDNSKEY = true, doCDS = true;
     string publishCDNSKEY, publishCDS;
-    ZoneName zonename(q->qdomain);
+    ZoneName zonename(qry->qdomainzone);
     dk.getPublishCDNSKEY(zonename, publishCDNSKEY);
     dk.getPublishCDS(zonename, publishCDS);
 
@@ -1022,7 +1027,7 @@ send:
     if(securedZone && (loopZRR.auth || loopZRR.dr.d_type == QType::NS)) {
       if (NSEC3Zone || loopZRR.dr.d_type) {
         if (presignedZone && NSEC3Zone && loopZRR.dr.d_type == QType::RRSIG && getRR<RRSIGRecordContent>(loopZRR.dr)->d_type == QType::NSEC3) {
-          keyname = loopZRR.dr.d_name.makeRelative(sd.qname);
+          keyname = loopZRR.dr.d_name.makeRelative(sd.qname());
         } else {
           keyname = NSEC3Zone ? DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, loopZRR.dr.d_name))) : loopZRR.dr.d_name;
         }
@@ -1049,7 +1054,7 @@ send:
             outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true);
           sendPacket(outpacket, outsock, false);
           trc.d_mac=outpacket->d_trc.d_mac;
-          outpacket=getFreshAXFRPacket(q);
+          outpacket=getFreshAXFRPacket(qry);
         }
         else
           break;
@@ -1087,7 +1092,7 @@ send:
               inext = nsecxrepo.begin();
           }
           n3rc.d_nexthash = fromBase32Hex(inext->first.toStringNoDot());
-          zrr.dr.d_name = iter->first+sd.qname;
+          zrr.dr.d_name = iter->first+sd.qname();
 
           zrr.dr.d_ttl = sd.getNegativeTTL();
           zrr.dr.setContent(std::make_shared<NSEC3RecordContent>(std::move(n3rc)));
@@ -1102,7 +1107,7 @@ send:
                   outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true);
                 sendPacket(outpacket, outsock, false);
                 trc.d_mac=outpacket->d_trc.d_mac;
-                outpacket=getFreshAXFRPacket(q);
+                outpacket=getFreshAXFRPacket(qry);
               }
               else
                 break;
@@ -1136,7 +1141,7 @@ send:
               outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true);
             sendPacket(outpacket, outsock, false);
             trc.d_mac=outpacket->d_trc.d_mac;
-            outpacket=getFreshAXFRPacket(q);
+            outpacket=getFreshAXFRPacket(qry);
           }
           else
             break;
@@ -1162,7 +1167,7 @@ send:
         throw PDNSException("during axfr-out of "+target.toString()+", this happened: "+pe.reason);
       }
       trc.d_mac=outpacket->d_trc.d_mac;
-      outpacket=getFreshAXFRPacket(q);
+      outpacket=getFreshAXFRPacket(qry);
     }
     else
       break;
@@ -1174,7 +1179,7 @@ send:
 
   DLOG(g_log<<logPrefix<<"done writing out records"<<endl);
   /* and terminate with yet again the SOA record */
-  outpacket=getFreshAXFRPacket(q);
+  outpacket=getFreshAXFRPacket(qry);
   outpacket->addRecord(std::move(soa));
   if(haveTSIGDetails && !tsigkeyname.empty())
     outpacket->setTSIGDetails(trc, tsigkeyname, tsigsecret, trc.d_mac, true);
@@ -1189,7 +1194,7 @@ send:
 
 int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
 {
-  ZoneName zonename(q->qdomain);
+  ZoneName zonename(q->qdomainzone);
   string logPrefix="IXFR-out zone '"+zonename.toLogString()+"', client '"+q->getRemoteStringWithPort()+"', ";
 
   std::unique_ptr<DNSPacket> outpacket=getFreshAXFRPacket(q);
@@ -1262,7 +1267,7 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
       }
     }
 
-    serialPermitsIXFR = !rfc1982LessThan(serial, calculateEditSOA(sd.serial, dk, ZoneName(sd.qname)));
+    serialPermitsIXFR = !rfc1982LessThan(serial, calculateEditSOA(sd.serial, dk, sd.zonename));
   }
 
   if (serialPermitsIXFR) {
@@ -1312,7 +1317,7 @@ int TCPNameserver::doIXFR(std::unique_ptr<DNSPacket>& q, int outsock)
   }
 
   g_log<<Logger::Notice<<logPrefix<<"IXFR fallback to AXFR"<<endl;
-  return doAXFR(q->qdomain, q, outsock);
+  return doAXFR(q->qdomainzone, q, outsock);
 }
 
 TCPNameserver::~TCPNameserver() = default;

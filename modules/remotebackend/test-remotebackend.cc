@@ -52,7 +52,7 @@ BOOST_AUTO_TEST_CASE(test_method_lookup)
 {
   BOOST_TEST_MESSAGE("Testing lookup method");
   DNSResourceRecord resourceRecord;
-  backendUnderTest->lookup(QType(QType::SOA), DNSName("unit.test."));
+  backendUnderTest->lookup(QType(QType::SOA), DNSName("unit.test."), UnknownDomainID);
   // then try to get()
   BOOST_CHECK(backendUnderTest->get(resourceRecord)); // and this should be TRUE.
   // then we check rr contains what we expect
@@ -66,7 +66,7 @@ BOOST_AUTO_TEST_CASE(test_method_lookup_empty)
 {
   BOOST_TEST_MESSAGE("Testing lookup method with empty result");
   DNSResourceRecord resourceRecord;
-  backendUnderTest->lookup(QType(QType::SOA), DNSName("empty.unit.test."));
+  backendUnderTest->lookup(QType(QType::SOA), DNSName("empty.unit.test."), UnknownDomainID);
   // then try to get()
   BOOST_CHECK(!backendUnderTest->get(resourceRecord)); // and this should be FALSE
 }
