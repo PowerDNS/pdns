@@ -337,6 +337,7 @@ static bool tcpconnect(const OptLog& log, const ComboAddress& remote, const std:
   Socket sock(remote.sin4.sin_family, SOCK_STREAM);
   sock.setNonBlocking();
   setTCPNoDelay(sock.getHandle());
+  // Bind to the same address the cookie is associated with (RFC 9018 section 3 last paragraph)
   ComboAddress localip = localBind ? *localBind : pdns::getQueryLocalAddress(remote.sin4.sin_family, 0);
   if (localBind) {
     VLOG(log, "Connecting TCP to " << remote.toString() << " with specific local address " << localip.toString() << endl);

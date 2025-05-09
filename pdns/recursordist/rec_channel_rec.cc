@@ -1895,7 +1895,7 @@ static RecursorControlChannel::Answer help()
           "clear-nta [DOMAIN]...            Clear the Negative Trust Anchor for DOMAINs, if no DOMAIN is specified, remove all\n"
           "clear-ta [DOMAIN]...             Clear the Trust Anchor for DOMAINs\n"
           "dump-cache <filename> [type...]  dump cache contents to the named file, type is r, n, p or a\n"
-          "dump-cookies <filename>          dump the contents of the cookie data to the namewd file\n"
+          "dump-cookies <filename>          dump the contents of the cookie jar to the named file\n"
           "dump-dot-probe-map <filename>    dump the contents of the DoT probe map to the named file\n"
           "dump-edns [status] <filename>    dump EDNS status to the named file\n"
           "dump-failedservers <filename>    dump the failed servers to the named file\n"

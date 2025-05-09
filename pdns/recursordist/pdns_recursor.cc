@@ -179,6 +179,8 @@ int UDPClientSocks::makeClientSocket(int family, const std::optional<ComboAddres
       } while (g_avoidUdpSourcePorts.count(port) != 0);
     }
 
+    // localAddress is set if a cookie was involved, bind to the same address the cookie is
+    // associated with (RFC 9018 section 3 last paragraph)
     if (localAddress) {
       sin = *localAddress;
       sin.setPort(port);

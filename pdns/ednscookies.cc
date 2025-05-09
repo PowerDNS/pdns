@@ -67,25 +67,26 @@ string EDNSCookiesOpt::makeOptString() const
 
 string EDNSCookiesOpt::toDisplayString() const
 {
-  std::string ret = makeHexDump(client, "");
+  std::ostringstream str;
+  str <<  makeHexDump(client, "");
   if (!server.empty()) {
-    ret += '|';
+    str << '|';
     if (server.length() != 16) {
       // It isn't a rfc9018 one
-      ret += makeHexDump(server, "");
+      str << makeHexDump(server, "");
     }
     else {
       // It very likely is a rfc9018 one
-      ret += makeHexDump(server.substr(0, 1), ""); // Version
-      ret += '|';
-      ret += makeHexDump(server.substr(1, 3), ""); // Reserved
-      ret += '|';
-      ret += makeHexDump(server.substr(4, 4), ""); // Timestamp
-      ret += '|';
-      ret += makeHexDump(server.substr(8, 8), ""); // Hash
+      str << makeHexDump(server.substr(0, 1), ""); // Version
+      str << '|';
+      str << makeHexDump(server.substr(1, 3), ""); // Reserved
+      str << '|';
+      str << makeHexDump(server.substr(4, 4), ""); // Timestamp
+      str << '|';
+      str << makeHexDump(server.substr(8, 8), ""); // Hash
     }
   }
-  return ret;
+  return str.str();
 }
 
 void EDNSCookiesOpt::getEDNSCookiesOptFromString(const char* option, unsigned int len)
