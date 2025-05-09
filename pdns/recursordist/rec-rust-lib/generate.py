@@ -839,18 +839,21 @@ def generate():
     if os.path.isdir('../docs'):
         gen_oldstyle_docs(srcdir, entries)
         gen_newstyle_docs(srcdir, entries)
-    # Remove rust generated files, they need to be re-generated after a table change and the rust dependency tracking does
-    # not do that in some cases. For the autotools case Makefile.am takes care.
+    # Remove cxx generated files, they need to be re-generated after a table change and the rust dependency tracking does
+    # not do that in some cases.
     Path(gendir, 'rust', 'librecrust.a').unlink(True)
     Path(gendir, 'rust', 'lib.rs.h').unlink(True)
     Path(gendir, 'rust', 'web.rs.h').unlink(True)
     Path(gendir, 'rust', 'cxx.h').unlink(True)
     Path(gendir, 'rust', 'misc.rs.h').unlink(True)
-    target = Path('target')
-    for root, dirs, files in target.walk(top_down=False):
+    # Path.walk exist only in very new versions of Python
+    # With meson, target is in toplevel build dir
+    for root, dirs, files in os.walk('target', topdown=False):
         for name in files:
-              (root / name).unlink()
-        for name in dirs:
-              (root / name).rmdir()
+            os.remove(os.path.join(root, name))
+    # With autotools, target exists in rec-rust-lib/rust and this Python script is executed with cwd rec-rust-lib
+    for root, dirs, files in os.walk('rust/target', topdown=False):
+        for name in files:
+            os.remove(os.path.join(root, name))
 
 generate()
