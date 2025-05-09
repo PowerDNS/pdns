@@ -2296,7 +2296,7 @@ static int serviceMain(Logr::log_t log)
   g_paddingTag = ::arg().asNum("edns-padding-tag");
   g_paddingOutgoing = ::arg().mustDo("edns-padding-out");
 
-  setAuthCookies(::arg().mustDo("outgoing-cookies"));
+  enableOutgoingCookies(::arg().mustDo("outgoing-cookies"));
 
   RecThreadInfo::setNumDistributorThreads(::arg().asNum("distributor-threads"));
   RecThreadInfo::setNumUDPWorkerThreads(::arg().asNum("threads"));
