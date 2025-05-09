@@ -104,8 +104,8 @@ enum class Counter : uint8_t
   cookieMismatchedOverUDP,
   cookieNotInReply,
   cookieRetry,
-  cookiesSupported,
-  cookiesUnsupported,
+  cookieProbeSupported,
+  cookieProbeUnsupported,
 
   numberOfCounters
 };

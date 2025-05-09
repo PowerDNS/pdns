@@ -1299,7 +1299,7 @@ cookieMalformed OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Malformed cookies received"
+        "Number of malformed cookies received"
     ::= { stats 153 }
 
 cookieMatched OBJECT-TYPE
@@ -1307,7 +1307,7 @@ cookieMatched OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Matching cookies received"
+        "Number of matching cookies received"
     ::= { stats 154 }
 
 cookieMismatchTcp OBJECT-TYPE
@@ -1315,7 +1315,7 @@ cookieMismatchTcp OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Mismatched cookies received over TCP"
+        "Number of mismatched cookies received over TCP"
     ::= { stats 155 }
 
 cookieMismatchUdp OBJECT-TYPE
@@ -1323,7 +1323,7 @@ cookieMismatchUdp OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Mismatched cookies received over UDP"
+        "Number of mismatched cookies received over UDP"
     ::= { stats 156 }
 
 cookieNotInReply OBJECT-TYPE
@@ -1331,7 +1331,7 @@ cookieNotInReply OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Authoritative server sent a reply back without cookie"
+        "Number of times an authoritative server sent a reply without a cookie"
     ::= { stats 157 }
 
 cookieRetry OBJECT-TYPE
@@ -1339,7 +1339,7 @@ cookieRetry OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Retries because authoritative server sent a BADCOOKIE reply"
+        "Number of retries because authoritative server sent a BADCOOKIE reply"
     ::= { stats 158 }
 
 cookiesSupported OBJECT-TYPE
@@ -1347,7 +1347,7 @@ cookiesSupported OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Number of authoritative server IPs marked as supporting cookies"
+        "Number of authoritative server cookie probes resulting in success"
     ::= { stats 159 }
 
 cookiesUnsupported OBJECT-TYPE
@@ -1355,7 +1355,7 @@ cookiesUnsupported OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Number of authoritative server IPs marked as not supporting cookies"
+        "Number of authoritative server cookie probes not resulting in success"
     ::= { stats 160 }
 
 ---
