@@ -483,52 +483,49 @@ static std::pair<bool, LWResult::Result> incomingCookie(const OptLog& log, const
   }
 
   // We have stored cookie info, scan for COOKIE option in EDNS
-  for (const auto& opt : edo.d_options) {
-    if (opt.first == EDNSOptionCode::COOKIE) {
-      if (EDNSCookiesOpt received; received.makeFromString(opt.second)) {
-        cookieFoundInReply = true;
-        VLOG(log, "Received cookie info back from " << address.toString() << ": " << received.toDisplayString() << endl);
-        if (received.getClient() == cookieSentOut->getClient()) {
-          VLOG(log, "Client cookie from " << address.toString() << " matched! Storing with localAddress " << localip.toString() << endl);
-          ++t_Counters.at(rec::Counter::cookieMatched);
-          found->d_localaddress = localip;
-          found->d_cookie = received;
-          if (found->getSupport() == CookieEntry::Support::Probing) {
-            ++t_Counters.at(rec::Counter::cookiesSupported);
-          }
-          found->setSupport(CookieEntry::Support::Supported, now.tv_sec);
-          // check extended error code
-          uint16_t ercode = (edo.d_extRCode << 4) | lwr.d_rcode;
-          if (ercode == ERCode::BADCOOKIE) {
-            lwr.d_validpacket = true;
-            ++t_Counters.at(rec::Counter::cookieRetry);
-            VLOG(log, "Server " << localip.toString() << " returned BADCOOKIE " << endl);
-            return {true, LWResult::Result::BadCookie}; // We did update the entry, retry should succeed
-          }
+  if (const auto opt = edo.getFirstOption(EDNSOptionCode::COOKIE); opt != edo.d_options.end()) {
+    if (EDNSCookiesOpt received; received.makeFromString(opt->second)) {
+      cookieFoundInReply = true;
+      VLOG(log, "Received cookie info back from " << address.toString() << ": " << received.toDisplayString() << endl);
+      if (received.getClient() == cookieSentOut->getClient()) {
+        VLOG(log, "Client cookie from " << address.toString() << " matched! Storing with localAddress " << localip.toString() << endl);
+        ++t_Counters.at(rec::Counter::cookieMatched);
+        found->d_localaddress = localip;
+        found->d_cookie = received;
+        if (found->getSupport() == CookieEntry::Support::Probing) {
+          ++t_Counters.at(rec::Counter::cookiesSupported);
         }
-        else {
-          if (!doTCP) {
-            // Server responded with a wrong client cookie, fall back to TCP, RFC 7873 5.3
-            VLOG(log, "Server " << localip.toString() << " responded with wrong client cookie, fall back to TCP" << endl);
-            lwr.d_validpacket = true;
-            ++t_Counters.at(rec::Counter::cookieMismatchedOverUDP);
-            return {true, LWResult::Result::Spoofed};
-          }
-          // mismatched cookie when already doing TCP, ignore that
-          VLOG(log, "Server " << localip.toString() << " responded with wrong client cookie over TCP, ignoring that" << endl);
-          ++t_Counters.at(rec::Counter::cookieMismatchedOverTCP);
+        found->setSupport(CookieEntry::Support::Supported, now.tv_sec);
+        // check extended error code
+        uint16_t ercode = (edo.d_extRCode << 4) | lwr.d_rcode;
+        if (ercode == ERCode::BADCOOKIE) {
+          lwr.d_validpacket = true;
+          ++t_Counters.at(rec::Counter::cookieRetry);
+          VLOG(log, "Server " << localip.toString() << " returned BADCOOKIE " << endl);
+          return {true, LWResult::Result::BadCookie}; // We did update the entry, retry should succeed
         }
       }
       else {
-        VLOG(log, "Malformed cookie in reply from " << address.toString() << ", dropping as if was a timeout" << endl);
-        // Do something special if we get malformed repeatedly? And/or consider current status?
-        lwr.d_validpacket = false;
-        ++t_Counters.at(rec::Counter::cookieMalformed);
-        return {true, LWResult::Result::Timeout};
+        if (!doTCP) {
+          // Server responded with a wrong client cookie, fall back to TCP, RFC 7873 5.3
+          VLOG(log, "Server " << localip.toString() << " responded with wrong client cookie, fall back to TCP" << endl);
+          lwr.d_validpacket = true;
+          ++t_Counters.at(rec::Counter::cookieMismatchedOverUDP);
+          return {true, LWResult::Result::Spoofed};
+        }
+        // mismatched cookie when already doing TCP, ignore that
+        VLOG(log, "Server " << localip.toString() << " responded with wrong client cookie over TCP, ignoring that" << endl);
+        ++t_Counters.at(rec::Counter::cookieMismatchedOverTCP);
       }
-      break; // only consider first cookie option found, RFC 7873 5.3
-    } // COOKIE option found
-  } // for
+    }
+    else {
+      VLOG(log, "Malformed cookie in reply from " << address.toString() << ", dropping as if was a timeout" << endl);
+      // Do something special if we get malformed repeatedly? And/or consider current status?
+      lwr.d_validpacket = false;
+      ++t_Counters.at(rec::Counter::cookieMalformed);
+      return {true, LWResult::Result::Timeout};
+    }
+  } // COOKIE option found
 
   // The cases where something special needs to be done have been handled above
   return {false, LWResult::Result::Success};
