@@ -16,7 +16,7 @@ env.append('RUST_TARGET', '')
 env.append('RUSTC_TARGET_ARCH', '')
 
 lib_recrust = custom_target('librecrust.a',
-  output: [outfile, 'cxx.h'],
+  output: [outfile, 'cxx.h', 'lib.rs.h', 'misc.rs.h', 'web.rs.h'],
   input: infile,
   command: [build,
   ],

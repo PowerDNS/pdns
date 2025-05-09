@@ -14,3 +14,9 @@ add_project_arguments(
 
 cxx = meson.get_compiler('cpp')
 system = target_machine.system()
+
+link_no_warn_duplicate_libraries = cxx.get_supported_link_arguments([
+  '-Wl,-no_warn_duplicate_libraries',
+])
+
+add_project_link_arguments(link_no_warn_duplicate_libraries, language: ['c', 'cpp'])
