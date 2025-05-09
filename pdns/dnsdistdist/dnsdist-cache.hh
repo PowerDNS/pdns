@@ -38,6 +38,7 @@ public:
   struct CacheSettings
   {
     std::unordered_set<uint16_t> d_optionsToSkip{EDNSOptionCode::COOKIE};
+    std::vector<uint16_t> d_payloadRanks{};
     size_t d_maxEntries{0};
     size_t d_maximumEntrySize{4096};
     uint32_t d_maxTTL{86400};
@@ -51,7 +52,6 @@ public:
     bool d_deferrableInsertLock{true};
     bool d_parseECS{false};
     bool d_keepStaleData{false};
-    bool d_skipHashingAR{false};
   };
 
   DNSDistPacketCache(CacheSettings settings);

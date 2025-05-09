@@ -1086,6 +1086,7 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
         .d_parseECS = cache.parse_ecs,
         .d_keepStaleData = cache.keep_stale_data,
       };
+      std::unordered_set<uint16_t> ranks;
       for (const auto& option : cache.options_to_skip) {
         settings.d_optionsToSkip.insert(pdns::checked_stoi<uint16_t>(std::string(option)));
       }
@@ -1095,8 +1096,16 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
       if (cache.maximum_entry_size >= sizeof(dnsheader)) {
         settings.d_maximumEntrySize = cache.maximum_entry_size;
       }
-      if (!cache.parse_ecs) {
-        settings.d_skipHashingAR = cache.skip_hashing_ar;
+      for (const auto& rankstr : cache.payload_ranks) {
+        auto rank = pdns::checked_stoi<uint16_t>(std::string(rankstr));
+        if (rank < 512 || rank > settings.d_maximumEntrySize) {
+          continue;
+        }
+        ranks.insert(rank);
+      }
+      if (!ranks.empty()) {
+        settings.d_payloadRanks.assign(ranks.begin(), ranks.end());
+        std::sort(settings.d_payloadRanks.begin(), settings.d_payloadRanks.end());
       }
       auto packetCacheObj = std::make_shared<DNSDistPacketCache>(settings);
 

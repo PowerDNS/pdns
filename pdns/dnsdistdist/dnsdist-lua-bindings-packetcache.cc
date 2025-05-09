@@ -38,8 +38,9 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
       .d_shardCount = 20,
     };
     bool cookieHashing = false;
-    bool skipHashingAR = false;
     LuaArray<uint16_t> skipOptions;
+    LuaArray<uint16_t> payloadRanks;
+    std::unordered_set<uint16_t> ranks;
     size_t maximumEntrySize{4096};
 
     getOptionalValue<bool>(vars, "deferrableInsertLock", settings.d_deferrableInsertLock);
@@ -55,7 +56,6 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
     getOptionalValue<size_t>(vars, "truncatedTTL", settings.d_truncatedTTL);
     getOptionalValue<bool>(vars, "cookieHashing", cookieHashing);
     getOptionalValue<size_t>(vars, "maximumEntrySize", maximumEntrySize);
-    getOptionalValue<bool>(vars, "skipHashingAR", skipHashingAR);
 
     if (maximumEntrySize >= sizeof(dnsheader)) {
       settings.d_maximumEntrySize = maximumEntrySize;
@@ -64,6 +64,19 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
     if (getOptionalValue<decltype(skipOptions)>(vars, "skipOptions", skipOptions) > 0) {
       for (const auto& option : skipOptions) {
         settings.d_optionsToSkip.insert(option.second);
+      }
+    }
+
+    if (getOptionalValue<decltype(payloadRanks)>(vars, "payloadRanks", payloadRanks) > 0) {
+      for (const auto& rank : payloadRanks) {
+        if (rank.second < 512 || rank.second > settings.d_maximumEntrySize) {
+          continue;
+        }
+        ranks.insert(rank.second);
+      }
+      if (!ranks.empty()) {
+        settings.d_payloadRanks.assign(ranks.begin(), ranks.end());
+        std::sort(settings.d_payloadRanks.begin(), settings.d_payloadRanks.end());
       }
     }
 
@@ -82,9 +95,6 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
     if (client) {
       settings.d_maxEntries = 1;
       settings.d_shardCount = 1;
-    }
-    if (!settings.d_parseECS) {
-      settings.d_skipHashingAR = skipHashingAR;
     }
 
     return std::make_shared<DNSDistPacketCache>(settings);

@@ -33,7 +33,7 @@ public:
      - EDNS Cookie options, if any ;
      - Any given option code present in optionsToSkip
   */
-  static uint32_t hashAfterQname(const std::string_view& packet, uint32_t currentHash, size_t pos, const std::unordered_set<uint16_t>& optionsToSkip = {EDNSOptionCode::COOKIE})
+  static uint32_t hashAfterQname(const std::string_view& packet, uint32_t currentHash, size_t pos, const std::unordered_set<uint16_t>& optionsToSkip = {EDNSOptionCode::COOKIE}, const std::vector<uint16_t>& payloadRanks = {})
   {
     const size_t packetSize = packet.size();
     assert(packetSize >= sizeof(dnsheader));
@@ -46,14 +46,31 @@ public:
     */
     const dnsheader_aligned dnsheaderdata(packet.data());
     const struct dnsheader *dh = dnsheaderdata.get();
-    if (ntohs(dh->qdcount) != 1 || ntohs(dh->ancount) != 0 || ntohs(dh->nscount) != 0 || ntohs(dh->arcount) != 1 || (pos + 15) >= packetSize) {
+    if (ntohs(dh->qdcount) != 1 || ntohs(dh->ancount) != 0 || ntohs(dh->nscount) != 0 || ntohs(dh->arcount) != 1 || (pos + 15) > packetSize) {
       if (packetSize > pos) {
         currentHash = burtle(reinterpret_cast<const unsigned char*>(&packet.at(pos)), packetSize - pos, currentHash);
       }
       return currentHash;
     }
 
-    currentHash = burtle(reinterpret_cast<const unsigned char*>(&packet.at(pos)), 15, currentHash);
+    if (payloadRanks.empty()) {
+      currentHash = burtle(reinterpret_cast<const unsigned char*>(&packet.at(pos)), 15, currentHash);
+    }
+    else {
+      std::vector<unsigned char> optrr(packet.begin() + pos, packet.begin() + pos + 15);
+      uint16_t bufSize = optrr.at(7) * 256 + optrr.at(8);
+      auto it = std::upper_bound(payloadRanks.begin(), payloadRanks.end(), bufSize);
+      if (it != payloadRanks.begin()) {
+        it--;
+        optrr[7] = (*it) >> 8;
+        optrr[8] = (*it) & 0xff;
+      }
+      currentHash = burtle(reinterpret_cast<const unsigned char*>(&optrr.at(0)), 15, currentHash);
+    }
+    if ( (pos + 15) == packetSize ) {
+      return currentHash;
+    }
+
     /* skip the qtype (2), qclass (2) */
     /* root label (1), type (2), class (2) and ttl (4) */
     /* already hashed above */

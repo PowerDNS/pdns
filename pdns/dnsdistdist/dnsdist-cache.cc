@@ -459,27 +459,17 @@ uint32_t DNSDistPacketCache::getKey(const DNSName::string_t& qname, size_t qname
     throw std::range_error("Computing packet cache key for an invalid packet size (" + std::to_string(packet.size()) + ")");
   }
 
-  if (d_settings.d_skipHashingAR) {
-    /* skip Additional Resource Records */
-    result = burtle(&packet.at(2), sizeof(dnsheader) - 4, result);
-  }
-  else {
-    result = burtle(&packet.at(2), sizeof(dnsheader) - 2, result);
-  }
+  result = burtle(&packet.at(2), sizeof(dnsheader) - 2, result);
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
   result = burtleCI(reinterpret_cast<const unsigned char*>(qname.c_str()), qname.length(), result);
   if (packet.size() < sizeof(dnsheader) + qnameWireLength) {
     throw std::range_error("Computing packet cache key for an invalid packet (" + std::to_string(packet.size()) + " < " + std::to_string(sizeof(dnsheader) + qnameWireLength) + ")");
   }
   if (packet.size() > ((sizeof(dnsheader) + qnameWireLength))) {
-    if (d_settings.d_skipHashingAR) {
-      /* only need to include the 2+2 bytes for qtype and qclass */
-      result = burtle(&packet.at(sizeof(dnsheader) + qnameWireLength), 4, result);
-    }
-    else if (!d_settings.d_optionsToSkip.empty()) {
+    if (!d_settings.d_optionsToSkip.empty()) {
       /* skip EDNS options if any */
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-      result = PacketCache::hashAfterQname(std::string_view(reinterpret_cast<const char*>(packet.data()), packet.size()), result, sizeof(dnsheader) + qnameWireLength, d_settings.d_optionsToSkip);
+      result = PacketCache::hashAfterQname(std::string_view(reinterpret_cast<const char*>(packet.data()), packet.size()), result, sizeof(dnsheader) + qnameWireLength, d_settings.d_optionsToSkip, d_settings.d_payloadRanks);
     }
     else {
       result = burtle(&packet.at(sizeof(dnsheader) + qnameWireLength), packet.size() - (sizeof(dnsheader) + qnameWireLength), result);
