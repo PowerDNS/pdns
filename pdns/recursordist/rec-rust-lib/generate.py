@@ -846,11 +846,8 @@ def generate():
     Path(gendir, 'rust', 'web.rs.h').unlink(True)
     Path(gendir, 'rust', 'cxx.h').unlink(True)
     Path(gendir, 'rust', 'misc.rs.h').unlink(True)
-    target = Path('target')
-    for root, dirs, files in target.walk(top_down=False):
+    for root, dirs, files in os.walk('target', topdown=False):
         for name in files:
-              (root / name).unlink()
-        for name in dirs:
-              (root / name).rmdir()
+            os.remove(os.path.join(root, name))
 
 generate()
