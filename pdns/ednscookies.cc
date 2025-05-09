@@ -68,7 +68,7 @@ string EDNSCookiesOpt::makeOptString() const
 string EDNSCookiesOpt::toDisplayString() const
 {
   std::ostringstream str;
-  str <<  makeHexDump(client, "");
+  str << makeHexDump(client, "");
   if (!server.empty()) {
     str << '|';
     if (server.length() != 16) {

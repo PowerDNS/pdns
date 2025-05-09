@@ -53,10 +53,10 @@ public:
     size_t d_numqueries{0};
   };
 
-  using pair_t = std::pair<ComboAddress, std::optional<ComboAddress>>;
+  using endpoints_t = std::pair<ComboAddress, std::optional<ComboAddress>>;
 
-  void store(const struct timeval& now, const pair_t& pair, Connection&& connection);
-  Connection get(const pair_t& pair);
+  void store(const struct timeval& now, const endpoints_t& pair, Connection&& connection);
+  Connection get(const endpoints_t& pair);
   void cleanup(const struct timeval& now);
 
   [[nodiscard]] size_t size() const
@@ -71,7 +71,7 @@ public:
 private:
   // This does not take into account that we can have multiple connections with different hosts (via SNI) to the same IP.
   // That is OK, since we are connecting by IP only at the moment.
-  std::multimap<pair_t, Connection> d_idle_connections;
+  std::multimap<endpoints_t, Connection> d_idle_connections;
 };
 
 extern thread_local TCPOutConnectionManager t_tcp_manager;

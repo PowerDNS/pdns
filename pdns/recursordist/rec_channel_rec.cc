@@ -2108,7 +2108,8 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int socket, cons
     return doDumpCache(socket, begin, end);
   }
   if (cmd == "clear-cookies") {
-    return {0, clearCookies()};
+    clearCookies();
+    return {0, ""};
   }
   if (cmd == "dump-cookies") {
     return doDumpToFile(socket, pleaseDumpCookiesMap, cmd, false);

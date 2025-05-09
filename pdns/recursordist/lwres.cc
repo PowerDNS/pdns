@@ -58,7 +58,7 @@
 
 static bool g_cookies = false;
 
-void setAuthCookies(bool flag)
+void enableOutgoingCookies(bool flag)
 {
   g_cookies = flag;
 }
@@ -70,11 +70,10 @@ bool g_ECSHardening;
 
 static LockGuarded<CookieStore> s_cookiestore;
 
-std::string clearCookies()
+void clearCookies()
 {
   auto lock = s_cookiestore.lock();
   lock->clear();
-  return "";
 }
 
 void pruneCookies(time_t cutoff)
@@ -90,7 +89,7 @@ uint64_t dumpCookies(int fileDesc)
     auto lock = s_cookiestore.lock();
     copy = *lock;
   }
-  return CookieStore::dump(copy, fileDesc);
+  return copy.dump(fileDesc);
 }
 
 void remoteLoggerQueueData(RemoteLoggerInterface& rli, const std::string& data)
@@ -327,7 +326,7 @@ static bool tcpconnect(const OptLog& log, const ComboAddress& remote, const std:
 {
   dnsOverTLS = SyncRes::s_dot_to_port_853 && remote.getPort() == 853;
 
-  connection = t_tcp_manager.get(std::make_pair(remote, localBind));
+  connection = t_tcp_manager.get({remote, localBind});
   if (connection.d_handler) {
     return false;
   }
@@ -475,7 +474,7 @@ static std::pair<bool, LWResult::Result> incomingCookie(const OptLog& log, const
   auto found = lock->find(address);
 
   if (found == lock->end()) {
-    // We receivd cookie (we might have sent one out) but the server is not in the table?
+    // We received cookie (we might have sent one out) but the server is not in the table?
     // This is a case of cannot happen, unless rec_control clear-cookies was called
     VLOG(log, "Cookie from " << address.toString() << " not found back in table" << endl);
     lwr.d_rcode = RCode::FormErr;
@@ -522,7 +521,7 @@ static std::pair<bool, LWResult::Result> incomingCookie(const OptLog& log, const
       }
       else {
         VLOG(log, "Malformed cookie in reply from " << address.toString() << ", dropping as if was a timeout" << endl);
-        // Do something special if we get malformed repeatedly? And or consider current status?
+        // Do something special if we get malformed repeatedly? And/or consider current status?
         lwr.d_validpacket = false;
         ++t_Counters.at(rec::Counter::cookieMalformed);
         return {true, LWResult::Result::Timeout};
@@ -814,23 +813,23 @@ static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& addr
       if (found != lock->end()) {
         switch (found->getSupport()) {
         case CookieEntry::Support::Probing:
-          VLOG(log, "No cookie in repy from " << address.toString() << ", was probing, setting support to Unsupported" << endl);
+          VLOG(log, "No cookie in reply from " << address.toString() << ", was probing, setting support to Unsupported" << endl);
           found->setSupport(CookieEntry::Support::Unsupported, now->tv_sec);
           ++t_Counters.at(rec::Counter::cookiesUnsupported);
           break;
         case CookieEntry::Support::Unsupported:
           // We could have detected the server does not support cookies in the meantime
-          VLOG(log, "No cookie in repy from " << address.toString() << ", cookie state is Unsupported, fine" << endl);
+          VLOG(log, "No cookie in reply from " << address.toString() << ", cookie state is Unsupported, fine" << endl);
           break;
         case CookieEntry::Support::Supported:
           // RFC says: ignore replies not containing any cookie info, equivalent to timeout
-          VLOG(log, "No cookie in repy from " << address.toString() << ", cookie state is Supported, dropping packet as if it timed out)" << endl);
+          VLOG(log, "No cookie in reply from " << address.toString() << ", cookie state is Supported, dropping packet as if it timed out)" << endl);
           return LWResult::Result::Timeout;
           break;
         }
       }
       else {
-        VLOG(log, "No cookie in repy from " << address.toString() << ", cookie state is Unknown, dropping packet as if it timed out" << endl);
+        VLOG(log, "No cookie in reply from " << address.toString() << ", cookie state is Unknown, dropping packet as if it timed out" << endl);
         return LWResult::Result::Timeout;
       }
     }

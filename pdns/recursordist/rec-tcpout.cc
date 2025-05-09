@@ -51,7 +51,7 @@ void TCPOutConnectionManager::cleanup(const struct timeval& now)
   }
 }
 
-void TCPOutConnectionManager::store(const struct timeval& now, const pair_t& pair, Connection&& connection)
+void TCPOutConnectionManager::store(const struct timeval& now, const endpoints_t& pair, Connection&& connection)
 {
   ++connection.d_numqueries;
   if (s_maxQueries > 0 && connection.d_numqueries >= s_maxQueries) {
@@ -73,7 +73,7 @@ void TCPOutConnectionManager::store(const struct timeval& now, const pair_t& pai
   d_idle_connections.emplace(pair, std::move(connection));
 }
 
-TCPOutConnectionManager::Connection TCPOutConnectionManager::get(const pair_t& pair)
+TCPOutConnectionManager::Connection TCPOutConnectionManager::get(const endpoints_t& pair)
 {
   if (d_idle_connections.count(pair) > 0) {
     auto connection = d_idle_connections.extract(pair);

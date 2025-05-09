@@ -33,7 +33,7 @@ void CookieStore::prune(time_t cutoff)
   ind.erase(ind.begin(), ind.upper_bound(cutoff));
 }
 
-uint64_t CookieStore::dump(const CookieStore& copy, int fileDesc)
+uint64_t CookieStore::dump(int fileDesc) const
 {
   int newfd = dup(fileDesc);
   if (newfd == -1) {
@@ -47,7 +47,7 @@ uint64_t CookieStore::dump(const CookieStore& copy, int fileDesc)
   uint64_t count = 0;
 
   fprintf(filePtr.get(), "; cookie dump follows\n; server\tlocal\tcookie\tsupport\tts\n");
-  for (const auto& entry : copy) {
+  for (const auto& entry : *this) {
     count++;
     timebuf_t tmp;
     fprintf(filePtr.get(), "%s\t%s\t%s\t%s\t%s\n",

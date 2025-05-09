@@ -60,7 +60,7 @@ struct CookieEntry
 
   static std::string toString(Support support)
   {
-    static const std::array<std::string, 4> names = {
+    static const std::array<std::string, 3> names = {
       "Unsupported",
       "Supported",
       "Probing"};
@@ -100,5 +100,5 @@ class CookieStore : public multi_index_container<CookieEntry,
 {
 public:
   void prune(time_t cutoff);
-  static uint64_t dump(const CookieStore&, int fileDesc);
+  [[nodiscard]] uint64_t dump(int fileDesc) const;
 };
