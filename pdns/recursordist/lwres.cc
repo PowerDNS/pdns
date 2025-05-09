@@ -497,7 +497,7 @@ static std::pair<bool, LWResult::Result> incomingCookie(const OptLog& log, const
         }
         found->setSupport(CookieEntry::Support::Supported, now.tv_sec);
         // check extended error code
-        uint16_t ercode = (edo.d_extRCode << 4) | lwr.d_rcode;
+        uint16_t ercode = edo.getCombinedERCode(lwr.d_rcode);
         if (ercode == ERCode::BADCOOKIE) {
           lwr.d_validpacket = true;
           ++t_Counters.at(rec::Counter::cookieRetry);
