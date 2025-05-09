@@ -493,7 +493,7 @@ static std::pair<bool, LWResult::Result> incomingCookie(const OptLog& log, const
         found->d_localaddress = localip;
         found->d_cookie = received;
         if (found->getSupport() == CookieEntry::Support::Probing) {
-          ++t_Counters.at(rec::Counter::cookiesSupported);
+          ++t_Counters.at(rec::Counter::cookieProbeSupported);
         }
         found->setSupport(CookieEntry::Support::Supported, now.tv_sec);
         // check extended error code
@@ -812,7 +812,7 @@ static LWResult::Result asyncresolve(const OptLog& log, const ComboAddress& addr
         case CookieEntry::Support::Probing:
           VLOG(log, "No cookie in reply from " << address.toString() << ", was probing, setting support to Unsupported" << endl);
           found->setSupport(CookieEntry::Support::Unsupported, now->tv_sec);
-          ++t_Counters.at(rec::Counter::cookiesUnsupported);
+          ++t_Counters.at(rec::Counter::cookieProbeUnsupported);
           break;
         case CookieEntry::Support::Unsupported:
           // We could have detected the server does not support cookies in the meantime
