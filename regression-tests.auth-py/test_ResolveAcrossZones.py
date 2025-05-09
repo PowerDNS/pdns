@@ -10,7 +10,7 @@ from authtests import AuthTest
 class CrossZoneResolveBase(AuthTest):
     _config_template = """
 any-to-tcp=no
-launch=bind
+launch={backend}
 edns-subnet-processing=yes
 """
     target_otherzone_ip = "192.0.2.2"

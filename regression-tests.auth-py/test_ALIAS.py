@@ -20,7 +20,7 @@ class TestALIAS(AuthTest):
 expand-alias=yes
 resolver=%s.1:5301
 any-to-tcp=no
-launch=bind
+launch={backend}
 edns-subnet-processing=yes
 """
 

@@ -24,13 +24,20 @@ class AuthTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     _confdir = 'auth'
     _authPort = 5300
 
+    _backend = os.getenv("AUTH_BACKEND", "bind")
+
+    _backend_configs = dict(
+        bind="""
+bind-config={confdir}/named.conf
+bind-dnssec-db={bind_dnssec_db}
+""",    lmdb="",
+        gsqlite3="")
+
     _config_params = []
 
     _config_template_default = """
 module-dir={PDNS_MODULE_DIR}
 daemon=no
-bind-config={confdir}/named.conf
-bind-dnssec-db={bind_dnssec_db}
 socket-dir={confdir}
 cache-ttl=0
 negquery-cache-ttl=0
@@ -117,25 +124,33 @@ options {
         params = tuple([getattr(cls, param) for param in cls._config_params])
 
         with open(os.path.join(confdir, 'pdns.conf'), 'w') as pdnsconf:
-            pdnsconf.write(cls._config_template_default.format(
-                confdir=confdir, prefix=cls._PREFIX,
-                bind_dnssec_db=bind_dnssec_db,
-                PDNS_MODULE_DIR=cls._PDNS_MODULE_DIR,
-            ))
-            pdnsconf.write(cls._config_template % params)
+            args = dict(backend=cls._backend,
+                        confdir=confdir,
+                        prefix=cls._PREFIX,
+                        bind_dnssec_db=bind_dnssec_db,
+                        PDNS_MODULE_DIR=cls._PDNS_MODULE_DIR
+                        )
 
-        os.system("sqlite3 ./configs/auth/powerdns.sqlite < ../modules/gsqlite3backend/schema.sqlite3.sql")
+            pdnsconf.write((cls._config_template_default + cls._backend_configs[cls._backend]).format(**args))
+            pdnsconf.write(cls._config_template.format(**args) % params)
 
-        pdnsutilCmd = [os.environ['PDNSUTIL'],
-                       '--config-dir=%s' % confdir,
-                       'create-bind-db',
-                       bind_dnssec_db]
+        if cls._backend == 'gsqlite3':
+            os.system("sqlite3 ./configs/auth/powerdns.sqlite < ../modules/gsqlite3backend/schema.sqlite3.sql")
 
-        print(' '.join(pdnsutilCmd))
-        try:
-            subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
-        except subprocess.CalledProcessError as e:
-            raise AssertionError('%s failed (%d): %s' % (pdnsutilCmd, e.returncode, e.output))
+        if cls._backend == 'lmdb':
+            os.system("rm -f pdns.lmdb*")
+
+        if cls._backend == 'bind':
+            pdnsutilCmd = [os.environ['PDNSUTIL'],
+                           '--config-dir=%s' % confdir,
+                           'create-bind-db',
+                           bind_dnssec_db]
+
+            print(' '.join(pdnsutilCmd))
+            try:
+                subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
+            except subprocess.CalledProcessError as e:
+                raise AssertionError('%s failed (%d): %s' % (pdnsutilCmd, e.returncode, e.output))
 
     @classmethod
     def secureZone(cls, confdir, zonename, key=None):
@@ -167,14 +182,40 @@ options {
     @classmethod
     def generateAllAuthConfig(cls, confdir):
         cls.generateAuthConfig(confdir)
-        cls.generateAuthNamedConf(confdir, cls._zones.keys())
 
-        for zonename, zonecontent in cls._zones.items():
-            cls.generateAuthZone(confdir,
-                                 zonename,
-                                 zonecontent)
-            if cls._zone_keys.get(zonename, None):
-                cls.secureZone(confdir, zonename, cls._zone_keys.get(zonename))
+        if cls._backend == 'bind':
+            cls.generateAuthNamedConf(confdir, cls._zones.keys())
+
+            for zonename, zonecontent in cls._zones.items():
+                cls.generateAuthZone(confdir,
+                                     zonename,
+                                     zonecontent)
+                if cls._zone_keys.get(zonename, None):
+                    cls.secureZone(confdir, zonename, cls._zone_keys.get(zonename))
+        elif cls._backend == 'lmdb':
+            for zonename, zonecontent in cls._zones.items():
+                cls.generateAuthZone(confdir,
+                                     zonename,
+                                     zonecontent)
+                pdnsutilCmd = [os.environ['PDNSUTIL'],
+                               '--config-dir=%s' % confdir,
+                               'load-zone',
+                               zonename,
+                               os.path.join(confdir, '%s.zone' % zonename)]
+
+                print(' '.join(pdnsutilCmd))
+                try:
+                    subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
+                except subprocess.CalledProcessError as e:
+                    raise AssertionError('%s failed (%d): %s' % (pdnsutilCmd, e.returncode, e.output))
+                if cls._zone_keys.get(zonename, None):
+                    cls.secureZone(confdir, zonename, cls._zone_keys.get(zonename))
+        elif cls._backend == 'gsqlite3':
+            # this is not a supported config from the user, but some of the test_*.py files use gsqlite3
+            return
+        else:
+            raise RuntimeError("unknown backend " + cls._backend + " specified")
+
 
     @classmethod
     def waitForTCPSocket(cls, ipaddress, port):

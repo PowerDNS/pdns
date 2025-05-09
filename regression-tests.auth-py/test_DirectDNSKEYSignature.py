@@ -7,7 +7,7 @@ from authtests import AuthTest
 
 class TestDirectDNSKEYSignature(AuthTest):
     _config_template = """
-    launch=bind
+    launch={backend}
     direct-dnskey=yes
     direct-dnskey-signature=yes
     """

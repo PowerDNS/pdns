@@ -8,7 +8,7 @@ from authtests import AuthTest
 
 class TestBindAny(AuthTest):
     _config_template = """
-launch=bind
+launch={backend}
 """
 
     _zones = {
