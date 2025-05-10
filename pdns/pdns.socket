@@ -1,8 +1,7 @@
 [Socket]
-ListenStream=0.0.0.0:53
-ListenDatagram=0.0.0.0:53
-ListenStream=::/0:53
-ListenDatagram=::/0:53
+ListenStream=[::]:53
+ListenDatagram=[::]:53
+BindIPv6Only=both
 
 [Install]
 WantedBy=sockets.target
