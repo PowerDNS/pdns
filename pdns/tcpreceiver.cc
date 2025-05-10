@@ -1338,7 +1338,7 @@ TCPNameserver::TCPNameserver()
   for(auto const &laddr : locals) {
     int s;
     if (laddr.find("fd:") == 0) {
-      s = std::stoi(laddr.substr(3, laddr.length()-3));
+      pdns::checked_stoi_into(s, laddr.substr(3, laddr.length()-3));
       g_log<<Logger::Error<<"TCP server listening on"<<laddr<<endl;
     } else if (laddr.find("fdgram:") == 0) {
       continue;
