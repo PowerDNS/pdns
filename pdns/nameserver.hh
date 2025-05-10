@@ -87,13 +87,11 @@ public:
   
 private:
   void bindAddresses();
-  void bindLocalAddresses();
-#ifdef HAVE_SYSTEMD
-  void listenSystemdAddresses();
-#endif
+  int createSocket(ComboAddress &locala);
 
   bool d_additional_socket;
   bool d_can_reuseport{false};
+
   vector<int> d_sockets;
   vector<pollfd> d_rfds;
 };
