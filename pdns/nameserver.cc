@@ -101,7 +101,7 @@ void UDPNameserver::bindAddresses()
   for (const auto &local : locals) {
 
     if (local.find("fdgram:") == 0) {
-      s = std::stoi(local.substr(8, local.length()));
+      s = std::stoi(local.substr(8, local.length()-8));
       g_log<<Logger::Error<<"UDP server listening on "<<local<<endl;
     } else if (local.find("fd:") == 0) {
       continue;

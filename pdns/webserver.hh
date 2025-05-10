@@ -289,7 +289,7 @@ protected:
 
   virtual std::shared_ptr<Server> createServer() {
     if (d_listenaddress.find("fd:") == 0) {
-      int fd = std::stoi(d_listenaddress.substr(3, d_listenaddress.length()));
+      int fd = std::stoi(d_listenaddress.substr(3, d_listenaddress.length()-3));
       return std::make_shared<Server>(fd);
     } else {
       return std::make_shared<Server>(d_listenaddress, d_port);
