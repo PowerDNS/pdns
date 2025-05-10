@@ -103,6 +103,8 @@ void UDPNameserver::bindAddresses()
     if (local.find("fdgram:") == 0) {
       s = std::stoi(local.substr(8, local.length()));
       g_log<<Logger::Error<<"UDP server listening on "<<local<<endl;
+    } else if (local.find("fd:") == 0) {
+      continue;
     } else {
       ComboAddress locala(local, ::arg().asNum("local-port"));
       s = createSocket(locala);

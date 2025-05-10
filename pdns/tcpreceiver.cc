@@ -1340,6 +1340,8 @@ TCPNameserver::TCPNameserver()
     if (laddr.find("fd:") == 0) {
       s = std::stoi(laddr.substr(3, laddr.length()));
       g_log<<Logger::Error<<"TCP server listening on"<<laddr<<endl;
+    } else if (laddr.find("fdgram:") == 0) {
+      continue;
     } else { 
       ComboAddress local(laddr, ::arg().asNum("local-port"));
       s = createSocket(local);
