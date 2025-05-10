@@ -950,6 +950,12 @@ Examples::
   local-address=[::]:8053
   local-address=127.0.0.1:53, [::1]:5353
 
+.. note::
+  On Linux, if you install a systemd socket configuration file together with the
+  default systemd service file we provide, this setting will be ignored with
+  :ref:`setting-local-port`. Instead, the address and port must be configured
+  in the socket configuration file.
+
 .. _setting-local-address-nonexist-fail:
 
 ``local-address-nonexist-fail``
@@ -992,6 +998,12 @@ addresses do not exist on this server.
 
 Local port to bind to.
 If an address in :ref:`setting-local-address` does not have an explicit port, this port is used.
+
+.. note::
+  On Linux, if you install a systemd socket configuration file together with the
+  default systemd service file we provide, this setting will be ignored with
+  :ref:`setting-local-address`. Instead, the address and port must be configured
+  in the socket configuration file.
 
 .. _setting-log-dns-details:
 

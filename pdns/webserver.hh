@@ -177,6 +177,7 @@ public:
     d_server_socket.bind(d_local);
     d_server_socket.listen();
   }
+  Server(int server_socket) : d_local("fd:" + server_socket), d_server_socket(server_socket) {}
   virtual ~Server() = default;
 
   SockaddrWrapper d_local;
@@ -287,7 +288,13 @@ protected:
   void logResponse(const HttpResponse& resp, const ComboAddress& remote, const string& logprefix) const;
 
   virtual std::shared_ptr<Server> createServer() {
-    return std::make_shared<Server>(d_listenaddress, d_port);
+    if (d_listenaddress.find("fd:") == 0) {
+      int fd;
+      pdns::checked_stoi_into(fd, d_listenaddress.substr(3, d_listenaddress.length()-3));
+      return std::make_shared<Server>(fd);
+    } else {
+      return std::make_shared<Server>(d_listenaddress, d_port);
+    }
   }
 
   void apiWrapper(const WebServer::HandlerFunction& handler, HttpRequest* req, HttpResponse* resp, bool allowPassword);
