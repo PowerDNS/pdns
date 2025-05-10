@@ -466,7 +466,7 @@ uint32_t DNSDistPacketCache::getKey(const DNSName::string_t& qname, size_t qname
     throw std::range_error("Computing packet cache key for an invalid packet (" + std::to_string(packet.size()) + " < " + std::to_string(sizeof(dnsheader) + qnameWireLength) + ")");
   }
   if (packet.size() > ((sizeof(dnsheader) + qnameWireLength))) {
-    if (!d_settings.d_optionsToSkip.empty()) {
+    if (!d_settings.d_optionsToSkip.empty() || !d_settings.d_payloadRanks.empty()) {
       /* skip EDNS options if any */
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
       result = PacketCache::hashAfterQname(std::string_view(reinterpret_cast<const char*>(packet.data()), packet.size()), result, sizeof(dnsheader) + qnameWireLength, d_settings.d_optionsToSkip, d_settings.d_payloadRanks);
