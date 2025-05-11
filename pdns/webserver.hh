@@ -177,7 +177,10 @@ public:
     d_server_socket.bind(d_local);
     d_server_socket.listen();
   }
-  Server(int server_socket) : d_local("fd:" + server_socket), d_server_socket(server_socket) {}
+  // we hardcode 0.0.0.0 here even though this socket is not an inet v4 socket
+  // (it's a socket built from a file descriptor) because code that accesses the
+  // d_local field does not matter in this case
+  Server(int server_socket) : d_local("0.0.0.0", 0), d_server_socket(server_socket) {}
   virtual ~Server() = default;
 
   SockaddrWrapper d_local;
