@@ -1339,7 +1339,7 @@ TCPNameserver::TCPNameserver()
     int s;
     if (laddr.find("fd:") == 0) {
       pdns::checked_stoi_into(s, laddr.substr(3, laddr.length()-3));
-      g_log<<Logger::Error<<"TCP server listening on"<<laddr<<endl;
+      g_log<<Logger::Error<<"TCP server listening on "<<laddr<<" fd "<<s<<endl;
     } else if (laddr.find("fdgram:") == 0) {
       continue;
     } else { 
