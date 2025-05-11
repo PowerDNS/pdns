@@ -180,7 +180,13 @@ public:
   // we hardcode 0.0.0.0 here even though this socket is not an inet v4 socket
   // (it's a socket built from a file descriptor) because code that accesses the
   // d_local field does not matter in this case
-  Server(int server_socket) : d_local("0.0.0.0", 0), d_server_socket(server_socket) {}
+  Server(int server_socket) : d_local("0.0.0.0", 0), d_server_socket(server_socket) {
+    sockaddr_storage addr;
+    int addrlen = sizeof(addr);
+    if (getsockname(server_socket, (struct sockaddr*)&addr, (socklen_t *)&addrlen) == 0) {
+      d_local = SockaddrWrapper((struct sockaddr*)&addr, (socklen_t)addrlen);
+    }
+  }
   virtual ~Server() = default;
 
   SockaddrWrapper d_local;
