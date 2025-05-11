@@ -1,15 +1,22 @@
 Running and Operating
 =====================
 
-On Linux, PowerDNS is controlled by a systemd service called ``pdns.service``
-and optionally by a systemd socket called ``pdns.socket``. The service definition
-file should be installed by the binary package, and can also be found in the tarball
-(``pdns.service.in`` template file).
+On Linux, PowerDNS is controlled by a systemd service called ``pdns.service``.
+The service definition file should be installed by the binary package, and 
+can also be found in the tarball (``pdns.service.in`` template file).
 
-On Linux, optionally, when  the ``pdns.socket`` is installed, systemd listens for
-incoming requests. When the first request is received on one of these sockets,
-PowerDNS is handed over the systemd sockets, listens for new incoming connections,
-and ignores the ``local-address`` and ``local-port`` settings.
+On Linux, optionally, you can configure pdns to listen for incoming connections
+on the sockets managed by systemd via a systemd socket file. This requires you
+to:
+ - install a systemd socket file to configure systemd to listen for incoming
+   connections before pdns is started. The ``pdns.socket`` example file illustrates
+   how this can be done.
+ - configure the pdns tcp and udp resolvers, and/or the api webserver to use these
+   sockets by referencing them via the ``fd:FD`` and ``fdgram:FD`` syntax in the
+   ``local-address`` and ``webserver-address`` options. Doing this assumes you 
+   understand how systemd allocates file descriptors (sequentially starting at 3)
+   for ``Listen*`` options in the socket file. More details can be found in the
+   systemd manual for [sd_listen_fds](https://man7.org/linux/man-pages/man3/sd_listen_fds.3.html)
 
 On non-Linux systems, a SysV-style init script can be used, and should be supplied by the operating system packages.
 

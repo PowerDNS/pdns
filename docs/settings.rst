@@ -933,6 +933,9 @@ available in non-static distributions.
 .. versionchanged:: 4.3.0
   Before 4.3.0, this setting only supported IPv4 addresses.
 
+.. versionchanged:: 4.9.6
+  now also accepts any socket type (ipv4, ipv6, unix, etc.) supported by systemd via the ``fd:FD`` and ``fdgram:FD`` syntax.
+
 -  IPv4/IPv6 Addresses, with optional port numbers, separated by commas or whitespace
 -  Default: ``0.0.0.0, ::``
 
@@ -943,18 +946,20 @@ port number is specified, it must be separated from the address with a
 ':'; for an IPv6 address the address must be enclosed in square
 brackets.
 
+If the address starts with ``fd:`` or ``fdgram:``, any remaining characters
+are assumed to be a base-10-encoded file descriptor number that references 
+the corresponding socket of stream or datagram type respectively. To be able to
+use such sockets, do not forget to install a systemd socket file with matching
+``Listen*`` options
+
 Examples::
 
   local-address=127.0.0.1 ::1
   local-address=0.0.0.0:5353
   local-address=[::]:8053
   local-address=127.0.0.1:53, [::1]:5353
-
-.. note::
-  On Linux, if you install a systemd socket configuration file together with the
-  default systemd service file we provide, this setting will be ignored with
-  :ref:`setting-local-port`. Instead, the address and port must be configured
-  in the socket configuration file.
+  local-address=fd:3
+  local-address=fdgram:4
 
 .. _setting-local-address-nonexist-fail:
 
@@ -998,12 +1003,6 @@ addresses do not exist on this server.
 
 Local port to bind to.
 If an address in :ref:`setting-local-address` does not have an explicit port, this port is used.
-
-.. note::
-  On Linux, if you install a systemd socket configuration file together with the
-  default systemd service file we provide, this setting will be ignored with
-  :ref:`setting-local-address`. Instead, the address and port must be configured
-  in the socket configuration file.
 
 .. _setting-log-dns-details:
 
@@ -2045,10 +2044,20 @@ Start a webserver for monitoring. See :doc:`performance`".
 ``webserver-address``
 ---------------------
 
+.. versionchanged:: 4.9.6
+  now also accepts any socket type (ipv4, ipv6, unix, etc.) supported by systemd via the ``fd:FD`` and ``fdgram:FD`` syntax.
+
 -  IP Address
 -  Default: 127.0.0.1
 
 IP Address or path to UNIX domain socket for webserver/API to listen on.
+
+If the address starts with ``fd:`` or ``fdgram:``, any remaining characters
+are assumed to be a base-10-encoded file descriptor number that references 
+the corresponding socket of stream or datagram type respectively. To be able to
+use such sockets, do not forget to install a systemd socket file with matching
+
+``Listen*`` options
 
 .. _setting-webserver-allow-from:
 
