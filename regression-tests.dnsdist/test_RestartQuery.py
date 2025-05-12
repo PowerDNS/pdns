@@ -1,8 +1,10 @@
 #!/usr/bin/env python
+from queue import Queue
 import threading
 import clientsubnetoption
 import dns
 from dnsdisttests import DNSDistTest, pickAvailablePort
+from proxyprotocolutils import ProxyProtocolUDPResponder, ProxyProtocolTCPResponder
 
 def servFailResponseCallback(request):
     response = dns.message.make_response(request)
@@ -85,4 +87,69 @@ class TestRestartQuery(DNSDistTest):
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertTrue(receivedResponse)
             self.assertEqual(receivedResponse, expectedResponse)
- 
+
+
+toProxyQueue = Queue()
+fromProxyQueue = Queue()
+proxyResponderPort = pickAvailablePort()
+
+udpResponder = threading.Thread(name='UDP Proxy Protocol Responder', target=ProxyProtocolUDPResponder, args=[proxyResponderPort, toProxyQueue, fromProxyQueue])
+udpResponder.daemon = True
+udpResponder.start()
+tcpResponder = threading.Thread(name='TCP Proxy Protocol Responder', target=ProxyProtocolTCPResponder, args=[proxyResponderPort, toProxyQueue, fromProxyQueue])
+tcpResponder.daemon = True
+tcpResponder.start()
+
+class TestRestartProxyProtocolThenNot(DNSDistTest):
+    _restartPool = 'restart-pool'
+    _config_template = """
+    fallbackPool = '%s'
+    newServer{address="127.0.0.1:%d", useProxyProtocol=true}
+    newServer{address="127.0.0.1:%d", pool={fallbackPool}}
+
+    local function makeQueryRestartable(dq)
+      dq:setRestartable()
+      return DNSAction.None
+    end
+
+    local function restart(dr)
+      if dr.pool ~= fallbackPool then
+        dr.pool = fallbackPool
+        dr:restart()
+      end
+
+      return DNSResponseAction.None
+    end
+
+    addAction(AllRule(), LuaAction(makeQueryRestartable))
+    addResponseAction(AllRule(), LuaResponseAction(restart))
+    """
+    _proxyResponderPort = proxyResponderPort
+    _config_params = ['_restartPool', '_proxyResponderPort', '_testServerPort']
+
+    def testRestart(self):
+        """
+        Restart: queries is first forwarded to proxy-protocol enabled backend, then restarted to a non-PP backend
+        """
+        name = 'proxy.restart.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            # push a response to the first backend
+            toProxyQueue.put(response, True, 2.0)
+
+            sender = getattr(self, method)
+            # we get the query received by the second backend, and the
+            # response received from dnsdist
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)
+
+            # pop the query received by the first backend
+            (receivedProxyPayload, receivedDNSData) = fromProxyQueue.get(True, 2.0)
+            self.assertTrue(receivedProxyPayload)
+            self.assertTrue(receivedDNSData)
