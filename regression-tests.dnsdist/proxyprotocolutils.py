@@ -43,7 +43,7 @@ def ProxyProtocolUDPResponder(port, fromQueue, toQueue):
         toQueue.put([payload, dnsData], True, 2.0)
         # computing the correct ID for the response
         request = dns.message.from_wire(dnsData)
-        response = fromQueue.get(True, 2.0)
+        response = copy.deepcopy(fromQueue.get(True, 2.0))
         response.id = request.id
 
         sock.settimeout(2.0)
