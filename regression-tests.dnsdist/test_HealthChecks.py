@@ -9,11 +9,7 @@ from dnsdisttests import DNSDistTest, pickAvailablePort
 class HealthCheckTest(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
-    _webTimeout = 2.0
-    _webServerPort = pickAvailablePort()
-    _webServerAPIKey = 'apisecret'
-    _webServerAPIKeyHashed = '$scrypt$ln=10,p=1,r=8$9v8JxDfzQVyTpBkTbkUqYg==$bDQzAOHeK1G9UvTPypNhrX48w974ZXbFPtRKS34+aso='
-    _config_params = ['_consoleKeyB64', '_consolePort', '_webServerPort', '_webServerAPIKeyHashed', '_testServerPort']
+    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort']
     _config_template = """
     setKey("%s")
     controlSocket("127.0.0.1:%d")
