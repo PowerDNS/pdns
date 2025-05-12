@@ -1907,14 +1907,14 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
   luaCtx.writeFunction("setAPIWritable", [](bool writable, boost::optional<std::string> apiConfigDir) {
-    if (apiConfigDir && (*apiConfigDir).empty()) {
+    if (apiConfigDir && apiConfigDir->empty()) {
       errlog("The API configuration directory value cannot be empty!");
       g_outputBuffer = "The API configuration directory value cannot be empty!";
       return;
     }
     dnsdist::configuration::updateRuntimeConfiguration([writable, &apiConfigDir](dnsdist::configuration::RuntimeConfiguration& config) {
       config.d_apiReadWrite = writable;
-      if (apiConfigDir && !(*apiConfigDir).empty()) {
+      if (apiConfigDir && !apiConfigDir->empty()) {
         config.d_apiConfigDirectory = *apiConfigDir;
       }
     });
