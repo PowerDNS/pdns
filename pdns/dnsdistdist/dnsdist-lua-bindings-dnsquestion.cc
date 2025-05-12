@@ -654,6 +654,7 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
     }
     dnsResponse.asynchronous = true;
     dnsResponse.getMutableData() = *dnsResponse.ids.d_packet;
+    dnsResponse.ids.d_proxyProtocolPayloadSize = 0;
     auto query = dnsdist::getInternalQueryFromDQ(dnsResponse, false);
     return dnsdist::queueQueryResumptionEvent(std::move(query));
   });
