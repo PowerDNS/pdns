@@ -71,7 +71,7 @@ using map_t = boost::multi_index_container<
     boost::multi_index::ordered_non_unique<boost::multi_index::tag<TimeTag>,
                                            boost::multi_index::member<ClientEntry, time_t, &ClientEntry::d_lastSeen>>>>;
 
-static std::vector<LockGuarded<map_t>> s_tcpClientsConnectionMetrics{10};
+static std::vector<LockGuarded<map_t>> s_tcpClientsConnectionMetrics{NB_SHARDS};
 
 static AddressAndPortRange getRange(const ComboAddress& from)
 {
