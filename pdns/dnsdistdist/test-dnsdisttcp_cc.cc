@@ -4182,4 +4182,82 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendNotOOOR, TestFixture)
   }
 }
 
+BOOST_FIXTURE_TEST_CASE(test_Pipelined_Queries_Immediate_Responses, TestFixture)
+{
+  auto local = getBackendAddress("1", 80);
+  ClientState localCS(local, true, false, 0, "", {}, true);
+  auto tlsCtx = std::make_shared<MockupTLSCtx>();
+  localCS.tlsFrontend = std::make_shared<TLSFrontend>(tlsCtx);
+
+  TCPClientThreadData threadData;
+  threadData.mplexer = std::make_unique<MockupFDMultiplexer>();
+
+  timeval now{};
+  gettimeofday(&now, nullptr);
+
+  PacketBuffer query;
+  GenericDNSPacketWriter<PacketBuffer> pwQ(query, DNSName("powerdns.com."), QType::A, QClass::IN, 0);
+  pwQ.getHeader()->rd = 1;
+  pwQ.getHeader()->id = 0;
+
+  auto querySize = static_cast<uint16_t>(query.size());
+  const std::array<uint8_t, 2> sizeBytes{ static_cast<uint8_t>(querySize / 256), static_cast<uint8_t>(querySize % 256) };
+  query.insert(query.begin(), sizeBytes.begin(), sizeBytes.end());
+
+  auto backend = std::make_shared<DownstreamState>(getBackendAddress("42", 53));
+  backend->d_tlsCtx = tlsCtx;
+
+  {
+    /* 1000 queries from client passed to backend (one at at time), backend answers right away */
+    TEST_INIT("=> Query to backend, backend answers right away");
+    const size_t nbQueries = 10000;
+    s_readBuffer = query;
+    s_backendReadBuffer = query;
+
+    s_steps = {
+      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2 },
+      /* opening a connection to the backend */
+      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
+      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size() },
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, query.size() - 2 },
+      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, query.size() },
+    };
+    for (size_t idx = 1; idx < nbQueries; idx++) {
+      appendPayloadEditingID(s_readBuffer, query, idx);
+      appendPayloadEditingID(s_backendReadBuffer, query, idx);
+
+      s_steps.emplace_back(ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2);
+      s_steps.emplace_back(ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2);
+      s_steps.emplace_back(ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size());
+      s_steps.emplace_back(ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2);
+      s_steps.emplace_back(ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, query.size() - 2);
+      s_steps.emplace_back(ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, query.size());
+    }
+    s_steps.emplace_back(ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0);
+    /* closing client connection */
+    s_steps.emplace_back(ExpectedStep::ExpectedRequest::closeClient, IOState::Done);
+    /* closing a connection to the backend */
+    s_steps.emplace_back(ExpectedStep::ExpectedRequest::closeBackend, IOState::Done);
+
+    s_processQuery = [backend](DNSQuestion&, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      selectedBackend = backend;
+      return ProcessQueryResult::PassToBackend;
+    };
+    s_processResponse = [](PacketBuffer&, DNSResponse&, bool) -> bool {
+      return true;
+    };
+
+    auto state = std::make_shared<IncomingTCPConnectionState>(ConnectionInfo(&localCS, getBackendAddress("84", 4242)), threadData, now);
+    state->handleIO();
+    BOOST_CHECK_EQUAL(s_writeBuffer.size(), query.size() * nbQueries);
+    BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), query.size() * nbQueries);
+    BOOST_CHECK_EQUAL(backend->outstanding.load(), 0U);
+    /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
+    IncomingTCPConnectionState::clearAllDownstreamConnections();
+  }
+}
+
 BOOST_AUTO_TEST_SUITE_END();
