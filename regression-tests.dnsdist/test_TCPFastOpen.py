@@ -5,7 +5,7 @@ import dns
 import requests
 import socket
 import struct
-from dnsdisttests import DNSDistTest
+from dnsdisttests import DNSDistTest, pickAvailablePort
 
 class TestBrokenTCPFastOpen(DNSDistTest):
 
@@ -13,10 +13,10 @@ class TestBrokenTCPFastOpen(DNSDistTest):
     # because, contrary to the other ones, its
     # TCP responder will accept a connection, read the
     # query then just close the connection right away
-    _testServerPort = 5410
+    _testServerPort = pickAvailablePort()
     _testServerRetries = 5
     _webTimeout = 2.0
-    _webServerPort = 8083
+    _webServerPort = pickAvailablePort()
     _webServerBasicAuthPassword = 'secret'
     _webServerBasicAuthPasswordHashed = '$scrypt$ln=10,p=1,r=8$6DKLnvUYEeXWh3JNOd3iwg==$kSrhdHaRbZ7R74q3lGBqO1xetgxRxhmWzYJ2Qvfm7JM='
     _webServerAPIKey = 'apisecret'
@@ -71,12 +71,12 @@ class TestBrokenTCPFastOpen(DNSDistTest):
 
         # Normal responder
         cls._UDPResponder = threading.Thread(name='UDP Responder', target=cls.UDPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue])
-        cls._UDPResponder.setDaemon(True)
+        cls._UDPResponder.daemon = True
         cls._UDPResponder.start()
 
         # Close the connection right after reading the query
         cls._TCPResponder = threading.Thread(name='Broken TCP Responder', target=cls.BrokenTCPResponder, args=[cls._testServerPort])
-        cls._TCPResponder.setDaemon(True)
+        cls._TCPResponder.daemon = True
         cls._TCPResponder.start()
 
     def testTCOFastOpenOnCloseAfterRead(self):

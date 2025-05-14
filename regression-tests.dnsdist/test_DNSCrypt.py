@@ -4,7 +4,7 @@ import socket
 import time
 import dns
 import dns.message
-from dnsdisttests import DNSDistTest
+from dnsdisttests import DNSDistTest, pickAvailablePort
 import dnscrypt
 
 class DNSCryptTest(DNSDistTest):
@@ -15,8 +15,7 @@ class DNSCryptTest(DNSDistTest):
     Be careful to change the _providerFingerprint below if you want to regenerate the keys.
     """
 
-    _dnsDistPort = 5340
-    _dnsDistPortDNSCrypt = 8443
+    _dnsDistPortDNSCrypt = pickAvailablePort()
 
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
@@ -76,7 +75,7 @@ class TestDNSCrypt(DNSCryptTest):
         """
         DNSCrypt: encrypted A query
         """
-        client = dnscrypt.DNSCryptClient(self._providerName, self._providerFingerprint, "127.0.0.1", 8443)
+        client = dnscrypt.DNSCryptClient(self._providerName, self._providerFingerprint, "127.0.0.1", self._dnsDistPortDNSCrypt)
         name = 'a.dnscrypt.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
@@ -98,7 +97,7 @@ class TestDNSCrypt(DNSCryptTest):
         the padding into account) and check that the response
         is truncated.
         """
-        client = dnscrypt.DNSCryptClient(self._providerName, self._providerFingerprint, "127.0.0.1", 8443)
+        client = dnscrypt.DNSCryptClient(self._providerName, self._providerFingerprint, "127.0.0.1", self._dnsDistPortDNSCrypt)
         name = 'smallquerylargeresponse.dnscrypt.tests.powerdns.com.'
         query = dns.message.make_query(name, 'TXT', 'IN', use_edns=True, payload=4096)
         response = dns.message.make_response(query)
@@ -130,7 +129,7 @@ class TestDNSCrypt(DNSCryptTest):
         """
         DNSCrypt: certificate rotation
         """
-        client = dnscrypt.DNSCryptClient(self._providerName, self._providerFingerprint, "127.0.0.1", 8443)
+        client = dnscrypt.DNSCryptClient(self._providerName, self._providerFingerprint, "127.0.0.1", self._dnsDistPortDNSCrypt)
         client.refreshResolverCertificates()
 
         cert = client.getResolverCertificate()
@@ -248,7 +247,7 @@ class TestDNSCrypt(DNSCryptTest):
         """
         DNSCrypt: Test DNSQuestion.Protocol over UDP
         """
-        client = dnscrypt.DNSCryptClient(self._providerName, self._providerFingerprint, "127.0.0.1", 8443)
+        client = dnscrypt.DNSCryptClient(self._providerName, self._providerFingerprint, "127.0.0.1", self._dnsDistPortDNSCrypt)
         name = 'udp.protocols.dnscrypt.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
@@ -259,7 +258,7 @@ class TestDNSCrypt(DNSCryptTest):
         """
         DNSCrypt: Test DNSQuestion.Protocol over TCP
         """
-        client = dnscrypt.DNSCryptClient(self._providerName, self._providerFingerprint, "127.0.0.1", 8443)
+        client = dnscrypt.DNSCryptClient(self._providerName, self._providerFingerprint, "127.0.0.1", self._dnsDistPortDNSCrypt)
         name = 'tcp.protocols.dnscrypt.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
@@ -282,7 +281,7 @@ class TestDNSCryptWithCache(DNSCryptTest):
         DNSCrypt: encrypted A query served from cache
         """
         misses = 0
-        client = dnscrypt.DNSCryptClient(self._providerName, self._providerFingerprint, "127.0.0.1", 8443)
+        client = dnscrypt.DNSCryptClient(self._providerName, self._providerFingerprint, "127.0.0.1", self._dnsDistPortDNSCrypt)
         name = 'cacheda.dnscrypt.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
         response = dns.message.make_response(query)
@@ -349,7 +348,7 @@ class TestDNSCryptAutomaticRotation(DNSCryptTest):
         """
         DNSCrypt: automatic certificate rotation
         """
-        client = dnscrypt.DNSCryptClient(self._providerName, self._providerFingerprint, "127.0.0.1", 8443)
+        client = dnscrypt.DNSCryptClient(self._providerName, self._providerFingerprint, "127.0.0.1", self._dnsDistPortDNSCrypt)
 
         client.refreshResolverCertificates()
         cert = client.getResolverCertificate()

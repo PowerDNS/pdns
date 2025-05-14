@@ -6,12 +6,12 @@ import json
 import requests
 import socket
 import time
-from dnsdisttests import DNSDistTest
+from dnsdisttests import DNSDistTest, pickAvailablePort
 
 class APITestsBase(DNSDistTest):
     __test__ = False
-    _webTimeout = 2.0
-    _webServerPort = 8083
+    _webTimeout = 5.0
+    _webServerPort = pickAvailablePort()
     _webServerBasicAuthPassword = 'secret'
     _webServerBasicAuthPasswordHashed = '$scrypt$ln=10,p=1,r=8$6DKLnvUYEeXWh3JNOd3iwg==$kSrhdHaRbZ7R74q3lGBqO1xetgxRxhmWzYJ2Qvfm7JM='
     _webServerAPIKey = 'apisecret'

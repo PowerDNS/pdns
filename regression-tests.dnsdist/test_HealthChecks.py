@@ -4,7 +4,7 @@ import threading
 import time
 import ssl
 import dns
-from dnsdisttests import DNSDistTest
+from dnsdisttests import DNSDistTest, pickAvailablePort
 
 class HealthCheckTest(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
@@ -22,7 +22,7 @@ class HealthCheckTest(DNSDistTest):
 class TestDefaultHealthCheck(HealthCheckTest):
     # this test suite uses a different responder port
     # because we need fresh counters
-    _testServerPort = 5380
+    _testServerPort = pickAvailablePort()
 
     def testDefault(self):
         """
@@ -68,7 +68,7 @@ class TestDefaultHealthCheck(HealthCheckTest):
 class TestHealthCheckForcedUP(HealthCheckTest):
     # this test suite uses a different responder port
     # because we need fresh counters
-    _testServerPort = 5381
+    _testServerPort = pickAvailablePort()
 
     _config_template = """
     setKey("%s")
@@ -89,7 +89,7 @@ class TestHealthCheckForcedUP(HealthCheckTest):
 class TestHealthCheckForcedDown(HealthCheckTest):
     # this test suite uses a different responder port
     # because we need fresh counters
-    _testServerPort = 5382
+    _testServerPort = pickAvailablePort()
 
     _config_template = """
     setKey("%s")
@@ -109,7 +109,7 @@ class TestHealthCheckForcedDown(HealthCheckTest):
 class TestHealthCheckCustomName(HealthCheckTest):
     # this test suite uses a different responder port
     # because it uses a different health check name
-    _testServerPort = 5383
+    _testServerPort = pickAvailablePort()
 
     _healthCheckName = 'powerdns.com.'
     _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_healthCheckName']
@@ -131,7 +131,7 @@ class TestHealthCheckCustomName(HealthCheckTest):
 class TestHealthCheckCustomNameNoAnswer(HealthCheckTest):
     # this test suite uses a different responder port
     # because it uses a different health check configuration
-    _testServerPort = 5384
+    _testServerPort = pickAvailablePort()
 
     _answerUnexpected = False
     _config_template = """
@@ -152,7 +152,7 @@ class TestHealthCheckCustomNameNoAnswer(HealthCheckTest):
 class TestHealthCheckCustomFunction(HealthCheckTest):
     # this test suite uses a different responder port
     # because it uses a different health check configuration
-    _testServerPort = 5385
+    _testServerPort = pickAvailablePort()
     _answerUnexpected = False
 
     _healthCheckName = 'powerdns.com.'
@@ -184,9 +184,9 @@ _dohHealthCheckQueries = 0
 
 class TestLazyHealthChecks(HealthCheckTest):
     _extraStartupSleep = 1
-    _do53Port = 10700
-    _dotPort = 10701
-    _dohPort = 10702
+    _do53Port = pickAvailablePort()
+    _dotPort = pickAvailablePort()
+    _dohPort = pickAvailablePort()
 
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
@@ -245,19 +245,19 @@ class TestLazyHealthChecks(HealthCheckTest):
         tlsContext.load_cert_chain('server.chain', 'server.key')
 
         Do53Responder = threading.Thread(name='Do53 Lazy Responder', target=cls.UDPResponder, args=[cls._do53Port, cls._toResponderQueue, cls._fromResponderQueue, False, cls.Do53Callback])
-        Do53Responder.setDaemon(True)
+        Do53Responder.daemon = True
         Do53Responder.start()
 
         Do53TCPResponder = threading.Thread(name='Do53 TCP Lazy Responder', target=cls.TCPResponder, args=[cls._do53Port, cls._toResponderQueue, cls._fromResponderQueue, False, False, cls.Do53Callback])
-        Do53TCPResponder.setDaemon(True)
+        Do53TCPResponder.daemon = True
         Do53TCPResponder.start()
 
         DoTResponder = threading.Thread(name='DoT Lazy Responder', target=cls.TCPResponder, args=[cls._dotPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, cls.DoTCallback, tlsContext])
-        DoTResponder.setDaemon(True)
+        DoTResponder.daemon = True
         DoTResponder.start()
 
         DoHResponder = threading.Thread(name='DoH Lazy Responder', target=cls.DOHResponder, args=[cls._dohPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, cls.DoHCallback, tlsContext])
-        DoHResponder.setDaemon(True)
+        DoHResponder.daemon = True
         DoHResponder.start()
 
     def testDo53Lazy(self):
