@@ -37,6 +37,7 @@ jobs:
         os:
           - el-8
           - centos-9-stream
+          - centos-10-stream
           - ubuntu-noble
           - ubuntu-oracular
           - debian-bookworm
