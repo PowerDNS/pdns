@@ -122,6 +122,7 @@ export PKG_CONFIG_PATH=/usr/lib/pkgconfig:/opt/lib64/pkgconfig
 %if "%{_arch}" == "aarch64" || 0%{?amzn2023}
   -Dxsk=disabled \
 %endif
+  -Debpf=enabled \
   -Dyaml=enabled
 %meson_build
 
