@@ -369,6 +369,8 @@ LWResult::Result arecvfrom(PacketBuffer& packet, int /* flags */, const ComboAdd
 
     len = packet.size();
 
+    // In ecs hardening mode, we consider a missing ECS in the reply as a case for retrying without ECS
+    // The actual logic to do that is in Syncres::doResolveAtThisIP()
     if (g_ECSHardening && pident->ecsSubnet && !*pident->ecsReceived) {
       t_Counters.at(rec::Counter::ecsMissingCount)++;
       return LWResult::Result::ECSMissing;
@@ -3038,9 +3040,7 @@ static void handleUDPServerResponse(int fileDesc, FDMultiplexer::funcparam_t& va
   if (!pident->domain.empty()) {
     auto iter = g_multiTasker->getWaiters().find(pident);
     if (iter != g_multiTasker->getWaiters().end()) {
-      if (g_ECSHardening) {
-        iter->key->ecsReceived = iter->key->ecsSubnet && checkIncomingECSSource(packet, *iter->key->ecsSubnet);
-      }
+      iter->key->ecsReceived = iter->key->ecsSubnet && checkIncomingECSSource(packet, *iter->key->ecsSubnet);
       doResends(iter, pident, packet, iter->key->ecsReceived);
     }
   }
