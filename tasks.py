@@ -108,7 +108,7 @@ auth_test_deps = [   # FIXME: we should be generating some of these from shlibde
     'curl',
     'default-jre-headless',
     'bind9-dnsutils',
-    'faketime',
+    'datefudge',
     'gawk',
     'krb5-user',
     'ldnsutils',
@@ -222,7 +222,7 @@ def is_coverage_enabled():
 
 def get_coverage(meson=False):
     if meson:
-        return '-D b_coverage=true' if os.getenv('COVERAGE') == 'yes' else ''
+        return '-D b_coverage=true' if is_coverage_enabled() else ''
     return '--enable-coverage=clang' if is_coverage_enabled() else ''
 
 @task
@@ -300,7 +300,6 @@ def install_rec_test_deps(c): # FIXME: rename this, we do way more than apt-get
               jq libfaketime lua-posix lua-socket bc authbind \
               python3-venv python3-dev default-libmysqlclient-dev libpq-dev \
               protobuf-compiler snmpd prometheus')
-
     c.run('chmod +x /opt/pdns-recursor/bin/* /opt/pdns-recursor/sbin/*')
 
     setup_authbind(c)
@@ -789,7 +788,8 @@ def ci_dnsdist_configure_meson(features, additional_flags, additional_ld_flags, 
                       -D dns-over-quic=enabled \
                       -D dns-over-tls=enabled \
                       -D reproducible=true \
-                      -D snmp=enabled'
+                      -D snmp=enabled \
+                      -D yaml=enabled'
     else:
       features_set = '-D cdb=disabled \
                       -D dnscrypt=disabled \
@@ -809,7 +809,8 @@ def ci_dnsdist_configure_meson(features, additional_flags, additional_ld_flags, 
                       -D dns-over-quic=disabled \
                       -D dns-over-tls=disabled \
                       -D reproducible=false \
-                      -D snmp=disabled'
+                      -D snmp=disabled \
+                      -D yaml=disabled'
     unittests = get_unit_tests(meson=True)
     fuzztargets = get_fuzzing_targets(meson=True)
     tools = f'''AR=llvm-ar-{clang_version} RANLIB=llvm-ranlib-{clang_version}''' if is_compiler_clang() else ''
@@ -824,7 +825,7 @@ def ci_dnsdist_configure_meson(features, additional_flags, additional_ld_flags, 
         f"CXX='{get_cxx_compiler()}'",
     ])
     return " ".join([
-        f'. {repo_home}/.venv/bin/activate && {env} meson setup {build_dir}',
+        f'{env} meson setup {build_dir}',
         features_set,
         unittests,
         fuzztargets,
@@ -869,7 +870,7 @@ def ci_dnsdist_make(c):
     c.run(f'make -j{get_build_concurrency(4)} -k V=1')
 
 def ci_dnsdist_run_ninja(c):
-    c.run(f'. {repo_home}/.venv/bin/activate && ninja -j{get_build_concurrency(4)} --verbose')
+    c.run(f'ninja -j{get_build_concurrency(4)} --verbose')
 
 @task
 def ci_dnsdist_make_bear(c, builder):
@@ -915,7 +916,7 @@ def ci_dnsdist_run_unit_tests(c, builder):
     if builder == 'meson':
         suite_timeout_sec = 120
         logfile = 'meson-logs/testlog.txt'
-        res = c.run(f'. {repo_home}/.venv/bin/activate && meson test --verbose -t {suite_timeout_sec}', warn=True)
+        res = c.run(f'meson test --verbose -t {suite_timeout_sec}', warn=True)
     else:
         logfile = 'test-suite.log'
         res = c.run('make check', warn=True)
@@ -934,12 +935,17 @@ def ci_auth_install(c, meson=False):
         c.run('make install') # FIXME: this builds auth docs - again
 
 @task
-def ci_make_install(c):
-    c.run('make install')
+def ci_rec_install(c, meson=False):
+    if meson:
+        c.sudo(f"bash -c 'source {repo_home}/.venv/bin/activate && meson install'")
+    else:
+        c.run('make install')
 
 @task
-def ci_rec_install(c, meson=False):
-    if not meson:
+def ci_dnsdist_install(c, meson=False):
+    if meson:
+        c.sudo(f"bash -c 'source {repo_home}/.venv/bin/activate && meson install'")
+    else:
         c.run('make install')
 
 @task
@@ -962,7 +968,7 @@ def test_api(c, product, backend=''):
             c.run(f'PDNSRECURSOR=/opt/pdns-recursor/sbin/pdns_recursor ./runtests recursor {backend}')
     elif product == 'auth':
         with c.cd('regression-tests.api'):
-            c.run(f'PDNSSERVER=/opt/pdns-auth/sbin/pdns_server PDNSUTIL=/opt/pdns-auth/bin/pdnsutil SDIG=/opt/pdns-auth/bin/sdig MYSQL_HOST={auth_backend_ip_addr} PGHOST={auth_backend_ip_addr} PGPORT=5432 ./runtests authoritative {backend}')
+            c.run(f'PDNSSERVER=/opt/pdns-auth/sbin/pdns-auth PDNSUTIL=/opt/pdns-auth/bin/pdns-auth-util SDIG=/opt/pdns-auth/bin/sdig MYSQL_HOST={auth_backend_ip_addr} PGHOST={auth_backend_ip_addr} PGPORT=5432 ./runtests authoritative {backend}')
     else:
         raise Failure('unknown product')
 
@@ -1106,7 +1112,7 @@ def setup_softhsm(c):
 
 @task
 def test_auth_backend(c, backend):
-    pdns_auth_env_vars = f'PDNS=/opt/pdns-auth/sbin/pdns_server PDNS2=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig NOTIFY=/opt/pdns-auth/bin/pdns_notify NSEC3DIG=/opt/pdns-auth/bin/nsec3dig SAXFR=/opt/pdns-auth/bin/saxfr ZONE2SQL=/opt/pdns-auth/bin/zone2sql ZONE2LDAP=/opt/pdns-auth/bin/zone2ldap ZONE2JSON=/opt/pdns-auth/bin/zone2json PDNSUTIL=/opt/pdns-auth/bin/pdnsutil PDNSCONTROL=/opt/pdns-auth/bin/pdns_control PDNSSERVER=/opt/pdns-auth/sbin/pdns_server SDIG=/opt/pdns-auth/bin/sdig GMYSQLHOST={auth_backend_ip_addr} GMYSQL2HOST={auth_backend_ip_addr} MYSQL_HOST={auth_backend_ip_addr} PGHOST={auth_backend_ip_addr} PGPORT=5432'
+    pdns_auth_env_vars = f'PDNS=/opt/pdns-auth/sbin/pdns-auth PDNS2=/opt/pdns-auth/sbin/pdns-auth SDIG=/opt/pdns-auth/bin/sdig NOTIFY=/opt/pdns-auth/bin/pdns-auth-notify NSEC3DIG=/opt/pdns-auth/bin/nsec3dig SAXFR=/opt/pdns-auth/bin/saxfr ZONE2SQL=/opt/pdns-auth/bin/pdns-zone2sql ZONE2LDAP=/opt/pdns-auth/bin/pdns-zone2ldap ZONE2JSON=/opt/pdns-auth/bin/pdns-zone2json PDNSUTIL=/opt/pdns-auth/bin/pdns-auth-util PDNSCONTROL=/opt/pdns-auth/bin/pdns-auth-control PDNSSERVER=/opt/pdns-auth/sbin/pdns-auth SDIG=/opt/pdns-auth/bin/sdig GMYSQLHOST={auth_backend_ip_addr} GMYSQL2HOST={auth_backend_ip_addr} MYSQL_HOST={auth_backend_ip_addr} PGHOST={auth_backend_ip_addr} PGPORT=5432'
     backend_env_vars = ''
 
     if backend == 'remote':
@@ -1152,7 +1158,7 @@ def test_auth_backend(c, backend):
             pdns_auth_env_vars += ' context=noipv6'
         with c.cd('regression-tests.nobackend'):
             c.run(f'{pdns_auth_env_vars} ./runtests')
-        c.run('/opt/pdns-auth/bin/pdnsutil test-algorithms')
+        c.run('/opt/pdns-auth/bin/pdns-auth-util test-algorithms')
         return
 
 @task
