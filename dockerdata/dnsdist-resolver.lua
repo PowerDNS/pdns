@@ -145,6 +145,8 @@ function _M.maintenance()
             end
         end
     end
+    collectgarbage()
+    collectgarbage()
 end
 
 return _M
