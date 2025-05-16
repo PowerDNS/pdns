@@ -5,7 +5,7 @@ opt_libssl_dir = get_option('tls-libssl-dir')
 if opt_libssl_dir != ''
   dep_libssl = declare_dependency(
     include_directories: [opt_libssl_dir / 'include'],
-    link_args: ['-L' + opt_libssl_dir / 'lib', '-lssl'],
+    link_args: ['-L' + opt_libssl_dir / 'lib', '-lssl', '-lcrypto'],
   )
 else
   dep_libssl = dependency('libssl', required: opt_libssl)

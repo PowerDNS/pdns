@@ -547,7 +547,7 @@ struct StackOfNamesDeleter
 
 #if defined(OPENSSL_IS_BORINGSSL)
 /* return type of OpenSSL's sk_XXX_num() */
-using SSLStackIndex size_t;
+using SSLStackIndex = size_t;
 #else
 using SSLStackIndex = int;
 #endif
