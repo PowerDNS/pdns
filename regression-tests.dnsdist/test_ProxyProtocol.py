@@ -453,7 +453,7 @@ class TestProxyProtocol(ProxyProtocolTest):
       server = self.getServerStats()[0]
       self.assertEqual(server['tcpNewConnections'], new_conn_before + number_of_queries)
       self.assertEqual(server['tcpReusedConnections'], reused_conn_before)
-      # in some cases existing (before this test) connections to the backend might still
+      # in some cases existing (established before this test) connections to the backend might still
       # exist, so we cannot enforce a strict "only 1 connection" check
       self.assertLessEqual(server['tcpMaxConcurrentConnections'], max_conns_before + 1)
       # but if we managed to add more than one connection to the existing ones, something is
