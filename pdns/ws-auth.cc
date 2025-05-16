@@ -2659,9 +2659,7 @@ static void jsonFillZoneNameArray(Json::array& array, std::vector<ZoneName>& zon
     // Remember ZoneName::toString() intentionally omits the variant
     std::string name(zone.toString());
     if (zone.hasVariant()) {
-      // Because toString() above always emit a trailing dot, do not
-      // output the first dot of c_separator, which would be redundant.
-      name += ZoneName::c_separator.substr(1);
+      name.push_back('.');
       name += zone.getVariant();
     }
     array.emplace_back(name);

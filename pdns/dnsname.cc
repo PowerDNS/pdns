@@ -759,11 +759,39 @@ void DNSName::makeUsRelative(const ZoneName& zone)
   makeUsRelative(zone.operator const DNSName&());
 }
 
+std::string_view::size_type ZoneName::findVariantSeparator(std::string_view name)
+{
+  std::string_view::size_type pos{0};
+
+  // Try to be as fast as possible in the non-variant case and exit
+  // quickly if we don't find two dots in a row.
+  while ((pos = name.find('.', pos)) != std::string_view::npos) {
+    ++pos;
+    if (pos >= name.length()) { // trailing single dot
+      return std::string_view::npos;
+    }
+    if (name.at(pos) == '.') {
+      // We have found two dots in a row, but the first dot might have been
+      // escaped. So we now need to count how many \ characters we can find a
+      // row before it; if their number is odd, the first dot is escaped and
+      // we need to keep searching.
+      size_t slashes{0};
+      while (pos >= 2 + slashes && name.at(pos - 2 - slashes) == '\\') {
+        ++slashes;
+      }
+      if ((slashes % 2) == 0) {
+	break;
+      }
+    }
+  }
+  return pos;
+}
+
 ZoneName::ZoneName(std::string_view name)
 {
-  if (auto sep = name.find(c_separator); sep != std::string_view::npos) {
-    setVariant(name.substr(sep + c_separator.size()));
-    name = name.substr(0, sep + c_separator.size() - 1); // keep trailing dot
+  if (auto sep = findVariantSeparator(name); sep != std::string_view::npos) {
+    setVariant(name.substr(sep + 1)); // ignore leading dot in variant name
+    name = name.substr(0, sep); // keep trailing dot in zone name
   }
   d_name = DNSName(name);
 }
@@ -785,11 +813,9 @@ std::string ZoneName::toLogString() const
   if (!d_variant.empty()) {
     // Because toLogString() above uses toStringRootDot(), we do not want to
     // output one too many dots if this is a root-with-variant.
-    if (d_name.isRoot()) {
-      ret += c_separator.substr(1);
-    }
-    else {
-      ret += c_separator;
+    ret.push_back('.');
+    if (!d_name.isRoot()) {
+      ret.push_back('.');
     }
     ret += d_variant;
   }
