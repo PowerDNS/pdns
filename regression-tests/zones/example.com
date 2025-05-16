@@ -20223,6 +20223,8 @@ foo1.svcb IN A 192.0.2.2 ; Should show up in additional
 bar.svcb IN SVCB 1 . alpn=h2
 bar.svcb IN SVCB 3 . alpn=h3 port=1500
 bar.svcb IN SVCB 4 . alpn=h3 port="1501"
+bar.svcb IN SVCB 5 . port="8004" no-default-alpn dohpath=/dns-query{?dns} ohttp tls-supported-groups=29,23
+bar.svcb IN SVCB 6 . key00997="quoted" key0998=foo key999=bar
 bar.svcb IN AAAA 2001:db8::3:1
 bar.svcb IN AAAA 2001:db8::3:4
 bar.svcb IN A 192.0.2.1
