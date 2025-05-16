@@ -5424,45 +5424,47 @@ void SyncRes::incTimeoutStats(const ComboAddress& remoteIP)
   }
 }
 
-bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname, const QType qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool const sendRDQuery, const bool wasForwarded, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool doDoT, bool& truncated, bool& spoofed, boost::optional<EDNSExtendedError>& extendedError, bool dontThrottle)
+void SyncRes::checkTotalTime(const DNSName& qname, QType qtype, boost::optional<EDNSExtendedError>& extendedError) const
 {
-  bool chained = false;
-  LWResult::Result resolveret = LWResult::Result::Success;
-
   if (s_maxtotusec != 0 && d_totUsec > s_maxtotusec) {
     if (s_addExtendedResolutionDNSErrors) {
       extendedError = EDNSExtendedError{static_cast<uint16_t>(EDNSExtendedError::code::NoReachableAuthority), "Timeout waiting for answer(s)"};
     }
     throw ImmediateServFailException("Too much time waiting for " + qname.toLogString() + "|" + qtype.toString() + ", timeouts: " + std::to_string(d_timeouts) + ", throttles: " + std::to_string(d_throttledqueries) + ", queries: " + std::to_string(d_outqueries) + ", " + std::to_string(d_totUsec / 1000) + " ms");
   }
+}
 
+bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname, const QType qtype, LWResult& lwr, boost::optional<Netmask>& ednsmask, const DNSName& auth, bool const sendRDQuery, const bool wasForwarded, const DNSName& nsName, const ComboAddress& remoteIP, bool doTCP, bool doDoT, bool& truncated, bool& spoofed, boost::optional<EDNSExtendedError>& extendedError, bool dontThrottle)
+{
+  checkTotalTime(qname, qtype, extendedError);
+
+  bool chained = false;
+  LWResult::Result resolveret = LWResult::Result::Success;
   int preOutQueryRet = RCode::NoError;
+
   if (d_pdl && d_pdl->preoutquery(remoteIP, d_requestor, qname, qtype, doTCP, lwr.d_records, preOutQueryRet, d_eventTrace, timeval{0, 0})) {
     LOG(prefix << qname << ": Query handled by Lua" << endl);
   }
   else {
-    bool sendECSIfRelevant = true;
-    for (int count = 0; count < 2; ++count) {
-      ednsmask = sendECSIfRelevant ? getEDNSSubnetMask(qname, remoteIP) : boost::none;
-      if (ednsmask) {
-        LOG(prefix << qname << ": Adding EDNS Client Subnet Mask " << ednsmask->toString() << " to query" << endl);
-        s_ecsqueries++;
-      }
+    ednsmask = getEDNSSubnetMask(qname, remoteIP);
+    if (ednsmask) {
+      LOG(prefix << qname << ": Adding EDNS Client Subnet Mask " << ednsmask->toString() << " to query" << endl);
+      s_ecsqueries++;
+    }
+    auto match = d_eventTrace.add(RecEventTrace::AuthRequest, qname.toLogString() + '/' + qtype.toString(), true, 0);
+    updateQueryCounts(prefix, qname, remoteIP, doTCP, doDoT);
+    resolveret = asyncresolveWrapper(remoteIP, d_doDNSSEC, qname, auth, qtype.getCode(),
+                                     doTCP, sendRDQuery, &d_now, ednsmask, &lwr, &chained, nsName); // <- we go out on the wire!
+    d_eventTrace.add(RecEventTrace::AuthRequest, static_cast<int64_t>(lwr.d_rcode), false, match);
+    ednsStats(ednsmask, qname, prefix);
+    if (resolveret == LWResult::Result::ECSMissing) {
+      ednsmask = boost::none;
+      LOG(prefix << qname << ": Answer has no ECS, trying again without EDNS Client Subnet Mask" << endl);
       updateQueryCounts(prefix, qname, remoteIP, doTCP, doDoT);
-      auto match = d_eventTrace.add(RecEventTrace::AuthRequest, qname.toLogString() + '/' + qtype.toString(), true, 0);
+      match = d_eventTrace.add(RecEventTrace::AuthRequest, qname.toLogString() + '/' + qtype.toString(), true, 0);
       resolveret = asyncresolveWrapper(remoteIP, d_doDNSSEC, qname, auth, qtype.getCode(),
                                        doTCP, sendRDQuery, &d_now, ednsmask, &lwr, &chained, nsName); // <- we go out on the wire!
       d_eventTrace.add(RecEventTrace::AuthRequest, static_cast<int64_t>(lwr.d_rcode), false, match);
-      ednsStats(ednsmask, qname, prefix);
-      if (resolveret == LWResult::Result::ECSMissing) {
-        if (sendECSIfRelevant) {
-          sendECSIfRelevant = false;
-          LOG(prefix << qname << ": Answer has no ECS, trying again without EDNS Client Subnet Mask" << endl);
-          continue;
-        }
-        assert(0); // should not happen
-      }
-      break; // when no ECS shenanigans happened, only one pass through the loop
     }
   }
 
