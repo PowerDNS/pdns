@@ -759,11 +759,40 @@ void DNSName::makeUsRelative(const ZoneName& zone)
   makeUsRelative(zone.operator const DNSName&());
 }
 
+std::string_view::size_type ZoneName::findVariantSeparator(std::string_view name)
+{
+  std::string_view::size_type pos{0};
+  bool escaped{false};
+  bool dot{false};
+
+  for (; pos < name.length(); ++pos) {
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    switch (name.at(pos)) {
+    case '.':
+      if (dot) {
+        return pos;
+      }
+      dot = true;
+      break;
+    case '\\':
+      escaped = true;
+      [[fallthrough]];
+    default:
+      dot = false;
+      break;
+    }
+  }
+  return std::string_view::npos;
+}
+
 ZoneName::ZoneName(std::string_view name)
 {
-  if (auto sep = name.find(c_separator); sep != std::string_view::npos) {
-    setVariant(name.substr(sep + c_separator.size()));
-    name = name.substr(0, sep + c_separator.size() - 1); // keep trailing dot
+  if (auto sep = findVariantSeparator(name); sep != std::string_view::npos) {
+    setVariant(name.substr(sep + 1)); // ignore leading dot in variant name
+    name = name.substr(0, sep); // keep trailing dot in zone name
   }
   d_name = DNSName(name);
 }
@@ -785,11 +814,9 @@ std::string ZoneName::toLogString() const
   if (!d_variant.empty()) {
     // Because toLogString() above uses toStringRootDot(), we do not want to
     // output one too many dots if this is a root-with-variant.
-    if (d_name.isRoot()) {
-      ret += c_separator.substr(1);
-    }
-    else {
-      ret += c_separator;
+    ret.push_back('.');
+    if (!d_name.isRoot()) {
+      ret.push_back('.');
     }
     ret += d_variant;
   }

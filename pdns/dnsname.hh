@@ -330,12 +330,6 @@ extern const DNSName g_rootdnsname, g_wildcarddnsname;
 class ZoneName
 {
 public:
-  // The character sequence used to separate a name from its variant.
-  // When using variants, we require the zone name to be written with an
-  // explicit trailing dot, and the variant name is prefixed by a dot.
-  // Thus we look for two dots in sequence to decide if a variant is present.
-  constexpr static std::string_view c_separator{".."};
-
   ZoneName() = default; //!< Constructs an *empty* ZoneName, NOT the root!
   // Work around assertion in some boost versions that do not like self-assignment of boost::container::string
   ZoneName& operator=(const ZoneName& rhs)
@@ -398,6 +392,12 @@ public:
   std::string getVariant() const { return d_variant; }
   void clearVariant() { d_variant.clear(); }
   void setVariant(std::string_view);
+
+  // Search for a variant separator: mandatory (when variants are used) trailing
+  // dot followed by another dot and the variant name, and return the length of
+  // the zone name without its variant part, or npos if there is no variant
+  // present.
+  static std::string_view::size_type findVariantSeparator(std::string_view name);
 
 private:
   DNSName d_name;

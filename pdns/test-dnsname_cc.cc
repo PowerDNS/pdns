@@ -1032,4 +1032,26 @@ BOOST_AUTO_TEST_CASE(test_getcommonlabels) {
   BOOST_CHECK_EQUAL(name5.getCommonLabels(name1), DNSName());
 }
 
+#if defined(PDNS_AUTH)
+BOOST_AUTO_TEST_CASE(test_variantnames) {
+  ZoneName zone1("..variant");
+  ZoneName zone2("bug.less..variant");
+  ZoneName zone3("actually\\..not.a.variant");
+  ZoneName zone4("anti-\\\\..variant");
+
+  BOOST_CHECK(zone1.hasVariant());
+  BOOST_CHECK(zone1.operator const DNSName&().isRoot());
+
+  BOOST_CHECK(zone2.hasVariant());
+  BOOST_CHECK_EQUAL(zone2.operator const DNSName&().toString(), "bug.less.");
+  BOOST_CHECK_EQUAL(zone2.getVariant(), "variant");
+
+  BOOST_CHECK(!zone3.hasVariant());
+
+  BOOST_CHECK(zone4.hasVariant());
+  BOOST_CHECK_EQUAL(zone4.operator const DNSName&().toString(), "anti-\\\\.");
+  BOOST_CHECK_EQUAL(zone4.getVariant(), "variant");
+}
+#endif
+
 BOOST_AUTO_TEST_SUITE_END()
