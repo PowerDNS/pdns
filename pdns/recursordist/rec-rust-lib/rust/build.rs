@@ -5,7 +5,7 @@ fn main() {
         .flag_if_supported("-std=c++17")
         .flag("-Isrc")
         .flag("-I../..")
-        .compile("settings");
+        .compile("recrust");
 
     // lib.rs is generated and taken care of by parent Makefile
     println!("cargo:rerun-if-changed=src/misc.rs");

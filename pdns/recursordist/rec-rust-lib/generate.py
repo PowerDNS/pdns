@@ -89,6 +89,7 @@ from enum import auto
 import os
 import re
 import sys
+from pathlib import Path
 
 class LType(Enum):
     """The type we handle in table.py"""
@@ -838,8 +839,19 @@ def generate():
     if os.path.isdir('../docs'):
         gen_oldstyle_docs(srcdir, entries)
         gen_newstyle_docs(srcdir, entries)
-    # touch pseudo output file
-    with open(gendir + '/timestamp', mode='w', encoding="utf-8") as file:
-        file.write('')
-        file.close()
+    # Remove cxx generated files, they need to be re-generated after a table change and the rust dependency tracking does
+    # not do that in some cases.
+    Path(gendir, 'rust', 'librecrust.a').unlink(True)
+    Path(gendir, 'rust', 'lib.rs.h').unlink(True)
+    Path(gendir, 'rust', 'web.rs.h').unlink(True)
+    Path(gendir, 'rust', 'cxx.h').unlink(True)
+    Path(gendir, 'rust', 'misc.rs.h').unlink(True)
+    # Path.walk exists only in very recent versions of Python
+    # With meson, target is in toplevel build dir
+    # With autotools, target exists in rec-rust-lib/rust and this Python script is executed with cwd rec-rust-lib
+    for topdir in ['target', 'rust/target']:
+        for root, dirs, files in os.walk(topdir, topdown=False):
+            for name in files:
+                os.remove(os.path.join(root, name))
+
 generate()
