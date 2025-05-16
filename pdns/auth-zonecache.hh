@@ -26,20 +26,34 @@
 #include "dnsname.hh"
 #include "lock.hh"
 #include "misc.hh"
+#include "iputils.hh"
+#include "dnspacket.hh"
 
 class AuthZoneCache : public boost::noncopyable
 {
 public:
   AuthZoneCache(size_t mapsCount = 1024);
 
-  void replace(const vector<std::tuple<ZoneName, int>>& zone);
-  void add(const ZoneName& zone, const int zoneId);
+  using ViewsMap = std::map<std::string, std::map<DNSName, std::string>>;
+
+  // Zone maintainance
+  void replace(const vector<std::tuple<ZoneName, domainid_t>>& zone);
+  void replace(NetmaskTree<string> nettree);
+  void replace(ViewsMap viewsmap);
+  void add(const ZoneName& zone, const domainid_t zoneId);
   void remove(const ZoneName& zone);
   void setReplacePending(); //!< call this when data collection for the subsequent replace() call starts.
 
-  bool getEntry(const ZoneName& zone, int& zoneId);
+  // Views maintainance
+  void addToView(const std::string& view, const ZoneName& zone);
+  void removeFromView(const std::string& view, const ZoneName& zone);
 
-  size_t size() { return *d_statnumentries; } //!< number of entries in the cache
+  // Network maintainance
+  void updateNetwork(const Netmask& network, const std::string& view);
+
+  // Zone lookup, on behalf of an optional network
+  bool getEntry(ZoneName& zone, domainid_t& zoneId, Netmask* net = nullptr);
+  void setZoneVariant(DNSPacket& packet);
 
   uint32_t getRefreshInterval() const
   {
@@ -57,9 +71,12 @@ public:
   void clear();
 
 private:
+  SharedLockGuarded<NetmaskTree<string>> d_nets;
+  SharedLockGuarded<ViewsMap> d_views;
+
   struct CacheValue
   {
-    int zoneId{-1};
+    domainid_t zoneId{UnknownDomainID};
   };
 
   typedef std::unordered_map<ZoneName, CacheValue, std::hash<ZoneName>> cmap_t;
@@ -92,7 +109,7 @@ private:
 
   struct PendingData
   {
-    std::vector<std::tuple<ZoneName, int, bool>> d_pendingUpdates;
+    std::vector<std::tuple<ZoneName, domainid_t, bool>> d_pendingUpdates;
     bool d_replacePending{false};
   };
   LockGuarded<PendingData> d_pending;

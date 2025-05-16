@@ -20152,9 +20152,6 @@ usa-ns2.usa.example.com	120	IN	A	192.168.4.2
 *.w4.example.com	120	IN	CNAME	x.y.z.w5.example.com.
 *.w5.example.com	120	IN	A	1.2.3.5
 www.example.com	120	IN	CNAME	outpost.example.com.
-WARNING: local files have been created as a result of this operation.
-Be sure to check the files owner, group and permission to make sure that
-the authoritative server can correctly use them.
 $ORIGIN .
 test.com	3600	IN	NS	ns1.test.com.
 test.com	3600	IN	NS	ns2.test.com.
@@ -40476,9 +40473,6 @@ usa-ns2.usa.example.com	120	IN	A	192.168.4.2
 *.w4.example.com	120	IN	CNAME	x.y.z.w5.example.com.
 *.w5.example.com	120	IN	A	1.2.3.5
 www.example.com	120	IN	CNAME	outpost.example.com.
-WARNING: local files have been created as a result of this operation.
-Be sure to check the files owner, group and permission to make sure that
-the authoritative server can correctly use them.
 $ORIGIN .
 test.com	3600	IN	NS	ns1.test.com.
 test.com	3600	IN	NS	ns2.test.com.

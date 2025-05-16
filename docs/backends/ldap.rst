@@ -12,6 +12,7 @@ LDAP backend
 * Disabled data: No
 * Comments: No
 * Search: No
+* Views: No
 * API: Read-only
 * Multiple instances: Yes
 * Zone caching: No

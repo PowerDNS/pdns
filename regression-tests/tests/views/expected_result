@@ -1,0 +1,24 @@
+1	example.com.	86400	IN	SOA	ns1.example.com. ahu.example.com. 2847484148 28800 7200 604800 86400
+2	.	0	IN	OPT	
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='example.com.', qtype=TXT
+1	example.com.	86400	IN	SOA	ns1.example.com. ahu.example.com. 2847484148 28800 7200 604800 86400
+2	.	0	IN	OPT	
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='example.com.', qtype=TXT
+1	example.com.	86400	IN	SOA	ns1.example.com. ahu.example.com. 2847484148 28800 7200 604800 86400
+2	.	0	IN	OPT	
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='cname.example.com.', qtype=TXT
+1	example.com.	86400	IN	SOA	ns1.example.com. ahu.example.com. 2847484148 28800 7200 604800 86400
+2	.	0	IN	OPT	
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='cname.example.com.', qtype=TXT
+1	example.com.	86400	IN	SOA	ns1.example.com. ahu.example.com. 2847484148 28800 7200 604800 86400
+2	.	0	IN	OPT	
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='cname-nxd.example.com.', qtype=TXT
+1	example.com.	86400	IN	SOA	ns1.example.com. ahu.example.com. 2847484148 28800 7200 604800 86400
+2	.	0	IN	OPT	
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='cname-nxd.example.com.', qtype=TXT
