@@ -614,4 +614,86 @@ BOOST_AUTO_TEST_CASE(test_AuthPacketCacheNetmasks) {
   }
 }
 
+static void feedPacketCache2(AuthPacketCache& PC, Netmask &netmask, const std::string &text) // NOLINT(readability-identifier-length)
+{
+  std::vector<uint8_t> storage;
+  DNSName qname = DNSName("name");
+  DNSPacketWriter qwriter(storage, qname, QType::A);
+  DNSPacket query(true);
+  query.parse(reinterpret_cast<char*>(storage.data()), storage.size()); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast): can't static_cast because of sign difference
+  storage.clear();
+  DNSPacketWriter rwriter(storage, qname, QType::A);
+  rwriter.startRecord(qname, QType::TXT, 3600, QClass::IN, DNSResourceRecord::ANSWER);
+  rwriter.xfrText(text);
+  rwriter.commit();
+  DNSPacket response(false);
+  response.parse(reinterpret_cast<char*>(storage.data()), storage.size()); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast): can't static_cast because of sign difference
+  // magic copied from threadPCMangler() above
+  query.setHash(PacketCache::canHashPacket(query.getString()));
+  PC.insert(query, response, 2600, netmask);
+}
+
+static void slurpPacketCache2(AuthPacketCache& PC, ComboAddress* from, const std::string &text) // NOLINT(readability-identifier-length)
+{
+  std::vector<uint8_t> storage;
+  DNSName qname = DNSName("name");
+  DNSPacketWriter qwriter(storage, qname, QType::A);
+  DNSPacket query(true);
+  query.parse(reinterpret_cast<char*>(storage.data()), storage.size()); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast): can't static_cast because of sign difference
+
+  DNSPacket response(false);
+  bool hit = PC.get(query, response, from);
+  BOOST_CHECK_EQUAL(hit, true);
+  if (!hit) {
+    return;
+  }
+  BOOST_CHECK_EQUAL(response.qdomain, query.qdomain);
+  const std::string& wiresponse = response.getString();
+  MOADNSParser parser(false, wiresponse.c_str(), wiresponse.size());
+  BOOST_REQUIRE_EQUAL(parser.d_answers.size(), 1U);
+  const auto& record = parser.d_answers.at(0);
+  BOOST_REQUIRE_EQUAL(record.d_type, QType::TXT);
+  BOOST_REQUIRE_EQUAL(record.d_class, QClass::IN);
+  auto content = getRR<TXTRecordContent>(record);
+  BOOST_REQUIRE(content);
+  BOOST_REQUIRE_EQUAL(content->d_text, text);
+}
+
+// This test mimics what was planned for a demo, and packet cache had to be
+// disabled in a hurry to hide a AuthPacketCache::getEntryLocked() bug...
+BOOST_AUTO_TEST_CASE(test_AuthPacketDemo) {
+  try {
+    ::arg().setSwitch("no-shuffle","Set this to prevent random shuffling of answers - for regression testing")="off";
+
+    AuthPacketCache PC; // NOLINT(readability-identifier-length) 
+    PC.setMaxEntries(1000000);
+    PC.setTTL(0xc0ffee); // cache works better when programmer is cafeinated and doesn't forget to enable it
+
+    Netmask nm1("192.0.2.0/24"); // 192.0.2.[0-255]
+    Netmask nm2("192.0.2.0/25"); // 192.0.2.[0-127]
+
+    feedPacketCache2(PC, nm2, "\"nm2\"");
+    feedPacketCache2(PC, nm1, "\"nm1\"");
+    BOOST_REQUIRE_EQUAL(PC.size(), 2);
+
+    // Now check that we are getting cache hits for all the packets we've added,
+    // with the correct answers
+    for (int outerloop = 0; outerloop < 2; ++outerloop) {
+      for (unsigned int lowip = 1; lowip <= 128; ++lowip) {
+        ComboAddress requester(std::string("192.0.2.") + std::to_string(lowip));
+        if (lowip < 128) { // in narrower nm2
+          slurpPacketCache2(PC, &requester, "\"nm2\"");
+        }
+        else {
+          slurpPacketCache2(PC, &requester, "\"nm1\"");
+        }
+      }
+    }
+  }
+  catch(PDNSException& e) {
+    cerr<<"Had error in AuthPacketCache: "<<e.reason<<endl;
+    throw;
+  }
+}
+
 BOOST_AUTO_TEST_SUITE_END()

@@ -177,6 +177,8 @@ bool AuthPacketCache::getEntryLocked(const cmap_t& map, const std::string& query
 {
   auto& idx = map.get<HashTag>();
   auto range = idx.equal_range(hash);
+  const Netmask *lastmask{nullptr};
+  bool found{false}; // if set, implies lastmask is not nullptr
 
   for(auto iter = range.first; iter != range.second ; ++iter)  {
     if (iter->ttd < now) {
@@ -187,24 +189,33 @@ bool AuthPacketCache::getEntryLocked(const cmap_t& map, const std::string& query
       continue;
     }
     // Check network origin if applicable:
-    // - if we pass an address, only consider entries with a netmask matching that address
     // - if we don't pass an address, only consider entries with no netmask
-    if (from != nullptr) {
-      if (!iter->netmask || !iter->netmask->match(*from)) {
-        continue;
-      }
-    }
-    else {
+    // - if we pass an address, only consider entries with a netmask matching that address
+    if (from == nullptr) {
       if (iter->netmask) {
         continue;
       }
+      value = iter->value;
+      return true;
     }
 
+    if (!iter->netmask || !iter->netmask->match(*from)) {
+      continue;
+    }
+    // If we had a candidate value already, only update it if this netmask
+    // is narrower.
+    if (found && iter->netmask->getBits() < lastmask->getBits()) {
+      continue;
+    }
+    // When we are searching with an address, we need to loop over all entries
+    // in order to pick the narrowest match, so don't return this possible
+    // match yet.
     value = iter->value;
-    return true;
+    lastmask = &(*iter->netmask);
+    found = true;
   }
 
-  return false;
+  return found;
 }
 
 /* clears the entire cache. */
