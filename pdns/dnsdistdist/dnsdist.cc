@@ -2422,7 +2422,7 @@ static void healthChecksThread()
   }
 }
 
-static void bindAny([[maybe_unused]] int addressFamily, int sock)
+static void bindAny([[maybe_unused]] int addressFamily, [[maybe_unused]] int sock)
 {
   __attribute__((unused)) int one = 1;
 
