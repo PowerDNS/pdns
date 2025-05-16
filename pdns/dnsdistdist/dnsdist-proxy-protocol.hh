@@ -29,7 +29,7 @@ extern bool g_applyACLToProxiedClients;
 
 std::string getProxyProtocolPayload(const DNSQuestion& dq);
 
-bool addProxyProtocol(DNSQuestion& dq, size_t* proxyProtocolPayloadSize = nullptr);
+bool addProxyProtocol(DNSQuestion& dnsQuestion, size_t* proxyProtocolPayloadSize = nullptr);
 bool addProxyProtocol(DNSQuestion& dq, const std::string& payload);
 bool addProxyProtocol(PacketBuffer& buffer, const std::string& payload);
 bool addProxyProtocol(PacketBuffer& buffer, bool tcp, const ComboAddress& source, const ComboAddress& destination, const std::vector<ProxyProtocolValue>& values);

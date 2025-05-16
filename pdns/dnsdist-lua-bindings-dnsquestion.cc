@@ -565,6 +565,7 @@ private:
     }
     dr.asynchronous = true;
     dr.getMutableData() = *dr.ids.d_packet;
+    dr.ids.d_proxyProtocolPayloadSize = 0;
     auto query = dnsdist::getInternalQueryFromDQ(dr, false);
     return dnsdist::queueQueryResumptionEvent(std::move(query));
   });
