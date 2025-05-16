@@ -846,14 +846,12 @@ def generate():
     Path(gendir, 'rust', 'web.rs.h').unlink(True)
     Path(gendir, 'rust', 'cxx.h').unlink(True)
     Path(gendir, 'rust', 'misc.rs.h').unlink(True)
-    # Path.walk exist only in very new versions of Python
+    # Path.walk exists only in very recent versions of Python
     # With meson, target is in toplevel build dir
-    for root, dirs, files in os.walk('target', topdown=False):
-        for name in files:
-            os.remove(os.path.join(root, name))
     # With autotools, target exists in rec-rust-lib/rust and this Python script is executed with cwd rec-rust-lib
-    for root, dirs, files in os.walk('rust/target', topdown=False):
-        for name in files:
-            os.remove(os.path.join(root, name))
+    for topdir in ['target', 'rust/target']:
+        for root, dirs, files in os.walk(topdir, topdown=False):
+            for name in files:
+                os.remove(os.path.join(root, name))
 
 generate()
