@@ -1,8 +1,7 @@
 # To generate requirements.txt, install pip-tools and run:
 #  pip-compile --generate-hashes -U requirements.in
 
-pyyaml==6.0.1
-meson
-ninja
 invoke
 requests==2.32.3
+pulp-cli==0.29.2
+pulp-cli-deb==0.3.1
