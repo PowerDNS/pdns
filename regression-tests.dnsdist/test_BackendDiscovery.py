@@ -454,7 +454,7 @@ class TestBackendDiscoveryByHostname(DNSDistTest):
 
         for backend in backends:
             if str(backend) in ['2620:fe::9]:53', '[2620:fe::fe]:53']:
-                # IPv6 is very flaky on GH actions these days,
+                # IPv6 is very flaky on GH actions these days (202505),
                 # let's not require these to be up
                 continue
             if backends[backend] != 'up':
