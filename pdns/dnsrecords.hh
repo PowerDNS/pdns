@@ -1061,6 +1061,8 @@ struct EDNSOpts
   uint16_t d_packetsize{0};
   uint16_t d_extFlags{0};
   uint8_t d_extRCode, d_version;
+
+  [[nodiscard]] vector<pair<uint16_t, string>>::const_iterator getFirstOption(uint16_t optionCode) const;
 };
 //! Convenience function that fills out EDNS0 options, and returns true if there are any
 
