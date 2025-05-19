@@ -2,7 +2,6 @@ sources = files(
   'dnsdist-settings-generator.py',
   '../dnsdist-settings-definitions.yml',
   'dnsdist-configuration-yaml-items-generated-pre-in.cc',
-  'dnsdist-configuration-yaml-items-generated.cc',
   'dnsdist-settings-documentation-generator.py',
   'rust-pre-in.rs',
   'rust-middle-in.rs',
@@ -16,7 +15,7 @@ generated = [
 python = find_program('python3')
 
 rust_lib_sources = custom_target(
-  command: [python, '@INPUT0@', '@SOURCE_ROOT@', '@SOURCE_ROOT@/dnsdist-rust-lib', '@SOURCE_ROOT@'],
+  command: [python, '@INPUT0@', '@SOURCE_ROOT@', '@SOURCE_ROOT@/dnsdist-rust-lib', '@SOURCE_ROOT@', '@BUILD_ROOT@'],
   input: sources,
   output: generated,
 )
