@@ -593,37 +593,37 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
       lwr->d_records.push_back(answer);
     }
 
-    EDNSOpts edo;
-    if (EDNS0Level > 0 && getEDNSOpts(mdp, &edo)) {
+    if (EDNSOpts edo; EDNS0Level > 0 && getEDNSOpts(mdp, &edo)) {
       lwr->d_haveEDNS = true;
 
       // If we sent out ECS, we can also expect to see a return with or without ECS, the absent case
-      // is not handled explicitly. In hardening mode, if we do see a ECS in the reply, the source
-      // part *must* match with what we sent out. See
-      // https://www.rfc-editor.org/rfc/rfc7871#section-7.3
+      // is not handled explicitly. If we do see a ECS in the reply, the source part *must* match
+      // with what we sent out. See https://www.rfc-editor.org/rfc/rfc7871#section-7.3. and section
+      // 11.2.
+      // For ECS hardening mode, the case where we sent out an ECS but did not receive a matching
+      // one is handled in arecvfrom().
       if (subnetOpts) {
-        for (const auto& opt : edo.d_options) {
-          if (opt.first == EDNSOptionCode::ECS) {
-            EDNSSubnetOpts reso;
-            if (EDNSSubnetOpts::getFromString(opt.second, &reso)) {
-              if (g_ECSHardening && !(reso.getSource() == subnetOpts->getSource())) {
-                g_slogout->info(Logr::Notice, "Incoming ECS does not match outgoing",
-                                "server", Logging::Loggable(address),
-                                "qname", Logging::Loggable(domain),
-                                "outgoing", Logging::Loggable(subnetOpts->getSource()),
-                                "incoming", Logging::Loggable(reso.getSource()));
-                return LWResult::Result::Spoofed; // XXXXX OK?
-              }
-              /* rfc7871 states that 0 "indicate[s] that the answer is suitable for all addresses in FAMILY",
-                 so we might want to still pass the information along to be able to differentiate between
-                 IPv4 and IPv6. Still I'm pretty sure it doesn't matter in real life, so let's not duplicate
-                 entries in our cache. */
-              if (reso.getScopePrefixLength() != 0) {
-                uint8_t bits = std::min(reso.getScopePrefixLength(), subnetOpts->getSourcePrefixLength());
-                auto outgoingECSAddr = subnetOpts->getSource().getNetwork();
-                outgoingECSAddr.truncate(bits);
-                srcmask = Netmask(outgoingECSAddr, bits);
-              }
+        // THE RFC is not clear about the case of having multiple ECS options. We only look at the first.
+        if (const auto opt = edo.getFirstOption(EDNSOptionCode::ECS); opt != edo.d_options.end()) {
+          EDNSSubnetOpts reso;
+          if (EDNSSubnetOpts::getFromString(opt->second, &reso)) {
+            if (!doTCP && reso.getSource() != subnetOpts->getSource()) {
+              g_slogout->info(Logr::Notice, "Incoming ECS does not match outgoing",
+                              "server", Logging::Loggable(address),
+                              "qname", Logging::Loggable(domain),
+                              "outgoing", Logging::Loggable(subnetOpts->getSource()),
+                              "incoming", Logging::Loggable(reso.getSource()));
+              return LWResult::Result::Spoofed;
+            }
+            /* rfc7871 states that 0 "indicate[s] that the answer is suitable for all addresses in FAMILY",
+               so we might want to still pass the information along to be able to differentiate between
+               IPv4 and IPv6. Still I'm pretty sure it doesn't matter in real life, so let's not duplicate
+               entries in our cache. */
+            if (reso.getScopePrefixLength() != 0) {
+              uint8_t bits = std::min(reso.getScopePrefixLength(), subnetOpts->getSourcePrefixLength());
+              auto outgoingECSAddr = subnetOpts->getSource().getNetwork();
+              outgoingECSAddr.truncate(bits);
+              srcmask = Netmask(outgoingECSAddr, bits);
             }
           }
         }

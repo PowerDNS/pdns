@@ -7,10 +7,14 @@ import time
 import clientsubnetoption
 import unittest
 from recursortests import RecursorTest, have_ipv6
+
+from twisted.internet.protocol import Factory
+from twisted.internet.protocol import Protocol
 from twisted.internet.protocol import DatagramProtocol
 from twisted.internet import reactor
 
 emptyECSText = 'No ECS received'
+mismatchedECSText = 'Mismatched ECS'
 nameECS = 'ecs-echo.example.'
 nameECSInvalidScope = 'invalid-scope.ecs-echo.example.'
 ttlECS = 60
@@ -86,16 +90,15 @@ ecs-add-for=0.0.0.0/0
 
         if not ecsReactorRunning:
             reactor.listenUDP(port, UDPECSResponder(), interface=address)
+            reactor.listenTCP(port, TCPECSFactory(), interface=address)
             ecsReactorRunning = True
 
         if not ecsReactorv6Running and have_ipv6():
             reactor.listenUDP(53000, UDPECSResponder(), interface='::1')
+            reactor.listenTCP(53000, TCPECSFactory(), interface='::1')
             ecsReactorv6Running = True
 
-        if not reactor.running:
-            cls._UDPResponder = threading.Thread(name='UDP Responder', target=reactor.run, args=(False,))
-            cls._UDPResponder.daemon = True
-            cls._UDPResponder.start()
+        cls.startReactor()
 
 class NoECSTest(ECSTest):
     _confdir = 'NoECS'
@@ -194,7 +197,7 @@ webserver-allow-from=127.0.0.1
 api-key=%s
     """ % (os.environ['PREFIX'], _wsPort, _wsPassword, _apiKey)
 
-    # All test below have ecs-missing count to be 1, as they result is a no ecs scoped answer in the cache
+    # All test below have ecs-missing count to be 1, as they result in a non ecs scoped answer in the cache
     def test1SendECS(self):
         expected = dns.rrset.from_text('x'+ nameECS, ttlECS, dns.rdataclass.IN, 'TXT', 'X')
         ecso = clientsubnetoption.ClientSubnetOption('192.0.2.1', 32)
@@ -220,6 +223,58 @@ api-key=%s
         self.checkMetrics({
             'ecs-missing': 1
         })
+
+class MismatchedECSInAnswerTest(ECSTest):
+    _confdir = 'MismatchedECSInAnswer'
+
+    _config_template = """edns-subnet-allow-list=mecs-echo.example
+forward-zones=mecs-echo.example=%s.21
+dont-throttle-netmasks=0.0.0.0/0
+    """ % (os.environ['PREFIX'])
+
+    def test1SendECS(self):
+        expected = dns.rrset.from_text('m'+ nameECS, ttlECS, dns.rdataclass.IN, 'TXT', emptyECSText)
+        ecso = clientsubnetoption.ClientSubnetOption('192.0.2.1', 32)
+        query = dns.message.make_query('m' + nameECS, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
+        self.sendECSQuery(query, expected)
+
+    def test2NoECS(self):
+        expected = dns.rrset.from_text('m' + nameECS, ttlECS, dns.rdataclass.IN, 'TXT', emptyECSText)
+        query = dns.message.make_query('m' + nameECS, 'TXT')
+        self.sendECSQuery(query, expected)
+
+    def test3RequireNoECS(self):
+        expected = dns.rrset.from_text('m' + nameECS, ttlECS, dns.rdataclass.IN, 'TXT', emptyECSText)
+        ecso = clientsubnetoption.ClientSubnetOption('0.0.0.0', 0)
+        query = dns.message.make_query('m' + nameECS, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
+        self.sendECSQuery(query, expected)
+
+class MismatchedECSInAnswerHardenedTest(MismatchedECSInAnswerTest):
+    _confdir = 'MismatchedECSInAnswerHardened'
+
+    _config_template = """
+edns-subnet-harden=yes
+edns-subnet-allow-list=mecs-echo.example
+forward-zones=mecs-echo.example=%s.21
+dont-throttle-netmasks=0.0.0.0/0
+    """ % (os.environ['PREFIX'])
+
+    def test1SendECS(self):
+        expected = dns.rrset.from_text('m'+ nameECS, ttlECS, dns.rdataclass.IN, 'TXT', emptyECSText)
+        ecso = clientsubnetoption.ClientSubnetOption('192.0.2.1', 32)
+        query = dns.message.make_query('m' + nameECS, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
+        self.sendECSQuery(query, expected)
+
+    def test2NoECS(self):
+        expected = dns.rrset.from_text('m' + nameECS, ttlECS, dns.rdataclass.IN, 'TXT', emptyECSText)
+        query = dns.message.make_query('m' + nameECS, 'TXT')
+        self.sendECSQuery(query, expected)
+
+    def test3RequireNoECS(self):
+        expected = dns.rrset.from_text('m' + nameECS, ttlECS, dns.rdataclass.IN, 'TXT', emptyECSText)
+        ecso = clientsubnetoption.ClientSubnetOption('0.0.0.0', 0)
+        query = dns.message.make_query('m' + nameECS, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
+        self.sendECSQuery(query, expected)
 
 class IncomingNoECSTest(ECSTest):
     _confdir = 'IncomingNoECS'
@@ -801,7 +856,7 @@ class UDPECSResponder(DatagramProtocol):
                                               option.ip & (2 ** 64 - 1)))
         return ip
 
-    def datagramReceived(self, datagram, address):
+    def question(self, datagram, tcp=False):
         request = dns.message.from_wire(datagram)
 
         response = dns.message.make_response(request)
@@ -834,8 +889,36 @@ class UDPECSResponder(DatagramProtocol):
         elif request.question[0].name == dns.name.from_text('x' + nameECS):
             answer = dns.rrset.from_text(request.question[0].name, ttlECS, dns.rdataclass.IN, 'TXT', 'X')
             response.answer.append(answer)
+        elif request.question[0].name == dns.name.from_text('m' + nameECS):
+            incomingECS = False
+            for option in request.options:
+                if option.otype == clientsubnetoption.ASSIGNED_OPTION_CODE and isinstance(option, clientsubnetoption.ClientSubnetOption):
+                    incomingECS = True
+            # Send mismatched ECS over UDP
+            flag = emptyECSText
+            if not tcp and incomingECS:
+                ecso = clientsubnetoption.ClientSubnetOption("193.0.2.1", 24, 25)
+                flag = mismatchedECSText
+            answer = dns.rrset.from_text(request.question[0].name, ttlECS, dns.rdataclass.IN, 'TXT', flag)
+            response.answer.append(answer)
 
         if ecso:
             response.use_edns(options = [ecso])
 
-        self.transport.write(response.to_wire(), address)
+        return response.to_wire()
+
+    def datagramReceived(self, datagram, address):
+        response = self.question(datagram)
+        self.transport.write(response, address)
+
+class TCPECSResponder(Protocol):
+    def dataReceived(self, data):
+        handler = UDPECSResponder()
+        response = handler.question(data[2:], True)
+        length = len(response)
+        header = length.to_bytes(2, 'big')
+        self.transport.write(header + response)
+
+class TCPECSFactory(Factory):
+    def buildProtocol(self, addr):
+        return TCPECSResponder()

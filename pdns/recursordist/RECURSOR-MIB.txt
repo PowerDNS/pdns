@@ -21,6 +21,9 @@ rec MODULE-IDENTITY
     DESCRIPTION
        "This MIB module describes information gathered through PowerDNS Recursor."
 
+    REVISION "202505270000Z"
+    DESCRIPTION "Added metric for missing ECS in reply"
+
     REVISION "202408280000Z"
     DESCRIPTION "Added metric for too many incoming TCP connections"
 
