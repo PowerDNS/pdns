@@ -1551,14 +1551,14 @@ tcp_tuning:
       lua-name: "setMaxTLSNewSessionRatePerClient"
       internal-field-name: "d_maxTLSNewSessionsRatePerClient"
       runtime-configurable: false
-      description: "Set the maximum number of new TLS sessions, without resumption, that a given client (see ``connections_mask_v4``, ``connections_mask_v6`` and ``connection_mask_v4_port`` to see how clients can be aggregated) can open, per second, over the last ``connection_rate_interval`` minutes. Clients exceeding this rate will not be able to open new TCP connections for ``ban_duration_for_exceeding_tcp_tls_rate`` seconds. See also ``max_connection_rate_per_client`` and ```max_tls_resumed_session_rate_per_client`"
+      description: "Set the maximum number of new TLS sessions, without resumption, that a given client (see ``connections_mask_v4``, ``connections_mask_v6`` and ``connection_mask_v4_port`` to see how clients can be aggregated) can open, per second, over the last ``connection_rate_interval`` minutes. Clients exceeding this rate will not be able to open new TCP connections for ``ban_duration_for_exceeding_tcp_tls_rate`` seconds. See also ``max_connection_rate_per_client`` and ``max_tls_resumed_session_rate_per_client``"
     - name: "max_tls_resumed_session_rate_per_client"
       type: "u64"
       default: "0"
       lua-name: "setMaxTLSResumedSessionRatePerClient"
       internal-field-name: "d_maxTLSResumedSessionsRatePerClient"
       runtime-configurable: false
-      description: "Set the maximum number of resumed TLS sessions that a given client (see ``connections_mask_v4``, ``connections_mask_v6`` and ``connection_mask_v4_port`` to see how clients can be aggregated) can open, per second, over the last ``connection_rate_interval`` minutes. Clients exceeding this rate will not be able to open new TCP connections for ``ban_duration_for_exceeding_tcp_tls_rate`` seconds. See also ``max_connection_rate_per_client`` and ```max_tls_new_session_rate_per_client`"
+      description: "Set the maximum number of resumed TLS sessions that a given client (see ``connections_mask_v4``, ``connections_mask_v6`` and ``connection_mask_v4_port`` to see how clients can be aggregated) can open, per second, over the last ``connection_rate_interval`` minutes. Clients exceeding this rate will not be able to open new TCP connections for ``ban_duration_for_exceeding_tcp_tls_rate`` seconds. See also ``max_connection_rate_per_client`` and ``max_tls_new_session_rate_per_client``"
     - name: "max_read_ios_per_query"
       type: "u32"
       default: "50"
