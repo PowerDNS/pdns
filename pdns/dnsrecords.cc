@@ -1016,6 +1016,16 @@ void checkHostnameCorrectness(const DNSResourceRecord& rr)
   }
 }
 
+vector<pair<uint16_t, string>>::const_iterator EDNSOpts::getFirstOption(uint16_t optionCode) const
+{
+  for (auto iter = d_options.cbegin(); iter != d_options.cend(); ++iter) {
+    if (iter->first == optionCode) {
+      return iter;
+    }
+  }
+  return d_options.cend();
+}
+
 #if 0
 static struct Reporter
 {

@@ -347,9 +347,10 @@ LWResult::Result arecvfrom(PacketBuffer& packet, int /* flags */, const ComboAdd
 
     len = packet.size();
 
-    // In ecs hardening mode, we consider a missing ECS in the reply as a case for retrying without ECS
-    // The actual logic to do that is in Syncres::doResolveAtThisIP()
-    if (g_ECSHardening && pident->ecsSubnet && !*pident->ecsReceived) {
+    // In ecs hardening mode, we consider a missing or a mismatched ECS in the reply as a case for
+    // retrying without ECS (matchingECSReceived only gets set if a matching ECS was received). The actual
+    // logic to do that is in Syncres::doResolveAtThisIP()
+    if (g_ECSHardening && pident->ecsSubnet && !*pident->matchingECSReceived) {
       t_Counters.at(rec::Counter::ecsMissingCount)++;
       return LWResult::Result::ECSMissing;
     }
@@ -2048,7 +2049,7 @@ void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uint16_t* 
         /* we need to pass the record len */
         int res = getEDNSOptions(reinterpret_cast<const char*>(&question.at(pos - sizeof(drh->d_clen))), questionLen - pos + (sizeof(drh->d_clen)), *options); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
         if (res == 0) {
-          const auto& iter = options->find(EDNSOptionCode::ECS);
+          const auto iter = options->find(EDNSOptionCode::ECS);
           if (iter != options->end() && !iter->second.values.empty() && iter->second.values.at(0).content != nullptr && iter->second.values.at(0).size > 0) {
             EDNSSubnetOpts eso;
             if (getEDNSSubnetOptsFromString(iter->second.values.at(0).content, iter->second.values.at(0).size, &eso)) {
@@ -2860,7 +2861,7 @@ void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
 }
 
 // resend event to everybody chained onto it
-static void doResends(MT_t::waiters_t::iterator& iter, const std::shared_ptr<PacketID>& resend, const PacketBuffer& content, const std::optional<bool>& ecsReceived)
+static void doResends(MT_t::waiters_t::iterator& iter, const std::shared_ptr<PacketID>& resend, const PacketBuffer& content, const std::optional<bool>& matchingECSReceived)
 {
   // We close the chain for new entries, since they won't be processed anyway
   iter->key->closed = true;
@@ -2869,8 +2870,9 @@ static void doResends(MT_t::waiters_t::iterator& iter, const std::shared_ptr<Pac
     return;
   }
 
-  if (ecsReceived) {
-    iter->key->ecsReceived = ecsReceived;
+  // Only set if g_ECSHardening
+  if (matchingECSReceived) {
+    iter->key->matchingECSReceived = matchingECSReceived;
   }
   for (auto i = iter->key->chain.begin(); i != iter->key->chain.end(); ++i) {
     auto packetID = std::make_shared<PacketID>(*resend);
@@ -2910,7 +2912,8 @@ static bool checkIncomingECSSource(const PacketBuffer& packet, const Netmask& su
             foundMatchingECS = true;
           }
         }
-        break; // only look at first
+        break; // The RFC isn't clear about multiple ECS options. We chose to handle it like cookies
+               // and only look at the first.
       }
     }
   }
@@ -2997,8 +3000,10 @@ static void handleUDPServerResponse(int fileDesc, FDMultiplexer::funcparam_t& va
   if (!pident->domain.empty()) {
     auto iter = g_multiTasker->d_waiters.find(pident);
     if (iter != g_multiTasker->d_waiters.end()) {
-      iter->key->ecsReceived = iter->key->ecsSubnet && checkIncomingECSSource(packet, *iter->key->ecsSubnet);
-      doResends(iter, pident, packet, iter->key->ecsReceived);
+      if (g_ECSHardening) {
+        iter->key->matchingECSReceived = iter->key->ecsSubnet && checkIncomingECSSource(packet, *iter->key->ecsSubnet);
+      }
+      doResends(iter, pident, packet, iter->key->matchingECSReceived);
     }
   }
 
