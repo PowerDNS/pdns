@@ -46,6 +46,7 @@
 
 import os
 import re
+import shutil
 import sys
 import tempfile
 import yaml
@@ -307,7 +308,7 @@ def include_file(out_fp, include_file_name):
         out_fp.write(in_fp.read())
         out_fp.write(f'// END INCLUDE {basename}\n')
 
-def generate_flat_settings_for_cxx(definitions, src_dir, out_file_path):
+def generate_flat_settings_for_cxx(definitions, src_dir, out_file_path, build_dir_path):
     cxx_flat_settings_fp = get_temporary_file_for_generated_code(out_file_path)
 
     include_file(cxx_flat_settings_fp, src_dir + '/dnsdist-configuration-yaml-items-generated-pre-in.cc')
@@ -377,6 +378,7 @@ void convertRuntimeFlatSettingsFromRust(const dnsdist::rust::settings::GlobalCon
 ''')
 
     os.rename(cxx_flat_settings_fp.name, out_file_path + '/dnsdist-configuration-yaml-items-generated.cc')
+    shutil.copy(out_file_path + '/dnsdist-configuration-yaml-items-generated.cc', build_dir_path)
 
 def generate_actions_config(output, def_dir, response, default_functions):
     suffix = 'ResponseAction' if response else 'Action'
@@ -748,13 +750,14 @@ def get_temporary_file_for_generated_code(directory):
     return generated_fp
 
 def main():
-    if len(sys.argv) != 4:
-        print(f'Usage: {sys.argv[0]} <path/to/definitions/files> <rust/output/dir> <cxx/output/dir>')
+    if len(sys.argv) != 5:
+        print(f'Usage: {sys.argv[0]} <path/to/definitions/files> <rust/output/dir> <cxx/output/dir> <cxx/build/root/dir>')
         sys.exit(1)
 
     definitions_dir = sys.argv[1]
     rust_dir = sys.argv[2]
     cxx_dest_dir = sys.argv[3]
+    cxx_build_dir = sys.argv[4]
     definitions = get_definitions_from_file(definitions_dir + '/dnsdist-settings-definitions.yml')
     default_functions = []
     validation_functions = []
@@ -771,7 +774,7 @@ def main():
     generate_actions_config(generated_fp, definitions_dir, True, default_functions)
     generate_selectors_config(generated_fp, definitions_dir, default_functions)
 
-    generate_flat_settings_for_cxx(definitions, rust_dir, f'{cxx_dest_dir}/dnsdist-rust-lib/')
+    generate_flat_settings_for_cxx(definitions, rust_dir, f'{cxx_dest_dir}/dnsdist-rust-lib/', f'{cxx_build_dir}/dnsdist-rust-lib/')
 
     handle_structures(generated_fp, definitions, default_functions, validation_functions)
 
