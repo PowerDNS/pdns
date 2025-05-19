@@ -612,7 +612,7 @@ static void gatherRecords(const Json& container, const DNSName& qname, const QTy
       }
       else {
         struct in6_addr tmpbuf{};
-        if (inet_pton(AF_INET6, content.c_str(), &tmpbuf) != 1 || content.find('.') != string::npos) {
+        if (inet_pton(AF_INET6, content.c_str(), &tmpbuf) != 1) {
           throw std::runtime_error("Invalid IPv6 address");
         }
       }
