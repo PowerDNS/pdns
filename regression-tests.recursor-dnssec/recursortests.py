@@ -13,7 +13,8 @@ import unittest
 import dns
 import dns.message
 import requests
-
+import threading
+from twisted.internet import reactor
 from proxyprotocol import ProxyProtocol
 
 from eqdnsmessage import AssertEqualDNSMessageMixin
@@ -1219,3 +1220,10 @@ distributor-threads={threads}""".format(confdir=confdir,
                         self.assertEqual(value, expected)
                     count += 1
         self.assertEqual(count, len(map))
+
+    @classmethod
+    def startReactor(cls):
+        if not reactor.running:
+            cls.Responder = threading.Thread(name='Responder', target=reactor.run, args=(False,))
+            cls.Responder.daemon = True
+            cls.Responder.start()
