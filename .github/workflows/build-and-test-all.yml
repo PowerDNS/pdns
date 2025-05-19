@@ -220,7 +220,7 @@ jobs:
   build-dnsdist:
     name: build dnsdist
     if: ${{ !github.event.schedule || vars.SCHEDULED_JOBS_BUILD_AND_TEST_ALL }}
-    runs-on: ubuntu-24.04
+    runs-on: ${{ ( vars.REPOSITORY_USE_UBICLOUD == '1' ) && 'ubicloud-standard-4-ubuntu-2404' || 'ubuntu-24.04' }}
     needs: get-runner-container-image
     strategy:
       matrix:
