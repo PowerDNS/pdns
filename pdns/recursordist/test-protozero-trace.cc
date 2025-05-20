@@ -187,6 +187,7 @@ BOOST_AUTO_TEST_CASE(traces2)
     },
     .dropped_links_count = 3,
     .status = {"hi", pdns::trace::Status::StatusCode::STATUS_CODE_OK},
+    .flags = 33,
   };
   pdns::trace::Span span2{span1};
   pdns::trace::Span span3{span1};

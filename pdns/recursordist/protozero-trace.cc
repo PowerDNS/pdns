@@ -325,6 +325,7 @@ void Span::encode(protozero::pbf_writer& writer) const
     protozero::pbf_writer sub{writer, 15};
     status.encode(sub);
   }
+  pdns::trace::encodeFixed(writer, 16, flags);
 }
 
 Span Span::decode(protozero::pbf_reader& reader)
@@ -385,6 +386,9 @@ Span Span::decode(protozero::pbf_reader& reader)
       ret.status = Status::decode(sub);
       break;
     }
+    case 16:
+      ret.flags = reader.get_fixed32();
+      break;
     default:
       break;
     }
