@@ -4276,7 +4276,7 @@ entirely). FreeBSD does not support the required functions. If you know
 any important FreeBSD people, plea with them to support
 set/get/swapcontext! Alternatively, FreeBSD coders could read the
 solution presented here `in figure
-5 <http://www.eng.uwaterloo.ca/~ejones/software/threading.html>`__.
+5 <https://evanjones.ca/software/threading.html>`__.
 
 The 'Contributor of the Month' award goes to Mark Bergsma who has
 responded to our plea for help with the label compressor and contributed
