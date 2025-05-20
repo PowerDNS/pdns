@@ -1011,7 +1011,6 @@ Peeters
 Pels
 Penev
 Perroud
-Pertubation
 Pfetzing
 pgmysql
 pgmysqlbackend
