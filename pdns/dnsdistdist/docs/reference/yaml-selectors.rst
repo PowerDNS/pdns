@@ -303,7 +303,7 @@ Parameters:
 OpcodeSelector
 --------------
 
-Matches queries with opcode equals to ``code``
+Matches queries with opcode equal to ``code``
 
 Lua equivalent: :func:`OpcodeRule`
 
