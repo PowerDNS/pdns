@@ -296,7 +296,7 @@ fixes a few minor issues and adds a debugging feature:
    to our existing carbon-server and carbon-ourname settings, but now at
    runtime. This specific invocation will make your stats appear
    automatically on our `public telemetry
-   server <http://xs.powerdns.com/metronome/?server=pdns.xs.recursor&beginTime=-3600>`__.
+   server <https://metronome.powerdns.com/?server=dnsdist.pdns-public-ns1_powerdns_com.main&beginTime=-3600>`__.
 
 PowerDNS Recursor version 3.6.0
 -------------------------------
