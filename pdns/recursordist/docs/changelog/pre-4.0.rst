@@ -647,7 +647,7 @@ Changes between RC1 and RC2
 -  While Recursor 3.3 was not vulnerable to the specific attack noted in
    'Ghost Domain Names: Revoked Yet Still Resolvable' (more information
    at `A New DNS Exploitation Technique: Ghost Domain
-   Names <http://resources.infosecinstitute.com/ghost-domain-names/>`__),
+   Names <https://www.infosecinstitute.com/resources/hacking/ghost-domain-names/>`__),
    further investigation showed that a variant of the attack could work.
    This was fixed in `commit
    3085 <http://wiki.powerdns.com/projects/trac/changeset/3085>`__. This
