@@ -4833,7 +4833,7 @@ Version 2.5.1
 -------------
 
 `Brown paper
-bag <http://www.tuxedo.org/~esr/jargon/html/entry/brown-paper-bag-bug.html>`__
+bag <https://www.gutenberg.org/cache/epub/3008/pg3008-images.html#brown-paper-bagbug>`__
 release fixing a huge memory leak in the new Query Cache.
 
 Developers: this version needs the new pdns-2.5.1 development kit,
