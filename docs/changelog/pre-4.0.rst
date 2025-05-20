@@ -3935,7 +3935,7 @@ configurability of the Generic MySQL and PostgreSQL backends. - The
 PowerDNS Recursor now runs as a Service. It defaults to running on port
 5300, PowerDNS itself is configured to expect the Recursor on port 5300
 now. - The PowerDNS Service is now known as 'PowerDNS' to Windows. - The
-Installer was redone, this time with `NSIS2 <http://nsis.sf.net>`__. -
+Installer was redone, this time with `NSIS2 <https://nsis.sourceforge.io/>`__. -
 General updates and fixes.
 
 Other news
