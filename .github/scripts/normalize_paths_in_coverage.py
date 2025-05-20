@@ -8,6 +8,7 @@ if __name__ == '__main__':
     version = sys.argv[2]
     inputFile = sys.argv[3]
     outputFile = sys.argv[4]
+    fromDistDir = sys.argv[5]
     with open(inputFile, mode='r') as inputFilePtr:
         with open(outputFile, mode='w') as outputFilePtr:
             for line in inputFilePtr:
@@ -38,7 +39,7 @@ if __name__ == '__main__':
                     distPath = os.path.join(repositoryRoot, 'pdns', 'dnsdistdist', f'dnsdist-{version}')
                     relativeToDist = os.path.relpath(target, distPath)
                     target = os.path.join('pdns', 'dnsdistdist', relativeToDist)
-                else:
+                elif fromDistDir == '1':
                     print(f'Ignoring {target} that we could not map to a distdir', file=sys.stderr)
                     continue
 

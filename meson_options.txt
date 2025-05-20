@@ -42,3 +42,4 @@ option('systemd-service-user', type: 'string', value: 'pdns', description: 'Syst
 option('systemd-service-group', type: 'string', value: 'pdns', description: 'Systemd service group (setgid and unit file; group is not created)')
 option('auto-var-init', type: 'combo', value: 'disabled', choices: ['zero', 'pattern', 'disabled'], description: 'Enable initialization of automatic variables')
 option('malloc-trace', type: 'boolean', value: false, description: 'Enable malloc-trace')
+option('clang-coverage-format', type: 'boolean', value: false, description: 'Whether to generate coverage data in clang format')

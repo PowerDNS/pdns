@@ -222,7 +222,7 @@ def is_coverage_enabled():
 
 def get_coverage(meson=False):
     if meson:
-        return '-D b_coverage=true' if is_coverage_enabled() else ''
+        return '-Dclang-coverage-format=true' if is_coverage_enabled() else ''
     return '--enable-coverage=clang' if is_coverage_enabled() else ''
 
 @task
@@ -236,7 +236,7 @@ def generate_coverage_info(c, binary, outputDir):
         version = os.getenv('BUILDER_VERSION')
         c.run(f'llvm-profdata-{clang_version} merge -sparse -o {outputDir}/temp.profdata /tmp/code-*.profraw')
         c.run(f'llvm-cov-{clang_version} export --format=lcov --ignore-filename-regex=\'^/usr/\' -instr-profile={outputDir}/temp.profdata -object {binary} > {outputDir}/coverage.lcov')
-        c.run(f'{outputDir}/.github/scripts/normalize_paths_in_coverage.py {outputDir} {version} {outputDir}/coverage.lcov {outputDir}/normalized_coverage.lcov')
+        c.run(f'{outputDir}/.github/scripts/normalize_paths_in_coverage.py {outputDir} {version} {outputDir}/coverage.lcov {outputDir}/normalized_coverage.lcov 0')
         c.run(f'mv {outputDir}/normalized_coverage.lcov {outputDir}/coverage.lcov')
 
 def setup_authbind(c):
