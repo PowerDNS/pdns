@@ -33,7 +33,7 @@ For distributors, a minimal patch is available on `the PowerDNS
 wiki <http://wiki.powerdns.com/cgi-bin/trac.fcgi/changeset/915>`__.
 Additionally, those shipping very old versions of the PowerDNS Recursor
 might benefit from this
-`patch <http://ds9a.nl/tmp/cve-2006-4251.patch>`__.
+`patch <https://berthub.eu/tmp/cve-2006-4251.patch>`__.
 
 The impact of these and other security problems can be lessened by
 considering the advice in FIXME: security-settings.
