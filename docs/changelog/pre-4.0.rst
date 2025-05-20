@@ -1869,7 +1869,7 @@ Non-DNSSEC improvements/changes
 Assorted bugfixes
 ^^^^^^^^^^^^^^^^^
 
--  If a slave domain is removed while a transfer for it is queued, we no
+-  If a slave domain is removed while a transfer to it is queued, we no
    longer try the transfer. This also avoids a rare crash in similar
    circumstances. Code in `commit f9fa0e2de8c0c4a83a4104dfa3120c8e64f6c15b <https://github.com/PowerDNS/pdns/commit/f9fa0e2de8c0c4a83a4104dfa3120c8e64f6c15b>`__,
    closes `ticket 596 <https://github.com/PowerDNS/pdns/issues/596>`__.
