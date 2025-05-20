@@ -19,7 +19,7 @@ PowerDNS Security Advisory 2012-01: PowerDNS Authoritative Server can be caused 
    does have a performance impact. Please see below.
 
 Affected versions of the PowerDNS Authoritative Server can be made to
-respond to DNS responses, thus enabling an attacker to setup a packet
+respond to DNS responses, thus enabling an attacker to set up a packet
 loop between two PowerDNS servers, perpetually answering each other's
 answers. In some scenarios, a server could also be made to talk to
 itself, achieving the same effect.
