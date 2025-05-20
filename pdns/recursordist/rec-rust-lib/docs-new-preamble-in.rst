@@ -400,7 +400,7 @@ As of version 5.1.0, an RPZ entry is defined as
     seedFile: string
 
 If ``addresses`` is empty, the ``name`` field specifies the path name of the RPZ; otherwise, the ``name`` field defines the name of the RPZ.
-Starting with version 5.2.0, names instead of IP addresess can be used for ``addresses`` if
+Starting with version 5.2.0, names instead of IP addresses can be used for ``addresses`` if
 :ref:`setting-yaml-recursor.system_resolver_ttl` is set.
 
 
@@ -523,7 +523,7 @@ As of version 5.2.0, a forwarding catalog zone entry is defined as:
 While this setting has no equivalent old-style Lua configuration, it cannot appear together with :ref:`setting-lua-config-file` being set.
 If you want to use catalog zones to define forwards, you need to convert existing Lua configuration to YAML format.
 
-Names instead of IP addresess can be used for ``addresses`` if :ref:`setting-yaml-recursor.system_resolver_ttl` is set.
+Names instead of IP addresses can be used for ``addresses`` if :ref:`setting-yaml-recursor.system_resolver_ttl` is set.
 An example of a :ref:`setting-yaml-recursor.forwarding_catalog_zones` entry, which is a sequence of `ForwardingCatalogZone`_:
 
 .. code-block:: yaml
