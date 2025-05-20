@@ -2064,8 +2064,7 @@ Improvements
 Recursor version 3.0.1
 ----------------------
 
-Released 25th of April 2006,
-`download <http://www.powerdns.com/en/downloads.aspx>`__.
+Released 25th of April 2006.
 
 This release consists of nothing but tiny fixes to 3.0, including one
 with security implications. An upgrade is highly recommended.
@@ -2118,8 +2117,7 @@ Operating system specific fixes
 Recursor version 3.0
 --------------------
 
-Released 20th of April 2006,
-`download <http://www.powerdns.com/en/downloads.aspx>`__.
+Released 20th of April 2006.
 
 This is the first separate release of the PowerDNS Recursor. There are
 many reasons for this, one of the most important ones is that previously
