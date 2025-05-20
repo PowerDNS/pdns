@@ -1447,7 +1447,7 @@ Changelogs for 4.1.x
     :tags: MySQL & Postgresql, Improvements
     :pullreq: 5518
 
-    Schema changes for MySQL / MariaDB and PostgreSQL to for storage requirements of various versions (Kees Monshouwer).
+    Schema changes for MySQL / MariaDB and PostgreSQL for storage requirements of various versions (Kees Monshouwer).
 
   .. change::
     :tags: GeoIP, Improvements
