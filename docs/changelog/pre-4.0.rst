@@ -4771,7 +4771,7 @@ Quick fix release for a big cache problem.
 ------------
 
 Performance release. A lot of work has been done to raise PowerDNS
-performance to staggering levels in order to take part in benchmarketing
+performance to staggering levels in order to take part in benchmarking
 efforts. Together with our as yet unnamed partner, PowerDNS has been
 benchmarked at 60.000 mostly cached queries/second on off the shelf PC
 hardware. Uncached performance was 17.000 uncached DNS queries/second on
