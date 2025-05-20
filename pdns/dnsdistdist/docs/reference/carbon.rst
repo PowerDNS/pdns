@@ -3,7 +3,7 @@ Carbon export
 
 .. function:: carbonServer(serverIP [, ourname[, interval[, namespace,[ instance]]]])
 
-  Exort statistics to a Carbon / Graphite / Metronome server.
+  Export statistics to a Carbon / Graphite / Metronome server.
 
   :param string serverIP: Indicates the IP address where the statistics should be sent
   :param string ourname: An optional string specifying the hostname that should be used
