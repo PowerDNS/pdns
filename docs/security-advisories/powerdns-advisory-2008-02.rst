@@ -12,7 +12,7 @@ PowerDNS Security Advisory 2008-02: By not responding to certain queries, domain
    spoofed using simpler measures than would usually be required
 -  Solution: Upgrade to PowerDNS Authoritative Server 2.9.21.1, or apply
    `commit
-   1239 <http://wiki.powerdns.com/projects/trac/changeset/1239>`__.
+   8b1ed87 <https://github.com/PowerDNS/pdns/commit/8b1ed874b009aeda37843f71e6b4ec25e75485fb>`__.
 -  Workaround: None known.
 
 Brian J. Dowling of Simplicity Communications has discovered a security
