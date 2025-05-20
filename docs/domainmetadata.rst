@@ -179,7 +179,7 @@ To publish CDNSKEY records of the KSKs for the zone, set
 
 To publish CDS records for the KSKs in the zone, set ``PUBLISH-CDS`` to
 a comma- separated list of `signature algorithm
-numbers <http://www.iana.org/assignments/ds-rr-types/ds-rr-types.xhtml#ds-rr-types-1>`__.
+numbers <https://www.iana.org/assignments/ds-rr-types/ds-rr-types.xhtml#ds-rr-types-1>`__.
 
 This metadata can also be set using the
 :doc:`pdnsutil <dnssec/pdnsutil>` commands ``set-publish-cdnskey``

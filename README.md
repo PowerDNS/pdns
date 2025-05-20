@@ -123,7 +123,7 @@ See [README-dnsdist.md](pdns/README-dnsdist.md) in `pdns/`.
 Building the HTML documentation
 -------------------------------
 
-The HTML documentation (as seen [on the PowerDNS docs site](https://doc.powerdns.com/authoritative/)) is built from ReStructured Text (rst) files located in `docs`. They are compiled into HTML files using [Sphinx](http://www.sphinx-doc.org/en/master/index.html), a documentation generator tool which is built in Python.
+The HTML documentation (as seen [on the PowerDNS docs site](https://doc.powerdns.com/authoritative/)) is built from ReStructured Text (rst) files located in `docs`. They are compiled into HTML files using [Sphinx](https://www.sphinx-doc.org/en/master/index.html), a documentation generator tool which is built in Python.
 
 Install the dependencies under "COMPILING", and run autoreconf if you haven't already:
 

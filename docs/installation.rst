@@ -55,7 +55,7 @@ FreeBSD
 ~~~~~~~
 
 PowerDNS Authoritative Server is available through the
-`ports <http://www.freshports.org/dns/powerdns/>`__ system:
+`ports <https://www.freshports.org/dns/powerdns/>`__ system:
 
 For the package:
 

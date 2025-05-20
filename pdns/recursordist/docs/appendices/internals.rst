@@ -187,9 +187,9 @@ C++ is a powerful language. Perhaps a bit too powerful at times, you can
 turn a program into a real freakshow if you so desire.
 
 PowerDNS generally tries not to go overboard in this respect, but we do
-build upon a very advanced part of the `Boost <http://www.boost.org>`__
+build upon a very advanced part of the `Boost <https://www.boost.org>`__
 C++ library: `boost::multi index
-container <http://boost.org/libs/multi_index/doc/index.html>`__.
+container <https://boost.org/libs/multi_index/doc/index.html>`__.
 
 This container provides the equivalent of SQL indexes on multiple keys.
 It also implements compound keys, which PowerDNS uses as well.

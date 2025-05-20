@@ -206,7 +206,7 @@ Additions and Enhancements
    and `commit
    7abbb2c <https://github.com/PowerDNS/pdns/commit/7abbb2c>`__: Update
    Ed25519 `algorithm number and
-   mnemonic <http://www.iana.org/assignments/dns-sec-alg-numbers/dns-sec-alg-numbers.xhtml>`__
+   mnemonic <https://www.iana.org/assignments/dns-sec-alg-numbers/dns-sec-alg-numbers.xhtml>`__
    and hook up to the Recursor (Kees Monshouwer)
 -  `#5355 <https://github.com/PowerDNS/pdns/pull/5355>`__: Add
    ``use-incoming-edns-subnet`` option to process and pass along ECS and
