@@ -192,7 +192,7 @@ Changelogs for 4.8.X
     :pullreq: 12418
     :tickets: 12374
 
-    Make cache cleaning of record an negative cache more fair when under pressure.
+    Make cache cleaning of record a negative cache more fair when under pressure.
 
   .. change::
     :tags: Bug Fixes

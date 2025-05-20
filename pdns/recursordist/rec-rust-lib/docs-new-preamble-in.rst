@@ -71,7 +71,7 @@ Merging multiple setting files
 ------------------------------
 If `recursor.include_dir`_ is set, all ``.yml`` files in it will be processed in alphabetical order, modifying the  settings processed so far.
 
-For simple values like an boolean or number setting, a value in the processed file will overwrite an existing setting.
+For simple values like a boolean or number setting, a value in the processed file will overwrite an existing setting.
 
 For values of type sequence, the new value will *replace* the existing value if the existing value is equal to the ``default`` or if the new value is marked with the ``!override`` tag.
 Otherwise, the existing value will be *extended* with the new value by appending the new sequence to the existing.
@@ -119,7 +119,7 @@ After processing ``extra.yml`` the value will be set to the empty sequence, as e
            forwarders:
            - '::2'
 
-   The result will *not* be a a single forward with two IP addresses, but two entries for ``example.net``.
+   The result will *not* be a single forward with two IP addresses, but two entries for ``example.net``.
    It depends on the specific setting how the sequence is processed and interpreted further.
 
 Description of YAML syntax for structured types

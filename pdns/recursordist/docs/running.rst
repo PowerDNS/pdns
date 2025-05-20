@@ -16,7 +16,7 @@ This means that looking into the logs that are produced, `journalctl <https://ww
 
 Additionally, the Recursor *can* log to syslog on these systems.
 Logging to syslog is disabled in the unit file to prevent double logging.
-To enable this, create an drop in unit file at ``/etc/systemd/systemd/pdns-recursor.service.d/use-syslog.conf``::
+To enable this, create a drop in unit file at ``/etc/systemd/systemd/pdns-recursor.service.d/use-syslog.conf``::
 
     [Service]
     ExecStart=
