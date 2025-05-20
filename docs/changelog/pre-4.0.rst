@@ -4259,7 +4259,7 @@ the main PowerDNS binary to make it interact better with the recursing
 component.
 
 Sadly, due to `technical
-reasons <http://sources.redhat.com/ml/libc-alpha/2003-01/msg00245.html>`__,
+reasons <https://sourceware.org/legacy-ml/libc-alpha/2003-01/msg00245.html>`__,
 compiling the pdns recursor and pdns authoritative nameserver into one
 binary is not immediately possible. During the release of 2.9.4 we
 stated that the recursing nameserver would be integrated in the next
