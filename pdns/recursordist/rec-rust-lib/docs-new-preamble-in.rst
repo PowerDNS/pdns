@@ -438,7 +438,7 @@ As of version 5.1.0, a ZoneToCache entry is defined as
      secret: Base64 encoded secret
    refreshPeriod: 86400
    retryOnErrorPeriod: 60
-   maxReceivedMBytes: 0 Zero mean no restrcition
+   maxReceivedMBytes: 0 Zero mean no restriction
    localAddress: local IP address to  bind to.
    zonemd: One of ignore, validate, require
    dnssec: One of ignore, validate, require
