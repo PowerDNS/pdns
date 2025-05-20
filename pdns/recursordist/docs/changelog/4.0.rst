@@ -448,7 +448,7 @@ As part of the general cleanup, we did the following:
 
 -  Moved to C++ 2011, a cleaner more powerful version of C++ that has
    allowed us to `improve the quality of
-   implementation <http://bert-hubert.blogspot.nl/2015/01/on-c2011-quality-of-implementation.html>`__
+   implementation <https://bert-hubert.blogspot.com/2015/01/on-c2011-quality-of-implementation.html>`__
    in many places.
 -  Implemented dedicated infrastructure for dealing with DNS names that
    is fully "DNS Native" and needs less escaping and unescaping
