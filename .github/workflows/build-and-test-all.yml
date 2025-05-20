@@ -112,9 +112,8 @@ jobs:
       - run: ${{ env.INV_CMD }} ci-auth-run-unit-tests ${{ matrix.builder == 'meson' && '--meson' || '' }}
         env:
           PDNS_BUILD_PATH: ../pdns-${{ env.BUILDER_VERSION }}
-      - run: ${{ env.INV_CMD }} generate-coverage-info ./testrunner $GITHUB_WORKSPACE
+      - run: ${{ env.INV_CMD }} generate-coverage-info ./pdns-auth-testrunner $GITHUB_WORKSPACE
         if: ${{ env.COVERAGE == 'yes' && matrix.builder == 'meson' }}
-        working-directory: ./pdns-${{ env.BUILDER_VERSION }}${{ matrix.builder == 'meson' && '' || '/pdns' }}
       - name: Coveralls Parallel auth unit
         if: ${{ env.COVERAGE == 'yes' && matrix.builder == 'meson' }}
         uses: coverallsapp/github-action@648a8eb78e6d50909eff900e4ec85cab4524a45b
