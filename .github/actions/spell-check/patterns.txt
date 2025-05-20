@@ -86,6 +86,10 @@ DoH
 # PGP
 \b(?:[0-9A-F]{4} ){9}[0-9A-F]{4}\b
 
+# hit-count: 8 file-count: 4
+# Internet Archive
+\barchive\.org/web/\d+/(?:[-\w.?,'/\\+&%$#_:]*)
+
 # hit-count: 5 file-count: 4
 # python
 \b(?i)py(?!gments|gmy|lon|ramid|ro|th)(?=[a-z]{2,})

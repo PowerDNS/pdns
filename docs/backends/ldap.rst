@@ -26,7 +26,7 @@ supported.
 
 The original author for this module is Norbert Sendetzky. This page is
 based on the content from his `LDAPbackend wiki
-section <http://wiki.linuxnetworks.de/index.php/PowerDNS_ldapbackend>`__
+section <https://web.archive.org/web/20160212235114/http://www.linuxnetworks.de/doc/index.php/PowerDNS_LDAP_Backend>`__
 as copied in February 2016, and edited from there.
 
 .. warning::
@@ -482,7 +482,7 @@ BIND LDAP backend
 ^^^^^^^^^^^^^^^^^
 
 When coming from the `BIND LDAP sdb
-backend <http://bind9-ldap.bayour.com/>`__, the records can be kept in
+backend <https://web.archive.org/web/20240816181821/https://bind9-ldap.bayour.com/>`__, the records can be kept in
 the LDAP tree also for the PowerDNS LDAP backend. The schemas both
 backends utilize is almost the same except for one important thing:
 Domains for PowerDNS are stored in the attribute "associatedDomain"
