@@ -4846,7 +4846,7 @@ And some small changes
    allows remotes to cache the fact that a domain does not exist and
    will not exist for a while. Thanks to Chris Thompson for `pointing
    out how tiny our minds
-   are <http://ops.ietf.org/lists/namedroppers/namedroppers.2002/msg01697.html>`__.
+   are <https://mailarchive.ietf.org/arch/msg/namedroppers/oqzDiPVjxPuAKqK9IZh9eiEif6w/>`__.
    This feature may cause a noticeable reduction in query load.
 -  Small speedup to non-packet-cached queries, incidentally fixing the
    huge memory leak.
