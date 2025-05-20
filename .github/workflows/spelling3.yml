@@ -24,10 +24,6 @@ jobs:
       contents: read
       # pull-requests-read is needed for suppress_push_for_open_pull_request in private repositories
       pull-requests: read
-      # actions-read is needed (possibly only for private repositories)
-      # to identify the workflow's filename until
-      # https://github.com/actions/runner/issues/853 is fixed
-      actions: read
       # security-events-write is needed according to the documentation:
       # https://docs.github.com/en/code-security/code-scanning/integrating-with-code-scanning/uploading-a-sarif-file-to-github#uploading-a-code-scanning-analysis-with-github-actions
       security-events: write
@@ -42,7 +38,7 @@ jobs:
     steps:
       - name: check-spelling
         id: spelling
-        uses: check-spelling/check-spelling@v0.0.24
+        uses: check-spelling/check-spelling@v0.0.25
         with:
           config: .github/actions/spell-check
           suppress_push_for_open_pull_request: ${{ github.actor != 'dependabot[bot]' && 1 }}
@@ -52,34 +48,29 @@ jobs:
           post_comment: 0
           use_magic_file: 1
           warnings: bad-regex,binary-file,deprecated-feature,ignored-expect-variant,large-file,limited-references,no-newline-at-eof,noisy-file,non-alpha-in-dictionary,token-is-substring,unexpected-line-ending,whitespace-in-dictionary,minified-file,unsupported-configuration,no-files-to-check,unclosed-block-ignore-begin,unclosed-block-ignore-end
-          use_sarif: ${{ (!github.event.pull_request || (github.event.pull_request.head.repo.full_name == github.repository)) && 1 }}
+          use_sarif: ${{ (!github.event.pull_request || (github.event.pull_request.head.repo.full_name == github.repository)) && !env.DO_NOT_USE_SARIF_REPORTING && 1 }}
+          dictionary_source_prefixes: >
+            {
+            "cspell": "https://raw.githubusercontent.com/check-spelling/cspell-dicts/v20241114/dictionaries/"
+            }
           extra_dictionaries: |
-            cspell:software-terms/dict/softwareTerms.txt
-            cspell:python/src/common/extra.txt
-            cspell:node/dict/node.txt
-            cspell:php/dict/php.txt
-            cspell:python/src/python/python-lib.txt
-            cspell:python/src/python/python.txt
-            cspell:fullstack/dict/fullstack.txt
-            cspell:golang/dict/go.txt
+            cspell:software-terms/softwareTerms.txt
+            cspell:node/node.txt
+            cspell:php/php.txt
+            cspell:python/common/extra.txt
+            cspell:python/python/python-lib.txt
+            cspell:golang/go.txt
+            cspell:cpp/stdlib-cpp.txt
             cspell:aws/aws.txt
-            cspell:k8s/dict/k8s.txt
-            cspell:cpp/src/stdlib-cpp.txt
             cspell:filetypes/filetypes.txt
-            cspell:typescript/dict/typescript.txt
-            cspell:html/dict/html.txt
-            cspell:django/dict/django.txt
-            cspell:java/src/java.txt
-            cspell:dotnet/dict/dotnet.txt
-            cspell:r/src/r.txt
-            cspell:npm/dict/npm.txt
-            cspell:lisp/lisp.txt
-            cspell:cpp/src/lang-jargon.txt
-            cspell:rust/dict/rust.txt
-            cspell:cpp/src/lang-keywords.txt
-            cspell:latex/dict/latex.txt
-            cspell:cpp/src/stdlib-c.txt
-            cspell:cpp/src/ecosystem.txt
-            cspell:lua/dict/lua.txt
-            cspell:java/src/java-terms.txt
-          check_extra_dictionaries: ''
+            cspell:dart/dart.txt
+            cspell:rust/rust.txt
+            cspell:npm/npm.txt
+            cspell:cpp/stdlib-c.txt
+            cspell:fullstack/fullstack.txt
+            cspell:python/python/python.txt
+            cspell:typescript/typescript.txt
+            cspell:html/html.txt
+            cspell:java/java.txt
+            cspell:lua/lua.txt
+          check_extra_dictionaries: ""
