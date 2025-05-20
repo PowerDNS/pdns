@@ -988,7 +988,7 @@ Downloads
 -  `Official download
    page <https://www.powerdns.com/downloads>`__
 -  `native RHEL5/6 packages from Kees
-   Monshouwer <https://www.monshouwer.eu/download/3rd_party/pdns-server/>`__
+   Monshouwer <https://www.monshouwer.eu/download/3rd_party/pdns/>`__
 
 Changes since 3.3
 ^^^^^^^^^^^^^^^^^
@@ -1113,7 +1113,7 @@ Downloads
 -  `Official download
    page <https://www.powerdns.com/downloads>`__
 -  `native RHEL5/6 packages from Kees
-   Monshouwer <https://www.monshouwer.eu/download/3rd_party/pdns-server/>`__
+   Monshouwer <https://www.monshouwer.eu/download/3rd_party/pdns/>`__
 
 Changes between RC2 and final
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1490,7 +1490,7 @@ Downloads
 -  `Official download
    page <https://www.powerdns.com/downloads>`__
 -  `native RHEL5/6 packages from Kees
-   Monshouwer <https://www.monshouwer.eu/download/3rd_party/pdns-server/>`__
+   Monshouwer <https://www.monshouwer.eu/download/3rd_party/pdns/>`__
 -  `additional third-party
    builds <http://wiki.powerdns.com/trac#GettingPowerDNSpackages>`__
 
@@ -1958,7 +1958,7 @@ Downloads
 -  `Official download
    page <https://www.powerdns.com/downloads>`__
 -  `CentOS/RHEL 5/6
-   RPMs <https://www.monshouwer.eu/download/3rd_party/pdns-server/>`__
+   RPMs <https://www.monshouwer.eu/download/3rd_party/pdns/>`__
    kindly provided by Kees Monshouwer.
 -  `Additional
    packages <http://wiki.powerdns.com/trac#GettingPowerDNSpackages>`__
