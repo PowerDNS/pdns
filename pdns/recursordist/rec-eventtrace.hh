@@ -29,6 +29,7 @@
 #include <time.h>
 #include <unordered_map>
 #include <variant>
+#include "protozero-trace.hh"
 
 class RecEventTrace
 {
@@ -258,6 +259,8 @@ public:
   {
     return d_events;
   }
+
+  std::vector<pdns::trace::Span> convertToOT(const pdns::trace::Span& span) const;
 
 private:
   std::vector<Entry> d_events;

@@ -1072,6 +1072,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
     bool seenAuthSOA = false;
 
     resolver.d_eventTrace = std::move(comboWriter->d_eventTrace);
+    resolver.d_otTrace = std::move(comboWriter->d_otTrace);
     resolver.setId(g_multiTasker->getTid());
 
     bool DNSSECOK = false;
@@ -1873,6 +1874,14 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
       if (resolver.d_eventTrace.enabled() && (SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_pb) != 0) {
         pbMessage.addEvents(resolver.d_eventTrace);
       }
+      if (resolver.d_eventTrace.enabled() && (SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_ot) != 0) {
+        resolver.d_otTrace.close();
+        auto spans = resolver.d_eventTrace.convertToOT(resolver.d_otTrace);
+        pdns::trace::TracesData otTrace{
+          .resource_spans = { pdns::trace::ResourceSpans{.resource = {}, .scope_spans = {{.spans = spans}}}}};
+        string otData = otTrace.encode();
+        pbMessage.setOpenTelemetryData(otData);
+      }
       if (comboWriter->d_logResponse) {
         protobufLogResponse(pbMessage);
       }
@@ -2170,7 +2179,7 @@ bool expectProxyProtocol(const ComboAddress& from, const ComboAddress& listenAdd
 // source: the address we assume the query is coming from, might be set by proxy protocol
 // destination: the address we assume the query was sent to, might be set by proxy protocol
 // mappedSource: the address we assume the query is coming from. Differs from source if table based mapping has been applied
-static string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fromaddr, const ComboAddress& destaddr, ComboAddress source, ComboAddress destination, const ComboAddress& mappedSource, struct timeval tval, int fileDesc, std::vector<ProxyProtocolValue>& proxyProtocolValues, RecEventTrace& eventTrace) // NOLINT(readability-function-cognitive-complexity): https://github.com/PowerDNS/pdns/issues/12791
+static string* doProcessUDPQuestion(const std::string& question, const ComboAddress& fromaddr, const ComboAddress& destaddr, ComboAddress source, ComboAddress destination, const ComboAddress& mappedSource, struct timeval tval, int fileDesc, std::vector<ProxyProtocolValue>& proxyProtocolValues, RecEventTrace& eventTrace, pdns::trace::Span& otTrace) // NOLINT(readability-function-cognitive-complexity): https://github.com/PowerDNS/pdns/issues/12791
 {
   RecThreadInfo::self().incNumberOfDistributedQueries();
   gettimeofday(&g_now, nullptr);
@@ -2330,7 +2339,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         eventTrace.add(RecEventTrace::AnswerSent);
 
         if (t_protobufServers.servers && logResponse && (!luaconfsLocal->protobufExportConfig.taggedOnly || (pbData && pbData->d_tagged))) {
-          protobufLogResponse(dnsheader, luaconfsLocal, pbData, tval, false, source, destination, mappedSource, ednssubnet, uniqueId, requestorId, deviceId, deviceName, meta, eventTrace, policyTags);
+          protobufLogResponse(dnsheader, luaconfsLocal, pbData, tval, false, source, destination, mappedSource, ednssubnet, uniqueId, requestorId, deviceId, deviceName, meta, eventTrace, otTrace, policyTags);
         }
 
         if (eventTrace.enabled() && (SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_log) != 0) {
@@ -2442,6 +2451,8 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
   comboWriter->d_meta = std::move(meta);
 
   comboWriter->d_eventTrace = std::move(eventTrace);
+  comboWriter->d_otTrace = std::move(otTrace);
+
   g_multiTasker->makeThread(startDoResolve, (void*)comboWriter.release()); // deletes dc
 
   return nullptr;
@@ -2461,6 +2472,7 @@ static void handleNewUDPQuestion(int fileDesc, FDMultiplexer::funcparam_t& /* va
   bool firstQuery = true;
   std::vector<ProxyProtocolValue> proxyProtocolValues;
   RecEventTrace eventTrace;
+  pdns::trace::Span otTrace;
 
   for (size_t queriesCounter = 0; queriesCounter < g_maxUDPQueriesPerRound; queriesCounter++) {
     bool proxyProto = false;
@@ -2472,8 +2484,24 @@ static void handleNewUDPQuestion(int fileDesc, FDMultiplexer::funcparam_t& /* va
     if (ssize_t len = recvmsg(fileDesc, &msgh, 0); len >= 0) {
       eventTrace.clear();
       eventTrace.setEnabled(SyncRes::s_event_trace_enabled != 0);
+      // evenTrace use monotonic time, while OpenTelemetry uses absolute time. setEnabled()
+      // estabslished the reference point, get an absolute TS as close as possible to the
+      // eventTrace start of trace time.
+      auto traceTS = pdns::trace::timestamp();
       eventTrace.add(RecEventTrace::ReqRecv);
-
+      if ((SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_ot) != 0) {
+        otTrace.start_time_unix_nano = traceTS;
+        pdns::trace::TraceID traceid;
+        pdns::trace::random(traceid);
+        pdns::trace::SpanID spanid;
+        pdns::trace::random(spanid);
+        pdns::trace::SpanID parent;
+        pdns::trace::reset(parent);
+        otTrace.name = "RecRequest";
+        otTrace.trace_id = traceid;
+        otTrace.span_id = spanid;
+        otTrace.parent_span_id = parent;
+      }
       firstQuery = false;
 
       if ((msgh.msg_flags & MSG_TRUNC) != 0) {
@@ -2632,12 +2660,12 @@ static void handleNewUDPQuestion(int fileDesc, FDMultiplexer::funcparam_t& /* va
 
           if (RecThreadInfo::weDistributeQueries()) {
             std::string localdata = data;
-            distributeAsyncFunction(data, [localdata = std::move(localdata), fromaddr, destaddr, source, destination, mappedSource, tval, fileDesc, proxyProtocolValues, eventTrace]() mutable {
-              return doProcessUDPQuestion(localdata, fromaddr, destaddr, source, destination, mappedSource, tval, fileDesc, proxyProtocolValues, eventTrace);
+            distributeAsyncFunction(data, [localdata = std::move(localdata), fromaddr, destaddr, source, destination, mappedSource, tval, fileDesc, proxyProtocolValues, eventTrace, otTrace]() mutable {
+              return doProcessUDPQuestion(localdata, fromaddr, destaddr, source, destination, mappedSource, tval, fileDesc, proxyProtocolValues, eventTrace, otTrace);
             });
           }
           else {
-            doProcessUDPQuestion(data, fromaddr, destaddr, source, destination, mappedSource, tval, fileDesc, proxyProtocolValues, eventTrace);
+            doProcessUDPQuestion(data, fromaddr, destaddr, source, destination, mappedSource, tval, fileDesc, proxyProtocolValues, eventTrace, otTrace);
           }
         }
       }

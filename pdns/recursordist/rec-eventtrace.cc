@@ -39,3 +39,56 @@ const std::unordered_map<RecEventTrace::EventType, std::string> RecEventTrace::s
   NameEntry(LuaNoData),
   NameEntry(LuaNXDomain),
   NameEntry(LuaPostResolveFFI)};
+
+using namespace pdns::trace;
+
+std::vector<pdns::trace::Span> RecEventTrace::convertToOT(const Span& span) const
+{
+  timespec realtime{};
+  clock_gettime(CLOCK_REALTIME, &realtime);
+  timespec monotime{};
+  clock_gettime(CLOCK_MONOTONIC, &monotime);
+  auto diff = (1000000000ULL * realtime.tv_sec) + realtime.tv_nsec - ((1000000000ULL * monotime.tv_sec) + monotime.tv_nsec);
+  diff += d_base;
+
+  std::vector<pdns::trace::Span> ret;
+  ret.reserve((d_events.size() / 2) + 1);
+  ret.emplace_back(span);
+  std::map<EventType, size_t> pairs;
+  for (const auto& event : d_events) {
+    if (event.d_start) {
+      Span work{
+        .name = RecEventTrace::toString(event.d_event),
+        .trace_id = span.trace_id,
+        .parent_span_id = span.span_id,
+        .start_time_unix_nano = static_cast<uint64_t>(event.d_ts + diff),
+        .end_time_unix_nano = static_cast<uint64_t>(event.d_ts + diff),
+      };
+      random(work.span_id);
+      ret.emplace_back(work);
+      pairs[event.d_event] = ret.size() - 1;
+    }
+    else {
+      if (auto startEvent = pairs.find(event.d_event); startEvent != pairs.end()) {
+        auto& work = ret.at(startEvent->second);
+        if (!std::holds_alternative<std::nullopt_t>(event.d_value)) {
+          if (std::holds_alternative<bool>(event.d_value)) {
+            work.attributes.emplace_back(KeyValue{"value", {std::get<bool>(event.d_value)}});
+          }
+          else if (std::holds_alternative<int64_t>(event.d_value)) {
+            work.attributes.emplace_back(KeyValue{"value", {std::get<int64_t>(event.d_value)}});
+          }
+          else if (std::holds_alternative<std::string>(event.d_value)) {
+            work.attributes.emplace_back(KeyValue{"value", {std::get<std::string>(event.d_value)}});
+          }
+          else {
+            work.attributes.emplace_back(KeyValue{"value", {toString(event.d_value)}});
+          }
+        }
+        work.end_time_unix_nano = static_cast<uint64_t>(event.d_ts + diff);
+        pairs.erase(event.d_event);
+      }
+    }
+  }
+  return ret;
+}

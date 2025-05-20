@@ -10,7 +10,7 @@ import sys
 import google.protobuf.message
 import google.protobuf.json_format
 
-import opentelemetry.proto.trace.v1.trace_pb2
+
 
 data = sys.stdin.buffer.read()
 

@@ -602,6 +602,7 @@ void protobufLogResponse(const struct dnsheader* header, LocalStateHolder<LuaCon
                          const boost::uuids::uuid& uniqueId, const string& requestorId, const string& deviceId,
                          const string& deviceName, const std::map<std::string, RecursorLua4::MetaValue>& meta,
                          const RecEventTrace& eventTrace,
+                         pdns::trace::Span &otTrace,
                          const std::unordered_set<std::string>& policyTags)
 {
   pdns::ProtoZero::RecMessage pbMessage(pbData ? pbData->d_message : "", pbData ? pbData->d_response : "", 64, 10); // The extra bytes we are going to add
@@ -661,6 +662,13 @@ void protobufLogResponse(const struct dnsheader* header, LocalStateHolder<LuaCon
 #endif
   if (eventTrace.enabled() && (SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_pb) != 0) {
     pbMessage.addEvents(eventTrace);
+  }
+  if (eventTrace.enabled() && (SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_ot) != 0) {
+    otTrace.close();
+    auto spans = eventTrace.convertToOT(otTrace);
+    pdns::trace::TracesData trace{
+      .resource_spans = { pdns::trace::ResourceSpans{.resource = {}, .scope_spans = {{.spans = spans}}}}};
+    pbMessage.setOpenTelemetryData(trace.encode());
   }
   pbMessage.addPolicyTags(policyTags);
 
