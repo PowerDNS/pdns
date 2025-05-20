@@ -632,7 +632,7 @@ this zone.
 
   This is like ``getUnfreshSecondaryInfos``, but for a specific domain. If the
   backend considers itself authoritative for the named zone, ``di`` should
-  be filled out, and 'true' be returned. Otherwise return false.
+  be filled out, and 'true' be returned. Otherwise, return false.
 
 .. cpp:function:: bool DomainInfo::startTransaction(const string &qname, domainid_t id)
 
@@ -924,7 +924,7 @@ contain `CAP_DNSSEC` if that backend supports DNSSEC.
 
 .. cpp:function:: virtual bool updateEmptyNonTerminals(domainid_t domain_id, set<DNSName>& insert, set<DNSName>& erase, bool remove)
 
-  Updates ENT after a zone has been rectified. If 'remove' is false, 'erase' contains a list of ENTs to remove from the zone before adding any. Otherwise all ENTs should be removed from the zone before adding any. 'insert' contains the list of ENTs to add to the zone after the removals have been done.
+  Updates ENT after a zone has been rectified. If 'remove' is false, 'erase' contains a list of ENTs to remove from the zone before adding any. Otherwise, all ENTs should be removed from the zone before adding any. 'insert' contains the list of ENTs to add to the zone after the removals have been done.
 
 .. cpp:function:: virtual bool feedEnts(domainid_t domain_id, map<DNSName,bool> &nonterm)
 

@@ -140,7 +140,7 @@ Replies
 ^^^^^^^
 
 You **must** always reply with JSON hash with at least one key,
-'result'. This must be boolean false if the query failed. Otherwise it
+'result'. This must be boolean false if the query failed. Otherwise, it
 must conform to the expected result. For HTTP connector, to signal bare
 success, you can just reply with HTTP 200 OK, and omit any output. This
 will result in same outcome as sending {"result":true}.

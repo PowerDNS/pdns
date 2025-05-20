@@ -1417,7 +1417,7 @@ To notify all IP addresses apart from the 192.168.0.0/24 subnet use the followin
 .. note::
   If your secondaries support an Internet Protocol version, which your primary does not,
   then set ``only-notify`` to include only supported protocol version.
-  Otherwise there will be error trying to resolve address.
+  Otherwise, there will be error trying to resolve address.
 
   For example, secondaries support both IPv4 and IPv6, but PowerDNS primary have only IPv4,
   so allow only IPv4 with ``only-notify``:
