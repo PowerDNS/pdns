@@ -484,7 +484,7 @@ Downloads
 
 -  `Official download page <https://www.powerdns.com/downloads.html>`__
 -  `native RHEL5/6 packages from Kees
-   Monshouwer <http://www.monshouwer.eu/download/3rd_party/pdns-recursor/>`__
+   Monshouwer <https://www.monshouwer.eu/download/3rd_party/pdns-recursor/>`__
 
 Changes since 3.5.2
 ^^^^^^^^^^^^^^^^^^^
@@ -521,7 +521,7 @@ Downloads
 
 -  `Official download page <https://www.powerdns.com/downloads.html>`__
 -  `native RHEL5/6 packages from Kees
-   Monshouwer <http://www.monshouwer.eu/download/3rd_party/pdns-recursor/>`__
+   Monshouwer <https://www.monshouwer.eu/download/3rd_party/pdns-recursor/>`__
 
 Changes since 3.5.1
 ^^^^^^^^^^^^^^^^^^^
@@ -550,7 +550,7 @@ Downloads
 
 -  `Official download page <https://www.powerdns.com/downloads.html>`__
 -  `native RHEL5/6 packages from Kees
-   Monshouwer <http://www.monshouwer.eu/download/3rd_party/pdns-recursor/>`__
+   Monshouwer <https://www.monshouwer.eu/download/3rd_party/pdns-recursor/>`__
 
 Changes since 3.5
 ^^^^^^^^^^^^^^^^^
@@ -586,7 +586,7 @@ Downloads
 
 -  `Official download page <https://www.powerdns.com/downloads.html>`__
 -  `native RHEL5/6 packages from Kees
-   Monshouwer <http://www.monshouwer.eu/download/3rd_party/pdns-recursor/>`__
+   Monshouwer <https://www.monshouwer.eu/download/3rd_party/pdns-recursor/>`__
 
 Changes between RC5 and the final 3.5 release
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -652,7 +652,7 @@ Changes between RC1 and RC2
    This was fixed in `commit
    3085 <http://wiki.powerdns.com/projects/trac/changeset/3085>`__. This
    should also close the slightly bogus
-   `CVE-2012-1193 <http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2012-1193>`__.
+   `CVE-2012-1193 <https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2012-1193>`__.
    Closes `ticket 668 <https://github.com/PowerDNS/pdns/issues/668>`__.
 -  The auth-can-lower-ttl flag was removed, as it did not have any
    effect in most situations, and thus did not operate as advertised. We
@@ -1430,7 +1430,7 @@ enough to justify a quick upgrade.
    DNS-hierarchy, like 'juniper.net'.
 
    This issue was fixed rapidly because of the help of
-   `XS4ALL <http://www.xs4all.nl>`__ (Eric Veldhuyzen, Kai Storbeck),
+   `XS4ALL <https://www.xs4all.nl>`__ (Eric Veldhuyzen, Kai Storbeck),
    Brad Dameron and Kees Monshouwer. Fix in `commit
    1178 <http://wiki.powerdns.com/projects/trac/changeset/1178>`__.
 
@@ -2144,7 +2144,7 @@ PowerDNS, as it is a Better Internet Nameserver Daemon.
 
 Some more information, based on a previous version of PowerDNS, can be
 found on the `PowerDNS development
-blog <http://blog.netherlabs.nl/articles/2006/04/14/holy-cow-1-3-million-additional-ip-addresses-served-by-powerdns>`__.
+blog <https://blog.netherlabs.nl/articles/2006/04/14/holy-cow-1-3-million-additional-ip-addresses-served-by-powerdns>`__.
 
 **Warning**: Because of recent DNS based denial of service attacks,
 running an open recursor has become a security risk. Therefore, unless
@@ -2178,6 +2178,6 @@ Important new features of the PowerDNS recursor 3.0
 
 Many people helped package and test this release. Jorn Ekkelenkamp of
 ISP-Services helped find the '8000 SOAs' bug and spotted many other
-oddities and `XS4ALL <http://www.xs4all.nl>`__ internet funded a lot of
+oddities and `XS4ALL <https://www.xs4all.nl>`__ internet funded a lot of
 the recent development. Joaquín M López Muñoz of the
 boost::multi\_index\_container was again of great help.

@@ -40,7 +40,7 @@ This is a small bugfix release. Additionally, the deb/RPM packages on
 downloads.powerdns.com (those with -static in the name) for 3.4.8 have
 been built against Botan 1.10.11 instead of Botan 1.10.3 like previous
 packages. Please see `the Botan Security
-page <http://botan.randombit.net/security.html>`__ for more information
+page <https://botan.randombit.net/security.html>`__ for more information
 on the fixes in Botan 1.10.11. As a PowerDNS user, these issues only
 affect you if you ran our -static packages *and* allowed your users to
 upload private keys to your configuration.
@@ -988,7 +988,7 @@ Downloads
 -  `Official download
    page <https://www.powerdns.com/downloads>`__
 -  `native RHEL5/6 packages from Kees
-   Monshouwer <http://www.monshouwer.eu/download/3rd_party/pdns-server/>`__
+   Monshouwer <https://www.monshouwer.eu/download/3rd_party/pdns-server/>`__
 
 Changes since 3.3
 ^^^^^^^^^^^^^^^^^
@@ -1036,7 +1036,7 @@ Changes since 3.3
    dfd1b82 <https://github.com/PowerDNS/pdns/commit/dfd1b82>`__).
 -  Build fixes for platforms with 'weird' types (like s390/s390x):
    `commit c669f7c <https://github.com/PowerDNS/pdns/commit/c669f7c>`__
-   (`details <http://blog.powerdns.com/2013/10/28/on-ragel-and-char-types/>`__),
+   (`details <https://blog.powerdns.com/2013/10/28/on-ragel-and-char-types/>`__),
    `commit 07b904e <https://github.com/PowerDNS/pdns/commit/07b904e>`__
    and `commit
    2400764 <https://github.com/PowerDNS/pdns/commit/2400764>`__.
@@ -1113,7 +1113,7 @@ Downloads
 -  `Official download
    page <https://www.powerdns.com/downloads>`__
 -  `native RHEL5/6 packages from Kees
-   Monshouwer <http://www.monshouwer.eu/download/3rd_party/pdns-server/>`__
+   Monshouwer <https://www.monshouwer.eu/download/3rd_party/pdns-server/>`__
 
 Changes between RC2 and final
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1490,7 +1490,7 @@ Downloads
 -  `Official download
    page <https://www.powerdns.com/downloads>`__
 -  `native RHEL5/6 packages from Kees
-   Monshouwer <http://www.monshouwer.eu/download/3rd_party/pdns-server/>`__
+   Monshouwer <https://www.monshouwer.eu/download/3rd_party/pdns-server/>`__
 -  `additional third-party
    builds <http://wiki.powerdns.com/trac#GettingPowerDNSpackages>`__
 
@@ -1958,7 +1958,7 @@ Downloads
 -  `Official download
    page <https://www.powerdns.com/downloads>`__
 -  `CentOS/RHEL 5/6
-   RPMs <http://www.monshouwer.eu/download/3rd_party/pdns-server/>`__
+   RPMs <https://www.monshouwer.eu/download/3rd_party/pdns-server/>`__
    kindly provided by Kees Monshouwer.
 -  `Additional
    packages <http://wiki.powerdns.com/trac#GettingPowerDNSpackages>`__
@@ -2436,11 +2436,11 @@ achieving high levels of security.
 PowerDNS Authoritative Server 3.0 development has been made possible by
 the financial and moral support of
 
--  `AFNIC, the French registry <http://www.afnic.fr/>`__
+-  `AFNIC, the French registry <https://www.afnic.fr/>`__
 -  `IPCom's RcodeZero Anycast
    DNS <http://www.ipcom.at/en/dns/rcodezero_anycast/>`__, a subsidiary
    of NIC.AT, the Austrian registry
--  `SIDN, the Dutch registry <http://www.sidn.nl/>`__
+-  `SIDN, the Dutch registry <https://www.sidn.nl/>`__
 
 This release has received exceptional levels of community support, and
 we'd like to thank the following people in addition to those mentioned
@@ -3105,19 +3105,19 @@ release of the PowerDNS Authoritative Server will be called 3.0.
 
 This release would not have been possible without large amounts of help
 and support from the PowerDNS Community. We specifically want to thank
-Massimo Bandinelli of Italy's `Register.it <http://register.it>`__,
+Massimo Bandinelli of Italy's `Register.it <https://register.it>`__,
 `Dave Aaldering of Aaldering ICT <http://aaldering-ict.nl>`__, `True
-BV <http://true.nl>`__, `XS4ALL <http://www.xs4all.nl>`__, Daniel Bilik
-of `Neosystem <http://www.neosystem.cz>`__,
-`EasyDNS <http://www.easydns.com>`__, `Heinrich
-Ruthensteiner <http://www.siemens.com>`__ of Siemens, `Augie
-Schwer <http://schwer.us>`__, `Mark
-Bergsma <http://www.wikipedia.org>`__, `Marco
+BV <https://true.nl>`__, `XS4ALL <https://www.xs4all.nl>`__, Daniel Bilik
+of `Neosystem <https://www.neosystem.cz>`__,
+`EasyDNS <https://www.easydns.com>`__, `Heinrich
+Ruthensteiner <https://www.siemens.com>`__ of Siemens, `Augie
+Schwer <https://schwer.us>`__, `Mark
+Bergsma <https://www.wikipedia.org>`__, `Marco
 Davids <http://www.forfun.net>`__, `Marcus Rueckert of
-OpenSUSE <http://www.opensuse.org>`__, Andre Muraro of
-`Locaweb <http://www.locaweb.com.br>`__, Antony Lesuisse, `Norbert
-Sendetzky <http://www.linuxnetworks.de>`__, `Marco
-Chiavacci <http://www.aruba.it>`__, Christoph Haas, Ralf van der Enden
+OpenSUSE <https://www.opensuse.org>`__, Andre Muraro of
+`Locaweb <https://www.locaweb.com.br>`__, Antony Lesuisse, `Norbert
+Sendetzky <https://www.linuxnetworks.de>`__, `Marco
+Chiavacci <https://www.aruba.it>`__, Christoph Haas, Ralf van der Enden
 and Ruben Kerkhof.
 
 Security issues
@@ -3233,12 +3233,12 @@ Bugs
 Features
 ^^^^^^^^
 
--  Thanks to `EasyDNS <http://www.easydns.com>`__, PowerDNS now supports
+-  Thanks to `EasyDNS <https://www.easydns.com>`__, PowerDNS now supports
    multiple masters per domain. For configuration details, see `Slave
    operation <../modes-of-operation.rst#slave-operation>`__.
    Implemented in `commit e5b11b2f2754b3c0c5193f0a692350342381addb <https://github.com/PowerDNS/pdns/commit/e5b11b2f2754b3c0c5193f0a692350342381addb>`__,
    `commit 4232a932d733711c74a7e30b28fca755f9722d9f <https://github.com/PowerDNS/pdns/commit/4232a932d733711c74a7e30b28fca755f9722d9f>`__.
--  Thanks to `EasyDNS <http://www.easydns.com>`__, PowerDNS now supports
+-  Thanks to `EasyDNS <https://www.easydns.com>`__, PowerDNS now supports
    the KEY record type, as well the SPF record. In `commit 4b5762f1f096b0fdb741ad6d630ccd831910ad35 <https://github.com/PowerDNS/pdns/commit/4b5762f1f096b0fdb741ad6d630ccd831910ad35>`__.
 -  Added support for CERT, SSHFP, DNSKEY, DS, NSEC, RRSIG record types,
    as part of the move to the new DNS parsing/generating code.
@@ -3315,11 +3315,11 @@ Released the 15th of March 2006
 
 Besides adding OpenDBX, this release is mostly about fixing problems and
 speeding up the recursor. This release has been made possible by
-`XS4ALL <http://www.xs4all.nl>`__ and `True <http://true.nl>`__. Thanks!
+`XS4ALL <https://www.xs4all.nl>`__ and `True <https://true.nl>`__. Thanks!
 
 Furthermore, we are very grateful for the help of Andrew Pinski, who
 hacks on gcc, and of Joaquín M López Muñoz, the author of
-`boost::multi\_index\_container <http://www.boost.org/libs/multi_index/doc/index.html>`__.
+`boost::multi\_index\_container <https://www.boost.org/libs/multi_index/doc/index.html>`__.
 Without their near-realtime help this release would've been delayed a
 lot. Thanks!
 
@@ -3369,7 +3369,7 @@ Improvements to the recursor
 -  `commit 0bb34eb126cc8512b69099d0c7a525ff64499575 <https://github.com/PowerDNS/pdns/commit/0bb34eb126cc8512b69099d0c7a525ff64499575>`__
    and `commit 90a5cfe2b52e1724dc3b428d2cfc7ef427f6e5a8 <https://github.com/PowerDNS/pdns/commit/90a5cfe2b52e1724dc3b428d2cfc7ef427f6e5a8>`__ work
    around gcc bug
-   `24704 <http://gcc.gnu.org/bugzilla/show_bug.cgi?id=24704>`__ if
+   `24704 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=24704>`__ if
    requested, which speeds up the recursor a lot, but involves a dirty
    hack. Enable with **./configure ^^enable-gcc-skip-locking**. No
    guarantees!
@@ -3393,7 +3393,7 @@ Bugs fixed in the authoritative nameserver
    62 <https://github.com/PowerDNS/pdns/issues/62>`__.
 -  Referrals were subtly broken by recent CNAME/Wildcard improvements,
    fixed in `commit 95f0df4542f6abf2ffbdc92da9cc3e56bd9e1253 <https://github.com/PowerDNS/pdns/commit/95f0df4542f6abf2ffbdc92da9cc3e56bd9e1253>`__. Fix
-   and other improvements sponsored by `True <http://true.nl>`__.
+   and other improvements sponsored by `True <https://true.nl>`__.
 -  PowerDNS would try to insert records it has no knowledge about in
    slave zones, which did not work. Reported in `ticket
    60 <https://github.com/PowerDNS/pdns/issues/60>`__, fixed in `commit 02b37061fea43ed29fc972bc24374bf858853a03 <https://github.com/PowerDNS/pdns/commit/02b37061fea43ed29fc972bc24374bf858853a03>`__. A
@@ -3434,7 +3434,7 @@ Miscellaneous
    `commit a0dbd4ce64427e3232e321cbe0f349ccca864d87 <https://github.com/PowerDNS/pdns/commit/a0dbd4ce64427e3232e321cbe0f349ccca864d87>`__.
 -  PowerDNS now reports if it is running in 32 or 64 bit mode, useful
    for bi-arch users that need to know if they are benefiting from
-   `AMD's great processor <http://www.amd.com>`__. `commit 22c012a8251c54e95e8b08aed06eae830ff0a448 <https://github.com/PowerDNS/pdns/commit/22c012a8251c54e95e8b08aed06eae830ff0a448>`__.
+   `AMD's great processor <https://www.amd.com>`__. `commit 22c012a8251c54e95e8b08aed06eae830ff0a448 <https://github.com/PowerDNS/pdns/commit/22c012a8251c54e95e8b08aed06eae830ff0a448>`__.
 -  **dnsscope** compiles again, `commit 1a21c2a52be8b787196e7f2532f1c10d28cb973e <https://github.com/PowerDNS/pdns/commit/1a21c2a52be8b787196e7f2532f1c10d28cb973e>`__,
    `commit d5ad413a3069181834c4188e0787d8d14cb7982c <https://github.com/PowerDNS/pdns/commit/d5ad413a3069181834c4188e0787d8d14cb7982c>`__
    (FreeBSD 64-bit time\_t).
@@ -3485,7 +3485,7 @@ The code is also shorter.
 This release fixes a number of embarrassing bugs and is a recommended
 upgrade.
 
-Thanks are due to `XS4ALL <http://www.xs4all.nl>`__ who are supporting
+Thanks are due to `XS4ALL <https://www.xs4all.nl>`__ who are supporting
 continuing development of PowerDNS, the fruits of which can be found in
 this release already. Furthermore, a remarkable number of people have
 helped report bugs, validate solutions or have submitted entire patches.
@@ -3502,7 +3502,7 @@ Improvements
    recursor deployments have too much traffic for this to be useful.
 -  PowerDNS recursor is now able to read its root-hints from disk, which
    is useful to operate with alternate roots, like the `Open Root Server
-   Network <http://www.orsn.org>`__. See `PowerDNS
+   Network <https://www.orsn.org>`__. See `PowerDNS
    Recursor <https://docs.powerdns.com/recursor/>`__.
 -  PowerDNS can now send out old-fashioned root-referrals when queried
    for domains for which it is not authoritative. Wastes some bandwidth
@@ -3580,13 +3580,13 @@ Released on the 16th of July 2005.
 The '8 million domains' release, which also marks the battle readiness
 of the PowerDNS Recursor. The latest improvements have been made
 possible by financial support and contributions by
-`Register.com <http://register.com>`__ and
-`XS4ALL <http://www.xs4all.nl/>`__. Thanks!
+`Register.com <https://register.com>`__ and
+`XS4ALL <https://www.xs4all.nl/>`__. Thanks!
 
 This release brings a number of new features (vastly improved recursor,
 Generic Oracle Support, DNS analysis and replay tools, and more) but
 also has a new build dependency, the `Boost
-library <http://www.boost.org>`__ (version 1.31 or higher).
+library <https://www.boost.org>`__ (version 1.31 or higher).
 
 Currently several big ISPs are evaluating the PowerDNS recursor for
 their resolving needs, some of them have switched already. In the course
@@ -4000,7 +4000,7 @@ New features
 
 -  ^^version command (requested by Mike Benoit)
 -  delegation-only, a Verisign special.
--  Generic `SQLite <http://www.sqlite.org>`__ support, by Michel 'Who da
+-  Generic `SQLite <https://www.sqlite.org>`__ support, by Michel 'Who da
    man?' Stol. See `Generic SQLite
    backend <../backends/generic-sqlite3.rst>`__.
 -  init.d script for pdns\_recursor
@@ -4787,7 +4787,7 @@ performance switches may appear in ^^help output but you are advised to
 stay away from these.
 
 Developers: this version needs the pdns-2.5.1 development kit, available
-on http://downloads.powerdns.com/releases/dev. See also `Backend
+on https://downloads.powerdns.com/releases/dev. See also `Backend
 writers' guide <../appendices/backend-writers-guide.rst>`__.
 
 Performance
@@ -4837,7 +4837,7 @@ bag <http://www.tuxedo.org/~esr/jargon/html/entry/brown-paper-bag-bug.html>`__
 release fixing a huge memory leak in the new Query Cache.
 
 Developers: this version needs the new pdns-2.5.1 development kit,
-available on http://downloads.powerdns.com/releases/dev. See also
+available on https://downloads.powerdns.com/releases/dev. See also
 `Backend writers' guide <../appendices/backend-writers-guide.rst>`__.
 
 And some small changes
@@ -4952,7 +4952,7 @@ Version 2.4
 -----------
 
 Developers: this version is compatible with the pdns-2.1 development
-kit, available on http://downloads.powerdns.com/releases/dev. See also
+kit, available on https://downloads.powerdns.com/releases/dev. See also
 `*Backend writers' guide* <../appendices/backend-writers-guide.rst>`__.
 
 This version fixes some stability issues with malformed or malcrafted
@@ -4999,7 +4999,7 @@ Version 2.3
 -----------
 
 Developers: this version is compatible with the pdns-2.1 development
-kit, available on http://downloads.powerdns.com/releases/dev. See also
+kit, available on https://downloads.powerdns.com/releases/dev. See also
 `Backend writers' guide <../appendices/backend-writers-guide.rst>`__
 
 This release adds the Generic MySQL backend which allows full
@@ -5041,7 +5041,7 @@ Version 2.2
 -----------
 
 Developers: this version is compatible with the pdns-2.1 development
-kit, available on http://downloads.powerdns.com/releases/dev. See also
+kit, available on https://downloads.powerdns.com/releases/dev. See also
 `Backend writers' guide <../appendices/backend-writers-guide.rst>`__
 
 Again a big release. PowerDNS is seeing some larger deployments in more
@@ -5101,7 +5101,7 @@ recursing backend under most circumstances. Old behaviour can be
 restored by turning **lazy-recursion** off.
 
 Developers: this version has a new pdns-2.1 development kit, available
-on http://downloads.powerdns.com/releases/dev. See also `Backend
+on https://downloads.powerdns.com/releases/dev. See also `Backend
 writers' guide <../appendices/backend-writers-guide.rst>`__.
 
 **Warning**: Most users will run a static version of PowerDNS which has

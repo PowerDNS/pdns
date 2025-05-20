@@ -78,7 +78,7 @@ show the output from running the container even when `--verbose` is off
     - make error codes we get for building and running containers
       readable if we can find a lib for this; otherwise, it requires too
       much maintenance
-        - `errno` http://joeyh.name/code/moreutils/
+        - `errno` https://joeyh.name/code/moreutils/
     - parameter to test all the things!  (this can currently easily done
       by a shell script / command)
       - `for RELEASE in auth-42 auth-43 auth-44 auth-master rec-42 rec-43 rec-44 rec-45 rec-master dnsdist-15 dnsdist-16 dnsdist-master; do ./generate-repo-files.py --test $RELEASE; done`

@@ -41,7 +41,7 @@ Path to the LMDB file (e.g. */var/lib/powerdns/pdns.lmdb*)
 
 .. warning::
   On systemd systems,
-  When running PowerDNS via the provided systemd service file, `ProtectSystem <http://www.freedesktop.org/software/systemd/man/systemd.exec.html#ProtectSystem=>`_ is set to ``full``, this means PowerDNS is unable to write to e.g. ``/etc`` and ``/home``, possibly being unable to write to the LMDB database.
+  When running PowerDNS via the provided systemd service file, `ProtectSystem <https://www.freedesktop.org/software/systemd/man/systemd.exec.html#ProtectSystem=>`_ is set to ``full``, this means PowerDNS is unable to write to e.g. ``/etc`` and ``/home``, possibly being unable to write to the LMDB database.
 
 .. _setting-lmdb-shards:
 

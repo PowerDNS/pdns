@@ -29,7 +29,7 @@ Details can be found on `this Trusteer
 page <http://www.trusteer.com/docs/powerdnsrecursor.html>`__.
 
 This security problem was announced in `this email
-message <http://mailman.powerdns.com/pipermail/pdns-users/2008-March/005279.html>`__.
+message <https://mailman.powerdns.com/pipermail/pdns-users/2008-March/005279.html>`__.
 
 It is recommended that all users of the PowerDNS Recursor upgrade to
 3.1.5 as soon as practicable, while we simultaneously note that busy

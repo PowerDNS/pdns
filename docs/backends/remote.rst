@@ -119,7 +119,7 @@ parameters: endpoint, timeout (default 2000ms)
     remote-connection-string=zeromq:endpoint=ipc:///tmp/tmp.sock
 
 0MQ connector implements a REQ/REP RPC model. Please see
-http://zeromq.org/ for more information.
+https://zeromq.org/ for more information.
 
 .. _remote-api:
 

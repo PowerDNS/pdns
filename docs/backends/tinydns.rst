@@ -138,13 +138,13 @@ Useful implementation Notes
 
 This backend might solve some issues you have with the current tinydns
 noted on `Jonathan de Boyne
-Pollard's <http://jdebp.uk/about-the-author.html>`__
+Pollard's <https://jdebp.uk/about-the-author.html>`__
 `djbdns known problems
-page <http://jdebp.uk/FGA/djbdns-problems.html>`__.
+page <https://jdebp.uk/FGA/djbdns-problems.html>`__.
 
 The ``data.cdb`` file format support all types of records. They are
 sometimes difficult to create because you need to specify the actual
-content of the rdata. `Tinydns.org <http://tinydns.org/>`__ provides a
+content of the rdata. `Tinydns.org <https://tinydns.org/>`__ provides a
 number of links to tools/cgi-scripts that allow you to create records.
 `Anders Brownworth <https://andersbrownworth.com/>`__ also provides a number of
 useful record building scripts on his
@@ -163,4 +163,4 @@ suite <https://cr.yp.to/djbdns/axfr-get.html>`__.
     www.example.com   A 198.51.100.1
 
 Compiling the TinyDNS backend requires you to have
-`tinycdb <http://www.corpit.ru/mjt/tinycdb.html>`__ version 0.77.
+`tinycdb <https://www.corpit.ru/mjt/tinycdb.html>`__ version 0.77.

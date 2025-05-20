@@ -314,7 +314,7 @@ Released July 29th 2016
 
 This release fixes two small issues and adds a setting to limit AXFR and
 IXFR sizes, in response to
-`CVE-2016-6172 <http://www.openwall.com/lists/oss-security/2016/07/06/4>`__.
+`CVE-2016-6172 <https://www.openwall.com/lists/oss-security/2016/07/06/4>`__.
 
 Bug fixes
 ~~~~~~~~~
@@ -367,7 +367,7 @@ As part of the general cleanup and improvements, we did the following:
 
 -  Moved to C++ 2011, a cleaner more powerful version of C++ that has
    allowed us to `improve the quality of
-   implementation <http://bert-hubert.blogspot.nl/2015/01/on-c2011-quality-of-implementation.html>`__
+   implementation <https://bert-hubert.blogspot.nl/2015/01/on-c2011-quality-of-implementation.html>`__
    in many places.
 -  Implemented dedicated infrastructure for dealing with DNS names that
    is fully "DNS Native" and needs less escaping and unescaping.

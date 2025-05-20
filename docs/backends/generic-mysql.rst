@@ -61,7 +61,7 @@ To support ``NATIVE`` domains, the ``binlog_format`` for the MySQL/MariaDB
 replication **must** be set to ``MIXED`` or ``ROW`` to prevent
 differences in data between replicated servers. See `"Setting
 The Binary Log
-Format" <http://dev.mysql.com/doc/refman/5.7/en/binary-log-setting.html>`__
+Format" <https://dev.mysql.com/doc/refman/5.7/en/binary-log-setting.html>`__
 and `"Binary Log Formats" <https://mariadb.com/kb/en/binary-log-formats/>`__
 for more information.
 

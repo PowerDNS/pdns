@@ -21,7 +21,7 @@ Generic ODBC Backend
 
 The Generic ODBC Backend (godbc) is a child of the Generic SQL (gsql)
 backend, similar to the gmysql and gpgsql backends. It uses
-`UnixODBC <http://www.unixodbc.org/>`__ and installed drivers to connect
+`UnixODBC <https://www.unixodbc.org/>`__ and installed drivers to connect
 to the databases supported by said drivers.
 
 .. warning::
@@ -83,7 +83,7 @@ Connecting to Microsoft SQL Server
   least version 3.2.0 of UnixODBC. FreeDTS has been tested with versions
   0.91 and 0.95.
 
-Install the `FreeTDS <http://www.freetds.org/>`__ driver for UnixODBC,
+Install the `FreeTDS <https://www.freetds.org/>`__ driver for UnixODBC,
 either by compiling or getting it from our distribution's repository and
 configure your ``/etc/odbcinst.ini`` with the driver, e.g.:
 

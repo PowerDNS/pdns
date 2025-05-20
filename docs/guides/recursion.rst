@@ -103,7 +103,7 @@ Scenario 2: Authoritative Server as Recursor for clients and serving public doma
 
 The best way to "migrate" in this scenario is to separate the recursive
 service fully from the Authoritative Server. See `Dan Bernstein's
-article <http://cr.yp.to/djbdns/separation.html>`__ on this topic.
+article <https://cr.yp.to/djbdns/separation.html>`__ on this topic.
 
 If this is not possible, this migration guide will maintain the
 functionality of the existing installation while allowing to upgrade.

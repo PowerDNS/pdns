@@ -45,8 +45,8 @@ Starting with version 5, a Rust compiler is needed.
 
 By default, the :program:`Recursor` requires the following libraries and headers:
 
-* `Boost <http://boost.org/>`_ 1.54 or newer
-* `Lua <http://www.lua.org/>`_ 5.1+ or `LuaJit <http://luajit.org/>`_
+* `Boost <https://boost.org/>`_ 1.54 or newer
+* `Lua <https://www.lua.org/>`_ 5.1+ or `LuaJit <https://luajit.org/>`_
 * `OpenSSL <https://openssl.org>`_
 * For :program:`Recursor` version 5 and higher, `cargo <https://www.rust-lang.org/tools/install>`_ version 1.64 or newer.
 

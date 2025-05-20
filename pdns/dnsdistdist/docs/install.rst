@@ -37,7 +37,7 @@ For Red Hat, CentOS and its derivatives, dnsdist is available in `EPEL <https://
 FreeBSD
 ~~~~~~~
 
-dnsdist is also available in `FreeBSD ports <http://www.freshports.org/dns/dnsdist/>`_.
+dnsdist is also available in `FreeBSD ports <https://www.freshports.org/dns/dnsdist/>`_.
 
 Installing from Source
 ----------------------
@@ -45,9 +45,9 @@ Installing from Source
 In order to compile dnsdist, a modern compiler with C++ 2017 support, a Python 3 interpreter with the ``YAML`` module, and either GNU make or ``meson`` with ``ninja`` are required.
 dnsdist depends on the following libraries:
 
-* `Boost <http://boost.org/>`_
-* `Lua <http://www.lua.org/>`_ 5.1+ or `LuaJit <http://luajit.org/>`_
-* `Editline (libedit) <http://thrysoee.dk/editline/>`_
+* `Boost <https://boost.org/>`_
+* `Lua <https://www.lua.org/>`_ 5.1+ or `LuaJit <https://luajit.org/>`_
+* `Editline (libedit) <https://thrysoee.dk/editline/>`_
 * `libfstrm <https://github.com/farsightsec/fstrm>`_ (optional, dnstap support)
 * `GnuTLS <https://www.gnutls.org/>`_ (optional, DoT and DoH support)
 * `hostname from Inetutils <https://www.gnu.org/software/inetutils/>`_
@@ -57,7 +57,7 @@ dnsdist depends on the following libraries:
 * `libh2o <https://github.com/h2o/h2o>`_ (optional, incoming DoH support, deprecated in 1.9.0 in favor of ``nghttp2``)
 * `libsodium <https://download.libsodium.org/doc/>`_ (optional, DNSCrypt support)
 * `LMDB <http://www.lmdb.tech/doc/>`_ (optional, LMDB support)
-* `net-snmp <http://www.net-snmp.org/>`_ (optional, SNMP support)
+* `net-snmp <https://www.net-snmp.org/>`_ (optional, SNMP support)
 * `nghttp2 <https://nghttp2.org/>`_ (optional, DoH support)
 * `OpenSSL <https://www.openssl.org/>`_ (optional, DoT and DoH support)
 * `Quiche <https://github.com/cloudflare/quiche>`_ (optional, incoming DoQ and DoH3 support)
@@ -100,9 +100,9 @@ From git
 
 To compile from git, these additional dependencies are required:
 
-* GNU `Autoconf <http://www.gnu.org/software/autoconf/autoconf.html>`_
+* GNU `Autoconf <https://www.gnu.org/software/autoconf/autoconf.html>`_
 * GNU `Automake <https://www.gnu.org/software/automake/>`_
-* `Ragel <http://www.colm.net/open-source/ragel/>`_
+* `Ragel <https://www.colm.net/open-source/ragel/>`_
 
 dnsdist source code lives in the `PowerDNS git repository <https://github.com/PowerDNS/pdns>`_ but is independent of PowerDNS.
 
