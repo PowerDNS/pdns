@@ -60,7 +60,7 @@ an image and run a container using that image.
 ### `--run-output`
 
 This argument can be a little unclear.  It is only applicable when
-`--test` is also supplied and `--verbose` is *NOT* supplied, otherwise
+`--test` is also supplied and `--verbose` is *NOT* supplied; otherwise,
 it is ignored.
 
 Since run output is not a lot when testing releases it can be nice to
@@ -76,7 +76,7 @@ show the output from running the container even when `--verbose` is off
     - option to test a specific release version and not just the latest
 - maybe:
     - make error codes we get for building and running containers
-      readable if we can find a lib for this, otherwise it requires too
+      readable if we can find a lib for this; otherwise, it requires too
       much maintenance
         - `errno` http://joeyh.name/code/moreutils/
     - parameter to test all the things!  (this can currently easily done

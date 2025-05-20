@@ -70,7 +70,7 @@ Since stack-allocated objects, like local variables in a function, are automatic
 We describe the use of smart pointers, containers and other wrappers for that purpose below, but first a few words of caution.
 Resources stored in a object are only tied to this object if the constructor executes fully and completes properly.
 If an exception is raised in the constructor's body, the object is not created and therefore the destructor will not be called.
-This means that if the object has non-object members holding resources, like raw file descriptors or raw C-style pointers, they need to be explicitly released before raising the exception, otherwise they are lost or leaked.
+This means that if the object has non-object members holding resources, like raw file descriptors or raw C-style pointers, they need to be explicitly released before raising the exception; otherwise, they are lost or leaked.
 
 ```C++
 class BadFileDescriptorWrapper

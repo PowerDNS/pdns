@@ -649,7 +649,7 @@ See :doc:`EOL Statements <../appendices/EOL>`.
     :pullreq: 6209
     :tickets: 6212
 
-    Fix to make ``primeHints`` threadsafe, otherwise there's a small
+    Fix to make ``primeHints`` threadsafe; otherwise, there's a small
     chance on startup that the root-server IPs will be incorrect.
 
   .. change::

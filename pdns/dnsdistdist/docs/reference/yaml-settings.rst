@@ -741,7 +741,7 @@ Packet-cache settings
 - **stale_ttl**: Unsigned integer ``(60)`` - When the backend servers are not reachable, and global configuration setStaleCacheEntriesTTL is set appropriately, TTL that will be used when a stale cache entry is returned
 - **temporary_failure_ttl**: Unsigned integer ``(60)`` - On a SERVFAIL or REFUSED from the backend, cache for this amount of seconds
 - **truncated_ttl**: Unsigned integer ``(0)`` - On a truncated (TC=1, no records) response from the backend, cache for this amount of seconds. 0, the default, means that truncated answers are not cached
-- **cookie_hashing**: Boolean ``(false)`` - If true, EDNS Cookie values will be hashed, resulting in separate entries for different cookies in the packet cache. This is required if the backend is sending answers with EDNS Cookies, otherwise a client might receive an answer with the wrong cookie
+- **cookie_hashing**: Boolean ``(false)`` - If true, EDNS Cookie values will be hashed, resulting in separate entries for different cookies in the packet cache. This is required if the backend is sending answers with EDNS Cookies; otherwise, a client might receive an answer with the wrong cookie
 - **maximum_entry_size**: Unsigned integer ``(4096)`` - The maximum size, in bytes, of a DNS packet that can be inserted into the packet cache
 - **options_to_skip**: Sequence of String ``("")`` - Extra list of EDNS option codes to skip when hashing the packet (if ``cookie_hashing`` above is false, EDNS cookie option number will be added to this list internally)
 

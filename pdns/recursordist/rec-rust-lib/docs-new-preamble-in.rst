@@ -399,7 +399,7 @@ As of version 5.1.0, an RPZ entry is defined as
     dumpFile: string
     seedFile: string
 
-If ``addresses`` is empty, the ``name`` field specifies the path name of the RPZ, otherwise the ``name`` field defines the name of the RPZ.
+If ``addresses`` is empty, the ``name`` field specifies the path name of the RPZ; otherwise, the ``name`` field defines the name of the RPZ.
 Starting with version 5.2.0, names instead of IP addresess can be used for ``addresses`` if
 :ref:`setting-yaml-recursor.system_resolver_ttl` is set.
 

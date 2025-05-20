@@ -95,7 +95,7 @@ INPUT:
  - DNSName domain - Domain to get info for
 
 OUTPUT:
- Return false if not supported or found, otherwise expects a table with keys:
+ Return false if not supported or found; otherwise, expects a table with keys:
 
  - string account - Associated account of this domain (default: <empty>)
  - string kind - Domain kind (NATIVE,MASTER,SLAVE) (default: NATIVE)
@@ -118,7 +118,7 @@ NOTES:
 Get domain information for all domains.
 
 OUTPUT:
- Return false if not supported or found, otherwise return a table of string,
+ Return false if not supported or found; otherwise, return a table of string,
  domaininfo. See :ref:`dns_get_domaininfo() <backends_lua2_dns_get_domaininfo>`.
 
 NOTES:
@@ -159,7 +159,7 @@ INPUT:
  - DNSName domain - Domain to get key(s) for
 
 OUTPUT:
- Return false if not found or supported, otherwise expects array of tables with keys:
+ Return false if not found or supported; otherwise, expects array of tables with keys:
 
  - int id - Key ID
  - int flags - Key flags

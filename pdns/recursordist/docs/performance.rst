@@ -237,7 +237,7 @@ While developing active TCP Fast Open, it was needed to set ``net.ipv4.tcp_fasto
 At the moment of writing, some Google operated nameservers (both recursive and authoritative) indicate Fast Open support in the TCP handshake, but do not accept the cookie they sent previously and send a new one for each connection.
 Google is working to fix this.
 
-If you operate an anycast pool of machines, make them share the TCP Fast Open Key by setting the ``net.ipv4.tcp_fastopen_key`` sysctl, otherwise you will create a similar issue some Google servers have.
+If you operate an anycast pool of machines, make them share the TCP Fast Open Key by setting the ``net.ipv4.tcp_fastopen_key`` sysctl; otherwise, you will create a similar issue some Google servers have.
 
 To determine a good value for the :ref:`setting-yaml-incoming.tcp_fast_open` setting, watch the ``TCPFastOpenListenOverflow`` metric.
 If this value increases often, the value might be too low for your traffic, but note that increasing it will use kernel resources.

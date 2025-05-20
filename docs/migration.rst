@@ -157,7 +157,7 @@ Prerequisites
 -  Target backend must support same features as source from set of
    domains, zones, metadata, DNSSEC and TSIG. See :doc:`Backend
    Capabilities <backends/index>`
--  There must be no data in the target backend, otherwise the migration
+-  There must be no data in the target backend; otherwise, the migration
    will fail. This is checked.
 
 You can perform live upgrade with this tool, provided you follow the
