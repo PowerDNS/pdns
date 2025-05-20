@@ -377,8 +377,11 @@ void convertRuntimeFlatSettingsFromRust(const dnsdist::rust::settings::GlobalCon
 ''')
 
     os.rename(cxx_flat_settings_fp.name, out_file_path + '/dnsdist-configuration-yaml-items-generated.cc')
+    target = build_dir_path + '/dnsdist-configuration-yaml-items-generated.cc'
     if out_file_path != build_dir_path:
-        os.symlink(os.path.abspath(out_file_path + '/dnsdist-configuration-yaml-items-generated.cc'), build_dir_path + '/dnsdist-configuration-yaml-items-generated.cc')
+        if os.path.exists(target):
+            os.unlink(target)
+        os.symlink(os.path.abspath(out_file_path + '/dnsdist-configuration-yaml-items-generated.cc'), target)
 
 def generate_actions_config(output, def_dir, response, default_functions):
     suffix = 'ResponseAction' if response else 'Action'
