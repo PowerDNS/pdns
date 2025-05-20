@@ -3407,7 +3407,7 @@ Improvements to the authoritative nameserver
    children, fixed in `commit 8348e9fd5de1dbc414ca01352361b8e26d27ddc6 <https://github.com/PowerDNS/pdns/commit/8348e9fd5de1dbc414ca01352361b8e26d27ddc6>`__,
    reported by kickdaddy@gmail.com in `ticket
    45 <https://github.com/PowerDNS/pdns/issues/45>`__.
--  `OpenDBX <http://www.linuxnetworks.de/pdnsodbx/index.html>`__ backend
+-  `OpenDBX <https://www.linuxnetworks.de/doc/index.php/PowerDNS_OpenDBX_Backend>`__ backend
    added (`commit 790e7c1b49abeea42c4778c3ef2dd009af88e672 <https://github.com/PowerDNS/pdns/commit/790e7c1b49abeea42c4778c3ef2dd009af88e672>`__,
    `commit 116762a333b137a73cee4aabcb9ea1cb82427e14 <https://github.com/PowerDNS/pdns/commit/116762a333b137a73cee4aabcb9ea1cb82427e14>`__,
    `commit 1620e053f524e433ff02386fe4bb6436be6d8dc4 <https://github.com/PowerDNS/pdns/commit/1620e053f524e433ff02386fe4bb6436be6d8dc4>`__) by
