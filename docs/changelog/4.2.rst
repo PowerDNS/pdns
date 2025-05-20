@@ -177,7 +177,7 @@ Changelogs for 4.2.x
 
   The LMDB backend is incomplete in this version. Slaving zones works, loading zones with pdnsutil works, but more fine-grained edits (using edit-zone, or the REST API) fail. We hope to fix this soon in a 4.2.x release.
 
-  For an overview of features new since 4.1.x, please see `the 4.2.0 announcement blog post <http://blog.powerdns.com/2019/08/29/powerdns-authoritative-server-4-2-0/>`__.
+  For an overview of features new since 4.1.x, please see `the 4.2.0 announcement blog post <https://blog.powerdns.com/2019/08/30/powerdns-authoritative-server-4-2-0>`__.
 
   .. change::
     :tags: Bug Fixes
