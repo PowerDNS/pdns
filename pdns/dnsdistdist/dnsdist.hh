@@ -967,6 +967,7 @@ struct ServerPool
   void removeServer(shared_ptr<DownstreamState>& server);
   bool isTCPOnly() const
   {
+    // coverity[missing_lock]
     return d_tcpOnly;
   }
 

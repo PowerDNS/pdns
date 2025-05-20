@@ -269,6 +269,8 @@ static std::variant<MetricValueType, Error> updateMetric(const std::string_view&
 
   /* OK, so we the metric exists (otherwise we would have returned an Error) but the label doesn't yet */
   {
+    // too bad Coverity claims to understand C++ yet does not understand RAII
+    // coverity[double_lock]
     auto writeLockedMap = metricMap.write_lock();
     auto labelsMapIt = writeLockedMap->find(name);
     if (labelsMapIt == writeLockedMap->end()) {
