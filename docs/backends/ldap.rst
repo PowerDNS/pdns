@@ -502,7 +502,7 @@ the command line by:
        --binddn=ADMIN_DN > update.ldif
 
 The parameter "host" and "basedn" are mandatory, "binddn" is optional.
-If "binddn" is given, the script will prompt for a password, otherwise
+If "binddn" is given, the script will prompt for a password; otherwise,
 an anonymous bind is executed. The updates in LDIF format are written to
 stdout and can be redirected to a file.
 

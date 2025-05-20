@@ -257,7 +257,7 @@ case, the behaviour is equivalent to the ``lookup`` method.)
 ~~~~~~~~
 
 Lists all records for the zonename. If you are running DNSSEC, you
-should take care of setting auth to appropriate value, otherwise things
+should take care of setting auth to appropriate value; otherwise, things
 can go wrong.
 
 -  Mandatory: no (gives AXFR support)
