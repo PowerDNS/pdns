@@ -87,7 +87,7 @@ When a ``MThread`` is started, a new stack is dynamically allocated for it. The 
 
 To reduce the cost of allocating a new stack for every query, the recursor can cache a small amount of stacks to make sure that the allocation stays cheap. This can be configured via the :ref:`setting-yaml-recursor.stack_cache_size` setting.
 This limit is per physical (Posix) thread.
-The only trade-off of enabling this cache is a slightly increased memory consumption, at worst equals to the number of stacks specified by :ref:`setting-yaml-recursor.stack_cache_size` multiplied by the size of one stack, itself specified via :ref:`setting-yaml-recursor.stack_size`.
+The only trade-off of enabling this cache is a slightly increased memory consumption, at worst equal to the number of stacks specified by :ref:`setting-yaml-recursor.stack_cache_size` multiplied by the size of one stack, itself specified via :ref:`setting-yaml-recursor.stack_size`.
 
 Linux limits the number of memory mappings a process can allocate by the ``vm.max_map_count`` kernel parameter.
 A single ``MThread`` stack can take up to 3 memory mappings.
