@@ -127,7 +127,7 @@ Use this principal for accepting GSS context.
 IXFR
 ----
 
-If set to 1, attempt IXFR when retrieving zone updates. Otherwise IXFR
+If set to 1, attempt IXFR when retrieving zone updates. Otherwise, IXFR
 is not attempted.
 
 LUA-AXFR-SCRIPT

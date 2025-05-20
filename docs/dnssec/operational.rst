@@ -145,7 +145,7 @@ INCEPTION-INCREMENT
 
 Uses YYYYMMDDSS format for SOA serial numbers. If the SOA serial from
 the backend is within two days after inception, it gets incremented by
-two (the backend should keep SS below 98). Otherwise it uses the maximum
+two (the backend should keep SS below 98). Otherwise, it uses the maximum
 of the backend SOA serial number and inception time in YYYYMMDD01
 format. This requires your backend zone to use YYYYMMDDSS as SOA serial
 format. Uses localtime to find the day for inception time.

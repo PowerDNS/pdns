@@ -9,7 +9,7 @@ YAML configuration reference
 
 Since 2.0.0, :program:`dnsdist` supports the YAML configuration format in addition to the existing Lua one.
 
-If the configuration file passed to :program:`dnsdist` via the ``-C`` command-line switch ends in ``.yml``, it is assumed to be in the new YAML format, and an attempt to load a Lua configuration file with the same name but the ``.lua`` will be done before loading the YAML configuration. If the names ends in ``.lua``, there will also be an attempt to find a file with the same name but ending in ``.yml``. Otherwise the existing Lua configuration format is assumed.
+If the configuration file passed to :program:`dnsdist` via the ``-C`` command-line switch ends in ``.yml``, it is assumed to be in the new YAML format, and an attempt to load a Lua configuration file with the same name but the ``.lua`` will be done before loading the YAML configuration. If the names ends in ``.lua``, there will also be an attempt to find a file with the same name but ending in ``.yml``. Otherwise, the existing Lua configuration format is assumed.
 
 By default, when a YAML configuration file is used, any Lua configuration file used along the YAML configuration should only contain functions, and ideally even those should be defined either inline in the YAML file or in separate files included from the YAML configuration, for clarity. It is however possible to change this behaviour using the :func:`enableLuaConfiguration` directive to enable Lua configuration directives, but it is strongly advised not to use this directive unless absolutely necessary, and to prefer doing all the configuration in either Lua or YAML but to not mix them.
 Note that Lua directives that can be used at runtime are always available via the :doc:`../guides/console`, regardless of whether they are enabled during configuration.
@@ -203,7 +203,7 @@ Endpoint to send queries and/or responses data to, using the dnstap format
 
 - **name**: String - Name of this endpoint
 - **transport**: String - The dnstap transport to use. Supported values are: unix, tcp
-- **address**: String - The address of the endpoint. If the transport is set to 'unix', the address should be local ``AF_UNIX`` socket path. Note that most platforms have a rather short limit on the length. Otherwise the address should be an IP:port
+- **address**: String - The address of the endpoint. If the transport is set to 'unix', the address should be local ``AF_UNIX`` socket path. Note that most platforms have a rather short limit on the length. Otherwise, the address should be an IP:port
 - **buffer_hint**: Unsigned integer ``(0)`` - The threshold number of bytes to accumulate in the output buffer before forcing a buffer flush. According to the libfstrm library, the minimum is 1024, the maximum is 65536, and the default is 8192
 - **flush_timeout**: Unsigned integer ``(0)`` - The number of seconds to allow unflushed data to remain in the output buffer. According to the libfstrm library, the minimum is 1 second, the maximum is 600 seconds (10 minutes), and the default is 1 second
 - **input_queue_size**: Unsigned integer ``(0)`` - The number of queue entries to allocate for each input queue. This value must be a power of 2. According to the fstrm library, the minimum is 2, the maximum is 16384, and the default is 512

@@ -232,7 +232,7 @@ dnstap_logger:
         - "tcp"
     - name: "address"
       type: "String"
-      description: "The address of the endpoint. If the transport is set to 'unix', the address should be local ``AF_UNIX`` socket path. Note that most platforms have a rather short limit on the length. Otherwise the address should be an IP:port"
+      description: "The address of the endpoint. If the transport is set to 'unix', the address should be local ``AF_UNIX`` socket path. Note that most platforms have a rather short limit on the length. Otherwise, the address should be an IP:port"
     - name: "buffer_hint"
       type: "u64"
       default: 0
