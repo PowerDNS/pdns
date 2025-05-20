@@ -9,8 +9,23 @@ import threading
 
 # run: protoc -I=../pdns/ --python_out=. ../pdns/dnsmessage.proto
 # to generate dnsmessage_pb2
+
+# to generate opentelemetry support, assuming opentelemetry-proto is a checkout of https://github.com/open-telemetry/opentelemetry-proto
+# run:
+# protoc -I opentelemetry-proto opentelemetry-proto/opentelemetry/proto/trace/v1/trace.proto --python_out=.
+# protoc -I opentelemetry-proto opentelemetry-proto/opentelemetry/proto/common/v1/common.proto --python_out=.
+# protoc -I opentelemetry-proto opentelemetry-proto/opentelemetry/proto/resource/v1/resource.proto --python_out=.
+
 import dnsmessage_pb2
 import google.protobuf.message
+
+try:
+    import google.protobuf.json_format
+    import opentelemetry.proto.trace.v1.trace_pb2
+    opentelemetryAvailable = True
+except:
+    opentelemetryAvailable = False
+
 
 class PDNSPBConnHandler(object):
 
@@ -59,20 +74,24 @@ class PDNSPBConnHandler(object):
     def printQueryMessage(self, message):
         self.printSummary(message, 'Query')
         self.printQuery(message)
+        self.printOT(message)
 
     def printOutgoingQueryMessage(self, message):
         self.printSummary(message, 'Query (O)')
         self.printQuery(message)
+        self.printOT(message)
 
     def printResponseMessage(self, message):
         self.printSummary(message, 'Response')
         self.printQuery(message)
         self.printResponse(message)
+        self.printOT(message)
 
     def printIncomingResponseMessage(self, message):
         self.printSummary(message, 'Response (I)')
         self.printQuery(message)
         self.printResponse(message)
+        self.printOT(message)
 
     def printQuery(self, message):
         if message.HasField('question'):
@@ -82,6 +101,16 @@ class PDNSPBConnHandler(object):
             print("- Question: %d, %d, %s" % (qclass,
                                               message.question.qType,
                                               message.question.qName))
+    def printOT(self, msg):
+        if msg.HasField('openTelemetryData'):
+            if opentelemetryAvailable:
+                json_string = None
+                otmsg = opentelemetry.proto.trace.v1.trace_pb2.TracesData()
+                otmsg.ParseFromString(msg.openTelemetryData)
+                json_string = google.protobuf.json_format.MessageToJson(otmsg, preserving_proto_field_name=True)
+                print("- openTelemetry: " + json_string)
+            else:
+                print("- openTelemetry decoding not available, see the comments in ProtoBuffer.py to make it available.x")
 
     @staticmethod
     def getAppliedPolicyTypeAsString(polType):
@@ -265,8 +294,12 @@ class PDNSPBConnHandler(object):
         if msg.HasField('ednsVersion'):
             ednsVersion = "0x%08X" % socket.ntohl(msg.ednsVersion)
 
+        openTelemetryData = "N/A"
+        if msg.HasField('openTelemetryData'):
+            openTelemetryData = str(len(msg.openTelemetryData))
+
         print('[%s] %s of size %d: %s%s%s -> %s%s(%s) id: %d uuid: %s%s '
-                  'requestorid: %s deviceid: %s devicename: %s serverid: %s nod: %s workerId: %s pcCacheHit: %s outgoingQueries: %s headerFlags: %s ednsVersion: %s' %
+                  'requestorid: %s deviceid: %s devicename: %s serverid: %s nod: %s workerId: %s pcCacheHit: %s outgoingQueries: %s headerFlags: %s ednsVersion: %s openTelemetryData: len %s' %
               (datestr,
                typestr,
                msg.inBytes,
@@ -288,7 +321,8 @@ class PDNSPBConnHandler(object):
                pcCacheHit,
                outgoingQs,
                headerFlags,
-               ednsVersion))
+               ednsVersion,
+               openTelemetryData))
 
         for mt in msg.meta:
             values = ''
