@@ -21,7 +21,7 @@ In some circumstances, when DNSdist is configured to allow an unlimited number o
 
 `CVSS Score: 7.5 <https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H&version=3.1>`__
 
-The remedy is: upgrade to the patched 1.9.10 version
+The remedy is: upgrade to the patched 1.9.10 version.
 
 A workaround is to restrict the maximum number of queries on incoming TCP connections to a safe value, like 50, via the :func:`setMaxTCPQueriesPerConnection` setting.
 
