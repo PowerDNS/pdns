@@ -5110,8 +5110,8 @@ dynamic version. This warning applies to these users.
 
 To run the dynamic version of PowerDNS, which is needed for backend
 drivers which are only available in source form, gcc 3.0 is required.
-RedHat 7.2 comes with gcc 3.0 as an optional component, RedHat 7.3 does
-not. However, the RedHat 7.2 Update gcc rpms install just fine on RedHat
+Red Hat 7.2 comes with gcc 3.0 as an optional component, Red Hat 7.3 does
+not. However, the Red Hat 7.2 Update gcc rpms install just fine on Red Hat
 7.3. For Debian, we suggest running 'woody' and installing the g++-3.0
 package. We expect to release a FreeBSD dynamic version shortly.
 
