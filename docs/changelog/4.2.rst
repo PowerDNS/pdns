@@ -1543,7 +1543,7 @@ Changelogs for 4.2.x
     :pullreq: 6128
     :tickets: 5268
 
-    GeoIPbackend improvements:
+    GeoIP backend improvements:
 
     * Adds MMDB support. Now geoip backend can be compiled without geoip support,
     * Adds location support,
