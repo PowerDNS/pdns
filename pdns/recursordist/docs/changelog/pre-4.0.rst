@@ -1463,7 +1463,7 @@ vulnerability to our attention which would enable a smart attacker to
 possibly malicious data.
 
 Details can be found on `this Trusteer
-page <http://www.trusteer.com/docs/powerdnsrecursor.html>`__.
+page <https://web.archive.org/web/20120107014921/https://www.trusteer.com/list-context/publications/powerdns-recursor-dns-cache-poisoning>`__.
 
 It is recommended that all users of the PowerDNS Recursor upgrade to
 3.1.5 as soon as practicable, while we simultaneously note that busy

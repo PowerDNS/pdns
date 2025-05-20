@@ -2438,7 +2438,7 @@ the financial and moral support of
 
 -  `AFNIC, the French registry <https://www.afnic.fr/>`__
 -  `IPCom's RcodeZero Anycast
-   DNS <http://www.ipcom.at/en/dns/rcodezero_anycast/>`__, a subsidiary
+   DNS <https://web.archive.org/web/20160306182714/http://www.rcodezero.at/index.php?id=1165&L=1>`__, a subsidiary
    of NIC.AT, the Austrian registry
 -  `SIDN, the Dutch registry <https://www.sidn.nl/>`__
 
@@ -3106,14 +3106,14 @@ release of the PowerDNS Authoritative Server will be called 3.0.
 This release would not have been possible without large amounts of help
 and support from the PowerDNS Community. We specifically want to thank
 Massimo Bandinelli of Italy's `Register.it <https://register.it>`__,
-`Dave Aaldering of Aaldering ICT <http://aaldering-ict.nl>`__, `True
+`Dave Aaldering of Aaldering ICT <https://web.archive.org/web/20161111111643/http://www.aalderingict.nl/>`__, `True
 BV <https://true.nl>`__, `XS4ALL <https://www.xs4all.nl>`__, Daniel Bilik
 of `Neosystem <https://www.neosystem.cz>`__,
 `EasyDNS <https://www.easydns.com>`__, `Heinrich
 Ruthensteiner <https://www.siemens.com>`__ of Siemens, `Augie
 Schwer <https://schwer.us>`__, `Mark
 Bergsma <https://www.wikipedia.org>`__, `Marco
-Davids <http://www.forfun.net>`__, `Marcus Rueckert of
+Davids <https://web.archive.org/web/20161021130129/https://forfun.net/>`__, `Marcus Rueckert of
 OpenSUSE <https://www.opensuse.org>`__, Andre Muraro of
 `Locaweb <https://www.locaweb.com.br>`__, Antony Lesuisse, `Norbert
 Sendetzky <https://www.linuxnetworks.de>`__, `Marco
@@ -4363,7 +4363,7 @@ PowerDNS than yet know about it. So spread the word!
 In other news, we now have a security page at
 `Security <../security.rst>`__. Furthermore, Maurice Nonnekes
 contributed an OpenBSD port! See `his
-page <http://www.codeninja.nl/openbsd/powerdns/>`__ for more details!
+page <https://web.archive.org/web/20070408142316/http://www.codeninja.nl/projects/openbsd/powerdns/>`__ for more details!
 
 New features and improvements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
