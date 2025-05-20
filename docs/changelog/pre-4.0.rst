@@ -3927,7 +3927,7 @@ Big news! Windows is back! Our great friend Michel Stol found the time
 to update the PowerDNS code so it works again under windows.
 
 Furthermore, big thanks go out to Dell who quickly repaired my trusty
-`laptop <http://ds9a.nl/dell-d800>`__.
+`laptop <https://berthub.eu/dell-d800>`__.
 
 His changes - Generic SQLite support added - Removed the ODBC backend,
 replaced it by the Generic ODBC Backend, which has all the cool

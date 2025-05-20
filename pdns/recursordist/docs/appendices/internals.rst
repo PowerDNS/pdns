@@ -28,7 +28,7 @@ means that PowerDNS is written naively, with one thread of execution per
 query, synchronously waiting for packets, Normally this would lead to
 very bad performance (unless running on a computer with very fast
 threading, like possibly the Sun CoolThreads family), so PowerDNS
-employs `MTasker <http://ds9a.nl/mtasker>`__ for very fast userspace
+employs `MTasker <https://berthub.eu/mtasker/>`__ for very fast userspace
 threading.
 
 MTasker, which was developed separately from PowerDNS, does not provide
