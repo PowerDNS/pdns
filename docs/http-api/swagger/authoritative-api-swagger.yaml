@@ -1105,7 +1105,7 @@ paths:
           description: The length of the network prefix
         - name: view
           required: true
-          description: The name of the view to use for to this network
+          description: The name of the view to use for this network
           in: body
           schema:
             type: string

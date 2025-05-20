@@ -127,7 +127,7 @@ Group to connect as. Default: "client".
 ``gmysql-password``
 ^^^^^^^^^^^^^^^^^^^
 
-The password to for :ref:`setting-gmysql-user`.
+The password for :ref:`setting-gmysql-user`.
 
 .. _setting-gmysql-dnssec:
 

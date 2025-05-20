@@ -76,7 +76,7 @@ User to connect as. Default: not set.
 ``gpgsql-password``
 ^^^^^^^^^^^^^^^^^^^
 
-The password to for :ref:`setting-gpgsql-user`. Default: not set.
+The password for :ref:`setting-gpgsql-user`. Default: not set.
 
 .. _setting-gpgsql-dnssec:
 

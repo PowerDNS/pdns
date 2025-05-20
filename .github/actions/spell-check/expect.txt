@@ -627,6 +627,7 @@ isql
 ixfr
 ixfrdist
 ixplore
+IZh
 Jacquin
 Jakub
 Jakum
@@ -988,6 +989,7 @@ ourserial
 outpacket
 outputbuffer
 outqueries
+overriddes
 PACKAGEVERSION
 packetcache
 packethandler
@@ -1190,7 +1192,6 @@ Roel
 rolltype
 Rosmalen
 roundrobin
-routable
 rping
 rpms
 rpz
@@ -1208,7 +1209,6 @@ Rueckert
 rulesets
 runtimedir
 rustc
-rustup
 Ruthensteiner
 Rvd
 rwlock
