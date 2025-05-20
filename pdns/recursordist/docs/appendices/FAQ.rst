@@ -83,7 +83,7 @@ Starting with version 4.9, setting :ref:`setting-yaml-recursor.hint_file` to ``n
 This prevents :program:`Recursor` from resolving names by itself, so it is only useful in cases where all queries are forwarded.
 
 With versions older than 4.8, there is another detail: after refreshing the root records, the :program:`Recursor` will resolve the ``NS`` records for the top level domain of the root servers.
-For example, in the default setup the root name servers are called ``[a-m].root-servers.net``, so the :program:`Recursor` will resolve the name servers of the ``.net`` domain.
+For example, in the default setup, the root name servers are called ``[a-m].root-servers.net``, so the :program:`Recursor` will resolve the name servers of the ``.net`` domain.
 This is needed to correctly determine zone cuts to be able to decide if the ``.root-servers.net`` domain is DNSSEC protected. Newer versions solve this by querying the needed information top-down.
 
 Starting with version 5.0.0, enabling :ref:`setting-yaml-incoming.allow_no_rd` allows for queries without the recursion desired bit to be answered from cache.
