@@ -2,6 +2,121 @@ Changelog
 =========
 
 .. changelog::
+  :version: 1.9.10
+  :released: 20th of May 2025
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15497
+    :tickets: 15432
+
+    On FreeBSD, only pass source addresses on sockets bound to ANY
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15499
+
+    Better error when we cannot connect a backend socket
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15500
+    :tickets: 15060
+
+    Include ``cstdint`` to get ``uint64_t``
+
+  .. change::
+    :tags: Improvements, Metrics
+    :pullreq: 15501
+    :tickets: 15071
+
+    Adjust ``Content-Type`` header for Prometheus endpoint to include version
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15502
+
+    Enable XSK in our Noble Ubuntu packages
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15503
+
+    Upgrade Quiche to 0.23.4 in our packages
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15504
+    :tickets: 15218
+
+    Limit # of proxy protocol-enabled outgoing TCP connections
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15505
+
+    Allow ``AF_NETLINK`` and ``AF_XDP`` under ``systemd``
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15506
+
+    Upgrade Rust to 1.85.0 in our packages
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15507
+    :tickets: 15427
+
+    If ``SONAME`` is present in the generated Quiche library, set it to the correct value
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15508
+
+    Add Lua bindings for the incoming network interface
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15510
+    :tickets: 15362
+
+    Do not register Xsk sockets on configuration check or client mode
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15511
+    :tickets: 15337
+
+    Fix cache lookup for unavailable TCP-only backends
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15519
+    :tickets: 15495
+
+    Fix memory corruption when using ``getAddressInfo``
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15560
+
+    Fix building with GCC 15.1: missing ``cstdint`` include
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15562
+    :tickets: 15529
+
+    Only set the proxy protocol payload size when actually added
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: 15572
+
+    Fix a crash when TCP queries and responses keep coming
+
+.. changelog::
   :version: 1.9.9
   :released: 29th of April 2025
 
