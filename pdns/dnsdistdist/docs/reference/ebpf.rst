@@ -139,7 +139,7 @@ These are all the functions, objects and methods related to the :doc:`../advance
 
 .. class:: DynBPFFilter
 
-  Represents an dynamic eBPF filter, allowing the use of ephemeral rules to an existing eBPF filter. Note that since 1.6.0 the default BPF filter set via :func:`setDefaultBPFFilter` will automatically be used by a :ref:`DynBlockRulesGroup`, becoming the preferred way of dealing with ephemeral rules.
+  Represents a dynamic eBPF filter, allowing the use of ephemeral rules to an existing eBPF filter. Note that since 1.6.0 the default BPF filter set via :func:`setDefaultBPFFilter` will automatically be used by a :ref:`DynBlockRulesGroup`, becoming the preferred way of dealing with ephemeral rules.
 
   .. method:: DynBPFFilter:purgeExpired()
 
