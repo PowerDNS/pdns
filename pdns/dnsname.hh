@@ -390,7 +390,6 @@ public:
 
   bool hasVariant() const { return !d_variant.empty(); }
   std::string getVariant() const { return d_variant; }
-  void clearVariant() { d_variant.clear(); }
   void setVariant(std::string_view);
 
   // Search for a variant separator: mandatory (when variants are used) trailing

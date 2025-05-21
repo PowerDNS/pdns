@@ -801,9 +801,6 @@ void ZoneName::setVariant(std::string_view variant)
   if (variant.find_first_not_of("abcdefghijklmnopqrstuvwxyz0123456789_-") != std::string_view::npos) {
     throw std::out_of_range("invalid character in variant name '" + std::string{variant} + "'");
   }
-  if (!d_variant.empty()) {
-    throw std::runtime_error("Attempting to change the variant of a zone");
-  }
   d_variant = variant;
 }
 
