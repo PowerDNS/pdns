@@ -1357,6 +1357,54 @@
         'snmp': 152,
     },
     {
+        'name': 'cookie-malformed',
+        'lambda': '[] { return g_Counters.sum(rec::Counter::cookieMalformed); }',
+        'desc': 'Number of malformed cookies received',
+        'snmp': 153,
+    },
+    {
+        'name': 'cookie-matched',
+        'lambda': '[] { return g_Counters.sum(rec::Counter::cookieMatched); }',
+        'desc': 'Number of matching cookies received',
+        'snmp': 154,
+    },
+    {
+        'name': 'cookie-mismatch-tcp',
+        'lambda': '[] { return g_Counters.sum(rec::Counter::cookieMismatchedOverTCP); }',
+        'desc': 'Number of mismatched cookies received over TCP',
+        'snmp': 155,
+    },
+    {
+        'name': 'cookie-mismatch-udp',
+        'lambda': '[] { return g_Counters.sum(rec::Counter::cookieMismatchedOverUDP); }',
+        'desc': 'Number of mismatched cookies received over UDP',
+        'snmp': 156,
+    },
+    {
+        'name': 'cookie-not-in-reply',
+        'lambda': '[] { return g_Counters.sum(rec::Counter::cookieNotInReply); }',
+        'desc': 'Number of times an authoritative server sent a reply without a cookie',
+        'snmp': 157,
+    },
+    {
+        'name': 'cookie-retry',
+        'lambda': '[] { return g_Counters.sum(rec::Counter::cookieRetry); }',
+        'desc': 'Number of retries because authoritative server sent a BADCOOKIE reply',
+        'snmp': 158,
+    },
+    {
+        'name': 'cookies-supported',
+        'lambda': '[] { return g_Counters.sum(rec::Counter::cookieProbeSupported); }',
+        'desc': 'Number of authoritative server cookie probes resulting in success',
+        'snmp': 159,
+    },
+    {
+        'name': 'cookies-unsupported',
+        'lambda': '[] { return g_Counters.sum(rec::Counter::cookieProbeUnsupported); }',
+        'desc': 'Number of authoritative server cookie probes not resulting in success',
+        'snmp': 160,
+    },
+    {
         'name': 'remote-logger-count',
         'lambda':  '''[]() {
     return toRemoteLoggerStatsMap("remote-logger-count");

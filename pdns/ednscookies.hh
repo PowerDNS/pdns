@@ -54,7 +54,9 @@ struct EDNSCookiesOpt
   [[nodiscard]] bool isValid(const std::string& secret, const ComboAddress& source) const;
   void makeClientCookie();
   bool makeServerCookie(const std::string& secret, const ComboAddress& source);
+
   [[nodiscard]] std::string makeOptString() const;
+  [[nodiscard]] std::string toDisplayString() const;
   [[nodiscard]] std::string getServer() const
   {
     return server;
