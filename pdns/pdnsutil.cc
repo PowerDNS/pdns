@@ -4527,7 +4527,23 @@ static int backendLookup(vector<string>& cmds, const std::string_view synopsis)
     type = DNSRecordContent::TypeToNumber(cmds.at(3));
   }
 
-  DNSName name{cmds.at(2)};
+  ZoneName name{cmds.at(2)};
+  domainid_t domain_id{UnknownDomainID};
+
+  if (name.hasVariant()) {
+    ZoneName zone(name);
+    do {
+      SOAData soa;
+      if (matchingBackend->getSOA(zone, UnknownDomainID, soa)) {
+        domain_id = soa.domain_id;
+        break;
+      }
+    } while (zone.chopOff());
+    if (domain_id == UnknownDomainID) {
+      cerr << "Backend found no matching zone" << endl;
+      return 1;
+    }
+  }
 
   DNSPacket queryPacket(true);
   Netmask clientNetmask;
@@ -4536,8 +4552,7 @@ static int backendLookup(vector<string>& cmds, const std::string_view synopsis)
     queryPacket.setRealRemote(clientNetmask);
   }
 
-  // Safe to pass UnknownDomainID here, no use of ZoneName
-  matchingBackend->lookup(type, name, UnknownDomainID, &queryPacket);
+  matchingBackend->lookup(type, name.operator const DNSName&(), domain_id, &queryPacket);
 
   bool found = false;
   DNSZoneRecord resultZoneRecord;
