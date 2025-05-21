@@ -796,6 +796,15 @@ ZoneName::ZoneName(std::string_view name)
   d_name = DNSName(name);
 }
 
+ZoneName::ZoneName(std::string_view name, std::string_view::size_type sep)
+{
+  if (sep != std::string_view::npos) {
+    setVariant(name.substr(sep + 1)); // ignore leading dot in variant name
+    name = name.substr(0, sep); // keep trailing dot in zone name
+  }
+  d_name = DNSName(name);
+}
+
 void ZoneName::setVariant(std::string_view variant)
 {
   if (variant.find_first_not_of("abcdefghijklmnopqrstuvwxyz0123456789_-") != std::string_view::npos) {

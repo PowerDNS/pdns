@@ -276,7 +276,7 @@ ZoneName apiNameToZoneName(const string& name)
       throw ApiException("Zone Name '" + name + "' is not canonical");
     }
     try {
-      return ZoneName(name);
+      return ZoneName(name, sep);
     }
     catch (...) {
       throw ApiException("Unable to parse Zone Name '" + name + "'");

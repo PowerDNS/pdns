@@ -354,6 +354,7 @@ public:
   explicit ZoneName(std::string_view name);
   explicit ZoneName(std::string_view name, std::string_view variant) : d_name(name), d_variant(variant) {}
   explicit ZoneName(const DNSName& name, std::string_view variant = ""sv) : d_name(name), d_variant(variant) {}
+  explicit ZoneName(std::string_view name, std::string_view::size_type sep);
 
   bool isPartOf(const ZoneName& rhs) const { return d_name.isPartOf(rhs.d_name); }
   bool isPartOf(const DNSName& rhs) const { return d_name.isPartOf(rhs); }
