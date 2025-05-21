@@ -130,6 +130,7 @@ BOOST_AUTO_TEST_CASE(test_netmask)
   ZoneName blo("bug.less..outer");
   ZoneName fb("fewer.bugs"); // NOLINT(readability-identifier-length)
   ZoneName bp("bad.puns"); // NOLINT(readability-identifier-length)
+  ZoneName nonexistent("non.existent");
   cache.add(bli, 42);
   cache.add(blo, 43);
   cache.add(fb, 100);
@@ -149,6 +150,7 @@ BOOST_AUTO_TEST_CASE(test_netmask)
   cache.addToView(outer, blo);
 
   domainid_t zoneId{0};
+  std::string variant;
   ZoneName search{};
 
   // Query from no known address
@@ -159,67 +161,73 @@ BOOST_AUTO_TEST_CASE(test_netmask)
 
   // Query from inner zone
   Netmask nm(makeComboAddress("20.25.4.24")); // NOLINT(readability-identifier-length)
-  search = bl;
-  found = cache.getEntry(search, zoneId, &nm);
+  variant = cache.getVariantFromNetwork(bl, &nm);
+  if (nm != innerMask) {
+    BOOST_FAIL("bug.less lookup from inner zone reported wrong network " + nm.toString());
+  }
+  found = cache.getEntry(ZoneName(bl.operator const DNSName&(), variant), zoneId);
   if (!found) {
     BOOST_FAIL("bug.less lookup from inner zone should have succeeded");
   }
   if (zoneId != 42) {
     BOOST_FAIL("bug.less lookup from inner zone reported wrong id " + std::to_string(zoneId));
   }
+  variant = cache.getVariantFromNetwork(fb, &nm);
+  BOOST_CHECK(variant.empty());
   if (nm != innerMask) {
-    BOOST_FAIL("bug.less lookup from inner zone reported wrong network " + nm.toString());
+    BOOST_FAIL("fewer.bugs lookup from inner zone reported wrong network " + nm.toString());
   }
-  search = fb;
-  found = cache.getEntry(search, zoneId, &nm);
+  found = cache.getEntry(fb, zoneId);
   if (!found) {
     BOOST_FAIL("fewer.bugs lookup from inner zone should have succeeded");
   }
   if (zoneId != 100) {
     BOOST_FAIL("fewer.bugs lookup from inner zone reported wrong id " + std::to_string(zoneId));
   }
-  if (nm != innerMask) {
-    BOOST_FAIL("fewer.bugs lookup from inner zone reported wrong network " + nm.toString());
-  }
 
   // Query from outer zone
   nm = makeComboAddress("20.25.20.25");
-  search = bl;
-  found = cache.getEntry(search, zoneId, &nm);
+  variant = cache.getVariantFromNetwork(bl, &nm);
+  if (nm != outerMask) {
+    BOOST_FAIL("bug.less lookup from outer zone reported wrong network " + nm.toString());
+  }
+  found = cache.getEntry(ZoneName(bl.operator const DNSName&(), variant), zoneId);
   if (!found) {
     BOOST_FAIL("bug.less lookup from outer zone should have succeeded");
   }
   if (zoneId != 43) {
     BOOST_FAIL("bug.less lookup from outer zone reported wrong id " + std::to_string(zoneId));
   }
+  variant = cache.getVariantFromNetwork(bp, &nm);
+  BOOST_CHECK(variant.empty());
   if (nm != outerMask) {
-    BOOST_FAIL("bug.less lookup from outer zone reported wrong network " + nm.toString());
+    BOOST_FAIL("bad.puns lookup from outer zone reported wrong network " + nm.toString());
   }
-  search = bp;
-  found = cache.getEntry(search, zoneId, &nm);
+  found = cache.getEntry(bp, zoneId);
   if (!found) {
     BOOST_FAIL("bad.puns lookup from outer zone should have succeeded");
   }
   if (zoneId != 1000) {
     BOOST_FAIL("bad.puns lookup from outer zone reported wrong id " + std::to_string(zoneId));
   }
-  if (nm != outerMask) {
-    BOOST_FAIL("bad.puns lookup from outer zone reported wrong network " + nm.toString());
-  }
 
   // Query from no particular zone, should clear netmask
   nm = makeComboAddress("1.2.3.4");
-  search = ZoneName("non.existent");
-  found = cache.getEntry(search, zoneId, &nm);
+  variant = cache.getVariantFromNetwork(nonexistent, &nm);
+  BOOST_CHECK(variant.empty());
+  found = cache.getEntry(nonexistent, zoneId);
   if (found) {
     BOOST_FAIL("non.existent lookup from the internet should have failed");
   }
-  search = bl;
-  found = cache.getEntry(search, zoneId, &nm);
+  variant = cache.getVariantFromNetwork(bl, &nm);
+  BOOST_CHECK(variant.empty());
+  found = cache.getEntry(bl, zoneId);
   if (found) {
     BOOST_FAIL("bug.less lookup from the internet should have failed");
   }
-  found = cache.getEntry(bp, zoneId, &nm);
+  variant = cache.getVariantFromNetwork(bp, &nm);
+  BOOST_CHECK(variant.empty());
+  found = cache.getEntry(bp, zoneId);
   if (!found) {
     BOOST_FAIL("bad.puns lookup from the internet should have succeeded");
   }

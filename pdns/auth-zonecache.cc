@@ -43,46 +43,8 @@ AuthZoneCache::AuthZoneCache(size_t mapsCount) :
   d_statnumentries = S.getPointer("zone-cache-size");
 }
 
-bool AuthZoneCache::getEntry(ZoneName& zone, domainid_t& zoneId, Netmask* net)
+bool AuthZoneCache::getEntry(const ZoneName& zone, domainid_t& zoneId)
 {
-  string view;
-
-  try {
-    if (net != nullptr && !net->empty()) {
-      auto nets = d_nets.read_lock();
-      const auto* netview = nets->lookup(net->getNetwork());
-      if (netview != nullptr) {
-        // Tell our caller the span of the network being hit...
-        *net = netview->first;
-        // ...and which view it covers.
-        view = netview->second;
-      }
-    }
-  }
-  catch (...) {
-    // this handles the "empty" case, but might hide other errors
-  }
-
-  // If this network doesn't match a view, then we want to clear the netmask
-  // information, as our caller might submit it to the packet cache and there
-  // is no reason to narrow caching for views-agnostic queries.
-  if (view.empty() && net != nullptr) {
-    *net = Netmask();
-  }
-
-  string variant;
-  {
-    auto views = d_views.read_lock();
-    if (views->count(view) == 1) {
-      const auto& viewmap = views->at(view);
-      if (viewmap.count(DNSName(zone)) == 1) {
-        variant = viewmap.at(DNSName(zone));
-      }
-    }
-  }
-
-  zone.setVariant(variant);
-
   auto& mc = getMap(zone);
   bool found = false;
   {
@@ -103,19 +65,56 @@ bool AuthZoneCache::getEntry(ZoneName& zone, domainid_t& zoneId, Netmask* net)
   return found;
 }
 
+#if defined(PDNS_AUTH) // [
+std::string AuthZoneCache::getVariantFromNetwork(const ZoneName& zone, Netmask* net)
+{
+  string view{};
+
+  try {
+    if (net != nullptr && !net->empty()) {
+      auto nets = d_nets.read_lock();
+      const auto* netview = nets->lookup(net->getNetwork());
+      if (netview != nullptr) {
+        // Tell our caller the span of the network being hit...
+        *net = netview->first;
+        // ...and note which view it covers.
+        view = netview->second;
+      }
+    }
+  }
+  catch (...) {
+    // this handles the "empty" case, but might hide other errors
+  }
+
+  // If this network doesn't match a view, then we want to clear the netmask
+  // information, as our caller might submit it to the packet cache and there
+  // is no reason to narrow caching for views-agnostic queries.
+  if (view.empty() && net != nullptr) {
+    *net = Netmask();
+  }
+
+  string variant{};
+  {
+    auto views = d_views.read_lock();
+    if (views->count(view) == 1) {
+      const auto& viewmap = views->at(view);
+      if (viewmap.count(zone.operator const DNSName&()) == 1) {
+        variant = viewmap.at(zone.operator const DNSName&());
+      }
+    }
+  }
+
+  return variant;
+}
+
 void AuthZoneCache::setZoneVariant(DNSPacket& packet)
 {
-  ZoneName zone{packet.qdomain};
-  domainid_t zoneId{};
   Netmask net = packet.getRealRemote();
-
-  if (getEntry(zone, zoneId, &net)) {
-    packet.qdomainzone = zone;
-  }
-  else {
-    packet.qdomainzone = ZoneName(packet.qdomain);
-  }
+  packet.qdomainzone = ZoneName(packet.qdomain);
+  string variant = getVariantFromNetwork(packet.qdomainzone, &net);
+  packet.qdomainzone.setVariant(variant);
 }
+#endif // ] PDNS_AUTH
 
 bool AuthZoneCache::isEnabled() const
 {

@@ -51,8 +51,11 @@ public:
   // Network maintainance
   void updateNetwork(const Netmask& network, const std::string& view);
 
-  // Zone lookup, on behalf of an optional network
-  bool getEntry(ZoneName& zone, domainid_t& zoneId, Netmask* net = nullptr);
+  // Zone lookup
+  bool getEntry(const ZoneName& zone, domainid_t& zoneId);
+
+  // Variant lookup, on behalf of an optional network
+  std::string getVariantFromNetwork(const ZoneName& zone, Netmask* net = nullptr);
   void setZoneVariant(DNSPacket& packet);
 
   uint32_t getRefreshInterval() const

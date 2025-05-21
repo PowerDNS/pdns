@@ -540,8 +540,9 @@ bool UeberBackend::getAuth(const ZoneName& target, const QType& qtype, SOAData* 
 
     if (cachedOk && g_zoneCache.isEnabled()) {
       Netmask _remote(remote);
-      ZoneName _shorter(shorter); // don't want getEntry to mutate the one we're chopping off
-      if (g_zoneCache.getEntry(_shorter, zoneId, &_remote)) {
+      std::string variant = g_zoneCache.getVariantFromNetwork(shorter, &_remote);
+      ZoneName _shorter(shorter.operator const DNSName&(), variant);
+      if (g_zoneCache.getEntry(_shorter, zoneId)) {
         // Update the DNSPacket, so that the packet cache can use
         // the appropriate network when caching a result for that packet.
         if (pkt_p != nullptr && !_remote.empty()) {
@@ -549,12 +550,10 @@ bool UeberBackend::getAuth(const ZoneName& target, const QType& qtype, SOAData* 
         }
         if (fillSOAFromZoneRecord(_shorter, zoneId, soaData)) {
           soaData->zonename = _shorter.makeLowerCase();
-          // Now that we have saved the possible variant in soaData, we need
-          // to reset _shorter's variant to be the same as target, since
-          // foundTarget() compares ZoneName, not DNSName.
-          _shorter.clearVariant();
-          _shorter.setVariant(target.getVariant());
-          if (foundTarget(target, _shorter, qtype, soaData, found)) {
+          // Need to invoke foundTarget() with the same variant part in the
+          // first two arguments, since they are compared as ZoneName, hence
+          // the use of `shorter' rather than `_shorter' here.
+          if (foundTarget(target, shorter, qtype, soaData, found)) {
             return true;
           }
 
