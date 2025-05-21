@@ -119,7 +119,7 @@ export PKG_CONFIG_PATH=/usr/lib/pkgconfig:/opt/lib64/pkgconfig
   -Dre2=enabled \
   -Ddns-over-quic=enabled \
   -Ddns-over-http3=enabled \
-%if "%{_arch}" == "aarch64" || 0%{?amzn2023}
+%if ( "%{_arch}" == "aarch64" && 0%{?rhel} == 8 ) || 0%{?amzn2023}
   -Dxsk=disabled \
 %endif
   -Debpf=enabled \
