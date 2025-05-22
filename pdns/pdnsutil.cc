@@ -1246,6 +1246,18 @@ private:
   bool d_colors;
 };
 
+static int spawnEditor(const std::string& editor, const std::string& tmpfile, int gotoline)
+{
+  string cmdline;
+
+  cmdline=editor+" ";
+  if(gotoline > 0) {
+    cmdline+="+"+std::to_string(gotoline)+" ";
+  }
+  cmdline += tmpfile;
+  return system(cmdline.c_str());
+}
+
 static int editZone(const ZoneName &zone, const PDNSColors& col) {
   UtilBackend B; //NOLINT(readability-identifier-length)
   DomainInfo di;
@@ -1308,7 +1320,6 @@ static int editZone(const ZoneName &zone, const PDNSColors& col) {
   string editor="editor";
   if(auto e=getenv("EDITOR")) // <3
     editor=e;
-  string cmdline;
  editAgain:;
   di.backend->list(zone, di.id);
   pre.clear(); post.clear();
@@ -1338,15 +1349,9 @@ static int editZone(const ZoneName &zone, const PDNSColors& col) {
   }
  editMore:;
   post.clear();
-  cmdline=editor+" ";
-  if(gotoline > 0)
-    cmdline+="+"+std::to_string(gotoline)+" ";
-  cmdline += tmpnam;
-  int err=system(cmdline.c_str());
-  if(err != 0) {
-    unixDie("Editing file with: '"+cmdline+"', perhaps set EDITOR variable");
+  if (spawnEditor(editor, tmpnam, gotoline) != 0) {
+    unixDie("Editing file with: '"+editor+"', perhaps set EDITOR variable");
   }
-  cmdline.clear();
   ZoneParserTNG zpt(static_cast<const char *>(tmpnam), g_rootzonename);
   zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
   zpt.setMaxIncludes(::arg().asNum("max-include-depth"));
