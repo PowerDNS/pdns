@@ -168,7 +168,8 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
     return {};
   });
 
-  luaCtx.registerFunction<std::string (DNSQuestion::*)() const>("getProtocol", [](const DNSQuestion& dnsQuestion) {
+  luaCtx.registerFunction<std::string (DNSQuestion::*)() const>("getProtocol", [](const DNSQuestion& dnsQuestion) -> std::string {
+    // coverity[auto_causes_copy]
     return dnsQuestion.getProtocol().toPrettyString();
   });
 
@@ -208,7 +209,7 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
     }
     return tagIt->second;
   });
-  luaCtx.registerFunction<QTag (DNSQuestion::*)(void) const>("getTagArray", [](const DNSQuestion& dnsQuestion) {
+  luaCtx.registerFunction<QTag (DNSQuestion::*)(void) const>("getTagArray", [](const DNSQuestion& dnsQuestion) -> QTag {
     if (!dnsQuestion.ids.qTag) {
       QTag empty;
       return empty;
@@ -581,7 +582,7 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
     return std::string();
   });
 
-  luaCtx.registerFunction<LuaAssociativeTable<std::string> (DNSQuestion::*)(void) const>("getHTTPHeaders", [](const DNSQuestion& dnsQuestion) {
+  luaCtx.registerFunction<LuaAssociativeTable<std::string> (DNSQuestion::*)(void) const>("getHTTPHeaders", [](const DNSQuestion& dnsQuestion) -> LuaAssociativeTable<std::string> {
 #if defined(HAVE_DNS_OVER_HTTPS)
     if (dnsQuestion.ids.du) {
       // coverity[auto_causes_copy]

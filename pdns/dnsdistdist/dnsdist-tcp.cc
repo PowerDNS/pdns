@@ -65,7 +65,12 @@ std::atomic<uint64_t> g_tcpStatesDumpRequested{0};
 
 IncomingTCPConnectionState::~IncomingTCPConnectionState()
 {
-  dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(d_ci.remote);
+  try {
+    dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(d_ci.remote);
+  }
+  catch (...) {
+    /* in theory it might raise an exception, and we cannot allow it to be uncaught in a dtor */
+  }
 
   if (d_ci.cs != nullptr) {
     timeval now{};
