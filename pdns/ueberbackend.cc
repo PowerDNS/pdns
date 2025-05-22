@@ -532,6 +532,16 @@ bool UeberBackend::getAuth(const ZoneName& target, const QType& qtype, SOAData* 
   ZoneName shorter(target);
   vector<pair<size_t, SOAData>> bestMatches(backends.size(), pair(target.operator const DNSName&().wirelength() + 1, SOAData()));
 
+  std::string view{};
+  if (g_zoneCache.isEnabled()) {
+    Netmask _remote(remote);
+    view = g_zoneCache.getViewFromNetwork(&_remote);
+    // Remember the view netmask, if applicable, for ECS responses.
+    if (!view.empty() && pkt_p != nullptr) {
+      pkt_p->d_span = _remote;
+    }
+  }
+
   bool first = true;
   while (first || shorter.chopOff()) {
     first = false;
@@ -539,15 +549,9 @@ bool UeberBackend::getAuth(const ZoneName& target, const QType& qtype, SOAData* 
     domainid_t zoneId{UnknownDomainID};
 
     if (cachedOk && g_zoneCache.isEnabled()) {
-      Netmask _remote(remote);
-      std::string variant = g_zoneCache.getVariantFromNetwork(shorter, &_remote);
+      std::string variant = g_zoneCache.getVariantFromView(shorter, view);
       ZoneName _shorter(shorter.operator const DNSName&(), variant);
       if (g_zoneCache.getEntry(_shorter, zoneId)) {
-        // Update the DNSPacket, so that the packet cache can use
-        // the appropriate network when caching a result for that packet.
-        if (pkt_p != nullptr && !_remote.empty()) {
-          pkt_p->d_span = _remote;
-        }
         if (fillSOAFromZoneRecord(_shorter, zoneId, soaData)) {
           soaData->zonename = _shorter.makeLowerCase();
           // Need to invoke foundTarget() with the same variant part in the

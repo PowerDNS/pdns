@@ -66,20 +66,22 @@ bool AuthZoneCache::getEntry(const ZoneName& zone, domainid_t& zoneId)
 }
 
 #if defined(PDNS_AUTH) // [
-std::string AuthZoneCache::getVariantFromNetwork(const ZoneName& zone, Netmask* net)
+std::string AuthZoneCache::getViewFromNetwork(Netmask* net)
 {
   string view{};
 
+  if (net == nullptr || net->empty()) {
+    return view;
+  }
+
   try {
-    if (net != nullptr && !net->empty()) {
-      auto nets = d_nets.read_lock();
-      const auto* netview = nets->lookup(net->getNetwork());
-      if (netview != nullptr) {
-        // Tell our caller the span of the network being hit...
-        *net = netview->first;
-        // ...and note which view it covers.
-        view = netview->second;
-      }
+    auto nets = d_nets.read_lock();
+    const auto* netview = nets->lookup(net->getNetwork());
+    if (netview != nullptr) {
+      // Tell our caller the span of the network being hit...
+      *net = netview->first;
+      // ...and which view it covers.
+      view = netview->second;
     }
   }
   catch (...) {
@@ -89,12 +91,20 @@ std::string AuthZoneCache::getVariantFromNetwork(const ZoneName& zone, Netmask* 
   // If this network doesn't match a view, then we want to clear the netmask
   // information, as our caller might submit it to the packet cache and there
   // is no reason to narrow caching for views-agnostic queries.
-  if (view.empty() && net != nullptr) {
+  // TODO: no longer needed once packet cache indexes on views rather than
+  // netmasks.
+  if (view.empty()) {
     *net = Netmask();
   }
 
+  return view;
+}
+
+std::string AuthZoneCache::getVariantFromView(const ZoneName& zone, const std::string& view)
+{
   string variant{};
-  {
+
+  if (!view.empty()) {
     auto views = d_views.read_lock();
     if (views->count(view) == 1) {
       const auto& viewmap = views->at(view);
@@ -110,8 +120,9 @@ std::string AuthZoneCache::getVariantFromNetwork(const ZoneName& zone, Netmask* 
 void AuthZoneCache::setZoneVariant(DNSPacket& packet)
 {
   Netmask net = packet.getRealRemote();
+  string view = getViewFromNetwork(&net);
   packet.qdomainzone = ZoneName(packet.qdomain);
-  string variant = getVariantFromNetwork(packet.qdomainzone, &net);
+  string variant = getVariantFromView(packet.qdomainzone, view);
   packet.qdomainzone.setVariant(variant);
 }
 #endif // ] PDNS_AUTH
