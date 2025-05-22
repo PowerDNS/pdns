@@ -9,7 +9,7 @@
 #endif
 
 #include <fcntl.h>
-#include <signal.h>
+#include <csignal>
 #include <sys/wait.h>
 
 #include "credentials.hh"
@@ -1248,34 +1248,34 @@ private:
   bool d_colors;
 };
 
-static bool spawnEditor(const std::string& editor, const std::string& tmpfile, int gotoline, int &result)
+static bool spawnEditor(const std::string& editor, std::string_view tmpfile, int gotoline, int &result)
 {
-  pid_t child;
-  sigset_t mask, omask;
+  sigset_t mask;
+  sigset_t omask;
 
   // Ignore INT, QUIT and CHLD signals while the editor process runs
   sigemptyset(&mask);
   sigaddset(&mask, SIGCHLD);
   sigaddset(&mask, SIGINT);
   sigaddset(&mask, SIGQUIT);
-  sigprocmask(SIG_BLOCK, &mask, &omask);
+  sigprocmask(SIG_BLOCK, &mask, &omask); // NOLINT(concurrency-mt-unsafe)
 
-  switch (child = fork()) {
+  switch (pid_t child = fork()) {
   case 0:
     {
-      std::array<const char *, 4> args;
-      size_t pos = 0;
+      std::array<const char *, 4> args{};
+      size_t pos{0};
       std::string gotolinestr;
-      args[pos++] = editor.c_str();
+      args.at(pos++) = editor.c_str();
       if (gotoline > 0) {
         // TODO: if editor is 'ed', skip this; if 'ex' or 'vi', use '-c number'
         gotolinestr = "+" + std::to_string(gotoline);
-        args[pos++] = gotolinestr.c_str();
+        args.at(pos++) = gotolinestr.c_str();
       }
-      args[pos++] = tmpfile.c_str();
-      args[pos++] = nullptr;
-      if (::execvp(args.at(0), const_cast<char **>(args.data())) != 0) {
-        ::exit(errno);
+      args.at(pos++) = tmpfile.data();
+      args.at(pos++) = nullptr;
+      if (::execvp(args.at(0), const_cast<char **>(args.data())) != 0) { // NOLINT(cppcoreguidelines-pro-type-const-cast)
+        ::exit(errno); // NOLINT(concurrency-mt-unsafe)
       }
       // std::unreachable();
     }
@@ -1285,12 +1285,12 @@ static bool spawnEditor(const std::string& editor, const std::string& tmpfile, i
     break;
   default:
     {
-      pid_t pid;
-      int status;
+      pid_t pid{-1};
+      int status{0};
       do {
         pid = waitpid(child, &status, 0);
       } while (pid == -1 && errno == EINTR);
-      sigprocmask(SIG_SETMASK, &omask, NULL);
+      sigprocmask(SIG_SETMASK, &omask, nullptr); // NOLINT(concurrency-mt-unsafe)
       if (pid == -1) {
         return false;
       }
@@ -1400,7 +1400,7 @@ static int editZone(const ZoneName &zone, const PDNSColors& col) {
  editMore:;
   post.clear();
   int result{0};
-  if (!spawnEditor(editor, tmpnam, gotoline, result)) {
+  if (!spawnEditor(editor, tmpnam, gotoline, result)) { // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     unixDie("Editing file with: '"+editor+"', perhaps set EDITOR variable");
   }
   if (result != 0) {
