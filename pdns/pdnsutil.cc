@@ -9,6 +9,8 @@
 #endif
 
 #include <fcntl.h>
+#include <signal.h>
+#include <sys/wait.h>
 
 #include "credentials.hh"
 #include "dnsseckeeper.hh"
@@ -1246,16 +1248,64 @@ private:
   bool d_colors;
 };
 
-static int spawnEditor(const std::string& editor, const std::string& tmpfile, int gotoline)
+static bool spawnEditor(const std::string& editor, const std::string& tmpfile, int gotoline, int &result)
 {
-  string cmdline;
+  pid_t child;
+  sigset_t mask, omask;
 
-  cmdline=editor+" ";
-  if(gotoline > 0) {
-    cmdline+="+"+std::to_string(gotoline)+" ";
+  // Ignore INT, QUIT and CHLD signals while the editor process runs
+  sigemptyset(&mask);
+  sigaddset(&mask, SIGCHLD);
+  sigaddset(&mask, SIGINT);
+  sigaddset(&mask, SIGQUIT);
+  sigprocmask(SIG_BLOCK, &mask, &omask);
+
+  switch (child = fork()) {
+  case 0:
+    {
+      std::array<const char *, 4> args;
+      size_t pos = 0;
+      std::string gotolinestr;
+      args[pos++] = editor.c_str();
+      if (gotoline > 0) {
+        // TODO: if editor is 'ed', skip this; if 'ex' or 'vi', use '-c number'
+        gotolinestr = "+" + std::to_string(gotoline);
+        args[pos++] = gotolinestr.c_str();
+      }
+      args[pos++] = tmpfile.c_str();
+      args[pos++] = nullptr;
+      if (::execvp(args.at(0), const_cast<char **>(args.data())) != 0) {
+        ::exit(errno);
+      }
+      // std::unreachable();
+    }
+    break;
+  case -1:
+    unixDie("Couldn't fork");
+    break;
+  default:
+    {
+      pid_t pid;
+      int status;
+      do {
+        pid = waitpid(child, &status, 0);
+      } while (pid == -1 && errno == EINTR);
+      sigprocmask(SIG_SETMASK, &omask, NULL);
+      if (pid == -1) {
+        return false;
+      }
+      if (WIFEXITED(status)) {
+        result = WEXITSTATUS(status);
+        return true;
+      }
+      if (WIFSIGNALED(status)) {
+        result = 128 + WTERMSIG(status);
+        return true;
+      }
+    }
+    break;
   }
-  cmdline += tmpfile;
-  return system(cmdline.c_str());
+  return false;
 }
 
 static int editZone(const ZoneName &zone, const PDNSColors& col) {
@@ -1349,8 +1399,12 @@ static int editZone(const ZoneName &zone, const PDNSColors& col) {
   }
  editMore:;
   post.clear();
-  if (spawnEditor(editor, tmpnam, gotoline) != 0) {
+  int result{0};
+  if (!spawnEditor(editor, tmpnam, gotoline, result)) {
     unixDie("Editing file with: '"+editor+"', perhaps set EDITOR variable");
+  }
+  if (result != 0) {
+    throw std::runtime_error("Editing file with: '" + editor + "' returned non-zero status " + std::to_string(result));
   }
   ZoneParserTNG zpt(static_cast<const char *>(tmpnam), g_rootzonename);
   zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
