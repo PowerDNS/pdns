@@ -96,7 +96,7 @@ changelog_render_pullreq = "https://github.com/PowerDNS/pdns/pull/%s"
 changelog_render_changeset = "https://github.com/PowerDNS/pdns/commit/%s"
 
 changelog_sections = ['New Features', 'Improvements', 'Bug Fixes', 'Removals']
-changelog_inner_tag_sort = ['Security', 'DNS over QUIC', 'DNS over HTTP3', 'DNS over HTTPS', 'DNS over TLS', 'DNSCrypt', 'DNSTAP', 'Protobuf', 'Performance', 'Webserver', 'Metrics']
+changelog_inner_tag_sort = ['Security', 'DNS over QUIC', 'DNS over HTTP3', 'DNS over HTTPS', 'DNS over TLS', 'DNSCrypt', 'DNSTAP', 'Protobuf', 'Performance', 'Webserver', 'Metrics', 'Meson', 'YAML']
 
 changelog_hide_tags_in_entry = True
 
