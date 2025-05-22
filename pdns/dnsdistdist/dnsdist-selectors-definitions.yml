@@ -391,6 +391,7 @@ Set the ``source`` parameter to ``false`` to match against destination address i
       description: "The exact Server Name Indication value"
 - name: "Tag"
   description: "Matches question or answer with a tag named ``tag`` set. If ``value`` is specified, the existing tag value should match too"
+  skip-lua: true
   parameters:
     - name: "tag"
       type: "String"
@@ -399,6 +400,10 @@ Set the ``source`` parameter to ``false`` to match against destination address i
       type: "String"
       default: ""
       description: "If set, the value the tag has to be set to"
+    - name: "empty-as-wildcard"
+      type: "bool"
+      default: "true"
+      description: "Because of a limitation in our Rust <-> C++ interoperability layer, ``value`` defaults to an empty string, which makes it impossible to express whether an empty ``value`` means that we should match on all values (so as long as the tag has been set) or only if the value is actually empty. This flag fixes that: if ``value`` is empty and this parameter is set to ``false`` the selector will only match if the actual value of the tag is empty, while if it set to ``true`` (default) it will match as long as the tag is set, regardless of the value"
 - name: "TCP"
   description: "Matches question received over TCP if ``tcp`` is true, over UDP otherwise"
   parameters:

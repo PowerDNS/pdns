@@ -146,7 +146,7 @@ std::shared_ptr<DNSSelector> getSNISelector(const SNISelectorConfiguration& conf
 }
 std::shared_ptr<DNSSelector> getTagSelector(const TagSelectorConfiguration& config)
 {
-  auto selector = dnsdist::selectors::getTagSelector(std::string(config.tag), std::string(config.value));
+  auto selector = dnsdist::selectors::getTagSelector(std::string(config.tag), std::string(config.value), config.empty_as_wildcard);
   return newDNSSelector(std::move(selector), config.name);
 }
 std::shared_ptr<DNSSelector> getTCPSelector(const TCPSelectorConfiguration& config)

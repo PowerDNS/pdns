@@ -80,9 +80,6 @@ luaCtx.writeFunction("RegexRule", [](std::string expression) {
 luaCtx.writeFunction("SNIRule", [](std::string server_name) {
   return std::shared_ptr<DNSRule>(dnsdist::selectors::getSNISelector(server_name));
 });
-luaCtx.writeFunction("TagRule", [](std::string tag, boost::optional<std::string> value) {
-  return std::shared_ptr<DNSRule>(dnsdist::selectors::getTagSelector(tag, boostToStandardOptional(value)));
-});
 luaCtx.writeFunction("TCPRule", [](bool tcp) {
   return std::shared_ptr<DNSRule>(dnsdist::selectors::getTCPSelector(tcp));
 });

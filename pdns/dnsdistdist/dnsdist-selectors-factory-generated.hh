@@ -26,6 +26,6 @@ std::shared_ptr<RecordsCountRule> getRecordsCountSelector(uint8_t section, uint1
 std::shared_ptr<RecordsTypeCountRule> getRecordsTypeCountSelector(uint8_t section, uint16_t record_type, uint16_t minimum, uint16_t maximum);
 std::shared_ptr<RegexRule> getRegexSelector(const std::string& expression);
 std::shared_ptr<SNIRule> getSNISelector(const std::string& server_name);
-std::shared_ptr<TagRule> getTagSelector(const std::string& tag, std::optional<std::string> value);
+std::shared_ptr<TagRule> getTagSelector(const std::string& tag, std::optional<std::string> value, std::optional<bool> emptyAsWildcard);
 std::shared_ptr<TCPRule> getTCPSelector(bool tcp);
 std::shared_ptr<TrailingDataRule> getTrailingDataSelector();

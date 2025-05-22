@@ -625,6 +625,10 @@ void setupLuaRules(LuaContext& luaCtx)
     return std::shared_ptr<DNSRule>(new QNameSetRule(names));
   });
 
+  luaCtx.writeFunction("TagRule", [](std::string tag, boost::optional<std::string> value) {
+    return std::shared_ptr<DNSRule>(dnsdist::selectors::getTagSelector(tag, boostToStandardOptional(value), value ? false : true));
+  });
+
 #if defined(HAVE_LMDB) || defined(HAVE_CDB)
   luaCtx.writeFunction("KeyValueStoreLookupRule", [](std::shared_ptr<KeyValueStore>& kvs, std::shared_ptr<KeyValueLookupKey>& lookupKey) {
     return std::shared_ptr<DNSRule>(new KeyValueStoreLookupRule(kvs, lookupKey));
