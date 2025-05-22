@@ -245,11 +245,6 @@ BOOST_AUTO_TEST_CASE(test_netmask)
   if (zoneId != 1000) {
     BOOST_FAIL("bad.puns lookup from the internet reported wrong id " + std::to_string(zoneId));
   }
-  // TODO: remove this test once getViewFromNetwork() no longer clears the
-  // incoming netmask when not in a view.
-  if (!nm.empty()) {
-    BOOST_FAIL("bad.puns lookup from the internet reported restricted network " + nm.toString());
-  }
 }
 
 BOOST_AUTO_TEST_SUITE_END();

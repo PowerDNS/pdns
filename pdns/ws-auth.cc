@@ -2721,7 +2721,7 @@ static void apiServerViewsPOST(HttpRequest* req, HttpResponse* resp)
   }
   // Purge packet cache for that zone
   if (PC.enabled()) {
-    (void)PC.purgeExact(zonename.operator const DNSName&());
+    (void)PC.purgeExact(view, zonename.operator const DNSName&());
   }
 
   resp->body = "";
@@ -2743,7 +2743,7 @@ static void apiServerViewsDELETE(HttpRequest* req, HttpResponse* resp)
   }
   // Purge packet cache for that zone
   if (PC.enabled()) {
-    (void)PC.purgeExact(zoneData.zoneName.operator const DNSName&());
+    (void)PC.purgeExact(view, zoneData.zoneName.operator const DNSName&());
   }
 
   resp->body = "";
@@ -2804,10 +2804,6 @@ static void apiServerNetworksPUT(HttpRequest* req, HttpResponse* resp)
   // Notify zone cache of the new association
   if (g_zoneCache.isEnabled()) {
     g_zoneCache.updateNetwork(network, view);
-  }
-  // Clear packet cache for that netmask
-  if (PC.enabled()) {
-    (void)PC.purgeNetmask(network);
   }
 
   resp->body = "";

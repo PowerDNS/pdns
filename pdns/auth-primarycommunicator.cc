@@ -202,6 +202,8 @@ void CommunicatorClass::primaryUpdateCheck(PacketHandler* P)
   }
 
   for (auto& di : cmdomains) {
+    // VIEWS TODO: if this zone has a variant, try to figure out which
+    // views contain it, and purge these views only.
     purgeAuthCachesExact(di.zone.operator const DNSName&());
     g_zoneCache.add(di.zone, di.id);
     queueNotifyDomain(di, B);

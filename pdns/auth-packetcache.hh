@@ -22,7 +22,7 @@
 #pragma once
 #include <string>
 #include <map>
-#include <optional>
+#include <unordered_map>
 #include "dns.hh"
 #include <boost/version.hpp>
 #include "namespaces.hh"
@@ -36,7 +36,6 @@ using namespace ::boost::multi_index;
 
 #include "dnspacket.hh"
 #include "lock.hh"
-#include "lock.hh"
 #include "packetcache.hh"
 
 /** This class performs 'whole packet caching'. Feed it a question packet and it will
@@ -44,9 +43,8 @@ using namespace ::boost::multi_index;
     Take care not to replace existing cache entries. While this works, it is wasteful. Only
     insert packets that were not found by get()
 
-    Packets may be added to the cache with a Netmask. In this case, lookup will
-    ignore packets with matching content if the originating ComboAddress is
-    not part of the netmask.
+    Caches are indexed by views. When views are not used, all the data in the
+    cache is associated to the empty string "" default view.
 
     Locking! 
 
@@ -59,30 +57,34 @@ class AuthPacketCache : public PacketCache
 public:
   AuthPacketCache(size_t mapsCount=1024);
 
-  void insert(DNSPacket& query, DNSPacket& response, uint32_t maxTTL, std::optional<Netmask> netmask = std::nullopt);  //!< We copy the contents of *p into our cache. Do not needlessly call this to insert questions already in the cache as it wastes resources
+  void insert(DNSPacket& query, DNSPacket& response, uint32_t maxTTL, const std::string& view);  //!< We copy the contents of *p into our cache. Do not needlessly call this to insert questions already in the cache as it wastes resources
 
-  bool get(DNSPacket& pkt, DNSPacket& cached, ComboAddress* from = nullptr); //!< You need to spoof in the right ID with the DNSPacket.spoofID() method.
+  bool get(DNSPacket& pkt, DNSPacket& cached, const std::string& view = ""); //!< You need to spoof in the right ID with the DNSPacket.spoofID() method.
 
   void cleanup(); //!< force the cache to preen itself from expired packets
   uint64_t purge();
   uint64_t purge(const std::string& match); // could be $ terminated. Is not a dnsname!
   uint64_t purgeExact(const DNSName& qname); // no wildcard matching here
-  uint64_t purgeNetmask(const Netmask& netmask);
+  uint64_t purgeExact(const std::string& view, const DNSName& qname); // same as above, but in the given view
 
   uint64_t size() const { return *d_statnumentries; };
 
   void setMaxEntries(uint64_t maxEntries) 
   {
     d_maxEntries = maxEntries;
-    for (auto& shard : d_maps) {
-      shard.reserve(maxEntries / d_maps.size());
+    for (auto& iter : d_cache) {
+      auto* map = iter.second.get();
+      
+      for (auto& shard : *map) {
+        shard.reserve(maxEntries / map->size());
+      }
     }
   }
   void setTTL(uint32_t ttl)
   {
     d_ttl = ttl;
   }
-  bool enabled()
+  bool enabled() const
   {
     return (d_ttl > 0);
   }
@@ -93,7 +95,6 @@ private:
     mutable string query;
     mutable string value;
     DNSName qname;
-    std::optional<Netmask> netmask;
 
     mutable time_t created{0};
     mutable time_t ttd{0};
@@ -128,14 +129,15 @@ private:
     SharedLockGuarded<cmap_t> d_map;
   };
 
-  vector<MapCombo> d_maps;
-  MapCombo& getMap(const DNSName& name)
+  std::unordered_map<std::string, std::unique_ptr<vector<MapCombo>>> d_cache;
+  static MapCombo& getMap(std::unique_ptr<vector<MapCombo>>& map, const DNSName& name)
   {
-    return d_maps[name.hash() % d_maps.size()];
+    return (*map)[name.hash() % map->size()];
   }
 
+  std::unordered_map<std::string, std::unique_ptr<vector<MapCombo>>>::iterator createViewMap(const std::string& view);
   static bool entryMatches(cmap_t::index<HashTag>::type::iterator& iter, const std::string& query, const DNSName& qname, uint16_t qtype, bool tcp);
-  static bool getEntryLocked(const cmap_t& map, const std::string& query, uint32_t hash, const DNSName &qname, uint16_t qtype, bool tcp, time_t now, ComboAddress *from, string& value);
+  static bool getEntryLocked(const cmap_t& map, const std::string& query, uint32_t hash, const DNSName &qname, uint16_t qtype, bool tcp, time_t now, string& value);
   void cleanupIfNeeded();
 
   AtomicCounter d_ops{0};
@@ -144,6 +146,7 @@ private:
   AtomicCounter *d_statnumentries;
 
   uint64_t d_maxEntries{0};
+  size_t d_mapscount;
   time_t d_lastclean; // doesn't need to be atomic
   unsigned long d_nextclean{4096};
   unsigned int d_cleaninterval{4096};
