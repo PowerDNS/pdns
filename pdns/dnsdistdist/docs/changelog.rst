@@ -63,7 +63,7 @@ Changelog
     :tags: Bug Fixes, YAML
     :pullreq: 15356
 
-    Better handling of non-existent Lua function name in YAML
+    Better handling of nonexistent Lua function name in YAML
 
   .. change::
     :tags: Bug Fixes
