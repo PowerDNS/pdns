@@ -15,11 +15,13 @@ class TestTags(DNSDistTest):
 
     addAction("tag-me-dns-1.tags.tests.powerdns.com.", SetTagAction("dns", "value1"))
     addAction("tag-me-dns-2.tags.tests.powerdns.com.", SetTagAction("dns", "value2"))
+    addAction("tag-me-dns-3.tags.tests.powerdns.com.", SetTagAction("dns", ""))
     addAction("tag-me-response-1.tags.tests.powerdns.com.", SetTagAction("response", "value1"))
     addAction("tag-me-response-2.tags.tests.powerdns.com.", SetTagAction("response", "value2"))
 
     addAction(TagRule("not-dns"), SpoofAction("1.2.3.4"))
     addAction(TagRule("dns", "value1"), SpoofAction("1.2.3.50"))
+    addAction(TagRule("dns", ""), SpoofAction("1.2.3.75"))
     addAction(TagRule("dns"), SpoofAction("1.2.3.100"))
 
     function responseHandlerSetTC(dr)
@@ -99,6 +101,28 @@ class TestTags(DNSDistTest):
                                     dns.rdataclass.IN,
                                     dns.rdatatype.A,
                                     '1.2.3.100')
+        expectedResponse.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertTrue(receivedResponse)
+            self.assertEqual(expectedResponse, receivedResponse)
+
+    def testQuestionMatchTagEmpty(self):
+        """
+        Tag: Name matches, and value is exactly empty
+        """
+        name = 'tag-me-dns-3.tags.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        # dnsdist set RA = RD for spoofed responses
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '1.2.3.75')
         expectedResponse.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
