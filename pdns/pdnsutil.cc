@@ -479,7 +479,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& zone, co
         }
       } else {
         struct in6_addr tmpbuf;
-        if (inet_pton(AF_INET6, rr.content.c_str(), &tmpbuf) != 1 || rr.content.find('.') != string::npos) {
+        if (inet_pton(AF_INET6, rr.content.c_str(), &tmpbuf) != 1) {
           cout<<"[Warning] Following record is not a valid IPv6 address: "<<rr.qname<<" IN " <<rr.qtype.toString()<< " '" << rr.content<<"'"<<endl;
           numwarnings++;
         }
