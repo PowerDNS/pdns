@@ -1,7 +1,7 @@
 FROM dist-base as package-builder
 RUN if $(grep -q 'release 8' /etc/redhat-release); then \
       yum upgrade -y && \
-      yum install --allowerasing -y rpm-build rpmdevtools python3.11 curl jq "@Development Tools" ninja-build hostname python3.11-pip python3.11-yaml ; \
+      yum install --allowerasing -y rpm-build rpmdevtools python3.12 curl jq "@Development Tools" ninja-build hostname python3.12-pip python3.12-yaml ; \
     else \
       yum upgrade -y && \
       yum install --allowerasing -y rpm-build rpmdevtools python3 curl jq "@Development Tools" ninja-build hostname python3-pip python3-yaml ; \
