@@ -253,7 +253,7 @@ def generate_lua_selectors_bindings(definitions):
     for selector in definitions:
         if 'skip-cpp' in selector and selector['skip-cpp']:
             continue
-        if 'skip-lua' in action and action['skip-lua']:
+        if 'skip-lua' in selector and selector['skip-lua']:
             continue
         name = get_cpp_object_name(selector['name'])
         output = f'luaCtx.writeFunction("{name}Rule", []('
