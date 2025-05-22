@@ -1197,8 +1197,39 @@ bool IncomingTCPConnectionState::readIncomingQuery(const timeval& now, IOState& 
   return false;
 }
 
+class HandlingIOGuard
+{
+public:
+  HandlingIOGuard(bool& handlingIO) :
+    d_handlingIO(handlingIO)
+  {
+  }
+  HandlingIOGuard(const HandlingIOGuard&) = delete;
+  HandlingIOGuard(HandlingIOGuard&&) = delete;
+  HandlingIOGuard& operator=(const HandlingIOGuard& rhs) = delete;
+  HandlingIOGuard& operator=(HandlingIOGuard&&) = delete;
+  ~HandlingIOGuard()
+  {
+    d_handlingIO = false;
+  }
+
+private:
+  bool& d_handlingIO;
+};
+
 void IncomingTCPConnectionState::handleIO()
 {
+  // let's make sure we are not already in handleIO() below in the stack:
+  // this might happen when we have a response available on the backend socket
+  // right after forwarding the query, and then a query waiting for us on the
+  // client socket right after forwarding the response, and then a response available
+  // on the backend socket right after forwarding the query.. you get the idea.
+  if (d_handlingIO) {
+    return;
+  }
+  d_handlingIO = true;
+  HandlingIOGuard reentryGuard(d_handlingIO);
+
   // why do we loop? Because the TLS layer does buffering, and thus can have data ready to read
   // even though the underlying socket is not ready, so we need to actually ask for the data first
   IOState iostate = IOState::Done;

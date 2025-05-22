@@ -160,4 +160,5 @@ public:
   bool d_proxyProtocolPayloadHasTLV{false};
   bool d_lastIOBlocked{false};
   bool d_hadErrors{false};
+  bool d_handlingIO{false};
 };
