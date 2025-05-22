@@ -1114,8 +1114,9 @@ def test_auth_backend(c, backend):
 
     if backend == 'authpy':
         c.sudo(f'sh -c \'echo "{auth_backend_ip_addr} kerberos-server" | tee -a /etc/hosts\'')
-        with c.cd('regression-tests.auth-py'):
-            c.run(f'{pdns_auth_env_vars} WITHKERBEROS=YES ./runtests')
+        for auth_backend in ('bind', 'lmdb'):
+            with c.cd('regression-tests.auth-py'):
+                c.run(f'{pdns_auth_env_vars} AUTH_BACKEND={auth_backend} WITHKERBEROS=YES ./runtests')
         return
 
     if backend == 'bind':

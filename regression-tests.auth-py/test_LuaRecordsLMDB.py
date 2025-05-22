@@ -7,18 +7,7 @@ import subprocess
 from authtests import AuthTest
 
 class TestLuaRecordsLMDB(AuthTest):
-    # Copied from AuthTest, without the bind-config and bind-dnssec fields,
-    # since these tests target LMDB an a backend.
-    _config_template_default = """
-daemon=no
-socket-dir={confdir}
-cache-ttl=0
-negquery-cache-ttl=0
-query-cache-ttl=0
-log-dns-queries=yes
-log-dns-details=yes
-loglevel=9
-distributor-threads=1"""
+    _backend = 'lmdb'
 
     _config_template = """
 launch=lmdb
@@ -44,29 +33,6 @@ nested-lua.example.org.      3600 IN LUA  A   ( ";include('config') "
 
         """
     }
-
-    @classmethod
-    def generateAllAuthConfig(cls, confdir):
-        # This is very similar to AuthTest.generateAllAuthConfig,
-        # but for lmdb backend, we ignore auth keys but need to load-zone
-        # into lmdb storage.
-        cls.generateAuthConfig(confdir)
-
-        for zonename, zonecontent in cls._zones.items():
-            cls.generateAuthZone(confdir,
-                                 zonename,
-                                 zonecontent)
-            pdnsutilCmd = [os.environ['PDNSUTIL'],
-                           '--config-dir=%s' % confdir,
-                           'load-zone',
-                           zonename,
-                           os.path.join(confdir, '%s.zone' % zonename)]
-
-            print(' '.join(pdnsutilCmd))
-            try:
-                subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
-            except subprocess.CalledProcessError as e:
-                raise AssertionError('%s failed (%d): %s' % (pdnsutilCmd, e.returncode, e.output))
 
     def testPickRandomWithNestedLua(self):
         """

@@ -6,7 +6,7 @@ from authtests import AuthTest
 
 class TestEdnsCookies(AuthTest):
     _config_template = """
-launch=bind
+launch={backend}
 edns-cookie-secret=aabbccddeeff11223344556677889900
 """
 

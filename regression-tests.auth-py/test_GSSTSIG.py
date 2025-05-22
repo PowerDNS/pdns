@@ -7,6 +7,8 @@ from authtests import AuthTest
 
 
 class GSSTSIGBase(AuthTest):
+    _backend = 'gsqlite3'
+
     _config_template_default = """
 module-dir={PDNS_MODULE_DIR}
 daemon=no

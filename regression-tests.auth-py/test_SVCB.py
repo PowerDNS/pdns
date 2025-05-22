@@ -4,19 +4,6 @@ import os
 import subprocess
 
 class SVCBRecordsBase(AuthTest):
-    # Copied from AuthTest, without the bind-config and bind-dnssec fields.
-    _config_template_default = """
-module-dir={PDNS_MODULE_DIR}
-daemon=no
-socket-dir={confdir}
-cache-ttl=0
-negquery-cache-ttl=0
-query-cache-ttl=0
-log-dns-queries=yes
-log-dns-details=yes
-loglevel=9
-distributor-threads=1"""
-
     _config_template = """
 svc-autohints
 """
@@ -157,6 +144,8 @@ auto-aaaa.example.org.       3600 IN AAAA 2001:db8::80
         self.assertEqual(len(res.additional), 2)
 
 class TestSVCBRecordsBind(SVCBRecordsBase):
+    _backend = "bind"
+
     _config_template_default = (
         SVCBRecordsBase._config_template_default
         + """
@@ -168,7 +157,7 @@ bind-dnssec-db={bind_dnssec_db}
     _config_template = (
         SVCBRecordsBase._config_template
         + """
-launch=bind
+launch={backend}
 """
     )
 
@@ -212,6 +201,8 @@ launch=bind
         self.impl_testAutoAAAA()
 
 class TestSVCBRecordsLMDB(SVCBRecordsBase):
+    _backend='lmdb'
+
     _config_template = (
         SVCBRecordsBase._config_template
         + """

@@ -42,7 +42,7 @@ class BaseLuaTest(AuthTest):
     _config_template = """
 geoip-database-files=../modules/geoipbackend/regression-tests/GeoLiteCity.mmdb
 edns-subnet-processing=yes
-launch=bind geoip
+launch={backend} geoip
 any-to-tcp=no
 enable-lua-records
 lua-records-insert-whitespace=yes
@@ -1245,7 +1245,7 @@ class TestLuaRecordsShared(TestLuaRecords):
     _config_template = """
 geoip-database-files=../modules/geoipbackend/regression-tests/GeoLiteCity.mmdb
 edns-subnet-processing=yes
-launch=bind geoip
+launch={backend} geoip
 any-to-tcp=no
 enable-lua-records=shared
 lua-records-insert-whitespace=yes
@@ -1268,7 +1268,7 @@ class TestLuaRecordsNoWhiteSpace(TestLuaRecords):
     _config_template = """
 geoip-database-files=../modules/geoipbackend/regression-tests/GeoLiteCity.mmdb
 edns-subnet-processing=yes
-launch=bind geoip
+launch={backend} geoip
 any-to-tcp=no
 enable-lua-records
 lua-records-insert-whitespace=no
@@ -1284,7 +1284,7 @@ class TestLuaRecordsSlowTimeouts(BaseLuaTest):
     _config_template = """
 geoip-database-files=../modules/geoipbackend/regression-tests/GeoLiteCity.mmdb
 edns-subnet-processing=yes
-launch=bind geoip
+launch={backend} geoip
 any-to-tcp=no
 enable-lua-records
 lua-records-insert-whitespace=yes
@@ -1412,7 +1412,7 @@ class TestLuaRecordsExecLimit(BaseLuaTest):
     _config_template = """
 geoip-database-files=../modules/geoipbackend/regression-tests/GeoLiteCity.mmdb
 edns-subnet-processing=yes
-launch=bind geoip
+launch={backend} geoip
 any-to-tcp=no
 enable-lua-records
 lua-records-insert-whitespace=yes
