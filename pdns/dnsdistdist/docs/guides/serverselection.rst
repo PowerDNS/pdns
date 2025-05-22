@@ -47,7 +47,15 @@ The current hash algorithm is based on the qname of the query.
 
 .. function:: setWHashedPerturbation(value)
 
+  .. versionadded:: 2.0.0
+    Before 2.0.0 this function was misspelled as ``setWHashedPerturbation``
+
   Set the hash perturbation value to be used in the whashed policy instead of a random one, allowing to have consistent whashed results on different instances.
+
+.. function:: setWHashedPertubation(value)
+
+  .. deprecated:: 2.0.0
+    Before 2.0.0 this function was misspelled, see :func:`setWHashedPerturbation`
 
 Since 1.5.0, a bounded-load version is also supported, trying to prevent one server from receiving much more queries than intended, even if the distribution of queries is not perfect. This "weighted hashing with bounded loads" algorithm is enabled by setting :func:`setWeightedBalancingFactor` to a value other than 0, which is the default. This value is the maximum number of outstanding queries that a given server can have at a given time, as a ratio of the total number of outstanding queries for all the active servers in the pool, pondered by the weight of the server.
 
