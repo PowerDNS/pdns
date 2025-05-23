@@ -1926,6 +1926,10 @@ std::unique_ptr<DNSPacket> PacketHandler::opcodeQuery(DNSPacket& pkt, bool noCac
   if (opcodeQueryInner(pkt, state)) {
     doAdditionalProcessing(pkt, state.r);
 
+    // now that all processing is done, span and view may have been set, so we copy them
+    state.r->d_span = pkt.d_span;
+    state.r->d_view = pkt.d_view;
+
     for(const auto& loopRR: state.r->getRRS()) {
       if (loopRR.scopeMask != 0) {
         state.noCache=true;
