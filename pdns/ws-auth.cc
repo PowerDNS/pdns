@@ -672,7 +672,7 @@ static void checkDefaultDNSSECAlgos()
 
 static void throwUnableToSecure(const ZoneName& zonename)
 {
-  throw ApiException("No backend was able to secure '" + zonename.toString() + "', most likely because no DNSSEC"
+  throw ApiException("No backend was able to secure '" + zonename.toLogString() + "', most likely because no DNSSEC"
                      + "capable backends are loaded, or because the backends have DNSSEC disabled. Check your configuration.");
 }
 
@@ -857,11 +857,11 @@ static void updateDomainSettingsFromDocument(UeberBackend& backend, DomainInfo& 
         string info;
         string error;
         if (!dnssecKeeper.unSecureZone(zonename, error)) {
-          throw ApiException("Error while un-securing zone '" + zonename.toString() + "': " + error);
+          throw ApiException("Error while un-securing zone '" + zonename.toLogString() + "': " + error);
         }
         isDNSSECZone = dnssecKeeper.isSecuredZone(zonename, false);
         if (isDNSSECZone) {
-          throw ApiException("Unable to un-secure zone '" + zonename.toString() + "'");
+          throw ApiException("Unable to un-secure zone '" + zonename.toLogString() + "'");
         }
         shouldRectify = true;
         updateNsec3Param = true;
@@ -872,13 +872,13 @@ static void updateDomainSettingsFromDocument(UeberBackend& backend, DomainInfo& 
   if (nsec3paramInJSON || updateNsec3Param) {
     shouldRectify = true;
     if (!isDNSSECZone && !nsec3paramDocVal.empty()) {
-      throw ApiException("NSEC3PARAM value provided for zone '" + zonename.toString() + "', but zone is not DNSSEC secured.");
+      throw ApiException("NSEC3PARAM value provided for zone '" + zonename.toLogString() + "', but zone is not DNSSEC secured.");
     }
 
     if (nsec3paramDocVal.empty()) {
       // Switch to NSEC
       if (!dnssecKeeper.unsetNSEC3PARAM(zonename)) {
-        throw ApiException("Unable to remove NSEC3PARAMs from zone '" + zonename.toString());
+        throw ApiException("Unable to remove NSEC3PARAMs from zone '" + zonename.toLogString());
       }
     }
     else {
@@ -886,10 +886,10 @@ static void updateDomainSettingsFromDocument(UeberBackend& backend, DomainInfo& 
       NSEC3PARAMRecordContent ns3pr(nsec3paramDocVal);
       string error_msg;
       if (!dnssecKeeper.checkNSEC3PARAM(ns3pr, error_msg)) {
-        throw ApiException("NSEC3PARAMs provided for zone '" + zonename.toString() + "' are invalid. " + error_msg);
+        throw ApiException("NSEC3PARAMs provided for zone '" + zonename.toLogString() + "' are invalid. " + error_msg);
       }
       if (!dnssecKeeper.setNSEC3PARAM(zonename, ns3pr, boolFromJson(document, "nsec3narrow", false))) {
-        throw ApiException("NSEC3PARAMs provided for zone '" + zonename.toString() + "' passed our basic sanity checks, but cannot be used with the current backend.");
+        throw ApiException("NSEC3PARAMs provided for zone '" + zonename.toLogString() + "' passed our basic sanity checks, but cannot be used with the current backend.");
       }
     }
   }
@@ -901,7 +901,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& backend, DomainInfo& 
       string error_msg;
       if (!dnssecKeeper.rectifyZone(zonename, error_msg, info, false) && !domainInfo.isSecondaryType()) {
         // for Secondary zones, it is possible that rectifying was not needed (example: empty zone).
-        throw ApiException("Failed to rectify '" + zonename.toString() + "' " + error_msg);
+        throw ApiException("Failed to rectify '" + zonename.toLogString() + "' " + error_msg);
       }
     }
 
@@ -1069,7 +1069,7 @@ static void apiZoneMetadataPOST(HttpRequest* req, HttpResponse* resp)
   vector<string> vecMetadata;
 
   if (!zoneData.backend.getDomainMetadata(zoneData.zoneName, kind, vecMetadata)) {
-    throw ApiException("Could not retrieve metadata entries for domain '" + zoneData.zoneName.toString() + "'");
+    throw ApiException("Could not retrieve metadata entries for domain '" + zoneData.zoneName.toLogString() + "'");
   }
 
   const auto& metadata = document["metadata"];
@@ -1090,7 +1090,7 @@ static void apiZoneMetadataPOST(HttpRequest* req, HttpResponse* resp)
   }
 
   if (!zoneData.backend.setDomainMetadata(zoneData.zoneName, kind, vecMetadata)) {
-    throw ApiException("Could not update metadata entries for domain '" + zoneData.zoneName.toString() + "'");
+    throw ApiException("Could not update metadata entries for domain '" + zoneData.zoneName.toLogString() + "'");
   }
 
   DNSSECKeeper::clearMetaCache(zoneData.zoneName);
@@ -1162,7 +1162,7 @@ static void apiZoneMetadataKindPUT(HttpRequest* req, HttpResponse* resp)
   }
 
   if (!zoneData.backend.setDomainMetadata(zoneData.zoneName, kind, vecMetadata)) {
-    throw ApiException("Could not update metadata entries for domain '" + zoneData.zoneName.toString() + "'");
+    throw ApiException("Could not update metadata entries for domain '" + zoneData.zoneName.toLogString() + "'");
   }
 
   DNSSECKeeper::clearMetaCache(zoneData.zoneName);
@@ -1186,7 +1186,7 @@ static void apiZoneMetadataKindDELETE(HttpRequest* req, HttpResponse* resp)
 
   vector<string> metadata; // an empty vector will do it
   if (!zoneData.backend.setDomainMetadata(zoneData.zoneName, kind, metadata)) {
-    throw ApiException("Could not delete metadata for domain '" + zoneData.zoneName.toString() + "' (" + kind + ")");
+    throw ApiException("Could not delete metadata for domain '" + zoneData.zoneName.toLogString() + "' (" + kind + ")");
   }
 
   DNSSECKeeper::clearMetaCache(zoneData.zoneName);
@@ -1512,26 +1512,26 @@ static void apiZoneCryptokeysPUT(HttpRequest* req, HttpResponse* resp)
   bool published = boolFromJson(document, "published", true);
   if (active) {
     if (!zoneData.dnssecKeeper.activateKey(zoneData.zoneName, inquireKeyId)) {
-      resp->setErrorResult("Could not activate Key: " + req->parameters["key_id"] + " in Zone: " + zoneData.zoneName.toString(), 422);
+      resp->setErrorResult("Could not activate Key: " + req->parameters["key_id"] + " in Zone: " + zoneData.zoneName.toLogString(), 422);
       return;
     }
   }
   else {
     if (!zoneData.dnssecKeeper.deactivateKey(zoneData.zoneName, inquireKeyId)) {
-      resp->setErrorResult("Could not deactivate Key: " + req->parameters["key_id"] + " in Zone: " + zoneData.zoneName.toString(), 422);
+      resp->setErrorResult("Could not deactivate Key: " + req->parameters["key_id"] + " in Zone: " + zoneData.zoneName.toLogString(), 422);
       return;
     }
   }
 
   if (published) {
     if (!zoneData.dnssecKeeper.publishKey(zoneData.zoneName, inquireKeyId)) {
-      resp->setErrorResult("Could not publish Key: " + req->parameters["key_id"] + " in Zone: " + zoneData.zoneName.toString(), 422);
+      resp->setErrorResult("Could not publish Key: " + req->parameters["key_id"] + " in Zone: " + zoneData.zoneName.toLogString(), 422);
       return;
     }
   }
   else {
     if (!zoneData.dnssecKeeper.unpublishKey(zoneData.zoneName, inquireKeyId)) {
-      resp->setErrorResult("Could not unpublish Key: " + req->parameters["key_id"] + " in Zone: " + zoneData.zoneName.toString(), 422);
+      resp->setErrorResult("Could not unpublish Key: " + req->parameters["key_id"] + " in Zone: " + zoneData.zoneName.toLogString(), 422);
       return;
     }
   }
@@ -1984,18 +1984,18 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
       NSEC3PARAMRecordContent ns3pr(document["nsec3param"].string_value());
       string error_msg;
       if (!dnssecKeeper.checkNSEC3PARAM(ns3pr, error_msg)) {
-        throw ApiException("NSEC3PARAMs provided for zone '" + zonename.toString() + "' are invalid. " + error_msg);
+        throw ApiException("NSEC3PARAMs provided for zone '" + zonename.toLogString() + "' are invalid. " + error_msg);
       }
     }
   }
 
   // no going back after this
   if (!backend.createDomain(zonename, kind.value_or(DomainInfo::Native), primaries.value_or(vector<ComboAddress>()), account.value_or(""))) {
-    throw ApiException("Creating domain '" + zonename.toString() + "' failed: backend refused");
+    throw ApiException("Creating domain '" + zonename.toLogString() + "' failed: backend refused");
   }
 
   if (!backend.getDomainInfo(zonename, domainInfo)) {
-    throw ApiException("Creating domain '" + zonename.toString() + "' failed: lookup of domain ID failed");
+    throw ApiException("Creating domain '" + zonename.toLogString() + "' failed: lookup of domain ID failed");
   }
 
   domainInfo.backend->startTransaction(zonename, domainInfo.id);
@@ -2183,7 +2183,7 @@ static void apiServerZoneDetailDELETE(HttpRequest* req, HttpResponse* resp)
   zoneData.domainInfo.backend->startTransaction(zoneData.zoneName, UnknownDomainID);
   try {
     if (!zoneData.domainInfo.backend->deleteDomain(zoneData.zoneName)) {
-      throw ApiException("Deleting domain '" + zoneData.zoneName.toString() + "' failed: backend delete failed/unsupported");
+      throw ApiException("Deleting domain '" + zoneData.zoneName.toLogString() + "' failed: backend delete failed/unsupported");
     }
 
     zoneData.domainInfo.backend->commitTransaction();
@@ -2249,12 +2249,12 @@ static void apiServerZoneAxfrRetrieve(HttpRequest* req, HttpResponse* resp)
   ZoneData zoneData{req};
 
   if (zoneData.domainInfo.primaries.empty()) {
-    throw ApiException("Domain '" + zoneData.zoneName.toString() + "' is not a secondary domain (or has no primary defined)");
+    throw ApiException("Domain '" + zoneData.zoneName.toLogString() + "' is not a secondary domain (or has no primary defined)");
   }
 
   shuffle(zoneData.domainInfo.primaries.begin(), zoneData.domainInfo.primaries.end(), pdns::dns_random_engine());
   Communicator.addSuckRequest(zoneData.zoneName, zoneData.domainInfo.primaries.front(), SuckRequest::Api);
-  resp->setSuccessResult("Added retrieval request for '" + zoneData.zoneName.toString() + "' from primary " + zoneData.domainInfo.primaries.front().toLogString());
+  resp->setSuccessResult("Added retrieval request for '" + zoneData.zoneName.toLogString() + "' from primary " + zoneData.domainInfo.primaries.front().toLogString());
 }
 
 static void apiServerZoneNotify(HttpRequest* req, HttpResponse* resp)
@@ -2273,13 +2273,13 @@ static void apiServerZoneRectify(HttpRequest* req, HttpResponse* resp)
   ZoneData zoneData{req};
 
   if (zoneData.dnssecKeeper.isPresigned(zoneData.zoneName)) {
-    throw ApiException("Zone '" + zoneData.zoneName.toString() + "' is pre-signed, not rectifying.");
+    throw ApiException("Zone '" + zoneData.zoneName.toLogString() + "' is pre-signed, not rectifying.");
   }
 
   string error_msg;
   string info;
   if (!zoneData.dnssecKeeper.rectifyZone(zoneData.zoneName, error_msg, info, true)) {
-    throw ApiException("Failed to rectify '" + zoneData.zoneName.toString() + "' " + error_msg);
+    throw ApiException("Failed to rectify '" + zoneData.zoneName.toLogString() + "' " + error_msg);
   }
 
   resp->setSuccessResult("Rectified");
@@ -2465,7 +2465,7 @@ static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInf
     string info;
     string error_msg;
     if (!dnssecKeeper.rectifyZone(zonename, error_msg, info, false)) {
-      throw ApiException("Failed to rectify '" + zonename.toString() + "' " + error_msg);
+      throw ApiException("Failed to rectify '" + zonename.toLogString() + "' " + error_msg);
     }
   }
 
@@ -2708,12 +2708,12 @@ static void apiServerViewsPOST(HttpRequest* req, HttpResponse* resp)
   ZoneName zonename = apiNameToZoneName(stringFromJson(document, "name"));
 
   if (!backend.getDomainInfo(zonename, domainInfo)) {
-    throw ApiException("Zone " + zonename.toString() + "does not exist");
+    throw ApiException("Zone " + zonename.toLogString() + "does not exist");
   }
   std::string view{req->parameters["view"]};
 
   if (!domainInfo.backend->viewAddZone(view, zonename)) {
-    throw ApiException("Failed to add " + zonename.toString() + " to view " + view);
+    throw ApiException("Failed to add " + zonename.toLogString() + " to view " + view);
   }
   // Notify zone cache of the new association
   if (g_zoneCache.isEnabled()) {
@@ -2735,7 +2735,7 @@ static void apiServerViewsDELETE(HttpRequest* req, HttpResponse* resp)
   std::string view{req->parameters["view"]};
 
   if (!zoneData.domainInfo.backend->viewDelZone(view, zoneData.zoneName)) {
-    throw ApiException("Failed to remove " + zoneData.zoneName.toString() + " from view " + view);
+    throw ApiException("Failed to remove " + zoneData.zoneName.toLogString() + " from view " + view);
   }
   // Notify zone cache of the removed association
   if (g_zoneCache.isEnabled()) {
