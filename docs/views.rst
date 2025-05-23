@@ -115,14 +115,14 @@ the rest of the Internet.
 
 Let's start by defining the specific networks::
 
-  pdnsutil network-set 10.0.0.0/8 internal
-  pdnsutil network-set 172.16.0.0/12 internal
-  pdnsutil network-set 192.168.0.0/16 internal
-  pdnsutil network-set fc00::/7 internal
+  pdnsutil set-network 10.0.0.0/8 internal
+  pdnsutil set-network 172.16.0.0/12 internal
+  pdnsutil set-network 192.168.0.0/16 internal
+  pdnsutil set-network fc00::/7 internal
 
-  pdnsutil network-set 198.51.100.0/24 trusted
-  pdnsutil network-set 203.0.113.0/24 trusted
-  pdnsutil network-set 2001:db8::/32 trusted
+  pdnsutil set-network 198.51.100.0/24 trusted
+  pdnsutil set-network 203.0.113.0/24 trusted
+  pdnsutil set-network 2001:db8::/32 trusted
 
 Once these commands have been run, queries originating from these particular
 networks will select either the "internal" or "trusted" view, while queries
@@ -131,7 +131,7 @@ may consider an always-existing default (nameless) view.
 
 You can check the result of these commands with::
 
-  $ pdnsutil network-list
+  $ pdnsutil list-networks
   10.0.0.0/8      internal
   172.16.0.0/12   internal
   192.168.0.0/16  internal
@@ -175,13 +175,13 @@ As seen in this example, a given view may cause multiple zones to be resolved
 differently. At any time, you can check which views are setup, and the details
 of a given view::
 
-  $ pdnsutil view-list
+  $ pdnsutil list-views
   internal
   trusted
-  $ pdnsutil view-list internal
+  $ pdnsutil list-view internal
   example.com..internal
   example2.com..secret
-  $ pdnsutil view-list trusted
+  $ pdnsutil list-view trusted
   example.com..trusted
 
 Bind configuration adaptation
@@ -211,8 +211,8 @@ https://www.zytrax.com/books/dns/ch7/view.html::
 
 The equivalent PowerDNS setup would be::
 
-  pdnsutil network-set 192.168.23.0/24 trusted
-  pdnsutil network-set 0.0.0.0/0 badguys
+  pdnsutil set-network 192.168.23.0/24 trusted
+  pdnsutil set-network 0.0.0.0/0 badguys
 
   pdnsutil view-add-zone trusted master.example.com..internal
   pdnsutil view-add-zone badguys master.example.com..external

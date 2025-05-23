@@ -436,11 +436,11 @@ zonemd-verify-file *ZONE* *FILE*
 VIEWS COMMANDS
 --------------
 
-network-list
+list-networks
 
     List all defined networks with their chosen views.
 
-network-set *NET* [*VIEW*]
+set-network *NET* [*VIEW*]
 
     Set the *VIEW* for a the *NET* network, or delete if no *VIEW* argument.
 
@@ -452,9 +452,13 @@ view-del-zone *VIEW* *ZONE..VARIANT*
 
     Remove a *ZONE* *VARIANT* from a *VIEW*.
 
-view-list [*VIEW*]
+list-view *VIEW*
 
-    List all view names, or all zones within a given *VIEW*.
+    List all within *VIEW*.
+
+list-views
+
+    List all view names.
 
 DEBUGGING TOOLS
 ---------------

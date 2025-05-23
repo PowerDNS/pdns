@@ -4577,29 +4577,36 @@ static int backendLookup(vector<string>& cmds, const std::string_view synopsis)
   return 0;
 }
 
-static int viewList(vector<string>& cmds, const std::string_view synopsis)
+static int listView(vector<string>& cmds, const std::string_view synopsis)
 {
-  if (cmds.size() > 2) {
+  if (cmds.size() != 2) {
     return usage(synopsis);
   }
 
   UtilBackend B("default"); //NOLINT(readability-identifier-length)
 
-  if (cmds.size() == 1) {
-    vector<string> ret;
-    B.viewList(ret);
+  vector<ZoneName> ret;
+  B.viewListZones(cmds.at(1), ret);
 
-    for (const auto& view : ret) {
-      cout << view << endl;
-    }
+  for (const auto& zone : ret) {
+    cout << zone << endl;
   }
-  else {
-    vector<ZoneName> ret;
-    B.viewListZones(cmds.at(1), ret);
+  return 0;
+}
 
-    for (const auto& zone : ret) {
-      cout << zone << endl;
-    }
+static int listViews(vector<string>& cmds, const std::string_view synopsis)
+{
+  if (cmds.size() != 1) {
+    return usage(synopsis);
+  }
+
+  UtilBackend B("default"); //NOLINT(readability-identifier-length)
+
+  vector<string> ret;
+  B.viewList(ret);
+
+  for (const auto& view : ret) {
+    cout << view << endl;
   }
   return 0;
 }
@@ -4638,7 +4645,7 @@ static int viewDelZone(vector<string>& cmds, const std::string_view synopsis)
   return 0;
 }
 
-static int networkList(vector<string>& cmds, const std::string_view synopsis)
+static int listNetwork(vector<string>& cmds, const std::string_view synopsis)
 {
   if (cmds.empty()) {
     return usage(synopsis);
@@ -4656,7 +4663,7 @@ static int networkList(vector<string>& cmds, const std::string_view synopsis)
   return 0;
 }
 
-static int networkSet(vector<string>& cmds, const std::string_view synopsis)
+static int setNetwork(vector<string>& cmds, const std::string_view synopsis)
 {
   if (cmds.size() < 2) {
     // FIXME: should there be backend choice here at all?
@@ -4879,9 +4886,18 @@ static const std::unordered_map<std::string, commandDispatcher> commands{
   {"list-member-zones", {true, listMemberZones, GROUP_ZONE,
    "list-member-zones CATALOG",
    "\tList all members of catalog zone CATALOG"}},
+  {"list-networks", {true, listNetwork, GROUP_VIEWS,
+   "list-networks",
+   "\tList all defined networks with their chosen views"}},
   {"list-tsig-keys", {true, listTSIGKeys, GROUP_TSIGKEY,
    "list-tsig-keys",
    "\tList all TSIG keys"}},
+  {"list-view", {true, listView, GROUP_VIEWS,
+   "list-view VIEW",
+   "\tList all zones within VIEW"}},
+  {"list-views", {true, listViews, GROUP_VIEWS,
+   "list-view",
+   "\tList all view names"}},
   {"list-zone", {true, listZone, GROUP_ZONE,
    "list-zone ZONE",
    "\tList zone contents"}},
@@ -4893,12 +4909,6 @@ static const std::unordered_map<std::string, commandDispatcher> commands{
    "\tLoad ZONE from FILENAME, possibly creating zone or atomically replacing\n"
    "\tcontents; --verbose or -v will also include the keys for disabled or\n"
    "\tempty zones"}},
-  {"network-list", {true, networkList, GROUP_VIEWS,
-   "network-list",
-   "\tList all defined networks with their chosen views"}},
-  {"network-set", {true, networkSet, GROUP_VIEWS,
-   "network-set NET [VIEW]",
-   "\tSet the view for a network, or delete if no view argument."}},
   {"publish-zone-key", {true, publishZoneKey, GROUP_ZONEKEY,
    "publish-zone-key ZONE KEY_ID",
    "\tPublish the zone key with key id KEY_ID in ZONE"}},
@@ -4942,6 +4952,9 @@ static const std::unordered_map<std::string, commandDispatcher> commands{
    "set-meta ZONE KIND [VALUE...]",
    "\tSet zone metadata, replacing all existing records of KIND, optionally\n"
    "\tproviding a value. An omitted value clears the metadata"}},
+  {"set-network", {true, setNetwork, GROUP_VIEWS,
+   "set-network NET [VIEW]",
+   "\tSet the view for a network, or delete if no view argument."}},
   {"set-nsec3", {true, setNsec3, GROUP_NSEC3,
    "set-nsec3 ZONE ['PARAMS' [narrow]]",
    "\tEnable NSEC3 with PARAMS (default: '1 0 0 -'). Optionally narrow"}},
@@ -4994,9 +5007,6 @@ static const std::unordered_map<std::string, commandDispatcher> commands{
    "\tDisable sending CDS responses for ZONE"}},
   {"verify-crypto", {true, verifyCrypto, GROUP_OTHER,
    "verify-crypto FILENAME", ""}}, // TODO: short help line
-  {"view-list", {true, viewList, GROUP_VIEWS,
-   "view-list [VIEW]",
-   "\tList all view names, or all zones within a given view"}},
   {"view-add-zone", {true, viewAddZone, GROUP_VIEWS,
    "view-add-zone VIEW ZONE..VARIANT",
    "\tAdd a zone variant to a view"}},
@@ -5011,7 +5021,11 @@ static const std::unordered_map<std::string, commandDispatcher> commands{
 
 static const std::unordered_map<std::string, std::string> aliases{
   {"test-zone", "check-zone"},
-  {"test-all-zones", "check-all-zones"}
+  {"test-all-zones", "check-all-zones"},
+  // Muscle memory built during views development
+  {"network-list", "list-networks"},
+  {"network-set", "set-network"},
+  {"view-list", "list-view"}
 };
 
 int main(int argc, char** argv)

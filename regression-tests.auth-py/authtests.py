@@ -240,7 +240,7 @@ options {
             for net in ['0.0.0.0/0', '::/0']:
                 pdnsutilCmd = [os.environ['PDNSUTIL'],
                                '--config-dir=%s' % confdir,
-                               'network-set',
+                               'set-network',
                                net,
                                'one-view']
                 print(' '.join(pdnsutilCmd))
