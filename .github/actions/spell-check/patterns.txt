@@ -1,5 +1,8 @@
 # See https://github.com/check-spelling/check-spelling/wiki/Configuration-Examples:-patterns
 
+# deprecated
+setWHashedPertubation
+
 \bcommit [0-9a-f]+\b
 
 # HMAC

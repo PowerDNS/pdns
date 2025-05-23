@@ -2090,7 +2090,7 @@ load_balancing_policies:
     - name: "hash_perturbation"
       type: "u32"
       default: "0"
-      lua-name: "setWHashedPertubation"
+      lua-name: "setWHashedPerturbation"
       internal-field-name: "d_hashPerturbation"
       runtime-configurable: false
       description: "Set the hash perturbation value to be used in the ``whashed`` policy instead of a random one, allowing to have consistent ``whashed`` results on different instances"
