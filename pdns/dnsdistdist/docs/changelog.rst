@@ -13,15 +13,15 @@ Changelog
 
   .. change::
     :tags: Improvements, DNS over QUIC, DNS over HTTP3
-    :pullreq: 15328
+    :pullreq: 15328, 15583
 
-    Upgrade Quiche to 0.23.4 in our packages
+    Upgrade Quiche to 0.24.2 in our packages
 
   .. change::
     :tags: Improvements
-    :pullreq: 15329
+    :pullreq: 15329, 15584
 
-    Upgrade Rust to 1.85.0 in our packages
+    Upgrade Rust to 1.87.0 when building our packages
 
   .. change::
     :tags: Bug Fixes, YAML
@@ -45,7 +45,7 @@ Changelog
     :tags: Bug Fixes, YAML
     :pullreq: 15338
 
-    Better handling of the `dlsym` missing symbol in our Rust lib
+    Better handling of the ``dlsym`` missing symbol in our Rust lib
 
   .. change::
     :tags: Bug Fixes, YAML
@@ -203,7 +203,7 @@ Changelog
     :tags: Bug Fixes
     :pullreq: 15514
 
-    Fix memory corruption when using `getAddressInfo`
+    Fix memory corruption when using :func:`getAddressInfo`
 
   .. change::
     :tags: Improvements
@@ -266,7 +266,7 @@ Changelog
     :tags: Improvements, Meson
     :pullreq: 15558
 
-    Switch ``eBPF`` support to `auto` when building with meson
+    Switch ``eBPF`` support to ``auto`` when building with meson
 
   .. change::
     :tags: Bug Fixes
@@ -297,6 +297,12 @@ Changelog
     :pullreq: 15573
 
     Fix one potential issue and several false positives reported by Coverity
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15585
+
+    Fix the behaviour of ``TagRule`` with an empty string as value
 
 .. changelog::
   :version: 1.9.10
