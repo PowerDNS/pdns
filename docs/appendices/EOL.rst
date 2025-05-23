@@ -39,23 +39,23 @@ such a user, these EOL statements do not apply to you.
      - 1st of June 2023
      - ~ March 2025
    * - 4.6
-     - 25th of January 2022
-     - 20th of October 2022
+     - January 2022
+     - October 2022
      - EOL March 2024
    * - 4.5
-     - July 13 2021
-     - 25th of January 2022
+     - July 2021
+     - January 2022
      - EOL June 2023
    * - 4.4
-     - December 18 2020
-     - 25th of January 2022
-     - EOL 20th of October 2022
+     - December 2020
+     - January 2022
+     - EOL October 2022
    * - 4.3
-     - April 7 2020
-     - ~ April 2021
-     - EOL 25th of January 2022
+     - April 2020
+     - April 2021
+     - EOL January 2022
    * - 4.2
-     - August 30 2019
+     - August 2019
      - December 2020
      - EOL July 2021
    * - 4.1 and older
