@@ -55,33 +55,33 @@ That means that we ask you to reproduce potential issues on the latest minor rel
      - June 30 2023
      - EOL June 30 2024
    * - 4.7
-     - May 30 2022
-     - December 12 2022
+     - May 2022
+     - December 2022
      - EOL January 10 2024
    * - 4.6
-     - December 17 2021
-     - May 30 2022
-     - EOL June 30 2023
+     - December 2021
+     - May 2022
+     - EOL June 2023
    * - 4.5
-     - May 11 2021
-     - December 17 2021
-     - EOL December 12 2022
+     - May 2021
+     - December 2021
+     - EOL December 2022
    * - 4.4
-     - October 19 2020
-     - May 11 2021
-     - EOL May 30 2022
+     - October 2020
+     - May 2021
+     - EOL May 2022
    * - 4.3
-     - March 3 2020
-     - October 19 2020
-     - EOL December 17 2021
+     - March 2020
+     - October 2020
+     - EOL December 2021
    * - 4.2
-     - July 16 2019
-     - October 19 2020
-     - EOL May 11 2021
+     - July 2019
+     - October 2020
+     - EOL May 2021
    * - 4.1
-     - December 4 2017
-     - March 3 2020
-     - EOL October 19 2020
+     - December 2017
+     - March 2020
+     - EOL October 2020
    * - 4.0 and older
      - EOL
      - EOL

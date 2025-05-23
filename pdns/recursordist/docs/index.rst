@@ -9,7 +9,7 @@ The PowerDNS Recursor is a high-performance DNS recursor with built-in scripting
 It is known to power the resolving needs of over 150 million internet connections.
 
 The documentation is only for the 4.1 and higher series, users of
-older versions are urged to read :ref:`eol` and upgrade!
+older versions are urged to read :ref:`EOL` and upgrade!
 
 This documentation is also available as a `PDF document <PowerDNS-Recursor.pdf>`_.
 
