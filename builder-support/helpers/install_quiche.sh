@@ -38,8 +38,8 @@ echo "${QUICHE_TARBALL_HASH}"  "${QUICHE_TARBALL}" | sha256sum -c -
 tar xf "${QUICHE_TARBALL}"
 cd "quiche-${QUICHE_VERSION}"
 # Disable SONAME in the quiche shared library, we do not intend this library to be used by anyone else and it makes things more complicated since we rename it to libdnsdist-quiche
-sed -i 's/ffi = \["dep:cdylib-link-lines"\]/ffi = \[\]/' quiche/Cargo.toml
-sed -i 's,cdylib_link_lines::metabuild();,//cdylib_link_lines::metabuild();,' quiche/src/build.rs
+sed -i.bak 's/ffi = \["dep:cdylib-link-lines"\]/ffi = \[\]/' quiche/Cargo.toml
+sed -i.bak 's,cdylib_link_lines::metabuild();,//cdylib_link_lines::metabuild();,' quiche/src/build.rs
 RUST_BACKTRACE=1 cargo build --release --no-default-features --features ffi,boringssl-boring-crate --package quiche
 
 # While we tried to get rid of the SONAME in libquiche.so, on debian trixie's
@@ -55,7 +55,7 @@ install -m644 quiche/include/quiche.h "${INSTALL_PREFIX}"/include
 install -m644 target/release/libquiche.${SOEXT} "${LIBDIR}"/libdnsdist-quiche.${SOEXT}
 
 if [ $(uname) = Darwin ]; then
-  install_name_tool -id "${LIBDIR}/libdnsdist-quiche.${SOEXT}" "${LIBDIR}"libdnsdist-quiche.${SOEXT}
+  install_name_tool -id "${LIBDIR}/libdnsdist-quiche.${SOEXT}" "${LIBDIR}/"libdnsdist-quiche.${SOEXT}
 fi
 
 if [ ! -d "${LIBDIR}"/pkgconfig/ ]; then
