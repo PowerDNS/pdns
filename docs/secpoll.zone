@@ -1,4 +1,4 @@
-@       86400   IN  SOA pdns-public-ns1.powerdns.com. peter\.van\.dijk.powerdns.com. 2025052300 10800 3600 604800 10800
+@       86400   IN  SOA pdns-public-ns1.powerdns.com. peter\.van\.dijk.powerdns.com. 2025052400 10800 3600 604800 10800
 @       3600    IN  NS  pdns-public-ns1.powerdns.com.
 @       3600    IN  NS  pdns-public-ns2.powerdns.com.
 
