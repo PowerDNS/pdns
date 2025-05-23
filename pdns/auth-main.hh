@@ -56,3 +56,4 @@ extern time_t g_luaHealthChecksExpireDelay;
 extern time_t g_luaConsistentHashesExpireDelay;
 extern time_t g_luaConsistentHashesCleanupInterval;
 #endif // HAVE_LUA_RECORDS
+extern bool g_views;

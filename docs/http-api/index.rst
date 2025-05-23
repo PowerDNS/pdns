@@ -363,6 +363,8 @@ The API exposes several endpoints and objects:
 
   server
   zone
+  views
+  networks
   cryptokey
   metadata
   tsigkey

@@ -25,13 +25,21 @@ class AuthTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     _authPort = 5300
 
     _backend = os.getenv("AUTH_BACKEND", "bind")
+    _backend_variants = bool(int(os.getenv("AUTH_BACKEND_VARIANTS", 0)))
 
     _backend_configs = dict(
         bind="""
 bind-config={confdir}/named.conf
 bind-dnssec-db={bind_dnssec_db}
-""",    lmdb="",
-        gsqlite3="")
+zone-cache-refresh-interval=0
+""",
+        lmdb="""
+views
+zone-cache-refresh-interval=1
+""",
+        gsqlite3="""
+zone-cache-refresh-interval=0
+""")
 
     _config_params = []
 
@@ -86,6 +94,12 @@ PrivateKey: Lt0v0Gol3pRUFM7fDdcy0IWN0O/MnEmVPA+VylL8Y4U=
     _PREFIX = os.environ['PREFIX']
     _PDNS_MODULE_DIR = os.environ['PDNS_MODULE_DIR']
 
+    @classmethod
+    def maybeAddVariant(cls, zone):
+        if cls._backend_variants and cls._backend == 'lmdb':
+            return zone + "..variant"
+        else:
+            return zone
 
     @classmethod
     def createConfigDir(cls, confdir):
@@ -159,7 +173,7 @@ options {
             pdnsutilCmd = [os.environ['PDNSUTIL'],
                            '--config-dir=%s' % confdir,
                            'secure-zone',
-                           zone]
+                           cls.maybeAddVariant(zone)]
         else:
             keyfile = os.path.join(confdir, 'dnssec.key')
             with open(keyfile, 'w') as fdKeyfile:
@@ -168,7 +182,7 @@ options {
             pdnsutilCmd = [os.environ['PDNSUTIL'],
                            '--config-dir=%s' % confdir,
                            'import-zone-key',
-                           zone,
+                           cls.maybeAddVariant(zone),
                            keyfile,
                            'active',
                            'ksk']
@@ -200,7 +214,7 @@ options {
                 pdnsutilCmd = [os.environ['PDNSUTIL'],
                                '--config-dir=%s' % confdir,
                                'load-zone',
-                               zonename,
+                               cls.maybeAddVariant(zonename),
                                os.path.join(confdir, '%s.zone' % zonename)]
 
                 print(' '.join(pdnsutilCmd))
@@ -208,8 +222,33 @@ options {
                     subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
                 except subprocess.CalledProcessError as e:
                     raise AssertionError('%s failed (%d): %s' % (pdnsutilCmd, e.returncode, e.output))
+
                 if cls._zone_keys.get(zonename, None):
                     cls.secureZone(confdir, zonename, cls._zone_keys.get(zonename))
+
+                pdnsutilCmd = [os.environ['PDNSUTIL'],
+                               '--config-dir=%s' % confdir,
+                               'view-add-zone',
+                               'one-view',
+                               cls.maybeAddVariant(zonename)]
+                print(' '.join(pdnsutilCmd))
+                try:
+                    subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
+                except subprocess.CalledProcessError as e:
+                    raise AssertionError('%s failed (%d): %s' % (pdnsutilCmd, e.returncode, e.output))
+
+            for net in ['0.0.0.0/0', '::/0']:
+                pdnsutilCmd = [os.environ['PDNSUTIL'],
+                               '--config-dir=%s' % confdir,
+                               'set-network',
+                               net,
+                               'one-view']
+                print(' '.join(pdnsutilCmd))
+                try:
+                    subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
+                except subprocess.CalledProcessError as e:
+                    raise AssertionError('%s failed (%d): %s' % (pdnsutilCmd, e.returncode, e.output))
+
         elif cls._backend == 'gsqlite3':
             # this is not a supported config from the user, but some of the test_*.py files use gsqlite3
             return
@@ -240,7 +279,6 @@ options {
         authcmd.append('--local-address=%s' % ipaddress)
         authcmd.append('--local-port=%s' % cls._authPort)
         authcmd.append('--loglevel=9')
-        authcmd.append('--zone-cache-refresh-interval=0')
         print(' '.join(authcmd))
         logFile = os.path.join(confdir, 'pdns.log')
         with open(logFile, 'w') as fdLog:

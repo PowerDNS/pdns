@@ -309,6 +309,6 @@ uint32_t localtime_format_YYYYMMDDSS(time_t t, uint32_t seq);
 uint32_t calculateEditSOA(uint32_t old_serial, DNSSECKeeper& dsk, const ZoneName& zonename);
 uint32_t calculateEditSOA(uint32_t old_serial, const string& kind, const ZoneName& zonename);
 // for SOA-EDIT-DNSUPDATE/API
-bool increaseSOARecord(DNSResourceRecord& dr, const string& increaseKind, const string& editKind);
+bool increaseSOARecord(DNSResourceRecord& rr, const string& increaseKind, const string& editKind, const ZoneName& zonename);
 bool makeIncreasedSOARecord(SOAData& sd, const string& increaseKind, const string& editKind, DNSResourceRecord& rrout);
 DNSZoneRecord makeEditedDNSZRFromSOAData(DNSSECKeeper& dk, const SOAData& sd, DNSResourceRecord::Place place=DNSResourceRecord::ANSWER);

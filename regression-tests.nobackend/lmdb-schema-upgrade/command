@@ -24,7 +24,7 @@ EOF
   for zone in $(grep 'zone ' "${rootPath}/../../regression-tests/named.conf"  | cut -f2 -d\" | grep -v '^nztest.com$')
   do
     if [ "$zone" != "." ]; then
-      $PDNSUTIL --config-dir="${workdir}" --config-name=lmdb list-zone $zone
+      $PDNSUTIL -q --config-dir="${workdir}" --config-name=lmdb list-zone $zone
     fi
   done
   rm -r $workdir

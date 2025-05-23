@@ -121,9 +121,8 @@ PacketHandler::~PacketHandler()
 **/
 bool PacketHandler::addCDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r)
 {
-  ZoneName zonename(p.qdomain);
   string publishCDNSKEY;
-  d_dk.getPublishCDNSKEY(zonename,publishCDNSKEY);
+  d_dk.getPublishCDNSKEY(r->qdomainzone,publishCDNSKEY);
   if (publishCDNSKEY.empty())
     return false;
 
@@ -140,7 +139,7 @@ bool PacketHandler::addCDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r)
   }
 
   bool haveOne=false;
-  for (const auto& value : d_dk.getEntryPoints(zonename)) {
+  for (const auto& value : d_dk.getEntryPoints(r->qdomainzone)) {
     if (!value.second.published) {
       continue;
     }
@@ -173,7 +172,7 @@ bool PacketHandler::addDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r)
   DNSZoneRecord rr;
   bool haveOne=false;
 
-  for (const auto& value : d_dk.getKeys(ZoneName(p.qdomain))) {
+  for (const auto& value : d_dk.getKeys(r->qdomainzone)) {
     if (!value.second.published) {
       continue;
     }
@@ -210,7 +209,7 @@ bool PacketHandler::addDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r)
 bool PacketHandler::addCDS(DNSPacket& p, std::unique_ptr<DNSPacket>& r)
 {
   string publishCDS;
-  d_dk.getPublishCDS(ZoneName(p.qdomain), publishCDS);
+  d_dk.getPublishCDS(r->qdomainzone, publishCDS);
   if (publishCDS.empty())
     return false;
 
@@ -231,7 +230,7 @@ bool PacketHandler::addCDS(DNSPacket& p, std::unique_ptr<DNSPacket>& r)
 
   bool haveOne=false;
 
-  for (const auto& value : d_dk.getEntryPoints(ZoneName(p.qdomain))) {
+  for (const auto& value : d_dk.getEntryPoints(r->qdomainzone)) {
     if (!value.second.published) {
       continue;
     }
@@ -261,7 +260,7 @@ bool PacketHandler::addNSEC3PARAM(const DNSPacket& p, std::unique_ptr<DNSPacket>
   DNSZoneRecord rr;
 
   NSEC3PARAMRecordContent ns3prc;
-  if(d_dk.getNSEC3PARAM(ZoneName(p.qdomain), &ns3prc)) {
+  if(d_dk.getNSEC3PARAM(r->qdomainzone, &ns3prc)) {
     rr.dr.d_type=QType::NSEC3PARAM;
     rr.dr.d_ttl=d_sd.minimum;
     rr.dr.d_name=p.qdomain;
@@ -335,14 +334,16 @@ vector<DNSZoneRecord> PacketHandler::getBestReferralNS(DNSPacket& p, const DNSNa
   DNSZoneRecord rr;
   DNSName subdomain(target);
   do {
-    if(subdomain == d_sd.qname) // stop at SOA
+    if(subdomain == d_sd.qname()) { // stop at SOA
       break;
+    }
     B.lookup(QType(QType::NS), subdomain, d_sd.domain_id, &p);
     while(B.get(rr)) {
       ret.push_back(rr); // this used to exclude auth NS records for some reason
     }
-    if(!ret.empty())
+    if(!ret.empty()) {
       return ret;
+    }
   } while( subdomain.chopOff() );   // 'www.powerdns.org' -> 'powerdns.org' -> 'org' -> ''
   return ret;
 }
@@ -354,7 +355,7 @@ void PacketHandler::getBestDNAMESynth(DNSPacket& p, DNSName &target, vector<DNSZ
   DNSName prefix;
   DNSName subdomain(target);
   do {
-    DLOG(g_log<<"Attempting DNAME lookup for "<<subdomain<<", d_sd.qname="<<d_sd.qname<<endl);
+    DLOG(g_log<<"Attempting DNAME lookup for "<<subdomain<<", d_sd.qname()="<<d_sd.qname()<<endl);
 
     B.lookup(QType(QType::DNAME), subdomain, d_sd.domain_id, &p);
     while(B.get(rr)) {
@@ -366,12 +367,15 @@ void PacketHandler::getBestDNAMESynth(DNSPacket& p, DNSName &target, vector<DNSZ
       target = getRR<CNAMERecordContent>(rr.dr)->getTarget();
       ret.push_back(rr);
     }
-    if(!ret.empty())
+    if(!ret.empty()) {
       return;
-    if(subdomain.countLabels())
+    }
+    if(subdomain.countLabels() != 0) {
       prefix.appendRawLabel(subdomain.getRawLabels()[0]); // XXX DNSName pain this feels wrong
-    if(subdomain == d_sd.qname) // stop at SOA
+    }
+    if(subdomain == d_sd.qname()) { // stop at SOA
       break;
+    }
 
   } while( subdomain.chopOff() );   // 'www.powerdns.org' -> 'powerdns.org' -> 'org' -> ''
   return;
@@ -389,10 +393,9 @@ bool PacketHandler::getBestWildcard(DNSPacket& p, const DNSName &target, DNSName
 
 #ifdef HAVE_LUA_RECORDS
   bool doLua=g_doLuaRecord;
-  ZoneName zonename(d_sd.qname);
   if(!doLua) {
     string val;
-    d_dk.getFromMeta(zonename, "ENABLE-LUA-RECORDS", val);
+    d_dk.getFromMeta(d_sd.zonename, "ENABLE-LUA-RECORDS", val);
     doLua = (val=="1");
   }
 #endif
@@ -409,7 +412,7 @@ bool PacketHandler::getBestWildcard(DNSPacket& p, const DNSName &target, DNSName
         continue;
       }
 #ifdef HAVE_LUA_RECORDS
-      if (rr.dr.d_type == QType::LUA && !d_dk.isPresigned(zonename)) {
+      if (rr.dr.d_type == QType::LUA && !d_dk.isPresigned(d_sd.zonename)) {
         if(!doLua) {
           DLOG(g_log<<"Have a wildcard Lua match, but not doing Lua record for this zone"<<endl);
           continue;
@@ -425,7 +428,7 @@ bool PacketHandler::getBestWildcard(DNSPacket& p, const DNSName &target, DNSName
           //    noCache=true;
           DLOG(g_log<<"Executing Lua: '"<<rec->getCode()<<"'"<<endl);
           try {
-            auto recvec=luaSynth(rec->getCode(), target, rr, d_sd.qname, p, rec->d_type, s_LUA);
+            auto recvec=luaSynth(rec->getCode(), target, rr, d_sd.qname(), p, rec->d_type, s_LUA);
             for (const auto& r : recvec) {
               rr.dr.d_type = rec->d_type; // might be CNAME
               rr.dr.setContent(r);
@@ -460,8 +463,9 @@ bool PacketHandler::getBestWildcard(DNSPacket& p, const DNSName &target, DNSName
       haveSomething=true;
     }
 
-    if ( subdomain == d_sd.qname || haveSomething ) // stop at SOA or result
+    if ( subdomain == d_sd.qname() || haveSomething ) { // stop at SOA or result
       break;
+    }
 
     B.lookup(QType(QType::ANY), subdomain, d_sd.domain_id, &p);
     if (B.get(rr)) {
@@ -483,7 +487,7 @@ DNSName PacketHandler::doAdditionalServiceProcessing(const DNSName &firstTarget,
     DNSZoneRecord rr;
     done = true;
 
-    if(!ret.isPartOf(d_sd.qname)) {
+    if(!ret.isPartOf(d_sd.qname())) {
       continue;
     }
 
@@ -562,7 +566,7 @@ void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPack
             B.lookup(QType(QType::SRV), content, d_sd.domain_id, &p);
             while(B.get(dzr)) {
               content=getRR<SRVRecordContent>(dzr.dr)->d_target;
-              if(content.isPartOf(d_sd.qname)) {
+              if(content.isPartOf(d_sd.qname())) {
                 lookup.emplace(content);
               }
               dzr.dr.d_place=DNSResourceRecord::ADDITIONAL;
@@ -575,7 +579,7 @@ void PacketHandler::doAdditionalProcessing(DNSPacket& p, std::unique_ptr<DNSPack
         default:
           continue;
       }
-      if(!content.empty() && content.isPartOf(d_sd.qname)) {
+      if(!content.empty() && content.isPartOf(d_sd.qname())) {
         lookup.emplace(content);
       }
     }
@@ -661,25 +665,24 @@ vector<ComboAddress> PacketHandler::getIPAddressFor(const DNSName &target, const
 
 void PacketHandler::emitNSEC(std::unique_ptr<DNSPacket>& r, const DNSName& name, const DNSName& next, int mode)
 {
-  ZoneName zonename(d_sd.qname);
   NSECRecordContent nrc;
   nrc.d_next = next;
 
   nrc.set(QType::NSEC);
   nrc.set(QType::RRSIG);
-  if(d_sd.qname == name) {
+  if(d_sd.qname() == name) {
     nrc.set(QType::SOA); // 1dfd8ad SOA can live outside the records table
-    if(!d_dk.isPresigned(zonename)) {
-      auto keyset = d_dk.getKeys(zonename);
+    if(!d_dk.isPresigned(d_sd.zonename)) {
+      auto keyset = d_dk.getKeys(d_sd.zonename);
       for(const auto& value: keyset) {
         if (value.second.published) {
           nrc.set(QType::DNSKEY);
           string publishCDNSKEY;
-          d_dk.getPublishCDNSKEY(zonename, publishCDNSKEY);
+          d_dk.getPublishCDNSKEY(d_sd.zonename, publishCDNSKEY);
           if (! publishCDNSKEY.empty())
             nrc.set(QType::CDNSKEY);
           string publishCDS;
-          d_dk.getPublishCDS(zonename, publishCDS);
+          d_dk.getPublishCDS(d_sd.zonename, publishCDS);
           if (! publishCDS.empty())
             nrc.set(QType::CDS);
           break;
@@ -697,12 +700,12 @@ void PacketHandler::emitNSEC(std::unique_ptr<DNSPacket>& r, const DNSName& name,
   B.lookup(QType(QType::ANY), name, d_sd.domain_id);
   while(B.get(rr)) {
 #ifdef HAVE_LUA_RECORDS
-    if (rr.dr.d_type == QType::LUA && first && !d_dk.isPresigned(zonename)) {
+    if (rr.dr.d_type == QType::LUA && first && !d_dk.isPresigned(d_sd.zonename)) {
       first = false;
       doLua = g_doLuaRecord;
       if (!doLua) {
         string val;
-        d_dk.getFromMeta(zonename, "ENABLE-LUA-RECORDS", val);
+        d_dk.getFromMeta(d_sd.zonename, "ENABLE-LUA-RECORDS", val);
         doLua = (val == "1");
       }
     }
@@ -717,12 +720,12 @@ void PacketHandler::emitNSEC(std::unique_ptr<DNSPacket>& r, const DNSName& name,
       // does not falsely deny the type for this name.
       // This does NOT add the ALIAS to the bitmap, as that record cannot
       // be requested.
-      if (!d_dk.isPresigned(zonename)) {
+      if (!d_dk.isPresigned(d_sd.zonename)) {
         nrc.set(QType::A);
         nrc.set(QType::AAAA);
       }
     }
-    else if((rr.dr.d_type == QType::DNSKEY || rr.dr.d_type == QType::CDS || rr.dr.d_type == QType::CDNSKEY) && !d_dk.isPresigned(zonename) && !::arg().mustDo("direct-dnskey")) {
+    else if((rr.dr.d_type == QType::DNSKEY || rr.dr.d_type == QType::CDS || rr.dr.d_type == QType::CDNSKEY) && !d_dk.isPresigned(d_sd.zonename) && !::arg().mustDo("direct-dnskey")) {
       continue;
     }
     else if(rr.dr.d_type == QType::NS || rr.auth) {
@@ -742,7 +745,6 @@ void PacketHandler::emitNSEC(std::unique_ptr<DNSPacket>& r, const DNSName& name,
 
 void PacketHandler::emitNSEC3(std::unique_ptr<DNSPacket>& r, const NSEC3PARAMRecordContent& ns3prc, const DNSName& name, const string& namehash, const string& nexthash, int mode)
 {
-  ZoneName zonename(d_sd.qname);
   NSEC3RecordContent n3rc;
   n3rc.d_algorithm = ns3prc.d_algorithm;
   n3rc.d_flags = ns3prc.d_flags;
@@ -753,20 +755,20 @@ void PacketHandler::emitNSEC3(std::unique_ptr<DNSPacket>& r, const NSEC3PARAMRec
   DNSZoneRecord rr;
 
   if(!name.empty()) {
-    if (d_sd.qname == name) {
+    if (d_sd.qname() == name) {
       n3rc.set(QType::SOA); // 1dfd8ad SOA can live outside the records table
       n3rc.set(QType::NSEC3PARAM);
-      if(!d_dk.isPresigned(zonename)) {
-        auto keyset = d_dk.getKeys(zonename);
+      if(!d_dk.isPresigned(d_sd.zonename)) {
+        auto keyset = d_dk.getKeys(d_sd.zonename);
         for(const auto& value: keyset) {
           if (value.second.published) {
             n3rc.set(QType::DNSKEY);
             string publishCDNSKEY;
-            d_dk.getPublishCDNSKEY(zonename, publishCDNSKEY);
+            d_dk.getPublishCDNSKEY(d_sd.zonename, publishCDNSKEY);
             if (! publishCDNSKEY.empty())
               n3rc.set(QType::CDNSKEY);
             string publishCDS;
-            d_dk.getPublishCDS(zonename, publishCDS);
+            d_dk.getPublishCDS(d_sd.zonename, publishCDS);
             if (! publishCDS.empty())
               n3rc.set(QType::CDS);
             break;
@@ -783,12 +785,12 @@ void PacketHandler::emitNSEC3(std::unique_ptr<DNSPacket>& r, const NSEC3PARAMRec
     B.lookup(QType(QType::ANY), name, d_sd.domain_id);
     while(B.get(rr)) {
 #ifdef HAVE_LUA_RECORDS
-      if (rr.dr.d_type == QType::LUA && first && !d_dk.isPresigned(zonename)) {
+      if (rr.dr.d_type == QType::LUA && first && !d_dk.isPresigned(d_sd.zonename)) {
         first = false;
         doLua = g_doLuaRecord;
         if (!doLua) {
           string val;
-          d_dk.getFromMeta(zonename, "ENABLE-LUA-RECORDS", val);
+          d_dk.getFromMeta(d_sd.zonename, "ENABLE-LUA-RECORDS", val);
           doLua = (val == "1");
         }
       }
@@ -803,12 +805,12 @@ void PacketHandler::emitNSEC3(std::unique_ptr<DNSPacket>& r, const NSEC3PARAMRec
         // does not falsely deny the type for this name.
         // This does NOT add the ALIAS to the bitmap, as that record cannot
         // be requested.
-        if (!d_dk.isPresigned(zonename)) {
+        if (!d_dk.isPresigned(d_sd.zonename)) {
           n3rc.set(QType::A);
           n3rc.set(QType::AAAA);
         }
       }
-      else if((rr.dr.d_type == QType::DNSKEY || rr.dr.d_type == QType::CDS || rr.dr.d_type == QType::CDNSKEY) && !d_dk.isPresigned(zonename) && !::arg().mustDo("direct-dnskey")) {
+      else if((rr.dr.d_type == QType::DNSKEY || rr.dr.d_type == QType::CDS || rr.dr.d_type == QType::CDNSKEY) && !d_dk.isPresigned(d_sd.zonename) && !::arg().mustDo("direct-dnskey")) {
         continue;
       }
       else if(rr.dr.d_type && (rr.dr.d_type == QType::NS || rr.auth)) {
@@ -823,7 +825,7 @@ void PacketHandler::emitNSEC3(std::unique_ptr<DNSPacket>& r, const NSEC3PARAMRec
     n3rc.set(QType::RRSIG);
   }
 
-  rr.dr.d_name = DNSName(toBase32Hex(namehash))+d_sd.qname;
+  rr.dr.d_name = DNSName(toBase32Hex(namehash))+d_sd.qname();
   rr.dr.d_ttl = d_sd.getNegativeTTL();
   rr.dr.d_type=QType::NSEC3;
   rr.dr.setContent(std::make_shared<NSEC3RecordContent>(std::move(n3rc)));
@@ -845,7 +847,7 @@ void PacketHandler::addNSECX(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const 
 {
   NSEC3PARAMRecordContent ns3rc;
   bool narrow = false;
-  if(d_dk.getNSEC3PARAM(ZoneName(d_sd.qname), &ns3rc, &narrow))  {
+  if(d_dk.getNSEC3PARAM(d_sd.zonename, &ns3rc, &narrow))  {
     if (mode != 5) // no direct NSEC3 queries, rfc5155 7.2.8
       addNSEC3(p, r, target, wildcard, ns3rc, narrow, mode);
   }
@@ -881,10 +883,10 @@ bool PacketHandler::getNSEC3Hashes(bool narrow, const std::string& hashed, bool 
 
 void PacketHandler::addNSEC3(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const DNSName& target, const DNSName& wildcard, const NSEC3PARAMRecordContent& ns3rc, bool narrow, int mode)
 {
-  DLOG(g_log<<"addNSEC3() mode="<<mode<<" auth="<<d_sd.qname<<" target="<<target<<" wildcard="<<wildcard<<endl);
+  DLOG(g_log<<"addNSEC3() mode="<<mode<<" auth="<<d_sd.qname()<<" target="<<target<<" wildcard="<<wildcard<<endl);
 
   if (d_sd.db == nullptr) {
-    if(!B.getSOAUncached(ZoneName(d_sd.qname), d_sd)) {
+    if(!B.getSOAUncached(d_sd.zonename, d_sd)) {
       DLOG(g_log<<"Could not get SOA for domain"<<endl);
       return;
     }
@@ -896,7 +898,7 @@ void PacketHandler::addNSEC3(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const 
     // zone in a second, DNSSEC-capable backend, which caused d_dnssec to
     // be set to true. While it would be nice to support such a zone
     // configuration, we don't. Log a warning and skip DNSSEC processing.
-    g_log << Logger::Notice << "Backend for zone '" << d_sd.qname << "' does not support DNSSEC operation, not adding NSEC3 hashes" << endl;
+    g_log << Logger::Notice << "Backend for zone '" << d_sd.qname() << "' does not support DNSSEC operation, not adding NSEC3 hashes" << endl;
     return;
   }
 
@@ -923,7 +925,7 @@ void PacketHandler::addNSEC3(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const 
 
       bool doBreak = false;
       DNSZoneRecord rr;
-      while( closest.chopOff() && (closest != d_sd.qname))  { // stop at SOA
+      while( closest.chopOff() && (closest != d_sd.qname()))  { // stop at SOA
         B.lookup(QType(QType::ANY), closest, d_sd.domain_id, &p);
         while(B.get(rr))
           if (rr.auth)
@@ -976,11 +978,10 @@ void PacketHandler::addNSEC3(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const 
 
 void PacketHandler::addNSEC(DNSPacket& /* p */, std::unique_ptr<DNSPacket>& r, const DNSName& target, const DNSName& wildcard, int mode)
 {
-  DLOG(g_log<<"addNSEC() mode="<<mode<<" auth="<<d_sd.qname<<" target="<<target<<" wildcard="<<wildcard<<endl);
+  DLOG(g_log<<"addNSEC() mode="<<mode<<" auth="<<d_sd.qname()<<" target="<<target<<" wildcard="<<wildcard<<endl);
 
-  ZoneName zonename(d_sd.qname);
   if (d_sd.db == nullptr) {
-    if(!B.getSOAUncached(zonename, d_sd)) {
+    if(!B.getSOAUncached(d_sd.zonename, d_sd)) {
       DLOG(g_log<<"Could not get SOA for domain"<<endl);
       return;
     }
@@ -992,12 +993,12 @@ void PacketHandler::addNSEC(DNSPacket& /* p */, std::unique_ptr<DNSPacket>& r, c
     // zone in a second, DNSSEC-capable backend, which caused d_dnssec to
     // be set to true. While it would be nice to support such a zone
     // configuration, we don't. Log a warning and skip DNSSEC processing.
-    g_log << Logger::Notice << "Backend for zone '" << d_sd.qname << "' does not support DNSSEC operation, not adding NSEC records" << endl;
+    g_log << Logger::Notice << "Backend for zone '" << d_sd.qname() << "' does not support DNSSEC operation, not adding NSEC records" << endl;
     return;
   }
 
   DNSName before,after;
-  d_sd.db->getBeforeAndAfterNames(d_sd.domain_id, zonename, target, before, after);
+  d_sd.db->getBeforeAndAfterNames(d_sd.domain_id, d_sd.zonename, target, before, after);
   if (mode != 5 || before == target)
     emitNSEC(r, before, after, mode);
 
@@ -1009,7 +1010,7 @@ void PacketHandler::addNSEC(DNSPacket& /* p */, std::unique_ptr<DNSPacket>& r, c
       closest.chopOff();
       closest.prependRawLabel("*");
     }
-    d_sd.db->getBeforeAndAfterNames(d_sd.domain_id, zonename, closest, before, after);
+    d_sd.db->getBeforeAndAfterNames(d_sd.domain_id, d_sd.zonename, closest, before, after);
     emitNSEC(r, before, after, mode);
   }
   return;
@@ -1304,7 +1305,7 @@ bool PacketHandler::tryReferral(DNSPacket& p, std::unique_ptr<DNSPacket>& r, con
   if(!retargeted)
     r->setA(false);
 
-  if(d_dk.isSecuredZone(ZoneName(d_sd.qname)) && !addDSforNS(p, r, name) && d_dnssec) {
+  if(d_dk.isSecuredZone(d_sd.zonename) && !addDSforNS(p, r, name) && d_dnssec) {
     addNSECX(p, r, name, DNSName(), 1);
   }
 
@@ -1314,8 +1315,8 @@ bool PacketHandler::tryReferral(DNSPacket& p, std::unique_ptr<DNSPacket>& r, con
 void PacketHandler::completeANYRecords(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const DNSName &target)
 {
   addNSECX(p, r, target, DNSName(), 5);
-  if(d_sd.qname == p.qdomain) {
-    if(!d_dk.isPresigned(ZoneName(d_sd.qname))) {
+  if(d_sd.qname() == p.qdomain) {
+    if(!d_dk.isPresigned(d_sd.zonename)) {
       addDNSKEY(p, r);
       addCDNSKEY(p, r);
       addCDS(p, r);
@@ -1596,7 +1597,7 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
     return true;
   }
 
-  if(!B.getAuth(ZoneName(state.target), pkt.qtype, &d_sd)) {
+  if(!B.getAuth(ZoneName(state.target), pkt.qtype, &d_sd, pkt.getRealRemote(), true, &pkt)) {
     DLOG(g_log<<Logger::Error<<"We have no authority over zone '"<<state.target<<"'"<<endl);
     if (!retargeted) {
       state.r->setA(false); // drop AA if we never had a SOA in the first place
@@ -1604,22 +1605,21 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
     }
     return true;
   }
-  DLOG(g_log<<Logger::Error<<"We have authority, zone='"<<d_sd.qname<<"', id="<<d_sd.domain_id<<endl);
+  DLOG(g_log<<Logger::Error<<"We have authority, zone='"<<d_sd.qname()<<"', id="<<d_sd.domain_id<<", zonename="<<d_sd.zonename<<endl);
 
-  ZoneName zonename(d_sd.qname);
   if (!retargeted) {
-    state.r->qdomainzone = zonename;
-  } else if (!d_doResolveAcrossZones && state.r->qdomainzone.operator const DNSName&() != d_sd.qname) {
+    state.r->qdomainzone = d_sd.zonename;
+  } else if (!d_doResolveAcrossZones && state.r->qdomainzone.operator const DNSName&() != d_sd.qname()) {
     // We are following a retarget outside the initial zone. Config asked us not to do that.
     return true;
   }
 
-  state.authSet.insert(zonename);
-  d_dnssec=(pkt.d_dnssecOk && d_dk.isSecuredZone(zonename));
+  state.authSet.insert(d_sd.zonename);
+  d_dnssec=(pkt.d_dnssecOk && d_dk.isSecuredZone(d_sd.zonename));
   state.doSigs |= d_dnssec;
 
-  if(d_sd.qname==pkt.qdomain) {
-    if(!d_dk.isPresigned(zonename)) {
+  if(d_sd.qname()==pkt.qdomain) {
+    if(!d_dk.isPresigned(d_sd.zonename)) {
       switch (pkt.qtype.getCode()) {
       case QType::DNSKEY:
         if(addDNSKEY(pkt, state.r)) {
@@ -1645,14 +1645,14 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
     }
   }
 
-  if(pkt.qtype.getCode() == QType::SOA && d_sd.qname==pkt.qdomain) {
+  if(pkt.qtype.getCode() == QType::SOA && d_sd.qname()==pkt.qdomain) {
     zrr=makeEditedDNSZRFromSOAData(d_dk, d_sd);
     state.r->addRecord(std::move(zrr));
     return true;
   }
 
   // this TRUMPS a cname!
-  if(d_dnssec && pkt.qtype.getCode() == QType::NSEC && !d_dk.getNSEC3PARAM(zonename, nullptr)) {
+  if(d_dnssec && pkt.qtype.getCode() == QType::NSEC && !d_dk.getNSEC3PARAM(d_sd.zonename, nullptr)) {
     addNSEC(pkt, state.r, state.target, DNSName(), 5);
     if (!state.r->isEmpty()) {
       return true;
@@ -1676,7 +1676,7 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
 #ifdef HAVE_LUA_RECORDS
   if(!doLua) {
     string val;
-    d_dk.getFromMeta(zonename, "ENABLE-LUA-RECORDS", val);
+    d_dk.getFromMeta(d_sd.zonename, "ENABLE-LUA-RECORDS", val);
     doLua = (val=="1");
   }
 #endif
@@ -1692,7 +1692,7 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
 
   while(B.get(zrr)) {
 #ifdef HAVE_LUA_RECORDS
-    if (zrr.dr.d_type == QType::LUA && !d_dk.isPresigned(zonename)) {
+    if (zrr.dr.d_type == QType::LUA && !d_dk.isPresigned(d_sd.zonename)) {
       if(!doLua) {
         continue;
       }
@@ -1703,7 +1703,7 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
       if(rec->d_type == QType::CNAME || rec->d_type == pkt.qtype.getCode() || (pkt.qtype.getCode() == QType::ANY && rec->d_type != QType::RRSIG)) {
         state.noCache=true;
         try {
-          auto recvec=luaSynth(rec->getCode(), state.target, zrr, d_sd.qname, pkt, rec->d_type, s_LUA);
+          auto recvec=luaSynth(rec->getCode(), state.target, zrr, d_sd.qname(), pkt, rec->d_type, s_LUA);
           if(!recvec.empty()) {
             for (const auto& r_it : recvec) {
               zrr.dr.d_type = rec->d_type; // might be CNAME
@@ -1742,7 +1742,7 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
       weDone=true;
     }
     // the line below fakes 'unauth NS' for delegations for non-DNSSEC backends.
-    if((zrr.dr.d_type == pkt.qtype.getCode() && !zrr.auth) || (zrr.dr.d_type == QType::NS && (!zrr.auth || !(d_sd.qname==zrr.dr.d_name)))) {
+    if((zrr.dr.d_type == pkt.qtype.getCode() && !zrr.auth) || (zrr.dr.d_type == QType::NS && (!zrr.auth || !(d_sd.qname()==zrr.dr.d_name)))) {
       weHaveUnauth=true;
     }
 
@@ -1750,7 +1750,7 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
       weRedirected=true;
     }
 
-    if (DP && zrr.dr.d_type == QType::ALIAS && (pkt.qtype.getCode() == QType::A || pkt.qtype.getCode() == QType::AAAA || pkt.qtype.getCode() == QType::ANY) && !d_dk.isPresigned(zonename)) {
+    if (DP && zrr.dr.d_type == QType::ALIAS && (pkt.qtype.getCode() == QType::A || pkt.qtype.getCode() == QType::AAAA || pkt.qtype.getCode() == QType::ANY) && !d_dk.isPresigned(d_sd.zonename)) {
       if (!d_doExpandALIAS) {
         g_log<<Logger::Info<<"ALIAS record found for "<<state.target<<", but ALIAS expansion is disabled."<<endl;
         continue;
@@ -1768,7 +1768,7 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
   }
 
   /* Add in SOA if required */
-  if(state.target==d_sd.qname) {
+  if(state.target==d_sd.qname()) {
       zrr=makeEditedDNSZRFromSOAData(d_dk, d_sd);
       rrset.push_back(zrr);
   }
@@ -1869,7 +1869,7 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
   }
   else if(weDone) {
     bool haveRecords = false;
-    bool presigned = d_dk.isPresigned(zonename);
+    bool presigned = d_dk.isPresigned(d_sd.zonename);
     for(const auto& loopRR: rrset) {
       if (loopRR.dr.d_type == QType::ENT) {
         continue;
@@ -1906,9 +1906,9 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
     }
     // check whether this could be fixed easily
     // if (*(zrr.dr.d_name.rbegin()) == '.') {
-    //      g_log<<Logger::Error<<"Should not get here ("<<pkt.qdomain<<"|"<<pkt.qtype.toString()<<"): you have a trailing dot, this could be the problem (or run pdnsutil rectify-zone " <<d_sd.qname<<")"<<endl;
+    //      g_log<<Logger::Error<<"Should not get here ("<<pkt.qdomain<<"|"<<pkt.qtype.toString()<<"): you have a trailing dot, this could be the problem (or run pdnsutil rectify-zone " <<d_sd.qname()<<")"<<endl;
     // } else {
-         g_log<<Logger::Error<<"Should not get here ("<<pkt.qdomain<<"|"<<pkt.qtype.toString()<<"): please run pdnsutil rectify-zone "<<d_sd.qname<<endl;
+         g_log<<Logger::Error<<"Should not get here ("<<pkt.qdomain<<"|"<<pkt.qtype.toString()<<"): please run pdnsutil rectify-zone "<<d_sd.qname()<<endl;
     // }
   }
   else {
@@ -1926,6 +1926,10 @@ std::unique_ptr<DNSPacket> PacketHandler::opcodeQuery(DNSPacket& pkt, bool noCac
   if (opcodeQueryInner(pkt, state)) {
     doAdditionalProcessing(pkt, state.r);
 
+    // now that all processing is done, span and view may have been set, so we copy them
+    state.r->d_span = pkt.d_span;
+    state.r->d_view = pkt.d_view;
+
     for(const auto& loopRR: state.r->getRRS()) {
       if (loopRR.scopeMask != 0) {
         state.noCache=true;
@@ -1937,7 +1941,7 @@ std::unique_ptr<DNSPacket> PacketHandler::opcodeQuery(DNSPacket& pkt, bool noCac
     }
 
     if (PC.enabled() && !state.noCache && pkt.couldBeCached()) {
-      PC.insert(pkt, *state.r, state.r->getMinTTL()); // in the packet cache
+      PC.insert(pkt, *state.r, state.r->getMinTTL(), pkt.d_view); // in the packet cache
     }
   }
 
@@ -1959,6 +1963,14 @@ std::unique_ptr<DNSPacket> PacketHandler::opcodeNotify(DNSPacket& pkt, bool /* n
 
 std::unique_ptr<DNSPacket> PacketHandler::opcodeUpdate(DNSPacket& pkt, bool /* noCache */)
 {
+  if (g_views) {
+    // Make this variant-aware without performing the complete UeberBackend::getAuth work
+    g_zoneCache.setZoneVariant(pkt);
+  }
+  else {
+    pkt.qdomainzone = ZoneName(pkt.qdomain);
+  }
+
   S.inc("dnsupdate-queries");
   int res=processUpdate(pkt);
   if (res == RCode::Refused) {

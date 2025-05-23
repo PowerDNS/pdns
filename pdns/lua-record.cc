@@ -613,7 +613,7 @@ static ComboAddress pickclosest(const ComboAddress& bestwho, const vector<ComboA
   return ranked.begin()->second[dns_random(ranked.begin()->second.size())];
 }
 
-static std::vector<DNSZoneRecord> lookup(const DNSName& name, uint16_t qtype, int zoneid)
+static std::vector<DNSZoneRecord> lookup(const DNSName& name, uint16_t qtype, domainid_t zoneid)
 {
   static LockGuarded<UeberBackend> s_ub;
 
@@ -629,13 +629,13 @@ static std::vector<DNSZoneRecord> lookup(const DNSName& name, uint16_t qtype, in
   return ret;
 }
 
-static bool getAuth(const ZoneName& name, uint16_t qtype, SOAData* soaData)
+static bool getAuth(const ZoneName& name, uint16_t qtype, SOAData* soaData, Netmask remote)
 {
   static LockGuarded<UeberBackend> s_ub;
 
   {
     auto ueback = s_ub.lock();
-    return ueback->getAuth(name, qtype, soaData);
+    return ueback->getAuth(name, qtype, soaData, remote);
   }
 }
 
@@ -748,6 +748,7 @@ typedef struct AuthLuaRecordContext
   DNSName               qname;
   DNSZoneRecord         zone_record;
   DNSName               zone;
+  Netmask               remote;
 } lua_record_ctx_t;
 
 static thread_local unique_ptr<lua_record_ctx_t> s_lua_record_ctx;
@@ -823,7 +824,7 @@ static void cleanZoneHashes()
   }
 }
 
-static std::vector<std::shared_ptr<EntryHashesHolder>> getCHashedEntries(const int zoneId, const std::string& queryName, const std::vector<std::pair<int, std::string>>& items)
+static std::vector<std::shared_ptr<EntryHashesHolder>> getCHashedEntries(const domainid_t zoneId, const std::string& queryName, const std::vector<std::pair<int, std::string>>& items)
 {
   std::vector<std::shared_ptr<EntryHashesHolder>> result{};
   std::map<zone_hashes_key_t, std::shared_ptr<EntryHashesHolder>> newEntries{};
@@ -1579,7 +1580,7 @@ static vector<string> lua_dblookup(const string& record, uint16_t qtype)
   try {
     SOAData soaData;
 
-    if (!getAuth(rec, qtype, &soaData)) {
+    if (!getAuth(rec, qtype, &soaData, s_lua_record_ctx->remote)) {
       return ret;
     }
 
@@ -1778,6 +1779,7 @@ std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, cons
   s_lua_record_ctx->qname = query;
   s_lua_record_ctx->zone_record = zone_record;
   s_lua_record_ctx->zone = zone;
+  s_lua_record_ctx->remote = dnsp.getRealRemote();
 
   lua.writeVariable("qname", query);
   lua.writeVariable("zone", zone);

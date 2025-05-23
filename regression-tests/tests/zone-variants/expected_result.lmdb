@@ -1,0 +1,43 @@
+Creating empty zone 'example.com..variant1'
+This is a Native zone
+Variant: variant1
+Zone is not actively secured
+Metadata items: None
+No keys for zone 'example.com..variant1'.
+Creating empty zone '..myroot'
+This is a Native zone
+Variant: myroot
+Zone is not actively secured
+Metadata items: None
+No keys for zone '..myroot'.
+Creating empty zone '.'
+This is a Native zone
+Zone is not actively secured
+Metadata items: None
+No keys for zone '.'.
+.
+..myroot
+2.0.192.in-addr.arpa
+catalog.invalid
+cdnskey-cds-test.com
+cryptokeys.org
+delegated.dnssec-parent.com
+dnssec-parent.com
+example.com
+example.com..bar
+example.com..foo
+example.com..variant1
+example.org..foo
+hiddencryptokeys.org
+insecure.dnssec-parent.com
+minimal.com
+secure-delegated.dnssec-parent.com
+stest.com
+sub.test.dyndns
+test.com
+test.dyndns
+tsig.com
+wtest.com
+New rrset:
+uniquename.example.com. 3600 IN A 1.2.3.4
+uniquename.example.com.	3600	IN	A	1.2.3.4

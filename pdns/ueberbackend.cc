@@ -122,6 +122,10 @@ void UeberBackend::go()
 bool UeberBackend::getDomainInfo(const ZoneName& domain, DomainInfo& domainInfo, bool getSerial)
 {
   for (auto& backend : backends) {
+    // Do not risk passing variant zones to variant-unaware backends.
+    if (domain.hasVariant() && (backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      continue;
+    }
     if (backend->getDomainInfo(domain, domainInfo, getSerial)) {
       return true;
     }
@@ -132,6 +136,10 @@ bool UeberBackend::getDomainInfo(const ZoneName& domain, DomainInfo& domainInfo,
 bool UeberBackend::createDomain(const ZoneName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account)
 {
   for (auto& backend : backends) {
+    // Do not risk passing variant zones to variant-unaware backends.
+    if (domain.hasVariant() && (backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      continue;
+    }
     if (backend->createDomain(domain, kind, primaries, account)) {
       return true;
     }
@@ -153,6 +161,10 @@ bool UeberBackend::addDomainKey(const ZoneName& name, const DNSBackend::KeyData&
 {
   keyID = -1;
   for (auto& backend : backends) {
+    // Do not risk passing variant zones to variant-unaware backends.
+    if (name.hasVariant() && (backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      continue;
+    }
     if (backend->addDomainKey(name, key, keyID)) {
       return true;
     }
@@ -162,6 +174,10 @@ bool UeberBackend::addDomainKey(const ZoneName& name, const DNSBackend::KeyData&
 bool UeberBackend::getDomainKeys(const ZoneName& name, std::vector<DNSBackend::KeyData>& keys)
 {
   for (auto& backend : backends) {
+    // Do not risk passing variant zones to variant-unaware backends.
+    if (name.hasVariant() && (backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      continue;
+    }
     if (backend->getDomainKeys(name, keys)) {
       return true;
     }
@@ -172,6 +188,10 @@ bool UeberBackend::getDomainKeys(const ZoneName& name, std::vector<DNSBackend::K
 bool UeberBackend::getAllDomainMetadata(const ZoneName& name, std::map<std::string, std::vector<std::string>>& meta)
 {
   for (auto& backend : backends) {
+    // Do not risk passing variant zones to variant-unaware backends.
+    if (name.hasVariant() && (backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      continue;
+    }
     if (backend->getAllDomainMetadata(name, meta)) {
       return true;
     }
@@ -182,6 +202,10 @@ bool UeberBackend::getAllDomainMetadata(const ZoneName& name, std::map<std::stri
 bool UeberBackend::getDomainMetadata(const ZoneName& name, const std::string& kind, std::vector<std::string>& meta)
 {
   for (auto& backend : backends) {
+    // Do not risk passing variant zones to variant-unaware backends.
+    if (name.hasVariant() && (backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      continue;
+    }
     if (backend->getDomainMetadata(name, kind, meta)) {
       return true;
     }
@@ -203,6 +227,10 @@ bool UeberBackend::getDomainMetadata(const ZoneName& name, const std::string& ki
 bool UeberBackend::setDomainMetadata(const ZoneName& name, const std::string& kind, const std::vector<std::string>& meta)
 {
   for (auto& backend : backends) {
+    // Do not risk passing variant zones to variant-unaware backends.
+    if (name.hasVariant() && (backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      continue;
+    }
     if (backend->setDomainMetadata(name, kind, meta)) {
       return true;
     }
@@ -222,6 +250,10 @@ bool UeberBackend::setDomainMetadata(const ZoneName& name, const std::string& ki
 bool UeberBackend::activateDomainKey(const ZoneName& name, unsigned int keyID)
 {
   for (auto& backend : backends) {
+    // Do not risk passing variant zones to variant-unaware backends.
+    if (name.hasVariant() && (backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      continue;
+    }
     if (backend->activateDomainKey(name, keyID)) {
       return true;
     }
@@ -232,6 +264,10 @@ bool UeberBackend::activateDomainKey(const ZoneName& name, unsigned int keyID)
 bool UeberBackend::deactivateDomainKey(const ZoneName& name, unsigned int keyID)
 {
   for (auto& backend : backends) {
+    // Do not risk passing variant zones to variant-unaware backends.
+    if (name.hasVariant() && (backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      continue;
+    }
     if (backend->deactivateDomainKey(name, keyID)) {
       return true;
     }
@@ -242,6 +278,10 @@ bool UeberBackend::deactivateDomainKey(const ZoneName& name, unsigned int keyID)
 bool UeberBackend::publishDomainKey(const ZoneName& name, unsigned int keyID)
 {
   for (auto& backend : backends) {
+    // Do not risk passing variant zones to variant-unaware backends.
+    if (name.hasVariant() && (backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      continue;
+    }
     if (backend->publishDomainKey(name, keyID)) {
       return true;
     }
@@ -252,6 +292,10 @@ bool UeberBackend::publishDomainKey(const ZoneName& name, unsigned int keyID)
 bool UeberBackend::unpublishDomainKey(const ZoneName& name, unsigned int keyID)
 {
   for (auto& backend : backends) {
+    // Do not risk passing variant zones to variant-unaware backends.
+    if (name.hasVariant() && (backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      continue;
+    }
     if (backend->unpublishDomainKey(name, keyID)) {
       return true;
     }
@@ -262,6 +306,10 @@ bool UeberBackend::unpublishDomainKey(const ZoneName& name, unsigned int keyID)
 bool UeberBackend::removeDomainKey(const ZoneName& name, unsigned int keyID)
 {
   for (auto& backend : backends) {
+    // Do not risk passing variant zones to variant-unaware backends.
+    if (name.hasVariant() && (backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      continue;
+    }
     if (backend->removeDomainKey(name, keyID)) {
       return true;
     }
@@ -293,6 +341,32 @@ void UeberBackend::updateZoneCache()
     }
   }
   g_zoneCache.replace(zone_indices);
+
+  NetmaskTree<string> nettree;
+  for (auto& backend : backends) {
+    vector<pair<Netmask, string>> nettag;
+    backend->networkList(nettag);
+    for (auto& [net, tag] : nettag) {
+      nettree.insert_or_assign(net, tag);
+    }
+  }
+  g_zoneCache.replace(nettree); // FIXME: this needs some smart pending stuff too
+
+  AuthZoneCache::ViewsMap viewsmap;
+  for (auto& backend : backends) {
+    vector<string> views;
+    backend->viewList(views);
+    for (auto& view : views) {
+      vector<ZoneName> zones;
+      backend->viewListZones(view, zones);
+      for (ZoneName& zone : zones) {
+        auto zonename = DNSName(zone);
+        auto variant = zone.getVariant();
+        viewsmap[view][zonename] = variant;
+      }
+    }
+  }
+  g_zoneCache.replace(viewsmap);
 }
 
 void UeberBackend::rediscover(string* status)
@@ -332,7 +406,7 @@ bool UeberBackend::inTransaction()
   return false;
 }
 
-bool UeberBackend::fillSOAFromZoneRecord(ZoneName& shorter, const int zoneId, SOAData* const soaData)
+bool UeberBackend::fillSOAFromZoneRecord(ZoneName& shorter, const domainid_t zoneId, SOAData* const soaData)
 {
   // Zone exists in zone cache, directly look up SOA.
   lookup(QType(QType::SOA), shorter.operator const DNSName&(), zoneId, nullptr);
@@ -348,7 +422,7 @@ bool UeberBackend::fillSOAFromZoneRecord(ZoneName& shorter, const int zoneId, SO
   }
 
   // Fill soaData.
-  soaData->qname = zoneRecord.dr.d_name;
+  soaData->zonename = shorter.makeLowerCase();
 
   try {
     fillSOAData(zoneRecord, *soaData);
@@ -382,7 +456,7 @@ UeberBackend::CacheResult UeberBackend::fillSOAFromCache(SOAData* soaData, ZoneN
     fillSOAData(d_answers[0], *soaData);
 
     soaData->db = backends.size() == 1 ? backends.begin()->get() : nullptr;
-    soaData->qname = shorter.operator const DNSName&();
+    soaData->zonename = shorter.makeLowerCase();
   }
   else if (cacheResult == CacheResult::NegativeMatch && d_negcache_ttl != 0U) {
     DLOG(g_log << Logger::Error << "has neg cache entry: " << shorter << endl);
@@ -400,12 +474,12 @@ static std::vector<std::unique_ptr<DNSBackend>>::iterator findBestMatchingBacken
 
     auto wirelength = shorter.operator const DNSName&().wirelength();
     if (bestMatch->first < wirelength) {
-      DLOG(g_log << Logger::Error << "skipped, we already found a shorter best match in this backend: " << bestMatch->second.qname << endl);
+      DLOG(g_log << Logger::Error << "skipped, we already found a shorter best match in this backend: " << bestMatch->second.qname() << endl);
       continue;
     }
 
     if (bestMatch->first == wirelength) {
-      DLOG(g_log << Logger::Error << "use shorter best match: " << bestMatch->second.qname << endl);
+      DLOG(g_log << Logger::Error << "use shorter best match: " << bestMatch->second.qname() << endl);
       *soaData = bestMatch->second;
       break;
     }
@@ -413,16 +487,16 @@ static std::vector<std::unique_ptr<DNSBackend>>::iterator findBestMatchingBacken
     DLOG(g_log << Logger::Error << "lookup: " << shorter << endl);
 
     if ((*backend)->getAuth(shorter, soaData)) {
-      DLOG(g_log << Logger::Error << "got: " << soaData->qname << endl);
+      DLOG(g_log << Logger::Error << "got: " << soaData->zonename << endl);
 
-      if (!soaData->qname.empty() && !shorter.isPartOf(soaData->qname)) {
-        throw PDNSException("getAuth() returned an SOA for the wrong zone. Zone '" + soaData->qname.toLogString() + "' is not part of '" + shorter.toLogString() + "'");
+      if (!soaData->qname().empty() && !shorter.isPartOf(soaData->qname())) {
+        throw PDNSException("getAuth() returned an SOA for the wrong zone. Zone '" + soaData->qname().toLogString() + "' is not part of '" + shorter.toLogString() + "'");
       }
 
-      bestMatch->first = soaData->qname.wirelength();
+      bestMatch->first = soaData->qname().wirelength();
       bestMatch->second = *soaData;
 
-      if (soaData->qname == shorter.operator const DNSName&()) {
+      if (soaData->qname() == shorter.operator const DNSName&()) {
         break;
       }
     }
@@ -437,15 +511,15 @@ static std::vector<std::unique_ptr<DNSBackend>>::iterator findBestMatchingBacken
 static bool foundTarget(const ZoneName& target, const ZoneName& shorter, const QType& qtype, [[maybe_unused]] SOAData* soaData, const bool found)
 {
   if (found == (qtype == QType::DS) || target != shorter) {
-    DLOG(g_log << Logger::Error << "found: " << soaData->qname << endl);
+    DLOG(g_log << Logger::Error << "found: " << soaData->qname() << endl);
     return true;
   }
 
-  DLOG(g_log << Logger::Error << "chasing next: " << soaData->qname << endl);
+  DLOG(g_log << Logger::Error << "chasing next: " << soaData->qname() << endl);
   return false;
 }
 
-bool UeberBackend::getAuth(const ZoneName& target, const QType& qtype, SOAData* soaData, bool cachedOk)
+bool UeberBackend::getAuth(const ZoneName& target, const QType& qtype, SOAData* soaData, Netmask remote, bool cachedOk, DNSPacket* pkt_p)
 {
   // A backend can respond to our authority request with the 'best' match it
   // has. For example, when asked for a.b.c.example.com. it might respond with
@@ -458,15 +532,32 @@ bool UeberBackend::getAuth(const ZoneName& target, const QType& qtype, SOAData* 
   ZoneName shorter(target);
   vector<pair<size_t, SOAData>> bestMatches(backends.size(), pair(target.operator const DNSName&().wirelength() + 1, SOAData()));
 
+  std::string view{};
+  if (g_zoneCache.isEnabled()) {
+    Netmask _remote(remote);
+    view = g_zoneCache.getViewFromNetwork(&_remote);
+    // Remember the view and its netmask, if applicable, for ECS responses.
+    if (!view.empty() && pkt_p != nullptr) {
+      pkt_p->d_view = view;
+      pkt_p->d_span = _remote;
+    }
+  }
+
   bool first = true;
   while (first || shorter.chopOff()) {
     first = false;
 
-    int zoneId{-1};
+    domainid_t zoneId{UnknownDomainID};
 
     if (cachedOk && g_zoneCache.isEnabled()) {
-      if (g_zoneCache.getEntry(shorter, zoneId)) {
-        if (fillSOAFromZoneRecord(shorter, zoneId, soaData)) {
+      std::string variant = g_zoneCache.getVariantFromView(shorter, view);
+      ZoneName _shorter(shorter.operator const DNSName&(), variant);
+      if (g_zoneCache.getEntry(_shorter, zoneId)) {
+        if (fillSOAFromZoneRecord(_shorter, zoneId, soaData)) {
+          soaData->zonename = _shorter.makeLowerCase();
+          // Need to invoke foundTarget() with the same variant part in the
+          // first two arguments, since they are compared as ZoneName, hence
+          // the use of `shorter' rather than `_shorter' here.
           if (foundTarget(target, shorter, qtype, soaData, found)) {
             return true;
           }
@@ -518,14 +609,14 @@ bool UeberBackend::getAuth(const ZoneName& target, const QType& qtype, SOAData* 
       }
 
       if (d_cache_ttl != 0) {
-        DLOG(g_log << Logger::Error << "add pos cache entry: " << soaData->qname << endl);
+        DLOG(g_log << Logger::Error << "add pos cache entry: " << soaData->qname() << endl);
 
         d_question.qtype = QType::SOA;
-        d_question.qname = soaData->qname;
+        d_question.qname = soaData->qname();
         d_question.zoneId = zoneId;
 
         DNSZoneRecord resourceRecord;
-        resourceRecord.dr.d_name = soaData->qname;
+        resourceRecord.dr.d_name = soaData->qname();
         resourceRecord.dr.d_type = QType::SOA;
         resourceRecord.dr.setContent(makeSOAContent(*soaData));
         resourceRecord.dr.d_ttl = soaData->ttl;
@@ -549,16 +640,20 @@ bool UeberBackend::getSOAUncached(const ZoneName& domain, SOAData& soaData)
 {
   d_question.qtype = QType::SOA;
   d_question.qname = domain.operator const DNSName&();
-  d_question.zoneId = -1;
+  d_question.zoneId = UnknownDomainID;
 
   for (auto& backend : backends) {
-    if (backend->getSOA(domain, soaData)) {
-      if (domain.operator const DNSName&() != soaData.qname) {
-        throw PDNSException("getSOA() returned an SOA for the wrong zone. Question: '" + domain.toLogString() + "', answer: '" + soaData.qname.toLogString() + "'");
+    // Do not risk passing variant zones to variant-unaware backends.
+    if (domain.hasVariant() && (backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      continue;
+    }
+    if (backend->getSOA(domain, UnknownDomainID, soaData)) {
+      if (domain.operator const DNSName&() != soaData.qname()) {
+        throw PDNSException("getSOA() returned an SOA for the wrong zone. Question: '" + domain.toLogString() + "', answer: '" + soaData.qname().toLogString() + "'");
       }
       if (d_cache_ttl != 0U) {
         DNSZoneRecord zoneRecord;
-        zoneRecord.dr.d_name = soaData.qname;
+        zoneRecord.dr.d_name = soaData.qname();
         zoneRecord.dr.d_type = QType::SOA;
         zoneRecord.dr.setContent(makeSOAContent(soaData));
         zoneRecord.dr.d_ttl = soaData.ttl;
@@ -609,6 +704,10 @@ bool UeberBackend::autoPrimariesList(std::vector<AutoPrimary>& primaries)
 bool UeberBackend::autoPrimaryBackend(const string& ipAddr, const ZoneName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** dnsBackend)
 {
   for (auto& backend : backends) {
+    // Do not risk passing variant zones to variant-unaware backends.
+    if (domain.hasVariant() && (backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      continue;
+    }
     if (backend->autoPrimaryBackend(ipAddr, domain, nsset, nameserver, account, dnsBackend)) {
       return true;
     }
@@ -682,6 +781,10 @@ void UeberBackend::addCache(const Question& question, vector<DNSZoneRecord>&& rr
 void UeberBackend::alsoNotifies(const ZoneName& domain, set<string>* ips)
 {
   for (auto& backend : backends) {
+    // Do not risk passing variant zones to variant-unaware backends.
+    if (domain.hasVariant() && (backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      continue;
+    }
     backend->alsoNotifies(domain, ips);
   }
 }
@@ -700,7 +803,7 @@ UeberBackend::~UeberBackend()
 }
 
 // this handle is more magic than most
-void UeberBackend::lookup(const QType& qtype, const DNSName& qname, int zoneId, DNSPacket* pkt_p)
+void UeberBackend::lookup(const QType& qtype, const DNSName& qname, domainid_t zoneId, DNSPacket* pkt_p)
 {
   if (d_stale) {
     g_log << Logger::Error << "Stale ueberbackend received question, signalling that we want to be recycled" << endl;
@@ -861,6 +964,78 @@ bool UeberBackend::deleteTSIGKey(const DNSName& name)
     }
   }
   return false;
+}
+
+void UeberBackend::viewList(vector<string>& result)
+{
+  for (auto& backend : backends) {
+    backend->viewList(result);
+  }
+}
+
+void UeberBackend::viewListZones(const string& view, vector<ZoneName>& result)
+{
+  for (auto& backend : backends) {
+    backend->viewListZones(view, result);
+  }
+}
+
+// FIXME: The logic in viewAddZone and viewDelZone causes view information to
+// be stored in the first views-capable backend, and could cause serious hair
+// pulling in setups with multiple views-capable backends (are we sure we
+// ever want to support that?)
+
+bool UeberBackend::viewAddZone(const string& view, const ZoneName& zone)
+{
+  for (auto& backend : backends) {
+    // Skip non-views-capable backends.
+    if ((backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      continue;
+    }
+    if (backend->viewAddZone(view, zone)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool UeberBackend::viewDelZone(const string& view, const ZoneName& zone)
+{
+  for (auto& backend : backends) {
+    // Skip non-views-capable backends.
+    if ((backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      continue;
+    }
+    if (backend->viewDelZone(view, zone)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool UeberBackend::networkSet(const Netmask& net, std::string& tag)
+{
+  for (auto& backend : backends) {
+    // Skip non-views-capable backends.
+    if ((backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      continue;
+    }
+    if (backend->networkSet(net, tag)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void UeberBackend::networkList(vector<pair<Netmask, string>>& networks)
+{
+  for (auto& backend : backends) {
+    // Skip non-views-capable backends.
+    if ((backend->getCapabilities() & DNSBackend::CAP_VIEWS) == 0) {
+      continue;
+    }
+    backend->networkList(networks);
+  }
 }
 
 // API Search

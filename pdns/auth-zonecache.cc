@@ -23,6 +23,7 @@
 #include "config.h"
 #endif
 
+#include "pdns/misc.hh"
 #include "auth-zonecache.hh"
 #include "logger.hh"
 #include "statbag.hh"
@@ -42,7 +43,7 @@ AuthZoneCache::AuthZoneCache(size_t mapsCount) :
   d_statnumentries = S.getPointer("zone-cache-size");
 }
 
-bool AuthZoneCache::getEntry(const ZoneName& zone, int& zoneId)
+bool AuthZoneCache::getEntry(const ZoneName& zone, domainid_t& zoneId)
 {
   auto& mc = getMap(zone);
   bool found = false;
@@ -64,6 +65,59 @@ bool AuthZoneCache::getEntry(const ZoneName& zone, int& zoneId)
   return found;
 }
 
+#if defined(PDNS_AUTH) // [
+std::string AuthZoneCache::getViewFromNetwork(Netmask* net)
+{
+  string view{};
+
+  if (net == nullptr || net->empty()) {
+    return view;
+  }
+
+  try {
+    auto nets = d_nets.read_lock();
+    const auto* netview = nets->lookup(net->getNetwork());
+    if (netview != nullptr) {
+      // Tell our caller the span of the network being hit...
+      *net = netview->first;
+      // ...and which view it covers.
+      view = netview->second;
+    }
+  }
+  catch (...) {
+    // this handles the "empty" case, but might hide other errors
+  }
+
+  return view;
+}
+
+std::string AuthZoneCache::getVariantFromView(const ZoneName& zone, const std::string& view)
+{
+  string variant{};
+
+  if (!view.empty()) {
+    auto views = d_views.read_lock();
+    if (views->count(view) == 1) {
+      const auto& viewmap = views->at(view);
+      if (viewmap.count(zone.operator const DNSName&()) == 1) {
+        variant = viewmap.at(zone.operator const DNSName&());
+      }
+    }
+  }
+
+  return variant;
+}
+
+void AuthZoneCache::setZoneVariant(DNSPacket& packet)
+{
+  Netmask net = packet.getRealRemote();
+  string view = getViewFromNetwork(&net);
+  packet.qdomainzone = ZoneName(packet.qdomain);
+  string variant = getVariantFromView(packet.qdomainzone, view);
+  packet.qdomainzone.setVariant(variant);
+}
+#endif // ] PDNS_AUTH
+
 bool AuthZoneCache::isEnabled() const
 {
   return d_refreshinterval > 0;
@@ -72,9 +126,15 @@ bool AuthZoneCache::isEnabled() const
 void AuthZoneCache::clear()
 {
   purgeLockedCollectionsVector(d_maps);
+  {
+    d_nets.write_lock()->clear();
+  }
+  {
+    d_views.write_lock()->clear();
+  }
 }
 
-void AuthZoneCache::replace(const vector<std::tuple<ZoneName, int>>& zone_indices)
+void AuthZoneCache::replace(const vector<std::tuple<ZoneName, domainid_t>>& zone_indices)
 {
   if (!d_refreshinterval)
     return;
@@ -133,7 +193,19 @@ void AuthZoneCache::replace(const vector<std::tuple<ZoneName, int>>& zone_indice
   }
 }
 
-void AuthZoneCache::add(const ZoneName& zone, const int zoneId)
+void AuthZoneCache::replace(NetmaskTree<string> nettree)
+{
+  auto nets = d_nets.write_lock();
+  nets->swap(nettree);
+}
+
+void AuthZoneCache::replace(ViewsMap viewsmap)
+{
+  auto views = d_views.write_lock();
+  views->swap(viewsmap);
+}
+
+void AuthZoneCache::add(const ZoneName& zone, const domainid_t zoneId)
 {
   if (!d_refreshinterval)
     return;
@@ -148,7 +220,7 @@ void AuthZoneCache::add(const ZoneName& zone, const int zoneId)
   CacheValue val;
   val.zoneId = zoneId;
 
-  int mapIndex = getMapIndex(zone);
+  auto mapIndex = getMapIndex(zone);
   {
     auto& mc = d_maps[mapIndex];
     auto map = mc.d_map.write_lock();
@@ -171,11 +243,11 @@ void AuthZoneCache::remove(const ZoneName& zone)
   {
     auto pending = d_pending.lock();
     if (pending->d_replacePending) {
-      pending->d_pendingUpdates.emplace_back(zone, -1, false);
+      pending->d_pendingUpdates.emplace_back(zone, UnknownDomainID, false);
     }
   }
 
-  int mapIndex = getMapIndex(zone);
+  auto mapIndex = getMapIndex(zone);
   {
     auto& mc = d_maps[mapIndex];
     auto map = mc.d_map.write_lock();
@@ -194,5 +266,39 @@ void AuthZoneCache::setReplacePending()
     auto pending = d_pending.lock();
     pending->d_replacePending = true;
     pending->d_pendingUpdates.clear();
+  }
+}
+
+void AuthZoneCache::addToView(const std::string& view, const ZoneName& zone)
+{
+  const DNSName& strictZone = zone.operator const DNSName&();
+  auto views = d_views.write_lock();
+  AuthZoneCache::ViewsMap& map = *views;
+  map[view][strictZone] = zone.getVariant();
+}
+
+void AuthZoneCache::removeFromView(const std::string& view, const ZoneName& zone)
+{
+  const DNSName& strictZone = zone.operator const DNSName&();
+  auto views = d_views.write_lock();
+  AuthZoneCache::ViewsMap& map = *views;
+  if (map.count(view) == 0) {
+    return; // Nothing to do, we did not know about that view
+  }
+  auto& innerMap = map.at(view);
+  if (auto iter = innerMap.find(strictZone); iter != innerMap.end()) {
+    innerMap.erase(iter);
+  }
+  // else nothing to do, we did not know about that zone in that view
+}
+
+void AuthZoneCache::updateNetwork(const Netmask& network, const std::string& view)
+{
+  auto nets = d_nets.write_lock();
+  if (view.empty()) {
+    nets->erase(network);
+  }
+  else {
+    nets->insert_or_assign(network, view);
   }
 }

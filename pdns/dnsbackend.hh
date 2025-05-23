@@ -163,13 +163,14 @@ public:
     CAP_DIRECT = 1 << 2, // Backend supports direct commands
     CAP_LIST = 1 << 3, // Backend supports record enumeration
     CAP_CREATE = 1 << 4, // Backend supports domain creation
+    CAP_VIEWS = 1 << 5, // Backend supports views
   };
 
   virtual unsigned int getCapabilities() = 0;
 
   //! lookup() initiates a lookup. A lookup without results should not throw!
-  virtual void lookup(const QType& qtype, const DNSName& qdomain, domainid_t zoneId = UnknownDomainID, DNSPacket* pkt_p = nullptr) = 0;
-  virtual void APILookup(const QType& qtype, const DNSName& qdomain, domainid_t zoneId = UnknownDomainID, bool include_disabled = false);
+  virtual void lookup(const QType& qtype, const DNSName& qdomain, domainid_t zoneId, DNSPacket* pkt_p = nullptr) = 0;
+  virtual void APILookup(const QType& qtype, const DNSName& qdomain, domainid_t zoneId, bool include_disabled = false);
   virtual bool get(DNSResourceRecord&) = 0; //!< retrieves one DNSResource record, returns false if no more were available
   virtual bool get(DNSZoneRecord& zoneRecord);
 
@@ -183,7 +184,7 @@ public:
   virtual ~DNSBackend() = default;
 
   //! fills the soadata struct with the SOA details. Returns false if there is no SOA.
-  virtual bool getSOA(const ZoneName& domain, SOAData& soaData);
+  virtual bool getSOA(const ZoneName& domain, domainid_t zoneId, SOAData& soaData);
 
   virtual bool replaceRRSet(domainid_t /* domain_id */, const DNSName& /* qname */, const QType& /* qt */, const vector<DNSResourceRecord>& /* rrset */)
   {
@@ -479,6 +480,34 @@ public:
     return false;
   }
 
+  virtual void viewList(vector<string>& /* result */)
+  {
+  }
+
+  virtual void viewListZones(const string& /* view */, vector<ZoneName>& /* result */)
+  {
+  }
+
+  virtual bool viewAddZone(const string& /* view */, const ZoneName& /* zone */)
+  {
+    return false;
+  }
+
+  virtual bool viewDelZone(const string& /* view */, const ZoneName& /* zone */)
+  {
+    return false;
+  }
+
+  virtual bool networkSet(const Netmask& /* net */, std::string& /* tag */)
+  {
+    return false;
+  }
+
+  virtual bool networkList(vector<pair<Netmask, string>>& /* networks */)
+  {
+    return false;
+  }
+
   //! Returns whether backend operations have caused files to be created.
   virtual bool hasCreatedLocalFiles() const
   {
@@ -550,7 +579,12 @@ struct SOAData
   SOAData() :
     domain_id(UnknownDomainID) {};
 
+#if defined(PDNS_AUTH)
+  const DNSName& qname() const { return zonename.operator const DNSName&(); }
+  ZoneName zonename;
+#else
   DNSName qname;
+#endif
   DNSName nameserver;
   DNSName rname;
   uint32_t ttl{};

@@ -44,7 +44,7 @@ std::function<std::string(const std::string&, int)> g_getGeo;
 
 bool DNSBackend::getAuth(const ZoneName& target, SOAData* soaData)
 {
-  return this->getSOA(target, *soaData);
+  return this->getSOA(target, UnknownDomainID, *soaData);
 }
 
 void DNSBackend::setArgPrefix(const string& prefix)
@@ -245,18 +245,27 @@ vector<std::unique_ptr<DNSBackend>> BackendMakerClass::all(bool metadataOnly)
     answer, in which case you need to perform a getDomainInfo call!
 
     \param domain Domain we want to get the SOA details of
-    \param sd SOAData which is filled with the SOA details
+    \param zoneId Domain id, if known
+    \param soaData SOAData which is filled with the SOA details
     \param unmodifiedSerial bool if set, serial will be returned as stored in the backend (maybe 0)
 */
-bool DNSBackend::getSOA(const ZoneName& domain, SOAData& soaData)
+bool DNSBackend::getSOA(const ZoneName& domain, domainid_t zoneId, SOAData& soaData)
 {
-  this->lookup(QType(QType::SOA), domain.operator const DNSName&(), -1);
+  soaData.db = nullptr;
+
+  if (domain.hasVariant() && zoneId == UnknownDomainID) {
+    DomainInfo domaininfo;
+    if (!this->getDomainInfo(domain, domaininfo, false)) {
+      return false;
+    }
+    zoneId = domaininfo.id;
+  }
+  // Safe for zoneId to be UnknownDomainID here - it won't be the case for variants, see above
+  this->lookup(QType(QType::SOA), domain.operator const DNSName&(), zoneId);
   S.inc("backend-queries");
 
   DNSResourceRecord resourceRecord;
   int hits = 0;
-
-  soaData.db = nullptr;
 
   try {
     while (this->get(resourceRecord)) {
@@ -264,7 +273,7 @@ bool DNSBackend::getSOA(const ZoneName& domain, SOAData& soaData)
         throw PDNSException("Got non-SOA record when asking for SOA, zone: '" + domain.toLogString() + "'");
       }
       hits++;
-      soaData.qname = domain.operator const DNSName&();
+      soaData.zonename = domain.makeLowerCase();
       soaData.ttl = resourceRecord.ttl;
       soaData.db = this;
       soaData.domain_id = resourceRecord.domain_id;
