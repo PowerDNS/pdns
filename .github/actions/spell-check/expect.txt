@@ -56,6 +56,7 @@ Asenov
 ASEP
 Ashish
 associateddomain
+Assumeru
 asyncresolve
 ATHENE
 Atlassian
@@ -124,6 +125,7 @@ Binero
 binlog
 bitfield
 bitmaps
+bjacquin
 bla
 Bleker
 blockfilter
@@ -137,6 +139,7 @@ bolditalic
 bonafide
 Bortzmeyer
 botnet
+Bozhan
 bpf
 bpo
 Brainspark
@@ -643,12 +646,14 @@ Jorn
 journalctl
 jpmens
 jsonstat
+jsoref
 jsrender
 Juergen
 jumpbox
 Juraj
 Kadyshev
 Kaminsky
+karelbilek
 Kaseorg
 Kdhcp
 Kdhcpdupdate
@@ -821,6 +826,7 @@ modeline
 modifyingpolicydecisions
 modindex
 monshouwer
+mortenstevens
 motherboards
 mozilla
 mplexer
@@ -1278,6 +1284,7 @@ singlethreaded
 Sipek
 siphash
 Sjoerd
+sjorgedeaguiar
 slapindex
 slaveness
 SLES
@@ -1371,6 +1378,7 @@ supervacuus
 supervisord
 Surfnet
 swapcontext
+swegener
 swoga
 syncer
 syncres
@@ -1379,6 +1387,7 @@ syscalls
 Sysdream
 systemcall
 sysv
+tacerus
 tarballs
 Tarjei
 Tarnell
@@ -1422,6 +1431,7 @@ tinydns
 tinydnsbackend
 tisr
 tlsa
+tlu
 tmpfs
 tobool
 TOCTOU
@@ -1466,6 +1476,7 @@ Ueber
 Ueli
 UIDs
 Uisms
+ukleinek
 UMEM
 unauth
 unbreak
@@ -1539,6 +1550,7 @@ westes
 Wevers
 wextra
 whashed
+wibowo
 Wieger
 Wielicki
 Wijk
@@ -1556,6 +1568,7 @@ Wojas
 Worldnic
 would've
 wouter
+Woutifier
 wpad
 wproduction
 wrandom
@@ -1569,6 +1582,7 @@ xdp
 Xek
 Xeon
 XForwarded
+XFRs
 Xiang
 xorbooter
 xpf
