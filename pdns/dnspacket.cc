@@ -369,8 +369,14 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
 
       if(d_haveednssubnet) {
         EDNSSubnetOpts eso = d_eso;
-        // use the scopeMask from the resolver, if it is greater - issue #5469
-        maxScopeMask = max(maxScopeMask, eso.getScopePrefixLength());
+        if (!d_span.empty()) {
+          // if view handling set our span, we assume this is the best number
+          maxScopeMask = d_span.getBits();
+        }
+        else {
+          // use the scopeMask from the resolver, if it is greater - issue #5469
+          maxScopeMask = max(maxScopeMask, eso.getScopePrefixLength());
+        }
         eso.setScopePrefixLength(maxScopeMask);
 
         string opt = eso.makeOptString();
