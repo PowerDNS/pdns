@@ -828,6 +828,22 @@ std::string ZoneName::toLogString() const
   return ret;
 }
 
+std::string ZoneName::toStringFull(const std::string& separator, const bool trailing) const
+{
+  std::string ret = d_name.toString(separator, trailing);
+  if (!d_variant.empty()) {
+    if (!trailing) {
+      ret.push_back('.');
+    }
+    // toString of root emits "" if no trailing, "." if trailing
+    if (d_name.isRoot()) {
+      ret.push_back('.');
+    }
+    ret += d_variant;
+  }
+  return ret;
+}
+
 size_t ZoneName::hash(size_t init) const
 {
   if (!d_variant.empty()) {
