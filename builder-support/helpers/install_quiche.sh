@@ -55,7 +55,7 @@ install -m644 quiche/include/quiche.h "${INSTALL_PREFIX}"/include
 install -m644 target/release/libquiche.${SOEXT} "${LIBDIR}"/libdnsdist-quiche.${SOEXT}
 
 if [ $(uname) = Darwin ]; then
-  install_name_tool -id "${LIBDIR}/libdnsdist-quiche.${SOEXT}" "${LIBDIR}/"libdnsdist-quiche.${SOEXT}
+  install_name_tool -id "${LIBDIR}/libdnsdist-quiche.${SOEXT}" "${LIBDIR}"/libdnsdist-quiche.${SOEXT}
 fi
 
 if [ ! -d "${LIBDIR}"/pkgconfig/ ]; then
