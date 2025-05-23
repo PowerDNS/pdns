@@ -30,10 +30,10 @@ required backend as follows:
 
     $ sudo apt-get install pdns-backend-$backend
 
-Redhat-based Systems
-~~~~~~~~~~~~~~~~~~~~
+Red Hat-based Systems
+~~~~~~~~~~~~~~~~~~~~~
 
-On RedHat based systems there are 2 options to install PowerDNS, from
+On Red Hat based systems there are 2 options to install PowerDNS, from
 `EPEL <https://fedoraproject.org/wiki/EPEL>`__, 
 or from `the PowerDNS repositories <https://repo.powerdns.com>`__:
 
@@ -55,7 +55,7 @@ FreeBSD
 ~~~~~~~
 
 PowerDNS Authoritative Server is available through the
-`ports <http://www.freshports.org/dns/powerdns/>`__ system:
+`ports <https://www.freshports.org/dns/powerdns/>`__ system:
 
 For the package:
 

@@ -147,7 +147,7 @@ respective domain to allow immediate freshness checks for this domain.
 
 .. note::
   When running PowerDNS via the provided systemd service file,
-  `ProtectSystem <http://www.freedesktop.org/software/systemd/man/systemd.exec.html#ProtectSystem=>`_
+  `ProtectSystem <https://www.freedesktop.org/software/systemd/man/systemd.exec.html#ProtectSystem=>`_
   is set to ``full``, this means PowerDNS is unable to write to e.g.
   ``/etc`` and ``/home``, possibly being unable to write AXFR'd zones.
 

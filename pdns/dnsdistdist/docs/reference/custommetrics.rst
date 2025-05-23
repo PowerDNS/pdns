@@ -31,12 +31,12 @@ Then you can update those at runtime using the following functions, depending on
   :param str name: The name of the metric, lowercase alphanumerical characters and dashes (-) only
   :param str type: The desired type in ``gauge`` or ``counter``
   :param str description: The description of the metric
-  :param str prometheusName: The name to use in the prometheus metrics, if supplied. Otherwise the regular name will be used, prefixed with ``dnsdist_`` and ``-`` replaced by ``_``
+  :param str prometheusName: The name to use in the prometheus metrics, if supplied. Otherwise, the regular name will be used, prefixed with ``dnsdist_`` and ``-`` replaced by ``_``
   :param table options: A table with key: value pairs with metric options.
 
   Options:
 
-  * ``name``: str - The name to use in the prometheus metrics, if supplied. Otherwise the regular name will be used, prefixed with ``dnsdist_`` and ``-`` replaced by ``_``
+  * ``name``: str - The name to use in the prometheus metrics, if supplied. Otherwise, the regular name will be used, prefixed with ``dnsdist_`` and ``-`` replaced by ``_``
   * ``withLabels=false``: bool - If set to true, labels will be expected when updating this metric and it will not be automatically created without labels. Defaults to ``false``, which automatically creates this metric without labels with default value.
 
 .. function:: incMetric(name [, step|options]) -> int

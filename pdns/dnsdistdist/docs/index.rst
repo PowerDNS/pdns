@@ -7,7 +7,7 @@ Its goal in life is to route traffic to the best server, delivering top performa
 :program:`dnsdist` is dynamic, its configuration can be changed at runtime via a :doc:`console-like interface <guides/console>`.
 It exposes :doc:`metrics <statistics>` that can be exported via Carbon, Prometheus, an HTTP API and the console.
 
-Until 2.0.0 the configuration was written in `Lua <http://lua.org>`_, but it is now possible to write the configuration in :doc:`yaml <reference/yaml-settings>` as well.
+Until 2.0.0 the configuration was written in `Lua <https://lua.org>`_, but it is now possible to write the configuration in :doc:`yaml <reference/yaml-settings>` as well.
 
 A configuration to balance DNS queries to several backend servers:
 

@@ -1,5 +1,7 @@
 /docs/
 ^docs/
 \.md$
+\.rst$
+pdns/dnsdistdist/dnsdist-settings-definitions\.yml
 pdns/recursordist/settings/table.py
 regression-tests.*/description

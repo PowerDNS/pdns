@@ -296,7 +296,7 @@ fixes a few minor issues and adds a debugging feature:
    to our existing carbon-server and carbon-ourname settings, but now at
    runtime. This specific invocation will make your stats appear
    automatically on our `public telemetry
-   server <http://xs.powerdns.com/metronome/?server=pdns.xs.recursor&beginTime=-3600>`__.
+   server <https://metronome.powerdns.com/?server=dnsdist.pdns-public-ns1_powerdns_com.main&beginTime=-3600>`__.
 
 PowerDNS Recursor version 3.6.0
 -------------------------------
@@ -484,7 +484,7 @@ Downloads
 
 -  `Official download page <https://www.powerdns.com/downloads.html>`__
 -  `native RHEL5/6 packages from Kees
-   Monshouwer <http://www.monshouwer.eu/download/3rd_party/pdns-recursor/>`__
+   Monshouwer <https://www.monshouwer.eu/download/3rd_party/pdns-recursor/>`__
 
 Changes since 3.5.2
 ^^^^^^^^^^^^^^^^^^^
@@ -521,7 +521,7 @@ Downloads
 
 -  `Official download page <https://www.powerdns.com/downloads.html>`__
 -  `native RHEL5/6 packages from Kees
-   Monshouwer <http://www.monshouwer.eu/download/3rd_party/pdns-recursor/>`__
+   Monshouwer <https://www.monshouwer.eu/download/3rd_party/pdns-recursor/>`__
 
 Changes since 3.5.1
 ^^^^^^^^^^^^^^^^^^^
@@ -550,7 +550,7 @@ Downloads
 
 -  `Official download page <https://www.powerdns.com/downloads.html>`__
 -  `native RHEL5/6 packages from Kees
-   Monshouwer <http://www.monshouwer.eu/download/3rd_party/pdns-recursor/>`__
+   Monshouwer <https://www.monshouwer.eu/download/3rd_party/pdns-recursor/>`__
 
 Changes since 3.5
 ^^^^^^^^^^^^^^^^^
@@ -586,7 +586,7 @@ Downloads
 
 -  `Official download page <https://www.powerdns.com/downloads.html>`__
 -  `native RHEL5/6 packages from Kees
-   Monshouwer <http://www.monshouwer.eu/download/3rd_party/pdns-recursor/>`__
+   Monshouwer <https://www.monshouwer.eu/download/3rd_party/pdns-recursor/>`__
 
 Changes between RC5 and the final 3.5 release
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -647,12 +647,12 @@ Changes between RC1 and RC2
 -  While Recursor 3.3 was not vulnerable to the specific attack noted in
    'Ghost Domain Names: Revoked Yet Still Resolvable' (more information
    at `A New DNS Exploitation Technique: Ghost Domain
-   Names <http://resources.infosecinstitute.com/ghost-domain-names/>`__),
+   Names <https://www.infosecinstitute.com/resources/hacking/ghost-domain-names/>`__),
    further investigation showed that a variant of the attack could work.
    This was fixed in `commit
    3085 <http://wiki.powerdns.com/projects/trac/changeset/3085>`__. This
    should also close the slightly bogus
-   `CVE-2012-1193 <http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2012-1193>`__.
+   `CVE-2012-1193 <https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2012-1193>`__.
    Closes `ticket 668 <https://github.com/PowerDNS/pdns/issues/668>`__.
 -  The auth-can-lower-ttl flag was removed, as it did not have any
    effect in most situations, and thus did not operate as advertised. We
@@ -1430,7 +1430,7 @@ enough to justify a quick upgrade.
    DNS-hierarchy, like 'juniper.net'.
 
    This issue was fixed rapidly because of the help of
-   `XS4ALL <http://www.xs4all.nl>`__ (Eric Veldhuyzen, Kai Storbeck),
+   `XS4ALL <https://www.xs4all.nl>`__ (Eric Veldhuyzen, Kai Storbeck),
    Brad Dameron and Kees Monshouwer. Fix in `commit
    1178 <http://wiki.powerdns.com/projects/trac/changeset/1178>`__.
 
@@ -1463,7 +1463,7 @@ vulnerability to our attention which would enable a smart attacker to
 possibly malicious data.
 
 Details can be found on `this Trusteer
-page <http://www.trusteer.com/docs/powerdnsrecursor.html>`__.
+page <https://web.archive.org/web/20120107014921/https://www.trusteer.com/list-context/publications/powerdns-recursor-dns-cache-poisoning>`__.
 
 It is recommended that all users of the PowerDNS Recursor upgrade to
 3.1.5 as soon as practicable, while we simultaneously note that busy
@@ -2064,8 +2064,7 @@ Improvements
 Recursor version 3.0.1
 ----------------------
 
-Released 25th of April 2006,
-`download <http://www.powerdns.com/en/downloads.aspx>`__.
+Released 25th of April 2006.
 
 This release consists of nothing but tiny fixes to 3.0, including one
 with security implications. An upgrade is highly recommended.
@@ -2118,8 +2117,7 @@ Operating system specific fixes
 Recursor version 3.0
 --------------------
 
-Released 20th of April 2006,
-`download <http://www.powerdns.com/en/downloads.aspx>`__.
+Released 20th of April 2006.
 
 This is the first separate release of the PowerDNS Recursor. There are
 many reasons for this, one of the most important ones is that previously
@@ -2146,7 +2144,7 @@ PowerDNS, as it is a Better Internet Nameserver Daemon.
 
 Some more information, based on a previous version of PowerDNS, can be
 found on the `PowerDNS development
-blog <http://blog.netherlabs.nl/articles/2006/04/14/holy-cow-1-3-million-additional-ip-addresses-served-by-powerdns>`__.
+blog <https://blog.netherlabs.nl/articles/2006/04/14/holy-cow-1-3-million-additional-ip-addresses-served-by-powerdns>`__.
 
 **Warning**: Because of recent DNS based denial of service attacks,
 running an open recursor has become a security risk. Therefore, unless
@@ -2180,6 +2178,6 @@ Important new features of the PowerDNS recursor 3.0
 
 Many people helped package and test this release. Jorn Ekkelenkamp of
 ISP-Services helped find the '8000 SOAs' bug and spotted many other
-oddities and `XS4ALL <http://www.xs4all.nl>`__ internet funded a lot of
+oddities and `XS4ALL <https://www.xs4all.nl>`__ internet funded a lot of
 the recent development. Joaquín M López Muñoz of the
 boost::multi\_index\_container was again of great help.

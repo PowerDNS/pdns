@@ -135,4 +135,4 @@ Protobuf Logging Reference
 
   .. method:: DNSDistProtoBufMessage:toDebugString() -> string
 
-    Return an string containing the content of the message
+    Return a string containing the content of the message
