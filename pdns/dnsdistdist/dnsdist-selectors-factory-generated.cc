@@ -107,9 +107,9 @@ std::shared_ptr<SNIRule> getSNISelector(const std::string& server_name)
 {
   return std::make_shared<SNIRule>(server_name);
 }
-std::shared_ptr<TagRule> getTagSelector(const std::string& tag, std::optional<std::string> value)
+std::shared_ptr<TagRule> getTagSelector(const std::string& tag, std::optional<std::string> value, std::optional<bool> emptyAsWildcard)
 {
-  return std::make_shared<TagRule>(tag, value ? *value : "");
+  return std::make_shared<TagRule>(tag, value ? *value : "", emptyAsWildcard ? *emptyAsWildcard : true);
 }
 std::shared_ptr<TCPRule> getTCPSelector(bool tcp)
 {

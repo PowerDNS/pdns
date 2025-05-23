@@ -1134,8 +1134,8 @@ private:
 class TagRule : public DNSRule
 {
 public:
-  TagRule(const std::string& tag, boost::optional<std::string> value) :
-    d_value(std::move(value)), d_tag(tag)
+  TagRule(const std::string& tag, boost::optional<std::string> value, bool emptyAsWildcard) :
+    d_value(std::move(value)), d_tag(tag), d_emptyAsWildcard(emptyAsWildcard)
   {
   }
   bool matches(const DNSQuestion* dq) const override
@@ -1149,7 +1149,7 @@ public:
       return false;
     }
 
-    if (!d_value || d_value->empty()) {
+    if (!d_value || (d_emptyAsWildcard && d_value->empty())) {
       return true;
     }
 
@@ -1158,12 +1158,13 @@ public:
 
   string toString() const override
   {
-    return "tag '" + d_tag + "' is set" + (d_value ? (" to '" + *d_value + "'") : "");
+    return "tag '" + d_tag + "' is set" + ((d_value && (!d_value->empty() || !d_emptyAsWildcard)) ? (" to '" + *d_value + "'") : "");
   }
 
 private:
   boost::optional<std::string> d_value;
   std::string d_tag;
+  bool d_emptyAsWildcard;
 };
 
 class PoolAvailableRule : public DNSRule

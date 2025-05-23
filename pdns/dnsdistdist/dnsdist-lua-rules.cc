@@ -625,6 +625,11 @@ void setupLuaRules(LuaContext& luaCtx)
     return std::shared_ptr<DNSRule>(new QNameSetRule(names));
   });
 
+  // NOLINTNEXTLINE(performance-unnecessary-value-param): LuaWrapper does not play well with const boost::optional<T>&
+  luaCtx.writeFunction("TagRule", [](const std::string& tag, boost::optional<std::string> value) {
+    return std::shared_ptr<DNSRule>(dnsdist::selectors::getTagSelector(tag, boostToStandardOptional(value), !value));
+  });
+
 #if defined(HAVE_LMDB) || defined(HAVE_CDB)
   luaCtx.writeFunction("KeyValueStoreLookupRule", [](std::shared_ptr<KeyValueStore>& kvs, std::shared_ptr<KeyValueLookupKey>& lookupKey) {
     return std::shared_ptr<DNSRule>(new KeyValueStoreLookupRule(kvs, lookupKey));

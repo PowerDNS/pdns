@@ -1102,6 +1102,8 @@ mod dnsdistsettings {
         tag: String,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         value: String,
+        #[serde(rename = "empty-as-wildcard", default = "crate::Bool::<true>::value", skip_serializing_if = "crate::if_true")]
+        empty_as_wildcard: bool,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
