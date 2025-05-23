@@ -7077,7 +7077,7 @@ Changelog
     :pullreq: 4859
     :tickets: 4857
 
-    Change ``truncateTC`` to defaulting to off, having it enabled by default causes an compatibility with :rfc:`6891` (Robin Geuze).
+    Change ``truncateTC`` to defaulting to off, having it enabled by default causes an incompatibility with :rfc:`6891` (Robin Geuze).
 
   .. change::
     :tags: Bug Fixes
