@@ -2,6 +2,309 @@ Changelog
 =========
 
 .. changelog::
+  :version: 2.0.0-alpha2
+  :released: 23rd of May 2025
+
+  .. change::
+    :tags: New Features
+    :pullreq: 15306
+
+    Add support for calling Lua methods when exiting
+
+  .. change::
+    :tags: Improvements, DNS over QUIC, DNS over HTTP3
+    :pullreq: 15328, 15583
+
+    Upgrade Quiche to 0.24.2 in our packages
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15329, 15584
+
+    Upgrade Rust to 1.87.0 when building our packages
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 15330
+
+    Fix YAML configuration failure to build without CDB/LMDB
+
+  .. change::
+    :tags: Bug Fixes, Meson
+    :pullreq: 15331
+
+    Do not auto-enable disabled features when building with meson
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15333
+
+    Fix version number in our Docker image
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 15338
+
+    Better handling of the ``dlsym`` missing symbol in our Rust lib
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 15351
+
+    Load Lua bindings before parsing YAML configuration
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 15355
+
+    Better handling of exceptions raised during YAML parsing
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 15356
+
+    Better handling of nonexistent Lua function name in YAML
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15362
+
+    Do not register Xsk sockets on configuration check or client mode
+
+  .. change::
+    :tags: New Features
+    :pullreq: 15376
+
+    Add mitigations against misbehaving TCP/TLS clients
+
+  .. change::
+    :tags: Improvements, Meson
+    :pullreq: 15377
+
+    Allow alternate location for libssl
+
+  .. change::
+    :tags: New Features, DNS over TLS, DNS over HTTPS, Performance
+    :pullreq: 15387
+
+    Share tickets key between identical frontends created via YAML
+
+  .. change::
+    :tags: New Features
+    :pullreq: 15388
+
+    Enhancement to support rule action for query timeout case (@pacnal)
+
+  .. change::
+    :tags: Bug Fixes, Meson
+    :pullreq: 15392
+
+    Do not try to get the version/path of Python if not found
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15407
+
+    Fix compilation with DoH3 enabled and DoH disabled
+
+  .. change::
+    :tags: New Features, DNS over TLS, DNS over HTTPS
+    :pullreq: 15409
+
+    Add support for switching certificates based on SNI with OpenSSL
+
+  .. change::
+    :tags: Bug Fixes, Meson
+    :pullreq: 15416
+
+    Fix two issues when building with meson
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15419
+
+    Refactor the packet cache settings
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15423
+
+    Add an option to cache truncated answers
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15431
+
+    Be consistent with regard to health-check modes transition
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15436
+
+    Fix a few more cases of potentially unused arguments
+
+  .. change::
+    :tags: New Features
+    :pullreq: 15439
+
+    Support DSCP marking towards downstream server (@pacnal)
+
+  .. change::
+    :tags: Bug Fixes, DNS over QUIC, DNS over HTTP3
+    :pullreq: 15440
+    :tickets: 15427
+
+    If SONAME is present in the generated Quiche lib set it to the correct value
+
+  .. change::
+    :tags: Bug Fixes, DNSCrypt
+    :pullreq: 15463
+
+    Fix a confusion about contexts/frontends in :func:`getDNSCryptBind`
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15467
+
+    Add indicator for cache hit rules to know if hit a stale entry (@pacnal)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15471
+
+    Fix an iterator out-of-bound read when removing a TCP-only server
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15472
+
+    Reduce memory usage with fast-changing dynamic backends
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS, Security
+    :pullreq: 15480
+    :tickets: 15475
+
+    Fix a crash when processing timeouts for incoming DoH queries
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 15481
+
+    Gracefully handle timeout/response for a closed HTTP stream
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 15496
+
+    Fix building with YAML enabled but without TLS support
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15514
+
+    Fix memory corruption when using :func:`getAddressInfo`
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15477
+
+    Provide runtime update API for some health check params (@pacnal)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15520
+
+    Fix building with GCC 15.1: missing ``cstdint`` include
+
+  .. change::
+    :tags: Bug Fixes, Meson
+    :pullreq: 15521
+    :tickets: 15516
+
+    Don't build with ``libedit`` if disabled via meson
+
+  .. change::
+    :tags: Improvements, Metrics
+    :pullreq: 15524
+
+    Improve scalability of custom metrics
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15525
+
+    Upgrade to protozero 1.8.0
+
+  .. change::
+    :tags: Improvements, DNS over HTTPS
+    :pullreq: 15526
+    :tickets: 14791
+
+    Deprecate the ``options`` parameter of :func:`HTTPStatusAction`
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15534
+    :tickets: 15529
+
+    Only set the proxy protocol payload size when actually added
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15539
+
+    The second parameter to :func:`setAPIWritable` is optional
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15554
+
+    Fix a crash in the TCP concurrent connections map
+
+  .. change::
+    :tags: Improvements, Meson
+    :pullreq: 15558
+
+    Switch ``eBPF`` support to ``auto`` when building with meson
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15563
+
+    Suppress a warning on macOS
+
+  .. change::
+    :tags: Bug Fixes, DNS over QUIC, DNS over HTTP3
+    :pullreq: 15564
+
+    Two fixes to enable building on OpenBSD with QUIC enabled
+
+  .. change::
+    :tags: Bug Fixes, Meson
+    :pullreq: 15565
+
+    Fix our meson build not reaching a stable state
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: 15571
+
+    Fix a crash when TCP queries and responses keep coming
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15573
+
+    Fix one potential issue and several false positives reported by Coverity
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15585
+
+    Fix the behaviour of ``TagRule`` with an empty string as value
+
+.. changelog::
   :version: 1.9.10
   :released: 20th of May 2025
 

@@ -984,6 +984,7 @@ outqueries
 PACKAGEVERSION
 packetcache
 packethandler
+pacnal
 papersize
 PARAMKEYWORDS
 PATC
