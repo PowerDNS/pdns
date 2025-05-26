@@ -12,6 +12,7 @@ LMDB backend
 * Disabled data: Yes
 * Comments: No
 * Search: No
+* Views: Yes
 * API: Read-Write
 * Multiple instances: No
 * Zone caching: Yes
@@ -92,6 +93,7 @@ PowerDNS Version  LMDB Schema version
 4.4.x to 4.6.x    3
 4.7.x and up      4
 4.8.x and up      5
+5.0.x and up      6
 ================  ===================
 
 .. _settings-lmdb-random-ids:

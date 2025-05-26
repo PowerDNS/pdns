@@ -139,7 +139,7 @@ public:
 
   DNSName qdomain;  //!< qname of the question 4 - unsure how this is used
   DNSName qdomainwild;  //!< wildcard matched by qname, used by LuaPolicyEngine
-  ZoneName qdomainzone;  //!< zone name for the answer (as reflected in SOA for negative responses), used by LuaPolicyEngine
+  ZoneName qdomainzone;  //!< zone name for the answer (as reflected in SOA for negative responses), used by LuaPolicyEngine and AXFR
   string d_peer_principal;
   const DNSName& getTSIGKeyname() const;
 
@@ -176,6 +176,9 @@ public:
 #ifdef ENABLE_GSS_TSIG
   void cleanupGSS(int rcode);
 #endif
+
+  Netmask d_span; // network matching this packet, when views are used
+  std::string d_view; // view matching this packet, when views are used
 
 private:
   void pasteQ(const char *question, int length); //!< set the question of this packet, useful for crafting replies

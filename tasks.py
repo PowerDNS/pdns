@@ -996,7 +996,12 @@ backend_regress_tests = dict(
         'lmdb-both',
         'lmdb-nsec3-both',
         'lmdb-nsec3-optout-both',
-        'lmdb-nsec3-narrow'
+        'lmdb-nsec3-narrow',
+        'lmdb-nodnssec-variant',
+        'lmdb-variant',
+        'lmdb-nsec3-variant',
+        'lmdb-nsec3-optout-variant',
+        'lmdb-nsec3-narrow-variant'
     ],
     gmysql = [
         'gmysql',

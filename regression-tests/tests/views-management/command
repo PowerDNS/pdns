@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+set -o pipefail
+
+pdnsutil_wrapper() {
+$PDNSUTIL --config-dir=. --config-name=$backend $* 2>&1 | (egrep -v 'destructor' || true)
+}
+
+set -e # to make this first call exit us early for non-variant capable backends.
+pdnsutil_wrapper view-add-zone myview example.org..variant3
+set +e
+
+echo == one view
+pdnsutil_wrapper list-views
+echo == with one zone
+pdnsutil_wrapper list-view myview
+
+pdnsutil_wrapper view-add-zone myotherview example.com
+
+echo == view with one zone
+pdnsutil_wrapper list-view myotherview
+
+pdnsutil_wrapper view-add-zone myview example.org..variant2
+pdnsutil_wrapper view-add-zone myview example.net..variant5
+echo == with two zones
+pdnsutil_wrapper list-view myview
+
+pdnsutil_wrapper view-del-zone myview example.org..variant2
+echo == view with one zone
+pdnsutil_wrapper list-view myview
+
+pdnsutil_wrapper view-del-zone myotherview example.com
+echo == one view
+pdnsutil_wrapper list-views
+
+echo == check proper variant replacement
+pdnsutil_wrapper list-view myview
+pdnsutil_wrapper view-add-zone myview example.net..completelydifferent
+pdnsutil_wrapper list-view myview

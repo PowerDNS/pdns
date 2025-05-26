@@ -75,7 +75,7 @@ start_master ()
 
 start_slave ()
 {
-        skipreasons="$skipreasons presigned nodyndns"
+        skipreasons="$skipreasons presigned nodyndns slave"
 
         case $presignedcontext in
                 bind*)

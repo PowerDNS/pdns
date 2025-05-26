@@ -86,6 +86,7 @@ backported
 backticks
 BADALG
 BADCOOKIE
+badguys
 badips
 BADKEY
 BADMODE
@@ -976,6 +977,7 @@ orsn
 Oservers
 otherdomain
 otherpool
+othervariant
 ourname
 ourserial
 outpacket
@@ -1183,6 +1185,7 @@ Roel
 rolltype
 Rosmalen
 roundrobin
+routable
 rping
 rpms
 rpz
@@ -1498,6 +1501,7 @@ Valkenburg
 Vandalon
 vandergaast
 Vandoren
+variantless
 Vasiliy
 Veldhuyzen
 Verheijen
@@ -1613,4 +1617,5 @@ zskroll
 ztc
 Zumstrull
 Zwane
+zytrax
 zzyzz

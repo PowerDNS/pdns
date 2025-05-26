@@ -87,20 +87,20 @@ public:
     //! Index of the current backend within the backends vector
     unsigned int i{0};
     QType qtype;
-    int zoneId{-1};
+    domainid_t zoneId{UnknownDomainID};
 
   private:
     static AtomicCounter instances;
   };
 
-  void lookup(const QType& qtype, const DNSName& qname, int zoneId, DNSPacket* pkt_p = nullptr);
+  void lookup(const QType& qtype, const DNSName& qname, domainid_t zoneId, DNSPacket* pkt_p = nullptr);
   /** Read a single record from a lookup(...) result. */
   bool get(DNSZoneRecord& resourceRecord);
   /** Close state created by lookup(...). */
   void lookupEnd();
 
   /** Determines if we are authoritative for a zone, and at what level */
-  bool getAuth(const ZoneName& target, const QType& qtype, SOAData* soaData, bool cachedOk = true);
+  bool getAuth(const ZoneName& target, const QType& qtype, SOAData* soaData, Netmask remote, bool cachedOk = true, DNSPacket* pkt_p = nullptr);
   /** Load SOA info from backends, ignoring the cache.*/
   bool getSOAUncached(const ZoneName& domain, SOAData& soaData);
   void getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool include_disabled);
@@ -134,6 +134,14 @@ public:
   bool getTSIGKeys(std::vector<struct TSIGKey>& keys);
   bool deleteTSIGKey(const DNSName& name);
 
+  void viewList(vector<string>& result);
+  void viewListZones(const string& view, vector<ZoneName>& result);
+  bool viewAddZone(const string& /* view */, const ZoneName& /* zone */);
+  bool viewDelZone(const string& /* view */, const ZoneName& /* zone */);
+
+  bool networkSet(const Netmask& net, std::string& tag);
+  void networkList(vector<pair<Netmask, string>>& networks);
+
   bool searchRecords(const string& pattern, vector<DNSResourceRecord>::size_type maxResults, vector<DNSResourceRecord>& result);
   bool searchComments(const string& pattern, size_t maxResults, vector<Comment>& result);
 
@@ -156,7 +164,7 @@ private:
   struct Question
   {
     DNSName qname;
-    int zoneId;
+    domainid_t zoneId;
     QType qtype;
   } d_question;
 
@@ -181,6 +189,6 @@ private:
   void addNegCache(const Question& question) const;
   void addCache(const Question& question, vector<DNSZoneRecord>&& rrs) const;
 
-  bool fillSOAFromZoneRecord(ZoneName& shorter, int zoneId, SOAData* soaData);
+  bool fillSOAFromZoneRecord(ZoneName& shorter, domainid_t zoneId, SOAData* soaData);
   CacheResult fillSOAFromCache(SOAData* soaData, ZoneName& shorter);
 };

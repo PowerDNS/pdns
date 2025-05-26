@@ -1,0 +1,20 @@
+== one view
+myview
+view1
+view2
+== with one zone
+example.org..variant3
+== view with one zone
+example.com
+== with two zones
+example.net..variant5
+example.org..variant2
+== view with one zone
+example.net..variant5
+== one view
+myview
+view1
+view2
+== check proper variant replacement
+example.net..variant5
+example.net..completelydifferent

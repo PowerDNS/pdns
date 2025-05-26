@@ -12,6 +12,7 @@ BIND zone file backend
 * Disabled data: No
 * Comments: No
 * Search: Yes
+* Views: No
 * API: Read-only
 * Multiple instances: No
 * Zone caching: Yes

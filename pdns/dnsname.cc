@@ -30,6 +30,7 @@
 #include <boost/functional/hash.hpp>
 
 const DNSName g_rootdnsname("."), g_wildcarddnsname("*");
+const ZoneName g_rootzonename(".");
 
 /* raw storage
    in DNS label format, with trailing 0. W/o trailing 0, we are 'empty'
@@ -756,5 +757,150 @@ DNSName DNSName::makeRelative(const ZoneName& zone) const
 void DNSName::makeUsRelative(const ZoneName& zone)
 {
   makeUsRelative(zone.operator const DNSName&());
+}
+
+std::string_view::size_type ZoneName::findVariantSeparator(std::string_view name)
+{
+  std::string_view::size_type pos{0};
+
+  // Try to be as fast as possible in the non-variant case and exit
+  // quickly if we don't find two dots in a row.
+  while ((pos = name.find('.', pos)) != std::string_view::npos) {
+    ++pos;
+    if (pos >= name.length()) { // trailing single dot
+      return std::string_view::npos;
+    }
+    if (name.at(pos) == '.') {
+      // We have found two dots in a row, but the first dot might have been
+      // escaped. So we now need to count how many \ characters we can find a
+      // row before it; if their number is odd, the first dot is escaped and
+      // we need to keep searching.
+      size_t slashes{0};
+      while (pos >= 2 + slashes && name.at(pos - 2 - slashes) == '\\') {
+        ++slashes;
+      }
+      if ((slashes % 2) == 0) {
+	break;
+      }
+    }
+  }
+  return pos;
+}
+
+ZoneName::ZoneName(std::string_view name)
+{
+  if (auto sep = findVariantSeparator(name); sep != std::string_view::npos) {
+    setVariant(name.substr(sep + 1)); // ignore leading dot in variant name
+    name = name.substr(0, sep); // keep trailing dot in zone name
+  }
+  d_name = DNSName(name);
+}
+
+ZoneName::ZoneName(std::string_view name, std::string_view::size_type sep)
+{
+  if (sep != std::string_view::npos) {
+    setVariant(name.substr(sep + 1)); // ignore leading dot in variant name
+    name = name.substr(0, sep); // keep trailing dot in zone name
+  }
+  d_name = DNSName(name);
+}
+
+void ZoneName::setVariant(std::string_view variant)
+{
+  if (variant.find_first_not_of("abcdefghijklmnopqrstuvwxyz0123456789_-") != std::string_view::npos) {
+    throw std::out_of_range("invalid character in variant name '" + std::string{variant} + "'");
+  }
+  d_variant = variant;
+}
+
+std::string ZoneName::toLogString() const
+{
+  std::string ret = d_name.toLogString();
+  if (!d_variant.empty()) {
+    // Because toLogString() above uses toStringRootDot(), we do not want to
+    // output one too many dots if this is a root-with-variant.
+    ret.push_back('.');
+    if (!d_name.isRoot()) {
+      ret.push_back('.');
+    }
+    ret += d_variant;
+  }
+  return ret;
+}
+
+std::string ZoneName::toStringFull(const std::string& separator, const bool trailing) const
+{
+  std::string ret = d_name.toString(separator, trailing);
+  if (!d_variant.empty()) {
+    if (!trailing) {
+      ret.push_back('.');
+    }
+    // toString of root emits "" if no trailing, "." if trailing
+    if (d_name.isRoot()) {
+      ret.push_back('.');
+    }
+    ret += d_variant;
+  }
+  return ret;
+}
+
+size_t ZoneName::hash(size_t init) const
+{
+  if (!d_variant.empty()) {
+    init = burtleCI(reinterpret_cast<const unsigned char *>(d_variant.data()), d_variant.length(), init); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast): can't static_cast because of sign difference
+  }
+
+  return d_name.hash(init);
+}
+
+bool ZoneName::operator<(const ZoneName& rhs)  const
+{
+  // Order by DNSName first, by variant second.
+  // Unfortunately we can't use std::lexicographical_compare_three_way() yet
+  // as this would require C++20.
+  const auto *iter1 = d_name.getStorage().cbegin();
+  const auto *last1 = d_name.getStorage().cend();
+  const auto *iter2 = rhs.d_name.getStorage().cbegin();
+  const auto *last2 = rhs.d_name.getStorage().cend();
+  while (iter1 != last1 && iter2 != last2) {
+    auto char1 = dns_tolower(*iter1);
+    auto char2 = dns_tolower(*iter2);
+    if (char1 < char2) {
+      return true;
+    }
+    if (char1 > char2) {
+      return false;
+    }
+    ++iter1; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    ++iter2; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+  }
+  if (iter1 == last1) {
+    if (iter2 != last2) {
+      return true; // our DNSName is shorter (subset) than the other
+    }
+  }
+  else {
+    return false; // our DNSName is longer (superset) than the other
+  }
+  // At this point, both DNSName compare equal, we have to compare
+  // variants (which are case-sensitive).
+  return d_variant < rhs.d_variant;
+}
+
+bool ZoneName::canonCompare(const ZoneName& rhs) const
+{
+  // Similarly to operator< above, this compares DNSName first, variant
+  // second. Unfortunately because DNSName::canonCompare() is complicated,
+  // it can't pragmatically be duplicated here, hence the two calls.
+  // TODO: change DNSName::canonCompare() to return a three-state value
+  // (lt, eq, ge) in order to be able to call it only once.
+  if (!d_name.canonCompare(rhs.d_name)) {
+    return false;
+  }
+  if (!rhs.d_name.canonCompare(d_name)) {
+    return true;
+  }
+  // Both DNSName compare equal.
+  return d_variant < rhs.d_variant;
 }
 #endif // ]

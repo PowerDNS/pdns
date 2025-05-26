@@ -116,6 +116,7 @@ time_t g_luaConsistentHashesCleanupInterval{3600};
 #ifdef ENABLE_GSS_TSIG
 bool g_doGssTSIG;
 #endif
+bool g_views;
 typedef Distributor<DNSPacket, DNSPacket, PacketHandler> DNSDistributor;
 
 ArgvMap theArg;
@@ -343,6 +344,9 @@ static void declareArguments()
 #ifdef ENABLE_GSS_TSIG
   ::arg().setSwitch("enable-gss-tsig", "Enable GSS TSIG processing") = "no";
 #endif
+
+  ::arg().setSwitch("views", "Enable views (variants) of zones, for backends which support them") = "no";
+
   ::arg().setDefaults();
 }
 
@@ -624,7 +628,12 @@ try {
 
       if (PC.enabled() && (question.d.opcode != Opcode::Notify && question.d.opcode != Opcode::Update) && question.couldBeCached()) {
         start = diff;
-        bool haveSomething = PC.get(question, cached); // does the PacketCache recognize this question?
+        std::string view{};
+        if (g_views) {
+          Netmask netmask(accountremote);
+          view = g_zoneCache.getViewFromNetwork(&netmask);
+        }
+        bool haveSomething = PC.get(question, cached, view); // does the PacketCache recognize this question?
         if (haveSomething) {
           if (logDNSQueries)
             g_log << ": packetcache HIT" << endl;
@@ -719,6 +728,7 @@ static void mainthread()
 #ifdef ENABLE_GSS_TSIG
   g_doGssTSIG = ::arg().mustDo("enable-gss-tsig");
 #endif
+  g_views = ::arg().mustDo("views");
 
   DNSPacket::s_udpTruncationThreshold = std::max(512, ::arg().asNum("udp-truncation-threshold"));
   DNSPacket::s_doEDNSSubnetProcessing = ::arg().mustDo("edns-subnet-processing");
@@ -746,6 +756,16 @@ static void mainthread()
     exit(1);
 #endif
   }
+
+  // Check for mutually incompatible settings:
+  // - enabling views currently requires the zone cache to be active
+  if (g_views) {
+    if (::arg().asNum("zone-cache-refresh-interval") == 0) {
+      g_log << Logger::Error << R"(Error: use of views requires the zone cache to be enabled, please set "zone-cache-refresh-interval" to a nonzero value.)" << endl;
+      exit(1); // NOLINT(concurrency-mt-unsafe) we're single threaded at this point
+    }
+  }
+  // (no more checks yet)
 
   PC.setTTL(::arg().asNum("cache-ttl"));
   PC.setMaxEntries(::arg().asNum("max-packet-cache-entries"));

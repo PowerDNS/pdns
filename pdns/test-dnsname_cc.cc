@@ -1032,4 +1032,34 @@ BOOST_AUTO_TEST_CASE(test_getcommonlabels) {
   BOOST_CHECK_EQUAL(name5.getCommonLabels(name1), DNSName());
 }
 
+#if defined(PDNS_AUTH)
+BOOST_AUTO_TEST_CASE(test_variantnames) {
+  ZoneName zone1("..variant");
+  ZoneName zone2("bug.less..variant");
+  ZoneName zone3(R"(actually\..not.a.variant)");
+  ZoneName zone4(R"(still\\\..not.a.variant)");
+  ZoneName zone5(R"(anti-\\..variant)");
+  ZoneName zone6(R"(sl\\\\\..a\\\..sh\...overflow)");
+
+  BOOST_CHECK(zone1.hasVariant());
+  BOOST_CHECK(zone1.operator const DNSName&().isRoot());
+
+  BOOST_CHECK(zone2.hasVariant());
+  BOOST_CHECK_EQUAL(zone2.operator const DNSName&().toString(), "bug.less.");
+  BOOST_CHECK_EQUAL(zone2.getVariant(), "variant");
+
+  BOOST_CHECK(!zone3.hasVariant());
+  BOOST_CHECK(!zone4.hasVariant());
+
+  BOOST_CHECK(zone5.hasVariant());
+  BOOST_CHECK_EQUAL(zone5.operator const DNSName&().toString(), R"(anti-\\.)");
+  BOOST_CHECK_EQUAL(zone5.getVariant(), "variant");
+
+  BOOST_CHECK(zone6.hasVariant());
+  BOOST_CHECK_EQUAL(zone6.getVariant(), "overflow");
+
+  BOOST_CHECK_THROW(ZoneName zone("variants.r.us..dot..dot...dot....dot.....dots"),std::out_of_range);
+}
+#endif
+
 BOOST_AUTO_TEST_SUITE_END()

@@ -169,10 +169,10 @@ void CommunicatorClass::getUpdatedProducers(UeberBackend* B, vector<DomainInfo>&
 
         DNSResourceRecord rr;
         makeIncreasedSOARecord(sd, "EPOCH", "", rr);
-        di.backend->startTransaction(ZoneName(sd.qname), UnknownDomainID);
+        di.backend->startTransaction(sd.zonename, UnknownDomainID);
         if (!di.backend->replaceRRSet(di.id, rr.qname, rr.qtype, vector<DNSResourceRecord>(1, rr))) {
           di.backend->abortTransaction();
-          throw PDNSException("backend hosting producer zone '" + sd.qname.toLogString() + "' does not support editing records");
+          throw PDNSException("backend hosting producer zone '" + sd.zonename.toLogString() + "' does not support editing records");
         }
         di.backend->commitTransaction();
 
@@ -202,6 +202,8 @@ void CommunicatorClass::primaryUpdateCheck(PacketHandler* P)
   }
 
   for (auto& di : cmdomains) {
+    // VIEWS TODO: if this zone has a variant, try to figure out which
+    // views contain it, and purge these views only.
     purgeAuthCachesExact(di.zone.operator const DNSName&());
     g_zoneCache.add(di.zone, di.id);
     queueNotifyDomain(di, B);

@@ -474,7 +474,7 @@ inline size_t pdns_ci_find(const string& haystack, const string& needle)
 
 pair<string, string> splitField(const string& inp, char sepa);
 
-inline bool isCanonical(const string& qname)
+inline bool isCanonical(std::string_view qname)
 {
   if(qname.empty())
     return false;

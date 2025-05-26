@@ -34,6 +34,8 @@
 #include <unordered_set>
 #include <string_view>
 
+using namespace std::string_view_literals;
+
 #include <boost/version.hpp>
 #include <boost/container/string.hpp>
 
@@ -317,10 +319,14 @@ inline DNSName operator+(const DNSName& lhs, const DNSName& rhs)
 
 extern const DNSName g_rootdnsname, g_wildcarddnsname;
 
-// ZoneName: this is equivalent to DNSName, but intended to only store zone
-// names.
 #if defined(PDNS_AUTH) // [
-// Conversions between DNSName and ZoneName are allowed, but must be explicit.
+// ZoneName: this is equivalent to DNSName, but intended to only store zone
+// names. In addition to the name, an optional variant is allowed. The
+// variant is never part of a DNS packet; it can only be used by backends to
+// perform specific extra processing.
+// Variant names are limited to [a-z0-9_-].
+// Conversions between DNSName and ZoneName are allowed, but must be explicit;
+// conversions to DNSName lose the variant part.
 class ZoneName
 {
 public:
@@ -330,6 +336,7 @@ public:
   {
     if (this != &rhs) {
       d_name = rhs.d_name;
+      d_variant = rhs.d_variant;
     }
     return *this;
   }
@@ -337,25 +344,30 @@ public:
   {
     if (this != &rhs) {
       d_name = std::move(rhs.d_name);
+      d_variant = std::move(rhs.d_variant);
     }
     return *this;
   }
   ZoneName(const ZoneName& a) = default;
   ZoneName(ZoneName&& a) = default;
 
-  explicit ZoneName(std::string_view name) : d_name(name) {}
-  explicit ZoneName(const DNSName& name) : d_name(name) {}
+  explicit ZoneName(std::string_view name);
+  explicit ZoneName(std::string_view name, std::string_view variant) : d_name(name), d_variant(variant) {}
+  explicit ZoneName(const DNSName& name, std::string_view variant = ""sv) : d_name(name), d_variant(variant) {}
+  explicit ZoneName(std::string_view name, std::string_view::size_type sep);
 
   bool isPartOf(const ZoneName& rhs) const { return d_name.isPartOf(rhs.d_name); }
   bool isPartOf(const DNSName& rhs) const { return d_name.isPartOf(rhs); }
-  bool operator==(const ZoneName& rhs) const { return d_name == rhs.d_name; }
-  bool operator!=(const ZoneName& rhs) const { return d_name != rhs.d_name; }
+  bool operator==(const ZoneName& rhs) const { return d_name == rhs.d_name && d_variant == rhs.d_variant; }
+  bool operator!=(const ZoneName& rhs) const { return !operator==(rhs); }
 
+  // IMPORTANT! None of the "toString" routines will output the variant, but toLogString() and toStringFull().
   std::string toString(const std::string& separator=".", const bool trailing=true) const { return d_name.toString(separator, trailing); }
   void toString(std::string& output, const std::string& separator=".", const bool trailing=true) const { d_name.toString(output, separator, trailing); }
-  std::string toLogString() const { return d_name.toLogString(); }
+  std::string toLogString() const;
   std::string toStringNoDot() const { return d_name.toStringNoDot(); }
   std::string toStringRootDot() const { return d_name.toStringRootDot(); }
+  std::string toStringFull(const std::string& separator=".", const bool trailing=true) const;
 
   bool chopOff() { return d_name.chopOff(); }
   ZoneName makeLowerCase() const
@@ -366,19 +378,31 @@ public:
   }
   void makeUsLowerCase() { d_name.makeUsLowerCase(); }
   bool empty() const { return d_name.empty(); }
-  void clear() { d_name.clear(); }
+  void clear() { d_name.clear(); d_variant.clear(); }
   void trimToLabels(unsigned int trim) { d_name.trimToLabels(trim); }
-  size_t hash(size_t init=0) const { return d_name.hash(init); }
+  size_t hash(size_t init=0) const;
 
-  bool operator<(const ZoneName& rhs) const { return d_name.operator<(rhs.d_name); }
+  bool operator<(const ZoneName& rhs)  const;
 
-  bool canonCompare(const ZoneName& rhs) const { return d_name.canonCompare(rhs.d_name); }
+  bool canonCompare(const ZoneName& rhs) const;
 
   // Conversion from ZoneName to DNSName
   explicit operator const DNSName&() const { return d_name; }
   explicit operator DNSName&() { return d_name; }
+
+  bool hasVariant() const { return !d_variant.empty(); }
+  std::string getVariant() const { return d_variant; }
+  void setVariant(std::string_view);
+
+  // Search for a variant separator: mandatory (when variants are used) trailing
+  // dot followed by another dot and the variant name, and return the length of
+  // the zone name without its variant part, or npos if there is no variant
+  // present.
+  static std::string_view::size_type findVariantSeparator(std::string_view name);
+
 private:
   DNSName d_name;
+  std::string d_variant{};
 };
 
 size_t hash_value(ZoneName const& zone);
@@ -402,6 +426,8 @@ struct CanonZoneNameCompare
 using ZoneName = DNSName;
 using CanonZoneNameCompare = CanonDNSNameCompare;
 #endif // ]
+
+extern const ZoneName g_rootzonename;
 
 template<typename T>
 struct SuffixMatchTree

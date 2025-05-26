@@ -15,6 +15,7 @@ Random Backend
 * Disabled data: No
 * Comments: No
 * Search: No
+* Views: No
 * API: No
 * Multiple instances: No
 * Zone caching: No

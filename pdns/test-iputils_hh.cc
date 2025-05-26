@@ -299,8 +299,18 @@ BOOST_AUTO_TEST_CASE(test_Netmask) {
   BOOST_CHECK(nm1921 < nm1922);
   BOOST_CHECK(nm1922 > nm1921);
 
+  Netmask outer("20.25.0.0/16");
+  Netmask inner("20.25.4.0/24");
+  Netmask disjoint("20.24.0.0/16");
+  BOOST_CHECK(outer.match(inner.getNetwork()));
+  BOOST_CHECK(!inner.match(outer.getNetwork()));
+  BOOST_CHECK(!outer.match(disjoint.getNetwork()));
+  BOOST_CHECK(!inner.match(disjoint.getNetwork()));
+  BOOST_CHECK(!disjoint.match(inner.getNetwork()));
+  BOOST_CHECK(!disjoint.match(outer.getNetwork()));
+
   /* An empty Netmask should be larger than
-     every others. */
+     every other. */
   Netmask empty = Netmask();
   Netmask full("255.255.255.255/32");
   BOOST_CHECK(empty > all);

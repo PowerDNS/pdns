@@ -456,7 +456,7 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertEqual(r.status_code, 422)
-        self.assertIn('Unable to parse DNS Name', r.json()['error'])
+        self.assertIn('Unable to parse Zone Name', r.json()['error'])
 
     def test_create_zone_restricted_chars(self):
         name = 'test:' + unique_zone_name()  # : isn't good as a name.

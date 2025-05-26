@@ -28,9 +28,11 @@
 #include "pdns/base32.hh"
 #include "pdns/dns.hh"
 #include "pdns/dnsbackend.hh"
+#include "pdns/dnsname.hh"
 #include "pdns/dnspacket.hh"
 #include "pdns/dnssecinfra.hh"
 #include "pdns/logger.hh"
+#include "pdns/misc.hh"
 #include "pdns/pdnsexception.hh"
 #include "pdns/uuid-utils.hh"
 #include <boost/archive/binary_iarchive.hpp>
@@ -52,11 +54,12 @@
 #include <systemd/sd-daemon.h>
 #endif
 
-#define SCHEMAVERSION 5
+constexpr unsigned int SCHEMAVERSION{6};
 
 // List the class version here. Default is 0
 BOOST_CLASS_VERSION(LMDBBackend::KeyDataDB, 1)
-BOOST_CLASS_VERSION(DomainInfo, 1)
+BOOST_CLASS_VERSION(ZoneName, 1)
+BOOST_CLASS_VERSION(DomainInfo, 2)
 
 static bool s_first = true;
 static uint32_t s_shards = 0;
@@ -108,9 +111,9 @@ std::pair<uint32_t, uint32_t> LMDBBackend::getSchemaVersionAndShards(std::string
     if (retCode != 0) {
       if (retCode == MDB_NOTFOUND) {
         // this means nothing has been inited yet
-        // we pretend this means 5
+        // we pretend this means the latest schema
         mdb_txn_abort(txn);
-        return {5U, 0U};
+        return {SCHEMAVERSION, 0U};
       }
       mdb_txn_abort(txn);
       throw std::runtime_error("mdb_dbi_open failed");
@@ -127,9 +130,9 @@ std::pair<uint32_t, uint32_t> LMDBBackend::getSchemaVersionAndShards(std::string
     if (retCode != 0) {
       if (retCode == MDB_NOTFOUND) {
         // this means nothing has been inited yet
-        // we pretend this means 5
+        // we pretend this means the latest schema
         mdb_txn_abort(txn);
-        return {5U, 0U};
+        return {SCHEMAVERSION, 0U};
       }
 
       throw std::runtime_error("mdb_get pdns.schemaversion failed");
@@ -142,7 +145,7 @@ std::pair<uint32_t, uint32_t> LMDBBackend::getSchemaVersionAndShards(std::string
     memcpy(&schemaversion, data.mv_data, data.mv_size);
   }
   else if (data.mv_size >= LMDBLS::LS_MIN_HEADER_SIZE + sizeof(schemaversion)) {
-    // schemaversion presumably is 5, stored in 32 bits, network order, after the LS header
+    // schemaversion is >= 5, stored in 32 bits, network order, after the LS header
 
     // FIXME: get actual header size (including extension blocks) instead of just reading from the back
     // FIXME: add a test for reading schemaversion and shards (and actual data, later) when there are variably sized headers
@@ -660,12 +663,23 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
   return true;
 }
 
+bool LMDBBackend::upgradeToSchemav6(std::string& /* filename */)
+{
+  // a v6 reader can read v5 databases just fine
+  // so this function currently does nothing
+  // - except rely on the caller to write '6' to pdns.schemaversion,
+  // as a v5 reader will be unable to handle domain objects once we've touched them
+  return true;
+}
+
 LMDBBackend::LMDBBackend(const std::string& suffix)
 {
   // overlapping domain ids in combination with relative names are a recipe for disaster
   if (!suffix.empty()) {
     throw std::runtime_error("LMDB backend does not support multiple instances");
   }
+
+  d_views = ::arg().mustDo("views"); // This is a global setting
 
   setArgPrefix("lmdb" + suffix);
 
@@ -715,16 +729,16 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
       // std::cerr<<"current schema version: "<<currentSchemaVersion<<", shards="<<currentSchemaVersionAndShards.second<<std::endl;
 
       if (getArgAsNum("schema-version") != SCHEMAVERSION) {
-        throw std::runtime_error("This version of the lmdbbackend only supports schema version 5. Configuration demands a lower version. Not starting up.");
+        throw std::runtime_error("This version of the lmdbbackend only supports schema version 6. Configuration demands a lower version. Not starting up.");
       }
 
       if (currentSchemaVersion > 0 && currentSchemaVersion < 3) {
-        throw std::runtime_error("this version of the lmdbbackend can only upgrade from schema v3/v4 to v5. Upgrading from older schemas is not yet supported.");
+        throw std::runtime_error("this version of the lmdbbackend can only upgrade from schema v3 and up. Upgrading from older schemas is not supported.");
       }
 
       if (currentSchemaVersion == 0) {
         // no database is present yet, we can just create them
-        currentSchemaVersion = 5;
+        currentSchemaVersion = 6;
       }
 
       if (currentSchemaVersion == 3 || currentSchemaVersion == 4) {
@@ -734,18 +748,20 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
         currentSchemaVersion = 5;
       }
 
-      if (currentSchemaVersion != 5) {
-        throw std::runtime_error("Somehow, we are not at schema version 5. Giving up");
+      if (currentSchemaVersion == 5) {
+        if (!upgradeToSchemav6(filename)) {
+          throw std::runtime_error("Failed to perform LMDB schema version upgrade from v5 to v6");
+        }
+        currentSchemaVersion = 6;
       }
 
-      d_tdomains = std::make_shared<tdomains_t>(getMDBEnv(getArg("filename").c_str(), MDB_NOSUBDIR | MDB_NORDAHEAD | d_asyncFlag, 0600, mapSize), "domains_v5");
-      d_tmeta = std::make_shared<tmeta_t>(d_tdomains->getEnv(), "metadata_v5");
-      d_tkdb = std::make_shared<tkdb_t>(d_tdomains->getEnv(), "keydata_v5");
-      d_ttsig = std::make_shared<ttsig_t>(d_tdomains->getEnv(), "tsig_v5");
+      if (currentSchemaVersion != 6) {
+        throw std::runtime_error("Somehow, we are not at schema version 6. Giving up");
+      }
 
-      auto pdnsdbi = d_tdomains->getEnv()->openDB("pdns", MDB_CREATE);
-
+      openAllTheDatabases(mapSize);
       opened = true;
+      auto pdnsdbi = d_tdomains->getEnv()->openDB("pdns", MDB_CREATE);
 
       auto txn = d_tdomains->getEnv()->getRWTransaction();
 
@@ -789,8 +805,7 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
       }
 
       MDBOutVal _schemaversion{};
-      if (txn->get(pdnsdbi, "schemaversion", _schemaversion) != 0) {
-        // our DB is entirely new, so we need to write the schemaversion
+      if (txn->get(pdnsdbi, "schemaversion", _schemaversion) != 0 || _schemaversion.get<uint32_t>() != currentSchemaVersion) {
         txn->put(pdnsdbi, "schemaversion", currentSchemaVersion);
       }
       txn->commit();
@@ -800,10 +815,7 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
   }
 
   if (!opened) {
-    d_tdomains = std::make_shared<tdomains_t>(getMDBEnv(getArg("filename").c_str(), MDB_NOSUBDIR | MDB_NORDAHEAD | d_asyncFlag, 0600, mapSize), "domains_v5");
-    d_tmeta = std::make_shared<tmeta_t>(d_tdomains->getEnv(), "metadata_v5");
-    d_tkdb = std::make_shared<tkdb_t>(d_tdomains->getEnv(), "keydata_v5");
-    d_ttsig = std::make_shared<ttsig_t>(d_tdomains->getEnv(), "tsig_v5");
+    openAllTheDatabases(mapSize);
   }
   d_trecords.resize(s_shards);
   d_dolog = ::arg().mustDo("query-logging");
@@ -824,6 +836,25 @@ LMDBBackend::~LMDBBackend()
     d_rwtxn.reset();
     d_rotxn.reset();
   }
+}
+
+void LMDBBackend::openAllTheDatabases(uint64_t mapSize)
+{
+  d_tdomains = std::make_shared<tdomains_t>(getMDBEnv(getArg("filename").c_str(), MDB_NOSUBDIR | MDB_NORDAHEAD | d_asyncFlag, 0600, mapSize), "domains_v5");
+  d_tmeta = std::make_shared<tmeta_t>(d_tdomains->getEnv(), "metadata_v5");
+  d_tkdb = std::make_shared<tkdb_t>(d_tdomains->getEnv(), "keydata_v5");
+  d_ttsig = std::make_shared<ttsig_t>(d_tdomains->getEnv(), "tsig_v5");
+  d_tnetworks = d_tdomains->getEnv()->openDB("networks_v6", MDB_CREATE);
+  d_tviews = d_tdomains->getEnv()->openDB("views_v6", MDB_CREATE);
+}
+
+unsigned int LMDBBackend::getCapabilities()
+{
+  unsigned int caps = CAP_DNSSEC | CAP_DIRECT | CAP_LIST | CAP_CREATE;
+  if (d_views) {
+    caps |= CAP_VIEWS;
+  }
+  return caps;
 }
 
 namespace boost
@@ -858,39 +889,29 @@ namespace serialization
   template <class Archive>
   void save(Archive& arc, const ZoneName& zone, const unsigned int /* version */)
   {
-    // Because ZoneName is an object containing a single DNSName field,
-    // we can't naively write
-    //   arc & zone.operator const DNSName&();
-    // because the serialization actually writes the class version number in
-    // front of our provided serialization, thus causing it to be larger than
-    // the DNSName serialization. In order to remain interoperable with
-    // existing serializations, we skip the DNSName's own version number and
-    // directly serialize its contents.
-    const DNSName& name = zone.operator const DNSName&();
-    if (name.empty()) {
-      arc& std::string(); // it's arc.operator& but clang-format is confused here
-    }
-    else {
-      arc & name.toDNSStringLC();
-    }
+    arc & zone.operator const DNSName&();
+    arc & zone.getVariant();
   }
 
   template <class Archive>
-  void load(Archive& arc, ZoneName& zone, const unsigned int /* version */)
+  void load(Archive& arc, ZoneName& zone, const unsigned int version)
   {
-    // Similarly to save() above, we can't write
-    //   DNSName tmp;
-    //   arc & tmp;
-    //   zone = ZoneName(tmp);
-    // but have to reconstruct a DNSName from a string.
-    string tmp;
+    if (version == 0) { // for schemas up to 5, ZoneName serialized as DNSName
+      std::string tmp{};
+      arc & tmp;
+      if (tmp.empty()) {
+        zone = ZoneName();
+      }
+      else {
+        zone = ZoneName(DNSName(tmp.c_str(), tmp.size(), 0, false));
+      }
+      return;
+    }
+    DNSName tmp;
+    std::string variant{};
     arc & tmp;
-    if (tmp.empty()) {
-      zone = ZoneName();
-    }
-    else {
-      zone = ZoneName(DNSName(tmp.c_str(), tmp.size(), 0, false));
-    }
+    arc & variant;
+    zone = ZoneName(tmp, variant);
   }
 
   template <class Archive>
@@ -910,7 +931,14 @@ namespace serialization
   template <class Archive>
   void load(Archive& ar, DomainInfo& g, const unsigned int version)
   {
-    ar & g.zone;
+    if (version >= 2) {
+      ar & g.zone;
+    }
+    else {
+      DNSName tmp;
+      ar & tmp;
+      new (&g.zone) ZoneName(tmp);
+    }
     ar & g.last_check;
     ar & g.account;
     ar & g.primaries;
@@ -919,13 +947,26 @@ namespace serialization
     g.id = static_cast<domainid_t>(domainId);
     ar & g.notified_serial;
     ar & g.kind;
-    if (version >= 1) {
-      ar & g.options;
-      ar & g.catalog;
-    }
-    else {
+    switch (version) {
+    case 0:
+      // These fields did not exist.
       g.options.clear();
       g.catalog.clear();
+      break;
+    case 1:
+      // These fields did exist, but catalog as DNSName only.
+      ar & g.options;
+      {
+        DNSName tmp;
+        ar & tmp;
+        g.catalog = ZoneName(tmp);
+      }
+      break;
+    default:
+      // These fields exist, with catalog as ZoneName.
+      ar & g.options;
+      ar & g.catalog;
+      break;
     }
   }
 
@@ -1295,6 +1336,181 @@ bool LMDBBackend::replaceComments([[maybe_unused]] domainid_t domain_id, [[maybe
   return comments.empty();
 }
 
+// FIXME: this is not very efficient
+static DNSName keyUnconv(std::string& instr)
+{
+  // instr is now com0example0
+  vector<string> labels;
+  boost::split(labels, instr, [](char chr) { return chr == '\0'; });
+
+  // we get a spurious empty label at the end, drop it
+  labels.resize(labels.size() - 1);
+
+  if (labels.size() == 1 && labels[0].empty()) {
+    // this is the root
+    return g_rootdnsname;
+  }
+
+  DNSName tmp;
+
+  for (auto const& label : labels) {
+    tmp.appendRawLabel(label);
+  }
+  return tmp.labelReverse();
+}
+
+static std::string makeBadDataExceptionMessage(const std::string& where, std::exception& exc, MDBOutVal& key, MDBOutVal& val)
+{
+  ostringstream msg;
+  msg << "during " << where << ", got exception (" << exc.what() << "), ";
+  msg << "key: " << makeHexDump(key.getNoStripHeader<string>()) << ", ";
+  msg << "value: " << makeHexDump(val.get<string>());
+
+  return msg.str();
+}
+
+void LMDBBackend::viewList(vector<string>& result)
+{
+  auto txn = d_tdomains->getEnv()->getROTransaction();
+
+  auto cursor = txn->getROCursor(d_tviews);
+
+  MDBOutVal key{}; // <view, dnsname>
+  MDBOutVal val{}; // <variant>
+
+  auto ret = cursor.first(key, val);
+
+  if (ret == MDB_NOTFOUND) {
+    return;
+  }
+
+  do {
+    string view;
+    string zone;
+    try {
+      std::tie(view, zone) = splitField(key.getNoStripHeader<string>(), '\x0');
+      auto variant = val.get<string>();
+      result.push_back(view);
+    }
+    catch (std::exception& e) {
+      throw PDNSException(makeBadDataExceptionMessage("viewList", e, key, val));
+    }
+
+    string inkey{view + string(1, (char)1)};
+    MDBInVal bound{inkey};
+    ret = cursor.lower_bound(bound, key, val); // this should use some lower bound thing to skip to the next view, also avoiding duplicates in `result`
+  } while (ret != MDB_NOTFOUND);
+}
+
+void LMDBBackend::viewListZones(const string& inview, vector<ZoneName>& result)
+{
+  result.clear();
+
+  auto txn = d_tdomains->getEnv()->getROTransaction();
+
+  auto cursor = txn->getROCursor(d_tviews);
+
+  string inkey{inview + string(1, (char)0)};
+  MDBInVal prefix{inkey};
+  MDBOutVal key{}; // <view, dnsname>
+  MDBOutVal val{}; // <variant>
+
+  auto ret = cursor.prefix(prefix, key, val);
+
+  if (ret == MDB_NOTFOUND) {
+    return;
+  }
+
+  do {
+    try {
+      auto [view, _zone] = splitField(key.getNoStripHeader<string>(), '\x0');
+      auto variant = val.get<string>();
+      auto zone = keyUnconv(_zone);
+      result.emplace_back(ZoneName(zone, variant));
+    }
+    catch (std::exception& e) {
+      throw PDNSException(makeBadDataExceptionMessage("viewListZones", e, key, val));
+    }
+
+    ret = cursor.next(key, val);
+  } while (ret != MDB_NOTFOUND);
+}
+
+// TODO: make this add-or-del to reduce code duplication?
+bool LMDBBackend::viewAddZone(const string& view, const ZoneName& zone)
+{
+  auto txn = d_tdomains->getEnv()->getRWTransaction();
+
+  string key = view + string(1, (char)0) + keyConv(zone.operator const DNSName&());
+  string val = zone.getVariant(); // variant goes here
+
+  txn->put(d_tviews, key, val);
+  txn->commit();
+
+  return true;
+}
+
+bool LMDBBackend::viewDelZone(const string& view, const ZoneName& zone)
+{
+  auto txn = d_tdomains->getEnv()->getRWTransaction();
+
+  string key = view + string(1, (char)0) + keyConv(zone.operator const DNSName&());
+  // string val = "foo"; // variant goes here
+
+  txn->del(d_tviews, key);
+  txn->commit();
+
+  return true;
+}
+
+bool LMDBBackend::networkSet(const Netmask& net, std::string& view)
+{
+  auto txn = d_tdomains->getEnv()->getRWTransaction();
+
+  if (view.empty()) {
+    txn->del(d_tnetworks, net.toByteString());
+  }
+  else {
+    txn->put(d_tnetworks, net.toByteString(), view);
+  }
+  txn->commit();
+
+  return true;
+}
+
+bool LMDBBackend::networkList(vector<pair<Netmask, string>>& networks)
+{
+  networks.clear();
+
+  auto txn = d_tdomains->getEnv()->getROTransaction();
+
+  auto cursor = txn->getROCursor(d_tnetworks);
+
+  MDBOutVal netval{};
+  MDBOutVal viewval{};
+
+  auto ret = cursor.first(netval, viewval);
+
+  if (ret == MDB_NOTFOUND) {
+    return true;
+  }
+
+  do {
+    try {
+      auto net = Netmask(netval.getNoStripHeader<string>(), Netmask::byteString);
+      auto view = viewval.get<string>();
+      networks.emplace_back(std::make_pair(net, view));
+    }
+    catch (std::exception& e) {
+      throw PDNSException(makeBadDataExceptionMessage("networkList", e, netval, viewval));
+    }
+
+    ret = cursor.next(netval, viewval);
+  } while (ret != MDB_NOTFOUND);
+
+  return true;
+}
+
 // tempting to templatize these two functions but the pain is not worth it
 // NOLINTNEXTLINE(readability-identifier-length)
 std::shared_ptr<LMDBBackend::RecordsRWTransaction> LMDBBackend::getRecordsRWTransaction(domainid_t id)
@@ -1622,6 +1838,12 @@ bool LMDBBackend::getSerial(DomainInfo& di)
 
 bool LMDBBackend::getDomainInfo(const ZoneName& domain, DomainInfo& info, bool getserial)
 {
+  // If caller asks about a zone with variant, but views are not enabled,
+  // punt.
+  if (domain.hasVariant() && !d_views) {
+    return false;
+  }
+
   {
     auto txn = d_tdomains->getROTransaction();
     // auto range = txn.prefix_range<0>(domain);
@@ -1781,6 +2003,11 @@ void LMDBBackend::getAllDomains(vector<DomainInfo>* domains, bool /* doSerial */
 {
   getAllDomainsFiltered(domains, [this, include_disabled](DomainInfo& di) {
     if (!getSerial(di) && !include_disabled) {
+      return false;
+    }
+
+    // Skip domains with variants if views are disabled.
+    if (di.zone.hasVariant() && !d_views) {
       return false;
     }
 
