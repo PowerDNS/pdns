@@ -609,6 +609,11 @@ if python.found()
       foreach man_page: info['manpages']
         if not fs.is_file(man_page)
           generated_man_pages += man_page
+        else
+          install_man(
+            man_page,
+            install_dir: join_paths(get_option('mandir'), 'man1'),
+          )
         endif
       endforeach
     endif
