@@ -3,7 +3,7 @@
 
 # This defines the distribution base layer
 # Put only the bare minimum of common commands here, without dev tools
-FROM oraclelinux:9 as dist-base
+FROM oraclelinux:9 AS dist-base
 
 ARG BUILDER_CACHE_BUSTER=
 RUN touch /var/lib/rpm/* && dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm && \

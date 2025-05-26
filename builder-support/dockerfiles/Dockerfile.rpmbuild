@@ -1,4 +1,4 @@
-FROM dist-base as package-builder
+FROM dist-base AS package-builder
 RUN if $(grep -q 'release 8' /etc/redhat-release); then \
       yum upgrade -y && \
       yum install --allowerasing -y rpm-build rpmdevtools python3.12 curl jq "@Development Tools" ninja-build hostname python3.12-pip python3.12-yaml ; \
@@ -17,7 +17,9 @@ ADD builder-support/helpers/ /pdns/builder-support/helpers/
 
 @IF [ -n "$M_recursor$M_all" ]
 COPY --from=pdns-recursor /tmp/rust* /tmp
-RUN cd /pdns/builder-support/helpers/ && ./install_rust.sh
+RUN cd /pdns/builder-support/helpers/ && ./install_rust.sh && \
+    yum install -y git cmake clang
+RUN cd /pdns/builder-support/helpers/ && ./install_meson.sh
 @ENDIF
 
 @IF [ -n "$M_dnsdist$M_all" ]

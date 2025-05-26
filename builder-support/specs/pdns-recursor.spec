@@ -6,19 +6,24 @@ Group: System Environment/Daemons
 License: GPLv2
 Vendor: PowerDNS.COM BV
 URL: https://powerdns.com
-Source0: %{name}-%{getenv:BUILDER_VERSION}.tar.bz2
+Source0: %{name}-%{getenv:BUILDER_VERSION}.tar.xz
 
 Provides: powerdns-recursor = %{version}-%{release}
 
+BuildRequires: clang
+BuildRequires: lld
+
 BuildRequires: boost-devel
+BuildRequires: fstrm-devel
+BuildRequires: hostname
 BuildRequires: libcap-devel
+BuildRequires: libcurl-devel
+BuildRequires: libsodium-devel
+BuildRequires: net-snmp-devel
+BuildRequires: ninja-build
+BuildRequires: openssl-devel
 BuildRequires: systemd
 BuildRequires: systemd-devel
-BuildRequires: openssl-devel
-BuildRequires: fstrm-devel
-BuildRequires: libcurl-devel
-BuildRequires: net-snmp-devel
-BuildRequires: libsodium-devel
 
 %ifarch aarch64
 BuildRequires: lua-devel
@@ -43,30 +48,58 @@ package if you need a dns cache for your network.
 %prep
 %autosetup -p1 -n %{name}-%{getenv:BUILDER_VERSION}
 
+%if 0%{?rhel} >= 9
+%global toolchain clang
+%else
+# we need to disable the hardened flags because they are GCC-only
+%undefine _hardened_build
+%endif
+
 %build
+# We need to build with LLVM/clang to be able to use LTO, since we are linking against a static Rust library built with LLVM
+export CC=clang
+export CXX=clang++
+# build-id SHA1 prevents an issue with the debug symbols ("export: `-Wl,--build-id=sha1': not a valid identifier")
+export LDFLAGS="-fuse-ld=lld -Wl,--build-id=sha1"
 
-%configure \
-    --enable-option-checking=fatal \
+%if 0%{?rhel} < 9
+# starting with EL-9 we get these hardening settings for free by just setting the right toolchain (see above)
+%ifarch aarch64
+%define cf_protection %{nil}
+%else
+%define cf_protection -fcf-protection
+%endif
+%if "%{_arch}" == "aarch64" && 0%{?amzn2023}
+%define stack_clash_protection %{nil}
+%else
+%define stack_clash_protection -fstack-clash-protection
+%endif
+export CFLAGS="-O2 -g -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -fexceptions -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -gdwarf-4"
+export CXXFLAGS="-O2 -g -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -fexceptions -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -gdwarf-4"
+%endif
+
+# Note that the RPM meson macro "helpfully" sets
+# --auto-features=enabled so our auto-detection is broken
+%meson \
     --sysconfdir=%{_sysconfdir}/%{name} \
-    --disable-silent-rules \
-    --disable-static \
-    --enable-unit-tests \
-    --enable-dns-over-tls \
-    --enable-dnstap \
-    --with-libcap \
-    --with-lua=%{lua_implementation} \
-    --with-libsodium \
-    --with-net-snmp \
-    --enable-systemd --with-systemd=%{_unitdir} \
-    --enable-nod
-
-make %{?_smp_mflags}
+    -Dunit-tests=true \
+    -Db_lto=true \
+    -Db_lto_mode=thin \
+    -Db_pie=true \
+    -Ddns-over-tls=enabled \
+    -Ddnstap=enabled \
+    -Dlibcap=enabled \
+    -Dlua=%{lua_implementation} \
+    -Dsigners-libsodium=enabled \
+    -Dsnmp=enabled \
+    -Dnod=enabled
+%meson_build
 
 %check
-make %{?_smp_mflags} check || (cat test-suite.log && false)
+%meson_test
 
 %install
-make install DESTDIR=%{buildroot}
+%meson_install
 
 %{__mkdir} %{buildroot}%{_sysconfdir}/%{name}/recursor.d
 
