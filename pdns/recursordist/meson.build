@@ -78,6 +78,7 @@ subdir('meson' / 'libresolv')               # res_query
 subdir('meson' / 'dnstap')                  # DNSTAP through libfstream
 subdir('meson' / 'libcurl')                 # Curl
 subdir('meson' / 'libcap')                  # Capabilities
+subdir('meson' / 'dlopen')                  # our Rust static library needs dlopen
 
 subdir('rec-rust-lib')
 
@@ -306,6 +307,7 @@ deps = [
   dep_pdns,
   dep_no_config_in_source,
   dep_rust_recrust,
+  dep_dlopen,
   dep_boost,
   dep_boost_context,
   dep_threads,
