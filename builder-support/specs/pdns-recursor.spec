@@ -12,15 +12,19 @@ Provides: powerdns-recursor = %{version}-%{release}
 
 BuildRequires: clang
 BuildRequires: lld
+BuildRequires: ninja-build
 
+%if 0%{?rhel} < 9
+BuildRequires: boost1.78-devel
+%else
 BuildRequires: boost-devel
+%endif
 BuildRequires: fstrm-devel
 BuildRequires: hostname
 BuildRequires: libcap-devel
 BuildRequires: libcurl-devel
 BuildRequires: libsodium-devel
 BuildRequires: net-snmp-devel
-BuildRequires: ninja-build
 BuildRequires: openssl-devel
 BuildRequires: systemd
 BuildRequires: systemd-devel
@@ -44,7 +48,6 @@ Requires(pre): shadow-utils
 PowerDNS Recursor is a non authoritative/recursing DNS server. Use this
 package if you need a dns cache for your network.
 
-
 %prep
 %autosetup -p1 -n %{name}-%{getenv:BUILDER_VERSION}
 
@@ -56,6 +59,10 @@ package if you need a dns cache for your network.
 %endif
 
 %build
+%if 0%{?rhel} < 9
+export BOOST_INCLUDEDIR=/usr/include/boost1.78
+export BOOST_LIBRARYDIR=/usr/lib64/boost1.78
+%endif
 # We need to build with LLVM/clang to be able to use LTO, since we are linking against a static Rust library built with LLVM
 export CC=clang
 export CXX=clang++
@@ -74,8 +81,8 @@ export LDFLAGS="-fuse-ld=lld -Wl,--build-id=sha1"
 %else
 %define stack_clash_protection -fstack-clash-protection
 %endif
-export CFLAGS="-O2 -g -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -fexceptions -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -gdwarf-4"
-export CXXFLAGS="-O2 -g -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -fexceptions -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -fcf-protection -gdwarf-4"
+export CFLAGS="-O2 -g -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -fexceptions -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables %{stack_clash_protection} %{cf_protection} -gdwarf-4"
+export CXXFLAGS="-O2 -g -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -fexceptions -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables %{stack_clash_protection} %{cf_protection} -gdwarf-4"
 %endif
 
 # Note that the RPM meson macro "helpfully" sets
