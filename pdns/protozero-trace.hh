@@ -30,6 +30,7 @@
 #include <protozero/pbf_writer.hpp>
 
 #include "dns_random.hh"
+#include "ednsoptions.hh"
 
 // See https://github.com/open-telemetry/opentelemetry-proto/tree/main/opentelemetry/proto
 
@@ -232,14 +233,40 @@ inline void random(SpanID& span)
   dns_random(span.data(), span.size());
 }
 
-inline void reset(TraceID& trace)
+inline void clear(TraceID& trace)
 {
   memset(trace.data(), 0, trace.size());
 }
 
-inline void reset(SpanID& span)
+inline void clear(SpanID& span)
 {
   memset(span.data(), 0, span.size());
+}
+
+inline void fill(TraceID& trace, const std::string& data)
+{
+  if (data.size() != trace.size()) {
+    throw std::runtime_error("TracID size mismatch");
+  }
+  memcpy(trace.data(), data.data(), trace.size());
+}
+
+inline void fill(SpanID& span, const std::string& data)
+{
+  if (data.size() != span.size()) {
+    throw std::runtime_error("TracID size mismatch");
+  }
+  memcpy(span.data(), data.data(), span.size());
+}
+
+inline void fill(TraceID& trace, const char* data, size_t size)
+{
+  fill(trace, std::string(data, size));
+}
+
+inline void fill(SpanID& span, const char* data, size_t size)
+{
+  fill(span, std::string(data, size));
 }
 
 inline void encode(protozero::pbf_writer& writer, uint8_t field, const TraceID& value)
@@ -291,6 +318,11 @@ struct Status
   // The status code.
   StatusCode code{StatusCode::STATUS_CODE_UNSET}; //  = 3;
 
+  void clear()
+  {
+    message.clear();
+    code = StatusCode::STATUS_CODE_UNSET;
+  }
   void encode(protozero::pbf_writer& writer) const;
   static Status decode(protozero::pbf_reader& reader);
 };
@@ -498,6 +530,26 @@ struct Span
   {
     end_time_unix_nano = timestamp();
   }
+
+  void clear()
+  {
+    pdns::trace::clear(trace_id); // 1
+    pdns::trace::clear(span_id); // 2
+    trace_state.clear(); // 3
+    pdns::trace::clear(parent_span_id); // 4
+    name.clear(); // 5
+    kind = SpanKind::SPAN_KINUNSPECIFIED; // 6
+    start_time_unix_nano = 0; // 7
+    end_time_unix_nano = 0; // 8
+    attributes.clear(); // 9
+    dropped_attributes_count = 0; // 10
+    events.clear(); // 11
+    dropped_events_count = 0; // 12
+    links.clear(); // 13
+    dropped_links_count = 0; //14
+    status.clear(); // 15
+    flags = 0; // 16
+  }
   void encode(protozero::pbf_writer& writer) const;
   static Span decode(protozero::pbf_reader& reader);
 };
@@ -630,4 +682,6 @@ inline KeyValueList KeyValueList::decode(protozero::pbf_reader& reader)
   return pdns::trace::decode<KeyValueList, KeyValue>(reader);
 }
 
-}
+void extractOTraceIDs(const EDNSOptionViewMap& map, pdns::trace::Span& span);
+
+} // namespace pdns::trace

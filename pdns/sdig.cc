@@ -13,6 +13,7 @@
 #include "sstuff.hh"
 #include "statbag.hh"
 #include <boost/array.hpp>
+#include "protozero-trace.hh"
 
 #ifdef HAVE_LIBCURL
 #include "minicurl.hh"
@@ -43,7 +44,8 @@ static void usage()
           "[tcp] [dot] [insecure] [fastOpen] [subjectName name] [caStore file] [tlsProvider openssl|gnutls] "
           "[proxy UDP(0)/TCP(1) SOURCE-IP-ADDRESS-AND-PORT DESTINATION-IP-ADDRESS-AND-PORT] "
           "[cookie -/HEX] "
-          "[dumpluaraw] [opcode OPNUM]"
+          "[dumpluaraw] [opcode OPNUM] "
+          "[otid -/HEX]"
        << endl;
 }
 
@@ -55,15 +57,18 @@ static const string nameForClass(QClass qclass, uint16_t qtype)
   return qclass.toString();
 }
 
+using OpenTelemetryData = std::optional<std::pair<pdns::trace::TraceID, pdns::trace::SpanID>>;
+
 static std::unordered_set<uint16_t> s_expectedIDs;
 
 static void fillPacket(vector<uint8_t>& packet, const string& q, const string& t,
                        bool dnssec, const std::optional<Netmask>& ednsnm,
-                       bool recurse, QClass qclass, uint8_t opcode, uint16_t qid, const std::optional<string>& cookie)
+                       bool recurse, QClass qclass, uint8_t opcode, uint16_t qid, const std::optional<string>& cookie,
+                       OpenTelemetryData& otids)
 {
   DNSPacketWriter pw(packet, DNSName(q), DNSRecordContent::TypeToNumber(t), qclass, opcode);
 
-  if (dnssec || ednsnm || getenv("SDIGBUFSIZE") != nullptr || cookie) { // NOLINT(concurrency-mt-unsafe) we're single threaded
+  if (dnssec || ednsnm || getenv("SDIGBUFSIZE") != nullptr || cookie || otids) { // NOLINT(concurrency-mt-unsafe) we're single threaded
     char* sbuf = getenv("SDIGBUFSIZE"); // NOLINT(concurrency-mt-unsafe) we're single threaded
     int bufsize;
     if (sbuf)
@@ -88,6 +93,11 @@ static void fillPacket(vector<uint8_t>& packet, const string& q, const string& t
         }
       }
       opts.emplace_back(EDNSOptionCode::COOKIE, cookieOpt.makeOptString());
+    }
+    if (otids) {
+      opts.emplace_back(EDNSOptionCode::OTTRACEID, std::string_view(reinterpret_cast<const char*>(otids->first.data()), otids->first.size()));
+      pdns::trace::random(otids->second);
+      opts.emplace_back(EDNSOptionCode::OTSPANID, std::string_view(reinterpret_cast<const char*>(otids->second.data()), otids->second.size()));
     }
     pw.addOpt(bufsize, 0, dnssec ? EDNSOpts::DNSSECOK : 0, opts);
     pw.commit();
@@ -245,6 +255,7 @@ try {
   string tlsProvider = "openssl";
   bool dumpluaraw = false;
   std::optional<string> cookie;
+  OpenTelemetryData otdata;
 
   // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic, concurrency-mt-unsafe) it's the argv API and we're single-threaded
   for (int i = 1; i < argc; i++) {
@@ -348,6 +359,24 @@ try {
       else if (strcmp(argv[i], "dumpluaraw") == 0) {
         dumpluaraw = true;
       }
+      else if (strcmp(argv[i], "otid") == 0) {
+        if (argc < i + 2) {
+          cerr << "otid needs an argument" << endl;
+          exit(EXIT_FAILURE);
+        }
+        auto traceIDArg = std::string(argv[++i]);
+        pdns::trace::TraceID traceid{};
+        if (traceIDArg == "-") {
+          pdns::trace::random(traceid);
+        }
+        else {
+          auto traceIDStr = makeBytesFromHex(traceIDArg);
+          traceIDStr.resize(traceid.size());
+          pdns::trace::fill(traceid, traceIDStr);
+        }
+        pdns::trace::SpanID spanid{}; // don't fill in yet
+        otdata = std::make_pair(traceid, spanid);
+      }
       else {
         cerr << argv[i] << ": unknown argument" << endl;
         exit(EXIT_FAILURE);
@@ -399,7 +428,7 @@ try {
 #ifdef HAVE_LIBCURL
     vector<uint8_t> packet;
     s_expectedIDs.insert(0);
-    fillPacket(packet, name, type, dnssec, ednsnm, recurse, qclass, opcode, 0, cookie);
+    fillPacket(packet, name, type, dnssec, ednsnm, recurse, qclass, opcode, 0, cookie, otdata);
     MiniCurl mc;
     MiniCurl::MiniCurlHeaders mch;
     mch.emplace("Content-Type", "application/dns-message");
@@ -453,7 +482,7 @@ try {
     for (const auto& it : questions) {
       vector<uint8_t> packet;
       s_expectedIDs.insert(counter);
-      fillPacket(packet, it.first, it.second, dnssec, ednsnm, recurse, qclass, opcode, counter, cookie);
+      fillPacket(packet, it.first, it.second, dnssec, ednsnm, recurse, qclass, opcode, counter, cookie, otdata);
       counter++;
 
       // Prefer to do a single write, so that fastopen can send all the data on SYN
@@ -483,7 +512,7 @@ try {
   {
     vector<uint8_t> packet;
     s_expectedIDs.insert(0);
-    fillPacket(packet, name, type, dnssec, ednsnm, recurse, qclass, opcode, 0, cookie);
+    fillPacket(packet, name, type, dnssec, ednsnm, recurse, qclass, opcode, 0, cookie, otdata);
     string question(packet.begin(), packet.end());
     Socket sock(dest.sin4.sin_family, SOCK_DGRAM);
     question = proxyheader + question;

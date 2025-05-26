@@ -2266,11 +2266,16 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         ecsFound = false;
 
         getQNameAndSubnet(question, &qname, &qtype, &qclass,
-                          ecsFound, &ednssubnet, g_gettagNeedsEDNSOptions ? &ednsOptions : nullptr, ednsVersion);
+                          ecsFound, &ednssubnet,
+                          (g_gettagNeedsEDNSOptions || (SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_ot) != 0) ? &ednsOptions : nullptr,
+                          ednsVersion);
 
         qnameParsed = true;
         ecsParsed = true;
 
+        if ((SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_ot) != 0) {
+          pdns::trace::extractOTraceIDs(ednsOptions, otTrace);
+        }
         if (t_pdl) {
           try {
             if (t_pdl->hasGettagFFIFunc()) {
@@ -2490,17 +2495,9 @@ static void handleNewUDPQuestion(int fileDesc, FDMultiplexer::funcparam_t& /* va
       auto traceTS = pdns::trace::timestamp();
       eventTrace.add(RecEventTrace::ReqRecv);
       if ((SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_ot) != 0) {
+        otTrace.clear();
         otTrace.start_time_unix_nano = traceTS;
-        pdns::trace::TraceID traceid;
-        pdns::trace::random(traceid);
-        pdns::trace::SpanID spanid;
-        pdns::trace::random(spanid);
-        pdns::trace::SpanID parent;
-        pdns::trace::reset(parent);
         otTrace.name = "RecRequest";
-        otTrace.trace_id = traceid;
-        otTrace.span_id = spanid;
-        otTrace.parent_span_id = parent;
       }
       firstQuery = false;
 

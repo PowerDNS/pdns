@@ -307,7 +307,16 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
   boost::optional<uint32_t> ednsVersion;
 
   comboWriter->d_eventTrace.setEnabled(SyncRes::s_event_trace_enabled != 0);
+  // evenTrace use monotonic time, while OpenTelemetry uses absolute time. setEnabled()
+  // estabslished the reference point, get an absolute TS as close as possible to the
+  // eventTrace start of trace time.
+  auto traceTS = pdns::trace::timestamp();
   comboWriter->d_eventTrace.add(RecEventTrace::ReqRecv);
+  if ((SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_ot) != 0) {
+    comboWriter->d_otTrace.clear();
+    comboWriter->d_otTrace.start_time_unix_nano = traceTS;
+    comboWriter->d_otTrace.name = "RecRequest";
+  }
   auto luaconfsLocal = g_luaconfs.getLocal();
   if (checkProtobufExport(luaconfsLocal)) {
     needEDNSParse = true;
@@ -322,9 +331,13 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
       comboWriter->d_ecsParsed = true;
       comboWriter->d_ecsFound = false;
       getQNameAndSubnet(conn->data, &qname, &qtype, &qclass,
-                        comboWriter->d_ecsFound, &comboWriter->d_ednssubnet, g_gettagNeedsEDNSOptions ? &ednsOptions : nullptr, ednsVersion);
+                        comboWriter->d_ecsFound, &comboWriter->d_ednssubnet,
+                        (g_gettagNeedsEDNSOptions || (SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_ot) != 0) ? &ednsOptions : nullptr, ednsVersion);
       qnameParsed = true;
 
+      if ((SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_ot) != 0) {
+        pdns::trace::extractOTraceIDs(ednsOptions, comboWriter->d_otTrace);
+      }
       if (t_pdl) {
         try {
           if (t_pdl->hasGettagFFIFunc()) {

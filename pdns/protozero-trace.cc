@@ -506,4 +506,32 @@ KeyValue KeyValue::decode(protozero::pbf_reader& reader)
   return value;
 }
 
+void extractOTraceIDs(const EDNSOptionViewMap& map, pdns::trace::Span& span)
+{
+  // traceid gets set from edns options (if available and well-formed), otherwise random
+  // parent_span_id gets set form edns options (if available and well-formed, otherwise it says cleared (no parent)
+  // span_id gets inited randomly
+  bool traceidset = false;
+  if (const auto& option = map.find(EDNSOptionCode::OTTRACEID); option != map.end()) {
+    if (option->second.values.size() > 0) {
+      if (option->second.values.at(0).size == span.trace_id.size()) {
+        traceidset = true;
+        pdns::trace::fill(span.trace_id, option->second.values.at(0).content, span.trace_id.size());
+      }
+    }
+  }
+  if (!traceidset) {
+    random(span.trace_id);
+  }
+  if (const auto& option = map.find(EDNSOptionCode::OTSPANID); option != map.end()) {
+    if (option->second.values.size() > 0) {
+      if (option->second.values.at(0).size == span.parent_span_id.size()) {
+        pdns::trace::fill(span.parent_span_id, option->second.values.at(0).content, span.parent_span_id.size());
+      }
+    }
+    // Empty parent span id indicated the client did not set one
+  }
+  random(span.span_id);
 }
+
+} // namespace pdns::trace
