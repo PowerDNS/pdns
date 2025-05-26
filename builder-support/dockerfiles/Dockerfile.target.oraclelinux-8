@@ -3,10 +3,11 @@
 
 # This defines the distribution base layer
 # Put only the bare minimum of common commands here, without dev tools
-FROM oraclelinux:8 as dist-base
+FROM oraclelinux:8 AS dist-base
 
 ARG BUILDER_CACHE_BUSTER=
 RUN touch /var/lib/rpm/* && dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm && \
+    dnf install -y epel-release && \
     dnf install -y 'dnf-command(config-manager)' yum && \
     dnf config-manager --set-enabled ol8_codeready_builder && \
     dnf install gcc-toolset-13

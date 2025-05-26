@@ -22,10 +22,7 @@ fi
 # with a find condition for pdns to exclude accidentally matching pdns-recursor*.
 for prog in pdns-recursor dnsdist; do
   if [ $(find ${SRCDIR}/dist -name "${prog}*" 2>/dev/null | wc -l) -ne 0 ]; then
-    extension="tar.bz2"
-    if [ "$prog" = "dnsdist" ]; then
-      extension="tar.xz"
-    fi
+    extension="tar.xz"
     dst=${DESTDIR}/${prog}/${BUILDER_VERSION}
     mkdir -p ${dst}
     cp ${BUILDER_TMP}/${BUILDER_VERSION}/sdist/${prog}*.${extension} ${dst}
