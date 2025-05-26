@@ -490,12 +490,6 @@ Changelogs for 5.0.x
     Properly finalize PKCS11 modules before releasing them
 
   .. change::
-    :tags: New Features
-    :pullreq: 14021
-
-    LUA: make whitespace insertion on chunk combine optional
-
-  .. change::
     :tags: Improvements
     :pullreq: 14011
 
