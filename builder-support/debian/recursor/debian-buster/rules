@@ -1,41 +1,61 @@
 #!/usr/bin/make -f
+include /usr/share/dpkg/architecture.mk
+include /usr/share/dpkg/pkg-info.mk
 
 # Turn on all hardening flags, as we're a networked daemon.
 # Note: blhc (build log hardening check) will find these false positives: CPPFLAGS 2 missing, LDFLAGS 1 missing
-export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+export DEB_BUILD_MAINT_OPTIONS = hardening=+bindnow,+pie optimize=-lto
 # see EXAMPLES in dpkg-buildflags(1) and read /usr/share/dpkg/*
 DPKG_EXPORT_BUILDFLAGS = 1
 include /usr/share/dpkg/default.mk
 
-CONFIGURE_ARGS =
+# Only enable systemd integration on Linux operating systems
+ifeq ($(DEB_HOST_ARCH_OS),linux)
+MESON_ARGS += -Dsystemd-service=enabled
+DH_ARGS += --with systemd
+else
+MESON_ARGS += -Dsystemd-service=disabled
+endif
 
-# Workaround for debbug #1078413 https://github.com/PowerDNS/pdns/issues/14084
-CONFIGURE_ARGS += --with-libcrypto=/usr
+# Only disable luajit on arm64
+#ifneq ($(DEB_HOST_ARCH),arm64)
+#MESON_ARGS += -Dlua=luajit
+#else
+MESON_ARGS += -Dlua=auto
+#endif
 
 %:
-	dh $@
+	dh $@ --buildsystem=meson \
+	  $(DH_ARGS)
 
 override_dh_auto_clean:
 	dh_auto_clean
 	rm -f dnslabeltext.cc
 	chmod +x mkpubsuffixcc || true
 
+# We need clang (LLVM) to link the Rust static library and the C++ code with LTO enabled
+# build-id SHA1 prevents an issue with the debug symbols ("export: `-Wl,--build-id=sha1': not a valid identifier")
+
 override_dh_auto_configure:
-	PATH=debian/configure-helpers/:$$PATH dh_auto_configure -- \
-		--sysconfdir=/etc/powerdns \
-		--enable-systemd --with-systemd=/lib/systemd/system \
-		--enable-unit-tests \
-		--disable-silent-rules \
-		--with-service-user=pdns \
-		--with-service-group=pdns \
-		--with-libcap \
-		--with-libsodium \
-		--with-lua \
-		--with-net-snmp \
-		--enable-dns-over-tls \
-		--enable-dnstap \
-		--enable-nod \
-		$(CONFIGURE_ARGS)
+	LDFLAGS="-latomic -fuse-ld=lld -Wl,--build-id=sha1" \
+	CC=clang \
+	CXX=clang++ \
+	PKG_CONFIG_PATH=/opt/lib/pkgconfig dh_auto_configure -- \
+	--sysconfdir=%{_sysconfdir}/%{name} \
+	-Db_lto=true \
+	-Db_lto_mode=thin \
+	-Db_pie=true \
+	-Dunit-tests=true \
+	-Ddns-over-tls=enabled \
+	-Ddnstap=enabled \
+	-Dlibcap=enabled \
+	-Dsigners-libsodium=enabled \
+	-Dsnmp=enabled \
+	-Dnod=enabled \
+	$(MESON_ARGS)
+
+override_dh_auto_build-arch:
+	dh_auto_build
 
 # Stop installing the Lua config files once we fully moved to YAML configuration
 override_dh_auto_install:
