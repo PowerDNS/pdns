@@ -63,8 +63,10 @@ jobs:
           persist-credentials: false
       - name: validate reference only if image will be pushed
         if: ${{ inputs.push }}
+        env:
+          REF: ${{ inputs.ref }}
         run: |
-          [[ "${{ inputs.ref }}" == "master" ]] || git describe --tags --exact-match
+          [[ "${REF}" == "master" ]] || git describe --tags --exact-match
 
   build:
     name: build docker image for a product
@@ -150,29 +152,34 @@ jobs:
       matrix:
         runner-os: ${{ fromJson(needs.prepare-test-runner-os-list.outputs.runnerlist )}}
       fail-fast: false
+    env:
+      INPUT_IMAGE_NAME: ${{ inputs.image-name }}
+      INPUT_IMAGE_TAGS: ${{ inputs.image-tags }}
+      INPUT_PLATFORMS: ${{ inputs.platforms }}
     steps:
       - name: Check running image
         run: |
-          image_name='${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}/${{ inputs.image-name }}'
-          for tag in `echo '${{ inputs.image-tags }}' | tr '\n' ' '`; do
+          image_name="${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}/${INPUT_IMAGE_NAME}"
+          for tag in `echo "${INPUT_IMAGE_TAGS}" | tr '\n' ' '`; do
             echo 'Testing: '${image_name}':'${tag};
             # pdns-auth image returns a 134 exit code
             docker run ${image_name}:${tag} --version || [ "$?" == "134" ]
           done
       - name: Check image digest matches
+        env:
+          EXPECTED_DIGEST: ${{ needs.build.outputs.image-digest }}
         run: |
-          output_digest='${{ needs.build.outputs.image-digest }}'
-          image_name='${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}/${{ inputs.image-name }}'
-          for tag in `echo '${{ inputs.image-tags }}' | tr '\n' ' '`; do
+          image_name="${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}/${INPUT_IMAGE_NAME}"
+          for tag in `echo "${INPUT_IMAGE_TAGS}" | tr '\n' ' '`; do
             image_digest=$(docker inspect --format='{{index .RepoDigests 0}}' ${image_name}:${tag} | cut -d '@' -f 2)
-            [[ "${output_digest}" == "${image_digest}" ]] || \
-              ( echo "Image digest does not match => output_digest: "${output_digest}" - image_digest: "${image_digest} && exit 1 )
+            [[ "${EXPECTED_DIGEST}" == "${image_digest}" ]] || \
+              ( echo "Image digest does not match => output_digest: "${EXPECTED_DIGEST}" - image_digest: "${image_digest} && exit 1 )
           done
       - name: Check SBOM and Provenance
         run: |
-          image_name='${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}/${{ inputs.image-name }}'
-          for tag in `echo '${{ inputs.image-tags }}' | tr '\n' ' '`; do
-            if $(echo '${{ inputs.platforms }}' | grep -qq ','); then
+          image_name="${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}/${INPUT_IMAGE_NAME}"
+          for tag in `echo "${INPUT_IMAGE_TAGS}" | tr '\n' ' '`; do
+            if $(echo "${INPUT_PLATFORMS}" | grep -qq ','); then
               docker buildx imagetools inspect ${image_name}:${tag} --format "{{json .Provenance}}" | jq -e '."linux/'$(dpkg --print-architecture)'" | has("SLSA")'
               docker buildx imagetools inspect ${image_name}:${tag} --format "{{json .SBOM}}" | jq -e '."linux/'$(dpkg --print-architecture)'" | has("SPDX")'
             else

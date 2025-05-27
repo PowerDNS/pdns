@@ -103,8 +103,6 @@ jobs:
     name: ${{ matrix.requirements-file }} - Validate list of packages and hashes
     runs-on: ubuntu-22.04
     needs: list-pip-requirement-files
-    env:
-      SERVICE_IP_ADDR: 127.0.0.1
     services:
       database:
         image: epicwink/proxpi
@@ -116,8 +114,11 @@ jobs:
       fail-fast: false
       matrix:
         requirements-file: ${{ fromJson(needs.list-pip-requirement-files.outputs.req-files) }}
+    env:
+      SERVICE_IP_ADDR: 127.0.0.1
+      REQUIREMENTS_FILE: ${{ matrix.requirements-file }}
     steps:
-      - run: echo "${{ matrix.requirements-file }}"
+      - run: echo "${REQUIREMENTS_FILE}"
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v4
         with:
@@ -130,13 +131,15 @@ jobs:
       - run: pip config set global.trusted-host ${{ env.SERVICE_IP_ADDR }}
       - id: proxpi-docker
         run: echo "id=$(docker ps | grep "epicwink/proxpi" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
-      - run: pip install -r ${{ matrix.requirements-file }}
+      - run: pip install -r ${REQUIREMENTS_FILE}
       - name: Get the list of packages requested to the pip proxy
+        env:
+          ID: ${{ steps.proxpi-docker.outputs.id }}
         run: |
-          docker logs ${{ steps.proxpi-docker.outputs.id }} 2>&1 | grep whl | awk '{print $8}' | cut -d "/" -f 4 | awk -F'-' '{print $1"=="$2}' | sort -u --ignore-case | sed 's/_/-/' | egrep -v "pip==|setuptools==" > /tmp/proxpi.log
+          docker logs "${ID}" 2>&1 | grep whl | awk '{print $8}' | cut -d "/" -f 4 | awk -F'-' '{print $1"=="$2}' | sort -u --ignore-case | sed 's/_/-/' | egrep -v "pip==|setuptools==" > /tmp/proxpi.log
           cat /tmp/proxpi.log
       - name: check only listed packages were installed
-        run: for i in `cat /tmp/proxpi.log`; do grep -qq -i $i ${{ matrix.requirements-file }} || ( echo "$i not found" && exit 1 ); done
+        run: for i in `cat /tmp/proxpi.log`; do grep -qq -i $i ${REQUIREMENTS_FILE} || ( echo "$i not found" && exit 1 ); done
 
   run-rec-bulk-test-on-ubicloud:
     if: ${{ vars.UBICLOUD_DAILY_REC_BULKTEST == '1' }}

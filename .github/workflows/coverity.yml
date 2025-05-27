@@ -82,9 +82,9 @@ jobs:
       - run: inv coverity-clang-configure
       - run: inv ci-autoconf
         working-directory: ./pdns/dnsdistdist/
-      - run: inv ci-install-rust ${{ env.REPO_HOME }}
+      - run: inv ci-install-rust $REPO_HOME
         working-directory: ./pdns/dnsdistdist/
-      - run: inv ci-build-and-install-quiche ${{ env.REPO_HOME }}
+      - run: inv ci-build-and-install-quiche $REPO_HOME
         working-directory: ./pdns/dnsdistdist/
       - run: inv ci-dnsdist-configure full autotools build-dir
         working-directory: ./pdns/dnsdistdist/

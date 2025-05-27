@@ -32,6 +32,7 @@ env:
   LLVM_PROFILE_FILE: "/tmp/code-%p.profraw"
   OPTIMIZATIONS: yes
   INV_CMD: ". ${REPO_HOME}/.venv/bin/activate && inv"
+  BRANCH_NAME: ${{ inputs.branch-name || github.ref_name }}
 
 jobs:
   get-runner-container-image:
@@ -41,13 +42,13 @@ jobs:
       id: ${{ steps.get-runner-image.outputs.image-id }}
       tag: ${{ steps.get-runner-image.outputs.tag }}
     env:
-      DEFAULT_RUNNER_DOCKER_IMAGE: base-pdns-ci-image/debian-12-pdns-base
       DEFAULT_IMAGE_TAG: master # update when backporting, e.g. auth-4.9.x
+      DOCKER_IMAGE: ${{ inputs.runner-docker-image-name || 'base-pdns-ci-image/debian-12-pdns-base' }}
     steps:
       - id: get-runner-image
         run: |
-          echo "image-id=ghcr.io/powerdns/${{ inputs.runner-docker-image-name || env.DEFAULT_RUNNER_DOCKER_IMAGE }}" >> "$GITHUB_OUTPUT"
-          echo "tag=${{ env.DEFAULT_IMAGE_TAG }}" >> "$GITHUB_OUTPUT"
+          echo "image-id=ghcr.io/powerdns/$DOCKER_IMAGE" >> "$GITHUB_OUTPUT"
+          echo "tag=$DEFAULT_IMAGE_TAG" >> "$GITHUB_OUTPUT"
 
   build-auth:
     name: build auth (${{ matrix.builder }})
@@ -125,7 +126,7 @@ jobs:
       - run: ${{ env.INV_CMD }} ci-auth-install ${{ matrix.builder == 'meson' && '--meson' || '' }}
       - run: ccache -s
       - if: ${{ matrix.builder != 'meson' }}
-        run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
+        run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
       - if: ${{ matrix.builder != 'meson' }}
         name: Store the binaries
         uses: actions/upload-artifact@v4 # this takes 30 seconds, maybe we want to tar
@@ -188,7 +189,7 @@ jobs:
         working-directory: .
       - run: ${{ env.INV_CMD }} install-rec-build-deps
         working-directory: ./pdns/recursordist/
-      - run: ${{ env.INV_CMD }} ci-install-rust ${{ env.REPO_HOME }}
+      - run: ${{ env.INV_CMD }} ci-install-rust ${REPO_HOME}
         working-directory: ./pdns/recursordist/
       - run: ${{ env.INV_CMD }} ci-autoconf ${{ matrix.builder == 'meson' && '--meson' || '' }}
         working-directory: ./pdns/recursordist/
@@ -210,7 +211,7 @@ jobs:
       - run: ${{ env.INV_CMD }} ci-rec-install ${{ matrix.builder == 'meson' && '--meson' || '' }}
       - run: ccache -s
       - if: ${{ matrix.builder != 'meson' }}
-        run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
+        run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
       - if: ${{ matrix.builder != 'meson' }}
         name: Store the binaries
         uses: actions/upload-artifact@v4 # this takes 30 seconds, maybe we want to tar
@@ -278,9 +279,9 @@ jobs:
         working-directory: .
       - run: ${{ env.INV_CMD }} install-lld-linker-if-needed
         working-directory: ./pdns/dnsdistdist/
-      - run: ${{ env.INV_CMD }} ci-install-rust ${{ env.REPO_HOME }}
+      - run: ${{ env.INV_CMD }} ci-install-rust ${REPO_HOME}
         working-directory: ./pdns/dnsdistdist/
-      - run: ${{ env.INV_CMD }} ci-build-and-install-quiche ${{ env.REPO_HOME }}
+      - run: ${{ env.INV_CMD }} ci-build-and-install-quiche ${REPO_HOME}
         working-directory: ./pdns/dnsdistdist/
       - run: ${{ env.INV_CMD }} ci-autoconf
         if: ${{ matrix.builder == 'autotools' }}
@@ -308,7 +309,7 @@ jobs:
       - run: ${{ env.INV_CMD }} ci-make-install
         if: ${{ matrix.builder == 'autotools' }}
       - run: ccache -s
-      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
+      - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Store the binaries
         if: ${{ matrix.builder == 'autotools' }}
         uses: actions/upload-artifact@v4 # this takes 30 seconds, maybe we want to tar
@@ -362,7 +363,7 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
-      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
+      - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
         uses: actions/download-artifact@v4
         with:
@@ -494,7 +495,7 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
-      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
+      - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
         uses: actions/download-artifact@v4
         with:
@@ -538,7 +539,7 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
-      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
+      - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
         uses: actions/download-artifact@v4
         with:
@@ -588,7 +589,7 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
-      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
+      - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
         uses: actions/download-artifact@v4
         with:
@@ -642,7 +643,7 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
-      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
+      - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
         uses: actions/download-artifact@v4
         with:
@@ -697,7 +698,7 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
-      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
+      - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
         uses: actions/download-artifact@v4
         with:
@@ -743,7 +744,7 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
-      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
+      - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
         uses: actions/download-artifact@v4
         with:
@@ -804,7 +805,7 @@ jobs:
           submodules: recursive
           ref: ${{ inputs.branch-name }}
           persist-credentials: false
-      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
+      - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
         uses: actions/download-artifact@v4
         with:
@@ -865,6 +866,8 @@ jobs:
       - test-recursor-ubicloud-bulk
     if: success() || failure()
     runs-on: ubuntu-24.04
+    env:
+      NEEDS: ${{ toJSON(needs) }}
     steps:
       - name: Coveralls Parallel Finished
         if: ${{ env.COVERAGE == 'yes' }}
@@ -875,7 +878,7 @@ jobs:
       - name: Install jq and jc
         run: "sudo apt-get update && sudo apt-get install jq jc"
       - name: Fail job if any of the previous jobs failed
-        run: "for i in `echo '${{ toJSON(needs) }}' | jq -r '.[].result'`; do if [[ $i == 'failure' ]]; then echo '${{ toJSON(needs) }}'; exit 1; fi; done;"
+        run: "for i in `echo ${NEEDS} | jq -r '.[].result'`; do if [[ $i == 'failure' ]]; then echo ${NEEDS}; exit 1; fi; done;"
       - uses: actions/checkout@v4
         with:
           fetch-depth: 5
@@ -885,7 +888,7 @@ jobs:
       - name: Get list of jobs in the workflow
         run: "cat .github/workflows/build-and-test-all.yml | jc --yaml | jq -rS '.[].jobs | keys | .[]' | grep -vE 'collect|get-runner-container-image' | tee /tmp/workflow-jobs-list.yml"
       - name: Get list of prerequisite jobs
-        run: "echo '${{ toJSON(needs) }}' | jq -rS 'keys | .[]' | tee /tmp/workflow-needs-list.yml"
+        run: "echo ${NEEDS} | jq -rS 'keys | .[]' | tee /tmp/workflow-needs-list.yml"
       - name: Fail if there is a job missing on the needs list
         run: "if ! diff -q /tmp/workflow-jobs-list.yml /tmp/workflow-needs-list.yml; then exit 1; fi"
 

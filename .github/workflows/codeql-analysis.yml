@@ -160,10 +160,10 @@ jobs:
       working-directory: ./pdns/dnsdistdist/
       run: |
         inv ci-autoconf
-    - run: inv ci-install-rust ${{ env.REPO_HOME }}
+    - run: inv ci-install-rust $REPO_HOME
       if: matrix.product == 'dnsdist'
       working-directory: ./pdns/dnsdistdist/
-    - run: inv ci-build-and-install-quiche ${{ env.REPO_HOME }}
+    - run: inv ci-build-and-install-quiche $REPO_HOME
       if: matrix.product == 'dnsdist'
       working-directory: ./pdns/dnsdistdist/
     - name: Configure dnsdist
@@ -207,7 +207,7 @@ jobs:
       if: matrix.product == 'rec'
       run: |
         inv install-rec-build-deps
-    - run: inv ci-install-rust ${{ env.REPO_HOME }}
+    - run: inv ci-install-rust $REPO_HOME
       if: matrix.product == 'rec'
       working-directory: ./pdns/recursordist/
     - name: Autoreconf rec
@@ -259,17 +259,21 @@ jobs:
     needs: analyze
     runs-on: ubuntu-22.04
     name: Check whether clang-tidy succeeded
+    env:
+      ANNOTATIONS_AUTH: ${{ needs.analyze.outputs.clang-tidy-annotations-auth }}
+      ANNOTATIONS_DIST: ${{ needs.analyze.outputs.clang-tidy-annotations-dnsdist }}
+      ANNOTATIONS_REC: ${{ needs.analyze.outputs.clang-tidy-annotations-rec }}
     steps:
       - run: |
-          if [ "x${{ needs.analyze.outputs.clang-tidy-annotations-auth }}" != "x" -a "${{ needs.analyze.outputs.clang-tidy-annotations-auth }}" != "0" ]; then
+          if [ "x${ANNOTATIONS_AUTH}" != "x" -a "${ANNOTATIONS_AUTH}" != "0" ]; then
             echo "::error::Auth clang-tidy failed"
             exit 1
           fi
-          if [ "x${{ needs.analyze.outputs.clang-tidy-annotations-dnsdist }}" != "x" -a "${{ needs.analyze.outputs.clang-tidy-annotations-dnsdist }}" != "0" ]; then
+          if [ "x${ANNOTATIONS_DIST}" != "x" -a "${ANNOTATIONS_DIST}" != "0" ]; then
             echo "::error::DNSdist clang-tidy failed"
             exit 1
           fi
-          if [ "x${{needs.analyze.outputs.clang-tidy-annotations-rec }}" != "x" -a "${{needs.analyze.outputs.clang-tidy-annotations-rec }}" != "0" ]; then
+          if [ "x${ANNOTATIONS_REC}" != "x" -a "${ANNOTATIONS_REC}" != "0" ]; then
             echo "::error::Rec clang-tidy failed"
             exit 1
           fi
