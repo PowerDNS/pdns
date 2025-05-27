@@ -6,6 +6,7 @@ The changelogs for the PowerDNS Authoritative Server are split between release t
 .. toctree::
     :maxdepth: 2
 
+    5.0
     4.9
     4.8
     4.7

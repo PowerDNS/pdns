@@ -24,6 +24,8 @@ Getting Started
 * :doc:`Configure the Server <settings>`
 * :doc:`Configure the backend(s) <backends/index>`
 
+.. _getting-support:
+
 Getting Support
 ---------------
 PowerDNS is an open source program so you may get help from the PowerDNS users' community or from its authors.

@@ -11,6 +11,21 @@ upgrade notes if your version is older than 3.4.2.
 4.9.0 to 5.0.0/master
 ---------------------
 
+LMDB backend, views support
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Version 5.0.0-alpha1 ships a new version of the LMDB database schema (called version 6), in support of the new views feature.
+There is no downgrade process.
+If you upgrade your database (by starting 5.0.0 without setting :ref:`setting-lmdb-schema-version` to ``5``), you cannot go back.
+
+Upgrading is supported from schema version 3 and up.
+
+The implementation of views involved a massive refactoring of many parts of the code base.
+While many things have been thoroughly tested, some loose ends likely remain.
+Specifically, catalog zones have not been updated for views support at all.
+DNS Update (RFC2136) support has not been well tested with views.
+Most other things are expected to work; if you find something wrong, please :ref:`let us know <getting-support>`.
+
 LUA records whitespace insertion
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
