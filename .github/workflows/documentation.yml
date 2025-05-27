@@ -54,6 +54,8 @@ jobs:
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -212,6 +214,8 @@ jobs:
           fi
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - run: build-scripts/gh-actions-setup-inv-no-dist-upgrade
       - uses: actions/download-artifact@v4
         with:
@@ -268,6 +272,8 @@ jobs:
             exit 1
           fi
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}

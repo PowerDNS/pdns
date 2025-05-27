@@ -36,6 +36,7 @@ jobs:
         with:
           fetch-depth: 5
           submodules: recursive
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -65,6 +66,7 @@ jobs:
         with:
           fetch-depth: 5
           submodules: recursive
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -107,6 +109,7 @@ jobs:
         with:
           fetch-depth: 5
           submodules: recursive
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'

@@ -74,6 +74,7 @@ jobs:
           fetch-depth: 5
           submodules: recursive
           ref: ${{ inputs.branch-name }}
+          persist-credentials: false
       - name: get timestamp for cache
         id: get-stamp
         run: |
@@ -165,6 +166,7 @@ jobs:
           fetch-depth: 5
           submodules: recursive
           ref: ${{ inputs.branch-name }}
+          persist-credentials: false
       - name: get timestamp for cache
         id: get-stamp
         run: |
@@ -252,6 +254,7 @@ jobs:
           fetch-depth: 5
           submodules: recursive
           ref: ${{ inputs.branch-name }}
+          persist-credentials: false
       - name: get timestamp for cache
         id: get-stamp
         run: |
@@ -358,6 +361,7 @@ jobs:
           fetch-depth: 5
           submodules: recursive
           ref: ${{ inputs.branch-name }}
+          persist-credentials: false
       - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
         uses: actions/download-artifact@v4
@@ -489,6 +493,7 @@ jobs:
           fetch-depth: 5
           submodules: recursive
           ref: ${{ inputs.branch-name }}
+          persist-credentials: false
       - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
         uses: actions/download-artifact@v4
@@ -532,6 +537,7 @@ jobs:
           fetch-depth: 5
           submodules: recursive
           ref: ${{ inputs.branch-name }}
+          persist-credentials: false
       - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
         uses: actions/download-artifact@v4
@@ -581,6 +587,7 @@ jobs:
           fetch-depth: 5
           submodules: recursive
           ref: ${{ inputs.branch-name }}
+          persist-credentials: false
       - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
         uses: actions/download-artifact@v4
@@ -634,6 +641,7 @@ jobs:
           fetch-depth: 5
           submodules: recursive
           ref: ${{ inputs.branch-name }}
+          persist-credentials: false
       - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
         uses: actions/download-artifact@v4
@@ -688,6 +696,7 @@ jobs:
           fetch-depth: 5
           submodules: recursive
           ref: ${{ inputs.branch-name }}
+          persist-credentials: false
       - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
         uses: actions/download-artifact@v4
@@ -733,6 +742,7 @@ jobs:
           fetch-depth: 5
           submodules: recursive
           ref: ${{ inputs.branch-name }}
+          persist-credentials: false
       - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
         uses: actions/download-artifact@v4
@@ -793,6 +803,7 @@ jobs:
           fetch-depth: 5
           submodules: recursive
           ref: ${{ inputs.branch-name }}
+          persist-credentials: false
       - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
         uses: actions/download-artifact@v4
@@ -830,6 +841,7 @@ jobs:
           fetch-depth: 5
           submodules: recursive
           ref: ${{ inputs.branch-name }}
+          persist-credentials: false
       - name: install pip build dependencies
         run: |
           python3 -m venv ${REPO_HOME}/.venv
@@ -869,6 +881,7 @@ jobs:
           fetch-depth: 5
           submodules: recursive
           ref: ${{ inputs.branch-name }}
+          persist-credentials: false
       - name: Get list of jobs in the workflow
         run: "cat .github/workflows/build-and-test-all.yml | jc --yaml | jq -rS '.[].jobs | keys | .[]' | grep -vE 'collect|get-runner-container-image' | tee /tmp/workflow-jobs-list.yml"
       - name: Get list of prerequisite jobs

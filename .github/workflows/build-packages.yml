@@ -61,6 +61,7 @@ jobs:
           fetch-depth: 1
           submodules: recursive
           ref: ${{ inputs.ref }}
+          persist-credentials: false
       - id: get-oslist
         run: |
           available_targets=$(ls builder-support/dockerfiles/Dockerfile.target.* )
@@ -114,6 +115,7 @@ jobs:
           fetch-depth: 0 # for correct version numbers
           submodules: recursive
           ref: ${{ inputs.ref }}
+          persist-credentials: false
       # this builds packages and runs our unit tests (make check)
       - run: IS_RELEASE=${{ inputs.is_release}} builder/build.sh -v -m ${{ inputs.product }} ${{ matrix.os }}
       - name: Get version number

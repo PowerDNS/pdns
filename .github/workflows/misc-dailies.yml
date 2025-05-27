@@ -35,6 +35,7 @@ jobs:
       with:
         fetch-depth: 5
         submodules: recursive
+        persist-credentials: false
 
     - name: Check if Debian is about to toss us off a balcony
       run: ./build-scripts/check-debian-autoremovals.py
@@ -90,6 +91,8 @@ jobs:
       req-files: ${{ steps.get-list-requirements.outputs.files }}
     steps:
     - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
     - name: Get all requirements.txt files and export them as outputs
       id: get-list-requirements
       run: |
@@ -117,6 +120,8 @@ jobs:
       - run: echo "${{ matrix.requirements-file }}"
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -148,6 +153,7 @@ jobs:
           fetch-depth: 5
           submodules: recursive
           ref: ${{ inputs.branch-name }}
+          persist-credentials: false
       - name: Add PowerDNS Repo
         run: echo 'deb [signed-by=/etc/apt/keyrings/rec-master-pub.asc] http://repo.powerdns.com/ubuntu noble-rec-master main' | sudo tee /etc/apt/sources.list.d/pdns.list
       - name: Add key
