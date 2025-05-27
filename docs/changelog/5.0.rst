@@ -58,18 +58,6 @@ Changelogs for 5.0.x
     fix log string in case there are notifies needed
 
   .. change::
-    :tags: Bug Fixes
-    :pullreq: 15340
-
-    mysql: use MYSQL_TYPE_LONGLONG on 64bit platforms (zeha)
-
-  .. change::
-    :tags: Bug Fixes
-    :pullreq: 15339
-
-    lmdb: be more robust against marked-as-deleted items
-
-  .. change::
     :tags: Improvements
     :pullreq: 15334
 
@@ -188,12 +176,6 @@ Changelogs for 5.0.x
     :pullreq: 15098
 
     Add a "failOnIncompleteCheck" option to if\*up Lua functions
-
-  .. change::
-    :tags: Bug Fixes
-    :pullreq: 15093
-
-    check return value of getCatalogMembers() (Kees Monshouwer)
 
   .. change::
     :tags: Bug Fixes
@@ -325,7 +307,7 @@ Changelogs for 5.0.x
     :tags: Improvements
     :pullreq: 14781
 
-    pdns: allow empty string in version-string (bjacquin)
+    pdns: allow empty string in version-string (Bertrand Jacquin)
 
   .. change::
     :tags: Bug Fixes
@@ -383,21 +365,9 @@ Changelogs for 5.0.x
 
   .. change::
     :tags: Improvements
-    :pullreq: 14562
-
-    Fix build with boost 1.86.0 (cho-m)
-
-  .. change::
-    :tags: Improvements
     :pullreq: 14561
 
-    Add doc reference to oversized chunk message (jsoref)
-
-  .. change::
-    :tags: Improvements
-    :pullreq: 14550
-
-    json11: add include for cstdint
+    Add doc reference to oversized chunk message (Josh Soref)
 
   .. change::
     :tags: New Features
@@ -425,81 +395,21 @@ Changelogs for 5.0.x
 
   .. change::
     :tags: Improvements
-    :pullreq: 14394
-
-    provide dns packet when doing lookup for presigned signatures (d-wibowo)
-
-  .. change::
-    :tags: Improvements
     :pullreq: 14368
 
     allow -lodbc in a non-standard location
 
   .. change::
-    :tags: Bug Fixes
-    :pullreq: 14277
-
-    geoipbackend: link C++ filesystem lib if necessary
-
-  .. change::
-    :tags: Bug Fixes
-    :pullreq: 14261
-
-    pdnsutil check-zone: make LUA records optional (swegener)
-
-  .. change::
-    :tags: Bug Fixes
-    :pullreq: 14242
-
-    ixfrdist: Fix broken 'uid' and 'gid' parsing for non-numerical values
-
-  .. change::
     :tags: Improvements
     :pullreq: 14218
 
-    web: make request/response timeout configurable (ns-sjorgedeaguiar)
-
-  .. change::
-    :tags: Improvements
-    :pullreq: 14197
-
-    YaHTTP: Enforce max # of request fields and max request line size
-
-  .. change::
-    :tags: Bug Fixes
-    :pullreq: 14196
-
-    Fix memory leaks in the bind file format parser
-
-  .. change::
-    :tags: Improvements
-    :pullreq: 14047
-
-    dnsproxy: fix build on s390x (zeha)
-
-  .. change::
-    :tags: Bug Fixes
-    :pullreq: 14045
-
-    API: when querying with rrset_name, respect it for comments too
-
-  .. change::
-    :tags: Bug Fixes
-    :pullreq: 14029
-
-    Properly finalize PKCS11 modules before releasing them
-
-  .. change::
-    :tags: Improvements
-    :pullreq: 14011
-
-    pdnsutil check-zone: accept LUA A/AAAA as SVCB address targets
+    web: make request/response timeout configurable (Samir Aguiar)
 
   .. change::
     :tags: Improvements
     :pullreq: 13980
 
-    Do shuffle TCP responses except \*XFRs (karelbilek)
+    Do shuffle TCP responses except \*XFRs (Karel Bilek)
 
   .. change::
     :tags: Improvements
@@ -538,28 +448,10 @@ Changelogs for 5.0.x
     on OpenBSD, try harder to send on a non-blocking socket
 
   .. change::
-    :tags: Bug Fixes
-    :pullreq: 13841
-
-    do not disable ns records at apex in consumer zones (Kees Monshouwer)
-
-  .. change::
-    :tags: Improvements
-    :pullreq: 13772
-
-    RPM packages: change home directory to /var/lib/pdns (mortenstevens)
-
-  .. change::
     :tags: New Features
     :pullreq: 13770
 
     Add setting to make TSIG required for DNS updates (Assumeru)
-
-  .. change::
-    :tags: Bug Fixes
-    :pullreq: 13205
-
-    catalog, include groups in hash calculation (Kees Monshouwer)
 
   .. change::
     :tags: Improvements
@@ -572,12 +464,6 @@ Changelogs for 5.0.x
     :pullreq: 11678
 
     Lua global include (cmouse)
-
-  .. change::
-    :tags: Improvements
-    :pullreq: 10933
-
-    m4: Enable 64-bit time_t on 32-bit systems with glibc-2.34 (swegener)
 
   .. change::
     :tags: New Features
