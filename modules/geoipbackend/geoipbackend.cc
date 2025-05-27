@@ -89,7 +89,8 @@ struct DirPtrDeleter
      - we avoid the annoying "ignoring attributes on template argument ‘int (*)(DIR*)’"
        warning from the compiler, which is there because closedir is tagged as __nonnull((1))
   */
-  void operator()(DIR* dirPtr) const noexcept {
+  void operator()(DIR* dirPtr) const noexcept
+  {
     closedir(dirPtr);
   }
 };
