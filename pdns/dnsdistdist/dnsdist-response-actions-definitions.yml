@@ -172,6 +172,16 @@ The function will be invoked in a per-thread Lua state, without access to the gl
       type: "Vec<ProtoBufMetaConfiguration>"
       default: true
       description: "A list of ``name``=``key`` pairs, for meta-data to be added to Protocol Buffer message"
+- name: "SetEDNSOption"
+  description: "Add arbitrary EDNS option and data to the response. Any existing EDNS content with the same option code will be overwritten. Subsequent rules are processed after this action"
+  skip-rust: true
+  parameters:
+    - name: "code"
+      type: "u32"
+      description: "The EDNS option number"
+    - name: "data"
+      type: "String"
+      description: "The EDNS0 option raw content"
 - name: "SetExtendedDNSError"
   description: "Set an Extended DNS Error status that will be added to the response. Subsequent rules are processed after this action"
   parameters:
