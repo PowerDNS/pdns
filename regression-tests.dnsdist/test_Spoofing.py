@@ -1020,7 +1020,8 @@ class TestSpoofingLuaSpoofPacket(DNSDistTest):
     end
 
     addAction("lua-raw-packet.spoofing.tests.powerdns.com.", LuaAction(spoofpacket))
-    local rawResponse="\\000\\000\\129\\133\\000\\001\\000\\000\\000\\000\\000\\000\\019rule\\045lua\\045raw\\045packet\\008spoofing\\005tests\\008powerdns\\003com\\000\\000\\001\\000\\001"
+    -- this answer has a EDNS OPT record, with a NSID set to dnsdist-1, and we intend to receive it!
+    local rawResponse="\\000\\000\\129\\133\\000\\001\\000\\000\\000\\000\\000\\001\\019rule\\045lua\\045raw\\045packet\\008spoofing\\005tests\\008powerdns\\003com\\000\\000\\001\\000\\001\\000\\000\\041\\004\\208\\000\\000\\000\\000\\000\\013\\000\\003\\000\\009dnsdist\\045\\049"
     addAction(AndRule{QTypeRule(DNSQType.A), SuffixMatchNodeRule("rule-lua-raw-packet.spoofing.tests.powerdns.com.")}, SpoofPacketAction(rawResponse, string.len(rawResponse)))
 
     local ffi = require("ffi")
@@ -1044,7 +1045,7 @@ class TestSpoofingLuaSpoofPacket(DNSDistTest):
 
     def testLuaSpoofPacket(self):
         """
-        Spoofing via Lua FFI: Spoof raw response via Lua FFI
+        Spoofing via Lua FFI: Spoof raw response via Lua
         """
         for name in ('lua-raw-packet.spoofing.tests.powerdns.com.', 'rule-lua-raw-packet.spoofing.tests.powerdns.com.'):
 
@@ -1053,11 +1054,17 @@ class TestSpoofingLuaSpoofPacket(DNSDistTest):
             expectedResponse.flags |= dns.flags.RA
             expectedResponse.set_rcode(dns.rcode.REFUSED)
 
+            if name == 'rule-lua-raw-packet.spoofing.tests.powerdns.com.':
+                nsid_opt = dns.edns.GenericOption(dns.edns.NSID, 'dnsdist-1'.encode())
+                expectedResponse.use_edns(options=[nsid_opt])
+
             for method in ("sendUDPQuery", "sendTCPQuery"):
                 sender = getattr(self, method)
                 (_, receivedResponse) = sender(query, response=None, useQueue=False)
                 self.assertTrue(receivedResponse)
                 self.assertEqual(expectedResponse, receivedResponse)
+                if name == 'rule-lua-raw-packet.spoofing.tests.powerdns.com.':
+                    self.checkMessageEDNS(expectedResponse, receivedResponse)
 
     def testLuaFFISpoofPacket(self):
         """
