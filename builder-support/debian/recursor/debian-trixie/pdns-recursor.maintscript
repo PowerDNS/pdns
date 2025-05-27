@@ -1,0 +1,4 @@
+# must support Ubuntu focal, with dpkg 1.19.7
+# Enable the line below once we fully moved to YAML configuration
+#rm_conffile /etc/powerdns/recursor.lua 5.1~
+

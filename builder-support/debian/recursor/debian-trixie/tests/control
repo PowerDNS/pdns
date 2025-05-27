@@ -1,0 +1,4 @@
+Tests: smoke
+Depends: bind9-dnsutils,
+         @
+Restrictions: needs-root
