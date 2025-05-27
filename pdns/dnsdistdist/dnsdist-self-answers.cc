@@ -233,6 +233,7 @@ bool generateAnswerFromRawPacket(DNSQuestion& dnsQuestion, const PacketBuffer& p
 {
   auto questionId = dnsQuestion.getHeader()->id;
   dnsQuestion.getMutableData() = packet;
+  dnsQuestion.d_selfGeneratedFromPacket = true;
   dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [questionId](dnsheader& header) {
     header.id = questionId;
     return true;
