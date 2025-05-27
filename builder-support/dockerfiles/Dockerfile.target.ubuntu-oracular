@@ -16,7 +16,7 @@ ADD builder-support/debian/authoritative/debian-buster/ pdns-${BUILDER_VERSION}/
 @ENDIF
 
 @IF [ -n "$M_recursor$M_all" ]
-ADD builder-support/debian/recursor/debian-buster/ pdns-recursor-${BUILDER_VERSION}/debian/
+ADD builder-support/debian/recursor/debian-trixie / pdns-recursor-${BUILDER_VERSION}/debian/
 @ENDIF
 
 @IF [ -n "$M_dnsdist$M_all" ]
