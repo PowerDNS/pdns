@@ -282,6 +282,24 @@ uint64_t AuthPacketCache::purgeExact(const std::string& view, const DNSName& qna
   return delcount;
 }
 
+uint64_t AuthPacketCache::purgeView(const std::string& view)
+{
+  uint64_t delcount = 0;
+
+  {
+    auto cache = d_cache.write_lock();
+    if (auto iter = cache->find(view); iter != cache->end()) {
+      auto* map = iter->second.get();
+      delcount += purgeLockedCollectionsVector(*map);
+      cache->erase(iter);
+    }
+  }
+
+  *d_statnumentries -= delcount;
+
+  return delcount;
+}
+
 /* purges entries from the packetcache. If match ends on a $, it is treated as a suffix */
 uint64_t AuthPacketCache::purge(const string &match)
 {
