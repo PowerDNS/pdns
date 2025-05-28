@@ -70,7 +70,7 @@ PowerDNS Authoritative Server 3.x
 The PowerDNS Authoritative Server 3.x releases are no longer supported, and
 will not receive any further updates, not even for security purposes.
 
-All users are urged to upgrade to the latest version.  To upgrade from 3.x to 4.x,
+All users are urged to upgrade to the latest version.  To upgrade from 3.x or 4.x to 5.x,
 :doc:`follow these instructions <../upgrading>`
 
 If you need help with upgrading, we provide `migration
@@ -105,12 +105,12 @@ case for a long time, but with this statement we make it formal.
 
 To upgrade to 3.x, please consult the `instructions on how to upgrade
 the database <https://doc.powerdns.com/3/authoritative/upgrading/#29x-to-30>`__.
-To upgrade from 3.x to 4.x, :doc:`follow these instructions <../upgrading>`.
+To upgrade from 3.x or 4.x to 5.x, :doc:`follow these instructions <../upgrading>`.
 If you need help with upgrading, we provide `migration
 services <https://www.powerdns.com/support-services-consulting.html>`__
 to our supported users. If you are currently running 2.9.22 and need
 help to tide you over, we can also provide that as part of a `support
 agreement <https://www.powerdns.com/support-services-consulting.html>`__.
 
-But we urge everyone to move on to PowerDNS Authoritative Server 4.x - it is a faster, more standards conforming and more powerful
+But we urge everyone to move on to PowerDNS Authoritative Server 5.x - it is a faster, more standards conforming and more powerful
 nameserver!
