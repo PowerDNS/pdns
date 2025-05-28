@@ -350,7 +350,7 @@ void UeberBackend::updateZoneCache()
       nettree.insert_or_assign(net, tag);
     }
   }
-  g_zoneCache.replace(nettree); // FIXME: this needs some smart pending stuff too
+  g_zoneCache.replace(std::move(nettree)); // FIXME: this needs some smart pending stuff too
 
   AuthZoneCache::ViewsMap viewsmap;
   for (auto& backend : backends) {
@@ -360,13 +360,13 @@ void UeberBackend::updateZoneCache()
       vector<ZoneName> zones;
       backend->viewListZones(view, zones);
       for (ZoneName& zone : zones) {
-        auto zonename = DNSName(zone);
+        const auto& zonename = zone.operator const DNSName&();
         auto variant = zone.getVariant();
-        viewsmap[view][zonename] = variant;
+        viewsmap[view][zonename] = std::move(variant);
       }
     }
   }
-  g_zoneCache.replace(viewsmap);
+  g_zoneCache.replace(std::move(viewsmap));
 }
 
 void UeberBackend::rediscover(string* status)

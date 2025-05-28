@@ -1173,7 +1173,7 @@ static string lua_createReverse6(const string &format, boost::optional<opts_t> e
         lquad.append(1, labels[31 - chunk * 4 - quartet][0]);
         together += labels[31 - chunk * 4 - quartet][0];
       }
-      quads.push_back(lquad);
+      quads.push_back(std::move(lquad));
     }
     ComboAddress ip6(together,0);
 
