@@ -2045,7 +2045,7 @@ static void apiServerZonesGET(HttpRequest* req, HttpResponse* resp)
     zonename.makeUsLowerCase();
     DomainInfo domainInfo;
     if (backend.getDomainInfo(zonename, domainInfo)) {
-      domains.push_back(domainInfo);
+      domains.push_back(std::move(domainInfo));
     }
   }
   else {

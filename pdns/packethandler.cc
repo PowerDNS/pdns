@@ -1770,7 +1770,7 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
   /* Add in SOA if required */
   if(state.target==d_sd.qname()) {
       zrr=makeEditedDNSZRFromSOAData(d_dk, d_sd);
-      rrset.push_back(zrr);
+      rrset.push_back(std::move(zrr));
   }
 
   DLOG(g_log<<"After first ANY query for '"<<state.target<<"', id="<<d_sd.domain_id<<": weDone="<<weDone<<", weHaveUnauth="<<weHaveUnauth<<", weRedirected="<<weRedirected<<", haveAlias='"<<haveAlias<<"'"<<endl);
@@ -1828,7 +1828,7 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
     if(tryWildcard(pkt, state.r, state.target, wildcard, wereRetargeted, nodata)) {
       if(wereRetargeted) {
         if (!retargeted) {
-          state.r->qdomainwild=wildcard;
+          state.r->qdomainwild=std::move(wildcard);
         }
         state.retargeted = true;
         return true;
