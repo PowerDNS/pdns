@@ -66,6 +66,7 @@ public:
   uint64_t purge(const std::string& match); // could be $ terminated. Is not a dnsname!
   uint64_t purgeExact(const DNSName& qname); // no wildcard matching here
   uint64_t purgeExact(const std::string& view, const DNSName& qname); // same as above, but in the given view
+  uint64_t purgeView(const std::string& view);
 
   uint64_t size() const { return *d_statnumentries; };
 
