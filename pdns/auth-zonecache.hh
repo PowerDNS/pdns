@@ -46,7 +46,7 @@ public:
 
   // Views maintainance
   void addToView(const std::string& view, const ZoneName& zone);
-  void removeFromView(const std::string& view, const ZoneName& zone);
+  bool removeFromView(const std::string& view, const ZoneName& zone);
 
   // Network maintainance
   void updateNetwork(const Netmask& network, const std::string& view);
