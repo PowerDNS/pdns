@@ -2738,12 +2738,18 @@ static void apiServerViewsDELETE(HttpRequest* req, HttpResponse* resp)
     throw ApiException("Failed to remove " + zoneData.zoneName.toStringFull() + " from view " + view);
   }
   // Notify zone cache of the removed association
+  bool emptyView{false};
   if (g_zoneCache.isEnabled()) {
-    g_zoneCache.removeFromView(view, zoneData.zoneName);
+    emptyView = g_zoneCache.removeFromView(view, zoneData.zoneName);
   }
   // Purge packet cache for that zone
   if (PC.enabled()) {
-    (void)PC.purgeExact(view, zoneData.zoneName.operator const DNSName&());
+    if (emptyView) {
+      (void)PC.purgeView(view);
+    }
+    else {
+      (void)PC.purgeExact(view, zoneData.zoneName.operator const DNSName&());
+    }
   }
 
   resp->body = "";
