@@ -109,11 +109,10 @@ jobs:
       - run: ${{ env.INV_CMD }} ci-auth-run-unit-tests ${{ matrix.builder == 'meson' && '--meson' || '' }}
         env:
           PDNS_BUILD_PATH: ../pdns-${{ env.BUILDER_VERSION }}
-      - run: ${{ env.INV_CMD }} generate-coverage-info ./testrunner $GITHUB_WORKSPACE
-        if: ${{ env.COVERAGE == 'yes' && matrix.builder != 'meson' }}
-        working-directory: ./pdns-${{ env.BUILDER_VERSION }}/pdns
+      - run: ${{ env.INV_CMD }} generate-coverage-info ./pdns-auth-testrunner $GITHUB_WORKSPACE
+        if: ${{ env.COVERAGE == 'yes' && matrix.builder == 'meson' }}
       - name: Coveralls Parallel auth unit
-        if: ${{ env.COVERAGE == 'yes' && matrix.builder != 'meson' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.builder == 'meson' }}
         uses: coverallsapp/github-action@v2
         with:
           flag-name: auth-unit-${{ env.SANITIZERS }}
@@ -123,13 +122,18 @@ jobs:
           fail-on-error: false
       - run: ${{ env.INV_CMD }} ci-auth-install ${{ matrix.builder == 'meson' && '--meson' || '' }}
       - run: ccache -s
-      - if: ${{ matrix.builder != 'meson' }}
-        run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
-      - if: ${{ matrix.builder != 'meson' }}
+      - name: Prepare binaries folder
+        if: ${{ matrix.builder == 'meson' }}
+        run: |
+          echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
+          mkdir -p /opt/pdns-auth/bin
+          for i in $(find . -maxdepth 1 -type f -executable); do cp ${i} /opt/pdns-auth/bin/; done
+          mkdir -p /opt/pdns-auth/sbin; mv /opt/pdns-auth/bin/pdns-auth /opt/pdns-auth/sbin/
+      - if: ${{ matrix.builder == 'meson' }}
         name: Store the binaries
         uses: actions/upload-artifact@v4 # this takes 30 seconds, maybe we want to tar
         with:
-          name: pdns-auth-${{ env.normalized-branch-name }}
+          name: pdns-auth-${{ matrix.builder}}-${{ env.normalized-branch-name }}
           path: /opt/pdns-auth
           retention-days: 1
 
@@ -140,14 +144,12 @@ jobs:
     needs: get-runner-container-image
     strategy:
       matrix:
+        builder: [autotools, meson]
         sanitizers: [asan+ubsan, tsan]
         features: [least, full]
-        builder: [autotools, meson]
         exclude:
           - sanitizers: tsan
             features: least
-          - builder: meson
-            sanitizers: tsan
       fail-fast: false
     container:
       image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
@@ -195,9 +197,9 @@ jobs:
       - run: ${{ env.INV_CMD }} ci-rec-build ${{ matrix.builder == 'meson' && '--meson' || '' }}
       - run: ${{ env.INV_CMD }} ci-rec-run-unit-tests ${{ matrix.builder == 'meson' && '--meson' || '' }}
       - run: ${{ env.INV_CMD }} generate-coverage-info ./testrunner $GITHUB_WORKSPACE
-        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' && matrix.builder != 'meson' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' && matrix.builder == 'meson' }}
       - name: Coveralls Parallel rec unit
-        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' && matrix.builder != 'meson' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' && matrix.builder == 'meson' }}
         uses: coverallsapp/github-action@v2
         with:
           flag-name: rec-unit-${{ matrix.features }}-${{ matrix.sanitizers }}
@@ -207,13 +209,13 @@ jobs:
           fail-on-error: false
       - run: ${{ env.INV_CMD }} ci-rec-install ${{ matrix.builder == 'meson' && '--meson' || '' }}
       - run: ccache -s
-      - if: ${{ matrix.builder != 'meson' }}
+      - if: ${{ matrix.builder == 'meson' }}
         run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
-      - if: ${{ matrix.builder != 'meson' }}
+      - if: ${{ matrix.builder == 'meson' }}
         name: Store the binaries
         uses: actions/upload-artifact@v4 # this takes 30 seconds, maybe we want to tar
         with:
-          name: pdns-recursor-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
+          name: pdns-recursor-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ matrix.builder}}-${{ env.normalized-branch-name }}
           path: /opt/pdns-recursor
           retention-days: 1
 
@@ -230,8 +232,6 @@ jobs:
         exclude:
           - sanitizers: tsan
             features: least
-          - sanitizers: tsan
-            builder: meson
       fail-fast: false
     container:
       image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
@@ -292,9 +292,9 @@ jobs:
       - run: ${{ env.INV_CMD }} ci-dnsdist-make-bear ${{ matrix.builder }}
       - run: ${{ env.INV_CMD }} ci-dnsdist-run-unit-tests ${{ matrix.builder }}
       - run: ${{ env.INV_CMD }} generate-coverage-info ./testrunner $GITHUB_WORKSPACE
-        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' && matrix.builder == 'autotools'}}
+        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' && matrix.builder == 'meson'}}
       - name: Coveralls Parallel dnsdist unit
-        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' && matrix.builder == 'autotools' }}
+        if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' && matrix.builder == 'meson' }}
         uses: coverallsapp/github-action@v2
         with:
           flag-name: dnsdist-unit-${{ matrix.features }}-${{ matrix.sanitizers }}
@@ -302,12 +302,16 @@ jobs:
           parallel: true
           allow-empty: true
           fail-on-error: false
-      - run: ${{ env.INV_CMD }} ci-make-install
-        if: ${{ matrix.builder == 'autotools' }}
+      - run: ${{ env.INV_CMD }} ci-dnsdist-install ${{ matrix.builder == 'meson' && '--meson' || '' }}
       - run: ccache -s
-      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
+      - name: Prepare binaries folder
+        if: ${{ matrix.builder == 'meson' }}
+        run: |
+          echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
+          mkdir -p /opt/dnsdist/bin
+          for i in $(find . -maxdepth 1 -type f -executable); do cp ${i} /opt/dnsdist/bin/; done
       - name: Store the binaries
-        if: ${{ matrix.builder == 'autotools' }}
+        if: ${{ matrix.builder == 'meson' }}
         uses: actions/upload-artifact@v4 # this takes 30 seconds, maybe we want to tar
         with:
           name: dnsdist-${{ matrix.features }}-${{ matrix.sanitizers }}-${{ matrix.builder}}-${{ env.normalized-branch-name }}
@@ -362,7 +366,7 @@ jobs:
       - name: Fetch the binaries
         uses: actions/download-artifact@v4
         with:
-          name: pdns-auth-${{ env.normalized-branch-name }}
+          name: pdns-auth-meson-${{ env.normalized-branch-name }}
           path: /opt/pdns-auth
       - name: install pip build dependencies
         run: |
@@ -372,7 +376,7 @@ jobs:
       - run: ${{ env.INV_CMD }} install-clang-runtime
       - run: ${{ env.INV_CMD }} install-auth-test-deps -b ${{ matrix.backend }}
       - run: ${{ env.INV_CMD }} test-api auth -b ${{ matrix.backend }}
-      - run: ${{ env.INV_CMD }} generate-coverage-info /opt/pdns-auth/sbin/pdns_server $GITHUB_WORKSPACE
+      - run: ${{ env.INV_CMD }} generate-coverage-info /opt/pdns-auth/sbin/pdns-auth $GITHUB_WORKSPACE
         if: ${{ env.COVERAGE == 'yes' }}
       - name: Coveralls Parallel auth API ${{ matrix.backend }}
         if: ${{ env.COVERAGE == 'yes' }}
@@ -493,7 +497,7 @@ jobs:
       - name: Fetch the binaries
         uses: actions/download-artifact@v4
         with:
-          name: pdns-auth-${{ env.normalized-branch-name }}
+          name: pdns-auth-meson-${{ env.normalized-branch-name }}
           path: /opt/pdns-auth
       # FIXME: install recursor for backends that have ALIAS
       - name: install pip build dependencies
@@ -503,7 +507,7 @@ jobs:
       - run: ${{ env.INV_CMD }} install-clang-runtime
       - run: ${{ env.INV_CMD }} install-auth-test-deps -b ${{ matrix.backend }}
       - run: ${{ env.INV_CMD }} test-auth-backend -b ${{ matrix.backend }}
-      - run: ${{ env.INV_CMD }} generate-coverage-info /opt/pdns-auth/sbin/pdns_server $GITHUB_WORKSPACE
+      - run: ${{ env.INV_CMD }} generate-coverage-info /opt/pdns-auth/sbin/pdns-auth $GITHUB_WORKSPACE
         if: ${{ env.COVERAGE == 'yes' }}
       - name: Coveralls Parallel auth backend ${{ matrix.backend }}
         if: ${{ env.COVERAGE == 'yes' }}
@@ -536,7 +540,7 @@ jobs:
       - name: Fetch the binaries
         uses: actions/download-artifact@v4
         with:
-          name: pdns-auth-${{ env.normalized-branch-name }}
+          name: pdns-auth-meson-${{ env.normalized-branch-name }}
           path: /opt/pdns-auth
       - name: install pip build dependencies
         run: |
@@ -585,7 +589,7 @@ jobs:
       - name: Fetch the binaries
         uses: actions/download-artifact@v4
         with:
-          name: pdns-recursor-full-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
+          name: pdns-recursor-full-${{ matrix.sanitizers }}-meson-${{ env.normalized-branch-name }}
           path: /opt/pdns-recursor
       - name: install pip build dependencies
         run: |
@@ -638,7 +642,7 @@ jobs:
       - name: Fetch the binaries
         uses: actions/download-artifact@v4
         with:
-          name: pdns-recursor-full-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
+          name: pdns-recursor-full-${{ matrix.sanitizers }}-meson-${{ env.normalized-branch-name }}
           path: /opt/pdns-recursor
       - name: install pip build dependencies
         run: |
@@ -692,7 +696,7 @@ jobs:
       - name: Fetch the binaries
         uses: actions/download-artifact@v4
         with:
-          name: pdns-recursor-full-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
+          name: pdns-recursor-full-${{ matrix.sanitizers }}-meson-${{ env.normalized-branch-name }}
           path: /opt/pdns-recursor
       - name: install pip build dependencies
         run: |
@@ -737,7 +741,7 @@ jobs:
       - name: Fetch the binaries
         uses: actions/download-artifact@v4
         with:
-          name: pdns-recursor-full-${{ matrix.sanitizers }}-${{ env.normalized-branch-name }}
+          name: pdns-recursor-full-${{ matrix.sanitizers }}-meson-${{ env.normalized-branch-name }}
           path: /opt/pdns-recursor
       - run: build-scripts/gh-actions-setup-inv-no-dist-upgrade
       - name: install pip build dependencies
@@ -783,7 +787,7 @@ jobs:
         # IncludeDir tests are disabled because of a weird interaction between TSAN and these tests which ever only happens on GH actions
         SKIP_INCLUDEDIR_TESTS: yes
         SANITIZERS: ${{ matrix.sanitizers }}
-        COVERAGE: yes
+        COVERAGE: no
       options: --sysctl net.ipv6.conf.all.disable_ipv6=0 --privileged
     env:
       CLANG_VERSION: ${{ contains(needs.get-runner-container-image.outputs.id, 'debian-11') && '13' || '19' }}
@@ -797,7 +801,7 @@ jobs:
       - name: Fetch the binaries
         uses: actions/download-artifact@v4
         with:
-          name: dnsdist-full-${{ matrix.sanitizers }}-autotools-${{ env.normalized-branch-name }}
+          name: dnsdist-full-${{ matrix.sanitizers }}-meson-${{ env.normalized-branch-name }}
           path: /opt/dnsdist
       - name: install pip build dependencies
         run: |
