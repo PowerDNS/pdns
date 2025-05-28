@@ -37,7 +37,6 @@ typedef unsigned long long uint64_t;
 #include <csignal>
 #include <pthread.h>
 #include <semaphore.h>
-#include <csignal>
 #include <cerrno>
 #include <unistd.h>
 #include <string>
