@@ -4624,7 +4624,14 @@ static int viewAddZone(vector<string>& cmds, const std::string_view synopsis)
   if (!B.viewAddZone(view, zone)) {
     cerr<<"Operation failed."<<endl;
     return 1;
- }
+  }
+  if (!g_quiet) {
+    DomainInfo info;
+    if (!B.getDomainInfo(zone, info)) {
+      cout << "Zone '" << zone << "' does not exist yet."<< endl;
+      cout << "Consider creating it with 'pdnsutil create-zone " << zone << "'" << endl;
+    }
+  }
   return 0;
 }
 
