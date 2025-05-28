@@ -191,24 +191,24 @@ of a given view::
 Bind configuration adaptation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Consider the following Bind configuration, shamelessly borrowed from
+Consider the following Bind configuration, shamelessly adapted from
 https://www.zytrax.com/books/dns/ch7/view.html::
 
   view "trusted" {
    match-clients { 192.168.23.0/24; }; // our network
     zone "example.com" {
-     type master;
+     type primary;
      // private zone file including local hosts
-     file "internal/master.example.com";
+     file "internal/primary.example.com";
     };
     // add required zones
    };
   view "badguys" {
    match-clients {"any"; }; // all other hosts
    zone "example.com" {
-     type master;
+     type primary;
      // public only hosts
-     file "external/master.example.com";
+     file "external/primary.example.com";
     };
     // add required zones
    };
@@ -218,8 +218,8 @@ The equivalent PowerDNS setup would be::
   pdnsutil set-network 192.168.23.0/24 trusted
   pdnsutil set-network 0.0.0.0/0 badguys
 
-  pdnsutil view-add-zone trusted master.example.com..internal
-  pdnsutil view-add-zone badguys master.example.com..external
+  pdnsutil view-add-zone trusted primary.example.com..internal
+  pdnsutil view-add-zone badguys primary.example.com..external
 
-  pdnsutil load-zone example.com..internal internal/master.example.com
-  pdnsutil load-zone example.com..external external/master.example.com
+  pdnsutil load-zone example.com..internal internal/primary.example.com
+  pdnsutil load-zone example.com..external external/primary.example.com
