@@ -125,7 +125,6 @@ Binero
 binlog
 bitfield
 bitmaps
-bjacquin
 bla
 Bleker
 blockfilter
@@ -627,6 +626,7 @@ isql
 ixfr
 ixfrdist
 ixplore
+Jacquin
 Jakub
 Jakum
 janeczku
@@ -646,14 +646,12 @@ Jorn
 journalctl
 jpmens
 jsonstat
-jsoref
 jsrender
 Juergen
 jumpbox
 Juraj
 Kadyshev
 Kaminsky
-karelbilek
 Kaseorg
 Kdhcp
 Kdhcpdupdate
@@ -826,7 +824,6 @@ modeline
 modifyingpolicydecisions
 modindex
 monshouwer
-mortenstevens
 motherboards
 mozilla
 mplexer
@@ -1284,7 +1281,6 @@ singlethreaded
 Sipek
 siphash
 Sjoerd
-sjorgedeaguiar
 slapindex
 slaveness
 SLES
@@ -1378,7 +1374,6 @@ supervacuus
 supervisord
 Surfnet
 swapcontext
-swegener
 swoga
 syncer
 syncres
