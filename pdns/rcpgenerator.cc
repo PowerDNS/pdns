@@ -362,13 +362,21 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val) // NOLINT(readabil
       throw RecordTextException(e.what());
     }
 
-    if (key != SvcParam::no_default_alpn) {
-      if (d_pos == d_end || d_string.at(d_pos) != '=') {
-        throw RecordTextException("expected '=' after " + k);
+    if (key == SvcParam::no_default_alpn) {
+      if (d_pos != d_end) {
+        throw RecordTextException(k + " key can not have values");
       }
-      d_pos++; // Now on the first character after '='
-      if (d_pos == d_end || d_string.at(d_pos) == ' ') {
-        throw RecordTextException("expected value after " + k + "=");
+    } else {
+      if (generic && ((d_pos == d_end && d_string.at(d_pos-1) != '=') || d_string.at(d_pos) == ' ')) {
+        // accept end of data (without a =)
+      } else {
+        if (d_pos == d_end || d_string.at(d_pos) != '=') {
+          throw RecordTextException("expected '=' after " + k);
+        }
+        d_pos++; // Now on the first character after '='
+        if (d_pos == d_end || d_string.at(d_pos) == ' ') {
+          throw RecordTextException("expected value after " + k + "=");
+        }
       }
     }
 
@@ -425,6 +433,9 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val) // NOLINT(readabil
         while (spos < v.length()) {
           len = v.at(spos);
           spos += 1;
+          if (len == 0) {
+            throw RecordTextException("ALPN values cannot be empty strings");
+          }
           if (len > v.length() - spos) {
             throw RecordTextException("Length of ALPN value goes over total length of alpn SVC Param");
           }
@@ -434,6 +445,14 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val) // NOLINT(readabil
       } else {
         xfrSVCBValueList(value);
       }
+      if (value.empty()) {
+        throw RecordTextException("value is required for SVC Param " + k);
+      }
+      for (const auto &alpn_value : value) {
+        if (alpn_value.empty()) {
+          throw RecordTextException("ALPN values cannot be empty strings");
+        }
+      }
       val.insert(SvcParam(key, std::move(value)));
       break;
     }
@@ -441,6 +460,9 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val) // NOLINT(readabil
       if (generic) {
         string v;
         xfrRFC1035CharString(v);
+        if (v.empty()) {
+          throw RecordTextException("value is required for SVC Param " + k);
+        }
         if (v.length() % 2 != 0) {
           throw RecordTextException("Wrong number of bytes in SVC Param " + k);
         }
@@ -497,6 +519,9 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val) // NOLINT(readabil
           }
           d_pos++;
         }
+      }
+      if (value.empty()) {
+        throw RecordTextException("value is required for SVC Param " + k);
       }
       val.insert(SvcParam(key, value));
       break;
