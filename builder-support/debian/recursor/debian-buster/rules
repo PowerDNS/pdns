@@ -12,6 +12,8 @@ include /usr/share/dpkg/default.mk
 # Only enable systemd integration on Linux operating systems
 ifeq ($(DEB_HOST_ARCH_OS),linux)
 MESON_ARGS += -Dsystemd-service=enabled
+MESON_ARGS += -Dsystemd-service-user=pdns
+MESON_ARGS += -Dsystemd-service-group=pdns
 DH_ARGS += --with systemd
 else
 MESON_ARGS += -Dsystemd-service=disabled
