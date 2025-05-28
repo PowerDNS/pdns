@@ -1569,6 +1569,7 @@ static void registerAllStats1()
   addGetStat("max-chain-length", [] { return g_Counters.max(rec::Counter::maxChainLength); });
   addGetStat("max-chain-weight", [] { return g_Counters.max(rec::Counter::maxChainWeight); });
   addGetStat("chain-limits", [] { return g_Counters.sum(rec::Counter::chainLimits); });
+  addGetStat("ecs-missing", [] { return g_Counters.sum(rec::Counter::ecsMissingCount); });
 
   /* make sure that the ECS stats are properly initialized */
   SyncRes::clearECSStats();
