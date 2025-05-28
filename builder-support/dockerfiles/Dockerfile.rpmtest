@@ -1,5 +1,5 @@
 # Install the built rpms and test them
-FROM dist-base as dist
+FROM dist-base AS dist
 
 # If you want to install extra packages or do generic configuration,
 # do it before the COPY. Either here, or in the dist-base layer.
