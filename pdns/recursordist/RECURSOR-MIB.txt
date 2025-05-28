@@ -21,50 +21,8 @@ rec MODULE-IDENTITY
     DESCRIPTION
        "This MIB module describes information gathered through PowerDNS Recursor."
 
-    REVISION "202505270000Z"
-    DESCRIPTION "Added metric for missing ECS in reply"
-
-    REVISION "202408280000Z"
-    DESCRIPTION "Added metric for too many incoming TCP connections"
-
-    REVISION "202408130000Z"
-    DESCRIPTION "Added metric for chain limits reached"
-
-    REVISION "202405230000Z"
-    DESCRIPTION "Added metrics for maximum chain length and weight"
-
-    REVISION "202306080000Z"
-    DESCRIPTION "Added metrics for NOD and UDR events"
-
-    REVISION "202302240000Z"
-    DESCRIPTION "Added metrics for sharded packet cache contention"
-
-    REVISION "202209120000Z"
-    DESCRIPTION "Added metrics for answers from auths by rcode"
-
-    REVISION "202208220000Z"
-    DESCRIPTION "Added internal maintenance metrics."
-
-    REVISION "202201310000Z"
-    DESCRIPTION "Added non-resolving NS name metric."
-
-    REVISION "202111090000Z"
-    DESCRIPTION "Added NOTIFY-related metrics."
-
-    REVISION "202110270000Z"
-    DESCRIPTION "Added more UDP errors metric."
-
-    REVISION "202107200000Z"
-    DESCRIPTION "Added almost expired task metrics."
-
-    REVISION "202101050000Z"
-    DESCRIPTION "Added Aggressive NSEC cache metrics."
-
-    REVISION "202002170000Z"
-    DESCRIPTION "Added proxyProtocolInvalid metric."
-
-    REVISION "201911140000Z"
-    DESCRIPTION "Added qnameMinFallbackSuccess stats."
+    REVISION "201611290000Z"
+    DESCRIPTION "Initial revision."
 
     REVISION "201812240000Z"
     DESCRIPTION "Added the dnssecAuthenticDataQueries and dnssecCheckDisabledQueries stats."

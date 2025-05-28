@@ -1530,6 +1530,8 @@ static void registerAllStats1()
   addGetStat("nod-events", [] { return g_Counters.sum(rec::Counter::nodCount); });
   addGetStat("udr-events", [] { return g_Counters.sum(rec::Counter::udrCount); });
 
+  addGetStat("ecs-missing", [] { return g_Counters.sum(rec::Counter::ecsMissingCount); });
+
   /* make sure that the ECS stats are properly initialized */
   SyncRes::clearECSStats();
   for (size_t idx = 0; idx < SyncRes::s_ecsResponsesBySubnetSize4.size(); idx++) {
