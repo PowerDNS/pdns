@@ -118,7 +118,7 @@ ecs-add-for=0.0.0.0/0
     def tearDownClass(cls):
         cls.tearDownRecursor()
 
-class testNoECS(ECSTest):
+class NoECSTest(ECSTest):
     _confdir = 'NoECS'
 
     _config_template = """edns-subnet-allow-list=
@@ -363,7 +363,7 @@ forward-zones=ecs-echo.example=%s.21
         query = dns.message.make_query(nameECS, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
         self.sendECSQuery(query, expected)
 
-class testECSByNameLarger(ECSTest):
+class ECSByNameLargerTest(ECSTest):
     _confdir = 'ECSByNameLarger'
 
     _config_template = """edns-subnet-allow-list=ecs-echo.example.
@@ -590,7 +590,7 @@ ecs-ipv6-cache-bits=128
     """ % (os.environ['PREFIX'])
 
 @unittest.skipIf(not have_ipv6(), "No IPv6")
-class testIncomingECSByNameV6(ECSTest):
+class IncomingECSByNameV6Test(ECSTest):
     _confdir = 'ECSIncomingByNameV6'
 
     _config_template = """edns-subnet-allow-list=ecs-echo.example.
@@ -856,7 +856,7 @@ dnssec=validate
 
     @classmethod
     def generateRecursorConfig(cls, confdir):
-        super(testTooLargeToAddZeroScope, cls).generateRecursorConfig(confdir)
+        super(TooLargeToAddZeroScopeTest, cls).generateRecursorConfig(confdir)
 
     def testTooLarge(self):
         qname = 'toolarge.ecs.'
