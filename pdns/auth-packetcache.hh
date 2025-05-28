@@ -72,11 +72,14 @@ public:
   void setMaxEntries(uint64_t maxEntries) 
   {
     d_maxEntries = maxEntries;
-    for (auto& iter : d_cache) {
-      auto* map = iter.second.get();
+    {
+      auto cache = d_cache.write_lock();
+      for (auto& iter : *cache) {
+        auto* map = iter.second.get();
       
-      for (auto& shard : *map) {
-        shard.reserve(maxEntries / map->size());
+        for (auto& shard : *map) {
+          shard.reserve(maxEntries / map->size());
+        }
       }
     }
   }
@@ -129,13 +132,14 @@ private:
     SharedLockGuarded<cmap_t> d_map;
   };
 
-  std::unordered_map<std::string, std::unique_ptr<vector<MapCombo>>> d_cache;
-  static MapCombo& getMap(std::unique_ptr<vector<MapCombo>>& map, const DNSName& name)
+  using cache_t = std::unordered_map<std::string, std::unique_ptr<vector<MapCombo>>>;
+  SharedLockGuarded<cache_t> d_cache;
+  static MapCombo& getMap(const std::unique_ptr<vector<MapCombo>>& map, const DNSName& name)
   {
     return (*map)[name.hash() % map->size()];
   }
 
-  std::unordered_map<std::string, std::unique_ptr<vector<MapCombo>>>::iterator createViewMap(const std::string& view);
+  cache_t::iterator createViewMap(cache_t& cache, const std::string& view);
   static bool entryMatches(cmap_t::index<HashTag>::type::iterator& iter, const std::string& query, const DNSName& qname, uint16_t qtype, bool tcp);
   static bool getEntryLocked(const cmap_t& map, const std::string& query, uint32_t hash, const DNSName &qname, uint16_t qtype, bool tcp, time_t now, string& value);
   void cleanupIfNeeded();

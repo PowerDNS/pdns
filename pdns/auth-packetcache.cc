@@ -43,16 +43,17 @@ AuthPacketCache::AuthPacketCache(size_t mapsCount): d_mapscount(mapsCount), d_la
   d_statnumentries=S.getPointer("packetcache-size");
 
   // Create the MapCombo for the default view
+  auto cache = d_cache.write_lock();
   std::string defaultview{};
-  createViewMap(defaultview);
+  createViewMap(*cache, defaultview);
 }
 
 // Create the vector<MapCombo> for the given view.
 // Assumes there is no existing data for the view. Callers are expected to
 // know what they are doing.
-std::unordered_map<std::string, std::unique_ptr<vector<AuthPacketCache::MapCombo>>>::iterator AuthPacketCache::createViewMap(const std::string& view)
+std::unordered_map<std::string, std::unique_ptr<vector<AuthPacketCache::MapCombo>>>::iterator AuthPacketCache::createViewMap(cache_t& cache, const std::string& view)
 {
-  auto iter = d_cache.emplace(view, std::make_unique<vector<MapCombo>>(d_mapscount));
+  auto iter = cache.emplace(view, std::make_unique<vector<MapCombo>>(d_mapscount));
   auto retval = iter.first;
   auto* map = retval->second.get();
   // Note that this reserves more than intended, especially if multiple views
@@ -85,21 +86,24 @@ bool AuthPacketCache::get(DNSPacket& pkt, DNSPacket& cached, const std::string& 
   string value;
   bool haveSomething;
   time_t now = time(nullptr);
-  auto iter = d_cache.find(view);
-  if (iter == d_cache.end()) {
-    // No data for this view yet.
-    (*d_statnummiss)++;
-    return false;
-  }
-  auto& mapcombo = getMap(iter->second, pkt.qdomain);
   {
-    auto map = mapcombo.d_map.try_read_lock();
-    if (!map.owns_lock()) {
-      S.inc("deferred-packetcache-lookup");
+    auto cache = d_cache.read_lock();
+    auto iter = cache->find(view);
+    if (iter == cache->end()) {
+      // No data for this view yet.
+      (*d_statnummiss)++;
       return false;
     }
+    auto& mapcombo = getMap(iter->second, pkt.qdomain);
+    {
+      auto map = mapcombo.d_map.try_read_lock();
+      if (!map.owns_lock()) {
+        S.inc("deferred-packetcache-lookup");
+        return false;
+      }
 
-    haveSomething = AuthPacketCache::getEntryLocked(*map, pkt.getString(), hash, pkt.qdomain, pkt.qtype.getCode(), pkt.d_tcp, now, value);
+      haveSomething = AuthPacketCache::getEntryLocked(*map, pkt.getString(), hash, pkt.qdomain, pkt.qtype.getCode(), pkt.d_tcp, now, value);
+    }
   }
 
   if (!haveSomething) {
@@ -158,45 +162,48 @@ void AuthPacketCache::insert(DNSPacket& query, DNSPacket& response, unsigned int
   entry.tcp = response.d_tcp;
   entry.query = query.getString();
 
-  auto iter = d_cache.find(view);
-  if (iter == d_cache.end()) {
-    // No data for this view yet, create it.
-    iter = createViewMap(view);
-  }
-  auto& mc = getMap(iter->second, entry.qname); // NOLINT(readability-identifier-length)
   {
-    auto map = mc.d_map.try_write_lock();
-    if (!map.owns_lock()) {
-      S.inc("deferred-packetcache-inserts");
-      return;
+    auto cache = d_cache.write_lock();
+    auto iter = cache->find(view);
+    if (iter == cache->end()) {
+      // No data for this view yet, create it.
+      iter = createViewMap(*cache, view);
     }
-
-    auto& idx = map->get<HashTag>();
-    auto range = idx.equal_range(hash);
-    auto iter2 = range.first;
-
-    for( ; iter2 != range.second ; ++iter2)  {
-      if (!entryMatches(iter2, entry.query, entry.qname, entry.qtype, entry.tcp)) {
-        continue;
+    auto& mc = getMap(iter->second, entry.qname); // NOLINT(readability-identifier-length)
+    {
+      auto map = mc.d_map.try_write_lock();
+      if (!map.owns_lock()) {
+        S.inc("deferred-packetcache-inserts");
+        return;
       }
 
-      moveCacheItemToBack<SequencedTag>(*map, iter2);
-      iter2->value = entry.value;
-      iter2->ttd = now + ourttl;
-      iter2->created = now;
-      return;
-    }
+      auto& idx = map->get<HashTag>();
+      auto range = idx.equal_range(hash);
+      auto iter2 = range.first;
 
-    /* no existing entry found to refresh */
-    map->insert(std::move(entry));
+      for( ; iter2 != range.second ; ++iter2)  {
+        if (!entryMatches(iter2, entry.query, entry.qname, entry.qtype, entry.tcp)) {
+          continue;
+        }
 
-    if (*d_statnumentries >= d_maxEntries) {
-      /* remove the least recently inserted or replaced entry */
-      auto& sidx = map->get<SequencedTag>();
-      sidx.pop_front();
-    }
-    else {
-      ++(*d_statnumentries);
+        moveCacheItemToBack<SequencedTag>(*map, iter2);
+        iter2->value = entry.value;
+        iter2->ttd = now + ourttl;
+        iter2->created = now;
+        return;
+      }
+
+      /* no existing entry found to refresh */
+      map->insert(std::move(entry));
+
+      if (*d_statnumentries >= d_maxEntries) {
+        /* remove the least recently inserted or replaced entry */
+        auto& sidx = map->get<SequencedTag>();
+        sidx.pop_front();
+      }
+      else {
+        ++(*d_statnumentries);
+      }
     }
   }
 }
@@ -231,9 +238,12 @@ uint64_t AuthPacketCache::purge()
   d_statnumentries->store(0);
 
   uint64_t delcount = 0;
-  for (auto& iter : d_cache) {
-    auto* map = iter.second.get();
-    delcount += purgeLockedCollectionsVector(*map);
+  {
+    auto cache = d_cache.write_lock();
+    for (auto& iter : *cache) {
+      auto* map = iter.second.get();
+      delcount += purgeLockedCollectionsVector(*map);
+    }
   }
   return delcount;
 }
@@ -242,9 +252,12 @@ uint64_t AuthPacketCache::purgeExact(const DNSName& qname)
 {
   uint64_t delcount = 0;
 
-  for (auto& iter : d_cache) {
-    auto& mc = getMap(iter.second, qname); // NOLINT(readability-identifier-length)
-    delcount += purgeExactLockedCollection<NameTag>(mc, qname);
+  {
+    auto cache = d_cache.write_lock();
+    for (auto& iter : *cache) {
+      auto& mc = getMap(iter.second, qname); // NOLINT(readability-identifier-length)
+      delcount += purgeExactLockedCollection<NameTag>(mc, qname);
+    }
   }
 
   *d_statnumentries -= delcount;
@@ -256,9 +269,12 @@ uint64_t AuthPacketCache::purgeExact(const std::string& view, const DNSName& qna
 {
   uint64_t delcount = 0;
 
-  if (auto iter = d_cache.find(view); iter != d_cache.end()) {
-    auto& mc = getMap(iter->second, qname); // NOLINT(readability-identifier-length)
-    delcount += purgeExactLockedCollection<NameTag>(mc, qname);
+  {
+    auto cache = d_cache.write_lock();
+    if (auto iter = cache->find(view); iter != cache->end()) {
+      auto& mc = getMap(iter->second, qname); // NOLINT(readability-identifier-length)
+      delcount += purgeExactLockedCollection<NameTag>(mc, qname);
+    }
   }
 
   *d_statnumentries -= delcount;
@@ -276,9 +292,12 @@ uint64_t AuthPacketCache::purge(const string &match)
   uint64_t delcount = 0;
 
   if(boost::ends_with(match, "$")) {
-    for (auto& iter : d_cache) {
-      auto* map = iter.second.get();
-      delcount += purgeLockedCollectionsVector<NameTag>(*map, match);
+    {
+      auto cache = d_cache.write_lock();
+      for (auto& iter : *cache) {
+        auto* map = iter.second.get();
+        delcount += purgeLockedCollectionsVector<NameTag>(*map, match);
+      }
     }
     *d_statnumentries -= delcount;
   }
@@ -292,9 +311,12 @@ uint64_t AuthPacketCache::purge(const string &match)
 void AuthPacketCache::cleanup()
 {
   uint64_t totErased = 0;
-  for (auto& iter : d_cache) {
-    auto* map = iter.second.get();
-    totErased += pruneLockedCollectionsVector<SequencedTag>(*map);
+  {
+    auto cache = d_cache.write_lock();
+    for (auto& iter : *cache) {
+      auto* map = iter.second.get();
+      totErased += pruneLockedCollectionsVector<SequencedTag>(*map);
+    }
   }
   *d_statnumentries -= totErased;
 
