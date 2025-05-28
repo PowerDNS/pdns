@@ -80,12 +80,29 @@ const static std::array<string, 12> GeoIP_MONTHS = {"jan", "feb", "mar", "apr", 
    If the reference is external, we spoof up a CNAME, and good luck with that
 */
 
+struct DirPtrDeleter
+{
+  /* using a deleter instead of decltype(&closedir) has two big advantages:
+     - the deleter is included in the type and does not have to be passed
+       when creating a new object (easier to use, less memory usage, in theory
+       better inlining)
+     - we avoid the annoying "ignoring attributes on template argument ‘int (*)(DIR*)’"
+       warning from the compiler, which is there because closedir is tagged as __nonnull((1))
+  */
+  void operator()(DIR* dirPtr) const noexcept
+  {
+    closedir(dirPtr);
+  }
+};
+
+using UniqueDirPtr = std::unique_ptr<DIR, DirPtrDeleter>;
+
 GeoIPBackend::GeoIPBackend(const string& suffix)
 {
   WriteLock writeLock(&s_state_lock);
   setArgPrefix("geoip" + suffix);
   if (!getArg("dnssec-keydir").empty()) {
-    auto dirHandle = std::unique_ptr<DIR, decltype(&closedir)>(opendir(getArg("dnssec-keydir").c_str()), closedir);
+    auto dirHandle = UniqueDirPtr(opendir(getArg("dnssec-keydir").c_str()));
     if (!dirHandle) {
       throw PDNSException("dnssec-keydir " + getArg("dnssec-keydir") + " does not exist");
     }
