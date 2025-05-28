@@ -418,7 +418,7 @@ static void updateThread(const string& workdir, const uint16_t& keep, const uint
       g_log<<Logger::Info<<"Trying to initially load domain "<<domain<<" from disk"<<endl;
       auto serial = getSerialFromDir(dir);
       shared_ptr<const SOARecordContent> soa;
-      uint32_t soaTTL;
+      uint32_t soaTTL{0};
       {
         string fname = workdir + "/" + domain.toString() + "/" + std::to_string(serial);
         loadSOAFromDisk(domain, fname, soa, soaTTL);
