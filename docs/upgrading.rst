@@ -56,6 +56,10 @@ A few changes of behaviour have been implemented in :doc:`pdnsutil <pdnsutil>`.
 * The ``add-record``, ``delete-rrset``, ``edit-zone``, ``increase-serial`` and
   ``replace-rrset`` operations will now refuse to work on secondary zones unless
   the ``--force`` option is passed.
+* When a zone gets created with either ``create-zone``,
+  ``create-secondary-zone`` or ``load-zone`` (if the zone wasn't existing
+  already), a :ref:`metadata-soa-edit-api` metadata with a value of ``DEFAULT``
+  will be added to the zone.
 
 4.8.0 to 4.9.0
 --------------
