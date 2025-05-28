@@ -19,6 +19,7 @@ on:
           el-9
           debian-bullseye
           debian-bookworm
+          debian-trixie
           ubuntu-focal
           ubuntu-jammy
           ubuntu-noble
@@ -101,6 +102,8 @@ jobs:
       pkghashes-debian-bullseye-aarch64: ${{ steps.pkghashes.outputs.pkghashes-debian-bullseye-aarch64 }}
       pkghashes-debian-bookworm-x86_64: ${{ steps.pkghashes.outputs.pkghashes-debian-bookworm-x86_64 }}
       pkghashes-debian-bookworm-aarch64: ${{ steps.pkghashes.outputs.pkghashes-debian-bookworm-aarch64 }}
+      pkghashes-debian-trixie-x86_64: ${{ steps.pkghashes.outputs.pkghashes-debian-trixie-x86_64 }}
+      pkghashes-debian-trixie-aarch64: ${{ steps.pkghashes.outputs.pkghashes-debian-trixie-aarch64 }}
       pkghashes-ubuntu-focal-x86_64: ${{ steps.pkghashes.outputs.pkghashes-ubuntu-focal-x86_64 }}
       pkghashes-ubuntu-focal-aarch64: ${{ steps.pkghashes.outputs.pkghashes-ubuntu-focal-aarch64 }}
       pkghashes-ubuntu-jammy-x86_64: ${{ steps.pkghashes.outputs.pkghashes-ubuntu-jammy-x86_64 }}
