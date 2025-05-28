@@ -184,6 +184,7 @@ public:
   bool ecsOverride;
   bool useECS{true};
   bool asynchronous{false};
+  bool d_selfGeneratedFromPacket{false};
 };
 
 struct DownstreamState;

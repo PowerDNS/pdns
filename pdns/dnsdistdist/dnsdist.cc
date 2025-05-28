@@ -326,6 +326,9 @@ static bool fixUpQueryTurnedResponse(DNSQuestion& dnsQuestion, const uint16_t or
     return true;
   });
 
+  if (dnsQuestion.d_selfGeneratedFromPacket) {
+    return true;
+  }
   return addEDNSToQueryTurnedResponse(dnsQuestion);
 }
 
