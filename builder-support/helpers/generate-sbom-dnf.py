@@ -4,11 +4,12 @@ This script uses dnf to generate a Software Bill of Materials
 (SBOM) in CycloneDX JSON format.
 """
 import datetime
-import dnf
 import json
 import os
 import sys
 import uuid
+
+import dnf
 
 def licenseToSPDXIdentifier(licenseName):
     licenseMap = {
@@ -70,9 +71,9 @@ def getPackageInformations(pkgDB, packageName):
         return None
     return matches[0]
 
-def addDependencyToSBOM(sbom, appInfos, pkg):
-    bomRef = 'lib:' + pkg.name
-    component = { 'name': pkg.name, 'bom-ref': bomRef, 'type': 'library'}
+def addDependencyToSBOM(sbom, pkg):
+    bom_ref = 'lib:' + pkg.name
+    component = { 'name': pkg.name, 'bom-ref': bom_ref, 'type': 'library'}
     if pkg.release:
         component['version'] = (pkg.version if pkg.epoch == 0 else str(pkg.epoch) + ':' + pkg.version) + '-' + pkg.release
     else:
@@ -83,18 +84,24 @@ def addDependencyToSBOM(sbom, appInfos, pkg):
         component['supplier'] = {'name': pkg.vendor}
     if hasattr(pkg, 'publisher') and pkg.publisher is not None:
         component['publisher'] = pkg.publisher
-    spdxLicense = licenseToSPDXIdentifier(pkg.license)
-    if spdxLicense is None:
+    if hasattr(pkg, 'author') and pkg.author is not None:
+        component['author'] = pkg.author
+    if hasattr(pkg, 'purl'):
+        component['purl'] = pkg.purl
+    if hasattr(pkg, 'externalReferences'):
+        component['externalReferences'] = pkg.externalReferences
+    spdx_license = licenseToSPDXIdentifier(pkg.license)
+    if spdx_license is None:
         component['licenses'] = [{'license': {'name': pkg.license}}]
     else:
-        component['licenses'] = [{'license': {'id': spdxLicense}}]
+        component['licenses'] = [{'license': {'id': spdx_license}}]
     if hasattr(pkg, 'sha256') and pkg.sha256 is not None:
         component['hashes'] = [{'alg': 'SHA-256', 'content': pkg.sha256}]
     component['purl'] = getPURL(pkg)
 
     sbom['components'].append(component)
 
-def processDependencies(pkgDB, sbom, appInfos, depRelations):
+def processDependencies(pkg_db, sbom, appInfos, depRelations):
     seenDeps = {}
     for require in appInfos.requires:
         if hasattr(require, 'name'):
@@ -102,7 +109,7 @@ def processDependencies(pkgDB, sbom, appInfos, depRelations):
             depSpec = require.name
         else:
             # hawkey.Reldep, el-8
-            depName = str(require).split('(')[0]
+            depName = str(require).split('(', maxsplit=1)[0]
             depSpec = require
         if depName in ['/bin/sh', 'config', 'ld-linux-x86-64.so.2', 'rpmlib', 'rtld']:
             continue
@@ -110,10 +117,10 @@ def processDependencies(pkgDB, sbom, appInfos, depRelations):
             continue
         seenDeps[depName] = True
 
-        matches = pkgDB.filter(name=depName).run()
+        matches = pkg_db.filter(name=depName).run()
         if len(matches) == 0:
             flags = []
-            matches = pkgDB.filter(*flags, provides__glob=[depSpec]).run()
+            matches = pkg_db.filter(*flags, provides__glob=[depSpec]).run()
             if len(matches) == 0:
                 print(f'Unable to find a match for {depName}')
                 continue
@@ -126,44 +133,82 @@ def processDependencies(pkgDB, sbom, appInfos, depRelations):
             continue
         seenDeps[depRef] = True
 
-        addDependencyToSBOM(sbom, appInfos, dep)
+        addDependencyToSBOM(sbom, dep)
         depRelations['pkg:' + appInfos.name].append(depRef)
 
-class StaticLibDep(object):
-    pass
+class StaticLibDep:
+    def __init__(self, name, version, description, purl, external_refs, author, license, sha256):
+        self.epoch = 0
+        self.release = None
+        self.name = name
+        self.version = version
+        if description:
+            self.description = description
+        if purl:
+            self.purl = purl
+        self.externalReferences = external_refs
+        if author:
+            self.author = author
+        self.supplier = None
+        self.publisher = None
+        self.license = license
+        if sha256:
+            self.sha256 = sha256
+
+def mergeLibSBOM(sbom, appInfos, lib_sbom_path, depRelations):
+    with open(lib_sbom_path, encoding="utf-8") as fd:
+        lib_sbom_data = json.load(fd)
+        component = lib_sbom_data['metadata']['component']
+        main_component_name = component['name']
+        print(component)
+        pkg = StaticLibDep(main_component_name, component['version'], component['description'], component.get('purl'), component.get('externalReferences'), component.get('author'), component['licenses'][0]['expression'], component['hashes'][0]['content'] if 'hashes' in component else None)
+
+        addDependencyToSBOM(sbom, pkg)
+        depRef = 'lib:' + pkg.name
+        depRelations['pkg:' + appInfos.name].append(depRef)
+
+        sub_components = lib_sbom_data['components']
+        for component in sub_components:
+            pkg = StaticLibDep(component['name'], component['version'], None, component.get('purl'), component.get('externalReferences'), component.get('author') or None, component['licenses'][0]['expression'], component['hashes'][0]['content'] if 'hashes' in component else None)
+
+            addDependencyToSBOM(sbom, pkg)
+            depRef = 'lib:' + pkg.name
+            if not 'lib:' + main_component_name in depRelations:
+                depRelations['lib:' + main_component_name] = []
+            depRelations['lib:' + main_component_name].append(depRef)
+
+def addAdditionalLibraryToSBOM(depFile, sbom, appInfos, depRelations):
+    with open(depFile, encoding="utf-8") as depDataFile:
+        depData = json.load(depDataFile)
+        pkg = StaticLibDep(os.path.splitext(os.path.basename(depFile))[0], depData['version'], None, None, [], None, depData.get('license') or None, None)
+        pkg.supplier = 'PowerDNS.COM BV'
+        if 'publisher' in depData:
+            pkg.publisher = depData['publisher']
+        if 'SHA256SUM' in depData:
+            pkg.sha256 = depData['SHA256SUM']
+        elif 'SHA256SUM_x86_64' in depData:
+            pkg.sha256 = depData['SHA256SUM_x86_64']
+        pkg.cargo = True
+
+        depRef = 'lib:' + pkg.name
+        addDependencyToSBOM(sbom, pkg)
+        depRelations['pkg:' + appInfos.name].append(depRef)
 
 def processAdditionalDependencies(sbom, appInfos, additionalDeps, depRelations):
     for additionalDepFile in additionalDeps:
-        with open(additionalDepFile) as depDataFile:
-            depData = json.load(depDataFile)
-            pkg = StaticLibDep()
-            pkg.name = os.path.splitext(os.path.basename(additionalDepFile))[0]
-            pkg.version = depData['version']
-            pkg.epoch = 0
-            pkg.release = None
-            pkg.supplier = 'PowerDNS.COM BV'
-            if 'license' in depData:
-                pkg.license = depData['license']
-            if 'publisher' in depData:
-                pkg.publisher = depData['publisher']
-            if 'SHA256SUM' in depData:
-                pkg.sha256 = depData['SHA256SUM']
-            elif 'SHA256SUM_x86_64' in depData:
-                pkg.sha256 = depData['SHA256SUM_x86_64']
-            pkg.cargo = True
-
-            depRef = 'lib:' + pkg.name
-            addDependencyToSBOM(sbom, appInfos, pkg)
-            depRelations['pkg:' + appInfos.name].append(depRef)
+        if additionalDepFile.endswith('cdx.json'):
+            mergeLibSBOM(sbom, appInfos, additionalDepFile, depRelations)
+        else:
+            addAdditionalLibraryToSBOM(additionalDepFile, sbom, appInfos, depRelations)
 
 def generateSBOM(packageName, additionalDeps):
     sbom = { 'bomFormat': 'CycloneDX', 'specVersion': '1.5', 'version': 1 }
     sbom['serialNumber'] = 'urn:uuid:' + str(uuid.uuid4())
     depRelations = {}
 
-    pkgDB = getPackageDatabase()
+    pkg_db = getPackageDatabase()
     appName = packageName
-    appInfos = getPackageInformations(pkgDB, packageName)
+    appInfos = getPackageInformations(pkg_db, packageName)
     component = { 'name': appName, 'bom-ref': 'pkg:' + appName, 'type': 'application'}
 
     version = appInfos.version
@@ -198,7 +243,7 @@ def generateSBOM(packageName, additionalDeps):
     sbom['components'] = []
     sbom['dependencies'] = []
 
-    processDependencies(pkgDB, sbom, appInfos, depRelations)
+    processDependencies(pkg_db, sbom, appInfos, depRelations)
     processAdditionalDependencies(sbom, appInfos, additionalDeps, depRelations)
 
     for pkg, deps in depRelations.items():
@@ -208,13 +253,13 @@ def generateSBOM(packageName, additionalDeps):
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:
-        sys.exit('Usage: %s <output file> <package> [static dependencies ...]' % (sys.argv[0]))
+        sys.exit(f'Usage: {sys.argv[0]} <output file> <package> [static dependencies ...]')
 
     staticDeps = []
     if len(sys.argv) > 3:
         staticDeps = sys.argv[3:]
 
-    sbom = generateSBOM(sys.argv[2], staticDeps)
+    sbom_content = generateSBOM(sys.argv[2], staticDeps)
 
-    with open(sys.argv[1], "w") as f:
-        f.write(json.dumps(sbom))
+    with open(sys.argv[1], "w", encoding="utf-8") as f:
+        f.write(json.dumps(sbom_content))
