@@ -19,6 +19,10 @@ std::shared_ptr<DNSResponseAction> getLuaFFIPerThreadResponseAction(const std::s
 {
   return std::shared_ptr<DNSResponseAction>(new LuaFFIPerThreadResponseAction(code));
 }
+std::shared_ptr<DNSResponseAction> getSetEDNSOptionResponseAction(uint32_t code, const std::string& data)
+{
+  return std::shared_ptr<DNSResponseAction>(new SetEDNSOptionResponseAction(code, data));
+}
 std::shared_ptr<DNSResponseAction> getSetExtendedDNSErrorResponseAction(uint16_t info_code, const std::string& extra_text)
 {
   return std::shared_ptr<DNSResponseAction>(new SetExtendedDNSErrorResponseAction(info_code, extra_text));
