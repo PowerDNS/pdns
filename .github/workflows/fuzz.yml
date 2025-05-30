@@ -12,6 +12,7 @@ jobs:
       with:
         fetch-depth: 5
         submodules: recursive
+        persist-credentials: false
     - run: docker build -t gcr.io/oss-fuzz-base/base-builder:latest -f Dockerfile-cifuzz .
     - name: Build Fuzzers
       uses: google/oss-fuzz/infra/cifuzz/actions/build_fuzzers@master

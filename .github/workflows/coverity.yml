@@ -36,6 +36,7 @@ jobs:
         with:
           fetch-depth: 5
           submodules: recursive
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -65,6 +66,7 @@ jobs:
         with:
           fetch-depth: 5
           submodules: recursive
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -80,9 +82,9 @@ jobs:
       - run: inv coverity-clang-configure
       - run: inv ci-autoconf
         working-directory: ./pdns/dnsdistdist/
-      - run: inv ci-install-rust ${{ env.REPO_HOME }}
+      - run: inv ci-install-rust $REPO_HOME
         working-directory: ./pdns/dnsdistdist/
-      - run: inv ci-build-and-install-quiche ${{ env.REPO_HOME }}
+      - run: inv ci-build-and-install-quiche $REPO_HOME
         working-directory: ./pdns/dnsdistdist/
       - run: inv ci-dnsdist-configure full autotools build-dir
         working-directory: ./pdns/dnsdistdist/
@@ -107,6 +109,7 @@ jobs:
         with:
           fetch-depth: 5
           submodules: recursive
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'

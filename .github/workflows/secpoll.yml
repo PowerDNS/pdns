@@ -19,6 +19,7 @@ jobs:
         with:
           fetch-depth: 5
           submodules: recursive
+          persist-credentials: false
       - run: sh docs/secpoll-check.sh docs/secpoll.zone
       - run: echo 'deb [arch=amd64] http://repo.powerdns.com/ubuntu noble-auth-master main' | sudo tee /etc/apt/sources.list.d/pdns.list
       - run: "echo -ne 'Package: pdns-*\nPin: origin repo.powerdns.com\nPin-Priority: 600\n' | sudo tee /etc/apt/preferences.d/pdns"

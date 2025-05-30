@@ -50,6 +50,7 @@ jobs:
           fetch-depth: 0  # for correct version numbers
           submodules: recursive
           ref: ${{ inputs.branch-name }}
+          persist-credentials: false
       # this builds packages and runs our unit test (make check)
       - run: builder/build.sh -v -m ${{ matrix.product }} ${{ matrix.os }}
       - name: Get version number
