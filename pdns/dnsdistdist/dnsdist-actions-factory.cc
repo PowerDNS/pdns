@@ -1018,7 +1018,7 @@ public:
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
     (void)ruleresult;
-    setEDNSOption(*dnsquestion, d_code, d_data);
+    setEDNSOption(*dnsquestion, d_code, d_data, true);
     return Action::None;
   }
 
@@ -1041,9 +1041,9 @@ public:
   {
   }
 
-  DNSResponseAction::Action operator()(DNSResponse* response, std::string* ruleresult) const override
+  DNSResponseAction::Action operator()(DNSResponse* response, [[maybe_unused]] std::string* ruleresult) const override
   {
-    setEDNSOption(*response, d_code, d_data);
+    setEDNSOption(*response, d_code, d_data, false);
     return Action::None;
   }
 
