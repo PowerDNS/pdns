@@ -14,6 +14,9 @@ luaCtx.writeFunction("LogResponseAction", [](boost::optional<std::string> file_n
 luaCtx.writeFunction("LuaFFIPerThreadResponseAction", [](std::string code) {
   return dnsdist::actions::getLuaFFIPerThreadResponseAction(code);
 });
+luaCtx.writeFunction("SetEDNSOptionResponseAction", [](uint32_t code, std::string data) {
+  return dnsdist::actions::getSetEDNSOptionResponseAction(code, data);
+});
 luaCtx.writeFunction("SetExtendedDNSErrorResponseAction", [](uint16_t info_code, boost::optional<std::string> extra_text) {
   return dnsdist::actions::getSetExtendedDNSErrorResponseAction(info_code, extra_text ? *extra_text : "");
 });
