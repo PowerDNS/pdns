@@ -579,8 +579,9 @@ class TestAdvancedSetEDNSOptionResponseAction(DNSDistTest):
         Responses: Set EDNS Option in response
         """
         name = 'setednsoptionresponse.responses.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'A', 'IN')
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=True)
         response = dns.message.make_response(query)
+        response.use_edns(edns=True, payload=512)
         rrset = dns.rrset.from_text(name,
                                     3600,
                                     dns.rdataclass.IN,
@@ -589,7 +590,8 @@ class TestAdvancedSetEDNSOptionResponseAction(DNSDistTest):
         response.answer.append(rrset)
 
         eco = cookiesoption.CookiesOption(b'deadbeef', b'deadc0de')
-        expectedResponse = dns.message.make_response(query, use_edns=True, payload=512, options=[eco])
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.use_edns(edns=True, payload=512, options=[eco])
         expectedResponse.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -599,7 +601,7 @@ class TestAdvancedSetEDNSOptionResponseAction(DNSDistTest):
             self.assertTrue(receivedResponse)
             receivedQuery.id = query.id
             self.assertEqual(query, receivedQuery)
-            self.checkResponseEDNS(expectedResponse, receivedResponse)
+            self.checkResponseEDNSWithoutECS(expectedResponse, receivedResponse, 1)
 
     def testAdvancedSetEDNSOptionResponseOverwrite(self):
         """
@@ -607,8 +609,9 @@ class TestAdvancedSetEDNSOptionResponseAction(DNSDistTest):
         """
         name = 'setednsoptionresponse-overwrite.responses.tests.powerdns.com.'
         initialECO = cookiesoption.CookiesOption(b'aaaaaaaa', b'bbbbbbbb')
-        query = dns.message.make_query(name, 'A', 'IN')
-        response = dns.message.make_response(query, use_edns=True, payload=512, options=[initialECO])
+        query = dns.message.make_query(name, 'A', 'IN', use_edns=True)
+        response = dns.message.make_response(query)
+        response.use_edns(edns=True, payload=512, options=[initialECO])
         rrset = dns.rrset.from_text(name,
                                     3600,
                                     dns.rdataclass.IN,
@@ -617,7 +620,8 @@ class TestAdvancedSetEDNSOptionResponseAction(DNSDistTest):
         response.answer.append(rrset)
 
         overWrittenECO = cookiesoption.CookiesOption(b'deadbeef', b'deadc0de')
-        expectedResponse = dns.message.make_response(query, use_edns=True, payload=512, options=[overWrittenECO])
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.use_edns(edns=True, payload=512, options=[overWrittenECO])
         expectedResponse.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -627,7 +631,7 @@ class TestAdvancedSetEDNSOptionResponseAction(DNSDistTest):
             self.assertTrue(receivedResponse)
             receivedQuery.id = query.id
             self.assertEqual(query, receivedQuery)
-            self.checkResponseEDNS(expectedResponse, receivedResponse)
+            self.checkResponseEDNSWithoutECS(expectedResponse, receivedResponse, 1)
 
     def testAdvancedSetEDNSOptionResponseWithDOSet(self):
         """
@@ -636,6 +640,7 @@ class TestAdvancedSetEDNSOptionResponseAction(DNSDistTest):
         name = 'setednsoptionresponse-do.responses.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN', use_edns=True, want_dnssec=True, payload=4096)
         response = dns.message.make_response(query)
+        response.use_edns(edns=True, payload=1024)
         rrset = dns.rrset.from_text(name,
                                     3600,
                                     dns.rdataclass.IN,
@@ -644,7 +649,8 @@ class TestAdvancedSetEDNSOptionResponseAction(DNSDistTest):
         response.answer.append(rrset)
 
         eco = cookiesoption.CookiesOption(b'deadbeef', b'deadc0de')
-        expectedResponse = dns.message.make_response(query, use_edns=True, payload=4096, options=[eco], want_dnssec=True)
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.use_edns(edns=True, payload=1024, options=[eco])
         expectedResponse.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
@@ -654,4 +660,4 @@ class TestAdvancedSetEDNSOptionResponseAction(DNSDistTest):
             self.assertTrue(receivedResponse)
             receivedQuery.id = query.id
             self.assertEqual(query, receivedQuery)
-            self.checkResponseEDNS(expectedResponse, receivedResponse)
+            self.checkResponseEDNSWithoutECS(expectedResponse, receivedResponse, 1)
