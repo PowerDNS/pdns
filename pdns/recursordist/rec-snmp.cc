@@ -438,6 +438,7 @@ RecursorSNMPAgent::RecursorSNMPAgent(const std::string& name, const std::string&
   registerCounter64Stat("udr-events", udrEventsOID, OID_LENGTH(udrEventsOID));
   registerCounter64Stat("max-chain-length", maxChainLengthOID, OID_LENGTH(maxChainLengthOID));
   registerCounter64Stat("max-chain-weight", maxChainWeightOID, OID_LENGTH(maxChainWeightOID));
+  registerCounter64Stat("chain-limits", chainLimitsOID, OID_LENGTH(chainLimitsOID));
   registerCounter64Stat("tcp-overflow", tcpOverflowOID, OID_LENGTH(tcpOverflowOID));
   registerCounter64Stat("ecs-missing", ecsMissingOID, OID_LENGTH(ecsMissingOID));
 

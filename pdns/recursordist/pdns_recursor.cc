@@ -289,7 +289,8 @@ LWResult::Result asendto(const void* data, size_t len, int /* flags */,
     assert(chain.first->key->domain == pident->domain); // NOLINT
     // don't chain onto existing chained waiter or a chain already processed
     if (chain.first->key->fd > -1 && !chain.first->key->closed) {
-      *fileDesc = -1;
+      chain.first->key->chain.insert(qid); // we can chain
+      *fileDesc = -1;  // gets used in waitEvent / sendEvent later on
       return LWResult::Result::Success;
     }
   }
@@ -2881,17 +2882,6 @@ static void doResends(MT_t::waiters_t::iterator& iter, const std::shared_ptr<Pac
     g_multiTasker->sendEvent(packetID, &content);
     t_Counters.at(rec::Counter::chainResends)++;
   }
-}
-
-void mthreadSleep(unsigned int jitterMsec)
-{
-  auto neverHappens = std::make_shared<PacketID>();
-  neverHappens->id = dns_random_uint16();
-  neverHappens->type = dns_random_uint16();
-  neverHappens->remote = ComboAddress("100::"); // discard-only
-  neverHappens->remote.setPort(dns_random_uint16());
-  neverHappens->fd = -1;
-  assert(g_multiTasker->waitEvent(neverHappens, nullptr, jitterMsec) != -1); // NOLINT
 }
 
 static bool checkIncomingECSSource(const PacketBuffer& packet, const Netmask& subnet)

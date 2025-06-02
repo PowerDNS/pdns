@@ -5333,23 +5333,6 @@ void SyncRes::updateQueryCounts(const string& prefix, const DNSName& qname, cons
   }
 }
 
-void SyncRes::incTimeoutStats(const ComboAddress& remoteIP)
-{
-  d_timeouts++;
-  t_Counters.at(rec::Counter::outgoingtimeouts)++;
-
-  if (remoteIP.sin4.sin_family == AF_INET) {
-    t_Counters.at(rec::Counter::outgoing4timeouts)++;
-  }
-  else {
-    t_Counters.at(rec::Counter::outgoing6timeouts)++;
-  }
-
-  if (t_timeouts) {
-    t_timeouts->push_back(remoteIP);
-  }
-}
-
 void SyncRes::checkTotalTime(const DNSName& qname, QType qtype, boost::optional<EDNSExtendedError>& extendedError) const
 {
   if (s_maxtotusec != 0 && d_totUsec > s_maxtotusec) {
