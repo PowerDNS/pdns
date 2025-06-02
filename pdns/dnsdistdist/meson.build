@@ -333,6 +333,29 @@ dep_ffi_interface = declare_dependency(
   sources: [ffi_interface],
 )
 
+py = import('python')
+python = py.find_installation('python3', required: true)
+
+yaml_settings_docs = custom_target(
+  'yaml-settings-docs',
+  command: [
+    python,
+    product_source_dir / 'dnsdist-settings-documentation-generator.py',
+    '@SOURCE_ROOT@',
+  ],
+  depend_files: [
+    'dnsdist-settings-definitions.yml',
+    'dnsdist-actions-definitions.yml',
+    'dnsdist-response-actions-definitions.yml',
+    'dnsdist-selectors-definitions.yml'
+  ],
+  output: '.yaml-settings.stamp',
+)
+
+dep_yaml_settings_docs = declare_dependency(
+  sources: [yaml_settings_docs],
+)
+
 deps = [
   dep_pdns,
   dep_no_config_in_source,
@@ -364,6 +387,7 @@ deps = [
   dep_libbpf,
   dep_libxdp,
   dep_dnsdist_rust_lib,
+  dep_yaml_settings_docs,
 ]
 
 libdnsdist_dnslabeltext_source = src_dir / 'dnslabeltext.rl'
@@ -565,14 +589,13 @@ if get_option('unit-tests')
 endif
 
 # Man-pages.
-py = import('python')
-python = py.find_installation('python3', modules: 'venv', required: false)
+python_venv = py.find_installation('python3', modules: 'venv', required: false)
 
-summary('Python', python.found(), bool_yn: true, section: 'Manual Pages')
+summary('Python with venv', python_venv.found(), bool_yn: true, section: 'Manual Pages')
 
-if get_option('man-pages') and python.found()
-  summary('Path', python.full_path(), section: 'Manual Pages')
-  summary('Version', python.version(), section: 'Manual Pages')
+if get_option('man-pages') and python_venv.found()
+  summary('Path', python_venv.full_path(), section: 'Manual Pages')
+  summary('Version', python_venv.version(), section: 'Manual Pages')
   generated_man_pages = []
   foreach tool, info: tools
     if 'manpages' in info
@@ -597,7 +620,7 @@ if get_option('man-pages') and python.found()
        install: true,
        install_dir: join_paths(get_option('mandir'), 'man1'),
        command: [
-         python,
+         python_venv,
          product_source_dir / docs_dir / 'generate-man-pages.py',
          '--build-root', '@BUILD_ROOT@',
          '--source-root', '@SOURCE_ROOT@',
@@ -711,12 +734,11 @@ install_data(
   follow_symlinks: true
 )
 
-if python.found()
-
+if python_venv.found()
   html_docs = custom_target(
     'html-docs',
     command: [
-        python,
+        python_venv,
         product_source_dir / docs_dir / 'generate-docs.py',
         '--build-root', '@BUILD_ROOT@',
         '--source-root', '@SOURCE_ROOT@',
@@ -738,7 +760,7 @@ if python.found()
 
   pdf_docs = custom_target(
     command: [
-        python,
+        python_venv,
         product_source_dir / docs_dir / 'generate-docs.py',
         '--build-root', '@BUILD_ROOT@',
         '--source-root', '@SOURCE_ROOT@',

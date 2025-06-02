@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 """Load settings definitions and generates the corresponding documentation."""
 import os
+from pathlib import Path
 import sys
 import tempfile
 import yaml
@@ -185,30 +186,37 @@ def process_selectors_or_actions(def_file, entry_type):
     return output
 
 def main():
-    docs_folder = 'docs/'
+    if len(sys.argv) != 2:
+        print(f'Usage: {sys.argv[0]} <path/to/source/dir>')
+        sys.exit(1)
+
+    source_dir = sys.argv[1]
+    docs_folder = f'{source_dir}/docs/'
     if not os.path.isdir(docs_folder):
         print('Skipping settings documentation generation because the docs/ folder does not exist')
         return
 
     generated_fp = get_temporary_file_for_generated_content(docs_folder)
-    output = process_settings('dnsdist-settings-definitions.yml')
+    output = process_settings(f'{source_dir}/dnsdist-settings-definitions.yml')
     generated_fp.write(output)
     os.rename(generated_fp.name, f'{docs_folder}/reference/yaml-settings.rst')
 
     generated_fp = get_temporary_file_for_generated_content(docs_folder)
-    output = process_selectors_or_actions('dnsdist-actions-definitions.yml', 'action')
+    output = process_selectors_or_actions(f'{source_dir}/dnsdist-actions-definitions.yml', 'action')
     generated_fp.write(output)
     os.rename(generated_fp.name, f'{docs_folder}/reference/yaml-actions.rst')
 
     generated_fp = get_temporary_file_for_generated_content(docs_folder)
-    output = process_selectors_or_actions('dnsdist-response-actions-definitions.yml', 'response-action')
+    output = process_selectors_or_actions(f'{source_dir}/dnsdist-response-actions-definitions.yml', 'response-action')
     generated_fp.write(output)
     os.rename(generated_fp.name, f'{docs_folder}/reference/yaml-response-actions.rst')
 
     generated_fp = get_temporary_file_for_generated_content(docs_folder)
-    output = process_selectors_or_actions('dnsdist-selectors-definitions.yml', 'selector')
+    output = process_selectors_or_actions(f'{source_dir}/dnsdist-selectors-definitions.yml', 'selector')
     generated_fp.write(output)
     os.rename(generated_fp.name, f'{docs_folder}/reference/yaml-selectors.rst')
+
+    Path('.yaml-settings.stamp').touch()
 
 if __name__ == '__main__':
     main()

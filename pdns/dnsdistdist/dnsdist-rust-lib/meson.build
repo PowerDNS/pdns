@@ -2,7 +2,6 @@ sources = files(
   'dnsdist-settings-generator.py',
   '../dnsdist-settings-definitions.yml',
   'dnsdist-configuration-yaml-items-generated-pre-in.cc',
-  'dnsdist-settings-documentation-generator.py',
   'rust-pre-in.rs',
   'rust-middle-in.rs',
   'rust-post-in.rs',

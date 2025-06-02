@@ -2,6 +2,7 @@
 *.tar.bz2
 .version
 .venv
+.yaml-settings.stamp
 .dnsdist_history
 /stamp-h1
 /compile
