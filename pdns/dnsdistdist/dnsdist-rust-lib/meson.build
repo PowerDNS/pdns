@@ -24,4 +24,8 @@ dep_rust_lib = declare_dependency(
   include_directories: [include_directories('.'), ]
 )
 
-subdir('rust')
+if get_option('yaml').allowed()
+  subdir('rust')
+else
+  dep_dnsdist_rust_lib = declare_dependency()
+endif

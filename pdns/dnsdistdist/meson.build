@@ -107,12 +107,10 @@ else
   dep_lmdb_safe = declare_dependency()
 endif
 
+subdir('dnsdist-rust-lib')
+
 if get_option('yaml').allowed()
-  subdir('dnsdist-rust-lib')
   subdir('meson' / 'dlopen') # our Rust static library needs dlopen
-else
-  dep_dnsdist_rust_lib = declare_dependency()
-  dep_dlopen = declare_dependency()
 endif
 
 common_sources += files(
