@@ -1,7 +1,6 @@
 EXTRA_DIST = \
 	dnsdist-configuration-yaml-items-generated-pre-in.cc \
 	dnsdist-configuration-yaml-items-generated.cc \
-	dnsdist-settings-documentation-generator.py \
 	dnsdist-settings-generator.py \
 	rust-pre-in.rs \
 	rust-middle-in.rs \
@@ -18,4 +17,3 @@ rust/src/lib.rs dnsdist-configuration-yaml-items-generated.cc: dnsdist-settings-
 	@if ! $(PYTHON) --version | grep -q "Python 3"; then echo $(PYTHON) should be at least version 3. Please install python 3 and re-run configure; exit 1; fi
 	$(MAKE) -C rust clean
 	(cd ${srcdir} && $(PYTHON) dnsdist-settings-generator.py ../ ./ ../ ../)
-	$(PYTHON) dnsdist-settings-documentation-generator.py

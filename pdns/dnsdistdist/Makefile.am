@@ -109,6 +109,7 @@ endif
 
 EXTRA_DIST=COPYING \
 	   dnsdist-rules-generator.py \
+	   dnsdist-settings-documentation-generator.py \
 	   dnsdist-actions-definitions.yml \
 	   dnsdist-response-actions-definitions.yml \
 	   dnsdist-rust-bridge.hh \
