@@ -126,7 +126,7 @@ def get_temporary_file_for_generated_content(directory):
     generated_fp.write('.. THIS IS A GENERATED FILE. DO NOT EDIT. See dnsdist-settings-documentation-generator.py\n\n')
     return generated_fp
 
-def process_settings():
+def process_settings(def_file):
     output = '''.. raw:: latex
 
     \\setcounter{secnumdepth}{-1}
@@ -146,7 +146,7 @@ A YAML configuration file contains several sections, that are described below.
 .. code-block:: yaml\n
 '''
 
-    objects = get_objects('../dnsdist-settings-definitions.yml')
+    objects = get_objects(def_file)
     for object_name, entries in sorted(objects.items()):
         if object_name == 'GlobalConfiguration':
             output += process_object(object_name, entries, 'settings', True)
@@ -185,29 +185,30 @@ def process_selectors_or_actions(def_file, entry_type):
     return output
 
 def main():
-    if not os.path.isdir('../docs'):
-        print('Skipping settings documentation generation because the ../docs/ folder does not exist')
+    docs_folder = 'docs/'
+    if not os.path.isdir(docs_folder):
+        print('Skipping settings documentation generation because the docs/ folder does not exist')
         return
 
-    generated_fp = get_temporary_file_for_generated_content('../docs/')
-    output = process_settings()
+    generated_fp = get_temporary_file_for_generated_content(docs_folder)
+    output = process_settings('dnsdist-settings-definitions.yml')
     generated_fp.write(output)
-    os.rename(generated_fp.name, '../docs/reference/yaml-settings.rst')
+    os.rename(generated_fp.name, f'{docs_folder}/reference/yaml-settings.rst')
 
-    generated_fp = get_temporary_file_for_generated_content('../docs/')
-    output = process_selectors_or_actions('../dnsdist-actions-definitions.yml', 'action')
+    generated_fp = get_temporary_file_for_generated_content(docs_folder)
+    output = process_selectors_or_actions('dnsdist-actions-definitions.yml', 'action')
     generated_fp.write(output)
-    os.rename(generated_fp.name, '../docs/reference/yaml-actions.rst')
+    os.rename(generated_fp.name, f'{docs_folder}/reference/yaml-actions.rst')
 
-    generated_fp = get_temporary_file_for_generated_content('../docs/')
-    output = process_selectors_or_actions('../dnsdist-response-actions-definitions.yml', 'response-action')
+    generated_fp = get_temporary_file_for_generated_content(docs_folder)
+    output = process_selectors_or_actions('dnsdist-response-actions-definitions.yml', 'response-action')
     generated_fp.write(output)
-    os.rename(generated_fp.name, '../docs/reference/yaml-response-actions.rst')
+    os.rename(generated_fp.name, f'{docs_folder}/reference/yaml-response-actions.rst')
 
-    generated_fp = get_temporary_file_for_generated_content('../docs/')
-    output = process_selectors_or_actions('../dnsdist-selectors-definitions.yml', 'selector')
+    generated_fp = get_temporary_file_for_generated_content(docs_folder)
+    output = process_selectors_or_actions('dnsdist-selectors-definitions.yml', 'selector')
     generated_fp.write(output)
-    os.rename(generated_fp.name, '../docs/reference/yaml-selectors.rst')
+    os.rename(generated_fp.name, f'{docs_folder}/reference/yaml-selectors.rst')
 
 if __name__ == '__main__':
     main()
