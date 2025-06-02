@@ -28,11 +28,11 @@ jobs:
           for commit in $(git rev-list HEAD ^origin/${BRANCH}); do
             echo "=== Checking commit '${commit}'"
             body="$(git show -s --format=%b ${commit})"
-            expected="$(git show -s --format='Signed-off-by: %aN <%aE>' ${commit})"
+            expected="$(git show -s --format='Signed-off-by: %cN <%cE>' ${commit})"
             if echo "${body}" | grep -qF "${expected}"; then
-              echo "Signed-off-by matches author"
+              echo "Signed-off-by matches committer"
             else
-              echo "Signed-off-by is missing or doesn't match author (should be '${expected}')"
+              echo "Signed-off-by is missing or doesn't match committer (should be '${expected}')"
               RET=1
             fi
           done
