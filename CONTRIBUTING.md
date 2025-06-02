@@ -72,11 +72,11 @@ plus various other directories with `regression-tests.*` names.
 * The rest of the commit body should be wrapped at 72 characters (see [this](https://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html) for more info)
 * If this commit fixes an issue, put "Closes #XXXX" in the message
 * Do not put whitespace fixes/cleanup and functionality changes in the same commit
-* Include a valid Signed-Off line as a [Developer Certificate of Origin](https://en.wikipedia.org/wiki/Developer_Certificate_of_Origin)
+* Include a valid Signed-Off line as a [Developer Certificate of Origin](https://en.wikipedia.org/wiki/Developer_Certificate_of_Origin), version [1.1](https://github.com/PowerDNS/pdns/blob/master/DCO)
 
 # Developer Certificate of Origin
 
-We require a "Signed-Off" on all commits contributed to the PowerDNS codebase, as a [Developer Certificate of Origin](https://en.wikipedia.org/wiki/Developer_Certificate_of_Origin)
+We require a "Signed-Off" on all commits contributed to the PowerDNS codebase, as a [Developer Certificate of Origin](https://en.wikipedia.org/wiki/Developer_Certificate_of_Origin), version [1.1](https://github.com/PowerDNS/pdns/blob/master/DCO)
 
 If you have properly configured `user.name` and `user.email` in your `Git` configuration, `Git` includes a `-s` command line option to append this line automatically to your commit message:
 
