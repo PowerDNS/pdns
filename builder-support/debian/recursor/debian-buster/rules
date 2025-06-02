@@ -20,11 +20,11 @@ MESON_ARGS += -Dsystemd-service=disabled
 endif
 
 # Only disable luajit on arm64
-#ifneq ($(DEB_HOST_ARCH),arm64)
-#MESON_ARGS += -Dlua=luajit
-#else
-MESON_ARGS += -Dlua=auto
-#endif
+ifneq (,$(wildcard /usr/lib/aarch64-linux-gnu/pkgconfig/luajit.pc))
+MESON_ARGS += -Dlua=luajit
+else
+MESON_ARGS += -Dlua=lua
+endif
 
 %:
 	dh $@ --buildsystem=meson \
