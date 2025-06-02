@@ -5,7 +5,7 @@
 <!-- please indicate if any of these things are done/included with this Pull Request. Not all boxes need to be checked for the Pull Request to be accepted -->
 I have:
 - [ ] read the [CONTRIBUTING.md](https://github.com/PowerDNS/pdns/blob/master/CONTRIBUTING.md) document
-- [ ] read the [Developer Certificate of Origin](https://github.com/PowerDNS/pdns/blob/master/DCO) document and added a ["Signed-Off"](https://github.com/PowerDNS/pdns/blob/master/CONTRIBUTING.md#developer-certificate-of-origin) on my commits
+- [ ] read the [Developer Certificate of Origin](https://github.com/PowerDNS/pdns/blob/master/DCO) document and added a ["Signed-off-by"](https://github.com/PowerDNS/pdns/blob/master/CONTRIBUTING.md#developer-certificate-of-origin) on my commits
 - [ ] compiled this code
 - [ ] tested this code
 - [ ] included documentation (including possible behaviour changes)
