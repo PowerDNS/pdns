@@ -5,22 +5,26 @@
 #   dig a www.example.com @0 -p 1053
 
 # Builder
-FROM debian:11-slim AS builder
+FROM debian:12-slim AS builder
 
-ENV NO_LUA_JIT="s390x arm64"
+ENV NO_LUA_JIT="s390x"
 
 # Reusable layer for base update
 RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
 
+# Enable backports to get a recent enough version of meson
+RUN echo "deb http://deb.debian.org/debian bookworm-backports main" > /etc/apt/sources.list.d/bookworm-backports.list
 # devscripts gives us mk-build-deps (and a lot of other stuff)
-RUN apt-get install -y --no-install-recommends devscripts equivs git curl jq && apt-get clean
+RUN apt-get update && apt-get -y dist-upgrade && apt-get install -y --no-install-recommends devscripts equivs git curl jq && apt-get clean
 
 COPY builder-support /source/builder-support
 
 # TODO: control file is not in tarballs at all right now
 RUN mk-build-deps -i -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends' /source/builder-support/debian/recursor/debian-buster/control && \
+    apt-get install -y -t bookworm-backports meson && \
     apt-get clean
 
+COPY meson /source/meson
 COPY pdns /source/pdns
 COPY build-aux /source/build-aux
 COPY m4 /source/m4
@@ -54,21 +58,30 @@ RUN if [ "${DOCKER_FAKE_RELEASE}" = "YES" ]; then \
 
 RUN mkdir /build && \
     LUAVER=$([ -z "${NO_LUA_JIT##*$(dpkg --print-architecture)*}" ] && echo 'lua5.3' || echo 'luajit') && \
-    apt-get install -y lib${LUAVER}-*dev && \
-    ./configure \
-      --with-libcap \
-      --with-libsodium \
-      --with-lua=${LUAVER} \
-      --with-net-snmp \
-      --enable-dns-over-tls \
-      --enable-dnstap \
-      --enable-nod \
-      LDFLAGS=-rdynamic \
+    apt-get install -y lib${LUAVER}-*dev ninja-build && \
+    BUILDDIR=$(mktemp -d) && \
+    IS_RELEASE="${DOCKER_FAKE_RELEASE}" \
+    LDFLAGS="-latomic -fuse-ld=lld -Wl,--build-id=sha1 -ldl" \
+    CC=clang \
+    CXX=clang++ \
+    PKG_CONFIG_PATH=/opt/lib/pkgconfig meson setup ${BUILDDIR} \
       --sysconfdir=/etc/powerdns \
-      --enable-option-checking=fatal && \
-      make clean && \
-      make $MAKEFLAGS install DESTDIR=/build && make clean && \
-      strip /build/usr/local/bin/* /build/usr/local/sbin/*
+      -Db_lto=true \
+      -Db_lto_mode=thin \
+      -Db_pie=true \
+      -Dlibcap=enabled \
+      -Dsigners-libsodium=enabled \
+      -Dlua=${LUAVER} \
+      -Dsnmp=enabled \
+      -Ddns-over-tls=enabled \
+      -Ddnstap=enabled \
+      -Dnod=enabled \
+      -Dsystemd-service=disabled && \
+    meson compile -C ${BUILDDIR} && \
+    meson install -C ${BUILDDIR} --destdir /build && \
+    strip /build/usr/local/bin/* && \
+    rm -rf /build/lib # remove systemd unit files, we do not need them and copying /lib to the run-time image breaks it
+
 RUN cd /tmp && mkdir /build/tmp/ && mkdir debian && \
     echo 'Source: docker-deps-for-pdns' > debian/control && \
     dpkg-shlibdeps /build/usr/local/bin/rec_control /build/usr/local/sbin/pdns_recursor && \
@@ -77,7 +90,7 @@ RUN cd /tmp && mkdir /build/tmp/ && mkdir debian && \
     dpkg-deb -I equivs-dummy_1.0_all.deb && cp equivs-dummy_1.0_all.deb /build/tmp/
 
 # Runtime
-FROM debian:11-slim
+FROM debian:12-slim
 
 # Reusable layer for base update - Should be cached from builder
 RUN apt-get update && apt-get -y dist-upgrade && apt-get clean

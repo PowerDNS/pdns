@@ -20,7 +20,7 @@ MESON_ARGS += -Dsystemd-service=disabled
 endif
 
 # Only disable luajit on arm64
-ifneq (,$(wildcard /usr/lib/aarch64-linux-gnu/pkgconfig/luajit.pc))
+ifneq (,$(wildcard /usr/lib/*/pkgconfig/luajit.pc))
 MESON_ARGS += -Dlua=luajit
 else
 MESON_ARGS += -Dlua=lua
