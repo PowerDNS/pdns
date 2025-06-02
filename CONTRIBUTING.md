@@ -84,7 +84,8 @@ If you have properly configured `user.name` and `user.email` in your `Git` confi
 git commit -s -m 'Commit message'
 ```
 
-If you already committed your changes, you can do a `git rebase` to add a sign-off to existing commits. For example, if your branch is based on the `master` one:
+If you already committed your changes, and you have only one commit on your branch, you can use `git commit --amend --signoff` to add a sign-off to the latest commit.
+If you have more than one commit on your branch, you can instead use `git rebase` to add a sign-off to existing commits. For example, if your branch is based on the `master` one:
 
 ```sh
 git rebase --signoff master
