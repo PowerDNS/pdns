@@ -613,6 +613,7 @@ Parameters:
 
 - **tag**: String - The name of the tag that has to be set
 - **value**: String ``("")`` - If set, the value the tag has to be set to
+- **empty-as-wildcard**: Boolean ``(true)`` - Because of a limitation in our Rust <-> C++ interoperability layer, ``value`` defaults to an empty string, which makes it impossible to express whether an empty ``value`` means that we should match on all values (so as long as the tag has been set) or only if the value is actually empty. This flag fixes that: if ``value`` is empty and this parameter is set to ``false`` the selector will only match if the actual value of the tag is empty, while if it set to ``true`` (default) it will match as long as the tag is set, regardless of the value
 
 
 .. _yaml-settings-TCPSelector:
