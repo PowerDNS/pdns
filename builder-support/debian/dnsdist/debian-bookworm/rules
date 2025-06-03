@@ -23,8 +23,8 @@ else
 MESON_ARGS += -Dxsk=disabled
 endif
 
-# Only disable luajit on arm64
-ifneq ($(DEB_HOST_ARCH),arm64)
+# Build with luajit if it is installable
+ifneq (,$(wildcard /usr/lib/*/pkgconfig/luajit.pc))
 MESON_ARGS += -Dlua=luajit
 else
 MESON_ARGS += -Dlua=lua
