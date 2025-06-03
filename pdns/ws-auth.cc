@@ -358,7 +358,7 @@ static Json::object getZoneInfo(const DomainInfo& domainInfo, DNSSECKeeper* dnss
     // id is the canonical lookup key, which doesn't actually match the name (in some cases)
     {"id", zoneId},
     {"url", "/api/v1/servers/localhost/zones/" + zoneId},
-    {"name", domainInfo.zone.toString()},
+    {"name", domainInfo.zone.toStringFull()},
     {"kind", domainInfo.getKindString()},
     {"catalog", (!domainInfo.catalog.empty() ? domainInfo.catalog.toString() : "")},
     {"account", domainInfo.account},
