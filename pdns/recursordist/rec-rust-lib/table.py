@@ -1265,8 +1265,9 @@ Indication of how many queries will be averaged to get the average latency repor
         'section' : 'incoming',
         'oldname' : 'local-address',
         'type' : LType.ListSocketAddresses,
-        'default' : '127.0.0.1',
+        'default' : '127.0.0.1, ::1',
         'help' : 'IP addresses to listen on, separated by spaces or commas. Also accepts ports.',
+        'versionchanged': ('5.3.0', '::1 was added to the list'),
         'doc' : '''
 Local IP addresses to which we bind. Each address specified can
 include a port number; if no port is included then the

@@ -1115,7 +1115,6 @@ unsigned int makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tc
     if (socketFd < 0) {
       throw PDNSException("Making a TCP server socket for resolver: " + stringerror());
     }
-    logVec.emplace_back(address.toStringWithPort());
     setCloseOnExec(socketFd);
 
     int tmp = 1;
@@ -1178,7 +1177,12 @@ unsigned int makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tc
 
     socklen_t socklen = address.sin4.sin_family == AF_INET ? sizeof(address.sin4) : sizeof(address.sin6);
     if (::bind(socketFd, reinterpret_cast<struct sockaddr*>(&address), socklen) < 0) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-      throw PDNSException("Binding TCP server socket for " + address.toStringWithPort() + ": " + stringerror());
+      int err = errno;
+      if (address != ComboAddress{"::1", defaultLocalPort}) {
+        throw PDNSException("Binding TCP server socket for " + address.toStringWithPort() + ": " + stringerror(err));
+      }
+      log->info(Logr::Warning, "Cannot listen on this address, skipping", "proto", Logging::Loggable("TCP"), "address", Logging::Loggable(address), "error", Logging::Loggable(stringerror(err)));
+      continue;
     }
 
     setNonBlocking(socketFd);
@@ -1193,6 +1197,7 @@ unsigned int makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tc
     listen(socketFd, 128);
     deferredAdds.emplace_back(socketFd, handleNewTCPQuestion);
     tcpSockets.insert(socketFd);
+    logVec.emplace_back(address.toStringWithPort());
 
     // we don't need to update g_listenSocketsAddresses since it doesn't work for TCP/IP:
     //  - fd is not that which we know here, but returned from accept()
