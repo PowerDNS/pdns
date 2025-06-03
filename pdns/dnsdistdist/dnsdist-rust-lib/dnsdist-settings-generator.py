@@ -22,11 +22,11 @@
 # and generates C++ headers and code to create the wrappers
 # for these actions from the Rust structures:
 # - dnsdist-rust-bridge-actions-generated.hh
-# - dnsdist-rust-bridge-actions-generated.cc
+# - dnsdist-rust-bridge-actions-generated-body.hh
 # 2/ Loads the selector definitions from:
 # - dnsdist-selectors-definitions.yml
 # - dnsdist-rust-bridge-selectors-generated.hh
-# - dnsdist-rust-bridge-selectors-generated.cc
+# - dnsdist-rust-bridge-selectors-generated-body.hh
 # and generates C++ headers and code to create the wrappers
 # for these selectors from the Rust structures:
 # The format of the definitions, in YAML, is a simple list of items.
@@ -307,7 +307,7 @@ def include_file(out_fp, include_file_name):
         out_fp.write(in_fp.read())
         out_fp.write(f'// END INCLUDE {basename}\n')
 
-def generate_flat_settings_for_cxx(definitions, src_dir, out_file_path, build_dir_path):
+def generate_flat_settings_for_cxx(definitions, src_dir, out_file_path):
     cxx_flat_settings_fp = get_temporary_file_for_generated_code(out_file_path)
 
     include_file(cxx_flat_settings_fp, src_dir + '/dnsdist-configuration-yaml-items-pre-in.cc')
@@ -377,11 +377,6 @@ void convertRuntimeFlatSettingsFromRust(const dnsdist::rust::settings::GlobalCon
 ''')
 
     os.rename(cxx_flat_settings_fp.name, out_file_path + '/dnsdist-configuration-yaml-items-generated.cc')
-    target = build_dir_path + '/dnsdist-configuration-yaml-items-generated.cc'
-    if out_file_path != build_dir_path:
-        if os.path.exists(target):
-            os.unlink(target)
-        os.symlink(os.path.abspath(out_file_path + '/dnsdist-configuration-yaml-items-generated.cc'), target)
 
 def generate_actions_config(output, def_dir, response, default_functions):
     suffix = 'ResponseAction' if response else 'Action'
@@ -541,7 +536,7 @@ def generate_cpp_action_wrappers(def_dir, cxx_dest_dir):
 '''
 
     cpp_action_wrappers_fp.write(wrappers_buffer)
-    os.rename(cpp_action_wrappers_fp.name, f'{cxx_dest_dir}/dnsdist-rust-bridge-actions-generated.cc')
+    os.rename(cpp_action_wrappers_fp.name, f'{cxx_dest_dir}/dnsdist-rust-bridge-actions-generated-body.hh')
 
 def generate_cpp_selector_wrappers(def_dir, cxx_dest_dir):
     cpp_selector_wrappers_fp = get_temporary_file_for_generated_code(cxx_dest_dir)
@@ -563,7 +558,7 @@ def generate_cpp_selector_wrappers(def_dir, cxx_dest_dir):
 '''
 
     cpp_selector_wrappers_fp.write(wrappers_buffer)
-    os.rename(cpp_selector_wrappers_fp.name, f'{cxx_dest_dir}/dnsdist-rust-bridge-selectors-generated.cc')
+    os.rename(cpp_selector_wrappers_fp.name, f'{cxx_dest_dir}/dnsdist-rust-bridge-selectors-generated-body.hh')
 
 def generate_rust_actions_enum(output, def_dir, response):
     suffix = 'ResponseAction' if response else 'Action'
@@ -753,22 +748,21 @@ def get_temporary_file_for_generated_code(directory):
     return generated_fp
 
 def main():
-    if len(sys.argv) != 5:
-        print(f'Usage: {sys.argv[0]} <path/to/definitions/files> <rust/output/dir> <cxx/output/dir> <cxx/build/root/dir>')
+    if len(sys.argv) != 4:
+        print(f'Usage: {sys.argv[0]} <path/to/definitions/files> <rust/output/dir> <cxx/build/root/dir>')
         sys.exit(1)
 
     definitions_dir = sys.argv[1]
     rust_dir = sys.argv[2]
-    cxx_dest_dir = sys.argv[3]
-    cxx_build_dir = sys.argv[4]
+    cxx_build_dir = sys.argv[3]
     definitions = get_definitions_from_file(definitions_dir + '/dnsdist-settings-definitions.yml')
     default_functions = []
     validation_functions = []
 
-    generate_cpp_action_headers(definitions_dir, cxx_dest_dir)
-    generate_cpp_action_wrappers(definitions_dir, cxx_dest_dir)
-    generate_cpp_selector_headers(definitions_dir, cxx_dest_dir)
-    generate_cpp_selector_wrappers(definitions_dir, cxx_dest_dir)
+    generate_cpp_action_headers(definitions_dir, cxx_build_dir)
+    generate_cpp_action_wrappers(definitions_dir, cxx_build_dir)
+    generate_cpp_selector_headers(definitions_dir, cxx_build_dir)
+    generate_cpp_selector_wrappers(definitions_dir, cxx_build_dir)
 
     generated_fp = get_temporary_file_for_generated_code(f'{rust_dir}/rust/src/')
     include_file(generated_fp, f'{rust_dir}/rust-pre-in.rs')
@@ -776,8 +770,6 @@ def main():
     generate_actions_config(generated_fp, definitions_dir, False, default_functions)
     generate_actions_config(generated_fp, definitions_dir, True, default_functions)
     generate_selectors_config(generated_fp, definitions_dir, default_functions)
-
-    generate_flat_settings_for_cxx(definitions, rust_dir, f'{cxx_dest_dir}/dnsdist-rust-lib/', f'{cxx_build_dir}/dnsdist-rust-lib/')
 
     handle_structures(generated_fp, definitions, default_functions, validation_functions)
 
@@ -810,6 +802,8 @@ def main():
     include_file(generated_fp, rust_dir + '/rust-post-in.rs')
 
     os.rename(generated_fp.name, rust_dir + '/rust/src/lib.rs')
+
+    generate_flat_settings_for_cxx(definitions, rust_dir, f'{cxx_build_dir}')
 
 if __name__ == '__main__':
     main()

@@ -35,6 +35,7 @@ conf.set_quoted('PACKAGE_VERSION', meson.project_version(), description: 'versio
 subdir('meson' / 'config')                  # Config
 subdir('meson' / 'version')                 # Generate version define
 subdir('meson' / 'compiler-setup')          # Common compiler setup
+subdir('meson' / 'dlopen')                  # our Rust static library needs dlopen (needs to happen _after_ compiler-setup)
 subdir('meson' / 'summary')                 # Print a system/project summary
 subdir('meson' / 'sysconfdir')              # Sysconfdir
 subdir('meson' / 'platform')                # Platform detection
@@ -108,10 +109,6 @@ else
 endif
 
 subdir('dnsdist-rust-lib')
-
-if get_option('yaml').allowed()
-  subdir('meson' / 'dlopen') # our Rust static library needs dlopen
-endif
 
 common_sources += files(
   src_dir / 'bpf-filter.cc',
@@ -246,12 +243,6 @@ conditional_sources = {
     ],
     'condition': dep_libquiche.found(),
    },
-   'yaml': {
-     'sources': [
-       src_dir / 'dnsdist-rust-lib/dnsdist-configuration-yaml-items-generated.cc',
-     ],
-     'condition': dep_dnsdist_rust_lib.found(),
-   }
 }
 
 foreach name, info: conditional_sources
@@ -334,6 +325,29 @@ dep_ffi_interface = declare_dependency(
 py = import('python')
 python = py.find_installation('python3', required: true)
 
+selectors_actions_sources = custom_target(
+  command: [
+    python,
+    '@INPUT0@',
+    '@SOURCE_ROOT@',
+    '@OUTDIR@',
+  ],
+  input: [
+    'dnsdist-rules-generator.py',
+    'dnsdist-actions-definitions.yml',
+    'dnsdist-response-actions-definitions.yml',
+    'dnsdist-selectors-definitions.yml',
+  ],
+  output: [
+    'dnsdist-actions-factory-generated.hh',
+    'dnsdist-actions-factory-generated-body.hh',
+    'dnsdist-response-actions-factory-generated.hh',
+    'dnsdist-response-actions-factory-generated-body.hh',
+    'dnsdist-selectors-factory-generated.hh',
+    'dnsdist-selectors-factory-generated-body.hh',
+  ],
+)
+
 yaml_settings_docs = custom_target(
   'yaml-settings-docs',
   command: [
@@ -412,8 +426,20 @@ libdnsdist_common = declare_dependency(
     common_sources,
     config_h,
     libdnsdist_dnslabeltext_gen,
+    rust_lib_sources,
+    selectors_actions_sources,
     dependencies: [
       deps,
+    ],
+  )
+)
+
+libdnsdist_yaml_items = declare_dependency(
+  link_with: static_library(
+    'dnsdist-yaml-items',
+    rust_lib_sources,
+    dependencies: [
+      dep_dnsdist_rust_lib,
     ],
   )
 )
@@ -429,6 +455,7 @@ tools = {
       src_dir / 'dnsdist-lua-ffi.cc',
       src_dir / 'dnsdist-lua-inspection-ffi.cc',
       mplexer_sources,
+      selectors_actions_sources,
     ],
     'manpages': ['dnsdist.1'],
     'deps-extra': [
@@ -440,6 +467,7 @@ tools = {
       dep_json11,
       dep_libsystemd,
       dep_yahttp,
+      libdnsdist_yaml_items,
     ],
     'install': true,
   },
@@ -519,6 +547,7 @@ if get_option('unit-tests')
       'dnsdist-test',
       config_h,
       test_sources,
+      selectors_actions_sources,
       dependencies: [
           dep_boost,
           dep_boost_test,

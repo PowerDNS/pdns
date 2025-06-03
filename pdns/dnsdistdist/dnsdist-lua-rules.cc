@@ -640,6 +640,5 @@ void setupLuaRules(LuaContext& luaCtx)
   });
 #endif /* defined(HAVE_LMDB) || defined(HAVE_CDB) */
 
-// NOLINTNEXTLINE(bugprone-suspicious-include)
-#include "dnsdist-lua-selectors-generated.cc"
+#include "dnsdist-lua-selectors-generated-body.hh"
 }

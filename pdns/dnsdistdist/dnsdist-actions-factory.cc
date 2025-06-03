@@ -2549,8 +2549,6 @@ std::shared_ptr<DNSAction> getTeeAction(const ComboAddress& rca, std::optional<C
   return std::shared_ptr<DNSAction>(new TeeAction(rca, lca, addECS, addProxyProtocol));
 }
 
-// NOLINTNEXTLINE(bugprone-suspicious-include)
-#include "dnsdist-actions-factory-generated.cc"
-// NOLINTNEXTLINE(bugprone-suspicious-include)
-#include "dnsdist-response-actions-factory-generated.cc"
+#include "dnsdist-actions-factory-generated-body.hh"
+#include "dnsdist-response-actions-factory-generated-body.hh"
 }

@@ -1738,9 +1738,7 @@ std::shared_ptr<DNSSelector> getByNameSelector(const ByNameSelectorConfiguration
   return dnsdist::configuration::yaml::getRegisteredTypeByName<DNSSelector>(config.selector_name);
 }
 
-// NOLINTNEXTLINE(bugprone-suspicious-include)
-#include "dnsdist-rust-bridge-actions-generated.cc"
-// NOLINTNEXTLINE(bugprone-suspicious-include)
-#include "dnsdist-rust-bridge-selectors-generated.cc"
+#include "dnsdist-rust-bridge-actions-generated-body.hh"
+#include "dnsdist-rust-bridge-selectors-generated-body.hh"
 }
 #endif /* defined(HAVE_YAML_CONFIGURATION) */
