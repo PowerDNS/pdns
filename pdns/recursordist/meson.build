@@ -78,6 +78,7 @@ subdir('meson' / 'libresolv')               # res_query
 subdir('meson' / 'dnstap')                  # DNSTAP through libfstream
 subdir('meson' / 'libcurl')                 # Curl
 subdir('meson' / 'libcap')                  # Capabilities
+subdir('meson' / 'dlopen')                  # our Rust static library needs dlopen
 
 subdir('rec-rust-lib')
 
@@ -306,6 +307,7 @@ deps = [
   dep_pdns,
   dep_no_config_in_source,
   dep_rust_recrust,
+  dep_dlopen,
   dep_boost,
   dep_boost_context,
   dep_threads,
@@ -609,6 +611,11 @@ if python.found()
       foreach man_page: info['manpages']
         if not fs.is_file(man_page)
           generated_man_pages += man_page
+        else
+          install_man(
+            man_page,
+            install_dir: join_paths(get_option('mandir'), 'man1'),
+          )
         endif
       endforeach
     endif

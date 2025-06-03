@@ -1,7 +1,7 @@
 # First do the source builds
 @INCLUDE Dockerfile.target.sdist
 
-FROM debian:bookworm as dist-base
+FROM debian:bookworm AS dist-base
 
 ARG BUILDER_CACHE_BUSTER=
 ARG APT_URL

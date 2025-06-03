@@ -5,9 +5,8 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#ifdef PDNS_CONFIG_ARGS
+#ifdef RECURSOR
 #include "logger.hh"
-#define WE_ARE_RECURSOR
 #else
 #include "dolog.hh"
 #endif
@@ -132,7 +131,7 @@ bool RemoteLogger::reconnect()
     }
   }
   catch (const std::exception& e) {
-#ifdef WE_ARE_RECURSOR
+#ifdef RECURSOR
     SLOG(g_log<<Logger::Warning<<"Error connecting to remote logger "<<d_remote.toStringWithPort()<<": "<<e.what()<<std::endl,
          g_slog->withName("protobuf")->error(Logr::Error, e.what(), "Exception while connecting to remote logger", "address", Logging::Loggable(d_remote)));
 #else
@@ -190,7 +189,7 @@ RemoteLoggerInterface::Result RemoteLogger::queueData(const std::string& data)
 void RemoteLogger::maintenanceThread() 
 {
   try {
-#ifdef WE_ARE_RECURSOR
+#ifdef RECURSOR
     string threadName = "rec/remlog";
 #else
     string threadName = "dnsdist/remLog";
