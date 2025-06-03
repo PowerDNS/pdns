@@ -105,7 +105,7 @@ jobs:
     needs: list-pip-requirement-files
     services:
       database:
-        image: epicwink/proxpi
+        image: epicwink/proxpi@sha256:a219ea0ef4f5b272eaf18bc5a5d00220c5aa07debb434d36161550862768aa93
         ports:
           - 5000:5000
         options: >-
