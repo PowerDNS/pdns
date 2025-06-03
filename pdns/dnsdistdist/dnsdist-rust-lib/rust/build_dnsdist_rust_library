@@ -9,7 +9,7 @@
 mytarget=${CARGO_TARGET_DIR-target}
 #echo "mytarget=${mytarget}"
 
-$CARGO build --release $RUST_TARGET --target-dir=$builddir/target --manifest-path $srcdir/Cargo.toml
+$CARGO build --release $RUST_TARGET --target-dir=$builddir/target --manifest-path $srcdir/Cargo.toml --locked
 
 cp -p target/$RUSTC_TARGET_ARCH/release/libdnsdist_rust.a $builddir/dnsdist-rust-lib/rust/libdnsdist_rust.a
 
