@@ -63,17 +63,16 @@ Will yield a response similar to this (several headers omitted):
   
   HTTP/1.1 204 No Content
 
-Deleting a view
-^^^^^^^^^^^^^^^
+Removing a zone from a view
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: http
 
-  DELETE /api/v1/servers/localhost/views/trusted HTTP/1.1
+  DELETE /api/v1/servers/localhost/views/trusted/example.com. HTTP/1.1
   X-API-Key: secret
 
 Will yield a response similar to this (several headers omitted):
 
 .. code-block:: http
-  
-  HTTP/1.1 204 No Content
 
+  HTTP/1.1 204 No Content
