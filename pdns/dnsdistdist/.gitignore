@@ -51,3 +51,5 @@ latex/
 .doctrees/
 /.cache
 /*-generated-body.hh
+/*-generated.hh
+/dnsdist-rust-lib/dnsdist-configuration-yaml-items-generated.cc
