@@ -2709,7 +2709,7 @@ static void apiServerViewsPOST(HttpRequest* req, HttpResponse* resp)
   ZoneName zonename = apiNameToZoneName(stringFromJson(document, "name"));
 
   if (!backend.getDomainInfo(zonename, domainInfo)) {
-    throw ApiException("Zone " + zonename.toStringFull() + "does not exist");
+    throw ApiException("Zone " + zonename.toStringFull() + " does not exist");
   }
   std::string view{req->parameters["view"]};
 
