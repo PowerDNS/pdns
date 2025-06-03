@@ -30,8 +30,13 @@ BuildRequires: systemd
 BuildRequires: systemd-devel
 
 %ifarch aarch64
+%if 0%{?rhel} < 9
 BuildRequires: lua-devel
 %define lua_implementation lua
+%else
+BuildRequires: luajit-devel
+%define lua_implementation luajit
+%endif
 %else
 BuildRequires: luajit-devel
 %define lua_implementation luajit
