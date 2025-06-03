@@ -310,7 +310,7 @@ def include_file(out_fp, include_file_name):
 def generate_flat_settings_for_cxx(definitions, src_dir, out_file_path, build_dir_path):
     cxx_flat_settings_fp = get_temporary_file_for_generated_code(out_file_path)
 
-    include_file(cxx_flat_settings_fp, src_dir + '/dnsdist-configuration-yaml-items-generated-pre-in.cc')
+    include_file(cxx_flat_settings_fp, src_dir + '/dnsdist-configuration-yaml-items-pre-in.cc')
 
     # first we do runtime-settable settings
     cxx_flat_settings_fp.write('''#if defined(HAVE_YAML_CONFIGURATION)
