@@ -439,6 +439,7 @@ libdnsdist_yaml_items = declare_dependency(
     'dnsdist-yaml-items',
     rust_lib_sources,
     dependencies: [
+      dep_boost,
       dep_dnsdist_rust_lib,
     ],
   )
