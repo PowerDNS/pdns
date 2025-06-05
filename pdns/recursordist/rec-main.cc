@@ -667,7 +667,7 @@ void protobufLogResponse(const struct dnsheader* header, LocalStateHolder<LuaCon
     otTrace.close();
     auto spans = eventTrace.convertToOT(otTrace);
     pdns::trace::TracesData trace{
-      .resource_spans = { pdns::trace::ResourceSpans{.resource = {}, .scope_spans = {{.spans = spans}}}}};
+      .resource_spans = { pdns::trace::ResourceSpans{.resource = {.attributes = {{"service.name", {{"rec"}}}}}, .scope_spans = {{.spans = spans}}}}};
     pbMessage.setOpenTelemetryData(trace.encode());
   }
   pbMessage.addPolicyTags(policyTags);

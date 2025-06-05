@@ -1878,7 +1878,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
         resolver.d_otTrace.close();
         auto spans = resolver.d_eventTrace.convertToOT(resolver.d_otTrace);
         pdns::trace::TracesData otTrace{
-          .resource_spans = { pdns::trace::ResourceSpans{.resource = {}, .scope_spans = {{.spans = spans}}}}};
+          .resource_spans = { pdns::trace::ResourceSpans{.resource = {.attributes = {{"service.name", {{"rec"}}}}}, .scope_spans = {{.spans = spans}}}}};
         string otData = otTrace.encode();
         pbMessage.setOpenTelemetryData(otData);
       }

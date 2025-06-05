@@ -6,6 +6,7 @@ import socket
 import struct
 import sys
 import threading
+import requests
 
 # run: protoc -I=../pdns/ --python_out=. ../pdns/dnsmessage.proto
 # to generate dnsmessage_pb2
@@ -29,8 +30,9 @@ except:
 
 class PDNSPBConnHandler(object):
 
-    def __init__(self, conn):
+    def __init__(self, conn, oturl):
         self._conn = conn
+        self._oturl = oturl
 
     def run(self):
         while True:
@@ -55,6 +57,8 @@ class PDNSPBConnHandler(object):
             msg = dnsmessage_pb2.PBDNSMessage()
             try:
                 msg.ParseFromString(data)
+                if opentelemetryAvailable and self._oturl is not None and msg.HasField('openTelemetryData'):
+                    self.postOT(msg.openTelemetryData)
                 if msg.type == dnsmessage_pb2.PBDNSMessage.DNSQueryType:
                     self.printQueryMessage(msg)
                 elif msg.type == dnsmessage_pb2.PBDNSMessage.DNSResponseType:
@@ -70,6 +74,12 @@ class PDNSPBConnHandler(object):
                 break
 
         self._conn.close()
+
+    def postOT(self, msg):
+        print("- Posting OTData to " + oturl)
+        headers = {'Content-Type': 'application/x-protobuf'}
+        answer = requests.post(self._oturl, data = msg, headers = headers)
+        print('  - ' + answer)
 
     def printQueryMessage(self, message):
         self.printSummary(message, 'Query')
@@ -102,15 +112,15 @@ class PDNSPBConnHandler(object):
                                               message.question.qType,
                                               message.question.qName))
     def printOT(self, msg):
-        if msg.HasField('openTelemetryData'):
-            if opentelemetryAvailable:
+        if opentelemetryAvailable:
+            if msg.HasField('openTelemetryData'):
                 json_string = None
                 otmsg = opentelemetry.proto.trace.v1.trace_pb2.TracesData()
                 otmsg.ParseFromString(msg.openTelemetryData)
                 json_string = google.protobuf.json_format.MessageToJson(otmsg, preserving_proto_field_name=True)
                 print("- openTelemetry: " + json_string)
-            else:
-                print("- openTelemetry decoding not available, see the comments in ProtoBuffer.py to make it available.x")
+        else:
+            print("- openTelemetry decoding not available, see the comments in ProtoBuffer.py to make it available.")
 
     @staticmethod
     def getAppliedPolicyTypeAsString(polType):
@@ -295,7 +305,7 @@ class PDNSPBConnHandler(object):
             ednsVersion = "0x%08X" % socket.ntohl(msg.ednsVersion)
 
         openTelemetryData = "N/A"
-        if msg.HasField('openTelemetryData'):
+        if opentelemetryAvailable and msg.HasField('openTelemetryData'):
             openTelemetryData = str(len(msg.openTelemetryData))
 
         print('[%s] %s of size %d: %s%s%s -> %s%s(%s) id: %d uuid: %s%s '
@@ -346,7 +356,8 @@ class PDNSPBConnHandler(object):
 
 class PDNSPBListener(object):
 
-    def __init__(self, addr, port):
+    def __init__(self, addr, port, oturl):
+        self._oturl = oturl
         res = socket.getaddrinfo(addr, port, socket.AF_UNSPEC,
                                  socket.SOCK_STREAM, 0,
                                  socket.AI_PASSIVE)
@@ -368,7 +379,7 @@ class PDNSPBListener(object):
         while True:
             (conn, _) = self._sock.accept()
 
-            handler = PDNSPBConnHandler(conn)
+            handler = PDNSPBConnHandler(conn, self._oturl)
             thread = threading.Thread(name='Connection Handler',
                                       target=PDNSPBConnHandler.run,
                                       args=[handler])
@@ -379,8 +390,12 @@ class PDNSPBListener(object):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        sys.exit('Usage: %s <address> <port>' % (sys.argv[0]))
+    print(opentelemetryAvailable)
+    oturl = None
+    if len(sys.argv) == 4:
+        oturl = sys.argv[3]
+    if len(sys.argv) != 3 and len(sys.argv) != 4:
+        sys.exit('Usage: %s <address> <port> [OpenTraceURL]' % (sys.argv[0]))
 
-    PDNSPBListener(sys.argv[1], sys.argv[2]).run()
+    PDNSPBListener(sys.argv[1], sys.argv[2], oturl).run()
     sys.exit(0)
