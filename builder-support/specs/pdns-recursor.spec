@@ -93,12 +93,14 @@ export CXXFLAGS="-O2 -g -pipe -Wall -Wno-deprecated-declarations -Wno-deprecated
 
 # Note that the RPM meson macro "helpfully" sets
 # --auto-features=enabled so our auto-detection is broken
+# disably fortify as it is handled by package build infra
 %meson \
     --sysconfdir=%{_sysconfdir}/%{name} \
     -Dunit-tests=true \
     -Db_lto=true \
     -Db_lto_mode=thin \
     -Db_pie=true \
+    -Dhardening-fortify-source=disabled \
     -Ddns-over-tls=enabled \
     -Ddnstap=enabled \
     -Dlibcap=enabled \
