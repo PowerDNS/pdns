@@ -277,19 +277,20 @@ void AuthZoneCache::addToView(const std::string& view, const ZoneName& zone)
   map[view][strictZone] = zone.getVariant();
 }
 
-void AuthZoneCache::removeFromView(const std::string& view, const ZoneName& zone)
+bool AuthZoneCache::removeFromView(const std::string& view, const ZoneName& zone)
 {
   const DNSName& strictZone = zone.operator const DNSName&();
   auto views = d_views.write_lock();
   AuthZoneCache::ViewsMap& map = *views;
   if (map.count(view) == 0) {
-    return; // Nothing to do, we did not know about that view
+    return true; // Nothing to do, we did not know about that view
   }
   auto& innerMap = map.at(view);
   if (auto iter = innerMap.find(strictZone); iter != innerMap.end()) {
     innerMap.erase(iter);
   }
   // else nothing to do, we did not know about that zone in that view
+  return innerMap.empty();
 }
 
 void AuthZoneCache::updateNetwork(const Netmask& network, const std::string& view)
