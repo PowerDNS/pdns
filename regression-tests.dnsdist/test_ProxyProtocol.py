@@ -456,9 +456,15 @@ class TestProxyProtocol(ProxyProtocolTest):
       # in some cases existing (established before this test) connections to the backend might still
       # exist, so we cannot enforce a strict "only 1 connection" check
       self.assertLessEqual(server['tcpMaxConcurrentConnections'], max_conns_before + 1)
-      # but if we managed to add more than one connection to the existing ones, something is
+      # but if we managed to add more than two connections to the existing ones, something is
       # wrong!
-      self.assertLessEqual(server['tcpMaxConcurrentConnections'], current_conns_before + 1)
+      # why two and not one? when a query arrives we retrieve the "owned" outgoing connection to the backend,
+      # and we notice that the TLVs are different than the previous ones, so we discard the outgoing connection
+      # and create a new one. This should lead to only one concurrent connection, except that if we read the
+      # new query while being called from the function handling the response from the backend, we might still
+      # hold a shared reference to the previous connection. It will be released when we come back to the calling
+      # function, but for a short time we will have two concurrent connections.
+      self.assertLessEqual(server['tcpMaxConcurrentConnections'], current_conns_before + 2)
 
 class TestProxyProtocolIncoming(ProxyProtocolTest):
     """
