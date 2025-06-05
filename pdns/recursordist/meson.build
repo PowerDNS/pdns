@@ -593,7 +593,7 @@ foreach tool, info: tools
 endforeach
 
 if get_option('unit-tests')
-  test('testrunner', testrunner)
+  test('testrunner', testrunner, timeout: 60) # default timeout of 30s is a bit short for some targets
 endif
 
 # Man-pages.
