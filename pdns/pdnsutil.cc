@@ -9,6 +9,8 @@
 #endif
 
 #include <fcntl.h>
+#include <csignal>
+#include <sys/wait.h>
 
 #include "credentials.hh"
 #include "dnsseckeeper.hh"
@@ -1246,6 +1248,66 @@ private:
   bool d_colors;
 };
 
+static bool spawnEditor(const std::string& editor, std::string_view tmpfile, int gotoline, int &result)
+{
+  sigset_t mask;
+  sigset_t omask;
+
+  // Ignore INT, QUIT and CHLD signals while the editor process runs
+  sigemptyset(&mask);
+  sigaddset(&mask, SIGCHLD);
+  sigaddset(&mask, SIGINT);
+  sigaddset(&mask, SIGQUIT);
+  sigprocmask(SIG_BLOCK, &mask, &omask); // NOLINT(concurrency-mt-unsafe)
+
+  switch (pid_t child = fork()) {
+  case 0:
+    {
+      std::array<const char *, 4> args{};
+      size_t pos{0};
+      std::string gotolinestr;
+      args.at(pos++) = editor.c_str();
+      if (gotoline > 0) {
+        // TODO: if editor is 'ed', skip this; if 'ex' or 'vi', use '-c number'
+        gotolinestr = "+" + std::to_string(gotoline);
+        args.at(pos++) = gotolinestr.c_str();
+      }
+      args.at(pos++) = tmpfile.data();
+      args.at(pos++) = nullptr;
+      if (::execvp(args.at(0), const_cast<char **>(args.data())) != 0) { // NOLINT(cppcoreguidelines-pro-type-const-cast)
+        ::exit(errno); // NOLINT(concurrency-mt-unsafe)
+      }
+      // std::unreachable();
+    }
+    break;
+  case -1:
+    unixDie("Couldn't fork");
+    break;
+  default:
+    {
+      pid_t pid{-1};
+      int status{0};
+      do {
+        pid = waitpid(child, &status, 0);
+      } while (pid == -1 && errno == EINTR);
+      sigprocmask(SIG_SETMASK, &omask, nullptr); // NOLINT(concurrency-mt-unsafe)
+      if (pid == -1) {
+        return false;
+      }
+      if (WIFEXITED(status)) {
+        result = WEXITSTATUS(status);
+        return true;
+      }
+      if (WIFSIGNALED(status)) {
+        result = 128 + WTERMSIG(status);
+        return true;
+      }
+    }
+    break;
+  }
+  return false;
+}
+
 static int editZone(const ZoneName &zone, const PDNSColors& col) {
   UtilBackend B; //NOLINT(readability-identifier-length)
   DomainInfo di;
@@ -1308,7 +1370,6 @@ static int editZone(const ZoneName &zone, const PDNSColors& col) {
   string editor="editor";
   if(auto e=getenv("EDITOR")) // <3
     editor=e;
-  string cmdline;
  editAgain:;
   di.backend->list(zone, di.id);
   pre.clear(); post.clear();
@@ -1338,15 +1399,13 @@ static int editZone(const ZoneName &zone, const PDNSColors& col) {
   }
  editMore:;
   post.clear();
-  cmdline=editor+" ";
-  if(gotoline > 0)
-    cmdline+="+"+std::to_string(gotoline)+" ";
-  cmdline += tmpnam;
-  int err=system(cmdline.c_str());
-  if(err != 0) {
-    unixDie("Editing file with: '"+cmdline+"', perhaps set EDITOR variable");
+  int result{0};
+  if (!spawnEditor(editor, tmpnam, gotoline, result)) { // NOLINT(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+    unixDie("Editing file with: '"+editor+"', perhaps set EDITOR variable");
   }
-  cmdline.clear();
+  if (result != 0) {
+    throw std::runtime_error("Editing file with: '" + editor + "' returned non-zero status " + std::to_string(result));
+  }
   ZoneParserTNG zpt(static_cast<const char *>(tmpnam), g_rootzonename);
   zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
   zpt.setMaxIncludes(::arg().asNum("max-include-depth"));
