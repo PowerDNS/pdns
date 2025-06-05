@@ -37,7 +37,7 @@ override_dh_auto_clean:
 
 # We need clang (LLVM) to link the Rust static library and the C++ code with LTO enabled
 # build-id SHA1 prevents an issue with the debug symbols ("export: `-Wl,--build-id=sha1': not a valid identifier")
-
+# disably fortify as it is handled by package build infra
 override_dh_auto_configure:
 	LDFLAGS="-latomic -fuse-ld=lld -Wl,--build-id=sha1" \
 	CC=clang \
@@ -47,6 +47,7 @@ override_dh_auto_configure:
 	-Db_lto=true \
 	-Db_lto_mode=thin \
 	-Db_pie=true \
+	-Dhardening-fortify-source=disabled \
 	-Dunit-tests=true \
 	-Ddns-over-tls=enabled \
 	-Ddnstap=enabled \
