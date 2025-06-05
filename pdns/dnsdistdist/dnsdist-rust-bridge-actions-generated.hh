@@ -107,6 +107,8 @@ struct LuaFFIPerThreadResponseActionConfiguration;
 std::shared_ptr<DNSResponseActionWrapper> getLuaFFIPerThreadResponseAction(const LuaFFIPerThreadResponseActionConfiguration& config);
 struct RemoteLogResponseActionConfiguration;
 std::shared_ptr<DNSResponseActionWrapper> getRemoteLogResponseAction(const RemoteLogResponseActionConfiguration& config);
+struct SetEDNSOptionResponseActionConfiguration;
+std::shared_ptr<DNSResponseActionWrapper> getSetEDNSOptionResponseAction(const SetEDNSOptionResponseActionConfiguration& config);
 struct SetExtendedDNSErrorResponseActionConfiguration;
 std::shared_ptr<DNSResponseActionWrapper> getSetExtendedDNSErrorResponseAction(const SetExtendedDNSErrorResponseActionConfiguration& config);
 struct SetMaxReturnedTTLResponseActionConfiguration;

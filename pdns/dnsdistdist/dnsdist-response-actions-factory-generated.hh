@@ -4,6 +4,7 @@ std::shared_ptr<DNSResponseAction> getDelayResponseAction(uint32_t msec);
 std::shared_ptr<DNSResponseAction> getDropResponseAction();
 std::shared_ptr<DNSResponseAction> getLogResponseAction(const std::string& file_name, bool append, bool buffered, bool verbose_only, bool include_timestamp);
 std::shared_ptr<DNSResponseAction> getLuaFFIPerThreadResponseAction(const std::string& code);
+std::shared_ptr<DNSResponseAction> getSetEDNSOptionResponseAction(uint32_t code, const std::string& data);
 std::shared_ptr<DNSResponseAction> getSetExtendedDNSErrorResponseAction(uint16_t info_code, const std::string& extra_text);
 std::shared_ptr<DNSResponseAction> getSetReducedTTLResponseAction(uint8_t percentage);
 std::shared_ptr<DNSResponseAction> getSetSkipCacheResponseAction();

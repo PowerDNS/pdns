@@ -649,6 +649,15 @@ mod dnsdistsettings {
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
     #[serde(deny_unknown_fields)]
+    struct SetEDNSOptionResponseActionConfiguration {
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        name: String,
+        code: u32,
+        data: String,
+    }
+
+    #[derive(Deserialize, Serialize, Debug, PartialEq)]
+    #[serde(deny_unknown_fields)]
     struct SetExtendedDNSErrorResponseActionConfiguration {
         #[serde(default, skip_serializing_if = "crate::is_default")]
         name: String,
@@ -2234,6 +2243,7 @@ mod dnsdistsettings {
         fn getLuaFFIResponseAction(config: &LuaFFIResponseActionConfiguration) -> Result<SharedPtr<DNSResponseActionWrapper>>;
         fn getLuaFFIPerThreadResponseAction(config: &LuaFFIPerThreadResponseActionConfiguration) -> Result<SharedPtr<DNSResponseActionWrapper>>;
         fn getRemoteLogResponseAction(config: &RemoteLogResponseActionConfiguration) -> Result<SharedPtr<DNSResponseActionWrapper>>;
+        fn getSetEDNSOptionResponseAction(config: &SetEDNSOptionResponseActionConfiguration) -> Result<SharedPtr<DNSResponseActionWrapper>>;
         fn getSetExtendedDNSErrorResponseAction(config: &SetExtendedDNSErrorResponseActionConfiguration) -> Result<SharedPtr<DNSResponseActionWrapper>>;
         fn getSetMaxReturnedTTLResponseAction(config: &SetMaxReturnedTTLResponseActionConfiguration) -> Result<SharedPtr<DNSResponseActionWrapper>>;
         fn getSetMaxTTLResponseAction(config: &SetMaxTTLResponseActionConfiguration) -> Result<SharedPtr<DNSResponseActionWrapper>>;
@@ -2526,6 +2536,7 @@ enum ResponseAction {
     LuaFFI(dnsdistsettings::LuaFFIResponseActionConfiguration),
     LuaFFIPerThread(dnsdistsettings::LuaFFIPerThreadResponseActionConfiguration),
     RemoteLog(dnsdistsettings::RemoteLogResponseActionConfiguration),
+    SetEDNSOption(dnsdistsettings::SetEDNSOptionResponseActionConfiguration),
     SetExtendedDNSError(dnsdistsettings::SetExtendedDNSErrorResponseActionConfiguration),
     SetMaxReturnedTTL(dnsdistsettings::SetMaxReturnedTTLResponseActionConfiguration),
     SetMaxTTL(dnsdistsettings::SetMaxTTLResponseActionConfiguration),
@@ -4029,6 +4040,11 @@ fn get_one_response_action_from_serde(action: &ResponseAction) -> Result<dnsdist
         ResponseAction::RemoteLog(config) => {
                 return Ok(dnsdistsettings::SharedDNSResponseAction {
                     action: dnsdistsettings::getRemoteLogResponseAction(&config)?,
+                });
+            }
+        ResponseAction::SetEDNSOption(config) => {
+                return Ok(dnsdistsettings::SharedDNSResponseAction {
+                    action: dnsdistsettings::getSetEDNSOptionResponseAction(&config)?,
                 });
             }
         ResponseAction::SetExtendedDNSError(config) => {

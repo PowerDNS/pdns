@@ -1018,13 +1018,38 @@ public:
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
     (void)ruleresult;
-    setEDNSOption(*dnsquestion, d_code, d_data);
+    setEDNSOption(*dnsquestion, d_code, d_data, true);
     return Action::None;
   }
 
   [[nodiscard]] std::string toString() const override
   {
     return "add EDNS Option (code=" + std::to_string(d_code) + ")";
+  }
+
+private:
+  uint16_t d_code;
+  std::string d_data;
+};
+
+class SetEDNSOptionResponseAction : public DNSResponseAction
+{
+public:
+  // this action does not stop the processing
+  SetEDNSOptionResponseAction(uint16_t code, std::string data) :
+    d_code(code), d_data(std::move(data))
+  {
+  }
+
+  DNSResponseAction::Action operator()(DNSResponse* response, [[maybe_unused]] std::string* ruleresult) const override
+  {
+    setEDNSOption(*response, d_code, d_data, false);
+    return Action::None;
+  }
+
+  [[nodiscard]] std::string toString() const override
+  {
+    return "add EDNS Option to response (code=" + std::to_string(d_code) + ")";
   }
 
 private:

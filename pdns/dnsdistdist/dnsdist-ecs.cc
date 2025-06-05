@@ -1163,7 +1163,7 @@ bool getEDNS0Record(const PacketBuffer& packet, EDNS0Record& edns0)
   return true;
 }
 
-bool setEDNSOption(DNSQuestion& dnsQuestion, uint16_t ednsCode, const std::string& ednsData)
+bool setEDNSOption(DNSQuestion& dnsQuestion, uint16_t ednsCode, const std::string& ednsData, bool isQuery)
 {
   std::string optRData;
   generateEDNSOption(ednsCode, ednsData, optRData);
@@ -1183,7 +1183,7 @@ bool setEDNSOption(DNSQuestion& dnsQuestion, uint16_t ednsCode, const std::strin
     }
 
     dnsQuestion.getMutableData() = std::move(newContent);
-    if (!dnsQuestion.ids.ednsAdded && ednsAdded) {
+    if (isQuery && !dnsQuestion.ids.ednsAdded && ednsAdded) {
       dnsQuestion.ids.ednsAdded = true;
     }
 
@@ -1196,8 +1196,11 @@ bool setEDNSOption(DNSQuestion& dnsQuestion, uint16_t ednsCode, const std::strin
       header.arcount = htons(1);
       return true;
     });
-    // make sure that any EDNS sent by the backend is removed before forwarding the response to the client
-    dnsQuestion.ids.ednsAdded = true;
+
+    if (isQuery) {
+      // make sure that any EDNS sent by the backend is removed before forwarding the response to the client
+      dnsQuestion.ids.ednsAdded = true;
+    }
   }
 
   return true;

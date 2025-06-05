@@ -179,6 +179,11 @@ std::shared_ptr<DNSResponseActionWrapper> getLuaFFIPerThreadResponseAction(const
   auto action = dnsdist::actions::getLuaFFIPerThreadResponseAction(std::string(config.code));
   return newDNSResponseActionWrapper(std::move(action), config.name);
 }
+std::shared_ptr<DNSResponseActionWrapper> getSetEDNSOptionResponseAction(const SetEDNSOptionResponseActionConfiguration& config)
+{
+  auto action = dnsdist::actions::getSetEDNSOptionResponseAction(config.code, std::string(config.data));
+  return newDNSResponseActionWrapper(std::move(action), config.name);
+}
 std::shared_ptr<DNSResponseActionWrapper> getSetExtendedDNSErrorResponseAction(const SetExtendedDNSErrorResponseActionConfiguration& config)
 {
   auto action = dnsdist::actions::getSetExtendedDNSErrorResponseAction(config.info_code, std::string(config.extra_text));
