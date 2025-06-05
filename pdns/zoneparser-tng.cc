@@ -41,7 +41,7 @@ const static string g_INstr("IN");
 ZoneParserTNG::ZoneParserTNG(const string& fname, ZoneName zname, string reldir, bool upgradeContent):
   d_reldir(std::move(reldir)), d_zonename(std::move(zname)), d_defaultttl(3600),
   d_templatecounter(0), d_templatestop(0), d_templatestep(0),
-  d_havedollarttl(false), d_fromfile(true), d_upgradeContent(upgradeContent)
+  d_havespecificttl(false), d_fromfile(true), d_upgradeContent(upgradeContent)
 {
   stackFile(fname);
 }
@@ -49,7 +49,7 @@ ZoneParserTNG::ZoneParserTNG(const string& fname, ZoneName zname, string reldir,
 ZoneParserTNG::ZoneParserTNG(const vector<string>& zonedata, ZoneName zname, bool upgradeContent):
   d_zonename(std::move(zname)), d_zonedata(zonedata), d_defaultttl(3600),
   d_templatecounter(0), d_templatestop(0), d_templatestep(0),
-  d_havedollarttl(false), d_fromfile(false), d_upgradeContent(upgradeContent)
+  d_havespecificttl(false), d_fromfile(false), d_upgradeContent(upgradeContent)
 {
   d_zonedataline = d_zonedata.begin();
 }
@@ -338,6 +338,7 @@ pair<string,int> ZoneParserTNG::getLineNumAndFile()
     return {d_filestates.top().d_filename, d_filestates.top().d_lineno};
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
 {
  retry:;
@@ -363,7 +364,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
     string command=makeString(d_line, d_parts[0]);
     if(pdns_iequals(command,"$TTL") && d_parts.size() > 1) {
       d_defaultttl=makeTTLFromZone(trim_right_copy_if(makeString(d_line, d_parts[1]), boost::is_any_of(";")));
-      d_havedollarttl=true;
+      d_havespecificttl=true;
     }
     else if(pdns_iequals(command,"$INCLUDE") && d_parts.size() > 1 && d_fromfile) {
       string fname=unquotify(makeString(d_line, d_parts[1]));
@@ -515,8 +516,9 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
     }
     if(!haveTTL && !haveQTYPE && isTimeSpec(nextpart)) {
       rr.ttl=makeTTLFromZone(nextpart);
-      if(!d_havedollarttl)
+      if (!d_havespecificttl) {
         d_defaultttl = rr.ttl;
+      }
       haveTTL=true;
       // cout<<"ttl is probably: "<<rr.ttl<<endl;
       continue;
