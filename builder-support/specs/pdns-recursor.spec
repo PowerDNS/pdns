@@ -82,7 +82,8 @@ export LDFLAGS="-fuse-ld=lld -Wl,--build-id=sha1"
 %define stack_clash_protection -fstack-clash-protection
 %endif
 export CFLAGS="-O2 -g -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -fexceptions -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables %{stack_clash_protection} %{cf_protection} -gdwarf-4"
-export CXXFLAGS="-O2 -g -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -fexceptions -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables %{stack_clash_protection} %{cf_protection} -gdwarf-4"
+# Adding -Wno-deprecated-declarations -Wno-deprecated-builtins as boost genertates tonnes of warnings
+export CXXFLAGS="-O2 -g -pipe -Wall -Wno-deprecated-declarations -Wno-deprecated-builtins -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -fexceptions -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables %{stack_clash_protection} %{cf_protection} -gdwarf-4"
 %endif
 
 # Note that the RPM meson macro "helpfully" sets
