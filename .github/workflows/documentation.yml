@@ -214,8 +214,8 @@ jobs:
           [ -z "$SSH_KEY" ] && missing_secrets+=("WEB1_DOCS_SECRET")
           [ -z "$HOST_KEY" ] && missing_secrets+=("WEB1_HOSTKEY")
           [ -z "$DOCS_HOST" ] && missing_secrets+=("DOCS_HOST")
-          [ -z "AUTH_DOCS_DIR" ] && missing_secrets+=("AUTH_DOCS_DIR")
-          [ -z "REC_DOCS_DIR" ] && missing_secrets+=("REC_DOCS_DIR")
+          [ -z "$AUTH_DOCS_DIR" ] && missing_secrets+=("AUTH_DOCS_DIR")
+          [ -z "$REC_DOCS_DIR" ] && missing_secrets+=("REC_DOCS_DIR")
           if [ ${#missing_secrets[@]} -ne 0 ]; then
             echo "Error: The following secrets/variables are missing: ${missing_secrets[*]}"
             exit 1
