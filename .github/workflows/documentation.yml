@@ -54,6 +54,8 @@ jobs:
     steps:
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -147,6 +149,7 @@ jobs:
       NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_API_TOKEN }}
       NETLIFY_SITE_ID_DOCS: ${{ vars.NETLIFY_SITE_ID_DOCS }}
       NETLIFY_SITE_ID_DNSDIST: ${{ vars.NETLIFY_SITE_ID_DNSDIST }}
+      PDNS_VERSION: ${{needs.build-docs.outputs.pdns_version}}
     steps:
       - name: Check required secrets
         run: |
@@ -167,15 +170,15 @@ jobs:
       - name: Deploy docs to Netlify
         run: |
           mkdir -p docs_site/temp
-          tar -xf artifacts/website-${{needs.build-docs.outputs.pdns_version}}/website.tar -C docs_site/temp
+          tar -xf artifacts/website-$PDNS_VERSION/website.tar -C docs_site/temp
           mv docs_site/temp/website/docs.powerdns.com/* docs_site/
           rm -rf docs_site/temp
-          tar -xf artifacts/authoritative-html-docs-${{needs.build-docs.outputs.pdns_version}}/auth-html-docs.tar -C docs_site
-          tar -xf artifacts/recursor-html-docs-${{needs.build-docs.outputs.pdns_version}}/rec-html-docs.tar -C docs_site
+          tar -xf artifacts/authoritative-html-docs-$PDNS_VERSION/auth-html-docs.tar -C docs_site
+          tar -xf artifacts/recursor-html-docs-$PDNS_VERSION/rec-html-docs.tar -C docs_site
           mv docs_site/auth-html-docs docs_site/authoritative
           mv docs_site/rec-html-docs docs_site/recursor
-          cp artifacts/PowerDNS-Authoritative-${{needs.build-docs.outputs.pdns_version}}.pdf/PowerDNS-Authoritative.pdf docs_site/authoritative/
-          cp artifacts/PowerDNS-Recursor-${{needs.build-docs.outputs.pdns_version}}.pdf/PowerDNS-Recursor.pdf docs_site/recursor/
+          cp artifacts/PowerDNS-Authoritative-$PDNS_VERSION.pdf/PowerDNS-Authoritative.pdf docs_site/authoritative/
+          cp artifacts/PowerDNS-Recursor-$PDNS_VERSION.pdf/PowerDNS-Recursor.pdf docs_site/recursor/
           netlify deploy \
             --dir ./docs_site \
             --site $NETLIFY_SITE_ID_DOCS \
@@ -184,8 +187,8 @@ jobs:
 
       - name: Deploy DNSdist docs to Netlify
         run: |
-          tar -xf artifacts/dnsdist-html-docs-${{needs.build-docs.outputs.pdns_version}}/dnsdist-html-docs.tar
-          cp artifacts/dnsdist-${{needs.build-docs.outputs.pdns_version}}.pdf/dnsdist.pdf dnsdist-html-docs/
+          tar -xf artifacts/dnsdist-html-docs-$PDNS_VERSION/dnsdist-html-docs.tar
+          cp artifacts/dnsdist-$PDNS_VERSION.pdf/dnsdist.pdf dnsdist-html-docs/
           netlify deploy \
             --dir ./dnsdist-html-docs \
             --site $NETLIFY_SITE_ID_DNSDIST \
@@ -197,21 +200,30 @@ jobs:
     needs: build-docs
     if: ${{ (github.ref_name == 'master' || vars.DOCS_WORKFLOW_BRANCH_OVERRIDE == 'true') && vars.PUBLISH_DOCS_TO_WEB1 == 'true' }}
     runs-on: ubuntu-22.04
+    env:
+      PDNS_VERSION: ${{needs.build-docs.outputs.pdns_version}}
+      DOCS_HOST: ${{vars.DOCS_HOST}}
+      REC_DOCS_DIR: ${{vars.REC_DOCS_DIR}}
+      AUTH_DOCS_DIR: ${{vars.AUTH_DOCS_DIR}}
+      SSH_KEY: ${{secrets.WEB1_DOCS_SECRET}}
+      HOST_KEY: ${{vars.WEB1_HOSTKEY}}
     steps:
       - name: Check required secrets
         run: |
           missing_secrets=()
-          [ -z "${{ secrets.WEB1_DOCS_SECRET }}" ] && missing_secrets+=("WEB1_DOCS_SECRET")
-          [ -z "${{ vars.WEB1_HOSTKEY }}" ] && missing_secrets+=("WEB1_HOSTKEY")
-          [ -z "${{ vars.DOCS_HOST }}" ] && missing_secrets+=("DOCS_HOST")
-          [ -z "${{ vars.AUTH_DOCS_DIR }}" ] && missing_secrets+=("AUTH_DOCS_DIR")
-          [ -z "${{ vars.REC_DOCS_DIR }}" ] && missing_secrets+=("REC_DOCS_DIR")
+          [ -z "$SSH_KEY" ] && missing_secrets+=("WEB1_DOCS_SECRET")
+          [ -z "$HOSTKEY" ] && missing_secrets+=("WEB1_HOSTKEY")
+          [ -z "$DOCS_HOST" ] && missing_secrets+=("DOCS_HOST")
+          [ -z "AUTH_DOCS_DIR" ] && missing_secrets+=("AUTH_DOCS_DIR")
+          [ -z "REC_DOCS_DIR" ] && missing_secrets+=("REC_DOCS_DIR")
           if [ ${#missing_secrets[@]} -ne 0 ]; then
             echo "Error: The following secrets/variables are missing: ${missing_secrets[*]}"
             exit 1
           fi
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - run: build-scripts/gh-actions-setup-inv-no-dist-upgrade
       - uses: actions/download-artifact@v4
         with:
@@ -219,33 +231,22 @@ jobs:
       - id: setup-ssh
         run: |-
           inv ci-docs-add-ssh --ssh-key="$SSH_KEY" --host-key="$HOST_KEY"
-        env:
-          SSH_KEY: ${{secrets.WEB1_DOCS_SECRET}}
-          HOST_KEY: ${{vars.WEB1_HOSTKEY}}
       - name: Publish Auth docs
         run: |
           mkdir -p ./docs/_build
-          tar -xf artifacts/authoritative-html-docs-${{needs.build-docs.outputs.pdns_version}}/auth-html-docs.tar -C ./docs/_build/
-          cp artifacts/PowerDNS-Authoritative-${{needs.build-docs.outputs.pdns_version}}.pdf/PowerDNS-Authoritative.pdf ./docs/_build/auth-html-docs/
+          tar -xf artifacts/authoritative-html-docs-$PDNS_VERSION/auth-html-docs.tar -C ./docs/_build/
+          cp artifacts/PowerDNS-Authoritative-$PDNS_VERSION.pdf/PowerDNS-Authoritative.pdf ./docs/_build/auth-html-docs/
           inv ci-docs-upload-master --docs-host="${DOCS_HOST}" --pdf="PowerDNS-Authoritative.pdf" --username="docs_powerdns_com" --product="auth" --directory="/${AUTH_DOCS_DIR}/"
-        env:
-          DOCS_HOST: ${{vars.DOCS_HOST}}
-          AUTH_DOCS_DIR: ${{vars.AUTH_DOCS_DIR}}
       - name: Publish Recursor docs
         run: |
-          tar -xf artifacts/recursor-html-docs-${{needs.build-docs.outputs.pdns_version}}/rec-html-docs.tar -C ./docs/_build/
-          cp artifacts/PowerDNS-Recursor-${{needs.build-docs.outputs.pdns_version}}.pdf/PowerDNS-Recursor.pdf ./docs/_build/rec-html-docs/
+          tar -xf artifacts/recursor-html-docs-$PDNS_VERSION/rec-html-docs.tar -C ./docs/_build/
+          cp artifacts/PowerDNS-Recursor-$PDNS_VERSION.pdf/PowerDNS-Recursor.pdf ./docs/_build/rec-html-docs/
           inv ci-docs-upload-master --docs-host="${DOCS_HOST}" --pdf="PowerDNS-Recursor.pdf" --username="docs_powerdns_com" --product="rec" --directory="/${REC_DOCS_DIR}/"
-        env:
-          DOCS_HOST: ${{vars.DOCS_HOST}}
-          REC_DOCS_DIR: ${{vars.REC_DOCS_DIR}}
       - name: Publish DNSdist docs
         run: |
-          tar -xf artifacts/dnsdist-html-docs-${{needs.build-docs.outputs.pdns_version}}/dnsdist-html-docs.tar -C ./docs/_build/
-          cp artifacts/dnsdist-${{needs.build-docs.outputs.pdns_version}}.pdf/dnsdist.pdf ./docs/_build/dnsdist-html-docs/
+          tar -xf artifacts/dnsdist-html-docs-$PDNS_VERSION/dnsdist-html-docs.tar -C ./docs/_build/
+          cp artifacts/dnsdist-$PDNS_VERSION.pdf/dnsdist.pdf ./docs/_build/dnsdist-html-docs/
           inv ci-docs-upload-master --docs-host="${DOCS_HOST}" --pdf="dnsdist.pdf" --username="dnsdist_org" --product="dnsdist" --directory="/${DNSDIST_DOCS_DIR}/"
-        env:
-          DOCS_HOST: ${{vars.DOCS_HOST}}
 
 
   publish-to-aws:
@@ -253,21 +254,31 @@ jobs:
     needs: build-docs
     if: ${{ (github.ref_name == 'master' || vars.DOCS_WORKFLOW_BRANCH_OVERRIDE == 'true') && vars.PUBLISH_DOCS_TO_AWS == 'true' }}
     runs-on: ubuntu-22.04
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      AWS_S3_BUCKET_DOCS: ${{ vars.AWS_S3_BUCKET_DOCS }}
+      AWS_CLOUDFRONT_DISTRIBUTION_ID_DNSDIST: ${{ vars.AWS_CLOUDFRONT_DISTRIBUTION_ID_DNSDIST }}
+      AWS_CLOUDFRONT_DISTRIBUTION_ID_DOCS: ${{ vars.AWS_CLOUDFRONT_DISTRIBUTION_ID_DOCS }}
+      PDNS_VERSION: ${{needs.build-docs.outputs.pdns_version}}
     steps:
       - name: Check required secrets
         run: |
           missing_secrets=()
-          [ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ] && missing_secrets+=("AWS_ACCESS_KEY_ID")
-          [ -z "${{ secrets.AWS_SECRET_ACCESS_KEY }}" ] && missing_secrets+=("AWS_SECRET_ACCESS_KEY")
-          [ -z "${{ vars.AWS_REGION }}" ] && missing_secrets+=("AWS_REGION")
-          [ -z "${{ vars.AWS_S3_BUCKET_DOCS }}" ] && missing_secrets+=("AWS_S3_BUCKET_DOCS")
-          [ -z "${{ vars.AWS_CLOUDFRONT_DISTRIBUTION_ID_DNSDIST }}" ] && missing_secrets+=("AWS_CLOUDFRONT_DISTRIBUTION_ID_DNSDIST")
-          [ -z "${{ vars.AWS_CLOUDFRONT_DISTRIBUTION_ID_DOCS }}" ] && missing_secrets+=("AWS_CLOUDFRONT_DISTRIBUTION_ID_DOCS")
+          [ -z "$AWS_ACCESS_KEY_ID" ] && missing_secrets+=("AWS_ACCESS_KEY_ID")
+          [ -z "$AWS_SECRET_ACCESS_KEY" ] && missing_secrets+=("AWS_SECRET_ACCESS_KEY")
+          [ -z "$AWS_REGION" ] && missing_secrets+=("AWS_REGION")
+          [ -z "$AWS_S3_BUCKET_DOCS" ] && missing_secrets+=("AWS_S3_BUCKET_DOCS")
+          [ -z "$AWS_CLOUDFRONT_DISTRIBUTION_ID_DNSDIST" ] && missing_secrets+=("AWS_CLOUDFRONT_DISTRIBUTION_ID_DNSDIST")
+          [ -z "$AWS_CLOUDFRONT_DISTRIBUTION_ID_DOCS" ] && missing_secrets+=("AWS_CLOUDFRONT_DISTRIBUTION_ID_DOCS")
           if [ ${#missing_secrets[@]} -ne 0 ]; then
             echo "Error: The following secrets/variables are missing: ${missing_secrets[*]}"
             exit 1
           fi
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -283,25 +294,18 @@ jobs:
           type = s3
           provider = AWS
           env_auth = true
-          region = ${{ vars.AWS_REGION }}
+          region = $AWS_REGION
           EOF
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
       - name: Publish to AWS
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ vars.AWS_REGION }}
-          AWS_S3_BUCKET_DOCS: ${{ vars.AWS_S3_BUCKET_DOCS }}
-          AWS_CLOUDFRONT_DISTRIBUTION_ID_DNSDIST: ${{ vars.AWS_CLOUDFRONT_DISTRIBUTION_ID_DNSDIST }}
-          AWS_CLOUDFRONT_DISTRIBUTION_ID_DOCS: ${{ vars.AWS_CLOUDFRONT_DISTRIBUTION_ID_DOCS }}
         run: |
           if [ -n "$AWS_CLOUDFRONT_DISTRIBUTION_ID_DNSDIST" ]; then
-            tar -xf artifacts/dnsdist-html-docs-${{needs.build-docs.outputs.pdns_version}}/dnsdist-html-docs.tar
-            cp artifacts/dnsdist-${{needs.build-docs.outputs.pdns_version}}.pdf/dnsdist.pdf dnsdist-html-docs/
-            
+            tar -xf artifacts/dnsdist-html-docs-$PDNS_VERSION/dnsdist-html-docs.tar
+            cp artifacts/dnsdist-$PDNS_VERSION.pdf/dnsdist.pdf dnsdist-html-docs/
+
             # Copy files to S3
             echo "Copying DNSdist docs to S3..."
             rclone copy --checksum dnsdist-html-docs/ docs-s3:$AWS_S3_BUCKET_DOCS/dnsdist.org/
@@ -313,21 +317,21 @@ jobs:
               --paths "/*"
             echo "Invalidation completed."
           fi
-          
+
           if [ -n "$AWS_CLOUDFRONT_DISTRIBUTION_ID_DOCS" ]; then
-            tar -xf artifacts/recursor-html-docs-${{needs.build-docs.outputs.pdns_version}}/rec-html-docs.tar
-            cp artifacts/PowerDNS-Recursor-${{needs.build-docs.outputs.pdns_version}}.pdf/PowerDNS-Recursor.pdf rec-html-docs/
-            
+            tar -xf artifacts/recursor-html-docs-$PDNS_VERSION/rec-html-docs.tar
+            cp artifacts/PowerDNS-Recursor-$PDNS_VERSION.pdf/PowerDNS-Recursor.pdf rec-html-docs/
+
             # Copy all PowerDNS docs to S3
             echo "Copying Recursor docs to S3..."
             rclone copy --checksum rec-html-docs/ docs-s3:$AWS_S3_BUCKET_DOCS/docs.powerdns.com/recursor/
 
-            tar -xf artifacts/authoritative-html-docs-${{needs.build-docs.outputs.pdns_version}}/auth-html-docs.tar
-            cp artifacts/PowerDNS-Authoritative-${{needs.build-docs.outputs.pdns_version}}.pdf/PowerDNS-Authoritative.pdf auth-html-docs/
+            tar -xf artifacts/authoritative-html-docs-$PDNS_VERSION/auth-html-docs.tar
+            cp artifacts/PowerDNS-Authoritative-$PDNS_VERSION.pdf/PowerDNS-Authoritative.pdf auth-html-docs/
             echo "Copying Authoritative docs to S3..."
             rclone copy --checksum auth-html-docs/ docs-s3:$AWS_S3_BUCKET_DOCS/docs.powerdns.com/authoritative/
 
-            tar -xf artifacts/website-${{needs.build-docs.outputs.pdns_version}}/website.tar
+            tar -xf artifacts/website-$PDNS_VERSION/website.tar
             echo "Copying website files to S3..."
             rclone copy --checksum website/docs.powerdns.com/ docs-s3:$AWS_S3_BUCKET_DOCS/docs.powerdns.com/
 

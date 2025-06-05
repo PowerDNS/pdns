@@ -32,6 +32,7 @@ env:
   LLVM_PROFILE_FILE: "/tmp/code-%p.profraw"
   OPTIMIZATIONS: yes
   INV_CMD: ". ${REPO_HOME}/.venv/bin/activate && inv"
+  BRANCH_NAME: ${{ inputs.branch-name || github.ref_name }}
 
 jobs:
   get-runner-container-image:
@@ -41,13 +42,13 @@ jobs:
       id: ${{ steps.get-runner-image.outputs.image-id }}
       tag: ${{ steps.get-runner-image.outputs.tag }}
     env:
-      DEFAULT_RUNNER_DOCKER_IMAGE: base-pdns-ci-image/debian-12-pdns-base
       DEFAULT_IMAGE_TAG: master # update when backporting, e.g. auth-4.9.x
+      DOCKER_IMAGE: ${{ inputs.runner-docker-image-name || 'base-pdns-ci-image/debian-12-pdns-base' }}
     steps:
       - id: get-runner-image
         run: |
-          echo "image-id=ghcr.io/powerdns/${{ inputs.runner-docker-image-name || env.DEFAULT_RUNNER_DOCKER_IMAGE }}" >> "$GITHUB_OUTPUT"
-          echo "tag=${{ env.DEFAULT_IMAGE_TAG }}" >> "$GITHUB_OUTPUT"
+          echo "image-id=ghcr.io/powerdns/$DOCKER_IMAGE" >> "$GITHUB_OUTPUT"
+          echo "tag=$DEFAULT_IMAGE_TAG" >> "$GITHUB_OUTPUT"
 
   build-auth:
     name: build auth (${{ matrix.builder }})
@@ -74,6 +75,7 @@ jobs:
           fetch-depth: 5
           submodules: recursive
           ref: ${{ inputs.branch-name }}
+          persist-credentials: false
       - name: get timestamp for cache
         id: get-stamp
         run: |
@@ -114,7 +116,7 @@ jobs:
         working-directory: ./pdns-${{ env.BUILDER_VERSION }}/pdns
       - name: Coveralls Parallel auth unit
         if: ${{ env.COVERAGE == 'yes' && matrix.builder != 'meson' }}
-        uses: coverallsapp/github-action@v2
+        uses: coverallsapp/github-action@648a8eb78e6d50909eff900e4ec85cab4524a45b
         with:
           flag-name: auth-unit-${{ env.SANITIZERS }}
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
@@ -124,7 +126,7 @@ jobs:
       - run: ${{ env.INV_CMD }} ci-auth-install ${{ matrix.builder == 'meson' && '--meson' || '' }}
       - run: ccache -s
       - if: ${{ matrix.builder != 'meson' }}
-        run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
+        run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
       - if: ${{ matrix.builder != 'meson' }}
         name: Store the binaries
         uses: actions/upload-artifact@v4 # this takes 30 seconds, maybe we want to tar
@@ -165,6 +167,7 @@ jobs:
           fetch-depth: 5
           submodules: recursive
           ref: ${{ inputs.branch-name }}
+          persist-credentials: false
       - name: get timestamp for cache
         id: get-stamp
         run: |
@@ -186,7 +189,7 @@ jobs:
         working-directory: .
       - run: ${{ env.INV_CMD }} install-rec-build-deps
         working-directory: ./pdns/recursordist/
-      - run: ${{ env.INV_CMD }} ci-install-rust ${{ env.REPO_HOME }}
+      - run: ${{ env.INV_CMD }} ci-install-rust ${REPO_HOME}
         working-directory: ./pdns/recursordist/
       - run: ${{ env.INV_CMD }} ci-autoconf ${{ matrix.builder == 'meson' && '--meson' || '' }}
         working-directory: ./pdns/recursordist/
@@ -198,7 +201,7 @@ jobs:
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' && matrix.builder != 'meson' }}
       - name: Coveralls Parallel rec unit
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' && matrix.builder != 'meson' }}
-        uses: coverallsapp/github-action@v2
+        uses: coverallsapp/github-action@648a8eb78e6d50909eff900e4ec85cab4524a45b
         with:
           flag-name: rec-unit-${{ matrix.features }}-${{ matrix.sanitizers }}
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
@@ -208,7 +211,7 @@ jobs:
       - run: ${{ env.INV_CMD }} ci-rec-install ${{ matrix.builder == 'meson' && '--meson' || '' }}
       - run: ccache -s
       - if: ${{ matrix.builder != 'meson' }}
-        run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
+        run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
       - if: ${{ matrix.builder != 'meson' }}
         name: Store the binaries
         uses: actions/upload-artifact@v4 # this takes 30 seconds, maybe we want to tar
@@ -252,6 +255,7 @@ jobs:
           fetch-depth: 5
           submodules: recursive
           ref: ${{ inputs.branch-name }}
+          persist-credentials: false
       - name: get timestamp for cache
         id: get-stamp
         run: |
@@ -275,9 +279,9 @@ jobs:
         working-directory: .
       - run: ${{ env.INV_CMD }} install-lld-linker-if-needed
         working-directory: ./pdns/dnsdistdist/
-      - run: ${{ env.INV_CMD }} ci-install-rust ${{ env.REPO_HOME }}
+      - run: ${{ env.INV_CMD }} ci-install-rust ${REPO_HOME}
         working-directory: ./pdns/dnsdistdist/
-      - run: ${{ env.INV_CMD }} ci-build-and-install-quiche ${{ env.REPO_HOME }}
+      - run: ${{ env.INV_CMD }} ci-build-and-install-quiche ${REPO_HOME}
         working-directory: ./pdns/dnsdistdist/
       - run: ${{ env.INV_CMD }} ci-autoconf
         if: ${{ matrix.builder == 'autotools' }}
@@ -295,7 +299,7 @@ jobs:
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' && matrix.builder == 'autotools'}}
       - name: Coveralls Parallel dnsdist unit
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' && matrix.builder == 'autotools' }}
-        uses: coverallsapp/github-action@v2
+        uses: coverallsapp/github-action@648a8eb78e6d50909eff900e4ec85cab4524a45b
         with:
           flag-name: dnsdist-unit-${{ matrix.features }}-${{ matrix.sanitizers }}
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
@@ -305,7 +309,7 @@ jobs:
       - run: ${{ env.INV_CMD }} ci-make-install
         if: ${{ matrix.builder == 'autotools' }}
       - run: ccache -s
-      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
+      - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Store the binaries
         if: ${{ matrix.builder == 'autotools' }}
         uses: actions/upload-artifact@v4 # this takes 30 seconds, maybe we want to tar
@@ -331,13 +335,13 @@ jobs:
       matrix:
         include:
           - backend: gsqlite3
-            image: coscale/docker-sleep
+            image: coscale/docker-sleep@sha256:7ac94378c23c68b47c623dee4b3ac694ed7201543df3feed668e487ef1102fc5
           - backend: gmysql
-            image: mysql:5
+            image: mysql@sha256:4bc6bc963e6d8443453676cae56536f4b8156d78bae03c0145cbe47c2aad73bb # mysql:5.7.44
           - backend: gpgsql
-            image: postgres:14
+            image: postgres@sha256:bbcaba1d74865ee6d6318b5e297d0df73d1f6b6d995cd892b60a2cf1440b716a # postgres:14.18
           - backend: lmdb
-            image: coscale/docker-sleep
+            image: coscale/docker-sleep@sha256:7ac94378c23c68b47c623dee4b3ac694ed7201543df3feed668e487ef1102fc5
       fail-fast: false
     services:
       database:
@@ -358,7 +362,8 @@ jobs:
           fetch-depth: 5
           submodules: recursive
           ref: ${{ inputs.branch-name }}
-      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
+          persist-credentials: false
+      - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
         uses: actions/download-artifact@v4
         with:
@@ -376,7 +381,7 @@ jobs:
         if: ${{ env.COVERAGE == 'yes' }}
       - name: Coveralls Parallel auth API ${{ matrix.backend }}
         if: ${{ env.COVERAGE == 'yes' }}
-        uses: coverallsapp/github-action@v2
+        uses: coverallsapp/github-action@648a8eb78e6d50909eff900e4ec85cab4524a45b
         with:
           flag-name: auth-api-${{ matrix.backend }}
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
@@ -402,76 +407,76 @@ jobs:
       matrix:
         include:
           - backend: remote
-            image: coscale/docker-sleep
+            image: coscale/docker-sleep@sha256:7ac94378c23c68b47c623dee4b3ac694ed7201543df3feed668e487ef1102fc5
             env: {}
             ports: []
           - backend: gmysql
-            image: mysql:5
+            image: mysql@sha256:4bc6bc963e6d8443453676cae56536f4b8156d78bae03c0145cbe47c2aad73bb # mysql:5.7.44
             env:
               MYSQL_ALLOW_EMPTY_PASSWORD: 1
             ports:
             - 3306:3306
           - backend: gmysql
-            image: mariadb:10
+            image: mariadb@sha256:34adebbac117c8ce649040e009f520fb79e577c68cc4e57debdf91befa53907f # mariadb:10.11.13
             env:
               MYSQL_ALLOW_EMPTY_PASSWORD: 1
             ports:
             - 3306:3306
           - backend: gpgsql
-            image: postgres:14
+            image: postgres@sha256:bbcaba1d74865ee6d6318b5e297d0df73d1f6b6d995cd892b60a2cf1440b716a # postgres:14.18
             env:
               POSTGRES_USER: runner
               POSTGRES_HOST_AUTH_METHOD: trust
             ports:
             - 5432:5432
           - backend: gsqlite3  # this also runs regression-tests.nobackend and pdnsutil test-algorithms
-            image: coscale/docker-sleep
+            image: coscale/docker-sleep@sha256:7ac94378c23c68b47c623dee4b3ac694ed7201543df3feed668e487ef1102fc5
             env: {}
             ports: []
           - backend: lmdb
-            image: coscale/docker-sleep
+            image: coscale/docker-sleep@sha256:7ac94378c23c68b47c623dee4b3ac694ed7201543df3feed668e487ef1102fc5
             env: {}
             ports: []
           - backend: bind
-            image: coscale/docker-sleep
+            image: coscale/docker-sleep@sha256:7ac94378c23c68b47c623dee4b3ac694ed7201543df3feed668e487ef1102fc5
             env: {}
             ports: []
           - backend: geoip
-            image: coscale/docker-sleep
+            image: coscale/docker-sleep@sha256:7ac94378c23c68b47c623dee4b3ac694ed7201543df3feed668e487ef1102fc5
             env: {}
             ports: []
           - backend: lua2
-            image: coscale/docker-sleep
+            image: coscale/docker-sleep@sha256:7ac94378c23c68b47c623dee4b3ac694ed7201543df3feed668e487ef1102fc5
             env: {}
             ports: []
           - backend: tinydns
-            image: coscale/docker-sleep
+            image: coscale/docker-sleep@sha256:7ac94378c23c68b47c623dee4b3ac694ed7201543df3feed668e487ef1102fc5
             env: {}
             ports: []
           - backend: authpy
-            image: coscale/docker-sleep
+            image: coscale/docker-sleep@sha256:7ac94378c23c68b47c623dee4b3ac694ed7201543df3feed668e487ef1102fc5
             env: {}
             ports: []
           - backend: godbc_sqlite3
-            image: coscale/docker-sleep
+            image: coscale/docker-sleep@sha256:7ac94378c23c68b47c623dee4b3ac694ed7201543df3feed668e487ef1102fc5
             env: {}
             ports: []
           - backend: godbc_mssql
-            image: mcr.microsoft.com/mssql/server:2022-CU12-ubuntu-22.04
+            image: mcr.microsoft.com/mssql/server@sha256:b94071acd4612bfe60a73e265097c2b6388d14d9d493db8f37cf4479a4337480 # mcr.microsoft.com/mssql/server:2022-CU12-ubuntu-22.04
             env:
               ACCEPT_EULA: Y
               SA_PASSWORD: 'SAsa12%%-not-a-secret-password'
             ports:
               - 1433:1433
           - backend: ldap
-            image: powerdns/ldap-regress:1.2.4-1
+            image: powerdns/ldap-regress@sha256:1cc8511d0eb28ac7169042e9b8ae88f9ed5f93b8ac3a550755c56eaaa153680e # powerdns/ldap-regress:1.2.4-1
             env:
               LDAP_LOG_LEVEL: 0
               CONTAINER_LOG_LEVEL: 4
             ports:
               - 389:389
           - backend: geoip_mmdb
-            image: coscale/docker-sleep
+            image: coscale/docker-sleep@sha256:7ac94378c23c68b47c623dee4b3ac694ed7201543df3feed668e487ef1102fc5
             env: {}
             ports: []
       fail-fast: false
@@ -489,7 +494,8 @@ jobs:
           fetch-depth: 5
           submodules: recursive
           ref: ${{ inputs.branch-name }}
-      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
+          persist-credentials: false
+      - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
         uses: actions/download-artifact@v4
         with:
@@ -507,7 +513,7 @@ jobs:
         if: ${{ env.COVERAGE == 'yes' }}
       - name: Coveralls Parallel auth backend ${{ matrix.backend }}
         if: ${{ env.COVERAGE == 'yes' }}
-        uses: coverallsapp/github-action@v2
+        uses: coverallsapp/github-action@648a8eb78e6d50909eff900e4ec85cab4524a45b
         with:
           flag-name: auth-backend-${{ matrix.backend }}
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
@@ -532,7 +538,8 @@ jobs:
           fetch-depth: 5
           submodules: recursive
           ref: ${{ inputs.branch-name }}
-      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
+          persist-credentials: false
+      - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
         uses: actions/download-artifact@v4
         with:
@@ -549,7 +556,7 @@ jobs:
         if: ${{ env.COVERAGE == 'yes' }}
       - name: Coveralls Parallel ixfrdist
         if: ${{ env.COVERAGE == 'yes' }}
-        uses: coverallsapp/github-action@v2
+        uses: coverallsapp/github-action@648a8eb78e6d50909eff900e4ec85cab4524a45b
         with:
           flag-name: ixfrdist
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
@@ -581,7 +588,8 @@ jobs:
           fetch-depth: 5
           submodules: recursive
           ref: ${{ inputs.branch-name }}
-      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
+          persist-credentials: false
+      - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
         uses: actions/download-artifact@v4
         with:
@@ -600,7 +608,7 @@ jobs:
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
       - name: Coveralls Parallel recursor API
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
-        uses: coverallsapp/github-action@v2
+        uses: coverallsapp/github-action@648a8eb78e6d50909eff900e4ec85cab4524a45b
         with:
           flag-name: rec-api-full-${{ matrix.sanitizers }}
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
@@ -634,7 +642,8 @@ jobs:
           fetch-depth: 5
           submodules: recursive
           ref: ${{ inputs.branch-name }}
-      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
+          persist-credentials: false
+      - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
         uses: actions/download-artifact@v4
         with:
@@ -653,7 +662,7 @@ jobs:
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
       - name: Coveralls Parallel recursor regression
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
-        uses: coverallsapp/github-action@v2
+        uses: coverallsapp/github-action@648a8eb78e6d50909eff900e4ec85cab4524a45b
         with:
           flag-name: rec-regression-full-${{ matrix.sanitizers }}
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
@@ -688,7 +697,8 @@ jobs:
           fetch-depth: 5
           submodules: recursive
           ref: ${{ inputs.branch-name }}
-      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
+          persist-credentials: false
+      - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
         uses: actions/download-artifact@v4
         with:
@@ -705,7 +715,7 @@ jobs:
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
       - name: Coveralls Parallel recursor bulk
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
-        uses: coverallsapp/github-action@v2
+        uses: coverallsapp/github-action@648a8eb78e6d50909eff900e4ec85cab4524a45b
         with:
           flag-name: rec-regression-bulk-full-${{ matrix.sanitizers }}
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
@@ -733,7 +743,8 @@ jobs:
           fetch-depth: 5
           submodules: recursive
           ref: ${{ inputs.branch-name }}
-      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
+          persist-credentials: false
+      - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
         uses: actions/download-artifact@v4
         with:
@@ -755,7 +766,7 @@ jobs:
       #  if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
       #- name: Coveralls Parallel recursor bulk
       #  if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
-      #  uses: coverallsapp/github-action@v2
+      #  uses: coverallsapp/github-action@648a8eb78e6d50909eff900e4ec85cab4524a45b
       #  with:
       #    flag-name: rec-regression-bulk-full-${{ matrix.sanitizers }}
       #    path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
@@ -793,7 +804,8 @@ jobs:
           fetch-depth: 5
           submodules: recursive
           ref: ${{ inputs.branch-name }}
-      - run: echo "normalized-branch-name=${{ inputs.branch-name || github.ref_name }}" | tr "/" "-" >> "$GITHUB_ENV"
+          persist-credentials: false
+      - run: echo "normalized-branch-name=$BRANCH_NAME" | tr "/" "-" >> "$GITHUB_ENV"
       - name: Fetch the binaries
         uses: actions/download-artifact@v4
         with:
@@ -810,7 +822,7 @@ jobs:
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
       - name: Coveralls Parallel dnsdist regression
         if: ${{ env.COVERAGE == 'yes' && matrix.sanitizers != 'tsan' }}
-        uses: coverallsapp/github-action@v2
+        uses: coverallsapp/github-action@648a8eb78e6d50909eff900e4ec85cab4524a45b
         with:
           flag-name: dnsdist-regression-full-${{ matrix.sanitizers }}
           path-to-lcov: $GITHUB_WORKSPACE/coverage.lcov
@@ -830,6 +842,7 @@ jobs:
           fetch-depth: 5
           submodules: recursive
           ref: ${{ inputs.branch-name }}
+          persist-credentials: false
       - name: install pip build dependencies
         run: |
           python3 -m venv ${REPO_HOME}/.venv
@@ -853,26 +866,29 @@ jobs:
       - test-recursor-ubicloud-bulk
     if: success() || failure()
     runs-on: ubuntu-24.04
+    env:
+      NEEDS: ${{ toJSON(needs) }}
     steps:
       - name: Coveralls Parallel Finished
         if: ${{ env.COVERAGE == 'yes' }}
-        uses: coverallsapp/github-action@v2
+        uses: coverallsapp/github-action@648a8eb78e6d50909eff900e4ec85cab4524a45b
         with:
           parallel-finished: true
           fail-on-error: false
       - name: Install jq and jc
         run: "sudo apt-get update && sudo apt-get install jq jc"
       - name: Fail job if any of the previous jobs failed
-        run: "for i in `echo '${{ toJSON(needs) }}' | jq -r '.[].result'`; do if [[ $i == 'failure' ]]; then echo '${{ toJSON(needs) }}'; exit 1; fi; done;"
+        run: "for i in `echo ${NEEDS} | jq -r '.[].result'`; do if [[ $i == 'failure' ]]; then echo ${NEEDS}; exit 1; fi; done;"
       - uses: actions/checkout@v4
         with:
           fetch-depth: 5
           submodules: recursive
           ref: ${{ inputs.branch-name }}
+          persist-credentials: false
       - name: Get list of jobs in the workflow
         run: "cat .github/workflows/build-and-test-all.yml | jc --yaml | jq -rS '.[].jobs | keys | .[]' | grep -vE 'collect|get-runner-container-image' | tee /tmp/workflow-jobs-list.yml"
       - name: Get list of prerequisite jobs
-        run: "echo '${{ toJSON(needs) }}' | jq -rS 'keys | .[]' | tee /tmp/workflow-needs-list.yml"
+        run: "echo ${NEEDS} | jq -rS 'keys | .[]' | tee /tmp/workflow-needs-list.yml"
       - name: Fail if there is a job missing on the needs list
         run: "if ! diff -q /tmp/workflow-jobs-list.yml /tmp/workflow-needs-list.yml; then exit 1; fi"
 

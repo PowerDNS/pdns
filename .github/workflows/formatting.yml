@@ -18,6 +18,7 @@ jobs:
         with:
           fetch-depth: 5
           submodules: recursive
+          persist-credentials: false
       - name: Update dependencies
         run: |
           sudo apt-get update
