@@ -597,7 +597,7 @@ The following actions exist.
 
   .. versionadded:: 1.9.11
 
-  Add arbitrary EDNS option and data to the response. Any existing EDNS content with the same option code will be overwritten.
+  Add arbitrary EDNS option and data to the response. Any existing EDNS content with the same option code will be replaced.
   Subsequent rules are processed after this action.
 
   :param int option: The EDNS option number

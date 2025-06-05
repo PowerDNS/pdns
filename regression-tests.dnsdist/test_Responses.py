@@ -605,7 +605,7 @@ class TestAdvancedSetEDNSOptionResponseAction(DNSDistTest):
 
     def testAdvancedSetEDNSOptionResponseOverwrite(self):
         """
-        Responses: Set EDNS Option in response overwrites existing option
+        Responses: Set EDNS Option in response replaces existing option
         """
         name = 'setednsoptionresponse-overwrite.responses.tests.powerdns.com.'
         initialECO = cookiesoption.CookiesOption(b'aaaaaaaa', b'bbbbbbbb')
@@ -619,9 +619,9 @@ class TestAdvancedSetEDNSOptionResponseAction(DNSDistTest):
                                     '127.0.0.1')
         response.answer.append(rrset)
 
-        overWrittenECO = cookiesoption.CookiesOption(b'deadbeef', b'deadc0de')
+        replacementECO = cookiesoption.CookiesOption(b'deadbeef', b'deadc0de')
         expectedResponse = dns.message.make_response(query)
-        expectedResponse.use_edns(edns=True, payload=512, options=[overWrittenECO])
+        expectedResponse.use_edns(edns=True, payload=512, options=[replacementECO])
         expectedResponse.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):

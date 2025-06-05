@@ -173,7 +173,7 @@ The function will be invoked in a per-thread Lua state, without access to the gl
       default: true
       description: "A list of ``name``=``key`` pairs, for meta-data to be added to Protocol Buffer message"
 - name: "SetEDNSOption"
-  description: "Add arbitrary EDNS option and data to the response. Any existing EDNS content with the same option code will be overwritten. Subsequent rules are processed after this action"
+  description: "Add arbitrary EDNS option and data to the response. Any existing EDNS content with the same option code will be replaced. Subsequent rules are processed after this action"
   parameters:
     - name: "code"
       type: "u32"
