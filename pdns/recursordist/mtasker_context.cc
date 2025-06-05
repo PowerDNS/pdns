@@ -165,7 +165,8 @@ extern "C"
     args = nullptr;
 
     try {
-      start();
+      auto localstart = std::move(start);
+      localstart();
     }
     catch (...) {
       ctx->exception = std::current_exception();
