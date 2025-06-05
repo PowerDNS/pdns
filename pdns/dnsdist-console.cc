@@ -797,6 +797,7 @@ const std::vector<ConsoleKeyword> g_consoleKeywords{
   { "SetECSPrefixLengthAction", true, "v4, v6", "Set the ECS prefix length. Subsequent rules are processed after this action" },
   { "SetMacAddrAction", true, "option", "Add the source MAC address to the query as EDNS0 option option. This action is currently only supported on Linux. Subsequent rules are processed after this action" },
   { "SetEDNSOptionAction", true, "option, data", "Add arbitrary EDNS option and data to the query. Subsequent rules are processed after this action" },
+  { "SetEDNSOptionResponseAction", true, "option, data", "Add arbitrary EDNS option and data to the response. Subsequent rules are processed after this action"},
   { "SetExtendedDNSErrorAction", true, "infoCode [, extraText]", "Set an Extended DNS Error status that will be added to the response corresponding to the current query. Subsequent rules are processed after this action" },
   { "SetExtendedDNSErrorResponseAction", true, "infoCode [, extraText]", "Set an Extended DNS Error status that will be added to this response. Subsequent rules are processed after this action" },
   { "SetNoRecurseAction", true, "", "strip RD bit from the question, let it go through" },
