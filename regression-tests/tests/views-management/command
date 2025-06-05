@@ -2,7 +2,7 @@
 set -o pipefail
 
 pdnsutil_wrapper() {
-$PDNSUTIL --config-dir=. --config-name=$backend $* 2>&1 | (egrep -v 'destructor' || true)
+$PDNSUTIL -q --config-dir=. --config-name=$backend $* 2>&1 | (egrep -v 'destructor' || true)
 }
 
 set -e # to make this first call exit us early for non-variant capable backends.
