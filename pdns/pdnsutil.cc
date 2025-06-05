@@ -4960,7 +4960,7 @@ static const std::unordered_map<std::string, commandDispatcher> commands{
    "list-view VIEW",
    "\tList all zones within VIEW"}},
   {"list-views", {true, listViews, GROUP_VIEWS,
-   "list-view",
+   "list-views",
    "\tList all view names"}},
   {"list-zone", {true, listZone, GROUP_ZONE,
    "list-zone ZONE",
@@ -5154,16 +5154,48 @@ try
 
   loadMainConfig(g_vm["config-dir"].as<string>());
 
+  const std::string writtencommand = cmds.at(0);
   const commandDispatcher* dispatcher{nullptr};
-  if (const auto iter = commands.find(cmds.at(0)); iter != commands.end()) {
-    dispatcher = &iter->second;
-  }
-  if (dispatcher == nullptr) {
+  bool exchanged{false};
+  while (true) {
+    // Search for an exact command name.
+    if (const auto iter = commands.find(cmds.at(0)); iter != commands.end()) {
+      dispatcher = &iter->second;
+      break;
+    }
+    // Search for an alias
     if (const auto alias = aliases.find(cmds.at(0)); alias != aliases.end()) {
       if (const auto iter = commands.find(alias->second); iter != commands.end()) {
         dispatcher = &iter->second;
+        break;
       }
     }
+    std::string cmd = cmds.at(0);
+    auto dash = cmd.find('-');
+    // If the command name contains no dash, coalesce with the next argument
+    // and try again.
+    if (dash == std::string::npos && cmds.size() > 1) {
+      cmd.append(1, '-');
+      cmd += cmds.at(1);
+      cmds.erase(cmds.begin());
+      cmds.at(0) = std::move(cmd);
+      continue;
+    }
+    // If the command name contains exactly one dash, exchange both sides
+    // and try again, but only once.
+    if (exchanged) {
+      break;
+    }
+    if (dash != std::string::npos && cmd.find('-', dash + 1) == std::string::npos) {
+      std::string left = cmd.substr(0, dash);
+      std::string right = cmd.substr(dash + 1);
+      right.append(1, '-');
+      right += left;
+      cmds.at(0) = std::move(right);
+      exchanged = true;
+      continue;
+    }
+    break;
   }
   if (dispatcher != nullptr) {
     if (dispatcher->requiresInitialization) {
@@ -5172,7 +5204,7 @@ try
     return dispatcher->handler(cmds, dispatcher->synopsis);
   }
 
-  cerr << "Unknown command '" << cmds.at(0) << "'" << endl;
+  cerr << "Unknown command '" << writtencommand << "'" << endl;
   return 1;
 }
 catch (PDNSException& ae) {
