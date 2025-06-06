@@ -593,7 +593,8 @@ foreach tool, info: tools
 endforeach
 
 if get_option('unit-tests')
-  test('testrunner', testrunner, timeout: 60) # default timeout of 30s is a bit short for some targets
+  # default timeout of 30s is too short for some ubicloud targets. Unknown *why* they are so slow.
+  test('testrunner', testrunner, timeout: 120)
 endif
 
 # Man-pages.
