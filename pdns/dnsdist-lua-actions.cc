@@ -1101,6 +1101,31 @@ private:
   std::string d_data;
 };
 
+class SetEDNSOptionResponseAction : public DNSResponseAction
+{
+public:
+  // this action does not stop the processing
+  SetEDNSOptionResponseAction(uint16_t code, std::string data) :
+    d_code(code), d_data(std::move(data))
+  {
+  }
+
+  DNSResponseAction::Action operator()(DNSResponse* response, std::string* ruleresult) const override
+  {
+    setEDNSOption(*response, d_code, d_data);
+    return Action::None;
+  }
+
+  [[nodiscard]] std::string toString() const override
+  {
+    return "add EDNS Option (code=" + std::to_string(d_code) + ")";
+  }
+
+private:
+  uint16_t d_code;
+  std::string d_data;
+};
+
 class SetNoRecurseAction : public DNSAction
 {
 public:
@@ -1856,7 +1881,6 @@ private:
   std::optional<std::string> d_exportExtendedErrorsToMeta{std::nullopt};
   bool d_includeCNAME;
 };
-
 #endif /* DISABLE_PROTOBUF */
 
 class DropResponseAction : public DNSResponseAction
@@ -2508,6 +2532,10 @@ void setupLuaActions(LuaContext& luaCtx)
 
   luaCtx.writeFunction("SetEDNSOptionAction", [](int code, const std::string& data) {
     return std::shared_ptr<DNSAction>(new SetEDNSOptionAction(code, data));
+  });
+
+  luaCtx.writeFunction("SetEDNSOptionResponseAction", [](int code, const std::string& data) {
+    return std::shared_ptr<DNSResponseAction>(new SetEDNSOptionResponseAction(code, data));
   });
 
   luaCtx.writeFunction("PoolAction", [](const std::string& poolname, boost::optional<bool> stopProcessing) {

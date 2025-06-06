@@ -586,6 +586,16 @@ The following actions exist.
   :param int option: The EDNS option number
   :param string data: The EDNS0 option raw content
 
+.. function:: SetEDNSOptionResponseAction(option)
+
+  .. versionadded:: 1.9.11
+
+  Add arbitrary EDNS option and data to the response. Any existing EDNS content with the same option code will be replaced.
+  Subsequent rules are processed after this action.
+
+  :param int option: The EDNS option number
+  :param string data: The EDNS0 option raw content
+
 .. function:: SetExtendedDNSErrorAction(infoCode [, extraText])
 
   .. versionadded:: 1.9.0
