@@ -574,6 +574,10 @@ public:
   static bool s_save_parent_ns_set;
   static bool s_addExtendedResolutionDNSErrors;
 
+  static bool eventTraceEnabled(int flag)
+  {
+    return (s_event_trace_enabled & flag) != 0;
+  }
   std::unordered_map<std::string, bool> d_discardedPolicies;
   DNSFilterEngine::Policy d_appliedPolicy;
   std::unordered_set<std::string> d_policyTags;

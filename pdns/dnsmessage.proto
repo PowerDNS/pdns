@@ -170,6 +170,8 @@ message PBDNSMessage {
     LuaNoData = 108;
     LuaNXDomain = 109;
     LuaPostResolveFFI = 110;
+
+    AuthRequest = 120;
   }
 
   message Event {

@@ -96,7 +96,6 @@ static void fillPacket(vector<uint8_t>& packet, const string& q, const string& t
     }
     if (otids) {
       opts.emplace_back(EDNSOptionCode::OTTRACEID, std::string_view(reinterpret_cast<const char*>(otids->first.data()), otids->first.size()));
-      pdns::trace::random(otids->second);
       opts.emplace_back(EDNSOptionCode::OTSPANID, std::string_view(reinterpret_cast<const char*>(otids->second.data()), otids->second.size()));
     }
     pw.addOpt(bufsize, 0, dnssec ? EDNSOpts::DNSSECOK : 0, opts);
@@ -374,7 +373,7 @@ try {
           traceIDStr.resize(traceid.size());
           pdns::trace::fill(traceid, traceIDStr);
         }
-        pdns::trace::SpanID spanid{}; // don't fill in yet
+        pdns::trace::SpanID spanid{}; // default: all zero, so no parent
         otdata = std::make_pair(traceid, spanid);
       }
       else {

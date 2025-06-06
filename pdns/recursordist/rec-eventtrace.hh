@@ -56,6 +56,8 @@ public:
     LuaNoData = 108,
     LuaNXDomain = 109,
     LuaPostResolveFFI = 110,
+
+    AuthRequest = 120,
   };
 
   static const std::unordered_map<EventType, std::string> s_eventNames;
@@ -128,17 +130,19 @@ public:
 
   struct Entry
   {
-    Entry(Value_t&& v, EventType e, bool start, int64_t ts) :
-      d_value(std::move(v)), d_ts(ts), d_event(e), d_start(start)
+    Entry(Value_t&& v, EventType e, bool start, int64_t ts, size_t parent, size_t match) :
+      d_value(std::move(v)), d_ts(ts), d_parent(parent), d_matching(match), d_event(e), d_start(start)
     {
     }
-    Entry(Value_t&& v, const std::string& custom, bool start, int64_t ts) :
-      d_value(std::move(v)), d_custom(custom), d_ts(ts), d_event(CustomEvent), d_start(start)
+    Entry(Value_t&& v, const std::string& custom, bool start, int64_t ts, size_t parent, size_t match) :
+      d_value(std::move(v)), d_custom(custom), d_ts(ts), d_parent(parent), d_matching(match), d_event(CustomEvent), d_start(start)
     {
     }
     Value_t d_value;
     std::string d_custom;
     int64_t d_ts;
+    size_t d_parent;
+    size_t d_matching;
     EventType d_event;
     bool d_start;
 
@@ -169,12 +173,13 @@ public:
   }
 
   template <class E>
-  void add(E e, Value_t&& v, bool start, int64_t stamp = 0)
+  size_t add(E e, Value_t&& v, bool start, size_t match, int64_t stamp = 0)
   {
     assert(d_status != Invalid);
     if (d_status == Disabled) {
-      return;
+      return 0;
     }
+
     if (stamp == 0) {
       struct timespec ts;
       clock_gettime(CLOCK_MONOTONIC, &ts);
@@ -192,32 +197,33 @@ public:
       d_base = stamp;
     }
     stamp -= d_base;
-    d_events.emplace_back(std::move(v), e, start, stamp);
+    d_events.emplace_back(std::move(v), e, start, stamp, d_parent, match);
+    return d_events.size() - 1;
   }
 
   template <class E>
-  void add(E e)
+  size_t add(E e)
   {
-    add(e, Value_t(std::nullopt), true);
+    return add(e, Value_t(std::nullopt), true, 0, 0);
   }
 
   // We store uint32 in an int64_t
   template <class E>
-  void add(E e, uint32_t v, bool start)
+  size_t add(E e, uint32_t v, bool start, size_t match)
   {
-    add(e, static_cast<int64_t>(v), start);
+    return add(e, static_cast<int64_t>(v), start, match, 0);
   }
   // We store int32 in an int64_t
   template <class E>
-  void add(E e, int32_t v, bool start)
+  size_t add(E e, int32_t v, bool start, size_t match)
   {
-    add(e, static_cast<int64_t>(v), start);
+    return add(e, static_cast<int64_t>(v), start, match, 0);
   }
 
   template <class E, class T>
-  void add(E e, T v, bool start)
+  size_t add(E e, T v, bool start, size_t match)
   {
-    add(e, Value_t(v), start);
+    return add(e, Value_t(v), start, match, 0);
   }
 
   void clear()
@@ -262,9 +268,57 @@ public:
 
   std::vector<pdns::trace::Span> convertToOT(const pdns::trace::Span& span) const;
 
+  size_t setParent(size_t parent)
+  {
+    size_t old = d_parent;
+    d_parent = parent;
+    return old;
+  }
+
+  class EventScope
+  {
+  public:
+    EventScope(size_t oldParent, RecEventTrace& eventTrace) :
+      d_eventTrace(eventTrace),
+      d_oldParent(oldParent)
+    {
+      if (d_eventTrace.enabled()) {
+        d_event = d_eventTrace.d_events.back().d_event;
+        d_match = d_eventTrace.d_events.size() - 1;
+      }
+    }
+
+    void close(int64_t val)
+    {
+      if (!d_eventTrace.enabled() || d_closed) {
+        return;
+      }
+      d_eventTrace.setParent(d_oldParent);
+      d_eventTrace.add(d_event, val, false, d_match);
+      d_closed = true;
+    }
+
+    ~EventScope()
+    {
+      close(-1);
+    }
+    EventScope(const EventScope&) = delete;
+    EventScope(EventScope&&) = delete;
+    EventScope& operator=(const EventScope&) = delete;
+    EventScope& operator=(EventScope&&) = delete;
+
+  private:
+    RecEventTrace& d_eventTrace;
+    size_t d_oldParent;
+    size_t d_match;
+    EventType d_event;
+    bool d_closed{false};
+  };
+
 private:
   std::vector<Entry> d_events;
   int64_t d_base;
+  size_t d_parent{0};
   enum Status : uint8_t
   {
     Disabled,

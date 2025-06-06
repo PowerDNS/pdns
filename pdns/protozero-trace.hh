@@ -331,7 +331,7 @@ inline uint64_t timestamp()
 {
   timespec now{};
   clock_gettime(CLOCK_REALTIME, &now);
-  return (1000000000ULL* now.tv_sec) + now.tv_nsec;
+  return (1000000000ULL * now.tv_sec) + now.tv_nsec;
 }
 
 struct Span
@@ -663,13 +663,19 @@ struct TracesData
   void encode(protozero::pbf_writer& writer) const;
   static TracesData decode(protozero::pbf_reader& reader);
 
-  [[nodiscard]] std::string encode() const {
+  [[nodiscard]] std::string encode() const
+  {
     std::string data;
     protozero::pbf_writer writer{data};
     encode(writer);
     return data;
   }
 
+  static TracesData boilerPlate(std::string&& service, std::vector<Span>&& spans)
+  {
+    return TracesData{
+      .resource_spans = {pdns::trace::ResourceSpans{.resource = {.attributes = {{"service.name", {{std::move(service)}}}}}, .scope_spans = {{.spans = std::move(spans)}}}}};
+  }
 };
 
 inline ArrayValue ArrayValue::decode(protozero::pbf_reader& reader)

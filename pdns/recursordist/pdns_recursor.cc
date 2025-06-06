@@ -1388,9 +1388,9 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
         PolicyResult policyResult = PolicyResult::NoAction;
         if (comboWriter->d_luaContext->hasPostResolveFFIfunc()) {
           RecursorLua4::PostResolveFFIHandle handle(dnsQuestion);
-          resolver.d_eventTrace.add(RecEventTrace::LuaPostResolveFFI);
+          auto match = resolver.d_eventTrace.add(RecEventTrace::LuaPostResolveFFI);
           bool prResult = comboWriter->d_luaContext->postresolve_ffi(handle);
-          resolver.d_eventTrace.add(RecEventTrace::LuaPostResolveFFI, prResult, false);
+          resolver.d_eventTrace.add(RecEventTrace::LuaPostResolveFFI, prResult, false, match);
           if (prResult) {
             shouldNotValidate = true;
             policyResult = handlePolicyHit(appliedPolicy, comboWriter, resolver, res, ret, packetWriter, tcpGuard);
@@ -1815,7 +1815,10 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
       tcpGuard.setHandled();
     }
 
-    resolver.d_eventTrace.add(RecEventTrace::AnswerSent);
+    if (resolver.d_eventTrace.enabled()) {
+      resolver.d_eventTrace.add(RecEventTrace::AnswerSent);
+      resolver.d_eventTrace.add(RecEventTrace::CustomEvent, comboWriter->d_mdp.d_qname.toLogString() + '/' + QType(comboWriter->d_mdp.d_qtype).toString(), false, -1U); // XXX
+    }
 
     // Now do the per query changing part of the protobuf message
     if (t_protobufServers.servers && !(luaconfsLocal->protobufExportConfig.taggedOnly && appliedPolicy.getName().empty() && comboWriter->d_policyTags.empty())) {
@@ -1871,14 +1874,12 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
         }
       }
 #endif /* NOD_ENABLED */
-      if (resolver.d_eventTrace.enabled() && (SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_pb) != 0) {
+      if (resolver.d_eventTrace.enabled() && SyncRes::eventTraceEnabled(SyncRes::event_trace_to_pb)) {
         pbMessage.addEvents(resolver.d_eventTrace);
       }
-      if (resolver.d_eventTrace.enabled() && (SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_ot) != 0) {
+      if (resolver.d_eventTrace.enabled() && SyncRes::eventTraceEnabled(SyncRes::event_trace_to_ot)) {
         resolver.d_otTrace.close();
-        auto spans = resolver.d_eventTrace.convertToOT(resolver.d_otTrace);
-        pdns::trace::TracesData otTrace{
-          .resource_spans = { pdns::trace::ResourceSpans{.resource = {.attributes = {{"service.name", {{"rec"}}}}}, .scope_spans = {{.spans = spans}}}}};
+        auto otTrace = pdns::trace::TracesData::boilerPlate("rec", resolver.d_eventTrace.convertToOT(resolver.d_otTrace));
         string otData = otTrace.encode();
         pbMessage.setOpenTelemetryData(otData);
       }
@@ -1887,7 +1888,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
       }
     }
 
-    if (resolver.d_eventTrace.enabled() && (SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_log) != 0) {
+    if (resolver.d_eventTrace.enabled() && SyncRes::eventTraceEnabled(SyncRes::event_trace_to_log)) {
       SLOG(g_log << Logger::Info << resolver.d_eventTrace.toString() << endl,
            resolver.d_slog->info(Logr::Info, resolver.d_eventTrace.toString())); // Maybe we want it to be more fancy?
     }
@@ -2267,13 +2268,13 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
 
         getQNameAndSubnet(question, &qname, &qtype, &qclass,
                           ecsFound, &ednssubnet,
-                          (g_gettagNeedsEDNSOptions || (SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_ot) != 0) ? &ednsOptions : nullptr,
+                          (g_gettagNeedsEDNSOptions || SyncRes::eventTraceEnabled(SyncRes::event_trace_to_ot)) ? &ednsOptions : nullptr,
                           ednsVersion);
 
         qnameParsed = true;
         ecsParsed = true;
 
-        if ((SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_ot) != 0) {
+        if (SyncRes::eventTraceEnabled(SyncRes::event_trace_to_ot)) {
           pdns::trace::extractOTraceIDs(ednsOptions, otTrace);
         }
         if (t_pdl) {
@@ -2281,14 +2282,14 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
             if (t_pdl->hasGettagFFIFunc()) {
               RecursorLua4::FFIParams params(qname, qtype, destaddr, fromaddr, destination, source, ednssubnet.getSource(), data, policyTags, records, ednsOptions, proxyProtocolValues, requestorId, deviceId, deviceName, routingTag, rcode, ttlCap, variable, false, logQuery, logResponse, followCNAMEs, extendedErrorCode, extendedErrorExtra, responsePaddingDisabled, meta);
 
-              eventTrace.add(RecEventTrace::LuaGetTagFFI);
+              auto match = eventTrace.add(RecEventTrace::LuaGetTagFFI);
               ctag = t_pdl->gettag_ffi(params);
-              eventTrace.add(RecEventTrace::LuaGetTagFFI, ctag, false);
+              eventTrace.add(RecEventTrace::LuaGetTagFFI, ctag, false, match);
             }
             else if (t_pdl->hasGettagFunc()) {
-              eventTrace.add(RecEventTrace::LuaGetTag);
+              auto match = eventTrace.add(RecEventTrace::LuaGetTag);
               ctag = t_pdl->gettag(source, ednssubnet.getSource(), destination, qname, qtype, &policyTags, data, ednsOptions, false, requestorId, deviceId, deviceName, routingTag, proxyProtocolValues);
-              eventTrace.add(RecEventTrace::LuaGetTag, ctag, false);
+              eventTrace.add(RecEventTrace::LuaGetTag, ctag, false, match);
             }
           }
           catch (const MOADNSException& moadnsexception) {
@@ -2321,9 +2322,9 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
       /* It might seem like a good idea to skip the packet cache lookup if we know that the answer is not cacheable,
          but it means that the hash would not be computed. If some script decides at a later time to mark back the answer
          as cacheable we would cache it with a wrong tag, so better safe than sorry. */
-      eventTrace.add(RecEventTrace::PCacheCheck);
+      auto match = eventTrace.add(RecEventTrace::PCacheCheck);
       bool cacheHit = checkForCacheHit(qnameParsed, ctag, question, qname, qtype, qclass, g_now, response, qhash, pbData, false, source, mappedSource);
-      eventTrace.add(RecEventTrace::PCacheCheck, cacheHit, false);
+      eventTrace.add(RecEventTrace::PCacheCheck, cacheHit, false, match);
       if (cacheHit) {
         if (!g_quiet) {
           SLOG(g_log << Logger::Notice << RecThreadInfo::id() << " question answered from packet cache tag=" << ctag << " from " << source.toStringWithPort() << (source != fromaddr ? " (via " + fromaddr.toStringWithPort() + ")" : "") << endl,
@@ -2347,7 +2348,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
           protobufLogResponse(dnsheader, luaconfsLocal, pbData, tval, false, source, destination, mappedSource, ednssubnet, uniqueId, requestorId, deviceId, deviceName, meta, eventTrace, otTrace, policyTags);
         }
 
-        if (eventTrace.enabled() && (SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_log) != 0) {
+        if (eventTrace.enabled() && SyncRes::eventTraceEnabled(SyncRes::event_trace_to_log)) {
           SLOG(g_log << Logger::Info << eventTrace.toString() << endl,
                g_slogudpin->info(Logr::Info, eventTrace.toString())); // Do we want more fancy logging here?
         }
@@ -2494,7 +2495,7 @@ static void handleNewUDPQuestion(int fileDesc, FDMultiplexer::funcparam_t& /* va
       // eventTrace start of trace time.
       auto traceTS = pdns::trace::timestamp();
       eventTrace.add(RecEventTrace::ReqRecv);
-      if ((SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_ot) != 0) {
+      if (SyncRes::eventTraceEnabled(SyncRes::event_trace_to_ot)) {
         otTrace.clear();
         otTrace.start_time_unix_nano = traceTS;
         otTrace.name = "RecRequest";

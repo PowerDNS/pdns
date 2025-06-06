@@ -38,10 +38,35 @@ const std::unordered_map<RecEventTrace::EventType, std::string> RecEventTrace::s
   NameEntry(LuaPostResolve),
   NameEntry(LuaNoData),
   NameEntry(LuaNXDomain),
-  NameEntry(LuaPostResolveFFI)};
+  NameEntry(LuaPostResolveFFI),
+  NameEntry(AuthRequest),
+};
 
 using namespace pdns::trace;
 
+static void addValue(const RecEventTrace::Entry& event, Span& work)
+{
+  if (std::holds_alternative<std::nullopt_t>(event.d_value)) {
+    return;
+  }
+  if (std::holds_alternative<bool>(event.d_value)) {
+    work.attributes.emplace_back(KeyValue{"value", {std::get<bool>(event.d_value)}});
+  }
+  else if (std::holds_alternative<int64_t>(event.d_value)) {
+    work.attributes.emplace_back(KeyValue{"value", {std::get<int64_t>(event.d_value)}});
+  }
+  else if (std::holds_alternative<std::string>(event.d_value)) {
+    work.attributes.emplace_back(KeyValue{"value", {std::get<std::string>(event.d_value)}});
+  }
+  else {
+    work.attributes.emplace_back(KeyValue{"value", {RecEventTrace::toString(event.d_value)}});
+  }
+}
+
+// The event trace uses start-stop records which need to be mapped to opentrace spans, which is a
+// list of spans. Spans can refer to other spand as their parent.  I have the feeling this code is
+// to complex and a brittle. Maybe we should add some extra info to the event trace records to make
+// is easier to map the event trace list to the open trace list of spans.
 std::vector<pdns::trace::Span> RecEventTrace::convertToOT(const Span& span) const
 {
   timespec realtime{};
@@ -53,42 +78,53 @@ std::vector<pdns::trace::Span> RecEventTrace::convertToOT(const Span& span) cons
 
   std::vector<pdns::trace::Span> ret;
   ret.reserve((d_events.size() / 2) + 1);
+
+  // The parent of all Span
   ret.emplace_back(span);
-  std::map<EventType, size_t> pairs;
+
+  std::vector<SpanID> spanIDs; // mapping of span index in ret vector to SpanID
+  std::map<size_t, size_t> ids; // mapping from event record index to index in ret vector (Spans)
+
+  size_t index = 0;
   for (const auto& event : d_events) {
+    cerr << index << ' ' << event.toString () << ' ' << event.d_matching << endl; 
     if (event.d_start) {
+      // It's an open event
       Span work{
         .name = RecEventTrace::toString(event.d_event),
         .trace_id = span.trace_id,
-        .parent_span_id = span.span_id,
         .start_time_unix_nano = static_cast<uint64_t>(event.d_ts + diff),
-        .end_time_unix_nano = static_cast<uint64_t>(event.d_ts + diff),
+        .end_time_unix_nano = static_cast<uint64_t>(event.d_ts + diff), // will be updated when we process the close event
       };
+      if (event.d_parent == 0 || event.d_parent >= spanIDs.size()) {
+        // Use the given parent
+        work.parent_span_id = span.span_id;
+      }
+      else {
+        // The parent is coming from the events we already processed
+        work.parent_span_id = spanIDs.at(event.d_parent);
+      }
+      // Assign a span id.
       random(work.span_id);
+      addValue(event, work);
+      spanIDs.emplace_back(work.span_id);
       ret.emplace_back(work);
-      pairs[event.d_event] = ret.size() - 1;
+      ids[index] = ret.size() - 1;
     }
     else {
-      if (auto startEvent = pairs.find(event.d_event); startEvent != pairs.end()) {
-        auto& work = ret.at(startEvent->second);
-        if (!std::holds_alternative<std::nullopt_t>(event.d_value)) {
-          if (std::holds_alternative<bool>(event.d_value)) {
-            work.attributes.emplace_back(KeyValue{"value", {std::get<bool>(event.d_value)}});
-          }
-          else if (std::holds_alternative<int64_t>(event.d_value)) {
-            work.attributes.emplace_back(KeyValue{"value", {std::get<int64_t>(event.d_value)}});
-          }
-          else if (std::holds_alternative<std::string>(event.d_value)) {
-            work.attributes.emplace_back(KeyValue{"value", {std::get<std::string>(event.d_value)}});
-          }
-          else {
-            work.attributes.emplace_back(KeyValue{"value", {toString(event.d_value)}});
-          }
-        }
+      // It's a close event
+      if (event.d_matching == -1U) {
+        auto& work = ret.at(0);
+        addValue(event, work);
+      }
+      else if (ids.find(event.d_matching) != ids.end()) {
+        auto& work = ret.at(ids.at(event.d_matching));
+        addValue(event, work);
         work.end_time_unix_nano = static_cast<uint64_t>(event.d_ts + diff);
-        pairs.erase(event.d_event);
+        spanIDs.emplace_back(work.span_id);
       }
     }
+    ++index;
   }
   return ret;
 }

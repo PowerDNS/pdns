@@ -312,7 +312,7 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
   // eventTrace start of trace time.
   auto traceTS = pdns::trace::timestamp();
   comboWriter->d_eventTrace.add(RecEventTrace::ReqRecv);
-  if ((SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_ot) != 0) {
+  if (SyncRes::eventTraceEnabled(SyncRes::event_trace_to_ot)) {
     comboWriter->d_otTrace.clear();
     comboWriter->d_otTrace.start_time_unix_nano = traceTS;
     comboWriter->d_otTrace.name = "RecRequest";
@@ -332,24 +332,24 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
       comboWriter->d_ecsFound = false;
       getQNameAndSubnet(conn->data, &qname, &qtype, &qclass,
                         comboWriter->d_ecsFound, &comboWriter->d_ednssubnet,
-                        (g_gettagNeedsEDNSOptions || (SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_ot) != 0) ? &ednsOptions : nullptr, ednsVersion);
+                        (g_gettagNeedsEDNSOptions || SyncRes::eventTraceEnabled(SyncRes::event_trace_to_ot)) ? &ednsOptions : nullptr, ednsVersion);
       qnameParsed = true;
 
-      if ((SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_ot) != 0) {
+      if (SyncRes::eventTraceEnabled(SyncRes::event_trace_to_ot)) {
         pdns::trace::extractOTraceIDs(ednsOptions, comboWriter->d_otTrace);
       }
       if (t_pdl) {
         try {
           if (t_pdl->hasGettagFFIFunc()) {
             RecursorLua4::FFIParams params(qname, qtype, comboWriter->d_local, comboWriter->d_remote, comboWriter->d_destination, comboWriter->d_source, comboWriter->d_ednssubnet.getSource(), comboWriter->d_data, comboWriter->d_gettagPolicyTags, comboWriter->d_records, ednsOptions, comboWriter->d_proxyProtocolValues, requestorId, deviceId, deviceName, comboWriter->d_routingTag, comboWriter->d_rcode, comboWriter->d_ttlCap, comboWriter->d_variable, true, logQuery, comboWriter->d_logResponse, comboWriter->d_followCNAMERecords, comboWriter->d_extendedErrorCode, comboWriter->d_extendedErrorExtra, comboWriter->d_responsePaddingDisabled, comboWriter->d_meta);
-            comboWriter->d_eventTrace.add(RecEventTrace::LuaGetTagFFI);
+            auto match = comboWriter->d_eventTrace.add(RecEventTrace::LuaGetTagFFI);
             comboWriter->d_tag = t_pdl->gettag_ffi(params);
-            comboWriter->d_eventTrace.add(RecEventTrace::LuaGetTagFFI, comboWriter->d_tag, false);
+            comboWriter->d_eventTrace.add(RecEventTrace::LuaGetTagFFI, comboWriter->d_tag, false, match);
           }
           else if (t_pdl->hasGettagFunc()) {
-            comboWriter->d_eventTrace.add(RecEventTrace::LuaGetTag);
+            auto match = comboWriter->d_eventTrace.add(RecEventTrace::LuaGetTag);
             comboWriter->d_tag = t_pdl->gettag(comboWriter->d_source, comboWriter->d_ednssubnet.getSource(), comboWriter->d_destination, qname, qtype, &comboWriter->d_gettagPolicyTags, comboWriter->d_data, ednsOptions, true, requestorId, deviceId, deviceName, comboWriter->d_routingTag, comboWriter->d_proxyProtocolValues);
-            comboWriter->d_eventTrace.add(RecEventTrace::LuaGetTag, comboWriter->d_tag, false);
+            comboWriter->d_eventTrace.add(RecEventTrace::LuaGetTag, comboWriter->d_tag, false, match);
           }
           // Copy d_gettagPolicyTags to d_policyTags, so other Lua hooks see them and can add their
           // own. Before storing into the packetcache, the tags in d_gettagPolicyTags will be
@@ -451,9 +451,9 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
       /* It might seem like a good idea to skip the packet cache lookup if we know that the answer is not cacheable,
          but it means that the hash would not be computed. If some script decides at a later time to mark back the answer
          as cacheable we would cache it with a wrong tag, so better safe than sorry. */
-      comboWriter->d_eventTrace.add(RecEventTrace::PCacheCheck);
+      auto match = comboWriter->d_eventTrace.add(RecEventTrace::PCacheCheck);
       bool cacheHit = checkForCacheHit(qnameParsed, comboWriter->d_tag, conn->data, qname, qtype, qclass, g_now, response, comboWriter->d_qhash, pbData, true, comboWriter->d_source, comboWriter->d_mappedSource);
-      comboWriter->d_eventTrace.add(RecEventTrace::PCacheCheck, cacheHit, false);
+      comboWriter->d_eventTrace.add(RecEventTrace::PCacheCheck, cacheHit, false, match);
 
       if (cacheHit) {
         if (!g_quiet) {
@@ -477,7 +477,7 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
           protobufLogResponse(dnsheader, luaconfsLocal, pbData, tval, true, comboWriter->d_source, comboWriter->d_destination, comboWriter->d_mappedSource, comboWriter->d_ednssubnet, comboWriter->d_uuid, comboWriter->d_requestorId, comboWriter->d_deviceId, comboWriter->d_deviceName, comboWriter->d_meta, comboWriter->d_eventTrace, comboWriter->d_otTrace, comboWriter->d_policyTags);
         }
 
-        if (comboWriter->d_eventTrace.enabled() && (SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_log) != 0) {
+        if (comboWriter->d_eventTrace.enabled() && SyncRes::eventTraceEnabled(SyncRes::event_trace_to_log)) {
           SLOG(g_log << Logger::Info << comboWriter->d_eventTrace.toString() << endl,
                g_slogtcpin->info(Logr::Info, comboWriter->d_eventTrace.toString())); // More fancy?
         }

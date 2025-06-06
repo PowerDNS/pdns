@@ -79,7 +79,7 @@ class PDNSPBConnHandler(object):
         print("- Posting OTData to " + oturl)
         headers = {'Content-Type': 'application/x-protobuf'}
         answer = requests.post(self._oturl, data = msg, headers = headers)
-        print('  - ' + answer)
+        print('  - ' + str(answer))
 
     def printQueryMessage(self, message):
         self.printSummary(message, 'Query')
