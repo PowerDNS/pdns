@@ -94,6 +94,7 @@ bool generateAnswerFromCNAME(DNSQuestion& dnsQuestion, const DNSName& cname, con
     addEDNS(dnsQuestion.getMutableData(), dnsQuestion.getMaximumSize(), dnssecOK, dnsdist::configuration::getCurrentRuntimeConfiguration().d_payloadSizeSelfGenAnswers, 0);
   }
 
+  dnsQuestion.d_selfGeneratedHandledEDNS = true;
   return true;
 }
 
@@ -164,6 +165,7 @@ bool generateAnswerFromIPAddresses(DNSQuestion& dnsQuestion, const std::vector<C
     addEDNS(dnsQuestion.getMutableData(), dnsQuestion.getMaximumSize(), dnssecOK, dnsdist::configuration::getCurrentRuntimeConfiguration().d_payloadSizeSelfGenAnswers, 0);
   }
 
+  dnsQuestion.d_selfGeneratedHandledEDNS = true;
   return true;
 }
 
@@ -226,6 +228,7 @@ bool generateAnswerFromRDataEntries(DNSQuestion& dnsQuestion, const std::vector<
     addEDNS(dnsQuestion.getMutableData(), dnsQuestion.getMaximumSize(), dnssecOK, dnsdist::configuration::getCurrentRuntimeConfiguration().d_payloadSizeSelfGenAnswers, 0);
   }
 
+  dnsQuestion.d_selfGeneratedHandledEDNS = true;
   return true;
 }
 
@@ -233,7 +236,7 @@ bool generateAnswerFromRawPacket(DNSQuestion& dnsQuestion, const PacketBuffer& p
 {
   auto questionId = dnsQuestion.getHeader()->id;
   dnsQuestion.getMutableData() = packet;
-  dnsQuestion.d_selfGeneratedFromPacket = true;
+  dnsQuestion.d_selfGeneratedHandledEDNS = true;
   dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [questionId](dnsheader& header) {
     header.id = questionId;
     return true;
