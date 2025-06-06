@@ -2332,7 +2332,7 @@ Other functions
 
   .. versionadded:: 1.6.0
 
-  Set the maximum size of a Proxy Protocol payload that dnsdist is willing to accept, in bytes. The default is 512, which is more than enough except for very large TLV data. This setting can't be set to a value lower than 16 since it would deny of Proxy Protocol headers.
+  Set the maximum size of a Proxy Protocol payload that dnsdist is willing to accept, in bytes. The default is 512, which is more than enough except for very large TLV data. This setting can't be set to a value lower than 16 - the absolute minimum size of a Proxy Protocol header.
 
   :param int size: The maximum size in bytes (default is 512)
 

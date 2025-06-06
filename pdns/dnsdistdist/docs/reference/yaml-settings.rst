@@ -792,7 +792,7 @@ ProxyProtocolConfiguration
 Proxy Protocol-related settings
 
 - **acl**: Sequence of String ``("")`` - Set the list of netmasks from which a Proxy Protocol header will be required, over UDP, TCP and DNS over TLS. The default is empty. Note that a proxy protocol payload will be required from these clients, regular DNS queries will no longer be accepted if they are not preceded by a proxy protocol payload. Be also aware that, if ``apply_acl_to_proxied_clients`` is set (default is false), the general ACL will be applied to the source IP address as seen by dnsdist first, but also to the source IP address provided in the Proxy Protocol header.
-- **maximum_payload_size**: Unsigned integer ``(512)`` - Set the maximum size of a Proxy Protocol payload that dnsdist is willing to accept, in bytes. The default is 512, which is more than enough except for very large TLV data. This setting can’t be set to a value lower than 16 since it would deny of Proxy Protocol headers
+- **maximum_payload_size**: Unsigned integer ``(512)`` - Set the maximum size of a Proxy Protocol payload that dnsdist is willing to accept, in bytes. The default is 512, which is more than enough except for very large TLV data. This setting can’t be set to a value lower than 16 - the absolute minimum size of a Proxy Protocol header
 - **apply_acl_to_proxied_clients**: Boolean ``(false)`` - Whether the general ACL should be applied to the source IP address provided in the Proxy Protocol header, in addition to being applied to the source IP address as seen by dnsdist first
 
 
