@@ -1,4 +1,4 @@
 #!/bin/sh
 cleandig host-invalid.test.dyndns ANY hidesoadetails
-tests/$testname/sendupdate.pl $nameserver $port
+tests/$testname/sendupdate.pl $nameserver $port || echo 'sendupdate script failed!'
 cleandig host-invalid.test.dyndns ANY hidesoadetails
