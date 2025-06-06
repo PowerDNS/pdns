@@ -1096,8 +1096,7 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
       if (cache.maximum_entry_size >= sizeof(dnsheader)) {
         settings.d_maximumEntrySize = cache.maximum_entry_size;
       }
-      for (const auto& rankstr : cache.payload_ranks) {
-        auto rank = pdns::checked_stoi<uint16_t>(std::string(rankstr));
+      for (const auto& rank : cache.payload_ranks) {
         if (rank < 512 || rank > settings.d_maximumEntrySize) {
           continue;
         }
