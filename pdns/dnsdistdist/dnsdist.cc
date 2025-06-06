@@ -890,11 +890,7 @@ bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dnsQuestio
   }
 
   auto setRCode = [&dnsQuestion](uint8_t rcode) {
-    dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [rcode](dnsheader& header) {
-      header.rcode = rcode;
-      header.qr = true;
-      return true;
-    });
+    dnsdist::self_answers::removeRecordsAndSetRCode(dnsQuestion, rcode);
   };
 
   switch (action) {
@@ -1026,11 +1022,7 @@ static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
 #ifndef DISABLE_DYNBLOCKS
   const auto defaultDynBlockAction = dnsdist::configuration::getCurrentRuntimeConfiguration().d_dynBlockAction;
   auto setRCode = [&dnsQuestion](uint8_t rcode) {
-    dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [rcode](dnsheader& header) {
-      header.rcode = rcode;
-      header.qr = true;
-      return true;
-    });
+    dnsdist::self_answers::removeRecordsAndSetRCode(dnsQuestion, rcode);
   };
 
   /* the Dynamic Block mechanism supports address and port ranges, so we need to pass the full address and port */
@@ -1535,11 +1527,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
 
       vinfolog("%s query for %s|%s from %s, no downstream server available", servFailOnNoPolicy ? "ServFailed" : "Dropped", dnsQuestion.ids.qname.toLogString(), QType(dnsQuestion.ids.qtype).toString(), dnsQuestion.ids.origRemote.toStringWithPort());
       if (servFailOnNoPolicy) {
-        dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [](dnsheader& header) {
-          header.rcode = RCode::ServFail;
-          header.qr = true;
-          return true;
-        });
+        dnsdist::self_answers::removeRecordsAndSetRCode(dnsQuestion, RCode::ServFail);
 
         fixUpQueryTurnedResponse(dnsQuestion, dnsQuestion.ids.origFlags);
 
@@ -1691,11 +1679,7 @@ ProcessQueryResult processQuery(DNSQuestion& dnsQuestion, std::shared_ptr<Downst
     gettime(&now);
 
     if ((dnsQuestion.ids.qtype == QType::AXFR || dnsQuestion.ids.qtype == QType::IXFR) && (dnsQuestion.getProtocol() == dnsdist::Protocol::DoH || dnsQuestion.getProtocol() == dnsdist::Protocol::DoQ || dnsQuestion.getProtocol() == dnsdist::Protocol::DoH3)) {
-      dnsQuestion.editHeader([](dnsheader& header) {
-        header.rcode = RCode::NotImp;
-        header.qr = true;
-        return true;
-      });
+      dnsdist::self_answers::removeRecordsAndSetRCode(dnsQuestion, RCode::NotImp);
       return processQueryAfterRules(dnsQuestion, selectedBackend);
     }
 

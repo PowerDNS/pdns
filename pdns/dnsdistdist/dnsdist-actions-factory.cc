@@ -387,9 +387,8 @@ public:
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
     (void)ruleresult;
+    dnsdist::self_answers::removeRecordsAndSetRCode(*dnsquestion, d_rcode);
     dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsquestion->getMutableData(), [this](dnsheader& header) {
-      header.rcode = d_rcode;
-      header.qr = true; // for good measure
       setResponseHeadersFromConfig(header, d_responseConfig);
       return true;
     });
@@ -415,9 +414,8 @@ public:
   DNSAction::Action operator()(DNSQuestion* dnsquestion, std::string* ruleresult) const override
   {
     (void)ruleresult;
+    dnsdist::self_answers::removeRecordsAndSetRCode(*dnsquestion, (d_rcode & 0xF));
     dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsquestion->getMutableData(), [this](dnsheader& header) {
-      header.rcode = (d_rcode & 0xF);
-      header.qr = true; // for good measure
       setResponseHeadersFromConfig(header, d_responseConfig);
       return true;
     });
