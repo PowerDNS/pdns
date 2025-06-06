@@ -176,6 +176,21 @@ Parameters:
 - **metas**: Sequence of :ref:`ProtoBufMetaConfiguration <yaml-settings-ProtoBufMetaConfiguration>` - A list of ``name``=``key`` pairs, for meta-data to be added to Protocol Buffer message
 
 
+.. _yaml-settings-SetEDNSOptionResponseAction:
+
+SetEDNSOptionResponseAction
+---------------------------
+
+Add arbitrary EDNS option and data to the response. Any existing EDNS content with the same option code will be replaced. Subsequent rules are processed after this action
+
+Lua equivalent: :func:`SetEDNSOptionResponseAction`
+
+Parameters:
+
+- **code**: Unsigned integer - The EDNS option number
+- **data**: String - The EDNS0 option raw content
+
+
 .. _yaml-settings-SetExtendedDNSErrorResponseAction:
 
 SetExtendedDNSErrorResponseAction

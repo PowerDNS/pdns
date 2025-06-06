@@ -35,6 +35,7 @@ conf.set_quoted('PACKAGE_VERSION', meson.project_version(), description: 'versio
 subdir('meson' / 'config')                  # Config
 subdir('meson' / 'version')                 # Generate version define
 subdir('meson' / 'compiler-setup')          # Common compiler setup
+subdir('meson' / 'dlopen')                  # our Rust static library needs dlopen (needs to happen _after_ compiler-setup)
 subdir('meson' / 'summary')                 # Print a system/project summary
 subdir('meson' / 'sysconfdir')              # Sysconfdir
 subdir('meson' / 'platform')                # Platform detection
@@ -107,13 +108,7 @@ else
   dep_lmdb_safe = declare_dependency()
 endif
 
-if get_option('yaml').allowed()
-  subdir('dnsdist-rust-lib')
-  subdir('meson' / 'dlopen') # our Rust static library needs dlopen
-else
-  dep_dnsdist_rust_lib = declare_dependency()
-  dep_dlopen = declare_dependency()
-endif
+subdir('dnsdist-rust-lib')
 
 common_sources += files(
   src_dir / 'bpf-filter.cc',
@@ -248,12 +243,6 @@ conditional_sources = {
     ],
     'condition': dep_libquiche.found(),
    },
-   'yaml': {
-     'sources': [
-       src_dir / 'dnsdist-rust-lib/dnsdist-configuration-yaml-items-generated.cc',
-     ],
-     'condition': dep_dnsdist_rust_lib.found(),
-   }
 }
 
 foreach name, info: conditional_sources
@@ -333,6 +322,52 @@ dep_ffi_interface = declare_dependency(
   sources: [ffi_interface],
 )
 
+py = import('python')
+python = py.find_installation('python3', required: true)
+
+selectors_actions_sources = custom_target(
+  command: [
+    python,
+    '@INPUT0@',
+    '@SOURCE_ROOT@',
+    '@OUTDIR@',
+  ],
+  input: [
+    'dnsdist-rules-generator.py',
+    'dnsdist-actions-definitions.yml',
+    'dnsdist-response-actions-definitions.yml',
+    'dnsdist-selectors-definitions.yml',
+  ],
+  output: [
+    'dnsdist-actions-factory-generated.hh',
+    'dnsdist-actions-factory-generated-body.hh',
+    'dnsdist-response-actions-factory-generated.hh',
+    'dnsdist-response-actions-factory-generated-body.hh',
+    'dnsdist-selectors-factory-generated.hh',
+    'dnsdist-selectors-factory-generated-body.hh',
+  ],
+)
+
+yaml_settings_docs = custom_target(
+  'yaml-settings-docs',
+  command: [
+    python,
+    product_source_dir / 'dnsdist-settings-documentation-generator.py',
+    '@SOURCE_ROOT@',
+  ],
+  depend_files: [
+    'dnsdist-settings-definitions.yml',
+    'dnsdist-actions-definitions.yml',
+    'dnsdist-response-actions-definitions.yml',
+    'dnsdist-selectors-definitions.yml'
+  ],
+  output: '.yaml-settings.stamp',
+)
+
+dep_yaml_settings_docs = declare_dependency(
+  sources: [yaml_settings_docs],
+)
+
 deps = [
   dep_pdns,
   dep_no_config_in_source,
@@ -364,6 +399,7 @@ deps = [
   dep_libbpf,
   dep_libxdp,
   dep_dnsdist_rust_lib,
+  dep_yaml_settings_docs,
 ]
 
 libdnsdist_dnslabeltext_source = src_dir / 'dnslabeltext.rl'
@@ -390,8 +426,21 @@ libdnsdist_common = declare_dependency(
     common_sources,
     config_h,
     libdnsdist_dnslabeltext_gen,
+    rust_lib_sources,
+    selectors_actions_sources,
     dependencies: [
       deps,
+    ],
+  )
+)
+
+libdnsdist_yaml_items = declare_dependency(
+  link_with: static_library(
+    'dnsdist-yaml-items',
+    rust_lib_sources,
+    dependencies: [
+      dep_boost,
+      dep_dnsdist_rust_lib,
     ],
   )
 )
@@ -407,6 +456,7 @@ tools = {
       src_dir / 'dnsdist-lua-ffi.cc',
       src_dir / 'dnsdist-lua-inspection-ffi.cc',
       mplexer_sources,
+      selectors_actions_sources,
     ],
     'manpages': ['dnsdist.1'],
     'deps-extra': [
@@ -418,6 +468,7 @@ tools = {
       dep_json11,
       dep_libsystemd,
       dep_yahttp,
+      libdnsdist_yaml_items,
     ],
     'install': true,
   },
@@ -497,6 +548,7 @@ if get_option('unit-tests')
       'dnsdist-test',
       config_h,
       test_sources,
+      selectors_actions_sources,
       dependencies: [
           dep_boost,
           dep_boost_test,
@@ -565,14 +617,13 @@ if get_option('unit-tests')
 endif
 
 # Man-pages.
-py = import('python')
-python = py.find_installation('python3', modules: 'venv', required: false)
+python_venv = py.find_installation('python3', modules: 'venv', required: false)
 
-summary('Python', python.found(), bool_yn: true, section: 'Manual Pages')
+summary('Python with venv', python_venv.found(), bool_yn: true, section: 'Manual Pages')
 
-if get_option('man-pages') and python.found()
-  summary('Path', python.full_path(), section: 'Manual Pages')
-  summary('Version', python.version(), section: 'Manual Pages')
+if get_option('man-pages') and python_venv.found()
+  summary('Path', python_venv.full_path(), section: 'Manual Pages')
+  summary('Version', python_venv.version(), section: 'Manual Pages')
   generated_man_pages = []
   foreach tool, info: tools
     if 'manpages' in info
@@ -597,7 +648,7 @@ if get_option('man-pages') and python.found()
        install: true,
        install_dir: join_paths(get_option('mandir'), 'man1'),
        command: [
-         python,
+         python_venv,
          product_source_dir / docs_dir / 'generate-man-pages.py',
          '--build-root', '@BUILD_ROOT@',
          '--source-root', '@SOURCE_ROOT@',
@@ -711,12 +762,11 @@ install_data(
   follow_symlinks: true
 )
 
-if python.found()
-
+if python_venv.found()
   html_docs = custom_target(
     'html-docs',
     command: [
-        python,
+        python_venv,
         product_source_dir / docs_dir / 'generate-docs.py',
         '--build-root', '@BUILD_ROOT@',
         '--source-root', '@SOURCE_ROOT@',
@@ -738,7 +788,7 @@ if python.found()
 
   pdf_docs = custom_target(
     command: [
-        python,
+        python_venv,
         product_source_dir / docs_dir / 'generate-docs.py',
         '--build-root', '@BUILD_ROOT@',
         '--source-root', '@SOURCE_ROOT@',

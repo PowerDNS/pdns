@@ -35,14 +35,15 @@ dnslabeltext.cc: dnslabeltext.rl
 	$(AM_V_GEN)$(RAGEL) $< -o dnslabeltext.cc
 
 BUILT_SOURCES=htmlfiles.h \
-	dnsdist-actions-factory-generated.cc dnsdist-actions-factory-generated.hh \
+	dnsdist-actions-factory-generated-body.hh dnsdist-actions-factory-generated.hh \
 	dnsdist-lua-ffi-interface.inc \
-	dnsdist-lua-actions-generated.cc dnsdist-lua-response-actions-generated.cc \
-	dnsdist-response-actions-factory-generated.cc dnsdist-response-actions-factory-generated.hh \
-	dnsdist-rust-bridge-actions-generated.cc dnsdist-rust-bridge-actions-generated.hh \
-	dnsdist-rust-bridge-selectors-generated.cc dnsdist-rust-bridge-selectors-generated.hh \
-	dnsdist-selectors-factory-generated.cc dnsdist-selectors-factory-generated.hh \
-	dnslabeltext.cc
+	dnsdist-lua-actions-generated-body.hh dnsdist-lua-response-actions-generated-body.hh \
+	dnsdist-response-actions-factory-generated-body.hh dnsdist-response-actions-factory-generated.hh \
+	dnsdist-rust-bridge-actions-generated-body.hh dnsdist-rust-bridge-actions-generated.hh \
+	dnsdist-rust-bridge-selectors-generated-body.hh dnsdist-rust-bridge-selectors-generated.hh \
+	dnsdist-selectors-factory-generated-body.hh dnsdist-selectors-factory-generated.hh \
+	dnslabeltext.cc \
+	docs/reference/yaml-settings.rst
 
 htmlfiles.h: $(srcdir)/html/* $(srcdir)/incfiles
 	$(AM_V_GEN)$(srcdir)/incfiles $(srcdir) > $@.tmp
@@ -55,10 +56,15 @@ dnsdist-lua-ffi-interface.inc: dnsdist-lua-ffi-interface.h dnsdist-lua-inspectio
 SRC_JS_FILES := $(wildcard src_js/*.js)
 MIN_JS_FILES := $(patsubst src_js/%.js,html/js/%.min.js,$(SRC_JS_FILES))
 
-dnsdist%generated.cc dnsdist%generated.hh: dnsdist-rules-generator.py dnsdist-actions-definitions.yml dnsdist-response-actions-definitions.yml dnsdist-selectors-definitions.yml
+dnsdist%generated-body.hh dnsdist%generated.hh: dnsdist-rules-generator.py dnsdist-actions-definitions.yml dnsdist-response-actions-definitions.yml dnsdist-selectors-definitions.yml
 	@if test "$(PYTHON)" = ":"; then echo "Actions or selectors definitions have changed, python is needed to regenerate the related files but python was not found. Please install python and re-run configure"; exit 1; fi
 	@if ! $(PYTHON) --version | grep -q "Python 3"; then echo $(PYTHON) should be at least version 3. Please install python 3 and re-run configure; exit 1; fi
-	$(PYTHON) dnsdist-rules-generator.py
+	$(PYTHON) dnsdist-rules-generator.py . .
+
+docs/reference/yaml-%.rst: dnsdist-settings-documentation-generator.py dnsdist-settings-definitions.yml dnsdist-actions-definitions.yml dnsdist-response-actions-definitions.yml dnsdist-selectors-definitions.yml
+	@if test "$(PYTHON)" = ":"; then echo "Settings definitions have changed, python is needed to regenerate the related files but python was not found. Please install python and re-run configure"; exit 1; fi
+	@if ! $(PYTHON) --version | grep -q "Python 3"; then echo $(PYTHON) should be at least version 3. Please install python 3 and re-run configure; exit 1; fi
+	$(PYTHON) dnsdist-settings-documentation-generator.py .
 
 html/js/%.min.js: src_js/%.js
 	uglifyjs $< > $@
@@ -109,13 +115,10 @@ endif
 
 EXTRA_DIST=COPYING \
 	   dnsdist-rules-generator.py \
+	   dnsdist-settings-documentation-generator.py \
 	   dnsdist-actions-definitions.yml \
 	   dnsdist-response-actions-definitions.yml \
 	   dnsdist-rust-bridge.hh \
-	   dnsdist-rust-bridge-actions-generated.cc \
-	   dnsdist-rust-bridge-actions-generated.hh \
-	   dnsdist-rust-bridge-selectors-generated.cc \
-	   dnsdist-rust-bridge-selectors-generated.hh \
 	   dnsdist-selectors-definitions.yml \
 	   dnsdist-settings-definitions.yml \
 	   dnslabeltext.rl \
@@ -172,7 +175,6 @@ dnsdist_SOURCES = \
 	dns.cc dns.hh \
 	dns_random.hh \
 	dnscrypt.cc dnscrypt.hh \
-	dnsdist-actions-factory-generated.hh \
 	dnsdist-actions-factory.cc dnsdist-actions-factory.hh \
 	dnsdist-actions.cc dnsdist-actions.hh \
 	dnsdist-async.cc dnsdist-async.hh \
@@ -239,7 +241,6 @@ dnsdist_SOURCES = \
 	dnsdist-rules-factory.hh \
 	dnsdist-rules.cc dnsdist-rules.hh \
 	dnsdist-secpoll.cc dnsdist-secpoll.hh \
-	dnsdist-selectors-factory-generated.hh \
 	dnsdist-self-answers.cc dnsdist-self-answers.hh \
 	dnsdist-session-cache.cc dnsdist-session-cache.hh \
 	dnsdist-snmp.cc dnsdist-snmp.hh \
@@ -300,6 +301,8 @@ dnsdist_SOURCES = \
 	uuid-utils.hh uuid-utils.cc \
 	views.hh \
 	xsk.cc xsk.hh
+
+nodist_dnsdist_SOURCES =
 
 testrunner_SOURCES = \
 	base64.hh \
@@ -530,13 +533,13 @@ testrunner_LDADD += $(QUICHE_LDFLAGS) $(QUICHE_LIBS)
 endif
 
 if HAVE_YAML_CONFIGURATION
-dnsdist_SOURCES += dnsdist-rust-lib/dnsdist-configuration-yaml-items-generated.cc
+nodist_dnsdist_SOURCES += dnsdist-configuration-yaml-items-generated.cc
 dnsdist_LDADD += $(DNSDIST_RUST_LIBS)
 endif
 
 if !HAVE_LUA_HPP
 BUILT_SOURCES += lua.hpp
-nodist_dnsdist_SOURCES = lua.hpp
+nodist_dnsdist_SOURCES += lua.hpp
 endif
 
 CLEANFILES += lua.hpp
@@ -653,6 +656,9 @@ if !HAVE_MANPAGES
 $(MANPAGES): %: docs/manpages/%.rst .venv
 	$(AM_V_GEN).venv/bin/python -msphinx -b man docs . $<
 endif # if !HAVE_MANPAGES
+
+docs/reference/yaml-settings.rst: dnsdist-settings-documentation-generator.py dnsdist-settings-definitions.yml dnsdist-actions-definitions.yml dnsdist-response-actions-definitions.yml dnsdist-selectors-definitions.yml
+	$(PYTHON) dnsdist-settings-documentation-generator.py .
 
 .venv: docs/requirements.txt
 	$(PYTHON) -m venv .venv

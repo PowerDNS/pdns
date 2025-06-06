@@ -437,8 +437,6 @@ void setupLuaActions(LuaContext& luaCtx)
     return dnsdist::actions::getSetProxyProtocolValuesAction(values);
   });
 
-// NOLINTNEXTLINE(bugprone-suspicious-include)
-#include "dnsdist-lua-actions-generated.cc"
-// NOLINTNEXTLINE(bugprone-suspicious-include)
-#include "dnsdist-lua-response-actions-generated.cc"
+#include "dnsdist-lua-actions-generated-body.hh"
+#include "dnsdist-lua-response-actions-generated-body.hh"
 }

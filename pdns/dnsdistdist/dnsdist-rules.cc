@@ -200,7 +200,6 @@ std::shared_ptr<LuaFFIRule> getLuaFFISelector(const dnsdist::selectors::LuaSelec
   return std::make_shared<LuaFFIRule>(func);
 }
 
-// NOLINTNEXTLINE(bugprone-suspicious-include)
-#include "dnsdist-selectors-factory-generated.cc"
+#include "dnsdist-selectors-factory-generated-body.hh"
 
 }

@@ -2,6 +2,7 @@
 *.tar.bz2
 .version
 .venv
+.yaml-settings.stamp
 .dnsdist_history
 /stamp-h1
 /compile
@@ -49,3 +50,7 @@ doctrees/
 latex/
 .doctrees/
 /.cache
+/*-generated-body.hh
+/*-generated.hh
+dnsdist-configuration-yaml-items-generated.cc
+/dnsdist-rust-lib/rust/src/lib.rs
