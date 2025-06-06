@@ -1,4 +1,4 @@
-Rule selectors
+Rule Selectors
 ==============
 
 Packets can be matched by selectors, called a ``DNSRule``.
