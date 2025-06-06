@@ -240,4 +240,32 @@ bool generateAnswerFromRawPacket(DNSQuestion& dnsQuestion, const PacketBuffer& p
   return true;
 }
 
+bool removeRecordsAndSetRCode(DNSQuestion& dnsQuestion, uint16_t rcode)
+{
+  bool dnssecOK = false;
+  bool hadEDNS = false;
+  if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses && queryHasEDNS(dnsQuestion)) {
+    hadEDNS = true;
+    dnssecOK = ((dnsdist::getEDNSZ(dnsQuestion) & EDNS_HEADER_FLAG_DO) != 0);
+  }
+
+  dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [rcode](dnsheader& header) {
+    header.rcode = rcode;
+    header.qr = true;
+    header.qdcount = htons(1);
+    header.arcount = 0;
+    header.nscount = 0;
+    header.ancount = 0;
+    return true;
+  });
+  auto qnameWireLength = dnsQuestion.ids.qname.wirelength();
+  dnsQuestion.getMutableData().resize(sizeof(dnsheader) + qnameWireLength + 4);
+
+  if (hadEDNS) {
+    addEDNS(dnsQuestion.getMutableData(), dnsQuestion.getMaximumSize(), dnssecOK, dnsdist::configuration::getCurrentRuntimeConfiguration().d_payloadSizeSelfGenAnswers, 0);
+  }
+
+  return true;
+}
+
 }
