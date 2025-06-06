@@ -2076,6 +2076,8 @@ mod dnsdistsettings {
         maximum_entry_size: u32,
         #[serde(default, skip_serializing_if = "crate::is_default")]
         options_to_skip: Vec<String>,
+        #[serde(default, skip_serializing_if = "crate::is_default")]
+        payload_ranks: Vec<String>,
     }
 
     #[derive(Deserialize, Serialize, Debug, PartialEq)]
