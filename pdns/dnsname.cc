@@ -839,6 +839,7 @@ std::string ZoneName::toStringFull(const std::string& separator, const bool trai
     if (d_name.isRoot()) {
       ret.push_back('.');
     }
+    ret.push_back('.');
     ret += d_variant;
   }
   return ret;
