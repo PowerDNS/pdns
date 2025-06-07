@@ -62,18 +62,3 @@ Will yield a response similar to this (several headers omitted):
 .. code-block:: http
   
   HTTP/1.1 204 No Content
-
-Deleting a view
-^^^^^^^^^^^^^^^
-
-.. code-block:: http
-
-  DELETE /api/v1/servers/localhost/views/trusted HTTP/1.1
-  X-API-Key: secret
-
-Will yield a response similar to this (several headers omitted):
-
-.. code-block:: http
-  
-  HTTP/1.1 204 No Content
-
