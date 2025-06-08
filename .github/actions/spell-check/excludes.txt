@@ -94,6 +94,7 @@ SUMS$
 ^codedocs/doxygen\.conf$
 ^docs/depfile\.py$
 ^docs/http-api/tsigkey\.rst$
+^docs/http-api/swagger/spectral-ruleset\.yaml$
 ^docs/lua-records/reference/index\.rst$
 ^modules/remotebackend/example\.rb$
 ^modules/remotebackend/test-remotebackend-keys\.hh$

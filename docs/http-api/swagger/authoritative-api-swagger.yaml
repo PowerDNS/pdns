@@ -1104,7 +1104,6 @@ paths:
           required: true
           description: The length of the network prefix
         - name: view
-          type: string
           required: true
           description: The name of the view to use for to this network
           in: body
