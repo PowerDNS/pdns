@@ -639,15 +639,7 @@ void handleResponseSent(const DNSName& qname, const QType& qtype, double udiff, 
 
 static void handleResponseTC4UDPClient(uint16_t udpPayloadSize, PacketBuffer& response, DNSResponse& dnsResponse)
 {
-  if (udpPayloadSize == 0) {
-    uint16_t zValue = 0;
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(response.data()), response.size(), &udpPayloadSize, &zValue);
-    if (udpPayloadSize < 512) {
-      udpPayloadSize = 512;
-    }
-  }
-  if (response.size() > udpPayloadSize) {
+  if (udpPayloadSize > 0 && response.size() > udpPayloadSize) {
     vinfolog("Got a response of size %d while the initial UDP payload size was %d, truncating", response.size(), udpPayloadSize);
     truncateTC(dnsResponse.getMutableData(), dnsResponse.getMaximumSize(), dnsResponse.ids.qname.wirelength(), dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses);
     dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsResponse.getMutableData(), [](dnsheader& header) {

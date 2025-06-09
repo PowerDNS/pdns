@@ -544,7 +544,7 @@ class TestCaching(DNSDistTest):
             if len(content) > 0:
                 content = content + ', '
             content = content + (str(i)*50)
-        # pad up to 4096
+        # pad up to 4096 (less 11 for EDNS)
         content = content + 'A'*31
 
         rrset = dns.rrset.from_text(name,
