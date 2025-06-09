@@ -321,6 +321,7 @@ bool UDPNameserver::receive(DNSPacket& packet, std::string& buffer)
     }
     buffer.erase(0, used);
     packet.d_inner_remote = psource;
+    packet.d_inner_local = pdestination;
     packet.d_tcp = tcp;
   }
   else {
