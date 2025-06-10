@@ -694,7 +694,7 @@ static void loadBinds(const ::rust::Vec<dnsdist::rust::settings::BindConfigurati
         std::shared_ptr<DNSCryptContext> dnsCryptContext;
 #endif /* defined(HAVE_DNSCRYPT) */
 
-        auto state = std::make_shared<ClientState>(listeningAddress, protocol != "doq" && protocol != "doh3", bind.reuseport, bind.tcp.fast_open_queue_size, std::string(bind.interface), cpus, false);
+        auto state = std::make_shared<ClientState>(listeningAddress, protocol != "doq" && protocol != "doh3", bind.reuseport, bind.tcp.fast_open_queue_size, std::string(bind.interface), cpus, bind.enable_proxy_protocol);
 
         if (bind.tcp.listen_queue_size > 0) {
           state->tcpListenQueueSize = bind.tcp.listen_queue_size;
@@ -738,7 +738,7 @@ static void loadBinds(const ::rust::Vec<dnsdist::rust::settings::BindConfigurati
         config.d_frontends.emplace_back(std::move(state));
         if (protocol == "do53" || protocol == "dnscrypt") {
           /* also create the UDP listener */
-          state = std::make_shared<ClientState>(ComboAddress(std::string(bind.listen_address), defaultPort), false, bind.reuseport, bind.tcp.fast_open_queue_size, std::string(bind.interface), cpus, false);
+          state = std::make_shared<ClientState>(ComboAddress(std::string(bind.listen_address), defaultPort), false, bind.reuseport, bind.tcp.fast_open_queue_size, std::string(bind.interface), cpus, bind.enable_proxy_protocol);
 #if defined(HAVE_DNSCRYPT)
           state->dnscryptCtx = std::move(dnsCryptContext);
 #endif /* defined(HAVE_DNSCRYPT) */
