@@ -160,12 +160,13 @@ extern "C"
       *ptr = res.fctx;
     }
 #endif
+    auto start = std::move(*work);
     notifyStackSwitchDone();
     args = nullptr;
 
     try {
-      auto start = std::move(*work);
-      start();
+      auto localstart = std::move(start);
+      localstart();
     }
     catch (...) {
       ctx->exception = std::current_exception();
