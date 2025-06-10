@@ -146,10 +146,16 @@ stringtok (Container &container, string const &in,
   }
 }
 
-template<typename T> bool rfc1982LessThan(T a, T b)
+template<typename T> bool rfc1982LessThan(T lhs, T rhs)
 {
   static_assert(std::is_unsigned_v<T>, "rfc1982LessThan only works for unsigned types");
-  return std::make_signed_t<T>(a - b) < 0;
+  return static_cast<std::make_signed_t<T>>(lhs - rhs) < 0;
+}
+
+template<typename T> bool rfc1982LessThanOrEqual(T lhs, T rhs)
+{
+  static_assert(std::is_unsigned_v<T>, "rfc1982LessThanOrEqual only works for unsigned types");
+  return static_cast<std::make_signed_t<T>>(lhs - rhs) <= 0;
 }
 
 // fills container with ranges, so {posbegin,posend}

@@ -973,12 +973,12 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
 
 bool isRRSIGNotExpired(const time_t now, const RRSIGRecordContent& sig)
 {
-  return rfc1982LessThan<uint32_t>(now, sig.d_sigexpire);
+  return rfc1982LessThanOrEqual<uint32_t>(now, sig.d_sigexpire);
 }
 
 bool isRRSIGIncepted(const time_t now, const RRSIGRecordContent& sig)
 {
-  return rfc1982LessThan<uint32_t>(sig.d_siginception - g_signatureInceptionSkew, now);
+  return rfc1982LessThanOrEqual<uint32_t>(sig.d_siginception - g_signatureInceptionSkew, now);
 }
 
 namespace {
