@@ -466,6 +466,37 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig)
   BOOST_CHECK_EQUAL(validationContext.d_validationsCounter, 1U);
 }
 
+BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_extreme_timestamps)
+{
+  initSR();
+
+  auto dcke = DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256);
+  dcke->create(dcke->getBits());
+  DNSSECPrivateKey dpk;
+  dpk.setKey(std::move(dcke), 256);
+
+  sortedRecords_t recordcontents;
+  recordcontents.insert(getRecordContent(QType::A, "192.0.2.1"));
+
+  DNSName qname("powerdns.com.");
+
+  time_t inception = 0U; // Interpreted as jan 1st 1970, until it is more than 68 years in the past
+  auto validity = 0xffffffffU; // Will be interpreted as end of 1969, as is more than 68 years in the future (until it isn't)
+  RRSIGRecordContent rrc;
+  computeRRSIG(dpk, qname, qname, QType::A, 600, validity, rrc, recordcontents, boost::none, inception, 0);
+
+  skeyset_t keyset;
+  keyset.insert(std::make_shared<DNSKEYRecordContent>(dpk.getDNSKEY()));
+
+  std::vector<std::shared_ptr<const RRSIGRecordContent>> sigs;
+  sigs.push_back(std::make_shared<RRSIGRecordContent>(rrc));
+
+  pdns::validation::ValidationContext validationContext;
+  time_t now = time(nullptr);
+  BOOST_CHECK(validateWithKeySet(now, qname, recordcontents, sigs, keyset, std::nullopt, validationContext) == vState::BogusSignatureExpired);
+  BOOST_CHECK_EQUAL(validationContext.d_validationsCounter, 0U);
+}
+
 BOOST_AUTO_TEST_CASE(test_dnssec_root_validation_csk)
 {
   std::unique_ptr<SyncRes> sr;
