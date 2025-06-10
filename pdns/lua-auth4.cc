@@ -40,7 +40,7 @@ void AuthLua4::postPrepareContext() {
   d_lw->registerFunction<DNSPacket, void(const ComboAddress&)>("setRemote", [](DNSPacket &p, const ComboAddress &ca) { p.setRemote(&ca); });
   d_lw->registerFunction<DNSPacket, ComboAddress()>("getRemote", [](DNSPacket &p) { return p.getInnerRemote(); });
   d_lw->registerFunction<DNSPacket, Netmask()>("getRealRemote", [](DNSPacket &p) { return p.getRealRemote(); });
-  d_lw->registerFunction<DNSPacket, ComboAddress()>("getLocal", [](DNSPacket &p) { return p.getInnerLocal(); });
+  d_lw->registerFunction<DNSPacket, ComboAddress()>("getLocal", [](DNSPacket &p) { return p.getInnerLocal(); }); // NOLINT(readability-identifier-length)
   d_lw->registerFunction<DNSPacket, unsigned int()>("getRemotePort", [](DNSPacket &p) { return p.getInnerRemote().getPort(); });
   d_lw->registerFunction<DNSPacket, std::tuple<const std::string, unsigned int>()>("getQuestion", [](DNSPacket &p) { return std::tuple(p.qdomain.toString(), static_cast<unsigned int>(p.qtype.getCode())); });
   d_lw->registerFunction<DNSPacket, void(bool)>("setA", [](DNSPacket &p, bool a) { return p.setA(a); });

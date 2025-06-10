@@ -144,8 +144,9 @@ string DNSPacket::getLocalStringWithPort() const
 
 ComboAddress DNSPacket::getInnerLocal() const
 {
-  if (d_inner_local)
+  if (d_inner_local) {
     return *d_inner_local;
+  }
   return getLocal();
 }
 
