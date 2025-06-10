@@ -3,7 +3,7 @@
 
 # This defines the distribution base layer
 # Put only the bare minimum of common commands here, without dev tools
-FROM amazonlinux:2023 as dist-base
+FROM amazonlinux:2023 AS dist-base
 ARG BUILDER_CACHE_BUSTER=
 
 # Do the actual rpm build

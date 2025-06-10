@@ -3,7 +3,7 @@
 
 # This defines the distribution base layer
 # Put only the bare minimum of common commands here, without dev tools
-FROM quay.io/centos/centos:stream10 as dist-base
+FROM quay.io/centos/centos:stream10 AS dist-base
 
 ARG BUILDER_CACHE_BUSTER=
 

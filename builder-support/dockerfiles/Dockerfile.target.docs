@@ -1,5 +1,5 @@
 # Sphinx
-FROM ubuntu:jammy as pdns-docs
+FROM ubuntu:jammy AS pdns-docs
 RUN apt-get update && apt-get -y dist-upgrade && apt-get -y --no-install-recommends install \
     ghostscript \
     git \
