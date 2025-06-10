@@ -2,6 +2,8 @@
 set -v
 set -e
 
+[ -e /tmp/.pdns_quiche_installed ] && exit 0
+
 readonly QUICHE_VERSION=$(jq -r .version < quiche.json)
 readonly QUICHE_TARBALL="${QUICHE_VERSION}.tar.gz"
 readonly QUICHE_TARBALL_URL="https://github.com/cloudflare/quiche/archive/${QUICHE_TARBALL}"
@@ -73,3 +75,5 @@ PC
 
 cd ..
 rm -rf "${QUICHE_TARBALL}" "quiche-${QUICHE_VERSION}"
+
+touch /tmp/.pdns_quiche_installed
