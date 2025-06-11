@@ -67,6 +67,7 @@ public:
   void lookup(const QType& qtype, const DNSName& qdomain, domainid_t zoneId, DNSPacket* pkt_p = nullptr) override;
   bool list(const ZoneName& /* target */, domainid_t /* domain_id */, bool /* include_disabled */ = false) override { return false; } // not supported
   bool get(DNSResourceRecord& r) override;
+  void lookupEnd() override;
   void reload() override;
   void rediscover(string* status = nullptr) override;
   bool getDomainInfo(const ZoneName& domain, DomainInfo& info, bool getSerial = true) override;
