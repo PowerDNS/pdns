@@ -678,7 +678,9 @@ BOOST_AUTO_TEST_CASE(test_AuthViews)
   BOOST_CHECK_EQUAL(queryPacketCache2(PC, ZC, ComboAddress("192.0.2.1"), qname, innerMask, view2, "2.2.2.2"), true);
 
   // Purge view2
-  BOOST_CHECK_EQUAL(PC.purgeExact(view2, qname), 1);
+  std::string purgeName = qname.toString();
+  purgeName.append("$");
+  BOOST_CHECK_EQUAL(PC.purge(view2, purgeName), 1);
   BOOST_CHECK_EQUAL(PC.size(), 1);
 
   // Check that requesting from view2 causes a cache miss
@@ -688,7 +690,9 @@ BOOST_AUTO_TEST_CASE(test_AuthViews)
   BOOST_CHECK_EQUAL(queryPacketCache2(PC, ZC, ComboAddress("192.0.2.128"), qname, outerMask, view1, "1.1.1.1"), true);
 
   // Purge view1
-  BOOST_CHECK_EQUAL(PC.purgeExact(view1, qname), 1);
+  purgeName = qname.toString();
+  purgeName.append("$");
+  BOOST_CHECK_EQUAL(PC.purge(view1, purgeName), 1);
   BOOST_CHECK_EQUAL(PC.size(), 0);
 
   // Check that requesting from view1 causes a cache miss

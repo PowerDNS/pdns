@@ -73,7 +73,7 @@ void AuthPacketCache::MapCombo::reserve(size_t numberOfEntries)
 
 bool AuthPacketCache::get(DNSPacket& pkt, DNSPacket& cached, const std::string& view)
 {
-  if(!d_ttl) {
+  if (d_ttl == 0) {
     return false;
   }
 
@@ -131,7 +131,7 @@ bool AuthPacketCache::entryMatches(cmap_t::index<HashTag>::type::iterator& iter,
 
 void AuthPacketCache::insert(DNSPacket& query, DNSPacket& response, unsigned int maxTTL, const std::string& view)
 {
-  if(!d_ttl) {
+  if (d_ttl == 0) {
     return;
   }
 
@@ -231,7 +231,7 @@ bool AuthPacketCache::getEntryLocked(const cmap_t& map, const std::string& query
 /* clears the entire cache. */
 uint64_t AuthPacketCache::purge()
 {
-  if(!d_ttl) {
+  if (d_ttl == 0) {
     return 0;
   }
 
@@ -265,23 +265,6 @@ uint64_t AuthPacketCache::purgeExact(const DNSName& qname)
   return delcount;
 }
 
-uint64_t AuthPacketCache::purgeExact(const std::string& view, const DNSName& qname)
-{
-  uint64_t delcount = 0;
-
-  {
-    auto cache = d_cache.write_lock();
-    if (auto iter = cache->find(view); iter != cache->end()) {
-      auto& mc = getMap(iter->second, qname); // NOLINT(readability-identifier-length)
-      delcount += purgeExactLockedCollection<NameTag>(mc, qname);
-    }
-  }
-
-  *d_statnumentries -= delcount;
-
-  return delcount;
-}
-
 uint64_t AuthPacketCache::purgeView(const std::string& view)
 {
   uint64_t delcount = 0;
@@ -303,7 +286,7 @@ uint64_t AuthPacketCache::purgeView(const std::string& view)
 /* purges entries from the packetcache. If match ends on a $, it is treated as a suffix */
 uint64_t AuthPacketCache::purge(const string &match)
 {
-  if(!d_ttl) {
+  if (d_ttl == 0) {
     return 0;
   }
 
@@ -322,6 +305,34 @@ uint64_t AuthPacketCache::purge(const string &match)
   else {
     delcount = purgeExact(DNSName(match));
   }
+
+  return delcount;
+}
+
+uint64_t AuthPacketCache::purge(const std::string& view, const std::string& match)
+{
+  if (d_ttl == 0) {
+    return 0;
+  }
+
+  uint64_t delcount = 0;
+
+  {
+    auto cache = d_cache.write_lock();
+    if (auto iter = cache->find(view); iter != cache->end()) {
+      if (boost::ends_with(match, "$")) {
+        auto *map = iter->second.get();
+        delcount += purgeLockedCollectionsVector<NameTag>(*map, match);
+      }
+      else {
+        DNSName qname(match);
+        auto& mc = getMap(iter->second, qname); // NOLINT(readability-identifier-length)
+        delcount += purgeExactLockedCollection<NameTag>(mc, qname);
+      }
+    }
+  }
+
+  *d_statnumentries -= delcount;
 
   return delcount;
 }
