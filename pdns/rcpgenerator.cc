@@ -251,7 +251,7 @@ void RecordTextReader::xfr8BitInt(uint8_t &val)
 }
 
 // this code should leave all the escapes around
-void RecordTextReader::xfrName(DNSName& val, bool, bool)
+void RecordTextReader::xfrName(DNSName& val, [[maybe_unused]] bool compress)
 {
   skipSpaces();
   DNSName sval;
@@ -793,7 +793,7 @@ void RecordTextWriter::xfr8BitInt(const uint8_t& val)
 }
 
 // should not mess with the escapes
-void RecordTextWriter::xfrName(const DNSName& val, bool /* unused */, bool /* noDot */)
+void RecordTextWriter::xfrName(const DNSName& val, bool /* unused */)
 {
   if(!d_string.empty())
     d_string.append(1,' ');

@@ -79,7 +79,7 @@ bool generateSVCPayload(std::vector<uint8_t>& payload, uint16_t priority, const 
   pw.startRecord(g_rootdnsname, QType::A, 60, QClass::IN, DNSResourceRecord::ANSWER, false);
   size_t offset = pw.size();
   pw.xfr16BitInt(priority);
-  pw.xfrName(target, false, true);
+  pw.xfrName(target, false);
   pw.xfrSvcParamKeyVals(params);
   pw.commit();
 

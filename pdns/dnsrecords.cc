@@ -357,7 +357,7 @@ boilerplate_conv(OPENPGPKEY,
 
 boilerplate_conv(SVCB,
                  conv.xfr16BitInt(d_priority);
-                 conv.xfrName(d_target, false, true);
+                 conv.xfrName(d_target, false);
                  if (d_priority != 0) {
                    conv.xfrSvcParamKeyVals(d_params);
                  }
@@ -365,7 +365,7 @@ boilerplate_conv(SVCB,
 
 boilerplate_conv(HTTPS,
                  conv.xfr16BitInt(d_priority);
-                 conv.xfrName(d_target, false, true);
+                 conv.xfrName(d_target, false);
                  if (d_priority != 0) {
                    conv.xfrSvcParamKeyVals(d_params);
                  }
