@@ -889,7 +889,7 @@ void Bind2Backend::doEmptyNonTerminals(std::shared_ptr<recordstorage_t>& records
 
 void Bind2Backend::loadConfig(string* status) // NOLINT(readability-function-cognitive-complexity) 13379 https://github.com/PowerDNS/pdns/issues/13379 Habbie: zone2sql.cc, bindbackend2.cc: reduce complexity
 {
-  static int domain_id = 1;
+  static domainid_t domain_id = 1;
 
   if (!getArg("config").empty()) {
     BindParser BP;
