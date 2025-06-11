@@ -105,6 +105,7 @@ private:
   uint64_t d_taiepoch;
   QType d_qtype;
   std::unique_ptr<CDB> d_cdbReader;
+  domainid_t d_currentDomain{UnknownDomainID}; // domain id to return with data obtained from d_cdbReader above.
   DNSPacket* d_dnspacket; // used for location and edns-client support.
   bool d_isWildcardQuery; // Indicate if the query received was a wildcard query.
   bool d_isAxfr; // Indicate if we received a list() and not a lookup().
