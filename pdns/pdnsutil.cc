@@ -3442,7 +3442,7 @@ static int secureZone(vector<string>& cmds, const std::string_view synopsis)
   unsigned int zoneErrors=0;
   for(unsigned int n = 1; n < cmds.size(); ++n) { // NOLINT(readability-identifier-length)
     ZoneName zone(cmds.at(n));
-    dk.startTransaction(zone, UnknownDomainID);
+    dk.startTransaction(zone);
     if(secureZone(dk, zone)) {
       mustRectify.push_back(std::move(zone));
     } else {

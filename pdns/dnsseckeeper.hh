@@ -223,9 +223,9 @@ public:
   bool TSIGGrantsAccess(const ZoneName& zone, const DNSName& keyname);
   bool getTSIGForAccess(const ZoneName& zone, const ComboAddress& primary, DNSName* keyname);
 
-  void startTransaction(const ZoneName& zone, domainid_t zone_id)
+  void startTransaction(const ZoneName& zone)
   {
-    (*d_keymetadb->backends.begin())->startTransaction(zone, zone_id);
+    (*d_keymetadb->backends.begin())->startTransaction(zone);
   }
 
   void commitTransaction()
