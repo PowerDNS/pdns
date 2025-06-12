@@ -245,7 +245,7 @@ ZONE MANIPULATION COMMANDS
 add-record *ZONE* *NAME* *TYPE* [*TTL*] *CONTENT*
 
     Add one or more records of *NAME* and *TYPE* to *ZONE* with *CONTENT*
-    and optional *TTL*. If *TTL* is not set, default will be used.
+    and optional *TTL*. If *TTL* is not set, the configured *default-ttl* will be used.
 
 add-autoprimary *IP* *NAMESERVER* [*ACCOUNT*]
 
