@@ -240,7 +240,7 @@ bool generateAnswerFromRawPacket(DNSQuestion& dnsQuestion, const PacketBuffer& p
   return true;
 }
 
-bool removeRecordsAndSetRCode(DNSQuestion& dnsQuestion, uint16_t rcode)
+bool removeRecordsAndSetRCode(DNSQuestion& dnsQuestion, uint8_t rcode)
 {
   bool dnssecOK = false;
   bool hadEDNS = false;

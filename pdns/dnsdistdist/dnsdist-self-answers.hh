@@ -29,5 +29,5 @@ bool generateAnswerFromCNAME(DNSQuestion& dnsQuestion, const DNSName& cname, con
 bool generateAnswerFromIPAddresses(DNSQuestion& dnsQuestion, const std::vector<ComboAddress>& addresses, const ResponseConfig& responseConfig);
 bool generateAnswerFromRDataEntries(DNSQuestion& dnsQuestion, const std::vector<std::string>& entries, std::optional<uint16_t> typeForAny, const ResponseConfig& responseConfig);
 bool generateAnswerFromRawPacket(DNSQuestion& dnsQuestion, const PacketBuffer& packet);
-bool removeRecordsAndSetRCode(DNSQuestion& dnsQuestion, uint16_t rcode);
+bool removeRecordsAndSetRCode(DNSQuestion& dnsQuestion, uint8_t rcode);
 }
