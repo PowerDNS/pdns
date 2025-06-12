@@ -294,7 +294,6 @@ public:
     return false;
   }
 
-  //! returns true if primary ip is primary for domain name.
   //! starts the transaction for updating domain qname, destroying all
   //! existing data for that domain if id is != UnknownDomainID. In this case,
   //! the id MUST match the DomainInfo information for qname, or very bad things
