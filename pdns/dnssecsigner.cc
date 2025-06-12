@@ -94,13 +94,16 @@ static void fillOutRRSIG(DNSSECPrivateKey& dpk, const DNSName& signQName, RRSIGR
     int weekno = (time(nullptr) - dns_random(3600)) / (86400*7);  // we just spent milliseconds doing a signature, microsecond more won't kill us
     const static int maxcachesize=::arg().asNum("max-signature-cache-entries", INT_MAX);
 
-    auto signatures = g_signatures.write_lock();
-    if (g_cacheweekno < weekno || signatures->size() >= (uint) maxcachesize) {  // blunt but effective (C) Habbie, mind04
-      g_log<<Logger::Warning<<"Cleared signature cache."<<endl;
-      signatures->clear();
-      g_cacheweekno = weekno;
+    signaturecache_t oldsigs;
+    {
+      auto signatures = g_signatures.write_lock();
+      if (g_cacheweekno < weekno || signatures->size() >= (uint) maxcachesize) {  // blunt but effective (C) Habbie, mind04
+        g_log<<Logger::Warning<<"Cleared signature cache."<<endl;
+        std::swap(oldsigs, *signatures);
+        g_cacheweekno = weekno;
+      }
+      (*signatures)[lookup] = rrc.d_signature;
     }
-    (*signatures)[lookup] = rrc.d_signature;
   }
 }
 
