@@ -316,7 +316,7 @@ template <typename Container> uint16_t GenericDNSPacketWriter<Container>::lookup
   return bestpos;
 }
 // this is the absolute hottest function in the pdns recursor
-template <typename Container> void GenericDNSPacketWriter<Container>::xfrName(const DNSName& name, bool compress, bool)
+template <typename Container> void GenericDNSPacketWriter<Container>::xfrName(const DNSName& name, bool compress)
 {
   if(l_verbose)
     cout<<"Wants to write "<<name<<", compress="<<compress<<", canonic="<<d_canonic<<", LC="<<d_lowerCase<<endl;
