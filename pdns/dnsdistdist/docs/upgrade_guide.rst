@@ -17,7 +17,7 @@ XPF support has been removed.
 
 The ``options`` parameter of :func:`HTTPStatusAction` has been deprecated because it had unexpected side-effects, and should thus no longer be used.
 
-In some cases, :program:`dnsdist` turns an incoming into a response, setting the response code in the process. When doing so, it was not properly cleaning up records present in the answer, authority or additional sections, which could have been surprising to clients and wasted bandwidth. This has now been fixed. The cases in question are:
+In some cases, :program:`dnsdist` turns an incoming query into a response, setting the response code in the process. When doing so, it was not properly cleaning up records present in the answer, authority or additional sections, which could have been surprising to clients and wasted bandwidth. This has now been fixed. The cases in question are:
 
 * :func:`RCodeAction`
 * :func:`ERCodeAction`
