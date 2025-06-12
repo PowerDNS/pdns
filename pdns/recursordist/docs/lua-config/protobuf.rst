@@ -8,7 +8,7 @@ In addition, messages related to responses contain the name, type, class and rda
 Finally, if a RPZ or custom Lua policy has been applied, response messages also contain the applied policy name and some tags.
 This is particularly useful to detect and act on infected hosts.
 
-The Protobuf loggging stream can also include event information in a proprietary format and (starting with version 5.3.0) OpenTelemetry Trace data.
+The Protobuf logging stream can include event information in a proprietary format and (starting with version 5.3.0) OpenTelemetry Trace data.
 See :ref:`event-tracing` for more information.
 
 Configuring Protocol Buffer logs

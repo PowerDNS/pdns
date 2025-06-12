@@ -45,7 +45,7 @@ static void usage()
           "[proxy UDP(0)/TCP(1) SOURCE-IP-ADDRESS-AND-PORT DESTINATION-IP-ADDRESS-AND-PORT] "
           "[cookie -/HEX] "
           "[dumpluaraw] [opcode OPNUM] "
-          "[otid -/HEX]"
+          "[traceid -/HEX]"
        << endl;
 }
 
@@ -358,9 +358,9 @@ try {
       else if (strcmp(argv[i], "dumpluaraw") == 0) {
         dumpluaraw = true;
       }
-      else if (strcmp(argv[i], "otid") == 0) {
+      else if (strcmp(argv[i], "traceid") == 0) {
         if (argc < i + 2) {
-          cerr << "otid needs an argument" << endl;
+          cerr << "traceid needs an argument" << endl;
           exit(EXIT_FAILURE);
         }
         auto traceIDArg = std::string(argv[++i]);
@@ -371,7 +371,7 @@ try {
         else {
           auto traceIDStr = makeBytesFromHex(traceIDArg);
           if (traceIDStr.size() > traceid.size()) {
-            cerr << "Maximum length of TraceID is " << traceid.size() << " bytes" << endl;
+            cerr << "Maximum length of traceid is " << traceid.size() << " bytes" << endl;
             exit(EXIT_FAILURE);
           }
           traceIDStr.resize(traceid.size());
