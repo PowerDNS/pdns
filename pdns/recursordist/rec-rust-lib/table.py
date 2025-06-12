@@ -995,10 +995,11 @@ This file can be used to serve data authoritatively using :ref:`setting-export-e
         'section' : 'recursor',
         'type' : LType.Uint64,
         'default' : '0',
-        'help' : 'If set, event traces are collected and send out via protobuf logging (1), logfile (2) or both(3)',
+        'help' : 'If set, event traces are collected and send out via protobuf logging (1), logfile (2), opentelemetry trace data (4) or a combination',
         'doc' : '''
 Enable the recording and logging of ref:`event traces`. This is an experimental feature and subject to change.
-Possible values are 0: (disabled), 1 (add information to protobuf logging messages) and 2 (write to log) and 3 (both).
+Possible values are 0: (disabled), 1 (add information to protobuf logging messages), 2 (write to log), 4 (output  OpenTelemetry Trace data in protobuf logging messages). Values can be added to get multiple types of logging simultaneously.
+For example, 6 means: write to log and output OpenTelemetry Trace data in the protobuf stream.
  ''',
         'versionadded': '4.6.0',
         'runtime': 'set-event-trace-enabled',

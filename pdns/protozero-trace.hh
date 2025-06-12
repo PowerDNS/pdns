@@ -246,7 +246,7 @@ inline void clear(SpanID& span)
 inline void fill(TraceID& trace, const std::string& data)
 {
   if (data.size() != trace.size()) {
-    throw std::runtime_error("TracID size mismatch");
+    throw std::runtime_error("TraceID size mismatch");
   }
   memcpy(trace.data(), data.data(), trace.size());
 }
@@ -254,7 +254,7 @@ inline void fill(TraceID& trace, const std::string& data)
 inline void fill(SpanID& span, const std::string& data)
 {
   if (data.size() != span.size()) {
-    throw std::runtime_error("TracID size mismatch");
+    throw std::runtime_error("SpanID size mismatch");
   }
   memcpy(span.data(), data.data(), span.size());
 }
@@ -671,8 +671,9 @@ struct TracesData
     return data;
   }
 
-  static TracesData boilerPlate(std::string&& service, std::vector<Span>&& spans)
+  static TracesData boilerPlate(std::string&& service, std::string&& req, std::vector<Span>&& spans)
   {
+    spans.at(0).attributes.push_back({"value", {req}});
     return TracesData{
       .resource_spans = {pdns::trace::ResourceSpans{.resource = {.attributes = {{"service.name", {{std::move(service)}}}}}, .scope_spans = {{.spans = std::move(spans)}}}}};
   }

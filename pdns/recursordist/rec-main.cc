@@ -594,7 +594,8 @@ void protobufLogResponse(pdns::ProtoZero::RecMessage& message)
   }
 }
 
-void protobufLogResponse(const struct dnsheader* header, LocalStateHolder<LuaConfigItems>& luaconfsLocal,
+void protobufLogResponse(const DNSName& qname, QType qtype,
+                         const struct dnsheader* header, LocalStateHolder<LuaConfigItems>& luaconfsLocal,
                          const RecursorPacketCache::OptPBData& pbData, const struct timeval& tval,
                          bool tcp, const ComboAddress& source, const ComboAddress& destination,
                          const ComboAddress& mappedSource,
@@ -665,7 +666,7 @@ void protobufLogResponse(const struct dnsheader* header, LocalStateHolder<LuaCon
   }
   if (eventTrace.enabled() && (SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_ot) != 0) {
     otTrace.close();
-    auto trace = pdns::trace::TracesData::boilerPlate("rec", eventTrace.convertToOT(otTrace));
+    auto trace = pdns::trace::TracesData::boilerPlate("rec", qname.toLogString() + '/' + qtype.toString(), eventTrace.convertToOT(otTrace));
     pbMessage.setOpenTelemetryData(trace.encode());
   }
   pbMessage.addPolicyTags(policyTags);

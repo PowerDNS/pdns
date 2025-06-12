@@ -87,7 +87,6 @@ std::vector<pdns::trace::Span> RecEventTrace::convertToOT(const Span& span) cons
 
   size_t index = 0;
   for (const auto& event : d_events) {
-    cerr << index << ' ' << event.toString () << ' ' << event.d_matching << endl; 
     if (event.d_start) {
       // It's an open event
       Span work{
@@ -113,11 +112,7 @@ std::vector<pdns::trace::Span> RecEventTrace::convertToOT(const Span& span) cons
     }
     else {
       // It's a close event
-      if (event.d_matching == -1U) {
-        auto& work = ret.at(0);
-        addValue(event, work);
-      }
-      else if (ids.find(event.d_matching) != ids.end()) {
+      if (ids.find(event.d_matching) != ids.end()) {
         auto& work = ret.at(ids.at(event.d_matching));
         addValue(event, work);
         work.end_time_unix_nano = static_cast<uint64_t>(event.d_ts + diff);

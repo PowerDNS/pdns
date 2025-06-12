@@ -24,6 +24,7 @@
 
 struct EDNSOptionCode
 {
+  // Temporary code assigned for OpenTelemetry TraceID and SpanID
   enum EDNSOptionCodeEnum : uint16_t {NSID=3, DAU=5, DHU=6, N3U=7, ECS=8, EXPIRE=9, COOKIE=10, TCPKEEPALIVE=11, PADDING=12, CHAIN=13, KEYTAG=14, EXTENDEDERROR=15, OTTRACEID=65500, OTSPANID=65501};
 };
 

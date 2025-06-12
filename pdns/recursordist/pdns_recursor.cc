@@ -1815,10 +1815,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
       tcpGuard.setHandled();
     }
 
-    if (resolver.d_eventTrace.enabled()) {
-      resolver.d_eventTrace.add(RecEventTrace::AnswerSent);
-      resolver.d_eventTrace.add(RecEventTrace::CustomEvent, comboWriter->d_mdp.d_qname.toLogString() + '/' + QType(comboWriter->d_mdp.d_qtype).toString(), false, -1U); // XXX
-    }
+    resolver.d_eventTrace.add(RecEventTrace::AnswerSent);
 
     // Now do the per query changing part of the protobuf message
     if (t_protobufServers.servers && !(luaconfsLocal->protobufExportConfig.taggedOnly && appliedPolicy.getName().empty() && comboWriter->d_policyTags.empty())) {
@@ -1879,7 +1876,7 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
       }
       if (resolver.d_eventTrace.enabled() && SyncRes::eventTraceEnabled(SyncRes::event_trace_to_ot)) {
         resolver.d_otTrace.close();
-        auto otTrace = pdns::trace::TracesData::boilerPlate("rec", resolver.d_eventTrace.convertToOT(resolver.d_otTrace));
+        auto otTrace = pdns::trace::TracesData::boilerPlate("rec", comboWriter->d_mdp.d_qname.toLogString() + '/' + QType(comboWriter->d_mdp.d_qtype).toString(), resolver.d_eventTrace.convertToOT(resolver.d_otTrace));
         string otData = otTrace.encode();
         pbMessage.setOpenTelemetryData(otData);
       }
@@ -2345,7 +2342,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         eventTrace.add(RecEventTrace::AnswerSent);
 
         if (t_protobufServers.servers && logResponse && (!luaconfsLocal->protobufExportConfig.taggedOnly || (pbData && pbData->d_tagged))) {
-          protobufLogResponse(dnsheader, luaconfsLocal, pbData, tval, false, source, destination, mappedSource, ednssubnet, uniqueId, requestorId, deviceId, deviceName, meta, eventTrace, otTrace, policyTags);
+          protobufLogResponse(qname, qtype, dnsheader, luaconfsLocal, pbData, tval, false, source, destination, mappedSource, ednssubnet, uniqueId, requestorId, deviceId, deviceName, meta, eventTrace, otTrace, policyTags);
         }
 
         if (eventTrace.enabled() && SyncRes::eventTraceEnabled(SyncRes::event_trace_to_log)) {

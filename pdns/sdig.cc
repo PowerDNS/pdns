@@ -95,8 +95,8 @@ static void fillPacket(vector<uint8_t>& packet, const string& q, const string& t
       opts.emplace_back(EDNSOptionCode::COOKIE, cookieOpt.makeOptString());
     }
     if (otids) {
-      opts.emplace_back(EDNSOptionCode::OTTRACEID, std::string_view(reinterpret_cast<const char*>(otids->first.data()), otids->first.size()));
-      opts.emplace_back(EDNSOptionCode::OTSPANID, std::string_view(reinterpret_cast<const char*>(otids->second.data()), otids->second.size()));
+      opts.emplace_back(EDNSOptionCode::OTTRACEID, std::string_view(reinterpret_cast<const char*>(otids->first.data()), otids->first.size())); // NOLINT
+      opts.emplace_back(EDNSOptionCode::OTSPANID, std::string_view(reinterpret_cast<const char*>(otids->second.data()), otids->second.size())); // NOLINT
     }
     pw.addOpt(bufsize, 0, dnssec ? EDNSOpts::DNSSECOK : 0, opts);
     pw.commit();
@@ -370,6 +370,10 @@ try {
         }
         else {
           auto traceIDStr = makeBytesFromHex(traceIDArg);
+          if (traceIDStr.size() > traceid.size()) {
+            cerr << "Maximum length of TraceID is " << traceid.size() << " bytes" << endl;
+            exit(EXIT_FAILURE);
+          }
           traceIDStr.resize(traceid.size());
           pdns::trace::fill(traceid, traceIDStr);
         }

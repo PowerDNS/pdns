@@ -206,7 +206,7 @@ BOOST_AUTO_TEST_CASE(traces2)
   std::string data;
   protozero::pbf_writer writer{data};
   traces.encode(writer);
-#if 1
+#if 0
   std::ofstream x("x");
   x << data;
 #endif

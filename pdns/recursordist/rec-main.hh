@@ -631,7 +631,7 @@ bool checkForCacheHit(bool qnameParsed, unsigned int tag, const string& data,
                       string& response, uint32_t& qhash,
                       RecursorPacketCache::OptPBData& pbData, bool tcp, const ComboAddress& source, const ComboAddress& mappedSource);
 void protobufLogResponse(pdns::ProtoZero::RecMessage& message);
-void protobufLogResponse(const struct dnsheader* header, LocalStateHolder<LuaConfigItems>& luaconfsLocal,
+void protobufLogResponse(const DNSName& qname, QType qtype, const struct dnsheader* header, LocalStateHolder<LuaConfigItems>& luaconfsLocal,
                          const RecursorPacketCache::OptPBData& pbData, const struct timeval& tv,
                          bool tcp, const ComboAddress& source, const ComboAddress& destination,
                          const ComboAddress& mappedSource, const EDNSSubnetOpts& ednssubnet,
