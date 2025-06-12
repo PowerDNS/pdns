@@ -637,12 +637,10 @@ void handleResponseSent(const DNSName& qname, const QType& qtype, double udiff, 
   doLatencyStats(incomingProtocol, udiff);
 }
 
-static void handleResponseForUDPClient(InternalQueryState& ids, PacketBuffer& response, const std::shared_ptr<DownstreamState>& backend, bool isAsync, bool selfGenerated)
+static void handleResponseTC4UDPClient(uint16_t udpPayloadSize, PacketBuffer& response, DNSResponse& dnsResponse)
 {
-  DNSResponse dnsResponse(ids, response, backend);
-
-  if (ids.udpPayloadSize > 0 && response.size() > ids.udpPayloadSize) {
-    vinfolog("Got a response of size %d while the initial UDP payload size was %d, truncating", response.size(), ids.udpPayloadSize);
+  if (udpPayloadSize > 0 && response.size() > udpPayloadSize) {
+    vinfolog("Got a response of size %d while the initial UDP payload size was %d, truncating", response.size(), udpPayloadSize);
     truncateTC(dnsResponse.getMutableData(), dnsResponse.getMaximumSize(), dnsResponse.ids.qname.wirelength(), dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses);
     dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsResponse.getMutableData(), [](dnsheader& header) {
       header.tc = true;
@@ -652,6 +650,13 @@ static void handleResponseForUDPClient(InternalQueryState& ids, PacketBuffer& re
   else if (dnsResponse.getHeader()->tc && dnsdist::configuration::getCurrentRuntimeConfiguration().d_truncateTC) {
     truncateTC(response, dnsResponse.getMaximumSize(), dnsResponse.ids.qname.wirelength(), dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses);
   }
+}
+
+static void handleResponseForUDPClient(InternalQueryState& ids, PacketBuffer& response, const std::shared_ptr<DownstreamState>& backend, bool isAsync, bool selfGenerated)
+{
+  DNSResponse dnsResponse(ids, response, backend);
+
+  handleResponseTC4UDPClient(ids.udpPayloadSize, response, dnsResponse);
 
   /* when the answer is encrypted in place, we need to get a copy
      of the original header before encryption to fill the ring buffer */
@@ -1862,6 +1867,15 @@ static void processUDPQuery(ClientState& clientState, const struct msghdr* msgh,
       dnsQuestion.proxyProtocolValues = make_unique<std::vector<ProxyProtocolValue>>(std::move(proxyProtocolValues));
     }
 
+    // save UDP payload size from origin query
+    uint16_t udpPayloadSize = 0;
+    uint16_t zValue = 0;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(query.data()), query.size(), &udpPayloadSize, &zValue);
+    if (udpPayloadSize < 512) {
+      udpPayloadSize = 512;
+    }
+
     std::shared_ptr<DownstreamState> backend{nullptr};
     auto result = processQuery(dnsQuestion, backend);
 
@@ -1882,6 +1896,9 @@ static void processUDPQuery(ClientState& clientState, const struct msghdr* msgh,
       }
 #endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
 #endif /* DISABLE_RECVMMSG */
+      /* ensure payload size is not exceeded */
+      DNSResponse dnsResponse(ids, query, nullptr);
+      handleResponseTC4UDPClient(udpPayloadSize, query, dnsResponse);
       /* we use dest, always, because we don't want to use the listening address to send a response since it could be 0.0.0.0 */
       sendUDPResponse(clientState.udpFD, query, dnsQuestion.ids.delayMsec, dest, remote);
 

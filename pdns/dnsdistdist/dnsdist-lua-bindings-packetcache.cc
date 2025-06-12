@@ -39,6 +39,8 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
     };
     bool cookieHashing = false;
     LuaArray<uint16_t> skipOptions;
+    LuaArray<uint16_t> payloadRanks;
+    std::unordered_set<uint16_t> ranks;
     size_t maximumEntrySize{4096};
 
     getOptionalValue<bool>(vars, "deferrableInsertLock", settings.d_deferrableInsertLock);
@@ -62,6 +64,19 @@ void setupLuaBindingsPacketCache(LuaContext& luaCtx, bool client)
     if (getOptionalValue<decltype(skipOptions)>(vars, "skipOptions", skipOptions) > 0) {
       for (const auto& option : skipOptions) {
         settings.d_optionsToSkip.insert(option.second);
+      }
+    }
+
+    if (getOptionalValue<decltype(payloadRanks)>(vars, "payloadRanks", payloadRanks) > 0) {
+      for (const auto& rank : payloadRanks) {
+        if (rank.second < 512 || rank.second > settings.d_maximumEntrySize) {
+          continue;
+        }
+        ranks.insert(rank.second);
+      }
+      if (!ranks.empty()) {
+        settings.d_payloadRanks.assign(ranks.begin(), ranks.end());
+        std::sort(settings.d_payloadRanks.begin(), settings.d_payloadRanks.end());
       }
     }
 

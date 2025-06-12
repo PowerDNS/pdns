@@ -77,7 +77,9 @@ def is_value_rust_default(rust_type, value):
     if rust_type == 'String':
         return value == ''
     if rust_type == 'Vec<String>':
-        return value == ''
+        return value == '' or value == '[]'
+    if is_vector_of(rust_type):
+        return value == '[]'
     return False
 
 def get_rust_field_name(name):
