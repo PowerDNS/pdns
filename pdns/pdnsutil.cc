@@ -1147,7 +1147,7 @@ static int listZone(const ZoneName &zone) {
     return EXIT_FAILURE;
   }
   if ((di.backend->getCapabilities() & DNSBackend::CAP_LIST) == 0) {
-    cerr << "Backend for zone '" << zone << "' does not support listing its contents," << endl;
+    cerr << "Backend for zone '" << zone << "' does not support listing its contents." << endl;
     return EXIT_FAILURE;
   }
 
@@ -1318,7 +1318,7 @@ static int editZone(const ZoneName &zone, const PDNSColors& col) {
     return EXIT_FAILURE;
   }
   if ((di.backend->getCapabilities() & DNSBackend::CAP_LIST) == 0) {
-    cerr << "Backend for zone '" << zone << "' does not support listing its contents," << endl;
+    cerr << "Backend for zone '" << zone << "' does not support listing its contents." << endl;
     return EXIT_FAILURE;
   }
 
