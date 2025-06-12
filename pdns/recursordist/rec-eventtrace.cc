@@ -90,8 +90,8 @@ std::vector<pdns::trace::Span> RecEventTrace::convertToOT(const Span& span) cons
     if (event.d_start) {
       // It's an open event
       Span work{
-        .name = RecEventTrace::toString(event.d_event),
         .trace_id = span.trace_id,
+        .name = RecEventTrace::toString(event.d_event),
         .start_time_unix_nano = static_cast<uint64_t>(event.d_ts + diff),
         .end_time_unix_nano = static_cast<uint64_t>(event.d_ts + diff), // will be updated when we process the close event
       };

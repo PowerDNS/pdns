@@ -175,6 +175,7 @@ pdns_recursor_SOURCES = \
 	pdns_recursor.cc \
 	pdnsexception.hh \
 	pollmplexer.cc \
+	protozero-trace.cc protozero-trace.hh \
 	protozero.cc protozero.hh \
 	proxy-protocol.cc proxy-protocol.hh \
 	pubsuffix.hh pubsuffix.cc \

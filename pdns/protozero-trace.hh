@@ -137,7 +137,7 @@ T decode(protozero::pbf_reader& reader)
 
 struct ArrayValue
 {
-  std::vector<AnyValue> values; // = 1
+  std::vector<AnyValue> values{}; // = 1
 
   void encode(protozero::pbf_writer& writer) const
   {
@@ -154,7 +154,7 @@ struct ArrayValue
 
 struct KeyValueList
 {
-  std::vector<KeyValue> values; // = 1
+  std::vector<KeyValue> values{}; // = 1
 
   void encode(protozero::pbf_writer& writer) const
   {
@@ -177,10 +177,10 @@ struct AnyValue : public std::variant<char, std::string, bool, int64_t, double, 
 
 struct EntityRef
 {
-  std::string schema_url; // == 1
-  std::string type; // == 2
-  std::vector<std::string> id_keys; // == 3
-  std::vector<std::string> description_keys; // == 4
+  std::string schema_url{}; // == 1
+  std::string type{}; // == 2
+  std::vector<std::string> id_keys{}; // == 3
+  std::vector<std::string> description_keys{}; // == 4
 
   void encode(protozero::pbf_writer& writer) const;
   static EntityRef decode(protozero::pbf_reader& reader);
@@ -188,8 +188,8 @@ struct EntityRef
 
 struct KeyValue
 {
-  std::string key; // = 1
-  AnyValue value; // = 2
+  std::string key{}; // = 1
+  AnyValue value{}; // = 2
   void encode(protozero::pbf_writer& writer) const;
   static KeyValue decode(protozero::pbf_reader& reader);
 
@@ -201,9 +201,9 @@ struct KeyValue
 
 struct Resource
 {
-  std::vector<KeyValue> attributes; // = 1
+  std::vector<KeyValue> attributes{}; // = 1
   uint32_t dropped_attributes_count{0}; // = 2;
-  std::vector<EntityRef> entity_refs; // = 3
+  std::vector<EntityRef> entity_refs{}; // = 3
 
   void encode(protozero::pbf_writer& writer) const;
   static Resource decode(protozero::pbf_reader& reader);
@@ -211,9 +211,9 @@ struct Resource
 
 struct InstrumentationScope
 {
-  std::string name; // = 1
-  std::string version; // = 2
-  std::vector<KeyValue> attributes; // = 3
+  std::string name{}; // = 1
+  std::string version{}; // = 2
+  std::vector<KeyValue> attributes{}; // = 3
   uint32_t dropped_attributes_count{0}; // = 4
 
   void encode(protozero::pbf_writer& writer) const;
@@ -300,7 +300,7 @@ inline SpanID decodeSpanID(protozero::pbf_reader& reader)
 struct Status
 {
   // A developer-facing human readable error message.
-  std::string message; // = 2;
+  std::string message{}; // = 2;
 
   // For the semantics of status codes see
   // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/trace/api.md#set-status
@@ -342,21 +342,21 @@ struct Span
   // is zero-length and thus is also invalid).
   //
   // This field is required.
-  TraceID trace_id; // = 1
+  TraceID trace_id{}; // = 1
   // A unique identifier for a span within a trace, assigned when the span
   // is created. The ID is an 8-byte array. An ID with all zeroes OR of length
   // other than 8 bytes is considered invalid (empty string in OTLP/JSON
   // is zero-length and thus is also invalid).
   //
   // This field is required.
-  SpanID span_id; // = 2
+  SpanID span_id{}; // = 2
   // trace_state conveys information about request position in multiple distributed tracing graphs.
   // It is a trace_state in w3c-trace-context format: https://www.w3.org/TR/trace-context/#tracestate-header
   // See also https://github.com/w3c/distributed-tracing for more details about this field.
-  std::string trace_state; // = 3
+  std::string trace_state{}; // = 3
   // The `span_id` of this span's parent span. If this is a root span, then this
   // field must be empty. The ID is an 8-byte array.
-  SpanID parent_span_id; // = 4
+  SpanID parent_span_id{}; // = 4
   // A description of the span's operation.
   //
   // For example, the name can be a qualified method name or a file name
@@ -368,7 +368,7 @@ struct Span
   // Empty value is equivalent to an unknown span name.
   //
   // This field is required.
-  std::string name; // = 5
+  std::string name{}; // = 5
 
   // SpanKind is the type of span. Can be used to specify additional relationships between spans
   // in addition to a parent/child relationship.
@@ -425,7 +425,7 @@ struct Span
   // https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/common/README.md#attribute
   // Attribute keys MUST be unique (it is not allowed to have more than one
   // attribute with the same key).
-  std::vector<KeyValue> attributes; // = 9
+  std::vector<KeyValue> attributes{}; // = 9
   // dropped_attributes_count is the number of attributes that were discarded. Attributes
   // can be discarded because their keys are too long or because there are too many
   // attributes. If this value is 0, then no attributes were dropped.
@@ -452,7 +452,7 @@ struct Span
     static Event decode(protozero::pbf_reader& reader);
   };
   // events is a collection of Event items.
-  std::vector<Event> events; // = 11
+  std::vector<Event> events{}; // = 11
   // dropped_events_count is the number of dropped events. If the value is 0, then no
   // events were dropped.
   uint32_t dropped_events_count{0}; // = 12
@@ -499,9 +499,9 @@ struct Span
     void encode(protozero::pbf_writer& writer) const;
     static Link decode(protozero::pbf_reader& reader);
   };
-  std::vector<Link> links; // = 13
+  std::vector<Link> links{}; // = 13
   uint32_t dropped_links_count{0}; // = 14
-  Status status; // = 15
+  Status status{}; // = 15
 
   // Flags, a bit field.
   //
@@ -589,15 +589,15 @@ struct ScopeSpans
   // The instrumentation scope information for the spans in this message.
   // Semantically when InstrumentationScope isn't set, it is equivalent with
   // an empty instrumentation scope name (unknown).
-  InstrumentationScope scope; // = 1
+  InstrumentationScope scope{}; // = 1
   // A list of Spans that originate from an instrumentation scope.
-  std::vector<Span> spans; // = 2
+  std::vector<Span> spans{}; // = 2
   // The Schema URL, if known. This is the identifier of the Schema that the span data
   // is recorded in. Notably, the last part of the URL path is the version number of the
   // schema: http[s]://server[:port]/path/<version>. To learn more about Schema URL see
   // https://opentelemetry.io/docs/specs/otel/schemas/#schema-url
   // This schema_url applies to all spans and span events in the "spans" field.
-  std::string schema_url; // = 3
+  std::string schema_url{}; // = 3
 
   void close()
   {
@@ -623,7 +623,7 @@ struct ResourceSpans
   // https://opentelemetry.io/docs/specs/otel/schemas/#schema-url
   // This schema_url applies to the data in the "resource" field. It does not apply
   // to the data in the "scope_spans" field which have their own schema_url field.
-  std::string schema_url; // = 3
+  std::string schema_url{}; // = 3
 
   void close()
   {
@@ -673,7 +673,7 @@ struct TracesData
 
   static TracesData boilerPlate(std::string&& service, std::string&& req, std::vector<Span>&& spans)
   {
-    spans.at(0).attributes.push_back({"value", {req}});
+    spans.at(0).attributes.push_back({"value", {std::move(req)}});
     return TracesData{
       .resource_spans = {pdns::trace::ResourceSpans{.resource = {.attributes = {{"service.name", {{std::move(service)}}}}}, .scope_spans = {{.spans = std::move(spans)}}}}};
   }

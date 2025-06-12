@@ -310,8 +310,8 @@ public:
   private:
     RecEventTrace& d_eventTrace;
     size_t d_oldParent;
-    size_t d_match;
-    EventType d_event;
+    size_t d_match{0};
+    EventType d_event{EventType::CustomEvent};
     bool d_closed{false};
   };
 
