@@ -115,7 +115,7 @@ Handling DNSSEC signed zones
 ----------------------------
 
 To enable DNSSEC processing, the ``backend-dnssec`` option must be set
-to 'yes'.
+to 'yes'. (this is the default)
 
 .. _rules-for-filling-out-dnssec-fields:
 

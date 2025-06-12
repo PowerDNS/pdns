@@ -47,13 +47,11 @@ EOF
         cat > pdns-gsqlite3-master.conf<<EOF
 module-dir=../regression-tests/modules
 launch=gsqlite3
-gsqlite3-dnssec=yes
 gsqlite3-database=master.db
 EOF
         cat > pdns-gsqlite3-slave.conf<<EOF
 module-dir=../regression-tests/modules
 launch=gsqlite3
-gsqlite3-dnssec=yes
 gsqlite3-database=slave.db
 EOF
 	rm -f master.db slave.db

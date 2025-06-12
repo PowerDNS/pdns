@@ -93,7 +93,7 @@ public:
     declare(suffix, "extra-connection-parameters", "Extra parameters to add to connection string", "");
     declare(suffix, "prepared-statements", "Use prepared statements instead of parameterized queries", "yes");
 
-    declare(suffix, "dnssec", "Enable DNSSEC processing", "no");
+    declare(suffix, "dnssec", "Enable DNSSEC processing", "yes");
 
     string record_query = "SELECT content,ttl,prio,type,domain_id,disabled::int,name,auth::int FROM records WHERE";
 

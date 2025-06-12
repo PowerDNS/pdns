@@ -66,7 +66,7 @@ public:
     declare(suffix, "datasource", "Datasource (DSN) to use", "PowerDNS");
     declare(suffix, "username", "User to connect as", "powerdns");
     declare(suffix, "password", "Password to connect with", "");
-    declare(suffix, "dnssec", "Enable DNSSEC processing", "no");
+    declare(suffix, "dnssec", "Enable DNSSEC processing", "yes");
 
     string record_query = "SELECT content,ttl,prio,type,domain_id,disabled,name,auth FROM records WHERE";
 

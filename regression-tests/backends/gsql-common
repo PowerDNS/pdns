@@ -8,9 +8,9 @@ gsql_master()
         real_backend=$(echo $backend | awk -F '_' '{print $1}')
     fi
 
-    if [ $context != ${backend}-nodnssec ]
+    if [ $context == ${backend}-nodnssec ]
     then
-        echo "${real_backend}-dnssec" >> pdns-${backend}.conf
+        echo "${real_backend}-dnssec=no" >> pdns-${backend}.conf
     fi
 
     for zone in $(grep 'zone ' named.conf  | cut -f2 -d\")

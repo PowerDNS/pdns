@@ -8,7 +8,7 @@ Generic MySQL/MariaDB  backend
 * Consumer: Yes
 * Autosecondary: Yes
 * DNS Update: Yes
-* DNSSEC: Yes (set ``gmysql-dnssec``)
+* DNSSEC: Yes
 * Disabled data: Yes
 * Comments: Yes
 * Search: Yes
@@ -134,7 +134,9 @@ The password to for :ref:`setting-gmysql-user`.
 ``gmysql-dnssec``
 ^^^^^^^^^^^^^^^^^
 
-Enable DNSSEC processing for this backend. Default: no.
+.. versionchanged:: 5.0.0
+
+Enable DNSSEC processing for this backend. Default: yes.
 
 .. _setting-gmysql-innodb-read-committed:
 

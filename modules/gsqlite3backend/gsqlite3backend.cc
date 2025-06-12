@@ -79,7 +79,7 @@ public:
     declare(suffix, "pragma-foreign-keys", "Enable foreign key constraints", "no");
     declare(suffix, "pragma-journal-mode", "SQLite3 journal mode", "WAL");
 
-    declare(suffix, "dnssec", "Enable DNSSEC processing", "no");
+    declare(suffix, "dnssec", "Enable DNSSEC processing", "yes");
 
     string record_query = "SELECT content,ttl,prio,type,domain_id,disabled,name,auth FROM records WHERE";
 

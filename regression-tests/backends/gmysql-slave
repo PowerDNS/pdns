@@ -23,9 +23,9 @@ gmysql-password=$GMYSQL2PASSWD
 zone-cache-refresh-interval=0
 __EOF__
 
-	if [[ $context != *nodnssec* ]]
+	if [[ $context == *nodnssec* ]]
 	then
-		echo "gmysql-dnssec" >> pdns-gmysql2.conf
+		echo "gmysql-dnssec=no" >> pdns-gmysql2.conf
 	fi
 
 	zones=0

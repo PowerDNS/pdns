@@ -101,7 +101,9 @@ Enable foreign key constraints.
 ``gsqlite3-dnssec``
 ~~~~~~~~~~~~~~~~~~~
 
-Enable DNSSEC processing.
+.. versionchanged:: 5.0.0
+
+Enable DNSSEC processing for this backend. Default: yes.
 
 Using the SQLite backend
 ------------------------

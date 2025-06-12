@@ -8,7 +8,7 @@ Generic PostgreSQL backend
 * Consumer: Yes
 * Autosecondary: Yes
 * DNS Update: Yes
-* DNSSEC: Yes (set ``gpgsql-dnssec``)
+* DNSSEC: Yes
 * Disabled data: Yes
 * Comments: Yes
 * Search: Yes
@@ -83,7 +83,9 @@ The password to for :ref:`setting-gpgsql-user`. Default: not set.
 ``gpgsql-dnssec``
 ^^^^^^^^^^^^^^^^^
 
-Enable DNSSEC processing for this backend. Default: no.
+.. versionchanged:: 5.0.0
+
+Enable DNSSEC processing for this backend. Default: yes.
 
 .. _setting-gpgsql-extra-connection-parameters:
 

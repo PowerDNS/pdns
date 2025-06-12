@@ -16,9 +16,9 @@ gpgsql-user=$GPGSQL2USER
 zone-cache-refresh-interval=120
 __EOF__
 
-	if [[ $context != *nodnssec* ]]
+	if [[ $context == *nodnssec* ]]
 	then
-		echo "gpgsql-dnssec" >> pdns-gpgsql2.conf
+		echo "gpgsql-dnssec=no" >> pdns-gpgsql2.conf
 	fi
 
 	for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | perl -e 'print reverse <STDIN>')

@@ -25,7 +25,6 @@ distributor-threads=1"""
 launch=gsqlite3
 gsqlite3-database=configs/auth/powerdns.sqlite
 gsqlite3-pragma-foreign-keys=yes
-gsqlite3-dnssec=yes
 enable-gss-tsig=yes
 allow-dnsupdate-from=0.0.0.0/0
 dnsupdate=yes
@@ -98,7 +97,6 @@ class TestBasicGSSTSIG(GSSTSIGBase):
 launch=gsqlite3
 gsqlite3-database=configs/auth/powerdns.sqlite
 gsqlite3-pragma-foreign-keys=yes
-gsqlite3-dnssec=yes
 enable-gss-tsig=yes
 allow-dnsupdate-from=0.0.0.0/0
 dnsupdate=yes
@@ -130,7 +128,6 @@ class TestLuaGSSTSIG(GSSTSIGBase):
 launch=gsqlite3
 gsqlite3-database=configs/auth/powerdns.sqlite
 gsqlite3-pragma-foreign-keys=yes
-gsqlite3-dnssec=yes
 enable-gss-tsig=yes
 allow-dnsupdate-from=0.0.0.0/0
 dnsupdate=yes
@@ -163,7 +160,6 @@ class TestUnauthTSIG(GSSTSIGBase):
 launch=gsqlite3
 gsqlite3-database=configs/auth/powerdns.sqlite
 gsqlite3-pragma-foreign-keys=yes
-gsqlite3-dnssec=yes
 enable-gss-tsig=no
 allow-dnsupdate-from=0.0.0.0/0
 dnsupdate=yes
@@ -179,7 +175,6 @@ class TestAuthTSIG(GSSTSIGBase):
 launch=gsqlite3
 gsqlite3-database=configs/auth/powerdns.sqlite
 gsqlite3-pragma-foreign-keys=yes
-gsqlite3-dnssec=yes
 enable-gss-tsig=no
 allow-dnsupdate-from=0.0.0.0/0
 dnsupdate=yes
@@ -195,7 +190,6 @@ class TestBasicRequiredGSSTSIG(GSSTSIGBase):
 launch=gsqlite3
 gsqlite3-database=configs/auth/powerdns.sqlite
 gsqlite3-pragma-foreign-keys=yes
-gsqlite3-dnssec=yes
 enable-gss-tsig=yes
 allow-dnsupdate-from=0.0.0.0/0
 dnsupdate=yes

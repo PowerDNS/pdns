@@ -17,7 +17,6 @@ __EOF__
 cat > pdns-gsqlite3.conf << __EOF__
 launch=gsqlite3
 gsqlite3-database=pdns.sqlite3
-gsqlite3-dnssec
 module-dir=../regression-tests/modules
 __EOF__
 

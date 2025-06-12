@@ -85,7 +85,7 @@ public:
     declare(suffix, "thread-cleanup", "Explicitly call mysql_thread_end() when threads end", "no");
     declare(suffix, "ssl", "Send the SSL capability flag to the server", "no");
 
-    declare(suffix, "dnssec", "Enable DNSSEC processing", "no");
+    declare(suffix, "dnssec", "Enable DNSSEC processing", "yes");
 
     string record_query = "SELECT content,ttl,prio,type,domain_id,disabled,name,auth FROM records WHERE";
 

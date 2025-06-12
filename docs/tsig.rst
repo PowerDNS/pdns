@@ -15,9 +15,6 @@ The content is a Base64-encoded secret.
 
 .. note::
   Most backends require DNSSEC support to be enabled to support TSIG.
-  For the Generic SQL Backend, make sure to use the DNSSEC-enabled schema
-  and to turn on the relevant ``-dnssec`` flag (for example,
-  ``gmysql-dnssec``)!
 
 Provisioning outbound AXFR access
 ---------------------------------

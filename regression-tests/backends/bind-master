@@ -45,7 +45,6 @@ gmysql-dbname=$GMYSQLDB
 gmysql-user=$GMYSQLUSER
 gmysql-host=$GMYSQLHOST
 gmysql-password=$GMYSQLPASSWD
-gmysql-dnssec
 zone-cache-refresh-interval=0
 __EOF__
         else
