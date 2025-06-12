@@ -744,7 +744,7 @@ Packet-cache settings
 - **cookie_hashing**: Boolean ``(false)`` - If true, EDNS Cookie values will be hashed, resulting in separate entries for different cookies in the packet cache. This is required if the backend is sending answers with EDNS Cookies, otherwise a client might receive an answer with the wrong cookie
 - **maximum_entry_size**: Unsigned integer ``(4096)`` - The maximum size, in bytes, of a DNS packet that can be inserted into the packet cache
 - **options_to_skip**: Sequence of String ``("")`` - Extra list of EDNS option codes to skip when hashing the packet (if ``cookie_hashing`` above is false, EDNS cookie option number will be added to this list internally)
-- **payload_ranks**: Sequence of Unsigned integer ``([])`` - List of payload size used when hashing the packet. The list will be sorted in ascend order and searched to find a lower bound value for the payload size in the packet. If found then it will be used for packet hashing. Values less than 512 or greater than ``maximum_entry_size`` above will be discarded. This option is to enable cache entry sharing between clients using different payload sizes when needed
+- **payload_ranks**: Sequence of Unsigned integer ``([])`` - List of payload size used when hashing the packet. The list will be sorted in ascending order and searched to find a lower bound value for the payload size in the packet. If found then it will be used for packet hashing. Values less than 512 or greater than ``maximum_entry_size`` above will be discarded. This option is to enable cache entry sharing between clients using different payload sizes when needed
 
 
 .. _yaml-settings-PoolConfiguration:
