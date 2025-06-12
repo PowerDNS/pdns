@@ -470,6 +470,7 @@ DNSName PacketReader::getName()
   throw PDNSException("PacketReader::getName(): name is empty");
 }
 
+// FIXME see #6010 and #3503 if you want a proper solution
 string txtEscape(const string &name)
 {
   string ret;
