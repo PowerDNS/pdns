@@ -298,13 +298,15 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
             ]
         }
         payload = {'rrsets': [rrset]}
-        self.session.patch(
+        r = self.session.patch(
             self.url("/api/v1/servers/localhost/zones/" + data['id']),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         data = self.get_zone(data['id'])
         soa_serial = get_first_rec(data, name, 'SOA')['content'].split(' ')[2]
         self.assertEqual(soa_serial[-2:], '02')
+        self.assertEqual(r.headers['X-PDNS-Old-Serial'][-2:], '01')
+        self.assertEqual(r.headers['X-PDNS-New-Serial'][-2:], '02')
 
     def test_create_zone_with_records(self):
         name = unique_zone_name()
