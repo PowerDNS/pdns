@@ -1543,6 +1543,23 @@ static void apiZoneCryptokeysPUT(HttpRequest* req, HttpResponse* resp)
     }
   }
 
+  // Increase zone serial if configured to do so and this is a primary zone,
+  // since we have either {de,}activated or {un,}published a key.
+  if (zoneData.domainInfo.isPrimaryType()) {
+    UeberBackend backend;
+    SOAData soaData;
+    bool zone_disabled = !backend.getSOAUncached(zoneData.zoneName, soaData);
+
+    if (!zone_disabled) {
+      string soa_edit_api_kind;
+      string soa_edit_kind;
+
+      zoneData.domainInfo.backend->getDomainMetadataOne(zoneData.zoneName, "SOA-EDIT-API", soa_edit_api_kind);
+      zoneData.domainInfo.backend->getDomainMetadataOne(zoneData.zoneName, "SOA-EDIT", soa_edit_kind);
+      updateZoneSerial(zoneData.domainInfo, soaData, soa_edit_api_kind, soa_edit_kind);
+    }
+  }
+
   resp->body = "";
   resp->status = 204;
 }
