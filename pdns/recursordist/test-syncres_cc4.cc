@@ -466,6 +466,48 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig)
   BOOST_CHECK_EQUAL(validationContext.d_validationsCounter, 1U);
 }
 
+BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_future)
+{
+  initSR();
+
+  auto dcke = DNSCryptoKeyEngine::make(DNSSECKeeper::ECDSA256);
+  dcke->create(dcke->getBits());
+  DNSSECPrivateKey dpk;
+  dpk.setKey(std::move(dcke), 256);
+
+  sortedRecords_t recordcontents;
+  recordcontents.insert(getRecordContent(QType::A, "192.0.2.1"));
+
+  DNSName qname("powerdns.com.");
+
+  time_t inception = 0xf0000000U;
+  auto validity = 0xffffffffU;
+  RRSIGRecordContent rrc;
+  computeRRSIG(dpk, qname, qname, QType::A, 600, validity, rrc, recordcontents, boost::none, inception, 0);
+
+  skeyset_t keyset;
+  keyset.insert(std::make_shared<DNSKEYRecordContent>(dpk.getDNSKEY()));
+
+  std::vector<std::shared_ptr<const RRSIGRecordContent>> sigs;
+  sigs.push_back(std::make_shared<RRSIGRecordContent>(rrc));
+
+  pdns::validation::ValidationContext validationContext;
+  time_t now = 0xe0000000;
+  // Case 1:  current time before inception
+  BOOST_CHECK(validateWithKeySet(now, qname, recordcontents, sigs, keyset, std::nullopt, validationContext) == vState::BogusSignatureNotYetValid);
+  BOOST_CHECK_EQUAL(validationContext.d_validationsCounter, 0U);
+
+  // Case 2: we're in Jan 1970
+  now = 1; // Both inception and expiry are in the past (1969)
+  BOOST_CHECK(validateWithKeySet(now, qname, recordcontents, sigs, keyset, std::nullopt, validationContext) == vState::BogusSignatureExpired);
+  BOOST_CHECK_EQUAL(validationContext.d_validationsCounter, 0U);
+
+  // Case 3: we're in 2038
+  now = 0xffff0001; // should be ok, we're inside validity
+  BOOST_CHECK(validateWithKeySet(now, qname, recordcontents, sigs, keyset, std::nullopt, validationContext) == vState::Secure);
+  BOOST_CHECK_EQUAL(validationContext.d_validationsCounter, 1U);
+}
+
 BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_extreme_timestamps)
 {
   initSR();
@@ -493,7 +535,18 @@ BOOST_AUTO_TEST_CASE(test_dnssec_rrsig_extreme_timestamps)
 
   pdns::validation::ValidationContext validationContext;
   time_t now = time(nullptr);
+  // Case 1: interpretion depends on current time, test below will start to fail around 1970 + 68 = 2038 as it wil be interpeted as the 3rd case
   BOOST_CHECK(validateWithKeySet(now, qname, recordcontents, sigs, keyset, std::nullopt, validationContext) == vState::BogusSignatureExpired);
+  BOOST_CHECK_EQUAL(validationContext.d_validationsCounter, 0U);
+
+  // Case 2: we're in Jan 1970
+  now = 1; // sig inception is OK, but expiry is in 1969: not valid
+  BOOST_CHECK(validateWithKeySet(now, qname, recordcontents, sigs, keyset, std::nullopt, validationContext) == vState::BogusSignatureExpired);
+  BOOST_CHECK_EQUAL(validationContext.d_validationsCounter, 0U);
+
+  // Case 3: we're in 2038
+  now = 0xffff0000; // inception (0) wil be interpreted as being in the future
+  BOOST_CHECK(validateWithKeySet(now, qname, recordcontents, sigs, keyset, std::nullopt, validationContext) == vState::BogusSignatureNotYetValid);
   BOOST_CHECK_EQUAL(validationContext.d_validationsCounter, 0U);
 }
 
