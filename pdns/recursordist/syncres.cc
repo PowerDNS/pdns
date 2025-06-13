@@ -896,6 +896,7 @@ bool SyncRes::doSpecialNamesResolve(const DNSName& qname, const QType qtype, con
         ans << "\"";
         answers.emplace_back(QType::TXT, ans.str());
       }
+      d_wasVariable = true;
     }
   }
 
@@ -908,11 +909,12 @@ bool SyncRes::doSpecialNamesResolve(const DNSName& qname, const QType qtype, con
         ans << "\"";
         ans << negAnchor.first.toString(); // Explicit toString to have a trailing dot
         if (negAnchor.second.length() != 0) {
-          ans << " " << negAnchor.second;
+          ans << " " << txtEscape(negAnchor.second);
         }
         ans << "\"";
         answers.emplace_back(QType::TXT, ans.str());
       }
+      d_wasVariable = true;
     }
   }
 
