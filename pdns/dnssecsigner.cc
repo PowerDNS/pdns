@@ -37,7 +37,7 @@ extern StatBag S;
 
 using signaturecache_t = map<pair<string, string>, string>;
 static SharedLockGuarded<signaturecache_t> g_signatures;
-static int g_cacheweekno;
+static time_t g_cacheweekno;
 
 const static std::set<uint16_t> g_KSKSignedQTypes {QType::DNSKEY, QType::CDS, QType::CDNSKEY};
 AtomicCounter* g_signatureCount;
@@ -65,11 +65,12 @@ static std::string getLookupKeyFromPublicKey(const std::string& pubKey)
 
 static void fillOutRRSIG(DNSSECPrivateKey& dpk, const DNSName& signQName, RRSIGRecordContent& rrc, const sortedRecords_t& toSign)
 {
-  if(!g_signatureCount)
+  if (g_signatureCount == nullptr) {
     g_signatureCount = S.getPointer("signatures");
+  }
 
   DNSKEYRecordContent drc = dpk.getDNSKEY();
-  const std::shared_ptr<DNSCryptoKeyEngine>& rc = dpk.getKey();
+  const std::shared_ptr<DNSCryptoKeyEngine>& engine = dpk.getKey();
   rrc.d_tag = drc.getTag();
   rrc.d_algorithm = drc.d_algorithm;
 
@@ -79,28 +80,30 @@ static void fillOutRRSIG(DNSSECPrivateKey& dpk, const DNSName& signQName, RRSIGR
   bool doCache = true;
   if (doCache) {
     auto signatures = g_signatures.read_lock();
-    signaturecache_t::const_iterator iter = signatures->find(lookup);
-    if (iter != signatures->end()) {
+    if (const auto iter = signatures->find(lookup); iter != signatures->end()) {
       rrc.d_signature=iter->second;
       return;
     }
     // else cerr<<"Miss!"<<endl;
   }
 
-  rrc.d_signature = rc->sign(msg);
+  rrc.d_signature = engine->sign(msg);
   (*g_signatureCount)++;
   if(doCache) {
     /* we add some jitter here so not all your secondaries start pruning their caches at the very same millisecond */
-    int weekno = (time(nullptr) - dns_random(3600)) / (86400*7);  // we just spent milliseconds doing a signature, microsecond more won't kill us
+    time_t weekno = (time(nullptr) - dns_random(3600)) / static_cast<time_t>(86400*7);  // we just spent milliseconds doing a signature, microsecond more won't kill us
     const static int maxcachesize=::arg().asNum("max-signature-cache-entries", INT_MAX);
 
-    auto signatures = g_signatures.write_lock();
-    if (g_cacheweekno < weekno || signatures->size() >= (uint) maxcachesize) {  // blunt but effective (C) Habbie, mind04
-      g_log<<Logger::Warning<<"Cleared signature cache."<<endl;
-      signatures->clear();
-      g_cacheweekno = weekno;
+    signaturecache_t oldsigs;
+    {
+      auto signatures = g_signatures.write_lock();
+      if (g_cacheweekno < weekno || signatures->size() >= (uint) maxcachesize) {  // blunt but effective (C) Habbie, mind04
+        g_log<<Logger::Warning<<"Cleared signature cache."<<endl;
+        std::swap(oldsigs, *signatures);
+        g_cacheweekno = weekno;
+      }
+      (*signatures)[lookup] = rrc.d_signature;
     }
-    (*signatures)[lookup] = rrc.d_signature;
   }
 }
 
