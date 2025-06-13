@@ -1003,3 +1003,142 @@ class TestRoutingLuaFFILBNoServer(DNSDistTest):
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEqual(expectedResponse, receivedResponse)
+
+
+class QueryCounter:
+
+    def __init__(self, name):
+        self.name = name
+        self.qcnt = 0
+
+    def __call__(self):
+        return self.qcnt
+
+    def reset(self):
+        self.qcnt = 0
+
+    def create_cb(self):
+        def callback(request):
+            self.qcnt += 1
+            response = dns.message.make_response(request)
+            rrset = dns.rrset.from_text(request.question[0].name,
+                                3600,
+                                dns.rdataclass.IN,
+                                dns.rdatatype.A,
+                                '127.0.0.1')
+            response.answer.append(rrset)
+            return response.to_wire()
+        return callback
+
+class TestRoutingOrderedWRandUntag(DNSDistTest):
+
+    _queryCounts = {}
+
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+    _testServer1Port = pickAvailablePort()
+    _testServer2Port = pickAvailablePort()
+    _testServer3Port = pickAvailablePort()
+    _testServer4Port = pickAvailablePort()
+    _serverPorts = [_testServer1Port, _testServer2Port, _testServer3Port, _testServer4Port]
+    _config_params = ['_consoleKeyB64', '_consolePort', '_testServer1Port', '_testServer2Port', '_testServer3Port', '_testServer4Port']
+    _config_template = """
+    setKey("%s")
+    controlSocket("127.0.0.1:%d")
+    setServerPolicy(orderedWrandUntag)
+    s11 = newServer{name="s11", address="127.0.0.1:%s", order=1, weight=1}
+    s11:setUp()
+    s12 = newServer{name="s12", address="127.0.0.1:%s", order=1, weight=2}
+    s12:setUp()
+    s21 = newServer{name="s21", address="127.0.0.1:%s", order=2, weight=1}
+    s21:setUp()
+    s22 = newServer{name="s22", address="127.0.0.1:%s", order=2, weight=2}
+    s22:setUp()
+    function setServerDown(name)
+        for _, s in ipairs(getServers()) do
+            if s.name == name then
+                s:setDown()
+            end
+        end
+    end
+    """
+
+    @classmethod
+    def startResponders(cls):
+        print("Launching responders..")
+
+        for i, name in enumerate(['s11', 's12', 's21', 's22']):
+            cls._queryCounts[name] = QueryCounter(name)
+            cb = cls._queryCounts[name].create_cb()
+            responder = threading.Thread(name=name, target=cls.UDPResponder, args=[cls._serverPorts[i], cls._toResponderQueue, cls._fromResponderQueue, False, cb])
+            responder.daemon = True
+            responder.start()
+
+    def setDown(self, name):
+        self.sendConsoleCommand("setServerDown('{}')".format(name))
+
+    def testDefault(self):
+        """
+        Routing: orderedWrandUntag
+
+        Send multiple A queries to "ordered.wrand.routing.tests.powerdns.com.",
+        check that dnsdist routes based on order first then weighted.
+        """
+        numberOfQueries = 100
+        name = 'ordered.wrand.routing.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        expectedResponse = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        expectedResponse.answer.append(rrset)
+
+        # send 100 queries
+        for _ in range(numberOfQueries):
+            (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+            self.assertTrue(receivedResponse)
+            self.assertEqual(expectedResponse, receivedResponse)
+
+        # Only order 1 servers get queries and weighted
+        self.assertGreater(self._queryCounts['s12'](),  numberOfQueries * 0.50)
+        self.assertLess(self._queryCounts['s11'](),  numberOfQueries * 0.50)
+        self.assertEqual(self._queryCounts['s21'](),  0)
+        self.assertEqual(self._queryCounts['s22'](),  0)
+
+        # reset counters
+        for name in ['s11', 's12', 's21', 's22']:
+            self._queryCounts[name].reset()
+
+        self.setDown('s11')
+
+        # send 100 queries
+        for _ in range(numberOfQueries):
+            (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+            self.assertTrue(receivedResponse)
+            self.assertEqual(expectedResponse, receivedResponse)
+
+        # queries shall arrive 's12' only
+        self.assertEqual(self._queryCounts['s11'](),  0)
+        self.assertEqual(self._queryCounts['s12'](),  numberOfQueries)
+        self.assertEqual(self._queryCounts['s21'](),  0)
+        self.assertEqual(self._queryCounts['s22'](),  0)
+
+        # reset counters
+        for name in ['s11', 's12', 's21', 's22']:
+            self._queryCounts[name].reset()
+
+        self.setDown('s12')
+
+        # send 100 queries
+        for _ in range(numberOfQueries):
+            (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+            self.assertTrue(receivedResponse)
+            self.assertEqual(expectedResponse, receivedResponse)
+
+        # queries now shall be sent to order 2 servers and weighted
+        self.assertEqual(self._queryCounts['s11'](),  0)
+        self.assertEqual(self._queryCounts['s12'](),  0)
+        self.assertLess(self._queryCounts['s21'](),  numberOfQueries * 0.50)
+        self.assertGreater(self._queryCounts['s22'](),  numberOfQueries * 0.50)

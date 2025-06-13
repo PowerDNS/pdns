@@ -34,6 +34,9 @@ class ServerPolicy
 {
 public:
   template <class T>
+  using Numbered = std::pair<unsigned int, T>;
+  using NumberedServer = Numbered<shared_ptr<DownstreamState>>;
+  template <class T>
   using NumberedVector = std::vector<std::pair<unsigned int, T>>;
   using NumberedServerVector = NumberedVector<shared_ptr<DownstreamState>>;
   using policyfunc_t = std::function<std::shared_ptr<DownstreamState>(const NumberedServerVector& servers, const DNSQuestion*)>;
@@ -106,6 +109,7 @@ std::shared_ptr<DownstreamState> whashedFromHash(const ServerPolicy::NumberedSer
 std::shared_ptr<DownstreamState> chashed(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq);
 std::shared_ptr<DownstreamState> chashedFromHash(const ServerPolicy::NumberedServerVector& servers, size_t hash);
 std::shared_ptr<DownstreamState> roundrobin(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq);
+std::shared_ptr<DownstreamState> orderedWrandUntag(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq);
 
 #include <unordered_map>
 

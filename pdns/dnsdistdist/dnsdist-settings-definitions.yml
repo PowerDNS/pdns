@@ -1349,7 +1349,7 @@ backend:
     - name: "weight"
       type: "u32"
       default: 1
-      description: "The weight of this server, used by the `wrandom`, `whashed` and `chashed` policies, default: 1. Supported values are a minimum of 1, and a maximum of 2147483647"
+      description: "The weight of this server, used by the `wrandom`, `whashed`, `chashed` and `orderedWrandUntag` policies, default: 1. Supported values are a minimum of 1, and a maximum of 2147483647"
     - name: "udp_timeout"
       type: "u8"
       default: 0
@@ -2079,7 +2079,7 @@ load_balancing_policies:
       lua-name: "setWeightedBalancingFactor"
       internal-field-name: "d_weightedBalancingFactor"
       runtime-configurable: false
-      description: "Set the maximum imbalance between the number of outstanding queries intended for a given server, based on its weight, and the actual number, when using the ``whashed`` or ``wrandom`` load-balancing policy. Default is 0, which disables the bounded-load algorithm"
+      description: "Set the maximum imbalance between the number of outstanding queries intended for a given server, based on its weight, and the actual number, when using the ``whashed`` or ``wrandom`` or ``orderedWrandUntag`` load-balancing policy. Default is 0, which disables the bounded-load algorithm"
     - name: "consistent_hashing_balancing_factor"
       type: "f64"
       default: 0.0
