@@ -61,6 +61,7 @@ cookie *COOKIE*
     if *COOKIE* is ``-`` send a random client cookie. Otherwise send the given cookie, which should be a hex string received from a server earlier.
 traceid *TraceID*
     include a TraceID and an empty SpanID value into the EDNS data. If TraceID is ``-``, a random TraceID is generated, otherwise it is a hex string.
+    
 Examples
 --------
 

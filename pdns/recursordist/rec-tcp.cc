@@ -307,8 +307,8 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
   boost::optional<uint32_t> ednsVersion;
 
   comboWriter->d_eventTrace.setEnabled(SyncRes::s_event_trace_enabled != 0);
-  // evenTrace use monotonic time, while OpenTelemetry uses absolute time. setEnabled()
-  // estabslished the reference point, get an absolute TS as close as possible to the
+  // eventTrace uses monotonic time, while OpenTelemetry uses absolute time. setEnabled()
+  // established the reference point, get an absolute TS as close as possible to the
   // eventTrace start of trace time.
   auto traceTS = pdns::trace::timestamp();
   comboWriter->d_eventTrace.add(RecEventTrace::ReqRecv);

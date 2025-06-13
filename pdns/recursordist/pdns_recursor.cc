@@ -2487,8 +2487,8 @@ static void handleNewUDPQuestion(int fileDesc, FDMultiplexer::funcparam_t& /* va
     if (ssize_t len = recvmsg(fileDesc, &msgh, 0); len >= 0) {
       eventTrace.clear();
       eventTrace.setEnabled(SyncRes::s_event_trace_enabled != 0);
-      // evenTrace use monotonic time, while OpenTelemetry uses absolute time. setEnabled()
-      // estabslished the reference point, get an absolute TS as close as possible to the
+      // eventTrace uses monotonic time, while OpenTelemetry uses absolute time. setEnabled()
+      // established the reference point, get an absolute TS as close as possible to the
       // eventTrace start of trace time.
       auto traceTS = pdns::trace::timestamp();
       eventTrace.add(RecEventTrace::ReqRecv);

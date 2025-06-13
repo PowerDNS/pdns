@@ -64,9 +64,9 @@ static void addValue(const RecEventTrace::Entry& event, Span& work)
 }
 
 // The event trace uses start-stop records which need to be mapped to opentrace spans, which is a
-// list of spans. Spans can refer to other spand as their parent.  I have the feeling this code is
-// to complex and a brittle. Maybe we should add some extra info to the event trace records to make
-// is easier to map the event trace list to the open trace list of spans.
+// list of spans. Spans can refer to other spans as their parent.  I have the feeling this code is
+// too complex and brittle. Maybe we should add some extra info to the event trace records to make
+// it easier to map the event trace list to the open trace list of spans.
 std::vector<pdns::trace::Span> RecEventTrace::convertToOT(const Span& span) const
 {
   timespec realtime{};
@@ -79,7 +79,7 @@ std::vector<pdns::trace::Span> RecEventTrace::convertToOT(const Span& span) cons
   std::vector<pdns::trace::Span> ret;
   ret.reserve((d_events.size() / 2) + 1);
 
-  // The parent of all Span
+  // The parent of all Spans
   ret.emplace_back(span);
 
   std::vector<SpanID> spanIDs; // mapping of span index in ret vector to SpanID
