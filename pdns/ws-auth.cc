@@ -20,6 +20,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include "dnsbackend.hh"
+#include "iputils.hh"
 #include "webserver.hh"
 #include <array>
 #include <string_view>
@@ -2772,7 +2773,12 @@ static void apiServerNetworksGET(HttpRequest* req, HttpResponse* resp)
   if (req->parameters.count("ip") != 0 && req->parameters.count("prefixlen") != 0) {
     std::string subnet{req->parameters["ip"]};
     std::string prefixlen{req->parameters["prefixlen"]};
-    network = subnet + "/" + prefixlen;
+    try {
+      network = subnet + "/" + prefixlen;
+    }
+    catch (NetmaskException& e) {
+      throw ApiException(e.reason);
+    }
   }
 
   UeberBackend backend;
@@ -2804,7 +2810,13 @@ static void apiServerNetworksPUT(HttpRequest* req, HttpResponse* resp)
 {
   std::string subnet{req->parameters["ip"]};
   std::string prefixlen{req->parameters["prefixlen"]};
-  Netmask network(subnet + "/" + prefixlen);
+  Netmask network;
+  try {
+    network = subnet + "/" + prefixlen;
+  }
+  catch (NetmaskException& e) {
+    throw ApiException(e.reason);
+  }
 
   const auto& document = req->json();
   std::string view = stringFromJson(document, "view");
