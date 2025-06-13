@@ -17,11 +17,6 @@ using std::runtime_error;
 using std::tuple;
 using std::weak_ptr;
 
-static string MDBError(int rc)
-{
-  return mdb_strerror(rc);
-}
-
 #ifndef DNSDIST
 
 namespace LMDBLS {
@@ -261,8 +256,9 @@ MDB_txn *MDBRWTransactionImpl::openRWTransaction(MDBEnv *env, MDB_txn *parent, i
     throw std::runtime_error("Duplicate RW transaction");
   }
 
-  if(int rc=mdb_txn_begin(env->d_env, parent, flags, &result))
-    throw std::runtime_error("Unable to start RW transaction: "+std::string(mdb_strerror(rc)));
+  if(int retCode=mdb_txn_begin(env->d_env, parent, flags, &result); retCode != 0) {
+    throw std::runtime_error("Unable to start RW transaction: "+MDBError(retCode));
+  }
 
   env->incRWTX();
   return result;
@@ -292,8 +288,8 @@ void MDBRWTransactionImpl::commit()
     return;
   }
 
-  if(int rc = mdb_txn_commit(d_txn)) {
-    throw std::runtime_error("committing: " + std::string(mdb_strerror(rc)));
+  if(int retCode = mdb_txn_commit(d_txn); retCode != 0) {
+    throw std::runtime_error("committing: " + MDBError(retCode));
   }
   environment().decRWTX();
   d_txn = nullptr;
@@ -329,8 +325,9 @@ MDB_txn *MDBROTransactionImpl::openROTransaction(MDBEnv *env, MDB_txn *parent, i
     A transaction and its cursors must only be used by a single thread, and a thread may only have a single transaction at a time. If MDB_NOTLS is in use, this does not apply to read-only transactions. */
   MDB_txn *result = nullptr;
 
-  if(int rc=mdb_txn_begin(env->d_env, parent, MDB_RDONLY | flags, &result))
-    throw std::runtime_error("Unable to start RO transaction: "+string(mdb_strerror(rc)));
+  if(int retCode=mdb_txn_begin(env->d_env, parent, MDB_RDONLY | flags, &result); retCode != 0) {
+    throw std::runtime_error("Unable to start RO transaction: "+MDBError(retCode));
+  }
 
   env->incROTX();
 
@@ -385,8 +382,8 @@ void MDBROTransactionImpl::commit()
 
 void MDBRWTransactionImpl::clear(MDB_dbi dbi)
 {
-  if(int rc = mdb_drop(d_txn, dbi, 0)) {
-    throw runtime_error("Error clearing database: " + MDBError(rc));
+  if(int retCode = mdb_drop(d_txn, dbi, 0); retCode != 0) {
+    throw runtime_error("Error clearing database: " + MDBError(retCode));
   }
 }
 
@@ -394,8 +391,8 @@ MDBRWCursor MDBRWTransactionImpl::getRWCursor(const MDBDbi& dbi)
 {
   MDB_cursor *cursor;
   int rc= mdb_cursor_open(d_txn, dbi, &cursor);
-  if(rc) {
-    throw std::runtime_error("Error creating RW cursor: "+std::string(mdb_strerror(rc)));
+  if(rc != 0) {
+    throw std::runtime_error("Error creating RW cursor: "+MDBError(rc));
   }
 
   return MDBRWCursor(d_rw_cursors, cursor, d_txn, d_txtime);
@@ -409,8 +406,8 @@ MDBRWCursor MDBRWTransactionImpl::getCursor(const MDBDbi &dbi)
 MDBRWTransaction MDBRWTransactionImpl::getRWTransaction()
 {
   MDB_txn *txn;
-  if (int rc = mdb_txn_begin(environment(), *this, 0, &txn)) {
-    throw std::runtime_error(std::string("failed to start child transaction: ")+mdb_strerror(rc));
+  if (int retCode = mdb_txn_begin(environment(), *this, 0, &txn); retCode != 0) {
+    throw std::runtime_error(std::string("failed to start child transaction: ")+MDBError(retCode));
   }
   // we need to increase the counter here because commit/abort on the child transaction will decrease it
   environment().incRWTX();
@@ -450,8 +447,8 @@ MDBROCursor MDBROTransactionImpl::getROCursor(const MDBDbi &dbi)
 {
   MDB_cursor *cursor;
   int rc= mdb_cursor_open(d_txn, dbi, &cursor);
-  if(rc) {
-    throw std::runtime_error("Error creating RO cursor: "+std::string(mdb_strerror(rc)));
+  if(rc != 0) {
+    throw std::runtime_error("Error creating RO cursor: "+MDBError(rc));
   }
   return MDBROCursor(d_cursors, cursor);
 }
