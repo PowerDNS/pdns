@@ -127,7 +127,7 @@ AuthZoneCache g_zoneCache;
 std::unique_ptr<DNSProxy> DP{nullptr};
 static std::unique_ptr<DynListener> s_dynListener{nullptr};
 CommunicatorClass Communicator;
-static double avg_latency{0.0}, receive_latency{0.0}, cache_latency{0.0}, backend_latency{0.0}, send_latency{0.0};
+static std::atomic<double> avg_latency{0.0}, receive_latency{0.0}, cache_latency{0.0}, backend_latency{0.0}, send_latency{0.0};
 static unique_ptr<TCPNameserver> s_tcpNameserver{nullptr};
 static vector<DNSDistributor*> s_distributors;
 static shared_ptr<UDPNameserver> s_udpNameserver{nullptr};
@@ -523,6 +523,12 @@ static int isGuarded(char** argv)
   return !!p;
 }
 
+static void update_latencies(int start, int diff)
+{
+  send_latency = 0.999 * send_latency + 0.001 * std::max(diff - start, 0);
+  avg_latency = 0.999 * avg_latency + 0.001 * std::max(diff, 0); // 'EWMA'
+}
+
 static void sendout(std::unique_ptr<DNSPacket>& a, int start)
 {
   if (!a)
@@ -536,9 +542,7 @@ static void sendout(std::unique_ptr<DNSPacket>& a, int start)
     s_udpNameserver->send(*a);
 
     diff = a->d_dt.udiff();
-    send_latency = 0.999 * send_latency + 0.001 * std::max(diff - start, 0);
-
-    avg_latency = 0.999 * avg_latency + 0.001 * std::max(diff, 0);
+    update_latencies(start, diff);
   }
   catch (const std::exception& e) {
     g_log << Logger::Error << "Caught unhandled exception while sending a response: " << e.what() << endl;
@@ -653,8 +657,7 @@ try {
           NS->send(cached); // answer it then                              inlined
 
           diff = question.d_dt.udiff();
-          send_latency = 0.999 * send_latency + 0.001 * std::max(diff - start, 0);
-          avg_latency = 0.999 * avg_latency + 0.001 * std::max(diff, 0); // 'EWMA'
+          update_latencies(start, diff);
           continue;
         }
         diff = question.d_dt.udiffNoReset();
