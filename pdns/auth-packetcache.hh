@@ -148,7 +148,7 @@ private:
   uint64_t d_maxEntries{0};
   size_t d_mapscount;
   time_t d_lastclean; // doesn't need to be atomic
-  unsigned long d_nextclean{4096};
+  AtomicCounter  d_nextclean{4096};
   unsigned int d_cleaninterval{4096};
   uint32_t d_ttl{0};
   bool d_cleanskipped{false};
