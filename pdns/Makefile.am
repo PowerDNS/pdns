@@ -547,6 +547,7 @@ sdig_SOURCES = \
 	logger.cc \
 	misc.cc misc.hh \
 	nsecrecords.cc \
+	protozero-trace.hh \
 	proxy-protocol.cc proxy-protocol.hh \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
