@@ -988,10 +988,17 @@ namespace {
      - The validator's notion of the current time MUST be less than or equal to the time listed in the RRSIG RR's Expiration field.
      - The validator's notion of the current time MUST be greater than or equal to the time listed in the RRSIG RR's Inception field.
   */
-  if (isRRSIGIncepted(now, sig) && isRRSIGNotExpired(now, sig)) {
+  vState localEDE = vState::Indeterminate;
+  if (!isRRSIGIncepted(now, sig)) {
+    localEDE = vState::BogusSignatureNotYetValid;
+  }
+  else if (!isRRSIGNotExpired(now, sig)) {
+    localEDE = vState::BogusSignatureExpired;
+  }
+  if (localEDE == vState::Indeterminate) {
     return true;
   }
-  ede = ((sig.d_siginception - g_signatureInceptionSkew) > now) ? vState::BogusSignatureNotYetValid : vState::BogusSignatureExpired;
+  ede = localEDE;
   VLOG(log, qname << ": Signature is "<<(ede == vState::BogusSignatureNotYetValid ? "not yet valid" : "expired")<<" (inception: "<<sig.d_siginception<<", inception skew: "<<g_signatureInceptionSkew<<", expiration: "<<sig.d_sigexpire<<", now: "<<now<<")"<<endl);
   return false;
 }
