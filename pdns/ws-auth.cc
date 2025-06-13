@@ -1320,6 +1320,29 @@ static void apiZoneCryptokeysGET(HttpRequest* req, HttpResponse* resp)
   apiZoneCryptokeysExport(zoneData.zoneName, inquireKeyId, resp, &zoneData.dnssecKeeper);
 }
 
+// Common processing following a crypto keys operation which caused keys to be
+// added or removed. If this is a primary zone, we need to increase its
+// serial if configured to do so.
+static void apiZoneCryptokeysPostProcessing(ZoneData& zoneData)
+{
+  // We do not check using isPrimaryType() because we also want to include
+  // DomainInfo::Native here.
+  if (!zoneData.domainInfo.isSecondaryType()) {
+    UeberBackend backend;
+    SOAData soaData;
+    bool zone_disabled = !backend.getSOAUncached(zoneData.zoneName, soaData);
+
+    if (!zone_disabled) {
+      string soa_edit_api_kind;
+      string soa_edit_kind;
+
+      zoneData.domainInfo.backend->getDomainMetadataOne(zoneData.zoneName, "SOA-EDIT-API", soa_edit_api_kind);
+      zoneData.domainInfo.backend->getDomainMetadataOne(zoneData.zoneName, "SOA-EDIT", soa_edit_kind);
+      updateZoneSerial(zoneData.domainInfo, soaData, soa_edit_api_kind, soa_edit_kind);
+    }
+  }
+}
+
 /*
  * This method handles DELETE requests for URL /api/v1/servers/:server_id/zones/:zone_name/cryptokeys/:cryptokey_id .
  * It deletes a key from :zone_name specified by :cryptokey_id.
@@ -1341,6 +1364,7 @@ static void apiZoneCryptokeysDELETE(HttpRequest* req, HttpResponse* resp)
   }
 
   if (zoneData.dnssecKeeper.removeKey(zoneData.zoneName, inquireKeyId)) {
+    apiZoneCryptokeysPostProcessing(zoneData);
     resp->body = "";
     resp->status = 204;
   }
@@ -1489,6 +1513,7 @@ static void apiZoneCryptokeysPOST(HttpRequest* req, HttpResponse* resp)
   else {
     throw ApiException("Either you submit just the 'privatekey' field or you leave 'privatekey' empty and submit the other fields.");
   }
+  apiZoneCryptokeysPostProcessing(zoneData);
   apiZoneCryptokeysExport(zoneData.zoneName, insertedId, resp, &zoneData.dnssecKeeper);
   resp->status = 201;
 }
@@ -1543,6 +1568,7 @@ static void apiZoneCryptokeysPUT(HttpRequest* req, HttpResponse* resp)
     }
   }
 
+  apiZoneCryptokeysPostProcessing(zoneData);
   resp->body = "";
   resp->status = 204;
 }
