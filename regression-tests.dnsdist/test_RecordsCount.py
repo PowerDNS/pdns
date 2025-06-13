@@ -71,12 +71,6 @@ class TestRecordsCountOnlyOneAR(DNSDistTest):
                                                     '127.0.0.1'))
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
-        # this is not great, we should fix that!
-        expectedResponse.additional.append(dns.rrset.from_text(name,
-                                                               3600,
-                                                               dns.rdataclass.IN,
-                                                               dns.rdatatype.A,
-                                                               '127.0.0.1'))
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
@@ -155,7 +149,6 @@ class TestRecordsCountMoreThanOneLessThanFour(DNSDistTest):
 
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
-        expectedResponse.answer.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
@@ -188,7 +181,6 @@ class TestRecordsCountNothingInNS(DNSDistTest):
         query.flags &= ~dns.flags.RD
         expectedResponse = dns.message.make_response(query)
         expectedResponse.set_rcode(dns.rcode.REFUSED)
-        expectedResponse.authority.append(rrset)
 
         for method in ("sendUDPQuery", "sendTCPQuery"):
             sender = getattr(self, method)
