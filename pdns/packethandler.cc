@@ -1020,24 +1020,19 @@ void PacketHandler::addNSEC(DNSPacket& /* p */, std::unique_ptr<DNSPacket>& r, c
 
 - only one backend owns the SOA of a zone
 - only one AXFR per zone at a time - double startTransaction should fail
-- backends need to implement transaction semantics
+- backends implement transaction semantics
 
-
-How BindBackend would implement this:
+How BindBackend implements this:
    startTransaction makes a file
    feedRecord sends everything to that file
    commitTransaction moves that file atomically over the regular file, and triggers a reload
-   rollbackTransaction removes the file
+   abortTransaction removes the file
 
-
-How PostgreSQLBackend would implement this:
-   startTransaction starts a sql transaction, which also deletes all records
+How SQL backends implement this:
+   startTransaction starts a sql transaction, which also deletes all records if requested
    feedRecord is an insert statement
    commitTransaction commits the transaction
-   rollbackTransaction aborts it
-
-How MySQLBackend would implement this:
-   (good question!)
+   abortTransaction aborts it
 
 */
 
