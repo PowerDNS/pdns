@@ -253,9 +253,9 @@ bool removeRecordsAndSetRCode(DNSQuestion& dnsQuestion, uint8_t rcode)
     header.rcode = rcode;
     header.qr = true;
     header.qdcount = htons(1);
-    header.arcount = 0;
-    header.nscount = 0;
     header.ancount = 0;
+    header.nscount = 0;
+    header.arcount = 0;
     return true;
   });
   auto qnameWireLength = dnsQuestion.ids.qname.wirelength();
