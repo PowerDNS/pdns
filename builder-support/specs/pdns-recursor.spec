@@ -14,7 +14,7 @@ BuildRequires: clang
 BuildRequires: lld
 BuildRequires: ninja-build
 
-%if 0%{?rhel} < 9
+%if 0%{?rhel} == 8
 BuildRequires: boost1.78-devel
 %else
 BuildRequires: boost-devel
@@ -30,7 +30,7 @@ BuildRequires: systemd
 BuildRequires: systemd-devel
 
 %ifarch aarch64
-%if 0%{?rhel} < 9
+%if 0%{?rhel} == 8 || 0%{?amzn2023}
 BuildRequires: lua-devel
 %define lua_implementation lua
 %else
@@ -64,7 +64,7 @@ package if you need a dns cache for your network.
 %endif
 
 %build
-%if 0%{?rhel} < 9
+%if 0%{?rhel} == 8
 export BOOST_INCLUDEDIR=/usr/include/boost1.78
 export BOOST_LIBRARYDIR=/usr/lib64/boost1.78
 %endif
@@ -74,7 +74,7 @@ export CXX=clang++
 # build-id SHA1 prevents an issue with the debug symbols ("export: `-Wl,--build-id=sha1': not a valid identifier")
 export LDFLAGS="-fuse-ld=lld -Wl,--build-id=sha1"
 
-%if 0%{?rhel} < 9
+%if 0%{?rhel} == 8 || 0%{?amzn2023}
 # starting with EL-9 we get these hardening settings for free by just setting the right toolchain (see above)
 %ifarch aarch64
 %define cf_protection %{nil}
