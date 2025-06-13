@@ -63,10 +63,8 @@ static void addValue(const RecEventTrace::Entry& event, Span& work)
   }
 }
 
-// The event trace uses start-stop records which need to be mapped to opentrace spans, which is a
-// list of spans. Spans can refer to other spans as their parent.  I have the feeling this code is
-// too complex and brittle. Maybe we should add some extra info to the event trace records to make
-// it easier to map the event trace list to the open trace list of spans.
+// The event trace uses start-stop records which need to be mapped to OpenTelemetry Spans, which is a
+// list of spans. Spans can refer to other spans as their parent.
 std::vector<pdns::trace::Span> RecEventTrace::convertToOT(const Span& span) const
 {
   timespec realtime{};
