@@ -426,7 +426,7 @@ bool LdapBackend::getDomainInfo(const ZoneName& domain, DomainInfo& info, bool /
     if (result.count("PdnsDomainId") && !result["PdnsDomainId"].empty())
       info.id = static_cast<domainid_t>(std::stoll(result["PdnsDomainId"][0]));
     else
-      info.id = 0;
+      info.id = UnknownDomainID;
 
     info.serial = sd.serial;
     info.zone = domain;

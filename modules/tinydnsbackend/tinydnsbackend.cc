@@ -159,6 +159,7 @@ void TinyDNSBackend::getAllDomains_locked(vector<DomainInfo>* domains, bool getS
 
   try {
     d_cdbReader = std::make_unique<CDB>(getArg("dbfile"));
+    d_currentDomain = UnknownDomainID;
   }
   catch (const std::exception& e) {
     g_log << Logger::Error << e.what() << endl;
@@ -172,7 +173,7 @@ void TinyDNSBackend::getAllDomains_locked(vector<DomainInfo>* domains, bool getS
   while (get(rr)) {
     if (rr.qtype.getCode() == QType::SOA && dupcheck.insert(rr.qname).second) {
       DomainInfo di;
-      di.id = UnknownDomainID; // Will be overridden by caller
+      di.id = d_currentDomain; // Will be overridden by caller
       di.backend = this;
       di.zone = ZoneName(rr.qname);
       di.kind = DomainInfo::Primary;
@@ -241,13 +242,14 @@ bool TinyDNSBackend::getDomainInfo(const ZoneName& domain, DomainInfo& di, bool 
   return found;
 }
 
-bool TinyDNSBackend::list(const ZoneName& target, domainid_t /* domain_id */, bool /* include_disabled */)
+bool TinyDNSBackend::list(const ZoneName& target, domainid_t domain_id, bool /* include_disabled */)
 {
   d_isAxfr = true;
   d_isGetDomains = false;
   string key = target.operator const DNSName&().toDNSStringLC();
   try {
     d_cdbReader = std::make_unique<CDB>(getArg("dbfile"));
+    d_currentDomain = domain_id;
   }
   catch (const std::exception& e) {
     g_log << Logger::Error << e.what() << endl;
@@ -257,7 +259,7 @@ bool TinyDNSBackend::list(const ZoneName& target, domainid_t /* domain_id */, bo
   return d_cdbReader->searchSuffix(key);
 }
 
-void TinyDNSBackend::lookup(const QType& qtype, const DNSName& qdomain, domainid_t /* zoneId */, DNSPacket* pkt_p)
+void TinyDNSBackend::lookup(const QType& qtype, const DNSName& qdomain, domainid_t zoneId, DNSPacket* pkt_p)
 {
   d_isAxfr = false;
   d_isGetDomains = false;
@@ -278,6 +280,7 @@ void TinyDNSBackend::lookup(const QType& qtype, const DNSName& qdomain, domainid
 
   try {
     d_cdbReader = std::make_unique<CDB>(getArg("dbfile"));
+    d_currentDomain = zoneId;
   }
   catch (const std::exception& e) {
     g_log << Logger::Error << e.what() << endl;
@@ -355,7 +358,7 @@ bool TinyDNSBackend::get(DNSResourceRecord& rr)
       }
       // rr.qname.clear();
       rr.qname = DNSName(key.c_str(), key.size(), 0, false);
-      rr.domain_id = -1;
+      rr.domain_id = d_currentDomain;
       // 11:13.21 <@ahu> IT IS ALWAYS AUTH --- well not really because we are just a backend :-)
       // We could actually do NSEC3-NARROW DNSSEC according to Habbie, if we do, we need to change something here.
       rr.auth = true;
@@ -408,6 +411,7 @@ bool TinyDNSBackend::get(DNSResourceRecord& rr)
   DLOG(g_log << Logger::Debug << backendname << "No more records to return." << endl);
 
   d_cdbReader = nullptr;
+  d_currentDomain = UnknownDomainID;
   return false;
 }
 

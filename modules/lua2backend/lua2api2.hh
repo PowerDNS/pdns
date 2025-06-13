@@ -256,6 +256,7 @@ public:
 
   void parseDomainInfo(const domaininfo_result_t& row, DomainInfo& di)
   {
+    di.id = UnknownDomainID;
     for (const auto& item : row) {
       if (item.first == "account")
         di.account = boost::get<string>(item.second);
@@ -293,6 +294,7 @@ public:
       if (!getAuth(domain, &sd))
         return false;
 
+      di.id = sd.domain_id;
       di.zone = domain;
       di.backend = this;
       di.serial = sd.serial;
