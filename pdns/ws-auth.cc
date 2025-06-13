@@ -2721,7 +2721,10 @@ static void apiServerViewsPOST(HttpRequest* req, HttpResponse* resp)
   }
   // Purge packet cache for that zone
   if (PC.enabled()) {
-    (void)PC.purgeExact(view, zonename.operator const DNSName&());
+    // Note that this relies upon ZoneName::toString NOT emitting the variant name.
+    std::string purgename = zonename.toString();
+    purgename.append("$");
+    (void)PC.purge(view, purgename);
   }
 
   resp->body = "";
@@ -2738,12 +2741,21 @@ static void apiServerViewsDELETE(HttpRequest* req, HttpResponse* resp)
     throw ApiException("Failed to remove " + zoneData.zoneName.toStringFull() + " from view " + view);
   }
   // Notify zone cache of the removed association
+  bool emptyView{false};
   if (g_zoneCache.isEnabled()) {
-    g_zoneCache.removeFromView(view, zoneData.zoneName);
+    emptyView = g_zoneCache.removeFromView(view, zoneData.zoneName);
   }
   // Purge packet cache for that zone
   if (PC.enabled()) {
-    (void)PC.purgeExact(view, zoneData.zoneName.operator const DNSName&());
+    if (emptyView) {
+      (void)PC.purgeView(view);
+    }
+    else {
+      // Note that this relies upon ZoneName::toString NOT emitting the variant name.
+      std::string purgename = zoneData.zoneName.toString();
+      purgename.append("$");
+      (void)PC.purge(view, purgename);
+    }
   }
 
   resp->body = "";
