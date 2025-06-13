@@ -73,18 +73,18 @@ std::pair<uint32_t, uint32_t> LMDBBackend::getSchemaVersionAndShards(std::string
 
   MDB_env* tmpEnv = nullptr;
 
-  if (mdb_env_create(&tmpEnv) != 0) {
-    throw std::runtime_error("mdb_env_create failed");
+  if (int retCode = mdb_env_create(&tmpEnv); retCode != 0) {
+    throw std::runtime_error("mdb_env_create failed: " + MDBError(retCode));
   }
 
   std::unique_ptr<MDB_env, decltype(&mdb_env_close)> env{tmpEnv, mdb_env_close};
 
-  if (mdb_env_set_mapsize(tmpEnv, 0) != 0) {
-    throw std::runtime_error("mdb_env_set_mapsize failed");
+  if (int retCode = mdb_env_set_mapsize(tmpEnv, 0); retCode != 0) {
+    throw std::runtime_error("mdb_env_set_mapsize failed: " + MDBError(retCode));
   }
 
-  if (mdb_env_set_maxdbs(tmpEnv, 20) != 0) { // we need 17: 1 {"pdns"} + 4 {"domains", "keydata", "tsig", "metadata"} * 2 {v4, v5} * 2 {main, index in _0}
-    throw std::runtime_error("mdb_env_set_maxdbs failed");
+  if (int retCode = mdb_env_set_maxdbs(tmpEnv, 20); retCode != 0) { // we need 17: 1 {"pdns"} + 4 {"domains", "keydata", "tsig", "metadata"} * 2 {v4, v5} * 2 {main, index in _0}
+    throw std::runtime_error("mdb_env_set_maxdbs failed: " + MDBError(retCode));
   }
 
   {
@@ -94,14 +94,14 @@ std::pair<uint32_t, uint32_t> LMDBBackend::getSchemaVersionAndShards(std::string
         // we don't have a database yet! report schema 0, with 0 shards
         return {0U, 0U};
       }
-      throw std::runtime_error("mdb_env_open failed");
+      throw std::runtime_error("mdb_env_open failed: " + MDBError(retCode));
     }
   }
 
   MDB_txn* txn = nullptr;
 
-  if (mdb_txn_begin(tmpEnv, nullptr, MDB_RDONLY, &txn) != 0) {
-    throw std::runtime_error("mdb_txn_begin failed");
+  if (int retCode = mdb_txn_begin(tmpEnv, nullptr, MDB_RDONLY, &txn); retCode != 0) {
+    throw std::runtime_error("mdb_txn_begin failed: " + MDBError(retCode));
   }
 
   MDB_dbi dbi;
@@ -116,7 +116,7 @@ std::pair<uint32_t, uint32_t> LMDBBackend::getSchemaVersionAndShards(std::string
         return {SCHEMAVERSION, 0U};
       }
       mdb_txn_abort(txn);
-      throw std::runtime_error("mdb_dbi_open failed");
+      throw std::runtime_error("mdb_dbi_open failed: " + MDBError(retCode));
     }
   }
 
@@ -135,7 +135,7 @@ std::pair<uint32_t, uint32_t> LMDBBackend::getSchemaVersionAndShards(std::string
         return {SCHEMAVERSION, 0U};
       }
 
-      throw std::runtime_error("mdb_get pdns.schemaversion failed");
+      throw std::runtime_error("mdb_get pdns.schemaversion failed: " + MDBError(retCode));
     }
   }
 
@@ -171,7 +171,7 @@ std::pair<uint32_t, uint32_t> LMDBBackend::getSchemaVersionAndShards(std::string
         exit(1);
       }
 
-      throw std::runtime_error("mdb_get pdns.shards failed");
+      throw std::runtime_error("mdb_get pdns.shards failed: " + MDBError(retCode));
     }
   }
 
@@ -207,7 +207,7 @@ void copyDBIAndAddLSHeader(MDB_txn* txn, MDB_dbi sdbi, MDB_dbi tdbi)
   MDB_cursor* cur;
 
   if ((rc = mdb_cursor_open(txn, sdbi, &cur)) != 0) {
-    throw std::runtime_error("mdb_cursur_open failed");
+    throw std::runtime_error("mdb_cursor_open failed: " + MDBError(rc));
   }
 
   MDB_val key, data;
@@ -231,14 +231,13 @@ void copyDBIAndAddLSHeader(MDB_txn* txn, MDB_dbi sdbi, MDB_dbi tdbi)
     tdata.mv_size = stdata.size();
 
     if ((rc = mdb_put(txn, tdbi, &tkey, &tdata, 0)) != 0) {
-      throw std::runtime_error("mdb_put failed");
+      throw std::runtime_error("mdb_put failed: " + MDBError(rc));
     }
 
     rc = mdb_cursor_get(cur, &key, &data, MDB_NEXT);
   }
   if (rc != MDB_NOTFOUND) {
-    cerr << "rc=" << rc << endl;
-    throw std::runtime_error("error while iterating dbi");
+    throw std::runtime_error("error while iterating dbi: " + MDBError(rc));
   }
 }
 
@@ -255,7 +254,7 @@ void copyTypedDBI(MDB_txn* txn, MDB_dbi sdbi, MDB_dbi tdbi)
   MDB_cursor* cur;
 
   if ((rc = mdb_cursor_open(txn, sdbi, &cur)) != 0) {
-    throw std::runtime_error("mdb_cursur_open failed");
+    throw std::runtime_error("mdb_cursor_open failed: " + MDBError(rc));
   }
 
   MDB_val key, data;
@@ -289,14 +288,13 @@ void copyTypedDBI(MDB_txn* txn, MDB_dbi sdbi, MDB_dbi tdbi)
     tdata.mv_size = stdata.size();
 
     if ((rc = mdb_put(txn, tdbi, &tkey, &tdata, 0)) != 0) {
-      throw std::runtime_error("mdb_put failed");
+      throw std::runtime_error("mdb_put failed: " + MDBError(rc));
     }
 
     rc = mdb_cursor_get(cur, &key, &data, MDB_NEXT);
   }
   if (rc != MDB_NOTFOUND) {
-    cerr << "rc=" << rc << endl;
-    throw std::runtime_error("error while iterating dbi");
+    throw std::runtime_error("error while iterating dbi: " + MDBError(rc));
   }
 }
 
@@ -313,7 +311,7 @@ void copyIndexDBI(MDB_txn* txn, MDB_dbi sdbi, MDB_dbi tdbi)
   MDB_cursor* cur;
 
   if ((rc = mdb_cursor_open(txn, sdbi, &cur)) != 0) {
-    throw std::runtime_error("mdb_cursur_open failed");
+    throw std::runtime_error("mdb_cursor_open failed: " + MDBError(rc));
   }
 
   MDB_val key, data;
@@ -346,13 +344,13 @@ void copyIndexDBI(MDB_txn* txn, MDB_dbi sdbi, MDB_dbi tdbi)
     tdata.mv_size = header.size();
 
     if ((rc = mdb_put(txn, tdbi, &tkey, &tdata, 0)) != 0) {
-      throw std::runtime_error("mdb_put failed");
+      throw std::runtime_error("mdb_put failed: " + MDBError(rc));
     }
 
     rc = mdb_cursor_get(cur, &key, &data, MDB_NEXT);
   }
   if (rc != MDB_NOTFOUND) {
-    throw std::runtime_error("error while iterating dbi");
+    throw std::runtime_error("error while iterating dbi: " + MDBError(rc));
   }
 }
 
@@ -370,25 +368,25 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
 
   MDB_env* env = nullptr;
 
-  if (mdb_env_create(&env) != 0) {
-    throw std::runtime_error("mdb_env_create failed");
+  if (int retCode = mdb_env_create(&env); retCode != 0) {
+    throw std::runtime_error("mdb_env_create failed: " + MDBError(retCode));
   }
 
-  if (mdb_env_set_maxdbs(env, 20) != 0) {
+  if (int retCode = mdb_env_set_maxdbs(env, 20); retCode != 0) {
     mdb_env_close(env);
-    throw std::runtime_error("mdb_env_set_maxdbs failed");
+    throw std::runtime_error("mdb_env_set_maxdbs failed: " + MDBError(retCode));
   }
 
-  if (mdb_env_open(env, filename.c_str(), MDB_NOSUBDIR, 0600) != 0) {
+  if (int retCode = mdb_env_open(env, filename.c_str(), MDB_NOSUBDIR, 0600); retCode != 0) {
     mdb_env_close(env);
-    throw std::runtime_error("mdb_env_open failed");
+    throw std::runtime_error("mdb_env_open failed: " + MDBError(retCode));
   }
 
   MDB_txn* txn = nullptr;
 
-  if (mdb_txn_begin(env, nullptr, 0, &txn) != 0) {
+  if (int retCode = mdb_txn_begin(env, nullptr, 0, &txn); retCode != 0) {
     mdb_env_close(env);
-    throw std::runtime_error("mdb_txn_begin failed");
+    throw std::runtime_error("mdb_txn_begin failed: " + MDBError(retCode));
   }
 
 #ifdef HAVE_SYSTEMD
@@ -412,25 +410,25 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
     std::cerr << "migrating shard " << shardfile << std::endl;
     MDB_env* shenv = nullptr;
 
-    if (mdb_env_create(&shenv) != 0) {
-      throw std::runtime_error("mdb_env_create failed");
+    if (int retCode = mdb_env_create(&shenv); retCode != 0) {
+      throw std::runtime_error("mdb_env_create failed: " + MDBError(retCode));
     }
 
-    if (mdb_env_set_maxdbs(shenv, 8) != 0) {
+    if (int retCode = mdb_env_set_maxdbs(shenv, 8); retCode != 0) {
       mdb_env_close(env);
-      throw std::runtime_error("mdb_env_set_maxdbs failed");
+      throw std::runtime_error("mdb_env_set_maxdbs failed: " + MDBError(retCode));
     }
 
-    if (mdb_env_open(shenv, shardfile.c_str(), MDB_NOSUBDIR, 0600) != 0) {
+    if (int retCode = mdb_env_open(shenv, shardfile.c_str(), MDB_NOSUBDIR, 0600); retCode != 0) {
       mdb_env_close(env);
-      throw std::runtime_error("mdb_env_open failed");
+      throw std::runtime_error("mdb_env_open failed: " + MDBError(retCode));
     }
 
     MDB_txn* shtxn = nullptr;
 
-    if (mdb_txn_begin(shenv, nullptr, 0, &shtxn) != 0) {
+    if (int retCode = mdb_txn_begin(shenv, nullptr, 0, &shtxn); retCode != 0) {
       mdb_env_close(env);
-      throw std::runtime_error("mdb_txn_begin failed");
+      throw std::runtime_error("mdb_txn_begin failed: " + MDBError(retCode));
     }
 
     MDB_dbi shdbi = 0;
@@ -444,16 +442,16 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
       }
       mdb_txn_abort(shtxn);
       mdb_env_close(shenv);
-      throw std::runtime_error("mdb_dbi_open shard records failed");
+      throw std::runtime_error("mdb_dbi_open shard records failed: " + MDBError(dbiOpenRc));
     }
 
     MDB_dbi shdbi2 = 0;
 
-    if (MDBDbi::mdb_dbi_open(shtxn, "records_v5", MDB_CREATE, &shdbi2) != 0) {
+    if (int retCode = MDBDbi::mdb_dbi_open(shtxn, "records_v5", MDB_CREATE, &shdbi2); retCode != 0) {
       mdb_dbi_close(shenv, shdbi);
       mdb_txn_abort(shtxn);
       mdb_env_close(shenv);
-      throw std::runtime_error("mdb_dbi_open shard records_v5 failed");
+      throw std::runtime_error("mdb_dbi_open shard records_v5 failed: " + MDBError(retCode));
     }
 
     try {
@@ -483,19 +481,19 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
     std::string tdbname = dbname + "_v5";
 
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
-    if (MDBDbi::mdb_dbi_open(txn, dbname.c_str(), 0, &fromtypeddbi[index]) != 0) {
+    if (int retCode = MDBDbi::mdb_dbi_open(txn, dbname.c_str(), 0, &fromtypeddbi[index]); retCode != 0) {
       mdb_txn_abort(txn);
       mdb_env_close(env);
-      throw std::runtime_error("MDBDbi::mdb_dbi_open typeddbi failed");
+      throw std::runtime_error("MDBDbi::mdb_dbi_open typeddbi failed: " + MDBError(retCode));
     }
 
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
-    if (MDBDbi::mdb_dbi_open(txn, tdbname.c_str(), MDB_CREATE, &totypeddbi[index]) != 0) {
+    if (int retCode = MDBDbi::mdb_dbi_open(txn, tdbname.c_str(), MDB_CREATE, &totypeddbi[index]); retCode != 0) {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
       mdb_dbi_close(env, fromtypeddbi[index]);
       mdb_txn_abort(txn);
       mdb_env_close(env);
-      throw std::runtime_error("mdb_dbi_open typeddbi target failed");
+      throw std::runtime_error("mdb_dbi_open typeddbi target failed: " + MDBError(retCode));
     }
 
     try {
@@ -530,19 +528,19 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
     std::string tdbname = dbname + "_v5_0";
 
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
-    if (MDBDbi::mdb_dbi_open(txn, fdbname.c_str(), 0, &fromindexdbi[index]) != 0) {
+    if (int retCode = MDBDbi::mdb_dbi_open(txn, fdbname.c_str(), 0, &fromindexdbi[index]); retCode != 0) {
       mdb_txn_abort(txn);
       mdb_env_close(env);
-      throw std::runtime_error("mdb_dbi_open indexdbi failed");
+      throw std::runtime_error("mdb_dbi_open indexdbi failed: " + MDBError(retCode));
     }
 
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
-    if (MDBDbi::mdb_dbi_open(txn, tdbname.c_str(), MDB_CREATE, &toindexdbi[index]) != 0) {
+    if (int retCode = MDBDbi::mdb_dbi_open(txn, tdbname.c_str(), MDB_CREATE, &toindexdbi[index]); retCode != 0) {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
       mdb_dbi_close(env, fromindexdbi[index]);
       mdb_txn_abort(txn);
       mdb_env_close(env);
-      throw std::runtime_error("mdb_dbi_open indexdbi target failed");
+      throw std::runtime_error("mdb_dbi_open indexdbi target failed: " + MDBError(retCode));
     }
 
     try {
@@ -569,10 +567,10 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
   MDB_dbi dbi = 0;
 
   // finally, migrate the pdns db
-  if (MDBDbi::mdb_dbi_open(txn, "pdns", 0, &dbi) != 0) {
+  if (int retCode = MDBDbi::mdb_dbi_open(txn, "pdns", 0, &dbi); retCode != 0) {
     mdb_txn_abort(txn);
     mdb_env_close(env);
-    throw std::runtime_error("mdb_dbi_open pdns failed");
+    throw std::runtime_error("mdb_dbi_open pdns failed: " + MDBError(retCode));
   }
 
   MDB_val key;
@@ -586,8 +584,8 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
     key.mv_data = (char*)keyname.c_str();
     key.mv_size = keyname.size();
 
-    if (mdb_get(txn, dbi, &key, &data) != 0) {
-      throw std::runtime_error("mdb_get pdns.shards failed");
+    if (int retCode = mdb_get(txn, dbi, &key, &data); retCode != 0) {
+      throw std::runtime_error("mdb_get pdns.shards failed: " + MDBError(retCode));
     }
 
     if (data.mv_size != sizeof(uint32_t)) {
@@ -611,8 +609,8 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
     tdata.mv_data = (char*)stdata.c_str();
     tdata.mv_size = stdata.size();
 
-    if (mdb_put(txn, dbi, &key, &tdata, 0) != 0) {
-      throw std::runtime_error("mdb_put failed");
+    if (int retCode = mdb_put(txn, dbi, &key, &tdata, 0); retCode != 0) {
+      throw std::runtime_error("mdb_put failed: " + MDBError(retCode));
     }
   }
 
@@ -622,8 +620,8 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
     key.mv_data = (char*)keyname.c_str();
     key.mv_size = keyname.size();
 
-    if (mdb_get(txn, dbi, &key, &data) != 0) {
-      throw std::runtime_error("mdb_get pdns.shards failed");
+    if (int retCode = mdb_get(txn, dbi, &key, &data); retCode != 0) {
+      throw std::runtime_error("mdb_get pdns.shards failed: " + MDBError(retCode));
     }
 
     std::string sdata((char*)data.mv_data, data.mv_size);
@@ -635,8 +633,8 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
     tdata.mv_data = (char*)stdata.c_str();
     tdata.mv_size = stdata.size();
 
-    if (mdb_put(txn, dbi, &key, &tdata, 0) != 0) {
-      throw std::runtime_error("mdb_put failed");
+    if (int retCode = mdb_put(txn, dbi, &key, &tdata, 0); retCode != 0) {
+      throw std::runtime_error("mdb_put failed: " + MDBError(retCode));
     }
   }
 
@@ -657,9 +655,7 @@ bool LMDBBackend::upgradeToSchemav5(std::string& filename)
   }
   mdb_env_close(env);
 
-  // throw std::runtime_error("migration done");
   cerr << "migration done" << endl;
-  // exit(1);
   return true;
 }
 

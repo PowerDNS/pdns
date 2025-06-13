@@ -698,7 +698,7 @@ public:
       }
 
       if (rc != 0 && rc != MDB_NOTFOUND) {
-        throw std::runtime_error("error during get_multi");
+        throw std::runtime_error("error during get_multi" + MDBError(rc));
       }
     };
 
