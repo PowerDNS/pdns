@@ -1530,7 +1530,7 @@ int main(int argc, char** argv)
   DLOG(g_log << Logger::Warning << "Verbose logging in effect" << endl);
 
   for (const string& line : getProductVersionLines()) {
-    g_log << Logger::Info << line << endl;
+    g_log << Logger::Warning << line << endl;
   }
 
   try {
