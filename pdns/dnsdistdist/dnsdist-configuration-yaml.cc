@@ -930,6 +930,14 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
   try {
     auto globalConfig = dnsdist::rust::settings::from_yaml_string(*data);
 
+    dnsdist::configuration::updateImmutableConfiguration([&globalConfig](dnsdist::configuration::ImmutableConfiguration& config) {
+      convertImmutableFlatSettingsFromRust(globalConfig, config);
+    });
+
+    dnsdist::configuration::updateRuntimeConfiguration([&globalConfig](dnsdist::configuration::RuntimeConfiguration& config) {
+      convertRuntimeFlatSettingsFromRust(globalConfig, config);
+    });
+
     handleLoggingConfiguration(globalConfig.logging);
 
     if (!globalConfig.console.listen_address.empty()) {
@@ -1129,14 +1137,6 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
         poolObj->policy = getRegisteredTypeByName<ServerPolicy>(pool.policy);
       }
     }
-
-    dnsdist::configuration::updateImmutableConfiguration([&globalConfig](dnsdist::configuration::ImmutableConfiguration& config) {
-      convertImmutableFlatSettingsFromRust(globalConfig, config);
-    });
-
-    dnsdist::configuration::updateRuntimeConfiguration([&globalConfig](dnsdist::configuration::RuntimeConfiguration& config) {
-      convertRuntimeFlatSettingsFromRust(globalConfig, config);
-    });
 
     loadRulesConfiguration(globalConfig);
 
