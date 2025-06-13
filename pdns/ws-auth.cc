@@ -2441,6 +2441,9 @@ static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInf
 
     // edit SOA (if needed)
     if (!zone_disabled && !soa_edit_api_kind.empty() && !soa_edit_done) {
+      // return old serial in headers, before changing it
+      resp->headers["X-PDNS-Old-Serial"] = std::to_string(soaData.serial);
+
       DNSResourceRecord resourceRecord;
       if (makeIncreasedSOARecord(soaData, soa_edit_api_kind, soa_edit_kind, resourceRecord)) {
         if (!domainInfo.backend->replaceRRSet(domainInfo.id, resourceRecord.qname, resourceRecord.qtype, vector<DNSResourceRecord>(1, resourceRecord))) {
@@ -2448,9 +2451,7 @@ static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInf
         }
       }
 
-      // return old and new serials in headers
-      resp->headers["X-PDNS-Old-Serial"] = std::to_string(soaData.serial);
-      fillSOAData(resourceRecord.content, soaData);
+      // return new serial in headers
       resp->headers["X-PDNS-New-Serial"] = std::to_string(soaData.serial);
     }
   }
