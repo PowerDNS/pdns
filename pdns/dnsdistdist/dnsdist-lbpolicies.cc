@@ -259,10 +259,10 @@ shared_ptr<DownstreamState> roundrobin(const ServerPolicy::NumberedServerVector&
   return servers.at(candidates.at((counter++) % candidates.size()) - 1).second;
 }
 
-shared_ptr<DownstreamState> orderedWrandUntag(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
+shared_ptr<DownstreamState> orderedWrandUntag(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dnsq)
 {
   if (servers.empty()) {
-    return shared_ptr<DownstreamState>();
+    return {};
   }
 
   ServerPolicy::NumberedServerVector candidates;
@@ -272,23 +272,23 @@ shared_ptr<DownstreamState> orderedWrandUntag(const ServerPolicy::NumberedServer
   unsigned int startIndex = 0;
   unsigned int curNumber = 1;
 
-  for (auto& d : servers) {
-    if (d.second->isUp() && d.second->d_config.order <= curOrder && (!dq->ids.qTag || dq->ids.qTag->count(d.second->getNameWithAddr()) == 0)) {
-      if (d.second->d_config.order < curOrder) {
-          curOrder = d.second->d_config.order;
+  for (const auto& svr : servers) {
+    if (svr.second->isUp() && svr.second->d_config.order <= curOrder && (!dnsq->ids.qTag || dnsq->ids.qTag->count(svr.second->getNameWithAddr()) == 0)) {
+      if (svr.second->d_config.order < curOrder) {
+          curOrder = svr.second->d_config.order;
           startIndex = candidates.end() - candidates.begin();
           curNumber = 1;
       }
-      candidates.push_back(ServerPolicy::NumberedServer(curNumber++, d.second));
+      candidates.push_back(ServerPolicy::NumberedServer(curNumber++, svr.second));
     }
   }
 
   if (candidates.empty()) {
-    return shared_ptr<DownstreamState>();
+    return {};
   }
 
   ServerPolicy::NumberedServerVector selected(candidates.begin() + startIndex, candidates.end());
-  return wrandom(selected, dq);
+  return wrandom(selected, dnsq);
 }
 
 std::shared_ptr<const ServerPolicy::NumberedServerVector> getDownstreamCandidates(const std::string& poolName)
