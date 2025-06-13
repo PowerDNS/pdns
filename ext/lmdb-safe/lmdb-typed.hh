@@ -160,7 +160,7 @@ struct LMDBIndexOps
 
     int errCode = txn->del(d_idx, combined);
     if (errCode != 0) {
-      throw std::runtime_error("Error deleting from index: " + std::string(mdb_strerror(errCode)));
+      throw std::runtime_error("Error deleting from index: " + MDBError(errCode));
     }
   }
 
@@ -456,7 +456,7 @@ public:
           d_end = true;
         }
         else if(rc != 0) {
-          throw std::runtime_error("in genoperator, " + std::string(mdb_strerror(rc)));
+          throw std::runtime_error("in genoperator, " + MDBError(rc));
         }
         else if(!d_prefix.empty() &&
           // d_key.getNoStripHeader<std::string>().rfind(d_prefix, 0)!=0 &&
