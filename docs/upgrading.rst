@@ -26,6 +26,12 @@ Specifically, catalog zones have not been updated for views support at all.
 DNS Update (RFC2136) support has not been well tested with views.
 Most other things are expected to work; if you find something wrong, please :ref:`let us know <getting-support>`.
 
+LOC record parsing
+^^^^^^^^^^^^^^^^^^
+
+The parsing and validation of LOC records is modified to be conforming to the `rfc:1876`.
+This may cause records previously rejected to be accepted and vice versa.
+
 LUA records whitespace insertion
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
