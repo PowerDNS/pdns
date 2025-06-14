@@ -2079,7 +2079,7 @@ load_balancing_policies:
       lua-name: "setWeightedBalancingFactor"
       internal-field-name: "d_weightedBalancingFactor"
       runtime-configurable: false
-      description: "Set the maximum imbalance between the number of outstanding queries intended for a given server, based on its weight, and the actual number, when using the ``whashed`` or ``wrandom`` or ``orderedWrandUntag`` load-balancing policy. Default is 0, which disables the bounded-load algorithm"
+      description: "Set the maximum imbalance between the number of outstanding queries intended for a given server, based on its weight, and the actual number, when using the ``whashed``, ``wrandom`` or ``orderedWrandUntag`` load-balancing policy. Default is 0, which disables the bounded-load algorithm"
     - name: "consistent_hashing_balancing_factor"
       type: "f64"
       default: 0.0

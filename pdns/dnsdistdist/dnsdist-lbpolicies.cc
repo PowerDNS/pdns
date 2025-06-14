@@ -276,7 +276,7 @@ shared_ptr<DownstreamState> orderedWrandUntag(const ServerPolicy::NumberedServer
     if (svr.second->isUp() && svr.second->d_config.order <= curOrder && (!dnsq->ids.qTag || dnsq->ids.qTag->count(svr.second->getNameWithAddr()) == 0)) {
       if (svr.second->d_config.order < curOrder) {
           curOrder = svr.second->d_config.order;
-          startIndex = candidates.end() - candidates.begin();
+          startIndex = candidates.size();
           curNumber = 1;
       }
       candidates.push_back(ServerPolicy::NumberedServer(curNumber++, svr.second));

@@ -91,7 +91,7 @@ If all servers are down, the policy will still select one server by default. Set
 ``orderedWrandUntag`` is another weighted policy with additional server filtering:
 
 - select the group of server(s) with the lowest ``order`` passed to :func:`newServer`.
-- filter out server(s) that were tagged with key string of :func:`Server:getNameWithAddr` in the query that was set by :func:`DNSQuestion:setTag`. This can be useful to restart a query with a different server, the user is responsible to set the required tag in lua action before calling :func:`DNSResponse:restart`. Initial queries are not impacted by this filtering if no other intentional lua action to set the tag.
+- filter out server(s) that were tagged with key string of :func:`Server:getNameWithAddr` in the query that was set by :func:`DNSQuestion:setTag`. This can be useful to restart a query with a different server, the user is responsible to set the required tag in lua action before calling :func:`DNSResponse:restart`. Initial queries are not impacted by this filtering if there is no other intentional lua action to set the tag.
 - policy ``wrandom`` is then applied to the selected server(s) above.
 
 Lua server policies
@@ -309,7 +309,7 @@ Functions
   .. versionadded: 1.5.0
 
   Set the maximum imbalance between the number of outstanding queries intended for a given server, based on its weight,
-  and the actual number, when using the ``whashed`` or ``wrandom`` or ``orderedWrandUntag`` load-balancing policy.
+  and the actual number, when using the ``whashed``, ``wrandom`` or ``orderedWrandUntag`` load-balancing policy.
   Default is 0, which disables the bounded-load algorithm.
 
 .. function:: showPoolServerPolicy(pool)
