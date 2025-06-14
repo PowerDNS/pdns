@@ -259,6 +259,38 @@ shared_ptr<DownstreamState> roundrobin(const ServerPolicy::NumberedServerVector&
   return servers.at(candidates.at((counter++) % candidates.size()) - 1).second;
 }
 
+shared_ptr<DownstreamState> orderedWrandUntag(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dnsq)
+{
+  if (servers.empty()) {
+    return {};
+  }
+
+  ServerPolicy::NumberedServerVector candidates;
+  candidates.reserve(servers.size());
+
+  int curOrder = std::numeric_limits<int>::max();
+  unsigned int startIndex = 0;
+  unsigned int curNumber = 1;
+
+  for (const auto& svr : servers) {
+    if (svr.second->isUp() && svr.second->d_config.order <= curOrder && (!dnsq->ids.qTag || dnsq->ids.qTag->count(svr.second->getNameWithAddr()) == 0)) {
+      if (svr.second->d_config.order < curOrder) {
+          curOrder = svr.second->d_config.order;
+          startIndex = candidates.size();
+          curNumber = 1;
+      }
+      candidates.push_back(ServerPolicy::NumberedServer(curNumber++, svr.second));
+    }
+  }
+
+  if (candidates.empty()) {
+    return {};
+  }
+
+  ServerPolicy::NumberedServerVector selected(candidates.begin() + startIndex, candidates.end());
+  return wrandom(selected, dnsq);
+}
+
 std::shared_ptr<const ServerPolicy::NumberedServerVector> getDownstreamCandidates(const std::string& poolName)
 {
   std::shared_ptr<ServerPool> pool = getPool(poolName);
@@ -415,6 +447,7 @@ const std::vector<std::shared_ptr<ServerPolicy>>& getBuiltInPolicies()
     std::make_shared<ServerPolicy>("wrandom", wrandom, false),
     std::make_shared<ServerPolicy>("whashed", whashed, false),
     std::make_shared<ServerPolicy>("chashed", chashed, false),
+    std::make_shared<ServerPolicy>("orderedWrandUntag", orderedWrandUntag, false),
     std::make_shared<ServerPolicy>("leastOutstanding", leastOutstanding, false)};
   return s_policies;
 }
