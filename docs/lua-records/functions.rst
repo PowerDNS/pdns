@@ -501,7 +501,8 @@ Helper functions
   :param string address: The IP address to lookup.
   :param int attr: The attribute identifier for the lookup.
 
-  You can use the following constants as the attribute:
+  From version 5.0.0 onwards, instead of the numerical value of the attribute
+  identifier, you can use the following constants as the attribute:
 
   - `GeoIPQueryAttribute.ASn`
   - `GeoIPQueryAttribute.City`
