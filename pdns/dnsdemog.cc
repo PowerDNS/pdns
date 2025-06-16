@@ -34,6 +34,8 @@
 
 #include "namespaces.hh"
 
+bool g_slogStructured{false};
+
 StatBag S;
 
 struct Entry

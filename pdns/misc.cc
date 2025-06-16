@@ -26,6 +26,7 @@
 
 #include <sys/param.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <fcntl.h>
 #include <netdb.h>
 #include <sys/time.h>
@@ -57,6 +58,8 @@
 #include "iputils.hh"
 #include "dnsparser.hh"
 #include "dns_random.hh"
+#include "logger.hh"
+#include "logging.hh"
 #include <pwd.h>
 #include <grp.h>
 #include <climits>
@@ -1787,6 +1790,43 @@ std::optional<std::string> visit_directory(const std::string& directory, const s
   }
 
   return std::nullopt;
+}
+
+std::vector<std::string> list_directory(const std::string& directory, const std::string& suffix, Logr::log_t d_log)
+{
+  std::vector<std::string> results;
+
+  auto directoryError = pdns::visit_directory(directory,
+    [&directory, &suffix, &results, d_log]
+    ([[maybe_unused]] ino_t inodeNumber, const std::string_view& name) {
+    if (boost::starts_with(name, ".")) {
+      return true; // skip any dots
+    }
+    if (boost::ends_with(name, suffix)) {
+      // build name
+      string fullName = directory + "/" + std::string(name);
+      // ensure it's a readable file
+      struct stat statInfo{};
+      if (stat(fullName.c_str(), &statInfo) != 0 || !S_ISREG(statInfo.st_mode)) {
+        string msg = fullName + " is not a regular file";
+        SLOG(g_log << Logger::Error << msg << std::endl,
+             d_log->info(Logr::Error, "Unable to open non-regular file", "name", Logging::Loggable(fullName)));
+        throw PDNSException(std::move(msg));
+      }
+      results.emplace_back(fullName);
+    }
+    return true;
+  });
+
+  if (directoryError) {
+    int err = errno;
+    string msg = directory + " is not accessible: " + stringerror(err);
+    SLOG(g_log << Logger::Error << msg << std::endl,
+         d_log->error(Logr::Error, err, "Directory is not accessible", "name", Logging::Loggable(directory)));
+    throw PDNSException(std::move(msg));
+  }
+
+  return results;
 }
 
 UniqueFilePtr openFileForWriting(const std::string& filePath, mode_t permissions, bool mustNotExist, bool appendIfExists)

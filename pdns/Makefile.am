@@ -1691,6 +1691,8 @@ fuzz_target_packetcache_SOURCES = \
 	dnsname.cc dnsname.hh \
 	ednsoptions.cc ednsoptions.hh \
 	fuzz_packetcache.cc \
+	logger.cc logger.hh \
+	logging.cc logging.hh \
 	misc.cc misc.hh \
 	packetcache.hh \
 	qtype.cc qtype.hh \
