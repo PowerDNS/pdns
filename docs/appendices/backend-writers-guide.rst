@@ -575,7 +575,7 @@ The following excerpt from the DNSBackend shows the relevant functions:
 
 The mentioned DomainInfo struct looks like this:
 
-.. cpp:struct:: DomainInfo
+.. cpp:class:: DomainInfo
 
 .. cpp:member:: domainid_t DomainInfo::id
 
