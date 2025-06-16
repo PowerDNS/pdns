@@ -343,10 +343,10 @@ ZoneName apiZoneIdToName(const string& identifier)
 
 string apiZoneNameToId(const ZoneName& dname)
 {
-  return apiNameToId(dname.toString());
+  return apiNameToId(dname.toStringFull(), false);
 }
 
-string apiNameToId(const string& name)
+string apiNameToId(const string& name, bool trailing)
 {
   ostringstream outputStringStream;
 
@@ -361,9 +361,11 @@ string apiNameToId(const string& name)
 
   string identifier = outputStringStream.str();
 
-  // add trailing dot
-  if (identifier.empty() || identifier.substr(identifier.size() - 1) != ".") {
-    identifier += ".";
+  if (trailing) {
+    // add trailing dot
+    if (identifier.empty() || identifier.substr(identifier.size() - 1) != ".") {
+      identifier += ".";
+    }
   }
 
   // special handling for the root zone, as a dot on it's own doesn't work
