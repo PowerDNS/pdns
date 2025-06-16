@@ -28,6 +28,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include "dnsdist-lua-ffi.hh"
+#include "base64.hh"
 #include "dnsdist-cache.hh"
 #include "dnsdist-configuration.hh"
 #include "dnsdist-rings.hh"
@@ -1032,5 +1033,61 @@ BOOST_AUTO_TEST_CASE(test_SVC_Generation)
 
   dnsdist_ffi_svc_record_parameters_free(parameters);
 }
+
+#if !defined(DISABLE_PROTOBUF)
+BOOST_AUTO_TEST_CASE(test_meta_values)
+{
+
+  InternalQueryState ids;
+  ids.origRemote = ComboAddress("192.0.2.1:4242");
+  ids.origDest = ComboAddress("192.0.2.255:53");
+  ids.qtype = QType::A;
+  ids.qclass = QClass::IN;
+  ids.protocol = dnsdist::Protocol::DoUDP;
+  ids.qname = DNSName("www.powerdns.com.");
+  ids.queryRealTime.start();
+  PacketBuffer query;
+  GenericDNSPacketWriter<PacketBuffer> pwQ(query, ids.qname, QType::A, QClass::IN, 0);
+  pwQ.getHeader()->rd = 1;
+  pwQ.getHeader()->id = htons(42);
+
+  DNSQuestion dnsQuestion(ids, query);
+  dnsdist_ffi_dnsquestion_t lightDQ(&dnsQuestion);
+
+  {
+    /* check invalid parameters */
+    dnsdist_ffi_dnsquestion_meta_begin_key(nullptr, nullptr, 0);
+    dnsdist_ffi_dnsquestion_meta_begin_key(&lightDQ, nullptr, 0);
+    dnsdist_ffi_dnsquestion_meta_begin_key(&lightDQ, "some-key", 0);
+    dnsdist_ffi_dnsquestion_meta_add_str_value_to_key(nullptr, nullptr, 0);
+    dnsdist_ffi_dnsquestion_meta_add_str_value_to_key(&lightDQ, nullptr, 0);
+    dnsdist_ffi_dnsquestion_meta_add_str_value_to_key(&lightDQ, "some-str-value", 0);
+    dnsdist_ffi_dnsquestion_meta_add_int64_value_to_key(nullptr, 0);
+    dnsdist_ffi_dnsquestion_meta_end_key(nullptr);
+  }
+
+  {
+    /* trying to end a key that has not been started */
+    dnsdist_ffi_dnsquestion_meta_end_key(&lightDQ);
+  }
+
+  {
+    const std::string key{"some-key"};
+    const std::string value1{"first value"};
+    const std::string value2{"second value"};
+    BOOST_CHECK_EQUAL(dnsQuestion.d_rawProtobufContent.size(), 0U);
+    dnsdist_ffi_dnsquestion_meta_begin_key(&lightDQ, key.data(), key.size());
+    /* we should not be able to begin a new key without ending it first */
+    dnsdist_ffi_dnsquestion_meta_begin_key(&lightDQ, key.data(), key.size());
+    dnsdist_ffi_dnsquestion_meta_add_str_value_to_key(&lightDQ, value1.data(), value1.size());
+    dnsdist_ffi_dnsquestion_meta_add_int64_value_to_key(&lightDQ, 42);
+    dnsdist_ffi_dnsquestion_meta_add_str_value_to_key(&lightDQ, value2.data(), value2.size());
+    dnsdist_ffi_dnsquestion_meta_add_int64_value_to_key(&lightDQ, -42);
+    dnsdist_ffi_dnsquestion_meta_end_key(&lightDQ);
+    BOOST_CHECK_EQUAL(dnsQuestion.d_rawProtobufContent.size(), 55U);
+    BOOST_CHECK_EQUAL(Base64Encode(dnsQuestion.d_rawProtobufContent), "sgE0Cghzb21lLWtleRIoCgtmaXJzdCB2YWx1ZRAqCgxzZWNvbmQgdmFsdWUQ1v//////////AQ==");
+  }
+}
+#endif /* DISABLE_PROTOBUF */
 
 BOOST_AUTO_TEST_SUITE_END();

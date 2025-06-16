@@ -553,6 +553,7 @@ if get_option('unit-tests')
           dep_boost,
           dep_boost_test,
           dep_lua,
+          dep_protozero,
       ],
     )
   )
@@ -572,6 +573,7 @@ if get_option('unit-tests')
           dep_boost_test,
           dep_ffi_interface,
           dep_lua,
+          dep_protozero,
         ],
     }
   }

@@ -321,6 +321,15 @@ This state can be modified from the various hooks.
     :param string body: The body of the HTTP response, or a URL if the status code is a redirect (3xx)
     :param string contentType: The HTTP Content-Type header to return for a 200 response, ignored otherwise. Default is ``application/dns-message``.
 
+  .. method:: DNSQuestion:setMetaKey(key, values)
+
+    .. versionadded:: 2.0.0
+
+    Set a meta-data entry to be exported in the ``meta`` field of ProtoBuf messages.
+
+    :param string key: The key
+    :param list values: A list containing strings, integers, or a mix of integers and strings
+
   .. method:: DNSQuestion:setNegativeAndAdditionalSOA(nxd, zone, ttl, mname, rname, serial, refresh, retry, expire, minimum)
 
     .. versionadded:: 1.5.0
