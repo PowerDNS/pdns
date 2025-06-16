@@ -1807,10 +1807,17 @@ std::vector<std::string> list_directory(const std::string& directory, const std:
       string fullName = directory + "/" + std::string(name);
       // ensure it's a readable file
       struct stat statInfo{};
-      if (stat(fullName.c_str(), &statInfo) != 0 || !S_ISREG(statInfo.st_mode)) {
-        string msg = fullName + " is not a regular file";
+      if (stat(fullName.c_str(), &statInfo) != 0) {
+        int err = errno;
+        string msg = "Unable to stat file '" + fullName + "': " + stringerror(err);
         SLOG(g_log << Logger::Error << msg << std::endl,
-             d_log->info(Logr::Error, "Unable to open non-regular file", "name", Logging::Loggable(fullName)));
+             d_log->error(Logr::Error, err, "Unable to stat file", "name", Logging::Loggable(fullName)));
+        throw PDNSException(std::move(msg));
+      }
+      if (!S_ISREG(statInfo.st_mode)) {
+        string msg = "File '" + fullName + "' is not a regular file";
+        SLOG(g_log << Logger::Error << msg << std::endl,
+             d_log->info(Logr::Error, "File is not a regular file", "name", Logging::Loggable(fullName)));
         throw PDNSException(std::move(msg));
       }
       results.emplace_back(fullName);
