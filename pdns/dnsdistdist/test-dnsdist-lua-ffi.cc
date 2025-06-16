@@ -449,6 +449,10 @@ BOOST_AUTO_TEST_CASE(test_Response)
   {
     BOOST_CHECK_EQUAL(dnsdist_ffi_dnsresponse_get_stale_cache_hit(&lightDR), false);
   }
+
+  {
+    BOOST_CHECK_EQUAL(dnsdist_ffi_dnsresponse_get_restart_count(&lightDR), 0);
+  }
 }
 
 BOOST_AUTO_TEST_CASE(test_Server)

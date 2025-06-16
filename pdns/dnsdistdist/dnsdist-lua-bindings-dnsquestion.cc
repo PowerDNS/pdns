@@ -656,6 +656,7 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
     dnsResponse.asynchronous = true;
     dnsResponse.getMutableData() = *dnsResponse.ids.d_packet;
     dnsResponse.ids.d_proxyProtocolPayloadSize = 0;
+    dnsResponse.ids.restartCount++;
     auto query = dnsdist::getInternalQueryFromDQ(dnsResponse, false);
     return dnsdist::queueQueryResumptionEvent(std::move(query));
   });
@@ -666,6 +667,10 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
 
   luaCtx.registerFunction<bool (DNSResponse::*)()>("getStaleCacheHit", [](DNSResponse& dnsResponse) {
     return dnsResponse.ids.staleCacheHit;
+  });
+
+  luaCtx.registerFunction<uint8_t (DNSResponse::*)()>("getRestartCount", [](DNSResponse& dnsResponse) {
+    return dnsResponse.ids.restartCount;
   });
 #endif /* DISABLE_NON_FFI_DQ_BINDINGS */
 }
