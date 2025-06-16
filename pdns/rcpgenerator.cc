@@ -838,27 +838,6 @@ void RecordTextWriter::xfrHexBlob(const string& val, bool)
   }
 }
 
-// FIXME copied from dnsparser.cc, see #6010 and #3503 if you want a proper solution
-static string txtEscape(const string &name)
-{
-  string ret;
-  char ebuf[5];
-
-  for(char i : name) {
-    if((unsigned char) i >= 127 || (unsigned char) i < 32) {
-      snprintf(ebuf, sizeof(ebuf), "\\%03u", (unsigned char)i);
-      ret += ebuf;
-    }
-    else if(i=='"' || i=='\\'){
-      ret += '\\';
-      ret += i;
-    }
-    else
-      ret += i;
-  }
-  return ret;
-}
-
 void RecordTextWriter::xfrSVCBValueList(const vector<string> &val) {
   bool shouldQuote{false};
   vector<string> escaped;

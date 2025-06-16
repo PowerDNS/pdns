@@ -470,22 +470,25 @@ DNSName PacketReader::getName()
   throw PDNSException("PacketReader::getName(): name is empty");
 }
 
-static string txtEscape(const string &name)
+// FIXME see #6010 and #3503 if you want a proper solution
+string txtEscape(const string &name)
 {
   string ret;
-  char ebuf[5];
+  std::array<char, 5> ebuf{};
 
-  for(char i : name) {
-    if((unsigned char) i >= 127 || (unsigned char) i < 32) {
-      snprintf(ebuf, sizeof(ebuf), "\\%03u", (unsigned char)i);
-      ret += ebuf;
+  for (char letter : name) {
+    const unsigned uch = static_cast<unsigned char>(letter);
+    if (uch >= 127 || uch < 32) {
+      snprintf(ebuf.data(), ebuf.size(), "\\%03u", uch);
+      ret += ebuf.data();
     }
-    else if(i=='"' || i=='\\'){
+    else if (letter == '"' || letter == '\\'){
       ret += '\\';
-      ret += i;
+      ret += letter;
     }
-    else
-      ret += i;
+    else {
+      ret += letter;
+    }
   }
   return ret;
 }

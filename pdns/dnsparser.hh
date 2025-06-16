@@ -670,3 +670,5 @@ private:
   uint32_t d_notyouroffset;  // only 'moveOffset' can touch this
   const uint32_t&  d_offset; // look.. but don't touch
 };
+
+string txtEscape(const string &name);
