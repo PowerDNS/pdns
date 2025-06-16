@@ -450,7 +450,7 @@ DNSResponse object
 
     Get the indicator of whether the cache lookup hit a stale entry.
 
-  .. method:: DNSResponse:getRestartCount() -> uint8_t
+  .. method:: DNSResponse:getRestartCount() -> int
 
     .. versionadded:: 2.0.0
 
