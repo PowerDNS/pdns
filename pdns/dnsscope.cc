@@ -43,6 +43,12 @@
 #include "dnsrecords.hh"
 #include "statnode.hh"
 
+#if !defined(IP_OFFMASK)
+// Solaris and derivatives do not define IP_OFFMASK in <netinet/ip.h>.
+// We can't even use ~(IP_RF | IP_DF | IP_MF) as it doesn't define IP_RF either.
+#define IP_OFFMASK 0x1fff /* mask for fragmenting bits */
+#endif
+
 namespace po = boost::program_options;
 po::variables_map g_vm;
 
