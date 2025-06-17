@@ -16,8 +16,6 @@ Note that Lua directives that can be used at runtime are always available via th
 
 A YAML configuration file contains several sections, that are described below.
 
-.. code-block:: yaml
-
 .. _yaml-settings-GlobalConfiguration:
 
 GlobalConfiguration
