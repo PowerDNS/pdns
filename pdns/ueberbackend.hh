@@ -53,11 +53,6 @@ public:
   bool autoPrimaryRemove(const struct AutoPrimary& primary);
   bool autoPrimariesList(std::vector<AutoPrimary>& primaries);
 
-  /** Tracks all created UeberBackend instances for us. We use this vector to notify
-      existing threads of new modules
-  */
-  static LockGuarded<vector<UeberBackend*>> d_instances;
-
   static bool loadmodule(const string& name);
   static bool loadModules(const vector<string>& modules, const string& path);
 
