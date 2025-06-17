@@ -44,8 +44,7 @@ if not dep_libcrypto.found()
     have = cxx.has_header(dir / 'include/openssl/crypto.h')
     if have
       dep_libcrypto = declare_dependency(
-        compile_args: ['-L' + dir / 'lib'],
-        link_args: ['-lcrypto'],
+        link_args: ['-L' + dir / 'lib', '-lcrypto'],
         include_directories: include_directories(dir / 'include', is_system: false),
       )
       break
