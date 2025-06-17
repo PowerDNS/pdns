@@ -186,8 +186,8 @@ dnsdist_SOURCES = \
 	dnsdist-configuration-yaml-internal.hh \
 	dnsdist-configuration-yaml.cc dnsdist-configuration-yaml.hh \
 	dnsdist-configuration.cc dnsdist-configuration.hh \
-	dnsdist-console.cc dnsdist-console.hh \
 	dnsdist-console-completion.cc dnsdist-console-completion.hh \
+	dnsdist-console.cc dnsdist-console.hh \
 	dnsdist-crypto.cc dnsdist-crypto.hh \
 	dnsdist-discovery.cc dnsdist-discovery.hh \
 	dnsdist-dnscrypt.cc \
