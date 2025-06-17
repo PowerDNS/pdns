@@ -39,6 +39,7 @@
 #include "dnsdist-concurrent-connections.hh"
 #include "dnsdist-configuration.hh"
 #include "dnsdist-console.hh"
+#include "dnsdist-console-completion.hh"
 #include "dnsdist-crypto.hh"
 #include "dnsdist-dynblocks.hh"
 #include "dnsdist-dynbpf.hh"
@@ -1749,7 +1750,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     setLuaNoSideEffect();
     g_outputBuffer = "";
 #ifndef DISABLE_COMPLETION
-    for (const auto& keyword : dnsdist::console::getConsoleKeywords()) {
+    for (const auto& keyword : dnsdist::console::completion::getConsoleKeywords()) {
       if (!command) {
         g_outputBuffer += keyword.toString() + "\n";
       }
