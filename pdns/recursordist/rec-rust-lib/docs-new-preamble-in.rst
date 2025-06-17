@@ -274,6 +274,8 @@ As of version 5.1.0, a protobuf server is defined as
     exportTypes: [A, AAAA, CNAME] Sequence of QType names
     logMappedFrom: false
 
+.. versionchanged:: 5.3.0 The aliases ``max_queued_entries``, ``reconnect_wait_time``, ``tagged_only``, ``async_connect``, ``log_queries``, ``log_responses``, ``export_types``, ``log_mapped_from`` have been introduced.
+    
 An example of a ``protobuf_servers`` entry, which is a sequence of `ProtobufServer`_:
 
 .. code-block:: yaml
@@ -303,6 +305,8 @@ As of version 5.1.0, a dnstap framestream server is defined as
   queueNotifyThreshold: 0
   reopenInterval: 0
 
+.. versionchanged:: 5.3.0 The aliases ``log_queries``, ``log_responses``, ``buffer_hint``, ``flush_timeout``, ``input_queue_size``, ``output_queue_size``, ``queue_notify_threshold``, ``reopen_interval`` have been introduced.
+
 An example of a ``dnstap_framestream_servers`` entry, which is a sequence of `DNSTapFrameStreamServers`_:
 
 .. code-block:: yaml
@@ -328,6 +332,8 @@ As of version 5.1.0, an NOD dnstap framestream server is defined as
   outputQueueSize: 0
   queueNotifyThreshold: 0
   reopenInterval: 0
+
+.. versionchanged:: 5.3.0 The aliases ``log_nods``, ``log_udrs``, ``buffer_hint``, ``flush_timeout``, ``input_queue_size``, ``output_queue_size``, ``queue_notify_threshold``, ``reopen_interval`` have been introduced.
 
 An example of a ``dnstap_nod_framestream_servers`` entry, which is a sequence of `DNSTapNODFrameStreamServers`_:
 
@@ -399,10 +405,11 @@ As of version 5.1.0, an RPZ entry is defined as
     dumpFile: string
     seedFile: string
 
+.. versionchanged:: 5.3.0 The aliases ``defpol_override_local_data``, ``extended_error_code``, ``extended_error_extra``, ``include_soa``, ``ignore_duplicates``, ``policy_name``, ``overriddes_gettag``, ``zone_size_hint``, ``max_received_bytes``, ``local_address``, ``axfr_timeout``, ``dump_file``, ``seed_file`` have been introduced.
+
 If ``addresses`` is empty, the ``name`` field specifies the path name of the RPZ, otherwise the ``name`` field defines the name of the RPZ.
 Starting with version 5.2.0, names instead of IP addresess can be used for ``addresses`` if
 :ref:`setting-yaml-recursor.system_resolver_ttl` is set.
-
 
 An example of an ``rpzs`` entry, which is a sequence of `RPZ`_:
 
@@ -435,6 +442,8 @@ As of version 5.1.0, a ZoneToCache entry is defined as
    localAddress: local IP address to  bind to.
    zonemd: One of ignore, validate, require
    dnssec: One of ignore, validate, require
+
+.. versionchanged:: 5.3.0 The aliases ``refresh_period``, ``retry_on_error``, ``max_received_mbytes``, ``local_address`` has been introduced.
 
 An example of an ``zonetocaches`` entry, which is a sequence of `ZoneToCache`_:
 
@@ -519,6 +528,8 @@ As of version 5.2.0, a forwarding catalog zone entry is defined as:
        forwarders: [] Sequence of SocketAddress
        recurse: bool, default false
        notify_allowed: bool, default false
+
+.. versionchanged:: 5.3.0 The aliases ``max_received_bytes``, ``local_address``, ``axfr_timeout`` have been introduced.
 
 While this setting has no equivalent old-style Lua configuration, it cannot appear together with :ref:`setting-lua-config-file` being set.
 If you want to use catalog zones to define forwards, you need to convert existing Lua configuration to YAML format.

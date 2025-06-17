@@ -153,7 +153,7 @@ pub struct RPZ {
     extendedErrorExtra: String,
     #[serde(default, skip_serializing_if = "crate::is_default", alias = "include_soa")]
     includeSOA: bool,
-    #[serde(default, skip_serializing_if = "crate::is_default", alias = "ignore_suplicates")]
+    #[serde(default, skip_serializing_if = "crate::is_default", alias = "ignore_duplicates")]
     ignoreDuplicates: bool,
     #[serde(default = "crate::U32::<{u32::MAX}>::value", skip_serializing_if = "crate::U32::<{u32::MAX}>::is_equal", alias = "max_ttl")]
     maxTTL: u32,
@@ -173,7 +173,7 @@ pub struct RPZ {
     maxReceivedMBytes: u32,
     #[serde(default, skip_serializing_if = "crate::is_default", alias = "local_address")]
     localAddress: String,
-    #[serde(default = "crate::U32::<20>::value", skip_serializing_if = "crate::U32::<20>::is_equal", alias = "axfr_rimeout")]
+    #[serde(default = "crate::U32::<20>::value", skip_serializing_if = "crate::U32::<20>::is_equal", alias = "axfr_timeout")]
     axfrTimeout: u32,
     #[serde(default, skip_serializing_if = "crate::is_default", alias = "dump_file")]
     dumpFile: String,
