@@ -43,6 +43,7 @@ BUILT_SOURCES=htmlfiles.h \
 	dnsdist-rust-bridge-selectors-generated-body.hh dnsdist-rust-bridge-selectors-generated.hh \
 	dnsdist-selectors-factory-generated-body.hh dnsdist-selectors-factory-generated.hh \
 	dnslabeltext.cc \
+	docs/reference/yaml-actions.rst docs/reference/yaml-response-actions.rst docs/reference/yaml-selectors.rst \
 	docs/reference/yaml-settings.rst
 
 htmlfiles.h: $(srcdir)/html/* $(srcdir)/incfiles

@@ -352,10 +352,11 @@ yaml_settings_docs = custom_target(
   'yaml-settings-docs',
   command: [
     python,
-    product_source_dir / 'dnsdist-settings-documentation-generator.py',
+    '@INPUT0@',
     '@SOURCE_ROOT@',
   ],
-  depend_files: [
+  input: [
+    product_source_dir / 'dnsdist-settings-documentation-generator.py',
     'dnsdist-settings-definitions.yml',
     'dnsdist-actions-definitions.yml',
     'dnsdist-response-actions-definitions.yml',

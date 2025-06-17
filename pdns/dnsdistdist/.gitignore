@@ -54,3 +54,7 @@ latex/
 /*-generated.hh
 dnsdist-configuration-yaml-items-generated.cc
 /dnsdist-rust-lib/rust/src/lib.rs
+/docs/reference/yaml-actions.rst
+/docs/reference/yaml-response-actions.rst
+/docs/reference/yaml-selectors.rst
+/docs/reference/yaml-settings.rst
