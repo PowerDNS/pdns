@@ -238,4 +238,4 @@ class TestRestartCount(DNSDistTest):
         self.assertEqual(self._queryCounts['s0'](), numberOfQueries)
         self.assertEqual(self._queryCounts['s1'](), numberOfQueries)
         self.assertEqual(self._queryCounts['s2'](), numberOfQueries)
-        self.assertEqual(self._queryCounts['s3'](),  0)
+        self.assertEqual(self._queryCounts['s3'](), 0)
