@@ -479,7 +479,6 @@ void doConsole()
 }
 }
 
-
 namespace dnsdist::console
 {
 void clearHistory()
