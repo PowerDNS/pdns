@@ -845,6 +845,11 @@ bool dnsdist_ffi_dnsresponse_get_stale_cache_hit(const dnsdist_ffi_dnsresponse_t
   return dnsResponse->dr->ids.staleCacheHit;
 }
 
+uint8_t dnsdist_ffi_dnsresponse_get_restart_count(const dnsdist_ffi_dnsresponse_t* dnsResponse)
+{
+  return dnsResponse->dr->ids.restartCount;
+}
+
 bool dnsdist_ffi_dnsquestion_set_async(dnsdist_ffi_dnsquestion_t* dq, uint16_t asyncID, uint16_t queryID, uint32_t timeoutMs)
 {
   try {

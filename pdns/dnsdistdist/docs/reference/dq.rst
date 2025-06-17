@@ -450,6 +450,12 @@ DNSResponse object
 
     Get the indicator of whether the cache lookup hit a stale entry.
 
+  .. method:: DNSResponse:getRestartCount() -> int
+
+    .. versionadded:: 2.0.0
+
+    Get the current restart count, useful when the number of restart attempts is to be checked.
+
   .. method:: DNSResponse:editTTLs(func)
 
     The function ``func`` is invoked for every entry in the answer, authority and additional section.
