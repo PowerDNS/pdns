@@ -26,7 +26,8 @@
 
 #include "config.h"
 
-namespace dnsdist::console::completion {
+namespace dnsdist::console::completion
+{
 #ifndef DISABLE_COMPLETION
 struct ConsoleKeyword
 {
