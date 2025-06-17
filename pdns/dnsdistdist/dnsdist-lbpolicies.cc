@@ -269,16 +269,15 @@ shared_ptr<DownstreamState> orderedWrandUntag(const ServerPolicy::NumberedServer
   candidates.reserve(servers.size());
 
   int curOrder = std::numeric_limits<int>::max();
-  unsigned int startIndex = 0;
   unsigned int curNumber = 1;
 
   for (const auto& svr : servers) {
-    if (svr.second->isUp() && svr.second->d_config.order <= curOrder && (!dnsq->ids.qTag || dnsq->ids.qTag->count(svr.second->getNameWithAddr()) == 0)) {
-      if (svr.second->d_config.order < curOrder) {
-          curOrder = svr.second->d_config.order;
-          startIndex = candidates.size();
-          curNumber = 1;
+    if (svr.second->isUp() && (!dnsq->ids.qTag || dnsq->ids.qTag->count(svr.second->getNameWithAddr()) == 0)) {
+      // the servers in a pool are already sorted in ascending order by its 'order', see ``ServerPool::addServer()``
+      if (svr.second->d_config.order > curOrder) {
+        break;
       }
+      curOrder = svr.second->d_config.order;
       candidates.push_back(ServerPolicy::NumberedServer(curNumber++, svr.second));
     }
   }
@@ -287,8 +286,7 @@ shared_ptr<DownstreamState> orderedWrandUntag(const ServerPolicy::NumberedServer
     return {};
   }
 
-  ServerPolicy::NumberedServerVector selected(candidates.begin() + startIndex, candidates.end());
-  return wrandom(selected, dnsq);
+  return wrandom(candidates, dnsq);
 }
 
 std::shared_ptr<const ServerPolicy::NumberedServerVector> getDownstreamCandidates(const std::string& poolName)
