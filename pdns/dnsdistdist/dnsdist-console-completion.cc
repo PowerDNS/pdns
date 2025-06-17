@@ -19,10 +19,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include <atomic>
+#include <boost/algorithm/string.hpp>
+
 #include "config.h"
 #include "dnsdist-console-completion.hh"
-
-#include <boost/algorithm/string.hpp>
+#include "dnsdist-rule-chains.hh"
 
 #ifdef HAVE_LIBEDIT
 #if defined(__OpenBSD__) || defined(__NetBSD__)
@@ -39,10 +41,9 @@ namespace dnsdist::console::completion
 {
 #ifndef DISABLE_COMPLETION
 /**** CARGO CULT CODE AHEAD ****/
-static const std::vector<dnsdist::console::completion::ConsoleKeyword> s_consoleKeywords{
+static std::vector<dnsdist::console::completion::ConsoleKeyword> s_consoleKeywords{
   /* keyword, function, parameters, description */
   {"addACL", true, "netmask", "add to the ACL set who can use this server"},
-  {"addAction", true, R"(DNS rule, DNS action [, {uuid="UUID", name="name"}])", "add a rule"},
   {"addBPFFilterDynBlocks", true, "addresses, dynbpf[[, seconds=10], msg]", "This is the eBPF equivalent of addDynBlocks(), blocking a set of addresses for (optionally) a number of seconds, using an eBPF dynamic filter"},
   {"addCapabilitiesToRetain", true, "capability or list of capabilities", "Linux capabilities to retain after startup, like CAP_BPF"},
   {"addConsoleACL", true, "netmask", "add a netmask to the console ACL"},
@@ -54,14 +55,8 @@ static const std::vector<dnsdist::console::completion::ConsoleKeyword> s_console
   {"addDynBlocks", true, "addresses, message[, seconds[, action]]", "block the set of addresses with message `msg`, for `seconds` seconds (10 by default), applying `action` (default to the one set with `setDynBlocksAction()`)"},
   {"addDynBlockSMT", true, "names, message[, seconds [, action]]", "block the set of names with message `msg`, for `seconds` seconds (10 by default), applying `action` (default to the one set with `setDynBlocksAction()`)"},
   {"addLocal", true, R"(addr [, {doTCP=true, reusePort=false, tcpFastOpenQueueSize=0, interface="", cpus={}}])", "add `addr` to the list of addresses we listen on"},
-  {"addCacheHitResponseAction", true, R"(DNS rule, DNS response action [, {uuid="UUID", name="name"}}])", "add a cache hit response rule"},
-  {"addCacheInsertedResponseAction", true, R"(DNS rule, DNS response action [, {uuid="UUID", name="name"}}])", "add a cache inserted response rule"},
   {"addMaintenanceCallback", true, "callback", "register a function to be called as part of the maintenance hook, every second"},
   {"addExitCallback", true, "callback", "register a function to be called when DNSdist exits"},
-  {"addResponseAction", true, R"(DNS rule, DNS response action [, {uuid="UUID", name="name"}}])", "add a response rule"},
-  {"addSelfAnsweredResponseAction", true, R"(DNS rule, DNS response action [, {uuid="UUID", name="name"}}])", "add a self-answered response rule"},
-  {"addTimeoutResponseAction", true, R"(DNS rule, DNS response action [, {uuid="UUID", name="name"}}])", "add a Timeout response rule"},
-  {"addXFRResponseAction", true, R"(DNS rule, DNS response action [, {uuid="UUID", name="name"}}])", "add a XFR response rule"},
   {"addTLSLocal", true, "addr, certFile(s), keyFile(s) [,params]", "listen to incoming DNS over TLS queries on the specified address using the specified certificate (or list of) and key (or list of). The last parameter is a table"},
   {"AllowAction", true, "", "let these packets go through"},
   {"AllowResponseAction", true, "", "let these packets go through"},
@@ -72,8 +67,6 @@ static const std::vector<dnsdist::console::completion::ConsoleKeyword> s_console
   {"clearConsoleHistory", true, "", "clear the internal (in-memory) history of console commands"},
   {"clearDynBlocks", true, "", "clear all dynamic blocks"},
   {"clearQueryCounters", true, "", "clears the query counter buffer"},
-  {"clearRules", true, "", "remove all current rules"},
-  {"clearTimeoutResponseRules", true, "", "remove all current timeout response rules"},
   {"controlSocket", true, "addr", "open a control socket on this address / connect to this address in client mode"},
   {"ContinueAction", true, "action", "execute the specified action and continue the processing of the remaining rules, regardless of the return of the action"},
   {"declareMetric", true, "name, type, description [, prometheusName]", "Declare a custom metric"},
@@ -106,8 +99,6 @@ static const std::vector<dnsdist::console::completion::ConsoleKeyword> s_console
   {"getAction", true, "n", "Returns the Action associated with rule n"},
   {"getBind", true, "n", "returns the listener at index n"},
   {"getBindCount", true, "", "returns the number of listeners all kinds"},
-  {"getCacheHitResponseRule", true, "selector", "Return the cache-hit response rule corresponding to the selector, if any"},
-  {"getCacheInsertedResponseRule", true, "selector", "Return the cache-inserted response rule corresponding to the selector, if any"},
   {"getCurrentTime", true, "", "returns the current time"},
   {"getDynamicBlocks", true, "", "returns a table of the current network-based dynamic blocks"},
   {"getDynamicBlocksSMT", true, "", "returns a table of the current suffix-based dynamic blocks"},
@@ -130,25 +121,13 @@ static const std::vector<dnsdist::console::completion::ConsoleKeyword> s_console
   {"getPoolNames", true, "", "returns a table with all the pool names"},
   {"getQueryCounters", true, "[max=10]", "show current buffer of query counters, limited by 'max' if provided"},
   {"getResponseRing", true, "", "return the current content of the response ring"},
-  {"getResponseRule", true, "selector", "Return the response rule corresponding to the selector, if any"},
   {"getRespRing", true, "", "return the qname/rcode content of the response ring"},
-  {"getRule", true, "selector", "Return the rule corresponding to the selector, if any"},
-  {"getSelfAnsweredResponseRule", true, "selector", "Return the self-answered response rule corresponding to the selector, if any"},
   {"getServer", true, "id", "returns server with index 'n' or whose uuid matches if 'id' is an UUID string"},
   {"getServers", true, "", "returns a table with all defined servers"},
   {"getStatisticsCounters", true, "", "returns a map of statistic counters"},
-  {"getTimeoutResponseRule", true, "selector", "Return the timeout response rule corresponding to the selector, if any"},
-  {"getTopCacheHitResponseRules", true, "[top]", "return the `top` cache-hit response rules"},
-  {"getTopCacheInsertedResponseRules", true, "[top]", "return the `top` cache-inserted response rules"},
-  {"getTopResponseRules", true, "[top]", "return the `top` response rules"},
-  {"getTopRules", true, "[top]", "return the `top` rules"},
-  {"getTopSelfAnsweredResponseRules", true, "[top]", "return the `top` self-answered response rules"},
-  {"getTopTimeoutResponseRules", true, "[top]", "return the `top` Timeout response rules"},
-  {"getTopXFRResponseRules", true, "[top]", "return the `top` XFR response rules"},
   {"getTLSFrontend", true, "n", "returns the TLS frontend with index n"},
   {"getTLSFrontendCount", true, "", "returns the number of DoT listeners"},
   {"getVerbose", true, "", "get whether log messages at the verbose level will be logged"},
-  {"getXFRResponseRule", true, "selector", "Return the XFR response rule corresponding to the selector, if any"},
   {"grepq", true, R"(Netmask|DNS Name|100ms|{"::1", "powerdns.com", "100ms"} [, n] [,options])", "shows the last n queries and responses matching the specified client address or range (Netmask), or the specified DNS Name, or slower than 100ms"},
   {"hashPassword", true, "password [, workFactor]", "Returns a hashed and salted version of the supplied password, usable with 'setWebserverConfig()'"},
   {"HTTPHeaderRule", true, "name, regex", "matches DoH queries with a HTTP header 'name' whose content matches the regular expression 'regex'"},
@@ -190,20 +169,6 @@ static const std::vector<dnsdist::console::completion::ConsoleKeyword> s_console
   {"makeRule", true, "rule", "Make a NetmaskGroupRule() or a SuffixMatchNodeRule(), depending on how it is called"},
   {"MaxQPSIPRule", true, "qps, [v4Mask=32 [, v6Mask=64 [, burst=qps [, expiration=300 [, cleanupDelay=60 [, scanFraction=10 [, shards=10]]]]]]]", "matches traffic exceeding the qps limit per subnet"},
   {"MaxQPSRule", true, "qps", "matches traffic **not** exceeding this qps limit"},
-  {"mvCacheHitResponseRule", true, "from, to", "move cache hit response rule 'from' to a position where it is in front of 'to'. 'to' can be one larger than the largest rule"},
-  {"mvCacheHitResponseRuleToTop", true, "", "move the last cache hit response rule to the first position"},
-  {"mvCacheInsertedResponseRule", true, "from, to", "move cache inserted response rule 'from' to a position where it is in front of 'to'. 'to' can be one larger than the largest rule"},
-  {"mvCacheInsertedResponseRuleToTop", true, "", "move the last cache inserted response rule to the first position"},
-  {"mvResponseRule", true, "from, to", "move response rule 'from' to a position where it is in front of 'to'. 'to' can be one larger than the largest rule"},
-  {"mvResponseRuleToTop", true, "", "move the last response rule to the first position"},
-  {"mvRule", true, "from, to", "move rule 'from' to a position where it is in front of 'to'. 'to' can be one larger than the largest rule, in which case the rule will be moved to the last position"},
-  {"mvRuleToTop", true, "", "move the last rule to the first position"},
-  {"mvSelfAnsweredResponseRule", true, "from, to", "move self-answered response rule 'from' to a position where it is in front of 'to'. 'to' can be one larger than the largest rule"},
-  {"mvSelfAnsweredResponseRuleToTop", true, "", "move the last self-answered response rule to the first position"},
-  {"mvTimeoutResponseRule", true, "from, to", "move timeout response rule 'from' to a position where it is in front of 'to'. 'to' can be one larger than the largest rule"},
-  {"mvTimeoutResponseRuleToTop", true, "", "move the last Timeout response rule to the first position"},
-  {"mvXFRResponseRule", true, "from, to", "move XFR response rule 'from' to a position where it is in front of 'to'. 'to' can be one larger than the largest rule"},
-  {"mvXFRResponseRuleToTop", true, "", "move the last XFR response rule to the first position"},
   {"NetmaskGroupRule", true, "nmg[, src]", "Matches traffic from/to the network range specified in nmg. Set the src parameter to false to match nmg against destination address instead of source address. This can be used to differentiate between clients"},
   {"newBPFFilter", true, "{ipv4MaxItems=int, ipv4PinnedPath=string, ipv6MaxItems=int, ipv6PinnedPath=string, cidr4MaxItems=int, cidr4PinnedPath=string, cidr6MaxItems=int, cidr6PinnedPath=string, qnamesMaxItems=int, qnamesPinnedPath=string, external=bool}", "Return a new eBPF socket filter with specified options."},
   {"newCA", true, "address", "Returns a ComboAddress based on `address`"},
@@ -258,14 +223,7 @@ static const std::vector<dnsdist::console::completion::ConsoleKeyword> s_console
   {"RemoteLogResponseAction", true, "RemoteLogger [,alterFunction [,includeCNAME [, serverID]]]", "send the content of this response to a remote logger via Protocol Buffer. `alterFunction` is the same callback than the one in `RemoteLogAction` and `includeCNAME` indicates whether CNAME records inside the response should be parsed and exported. The default is to only exports A and AAAA records. `serverID` is the server identifier."},
   {"requestTCPStatesDump", true, "", "Request a dump of the TCP states (incoming connections, outgoing connections) during the next scan. Useful for debugging purposes only"},
   {"rmACL", true, "netmask", "remove netmask from ACL"},
-  {"rmCacheHitResponseRule", true, "id", "remove cache hit response rule in position 'id', or whose uuid matches if 'id' is an UUID string, or finally whose name matches if 'id' is a string but not a valid UUID"},
-  {"rmCacheInsertedResponseRule", true, "id", "remove cache inserted response rule in position 'id', or whose uuid matches if 'id' is an UUID string, or finally whose name matches if 'id' is a string but not a valid UUID"},
-  {"rmResponseRule", true, "id", "remove response rule in position 'id', or whose uuid matches if 'id' is an UUID string, or finally whose name matches if 'id' is a string but not a valid UUID"},
-  {"rmRule", true, "id", "remove rule in position 'id', or whose uuid matches if 'id' is an UUID string, or finally whose name matches if 'id' is a string but not a valid UUID"},
-  {"rmSelfAnsweredResponseRule", true, "id", "remove self-answered response rule in position 'id', or whose uuid matches if 'id' is an UUID string, or finally whose name matches if 'id' is a string but not a valid UUID"},
   {"rmServer", true, "id", "remove server with index 'id' or whose uuid matches if 'id' is an UUID string"},
-  {"rmTimeoutResponseRule", true, "id", "remove Timeout response rule in position 'id', or whose uuid matches if 'id' is an UUID string, or finally whose name matches if 'id' is a string but not a valid UUID"},
-  {"rmXFRResponseRule", true, "id", "remove XFR response rule in position 'id', or whose uuid matches if 'id' is an UUID string, or finally whose name matches if 'id' is a string but not a valid UUID"},
   {"roundrobin", false, "", "Simple round robin over available servers"},
   {"sendCustomTrap", true, "str", "send a custom `SNMP` trap from Lua, containing the `str` string"},
   {"setACL", true, "{netmask, netmask}", "replace the ACL set with these netmasks. Use `setACL({})` to reset the list, meaning no one can use us"},
@@ -321,7 +279,6 @@ static const std::vector<dnsdist::console::completion::ConsoleKeyword> s_console
   {"setRingBuffersOptions", true, "{ lockRetries=int, recordQueries=true, recordResponses=true }", "set ringbuffer options"},
   {"setRingBuffersSize", true, "n [, numberOfShards]", "set the capacity of the ringbuffers used for live traffic inspection to `n`, and optionally the number of shards to use to `numberOfShards`"},
   {"setRoundRobinFailOnNoServer", true, "value", "By default the roundrobin load-balancing policy will still try to select a backend even if all backends are currently down. Setting this to true will make the policy fail and return that no server is available instead"},
-  {"setRules", true, "list of rules", "replace the current rules with the supplied list of pairs of DNS Rules and DNS Actions (see `newRuleAction()`)"},
   {"setSecurityPollInterval", true, "n", "set the security polling interval to `n` seconds"},
   {"setSecurityPollSuffix", true, "suffix", "set the security polling suffix to the specified value"},
   {"setServerPolicy", true, "policy", "set server selection policy to that policy"},
@@ -356,7 +313,6 @@ static const std::vector<dnsdist::console::completion::ConsoleKeyword> s_console
   {"show", true, "string", "outputs `string`"},
   {"showACL", true, "", "show our ACL set"},
   {"showBinds", true, "", "show listening addresses (frontends)"},
-  {"showCacheHitResponseRules", true, "[{showUUIDs=false, truncateRuleWidth=-1}]", "show all defined cache hit response rules, optionally with their UUIDs and optionally truncated to a given width"},
   {"showConsoleACL", true, "", "show our current console ACL set"},
   {"showDNSCryptBinds", true, "", "display the currently configured DNSCrypt binds"},
   {"showDOHFrontends", true, "", "list all the available DOH frontends"},
@@ -367,13 +323,9 @@ static const std::vector<dnsdist::console::completion::ConsoleKeyword> s_console
   {"showPools", true, "", "show the available pools"},
   {"showPoolServerPolicy", true, "pool", "show server selection policy for this pool"},
   {"showResponseLatency", true, "", "show a plot of the response time latency distribution"},
-  {"showResponseRules", true, "[{showUUIDs=false, truncateRuleWidth=-1}]", "show all defined response rules, optionally with their UUIDs and optionally truncated to a given width"},
-  {"showRules", true, "[{showUUIDs=false, truncateRuleWidth=-1}]", "show all defined rules, optionally with their UUIDs and optionally truncated to a given width"},
   {"showSecurityStatus", true, "", "Show the security status"},
-  {"showSelfAnsweredResponseRules", true, "[{showUUIDs=false, truncateRuleWidth=-1}]", "show all defined self-answered response rules, optionally with their UUIDs and optionally truncated to a given width"},
   {"showServerPolicy", true, "", "show name of currently operational server selection policy"},
   {"showServers", true, "[{showUUIDs=false}]", "output all servers, optionally with their UUIDs"},
-  {"showTimeoutResponseRules", true, "[{showUUIDs=false, truncateRuleWidth=-1}]", "show all defined timeout response rules, optionally with their UUIDs and optionally truncated to a given width"},
   {"showTCPStats", true, "", "show some statistics regarding TCP"},
   {"showTLSErrorCounters", true, "", "show metrics about TLS handshake failures"},
   {"showTLSFrontends", true, "", "list all the available TLS contexts"},
@@ -416,17 +368,10 @@ static const std::vector<dnsdist::console::completion::ConsoleKeyword> s_console
   {"testCrypto", true, "", "test of the crypto all works"},
   {"TimedIPSetRule", true, "", "Create a rule which matches a set of IP addresses which expire"},
   {"topBandwidth", true, "top", "show top-`top` clients that consume the most bandwidth over length of ringbuffer"},
-  {"topCacheHitResponseRules", true, "[top][, vars]", "show `top` cache-hit response rules"},
-  {"topCacheInsertedResponseRules", true, "[top][, vars]", "show `top` cache-inserted response rules"},
   {"topClients", true, "n", "show top-`n` clients sending the most queries over length of ringbuffer"},
   {"topQueries", true, "n[, labels]", "show top 'n' queries, as grouped when optionally cut down to 'labels' labels"},
-  {"topResponses", true, "n, kind[, labels]", "show top 'n' responses with RCODE=kind (0=NO Error, 2=ServFail, 3=NXDomain), as grouped when optionally cut down to 'labels' labels"},
-  {"topResponseRules", true, "[top][, vars]", "show `top` response rules"},
-  {"topRules", true, "[top][, vars]", "show `top` rules"},
-  {"topSelfAnsweredResponseRules", true, "[top][, vars]", "show `top` self-answered response rules"},
   {"topSlow", true, "[top][, limit][, labels]", "show `top` queries slower than `limit` milliseconds (timeouts excepted), grouped by last `labels` labels"},
   {"topTimeouts", true, "[top][, labels]", "show `top` queries that timed out, grouped by last `labels` labels"},
-  {"topTimeoutResponseRules", true, "[top][, vars]", "show `top` timeout response rules"},
   {"TrailingDataRule", true, "", "Matches if the query has trailing data"},
   {"truncateTC", true, "bool", "if set (defaults to no starting with dnsdist 1.2.0) truncate TC=1 answers so they are actually empty. Fixes an issue for PowerDNS Authoritative Server 2.9.22. Note: turning this on breaks compatibility with RFC 6891."},
   {"unregisterDynBPFFilter", true, "DynBPFFilter", "unregister this dynamic BPF filter"},
@@ -483,6 +428,42 @@ extern "C"
 }
 #endif /* HAVE_LIBEDIT */
 
+static void initializeConsoleKeywords()
+{
+  static std::atomic<bool> s_initialized{false};
+  if (s_initialized.exchange(true)) {
+    return;
+  }
+
+  for (const auto& chain : dnsdist::rules::getRuleChainDescriptions()) {
+    const std::string descriptionWithSpace = chain.description + (chain.description.empty() ? "" : " ");
+    s_consoleKeywords.push_back(ConsoleKeyword{"add" + chain.prefix + "Action", true, std::string(R"(DNS rule, DNS action [, {uuid="UUID", name="name"}])"), "add a " + descriptionWithSpace + "rule"});
+    s_consoleKeywords.push_back(ConsoleKeyword{"show" + chain.prefix + "Rules", true, std::string("[{showUUIDs=false, truncateRuleWidth=-1}]"), "show all defined " + descriptionWithSpace + "rules, optionally with their UUIDs and optionally truncated to a given width"});
+    s_consoleKeywords.push_back(ConsoleKeyword{"rm" + chain.prefix + "Rule", true, std::string("id"), "remove " + descriptionWithSpace + "rule in position 'id', or whose uuid matches if 'id' is an UUID string, or finally whose name matches if 'id' is a string but not a valid UUID"});
+    s_consoleKeywords.push_back(ConsoleKeyword{"mv" + chain.prefix + "Rule", true, std::string("from, to"), "move " + descriptionWithSpace + "rule 'from' to a position where it is in front of 'to'. 'to' can be one larger than the largest rule, in which case the rule will be moved to the last position"});
+    s_consoleKeywords.push_back(ConsoleKeyword{"mv" + chain.prefix + "RuleToTop", true, std::string(), "move the last " + descriptionWithSpace + "rule to the first position"});
+    s_consoleKeywords.push_back(ConsoleKeyword{"get" + chain.prefix + "Rule", true, std::string("selector"), "Return the " + descriptionWithSpace + "rule corresponding to the selector, if any"});
+    s_consoleKeywords.push_back(ConsoleKeyword{"getTop" + chain.prefix + "Rules", true, "[top]", "return the `top` " + descriptionWithSpace + "rules"});
+    s_consoleKeywords.push_back(ConsoleKeyword{"top" + chain.prefix + "Rules", true, "[top][, vars]", "show `top` " + descriptionWithSpace + "rules"});
+    s_consoleKeywords.push_back(ConsoleKeyword{"clear" + chain.prefix + "Rules", true, "", "remove all current " + descriptionWithSpace + "rules"});
+    s_consoleKeywords.push_back(ConsoleKeyword{"set" + chain.prefix + "Rules", true, "list of " + descriptionWithSpace + "rules", "replace the current " + descriptionWithSpace + "rules with the supplied list of pairs of DNS Rules and DNS Actions (see `newRuleAction()`)"});
+  }
+
+  for (const auto& chain : dnsdist::rules::getResponseRuleChainDescriptions()) {
+    const std::string descriptionWithSpace = chain.description + (chain.description.empty() ? "" : " ");
+    s_consoleKeywords.push_back(ConsoleKeyword{"add" + chain.prefix + "ResponseAction", true, std::string(R"(DNS rule, DNS response action [, {uuid="UUID", name="name"}])"), "add a " + descriptionWithSpace + "response rule"});
+    s_consoleKeywords.push_back(ConsoleKeyword{"show" + chain.prefix + "ResponseRules", true, std::string("[{showUUIDs=false, truncateRuleWidth=-1}]"), "show all defined " + descriptionWithSpace + "response rules, optionally with their UUIDs and optionally truncated to a given width"});
+    s_consoleKeywords.push_back(ConsoleKeyword{"rm" + chain.prefix + "ResponseRule", true, std::string("id"), "remove " + descriptionWithSpace + "response rule in position 'id', or whose uuid matches if 'id' is an UUID string, or finally whose name matches if 'id' is a string but not a valid UUID"});
+    s_consoleKeywords.push_back(ConsoleKeyword{"mv" + chain.prefix + "ResponseRule", true, std::string("from, to"), "move " + descriptionWithSpace + "response rule 'from' to a position where it is in front of 'to'. 'to' can be one larger than the largest rule, in which case the rule will be moved to the last position"});
+    s_consoleKeywords.push_back(ConsoleKeyword{"mv" + chain.prefix + "ResponseRuleToTop", true, std::string(), "move the last " + descriptionWithSpace + "response rule to the first position"});
+    s_consoleKeywords.push_back(ConsoleKeyword{"get" + chain.prefix + "ResponseRule", true, std::string("selector"), "Return the " + descriptionWithSpace + "response rule corresponding to the selector, if any"});
+    s_consoleKeywords.push_back(ConsoleKeyword{"getTop" + chain.prefix + "ResponseRules", true, "[top]", "return the `top` " + descriptionWithSpace + "response rules"});
+    s_consoleKeywords.push_back(ConsoleKeyword{"top" + chain.prefix + "ResponseRules", true, "[top][, vars]", "show `top` " + descriptionWithSpace + "response rules"});
+    s_consoleKeywords.push_back(ConsoleKeyword{"clear" + chain.prefix + "ResponseRules", true, "", "remove all current " + descriptionWithSpace + "response rules"});
+    s_consoleKeywords.push_back(ConsoleKeyword{"set" + chain.prefix + "ResponseRules", true, "list of " + descriptionWithSpace + "response rules", "replace the current " + descriptionWithSpace + "response rules with the supplied list of pairs of DNS Rules and DNS Actions (see `newRuleAction()`)"});
+  }
+}
+
 const std::vector<ConsoleKeyword>& getConsoleKeywords()
 {
   return s_consoleKeywords;
@@ -503,6 +484,7 @@ std::string ConsoleKeyword::toString() const
 void setupCompletion()
 {
 #ifndef DISABLE_COMPLETION
+  initializeConsoleKeywords();
 #ifdef HAVE_LIBEDIT
   rl_attempted_completion_function = dnsdist::console::completion::dnsdist_completion_callback;
   rl_completion_append_character = 0;

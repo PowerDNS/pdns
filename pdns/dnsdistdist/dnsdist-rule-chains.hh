@@ -51,6 +51,7 @@ enum class RuleChain : uint8_t
 struct RuleChainDescription
 {
   const std::string prefix;
+  const std::string description;
   const std::string metricName;
   const RuleChain identifier;
 };
@@ -77,6 +78,7 @@ enum class ResponseRuleChain : uint8_t
 struct ResponseRuleChainDescription
 {
   const std::string prefix;
+  const std::string description;
   const std::string metricName;
   const ResponseRuleChain identifier;
 };
