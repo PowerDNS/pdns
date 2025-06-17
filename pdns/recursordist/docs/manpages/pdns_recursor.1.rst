@@ -25,7 +25,7 @@ as in the background, execute::
 
 To stop the recursor by hand, run::
 
-    # rec_control quit
+    # rec_control quit-nicely
 
 However, the recommended way of starting and stopping the recursor is to use
 :manpage:`systemctl(1)` or the init.d script.
