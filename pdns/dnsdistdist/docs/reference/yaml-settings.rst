@@ -77,7 +77,7 @@ Generic settings for backends
 - **use_proxy_protocol**: Boolean ``(false)`` - Add a proxy protocol header to the query, passing along the client's IP address and port along with the original destination address and port
 - **queries_per_second**: Unsigned integer ``(0)`` - Limit the number of queries per second to ``number``, when using the ``firstAvailable`` policy
 - **order**: Unsigned integer ``(1)`` - The order of this server, used by the `leastOutstanding` and `firstAvailable` policies
-- **weight**: Unsigned integer ``(1)`` - The weight of this server, used by the `wrandom`, `whashed` and `chashed` policies, default: 1. Supported values are a minimum of 1, and a maximum of 2147483647
+- **weight**: Unsigned integer ``(1)`` - The weight of this server, used by the `wrandom`, `whashed`, `chashed` and `orderedWrandUntag` policies, default: 1. Supported values are a minimum of 1, and a maximum of 2147483647
 - **udp_timeout**: Unsigned integer ``(0)`` - The udp backend query timeout value in seconds, default: 0. Supported values are a minimum of 1, and a maximum of 255. Value greater than 0 will override global UDP timeout setting
 - **pools**: Sequence of String ``("")`` - List of pools to place this backend into. By default a server is placed in the default ("") pool
 - **tcp**: :ref:`OutgoingTcpConfiguration <yaml-settings-OutgoingTcpConfiguration>` - TCP-related settings for a backend
@@ -631,7 +631,7 @@ Setting for load-balancing policies
 - **default_policy**: String ``(leastOutstanding)`` - Set the default server selection policy
 - **servfail_on_no_server**: Boolean ``(false)`` - If set, return a ServFail when no servers are available, instead of the default behaviour of dropping the query
 - **round_robin_servfail_on_no_server**: Boolean ``(false)`` - By default the roundrobin load-balancing policy will still try to select a backend even if all backends are currently down. Setting this to true will make the policy fail and return that no server is available instead
-- **weighted_balancing_factor**: Double ``(0.0)`` - Set the maximum imbalance between the number of outstanding queries intended for a given server, based on its weight, and the actual number, when using the ``whashed`` or ``wrandom`` load-balancing policy. Default is 0, which disables the bounded-load algorithm
+- **weighted_balancing_factor**: Double ``(0.0)`` - Set the maximum imbalance between the number of outstanding queries intended for a given server, based on its weight, and the actual number, when using the ``whashed``, ``wrandom`` or ``orderedWrandUntag`` load-balancing policy. Default is 0, which disables the bounded-load algorithm
 - **consistent_hashing_balancing_factor**: Double ``(0.0)`` - Set the maximum imbalance between the number of outstanding queries intended for a given server, based on its weight, and the actual number, when using the ``chashed`` consistent hashing load-balancing policy. Default is 0, which disables the bounded-load algorithm
 - **custom_policies**: Sequence of :ref:`CustomLoadBalancingPolicyConfiguration <yaml-settings-CustomLoadBalancingPolicyConfiguration>` - Custom load-balancing policies implemented in Lua
 - **hash_perturbation**: Unsigned integer ``(0)`` - Set the hash perturbation value to be used in the ``whashed`` policy instead of a random one, allowing to have consistent ``whashed`` results on different instances
