@@ -1249,6 +1249,11 @@ bool Bind2Backend::get(DNSResourceRecord& r)
   return true;
 }
 
+void Bind2Backend::lookupEnd()
+{
+  d_handle.reset();
+}
+
 bool Bind2Backend::handle::get(DNSResourceRecord& r)
 {
   if (d_list)
