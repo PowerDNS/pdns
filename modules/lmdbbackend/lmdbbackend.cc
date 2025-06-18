@@ -1303,12 +1303,26 @@ bool LMDBBackend::replaceRRSet(domainid_t domain_id, const DNSName& qname, const
     return false;
   }
 
+  DNSName relative = qname.makeRelative(di.zone);
   compoundOrdername co;
-  auto cursor = txn->txn->getCursor(txn->db->dbi);
-  MDBOutVal key, val;
-  string match = co(domain_id, qname.makeRelative(di.zone), qt.getCode());
-  if (!cursor.find(match, key, val)) {
-    cursor.del();
+  string match;
+  if (qt.getCode() == QType::ANY) {
+    match = co(domain_id, relative);
+    deleteDomainRecords(*txn, QType::ANY, match);
+    // Update key if insertions are to follow
+    if (!rrset.empty()) {
+      match = co(domain_id, relative, rrset.front().qtype.getCode());
+    }
+  }
+  else {
+    auto cursor = txn->txn->getCursor(txn->db->dbi);
+    MDBOutVal key{};
+    MDBOutVal val{};
+    match = co(domain_id, relative, qt.getCode());
+    // There should be at most one exact match here.
+    if (cursor.find(match, key, val) == 0) {
+      cursor.del();
+    }
   }
 
   if (!rrset.empty()) {
