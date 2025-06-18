@@ -1111,20 +1111,20 @@ static std::shared_ptr<DNSRecordContent> deserializeContentZR(uint16_t qtype, co
 #define StringView string
 #endif
 
-void LMDBBackend::deleteDomainRecords(RecordsRWTransaction& txn, domainid_t domain_id, uint16_t qtype)
+void LMDBBackend::deleteDomainRecords(RecordsRWTransaction& txn, uint16_t qtype, const std::string& match)
 {
-  compoundOrdername co;
-  string match = co(domain_id);
-
   auto cursor = txn.txn->getCursor(txn.db->dbi);
-  MDBOutVal key, val;
-  //  cout<<"Match: "<<makeHexDump(match);
-  if (!cursor.lower_bound(match, key, val)) {
+  MDBOutVal key{};
+  MDBOutVal val{};
+
+  if (cursor.lower_bound(match, key, val) == 0) {
     while (key.getNoStripHeader<StringView>().rfind(match, 0) == 0) {
-      if (qtype == QType::ANY || co.getQType(key.getNoStripHeader<StringView>()) == qtype)
+      if (qtype == QType::ANY || compoundOrdername::getQType(key.getNoStripHeader<StringView>()) == qtype) {
         cursor.del();
-      if (cursor.next(key, val))
+      }
+      if (cursor.next(key, val) != 0) {
         break;
+      }
     }
   }
 }
@@ -1162,7 +1162,9 @@ bool LMDBBackend::startTransaction(const ZoneName& domain, domainid_t domain_id)
   d_transactiondomain = domain;
   d_transactiondomainid = real_id;
   if (domain_id != UnknownDomainID) {
-    LMDBBackend::deleteDomainRecords(*d_rwtxn, domain_id);
+    compoundOrdername order;
+    string match = order(domain_id);
+    LMDBBackend::deleteDomainRecords(*d_rwtxn, QType::ANY, match);
   }
 
   return true;
@@ -2776,7 +2778,9 @@ bool LMDBBackend::updateEmptyNonTerminals(domainid_t domain_id, set<DNSName>& in
 
   // if remove is set, all ENTs should be removed & nothing else should be done
   if (remove) {
-    LMDBBackend::deleteDomainRecords(*txn, domain_id, 0);
+    compoundOrdername order;
+    string match = order(domain_id);
+    LMDBBackend::deleteDomainRecords(*txn, QType::ENT, match);
   }
   else {
     DomainInfo di;
