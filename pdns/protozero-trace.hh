@@ -235,12 +235,12 @@ inline void random(SpanID& span)
 
 inline void clear(TraceID& trace)
 {
-  memset(trace.data(), 0, trace.size());
+  trace.fill(0);
 }
 
 inline void clear(SpanID& span)
 {
-  memset(span.data(), 0, span.size());
+  span.fill(0);
 }
 
 inline void fill(TraceID& trace, const std::string& data)
@@ -248,7 +248,7 @@ inline void fill(TraceID& trace, const std::string& data)
   if (data.size() != trace.size()) {
     throw std::runtime_error("TraceID size mismatch");
   }
-  memcpy(trace.data(), data.data(), trace.size());
+  std::copy(data.begin(), data.end(), trace.begin());
 }
 
 inline void fill(SpanID& span, const std::string& data)
@@ -256,7 +256,7 @@ inline void fill(SpanID& span, const std::string& data)
   if (data.size() != span.size()) {
     throw std::runtime_error("SpanID size mismatch");
   }
-  memcpy(span.data(), data.data(), span.size());
+  std::copy(data.begin(), data.end(), span.begin());
 }
 
 inline void fill(TraceID& trace, const char* data, size_t size)

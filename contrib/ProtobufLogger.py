@@ -390,7 +390,6 @@ class PDNSPBListener(object):
 
 
 if __name__ == "__main__":
-    print(opentelemetryAvailable)
     oturl = None
     if len(sys.argv) == 4:
         oturl = sys.argv[3]
