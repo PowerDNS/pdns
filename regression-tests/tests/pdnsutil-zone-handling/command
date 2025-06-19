@@ -9,24 +9,31 @@
 # and not guaranteed to be in any particular order.
 
 pdnsutil_wrapper() {
-$PDNSUTIL --config-dir=. --config-name=$backend $* 2>&1 | egrep -v 'destructor'
+$PDNSUTIL --config-dir=. --config-name=$backend "$@" 2>&1 | egrep -v 'destructor'
 }
 
-pdnsutil_wrapper create-zone bug.less > /dev/null
-pdnsutil_wrapper add-record bug.less cname CNAME host 
-pdnsutil_wrapper add-record bug.less host A 127.0.0.1
+ZONE=bug.less
+
+pdnsutil_wrapper zone create  ${ZONE} > /dev/null
+pdnsutil_wrapper record add   ${ZONE} cname CNAME host 
+pdnsutil_wrapper record add   ${ZONE} host A 127.0.0.1
 # Duplicate records should be omitted
-pdnsutil_wrapper add-record bug.less host2 A 127.0.0.2 127.0.0.2
+pdnsutil_wrapper record add   ${ZONE} host2 A 127.0.0.2 127.0.0.2
 # Can't add non-CNAME record to a CNAME record
-pdnsutil_wrapper add-record bug.less cname A 127.0.0.1
+pdnsutil_wrapper record add   ${ZONE} cname A 127.0.0.1
 # Can't add CNAME record if other records exist
-pdnsutil_wrapper add-record bug.less host CNAME host2
+pdnsutil_wrapper record add   ${ZONE} host CNAME host2
 # Adding existing record should ignore duplicates
-pdnsutil_wrapper add-record bug.less host2 A 127.0.0.2 127.0.0.3 | LC_ALL=C sort
+pdnsutil_wrapper record add   ${ZONE} host2 A 127.0.0.2 127.0.0.3 | LC_ALL=C sort
+
+# Deleting rrset with ANY should delete all entries regardless of their type
+pdnsutil_wrapper record add   ${ZONE} no A 1.2.3.4
+pdnsutil_wrapper record add   ${ZONE} no TXT '"insert your favorite zen quote here"'
+pdnsutil_wrapper rrset delete ${ZONE} no ANY
 
 # Display zone contents for final verification
-pdnsutil_wrapper list-zone bug.less | LC_ALL=C sort
+pdnsutil_wrapper zone list    ${ZONE} | LC_ALL=C sort
 
 # Delete this non-standard zone, so that the result of the zone-variants
 # test do not vary if this particular test is skipped.
-pdnsutil_wrapper delete-zone bug.less > /dev/null
+pdnsutil_wrapper zone delete  ${ZONE} > /dev/null
