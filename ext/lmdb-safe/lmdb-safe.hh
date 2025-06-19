@@ -941,7 +941,7 @@ public:
 #endif
 
 #ifndef DNSDIST
-  void del(int flags=0)
+  void del()
   {
     MDBOutVal key, val;
 
@@ -972,7 +972,7 @@ public:
     }
     else {
       // do a normal delete
-      if (int rc_del = mdb_cursor_del(*this, flags); rc_del != 0) {
+      if (int rc_del = mdb_cursor_del(*this, 0); rc_del != 0) {
         throw std::runtime_error("deleting data: " + std::string(mdb_strerror(rc_del)));
       }
     }
