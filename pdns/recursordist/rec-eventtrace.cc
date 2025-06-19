@@ -44,22 +44,23 @@ const std::unordered_map<RecEventTrace::EventType, std::string> RecEventTrace::s
 
 using namespace pdns::trace;
 
-static void addValue(const RecEventTrace::Entry& event, Span& work)
+static void addValue(const RecEventTrace::Entry& event, Span& work, bool start)
 {
   if (std::holds_alternative<std::nullopt_t>(event.d_value)) {
     return;
   }
+  const string key = start ? "arg" : "result";
   if (std::holds_alternative<bool>(event.d_value)) {
-    work.attributes.emplace_back(KeyValue{"value", {std::get<bool>(event.d_value)}});
+    work.attributes.emplace_back(KeyValue{key, {std::get<bool>(event.d_value)}});
   }
   else if (std::holds_alternative<int64_t>(event.d_value)) {
-    work.attributes.emplace_back(KeyValue{"value", {std::get<int64_t>(event.d_value)}});
+    work.attributes.emplace_back(KeyValue{key, {std::get<int64_t>(event.d_value)}});
   }
   else if (std::holds_alternative<std::string>(event.d_value)) {
-    work.attributes.emplace_back(KeyValue{"value", {std::get<std::string>(event.d_value)}});
+    work.attributes.emplace_back(KeyValue{key, {std::get<std::string>(event.d_value)}});
   }
   else {
-    work.attributes.emplace_back(KeyValue{"value", {RecEventTrace::toString(event.d_value)}});
+    work.attributes.emplace_back(KeyValue{key, {RecEventTrace::toString(event.d_value)}});
   }
 }
 
@@ -103,7 +104,7 @@ std::vector<pdns::trace::Span> RecEventTrace::convertToOT(const Span& span) cons
       }
       // Assign a span id.
       random(work.span_id);
-      addValue(event, work);
+      addValue(event, work, true);
       spanIDs.emplace_back(work.span_id);
       ret.emplace_back(work);
       ids[index] = ret.size() - 1;
@@ -112,7 +113,7 @@ std::vector<pdns::trace::Span> RecEventTrace::convertToOT(const Span& span) cons
       // It's a close event
       if (ids.find(event.d_matching) != ids.end()) {
         auto& work = ret.at(ids.at(event.d_matching));
-        addValue(event, work);
+        addValue(event, work, false);
         work.end_time_unix_nano = static_cast<uint64_t>(event.d_ts + diff);
         spanIDs.emplace_back(work.span_id);
       }

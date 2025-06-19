@@ -673,7 +673,7 @@ struct TracesData
 
   static TracesData boilerPlate(std::string&& service, std::string&& req, std::vector<Span>&& spans)
   {
-    spans.at(0).attributes.push_back({"value", {std::move(req)}});
+    spans.at(0).attributes.push_back({"arg", {std::move(req)}});
     return TracesData{
       .resource_spans = {pdns::trace::ResourceSpans{.resource = {.attributes = {{"service.name", {{std::move(service)}}}}}, .scope_spans = {{.spans = std::move(spans)}}}}};
   }
