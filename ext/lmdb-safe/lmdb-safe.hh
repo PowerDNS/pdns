@@ -824,7 +824,7 @@ public:
   }
 #endif
 
-  int del(MDBDbi& dbi, const MDBInVal& key)
+  void del(MDBDbi& dbi, const MDBInVal& key)
   {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
     int mdbDelRc = mdb_del(d_txn, dbi, (MDB_val*)&key.d_mdbval, nullptr);
@@ -855,7 +855,6 @@ public:
       }
     }
 #endif
-    return mdbDelRc;
   }
 
   int get(MDBDbi& dbi, const MDBInVal& key, MDBOutVal& val)
@@ -942,7 +941,7 @@ public:
 #endif
 
 #ifndef DNSDIST
-  int del(int flags=0)
+  void del(int flags=0)
   {
     MDBOutVal key, val;
 
@@ -950,7 +949,7 @@ public:
       int rc_get = mdb_cursor_get (*this, &key.d_mdbval, &val.d_mdbval, MDB_GET_CURRENT);
 
       if(rc_get) {
-              throw std::runtime_error("getting key to mark data as deleted: " + std::string(mdb_strerror(rc_get)));
+        throw std::runtime_error("getting key to mark data as deleted: " + std::string(mdb_strerror(rc_get)));
       }
 
       size_t txid = mdb_txn_id(d_txn);
@@ -966,15 +965,16 @@ public:
 
       int rc_put = mdb_cursor_put(*this,
                      const_cast<MDB_val*>(&pkey.d_mdbval),
-                     const_cast<MDB_val*>(&pval.d_mdbval), 0 /* MDB_CURRENT */);
+                     const_cast<MDB_val*>(&pval.d_mdbval), 0);
       if(rc_put) {
-              throw std::runtime_error("marking data deleted: " + std::string(mdb_strerror(rc_put)));
+        throw std::runtime_error("marking data deleted: " + std::string(mdb_strerror(rc_put)));
       }
-      return rc_put;
     }
     else {
       // do a normal delete
-      return mdb_cursor_del(*this, flags);
+      if (int rc_del = mdb_cursor_del(*this, flags); rc_del != 0) {
+        throw std::runtime_error("deleting data: " + std::string(mdb_strerror(rc_del)));
+      }
     }
   }
 #endif
