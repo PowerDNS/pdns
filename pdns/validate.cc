@@ -973,14 +973,12 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
 
 bool isRRSIGNotExpired(const time_t now, const RRSIGRecordContent& sig)
 {
-  // Should use https://www.rfc-editor.org/rfc/rfc4034.txt section 3.1.5
-  return sig.d_sigexpire >= now;
+  return rfc1982LessThanOrEqual<uint32_t>(now, sig.d_sigexpire);
 }
 
 bool isRRSIGIncepted(const time_t now, const RRSIGRecordContent& sig)
 {
-  // Should use https://www.rfc-editor.org/rfc/rfc4034.txt section 3.1.5
-  return sig.d_siginception - g_signatureInceptionSkew <= now;
+  return rfc1982LessThanOrEqual<uint32_t>(sig.d_siginception - g_signatureInceptionSkew, now);
 }
 
 namespace {
@@ -990,10 +988,17 @@ namespace {
      - The validator's notion of the current time MUST be less than or equal to the time listed in the RRSIG RR's Expiration field.
      - The validator's notion of the current time MUST be greater than or equal to the time listed in the RRSIG RR's Inception field.
   */
-  if (isRRSIGIncepted(now, sig) && isRRSIGNotExpired(now, sig)) {
+  vState localEDE = vState::Indeterminate;
+  if (!isRRSIGIncepted(now, sig)) {
+    localEDE = vState::BogusSignatureNotYetValid;
+  }
+  else if (!isRRSIGNotExpired(now, sig)) {
+    localEDE = vState::BogusSignatureExpired;
+  }
+  if (localEDE == vState::Indeterminate) {
     return true;
   }
-  ede = ((sig.d_siginception - g_signatureInceptionSkew) > now) ? vState::BogusSignatureNotYetValid : vState::BogusSignatureExpired;
+  ede = localEDE;
   VLOG(log, qname << ": Signature is "<<(ede == vState::BogusSignatureNotYetValid ? "not yet valid" : "expired")<<" (inception: "<<sig.d_siginception<<", inception skew: "<<g_signatureInceptionSkew<<", expiration: "<<sig.d_sigexpire<<", now: "<<now<<")"<<endl);
   return false;
 }
