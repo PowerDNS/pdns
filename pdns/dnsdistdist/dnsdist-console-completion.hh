@@ -23,16 +23,23 @@
 
 #include <vector>
 #include <string>
-#include <utility>
 
 #include "config.h"
-#include "sstuff.hh"
 
-namespace dnsdist::console
+namespace dnsdist::console::completion
 {
-const std::vector<std::pair<timeval, std::string>>& getConfigurationDelta();
-void doClient(const std::string& command);
-void doConsole();
-void controlThread(Socket&& acceptFD);
-void clearHistory();
+#ifndef DISABLE_COMPLETION
+struct ConsoleKeyword
+{
+  std::string name;
+  bool function;
+  std::string parameters;
+  std::string description;
+
+  std::string toString() const;
+};
+
+const std::vector<ConsoleKeyword>& getConsoleKeywords();
+#endif /* DISABLE_COMPLETION */
+void setupCompletion();
 }

@@ -46,6 +46,7 @@
 #include "dnsdist-configuration.hh"
 #include "dnsdist-configuration-yaml.hh"
 #include "dnsdist-console.hh"
+#include "dnsdist-console-completion.hh"
 #include "dnsdist-crypto.hh"
 #include "dnsdist-discovery.hh"
 #include "dnsdist-dynblocks.hh"
@@ -3395,7 +3396,7 @@ int main(int argc, char** argv)
     size_t udpBindsCount = 0;
     size_t tcpBindsCount = 0;
 
-    dnsdist::console::setupCompletion();
+    dnsdist::console::completion::setupCompletion();
 
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast): SIG_IGN macro
     signal(SIGPIPE, SIG_IGN);

@@ -128,6 +128,7 @@ common_sources += files(
   src_dir / 'dnsdist-configuration.cc',
   src_dir / 'dnsdist-configuration-yaml.cc',
   src_dir / 'dnsdist-console.cc',
+  src_dir / 'dnsdist-console-completion.cc',
   src_dir / 'dnsdist-crypto.cc',
   src_dir / 'dnsdist-discovery.cc',
   src_dir / 'dnsdist-dnscrypt.cc',
