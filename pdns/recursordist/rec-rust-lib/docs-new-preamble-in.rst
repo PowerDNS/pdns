@@ -529,7 +529,7 @@ As of version 5.2.0, a forwarding catalog zone entry is defined as:
        recurse: bool, default false
        notify_allowed: bool, default false
 
-.. versionchanged:: 5.3.0 The aliases ``max_received_bytes``, ``local_address``, ``axfr_timeout`` have been introduced.
+.. versionchanged:: 5.3.0 The aliases ``zone_size_hint``, ``max_received_bytes``, ``local_address``, ``axfr_timeout`` have been introduced.
 
 While this setting has no equivalent old-style Lua configuration, it cannot appear together with :ref:`setting-lua-config-file` being set.
 If you want to use catalog zones to define forwards, you need to convert existing Lua configuration to YAML format.

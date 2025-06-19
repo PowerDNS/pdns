@@ -263,7 +263,7 @@ pub struct ApiZones {
 pub struct XFR {
     #[serde(default, skip_serializing_if = "crate::is_default")]
     addresses: Vec<String>,
-    #[serde(default, skip_serializing_if = "crate::is_default")]
+    #[serde(default, skip_serializing_if = "crate::is_default", alias = "zone_size_hint")]
     zoneSizeHint: u32,
     #[serde(default, skip_serializing_if = "crate::is_default")]
     tsig: TSIGTriplet,
