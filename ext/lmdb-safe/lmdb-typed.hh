@@ -41,7 +41,7 @@ uint32_t MDBGetMaxID(MDBRWTransaction& txn, MDBDbi& dbi);
  * Return a randomly generated ID that is unique and not zero. May throw if the database
  * is very full.
  */
-uint32_t MDBGetRandomID(MDBRWTransaction& txn, MDBDbi& dbi);
+uint32_t MDBGetRandomID(MDBRWTransaction& txn, MDBDbi& dbi, uint32_t seed=0);
 
 /**
  * This is our serialization interface. It can be specialized for other types.
@@ -765,12 +765,12 @@ public:
     }
 
     // insert something, with possibly a specific id
-    uint32_t put(const T& value, uint32_t itemId, bool random_ids=false)
+    uint32_t put(const T& value, uint32_t itemId, bool random_ids=false, uint32_t seed=0)
     {
       int flags = 0;
       if(itemId == 0) {
         if(random_ids) {
-          itemId = MDBGetRandomID(*d_txn, d_parent->d_main);
+          itemId = MDBGetRandomID(*d_txn, d_parent->d_main, seed);
         }
         else {
           itemId = MDBGetMaxID(*d_txn, d_parent->d_main) + 1;

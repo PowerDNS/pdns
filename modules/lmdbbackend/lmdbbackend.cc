@@ -1954,7 +1954,7 @@ bool LMDBBackend::createDomain(const ZoneName& domain, const DomainInfo::DomainK
     di.primaries = primaries;
     di.account = account;
 
-    txn.put(di, 0, d_random_ids);
+    txn.put(di, 0, d_random_ids, domain.hash());
     txn.commit();
   }
 
