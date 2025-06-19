@@ -147,6 +147,8 @@ Record creation functions
 
 .. function:: pickselfweighted(url, addresses[, options])
 
+  ..  versionadded:: 5.0.0
+
   Selects an IP address from the supplied list, weighted according to the results of `isUp` checks. Each address is evaluated, and if its associated weight (from `isUp`) is greater than 0, it is considered for selection using a weighted hash based on `bestwho`. If no address is "up" the function defaults to a random selection.
 
   :param string url: The health check url to retrieve.
