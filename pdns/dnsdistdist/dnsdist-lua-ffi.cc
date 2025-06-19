@@ -2279,7 +2279,7 @@ void dnsdist_ffi_svc_record_parameters_free(dnsdist_ffi_svc_record_parameters* p
 
 void dnsdist_ffi_dnsquestion_meta_begin_key([[maybe_unused]] dnsdist_ffi_dnsquestion_t* dnsQuestion, [[maybe_unused]] const char* key, [[maybe_unused]] size_t keyLen)
 {
-#ifndef DISABLE_PROTOBUF
+#if !defined(DISABLE_PROTOBUF)
   if (dnsQuestion == nullptr || key == nullptr || keyLen == 0) {
     return;
   }
@@ -2298,7 +2298,7 @@ void dnsdist_ffi_dnsquestion_meta_begin_key([[maybe_unused]] dnsdist_ffi_dnsques
 
 void dnsdist_ffi_dnsquestion_meta_add_str_value_to_key([[maybe_unused]] dnsdist_ffi_dnsquestion_t* dnsQuestion, [[maybe_unused]] const char* value, [[maybe_unused]] size_t valueLen)
 {
-#ifndef DISABLE_PROTOBUF
+#if !defined(DISABLE_PROTOBUF)
   if (dnsQuestion == nullptr || value == nullptr || valueLen == 0) {
     return;
   }
@@ -2314,7 +2314,7 @@ void dnsdist_ffi_dnsquestion_meta_add_str_value_to_key([[maybe_unused]] dnsdist_
 
 void dnsdist_ffi_dnsquestion_meta_add_int64_value_to_key([[maybe_unused]] dnsdist_ffi_dnsquestion_t* dnsQuestion, [[maybe_unused]] int64_t value)
 {
-#ifndef DISABLE_PROTOBUF
+#if !defined(DISABLE_PROTOBUF)
   if (dnsQuestion == nullptr) {
     return;
   }
@@ -2330,7 +2330,7 @@ void dnsdist_ffi_dnsquestion_meta_add_int64_value_to_key([[maybe_unused]] dnsdis
 
 void dnsdist_ffi_dnsquestion_meta_end_key([[maybe_unused]] dnsdist_ffi_dnsquestion_t* dnsQuestion)
 {
-#ifndef DISABLE_PROTOBUF
+#if !defined(DISABLE_PROTOBUF)
   if (dnsQuestion == nullptr) {
     return;
   }

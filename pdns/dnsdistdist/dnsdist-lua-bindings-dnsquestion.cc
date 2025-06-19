@@ -31,7 +31,7 @@
 
 #include "protozero.hh"
 
-static void addMetaKeyAndValuesToProtobufContent(DNSQuestion& dnsQuestion, const std::string& key, const LuaArray<boost::variant<int64_t, std::string>>& values)
+static void addMetaKeyAndValuesToProtobufContent([[maybe_unused]] DNSQuestion& dnsQuestion, [[maybe_unused]] const std::string& key, [[maybe_unused]] const LuaArray<boost::variant<int64_t, std::string>>& values)
 {
 #if !defined(DISABLE_PROTOBUF)
   protozero::pbf_writer pbfWriter{dnsQuestion.d_rawProtobufContent};
