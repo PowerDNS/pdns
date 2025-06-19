@@ -313,6 +313,7 @@ struct DOHConnection
   struct timeval d_connectionStartTime{0, 0};
   size_t d_nbQueries{0};
   int d_desc{-1};
+  uint8_t d_concurrentStreams{0};
 };
 
 static thread_local std::unordered_map<int, DOHConnection> t_conns;
@@ -384,6 +385,17 @@ static const std::string& getReasonFromStatusCode(uint16_t statusCode)
     return unknown;
   }
   return reasonIt->second;
+}
+
+static DOHConnection* getConnectionFromQuery(const h2o_req_t* req)
+{
+  h2o_socket_t* sock = req->conn->callbacks->get_socket(req->conn);
+  const int descriptor = h2o_socket_get_fd(sock);
+  if (descriptor == -1) {
+    /* this should not happen, but let's not crash on it */
+    return nullptr;
+  }
+  return &t_conns.at(descriptor);
 }
 
 /* Always called from the main DoH thread */
@@ -460,6 +472,10 @@ static void handleResponse(DOHFrontend& dohFrontend, st_h2o_req_t* req, uint16_t
     }
 
     ++dohFrontend.d_errorresponses;
+  }
+
+  if (auto* conn = getConnectionFromQuery(req)) {
+    --conn->d_concurrentStreams;
   }
 }
 
@@ -918,6 +934,8 @@ static void on_generator_dispose(void *_self)
    via a pipe */
 static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_req_t* req, PacketBuffer&& query, const ComboAddress& local, const ComboAddress& remote, std::string&& path)
 {
+  auto* conn = getConnectionFromQuery(req);
+
   try {
     /* we only parse it there as a sanity check, we will parse it again later */
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
@@ -949,6 +967,9 @@ static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_re
       }
     }
 
+    if (conn) {
+      ++conn->d_concurrentStreams;
+    }
 #ifdef HAVE_H2O_SOCKET_GET_SSL_SERVER_NAME
     h2o_socket_t* sock = req->conn->callbacks->get_socket(req->conn);
     const char * sni = h2o_socket_get_ssl_server_name(sock);
@@ -967,17 +988,26 @@ static void doh_dispatch_query(DOHServerConfig* dsc, h2o_handler_t* self, h2o_re
         ++dnsdist::metrics::g_stats.dohQueryPipeFull;
         vinfolog("Unable to pass a DoH query to the DoH worker thread because the pipe is full");
         h2o_send_error_500(req, "Internal Server Error", "Internal Server Error", 0);
+        if (conn) {
+          --conn->d_concurrentStreams;
+        }
       }
     }
     catch (...) {
       vinfolog("Unable to pass a DoH query to the DoH worker thread because we couldn't write to the pipe: %s", stringerror());
       h2o_send_error_500(req, "Internal Server Error", "Internal Server Error", 0);
+      if (conn) {
+        --conn->d_concurrentStreams;
+      }
     }
 #endif /* USE_SINGLE_ACCEPTOR_THREAD */
   }
   catch (const std::exception& e) {
     vinfolog("Had error parsing DoH DNS packet from %s: %s", remote.toStringWithPort(), e.what());
     h2o_send_error_400(req, "Bad Request", "The DNS query could not be parsed", 0);
+    if (conn) {
+      --conn->d_concurrentStreams;
+    }
   }
 }
 
@@ -1047,14 +1077,19 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): h2o API
     auto* dsc = static_cast<DOHServerConfig*>(req->conn->ctx->storage.entries[0].data);
     h2o_socket_t* sock = req->conn->callbacks->get_socket(req->conn);
-
     const int descriptor = h2o_socket_get_fd(sock);
     if (descriptor == -1) {
       return 0;
     }
 
     auto& conn = t_conns.at(descriptor);
+    if (conn.d_concurrentStreams >= 100U) {
+      vinfolog("Too many concurrent streams on connection from %d", conn.d_remote.toStringWithPort());
+      return 0;
+    }
+
     ++conn.d_nbQueries;
+
     if (conn.d_nbQueries == 1) {
       if (h2o_socket_get_ssl_session_reused(sock) == 0) {
         ++dsc->clientState->tlsNewSessions;
@@ -1121,6 +1156,7 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
       for (const auto& entry : *responsesMap) {
         if (entry->matches(path)) {
           const auto& customHeaders = entry->getHeaders();
+          ++conn.d_concurrentStreams;
           handleResponse(*dsc->dohFrontend, req, entry->getStatusCode(), entry->getContent(), customHeaders ? *customHeaders : dsc->dohFrontend->d_customResponseHeaders, std::string(), false);
           return 0;
         }
