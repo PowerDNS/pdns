@@ -512,25 +512,23 @@ void extractOTraceIDs(const EDNSOptionViewMap& map, pdns::trace::Span& span)
   // parent_span_id gets set from edns options (if available and well-formed, otherwise it remains cleared (no parent))
   // span_id gets inited randomly
   bool traceidset = false;
-  if (const auto& option = map.find(EDNSOptionCode::OTTRACEID); option != map.end()) {
+  const auto traceIDSize = span.trace_id.size();
+
+  if (const auto& option = map.find(EDNSOptionCode::OTTRACEIDS); option != map.end()) {
     if (option->second.values.size() > 0) {
-      if (option->second.values.at(0).size == span.trace_id.size()) {
+      if (option->second.values.at(0).size >= traceIDSize) {
         traceidset = true;
-        pdns::trace::fill(span.trace_id, option->second.values.at(0).content, span.trace_id.size());
+        pdns::trace::fill(span.trace_id, option->second.values.at(0).content, traceIDSize);
+      }
+      if (option->second.values.at(0).size == traceIDSize + span.parent_span_id.size()) {
+        pdns::trace::fill(span.parent_span_id, &option->second.values.at(0).content[traceIDSize], span.parent_span_id.size()); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic) it's the API
       }
     }
   }
   if (!traceidset) {
     random(span.trace_id);
   }
-  if (const auto& option = map.find(EDNSOptionCode::OTSPANID); option != map.end()) {
-    if (option->second.values.size() > 0) {
-      if (option->second.values.at(0).size == span.parent_span_id.size()) {
-        pdns::trace::fill(span.parent_span_id, option->second.values.at(0).content, span.parent_span_id.size());
-      }
-    }
-    // Empty parent span id indicated the client did not set one
-  }
+  // Empty parent span id indicated the client did not set one, thats fine
   random(span.span_id);
 }
 

@@ -95,8 +95,12 @@ static void fillPacket(vector<uint8_t>& packet, const string& q, const string& t
       opts.emplace_back(EDNSOptionCode::COOKIE, cookieOpt.makeOptString());
     }
     if (otids) {
-      opts.emplace_back(EDNSOptionCode::OTTRACEID, std::string_view(reinterpret_cast<const char*>(otids->first.data()), otids->first.size())); // NOLINT
-      opts.emplace_back(EDNSOptionCode::OTSPANID, std::string_view(reinterpret_cast<const char*>(otids->second.data()), otids->second.size())); // NOLINT
+      const auto traceid = otids->first;
+      const auto spanid = otids->second;
+      std::array<uint8_t, traceid.size() + spanid.size()> data{};
+      std::copy(traceid.begin(), traceid.end(), data.begin());
+      std::copy(spanid.begin(), spanid.end(), data.begin() + traceid.size());
+      opts.emplace_back(EDNSOptionCode::OTTRACEIDS, std::string_view(reinterpret_cast<const char*>(data.data()), data.size())); // NOLINT
     }
     pw.addOpt(bufsize, 0, dnssec ? EDNSOpts::DNSSECOK : 0, opts);
     pw.commit();
