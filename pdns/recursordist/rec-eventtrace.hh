@@ -21,12 +21,10 @@
  */
 #pragma once
 
-#include "namespaces.hh"
 #include "misc.hh"
 #include "noinitvector.hh"
 
 #include <optional>
-#include <time.h>
 #include <unordered_map>
 #include <variant>
 #include "protozero-trace.hh"
@@ -78,7 +76,7 @@ public:
     old.d_status = Invalid;
   }
 
-  RecEventTrace(RecEventTrace&& old) :
+  RecEventTrace(RecEventTrace&& old) noexcept :
     d_events(std::move(old.d_events)),
     d_base(old.d_base),
     d_status(old.d_status)
@@ -90,7 +88,7 @@ public:
   }
 
   RecEventTrace& operator=(const RecEventTrace& old) = delete;
-  RecEventTrace& operator=(RecEventTrace&& old)
+  RecEventTrace& operator=(RecEventTrace&& old) noexcept
   {
     d_events = std::move(old.d_events);
     d_base = old.d_base;
@@ -99,43 +97,45 @@ public:
     return *this;
   }
 
-  // We distinguish between strings and byte arrays. Does not matter in C++, but in Go, Java etc it does
-  typedef std::variant<std::nullopt_t, bool, int64_t, std::string, PacketBuffer> Value_t;
+  ~RecEventTrace() = default;
 
-  static std::string toString(const EventType v)
+  // We distinguish between strings and byte arrays. Does not matter in C++, but in Go, Java etc it does
+  using Value_t = std::variant<std::nullopt_t, bool, int64_t, std::string, PacketBuffer>;
+
+  static std::string toString(const EventType eventType)
   {
-    return s_eventNames.at(v);
+    return s_eventNames.at(eventType);
   }
 
-  static std::string toString(const Value_t& v)
+  static std::string toString(const Value_t& value)
   {
-    if (std::holds_alternative<std::nullopt_t>(v)) {
+    if (std::holds_alternative<std::nullopt_t>(value)) {
       return "";
     }
-    else if (std::holds_alternative<bool>(v)) {
-      return std::to_string(std::get<bool>(v));
+    if (std::holds_alternative<bool>(value)) {
+      return std::to_string(std::get<bool>(value));
     }
-    else if (std::holds_alternative<int64_t>(v)) {
-      return std::to_string(std::get<int64_t>(v));
+    if (std::holds_alternative<int64_t>(value)) {
+      return std::to_string(std::get<int64_t>(value));
     }
-    else if (std::holds_alternative<std::string>(v)) {
-      return std::get<std::string>(v);
+    if (std::holds_alternative<std::string>(value)) {
+      return std::get<std::string>(value);
     }
-    else if (std::holds_alternative<PacketBuffer>(v)) {
-      const PacketBuffer& p = std::get<PacketBuffer>(v);
-      return makeHexDump(std::string(reinterpret_cast<const char*>(p.data()), p.size()));
+    if (std::holds_alternative<PacketBuffer>(value)) {
+      const auto& packet = std::get<PacketBuffer>(value);
+      return makeHexDump(std::string(reinterpret_cast<const char*>(packet.data()), packet.size())); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
     }
     return "?";
   }
 
   struct Entry
   {
-    Entry(Value_t&& v, EventType e, bool start, int64_t ts, size_t parent, size_t match) :
-      d_value(std::move(v)), d_ts(ts), d_parent(parent), d_matching(match), d_event(e), d_start(start)
+    Entry(Value_t&& value, EventType eventType, bool start, int64_t timestamp, size_t parent, size_t match) :
+      d_value(std::move(value)), d_ts(timestamp), d_parent(parent), d_matching(match), d_event(eventType), d_start(start)
     {
     }
-    Entry(Value_t&& v, const std::string& custom, bool start, int64_t ts, size_t parent, size_t match) :
-      d_value(std::move(v)), d_custom(custom), d_ts(ts), d_parent(parent), d_matching(match), d_event(CustomEvent), d_start(start)
+    Entry(Value_t&& value, std::string custom, bool start, int64_t timestamp, size_t parent, size_t match) :
+      d_value(std::move(value)), d_custom(std::move(custom)), d_ts(timestamp), d_parent(parent), d_matching(match), d_event(CustomEvent), d_start(start)
     {
     }
     Value_t d_value;
@@ -146,18 +146,18 @@ public:
     EventType d_event;
     bool d_start;
 
-    std::string toString() const
+    [[nodiscard]] std::string toString() const
     {
-      std::string v = RecEventTrace::toString(d_value);
-      if (!v.empty()) {
-        v = "," + v;
+      std::string value = RecEventTrace::toString(d_value);
+      if (!value.empty()) {
+        value = "," + value;
       }
       std::string name = RecEventTrace::toString(d_event);
       if (d_event == EventType::CustomEvent) {
         name += ":" + d_custom;
       }
 
-      return name + "(" + std::to_string(d_ts) + v + (d_start ? ")" : ",done)");
+      return name + "(" + std::to_string(d_ts) + value + (d_start ? ")" : ",done)");
     }
   };
 
@@ -173,7 +173,7 @@ public:
   }
 
   template <class E>
-  size_t add(E e, Value_t&& v, bool start, size_t match, int64_t stamp = 0)
+  size_t add(E event, Value_t&& value, bool start, size_t match, int64_t stamp = 0)
   {
     assert(d_status != Invalid);
     if (d_status == Disabled) {
@@ -181,49 +181,49 @@ public:
     }
 
     if (stamp == 0) {
-      struct timespec ts;
-      clock_gettime(CLOCK_MONOTONIC, &ts);
-      stamp = ts.tv_nsec + ts.tv_sec * 1000000000;
+      struct timespec theTime{};
+      clock_gettime(CLOCK_MONOTONIC, &theTime);
+      stamp = theTime.tv_nsec + theTime.tv_sec * 1000000000;
     }
     if (stamp < d_base) {
       // If we get a ts before d_base, we adjust d_base and the existing events
       // This is possble if we add a kernel provided packet timestamp in the future
       // (Though it seems those timestamps do not use CLOCK_MONOTONIC...)
       const int64_t adj = d_base - stamp;
-      for (auto& i : d_events) {
-        i.d_ts += adj;
+      for (auto& iter : d_events) {
+        iter.d_ts += adj;
       }
       // and move to the new base
       d_base = stamp;
     }
     stamp -= d_base;
-    d_events.emplace_back(std::move(v), e, start, stamp, d_parent, match);
+    d_events.emplace_back(std::move(value), event, start, stamp, d_parent, match);
     return d_events.size() - 1;
   }
 
   template <class E>
-  size_t add(E e)
+  size_t add(E eventType)
   {
-    return add(e, Value_t(std::nullopt), true, 0, 0);
+    return add(eventType, Value_t(std::nullopt), true, 0, 0);
   }
 
   // We store uint32 in an int64_t
   template <class E>
-  size_t add(E e, uint32_t v, bool start, size_t match)
+  size_t add(E eventType, uint32_t value, bool start, size_t match)
   {
-    return add(e, static_cast<int64_t>(v), start, match, 0);
+    return add(eventType, static_cast<int64_t>(value), start, match, 0);
   }
   // We store int32 in an int64_t
   template <class E>
-  size_t add(E e, int32_t v, bool start, size_t match)
+  size_t add(E eventType, int32_t value, bool start, size_t match)
   {
-    return add(e, static_cast<int64_t>(v), start, match, 0);
+    return add(eventType, static_cast<int64_t>(value), start, match, 0);
   }
 
   template <class E, class T>
-  size_t add(E e, T v, bool start, size_t match)
+  size_t add(E eventType, T value, bool start, size_t match)
   {
-    return add(e, Value_t(v), start, match, 0);
+    return add(eventType, Value_t(value), start, match, 0);
   }
 
   void clear()
@@ -234,9 +234,9 @@ public:
 
   void reset()
   {
-    struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-    d_base = ts.tv_nsec + ts.tv_sec * 1000000000;
+    struct timespec theTime{};
+    clock_gettime(CLOCK_MONOTONIC, &theTime);
+    d_base = theTime.tv_nsec + theTime.tv_sec * 1000000000;
     d_status = Disabled;
   }
 
@@ -248,14 +248,14 @@ public:
     }
     std::string ret = "eventTrace [";
     bool first = true;
-    for (const auto& e : d_events) {
+    for (const auto& event : d_events) {
       if (first) {
         first = false;
       }
       else {
         ret += "; ";
       }
-      ret += e.toString();
+      ret += event.toString();
     }
     ret += ']';
     return ret;
@@ -317,7 +317,7 @@ public:
 
 private:
   std::vector<Entry> d_events;
-  int64_t d_base;
+  int64_t d_base{0};
   size_t d_parent{0};
   enum Status : uint8_t
   {
