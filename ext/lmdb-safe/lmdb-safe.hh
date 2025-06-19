@@ -826,35 +826,34 @@ public:
 
   void del(MDBDbi& dbi, const MDBInVal& key)
   {
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
-    int mdbDelRc = mdb_del(d_txn, dbi, (MDB_val*)&key.d_mdbval, nullptr);
-    if ((mdbDelRc != 0) && mdbDelRc != MDB_NOTFOUND) {
-      throw std::runtime_error("deleting data: " + std::string(mdb_strerror(mdbDelRc)));
-    }
 #ifndef DNSDIST
-    if (mdbDelRc != MDB_NOTFOUND && LMDBLS::s_flag_deleted) {
-      // if it did exist, we need to mark it as deleted now
-
+    if (LMDBLS::s_flag_deleted) {
+      // Regardless of whether or not it did exist, we need to mark it
+      // as deleted now.
       size_t txid = mdb_txn_id(d_txn);
       if (d_txtime == 0) {
         throw std::runtime_error("got zero txtime");
       }
 
       std::string ins =
-        // std::string((const char*)&txid, sizeof(txid)) +
         LMDBLS::LSheader(d_txtime, txid, LMDBLS::LS_FLAG_DELETED).toString();
-
       MDBInVal pval = ins;
 
-      mdbDelRc = mdb_put(d_txn, dbi,
-                         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-                         const_cast<MDB_val*>(&key.d_mdbval),
-                         const_cast<MDB_val*>(&pval.d_mdbval), 0);
-      if (mdbDelRc != 0) {
-        throw std::runtime_error("marking data deleted: " + std::string(mdb_strerror(mdbDelRc)));
+      int mdbPutRc = mdb_put(d_txn, dbi,
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+        const_cast<MDB_val*>(&key.d_mdbval),
+        const_cast<MDB_val*>(&pval.d_mdbval), 0);
+      if (mdbPutRc != 0) {
+        throw std::runtime_error("marking data deleted: " + std::string(mdb_strerror(mdbPutRc)));
       }
+      return;
     }
 #endif
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
+    int mdbDelRc = mdb_del(d_txn, dbi, (MDB_val*)&key.d_mdbval, nullptr);
+    if (mdbDelRc != 0 && mdbDelRc != MDB_NOTFOUND) {
+      throw std::runtime_error("deleting data: " + std::string(mdb_strerror(mdbDelRc)));
+    }
   }
 
   int get(MDBDbi& dbi, const MDBInVal& key, MDBOutVal& val)
@@ -941,17 +940,9 @@ public:
 #endif
 
 #ifndef DNSDIST
-  void del()
+  void del(const MDBInVal& key)
   {
-    MDBOutVal key, val;
-
     if (LMDBLS::s_flag_deleted) {
-      int rc_get = mdb_cursor_get (*this, &key.d_mdbval, &val.d_mdbval, MDB_GET_CURRENT);
-
-      if(rc_get) {
-        throw std::runtime_error("getting key to mark data as deleted: " + std::string(mdb_strerror(rc_get)));
-      }
-
       size_t txid = mdb_txn_id(d_txn);
       if (d_txtime == 0) { throw std::runtime_error("got zero txtime"); }
 

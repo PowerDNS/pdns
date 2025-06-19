@@ -822,7 +822,7 @@ public:
         T value;
         deserializeFromBuffer(data.get<std::string>(), value);
         clearIndex(key.get<uint32_t>(), value);
-        cursor.del();
+        cursor.del(key);
       }
     }
 

@@ -1120,7 +1120,7 @@ void LMDBBackend::deleteDomainRecords(RecordsRWTransaction& txn, uint16_t qtype,
   if (cursor.prefix(match, key, val) == 0) {
     do {
       if (qtype == QType::ANY || compoundOrdername::getQType(key.getNoStripHeader<StringView>()) == qtype) {
-        cursor.del();
+        cursor.del(key);
       }
     } while (cursor.next(key, val) == 0);
   }
@@ -1318,7 +1318,7 @@ bool LMDBBackend::replaceRRSet(domainid_t domain_id, const DNSName& qname, const
     match = co(domain_id, relative, qt.getCode());
     // There should be at most one exact match here.
     if (cursor.find(match, key, val) == 0) {
-      cursor.del();
+      cursor.del(key);
     }
   }
 
