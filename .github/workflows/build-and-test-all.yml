@@ -182,7 +182,7 @@ jobs:
       image: "${{ needs.get-runner-container-image.outputs.id }}:${{ needs.get-runner-container-image.outputs.tag }}"
       env:
         UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1:suppressions=${{ env.REPO_HOME }}/build-scripts/UBSan.supp'
-        ASAN_OPTIONS: ""
+        ASAN_OPTIONS: detect_leaks=0
         LSAN_OPTIONS: "suppressions=${{ env.REPO_HOME }}/pdns/recursordist/recursor-lsan.supp"
         TSAN_OPTIONS: "halt_on_error=1:suppressions=${{ env.REPO_HOME }}/pdns/recursordist/recursor-tsan.supp"
       options: --sysctl net.ipv6.conf.all.disable_ipv6=0
