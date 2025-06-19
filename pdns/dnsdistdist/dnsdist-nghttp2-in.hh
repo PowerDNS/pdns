@@ -86,6 +86,7 @@ private:
   std::unique_ptr<DOHUnitInterface> getDOHUnit(uint32_t streamID) override;
 
   void stopIO();
+  std::unordered_map<StreamID, PendingQuery>::iterator getStreamContext(StreamID streamID);
   uint32_t getConcurrentStreamsCount() const;
   void updateIO(IOState newState, const timeval& now) override;
   void updateIO(IOState newState, const FDMultiplexer::callbackfunc_t& callback);
@@ -102,6 +103,7 @@ private:
 
   std::unique_ptr<nghttp2_session, decltype(&nghttp2_session_del)> d_session{nullptr, nghttp2_session_del};
   std::unordered_map<StreamID, PendingQuery> d_currentStreams;
+  std::unordered_set<StreamID> d_killedStreams;
   PacketBuffer d_out;
   PacketBuffer d_in;
   size_t d_outPos{0};
