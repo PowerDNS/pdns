@@ -421,9 +421,38 @@ class TestProtobufMetaTags(DNSDistProtobufTest):
     newServer{address="127.0.0.1:%s"}
     rl = newRemoteLogger('127.0.0.1:%d')
 
+    local ffi = require("ffi")
+    local C = ffi.C
+    function add_meta(dq)
+      local key = "my-meta-key-1"
+      local key2 = "my-meta-key-2"
+      C.dnsdist_ffi_dnsquestion_meta_begin_key(dq, key, #key)
+      C.dnsdist_ffi_dnsquestion_meta_add_str_value_to_key(dq, "test", 4)
+      C.dnsdist_ffi_dnsquestion_meta_add_int64_value_to_key(dq, -42)
+      C.dnsdist_ffi_dnsquestion_meta_add_str_value_to_key(dq, "test2", 5)
+      C.dnsdist_ffi_dnsquestion_meta_end_key(dq)
+
+      local key2 = "my-meta-key-2"
+      C.dnsdist_ffi_dnsquestion_meta_begin_key(dq, key2, #key2)
+      C.dnsdist_ffi_dnsquestion_meta_add_str_value_to_key(dq, "foo", 3)
+      C.dnsdist_ffi_dnsquestion_meta_add_int64_value_to_key(dq, 42)
+      C.dnsdist_ffi_dnsquestion_meta_add_str_value_to_key(dq, "bar", 3)
+      C.dnsdist_ffi_dnsquestion_meta_end_key(dq)
+
+      return DNSAction.None
+    end
+
+    function addMetaToResponse(dr)
+      dr:setMetaKey('my-meta-key-1', {'test', -42, 'test2'})
+      dr:setMetaKey('my-meta-key-2', {'foo', 42, 'bar'})
+      return DNSResponseAction.None
+    end
+
+    addAction(AllRule(), LuaFFIAction(add_meta))
     addAction(AllRule(), SetTagAction('my-tag-key', 'my-tag-value'))
     addAction(AllRule(), SetTagAction('my-empty-key', ''))
     addAction(AllRule(), RemoteLogAction(rl, nil, {serverID='dnsdist-server-1', exportTags='*'}, {b64='b64-content', ['my-tag-export-name']='tag:my-tag-key'}))
+    addResponseAction(AllRule(), LuaResponseAction(addMetaToResponse))
     addResponseAction(AllRule(), SetTagResponseAction('my-tag-key2', 'my-tag-value2'))
     addResponseAction(AllRule(), RemoteLogResponseAction(rl, nil, false, {serverID='dnsdist-server-1', exportTags='my-empty-key,my-tag-key2'}, {['my-tag-export-name']='tags'}))
     """
@@ -462,13 +491,25 @@ class TestProtobufMetaTags(DNSDistProtobufTest):
         self.assertIn('my-tag-key:my-tag-value', msg.response.tags)
         self.assertIn('my-empty-key', msg.response.tags)
         # meta tags
-        self.assertEqual(len(msg.meta), 2)
+        self.assertEqual(len(msg.meta), 4)
         tags = {}
         for entry in msg.meta:
             tags[entry.key] = entry.value.stringVal
 
         self.assertIn('b64', tags)
         self.assertIn('my-tag-export-name', tags)
+
+        self.assertEqual(msg.meta[2].key, 'my-meta-key-1')
+        self.assertEqual(len(msg.meta[2].value.stringVal), 2)
+        self.assertIn('test', msg.meta[2].value.stringVal)
+        self.assertIn('test2', msg.meta[2].value.stringVal)
+        self.assertIn(-42, msg.meta[2].value.intVal)
+
+        self.assertEqual(msg.meta[3].key, 'my-meta-key-2')
+        self.assertEqual(len(msg.meta[3].value.stringVal), 2)
+        self.assertIn('foo', msg.meta[3].value.stringVal)
+        self.assertIn('bar', msg.meta[3].value.stringVal)
+        self.assertIn(42, msg.meta[3].value.intVal)
 
         b64EncodedQuery = base64.b64encode(query.to_wire()).decode('ascii')
         self.assertEqual(tags['b64'], [b64EncodedQuery])
@@ -482,13 +523,25 @@ class TestProtobufMetaTags(DNSDistProtobufTest):
         self.assertIn('my-tag-key2:my-tag-value2', msg.response.tags)
         self.assertIn('my-empty-key', msg.response.tags)
         # meta tags
-        self.assertEqual(len(msg.meta), 1)
+        self.assertEqual(len(msg.meta), 3)
         self.assertEqual(msg.meta[0].key, 'my-tag-export-name')
         self.assertEqual(len(msg.meta[0].value.stringVal), 3)
         self.assertIn('my-tag-key:my-tag-value', msg.meta[0].value.stringVal)
         self.assertIn('my-tag-key2:my-tag-value2', msg.meta[0].value.stringVal)
         # no ':' when the value is empty
         self.assertIn('my-empty-key', msg.meta[0].value.stringVal)
+
+        self.assertEqual(msg.meta[1].key, 'my-meta-key-1')
+        self.assertEqual(len(msg.meta[1].value.stringVal), 2)
+        self.assertIn('test', msg.meta[1].value.stringVal)
+        self.assertIn('test2', msg.meta[1].value.stringVal)
+        self.assertIn(-42, msg.meta[1].value.intVal)
+
+        self.assertEqual(msg.meta[2].key, 'my-meta-key-2')
+        self.assertEqual(len(msg.meta[2].value.stringVal), 2)
+        self.assertIn('foo', msg.meta[2].value.stringVal)
+        self.assertIn('bar', msg.meta[2].value.stringVal)
+        self.assertIn(42, msg.meta[2].value.intVal)
 
 class TestProtobufExtendedDNSErrorTags(DNSDistProtobufTest):
     _config_params = ['_testServerPort', '_protobufServerPort']

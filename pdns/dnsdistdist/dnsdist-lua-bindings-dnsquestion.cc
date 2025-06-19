@@ -29,6 +29,28 @@
 #include "dnsdist-snmp.hh"
 #include "dnsparser.hh"
 
+#include "protozero.hh"
+
+static void addMetaKeyAndValuesToProtobufContent([[maybe_unused]] DNSQuestion& dnsQuestion, [[maybe_unused]] const std::string& key, [[maybe_unused]] const LuaArray<boost::variant<int64_t, std::string>>& values)
+{
+#if !defined(DISABLE_PROTOBUF)
+  protozero::pbf_writer pbfWriter{dnsQuestion.d_rawProtobufContent};
+  protozero::pbf_writer pbfMetaWriter{pbfWriter, static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::Field::meta)};
+  pbfMetaWriter.add_string(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::MetaField::key), key);
+  protozero::pbf_writer pbfMetaValueWriter{pbfMetaWriter, static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::MetaField::value)};
+  for (const auto& value : values) {
+    if (value.second.type() == typeid(std::string)) {
+      pbfMetaValueWriter.add_string(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::MetaValueField::stringVal), boost::get<std::string>(value.second));
+    }
+    else {
+      pbfMetaValueWriter.add_uint64(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::MetaValueField::intVal), boost::get<int64_t>(value.second));
+    }
+  }
+  pbfMetaValueWriter.commit();
+  pbfMetaWriter.commit();
+#endif /* DISABLE_PROTOBUF */
+}
+
 // NOLINTNEXTLINE(readability-function-cognitive-complexity): this function declares Lua bindings, even with a good refactoring it will likely blow up the threshold
 void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
 {
@@ -217,6 +239,10 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
 
     // coverity[auto_causes_copy]
     return *dnsQuestion.ids.qTag;
+  });
+
+  luaCtx.registerFunction<void (DNSQuestion::*)(std::string, LuaArray<boost::variant<int64_t, std::string>>)>("setMetaKey", [](DNSQuestion& dnsQuestion, const std::string& key, const LuaArray<boost::variant<int64_t, std::string>>& values) {
+    addMetaKeyAndValuesToProtobufContent(dnsQuestion, key, values);
   });
 
   luaCtx.registerFunction<void (DNSQuestion::*)(LuaArray<std::string>)>("setProxyProtocolValues", [](DNSQuestion& dnsQuestion, const LuaArray<std::string>& values) {
@@ -672,5 +698,10 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
   luaCtx.registerFunction<uint8_t (DNSResponse::*)()>("getRestartCount", [](DNSResponse& dnsResponse) {
     return dnsResponse.ids.restartCount;
   });
+
+  luaCtx.registerFunction<void (DNSResponse::*)(std::string, LuaArray<boost::variant<int64_t, std::string>>)>("setMetaKey", [](DNSResponse& dnsResponse, const std::string& key, const LuaArray<boost::variant<int64_t, std::string>>& values) {
+    addMetaKeyAndValuesToProtobufContent(dnsResponse, key, values);
+  });
+
 #endif /* DISABLE_NON_FFI_DQ_BINDINGS */
 }

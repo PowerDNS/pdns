@@ -1637,6 +1637,9 @@ public:
     static thread_local std::string data;
     data.clear();
     message.serialize(data);
+    if (!dnsquestion->d_rawProtobufContent.empty()) {
+      data.insert(data.end(), dnsquestion->d_rawProtobufContent.begin(), dnsquestion->d_rawProtobufContent.end());
+    }
     remoteLoggerQueueData(*d_logger, data);
 
     return Action::None;
@@ -1798,6 +1801,9 @@ public:
     static thread_local std::string data;
     data.clear();
     message.serialize(data);
+    if (!response->d_rawProtobufContent.empty()) {
+      data.insert(data.end(), response->d_rawProtobufContent.begin(), response->d_rawProtobufContent.end());
+    }
     d_logger->queueData(data);
 
     return Action::None;

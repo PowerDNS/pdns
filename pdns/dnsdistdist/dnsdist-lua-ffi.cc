@@ -2276,3 +2276,77 @@ void dnsdist_ffi_svc_record_parameters_free(dnsdist_ffi_svc_record_parameters* p
   // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): this is a C API, RAII is not an option
   delete parameters;
 }
+
+void dnsdist_ffi_dnsquestion_meta_begin_key([[maybe_unused]] dnsdist_ffi_dnsquestion_t* dnsQuestion, [[maybe_unused]] const char* key, [[maybe_unused]] size_t keyLen)
+{
+#if !defined(DISABLE_PROTOBUF)
+  if (dnsQuestion == nullptr || key == nullptr || keyLen == 0) {
+    return;
+  }
+
+  if (dnsQuestion->pbfWriter.valid()) {
+    vinfolog("Error in dnsdist_ffi_dnsquestion_meta_begin_key: the previous key has not been ended");
+    return;
+  }
+
+  dnsQuestion->pbfWriter = protozero::pbf_writer{dnsQuestion->dq->d_rawProtobufContent};
+  dnsQuestion->pbfMetaWriter = protozero::pbf_writer{dnsQuestion->pbfWriter, static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::Field::meta)};
+  dnsQuestion->pbfMetaWriter.add_string(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::MetaField::key), protozero::data_view(key, keyLen));
+  dnsQuestion->pbfMetaValueWriter = protozero::pbf_writer {dnsQuestion->pbfMetaWriter, static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::MetaField::value)};
+#endif /* DISABLE_PROTOBUF */
+}
+
+void dnsdist_ffi_dnsquestion_meta_add_str_value_to_key([[maybe_unused]] dnsdist_ffi_dnsquestion_t* dnsQuestion, [[maybe_unused]] const char* value, [[maybe_unused]] size_t valueLen)
+{
+#if !defined(DISABLE_PROTOBUF)
+  if (dnsQuestion == nullptr || value == nullptr || valueLen == 0) {
+    return;
+  }
+
+  if (!dnsQuestion->pbfMetaValueWriter.valid()) {
+    vinfolog("Error in dnsdist_ffi_dnsquestion_meta_add_str_value_to_key: trying to add a value without starting a key");
+    return;
+  }
+
+  dnsQuestion->pbfMetaValueWriter.add_string(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::MetaValueField::stringVal), protozero::data_view(value, valueLen));
+#endif /* DISABLE_PROTOBUF */
+}
+
+void dnsdist_ffi_dnsquestion_meta_add_int64_value_to_key([[maybe_unused]] dnsdist_ffi_dnsquestion_t* dnsQuestion, [[maybe_unused]] int64_t value)
+{
+#if !defined(DISABLE_PROTOBUF)
+  if (dnsQuestion == nullptr) {
+    return;
+  }
+
+  if (!dnsQuestion->pbfMetaValueWriter.valid()) {
+    vinfolog("Error in dnsdist_ffi_dnsquestion_meta_add_int64_value_to_key: trying to add a value without starting a key");
+    return;
+  }
+
+  dnsQuestion->pbfMetaValueWriter.add_uint64(static_cast<protozero::pbf_tag_type>(pdns::ProtoZero::Message::MetaValueField::intVal), value);
+#endif /* DISABLE_PROTOBUF */
+}
+
+void dnsdist_ffi_dnsquestion_meta_end_key([[maybe_unused]] dnsdist_ffi_dnsquestion_t* dnsQuestion)
+{
+#if !defined(DISABLE_PROTOBUF)
+  if (dnsQuestion == nullptr) {
+    return;
+  }
+  if (!dnsQuestion->pbfWriter.valid()) {
+    vinfolog("Error in dnsdist_ffi_dnsquestion_meta_end_key: trying to end a key that has not been started");
+    return;
+  }
+
+  try {
+    /* reset the pbf writer so that the sizes are properly updated */
+    dnsQuestion->pbfMetaValueWriter.commit();
+    dnsQuestion->pbfMetaWriter.commit();
+    dnsQuestion->pbfWriter = protozero::pbf_writer();
+  }
+  catch (const std::exception& exp) {
+    vinfolog("Error in dnsdist_ffi_dnsquestion_meta_end_key: %s", exp.what());
+  }
+#endif /* DISABLE_PROTOBUF */
+}
