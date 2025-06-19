@@ -2,6 +2,125 @@ Changelog
 =========
 
 .. changelog::
+  :version: 2.0.0-beta1
+  :released: 20th of June 2025
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15578
+
+    Fix spelling for ``setWHashedPerturbation`` (Josh Soref)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15614
+
+    Explicitly use the versions present in ``Cargo.lock`` when building
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15616
+
+    Debian: use luajit when possible (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15615
+
+    Update our Rust dependencies
+
+  .. change::
+    :tags: New Features
+    :pullreq: 15610
+
+    Add SetEDNSOptionResponseAction (Samir Aguiar)
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 15650
+
+    YAML: Correct ``enable_proxy_protocol`` value for TCP/UDP binds (Robert Edmonds)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15532
+
+    Add option to support cache sharing between different payload sizes (@pacnal)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15656
+
+    Remove never used argument
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15602
+
+    Do not replace EDNS in answers self-generated from a packet
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15640
+
+    Clean up existing records when turning query into response
+
+  .. change::
+    :tags: New Features, Protobuf
+    :pullreq: 15690
+
+    Add Lua APIs to set Meta tags in protobuf messages
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15691
+
+    Generate completion and help for rule chains
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15695
+
+    Meson: followup to #15685 to avoid compiler warnings
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15682
+
+    Remove superfluous code block in YAML config (Pieter Lexis)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15685
+
+    Meson: Pick ``-lcrypto`` up from the spot defined by ``dep_libcrypto``
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15676
+
+    Add a count to track the number of query restarts (@pacnal)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 15670
+
+    Add route policy of first ordered then weighted (@pacnal)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15679
+    :tickets: 8060
+
+    Provide an ``IP_OFFMASK`` value for systems lacking it
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 15662
+
+    Apply generic YAML configuration items early
+
+.. changelog::
   :version: 2.0.0-alpha2
   :released: 23rd of May 2025
 
