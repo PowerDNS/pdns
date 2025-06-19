@@ -1117,15 +1117,12 @@ void LMDBBackend::deleteDomainRecords(RecordsRWTransaction& txn, uint16_t qtype,
   MDBOutVal key{};
   MDBOutVal val{};
 
-  if (cursor.lower_bound(match, key, val) == 0) {
-    while (key.getNoStripHeader<StringView>().rfind(match, 0) == 0) {
+  if (cursor.prefix(match, key, val) == 0) {
+    do {
       if (qtype == QType::ANY || compoundOrdername::getQType(key.getNoStripHeader<StringView>()) == qtype) {
         cursor.del();
       }
-      if (cursor.next(key, val) != 0) {
-        break;
-      }
-    }
+    } while (cursor.next(key, val) == 0);
   }
 }
 
