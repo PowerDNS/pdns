@@ -418,8 +418,10 @@ void ZoneData::ZoneToCache(const RecZoneToCache::Config& config)
         sigsrr = iter->second;
       }
       bool auth = isRRSetAuth(qname, qtype);
-      // Same decision as updateCacheFromRecords() (we do not test for NSEC since we skip those completely)
-      if (auth || (qtype == QType::NS || qtype == QType::A || qtype == QType::AAAA || qtype == QType::DS)) {
+      // Same list as updateCacheFromRecords() (we do not test for NSEC since we skip those completely)
+      // Issue #15651
+      bool storeNonAuth = !SyncRes::isRecursiveForward(qname);
+      if (auth || (storeNonAuth && (qtype == QType::NS || qtype == QType::A || qtype == QType::AAAA || qtype == QType::DS))) {
         g_recCache->replace(d_now, qname, qtype, v, sigsrr, {},
                             auth, d_zone);
       }

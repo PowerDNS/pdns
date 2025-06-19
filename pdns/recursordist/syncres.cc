@@ -1092,6 +1092,13 @@ bool SyncRes::isRecursiveForwardOrAuth(const DNSName& qname)
   return iter != t_sstorage.domainmap->end() && (iter->second.isAuth() || iter->second.shouldRecurse());
 }
 
+bool SyncRes::isRecursiveForward(const DNSName& qname)
+{
+  DNSName authname(qname);
+  const auto iter = getBestAuthZone(&authname);
+  return iter != t_sstorage.domainmap->end() && iter->second.shouldRecurse();
+}
+
 bool SyncRes::isForwardOrAuth(const DNSName& qname)
 {
   DNSName authname(qname);
