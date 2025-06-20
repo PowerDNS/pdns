@@ -62,7 +62,7 @@ dnsdist depends on the following libraries:
 * `re2 <https://github.com/google/re2>`_ (optional)
 * `TinyCDB <https://www.corpit.ru/mjt/tinycdb.html>`_ (optional, CDB support)
 
-Since 2.0.0, the optional ``yaml`` configuration requires a Rust compiler.
+Since 2.0.0, the optional ``yaml`` configuration requires a Rust development environment, including ``rustc`` and ``cargo``.
 
 Should :program:`dnsdist` be run on a system with systemd, it is highly recommended to have
 the systemd header files (``libsystemd-dev`` on Debian and ``systemd-devel`` on CentOS)
