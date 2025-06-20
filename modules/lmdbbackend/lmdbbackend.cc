@@ -2199,7 +2199,7 @@ bool LMDBBackend::setDomainMetadata(const ZoneName& name, const std::string& kin
 
   for (const auto& m : meta) {
     DomainMeta dm{name, kind, m};
-    txn.put(dm, 0, d_random_ids);
+    txn.put(dm, 0, d_random_ids, burtleCI(kind, name.hash()));
   }
   txn.commit();
   return true;
@@ -2242,7 +2242,15 @@ bool LMDBBackend::addDomainKey(const ZoneName& name, const KeyData& key, int64_t
 {
   auto txn = d_tkdb->getRWTransaction();
   KeyDataDB kdb{name, key.content, key.flags, key.active, key.published};
-  keyId = txn.put(kdb, 0, d_random_ids);
+
+  // all this just to get the tag - while most of our callers (except b2b-migrate) already have a dpk
+  DNSKEYRecordContent dkrc;
+  auto keyEngine = shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(dkrc, key.content));
+  DNSSECPrivateKey dpk;
+  dpk.setKey(keyEngine, key.flags);
+  auto tag=dpk.getDNSKEY().getTag();
+
+  keyId = txn.put(kdb, 0, d_random_ids, name.hash(tag));
   txn.commit();
 
   return true;
@@ -2866,7 +2874,7 @@ bool LMDBBackend::setTSIGKey(const DNSName& name, const DNSName& algorithm, cons
   tk.algorithm = algorithm;
   tk.key = content;
 
-  txn.put(tk, 0, d_random_ids);
+  txn.put(tk, 0, d_random_ids, name.hash());
   txn.commit();
 
   return true;
