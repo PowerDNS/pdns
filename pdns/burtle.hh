@@ -178,3 +178,9 @@ inline uint32_t burtleCI(const unsigned char* k, uint32_t length, uint32_t initv
   /*-------------------------------------------- report the result */
   return c;
 }
+
+template <typename T>
+inline uint32_t burtleCI(const T& k, uint32_t initval)
+{
+  return burtleCI(reinterpret_cast<const unsigned char*>(k.data()), k.length(), initval); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast): can't static_cast because of sign difference
+}

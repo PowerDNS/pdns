@@ -34,6 +34,9 @@ pdnsutil_wrapper rrset delete ${ZONE} no ANY
 # Display zone contents for final verification
 pdnsutil_wrapper zone list    ${ZONE} | LC_ALL=C sort
 
+# Only for LMDB, check predictable zone ID
+[ $backend = lmdb ] && pdnsutil_wrapper -v zone show ${ZONE}
+
 # Delete this non-standard zone, so that the result of the zone-variants
 # test do not vary if this particular test is skipped.
 pdnsutil_wrapper zone delete  ${ZONE} > /dev/null

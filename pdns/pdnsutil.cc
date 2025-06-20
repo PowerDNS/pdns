@@ -2253,7 +2253,11 @@ static bool showZone(DNSSECKeeper& dnsseckeeper, const ZoneName& zone, bool expo
       cout<<"This zone is owned by "<<di.account<<endl;
   }
   if (!exportDS) {
-    cout<<"This is a "<<DomainInfo::getKindString(di.kind)<<" zone"<<endl;
+    cout << "This is a " << DomainInfo::getKindString(di.kind) << " zone";
+    if (g_verbose) {
+      cout << " (" << di.id << ")";
+    }
+    cout << endl;
     auto variant = di.zone.getVariant();
     if (!variant.empty()) {
       cout<<"Variant: " << variant << endl;

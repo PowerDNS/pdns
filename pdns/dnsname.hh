@@ -153,7 +153,7 @@ public:
   void trimToLabels(unsigned int);
   size_t hash(size_t init=0) const
   {
-    return burtleCI((const unsigned char*)d_storage.c_str(), d_storage.size(), init);
+    return burtleCI(d_storage, init);
   }
   DNSName& operator+=(const DNSName& rhs)
   {
