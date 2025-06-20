@@ -111,6 +111,8 @@ jobs:
           cp ./pdns/recursordist/docs/_build/latex/PowerDNS-Recursor.pdf ./pdns/recursordist/docs/_build/rec-html-docs/
 
       # Build DNSdist docs
+      - run: inv ci-docs-dnsdist-generate
+        working-directory: ./pdns/dnsdistdist
       - run: inv ci-docs-build
         working-directory: ./pdns/dnsdistdist
       - run: mv html dnsdist-html-docs
