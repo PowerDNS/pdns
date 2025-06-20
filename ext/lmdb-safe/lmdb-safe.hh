@@ -123,7 +123,9 @@ struct MDBOutVal; // forward declaration because of how the functions below tie 
 namespace LMDBLS {
   class __attribute__((__packed__)) LSheader {
   private:
-    static auto bswap64(uint64_t value) -> uint64_t
+    // Some systems #define bswap64 to __builtin_bswap64, and the body below would cause infinite
+    // recursion if we would name the function bswap64
+    static auto pdns_bswap64(uint64_t value) -> uint64_t
     {
 #if !defined(__BYTE_ORDER__) || !defined(__ORDER_LITTLE_ENDIAN__) || !defined(__ORDER_BIG_ENDIAN__)
 #error "your compiler does not define byte order macros"
@@ -147,8 +149,8 @@ namespace LMDBLS {
 
     // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
     LSheader(uint64_t timestamp, uint64_t txnid, uint8_t flags = 0, uint8_t version = 0, uint8_t numextra = 0) :
-      d_timestamp(bswap64(timestamp)),
-      d_txnid(bswap64(txnid)),
+      d_timestamp(pdns_bswap64(timestamp)),
+      d_txnid(pdns_bswap64(txnid)),
       d_version(version),
       d_flags(flags),
       d_numextra(htons(numextra))
@@ -160,7 +162,7 @@ namespace LMDBLS {
     }
 
     [[nodiscard]] uint64_t getTimestamp() const {
-      return bswap64(d_timestamp);
+      return pdns_bswap64(d_timestamp);
     }
   };
 
