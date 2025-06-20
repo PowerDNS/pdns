@@ -178,3 +178,8 @@ inline uint32_t burtleCI(const unsigned char* k, uint32_t length, uint32_t initv
   /*-------------------------------------------- report the result */
   return c;
 }
+
+inline uint32_t burtleCI(const std::string &k, uint32_t initval)
+{
+  return burtleCI(reinterpret_cast<const unsigned char *>(k.data()), k.length(), initval);
+}
