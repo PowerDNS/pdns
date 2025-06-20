@@ -2248,7 +2248,7 @@ bool LMDBBackend::addDomainKey(const ZoneName& name, const KeyData& key, int64_t
   auto keyEngine = shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(dkrc, key.content));
   DNSSECPrivateKey dpk;
   dpk.setKey(keyEngine, key.flags);
-  auto tag=dpk.getDNSKEY().getTag();
+  auto tag = dpk.getDNSKEY().getTag();
 
   keyId = txn.put(kdb, 0, d_random_ids, name.hash(tag));
   txn.commit();
