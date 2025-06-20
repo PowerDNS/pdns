@@ -123,7 +123,7 @@ struct MDBOutVal; // forward declaration because of how the functions below tie 
 namespace LMDBLS {
   class __attribute__((__packed__)) LSheader {
   private:
-    // Some systems #define bswap64 to __builtin_bswap64, and the body below would cause inifinite
+    // Some systems #define bswap64 to __builtin_bswap64, and the body below would cause infinite
     // recursion if we would name the function bswap64
     static auto pdns_bswap64(uint64_t value) -> uint64_t
     {
