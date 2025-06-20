@@ -103,6 +103,7 @@ namespace ProtoZero
       outgoingQueries = 27,
       headerFlags = 28,
       ednsVersion = 29,
+      openTelemetryData = 30,
     };
     enum class QuestionField : protozero::pbf_tag_type
     {
@@ -312,6 +313,13 @@ namespace ProtoZero
     void setEDNSVersion(uint32_t version)
     {
       add_uint32(d_message, Field::ednsVersion, version);
+    }
+
+    void setOpenTelemetryData(const std::string& data)
+    {
+      if (!data.empty()) {
+        add_string(d_message, Field::openTelemetryData, data);
+      }
     }
 
     void startResponse()

@@ -764,7 +764,10 @@ bool SyncRes::addAdditionals(QType qtype, vector<DNSRecord>& ret, unsigned int d
 /** everything begins here - this is the entry point just after receiving a packet */
 int SyncRes::beginResolve(const DNSName& qname, const QType qtype, QClass qclass, vector<DNSRecord>& ret, unsigned int depth)
 {
-  d_eventTrace.add(RecEventTrace::SyncRes);
+  auto newParent = d_eventTrace.add(RecEventTrace::SyncRes);
+  auto oldParent = d_eventTrace.setParent(newParent);
+  RecEventTrace::EventScope traceScope(oldParent, d_eventTrace);
+
   d_wasVariable = false;
   d_wasOutOfBand = false;
   d_cutStates.clear();
@@ -819,7 +822,7 @@ int SyncRes::beginResolve(const DNSName& qname, const QType qtype, QClass qclass
       d_wasVariable = true;
     }
   }
-  d_eventTrace.add(RecEventTrace::SyncRes, res, false);
+  traceScope.close(res);
   return res;
 }
 
@@ -5559,8 +5562,10 @@ bool SyncRes::doResolveAtThisIP(const std::string& prefix, const DNSName& qname,
       s_ecsqueries++;
     }
     updateQueryCounts(prefix, qname, remoteIP, doTCP, doDoT);
+    auto match = d_eventTrace.add(RecEventTrace::AuthRequest, qname.toLogString() + '/' + qtype.toString(), true, 0);
     resolveret = asyncresolveWrapper(remoteIP, d_doDNSSEC, qname, auth, qtype.getCode(),
                                      doTCP, sendRDQuery, &d_now, ednsmask, &lwr, &chained, nsName); // <- we go out on the wire!
+    d_eventTrace.add(RecEventTrace::AuthRequest, static_cast<int64_t>(lwr.d_rcode), false, match);
     ednsStats(ednsmask, qname, prefix);
   }
 

@@ -597,9 +597,9 @@ bool RecursorLua4::prerpz(DNSQuestion& dnsQuestion, int& ret, RecEventTrace& eve
   if (!d_prerpz) {
     return false;
   }
-  eventTrace.add(RecEventTrace::LuaPreRPZ);
+  auto match = eventTrace.add(RecEventTrace::LuaPreRPZ);
   bool isOK = genhook(d_prerpz, dnsQuestion, ret);
-  eventTrace.add(RecEventTrace::LuaPreRPZ, isOK, false);
+  eventTrace.add(RecEventTrace::LuaPreRPZ, isOK, false, match);
   warnDrop(dnsQuestion);
   return isOK;
 }
@@ -609,9 +609,9 @@ bool RecursorLua4::preresolve(DNSQuestion& dnsQuestion, int& ret, RecEventTrace&
   if (!d_preresolve) {
     return false;
   }
-  eventTrace.add(RecEventTrace::LuaPreResolve);
+  auto match = eventTrace.add(RecEventTrace::LuaPreResolve);
   bool isOK = genhook(d_preresolve, dnsQuestion, ret);
-  eventTrace.add(RecEventTrace::LuaPreResolve, isOK, false);
+  eventTrace.add(RecEventTrace::LuaPreResolve, isOK, false, match);
   warnDrop(dnsQuestion);
   return isOK;
 }
@@ -621,9 +621,9 @@ bool RecursorLua4::nxdomain(DNSQuestion& dnsQuestion, int& ret, RecEventTrace& e
   if (!d_nxdomain) {
     return false;
   }
-  eventTrace.add(RecEventTrace::LuaNXDomain);
+  auto match = eventTrace.add(RecEventTrace::LuaNXDomain);
   bool isOK = genhook(d_nxdomain, dnsQuestion, ret);
-  eventTrace.add(RecEventTrace::LuaNXDomain, isOK, false);
+  eventTrace.add(RecEventTrace::LuaNXDomain, isOK, false, match);
   warnDrop(dnsQuestion);
   return isOK;
 }
@@ -633,9 +633,9 @@ bool RecursorLua4::nodata(DNSQuestion& dnsQuestion, int& ret, RecEventTrace& eve
   if (!d_nodata) {
     return false;
   }
-  eventTrace.add(RecEventTrace::LuaNoData);
+  auto match = eventTrace.add(RecEventTrace::LuaNoData);
   bool isOK = genhook(d_nodata, dnsQuestion, ret);
-  eventTrace.add(RecEventTrace::LuaNoData, isOK, false);
+  eventTrace.add(RecEventTrace::LuaNoData, isOK, false, match);
   warnDrop(dnsQuestion);
   return isOK;
 }
@@ -645,9 +645,9 @@ bool RecursorLua4::postresolve(DNSQuestion& dnsQuestion, int& ret, RecEventTrace
   if (!d_postresolve) {
     return false;
   }
-  eventTrace.add(RecEventTrace::LuaPostResolve);
+  auto match = eventTrace.add(RecEventTrace::LuaPostResolve);
   bool isOK = genhook(d_postresolve, dnsQuestion, ret);
-  eventTrace.add(RecEventTrace::LuaPostResolve, isOK, false);
+  eventTrace.add(RecEventTrace::LuaPostResolve, isOK, false, match);
   warnDrop(dnsQuestion);
   return isOK;
 }
@@ -663,9 +663,9 @@ bool RecursorLua4::preoutquery(const ComboAddress& nameserver, const ComboAddres
   bool addPaddingToResponse = false;
   RecursorLua4::DNSQuestion dnsQuestion(nameserver, requestor, nameserver, requestor, query, qtype.getCode(), isTcp, variableAnswer, wantsRPZ, logQuery, addPaddingToResponse, theTime);
   dnsQuestion.currentRecords = &res;
-  eventTrace.add(RecEventTrace::LuaPreOutQuery);
+  auto match = eventTrace.add(RecEventTrace::LuaPreOutQuery);
   bool isOK = genhook(d_preoutquery, dnsQuestion, ret);
-  eventTrace.add(RecEventTrace::LuaPreOutQuery, isOK, false);
+  eventTrace.add(RecEventTrace::LuaPreOutQuery, isOK, false, match);
   warnDrop(dnsQuestion);
   return isOK;
 }
@@ -675,9 +675,9 @@ bool RecursorLua4::ipfilter(const ComboAddress& remote, const ComboAddress& loca
   if (!d_ipfilter) {
     return false; // Do not block
   }
-  eventTrace.add(RecEventTrace::LuaIPFilter);
+  auto match = eventTrace.add(RecEventTrace::LuaIPFilter);
   bool isOK = d_ipfilter(remote, local, header);
-  eventTrace.add(RecEventTrace::LuaIPFilter, isOK, false);
+  eventTrace.add(RecEventTrace::LuaIPFilter, isOK, false, match);
   return isOK;
 }
 
