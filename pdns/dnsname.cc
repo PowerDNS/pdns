@@ -847,7 +847,7 @@ std::string ZoneName::toStringFull(const std::string& separator, const bool trai
 size_t ZoneName::hash(size_t init) const
 {
   if (!d_variant.empty()) {
-    init = burtleCI(d_variant, init); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast): can't static_cast because of sign difference
+    init = burtleCI(d_variant, init);
   }
 
   return d_name.hash(init);
