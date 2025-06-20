@@ -42,7 +42,7 @@ dnsdist is also available in `FreeBSD ports <http://www.freshports.org/dns/dnsdi
 Installing from Source
 ----------------------
 
-In order to compile dnsdist, a modern compiler with C++ 2017 support and GNU make are required.
+In order to compile dnsdist, a modern compiler with C++ 2017 support, a Python 3 interpreter with the ``YAML`` module, and either GNU make or ``meson`` with ``ninja`` are required.
 dnsdist depends on the following libraries:
 
 * `Boost <http://boost.org/>`_
@@ -62,7 +62,7 @@ dnsdist depends on the following libraries:
 * `re2 <https://github.com/google/re2>`_ (optional)
 * `TinyCDB <https://www.corpit.ru/mjt/tinycdb.html>`_ (optional, CDB support)
 
-Since 2.0.0, the optional ``yaml`` configuration requires a Rust compiler and a Python 3 interpreter.
+Since 2.0.0, the optional ``yaml`` configuration requires a Rust compiler.
 
 Should :program:`dnsdist` be run on a system with systemd, it is highly recommended to have
 the systemd header files (``libsystemd-dev`` on Debian and ``systemd-devel`` on CentOS)
