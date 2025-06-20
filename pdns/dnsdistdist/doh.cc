@@ -1083,7 +1083,7 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
     }
 
     auto& conn = t_conns.at(descriptor);
-    if (conn.d_concurrentStreams >= 100U) {
+    if (conn.d_concurrentStreams >= dnsdist::doh::MAX_INCOMING_CONCURRENT_STREAMS) {
       vinfolog("Too many concurrent streams on connection from %d", conn.d_remote.toStringWithPort());
       return 0;
     }

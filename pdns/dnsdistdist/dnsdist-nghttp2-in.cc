@@ -93,8 +93,6 @@ private:
 };
 #endif
 
-static constexpr uint32_t MAX_CONCURRENT_STREAMS{100U};
-
 class IncomingDoHCrossProtocolContext : public DOHUnitInterface
 {
 public:
@@ -290,7 +288,7 @@ bool IncomingHTTP2Connection::checkALPN()
 
 void IncomingHTTP2Connection::handleConnectionReady()
 {
-  constexpr std::array<nghttp2_settings_entry, 1> settings{{{NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS, MAX_CONCURRENT_STREAMS}}};
+  constexpr std::array<nghttp2_settings_entry, 1> settings{{{NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS, dnsdist::doh::MAX_INCOMING_CONCURRENT_STREAMS}}};
   auto ret = nghttp2_submit_settings(d_session.get(), NGHTTP2_FLAG_NONE, settings.data(), settings.size());
   if (ret != 0) {
     throw std::runtime_error("Fatal error: " + std::string(nghttp2_strerror(ret)));
@@ -979,7 +977,7 @@ int IncomingHTTP2Connection::on_begin_headers_callback(nghttp2_session* session,
     return 0;
   };
 
-  if (conn->getConcurrentStreamsCount() >= MAX_CONCURRENT_STREAMS) {
+  if (conn->getConcurrentStreamsCount() >= dnsdist::doh::MAX_INCOMING_CONCURRENT_STREAMS) {
     vinfolog("Too many concurrent streams on connection from %d", conn->d_ci.remote.toStringWithPort());
     return close_connection(conn, frame->hd.stream_id, conn->d_ci.remote);
   }
