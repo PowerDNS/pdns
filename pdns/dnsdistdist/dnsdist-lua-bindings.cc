@@ -110,81 +110,193 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
 
 #ifndef DISABLE_DOWNSTREAM_BINDINGS
   /* DownstreamState */
-  luaCtx.registerFunction<void (DownstreamState::*)(int)>("setQPS", [](DownstreamState& state, int lim) { state.qps = lim > 0 ? QPSLimiter(lim, lim) : QPSLimiter(); });
+  luaCtx.registerFunction<void (std::shared_ptr<DownstreamState>::*)(int)>("setQPS", [](std::shared_ptr<DownstreamState>& state, int lim) {
+    if (state) {
+      state->qps = lim > 0 ? QPSLimiter(lim, lim) : QPSLimiter();
+    }
+  });
   luaCtx.registerFunction<void (std::shared_ptr<DownstreamState>::*)(string)>("addPool", [](const std::shared_ptr<DownstreamState>& state, const string& pool) {
-    addServerToPool(pool, state);
-    state->d_config.pools.insert(pool);
+    if (state) {
+      addServerToPool(pool, state);
+      state->d_config.pools.insert(pool);
+    }
   });
   luaCtx.registerFunction<void (std::shared_ptr<DownstreamState>::*)(string)>("rmPool", [](const std::shared_ptr<DownstreamState>& state, const string& pool) {
-    removeServerFromPool(pool, state);
-    state->d_config.pools.erase(pool);
+    if (state) {
+      removeServerFromPool(pool, state);
+      state->d_config.pools.erase(pool);
+    }
   });
-  luaCtx.registerFunction<uint64_t (DownstreamState::*)() const>("getOutstanding", [](const DownstreamState& state) { return state.outstanding.load(); });
-  luaCtx.registerFunction<uint64_t (DownstreamState::*)() const>("getDrops", [](const DownstreamState& state) { return state.reuseds.load(); });
-  luaCtx.registerFunction<double (DownstreamState::*)() const>("getLatency", [](const DownstreamState& state) { return state.getRelevantLatencyUsec(); });
-  luaCtx.registerFunction("isUp", &DownstreamState::isUp);
-  luaCtx.registerFunction("setDown", &DownstreamState::setDown);
-  luaCtx.registerFunction("setUp", &DownstreamState::setUp);
-  luaCtx.registerFunction<std::string (DownstreamState::*)() const>("getHealthCheckMode", [](const DownstreamState& state) -> std::string {
-    if (state.d_config.d_healthCheckMode == DownstreamState::HealthCheckMode::Active) {
+  luaCtx.registerFunction<uint64_t (std::shared_ptr<DownstreamState>::*)() const>("getOutstanding", [](const std::shared_ptr<DownstreamState>& state) -> uint64_t {
+    if (state) {
+      return state->outstanding.load();
+    }
+    return 0U;
+  });
+  luaCtx.registerFunction<uint64_t (std::shared_ptr<DownstreamState>::*)() const>("getDrops", [](const std::shared_ptr<DownstreamState>& state) -> uint64_t {
+    if (state) {
+      return state->reuseds.load();
+    }
+    return 0U;
+  });
+  luaCtx.registerFunction<uint64_t (std::shared_ptr<DownstreamState>::*)() const>("getQueries", [](const std::shared_ptr<DownstreamState>& state) -> uint64_t {
+    if (state) {
+      return state->queries.load();
+    }
+    return 0U;
+  });
+  luaCtx.registerFunction<double (std::shared_ptr<DownstreamState>::*)() const>("getLatency", [](const std::shared_ptr<DownstreamState>& state) -> double {
+    if (state) {
+      return state->getRelevantLatencyUsec();
+    }
+    return 0.0;
+  });
+  luaCtx.registerFunction<bool (std::shared_ptr<DownstreamState>::*)() const>("isUp", [](const std::shared_ptr<DownstreamState>& state) -> bool {
+    if (!state) {
+      return false;
+    }
+    return state->isUp();
+  });
+  luaCtx.registerFunction<void (std::shared_ptr<DownstreamState>::*)()>("setDown", [](const std::shared_ptr<DownstreamState>& state) {
+    if (state) {
+      state->setDown();
+    }
+  });
+  luaCtx.registerFunction<void (std::shared_ptr<DownstreamState>::*)()>("setUp", [](const std::shared_ptr<DownstreamState>& state) {
+    if (state) {
+      state->setUp();
+    }
+  });
+  luaCtx.registerFunction<std::string (std::shared_ptr<DownstreamState>::*)() const>("getHealthCheckMode", [](const std::shared_ptr<DownstreamState>& state) -> std::string {
+    if (!state) {
+      return "";
+    }
+    if (state->d_config.d_healthCheckMode == DownstreamState::HealthCheckMode::Active) {
       return "active";
     }
     return "lazy";
   });
-  luaCtx.registerFunction<void (DownstreamState::*)(boost::optional<bool> newStatus)>("setAuto", [](DownstreamState& state, boost::optional<bool> newStatus) {
-    if (newStatus) {
-      state.setUpStatus(*newStatus);
+  luaCtx.registerFunction<void (std::shared_ptr<DownstreamState>::*)(boost::optional<bool> newStatus)>("setAuto", [](std::shared_ptr<DownstreamState>& state, boost::optional<bool> newStatus) {
+    if (!state) {
+      return;
     }
-    state.setAuto();
-  });
-  luaCtx.registerFunction<void (DownstreamState::*)(boost::optional<bool> newStatus)>("setActiveAuto", [](DownstreamState& state, boost::optional<bool> newStatus) {
     if (newStatus) {
-      state.setUpStatus(*newStatus);
+      state->setUpStatus(*newStatus);
     }
-    state.setActiveAuto();
+    state->setAuto();
   });
-  luaCtx.registerFunction<void (DownstreamState::*)(boost::optional<bool> newStatus)>("setLazyAuto", [](DownstreamState& state, boost::optional<bool> newStatus) {
+  luaCtx.registerFunction<void (std::shared_ptr<DownstreamState>::*)(boost::optional<bool> newStatus)>("setActiveAuto", [](std::shared_ptr<DownstreamState>& state, boost::optional<bool> newStatus) {
+    if (!state) {
+      return;
+    }
     if (newStatus) {
-      state.setUpStatus(*newStatus);
+      state->setUpStatus(*newStatus);
     }
-    state.setLazyAuto();
+    state->setActiveAuto();
   });
-  luaCtx.registerFunction<void (DownstreamState::*)(boost::optional<LuaAssociativeTable<boost::variant<size_t>>>)>("setHealthCheckParams", [](DownstreamState& state, boost::optional<LuaAssociativeTable<boost::variant<size_t>>> vars) {
+  luaCtx.registerFunction<void (std::shared_ptr<DownstreamState>::*)(boost::optional<bool> newStatus)>("setLazyAuto", [](std::shared_ptr<DownstreamState>& state, boost::optional<bool> newStatus) {
+    if (!state) {
+      return;
+    }
+    if (newStatus) {
+      state->setUpStatus(*newStatus);
+    }
+    state->setLazyAuto();
+  });
+  luaCtx.registerFunction<void (std::shared_ptr<DownstreamState>::*)(boost::optional<LuaAssociativeTable<boost::variant<size_t>>>)>("setHealthCheckParams", [](std::shared_ptr<DownstreamState>& state, boost::optional<LuaAssociativeTable<boost::variant<size_t>>> vars) {
+    if (!state) {
+      return;
+    }
     size_t value = 0;
     getOptionalValue<size_t>(vars, "maxCheckFailures", value);
     if (value > 0) {
-      state.d_config.maxCheckFailures.store(value);
+      state->d_config.maxCheckFailures.store(value);
     }
     getOptionalValue<size_t>(vars, "rise", value);
     if (value > 0) {
-      state.d_config.minRiseSuccesses.store(value);
+      state->d_config.minRiseSuccesses.store(value);
     }
     getOptionalValue<size_t>(vars, "checkTimeout", value);
     if (value > 0) {
-      state.d_config.checkTimeout.store(value);
+      state->d_config.checkTimeout.store(value);
     }
     getOptionalValue<size_t>(vars, "checkInterval", value);
     if (value > 0) {
-      state.d_config.checkInterval.store(value);
+      state->d_config.checkInterval.store(value);
     }
   });
-  luaCtx.registerFunction<std::string (DownstreamState::*)() const>("getName", [](const DownstreamState& state) -> const std::string& { return state.getName(); });
-  luaCtx.registerFunction<std::string (DownstreamState::*)() const>("getNameWithAddr", [](const DownstreamState& state) -> const std::string& { return state.getNameWithAddr(); });
-  luaCtx.registerMember<bool(DownstreamState::*)>(
+  luaCtx.registerFunction<std::string (std::shared_ptr<DownstreamState>::*)() const>("getName", [](const std::shared_ptr<DownstreamState>& state) -> const std::string& {
+    static const std::string empty;
+    if (!state) {
+      return empty;
+    }
+    return state->getName();
+  });
+  luaCtx.registerFunction<std::string (std::shared_ptr<DownstreamState>::*)() const>("getNameWithAddr", [](const std::shared_ptr<DownstreamState>& state) -> const std::string& {
+    static const std::string empty;
+    if (!state) {
+      return empty;
+    }
+    return state->getNameWithAddr();
+  });
+  luaCtx.registerMember<bool(std::shared_ptr<DownstreamState>::*)>(
     "upStatus",
-    [](const DownstreamState& state) -> bool { return state.upStatus.load(std::memory_order_relaxed); },
-    [](DownstreamState& state, bool newStatus) { state.upStatus.store(newStatus); });
-  luaCtx.registerMember<int(DownstreamState::*)>(
+    [](const std::shared_ptr<DownstreamState>& state) -> bool {
+      if (!state) {
+        return false;
+      }
+      return state->upStatus.load(std::memory_order_relaxed);
+    },
+    [](std::shared_ptr<DownstreamState>& state, bool newStatus) {
+      if (state) {
+        state->upStatus.store(newStatus);
+      }
+    });
+  luaCtx.registerMember<int(std::shared_ptr<DownstreamState>::*)>(
     "weight",
-    [](const DownstreamState& state) -> int { return state.d_config.d_weight; },
-    [](DownstreamState& state, int newWeight) { state.setWeight(newWeight); });
-  luaCtx.registerMember<int(DownstreamState::*)>(
+    [](const std::shared_ptr<DownstreamState>& state) -> int {
+      if (!state) {
+        return 0;
+      }
+      return state->d_config.d_weight;
+    },
+    [](std::shared_ptr<DownstreamState>& state, int newWeight) {
+      if (state) {
+        state->setWeight(newWeight);
+      }
+    });
+  luaCtx.registerMember<int(std::shared_ptr<DownstreamState>::*)>(
     "order",
-    [](const DownstreamState& state) -> int { return state.d_config.order; },
-    [](DownstreamState& state, int newOrder) { state.d_config.order = newOrder; });
-  luaCtx.registerMember<const std::string(DownstreamState::*)>(
-    "name", [](const DownstreamState& backend) -> std::string { return backend.getName(); }, [](DownstreamState& backend, const std::string& newName) { backend.setName(newName); });
-  luaCtx.registerFunction<std::string (DownstreamState::*)() const>("getID", [](const DownstreamState& state) { return boost::uuids::to_string(*state.d_config.id); });
+    [](const std::shared_ptr<DownstreamState>& state) -> int {
+      if (!state) {
+        return 0;
+      }
+      return state->d_config.order;
+    },
+    [](std::shared_ptr<DownstreamState>& state, int newOrder) {
+      if (state) {
+        state->d_config.order = newOrder;
+      }
+    });
+  luaCtx.registerMember<const std::string(std::shared_ptr<DownstreamState>::*)>(
+    "name",
+    [](const std::shared_ptr<DownstreamState>& backend) -> std::string {
+      if (!backend) {
+        return "";
+      }
+      return backend->getName();
+    },
+    [](std::shared_ptr<DownstreamState>& backend, const std::string& newName) {
+      if (backend) {
+        backend->setName(newName);
+      }
+    });
+  luaCtx.registerFunction<std::string (std::shared_ptr<DownstreamState>::*)() const>("getID", [](const std::shared_ptr<DownstreamState>& state) -> std::string {
+    if (!state) {
+      return "";
+    }
+    return boost::uuids::to_string(*state->d_config.id);
+  });
 #endif /* DISABLE_DOWNSTREAM_BINDINGS */
 
 #ifndef DISABLE_DNSHEADER_BINDINGS
