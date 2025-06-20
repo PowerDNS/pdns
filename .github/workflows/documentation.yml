@@ -59,6 +59,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - run: pip install pyyaml
       - run: build-scripts/gh-actions-setup-inv-no-dist-upgrade
       - run: inv install-doc-deps
       - run: inv install-doc-deps-pdf
