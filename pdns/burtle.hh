@@ -183,3 +183,8 @@ inline uint32_t burtleCI(const std::string &k, uint32_t initval)
 {
   return burtleCI(reinterpret_cast<const unsigned char *>(k.data()), k.length(), initval); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast): can't static_cast because of sign difference
 }
+
+inline uint32_t burtleCI(const boost::container::string &k, uint32_t initval)
+{
+  return burtleCI(reinterpret_cast<const unsigned char *>(k.data()), k.length(), initval); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast): can't static_cast because of sign difference
+}
