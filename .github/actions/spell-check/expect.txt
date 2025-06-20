@@ -1205,6 +1205,7 @@ rsasha
 Rueckert
 rulesets
 runtimedir
+rustc
 rustup
 Ruthensteiner
 Rvd
