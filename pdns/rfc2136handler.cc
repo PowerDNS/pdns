@@ -820,6 +820,7 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
     if (dnsRecord->d_place == DNSResourceRecord::ANSWER) {
       // Last line of 3.2.3
       if (dnsRecord->d_class != QClass::IN && dnsRecord->d_class != QClass::NONE && dnsRecord->d_class != QClass::ANY) {
+        di.backend->abortTransaction();
         return RCode::FormErr;
       }
 

@@ -2001,27 +2001,33 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
 
   domainInfo.backend->startTransaction(zonename, domainInfo.id);
 
-  // will be overridden by updateDomainSettingsFromDocument, if given in document.
-  domainInfo.backend->setDomainMetadataOne(zonename, "SOA-EDIT-API", "DEFAULT");
+  try {
+    // will be overridden by updateDomainSettingsFromDocument, if given in document.
+    domainInfo.backend->setDomainMetadataOne(zonename, "SOA-EDIT-API", "DEFAULT");
 
-  for (auto& resourceRecord : new_records) {
-    resourceRecord.domain_id = static_cast<int>(domainInfo.id);
-    domainInfo.backend->feedRecord(resourceRecord, DNSName());
-  }
-  for (Comment& comment : new_comments) {
-    comment.domain_id = static_cast<int>(domainInfo.id);
-    if (!domainInfo.backend->feedComment(comment)) {
-      throw ApiException("Hosting backend does not support editing comments.");
+    for (auto& resourceRecord : new_records) {
+      resourceRecord.domain_id = static_cast<int>(domainInfo.id);
+      domainInfo.backend->feedRecord(resourceRecord, DNSName());
+    }
+    for (Comment& comment : new_comments) {
+      comment.domain_id = static_cast<int>(domainInfo.id);
+      if (!domainInfo.backend->feedComment(comment)) {
+        throw ApiException("Hosting backend does not support editing comments.");
+      }
+    }
+
+    updateDomainSettingsFromDocument(backend, domainInfo, zonename, document, !new_records.empty());
+
+    if (!catalog && kind == DomainInfo::Primary) {
+      const auto& defaultCatalog = ::arg()["default-catalog-zone"];
+      if (!defaultCatalog.empty()) {
+        domainInfo.backend->setCatalog(zonename, ZoneName(defaultCatalog));
+      }
     }
   }
-
-  updateDomainSettingsFromDocument(backend, domainInfo, zonename, document, !new_records.empty());
-
-  if (!catalog && kind == DomainInfo::Primary) {
-    const auto& defaultCatalog = ::arg()["default-catalog-zone"];
-    if (!defaultCatalog.empty()) {
-      domainInfo.backend->setCatalog(zonename, ZoneName(defaultCatalog));
-    }
+  catch (...) {
+    domainInfo.backend->abortTransaction();
+    throw;
   }
 
   domainInfo.backend->commitTransaction();
@@ -2454,20 +2460,20 @@ static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInf
       fillSOAData(resourceRecord.content, soaData);
       resp->headers["X-PDNS-New-Serial"] = std::to_string(soaData.serial);
     }
+
+    // Rectify
+    DNSSECKeeper dnssecKeeper(&backend);
+    if (!zone_disabled && !dnssecKeeper.isPresigned(zonename) && isZoneApiRectifyEnabled(domainInfo)) {
+      string info;
+      string error_msg;
+      if (!dnssecKeeper.rectifyZone(zonename, error_msg, info, false)) {
+        throw ApiException("Failed to rectify '" + zonename.toStringFull() + "' " + error_msg);
+      }
+    }
   }
   catch (...) {
     domainInfo.backend->abortTransaction();
     throw;
-  }
-
-  // Rectify
-  DNSSECKeeper dnssecKeeper(&backend);
-  if (!zone_disabled && !dnssecKeeper.isPresigned(zonename) && isZoneApiRectifyEnabled(domainInfo)) {
-    string info;
-    string error_msg;
-    if (!dnssecKeeper.rectifyZone(zonename, error_msg, info, false)) {
-      throw ApiException("Failed to rectify '" + zonename.toStringFull() + "' " + error_msg);
-    }
   }
 
   domainInfo.backend->commitTransaction();
