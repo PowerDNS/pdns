@@ -625,14 +625,14 @@ class TestServerStateChange(HealthCheckTest):
 
         self.setDrop(True)
         time.sleep(2.5)
-        # up count no change, down count increased by 1
+        # up count did not change, down count increased by 1
         self.assertEqual(self.getBackendStatus(), 'down')
         self.assertEqual(self.getCount(nameAddr, True), 1)
         self.assertEqual(self.getCount(nameAddr, False), 1)
 
         self.setDrop(False)
         time.sleep(1.5)
-        # up count increased again, down count no change
+        # up count increased again, down count did not change
         self.assertEqual(self.getBackendStatus(), 'up')
         self.assertEqual(self.getCount(nameAddr, True), 2)
         self.assertEqual(self.getCount(nameAddr, False), 1)
