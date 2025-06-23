@@ -547,3 +547,92 @@ class TestUpdateHCParamsCombo2(HealthCheckUpdateParams):
         time.sleep(1)
         # now should timeout and failure increased
         self.assertEqual(self.getBackendMetric(0, 'healthCheckFailures'), beforeFailure+1)
+
+class TestServerStateChange(HealthCheckTest):
+
+    _healthQueue = queue.Queue()
+    _dropHealthCheck = False
+    _config_template = """
+    setKey("%s")
+    controlSocket("127.0.0.1:%d")
+    webserver("127.0.0.1:%s")
+    setWebserverConfig({apiKey="%s"})
+    srv = newServer{address="127.0.0.1:%d",maxCheckFailures=1,checkTimeout=1000,checkInterval=1,rise=1}
+    srv:setAuto(false)
+    serverUpCount = {}
+    serverDownCount = {}
+    function ServerStateChange(nameAddr, newState)
+        if newState then
+            if not serverUpCount[nameAddr] then serverUpCount[nameAddr] = 0 end
+            serverUpCount[nameAddr] = serverUpCount[nameAddr] + 1
+        else
+            if not serverDownCount[nameAddr] then serverDownCount[nameAddr] = 0 end
+            serverDownCount[nameAddr] = serverDownCount[nameAddr] + 1
+        end
+    end
+    addServerStateChangeCallback(ServerStateChange)
+    function getCount(nameAddr, state)
+        if state then
+            if not serverUpCount[nameAddr] then serverUpCount[nameAddr] = 0 end
+            return serverUpCount[nameAddr]
+        else
+            if not serverDownCount[nameAddr] then serverDownCount[nameAddr] = 0 end
+            return serverDownCount[nameAddr]
+        end
+    end
+    """
+
+    @classmethod
+    def startResponders(cls):
+        print("Launching responders..")
+        cls._UDPResponder = threading.Thread(name='UDP Responder', target=cls.UDPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue, False, cls.healthCallback])
+        cls._UDPResponder.daemon = True
+        cls._UDPResponder.start()
+
+    @classmethod
+    def healthCallback(cls, request):
+        if cls._dropHealthCheck:
+          cls._healthQueue.put(False)
+          print("health check received drop")
+          return ResponderDropAction()
+        response = dns.message.make_response(request)
+        cls._healthQueue.put(True)
+        print("health check received return")
+        return response.to_wire()
+
+    @classmethod
+    def setDrop(cls, flag=True):
+        cls._dropHealthCheck = flag
+
+    def getCount(self, nameAddr, state):
+        if state:
+            return int(self.sendConsoleCommand("getCount('{}', true)".format(nameAddr)).strip("\n"))
+        return int(self.sendConsoleCommand("getCount('{}', false)".format(nameAddr)).strip("\n"))
+
+    def testServerStateChange(self):
+        """
+        HealthChecks: test Server State Change callback
+        """
+
+        nameAddr = self.sendConsoleCommand("getServer(0):getNameWithAddr()").strip("\n")
+        self.assertTrue(nameAddr)
+
+        time.sleep(1)
+        # server initial up shall have been hit
+        self.assertEqual(self.getBackendStatus(), 'up')
+        self.assertEqual(self.getCount(nameAddr, True), 1)
+        self.assertEqual(self.getCount(nameAddr, False), 0)
+
+        self.setDrop(True)
+        time.sleep(2.5)
+        # up count no change, down count increased by 1
+        self.assertEqual(self.getBackendStatus(), 'down')
+        self.assertEqual(self.getCount(nameAddr, True), 1)
+        self.assertEqual(self.getCount(nameAddr, False), 1)
+
+        self.setDrop(False)
+        time.sleep(1.5)
+        # up count increased again, down count no change
+        self.assertEqual(self.getBackendStatus(), 'up')
+        self.assertEqual(self.getCount(nameAddr, True), 2)
+        self.assertEqual(self.getCount(nameAddr, False), 1)

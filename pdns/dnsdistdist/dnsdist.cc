@@ -1596,6 +1596,17 @@ bool handleTimeoutResponseRules(const std::vector<dnsdist::rules::ResponseRuleAc
   return dnsResponse.isAsynchronous();
 }
 
+void handleServerStateChange(const string& nameWithAddr, bool newResult)
+{
+  try {
+    auto lua = g_lua.lock();
+    dnsdist::lua::hooks::runServerStateChangeHooks(*lua, nameWithAddr, newResult);
+  }
+  catch (const std::exception& exp) {
+    warnlog("Error calling the Lua hook for Server State Change: %s", exp.what());
+  }
+}
+
 class UDPTCPCrossQuerySender : public TCPQuerySender
 {
 public:
@@ -2821,6 +2832,7 @@ static void cleanupLuaObjects(LuaContext& /* luaCtx */)
   });
   dnsdist::webserver::clearWebHandlers();
   dnsdist::lua::hooks::clearMaintenanceHooks();
+  dnsdist::lua::hooks::clearServerStateChangeCallbacks();
 }
 #endif /* defined(COVERAGE) || (defined(__SANITIZE_ADDRESS__) && defined(HAVE_LEAK_SANITIZER_INTERFACE)) */
 

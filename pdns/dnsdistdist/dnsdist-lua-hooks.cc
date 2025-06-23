@@ -9,9 +9,11 @@ namespace dnsdist::lua::hooks
 using ExitCallback = std::function<void()>;
 using MaintenanceCallback = std::function<void()>;
 using TicketsKeyAddedHook = std::function<void(const std::string&, size_t)>;
+using ServerStateChangeCallback = std::function<void(const std::string&, bool)>;
 
 static LockGuarded<std::vector<ExitCallback>> s_exitCallbacks;
 static LockGuarded<std::vector<MaintenanceCallback>> s_maintenanceHooks;
+static LockGuarded<std::vector<ServerStateChangeCallback>> s_serverStateChangeHooks;
 
 void runMaintenanceHooks(const LuaContext& context)
 {
@@ -65,6 +67,25 @@ static void setTicketsKeyAddedHook(const LuaContext& context, const TicketsKeyAd
   });
 }
 
+void runServerStateChangeHooks(const LuaContext& context, const std::string& nameWithAddr, bool newState)
+{
+  (void)context;
+  for (const auto& callback : *(s_serverStateChangeHooks.lock())) {
+    callback(nameWithAddr, newState);
+  }
+}
+
+static void addServerStateChangeCallback(const LuaContext& context, ServerStateChangeCallback callback)
+{
+  (void)context;
+  s_serverStateChangeHooks.lock()->push_back(std::move(callback));
+}
+
+void clearServerStateChangeCallbacks()
+{
+  s_serverStateChangeHooks.lock()->clear();
+}
+
 void setupLuaHooks(LuaContext& luaCtx)
 {
   luaCtx.writeFunction("addMaintenanceCallback", [&luaCtx](const MaintenanceCallback& callback) {
@@ -78,6 +99,10 @@ void setupLuaHooks(LuaContext& luaCtx)
   luaCtx.writeFunction("setTicketsKeyAddedHook", [&luaCtx](const TicketsKeyAddedHook& hook) {
     setLuaSideEffect();
     setTicketsKeyAddedHook(luaCtx, hook);
+  });
+  luaCtx.writeFunction("addServerStateChangeCallback", [&luaCtx](const ServerStateChangeCallback& hook) {
+    setLuaSideEffect();
+    addServerStateChangeCallback(luaCtx, hook);
   });
 }
 

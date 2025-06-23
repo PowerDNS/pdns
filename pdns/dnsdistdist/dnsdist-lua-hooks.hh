@@ -22,6 +22,7 @@
 #pragma once
 
 #include <functional>
+#include <string>
 
 class LuaContext;
 
@@ -31,5 +32,6 @@ void runMaintenanceHooks(const LuaContext& context);
 void clearMaintenanceHooks();
 void runExitCallbacks(const LuaContext& context);
 void clearExitCallbacks();
+void runServerStateChangeHooks(const LuaContext& context, const std::string& nameWithAddr, bool newState);
 void setupLuaHooks(LuaContext& luaCtx);
 }
