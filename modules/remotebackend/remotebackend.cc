@@ -212,7 +212,7 @@ void RemoteBackend::lookup(const QType& qtype, const DNSName& qdomain, domainid_
   string realRemote = "0.0.0.0/0";
 
   if (pkt_p != nullptr) {
-    localIP = pkt_p->getLocal().toString();
+    localIP = pkt_p->getInnerLocal().toString();
     realRemote = pkt_p->getRealRemote().toString();
     remoteIP = pkt_p->getInnerRemote().toString();
   }

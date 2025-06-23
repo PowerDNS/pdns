@@ -256,6 +256,7 @@ void TCPNameserver::doConnection(int fd)
     int mesgsize=65535;
     boost::scoped_array<char> mesg(new char[mesgsize]);
     std::optional<ComboAddress> inner_remote;
+    std::optional<ComboAddress> inner_local;
     bool inner_tcp = false;
 
     DLOG(g_log<<"TCP Connection accepted on fd "<<fd<<endl);
@@ -305,6 +306,7 @@ void TCPNameserver::doConnection(int fd)
         throw NetworkError("Error reading PROXYv2 header from TCP client "+remote.toString()+": PROXYv2 header was oversized");
       }
       inner_remote = psource;
+      inner_local = pdestination;
       inner_tcp = tcp;
       accountremote = psource;
     }
@@ -359,6 +361,7 @@ void TCPNameserver::doConnection(int fd)
       packet->d_tcp=true;
       if (inner_remote) {
         packet->d_inner_remote = inner_remote;
+        packet->d_inner_local = inner_local;
         packet->d_tcp = inner_tcp;
       }
       packet->setSocket(fd);
