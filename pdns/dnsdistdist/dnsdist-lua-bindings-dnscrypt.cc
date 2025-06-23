@@ -62,7 +62,7 @@ void setupLuaBindingsDNSCrypt([[maybe_unused]] LuaContext& luaCtx, [[maybe_unuse
     return result;
   });
 
-  luaCtx.registerFunction<boost::optional<std::shared_ptr<DNSCryptCertificatePair>> (std::shared_ptr<DNSCryptContext>::*)(size_t idx)>("getCertificatePair", [](std::shared_ptr<DNSCryptContext>& ctx, size_t idx) -> boost::optional<std::shared_ptr<DNSCryptCertificatePair>> {
+  luaCtx.registerFunction<boost::optional<std::shared_ptr<DNSCryptCertificatePair>> (std::shared_ptr<DNSCryptContext>::*)(size_t idx)>("getCertificatePair", [](std::shared_ptr<DNSCryptContext>& ctx, size_t idx) {
     if (ctx == nullptr) {
       throw std::runtime_error("DNSCryptContext::getCertificatePair() called on a nil value");
     }
