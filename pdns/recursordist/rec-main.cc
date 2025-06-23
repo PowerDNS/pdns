@@ -1712,11 +1712,13 @@ static int initDNSSEC(Logr::log_t log)
     return 1;
   }
 
-  g_signatureInceptionSkew = ::arg().asNum("signature-inception-skew");
-  if (g_signatureInceptionSkew < 0) {
-    SLOG(g_log << Logger::Error << "A negative value for 'signature-inception-skew' is not allowed" << endl,
-         log->info(Logr::Error, "A negative value for 'signature-inception-skew' is not allowed"));
-    return 1;
+  {
+    auto value = ::arg().asNum("signature-inception-skew");
+    if (value < 0) {
+      log->info(Logr::Error, "A negative value for 'signature-inception-skew' is not allowed");
+      return 1;
+    }
+    g_signatureInceptionSkew = value;
   }
 
   g_dnssecLogBogus = ::arg().mustDo("dnssec-log-bogus");
