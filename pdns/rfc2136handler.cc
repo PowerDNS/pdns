@@ -806,8 +806,10 @@ int PacketHandler::processUpdate(DNSPacket& p) {
     const DNSRecord* rr = &i.first;
     if (rr->d_place == DNSResourceRecord::ANSWER) {
       // Last line of 3.2.3
-      if (rr->d_class != QClass::IN && rr->d_class != QClass::NONE && rr->d_class != QClass::ANY)
+      if (rr->d_class != QClass::IN && rr->d_class != QClass::NONE && rr->d_class != QClass::ANY) {
+        di.backend->abortTransaction();
         return RCode::FormErr;
+      }
 
       if (rr->d_class == QClass::IN) {
         rrSetKey_t key = {rr->d_name, QType(rr->d_type)};
