@@ -685,8 +685,6 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
 
   string syncMode = toLower(getArg("sync-mode"));
 
-  d_random_ids = mustDo("random-ids");
-
   if (syncMode == "nosync")
     d_asyncFlag = MDB_NOSYNC;
   else if (syncMode == "nometasync")
@@ -704,9 +702,6 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
     throw std::runtime_error(std::string("Unable to parse the 'map-size' LMDB value: ") + e.what());
   }
 
-  LMDBLS::s_flag_deleted = mustDo("flag-deleted");
-  d_handle_dups = false;
-
   if (mustDo("lightning-stream")) {
     d_random_ids = true;
     d_handle_dups = true;
@@ -715,6 +710,11 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
     if (atoi(getArg("shards").c_str()) != 1) {
       throw std::runtime_error(std::string("running with Lightning Stream support requires shards=1"));
     }
+  }
+  else {
+    d_random_ids = mustDo("random-ids");
+    d_handle_dups = false;
+    LMDBLS::s_flag_deleted = mustDo("flag-deleted");
   }
 
   bool opened = false;
@@ -1120,7 +1120,7 @@ void LMDBBackend::deleteDomainRecords(RecordsRWTransaction& txn, uint16_t qtype,
   if (cursor.prefix(match, key, val) == 0) {
     do {
       if (qtype == QType::ANY || compoundOrdername::getQType(key.getNoStripHeader<StringView>()) == qtype) {
-        cursor.del();
+        cursor.del(key);
       }
     } while (cursor.next(key, val) == 0);
   }
@@ -1318,7 +1318,7 @@ bool LMDBBackend::replaceRRSet(domainid_t domain_id, const DNSName& qname, const
     match = co(domain_id, relative, qt.getCode());
     // There should be at most one exact match here.
     if (cursor.find(match, key, val) == 0) {
-      cursor.del();
+      cursor.del(key);
     }
   }
 

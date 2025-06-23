@@ -158,10 +158,7 @@ struct LMDBIndexOps
     auto scombined = makeCombinedKey(keyConv(d_parent->getMember(type)), idVal);
     MDBInVal combined(scombined);
 
-    int errCode = txn->del(d_idx, combined);
-    if (errCode != 0) {
-      throw std::runtime_error("Error deleting from index: " + std::string(mdb_strerror(errCode)));
-    }
+    txn->del(d_idx, combined);
   }
 
   void openDB(std::shared_ptr<MDBEnv>& env, string_view str, int flags)
@@ -825,7 +822,7 @@ public:
         T value;
         deserializeFromBuffer(data.get<std::string>(), value);
         clearIndex(key.get<uint32_t>(), value);
-        cursor.del();
+        cursor.del(key);
       }
     }
 
