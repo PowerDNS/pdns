@@ -687,8 +687,8 @@ void setupLuaBindingsDNSQuestion([[maybe_unused]] LuaContext& luaCtx)
     return dnsdist::queueQueryResumptionEvent(std::move(query));
   });
 
-  luaCtx.registerFunction<std::shared_ptr<DownstreamState> (DNSResponse::*)(void) const>("getSelectedBackend", [](const DNSResponse& dnsResponse) {
-    return dnsResponse.d_downstream;
+  luaCtx.registerFunction<boost::optional<std::shared_ptr<DownstreamState>> (DNSResponse::*)(void) const>("getSelectedBackend", [](const DNSResponse& dnsResponse) -> boost::optional<std::shared_ptr<DownstreamState>> {
+    return dnsResponse.d_downstream ? dnsResponse.d_downstream : boost::optional<std::shared_ptr<DownstreamState>>();
   });
 
   luaCtx.registerFunction<bool (DNSResponse::*)()>("getStaleCacheHit", [](DNSResponse& dnsResponse) {
