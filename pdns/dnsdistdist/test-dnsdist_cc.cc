@@ -78,7 +78,6 @@ void handleServerStateChange(const string& nameWithAddr, bool newResult)
 {
   (void)nameWithAddr;
   (void)newResult;
-  return;
 }
 
 bool sendUDPResponse(int origFD, const PacketBuffer& response, const int delayMsec, const ComboAddress& origDest, const ComboAddress& origRemote)
