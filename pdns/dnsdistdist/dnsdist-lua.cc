@@ -1592,7 +1592,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     g_outputBuffer = ret.str();
   });
 
-  luaCtx.writeFunction("getDNSCryptBind", [](uint64_t idx) -> boost::optional<std::shared_ptr<DNSCryptContext>> {
+  luaCtx.writeFunction("getDNSCryptBind", [](uint64_t idx) {
     setLuaNoSideEffect();
     boost::optional<std::shared_ptr<DNSCryptContext>> ret{boost::none};
     /* we are only interested in distinct DNSCrypt binds,
@@ -1735,7 +1735,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
   });
 
-  luaCtx.writeFunction("getBind", [](uint64_t num) -> boost::optional<ClientState*> {
+  luaCtx.writeFunction("getBind", [](uint64_t num) {
     setLuaNoSideEffect();
     boost::optional<ClientState*> ret{boost::none};
     auto frontends = dnsdist::getFrontends();
@@ -2478,7 +2478,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
 #ifdef HAVE_DNS_OVER_QUIC
-  luaCtx.writeFunction("getDOQFrontend", [client](uint64_t index) -> boost::optional<std::shared_ptr<DOQFrontend>> {
+  luaCtx.writeFunction("getDOQFrontend", [client](uint64_t index) {
     boost::optional<std::shared_ptr<DOQFrontend>> result{boost::none};
     if (client) {
       return result;
@@ -2560,7 +2560,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
   });
 
 #ifdef HAVE_DNS_OVER_HTTP3
-  luaCtx.writeFunction("getDOH3Frontend", [client](uint64_t index) -> boost::optional<std::shared_ptr<DOH3Frontend>> {
+  luaCtx.writeFunction("getDOH3Frontend", [client](uint64_t index) {
     boost::optional<std::shared_ptr<DOH3Frontend>> result{boost::none};
     if (client) {
       return result;
@@ -2629,7 +2629,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #endif
   });
 
-  luaCtx.writeFunction("getDOHFrontend", [client]([[maybe_unused]] uint64_t index) -> boost::optional<std::shared_ptr<DOHFrontend>> {
+  luaCtx.writeFunction("getDOHFrontend", [client]([[maybe_unused]] uint64_t index) {
     boost::optional<std::shared_ptr<DOHFrontend>> result{boost::none};
     if (client) {
       return result;
@@ -2859,7 +2859,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
 #endif
   });
 
-  luaCtx.writeFunction("getTLSFrontend", []([[maybe_unused]] uint64_t index) -> boost::optional<std::shared_ptr<TLSFrontend>> {
+  luaCtx.writeFunction("getTLSFrontend", []([[maybe_unused]] uint64_t index) {
     boost::optional<std::shared_ptr<TLSFrontend>> result{boost::none};
 #ifdef HAVE_DNS_OVER_TLS
     setLuaNoSideEffect();
