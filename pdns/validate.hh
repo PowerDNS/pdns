@@ -29,7 +29,7 @@
 #include "dnssecinfra.hh"
 #include "logger.hh"
 
-extern time_t g_signatureInceptionSkew;
+extern uint32_t g_signatureInceptionSkew;
 extern uint16_t g_maxNSEC3Iterations;
 extern uint16_t g_maxRRSIGsPerRecordToConsider;
 extern uint16_t g_maxNSEC3sPerRecordToConsider;

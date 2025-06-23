@@ -28,7 +28,7 @@
 #include "base32.hh"
 #include "logger.hh"
 
-time_t g_signatureInceptionSkew{0};
+uint32_t g_signatureInceptionSkew{0};
 uint16_t g_maxNSEC3Iterations{0};
 uint16_t g_maxRRSIGsPerRecordToConsider{0};
 uint16_t g_maxNSEC3sPerRecordToConsider{0};
