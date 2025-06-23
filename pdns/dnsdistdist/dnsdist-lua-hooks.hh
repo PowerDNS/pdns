@@ -33,5 +33,6 @@ void clearMaintenanceHooks();
 void runExitCallbacks(const LuaContext& context);
 void clearExitCallbacks();
 void runServerStateChangeHooks(const LuaContext& context, const std::string& nameWithAddr, bool newState);
+void clearServerStateChangeCallbacks();
 void setupLuaHooks(LuaContext& luaCtx);
 }
