@@ -120,8 +120,8 @@ qtypes
 
 Get a count of queries per qtype on standard output.
 
-quit
-^^^^
+quit or stop
+^^^^^^^^^^^^
 
 Tell a running pdns\_server to quit.
 

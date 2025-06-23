@@ -1881,7 +1881,7 @@ static RecursorControlChannel::Answer help()
           "list-dnssec-algos                list supported DNSSEC algorithms\n"
           "ping                             check that all threads are alive\n"
           "quit                             stop the recursor daemon\n"
-          "quit-nicely                      stop the recursor daemon nicely\n"
+          "quit-nicely or stop              stop the recursor daemon nicely\n"
           "reload-acls                      reload ACLS\n"
           "reload-lua-script [filename]     (re)load Lua script\n"
           "reload-yaml                      Reload runtime settable parts of YAML settings\n"
@@ -2062,7 +2062,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int socket, cons
   if (cmd == "version") {
     return {0, getPDNSVersion() + "\n"};
   }
-  if (cmd == "quit-nicely") {
+  if (cmd == "quit-nicely" || cmd == "stop") {
     *command = &doExitNicely;
     return {0, "bye nicely\n"};
   }
