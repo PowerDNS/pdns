@@ -2238,7 +2238,7 @@ Other functions
 
 .. function:: addServerStateChangeCallback(callback)
 
-  .. versionadded:: 2.0.0
+  .. versionadded:: 2.1.0
 
   Register a Lua function to be called when a server state changed during the health check process.
   The function should not block for a long period of time, as it would otherwise delay the execution of the other functions registered for this hook, as well as the execution of the health check process.
