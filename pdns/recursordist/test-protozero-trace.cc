@@ -60,7 +60,7 @@ static void testAny(const T& testcase)
 
   protozero::pbf_reader reader{data};
   pdns::trace::AnyValue value = pdns::trace::AnyValue::decode(reader);
-  if (!std::holds_alternative<char>(value)) {
+  if (!std::holds_alternative<pdns::trace::NoValue>(value)) {
     BOOST_CHECK(testcase == std::get<T>(value));
   }
   else {
@@ -116,14 +116,14 @@ BOOST_AUTO_TEST_CASE(traces1)
     .span_id = {0xEE, 0xE1, 0x9B, 0x7E, 0xC3, 0xC1, 0xB1, 0x74},
     .parent_span_id = {0xEE, 0xE1, 0x9B, 0x7E, 0xC3, 0xC1, 0xB1, 0x73},
     .name = "I'm a server span",
+    .kind = pdns::trace::Span::SpanKind::SPAN_KINSERVER,
     .start_time_unix_nano = 1544712660000000000UL,
     .end_time_unix_nano = 1544712661000000000UL,
-    .kind = pdns::trace::Span::SpanKind::SPAN_KINSERVER,
     .attributes = {{"my.span.attr", {"some value"}}}};
   pdns::trace::InstrumentationScope scope = {"my.library", "1.0.0", {{"my.scope.attribute", {"some scope attribute"}}}};
   pdns::trace::ScopeSpans scopespans = {.scope = scope, .spans = {span}};
   pdns::trace::Resource res = {.attributes = {{"service.name", {"my.service"}}}};
-  pdns::trace::ResourceSpans resspans = {{res}, .scope_spans = {scopespans}};
+  pdns::trace::ResourceSpans resspans = {.resource = res, .scope_spans = {scopespans}};
   pdns::trace::TracesData traces = {.resource_spans = {resspans}};
 
   std::string data;

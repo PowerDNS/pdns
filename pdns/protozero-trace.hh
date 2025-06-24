@@ -37,6 +37,8 @@
 namespace pdns::trace
 {
 
+// https://github.com/open-telemetry/opentelemetry-proto/blob/main/opentelemetry/proto/common/v1/common.proto
+
 struct AnyValue;
 struct ArrayValue;
 struct KeyValue;
@@ -169,7 +171,8 @@ struct KeyValueList
   }
 };
 
-struct AnyValue : public std::variant<char, std::string, bool, int64_t, double, ArrayValue, KeyValueList, std::vector<uint8_t>>
+using NoValue = char;
+struct AnyValue : public std::variant<NoValue, std::string, bool, int64_t, double, ArrayValue, KeyValueList, std::vector<uint8_t>>
 {
   void encode(protozero::pbf_writer& writer) const;
   static AnyValue decode(protozero::pbf_reader& reader);

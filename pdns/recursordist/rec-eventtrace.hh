@@ -275,6 +275,9 @@ public:
     return old;
   }
 
+  // The EventScope class is used to close (add an end event) automatically upon the scope object
+  // going out of scope. It is also possible to manually close it, specifying a value to be registered
+  // at the close event. In that case the dt call will become a no-op.
   class EventScope
   {
   public:
@@ -282,12 +285,13 @@ public:
       d_eventTrace(eventTrace),
       d_oldParent(oldParent)
     {
-      if (d_eventTrace.enabled()) {
+      if (d_eventTrace.enabled() && !d_eventTrace.d_events.empty()) {
         d_event = d_eventTrace.d_events.back().d_event;
         d_match = d_eventTrace.d_events.size() - 1;
       }
     }
 
+    // Only int64_t for now needed, might become a template in the future.
     void close(int64_t val)
     {
       if (!d_eventTrace.enabled() || d_closed) {
@@ -300,6 +304,8 @@ public:
 
     ~EventScope()
     {
+      // If the dt is called after an explicit close(), value does not matter.
+      // Otherwise, it signals a implicit close, e.g. an exception was thrown
       close(-1);
     }
     EventScope(const EventScope&) = delete;

@@ -111,8 +111,8 @@ std::vector<pdns::trace::Span> RecEventTrace::convertToOT(const Span& span) cons
     }
     else {
       // It's a close event
-      if (ids.find(event.d_matching) != ids.end()) {
-        auto& work = ret.at(ids.at(event.d_matching));
+      if (const auto match = ids.find(event.d_matching); match != ids.end()) {
+        auto& work = ret.at(match->second);
         addValue(event, work, false);
         work.end_time_unix_nano = static_cast<uint64_t>(event.d_ts + diff);
         spanIDs.emplace_back(work.span_id);
