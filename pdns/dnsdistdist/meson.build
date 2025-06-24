@@ -327,6 +327,7 @@ py = import('python')
 python = py.find_installation('python3', required: true)
 
 selectors_actions_sources = custom_target(
+  'rules',
   command: [
     python,
     '@INPUT0@',
