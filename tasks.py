@@ -1200,10 +1200,12 @@ def test_bulk_recursor(c, size, threads, mthreads, shards, ipv6):
 
 @task
 def install_swagger_tools(c):
+    c.run('npm install -g @stoplight/spectral-cli')
     c.run('npm install -g api-spec-converter')
 
 @task
 def swagger_syntax_check(c):
+    c.run('spectral lint --ruleset docs/http-api/swagger/spectral-ruleset.yaml --fail-severity error --display-only-failures docs/http-api/swagger/authoritative-api-swagger.yaml')
     c.run('api-spec-converter docs/http-api/swagger/authoritative-api-swagger.yaml -f swagger_2 -t openapi_3 -s json -c')
 
 @task
