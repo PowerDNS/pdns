@@ -54,6 +54,7 @@
 #include "logr.hh"
 #include "rec-tcounters.hh"
 #include "ednsextendederror.hh"
+#include "protozero-trace.hh"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -569,16 +570,22 @@ public:
 
   static const int event_trace_to_pb = 1;
   static const int event_trace_to_log = 2;
+  static const int event_trace_to_ot = 4;
   static int s_event_trace_enabled;
   static bool s_save_parent_ns_set;
   static bool s_addExtendedResolutionDNSErrors;
 
+  static bool eventTraceEnabled(int flag)
+  {
+    return (s_event_trace_enabled & flag) != 0;
+  }
   std::unordered_map<std::string, bool> d_discardedPolicies;
   DNSFilterEngine::Policy d_appliedPolicy;
   std::unordered_set<std::string> d_policyTags;
   boost::optional<string> d_routingTag;
   ComboAddress d_fromAuthIP;
   RecEventTrace d_eventTrace;
+  pdns::trace::Span d_otTrace;
   std::shared_ptr<Logr::Logger> d_slog = g_slog->withName("syncres");
   boost::optional<EDNSExtendedError> d_extendedError;
 

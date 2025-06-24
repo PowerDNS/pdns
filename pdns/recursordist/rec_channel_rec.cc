@@ -1894,7 +1894,7 @@ static RecursorControlChannel::Answer help()
           "set-minimum-ttl value            set minimum-ttl-override\n"
           "set-carbon-server                set a carbon server for telemetry\n"
           "set-dnssec-log-bogus SETTING     enable (SETTING=yes) or disable (SETTING=no) logging of DNSSEC validation failures\n"
-          "set-event-trace-enabled SETTING  set logging of event trace messages, 0 = disabled, 1 = protobuf, 2 = log file, 3 = both\n"
+          "set-event-trace-enabled SETTING  set logging of event trace messages, 0 = disabled, 1 = protobuf, 2 = log file, 4 = opentelemetry traces, combinations allowed by adding\n"
           "show-yaml [file]                 show yaml config derived from old-style config\n"
           "trace-regex [regex file]         emit resolution trace for matching queries (no arguments clears tracing)\n"
           "top-largeanswer-remotes          show top remotes receiving large answers\n"

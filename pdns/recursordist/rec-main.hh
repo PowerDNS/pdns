@@ -39,6 +39,7 @@
 #include "threadname.hh"
 #include "recpacketcache.hh"
 #include "ratelimitedlog.hh"
+#include "protozero-trace.hh"
 
 #ifdef NOD_ENABLED
 #include "nod.hh"
@@ -114,6 +115,7 @@ struct DNSComboWriter
   ComboAddress d_destination; // the address we assume the query is sent to, might be set by proxy protocol
   ComboAddress d_mappedSource; // the source address after being mapped by table based proxy mapping
   RecEventTrace d_eventTrace;
+  pdns::trace::Span d_otTrace;
   boost::uuids::uuid d_uuid;
   string d_requestorId;
   string d_deviceId;
@@ -629,13 +631,14 @@ bool checkForCacheHit(bool qnameParsed, unsigned int tag, const string& data,
                       string& response, uint32_t& qhash,
                       RecursorPacketCache::OptPBData& pbData, bool tcp, const ComboAddress& source, const ComboAddress& mappedSource);
 void protobufLogResponse(pdns::ProtoZero::RecMessage& message);
-void protobufLogResponse(const struct dnsheader* header, LocalStateHolder<LuaConfigItems>& luaconfsLocal,
+void protobufLogResponse(const DNSName& qname, QType qtype, const struct dnsheader* header, LocalStateHolder<LuaConfigItems>& luaconfsLocal,
                          const RecursorPacketCache::OptPBData& pbData, const struct timeval& tv,
                          bool tcp, const ComboAddress& source, const ComboAddress& destination,
                          const ComboAddress& mappedSource, const EDNSSubnetOpts& ednssubnet,
                          const boost::uuids::uuid& uniqueId, const string& requestorId, const string& deviceId,
                          const string& deviceName, const std::map<std::string, RecursorLua4::MetaValue>& meta,
                          const RecEventTrace& eventTrace,
+                         pdns::trace::Span& otTrace,
                          const std::unordered_set<std::string>& policyTags);
 void requestWipeCaches(const DNSName& canon);
 void startDoResolve(void*);
