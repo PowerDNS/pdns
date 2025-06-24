@@ -280,9 +280,9 @@ inline void encode(protozero::pbf_writer& writer, uint8_t field, const TraceID& 
 inline TraceID decodeTraceID(protozero::pbf_reader& reader)
 {
   TraceID bytes;
-  auto [data, len] = reader.get_data();
-  len = std::min(bytes.size(), static_cast<size_t>(len));
-  std::copy(data, data + len, bytes.begin());
+  const auto data = reader.get_view();
+  const auto len = std::min(bytes.size(), data.size());
+  std::copy(data.data(), data.data() + len, bytes.begin()); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
   return bytes;
 }
 
@@ -294,9 +294,9 @@ inline void encode(protozero::pbf_writer& writer, uint8_t field, const SpanID& v
 inline SpanID decodeSpanID(protozero::pbf_reader& reader)
 {
   SpanID bytes;
-  auto [data, len] = reader.get_data();
-  len = std::min(bytes.size(), static_cast<size_t>(len));
-  std::copy(data, data + len, bytes.begin());
+  const auto data = reader.get_view();
+  const auto len = std::min(bytes.size(), data.size());
+  std::copy(data.data(), data.data() + len, bytes.begin()); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
   return bytes;
 }
 
