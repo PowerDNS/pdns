@@ -1444,6 +1444,7 @@ traceid
 Travaille
 treemacs
 tribool
+trixie
 trustanchor
 trustanchorfile
 trusteer

@@ -94,7 +94,7 @@ Overrides the :ref:`setting-allow-from` setting. Example content of th specified
 
 .. code-block:: yaml
 
- - 127.0.01
+ - 127.0.0.1
  - ::1
 
  ''',
@@ -998,10 +998,11 @@ This file can be used to serve data authoritatively using :ref:`setting-export-e
         'help' : 'If set, event traces are collected and send out via protobuf logging (1), logfile (2), opentelemetry trace data (4) or a combination',
         'doc' : '''
 Enable the recording and logging of ref:`event traces`. This is an experimental feature and subject to change.
-Possible values are 0: (disabled), 1 (add information to protobuf logging messages), 2 (write to log), 4 (output OpenTelemetry Trace data in protobuf logging messages). Values can be added to get multiple types of logging simultaneously.
+Possible values are 0: (disabled), 1 (add information to protobuf logging messages), 2 (write to log), 4 (output OpenTelemetry Trace data in protobuf logging messages, since version 5.3.0). Values can be added to get multiple types of logging simultaneously.
 For example, 6 means: write to log and output OpenTelemetry Trace data in the protobuf stream.
  ''',
         'versionadded': '4.6.0',
+        'versionchanged': ('5.3.0', 'A value to generate OpenTelemetry Trace data was added'),
         'runtime': 'set-event-trace-enabled',
     },
     {
@@ -3207,7 +3208,11 @@ Start the webserver (for REST API).
         'help' : 'IP Address of webserver to listen on',
         'doc' : '''
 IP address for the webserver to listen on.
- ''',
+''',
+        'doc-new' : '''
+IP address for the webserver to listen on.
+This field is ignored if :ref:`setting-yaml-webservice.listen` is set.
+''',
     },
     {
         'name' : 'listen',
@@ -3291,6 +3296,10 @@ Password required to access the webserver. Since 4.6.0 the password can be hashe
         'help' : 'Port of webserver to listen on',
         'doc' : '''
 TCP port where the webserver should listen on.
+ ''',
+        'doc-new' : '''
+TCP port where the webserver should listen on.
+This field is ignored if :ref:`setting-yaml-webservice.listen` is set.
  ''',
     },
     {

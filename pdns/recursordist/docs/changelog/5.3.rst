@@ -1,0 +1,302 @@
+Changelogs for 5.3.X
+====================
+
+Before upgrading, it is advised to read the :doc:`../upgrade`.
+
+.. changelog::
+  :version: 5.3.0-alpha1
+  :released: 25th of June 2025
+
+  .. change::
+    :tags:  Improvements
+    :pullreq: 15668
+
+    Add facility to generate trace data in OpenTelemetry format.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15686
+    :tickets: 15674
+
+    Implement stop command as alias for quit(-nicely).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15715
+
+    Avoid implicit truncating cast of inception skew.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15700
+
+    Two Coverity issues, the truncation is meant to be.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15692
+    :tickets: 15059
+
+    Introduce aliases for camelCase field names in config file.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15652
+    :tickets: 15651
+
+    When using ZoneToCache, do not store non-auth data if the name is subject to recursive forwarding.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15661
+    :tickets: 15660
+
+    Fix negativetrustanchor.server CH TXT query processing (disabled by default).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15626
+
+    Build el-9 package with luajit on arm64.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15592 15628 15636
+
+    Rec: build packages using meson.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15596
+
+    Start building packages for trixie.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15584
+
+    Use Rust 1.87.0 when building our packages.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15546
+
+    Force some files to be regenerated when table.py changes.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15525
+
+    Upgrade to protozero 1.8.0.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15435
+
+    Add a Lua function to get the config dir and name.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15437
+
+    Strip quotes meson adds from SYSCONFDIR (and two other config values).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15396
+
+    Fix a difference between record-cache hit and miss in some ServFail results.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15373
+
+    Rec: [meson] make nod a feature instead of a boolean
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15369
+
+    When CARGO_TARGET_DIR is set the generated C++ files end up in a different location.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15368
+    :tickets: 15367
+
+    Fix generation of recursor config if PDNS_RECURSOR_API_KEY is set.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15309
+
+    Meson systemd cleanup.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15293
+
+    Ddd libcap feature and sync build-and-test-all options with autotools variants.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15292 15307
+
+    Export ffi symbols so they become available to Lua.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15272
+
+    Fix libsnmp define.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15273
+
+    More consistency in logging statements generated in web server code.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15261
+
+    Make sure t_tcpClientCounts is always initialized.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15260
+
+    Fix a few gcc warnings on trixie.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15217
+
+    Tidy of structured logging related files.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15169
+
+    Use meson to generate docs (html + pdf)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15167
+    :tickets: 14096
+
+    Reload proxy settings on rec_control reload-acls.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15216
+
+    Store thread id in info object, makes a few methods less error prone.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15203
+    :tickets: 15202
+
+    Switch back to serde_yaml.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15192
+    :tickets: 15179
+
+    Add two missing includes.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15168 15157
+
+    Minor Coverity issues.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15161
+
+    Add meson install target and fix meson dist issues after new way of generating man pages was merged.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15154
+
+    Fix cxx include dir.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15114
+
+    Move to embedded web service written in Rust supporting multiple listen addresses and TLS.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14976
+
+    Make quit-nicely wait on actual quit and start using it for stopping by systemd.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15139
+
+    Check bounds of rcode stats counter index (safe right now).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14954
+
+    Clang-tidy: use std::min/max (Rosen Penev).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15066
+
+    Tidy credentials.??.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15050 15057
+
+    Rec: New Coverity Variable copied when it could be moved cases
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15040
+    :tickets: 13704
+
+    EDNSSubnetOpts refactoring
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15038
+
+    Compute size *estimate* for record cache allocated size.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15033
+
+    Delete temp file on failure to dump RPZ file.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14617
+    :tickets: 14120
+
+    Dedup records.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14985 15017
+
+    Store authority recs and signatures as shared pointers to const data.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14973
+    :tickets: 14918
+
+    If the full CNAME chain leading to the answer is cached, indicate that.
+
