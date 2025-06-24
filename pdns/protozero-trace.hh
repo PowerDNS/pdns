@@ -281,7 +281,8 @@ inline TraceID decodeTraceID(protozero::pbf_reader& reader)
 {
   TraceID bytes;
   auto [data, len] = reader.get_data();
-  memcpy(bytes.data(), data, std::min(bytes.size(), static_cast<size_t>(len)));
+  len = std::min(bytes.size(), static_cast<size_t>(len));
+  std::copy(data, data + len, bytes.begin());
   return bytes;
 }
 
@@ -294,7 +295,8 @@ inline SpanID decodeSpanID(protozero::pbf_reader& reader)
 {
   SpanID bytes;
   auto [data, len] = reader.get_data();
-  memcpy(bytes.data(), data, std::min(bytes.size(), static_cast<size_t>(len)));
+  len = std::min(bytes.size(), static_cast<size_t>(len));
+  std::copy(data, data + len, bytes.begin());
   return bytes;
 }
 
