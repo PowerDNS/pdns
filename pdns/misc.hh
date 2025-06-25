@@ -385,8 +385,11 @@ inline bool pdns_ilexicographical_compare(const std::string& a, const std::strin
   const unsigned char *aPtr = (const unsigned char*)a.c_str(), *bPtr = (const unsigned char*)b.c_str();
   const unsigned char *aEptr = aPtr + a.length(), *bEptr = bPtr + b.length();
   while(aPtr != aEptr && bPtr != bEptr) {
-    if ((*aPtr != *bPtr) && (dns_tolower(*aPtr) - dns_tolower(*bPtr)))
-      return (dns_tolower(*aPtr) - dns_tolower(*bPtr)) < 0;
+    if (*aPtr != *bPtr) {
+      if (int rc = dns_tolower(*aPtr) - dns_tolower(*bPtr); rc != 0) {
+        return rc < 0;
+      }
+    }
     aPtr++;
     bPtr++;
   }
