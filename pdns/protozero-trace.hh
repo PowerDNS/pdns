@@ -134,7 +134,7 @@ T decode(protozero::pbf_reader& reader)
       vec.emplace_back(E::decode(sub));
     }
   }
-  return {vec};
+  return {std::move(vec)};
 }
 
 struct ArrayValue

@@ -49,18 +49,18 @@ static void addValue(const RecEventTrace::Entry& event, Span& work, bool start)
   if (std::holds_alternative<std::nullopt_t>(event.d_value)) {
     return;
   }
-  const string key = start ? "arg" : "result";
+  string key = start ? "arg" : "result";
   if (std::holds_alternative<bool>(event.d_value)) {
-    work.attributes.emplace_back(KeyValue{key, {std::get<bool>(event.d_value)}});
+    work.attributes.emplace_back(KeyValue{std::move(key), {std::get<bool>(event.d_value)}});
   }
   else if (std::holds_alternative<int64_t>(event.d_value)) {
-    work.attributes.emplace_back(KeyValue{key, {std::get<int64_t>(event.d_value)}});
+    work.attributes.emplace_back(KeyValue{std::move(key), {std::get<int64_t>(event.d_value)}});
   }
   else if (std::holds_alternative<std::string>(event.d_value)) {
-    work.attributes.emplace_back(KeyValue{key, {std::get<std::string>(event.d_value)}});
+    work.attributes.emplace_back(KeyValue{std::move(key), {std::get<std::string>(event.d_value)}});
   }
   else {
-    work.attributes.emplace_back(KeyValue{key, {RecEventTrace::toString(event.d_value)}});
+    work.attributes.emplace_back(KeyValue{std::move(key), {RecEventTrace::toString(event.d_value)}});
   }
 }
 
