@@ -307,31 +307,24 @@ inline const string toLower(const string &upper)
 inline const string toLowerCanonic(const string &upper)
 {
   string reply(upper);
-  if(!upper.empty()) {
-    unsigned int i, limit= ( unsigned int ) reply.length();
-    unsigned char c;
-    for(i = 0; i < limit ; i++) {
-      c = dns_tolower(upper[i]);
-      if(c != upper[i])
-        reply[i] = c;
+  if (!reply.empty()) {
+    const auto length = reply.length();
+    if (reply[length - 1] == '.') {
+      reply.resize(length - 1);
     }
-    if(upper[i-1]=='.')
-      reply.resize(i-1);
+    toLowerInPlace(reply);
   }
-
   return reply;
 }
-
-
 
 // Make s uppercase:
 inline string toUpper( const string& s )
 {
-        string r(s);
-        for( unsigned int i = 0; i < s.length(); i++ ) {
-          r[i] = dns_toupper(r[i]);
-        }
-        return r;
+  string r(s);
+  for (size_t i = 0; i < s.length(); ++i) {
+    r[i] = dns_toupper(r[i]);
+  }
+  return r;
 }
 
 inline double getTime()
