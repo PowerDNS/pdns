@@ -39,21 +39,24 @@ using namespace std::string_view_literals;
 #include <boost/version.hpp>
 #include <boost/container/string.hpp>
 
-inline bool dns_isspace(char c)
+inline bool dns_isspace(char chr) __attribute__((pure));
+inline bool dns_isspace(char chr)
 {
-  return c == ' ' || c == '\t' || c == '\r' || c == '\n';
+  return chr == ' ' || chr == '\t' || chr == '\r' || chr == '\n';
 }
 
-extern const unsigned char dns_toupper_table[256],  dns_tolower_table[256];
+extern const unsigned char dns_toupper_table[256], dns_tolower_table[256];
 
-inline unsigned char dns_toupper(unsigned char c)
+inline unsigned char dns_toupper(unsigned char chr) __attribute__((pure));
+inline unsigned char dns_toupper(unsigned char chr)
 {
-  return dns_toupper_table[c];
+  return dns_toupper_table[chr];
 }
 
-inline unsigned char dns_tolower(unsigned char c)
+inline unsigned char dns_tolower(unsigned char chr) __attribute__((pure));
+inline unsigned char dns_tolower(unsigned char chr)
 {
-  return dns_tolower_table[c];
+  return dns_tolower_table[chr];
 }
 
 #include "burtle.hh"
@@ -242,7 +245,6 @@ private:
 };
 
 size_t hash_value(DNSName const& d);
-
 
 inline bool DNSName::canonCompare(const DNSName& rhs) const
 {
