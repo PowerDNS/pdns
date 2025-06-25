@@ -33,6 +33,11 @@ using std::string;
 #define StringView string
 #endif
 
+static inline string MDBError(int ret)
+{
+  return mdb_strerror(ret);
+}
+
 /* open issues:
  *
  * - Missing convenience functions (string_view, string).
@@ -405,8 +410,8 @@ public:
     int rc = mdb_get(d_txn, dbi, const_cast<MDB_val*>(&key.d_mdbval),
                      const_cast<MDB_val*>(&val.d_mdbval));
 
-    if(rc && rc != MDB_NOTFOUND) {
-      throw std::runtime_error("getting data: " + std::string(mdb_strerror(rc)));
+    if(rc != 0 && rc != MDB_NOTFOUND) {
+      throw std::runtime_error("getting data: " + MDBError(rc));
     }
 
 #ifndef DNSDIST
@@ -607,8 +612,8 @@ private:
       }
 
       rc = mdb_cursor_get(d_cursor, &key.d_mdbval, &data.d_mdbval, op);
-      if(rc && rc != MDB_NOTFOUND) {
-         throw std::runtime_error("Unable to get from cursor: " + std::string(mdb_strerror(rc)));
+      if(rc != 0 && rc != MDB_NOTFOUND) {
+         throw std::runtime_error("Unable to get from cursor: " + MDBError(rc));
       }
 
       if (rc == MDB_NOTFOUND) {
@@ -634,8 +639,9 @@ public:
   {
     d_prefix.clear();
     int rc = mdb_cursor_get(d_cursor, &key.d_mdbval, &data.d_mdbval, op);
-    if(rc && rc != MDB_NOTFOUND)
-       throw std::runtime_error("Unable to get from cursor: " + std::string(mdb_strerror(rc)));
+    if(rc != 0 && rc != MDB_NOTFOUND) {
+       throw std::runtime_error("Unable to get from cursor: " + MDBError(rc));
+    }
     return skipDeleted(key, data, op, rc);
   }
 
@@ -644,8 +650,9 @@ public:
     d_prefix.clear();
     key.d_mdbval = in.d_mdbval;
     int rc=mdb_cursor_get(d_cursor, const_cast<MDB_val*>(&key.d_mdbval), &data.d_mdbval, MDB_SET);
-    if(rc && rc != MDB_NOTFOUND)
-       throw std::runtime_error("Unable to find from cursor: " + std::string(mdb_strerror(rc)));
+    if(rc != 0 && rc != MDB_NOTFOUND) {
+       throw std::runtime_error("Unable to find from cursor: " + MDBError(rc));
+    }
     return skipDeleted(key, data, MDB_SET, rc);
   }
 
@@ -666,8 +673,9 @@ public:
     key.d_mdbval = in.d_mdbval;
 
     int rc = mdb_cursor_get(d_cursor, const_cast<MDB_val*>(&key.d_mdbval), &data.d_mdbval, MDB_SET_RANGE);
-    if(rc && rc != MDB_NOTFOUND)
-       throw std::runtime_error("Unable to lower_bound from cursor: " + std::string(mdb_strerror(rc)));
+    if(rc != 0 && rc != MDB_NOTFOUND) {
+       throw std::runtime_error("Unable to lower_bound from cursor: " + MDBError(rc));
+    }
     return skipDeleted(key, data, MDB_SET_RANGE, rc);
   }
 
@@ -675,8 +683,9 @@ public:
   int nextprev(MDBOutVal& key, MDBOutVal& data, MDB_cursor_op op)
   {
     int rc = mdb_cursor_get(d_cursor, const_cast<MDB_val*>(&key.d_mdbval), &data.d_mdbval, op);
-    if(rc && rc != MDB_NOTFOUND)
-       throw std::runtime_error("Unable to prevnext from cursor: " + std::string(mdb_strerror(rc)));
+    if(rc != 0 && rc != MDB_NOTFOUND) {
+       throw std::runtime_error("Unable to prevnext from cursor: " + MDBError(rc));
+    }
     return skipDeleted(key, data, op, rc);
   }
 
@@ -693,8 +702,9 @@ public:
   int currentlast(MDBOutVal& key, MDBOutVal& data, MDB_cursor_op op)
   {
     int rc = mdb_cursor_get(d_cursor, const_cast<MDB_val*>(&key.d_mdbval), &data.d_mdbval, op);
-    if(rc && rc != MDB_NOTFOUND)
-       throw std::runtime_error("Unable to next from cursor: " + std::string(mdb_strerror(rc)));
+    if(rc != 0 && rc != MDB_NOTFOUND) {
+       throw std::runtime_error("Unable to next from cursor: " + MDBError(rc));
+    }
     return skipDeleted(key, data, op, rc);
   }
 
@@ -810,7 +820,7 @@ public:
                            const_cast<MDB_val*>(&key.d_mdbval),
                            const_cast<MDB_val*>(&pval.d_mdbval), flags);
     if (mdbPutRc != 0) {
-      throw std::runtime_error("putting data: " + std::string(mdb_strerror(mdbPutRc)));
+      throw std::runtime_error("putting data: " + MDBError(mdbPutRc));
     }
   }
 #else
@@ -821,8 +831,9 @@ public:
     int rc;
     if ((rc = mdb_put(d_txn, dbi,
                       const_cast<MDB_val*>(&key.d_mdbval),
-                      const_cast<MDB_val*>(&val.d_mdbval), flags)))
-      throw std::runtime_error("putting data: " + std::string(mdb_strerror(rc)));
+                      const_cast<MDB_val*>(&val.d_mdbval), flags))) {
+      throw std::runtime_error("putting data: " + MDBError(rc));
+    }
   }
 #endif
 
@@ -846,7 +857,7 @@ public:
         const_cast<MDB_val*>(&key.d_mdbval),
         const_cast<MDB_val*>(&pval.d_mdbval), 0);
       if (mdbPutRc != 0) {
-        throw std::runtime_error("marking data deleted: " + std::string(mdb_strerror(mdbPutRc)));
+        throw std::runtime_error("marking data deleted: " + MDBError(mdbPutRc));
       }
       return;
     }
@@ -854,7 +865,7 @@ public:
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
     int mdbDelRc = mdb_del(d_txn, dbi, (MDB_val*)&key.d_mdbval, nullptr);
     if (mdbDelRc != 0 && mdbDelRc != MDB_NOTFOUND) {
-      throw std::runtime_error("deleting data: " + std::string(mdb_strerror(mdbDelRc)));
+      throw std::runtime_error("deleting data: " + MDBError(mdbDelRc));
     }
   }
 
@@ -868,8 +879,8 @@ public:
                            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
                            const_cast<MDB_val*>(&key.d_mdbval),
                            const_cast<MDB_val*>(&val.d_mdbval));
-    if ((mdbGetRc != 0) && mdbGetRc != MDB_NOTFOUND) {
-      throw std::runtime_error("getting data: " + std::string(mdb_strerror(mdbGetRc)));
+    if (mdbGetRc != 0 && mdbGetRc != MDB_NOTFOUND) {
+      throw std::runtime_error("getting data: " + MDBError(mdbGetRc));
     }
 
 #ifndef DNSDIST
@@ -927,8 +938,9 @@ public:
     int rc = mdb_cursor_put(*this,
                             const_cast<MDB_val*>(&key.d_mdbval),
                             const_cast<MDB_val*>(&pval.d_mdbval), MDB_CURRENT);
-    if(rc)
-      throw std::runtime_error("mdb_cursor_put: " + std::string(mdb_strerror(rc)));
+    if(rc != 0) {
+      throw std::runtime_error("mdb_cursor_put: " + MDBError(rc));
+    }
   }
 #else
   void put(const MDBOutVal& key, const MDBInVal& data)
@@ -936,8 +948,9 @@ public:
     int rc = mdb_cursor_put(*this,
                             const_cast<MDB_val*>(&key.d_mdbval),
                             const_cast<MDB_val*>(&data.d_mdbval), MDB_CURRENT);
-    if(rc)
-      throw std::runtime_error("mdb_cursor_put: " + std::string(mdb_strerror(rc)));
+    if(rc != 0) {
+      throw std::runtime_error("mdb_cursor_put: " + MDBError(rc));
+    }
   }
 #endif
 
@@ -960,13 +973,13 @@ public:
                      const_cast<MDB_val*>(&pkey.d_mdbval),
                      const_cast<MDB_val*>(&pval.d_mdbval), 0);
       if(rc_put) {
-        throw std::runtime_error("marking data deleted: " + std::string(mdb_strerror(rc_put)));
+        throw std::runtime_error("marking data deleted: " + MDBError(rc_put));
       }
     }
     else {
       // do a normal delete
       if (int rc_del = mdb_cursor_del(*this, 0); rc_del != 0) {
-        throw std::runtime_error("deleting data: " + std::string(mdb_strerror(rc_del)));
+        throw std::runtime_error("deleting data: " + MDBError(rc_del));
       }
     }
   }
