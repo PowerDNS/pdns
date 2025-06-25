@@ -62,6 +62,14 @@ inline unsigned char dns_tolower(unsigned char chr)
 #include "burtle.hh"
 #include "views.hh"
 
+struct DNSNameCompare
+{
+  bool operator()(const unsigned char& lhs, const unsigned char& rhs) const
+  {
+    return dns_tolower(lhs) < dns_tolower(rhs);
+  }
+};
+
 /* Quest in life:
      accept escaped ascii presentations of DNS names and store them "natively"
      accept a DNS packet with an offset, and extract a DNS name from it
@@ -175,11 +183,10 @@ public:
 
   bool operator<(const DNSName& rhs)  const // this delivers _some_ kind of ordering, but not one useful in a DNS context. Really fast though.
   {
+    // note that this is case insensitive, including on the label lengths
     return std::lexicographical_compare(d_storage.rbegin(), d_storage.rend(),
 				 rhs.d_storage.rbegin(), rhs.d_storage.rend(),
-				 [](const unsigned char& a, const unsigned char& b) {
-					  return dns_tolower(a) < dns_tolower(b);
-					}); // note that this is case insensitive, including on the label lengths
+				 DNSNameCompare());
   }
 
   inline bool canonCompare(const DNSName& rhs) const;
@@ -281,9 +288,7 @@ inline bool DNSName::canonCompare(const DNSName& rhs) const
 					  d_storage.c_str() + ourpos[ourcount] + 1 + *(d_storage.c_str() + ourpos[ourcount]),
 					  rhs.d_storage.c_str() + rhspos[rhscount] + 1,
 					  rhs.d_storage.c_str() + rhspos[rhscount] + 1 + *(rhs.d_storage.c_str() + rhspos[rhscount]),
-					  [](const unsigned char& a, const unsigned char& b) {
-					    return dns_tolower(a) < dns_tolower(b);
-					  });
+					  DNSNameCompare());
 
     //    cout<<"Forward: "<<res<<endl;
     if(res)
@@ -293,9 +298,7 @@ inline bool DNSName::canonCompare(const DNSName& rhs) const
 					  rhs.d_storage.c_str() + rhspos[rhscount] + 1 + *(rhs.d_storage.c_str() + rhspos[rhscount]),
 					  d_storage.c_str() + ourpos[ourcount] + 1,
 					  d_storage.c_str() + ourpos[ourcount] + 1 + *(d_storage.c_str() + ourpos[ourcount]),
-					  [](const unsigned char& a, const unsigned char& b) {
-					    return dns_tolower(a) < dns_tolower(b);
-					  });
+					  DNSNameCompare());
     //    cout<<"Reverse: "<<res<<endl;
     if(res)
       return false;
