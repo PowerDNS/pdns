@@ -315,7 +315,7 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
   if (SyncRes::eventTraceEnabled(SyncRes::event_trace_to_ot)) {
     comboWriter->d_otTrace.clear();
     comboWriter->d_otTrace.start_time_unix_nano = traceTS;
-    comboWriter->d_otTrace.name = "RecRequest";
+    //comboWriter->d_otTrace.name = "RecRequest";
   }
   auto luaconfsLocal = g_luaconfs.getLocal();
   if (checkProtobufExport(luaconfsLocal)) {

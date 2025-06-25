@@ -266,7 +266,7 @@ public:
     return d_events;
   }
 
-  std::vector<pdns::trace::Span> convertToOT(const pdns::trace::Span& span) const;
+  std::vector<pdns::trace::Span> convertToOT(const pdns::trace::InitialSpanInfo& span) const;
 
   size_t setParent(size_t parent)
   {
