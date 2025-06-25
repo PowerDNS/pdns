@@ -562,6 +562,8 @@ For catalog zone members in a group, the forwarding parameters will be taken fro
 
 The forwarding definitions will be written into a file ``$api_dir/catzone.$zonename``. :ref:`setting-yaml-webservice.api_dir` must be defined, the directory must exist and be writable by the :program:`Recursor` process.
 
+.. _incoming-ws-config:
+
 IncomingWSConfig
 ^^^^^^^^^^^^^^^^
 As of version 5.3.0, an incoming web server configuration is defined as

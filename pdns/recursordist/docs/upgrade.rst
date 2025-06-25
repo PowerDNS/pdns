@@ -4,8 +4,31 @@ Upgrade Guide
 Before upgrading, it is advised to read the :doc:`changelog/index`.
 When upgrading several versions, please read **all** notes applying to the upgrade.
 
-5.1.0 to 5.2.0 and master
--------------------------
+5.2.0 to 5.3.0
+--------------
+
+Changed behaviour
+^^^^^^^^^^^^^^^^^
+
+Reloading ACLs using ``rec_control reload-acls`` now also reloads the proxy-protocol related settings.
+
+New Settings
+^^^^^^^^^^^^
+The embedded webserver implementation used to process REST calls and display the status page has been rewritten in Rust.
+The ``webservice`` YAML section gained a new field: :ref:`setting-yaml-webservice.listen`, which has two fields: ``addresses`` and ``tls``, allowing multiple listen addresses and incoming TLS.
+If the :ref:`setting-yaml-webservice.listen` field is set, the  :ref:`setting-yaml-webservice.address` and  :ref:`setting-yaml-webservice.port` fields will be ignored.
+Existing configurations remain working as before. See :ref:`incoming-ws-config`.
+
+The fieldnames of YAML configuration items corresponding to the old-style Lua configuration items have gained aliases following the YAML naming conventions used elsewhere.
+For example ``protobuf_servers.exportTypes`` now has an alias ``protobuf_servers.export_types``.
+
+Changed Settings
+^^^^^^^^^^^^^^^^
+
+The :ref:`setting-yaml-recursor.event_trace_enabled` setting has gained a value to allow openTelemetry Trace data to be included in the Protobuf log stream.
+
+5.1.0 to 5.2.0
+--------------
 
 Changed behaviour
 ^^^^^^^^^^^^^^^^^
