@@ -68,7 +68,7 @@ AC_SUBST([ARC4RANDOM_LIBS], ['$(top_builddir)/ext/arc4random/libarc4random.la'])
 
 AC_CHECK_HEADERS([sys/random.h])
 
-PDNS_WITH_LUA([mandatory])
+PDNS_WITH_LUA
 AS_IF([test "x$LUAPC" = "xluajit"], [
   # export all symbols with default visibility, to be able to use the Lua FFI interface
   AC_MSG_NOTICE([Adding -rdynamic to export all symbols for the Lua FFI interface])

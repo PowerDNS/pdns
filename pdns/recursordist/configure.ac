@@ -56,7 +56,7 @@ PDNS_ENABLE_UNIT_TESTS
 PDNS_ENABLE_REPRODUCIBLE
 PDNS_ENABLE_COVERAGE
 
-PDNS_WITH_LUA([mandatory])
+PDNS_WITH_LUA
 AS_IF([test "x$LUAPC" = "xluajit"], [
   # export all symbols to be able to use the Lua FFI interface
   AC_MSG_NOTICE([Adding -rdynamic to export all symbols for the Lua FFI interface])
