@@ -1338,7 +1338,9 @@ static void apiZoneCryptokeysPostProcessing(ZoneData& zoneData)
 
       zoneData.domainInfo.backend->getDomainMetadataOne(zoneData.zoneName, "SOA-EDIT-API", soa_edit_api_kind);
       zoneData.domainInfo.backend->getDomainMetadataOne(zoneData.zoneName, "SOA-EDIT", soa_edit_kind);
+      zoneData.domainInfo.backend->startTransaction(zoneData.zoneName, UnknownDomainID);
       updateZoneSerial(zoneData.domainInfo, soaData, soa_edit_api_kind, soa_edit_kind);
+      zoneData.domainInfo.backend->commitTransaction();
     }
   }
 }
