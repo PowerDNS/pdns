@@ -2802,13 +2802,18 @@ static void apiServerNetworksGET(HttpRequest* req, HttpResponse* resp)
     item.clear();
   }
 
-  if (!network.empty() && jsonarray.empty()) {
-    throw HttpNotFoundException(); // no views configured for that network
+  if (network.empty()) {
+    Json::object jsonresult{
+      {"networks", std::move(jsonarray)}};
+    resp->setJsonBody(jsonresult);
   }
+  else {
+    if (jsonarray.empty()) {
+      throw HttpNotFoundException(); // no view configured for that network
+    }
 
-  Json::object jsonresult{
-    {"networks", std::move(jsonarray)}};
-  resp->setJsonBody(jsonresult);
+    resp->setJsonBody(jsonarray[0]);
+  }
 }
 
 // PUT /networks/<ip>/<prefixlen> sets the name of the view for the given network

@@ -1078,9 +1078,9 @@ paths:
           description: The length of the network prefix
       responses:
         '200':
-          description: An array of networks
+          description: A network
           schema:
-            $ref: '#/definitions/Networks'
+            $ref: '#/definitions/Network'
         <<: *commonErrors
     put:
       summary: Sets the view associated to the given network
