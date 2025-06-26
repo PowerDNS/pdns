@@ -188,8 +188,9 @@ public:
              rhs.d_storage.rbegin(), rhs.d_storage.rend(), DNSNameCompare());
   }
 
-  bool canonCompare(const DNSName& rhs) const;
-  bool slowCanonCompare(const DNSName& rhs) const;
+  int slowCanonCompare_three_way(const DNSName& rhs) const;
+  int canonCompare_three_way(const DNSName& rhs) const;
+  inline bool canonCompare(const DNSName& rhs) const { return canonCompare_three_way(rhs) < 0; }
 
   typedef boost::container::string string_t;
 
@@ -334,7 +335,8 @@ public:
 
   bool operator<(const ZoneName& rhs)  const;
 
-  bool canonCompare(const ZoneName& rhs) const;
+  int canonCompare_three_way(const ZoneName& rhs) const;
+  inline bool canonCompare(const ZoneName& rhs) const { return canonCompare_three_way(rhs) < 0; }
 
   // Conversion from ZoneName to DNSName
   explicit operator const DNSName&() const { return d_name; }
