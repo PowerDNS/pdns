@@ -690,9 +690,9 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
   else
     throw std::runtime_error("Unknown sync mode " + syncMode + " requested for LMDB backend");
 
-  uint64_t mapSize = 0;
+  d_mapsize = 0;
   try {
-    mapSize = std::stoll(getArg("map-size"));
+    d_mapsize = std::stoll(getArg("map-size"));
   }
   catch (const std::exception& e) {
     throw std::runtime_error(std::string("Unable to parse the 'map-size' LMDB value: ") + e.what());
@@ -755,7 +755,7 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
         throw std::runtime_error("Somehow, we are not at schema version 6. Giving up");
       }
 
-      openAllTheDatabases(mapSize);
+      openAllTheDatabases();
       opened = true;
       auto pdnsdbi = d_tdomains->getEnv()->openDB("pdns", MDB_CREATE);
 
@@ -811,7 +811,7 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
   }
 
   if (!opened) {
-    openAllTheDatabases(mapSize);
+    openAllTheDatabases();
   }
   d_trecords.resize(s_shards);
   d_dolog = ::arg().mustDo("query-logging");
@@ -834,9 +834,9 @@ LMDBBackend::~LMDBBackend()
   }
 }
 
-void LMDBBackend::openAllTheDatabases(uint64_t mapSize)
+void LMDBBackend::openAllTheDatabases()
 {
-  d_tdomains = std::make_shared<tdomains_t>(getMDBEnv(getArg("filename").c_str(), MDB_NOSUBDIR | MDB_NORDAHEAD | d_asyncFlag, 0600, mapSize), "domains_v5");
+  d_tdomains = std::make_shared<tdomains_t>(getMDBEnv(getArg("filename").c_str(), MDB_NOSUBDIR | MDB_NORDAHEAD | d_asyncFlag, 0600, d_mapsize), "domains_v5");
   d_tmeta = std::make_shared<tmeta_t>(d_tdomains->getEnv(), "metadata_v5");
   d_tkdb = std::make_shared<tkdb_t>(d_tdomains->getEnv(), "keydata_v5");
   d_ttsig = std::make_shared<ttsig_t>(d_tdomains->getEnv(), "tsig_v5");
@@ -1527,7 +1527,7 @@ std::shared_ptr<LMDBBackend::RecordsRWTransaction> LMDBBackend::getRecordsRWTran
   auto& shard = d_trecords[id % s_shards];
   if (!shard.env) {
     shard.env = getMDBEnv((getArg("filename") + "-" + std::to_string(id % s_shards)).c_str(),
-                          MDB_NOSUBDIR | MDB_NORDAHEAD | d_asyncFlag, 0600);
+                          MDB_NOSUBDIR | MDB_NORDAHEAD | d_asyncFlag, 0600, d_mapsize);
     shard.dbi = shard.env->openDB("records_v5", MDB_CREATE);
   }
   auto ret = std::make_shared<RecordsRWTransaction>(shard.env->getRWTransaction());
@@ -1545,7 +1545,7 @@ std::shared_ptr<LMDBBackend::RecordsROTransaction> LMDBBackend::getRecordsROTran
       throw DBException("attempting to start nested transaction without open parent env");
     }
     shard.env = getMDBEnv((getArg("filename") + "-" + std::to_string(id % s_shards)).c_str(),
-                          MDB_NOSUBDIR | MDB_NORDAHEAD | d_asyncFlag, 0600);
+                          MDB_NOSUBDIR | MDB_NORDAHEAD | d_asyncFlag, 0600, d_mapsize);
     shard.dbi = shard.env->openDB("records_v5", MDB_CREATE);
   }
 

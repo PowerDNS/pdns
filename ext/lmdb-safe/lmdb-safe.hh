@@ -119,7 +119,7 @@ private:
   std::map<std::thread::id, int> d_ROtransactionsOut;
 };
 
-std::shared_ptr<MDBEnv> getMDBEnv(const char* fname, int flags, int mode, uint64_t mapsizeMB=(sizeof(void *)==4) ? 100 : 16000);
+std::shared_ptr<MDBEnv> getMDBEnv(const char* fname, int flags, int mode, uint64_t mapsizeMB);
 
 #ifndef DNSDIST
 
