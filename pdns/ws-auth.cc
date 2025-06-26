@@ -775,6 +775,18 @@ static void extractJsonTSIGKeyIds(UeberBackend& backend, const Json& jsonArray, 
   }
 }
 
+// Wrapper around makeIncreasedSOARecord()
+static void updateZoneSerial(DomainInfo& domainInfo, SOAData& soaData, const std::string& increaseKind, const std::string& editKind)
+{
+  DNSResourceRecord resourceRecord;
+
+  if (makeIncreasedSOARecord(soaData, increaseKind, editKind, resourceRecord)) {
+    if (!domainInfo.backend->replaceRRSet(domainInfo.id, resourceRecord.qname, resourceRecord.qtype, vector<DNSResourceRecord>(1, resourceRecord))) {
+      throw ApiException("Hosting backend does not support editing records.");
+    }
+  }
+}
+
 // Must be called within backend transaction.
 static void updateDomainSettingsFromDocument(UeberBackend& backend, DomainInfo& domainInfo, const ZoneName& zonename, const Json& document, bool zoneWasModified)
 {
@@ -918,12 +930,7 @@ static void updateDomainSettingsFromDocument(UeberBackend& backend, DomainInfo& 
       string soa_edit_kind;
       domainInfo.backend->getDomainMetadataOne(zonename, "SOA-EDIT", soa_edit_kind);
 
-      DNSResourceRecord resourceRecord;
-      if (makeIncreasedSOARecord(soaData, soa_edit_api_kind, soa_edit_kind, resourceRecord)) {
-        if (!domainInfo.backend->replaceRRSet(domainInfo.id, resourceRecord.qname, resourceRecord.qtype, vector<DNSResourceRecord>(1, resourceRecord))) {
-          throw ApiException("Hosting backend does not support editing records.");
-        }
-      }
+      updateZoneSerial(domainInfo, soaData, soa_edit_api_kind, soa_edit_kind);
     }
   }
 
@@ -1314,6 +1321,31 @@ static void apiZoneCryptokeysGET(HttpRequest* req, HttpResponse* resp)
   apiZoneCryptokeysExport(zoneData.zoneName, inquireKeyId, resp, &zoneData.dnssecKeeper);
 }
 
+// Common processing following a crypto keys operation which caused keys to be
+// added or removed. If this is a primary zone, we need to increase its
+// serial if configured to do so.
+static void apiZoneCryptokeysPostProcessing(ZoneData& zoneData)
+{
+  // We do not check using isPrimaryType() because we also want to include
+  // DomainInfo::Native here.
+  if (!zoneData.domainInfo.isSecondaryType()) {
+    UeberBackend backend;
+    SOAData soaData;
+    bool zone_disabled = !backend.getSOAUncached(zoneData.zoneName, soaData);
+
+    if (!zone_disabled) {
+      string soa_edit_api_kind;
+      string soa_edit_kind;
+
+      zoneData.domainInfo.backend->getDomainMetadataOne(zoneData.zoneName, "SOA-EDIT-API", soa_edit_api_kind);
+      zoneData.domainInfo.backend->getDomainMetadataOne(zoneData.zoneName, "SOA-EDIT", soa_edit_kind);
+      zoneData.domainInfo.backend->startTransaction(zoneData.zoneName, UnknownDomainID);
+      updateZoneSerial(zoneData.domainInfo, soaData, soa_edit_api_kind, soa_edit_kind);
+      zoneData.domainInfo.backend->commitTransaction();
+    }
+  }
+}
+
 /*
  * This method handles DELETE requests for URL /api/v1/servers/:server_id/zones/:zone_name/cryptokeys/:cryptokey_id .
  * It deletes a key from :zone_name specified by :cryptokey_id.
@@ -1335,6 +1367,7 @@ static void apiZoneCryptokeysDELETE(HttpRequest* req, HttpResponse* resp)
   }
 
   if (zoneData.dnssecKeeper.removeKey(zoneData.zoneName, inquireKeyId)) {
+    apiZoneCryptokeysPostProcessing(zoneData);
     resp->body = "";
     resp->status = 204;
   }
@@ -1483,6 +1516,7 @@ static void apiZoneCryptokeysPOST(HttpRequest* req, HttpResponse* resp)
   else {
     throw ApiException("Either you submit just the 'privatekey' field or you leave 'privatekey' empty and submit the other fields.");
   }
+  apiZoneCryptokeysPostProcessing(zoneData);
   apiZoneCryptokeysExport(zoneData.zoneName, insertedId, resp, &zoneData.dnssecKeeper);
   resp->status = 201;
 }
@@ -1537,6 +1571,7 @@ static void apiZoneCryptokeysPUT(HttpRequest* req, HttpResponse* resp)
     }
   }
 
+  apiZoneCryptokeysPostProcessing(zoneData);
   resp->body = "";
   resp->status = 204;
 }
@@ -2448,16 +2483,12 @@ static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInf
 
     // edit SOA (if needed)
     if (!zone_disabled && !soa_edit_api_kind.empty() && !soa_edit_done) {
-      DNSResourceRecord resourceRecord;
-      if (makeIncreasedSOARecord(soaData, soa_edit_api_kind, soa_edit_kind, resourceRecord)) {
-        if (!domainInfo.backend->replaceRRSet(domainInfo.id, resourceRecord.qname, resourceRecord.qtype, vector<DNSResourceRecord>(1, resourceRecord))) {
-          throw ApiException("Hosting backend does not support editing records.");
-        }
-      }
-
-      // return old and new serials in headers
+      // return old serial in headers, before changing it
       resp->headers["X-PDNS-Old-Serial"] = std::to_string(soaData.serial);
-      fillSOAData(resourceRecord.content, soaData);
+
+      updateZoneSerial(domainInfo, soaData, soa_edit_api_kind, soa_edit_kind);
+
+      // return new serial in headers
       resp->headers["X-PDNS-New-Serial"] = std::to_string(soaData.serial);
     }
 
