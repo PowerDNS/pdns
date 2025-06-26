@@ -39,7 +39,7 @@ using namespace std::string_view_literals;
 #include <boost/version.hpp>
 #include <boost/container/string.hpp>
 
-inline bool dns_isspace(char chr) __attribute__((pure));
+inline bool dns_isspace(char chr) __attribute__((const));
 inline bool dns_isspace(char chr)
 {
   return chr == ' ' || chr == '\t' || chr == '\r' || chr == '\n';
