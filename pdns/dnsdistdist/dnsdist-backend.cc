@@ -817,6 +817,7 @@ void DownstreamState::submitHealthCheckResult(bool initial, bool newResult)
         updateNextLazyHealthCheck(*stats, false);
       }
     }
+    handleServerStateChange(getNameWithAddr(), newResult);
     return;
   }
 
@@ -891,6 +892,7 @@ void DownstreamState::submitHealthCheckResult(bool initial, bool newResult)
     if (g_snmpAgent != nullptr && dnsdist::configuration::getImmutableConfiguration().d_snmpTrapsEnabled) {
       g_snmpAgent->sendBackendStatusChangeTrap(*this);
     }
+    handleServerStateChange(getNameWithAddr(), newResult);
   }
 }
 

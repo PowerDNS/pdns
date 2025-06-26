@@ -74,6 +74,12 @@ bool handleTimeoutResponseRules(const std::vector<dnsdist::rules::ResponseRuleAc
   return false;
 }
 
+void handleServerStateChange(const string& nameWithAddr, bool newResult)
+{
+  (void)nameWithAddr;
+  (void)newResult;
+}
+
 bool sendUDPResponse(int origFD, const PacketBuffer& response, const int delayMsec, const ComboAddress& origDest, const ComboAddress& origRemote)
 {
   (void)origFD;

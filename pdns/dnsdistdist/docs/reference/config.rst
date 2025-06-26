@@ -2236,6 +2236,23 @@ Other functions
     end
     addMaintenanceCallback(myCallback)
 
+.. function:: addServerStateChangeCallback(callback)
+
+  .. versionadded:: 2.1.0
+
+  Register a Lua function to be called when a server state changed during the health check process.
+  The function should not block for a long period of time, as it would otherwise delay the execution of the other functions registered for this hook, as well as the execution of the health check process.
+
+  :param function callback: The function to be called. It returns no value and takes two parameters: the first parameter is a string identifying the server, formatted as if returned by :func:`Server:getNameWithAddr()`, the second parameter is a boolean value indicating whether the server is up.
+
+  .. code-block:: lua
+
+    function serverStateChanged(nameAddr, newState)
+      if newState then state = 'up' else state = 'down' end
+      print(string.format('Server State Changed: %s -> %s', nameAddr, state))
+    end
+    addServerStateChangeCallback(serverStateChanged)
+
 
 .. function:: getAddressInfo(hostname, callback)
 

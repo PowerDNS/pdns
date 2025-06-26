@@ -57,6 +57,7 @@ static std::vector<dnsdist::console::completion::ConsoleKeyword> s_consoleKeywor
   {"addLocal", true, R"(addr [, {doTCP=true, reusePort=false, tcpFastOpenQueueSize=0, interface="", cpus={}}])", "add `addr` to the list of addresses we listen on"},
   {"addMaintenanceCallback", true, "callback", "register a function to be called as part of the maintenance hook, every second"},
   {"addExitCallback", true, "callback", "register a function to be called when DNSdist exits"},
+  {"addServerStateChangeCallback", true, "callback", "register a function to be called when state changed for a given server"},
   {"addTLSLocal", true, "addr, certFile(s), keyFile(s) [,params]", "listen to incoming DNS over TLS queries on the specified address using the specified certificate (or list of) and key (or list of). The last parameter is a table"},
   {"AllowAction", true, "", "let these packets go through"},
   {"AllowResponseAction", true, "", "let these packets go through"},
