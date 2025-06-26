@@ -473,8 +473,8 @@ int DNSName::slowCanonCompare_three_way(const DNSName& rhs) const
   auto iter2 = rhsLabels.rbegin();
   const auto& last2 = rhsLabels.rend();
   while (iter1 != last1 && iter2 != last2) {
-    if (int rc = pdns_ilexicographical_compare_three_way(*iter1, *iter2); rc != 0) {
-      return rc;
+    if (int res = pdns_ilexicographical_compare_three_way(*iter1, *iter2); res != 0) {
+      return res;
     }
     ++iter1; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     ++iter2; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
@@ -500,15 +500,21 @@ int DNSName::canonCompare_three_way(const DNSName& rhs) const
   // 0,2,6,a
   // 0,4,a
 
-  uint8_t ourpos[64], rhspos[64];
-  uint8_t ourcount=0, rhscount=0;
+  std::array<uint8_t,64> ourpos{};
+  std::array<uint8_t,64> rhspos{};
+  uint8_t ourcount=0;
+  uint8_t rhscount=0;
   //cout<<"Asked to compare "<<toString()<<" to "<<rhs.toString()<<endl;
-  for(const unsigned char* p = (const unsigned char*)d_storage.c_str(); p < (const unsigned char*)d_storage.c_str() + d_storage.size() && *p && ourcount < sizeof(ourpos); p+=*p+1)
-    ourpos[ourcount++]=(p-(const unsigned char*)d_storage.c_str());
-  for(const unsigned char* p = (const unsigned char*)rhs.d_storage.c_str(); p < (const unsigned char*)rhs.d_storage.c_str() + rhs.d_storage.size() && *p && rhscount < sizeof(rhspos); p+=*p+1)
-    rhspos[rhscount++]=(p-(const unsigned char*)rhs.d_storage.c_str());
+  // NOLINTBEGIN(cppcoreguidelines-pro-type-cstyle-cast,cppcoreguidelines-pro-bounds-pointer-arithmetic)
+  for (const auto* pos = (const unsigned char*)d_storage.c_str(); pos < (const unsigned char*)d_storage.c_str() + d_storage.size() && *pos != 0 && ourcount < ourpos.max_size(); pos+=*pos+1) {
+    ourpos.at(ourcount++)=pos-(const unsigned char*)d_storage.c_str();
+  }
+  for (const auto* pos = (const unsigned char*)rhs.d_storage.c_str(); pos < (const unsigned char*)rhs.d_storage.c_str() + rhs.d_storage.size() && *pos != 0 && rhscount < rhspos.max_size(); pos+=*pos+1) {
+    rhspos.at(rhscount++)=pos-(const unsigned char*)rhs.d_storage.c_str();
+  }
+  // NOLINTEND(cppcoreguidelines-pro-type-cstyle-cast,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
-  if(ourcount == sizeof(ourpos) || rhscount==sizeof(rhspos)) {
+  if(ourcount == ourpos.max_size() || rhscount==rhspos.max_size()) {
     return slowCanonCompare_three_way(rhs);
   }
 
@@ -522,13 +528,15 @@ int DNSName::canonCompare_three_way(const DNSName& rhs) const
     ourcount--;
     rhscount--;
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     int res = pdns_ilexicographical_compare_three_way(
       std::string_view(
-        d_storage.c_str() + ourpos[ourcount] + 1,
-        *(d_storage.c_str() + ourpos[ourcount])),
+        d_storage.c_str() + ourpos.at(ourcount) + 1,
+        *(d_storage.c_str() + ourpos.at(ourcount))),
       std::string_view(
-        rhs.d_storage.c_str() + rhspos[rhscount] + 1,
-        *(rhs.d_storage.c_str() + rhspos[rhscount])));
+        rhs.d_storage.c_str() + rhspos.at(rhscount) + 1,
+        *(rhs.d_storage.c_str() + rhspos.at(rhscount))));
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     if (res != 0) {
       return res;
     }
@@ -959,8 +967,8 @@ int ZoneName::canonCompare_three_way(const ZoneName& rhs) const
 {
   // Similarly to operator< above, this compares DNSName first, variant
   // second.
-  if (int rc = d_name.canonCompare_three_way(rhs.d_name); rc != 0) {
-    return rc;
+  if (int res = d_name.canonCompare_three_way(rhs.d_name); res != 0) {
+    return res;
   }
   // Both DNSName compare equal.
   return d_variant.compare(rhs.d_variant);
