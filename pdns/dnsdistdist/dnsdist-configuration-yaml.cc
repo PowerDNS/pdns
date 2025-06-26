@@ -663,6 +663,24 @@ static void loadDynamicBlockConfiguration(const dnsdist::rust::settings::Dynamic
   }
 }
 
+static void handleAdditionalAddressesForFrontend(const std::shared_ptr<ClientState>& state, const std::string& protocol, const ::rust::Vec<::rust::String>& additionalAddresses)
+{
+  if (protocol == "dot" || protocol == "doh") {
+    for (const auto& addr : additionalAddresses) {
+      try {
+        ComboAddress address{std::string(addr)};
+        state->d_additionalAddresses.emplace_back(address, -1);
+      }
+      catch (const PDNSException& e) {
+        errlog("Unable to parse additional address %s for %s bind: %s", std::string(addr), protocol, e.reason);
+      }
+    }
+  }
+  else if (!additionalAddresses.empty()) {
+    throw std::runtime_error("Passing a non-empty additional_addresses value to a " + protocol + " frontend is not supported");
+  }
+}
+
 static void loadBinds(const ::rust::Vec<dnsdist::rust::settings::BindConfiguration>& binds)
 {
   for (const auto& bind : binds) {
@@ -706,15 +724,7 @@ static void loadBinds(const ::rust::Vec<dnsdist::rust::settings::BindConfigurati
           state->d_tcpConcurrentConnectionsLimit = bind.tcp.max_concurrent_connections;
         }
 
-        for (const auto& addr : bind.additional_addresses) {
-          try {
-            ComboAddress address{std::string(addr)};
-            state->d_additionalAddresses.emplace_back(address, -1);
-          }
-          catch (const PDNSException& e) {
-            errlog("Unable to parse additional address %s for %s bind: %s", std::string(addr), protocol, e.reason);
-          }
-        }
+        handleAdditionalAddressesForFrontend(state, protocol, bind.additional_addresses);
 
         if (protocol == "dnscrypt") {
 #if defined(HAVE_DNSCRYPT)
