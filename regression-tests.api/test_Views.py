@@ -120,6 +120,14 @@ class Views(ApiTestCase, AuthZonesHelperMixin):
         print(r.content)
         self.assertEqual(r.status_code, 404)
 
+    def test_zonelist_variant(self):
+        r = self.session.get(
+            self.url("/api/v1/servers/localhost/zones"),
+            headers={'content-type': 'application/json'})
+
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("example.com..spiceoflife", [obj["name"] for obj in r.json()])
+
     def test_views_novariant(self):
         return self._test_views()
 
