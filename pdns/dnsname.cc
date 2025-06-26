@@ -498,25 +498,16 @@ bool DNSName::canonCompare(const DNSName& rhs) const
     ourcount--;
     rhscount--;
 
-    bool res=std::lexicographical_compare(
-					  d_storage.c_str() + ourpos[ourcount] + 1,
-					  d_storage.c_str() + ourpos[ourcount] + 1 + *(d_storage.c_str() + ourpos[ourcount]),
-					  rhs.d_storage.c_str() + rhspos[rhscount] + 1,
-					  rhs.d_storage.c_str() + rhspos[rhscount] + 1 + *(rhs.d_storage.c_str() + rhspos[rhscount]),
-					  DNSNameCompare());
-
-    //    cout<<"Forward: "<<res<<endl;
-    if(res)
-      return true;
-
-    res=std::lexicographical_compare(	  rhs.d_storage.c_str() + rhspos[rhscount] + 1,
-					  rhs.d_storage.c_str() + rhspos[rhscount] + 1 + *(rhs.d_storage.c_str() + rhspos[rhscount]),
-					  d_storage.c_str() + ourpos[ourcount] + 1,
-					  d_storage.c_str() + ourpos[ourcount] + 1 + *(d_storage.c_str() + ourpos[ourcount]),
-					  DNSNameCompare());
-    //    cout<<"Reverse: "<<res<<endl;
-    if(res)
-      return false;
+    int res = pdns_ilexicographical_compare_three_way(
+      std::string_view(
+        d_storage.c_str() + ourpos[ourcount] + 1,
+        *(d_storage.c_str() + ourpos[ourcount])),
+      std::string_view(
+        rhs.d_storage.c_str() + rhspos[rhscount] + 1,
+        *(rhs.d_storage.c_str() + rhspos[rhscount])));
+    if (res != 0) {
+      return res < 0;
+    }
   }
   return false;
 }

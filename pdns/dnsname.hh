@@ -62,14 +62,6 @@ inline unsigned char dns_tolower(unsigned char chr)
 #include "burtle.hh"
 #include "views.hh"
 
-struct DNSNameCompare
-{
-  bool operator()(const unsigned char& lhs, const unsigned char& rhs) const
-  {
-    return dns_tolower(lhs) < dns_tolower(rhs);
-  }
-};
-
 /* Quest in life:
      accept escaped ascii presentations of DNS names and store them "natively"
      accept a DNS packet with an offset, and extract a DNS name from it
@@ -183,10 +175,17 @@ public:
 
   bool operator<(const DNSName& rhs)  const // this delivers _some_ kind of ordering, but not one useful in a DNS context. Really fast though.
   {
+    struct DNSNameCompare
+    {
+      bool operator()(const unsigned char& lhs, const unsigned char& rhs) const
+      {
+        return dns_tolower(lhs) < dns_tolower(rhs);
+      }
+    };
+
     // note that this is case insensitive, including on the label lengths
     return std::lexicographical_compare(d_storage.rbegin(), d_storage.rend(),
-				 rhs.d_storage.rbegin(), rhs.d_storage.rend(),
-				 DNSNameCompare());
+             rhs.d_storage.rbegin(), rhs.d_storage.rend(), DNSNameCompare());
   }
 
   bool canonCompare(const DNSName& rhs) const;
