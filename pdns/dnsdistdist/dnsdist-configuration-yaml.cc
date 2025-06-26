@@ -706,14 +706,19 @@ static void loadBinds(const ::rust::Vec<dnsdist::rust::settings::BindConfigurati
           state->d_tcpConcurrentConnectionsLimit = bind.tcp.max_concurrent_connections;
         }
 
-        for (const auto& addr : bind.additional_addresses) {
-          try {
-            ComboAddress address{std::string(addr)};
-            state->d_additionalAddresses.emplace_back(address, -1);
+        if (protocol == "dot" || protocol == "doh") {
+          for (const auto& addr : bind.additional_addresses) {
+            try {
+              ComboAddress address{std::string(addr)};
+              state->d_additionalAddresses.emplace_back(address, -1);
+            }
+            catch (const PDNSException& e) {
+              errlog("Unable to parse additional address %s for %s bind: %s", std::string(addr), protocol, e.reason);
+            }
           }
-          catch (const PDNSException& e) {
-            errlog("Unable to parse additional address %s for %s bind: %s", std::string(addr), protocol, e.reason);
-          }
+        }
+        else if (!bind.additional_addresses.empty()) {
+          throw std::runtime_error("Passing a non-empty additional_addresses value to a " + protocol + " frontend is not supported");
         }
 
         if (protocol == "dnscrypt") {
