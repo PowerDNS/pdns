@@ -111,7 +111,7 @@ options (See :ref:`above <dnsupdate-configuration-options>`).
 This will allow 198.51.100.0/8 and 203.0.113.2/32 to send DNS update
 messages for the example.org domain::
 
-    pdnsutil set-meta example.org ALLOW-DNSUPDATE-FROM 198.51.100.0/8 203.0.113.2/32
+    pdnsutil metadata set example.org ALLOW-DNSUPDATE-FROM 198.51.100.0/8 203.0.113.2/32
 
 .. _metadata-tsig-allow-dnsupdate:
 
@@ -123,20 +123,20 @@ update. If you have GSS-TSIG enabled, you can use Kerberos principals
 here. Here is an example using :program:`pdnsutil` to create a key named
 `test`::
 
-    $ pdnsutil generate-tsig-key test hmac-sha512
+    $ pdnsutil tsigkey generate test hmac-sha512
     Create new TSIG key test hmac-sha512 [base64-encoded key]
 
-    $ pdnsutil list-tsig-keys | grep test
+    $ pdnsutil tsigkey list | grep test
     test. hmac-sha512. [base64-encoded key]
 
 This adds the key with the name `test` to the zone's metadata. Note, the
-keys need to be added separately with `add-meta`, not as a comma or
+keys need to be added separately with `metadata add`, not as a comma or
 space-separated list::
 
-    $ pdnsutil add-meta example.org TSIG-ALLOW-DNSUPDATE test
+    $ pdnsutil metadata add example.org TSIG-ALLOW-DNSUPDATE test
     Set 'example.org' meta TSIG-ALLOW-DNSUPDATE = test
 
-    $ pdnsutil get-meta example.org TSIG-ALLOW-DNSUPDATE
+    $ pdnsutil metadata get example.org TSIG-ALLOW-DNSUPDATE
     TSIG-ALLOW-DNSUPDATE = test
 
 This is an example of using the new `test` TSIG key with the :program:`nsupdate`
@@ -172,7 +172,7 @@ FORWARD-DNSUPDATE
 See :ref:`Configuration options <dnsupdate-configuration-options>` for what it does,
 but per domain::
 
-    pdnsutil set-meta example.org FORWARD-DNSUPDATE 'yes'
+    pdnsutil metadata set example.org FORWARD-DNSUPDATE 'yes'
 
 The existence of the entry (even with an empty value) enables the forwarding.
 This domain-specific setting is only useful when the configuration
@@ -189,7 +189,7 @@ Send a notification to all secondary servers after every update. This will
 speed up the propagation of changes and is very useful for acme
 verification::
 
-    pdnsutil set-meta example.org NOTIFY-DNSUPDATE 1
+    pdnsutil metadata set example.org NOTIFY-DNSUPDATE 1
 
 .. _metadata-soa-edit-dnsupdate:
 
@@ -220,7 +220,7 @@ logic to change the SOA is not executed.
 
 An example::
 
-    pdnsutil set-meta example.org SOA-EDIT-DNSUPDATE INCREASE
+    pdnsutil metadata set example.org SOA-EDIT-DNSUPDATE INCREASE
 
 This will make the SOA Serial increase by one, for every successful
 update.
@@ -363,8 +363,8 @@ domainmetadata table.
 
 ::
 
-    pdnsutil set-meta example.org ALLOW-DNSUPDATE-FROM 127.0.0.1
-    pdnsutil set-meta 1.168.192.in-addr.arpa ALLOW-DNSUPDATE-FROM 127.0.0.1
+    pdnsutil metadata set example.org ALLOW-DNSUPDATE-FROM 127.0.0.1
+    pdnsutil metadata set 1.168.192.in-addr.arpa ALLOW-DNSUPDATE-FROM 127.0.0.1
 
 This gives the ip '127.0.0.1' access to send update messages. Make sure
 you use the ip address of the machine that runs **dhcpd**.
@@ -374,9 +374,9 @@ via the domainmetadata table:
 
 ::
 
-    pdnsutil import-tsig-key dhcpdupdate hmac-md5 FYhvwsW1ZtFZqWzsMpqhbg==
-    pdnsutil set-meta example.org TSIG-ALLOW-DNSUPDATE dhcpdupdate
-    pdnsutil set-meta 1.168.192.in-addr.arpa TSIG-ALLOW-DNSUPDATE dhcpdupdate
+    pdnsutil tsigkey import dhcpdupdate hmac-md5 FYhvwsW1ZtFZqWzsMpqhbg==
+    pdnsutil metadata set example.org TSIG-ALLOW-DNSUPDATE dhcpdupdate
+    pdnsutil metadata set 1.168.192.in-addr.arpa TSIG-ALLOW-DNSUPDATE dhcpdupdate
 
 This will:
 

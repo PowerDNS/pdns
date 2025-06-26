@@ -215,7 +215,7 @@ In such cases, make sure to delete the zone contents to force a fresh
 retrieval.
 
 Finally, IXFR updates that "plug" Empty Non-Terminals do not yet remove
-ENT records. A 'pdnsutil rectify-zone' may be required.
+ENT records. A 'pdnsutil zone rectify' may be required.
 
 PowerDNS itself is currently only able to retrieve updates via IXFR. It
 cannot serve IXFR updates.
@@ -263,7 +263,7 @@ There is no need to fill the account name out but it does help keep
 track of where a domain comes from.
 Additionally, if a secondary selects multiple autoprimaries for a zone based on the name of the primary, it also checks that the ``account`` field is the same for all.
 Adding a autoprimary can be done either directly in the database,
-or by using the 'pdnsutil add-autoprimary' command.
+or by using the 'pdnsutil autoprimary add' command.
 
 .. warning::
   When a secondary receives notification while bootstrapping a new domain using autosecondary feature, it will send
@@ -295,7 +295,7 @@ What you can accomplish using a Lua script:
 
 This script can be enabled like this::
 
-    pdnsutil set-meta example.com LUA-AXFR-SCRIPT /path/to/lua/script.lua
+    pdnsutil metadata set example.com LUA-AXFR-SCRIPT /path/to/lua/script.lua
 
 .. warning::
   The Lua script must both exist and be syntactically

@@ -393,9 +393,9 @@ When a primary zone is created via the API, and the request does not specify a c
 -  Default: ecdsa256
 
 The default algorithm for creating zone keys when running
-:doc:`pdnsutil add-zone-key <manpages/pdnsutil.1>` if no algorithm is specified,
+:doc:`pdnsutil zone add-key <manpages/pdnsutil.1>` if no algorithm is specified,
 and also the algorithm that should be used for the KSK when running
-:doc:`pdnsutil secure-zone <manpages/pdnsutil.1>` or using the :doc:`Zone API endpoint <http-api/cryptokey>`
+:doc:`pdnsutil zone secure <manpages/pdnsutil.1>` or using the :doc:`Zone API endpoint <http-api/cryptokey>`
 to enable DNSSEC. Must be one of:
 
 * rsasha1
@@ -419,7 +419,7 @@ to enable DNSSEC. Must be one of:
 -  Integer
 -  Default: whichever is default for `default-ksk-algorithm`_
 
-The default keysize for the KSK generated with :doc:`pdnsutil secure-zone <dnssec/pdnsutil>`.
+The default keysize for the KSK generated with :doc:`pdnsutil zone secure <dnssec/pdnsutil>`.
 Only relevant for algorithms with non-fixed keysizes (like RSA).
 
 .. _setting-default-publish-cdnskey:
@@ -469,7 +469,7 @@ This value is used when a zone is created without providing a SOA record. @ is r
 
 Use this soa-edit value for all zones if no
 :ref:`metadata-soa-edit` metadata value is set.
-This is used by :doc:`pdnsutil increase-serial <manpages/pdnsutil.1>`.
+This is used by :doc:`pdnsutil zone increase-serial <manpages/pdnsutil.1>`.
 
 .. _setting-default-soa-edit-signed:
 
@@ -528,9 +528,9 @@ TTL to use when none is provided.
 -  Default: (empty)
 
 The default algorithm for creating zone keys when running
-:doc:`pdnsutil add-zone-key <manpages/pdnsutil.1>` if no algorithm is specified,
+:doc:`pdnsutil zone add-key <manpages/pdnsutil.1>` if no algorithm is specified,
 and also the algorithm that should be used for the ZSK when running
-:doc:`pdnsutil secure-zone <manpages/pdnsutil.1>` or using the :doc:`Zone API endpoint <http-api/cryptokey>`
+:doc:`pdnsutil zone secure <manpages/pdnsutil.1>` or using the :doc:`Zone API endpoint <http-api/cryptokey>`
 to enable DNSSEC. Must be one of:
 
 * rsasha1
@@ -554,7 +554,7 @@ to enable DNSSEC. Must be one of:
 -  Integer
 -  Default: 0 (automatic default for `default-zsk-algorithm`_)
 
-The default keysize for the ZSK generated with :doc:`pdnsutil secure-zone <dnssec/pdnsutil>`.
+The default keysize for the ZSK generated with :doc:`pdnsutil zone secure <dnssec/pdnsutil>`.
 Only relevant for algorithms with non-fixed keysizes (like RSA).
 
 .. _setting-delay-notifications:

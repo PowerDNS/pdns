@@ -1217,7 +1217,7 @@ Response:
 ``feedEnts``
 ~~~~~~~~~~~~
 
-This method is used by pdnsutil rectify-zone to populate missing
+This method is used by ``pdnsutil zone rectify`` to populate missing
 non-terminals. This is used when you have, say, record like
 _sip._upd.example.com, but no _udp.example.com. PowerDNS requires
 that there exists a non-terminal in between, and this instructs you to

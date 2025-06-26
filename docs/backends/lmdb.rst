@@ -152,4 +152,4 @@ LMDB Structure
 --------------
 
 PowerDNS will create the database structure, no need to manually create the database schema.
-Also, it is not possible to directly query the LMDB DB, so recommendation is to use either the API, or pdnsutil.
+Also, it is not possible to directly query the LMDB DB, so recommendation is to use either the API, or :doc:`pdnsutil <../manpages/pdnsutil.1>`.

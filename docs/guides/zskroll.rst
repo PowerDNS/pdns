@@ -15,7 +15,7 @@ After every change, use your favourite DNSSEC checker (`DNSViz <https://dnsviz.n
 .. warning::
 
     For every mutation to your zone make sure that your serial is bumped, so your secondaries pick up the changes too.
-    If you are using AXFR replication, this usually is as simple as ``pdnsutil increase-serial example.com``
+    If you are using AXFR replication, this usually is as simple as ``pdnsutil zone increase-serial example.com``
 
 Phase: Initial
 --------------
@@ -30,15 +30,15 @@ At first note down algorithm of currently used ZSK, because new ZSK shall use th
 
 .. code-block:: shell
 
-    pdnsutil show-zone example.com
+    pdnsutil zone show example.com
 
 To create a new **inactive** but **published** ZSK with the same algorithm, run something like:
 
 .. code-block:: shell
 
-    pdnsutil add-zone-key example.com zsk inactive published ALGORITHM
+    pdnsutil zone add-key example.com zsk inactive published ALGORITHM
 
-Please note down the key ID that ``add-zone-key`` reports. You can also retrieve it later with ``pdnsutil show-zone example.com``.
+Please note down the key ID that ``zone add-key`` reports. You can also retrieve it later with ``pdnsutil zone show example.com``.
 
 PowerDNS will now publish the new DNSKEY while the old DNSKEY remains published and active for signing.
 
@@ -53,8 +53,8 @@ To change the RRSIGs on records in the zone, the new DNSKEY must be made active 
 
 .. code-block:: shell
 
-    pdnsutil activate-zone-key example.com NEW-ZSK-ID
-    pdnsutil deactivate-zone-key example.com OLD-ZSK-ID
+    pdnsutil zone activate-key example.com NEW-ZSK-ID
+    pdnsutil zone deactivate-key example.com OLD-ZSK-ID
 
 After this, PowerDNS will sign all records in the zone with the new ZSK and remove all signatures made with the old ZSK.
 
@@ -74,7 +74,7 @@ The last step is to remove the old DNSKEY from the zone:
 
 .. code-block:: shell
 
-    pdnsutil remove-zone-key example.com OLD-ZSK-ID
+    pdnsutil zone remove-key example.com OLD-ZSK-ID
 
 Please check that your secondaries now show only the new DNSKEY when queried with ``dig DNSKEY example.com @...``.
 

@@ -15,7 +15,7 @@ For the implementation in non-sql backends, please review your backend's
 documentation.
 
 Apart from raw SQL statements, setting domain metadata can be done with
-``pdnsutil set-meta`` and retrieving metadata is done with ``pdnsutil get-meta``.
+``pdnsutil metadata set`` and retrieving metadata is done with ``pdnsutil metadata get``.
 
 The following options can only be read (not written to) via the HTTP API metadata endpoint.
 
@@ -46,7 +46,7 @@ Example:
 
 .. code-block:: shell
 
-    pdnsutil set-meta powerdns.org ALLOW-AXFR-FROM AUTO-NS 2001:db8::/48
+    pdnsutil metadata set powerdns.org ALLOW-AXFR-FROM AUTO-NS 2001:db8::/48
 
 Each ACL has its own row in the database:
 
@@ -78,8 +78,8 @@ number. e.g.:
 
 .. code-block:: shell
 
-    pdnsutil set-meta powerdns.org ALSO-NOTIFY 192.0.2.1:5300
-    pdnsutil set-meta powerdns.org ALLOW-AXFR-FROM 2001:db8:53::1
+    pdnsutil metadata set powerdns.org ALSO-NOTIFY 192.0.2.1:5300
+    pdnsutil metadata set powerdns.org ALLOW-AXFR-FROM 2001:db8:53::1
 
 
 API-RECTIFY
@@ -150,14 +150,14 @@ NSEC3NARROW
 -----------
 
 Set to "1" to tell PowerDNS this zone operates in NSEC3 'narrow' mode.
-See ``set-nsec3`` for :doc:`pdnsutil <dnssec/pdnsutil>`.
+See ``zone set-nsec3`` for :doc:`pdnsutil <dnssec/pdnsutil>`.
 
 NSEC3PARAM
 ----------
 
 NSEC3 parameters of a DNSSEC zone. Will be used to synthesize the
 NSEC3PARAM record. If present, NSEC3 is used, if not present, zones
-default to NSEC. See ``set-nsec3`` in :doc:`pdnsutil <dnssec/pdnsutil>`.
+default to NSEC. See ``zone set-nsec3`` in :doc:`pdnsutil <dnssec/pdnsutil>`.
 Example content: "1 0 0 -".
 
 .. _metadata-presigned:
@@ -168,10 +168,10 @@ PRESIGNED
 This zone carries DNSSEC RRSIGs (signatures), and is presigned. PowerDNS
 sets this flag automatically upon incoming zone transfers (AXFR) if it
 detects DNSSEC records in the zone. However, if you import a presigned
-zone using ``zone2sql`` or ``pdnsutil load-zone`` you must explicitly
+zone using ``zone2sql`` or ``pdnsutil zone load`` you must explicitly
 set the zone to be ``PRESIGNED``. Note that PowerDNS will not be able to
 correctly serve the zone if the imported data is bogus or incomplete.
-Also see ``set-presigned`` in :doc:`pdnsutil <dnssec/pdnsutil>`.
+Also see ``zone set-presigned`` in :doc:`pdnsutil <dnssec/pdnsutil>`.
 
 If a zone is presigned, the content of the metadata must be "1" (without
 the quotes). Any other value will not signal presignedness.
@@ -191,8 +191,8 @@ a comma- separated list of `signature algorithm
 numbers <https://www.iana.org/assignments/ds-rr-types/ds-rr-types.xhtml#ds-rr-types-1>`__.
 
 This metadata can also be set using the
-:doc:`pdnsutil <dnssec/pdnsutil>` commands ``set-publish-cdnskey``
-and ``set-publish-cds``. For an example for an :rfc:`7344` key rollover,
+:doc:`pdnsutil <dnssec/pdnsutil>` commands ``zone set-publish-cdnskey``
+and ``zone set-publish-cds``. For an example for an :rfc:`7344` key rollover,
 see the :doc:`guides/kskrollcdnskey`.
 
 Global defaults for these values can be set via :ref:`setting-default-publish-cdnskey` and :ref:`setting-default-publish-cds`.
@@ -260,7 +260,7 @@ If :ref:`GSS-TSIG <tsig-gss-tsig>` is enabled, you can put Kerberos principals h
 Extra metadata
 --------------
 
-Through the API and on the ``pdnsutil set-meta`` commandline, metadata
+Through the API and on the ``pdnsutil metadata set`` commandline, metadata
 unused by PowerDNS can be added. It is mandatory to prefix this extra
 metadata with "X-" and the name of the external application; the API
 will only allow this metadata if it starts with "X-".
