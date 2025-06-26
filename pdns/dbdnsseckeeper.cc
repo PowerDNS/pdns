@@ -566,7 +566,7 @@ DNSSECKeeper::keyset_t DNSSECKeeper::getKeys(const ZoneName& zone, bool useCache
     DNSKEYRecordContent dkrc;
     auto key = shared_ptr<DNSCryptoKeyEngine>(DNSCryptoKeyEngine::makeFromISCString(dkrc, keydata.content));
     DNSSECPrivateKey dpk;
-    dpk.setKey(key, dkrc.d_algorithm);
+    dpk.setKey(key, dkrc.d_flags);
 
     if(keydata.active) {
       if(keydata.flags == 257)
