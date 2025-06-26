@@ -926,10 +926,10 @@ bool ZoneName::operator<(const ZoneName& rhs)  const
   // Order by DNSName first, by variant second.
   // Unfortunately we can't use std::lexicographical_compare_three_way() yet
   // as this would require C++20.
-  const auto *iter1 = d_name.getStorage().cbegin();
-  const auto *last1 = d_name.getStorage().cend();
-  const auto *iter2 = rhs.d_name.getStorage().cbegin();
-  const auto *last2 = rhs.d_name.getStorage().cend();
+  auto iter1 = d_name.getStorage().rbegin();
+  const auto last1 = d_name.getStorage().rend();
+  auto iter2 = rhs.d_name.getStorage().rbegin();
+  const auto last2 = rhs.d_name.getStorage().rend();
   while (iter1 != last1 && iter2 != last2) {
     auto char1 = dns_tolower(*iter1);
     auto char2 = dns_tolower(*iter2);
