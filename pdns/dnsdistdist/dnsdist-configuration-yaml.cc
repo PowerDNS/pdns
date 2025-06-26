@@ -681,7 +681,6 @@ static void handleAdditionalAddressesForFrontend(const std::shared_ptr<ClientSta
   }
 }
 
-
 static void loadBinds(const ::rust::Vec<dnsdist::rust::settings::BindConfiguration>& binds)
 {
   for (const auto& bind : binds) {
