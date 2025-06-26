@@ -81,26 +81,64 @@ static vector<shared_ptr<const DNSKEYRecordContent > > getByTag(const skeyset_t&
 
 bool isCoveredByNSEC3Hash(const std::string& hash, const std::string& beginHash, const std::string& nextHash)
 {
-  return ((beginHash < hash && hash < nextHash) ||          // no wrap          BEGINNING --- HASH -- END
-          (nextHash > hash  && beginHash > nextHash) ||  // wrap             HASH --- END --- BEGINNING
-          (nextHash < beginHash  && beginHash < hash) || // wrap other case  END --- BEGINNING --- HASH
-          (beginHash == nextHash && hash != beginHash));   // "we have only 1 NSEC3 record, LOL!"
+  int order_bh = beginHash.compare(hash);
+  int order_hn = hash.compare(nextHash);
+  if (order_bh < 0 && order_hn < 0) { // beginHash < hash && hash < nextHash
+    return true; // no wrap          BEGINNING --- HASH -- END
+  }
+  int order_bn = beginHash.compare(nextHash);
+  if (order_hn < 0 && order_bn > 0) { // nextHash > hash && beginHash > nextHash
+    return true; // wrap             HASH --- END --- BEGINNING
+  }
+  if (order_bn > 0 && order_bh < 0) { // nextHash < beginHash && beginHash < hash
+    return true; // wrap other case  END --- BEGINNING --- HASH
+  }
+  if (order_bn == 0 && order_bh != 0) { // beginHash == nextHash && hash != beginHash
+    return true; // "we have only 1 NSEC3 record, LOL!"
+  }
+  return false;
 }
 
+// Same logic as above, using DNSName::canonCompare_three_way instead of std::string::compare.
 bool isCoveredByNSEC3Hash(const DNSName& name, const DNSName& beginHash, const DNSName& nextHash)
 {
-  return ((beginHash.canonCompare(name) && name.canonCompare(nextHash)) ||          // no wrap          BEGINNING --- HASH -- END
-          (name.canonCompare(nextHash) && nextHash.canonCompare(beginHash)) ||  // wrap             HASH --- END --- BEGINNING
-          (nextHash.canonCompare(beginHash) && beginHash.canonCompare(name)) || // wrap other case  END --- BEGINNING --- HASH
-          (beginHash == nextHash && name != beginHash));   // "we have only 1 NSEC3 record, LOL!"
+  int order_bh = beginHash.canonCompare_three_way(name);
+  int order_hn = name.canonCompare_three_way(nextHash);
+  if (order_bh < 0 && order_hn < 0) {
+    return true; // no wrap          BEGINNING --- HASH -- END
+  }
+  int order_bn = beginHash.canonCompare_three_way(nextHash);
+  if (order_hn < 0 && order_bn > 0) {
+    return true; // wrap             HASH --- END --- BEGINNING
+  }
+  if (order_bn > 0 && order_bh < 0) {
+    return true; // wrap other case  END --- BEGINNING --- HASH
+  }
+  if (order_bn == 0 && order_bh != 0) {
+    return true; // "we have only 1 NSEC3 record, LOL!"
+  }
+  return false;
 }
 
+// Exact same logic as above, except that the arguments are not hashes.
 bool isCoveredByNSEC(const DNSName& name, const DNSName& begin, const DNSName& next)
 {
-  return ((begin.canonCompare(name) && name.canonCompare(next)) ||  // no wrap          BEGINNING --- NAME --- NEXT
-          (name.canonCompare(next) && next.canonCompare(begin)) ||  // wrap             NAME --- NEXT --- BEGINNING
-          (next.canonCompare(begin) && begin.canonCompare(name)) || // wrap other case  NEXT --- BEGINNING --- NAME
-          (begin == next && name != begin));                        // "we have only 1 NSEC record, LOL!"
+  int order_bh = begin.canonCompare_three_way(name);
+  int order_hn = name.canonCompare_three_way(next);
+  if (order_bh < 0 && order_hn < 0) {
+    return true; // no wrap          BEGINNING --- NAME -- NEXT
+  }
+  int order_bn = begin.canonCompare_three_way(next);
+  if (order_hn < 0 && order_bn > 0) {
+    return true; // wrap             NEXT --- END --- BEGINNING
+  }
+  if (order_bn > 0 && order_bh < 0) {
+    return true; // wrap other case  END --- BEGINNING --- NEXT
+  }
+  if (order_bn == 0 && order_bh != 0) {
+    return true; // "we have only 1 NSEC record, LOL!"
+  }
+  return false;
 }
 
 static bool nsecProvesENT(const DNSName& name, const DNSName& begin, const DNSName& next)
