@@ -121,6 +121,7 @@ void setupLuaBindings(LuaContext& luaCtx, bool client, bool configCheck)
   });
   luaCtx.registerFunction<uint64_t (DownstreamState::*)() const>("getOutstanding", [](const DownstreamState& state) { return state.outstanding.load(); });
   luaCtx.registerFunction<uint64_t (DownstreamState::*)() const>("getDrops", [](const DownstreamState& state) { return state.reuseds.load(); });
+  luaCtx.registerFunction<uint64_t (DownstreamState::*)() const>("getQueries", [](const DownstreamState& state) { return state.queries.load(); });
   luaCtx.registerFunction<double (DownstreamState::*)() const>("getLatency", [](const DownstreamState& state) { return state.getRelevantLatencyUsec(); });
   luaCtx.registerFunction("isUp", &DownstreamState::isUp);
   luaCtx.registerFunction("setDown", &DownstreamState::setDown);
