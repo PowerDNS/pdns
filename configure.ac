@@ -44,7 +44,7 @@ PTHREAD_SET_NAME
 AC_FUNC_STRERROR_R
 AX_CXX_CXXFS
 
-PDNS_WITH_LUA([mandatory])
+PDNS_WITH_LUA
 PDNS_CHECK_LUA_HPP
 
 AC_MSG_CHECKING([whether we will enable compiler security checks])
