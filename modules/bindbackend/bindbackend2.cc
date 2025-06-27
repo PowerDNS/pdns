@@ -308,26 +308,21 @@ static bool endsOn(const string& domain, const string& suffix)
   return true;
 }
 
-/** strips a domain suffix from a domain, returns true if it stripped */
-static bool stripDomainSuffix(string* qname, const ZoneName& zonename)
+/** strips a domain suffix from a domain */
+static void stripDomainSuffix(string* qname, const ZoneName& zonename)
 {
   std::string domain = zonename.operator const DNSName&().toString();
 
-  if (!endsOn(*qname, domain)) {
-    return false;
-  }
-
-  if (toLower(*qname) == toLower(domain)) {
-    *qname = "@";
-  }
-  else {
-    if ((*qname)[qname->size() - domain.size() - 1] != '.') {
-      return false;
+  if (endsOn(*qname, domain)) {
+    if (toLower(*qname) == toLower(domain)) {
+      *qname = "@";
     }
-
-    qname->resize(qname->size() - domain.size() - 1);
+    else {
+      if ((*qname)[qname->size() - domain.size() - 1] == '.') {
+        qname->resize(qname->size() - domain.size() - 1);
+      }
+    }
   }
-  return true;
 }
 
 bool Bind2Backend::feedRecord(const DNSResourceRecord& rr, const DNSName& /* ordername */, bool /* ordernameIsNSEC3 */)
@@ -364,7 +359,7 @@ bool Bind2Backend::feedRecord(const DNSResourceRecord& rr, const DNSName& /* ord
   case QType::DNAME:
   case QType::NS:
     stripDomainSuffix(&content, d_transaction_qname);
-    // fallthrough
+    [[fallthrough]];
   default:
     if (d_of && *d_of) {
       *d_of << qname << "\t" << rr.ttl << "\t" << rr.qtype.toString() << "\t" << content << endl;
