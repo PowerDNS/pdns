@@ -333,23 +333,20 @@ static bool endsOn(const string &domain, const string &suffix)
 }
 
 /** strips a domain suffix from a domain, returns true if it stripped */
-bool stripDomainSuffix(string *qname, const string &domain)
+void stripDomainSuffix(string *qname, const DNSName &zonename)
 {
-  if (!endsOn(*qname, domain)) {
-    return false;
-  }
+  std::string domain = zonename.toString();
 
-  if (toLower(*qname) == toLower(domain)) {
-    *qname="@";
-  }
-  else {
-    if ((*qname)[qname->size() - domain.size() - 1] != '.') {
-      return false;
+  if (endsOn(*qname, domain)) {
+    if (toLower(*qname) == toLower(domain)) {
+      *qname = "@";
     }
-
-    qname->resize(qname->size() - domain.size()-1);
+    else {
+      if ((*qname)[qname->size() - domain.size() - 1] == '.') {
+        qname->resize(qname->size() - domain.size() - 1);
+      }
+    }
   }
-  return true;
 }
 
 // returns -1 in case if error, 0 if no data is available, 1 if there is. In the first two cases, errno is set
