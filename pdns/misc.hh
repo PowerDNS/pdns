@@ -386,6 +386,9 @@ inline int pdns_ilexicographical_compare_three_way(std::string_view a, std::stri
     aPtr++;
     bPtr++;
   }
+  // At this point, one of the strings has been completely processed.
+  // Either both have the same length, and they are equal, or one of them
+  // is larger, and compares as higher.
   if (aPtr == aEptr) {
     if (bPtr != bEptr) {
       return -1; // a < b
