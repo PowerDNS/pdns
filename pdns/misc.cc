@@ -308,69 +308,6 @@ string nowTime()
   return {buffer.data()};
 }
 
-static bool ciEqual(const string& lhs, const string& rhs)
-{
-  if (lhs.size() != rhs.size()) {
-    return false;
-  }
-
-  string::size_type pos = 0;
-  const string::size_type epos = lhs.size();
-  for (; pos < epos; ++pos) {
-    if (dns_tolower(lhs[pos]) != dns_tolower(rhs[pos])) {
-      return false;
-    }
-  }
-  return true;
-}
-
-/** does domain end on suffix? Is smart about "wwwds9a.nl" "ds9a.nl" not matching */
-static bool endsOn(const string &domain, const string &suffix)
-{
-  if( suffix.empty() || ciEqual(domain, suffix) ) {
-    return true;
-  }
-
-  if(domain.size() <= suffix.size()) {
-    return false;
-  }
-
-  string::size_type dpos = domain.size() - suffix.size() - 1;
-  string::size_type spos = 0;
-
-  if (domain[dpos++] != '.') {
-    return false;
-  }
-
-  for(; dpos < domain.size(); ++dpos, ++spos) {
-    if (dns_tolower(domain[dpos]) != dns_tolower(suffix[spos])) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-/** strips a domain suffix from a domain, returns true if it stripped */
-bool stripDomainSuffix(string *qname, const string &domain)
-{
-  if (!endsOn(*qname, domain)) {
-    return false;
-  }
-
-  if (toLower(*qname) == toLower(domain)) {
-    *qname="@";
-  }
-  else {
-    if ((*qname)[qname->size() - domain.size() - 1] != '.') {
-      return false;
-    }
-
-    qname->resize(qname->size() - domain.size()-1);
-  }
-  return true;
-}
-
 // returns -1 in case if error, 0 if no data is available, 1 if there is. In the first two cases, errno is set
 int waitForData(int fileDesc, int seconds, int useconds)
 {

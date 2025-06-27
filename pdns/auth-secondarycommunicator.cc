@@ -272,7 +272,7 @@ static bool catalogDiff(const DomainInfo& di, vector<CatalogInfo>& fromXFR, vect
       }
 
       DNSSECKeeper::clearCaches(zone.first);
-      purgeAuthCaches(zone.first.toString() + "$");
+      purgeAuthCaches(zone.first.operator const DNSName&().toString() + "$");
     }
 
     // retrieve new and updated zones with new primaries
@@ -776,7 +776,7 @@ void CommunicatorClass::suck(const ZoneName& domain, const ComboAddress& remote,
         }
         else {
           g_log << Logger::Warning << logPrefix << "got " << zs.numDeltas << " delta" << addS(zs.numDeltas) << ", zone committed with serial " << zs.soa_serial << endl;
-          purgeAuthCaches(domain.toString() + "$");
+          purgeAuthCaches(domain.operator const DNSName&().toString() + "$");
           return;
         }
       }
@@ -954,7 +954,7 @@ void CommunicatorClass::suck(const ZoneName& domain, const ComboAddress& remote,
     di.backend->commitTransaction();
     transaction = false;
     di.backend->setFresh(zs.domain_id);
-    purgeAuthCaches(domain.toString() + "$");
+    purgeAuthCaches(domain.operator const DNSName&().toString() + "$");
 
     g_log << Logger::Warning << logPrefix << "zone committed with serial " << zs.soa_serial << endl;
 

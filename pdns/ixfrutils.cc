@@ -141,7 +141,7 @@ void writeZoneToDisk(const records_t& records, const ZoneName& zone, const std::
 
   records_t soarecord;
   soarecord.insert(soa);
-  if (fprintf(filePtr.get(), "$ORIGIN %s\n", zone.toString().c_str()) < 0) {
+  if (fprintf(filePtr.get(), "$ORIGIN %s\n", zone.operator const DNSName&().toString().c_str()) < 0) {
     string error = "Error writing to zone file for " + zone.toLogString() + " in file " + fname + ".partial" + ": " + stringerror();
     filePtr.reset();
     unlink((fname+".partial").c_str());

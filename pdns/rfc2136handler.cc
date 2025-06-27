@@ -1001,9 +1001,7 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
 
       d_dk.clearMetaCache(di.zone);
       // Purge the records!
-      string zone(di.zone.toString());
-      zone.append("$");
-      purgeAuthCaches(zone);
+      purgeAuthCaches(di.zone.operator const DNSName&().toString() + "$");
 
       // Notify secondaries
       if (di.kind == DomainInfo::Primary) {
