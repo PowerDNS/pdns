@@ -93,3 +93,39 @@ class TestLuaDNSHeaderBindings(DNSDistTest):
             receivedQuery.id = query.id
             self.assertEqual(query, receivedQuery)
             self.assertEqual(response, receivedResponse)
+
+class TestLuaFrontendBindings(DNSDistTest):
+    _config_template = """
+    newServer{address="127.0.0.1:%d"}
+
+    -- check that all these methods return nil on a non-existing entry
+    functions = { 'getServer', 'getDNSCryptBind', 'getBind', 'getDOQFrontend', 'getDOH3Frontend', 'getDOHFrontend', 'getTLSFrontend'}
+    for _, func in ipairs(functions) do
+      assert(_G[func](42) == nil, "function "..func.." did not return nil as expected")
+    end
+
+    addAction('basic.lua-frontend-bindings.tests.powerdns.com.', RCodeAction(DNSRCode.REFUSED))
+    -- also test that getSelectedBackend() returns nil on self-answered responses
+    function checkSelectedBackend(dr)
+      local backend = dr:getSelectedBackend()
+      assert(backend == nil, "DNSResponse::getSelectedBackend() should return nil on self-answered responses")
+      return DNSResponseAction.None
+    end
+    addSelfAnsweredResponseAction(AllRule(), LuaResponseAction(checkSelectedBackend))
+    """
+    _checkConfigExpectedOutput = b"Error: trying to get DOQ frontend with index 42 but we only have 0 frontend(s)\n\nError: trying to get DOH3 frontend with index 42 but we only have 0 frontend(s)\n\nError: trying to get DOH frontend with index 42 but we only have 0 frontend(s)\n\nError: trying to get TLS frontend with index 42 but we only have 0 frontends\n\nConfiguration 'configs/dnsdist_TestLuaFrontendBindings.conf' OK!\n"
+
+    def testLuaBindings(self):
+        """
+        LuaFrontendBindings: Test Lua frontend bindings
+        """
+        name = 'basic.lua-frontend-bindings.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        # dnsdist set RA = RD for spoofed responses
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.set_rcode(dns.rcode.REFUSED)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertEqual(receivedResponse, expectedResponse)
