@@ -341,12 +341,7 @@ ZoneName apiZoneIdToName(const string& identifier)
   }
 }
 
-string apiZoneNameToId(const ZoneName& dname)
-{
-  return apiNameToId(dname.toString());
-}
-
-string apiNameToId(const string& name)
+static string encodeName(const string& name)
 {
   ostringstream outputStringStream;
 
@@ -359,14 +354,34 @@ string apiNameToId(const string& name)
     }
   }
 
-  string identifier = outputStringStream.str();
+  return outputStringStream.str();
+}
+
+string apiZoneNameToId(const ZoneName& dname)
+{
+#if defined(PDNS_AUTH)
+  std::string ret = apiNameToId(dname.operator const DNSName&().toString());
+  // Add the variant, if any
+  if (dname.hasVariant()) {
+    ret += ".";
+    ret += encodeName(dname.getVariant());
+  }
+  return ret;
+#else
+  return apiNameToId(dname.toString());
+#endif
+}
+
+string apiNameToId(const string& name)
+{
+  string identifier = encodeName(name);
 
   // add trailing dot
   if (identifier.empty() || identifier.substr(identifier.size() - 1) != ".") {
     identifier += ".";
   }
 
-  // special handling for the root zone, as a dot on it's own doesn't work
+  // special handling for the root zone, as a dot on its own doesn't work
   // everywhere.
   if (identifier == ".") {
     identifier = (boost::format("=%02X") % (int)('.')).str();
