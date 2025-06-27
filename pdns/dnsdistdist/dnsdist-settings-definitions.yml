@@ -1129,7 +1129,7 @@ bind:
     - name: "additional_addresses"
       type: "Vec<String>"
       default: ""
-      description: "List of additional addresses (with port) to listen on. Using this option instead of creating a new frontend for each address avoids the creation of new thread and Frontend objects, reducing the memory usage. The drawback is that there will be a single set of metrics for all addresses"
+      description: "List of additional addresses (with port) to listen on. Using this option instead of creating a new frontend for each address avoids the creation of new thread and Frontend objects, reducing the memory usage. The drawback is that there will be a single set of metrics for all addresses. This is only supported for DoT and DoH frontends, and therefore passing a non-empty list for other protocols will trigger an error"
     - name: "xsk"
       type: "String"
       default: ""
