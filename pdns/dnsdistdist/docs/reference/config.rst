@@ -829,6 +829,14 @@ A server object returned by :func:`getServer` can be manipulated with these func
 
     :returns: The number of dropped queries
 
+  .. method:: Server:getQueries() -> int
+
+    .. versionadded:: 2.0.0
+
+    Get the number of total queries for this server.
+
+    :returns: The number of total queries
+
   .. method:: Server:getHealthCheckMode() -> str
 
     .. versionadded:: 2.0.0
