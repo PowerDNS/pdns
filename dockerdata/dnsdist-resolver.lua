@@ -15,7 +15,6 @@ _M.verbose = false
 -- key = name
 -- value = {address, serverObject} (should make these named members)
 local ourservers = {}
-local ourcount = {}
 
 -- Global variable for store results for getAddressInfo() function
 local resout = {}
@@ -109,39 +108,21 @@ function _M.maintenance()
             end
         end
 
-        -- init our current count
-        if ourcount[name] == nil then
-            ourcount[name] = #ips
-        end
-
-        -- increase our current count if necessary
-        if #ips > ourcount[name] then
-            ourcount[name] = #ips
-            if _M.verbose then
-                infolog("increasing count to " .. ourcount[name] .. " for " .. name)
+        -- remove servers if they are no longer present
+        for ourserver, server in pairs(ourservers) do
+            -- check if we match the prefix and the ip is gone
+            if ourserver:find(name, 1, true) == 1 and has_value(ips, server[1]) == false then
+                if _M.verbose then
+                    infolog("ip address not found anymore " .. server[1])
+                end
+                removeServer(ourserver)
             end
         end
-
-        -- remove servers when we've lost ips
-        if #ips < ourcount[name] then
-            for ourserver, server in pairs(ourservers) do
-                -- check if we match the prefix and the ip is gone
-                if ourserver:find(name, 1, true) == 1 and has_value(ips, server[1]) == false then
-                    ourcount[name] = #ips
-                    if _M.verbose then
-                        infolog("ip address not found anymore " .. server[1])
-                        infolog("decreasing count to " .. ourcount[name])
-                    end
-                    removeServer(ourserver)
-                end
-            end
-        else
-            for _, ip in ipairs(ips) do
-                -- it has IPs
-                if _M.servers[name] ~= nil then
-                    -- we want this server
-                    setServer(name, ip)
-                end
+        for _, ip in ipairs(ips) do
+            -- it has IPs
+            if _M.servers[name] ~= nil then
+                -- we want this server
+                setServer(name, ip)
             end
         end
     end
