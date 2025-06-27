@@ -325,8 +325,10 @@ static bool endsOn(const string& domain, const string& suffix)
 }
 
 /** strips a domain suffix from a domain, returns true if it stripped */
-static bool stripDomainSuffix(string* qname, const string& domain)
+static bool stripDomainSuffix(string* qname, const ZoneName& zonename)
 {
+  std::string domain = zonename.operator const DNSName&().toString();
+
   if (!endsOn(*qname, domain)) {
     return false;
   }
@@ -377,7 +379,7 @@ bool Bind2Backend::feedRecord(const DNSResourceRecord& rr, const DNSName& /* ord
   case QType::CNAME:
   case QType::DNAME:
   case QType::NS:
-    stripDomainSuffix(&content, d_transaction_qname.toString());
+    stripDomainSuffix(&content, d_transaction_qname);
     // fallthrough
   default:
     if (d_of && *d_of) {
