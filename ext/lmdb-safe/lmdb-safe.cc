@@ -188,18 +188,18 @@ std::shared_ptr<MDBEnv> getMDBEnv(const char* fname, int flags, int mode, uint64
   struct stat statbuf{};
   if (stat(fname, &statbuf) != 0) {
     if (errno != ENOENT) {
-      throw std::runtime_error("Unable to stat prospective mdb database: "+string(strerror(errno)));
+      throw std::runtime_error("Unable to stat prospective mdb database: " + MDBError(errno));
     }
     std::lock_guard<std::mutex> lock(mut);
     /* we need to check again _after_ taking the lock, otherwise a different thread might have created
        it in the meantime */
     if (stat(fname, &statbuf) != 0) {
       if (errno != ENOENT) {
-        throw std::runtime_error("Unable to stat prospective mdb database: "+string(strerror(errno)));
+        throw std::runtime_error("Unable to stat prospective mdb database: " + MDBError(errno));
       }
       auto fresh = std::make_shared<MDBEnv>(fname, flags, mode, mapsizeMB);
       if (stat(fname, &statbuf) != 0) {
-        throw std::runtime_error("Unable to stat prospective mdb database: "+string(strerror(errno)));
+        throw std::runtime_error("Unable to stat prospective mdb database: " + MDBError(errno));
       }
       auto key = std::tie(statbuf.st_dev, statbuf.st_ino);
       s_envs.emplace(key, Value{fresh, flags});
