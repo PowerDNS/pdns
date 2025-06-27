@@ -361,13 +361,12 @@ public:
   bool operator==(const ZoneName& rhs) const { return d_name == rhs.d_name && d_variant == rhs.d_variant; }
   bool operator!=(const ZoneName& rhs) const { return !operator==(rhs); }
 
-  // IMPORTANT! None of the "toString" routines will output the variant, but toLogString() and toStringFull().
-  std::string toString(const std::string& separator=".", const bool trailing=true) const { return d_name.toString(separator, trailing); }
-  void toString(std::string& output, const std::string& separator=".", const bool trailing=true) const { d_name.toString(output, separator, trailing); }
+  std::string toString(const std::string& separator=".", const bool trailing=true) const;
+  void toString(std::string& output, const std::string& separator=".", const bool trailing=true) const { output = toString(separator, trailing); }
   std::string toLogString() const;
-  std::string toStringNoDot() const { return d_name.toStringNoDot(); }
-  std::string toStringRootDot() const { return d_name.toStringRootDot(); }
-  std::string toStringFull(const std::string& separator=".", const bool trailing=true) const;
+  std::string toStringNoDot() const;
+  std::string toStringRootDot() const;
+  std::string toStringFull(const std::string& separator=".", const bool trailing=true) const { return toString(separator, trailing); }
 
   bool chopOff() { return d_name.chopOff(); }
   ZoneName makeLowerCase() const

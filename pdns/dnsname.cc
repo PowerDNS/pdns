@@ -828,11 +828,34 @@ std::string ZoneName::toLogString() const
   return ret;
 }
 
-std::string ZoneName::toStringFull(const std::string& separator, const bool trailing) const
+std::string ZoneName::toString(const std::string& separator, const bool trailing) const
 {
   std::string ret = d_name.toString(separator, trailing);
   if (!d_variant.empty()) {
     if (!trailing) {
+      ret.push_back('.');
+    }
+    ret.push_back('.');
+    ret += d_variant;
+  }
+  return ret;
+}
+
+std::string ZoneName::toStringNoDot() const
+{
+  std::string ret = d_name.toStringNoDot();
+  if (!d_variant.empty()) {
+    ret += "..";
+    ret += d_variant;
+  }
+  return ret;
+}
+
+std::string ZoneName::toStringRootDot() const
+{
+  std::string ret = d_name.toStringRootDot();
+  if (!d_variant.empty()) {
+    if (!d_name.isRoot()) {
       ret.push_back('.');
     }
     ret.push_back('.');
