@@ -2210,7 +2210,7 @@ static void apiServerZoneDetailPUT(HttpRequest* req, HttpResponse* resp)
   updateDomainSettingsFromDocument(zoneData.backend, zoneData.domainInfo, zoneData.zoneName, document, zoneWasModified);
   zoneData.domainInfo.backend->commitTransaction();
 
-  purgeAuthCaches(zoneData.zoneName.toString() + "$");
+  purgeAuthCaches(zoneData.zoneName.operator const DNSName&().toString() + "$");
 
   resp->body = "";
   resp->status = 204; // No Content, but indicate success
@@ -2239,7 +2239,7 @@ static void apiServerZoneDetailDELETE(HttpRequest* req, HttpResponse* resp)
 
   // clear caches
   DNSSECKeeper::clearCaches(zoneData.zoneName);
-  purgeAuthCaches(zoneData.zoneName.toString() + "$");
+  purgeAuthCaches(zoneData.zoneName.operator const DNSName&().toString() + "$");
 
   // empty body on success
   resp->body = "";
@@ -2510,7 +2510,7 @@ static void patchZone(UeberBackend& backend, const ZoneName& zonename, DomainInf
   domainInfo.backend->commitTransaction();
 
   DNSSECKeeper::clearCaches(zonename);
-  purgeAuthCaches(zonename.toString() + "$");
+  purgeAuthCaches(zonename.operator const DNSName&().toString() + "$");
 
   resp->body = "";
   resp->status = 204; // No Content, but indicate success
@@ -2644,7 +2644,7 @@ static void apiServerCacheFlush(HttpRequest* req, HttpResponse* resp)
 
   DNSSECKeeper::clearCaches(canon);
   // purge entire zone from cache, not just zone-level records.
-  uint64_t count = purgeAuthCaches(canon.toString() + "$");
+  uint64_t count = purgeAuthCaches(canon.operator const DNSName&().toString() + "$");
   resp->setJsonBody(Json::object{
     {"count", (int)count},
     {"result", "Flushed cache."}});
@@ -2759,8 +2759,7 @@ static void apiServerViewsPOST(HttpRequest* req, HttpResponse* resp)
   }
   // Purge packet cache for that zone
   if (PC.enabled()) {
-    // Note that this relies upon ZoneName::toString NOT emitting the variant name.
-    std::string purgename = zonename.toString();
+    std::string purgename = zonename.operator const DNSName&().toString();
     purgename.append("$");
     (void)PC.purge(view, purgename);
   }
@@ -2789,8 +2788,7 @@ static void apiServerViewsDELETE(HttpRequest* req, HttpResponse* resp)
       (void)PC.purgeView(view);
     }
     else {
-      // Note that this relies upon ZoneName::toString NOT emitting the variant name.
-      std::string purgename = zoneData.zoneName.toString();
+      std::string purgename = zoneData.zoneName.operator const DNSName&().toString();
       purgename.append("$");
       (void)PC.purge(view, purgename);
     }
