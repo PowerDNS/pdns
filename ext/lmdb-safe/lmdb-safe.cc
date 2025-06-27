@@ -180,39 +180,45 @@ std::shared_ptr<MDBEnv> getMDBEnv(const char* fname, int flags, int mode, uint64
   static std::map<tuple<dev_t, ino_t>, Value> s_envs;
   static std::mutex mut;
 
-  struct stat statbuf;
-  if(stat(fname, &statbuf)) {
-    if(errno != ENOENT)
+  struct stat statbuf{};
+  if (stat(fname, &statbuf) != 0) {
+    if (errno != ENOENT) {
       throw std::runtime_error("Unable to stat prospective mdb database: "+string(strerror(errno)));
-    else {
-      std::lock_guard<std::mutex> l(mut);
-      auto fresh = std::make_shared<MDBEnv>(fname, flags, mode, mapsizeMB);
-      if(stat(fname, &statbuf))
+    }
+    std::lock_guard<std::mutex> lock(mut);
+    /* we need to check again _after_ taking the lock, otherwise a different thread might have created
+       it in the meantime */
+    if (stat(fname, &statbuf) != 0) {
+      if (errno != ENOENT) {
         throw std::runtime_error("Unable to stat prospective mdb database: "+string(strerror(errno)));
+      }
+      auto fresh = std::make_shared<MDBEnv>(fname, flags, mode, mapsizeMB);
+      if (stat(fname, &statbuf) != 0) {
+        throw std::runtime_error("Unable to stat prospective mdb database: "+string(strerror(errno)));
+      }
       auto key = std::tie(statbuf.st_dev, statbuf.st_ino);
-      s_envs[key] = {fresh, flags};
+      s_envs.emplace(key, Value{fresh, flags});
       return fresh;
     }
   }
 
-  std::lock_guard<std::mutex> l(mut);
+  std::lock_guard<std::mutex> lock(mut);
   auto key = std::tie(statbuf.st_dev, statbuf.st_ino);
   auto iter = s_envs.find(key);
-  if(iter != s_envs.end()) {
+  if (iter != s_envs.end()) {
     auto sp = iter->second.wp.lock();
-    if(sp) {
-      if(iter->second.flags != flags)
+    if (sp) {
+      if (iter->second.flags != flags) {
         throw std::runtime_error("Can't open mdb with differing flags");
+      }
 
       return sp;
     }
-    else {
-      s_envs.erase(iter); // useful if make_shared fails
-    }
+    s_envs.erase(iter); // useful if make_shared fails
   }
 
   auto fresh = std::make_shared<MDBEnv>(fname, flags, mode, mapsizeMB);
-  s_envs[key] = {fresh, flags};
+  s_envs.emplace(key, Value{fresh, flags});
 
   return fresh;
 }
