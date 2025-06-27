@@ -366,7 +366,6 @@ public:
   std::string toLogString() const;
   std::string toStringNoDot() const;
   std::string toStringRootDot() const;
-  std::string toStringFull(const std::string& separator=".", const bool trailing=true) const { return toString(separator, trailing); }
 
   bool chopOff() { return d_name.chopOff(); }
   ZoneName makeLowerCase() const
