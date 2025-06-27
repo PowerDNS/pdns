@@ -85,7 +85,7 @@ std::vector<std::string> KeyValueLookupKeySuffix::getKeys(const DNSName& qname)
 bool LMDBKVStore::getValue(const std::string& key, std::string& value)
 {
   try {
-    auto transaction = d_env.getROTransaction();
+    auto transaction = d_env->getROTransaction();
     MDBOutVal result;
     int rc = transaction->get(d_dbi, MDBInVal(key), result);
     if (rc == 0) {
@@ -105,7 +105,7 @@ bool LMDBKVStore::getValue(const std::string& key, std::string& value)
 bool LMDBKVStore::keyExists(const std::string& key)
 {
   try {
-    auto transaction = d_env.getROTransaction();
+    auto transaction = d_env->getROTransaction();
     MDBOutVal result;
     int rc = transaction->get(d_dbi, MDBInVal(key), result);
     if (rc == 0) {
@@ -124,7 +124,7 @@ bool LMDBKVStore::keyExists(const std::string& key)
 bool LMDBKVStore::getRangeValue(const std::string& key, std::string& value)
 {
   try {
-    auto transaction = d_env.getROTransaction();
+    auto transaction = d_env->getROTransaction();
     auto cursor = transaction->getROCursor(d_dbi);
     MDBOutVal actualKey;
     MDBOutVal result;
