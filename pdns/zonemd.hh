@@ -116,12 +116,8 @@ private:
   {
     bool operator()(const RRSetKey_t& lhs, const RRSetKey_t& rhs) const
     {
-      // FIXME surely we can be smarter here
-      if (lhs.first.canonCompare(rhs.first)) {
-        return true;
-      }
-      if (rhs.first.canonCompare(lhs.first)) {
-        return false;
+      if (int rc = lhs.first.canonCompare_three_way(rhs.first); rc != 0) {
+        return rc < 0;
       }
       return lhs.second < rhs.second;
     }

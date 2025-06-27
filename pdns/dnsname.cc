@@ -462,11 +462,87 @@ void DNSName::prependRawLabel(const std::string& label)
   d_storage = prep+d_storage;
 }
 
-bool DNSName::slowCanonCompare(const DNSName& rhs) const
+int DNSName::slowCanonCompare_three_way(const DNSName& rhs) const
 {
-  auto ours=getRawLabels(), rhsLabels = rhs.getRawLabels();
-  return std::lexicographical_compare(ours.rbegin(), ours.rend(), rhsLabels.rbegin(), rhsLabels.rend(), CIStringCompare());
+  // Unfortunately we can't use std::lexicographical_compare_three_way() yet
+  // as this would require C++20.
+  const auto ours = getRawLabels();
+  const auto rhsLabels = rhs.getRawLabels();
+  auto iter1 = ours.rbegin();
+  const auto& last1 = ours.rend();
+  auto iter2 = rhsLabels.rbegin();
+  const auto& last2 = rhsLabels.rend();
+  while (iter1 != last1 && iter2 != last2) {
+    if (int res = pdns_ilexicographical_compare_three_way(*iter1, *iter2); res != 0) {
+      return res;
+    }
+    ++iter1; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    ++iter2; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+  }
+  if (iter1 == last1) {
+    if (iter2 != last2) {
+      return -1; // lt
+    }
+  }
+  else {
+    return 1; // gt
+  }
+  return 0; // eq
 }
+
+int DNSName::canonCompare_three_way(const DNSName& rhs) const
+{
+  //      01234567890abcd
+  // us:  1a3www4ds9a2nl
+  // rhs: 3www6online3com
+  // to compare, we start at the back, is nl < com? no -> done
+  //
+  // 0,2,6,a
+  // 0,4,a
+
+  std::array<uint8_t,64> ourpos{};
+  std::array<uint8_t,64> rhspos{};
+  uint8_t ourcount=0;
+  uint8_t rhscount=0;
+  //cout<<"Asked to compare "<<toString()<<" to "<<rhs.toString()<<endl;
+  // NOLINTBEGIN(cppcoreguidelines-pro-type-cstyle-cast,cppcoreguidelines-pro-bounds-pointer-arithmetic)
+  for (const auto* pos = (const unsigned char*)d_storage.c_str(); pos < (const unsigned char*)d_storage.c_str() + d_storage.size() && *pos != 0 && ourcount < ourpos.max_size(); pos+=*pos+1) {
+    ourpos.at(ourcount++)=pos-(const unsigned char*)d_storage.c_str();
+  }
+  for (const auto* pos = (const unsigned char*)rhs.d_storage.c_str(); pos < (const unsigned char*)rhs.d_storage.c_str() + rhs.d_storage.size() && *pos != 0 && rhscount < rhspos.max_size(); pos+=*pos+1) {
+    rhspos.at(rhscount++)=pos-(const unsigned char*)rhs.d_storage.c_str();
+  }
+  // NOLINTEND(cppcoreguidelines-pro-type-cstyle-cast,cppcoreguidelines-pro-bounds-pointer-arithmetic)
+
+  if(ourcount == ourpos.max_size() || rhscount==rhspos.max_size()) {
+    return slowCanonCompare_three_way(rhs);
+  }
+
+  for(;;) {
+    if(ourcount == 0 && rhscount != 0) {
+      return -1; // lt
+    }
+    if(rhscount == 0) {
+      return ourcount == 0 ? 0 /* eq */ : 1 /* gt */;
+    }
+    ourcount--;
+    rhscount--;
+
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    int res = pdns_ilexicographical_compare_three_way(
+      std::string_view(
+        d_storage.c_str() + ourpos.at(ourcount) + 1,
+        *(d_storage.c_str() + ourpos.at(ourcount))),
+      std::string_view(
+        rhs.d_storage.c_str() + rhspos.at(rhscount) + 1,
+        *(rhs.d_storage.c_str() + rhspos.at(rhscount))));
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    if (res != 0) {
+      return res;
+    }
+  }
+}
+
 
 vector<std::string> DNSName::getRawLabels() const
 {
@@ -878,10 +954,10 @@ bool ZoneName::operator<(const ZoneName& rhs)  const
   // Order by DNSName first, by variant second.
   // Unfortunately we can't use std::lexicographical_compare_three_way() yet
   // as this would require C++20.
-  const auto *iter1 = d_name.getStorage().cbegin();
-  const auto *last1 = d_name.getStorage().cend();
-  const auto *iter2 = rhs.d_name.getStorage().cbegin();
-  const auto *last2 = rhs.d_name.getStorage().cend();
+  auto iter1 = d_name.getStorage().rbegin();
+  const auto last1 = d_name.getStorage().rend();
+  auto iter2 = rhs.d_name.getStorage().rbegin();
+  const auto last2 = rhs.d_name.getStorage().rend();
   while (iter1 != last1 && iter2 != last2) {
     auto char1 = dns_tolower(*iter1);
     auto char2 = dns_tolower(*iter2);
@@ -907,20 +983,14 @@ bool ZoneName::operator<(const ZoneName& rhs)  const
   return d_variant < rhs.d_variant;
 }
 
-bool ZoneName::canonCompare(const ZoneName& rhs) const
+int ZoneName::canonCompare_three_way(const ZoneName& rhs) const
 {
   // Similarly to operator< above, this compares DNSName first, variant
-  // second. Unfortunately because DNSName::canonCompare() is complicated,
-  // it can't pragmatically be duplicated here, hence the two calls.
-  // TODO: change DNSName::canonCompare() to return a three-state value
-  // (lt, eq, ge) in order to be able to call it only once.
-  if (!d_name.canonCompare(rhs.d_name)) {
-    return false;
-  }
-  if (!rhs.d_name.canonCompare(d_name)) {
-    return true;
+  // second.
+  if (int res = d_name.canonCompare_three_way(rhs.d_name); res != 0) {
+    return res;
   }
   // Both DNSName compare equal.
-  return d_variant < rhs.d_variant;
+  return d_variant.compare(rhs.d_variant);
 }
 #endif // ]

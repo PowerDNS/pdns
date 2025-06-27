@@ -306,31 +306,24 @@ inline const string toLower(const string &upper)
 inline const string toLowerCanonic(const string &upper)
 {
   string reply(upper);
-  if(!upper.empty()) {
-    unsigned int i, limit= ( unsigned int ) reply.length();
-    unsigned char c;
-    for(i = 0; i < limit ; i++) {
-      c = dns_tolower(upper[i]);
-      if(c != upper[i])
-        reply[i] = c;
+  if (!reply.empty()) {
+    const auto length = reply.length();
+    if (reply[length - 1] == '.') {
+      reply.resize(length - 1);
     }
-    if(upper[i-1]=='.')
-      reply.resize(i-1);
+    toLowerInPlace(reply);
   }
-
   return reply;
 }
-
-
 
 // Make s uppercase:
 inline string toUpper( const string& s )
 {
-        string r(s);
-        for( unsigned int i = 0; i < s.length(); i++ ) {
-          r[i] = dns_toupper(r[i]);
-        }
-        return r;
+  string r(s);
+  for (size_t i = 0; i < s.length(); ++i) {
+    r[i] = dns_toupper(r[i]);
+  }
+  return r;
 }
 
 inline double getTime()
@@ -378,20 +371,38 @@ inline bool operator<(const struct timespec& lhs, const struct timespec& rhs)
 }
 
 
-inline bool pdns_ilexicographical_compare(const std::string& a, const std::string& b)  __attribute__((pure));
-inline bool pdns_ilexicographical_compare(const std::string& a, const std::string& b)
+inline int pdns_ilexicographical_compare_three_way(std::string_view a, std::string_view b)  __attribute__((pure));
+inline int pdns_ilexicographical_compare_three_way(std::string_view a, std::string_view b)
 {
-  const unsigned char *aPtr = (const unsigned char*)a.c_str(), *bPtr = (const unsigned char*)b.c_str();
+  const unsigned char *aPtr = (const unsigned char*)a.data(), *bPtr = (const unsigned char*)b.data();
   const unsigned char *aEptr = aPtr + a.length(), *bEptr = bPtr + b.length();
   while(aPtr != aEptr && bPtr != bEptr) {
-    if ((*aPtr != *bPtr) && (dns_tolower(*aPtr) - dns_tolower(*bPtr)))
-      return (dns_tolower(*aPtr) - dns_tolower(*bPtr)) < 0;
+    if (*aPtr != *bPtr) {
+      if (int rc = dns_tolower(*aPtr) - dns_tolower(*bPtr); rc != 0) {
+        return rc;
+      }
+    }
     aPtr++;
     bPtr++;
   }
-  if(aPtr == aEptr && bPtr == bEptr) // strings are equal (in length)
-    return false;
-  return aPtr == aEptr; // true if first string was shorter
+  // At this point, one of the strings has been completely processed.
+  // Either both have the same length, and they are equal, or one of them
+  // is larger, and compares as higher.
+  if (aPtr == aEptr) {
+    if (bPtr != bEptr) {
+      return -1; // a < b
+    }
+  }
+  else {
+    return 1; // a > b
+  }
+  return 0; // a == b
+}
+
+inline bool pdns_ilexicographical_compare(const std::string& a, const std::string& b)  __attribute__((pure));
+inline bool pdns_ilexicographical_compare(const std::string& a, const std::string& b)
+{
+  return pdns_ilexicographical_compare_three_way(a, b) < 0;
 }
 
 inline bool pdns_iequals(const std::string& a, const std::string& b) __attribute__((pure));
@@ -400,15 +411,7 @@ inline bool pdns_iequals(const std::string& a, const std::string& b)
   if (a.length() != b.length())
     return false;
 
-  const char *aPtr = a.c_str(), *bPtr = b.c_str();
-  const char *aEptr = aPtr + a.length();
-  while(aPtr != aEptr) {
-    if((*aPtr != *bPtr) && (dns_tolower(*aPtr) != dns_tolower(*bPtr)))
-      return false;
-    aPtr++;
-    bPtr++;
-  }
-  return true;
+  return pdns_ilexicographical_compare_three_way(a, b) == 0;
 }
 
 inline bool pdns_iequals_ch(const char a, const char b) __attribute__((pure));

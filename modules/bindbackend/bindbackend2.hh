@@ -61,10 +61,9 @@ struct Bind2DNSRecord
   mutable bool auth;
   bool operator<(const Bind2DNSRecord& rhs) const
   {
-    if (qname.canonCompare(rhs.qname))
-      return true;
-    if (rhs.qname.canonCompare(qname))
-      return false;
+    if (int rc = qname.canonCompare_three_way(rhs.qname); rc != 0) {
+      return rc < 0;
+    }
     if (qtype == QType::SOA && rhs.qtype != QType::SOA)
       return true;
     return std::tie(qtype, content, ttl) < std::tie(rhs.qtype, rhs.content, rhs.ttl);

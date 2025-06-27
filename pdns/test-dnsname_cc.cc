@@ -24,8 +24,8 @@ BOOST_AUTO_TEST_CASE(test_basic) {
   DNSName aroot("a.root-servers.net"), broot("b.root-servers.net");
   BOOST_CHECK(aroot < broot);
   BOOST_CHECK(!(broot < aroot));
-  BOOST_CHECK(aroot.canonCompare(broot));
-  BOOST_CHECK(!broot.canonCompare(aroot));
+  BOOST_CHECK(aroot.canonCompare_three_way(broot) < 0);
+  BOOST_CHECK(broot.canonCompare_three_way(aroot) > 0);
 
 
   string before("www.ds9a.nl.");
@@ -684,7 +684,7 @@ BOOST_AUTO_TEST_CASE(test_compare_naive) {
 BOOST_AUTO_TEST_CASE(test_compare_empty) {
   DNSName a, b;
   BOOST_CHECK(!(a<b));
-  BOOST_CHECK(!a.canonCompare(b));
+  BOOST_CHECK(a.canonCompare_three_way(b) == 0);
 }
 
 BOOST_AUTO_TEST_CASE(test_casing) {
@@ -702,11 +702,11 @@ BOOST_AUTO_TEST_CASE(test_casing) {
 
 BOOST_AUTO_TEST_CASE(test_compare_canonical) {
   DNSName lower("bert.com."), higher("alpha.nl.");
-  BOOST_CHECK(lower.canonCompare(higher));
+  BOOST_CHECK(lower.canonCompare_three_way(higher) < 0);
 
-  BOOST_CHECK(DNSName("bert.com").canonCompare(DNSName("www.bert.com")));
-  BOOST_CHECK(DNSName("BeRt.com").canonCompare(DNSName("WWW.berT.com")));
-  BOOST_CHECK(!DNSName("www.BeRt.com").canonCompare(DNSName("WWW.berT.com")));
+  BOOST_CHECK(DNSName("bert.com").canonCompare_three_way(DNSName("www.bert.com")) < 0);
+  BOOST_CHECK(DNSName("BeRt.com").canonCompare_three_way(DNSName("WWW.berT.com")) < 0);
+  BOOST_CHECK(DNSName("www.BeRt.com").canonCompare_three_way(DNSName("WWW.berT.com")) == 0);
 
   CanonDNSNameCompare a;
   BOOST_CHECK(a(g_rootdnsname, DNSName("www.powerdns.com")));
