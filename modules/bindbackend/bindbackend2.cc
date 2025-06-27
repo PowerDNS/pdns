@@ -281,26 +281,10 @@ bool Bind2Backend::abortTransaction()
   return true;
 }
 
-static bool ciEqual(const string& lhs, const string& rhs)
-{
-  if (lhs.size() != rhs.size()) {
-    return false;
-  }
-
-  string::size_type pos = 0;
-  const string::size_type epos = lhs.size();
-  for (; pos < epos; ++pos) {
-    if (dns_tolower(lhs[pos]) != dns_tolower(rhs[pos])) {
-      return false;
-    }
-  }
-  return true;
-}
-
 /** does domain end on suffix? Is smart about "wwwds9a.nl" "ds9a.nl" not matching */
 static bool endsOn(const string& domain, const string& suffix)
 {
-  if (suffix.empty() || ciEqual(domain, suffix)) {
+  if (suffix.empty() || pdns_iequals(domain, suffix)) {
     return true;
   }
 
