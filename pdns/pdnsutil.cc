@@ -1694,7 +1694,7 @@ static int createZone(const ZoneName &zone, const DNSName& nsname) {
   rr.qtype = "SOA";
 
   string soa = ::arg()["default-soa-content"];
-  boost::replace_all(soa, "@", zone.toStringNoDot());
+  boost::replace_all(soa, "@", zone.operator const DNSName&().toStringNoDot());
   SOAData sd;
   try {
     fillSOAData(soa, sd);
@@ -2384,25 +2384,25 @@ static bool showZone(DNSSECKeeper& dnsseckeeper, const ZoneName& zone, bool expo
       }
       if (!exportDS) {
         cout << (key.d_flags == 257 ? "KSK" : "ZSK") << ", tag = " << key.getTag() << ", algo = "<<(int)key.d_algorithm << ", bits = " << bits << endl;
-        cout << "DNSKEY = " <<zone.toString()<<" IN DNSKEY "<< key.getZoneRepresentation() << "; ( " + algname + " ) " <<endl;
+        cout << "DNSKEY = " <<zone.operator const DNSName&().toString()<<" IN DNSKEY "<< key.getZoneRepresentation() << "; ( " + algname + " ) " <<endl;
       }
 
       const std::string prefix(exportDS ? "" : "DS = ");
       if (g_verbose) {
-        cout<<prefix<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone.operator const DNSName&(), key, DNSSECKeeper::DIGEST_SHA1).getZoneRepresentation() << " ; ( SHA1 digest )" << endl;
+        cout<<prefix<<zone.operator const DNSName&().toString()<<" IN DS "<<makeDSFromDNSKey(zone.operator const DNSName&(), key, DNSSECKeeper::DIGEST_SHA1).getZoneRepresentation() << " ; ( SHA1 digest )" << endl;
       }
-      cout<<prefix<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone.operator const DNSName&(), key, DNSSECKeeper::DIGEST_SHA256).getZoneRepresentation() << " ; ( SHA256 digest )" << endl;
+      cout<<prefix<<zone.operator const DNSName&().toString()<<" IN DS "<<makeDSFromDNSKey(zone.operator const DNSName&(), key, DNSSECKeeper::DIGEST_SHA256).getZoneRepresentation() << " ; ( SHA256 digest )" << endl;
       if (g_verbose) {
         try {
           string output=makeDSFromDNSKey(zone.operator const DNSName&(), key, DNSSECKeeper::DIGEST_GOST).getZoneRepresentation();
-          cout<<prefix<<zone.toString()<<" IN DS "<<output<< " ; ( GOST R 34.11-94 digest )" << endl;
+          cout<<prefix<<zone.operator const DNSName&().toString()<<" IN DS "<<output<< " ; ( GOST R 34.11-94 digest )" << endl;
         }
         catch(...)
         {}
       }
       try {
         string output=makeDSFromDNSKey(zone.operator const DNSName&(), key, DNSSECKeeper::DIGEST_SHA384).getZoneRepresentation();
-        cout<<prefix<<zone.toString()<<" IN DS "<<output<< " ; ( SHA-384 digest )" << endl;
+        cout<<prefix<<zone.operator const DNSName&().toString()<<" IN DS "<<output<< " ; ( SHA-384 digest )" << endl;
       }
       catch(...)
       {}
@@ -2437,27 +2437,27 @@ static bool showZone(DNSSECKeeper& dnsseckeeper, const ZoneName& zone, bool expo
 
       if (!exportDS) {
         if (value.second.keyType == DNSSECKeeper::KSK || value.second.keyType == DNSSECKeeper::CSK || ::arg().mustDo("direct-dnskey")) {
-          cout<<DNSSECKeeper::keyTypeToString(value.second.keyType)<<" DNSKEY = "<<zone.toString()<<" IN DNSKEY "<< value.first.getDNSKEY().getZoneRepresentation() << " ; ( "  + algname + " )" << endl;
+          cout<<DNSSECKeeper::keyTypeToString(value.second.keyType)<<" DNSKEY = "<<zone.operator const DNSName&().toString()<<" IN DNSKEY "<< value.first.getDNSKEY().getZoneRepresentation() << " ; ( "  + algname + " )" << endl;
         }
       }
       if (value.second.keyType == DNSSECKeeper::KSK || value.second.keyType == DNSSECKeeper::CSK) {
         const auto &key = value.first.getDNSKEY();
         const std::string prefix(exportDS ? "" : "DS = ");
         if (g_verbose) {
-          cout<<prefix<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone.operator const DNSName&(), key, DNSSECKeeper::DIGEST_SHA1).getZoneRepresentation() << " ; ( SHA1 digest )" << endl;
+          cout<<prefix<<zone.operator const DNSName&().toString()<<" IN DS "<<makeDSFromDNSKey(zone.operator const DNSName&(), key, DNSSECKeeper::DIGEST_SHA1).getZoneRepresentation() << " ; ( SHA1 digest )" << endl;
         }
-        cout<<prefix<<zone.toString()<<" IN DS "<<makeDSFromDNSKey(zone.operator const DNSName&(), key, DNSSECKeeper::DIGEST_SHA256).getZoneRepresentation() << " ; ( SHA256 digest )" << endl;
+        cout<<prefix<<zone.operator const DNSName&().toString()<<" IN DS "<<makeDSFromDNSKey(zone.operator const DNSName&(), key, DNSSECKeeper::DIGEST_SHA256).getZoneRepresentation() << " ; ( SHA256 digest )" << endl;
         if (g_verbose) {
           try {
             string output=makeDSFromDNSKey(zone.operator const DNSName&(), key, DNSSECKeeper::DIGEST_GOST).getZoneRepresentation();
-            cout<<prefix<<zone.toString()<<" IN DS "<<output<< " ; ( GOST R 34.11-94 digest )" << endl;
+            cout<<prefix<<zone.operator const DNSName&().toString()<<" IN DS "<<output<< " ; ( GOST R 34.11-94 digest )" << endl;
           }
           catch(...)
           {}
         }
         try {
           string output=makeDSFromDNSKey(zone.operator const DNSName&(), key, DNSSECKeeper::DIGEST_SHA384).getZoneRepresentation();
-          cout<<prefix<<zone.toString()<<" IN DS "<<output<< " ; ( SHA-384 digest )" << endl;
+          cout<<prefix<<zone.operator const DNSName&().toString()<<" IN DS "<<output<< " ; ( SHA-384 digest )" << endl;
         }
         catch(...)
         {}
@@ -2651,15 +2651,15 @@ static int testSchema(DNSSECKeeper& dsk, const ZoneName& zone)
   cout<<"Checking underscore ordering"<<endl;
   DNSName before, after;
   db->getBeforeAndAfterNames(di.id, zone, DNSName("z")+zone.operator const DNSName&(), before, after);
-  cout<<"got '"<<before.toString()<<"' < 'z."<<zone.toString()<<"' < '"<<after.toString()<<"'"<<endl;
+  cout<<"got '"<<before.toString()<<"' < 'z."<<zone.operator const DNSName&().toString()<<"' < '"<<after.toString()<<"'"<<endl;
   if(before != DNSName("_underscore")+zone.operator const DNSName&())
   {
-    cout<<"before is wrong, got '"<<before.toString()<<"', expected '_underscore."<<zone.toString()<<"', aborting"<<endl;
+    cout<<"before is wrong, got '"<<before.toString()<<"', expected '_underscore."<<zone.operator const DNSName&().toString()<<"', aborting"<<endl;
     return EXIT_FAILURE;
   }
   if(after != zone.operator const DNSName&())
   {
-    cout<<"after is wrong, got '"<<after.toString()<<"', expected '"<<zone.toString()<<"', aborting"<<endl;
+    cout<<"after is wrong, got '"<<after.toString()<<"', expected '"<<zone.operator const DNSName&().toString()<<"', aborting"<<endl;
     return EXIT_FAILURE;
   }
   cout<<"[+] ordername sorting is correct for names starting with _"<<endl;

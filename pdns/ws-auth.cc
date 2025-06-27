@@ -1975,7 +1975,7 @@ static void apiServerZonesPOST(HttpRequest* req, HttpResponse* resp)
   if (!have_soa && zonekind != DomainInfo::Secondary && zonekind != DomainInfo::Consumer) {
     // synthesize a SOA record so the zone "really" exists
     string soa = ::arg()["default-soa-content"];
-    boost::replace_all(soa, "@", zonename.toStringNoDot());
+    boost::replace_all(soa, "@", zonename.operator const DNSName&().toStringNoDot());
     SOAData soaData;
     fillSOAData(soa, soaData);
     soaData.serial = document["serial"].int_value();
