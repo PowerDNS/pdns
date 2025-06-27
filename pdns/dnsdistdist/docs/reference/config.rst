@@ -831,7 +831,7 @@ A server object returned by :func:`getServer` can be manipulated with these func
 
   .. method:: Server:getQueries() -> int
 
-    .. versionadded:: 2.0.x
+    .. versionadded:: 2.0.0
 
     Get the number of total queries for this server.
 
