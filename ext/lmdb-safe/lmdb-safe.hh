@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <string_view>
 #include <lmdb.h>
-#include <map>
+#include <unordered_map>
 #include <thread>
 #include <memory>
 #include <string>
@@ -13,6 +13,7 @@
 #include <mutex>
 #include <vector>
 #include <algorithm>
+#include <shared_mutex>
 #include <string>
 #include <string_view>
 #include <atomic>
@@ -114,9 +115,9 @@ public:
   void decROTX();
 private:
   std::mutex d_openmut;
-  std::mutex d_countmutex;
-  std::map<std::thread::id, int> d_RWtransactionsOut;
-  std::map<std::thread::id, int> d_ROtransactionsOut;
+  std::shared_mutex d_countmutex;
+  std::unordered_map<std::thread::id, std::atomic<int>> d_RWtransactionsOut;
+  std::unordered_map<std::thread::id, std::atomic<int>> d_ROtransactionsOut;
 };
 
 std::shared_ptr<MDBEnv> getMDBEnv(const char* fname, int flags, int mode, uint64_t mapsizeMB);
