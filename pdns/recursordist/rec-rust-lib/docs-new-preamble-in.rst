@@ -449,7 +449,7 @@ An example of an ``zonetocaches`` entry, which is a sequence of `ZoneToCache`_:
 
 .. code-block:: yaml
 
-   recursor:
+   recordcache:
      zonetocaches:
        - zone: .
          method: url
