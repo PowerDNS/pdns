@@ -25,7 +25,10 @@
 
 #include <string>
 
+class LuaContext;
+
 namespace dnsdist::configuration::yaml
 {
 bool loadConfigurationFromFile(const std::string& fileName, bool isClient, bool configCheck);
+void addLuaBindingsForYAMLObjects(LuaContext& luaCtx);
 }

@@ -49,8 +49,10 @@
 #include "rust/lib.rs.h"
 #include "dnsdist-configuration-yaml-internal.hh"
 
-#include <boost/uuid/string_generator.hpp>
 #include <variant>
+#include <boost/optional.hpp>
+#include <boost/uuid/string_generator.hpp>
+#include <boost/variant.hpp>
 
 #endif /* HAVE_YAML_CONFIGURATION */
 
@@ -1165,7 +1167,6 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
 
     loadRulesConfiguration(globalConfig);
 
-    s_registeredTypesMap.lock()->clear();
     return true;
   }
   catch (const ::rust::Error& exp) {
@@ -1174,11 +1175,58 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
   catch (const std::exception& exp) {
     errlog("Error while processing YAML configuration from file %s: %s", fileName, exp.what());
   }
-  s_registeredTypesMap.lock()->clear();
   return false;
 #else
   (void)fileName;
   throw std::runtime_error("Unsupported YAML configuration");
+#endif /* HAVE_YAML_CONFIGURATION */
+}
+
+void addLuaBindingsForYAMLObjects([[maybe_unused]] LuaContext& luaCtx)
+{
+#if defined(HAVE_YAML_CONFIGURATION)
+  using ReturnValue = boost::optional<boost::variant<std::shared_ptr<DNSDistPacketCache>, std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction>, std::shared_ptr<NetmaskGroup>, std::shared_ptr<KeyValueStore>, std::shared_ptr<KeyValueLookupKey>, std::shared_ptr<RemoteLoggerInterface>, std::shared_ptr<ServerPolicy>, std::shared_ptr<XSKMap>>>;
+
+  luaCtx.writeFunction("getObjectFromYAMLConfiguration", [](const std::string& name) {
+    ReturnValue object{boost::none};
+    auto map = s_registeredTypesMap.lock();
+    auto item = map->find(name);
+    if (item == map->end()) {
+      return object;
+    }
+    if (auto* ptr = std::get_if<std::shared_ptr<DNSDistPacketCache>>(&item->second)) {
+      return ReturnValue(*ptr);
+    }
+    if (auto* ptr = std::get_if<std::shared_ptr<dnsdist::rust::settings::DNSSelector>>(&item->second)) {
+      return ReturnValue((*ptr)->d_rule);
+    }
+    if (auto* ptr = std::get_if<std::shared_ptr<dnsdist::rust::settings::DNSActionWrapper>>(&item->second)) {
+      return ReturnValue((*ptr)->d_action);
+    }
+    if (auto* ptr = std::get_if<std::shared_ptr<dnsdist::rust::settings::DNSResponseActionWrapper>>(&item->second)) {
+      return ReturnValue((*ptr)->d_action);
+    }
+    if (auto* ptr = std::get_if<std::shared_ptr<NetmaskGroup>>(&item->second)) {
+      return ReturnValue(*ptr);
+    }
+    if (auto* ptr = std::get_if<std::shared_ptr<KeyValueStore>>(&item->second)) {
+      return ReturnValue(*ptr);
+    }
+    if (auto* ptr = std::get_if<std::shared_ptr<KeyValueLookupKey>>(&item->second)) {
+      return ReturnValue(*ptr);
+    }
+    if (auto* ptr = std::get_if<std::shared_ptr<RemoteLoggerInterface>>(&item->second)) {
+      return ReturnValue(*ptr);
+    }
+    if (auto* ptr = std::get_if<std::shared_ptr<ServerPolicy>>(&item->second)) {
+      return ReturnValue(*ptr);
+    }
+    if (auto* ptr = std::get_if<std::shared_ptr<XSKMap>>(&item->second)) {
+      return ReturnValue(*ptr);
+    }
+
+    return object;
+  });
 #endif /* HAVE_YAML_CONFIGURATION */
 }
 }
@@ -1777,4 +1825,5 @@ std::shared_ptr<DNSSelector> getByNameSelector(const ByNameSelectorConfiguration
 #include "dnsdist-rust-bridge-actions-generated-body.hh"
 #include "dnsdist-rust-bridge-selectors-generated-body.hh"
 }
+
 #endif /* defined(HAVE_YAML_CONFIGURATION) */
