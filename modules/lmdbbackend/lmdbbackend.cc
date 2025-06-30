@@ -1188,6 +1188,25 @@ bool LMDBBackend::abortTransaction()
   return true;
 }
 
+void LMDBBackend::writeNSEC3RecordPair(domainid_t domain_id, const DNSName& qname, const DNSName& ordername)
+{
+  compoundOrdername co; // NOLINT(readability-identifier-length)
+  LMDBResourceRecord lrr;
+  lrr.auth = false;
+
+  // Write ordername -> qname back chain record with ttl set to 0
+  lrr.ttl = 0;
+  lrr.content = qname.toDNSStringLC();
+  string ser = serializeToBuffer(lrr);
+  d_rwtxn->txn->put(d_rwtxn->db->dbi, co(domain_id, ordername, QType::NSEC3), ser);
+
+  // Write qname -> ordername forward chain record with ttl set to 1
+  lrr.ttl = 1;
+  lrr.content = ordername.toDNSString();
+  ser = serializeToBuffer(lrr);
+  d_rwtxn->txn->put(d_rwtxn->db->dbi, co(domain_id, qname, QType::NSEC3), ser);
+}
+
 // d_rwtxn must be set here
 bool LMDBBackend::feedRecord(const DNSResourceRecord& r, const DNSName& ordername, bool ordernameIsNSEC3)
 {
@@ -1210,17 +1229,9 @@ bool LMDBBackend::feedRecord(const DNSResourceRecord& r, const DNSName& ordernam
 
   if (ordernameIsNSEC3 && !ordername.empty()) {
     MDBOutVal val;
+    // Only add the NSEC3 chain records if there aren't any.
     if (d_rwtxn->txn->get(d_rwtxn->db->dbi, co(lrr.domain_id, lrr.qname, QType::NSEC3), val)) {
-      lrr.ttl = 0;
-      lrr.content = lrr.qname.toDNSStringLC();
-      lrr.auth = 0;
-      string ser = serializeToBuffer(lrr);
-      d_rwtxn->txn->put(d_rwtxn->db->dbi, co(lrr.domain_id, ordername, QType::NSEC3), ser);
-
-      lrr.ttl = 1;
-      lrr.content = ordername.toDNSString();
-      ser = serializeToBuffer(lrr);
-      d_rwtxn->txn->put(d_rwtxn->db->dbi, co(lrr.domain_id, lrr.qname, QType::NSEC3), ser);
+      writeNSEC3RecordPair(lrr.domain_id, lrr.qname, ordername);
     }
   }
   return true;
@@ -1257,18 +1268,8 @@ bool LMDBBackend::feedEnts3(domainid_t domain_id, const DNSName& domain, map<DNS
     d_rwtxn->txn->put(d_rwtxn->db->dbi, co(domain_id, lrr.qname, QType::ENT), ser);
 
     if (!narrow && lrr.auth) {
-      lrr.content = lrr.qname.toDNSString();
-      lrr.auth = false;
-      lrr.ordername = false;
-      ser = serializeToBuffer(lrr);
-
       ordername = DNSName(toBase32Hex(hashQNameWithSalt(ns3prc, nt.first)));
-      d_rwtxn->txn->put(d_rwtxn->db->dbi, co(domain_id, ordername, QType::NSEC3), ser);
-
-      lrr.ttl = 1;
-      lrr.content = ordername.toDNSString();
-      ser = serializeToBuffer(lrr);
-      d_rwtxn->txn->put(d_rwtxn->db->dbi, co(domain_id, lrr.qname, QType::NSEC3), ser);
+      writeNSEC3RecordPair(domain_id, lrr.qname, ordername);
     }
   }
   return true;
@@ -2322,7 +2323,52 @@ bool LMDBBackend::unpublishDomainKey(const ZoneName& name, unsigned int keyId)
   return true;
 }
 
-// NOLINTNEXTLINE(readability-function-cognitive-complexity,readability-identifier-length)
+// Return true if the key points to an NSEC3 back chain record (ttl == 0).
+// Updates lrr if this is an NSEC3 record (regardless of its kind).
+bool LMDBBackend::isNSEC3BackRecord(LMDBResourceRecord& lrr, const MDBOutVal& key, const MDBOutVal& val)
+{
+  if (compoundOrdername::getQType(key.getNoStripHeader<StringView>()) == QType::NSEC3) {
+    deserializeFromBuffer(val.get<StringView>(), lrr);
+    if (lrr.ttl == 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// Search for the next NSEC3 back record and return its qname as `after'.
+// Returns true if found, false if not (either end of database records, or
+// different domain).
+// NOLINTNEXTLINE(readability-identifier-length)
+bool LMDBBackend::getAfterForward(MDBROCursor& cursor, MDBOutVal& key, MDBOutVal& val, domainid_t id, DNSName& after)
+{
+  LMDBResourceRecord lrr;
+
+  while (!isNSEC3BackRecord(lrr, key, val)) {
+    if (cursor.next(key, val) != 0 || compoundOrdername::getDomainID(key.getNoStripHeader<StringView>()) != id) {
+      // cout<<"hit end of zone or database when we shouldn't"<<endl;
+      return false;
+    }
+  }
+  after = compoundOrdername::getQName(key.getNoStripHeader<StringView>());
+  // cout<<"returning: before="<<before<<", after="<<after<<", unhashed: "<<unhashed<<endl;
+  return true;
+}
+
+// Reset the cursor position and fall through getAfterForward.
+// NOLINTNEXTLINE(readability-identifier-length)
+bool LMDBBackend::getAfterForwardFromStart(MDBROCursor& cursor, MDBOutVal& key, MDBOutVal& val, domainid_t id, DNSName& after)
+{
+  compoundOrdername co; // NOLINT(readability-identifier-length)
+
+  if (cursor.lower_bound(co(id), key, val) != 0) {
+    // cout<<"hit end of zone find when we shouldn't"<<endl;
+    return false;
+  }
+  return getAfterForward(cursor, key, val, id, after);
+}
+
+// NOLINTNEXTLINE(readability-identifier-length)
 bool LMDBBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after)
 {
   //  cout << __PRETTY_FUNCTION__<< ": "<<id <<", "<<qname << " " << unhashed<<endl;
@@ -2355,10 +2401,8 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& q
         return false;
       }
 
-      if (co.getQType(key.getNoStripHeader<StringView>()) == QType::NSEC3) {
-        deserializeFromBuffer(val.get<StringView>(), lrr);
-        if (!lrr.ttl) // the kind of NSEC3 we need
-          break;
+      if (isNSEC3BackRecord(lrr, key, val)) {
+        break; // the kind of NSEC3 we need
       }
       if (cursor.prev(key, val)) {
         // hit beginning of database, again means something is wrong with it
@@ -2369,25 +2413,7 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& q
     unhashed = DNSName(lrr.content.c_str(), lrr.content.size(), 0, false) + di.zone.operator const DNSName&();
 
     // now to find after .. at the beginning of the zone
-    if (cursor.lower_bound(co(id), key, val)) {
-      // cout<<"hit end of zone find when we shouldn't"<<endl;
-      return false;
-    }
-    for (;;) {
-      if (co.getQType(key.getNoStripHeader<StringView>()) == QType::NSEC3) {
-        deserializeFromBuffer(val.get<StringView>(), lrr);
-        if (!lrr.ttl)
-          break;
-      }
-
-      if (cursor.next(key, val) || co.getDomainID(key.getNoStripHeader<StringView>()) != id) {
-        // cout<<"hit end of zone or database when we shouldn't"<<endl;
-        return false;
-      }
-    }
-    after = co.getQName(key.getNoStripHeader<StringView>());
-    // cout<<"returning: before="<<before<<", after="<<after<<", unhashed: "<<unhashed<<endl;
-    return true;
+    return getAfterForwardFromStart(cursor, key, val, id, after);
   }
 
   // cout<<"Ended up at "<<co.getQName(key.get<StringView>()) <<endl;
@@ -2395,43 +2421,21 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& q
   before = co.getQName(key.getNoStripHeader<StringView>());
   if (before == qname) {
     // cout << "Ended up on exact right node" << endl;
-    before = co.getQName(key.getNoStripHeader<StringView>());
     // unhashed should be correct now, maybe check?
     if (cursor.next(key, val)) {
       // xxx should find first hash now
 
-      if (cursor.lower_bound(co(id), key, val)) {
-        // cout<<"hit end of zone find when we shouldn't for id "<<id<< __LINE__<<endl;
-        return false;
-      }
-      for (;;) {
-        if (co.getQType(key.getNoStripHeader<StringView>()) == QType::NSEC3) {
-          deserializeFromBuffer(val.get<StringView>(), lrr);
-          if (!lrr.ttl)
-            break;
-        }
-
-        if (cursor.next(key, val) || co.getDomainID(key.getNoStripHeader<StringView>()) != id) {
-          // cout<<"hit end of zone or database when we shouldn't" << __LINE__<<endl;
-          return false;
-        }
-      }
-      after = co.getQName(key.getNoStripHeader<StringView>());
-      // cout<<"returning: before="<<before<<", after="<<after<<", unhashed: "<<unhashed<<endl;
-      return true;
+      return getAfterForwardFromStart(cursor, key, val, id, after);
     }
   }
   else {
     // cout <<"Going backwards to find 'before'"<<endl;
     int count = 0;
     for (;;) {
-      if (co.getQName(key.getNoStripHeader<StringView>()).canonCompare(qname) && co.getQType(key.getNoStripHeader<StringView>()) == QType::NSEC3) {
-        // cout<<"Potentially stopping traverse at "<< co.getQName(key.get<StringView>()) <<", " << (co.getQName(key.get<StringView>()).canonCompare(qname))<<endl;
-        // cout<<"qname = "<<qname<<endl;
-        // cout<<"here  = "<<co.getQName(key.get<StringView>())<<endl;
-        deserializeFromBuffer(val.get<StringView>(), lrr);
-        if (!lrr.ttl)
+      if (compoundOrdername::getQName(key.getNoStripHeader<StringView>()).canonCompare(qname)) {
+        if (isNSEC3BackRecord(lrr, key, val)) {
           break;
+        }
       }
 
       if (cursor.prev(key, val) || co.getDomainID(key.getNoStripHeader<StringView>()) != id) {
@@ -2453,10 +2457,8 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& q
             return false;
           }
 
-          if (co.getQType(key.getNoStripHeader<StringView>()) == QType::NSEC3) {
-            deserializeFromBuffer(val.get<StringView>(), lrr);
-            if (!lrr.ttl) // the kind of NSEC3 we need
-              break;
+          if (isNSEC3BackRecord(lrr, key, val)) {
+            break;
           }
           if (cursor.prev(key, val)) {
             // hit beginning of database, again means something is wrong with it
@@ -2468,28 +2470,7 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& q
         // cout <<"Should still find 'after'!"<<endl;
         // for 'after', we need to find the first hash of this zone
 
-        if (cursor.lower_bound(co(id), key, val)) {
-          // cout<<"hit end of zone find when we shouldn't"<<endl;
-          // means database is wrong, nothing we can do
-          return false;
-        }
-        for (;;) {
-          if (co.getQType(key.getNoStripHeader<StringView>()) == QType::NSEC3) {
-            deserializeFromBuffer(val.get<StringView>(), lrr);
-            if (!lrr.ttl)
-              break;
-          }
-
-          if (cursor.next(key, val)) {
-            // means database is wrong, nothing we can do
-            // cout<<"hit end of zone when we shouldn't 2"<<endl;
-            return false;
-          }
-        }
-        after = co.getQName(key.getNoStripHeader<StringView>());
-
-        // cout<<"returning: before="<<before<<", after="<<after<<", unhashed: "<<unhashed<<endl;
-        return true;
+        return getAfterForwardFromStart(cursor, key, val, id, after);
       }
       ++count;
     }
@@ -2501,45 +2482,23 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& q
       cursor.next(key, val);
   }
   //  cout<<"Now going forward"<<endl;
-  for (int count = 0;; ++count) {
-    if ((count && cursor.next(key, val)) || co.getDomainID(key.getNoStripHeader<StringView>()) != id) {
-      // cout <<"Hit end of database or zone, finding first hash then in zone "<<id<<endl;
-      if (cursor.lower_bound(co(id), key, val)) {
-        // cout<<"hit end of zone find when we shouldn't"<<endl;
-        // means database is wrong, nothing we can do
-        return false;
-      }
-      for (;;) {
-        if (co.getQType(key.getNoStripHeader<StringView>()) == QType::NSEC3) {
-          deserializeFromBuffer(val.get<StringView>(), lrr);
-          if (!lrr.ttl)
-            break;
-        }
-
-        if (cursor.next(key, val)) {
-          // means database is wrong, nothing we can do
-          // cout<<"hit end of zone when we shouldn't 2"<<endl;
-          return false;
-        }
-        // cout << "Next.. "<<endl;
-      }
-      after = co.getQName(key.getNoStripHeader<StringView>());
-
-      // cout<<"returning: before="<<before<<", after="<<after<<", unhashed: "<<unhashed<<endl;
-      return true;
-    }
-
-    // cout<<"After "<<co.getQName(key.get<StringView>()) <<endl;
-    if (co.getQType(key.getNoStripHeader<StringView>()) == QType::NSEC3) {
-      deserializeFromBuffer(val.get<StringView>(), lrr);
-      if (!lrr.ttl) {
-        break;
-      }
-    }
+  if (getAfterForward(cursor, key, val, id, after)) {
+    return true;
   }
-  after = co.getQName(key.getNoStripHeader<StringView>());
-  // cout<<"returning: before="<<before<<", after="<<after<<", unhashed: "<<unhashed<<endl;
-  return true;
+  // cout <<"Hit end of database or zone, finding first hash then in zone "<<id<<endl;
+  // Reset cursor position and retry
+  return getAfterForwardFromStart(cursor, key, val, id, after);
+}
+
+// Return whether the given entry is an authoritative record, ignoring empty
+// non terminal records.
+bool LMDBBackend::isValidAuthRecord(const MDBOutVal& key, const MDBOutVal& val)
+{
+  LMDBResourceRecord lrr;
+
+  deserializeFromBuffer(val.get<StringView>(), lrr);
+  QType qtype = compoundOrdername::getQType(key.getNoStripHeader<string_view>()).getCode();
+  return qtype != QType::ENT && (lrr.auth || qtype == QType::NS);
 }
 
 bool LMDBBackend::getBeforeAndAfterNames(domainid_t domainId, const ZoneName& zonenameU, const DNSName& qname, DNSName& before, DNSName& after)
@@ -2547,12 +2506,14 @@ bool LMDBBackend::getBeforeAndAfterNames(domainid_t domainId, const ZoneName& zo
   ZoneName zonename = zonenameU.makeLowerCase();
   //  cout << __PRETTY_FUNCTION__<< ": "<<domainId <<", "<<zonename << ", '"<<qname<<"'"<<endl;
 
-  auto txn = getRecordsROTransaction(domainId);
   compoundOrdername co;
-  DNSName qname2 = qname.makeRelative(zonename);
-  string matchkey = co(domainId, qname2);
+  auto txn = getRecordsROTransaction(domainId);
+
   auto cursor = txn->txn->getCursor(txn->db->dbi);
   MDBOutVal key, val;
+
+  DNSName qname2 = qname.makeRelative(zonename);
+  string matchkey = co(domainId, qname2);
   // cout<<"Lower_bound for "<<qname2<<endl;
   if (cursor.lower_bound(matchkey, key, val)) {
     // cout << "Hit end of database, bummer"<<endl;
@@ -2569,7 +2530,7 @@ bool LMDBBackend::getBeforeAndAfterNames(domainid_t domainId, const ZoneName& zo
 
   if (compoundOrdername::getQType(key.getNoStripHeader<string_view>()).getCode() != 0 && compoundOrdername::getDomainID(key.getNoStripHeader<string_view>()) == domainId && compoundOrdername::getQName(key.getNoStripHeader<string_view>()) == qname2) { // don't match ENTs
     // cout << "Had an exact match!"<<endl;
-    before = qname2 + zonename.operator const DNSName&();
+    before = qname; // i.e. qname2 + zonename.operator const DNSName&();
     int rc;
     for (;;) {
       rc = cursor.next(key, val);
@@ -2579,10 +2540,9 @@ bool LMDBBackend::getBeforeAndAfterNames(domainid_t domainId, const ZoneName& zo
       if (compoundOrdername::getDomainID(key.getNoStripHeader<string_view>()) == domainId && key.getNoStripHeader<StringView>().rfind(matchkey, 0) == 0) {
         continue;
       }
-      LMDBResourceRecord lrr;
-      deserializeFromBuffer(val.get<StringView>(), lrr);
-      if (co.getQType(key.getNoStripHeader<string_view>()).getCode() && (lrr.auth || co.getQType(key.getNoStripHeader<string_view>()).getCode() == QType::NS))
+      if (isValidAuthRecord(key, val)) {
         break;
+      }
     }
     if (rc != 0 || compoundOrdername::getDomainID(key.getNoStripHeader<string_view>()) != domainId) {
       // cout << "We hit the end of the zone or database. 'after' is apex" << endl;
@@ -2610,10 +2570,9 @@ bool LMDBBackend::getBeforeAndAfterNames(domainid_t domainId, const ZoneName& zo
         // "this can't happen"
         return false;
       }
-      LMDBResourceRecord lrr;
-      deserializeFromBuffer(val.get<StringView>(), lrr);
-      if (co.getQType(key.getNoStripHeader<string_view>()).getCode() && (lrr.auth || co.getQType(key.getNoStripHeader<string_view>()).getCode() == QType::NS))
+      if (isValidAuthRecord(key, val)) {
         break;
+      }
     }
 
     before = compoundOrdername::getQName(key.getNoStripHeader<string_view>()) + zonename.operator const DNSName&();
@@ -2625,10 +2584,10 @@ bool LMDBBackend::getBeforeAndAfterNames(domainid_t domainId, const ZoneName& zo
 
   int skips = 0;
   for (;;) {
-    LMDBResourceRecord lrr;
-    deserializeFromBuffer(val.get<StringView>(), lrr);
-    if (co.getQType(key.getNoStripHeader<string_view>()).getCode() && (lrr.auth || co.getQType(key.getNoStripHeader<string_view>()).getCode() == QType::NS)) {
+    if (isValidAuthRecord(key, val)) {
       after = compoundOrdername::getQName(key.getNoStripHeader<string_view>()) + zonename.operator const DNSName&();
+      // Note: change isValidAuthRecord to also return the LMDBResourceRecord if
+      // uncommenting these debug messages...
       // cout <<"Found auth ("<<lrr.auth<<") or an NS record "<<after<<", type: "<<co.getQType(key.getNoStripHeader<string_view>()).toString()<<", ttl = "<<lrr.ttl<<endl;
       // cout << makeHexDump(val.get<string>()) << endl;
       break;
@@ -2655,11 +2614,10 @@ bool LMDBBackend::getBeforeAndAfterNames(domainid_t domainId, const ZoneName& zo
       return false;
     }
     before = compoundOrdername::getQName(key.getNoStripHeader<string_view>()) + zonename.operator const DNSName&();
-    LMDBResourceRecord lrr;
-    deserializeFromBuffer(val.get<string_view>(), lrr);
     // cout<<"And before to "<<before<<", auth = "<<rr.auth<<endl;
-    if (co.getQType(key.getNoStripHeader<string_view>()).getCode() && (lrr.auth || co.getQType(key.getNoStripHeader<string_view>()) == QType::NS))
+    if (isValidAuthRecord(key, val)) {
       break;
+    }
     // cout << "Oops, that was wrong, go back one more"<<endl;
   }
 
@@ -2756,18 +2714,7 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSNa
   }
 
   if (hasOrderName && del) {
-    matchkey = co(domain_id, rel, QType::NSEC3);
-
-    lrr.ttl = 0;
-    lrr.auth = 0;
-    lrr.content = rel.toDNSStringLC();
-
-    string str = serializeToBuffer(lrr);
-    txn->txn->put(txn->db->dbi, co(domain_id, ordername, QType::NSEC3), str);
-    lrr.ttl = 1;
-    lrr.content = ordername.toDNSStringLC();
-    str = serializeToBuffer(lrr);
-    txn->txn->put(txn->db->dbi, matchkey, str); // 2
+    writeNSEC3RecordPair(domain_id, rel, ordername);
   }
 
   if (needCommit)

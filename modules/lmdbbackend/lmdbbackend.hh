@@ -338,6 +338,12 @@ private:
   void lookupInternal(const QType& type, const DNSName& qdomain, domainid_t zoneId, DNSPacket* p, bool include_disabled);
   bool getSerial(DomainInfo& di);
 
+  static bool getAfterForward(MDBROCursor& cursor, MDBOutVal& key, MDBOutVal& val, domainid_t id, DNSName& after);
+  static bool getAfterForwardFromStart(MDBROCursor& cursor, MDBOutVal& key, MDBOutVal& val, domainid_t id, DNSName& after);
+  static bool isNSEC3BackRecord(LMDBResourceRecord& lrr, const MDBOutVal& key, const MDBOutVal& val);
+  static bool isValidAuthRecord(const MDBOutVal& key, const MDBOutVal& val);
+  void writeNSEC3RecordPair(domainid_t domain_id, const DNSName& qname, const DNSName& ordername);
+
   bool get_list(DNSZoneRecord& rr);
   bool get_lookup(DNSZoneRecord& rr);
   std::string d_matchkey;
