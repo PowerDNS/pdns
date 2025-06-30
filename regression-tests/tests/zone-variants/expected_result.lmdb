@@ -2,18 +2,21 @@ Creating empty zone 'example.com..variant1'
 This is a Native zone
 Variant: variant1
 Zone is not actively secured
-Metadata items: None
+Metadata items: 
+	SOA-EDIT-API	DEFAULT
 No keys for zone 'example.com..variant1'.
 Creating empty zone '..myroot'
 This is a Native zone
 Variant: myroot
 Zone is not actively secured
-Metadata items: None
+Metadata items: 
+	SOA-EDIT-API	DEFAULT
 No keys for zone '..myroot'.
 Creating empty zone '.'
 This is a Native zone
 Zone is not actively secured
-Metadata items: None
+Metadata items: 
+	SOA-EDIT-API	DEFAULT
 No keys for zone '.'.
 .
 ..myroot
