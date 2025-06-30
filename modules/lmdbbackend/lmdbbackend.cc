@@ -2339,15 +2339,11 @@ bool LMDBBackend::isNSEC3BackRecord(LMDBResourceRecord& lrr, const MDBOutVal& ke
 // Search for the next NSEC3 back record and return its qname as `after'.
 // Returns true if found, false if not (either end of database records, or
 // different domain).
+// NOLINTNEXTLINE(readability-identifier-length)
 bool LMDBBackend::getAfterForward(MDBROCursor& cursor, MDBOutVal& key, MDBOutVal& val, domainid_t id, DNSName& after)
 {
-  compoundOrdername co; // NOLINT(readability-identifier-length)
   LMDBResourceRecord lrr;
 
-  if (cursor.lower_bound(co(id), key, val) != 0) {
-    // cout<<"hit end of zone find when we shouldn't"<<endl;
-    return false;
-  }
   while (!isNSEC3BackRecord(lrr, key, val)) {
     if (cursor.next(key, val) != 0 || compoundOrdername::getDomainID(key.getNoStripHeader<StringView>()) != id) {
       // cout<<"hit end of zone or database when we shouldn't"<<endl;
@@ -2357,6 +2353,19 @@ bool LMDBBackend::getAfterForward(MDBROCursor& cursor, MDBOutVal& key, MDBOutVal
   after = compoundOrdername::getQName(key.getNoStripHeader<StringView>());
   // cout<<"returning: before="<<before<<", after="<<after<<", unhashed: "<<unhashed<<endl;
   return true;
+}
+
+// Reset the cursor position and fall through getAfterForward.
+// NOLINTNEXTLINE(readability-identifier-length)
+bool LMDBBackend::getAfterForwardFromStart(MDBROCursor& cursor, MDBOutVal& key, MDBOutVal& val, domainid_t id, DNSName& after)
+{
+  compoundOrdername co; // NOLINT(readability-identifier-length)
+
+  if (cursor.lower_bound(co(id), key, val) != 0) {
+    // cout<<"hit end of zone find when we shouldn't"<<endl;
+    return false;
+  }
+  return getAfterForward(cursor, key, val, id, after);
 }
 
 // NOLINTNEXTLINE(readability-identifier-length)
@@ -2404,7 +2413,7 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& q
     unhashed = DNSName(lrr.content.c_str(), lrr.content.size(), 0, false) + di.zone.operator const DNSName&();
 
     // now to find after .. at the beginning of the zone
-    return getAfterForward(cursor, key, val, id, after);
+    return getAfterForwardFromStart(cursor, key, val, id, after);
   }
 
   // cout<<"Ended up at "<<co.getQName(key.get<StringView>()) <<endl;
@@ -2416,7 +2425,7 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& q
     if (cursor.next(key, val)) {
       // xxx should find first hash now
 
-      return getAfterForward(cursor, key, val, id, after);
+      return getAfterForwardFromStart(cursor, key, val, id, after);
     }
   }
   else {
@@ -2461,7 +2470,7 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& q
         // cout <<"Should still find 'after'!"<<endl;
         // for 'after', we need to find the first hash of this zone
 
-        return getAfterForward(cursor, key, val, id, after);
+        return getAfterForwardFromStart(cursor, key, val, id, after);
       }
       ++count;
     }
@@ -2473,20 +2482,12 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& q
       cursor.next(key, val);
   }
   //  cout<<"Now going forward"<<endl;
-  for (bool notFirst = false;; notFirst = true) {
-    if ((notFirst && cursor.next(key, val)) || co.getDomainID(key.getNoStripHeader<StringView>()) != id) {
-      // cout <<"Hit end of database or zone, finding first hash then in zone "<<id<<endl;
-      return getAfterForward(cursor, key, val, id, after);
-    }
-
-    // cout<<"After "<<co.getQName(key.get<StringView>()) <<endl;
-    if (isNSEC3BackRecord(lrr, key, val)) {
-      break;
-    }
+  if (getAfterForward(cursor, key, val, id, after)) {
+    return true;
   }
-  after = co.getQName(key.getNoStripHeader<StringView>());
-  // cout<<"returning: before="<<before<<", after="<<after<<", unhashed: "<<unhashed<<endl;
-  return true;
+  // cout <<"Hit end of database or zone, finding first hash then in zone "<<id<<endl;
+  // Reset cursor position and retry
+  return getAfterForwardFromStart(cursor, key, val, id, after);
 }
 
 bool LMDBBackend::getBeforeAndAfterNames(domainid_t domainId, const ZoneName& zonenameU, const DNSName& qname, DNSName& before, DNSName& after)
