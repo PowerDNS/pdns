@@ -93,7 +93,7 @@ Specifies the full path of the zone configuration file to use. The file is re-op
 
 Specifies the full path of a directory that will contain DNSSEC keys.
 This option enables DNSSEC on the backend. Keys can be created/managed
-with :doc:`pdnsutil <pdnsutil>`, and the backend stores these keys in files with key
+with :doc:`pdnsutil <../manpages/pdnsutil.1>`, and the backend stores these keys in files with key
 flags and active/disabled state encoded in the key filenames.
 
 Zonefile format
