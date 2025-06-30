@@ -286,6 +286,9 @@ metric_sources = [
 
 py = import('python')
 python = py.find_installation('python3', required: true)
+if python.language_version().version_compare('<3.8')
+   error('Python version is ' + python.language_version() + '; should be at least 3.8 for generate.py script')
+endif
 
 metricfiles = custom_target(
   command: [python, '@INPUT0@', '@SOURCE_ROOT@', '@BUILD_ROOT@'],
