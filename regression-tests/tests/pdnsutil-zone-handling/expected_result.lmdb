@@ -22,5 +22,6 @@ host2.bug.less	3600	IN	A	127.0.0.2
 host2.bug.less	3600	IN	A	127.0.0.3
 This is a Native zone (936255546)
 Zone is not actively secured
-Metadata items: None
+Metadata items: 
+	SOA-EDIT-API	DEFAULT
 No keys for zone 'bug.less'.
