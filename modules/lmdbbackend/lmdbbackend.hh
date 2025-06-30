@@ -338,6 +338,8 @@ private:
   void lookupInternal(const QType& type, const DNSName& qdomain, domainid_t zoneId, DNSPacket* p, bool include_disabled);
   bool getSerial(DomainInfo& di);
 
+  void writeNSEC3RecordPair(domainid_t domain_id, const DNSName& qname, const DNSName& ordername);
+
   bool get_list(DNSZoneRecord& rr);
   bool get_lookup(DNSZoneRecord& rr);
   std::string d_matchkey;

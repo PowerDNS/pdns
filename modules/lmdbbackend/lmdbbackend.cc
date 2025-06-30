@@ -1188,6 +1188,25 @@ bool LMDBBackend::abortTransaction()
   return true;
 }
 
+void LMDBBackend::writeNSEC3RecordPair(domainid_t domain_id, const DNSName& qname, const DNSName& ordername)
+{
+  compoundOrdername co; // NOLINT(readability-identifier-length)
+  LMDBResourceRecord lrr;
+  lrr.auth = false;
+
+  // Write ordername -> qname back chain record with ttl set to 0
+  lrr.ttl = 0;
+  lrr.content = qname.toDNSStringLC();
+  string ser = serializeToBuffer(lrr);
+  d_rwtxn->txn->put(d_rwtxn->db->dbi, co(domain_id, ordername, QType::NSEC3), ser);
+
+  // Write qname -> ordername forward chain record with ttl set to 1
+  lrr.ttl = 1;
+  lrr.content = ordername.toDNSString();
+  ser = serializeToBuffer(lrr);
+  d_rwtxn->txn->put(d_rwtxn->db->dbi, co(domain_id, qname, QType::NSEC3), ser);
+}
+
 // d_rwtxn must be set here
 bool LMDBBackend::feedRecord(const DNSResourceRecord& r, const DNSName& ordername, bool ordernameIsNSEC3)
 {
@@ -1210,17 +1229,9 @@ bool LMDBBackend::feedRecord(const DNSResourceRecord& r, const DNSName& ordernam
 
   if (ordernameIsNSEC3 && !ordername.empty()) {
     MDBOutVal val;
+    // Only add the NSEC3 chain records if there aren't any.
     if (d_rwtxn->txn->get(d_rwtxn->db->dbi, co(lrr.domain_id, lrr.qname, QType::NSEC3), val)) {
-      lrr.ttl = 0;
-      lrr.content = lrr.qname.toDNSStringLC();
-      lrr.auth = 0;
-      string ser = serializeToBuffer(lrr);
-      d_rwtxn->txn->put(d_rwtxn->db->dbi, co(lrr.domain_id, ordername, QType::NSEC3), ser);
-
-      lrr.ttl = 1;
-      lrr.content = ordername.toDNSString();
-      ser = serializeToBuffer(lrr);
-      d_rwtxn->txn->put(d_rwtxn->db->dbi, co(lrr.domain_id, lrr.qname, QType::NSEC3), ser);
+      writeNSEC3RecordPair(lrr.domain_id, lrr.qname, ordername);
     }
   }
   return true;
@@ -1257,18 +1268,8 @@ bool LMDBBackend::feedEnts3(domainid_t domain_id, const DNSName& domain, map<DNS
     d_rwtxn->txn->put(d_rwtxn->db->dbi, co(domain_id, lrr.qname, QType::ENT), ser);
 
     if (!narrow && lrr.auth) {
-      lrr.content = lrr.qname.toDNSString();
-      lrr.auth = false;
-      lrr.ordername = false;
-      ser = serializeToBuffer(lrr);
-
       ordername = DNSName(toBase32Hex(hashQNameWithSalt(ns3prc, nt.first)));
-      d_rwtxn->txn->put(d_rwtxn->db->dbi, co(domain_id, ordername, QType::NSEC3), ser);
-
-      lrr.ttl = 1;
-      lrr.content = ordername.toDNSString();
-      ser = serializeToBuffer(lrr);
-      d_rwtxn->txn->put(d_rwtxn->db->dbi, co(domain_id, lrr.qname, QType::NSEC3), ser);
+      writeNSEC3RecordPair(domain_id, lrr.qname, ordername);
     }
   }
   return true;
@@ -2756,18 +2757,7 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSNa
   }
 
   if (hasOrderName && del) {
-    matchkey = co(domain_id, rel, QType::NSEC3);
-
-    lrr.ttl = 0;
-    lrr.auth = 0;
-    lrr.content = rel.toDNSStringLC();
-
-    string str = serializeToBuffer(lrr);
-    txn->txn->put(txn->db->dbi, co(domain_id, ordername, QType::NSEC3), str);
-    lrr.ttl = 1;
-    lrr.content = ordername.toDNSStringLC();
-    str = serializeToBuffer(lrr);
-    txn->txn->put(txn->db->dbi, matchkey, str); // 2
+    writeNSEC3RecordPair(domain_id, rel, ordername);
   }
 
   if (needCommit)
