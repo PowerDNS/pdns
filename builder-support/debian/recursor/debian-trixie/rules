@@ -43,7 +43,7 @@ override_dh_auto_configure:
 	CC=clang \
 	CXX=clang++ \
 	PKG_CONFIG_PATH=/opt/lib/pkgconfig dh_auto_configure -- \
-	--sysconfdir=%{_sysconfdir}/%{name} \
+	--sysconfdir=/etc/powerdns \
 	-Db_lto=true \
 	-Db_lto_mode=thin \
 	-Db_pie=true \
