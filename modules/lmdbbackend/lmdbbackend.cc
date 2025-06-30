@@ -2473,8 +2473,8 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& q
       cursor.next(key, val);
   }
   //  cout<<"Now going forward"<<endl;
-  for (int count = 0;; ++count) {
-    if ((count && cursor.next(key, val)) || co.getDomainID(key.getNoStripHeader<StringView>()) != id) {
+  for (bool notFirst = false;; notFirst = true) {
+    if ((notFirst && cursor.next(key, val)) || co.getDomainID(key.getNoStripHeader<StringView>()) != id) {
       // cout <<"Hit end of database or zone, finding first hash then in zone "<<id<<endl;
       return getAfterForward(cursor, key, val, id, after);
     }
