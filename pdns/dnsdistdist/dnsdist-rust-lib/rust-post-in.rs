@@ -60,28 +60,31 @@ fn get_global_configuration_from_serde(
     serde: GlobalConfigurationSerde,
 ) -> Result<dnsdistsettings::GlobalConfiguration, cxx::Exception> {
     let mut config: dnsdistsettings::GlobalConfiguration = Default::default();
-    config.key_value_stores = serde.key_value_stores;
-    config.webserver = serde.webserver;
-    config.console = serde.console;
-    config.edns_client_subnet = serde.edns_client_subnet;
-    config.dynamic_rules_settings = serde.dynamic_rules_settings;
-    config.dynamic_rules = serde.dynamic_rules;
     config.acl = serde.acl;
-    config.ring_buffers = serde.ring_buffers;
-    config.binds = serde.binds;
     config.backends = serde.backends;
+    config.binds = serde.binds;
     config.cache_settings = serde.cache_settings;
-    config.security_polling = serde.security_polling;
+    config.console = serde.console;
+    config.dynamic_rules = serde.dynamic_rules;
+    config.dynamic_rules_settings = serde.dynamic_rules_settings;
+    config.ebpf = serde.ebpf;
+    config.edns_client_subnet = serde.edns_client_subnet;
     config.general = serde.general;
-    config.packet_caches = serde.packet_caches;
-    config.proxy_protocol = serde.proxy_protocol;
-    config.snmp = serde.snmp;
-    config.query_count = serde.query_count;
+    config.key_value_stores = serde.key_value_stores;
     config.load_balancing_policies = serde.load_balancing_policies;
-    config.pools = serde.pools;
+    config.logging = serde.logging;
     config.metrics = serde.metrics;
+    config.packet_caches = serde.packet_caches;
+    config.pools = serde.pools;
+    config.proxy_protocol = serde.proxy_protocol;
+    config.query_count = serde.query_count;
     config.remote_logging = serde.remote_logging;
+    config.ring_buffers = serde.ring_buffers;
+    config.security_polling = serde.security_polling;
+    config.snmp = serde.snmp;
     config.tuning = serde.tuning;
+    config.webserver = serde.webserver;
+    config.xsk = serde.xsk;
     // this needs to be done before the rules so that they can refer to the loggers
     register_remote_loggers(&config.remote_logging);
     // this needs to be done before the rules so that they can refer to the KVS objects
@@ -89,14 +92,14 @@ fn get_global_configuration_from_serde(
     // this needs to be done BEFORE the rules so that they can refer to the selectors
     // by name
     config.selectors = get_selectors_from_serde(&serde.selectors)?;
-    config.query_rules = get_query_rules_from_serde(&serde.query_rules)?;
-    config.cache_miss_rules = get_query_rules_from_serde(&serde.cache_miss_rules)?;
-    config.response_rules = get_response_rules_from_serde(&serde.response_rules)?;
     config.cache_hit_response_rules = get_response_rules_from_serde(&serde.cache_hit_response_rules)?;
     config.cache_inserted_response_rules = get_response_rules_from_serde(&serde.cache_inserted_response_rules)?;
+    config.cache_miss_rules = get_query_rules_from_serde(&serde.cache_miss_rules)?;
+    config.query_rules = get_query_rules_from_serde(&serde.query_rules)?;
+    config.response_rules = get_response_rules_from_serde(&serde.response_rules)?;
     config.self_answered_response_rules = get_response_rules_from_serde(&serde.self_answered_response_rules)?;
-    config.xfr_response_rules = get_response_rules_from_serde(&serde.xfr_response_rules)?;
     config.timeout_response_rules = get_response_rules_from_serde(&serde.timeout_response_rules)?;
+    config.xfr_response_rules = get_response_rules_from_serde(&serde.xfr_response_rules)?;
     Ok(config)
 }
 
