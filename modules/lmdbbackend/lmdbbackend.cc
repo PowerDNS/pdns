@@ -2323,6 +2323,17 @@ bool LMDBBackend::unpublishDomainKey(const ZoneName& name, unsigned int keyId)
   return true;
 }
 
+bool LMDBBackend::isNSEC3BackRecord(LMDBResourceRecord& lrr, const MDBOutVal& key, const MDBOutVal& val)
+{
+  if (compoundOrdername::getQType(key.getNoStripHeader<StringView>()) == QType::NSEC3) {
+    deserializeFromBuffer(val.get<StringView>(), lrr);
+    if (lrr.ttl == 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
 // NOLINTNEXTLINE(readability-function-cognitive-complexity,readability-identifier-length)
 bool LMDBBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after)
 {
@@ -2356,10 +2367,8 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& q
         return false;
       }
 
-      if (co.getQType(key.getNoStripHeader<StringView>()) == QType::NSEC3) {
-        deserializeFromBuffer(val.get<StringView>(), lrr);
-        if (!lrr.ttl) // the kind of NSEC3 we need
-          break;
+      if (isNSEC3BackRecord(lrr, key, val)) {
+        break; // the kind of NSEC3 we need
       }
       if (cursor.prev(key, val)) {
         // hit beginning of database, again means something is wrong with it
@@ -2375,10 +2384,8 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& q
       return false;
     }
     for (;;) {
-      if (co.getQType(key.getNoStripHeader<StringView>()) == QType::NSEC3) {
-        deserializeFromBuffer(val.get<StringView>(), lrr);
-        if (!lrr.ttl)
-          break;
+      if (isNSEC3BackRecord(lrr, key, val)) {
+        break;
       }
 
       if (cursor.next(key, val) || co.getDomainID(key.getNoStripHeader<StringView>()) != id) {
@@ -2406,10 +2413,8 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& q
         return false;
       }
       for (;;) {
-        if (co.getQType(key.getNoStripHeader<StringView>()) == QType::NSEC3) {
-          deserializeFromBuffer(val.get<StringView>(), lrr);
-          if (!lrr.ttl)
-            break;
+        if (isNSEC3BackRecord(lrr, key, val)) {
+          break;
         }
 
         if (cursor.next(key, val) || co.getDomainID(key.getNoStripHeader<StringView>()) != id) {
@@ -2426,13 +2431,10 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& q
     // cout <<"Going backwards to find 'before'"<<endl;
     int count = 0;
     for (;;) {
-      if (co.getQName(key.getNoStripHeader<StringView>()).canonCompare(qname) && co.getQType(key.getNoStripHeader<StringView>()) == QType::NSEC3) {
-        // cout<<"Potentially stopping traverse at "<< co.getQName(key.get<StringView>()) <<", " << (co.getQName(key.get<StringView>()).canonCompare(qname))<<endl;
-        // cout<<"qname = "<<qname<<endl;
-        // cout<<"here  = "<<co.getQName(key.get<StringView>())<<endl;
-        deserializeFromBuffer(val.get<StringView>(), lrr);
-        if (!lrr.ttl)
+      if (compoundOrdername::getQName(key.getNoStripHeader<StringView>()).canonCompare(qname)) {
+        if (isNSEC3BackRecord(lrr, key, val)) {
           break;
+        }
       }
 
       if (cursor.prev(key, val) || co.getDomainID(key.getNoStripHeader<StringView>()) != id) {
@@ -2454,10 +2456,8 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& q
             return false;
           }
 
-          if (co.getQType(key.getNoStripHeader<StringView>()) == QType::NSEC3) {
-            deserializeFromBuffer(val.get<StringView>(), lrr);
-            if (!lrr.ttl) // the kind of NSEC3 we need
-              break;
+          if (isNSEC3BackRecord(lrr, key, val)) {
+            break;
           }
           if (cursor.prev(key, val)) {
             // hit beginning of database, again means something is wrong with it
@@ -2475,10 +2475,8 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& q
           return false;
         }
         for (;;) {
-          if (co.getQType(key.getNoStripHeader<StringView>()) == QType::NSEC3) {
-            deserializeFromBuffer(val.get<StringView>(), lrr);
-            if (!lrr.ttl)
-              break;
+          if (isNSEC3BackRecord(lrr, key, val)) {
+            break;
           }
 
           if (cursor.next(key, val)) {
@@ -2511,10 +2509,8 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& q
         return false;
       }
       for (;;) {
-        if (co.getQType(key.getNoStripHeader<StringView>()) == QType::NSEC3) {
-          deserializeFromBuffer(val.get<StringView>(), lrr);
-          if (!lrr.ttl)
-            break;
+        if (isNSEC3BackRecord(lrr, key, val)) {
+          break;
         }
 
         if (cursor.next(key, val)) {
@@ -2531,11 +2527,8 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& q
     }
 
     // cout<<"After "<<co.getQName(key.get<StringView>()) <<endl;
-    if (co.getQType(key.getNoStripHeader<StringView>()) == QType::NSEC3) {
-      deserializeFromBuffer(val.get<StringView>(), lrr);
-      if (!lrr.ttl) {
-        break;
-      }
+    if (isNSEC3BackRecord(lrr, key, val)) {
+      break;
     }
   }
   after = co.getQName(key.getNoStripHeader<StringView>());
