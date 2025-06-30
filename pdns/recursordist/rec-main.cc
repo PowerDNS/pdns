@@ -1524,8 +1524,13 @@ void parseACLs()
   l_initialized = true;
 }
 
+static std::mutex pipeBroadCastMutex{};
+
 void broadcastFunction(const pipefunc_t& func)
 {
+  // we do not want the handler and web code to use pipes simultaneously
+  std::lock_guard lock(pipeBroadCastMutex);
+
   /* This function might be called by the worker with t_id not inited during startup
      for the initialization of ACLs and domain maps. After that it should only
      be called by the handler. */
@@ -1603,11 +1608,10 @@ static RemoteLoggerStats_t& operator+=(RemoteLoggerStats_t& lhs, const RemoteLog
   return lhs;
 }
 
-// This function should only be called by the handler to gather
-// metrics, wipe the cache, reload the Lua script (not the Lua config)
-// or change the current trace regex, and by the SNMP thread to gather
-// metrics.
-// Note that this currently skips the handler, but includes the taskThread(s).
+// This function should only be called by the handler and web thread to gather metrics, wipe the
+// cache, reload the Lua script (not the Lua config) or change the current trace regex, and by the
+// SNMP thread to gather metrics.  Note that this currently skips the handler, but includes the
+// taskThread(s).
 template <class T>
 T broadcastAccFunction(const std::function<T*()>& func)
 {
@@ -1615,6 +1619,9 @@ T broadcastAccFunction(const std::function<T*()>& func)
     g_slog->withName("runtime")->info(Logr::Critical, "broadcastAccFunction has been called by a worker"); // tid will be added
     _exit(1);
   }
+
+  // we do not want the handler and web code to use pipes simultaneously
+  std::lock_guard lock(pipeBroadCastMutex);
 
   unsigned int thread = 0;
   T ret = T();
