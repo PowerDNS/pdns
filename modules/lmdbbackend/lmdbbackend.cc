@@ -2385,11 +2385,7 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& q
       // cout<<"hit end of zone find when we shouldn't"<<endl;
       return false;
     }
-    for (;;) {
-      if (isNSEC3BackRecord(lrr, key, val)) {
-        break;
-      }
-
+    while (!isNSEC3BackRecord(lrr, key, val)) {
       if (cursor.next(key, val) || co.getDomainID(key.getNoStripHeader<StringView>()) != id) {
         // cout<<"hit end of zone or database when we shouldn't"<<endl;
         return false;
@@ -2414,11 +2410,7 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& q
         // cout<<"hit end of zone find when we shouldn't for id "<<id<< __LINE__<<endl;
         return false;
       }
-      for (;;) {
-        if (isNSEC3BackRecord(lrr, key, val)) {
-          break;
-        }
-
+      while (!isNSEC3BackRecord(lrr, key, val)) {
         if (cursor.next(key, val) || co.getDomainID(key.getNoStripHeader<StringView>()) != id) {
           // cout<<"hit end of zone or database when we shouldn't" << __LINE__<<endl;
           return false;
@@ -2476,11 +2468,7 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& q
           // means database is wrong, nothing we can do
           return false;
         }
-        for (;;) {
-          if (isNSEC3BackRecord(lrr, key, val)) {
-            break;
-          }
-
+        while (!isNSEC3BackRecord(lrr, key, val)) {
           if (cursor.next(key, val)) {
             // means database is wrong, nothing we can do
             // cout<<"hit end of zone when we shouldn't 2"<<endl;
@@ -2510,11 +2498,7 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& q
         // means database is wrong, nothing we can do
         return false;
       }
-      for (;;) {
-        if (isNSEC3BackRecord(lrr, key, val)) {
-          break;
-        }
-
+      while (!isNSEC3BackRecord(lrr, key, val)) {
         if (cursor.next(key, val)) {
           // means database is wrong, nothing we can do
           // cout<<"hit end of zone when we shouldn't 2"<<endl;
