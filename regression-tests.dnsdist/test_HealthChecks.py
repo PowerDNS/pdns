@@ -247,10 +247,10 @@ class TestLazyHealthChecks(HealthCheckTest):
 
     newServer{address="127.0.0.1:%s", healthCheckMode='lazy', checkInterval=1, lazyHealthCheckFailedInterval=1, lazyHealthCheckThreshold=10, lazyHealthCheckSampleSize=100,  lazyHealthCheckMinSampleCount=10, lazyHealthCheckMode='TimeoutOrServFail', pool=''}
 
-    newServer{address="127.0.0.1:%s", tls='openssl', caStore='ca.pem', healthCheckMode='lazy', checkInterval=1, lazyHealthCheckFailedInterval=1, lazyHealthCheckThreshold=10, lazyHealthCheckSampleSize=100,  lazyHealthCheckMinSampleCount=10, lazyHealthCheckMode='TimeoutOrServFail', pool='dot'}
+    newServer{address="127.0.0.1:%s", tls='openssl', caStore='ca.pem', subjectAddr='127.0.0.1', healthCheckMode='lazy', checkInterval=1, lazyHealthCheckFailedInterval=1, lazyHealthCheckThreshold=10, lazyHealthCheckSampleSize=100,  lazyHealthCheckMinSampleCount=10, lazyHealthCheckMode='TimeoutOrServFail', pool='dot'}
     addAction('dot.lazy.test.powerdns.com.', PoolAction('dot'))
 
-    newServer{address="127.0.0.1:%s", tls='openssl', dohPath='/dns-query', caStore='ca.pem', healthCheckMode='lazy', checkInterval=1, lazyHealthCheckFailedInterval=1, lazyHealthCheckThreshold=10, lazyHealthCheckSampleSize=100,  lazyHealthCheckMinSampleCount=10, lazyHealthCheckMode='TimeoutOrServFail', pool='doh'}
+    newServer{address="127.0.0.1:%s", tls='openssl', dohPath='/dns-query', caStore='ca.pem', subjectAddr='127.0.0.1', healthCheckMode='lazy', checkInterval=1, lazyHealthCheckFailedInterval=1, lazyHealthCheckThreshold=10, lazyHealthCheckSampleSize=100,  lazyHealthCheckMinSampleCount=10, lazyHealthCheckMode='TimeoutOrServFail', pool='doh'}
     addAction('doh.lazy.test.powerdns.com.', PoolAction('doh'))
     """
     _verboseMode = True
