@@ -50,6 +50,8 @@ dnsdist depends on the following libraries:
 * `Editline (libedit) <http://thrysoee.dk/editline/>`_
 * `libfstrm <https://github.com/farsightsec/fstrm>`_ (optional, dnstap support)
 * `GnuTLS <https://www.gnutls.org/>`_ (optional, DoT and DoH support)
+* `hostname from Inetutils <https://www.gnu.org/software/inetutils/>`_
+  (required for building with ``meson``)
 * `libbpf <https://github.com/libbpf/libbpf>`_ and `libxdp <https://github.com/xdp-project/xdp-tools>`_ (optional, `XSK`/`AF_XDP` support)
 * `libcap <https://sites.google.com/site/fullycapable/>`_ (optional, capabilities support)
 * `libh2o <https://github.com/h2o/h2o>`_ (optional, incoming DoH support, deprecated in 1.9.0 in favor of ``nghttp2``)
@@ -87,6 +89,8 @@ Older (1.0.x) releases can also be signed with one of the following keys:
 * `1628 90D0 689D D12D D33E 4696 1C5E E990 D2E7 1575 <https://pgp.mit.edu/pks/lookup?op=get&search=0x1C5EE990D2E71575>`_
 * `B76C D467 1C09 68BA A87D E61C 5E50 715B F2FF E1A7 <https://pgp.mit.edu/pks/lookup?op=get&search=0x5E50715BF2FFE1A7>`_
 
+To compile from tarball:
+
 * Untar the tarball and ``cd`` into the source directory
 * Run ``./configure``
 * Run ``make`` or ``gmake`` (on BSD)
@@ -110,6 +114,14 @@ dnsdist source code lives in the `PowerDNS git repository <https://github.com/Po
   ./configure
   make
 
+Using meson
+~~~~~~~~~~~
+
+dnsdist can also be compiled with ``meson`` and ``ninja``. For example::
+
+  meson setup build
+  meson compile -C build
+
 OS Specific Instructions
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -118,7 +130,9 @@ None, really.
 Build options
 ~~~~~~~~~~~~~
 
-Our ``configure`` script provides a fair number of options with regard to which features should be enabled, as well as which libraries should be used. In addition to these options, more features can be disabled at compile-time by defining the following symbols:
+Our ``configure`` script and ``meson_options.txt`` counterpart provides a fair number of options with regard to which features should be enabled, as well as which libraries should be used. Run ``./configure --help`` or ``meson configure`` for the list of supported options.
+
+In addition to these options, more features can be disabled at compile-time by defining the following symbols:
 
 * ``DISABLE_BUILTIN_HTML`` removes the built-in web pages
 * ``DISABLE_CARBON`` for carbon support
