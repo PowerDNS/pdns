@@ -468,6 +468,9 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dns
         errlog("Error creating new server: downstream subject_address value must be a valid IP address");
       }
     }
+    if (backendConfig.d_tlsParams.d_validateCertificates && backendConfig.d_tlsSubjectName.empty()) {
+      throw std::runtime_error("Certificate validation has been requested for backend " + std::string(config.address) + " but neither 'subject_name' nor 'subject_address' are set");
+    }
   }
 
   if (protocol == "dot") {
