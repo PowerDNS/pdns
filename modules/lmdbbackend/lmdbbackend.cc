@@ -2323,6 +2323,8 @@ bool LMDBBackend::unpublishDomainKey(const ZoneName& name, unsigned int keyId)
   return true;
 }
 
+// Return true if the key points to an NSEC3 back chain record (ttl == 0).
+// Updates lrr if this is an NSEC3 record (regardless of its kind).
 bool LMDBBackend::isNSEC3BackRecord(LMDBResourceRecord& lrr, const MDBOutVal& key, const MDBOutVal& val)
 {
   if (compoundOrdername::getQType(key.getNoStripHeader<StringView>()) == QType::NSEC3) {
@@ -2399,7 +2401,6 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& q
   before = co.getQName(key.getNoStripHeader<StringView>());
   if (before == qname) {
     // cout << "Ended up on exact right node" << endl;
-    before = co.getQName(key.getNoStripHeader<StringView>());
     // unhashed should be correct now, maybe check?
     if (cursor.next(key, val)) {
       // xxx should find first hash now
