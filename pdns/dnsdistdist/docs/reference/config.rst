@@ -2289,6 +2289,14 @@ Other functions
 
   :returns: A timespec object, see :ref:`timespec`
 
+.. function:: getObjectFromYAMLConfiguration
+
+  .. versionadded:: 2.0.0
+
+  Return a pointer to an object (:class:`KeyValueStore`, :class:`DNSAction`, class::`DNSRule`, ...) declared in the YAML configuration.
+
+  :param str name: The name assigned to the object in the YAML configuration
+
 .. function:: getResolvers(path)
 
   .. versionadded:: 1.8.0
