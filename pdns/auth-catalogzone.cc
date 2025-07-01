@@ -138,7 +138,7 @@ void CatalogInfo::toDNSZoneRecords(const ZoneName& zone, vector<DNSZoneRecord>& 
   dzr.dr.d_name = prefix;
   dzr.dr.d_ttl = 0;
   dzr.dr.d_type = QType::PTR;
-  dzr.dr.setContent(std::make_shared<PTRRecordContent>(d_zone.toString()));
+  dzr.dr.setContent(std::make_shared<PTRRecordContent>(d_zone.operator const DNSName&().toString()));
   dzrs.emplace_back(dzr);
 
   if (!d_coo.empty()) {
