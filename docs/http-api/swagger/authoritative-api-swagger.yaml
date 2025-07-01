@@ -128,7 +128,7 @@ paths:
           required: false
           type: boolean
           default: true
-          description: '“true” (default) or “false”, whether to include the “dnssec” and ”edited_serial” fields in the Zone objects. Setting this to ”false” will make the query a lot faster.'
+          description: '“true” (default) or “false”, whether to include the “dnssec” and “edited_serial” fields in the Zone objects. Setting this to ”false” will make the query a lot faster.'
       responses:
         '200':
           description: An array of Zones
