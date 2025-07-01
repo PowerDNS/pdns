@@ -448,6 +448,17 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dns
   const auto& tlsConf = config.tls;
   auto protocol = boost::to_lower_copy(std::string(config.protocol));
   if (protocol == "dot" || protocol == "doh") {
+#if !defined(HAVE_DNS_OVER_TLS)
+    if (protocol == "dot") {
+      throw std::runtime_error("Backend " + std::string(config.address) + " is configured to use DNS over TLS but DoT support is not available");
+    }
+#endif /* HAVE_DNS_OVER_TLS */
+#if !defined(HAVE_DNS_OVER_HTTPS)
+    if (protocol == "doh") {
+      throw std::runtime_error("Backend " + std::string(config.address) + " is configured to use DNS over HTTPS but DoH support is not available");
+    }
+#endif /* HAVE_DNS_OVER_HTTPS */
+
     backendConfig.d_tlsParams.d_provider = std::string(tlsConf.provider);
     backendConfig.d_tlsParams.d_ciphers = std::string(tlsConf.ciphers);
     backendConfig.d_tlsParams.d_ciphers13 = std::string(tlsConf.ciphers_tls_13);
