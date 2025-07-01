@@ -29,6 +29,8 @@ Currently, the following backends have been modified to support catalog zones:
 - :doc:`godbc <backends/generic-odbc>`
 - :doc:`lmdb <backends/lmdb>`
 
+If you are also using views, please read :ref:`views-catalog-zones` in the Views documentation.
+
 .. _catalog-configuration-options:
 
 Configuration options
