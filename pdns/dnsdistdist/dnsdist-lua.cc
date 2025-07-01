@@ -38,6 +38,7 @@
 #include "dnsdist-carbon.hh"
 #include "dnsdist-concurrent-connections.hh"
 #include "dnsdist-configuration.hh"
+#include "dnsdist-configuration-yaml.hh"
 #include "dnsdist-console.hh"
 #include "dnsdist-console-completion.hh"
 #include "dnsdist-crypto.hh"
@@ -3191,6 +3192,7 @@ void setupLuaBindingsOnly(LuaContext& luaCtx, bool client, bool configCheck)
   setupLuaInspection(luaCtx);
   setupLuaVars(luaCtx);
   setupLuaWeb(luaCtx);
+  dnsdist::configuration::yaml::addLuaBindingsForYAMLObjects(luaCtx);
 
 #ifdef LUAJIT_VERSION
   luaCtx.executeCode(getLuaFFIWrappers());

@@ -116,6 +116,7 @@ static std::vector<dnsdist::console::completion::ConsoleKeyword> s_consoleKeywor
   {"getListOfRangesOfNetworkInterface", true, "itf", "returns the list of network ranges configured on a given network interface, as strings"},
   {"getMACAddress", true, "IP addr", "return the link-level address (MAC) corresponding to the supplied neighbour  IP address, if known by the kernel"},
   {"getMetric", true, "name", "Get the value of a custom metric"},
+  {"getObjectFromYAMLConfiguration", true, "name", "Get an object created in YAML configuration"},
   {"getOutgoingTLSSessionCacheSize", true, "", "returns the number of TLS sessions (for outgoing connections) currently cached"},
   {"getPool", true, "name", "return the pool named `name`, or \"\" for the default pool"},
   {"getPoolServers", true, "pool", "return servers part of this pool"},
