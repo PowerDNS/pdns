@@ -2704,6 +2704,9 @@ unsigned int makeUDPServerSockets(deferredAdd_t& deferredAdds, Logr::log_t log, 
   }
 
   const uint16_t defaultLocalPort = ::arg().asNum("local-port");
+  const vector<string> defaultVector = {"127.0.0.1", "::1"};
+  const auto configIsDefault = localAddresses == defaultVector;
+
   for (const auto& localAddress : localAddresses) {
     ComboAddress address{localAddress, defaultLocalPort};
     const int socketFd = socket(address.sin4.sin_family, SOCK_DGRAM, 0);
@@ -2777,7 +2780,7 @@ unsigned int makeUDPServerSockets(deferredAdd_t& deferredAdds, Logr::log_t log, 
     socklen_t socklen = address.getSocklen();
     if (::bind(socketFd, reinterpret_cast<struct sockaddr*>(&address), socklen) < 0) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
       int err = errno;
-      if (address != ComboAddress{"::1", defaultLocalPort}) {
+      if (!configIsDefault || address != ComboAddress{"::1", defaultLocalPort}) {
         throw PDNSException("Resolver binding to server socket on " + address.toStringWithPort() + ": " + stringerror(err));
       }
       log->info(Logr::Warning, "Cannot listen on this address, skipping", "proto", Logging::Loggable("UDP"), "address", Logging::Loggable(address), "error", Logging::Loggable(stringerror(err)));
