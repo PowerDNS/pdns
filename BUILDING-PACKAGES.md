@@ -30,7 +30,7 @@ Locate the `Run workflow` dropdown item on the top right side of the screen, ins
 - `Branch`: you can keep `master` here, unless you need to build for an operating system which is not in the list, in which case you will have to create a new branch and add the required file(s) for this OS. See `Adding a new OS` below.
 - `Product to build`: select the product you want to build packages for, for example `dnsdist`
 - `OSes to build for, space separated`: keep one or more OSes you want to build packages for, for example `ubuntu-focal`
-- `git ref to checkout`: the exact version you want to build. It can be the name of branch, a git tag or a git commit ID. Most likely you will be willing to build from a tagged release, like `dnsdist-1.8.1`.
+- `git ref to checkout`: the exact version you want to build. It can be the name of branch, a git tag, or a git commit ID. Most likely you will be willing to build from a tagged release, like `dnsdist-1.8.1`.
 - `is this a release build?`: Keep `NO`
 
 Click `Run workflow` to start the build.
