@@ -223,3 +223,15 @@ The equivalent PowerDNS setup would be::
 
   pdnsutil load-zone example.com..internal internal/primary.example.com
   pdnsutil load-zone example.com..external external/primary.example.com
+
+.. _views-catalog-zones:
+
+Interaction with catalog zones
+------------------------------
+
+Catalog zones (both producer and consumer) can have variant names, and contain variant member zone names.
+Producer zones are looked up via views like any other zone, but on the wire contain non-variant names.
+Thus, it is important to make sure that the member zones of a catalog are visible to the same consumer in the same view.
+
+On the consumer side, member zone names currently do not get a variant assigned to them, and thus are not automatically scoped to (a) certain view(s).
+This is expected to improve in the future.
