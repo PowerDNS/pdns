@@ -24,6 +24,7 @@ jobs:
       - name: Test DCO for every commit
         run: |
           RET=0
+          SEEN_COMMITS=0
           # this will not work properly if what we are testing is not a pull request
           for commit in $(git rev-list HEAD ^origin/${BRANCH}); do
             echo "=== Checking commit '${commit}'"
@@ -31,9 +32,14 @@ jobs:
             expected="$(git show -s --format='Signed-off-by: %cN <%cE>' ${commit})"
             if echo "${body}" | grep -qF "${expected}"; then
               echo "Signed-off-by matches committer"
+              SEEN_COMMITS=1
             else
               echo "Signed-off-by is missing or doesn't match committer (should be '${expected}')"
               RET=1
             fi
           done
+          if [ ${SEEN_COMMITS} -ne 1 ]; then
+            echo "No commits processed"
+            exit 2
+          fi
           exit ${RET}
