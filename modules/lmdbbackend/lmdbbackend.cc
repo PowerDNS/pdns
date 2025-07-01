@@ -1188,7 +1188,7 @@ bool LMDBBackend::abortTransaction()
   return true;
 }
 
-void LMDBBackend::writeNSEC3RecordPair(domainid_t domain_id, const DNSName& qname, const DNSName& ordername)
+void LMDBBackend::writeNSEC3RecordPair(const std::shared_ptr<RecordsRWTransaction>& txn, domainid_t domain_id, const DNSName& qname, const DNSName& ordername)
 {
   compoundOrdername co; // NOLINT(readability-identifier-length)
   LMDBResourceRecord lrr;
@@ -1198,13 +1198,13 @@ void LMDBBackend::writeNSEC3RecordPair(domainid_t domain_id, const DNSName& qnam
   lrr.ttl = 0;
   lrr.content = qname.toDNSStringLC();
   string ser = serializeToBuffer(lrr);
-  d_rwtxn->txn->put(d_rwtxn->db->dbi, co(domain_id, ordername, QType::NSEC3), ser);
+  txn->txn->put(d_rwtxn->db->dbi, co(domain_id, ordername, QType::NSEC3), ser);
 
   // Write qname -> ordername forward chain record with ttl set to 1
   lrr.ttl = 1;
   lrr.content = ordername.toDNSString();
   ser = serializeToBuffer(lrr);
-  d_rwtxn->txn->put(d_rwtxn->db->dbi, co(domain_id, qname, QType::NSEC3), ser);
+  txn->txn->put(d_rwtxn->db->dbi, co(domain_id, qname, QType::NSEC3), ser);
 }
 
 // d_rwtxn must be set here
@@ -1231,7 +1231,7 @@ bool LMDBBackend::feedRecord(const DNSResourceRecord& r, const DNSName& ordernam
     MDBOutVal val;
     // Only add the NSEC3 chain records if there aren't any.
     if (d_rwtxn->txn->get(d_rwtxn->db->dbi, co(lrr.domain_id, lrr.qname, QType::NSEC3), val)) {
-      writeNSEC3RecordPair(lrr.domain_id, lrr.qname, ordername);
+      writeNSEC3RecordPair(d_rwtxn, lrr.domain_id, lrr.qname, ordername);
     }
   }
   return true;
@@ -1269,7 +1269,7 @@ bool LMDBBackend::feedEnts3(domainid_t domain_id, const DNSName& domain, map<DNS
 
     if (!narrow && lrr.auth) {
       ordername = DNSName(toBase32Hex(hashQNameWithSalt(ns3prc, nt.first)));
-      writeNSEC3RecordPair(domain_id, lrr.qname, ordername);
+      writeNSEC3RecordPair(d_rwtxn, domain_id, lrr.qname, ordername);
     }
   }
   return true;
@@ -2714,7 +2714,7 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSNa
   }
 
   if (hasOrderName && del) {
-    writeNSEC3RecordPair(domain_id, rel, ordername);
+    writeNSEC3RecordPair(txn, domain_id, rel, ordername);
   }
 
   if (needCommit)
