@@ -723,6 +723,7 @@ lethalgroup
 letsencrypt
 letterpaper
 LIBPQ
+libsodium
 lightningstream
 Lindqvist
 linenos

@@ -9,6 +9,14 @@ As :program:`PowerDNS Recursor` is distributed with a configure script, compilin
   make
   make install
 
+Or when building using meson::
+
+  tar xf pdns-recursor-$VERSION.tar.bz2
+  cd pdns-recursor-$VERSION
+  meson setup build
+  meson compile -C build
+  meson install -C build
+
 Getting the sources
 -------------------
 
@@ -32,6 +40,7 @@ Dependencies
 To build :program:`PowerDNS Recursor`, a C++ compiler with support for C++ 2017 is required.
 This means ``gcc 5`` and newer and ``clang 5`` and newer.
 Furthermore, the Makefiles require GNU ``make``, not BSD ``make``.
+Building using ``meson`` is also supported.
 Starting with version 5, a Rust compiler is needed.
 
 By default, the :program:`Recursor` requires the following libraries and headers:
@@ -59,7 +68,10 @@ This repository contains the sources for the PowerDNS Recursor, the PowerDNS
 Authoritative Server, and dnsdist (a powerful DNS loadbalancer). The sources for
 the recursor are located in the `pdns/recursordist` subdirectory of the repository.
 
-To compile from a git checkout, install the dependencies above plus ragel, automake, autoconf, libtool, virtualenv and curl.
+To compile from a git checkout using autotools install the dependencies above plus::
+
+  apt-get install ragel automake autoconf libtool virtualenv curl
+
 Then run::
 
     cd pdns/pdns/recursordist/
@@ -67,6 +79,15 @@ Then run::
     ./configure
     make
 
+To compile from a git checkout using meson install the dependencies above plus::
+
+  apt-get install ragel meson virtualenv curl rust
+
+Then run::
+
+    cd pdns/pdns/recursordist/
+    meson setup builddir
+    meson compile -C builddir
 
 macOS Notes
 -----------
@@ -78,36 +99,24 @@ Homebrew. You need to tell configure where to find OpenSSL, too::
     ./configure PKG_CONFIG_PATH=/usr/local/opt/openssl/lib/pkgconfig
     make -j4
 
+meson is capable of finding openssl itself::
 
-Lua scripting
-^^^^^^^^^^^^^
-To benefit from Lua scripting, as described on https://doc.powerdns.com/md/recursor/scripting/
-Install Lua and development headers. PowerDNS supports Lua 5.1, 5.2, 5.3 and LuaJIT.
-On Debian/Ubuntu, install e.g. `liblua5.2-dev` to use Lua 5.2.
-
-The configure script will automatically detect the Lua version. If more than one
-version of Lua is installed, the `--with-lua` configure flag can be set to the
-desired version. e.g.::
-
-    ./configure --with-lua=lua51
-
-(On older versions of Debian/Ubuntu, you'll need to pass `--with-lua=lua5.1` instead.)
-
+    brew install boost lua meson pkg-config ragel rust openssl
+    meson setup build
+    meson compile -C build
 
 Optional dependencies
 ---------------------
 
-Several options that can be passed to ``./configure`` can enable and disable different features.
-These will require additional dependencies
+Several options that can be passed to ``./configure`` or ``meson setup`` can enable and disable different features.
+These will require additional dependencies.
+To list the options run ``./configure --help`` or ``meson configure``.
 
 ed25519 support with libsodium
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The :program:`Recursor` can link with `libsodium <https://download.libsodium.org/doc/>`_ to support ed25519 (DNSSEC algorithm 15).
-To detect libsodium, use the ``--with-libsodium`` configure option.
-
-.. versionchanged:: 4.2.0
-  This option was previously ``--enable-libsodium``
+To detect libsodium, use the ``--with-libsodium`` configure option or ``-Dlibsodium=auto`` for meson, which is the default.
 
 Protobuf to emit DNS logs
 ^^^^^^^^^^^^^^^^^^^^^^^^^
