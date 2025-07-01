@@ -546,6 +546,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
                            }
 
                            tlsCtx = getTLSContext(config.d_tlsParams);
+
+                           if (config.d_tlsParams.d_validateCertificates && config.d_tlsSubjectName.empty()) {
+                             throw std::runtime_error("Certificate validation has been requested (see 'validateCertificates') for backend " + serverAddressStr + " but neither 'subjectName' nor 'subjectAddress' are set");
+                           }
                          }
 
                          try {
