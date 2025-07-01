@@ -603,7 +603,7 @@ void protobufLogResponse(const DNSName& qname, QType qtype,
                          const boost::uuids::uuid& uniqueId, const string& requestorId, const string& deviceId,
                          const string& deviceName, const std::map<std::string, RecursorLua4::MetaValue>& meta,
                          const RecEventTrace& eventTrace,
-                         pdns::trace::Span& otTrace,
+                         pdns::trace::InitialSpanInfo& otTrace,
                          const std::unordered_set<std::string>& policyTags)
 {
   pdns::ProtoZero::RecMessage pbMessage(pbData ? pbData->d_message : "", pbData ? pbData->d_response : "", 64, 10); // The extra bytes we are going to add
@@ -665,7 +665,6 @@ void protobufLogResponse(const DNSName& qname, QType qtype,
     pbMessage.addEvents(eventTrace);
   }
   if (eventTrace.enabled() && (SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_ot) != 0) {
-    otTrace.close();
     auto trace = pdns::trace::TracesData::boilerPlate("rec", qname.toLogString() + '/' + qtype.toString(), eventTrace.convertToOT(otTrace));
     pbMessage.setOpenTelemetryData(trace.encode());
   }

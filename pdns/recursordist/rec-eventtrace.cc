@@ -49,24 +49,24 @@ static void addValue(const RecEventTrace::Entry& event, Span& work, bool start)
   if (std::holds_alternative<std::nullopt_t>(event.d_value)) {
     return;
   }
-  const string key = start ? "arg" : "result";
+  string key = start ? "arg" : "result";
   if (std::holds_alternative<bool>(event.d_value)) {
-    work.attributes.emplace_back(KeyValue{key, {std::get<bool>(event.d_value)}});
+    work.attributes.emplace_back(KeyValue{std::move(key), {std::get<bool>(event.d_value)}});
   }
   else if (std::holds_alternative<int64_t>(event.d_value)) {
-    work.attributes.emplace_back(KeyValue{key, {std::get<int64_t>(event.d_value)}});
+    work.attributes.emplace_back(KeyValue{std::move(key), {std::get<int64_t>(event.d_value)}});
   }
   else if (std::holds_alternative<std::string>(event.d_value)) {
-    work.attributes.emplace_back(KeyValue{key, {std::get<std::string>(event.d_value)}});
+    work.attributes.emplace_back(KeyValue{std::move(key), {std::get<std::string>(event.d_value)}});
   }
   else {
-    work.attributes.emplace_back(KeyValue{key, {RecEventTrace::toString(event.d_value)}});
+    work.attributes.emplace_back(KeyValue{std::move(key), {RecEventTrace::toString(event.d_value)}});
   }
 }
 
 // The event trace uses start-stop records which need to be mapped to OpenTelemetry Spans, which is a
 // list of spans. Spans can refer to other spans as their parent.
-std::vector<pdns::trace::Span> RecEventTrace::convertToOT(const Span& span) const
+std::vector<pdns::trace::Span> RecEventTrace::convertToOT(const InitialSpanInfo& span) const
 {
   timespec realtime{};
   clock_gettime(CLOCK_REALTIME, &realtime);
@@ -79,7 +79,7 @@ std::vector<pdns::trace::Span> RecEventTrace::convertToOT(const Span& span) cons
   ret.reserve((d_events.size() / 2) + 1);
 
   // The parent of all Spans
-  ret.emplace_back(span);
+  ret.emplace_back(Span{.trace_id = span.trace_id, .span_id = span.span_id, .parent_span_id = span.parent_span_id, .end_time_unix_nano = timestamp()});
 
   std::vector<SpanID> spanIDs; // mapping of span index in ret vector to SpanID
   std::map<size_t, size_t> ids; // mapping from event record index to index in ret vector (Spans)
