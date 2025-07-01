@@ -1172,12 +1172,11 @@ void addLuaBindingsForYAMLObjects([[maybe_unused]] LuaContext& luaCtx)
 #if defined(HAVE_YAML_CONFIGURATION)
   using ReturnValue = boost::optional<boost::variant<std::shared_ptr<DNSDistPacketCache>, std::shared_ptr<DNSRule>, std::shared_ptr<DNSAction>, std::shared_ptr<DNSResponseAction>, std::shared_ptr<NetmaskGroup>, std::shared_ptr<KeyValueStore>, std::shared_ptr<KeyValueLookupKey>, std::shared_ptr<RemoteLoggerInterface>, std::shared_ptr<ServerPolicy>, std::shared_ptr<XSKMap>>>;
 
-  luaCtx.writeFunction("getObjectFromYAMLConfiguration", [](const std::string& name) {
-    ReturnValue object{boost::none};
+  luaCtx.writeFunction("getObjectFromYAMLConfiguration", [](const std::string& name) -> ReturnValue {
     auto map = s_registeredTypesMap.lock();
     auto item = map->find(name);
     if (item == map->end()) {
-      return object;
+      return boost::none;
     }
     if (auto* ptr = std::get_if<std::shared_ptr<DNSDistPacketCache>>(&item->second)) {
       return ReturnValue(*ptr);
@@ -1210,7 +1209,7 @@ void addLuaBindingsForYAMLObjects([[maybe_unused]] LuaContext& luaCtx)
       return ReturnValue(*ptr);
     }
 
-    return object;
+    return boost::none;
   });
 #endif /* HAVE_YAML_CONFIGURATION */
 }
