@@ -33,7 +33,7 @@ jobs:
     runs-on: ${{ matrix.runner-os }}
     strategy:
       matrix:
-        product: ['authoritative', 'recursor', 'dnsdist']
+        product: ['dnsdist']
         os:
           - el-8
           - centos-9-stream
