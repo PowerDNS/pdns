@@ -2649,7 +2649,7 @@ Bugs fixed
    cases (ticket `223 <https://github.com/PowerDNS/pdns/issues/223>`__).
    Discovered by Andreas Jakum, fixed in `commit b72687a19f328115a6b90bcecc10b16ce2c022c2 <https://github.com/PowerDNS/pdns/commit/b72687a19f328115a6b90bcecc10b16ce2c022c2>`__.
 -  Shane Kerr discovered we would corrupt DNS transaction IDs from the
-   packet cache on big endian systems. Fix in `commit bb0bbdc2454749da526f72a3c393eecf7e43fe8d <https://github.com/PowerDNS/pdns/commit/bb0bbdc2454749da526f72a3c393eecf7e43fe8d>`__,
+   packet cache on big-endian systems. Fix in `commit bb0bbdc2454749da526f72a3c393eecf7e43fe8d <https://github.com/PowerDNS/pdns/commit/bb0bbdc2454749da526f72a3c393eecf7e43fe8d>`__,
    closing `ticket 222 <https://github.com/PowerDNS/pdns/issues/222>`__.
 -  PowerDNS did not use RFC 1982 serial arithmetic, leading to a SOA
    serial number of 1 to be regarded as older than 4400000000, when in
@@ -3833,7 +3833,7 @@ Bugfixes
    Straus)
 -  PowerDNS left its controlsocket around after exit and reported
    confusing errors if a socket was already in use.
--  The recursor proxy did not work on big endian systems like SPARC and
+-  The recursor proxy did not work on big-endian systems like SPARC and
    some MIPS processors (Remco Post)
 -  We no longer dump core on processing LOC records on UltraSPARC
    (Andrew Mulholland supplied a testing machine)
