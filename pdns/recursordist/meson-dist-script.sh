@@ -36,6 +36,6 @@ echo 'If the below command generates an error, remove dnslabeltext.cc from sourc
 ninja librec-dnslabeltext.a.p/dnslabeltext.cc
 cp -vp librec-dnslabeltext.a.p/dnslabeltext.cc "$MESON_PROJECT_DIST_ROOT"
 echo 'If the below command generates an error, remove effective_tld_names.dat and pubsuffix.cc from source dir (remains of an autotools build?) and start again with a clean meson setup'
-ninja effective_tld_names.dat
-cp -vp effective_tld_names.dat "$MESON_PROJECT_DIST_ROOT"
+ninja pubsuffix.cc
+cp -vp pubsuffix.cc "$MESON_PROJECT_DIST_ROOT"
 

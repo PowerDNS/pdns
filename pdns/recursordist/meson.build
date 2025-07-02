@@ -357,14 +357,12 @@ librec_signers_openssl = declare_dependency(
 pubsuffix_dl_source =  'effective_tld_names.dat'
 pubsuffix_cc = src_dir / 'pubsuffix.cc'
 if not fs.is_file(pubsuffix_cc)
-  if not fs.is_file(pubsuffix_dl_source)
-    curl_command = find_program('curl', required: true)
-    pubsuffix_dl_source = custom_target(
-      'pubsuffix-dl',
-      command: [curl_command, '-s', '-S', '-o', '@OUTPUT@', 'https://publicsuffix.org/list/public_suffix_list.dat'],
-      output: pubsuffix_dl_source
-    )
-  endif
+  curl_command = find_program('curl', required: true)
+  pubsuffix_dl_source = custom_target(
+    'pubsuffix-dl',
+    command: [curl_command, '-s', '-S', '-o', '@OUTPUT@', 'https://publicsuffix.org/list/public_suffix_list.dat'],
+    output: pubsuffix_dl_source
+  )
 
   mkpubsuffix_command = find_program('mkpubsuffixcc', required: true)
   pubsuffix_cc = custom_target(
