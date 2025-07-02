@@ -865,6 +865,13 @@ struct FDWrapper
     return ret;
   }
 
+  int release()
+  {
+    auto ret = d_fd;
+    d_fd = -1;
+    return ret;
+  }
+
 private:
   int d_fd{-1};
 };

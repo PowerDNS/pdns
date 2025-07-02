@@ -2707,7 +2707,7 @@ unsigned int makeUDPServerSockets(deferredAdd_t& deferredAdds, Logr::log_t log, 
 
   for (const auto& localAddress : localAddresses) {
     ComboAddress address{localAddress, defaultLocalPort};
-    const int socketFd = socket(address.sin4.sin_family, SOCK_DGRAM, 0);
+    auto socketFd = FDWrapper(socket(address.sin4.sin_family, SOCK_DGRAM, 0));
     if (socketFd < 0) {
       throw PDNSException("Making a UDP server socket for resolver: " + stringerror());
     }
@@ -2790,6 +2790,7 @@ unsigned int makeUDPServerSockets(deferredAdd_t& deferredAdds, Logr::log_t log, 
     deferredAdds.emplace_back(socketFd, handleNewUDPQuestion);
     g_listenSocketsAddresses[socketFd] = address; // this is written to only from the startup thread, not from the workers
     logVec.emplace_back(address.toStringWithPort());
+    socketFd.release(); // to avoid auto-close by FDWrapper
   }
   if (doLog) {
     log->info(Logr::Info, "Listening for queries", "proto", Logging::Loggable("UDP"), "addresses", Logging::IterLoggable(logVec.cbegin(), logVec.cend()), "socketInstances", Logging::Loggable(instances), "reuseport", Logging::Loggable(g_reusePort));
