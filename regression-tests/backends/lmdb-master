@@ -18,6 +18,8 @@ lmdb-filename=./pdns.lmdb
 lmdb-random-ids=yes
 edns-subnet-processing
 views=yes
+any-to-tcp=no
+dnsupdate=yes
 __EOF__
 
         rm -f pdns.lmdb*
@@ -111,13 +113,12 @@ __EOF__
 
         $RUNWRAPPER $PDNS --loglevel=7 --daemon=no --local-address=$address --local-port=$port --config-dir=. \
             --config-name=lmdb --socket-dir=./ --no-shuffle \
-            --dnsupdate=no \
             --expand-alias=yes --resolver=$RESOLVERIP \
             --disable-axfr-rectify=yes --outgoing-axfr-expand-alias=yes \
             --cache-ttl=$cachettl --dname-processing $lua_prequery &
 
         extracontexts="lmdb"
-        skipreasons="$skipreasons lmdb nodyndns"
+        skipreasons="$skipreasons lmdb dyndns"
 
         if [ $_context = lmdb-nsec3 ]
         then
