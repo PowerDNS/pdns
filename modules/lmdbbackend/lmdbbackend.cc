@@ -2672,7 +2672,7 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSNa
   bool needNSEC3 = hasOrderName;
 
   do {
-    if (co.getQType(key.getNoStripHeader<StringView>()) == QType::NSEC3) {
+    if (compoundOrdername::getQType(key.getNoStripHeader<StringView>()) == QType::NSEC3) {
       continue;
     }
 
@@ -2682,7 +2682,7 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSNa
     vector<LMDBResourceRecord> newRRs;
     newRRs.reserve(lrrs.size());
     for (auto& lrr : lrrs) {
-      lrr.qtype = co.getQType(key.getNoStripHeader<StringView>());
+      lrr.qtype = compoundOrdername::getQType(key.getNoStripHeader<StringView>());
       if (!needNSEC3 && qtype != QType::ANY) {
         needNSEC3 = (lrr.ordername && QType(qtype) != lrr.qtype);
       }
@@ -2699,32 +2699,22 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSNa
     }
   } while (cursor.next(key, val) == 0);
 
-  bool del = false;
-  LMDBResourceRecord lrr;
+  bool updateNSEC3{true};
   matchkey = co(domain_id, rel, QType::NSEC3);
   // cerr<<"here qname="<<qname<<" ordername="<<ordername<<" qtype="<<qtype<<" matchkey="<<makeHexDump(matchkey)<<endl;
-  int txngetrc;
-  if (!(txngetrc = txn->txn->get(txn->db->dbi, matchkey, val))) {
-    deserializeFromBuffer(val.get<string_view>(), lrr);
-
-    if (needNSEC3) {
-      if (hasOrderName && lrr.content != ordername.toDNSStringLC()) {
-        del = true;
-      }
-    }
-    else {
-      del = true;
-    }
-    if (del) {
-      txn->txn->del(txn->db->dbi, co(domain_id, DNSName(lrr.content.c_str(), lrr.content.size(), 0, false), QType::NSEC3));
+  if (txn->txn->get(txn->db->dbi, matchkey, val) == 0) {
+    if (!needNSEC3) {
+      // NSEC3 link to be removed: need to remove the existing pair.
+      updateNSEC3 = false;
+      LMDBResourceRecord lrr;
+      deserializeFromBuffer(val.get<string_view>(), lrr);
+      DNSName prevordername(lrr.content.c_str(), lrr.content.size(), 0, false);
+      txn->txn->del(txn->db->dbi, co(domain_id, prevordername, QType::NSEC3));
       txn->txn->del(txn->db->dbi, matchkey);
     }
   }
-  else {
-    del = true;
-  }
 
-  if (hasOrderName && del) {
+  if (needNSEC3 && hasOrderName && updateNSEC3) {
     writeNSEC3RecordPair(txn, domain_id, rel, ordername);
   }
 
