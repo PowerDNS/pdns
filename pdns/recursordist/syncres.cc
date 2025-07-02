@@ -41,6 +41,11 @@
 #include "rec-taskqueue.hh"
 #include "shuffle.hh"
 
+#include "version.hh"
+#include <protozero/pbf_builder.hpp>
+#include <protozero/pbf_message.hpp>
+#include "protozero-helpers.hh"
+
 rec::GlobalCounters g_Counters;
 thread_local rec::TCounters t_Counters(g_Counters);
 
@@ -242,6 +247,64 @@ public:
     ind.modify(iter, [&](DecayingEwmaCollection& dec) { dec.d_lastget = now; });
     return ret;
   }
+
+  enum class PBNSSpeedDump : protozero::pbf_tag_type
+  {
+    required_string_version = 1,
+    required_string_identity = 2,
+    required_uint64_protocolVersion = 3,
+    required_int64_time = 4,
+    required_string_type = 5,
+    repeated_message_nsspeedEntry = 6,
+  };
+
+  enum class PBNSSpeedEntry : protozero::pbf_tag_type
+  {
+    required_bytes_name = 1,
+    required_int64_lastgets = 2,
+    required_int64_lastgetus = 3,
+    repeated_message_map = 4,
+  };
+
+  enum class PBNSSpeedMap : protozero::pbf_tag_type
+  {
+    required_bytes_address = 1,
+    required_float_val = 2,
+    required_int32_last = 3,
+  };
+
+  template <typename T, typename U>
+  void getEntry(T& message, U entry)
+  {
+    message.add_bytes(PBNSSpeedEntry::required_bytes_name, entry->d_name.toString());
+    message.add_int64(PBNSSpeedEntry::required_int64_lastgets, entry->d_lastget.tv_sec);
+    message.add_int64(PBNSSpeedEntry::required_int64_lastgetus, entry->d_lastget.tv_usec);
+    for (const auto& [address, collection] : entry->d_collection) {
+      protozero::pbf_builder<PBNSSpeedMap> map(message, PBNSSpeedEntry::repeated_message_map);
+      encodeComboAddress(map, PBNSSpeedMap::required_bytes_address, address);
+      map.add_float(PBNSSpeedMap::required_float_val, collection.d_val);
+      map.add_int32(PBNSSpeedMap::required_int32_last, collection.d_last);
+    }
+  }
+
+  size_t getPB(std::string& ret)
+  {
+    protozero::pbf_builder<PBNSSpeedDump> full(ret);
+    full.add_string(PBNSSpeedDump::required_string_version, getPDNSVersion());
+    full.add_string(PBNSSpeedDump::required_string_identity, SyncRes::s_serverID);
+    full.add_uint64(PBNSSpeedDump::required_uint64_protocolVersion, 1);
+    full.add_int64(PBNSSpeedDump::required_int64_time, time(nullptr));
+    full.add_string(PBNSSpeedDump::required_string_type, "PBNSSpeedDump");
+
+    size_t count = 0;
+    for (const auto& entry : *this) {
+      protozero::pbf_builder<PBNSSpeedEntry> message(full, PBNSSpeedDump::repeated_message_nsspeedEntry);
+      getEntry(message, &entry);
+      ++count;
+    }
+    return count;
+  }
+
 };
 
 static LockGuarded<nsspeeds_t> s_nsSpeeds;
