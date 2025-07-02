@@ -119,7 +119,7 @@ parameters: endpoint, timeout (default 2000ms)
     remote-connection-string=zeromq:endpoint=ipc:///tmp/tmp.sock
 
 0MQ connector implements a REQ/REP RPC model. Please see
-http://zeromq.org/ for more information.
+https://zeromq.org/ for more information.
 
 .. _remote-api:
 
@@ -140,7 +140,7 @@ Replies
 ^^^^^^^
 
 You **must** always reply with JSON hash with at least one key,
-'result'. This must be boolean false if the query failed. Otherwise it
+'result'. This must be boolean false if the query failed. Otherwise, it
 must conform to the expected result. For HTTP connector, to signal bare
 success, you can just reply with HTTP 200 OK, and omit any output. This
 will result in same outcome as sending {"result":true}.
@@ -257,7 +257,7 @@ case, the behaviour is equivalent to the ``lookup`` method.)
 ~~~~~~~~
 
 Lists all records for the zonename. If you are running DNSSEC, you
-should take care of setting auth to appropriate value, otherwise things
+should take care of setting auth to appropriate value; otherwise, things
 can go wrong.
 
 -  Mandatory: no (gives AXFR support)

@@ -54,5 +54,5 @@ original fix was insufficient in some cases. Updated versions of the
 Authoritative Server and Recursor `were
 released <../changelog/pre-4.0.rst#powerdns-recursor-364>`__ on the 9th of June.
 Minimal patches are
-`available <http://downloads.powerdns.com/patches/2015-01/>`__. The
+`available <https://downloads.powerdns.com/patches/2015-01/>`__. The
 insufficient fix was assigned CVE-2015-5470.

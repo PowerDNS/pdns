@@ -71,7 +71,7 @@ Merging multiple setting files
 ------------------------------
 If `recursor.include_dir`_ is set, all ``.yml`` files in it will be processed in alphabetical order, modifying the  settings processed so far.
 
-For simple values like an boolean or number setting, a value in the processed file will overwrite an existing setting.
+For simple values like a boolean or number setting, a value in the processed file will overwrite an existing setting.
 
 For values of type sequence, the new value will *replace* the existing value if the existing value is equal to the ``default`` or if the new value is marked with the ``!override`` tag.
 Otherwise, the existing value will be *extended* with the new value by appending the new sequence to the existing.
@@ -119,7 +119,7 @@ After processing ``extra.yml`` the value will be set to the empty sequence, as e
            forwarders:
            - '::2'
 
-   The result will *not* be a a single forward with two IP addresses, but two entries for ``example.net``.
+   The result will *not* be a single forward with two IP addresses, but two entries for ``example.net``.
    It depends on the specific setting how the sequence is processed and interpreted further.
 
 Description of YAML syntax for structured types
@@ -407,8 +407,8 @@ As of version 5.1.0, an RPZ entry is defined as
 
 .. versionchanged:: 5.3.0 The aliases ``defpol_override_local_data``, ``extended_error_code``, ``extended_error_extra``, ``include_soa``, ``ignore_duplicates``, ``policy_name``, ``overriddes_gettag``, ``zone_size_hint``, ``max_received_bytes``, ``local_address``, ``axfr_timeout``, ``dump_file``, ``seed_file`` have been introduced.
 
-If ``addresses`` is empty, the ``name`` field specifies the path name of the RPZ, otherwise the ``name`` field defines the name of the RPZ.
-Starting with version 5.2.0, names instead of IP addresess can be used for ``addresses`` if
+If ``addresses`` is empty, the ``name`` field specifies the path name of the RPZ; otherwise, the ``name`` field defines the name of the RPZ.
+Starting with version 5.2.0, names instead of IP addresses can be used for ``addresses`` if
 :ref:`setting-yaml-recursor.system_resolver_ttl` is set.
 
 An example of an ``rpzs`` entry, which is a sequence of `RPZ`_:
@@ -438,7 +438,7 @@ As of version 5.1.0, a ZoneToCache entry is defined as
      secret: Base64 encoded secret
    refreshPeriod: 86400
    retryOnErrorPeriod: 60
-   maxReceivedMBytes: 0 Zero mean no restrcition
+   maxReceivedMBytes: 0 Zero mean no restriction
    localAddress: local IP address to  bind to.
    zonemd: One of ignore, validate, require
    dnssec: One of ignore, validate, require
@@ -534,7 +534,7 @@ As of version 5.2.0, a forwarding catalog zone entry is defined as:
 While this setting has no equivalent old-style Lua configuration, it cannot appear together with :ref:`setting-lua-config-file` being set.
 If you want to use catalog zones to define forwards, you need to convert existing Lua configuration to YAML format.
 
-Names instead of IP addresess can be used for ``addresses`` if :ref:`setting-yaml-recursor.system_resolver_ttl` is set.
+Names instead of IP addresses can be used for ``addresses`` if :ref:`setting-yaml-recursor.system_resolver_ttl` is set.
 An example of a :ref:`setting-yaml-recursor.forwarding_catalog_zones` entry, which is a sequence of `ForwardingCatalogZone`_:
 
 .. code-block:: yaml

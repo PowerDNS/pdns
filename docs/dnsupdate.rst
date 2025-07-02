@@ -445,7 +445,7 @@ You can define a Lua script to handle DNS UPDATE message
 authorization. The Lua script is to contain at least function called
 ``updatepolicy`` which accepts one parameter. This parameter is an
 object, containing all the information for the request. To permit
-change, return true, otherwise return false. The script is called for
+change, return true; otherwise, return false. The script is called for
 each record at a time and you can approve or reject any or all.
 
 The object has following methods available:

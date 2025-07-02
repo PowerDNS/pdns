@@ -5,7 +5,7 @@ Dependencies
 ------------
 We need very recent versions of:
 
- * validns (http://www.validns.net/)
+ * validns (https://www.validns.net/)
  * ldns-verify-zone (part of ldns)
  * jdnssec-verifyzone (https://github.com/dblacka/jdnssec-tools)
  * named-checkzone (part of BIND9)

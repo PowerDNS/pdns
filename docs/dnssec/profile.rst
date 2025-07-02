@@ -20,7 +20,7 @@ Supported Algorithms
 --------------------
 
 Supported Algorithms (See the `IANA
-website <http://www.iana.org/assignments/dns-sec-alg-numbers/dns-sec-alg-numbers.xhtml#dns-sec-alg-numbers-1>`__
+website <https://www.iana.org/assignments/dns-sec-alg-numbers/dns-sec-alg-numbers.xhtml#dns-sec-alg-numbers-1>`__
 for more information):
 
 -  RSASHA1 (algorithm 5, algorithm 7)
@@ -31,7 +31,7 @@ for more information):
 -  ed448 (algorithm 16)
 
 For the DS records, these `digest
-types <http://www.iana.org/assignments/ds-rr-types/ds-rr-types.xhtml#ds-rr-types-1>`__
+types <https://www.iana.org/assignments/ds-rr-types/ds-rr-types.xhtml#ds-rr-types-1>`__
 are supported:
 
 -  SHA-1 (algorithm 1)

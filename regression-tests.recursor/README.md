@@ -67,7 +67,7 @@ Check that they are all up:
     configs/10.0.3.8: up (pid 1138) 13 seconds
     configs/recursor-service: up (pid 1140) 13 seconds
 
-(They all need to be up more than a few seconds, otherwise they might be
+(They all need to be up more than a few seconds; otherwise, they might be
 crashing on startup. Check the per-service `logfile` if something is wrong).
 
 Run the tests:

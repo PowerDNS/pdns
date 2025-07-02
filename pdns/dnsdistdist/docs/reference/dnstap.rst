@@ -1,7 +1,7 @@
 dnstap Logging Reference
 ========================
 
-`dnstap <http://dnstap.info>`__ is a flexible, structured binary log format for DNS software.
+`dnstap <https://dnstap.info>`__ is a flexible, structured binary log format for DNS software.
 Reader implementations in various languages exist.
 
 :program:`dnsdist` supports dnstap since version 1.3.0.

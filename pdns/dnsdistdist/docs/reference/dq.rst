@@ -659,7 +659,7 @@ AsynchronousObject object
 
     Resume the processing of the suspended object.
     For a question, it means first checking whether it was turned into a response,
-    and sending the response out it it was. Otherwise do a cache-lookup: on a
+    and sending the response out it it was. Otherwise, do a cache-lookup: on a
     cache-hit, the response will be sent immediately. On a cache-miss,
     it means dnsdist will select a backend and send the query to the backend.
     For a response, it means inserting into the cache if needed and sending the

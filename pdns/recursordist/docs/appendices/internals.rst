@@ -28,7 +28,7 @@ means that PowerDNS is written naively, with one thread of execution per
 query, synchronously waiting for packets, Normally this would lead to
 very bad performance (unless running on a computer with very fast
 threading, like possibly the Sun CoolThreads family), so PowerDNS
-employs `MTasker <http://ds9a.nl/mtasker>`__ for very fast userspace
+employs `MTasker <https://berthub.eu/mtasker/>`__ for very fast userspace
 threading.
 
 MTasker, which was developed separately from PowerDNS, does not provide
@@ -187,9 +187,9 @@ C++ is a powerful language. Perhaps a bit too powerful at times, you can
 turn a program into a real freakshow if you so desire.
 
 PowerDNS generally tries not to go overboard in this respect, but we do
-build upon a very advanced part of the `Boost <http://www.boost.org>`__
+build upon a very advanced part of the `Boost <https://www.boost.org>`__
 C++ library: `boost::multi index
-container <http://boost.org/libs/multi_index/doc/index.html>`__.
+container <https://boost.org/libs/multi_index/doc/index.html>`__.
 
 This container provides the equivalent of SQL indexes on multiple keys.
 It also implements compound keys, which PowerDNS uses as well.

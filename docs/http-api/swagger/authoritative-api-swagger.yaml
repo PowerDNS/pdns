@@ -128,7 +128,7 @@ paths:
           required: false
           type: boolean
           default: true
-          description: '“true” (default) or “false”, whether to include the “dnssec” and ”edited_serial” fields in the Zone objects. Setting this to ”false” will make the query a lot faster.'
+          description: '“true” (default) or “false”, whether to include the “dnssec” and “edited_serial” fields in the Zone objects. Setting this to ”false” will make the query a lot faster.'
       responses:
         '200':
           description: An array of Zones
@@ -1105,7 +1105,7 @@ paths:
           description: The length of the network prefix
         - name: view
           required: true
-          description: The name of the view to use for to this network
+          description: The name of the view to use for this network
           in: body
           schema:
             type: string

@@ -25,7 +25,7 @@ Notable features
 - Very fast, and contains innovative query-throttling code to save time talking to obsolete or broken nameservers.
 - Code is written linearly, sequentially, which means that there are no problems with 'query restart' or anything.
 - Does DNSSEC validation
-- Is highly scriptable in `Lua <http://lua.org>`_
+- Is highly scriptable in `Lua <https://lua.org>`_
 
 Getting support
 ---------------

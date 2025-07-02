@@ -232,7 +232,7 @@ dnstap_logger:
         - "tcp"
     - name: "address"
       type: "String"
-      description: "The address of the endpoint. If the transport is set to 'unix', the address should be local ``AF_UNIX`` socket path. Note that most platforms have a rather short limit on the length. Otherwise the address should be an IP:port"
+      description: "The address of the endpoint. If the transport is set to 'unix', the address should be local ``AF_UNIX`` socket path. Note that most platforms have a rather short limit on the length. Otherwise, the address should be an IP:port"
     - name: "buffer_hint"
       type: "u64"
       default: 0
@@ -1927,7 +1927,7 @@ packet_cache:
     - name: "cookie_hashing"
       type: "bool"
       default: "false"
-      description: "If true, EDNS Cookie values will be hashed, resulting in separate entries for different cookies in the packet cache. This is required if the backend is sending answers with EDNS Cookies, otherwise a client might receive an answer with the wrong cookie"
+      description: "If true, EDNS Cookie values will be hashed, resulting in separate entries for different cookies in the packet cache. This is required if the backend is sending answers with EDNS Cookies; otherwise, a client might receive an answer with the wrong cookie"
     - name: "maximum_entry_size"
       type: "u32"
       default: "4096"

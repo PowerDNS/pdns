@@ -1,3 +1,3 @@
 When authoritative for a domain and sure that the entire record does not
-exist, an no referral NS is available, send an empty packet with 'NXDOMAIN'
+exist, a no referral NS is available, send an empty packet with 'NXDOMAIN'
 in the flags ('data error').

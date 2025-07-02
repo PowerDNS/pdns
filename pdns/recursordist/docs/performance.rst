@@ -87,7 +87,7 @@ When a ``MThread`` is started, a new stack is dynamically allocated for it. The 
 
 To reduce the cost of allocating a new stack for every query, the recursor can cache a small amount of stacks to make sure that the allocation stays cheap. This can be configured via the :ref:`setting-yaml-recursor.stack_cache_size` setting.
 This limit is per physical (Posix) thread.
-The only trade-off of enabling this cache is a slightly increased memory consumption, at worst equals to the number of stacks specified by :ref:`setting-yaml-recursor.stack_cache_size` multiplied by the size of one stack, itself specified via :ref:`setting-yaml-recursor.stack_size`.
+The only trade-off of enabling this cache is a slightly increased memory consumption, at worst equal to the number of stacks specified by :ref:`setting-yaml-recursor.stack_cache_size` multiplied by the size of one stack, itself specified via :ref:`setting-yaml-recursor.stack_size`.
 
 Linux limits the number of memory mappings a process can allocate by the ``vm.max_map_count`` kernel parameter.
 A single ``MThread`` stack can take up to 3 memory mappings.
@@ -237,7 +237,7 @@ While developing active TCP Fast Open, it was needed to set ``net.ipv4.tcp_fasto
 At the moment of writing, some Google operated nameservers (both recursive and authoritative) indicate Fast Open support in the TCP handshake, but do not accept the cookie they sent previously and send a new one for each connection.
 Google is working to fix this.
 
-If you operate an anycast pool of machines, make them share the TCP Fast Open Key by setting the ``net.ipv4.tcp_fastopen_key`` sysctl, otherwise you will create a similar issue some Google servers have.
+If you operate an anycast pool of machines, make them share the TCP Fast Open Key by setting the ``net.ipv4.tcp_fastopen_key`` sysctl; otherwise, you will create a similar issue some Google servers have.
 
 To determine a good value for the :ref:`setting-yaml-incoming.tcp_fast_open` setting, watch the ``TCPFastOpenListenOverflow`` metric.
 If this value increases often, the value might be too low for your traffic, but note that increasing it will use kernel resources.

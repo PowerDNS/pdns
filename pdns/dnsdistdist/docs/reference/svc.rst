@@ -20,7 +20,7 @@ SVCRecordParameters
 
   :param int priority: The priority of this record. if more than one record is returned, they all should have different priorities. A priority of 0 indicates Alias mode and no other record should be present in the RRSet.
   :param str target: A domain name indicating the target name.
-  :param table SVCParams: Optional table of additionals parameters. The key should be the name of the SVC parameter and will be used as the SvcParamKey, while the value depends on the key (see below)
+  :param table SVCParams: Optional table of additional parameters. The key should be the name of the SVC parameter and will be used as the SvcParamKey, while the value depends on the key (see below)
 
   These SVCParams can be set::
 

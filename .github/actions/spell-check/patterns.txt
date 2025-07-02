@@ -58,6 +58,10 @@ DoH
 # libraries
 (?:\b|_)lib(?:re(?=office|ssl)|)(?!era[lt]|ero|erty|rar(?:i(?:an|es)|y))(?=[a-z])
 
+# hit-count: 124 file-count: 50
+# Repeated letters
+\b([a-z])\g{-1}{2,}\b
+
 # hit-count: 89 file-count: 7
 # hex digits including css/html color classes:
 (?:[\\0][xX]|\\u?|[uU]\+|#x?|%23)[0-9_a-fA-FgGrR]*?[a-fA-FgGrR]{2,}[0-9_a-fA-FgGrR]*(?:[uUlL]{0,3}|[iu]\d+)\b
@@ -78,6 +82,14 @@ DoH
 # Non-English
 [a-zA-Z]*[ÀÁÂÃÄÅÆČÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝßàáâãäåæčçèéêëìíîïðñòóôõöøùúûüýÿĀāŁłŃńŅņŒœŚśŠšŜŝŸŽžź][a-zA-Z]{3}[a-zA-ZÀÁÂÃÄÅÆČÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝßàáâãäåæčçèéêëìíîïðñòóôõöøùúûüýÿĀāŁłŃńŅņŒœŚśŠšŜŝŸŽžź]*|[a-zA-Z]{3,}[ÀÁÂÃÄÅÆČÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝßàáâãäåæčçèéêëìíîïðñòóôõöøùúûüýÿĀāŁłŃńŅņŒœŚśŠšŜŝŸŽžź]|[ÀÁÂÃÄÅÆČÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝßàáâãäåæčçèéêëìíîïðñòóôõöøùúûüýÿĀāŁłŃńŅņŒœŚśŠšŜŝŸŽžź][a-zA-Z]{3,}
 
+# hit-count: 17 file-count: 11
+# DNS rr data
+(?:\d+\s+){3}(?:[-+/=.\w]{2,}\s*){1,2}
+
+# hit-count: 15 file-count: 3
+# css fonts
+\bfont(?:-family|):[^;}]+
+
 # hit-count: 12 file-count: 5
 # base64 encoded content
 ([`'"])[-a-zA-Z=;:/0-9+]{3,}=\g{-1}
@@ -85,6 +97,10 @@ DoH
 # hit-count: 12 file-count: 2
 # PGP
 \b(?:[0-9A-F]{4} ){9}[0-9A-F]{4}\b
+
+# hit-count: 8 file-count: 4
+# Internet Archive
+\barchive\.org/web/\d+/(?:[-\w.?,'/\\+&%$#_:]*)
 
 # hit-count: 5 file-count: 4
 # python
@@ -149,13 +165,16 @@ DoH
 # to opt in
 \bto opt in\b
 
+# pass(ed|ing) in
+\bpass(?:ed|ing) in\b
+
 # acceptable duplicates
 # ls directory listings
 [-bcdlpsw](?:[-r][-w][-SsTtx]){3}[\.+*]?\s+\d+\s+\S+\s+\S+\s+[.\d]+(?:[KMGT]|)\s+
 # mount
 \bmount\s+-t\s+(\w+)\s+\g{-1}\b
 # C types and repeated CSS values
-\s(auto|buffalo|center|div|inherit|long|LONG|none|normal|solid|thin|transparent|very)(?: \g{-1})+\s
+\s(auto|buffalo|center|div|inherit|long|LONG|none|normal|solid|thin|transparent|very)(?:\s\g{-1})+\s
 # C enum and struct
 \b(?:enum|struct)\s+(\w+)\s+\g{-1}\b
 # go templates
@@ -164,7 +183,7 @@ DoH
 (?:[\\@](?:brief|defgroup|groupname|link|t?param|return|retval)|(?:public|private|\[Parameter(?:\(.+\)|)\])(?:\s+(?:static|override|readonly|required|virtual))*)(?:\s+\{\w+\}|)\s+(\w+)\s+\g{-1}\s
 
 # macOS file path
-/MacOS
+(?:Contents\W+|(?!iOS)/)MacOS\b
 
 # Python package registry has incorrect spelling for macOS / Mac OS X
 "Operating System :: MacOS :: MacOS X"

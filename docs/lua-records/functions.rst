@@ -30,7 +30,7 @@ Client variables
   otherwise. This is a :class:`Netmask`.
 ``bestwho``
   In absence of ECS, this is set to the IP address of requesting resolver.
-  Otherwise set to the network part of the EDNS Client Subnet supplied by the
+  Otherwise, set to the network part of the EDNS Client Subnet supplied by the
   resolver. This is a :class:`ComboAddress`.
 ``who``
   IP address of requesting resolver as a :class:`ComboAddress`.

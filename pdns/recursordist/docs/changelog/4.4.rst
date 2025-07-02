@@ -480,7 +480,7 @@ Changelogs for 4.4.x
     :tags: Internals, Bug Fixes
     :pullreq: 9302
 
-    Kill an signed vs unsigned warning on OpenBSD.
+    Kill a signed vs unsigned warning on OpenBSD.
 
   .. change::
     :tags: Improvements

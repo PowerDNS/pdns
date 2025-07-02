@@ -555,7 +555,7 @@ The following actions exist.
 
   Set the ECS prefix and prefix length sent to backends to an arbitrary value.
   If both IPv4 and IPv6 masks are supplied the IPv4 one will be used for IPv4 clients
-  and the IPv6 one for IPv6 clients. Otherwise the first mask is used for both, and
+  and the IPv6 one for IPv6 clients. Otherwise, the first mask is used for both, and
   can actually be an IPv6 mask.
   Subsequent rules are processed after this action.
 

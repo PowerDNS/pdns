@@ -26,7 +26,7 @@ supported.
 
 The original author for this module is Norbert Sendetzky. This page is
 based on the content from his `LDAPbackend wiki
-section <http://wiki.linuxnetworks.de/index.php/PowerDNS_ldapbackend>`__
+section <https://web.archive.org/web/20160212235114/http://www.linuxnetworks.de/doc/index.php/PowerDNS_LDAP_Backend>`__
 as copied in February 2016, and edited from there.
 
 .. warning::
@@ -482,14 +482,14 @@ BIND LDAP backend
 ^^^^^^^^^^^^^^^^^
 
 When coming from the `BIND LDAP sdb
-backend <http://bind9-ldap.bayour.com/>`__, the records can be kept in
+backend <https://web.archive.org/web/20240816181821/https://bind9-ldap.bayour.com/>`__, the records can be kept in
 the LDAP tree also for the PowerDNS LDAP backend. The schemas both
 backends utilize is almost the same except for one important thing:
 Domains for PowerDNS are stored in the attribute "associatedDomain"
 whereas BIND stores them split in "relativeDomainName" and "zoneName".
 
 There is a `migration
-script <http://www.linuxnetworks.de/pdnsldap/bind2pdns-ldap>`__ which
+script <https://www.linuxnetworks.de/pdnsldap/bind2pdns-ldap>`__ which
 creates a file in LDIF format with the necessary LDAP updates including
 the "associatedDomain" and "dc" attributes. The utility is executed on
 the command line by:
@@ -502,11 +502,11 @@ the command line by:
        --binddn=ADMIN_DN > update.ldif
 
 The parameter "host" and "basedn" are mandatory, "binddn" is optional.
-If "binddn" is given, the script will prompt for a password, otherwise
+If "binddn" is given, the script will prompt for a password; otherwise,
 an anonymous bind is executed. The updates in LDIF format are written to
 stdout and can be redirected to a file.
 
-The `script <http://www.linuxnetworks.de/pdnsldap/bind2pdns-ldap>`__
+The `script <https://www.linuxnetworks.de/pdnsldap/bind2pdns-ldap>`__
 requires Perl and the Perl Net::LDAP module.
 
 Updating the entries in the LDAP tree requires to make the dnsdomain2
@@ -514,9 +514,9 @@ schema known to the LDAP server. Unfortunately, both schemas (dnsdomain2
 and dnszone) share the same record types and use the same OIDs so the
 LDAP server can't use both schemas at the same time. The solution is to
 add the `dnsdomain2
-schema <http://www.linuxnetworks.de/pdnsldap/dnsdomain2.schema>`__ and
+schema <https://www.linuxnetworks.de/pdnsldap/dnsdomain2.schema>`__ and
 replace the dnszone schema by the `dnszone-migrate
-schema <http://www.linuxnetworks.de/pdnsldap/dnszone-migrate.schema>`__.
+schema <https://www.linuxnetworks.de/pdnsldap/dnszone-migrate.schema>`__.
 After restarting the LDAP server attributes from both schemas can be
 used and updating the objects in the LDAP tree using the LDIF file
 generated from ``bind2pdns-ldap`` will work without errors.

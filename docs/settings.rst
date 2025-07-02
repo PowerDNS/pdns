@@ -491,7 +491,7 @@ Overrides :ref:`setting-default-soa-edit`
 -  String
 
 .. deprecated:: 4.2.0
-  This setting has been removed in 4.4.0
+  This setting was removed in 4.4.0
 
 Mail address to insert in the SOA record if none set in the backend.
 
@@ -504,7 +504,7 @@ Mail address to insert in the SOA record if none set in the backend.
 -  Default: a.misconfigured.dns.server.invalid
 
 .. deprecated:: 4.2.0
-  This setting has been removed in 4.4.0
+  This setting was removed in 4.4.0
 
 Name to insert in the SOA record if none set in the backend.
 
@@ -1417,7 +1417,7 @@ To notify all IP addresses apart from the 192.168.0.0/24 subnet use the followin
 .. note::
   If your secondaries support an Internet Protocol version, which your primary does not,
   then set ``only-notify`` to include only supported protocol version.
-  Otherwise there will be error trying to resolve address.
+  Otherwise, there will be error trying to resolve address.
 
   For example, secondaries support both IPv4 and IPv6, but PowerDNS primary have only IPv4,
   so allow only IPv4 with ``only-notify``:
@@ -1791,7 +1791,7 @@ See :ref:`metadata-slave-renotify` to set this per-zone.
 -  Default: 604800
 
 .. deprecated:: 4.2.0
-  This setting has been removed in 4.4.0
+  This setting was removed in 4.4.0
 
 Default :ref:`types-soa` expire.
 
@@ -1804,7 +1804,7 @@ Default :ref:`types-soa` expire.
 -  Default: 3600
 
 .. deprecated:: 4.2.0
-  This setting has been removed in 4.4.0
+  This setting was removed in 4.4.0
 
 Default :ref:`types-soa` minimum ttl.
 
@@ -1817,7 +1817,7 @@ Default :ref:`types-soa` minimum ttl.
 -  Default: 10800
 
 .. deprecated:: 4.2.0
-  This setting has been removed in 4.4.0
+  This setting was removed in 4.4.0
 
 Default :ref:`types-soa` refresh.
 
@@ -1830,7 +1830,7 @@ Default :ref:`types-soa` refresh.
 -  Default: 3600
 
 .. deprecated:: 4.2.0
-  This setting has been removed in 4.4.0
+  This setting was removed in 4.4.0
 
 Default :ref:`types-soa` retry.
 

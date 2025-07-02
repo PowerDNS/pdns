@@ -87,7 +87,7 @@ Plain-text API keys and passwords for web server authentication are now strongly
 1.5.x to 1.6.0
 --------------
 
-The packet cache no longer hashes EDNS Cookies by default, which means that two queries that are identical except for the content of their cookie will now be served the same answer. This only works if the backend is not returning any answer containing EDNS Cookies, otherwise the wrong cookie might be returned to a client. To prevent this, the ``cookieHashing=true`` parameter might be passed to :func:`newPacketCache` so that cookies are hashed, resulting in separate entries in the packet cache.
+The packet cache no longer hashes EDNS Cookies by default, which means that two queries that are identical except for the content of their cookie will now be served the same answer. This only works if the backend is not returning any answer containing EDNS Cookies; otherwise, the wrong cookie might be returned to a client. To prevent this, the ``cookieHashing=true`` parameter might be passed to :func:`newPacketCache` so that cookies are hashed, resulting in separate entries in the packet cache.
 
 All TCP worker threads are now created at startup, instead of being created on-demand. The existing behaviour was useful for very small setups but did not scale quickly to a large amount of TCP connections.
 The new behaviour can cause a noticeable increase of TCP connections between dnsdist and its backends, as the TCP connections are not shared between TCP worker threads.

@@ -9,7 +9,7 @@ There are several ways to pass that information using dnsdist: the :ref:`Proxy P
 When the backend supports it (ISC Bind, Knot, Knot Resolver, PowerDNS Authoritative, PowerDNS Recursor, Unbound, HAProxy, nginx, postfix and many others do), the proxy protocol is the best option.
 
 .. note::
-  X-Proxied-For (XPF) was a third option but it has been deprecated for a while, and support has been removed in 2.0.0.
+  X-Proxied-For (XPF) was a third option but it has been deprecated for a while, and support was removed in 2.0.0.
 
 .. _Proxy Protocol:
 
@@ -129,7 +129,7 @@ X-Proxied-For
 -------------
 
 .. note::
-  XPF support has been removed in 2.0.0.
+  XPF support was removed in 2.0.0.
 
 The experimental XPF record (from `draft-bellis-dnsop-xpf <https://datatracker.ietf.org/doc/draft-bellis-dnsop-xpf/>`_) is an alternative to the use of EDNS Client Subnet which has the advantages of preserving any existing EDNS Client Subnet value sent by the client, and of passing along the original destination address, as well as the initial source and destination ports.
 
