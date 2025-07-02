@@ -1191,6 +1191,21 @@ bool LMDBBackend::abortTransaction()
 void LMDBBackend::writeNSEC3RecordPair(const std::shared_ptr<RecordsRWTransaction>& txn, domainid_t domain_id, const DNSName& qname, const DNSName& ordername)
 {
   compoundOrdername co; // NOLINT(readability-identifier-length)
+
+  // Check for an existing NSEC3 record. If one exists, either it points to the
+  // same ordername and we have nothing to do, or the ordername has changed and
+  // we need to remove the about-to-become-dangling back chain record.
+  MDBOutVal val{};
+  if (txn->txn->get(txn->db->dbi, co(domain_id, qname, QType::NSEC3), val) == 0) {
+    LMDBResourceRecord lrr;
+    deserializeFromBuffer(val.get<string_view>(), lrr);
+    DNSName prevordername(lrr.content.c_str(), lrr.content.size(), 0, false);
+    if (prevordername == ordername) {
+      return; // nothing to do! (assuming the other record also exists)
+    }
+    txn->txn->del(txn->db->dbi, co(domain_id, prevordername, QType::NSEC3));
+  }
+
   LMDBResourceRecord lrr;
   lrr.auth = false;
 
@@ -1228,11 +1243,7 @@ bool LMDBBackend::feedRecord(const DNSResourceRecord& r, const DNSName& ordernam
   d_rwtxn->txn->put(d_rwtxn->db->dbi, matchName, rrs);
 
   if (ordernameIsNSEC3 && !ordername.empty()) {
-    MDBOutVal val;
-    // Only add the NSEC3 chain records if there aren't any.
-    if (d_rwtxn->txn->get(d_rwtxn->db->dbi, co(lrr.domain_id, lrr.qname, QType::NSEC3), val)) {
-      writeNSEC3RecordPair(d_rwtxn, lrr.domain_id, lrr.qname, ordername);
-    }
+    writeNSEC3RecordPair(d_rwtxn, lrr.domain_id, lrr.qname, ordername);
   }
   return true;
 }
