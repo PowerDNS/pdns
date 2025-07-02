@@ -1,12 +1,15 @@
 #!/bin/sh
-if [ -z "$1" ] || [ -z "$2" ]; then
-  echo "Usage: $0 effective_tld_names.dat pubsuffix.cc"
+if [ -z "$1" ]; then
+  echo "Usage: $0 pubsuffix.cc"
   exit 1
 fi
 set -e
-(echo "const char* g_pubsuffix[]={"; 
-	for a in $(grep -v "//" "$1" | grep \\. | egrep "^[.0-9a-z-]*$")
-	do 
+temp=$(mktemp pubsuffixXXXXXX)
+curl -s -S https://publicsuffix.org/list/public_suffix_list.dat > $temp
+(echo "const char* g_pubsuffix[]={";
+	for a in $(grep -v "//" "$temp" | grep \\. | egrep "^[.0-9a-z-]*$")
+	do
 		echo \"$a\",
-	done 
-echo "0};") > "$2"
+	done
+echo "0};") > "$1"
+rm -f "$temp"
