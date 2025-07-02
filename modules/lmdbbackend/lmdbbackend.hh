@@ -74,7 +74,8 @@ public:
   ~LMDBBackend();
 
   unsigned int getCapabilities() override;
-  bool list(const ZoneName& target, domainid_t domainId, bool include_disabled) override;
+  bool list(const ZoneName& target, domainid_t domain_id, bool include_disabled) override;
+  bool listSubZone(const ZoneName& target, domainid_t domain_id) override;
 
   bool getDomainInfo(const ZoneName& domain, DomainInfo& info, bool getserial = true) override;
   bool createDomain(const ZoneName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account) override;
@@ -202,6 +203,16 @@ private:
     std::string operator()(const DNSResourceRecord& rr)
     {
       return operator()(rr.domain_id, rr.qname, rr.qtype.getCode());
+    }
+
+    static std::string suffixMatch(domainid_t domain_id, const DNSName& name)
+    {
+      // This is similar to operator() above, but not appending a final NUL
+      // byte, so that the search is not an exact match.
+      std::string ret;
+      uint32_t id = htonl(static_cast<uint32_t>(domain_id));
+      ret.assign((char*)&id, 4);
+      return ret.append(keyConv(name));
     }
 
     static domainid_t getDomainID(const string_view& key)
@@ -335,6 +346,7 @@ private:
 
   void getAllDomainsFiltered(vector<DomainInfo>* domains, const std::function<bool(DomainInfo&)>& allow);
 
+  bool listInternal(const ZoneName& target, domainid_t domain_id, const std::string& match, bool include_disabled);
   void lookupInternal(const QType& type, const DNSName& qdomain, domainid_t zoneId, DNSPacket* p, bool include_disabled);
   bool getSerial(DomainInfo& di);
 
