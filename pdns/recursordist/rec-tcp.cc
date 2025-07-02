@@ -1113,7 +1113,7 @@ unsigned int makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tc
 
   for (const auto& localAddress : localAddresses) {
     ComboAddress address{localAddress, defaultLocalPort};
-    const int socketFd = socket(address.sin6.sin6_family, SOCK_STREAM, 0);
+    auto socketFd = FDWrapper(socket(address.sin6.sin6_family, SOCK_STREAM, 0));
     if (socketFd < 0) {
       throw PDNSException("Making a TCP server socket for resolver: " + stringerror());
     }
@@ -1207,6 +1207,7 @@ unsigned int makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tc
 #ifdef TCP_DEFER_ACCEPT
     first = false;
 #endif
+    socketFd.release(); // to avoid auto-close by FDWrapper
   }
   if (doLog) {
     log->info(Logr::Info, "Listening for queries", "protocol", Logging::Loggable("TCP"), "addresses", Logging::IterLoggable(logVec.cbegin(), logVec.cend()), "socketInstances", Logging::Loggable(instances), "reuseport", Logging::Loggable(g_reusePort));
