@@ -1188,6 +1188,24 @@ bool LMDBBackend::abortTransaction()
   return true;
 }
 
+// Remove the NSEC3 records pair found at the given `qname', if any.
+void LMDBBackend::deleteNSEC3RecordPair(const std::shared_ptr<RecordsRWTransaction>& txn, domainid_t domain_id, const DNSName& qname)
+{
+  compoundOrdername co; // NOLINT(readability-identifier-length)
+  MDBOutVal val{};
+
+  auto key = co(domain_id, qname, QType::NSEC3);
+  if (txn->txn->get(txn->db->dbi, key, val) == 0) {
+    LMDBResourceRecord lrr;
+    deserializeFromBuffer(val.get<string_view>(), lrr);
+    DNSName ordername(lrr.content.c_str(), lrr.content.size(), 0, false);
+    txn->txn->del(txn->db->dbi, co(domain_id, ordername, QType::NSEC3));
+    txn->txn->del(txn->db->dbi, key);
+  }
+}
+
+// Write a pair of NSEC3 records referencing each other, between `qname' and
+// `ordername'.
 void LMDBBackend::writeNSEC3RecordPair(const std::shared_ptr<RecordsRWTransaction>& txn, domainid_t domain_id, const DNSName& qname, const DNSName& ordername)
 {
   compoundOrdername co; // NOLINT(readability-identifier-length)
@@ -1312,6 +1330,9 @@ bool LMDBBackend::replaceRRSet(domainid_t domain_id, const DNSName& qname, const
   compoundOrdername co;
   string match;
   if (qt.getCode() == QType::ANY) {
+    // Check for an existing NSEC3 record. If one exists, we need to also
+    // remove the back chain record.
+    deleteNSEC3RecordPair(txn, domain_id, relative);
     match = co(domain_id, relative);
     deleteDomainRecords(*txn, QType::ANY, match);
     // Update key if insertions are to follow
@@ -1320,13 +1341,42 @@ bool LMDBBackend::replaceRRSet(domainid_t domain_id, const DNSName& qname, const
     }
   }
   else {
-    auto cursor = txn->txn->getCursor(txn->db->dbi);
-    MDBOutVal key{};
-    MDBOutVal val{};
-    match = co(domain_id, relative, qt.getCode());
-    // There should be at most one exact match here.
-    if (cursor.find(match, key, val) == 0) {
-      cursor.del(key);
+    if (qt.getCode() == QType::NSEC3) {
+      deleteNSEC3RecordPair(txn, domain_id, relative);
+    }
+    else {
+      auto cursor = txn->txn->getCursor(txn->db->dbi);
+      MDBOutVal key{};
+      MDBOutVal val{};
+      match = co(domain_id, relative, qt.getCode());
+      // There should be at most one exact match here.
+      if (cursor.find(match, key, val) == 0) {
+        cursor.del(key);
+      }
+      // If we are not going to add any new records, check if there are any
+      // remaining records for this qname, ignoring NSEC3 chain records. If
+      // there aren't any, yet there is an NSEC3 record, delete the NSEC3 chain
+      // pair as well.
+      if (rrset.empty()) {
+        bool seenNSEC3{false};
+        bool seenOther{false};
+        if (cursor.prefix(co(domain_id, relative), key, val) == 0) {
+          do {
+            if (compoundOrdername::getQType(key.getNoStripHeader<StringView>()) == QType::NSEC3) {
+              seenNSEC3 = true;
+            }
+            else {
+              seenOther = true;
+            }
+            if (seenNSEC3 && seenOther) {
+              break;
+            }
+          } while (cursor.next(key, val) == 0);
+        }
+        if (!seenOther && seenNSEC3) {
+          deleteNSEC3RecordPair(txn, domain_id, relative);
+        }
+      }
     }
   }
 
