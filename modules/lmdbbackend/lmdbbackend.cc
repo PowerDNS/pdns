@@ -2749,22 +2749,12 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSNa
     }
   } while (cursor.next(key, val) == 0);
 
-  bool updateNSEC3{true};
-  matchkey = co(domain_id, rel, QType::NSEC3);
-  // cerr<<"here qname="<<qname<<" ordername="<<ordername<<" qtype="<<qtype<<" matchkey="<<makeHexDump(matchkey)<<endl;
-  if (txn->txn->get(txn->db->dbi, matchkey, val) == 0) {
-    if (!needNSEC3) {
-      // NSEC3 link to be removed: need to remove the existing pair.
-      updateNSEC3 = false;
-      LMDBResourceRecord lrr;
-      deserializeFromBuffer(val.get<string_view>(), lrr);
-      DNSName prevordername(lrr.content.c_str(), lrr.content.size(), 0, false);
-      txn->txn->del(txn->db->dbi, co(domain_id, prevordername, QType::NSEC3));
-      txn->txn->del(txn->db->dbi, matchkey);
-    }
+  if (!needNSEC3) {
+    // NSEC3 link to be removed: need to remove an existing pair, if any
+    deleteNSEC3RecordPair(txn, domain_id, rel);
   }
-
-  if (needNSEC3 && hasOrderName && updateNSEC3) {
+  else if (hasOrderName) {
+    // NSEC3 link to be added or updated
     writeNSEC3RecordPair(txn, domain_id, rel, ordername);
   }
 
