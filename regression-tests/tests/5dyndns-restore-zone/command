@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
 
-[ -z "$GMYSQLDB" ] && GMYSQLDB=pdnstest
-[ -z "$GMYSQLUSER" ] && GMYSQLUSER=root
-[ -z "$GMYSQLHOST" ] && GMYSQLHOST=localhost
-[ -z "$GMYSQLPASSWD" ] && GMYSQLPASSWD=''
-
-mysql --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" \
-	"$GMYSQLDB" \
-	-e "UPDATE records SET content = 'ns1.test.dyndns. ahu.example.dyndns. 2012060701 28800 7200 604800 86400' WHERE name in ('test.dyndns', 'sub.test.dyndns') AND type = 'SOA'"
+for zone in test.dyndns sub.test.dyndns
+do
+    $PDNSUTIL --config-dir=. --config-name=$backend \
+        replace-rrset ${zone} @ SOA "ns1.test.dyndns ahu.example.dyndns 2012060701 28800 7200 604800 86400" \
+        > /dev/null
+done

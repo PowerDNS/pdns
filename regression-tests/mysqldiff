@@ -12,23 +12,36 @@ comment=$2
 diffto="step.$3"
 [ -z "$3" ] && diffto="start"
 
-if [ "${context: -9}" = "-nodnssec" ]
-then
-	mysql --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" \
-		"$GMYSQLDB" \
-		-e "SELECT r.name, r.type, r.prio, r.content, r.ttl FROM domains d JOIN records r ON d.id=r.domain_id WHERE d.name='test.dyndns' AND(r.type != 'SOA' OR r.type IS NULL) ORDER BY r.name, r.type, r.content, r.ttl, r.prio" > ${testsdir}/${testname}/$step
-else
-	mysql --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" \
-		"$GMYSQLDB" \
-		-e "SELECT r.name, r.type, r.prio, r.content, r.ttl, CONCAT('''', CONCAT(r.ordername, '''')), r.auth FROM domains d JOIN records r ON d.id=r.domain_id WHERE d.name='test.dyndns' AND(r.type != 'SOA' OR r.type IS NULL) ORDER BY r.name, r.type, r.content, r.ttl, r.prio" > ${testsdir}/${testname}/$step
-fi
-
 if type gsort >/dev/null 2>/dev/null
 then
 	SORT=gsort
 else
 	SORT=sort
 fi
+
+case $backend in
+gmysql)
+    if [ "${context: -9}" = "-nodnssec" ]
+    then
+	mysql --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" \
+		"$GMYSQLDB" \
+		-e "SELECT r.name, r.type, r.prio, r.content, r.ttl FROM domains d JOIN records r ON d.id=r.domain_id WHERE d.name='test.dyndns' AND(r.type != 'SOA' OR r.type IS NULL) ORDER BY r.name, r.type, r.content, r.ttl, r.prio" > ${testsdir}/${testname}/$step
+    else
+	mysql --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" \
+		"$GMYSQLDB" \
+		-e "SELECT r.name, r.type, r.prio, r.content, r.ttl, CONCAT('''', CONCAT(r.ordername, '''')), r.auth FROM domains d JOIN records r ON d.id=r.domain_id WHERE d.name='test.dyndns' AND(r.type != 'SOA' OR r.type IS NULL) ORDER BY r.name, r.type, r.content, r.ttl, r.prio" > ${testsdir}/${testname}/$step
+    fi
+    ;;
+*)
+    # Not as selective as the queries above, not as precise with DNSSEC details,
+    # but hopefully good enough for the sake of most tests.
+    # Maybe we should add a pdnsutil backend-cmd to retrieve these results in
+    # same format as the mysql query...
+    $PDNSUTIL --config-dir=. --config-name=$backend \
+        list-zone test.dyndns | grep -vwF SOA | \
+        $SORT > ${testsdir}/${testname}/$step
+    ;;
+esac
 
 if [ ! "$step" == "start" ]
 then
