@@ -1198,13 +1198,13 @@ void LMDBBackend::writeNSEC3RecordPair(const std::shared_ptr<RecordsRWTransactio
   lrr.ttl = 0;
   lrr.content = qname.toDNSStringLC();
   string ser = serializeToBuffer(lrr);
-  txn->txn->put(d_rwtxn->db->dbi, co(domain_id, ordername, QType::NSEC3), ser);
+  txn->txn->put(txn->db->dbi, co(domain_id, ordername, QType::NSEC3), ser);
 
   // Write qname -> ordername forward chain record with ttl set to 1
   lrr.ttl = 1;
   lrr.content = ordername.toDNSString();
   ser = serializeToBuffer(lrr);
-  txn->txn->put(d_rwtxn->db->dbi, co(domain_id, qname, QType::NSEC3), ser);
+  txn->txn->put(txn->db->dbi, co(domain_id, qname, QType::NSEC3), ser);
 }
 
 // d_rwtxn must be set here
