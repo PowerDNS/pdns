@@ -2672,31 +2672,31 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSNa
   bool needNSEC3 = hasOrderName;
 
   do {
-    vector<LMDBResourceRecord> lrrs;
-
-    if (co.getQType(key.getNoStripHeader<StringView>()) != QType::NSEC3) {
-      deserializeFromBuffer(val.get<StringView>(), lrrs);
-      bool changed = false;
-      vector<LMDBResourceRecord> newRRs;
-      newRRs.reserve(lrrs.size());
-      for (auto& lrr : lrrs) {
-        lrr.qtype = co.getQType(key.getNoStripHeader<StringView>());
-        if (!needNSEC3 && qtype != QType::ANY) {
-          needNSEC3 = (lrr.ordername && QType(qtype) != lrr.qtype);
-        }
-
-        if ((qtype == QType::ANY || QType(qtype) == lrr.qtype) && (lrr.ordername != hasOrderName || lrr.auth != auth)) {
-          lrr.auth = auth;
-          lrr.ordername = hasOrderName;
-          changed = true;
-        }
-        newRRs.push_back(std::move(lrr));
-      }
-      if (changed) {
-        cursor.put(key, serializeToBuffer(newRRs));
-      }
+    if (co.getQType(key.getNoStripHeader<StringView>()) == QType::NSEC3) {
+      continue;
     }
 
+    vector<LMDBResourceRecord> lrrs;
+    deserializeFromBuffer(val.get<StringView>(), lrrs);
+    bool changed = false;
+    vector<LMDBResourceRecord> newRRs;
+    newRRs.reserve(lrrs.size());
+    for (auto& lrr : lrrs) {
+      lrr.qtype = co.getQType(key.getNoStripHeader<StringView>());
+      if (!needNSEC3 && qtype != QType::ANY) {
+        needNSEC3 = (lrr.ordername && QType(qtype) != lrr.qtype);
+      }
+
+      if ((qtype == QType::ANY || QType(qtype) == lrr.qtype) && (lrr.ordername != hasOrderName || lrr.auth != auth)) {
+        lrr.auth = auth;
+        lrr.ordername = hasOrderName;
+        changed = true;
+      }
+      newRRs.push_back(std::move(lrr));
+    }
+    if (changed) {
+      cursor.put(key, serializeToBuffer(newRRs));
+    }
   } while (cursor.next(key, val) == 0);
 
   bool del = false;
