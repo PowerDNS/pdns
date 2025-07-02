@@ -67,7 +67,6 @@ EXTRA_DIST = \
 	dnslabeltext.cc \
 	dnslabeltext.rl \
 	dnsmessage.proto \
-	effective_tld_names.dat \
 	epollmplexer.cc \
 	kqueuemplexer.cc \
 	lua_hpp.mk \
@@ -560,13 +559,7 @@ nodist_rec_control_SOURCES = \
 dnslabeltext.cc: dnslabeltext.rl
 	$(AM_V_GEN)$(RAGEL) $< -o dnslabeltext.cc
 
-curl_verbose = $(curl_verbose_$(V))
-curl_verbose_ = $(curl_verbose_$(AM_DEFAULT_VERBOSITY))
-curl_verbose_0 = @echo "  CURL    " $@;
-$(srcdir)/effective_tld_names.dat:
-	$(curl_verbose)if ! curl -s -S https://publicsuffix.org/list/public_suffix_list.dat > $@; then rm -f $@; exit 1; fi
-
-pubsuffix.cc: $(srcdir)/effective_tld_names.dat
+pubsuffix.cc:
 	$(srcdir)/mkpubsuffixcc $< $@
 
 ## Config file
