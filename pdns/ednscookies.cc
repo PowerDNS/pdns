@@ -148,12 +148,9 @@ bool EDNSCookiesOpt::shouldRefresh() const
 
 void EDNSCookiesOpt::makeClientCookie()
 {
-  uint32_t lower = dns_random_uint32();
-  uint32_t upper = dns_random_uint32();
-  client = string();
-  client.resize(sizeof(lower) + sizeof(upper));
-  memcpy(client.data(), &lower, sizeof(lower));
-  memcpy(&client.at(sizeof(lower)), &upper, sizeof(upper));
+  const size_t clientCookieSize = 8;
+  client.resize(clientCookieSize);
+  dns_random(client.data(), clientCookieSize);
 }
 
 bool EDNSCookiesOpt::makeServerCookie([[maybe_unused]] const string& secret, [[maybe_unused]] const ComboAddress& source)
