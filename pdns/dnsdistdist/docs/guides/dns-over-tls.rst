@@ -12,6 +12,18 @@ Adding a listen port for DNS-over-TLS can be done with the :func:`addTLSLocal` f
 
   addTLSLocal('192.0.2.55', '/etc/ssl/certs/example.com.pem', '/etc/ssl/private/example.com.key')
 
+Or in ``yaml``:
+
+.. code-block:: yaml
+
+  binds:
+    - listen_address: "192.0.2.55"
+      protocol: "DoT"
+      tls:
+        certificates:
+          - certificate: "/etc/ssl/certs/example.com.pem"
+            key: "/etc/ssl/certs/example.com.key"
+
 This will make :program:`dnsdist` listen on 192.0.2.55:853 on TCP, and will use the provided certificate and key to serve incoming TLS connections.
 
 In order to support multiple certificates and keys, for example an ECDSA and an RSA one, the following syntax may be used instead::
@@ -46,6 +58,17 @@ Such that support can be enabled via the ``tls`` parameter of the :func:`newServ
 
   newServer({address="[2001:DB8::1]:853", tls="openssl", subjectName="dot.powerdns.com", validateCertificates=true})
 
+The same backend configuration in ``yaml``:
+
+.. code-block:: yaml
+
+   backends:
+     - address: "[2001:DB8::1]:853"
+       protocol: "DoT"
+       tls:
+         - provider: "OpenSSL"
+           subject_name: "dot.powerdns.com"
+           validate_certificate: true
 
 Investigating issues
 --------------------
