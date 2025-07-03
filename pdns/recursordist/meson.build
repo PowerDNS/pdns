@@ -144,6 +144,7 @@ common_sources += files(
   src_dir / 'rec-carbon.cc',
   src_dir / 'rec-eventtrace.cc',
   src_dir / 'rec-lua-conf.cc',
+  src_dir / 'rec-nsspeeds.cc',
   src_dir / 'rec-protozero.cc',
   src_dir / 'rec-responsestats.cc',
   src_dir / 'rec-system-resolve.cc',

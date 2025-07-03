@@ -174,6 +174,7 @@ pdns_recursor_SOURCES = \
 	pdns_recursor.cc \
 	pdnsexception.hh \
 	pollmplexer.cc \
+	protozero-helpers.hh \
 	protozero-trace.cc protozero-trace.hh \
 	protozero.cc protozero.hh \
 	proxy-protocol.cc proxy-protocol.hh \
@@ -187,6 +188,7 @@ pdns_recursor_SOURCES = \
 	rec-eventtrace.cc rec-eventtrace.hh \
 	rec-lua-conf.hh rec-lua-conf.cc \
 	rec-main.hh rec-main.cc \
+	rec-nsspeeds.cc rec-nsspeeds.hh \
 	rec-protozero.cc rec-protozero.hh \
 	rec-responsestats.hh rec-responsestats.cc \
 	rec-rust-lib/cxxsupport.cc \
