@@ -142,6 +142,8 @@ If the configuration file passed to :program:`dnsdist` via the ``-C`` command-li
 By default, when a YAML configuration file is used, any Lua configuration file used along the YAML configuration should only contain functions, and ideally even those should be defined either inline in the YAML file or in separate files included from the YAML configuration, for clarity. It is however possible to change this behaviour using the :func:`enableLuaConfiguration` directive to enable Lua configuration directives, but it is strongly advised not to use this directive unless absolutely necessary, and to prefer doing all the configuration in either Lua or YAML but to not mix them.
 Note that Lua directives that can be used at runtime are always available via the :doc:`../guides/console`, regardless of whether they are enabled during configuration.
 
+It is possible to access objects declared in the YAML configuration from the console via :func:`getObjectFromYAMLConfiguration`.
+
 A YAML configuration file contains several sections, that are described below.
 
 '''

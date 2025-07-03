@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import base64
+import cdbx
 import dns
 import os
 import socket
@@ -118,3 +119,56 @@ class TestConsoleConcurrentConnections(DNSDistTest):
         # this should work
         version = self.sendConsoleCommand('showVersion()')
         self.assertTrue(version.startswith('dnsdist '))
+
+def writeCDB(fname, variant=1):
+    cdb = cdbx.CDB.make(fname+'.tmp')
+    cdb.add(socket.inet_aton(f'127.0.0.{variant}'), b'this is the value of the source address tag')
+    cdb.add(b'\x05qname\x03cdb\x05tests\x08powerdns\x03com\x00', b'this is the value of the qname tag')
+    cdb.add(b'\x06suffix\x03cdb\x05tests\x08powerdns\x03com\x00', b'this is the value of the suffix tag')
+    cdb.add(b'this is the value of the qname tag', b'this is the value of the second tag')
+    cdb.commit().close()
+    os.rename(fname+'.tmp', fname)
+    cdb.close()
+
+class TestConsoleAccessObjectsFromYAML(DNSDistTest):
+
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+
+    _cdbFileName = '/tmp/test-cdb-db'
+
+    _yaml_config_template = """
+console:
+  key: "%s"
+  listen_address: "127.0.0.1:%d"
+  acl:
+    - 127.0.0.0/8
+key_value_stores:
+  cdb:
+    - name: "cdb-kvs"
+      file_name: "%s"
+      refresh_delay: 1
+"""
+    _yaml_config_params = ['_consoleKeyB64', '_consolePort', '_cdbFileName']
+    _config_params = []
+
+    @classmethod
+    def setUpCDB(cls):
+        writeCDB(cls._cdbFileName, 1)
+
+    @classmethod
+    def setUpClass(cls):
+
+        cls.setUpCDB()
+        cls.startResponders()
+        cls.startDNSDist()
+        cls.setUpSockets()
+
+    def testConsoleCanAccessYamlObject(self):
+        """
+        Console: Check that we can access Yaml-defined objects
+        """
+        cdb = self.sendConsoleCommand("getObjectFromYAMLConfiguration('cdb-kvs')")
+        self.assertTrue(cdb.startswith('Command returned an object we can\'t print: Trying to cast a lua variable from "userdata" to'))
+        got = self.sendConsoleCommand("if getObjectFromYAMLConfiguration('cdb-kvs'):reload() then return 'reloading worked' else return 'reloading failed' end")
+        self.assertEqual(got, 'reloading worked\n')
