@@ -2692,7 +2692,7 @@ bool LMDBBackend::getBeforeAndAfterNames(domainid_t domainId, const ZoneName& zo
   return true;
 }
 
-bool LMDBBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype, bool /* isNsec3 */)
+bool LMDBBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype, bool isNsec3)
 {
   //  cout << __PRETTY_FUNCTION__<< ": "<< domain_id <<", '"<<qname <<"', '"<<ordername<<"', "<<auth<< ", " << qtype << endl;
   shared_ptr<RecordsRWTransaction> txn;
@@ -2760,7 +2760,7 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSNa
     // NSEC3 link to be removed: need to remove an existing pair, if any
     deleteNSEC3RecordPair(txn, domain_id, rel);
   }
-  else if (hasOrderName) {
+  else if (hasOrderName && isNsec3) {
     // NSEC3 link to be added or updated
     writeNSEC3RecordPair(txn, domain_id, rel, ordername);
   }
