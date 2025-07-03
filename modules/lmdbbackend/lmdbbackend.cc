@@ -1208,6 +1208,13 @@ void LMDBBackend::deleteNSEC3RecordPair(const std::shared_ptr<RecordsRWTransacti
 // `ordername'.
 void LMDBBackend::writeNSEC3RecordPair(const std::shared_ptr<RecordsRWTransaction>& txn, domainid_t domain_id, const DNSName& qname, const DNSName& ordername)
 {
+  // We can only write one NSEC3 record par qname; do not attempt to write
+  // records pointing to ourselves, as only the last record of the pair would
+  // end up in the database.
+  if (ordername == qname) {
+    return;
+  }
+
   compoundOrdername co; // NOLINT(readability-identifier-length)
 
   // Check for an existing NSEC3 record. If one exists, either it points to the
