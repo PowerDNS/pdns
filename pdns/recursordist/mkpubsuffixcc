@@ -6,7 +6,9 @@ fi
 set -e
 echo "Downloading public suffix data and generating $1"
 temp=$(mktemp pubsuffixXXXXXX)
-curl -s -S https://publicsuffix.org/list/public_suffix_list.dat > $temp
+trap "rm -f $temp" 0 1 2 3 15
+set -e
+curl -o $temp -s -S https://publicsuffix.org/list/public_suffix_list.dat
 (echo "const char* g_pubsuffix[]={";
 	for a in $(grep -v "//" "$temp" | grep \\. | egrep "^[.0-9a-z-]*$")
 	do
