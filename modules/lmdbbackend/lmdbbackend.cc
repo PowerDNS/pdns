@@ -1188,9 +1188,49 @@ bool LMDBBackend::abortTransaction()
   return true;
 }
 
-void LMDBBackend::writeNSEC3RecordPair(const std::shared_ptr<RecordsRWTransaction>& txn, domainid_t domain_id, const DNSName& qname, const DNSName& ordername)
+// Remove the NSEC3 records pair found at the given `qname', if any.
+void LMDBBackend::deleteNSEC3RecordPair(const std::shared_ptr<RecordsRWTransaction>& txn, domainid_t domain_id, const DNSName& qname)
 {
   compoundOrdername co; // NOLINT(readability-identifier-length)
+  MDBOutVal val{};
+
+  auto key = co(domain_id, qname, QType::NSEC3);
+  if (txn->txn->get(txn->db->dbi, key, val) == 0) {
+    LMDBResourceRecord lrr;
+    deserializeFromBuffer(val.get<string_view>(), lrr);
+    DNSName ordername(lrr.content.c_str(), lrr.content.size(), 0, false);
+    txn->txn->del(txn->db->dbi, co(domain_id, ordername, QType::NSEC3));
+    txn->txn->del(txn->db->dbi, key);
+  }
+}
+
+// Write a pair of NSEC3 records referencing each other, between `qname' and
+// `ordername'.
+void LMDBBackend::writeNSEC3RecordPair(const std::shared_ptr<RecordsRWTransaction>& txn, domainid_t domain_id, const DNSName& qname, const DNSName& ordername)
+{
+  // We can only write one NSEC3 record par qname; do not attempt to write
+  // records pointing to ourselves, as only the last record of the pair would
+  // end up in the database.
+  if (ordername == qname) {
+    return;
+  }
+
+  compoundOrdername co; // NOLINT(readability-identifier-length)
+
+  // Check for an existing NSEC3 record. If one exists, either it points to the
+  // same ordername and we have nothing to do, or the ordername has changed and
+  // we need to remove the about-to-become-dangling back chain record.
+  MDBOutVal val{};
+  if (txn->txn->get(txn->db->dbi, co(domain_id, qname, QType::NSEC3), val) == 0) {
+    LMDBResourceRecord lrr;
+    deserializeFromBuffer(val.get<string_view>(), lrr);
+    DNSName prevordername(lrr.content.c_str(), lrr.content.size(), 0, false);
+    if (prevordername == ordername) {
+      return; // nothing to do! (assuming the other record also exists)
+    }
+    txn->txn->del(txn->db->dbi, co(domain_id, prevordername, QType::NSEC3));
+  }
+
   LMDBResourceRecord lrr;
   lrr.auth = false;
 
@@ -1198,13 +1238,13 @@ void LMDBBackend::writeNSEC3RecordPair(const std::shared_ptr<RecordsRWTransactio
   lrr.ttl = 0;
   lrr.content = qname.toDNSStringLC();
   string ser = serializeToBuffer(lrr);
-  txn->txn->put(d_rwtxn->db->dbi, co(domain_id, ordername, QType::NSEC3), ser);
+  txn->txn->put(txn->db->dbi, co(domain_id, ordername, QType::NSEC3), ser);
 
   // Write qname -> ordername forward chain record with ttl set to 1
   lrr.ttl = 1;
   lrr.content = ordername.toDNSString();
   ser = serializeToBuffer(lrr);
-  txn->txn->put(d_rwtxn->db->dbi, co(domain_id, qname, QType::NSEC3), ser);
+  txn->txn->put(txn->db->dbi, co(domain_id, qname, QType::NSEC3), ser);
 }
 
 // d_rwtxn must be set here
@@ -1228,11 +1268,7 @@ bool LMDBBackend::feedRecord(const DNSResourceRecord& r, const DNSName& ordernam
   d_rwtxn->txn->put(d_rwtxn->db->dbi, matchName, rrs);
 
   if (ordernameIsNSEC3 && !ordername.empty()) {
-    MDBOutVal val;
-    // Only add the NSEC3 chain records if there aren't any.
-    if (d_rwtxn->txn->get(d_rwtxn->db->dbi, co(lrr.domain_id, lrr.qname, QType::NSEC3), val)) {
-      writeNSEC3RecordPair(d_rwtxn, lrr.domain_id, lrr.qname, ordername);
-    }
+    writeNSEC3RecordPair(d_rwtxn, lrr.domain_id, lrr.qname, ordername);
   }
   return true;
 }
@@ -1301,6 +1337,9 @@ bool LMDBBackend::replaceRRSet(domainid_t domain_id, const DNSName& qname, const
   compoundOrdername co;
   string match;
   if (qt.getCode() == QType::ANY) {
+    // Check for an existing NSEC3 record. If one exists, we need to also
+    // remove the back chain record.
+    deleteNSEC3RecordPair(txn, domain_id, relative);
     match = co(domain_id, relative);
     deleteDomainRecords(*txn, QType::ANY, match);
     // Update key if insertions are to follow
@@ -1309,13 +1348,42 @@ bool LMDBBackend::replaceRRSet(domainid_t domain_id, const DNSName& qname, const
     }
   }
   else {
-    auto cursor = txn->txn->getCursor(txn->db->dbi);
-    MDBOutVal key{};
-    MDBOutVal val{};
-    match = co(domain_id, relative, qt.getCode());
-    // There should be at most one exact match here.
-    if (cursor.find(match, key, val) == 0) {
-      cursor.del(key);
+    if (qt.getCode() == QType::NSEC3) {
+      deleteNSEC3RecordPair(txn, domain_id, relative);
+    }
+    else {
+      auto cursor = txn->txn->getCursor(txn->db->dbi);
+      MDBOutVal key{};
+      MDBOutVal val{};
+      match = co(domain_id, relative, qt.getCode());
+      // There should be at most one exact match here.
+      if (cursor.find(match, key, val) == 0) {
+        cursor.del(key);
+      }
+      // If we are not going to add any new records, check if there are any
+      // remaining records for this qname, ignoring NSEC3 chain records. If
+      // there aren't any, yet there is an NSEC3 record, delete the NSEC3 chain
+      // pair as well.
+      if (rrset.empty()) {
+        bool seenNSEC3{false};
+        bool seenOther{false};
+        if (cursor.prefix(co(domain_id, relative), key, val) == 0) {
+          do {
+            if (compoundOrdername::getQType(key.getNoStripHeader<StringView>()) == QType::NSEC3) {
+              seenNSEC3 = true;
+            }
+            else {
+              seenOther = true;
+            }
+            if (seenNSEC3 && seenOther) {
+              break;
+            }
+          } while (cursor.next(key, val) == 0);
+        }
+        if (!seenOther && seenNSEC3) {
+          deleteNSEC3RecordPair(txn, domain_id, relative);
+        }
+      }
     }
   }
 
@@ -2624,7 +2692,7 @@ bool LMDBBackend::getBeforeAndAfterNames(domainid_t domainId, const ZoneName& zo
   return true;
 }
 
-bool LMDBBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype)
+bool LMDBBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype, bool isNsec3)
 {
   //  cout << __PRETTY_FUNCTION__<< ": "<< domain_id <<", '"<<qname <<"', '"<<ordername<<"', "<<auth<< ", " << qtype << endl;
   shared_ptr<RecordsRWTransaction> txn;
@@ -2661,59 +2729,39 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSNa
   bool needNSEC3 = hasOrderName;
 
   do {
-    vector<LMDBResourceRecord> lrrs;
-
-    if (co.getQType(key.getNoStripHeader<StringView>()) != QType::NSEC3) {
-      deserializeFromBuffer(val.get<StringView>(), lrrs);
-      bool changed = false;
-      vector<LMDBResourceRecord> newRRs;
-      newRRs.reserve(lrrs.size());
-      for (auto& lrr : lrrs) {
-        lrr.qtype = co.getQType(key.getNoStripHeader<StringView>());
-        if (!needNSEC3 && qtype != QType::ANY) {
-          needNSEC3 = (lrr.ordername && QType(qtype) != lrr.qtype);
-        }
-
-        if ((qtype == QType::ANY || QType(qtype) == lrr.qtype) && (lrr.ordername != hasOrderName || lrr.auth != auth)) {
-          lrr.auth = auth;
-          lrr.ordername = hasOrderName;
-          changed = true;
-        }
-        newRRs.push_back(std::move(lrr));
-      }
-      if (changed) {
-        cursor.put(key, serializeToBuffer(newRRs));
-      }
+    if (compoundOrdername::getQType(key.getNoStripHeader<StringView>()) == QType::NSEC3) {
+      continue;
     }
 
+    vector<LMDBResourceRecord> lrrs;
+    deserializeFromBuffer(val.get<StringView>(), lrrs);
+    bool changed = false;
+    vector<LMDBResourceRecord> newRRs;
+    newRRs.reserve(lrrs.size());
+    for (auto& lrr : lrrs) {
+      lrr.qtype = compoundOrdername::getQType(key.getNoStripHeader<StringView>());
+      if (!needNSEC3 && qtype != QType::ANY) {
+        needNSEC3 = (lrr.ordername && QType(qtype) != lrr.qtype);
+      }
+
+      if ((qtype == QType::ANY || QType(qtype) == lrr.qtype) && (lrr.ordername != hasOrderName || lrr.auth != auth)) {
+        lrr.auth = auth;
+        lrr.ordername = hasOrderName;
+        changed = true;
+      }
+      newRRs.push_back(std::move(lrr));
+    }
+    if (changed) {
+      cursor.put(key, serializeToBuffer(newRRs));
+    }
   } while (cursor.next(key, val) == 0);
 
-  bool del = false;
-  LMDBResourceRecord lrr;
-  matchkey = co(domain_id, rel, QType::NSEC3);
-  // cerr<<"here qname="<<qname<<" ordername="<<ordername<<" qtype="<<qtype<<" matchkey="<<makeHexDump(matchkey)<<endl;
-  int txngetrc;
-  if (!(txngetrc = txn->txn->get(txn->db->dbi, matchkey, val))) {
-    deserializeFromBuffer(val.get<string_view>(), lrr);
-
-    if (needNSEC3) {
-      if (hasOrderName && lrr.content != ordername.toDNSStringLC()) {
-        del = true;
-      }
-    }
-    else {
-      del = true;
-    }
-    if (del) {
-      txn->txn->del(txn->db->dbi, co(domain_id, DNSName(lrr.content.c_str(), lrr.content.size(), 0, false), QType::NSEC3));
-      txn->txn->del(txn->db->dbi, matchkey);
-    }
+  if (!needNSEC3) {
+    // NSEC3 link to be removed: need to remove an existing pair, if any
+    deleteNSEC3RecordPair(txn, domain_id, rel);
   }
-  else {
-    del = true;
-  }
-
-  if (hasOrderName && del) {
+  else if (hasOrderName && isNsec3) {
+    // NSEC3 link to be added or updated
     writeNSEC3RecordPair(txn, domain_id, rel, ordername);
   }
 
@@ -2760,14 +2808,16 @@ bool LMDBBackend::updateEmptyNonTerminals(domainid_t domain_id, set<DNSName>& in
 
       std::string ser = serializeToBuffer(lrr);
 
-      txn->txn->put(txn->db->dbi, co(domain_id, lrr.qname, 0), ser);
+      txn->txn->put(txn->db->dbi, co(domain_id, lrr.qname, QType::ENT), ser);
 
       // cout <<" +"<<n<<endl;
     }
     for (auto n : erase) {
       // cout <<" -"<<n<<endl;
       n.makeUsRelative(di.zone);
-      txn->txn->del(txn->db->dbi, co(domain_id, n, 0));
+      // Remove possible NSEC3 record pair tied to that ENT.
+      deleteNSEC3RecordPair(txn, domain_id, n);
+      txn->txn->del(txn->db->dbi, co(domain_id, n, QType::ENT));
     }
   }
   if (needCommit)
