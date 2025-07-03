@@ -140,37 +140,84 @@ Various other options may also need to be set before opening the handle, e.g. md
 
 void MDBEnv::incROTX()
 {
-  std::lock_guard<std::mutex> l(d_countmutex);
-  ++d_ROtransactionsOut[std::this_thread::get_id()];
+  auto threadId = std::this_thread::get_id();
+  {
+    std::shared_lock<std::shared_mutex> lock(d_countmutex);
+    if (auto transactionsIt = d_ROtransactionsOut.find(threadId); transactionsIt != d_ROtransactionsOut.end()) {
+      ++transactionsIt->second;
+      return;
+    }
+  }
+
+  {
+    std::unique_lock<std::shared_mutex> lock(d_countmutex);
+    auto [transactionsIt, inserted] = d_ROtransactionsOut.emplace(threadId, 1);
+    if (!inserted) {
+      ++transactionsIt->second;
+    }
+  }
 }
 
 void MDBEnv::decROTX()
 {
-  std::lock_guard<std::mutex> l(d_countmutex);
-  --d_ROtransactionsOut[std::this_thread::get_id()];
+  auto threadId = std::this_thread::get_id();
+  {
+    std::shared_lock<std::shared_mutex> lock(d_countmutex);
+    d_ROtransactionsOut.at(threadId)--;
+  }
 }
 
 void MDBEnv::incRWTX()
 {
-  std::lock_guard<std::mutex> l(d_countmutex);
-  ++d_RWtransactionsOut[std::this_thread::get_id()];
+  auto threadId = std::this_thread::get_id();
+  {
+    std::shared_lock<std::shared_mutex> lock(d_countmutex);
+    if (auto transactionsIt = d_RWtransactionsOut.find(threadId); transactionsIt != d_RWtransactionsOut.end()) {
+      ++transactionsIt->second;
+      return;
+    }
+  }
+
+  {
+    std::unique_lock<std::shared_mutex> lock(d_countmutex);
+    auto [transactionsIt, inserted] = d_RWtransactionsOut.emplace(threadId, 1);
+    if (!inserted) {
+      ++transactionsIt->second;
+    }
+  }
 }
 
 void MDBEnv::decRWTX()
 {
-  std::lock_guard<std::mutex> l(d_countmutex);
-  --d_RWtransactionsOut[std::this_thread::get_id()];
+  auto threadId = std::this_thread::get_id();
+  {
+    std::shared_lock<std::shared_mutex> lock(d_countmutex);
+    d_RWtransactionsOut.at(threadId)--;
+  }
 }
 
 int MDBEnv::getRWTX()
 {
-  std::lock_guard<std::mutex> l(d_countmutex);
-  return d_RWtransactionsOut[std::this_thread::get_id()];
+  auto threadId = std::this_thread::get_id();
+  {
+    std::shared_lock<std::shared_mutex> lock(d_countmutex);
+    if (auto transactionsIt = d_RWtransactionsOut.find(threadId); transactionsIt != d_RWtransactionsOut.end()) {
+      return transactionsIt->second.load();
+    }
+  }
+  return 0;
 }
+
 int MDBEnv::getROTX()
 {
-  std::lock_guard<std::mutex> l(d_countmutex);
-  return d_ROtransactionsOut[std::this_thread::get_id()];
+  auto threadId = std::this_thread::get_id();
+  {
+    std::shared_lock<std::shared_mutex> lock(d_countmutex);
+    if (auto transactionsIt = d_RWtransactionsOut.find(threadId); transactionsIt != d_RWtransactionsOut.end()) {
+      return transactionsIt->second.load();
+    }
+  }
+  return 0;
 }
 
 
