@@ -529,6 +529,10 @@ void RecursorLua4::postPrepareContext() // NOLINT(readability-function-cognitive
     return std::tuple<std::string, size_t>{ret, number};
   });
 
+  d_lw->writeFunction("putIntoNSSpeedTable", [](const string& data) {
+    return SyncRes::putIntoNSSpeedTable(data);
+  });
+
   if (!d_include_path.empty()) {
     includePath(d_include_path);
   }
