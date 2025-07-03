@@ -141,6 +141,17 @@ BOOST_AUTO_TEST_CASE(test_TSIG_different_case_algo) {
   checkTSIG(tsigName, tsigAlgo.makeLowerCase(), tsigSecret, packet);
 }
 
+BOOST_AUTO_TEST_CASE(test_TSIG_different_case_name) {
+  DNSName tsigName("tsig.Name");
+  DNSName tsigAlgo("HMAC-MD5.SIG-ALG.REG.INT");
+  DNSName qname("test.valid.tsig");
+  string tsigSecret("verysecret");
+
+  vector<uint8_t> packet = generateTSIGQuery(qname, tsigName, tsigAlgo, tsigSecret);
+
+  checkTSIG(tsigName.makeLowerCase(), tsigAlgo.makeLowerCase(), tsigSecret, packet);
+}
+
 BOOST_AUTO_TEST_CASE(test_TSIG_different_name_same_algo) {
   DNSName tsigName("tsig.name");
   DNSName tsigAlgo("HMAC-MD5.SIG-ALG.REG.INT");
