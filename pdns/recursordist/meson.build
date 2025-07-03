@@ -353,24 +353,20 @@ librec_signers_openssl = declare_dependency(
   )
 )
 
-# If we have pubsuffix.cc in the source tree, use it. Otherwise download and build it.
-pubsuffix_dl_source =  'effective_tld_names.dat'
-pubsuffix_cc = src_dir / 'pubsuffix.cc'
-if not fs.is_file(pubsuffix_cc)
-  if not fs.is_file(pubsuffix_dl_source)
-    curl_command = find_program('curl', required: true)
-    pubsuffix_dl_source = custom_target(
-      'pubsuffix-dl',
-      command: [curl_command, '-s', '-S', '-o', '@OUTPUT@', 'https://publicsuffix.org/list/public_suffix_list.dat'],
-      output: pubsuffix_dl_source
-    )
-  endif
-
+# If we have pubsuffix.cc in the source tree, use it. Otherwise download data and build it in the build dir.
+if fs.is_file(src_dir / 'pubsuffix.cc')
+  cp_command = find_program('cp')
+  pubsuffix_cc = custom_target(
+    'cp-pubsuffix',
+    command: [cp_command, '-pv', '@INPUT@', '@OUTPUT@'],
+    input: src_dir / 'pubsuffix.cc',
+    output: 'pubsuffix.cc',
+  )
+else
   mkpubsuffix_command = find_program('mkpubsuffixcc', required: true)
   pubsuffix_cc = custom_target(
     'pubsuffix-cc',
-    command: [mkpubsuffix_command, '@INPUT@', '@OUTPUT@'],
-    input: pubsuffix_dl_source,
+    command: [mkpubsuffix_command, '@OUTPUT@'],
     output: 'pubsuffix.cc',
   )
 endif
