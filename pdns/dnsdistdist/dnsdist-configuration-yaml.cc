@@ -449,6 +449,7 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dns
   auto protocol = boost::to_lower_copy(std::string(config.protocol));
   if (protocol == "dot" || protocol == "doh") {
     backendConfig.d_tlsParams.d_provider = std::string(tlsConf.provider);
+    boost::algorithm::to_lower(backendConfig.d_tlsParams.d_provider);
     backendConfig.d_tlsParams.d_ciphers = std::string(tlsConf.ciphers);
     backendConfig.d_tlsParams.d_ciphers13 = std::string(tlsConf.ciphers_tls_13);
     backendConfig.d_tlsParams.d_caStore = std::string(tlsConf.ca_store);
@@ -467,6 +468,9 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dns
       catch (const std::exception&) {
         errlog("Error creating new server: downstream subject_address value must be a valid IP address");
       }
+    }
+    if (backendConfig.d_tlsParams.d_validateCertificates && backendConfig.d_tlsSubjectName.empty()) {
+      throw std::runtime_error("Certificate validation has been requested for backend " + std::string(config.address) + " but neither 'subject_name' nor 'subject_address' are set");
     }
   }
 
