@@ -240,9 +240,7 @@ public:
     float ret = std::numeric_limits<float>::max();
     const float factor = iter->getFactor(now);
     for (auto& entry : iter->d_collection) {
-      if (float tmp = entry.second.get(factor); tmp < ret) {
-        ret = tmp;
-      }
+      ret = std::min(ret, entry.second.get(factor));
     }
     ind.modify(iter, [&](DecayingEwmaCollection& dec) { dec.d_lastget = now; });
     return ret;
@@ -274,7 +272,7 @@ public:
   };
 
   template <typename T, typename U>
-  void getEntry(T& message, U entry)
+  void getEntry(T& message, U entry) const
   {
     message.add_bytes(PBNSSpeedEntry::required_bytes_name, entry->d_name.toString());
     message.add_int64(PBNSSpeedEntry::required_int64_lastgets, entry->d_lastget.tv_sec);
@@ -287,7 +285,7 @@ public:
     }
   }
 
-  size_t getPB(std::string& ret)
+  size_t getPB(std::string& ret) const
   {
     protozero::pbf_builder<PBNSSpeedDump> full(ret);
     full.add_string(PBNSSpeedDump::required_string_version, getPDNSVersion());
@@ -308,6 +306,12 @@ public:
 };
 
 static LockGuarded<nsspeeds_t> s_nsSpeeds;
+
+size_t SyncRes::getNSSpeedTable(std::string& ret)
+{
+  const auto copy = *s_nsSpeeds.lock();
+  return copy.getPB(ret);
+}
 
 class Throttle
 {

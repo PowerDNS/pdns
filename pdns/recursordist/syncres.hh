@@ -170,6 +170,8 @@ public:
   static uint64_t doDumpSavedParentNSSets(int fileDesc);
   static uint64_t doDumpDoTProbeMap(int fileDesc);
 
+  static size_t getNSSpeedTable(std::string& ret);
+
   static int getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigned int depth, Logr::log_t);
   static void addDontQuery(const std::string& mask)
   {

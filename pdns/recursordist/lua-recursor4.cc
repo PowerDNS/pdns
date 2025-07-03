@@ -523,6 +523,11 @@ void RecursorLua4::postPrepareContext() // NOLINT(readability-function-cognitive
       return {dir, name};
   });
 
+  d_lw->writeFunction("getNSSpeedTable", []() {
+    std::string ret;
+    auto number = SyncRes::getNSSpeedTable(ret);
+    return std::tuple<std::string, size_t>{ret, number};
+  });
 
   if (!d_include_path.empty()) {
     includePath(d_include_path);
