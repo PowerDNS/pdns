@@ -523,9 +523,9 @@ void RecursorLua4::postPrepareContext() // NOLINT(readability-function-cognitive
       return {dir, name};
   });
 
-  d_lw->writeFunction("getNSSpeedTable", []() {
+  d_lw->writeFunction("getNSSpeedTable", [](size_t maxSize) {
     std::string ret;
-    auto number = SyncRes::getNSSpeedTable(ret);
+    auto number = SyncRes::getNSSpeedTable(maxSize, ret);
     return std::tuple<std::string, size_t>{ret, number};
   });
 

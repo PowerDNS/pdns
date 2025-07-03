@@ -290,8 +290,14 @@ public:
     }
   }
 
-  size_t getPB(std::string& ret) const
+  size_t getPB(size_t maxSize, std::string& ret) const
   {
+    auto log = g_slog->withName("syncres")->withValues("maxSize", Logging::Loggable(maxSize));
+    log->info(Logr::Info, "Producing nsspeed dump");
+
+    // A observed average record size is 60;
+    size_t estimate = maxSize == 0 ? size() * 60 : maxSize + 4096; // We may overshoot (will be rolled back)
+
     protozero::pbf_builder<PBNSSpeedDump> full(ret);
     full.add_string(PBNSSpeedDump::required_string_version, getPDNSVersion());
     full.add_string(PBNSSpeedDump::required_string_identity, SyncRes::s_serverID);
@@ -300,11 +306,19 @@ public:
     full.add_string(PBNSSpeedDump::required_string_type, "PBNSSpeedDump");
 
     size_t count = 0;
+    ret.reserve(estimate);
+
     for (const auto& entry : *this) {
       protozero::pbf_builder<PBNSSpeedEntry> message(full, PBNSSpeedDump::repeated_message_nsspeedEntry);
       getEntry(message, &entry);
+      if (ret.size() > maxSize) {
+        message.rollback();
+        log->info(Logr::Info, "Produced nsspeed dump (max size reached)", "size", Logging::Loggable(ret.size()), "count", Logging::Loggable(count));
+        return count;
+      }
       ++count;
     }
+    log->info(Logr::Info, "Produced nsspeed dump", "size", Logging::Loggable(ret.size()), "count", Logging::Loggable(count));
     return count;
   }
 
@@ -426,10 +440,10 @@ public:
 
 static LockGuarded<nsspeeds_t> s_nsSpeeds;
 
-size_t SyncRes::getNSSpeedTable(std::string& ret)
+size_t SyncRes::getNSSpeedTable(size_t maxSize, std::string& ret)
 {
   const auto copy = *s_nsSpeeds.lock();
-  return copy.getPB(ret);
+  return copy.getPB(maxSize, ret);
 }
 
 size_t SyncRes::putIntoNSSpeedTable(const std::string& ret)
