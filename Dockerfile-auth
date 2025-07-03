@@ -52,6 +52,7 @@ RUN mkdir /build && \
       --sysconfdir=/etc/powerdns \
       --enable-option-checking=fatal \
       --with-dynmodules='bind geoip gmysql godbc gpgsql gsqlite3 ldap lmdb lua2 pipe remote tinydns' \
+      --with-modules='' \
       --enable-tools \
       --enable-ixfrdist \
       --with-unixodbc-lib=/usr/lib/$(dpkg-architecture -q DEB_BUILD_GNU_TYPE) && \
