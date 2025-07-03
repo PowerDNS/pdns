@@ -71,6 +71,13 @@
     - name: "expression"
       type: "String"
       description: "The regex to match on"
+- name: "IncomingProtocol"
+  description: "Matches queries received over a specific protocol"
+  version_added: 2.1.0
+  parameters:
+    - name: "protocol"
+      type: "String"
+      description: "The protocol to match on, in a case-sensitive way. Supported values are DoUDP, DoTCP, DNSCryptUDP, DNSCryptTCP, DoT, DoH, DoQ and DoH3"
 - name: "KeyValueStoreLookup"
   skip-cpp: true
   skip-rust: true

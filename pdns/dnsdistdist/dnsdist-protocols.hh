@@ -54,6 +54,8 @@ public:
 
   bool operator==(typeenum) const;
   bool operator!=(typeenum) const;
+  bool operator==(const Protocol& rhs) const;
+  bool operator!=(const Protocol& rhs) const;
 
   const std::string& toString() const;
   const std::string& toPrettyString() const;

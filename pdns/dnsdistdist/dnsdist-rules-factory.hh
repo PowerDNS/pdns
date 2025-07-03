@@ -1501,6 +1501,28 @@ private:
   Comparisons d_comparison;
 };
 
+class IncomingProtocolRule : public DNSRule
+{
+public:
+  IncomingProtocolRule(const std::string& protocol) :
+    d_protocol(protocol)
+  {
+  }
+
+  bool matches(const DNSQuestion* dq) const override
+  {
+    return dq->getProtocol() == d_protocol;
+  }
+
+  string toString() const override
+  {
+    return "incoming protocol is " + d_protocol.toString();
+  }
+
+private:
+  dnsdist::Protocol d_protocol;
+};
+
 namespace dnsdist::selectors
 {
 std::shared_ptr<AndRule> getAndSelector(const std::vector<std::shared_ptr<DNSRule>>& rules);
