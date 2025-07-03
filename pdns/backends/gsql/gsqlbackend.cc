@@ -732,7 +732,7 @@ bool GSQLBackend::getCatalogMembers(const ZoneName& catalog, vector<CatalogInfo>
   return true;
 }
 
-bool GSQLBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype)
+bool GSQLBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype, bool /* isNsec3 */)
 {
   if(!d_dnssecQueries)
     return false;

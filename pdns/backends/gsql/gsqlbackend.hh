@@ -231,7 +231,7 @@ public:
   bool setAccount(const ZoneName &domain, const string &account) override;
 
   bool getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) override;
-  bool updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t=QType::ANY) override;
+  bool updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t, bool isNsec3) override;
 
   bool updateEmptyNonTerminals(domainid_t domain_id, set<DNSName>& insert ,set<DNSName>& erase, bool remove) override;
 

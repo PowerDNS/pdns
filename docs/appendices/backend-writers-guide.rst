@@ -893,7 +893,7 @@ In order for a backend to support DNSSEC, quite a few number of additional opera
       virtual bool getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after);
 
       /* update operations */
-      virtual bool updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype=QType::ANY);
+      virtual bool updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype, bool isNsec3);
       virtual bool updateEmptyNonTerminals(domainid_t domain_id, set<DNSName>& insert, set<DNSName>& erase, bool remove);
       virtual bool feedEnts(domainid_t domain_id, map<DNSName,bool> &nonterm);
       virtual bool feedEnts3(domainid_t domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow);
@@ -918,7 +918,7 @@ contain `CAP_DNSSEC` if that backend supports DNSSEC.
   Asks the names before and after qname for NSEC and NSEC3. The qname will be hashed when using NSEC3. Care must be taken to handle wrap-around when qname is the first or last in the ordered list of zone names.
   Please note that in case the requested name is present in the zone, it should be returned as the "before" name.
 
-.. cpp:function:: virtual bool updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype=QType::ANY)
+.. cpp:function:: virtual bool updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype, bool isNsec3)
 
   Updates the ordername and auth fields.
 

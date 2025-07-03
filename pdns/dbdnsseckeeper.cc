@@ -877,25 +877,25 @@ bool DNSSECKeeper::rectifyZone(const ZoneName& zone, string& error, string& info
 
     it = rss.find(qname);
     if(it == rss.end() || it->second.update || it->second.auth != auth || it->second.ordername != ordername) {
-      sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, auth);
+      sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, auth, QType::ANY, haveNSEC3);
       ++updates;
     }
 
     if(realrr)
     {
       if (dsnames.count(qname)) {
-        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, true, QType::DS);
+        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, true, QType::DS, haveNSEC3);
         ++updates;
       }
       if (!auth || nsset.count(qname)) {
         ordername.clear();
         if(isOptOut && !dsnames.count(qname)){
-          sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, false, QType::NS);
+          sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, false, QType::NS, haveNSEC3);
           ++updates;
         }
-        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, false, QType::A);
+        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, false, QType::A, haveNSEC3);
         ++updates;
-        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, false, QType::AAAA);
+        sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, qname, ordername, false, QType::AAAA, haveNSEC3);
         ++updates;
       }
 

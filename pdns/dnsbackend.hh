@@ -256,7 +256,7 @@ public:
 
   virtual bool getBeforeAndAfterNames(domainid_t /* id */, const ZoneName& zonename, const DNSName& qname, DNSName& before, DNSName& after);
 
-  virtual bool updateDNSSECOrderNameAndAuth(domainid_t /* domain_id */, const DNSName& /* qname */, const DNSName& /* ordername */, bool /* auth */, const uint16_t /* qtype */ = QType::ANY)
+  virtual bool updateDNSSECOrderNameAndAuth(domainid_t /* domain_id */, const DNSName& /* qname */, const DNSName& /* ordername */, bool /* auth */, const uint16_t /* qtype */, bool /* isNsec3 */)
   {
     return false;
   }
