@@ -42,7 +42,7 @@ permissions: # least privileges, see https://docs.github.com/en/actions/using-wo
 
 jobs:
   call-build-packages:
-    uses: PowerDNS/pdns/.github/workflows/build-packages.yml@master
+    uses: Habbie/pdns/.github/workflows/build-packages.yml@alma10
     with:
       product: ${{ github.event.inputs.product }}
       os: ${{ github.event.inputs.os }}
