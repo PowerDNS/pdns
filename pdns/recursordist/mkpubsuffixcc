@@ -15,4 +15,3 @@ curl -o $temp -s -S https://publicsuffix.org/list/public_suffix_list.dat
 		echo \"$a\",
 	done
 echo "0};") > "$1"
-rm -f "$temp"
