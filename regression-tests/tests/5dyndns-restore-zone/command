@@ -1,8 +1,16 @@
 #!/usr/bin/env bash
 
+plusvariant=''
+_context=${context%-variant}
+if [ $context != $_context ]
+then
+    plusvariant='..variant'
+fi
+
 for zone in test.dyndns sub.test.dyndns
 do
+    zonewithvariant=${zone}${plusvariant}
     $PDNSUTIL --config-dir=. --config-name=$backend \
-        replace-rrset ${zone} @ SOA "ns1.test.dyndns ahu.example.dyndns 2012060701 28800 7200 604800 86400" \
+        replace-rrset ${zonewithvariant} @ SOA "ns1.test.dyndns ahu.example.dyndns 2012060701 28800 7200 604800 86400" \
         > /dev/null
 done

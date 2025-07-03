@@ -1,12 +1,22 @@
 #!/bin/sh
 
+plusvariant=''
+_context=${context%-variant}
+if [ $context != $_context ]
+then
+    plusvariant='..variant'
+fi
+
+zone=test.dyndns
+zonewithvariant=${zone}${plusvariant}
+
 mysqldiff
 
-$PDNSUTIL --config-dir=. --config-name=$backend increase-serial test.dyndns
+$PDNSUTIL --config-dir=. --config-name=$backend increase-serial ${zonewithvariant}
 
-mysqldiff 1 "Check that test.dyndns. still has a valid ordername"
+mysqldiff 1 "Check that ${zonewithvariant}. still has a valid ordername"
 
 # restore old SOA
 $PDNSUTIL --config-dir=. --config-name=$backend \
-    replace-rrset test.dyndns @ SOA "ns1.test.dyndns ahu.example.dyndns 2012060701 28800 7200 604800 86400" \
+    replace-rrset ${zonewithvariant} @ SOA "ns1.${zone} ahu.example.dyndns 2012060701 28800 7200 604800 86400" \
     > /dev/null
