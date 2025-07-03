@@ -2808,14 +2808,16 @@ bool LMDBBackend::updateEmptyNonTerminals(domainid_t domain_id, set<DNSName>& in
 
       std::string ser = serializeToBuffer(lrr);
 
-      txn->txn->put(txn->db->dbi, co(domain_id, lrr.qname, 0), ser);
+      txn->txn->put(txn->db->dbi, co(domain_id, lrr.qname, QType::ENT), ser);
 
       // cout <<" +"<<n<<endl;
     }
     for (auto n : erase) {
       // cout <<" -"<<n<<endl;
       n.makeUsRelative(di.zone);
-      txn->txn->del(txn->db->dbi, co(domain_id, n, 0));
+      // Remove possible NSEC3 record pair tied to that ENT.
+      deleteNSEC3RecordPair(txn, domain_id, n);
+      txn->txn->del(txn->db->dbi, co(domain_id, n, QType::ENT));
     }
   }
   if (needCommit)
