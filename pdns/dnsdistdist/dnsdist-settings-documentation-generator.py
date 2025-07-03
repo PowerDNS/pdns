@@ -105,6 +105,10 @@ def process_object(object_name, entries, entry_type, is_setting_struct=False, lu
     output += '-' * len(object_name) + '\n'
     output += '\n'
 
+    if 'version_added' in entries:
+        output += '  .. versionadded:: ' + entries['version_added'] + '\n'
+        output += '\n'
+
     if 'description' in entries:
         description = entries['description']
         output += description + '\n'
