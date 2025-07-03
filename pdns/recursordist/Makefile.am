@@ -560,7 +560,7 @@ dnslabeltext.cc: dnslabeltext.rl
 	$(AM_V_GEN)$(RAGEL) $< -o dnslabeltext.cc
 
 pubsuffix.cc:
-	$(srcdir)/mkpubsuffixcc $< $@
+	$(srcdir)/mkpubsuffixcc $@
 
 ## Config file
 sysconf_DATA = recursor.yml-dist
