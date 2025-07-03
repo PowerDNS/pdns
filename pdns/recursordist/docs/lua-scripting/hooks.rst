@@ -371,9 +371,9 @@ Example script using :func:`policyEventFilter`
 
 .. code-block:: Lua
 
-    -- This is the preferred approach to modify policy decisions
-    -- Dont ever block my own domain and IPs
-    -- To make the policy engine ignore a hit instead, return true
+    -- This is the preferred approach to modify policy decisions.
+    -- Dont ever block my own domain and IPs.
+    -- To make the policy engine ignore a hit instead, return true.
     function policyEventFilter(event)
       if event.qname:equal("example.com") then
         -- replace the decision with a custom CNAME
@@ -385,8 +385,8 @@ Example script using :func:`policyEventFilter`
       return false
     end
 
-If the decision is modified in Lua hooks other than :func:`policyEventFilter` like :func:`preresolve`, ``false`` should be
-returned, as the query is not actually handled by Lua.
+If the decision is modified in Lua hooks other than :func:`policyEventFilter` (like :func:`preresolve`), ``false`` should be
+returned, as the hook decided not to handle the query.
 This makes the Recursor pick up the modified decision.
 
 The policy decision is checked after :func:`preresolve` and any :func:`policyEventFilter` call.
@@ -396,8 +396,8 @@ Pre-4.4.0 example script
 
 .. code-block:: Lua
 
-    -- It is preferred to use a policyEventFilter, see example above
-    -- Dont ever block my own domain and IPs
+    -- It is preferred to use a policyEventFilter, see example above.
+    -- Dont ever block my own domain and IPs.
     myDomain = newDN("example.com")
 
     myNetblock = newNMG()
