@@ -358,7 +358,7 @@ if fs.is_file(src_dir / 'pubsuffix.cc')
   cp_command = find_program('cp')
   pubsuffix_cc = custom_target(
     'cp-pubsuffix',
-    command: [cp_command, '-p', '@INPUT@', '@OUTPUT@'],
+    command: [cp_command, '-pv', '@INPUT@', '@OUTPUT@'],
     input: src_dir / 'pubsuffix.cc',
     output: 'pubsuffix.cc',
   )

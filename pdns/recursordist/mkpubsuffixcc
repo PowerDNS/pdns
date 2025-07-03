@@ -4,6 +4,7 @@ if [ -z "$1" ]; then
   exit 1
 fi
 set -e
+echo "Downloading public suffix data and generating $1"
 temp=$(mktemp pubsuffixXXXXXX)
 curl -s -S https://publicsuffix.org/list/public_suffix_list.dat > $temp
 (echo "const char* g_pubsuffix[]={";
