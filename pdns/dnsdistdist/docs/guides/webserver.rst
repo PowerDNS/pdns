@@ -51,6 +51,36 @@ For example, to remove the X-Frame-Options header and add a X-Custom one:
 
 Credentials can be changed at run time using the :func:`setWebserverConfig` function.
 
+Credentials
+-----------
+
+The webserver uses two kind of authorization: one is HTTP basic auth, with name and
+password; username doesn't matter, only password is checked. Second kind of authorization is
+with an API key, which must be in ``X-API-Key`` request header. Those keys can be different,
+and are two different options to :func:`setWebserverConfig`.
+
+.. list-table:: Allowed credentials in different endpoints
+   :header-rows: 1
+
+   * - endpoint
+     - basic auth
+     - API header auth
+   * - main dashboard
+     - allowed
+     - not allowed
+   * - ``/jsonstat``
+     - allowed
+     - allowed
+   * - ``/metrics``
+     - allowed
+     - allowed
+   * - ``/api/v1/servers/localhost``
+     - allowed
+     - allowed
+   * - other ``/api/`` endpoints
+     - not allowed
+     - allowed
+
 dnsdist API
 -----------
 
