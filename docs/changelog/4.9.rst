@@ -2,11 +2,56 @@ Changelogs for 4.9.x
 ====================
 
 .. changelog::
+  :version: 4.9.6
+  :released: 4th of July 2025
+
+  This is release 4.9.6 of the Authoritative Server.
+  It contains bug fixes, mainly in LMDB.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 4.9.x.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15770
+    :tickets: 15063
+
+    compilation fix: Include cstdint to get uint64_t
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15772
+    :tickets: 15594
+
+    auth docker: avoid crash on --version caused by doubly loaded modules
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15771
+    :tickets: 15518
+
+    TSIG payload: use canonical (lowercase) name format
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15736
+    :tickets: 15677
+
+    LMDB: honour map-size for all files
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15720
+
+    Close race window during which LMDB lightning stream flag values might be incorrect.
+
+.. changelog::
   :version: 4.9.5
   :released: 7th of May 2025
 
   This is release 4.9.5 of the Authoritative Server.
   It contains an LMDB performance optimization and bug fixes.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 4.9.x.
 
   .. change::
     :tags: Improvements
@@ -43,6 +88,8 @@ Changelogs for 4.9.x
 
   This is release 4.9.4 of the Authoritative Server.
   It contains a bug fix.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 4.9.x.
 
   .. change::
     :tags: Bug Fixes

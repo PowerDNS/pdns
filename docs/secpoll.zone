@@ -1,4 +1,4 @@
-@       86400   IN  SOA pdns-public-ns1.powerdns.com. peter\.van\.dijk.powerdns.com. 2025062501 10800 3600 604800 10800
+@       86400   IN  SOA pdns-public-ns1.powerdns.com. peter\.van\.dijk.powerdns.com. 2025070401 10800 3600 604800 10800
 @       3600    IN  NS  pdns-public-ns1.powerdns.com.
 @       3600    IN  NS  pdns-public-ns2.powerdns.com.
 
@@ -134,6 +134,7 @@ auth-4.9.2.security-status                              60 IN TXT "1 OK"
 auth-4.9.3.security-status                              60 IN TXT "1 OK"
 auth-4.9.4.security-status                              60 IN TXT "1 OK"
 auth-4.9.5.security-status                              60 IN TXT "1 OK"
+auth-4.9.6.security-status                              60 IN TXT "1 OK"
 auth-5.0.0-alpha1.security-status                       60 IN TXT "1 Unsupported pre-release (no known vulnerabilities)"
 
 ; Auth Debian
