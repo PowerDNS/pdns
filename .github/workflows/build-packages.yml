@@ -41,13 +41,17 @@ on:
       DOWNLOADS_AUTOBUILT_HOSTKEY:
         required: true
 
-permissions: # least privileges, see https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#permissions
-  contents: read
+permissions:
+  actions: read
+  id-token: write
+  contents: write
 
 jobs:
   prepare:
     name: generate OS runner and arch list
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     outputs:
       oslist: ${{ steps.get-oslist.outputs.oslist }}
       runnerlist: ${{ steps.get-runnerlist.outputs.runnerlist }}
@@ -90,6 +94,8 @@ jobs:
     needs: prepare
     name: for ${{ matrix.os }} ${{ inputs.product }} (${{ inputs.ref }}) on ${{ matrix.runner-os }}
     runs-on: ${{ matrix.runner-os }}
+    permissions:
+      contents: read
     strategy:
       matrix:
         os: ${{fromJson(needs.prepare.outputs.oslist)}}
@@ -199,6 +205,8 @@ jobs:
     needs: [prepare, build]
     name: Check if hashes were created for all requested targets
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     env:
       OUTPUTS: ${{ toJSON(needs.build.outputs) }}
       OSLIST: ${{ needs.prepare.outputs.oslist }}
@@ -253,6 +261,8 @@ jobs:
     needs: [prepare, build, provenance-src, provenance-pkgs]
     name: Upload the provenance artifacts to downloads.powerdns.com
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     strategy:
       matrix:
         os: ${{fromJson(needs.prepare.outputs.oslist)}}
