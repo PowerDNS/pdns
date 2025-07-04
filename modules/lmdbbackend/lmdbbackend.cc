@@ -1247,6 +1247,33 @@ void LMDBBackend::writeNSEC3RecordPair(const std::shared_ptr<RecordsRWTransactio
   txn->txn->put(txn->db->dbi, co(domain_id, qname, QType::NSEC3), ser);
 }
 
+// Check if the only records found for this particular name are a single NSEC3
+// record. (in which case there is no actual data for than qname and that
+// record needs to be deleted)
+bool LMDBBackend::hasOrphanedNSEC3Record(MDBRWCursor& cursor, domainid_t domain_id, const DNSName& qname)
+{
+  compoundOrdername co; // NOLINT(readability-identifier-length)
+  bool seenNSEC3{false};
+  bool seenOther{false};
+  MDBOutVal key{};
+  MDBOutVal val{};
+
+  if (cursor.prefix(co(domain_id, qname), key, val) == 0) {
+    do {
+      if (compoundOrdername::getQType(key.getNoStripHeader<StringView>()) == QType::NSEC3) {
+        seenNSEC3 = true;
+      }
+      else {
+        seenOther = true;
+      }
+      if (seenNSEC3 && seenOther) {
+        break;
+      }
+    } while (cursor.next(key, val) == 0);
+  }
+  return seenNSEC3 && !seenOther;
+}
+
 // d_rwtxn must be set here
 bool LMDBBackend::feedRecord(const DNSResourceRecord& r, const DNSName& ordername, bool ordernameIsNSEC3)
 {
@@ -1365,22 +1392,7 @@ bool LMDBBackend::replaceRRSet(domainid_t domain_id, const DNSName& qname, const
       // there aren't any, yet there is an NSEC3 record, delete the NSEC3 chain
       // pair as well.
       if (rrset.empty()) {
-        bool seenNSEC3{false};
-        bool seenOther{false};
-        if (cursor.prefix(co(domain_id, relative), key, val) == 0) {
-          do {
-            if (compoundOrdername::getQType(key.getNoStripHeader<StringView>()) == QType::NSEC3) {
-              seenNSEC3 = true;
-            }
-            else {
-              seenOther = true;
-            }
-            if (seenNSEC3 && seenOther) {
-              break;
-            }
-          } while (cursor.next(key, val) == 0);
-        }
-        if (!seenOther && seenNSEC3) {
+        if (hasOrphanedNSEC3Record(cursor, domain_id, relative)) {
           deleteNSEC3RecordPair(txn, domain_id, relative);
         }
       }
@@ -2815,9 +2827,12 @@ bool LMDBBackend::updateEmptyNonTerminals(domainid_t domain_id, set<DNSName>& in
     for (auto n : erase) {
       // cout <<" -"<<n<<endl;
       n.makeUsRelative(di.zone);
-      // Remove possible NSEC3 record pair tied to that ENT.
-      deleteNSEC3RecordPair(txn, domain_id, n);
       txn->txn->del(txn->db->dbi, co(domain_id, n, QType::ENT));
+      // Remove possible orphaned NSEC3 record pair tied to that ENT.
+      auto cursor = txn->txn->getCursor(txn->db->dbi);
+      if (hasOrphanedNSEC3Record(cursor, domain_id, n)) {
+        deleteNSEC3RecordPair(txn, domain_id, n);
+      }
     }
   }
   if (needCommit)
