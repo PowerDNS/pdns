@@ -969,7 +969,7 @@ static uint64_t doGetThreadCPUMsec(int n)
   static time_t last = 0;
   static ThreadTimes tt;
 
-  std::lock_guard<std::mutex> l(s_mut);
+  std::scoped_lock<std::mutex> l(s_mut);
   if (last != time(nullptr)) {
     tt = broadcastAccFunction<ThreadTimes>(pleaseGetThreadCPUMsec);
     last = time(nullptr);

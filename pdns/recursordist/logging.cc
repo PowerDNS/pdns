@@ -162,7 +162,7 @@ const char* Logging::toTimestampStringMilli(const struct timeval& tval, std::arr
   if (format != "%s") {
     // strftime is not thread safe, it can access locale information
     static std::mutex mutex;
-    auto lock = std::lock_guard(mutex);
+    auto lock = std::scoped_lock(mutex);
     struct tm theTime // clang-format insists on formatting it like this
       {};
     len = strftime(buf.data(), buf.size(), format.c_str(), localtime_r(&tval.tv_sec, &theTime));

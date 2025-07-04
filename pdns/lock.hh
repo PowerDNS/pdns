@@ -248,7 +248,7 @@ public:
   }
 
 private:
-  std::lock_guard<std::mutex> d_lock;
+  std::scoped_lock<std::mutex> d_lock;
   T& d_value;
 };
 
@@ -353,7 +353,7 @@ public:
   }
 
 private:
-  std::lock_guard<std::recursive_mutex> d_lock;
+  std::scoped_lock<std::recursive_mutex> d_lock;
   T& d_value;
 };
 
@@ -458,7 +458,7 @@ public:
   }
 
 private:
-  std::lock_guard<std::shared_mutex> d_lock;
+  std::scoped_lock<std::shared_mutex> d_lock;
   T& d_value;
 };
 
