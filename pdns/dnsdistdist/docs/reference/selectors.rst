@@ -373,7 +373,7 @@ Selectors can be combined via :func:`AndRule`, :func:`OrRule` and :func:`NotRule
   Matches question or answer with a tag named ``name`` set. If ``value`` is specified, the existing tag value should match too.
 
   :param string name: The name of the tag that has to be set
-  :param string value: If set, the value the tag has to be set to. Default is unset
+  :param string value: If set, the value that must match the tag. Default is unset
 
 .. function:: TCPRule(tcp)
 
