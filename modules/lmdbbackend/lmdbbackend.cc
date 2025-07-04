@@ -2740,7 +2740,7 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSNa
   }
 
   bool hasOrderName = !ordername.empty() && isNsec3;
-  bool needNSEC3 = hasOrderName;
+  bool keepNSEC3 = hasOrderName;
 
   do {
     if (compoundOrdername::getQType(key.getNoStripHeader<StringView>()) == QType::NSEC3) {
@@ -2758,8 +2758,8 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSNa
       // If there is at least one entry for that qname, with a different qtype
       // than the one we are working for, known to be associated to an NSEC3
       // record, then we should NOT delete it.
-      if (!needNSEC3) {
-        needNSEC3 = lrr.hasOrderName && isDifferentQType;
+      if (!keepNSEC3) {
+        keepNSEC3 = lrr.hasOrderName && isDifferentQType;
       }
 
       if (!isDifferentQType && (lrr.hasOrderName != hasOrderName || lrr.auth != auth)) {
@@ -2774,7 +2774,7 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSNa
     }
   } while (cursor.next(key, val) == 0);
 
-  if (!needNSEC3) {
+  if (!keepNSEC3) {
     // NSEC3 link to be removed: need to remove an existing pair, if any
     deleteNSEC3RecordPair(txn, domain_id, rel);
   }
