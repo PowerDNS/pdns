@@ -67,6 +67,7 @@ public:
   {
   public:
     bool get(DNSZoneRecord& record);
+    void lookupEnd() const;
     handle();
     ~handle();
 
