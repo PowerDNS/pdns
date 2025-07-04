@@ -46,7 +46,7 @@ the value is the name of the directory in which the socket file is
 stored. Default: not set.
 
 .. warning::
-  When specified as a hostname a chicken/egg situation might
+  When specified as a hostname, a chicken/egg situation might
   arise where the database is needed to resolve the IP address of the
   database. It is best to supply an IP address of the database here.
 
