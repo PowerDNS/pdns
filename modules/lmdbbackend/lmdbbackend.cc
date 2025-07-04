@@ -1017,7 +1017,7 @@ std::string serializeToBuffer(const LMDBBackend::LMDBResourceRecord& value)
 
   // Reserve space to store the size of the resource record + the content of the resource
   // record + a few other things.
-  buffer.reserve(sizeof(len) + len + sizeof(value.ttl) + sizeof(value.auth) + sizeof(value.disabled) + sizeof(value.ordername));
+  buffer.reserve(sizeof(len) + len + sizeof(value.ttl) + sizeof(value.auth) + sizeof(value.disabled) + sizeof(value.hasOrderName));
 
   // Store the size of the resource record.
   // NOLINTNEXTLINE.
@@ -1031,7 +1031,7 @@ std::string serializeToBuffer(const LMDBBackend::LMDBResourceRecord& value)
   buffer.append((const char*)&value.ttl, sizeof(value.ttl));
   buffer.append(1, (char)value.auth);
   buffer.append(1, (char)value.disabled);
-  buffer.append(1, (char)value.ordername);
+  buffer.append(1, (char)value.hasOrderName);
 
   return buffer;
 }
@@ -1054,7 +1054,7 @@ static inline size_t deserializeRRFromBuffer(const string_view& str, LMDBBackend
   memcpy(&lrr.ttl, &str[2] + len, 4);
   lrr.auth = str[2 + len + 4];
   lrr.disabled = str[2 + len + 4 + 1];
-  lrr.ordername = str[2 + len + 4 + 2];
+  lrr.hasOrderName = str[2 + len + 4 + 2] != 0;
   lrr.wildcardname.clear();
 
   return 2 + len + 7;
@@ -1308,7 +1308,7 @@ bool LMDBBackend::feedEnts(domainid_t domain_id, map<DNSName, bool>& nonterm)
   for (const auto& nt : nonterm) {
     lrr.qname = nt.first.makeRelative(d_transactiondomain);
     lrr.auth = nt.second;
-    lrr.ordername = true;
+    lrr.hasOrderName = true;
 
     std::string ser = serializeToBuffer(lrr);
     d_rwtxn->txn->put(d_rwtxn->db->dbi, co(domain_id, lrr.qname, QType::ENT), ser);
@@ -1326,7 +1326,7 @@ bool LMDBBackend::feedEnts3(domainid_t domain_id, const DNSName& domain, map<DNS
     lrr.qname = nt.first.makeRelative(domain);
     lrr.ttl = 0;
     lrr.auth = nt.second;
-    lrr.ordername = nt.second;
+    lrr.hasOrderName = nt.second;
     ser = serializeToBuffer(lrr);
     d_rwtxn->txn->put(d_rwtxn->db->dbi, co(domain_id, lrr.qname, QType::ENT), ser);
 
@@ -2753,12 +2753,12 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSNa
     for (auto& lrr : lrrs) {
       lrr.qtype = compoundOrdername::getQType(key.getNoStripHeader<StringView>());
       if (!needNSEC3 && qtype != QType::ANY) {
-        needNSEC3 = (lrr.ordername && QType(qtype) != lrr.qtype);
+        needNSEC3 = (lrr.hasOrderName && QType(qtype) != lrr.qtype);
       }
 
-      if ((qtype == QType::ANY || QType(qtype) == lrr.qtype) && (lrr.ordername != hasOrderName || lrr.auth != auth)) {
+      if ((qtype == QType::ANY || QType(qtype) == lrr.qtype) && (lrr.hasOrderName != hasOrderName || lrr.auth != auth)) {
         lrr.auth = auth;
-        lrr.ordername = hasOrderName;
+        lrr.hasOrderName = hasOrderName;
         changed = true;
       }
       newRRs.push_back(std::move(lrr));

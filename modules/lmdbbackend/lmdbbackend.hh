@@ -264,9 +264,9 @@ public:
   public:
     LMDBResourceRecord() = default;
     LMDBResourceRecord(const DNSResourceRecord& rr) :
-      DNSResourceRecord(rr), ordername(false) {}
+      DNSResourceRecord(rr), hasOrderName(false) {}
 
-    bool ordername{false};
+    bool hasOrderName{false};
   };
 
 private:
