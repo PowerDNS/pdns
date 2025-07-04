@@ -497,6 +497,8 @@ common_sources += files(
   src_dir / 'bindparserclasses.hh',
   src_dir / 'burtle.hh',
   src_dir / 'cachecleaner.hh',
+  src_dir / 'check-zone.cc',
+  src_dir / 'check-zone.hh',
   src_dir / 'circular_buffer.hh',
   src_dir / 'comment.hh',
   src_dir / 'communicator.cc',
