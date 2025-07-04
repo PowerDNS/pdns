@@ -43,7 +43,7 @@ Functions and methods of a ``DNSResourceRecord``
 
   .. method:: DNSResourceRecord:wildcardName() -> DNSName
 
-    Returns the wildcard name of the record the record was matched against
+    Returns the wildcard name of the record that the record was matched against
 
   .. method:: DNSResourceRecord:content() -> string
 

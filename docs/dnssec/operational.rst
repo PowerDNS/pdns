@@ -111,7 +111,7 @@ every zone.
 Possible SOA-EDIT values
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-The 'inception' refers to the time the RRSIGs got updated in
+The 'inception' refers to the time that the RRSIGs got updated in
 :ref:`live-signing mode <dnssec-online-signing>`. This happens every week (see
 :ref:`dnssec-signatures`). The inception time does not depend on
 local timezone, but some modes below will use localtime for
