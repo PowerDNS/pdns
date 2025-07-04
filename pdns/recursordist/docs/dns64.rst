@@ -9,7 +9,7 @@ However, if ``example.com`` does not actually have an IPv6 address, what we do i
 We do this by retrieving the A records for ``www.example.com``, and translating them to AAAA records.
 Elsewhere, a NAT64 device listens on these IPv6 addresses, and extracts the IPv4 address from each packet, and proxies it on.
 
-As of 4.4.0, an efficient implementation is built the recursor and can be enabled via the using the :ref:`dns64-prefix setting <setting-yaml-recursor.dns64_prefix>`.
+As of 4.4.0, an efficient implementation is built into the recursor and can be enabled using the :ref:`dns64-prefix setting <setting-yaml-recursor.dns64_prefix>`.
 
 Native DNS64 support
 --------------------

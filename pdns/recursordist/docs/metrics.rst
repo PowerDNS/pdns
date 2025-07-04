@@ -6,7 +6,7 @@ The PowerDNS Recursor collects many statistics about itself.
 Regular Statistics Log
 ----------------------
 Every half hour or so (configurable with :ref:`setting-yaml-logging.statistics_interval`, the recursor outputs a line with statistics.
-To force the output of statistics, send the process a SIGUSR1. A line of statistics looks like this::
+To force the output of statistics, send the process SIGUSR1. A line of statistics looks like this::
 
   stats: 346362 questions, 7388 cache entries, 1773 negative entries, 18% cache hits
   stats: cache contended/acquired 1583/56041728 = 0.00282468%

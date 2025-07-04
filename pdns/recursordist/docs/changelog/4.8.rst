@@ -396,7 +396,7 @@ Changelogs for 4.8.X
     :tags: Improvements
     :pullreq: 11909
 
-    Add querytime attribute to Lua DNSQuestion object, to see the time a query was received.
+    Add querytime attribute to Lua DNSQuestion object, to see the time that a query was received.
 
   .. change::
     :tags: Improvements

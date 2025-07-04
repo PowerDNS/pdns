@@ -12,8 +12,8 @@ grouped.
   Use ``pdnsutil check-zone`` to validate your zone data.
 
 .. note::
-  Whenever the storage format is mentioned, this relates only to
-  the way the record should be stored in one of the :doc:`generic SQL <../backends/generic-sql>` backends. The other
+  Whenever the storage format is mentioned, this relates only to the way
+  that the record should be stored in one of the :doc:`generic SQL <../backends/generic-sql>` backends. The other
   backends should use their *native* format.
 
 The PowerDNS Recursor can serve and store all record types, regardless

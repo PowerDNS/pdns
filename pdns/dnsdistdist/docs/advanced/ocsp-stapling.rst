@@ -31,7 +31,7 @@ Certificate signed by an external authority
 
 When the certificate has been signed by an external certification authority, the process is a bit more complicated because the OCSP needs to be retrieved from that CA, and there are very few options available to do that at the moment.
 
-One of those options is to the use the OpenSSL ocsp command-line tool, although it's a bit cumbersome to use.
+One of those options is to use the OpenSSL ocsp command-line tool, although it's a bit cumbersome to use.
 
 The first step is to retrieve the URL at which the CA provides an OCSP responder. This can be done via the OpenSSL x509 command:
 

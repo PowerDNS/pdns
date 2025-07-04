@@ -108,11 +108,11 @@ Certificates
 
   .. method:: DNSCryptCert:getTSEnd() -> int
 
-    Return the date the certificate is valid from, as a Unix timestamp.
+    Return the date that the certificate is valid from, as a Unix timestamp.
 
   .. method:: DNSCryptCert:getTSStart() -> int
 
-    Return the date the certificate is valid until (inclusive), as a Unix timestamp
+    Return the date that the certificate is valid until (inclusive), as a Unix timestamp
 
 Certificate Pairs
 -----------------

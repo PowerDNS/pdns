@@ -32,7 +32,7 @@ diff-mode
 ---------
 
 ZONE
-    The name of the zone the IXFRs are consumed from.
+    The name of the zone from which the IXFRs are consumed.
 BEFORE
     Path to the 'before' zonefile.
 AFTER

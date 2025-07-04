@@ -52,6 +52,12 @@
 # Should be `a`
 \san (?=(?:[bcdgjklnpqtvwz]|f(?!d\b)|h(?!our|tml|ttp)|m(?!thread)|r(?!code|tf)|s(?!sh|qlite|vg)|x(?!or))[a-z])
 
+# Articles generally shouldn't be used without a noun and a verb
+# - Perhaps you're missing a verb between the noun and the second article.
+# - Or, perhaps you should remove the first verb and treat the intervening word as a verb?
+# - In some cases you should add a `,` between the noun and the second article.
+\s(?:an?|the)\s(?!wh|how\b)[A-Za-z][a-z]+[a-qs-z]\s(?:a(?! lot\b)n?|the)\s
+
 # Should only be one of `a`, `an`, or `the`
 \b(?:(?:an?|the)\s+){2,}\b
 
@@ -66,7 +72,7 @@
 (?i)(?!ABCDEFGHIJKLMNOPQRSTUVWXYZ)ABC[A-Z]{21}YZ
 
 # Should be `an`
-(?<!\b[Ii] )(?<!\.)\bam\b
+(?<!\b[Ii] |\.)\bam\b
 
 # Should be `anymore`
 \bany more[,.]
@@ -470,6 +476,9 @@ socio-economic
 
 # Should be `there are` or `they are` (or `they're`)
 (?i)\btheir are\b
+
+# Should be `true`
+(?i)(?<![\[\]()])\brue(?:= or false)
 
 # Should be `understand`
 \bunder stand\b

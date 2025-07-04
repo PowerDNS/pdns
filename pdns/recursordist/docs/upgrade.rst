@@ -223,7 +223,7 @@ New settings
 
 Changed settings
 ^^^^^^^^^^^^^^^^
-The first two settings below have effect on the way the recursor distributes queries over threads.
+The first two settings below have effect on the way that the recursor distributes queries over threads.
 In some cases, this can lead to imbalance of the number of queries process per thread.
 See :doc:`performance`, in particular the :ref:`worker_imbalance` section.
 

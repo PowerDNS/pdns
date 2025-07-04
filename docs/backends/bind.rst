@@ -259,7 +259,7 @@ Primary
 ~~~~~~~
 
 Works as expected. At startup, no notification storm is performed as
-this is generally not useful. Perhaps in the future the BIND backend
+this is generally not useful. Perhaps, in the future, the BIND backend
 will attempt to store zone metadata in the zone, allowing it to
 determine if a zone has changed its serial since the last time
 notifications were sent out.
