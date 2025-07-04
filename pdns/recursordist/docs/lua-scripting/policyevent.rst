@@ -41,7 +41,7 @@ PolicyEvent class
 
   .. attribute:: PolicyEvent.qname
 
-      :class:`DNSName` of the name the query is for.
+      :class:`DNSName` of the name corresponding to the query.
 
   .. attribute:: PolicyEvent.qtype
 
