@@ -215,7 +215,7 @@ Changelogs for 4.7.x
   * lmdbbackend databases now get a UUID assigned, making it easy for external software to spot if a database was completely replaced
   * lmdbbackend databases now optionally use random IDs for objects
   * a new LUA function called ``ifurlextup``, and improvements in other LUA record functions
-  * autoprimary management in :doc:`pdnsutil <pdnsutil>` and the HTTP API
+  * autoprimary management in :doc:`pdnsutil <../manpages/pdnsutil.1>` and the HTTP API
   * in beta, a key roller daemon, currently not packaged
 
   Please make sure to read the :doc:`upgrade notes <../upgrading>` before upgrading.
@@ -258,7 +258,7 @@ Changelogs for 4.7.x
   * lmdbbackend databases now get a UUID assigned, making it easy for external software to spot if a database was completely replaced
   * lmdbbackend databases now optionally use random IDs for objects
   * a new LUA function called ``ifurlextup``, and improvements in other LUA record functions
-  * autoprimary management in :doc:`pdnsutil <pdnsutil>` and the HTTP API
+  * autoprimary management in :doc:`pdnsutil <../manpages/pdnsutil.1>` and the HTTP API
   * in beta, a key roller daemon, currently not packaged
 
   Please make sure to read the :doc:`upgrade notes <../upgrading>` before upgrading.
@@ -320,7 +320,7 @@ Changelogs for 4.7.x
   * lmdbbackend databases now get a UUID assigned, making it easy for external software to spot if a database was completely replaced
   * lmdbbackend databases now optionally use random IDs for objects
   * a new LUA function called ``ifurlextup``, and improvements in other LUA record functions
-  * autoprimary management in :doc:`pdnsutil <pdnsutil>` and the HTTP API
+  * autoprimary management in :doc:`pdnsutil <../manpages/pdnsutil.1>` and the HTTP API
 
   Please make sure to read the :doc:`upgrade notes <../upgrading>` before upgrading.
 
@@ -519,7 +519,7 @@ Changelogs for 4.7.x
   * lmdbbackend databases now get a UUID assigned, making it easy for external software to spot if a database was completely replaced
   * lmdbbackend databases now optionally use random IDs for objects
   * a new LUA function called ``ifurlextup``
-  * autoprimary management in :doc:`pdnsutil <pdnsutil>` and the HTTP API
+  * autoprimary management in :doc:`pdnsutil <../manpages/pdnsutil.1>` and the HTTP API
 
   Please make sure to read the :doc:`upgrade notes <../upgrading>` before upgrading.
 
