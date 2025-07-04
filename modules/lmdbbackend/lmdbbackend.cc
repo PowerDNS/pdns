@@ -2828,11 +2828,6 @@ bool LMDBBackend::updateEmptyNonTerminals(domainid_t domain_id, set<DNSName>& in
       // cout <<" -"<<n<<endl;
       n.makeUsRelative(di.zone);
       txn->txn->del(txn->db->dbi, co(domain_id, n, QType::ENT));
-      // Remove possible orphaned NSEC3 record pair tied to that ENT.
-      auto cursor = txn->txn->getCursor(txn->db->dbi);
-      if (hasOrphanedNSEC3Record(cursor, domain_id, n)) {
-        deleteNSEC3RecordPair(txn, domain_id, n);
-      }
     }
   }
   if (needCommit)
