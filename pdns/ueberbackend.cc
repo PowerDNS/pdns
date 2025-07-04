@@ -111,7 +111,7 @@ void UeberBackend::go()
   s_backendQueries = S.getPointer("backend-queries");
 
   {
-    std::unique_lock<std::mutex> lock(d_mut);
+    std::scoped_lock<std::mutex> lock(d_mut);
     d_go = true;
   }
   d_cond.notify_all();

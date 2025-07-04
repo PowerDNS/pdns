@@ -40,7 +40,7 @@ namespace filesystem = boost::filesystem;
 
 std::mutex PersistentSBF::d_cachedir_mutex;
 
-void PersistentSBF::remove_tmp_files(const filesystem::path& path, std::lock_guard<std::mutex>& /* lock */)
+void PersistentSBF::remove_tmp_files(const filesystem::path& path, std::scoped_lock<std::mutex>& /* lock */)
 {
   Regex file_regex(d_prefix + ".*\\." + bf_suffix + "\\..{8}$");
   for (const auto& file : filesystem::directory_iterator(path)) {
@@ -58,7 +58,7 @@ void PersistentSBF::remove_tmp_files(const filesystem::path& path, std::lock_gua
 bool PersistentSBF::init(bool ignore_pid)
 {
   auto log = g_slog->withName("nod");
-  std::lock_guard<std::mutex> lock(d_cachedir_mutex);
+  std::scoped_lock<std::mutex> lock(d_cachedir_mutex);
   if (d_cachedir.length() != 0) {
     filesystem::path path(d_cachedir);
     try {

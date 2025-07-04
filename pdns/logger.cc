@@ -104,7 +104,7 @@ void Logger::log(const string& msg, Urgency u) noexcept
     }
 
     static std::mutex mutex;
-    std::lock_guard<std::mutex> lock(mutex); // the C++-2011 spec says we need this, and OSX actually does
+    auto lock = std::scoped_lock(mutex); // the C++-2011 spec says we need this, and OSX actually does
 
     // To avoid issuing multiple syscalls, we write the complete line to clog with a single << call.
     // For that we need a buffer allocated, we might want to use writev(2) one day to avoid that.

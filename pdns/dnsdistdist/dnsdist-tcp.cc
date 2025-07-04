@@ -1632,7 +1632,7 @@ static void dumpTCPStates(const TCPClientThreadData& data)
 {
   /* just to keep things clean in the output, debug only */
   static std::mutex s_lock;
-  std::lock_guard<decltype(s_lock)> lck(s_lock);
+  auto lock = std::scoped_lock(s_lock);
   if (g_tcpStatesDumpRequested > 0) {
     /* no race here, we took the lock so it can only be increased in the meantime */
     --g_tcpStatesDumpRequested;

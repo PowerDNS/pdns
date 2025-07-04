@@ -73,7 +73,7 @@ void* MallocTracer::malloc(size_t size)
     d_totAllocated += size;
 
 
-    std::lock_guard<std::mutex> lock(d_mut);
+    auto lock = std::scoped_lock(d_mut);
     auto& ent=d_stats[makeBacktrace()];
     ent.count++;
     ent.sizes[size]++;
@@ -89,7 +89,7 @@ void MallocTracer::free(void* ptr)
   __libc_free(ptr);
   if(!l_active) {
     l_active=true;
-    std::lock_guard<std::mutex> lock(d_mut);
+    auto lock = std::scoped_lock(d_mut);
     auto f = d_sizes.find(ptr);
     if(f != d_sizes.end()) {
       d_totAllocated -= f->second;
@@ -144,7 +144,7 @@ std::string MallocTracer::topAllocatorsString(int num)
 void MallocTracer::clearAllocators()
 {
   l_active=true;
-  std::lock_guard<std::mutex> lock(d_mut); 
+  auto lock = std::scoped_lock(d_mut); 
   d_stats.clear(); 
   l_active=false;
 }

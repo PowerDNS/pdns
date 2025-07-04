@@ -716,7 +716,7 @@ LMDBBackend::LMDBBackend(const std::string& suffix)
   bool opened = false;
 
   if (s_first) {
-    std::lock_guard<std::mutex> l(s_lmdbStartupLock);
+    auto lock = std::scoped_lock(s_lmdbStartupLock);
     if (s_first) {
       auto filename = getArg("filename");
 

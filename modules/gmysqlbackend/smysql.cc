@@ -487,7 +487,7 @@ void SMySQL::connect()
   int retry = 1;
 
   {
-    std::lock_guard<std::mutex> l(s_myinitlock);
+    auto lock = std::scoped_lock(s_myinitlock);
     if (d_threadCleanup) {
       threadcloser.enable();
     }

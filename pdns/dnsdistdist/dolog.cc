@@ -73,7 +73,7 @@ void logTime(std::ostream& stream)
     {
       // strftime is not thread safe, it can access locale information
       static std::mutex mutex;
-      auto lock = std::lock_guard(mutex);
+      auto lock = std::scoped_lock(mutex);
 
       if (strftime(buffer.data(), buffer.size(), timeFormat, &localNow) == 0) {
         buffer[0] = '\0';
