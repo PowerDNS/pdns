@@ -2,6 +2,8 @@
 
 set -e
 
+[ -e /tmp/.pdns_rust_installed ] && exit 0
+
 ARCH=$(arch)
 
 # Default version
@@ -52,3 +54,5 @@ cd $RUST_VERSION
 
 cd ..
 rm -rf $RUST_VERSION
+
+touch /tmp/.pdns_rust_installed

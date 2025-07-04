@@ -35,13 +35,9 @@ jobs:
       matrix:
         product: ['authoritative', 'recursor', 'dnsdist']
         os:
-          - el-8
           - centos-9-stream
           - centos-10-stream
-          - ubuntu-noble
           - ubuntu-oracular
-          - debian-bookworm
-          - debian-trixie
           - amazon-2023
         runner-os: ${{ fromJson(needs.prepare.outputs.runnerlist )}}
       fail-fast: false
