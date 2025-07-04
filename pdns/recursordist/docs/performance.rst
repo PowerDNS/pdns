@@ -367,7 +367,7 @@ An example of a trace (timestamps are relative in nanoseconds) as shown  in the 
      -AnswerSent(337266453)
 
 The packet cache check event has two events.
-The first signals the start of packet cache lookup, and the second the completion of the packet cache lookup with result 0 (not found).
+The first signals the start of packet cache lookup, and the second signals the completion of the packet cache lookup with result 0 (not found).
 The SynRec event also has two entries. The value (0) is the return value of the SyncRes function.
 
 An example of a trace with a packet cache hit):
