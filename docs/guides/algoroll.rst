@@ -16,7 +16,7 @@ Please check that these bigger packets can make it out of your network without t
 .. warning::
 
     For every mutation to your zone (so, every step except updating DS in the parent), make sure that your serial is bumped, so your secondaries pick up the changes too.
-    If you are using AXFR replication, this usually is as simple as ``pdnsutil increase-serial example.com``
+    If you are using AXFR replication, this usually is as simple as ``pdnsutil zone increase-serial example.com``
 
 Phase: initial
 --------------
@@ -31,11 +31,11 @@ To create signatures with the new algorithm, without publishing keys, run someth
 
 .. code-block:: shell
 
-    pdnsutil add-zone-key example.com KSK active unpublished ecdsa384
-    pdnsutil add-zone-key example.com ZSK active unpublished ecdsa384
+    pdnsutil zone add-key example.com KSK active unpublished ecdsa384
+    pdnsutil zone add-key example.com ZSK active unpublished ecdsa384
 
-Note the key IDs that add-zone-key reports.
-You can also retrieve these later with ``pdnsutil show-zone example.com``.
+Note the key IDs that ``zone add-key`` reports.
+You can also retrieve these later with ``pdnsutil zone show example.com``.
 
 After this, PowerDNS will sign all records in the zone with both the old and new ZSKs, and the DNSKEY set will be signed by both KSKs.
 
@@ -61,10 +61,10 @@ After waiting for all records in our zone to expire from caches, we can publish 
 
 .. code-block:: shell
 
-    pdnsutil publish-zone-key example.com 3
-    pdnsutil publish-zone-key example.com 4
+    pdnsutil zone publish-key example.com 3
+    pdnsutil zone publish-key example.com 4
 
-Replace ``3`` and ``4`` with the key IDs gathered in the previous step, or find them in ``pdnsutil show-zone example.com``.
+Replace ``3`` and ``4`` with the key IDs gathered in the previous step, or find them in ``pdnsutil zone show example.com``.
 PowerDNS will now publish the new DNSKEYs that have already been used for signing for a while.
 The old DNSKEYs remain published, and active for signing, for now.
 
@@ -81,7 +81,7 @@ Our zone is currently fully signed with two algorithms, and keys for both algori
 This means that a DS for either the old or new algorithm is sufficient for validation.
 We can now switch the DS - there is no need to have DSes for both algorithms in the parent zone.
 
-Using ``pdnsutil show-zone example.com`` or ``pdnsutil export-zone-ds example.com``, extract the new DNSKEYs or new DSes, depending on what the parent zone operator takes as input.
+Using ``pdnsutil zone show example.com`` or ``pdnsutil zone export-ds example.com``, extract the new DNSKEYs or new DSes, depending on what the parent zone operator takes as input.
 Note that these commands print DNSKEYs and/or DSes for both the old and the new algorithm.
 
 Check the DS TTL at the parent, for example: ``dig DS example.com @c.gtld-servers.net`` for a delegation from ``.com``.
@@ -102,8 +102,8 @@ It is time to remove the old DNSKEYs, while keeping their signature:
 
 .. code-block:: shell
 
-    pdnsutil unpublish-zone-key example.com 1
-    pdnsutil unpublish-zone-key example.com 2
+    pdnsutil zone unpublish-key example.com 1
+    pdnsutil zone unpublish-key example.com 2
 
 Replace ``1`` and ``2`` with the IDs of the old keys.
 
@@ -120,10 +120,10 @@ This means we can now safely stop signing with the old keys:
 
 .. code-block:: shell
 
-    pdnsutil deactivate-zone-key example.com 1
-    pdnsutil deactivate-zone-key example.com 2
+    pdnsutil zone deactivate-key example.com 1
+    pdnsutil zone deactivate-key example.com 2
 
-Alternatively, you can use ``remove-zone-key`` to remove all traces of the old keys.
+Alternatively, you can use ``zone remove-key`` to remove all traces of the old keys.
 
 Conclusion
 ----------

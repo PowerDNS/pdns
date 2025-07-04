@@ -12,7 +12,7 @@ Below, frequently used commands are described:
 Publishing a DS
 ---------------
 
-To publish a DS to a parent zone, utilize ``pdnsutil show-zone`` and
+To publish a DS to a parent zone, utilize ``pdnsutil zone show`` and
 take the DS from its output, and transfer it securely to your parent
 zone.
 
@@ -21,7 +21,7 @@ Going insecure
 
 .. code-block:: shell
 
-    pdnsutil disable-dnssec ZONE
+    pdnsutil zone dnssec-disable ZONE
 
 .. warning::
   Going insecure with a zone that has a DS record in the
@@ -38,13 +38,13 @@ NSEC3 instead, issue:
 
 .. code-block:: shell
 
-    pdnsutil set-nsec3 ZONE [PARAMETERS] ['narrow']
+    pdnsutil zone set-nsec3 ZONE [PARAMETERS] ['narrow']
 
 e.g.
 
 .. code-block:: shell
 
-    pdnsutil set-nsec3 example.net '1 0 0 -'
+    pdnsutil zone set-nsec3 example.net '1 0 0 -'
 
 The quoted part is the content of the NSEC3PARAM records, as defined in
 :rfc:`RFC 5155 <5155#section-4>`, in order:
@@ -64,7 +64,7 @@ To convert a zone from NSEC3 to NSEC operations, run:
 
 .. code-block:: shell
 
-    pdnsutil unset-nsec3 ZONE
+    pdnsutil zone unset-nsec3 ZONE
 
 .. warning::
   Don't change from NSEC to NSEC3 (or the other way around)

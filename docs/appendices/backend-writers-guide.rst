@@ -166,7 +166,7 @@ furthermore, only about its A record:
 
       bool list(const string &target, domainid_t id)
       {
-        return false; // we don't support pdnsutil list-zone or AXFR
+        return false; // we don't support pdnsutil zone list or AXFR
       }
 
       void lookup(const QType &type, const string &qdomain, domainid_t zoneId, DNSPacket *p)
@@ -353,7 +353,7 @@ Methods
   the backend. The currently used capabilities are:
 
 * `CAP_DNSSEC`     Backend implements :ref:`backend-dnssec`.
-* `CAP_LIST`       Backend implements `list`, for AXFR or `pdnsutil list-zone`
+* `CAP_LIST`       Backend implements `list`, for AXFR or `pdnsutil zone list`
 
 .. cpp:function:: void DNSBackend::lookup(const QType &qtype, const string &qdomain, domainid_t zoneId, DNSPacket *pkt=nullptr)
 
@@ -928,7 +928,7 @@ contain `CAP_DNSSEC` if that backend supports DNSSEC.
 
 .. cpp:function:: virtual bool feedEnts(domainid_t domain_id, map<DNSName,bool> &nonterm)
 
-  This method is used by ``pdnsutil rectify-zone`` to populate missing non-terminals. This is used when you have, say, record like _sip._upd.example.com, but no _udp.example.com. PowerDNS requires that there exists a non-terminal in between, and this instructs you to add one.
+  This method is used by ``pdnsutil zone rectify`` to populate missing non-terminals. This is used when you have, say, record like _sip._upd.example.com, but no _udp.example.com. PowerDNS requires that there exists a non-terminal in between, and this instructs you to add one.
 
 .. cpp:function:: virtual bool feedEnts3(domainid_t domain_id, const DNSName &domain, map<DNSName,bool> &nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow)
 
