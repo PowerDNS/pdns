@@ -20,7 +20,7 @@ Functions and methods of a ``DNSResourceRecord``
   :param string type: The name to create a DNSName for
   :param int ttl: The TTL of the record
   :param string content: The content of the record
-  :param int domainId: The optional domain ID of the zone the record belongs to
+  :param int domainId: The optional domain ID of the zone to which the record belongs
   :param int auth: Whether the record is authoritative
 
   .. todo complete LUA example below
@@ -63,7 +63,7 @@ Functions and methods of a ``DNSResourceRecord``
 
   .. method:: DNSResourceRecord:domainId() -> int
 
-    Backend related domain ID of the zone the record belongs to
+    Backend related domain ID of the zone to which the record belongs
 
   .. method:: DNSResourceRecord:qtype() -> int
 
