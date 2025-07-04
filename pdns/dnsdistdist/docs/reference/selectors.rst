@@ -83,6 +83,14 @@ Selectors can be combined via :func:`AndRule`, :func:`OrRule` and :func:`NotRule
 
   :param str path: The exact HTTP path to match on
 
+.. function:: IncomingProtocolRule(protocol)
+
+  .. versionadded:: 2.1.0
+
+  Matches queries received over a specific protocol.
+
+  :param str protocol: The protocol to match on, in a case-sensitive way. Supported values are DoUDP, DoTCP, DNSCryptUDP, DNSCryptTCP, DoT, DoH, DoQ and DoH3
+
 .. function:: KeyValueStoreLookupRule(kvs, lookupKey)
 
   .. versionadded:: 1.4.0
