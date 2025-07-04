@@ -2752,11 +2752,12 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSNa
     newRRs.reserve(lrrs.size());
     for (auto& lrr : lrrs) {
       lrr.qtype = compoundOrdername::getQType(key.getNoStripHeader<StringView>());
-      if (!needNSEC3 && qtype != QType::ANY) {
-        needNSEC3 = (lrr.hasOrderName && QType(qtype) != lrr.qtype);
+      bool isDifferentQType = qtype != QType::ANY && QType(qtype) != lrr.qtype;
+      if (!needNSEC3) {
+        needNSEC3 = lrr.hasOrderName && isDifferentQType;
       }
 
-      if ((qtype == QType::ANY || QType(qtype) == lrr.qtype) && (lrr.hasOrderName != hasOrderName || lrr.auth != auth)) {
+      if (!isDifferentQType && (lrr.hasOrderName != hasOrderName || lrr.auth != auth)) {
         lrr.auth = auth;
         lrr.hasOrderName = hasOrderName;
         changed = true;
