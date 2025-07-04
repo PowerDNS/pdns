@@ -1007,7 +1007,7 @@ static int increaseSerial(const ZoneName& zone, DNSSECKeeper &dsk)
       ordername=DNSName("");
     if(g_verbose)
       cerr<<"'"<<rr.qname<<"' -> '"<< ordername <<"'"<<endl;
-    sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, rr.qname, ordername, true, QType::ANY, haveNSEC3);
+    sd.db->updateDNSSECOrderNameAndAuth(sd.domain_id, rr.qname, ordername, true, QType::ANY, haveNSEC3 && !narrow);
   }
 
   sd.db->commitTransaction();
