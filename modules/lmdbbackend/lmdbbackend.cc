@@ -1280,6 +1280,9 @@ bool LMDBBackend::feedRecord(const DNSResourceRecord& r, const DNSName& ordernam
   LMDBResourceRecord lrr(r);
   lrr.qname.makeUsRelative(d_transactiondomain);
   lrr.content = serializeContent(lrr.qtype.getCode(), r.qname, lrr.content);
+  // Note that this is safe, as ordernameIsNSEC3 will NOT be set if NSEC3
+  // but narrow.
+  lrr.hasOrderName = ordernameIsNSEC3 && !ordername.empty();
 
   compoundOrdername co;
   string matchName = co(lrr.domain_id, lrr.qname, lrr.qtype.getCode());
@@ -1289,12 +1292,11 @@ bool LMDBBackend::feedRecord(const DNSResourceRecord& r, const DNSName& ordernam
   if (!d_rwtxn->txn->get(d_rwtxn->db->dbi, matchName, _rrs)) {
     rrs = _rrs.get<string>();
   }
-
   rrs += serializeToBuffer(lrr);
 
   d_rwtxn->txn->put(d_rwtxn->db->dbi, matchName, rrs);
 
-  if (ordernameIsNSEC3 && !ordername.empty()) {
+  if (lrr.hasOrderName) {
     writeNSEC3RecordPair(d_rwtxn, lrr.domain_id, lrr.qname, ordername);
   }
   return true;
@@ -1308,7 +1310,7 @@ bool LMDBBackend::feedEnts(domainid_t domain_id, map<DNSName, bool>& nonterm)
   for (const auto& nt : nonterm) {
     lrr.qname = nt.first.makeRelative(d_transactiondomain);
     lrr.auth = nt.second;
-    lrr.hasOrderName = true;
+    lrr.hasOrderName = false;
 
     std::string ser = serializeToBuffer(lrr);
     d_rwtxn->txn->put(d_rwtxn->db->dbi, co(domain_id, lrr.qname, QType::ENT), ser);
@@ -1326,11 +1328,11 @@ bool LMDBBackend::feedEnts3(domainid_t domain_id, const DNSName& domain, map<DNS
     lrr.qname = nt.first.makeRelative(domain);
     lrr.ttl = 0;
     lrr.auth = nt.second;
-    lrr.hasOrderName = nt.second;
+    lrr.hasOrderName = lrr.auth && !narrow;
     ser = serializeToBuffer(lrr);
     d_rwtxn->txn->put(d_rwtxn->db->dbi, co(domain_id, lrr.qname, QType::ENT), ser);
 
-    if (!narrow && lrr.auth) {
+    if (lrr.hasOrderName) {
       ordername = DNSName(toBase32Hex(hashQNameWithSalt(ns3prc, nt.first)));
       writeNSEC3RecordPair(d_rwtxn, domain_id, lrr.qname, ordername);
     }
@@ -2737,7 +2739,7 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSNa
     return false;
   }
 
-  bool hasOrderName = !ordername.empty();
+  bool hasOrderName = !ordername.empty() && isNsec3;
   bool needNSEC3 = hasOrderName;
 
   do {
@@ -2753,6 +2755,9 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSNa
     for (auto& lrr : lrrs) {
       lrr.qtype = compoundOrdername::getQType(key.getNoStripHeader<StringView>());
       bool isDifferentQType = qtype != QType::ANY && QType(qtype) != lrr.qtype;
+      // If there is at least one entry for that qname, with a different qtype
+      // than the one we are working for, known to be associated to an NSEC3
+      // record, then we should NOT delete it.
       if (!needNSEC3) {
         needNSEC3 = lrr.hasOrderName && isDifferentQType;
       }
@@ -2773,7 +2778,7 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSNa
     // NSEC3 link to be removed: need to remove an existing pair, if any
     deleteNSEC3RecordPair(txn, domain_id, rel);
   }
-  else if (hasOrderName && isNsec3) {
+  else if (hasOrderName) {
     // NSEC3 link to be added or updated
     writeNSEC3RecordPair(txn, domain_id, rel, ordername);
   }

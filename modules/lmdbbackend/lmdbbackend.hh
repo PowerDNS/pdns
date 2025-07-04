@@ -266,6 +266,8 @@ public:
     LMDBResourceRecord(const DNSResourceRecord& rr) :
       DNSResourceRecord(rr), hasOrderName(false) {}
 
+    // This field is set if the in-base DNSResourceRecord also has an
+    // NSEC3 record chain associated to it.
     bool hasOrderName{false};
   };
 
