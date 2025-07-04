@@ -1023,7 +1023,7 @@ static string DLRestHandler(const vector<string>& parts, pid_t /* ppid */)
   }
   line.append(1, '\n');
 
-  std::lock_guard<std::mutex> l(g_guardian_lock);
+  std::scoped_lock<std::mutex> l(g_guardian_lock);
 
   try {
     writen2(g_fd1[1], line.c_str(), line.size() + 1);
