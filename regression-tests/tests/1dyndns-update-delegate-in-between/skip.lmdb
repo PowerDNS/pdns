@@ -1,0 +1,6 @@
+FIXME
+This test is currently disabled on lmdb.
+Adding:
+  $PDNSUTIL --config-dir=. --config-name=$backend rectify-zone test.dyndns
+after every cleannsupdate operation helps alot, but there are nevertheless
+differences between lmdb and mysql in NSEC chaining.
