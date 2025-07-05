@@ -197,7 +197,7 @@ Interception Functions
   - :attr:`dq.localaddr <DNSQuestion.localaddr>`
   - :attr:`dq.qname <DNSQuestion.qname>`
   - :attr:`dq.qtype <DNSQuestion.qtype>`
-  - :attr:`dq.isTcp <DNSQuestion.isTcp>`
+  - :attr:`dq.isTcp <DNSQuestion.isTcp>` this attribute may be changed by the hook to force the use of UDP or TCP
 
   Do not rely on other attributes having a value and do not call any method of the :class:`dq <DNSQuestion>` object apart from the record set manipulation methods.
 
