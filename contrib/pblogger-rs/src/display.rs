@@ -316,14 +316,12 @@ impl fmt::Display for ClientMessage {
         match self.msg.r#type() {
             pbdns_message::Type::DnsQueryType | pbdns_message::Type::DnsIncomingResponseType => {
                 print_summary(self, Direction::In, f)?;
-                print_meta(self, f)?;
-                print_query(self, f)
             }
             pbdns_message::Type::DnsResponseType | pbdns_message::Type::DnsOutgoingQueryType => {
                 print_summary(self, Direction::Out, f)?;
-                print_meta(self, f)?;
-                print_query(self, f)
             }
         }
+        print_meta(self, f)?;
+        print_query(self, f)
     }
 }
