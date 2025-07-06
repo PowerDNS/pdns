@@ -2,7 +2,7 @@ use crate::pdns::{PbdnsMessage, pbdns_message};
 use byteorder::{ByteOrder, NetworkEndian};
 use chrono::DateTime;
 use std::fmt;
-use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr};
+use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
 
 pub struct ClientMessage {
     pub client_addr: SocketAddr,
@@ -30,25 +30,30 @@ fn make_addr_port(
     if let Some(family) = msg_family
         && let Some(addr) = msg_addr
     {
-        let fromaddr = match pbdns_message::SocketFamily::try_from(family) {
-            Ok(pbdns_message::SocketFamily::Inet) => {
+        match (pbdns_message::SocketFamily::try_from(family), msg_port) {
+            (Ok(pbdns_message::SocketFamily::Inet), Some(port)) => SocketAddrV4::new(
+                Ipv4Addr::from_bits(NetworkEndian::read_u32(&addr[0..4])),
+                u16::try_from(port).unwrap(),
+            )
+            .to_string(),
+            (Ok(pbdns_message::SocketFamily::Inet6), Some(port)) => SocketAddrV6::new(
+                Ipv6Addr::from_bits(NetworkEndian::read_u128(&addr[0..16])),
+                u16::try_from(port).unwrap(),
+                0,
+                0,
+            )
+            .to_string(),
+            (Ok(pbdns_message::SocketFamily::Inet), None) => {
                 Ipv4Addr::from_bits(NetworkEndian::read_u32(&addr[0..4])).to_string()
             }
-            Ok(pbdns_message::SocketFamily::Inet6) => {
-                format!(
-                    "[{}]",
-                    Ipv6Addr::from_bits(NetworkEndian::read_u128(&addr[0..16]))
-                )
+            (Ok(pbdns_message::SocketFamily::Inet6), None) => {
+                Ipv6Addr::from_bits(NetworkEndian::read_u128(&addr[0..16])).to_string()
             }
-            Err(_) => "unsupported".into(),
-        };
-        if let Some(port) = msg_port {
-            return format!("{fromaddr}:{port}");
+            (Err(_), _) => "unsupported".into(),
         }
-        return fromaddr;
+    } else {
+        "unknown".into()
     }
-
-    "unknown".into()
 }
 
 #[allow(clippy::too_many_lines)]
