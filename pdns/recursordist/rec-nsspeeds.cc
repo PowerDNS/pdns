@@ -89,7 +89,7 @@ size_t nsspeeds_t::getPB(const string& serverID, size_t maxSize, std::string& re
   for (const auto& entry : *this) {
     protozero::pbf_builder<PBNSSpeedEntry> message(full, PBNSSpeedDump::repeated_message_nsspeedEntry);
     getPBEntry(message, entry);
-    if (ret.size() > maxSize) {
+    if (maxSize > 0 && ret.size() > maxSize) {
       message.rollback();
       log->info(Logr::Info, "Produced nsspeed dump (max size reached)", "size", Logging::Loggable(ret.size()), "count", Logging::Loggable(count));
       return count;
