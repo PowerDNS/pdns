@@ -45,6 +45,14 @@ Changelogs for 4.9.x
     Close race window during which LMDB lightning stream flag values might be incorrect.
 
 .. changelog::
+  :version: 4.9.6
+  :released: never
+
+  Technical issues in the release process prevented the 4.9.6 release to be
+  created correctly.
+  Therefore 4.9.6 was never released, in favour of 4.9.7.
+
+.. changelog::
   :version: 4.9.5
   :released: 7th of May 2025
 
