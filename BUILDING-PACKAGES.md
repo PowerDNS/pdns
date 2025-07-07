@@ -83,3 +83,5 @@ pkghashes-debian-bookworm: ${{ steps.pkghashes.outputs.pkghashes-debian-bookworm
 pkghashes-ubuntu-focal: ${{ steps.pkghashes.outputs.pkghashes-ubuntu-focal }}
 pkghashes-ubuntu-jammy: ${{ steps.pkghashes.outputs.pkghashes-ubuntu-jammy }}
 ```
+
+For targets that get release packages, also add them to `.github/workflows/build-packages-daily-master.yml` so that we notice breakage.
