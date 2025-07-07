@@ -27,32 +27,31 @@ fn make_addr_port(
     msg_addr: Option<&Vec<u8>>,
     msg_port: Option<u32>,
 ) -> String {
-    if let Some(family) = msg_family
-        && let Some(addr) = msg_addr
-    {
-        match (pbdns_message::SocketFamily::try_from(family), msg_port) {
-            (Ok(pbdns_message::SocketFamily::Inet), Some(port)) => SocketAddrV4::new(
-                Ipv4Addr::from_bits(NetworkEndian::read_u32(&addr[0..4])),
-                u16::try_from(port).unwrap(),
-            )
-            .to_string(),
-            (Ok(pbdns_message::SocketFamily::Inet6), Some(port)) => SocketAddrV6::new(
-                Ipv6Addr::from_bits(NetworkEndian::read_u128(&addr[0..16])),
-                u16::try_from(port).unwrap(),
-                0,
-                0,
-            )
-            .to_string(),
-            (Ok(pbdns_message::SocketFamily::Inet), None) => {
-                Ipv4Addr::from_bits(NetworkEndian::read_u32(&addr[0..4])).to_string()
+    match (msg_family, msg_addr) {
+        (Some(family), Some(addr)) => {
+            match (pbdns_message::SocketFamily::try_from(family), msg_port) {
+                (Ok(pbdns_message::SocketFamily::Inet), Some(port)) => SocketAddrV4::new(
+                    Ipv4Addr::from_bits(NetworkEndian::read_u32(&addr[0..4])),
+                    u16::try_from(port).unwrap(),
+                )
+                .to_string(),
+                (Ok(pbdns_message::SocketFamily::Inet6), Some(port)) => SocketAddrV6::new(
+                    Ipv6Addr::from_bits(NetworkEndian::read_u128(&addr[0..16])),
+                    u16::try_from(port).unwrap(),
+                    0,
+                    0,
+                )
+                .to_string(),
+                (Ok(pbdns_message::SocketFamily::Inet), None) => {
+                    Ipv4Addr::from_bits(NetworkEndian::read_u32(&addr[0..4])).to_string()
+                }
+                (Ok(pbdns_message::SocketFamily::Inet6), None) => {
+                    Ipv6Addr::from_bits(NetworkEndian::read_u128(&addr[0..16])).to_string()
+                }
+                (Err(_), _) => "unsupported".into(),
             }
-            (Ok(pbdns_message::SocketFamily::Inet6), None) => {
-                Ipv6Addr::from_bits(NetworkEndian::read_u128(&addr[0..16])).to_string()
-            }
-            (Err(_), _) => "unsupported".into(),
         }
-    } else {
-        "unknown".into()
+        (_, _) => "unknown".into(),
     }
 }
 
@@ -104,30 +103,16 @@ fn print_summary(cmsg: &ClientMessage, dir: Direction, f: &mut fmt::Formatter<'_
     write!(
         f,
         " {} {}",
-        match dir {
-            Direction::In => make_addr_port(
-                cmsg.msg.socket_family,
-                cmsg.msg.from.as_ref(),
-                cmsg.msg.from_port
-            ),
-            Direction::Out => make_addr_port(
-                cmsg.msg.socket_family,
-                cmsg.msg.to.as_ref(),
-                cmsg.msg.to_port
-            ),
-        },
-        match dir {
-            Direction::In => make_addr_port(
-                cmsg.msg.socket_family,
-                cmsg.msg.to.as_ref(),
-                cmsg.msg.to_port
-            ),
-            Direction::Out => make_addr_port(
-                cmsg.msg.socket_family,
-                cmsg.msg.from.as_ref(),
-                cmsg.msg.from_port
-            ),
-        }
+        make_addr_port(
+            cmsg.msg.socket_family,
+            cmsg.msg.from.as_ref(),
+            cmsg.msg.from_port
+        ),
+        make_addr_port(
+            cmsg.msg.socket_family,
+            cmsg.msg.to.as_ref(),
+            cmsg.msg.to_port
+        ),
     )?;
 
     write!(
