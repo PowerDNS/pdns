@@ -63,6 +63,84 @@
 
 std::atomic<uint64_t> g_tcpStatesDumpRequested{0};
 
+class TCPQueryForwardedOverUDP : public DOHUnitInterface
+{
+public:
+  TCPQueryForwardedOverUDP(const std::shared_ptr<IncomingTCPConnectionState>& connection) :
+    d_connection(connection)
+  {
+  }
+  TCPQueryForwardedOverUDP(const TCPQueryForwardedOverUDP&) = delete;
+  TCPQueryForwardedOverUDP(TCPQueryForwardedOverUDP&&) = delete;
+  TCPQueryForwardedOverUDP& operator=(const TCPQueryForwardedOverUDP&) = delete;
+  TCPQueryForwardedOverUDP& operator=(TCPQueryForwardedOverUDP&&) = delete;
+
+  ~TCPQueryForwardedOverUDP() override = default;
+
+  [[nodiscard]] std::string getHTTPPath() const override
+  {
+    throw std::runtime_error("called HTTP method on non DoH query");
+  }
+
+  [[nodiscard]] const std::string& getHTTPScheme() const override
+  {
+    throw std::runtime_error("called HTTP method on non DoH query");
+  }
+
+  [[nodiscard]] const std::string& getHTTPHost() const override
+  {
+    throw std::runtime_error("called HTTP method on non DoH query");
+  }
+
+  [[nodiscard]] std::string getHTTPQueryString() const override
+  {
+    throw std::runtime_error("called HTTP method on non DoH query");
+  }
+
+  [[nodiscard]] const HeadersMap& getHTTPHeaders() const override
+  {
+    throw std::runtime_error("called HTTP method on non DoH query");
+  }
+
+  void setHTTPResponse(uint16_t, PacketBuffer&&, const std::string&) override
+  {
+    throw std::runtime_error("called HTTP method on non DoH query");
+  }
+
+  [[nodiscard]] std::shared_ptr<TCPQuerySender> getQuerySender() const override
+  {
+    return std::dynamic_pointer_cast<TCPQuerySender>(d_connection);
+  }
+
+  void handleUDPResponse(PacketBuffer&& response, InternalQueryState&& state, const std::shared_ptr<DownstreamState>& downstream_) override
+  {
+    std::unique_ptr<DOHUnitInterface> unit(this);
+    auto& conn = d_connection;
+    state.du = std::move(unit);
+    TCPResponse resp(std::move(response), std::move(state), nullptr, downstream_);
+    timeval now{};
+    gettimeofday(&now, nullptr);
+    conn->handleResponse(now, std::move(resp));
+  }
+
+  void handleTimeout() override
+  {
+    std::unique_ptr<DOHUnitInterface> unit(this);
+    auto& conn = d_connection;
+    timeval now{};
+    gettimeofday(&now, nullptr);
+    TCPResponse resp;
+    conn->notifyIOError(now, std::move(resp));
+  }
+
+private:
+  // not a weak pointer: the reference counter could otherwise
+  // drop to zero when we can no longer accept new queries and
+  // have nothing to send, because then we are removed from the
+  // I/O multiplexer
+  std::shared_ptr<IncomingTCPConnectionState> d_connection;
+};
+
 IncomingTCPConnectionState::~IncomingTCPConnectionState()
 {
   try {
@@ -246,11 +324,11 @@ void IncomingTCPConnectionState::handleResponseSent(TCPResponse& currentResponse
     return;
   }
 
+  const auto& ids = currentResponse.d_idstate;
   --d_currentQueriesCount;
 
   const auto& backend = currentResponse.d_connection ? currentResponse.d_connection->getDS() : currentResponse.d_ds;
   if (!currentResponse.d_idstate.selfGenerated && backend) {
-    const auto& ids = currentResponse.d_idstate;
     double udiff = ids.queryRealTime.udiff();
     vinfolog("Got answer from %s, relayed to %s (%s, %d bytes), took %f us", backend->d_config.remote.toStringWithPort(), ids.origRemote.toStringWithPort(), getProtocol().toString(), sentBytes, udiff);
 
@@ -261,7 +339,6 @@ void IncomingTCPConnectionState::handleResponseSent(TCPResponse& currentResponse
     ::handleResponseSent(ids, udiff, d_ci.remote, backend->d_config.remote, static_cast<unsigned int>(sentBytes), currentResponse.d_cleartextDH, backendProtocol, true);
   }
   else {
-    const auto& ids = currentResponse.d_idstate;
     ::handleResponseSent(ids, 0., d_ci.remote, ComboAddress(), static_cast<unsigned int>(currentResponse.d_buffer.size()), currentResponse.d_cleartextDH, ids.protocol, false);
   }
 
@@ -602,6 +679,33 @@ void IncomingTCPConnectionState::handleResponse(const struct timeval& now, TCPRe
   }
 
   std::shared_ptr<IncomingTCPConnectionState> state = shared_from_this();
+  auto& ids = response.d_idstate;
+  if (ids.forwardedOverUDP) {
+    dnsheader_aligned responseDH(response.d_buffer.data());
+
+    if (responseDH.get()->tc && ids.d_packet && ids.d_packet->size() > ids.d_proxyProtocolPayloadSize && ids.d_packet->size() - ids.d_proxyProtocolPayloadSize > sizeof(dnsheader)) {
+      vinfolog("Response received from backend %s via UDP, for query received from %s via TCP/DoT, is truncated, retrying over TCP", response.d_ds->getNameWithAddr(), ids.origRemote.toStringWithPort());
+      auto& query = *ids.d_packet;
+      dnsdist::PacketMangling::editDNSHeaderFromRawPacket(&query.at(ids.d_proxyProtocolPayloadSize), [origID = ids.origID](dnsheader& header) {
+        /* restoring the original ID */
+        header.id = origID;
+        return true;
+      });
+
+      ids.forwardedOverUDP = false;
+      bool proxyProtocolPayloadAdded = ids.d_proxyProtocolPayloadSize > 0;
+      auto cpq = getCrossProtocolQuery(std::move(query), std::move(ids), response.d_ds);
+      /* 'd_packet' buffer moved by InternalQuery constructor, need re-association */
+      cpq->query.d_idstate.d_packet = std::make_unique<PacketBuffer>(cpq->query.d_buffer);
+      cpq->query.d_proxyProtocolPayloadAdded = proxyProtocolPayloadAdded;
+      if (g_tcpclientthreads && g_tcpclientthreads->passCrossProtocolQueryToThread(std::move(cpq))) {
+        return;
+      }
+      vinfolog("Unable to pass TCP/DoT query to a TCP worker thread after getting a TC response over UDP");
+      notifyIOError(now, std::move(response));
+      return;
+    }
+  }
 
   if (!response.isAsync() && response.d_connection && response.d_connection->getDS() && response.d_connection->getDS()->d_config.useProxyProtocol) {
     // if we have added a TCP Proxy Protocol payload to a connection, don't release it to the general pool as no one else will be able to use it anyway
@@ -634,7 +738,6 @@ void IncomingTCPConnectionState::handleResponse(const struct timeval& now, TCPRe
 
   if (!response.isAsync()) {
     try {
-      auto& ids = response.d_idstate;
       std::shared_ptr<DownstreamState> backend = response.d_ds ? response.d_ds : (response.d_connection ? response.d_connection->getDS() : nullptr);
       if (backend == nullptr || !responseContentMatches(response.d_buffer, ids.qname, ids.qtype, ids.qclass, backend, dnsdist::configuration::getCurrentRuntimeConfiguration().d_allowEmptyResponse)) {
         state->terminateClientConnection();
@@ -757,6 +860,16 @@ void IncomingTCPConnectionState::handleCrossProtocolResponse(const struct timeva
   catch (const std::exception& e) {
     vinfolog("Unable to pass a cross-protocol response to the TCP worker thread because we couldn't write to the pipe: %s", stringerror());
   }
+}
+
+std::unique_ptr<DOHUnitInterface> IncomingTCPConnectionState::getDOHUnit(uint32_t)
+{
+  return std::make_unique<TCPQueryForwardedOverUDP>(shared_from_this());
+}
+
+bool IncomingTCPConnectionState::forwardViaUDPFirst() const
+{
+  return dnsdist::configuration::getCurrentRuntimeConfiguration().d_forwardViaUDPFirst;
 }
 
 IncomingTCPConnectionState::QueryProcessingResult IncomingTCPConnectionState::handleQuery(PacketBuffer&& queryIn, const struct timeval& now, std::optional<int32_t> streamID)
@@ -948,12 +1061,11 @@ IncomingTCPConnectionState::QueryProcessingResult IncomingTCPConnectionState::ha
     return QueryProcessingResult::Forwarded;
   }
   if (!backend->isTCPOnly() && forwardViaUDPFirst()) {
-    if (streamID) {
-      auto unit = getDOHUnit(*streamID);
-      if (unit) {
-        dnsQuestion.ids.du = std::move(unit);
-      }
+    auto unit = getDOHUnit(streamID ? *streamID : 0U);
+    if (unit) {
+      dnsQuestion.ids.du = std::move(unit);
     }
+
     if (assignOutgoingUDPQueryToBackend(backend, queryID, dnsQuestion, query)) {
       return QueryProcessingResult::Forwarded;
     }

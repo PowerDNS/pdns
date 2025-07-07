@@ -1877,6 +1877,13 @@ general:
                      Keeping ``CAP_SYS_ADMIN`` on kernel 5.8+ for example allows loading eBPF programs and altering eBPF maps at runtime even if the ``kernel.unprivileged_bpf_disabled`` sysctl is set.
                      Note that this does not grant the capabilities to the process, doing so might be done by running it as root which we don't advise, or by adding capabilities via the systemd unit file, for example.
                      Please also be aware that switching to a different user via ``--uid`` will still drop all capabilities."
+    - name: "forward_via_udp_first"
+      type: "bool"
+      default: "false"
+      lua-name: "setForwardViaUDPFirst"
+      internal-field-name: "d_forwardViaUDPFirst"
+      runtime-configurable: true
+      description: "Whether queries received over DoTCP, DoT, DoQ and DoH3 should be forwarded to the backend via UDP (unless the backend is TCP-only). If a truncated answer is received, the query will be re-tried over TCP."
 
 netmask_group:
   description: "Group of netmasks"

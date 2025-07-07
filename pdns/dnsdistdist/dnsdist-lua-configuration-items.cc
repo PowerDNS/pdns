@@ -77,6 +77,7 @@ static const std::map<std::string, BooleanConfigurationItems> s_booleanConfigIte
   {"setConsoleConnectionsLogging", {[](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_logConsoleConnections = newValue; }}},
   {"setProxyProtocolApplyACLToProxiedClients", {[](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_applyACLToProxiedClients = newValue; }}},
   {"setAddEDNSToSelfGeneratedResponses", {[](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_addEDNSToSelfGeneratedResponses = newValue; }}},
+  {"setForwardViaUDPFirst", {[](dnsdist::configuration::RuntimeConfiguration& config, bool newValue) { config.d_forwardViaUDPFirst = newValue; }}},
 };
 
 static const std::map<std::string, UnsignedIntegerConfigurationItems> s_unsignedIntegerConfigItems{
