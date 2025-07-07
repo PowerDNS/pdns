@@ -3,7 +3,7 @@ Changelog
 
 .. changelog::
   :version: 2.0.0-rc1
-  :released: 8th of June 2025
+  :released: 8th of July 2025
 
   .. change::
     :tags: Bug Fixes
