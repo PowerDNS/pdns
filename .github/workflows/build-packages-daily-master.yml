@@ -1,5 +1,5 @@
 ---
-name: 'daily: build packages for master '
+name: 'daily: build packages for master'
 
 on:
   schedule:
