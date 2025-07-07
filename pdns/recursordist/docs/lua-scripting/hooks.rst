@@ -183,13 +183,17 @@ Interception Functions
 
 .. function:: preoutquery(dq) -> bool
 
+  .. versionchanged:: 5.3.0
+
+    `isTcp` can be set to force TCP or UDP
+
   This hook is not called in response to a client packet, but fires when the Recursor wants to talk to an authoritative server.
 
   When this hook sets the special result code ``-3``, the whole DNS client query causing this outgoing query gets a ``ServFail``.
 
   However, this function can also return records like :func:`preresolve`.
 
-  :param DNSQuestion dq: The DNS question to handle.
+  :param DNSQuestion dq: Attributes of a DNS question to be sent out to an authoritative server
 
   In the case of :func:`preoutquery`, only a few attributes if the :class:`dq <DNSQuestion>` object are filled in:
 
@@ -197,7 +201,10 @@ Interception Functions
   - :attr:`dq.localaddr <DNSQuestion.localaddr>`
   - :attr:`dq.qname <DNSQuestion.qname>`
   - :attr:`dq.qtype <DNSQuestion.qtype>`
-  - :attr:`dq.isTcp <DNSQuestion.isTcp>`
+  - :attr:`dq.isTcp <DNSQuestion.isTcp>` since version 5.3.0 this attribute may be changed by the hook to force the use of UDP or TCP
+
+  Note that except for `dq.localaddr`, which identifies the client that triggered this outgoing query, all other attributes apply to
+  the *outgoing* query that will be sent by the Recursor.
 
   Do not rely on other attributes having a value and do not call any method of the :class:`dq <DNSQuestion>` object apart from the record set manipulation methods.
 
