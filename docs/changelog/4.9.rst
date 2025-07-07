@@ -2,10 +2,10 @@ Changelogs for 4.9.x
 ====================
 
 .. changelog::
-  :version: 4.9.6
+  :version: 4.9.7
   :released: 7th of July 2025
 
-  This is release 4.9.6 of the Authoritative Server.
+  This is release 4.9.7 of the Authoritative Server.
   It contains bug fixes, mainly in LMDB.
 
   Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 4.9.x.

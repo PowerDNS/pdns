@@ -134,7 +134,8 @@ auth-4.9.2.security-status                              60 IN TXT "1 OK"
 auth-4.9.3.security-status                              60 IN TXT "1 OK"
 auth-4.9.4.security-status                              60 IN TXT "1 OK"
 auth-4.9.5.security-status                              60 IN TXT "1 OK"
-auth-4.9.6.security-status                              60 IN TXT "1 OK"
+auth-4.9.6.security-status                              60 IN TXT "1 OK (never formally released)"
+auth-4.9.7.security-status                              60 IN TXT "1 OK"
 auth-5.0.0-alpha1.security-status                       60 IN TXT "1 Unsupported pre-release (no known vulnerabilities)"
 
 ; Auth Debian
