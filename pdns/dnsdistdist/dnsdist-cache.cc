@@ -233,7 +233,7 @@ bool DNSDistPacketCache::get(DNSQuestion& dnsQuestion, uint16_t queryId, uint32_
     *keyOut = key;
   }
 
-  if (d_settings.d_parseECS) {
+  if (d_settings.d_parseECS && !subnet) {
     getClientSubnet(dnsQuestion.getData(), dnsQuestion.ids.qname.wirelength(), subnet);
   }
 
