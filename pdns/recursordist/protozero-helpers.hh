@@ -94,5 +94,5 @@ template <typename T>
 void decodeNetmask(protozero::pbf_message<T>& message, Netmask& subnet)
 {
   auto data = message.get_bytes();
-  memcpy(&subnet, data.data(), data.size());
+  memcpy(&subnet, data.data(), std::min(sizeof(subnet), data.size()));
 }
