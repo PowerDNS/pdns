@@ -30,27 +30,25 @@ ArgvMap& arg()
   return theArg;
 }
 
-BaseLua4::~BaseLua4()
-{
-}
+BaseLua4::~BaseLua4() = default;
 
 void BaseLua4::getFeatures(Features& /* features */)
 {
 }
 
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 bool RecursorLua4::preoutquery(const ComboAddress& /* ns */, const ComboAddress& /* requestor */, const DNSName& /* query */, const QType& /* qtype */, bool& /* isTcp */, vector<DNSRecord>& /* res */, int& /* ret */, RecEventTrace& /* et */, const struct timeval& /* tv */) const
 {
   return false;
 }
 
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 bool RecursorLua4::policyHitEventFilter(const ComboAddress& /* remote */, const DNSName& /* qname */, const QType& /* qtype */, bool /* tcp */, DNSFilterEngine::Policy& /* policy */, std::unordered_set<std::string>& /* tags */, std::unordered_map<std::string, bool>& /* discardedPolicies */) const
 {
   return false;
 }
 
-RecursorLua4::~RecursorLua4()
-{
-}
+RecursorLua4::~RecursorLua4() = default;
 
 void RecursorLua4::postPrepareContext()
 {
