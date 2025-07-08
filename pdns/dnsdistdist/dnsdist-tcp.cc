@@ -972,11 +972,13 @@ IncomingTCPConnectionState::QueryProcessingResult IncomingTCPConnectionState::ha
     dnsQuestion.proxyProtocolValues = make_unique<std::vector<ProxyProtocolValue>>(*d_proxyProtocolValues);
   }
 
+  bool isXFR = false;
   if (dnsQuestion.ids.qtype == QType::AXFR || dnsQuestion.ids.qtype == QType::IXFR) {
     dnsQuestion.ids.skipCache = true;
+    isXFR = true;
   }
 
-  if (forwardViaUDPFirst()) {
+  if (!isXFR && forwardViaUDPFirst()) {
     // if there was no EDNS, we add it with a large buffer size
     // so we can use UDP to talk to the backend.
     const dnsheader_aligned dnsHeader(query.data());
@@ -1060,7 +1062,7 @@ IncomingTCPConnectionState::QueryProcessingResult IncomingTCPConnectionState::ha
     backend->passCrossProtocolQuery(std::move(cpq));
     return QueryProcessingResult::Forwarded;
   }
-  if (!backend->isTCPOnly() && forwardViaUDPFirst()) {
+  if (!isXFR && !backend->isTCPOnly() && forwardViaUDPFirst()) {
     auto unit = getDOHUnit(streamID ? *streamID : 0U);
     if (unit) {
       dnsQuestion.ids.du = std::move(unit);
