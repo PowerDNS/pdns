@@ -2,6 +2,83 @@ Changelog
 =========
 
 .. changelog::
+  :version: 2.0.0-rc1
+  :released: 8th of July 2025
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15709
+    :tickets: 15708
+
+    Libssl depends on libcrypto
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 15734
+    :tickets: 15517
+
+    Enforce that additional addresses are DoT/DoH only
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15774
+    :tickets: 15699
+
+    Prevent Lua bindings for backend from crashing on empty backend
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15775
+    :tickets: 15699
+
+    Return nil for non-existing Lua objects
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 15776
+    :tickets: 15735
+
+    lmdb-safe: Improve the scalability of transaction maps
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15777
+
+    Prevent users from opening the same LMDB twice
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15778
+
+    lmdb-safe: Fix a small race in ``getMDBEnv``
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 15779
+    :tickets: 15750
+
+    Fix logging and XSK YAML settings being ignored
+
+  .. change::
+    :tags: Improvements, YAML
+    :pullreq: 15780
+
+    Error on unsupported backend protocols from YAML
+
+  .. change::
+    :tags: Improvements, YAML
+    :pullreq: 15781
+
+    Error if backend certificate validation is enabled without a subject name
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 15784
+    :tickets: 15743
+
+    Add a Lua binding to get objects declared in YAML
+
+.. changelog::
   :version: 2.0.0-beta1
   :released: 20th of June 2025
 
