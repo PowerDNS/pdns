@@ -997,7 +997,6 @@ enum class PBAuthRecord : protozero::pbf_tag_type
   required_uint32_clen = 7,
 };
 
-
 template <typename T, typename U>
 void MemRecursorCache::getRecordSet(T& message, U recordSet)
 {

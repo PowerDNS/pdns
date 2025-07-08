@@ -1433,7 +1433,6 @@ BOOST_AUTO_TEST_CASE(test_ns_speed)
   BOOST_CHECK_EQUAL(nsCounts[ComboAddress("192.0.2.2:53")], 1U);
   BOOST_CHECK_EQUAL(nsCounts[ComboAddress("[2001:DB8::2]:53")], 1U);
 
-
   // read PB representation back and forth, compare using the text dump
   std::string temp1{"/tmp/speedDump1XXXXXX"};
   std::string temp2{"/tmp/speedDump2XXXXXX"};
@@ -1477,7 +1476,6 @@ BOOST_AUTO_TEST_CASE(test_ns_speed)
   std::sort(lines2.begin(), lines2.end());
   BOOST_CHECK(lines1 == lines2);
 }
-
 
 BOOST_AUTO_TEST_CASE(test_flawed_nsset)
 {

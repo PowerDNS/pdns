@@ -67,7 +67,7 @@ These are some functions that don't really have a place in one of the other cate
 
 .. function:: getConfigDirAndName() -> str, str
 
-   .. versionadded:: 5.2.4
+   .. versionadded:: 5.2.x
 
    Get the configuration directory and the instance name.
    These two values correspond to the :ref:`setting-yaml-recursor.config_dir` and :ref:`setting-yaml-recursor.config_name` settings.
