@@ -117,7 +117,6 @@ private:
   cont_t d_cont;
 };
 
-
 static LockGuarded<nsspeeds_t> s_nsSpeeds;
 
 size_t SyncRes::getNSSpeedTable(size_t maxSize, std::string& ret)
