@@ -797,7 +797,7 @@ int PacketHandler::processUpdate(DNSPacket& packet) { // NOLINT(readability-func
   }
 
 
-  std::lock_guard<std::mutex> l(s_rfc2136lock); //TODO: i think this lock can be per zone, not for everything
+  auto lock = std::scoped_lock(s_rfc2136lock); //TODO: i think this lock can be per zone, not for everything
   g_log<<Logger::Info<<msgPrefix<<"starting transaction."<<endl;
   if (!di.backend->startTransaction(packet.qdomainzone, UnknownDomainID)) { // Not giving the domain_id means that we do not delete the existing records.
     g_log<<Logger::Error<<msgPrefix<<"Backend for domain "<<packet.qdomainzone<<" does not support transaction. Can't do Update packet."<<endl;

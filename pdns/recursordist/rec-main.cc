@@ -1528,7 +1528,7 @@ static std::mutex pipeBroadCastMutex{};
 void broadcastFunction(const pipefunc_t& func)
 {
   // we do not want the handler and web code to use pipes simultaneously
-  std::lock_guard lock(pipeBroadCastMutex);
+  std::scoped_lock lock(pipeBroadCastMutex);
 
   /* This function might be called by the worker with t_id not inited during startup
      for the initialization of ACLs and domain maps. After that it should only
@@ -1620,7 +1620,7 @@ T broadcastAccFunction(const std::function<T*()>& func)
   }
 
   // we do not want the handler and web code to use pipes simultaneously
-  std::lock_guard lock(pipeBroadCastMutex);
+  std::scoped_lock lock(pipeBroadCastMutex);
 
   unsigned int thread = 0;
   T ret = T();
@@ -3363,7 +3363,7 @@ int main(int argc, char** argv)
 
     ret = serviceMain(startupLog);
     {
-      std::lock_guard lock(g_doneRunning.mutex);
+      std::scoped_lock lock(g_doneRunning.mutex);
       g_doneRunning.done = true;
       g_doneRunning.condVar.notify_one();
     }

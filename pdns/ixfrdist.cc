@@ -1129,7 +1129,7 @@ static void handleTCPRequest(int fd, boost::any&) {
   }
 
   {
-    std::lock_guard<std::mutex> lg(g_tcpRequestFDsMutex);
+    auto lock = std::scoped_lock(g_tcpRequestFDsMutex);
     g_tcpRequestFDs.push({cfd, saddr});
   }
   g_tcpHandlerCV.notify_one();

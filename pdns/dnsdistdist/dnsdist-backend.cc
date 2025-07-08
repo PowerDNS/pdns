@@ -236,7 +236,7 @@ void DownstreamState::stop()
   d_stopped = true;
 
   {
-    std::lock_guard<std::mutex> tl(connectLock);
+    auto tlock = std::scoped_lock(connectLock);
     auto slock = mplexer.lock();
 
     for (auto& fd : sockets) {

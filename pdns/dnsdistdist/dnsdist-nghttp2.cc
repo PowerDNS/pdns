@@ -888,7 +888,7 @@ static void dohClientThread(pdns::channel::Receiver<CrossProtocolQuery>&& receiv
           if (g_dohStatesDumpRequested > 0) {
             /* just to keep things clean in the output, debug only */
             static std::mutex s_lock;
-            std::lock_guard<decltype(s_lock)> lck(s_lock);
+            auto lock = std::scoped_lock(s_lock);
             if (g_dohStatesDumpRequested > 0) {
               /* no race here, we took the lock so it can only be increased in the meantime */
               --g_dohStatesDumpRequested;
@@ -983,7 +983,7 @@ void DoHClientCollection::addThread()
     auto [sender, receiver] = pdns::channel::createObjectQueue<CrossProtocolQuery>(pdns::channel::SenderBlockingMode::SenderNonBlocking, pdns::channel::ReceiverBlockingMode::ReceiverNonBlocking, internalPipeBufferSize);
 
     vinfolog("Adding DoH Client thread");
-    std::lock_guard<std::mutex> lock(d_mutex);
+    auto lock = std::scoped_lock(d_mutex);
 
     if (d_numberOfThreads >= d_clientThreads.size()) {
       vinfolog("Adding a new DoH client thread would exceed the vector size (%d/%d), skipping. Consider increasing the maximum amount of DoH client threads with setMaxDoHClientThreads() in the configuration.", d_numberOfThreads, d_clientThreads.size());

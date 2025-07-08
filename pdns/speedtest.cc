@@ -146,7 +146,7 @@ struct GetUniqueLockUncontendedTest
   void operator()() const
   {
     for (size_t idx = 0; idx < 1000; idx++) {
-      std::unique_lock<decltype(d_testlock)> lock(d_testlock);
+      auto lock = std::scoped_lock(d_testlock);
       ++d_value;
     }
   }
@@ -165,7 +165,7 @@ struct GetLockGuardUncontendedTest
   void operator()() const
   {
     for (size_t idx = 0; idx < 1000; idx++) {
-      std::lock_guard<decltype(d_testlock)> lock(d_testlock);
+      auto lock = std::scoped_lock(d_testlock);
       ++d_value;
     }
   }

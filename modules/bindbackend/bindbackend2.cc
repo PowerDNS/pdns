@@ -826,7 +826,7 @@ Bind2Backend::Bind2Backend(const string& suffix, bool loadZones)
   if (!loadZones && d_hybrid)
     return;
 
-  std::lock_guard<std::mutex> l(s_startup_lock);
+  auto lock = std::scoped_lock(s_startup_lock);
 
   setupDNSSEC();
   if (s_first == 0) {
@@ -1499,7 +1499,7 @@ bool Bind2Backend::createSecondaryDomain(const string& ipAddress, const ZoneName
         << "' from autoprimary " << ipAddress << endl;
 
   {
-    std::lock_guard<std::mutex> l2(s_autosecondary_config_lock);
+    auto lock = std::scoped_lock(s_autosecondary_config_lock);
 
     ofstream c_of(getArg("autoprimary-config").c_str(), std::ios::app);
     if (!c_of) {
