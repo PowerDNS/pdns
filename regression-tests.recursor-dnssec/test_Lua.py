@@ -317,11 +317,14 @@ quiet=no
         dq.rcode = -3 -- "kill"
         return true
       end
+      if dq.remoteaddr:equal(newCA("%s.23")) and dq.qname == newDN("preout.luahooks.example.") and dq.qtype == pdns.TXT then
+        dq.isTcp = true
+      end
 
       return false
     end
 
-    """ % (os.environ['PREFIX'], os.environ['PREFIX'], os.environ['PREFIX'])
+    """ % (os.environ['PREFIX'], os.environ['PREFIX'], os.environ['PREFIX'], os.environ['PREFIX'])
 
     @classmethod
     def startResponders(cls):
@@ -413,6 +416,14 @@ quiet=no
             sender = getattr(self, method)
             res = sender(query)
             self.assertRcodeEqual(res, dns.rcode.NOERROR)
+
+    def testPreOutInterceptedToTCPQuery(self):
+        query = dns.message.make_query('preout.luahooks.example.', 'TXT', 'IN')
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            res = sender(query)
+            self.assertRcodeEqual(res, dns.rcode.SERVFAIL) # crude, responder does not do TCP
 
 class LuaHooksRecursorDistributesTest(LuaHooksRecursorTest):
     _confdir = 'LuaHooksRecursorDistributes'
