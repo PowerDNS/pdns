@@ -57,7 +57,9 @@ enum class PBNSSpeedMap : protozero::pbf_tag_type
 template <typename T, typename U>
 void nsspeeds_t::getPBEntry(T& message, U& entry)
 {
-  message.add_bytes(PBNSSpeedEntry::required_bytes_name, entry.d_name.toString());
+  if (!entry.d_name.empty()) {
+    message.add_bytes(PBNSSpeedEntry::required_bytes_name, entry.d_name.toString());
+  }
   message.add_int64(PBNSSpeedEntry::required_int64_lastgets, entry.d_lastget.tv_sec);
   message.add_int64(PBNSSpeedEntry::required_int64_lastgetus, entry.d_lastget.tv_usec);
   for (const auto& [address, collection] : entry.d_collection) {
