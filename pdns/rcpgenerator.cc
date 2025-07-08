@@ -362,7 +362,7 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val) // NOLINT(readabil
       throw RecordTextException(e.what());
     }
 
-    if (key != SvcParam::no_default_alpn) {
+    if (key != SvcParam::no_default_alpn && key != SvcParam::ohttp) {
       if (d_pos == d_end || d_string.at(d_pos) != '=') {
         throw RecordTextException("expected '=' after " + k);
       }
@@ -374,6 +374,7 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val) // NOLINT(readabil
 
     switch (key) {
     case SvcParam::no_default_alpn:
+    case SvcParam::ohttp:
       if (d_pos != d_end && d_string.at(d_pos) == '=') {
         throw RecordTextException(k + " key can not have values");
       }
@@ -501,6 +502,24 @@ void RecordTextReader::xfrSvcParamKeyVals(set<SvcParam>& val) // NOLINT(readabil
       val.insert(SvcParam(key, value));
       break;
     }
+    case SvcParam::tls_supported_groups: {
+      string string_value;
+      xfrRFC1035CharString(string_value);
+
+      vector<string> parts;
+      stringtok(parts, string_value, ",");
+
+      vector<uint16_t> values{};
+      for (const auto& part : parts) {
+        uint16_t int_part;
+        pdns::checked_stoi_into(int_part, part);
+        values.emplace_back(int_part);
+      }
+
+      val.insert(SvcParam(key, std::move(values)));
+      break;
+    }
+    case SvcParam::dohpath:
     default: {
       string value;
       xfrRFC1035CharString(value);
@@ -877,7 +896,7 @@ void RecordTextWriter::xfrSvcParamKeyVals(const set<SvcParam>& val) {
       d_string.append(1, ' ');
 
     d_string.append(SvcParam::keyToString(param.getKey()));
-    if (param.getKey() != SvcParam::no_default_alpn) {
+    if (param.getKey() != SvcParam::no_default_alpn && param.getKey() != SvcParam::ohttp) {
       d_string.append(1, '=');
     }
 
@@ -922,6 +941,25 @@ void RecordTextWriter::xfrSvcParamKeyVals(const set<SvcParam>& val) {
       d_string = str + '"' + d_string + '"';
       break;
     }
+    case SvcParam::ohttp: {
+      // no value
+      break;
+    }
+    case SvcParam::tls_supported_groups: {
+      auto str = d_string;
+      d_string.clear();
+      bool first = true;
+      for (auto const &group: param.getTLSSupportedGroups()) {
+        if (!first) {
+          str += ',';
+        }
+        str += std::to_string(group);
+        first = false;
+      }
+      d_string = str + d_string;
+      break;
+    }
+    case SvcParam::dohpath:
     default:
       auto str = d_string;
       d_string.clear();
