@@ -185,7 +185,7 @@ Interception Functions
 
   .. versionchanged:: 5.3.0
 
-    `isTcp` can be set to force TCP or UDP
+    :attr:`dq.isTCP <DNSQuestion.isTcp>` can be set to force TCP or UDP
 
   This hook is not called in response to a client packet, but fires when the Recursor wants to talk to an authoritative server.
 
@@ -203,8 +203,8 @@ Interception Functions
   - :attr:`dq.qtype <DNSQuestion.qtype>`
   - :attr:`dq.isTcp <DNSQuestion.isTcp>` since version 5.3.0 this attribute may be changed by the hook to force the use of UDP or TCP
 
-  Note that except for `dq.localaddr`, which identifies the client that triggered this outgoing query, all other attributes apply to
-  the *outgoing* query that will be sent by the Recursor.
+  Note that except for :attr:`dq.localaddr <DNSQuestion.localaddr>`, which identifies the client that triggered this outgoing query, all other attributes apply to
+  the *outgoing* query that will be sent by the :program:`Recursor`.
 
   Do not rely on other attributes having a value and do not call any method of the :class:`dq <DNSQuestion>` object apart from the record set manipulation methods.
 
