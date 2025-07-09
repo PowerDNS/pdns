@@ -62,6 +62,7 @@ Atlassian
 Atomia
 aton
 Authoritativedoc
+authsignal
 authzone
 autobuilt
 autocalculation
@@ -909,6 +910,7 @@ Novell
 nproxy
 NPTL
 NSes
+nshost
 NSID
 nsis
 nsl
@@ -960,6 +962,7 @@ oraclebackend
 ordername
 orsn
 Oservers
+oskar
 otherdomain
 otherpool
 othervariant
