@@ -2804,40 +2804,38 @@ bool LMDBBackend::updateEmptyNonTerminals(domainid_t domain_id, set<DNSName>& in
     needCommit = true;
   }
 
-  // if remove is set, all ENTs should be removed & nothing else should be done
+  DomainInfo info;
+  auto rotxn = d_tdomains->getROTransaction();
+  if (!rotxn.get(domain_id, info)) {
+    // cout <<"No such domain with id "<<domain_id<<endl;
+    return false;
+  }
+
+  // if remove is set, all ENTs should be removed
+  compoundOrdername order;
   if (remove) {
-    compoundOrdername order;
     string match = order(domain_id);
     LMDBBackend::deleteDomainRecords(*txn, QType::ENT, match);
   }
   else {
-    DomainInfo di;
-    auto rotxn = d_tdomains->getROTransaction();
-    if (!rotxn.get(domain_id, di)) {
-      // cout <<"No such domain with id "<<domain_id<<endl;
-      return false;
-    }
-    compoundOrdername co;
-    for (const auto& n : insert) {
-      LMDBResourceRecord lrr;
-      lrr.qname = n.makeRelative(di.zone);
-      lrr.ttl = 0;
-      lrr.auth = true;
-
-      std::string ser = serializeToBuffer(lrr);
-
-      txn->txn->put(txn->db->dbi, co(domain_id, lrr.qname, QType::ENT), ser);
-
-      // cout <<" +"<<n<<endl;
-    }
-    for (auto n : erase) {
-      // cout <<" -"<<n<<endl;
-      n.makeUsRelative(di.zone);
-      txn->txn->del(txn->db->dbi, co(domain_id, n, QType::ENT));
+    for (auto name : erase) {
+      // cout <<" -"<<name<<endl;
+      name.makeUsRelative(info.zone);
+      txn->txn->del(txn->db->dbi, order(domain_id, name, QType::ENT));
     }
   }
-  if (needCommit)
+  for (const auto& name : insert) {
+    LMDBResourceRecord lrr;
+    lrr.qname = name.makeRelative(info.zone);
+    lrr.ttl = 0;
+    lrr.auth = true;
+    std::string ser = serializeToBuffer(lrr);
+    txn->txn->put(txn->db->dbi, order(domain_id, lrr.qname, QType::ENT), ser);
+    // cout <<" +"<<name<<endl;
+  }
+  if (needCommit) {
     txn->txn->commit();
+  }
   return false;
 }
 
