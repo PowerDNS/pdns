@@ -1738,10 +1738,10 @@ bool LMDBBackend::list(const ZoneName& target, domainid_t /* id */, bool include
   d_getcursor = std::make_shared<MDBROCursor>(d_rotxn->txn->getCursor(d_rotxn->db->dbi));
 
   compoundOrdername co;
-  d_matchkey = co(di.id);
+  std::string match = co(di.id);
 
   MDBOutVal key, val;
-  if (d_getcursor->prefix(d_matchkey, key, val) != 0) {
+  if (d_getcursor->prefix(match, key, val) != 0) {
     d_getcursor.reset();
   }
 
@@ -1797,14 +1797,15 @@ void LMDBBackend::lookupInternal(const QType& type, const DNSName& qdomain, doma
   compoundOrdername co;
   d_getcursor = std::make_shared<MDBROCursor>(d_rotxn->txn->getCursor(d_rotxn->db->dbi));
   MDBOutVal key, val;
+  std::string match;
   if (type.getCode() == QType::ANY) {
-    d_matchkey = co(zoneId, relqname);
+    match = co(zoneId, relqname);
   }
   else {
-    d_matchkey = co(zoneId, relqname, type.getCode());
+    match = co(zoneId, relqname, type.getCode());
   }
 
-  if (d_getcursor->prefix(d_matchkey, key, val) != 0) {
+  if (d_getcursor->prefix(match, key, val) != 0) {
     d_getcursor.reset();
     if (d_dolog) {
       g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": " << d_dtime.udiffNoReset() << " us to execute (found nothing)" << endl;

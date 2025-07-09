@@ -348,11 +348,7 @@ private:
   static void deleteNSEC3RecordPair(const std::shared_ptr<RecordsRWTransaction>& txn, domainid_t domain_id, const DNSName& qname);
   void writeNSEC3RecordPair(const std::shared_ptr<RecordsRWTransaction>& txn, domainid_t domain_id, const DNSName& qname, const DNSName& ordername);
 
-  bool get_list(DNSZoneRecord& rr);
-  bool get_lookup(DNSZoneRecord& rr);
-  std::string d_matchkey;
   ZoneName d_lookupdomain;
-
   vector<LMDBResourceRecord> d_currentrrset;
   size_t d_currentrrsetpos;
   MDBOutVal d_currentKey;
