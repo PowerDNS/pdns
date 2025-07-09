@@ -264,9 +264,11 @@ public:
   public:
     LMDBResourceRecord() = default;
     LMDBResourceRecord(const DNSResourceRecord& rr) :
-      DNSResourceRecord(rr), ordername(false) {}
+      DNSResourceRecord(rr), hasOrderName(false) {}
 
-    bool ordername{false};
+    // This field is set if the in-base DNSResourceRecord also has an
+    // NSEC3 record chain associated to it.
+    bool hasOrderName{false};
   };
 
 private:
