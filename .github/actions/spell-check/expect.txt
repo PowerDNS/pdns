@@ -391,6 +391,7 @@ eglot
 Eif
 Ekkelenkamp
 eldoc
+elenril
 elgoog
 elisp
 elpa
@@ -1166,6 +1167,7 @@ rizsotto
 rkey
 rmem
 rname
+rockylinux
 rocommunity
 Roel
 rolltype

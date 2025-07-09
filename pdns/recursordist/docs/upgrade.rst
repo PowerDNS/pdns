@@ -12,6 +12,8 @@ Changed behaviour
 
 Reloading ACLs using ``rec_control reload-acls`` now also reloads the proxy-protocol related settings.
 
+The :program:`Recursor` now listens on ``::1`` in addition to ``127.0.0.1`` by default.
+
 New Settings
 ^^^^^^^^^^^^
 The embedded webserver implementation used to process REST calls and display the status page has been rewritten in Rust.

@@ -4,6 +4,59 @@ Changelogs for 5.3.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.3.0-alpha2
+  :released: 9th of July 2025
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15759
+
+    Allow forcing TCP from preoutquery() (elenril).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15639
+
+    Add el-10 target, based on rockylinux:10 for now.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15788
+
+    Clang-tidy: replace lock_guard with scoped_lock (Rosen Penev)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15782
+
+    Only download pub suffix list if pubsuffix.cc is not available.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15766, 15756
+
+    Fix Coverity issues and add release() to FDWrapper.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15758
+
+    Start to listen on ::1 by default, but don't consider it an error if that fails.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15752
+
+    Don't let rust code and handler use thread pipes simultaneously.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15746
+    :tickets: 15723
+
+    Fix sysconfdir in debian packages built by meson.
+
+.. changelog::
   :version: 5.3.0-alpha1
   :released: 25th of June 2025
 
