@@ -24,7 +24,6 @@
 #include "negcache.hh"
 #include "misc.hh"
 #include "cachecleaner.hh"
-#include "utility.hh"
 #include "rec-taskqueue.hh"
 
 // For a description on how ServeStale works, see recursor_cache.cc, the general structure is the same.
@@ -78,7 +77,7 @@ void NegCache::updateStaleEntry(time_t now, negcache_t::iterator& entry, QType q
   // We we look how old the entry is, and increase d_servedStale accordingly, taking care not to overflow
   const time_t howlong = std::max(static_cast<time_t>(1), now - entry->d_ttd);
   const uint32_t extension = std::max(1U, std::min(entry->d_orig_ttl, s_serveStaleExtensionPeriod));
-  entry->d_servedStale = std::min(entry->d_servedStale + 1 + howlong / extension, static_cast<time_t>(s_maxServedStaleExtensions));
+  entry->d_servedStale = std::min(entry->d_servedStale + 1 + (howlong / extension), static_cast<time_t>(s_maxServedStaleExtensions));
   entry->d_ttd = now + std::min(entry->d_orig_ttl, s_serveStaleExtensionPeriod);
 
   if (qtype == QType::ENT) {
@@ -97,7 +96,7 @@ void NegCache::updateStaleEntry(time_t now, negcache_t::iterator& entry, QType q
  * \param ne       A NegCacheEntry that is filled when there is a cache entry
  * \return         true if ne was filled out, false otherwise
  */
-bool NegCache::get(const DNSName& qname, QType qtype, const struct timeval& now, NegCacheEntry& ne, bool typeMustMatch, bool serveStale, bool refresh)
+bool NegCache::get(const DNSName& qname, QType qtype, const struct timeval& now, NegCacheEntry& negEntry, bool typeMustMatch, bool serveStale, bool refresh)
 {
   auto& map = getMap(qname);
   auto content = map.lock();
@@ -124,10 +123,10 @@ bool NegCache::get(const DNSName& qname, QType qtype, const struct timeval& now,
       }
       if (now.tv_sec < ni->d_ttd) {
         // Not expired
-        ne = *ni;
+        negEntry = *ni;
         moveCacheItemToBack<SequenceTag>(content->d_map, firstIndexIterator);
         // when refreshing, we consider served-stale entries outdated
-        return !(refresh && ni->d_servedStale > 0);
+        return !refresh || ni->d_servedStale <= 0;
       }
     }
   }
@@ -139,12 +138,12 @@ bool NegCache::get(const DNSName& qname, QType qtype, const struct timeval& now,
  *
  * \param ne The NegCacheEntry to add to the cache
  */
-void NegCache::add(const NegCacheEntry& ne)
+void NegCache::add(const NegCacheEntry& negEntry)
 {
   bool inserted = false;
-  auto& map = getMap(ne.d_name);
+  auto& map = getMap(negEntry.d_name);
   auto content = map.lock();
-  inserted = lruReplacingInsert<SequenceTag>(content->d_map, ne);
+  inserted = lruReplacingInsert<SequenceTag>(content->d_map, negEntry);
   if (inserted) {
     map.incEntriesCount();
   }
@@ -159,8 +158,7 @@ void NegCache::add(const NegCacheEntry& ne)
  */
 void NegCache::updateValidationStatus(const DNSName& qname, const QType qtype, const vState newState, boost::optional<time_t> capTTD)
 {
-  auto& mc = getMap(qname);
-  auto map = mc.lock();
+  auto map = getMap(qname).lock();
   auto range = map->d_map.equal_range(std::tie(qname, qtype));
 
   if (range.first != range.second) {
@@ -208,11 +206,12 @@ size_t NegCache::wipe(const DNSName& name, bool subtree)
   size_t ret = 0;
   if (subtree) {
     for (auto& map : d_maps) {
-      auto m = map.lock();
-      for (auto i = m->d_map.lower_bound(std::tie(name)); i != m->d_map.end();) {
-        if (!i->d_name.isPartOf(name))
+      auto lockedMap = map.lock();
+      for (auto i = lockedMap->d_map.lower_bound(std::tie(name)); i != lockedMap->d_map.end();) {
+        if (!i->d_name.isPartOf(name)) {
           break;
-        i = m->d_map.erase(i);
+        }
+        i = lockedMap->d_map.erase(i);
         ret++;
         map.decEntriesCount();
       }
@@ -223,9 +222,9 @@ size_t NegCache::wipe(const DNSName& name, bool subtree)
   auto& map = getMap(name);
   auto content = map.lock();
   auto range = content->d_map.equal_range(std::tie(name));
-  auto i = range.first;
-  while (i != range.second) {
-    i = content->d_map.erase(i);
+  auto iter = range.first;
+  while (iter != range.second) {
+    iter = content->d_map.erase(iter);
     ret++;
     map.decEntriesCount();
   }
@@ -238,15 +237,15 @@ size_t NegCache::wipeTyped(const DNSName& qname, QType qtype)
   auto& map = getMap(qname);
   auto content = map.lock();
   auto range = content->d_map.equal_range(std::tie(qname));
-  auto i = range.first;
-  while (i != range.second) {
-    if (i->d_qtype == QType::ENT || i->d_qtype == qtype) {
-      i = content->d_map.erase(i);
+  auto iter = range.first;
+  while (iter != range.second) {
+    if (iter->d_qtype == QType::ENT || iter->d_qtype == qtype) {
+      iter = content->d_map.erase(iter);
       ++ret;
       map.decEntriesCount();
     }
     else {
-      ++i;
+      ++iter;
     }
   }
   return ret;
@@ -258,8 +257,8 @@ size_t NegCache::wipeTyped(const DNSName& qname, QType qtype)
 void NegCache::clear()
 {
   for (auto& map : d_maps) {
-    auto m = map.lock();
-    m->d_map.clear();
+    auto lockedMap = map.lock();
+    lockedMap->d_map.clear();
     map.clearEntriesCount();
   }
 }
@@ -280,9 +279,9 @@ void NegCache::prune(time_t now, size_t maxEntries)
  *
  * \param fd A pointer to an open FILE object
  */
-size_t NegCache::doDump(int fd, size_t maxCacheEntries, time_t now)
+size_t NegCache::doDump(int fileDesc, size_t maxCacheEntries, time_t now)
 {
-  int newfd = dup(fd);
+  int newfd = dup(fileDesc);
   if (newfd == -1) {
     return 0;
   }
@@ -298,28 +297,28 @@ size_t NegCache::doDump(int fd, size_t maxCacheEntries, time_t now)
   size_t shard = 0;
   size_t min = std::numeric_limits<size_t>::max();
   size_t max = 0;
-  for (auto& mc : d_maps) {
-    auto m = mc.lock();
-    const auto shardSize = m->d_map.size();
+  for (auto& map : d_maps) {
+    auto lockedMap = map.lock();
+    const auto shardSize = lockedMap->d_map.size();
     fprintf(filePtr.get(), "; negcache shard %zu; size %zu\n", shard, shardSize);
     min = std::min(min, shardSize);
     max = std::max(max, shardSize);
     shard++;
-    auto& sidx = m->d_map.get<SequenceTag>();
-    for (const NegCacheEntry& ne : sidx) {
+    auto& sidx = lockedMap->d_map.get<SequenceTag>();
+    for (const NegCacheEntry& negEntry : sidx) {
       ret++;
-      int64_t ttl = ne.d_ttd - now;
-      fprintf(filePtr.get(), "%s %" PRId64 " IN %s VIA %s ; (%s) origttl=%" PRIu32 " ss=%hu\n", ne.d_name.toString().c_str(), ttl, ne.d_qtype.toString().c_str(), ne.d_auth.toString().c_str(), vStateToString(ne.d_validationState).c_str(), ne.d_orig_ttl, ne.d_servedStale);
-      for (const auto& rec : ne.authoritySOA.records) {
-        fprintf(filePtr.get(), "%s %" PRId64 " IN %s %s ; (%s)\n", rec.d_name.toString().c_str(), ttl, DNSRecordContent::NumberToType(rec.d_type).c_str(), rec.getContent()->getZoneRepresentation().c_str(), vStateToString(ne.d_validationState).c_str());
+      int64_t ttl = negEntry.d_ttd - now;
+      fprintf(filePtr.get(), "%s %" PRId64 " IN %s VIA %s ; (%s) origttl=%" PRIu32 " ss=%hu\n", negEntry.d_name.toString().c_str(), ttl, negEntry.d_qtype.toString().c_str(), negEntry.d_auth.toString().c_str(), vStateToString(negEntry.d_validationState).c_str(), negEntry.d_orig_ttl, negEntry.d_servedStale);
+      for (const auto& rec : negEntry.authoritySOA.records) {
+        fprintf(filePtr.get(), "%s %" PRId64 " IN %s %s ; (%s)\n", rec.d_name.toString().c_str(), ttl, DNSRecordContent::NumberToType(rec.d_type).c_str(), rec.getContent()->getZoneRepresentation().c_str(), vStateToString(negEntry.d_validationState).c_str());
       }
-      for (const auto& sig : ne.authoritySOA.signatures) {
+      for (const auto& sig : negEntry.authoritySOA.signatures) {
         fprintf(filePtr.get(), "%s %" PRId64 " IN RRSIG %s ;\n", sig.d_name.toString().c_str(), ttl, sig.getContent()->getZoneRepresentation().c_str());
       }
-      for (const auto& rec : ne.DNSSECRecords.records) {
-        fprintf(filePtr.get(), "%s %" PRId64 " IN %s %s ; (%s)\n", rec.d_name.toString().c_str(), ttl, DNSRecordContent::NumberToType(rec.d_type).c_str(), rec.getContent()->getZoneRepresentation().c_str(), vStateToString(ne.d_validationState).c_str());
+      for (const auto& rec : negEntry.DNSSECRecords.records) {
+        fprintf(filePtr.get(), "%s %" PRId64 " IN %s %s ; (%s)\n", rec.d_name.toString().c_str(), ttl, DNSRecordContent::NumberToType(rec.d_type).c_str(), rec.getContent()->getZoneRepresentation().c_str(), vStateToString(negEntry.d_validationState).c_str());
       }
-      for (const auto& sig : ne.DNSSECRecords.signatures) {
+      for (const auto& sig : negEntry.DNSSECRecords.signatures) {
         fprintf(filePtr.get(), "%s %" PRId64 " IN RRSIG %s ;\n", sig.d_name.toString().c_str(), ttl, sig.getContent()->getZoneRepresentation().c_str());
       }
     }

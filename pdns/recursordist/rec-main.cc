@@ -2993,7 +2993,7 @@ static void recursorThread()
     }
 
     if (threadInfo.isHandler()) {
-      t_fdm->addReadFD(g_rcc.d_fd, handleRCC); // control channel
+      t_fdm->addReadFD(g_rcc.getDescriptor(), handleRCC); // control channel
     }
 
 #ifdef HAVE_SYSTEMD

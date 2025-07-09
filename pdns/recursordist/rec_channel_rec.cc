@@ -1,6 +1,27 @@
-#ifdef HAVE_CONFIG_H
+/*
+ * This file is part of PowerDNS or dnsdist.
+ * Copyright -- PowerDNS.COM B.V. and its contributors
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of version 2 of the GNU General Public License as
+ * published by the Free Software Foundation.
+ *
+ * In addition, for the avoidance of any doubt, permission is granted to
+ * link this program with OpenSSL and to (re)distribute the binaries
+ * produced as the result of such linking.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+
 #include "config.h"
-#endif
+
 #include "utility.hh"
 #include "rec_channel.hh"
 
@@ -58,36 +79,34 @@
 #include <sanitizer/lsan_interface.h>
 #endif
 
-std::pair<std::string, std::string> PrefixDashNumberCompare::prefixAndTrailingNum(const std::string& a)
+std::pair<std::string, std::string> PrefixDashNumberCompare::prefixAndTrailingNum(const std::string& arg)
 {
-  auto i = a.length();
-  if (i == 0) {
-    return {a, ""};
+  auto length = arg.length();
+  if (length == 0) {
+    return {arg, ""};
   }
-  --i;
-  if (!std::isdigit(a[i])) {
-    return {a, ""};
+  --length;
+  if (std::isdigit(arg[length]) == 0) {
+    return {arg, ""};
   }
-  while (i > 0) {
-    if (!std::isdigit(a[i])) {
+  while (length > 0) {
+    if (std::isdigit(arg[length]) == 0) {
       break;
     }
-    --i;
+    --length;
   }
-  return {a.substr(0, i + 1), a.substr(i + 1, a.size() - i - 1)};
+  return {arg.substr(0, length + 1), arg.substr(length + 1, arg.size() - length - 1)};
 }
 
-bool PrefixDashNumberCompare::operator()(const std::string& a, const std::string& b) const
+bool PrefixDashNumberCompare::operator()(const std::string& lhs, const std::string& rhs) const
 {
-  auto [aprefix, anum] = prefixAndTrailingNum(a);
-  auto [bprefix, bnum] = prefixAndTrailingNum(b);
+  auto [aprefix, anum] = prefixAndTrailingNum(lhs);
+  auto [bprefix, bnum] = prefixAndTrailingNum(rhs);
 
   if (aprefix != bprefix || anum.length() == 0 || bnum.length() == 0) {
-    return a < b;
+    return lhs < rhs;
   }
-  auto aa = std::stoull(anum);
-  auto bb = std::stoull(bnum);
-  return aa < bb;
+  return std::stoull(anum) < std::stoull(bnum);
 }
 
 static map<string, const pdns::stat_t*> d_getatomics;
@@ -119,8 +138,8 @@ void disableStats(StatComponent component, const string& stats)
   std::vector<std::string> disabledStats;
   stringtok(disabledStats, stats, ", ");
   auto& map = s_disabledStats[component];
-  for (const auto& st : disabledStats) {
-    map.insert(st);
+  for (const auto& stat : disabledStats) {
+    map.insert(stat);
   }
 }
 
@@ -152,16 +171,16 @@ static std::string getPrometheusName(const std::string& arg)
 {
   std::string name = arg;
   std::replace_if(
-    name.begin(), name.end(), [](char c) { return !isalnum(static_cast<unsigned char>(c)); }, '_');
+    name.begin(), name.end(), [](char letter) { return isalnum(static_cast<unsigned char>(letter)) == 0; }, '_');
   return "pdns_recursor_" + name;
 }
 
 std::atomic<unsigned long>* getDynMetric(const std::string& str, const std::string& prometheusName)
 {
-  auto dm = d_dynmetrics.lock();
-  auto f = dm->find(str);
-  if (f != dm->end()) {
-    return f->second.d_ptr;
+  auto locked = d_dynmetrics.lock();
+  auto iter = locked->find(str);
+  if (iter != locked->end()) {
+    return iter->second.d_ptr;
   }
 
   std::string name(str);
@@ -173,7 +192,7 @@ std::atomic<unsigned long>* getDynMetric(const std::string& str, const std::stri
   }
 
   auto ret = dynmetrics{new std::atomic<unsigned long>(), std::move(name)};
-  (*dm)[str] = ret;
+  (*locked)[str] = ret;
   return ret.d_ptr;
 }
 
@@ -189,10 +208,10 @@ static std::optional<uint64_t> get(const string& name)
   }
 
   {
-    auto dm = d_dynmetrics.lock();
-    auto f = rplookup(*dm, name);
-    if (f) {
-      return f->d_ptr->load();
+    auto lcoked = d_dynmetrics.lock();
+    const auto* ptr = rplookup(*lcoked, name);
+    if (ptr != nullptr) {
+      return ptr->d_ptr->load();
     }
   }
 
@@ -236,9 +255,9 @@ StatsMap getAllStatsMap(StatComponent component)
   }
 
   {
-    for (const auto& a : *(d_dynmetrics.lock())) {
-      if (disabledlistMap.count(a.first) == 0) {
-        ret.emplace(a.first, StatsMapEntry{a.second.d_prometheusName, std::to_string(*a.second.d_ptr)});
+    for (const auto& value : *(d_dynmetrics.lock())) {
+      if (disabledlistMap.count(value.first) == 0) {
+        ret.emplace(value.first, StatsMapEntry{value.second.d_prometheusName, std::to_string(*value.second.d_ptr)});
       }
     }
   }
@@ -256,28 +275,30 @@ static string getAllStats()
   return ret;
 }
 
-template <typename T>
-static string doGet(T begin, T end)
+using ArgIterator = vector<string>::iterator;
+
+static string doGet(ArgIterator begin, ArgIterator end)
 {
   string ret;
 
-  for (T i = begin; i != end; ++i) {
+  for (auto i = begin; i != end; ++i) {
     std::optional<uint64_t> num = get(*i);
-    if (num)
+    if (num) {
       ret += std::to_string(*num) + "\n";
-    else
+    }
+    else {
       ret += "UNKNOWN\n";
+    }
   }
   return ret;
 }
 
-template <typename T>
-string static doGetParameter(T begin, T end)
+string static doGetParameter(ArgIterator begin, ArgIterator end)
 {
   string ret;
   string parm;
   using boost::replace_all;
-  for (T i = begin; i != end; ++i) {
+  for (auto i = begin; i != end; ++i) {
     if (::arg().parmIsset(*i)) {
       parm = ::arg()[*i];
       replace_all(parm, "\\", "\\\\");
@@ -285,59 +306,60 @@ string static doGetParameter(T begin, T end)
       replace_all(parm, "\n", "\\n");
       ret += *i + "=\"" + parm + "\"\n";
     }
-    else
+    else {
       ret += *i + " not known\n";
+    }
   }
   return ret;
 }
 
 /* Read an (open) fd from the control channel */
 static FDWrapper
-getfd(int s)
+getfd(int socket)
 {
-  int fd = -1;
-  struct msghdr msg;
-  struct cmsghdr* cmsg;
+  int fileDesc = -1;
+  struct msghdr msg{};
+  struct cmsghdr* cmsg{};
   union
   {
     struct cmsghdr hdr;
-    unsigned char buf[CMSG_SPACE(sizeof(int))];
+    std::array<unsigned char, CMSG_SPACE(sizeof(int))> buf{};
   } cmsgbuf;
-  struct iovec io_vector[1];
-  char ch;
+  std::array<struct iovec, 1> io_vector{};
+  char character = 0;
 
-  io_vector[0].iov_base = &ch;
+  io_vector[0].iov_base = &character;
   io_vector[0].iov_len = 1;
 
   memset(&msg, 0, sizeof(msg));
   msg.msg_control = &cmsgbuf.buf;
   msg.msg_controllen = sizeof(cmsgbuf.buf);
-  msg.msg_iov = io_vector;
-  msg.msg_iovlen = 1;
+  msg.msg_iov = io_vector.data();
+  msg.msg_iovlen = io_vector.size();
 
-  if (recvmsg(s, &msg, 0) == -1) {
+  if (recvmsg(socket, &msg, 0) == -1) {
     throw PDNSException("recvmsg");
   }
-  if ((msg.msg_flags & MSG_TRUNC) || (msg.msg_flags & MSG_CTRUNC)) {
+  if ((msg.msg_flags & MSG_TRUNC) != 0 || (msg.msg_flags & MSG_CTRUNC) != 0) {
     throw PDNSException("control message truncated");
   }
-  for (cmsg = CMSG_FIRSTHDR(&msg); cmsg != NULL;
+  for (cmsg = CMSG_FIRSTHDR(&msg); cmsg != nullptr;
        cmsg = CMSG_NXTHDR(&msg, cmsg)) {
     if (cmsg->cmsg_len == CMSG_LEN(sizeof(int)) && cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_RIGHTS) {
-      fd = *(int*)CMSG_DATA(cmsg);
+      fileDesc = *reinterpret_cast<int*>(CMSG_DATA(cmsg)); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
       break;
     }
   }
-  return FDWrapper(fd);
+  return fileDesc;
 }
 
-static uint64_t dumpAggressiveNSECCache(int fd)
+static uint64_t dumpAggressiveNSECCache(int fileDesc)
 {
   if (!g_aggressiveNSECCache) {
     return 0;
   }
 
-  int newfd = dup(fd);
+  int newfd = dup(fileDesc);
   if (newfd == -1) {
     return 0;
   }
@@ -347,50 +369,52 @@ static uint64_t dumpAggressiveNSECCache(int fd)
   }
   fprintf(filePtr.get(), "; aggressive NSEC cache dump follows\n;\n");
 
-  struct timeval now;
+  struct timeval now{};
   Utility::gettimeofday(&now, nullptr);
   return g_aggressiveNSECCache->dumpToFile(filePtr, now);
 }
 
-static uint64_t* pleaseDumpEDNSMap(int fd)
+// NOLINTBEGIN(cppcoreguidelines-owning-memory)
+static uint64_t* pleaseDumpEDNSMap(int fileDesc)
 {
-  return new uint64_t(SyncRes::doEDNSDump(fd));
+  return new uint64_t(SyncRes::doEDNSDump(fileDesc));
 }
 
-static uint64_t* pleaseDumpNSSpeeds(int fd)
+static uint64_t* pleaseDumpNSSpeeds(int fileDesc)
 {
-  return new uint64_t(SyncRes::doDumpNSSpeeds(fd));
+  return new uint64_t(SyncRes::doDumpNSSpeeds(fileDesc));
 }
 
-static uint64_t* pleaseDumpThrottleMap(int fd)
+static uint64_t* pleaseDumpThrottleMap(int fileDesc)
 {
-  return new uint64_t(SyncRes::doDumpThrottleMap(fd));
+  return new uint64_t(SyncRes::doDumpThrottleMap(fileDesc));
 }
 
-static uint64_t* pleaseDumpFailedServers(int fd)
+static uint64_t* pleaseDumpFailedServers(int fileDesc)
 {
-  return new uint64_t(SyncRes::doDumpFailedServers(fd));
+  return new uint64_t(SyncRes::doDumpFailedServers(fileDesc));
 }
 
-static uint64_t* pleaseDumpSavedParentNSSets(int fd)
+static uint64_t* pleaseDumpSavedParentNSSets(int fileDesc)
 {
-  return new uint64_t(SyncRes::doDumpSavedParentNSSets(fd));
+  return new uint64_t(SyncRes::doDumpSavedParentNSSets(fileDesc));
 }
 
-static uint64_t* pleaseDumpNonResolvingNS(int fd)
+static uint64_t* pleaseDumpNonResolvingNS(int fileDesc)
 {
-  return new uint64_t(SyncRes::doDumpNonResolvingNS(fd));
+  return new uint64_t(SyncRes::doDumpNonResolvingNS(fileDesc));
 }
 
-static uint64_t* pleaseDumpDoTProbeMap(int fd)
+static uint64_t* pleaseDumpDoTProbeMap(int fileDesc)
 {
-  return new uint64_t(SyncRes::doDumpDoTProbeMap(fd));
+  return new uint64_t(SyncRes::doDumpDoTProbeMap(fileDesc));
 }
+// NOLINTEND(cppcoreguidelines-owning-memory)
 
 // Generic dump to file command
-static RecursorControlChannel::Answer doDumpToFile(int s, uint64_t* (*function)(int s), const string& name, bool threads = true)
+static RecursorControlChannel::Answer doDumpToFile(int socket, uint64_t* (*function)(int), const string& name, bool threads = true)
 {
-  auto fdw = getfd(s);
+  auto fdw = getfd(socket);
 
   if (fdw < 0) {
     return {1, name + ": error opening dump file for writing: " + stringerror() + "\n"};
@@ -399,13 +423,13 @@ static RecursorControlChannel::Answer doDumpToFile(int s, uint64_t* (*function)(
   uint64_t total = 0;
   try {
     if (threads) {
-      int fd = fdw;
-      total = broadcastAccFunction<uint64_t>([function, fd] { return function(fd); });
+      int fileDesc = fdw;
+      total = broadcastAccFunction<uint64_t>([function, fileDesc] { return function(fileDesc); });
     }
     else {
-      auto ret = function(fdw);
+      auto* ret = function(fdw);
       total = *ret;
-      delete ret;
+      delete ret; // NOLINT(cppcoreguidelines-owning-memory)
     }
   }
   catch (std::exception& e) {
@@ -419,8 +443,7 @@ static RecursorControlChannel::Answer doDumpToFile(int s, uint64_t* (*function)(
 }
 
 // Does not follow the generic dump to file pattern, has a more complex lambda
-template <typename T>
-static RecursorControlChannel::Answer doDumpCache(int socket, T begin, T end)
+static RecursorControlChannel::Answer doDumpCache(int socket, ArgIterator begin, ArgIterator end)
 {
   auto fdw = getfd(socket);
 
@@ -467,27 +490,27 @@ static RecursorControlChannel::Answer doDumpCache(int socket, T begin, T end)
     }
   }
   catch (...) {
+    ;
   }
 
   return {0, "dumped " + std::to_string(total) + " records\n"};
 }
 
 // Does not follow the generic dump to file pattern, has an argument
-template <typename T>
-static RecursorControlChannel::Answer doDumpRPZ(int s, T begin, T end)
+static RecursorControlChannel::Answer doDumpRPZ(int socket, ArgIterator begin, ArgIterator end)
 {
-  auto fdw = getfd(s);
+  auto fdw = getfd(socket);
 
   if (fdw < 0) {
     return {1, "Error opening dump file for writing: " + stringerror() + "\n"};
   }
 
-  T i = begin;
+  auto iter = begin;
 
-  if (i == end) {
+  if (iter == end) {
     return {1, "No zone name specified\n"};
   }
-  string zoneName = *i;
+  const string& zoneName = *iter;
 
   auto luaconf = g_luaconfs.getLocal();
   const auto zone = luaconf->dfe.getZone(zoneName);
@@ -506,11 +529,10 @@ static RecursorControlChannel::Answer doDumpRPZ(int s, T begin, T end)
   return {0, "done\n"};
 }
 
-template <typename T>
-static string doWipeCache(T begin, T end, uint16_t qtype)
+static string doWipeCache(ArgIterator begin, ArgIterator end, uint16_t qtype)
 {
   vector<pair<DNSName, bool>> toWipe;
-  for (T i = begin; i != end; ++i) {
+  for (auto i = begin; i != end; ++i) {
     DNSName canon;
     bool subtree = false;
 
@@ -529,7 +551,9 @@ static string doWipeCache(T begin, T end, uint16_t qtype)
     toWipe.emplace_back(canon, subtree);
   }
 
-  int count = 0, pcount = 0, countNeg = 0;
+  int count = 0;
+  int pcount = 0;
+  int countNeg = 0;
   for (const auto& wipe : toWipe) {
     try {
       auto res = wipeCaches(wipe.first, wipe.second, qtype);
@@ -545,8 +569,7 @@ static string doWipeCache(T begin, T end, uint16_t qtype)
   return "wiped " + std::to_string(count) + " records, " + std::to_string(countNeg) + " negative records, " + std::to_string(pcount) + " packets\n";
 }
 
-template <typename T>
-static string doSetCarbonServer(T begin, T end)
+static string doSetCarbonServer(ArgIterator begin, ArgIterator end)
 {
   auto config = g_carbonConfig.getCopy();
   if (begin == end) {
@@ -589,15 +612,14 @@ static string doSetCarbonServer(T begin, T end)
   return ret;
 }
 
-template <typename T>
-static string doSetDnssecLogBogus(T begin, T end)
+static string doSetDnssecLogBogus(ArgIterator begin, ArgIterator end)
 {
-  if (checkDNSSECDisabled())
+  if (checkDNSSECDisabled()) {
     return "DNSSEC is disabled in the configuration, not changing the Bogus logging setting\n";
-
-  if (begin == end)
+  }
+  if (begin == end) {
     return "No DNSSEC Bogus logging setting specified\n";
-
+  }
   if (pdns_iequals(*begin, "on") || pdns_iequals(*begin, "yes")) {
     if (!g_dnssecLogBogus) {
       g_log << Logger::Warning << "Enabling DNSSEC Bogus logging, requested via control channel" << endl;
@@ -619,15 +641,14 @@ static string doSetDnssecLogBogus(T begin, T end)
   return "Unknown DNSSEC Bogus setting: '" + *begin + "'\n";
 }
 
-template <typename T>
-static string doAddNTA(T begin, T end)
+static string doAddNTA(ArgIterator begin, ArgIterator end)
 {
-  if (checkDNSSECDisabled())
+  if (checkDNSSECDisabled()) {
     return "DNSSEC is disabled in the configuration, not adding a Negative Trust Anchor\n";
-
-  if (begin == end)
+  }
+  if (begin == end) {
     return "No NTA specified, doing nothing\n";
-
+  }
   DNSName who;
   try {
     who = DNSName(*begin);
@@ -640,12 +661,13 @@ static string doAddNTA(T begin, T end)
   }
   begin++;
 
-  string why("");
+  string why;
   while (begin != end) {
     why += *begin;
     begin++;
-    if (begin != end)
+    if (begin != end) {
       why += " ";
+    }
   }
   g_log << Logger::Warning << "Adding Negative Trust Anchor for " << who << " with reason '" << why << "', requested via control channel" << endl;
   g_luaconfs.modify([who, why](LuaConfigItems& lci) {
@@ -661,15 +683,14 @@ static string doAddNTA(T begin, T end)
   return "Added Negative Trust Anchor for " + who.toLogString() + " with reason '" + why + "'\n";
 }
 
-template <typename T>
-static string doClearNTA(T begin, T end)
+static string doClearNTA(ArgIterator begin, ArgIterator end)
 {
-  if (checkDNSSECDisabled())
+  if (checkDNSSECDisabled()) {
     return "DNSSEC is disabled in the configuration, not removing a Negative Trust Anchor\n";
-
-  if (begin == end)
+  }
+  if (begin == end) {
     return "No Negative Trust Anchor specified, doing nothing.\n";
-
+  }
   if (begin + 1 == end && *begin == "*") {
     g_log << Logger::Warning << "Clearing all Negative Trust Anchors, requested via control channel" << endl;
     g_luaconfs.modify([](LuaConfigItems& lci) {
@@ -681,8 +702,9 @@ static string doClearNTA(T begin, T end)
   vector<DNSName> toRemove;
   DNSName who;
   while (begin != end) {
-    if (*begin == "*")
+    if (*begin == "*") {
       return "Don't mix all Negative Trust Anchor removal with multiple Negative Trust Anchor removal. Nothing removed\n";
+    }
     try {
       who = DNSName(*begin);
     }
@@ -696,7 +718,7 @@ static string doClearNTA(T begin, T end)
     begin++;
   }
 
-  string removed("");
+  string removed;
   bool first(true);
   try {
     for (auto const& entry : toRemove) {
@@ -722,25 +744,25 @@ static string doClearNTA(T begin, T end)
 
 static string getNTAs()
 {
-  if (checkDNSSECDisabled())
+  if (checkDNSSECDisabled()) {
     return "DNSSEC is disabled in the configuration\n";
-
+  }
   string ret("Configured Negative Trust Anchors:\n");
   auto luaconf = g_luaconfs.getLocal();
-  for (const auto& negAnchor : luaconf->negAnchors)
+  for (const auto& negAnchor : luaconf->negAnchors) {
     ret += negAnchor.first.toLogString() + "\t" + negAnchor.second + "\n";
+  }
   return ret;
 }
 
-template <typename T>
-static string doAddTA(T begin, T end)
+static string doAddTA(ArgIterator begin, ArgIterator end)
 {
-  if (checkDNSSECDisabled())
+  if (checkDNSSECDisabled()) {
     return "DNSSEC is disabled in the configuration, not adding a Trust Anchor\n";
-
-  if (begin == end)
+  }
+  if (begin == end) {
     return "No TA specified, doing nothing\n";
-
+  }
   DNSName who;
   try {
     who = DNSName(*begin);
@@ -753,7 +775,7 @@ static string doAddTA(T begin, T end)
   }
   begin++;
 
-  string what("");
+  string what;
   while (begin != end) {
     what += *begin + " ";
     begin++;
@@ -762,8 +784,8 @@ static string doAddTA(T begin, T end)
   try {
     g_log << Logger::Warning << "Adding Trust Anchor for " << who << " with data '" << what << "', requested via control channel";
     g_luaconfs.modify([who, what](LuaConfigItems& lci) {
-      auto ds = std::dynamic_pointer_cast<DSRecordContent>(DSRecordContent::make(what));
-      lci.dsAnchors[who].insert(*ds);
+      auto dsRecord = std::dynamic_pointer_cast<DSRecordContent>(DSRecordContent::make(what));
+      lci.dsAnchors[who].insert(*dsRecord);
     });
     wipeCaches(who, true, 0xffff);
     g_log << Logger::Warning << endl;
@@ -775,15 +797,14 @@ static string doAddTA(T begin, T end)
   }
 }
 
-template <typename T>
-static string doClearTA(T begin, T end)
+static string doClearTA(ArgIterator begin, ArgIterator end)
 {
-  if (checkDNSSECDisabled())
+  if (checkDNSSECDisabled()) {
     return "DNSSEC is disabled in the configuration, not removing a Trust Anchor\n";
-
-  if (begin == end)
+  }
+  if (begin == end) {
     return "No Trust Anchor to clear\n";
-
+  }
   vector<DNSName> toRemove;
   DNSName who;
   while (begin != end) {
@@ -796,14 +817,15 @@ static string doClearTA(T begin, T end)
       ret += ". No Anchors removed\n";
       return ret;
     }
-    if (who.isRoot())
+    if (who.isRoot()) {
       return "Refusing to remove root Trust Anchor, no Anchors removed\n";
+    }
     toRemove.push_back(who);
     begin++;
   }
 
-  string removed("");
-  bool first(true);
+  string removed;
+  bool first = true;
   try {
     for (auto const& entry : toRemove) {
       g_log << Logger::Warning << "Removing Trust Anchor for " << entry << ", requested via control channel" << endl;
@@ -828,26 +850,26 @@ static string doClearTA(T begin, T end)
 
 static string getTAs()
 {
-  if (checkDNSSECDisabled())
+  if (checkDNSSECDisabled()) {
     return "DNSSEC is disabled in the configuration\n";
-
+  }
   string ret("Configured Trust Anchors:\n");
   auto luaconf = g_luaconfs.getLocal();
   for (const auto& anchor : luaconf->dsAnchors) {
     ret += anchor.first.toLogString() + "\n";
-    for (const auto& e : anchor.second) {
-      ret += "\t\t" + e.getZoneRepresentation() + "\n";
+    for (const auto& entry : anchor.second) {
+      ret += "\t\t" + entry.getZoneRepresentation() + "\n";
     }
   }
 
   return ret;
 }
 
-template <typename T>
-static string setMinimumTTL(T begin, T end)
+static string setMinimumTTL(ArgIterator begin, ArgIterator end)
 {
-  if (end - begin != 1)
+  if (end - begin != 1) {
     return "Need to supply new minimum TTL number\n";
+  }
   try {
     pdns::checked_stoi_into(SyncRes::s_minimumTTL, *begin);
     return "New minimum TTL: " + std::to_string(SyncRes::s_minimumTTL) + "\n";
@@ -857,11 +879,11 @@ static string setMinimumTTL(T begin, T end)
   }
 }
 
-template <typename T>
-static string setMinimumECSTTL(T begin, T end)
+static string setMinimumECSTTL(ArgIterator begin, ArgIterator end)
 {
-  if (end - begin != 1)
+  if (end - begin != 1) {
     return "Need to supply new ECS minimum TTL number\n";
+  }
   try {
     pdns::checked_stoi_into(SyncRes::s_minimumECSTTL, *begin);
     return "New minimum ECS TTL: " + std::to_string(SyncRes::s_minimumECSTTL) + "\n";
@@ -871,11 +893,11 @@ static string setMinimumECSTTL(T begin, T end)
   }
 }
 
-template <typename T>
-static string setMaxCacheEntries(T begin, T end)
+static string setMaxCacheEntries(ArgIterator begin, ArgIterator end)
 {
-  if (end - begin != 1)
+  if (end - begin != 1) {
     return "Need to supply new cache size\n";
+  }
   try {
     g_maxCacheEntries = pdns::checked_stoi<uint32_t>(*begin);
     return "New max cache entries: " + std::to_string(g_maxCacheEntries) + "\n";
@@ -885,11 +907,11 @@ static string setMaxCacheEntries(T begin, T end)
   }
 }
 
-template <typename T>
-static string setMaxPacketCacheEntries(T begin, T end)
+static string setMaxPacketCacheEntries(ArgIterator begin, ArgIterator end)
 {
-  if (end - begin != 1)
+  if (end - begin != 1) {
     return "Need to supply new packet cache size\n";
+  }
   if (::arg().mustDo("disable-packetcache")) {
     return "Packet cache is disabled\n";
   }
@@ -903,8 +925,7 @@ static string setMaxPacketCacheEntries(T begin, T end)
   }
 }
 
-template <typename T>
-static RecursorControlChannel::Answer setAggrNSECCacheSize(T begin, T end)
+static RecursorControlChannel::Answer setAggrNSECCacheSize(ArgIterator begin, ArgIterator end)
 {
   if (end - begin != 1) {
     return {1, "Need to supply new aggressive NSEC cache size\n"};
@@ -924,16 +945,16 @@ static RecursorControlChannel::Answer setAggrNSECCacheSize(T begin, T end)
 
 static uint64_t getSysTimeMsec()
 {
-  struct rusage ru;
-  getrusage(RUSAGE_SELF, &ru);
-  return (ru.ru_stime.tv_sec * 1000ULL + ru.ru_stime.tv_usec / 1000);
+  struct rusage usage{};
+  getrusage(RUSAGE_SELF, &usage);
+  return (usage.ru_stime.tv_sec * 1000ULL) + (usage.ru_stime.tv_usec / 1000);
 }
 
 static uint64_t getUserTimeMsec()
 {
-  struct rusage ru;
-  getrusage(RUSAGE_SELF, &ru);
-  return (ru.ru_utime.tv_sec * 1000ULL + ru.ru_utime.tv_usec / 1000);
+  struct rusage usage{};
+  getrusage(RUSAGE_SELF, &usage);
+  return (usage.ru_utime.tv_sec * 1000ULL) + (usage.ru_utime.tv_usec / 1000);
 }
 
 /* This is a pretty weird set of functions. To get per-thread cpu usage numbers,
@@ -954,7 +975,7 @@ static ThreadTimes* pleaseGetThreadCPUMsec()
   ret = (ru.ru_utime.tv_sec * 1000ULL + ru.ru_utime.tv_usec / 1000);
   ret += (ru.ru_stime.tv_sec * 1000ULL + ru.ru_stime.tv_usec / 1000);
 #endif
-  return new ThreadTimes{ret, vector<uint64_t>()};
+  return new ThreadTimes{ret, vector<uint64_t>()}; // NOLINT(cppcoreguidelines-owning-memory)
 }
 
 /* Next up, when you want msec data for a specific thread, we check
@@ -963,24 +984,24 @@ static ThreadTimes* pleaseGetThreadCPUMsec()
 
    We then answer you from the (re)fresh(ed) ThreadTimes.
 */
-static uint64_t doGetThreadCPUMsec(int n)
+static uint64_t doGetThreadCPUMsec(unsigned int n)
 {
   static std::mutex s_mut;
   static time_t last = 0;
-  static ThreadTimes tt;
+  static ThreadTimes threadTimes;
 
   auto lock = std::scoped_lock(s_mut);
   if (last != time(nullptr)) {
-    tt = broadcastAccFunction<ThreadTimes>(pleaseGetThreadCPUMsec);
+    threadTimes = broadcastAccFunction<ThreadTimes>(pleaseGetThreadCPUMsec);
     last = time(nullptr);
   }
 
-  return tt.times.at(n);
+  return threadTimes.times.at(n);
 }
 
 static ProxyMappingStats_t* pleaseGetProxyMappingStats()
 {
-  auto ret = new ProxyMappingStats_t;
+  auto* ret = new ProxyMappingStats_t; // NOLINT(cppcoreguidelines-owning-memory)
   if (t_proxyMapping) {
     for (const auto& [key, entry] : *t_proxyMapping) {
       ret->emplace(key, ProxyMappingCounts{entry.stats.netmaskMatches, entry.stats.suffixMatches});
@@ -991,7 +1012,7 @@ static ProxyMappingStats_t* pleaseGetProxyMappingStats()
 
 static RemoteLoggerStats_t* pleaseGetRemoteLoggerStats()
 {
-  auto ret = make_unique<RemoteLoggerStats_t>();
+  auto ret = make_unique<RemoteLoggerStats_t>(); // NOLINT(cppcoreguidelines-owning-memory)
 
   if (t_protobufServers.servers) {
     for (const auto& server : *t_protobufServers.servers) {
@@ -1081,29 +1102,30 @@ static string getRemoteLoggerStats()
 static string* pleaseGetCurrentQueries()
 {
   ostringstream ostr;
-  struct timeval now;
-  gettimeofday(&now, 0);
+  struct timeval now{};
+  gettimeofday(&now, nullptr);
 
   ostr << getMT()->getWaiters().size() << " currently outstanding questions\n";
 
   boost::format fmt("%1% %|40t|%2% %|47t|%3% %|63t|%4% %|68t|%5% %|78t|%6%\n");
 
   ostr << (fmt % "qname" % "qtype" % "remote" % "tcp" % "chained" % "spent(ms)");
-  unsigned int n = 0;
+  unsigned int count = 0;
   for (const auto& mthread : getMT()->getWaiters()) {
     const std::shared_ptr<PacketID>& pident = mthread.key;
     const double spent = g_networkTimeoutMsec - (DiffTime(now, mthread.ttd) * 1000);
     ostr << (fmt
              % pident->domain.toLogString() /* ?? */ % DNSRecordContent::NumberToType(pident->type)
-             % pident->remote.toString() % (pident->tcpsock ? 'Y' : 'n')
+             % pident->remote.toString() % ((pident->tcpsock != 0) ? 'Y' : 'n')
              % (pident->fd == -1 ? 'Y' : 'n')
              % (spent > 0 ? spent : '0'));
-    ++n;
-    if (n >= 100)
+    ++count;
+    if (count >= 100) {
       break;
+    }
   }
   ostr << " - done\n";
-  return new string(ostr.str());
+  return new string(ostr.str()); // NOLINT(cppcoreguidelines-owning-memory)
 }
 
 static string doCurrentQueries()
@@ -1118,7 +1140,7 @@ static uint64_t getNegCacheSize()
 
 uint64_t* pleaseGetConcurrentQueries()
 {
-  return new uint64_t(getMT() ? getMT()->numProcesses() : 0);
+  return new uint64_t((getMT() != nullptr) ? getMT()->numProcesses() : 0); // NOLINT(cppcoreguidelines-owning-memory)
 }
 
 static uint64_t getConcurrentQueries()
@@ -1149,16 +1171,16 @@ static StatsMap toStatsMap(const string& name, const pdns::Histogram& histogram)
   const auto& data = histogram.getCumulativeBuckets();
   const string pbasename = getPrometheusName(name);
   StatsMap entries;
-  char buf[32];
+  std::array<char, 32> buf{};
 
   for (const auto& bucket : data) {
-    snprintf(buf, sizeof(buf), "%g", bucket.d_boundary / 1e6);
-    std::string pname = pbasename + "seconds_bucket{" + "le=\"" + (bucket.d_boundary == std::numeric_limits<uint64_t>::max() ? "+Inf" : buf) + "\"}";
+    snprintf(buf.data(), buf.size(), "%g", static_cast<double>(bucket.d_boundary) / 1e6);
+    std::string pname = pbasename + "seconds_bucket{" + "le=\"" + (bucket.d_boundary == std::numeric_limits<uint64_t>::max() ? "+Inf" : buf.data()) + "\"}";
     entries.emplace(bucket.d_name, StatsMapEntry{std::move(pname), std::to_string(bucket.d_count)});
   }
 
-  snprintf(buf, sizeof(buf), "%g", histogram.getSum() / 1e6);
-  entries.emplace(name + "sum", StatsMapEntry{pbasename + "seconds_sum", buf});
+  snprintf(buf.data(), buf.size(), "%g", static_cast<double>(histogram.getSum()) / 1e6);
+  entries.emplace(name + "sum", StatsMapEntry{pbasename + "seconds_sum", buf.data()});
   entries.emplace(name + "count", StatsMapEntry{pbasename + "seconds_count", std::to_string(data.back().d_count)});
 
   return entries;
@@ -1168,27 +1190,27 @@ static StatsMap toStatsMap(const string& name, const pdns::Histogram& histogram4
 {
   const string pbasename = getPrometheusName(name);
   StatsMap entries;
-  char buf[32];
+  std::array<char, 32> buf{};
   std::string pname;
 
   const auto& data4 = histogram4.getCumulativeBuckets();
   for (const auto& bucket : data4) {
-    snprintf(buf, sizeof(buf), "%g", bucket.d_boundary / 1e6);
-    pname = pbasename + "seconds_bucket{ipversion=\"v4\",le=\"" + (bucket.d_boundary == std::numeric_limits<uint64_t>::max() ? "+Inf" : buf) + "\"}";
+    snprintf(buf.data(), buf.size(), "%g", static_cast<double>(bucket.d_boundary) / 1e6);
+    pname = pbasename + R"(seconds_bucket{ipversion="v4",le=")" + (bucket.d_boundary == std::numeric_limits<uint64_t>::max() ? "+Inf" : buf.data()) + "\"}";
     entries.emplace(bucket.d_name + "4", StatsMapEntry{pname, std::to_string(bucket.d_count)});
   }
-  snprintf(buf, sizeof(buf), "%g", histogram4.getSum() / 1e6);
-  entries.emplace(name + "sum4", StatsMapEntry{pbasename + "seconds_sum{ipversion=\"v4\"}", buf});
+  snprintf(buf.data(), buf.size(), "%g", static_cast<double>(histogram4.getSum()) / 1e6);
+  entries.emplace(name + "sum4", StatsMapEntry{pbasename + "seconds_sum{ipversion=\"v4\"}", buf.data()});
   entries.emplace(name + "count4", StatsMapEntry{pbasename + "seconds_count{ipversion=\"v4\"}", std::to_string(data4.back().d_count)});
 
   const auto& data6 = histogram6.getCumulativeBuckets();
   for (const auto& bucket : data6) {
-    snprintf(buf, sizeof(buf), "%g", bucket.d_boundary / 1e6);
-    pname = pbasename + "seconds_bucket{ipversion=\"v6\",le=\"" + (bucket.d_boundary == std::numeric_limits<uint64_t>::max() ? "+Inf" : buf) + "\"}";
+    snprintf(buf.data(), buf.size(), "%g", static_cast<double>(bucket.d_boundary) / 1e6);
+    pname = pbasename + R"(seconds_bucket{ipversion="v6",le=")" + (bucket.d_boundary == std::numeric_limits<uint64_t>::max() ? "+Inf" : buf.data()) + "\"}";
     entries.emplace(bucket.d_name + "6", StatsMapEntry{pname, std::to_string(bucket.d_count)});
   }
-  snprintf(buf, sizeof(buf), "%g", histogram6.getSum() / 1e6);
-  entries.emplace(name + "sum6", StatsMapEntry{pbasename + "seconds_sum{ipversion=\"v6\"}", buf});
+  snprintf(buf.data(), buf.size(), "%g", static_cast<double>(histogram6.getSum()) / 1e6);
+  entries.emplace(name + "sum6", StatsMapEntry{pbasename + "seconds_sum{ipversion=\"v6\"}", buf.data()});
   entries.emplace(name + "count6", StatsMapEntry{pbasename + "seconds_count{ipversion=\"v6\"}", std::to_string(data6.back().d_count)});
 
   return entries;
@@ -1199,13 +1221,14 @@ static StatsMap toAuthRCodeStatsMap(const string& name)
   const string pbasename = getPrometheusName(name);
   StatsMap entries;
 
-  uint8_t n = 0;
+  uint8_t count = 0;
   auto rcodes = g_Counters.sum(rec::RCode::auth).rcodeCounters;
   for (const auto& entry : rcodes) {
-    const auto key = RCode::to_short_s(n);
-    std::string pname = pbasename + "{rcode=\"" + key + "\"}";
+    const auto key = RCode::to_short_s(count);
+    std::string pname = pbasename;
+    pname += "{rcode=\"" + key + "\"}";
     entries.emplace("auth-" + key + "-answers", StatsMapEntry{std::move(pname), std::to_string(entry)});
-    n++;
+    count++;
   }
   return entries;
 }
@@ -1216,10 +1239,10 @@ static StatsMap toCPUStatsMap(const string& name)
   StatsMap entries;
 
   // Handler is not reported
-  for (unsigned int n = 0; n < RecThreadInfo::numRecursorThreads() - 1; ++n) {
-    uint64_t tm = doGetThreadCPUMsec(n);
-    std::string pname = pbasename + "{thread=\"" + std::to_string(n) + "\"}";
-    entries.emplace(name + "-thread-" + std::to_string(n), StatsMapEntry{std::move(pname), std::to_string(tm)});
+  for (unsigned int thread = 0; thread < RecThreadInfo::numRecursorThreads() - 1; ++thread) {
+    uint64_t timeTaken = doGetThreadCPUMsec(thread);
+    std::string pname = pbasename + "{thread=\"" + std::to_string(thread) + "\"}";
+    entries.emplace(name + "-thread-" + std::to_string(thread), StatsMapEntry{std::move(pname), std::to_string(timeTaken)});
   }
   return entries;
 }
@@ -1233,14 +1256,17 @@ static StatsMap toRPZStatsMap(const string& name, const std::unordered_map<std::
   for (const auto& entry : map) {
     const auto& key = entry.first;
     auto count = entry.second;
-    std::string sname, pname;
+    std::string sname;
+    std::string pname;
     if (key.empty()) {
       sname = name + "-filter";
       pname = pbasename + "{type=\"filter\"}";
     }
     else {
-      sname = name + "-rpz-" + key;
-      pname = pbasename + "{type=\"rpz\",policyname=\"" + key + "\"}";
+      sname = name;
+      sname += "-rpz-" + key;
+      pname = pbasename;
+      pname += R"({type="rpz",policyname=")" + key + "\"}";
     }
     entries.emplace(sname, StatsMapEntry{std::move(pname), std::to_string(count)});
     total += count;
@@ -1288,7 +1314,9 @@ static StatsMap toRemoteLoggerStatsMap(const string& name)
   uint64_t count = 0;
   for (const auto& [stats, type] : list) {
     for (const auto& [key, entry] : stats) {
-      auto keyname = pbasename + "{address=\"" + key + "\",type=\"" + type + "\",count=\"";
+      auto keyname = pbasename;
+      keyname += "{address=\"" + key + "\",type=\"";
+      keyname += type + "\",count=\"";
       auto sname1 = name + "-q-" + std::to_string(count);
       auto pname1 = keyname + "queued\"}";
       entries.emplace(sname1, StatsMapEntry{std::move(pname1), std::to_string(entry.d_queued)});
@@ -1348,7 +1376,7 @@ void registerAllStats()
   }
   catch (...) {
     g_log << Logger::Critical << "Could not add stat entries" << endl;
-    exit(1);
+    exit(1); // NOLINT(concurrency-mt-unsafe)
   }
 }
 
@@ -1405,107 +1433,116 @@ void doExitNicely()
   doExitGeneric(true);
 }
 
+// NOLINTBEGIN(cppcoreguidelines-owning-memory)
 vector<pair<DNSName, uint16_t>>* pleaseGetQueryRing()
 {
-  typedef pair<DNSName, uint16_t> query_t;
-  vector<query_t>* ret = new vector<query_t>();
-  if (!t_queryring)
+  using query_t = pair<DNSName, uint16_t>;
+  auto* ret = new vector<query_t>();
+  if (!t_queryring) {
     return ret;
+  }
   ret->reserve(t_queryring->size());
 
-  for (const query_t& q : *t_queryring) {
-    ret->push_back(q);
+  for (const query_t& query : *t_queryring) {
+    ret->emplace_back(query);
   }
   return ret;
 }
 vector<pair<DNSName, uint16_t>>* pleaseGetServfailQueryRing()
 {
-  typedef pair<DNSName, uint16_t> query_t;
-  vector<query_t>* ret = new vector<query_t>();
-  if (!t_servfailqueryring)
+  using query_t = pair<DNSName, uint16_t>;
+  auto* ret = new vector<query_t>();
+  if (!t_servfailqueryring) {
     return ret;
+  }
   ret->reserve(t_servfailqueryring->size());
-  for (const query_t& q : *t_servfailqueryring) {
-    ret->push_back(q);
+  for (const query_t& query : *t_servfailqueryring) {
+    ret->emplace_back(query);
   }
   return ret;
 }
 vector<pair<DNSName, uint16_t>>* pleaseGetBogusQueryRing()
 {
-  typedef pair<DNSName, uint16_t> query_t;
-  vector<query_t>* ret = new vector<query_t>();
-  if (!t_bogusqueryring)
+  using query_t = pair<DNSName, uint16_t>;
+  auto* ret = new vector<query_t>();
+  if (!t_bogusqueryring) {
     return ret;
+  }
   ret->reserve(t_bogusqueryring->size());
-  for (const query_t& q : *t_bogusqueryring) {
-    ret->push_back(q);
+  for (const query_t& query : *t_bogusqueryring) {
+    ret->emplace_back(query);
   }
   return ret;
 }
 
-typedef std::function<vector<ComboAddress>*()> pleaseremotefunc_t;
-typedef std::function<vector<pair<DNSName, uint16_t>>*()> pleasequeryfunc_t;
+using pleaseremotefunc_t = std::function<vector<ComboAddress>*()>;
+using pleasequeryfunc_t = std::function<vector<pair<DNSName, uint16_t>>*()>;
 
 vector<ComboAddress>* pleaseGetRemotes()
 {
-  vector<ComboAddress>* ret = new vector<ComboAddress>();
-  if (!t_remotes)
+  auto* ret = new vector<ComboAddress>();
+  if (!t_remotes) {
     return ret;
-
+  }
   ret->reserve(t_remotes->size());
-  for (const ComboAddress& ca : *t_remotes) {
-    ret->push_back(ca);
+  for (const ComboAddress& address : *t_remotes) {
+    ret->emplace_back(address);
   }
   return ret;
 }
 
 vector<ComboAddress>* pleaseGetServfailRemotes()
 {
-  vector<ComboAddress>* ret = new vector<ComboAddress>();
-  if (!t_servfailremotes)
+  auto* ret = new vector<ComboAddress>();
+  if (!t_servfailremotes) {
     return ret;
+  }
   ret->reserve(t_servfailremotes->size());
-  for (const ComboAddress& ca : *t_servfailremotes) {
-    ret->push_back(ca);
+  for (const ComboAddress& address : *t_servfailremotes) {
+    ret->push_back(address);
   }
   return ret;
 }
 
 vector<ComboAddress>* pleaseGetBogusRemotes()
 {
-  vector<ComboAddress>* ret = new vector<ComboAddress>();
-  if (!t_bogusremotes)
+  auto* ret = new vector<ComboAddress>();
+  if (!t_bogusremotes) {
     return ret;
+  }
   ret->reserve(t_bogusremotes->size());
-  for (const ComboAddress& ca : *t_bogusremotes) {
-    ret->push_back(ca);
+  for (const ComboAddress& address : *t_bogusremotes) {
+    ret->emplace_back(address);
   }
   return ret;
 }
 
 vector<ComboAddress>* pleaseGetLargeAnswerRemotes()
 {
-  vector<ComboAddress>* ret = new vector<ComboAddress>();
-  if (!t_largeanswerremotes)
+  auto* ret = new vector<ComboAddress>();
+  if (!t_largeanswerremotes) {
     return ret;
+  }
   ret->reserve(t_largeanswerremotes->size());
-  for (const ComboAddress& ca : *t_largeanswerremotes) {
-    ret->push_back(ca);
+  for (const ComboAddress& address : *t_largeanswerremotes) {
+    ret->emplace_back(address);
   }
   return ret;
 }
 
 vector<ComboAddress>* pleaseGetTimeouts()
 {
-  vector<ComboAddress>* ret = new vector<ComboAddress>();
-  if (!t_timeouts)
+  auto* ret = new vector<ComboAddress>();
+  if (!t_timeouts) {
     return ret;
+  }
   ret->reserve(t_timeouts->size());
-  for (const ComboAddress& ca : *t_timeouts) {
-    ret->push_back(ca);
+  for (const ComboAddress& address : *t_timeouts) {
+    ret->emplace_back(address);
   }
   return ret;
 }
+// NOLINTEND(cppcoreguidelines-owning-memory)
 
 static string doGenericTopRemotes(const pleaseremotefunc_t& func)
 {
@@ -1543,8 +1580,9 @@ static string doGenericTopRemotes(const pleaseremotefunc_t& func)
 DNSName getRegisteredName(const DNSName& dom)
 {
   auto parts = dom.getRawLabels();
-  if (parts.size() <= 2)
+  if (parts.size() <= 2) {
     return dom;
+  }
   reverse(parts.begin(), parts.end());
   for (string& str : parts) {
     str = toLower(str);
@@ -1556,11 +1594,11 @@ DNSName getRegisteredName(const DNSName& dom)
     if (parts.size() == 1 || binary_search(g_pubs.begin(), g_pubs.end(), parts)) {
 
       string ret = std::move(last);
-      if (!ret.empty())
+      if (!ret.empty()) {
         ret += ".";
-
-      for (auto p = parts.crbegin(); p != parts.crend(); ++p) {
-        ret += (*p) + ".";
+      }
+      for (auto part = parts.crbegin(); part != parts.crend(); ++part) {
+        ret += (*part) + ".";
       }
       return DNSName(ret);
     }
@@ -1612,7 +1650,7 @@ static string doGenericTopQueries(const pleasequeryfunc_t& func, const std::func
 
 static string* nopFunction()
 {
-  return new string("pong " + RecThreadInfo::self().getName() + '\n');
+  return new string("pong " + RecThreadInfo::self().getName() + '\n'); // NOLINT(cppcoreguidelines-owning-memory)
 }
 
 static string getDontThrottleNames()
@@ -1627,8 +1665,7 @@ static string getDontThrottleNetmasks()
   return dtn->toString() + "\n";
 }
 
-template <typename T>
-static string addDontThrottleNames(T begin, T end)
+static string addDontThrottleNames(ArgIterator begin, ArgIterator end)
 {
   if (begin == end) {
     return "No names specified, keeping existing list\n";
@@ -1636,8 +1673,8 @@ static string addDontThrottleNames(T begin, T end)
   vector<DNSName> toAdd;
   while (begin != end) {
     try {
-      auto d = DNSName(*begin);
-      toAdd.push_back(std::move(d));
+      auto name = DNSName(*begin);
+      toAdd.emplace_back(std::move(name));
     }
     catch (const std::exception& e) {
       return "Problem parsing '" + *begin + "': " + e.what() + ", nothing added\n";
@@ -1648,13 +1685,13 @@ static string addDontThrottleNames(T begin, T end)
   string ret = "Added";
   auto dnt = g_dontThrottleNames.getCopy();
   bool first = true;
-  for (auto const& d : toAdd) {
+  for (auto const& name : toAdd) {
     if (!first) {
       ret += ",";
     }
     first = false;
-    ret += " " + d.toLogString();
-    dnt.add(d);
+    ret += " " + name.toLogString();
+    dnt.add(name);
   }
 
   g_dontThrottleNames.setState(std::move(dnt));
@@ -1664,8 +1701,7 @@ static string addDontThrottleNames(T begin, T end)
   return ret + "\n";
 }
 
-template <typename T>
-static string addDontThrottleNetmasks(T begin, T end)
+static string addDontThrottleNetmasks(ArgIterator begin, ArgIterator end)
 {
   if (begin == end) {
     return "No netmasks specified, keeping existing list\n";
@@ -1673,8 +1709,8 @@ static string addDontThrottleNetmasks(T begin, T end)
   vector<Netmask> toAdd;
   while (begin != end) {
     try {
-      auto n = Netmask(*begin);
-      toAdd.push_back(n);
+      auto netmask = Netmask(*begin);
+      toAdd.push_back(netmask);
     }
     catch (const std::exception& e) {
       return "Problem parsing '" + *begin + "': " + e.what() + ", nothing added\n";
@@ -1688,13 +1724,13 @@ static string addDontThrottleNetmasks(T begin, T end)
   string ret = "Added";
   auto dnt = g_dontThrottleNetmasks.getCopy();
   bool first = true;
-  for (auto const& t : toAdd) {
+  for (auto const& netmask : toAdd) {
     if (!first) {
       ret += ",";
     }
     first = false;
-    ret += " " + t.toString();
-    dnt.addMask(t);
+    ret += " " + netmask.toString();
+    dnt.addMask(netmask);
   }
 
   g_dontThrottleNetmasks.setState(std::move(dnt));
@@ -1704,12 +1740,11 @@ static string addDontThrottleNetmasks(T begin, T end)
   return ret + "\n";
 }
 
-template <typename T>
-static string clearDontThrottleNames(T begin, T end)
+static string clearDontThrottleNames(ArgIterator begin, ArgIterator end)
 {
-  if (begin == end)
+  if (begin == end) {
     return "No names specified, doing nothing.\n";
-
+  }
   if (begin + 1 == end && *begin == "*") {
     SuffixMatchNode smn;
     g_dontThrottleNames.setState(std::move(smn));
@@ -1724,7 +1759,7 @@ static string clearDontThrottleNames(T begin, T end)
       if (*begin == "*") {
         return "Please don't mix '*' with other names, nothing removed\n";
       }
-      toRemove.push_back(DNSName(*begin));
+      toRemove.emplace_back(*begin);
     }
     catch (const std::exception& e) {
       return "Problem parsing '" + *begin + "': " + e.what() + ", nothing removed\n";
@@ -1751,12 +1786,11 @@ static string clearDontThrottleNames(T begin, T end)
   return ret + "\n";
 }
 
-template <typename T>
-static string clearDontThrottleNetmasks(T begin, T end)
+static string clearDontThrottleNetmasks(ArgIterator begin, ArgIterator end)
 {
-  if (begin == end)
+  if (begin == end) {
     return "No netmasks specified, doing nothing.\n";
-
+  }
   if (begin + 1 == end && *begin == "*") {
     auto nmg = g_dontThrottleNetmasks.getCopy();
     nmg.clear();
@@ -1773,8 +1807,8 @@ static string clearDontThrottleNetmasks(T begin, T end)
       if (*begin == "*") {
         return "Please don't mix '*' with other netmasks, nothing removed\n";
       }
-      auto n = Netmask(*begin);
-      toRemove.push_back(n);
+      auto netmask = Netmask(*begin);
+      toRemove.push_back(netmask);
     }
     catch (const std::exception& e) {
       return "Problem parsing '" + *begin + "': " + e.what() + ", nothing added\n";
@@ -1804,8 +1838,7 @@ static string clearDontThrottleNetmasks(T begin, T end)
   return ret + "\n";
 }
 
-template <typename T>
-static string setEventTracing(T begin, T end)
+static string setEventTracing(ArgIterator begin, ArgIterator end)
 {
   if (begin == end) {
     return "No event trace enabled value specified\n";
@@ -1819,15 +1852,15 @@ static string setEventTracing(T begin, T end)
   }
 }
 
-static void* pleaseSupplantProxyMapping(const ProxyMapping& pm)
+static void* pleaseSupplantProxyMapping(const ProxyMapping& proxyMapping)
 {
-  if (pm.empty()) {
+  if (proxyMapping.empty()) {
     t_proxyMapping = nullptr;
   }
   else {
     // Copy the existing stats values, for the new config items also present in the old
     auto newmapping = make_unique<ProxyMapping>();
-    for (const auto& [nm, entry] : pm) {
+    for (const auto& [nm, entry] : proxyMapping) {
       auto& newentry = newmapping->insert(nm);
       newentry.second = entry;
       if (t_proxyMapping) {
@@ -1985,8 +2018,7 @@ RecursorControlChannel::Answer luaconfig(bool broadcast)
   }
 }
 
-template <typename T>
-static RecursorControlChannel::Answer luaconfig(T begin, T end)
+static RecursorControlChannel::Answer luaconfig(ArgIterator begin, ArgIterator end)
 {
   if (begin != end) {
     if (g_luaSettingsInYAML) {

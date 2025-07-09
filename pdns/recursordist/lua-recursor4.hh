@@ -21,20 +21,16 @@
  */
 #pragma once
 
-#ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif
 
 #include "iputils.hh"
 #include "dnsname.hh"
 #include "namespaces.hh"
-#include "dnsrecords.hh"
 #include "filterpo.hh"
 #include "ednsoptions.hh"
 #include "validate.hh"
 #include "lua-base4.hh"
 #include "proxy-protocol.hh"
-#include "noinitvector.hh"
 #include "rec-eventtrace.hh"
 
 #include <unordered_map>
