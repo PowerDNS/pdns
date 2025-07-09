@@ -74,7 +74,7 @@ public:
   ~LMDBBackend();
 
   unsigned int getCapabilities() override;
-  bool list(const ZoneName& target, domainid_t domainId, bool include_disabled) override;
+  bool list(const ZoneName& target, domainid_t domain_id, bool include_disabled) override;
 
   bool getDomainInfo(const ZoneName& domain, DomainInfo& info, bool getserial = true) override;
   bool createDomain(const ZoneName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account) override;

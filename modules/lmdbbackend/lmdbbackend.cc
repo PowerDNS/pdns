@@ -1717,35 +1717,22 @@ bool LMDBBackend::deleteDomain(const ZoneName& domain)
   return true;
 }
 
-bool LMDBBackend::list(const ZoneName& target, domainid_t /* id */, bool include_disabled)
+bool LMDBBackend::list(const ZoneName& target, domainid_t domain_id, bool include_disabled)
 {
+  d_lookupdomain = target;
   d_includedisabled = include_disabled;
 
-  DomainInfo di;
-  {
-    auto dtxn = d_tdomains->getROTransaction();
-    if ((di.id = dtxn.get<0>(target, di))) {
-      // cerr << "Found domain " << target << " on domain_id " << di.id << ", list requested " << id << endl;
-    }
-    else {
-      // cerr << "Did not find " << target << endl;
-      return false;
-    }
-  }
-
-  d_rotxn = getRecordsROTransaction(di.id, d_rwtxn);
+  d_rotxn = getRecordsROTransaction(domain_id, d_rwtxn);
   d_txnorder = true;
   d_getcursor = std::make_shared<MDBROCursor>(d_rotxn->txn->getCursor(d_rotxn->db->dbi));
 
-  compoundOrdername co;
-  std::string match = co(di.id);
+  compoundOrdername co; // NOLINT(readability-identifier-length)
+  std::string match = co(domain_id);
 
   MDBOutVal key, val;
   if (d_getcursor->prefix(match, key, val) != 0) {
     d_getcursor.reset();
   }
-
-  d_lookupdomain = target;
 
   // Make sure we start with fresh data
   d_currentrrset.clear();
