@@ -1717,6 +1717,20 @@ bool LMDBBackend::deleteDomain(const ZoneName& domain)
   return true;
 }
 
+/*
+ * Domain lookup shared state, set by list/lookup, used by get:
+ *
+ * d_lookupdomain: current domain being processed (appended to the
+ *                 results' names)
+ * d_currentrrset: temporary vector of results (records found at the same
+ *                 cursor, i.e. same qname but possibly different qtype)
+ * d_currentrrsetpos: position in the above when returning its elements one
+ *                    by one
+ * d_currentKey: database key at cursor
+ * d_currentVal: database contents at cursor
+ * d_includedisabled: whether to include disabled records in the results
+ */
+
 bool LMDBBackend::list(const ZoneName& target, domainid_t domain_id, bool include_disabled)
 {
   d_lookupdomain = target;
