@@ -156,8 +156,7 @@ static std::map<unsigned int, std::set<int>> parseCPUMap(Logr::log_t log)
   const std::string value = ::arg()["cpu-map"];
 
   if (!value.empty() && !isSettingThreadCPUAffinitySupported()) {
-    SLOG(g_log << Logger::Warning << "CPU mapping requested but not supported, skipping" << endl,
-         log->info(Logr::Warning, "CPU mapping requested but not supported, skipping"));
+    log->info(Logr::Warning, "CPU mapping requested but not supported, skipping");
     return result;
   }
 
@@ -187,8 +186,7 @@ static std::map<unsigned int, std::set<int>> parseCPUMap(Logr::log_t log)
       }
     }
     catch (const std::exception& e) {
-      SLOG(g_log << Logger::Error << "Error parsing cpu-map entry '" << part << "': " << e.what() << endl,
-           log->error(Logr::Error, e.what(), "Error parsing cpu-map entry", "entry", Logging::Loggable(part)));
+      log->error(Logr::Error, e.what(), "Error parsing cpu-map entry", "entry", Logging::Loggable(part));
     }
   }
 
@@ -248,8 +246,7 @@ int RecThreadInfo::runThreads(Logr::log_t log)
   const auto cpusMap = parseCPUMap(log);
 
   if (RecThreadInfo::numDistributors() + RecThreadInfo::numUDPWorkers() == 1) {
-    SLOG(g_log << Logger::Warning << "Operating with single UDP distributor/worker thread" << endl,
-         log->info(Logr::Notice, "Operating with single UDP distributor/worker thread"));
+    log->info(Logr::Notice, "Operating with single UDP distributor/worker thread");
 
     /* This thread handles the web server, carbon, statistics and the control channel */
     unsigned int currentThreadId = 0;
@@ -319,23 +316,20 @@ int RecThreadInfo::runThreads(Logr::log_t log)
     // And now start the actual threads
     currentThreadId = 1;
     if (RecThreadInfo::weDistributeQueries()) {
-      SLOG(g_log << Logger::Warning << "Launching " << RecThreadInfo::numDistributors() << " distributor threads" << endl,
-           log->info(Logr::Notice, "Launching distributor threads", "count", Logging::Loggable(RecThreadInfo::numDistributors())));
+      log->info(Logr::Notice, "Launching distributor threads", "count", Logging::Loggable(RecThreadInfo::numDistributors()));
       for (unsigned int thread = 0; thread < RecThreadInfo::numDistributors(); thread++, currentThreadId++) {
         auto& info = RecThreadInfo::info(currentThreadId);
         info.start(currentThreadId, "distr", cpusMap, log);
       }
     }
-    SLOG(g_log << Logger::Warning << "Launching " << RecThreadInfo::numUDPWorkers() << " worker threads" << endl,
-         log->info(Logr::Notice, "Launching worker threads", "count", Logging::Loggable(RecThreadInfo::numUDPWorkers())));
+    log->info(Logr::Notice, "Launching worker threads", "count", Logging::Loggable(RecThreadInfo::numUDPWorkers()));
 
     for (unsigned int thread = 0; thread < RecThreadInfo::numUDPWorkers(); thread++, currentThreadId++) {
       auto& info = RecThreadInfo::info(currentThreadId);
       info.start(currentThreadId, "worker", cpusMap, log);
     }
 
-    SLOG(g_log << Logger::Warning << "Launching " << RecThreadInfo::numTCPWorkers() << " tcpworker threads" << endl,
-         log->info(Logr::Notice, "Launching tcpworker threads", "count", Logging::Loggable(RecThreadInfo::numTCPWorkers())));
+    log->info(Logr::Notice, "Launching tcpworker threads", "count", Logging::Loggable(RecThreadInfo::numTCPWorkers()));
 
     for (unsigned int thread = 0; thread < RecThreadInfo::numTCPWorkers(); thread++, currentThreadId++) {
       auto& info = RecThreadInfo::info(currentThreadId);
@@ -374,8 +368,7 @@ void RecThreadInfo::makeThreadPipes(Logr::log_t log)
 {
   auto pipeBufferSize = ::arg().asNum("distribution-pipe-buffer-size");
   if (pipeBufferSize > 0) {
-    SLOG(g_log << Logger::Info << "Resizing the buffer of the distribution pipe to " << pipeBufferSize << endl,
-         log->info(Logr::Info, "Resizing the buffer of the distribution pipe", "size", Logging::Loggable(pipeBufferSize)));
+    log->info(Logr::Info, "Resizing the buffer of the distribution pipe", "size", Logging::Loggable(pipeBufferSize));
   }
 
   /* thread 0 is the handler / SNMP, worker threads start at 1 */
@@ -412,12 +405,10 @@ void RecThreadInfo::makeThreadPipes(Logr::log_t log)
     if (pipeBufferSize > 0) {
       if (!setPipeBufferSize(threadInfo.pipes.writeQueriesToThread, pipeBufferSize)) {
         int err = errno;
-        SLOG(g_log << Logger::Warning << "Error resizing the buffer of the distribution pipe for thread " << thread << " to " << pipeBufferSize << ": " << stringerror(err) << endl,
-             log->error(Logr::Warning, err, "Error resizing the buffer of the distribution pipe for thread", "thread", Logging::Loggable(thread), "size", Logging::Loggable(pipeBufferSize)));
+        log->error(Logr::Warning, err, "Error resizing the buffer of the distribution pipe for thread", "thread", Logging::Loggable(thread), "size", Logging::Loggable(pipeBufferSize));
         auto existingSize = getPipeBufferSize(threadInfo.pipes.writeQueriesToThread);
         if (existingSize > 0) {
-          SLOG(g_log << Logger::Warning << "The current size of the distribution pipe's buffer for thread " << thread << " is " << existingSize << endl,
-               log->info(Logr::Warning, "The current size of the distribution pipe's buffer for thread", "thread", Logging::Loggable(thread), "size", Logging::Loggable(existingSize)));
+          log->info(Logr::Warning, "The current size of the distribution pipe's buffer for thread", "thread", Logging::Loggable(thread), "size", Logging::Loggable(existingSize));
         }
       }
     }
@@ -443,16 +434,13 @@ static FDMultiplexer* getMultiplexer(Logr::log_t log)
       return ret;
     }
     catch (FDMultiplexerException& fe) {
-      SLOG(g_log << Logger::Warning << "Non-fatal error initializing possible multiplexer (" << fe.what() << "), falling back" << endl,
-           log->error(Logr::Warning, fe.what(), "Non-fatal error initializing possible multiplexer, falling back"));
+      log->error(Logr::Warning, fe.what(), "Non-fatal error initializing possible multiplexer, falling back");
     }
     catch (...) {
-      SLOG(g_log << Logger::Warning << "Non-fatal error initializing possible multiplexer" << endl,
-           log->info(Logr::Warning, "Non-fatal error initializing possible multiplexer"));
+      log->info(Logr::Warning, "Non-fatal error initializing possible multiplexer");
     }
   }
-  SLOG(g_log << Logger::Error << "No working multiplexer found!" << endl,
-       log->info(Logr::Error, "No working multiplexer found!"));
+  log->info(Logr::Error, "No working multiplexer found!");
   _exit(1);
 }
 
@@ -468,12 +456,10 @@ static std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>> startProtobuf
       result->emplace_back(std::move(logger));
     }
     catch (const std::exception& e) {
-      SLOG(g_log << Logger::Error << "Error while starting protobuf logger to '" << server << ": " << e.what() << endl,
-           log->error(Logr::Error, e.what(), "Exception while starting protobuf logger", "exception", Logging::Loggable("std::exception"), "server", Logging::Loggable(server)));
+      log->error(Logr::Error, e.what(), "Exception while starting protobuf logger", "exception", Logging::Loggable("std::exception"), "server", Logging::Loggable(server));
     }
     catch (const PDNSException& e) {
-      SLOG(g_log << Logger::Error << "Error while starting protobuf logger to '" << server << ": " << e.reason << endl,
-           log->error(Logr::Error, e.reason, "Exception while starting protobuf logger", "exception", Logging::Loggable("PDNSException"), "server", Logging::Loggable(server)));
+      log->error(Logr::Error, e.reason, "Exception while starting protobuf logger", "exception", Logging::Loggable("PDNSException"), "server", Logging::Loggable(server));
     }
   }
 
@@ -703,12 +689,10 @@ static std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>> startFra
       result->emplace_back(std::move(fsl));
     }
     catch (const std::exception& e) {
-      SLOG(g_log << Logger::Error << "Error while starting dnstap framestream logger to '" << server << ": " << e.what() << endl,
-           log->error(Logr::Error, e.what(), "Exception while starting dnstap framestream logger", "exception", Logging::Loggable("std::exception"), "server", Logging::Loggable(server)));
+      log->error(Logr::Error, e.what(), "Exception while starting dnstap framestream logger", "exception", Logging::Loggable("std::exception"), "server", Logging::Loggable(server));
     }
     catch (const PDNSException& e) {
-      SLOG(g_log << Logger::Error << "Error while starting dnstap framestream logger to '" << server << ": " << e.reason << endl,
-           log->error(Logr::Error, e.reason, "Exception while starting dnstap framestream logger", "exception", Logging::Loggable("PDNSException"), "server", Logging::Loggable(server)));
+      log->error(Logr::Error, e.reason, "Exception while starting dnstap framestream logger", "exception", Logging::Loggable("PDNSException"), "server", Logging::Loggable(server));
     }
   }
 
@@ -800,8 +784,7 @@ static void writePid(Logr::log_t log)
   }
   else {
     int err = errno;
-    SLOG(g_log << Logger::Error << "Writing pid for " << Utility::getpid() << " to " << g_pidfname << " failed: " << stringerror(err) << endl,
-         log->error(Logr::Error, err, "Writing pid failed", "pid", Logging::Loggable(Utility::getpid()), "file", Logging::Loggable(g_pidfname)));
+    log->error(Logr::Error, err, "Writing pid failed", "pid", Logging::Loggable(Utility::getpid()), "file", Logging::Loggable(g_pidfname));
   }
 }
 
@@ -824,8 +807,7 @@ static void checkSocketDir(Logr::log_t log)
     return;
   }
   dir = ::arg()["chroot"] + dir;
-  SLOG(g_log << Logger::Error << "Problem with socket directory " << dir << ": " << msg << "; see https://docs.powerdns.com/recursor/upgrade.html#x-to-4-3-0" << endl,
-       log->error(Logr::Error, msg, "Problem with socket directory, see https://docs.powerdns.com/recursor/upgrade.html#x-to-4-3-0", "dir", Logging::Loggable(dir)));
+  log->error(Logr::Error, msg, "Problem with socket directory, see https://docs.powerdns.com/recursor/upgrade.html#x-to-4-3-0", "dir", Logging::Loggable(dir));
   _exit(1);
 }
 
@@ -839,13 +821,11 @@ static void setupNODThread(Logr::log_t log)
       g_nodDBp->setCacheDir(::arg()["new-domain-history-dir"]);
     }
     catch (const PDNSException& e) {
-      SLOG(g_log << Logger::Error << "new-domain-history-dir (" << ::arg()["new-domain-history-dir"] << ") is not readable or does not exist" << endl,
-           log->error(Logr::Error, e.reason, "new-domain-history-dir is not readable or does not exists", "dir", Logging::Loggable(::arg()["new-domain-history-dir"])));
+      log->error(Logr::Error, e.reason, "new-domain-history-dir is not readable or does not exists", "dir", Logging::Loggable(::arg()["new-domain-history-dir"]));
       _exit(1);
     }
     if (!g_nodDBp->init()) {
-      SLOG(g_log << Logger::Error << "Could not initialize domain tracking" << endl,
-           log->info(Logr::Error, "Could not initialize domain tracking"));
+      log->info(Logr::Error, "Could not initialize domain tracking");
       _exit(1);
     }
     if (::arg().asNum("new-domain-db-snapshot-interval") > 0) {
@@ -863,13 +843,11 @@ static void setupNODThread(Logr::log_t log)
       g_udrDBp->setCacheDir(::arg()["unique-response-history-dir"]);
     }
     catch (const PDNSException& e) {
-      SLOG(g_log << Logger::Error << "unique-response-history-dir (" << ::arg()["unique-response-history-dir"] << ") is not readable or does not exist" << endl,
-           log->info(Logr::Error, "unique-response-history-dir is not readable or does not exist", "dir", Logging::Loggable(::arg()["unique-response-history-dir"])));
+      log->info(Logr::Error, "unique-response-history-dir is not readable or does not exist", "dir", Logging::Loggable(::arg()["unique-response-history-dir"]));
       _exit(1);
     }
     if (!g_udrDBp->init()) {
-      SLOG(g_log << Logger::Error << "Could not initialize unique response tracking" << endl,
-           log->info(Logr::Error, "Could not initialize unique response tracking"));
+      log->info(Logr::Error, "Could not initialize unique response tracking");
       _exit(1);
     }
     if (::arg().asNum("new-domain-db-snapshot-interval") > 0) {
@@ -906,8 +884,7 @@ static void parseIgnorelistFile(const std::string& fname, SuffixMatchNode& match
       matchNode.add(DNSName(line));
     }
     catch (const std::exception& e) {
-      SLOG(g_log << Logger::Warning << "Ignoring line of ignorelist due to an error: " << e.what() << endl,
-           g_slog->withName("config")->error(Logr::Warning, e.what(), "Ignoring line of ignorelist due to an error", "exception", Logging::Loggable("std::exception")));
+      g_slog->withName("config")->error(Logr::Warning, e.what(), "Ignoring line of ignorelist due to an error", "exception", Logging::Loggable("std::exception"));
     }
   }
 }
@@ -941,8 +918,7 @@ static void daemonize(Logr::log_t log)
   if (auto pid = fork(); pid != 0) {
     if (pid < 0) {
       int err = errno;
-      SLOG(g_log << Logger::Critical << "Fork failed: " << stringerror(err) << endl,
-           log->error(Logr::Critical, err, "Fork failed"));
+      log->error(Logr::Critical, err, "Fork failed");
       exit(1); // NOLINT(concurrency-mt-unsafe)
     }
     exit(0); // NOLINT(concurrency-mt-unsafe)
@@ -953,8 +929,7 @@ static void daemonize(Logr::log_t log)
   int devNull = open("/dev/null", O_RDWR); /* open stdin */
   if (devNull < 0) {
     int err = errno;
-    SLOG(g_log << Logger::Critical << "Unable to open /dev/null: " << stringerror(err) << endl,
-         log->error(Logr::Critical, err, "Unable to open /dev/null"));
+    log->error(Logr::Critical, err, "Unable to open /dev/null");
   }
   else {
     dup2(devNull, 0); /* stdin */
@@ -988,8 +963,7 @@ static void checkLinuxIPv6Limits([[maybe_unused]] Logr::log_t log)
   if (readFileIfThere("/proc/sys/net/ipv6/route/max_size", &line)) {
     int lim = std::stoi(line);
     if (lim < 16384) {
-      SLOG(g_log << Logger::Error << "If using IPv6, please raise sysctl net.ipv6.route.max_size, currently set to " << lim << " which is < 16384" << endl,
-           log->info(Logr::Error, "If using IPv6, please raise sysctl net.ipv6.route.max_size to a size >= 16384", "current", Logging::Loggable(lim)));
+      log->info(Logr::Error, "If using IPv6, please raise sysctl net.ipv6.route.max_size to a size >= 16384", "current", Logging::Loggable(lim));
     }
   }
 #endif
@@ -1007,10 +981,9 @@ static void checkOrFixLinuxMapCountLimits([[maybe_unused]] Logr::log_t log)
     auto mapsNeeded = 4ULL * g_maxMThreads * workers;
     if (lim < mapsNeeded) {
       g_maxMThreads = static_cast<unsigned int>(lim / (4ULL * workers));
-      SLOG(g_log << Logger::Error << "sysctl vm.max_map_count= <" << mapsNeeded << ", this may cause 'bad_alloc' exceptions; adjusting max-mthreads to " << g_maxMThreads << endl,
-           log->info(Logr::Error, "sysctl vm.max_map_count < mapsNeeded, this may cause 'bad_alloc' exceptions, adjusting max-mthreads",
-                     "vm.max_map_count", Logging::Loggable(lim), "mapsNeeded", Logging::Loggable(mapsNeeded),
-                     "max-mthreads", Logging::Loggable(g_maxMThreads)));
+      log->info(Logr::Error, "sysctl vm.max_map_count < mapsNeeded, this may cause 'bad_alloc' exceptions, adjusting max-mthreads",
+                "vm.max_map_count", Logging::Loggable(lim), "mapsNeeded", Logging::Loggable(mapsNeeded),
+                "max-mthreads", Logging::Loggable(g_maxMThreads));
     }
   }
 #endif
@@ -1347,9 +1320,8 @@ static std::shared_ptr<NetmaskGroup> parseACL(const std::string& aclFile, const 
         result->addMask(line);
       }
     }
-    SLOG(g_log << Logger::Info << "Done parsing " << result->size() << " " << aclSetting << " ranges from file '" << file << "' - overriding '" << aclSetting << "' setting" << endl,
-         log->info(Logr::Info, "Done parsing ranges from file, will override setting", "setting", Logging::Loggable(aclSetting),
-                   "number", Logging::Loggable(result->size()), "file", Logging::Loggable(file)));
+    log->info(Logr::Info, "Done parsing ranges from file, will override setting", "setting", Logging::Loggable(aclSetting),
+              "number", Logging::Loggable(result->size()), "file", Logging::Loggable(file));
   }
   else if (!::arg()[aclSetting].empty()) {
     vector<string> ips;
@@ -1482,8 +1454,7 @@ void parseACLs()
 
   if (allowFrom->empty()) {
     if (::arg()["local-address"] != "127.0.0.1" && ::arg().asNum("local-port") == 53) {
-      SLOG(g_log << Logger::Warning << "WARNING: Allowing queries from all IP addresses - this can be a security risk!" << endl,
-           log->info(Logr::Warning, "WARNING: Allowing queries from all IP addresses - this can be a security risk!"));
+      log->info(Logr::Warning, "WARNING: Allowing queries from all IP addresses - this can be a security risk!");
     }
     allowFrom = nullptr;
   }
@@ -1669,34 +1640,28 @@ static int initNet(Logr::log_t log)
     pdns::parseQueryLocalAddress(::arg()["query-local-address"]);
   }
   catch (std::exception& e) {
-    SLOG(g_log << Logger::Error << "Assigning local query addresses: " << e.what(),
-         log->error(Logr::Error, e.what(), "Unable to assign local query address"));
+    log->error(Logr::Error, e.what(), "Unable to assign local query address");
     return 99;
   }
 
   if (pdns::isQueryLocalAddressFamilyEnabled(AF_INET)) {
     SyncRes::s_doIPv4 = true;
-    SLOG(g_log << Logger::Warning << "Enabling IPv4 transport for outgoing queries" << endl,
-         log->info(Logr::Notice, "Enabling IPv4 transport for outgoing queries"));
+    log->info(Logr::Notice, "Enabling IPv4 transport for outgoing queries");
   }
   else {
-    SLOG(g_log << Logger::Warning << "NOT using IPv4 for outgoing queries - add an IPv4 address (like '0.0.0.0') to query-local-address to enable" << endl,
-         log->info(Logr::Warning, "NOT using IPv4 for outgoing queries - add an IPv4 address (like '0.0.0.0') to query-local-address to enable"));
+    log->info(Logr::Warning, "NOT using IPv4 for outgoing queries - add an IPv4 address (like '0.0.0.0') to query-local-address to enable");
   }
 
   if (pdns::isQueryLocalAddressFamilyEnabled(AF_INET6)) {
     SyncRes::s_doIPv6 = true;
-    SLOG(g_log << Logger::Warning << "Enabling IPv6 transport for outgoing queries" << endl,
-         log->info(Logr::Notice, "Enabling IPv6 transport for outgoing queries"));
+    log->info(Logr::Notice, "Enabling IPv6 transport for outgoing queries");
   }
   else {
-    SLOG(g_log << Logger::Warning << "NOT using IPv6 for outgoing queries - add an IPv6 address (like '::') to query-local-address to enable" << endl,
-         log->info(Logr::Warning, "NOT using IPv6 for outgoing queries - add an IPv6 address (like '::') to query-local-address to enable"));
+    log->info(Logr::Warning, "NOT using IPv6 for outgoing queries - add an IPv6 address (like '::') to query-local-address to enable");
   }
 
   if (!SyncRes::s_doIPv6 && !SyncRes::s_doIPv4) {
-    SLOG(g_log << Logger::Error << "No outgoing addresses configured! Can not continue" << endl,
-         log->info(Logr::Error, "No outgoing addresses configured! Can not continue"));
+    log->info(Logr::Error, "No outgoing addresses configured! Can not continue");
     return 99;
   }
   return 0;
@@ -1720,8 +1685,7 @@ static int initDNSSEC(Logr::log_t log)
     g_dnssecmode = DNSSECMode::ValidateForLog;
   }
   else {
-    SLOG(g_log << Logger::Error << "Unknown DNSSEC mode " << ::arg()["dnssec"] << endl,
-         log->info(Logr::Error, "Unknown DNSSEC mode", "dnssec", Logging::Loggable(::arg()["dnssec"])));
+    log->info(Logr::Error, "Unknown DNSSEC mode", "dnssec", Logging::Loggable(::arg()["dnssec"]));
     return 1;
   }
 
@@ -1846,8 +1810,7 @@ static int initSyncRes(Logr::log_t log)
   {
     uint64_t sse = ::arg().asNum("serve-stale-extensions");
     if (sse > std::numeric_limits<uint16_t>::max()) {
-      SLOG(g_log << Logger::Error << "Illegal serve-stale-extensions value: " << sse << "; range = 0..65536" << endl,
-           log->info(Logr::Error, "Illegal serve-stale-extensions value; range = 0..65536", "value", Logging::Loggable(sse)));
+      log->info(Logr::Error, "Illegal serve-stale-extensions value; range = 0..65536", "value", Logging::Loggable(sse));
       return 1;
     }
     MemRecursorCache::s_maxServedStaleExtensions = sse;
@@ -1882,8 +1845,7 @@ static int initSyncRes(Logr::log_t log)
     SyncRes::s_hardenNXD = SyncRes::HardenNXD::No;
   }
   else if (value != "dnssec") {
-    SLOG(g_log << Logger::Error << "Unknown nothing-below-nxdomain mode: " << value << endl,
-         log->info(Logr::Error, "Unknown nothing-below-nxdomain mode", "mode", Logging::Loggable(value)));
+    log->info(Logr::Error, "Unknown nothing-below-nxdomain mode", "mode", Logging::Loggable(value));
     return 1;
   }
 
@@ -1926,8 +1888,7 @@ static unsigned int initDistribution(Logr::log_t log)
   g_balancingFactor = ::arg().asDouble("distribution-load-factor");
   if (g_balancingFactor != 0.0 && g_balancingFactor < 1.0) {
     g_balancingFactor = 0.0;
-    SLOG(g_log << Logger::Warning << "Asked to run with a distribution-load-factor below 1.0, disabling it instead" << endl,
-         log->info(Logr::Warning, "Asked to run with a distribution-load-factor below 1.0, disabling it instead"));
+    log->info(Logr::Warning, "Asked to run with a distribution-load-factor below 1.0, disabling it instead");
   }
 
 #ifdef SO_REUSEPORT
@@ -1989,8 +1950,7 @@ static int initForks(Logr::log_t log)
   }
 
   if (::arg().mustDo("daemon")) {
-    SLOG(g_log << Logger::Warning << "Calling daemonize, going to background" << endl,
-         log->info(Logr::Warning, "Calling daemonize, going to background"));
+    log->info(Logr::Warning, "Calling daemonize, going to background");
     g_log.toConsole(Logger::Critical);
     daemonize(log);
   }
@@ -2023,15 +1983,13 @@ static int initPorts(Logr::log_t log)
 {
   int port = ::arg().asNum("udp-source-port-min");
   if (port < 1024 || port > 65535) {
-    SLOG(g_log << Logger::Error << "Unable to launch, udp-source-port-min is not a valid port number" << endl,
-         log->info(Logr::Error, "Unable to launch, udp-source-port-min is not a valid port number"));
+    log->info(Logr::Error, "Unable to launch, udp-source-port-min is not a valid port number");
     return 99; // this isn't going to fix itself either
   }
   g_minUdpSourcePort = port;
   port = ::arg().asNum("udp-source-port-max");
   if (port < 1024 || port > 65535 || port < g_minUdpSourcePort) {
-    SLOG(g_log << Logger::Error << "Unable to launch, udp-source-port-max is not a valid port number or is smaller than udp-source-port-min" << endl,
-         log->info(Logr::Error, "Unable to launch, udp-source-port-max is not a valid port number or is smaller than udp-source-port-min"));
+    log->info(Logr::Error, "Unable to launch, udp-source-port-max is not a valid port number or is smaller than udp-source-port-min");
     return 99; // this isn't going to fix itself either
   }
   g_maxUdpSourcePort = port;
@@ -2040,8 +1998,7 @@ static int initPorts(Logr::log_t log)
   for (const auto& part : parts) {
     port = std::stoi(part);
     if (port < 1024 || port > 65535) {
-      SLOG(g_log << Logger::Error << "Unable to launch, udp-source-port-avoid contains an invalid port number: " << part << endl,
-           log->info(Logr::Error, "Unable to launch, udp-source-port-avoid contains an invalid port number", "port", Logging::Loggable(part)));
+      log->info(Logr::Error, "Unable to launch, udp-source-port-avoid contains an invalid port number", "port", Logging::Loggable(part));
       return 99; // this isn't going to fix itself either
     }
     g_avoidUdpSourcePorts.insert(port);
@@ -2061,8 +2018,7 @@ static void initSNMP([[maybe_unused]] Logr::log_t log)
     g_snmpAgent->run();
 #else
     const std::string msg = "snmp-agent set but SNMP support not compiled in";
-    SLOG(g_log << Logger::Error << msg << endl,
-         log->info(Logr::Error, msg));
+    log->info(Logr::Error, msg);
 #endif // HAVE_NET_SNMP
   }
 }
@@ -2074,19 +2030,16 @@ static int initControl(Logr::log_t log, uid_t newuid, int forks)
     char* ns;
     ns = getenv("NOTIFY_SOCKET");
     if (ns != nullptr) {
-      SLOG(g_log << Logger::Error << "Unable to chroot when running from systemd. Please disable chroot= or set the 'Type' for this service to 'simple'" << endl,
-           log->info(Logr::Error, "Unable to chroot when running from systemd. Please disable chroot= or set the 'Type' for this service to 'simple'"));
+      log->info(Logr::Error, "Unable to chroot when running from systemd. Please disable chroot= or set the 'Type' for this service to 'simple'");
       return 1;
     }
 #endif
     if (chroot(::arg()["chroot"].c_str()) < 0 || chdir("/") < 0) {
       int err = errno;
-      SLOG(g_log << Logger::Error << "Unable to chroot to '" + ::arg()["chroot"] + "': " << stringerror(err) << ", exiting" << endl,
-           log->error(Logr::Error, err, "Unable to chroot", "chroot", Logging::Loggable(::arg()["chroot"])));
+      log->error(Logr::Error, err, "Unable to chroot", "chroot", Logging::Loggable(::arg()["chroot"]));
       return 1;
     }
-    SLOG(g_log << Logger::Info << "Chrooted to '" << ::arg()["chroot"] << "'" << endl,
-         log->info(Logr::Info, "Chrooted", "chroot", Logging::Loggable(::arg()["chroot"])));
+    log->info(Logr::Info, "Chrooted", "chroot", Logging::Loggable(::arg()["chroot"]));
   }
 
   checkSocketDir(log);
@@ -2108,8 +2061,7 @@ static int initControl(Logr::log_t log, uid_t newuid, int forks)
     dropCapabilities();
   }
   catch (const std::exception& e) {
-    SLOG(g_log << Logger::Warning << e.what() << endl,
-         log->error(Logr::Warning, e.what(), "Could not drop capabilities"));
+    log->error(Logr::Warning, e.what(), "Could not drop capabilities");
   }
   return 0;
 }
@@ -2146,8 +2098,7 @@ static void initSuffixMatchNodes([[maybe_unused]] Logr::log_t log)
     stringtok(parts, ::arg()["dot-to-auth-names"], " ,");
 #ifndef HAVE_DNS_OVER_TLS
     if (!parts.empty()) {
-      SLOG(g_log << Logger::Error << "dot-to-auth-names setting contains names, but Recursor was built without DNS over TLS support. Setting will be ignored." << endl,
-           log->info(Logr::Error, "dot-to-auth-names setting contains names, but Recursor was built without DNS over TLS support. Setting will be ignored"));
+      log->info(Logr::Error, "dot-to-auth-names setting contains names, but Recursor was built without DNS over TLS support. Setting will be ignored");
     }
 #endif
     for (const auto& part : parts) {
@@ -2173,8 +2124,7 @@ static int initDNS64(Logr::log_t log)
     try {
       auto dns64Prefix = Netmask(::arg()["dns64-prefix"]);
       if (dns64Prefix.getBits() != 96) {
-        SLOG(g_log << Logger::Error << "Invalid prefix for 'dns64-prefix', the current implementation only supports /96 prefixes: " << ::arg()["dns64-prefix"] << endl,
-             log->info(Logr::Error, "Invalid prefix for 'dns64-prefix', the current implementation only supports /96 prefixes", "prefix", Logging::Loggable(::arg()["dns64-prefix"])));
+        log->info(Logr::Error, "Invalid prefix for 'dns64-prefix', the current implementation only supports /96 prefixes", "prefix", Logging::Loggable(::arg()["dns64-prefix"]));
         return 1;
       }
       g_dns64Prefix = dns64Prefix.getNetwork();
@@ -2185,8 +2135,7 @@ static int initDNS64(Logr::log_t log)
       }
     }
     catch (const NetmaskException& ne) {
-      SLOG(g_log << Logger::Error << "Invalid prefix '" << ::arg()["dns64-prefix"] << "' for 'dns64-prefix': " << ne.reason << endl,
-           log->info(Logr::Error, "Invalid prefix", "dns64-prefix", Logging::Loggable(::arg()["dns64-prefix"])));
+      log->info(Logr::Error, "Invalid prefix", "dns64-prefix", Logging::Loggable(::arg()["dns64-prefix"]));
       return 1;
     }
   }
@@ -2206,8 +2155,7 @@ static int serviceMain(Logr::log_t log)
       g_log.setFacility(val);
     }
     else {
-      SLOG(g_log << Logger::Error << "Unknown logging facility " << ::arg().asNum("logging-facility") << endl,
-           log->info(Logr::Error, "Unknown logging facility", "facility", Logging::Loggable(::arg().asNum("logging-facility"))));
+      log->info(Logr::Error, "Unknown logging facility", "facility", Logging::Loggable(::arg().asNum("logging-facility")));
     }
   }
 
@@ -2226,8 +2174,7 @@ static int serviceMain(Logr::log_t log)
 
   auto luaResult = luaconfig(false);
   if (luaResult.d_ret != 0) {
-    SLOG(g_log << Logger::Error << "Cannot load Lua or equivalent YAML configuration: " << luaResult.d_str << endl,
-         log->error(Logr::Error, luaResult.d_str, "Cannot load Lua or equivalent YAML configuration"));
+    log->error(Logr::Error, luaResult.d_str, "Cannot load Lua or equivalent YAML configuration");
     return 1;
   }
 
@@ -2238,8 +2185,7 @@ static int serviceMain(Logr::log_t log)
 
   RecThreadInfo::setWeDistributeQueries(::arg().mustDo("pdns-distributes-queries"));
   if (RecThreadInfo::weDistributeQueries()) {
-    SLOG(g_log << Logger::Warning << "PowerDNS Recursor itself will distribute queries over threads" << endl,
-         log->info(Logr::Notice, "PowerDNS Recursor itself will distribute queries over threads"));
+    log->info(Logr::Notice, "PowerDNS Recursor itself will distribute queries over threads");
   }
 
   g_outgoingEDNSBufsize = ::arg().asNum("edns-outgoing-bufsize");
@@ -2304,8 +2250,7 @@ static int serviceMain(Logr::log_t log)
     g_paddingMode = PaddingMode::PaddedQueries;
   }
   else {
-    SLOG(g_log << Logger::Error << "Unknown edns-padding-mode: " << ::arg()["edns-padding-mode"] << endl,
-         log->info(Logr::Error, "Unknown edns-padding-mode", "edns-padding-mode", Logging::Loggable(::arg()["edns-padding-mode"])));
+    log->info(Logr::Error, "Unknown edns-padding-mode", "edns-padding-mode", Logging::Loggable(::arg()["edns-padding-mode"]));
     return 1;
   }
   g_paddingTag = ::arg().asNum("edns-padding-tag");
@@ -2315,14 +2260,12 @@ static int serviceMain(Logr::log_t log)
   RecThreadInfo::setNumDistributorThreads(::arg().asNum("distributor-threads"));
   RecThreadInfo::setNumUDPWorkerThreads(::arg().asNum("threads"));
   if (RecThreadInfo::numUDPWorkers() < 1) {
-    SLOG(g_log << Logger::Warning << "Asked to run with 0 threads, raising to 1 instead" << endl,
-         log->info(Logr::Warning, "Asked to run with 0 threads, raising to 1 instead"));
+    log->info(Logr::Warning, "Asked to run with 0 threads, raising to 1 instead");
     RecThreadInfo::setNumUDPWorkerThreads(1);
   }
   RecThreadInfo::setNumTCPWorkerThreads(::arg().asNum("tcp-threads"));
   if (RecThreadInfo::numTCPWorkers() < 1) {
-    SLOG(g_log << Logger::Warning << "Asked to run with 0 TCP threads, raising to 1 instead" << endl,
-         log->info(Logr::Warning, "Asked to run with 0 TCP threads, raising to 1 instead"));
+    log->info(Logr::Warning, "Asked to run with 0 TCP threads, raising to 1 instead");
     RecThreadInfo::setNumTCPWorkerThreads(1);
   }
 
@@ -2330,8 +2273,7 @@ static int serviceMain(Logr::log_t log)
 
   int64_t maxInFlight = ::arg().asNum("max-concurrent-requests-per-tcp-connection");
   if (maxInFlight < 1 || maxInFlight > USHRT_MAX || maxInFlight >= g_maxMThreads) {
-    SLOG(g_log << Logger::Warning << "Asked to run with illegal max-concurrent-requests-per-tcp-connection, setting to default (10)" << endl,
-         log->info(Logr::Warning, "Asked to run with illegal max-concurrent-requests-per-tcp-connection, setting to default (10)"));
+    log->info(Logr::Warning, "Asked to run with illegal max-concurrent-requests-per-tcp-connection, setting to default (10)");
     TCPConnection::s_maxInFlight = 10;
   }
   else {
@@ -2355,15 +2297,13 @@ static int serviceMain(Logr::log_t log)
       g_aggressiveNSECCache = make_unique<AggressiveNSECCache>(::arg().asNum("aggressive-nsec-cache-size"));
     }
     else {
-      SLOG(g_log << Logger::Warning << "Aggressive NSEC/NSEC3 caching is enabled but DNSSEC validation is not set to 'validate', 'log-fail' or 'process', ignoring" << endl,
-           log->info(Logr::Warning, "Aggressive NSEC/NSEC3 caching is enabled but DNSSEC validation is not set to 'validate', 'log-fail' or 'process', ignoring"));
+      log->info(Logr::Warning, "Aggressive NSEC/NSEC3 caching is enabled but DNSSEC validation is not set to 'validate', 'log-fail' or 'process', ignoring");
     }
   }
 
   AggressiveNSECCache::s_nsec3DenialProofMaxCost = ::arg().asNum("aggressive-cache-max-nsec3-hash-cost");
   AggressiveNSECCache::s_maxNSEC3CommonPrefix = static_cast<uint8_t>(std::round(std::log2(::arg().asNum("aggressive-cache-min-nsec3-hit-ratio"))));
-  SLOG(g_log << Logger::Debug << "NSEC3 aggressive cache tuning: aggressive-cache-min-nsec3-hit-ratio: " << ::arg().asNum("aggressive-cache-min-nsec3-hit-ratio") << " max common prefix bits: " << std::to_string(AggressiveNSECCache::s_maxNSEC3CommonPrefix) << endl,
-       log->info(Logr::Debug, "NSEC3 aggressive cache tuning", "aggressive-cache-min-nsec3-hit-ratio", Logging::Loggable(::arg().asNum("aggressive-cache-min-nsec3-hit-ratio")), "maxCommonPrefixBits", Logging::Loggable(AggressiveNSECCache::s_maxNSEC3CommonPrefix)));
+  log->info(Logr::Debug, "NSEC3 aggressive cache tuning", "aggressive-cache-min-nsec3-hit-ratio", Logging::Loggable(::arg().asNum("aggressive-cache-min-nsec3-hit-ratio")), "maxCommonPrefixBits", Logging::Loggable(AggressiveNSECCache::s_maxNSEC3CommonPrefix));
 
   initSuffixMatchNodes(log);
   initCarbon();
@@ -2390,8 +2330,7 @@ static int serviceMain(Logr::log_t log)
 
 #ifdef HAVE_LIBSODIUM
   if (sodium_init() == -1) {
-    SLOG(g_log << Logger::Error << "Unable to initialize sodium crypto library" << endl,
-         log->info(Logr::Error, "Unable to initialize sodium crypto library"));
+    log->info(Logr::Error, "Unable to initialize sodium crypto library");
     return 99;
   }
 #endif
@@ -2497,8 +2436,7 @@ static void handleRCC(int fileDesc, FDMultiplexer::funcparam_t& /* var */)
       throw PDNSException("accept failed");
     }
     string msg = g_rcc.recv(clientfd).d_str;
-    SLOG(g_log << Logger::Info << "Received rec_control command '" << msg << "' via controlsocket" << endl,
-         log->info(Logr::Info, "Received rec_control command via control socket", "command", Logging::Loggable(msg)));
+    log->info(Logr::Info, "Received rec_control command via control socket", "command", Logging::Loggable(msg));
 
     RecursorControlParser::func_t* command = nullptr;
     auto answer = RecursorControlParser::getAnswer(clientfd, msg, &command);
@@ -2512,12 +2450,10 @@ static void handleRCC(int fileDesc, FDMultiplexer::funcparam_t& /* var */)
     }
   }
   catch (const std::exception& e) {
-    SLOG(g_log << Logger::Error << "Error dealing with control socket request: " << e.what() << endl,
-         log->error(Logr::Error, e.what(), "Exception while dealing with control socket request", "exception", Logging::Loggable("std::exception")));
+    log->error(Logr::Error, e.what(), "Exception while dealing with control socket request", "exception", Logging::Loggable("std::exception"));
   }
   catch (const PDNSException& ae) {
-    SLOG(g_log << Logger::Error << "Error dealing with control socket request: " << ae.reason << endl,
-         log->error(Logr::Error, ae.reason, "Exception while dealing with control socket request", "exception", Logging::Loggable("PDNSException")));
+    log->error(Logr::Error, ae.reason, "Exception while dealing with control socket request", "exception", Logging::Loggable("PDNSException"));
   }
 }
 
@@ -2699,24 +2635,19 @@ static void houseKeepingWork(Logr::log_t log)
         doSecPoll(&t_last_secpoll, log);
       }
       catch (const std::exception& e) {
-        SLOG(g_log << Logger::Error << "Exception while performing security poll: " << e.what() << endl,
-             log->error(Logr::Error, e.what(), "Exception while performing security poll"));
+        log->error(Logr::Error, e.what(), "Exception while performing security poll");
       }
       catch (const PDNSException& e) {
-        SLOG(g_log << Logger::Error << "Exception while performing security poll: " << e.reason << endl,
-             log->error(Logr::Error, e.reason, "Exception while performing security poll"));
+        log->error(Logr::Error, e.reason, "Exception while performing security poll");
       }
       catch (const ImmediateServFailException& e) {
-        SLOG(g_log << Logger::Error << "Exception while performing security poll: " << e.reason << endl,
-             log->error(Logr::Error, e.reason, "Exception while performing security poll"));
+        log->error(Logr::Error, e.reason, "Exception while performing security poll");
       }
       catch (const PolicyHitException& e) {
-        SLOG(g_log << Logger::Error << "Policy hit while performing security poll" << endl,
-             log->info(Logr::Error, "Policy hit while performing security poll"));
+        log->info(Logr::Error, "Policy hit while performing security poll");
       }
       catch (...) {
-        SLOG(g_log << Logger::Error << "Exception while performing security poll" << endl,
-             log->info(Logr::Error, "Exception while performing security poll"));
+        log->info(Logr::Error, "Exception while performing security poll");
       }
     });
 
@@ -2730,8 +2661,7 @@ static void houseKeepingWork(Logr::log_t log)
     trustAnchorTask.setPeriod(taInterval);
     trustAnchorTask.runIfDue(now, [&luaconfsLocal, &log]() {
       if (!luaconfsLocal->trustAnchorFileInfo.fname.empty() && luaconfsLocal->trustAnchorFileInfo.interval != 0) {
-        SLOG(g_log << Logger::Debug << "Refreshing Trust Anchors from file" << endl,
-             log->info(Logr::Debug, "Refreshing Trust Anchors from file"));
+        log->info(Logr::Debug, "Refreshing Trust Anchors from file");
         try {
           map<DNSName, dsset_t> dsAnchors;
           if (updateTrustAnchorsFromFile(luaconfsLocal->trustAnchorFileInfo.fname, dsAnchors, log)) {
@@ -2741,8 +2671,7 @@ static void houseKeepingWork(Logr::log_t log)
           }
         }
         catch (const PDNSException& pe) {
-          SLOG(g_log << Logger::Error << "Unable to update Trust Anchors: " << pe.reason << endl,
-               log->error(Logr::Error, pe.reason, "Unable to update Trust Anchors"));
+          log->error(Logr::Error, pe.reason, "Unable to update Trust Anchors");
         }
       }
     });
@@ -2765,14 +2694,12 @@ static void houseKeeping(void* /* ignored */)
   }
   catch (const PDNSException& ae) {
     t_running = false;
-    SLOG(g_log << Logger::Error << "Fatal error in housekeeping thread: " << ae.reason << endl,
-         log->error(Logr::Error, ae.reason, "Fatal error in housekeeping thread"));
+    log->error(Logr::Error, ae.reason, "Fatal error in housekeeping thread");
     throw;
   }
   catch (...) {
     t_running = false;
-    SLOG(g_log << Logger::Error << "Uncaught exception in housekeeping thread" << endl,
-         log->info(Logr::Error, "Uncaught exception in housekeeping thread"));
+    log->info(Logr::Error, "Uncaught exception in housekeeping thread");
     throw;
   }
 }
@@ -2833,8 +2760,7 @@ static void recLoop()
         for (const auto& exp : expired) {
           auto conn = boost::any_cast<shared_ptr<TCPConnection>>(exp.second);
           if (g_logCommonErrors) {
-            SLOG(g_log << Logger::Warning << "Timeout from remote TCP client " << conn->d_remote.toStringWithPort() << endl,
-                 g_slogtcpin->info(Logr::Warning, "Timeout from remote TCP client", "remote", Logging::Loggable(conn->d_remote)));
+            g_slogtcpin->info(Logr::Warning, "Timeout from remote TCP client", "remote", Logging::Loggable(conn->d_remote));
           }
           t_fdm->removeReadFD(exp.first);
         }
@@ -2899,11 +2825,9 @@ static void recursorThread()
         if (!primeHints()) {
           threadInfo.setExitCode(EXIT_FAILURE);
           RecursorControlChannel::stop = true;
-          SLOG(g_log << Logger::Critical << "Priming cache failed, stopping" << endl,
-               log->info(Logr::Critical, "Priming cache failed, stopping"));
+          log->info(Logr::Critical, "Priming cache failed, stopping");
         }
-        SLOG(g_log << Logger::Debug << "Done priming cache with root hints" << endl,
-             log->info(Logr::Debug, "Done priming cache with root hints"));
+        log->info(Logr::Debug, "Done priming cache with root hints");
       }
     }
 
@@ -2913,13 +2837,11 @@ static void recursorThread()
         if (!::arg()["lua-dns-script"].empty()) {
           t_pdl = std::make_shared<RecursorLua4>();
           t_pdl->loadFile(::arg()["lua-dns-script"]);
-          SLOG(g_log << Logger::Warning << "Loaded 'lua' script from '" << ::arg()["lua-dns-script"] << "'" << endl,
-               log->info(Logr::Warning, "Loading Lua script from file", "name", Logging::Loggable(::arg()["lua-dns-script"])));
+          log->info(Logr::Warning, "Loading Lua script from file", "name", Logging::Loggable(::arg()["lua-dns-script"]));
         }
       }
       catch (std::exception& e) {
-        SLOG(g_log << Logger::Error << "Failed to load 'lua' script from '" << ::arg()["lua-dns-script"] << "': " << e.what() << endl,
-             log->error(Logr::Error, e.what(), "Failed to load Lua script from file", "name", Logging::Loggable(::arg()["lua-dns-script"])));
+        log->error(Logr::Error, e.what(), "Failed to load Lua script from file", "name", Logging::Loggable(::arg()["lua-dns-script"]));
         _exit(99);
       }
     }
@@ -2970,8 +2892,7 @@ static void recursorThread()
     t_fdm->addReadFD(threadInfo.getPipes().readToThread, handlePipeRequest);
 
     if (threadInfo.isHandler()) {
-      SLOG(g_log << Logger::Info << "Enabled '" << t_fdm->getName() << "' multiplexer" << endl,
-           log->info(Logr::Info, "Enabled multiplexer", "name", Logging::Loggable(t_fdm->getName())));
+      log->info(Logr::Info, "Enabled multiplexer", "name", Logging::Loggable(t_fdm->getName()));
     }
     else {
       t_fdm->addReadFD(threadInfo.getPipes().readQueriesToThread, handlePipeRequest);
@@ -3008,16 +2929,13 @@ static void recursorThread()
     recLoop();
   }
   catch (const PDNSException& ae) {
-    SLOG(g_log << Logger::Error << "Exception: " << ae.reason << endl,
-         log->error(Logr::Error, ae.reason, "Exception in RecursorThread", "exception", Logging::Loggable("PDNSException")));
+    log->error(Logr::Error, ae.reason, "Exception in RecursorThread", "exception", Logging::Loggable("PDNSException"));
   }
   catch (const std::exception& e) {
-    SLOG(g_log << Logger::Error << "STL Exception: " << e.what() << endl,
-         log->error(Logr::Error, e.what(), "Exception in RecursorThread", "exception", Logging::Loggable("std::exception")));
+    log->error(Logr::Error, e.what(), "Exception in RecursorThread", "exception", Logging::Loggable("std::exception"));
   }
   catch (...) {
-    SLOG(g_log << Logger::Error << "any other exception in main: " << endl,
-         log->info(Logr::Error, "Exception in RecursorThread"));
+    log->info(Logr::Error, "Exception in RecursorThread");
   }
 }
 
@@ -3052,16 +2970,14 @@ static pair<int, bool> doConfig(Logr::log_t startupLog, const string& configname
     if (config == "check") {
       try {
         if (!::arg().file(configname)) {
-          SLOG(g_log << Logger::Warning << "Unable to open configuration file '" << configname << "'" << endl,
-               startupLog->error("No such file", "Unable to open configuration file", "config_file", Logging::Loggable(configname)));
+          startupLog->error("No such file", "Unable to open configuration file", "config_file", Logging::Loggable(configname));
           return {1, true};
         }
         ::arg().parse(argc, argv);
         return {0, true};
       }
       catch (const ArgException& argException) {
-        SLOG(g_log << Logger::Warning << "Unable to parse configuration file '" << configname << "': " << argException.reason << endl,
-             startupLog->error("Cannot parse configuration", "Unable to parse configuration file", "config_file", Logging::Loggable(configname), "reason", Logging::Loggable(argException.reason)));
+        startupLog->error("Cannot parse configuration", "Unable to parse configuration file", "config_file", Logging::Loggable(configname), "reason", Logging::Loggable(argException.reason));
         return {1, true};
       }
     }
@@ -3071,8 +2987,7 @@ static pair<int, bool> doConfig(Logr::log_t startupLog, const string& configname
     }
     else if (config == "diff") {
       if (!::arg().laxFile(configname)) {
-        SLOG(g_log << Logger::Warning << "Unable to open configuration file '" << configname << "'" << endl,
-             startupLog->error("No such file", "Unable to open configuration file", "config_file", Logging::Loggable(configname)));
+        startupLog->error("No such file", "Unable to open configuration file", "config_file", Logging::Loggable(configname));
         return {1, true};
       }
       ::arg().laxParse(argc, argv);
@@ -3080,8 +2995,7 @@ static pair<int, bool> doConfig(Logr::log_t startupLog, const string& configname
     }
     else {
       if (!::arg().laxFile(configname)) {
-        SLOG(g_log << Logger::Warning << "Unable to open configuration file '" << configname << "'" << endl,
-             startupLog->error("No such file", "Unable to open configuration file", "config_file", Logging::Loggable(configname)));
+        startupLog->error("No such file", "Unable to open configuration file", "config_file", Logging::Loggable(configname));
         return {1, true};
       }
       ::arg().laxParse(argc, argv);
@@ -3122,8 +3036,7 @@ static void handleRuntimeDefaults(Logr::log_t log)
   if (::arg()["server-id"] == RUNTIME) { // i.e. not set explicitly
     auto myHostname = getHostname();
     if (!myHostname.has_value()) {
-      SLOG(g_log << Logger::Warning << "Unable to get the hostname, NSID and id.server values will be empty" << endl,
-           log->info(Logr::Warning, "Unable to get the hostname, NSID and id.server values will be empty"));
+      log->info(Logr::Warning, "Unable to get the hostname, NSID and id.server values will be empty");
     }
     ::arg().set("server-id") = myHostname.has_value() ? *myHostname : "";
   }
@@ -3146,21 +3059,18 @@ static void handleRuntimeDefaults(Logr::log_t log)
 
   if (::arg().asNum("threads") == 1) {
     if (::arg().mustDo("pdns-distributes-queries")) {
-      SLOG(g_log << Logger::Warning << "Only one thread, no need to distribute queries ourselves" << endl,
-           log->info(Logr::Warning, "Only one thread, no need to distribute queries ourselves"));
+      log->info(Logr::Warning, "Only one thread, no need to distribute queries ourselves");
       ::arg().set("pdns-distributes-queries") = "no";
     }
   }
 
   if (::arg().mustDo("pdns-distributes-queries") && ::arg().asNum("distributor-threads") == 0) {
-    SLOG(g_log << Logger::Warning << "Asked to run with pdns-distributes-queries set but no distributor threads, raising to 1" << endl,
-         log->info(Logr::Warning, "Asked to run with pdns-distributes-queries set but no distributor threads, raising to 1"));
+    log->info(Logr::Warning, "Asked to run with pdns-distributes-queries set but no distributor threads, raising to 1");
     ::arg().set("distributor-threads") = "1";
   }
 
   if (!::arg().mustDo("pdns-distributes-queries") && ::arg().asNum("distributor-threads") > 0) {
-    SLOG(g_log << Logger::Warning << "Not distributing queries, setting distributor threads to 0" << endl,
-         log->info(Logr::Warning, "Not distributing queries, setting distributor threads to 0"));
+    log->info(Logr::Warning, "Not distributing queries, setting distributor threads to 0");
     ::arg().set("distributor-threads") = "0";
   }
 }
@@ -3309,8 +3219,7 @@ int main(int argc, char** argv)
         return ret;
       }
       if (!::arg().file(configname)) {
-        SLOG(g_log << Logger::Warning << "Unable to open configuration file '" << configname << "'" << endl,
-             startupLog->error("No such file", "Unable to open configuration file", "config_file", Logging::Loggable(configname)));
+        startupLog->error("No such file", "Unable to open configuration file", "config_file", Logging::Loggable(configname));
       }
       else {
         if (!::arg().mustDo("enable-old-settings")) {
@@ -3338,8 +3247,7 @@ int main(int argc, char** argv)
     g_log.toConsole(s_logUrgency);
 
     if (!::arg()["chroot"].empty() && !::arg()["api-config-dir"].empty()) {
-      SLOG(g_log << Logger::Error << "Using chroot and enabling the API is not possible" << endl,
-           startupLog->info(Logr::Error, "Cannot use chroot and enable the API at the same time"));
+      startupLog->info(Logr::Error, "Cannot use chroot and enable the API at the same time");
       return EXIT_FAILURE;
     }
 
@@ -3371,18 +3279,15 @@ int main(int argc, char** argv)
     RecThreadInfo::joinThread0();
   }
   catch (const PDNSException& ae) {
-    SLOG(g_log << Logger::Error << "Exception: " << ae.reason << endl,
-         g_slog->withName("config")->error(Logr::Critical, ae.reason, "Fatal error", "exception", Logging::Loggable("PDNSException")));
+    g_slog->withName("config")->error(Logr::Critical, ae.reason, "Fatal error", "exception", Logging::Loggable("PDNSException"));
     ret = EXIT_FAILURE;
   }
   catch (const std::exception& e) {
-    SLOG(g_log << Logger::Error << "STL Exception: " << e.what() << endl,
-         g_slog->withName("config")->error(Logr::Critical, e.what(), "Fatal error", "exception", Logging::Loggable("std::exception")));
+    g_slog->withName("config")->error(Logr::Critical, e.what(), "Fatal error", "exception", Logging::Loggable("std::exception"));
     ret = EXIT_FAILURE;
   }
   catch (...) {
-    SLOG(g_log << Logger::Error << "any other exception in main: " << endl,
-         g_slog->withName("config")->info(Logr::Critical, "Fatal error"));
+    g_slog->withName("config")->info(Logr::Critical, "Fatal error");
     ret = EXIT_FAILURE;
   }
 
@@ -3396,8 +3301,7 @@ static RecursorControlChannel::Answer* doReloadLuaScript()
   try {
     if (fname.empty()) {
       t_pdl.reset();
-      SLOG(g_log << Logger::Info << RecThreadInfo::id() << " Unloaded current lua script" << endl,
-           log->info(Logr::Info, "Unloaded current lua script"));
+      log->info(Logr::Info, "Unloaded current lua script");
       return new RecursorControlChannel::Answer{0, string("unloaded\n")};
     }
 
@@ -3407,19 +3311,16 @@ static RecursorControlChannel::Answer* doReloadLuaScript()
     }
     catch (std::runtime_error& ex) {
       string msg = std::to_string(RecThreadInfo::thread_local_id()) + " Retaining current script, could not read '" + fname + "': " + ex.what();
-      SLOG(g_log << Logger::Error << msg << endl,
-           log->error(Logr::Error, ex.what(), "Retaining current script, could not read new script"));
+      log->error(Logr::Error, ex.what(), "Retaining current script, could not read new script");
       return new RecursorControlChannel::Answer{1, msg + "\n"};
     }
   }
   catch (std::exception& e) {
-    SLOG(g_log << Logger::Error << RecThreadInfo::thread_local_id() << " Retaining current script, error from '" << fname << "': " << e.what() << endl,
-         log->error(Logr::Error, e.what(), "Retaining current script, error in new script"));
+    log->error(Logr::Error, e.what(), "Retaining current script, error in new script");
     return new RecursorControlChannel::Answer{1, string("retaining current script, error from '" + fname + "': " + e.what() + "\n")};
   }
 
-  SLOG(g_log << Logger::Warning << RecThreadInfo::id() << " (Re)loaded lua script from '" << fname << "'" << endl,
-       log->info(Logr::Warning, "(Re)loaded lua script"));
+  log->info(Logr::Warning, "(Re)loaded lua script");
   return new RecursorControlChannel::Answer{0, string("(re)loaded '" + fname + "'\n")};
 }
 
@@ -3476,8 +3377,7 @@ struct WipeCacheResult wipeCaches(const DNSName& canon, bool subtree, uint16_t q
   }
   catch (const std::exception& e) {
     auto log = g_slog->withName("runtime");
-    SLOG(g_log << Logger::Warning << ", failed: " << e.what() << endl,
-         log->error(Logr::Warning, e.what(), "Wipecache failed"));
+    log->error(Logr::Warning, e.what(), "Wipecache failed");
   }
 
   return res;
@@ -3496,13 +3396,11 @@ void startLuaConfigDelayedThreads(const LuaConfigItems& luaConfig, uint64_t gene
       theThread.detach();
     }
     catch (const std::exception& e) {
-      SLOG(g_log << Logger::Error << "Problem starting RPZIXFRTracker thread: " << e.what() << endl,
-           g_slog->withName("rpz")->error(Logr::Error, e.what(), "Exception starting RPZIXFRTracker thread", "exception", Logging::Loggable("std::exception")));
+      g_slog->withName("rpz")->error(Logr::Error, e.what(), "Exception starting RPZIXFRTracker thread", "exception", Logging::Loggable("std::exception"));
       exit(1); // NOLINT(concurrency-mt-unsafe)
     }
     catch (const PDNSException& e) {
-      SLOG(g_log << Logger::Error << "Problem starting RPZIXFRTracker thread: " << e.reason << endl,
-           g_slog->withName("rpz")->error(Logr::Error, e.reason, "Exception starting RPZIXFRTracker thread", "exception", Logging::Loggable("PDNSException")));
+      g_slog->withName("rpz")->error(Logr::Error, e.reason, "Exception starting RPZIXFRTracker thread", "exception", Logging::Loggable("PDNSException"));
       exit(1); // NOLINT(concurrency-mt-unsafe)
     }
   }
@@ -3517,13 +3415,11 @@ void startLuaConfigDelayedThreads(const LuaConfigItems& luaConfig, uint64_t gene
       theThread.detach();
     }
     catch (const std::exception& e) {
-      SLOG(g_log << Logger::Error << "Problem starting ZoneIXFRTracker thread: " << e.what() << endl,
-           g_slog->withName("zone")->error(Logr::Error, e.what(), "Exception starting ZoneXFRTracker thread", "exception", Logging::Loggable("std::exception")));
+      g_slog->withName("zone")->error(Logr::Error, e.what(), "Exception starting ZoneXFRTracker thread", "exception", Logging::Loggable("std::exception"));
       exit(1); // NOLINT(concurrency-mt-unsafe)
     }
     catch (const PDNSException& e) {
-      SLOG(g_log << Logger::Error << "Problem starting ZoneIXFRTracker thread: " << e.reason << endl,
-           g_slog->withName("zone")->error(Logr::Error, e.reason, "Exception starting ZoneXFRTracker thread", "exception", Logging::Loggable("PDNSException")));
+      g_slog->withName("zone")->error(Logr::Error, e.reason, "Exception starting ZoneXFRTracker thread", "exception", Logging::Loggable("PDNSException"));
       exit(1); // NOLINT(concurrency-mt-unsafe)
     }
   }
@@ -3543,15 +3439,12 @@ static bool activateRPZFile(const RPZTrackerParams& params, LuaConfigItems& lci,
 
   zone->setName(params.polName.empty() ? "rpzFile" : params.polName);
   try {
-    SLOG(g_log << Logger::Warning << "Loading RPZ from file '" << params.name << "'" << endl,
-         log->info(Logr::Info, "Loading RPZ from file"));
+    log->info(Logr::Info, "Loading RPZ from file");
     loadRPZFromFile(params.zoneXFRParams.name, zone, params.defpol, params.defpolOverrideLocal, params.maxTTL);
-    SLOG(g_log << Logger::Warning << "Done loading RPZ from file '" << params.name << "'" << endl,
-         log->info(Logr::Info, "Done loading RPZ from file"));
+    log->info(Logr::Info, "Done loading RPZ from file");
   }
   catch (const std::exception& e) {
-    SLOG(g_log << Logger::Error << "Unable to load RPZ zone from '" << params.name << "': " << e.what() << endl,
-         log->error(Logr::Error, e.what(), "Exception while loading RPZ zone from file"));
+    log->error(Logr::Error, e.what(), "Exception while loading RPZ zone from file");
     zone->clear();
     return false;
   }
@@ -3563,8 +3456,7 @@ static void activateRPZPrimary(RPZTrackerParams& params, LuaConfigItems& lci, sh
   auto log = lci.d_slog->withValues("seedfile", Logging::Loggable(params.seedFileName), "zone", Logging::Loggable(params.zoneXFRParams.name));
 
   if (!params.seedFileName.empty()) {
-    SLOG(g_log << Logger::Info << "Pre-loading RPZ zone " << params.name << " from seed file '" << params.seedFileName << "'" << endl,
-         log->info(Logr::Info, "Pre-loading RPZ zone from seed file"));
+    log->info(Logr::Info, "Pre-loading RPZ zone from seed file");
     try {
       params.zoneXFRParams.soaRecordContent = loadRPZFromFile(params.seedFileName, zone, params.defpol, params.defpolOverrideLocal, params.maxTTL);
 
@@ -3577,13 +3469,11 @@ static void activateRPZPrimary(RPZTrackerParams& params, LuaConfigItems& lci, sh
       }
     }
     catch (const PDNSException& e) {
-      SLOG(g_log << Logger::Warning << "Unable to pre-load RPZ zone " << params.name << " from seed file '" << params.seedFileName << "': " << e.reason << endl,
-           log->error(Logr::Warning, e.reason, "Exception while pre-loading RPZ zone", "exception", Logging::Loggable("PDNSException")));
+      log->error(Logr::Warning, e.reason, "Exception while pre-loading RPZ zone", "exception", Logging::Loggable("PDNSException"));
       zone->clear();
     }
     catch (const std::exception& e) {
-      SLOG(g_log << Logger::Warning << "Unable to pre-load RPZ zone " << params.name << " from seed file '" << params.seedFileName << "': " << e.what() << endl,
-           log->error(Logr::Warning, e.what(), "Exception while pre-loading RPZ zone", "exception", Logging::Loggable("std::exception")));
+      log->error(Logr::Warning, e.what(), "Exception while pre-loading RPZ zone", "exception", Logging::Loggable("std::exception"));
       zone->clear();
     }
   }

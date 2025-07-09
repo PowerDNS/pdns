@@ -141,8 +141,7 @@ static void mergeYamlSubFile(const std::string& configname, Recursorsettings& se
     }
     throw runtime_error("Cannot open " + configname);
   }
-  SLOG(g_log << Logger::Notice << "Processing YAML settings from " << configname << endl,
-       log->info(Logr::Notice, "Processing YAML settings", "path", Logging::Loggable(configname)));
+  log->info(Logr::Notice, "Processing YAML settings", "path", Logging::Loggable(configname));
   auto data = string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
   pdns::rust::settings::rec::merge(settings, data);
 }
@@ -332,8 +331,7 @@ pdns::settings::rec::YamlSettingsStatus pdns::settings::rec::readYamlSettings(co
     msg = stringerror(errno);
     return YamlSettingsStatus::CannotOpen;
   }
-  SLOG(g_log << Logger::Notice << "Processing main YAML settings from " << configname << endl,
-       log->info(Logr::Notice, "Processing main YAML settings", "path", Logging::Loggable(configname)));
+  log->info(Logr::Notice, "Processing main YAML settings", "path", Logging::Loggable(configname));
   try {
     auto data = string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
     auto yamlstruct = pdns::rust::settings::rec::parse_yaml_string(data);
@@ -369,8 +367,7 @@ pdns::settings::rec::YamlSettingsStatus pdns::settings::rec::readYamlSettings(co
 
 void pdns::settings::rec::readYamlAllowFromFile(const std::string& filename, ::rust::Vec<::rust::String>& vec, Logr::log_t log)
 {
-  SLOG(g_log << Logger::Notice << "Processing allow YAML settings from " << filename << endl,
-       log->info(Logr::Notice, "Processing allow YAML settings", "path", Logging::Loggable(filename)));
+  log->info(Logr::Notice, "Processing allow YAML settings", "path", Logging::Loggable(filename));
   auto file = ifstream(filename);
   if (!file.is_open()) {
     throw runtime_error(stringerror(errno));
@@ -383,8 +380,7 @@ void pdns::settings::rec::readYamlAllowFromFile(const std::string& filename, ::r
 
 void pdns::settings::rec::readYamlForwardZonesFile(const std::string& filename, ::rust::Vec<pdns::rust::settings::rec::ForwardZone>& vec, Logr::log_t log)
 {
-  SLOG(g_log << Logger::Notice << "Processing forwarding YAML settings from " << filename << endl,
-       log->info(Logr::Notice, "Processing forwarding YAML settings", "path", Logging::Loggable(filename)));
+  log->info(Logr::Notice, "Processing forwarding YAML settings", "path", Logging::Loggable(filename));
   auto file = ifstream(filename);
   if (!file.is_open()) {
     throw runtime_error(stringerror(errno));
@@ -397,8 +393,7 @@ void pdns::settings::rec::readYamlForwardZonesFile(const std::string& filename, 
 
 void pdns::settings::rec::readYamlAllowNotifyForFile(const std::string& filename, ::rust::Vec<::rust::String>& vec, Logr::log_t log)
 {
-  SLOG(g_log << Logger::Notice << "Processing allow-notify-for YAML settings from " << filename << endl,
-       log->info(Logr::Notice, "Processing allow-notify-for YAML settings", "path", Logging::Loggable(filename)));
+  log->info(Logr::Notice, "Processing allow-notify-for YAML settings", "path", Logging::Loggable(filename));
   auto file = ifstream(filename);
   if (!file.is_open()) {
     throw runtime_error(stringerror(errno));
@@ -1411,25 +1406,21 @@ pdns::settings::rec::YamlSettingsStatus pdns::settings::rec::tryReadYAML(const s
 
   switch (yamlstatus) {
   case pdns::settings::rec::YamlSettingsStatus::CannotOpen:
-    SLOG(g_log << Logger::Debug << "No YAML config found for configname '" << yamlconfigname << "': " << msg << endl,
-         startupLog->error(Logr::Debug, msg, "No YAML config found", "configname", Logging::Loggable(yamlconfigname)));
+    startupLog->error(Logr::Debug, msg, "No YAML config found", "configname", Logging::Loggable(yamlconfigname));
     break;
 
   case pdns::settings::rec::YamlSettingsStatus::PresentButFailed:
-    SLOG(g_log << Logger::Error << "YAML config found for configname '" << yamlconfigname << "' but error ocurred processing it" << endl,
-         startupLog->error(Logr::Error, msg, "YAML config found, but error occurred processing it", "configname", Logging::Loggable(yamlconfigname)));
+    startupLog->error(Logr::Error, msg, "YAML config found, but error occurred processing it", "configname", Logging::Loggable(yamlconfigname));
     break;
 
   case pdns::settings::rec::YamlSettingsStatus::OK:
     yamlSettings = true;
-    SLOG(g_log << Logger::Notice << "YAML config found and processed for configname '" << yamlconfigname << "'" << endl,
-         startupLog->info(Logr::Notice, "YAML config found and processed", "configname", Logging::Loggable(yamlconfigname)));
+    startupLog->info(Logr::Notice, "YAML config found and processed", "configname", Logging::Loggable(yamlconfigname));
     pdns::settings::rec::processAPIDir(arg()["include-dir"], settings, startupLog);
     luaSettingsInYAML = pdns::settings::rec::luaItemSet(settings);
     if (luaSettingsInYAML && !settings.recursor.lua_config_file.empty()) {
       const std::string err = "YAML settings include values originally in Lua but also sets `recursor.lua_config_file`. This is unsupported";
-      SLOG(g_log << Logger::Error << err << endl,
-           startupLog->info(Logr::Error, err, "configname", Logging::Loggable(yamlconfigname)));
+      startupLog->info(Logr::Error, err, "configname", Logging::Loggable(yamlconfigname));
       yamlstatus = pdns::settings::rec::PresentButFailed;
     }
     else if (!settings.recursor.forwarding_catalog_zones.empty() && settings.webservice.api_dir.empty()) {

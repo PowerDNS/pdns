@@ -69,20 +69,17 @@ void remoteLoggerQueueData(RemoteLoggerInterface& rli, const std::string& data)
     break;
   case RemoteLoggerInterface::Result::PipeFull: {
     const auto& msg = RemoteLoggerInterface::toErrorString(ret);
-    SLOG(g_log << Logger::Debug << rli.name() << ": " << msg << std::endl,
-         g_slog->withName(rli.name())->info(Logr::Debug, msg));
+    g_slog->withName(rli.name())->info(Logr::Debug, msg);
     break;
   }
   case RemoteLoggerInterface::Result::TooLarge: {
     const auto& msg = RemoteLoggerInterface::toErrorString(ret);
-    SLOG(g_log << Logger::Notice << rli.name() << ": " << msg << endl,
-         g_slog->withName(rli.name())->info(Logr::Debug, msg));
+    g_slog->withName(rli.name())->info(Logr::Debug, msg);
     break;
   }
   case RemoteLoggerInterface::Result::OtherError: {
     const auto& msg = RemoteLoggerInterface::toErrorString(ret);
-    SLOG(g_log << Logger::Warning << rli.name() << ": " << msg << std::endl,
-         g_slog->withName(rli.name())->info(Logr::Warning, msg));
+    g_slog->withName(rli.name())->info(Logr::Warning, msg);
     break;
   }
   }
@@ -313,8 +310,7 @@ static bool tcpconnect(const ComboAddress& ip, TCPOutConnectionManager::Connecti
     // tlsParams.d_caStore
     tlsCtx = getTLSContext(tlsParams);
     if (tlsCtx == nullptr) {
-      SLOG(g_log << Logger::Error << "DoT to " << ip << " requested but not available" << endl,
-           g_slogout->info(Logr::Error, "DoT requested but not available", "server", Logging::Loggable(ip)));
+      g_slogout->info(Logr::Error, "DoT requested but not available", "server", Logging::Loggable(ip));
       dnsOverTLS = false;
     }
   }
@@ -578,11 +574,10 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
 
     if (domain != mdp.d_qname) {
       if (!mdp.d_qname.empty() && domain.toString().find((char)0) == string::npos /* ugly */) { // embedded nulls are too noisy, plus empty domains are too
-        SLOG(g_log << Logger::Notice << "Packet purporting to come from remote server " << address.toString() << " contained wrong answer: '" << domain << "' != '" << mdp.d_qname << "'" << endl,
-             g_slogout->info(Logr::Notice, "Packet purporting to come from remote server contained wrong answer",
-                             "server", Logging::Loggable(address),
-                             "qname", Logging::Loggable(domain),
-                             "onwire", Logging::Loggable(mdp.d_qname)));
+        g_slogout->info(Logr::Notice, "Packet purporting to come from remote server contained wrong answer",
+                        "server", Logging::Loggable(address),
+                        "qname", Logging::Loggable(domain),
+                        "onwire", Logging::Loggable(mdp.d_qname));
       }
       // unexpected count has already been done @ pdns_recursor.cc
       goto out;
@@ -639,9 +634,8 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
   }
   catch (const std::exception& mde) {
     if (::arg().mustDo("log-common-errors")) {
-      SLOG(g_log << Logger::Notice << "Unable to parse packet from remote server " << address.toString() << ": " << mde.what() << endl,
-           g_slogout->error(Logr::Notice, mde.what(), "Unable to parse packet from remote server", "server", Logging::Loggable(address),
-                            "exception", Logging::Loggable("std::exception")));
+      g_slogout->error(Logr::Notice, mde.what(), "Unable to parse packet from remote server", "server", Logging::Loggable(address),
+                       "exception", Logging::Loggable("std::exception"));
     }
 
     lwr->d_rcode = RCode::FormErr;
@@ -655,8 +649,7 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
     return LWResult::Result::Success; // success - oddly enough
   }
   catch (...) {
-    SLOG(g_log << Logger::Notice << "Unknown error parsing packet from remote server" << endl,
-         g_slogout->info(Logr::Notice, "Unknown error parsing packet from remote server", "server", Logging::Loggable(address)));
+    g_slogout->info(Logr::Notice, "Unknown error parsing packet from remote server", "server", Logging::Loggable(address));
   }
 
   t_Counters.at(rec::Counter::serverParseError)++;

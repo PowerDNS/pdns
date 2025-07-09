@@ -371,8 +371,7 @@ void RecursorLua4::postPrepareContext() // NOLINT(readability-function-cognitive
         }
       }
       catch(std::exception& e) {
-        SLOG(g_log <<Logger::Error<<e.what()<<endl,
-             g_slog->withName("lua")->error(Logr::Error, e.what(), "Error in call to DNSSuffixMatchGroup:add"));
+        g_slog->withName("lua")->error(Logr::Error, e.what(), "Error in call to DNSSuffixMatchGroup:add");
       }
     }
   );
@@ -587,8 +586,7 @@ void RecursorLua4::runStartStopFunction(const string& script, bool start, Logr::
 static void warnDrop(const RecursorLua4::DNSQuestion& dnsQuestion)
 {
   if (dnsQuestion.rcode == -2) {
-    SLOG(g_log << Logger::Error << "Returning -2 (pdns.DROP) is not supported anymore, see https://docs.powerdns.com/recursor/lua-scripting/hooks.html#hooksemantics" << endl,
-         g_slog->withName("lua")->info(Logr::Error, "Returning -2 (pdns.DROP) is not supported anymore, see https://docs.powerdns.com/recursor/lua-scripting/hooks.html#hooksemantics"));
+    g_slog->withName("lua")->info(Logr::Error, "Returning -2 (pdns.DROP) is not supported anymore, see https://docs.powerdns.com/recursor/lua-scripting/hooks.html#hooksemantics");
     // We *could* set policy here, but that would also mean interfering with rcode and the return code of the hook.
     // So leave it at the error message.
   }
@@ -837,8 +835,7 @@ bool RecursorLua4::genhook(const luacall_t& func, DNSQuestion& dnsQuestion, int&
         // coverity[auto_causes_copy] not copying produces a dangling ref
         const auto cbFunc = d_lw->readVariable<boost::optional<luacall_t>>(dnsQuestion.udpCallback).get_value_or(nullptr);
         if (!cbFunc) {
-          SLOG(g_log << Logger::Error << "Attempted callback for Lua UDP Query/Response which could not be found" << endl,
-               g_slog->withName("lua")->info(Logr::Error, "Attempted callback for Lua UDP Query/Response which could not be found"));
+          g_slog->withName("lua")->info(Logr::Error, "Attempted callback for Lua UDP Query/Response which could not be found");
           return false;
         }
         bool result = cbFunc(&dnsQuestion);

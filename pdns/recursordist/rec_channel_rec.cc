@@ -1970,8 +1970,7 @@ RecursorControlChannel::Answer luaconfig(bool broadcast)
         g_proxyMapping = proxyMapping.empty() ? nullptr : std::make_unique<ProxyMapping>(proxyMapping);
       }
       if (broadcast) {
-        SLOG(g_log << Logger::Notice << "Reloaded Lua configuration file '" << ::arg()["lua-config-file"] << "', requested via control channel" << endl,
-             g_slog->withName("config")->info(Logr::Info, "Reloaded"));
+        g_slog->withName("config")->info(Logr::Info, "Reloaded");
       }
       return {0, "Reloaded Lua configuration file '" + ::arg()["lua-config-file"] + "'\n"};
     }

@@ -44,8 +44,7 @@ bool primeHints(time_t now)
 
   if (hintfile == "no" || hintfile == "no-refresh") {
     auto log = g_slog->withName("config");
-    SLOG(g_log << Logger::Debug << "Priming root disabled by hint-file setting" << endl,
-         log->info(Logr::Debug, "Priming root disabled by hint-file setting"));
+    log->info(Logr::Debug, "Priming root disabled by hint-file setting");
     return ret;
   }
 
@@ -120,8 +119,7 @@ string reloadZoneConfiguration(bool yaml)
   cleanSlashes(configname);
 
   try {
-    SLOG(g_log << Logger::Warning << "Reloading zones, purging data from cache" << endl,
-         log->info(Logr::Notice, "Reloading zones, purging data from cache"));
+    log->info(Logr::Notice, "Reloading zones, purging data from cache");
 
     if (yaml) {
       configname += g_yamlSettingsSuffix;
@@ -223,24 +221,20 @@ string reloadZoneConfiguration(bool yaml)
     return "ok\n";
   }
   catch (const std::exception& e) {
-    SLOG(g_log << Logger::Error << "Encountered error reloading zones, keeping original data: " << e.what() << endl,
-         log->error(Logr::Error, e.what(), "Encountered error reloading zones, keeping original data"));
+    log->error(Logr::Error, e.what(), "Encountered error reloading zones, keeping original data");
   }
   catch (const PDNSException& ae) {
-    SLOG(g_log << Logger::Error << "Encountered error reloading zones, keeping original data: " << ae.reason << endl,
-         log->error(Logr::Error, ae.reason, "Encountered error reloading zones, keeping original data"));
+    log->error(Logr::Error, ae.reason, "Encountered error reloading zones, keeping original data");
   }
   catch (...) {
-    SLOG(g_log << Logger::Error << "Encountered unknown error reloading zones, keeping original data" << endl,
-         log->error(Logr::Error, "Exception", "Encountered error reloading zones, keeping original data"));
+    log->error(Logr::Error, "Exception", "Encountered error reloading zones, keeping original data");
   }
   return "reloading failed, see log\n";
 }
 
 static void readAuthZoneData(SyncRes::AuthDomain& authDomain, const pair<string, string>& headers, Logr::log_t log)
 {
-  SLOG(g_log << Logger::Notice << "Parsing authoritative data for zone '" << headers.first << "' from file '" << headers.second << "'" << endl,
-       log->info(Logr::Notice, "Parsing authoritative data from file", "zone", Logging::Loggable(headers.first), "file", Logging::Loggable(headers.second)));
+  log->info(Logr::Notice, "Parsing authoritative data from file", "zone", Logging::Loggable(headers.first), "file", Logging::Loggable(headers.second));
   ZoneParserTNG zpt(headers.second, DNSName(headers.first));
   zpt.setMaxGenerateSteps(::arg().asNum("max-generate-steps"));
   zpt.setMaxIncludes(::arg().asNum("max-include-depth"));
@@ -305,8 +299,7 @@ static void processApiZonesFile(const string& file, shared_ptr<SyncRes::domainma
     return;
   }
 
-  SLOG(g_log << Logger::Notice << "Processing ApiZones YAML settings from " << filename << endl,
-       log->info(Logr::Notice, "Processing ApiZones YAML settings", "path", Logging::Loggable(filename)));
+  log->info(Logr::Notice, "Processing ApiZones YAML settings", "path", Logging::Loggable(filename));
 
   const uint64_t before = newMap->size();
 
@@ -332,12 +325,9 @@ static void processApiZonesFile(const string& file, shared_ptr<SyncRes::domainma
     readAuthZoneData(authDomain, {string(auth.zone), string(auth.file)}, log);
     (*newMap)[authDomain.d_name] = authDomain;
   }
-  SLOG(g_log << Logger::Warning << "Done parsing " << newMap->size() - before
-             << " ApiZones YAML settings from file '"
-             << filename << "'" << endl,
-       log->info(Logr::Notice, "Done parsing ApiZones YAML from file", "file",
-                 Logging::Loggable(filename), "count",
-                 Logging::Loggable(newMap->size() - before)));
+  log->info(Logr::Notice, "Done parsing ApiZones YAML from file", "file",
+            Logging::Loggable(filename), "count",
+            Logging::Loggable(newMap->size() - before));
 }
 
 static void processForwardZonesFile(shared_ptr<SyncRes::domainmap_t>& newMap, shared_ptr<notifyset_t>& newSet, Logr::log_t log)
@@ -366,8 +356,7 @@ static void processForwardZonesFile(shared_ptr<SyncRes::domainmap_t>& newMap, sh
     }
   }
   else {
-    SLOG(g_log << Logger::Warning << "Reading zone forwarding information from '" << filename << "'" << endl,
-         log->info(Logr::Notice, "Reading zone forwarding information", "file", Logging::Loggable(filename)));
+    log->info(Logr::Notice, "Reading zone forwarding information", "file", Logging::Loggable(filename));
     auto filePtr = pdns::UniqueFilePtr(fopen(filename.c_str(), "r"));
     if (!filePtr) {
       int err = errno;
@@ -430,12 +419,9 @@ static void processForwardZonesFile(shared_ptr<SyncRes::domainmap_t>& newMap, sh
       }
     }
   }
-  SLOG(g_log << Logger::Warning << "Done parsing " << newMap->size() - before
-             << " forwarding instructions from file '"
-             << filename << "'" << endl,
-       log->info(Logr::Notice, "Done parsing forwarding instructions from file", "file",
-                 Logging::Loggable(filename), "count",
-                 Logging::Loggable(newMap->size() - before)));
+  log->info(Logr::Notice, "Done parsing forwarding instructions from file", "file",
+            Logging::Loggable(filename), "count",
+            Logging::Loggable(newMap->size() - before));
 }
 
 static void processExportEtcHosts(std::shared_ptr<SyncRes::domainmap_t>& newMap, Logr::log_t log)
@@ -446,8 +432,7 @@ static void processExportEtcHosts(std::shared_ptr<SyncRes::domainmap_t>& newMap,
   string fname = ::arg()["etc-hosts-file"];
   ifstream ifs(fname);
   if (!ifs) {
-    SLOG(g_log << Logger::Warning << "Could not open " << fname << " for reading" << endl,
-         log->error(Logr::Warning, "Could not open file for reading", "file", Logging::Loggable(fname)));
+    log->error(Logr::Warning, "Could not open file for reading", "file", Logging::Loggable(fname));
     return;
   }
   vector<string> parts;
@@ -462,15 +447,10 @@ static void processExportEtcHosts(std::shared_ptr<SyncRes::domainmap_t>& newMap,
       addForwardAndReverseLookupEntries(*newMap, searchSuffix, parts, log);
     }
     catch (const PDNSException& ex) {
-      SLOG(g_log << Logger::Warning
-                 << "The line `" << line << "` "
-                 << "in the provided etc-hosts file `" << fname << "` "
-                 << "could not be added: " << ex.reason << ". Going to skip it."
-                 << endl,
-           log->info(Logr::Notice, "Skipping line in etc-hosts file",
-                     "line", Logging::Loggable(line),
-                     "hosts-file", Logging::Loggable(fname),
-                     "reason", Logging::Loggable(ex.reason)));
+      log->info(Logr::Notice, "Skipping line in etc-hosts file",
+                "line", Logging::Loggable(line),
+                "hosts-file", Logging::Loggable(fname),
+                "reason", Logging::Loggable(ex.reason));
     }
   }
 }
@@ -480,8 +460,7 @@ static void processServeRFC1918(std::shared_ptr<SyncRes::domainmap_t>& newMap, L
   if (!::arg().mustDo("serve-rfc1918")) {
     return;
   }
-  SLOG(g_log << Logger::Warning << "Inserting rfc 1918 private space zones" << endl,
-       log->info(Logr::Notice, "Inserting rfc 1918 private space zones"));
+  log->info(Logr::Notice, "Inserting rfc 1918 private space zones");
 
   makePartialIPZone(*newMap, {"127"}, log);
   makePartialIPZone(*newMap, {"10"}, log);
@@ -500,8 +479,7 @@ static void processServeRFC6303(std::shared_ptr<SyncRes::domainmap_t>& newMap, L
   if (!::arg().mustDo("serve-rfc1918")) {
     return;
   }
-  SLOG(g_log << Logger::Warning << "Inserting rfc 6303 private space zones" << endl,
-       log->info(Logr::Notice, "Inserting rfc 6303 private space zones"));
+  log->info(Logr::Notice, "Inserting rfc 6303 private space zones");
   // Section 4.2
   makePartialIPZone(*newMap, {"0"}, log);
   // makePartialIPZone(*newMap, { "127" }, log) already done in processServeRFC1918
@@ -550,8 +528,7 @@ static void processAllowNotifyForFile(shared_ptr<notifyset_t>& newSet, Logr::log
     }
   }
   else {
-    SLOG(g_log << Logger::Warning << "Reading NOTIFY-allowed zones from '" << filename << "'" << endl,
-         log->info(Logr::Notice, "Reading NOTIFY-allowed zones from file", "file", Logging::Loggable(filename)));
+    log->info(Logr::Notice, "Reading NOTIFY-allowed zones from file", "file", Logging::Loggable(filename));
     auto filePtr = pdns::UniqueFilePtr(fopen(filename.c_str(), "r"));
     if (!filePtr) {
       throw PDNSException("Error opening allow-notify-for-file '" + filename + "': " + stringerror());
@@ -566,8 +543,7 @@ static void processAllowNotifyForFile(shared_ptr<notifyset_t>& newSet, Logr::log
       newSet->insert(DNSName(line));
     }
   }
-  SLOG(g_log << Logger::Warning << "Done parsing " << newSet->size() - before << " NOTIFY-allowed zones from file '" << filename << "'" << endl,
-       log->info(Logr::Notice, "Done parsing NOTIFY-allowed zones from file", "file", Logging::Loggable(filename), "count", Logging::Loggable(newSet->size() - before)));
+  log->info(Logr::Notice, "Done parsing NOTIFY-allowed zones from file", "file", Logging::Loggable(filename), "count", Logging::Loggable(newSet->size() - before));
 }
 
 std::tuple<std::shared_ptr<SyncRes::domainmap_t>, std::shared_ptr<notifyset_t>> parseZoneConfiguration(bool yaml)
