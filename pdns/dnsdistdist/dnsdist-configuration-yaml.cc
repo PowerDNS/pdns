@@ -503,6 +503,9 @@ static std::shared_ptr<DownstreamState> createBackendFromConfiguration(const dns
   }
 
   backendConfig.remote = ComboAddress(std::string(config.address), serverPort);
+  if (!config.source.empty()) {
+    DownstreamState::parseSourceParameter(std::string(config.source), backendConfig);
+  }
 
   if (protocol == "dot" || protocol == "doh") {
     tlsCtx = getTLSContext(backendConfig.d_tlsParams);
