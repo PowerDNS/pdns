@@ -218,7 +218,7 @@ query_rules:
         - "refused.yaml-lua-mix.test.powerdns.com."
     action:
       type: "RCode"
-      rcode: 5
+      rcode: "Refused"
 
 """
     _dnsDistPort = pickAvailablePort()
