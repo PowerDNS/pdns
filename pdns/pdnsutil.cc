@@ -3668,6 +3668,64 @@ static int setPublishCDs(vector<string>& cmds, const std::string_view synopsis)
   return 0;
 }
 
+static int setSignalingZone(vector<string>& cmds, const std::string_view synopsis)
+{
+  if(cmds.size() < 2) {
+    return usage(synopsis);
+  }
+
+  if(cmds.size() > 2) {
+    cerr << "Too many arguments" << endl;
+    return 1;
+  }
+
+  ZoneName zone(cmds.at(1));
+
+  if(zone.operator const DNSName&().getRawLabel(0) != "_signal") {
+    cerr << "Signaling zone's first label must be '_signal': " << zone << endl;
+    return 1;
+  }
+
+  DNSSECKeeper dk; //NOLINT(readability-identifier-length)
+
+  // pdnsutil secure-zone $zone
+  if(!dk.isSecuredZone(zone)) {
+    dk.startTransaction(zone);
+    bool success = secureZone(dk, zone);
+    dk.commitTransaction();
+    if(!success) {
+      return 1;
+    }
+  }
+
+  // pdnsutil set-nsec3 $zone "1 0 0 -" narrow
+  try {
+    if (!dk.setNSEC3PARAM(zone, NSEC3PARAMRecordContent("1 0 0 -"), true)) {
+      cerr<<"Cannot set NSEC3 param for " << zone << endl;
+      return 1;
+    }
+  }
+  catch (const runtime_error& err) {
+    cerr << err.what() << endl;
+    return 1;
+  }
+
+  // pdnsutil rectify-zone $zone
+  if(!rectifyZone(dk, zone)) {
+    cerr<<"Cannot rectify zone " << zone << endl;
+    return 1;
+  }
+
+  // pdnsutil set-meta $zone SIGNALING-ZONE 1
+  if(addOrSetMeta(zone, "SIGNALING-ZONE", {"1"}, true)) {
+    cerr<<"Cannot set meta for zone " << zone << endl;
+    return 1;
+  }
+
+  cerr << "Successfully configured signaling zone " << zone << endl;
+  return 0;
+}
+
 static int unsetPresigned(vector<string>& cmds, const std::string_view synopsis)
 {
   if(cmds.size() < 2) {
@@ -5051,6 +5109,10 @@ static const std::unordered_map<std::string, commandDispatcher> commands{
    "\tEnable sending CDS responses for ZONE, using DIGESTALGOS as signature\n"
    "\talgorithms; DIGESTALGOS should be a comma-separated list of numbers,\n"
    "\t(default: '2')"}},
+  {"set-signaling-zone", {true, setSignalingZone, GROUP_CDNSKEY,
+   "set-signaling-zone ZONE",
+   "\tConfigure zone for RFC 9615 DNSSEC bootstrapping\n"
+   "(zone name must begin with _signal.)"}},
   {"show-zone", {true, showZone, GROUP_DNSSEC,
    "show-zone ZONE",
    "\tShow DNSSEC (public) key details about a zone"}},
