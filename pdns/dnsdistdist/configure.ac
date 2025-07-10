@@ -15,7 +15,9 @@ CPPFLAGS="-DDNSDIST $CPPFLAGS"
 m4_pattern_forbid([^_?PKG_[A-Z_]+$], [*** pkg.m4 missing, please install pkg-config])
 
 LT_PREREQ([2.2.2])
-LT_INIT([disable-static])
+# Rust runtime uses dlopen from its static lib
+LT_INIT([disable-static dlopen])
+AC_SUBST([LIBDL], [$lt_cv_dlopen_libs])
 
 CFLAGS="-g -O3 -Wall -Wextra -Wshadow -fvisibility=hidden $CFLAGS"
 CXXFLAGS="-g -O3 -Wall -Wextra -Wshadow -Wmissing-declarations -Wredundant-decls -fvisibility=hidden $CXXFLAGS"
