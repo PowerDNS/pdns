@@ -75,6 +75,7 @@ public:
 
   unsigned int getCapabilities() override;
   bool list(const ZoneName& target, domainid_t domain_id, bool include_disabled) override;
+  bool listSubZone(const ZoneName& target, domainid_t domain_id) override;
 
   bool getDomainInfo(const ZoneName& domain, DomainInfo& info, bool getserial = true) override;
   bool createDomain(const ZoneName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account) override;
@@ -350,6 +351,7 @@ private:
   void writeNSEC3RecordPair(const std::shared_ptr<RecordsRWTransaction>& txn, domainid_t domain_id, const DNSName& qname, const DNSName& ordername);
 
   ZoneName d_lookupdomain;
+  DNSName d_lookupsubmatch;
   vector<LMDBResourceRecord> d_currentrrset;
   size_t d_currentrrsetpos;
   MDBOutVal d_currentKey;

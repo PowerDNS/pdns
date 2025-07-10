@@ -1722,6 +1722,7 @@ bool LMDBBackend::deleteDomain(const ZoneName& domain)
  *
  * d_lookupdomain: current domain being processed (appended to the
  *                 results' names)
+ * d_lookupsubmatch: relative name used for submatching (for listSubZone)
  * d_currentrrset: temporary vector of results (records found at the same
  *                 cursor, i.e. same qname but possibly different qtype)
  * d_currentrrsetpos: position in the above when returning its elements one
@@ -1734,7 +1735,35 @@ bool LMDBBackend::deleteDomain(const ZoneName& domain)
 bool LMDBBackend::list(const ZoneName& target, domainid_t domain_id, bool include_disabled)
 {
   d_lookupdomain = target;
+  d_lookupsubmatch.clear();
   d_includedisabled = include_disabled;
+
+  compoundOrdername order;
+  std::string match = order(domain_id);
+
+  lookupStart(domain_id, match, false);
+  return true;
+}
+
+bool LMDBBackend::listSubZone(const ZoneName& target, domainid_t domain_id)
+{
+  // 1. from domain_id get base domain name
+  DomainInfo info;
+  if (!d_tdomains->getROTransaction().get(domain_id, info)) {
+    return false;
+  }
+
+  // 2. make target relative to it
+  DNSName relqname = target.operator const DNSName&().makeRelative(info.zone);
+  if (relqname.empty()) {
+    return false;
+  }
+
+  // 3. enumerate complete domain, but tell get() to ignore entries which are
+  //    not subsets of target
+  d_lookupdomain = std::move(info.zone);
+  d_lookupsubmatch = std::move(relqname);
+  d_includedisabled = true;
 
   compoundOrdername order;
   std::string match = order(domain_id);
@@ -1780,6 +1809,7 @@ void LMDBBackend::lookupInternal(const QType& type, const DNSName& qdomain, doma
   // cout<<"get will look for "<<relqname<< " in zone "<<info.zone<<" with id "<<info.id<<" and type "<<type.toString()<<endl;
 
   d_lookupdomain = std::move(info.zone);
+  d_lookupsubmatch.clear();
   d_includedisabled = include_disabled;
 
   compoundOrdername order;
@@ -1804,7 +1834,8 @@ void LMDBBackend::lookupStart(domainid_t domain_id, const std::string& match, bo
   d_currentrrset.clear();
   d_currentrrsetpos = 0;
 
-  MDBOutVal key, val;
+  MDBOutVal key{};
+  MDBOutVal val{};
   if (d_getcursor->prefix(match, key, val) != 0) {
     d_getcursor.reset(); // will cause get() to fail
     if (dolog) {
@@ -1852,15 +1883,24 @@ bool LMDBBackend::get(DNSZoneRecord& zr)
     }
     try {
       const auto& lrr = d_currentrrset.at(d_currentrrsetpos++);
+      DNSName basename;
+      bool validRecord = d_includedisabled || !lrr.disabled;
 
-      zr.disabled = lrr.disabled;
-      if (!zr.disabled || d_includedisabled) {
-        zr.dr.d_name = compoundOrdername::getQName(key) + d_lookupdomain.operator const DNSName&();
+      if (validRecord) {
+        basename = compoundOrdername::getQName(key);
+        if (!d_lookupsubmatch.empty()) {
+          validRecord = basename.isPartOf(d_lookupsubmatch);
+        }
+      }
+
+      if (validRecord) {
+        zr.dr.d_name = basename + d_lookupdomain.operator const DNSName&();
         zr.domain_id = compoundOrdername::getDomainID(key);
         zr.dr.d_type = compoundOrdername::getQType(key).getCode();
         zr.dr.d_ttl = lrr.ttl;
         zr.dr.setContent(deserializeContentZR(zr.dr.d_type, zr.dr.d_name, lrr.content));
         zr.auth = lrr.auth;
+        zr.disabled = lrr.disabled;
       }
 
       if (d_currentrrsetpos >= d_currentrrset.size()) {
@@ -1871,7 +1911,7 @@ bool LMDBBackend::get(DNSZoneRecord& zr)
         }
       }
 
-      if (zr.disabled && !d_includedisabled) {
+      if (!validRecord) {
         continue;
       }
     }
