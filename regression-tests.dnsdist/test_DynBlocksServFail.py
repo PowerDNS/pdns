@@ -134,7 +134,7 @@ dynamic_rules:
         action_duration: %d
         comment: "Exceeded query rate"
         action: "Drop"
-        rcode: "2"
+        rcode: "servfail"
 
 backends:
   - address: "127.0.0.1:%d"

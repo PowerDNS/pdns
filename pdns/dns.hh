@@ -23,6 +23,8 @@
 #include "qtype.hh"
 #include "dnsname.hh"
 #include <ctime>
+#include <optional>
+#include <string_view>
 #include <sys/types.h>
 
 #undef BADSIG  // signal.h SIG_ERR
@@ -35,6 +37,7 @@ public:
   enum rcodes_ : uint8_t { NoError=0, FormErr=1, ServFail=2, NXDomain=3, NotImp=4, Refused=5, YXDomain=6, YXRRSet=7, NXRRSet=8, NotAuth=9, NotZone=10};
   static std::string to_s(uint8_t rcode);
   static std::string to_short_s(uint8_t rcode);
+  static std::optional<uint8_t> from_short(const std::string_view& rcode_string);
   const static std::array<std::string, 24> rcodes_s;
 };
 
