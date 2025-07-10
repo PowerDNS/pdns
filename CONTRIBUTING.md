@@ -26,8 +26,8 @@ at least the following information (if they are relevant):
 **Note:** if you're planning to file a security bug, look at our
 [Security Policy](https://github.com/PowerDNS/pdns/security/policy) first.
 
-When filing an issue or bug report, make the title of the issue a very short
-summary (e.g. "Recursor crash when some-setting is set to 'crash'"). In the
+When filing an issue or bug report, write a very short summary (e.g.
+"Recursor crashes when some-setting is set to 'crash'") for the title. In the
 content of the issue, be as detailed as possible. Supply at least the following
 information:
 

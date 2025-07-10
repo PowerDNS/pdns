@@ -83,7 +83,7 @@ Settings
 Host (ip address) to connect to. Mutually exclusive with :ref:`setting-gmysql-socket`.
 
 .. warning::
-  When specified as a hostname a chicken/egg situation might
+  When specified as a hostname, a chicken/egg situation might
   arise where the database is needed to resolve the IP address of the
   database. It is best to supply an IP address of the database here.
 

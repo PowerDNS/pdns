@@ -738,7 +738,7 @@ See :doc:`EOL Statements <../appendices/EOL>`.
     :tags: DNSSEC, Bug Fixes
     :pullreq: 6008
 
-    Don't leak when the loading a public ECDSA key fails.
+    Don't leak when loading a public ECDSA key fails.
 
   .. change::
     :tags: DNSSEC, Bug Fixes
