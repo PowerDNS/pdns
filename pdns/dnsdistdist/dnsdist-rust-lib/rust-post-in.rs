@@ -74,6 +74,7 @@ fn get_global_configuration_from_serde(
     config.load_balancing_policies = serde.load_balancing_policies;
     config.logging = serde.logging;
     config.metrics = serde.metrics;
+    config.netmask_groups = serde.netmask_groups;
     config.packet_caches = serde.packet_caches;
     config.pools = serde.pools;
     config.proxy_protocol = serde.proxy_protocol;
@@ -89,6 +90,8 @@ fn get_global_configuration_from_serde(
     register_remote_loggers(&config.remote_logging);
     // this needs to be done before the rules so that they can refer to the KVS objects
     dnsdistsettings::registerKVSObjects(&config.key_value_stores);
+    // this needs to be done before the rules so that they can refer to the NMG objects
+    dnsdistsettings::registerNMGObjects(&config.netmask_groups);
     // this needs to be done BEFORE the rules so that they can refer to the selectors
     // by name
     config.selectors = get_selectors_from_serde(&serde.selectors)?;
