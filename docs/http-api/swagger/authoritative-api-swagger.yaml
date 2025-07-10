@@ -1166,6 +1166,7 @@ definitions:
         enum:
           - 'Native'
           - 'Master'
+          - 'Forwarded'
           - 'Slave'
           - 'Producer'
           - 'Consumer'
@@ -1231,6 +1232,13 @@ definitions:
         description: 'The id of the TSIG keys used for master operation in this zone'
         externalDocs:
           url: 'https://doc.powerdns.com/authoritative/tsig.html#provisioning-outbound-axfr-access'
+      recursion_desired:
+        type: boolean
+        description: |
+          This bit may be set in a query and is copied into the response. If RD is set, it directs the name server to pursue the query recursively.
+          Recursive query support is optional.
+        externalDocs:
+          url: https://datatracker.ietf.org/doc/html/rfc1035
       slave_tsig_key_ids:
         type: array
         items:
