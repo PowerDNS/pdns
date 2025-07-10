@@ -73,6 +73,10 @@ global:
       type: "MetricsConfiguration"
       default: true
       description: "Metrics-related settings"
+    - name: "netmask_groups"
+      type: "Vec<NetmaskGroupConfiguration>"
+      default: true
+      description: "Netmask groups definitions"
     - name: "packet_caches"
       type: "Vec<PacketCacheConfiguration>"
       default: true
@@ -1873,6 +1877,17 @@ general:
                      Keeping ``CAP_SYS_ADMIN`` on kernel 5.8+ for example allows loading eBPF programs and altering eBPF maps at runtime even if the ``kernel.unprivileged_bpf_disabled`` sysctl is set.
                      Note that this does not grant the capabilities to the process, doing so might be done by running it as root which we don't advise, or by adding capabilities via the systemd unit file, for example.
                      Please also be aware that switching to a different user via ``--uid`` will still drop all capabilities."
+
+netmask_group:
+  description: "Group of netmasks"
+  parameters:
+    - name: "name"
+      type: "String"
+      description: "The name of this netmask group"
+    - name: "netmasks"
+      type: "Vec<String>"
+      default: ""
+      description: "List of netmasks"
 
 packet_cache:
   description: "Packet-cache settings"

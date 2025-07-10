@@ -1782,6 +1782,26 @@ void registerKVSObjects([[maybe_unused]] const KeyValueStoresConfiguration& conf
 #endif /* defined(HAVE_LMDB) || defined(HAVE_CDB) */
 }
 
+void registerNMGObjects(const ::rust::Vec<NetmaskGroupConfiguration>& nmgs)
+{
+  for (const auto& netmaskGroup : nmgs) {
+    std::shared_ptr<NetmaskGroup> nmg;
+    bool registered = true;
+    nmg = dnsdist::configuration::yaml::getRegisteredTypeByName<NetmaskGroup>(std::string(netmaskGroup.name));
+    if (!nmg) {
+      nmg = std::make_shared<NetmaskGroup>();
+      registered = false;
+    }
+
+    for (const auto& netmask : netmaskGroup.netmasks) {
+      nmg->addMask(std::string(netmask));
+    }
+    if (!registered) {
+      dnsdist::configuration::yaml::registerType<NetmaskGroup>(nmg, netmaskGroup.name);
+    }
+  }
+}
+
 std::shared_ptr<DNSSelector> getLuaSelector(const LuaSelectorConfiguration& config)
 {
   dnsdist::selectors::LuaSelectorFunction function;
