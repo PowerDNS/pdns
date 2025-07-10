@@ -277,20 +277,21 @@ BOOST_AUTO_TEST_CASE(test_UserHints)
 
   ::arg().set("max-generate-steps") = "0";
   ::arg().set("max-include-depth") = "0";
-  char temp[] = "/tmp/hintsXXXXXXXXXX";
-  int fd = mkstemp(temp);
-  BOOST_REQUIRE(fd > 0);
-  FILE* fp = fdopen(fd, "w");
-  BOOST_REQUIRE(fp != nullptr);
-  size_t written = fwrite(hints.data(), 1, hints.length(), fp);
+  string temp{"/tmp/hintsXXXXXXXXXX"};
+  int fileDesc = mkstemp(temp.data());
+  BOOST_REQUIRE(fileDesc > 0);
+  FILE* filePointer = fdopen(fileDesc, "w");
+  BOOST_REQUIRE(filePointer != nullptr);
+  size_t written = fwrite(hints.data(), 1, hints.length(), filePointer);
   BOOST_REQUIRE(written == hints.length());
-  BOOST_REQUIRE(fclose(fp) == 0);
+  BOOST_REQUIRE(fclose(filePointer) == 0); // NOLINT
 
   time_t now = time(nullptr);
   std::vector<DNSRecord> nsvec;
 
-  auto ok = readHintsIntoCache(now, std::string(temp), nsvec);
-  BOOST_CHECK(ok);
+  auto readOK = readHintsIntoCache(now, std::string(temp), nsvec);
+  unlink(temp.data());
+  BOOST_CHECK(readOK);
   BOOST_CHECK_EQUAL(nsvec.size(), 2U);
 
   const MemRecursorCache::Flags flags = 0;
