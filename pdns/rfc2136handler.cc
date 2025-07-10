@@ -268,30 +268,31 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
 
 
       // because we added a record, we need to fix DNSSEC data.
-      ZoneName shorter(rr->d_name);
+      DNSName shorter(rr->d_name);
       bool auth=newRec.auth;
       bool fixDS = (rrType == QType::DS);
 
-      if (di->zone != shorter) { // Everything at APEX is auth=1 && no ENT's
+      if (di->zone.operator const DNSName&() != shorter) { // Everything at APEX is auth=1 && no ENT's
         do {
 
-          if (di->zone == shorter)
+          if (di->zone.operator const DNSName&() == shorter) {
             break;
+	  }
 
           bool foundShorter = false;
-          di->backend->lookup(QType(QType::ANY), shorter.operator const DNSName&(), di->id);
+          di->backend->lookup(QType(QType::ANY), shorter, di->id);
           while (di->backend->get(rec)) {
             if (rec.qname == rr->d_name && rec.qtype == QType::DS)
               fixDS = true;
-            if (shorter.operator const DNSName&() != rr->d_name) {
+            if (shorter != rr->d_name) {
               foundShorter = true;
             }
             if (rec.qtype == QType::NS) // are we inserting below a delegate?
               auth=false;
           }
 
-          if (!foundShorter && auth && shorter.operator const DNSName&() != rr->d_name) { // haven't found any record at current level, insert ENT.
-            insnonterm.insert(shorter.operator const DNSName&());
+          if (!foundShorter && auth && shorter != rr->d_name) { // haven't found any record at current level, insert ENT.
+            insnonterm.insert(shorter);
           }
           if (foundShorter)
             break; // if we find a shorter record, we can stop searching
@@ -501,8 +502,8 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
       } else if (!foundOtherWithSameName) {
         // If we didn't have to insert an ENT, we might have deleted a record at very deep level
         // and we must then clean up the ENT's above the deleted record.
-        ZoneName shorter(rr->d_name);
-        while (shorter != di->zone) {
+        DNSName shorter(rr->d_name);
+        while (shorter != di->zone.operator const DNSName&()) {
           shorter.chopOff();
           bool foundRealRR = false;
           bool foundEnt = false;
@@ -513,7 +514,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
           // b.d.e.test.com
           // if we delete b.c.d.e.test.com, we go up to d.e.test.com and then find b.d.e.test.com because that's below d.e.test.com.
           // At that point we can stop deleting ENT's because the tree is in tact again.
-          di->backend->listSubZone(shorter, di->id);
+          di->backend->listSubZone(ZoneName(shorter), di->id);
 
           while (di->backend->get(rec)) {
             if (rec.qtype.getCode())
@@ -523,7 +524,7 @@ uint PacketHandler::performUpdate(const string &msgPrefix, const DNSRecord *rr, 
           }
           if (!foundRealRR) {
             if (foundEnt) // only delete the ENT if we actually found one.
-              delnonterm.insert(shorter.operator const DNSName&());
+              delnonterm.insert(shorter);
           } else
             break;
         }
