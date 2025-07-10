@@ -577,7 +577,7 @@ static const commandDispatcher topLevelDispatcher{
   {"rrset", {true, {rrsetCommands}}},
   {"tsig-key", {false, {TSIGKEYCommands}}}, // sugar
   {"tsigkey", {true, {TSIGKEYCommands}}},
-  {"views", {true, {viewsCommands}}},
+  {"view", {true, {viewsCommands}}},
   {"zone", {true, {zoneMainCommands, zoneSecondaryCommands, zoneDNSSECCommands, zoneKeyCommands}}}
 };
 
