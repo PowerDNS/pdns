@@ -4249,11 +4249,14 @@ static int setMeta(vector<string>& cmds, const std::string_view synopsis)
   const static std::array<string, 7> multiMetaWhitelist = {"ALLOW-AXFR-FROM", "ALLOW-DNSUPDATE-FROM",
     "ALSO-NOTIFY", "TSIG-ALLOW-AXFR", "TSIG-ALLOW-DNSUPDATE", "GSS-ALLOW-AXFR-PRINCIPAL",
     "PUBLISH-CDS"};
-  bool clobber = true;
-  if (cmds.at(0) == "add-meta") {
-    clobber = false;
-    if (find(multiMetaWhitelist.begin(), multiMetaWhitelist.end(), kind) == multiMetaWhitelist.end() && kind.find("X-") != 0) {
+  bool clobber = (cmds.at(0) != "add-meta");
+  if (find(multiMetaWhitelist.begin(), multiMetaWhitelist.end(), kind) == multiMetaWhitelist.end() && kind.find("X-") != 0) {
+    if(!clobber) {
       cerr<<"Refusing to add metadata to single-value metadata "<<kind<<endl;
+      return 1;
+    }
+    if(cmds.size() > 4) {
+      cerr<<"Refusing to set several metadata to single-value metadata "<<kind<<endl;
       return 1;
     }
   }
