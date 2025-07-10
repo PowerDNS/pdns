@@ -5,7 +5,7 @@
 #   dig a www.example.com @0 -p 1053
 
 # Builder
-FROM debian:12-slim AS builder
+FROM debian:trixie-slim AS builder
 
 ENV NO_LUA_JIT="s390x"
 
@@ -90,13 +90,13 @@ RUN cd /tmp && mkdir /build/tmp/ && mkdir debian && \
     dpkg-deb -I equivs-dummy_1.0_all.deb && cp equivs-dummy_1.0_all.deb /build/tmp/
 
 # Runtime
-FROM debian:12-slim
+FROM debian:trixie-slim
 
 # Reusable layer for base update - Should be cached from builder
 RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
 
 # Ensure python3 and jinja2 is present (for startup script), and tini for signal management
-RUN apt-get install -y python3 python3-jinja2 tini libcap2-bin && apt-get clean
+RUN apt-get install -y python3 python3-jinja2 tini libcap2-bin adduser && apt-get clean
 
 # Executables from builder
 COPY --from=builder /build /
