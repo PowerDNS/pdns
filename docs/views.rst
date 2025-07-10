@@ -149,12 +149,12 @@ outcome when resolving domain queries.
 
 Let's differentiate these views now::
 
-  pdnsutil views add-zone internal example.com..internal
-  pdnsutil views add-zone internal example2.com..secret
+  pdnsutil view add-zone internal example.com..internal
+  pdnsutil view add-zone internal example2.com..secret
 
-  pdnsutil views add-zone trusted example.com..trusted
+  pdnsutil view add-zone trusted example.com..trusted
 
-Note that the `views add-zone` command does not create any zone! You will need
+Note that the `view add-zone` command does not create any zone! You will need
 to create these zones, like you would do for any other "regular" zone::
 
   pdnsutil zone create example.com..internal
@@ -179,13 +179,13 @@ As seen in this example, a given view may cause multiple zones to be resolved
 differently. At any time, you can check which views are setup, and the details
 of a given view::
 
-  $ pdnsutil views list-all
+  $ pdnsutil view list-all
   internal
   trusted
-  $ pdnsutil views list internal
+  $ pdnsutil view list internal
   example.com..internal
   example2.com..secret
-  $ pdnsutil views list trusted
+  $ pdnsutil view list trusted
   example.com..trusted
 
 Bind configuration adaptation
@@ -218,8 +218,8 @@ The equivalent PowerDNS setup would be::
   pdnsutil network set 192.168.23.0/24 trusted
   pdnsutil network set 0.0.0.0/0 badguys
 
-  pdnsutil views add-zone trusted primary.example.com..internal
-  pdnsutil views add-zone badguys primary.example.com..external
+  pdnsutil view add-zone trusted primary.example.com..internal
+  pdnsutil view add-zone badguys primary.example.com..external
 
   pdnsutil zone load example.com..internal internal/primary.example.com
   pdnsutil zone load example.com..external external/primary.example.com
