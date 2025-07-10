@@ -1736,22 +1736,10 @@ bool LMDBBackend::list(const ZoneName& target, domainid_t domain_id, bool includ
   d_lookupdomain = target;
   d_includedisabled = include_disabled;
 
-  d_rotxn = getRecordsROTransaction(domain_id, d_rwtxn);
-  d_txnorder = true;
-  d_getcursor = std::make_shared<MDBROCursor>(d_rotxn->txn->getCursor(d_rotxn->db->dbi));
+  compoundOrdername order;
+  std::string match = order(domain_id);
 
-  compoundOrdername co; // NOLINT(readability-identifier-length)
-  std::string match = co(domain_id);
-
-  MDBOutVal key, val;
-  if (d_getcursor->prefix(match, key, val) != 0) {
-    d_getcursor.reset();
-  }
-
-  // Make sure we start with fresh data
-  d_currentrrset.clear();
-  d_currentrrsetpos = 0;
-
+  lookupStart(domain_id, match, false);
   return true;
 }
 
@@ -1762,67 +1750,72 @@ void LMDBBackend::lookupInternal(const QType& type, const DNSName& qdomain, doma
     d_dtime.set();
   }
 
-  d_includedisabled = include_disabled;
-
-  ZoneName hunt(qdomain);
-  DomainInfo di;
+  DomainInfo info;
   if (zoneId == UnknownDomainID) {
+    ZoneName hunt(qdomain);
     auto rotxn = d_tdomains->getROTransaction();
 
     do {
-      zoneId = rotxn.get<0>(hunt, di);
-    } while (zoneId == 0 && type != QType::SOA && hunt.chopOff());
-    if (zoneId == 0) {
+      info.id = static_cast<domainid_t>(rotxn.get<0>(hunt, info));
+    } while (info.id == 0 && type != QType::SOA && hunt.chopOff());
+    if (info.id == 0) {
       //      cout << "Did not find zone for "<< qdomain<<endl;
       d_getcursor.reset();
       return;
     }
   }
   else {
-    if (!d_tdomains->getROTransaction().get(zoneId, di)) {
+    if (!d_tdomains->getROTransaction().get(zoneId, info)) {
       // cout<<"Could not find a zone with id "<<zoneId<<endl;
       d_getcursor.reset();
       return;
     }
-    hunt = di.zone;
+    info.id = zoneId;
   }
 
-  DNSName relqname = qdomain.makeRelative(hunt);
+  DNSName relqname = qdomain.makeRelative(info.zone);
   if (relqname.empty()) {
     return;
   }
-  // cout<<"get will look for "<<relqname<< " in zone "<<hunt<<" with id "<<zoneId<<" and type "<<type.toString()<<endl;
-  d_rotxn = getRecordsROTransaction(zoneId, d_rwtxn);
-  d_txnorder = true;
+  // cout<<"get will look for "<<relqname<< " in zone "<<info.zone<<" with id "<<info.id<<" and type "<<type.toString()<<endl;
 
-  compoundOrdername co;
-  d_getcursor = std::make_shared<MDBROCursor>(d_rotxn->txn->getCursor(d_rotxn->db->dbi));
-  MDBOutVal key, val;
+  d_lookupdomain = std::move(info.zone);
+  d_includedisabled = include_disabled;
+
+  compoundOrdername order;
   std::string match;
   if (type.getCode() == QType::ANY) {
-    match = co(zoneId, relqname);
+    match = order(info.id, relqname);
   }
   else {
-    match = co(zoneId, relqname, type.getCode());
+    match = order(info.id, relqname, type.getCode());
   }
 
+  lookupStart(info.id, match, d_dolog);
+}
+
+void LMDBBackend::lookupStart(domainid_t domain_id, const std::string& match, bool dolog)
+{
+  d_rotxn = getRecordsROTransaction(domain_id, d_rwtxn);
+  d_txnorder = true;
+  d_getcursor = std::make_shared<MDBROCursor>(d_rotxn->txn->getCursor(d_rotxn->db->dbi));
+
+  // Make sure we start with fresh data
+  d_currentrrset.clear();
+  d_currentrrsetpos = 0;
+
+  MDBOutVal key, val;
   if (d_getcursor->prefix(match, key, val) != 0) {
-    d_getcursor.reset();
-    if (d_dolog) {
+    d_getcursor.reset(); // will cause get() to fail
+    if (dolog) {
       g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": " << d_dtime.udiffNoReset() << " us to execute (found nothing)" << endl;
     }
     return;
   }
 
-  if (d_dolog) {
+  if (dolog) {
     g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": " << d_dtime.udiffNoReset() << " us to execute" << endl;
   }
-
-  d_lookupdomain = std::move(hunt);
-
-  // Make sure we start with fresh data
-  d_currentrrset.clear();
-  d_currentrrsetpos = 0;
 }
 
 bool LMDBBackend::get(DNSZoneRecord& zr)
