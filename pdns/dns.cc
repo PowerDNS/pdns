@@ -85,6 +85,18 @@ std::string RCode::to_short_s(uint8_t rcode) {
   return rcodes_short_s.at(rcode);
 }
 
+std::optional<uint8_t> RCode::from_short(const std::string_view& rcode_string)
+{
+  uint8_t position = 0;
+  for (const auto& short_rcode : rcodes_short_s) {
+    if (short_rcode == rcode_string) {
+      return position;
+    }
+    ++position;
+  }
+  return std::nullopt;
+}
+
 std::string ERCode::to_s(uint16_t rcode) {
   if (rcode >= RCode::rcodes_s.size()) {
     return std::string("Err#")+std::to_string(rcode);
