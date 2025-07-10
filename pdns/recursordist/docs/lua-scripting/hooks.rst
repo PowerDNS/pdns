@@ -213,8 +213,9 @@ Interception Functions
   .. versionadded:: 4.4.0
 
   This hook is called when a filtering policy has been hit, before the decision has been applied, making it possible to change a policy decision by altering its content or to skip it entirely.
-  Using the :meth:`event:discardPolicy() <PolicyEvent:discardPolicy>` function, it is also possible to selectively disable one or more filtering policy, for example RPZ zones.
-  The return value indicates whether the policy hit should be completely ignored (true) or applied (false), possibly after editing the action to take in that latter case (see :ref:`modifyingpolicydecisions` below). when true is returned, the resolution process will resume as if the policy hit never took place.
+  Using the :meth:`event:discardPolicy() <PolicyEvent:discardPolicy>` function it is also possible to selectively disable one or more filtering policies, for example RPZ zones.
+  The return value indicates whether the policy hit should be completely ignored (``true``) or applied (``false``), possibly after editing the action to take in that latter case.
+  When ``true`` is returned the resolution process will resume as if the policy hit never took place.
 
   :param PolicyEvent event: The event to handle
 
@@ -230,20 +231,7 @@ Interception Functions
         return false
       end
 
-  To alter the decision of the policy hit instead:
-
-  .. code-block:: Lua
-
-      function policyEventFilter(event)
-        if event.qname:equal("example.com") then
-          -- replace the decision with a custom CNAME
-          event.appliedPolicy.policyKind = pdns.policykinds.Custom
-          event.appliedPolicy.policyCustom = "example.net"
-          -- returning false so that the hit is not ignored
-          return false
-        end
-        return false
-      end
+  To alter the decision of the policy hit instead see :ref:`modifyingpolicydecisions`.
 
 .. _hook-semantics:
 
@@ -380,32 +368,51 @@ This script requires PowerDNS Recursor 4.x or later.
 
 Modifying Policy Decisions
 --------------------------
-The PowerDNS Recursor has a :doc:`policy engine based on Response Policy Zones (RPZ) <../lua-config/rpz>`.
-Starting with version 4.0.1 of the recursor, it is possible to alter this decision inside the Lua hooks.
+:program:`Recursor` has a :doc:`policy engine based on Response Policy Zones (RPZ) <../lua-config/rpz>`.
+It is possible to alter decisions by using Lua hooks.
+The :func:`policyEventFilter` hook is called on policy hits but before the policy comes into action, allowing
+modifications of the policy decision.
 
-If the decision is modified in a Lua hook, ``false`` should be
-returned, as the query is not actually handled by Lua so the decision
-is picked up by the Recursor.
-
-Before 4.4.0, the result of the policy decision is checked after :func:`preresolve` and :func:`postresolve`. Beginning with version 4.4.0, the policy decision is checked after :func:`preresolve` and any :func:`policyEventFilter` call instead.
-
-For example, if a decision is set to ``pdns.policykinds.NODATA`` by the policy engine and is unchanged in :func:`preresolve`, the query is replied to with a NODATA response immediately after :func:`preresolve`.
-
-Example script
-^^^^^^^^^^^^^^
+Example script using :func:`policyEventFilter`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: Lua
 
-    -- This script demonstrates modifying policies for versions before 4.4.0.
-    -- Starting with 4.4.0, it is preferred to use a policyEventFilter.
-    -- Dont ever block my own domain and IPs
+    -- This is the preferred approach to modify policy decisions.
+    -- Dont ever block my own domain and IPs.
+    -- To make the policy engine ignore a hit instead, return true.
+    function policyEventFilter(event)
+      if event.qname:equal("example.com") then
+        -- replace the decision with a custom CNAME
+        event.appliedPolicy.policyKind = pdns.policykinds.Custom
+        event.appliedPolicy.policyCustom = "example.net"
+        -- returning false so that the hit is not ignored
+        return false
+      end
+      return false
+    end
+
+If the decision is modified in Lua hooks other than :func:`policyEventFilter` (like :func:`preresolve`), ``false`` should be
+returned, as the hook decided not to handle the query.
+This makes the Recursor pick up the modified decision.
+
+The policy decision is checked after :func:`preresolve` and any :func:`policyEventFilter` call.
+
+Pre-4.4.0 example script
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: Lua
+
+    -- It is preferred to use a policyEventFilter, see example above.
+    -- Dont ever block my own domain and IPs.
     myDomain = newDN("example.com")
 
     myNetblock = newNMG()
     myNetblock:addMasks({"192.0.2.0/24"})
 
     function preresolve(dq)
-      if dq.qname:isPartOf(myDomain) and dq.appliedPolicy.policyKind ~= pdns.policykinds.NoAction then
+      if dq.qname:isPartOf(myDomain) and
+          dq.appliedPolicy.policyKind ~= pdns.policykinds.NoAction then
         pdnslog("Not blocking our own domain!")
         dq.appliedPolicy.policyKind = pdns.policykinds.NoAction
       end
