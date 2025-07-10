@@ -377,6 +377,9 @@ static const groupCommandDispatcher zoneMainCommands{
    {"set-options-json", {true, setOptionsJson,
     "ZONE JSONFILE",
     "\tChange the options of ZONE to JSONFILE"}},
+   {"show", {true, showZone,
+    "ZONE",
+    "\tShow various details about a zone, including DNSSEC keys"}},
    {"zonemd-verify-file", {true, zonemdVerifyFile,
     "ZONE FILENAME",
     "\tValidate ZONEMD for ZONE"}}}
@@ -438,9 +441,6 @@ static const groupCommandDispatcher zoneDNSSECCommands{
     "ZONE",
     "\tConfigure zone for RFC 9615 DNSSEC bootstrapping\n"
     "\t(zone name must begin with _signal.)"}},
-   {"show", {true, showZone,
-    "ZONE",
-    "\tShow DNSSEC (public) key details about a zone"}},
    {"unset-nsec3", {true, unsetNSec3,
     "ZONE",
     "\tSwitch ZONE back to NSEC"}},
@@ -5476,7 +5476,7 @@ static bool parseCommand(std::vector<std::string>& cmds, std::string& writtencom
     {"set-presigned", {"set-presigned", zoneDNSSECCommands}},
     {"set-publish-cdnskey", {"set-publish-cdnskey", zoneDNSSECCommands}},
     {"set-publish-cds", {"set-publish-cds", zoneDNSSECCommands}},
-    {"show-zone", {"show", zoneDNSSECCommands}},
+    {"show-zone", {"show", zoneMainCommands}},
     {"unpublish-zone-key", {"unpublish-key", zoneKeyCommands}},
     {"unset-nsec3", {"unset-nsec3", zoneDNSSECCommands}},
     {"unset-presigned", {"unset-presigned", zoneDNSSECCommands}},

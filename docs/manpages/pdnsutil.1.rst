@@ -376,7 +376,8 @@ zone set-publish-cds *ZONE* [*DIGESTALGOS*]
 
 zone show *ZONE*
 
-    Shows all DNSSEC related settings of a zone called *ZONE*.
+    Shows various details of the zone called *ZONE*, including its
+    DNSSEC related settings.
 
 zone unset-nsec3 *ZONE*
 
