@@ -26,6 +26,12 @@ Specifically, catalog zones have not been updated for views support at all.
 DNS Update (RFC2136) support has not been well tested with views.
 Most other things are expected to work; if you find something wrong, please :ref:`let us know <getting-support>`.
 
+LMDB backend, search support
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The record search from the :doc:`HTTP API <http-api/search>` functionality has 
+been implemented in the LMDB backend.
+
 LOC record parsing
 ^^^^^^^^^^^^^^^^^^
 

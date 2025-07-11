@@ -46,6 +46,7 @@
 #include <cstring>
 #include <lmdb.h>
 #include <memory>
+#include <regex>
 #include <stdexcept>
 #include <unistd.h>
 #include <utility>
@@ -1426,6 +1427,54 @@ bool LMDBBackend::replaceComments([[maybe_unused]] domainid_t domain_id, [[maybe
   // if the vector is empty, good, that's what we do here (LMDB does not store comments)
   // if it's not, report failure
   return comments.empty();
+}
+
+bool LMDBBackend::searchRecords(const string& pattern, size_t maxResults, vector<DNSResourceRecord>& result)
+{
+  // The search pattern is a shell-like globbing pattern, with `?' to match
+  // any character, and `*' to match any sequence of characters.
+  // We turn it into a basic POSIX regular expression (which is overkill):
+  // escape . [ \ ^ $
+  // replace ? with .
+  // replace * with .*
+  // Also, since we will be only looking for a submatch, there are implicit
+  // `*' on both ends, remove them to reduce complexity.
+  std::string pat = boost::replace_all_copy(pattern, "\\", "\\\\");
+  while (!pat.empty() && pat.at(pat.length() - 1) == '*') {
+    pat.pop_back();
+  }
+  while (!pat.empty() && pat.at(0) == '*') {
+    pat.erase(pat.begin());
+  }
+  boost::replace_all(pat, ".", "\\.");
+  boost::replace_all(pat, "[", "\\[");
+  boost::replace_all(pat, "^", "\\^");
+  boost::replace_all(pat, "$", "\\$");
+  boost::replace_all(pat, "?", ".");
+  boost::replace_all(pat, "*", ".*");
+  std::regex regex(pat, std::regex::basic | std::regex::icase);
+
+  std::vector<DomainInfo> domains;
+  getAllDomains(&domains, false, true);
+  for (const auto& info : domains) {
+    if (!list(info.zone, info.id, true)) {
+      return false;
+    }
+    DNSResourceRecord rec;
+    while (get(rec)) {
+      if (maxResults == 0) {
+        continue;
+      }
+      if (std::regex_search(rec.qname.toString(), regex) || std::regex_search(rec.content, regex)) {
+        result.emplace_back(rec);
+        --maxResults;
+      }
+    }
+    if (maxResults == 0) {
+      break;
+    }
+  }
+  return true;
 }
 
 // FIXME: this is not very efficient
