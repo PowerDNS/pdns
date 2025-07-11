@@ -11,7 +11,7 @@ LMDB backend
 * DNSSEC: Yes
 * Disabled data: Yes
 * Comments: No
-* Search: No
+* Search: since version 5.0.0
 * Views: Yes
 * API: Read-Write
 * Multiple instances: No

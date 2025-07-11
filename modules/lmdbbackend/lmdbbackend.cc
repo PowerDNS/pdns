@@ -1426,6 +1426,32 @@ bool LMDBBackend::replaceComments([[maybe_unused]] domainid_t domain_id, [[maybe
   return comments.empty();
 }
 
+bool LMDBBackend::searchRecords(const string& pattern, size_t maxResults, vector<DNSResourceRecord>& result)
+{
+  SimpleMatch simpleMatch(pattern, true);
+  std::vector<DomainInfo> domains;
+  getAllDomains(&domains, false, true);
+  for (const auto& info : domains) {
+    if (!list(info.zone, info.id, true)) {
+      return false;
+    }
+    DNSResourceRecord rec;
+    while (get(rec)) {
+      if (maxResults == 0) {
+        continue;
+      }
+      if (simpleMatch.match(rec.qname.toStringNoDot()) || simpleMatch.match(rec.content)) {
+        result.emplace_back(rec);
+        --maxResults;
+      }
+    }
+    if (maxResults == 0) {
+      break;
+    }
+  }
+  return true;
+}
+
 // FIXME: this is not very efficient
 static DNSName keyUnconv(std::string& instr)
 {
