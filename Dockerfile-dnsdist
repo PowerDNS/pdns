@@ -1,5 +1,5 @@
 # our chosen base image
-FROM debian:12-slim AS builder
+FROM debian:trixie-slim AS builder
 
 ENV NO_LUA_JIT="s390x arm64"
 
@@ -104,7 +104,7 @@ RUN cd /tmp && mkdir /build/tmp/ && mkdir debian && \
 
 # Runtime
 
-FROM debian:12-slim
+FROM debian:trixie-slim
 
 # Reusable layer for base update - Should be cached from builder
 RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
@@ -112,7 +112,7 @@ RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
 # - python3 and jinja2 (for startup script)
 # - tini (for signal management)
 # - ca-certificates (for verifying downstream DoH/DoT certificates)
-RUN apt-get install -y python3 python3-jinja2 tini libcap2-bin ca-certificates && apt-get clean
+RUN apt-get install -y python3 python3-jinja2 tini libcap2-bin ca-certificates adduser && apt-get clean
 
 # Output from builder
 COPY --from=builder /build /
