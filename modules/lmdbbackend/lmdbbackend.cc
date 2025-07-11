@@ -1107,7 +1107,7 @@ static std::shared_ptr<DNSRecordContent> deserializeContentZR(uint16_t qtype, co
 #define StringView string
 #endif
 
-void LMDBBackend::deleteDomainRecords(RecordsRWTransaction& txn, uint16_t qtype, const std::string& match)
+void LMDBBackend::deleteDomainRecords(RecordsRWTransaction& txn, const std::string& match)
 {
   auto cursor = txn.txn->getCursor(txn.db->dbi);
   MDBOutVal key{};
@@ -1115,9 +1115,7 @@ void LMDBBackend::deleteDomainRecords(RecordsRWTransaction& txn, uint16_t qtype,
 
   if (cursor.prefix(match, key, val) == 0) {
     do {
-      if (qtype == QType::ANY || compoundOrdername::getQType(key.getNoStripHeader<StringView>()) == qtype) {
-        cursor.del(key);
-      }
+      cursor.del(key);
     } while (cursor.next(key, val) == 0);
   }
 }
@@ -1157,7 +1155,7 @@ bool LMDBBackend::startTransaction(const ZoneName& domain, domainid_t domain_id)
   if (domain_id != UnknownDomainID) {
     compoundOrdername order;
     string match = order(domain_id);
-    LMDBBackend::deleteDomainRecords(*d_rwtxn, QType::ANY, match);
+    LMDBBackend::deleteDomainRecords(*d_rwtxn, match);
   }
 
   return true;
@@ -1370,7 +1368,7 @@ bool LMDBBackend::replaceRRSet(domainid_t domain_id, const DNSName& qname, const
     // remove the back chain record.
     deleteNSEC3RecordPair(txn, domain_id, relative);
     match = co(domain_id, relative);
-    deleteDomainRecords(*txn, QType::ANY, match);
+    deleteDomainRecords(*txn, match);
     // Update key if insertions are to follow
     if (!rrset.empty()) {
       match = co(domain_id, relative, rrset.front().qtype.getCode());
@@ -2850,13 +2848,43 @@ bool LMDBBackend::updateEmptyNonTerminals(domainid_t domain_id, set<DNSName>& in
   compoundOrdername order;
   if (remove) {
     string match = order(domain_id);
-    LMDBBackend::deleteDomainRecords(*txn, QType::ENT, match);
+    // We can not simply blindly delete all ENT records the way
+    // deleteDomainRecords() would do, as we also need to remove
+    // NSEC3 records for these ENT, if any.
+    {
+      auto cursor = txn->txn->getCursor(txn->db->dbi);
+      MDBOutVal key{};
+      MDBOutVal val{};
+      std::vector<DNSName> names;
+
+      if (cursor.prefix(match, key, val) == 0) {
+        do {
+          if (compoundOrdername::getQType(key.getNoStripHeader<StringView>()) == QType::ENT) {
+            // We need to remember the name of the records we're deleting, so
+            // as to remove the matching NSEC3 records, if any.
+            // (we can't invoke deleteNSEC3RecordPair here as doing this
+            // could make our cursor invalid)
+            DNSName qname = compoundOrdername::getQName(key.getNoStripHeader<StringView>());
+            names.emplace_back(qname);
+            cursor.del(key);
+          }
+        } while (cursor.next(key, val) == 0);
+      }
+      for (const auto& qname : names) {
+        deleteNSEC3RecordPair(txn, domain_id, qname);
+      }
+    }
   }
   else {
     for (auto name : erase) {
       // cout <<" -"<<name<<endl;
       name.makeUsRelative(info.zone);
-      txn->txn->del(txn->db->dbi, order(domain_id, name, QType::ENT));
+      std::string match = order(domain_id, name, QType::ENT);
+      MDBOutVal val{};
+      if (txn->txn->get(txn->db->dbi, match, val) == 0) {
+        txn->txn->del(txn->db->dbi, match);
+        deleteNSEC3RecordPair(txn, domain_id, name);
+      }
     }
   }
   for (const auto& name : insert) {
