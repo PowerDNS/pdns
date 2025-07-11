@@ -38,7 +38,7 @@ These instructions have been tested on Debian 10 (Buster).
 
 -  Verify that everything worked, you should see valid data there::
 
-    pdnsutil show-zone example.com
+    pdnsutil zone show example.com
 
 SoftHSM2 with forwarding
 ------------------------
@@ -92,7 +92,7 @@ Then assign the HSM token to your zone with::
 
   pdnsutil hsm assign example.com ecdsa256 ksk p11-kit-client 'ecdsa#1' 1234 'my key'
 
-And then verify with ``show-zone`` that the zone now has a valid key.
+And then verify with ``zone show`` that the zone now has a valid key.
 
 You can do this over SSH as well (note that the example connects from token server to DNS server)::
 
@@ -171,7 +171,7 @@ Smart Card token on Ubuntu 14.04.
 
 - Verify that everything worked, you should see valid data there. ::
 
-    pdnsutil show-zone zone
+    pdnsutil zone show zone
 
 - Note that the physical token is pretty slow, so you have to use it as
   hidden primary. It has been observed to produce about 1.5 signatures/second.
