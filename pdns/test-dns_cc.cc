@@ -33,7 +33,8 @@ BOOST_AUTO_TEST_SUITE(test_dnscc)
 
 BOOST_AUTO_TEST_CASE(test_rcode)
 {
-  BOOST_CHECK_EQUAL(RCode::to_s(255), "ErrOutOfRange");
+  BOOST_CHECK_EQUAL(RCode::to_s(16), "ErrOutOfRange");
+  BOOST_CHECK_EQUAL(RCode::to_short_s(16), "ErrOutOfRange");
 
   for (uint8_t idx = 0; idx <= RCode::NotZone; idx++) {
     auto long_s = RCode::to_s(idx);
@@ -45,6 +46,7 @@ BOOST_AUTO_TEST_CASE(test_rcode)
   }
 
   BOOST_CHECK_EQUAL(RCode::to_s(RCode::NotZone + 1), "Err#11");
+  BOOST_CHECK(!RCode::from_short("badcookie"));
 }
 
 BOOST_AUTO_TEST_CASE(test_ercode)
@@ -52,6 +54,10 @@ BOOST_AUTO_TEST_CASE(test_ercode)
   for (uint16_t idx = ERCode::BADVERS; idx <= ERCode::BADCOOKIE; idx++) {
     auto long_s = ERCode::to_s(idx);
     BOOST_CHECK(long_s.size() > 0);
+    auto short_s = ERCode::to_short_s(idx);
+    auto ercode = ERCode::from_short(short_s);
+    BOOST_CHECK(ercode);
+    BOOST_CHECK_EQUAL(*ercode, idx);
   }
 
   BOOST_CHECK_EQUAL(ERCode::to_s(ERCode::BADCOOKIE + 1), "Err#24");

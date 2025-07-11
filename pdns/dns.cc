@@ -58,7 +58,7 @@ const std::array<std::string, 24> RCode::rcodes_s = {
   "Bad/missing Server Cookie"
 };
 
-static const std::array<std::string, 11> rcodes_short_s =  {
+static const std::array<std::string, 24> rcodes_short_s =  {
   "noerror",
   "formerr",
   "servfail",
@@ -70,6 +70,19 @@ static const std::array<std::string, 11> rcodes_short_s =  {
   "nxrrset",
   "notauth",
   "notzone",
+  "rcode11",
+  "rcode12",
+  "rcode13",
+  "rcode14",
+  "rcode15",
+  "badvers",
+  "badkey",
+  "badtime",
+  "badmode",
+  "badname",
+  "badalg",
+  "badtrunc",
+  "badcookie",
 };
 
 std::string RCode::to_s(uint8_t rcode) {
@@ -80,10 +93,10 @@ std::string RCode::to_s(uint8_t rcode) {
 }
 
 std::string RCode::to_short_s(uint8_t rcode) {
-  if (rcode >= rcodes_short_s.size()) {
-    return "rcode" + std::to_string(rcode);
+  if (rcode > 0xF) {
+    return std::string("ErrOutOfRange");
   }
-  return rcodes_short_s.at(rcode);
+  return ERCode::to_short_s(rcode);
 }
 
 std::optional<uint8_t> RCode::from_short(const std::string_view& rcode_string)
@@ -92,14 +105,34 @@ std::optional<uint8_t> RCode::from_short(const std::string_view& rcode_string)
   if (position == rcodes_short_s.end()) {
     return std::nullopt;
   }
-  return std::distance(rcodes_short_s.begin(), position);
+  auto code = std::distance(rcodes_short_s.begin(), position);
+  if (code > 0xF) {
+    return std::nullopt;
+  }
+  return code;
 }
 
 std::string ERCode::to_s(uint16_t rcode) {
   if (rcode >= RCode::rcodes_s.size()) {
-    return std::string("Err#")+std::to_string(rcode);
+    return std::string("Err#") + std::to_string(rcode);
   }
   return RCode::rcodes_s.at(rcode);
+}
+
+std::string ERCode::to_short_s(uint16_t rcode) {
+  if (rcode >= rcodes_short_s.size()) {
+    return "rcode" + std::to_string(rcode);
+  }
+  return rcodes_short_s.at(rcode);
+}
+
+std::optional<uint16_t> ERCode::from_short(const std::string_view& ercode_string)
+{
+  const auto* position = std::find(rcodes_short_s.begin(), rcodes_short_s.end(), ercode_string);
+  if (position == rcodes_short_s.end()) {
+    return std::nullopt;
+  }
+  return std::distance(rcodes_short_s.begin(), position);
 }
 
 std::string Opcode::to_s(uint8_t opcode) {
