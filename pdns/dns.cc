@@ -58,7 +58,7 @@ const std::array<std::string, 24> RCode::rcodes_s = {
   "Bad/missing Server Cookie"
 };
 
-static const std::array<std::string, 10> rcodes_short_s =  {
+static const std::array<std::string, 11> rcodes_short_s =  {
   "noerror",
   "formerr",
   "servfail",
@@ -69,6 +69,7 @@ static const std::array<std::string, 10> rcodes_short_s =  {
   "yxrrset",
   "nxrrset",
   "notauth",
+  "notzone",
 };
 
 std::string RCode::to_s(uint8_t rcode) {
