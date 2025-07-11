@@ -154,9 +154,10 @@ struct InternalQueryState
   std::unique_ptr<DOH3Unit> doh3u{nullptr}; // 8
   int32_t d_streamID{-1}; // 4
   uint32_t cacheKey{0}; // 4
-  uint32_t cacheKeyNoECS{0}; // 4
-  // DoH-only: if we received a TC=1 answer, we had to retry over TCP and thus we need the TCP cache key */
   uint32_t cacheKeyTCP{0}; // 4
+  // for the zero-scope feature we need to keep the cache key computed before adding the ECS payload
+  uint32_t cacheKeyNoECS{0}; // 4
+  uint32_t cacheKeyNoECSTCP{0}; // 4
   uint32_t ttlCap{0}; // cap the TTL _after_ inserting into the packet cache // 4
   int backendFD{-1}; // 4
   int delayMsec{0};

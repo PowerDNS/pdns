@@ -978,6 +978,7 @@ IncomingTCPConnectionState::QueryProcessingResult IncomingTCPConnectionState::ha
     isXFR = true;
   }
 
+#warning TODO: do not use UDP if there was a cache hit for UDP yielding a TC=1
   if (!isXFR && forwardViaUDPFirst()) {
     // if there was no EDNS, we add it with a large buffer size
     // so we can use UDP to talk to the backend.
