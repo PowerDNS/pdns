@@ -7,7 +7,7 @@ LMDB backend
 * Producer: Yes
 * Consumer: Yes
 * Autosecondary: No
-* DNS Update: No
+* DNS Update: since version 5.0.0
 * DNSSEC: Yes
 * Disabled data: Yes
 * Comments: No
@@ -18,7 +18,6 @@ LMDB backend
 * Zone caching: Yes
 * Module name: lmdb
 * Launch name: ``lmdb``
-
 
 .. warning::
   The LMDB backend is considered stable as of 4.4.0. Version 4.3.0 was stable but had an important `known bug <https://github.com/PowerDNS/pdns/issues/8012>`__, that affects anybody with big records such as long TXT content.

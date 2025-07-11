@@ -74,7 +74,8 @@ public:
   ~LMDBBackend();
 
   unsigned int getCapabilities() override;
-  bool list(const ZoneName& target, domainid_t domainId, bool include_disabled) override;
+  bool list(const ZoneName& target, domainid_t domain_id, bool include_disabled) override;
+  bool listSubZone(const ZoneName& target, domainid_t domain_id) override;
 
   bool getDomainInfo(const ZoneName& domain, DomainInfo& info, bool getserial = true) override;
   bool createDomain(const ZoneName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account) override;
@@ -333,10 +334,11 @@ private:
   std::shared_ptr<RecordsROTransaction> getRecordsROTransaction(domainid_t id, const std::shared_ptr<LMDBBackend::RecordsRWTransaction>& rwtxn = nullptr);
   int genChangeDomain(const ZoneName& domain, const std::function<void(DomainInfo&)>& func);
   int genChangeDomain(domainid_t id, const std::function<void(DomainInfo&)>& func);
-  static void deleteDomainRecords(RecordsRWTransaction& txn, uint16_t qtype, const std::string& match);
+  static void deleteDomainRecords(RecordsRWTransaction& txn, const std::string& match);
 
   void getAllDomainsFiltered(vector<DomainInfo>* domains, const std::function<bool(DomainInfo&)>& allow);
 
+  void lookupStart(domainid_t domain_id, const std::string& match, bool dolog);
   void lookupInternal(const QType& type, const DNSName& qdomain, domainid_t zoneId, DNSPacket* p, bool include_disabled);
   bool getSerial(DomainInfo& di);
 
@@ -348,11 +350,8 @@ private:
   static void deleteNSEC3RecordPair(const std::shared_ptr<RecordsRWTransaction>& txn, domainid_t domain_id, const DNSName& qname);
   void writeNSEC3RecordPair(const std::shared_ptr<RecordsRWTransaction>& txn, domainid_t domain_id, const DNSName& qname, const DNSName& ordername);
 
-  bool get_list(DNSZoneRecord& rr);
-  bool get_lookup(DNSZoneRecord& rr);
-  std::string d_matchkey;
   ZoneName d_lookupdomain;
-
+  DNSName d_lookupsubmatch;
   vector<LMDBResourceRecord> d_currentrrset;
   size_t d_currentrrsetpos;
   MDBOutVal d_currentKey;

@@ -17,6 +17,7 @@ support DNS update:
 - :doc:`gpgsql <backends/generic-postgresql>`
 - :doc:`gsqlite3 <backends/generic-sqlite3>`
 - :doc:`godbc <backends/generic-odbc>`
+- :doc:`lmdb <backends/lmdb>` (from version 5.0.0 onwards)
 
 .. _dnsupdate-configuration-options:
 
