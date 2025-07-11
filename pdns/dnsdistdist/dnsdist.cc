@@ -3616,7 +3616,7 @@ int main(int argc, char** argv)
       consoleControlThread.detach();
     }
     for (auto& [listeningAddress, socket] : listeningSockets.d_webServerSockets) {
-      std::thread webServerThread(dnsdist::webserver::WebserverThread, std::move(listeningAddress), std::move(socket));
+      std::thread webServerThread(dnsdist::webserver::WebserverThread, listeningAddress, std::move(socket));
       webServerThread.detach();
     }
 
