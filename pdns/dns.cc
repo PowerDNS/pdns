@@ -87,14 +87,11 @@ std::string RCode::to_short_s(uint8_t rcode) {
 
 std::optional<uint8_t> RCode::from_short(const std::string_view& rcode_string)
 {
-  uint8_t position = 0;
-  for (const auto& short_rcode : rcodes_short_s) {
-    if (short_rcode == rcode_string) {
-      return position;
-    }
-    ++position;
+  auto position = std::find(rcodes_short_s.begin(), rcodes_short_s.end(), rcode_string);
+  if (position == rcodes_short_s.end()) {
+    return std::nullopt;
   }
-  return std::nullopt;
+  return std::distance(rcodes_short_s.begin(), position);
 }
 
 std::string ERCode::to_s(uint16_t rcode) {
