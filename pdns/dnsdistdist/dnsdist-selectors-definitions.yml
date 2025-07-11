@@ -42,9 +42,6 @@
       description: "The EDNS version to match on"
 - name: "ERCode"
   description: "Matches queries or responses with the specified rcode. The full 16bit RCode will be matched. If no EDNS OPT RR is present, the upper 12 bits are treated as 0"
-  changes:
-    - version: 2.1.0
-      content: "The ``rcode`` parameter used to be an unsigned integer and is now a string"
   parameters:
     - name: "rcode"
       type: "RCode"
@@ -349,9 +346,6 @@ Set the ``source`` parameter to ``false`` to match against destination address i
       description: "The qtype, as a numerical value"
 - name: "RCode"
   description: "Matches queries or responses with the specified rcode"
-  changes:
-    - version: 2.1.0
-      content: "The ``rcode`` parameter used to be an unsigned integer and is now a string"
   parameters:
     - name: "rcode"
       type: "RCode"

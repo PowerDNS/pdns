@@ -1,11 +1,6 @@
 Upgrade Guide
 =============
 
-2.0.x to 2.1.0
---------------
-
-Since 2.1.0, ``rcode``s in the ``YAML`` configuration can be specified either by their case-insensitive names (e.g. ``refused``), or by their numerical values (e.g. ``"5"``). Unfortunately in some contexts (:func:`RCodeRule`, :func:`ERCodeRule`, :func:`RCodeAction` and :func:`ERCodeAction`) this has the side-effect that a numerical value (``5``) is no longer accepted and has to be converted to a string (``"5"``).
-
 1.9.x to 2.0.0
 --------------
 
