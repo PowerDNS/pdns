@@ -792,15 +792,15 @@ static void loadBinds(const ::rust::Vec<dnsdist::rust::settings::BindConfigurati
 
 static void loadWebServer(const dnsdist::rust::settings::WebserverConfiguration& webConfig)
 {
-  ComboAddress local;
-  try {
-    local = ComboAddress{std::string(webConfig.listen_address)};
-  }
-  catch (const PDNSException& e) {
-    throw std::runtime_error(std::string("Error parsing the bind address for the webserver: ") + e.reason);
-  }
-  dnsdist::configuration::updateRuntimeConfiguration([local, &webConfig](dnsdist::configuration::RuntimeConfiguration& config) {
-    config.d_webServerAddress = local;
+  dnsdist::configuration::updateRuntimeConfiguration([&webConfig](dnsdist::configuration::RuntimeConfiguration& config) {
+    for (const auto& address : webConfig.listen_addresses) {
+      try {
+        config.d_webServerAddresses.emplace(ComboAddress(std::string(address)));
+      }
+      catch (const PDNSException& exp) {
+        throw std::runtime_error(std::string("Error parsing bind address for the webserver: ") + exp.reason);
+      }
+    }
     if (!webConfig.password.empty()) {
       auto holder = std::make_shared<CredentialsHolder>(std::string(webConfig.password), webConfig.hash_plaintext_credentials);
       if (!holder->wasHashed() && holder->isHashingAvailable()) {
@@ -1077,7 +1077,7 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
     }
 #endif /* DISABLE_CARBON */
 
-    if (!globalConfig.webserver.listen_address.empty()) {
+    if (!globalConfig.webserver.listen_addresses.empty()) {
       const auto& webConfig = globalConfig.webserver;
       loadWebServer(webConfig);
     }

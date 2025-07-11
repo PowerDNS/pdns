@@ -3317,7 +3317,7 @@ static void startFrontends()
 struct ListeningSockets
 {
   Socket d_consoleSocket{-1};
-  Socket d_webServerSocket{-1};
+  std::vector<std::pair<ComboAddress, Socket>> d_webServerSockets;
 };
 
 static ListeningSockets initListeningSockets()
@@ -3337,12 +3337,12 @@ static ListeningSockets initListeningSockets()
     }
   }
 
-  if (currentConfig.d_webServerAddress) {
-    const auto& local = *currentConfig.d_webServerAddress;
+  for (const auto& local : currentConfig.d_webServerAddresses) {
     try {
-      result.d_webServerSocket = Socket(local.sin4.sin_family, SOCK_STREAM, 0);
-      result.d_webServerSocket.bind(local, true);
-      result.d_webServerSocket.listen(5);
+      auto webServerSocket = Socket(local.sin4.sin_family, SOCK_STREAM, 0);
+      webServerSocket.bind(local, true);
+      webServerSocket.listen(5);
+      result.d_webServerSockets.emplace_back(local, std::move(webServerSocket));
     }
     catch (const std::exception& exp) {
       errlog("Unable to bind to web server socket on %s: %s", local.toStringWithPort(), exp.what());
@@ -3615,8 +3615,8 @@ int main(int argc, char** argv)
       std::thread consoleControlThread(dnsdist::console::controlThread, std::move(listeningSockets.d_consoleSocket));
       consoleControlThread.detach();
     }
-    if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_webServerAddress) {
-      std::thread webServerThread(dnsdist::webserver::WebserverThread, std::move(listeningSockets.d_webServerSocket));
+    for (auto& [listeningAddress, socket] : listeningSockets.d_webServerSockets) {
+      std::thread webServerThread(dnsdist::webserver::WebserverThread, std::move(listeningAddress), std::move(socket));
       webServerThread.detach();
     }
 

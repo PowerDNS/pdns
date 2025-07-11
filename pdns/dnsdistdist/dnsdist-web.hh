@@ -6,7 +6,7 @@
 
 namespace dnsdist::webserver
 {
-void WebserverThread(Socket sock);
+void WebserverThread(ComboAddress listeningAddress, Socket sock);
 void setMaxConcurrentConnections(size_t max);
 void registerBuiltInWebHandlers();
 void clearWebHandlers();

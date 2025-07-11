@@ -7,7 +7,9 @@ class TestYaml(DNSDistTest):
 
     _yaml_config_template = """---
 webserver:
-  listen_address: "127.0.0.1:%d"
+  listen_addresses:
+    - "127.0.0.2:%d"
+    - "127.0.0.1:%d"
   acl:
     - 127.0.0.0/8
 
@@ -113,12 +115,13 @@ response_rules:
       type: "TC"
 """
     _webServerPort = pickAvailablePort()
+    _webServerPort2 = pickAvailablePort()
     _dnsDistPort = pickAvailablePort()
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
     _consolePort = pickAvailablePort()
     _testServerPort = pickAvailablePort()
-    _yaml_config_params = ['_webServerPort', '_consolePort', '_consoleKeyB64', '_dnsDistPort', '_testServerPort']
+    _yaml_config_params = ['_webServerPort', '_webServerPort2', '_consolePort', '_consoleKeyB64', '_dnsDistPort', '_testServerPort']
     _config_params = []
 
     def testForwarded(self):

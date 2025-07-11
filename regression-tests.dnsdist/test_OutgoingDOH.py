@@ -370,7 +370,8 @@ backends:
     health_checks:
       mode: "UP"
 webserver:
-  listen_address: "127.0.0.1:%d"
+  listen_addresses:
+    - "127.0.0.1:%d"
   password: "%s"
   api_key: "%s"
   acl:
