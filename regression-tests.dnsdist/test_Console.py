@@ -4,6 +4,7 @@ import cdbx
 import dns
 import os
 import socket
+import subprocess
 import time
 from dnsdisttests import DNSDistTest
 
@@ -172,3 +173,33 @@ key_value_stores:
         self.assertTrue(cdb.startswith('Command returned an object we can\'t print: Trying to cast a lua variable from "userdata" to'))
         got = self.sendConsoleCommand("if getObjectFromYAMLConfiguration('cdb-kvs'):reload() then return 'reloading worked' else return 'reloading failed' end")
         self.assertEqual(got, 'reloading worked\n')
+
+class TestConsoleViaBuiltInClient(DNSDistTest):
+
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+
+    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort']
+    _config_template = """
+    setKey("%s")
+    controlSocket("127.0.0.1:%s")
+    newServer{address="127.0.0.1:%d"}
+    """
+
+    def testConsoleViaBuiltInclient(self):
+        """
+        Console: Built-in client
+        """
+        output = None
+        try:
+            confFile = os.path.join('configs', 'dnsdist_%s.conf' % (self.__class__.__name__))
+            testcmd = [os.environ['DNSDISTBIN'], '--client', '-C', confFile ]
+            process = subprocess.Popen(testcmd, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True)
+            output = process.communicate(input=b'showVersion()\n')
+        except subprocess.CalledProcessError as exc:
+            raise AssertionError('%s failed (%d): %s' % (testcmd, process.returncode, process.output))
+
+        if process.returncode != 0:
+          raise AssertionError('%s failed (%d): %s' % (testcmd, process.returncode, output))
+
+        self.assertTrue(output[0].startswith(b'dnsdist '))
