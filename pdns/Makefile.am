@@ -1399,6 +1399,7 @@ testrunner_SOURCES = \
 	test-credentials_cc.cc \
 	test-digests_hh.cc \
 	test-distributor_hh.cc \
+	test-dns_cc.cc \
 	test-dns_random_hh.cc \
 	test-dnsname_cc.cc \
 	test-dnsparser_cc.cc \
