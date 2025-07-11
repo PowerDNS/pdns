@@ -19,16 +19,17 @@ Apart from raw SQL statements, setting domain metadata can be done with
 
 The following options can only be read (not written to) via the HTTP API metadata endpoint.
 
-* API-RECTIFY
 * AXFR-MASTER-TSIG
 * LUA-AXFR-SCRIPT
 * NSEC3NARROW
 * NSEC3PARAM
 * PRESIGNED
 * SOA-EDIT
-* TSIG-ALLOW-AXFR
 
-The option SOA-EDIT-API cannot be written or read via the HTTP API metadata endpoint.
+The following options cannot be written or read via the HTTP API metadata endpoint.
+
+* API-RECTIFY
+* SOA-EDIT-API
 
 .. _metadata-allow-axfr-from:
 
@@ -60,8 +61,8 @@ records, add ``allow-axfr-ips=`` to ``pdns.conf``.
 
 .. _metadata-api-rectify:
 
-ALLOW-DNSUPDATE-FROM, FORWARD-DNSUPDATE, NOTIFY-DNSUPDATE, SOA-EDIT-DNSUPDATE, TSIG-ALLOW-DNSUPDATE
----------------------------------------------------------------------------------------------------
+ALLOW-DNSUPDATE-FROM, FORWARD-DNSUPDATE, NOTIFY-DNSUPDATE, SOA-EDIT-DNSUPDATE
+-----------------------------------------------------------------------------
 
 See the documentation on :ref:`Dynamic DNS update <dnsupdate-metadata>`.
 
