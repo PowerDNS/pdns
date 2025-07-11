@@ -88,7 +88,7 @@ std::string RCode::to_short_s(uint8_t rcode) {
 
 std::optional<uint8_t> RCode::from_short(const std::string_view& rcode_string)
 {
-  auto position = std::find(rcodes_short_s.begin(), rcodes_short_s.end(), rcode_string);
+  const auto* position = std::find(rcodes_short_s.begin(), rcodes_short_s.end(), rcode_string);
   if (position == rcodes_short_s.end()) {
     return std::nullopt;
   }
