@@ -2118,7 +2118,6 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         self.assertEqual(serverset['records'], rrset2['records'])
         self.assertEqual(serverset['comments'], rrset['comments'])
 
-    @unittest.skipIf(is_auth_lmdb(), "No search in LMDB")
     def test_search_rr_exact_zone(self):
         name = unique_zone_name()
         self.create_zone(name=name, serial=22, soa_edit_api='')
@@ -2138,7 +2137,6 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
              u'ttl': 3600, u'type': u'SOA', u'name': name},
         ])
 
-    @unittest.skipIf(is_auth_lmdb(), "No search in LMDB")
     def test_search_rr_exact_zone_filter_type_zone(self):
         name = unique_zone_name()
         data_type = "zone"
@@ -2150,7 +2148,6 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
             {u'object_type': u'zone', u'name': name, u'zone_id': name},
         ])
 
-    @unittest.skipIf(is_auth_lmdb(), "No search in LMDB")
     def test_search_rr_exact_zone_filter_type_record(self):
         name = unique_zone_name()
         data_type = "record"
@@ -2170,7 +2167,6 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
              u'ttl': 3600, u'type': u'SOA', u'name': name},
         ])
 
-    @unittest.skipIf(is_auth_lmdb(), "No search in LMDB")
     def test_search_rr_substring(self):
         name = unique_zone_name()
         search = name[5:-5]
@@ -2181,7 +2177,6 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         # should return zone, SOA, ns1, ns2
         self.assertEqual(len(r.json()), 4)
 
-    @unittest.skipIf(is_auth_lmdb(), "No search in LMDB")
     def test_search_rr_case_insensitive(self):
         name = unique_zone_name()+'testsuffix.'
         self.create_zone(name=name)
@@ -2191,7 +2186,7 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         # should return zone, SOA, ns1, ns2
         self.assertEqual(len(r.json()), 4)
 
-    @unittest.skipIf(is_auth_lmdb(), "No search or comments in LMDB")
+    @unittest.skipIf(is_auth_lmdb(), "No comments in LMDB")
     def test_search_rr_comment(self):
         name = unique_zone_name()
         rrsets = [{
@@ -2219,7 +2214,6 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         self.assertEqual(data[0]['name'], name)
         self.assertEqual(data[0]['content'], rrsets[0]['comments'][0]['content'])
 
-    @unittest.skipIf(is_auth_lmdb(), "No search in LMDB")
     def test_search_after_rectify_with_ent(self):
         name = unique_zone_name()
         search = name.split('.')[0]
