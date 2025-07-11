@@ -87,14 +87,14 @@ static const std::array<std::string, 24> rcodes_short_s =  {
 
 std::string RCode::to_s(uint8_t rcode) {
   if (rcode > 0xF) {
-    return std::string("ErrOutOfRange");
+    return "ErrOutOfRange";
   }
   return ERCode::to_s(rcode);
 }
 
 std::string RCode::to_short_s(uint8_t rcode) {
   if (rcode > 0xF) {
-    return std::string("ErrOutOfRange");
+    return "ErrOutOfRange";
   }
   return ERCode::to_short_s(rcode);
 }
