@@ -434,11 +434,12 @@ class TestAPIServerDown(APITestsBase):
 class TestAPIWritable(APITestsBase):
     __test__ = True
     _APIWriteDir = '/tmp'
-    _config_params = ['_testServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed', '_APIWriteDir']
+    _config_params = ['_testServerPort', '_webServerPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed', '_APIWriteDir']
     _config_template = """
     setACL({"127.0.0.1/32", "::1/128"})
-    newServer{address="127.0.0.1:%s"}
-    webserver("127.0.0.1:%s")
+    newServer{address="127.0.0.1:%d"}
+    webserver("127.0.0.1:%d")
+    webserver("127.0.0.2:%d")
     setWebserverConfig({password="%s", apiKey="%s"})
     setAPIWritable(true, "%s")
     """
