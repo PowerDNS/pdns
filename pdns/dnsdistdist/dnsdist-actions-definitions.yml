@@ -53,9 +53,6 @@
 - name: "ERCode"
   description: "Reply immediately by turning the query into a response with the specified EDNS extended rcode"
   skip-cpp: true
-  changes:
-    - version: 2.1.0
-      content: "The ``rcode`` parameter used to be an unsigned integer and is now a string"
   parameters:
     - name: "rcode"
       type: "RCode"
@@ -257,9 +254,6 @@ The function will be invoked in a per-thread Lua state, without access to the gl
       description: "Whether subsequent rules should be executed after this one"
 - name: "RCode"
   description: "Reply immediately by turning the query into a response with the specified rcode"
-  changes:
-    - version: 2.1.0
-      content: "The ``rcode`` parameter used to be an unsigned integer and is now a string"
   skip-cpp: true
   parameters:
     - name: "rcode"
