@@ -29,6 +29,7 @@ The following options can only be read (not written to) via the HTTP API metadat
 The following options cannot be written or read via the HTTP API metadata endpoint.
 
 * API-RECTIFY
+* ENABLE-LUA-RECORDS
 * SOA-EDIT-API
 
 .. _metadata-allow-axfr-from:
@@ -105,6 +106,12 @@ AXFR-SOURCE
 
 The IP address to use as a source address for sending AXFR and IXFR
 requests.
+
+ENABLE-LUA-RECORDS
+------------------
+
+If set to 1, allows :doc:`LUA records <lua-records/index>` to be used within
+this zone, even if :ref:`setting-enable-lua-records` is set to ``no``.
 
 GSS-ACCEPTOR-PRINCIPAL
 ----------------------
