@@ -96,7 +96,7 @@ query_rules:
       qname: "refused.doq.tests.powerdns.com."
     action:
       type: "RCode"
-      rcode: 5
+      rcode: "5"
   - name: "Spoof"
     selector:
       type: "QName"

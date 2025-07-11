@@ -578,6 +578,9 @@ dynamic_rules_settings:
 
 dynamic_rule:
   description: "Dynamic rule settings"
+  changes:
+    - version: 2.1.0
+      content: "The ``rcode`` parameter used to be an unsigned integer and is now a string"
   parameters:
     - name: "type"
       rename: "rule_type"

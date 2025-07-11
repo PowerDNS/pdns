@@ -869,6 +869,7 @@ if get_option('unit-tests')
       src_dir / 'test-credentials_cc.cc',
       src_dir / 'test-digests_hh.cc',
       src_dir / 'test-distributor_hh.cc',
+      src_dir / 'test-dns_cc.cc',
       src_dir / 'test-dns_random_hh.cc',
       src_dir / 'test-dnsname_cc.cc',
       src_dir / 'test-dnsparser_cc.cc',

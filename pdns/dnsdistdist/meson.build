@@ -517,6 +517,7 @@ test_sources += files(
   src_dir / 'test-connectionmanagement_hh.cc',
   src_dir / 'test-credentials_cc.cc',
   src_dir / 'test-delaypipe_hh.cc',
+  src_dir / 'test-dns_cc.cc',
   src_dir / 'test-dnscrypt_cc.cc',
   src_dir / 'test-dnsdistasync.cc',
   src_dir / 'test-dnsdistbackend_cc.cc',

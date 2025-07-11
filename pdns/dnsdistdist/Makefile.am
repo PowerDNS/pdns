@@ -392,6 +392,7 @@ testrunner_SOURCES = \
 	test-connectionmanagement_hh.cc \
 	test-credentials_cc.cc \
 	test-delaypipe_hh.cc \
+	test-dns_cc.cc \
 	test-dnscrypt_cc.cc \
 	test-dnsdist-connections-cache.cc \
 	test-dnsdist-dnsparser.cc \

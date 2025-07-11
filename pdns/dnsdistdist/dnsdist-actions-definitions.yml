@@ -55,7 +55,8 @@
   skip-cpp: true
   parameters:
     - name: "rcode"
-      type: "u8"
+      type: "RCode"
+      rust-type: "String"
       description: "The RCODE to respond with"
     - name: "vars"
       type: "ResponseConfig"
@@ -256,7 +257,8 @@ The function will be invoked in a per-thread Lua state, without access to the gl
   skip-cpp: true
   parameters:
     - name: "rcode"
-      type: "u8"
+      type: "RCode"
+      rust-type: "String"
       description: "The response code"
     - name: "vars"
       type: "ResponseConfig"

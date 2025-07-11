@@ -112,3 +112,40 @@ class TestDynBlockGroupServFails(DynBlocksTest):
         """
         name = 'servfailrate.group.dynblocks.tests.powerdns.com.'
         self.doTestRCodeRate(name, dns.rcode.SERVFAIL)
+
+class TestDynBlockGroupServFailsYAML(DynBlocksTest):
+
+    _yaml_config_template = """---
+dynamic_rules:
+  - name: "Block client generating too many ServFails"
+    mask_ipv4: 24
+    mask_ipv6: 128
+    exclude_ranges:
+      - "192.0.2.1/32"
+      - "192.0.2.2/32"
+    include_ranges:
+      - "127.0.0.0/24"
+    exclude_domains:
+      - "unused."
+    rules:
+      - type: "rcode-rate"
+        rate: %d
+        seconds: %d
+        action_duration: %d
+        comment: "Exceeded query rate"
+        action: "Drop"
+        rcode: "servfail"
+
+backends:
+  - address: "127.0.0.1:%d"
+    protocol: Do53
+"""
+    _config_params = []
+    _yaml_config_params = ['_dynBlockQPS', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort']
+
+    def testDynBlocksServFailRate(self):
+        """
+        Dyn Blocks (group / YAML): Server Failure Rate
+        """
+        name = 'servfailrate.group.dynblocks.tests.powerdns.com.'
+        self.doTestRCodeRate(name, dns.rcode.SERVFAIL)

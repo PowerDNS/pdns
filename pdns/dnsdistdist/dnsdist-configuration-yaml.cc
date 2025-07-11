@@ -132,6 +132,17 @@ static bool getOptionalLuaFunction(T& destination, const ::rust::string& functio
   return true;
 }
 
+static uint8_t strToRCode(const std::string& context, const std::string& parameterName, const ::rust::String& rcode_rust_string)
+{
+  auto rcode_str = std::string(rcode_rust_string);
+  boost::to_lower(rcode_str);
+  auto rcode = RCode::from_short(rcode_str);
+  if (!rcode) {
+    return checkedConversionFromStr<uint8_t>(context, parameterName, rcode_rust_string);
+  }
+  return *rcode;
+}
+
 static std::optional<std::string> loadContentFromConfigurationFile(const std::string& fileName)
 {
   /* no check on the file size, don't do this with just any file! */
@@ -618,7 +629,7 @@ static void loadDynamicBlockConfiguration(const dnsdist::rust::settings::Dynamic
           ruleParams.d_tagSettings->d_name = std::string(rule.tag_name);
           ruleParams.d_tagSettings->d_value = std::string(rule.tag_value);
         }
-        dbrgObj->setRCodeRate(checkedConversionFromStr<int>("dynamic-rules.rules.rcode_rate", "rcode", rule.rcode), std::move(ruleParams));
+        dbrgObj->setRCodeRate(strToRCode("dynamic-rules.rules.rcode_rate", "rcode", rule.rcode), std::move(ruleParams));
       }
       else if (rule.rule_type == "rcode-ratio") {
         DynBlockRulesGroup::DynBlockRatioRule ruleParams(std::string(rule.comment), rule.action_duration, rule.ratio, rule.warning_ratio, rule.seconds, rule.action.empty() ? DNSAction::Action::None : DNSAction::typeFromString(std::string(rule.action)), rule.minimum_number_of_responses);
@@ -627,7 +638,7 @@ static void loadDynamicBlockConfiguration(const dnsdist::rust::settings::Dynamic
           ruleParams.d_tagSettings->d_name = std::string(rule.tag_name);
           ruleParams.d_tagSettings->d_value = std::string(rule.tag_value);
         }
-        dbrgObj->setRCodeRatio(checkedConversionFromStr<int>("dynamic-rules.rules.rcode_ratio", "rcode", rule.rcode), std::move(ruleParams));
+        dbrgObj->setRCodeRatio(strToRCode("dynamic-rules.rules.rcode_ratio", "rcode", rule.rcode), std::move(ruleParams));
       }
       else if (rule.rule_type == "qtype-rate") {
         DynBlockRulesGroup::DynBlockRule ruleParams(std::string(rule.comment), rule.action_duration, rule.rate, rule.warning_rate, rule.seconds, rule.action.empty() ? DNSAction::Action::None : DNSAction::typeFromString(std::string(rule.action)));
