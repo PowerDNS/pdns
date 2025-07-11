@@ -4,6 +4,7 @@ import cdbx
 import dns
 import os
 import socket
+import subprocess
 import time
 from dnsdisttests import DNSDistTest
 
@@ -243,3 +244,33 @@ class TestConsoleRings(DNSDistTest):
         self.assertEqual(backend, f"127.0.0.1:{self._testServerPort}")
         isResponse = self.sendConsoleCommand(f'tostring(getRingEntries()[{index}].isResponse)').rstrip()
         self.assertEqual(isResponse, "true")
+
+class TestConsoleViaBuiltInClient(DNSDistTest):
+
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+
+    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort']
+    _config_template = """
+    setKey("%s")
+    controlSocket("127.0.0.1:%s")
+    newServer{address="127.0.0.1:%d"}
+    """
+
+    def testConsoleViaBuiltInclient(self):
+        """
+        Console: Built-in client
+        """
+        output = None
+        try:
+            confFile = os.path.join('configs', 'dnsdist_%s.conf' % (self.__class__.__name__))
+            testcmd = [os.environ['DNSDISTBIN'], '--client', '-C', confFile ]
+            process = subprocess.Popen(testcmd, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=True)
+            output = process.communicate(input=b'showVersion()\n')
+        except subprocess.CalledProcessError as exc:
+            raise AssertionError('%s failed (%d): %s' % (testcmd, process.returncode, process.output))
+
+        if process.returncode != 0:
+          raise AssertionError('%s failed (%d): %s' % (testcmd, process.returncode, output))
+
+        self.assertTrue(output[0].startswith(b'dnsdist '))
