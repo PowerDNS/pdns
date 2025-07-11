@@ -1914,23 +1914,22 @@ void setMaxConcurrentConnections(size_t max)
   s_connManager.setMaxConcurrentConnections(max);
 }
 
-void WebserverThread(Socket sock)
+void WebserverThread(ComboAddress listeningAddress, Socket sock)
 {
   setThreadName("dnsdist/webserv");
   // coverity[auto_causes_copy]
-  const auto local = *dnsdist::configuration::getCurrentRuntimeConfiguration().d_webServerAddress;
-  infolog("Webserver launched on %s", local.toStringWithPort());
+  infolog("Webserver launched on %s", listeningAddress.toStringWithPort());
 
   {
     const auto& config = dnsdist::configuration::getCurrentRuntimeConfiguration();
     if (!config.d_webPassword && config.d_dashboardRequiresAuthentication) {
-      warnlog("Webserver launched on %s without a password set!", local.toStringWithPort());
+      warnlog("Webserver launched on %s without a password set!", listeningAddress.toStringWithPort());
     }
   }
 
   for (;;) {
     try {
-      ComboAddress remote(local);
+      ComboAddress remote(listeningAddress);
       int fileDesc = SAccept(sock.getHandle(), remote);
 
       if (!isClientAllowedByACL(remote)) {

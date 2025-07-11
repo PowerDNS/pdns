@@ -1069,7 +1069,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
 
     dnsdist::configuration::updateRuntimeConfiguration([local](dnsdist::configuration::RuntimeConfiguration& config) {
-      config.d_webServerAddress = local;
+      config.d_webServerAddresses.emplace(local);
     });
 
     if (dnsdist::configuration::isImmutableConfigurationDone()) {
@@ -1077,7 +1077,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         auto sock = Socket(local.sin4.sin_family, SOCK_STREAM, 0);
         sock.bind(local, true);
         sock.listen(5);
-        thread thr(dnsdist::webserver::WebserverThread, std::move(sock));
+        thread thr(dnsdist::webserver::WebserverThread, local, std::move(sock));
         thr.detach();
       }
       catch (const std::exception& e) {

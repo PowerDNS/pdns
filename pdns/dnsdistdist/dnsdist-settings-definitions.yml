@@ -403,10 +403,10 @@ key_value_stores:
 
 webserver:
   parameters:
-    - name: "listen_address"
-      type: "String"
+    - name: "listen_addresses"
+      type: "Vec<String>"
       default: ""
-      description: "IP address and port to listen on"
+      description: "IP addresses and ports to listen on"
     - name: "password"
       type: "String"
       default: ""
