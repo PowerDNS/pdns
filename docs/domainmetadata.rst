@@ -19,15 +19,18 @@ Apart from raw SQL statements, setting domain metadata can be done with
 
 The following options can only be read (not written to) via the HTTP API metadata endpoint.
 
-* API-RECTIFY
 * AXFR-MASTER-TSIG
 * LUA-AXFR-SCRIPT
 * NSEC3NARROW
 * NSEC3PARAM
 * PRESIGNED
-* TSIG-ALLOW-AXFR
+* SOA-EDIT
 
-The option SOA-EDIT-API cannot be written or read via the HTTP API metadata endpoint.
+The following options cannot be written or read via the HTTP API metadata endpoint.
+
+* API-RECTIFY
+* ENABLE-LUA-RECORDS
+* SOA-EDIT-API
 
 .. _metadata-allow-axfr-from:
 
@@ -59,28 +62,8 @@ records, add ``allow-axfr-ips=`` to ``pdns.conf``.
 
 .. _metadata-api-rectify:
 
-API-RECTIFY
------------
-.. versionadded:: 4.1.0
-
-This metadata item controls whether or not a zone is fully rectified on changes
-to the contents of a zone made through the :doc:`API <http-api/index>`.
-
-When the ``API-RECTIFY`` value is "1", the zone will be rectified on changes.
-Any other value means that it will not be rectified. If this is not set
-at all, rectifying of the zone depends on the config variable
-:ref:`setting-default-api-rectify`.
-
-.. _metadata-axfr-source:
-
-AXFR-SOURCE
------------
-
-The IP address to use as a source address for sending AXFR and IXFR
-requests.
-
-ALLOW-DNSUPDATE-FROM, TSIG-ALLOW-DNSUPDATE, FORWARD-DNSUPDATE, SOA-EDIT-DNSUPDATE, NOTIFY-DNSUPDATE
----------------------------------------------------------------------------------------------------
+ALLOW-DNSUPDATE-FROM, FORWARD-DNSUPDATE, NOTIFY-DNSUPDATE, SOA-EDIT-DNSUPDATE
+-----------------------------------------------------------------------------
 
 See the documentation on :ref:`Dynamic DNS update <dnsupdate-metadata>`.
 
@@ -99,10 +82,42 @@ number. e.g.:
     pdnsutil set-meta powerdns.org ALLOW-AXFR-FROM 2001:db8:53::1
 
 
+API-RECTIFY
+-----------
+.. versionadded:: 4.1.0
+
+This metadata item controls whether or not a zone is fully rectified on changes
+to the contents of a zone made through the :doc:`API <http-api/index>`.
+
+When the ``API-RECTIFY`` value is "1", the zone will be rectified on changes.
+Any other value means that it will not be rectified. If this is not set
+at all, rectifying of the zone depends on the config variable
+:ref:`setting-default-api-rectify`.
+
+.. _metadata-axfr-source:
+
 AXFR-MASTER-TSIG
 ----------------
 
 Use this named TSIG key to retrieve this zone from its primary, see :ref:`tsig-provision-signed-notify-axfr`.
+
+AXFR-SOURCE
+-----------
+
+The IP address to use as a source address for sending AXFR and IXFR
+requests.
+
+ENABLE-LUA-RECORDS
+------------------
+
+If set to 1, allows :doc:`LUA records <lua-records/index>` to be used within
+this zone, even if :ref:`setting-enable-lua-records` is set to ``no``.
+
+GSS-ACCEPTOR-PRINCIPAL
+----------------------
+
+Use this principal for accepting GSS context.
+(See :ref:`tsig-gss-tsig`).
 
 GSS-ALLOW-AXFR-PRINCIPAL
 ------------------------
@@ -116,12 +131,6 @@ GSS-ALLOW-AXFR-PRINCIPAL
 
 Allow this GSS principal to perform AXFR retrieval. Most commonly it is
 ``host/something@REALM``, ``DNS/something@REALM`` or ``user@REALM``.
-(See :ref:`tsig-gss-tsig`).
-
-GSS-ACCEPTOR-PRINCIPAL
-----------------------
-
-Use this principal for accepting GSS context.
 (See :ref:`tsig-gss-tsig`).
 
 IXFR

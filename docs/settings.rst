@@ -1603,6 +1603,10 @@ Examples::
   resolver=127.0.0.1
   resolver=[::1]:5300
 
+.. warning::
+  You should make sure that the :ref:`setting-resolver` does not point to
+  PowerDNS itself, to prevent infinite query loops.
+
 .. _setting-retrieval-threads:
 
 ``retrieval-threads``

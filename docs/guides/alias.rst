@@ -36,6 +36,10 @@ When the authoritative server receives a query for the A-record for
 with that A record.
 If the ALIAS target cannot be resolved (SERVFAIL) or does not exist (NXDOMAIN) the authoritative server will answer SERVFAIL.
 
+.. warning::
+  You should make sure that the :ref:`setting-resolver` does not point to
+  PowerDNS itself, to prevent infinite query loops.
+
 .. _alias_axfr:
 
 AXFR Zone transfers
