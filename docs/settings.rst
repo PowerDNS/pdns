@@ -575,8 +575,12 @@ Configure a delay to send out notifications, no delay by default.
 -  Boolean
 -  Default: no
 
-Read additional DNSKEY, CDS and CDNSKEY records from the records table/your BIND zonefile. If not
-set, DNSKEY, CDS and CDNSKEY records in the zonefiles are ignored.
+Read additional DNSKEY records from the records table/your BIND zonefile and use both when
+preparing responses. If not set, such records in the zonefiles are ignored.
+
+When automatic CDS and CDNSKEY publication (see :ref:`metadata-publish-cdnskey-publish-cds`)
+is enabled, this also applies to those types. If not set, such records are only considered
+when automatic publication is turned off.
 
 .. _setting-direct-dnskey-signature:
 

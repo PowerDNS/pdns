@@ -12,9 +12,71 @@ Below, frequently used commands are described:
 Publishing a DS
 ---------------
 
-To publish a DS to a parent zone, utilize ``pdnsutil show-zone`` and
-take the DS from its output, and transfer it securely to your parent
-zone.
+Manual
+~~~~~~
+
+As automation is not very wide-spread, DS publication often needs to occur
+manually as follows:
+
+1. utilize ``pdnsutil show-zone`` to display DS and DNSKEY parameters,
+2. transfer these parameters securely to your parent.
+
+Some parents accept DS format, while some accept DNSKEY (and use it to derive
+DS records).
+
+Automatic
+~~~~~~~~~
+
+An `increasing number of registries <https://github.com/oskar456/cds-updates>`__
+support automatic DNSSEC bootstrapping. This requires publication of CDS
+and/or CDNSKEY records in your zone, via ``pdnsutil set-publish-cds`` /
+``pdnsutil set-publish-cdnskey``.
+
+Parents who see your zone's CDS/CDNSKEY records can create DS records from
+them. However, that method lacks authentication, and the few parents
+supporting it will perform consistency checks for a few days before
+trusting the records.
+
+Authenticated Bootstrapping
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+These problems are addressed by *authenticated* bootstrapping, which uses
+special signaling records with an existing chain of trust so that slow
+sanity checks can be skipped.
+
+PowerDNS can generate these records automatically. If enabled, it is
+in effect server-wide, for all zones that have CDS/CDNSKEY records.
+
+To enable, a signaling zone needs to be configured. Assuming you have a
+nameserver that appears as ``ns1.example.net`` in delegations, you can
+enable authenticated bootstrapping as follows:
+
+1. Make sure that the nameserver ``ns1.example.net`` itself is in a secure
+   zone (with DS records);
+2. Run
+
+   .. code-block:: shell
+
+      export nshost=ns1.example.net
+      pdnsutil create-zone _signal.$nshost $nshost  # create NS record too
+      pdnsutil secure-zone _signal.$nshost
+      pdnsutil set-nsec3 _signal.$nshost "1 0 0 -" narrow
+      pdnsutil rectify-zone _signal.$nshost
+      pdnsutil set-meta _signal.$nshost SIGNALING-ZONE 1
+
+   You can do this on ``ns1.example.net`` directly, or on another instance
+   serving the same zones. This is useful when not all instances are
+   PowerDNS. (Make sure to adjust NS records accordingly.)
+
+3. Delegate the signaling zone (``_signal.ns1.example.net``) to this
+   PowerDNS instance, and publish DS records for the delegation.
+
+**The above steps need to be repeated for each NS hostname used by the
+domain(s) that you want to bootstrap (such as ``ns2.example.org`` etc.).**
+
+Note: A nameserver can't bootstrap its own parent. (The above example
+won't work to bootstrap ``example.net``; see step 1.) If no other zones
+are served under that hostname, you can skip creating its signaling zone.
 
 Going insecure
 --------------

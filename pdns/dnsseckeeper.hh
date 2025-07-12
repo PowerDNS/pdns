@@ -213,6 +213,7 @@ public:
   bool isPresigned(const ZoneName& zname, bool useCache=true);
   bool setPresigned(const ZoneName& zname);
   bool unsetPresigned(const ZoneName& zname);
+  bool isSignalingZone(const ZoneName& zname, bool useCache=true);
   bool setPublishCDNSKEY(const ZoneName& zname, bool deleteAlg);
   void getPublishCDNSKEY(const ZoneName& zname, std::string& value);
   bool unsetPublishCDNSKEY(const ZoneName& zname);
