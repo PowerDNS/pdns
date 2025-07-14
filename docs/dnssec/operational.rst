@@ -143,16 +143,36 @@ of January 2016.
 INCEPTION-INCREMENT
 ^^^^^^^^^^^^^^^^^^^
 
+<<<<<<< HEAD
 Uses YYYYMMDDSS format for SOA serial numbers. If the SOA serial from
 the backend is within two days after inception, it gets incremented by
 two (the backend should keep SS below 98). Otherwise, it uses the maximum
 of the backend SOA serial number and inception time in YYYYMMDD01
 format. This requires your backend zone to use YYYYMMDDSS as SOA serial
 format. Uses localtime to find the day for inception time.
+=======
+Uses the YYYYMMDDSS format for SOA serial numbers.
+>>>>>>> 3b286e4c8 (Fix INCEPTION-INCREMENT documentation to reflect actual behavior and add safety notes)
 
-This changes a serial of 2015120810 to 2016010701 on Wednesday 13th of
-January 2016.
+- At the start of the DNSSEC signing inception week (usually Thursday), the SOA serial is set to YYYYMMDD01.
+- If the current serial is less than YYYYMMDD00, it jumps directly to YYYYMMDD01.
+- If the serial is YYYYMMDD00 or YYYYMMDD01, it jumps to YYYYMMDD02.
+- If the serial is within 3 days (until YYYYMMDD+2 at SS=99), it is incremented by 1.
+- Otherwise, the serial remains unchanged.
 
+ **Important Notes**:
+- Avoid using SS=00 in backend zones, as it may prevent proper zone transfers (AXFR/IXFR) to secondaries.
+- Serial overflow can occur if more than 99 updates are made in a single day.
+- This logic is not safe for zones with non-PowerDNS secondaries, as updates may not be detected reliably.
+
+For full safety with non-PowerDNS secondaries, consider using `SOA-EDIT=DEFAULT` or managing serials explicitly.
+**Example**:
+
+Assume today is 2025-07-10 (Thursday) and the backend SOA serial is:
+
+- ``2025070901``  becomes ``2025070902`` (still within the 3-day inception window)
+- ``2025070800``  becomes ``2025070801`` (within the window, SS < 99)
+- ``2025070701``   remains unchanged (outside the window)
 EPOCH
 ^^^^^
 
