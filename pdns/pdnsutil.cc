@@ -3595,16 +3595,14 @@ static int setNsec3(vector<string>& cmds, const std::string_view synopsis)
 
   DNSSECKeeper dk; //NOLINT(readability-identifier-length)
   ZoneName zone(cmds.at(1));
-  if (auto wirelength = zone.operator const DNSName&().wirelength(); wirelength > 222) {
-    cerr<<"Cannot enable NSEC3 for " << zone << " as it is too long (" << wirelength << " bytes, maximum is 222 bytes)"<<endl;
-    return 1;
+  try {
+    if (! dk.setNSEC3PARAM(zone, ns3pr, narrow)) {
+      cerr<<"Cannot set NSEC3 param for " << zone << endl;
+      return 1;
+    }
   }
-  if(ns3pr.d_algorithm != 1) {
-    cerr<<"NSEC3PARAM algorithm set to '"<<std::to_string(ns3pr.d_algorithm)<<"', but '1' is the only valid value"<<endl;
-    return EXIT_FAILURE;
-  }
-  if (! dk.setNSEC3PARAM(zone, ns3pr, narrow)) {
-    cerr<<"Cannot set NSEC3 param for " << zone << endl;
+  catch (const runtime_error& err) {
+    cerr << err.what() << endl;
     return 1;
   }
 
