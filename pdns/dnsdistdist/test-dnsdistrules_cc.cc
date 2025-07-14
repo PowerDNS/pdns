@@ -12,7 +12,7 @@
 #include "dnsdist-rules.hh"
 #include "dnsdist-rules-factory.hh"
 
-void checkParameterBound(const std::string& parameter, uint64_t value, size_t max)
+void checkParameterBound(const std::string& parameter, uint64_t value, uint64_t max)
 {
   if (value > max) {
     throw std::runtime_error("The value passed to " + parameter + " is too large, the maximum is " + std::to_string(max));

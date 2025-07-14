@@ -253,7 +253,7 @@ static void parseTLSConfig(TLSConfig& config, const std::string& context, boost:
 
 #endif // defined(HAVE_DNS_OVER_TLS) || defined(HAVE_DNS_OVER_HTTPS)
 
-void checkParameterBound(const std::string& parameter, uint64_t value, size_t max)
+void checkParameterBound(const std::string& parameter, uint64_t value, uint64_t max)
 {
   if (value > max) {
     throw std::runtime_error("The value (" + std::to_string(value) + ") passed to " + parameter + " is too large, the maximum is " + std::to_string(max));

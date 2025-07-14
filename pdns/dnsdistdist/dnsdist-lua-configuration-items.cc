@@ -38,7 +38,7 @@ struct BooleanConfigurationItems
 struct UnsignedIntegerConfigurationItems
 {
   const std::function<void(dnsdist::configuration::RuntimeConfiguration& config, uint64_t value)> mutator;
-  const size_t maximumValue{std::numeric_limits<uint64_t>::max()};
+  const uint64_t maximumValue{std::numeric_limits<uint64_t>::max()};
 };
 
 struct StringConfigurationItems
@@ -53,7 +53,7 @@ struct BooleanImmutableConfigurationItems
 struct UnsignedIntegerImmutableConfigurationItems
 {
   const std::function<void(dnsdist::configuration::ImmutableConfiguration& config, uint64_t value)> mutator;
-  const size_t maximumValue{std::numeric_limits<uint64_t>::max()};
+  const uint64_t maximumValue{std::numeric_limits<uint64_t>::max()};
 };
 
 struct DoubleImmutableConfigurationItems
