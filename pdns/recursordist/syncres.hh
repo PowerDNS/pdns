@@ -779,7 +779,6 @@ struct PacketID
   bool inIncompleteOkay{false};
   uint16_t id{0}; // wait for a specific id/remote pair
   uint16_t type{0}; // and this is its type
-  std::optional<bool> matchingECSReceived; // only set in ecsHardened mode
   TCPAction highState{TCPAction::DoingRead};
   IOState lowState{IOState::NeedRead};
 
@@ -792,7 +791,7 @@ struct PacketID
 
 inline ostream& operator<<(ostream& ostr, const PacketID& pid)
 {
-  return ostr << "PacketID(id=" << pid.id << ",remote=" << pid.remote.toString() << ",type=" << pid.type << ",tcpsock=" << pid.tcpsock << ",fd=" << pid.fd << ',' << pid.domain << ')';
+  return ostr << "PacketID(id=" << pid.id << ",remote=" << pid.remote.toString() << ",type=" << pid.type << ",tcpsock=" << pid.tcpsock << ",fd=" << pid.fd << ",name=" << pid.domain << ",ecs=" << (pid.ecsSubnet ? pid.ecsSubnet->toString() : "") << ')';
 }
 
 inline ostream& operator<<(ostream& ostr, const shared_ptr<PacketID>& pid)
@@ -824,10 +823,10 @@ struct PacketIDBirthdayCompare
 {
   bool operator()(const std::shared_ptr<PacketID>& lhs, const std::shared_ptr<PacketID>& rhs) const
   {
-    if (std::tie(lhs->remote, lhs->tcpsock, lhs->type, lhs->ecsSubnet) < std::tie(rhs->remote, rhs->tcpsock, rhs->type, rhs->ecsSubnet)) {
+    if (std::tie(lhs->remote, lhs->tcpsock, lhs->type) < std::tie(rhs->remote, rhs->tcpsock, rhs->type)) {
       return true;
     }
-    if (std::tie(lhs->remote, lhs->tcpsock, lhs->type, lhs->ecsSubnet) > std::tie(rhs->remote, rhs->tcpsock, rhs->type, rhs->ecsSubnet)) {
+    if (std::tie(lhs->remote, lhs->tcpsock, lhs->type) > std::tie(rhs->remote, rhs->tcpsock, rhs->type)) {
       return false;
     }
     return lhs->domain < rhs->domain;
