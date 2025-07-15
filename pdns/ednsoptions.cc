@@ -105,7 +105,7 @@ bool slowParseEDNSOptions(const PacketBuffer& packet, EDNSOptionViewMap& options
   }
 
   if (ntohs(dnsHeader->arcount) == 0) {
-    throw std::runtime_error("slowParseEDNSOptions() should not be called for queries that have no EDNS");
+    return false;
   }
 
   try {

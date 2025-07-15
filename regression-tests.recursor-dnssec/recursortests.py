@@ -428,9 +428,9 @@ PrivateKey: Ep9uo6+wwjb4MaOmqq7LHav2FLrjotVOeZg8JT1Qk04=
                'zones': ['optout.example']},
         '15': {'threads': 1,
                'zones': ['insecure.optout.example', 'secure.optout.example', 'cname-secure.example']},
-        '16': {'threads': 2,
+        '16': {'threads': 10,
                'zones': ['delay1.example']},
-        '17': {'threads': 2,
+        '17': {'threads': 10,
                'zones': ['delay2.example']},
         '18': {'threads': 1,
                'zones': ['example']}
