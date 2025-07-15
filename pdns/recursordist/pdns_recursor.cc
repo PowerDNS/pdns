@@ -299,7 +299,7 @@ LWResult::Result asendto(const void* data, size_t len, int /* flags */,
     // Line below detected an issue with the two ways of ordering PacketIDs (birthday and non-birthday)
     assert(chain.first->key->domain == pident->domain); // NOLINT
     // don't chain onto existing chained waiter or a chain already processed
-    if (chain.first->key->fd > -1 && !chain.first->key->closed) {
+    if (chain.first->key->fd > -1 && !chain.first->key->closed && pident->ecsSubnet == chain.first->key->ecsSubnet) {
       auto currentChainSize = chain.first->key->authReqChain.size();
       *fileDesc = -static_cast<int>(currentChainSize + 1); // value <= -1, gets used in waitEvent / sendEvent later on
       if (g_maxChainLength > 0 && currentChainSize >= g_maxChainLength) {
@@ -341,6 +341,8 @@ LWResult::Result asendto(const void* data, size_t len, int /* flags */,
   return LWResult::Result::Success;
 }
 
+static bool checkIncomingECSSource(const PacketBuffer& packet, const Netmask& subnet);
+
 LWResult::Result arecvfrom(PacketBuffer& packet, int /* flags */, const ComboAddress& fromAddr, size_t& len,
                            uint16_t qid, const DNSName& domain, uint16_t qtype, int fileDesc, const std::optional<EDNSSubnetOpts>& ecs, const struct timeval& now)
 {
@@ -373,9 +375,8 @@ LWResult::Result arecvfrom(PacketBuffer& packet, int /* flags */, const ComboAdd
     len = packet.size();
 
     // In ecs hardening mode, we consider a missing or a mismatched ECS in the reply as a case for
-    // retrying without ECS (matchingECSReceived only gets set if a matching ECS was received). The actual
-    // logic to do that is in Syncres::doResolveAtThisIP()
-    if (g_ECSHardening && pident->ecsSubnet && !*pident->matchingECSReceived) {
+    // retrying without ECS. The actual logic to do that is in Syncres::doResolveAtThisIP()
+    if (g_ECSHardening && pident->ecsSubnet && !checkIncomingECSSource(packet, *pident->ecsSubnet)) {
       t_Counters.at(rec::Counter::ecsMissingCount)++;
       return LWResult::Result::ECSMissing;
     }
@@ -2914,18 +2915,13 @@ void distributeAsyncFunction(const string& packet, const pipefunc_t& func)
 }
 
 // resend event to everybody chained onto it
-static void doResends(MT_t::waiters_t::iterator& iter, const std::shared_ptr<PacketID>& resend, const PacketBuffer& content, const std::optional<bool>& matchingECSReceived)
+static void doResends(MT_t::waiters_t::iterator& iter, const std::shared_ptr<PacketID>& resend, const PacketBuffer& content)
 {
   // We close the chain for new entries, since they won't be processed anyway
   iter->key->closed = true;
 
   if (iter->key->authReqChain.empty()) {
     return;
-  }
-
-  // Only set if g_ECSHardening
-  if (matchingECSReceived) {
-    iter->key->matchingECSReceived = matchingECSReceived;
   }
 
   auto maxWeight = t_Counters.at(rec::Counter::maxChainWeight);
@@ -2999,7 +2995,7 @@ static void handleUDPServerResponse(int fileDesc, FDMultiplexer::funcparam_t& va
     PacketBuffer empty;
     auto iter = g_multiTasker->getWaiters().find(pid);
     if (iter != g_multiTasker->getWaiters().end()) {
-      doResends(iter, pid, empty, false);
+      doResends(iter, pid, empty);
     }
     g_multiTasker->sendEvent(pid, &empty); // this denotes error (does retry lookup using other NS)
     return;
@@ -3060,10 +3056,7 @@ static void handleUDPServerResponse(int fileDesc, FDMultiplexer::funcparam_t& va
   if (!pident->domain.empty()) {
     auto iter = g_multiTasker->getWaiters().find(pident);
     if (iter != g_multiTasker->getWaiters().end()) {
-      if (g_ECSHardening) {
-        iter->key->matchingECSReceived = iter->key->ecsSubnet && checkIncomingECSSource(packet, *iter->key->ecsSubnet);
-      }
-      doResends(iter, pident, packet, iter->key->matchingECSReceived);
+      doResends(iter, pident, packet);
     }
   }
 
