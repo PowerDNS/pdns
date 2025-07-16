@@ -1107,7 +1107,7 @@ static std::shared_ptr<DNSRecordContent> deserializeContentZR(uint16_t qtype, co
 #define StringView string
 #endif
 
-void LMDBBackend::deleteDomainRecords(RecordsRWTransaction& txn, uint16_t qtype, const std::string& match)
+void LMDBBackend::deleteDomainRecords(RecordsRWTransaction& txn, const std::string& match)
 {
   auto cursor = txn.txn->getCursor(txn.db->dbi);
   MDBOutVal key{};
@@ -1115,9 +1115,7 @@ void LMDBBackend::deleteDomainRecords(RecordsRWTransaction& txn, uint16_t qtype,
 
   if (cursor.prefix(match, key, val) == 0) {
     do {
-      if (qtype == QType::ANY || compoundOrdername::getQType(key.getNoStripHeader<StringView>()) == qtype) {
-        cursor.del(key);
-      }
+      cursor.del(key);
     } while (cursor.next(key, val) == 0);
   }
 }
@@ -1157,7 +1155,7 @@ bool LMDBBackend::startTransaction(const ZoneName& domain, domainid_t domain_id)
   if (domain_id != UnknownDomainID) {
     compoundOrdername order;
     string match = order(domain_id);
-    LMDBBackend::deleteDomainRecords(*d_rwtxn, QType::ANY, match);
+    LMDBBackend::deleteDomainRecords(*d_rwtxn, match);
   }
 
   return true;
@@ -1370,7 +1368,7 @@ bool LMDBBackend::replaceRRSet(domainid_t domain_id, const DNSName& qname, const
     // remove the back chain record.
     deleteNSEC3RecordPair(txn, domain_id, relative);
     match = co(domain_id, relative);
-    deleteDomainRecords(*txn, QType::ANY, match);
+    deleteDomainRecords(*txn, match);
     // Update key if insertions are to follow
     if (!rrset.empty()) {
       match = co(domain_id, relative, rrset.front().qtype.getCode());
@@ -1717,40 +1715,58 @@ bool LMDBBackend::deleteDomain(const ZoneName& domain)
   return true;
 }
 
-bool LMDBBackend::list(const ZoneName& target, domainid_t /* id */, bool include_disabled)
+/*
+ * Domain lookup shared state, set by list/lookup, used by get:
+ *
+ * d_lookupdomain: current domain being processed (appended to the
+ *                 results' names)
+ * d_lookupsubmatch: relative name used for submatching (for listSubZone)
+ * d_currentrrset: temporary vector of results (records found at the same
+ *                 cursor, i.e. same qname but possibly different qtype)
+ * d_currentrrsetpos: position in the above when returning its elements one
+ *                    by one
+ * d_currentKey: database key at cursor
+ * d_currentVal: database contents at cursor
+ * d_includedisabled: whether to include disabled records in the results
+ */
+
+bool LMDBBackend::list(const ZoneName& target, domainid_t domain_id, bool include_disabled)
 {
+  d_lookupdomain = target;
+  d_lookupsubmatch.clear();
   d_includedisabled = include_disabled;
 
-  DomainInfo di;
-  {
-    auto dtxn = d_tdomains->getROTransaction();
-    if ((di.id = dtxn.get<0>(target, di))) {
-      // cerr << "Found domain " << target << " on domain_id " << di.id << ", list requested " << id << endl;
-    }
-    else {
-      // cerr << "Did not find " << target << endl;
-      return false;
-    }
+  compoundOrdername order;
+  std::string match = order(domain_id);
+
+  lookupStart(domain_id, match, false);
+  return true;
+}
+
+bool LMDBBackend::listSubZone(const ZoneName& target, domainid_t domain_id)
+{
+  // 1. from domain_id get base domain name
+  DomainInfo info;
+  if (!d_tdomains->getROTransaction().get(domain_id, info)) {
+    return false;
   }
 
-  d_rotxn = getRecordsROTransaction(di.id, d_rwtxn);
-  d_txnorder = true;
-  d_getcursor = std::make_shared<MDBROCursor>(d_rotxn->txn->getCursor(d_rotxn->db->dbi));
-
-  compoundOrdername co;
-  d_matchkey = co(di.id);
-
-  MDBOutVal key, val;
-  if (d_getcursor->prefix(d_matchkey, key, val) != 0) {
-    d_getcursor.reset();
+  // 2. make target relative to it
+  DNSName relqname = target.operator const DNSName&().makeRelative(info.zone);
+  if (relqname.empty()) {
+    return false;
   }
 
-  d_lookupdomain = target;
+  // 3. enumerate complete domain, but tell get() to ignore entries which are
+  //    not subsets of target
+  d_lookupdomain = std::move(info.zone);
+  d_lookupsubmatch = std::move(relqname);
+  d_includedisabled = true;
 
-  // Make sure we start with fresh data
-  d_currentrrset.clear();
-  d_currentrrsetpos = 0;
+  compoundOrdername order;
+  std::string match = order(domain_id);
 
+  lookupStart(domain_id, match, false);
   return true;
 }
 
@@ -1761,66 +1777,74 @@ void LMDBBackend::lookupInternal(const QType& type, const DNSName& qdomain, doma
     d_dtime.set();
   }
 
-  d_includedisabled = include_disabled;
-
-  ZoneName hunt(qdomain);
-  DomainInfo di;
+  DomainInfo info;
   if (zoneId == UnknownDomainID) {
+    ZoneName hunt(qdomain);
     auto rotxn = d_tdomains->getROTransaction();
 
     do {
-      zoneId = rotxn.get<0>(hunt, di);
-    } while (zoneId == 0 && type != QType::SOA && hunt.chopOff());
-    if (zoneId == 0) {
+      info.id = static_cast<domainid_t>(rotxn.get<0>(hunt, info));
+    } while (info.id == 0 && type != QType::SOA && hunt.chopOff());
+    if (info.id == 0) {
       //      cout << "Did not find zone for "<< qdomain<<endl;
       d_getcursor.reset();
       return;
     }
   }
   else {
-    if (!d_tdomains->getROTransaction().get(zoneId, di)) {
+    if (!d_tdomains->getROTransaction().get(zoneId, info)) {
       // cout<<"Could not find a zone with id "<<zoneId<<endl;
       d_getcursor.reset();
       return;
     }
-    hunt = di.zone;
+    info.id = zoneId;
   }
 
-  DNSName relqname = qdomain.makeRelative(hunt);
+  DNSName relqname = qdomain.makeRelative(info.zone);
   if (relqname.empty()) {
     return;
   }
-  // cout<<"get will look for "<<relqname<< " in zone "<<hunt<<" with id "<<zoneId<<" and type "<<type.toString()<<endl;
-  d_rotxn = getRecordsROTransaction(zoneId, d_rwtxn);
-  d_txnorder = true;
+  // cout<<"get will look for "<<relqname<< " in zone "<<info.zone<<" with id "<<info.id<<" and type "<<type.toString()<<endl;
 
-  compoundOrdername co;
-  d_getcursor = std::make_shared<MDBROCursor>(d_rotxn->txn->getCursor(d_rotxn->db->dbi));
-  MDBOutVal key, val;
+  d_lookupdomain = std::move(info.zone);
+  d_lookupsubmatch.clear();
+  d_includedisabled = include_disabled;
+
+  compoundOrdername order;
+  std::string match;
   if (type.getCode() == QType::ANY) {
-    d_matchkey = co(zoneId, relqname);
+    match = order(info.id, relqname);
   }
   else {
-    d_matchkey = co(zoneId, relqname, type.getCode());
+    match = order(info.id, relqname, type.getCode());
   }
 
-  if (d_getcursor->prefix(d_matchkey, key, val) != 0) {
-    d_getcursor.reset();
-    if (d_dolog) {
+  lookupStart(info.id, match, d_dolog);
+}
+
+void LMDBBackend::lookupStart(domainid_t domain_id, const std::string& match, bool dolog)
+{
+  d_rotxn = getRecordsROTransaction(domain_id, d_rwtxn);
+  d_txnorder = true;
+  d_getcursor = std::make_shared<MDBROCursor>(d_rotxn->txn->getCursor(d_rotxn->db->dbi));
+
+  // Make sure we start with fresh data
+  d_currentrrset.clear();
+  d_currentrrsetpos = 0;
+
+  MDBOutVal key{};
+  MDBOutVal val{};
+  if (d_getcursor->prefix(match, key, val) != 0) {
+    d_getcursor.reset(); // will cause get() to fail
+    if (dolog) {
       g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": " << d_dtime.udiffNoReset() << " us to execute (found nothing)" << endl;
     }
     return;
   }
 
-  if (d_dolog) {
+  if (dolog) {
     g_log << Logger::Warning << "Query " << ((long)(void*)this) << ": " << d_dtime.udiffNoReset() << " us to execute" << endl;
   }
-
-  d_lookupdomain = std::move(hunt);
-
-  // Make sure we start with fresh data
-  d_currentrrset.clear();
-  d_currentrrsetpos = 0;
 }
 
 bool LMDBBackend::get(DNSZoneRecord& zr)
@@ -1857,15 +1881,24 @@ bool LMDBBackend::get(DNSZoneRecord& zr)
     }
     try {
       const auto& lrr = d_currentrrset.at(d_currentrrsetpos++);
+      DNSName basename;
+      bool validRecord = d_includedisabled || !lrr.disabled;
 
-      zr.disabled = lrr.disabled;
-      if (!zr.disabled || d_includedisabled) {
-        zr.dr.d_name = compoundOrdername::getQName(key) + d_lookupdomain.operator const DNSName&();
+      if (validRecord) {
+        basename = compoundOrdername::getQName(key);
+        if (!d_lookupsubmatch.empty()) {
+          validRecord = basename.isPartOf(d_lookupsubmatch);
+        }
+      }
+
+      if (validRecord) {
+        zr.dr.d_name = basename + d_lookupdomain.operator const DNSName&();
         zr.domain_id = compoundOrdername::getDomainID(key);
         zr.dr.d_type = compoundOrdername::getQType(key).getCode();
         zr.dr.d_ttl = lrr.ttl;
         zr.dr.setContent(deserializeContentZR(zr.dr.d_type, zr.dr.d_name, lrr.content));
         zr.auth = lrr.auth;
+        zr.disabled = lrr.disabled;
       }
 
       if (d_currentrrsetpos >= d_currentrrset.size()) {
@@ -1876,7 +1909,7 @@ bool LMDBBackend::get(DNSZoneRecord& zr)
         }
       }
 
-      if (zr.disabled && !d_includedisabled) {
+      if (!validRecord) {
         continue;
       }
     }
@@ -2815,13 +2848,43 @@ bool LMDBBackend::updateEmptyNonTerminals(domainid_t domain_id, set<DNSName>& in
   compoundOrdername order;
   if (remove) {
     string match = order(domain_id);
-    LMDBBackend::deleteDomainRecords(*txn, QType::ENT, match);
+    // We can not simply blindly delete all ENT records the way
+    // deleteDomainRecords() would do, as we also need to remove
+    // NSEC3 records for these ENT, if any.
+    {
+      auto cursor = txn->txn->getCursor(txn->db->dbi);
+      MDBOutVal key{};
+      MDBOutVal val{};
+      std::vector<DNSName> names;
+
+      if (cursor.prefix(match, key, val) == 0) {
+        do {
+          if (compoundOrdername::getQType(key.getNoStripHeader<StringView>()) == QType::ENT) {
+            // We need to remember the name of the records we're deleting, so
+            // as to remove the matching NSEC3 records, if any.
+            // (we can't invoke deleteNSEC3RecordPair here as doing this
+            // could make our cursor invalid)
+            DNSName qname = compoundOrdername::getQName(key.getNoStripHeader<StringView>());
+            names.emplace_back(qname);
+            cursor.del(key);
+          }
+        } while (cursor.next(key, val) == 0);
+      }
+      for (const auto& qname : names) {
+        deleteNSEC3RecordPair(txn, domain_id, qname);
+      }
+    }
   }
   else {
     for (auto name : erase) {
       // cout <<" -"<<name<<endl;
       name.makeUsRelative(info.zone);
-      txn->txn->del(txn->db->dbi, order(domain_id, name, QType::ENT));
+      std::string match = order(domain_id, name, QType::ENT);
+      MDBOutVal val{};
+      if (txn->txn->get(txn->db->dbi, match, val) == 0) {
+        txn->txn->del(txn->db->dbi, match);
+        deleteNSEC3RecordPair(txn, domain_id, name);
+      }
     }
   }
   for (const auto& name : insert) {
