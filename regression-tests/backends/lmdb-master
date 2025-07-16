@@ -96,16 +96,16 @@ __EOF__
           $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb create-zone example.com..$variant
           $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb list-all-zones
           $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb show-zone example.com..$variant
-          $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb add-record example.com..$variant '' TXT '"hello from the '$variant' variant"'
-          $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb add-record example.com..$variant cname CNAME target.example.org
-          $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb add-record example.com..$variant cname-nxd CNAME nxd.example.org
+          $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb add-record example.com..$variant example.com TXT '"hello from the '$variant' variant"'
+          $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb add-record example.com..$variant cname.example.com CNAME target.example.org
+          $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb add-record example.com..$variant cname-nxd.example.com CNAME nxd.example.org
         done
 
         $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb view-add-zone view1 example.com..foo
         $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb view-add-zone view2 example.com..bar
 
         $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb create-zone example.org..foo
-        $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb add-record example.org..foo target TXT '"hello from target..foo"'
+        $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb add-record example.org..foo target.example.org TXT '"hello from target..foo"'
         $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb view-add-zone view1 example.org..foo
 
         $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb set-network 192.0.2.0/24 view1

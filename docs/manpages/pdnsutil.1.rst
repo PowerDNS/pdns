@@ -246,6 +246,7 @@ add-record *ZONE* *NAME* *TYPE* [*TTL*] *CONTENT*
 
     Add one or more records of *NAME* and *TYPE* to *ZONE* with *CONTENT*
     and optional *TTL*. If *TTL* is not set, the configured *default-ttl* will be used.
+    *NAME* must be absolute.
 
 add-autoprimary *IP* *NAMESERVER* [*ACCOUNT*]
 
@@ -290,6 +291,7 @@ clear-zone *ZONE*
 delete-rrset *ZONE* *NAME* *TYPE*
 
     Delete named RRSET from zone.
+    *NAME* must be absolute.
 
 delete-zone *ZONE*
 

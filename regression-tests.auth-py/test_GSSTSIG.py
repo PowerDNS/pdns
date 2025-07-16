@@ -63,9 +63,9 @@ dnsupdate-require-tsig=no
         os.system("$PDNSUTIL --config-dir=configs/auth create-zone noacceptor.net")
         os.system("$PDNSUTIL --config-dir=configs/auth create-zone wrongacceptor.net")
 
-        os.system("$PDNSUTIL --config-dir=configs/auth add-record example.net . SOA 3600 'ns1.example.net otto.example.net 2022010403 10800 3600 604800 3600'")
-        os.system("$PDNSUTIL --config-dir=configs/auth add-record noacceptor.net . SOA 3600 'ns1.noacceptor.net otto.example.net 2022010403 10800 3600 604800 3600'")
-        os.system("$PDNSUTIL --config-dir=configs/auth add-record wrongacceptor.net . SOA 3600 'ns1.wrongacceptor.net otto.example.net 2022010403 10800 3600 604800 3600'")
+        os.system("$PDNSUTIL --config-dir=configs/auth add-record example.net example.net SOA 3600 'ns1.example.net otto.example.net 2022010403 10800 3600 604800 3600'")
+        os.system("$PDNSUTIL --config-dir=configs/auth add-record noacceptor.net noacceptor.net SOA 3600 'ns1.noacceptor.net otto.example.net 2022010403 10800 3600 604800 3600'")
+        os.system("$PDNSUTIL --config-dir=configs/auth add-record wrongacceptor.net wrongacceptor.net SOA 3600 'ns1.wrongacceptor.net otto.example.net 2022010403 10800 3600 604800 3600'")
 
         os.system("$PDNSUTIL --config-dir=configs/auth set-meta example.net GSS-ACCEPTOR-PRINCIPAL DNS/ns1.example.net@EXAMPLE.COM")
         os.system("$PDNSUTIL --config-dir=configs/auth set-meta wrongacceptor.net GSS-ACCEPTOR-PRINCIPAL DNS/ns1.example.net@EXAMPLE.COM")
