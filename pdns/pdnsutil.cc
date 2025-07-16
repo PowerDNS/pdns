@@ -580,6 +580,7 @@ static const commandDispatcher topLevelDispatcher{
   {"network", {true, {networkCommands}}},
   {"record", {false, {rrsetCommands}}}, // sugar
   {"rrset", {true, {rrsetCommands}}},
+  {"tsig", {false, {TSIGKEYCommands}}}, // sugar
   {"tsig-key", {false, {TSIGKEYCommands}}}, // sugar
   {"tsigkey", {true, {TSIGKEYCommands}}},
   {"view", {true, {viewsCommands}}},
