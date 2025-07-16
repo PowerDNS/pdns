@@ -1785,9 +1785,8 @@ void registerKVSObjects([[maybe_unused]] const KeyValueStoresConfiguration& conf
 void registerNMGObjects(const ::rust::Vec<NetmaskGroupConfiguration>& nmgs)
 {
   for (const auto& netmaskGroup : nmgs) {
-    std::shared_ptr<NetmaskGroup> nmg;
     bool registered = true;
-    nmg = dnsdist::configuration::yaml::getRegisteredTypeByName<NetmaskGroup>(std::string(netmaskGroup.name));
+    auto nmg = dnsdist::configuration::yaml::getRegisteredTypeByName<NetmaskGroup>(std::string(netmaskGroup.name));
     if (!nmg) {
       nmg = std::make_shared<NetmaskGroup>();
       registered = false;
