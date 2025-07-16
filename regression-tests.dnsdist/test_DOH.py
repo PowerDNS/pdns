@@ -816,7 +816,7 @@ query_rules:
       qname: "refused.doh.tests.powerdns.com."
     action:
       type: "RCode"
-      rcode: 5
+      rcode: "Refused"
   - name: "Spoof"
     selector:
       type: "QName"

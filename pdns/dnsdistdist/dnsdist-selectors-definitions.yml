@@ -44,7 +44,8 @@
   description: "Matches queries or responses with the specified rcode. The full 16bit RCode will be matched. If no EDNS OPT RR is present, the upper 12 bits are treated as 0"
   parameters:
     - name: "rcode"
-      type: "u64"
+      type: "RCode"
+      rust-type: "String"
       description: "The full 16bit RCode will be matched. If no EDNS OPT RR is present, the upper 12 bits are treated as 0"
 - name: "HTTPHeader"
   description: "Matches DNS over HTTPS queries with a HTTP header name whose content matches the supplied regular expression. It is necessary to set the ``keepIncomingHeaders`` to :func:`addDOHLocal()` to use this rule"
@@ -340,7 +341,8 @@ Set the ``source`` parameter to ``false`` to match against destination address i
   description: "Matches queries or responses with the specified rcode"
   parameters:
     - name: "rcode"
-      type: "u64"
+      type: "RCode"
+      rust-type: "String"
       description: "The response code, as a numerical value"
 - name: "RD"
   description: "Matches queries with the RD flag set"
