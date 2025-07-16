@@ -58,7 +58,6 @@ class ChainECSTest(RecursorTest):
     """
     These regression tests test the chaining of outgoing requests with ECS
     """
-    _auth_zones = RecursorTest._default_auth_zones
     _chainSize = 200
     _confdir = 'ChainECS'
     _wsPort = 8042
@@ -130,7 +129,6 @@ class ChainECSHardenedTest(RecursorTest):
     """
     These regression tests test the chaining of outgoing requests with ECS
     """
-    _auth_zones = RecursorTest._default_auth_zones
     _chainSize = 200
     _confdir = 'ChainECSHardened'
     _wsPort = 8042
