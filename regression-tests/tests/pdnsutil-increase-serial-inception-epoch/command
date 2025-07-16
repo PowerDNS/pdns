@@ -14,7 +14,7 @@ NOW=$(date +%s)
 
 # lower SOA so that the test makes sense
 $PDNSUTIL --config-dir=. --config-name=$backend \
-    replace-rrset ${zonewithvariant} @ SOA "ns1.${zone} ahu.example.dyndns 10 28800 7200 604800 86400" \
+    replace-rrset ${zonewithvariant} ${zone} SOA "ns1.${zone} ahu.example.dyndns 10 28800 7200 604800 86400" \
     > /dev/null
 
 $PDNSUTIL --config-dir=. --config-name=$backend list-zone ${zonewithvariant} | grep SOA
@@ -39,5 +39,5 @@ $PDNSUTIL --config-dir=. --config-name=$backend set-meta ${zonewithvariant} SOA-
 
 # restore old SOA
 $PDNSUTIL --config-dir=. --config-name=$backend \
-    replace-rrset ${zonewithvariant} @ SOA "ns1.${zone} ahu.example.dyndns 2012060701 28800 7200 604800 86400" \
+    replace-rrset ${zonewithvariant} ${zone} SOA "ns1.${zone} ahu.example.dyndns 2012060701 28800 7200 604800 86400" \
     > /dev/null
