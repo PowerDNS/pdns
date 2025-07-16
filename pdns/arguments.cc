@@ -111,7 +111,7 @@ bool ArgvMap::contains(const string& var, const string& val)
   vector<string> parts;
 
   stringtok(parts, param->second, ", \t");
-  return std::any_of(parts.begin(), parts.end(), [&](const std::string& str) { return str == val; });
+  return std::find(parts.begin(), parts.end(), val) != parts.end();
 }
 
 string ArgvMap::helpstring(string prefix)
@@ -433,7 +433,7 @@ void ArgvMap::parseOne(const string& arg, const string& parseOnly, bool lax)
       }
       else {
         d_params[var] = val;
-        d_cleared.insert(var);
+        d_cleared.insert(std::move(var));
       }
     }
     else {
@@ -583,14 +583,12 @@ void ArgvMap::gatherIncludes(const std::string& directory, const std::string& su
       // build name
       string fullName = directory + "/" + std::string(name);
       // ensure it's readable file
-      struct stat statInfo
-      {
-      };
+      struct stat statInfo{};
       if (stat(fullName.c_str(), &statInfo) != 0 || !S_ISREG(statInfo.st_mode)) {
         string msg = fullName + " is not a regular file";
         SLOG(g_log << Logger::Error << msg << std::endl,
              d_log->info(Logr::Error, "Unable to open non-regular file", "name", Logging::Loggable(fullName)));
-        throw ArgException(msg);
+        throw ArgException(std::move(msg));
       }
       vec.emplace_back(fullName);
     }
@@ -602,7 +600,7 @@ void ArgvMap::gatherIncludes(const std::string& directory, const std::string& su
     string msg = directory + " is not accessible: " + stringerror(err);
     SLOG(g_log << Logger::Error << msg << std::endl,
          d_log->error(Logr::Error, err, "Directory is not accessible", "name", Logging::Loggable(directory)));
-    throw ArgException(msg);
+    throw ArgException(std::move(msg));
   }
 
   std::sort(vec.begin(), vec.end(), CIStringComparePOSIX());

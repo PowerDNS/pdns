@@ -2,13 +2,19 @@ Generic PostgreSQL backend
 ==========================
 
 * Native: Yes
-* Master: Yes
-* Slave: Yes
-* Superslave: Yes
-* Case: All lower
+* Primary: Yes
+* Secondary: Yes
+* Producer: Yes
+* Consumer: Yes
+* Autosecondary: Yes
+* DNS Update: Yes
 * DNSSEC: Yes (set ``gpgsql-dnssec``)
 * Disabled data: Yes
 * Comments: Yes
+* Search: Yes
+* Views: No
+* API: Read-Write
+* Multiple instances: yes
 * Zone caching: Yes
 * Module name: gpgsql
 * Launch name: ``gpgsql``
@@ -40,7 +46,7 @@ the value is the name of the directory in which the socket file is
 stored. Default: not set.
 
 .. warning::
-  When specified as a hostname a chicken/egg situation might
+  When specified as a hostname, a chicken/egg situation might
   arise where the database is needed to resolve the IP address of the
   database. It is best to supply an IP address of the database here.
 
@@ -70,7 +76,7 @@ User to connect as. Default: not set.
 ``gpgsql-password``
 ^^^^^^^^^^^^^^^^^^^
 
-The password to for :ref:`setting-gpgsql-user`. Default: not set.
+The password for :ref:`setting-gpgsql-user`. Default: not set.
 
 .. _setting-gpgsql-dnssec:
 

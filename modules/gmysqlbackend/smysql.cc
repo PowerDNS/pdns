@@ -116,7 +116,12 @@ public:
       releaseStatement();
       throw SSqlException("Attempt to bind more parameters than query has: " + d_query);
     }
-    d_req_bind[d_paridx].buffer_type = MYSQL_TYPE_LONG;
+    if constexpr (sizeof(long) == 4) {
+      d_req_bind[d_paridx].buffer_type = MYSQL_TYPE_LONG; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    }
+    else {
+      d_req_bind[d_paridx].buffer_type = MYSQL_TYPE_LONGLONG; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    }
     d_req_bind[d_paridx].buffer = new long[1];
     *((long*)d_req_bind[d_paridx].buffer) = value;
     d_paridx++;
@@ -129,7 +134,12 @@ public:
       releaseStatement();
       throw SSqlException("Attempt to bind more parameters than query has: " + d_query);
     }
-    d_req_bind[d_paridx].buffer_type = MYSQL_TYPE_LONG;
+    if constexpr (sizeof(long) == 4) {
+      d_req_bind[d_paridx].buffer_type = MYSQL_TYPE_LONG; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    }
+    else {
+      d_req_bind[d_paridx].buffer_type = MYSQL_TYPE_LONGLONG; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    }
     d_req_bind[d_paridx].buffer = new unsigned long[1];
     d_req_bind[d_paridx].is_unsigned = 1;
     *((unsigned long*)d_req_bind[d_paridx].buffer) = value;
@@ -372,7 +382,7 @@ public:
     if (d_req_bind) {
       for (int i = 0; i < d_parnum; i++) {
         if (d_req_bind[i].buffer)
-          delete[](char*) d_req_bind[i].buffer;
+          delete[] (char*)d_req_bind[i].buffer;
         if (d_req_bind[i].length)
           delete[] d_req_bind[i].length;
       }
@@ -431,7 +441,7 @@ private:
     if (d_req_bind) {
       for (int i = 0; i < d_parnum; i++) {
         if (d_req_bind[i].buffer)
-          delete[](char*) d_req_bind[i].buffer;
+          delete[] (char*)d_req_bind[i].buffer;
         if (d_req_bind[i].length)
           delete[] d_req_bind[i].length;
       }
@@ -441,7 +451,7 @@ private:
     if (d_res_bind) {
       for (int i = 0; i < d_fnum; i++) {
         if (d_res_bind[i].buffer)
-          delete[](char*) d_res_bind[i].buffer;
+          delete[] (char*)d_res_bind[i].buffer;
         if (d_res_bind[i].length)
           delete[] d_res_bind[i].length;
         if (d_res_bind[i].error)
@@ -477,7 +487,7 @@ void SMySQL::connect()
   int retry = 1;
 
   {
-    std::lock_guard<std::mutex> l(s_myinitlock);
+    auto lock = std::scoped_lock(s_myinitlock);
     if (d_threadCleanup) {
       threadcloser.enable();
     }

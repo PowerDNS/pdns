@@ -6,23 +6,6 @@ import unittest
 from recursortests import RecursorTest
 
 class RecPrometheusTest(RecursorTest):
-
-    @classmethod
-    def setUpClass(cls):
-
-        # we don't need all the auth stuff
-        cls.setUpSockets()
-        cls.startResponders()
-
-        confdir = os.path.join('configs', cls._confdir)
-        cls.createConfigDir(confdir)
-
-        cls.generateRecursorConfig(confdir)
-        cls.startRecursor(confdir, cls._recursorPort)
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tearDownRecursor()
  
     def checkPrometheusContentBasic(self, content):
         for line in content.splitlines():
@@ -58,7 +41,7 @@ class RecPrometheusTest(RecursorTest):
             raise AssertionError('%s returned an unexpected output. Faulty line is "%s", complete content is "%s"' % (testcmd, line, output))
 
 class BasicPrometheusTest(RecPrometheusTest):
-    _confdir = 'Prometheus'
+    _confdir = 'BasicPrometheus'
     _wsPort = 8042
     _wsTimeout = 2
     _wsPassword = 'secretpassword'
@@ -77,6 +60,39 @@ api-key=%s
         self.waitForTCPSocket("127.0.0.1", self._wsPort)
         url = 'http://user:' + self._wsPassword + '@127.0.0.1:' + str(self._wsPort) + '/metrics'
         r = requests.get(url, timeout=self._wsTimeout)
+        self.assertTrue(r)
+        self.assertEqual(r.status_code, 200)
+        self.checkPrometheusContentBasic(r.text)
+        self.checkPrometheusContentPromtool(r.content)
+
+class HttpsPrometheusTest(RecPrometheusTest):
+    _confdir = 'HttpsPrometheus'
+    _wsPort = 8042
+    _wsTimeout = 2
+    _wsPassword = 'secretpassword'
+    _apiKey = 'secretapikey'
+
+    _config_template = """
+webservice:
+  webserver: true
+  listen:
+   - addresses: [127.0.0.1:%s]
+     tls:
+       certificate: server.chain
+       key: server.key
+  password: %s
+  allow_from: [127.0.0.1]
+  api_key: %s
+""" % (_wsPort, _wsPassword, _apiKey)
+
+    @classmethod
+    def generateRecursorConfig(cls, confdir):
+        super(HttpsPrometheusTest, cls).generateRecursorYamlConfig(confdir)
+
+    def testPrometheus(self):
+        self.waitForTCPSocket("127.0.0.1", self._wsPort)
+        url = 'https://user:' + self._wsPassword + '@127.0.0.1:' + str(self._wsPort) + '/metrics'
+        r = requests.get(url, timeout=self._wsTimeout, verify='ca.pem')
         self.assertTrue(r)
         self.assertEqual(r.status_code, 200)
         self.checkPrometheusContentBasic(r.text)

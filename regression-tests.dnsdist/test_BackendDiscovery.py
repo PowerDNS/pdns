@@ -417,6 +417,7 @@ class TestBackendDiscoveryByHostname(DNSDistTest):
     _config_template = """
     setKey("%s")
     controlSocket("127.0.0.1:%d")
+    setVerboseHealthChecks(true)
 
     function resolveCB(hostname, ips)
       print('Got response for '..hostname)
@@ -428,6 +429,8 @@ class TestBackendDiscoveryByHostname(DNSDistTest):
 
     getAddressInfo('dns.quad9.net.', resolveCB)
     """
+    _verboseMode = True
+
     def checkBackends(self):
         output = self.sendConsoleCommand('showServers()')
         print(output)
@@ -439,13 +442,24 @@ class TestBackendDiscoveryByHostname(DNSDistTest):
             self.assertTrue(len(tokens) == 13 or len(tokens) == 14)
             backends[tokens[1]] = tokens[2]
 
-        if len(backends) != 4:
+        if len(backends) == 4:
+            for expected in ['9.9.9.9:53', '149.112.112.112:53', '[2620:fe::9]:53', '[2620:fe::fe]:53']:
+                self.assertIn(expected, backends)
+        elif len(backends) == 2:
+            # looks like we are not getting the IPv6 addresses, thanks GitHub!
+            for expected in ['9.9.9.9:53', '149.112.112.112:53']:
+                self.assertIn(expected, backends)
+        else:
             return False
 
-        for expected in ['9.9.9.9:53', '149.112.112.112:53', '[2620:fe::9]:53', '[2620:fe::fe]:53']:
-            self.assertIn(expected, backends)
         for backend in backends:
-            self.assertTrue(backends[backend])
+            if str(backend) in ['2620:fe::9]:53', '[2620:fe::fe]:53']:
+                # IPv6 is very flaky on GH actions these days (202505),
+                # let's not require these to be up
+                continue
+            if backends[backend] != 'up':
+                return False
+
         return True
 
     def testBackendFromHostname(self):
@@ -455,5 +469,10 @@ class TestBackendDiscoveryByHostname(DNSDistTest):
         # enough time for resolution to happen
         time.sleep(4)
         if not self.checkBackends():
-            time.sleep(4)
-            self.assertTrue(self.checkBackends())
+            valid = False
+            for _ in range(8):
+                time.sleep(0.5)
+                if self.checkBackends():
+                    valid = True
+                    break
+            self.assertTrue(valid)

@@ -5,7 +5,7 @@ import pytest
 
 from recursortests import RecursorTest
 
-class ExtendedErrorsRecursorTest(RecursorTest):
+class ExtendedErrorsTest(RecursorTest):
 
     _confdir = 'ExtendedErrors'
     _config_template = """
@@ -56,23 +56,6 @@ extended-resolution-errors=yes
     _roothints = None
 
     @classmethod
-    def setUpClass(cls):
-
-        # we don't need all the auth stuff
-        cls.setUpSockets()
-        cls.startResponders()
-
-        confdir = os.path.join('configs', cls._confdir)
-        cls.createConfigDir(confdir)
-
-        cls.generateRecursorConfig(confdir)
-        cls.startRecursor(confdir, cls._recursorPort)
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tearDownRecursor()
-
-    @classmethod
     def generateRecursorConfig(cls, confdir):
         rpzFilePath = os.path.join(confdir, 'zone.rpz')
         with open(rpzFilePath, 'w') as rpzZone:
@@ -81,9 +64,9 @@ extended-resolution-errors=yes
 *.rpz.extended.zone.rpz. 60 IN CNAME .
 """.format(soa=cls._SOA))
 
-        super(ExtendedErrorsRecursorTest, cls).generateRecursorConfig(confdir)
+        super(ExtendedErrorsTest, cls).generateRecursorConfig(confdir)
 
-    @pytest.mark.skip(reason="sidnlabs no longer serves thiss until further notice")
+    @pytest.mark.external
     def testNotIncepted(self):
         qname = 'signotincepted.bad-dnssec.wb.sidnlabs.nl.'
         query = dns.message.make_query(qname, 'A', want_dnssec=True)
@@ -97,7 +80,7 @@ extended-resolution-errors=yes
             self.assertEqual(res.options[0].otype, 15)
             self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(8, b''))
 
-    @pytest.mark.skip(reason="sidnlabs no longer serves thiss until further notice")
+    @pytest.mark.external
     def testExpired(self):
         qname = 'sigexpired.bad-dnssec.wb.sidnlabs.nl.'
         query = dns.message.make_query(qname, 'A', want_dnssec=True)
@@ -111,6 +94,7 @@ extended-resolution-errors=yes
             self.assertEqual(res.options[0].otype, 15)
             self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(7, b''))
 
+    @pytest.mark.external
     def testAllExpired(self):
         qname = 'servfail.nl.'
         query = dns.message.make_query(qname, 'AAAA', want_dnssec=True)
@@ -124,7 +108,7 @@ extended-resolution-errors=yes
             self.assertEqual(res.options[0].otype, 15)
             self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(6, b''))
 
-    @pytest.mark.skip(reason="sidnlabs no longer serves thiss until further notice")
+    @pytest.mark.external
     def testBogus(self):
         qname = 'bogussig.ok.bad-dnssec.wb.sidnlabs.nl.'
         query = dns.message.make_query(qname, 'A', want_dnssec=True)
@@ -138,6 +122,7 @@ extended-resolution-errors=yes
             self.assertEqual(res.options[0].otype, 15)
             self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(6, b''))
 
+    @pytest.mark.external
     def testMissingRRSIG(self):
         qname = 'brokendnssec.net.'
         query = dns.message.make_query(qname, 'A', want_dnssec=True)
@@ -209,37 +194,16 @@ extended-resolution-errors=yes
         self.assertEqual(res.options[0].otype, 15)
         self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(10, b'Extra text from Lua!'))
 
-class NoExtendedErrorsRecursorTest(RecursorTest):
+class NoExtendedErrorsTest(RecursorTest):
 
-    _confdir = 'ExtendedErrorsDisabled'
+    _confdir = 'NoExtendedErrors'
     _config_template = """
 dnssec=validate
 extended-resolution-errors=no
     """
     _roothints = None
 
-    @classmethod
-    def setUpClass(cls):
-
-        # we don't need all the auth stuff
-        cls.setUpSockets()
-        cls.startResponders()
-
-        confdir = os.path.join('configs', cls._confdir)
-        cls.createConfigDir(confdir)
-
-        cls.generateRecursorConfig(confdir)
-        cls.startRecursor(confdir, cls._recursorPort)
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tearDownRecursor()
-
-    @classmethod
-    def generateRecursorConfig(cls, confdir):
-        super(NoExtendedErrorsRecursorTest, cls).generateRecursorConfig(confdir)
-
-    @pytest.mark.skip(reason="sidnlabs no longer serves thiss until further notice")
+    @pytest.mark.external
     def testNotIncepted(self):
         qname = 'signotincepted.bad-dnssec.wb.sidnlabs.nl.'
         query = dns.message.make_query(qname, 'A', want_dnssec=True)

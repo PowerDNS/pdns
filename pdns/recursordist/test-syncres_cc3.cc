@@ -54,7 +54,7 @@ BOOST_AUTO_TEST_CASE(test_unauth_any)
 
   const DNSName target("powerdns.com.");
 
-  sr->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
+  sr->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int type, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
     if (isRootServer(address)) {
       setLWResult(res, 0, false, false, true);
       addRecordToLW(res, "com.", QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
@@ -62,19 +62,41 @@ BOOST_AUTO_TEST_CASE(test_unauth_any)
       return LWResult::Result::Success;
     }
     if (address == ComboAddress("192.0.2.1:53")) {
-
-      setLWResult(res, 0, false, false, true);
-      addRecordToLW(res, domain, QType::A, "192.0.2.42");
-      return LWResult::Result::Success;
+      if (type == QType::A) {
+        setLWResult(res, 0, false, false, true);
+        addRecordToLW(res, domain, QType::A, "192.0.2.42");
+        addRecordToLW(res, domain, QType::A, "192.0.2.43");
+        return LWResult::Result::Success;
+      }
+      if (type == QType::AAAA) {
+        setLWResult(res, 0, false, false, true);
+        addRecordToLW(res, domain, QType::AAAA, "::1");
+        return LWResult::Result::Success;
+      }
     }
 
     return LWResult::Result::Timeout;
   });
 
   vector<DNSRecord> ret;
-  int res = sr->beginResolve(target, QType(QType::ANY), QClass::IN, ret);
+  int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(ret.size(), 2U);
+
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::AAAA), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(ret.size(), 1U);
+
+  ret.clear();
+  MemRecursorCache::s_maxRRSetSize = 2;
+  BOOST_CHECK_THROW(sr->beginResolve(target, QType(QType::ANY), QClass::IN, ret), ImmediateServFailException);
+
+  MemRecursorCache::s_limitQTypeAny = false;
+  ret.clear();
+  res = sr->beginResolve(target, QType(QType::ANY), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, RCode::NoError);
+  BOOST_CHECK_EQUAL(ret.size(), 3U);
 }
 
 static void test_no_data_f(bool qmin)
@@ -158,14 +180,11 @@ BOOST_AUTO_TEST_CASE(test_extra_answers)
   BOOST_REQUIRE_EQUAL(QType(cached.at(0).d_type).toString(), QType(QType::A).toString());
   BOOST_CHECK_EQUAL(getRR<ARecordContent>(cached.at(0))->getCA().toString(), ComboAddress("192.0.2.2").toString());
 
-  // The cache should also have an authoritative record for the extra in-bailiwick record
-  BOOST_REQUIRE_GT(g_recCache->get(now, target2, QType(QType::A), MemRecursorCache::RequireAuth, &cached, who), 0);
-  BOOST_REQUIRE_EQUAL(cached.size(), 1U);
-  BOOST_REQUIRE_EQUAL(QType(cached.at(0).d_type).toString(), QType(QType::A).toString());
-  BOOST_CHECK_EQUAL(getRR<ARecordContent>(cached.at(0))->getCA().toString(), ComboAddress("192.0.2.3").toString());
+  // The cache should not have an authoritative record for the extra in-bailiwick record
+  BOOST_REQUIRE_LE(g_recCache->get(now, target2, QType(QType::A), MemRecursorCache::RequireAuth, &cached, who), 0);
 
-  // But the out-of-bailiwick record should not be there
-  BOOST_REQUIRE_LT(g_recCache->get(now, target3, QType(QType::A), MemRecursorCache::RequireAuth, &cached, who), 0);
+  // And the out-of-bailiwick record should not be there
+  BOOST_REQUIRE_LE(g_recCache->get(now, target3, QType(QType::A), MemRecursorCache::RequireAuth, &cached, who), 0);
 }
 
 BOOST_AUTO_TEST_CASE(test_dnssec_extra_answers)
@@ -229,14 +248,11 @@ BOOST_AUTO_TEST_CASE(test_dnssec_extra_answers)
   BOOST_REQUIRE_EQUAL(QType(cached.at(0).d_type).toString(), QType(QType::A).toString());
   BOOST_CHECK_EQUAL(getRR<ARecordContent>(cached.at(0))->getCA().toString(), ComboAddress("192.0.2.2").toString());
 
-  // The cache should also have an authoritative record for the extra in-bailiwick record
-  BOOST_REQUIRE_GT(g_recCache->get(now, target2, QType(QType::A), MemRecursorCache::RequireAuth, &cached, who), 0);
-  BOOST_REQUIRE_EQUAL(cached.size(), 1U);
-  BOOST_REQUIRE_EQUAL(QType(cached.at(0).d_type).toString(), QType(QType::A).toString());
-  BOOST_CHECK_EQUAL(getRR<ARecordContent>(cached.at(0))->getCA().toString(), ComboAddress("192.0.2.3").toString());
+  // The cache should not have an authoritative record for the extra in-bailiwick record
+  BOOST_REQUIRE_LE(g_recCache->get(now, target2, QType(QType::A), MemRecursorCache::RequireAuth, &cached, who), 0);
 
-  // But the out-of-bailiwick record should not be there
-  BOOST_REQUIRE_LT(g_recCache->get(now, target3, QType(QType::A), MemRecursorCache::RequireAuth, &cached, who), 0);
+  // And the out-of-bailiwick record should not be there
+  BOOST_REQUIRE_LE(g_recCache->get(now, target3, QType(QType::A), MemRecursorCache::RequireAuth, &cached, who), 0);
 }
 
 BOOST_AUTO_TEST_CASE(test_skip_opt_any)
@@ -410,7 +426,7 @@ BOOST_AUTO_TEST_CASE(test_answer_no_aa)
   /* check that the record in the answer section has not been cached */
   const ComboAddress who;
   vector<DNSRecord> cached;
-  vector<std::shared_ptr<const RRSIGRecordContent>> signatures;
+  MemRecursorCache::SigRecs signatures;
   BOOST_REQUIRE_GT(g_recCache->get(now, target, QType(QType::A), MemRecursorCache::None, &cached, who, boost::none, &signatures), 0);
 }
 
@@ -1326,6 +1342,7 @@ BOOST_AUTO_TEST_CASE(test_forward_zone_recurse_rd_dnssec_cname_wildcard_expanded
   res = testSR->beginResolve(target, QType(QType::A), QClass::IN, ret);
   BOOST_CHECK_EQUAL(res, RCode::NoError);
   BOOST_CHECK_EQUAL(testSR->getValidationState(), vState::Insecure);
+  BOOST_CHECK(MemRecursorCache::s_emptyAuthRecs->empty());
   BOOST_REQUIRE_EQUAL(ret.size(), 5U);
   BOOST_CHECK_EQUAL(queriesCount, 5U);
 }
@@ -1459,6 +1476,139 @@ BOOST_AUTO_TEST_CASE(test_auth_zone_oob_cname)
   BOOST_CHECK_EQUAL(queriesCount, 0U);
   BOOST_CHECK(sr->wasOutOfBand());
   BOOST_CHECK_EQUAL(sr->getValidationState(), vState::Indeterminate);
+}
+
+BOOST_AUTO_TEST_CASE(test_auth_cname_to_oob_target)
+{
+  std::unique_ptr<SyncRes> resolver;
+  initSR(resolver, false, false);
+
+  resolver->setQNameMinimization();
+  primeHints();
+
+  size_t queriesCount = 0;
+  const DNSName target("cname.example.com.");
+  const DNSName existingname("existing.test.xx.");
+  const DNSName target1Cname("cname1.example.com.");
+  const DNSName authZone("test.xx");
+
+  SyncRes::AuthDomain authDomain;
+
+  DNSRecord record;
+  record.d_place = DNSResourceRecord::ANSWER;
+  record.d_name = existingname;
+  record.d_type = QType::A;
+  record.d_ttl = 1800;
+  record.setContent(std::make_shared<ARecordContent>("127.0.0.1"));
+  authDomain.d_records.insert(record);
+
+  (*SyncRes::t_sstorage.domainmap)[authZone] = authDomain;
+
+  resolver->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
+    queriesCount++;
+    if (isRootServer(address) || domain == DNSName("com") || domain == DNSName("example.com")) {
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, domain, QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
+      addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+      return LWResult::Result::Success;
+    }
+    if (domain == target) {
+      setLWResult(res, 0, true, false, false);
+      addRecordToLW(res, domain, QType::CNAME, target1Cname.toString());
+      return LWResult::Result::Success;
+    }
+    if (domain == target1Cname) {
+      setLWResult(res, 0, true, false, false);
+      addRecordToLW(res, domain, QType::CNAME, existingname.toString());
+      return LWResult::Result::Success;
+    }
+
+    return LWResult::Result::Timeout;
+  });
+
+  vector<DNSRecord> ret;
+  int res = resolver->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, 0);
+  BOOST_REQUIRE_EQUAL(ret.size(), 3U);
+  BOOST_CHECK(ret[0].d_type == QType::CNAME);
+  BOOST_CHECK(ret[1].d_type == QType::CNAME);
+  BOOST_CHECK(ret[2].d_type == QType::A);
+  BOOST_CHECK_EQUAL(resolver->getValidationState(), vState::Indeterminate);
+
+  /* a second time, from the cache */
+  ret.clear();
+  res = resolver->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, 0);
+  BOOST_REQUIRE_EQUAL(ret.size(), 3U);
+  BOOST_CHECK(ret[0].d_type == QType::CNAME);
+  BOOST_CHECK(ret[1].d_type == QType::CNAME);
+  BOOST_CHECK(ret[2].d_type == QType::A);
+  BOOST_CHECK_EQUAL(resolver->getValidationState(), vState::Indeterminate);
+}
+
+BOOST_AUTO_TEST_CASE(test_auth_cname_to_non_existent_oob_target)
+{
+  std::unique_ptr<SyncRes> resolver;
+  initSR(resolver, false, false);
+
+  resolver->setQNameMinimization();
+  primeHints();
+
+  const DNSName target("cname.example.com.");
+  const DNSName existingname("existing.test.xx.");
+  const DNSName target1Cname("cname1.example.com.");
+  const DNSName target2Cname("cname-target.test.xx.");
+  const DNSName authZone("test.xx");
+
+  SyncRes::AuthDomain authDomain;
+
+  DNSRecord record;
+  record.d_place = DNSResourceRecord::ANSWER;
+  record.d_name = existingname;
+  record.d_type = QType::A;
+  record.d_ttl = 1800;
+  record.setContent(std::make_shared<ARecordContent>("127.0.0.1"));
+  authDomain.d_records.insert(record);
+
+  (*SyncRes::t_sstorage.domainmap)[authZone] = authDomain;
+
+  resolver->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& /* srcmask */, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
+    if (isRootServer(address) || domain == DNSName("com") || domain == DNSName("example.com")) {
+      setLWResult(res, 0, false, false, true);
+      addRecordToLW(res, domain, QType::NS, "a.gtld-servers.net.", DNSResourceRecord::AUTHORITY, 172800);
+      addRecordToLW(res, "a.gtld-servers.net.", QType::A, "192.0.2.1", DNSResourceRecord::ADDITIONAL, 3600);
+      return LWResult::Result::Success;
+    }
+    if (domain == target) {
+      setLWResult(res, 0, true, false, false);
+      addRecordToLW(res, domain, QType::CNAME, target1Cname.toString());
+      return LWResult::Result::Success;
+    }
+    if (domain == target1Cname) {
+      setLWResult(res, 0, true, false, false);
+      addRecordToLW(res, domain, QType::CNAME, target2Cname.toString());
+      return LWResult::Result::Success;
+    }
+
+    return LWResult::Result::Timeout;
+  });
+
+  vector<DNSRecord> ret;
+  int res = resolver->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, 3);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2U);
+  BOOST_CHECK(ret[0].d_type == QType::CNAME);
+  BOOST_CHECK(ret[1].d_type == QType::CNAME);
+  BOOST_CHECK_EQUAL(resolver->getValidationState(), vState::Indeterminate);
+
+  /* a second time, from the cache */
+  ret.clear();
+  res = resolver->beginResolve(target, QType(QType::A), QClass::IN, ret);
+  BOOST_CHECK_EQUAL(res, 3);
+  BOOST_REQUIRE_EQUAL(ret.size(), 2U);
+  BOOST_CHECK(ret[0].d_type == QType::CNAME);
+  BOOST_CHECK(ret[1].d_type == QType::CNAME);
+  BOOST_CHECK_EQUAL(resolver->getValidationState(), vState::Indeterminate);
 }
 
 BOOST_AUTO_TEST_CASE(test_auth_zone)

@@ -59,7 +59,7 @@ private:
     uint16_t d_queryID;
   };
 
-  typedef multi_index_container<
+  using content_t = multi_index_container<
     Entry,
     indexed_by<
       ordered_unique<tag<IDTag>,
@@ -68,8 +68,7 @@ private:
                        member<Entry, uint16_t, &Entry::d_queryID>,
                        member<Entry, uint16_t, &Entry::d_asyncID>>>,
       ordered_non_unique<tag<TTDTag>,
-                         member<Entry, struct timeval, &Entry::d_ttd>>>>
-    content_t;
+                         member<Entry, struct timeval, &Entry::d_ttd>>>>;
 
   static void pickupExpired(content_t&, const struct timeval& now, std::list<std::pair<uint16_t, std::unique_ptr<CrossProtocolQuery>>>& expiredEvents);
   static struct timeval getNextTTD(const content_t&);

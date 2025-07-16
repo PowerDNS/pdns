@@ -98,25 +98,7 @@ ecs-add-for=0.0.0.0/0
             cls._UDPResponder.daemon = True
             cls._UDPResponder.start()
 
-    @classmethod
-    def setUpClass(cls):
-        cls.setUpSockets()
-
-        cls.startResponders()
-
-        confdir = os.path.join('configs', cls._confdir)
-        cls.createConfigDir(confdir)
-
-        cls.generateRecursorConfig(confdir)
-        cls.startRecursor(confdir, cls._recursorPort)
-
-        print("Launching tests..")
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tearDownRecursor()
-
-class testNoECS(ECSTest):
+class NoECSTest(ECSTest):
     _confdir = 'NoECS'
 
     _config_template = """edns-subnet-allow-list=
@@ -141,7 +123,7 @@ forward-zones=ecs-echo.example=%s.21
         query = dns.message.make_query(nameECS, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
         self.sendECSQuery(query, expected)
 
-class testIncomingNoECS(ECSTest):
+class IncomingNoECSTest(ECSTest):
     _confdir = 'IncomingNoECS'
 
     _config_template = """edns-subnet-allow-list=
@@ -169,7 +151,7 @@ forward-zones=ecs-echo.example=%s.21
         query = dns.message.make_query(nameECS, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
         self.sendECSQuery(query, expected, scopeZeroResponse=True)
 
-class testECSByName(ECSTest):
+class ECSByNameTest(ECSTest):
     _confdir = 'ECSByName'
 
     _config_template = """edns-subnet-allow-list=ecs-echo.example.
@@ -200,7 +182,7 @@ forward-zones=ecs-echo.example=%s.21
         query = dns.message.make_query(nameECS, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
         self.sendECSQuery(query, expected)
 
-class testECSByNameLarger(ECSTest):
+class ECSByNameLargerTest(ECSTest):
     _confdir = 'ECSByNameLarger'
 
     _config_template = """edns-subnet-allow-list=ecs-echo.example.
@@ -234,8 +216,8 @@ ecs-ipv6-cache-bits=128
         query = dns.message.make_query(nameECS, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
         self.sendECSQuery(query, expected)
 
-class testECSByNameSmaller(ECSTest):
-    _confdir = 'ECSByNameLarger'
+class ECSByNameSmallerTest(ECSTest):
+    _confdir = 'ECSByNameSmaller'
 
     _config_template = """edns-subnet-allow-list=ecs-echo.example.
 ecs-ipv4-bits=16
@@ -261,8 +243,8 @@ forward-zones=ecs-echo.example=%s.21
         query = dns.message.make_query(nameECS, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
         self.sendECSQuery(query, expected)
 
-class testIncomingECSByName(ECSTest):
-    _confdir = 'ECSIncomingByName'
+class IncomingECSByNameTest(ECSTest):
+    _confdir = 'IncomingECSByName'
 
     _config_template = """edns-subnet-allow-list=ecs-echo.example.
 use-incoming-edns-subnet=yes
@@ -301,8 +283,8 @@ ecs-ipv6-cache-bits=128
         query = dns.message.make_query(nameECS, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
         self.sendECSQuery(query, expected, ttlECS)
 
-class testIncomingECSByNameLarger(ECSTest):
-    _confdir = 'ECSIncomingByNameLarger'
+class IncomingECSByNameLargerTest(ECSTest):
+    _confdir = 'IncomingECSByNameLarger'
 
     _config_template = """edns-subnet-allow-list=ecs-echo.example.
 use-incoming-edns-subnet=yes
@@ -333,8 +315,8 @@ ecs-ipv6-cache-bits=128
         query = dns.message.make_query(nameECS, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
         self.sendECSQuery(query, expected, ttlECS)
 
-class testIncomingECSByNameSmaller(ECSTest):
-    _confdir = 'ECSIncomingByNameSmaller'
+class IncomingECSByNameSmallerTest(ECSTest):
+    _confdir = 'IncomingECSByNameSmaller'
 
     _config_template = """edns-subnet-allow-list=ecs-echo.example.
 use-incoming-edns-subnet=yes
@@ -364,8 +346,8 @@ ecs-ipv6-cache-bits=128
         self.sendECSQuery(query, expected, ttlECS)
 
 @unittest.skipIf(not have_ipv6(), "No IPv6")
-class testIncomingECSByNameV6(ECSTest):
-    _confdir = 'ECSIncomingByNameV6'
+class IncomingECSByNameV6Test(ECSTest):
+    _confdir = 'IncomingECSByNameV6'
 
     _config_template = """edns-subnet-allow-list=ecs-echo.example.
 use-incoming-edns-subnet=yes
@@ -397,7 +379,7 @@ forward-zones=ecs-echo.example=[::1]:53000
         query = dns.message.make_query(nameECS, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
         self.sendECSQuery(query, expected, ttlECS)
 
-class testECSNameMismatch(ECSTest):
+class ECSNameMismatchTest(ECSTest):
     _confdir = 'ECSNameMismatch'
 
     _config_template = """edns-subnet-allow-list=not-the-right-name.example.
@@ -422,7 +404,7 @@ forward-zones=ecs-echo.example=%s.21
         query = dns.message.make_query(nameECS, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
         self.sendECSQuery(query, expected)
 
-class testECSByIP(ECSTest):
+class ECSByIPTest(ECSTest):
     _confdir = 'ECSByIP'
 
     _config_template = """edns-subnet-allow-list=%s.21
@@ -448,8 +430,8 @@ forward-zones=ecs-echo.example=%s.21
         query = dns.message.make_query(nameECS, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
         self.sendECSQuery(query, expected)
 
-class testIncomingECSByIP(ECSTest):
-    _confdir = 'ECSIncomingByIP'
+class IncomingECSByIPTest(ECSTest):
+    _confdir = 'IncomingECSByIP'
 
     _config_template = """edns-subnet-allow-list=%s.21
 use-incoming-edns-subnet=yes
@@ -488,7 +470,7 @@ ecs-ipv6-cache-bits=128
 
         self.sendECSQuery(query, expected)
 
-class testECSIPMismatch(ECSTest):
+class ECSIPMismatchTest(ECSTest):
     _confdir = 'ECSIPMismatch'
 
     _config_template = """edns-subnet-allow-list=192.0.2.1
@@ -514,8 +496,8 @@ forward-zones=ecs-echo.example=%s.21
         query = dns.message.make_query(nameECS, 'TXT', 'IN', use_edns=True, options=[ecso], payload=512)
         self.sendECSQuery(query, expected)
 
-class testECSWithProxyProtocoldRecursorTest(ECSTest):
-    _confdir = 'ECSWithProxyProtocol'
+class ECSWithProxyProtocolRecursorTest(ECSTest):
+    _confdir = 'ECSWithProxyProtocolRecursor'
     _config_template = """
     ecs-add-for=2001:db8::1/128
     edns-subnet-allow-list=ecs-echo.example.
@@ -535,7 +517,7 @@ class testECSWithProxyProtocoldRecursorTest(ECSTest):
             self.assertRcodeEqual(res, dns.rcode.NOERROR)
             self.assertRRsetInAnswer(res, expected)
 
-class testTooLargeToAddZeroScope(RecursorTest):
+class TooLargeToAddZeroScopeTest(RecursorTest):
 
     _confdir = 'TooLargeToAddZeroScope'
     _config_template = """
@@ -554,26 +536,10 @@ dnssec=validate
 
     _roothints = None
 
-    @classmethod
-    def setUpClass(cls):
-
-        # we don't need all the auth stuff
-        cls.setUpSockets()
-        cls.startResponders()
-
-        confdir = os.path.join('configs', cls._confdir)
-        cls.createConfigDir(confdir)
-
-        cls.generateRecursorConfig(confdir)
-        cls.startRecursor(confdir, cls._recursorPort)
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tearDownRecursor()
 
     @classmethod
     def generateRecursorConfig(cls, confdir):
-        super(testTooLargeToAddZeroScope, cls).generateRecursorConfig(confdir)
+        super(TooLargeToAddZeroScopeTest, cls).generateRecursorConfig(confdir)
 
     def testTooLarge(self):
         qname = 'toolarge.ecs.'

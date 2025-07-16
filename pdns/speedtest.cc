@@ -14,6 +14,7 @@
 #include "lock.hh"
 #include "dns_random.hh"
 #include "arguments.hh"
+#include "shuffle.hh"
 
 #if defined(HAVE_LIBSODIUM)
 #include <sodium.h>
@@ -145,7 +146,7 @@ struct GetUniqueLockUncontendedTest
   void operator()() const
   {
     for (size_t idx = 0; idx < 1000; idx++) {
-      std::unique_lock<decltype(d_testlock)> lock(d_testlock);
+      auto lock = std::scoped_lock(d_testlock);
       ++d_value;
     }
   }
@@ -164,7 +165,7 @@ struct GetLockGuardUncontendedTest
   void operator()() const
   {
     for (size_t idx = 0; idx < 1000; idx++) {
-      std::lock_guard<decltype(d_testlock)> lock(d_testlock);
+      auto lock = std::scoped_lock(d_testlock);
       ++d_value;
     }
   }
@@ -669,11 +670,11 @@ struct ParsePacketTest
     } lwr;
     for(MOADNSParser::answers_t::const_iterator i=mdp.d_answers.begin(); i!=mdp.d_answers.end(); ++i) {
       DNSResourceRecord rr;
-      rr.qtype=i->first.d_type;
-      rr.qname=i->first.d_name;
+      rr.qtype=i->d_type;
+      rr.qname=i->d_name;
 
-      rr.ttl=i->first.d_ttl;
-      rr.content=i->first.getContent()->getZoneRepresentation();  // this should be the serialised form
+      rr.ttl=i->d_ttl;
+      rr.content=i->getContent()->getZoneRepresentation();  // this should be the serialised form
       lwr.d_result.push_back(rr);
     }
 
@@ -1181,6 +1182,47 @@ private:
 };
 #endif
 
+struct DedupRecordsTest
+{
+  explicit DedupRecordsTest(size_t howmany, bool dedup, bool withdup = false) : d_howmany(howmany), d_dedup(dedup), d_withdup(withdup)
+  {
+    d_vec.reserve(d_howmany);
+    std::string name("some.name.in.some.domain");
+    auto count = d_howmany;
+    if (d_withdup) {
+      count--;
+    }
+    for (size_t i = 0; i < count; i++) {
+      auto content = DNSRecordContent::make(QType::TXT, QClass::IN, "\"a text " + std::to_string(i) + "\"");
+      DNSRecord rec(name, content, QType::TXT);
+      if (i == 0 && d_withdup) {
+        d_vec.emplace_back(rec);
+      }
+      d_vec.emplace_back(std::move(rec));
+    }
+  }
+
+  [[nodiscard]] string getName() const
+  {
+    return std::to_string(d_howmany) + " DedupRecords" + std::string(d_dedup ? "" : " (setup only)") +
+      std::string(d_withdup ? " (with dup)" : "");
+  }
+
+  void operator()() const
+  {
+    auto vec{d_vec};
+    if (d_dedup) {
+      pdns::dedupRecords(vec);
+    }
+  }
+
+private:
+  vector<DNSRecord> d_vec;
+  size_t d_howmany;
+  bool d_dedup;
+  bool d_withdup;
+};
+
 int main()
 {
   try {
@@ -1335,6 +1377,15 @@ int main()
 #ifdef HAVE_LIBSODIUM
     doRun(SipHashTest("a string of chars"));
 #endif
+    doRun(DedupRecordsTest(2, false));
+    doRun(DedupRecordsTest(2, true));
+    doRun(DedupRecordsTest(2, true, true));
+    doRun(DedupRecordsTest(256, false));
+    doRun(DedupRecordsTest(256, true));
+    doRun(DedupRecordsTest(256, true, true));
+    doRun(DedupRecordsTest(4096, false));
+    doRun(DedupRecordsTest(4096, true));
+    doRun(DedupRecordsTest(4096, true, true));
 
     cerr<<"Total runs: " << g_totalRuns<<endl;
   }

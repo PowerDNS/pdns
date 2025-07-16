@@ -1,2 +1,10 @@
 # https://github.com/github/linguist/blob/master/docs/overrides.md
 */zones/* linguist-language=DNS-Zone
+
+# not needed in `git archive` tarballs, only in raw git clones
+.gitattributes export-ignore
+.gitmodules export-ignore
+.gitignore export-ignore
+
+.github export-ignore
+.circleci export-ignore

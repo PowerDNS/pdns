@@ -4,7 +4,7 @@ from pysnmp.hlapi import *
 
 from recursortests import RecursorTest
 
-class TestSNMP(RecursorTest):
+class SNMPTest(RecursorTest):
 
     _snmpTimeout = 2.0
     _snmpServer = '127.0.0.1'
@@ -21,7 +21,7 @@ class TestSNMP(RecursorTest):
     """
 
     def _checkStatsValues(self, results):
-        count = 150
+        count = 152
         for i in list(range(1, count)):
             oid = self._snmpOID + '.1.' + str(i) + '.0'
             self.assertTrue(oid in results)

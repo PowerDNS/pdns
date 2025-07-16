@@ -16,6 +16,7 @@
 #include "validate.hh"
 #include "validate-recursor.hh"
 #include "root-dnssec.hh"
+#include "rec-system-resolve.hh"
 
 GlobalStateHolder<LuaConfigItems> g_luaconfs;
 
@@ -132,7 +133,7 @@ static void parseRPZParameters(const rpzOptions_t& have, RPZTrackerParams& param
     params.maxTTL = boost::get<uint32_t>(have.at("maxTTL"));
   }
   if (have.count("zoneSizeHint") != 0) {
-    params.zoneSizeHint = static_cast<size_t>(boost::get<uint32_t>(have.at("zoneSizeHint")));
+    params.zoneXFRParams.zoneSizeHint = static_cast<size_t>(boost::get<uint32_t>(have.at("zoneSizeHint")));
   }
   if (have.count("tags") != 0) {
     const auto& tagsTable = boost::get<std::vector<std::pair<int, std::string>>>(have.at("tags"));
@@ -273,16 +274,16 @@ static void parseFrameStreamOptions(const boost::optional<frameStreamOptions_t>&
 static void rpzPrimary(LuaConfigItems& lci, const boost::variant<string, std::vector<std::pair<int, string>>>& primaries_, const string& zoneName, const boost::optional<rpzOptions_t>& options)
 {
   RPZTrackerParams params;
-  params.name = zoneName;
+  params.zoneXFRParams.name = zoneName;
   params.polName = zoneName;
 
   std::shared_ptr<DNSFilterEngine::Zone> zone = std::make_shared<DNSFilterEngine::Zone>();
   if (primaries_.type() == typeid(string)) {
-    params.primaries.emplace_back(boost::get<std::string>(primaries_), 53);
+    params.zoneXFRParams.primaries.emplace_back(boost::get<std::string>(primaries_));
   }
   else {
     for (const auto& primary : boost::get<std::vector<std::pair<int, std::string>>>(primaries_)) {
-      params.primaries.emplace_back(primary.second, 53);
+      params.zoneXFRParams.primaries.emplace_back(primary.second);
     }
   }
 
@@ -292,30 +293,30 @@ static void rpzPrimary(LuaConfigItems& lci, const boost::variant<string, std::ve
       parseRPZParameters(have, params);
 
       if (have.count("tsigname") != 0) {
-        params.tsigtriplet.name = DNSName(toLower(boost::get<string>(have.at("tsigname"))));
-        params.tsigtriplet.algo = DNSName(toLower(boost::get<string>(have.at("tsigalgo"))));
-        if (B64Decode(boost::get<string>(have.at("tsigsecret")), params.tsigtriplet.secret) != 0) {
+        params.zoneXFRParams.tsigtriplet.name = DNSName(toLower(boost::get<string>(have.at("tsigname"))));
+        params.zoneXFRParams.tsigtriplet.algo = DNSName(toLower(boost::get<string>(have.at("tsigalgo"))));
+        if (B64Decode(boost::get<string>(have.at("tsigsecret")), params.zoneXFRParams.tsigtriplet.secret) != 0) {
           throw std::runtime_error("TSIG secret is not valid Base-64 encoded");
         }
       }
       if (have.count("refresh") != 0) {
-        params.refreshFromConf = boost::get<uint32_t>(have.at("refresh"));
-        if (params.refreshFromConf == 0) {
+        params.zoneXFRParams.refreshFromConf = boost::get<uint32_t>(have.at("refresh"));
+        if (params.zoneXFRParams.refreshFromConf == 0) {
           SLOG(g_log << Logger::Warning << "rpzPrimary refresh value of 0 ignored" << endl,
                lci.d_slog->info(Logr::Warning, "rpzPrimary refresh value of 0 ignored"));
         }
       }
 
       if (have.count("maxReceivedMBytes") != 0) {
-        params.maxReceivedMBytes = static_cast<size_t>(boost::get<uint32_t>(have.at("maxReceivedMBytes")));
+        params.zoneXFRParams.maxReceivedMBytes = static_cast<size_t>(boost::get<uint32_t>(have.at("maxReceivedMBytes")));
       }
 
       if (have.count("localAddress") != 0) {
-        params.localAddress = ComboAddress(boost::get<string>(have.at("localAddress")));
+        params.zoneXFRParams.localAddress = ComboAddress(boost::get<string>(have.at("localAddress")));
       }
 
       if (have.count("axfrTimeout") != 0) {
-        params.xfrTimeout = static_cast<uint16_t>(boost::get<uint32_t>(have.at("axfrTimeout")));
+        params.zoneXFRParams.xfrTimeout = static_cast<uint16_t>(boost::get<uint32_t>(have.at("axfrTimeout")));
       }
 
       if (have.count("seedFile") != 0) {
@@ -327,11 +328,12 @@ static void rpzPrimary(LuaConfigItems& lci, const boost::variant<string, std::ve
       }
     }
 
-    if (params.localAddress != ComboAddress()) {
+    if (params.zoneXFRParams.localAddress != ComboAddress()) {
       // We were passed a localAddress, check if its AF matches the primaries'
-      for (const auto& primary : params.primaries) {
-        if (params.localAddress.sin4.sin_family != primary.sin4.sin_family) {
-          throw PDNSException("Primary address(" + primary.toString() + ") is not of the same Address Family as the local address (" + params.localAddress.toString() + ").");
+      for (const auto& nameOrIP : params.zoneXFRParams.primaries) {
+        auto primary = pdns::fromNameOrIP(nameOrIP, 53, lci.d_slog);
+        if (params.zoneXFRParams.localAddress.sin4.sin_family != primary.sin4.sin_family) {
+          throw PDNSException("Primary address(" + primary.toString() + ") is not of the same Address Family as the local address (" + params.zoneXFRParams.localAddress.toString() + ").");
         }
       }
     }
@@ -351,7 +353,8 @@ static void rpzPrimary(LuaConfigItems& lci, const boost::variant<string, std::ve
 class RecLuaConfigContext : public BaseLua4
 {
 public:
-  RecLuaConfigContext()
+  RecLuaConfigContext() :
+    BaseLua4("")
   {
     prepareContext();
   }
@@ -411,7 +414,7 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
 
   Lua->writeFunction("rpzFile", [&lci](const string& filename, boost::optional<rpzOptions_t> options) {
     RPZTrackerParams params;
-    params.name = filename;
+    params.zoneXFRParams.name = filename;
     params.polName = "rpzFile";
     if (options) {
       parseRPZParameters(*options, params);
@@ -806,7 +809,7 @@ void loadRecursorLuaConfig(const std::string& fname, ProxyMapping& proxyMapping,
 
   try {
     Lua->executeCode(ifs);
-    newLuaConfig = lci;
+    newLuaConfig = std::move(lci);
   }
   catch (const LuaContext::ExecutionErrorException& e) {
     SLOG(g_log << Logger::Error << "Unable to load Lua script from '" + fname + "': ",

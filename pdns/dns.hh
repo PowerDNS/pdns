@@ -23,6 +23,8 @@
 #include "qtype.hh"
 #include "dnsname.hh"
 #include <ctime>
+#include <optional>
+#include <string_view>
 #include <sys/types.h>
 
 #undef BADSIG  // signal.h SIG_ERR
@@ -35,6 +37,7 @@ public:
   enum rcodes_ : uint8_t { NoError=0, FormErr=1, ServFail=2, NXDomain=3, NotImp=4, Refused=5, YXDomain=6, YXRRSet=7, NXRRSet=8, NotAuth=9, NotZone=10};
   static std::string to_s(uint8_t rcode);
   static std::string to_short_s(uint8_t rcode);
+  static std::optional<uint8_t> from_short(const std::string_view& rcode_string);
   const static std::array<std::string, 24> rcodes_s;
 };
 
@@ -43,6 +46,8 @@ class ERCode
 public:
   enum rcodes_ : uint16_t { BADVERS=16, BADSIG=16, BADKEY=17, BADTIME=18, BADMODE=19, BADNAME=20, BADALG=21, BADTRUNC=22, BADCOOKIE=23 };
   static std::string to_s(uint16_t rcode);
+  static std::string to_short_s(uint16_t rcode);
+  static std::optional<uint16_t> from_short(const std::string_view& ercode_string);
 };
 
 class Opcode
@@ -51,6 +56,13 @@ public:
   enum opcodes_ : uint8_t { Query=0, IQuery=1, Status=2, Notify=4, Update=5 };
   static std::string to_s(uint8_t opcode);
 };
+
+// This needs to be a signed type, so that serialization of UnknownDomainID
+// as text is "-1", for compatibility with the remote and pipe backends.
+// See static_assert there for details.
+using domainid_t = int32_t;
+
+constexpr domainid_t UnknownDomainID{-1};
 
 //! This class represents a resource record
 class DNSResourceRecord
@@ -66,6 +78,7 @@ public:
     ADDITIONAL = 3
   }; //!< Type describing the positioning within, say, a DNSPacket
 
+  [[nodiscard]] static std::string placeString(uint8_t place);
   void setContent(const string& content);
   [[nodiscard]] string getZoneRepresentation(bool noDot = false) const;
 
@@ -82,7 +95,7 @@ public:
   uint32_t ttl{}; //!< Time To Live of this record
   uint32_t signttl{}; //!< If non-zero, use this TTL as original TTL in the RRSIG
 
-  int domain_id{-1}; //!< If a backend implements this, the domain_id of the zone this record is in
+  domainid_t domain_id{UnknownDomainID}; //!< If a backend implements this, the domain_id of the zone this record is in
   QType qtype; //!< qtype of this record, ie A, CNAME, MX etc
   uint16_t qclass{1}; //!< class of this record
 

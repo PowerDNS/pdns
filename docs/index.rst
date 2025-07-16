@@ -24,6 +24,8 @@ Getting Started
 * :doc:`Configure the Server <settings>`
 * :doc:`Configure the backend(s) <backends/index>`
 
+.. _getting-support:
+
 Getting Support
 ---------------
 PowerDNS is an open source program so you may get help from the PowerDNS users' community or from its authors.
@@ -36,13 +38,13 @@ Public support is available via several different channels:
 * ``#powerdns`` on `irc.oftc.net <irc://irc.oftc.net/#powerdns>`_
 
 The Open-Xchange/PowerDNS company can provide help or support you in private as well.
-Please `contact Open-Xchange <https://www.open-xchange.com/about-ox/contact-us/>`__.
+Please `contact PowerDNS <https://www.powerdns.com/contact-us>`__.
 
 My information is confidential, must I send it to the mailing list, discuss it on IRC, or post it in a GitHub ticket?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Yes, we have a support policy called `"Open Source Support: out in the open" <https://blog.powerdns.com/2016/01/18/open-source-support-out-in-the-open/>`_.
 
-If you desire privacy, please consider entering a support relationship with us, in which case we invite you to `contact Open-Xchange <https://www.open-xchange.com/about-ox/contact-us/>`__.
+If you desire privacy, please consider entering a support relationship with us, in which case we invite you to `contact PowerDNS <https://www.powerdns.com/contact-us>`__.
 
 I have a question!
 ^^^^^^^^^^^^^^^^^^

@@ -8,6 +8,9 @@ In addition, messages related to responses contain the name, type, class and rda
 Finally, if a RPZ or custom Lua policy has been applied, response messages also contain the applied policy name and some tags.
 This is particularly useful to detect and act on infected hosts.
 
+The Protobuf logging stream can include event information in a proprietary format and (starting with version 5.3.0) OpenTelemetry Trace data.
+See :ref:`event-tracing` for more information.
+
 Configuring Protocol Buffer logs
 --------------------------------
 Protobuf export to a server is enabled using the ``protobufServer()`` directive:
@@ -29,7 +32,7 @@ Protobuf export to a server is enabled using the ``protobufServer()`` directive:
   * ``maxQueuedEntries=100``: int - How many entries will be kept in memory if the server becomes unreachable
   * ``reconnectWaitTime=1``: int - How long to wait, in seconds, between two reconnection attempts
   * ``taggedOnly=false``: bool - Only entries with a policy or a policy tag set will be sent
-  * ``asyncConnect``: bool - When set to false (default) the first connection to the server during startup will block up to ``timeout`` seconds, otherwise the connection is done in a separate thread, after the first message has been queued
+  * ``asyncConnect``: bool - When set to false (default) the first connection to the server during startup will block up to ``timeout`` seconds; otherwise, the connection is done in a separate thread, after the first message has been queued
   * ``logQueries=true``: bool - Whether to export queries
   * ``logResponses=true``: bool - Whether to export responses
   * ``exportTypes={'A', 'AAAA', 'CNAME'}``: list of strings - The list of record types found in the answer section to export. Record types A, AAAA, CNAME, MX, NS, PTR, SPF, SRV and TXT are supported.
@@ -44,7 +47,7 @@ Protobuf export to a server is enabled using the ``protobufServer()`` directive:
 
   .. versionchanged:: 5.1.0
 
-     Added support for the HTTPS, SVCB and APTR record types.
+     Added support for the HTTPS, SVCB and NAPTR record types.
 
 .. function:: protobufServer(server [[[[[[[, timeout=2], maxQueuedEntries=100], reconnectWaitTime=1], maskV4=32], maskV6=128], asyncConnect=false], taggedOnly=false])
 
@@ -57,7 +60,7 @@ Protobuf export to a server is enabled using the ``protobufServer()`` directive:
   :param int maskV4: network mask to apply to the client IPv4 addresses, for anonymization purposes. The default of 32 means no anonymization.
   :param int maskV6: Same as maskV4, but for IPv6. Defaults to 128.
   :param bool taggedOnly: Only entries with a policy or a policy tag set will be sent.
-  :param bool asyncConnect: When set to false (default) the first connection to the server during startup will block up to ``timeout`` seconds, otherwise the connection is done in a separate thread, after the first message has been queued..
+  :param bool asyncConnect: When set to false (default) the first connection to the server during startup will block up to ``timeout`` seconds; otherwise, the connection is done in a separate thread, after the first message has been queued..
 
 .. function:: setProtobufMasks(maskv4, maskV6)
 
@@ -88,8 +91,7 @@ While :func:`protobufServer` only exports the queries sent to the recursor from 
   * ``timeout=2``: int - Time in seconds to wait when sending a message
   * ``maxQueuedEntries=100``: int - How many entries will be kept in memory if the server becomes unreachable
   * ``reconnectWaitTime=1``: int - How long to wait, in seconds, between two reconnection attempts
-  * ``taggedOnly=false``: bool - Only entries with a policy or a policy tag set will be sent
-  * ``asyncConnect``: bool - When set to false (default) the first connection to the server during startup will block up to ``timeout`` seconds, otherwise the connection is done in a separate thread, after the first message has been queued
+  * ``asyncConnect``: bool - When set to false (default) the first connection to the server during startup will block up to ``timeout`` seconds; otherwise, the connection is done in a separate thread, after the first message has been queued
   * ``logQueries=true``: bool - Whether to export queries
   * ``logResponses=true``: bool - Whether to export responses
   * ``exportTypes={'A', 'AAAA', 'CNAME'}``: list of strings or qtypes - The list of record types found in the answer section to export. Record types A, AAAA, CNAME, MX, NS, PTR, SPF, SRV and TXT are supported
@@ -100,7 +102,7 @@ While :func:`protobufServer` only exports the queries sent to the recursor from 
 
   .. versionchanged:: 5.1.0
 
-     Added support for the HTTPS, SVCB and APTR records types.
+     Added support for the HTTPS, SVCB and NAPTR records types.
 
 .. function:: outgoingProtobufServer(server [[[[, timeout=2], maxQueuedEntries=100], reconnectWaitTime=1], asyncConnect=false])
 
@@ -110,7 +112,7 @@ While :func:`protobufServer` only exports the queries sent to the recursor from 
   :param int timeout: Time in seconds to wait when sending a message
   :param int maxQueuedEntries: How many entries will be kept in memory if the server becomes unreachable
   :param int reconnectWaitTime: How long to wait, in seconds, between two reconnection attempts
-  :param bool asyncConnect: When set to false (default) the first connection to the server during startup will block up to ``timeout`` seconds, otherwise the connection is done in a separate thread, after the first message has been queued..
+  :param bool asyncConnect: When set to false (default) the first connection to the server during startup will block up to ``timeout`` seconds; otherwise, the connection is done in a separate thread, after the first message has been queued..
 
 Protocol Buffers Definition
 ---------------------------
@@ -140,9 +142,10 @@ The recursor must have been built with configure ``--enable-dnstap`` to make thi
   * ``logQueries=true``: bool - log outgoing queries
   * ``logResponses=true``: bool - log incoming responses
 
-  The following options apply to the settings of the framestream library. Refer to the documentation of that
-  library for the default values, exact description and allowable values for these options.
-  For all these options, absence or a zero value has the effect of using the library-provided default value.
+  The following options apply to the settings of the `framestream library
+  <https://github.com/farsightsec/fstrm>`. Refer to the documentation of that library for the default
+  values, exact description and allowable values for these options. For all these options, absence or a zero
+  value has the effect of using the library-provided default value.
 
   * ``bufferHint=0``: unsigned
   * ``flushTimeout=0``: unsigned
@@ -169,9 +172,10 @@ The recursor must have been built with configure ``--enable-dnstap`` to make thi
   * ``logNODs=true``: bool - log NODs
   * ``logUDRs=false``: bool - log UDRs
 
-  The following options apply to the settings of the framestream library. Refer to the documentation of that
-  library for the default values, exact description and allowable values for these options.
-  For all these options, absence or a zero value has the effect of using the library-provided default value.
+  The following options apply to the settings of the `framestream library
+  <https://github.com/farsightsec/fstrm>`. Refer to the documentation of that library for the default
+  values, exact description and allowable values for these options. For all these options, absence or a zero
+  value has the effect of using the library-provided default value.
 
   * ``bufferHint=0``: unsigned
   * ``flushTimeout=0``: unsigned

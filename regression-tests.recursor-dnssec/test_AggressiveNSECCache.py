@@ -12,7 +12,7 @@ class AggressiveNSECCacheBase(RecursorTest):
     _wsTimeout = 10
     _wsPassword = 'secretpassword'
     _apiKey = 'secretapikey'
-    #_recursorStartupDelay = 4.0
+    _auth_zones = RecursorTest._default_auth_zones
     _config_template = """
     dnssec=validate
     aggressive-nsec-cache-size=10000
@@ -97,7 +97,7 @@ class AggressiveNSECCacheBase(RecursorTest):
         self.assertEqual(res.options[0].otype, 15)
         self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(29, b'Result synthesized from aggressive NSEC cache (RFC8198)'))
 
-class AggressiveNSECCacheNSEC(AggressiveNSECCacheBase):
+class AggressiveNSECCacheNSECTest(AggressiveNSECCacheBase):
     _confdir = 'AggressiveNSECCacheNSEC'
     __test__ = True
 
@@ -235,7 +235,7 @@ class AggressiveNSECCacheNSEC(AggressiveNSECCacheBase):
         self.assertEqual(res.options[0].otype, 15)
         self.assertEqual(res.options[0], extendederrors.ExtendedErrorOption(9, b''))
 
-class AggressiveNSECCacheNSEC3(AggressiveNSECCacheBase):
+class AggressiveNSECCacheNSEC3Test(AggressiveNSECCacheBase):
     _confdir = 'AggressiveNSECCacheNSEC3'
     __test__ = True
 

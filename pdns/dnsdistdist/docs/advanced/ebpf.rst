@@ -1,7 +1,7 @@
 eBPF Socket Filtering
 =====================
 
-:program:`dnsdist` can use `eBPF <http://www.brendangregg.com/ebpf.html>`_ socket filtering on recent Linux kernels (4.1+) built with eBPF support (``CONFIG_BPF``, ``CONFIG_BPF_SYSCALL``, ideally ``CONFIG_BPF_JIT``). It requires dnsdist to have the ``CAP_SYS_ADMIN`` capabilities at startup.
+:program:`dnsdist` can use `eBPF <https://www.brendangregg.com/ebpf.html>`_ socket filtering on recent Linux kernels (4.1+) built with eBPF support (``CONFIG_BPF``, ``CONFIG_BPF_SYSCALL``, ideally ``CONFIG_BPF_JIT``). It requires dnsdist to have the ``CAP_SYS_ADMIN`` capabilities at startup.
 
 .. note::
    To retain the required capability, ``CAP_SYS_ADMIN``, it is necessary to call :func:`addCapabilitiesToRetain` during startup, as :program:`dnsdist` drops capabilities after startup.
@@ -14,6 +14,9 @@ eBPF Socket Filtering
 
 .. note::
    In addition to keeping the correct capability, large maps might require an increase of ``RLIMIT_MEMLOCK``, as mentioned below.
+
+.. warning::
+   As of 1.9.7, eBPF filtering is not supported for QUIC-based protocols, including DNS over QUIC and DNS over HTTP/3.
 
 This feature allows dnsdist to ask the kernel to discard incoming packets in kernel-space instead of them being copied to userspace just to be dropped, thus being a lot of faster. The current implementation supports dropping UDP and TCP queries based on the source IP and UDP datagrams on exact DNS names. We have not been able to implement suffix matching yet, due to a limit on the maximum number of EBPF instructions.
 
@@ -28,19 +31,23 @@ The BPF filter can be used to block incoming queries manually::
   > bpf = newBPFFilter({ipv4MaxItems=1024, ipv6MaxItems=1024, qnamesMaxItems=1024})
   > bpf:attachToAllBinds()
   > bpf:block(newCA("2001:DB8::42"))
-  > bpf:blockQName(newDNSName("evildomain.com"), 255)
+  > bpf:blockQName(newDNSName("evildomain.com"), 65535)
   > bpf:getStats()
   [2001:DB8::42]: 0
-  evildomain.com. 255: 0
+  evildomain.com. 65535: 0
   > bpf:unblock(newCA("2001:DB8::42"))
-  > bpf:unblockQName(newDNSName("evildomain.com"), 255)
+  > bpf:unblockQName(newDNSName("evildomain.com"), 65535)
   > bpf:getStats()
 
+.. note::
+    Before 2.0.0 the value used to block queries for all types was 255. This was changed because it prevented blocking only queries for the ``ANY`` (255) qtype.
+
 The :meth:`BPFFilter:blockQName` method can be used to block queries based on the exact qname supplied, in a case-insensitive way, and an optional qtype.
-Using the 255 (ANY) qtype will block all queries for the qname, regardless of the qtype.
+Using the ``65535`` value for the qtype will block all queries for the qname, regardless of the qtype.
+
 Contrary to source address filtering, qname filtering only works over UDP. TCP qname filtering can be done the usual way::
 
-  addAction(AndRule({TCPRule(true), makeRule("evildomain.com")}), DropAction())
+  addAction(AndRule({TCPRule(true), QNameSuffixRule("evildomain.com")}), DropAction())
 
 The :meth:`BPFFilter:attachToAllBinds` method attaches the filter to every existing bind at runtime. It cannot use at configuration time. The :func:`setDefaultBPFFilter()` should be used at configuration time.
 

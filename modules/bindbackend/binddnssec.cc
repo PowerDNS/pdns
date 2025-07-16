@@ -36,67 +36,71 @@ void Bind2Backend::setupDNSSEC()
   }
 }
 
-bool Bind2Backend::doesDNSSEC()
+unsigned int Bind2Backend::getCapabilities()
 {
-  return d_hybrid;
+  unsigned int caps = CAP_LIST;
+  if (d_hybrid) {
+    caps |= CAP_DNSSEC;
+  }
+  return caps;
 }
 
-bool Bind2Backend::getNSEC3PARAM(const DNSName& /* name */, NSEC3PARAMRecordContent* /* ns3p */)
-{
-  return false;
-}
-
-bool Bind2Backend::getNSEC3PARAMuncached(const DNSName& /* name */, NSEC3PARAMRecordContent* /* ns3p */)
-{
-  return false;
-}
-
-bool Bind2Backend::getAllDomainMetadata(const DNSName& /* name */, std::map<std::string, std::vector<std::string>>& /* meta */)
+bool Bind2Backend::getNSEC3PARAM(const ZoneName& /* name */, NSEC3PARAMRecordContent* /* ns3p */)
 {
   return false;
 }
 
-bool Bind2Backend::getDomainMetadata(const DNSName& /* name */, const std::string& /* kind */, std::vector<std::string>& /* meta */)
+bool Bind2Backend::getNSEC3PARAMuncached(const ZoneName& /* name */, NSEC3PARAMRecordContent* /* ns3p */)
 {
   return false;
 }
 
-bool Bind2Backend::setDomainMetadata(const DNSName& /* name */, const std::string& /* kind */, const std::vector<std::string>& /* meta */)
+bool Bind2Backend::getAllDomainMetadata(const ZoneName& /* name */, std::map<std::string, std::vector<std::string>>& /* meta */)
 {
   return false;
 }
 
-bool Bind2Backend::getDomainKeys(const DNSName& /* name */, std::vector<KeyData>& /* keys */)
+bool Bind2Backend::getDomainMetadata(const ZoneName& /* name */, const std::string& /* kind */, std::vector<std::string>& /* meta */)
 {
   return false;
 }
 
-bool Bind2Backend::removeDomainKey(const DNSName& /* name */, unsigned int /* id */)
+bool Bind2Backend::setDomainMetadata(const ZoneName& /* name */, const std::string& /* kind */, const std::vector<std::string>& /* meta */)
 {
   return false;
 }
 
-bool Bind2Backend::addDomainKey(const DNSName& /* name */, const KeyData& /* key */, int64_t& /* id */)
+bool Bind2Backend::getDomainKeys(const ZoneName& /* name */, std::vector<KeyData>& /* keys */)
 {
   return false;
 }
 
-bool Bind2Backend::activateDomainKey(const DNSName& /* name */, unsigned int /* id */)
+bool Bind2Backend::removeDomainKey(const ZoneName& /* name */, unsigned int /* id */)
 {
   return false;
 }
 
-bool Bind2Backend::deactivateDomainKey(const DNSName& /* name */, unsigned int /* id */)
+bool Bind2Backend::addDomainKey(const ZoneName& /* name */, const KeyData& /* key */, int64_t& /* id */)
 {
   return false;
 }
 
-bool Bind2Backend::publishDomainKey(const DNSName& /* name */, unsigned int /* id */)
+bool Bind2Backend::activateDomainKey(const ZoneName& /* name */, unsigned int /* id */)
 {
   return false;
 }
 
-bool Bind2Backend::unpublishDomainKey(const DNSName& /* name */, unsigned int /* id */)
+bool Bind2Backend::deactivateDomainKey(const ZoneName& /* name */, unsigned int /* id */)
+{
+  return false;
+}
+
+bool Bind2Backend::publishDomainKey(const ZoneName& /* name */, unsigned int /* id */)
+{
+  return false;
+}
+
+bool Bind2Backend::unpublishDomainKey(const ZoneName& /* name */, unsigned int /* id */)
 {
   return false;
 }
@@ -197,12 +201,17 @@ void Bind2Backend::freeStatements()
   d_getTSIGKeysQuery_stmt.reset();
 }
 
-bool Bind2Backend::doesDNSSEC()
+unsigned int Bind2Backend::getCapabilities()
 {
-  return d_dnssecdb || d_hybrid;
+  unsigned int caps = CAP_LIST;
+  if (d_dnssecdb || d_hybrid) {
+    caps |= CAP_DNSSEC;
+  }
+  return caps;
 }
 
-bool Bind2Backend::getNSEC3PARAM(const DNSName& name, NSEC3PARAMRecordContent* ns3p)
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+bool Bind2Backend::getNSEC3PARAM(const ZoneName& name, NSEC3PARAMRecordContent* ns3p)
 {
   BB2DomainInfo bbd;
   if (!safeGetBBDomainInfo(name, &bbd))
@@ -215,7 +224,7 @@ bool Bind2Backend::getNSEC3PARAM(const DNSName& name, NSEC3PARAMRecordContent* n
   return bbd.d_nsec3zone;
 }
 
-bool Bind2Backend::getNSEC3PARAMuncached(const DNSName& name, NSEC3PARAMRecordContent* ns3p)
+bool Bind2Backend::getNSEC3PARAMuncached(const ZoneName& name, NSEC3PARAMRecordContent* ns3p)
 {
   if (!d_dnssecdb || d_hybrid)
     return false;
@@ -247,7 +256,7 @@ bool Bind2Backend::getNSEC3PARAMuncached(const DNSName& name, NSEC3PARAMRecordCo
   return true;
 }
 
-bool Bind2Backend::getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string>>& meta)
+bool Bind2Backend::getAllDomainMetadata(const ZoneName& name, std::map<std::string, std::vector<std::string>>& meta)
 {
   if (!d_dnssecdb || d_hybrid)
     return false;
@@ -269,7 +278,7 @@ bool Bind2Backend::getAllDomainMetadata(const DNSName& name, std::map<std::strin
   return true;
 }
 
-bool Bind2Backend::getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta)
+bool Bind2Backend::getDomainMetadata(const ZoneName& name, const std::string& kind, std::vector<std::string>& meta)
 {
   if (!d_dnssecdb || d_hybrid)
     return false;
@@ -291,7 +300,7 @@ bool Bind2Backend::getDomainMetadata(const DNSName& name, const std::string& kin
   return true;
 }
 
-bool Bind2Backend::setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta)
+bool Bind2Backend::setDomainMetadata(const ZoneName& name, const std::string& kind, const std::vector<std::string>& meta)
 {
   if (!d_dnssecdb || d_hybrid)
     return false;
@@ -310,7 +319,7 @@ bool Bind2Backend::setDomainMetadata(const DNSName& name, const std::string& kin
   return true;
 }
 
-bool Bind2Backend::getDomainKeys(const DNSName& name, std::vector<KeyData>& keys)
+bool Bind2Backend::getDomainKeys(const ZoneName& name, std::vector<KeyData>& keys)
 {
   if (!d_dnssecdb || d_hybrid)
     return false;
@@ -338,13 +347,13 @@ bool Bind2Backend::getDomainKeys(const DNSName& name, std::vector<KeyData>& keys
   return true;
 }
 
-bool Bind2Backend::removeDomainKey(const DNSName& name, unsigned int id)
+bool Bind2Backend::removeDomainKey(const ZoneName& name, unsigned int keyId)
 {
   if (!d_dnssecdb || d_hybrid)
     return false;
 
   try {
-    d_deleteDomainKeyQuery_stmt->bind("domain", name)->bind("key_id", id)->execute()->reset();
+    d_deleteDomainKeyQuery_stmt->bind("domain", name)->bind("key_id", keyId)->execute()->reset();
   }
   catch (SSqlException& se) {
     throw PDNSException("Error accessing DNSSEC database in BIND backend, removeDomainKeys(): " + se.txtReason());
@@ -352,7 +361,7 @@ bool Bind2Backend::removeDomainKey(const DNSName& name, unsigned int id)
   return true;
 }
 
-bool Bind2Backend::addDomainKey(const DNSName& name, const KeyData& key, int64_t& id)
+bool Bind2Backend::addDomainKey(const ZoneName& name, const KeyData& key, int64_t& keyId)
 {
   if (!d_dnssecdb || d_hybrid)
     return false;
@@ -367,29 +376,33 @@ bool Bind2Backend::addDomainKey(const DNSName& name, const KeyData& key, int64_t
   try {
     d_GetLastInsertedKeyIdQuery_stmt->execute();
     if (!d_GetLastInsertedKeyIdQuery_stmt->hasNextRow()) {
-      id = -2;
+      keyId = -2;
       return true;
     }
     SSqlStatement::row_t row;
     d_GetLastInsertedKeyIdQuery_stmt->nextRow(row);
     ASSERT_ROW_COLUMNS("get-last-inserted-key-id-query", row, 1);
-    id = std::stoi(row[0]);
+    keyId = std::stoi(row[0]);
     d_GetLastInsertedKeyIdQuery_stmt->reset();
+    if (keyId == 0) {
+      // No insert took place, report as error.
+      keyId = -1;
+    }
     return true;
   }
   catch (SSqlException& e) {
-    id = -2;
+    keyId = -2;
     return true;
   }
 }
 
-bool Bind2Backend::activateDomainKey(const DNSName& name, unsigned int id)
+bool Bind2Backend::activateDomainKey(const ZoneName& name, unsigned int keyId)
 {
   if (!d_dnssecdb || d_hybrid)
     return false;
 
   try {
-    d_activateDomainKeyQuery_stmt->bind("domain", name)->bind("key_id", id)->execute()->reset();
+    d_activateDomainKeyQuery_stmt->bind("domain", name)->bind("key_id", keyId)->execute()->reset();
   }
   catch (SSqlException& se) {
     throw PDNSException("Error accessing DNSSEC database in BIND backend, activateDomainKey(): " + se.txtReason());
@@ -397,13 +410,13 @@ bool Bind2Backend::activateDomainKey(const DNSName& name, unsigned int id)
   return true;
 }
 
-bool Bind2Backend::deactivateDomainKey(const DNSName& name, unsigned int id)
+bool Bind2Backend::deactivateDomainKey(const ZoneName& name, unsigned int keyId)
 {
   if (!d_dnssecdb || d_hybrid)
     return false;
 
   try {
-    d_deactivateDomainKeyQuery_stmt->bind("domain", name)->bind("key_id", id)->execute()->reset();
+    d_deactivateDomainKeyQuery_stmt->bind("domain", name)->bind("key_id", keyId)->execute()->reset();
   }
   catch (SSqlException& se) {
     throw PDNSException("Error accessing DNSSEC database in BIND backend, deactivateDomainKey(): " + se.txtReason());
@@ -411,13 +424,13 @@ bool Bind2Backend::deactivateDomainKey(const DNSName& name, unsigned int id)
   return true;
 }
 
-bool Bind2Backend::publishDomainKey(const DNSName& name, unsigned int id)
+bool Bind2Backend::publishDomainKey(const ZoneName& name, unsigned int keyId)
 {
   if (!d_dnssecdb || d_hybrid)
     return false;
 
   try {
-    d_publishDomainKeyQuery_stmt->bind("domain", name)->bind("key_id", id)->execute()->reset();
+    d_publishDomainKeyQuery_stmt->bind("domain", name)->bind("key_id", keyId)->execute()->reset();
   }
   catch (SSqlException& se) {
     throw PDNSException("Error accessing DNSSEC database in BIND backend, publishDomainKey(): " + se.txtReason());
@@ -425,13 +438,13 @@ bool Bind2Backend::publishDomainKey(const DNSName& name, unsigned int id)
   return true;
 }
 
-bool Bind2Backend::unpublishDomainKey(const DNSName& name, unsigned int id)
+bool Bind2Backend::unpublishDomainKey(const ZoneName& name, unsigned int keyId)
 {
   if (!d_dnssecdb || d_hybrid)
     return false;
 
   try {
-    d_unpublishDomainKeyQuery_stmt->bind("domain", name)->bind("key_id", id)->execute()->reset();
+    d_unpublishDomainKeyQuery_stmt->bind("domain", name)->bind("key_id", keyId)->execute()->reset();
   }
   catch (SSqlException& se) {
     throw PDNSException("Error accessing DNSSEC database in BIND backend, unpublishDomainKey(): " + se.txtReason());

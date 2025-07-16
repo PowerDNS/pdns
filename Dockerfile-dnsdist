@@ -1,5 +1,5 @@
 # our chosen base image
-FROM debian:12-slim AS builder
+FROM debian:trixie-slim AS builder
 
 ENV NO_LUA_JIT="s390x arm64"
 
@@ -8,6 +8,8 @@ ENV NO_LUA_JIT="s390x arm64"
 # Reusable layer for base update
 RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
 
+# Unable backports to get a recent enough version of meson
+RUN echo "deb http://deb.debian.org/debian bookworm-backports main" > /etc/apt/sources.list.d/bookworm-backports.list
 # devscripts gives us mk-build-deps (and a lot of other stuff)
 RUN apt-get update && apt-get -y dist-upgrade && apt-get install -y  --no-install-recommends devscripts equivs git && apt-get clean
 
@@ -15,8 +17,10 @@ COPY builder-support /source/builder-support
 
 # TODO: control file is not in tarballs at all right now
 RUN mk-build-deps -i -t 'apt-get -y -o Debug::pkgProblemResolver=yes --no-install-recommends' /source/builder-support/debian/dnsdist/debian-bookworm/control && \
+    apt-get install -y -t bookworm-backports meson && \
     apt-get clean
 
+COPY meson /source/meson
 COPY pdns /source/pdns
 COPY build-aux /source/build-aux
 COPY m4 /source/m4
@@ -28,10 +32,10 @@ COPY .git /source/.git
 WORKDIR /source/pdns/dnsdistdist
 
 ARG MAKEFLAGS=
-ENV MAKEFLAGS ${MAKEFLAGS:--j2}
+ENV MAKEFLAGS=${MAKEFLAGS:--j2}
 
 ARG DOCKER_FAKE_RELEASE=NO
-ENV DOCKER_FAKE_RELEASE ${DOCKER_FAKE_RELEASE}
+ENV DOCKER_FAKE_RELEASE=${DOCKER_FAKE_RELEASE}
 
 RUN touch dnsdist.1 # avoid having to install pandoc and venv
 
@@ -40,14 +44,8 @@ RUN if [ "${DOCKER_FAKE_RELEASE}" = "YES" ]; then \
     fi && \
     BUILDER_MODULES=dnsdist autoreconf -vfi
 
-
-RUN mkdir /libh2o && cd /libh2o && \
-      apt-get update && apt-get install -y cmake curl jq libssl-dev zlib1g-dev && \
-      cd /source/builder-support/helpers/ && \
-      ./install_h2o.sh
-
 RUN mkdir /quiche && cd /quiche && \
-    apt-get install -y libclang-dev && \
+    apt-get install -y cmake curl jq libclang-dev && \
     apt-get clean && \
     cd /source/builder-support/helpers/ && \
     ./install_rust.sh && \
@@ -55,26 +53,47 @@ RUN mkdir /quiche && cd /quiche && \
 
 RUN mkdir /build && \
     LUAVER=$([ -z "${NO_LUA_JIT##*$(dpkg --print-architecture)*}" ] && echo 'lua5.3' || echo 'luajit') && \
-    apt-get install -y lib${LUAVER}-*dev && \
-    ./configure \
-      --with-lua=${LUAVER} \
-      LDFLAGS=-rdynamic \
+    apt-get install -y lib${LUAVER}-*dev ninja-build && \
+    BUILDDIR=$(mktemp -d) && \
+    IS_RELEASE="${DOCKER_FAKE_RELEASE}" \
+    LDFLAGS="-latomic -fuse-ld=lld -Wl,--build-id=sha1 -ldl" \
+    CC=clang \
+    CXX=clang++ \
+    PKG_CONFIG_PATH=/opt/lib/pkgconfig meson setup ${BUILDDIR} \
       --sysconfdir=/etc/dnsdist \
-      --enable-option-checking=fatal \
-      --enable-dnscrypt \
-      --enable-dns-over-tls \
-      --enable-dns-over-https \
-      --with-re2 \
-      --with-h2o \
-      --enable-dns-over-quic \
-      --enable-dns-over-http3 \
-      --with-quiche \
-      PKG_CONFIG_PATH=/opt/lib/pkgconfig && \
-    make clean && \
-    make $MAKEFLAGS install DESTDIR=/build && make clean && \
-    strip /build/usr/local/bin/* &&\
-    mkdir -p /build/usr/lib/ && \
-    cp -rf /usr/lib/libdnsdist-quiche.so /build/usr/lib/
+      -Dlua=auto \
+      -Db_lto=true \
+      -Db_lto_mode=thin \
+      -Db_pie=true \
+      -Ddns-over-https=enabled \
+      -Ddns-over-quic=enabled \
+      -Ddns-over-http3=enabled \
+      -Ddns-over-tls=enabled \
+      -Ddnscrypt=enabled \
+      -Ddnstap=enabled \
+      -Dyaml=enabled \
+      -Debpf=enabled \
+      -Dyaml=enabled \
+      -Dtls-gnutls=enabled \
+      -Dsnmp=enabled \
+      -Dlibcap=enabled \
+      -Dlibsodium=enabled \
+      -Dquiche=enabled \
+      -Dre2=enabled \
+      -Dsystemd-service=disabled \
+      -Dxsk=enabled && \
+    meson compile -C ${BUILDDIR} && \
+    meson install -C ${BUILDDIR} --destdir /build && \
+    strip /build/usr/local/bin/* && \
+    rm -rf /build/lib # remove systemd unit files, we do not need them and copying /lib to the run-time image breaks it
+
+RUN for tentative in "lib/x86_64-linux-gnu" "lib/aarch64-linux-gnu" "lib64" "lib"; do \
+      if [ -f "/usr/${tentative}/libdnsdist-quiche.so" ]; then \
+        mkdir -p "/build/usr/${tentative}/"; \
+        cp "/usr/${tentative}/libdnsdist-quiche.so" "/build/usr/${tentative}/"; \
+        break; \
+      fi; \
+    done
 
 RUN cd /tmp && mkdir /build/tmp/ && mkdir debian && \
     echo 'Source: docker-deps-for-pdns' > debian/control && \
@@ -85,16 +104,15 @@ RUN cd /tmp && mkdir /build/tmp/ && mkdir debian && \
 
 # Runtime
 
-FROM debian:12-slim
+FROM debian:trixie-slim
 
 # Reusable layer for base update - Should be cached from builder
 RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
 
 # - python3 and jinja2 (for startup script)
-# - python3-atomicwrites (for backend management)
 # - tini (for signal management)
 # - ca-certificates (for verifying downstream DoH/DoT certificates)
-RUN apt-get install -y python3 python3-jinja2 python3-atomicwrites tini libcap2-bin ca-certificates && apt-get clean
+RUN apt-get install -y python3 python3-jinja2 tini libcap2-bin ca-certificates adduser && apt-get clean
 
 # Output from builder
 COPY --from=builder /build /
@@ -126,6 +144,5 @@ EXPOSE 8083/tcp
 WORKDIR /etc/dnsdist
 
 COPY dockerdata/dnsdist-resolver.lua /etc/dnsdist/
-COPY dockerdata/dnsdist-resolver.py /usr/local/bin/dnsdist-resolver
 
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/dnsdist-startup"]

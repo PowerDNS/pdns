@@ -61,6 +61,7 @@ public:
   UeberBackend *getBackend();
 
   int tryAutoPrimarySynchronous(const DNSPacket& p, const DNSName& tsigkeyname);
+  bool checkForCorrectTSIG(const DNSPacket& packet, DNSName* tsigkeyname, string* secret, TSIGRecordContent* tsigContent);
   static NetmaskGroup s_allowNotifyFrom;
   static set<string> s_forwardNotify;
   static bool s_SVCAutohints;
@@ -108,11 +109,27 @@ private:
 
   void tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& r); //<! process TKEY record, and adds TKEY record to (r)eply, or error code.
 
+  struct queryState {
+    std::unique_ptr<DNSPacket> r{nullptr};
+    set<ZoneName> authSet;
+    DNSName target;
+    bool doSigs{false};
+    bool noCache{false};
+    bool retargeted{false};
+  };
+  bool opcodeQueryInner(DNSPacket&, queryState&);
+  bool opcodeQueryInner2(DNSPacket&, queryState&, bool);
+  std::unique_ptr<DNSPacket> opcodeQuery(DNSPacket&, bool);
+  std::unique_ptr<DNSPacket> opcodeNotify(DNSPacket&, bool);
+  std::unique_ptr<DNSPacket> opcodeUpdate(DNSPacket&, bool);
+  std::unique_ptr<DNSPacket> opcodeNotImplemented(DNSPacket&, bool);
+
   static AtomicCounter s_count;
   static std::mutex s_rfc2136lock;
   bool d_logDNSDetails;
   bool d_doDNAME;
   bool d_doExpandALIAS;
+  bool d_doResolveAcrossZones;
   bool d_dnssec{false};
   SOAData d_sd;
   std::unique_ptr<AuthLua4> d_pdl;

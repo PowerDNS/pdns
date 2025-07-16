@@ -44,5 +44,5 @@ Options
                                in percent.
 --plot-file <FILE>             Write results to the specified file.
 --quiet                        Whether to run quietly, outputting only the maximum QPS reached.
-                               This option is mostly useful when used with --minimum-success-rate.
+                               This option is mostly useful when used with ``--minimum-success-rate``.
 --want-recursion               Set this flag to send queries with the Recursion Desired flag set.

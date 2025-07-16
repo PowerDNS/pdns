@@ -34,7 +34,7 @@ To be able to use more CPU cores for UDP queries processing, it is possible to u
 Note that this require ``SO_REUSEPORT`` support in the underlying operating system (added for example in Linux 3.9).
 Please also be aware that doing so will increase lock contention and might not therefore scale linearly, as discussed below.
 
-Another possibility is to use the reuseport option to run several dnsdist processes in parallel on the same host, thus avoiding the lock contention issue at the cost of having to deal with the fact that the different processes will not share informations, like statistics or DDoS offenders.
+Another possibility is to use the reuseport option to run several dnsdist processes in parallel on the same host, thus avoiding the lock contention issue at the cost of having to deal with the fact that the different processes will not share information, like statistics or DDoS offenders.
 
 The UDP threads handling the responses from the backends do not use a lot of CPU, but if needed it is also possible to add the same backend several times to the dnsdist configuration to distribute the load over several responder threads::
 
@@ -54,7 +54,7 @@ Large installations running dnsdist before 1.4.0 are advised to increase the def
 Looking at ``udp-in-errors`` in :func:`dumpStats` will reveal whether the system is dropping UDP datagrams because dnsdist does not pick them up fast enough. In that case it might be good to add more :func:`addLocal` directives.
 In the same way, if the number of ``Drops`` in :func:`showServers` increase fast enough, it might mean that the backend is overloaded but also that the UDP received thread is. In that case adding more :func:`newServer`
 
-Using a single connected UDP socket to contact a backend, and thus a single (source address, source port, destination address, destination port) tuple, might not play well with some load-balancing mechanisms present in front of the backend. Linux's ``reuseport``, for example, does not balance the incoming datagrams to several threads in that case. That can be worked around by using the ``sockets`` option of the :func:`newServer` directive to open several sockets instead of one. You may want to set that number to a value somewhat higher than the number of worker threads configured in the backend. dnsdist will then select a socket using round-robin to forward a query to the backend, and use event multiplexing on the receiving side.
+Using a single connected UDP socket to contact a backend, and thus a single (source address, source port, destination address, destination port) tuple, might not play well with some load-balancing mechanisms present in front of the backend. Linux's ``reuseport``, for example, does not balance the incoming datagrams to several threads in that case. That can be worked around by using the ``sockets`` option of the :func:`newServer` directive to open several sockets instead of one. You may want to set that number to a value somewhat greater than the number of worker threads configured in the backend. dnsdist will then select a socket using round-robin to forward a query to the backend, and use event multiplexing on the receiving side.
 
 Note that, since 1.7, dnsdist supports marking a backend as "TCP only", as well as enabling DNS over TLS communication between dnsdist and that backend. That leads to a different model where UDP queries are instead passed to a TCP worker:
 
@@ -101,7 +101,7 @@ Before 1.4.0, a TCP thread could only handle a single incoming connection at a t
 Note that before 1.6.0 the TCP worker threads were created at runtime, adding a new thread when the existing ones seemed to struggle with the load, until the maximum number of threads had been reached. Starting with 1.6.0 the configured number of worker threads are immediately created at startup.
 
 The maximum number of threads in the TCP / DNS over TLS pool is controlled by the :func:`setMaxTCPClientThreads` directive, and defaults to 10.
-This number can be increased to handle a large number of simultaneous TCP / DNS over TLS connections.
+This number can be increased to handle a large number of simultaneous TCP / DNS over TLS connections, but the default value should already be enough for most setups.
 
 If all the TCP threads are busy, new TCP connections are queued while they wait to be picked up. The maximum number of queued connections can be configured with :func:`setMaxTCPQueuedConnections` and defaults to 1000 (10000 on Linux since 1.6.0). Note that the size of the internal pipe used to distribute queries might need to be increased as well, using :func:`setTCPInternalPipeBufferSize`.
 Any value larger than 0 will cause new connections to be dropped if there are already too many queued.

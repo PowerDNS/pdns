@@ -18,4 +18,8 @@ dist_doc_DATA = \
 
 libgsqlite3backend_la_SOURCES = gsqlite3backend.cc gsqlite3backend.hh
 
+if GSQLITE3BACKEND_DYNMODULE
 libgsqlite3backend_la_LDFLAGS = -module -avoid-version
+else
+libgsqlite3backend_la_LDFLAGS = -static -avoid-version
+endif

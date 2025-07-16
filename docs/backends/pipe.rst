@@ -2,13 +2,19 @@ Pipe Backend
 ============
 
 * Native: Yes
-* Master: No
-* Slave: No
-* Superslave: No
-* Case: Depends
-* DNSSEC: Partial, no delegation, no key storage
+* Primary: No
+* Secondary: No
+* Producer: No
+* Consumer: No
+* Autosecondary: No
+* DNS Update: No
+* DNSSEC: No
 * Disabled data: No
 * Comments: No
+* Search: No
+* Views: No
+* API: Read-only
+* Multiple instances: Yes
 * Zone caching: No
 * Module name: pipe
 * Launch name: ``pipe``
@@ -156,7 +162,7 @@ Fields are tab separated, and terminated with a single ``\n``. The
 question, the ``local-ip-address`` is the IP address on which the
 question was received.
 
-Type is the tag above, ``qname`` is the domain the question is about.
+Type is the tag above, ``qname`` is the domain that the question is about.
 ``qclass`` is always 'IN' currently, denoting an INternet question.
 ``qtype`` is the kind of information desired, the record type, like A,
 CNAME or AAAA. ``id`` can be specified to help your backend find an

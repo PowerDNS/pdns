@@ -115,7 +115,8 @@ the primary server. In some conditions, some primary servers answer with
 a truncated SOA response (indicating TCP is required), and the freshness
 check will fail. As a workaround, the signature check and DO flag can be
 turned off by disabling
-:ref:`setting-secondary-check-signature-freshness`.
+:ref:`setting-secondary-check-signature-freshness` (be warned, this can lead
+to expired signatures if the primary server is PowerDNS).
 
 When the freshness of a domain cannot be checked, e.g. because the
 primary is offline, PowerDNS will retry the domain after
@@ -128,7 +129,10 @@ between checks. With default settings, this means that PowerDNS will
 back off for 1, then 2, then 3, etc. minutes, to a maximum of 60 minutes
 between checks. The same hold back algorithm is also applied if the zone
 transfer fails due to problems on the primary, i.e. if zone transfer is
-not allowed.
+not allowed. Note: If the freshness check was triggered by a NOTIFY, but
+the following zone transfer fails, the zone transfer will not automatically
+be retried - only when a new NOTIFY is received or the refresh timer
+triggers a freshness check.
 
 Receiving a NOTIFY immediately clears the back-off period for the
 respective domain to allow immediate freshness checks for this domain.
@@ -143,12 +147,12 @@ respective domain to allow immediate freshness checks for this domain.
 
 .. note::
   When running PowerDNS via the provided systemd service file,
-  `ProtectSystem <http://www.freedesktop.org/software/systemd/man/systemd.exec.html#ProtectSystem=>`_
+  `ProtectSystem <https://www.freedesktop.org/software/systemd/man/systemd.exec.html#ProtectSystem=>`_
   is set to ``full``, this means PowerDNS is unable to write to e.g.
   ``/etc`` and ``/home``, possibly being unable to write AXFR'd zones.
 
 PowerDNS also reacts to notifies by immediately checking if the zone has
-updated and if so, retransfering it.
+updated and if so, retransferring it.
 
 All backends which implement this feature must make sure that they can
 handle transactions so as to not leave the zone in a half updated state.
@@ -171,7 +175,14 @@ first in first out order.
 PowerDNS supports multiple primaries. For the BIND backend, the native
 BIND configuration language suffices to specify multiple primaries, for
 SQL-based backends, list all primaries servers separated by commas in the
-'master' field of the domains table.
+'master' field of the domains table. For the freshness check PowerDNS will
+randomly select one of the configured primaries. If the freshness checks fails
+for that primary, the zone will be checked again in the next cycle, again
+using one of the configured primaries, chosen at random. Hence, even with multiple primaries,
+make sure that all of them are always available for fast zone updates. If
+the zone refresh was triggered by a NOTIFY, PowerDNS will use the source of the
+NOTIFY as target for the freshness check. Subsequent zone transfer will always
+use the primary that was used for the freshness check.
 
 Since version 4.0.0, PowerDNS requires that primaries sign their
 notifications. During transition and interoperation with other
@@ -254,6 +265,12 @@ Additionally, if a secondary selects multiple autoprimaries for a zone based on 
 Adding a autoprimary can be done either directly in the database,
 or by using the 'pdnsutil add-autoprimary' command.
 
+.. warning::
+  When a secondary receives notification while bootstrapping a new domain using autosecondary feature, it will send
+  SOA and NS queries to the IP address matched in the ``supermasters`` table. These queries are **not** recursive.
+  This will cause domain bootstrap to fail if the primary authoritative server is hidden behind a recursor,
+  so make sure these queries go (or are forwarded by dnsdist) straight to the auth server.
+
 .. note::
   Removal of zones provisioned using the autoprimary must be
   done on the secondaries themselves, as there is no way to signal this removal
@@ -269,10 +286,12 @@ AXFR zone transfer. The user-defined function ``axfrfilter`` within your
 script is invoked for each resource record read during the transfer, and
 the outcome of the function defines what PowerDNS does with the records.
 
-What you can accomplish using a Lua script: - Ensure consistent values
-on SOA - Change incoming SOA serial number to a YYYYMMDDnn format -
-Ensure consistent NS RRset - Timestamp the zone transfer with a TXT
-record
+What you can accomplish using a Lua script:
+
+- Ensure consistent values on SOA 
+- Change incoming SOA serial number to a YYYYMMDDnn format
+- Ensure consistent NS RRset
+- Timestamp the zone transfer with a TXT record
 
 This script can be enabled like this::
 
@@ -291,7 +310,7 @@ If your function decides to handle a resource record it must return a
 result code of 0 together with a Lua table containing one or more
 replacement records to be stored in the back-end database (if the table
 is empty, no record is added). If you want your record(s) to be appended
-after the matching record, return 1 and table of record(s). If, on the
+after the matching record, return 1 and a table of record(s). If, on the
 other hand, your function decides not to modify a record, it must return
 -1 and an empty table indicating that PowerDNS should handle the
 incoming record as normal.
@@ -302,7 +321,7 @@ Consider the following simple example:
 
         function axfrfilter(remoteip, zone, record)
 
-           -- Replace each HINFO records with this TXT
+           -- Replace each HINFO record with this TXT
            if record:qtype() == pdns.HINFO then
               resp = {}
               resp[1] = {

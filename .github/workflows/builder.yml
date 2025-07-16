@@ -16,29 +16,30 @@ permissions: # least privileges, see https://docs.github.com/en/actions/using-wo
   contents: read
 
 jobs:
+  prepare:
+    name: generate runner list
+    runs-on: ubuntu-24.04
+    outputs:
+      runnerlist: ${{ steps.get-runnerlist.outputs.runnerlist }}
+    steps:
+      - run: sudo apt-get update && sudo apt-get -y install jo
+      - id: get-runnerlist
+        run: echo "runnerlist=$(jo -a ubuntu-24.04 ${{ vars.ARM64_USE_UBICLOUD == '1' && 'ubicloud-standard-2-arm' || '' }})" >> "$GITHUB_OUTPUT"
+
   build:
     name: build.sh
     if: ${{ vars.SCHEDULED_JOBS_BUILDER }}
+    needs: prepare
     runs-on: ${{ matrix.runner-os }}
     strategy:
       matrix:
         product: ['authoritative', 'recursor', 'dnsdist']
         os:
-          - el-7
-          - el-8
           - centos-9-stream
-          - ubuntu-lunar
-          - ubuntu-mantic
-          - ubuntu-noble
-          - debian-bookworm
-          - debian-trixie
+          - centos-10-stream
+          - ubuntu-oracular
           - amazon-2023
-        runner-os:
-          - ubuntu-22.04
-          - ubicloud-standard-2-arm
-        exclude:
-          - os: centos-7
-            runner-os: ubicloud-standard-2-arm
+        runner-os: ${{ fromJson(needs.prepare.outputs.runnerlist )}}
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
@@ -46,6 +47,7 @@ jobs:
           fetch-depth: 0  # for correct version numbers
           submodules: recursive
           ref: ${{ inputs.branch-name }}
+          persist-credentials: false
       # this builds packages and runs our unit test (make check)
       - run: builder/build.sh -v -m ${{ matrix.product }} ${{ matrix.os }}
       - name: Get version number

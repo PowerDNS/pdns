@@ -45,10 +45,6 @@ if LIBSODIUM
 AM_CPPFLAGS +=$(LIBSODIUM_CFLAGS)
 endif
 
-if LIBDECAF
-AM_CPPFLAGS += $(LIBDECAF_CFLAGS)
-endif
-
 EXTRA_DIST = \
 	dnslabeltext.rl \
 	dnslabeltext.cc \
@@ -101,7 +97,7 @@ api-swagger.yaml: $(wildcard ${srcdir}/../docs/http-api/swagger/authoritative-ap
 if HAVE_VENV
 api-swagger.json: api-swagger.yaml requirements.txt
 	$(PYTHON) -m venv .venv
-	.venv/bin/pip install -U pip setuptools setuptools-git wheel
+	.venv/bin/pip install -U pip setuptools
 	.venv/bin/pip install -r ${srcdir}/requirements.txt
 	.venv/bin/python ${srcdir}/convert-yaml-to-json.py $< $@
 else # if HAVE_VENV
@@ -145,11 +141,9 @@ bin_PROGRAMS += \
 
 bin_PROGRAMS += calidns
 
-if HAVE_BOOST_GE_148
 bin_PROGRAMS += \
 	dnsbulktest \
 	dnstcpbench
-endif
 
 endif # TOOLS
 
@@ -186,7 +180,7 @@ EXTRA_PROGRAMS = \
 	sdig \
 	speedtest \
 	testrunner \
-	tsig-tests \
+	tsig_tests \
 	zone2ldap
 
 pdns_server_SOURCES = \
@@ -318,11 +312,6 @@ pdns_server_SOURCES += sodiumsigners.cc
 pdns_server_LDADD += $(LIBSODIUM_LIBS)
 endif
 
-if LIBDECAF
-pdns_server_SOURCES += decafsigners.cc
-pdns_server_LDADD += $(LIBDECAF_LIBS)
-endif
-
 if SQLITE3
 pdns_server_SOURCES += ssqlite3.cc ssqlite3.hh
 pdns_server_LDADD += $(SQLITE3_LIBS)
@@ -423,11 +412,6 @@ pdnsutil_LDADD = \
 if LIBSODIUM
 pdnsutil_SOURCES += sodiumsigners.cc
 pdnsutil_LDADD += $(LIBSODIUM_LIBS)
-endif
-
-if LIBDECAF
-pdnsutil_SOURCES += decafsigners.cc
-pdnsutil_LDADD += $(LIBDECAF_LIBS)
 endif
 
 if SQLITE3
@@ -556,12 +540,14 @@ sdig_SOURCES = \
 	dnsrecords.cc \
 	dnswriter.cc dnswriter.hh \
 	dolog.hh \
+	ednscookies.cc ednscookies.hh \
 	ednsextendederror.cc ednsextendederror.hh \
 	ednssubnet.cc iputils.cc \
 	libssl.cc libssl.hh \
 	logger.cc \
 	misc.cc misc.hh \
 	nsecrecords.cc \
+	protozero-trace.hh \
 	proxy-protocol.cc proxy-protocol.hh \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
@@ -594,11 +580,11 @@ sdig_CPPFLAGS += $(LIBSSL_CFLAGS)
 sdig_LDADD += $(LIBSSL_LIBS)
 endif
 
+endif
+
 if LIBSODIUM
 sdig_CPPFLAGS +=$(LIBSODIUM_CFLAGS)
 sdig_LDADD += $(LIBSODIUM_LIBS)
-endif
-
 endif
 
 calidns_SOURCES = \
@@ -946,6 +932,10 @@ tsig_tests_SOURCES += pkcs11signers.cc pkcs11signers.hh
 tsig_tests_LDADD += $(P11KIT1_LIBS)
 endif
 
+if GSS_TSIG
+tsig_tests_LDADD += $(GSS_LIBS)
+endif
+
 speedtest_SOURCES = \
 	arguments.cc arguments.hh \
 	base32.cc \
@@ -965,6 +955,7 @@ speedtest_SOURCES = \
 	nsecrecords.cc \
 	qtype.cc \
 	rcpgenerator.cc rcpgenerator.hh \
+	shuffle.cc shuffle.hh \
 	sillyrecords.cc \
 	speedtest.cc \
 	statbag.cc \
@@ -1408,6 +1399,7 @@ testrunner_SOURCES = \
 	test-credentials_cc.cc \
 	test-digests_hh.cc \
 	test-distributor_hh.cc \
+	test-dns_cc.cc \
 	test-dns_random_hh.cc \
 	test-dnsname_cc.cc \
 	test-dnsparser_cc.cc \
@@ -1484,11 +1476,6 @@ testrunner_LDADD += $(LIBSODIUM_LIBS)
 speedtest_LDADD += $(LIBSODIUM_LIBS)
 endif
 
-if LIBDECAF
-testrunner_SOURCES += decafsigners.cc
-testrunner_LDADD += $(LIBDECAF_LIBS)
-endif
-
 if HAVE_FREEBSD
 ixfrdist_SOURCES += kqueuemplexer.cc
 testrunner_SOURCES += kqueuemplexer.cc
@@ -1529,17 +1516,12 @@ pdns_control_LDFLAGS = \
        $(AM_LDFLAGS) \
        $(LIBCRYPTO_LDFLAGS)
 
-noinst_PROGRAMS = speedtest
+noinst_PROGRAMS = speedtest tsig_tests
 
 if UNIT_TESTS
 noinst_PROGRAMS += testrunner
-if HAVE_BOOST_GE_148
 TESTS_ENVIRONMENT = env BOOST_TEST_LOG_LEVEL=message BOOST_TEST_RANDOM=1 SRCDIR='$(srcdir)'
 TESTS=testrunner
-else
-check-local:
-	@echo "Unit tests disabled, boost is too old"
-endif
 
 else
 check-local:

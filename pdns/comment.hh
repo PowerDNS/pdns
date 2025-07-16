@@ -27,15 +27,12 @@
 class Comment
 {
 public:
-  Comment() : modified_at(0), domain_id(0)  {};
-  ~Comment() = default;
-
   // data
   DNSName qname; //!< the name of the associated RRset, for example: www.powerdns.com
-  time_t modified_at;
+  time_t modified_at{0};
   string account; //!< account last updating this comment
   string content; //!< The actual comment. Example: blah blah
 
-  int domain_id;
+  domainid_t domain_id{0};
   QType qtype; //!< qtype of the associated RRset, ie A, CNAME, MX etc
 };

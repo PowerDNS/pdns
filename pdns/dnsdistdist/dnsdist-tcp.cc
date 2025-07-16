@@ -23,6 +23,7 @@
 #include <thread>
 #include <netinet/tcp.h>
 #include <queue>
+#include <boost/format.hpp>
 
 #include "dnsdist.hh"
 #include "dnsdist-concurrent-connections.hh"
@@ -60,36 +61,23 @@
    Let's start naively.
 */
 
-size_t g_maxTCPQueriesPerConn{0};
-size_t g_maxTCPConnectionDuration{0};
-
-#ifdef __linux__
-// On Linux this gives us 128k pending queries (default is 8192 queries),
-// which should be enough to deal with huge spikes
-size_t g_tcpInternalPipeBufferSize{1048576U};
-uint64_t g_maxTCPQueuedConnections{10000};
-#else
-size_t g_tcpInternalPipeBufferSize{0};
-uint64_t g_maxTCPQueuedConnections{1000};
-#endif
-
-int g_tcpRecvTimeout{2};
-int g_tcpSendTimeout{2};
 std::atomic<uint64_t> g_tcpStatesDumpRequested{0};
-
-LockGuarded<std::map<ComboAddress, size_t, ComboAddress::addressOnlyLessThan>> dnsdist::IncomingConcurrentTCPConnectionsManager::s_tcpClientsConcurrentConnectionsCount;
-size_t dnsdist::IncomingConcurrentTCPConnectionsManager::s_maxTCPConnectionsPerClient = 0;
 
 IncomingTCPConnectionState::~IncomingTCPConnectionState()
 {
-  dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(d_ci.remote);
+  try {
+    dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(d_ci.remote);
+  }
+  catch (...) {
+    /* in theory it might raise an exception, and we cannot allow it to be uncaught in a dtor */
+  }
 
   if (d_ci.cs != nullptr) {
     timeval now{};
     gettimeofday(&now, nullptr);
 
     auto diff = now - d_connectionStartTime;
-    d_ci.cs->updateTCPMetrics(d_queriesCount, diff.tv_sec * 1000 + diff.tv_usec / 1000);
+    d_ci.cs->updateTCPMetrics(d_queriesCount, diff.tv_sec * 1000 + diff.tv_usec / 1000, d_queriesCount > 0 ? d_readIOsTotal / d_queriesCount : d_readIOsTotal);
   }
 
   // would have been done when the object is destroyed anyway,
@@ -114,14 +102,69 @@ size_t IncomingTCPConnectionState::clearAllDownstreamConnections()
   return t_downstreamTCPConnectionsManager.clear();
 }
 
+static std::pair<std::shared_ptr<TCPConnectionToBackend>, bool> getOwnedDownstreamConnection(std::map<std::shared_ptr<DownstreamState>, std::deque<std::shared_ptr<TCPConnectionToBackend>>>& ownedConnectionsToBackend, const std::shared_ptr<DownstreamState>& backend, const std::unique_ptr<std::vector<ProxyProtocolValue>>& tlvs)
+{
+  bool tlvsMismatch = false;
+  auto connIt = ownedConnectionsToBackend.find(backend);
+  if (connIt == ownedConnectionsToBackend.end()) {
+    DEBUGLOG("no owned connection found for " << backend->getName());
+    return {nullptr, tlvsMismatch};
+  }
+
+  for (auto& conn : connIt->second) {
+    if (conn->canBeReused(true)) {
+      if (conn->matchesTLVs(tlvs)) {
+        DEBUGLOG("Got one owned connection accepting more for " << backend->getName());
+        conn->setReused();
+        ++backend->tcpReusedConnections;
+        return {conn, tlvsMismatch};
+      }
+      DEBUGLOG("Found one connection to " << backend->getName() << " but with different TLV values");
+      tlvsMismatch = true;
+    }
+    DEBUGLOG("not accepting more for " << backend->getName());
+  }
+
+  return {nullptr, tlvsMismatch};
+}
+
+bool IncomingTCPConnectionState::isNearTCPLimits() const
+{
+  if (d_ci.d_restricted) {
+    return true;
+  }
+
+  const auto tcpConnectionsOverloadThreshold = dnsdist::configuration::getImmutableConfiguration().d_tcpConnectionsOverloadThreshold;
+  if (tcpConnectionsOverloadThreshold == 0) {
+    return false;
+  }
+
+  const auto& clientState = d_ci.cs;
+  if (clientState->d_tcpConcurrentConnectionsLimit > 0) {
+    auto concurrentConnections = clientState->tcpCurrentConnections.load();
+    auto current = (100 * concurrentConnections) / clientState->d_tcpConcurrentConnectionsLimit;
+    if (current >= tcpConnectionsOverloadThreshold) {
+      return true;
+    }
+  }
+
+  return dnsdist::IncomingConcurrentTCPConnectionsManager::isClientOverThreshold(d_ci.remote);
+}
+
 std::shared_ptr<TCPConnectionToBackend> IncomingTCPConnectionState::getDownstreamConnection(std::shared_ptr<DownstreamState>& backend, const std::unique_ptr<std::vector<ProxyProtocolValue>>& tlvs, const struct timeval& now)
 {
-  auto downstream = getOwnedDownstreamConnection(backend, tlvs);
+  auto [downstream, tlvsMismatch] = getOwnedDownstreamConnection(d_ownedConnectionsToBackend, backend, tlvs);
 
   if (!downstream) {
+    if (backend->d_config.useProxyProtocol && tlvsMismatch) {
+      clearOwnedDownstreamConnections(backend);
+    }
+
     /* we don't have a connection to this backend owned yet, let's get one (it might not be a fresh one, though) */
     downstream = t_downstreamTCPConnectionsManager.getConnectionToDownstream(d_threadData.mplexer, backend, now, std::string());
-    if (backend->d_config.useProxyProtocol) {
+    // if we had an existing connection but the TLVs are different, they are likely unique per query so do not bother keeping the connection
+    // around
+    if (backend->d_config.useProxyProtocol && !tlvsMismatch) {
       registerOwnedDownstreamConnection(downstream);
     }
   }
@@ -142,11 +185,13 @@ TCPClientCollection::TCPClientCollection(size_t maxThreads, std::vector<ClientSt
 void TCPClientCollection::addTCPClientThread(std::vector<ClientState*>& tcpAcceptStates)
 {
   try {
-    auto [queryChannelSender, queryChannelReceiver] = pdns::channel::createObjectQueue<ConnectionInfo>(pdns::channel::SenderBlockingMode::SenderNonBlocking, pdns::channel::ReceiverBlockingMode::ReceiverNonBlocking, g_tcpInternalPipeBufferSize);
+    const auto internalPipeBufferSize = dnsdist::configuration::getImmutableConfiguration().d_tcpInternalPipeBufferSize;
 
-    auto [crossProtocolQueryChannelSender, crossProtocolQueryChannelReceiver] = pdns::channel::createObjectQueue<CrossProtocolQuery>(pdns::channel::SenderBlockingMode::SenderNonBlocking, pdns::channel::ReceiverBlockingMode::ReceiverNonBlocking, g_tcpInternalPipeBufferSize);
+    auto [queryChannelSender, queryChannelReceiver] = pdns::channel::createObjectQueue<ConnectionInfo>(pdns::channel::SenderBlockingMode::SenderNonBlocking, pdns::channel::ReceiverBlockingMode::ReceiverNonBlocking, internalPipeBufferSize);
 
-    auto [crossProtocolResponseChannelSender, crossProtocolResponseChannelReceiver] = pdns::channel::createObjectQueue<TCPCrossProtocolResponse>(pdns::channel::SenderBlockingMode::SenderNonBlocking, pdns::channel::ReceiverBlockingMode::ReceiverNonBlocking, g_tcpInternalPipeBufferSize);
+    auto [crossProtocolQueryChannelSender, crossProtocolQueryChannelReceiver] = pdns::channel::createObjectQueue<CrossProtocolQuery>(pdns::channel::SenderBlockingMode::SenderNonBlocking, pdns::channel::ReceiverBlockingMode::ReceiverNonBlocking, internalPipeBufferSize);
+
+    auto [crossProtocolResponseChannelSender, crossProtocolResponseChannelReceiver] = pdns::channel::createObjectQueue<TCPCrossProtocolResponse>(pdns::channel::SenderBlockingMode::SenderNonBlocking, pdns::channel::ReceiverBlockingMode::ReceiverNonBlocking, internalPipeBufferSize);
 
     vinfolog("Adding TCP Client thread");
 
@@ -245,18 +290,25 @@ bool IncomingTCPConnectionState::canAcceptNewQueries(const struct timeval& now)
     return false;
   }
 
+  if (isNearTCPLimits()) {
+    d_ci.d_restricted = true;
+    DEBUGLOG("not accepting new queries because we already near our TCP limits");
+    return false;
+  }
+
   // for DoH, this is already handled by the underlying library
   if (!d_ci.cs->dohFrontend && d_currentQueriesCount >= d_ci.cs->d_maxInFlightQueriesPerConn) {
     DEBUGLOG("not accepting new queries because we already have " << d_currentQueriesCount << " out of " << d_ci.cs->d_maxInFlightQueriesPerConn);
     return false;
   }
 
-  if (g_maxTCPQueriesPerConn != 0 && d_queriesCount > g_maxTCPQueriesPerConn) {
-    vinfolog("not accepting new queries from %s because it reached the maximum number of queries per conn (%d / %d)", d_ci.remote.toStringWithPort(), d_queriesCount, g_maxTCPQueriesPerConn);
+  const auto& currentConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
+  if (currentConfig.d_maxTCPQueriesPerConn != 0 && d_queriesCount > currentConfig.d_maxTCPQueriesPerConn) {
+    vinfolog("not accepting new queries from %s because it reached the maximum number of queries per conn (%d / %d)", d_ci.remote.toStringWithPort(), d_queriesCount, currentConfig.d_maxTCPQueriesPerConn);
     return false;
   }
 
-  if (maxConnectionDurationReached(g_maxTCPConnectionDuration, now)) {
+  if (maxConnectionDurationReached(currentConfig.d_maxTCPConnectionDuration, now)) {
     vinfolog("not accepting new queries from %s because it reached the maximum TCP connection duration", d_ci.remote.toStringWithPort());
     return false;
   }
@@ -270,36 +322,118 @@ void IncomingTCPConnectionState::resetForNewQuery()
   d_currentPos = 0;
   d_querySize = 0;
   d_state = State::waitingForQuery;
+  d_readIOsTotal += d_readIOsCurrentQuery;
+  d_readIOsCurrentQuery = 0;
 }
 
-std::shared_ptr<TCPConnectionToBackend> IncomingTCPConnectionState::getOwnedDownstreamConnection(const std::shared_ptr<DownstreamState>& backend, const std::unique_ptr<std::vector<ProxyProtocolValue>>& tlvs)
+boost::optional<timeval> IncomingTCPConnectionState::getClientReadTTD(timeval now) const
 {
-  auto connIt = d_ownedConnectionsToBackend.find(backend);
-  if (connIt == d_ownedConnectionsToBackend.end()) {
-    DEBUGLOG("no owned connection found for " << backend->getName());
-    return nullptr;
+  const auto& runtimeConfiguration = dnsdist::configuration::getCurrentRuntimeConfiguration();
+  if (!isNearTCPLimits() && runtimeConfiguration.d_maxTCPConnectionDuration == 0 && runtimeConfiguration.d_tcpRecvTimeout == 0) {
+    return boost::none;
   }
 
-  for (auto& conn : connIt->second) {
-    if (conn->canBeReused(true) && conn->matchesTLVs(tlvs)) {
-      DEBUGLOG("Got one owned connection accepting more for " << backend->getName());
-      conn->setReused();
-      return conn;
+  size_t maxTCPConnectionDuration = runtimeConfiguration.d_maxTCPConnectionDuration;
+  uint16_t tcpRecvTimeout = runtimeConfiguration.d_tcpRecvTimeout;
+  uint32_t tcpRecvTimeoutUsec = 0U;
+  if (isNearTCPLimits()) {
+    constexpr size_t maxTCPConnectionDurationNearLimits = 5U;
+    constexpr uint32_t tcpRecvTimeoutUsecNearLimits = 500U * 1000U;
+    maxTCPConnectionDuration = runtimeConfiguration.d_maxTCPConnectionDuration != 0 ? std::min(runtimeConfiguration.d_maxTCPConnectionDuration, maxTCPConnectionDurationNearLimits) : maxTCPConnectionDurationNearLimits;
+    tcpRecvTimeout = 0;
+    tcpRecvTimeoutUsec = tcpRecvTimeoutUsecNearLimits;
+  }
+
+  if (maxTCPConnectionDuration > 0) {
+    auto elapsed = now.tv_sec - d_connectionStartTime.tv_sec;
+    if (elapsed < 0 || (static_cast<size_t>(elapsed) >= maxTCPConnectionDuration)) {
+      return now;
     }
-    DEBUGLOG("not accepting more for " << backend->getName());
+    auto remaining = maxTCPConnectionDuration - elapsed;
+    if (!isNearTCPLimits() && (runtimeConfiguration.d_tcpRecvTimeout == 0 || remaining <= static_cast<size_t>(runtimeConfiguration.d_tcpRecvTimeout))) {
+      now.tv_sec += static_cast<time_t>(remaining);
+      return now;
+    }
   }
 
-  return nullptr;
+  now.tv_sec += static_cast<time_t>(tcpRecvTimeout);
+  now.tv_usec += tcpRecvTimeoutUsec;
+  normalizeTV(now);
+  return now;
+}
+
+boost::optional<timeval> IncomingTCPConnectionState::getClientWriteTTD(const timeval& now) const
+{
+  const auto& runtimeConfiguration = dnsdist::configuration::getCurrentRuntimeConfiguration();
+  if (runtimeConfiguration.d_maxTCPConnectionDuration == 0 && runtimeConfiguration.d_tcpSendTimeout == 0) {
+    return boost::none;
+  }
+
+  timeval res(now);
+
+  if (runtimeConfiguration.d_maxTCPConnectionDuration > 0) {
+    auto elapsed = res.tv_sec - d_connectionStartTime.tv_sec;
+    if (elapsed < 0 || static_cast<size_t>(elapsed) >= runtimeConfiguration.d_maxTCPConnectionDuration) {
+      return res;
+    }
+    auto remaining = runtimeConfiguration.d_maxTCPConnectionDuration - elapsed;
+    if (runtimeConfiguration.d_tcpSendTimeout == 0 || remaining <= static_cast<size_t>(runtimeConfiguration.d_tcpSendTimeout)) {
+      res.tv_sec += static_cast<time_t>(remaining);
+      return res;
+    }
+  }
+
+  res.tv_sec += static_cast<time_t>(runtimeConfiguration.d_tcpSendTimeout);
+  return res;
+}
+
+bool IncomingTCPConnectionState::maxConnectionDurationReached(unsigned int maxConnectionDuration, const timeval& now) const
+{
+  if (maxConnectionDuration > 0) {
+    time_t curtime = now.tv_sec;
+    unsigned int elapsed = 0;
+    if (curtime > d_connectionStartTime.tv_sec) { // To prevent issues when time goes backward
+      elapsed = curtime - d_connectionStartTime.tv_sec;
+    }
+    if (elapsed >= maxConnectionDuration) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 void IncomingTCPConnectionState::registerOwnedDownstreamConnection(std::shared_ptr<TCPConnectionToBackend>& conn)
 {
-  d_ownedConnectionsToBackend[conn->getDS()].push_front(conn);
+  const auto& downstream = conn->getDS();
+  auto& queue = d_ownedConnectionsToBackend[downstream];
+  // how many proxy-protocol enabled connections do we want to keep around?
+  // - they are only usable for this incoming connection because of the proxy protocol header containing the source and destination addresses and ports
+  // - if we have TLV values, and they are unique per query, keeping these is useless
+  // - if there is no, or identical, TLV values, a single outgoing connection is enough if maxInFlight == 1, or if incoming maxInFlight == outgoing maxInFlight
+  // so it makes sense to keep a few of them around if incoming maxInFlight is greater than outgoing maxInFlight
+
+  auto incomingMaxInFlightQueriesPerConn = d_ci.cs->d_maxInFlightQueriesPerConn;
+  incomingMaxInFlightQueriesPerConn = std::max(incomingMaxInFlightQueriesPerConn, static_cast<size_t>(1U));
+  auto outgoingMaxInFlightQueriesPerConn = downstream->d_config.d_maxInFlightQueriesPerConn;
+  outgoingMaxInFlightQueriesPerConn = std::max(outgoingMaxInFlightQueriesPerConn, static_cast<size_t>(1U));
+  size_t maxCachedOutgoingConnections = std::min(static_cast<size_t>(incomingMaxInFlightQueriesPerConn / outgoingMaxInFlightQueriesPerConn), static_cast<size_t>(5U));
+
+  queue.push_front(conn);
+  if (queue.size() > maxCachedOutgoingConnections) {
+    queue.pop_back();
+  }
+}
+
+void IncomingTCPConnectionState::clearOwnedDownstreamConnections(const std::shared_ptr<DownstreamState>& downstream)
+{
+  d_ownedConnectionsToBackend.erase(downstream);
 }
 
 /* called when the buffer has been set and the rules have been processed, and only from handleIO (sometimes indirectly via handleQuery) */
 IOState IncomingTCPConnectionState::sendResponse(const struct timeval& now, TCPResponse&& response)
 {
+  (void)now;
   d_state = State::sendingResponse;
 
   const auto responseSize = static_cast<uint16_t>(response.d_buffer.size());
@@ -502,7 +636,7 @@ void IncomingTCPConnectionState::handleResponse(const struct timeval& now, TCPRe
     try {
       auto& ids = response.d_idstate;
       std::shared_ptr<DownstreamState> backend = response.d_ds ? response.d_ds : (response.d_connection ? response.d_connection->getDS() : nullptr);
-      if (backend == nullptr || !responseContentMatches(response.d_buffer, ids.qname, ids.qtype, ids.qclass, backend)) {
+      if (backend == nullptr || !responseContentMatches(response.d_buffer, ids.qname, ids.qtype, ids.qclass, backend, dnsdist::configuration::getCurrentRuntimeConfiguration().d_allowEmptyResponse)) {
         state->terminateClientConnection();
         return;
       }
@@ -516,7 +650,7 @@ void IncomingTCPConnectionState::handleResponse(const struct timeval& now, TCPRe
 
       memcpy(&response.d_cleartextDH, dnsResponse.getHeader().get(), sizeof(response.d_cleartextDH));
 
-      if (!processResponse(response.d_buffer, *state->d_threadData.localRespRuleActions, *state->d_threadData.localCacheInsertedRespRuleActions, dnsResponse, false)) {
+      if (!processResponse(response.d_buffer, dnsResponse, false)) {
         state->terminateClientConnection();
         return;
       }
@@ -748,7 +882,7 @@ IncomingTCPConnectionState::QueryProcessingResult IncomingTCPConnectionState::ha
   }
 
   std::shared_ptr<DownstreamState> backend;
-  auto result = processQuery(dnsQuestion, d_threadData.holders, backend);
+  auto result = processQuery(dnsQuestion, backend);
 
   if (result == ProcessQueryResult::Asynchronous) {
     /* we are done for now */
@@ -869,9 +1003,11 @@ void IncomingTCPConnectionState::handleHandshakeDone(const struct timeval& now)
   if (d_handler.isTLS()) {
     if (!d_handler.hasTLSSessionBeenResumed()) {
       ++d_ci.cs->tlsNewSessions;
+      dnsdist::IncomingConcurrentTCPConnectionsManager::accountTLSNewSession(d_ci.remote);
     }
     else {
       ++d_ci.cs->tlsResumptions;
+      dnsdist::IncomingConcurrentTCPConnectionsManager::accountTLSResumedSession(d_ci.remote);
     }
     if (d_handler.getResumedFromInactiveTicketKey()) {
       ++d_ci.cs->tlsInactiveTicketKey;
@@ -905,7 +1041,7 @@ IncomingTCPConnectionState::ProxyProtocolResult IncomingTCPConnectionState::hand
       else {
         /* proxy header received */
         std::vector<ProxyProtocolValue> proxyProtocolValues;
-        if (!handleProxyProtocol(d_ci.remote, true, *d_threadData.holders.acl, d_buffer, d_proxiedRemote, d_proxiedDestination, proxyProtocolValues)) {
+        if (!handleProxyProtocol(d_ci.remote, true, dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL, d_buffer, d_proxiedRemote, d_proxiedDestination, proxyProtocolValues)) {
           vinfolog("Error handling the Proxy Protocol received from TCP client %s", d_ci.remote.toStringWithPort());
           return ProxyProtocolResult::Error;
         }
@@ -914,6 +1050,9 @@ IncomingTCPConnectionState::ProxyProtocolResult IncomingTCPConnectionState::hand
           d_proxyProtocolValues = make_unique<std::vector<ProxyProtocolValue>>(std::move(proxyProtocolValues));
         }
 
+        d_currentPos = 0;
+        d_proxyProtocolNeed = 0;
+        d_buffer.clear();
         return ProxyProtocolResult::Done;
       }
     }
@@ -1014,6 +1153,7 @@ bool IncomingTCPConnectionState::readIncomingQuery(const timeval& now, IOState& 
   if (!d_lastIOBlocked && (d_state == State::waitingForQuery || d_state == State::readingQuerySize)) {
     DEBUGLOG("reading query size");
     d_buffer.resize(sizeof(uint16_t));
+    d_readIOsCurrentQuery++;
     iostate = d_handler.tryRead(d_buffer, d_currentPos, sizeof(uint16_t));
     if (d_currentPos > 0) {
       /* if we got at least one byte, we can't go around sending responses */
@@ -1044,6 +1184,7 @@ bool IncomingTCPConnectionState::readIncomingQuery(const timeval& now, IOState& 
 
   if (!d_lastIOBlocked && d_state == State::readingQuery) {
     DEBUGLOG("reading query");
+    d_readIOsCurrentQuery++;
     iostate = d_handler.tryRead(d_buffer, d_currentPos, d_querySize);
     if (iostate == IOState::Done) {
       iostate = handleIncomingQueryReceived(now);
@@ -1056,8 +1197,39 @@ bool IncomingTCPConnectionState::readIncomingQuery(const timeval& now, IOState& 
   return false;
 }
 
+class HandlingIOGuard
+{
+public:
+  HandlingIOGuard(bool& handlingIO) :
+    d_handlingIO(handlingIO)
+  {
+  }
+  HandlingIOGuard(const HandlingIOGuard&) = delete;
+  HandlingIOGuard(HandlingIOGuard&&) = delete;
+  HandlingIOGuard& operator=(const HandlingIOGuard& rhs) = delete;
+  HandlingIOGuard& operator=(HandlingIOGuard&&) = delete;
+  ~HandlingIOGuard()
+  {
+    d_handlingIO = false;
+  }
+
+private:
+  bool& d_handlingIO;
+};
+
 void IncomingTCPConnectionState::handleIO()
 {
+  // let's make sure we are not already in handleIO() below in the stack:
+  // this might happen when we have a response available on the backend socket
+  // right after forwarding the query, and then a query waiting for us on the
+  // client socket right after forwarding the response, and then a response available
+  // on the backend socket right after forwarding the query.. you get the idea.
+  if (d_handlingIO) {
+    return;
+  }
+  d_handlingIO = true;
+  HandlingIOGuard reentryGuard(d_handlingIO);
+
   // why do we loop? Because the TLS layer does buffering, and thus can have data ready to read
   // even though the underlying socket is not ready, so we need to actually ask for the data first
   IOState iostate = IOState::Done;
@@ -1068,10 +1240,17 @@ void IncomingTCPConnectionState::handleIO()
     iostate = IOState::Done;
     IOStateGuard ioGuard(d_ioState);
 
-    if (maxConnectionDurationReached(g_maxTCPConnectionDuration, now)) {
+    if (maxConnectionDurationReached(dnsdist::configuration::getCurrentRuntimeConfiguration().d_maxTCPConnectionDuration, now)) {
       vinfolog("Terminating TCP connection from %s because it reached the maximum TCP connection duration", d_ci.remote.toStringWithPort());
       // will be handled by the ioGuard
       // handleNewIOState(state, IOState::Done, fd, handleIOCallback);
+      return;
+    }
+
+    const auto& immutable = dnsdist::configuration::getImmutableConfiguration();
+    if (immutable.d_maxTCPReadIOsPerQuery > 0 && d_readIOsCurrentQuery >= immutable.d_maxTCPReadIOsPerQuery) {
+      vinfolog("Terminating TCP connection from %s for reaching the maximum number of read IO events per query (%d)", d_ci.remote.toStringWithPort(), immutable.d_maxTCPReadIOsPerQuery);
+      dnsdist::IncomingConcurrentTCPConnectionsManager::banClientFor(d_ci.remote, time(nullptr), immutable.d_tcpBanDurationForExceedingMaxReadIOsPerQuery);
       return;
     }
 
@@ -1096,15 +1275,14 @@ void IncomingTCPConnectionState::handleIO()
       if (!d_lastIOBlocked && d_state == State::readingProxyProtocolHeader) {
         auto status = handleProxyProtocolPayload();
         if (status == ProxyProtocolResult::Done) {
+          d_buffer.resize(sizeof(uint16_t));
+
           if (isProxyPayloadOutsideTLS()) {
             d_state = State::doingHandshake;
             iostate = handleHandshake(now);
           }
           else {
             d_state = State::readingQuerySize;
-            d_buffer.resize(sizeof(uint16_t));
-            d_currentPos = 0;
-            d_proxyProtocolNeed = 0;
           }
         }
         else if (status == ProxyProtocolResult::Error) {
@@ -1218,8 +1396,11 @@ void IncomingTCPConnectionState::notifyIOError(const struct timeval& now, TCPRes
   }
 }
 
-static bool processXFRResponse(PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& xfrRespRuleActions, DNSResponse& dnsResponse)
+static bool processXFRResponse(DNSResponse& dnsResponse)
 {
+  const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
+  const auto& xfrRespRuleActions = dnsdist::rules::getResponseRuleChain(chains, dnsdist::rules::ResponseRuleChain::XFRResponseRules);
+
   if (!applyRulesToResponse(xfrRespRuleActions, dnsResponse)) {
     return false;
   }
@@ -1249,7 +1430,7 @@ void IncomingTCPConnectionState::handleXFRResponse(const struct timeval& now, TC
   dnsResponse.d_incomingTCPState = state;
   memcpy(&response.d_cleartextDH, dnsResponse.getHeader().get(), sizeof(response.d_cleartextDH));
 
-  if (!processXFRResponse(response.d_buffer, *state->d_threadData.localXFRRespRuleActions, dnsResponse)) {
+  if (!processXFRResponse(dnsResponse)) {
     state->terminateClientConnection();
     return;
   }
@@ -1277,6 +1458,7 @@ void IncomingTCPConnectionState::handleTimeout(std::shared_ptr<IncomingTCPConnec
 
 static void handleIncomingTCPQuery(int pipefd, FDMultiplexer::funcparam_t& param)
 {
+  (void)pipefd;
   auto* threadData = boost::any_cast<TCPClientThreadData*>(param);
 
   std::unique_ptr<ConnectionInfo> citmp{nullptr};
@@ -1310,6 +1492,7 @@ static void handleIncomingTCPQuery(int pipefd, FDMultiplexer::funcparam_t& param
 
 static void handleCrossProtocolQuery(int pipefd, FDMultiplexer::funcparam_t& param)
 {
+  (void)pipefd;
   auto* threadData = boost::any_cast<TCPClientThreadData*>(param);
 
   std::unique_ptr<CrossProtocolQuery> cpq{nullptr};
@@ -1347,6 +1530,7 @@ static void handleCrossProtocolQuery(int pipefd, FDMultiplexer::funcparam_t& par
 
 static void handleCrossProtocolResponse(int pipefd, FDMultiplexer::funcparam_t& param)
 {
+  (void)pipefd;
   auto* threadData = boost::any_cast<TCPClientThreadData*>(param);
 
   std::unique_ptr<TCPCrossProtocolResponse> cpr{nullptr};
@@ -1384,8 +1568,6 @@ struct TCPAcceptorParam
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
   ClientState& clientState;
   ComboAddress local;
-  // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
-  LocalStateHolder<NetmaskGroup>& acl;
   int socket{-1};
 };
 
@@ -1450,7 +1632,7 @@ static void dumpTCPStates(const TCPClientThreadData& data)
 {
   /* just to keep things clean in the output, debug only */
   static std::mutex s_lock;
-  std::lock_guard<decltype(s_lock)> lck(s_lock);
+  auto lock = std::scoped_lock(s_lock);
   if (g_tcpStatesDumpRequested > 0) {
     /* no race here, we took the lock so it can only be increased in the meantime */
     --g_tcpStatesDumpRequested;
@@ -1507,18 +1689,18 @@ static void tcpClientThread(pdns::channel::Receiver<ConnectionInfo>&& queryRecei
     data.mplexer->addReadFD(data.crossProtocolResponseReceiver.getDescriptor(), handleCrossProtocolResponse, &data);
 
     /* only used in single acceptor mode for now */
-    auto acl = g_ACL.getLocal();
     std::vector<TCPAcceptorParam> acceptParams;
     acceptParams.reserve(tcpAcceptStates.size());
 
     for (auto& state : tcpAcceptStates) {
-      acceptParams.emplace_back(TCPAcceptorParam{*state, state->local, acl, state->tcpFD});
+      acceptParams.emplace_back(TCPAcceptorParam{*state, state->local, state->tcpFD});
       for (const auto& [addr, socket] : state->d_additionalAddresses) {
-        acceptParams.emplace_back(TCPAcceptorParam{*state, addr, acl, socket});
+        acceptParams.emplace_back(TCPAcceptorParam{*state, addr, socket});
       }
     }
 
     auto acceptCallback = [&data](int socket, FDMultiplexer::funcparam_t& funcparam) {
+      (void)socket;
       const auto* acceptorParam = boost::any_cast<const TCPAcceptorParam*>(funcparam);
       acceptNewConnection(*acceptorParam, &data);
     };
@@ -1537,6 +1719,7 @@ static void tcpClientThread(pdns::channel::Receiver<ConnectionInfo>&& queryRecei
 
       try {
         t_downstreamTCPConnectionsManager.cleanupClosedConnections(now);
+        dnsdist::IncomingConcurrentTCPConnectionsManager::cleanup(time(nullptr));
 
         if (now.tv_sec > lastTimeoutScan) {
           lastTimeoutScan = now.tv_sec;
@@ -1560,7 +1743,6 @@ static void tcpClientThread(pdns::channel::Receiver<ConnectionInfo>&& queryRecei
 static void acceptNewConnection(const TCPAcceptorParam& param, TCPClientThreadData* threadData)
 {
   auto& clientState = param.clientState;
-  auto& acl = param.acl;
   const bool checkACL = clientState.dohFrontend == nullptr || (!clientState.dohFrontend->d_trustForwardedForHeader && clientState.dohFrontend->d_earlyACLDrop);
   const int socket = param.socket;
   bool tcpClientCountIncremented = false;
@@ -1585,7 +1767,7 @@ static void acceptNewConnection(const TCPAcceptorParam& param, TCPClientThreadDa
       throw std::runtime_error((boost::format("accepting new connection on socket: %s") % stringerror()).str());
     }
 
-    if (checkACL && !acl->match(remote)) {
+    if (checkACL && !dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(remote)) {
       ++dnsdist::metrics::g_stats.aclDrops;
       vinfolog("Dropped TCP connection from %s because of ACL", remote.toStringWithPort());
       return;
@@ -1608,16 +1790,20 @@ static void acceptNewConnection(const TCPAcceptorParam& param, TCPClientThreadDa
 
     setTCPNoDelay(connInfo.fd); // disable NAGLE
 
-    if (g_maxTCPQueuedConnections > 0 && g_tcpclientthreads->getQueuedCount() >= g_maxTCPQueuedConnections) {
+    const auto maxTCPQueuedConnections = dnsdist::configuration::getImmutableConfiguration().d_maxTCPQueuedConnections;
+    if (maxTCPQueuedConnections > 0 && g_tcpclientthreads->getQueuedCount() >= maxTCPQueuedConnections) {
       vinfolog("Dropping TCP connection from %s because we have too many queued already", remote.toStringWithPort());
       return;
     }
 
-    if (!dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(remote)) {
-      vinfolog("Dropping TCP connection from %s because we have too many from this client already", remote.toStringWithPort());
+    auto connectionResult = dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(remote, connInfo.cs->hasTLS());
+    if (connectionResult == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Denied) {
       return;
     }
     tcpClientCountIncremented = true;
+    if (connectionResult == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Restricted) {
+      connInfo.d_restricted = true;
+    }
 
     vinfolog("Got TCP connection from %s", remote.toStringWithPort());
 
@@ -1664,14 +1850,13 @@ void tcpAcceptorThread(const std::vector<ClientState*>& states)
 {
   setThreadName("dnsdist/tcpAcce");
 
-  auto acl = g_ACL.getLocal();
   std::vector<TCPAcceptorParam> params;
   params.reserve(states.size());
 
   for (const auto& state : states) {
-    params.emplace_back(TCPAcceptorParam{*state, state->local, acl, state->tcpFD});
+    params.emplace_back(TCPAcceptorParam{*state, state->local, state->tcpFD});
     for (const auto& [addr, socket] : state->d_additionalAddresses) {
-      params.emplace_back(TCPAcceptorParam{*state, addr, acl, socket});
+      params.emplace_back(TCPAcceptorParam{*state, addr, socket});
     }
   }
 
@@ -1682,6 +1867,7 @@ void tcpAcceptorThread(const std::vector<ClientState*>& states)
   }
   else {
     auto acceptCallback = [](int socket, FDMultiplexer::funcparam_t& funcparam) {
+      (void)socket;
       const auto* acceptorParam = boost::any_cast<const TCPAcceptorParam*>(funcparam);
       acceptNewConnection(*acceptorParam, nullptr);
     };

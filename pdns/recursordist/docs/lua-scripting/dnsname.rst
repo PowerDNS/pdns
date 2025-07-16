@@ -19,13 +19,13 @@ A small example of the functionality of a :class:`DNSName` is shown below:
 .. code-block:: lua
 
   myname = newDN("www.example.com")
-  print(myname:countLabels()) -- prints "3"
-  print(myname:wirelength()) -- prints "17"
+  pdnslog(myname:countLabels()) -- prints "3"
+  pdnslog(myname:wirelength()) -- prints "17"
   name2 = newDN(myname)
-  name2:chopoff() -- returns true, as 'www' was stripped
-  print(name2:countLabels()) -- prints "2"
+  name2:chopOff() -- returns true, as 'www' was stripped
+  pdnslog(name2:countLabels()) -- prints "2"
   if myname:isPartOf(name2) then -- prints "it is"
-    print('it is')
+    pdnslog('it is')
   end
 
 Functions and methods of a ``DNSName``

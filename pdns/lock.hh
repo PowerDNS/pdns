@@ -248,7 +248,7 @@ public:
   }
 
 private:
-  std::lock_guard<std::mutex> d_lock;
+  std::scoped_lock<std::mutex> d_lock;
   T& d_value;
 };
 
@@ -334,6 +334,111 @@ private:
 };
 
 template <typename T>
+class RecursiveLockGuardedHolder
+{
+public:
+  explicit RecursiveLockGuardedHolder(T& value, std::recursive_mutex& mutex) :
+    d_lock(mutex), d_value(value)
+  {
+  }
+
+  T& operator*() const noexcept
+  {
+    return d_value;
+  }
+
+  T* operator->() const noexcept
+  {
+    return &d_value;
+  }
+
+private:
+  std::scoped_lock<std::recursive_mutex> d_lock;
+  T& d_value;
+};
+
+template <typename T>
+class RecursiveLockGuardedTryHolder
+{
+public:
+  explicit RecursiveLockGuardedTryHolder(T& value, std::recursive_mutex& mutex) :
+    d_lock(mutex, std::try_to_lock), d_value(value)
+  {
+  }
+
+  T& operator*() const
+  {
+    if (!owns_lock()) {
+      throw std::runtime_error("Trying to access data protected by a mutex while the lock has not been acquired");
+    }
+    return d_value;
+  }
+
+  T* operator->() const
+  {
+    if (!owns_lock()) {
+      throw std::runtime_error("Trying to access data protected by a mutex while the lock has not been acquired");
+    }
+    return &d_value;
+  }
+
+  operator bool() const noexcept
+  {
+    return d_lock.owns_lock();
+  }
+
+  [[nodiscard]] bool owns_lock() const noexcept
+  {
+    return d_lock.owns_lock();
+  }
+
+  void lock()
+  {
+    d_lock.lock();
+  }
+
+private:
+  std::unique_lock<std::recursive_mutex> d_lock;
+  T& d_value;
+};
+
+template <typename T>
+class RecursiveLockGuarded
+{
+public:
+  explicit RecursiveLockGuarded(const T& value) :
+    d_value(value)
+  {
+  }
+
+  explicit RecursiveLockGuarded(T&& value) :
+    d_value(std::move(value))
+  {
+  }
+
+  explicit RecursiveLockGuarded() = default;
+
+  RecursiveLockGuardedTryHolder<T> try_lock()
+  {
+    return RecursiveLockGuardedTryHolder<T>(d_value, d_mutex);
+  }
+
+  RecursiveLockGuardedHolder<T> lock()
+  {
+    return RecursiveLockGuardedHolder<T>(d_value, d_mutex);
+  }
+
+  RecursiveLockGuardedHolder<const T> read_only_lock()
+  {
+    return RecursiveLockGuardedHolder<const T>(d_value, d_mutex);
+  }
+
+private:
+  std::recursive_mutex d_mutex;
+  T d_value;
+};
+
+template <typename T>
 class SharedLockGuardedHolder
 {
 public:
@@ -353,7 +458,7 @@ public:
   }
 
 private:
-  std::lock_guard<std::shared_mutex> d_lock;
+  std::scoped_lock<std::shared_mutex> d_lock;
   T& d_value;
 };
 

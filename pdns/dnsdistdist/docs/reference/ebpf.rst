@@ -87,7 +87,7 @@ These are all the functions, objects and methods related to the :doc:`../advance
 
     .. versionadded:: 1.8.0
 
-    Block all IP addresses in this range. 
+    Block all IP addresses in this range.
 
     DNSDist eBPF code first checks if an exact IP match is found, then if a range matches, and finally if a DNSName does.
 
@@ -95,9 +95,12 @@ These are all the functions, objects and methods related to the :doc:`../advance
     :param int action: set ``action``  to ``0`` to allow a range, set ``action`` to ``1`` to block a range, set ``action`` to ``2`` to truncate a range.
     :param bool force: When ``force`` is set to true, DNSDist always accepts adding a new item to BPF maps, even if the item to be added may already be included in the larger network range.
 
-  .. method:: BPFFilter:blockQName(name [, qtype=255])
+  .. method:: BPFFilter:blockQName(name [, qtype=65535])
 
-    Block queries for this exact qname. An optional qtype can be used, defaults to 255.
+  .. versionchanged:: 2.0.0
+    Before 2.0.0 the value used to block queries for all types was 255. It also used to be the default value. This was changed because it prevented blocking only queries for the ``ANY`` (255) qtype.
+
+    Block queries for this exact qname. An optional qtype can be used, defaults to 65535 which blocks queries for all types.
 
     :param DNSName name: The name to block
     :param int qtype: QType to block
@@ -124,7 +127,10 @@ These are all the functions, objects and methods related to the :doc:`../advance
 
     List all range rule.
 
-  .. method:: BPFFilter:unblockQName(name [, qtype=255])
+  .. method:: BPFFilter:unblockQName(name [, qtype=65535])
+
+  .. versionchanged:: 2.0.0
+    Before 2.0.0 the value used to block queries for all types was 255. It also used to be the default value. This was changed because it prevented blocking only queries for the ``ANY`` (255) qtype.
 
     Remove this qname from the block list.
 
@@ -133,7 +139,7 @@ These are all the functions, objects and methods related to the :doc:`../advance
 
 .. class:: DynBPFFilter
 
-  Represents an dynamic eBPF filter, allowing the use of ephemeral rules to an existing eBPF filter. Note that since 1.6.0 the default BPF filter set via :func:`setDefaultBPFFilter` will automatically be used by a :ref:`DynBlockRulesGroup`, becoming the preferred way of dealing with ephemeral rules.
+  Represents a dynamic eBPF filter, allowing the use of ephemeral rules to an existing eBPF filter. Note that since 1.6.0 the default BPF filter set via :func:`setDefaultBPFFilter` will automatically be used by a :ref:`DynBlockRulesGroup`, becoming the preferred way of dealing with ephemeral rules.
 
   .. method:: DynBPFFilter:purgeExpired()
 

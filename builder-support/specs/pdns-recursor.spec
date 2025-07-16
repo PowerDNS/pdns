@@ -6,30 +6,37 @@ Group: System Environment/Daemons
 License: GPLv2
 Vendor: PowerDNS.COM BV
 URL: https://powerdns.com
-Source0: %{name}-%{getenv:BUILDER_VERSION}.tar.bz2
+Source0: %{name}-%{getenv:BUILDER_VERSION}.tar.xz
 
 Provides: powerdns-recursor = %{version}-%{release}
 
-%if 0%{?rhel} < 8 && 0%{?amzn} != 2023
-BuildRequires: boost169-devel
+BuildRequires: clang
+BuildRequires: lld
+BuildRequires: ninja-build
+
+%if 0%{?rhel} == 8
+BuildRequires: boost1.78-devel
 %else
 BuildRequires: boost-devel
 %endif
+BuildRequires: fstrm-devel
+BuildRequires: hostname
 BuildRequires: libcap-devel
+BuildRequires: libcurl-devel
+BuildRequires: libsodium-devel
+BuildRequires: net-snmp-devel
+BuildRequires: openssl-devel
 BuildRequires: systemd
 BuildRequires: systemd-devel
-BuildRequires: openssl-devel
-BuildRequires: fstrm-devel
-BuildRequires: libcurl-devel
-
-%if 0%{?amzn} != 2023
-BuildRequires: net-snmp-devel
-BuildRequires: libsodium-devel
-%endif
 
 %ifarch aarch64
+%if 0%{?rhel} == 8 || 0%{?amzn2023}
 BuildRequires: lua-devel
 %define lua_implementation lua
+%else
+BuildRequires: luajit-devel
+%define lua_implementation luajit
+%endif
 %else
 BuildRequires: luajit-devel
 %define lua_implementation luajit
@@ -46,40 +53,68 @@ Requires(pre): shadow-utils
 PowerDNS Recursor is a non authoritative/recursing DNS server. Use this
 package if you need a dns cache for your network.
 
-
 %prep
 %autosetup -p1 -n %{name}-%{getenv:BUILDER_VERSION}
 
+%if 0%{?rhel} >= 9
+%global toolchain clang
+%else
+# we need to disable the hardened flags because they are GCC-only
+%undefine _hardened_build
+%endif
+
 %build
-%if 0%{?rhel} < 8
-export CPPFLAGS=-I/usr/include/boost169
-export LDFLAGS=-L/usr/lib64/boost169
+%if 0%{?rhel} == 8
+export BOOST_INCLUDEDIR=/usr/include/boost1.78
+export BOOST_LIBRARYDIR=/usr/lib64/boost1.78
+%endif
+# We need to build with LLVM/clang to be able to use LTO, since we are linking against a static Rust library built with LLVM
+export CC=clang
+export CXX=clang++
+# build-id SHA1 prevents an issue with the debug symbols ("export: `-Wl,--build-id=sha1': not a valid identifier")
+export LDFLAGS="-fuse-ld=lld -Wl,--build-id=sha1"
+
+%if 0%{?rhel} == 8 || 0%{?amzn2023}
+# starting with EL-9 we get these hardening settings for free by just setting the right toolchain (see above)
+%ifarch aarch64
+%define cf_protection %{nil}
+%else
+%define cf_protection -fcf-protection
+%endif
+%if "%{_arch}" == "aarch64" && 0%{?amzn2023}
+%define stack_clash_protection %{nil}
+%else
+%define stack_clash_protection -fstack-clash-protection
+%endif
+export CFLAGS="-O2 -g -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -fexceptions -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables %{stack_clash_protection} %{cf_protection} -gdwarf-4"
+# Adding -Wno-deprecated-declarations -Wno-deprecated-builtins as boost generates tonnes of warnings
+export CXXFLAGS="-O2 -g -pipe -Wall -Wno-deprecated-declarations -Wno-deprecated-builtins -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -fexceptions -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables %{stack_clash_protection} %{cf_protection} -gdwarf-4"
 %endif
 
-%configure \
-    --enable-option-checking=fatal \
+# Note that the RPM meson macro "helpfully" sets
+# --auto-features=enabled so our auto-detection is broken
+# disably fortify as it is handled by package build infra
+%meson \
     --sysconfdir=%{_sysconfdir}/%{name} \
-    --disable-silent-rules \
-    --disable-static \
-    --enable-unit-tests \
-    --enable-dns-over-tls \
-    --enable-dnstap \
-    --with-libcap \
-    --with-lua=%{lua_implementation} \
-%if 0%{?amzn} != 2023
-    --with-libsodium \
-    --with-net-snmp \
-%endif
-    --enable-systemd --with-systemd=%{_unitdir} \
-    --enable-nod
-
-make %{?_smp_mflags}
+    -Dunit-tests=true \
+    -Db_lto=true \
+    -Db_lto_mode=thin \
+    -Db_pie=true \
+    -Dhardening-fortify-source=disabled \
+    -Ddns-over-tls=enabled \
+    -Ddnstap=enabled \
+    -Dlibcap=enabled \
+    -Dlua=%{lua_implementation} \
+    -Dsigners-libsodium=enabled \
+    -Dsnmp=enabled \
+    -Dnod=enabled
+%meson_build
 
 %check
-make %{?_smp_mflags} check || (cat test-suite.log && false)
+%meson_test
 
 %install
-make install DESTDIR=%{buildroot}
+%meson_install
 
 %{__mkdir} %{buildroot}%{_sysconfdir}/%{name}/recursor.d
 
@@ -100,14 +135,6 @@ outgoing:
 EOF
 
 %{__install } -d %{buildroot}/%{_sharedstatedir}/%{name}
-
-# The EL7 and 8 systemd actually supports %t, but its version number is older than that, so we do use seperate runtime dirs, but don't rely on RUNTIME_DIRECTORY
-%if 0%{?rhel} < 9
-sed -e 's!/pdns_recursor!& --socket-dir=%t/pdns-recursor!' -i %{buildroot}/%{_unitdir}/pdns-recursor.service
-%if 0%{?rhel} < 8
-sed -e 's!/pdns_recursor!& --socket-dir=%t/pdns-recursor-%i!' -e 's!RuntimeDirectory=pdns-recursor!&-%i!' -i %{buildroot}/%{_unitdir}/pdns-recursor@.service
-%endif
-%endif
 
 %pre
 getent group pdns-recursor > /dev/null || groupadd -r pdns-recursor

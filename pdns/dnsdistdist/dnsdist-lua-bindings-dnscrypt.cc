@@ -26,7 +26,7 @@
 
 #include "dolog.hh"
 
-void setupLuaBindingsDNSCrypt(LuaContext& luaCtx, bool client)
+void setupLuaBindingsDNSCrypt([[maybe_unused]] LuaContext& luaCtx, [[maybe_unused]] bool client)
 {
 #ifdef HAVE_DNSCRYPT
   /* DNSCryptContext bindings */
@@ -62,12 +62,12 @@ void setupLuaBindingsDNSCrypt(LuaContext& luaCtx, bool client)
     return result;
   });
 
-  luaCtx.registerFunction<std::shared_ptr<DNSCryptCertificatePair> (std::shared_ptr<DNSCryptContext>::*)(size_t idx)>("getCertificatePair", [](std::shared_ptr<DNSCryptContext>& ctx, size_t idx) {
+  luaCtx.registerFunction<boost::optional<std::shared_ptr<DNSCryptCertificatePair>> (std::shared_ptr<DNSCryptContext>::*)(size_t idx)>("getCertificatePair", [](std::shared_ptr<DNSCryptContext>& ctx, size_t idx) {
     if (ctx == nullptr) {
       throw std::runtime_error("DNSCryptContext::getCertificatePair() called on a nil value");
     }
 
-    std::shared_ptr<DNSCryptCertificatePair> result = nullptr;
+    boost::optional<std::shared_ptr<DNSCryptCertificatePair>> result{boost::none};
     auto pairs = ctx->getCertificates();
     if (idx < pairs.size()) {
       result = pairs.at(idx);
@@ -108,7 +108,7 @@ void setupLuaBindingsDNSCrypt(LuaContext& luaCtx, bool client)
     return ret.str();
   });
 
-  luaCtx.registerFunction<void (DNSCryptContext::*)(const std::string& providerPrivateKeyFile, uint32_t serial, time_t begin, time_t end, boost::optional<DNSCryptExchangeVersion> version)>("generateAndLoadInMemoryCertificate", [](DNSCryptContext& ctx, const std::string& providerPrivateKeyFile, uint32_t serial, time_t begin, time_t end, boost::optional<DNSCryptExchangeVersion> version) {
+  luaCtx.registerFunction<bool (DNSCryptContext::*)(const std::string& providerPrivateKeyFile, uint32_t serial, time_t begin, time_t end, boost::optional<DNSCryptExchangeVersion> version)>("generateAndLoadInMemoryCertificate", [](DNSCryptContext& ctx, const std::string& providerPrivateKeyFile, uint32_t serial, time_t begin, time_t end, boost::optional<DNSCryptExchangeVersion> version) -> bool {
     DNSCryptPrivateKey privateKey;
     DNSCryptCert cert;
 
@@ -120,7 +120,9 @@ void setupLuaBindingsDNSCrypt(LuaContext& luaCtx, bool client)
     catch (const std::exception& e) {
       errlog("Error generating a DNSCrypt certificate: %s", e.what());
       g_outputBuffer = "Error generating a DNSCrypt certificate: " + string(e.what()) + "\n";
+      return false;
     }
+    return true;
   });
 
   /* DNSCryptCertificatePair */

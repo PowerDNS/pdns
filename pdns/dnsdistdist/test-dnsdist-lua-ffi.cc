@@ -28,13 +28,17 @@
 #include <boost/test/unit_test.hpp>
 
 #include "dnsdist-lua-ffi.hh"
+#include "base64.hh"
+#include "dnsdist-cache.hh"
+#include "dnsdist-configuration.hh"
 #include "dnsdist-rings.hh"
 #include "dnsdist-web.hh"
 #include "dnsparser.hh"
 #include "dnswriter.hh"
 
-bool addMetricDefinition(const dnsdist::prometheus::PrometheusMetricDefinition& def)
+bool dnsdist::webserver::addMetricDefinition(const dnsdist::prometheus::PrometheusMetricDefinition& def)
 {
+  (void)def;
   return true;
 }
 
@@ -57,6 +61,7 @@ BOOST_AUTO_TEST_CASE(test_Query)
 
   DNSQuestion dq(ids, query);
   dnsdist_ffi_dnsquestion_t lightDQ(&dq);
+  const auto initialData = dq.getData();
 
   {
     // dnsdist_ffi_dnsquestion_get_qtype
@@ -236,7 +241,7 @@ BOOST_AUTO_TEST_CASE(test_Query)
   }
 
   {
-    BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_ecs_prefix_length(&lightDQ), g_ECSSourcePrefixV4);
+    BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_ecs_prefix_length(&lightDQ), dnsdist::configuration::getCurrentRuntimeConfiguration().d_ECSSourcePrefixV4);
     dnsdist_ffi_dnsquestion_set_ecs_prefix_length(&lightDQ, 65535);
     BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_ecs_prefix_length(&lightDQ), 65535U);
   }
@@ -250,25 +255,23 @@ BOOST_AUTO_TEST_CASE(test_Query)
 
   {
     BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_trailing_data(&lightDQ, nullptr), 0U);
-#if 0
-    // DNSQuestion::setTrailingData() and DNSQuestion::getTrailingData() are currently stubs in the test runner
     std::string garbage("thisissomegarbagetrailingdata");
     BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_set_trailing_data(&lightDQ, garbage.data(), garbage.size()), true);
     const char* buffer = nullptr;
     BOOST_REQUIRE_EQUAL(dnsdist_ffi_dnsquestion_get_trailing_data(&lightDQ, &buffer), garbage.size());
     BOOST_CHECK_EQUAL(garbage, std::string(buffer));
-#endif
   }
 
   {
-#if 0
-    // SpoofAction::operator() is a stub in the test runner
-    auto oldData = dq.getData();
+    dq.getMutableData() = initialData;
+    const auto oldData = dq.getData();
     std::vector<dnsdist_ffi_raw_value> values;
     ComboAddress v4("192.0.2.1");
     ComboAddress v6("[2001:db8::42]");
-    values.push_back({ reinterpret_cast<const char*>(&v4.sin4.sin_addr.s_addr), sizeof(v4.sin4.sin_addr.s_addr)});
-    values.push_back({ reinterpret_cast<const char*>(&v6.sin6.sin6_addr.s6_addr), sizeof(v6.sin6.sin6_addr.s6_addr)});
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    values.push_back({reinterpret_cast<const char*>(&v4.sin4.sin_addr.s_addr), sizeof(v4.sin4.sin_addr.s_addr)});
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    values.push_back({reinterpret_cast<const char*>(&v6.sin6.sin6_addr.s6_addr), sizeof(v6.sin6.sin6_addr.s6_addr)});
 
     dnsdist_ffi_dnsquestion_spoof_addrs(&lightDQ, values.data(), values.size());
     BOOST_CHECK(dq.getData().size() > oldData.size());
@@ -276,20 +279,17 @@ BOOST_AUTO_TEST_CASE(test_Query)
     MOADNSParser mdp(false, reinterpret_cast<const char*>(dq.getData().data()), dq.getData().size());
     BOOST_CHECK_EQUAL(mdp.d_qname, ids.qname);
     BOOST_CHECK_EQUAL(mdp.d_header.qdcount, 1U);
-    BOOST_CHECK_EQUAL(mdp.d_header.ancount, values.size());
+    /* only the A has been added since the query was not ANY */
+    BOOST_CHECK_EQUAL(mdp.d_header.ancount, 1U);
     BOOST_CHECK_EQUAL(mdp.d_header.nscount, 0U);
     BOOST_CHECK_EQUAL(mdp.d_header.arcount, 0U);
 
     BOOST_REQUIRE_EQUAL(mdp.d_answers.size(), 1U);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_type, static_cast<uint16_t>(QType::A));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_class, QClass::IN);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_name, ids.qname);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).first.d_type, static_cast<uint16_t>(QType::AAAA));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).first.d_class, QClass::IN);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).first.d_name, ids.qname);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_type, static_cast<uint16_t>(QType::A));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_class, QClass::IN);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_name, ids.qname);
 
     dq.getMutableData() = oldData;
-#endif
   }
 
   {
@@ -369,6 +369,30 @@ BOOST_AUTO_TEST_CASE(test_Query)
   BOOST_CHECK_EQUAL(ids.d_protoBufData->d_deviceID, deviceID);
   BOOST_CHECK_EQUAL(ids.d_protoBufData->d_deviceName, deviceName);
   BOOST_CHECK_EQUAL(ids.d_protoBufData->d_requestorID, requestorID);
+
+  /* no frontend yet */
+  BOOST_CHECK(dnsdist_ffi_dnsquestion_get_incoming_interface(nullptr) == nullptr);
+  BOOST_CHECK(dnsdist_ffi_dnsquestion_get_incoming_interface(&lightDQ) == nullptr);
+  {
+    /* frontend without and interface set */
+    const std::string interface{};
+    ClientState frontend(ids.origDest, false, false, 0, interface, {}, false);
+    ids.cs = &frontend;
+    const auto* itfPtr = dnsdist_ffi_dnsquestion_get_incoming_interface(&lightDQ);
+    BOOST_REQUIRE(itfPtr != nullptr);
+    BOOST_CHECK_EQUAL(std::string(itfPtr), interface);
+    ids.cs = nullptr;
+  }
+  {
+    /* frontend with interface set */
+    const std::string interface{"interface-name-0"};
+    ClientState frontend(ids.origDest, false, false, 0, interface, {}, false);
+    ids.cs = &frontend;
+    const auto* itfPtr = dnsdist_ffi_dnsquestion_get_incoming_interface(&lightDQ);
+    BOOST_REQUIRE(itfPtr != nullptr);
+    BOOST_CHECK_EQUAL(std::string(itfPtr), interface);
+    ids.cs = nullptr;
+  }
 }
 
 BOOST_AUTO_TEST_CASE(test_Response)
@@ -422,6 +446,14 @@ BOOST_AUTO_TEST_CASE(test_Response)
     dnsdist_ffi_dnsresponse_clear_records_type(nullptr, QType::A);
     dnsdist_ffi_dnsresponse_clear_records_type(&lightDR, QType::A);
   }
+
+  {
+    BOOST_CHECK_EQUAL(dnsdist_ffi_dnsresponse_get_stale_cache_hit(&lightDR), false);
+  }
+
+  {
+    BOOST_CHECK_EQUAL(dnsdist_ffi_dnsresponse_get_restart_count(&lightDR), 0);
+  }
 }
 
 BOOST_AUTO_TEST_CASE(test_Server)
@@ -441,7 +473,10 @@ BOOST_AUTO_TEST_CASE(test_Server)
 
 BOOST_AUTO_TEST_CASE(test_PacketCache)
 {
-  auto packetCache = std::make_shared<DNSDistPacketCache>(10);
+  DNSDistPacketCache::CacheSettings settings{
+    .d_maxEntries = 10,
+  };
+  auto packetCache = std::make_shared<DNSDistPacketCache>(settings);
 
   ComboAddress ipv4("192.0.2.1");
   InternalQueryState ids;
@@ -474,10 +509,10 @@ BOOST_AUTO_TEST_CASE(test_PacketCache)
   testPool->packetCache = packetCache;
   std::string poolWithNoCacheName("test-pool-without-cache");
   auto testPoolWithNoCache = std::make_shared<ServerPool>();
-  auto localPools = g_pools.getCopy();
-  localPools.emplace(poolName, testPool);
-  localPools.emplace(poolWithNoCacheName, testPoolWithNoCache);
-  g_pools.setState(localPools);
+  dnsdist::configuration::updateRuntimeConfiguration([&poolName, &testPool, &poolWithNoCacheName, &testPoolWithNoCache](dnsdist::configuration::RuntimeConfiguration& config) {
+    config.d_pools.emplace(poolName, testPool);
+    config.d_pools.emplace(poolWithNoCacheName, testPoolWithNoCache);
+  });
 
   {
     dnsdist_ffi_domain_list_t* list = nullptr;
@@ -622,6 +657,59 @@ BOOST_AUTO_TEST_CASE(test_ProxyProtocolQuery)
   }
 }
 
+BOOST_AUTO_TEST_CASE(test_ProxyProtocolIncoming)
+{
+  InternalQueryState ids;
+  ids.origRemote = ComboAddress("192.0.2.1:4242");
+  ids.origDest = ComboAddress("192.0.2.255:53");
+  ids.qtype = QType::A;
+  ids.qclass = QClass::IN;
+  ids.protocol = dnsdist::Protocol::DoUDP;
+  ids.qname = DNSName("www.powerdns.com.");
+  ids.queryRealTime.start();
+  PacketBuffer query;
+  GenericDNSPacketWriter<PacketBuffer> pwQ(query, ids.qname, QType::A, QClass::IN, 0);
+  pwQ.getHeader()->rd = 1;
+  pwQ.getHeader()->id = htons(42);
+
+  DNSQuestion dnsQuestion(ids, query);
+  dnsdist_ffi_dnsquestion_t lightDQ(&dnsQuestion);
+
+  {
+    /* invalid dq */
+    const dnsdist_ffi_proxy_protocol_value_t* out = nullptr;
+    BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_proxy_protocol_values(nullptr, &out), 0U);
+  }
+  {
+    /* invalid pointer */
+    BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_proxy_protocol_values(&lightDQ, nullptr), 0U);
+  }
+  {
+    /* no proxy protocol values */
+    const dnsdist_ffi_proxy_protocol_value_t* out = nullptr;
+    BOOST_CHECK_EQUAL(dnsdist_ffi_dnsquestion_get_proxy_protocol_values(&lightDQ, &out), 0U);
+  }
+
+  {
+    /* add some proxy protocol TLV values */
+    dnsQuestion.proxyProtocolValues = std::make_unique<std::vector<ProxyProtocolValue>>();
+    dnsQuestion.proxyProtocolValues->emplace_back(ProxyProtocolValue{"foo", 42});
+    dnsQuestion.proxyProtocolValues->emplace_back(ProxyProtocolValue{"bar", 255});
+    dnsQuestion.proxyProtocolValues->emplace_back(ProxyProtocolValue{"", 0});
+    const dnsdist_ffi_proxy_protocol_value_t* out = nullptr;
+    auto count = dnsdist_ffi_dnsquestion_get_proxy_protocol_values(&lightDQ, &out);
+    BOOST_REQUIRE_EQUAL(count, 3U);
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic): sorry, this is a C API
+    BOOST_CHECK_EQUAL(out[0].type, 42U);
+    BOOST_CHECK_EQUAL(out[0].value, "foo");
+    BOOST_CHECK_EQUAL(out[1].type, 255U);
+    BOOST_CHECK_EQUAL(out[1].value, "bar");
+    BOOST_CHECK_EQUAL(out[2].type, 0U);
+    BOOST_CHECK_EQUAL(out[2].value, "");
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic): sorry, this is a C API
+  }
+}
+
 BOOST_AUTO_TEST_CASE(test_PacketOverlay)
 {
   const DNSName target("powerdns.com.");
@@ -750,7 +838,7 @@ BOOST_AUTO_TEST_CASE(test_RingBuffers)
   gettime(&now);
 
   g_rings.reset();
-  g_rings.init();
+  g_rings.init(10000, 10);
   BOOST_CHECK_EQUAL(g_rings.getNumberOfQueryEntries(), 0U);
 
   g_rings.insertQuery(now, requestor1, qname, qtype, size, dh, protocol);
@@ -945,5 +1033,61 @@ BOOST_AUTO_TEST_CASE(test_SVC_Generation)
 
   dnsdist_ffi_svc_record_parameters_free(parameters);
 }
+
+#if !defined(DISABLE_PROTOBUF)
+BOOST_AUTO_TEST_CASE(test_meta_values)
+{
+
+  InternalQueryState ids;
+  ids.origRemote = ComboAddress("192.0.2.1:4242");
+  ids.origDest = ComboAddress("192.0.2.255:53");
+  ids.qtype = QType::A;
+  ids.qclass = QClass::IN;
+  ids.protocol = dnsdist::Protocol::DoUDP;
+  ids.qname = DNSName("www.powerdns.com.");
+  ids.queryRealTime.start();
+  PacketBuffer query;
+  GenericDNSPacketWriter<PacketBuffer> pwQ(query, ids.qname, QType::A, QClass::IN, 0);
+  pwQ.getHeader()->rd = 1;
+  pwQ.getHeader()->id = htons(42);
+
+  DNSQuestion dnsQuestion(ids, query);
+  dnsdist_ffi_dnsquestion_t lightDQ(&dnsQuestion);
+
+  {
+    /* check invalid parameters */
+    dnsdist_ffi_dnsquestion_meta_begin_key(nullptr, nullptr, 0);
+    dnsdist_ffi_dnsquestion_meta_begin_key(&lightDQ, nullptr, 0);
+    dnsdist_ffi_dnsquestion_meta_begin_key(&lightDQ, "some-key", 0);
+    dnsdist_ffi_dnsquestion_meta_add_str_value_to_key(nullptr, nullptr, 0);
+    dnsdist_ffi_dnsquestion_meta_add_str_value_to_key(&lightDQ, nullptr, 0);
+    dnsdist_ffi_dnsquestion_meta_add_str_value_to_key(&lightDQ, "some-str-value", 0);
+    dnsdist_ffi_dnsquestion_meta_add_int64_value_to_key(nullptr, 0);
+    dnsdist_ffi_dnsquestion_meta_end_key(nullptr);
+  }
+
+  {
+    /* trying to end a key that has not been started */
+    dnsdist_ffi_dnsquestion_meta_end_key(&lightDQ);
+  }
+
+  {
+    const std::string key{"some-key"};
+    const std::string value1{"first value"};
+    const std::string value2{"second value"};
+    BOOST_CHECK_EQUAL(dnsQuestion.d_rawProtobufContent.size(), 0U);
+    dnsdist_ffi_dnsquestion_meta_begin_key(&lightDQ, key.data(), key.size());
+    /* we should not be able to begin a new key without ending it first */
+    dnsdist_ffi_dnsquestion_meta_begin_key(&lightDQ, key.data(), key.size());
+    dnsdist_ffi_dnsquestion_meta_add_str_value_to_key(&lightDQ, value1.data(), value1.size());
+    dnsdist_ffi_dnsquestion_meta_add_int64_value_to_key(&lightDQ, 42);
+    dnsdist_ffi_dnsquestion_meta_add_str_value_to_key(&lightDQ, value2.data(), value2.size());
+    dnsdist_ffi_dnsquestion_meta_add_int64_value_to_key(&lightDQ, -42);
+    dnsdist_ffi_dnsquestion_meta_end_key(&lightDQ);
+    BOOST_CHECK_EQUAL(dnsQuestion.d_rawProtobufContent.size(), 55U);
+    BOOST_CHECK_EQUAL(Base64Encode(dnsQuestion.d_rawProtobufContent), "sgE0Cghzb21lLWtleRIoCgtmaXJzdCB2YWx1ZRAqCgxzZWNvbmQgdmFsdWUQ1v//////////AQ==");
+  }
+}
+#endif /* DISABLE_PROTOBUF */
 
 BOOST_AUTO_TEST_SUITE_END();

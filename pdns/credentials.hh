@@ -21,19 +21,22 @@
  */
 #pragma once
 
-#include <memory>
+#include <cstdint>
 #include <string>
 
 class SensitiveData
 {
 public:
+  SensitiveData(const SensitiveData&) = delete;
+  SensitiveData(SensitiveData&&) = delete;
+  SensitiveData& operator=(const SensitiveData&) = delete;
   SensitiveData(size_t bytes);
   SensitiveData(std::string&& data);
   SensitiveData& operator=(SensitiveData&&) noexcept;
 
   ~SensitiveData();
   void clear();
-  const std::string& getString() const
+  [[nodiscard]] const std::string& getString() const
   {
     return d_data;
   }
@@ -55,6 +58,8 @@ bool isPasswordHashed(const std::string& password);
 class CredentialsHolder
 {
 public:
+  CredentialsHolder(CredentialsHolder&&) = delete;
+  CredentialsHolder& operator=(CredentialsHolder&&) = delete;
   /* if hashPlaintext is true, the password is in cleartext and hashing is available,
      the hashed form will be kept in memory.
      Note that accepting hashed password from an untrusted source might open
@@ -66,14 +71,14 @@ public:
   CredentialsHolder(const CredentialsHolder&) = delete;
   CredentialsHolder& operator=(const CredentialsHolder&) = delete;
 
-  bool matches(const std::string& password) const;
+  [[nodiscard]] bool matches(const std::string& password) const;
   /* whether it was constructed from a hashed and salted string */
-  bool wasHashed() const
+  [[nodiscard]] bool wasHashed() const
   {
     return d_wasHashed;
   }
   /* whether it is hashed in memory */
-  bool isHashed() const
+  [[nodiscard]] bool isHashed() const
   {
     return d_isHashed;
   }
@@ -81,9 +86,9 @@ public:
   static bool isHashingAvailable();
   static SensitiveData readFromTerminal();
 
-  static uint64_t const s_defaultWorkFactor;
-  static uint64_t const s_defaultParallelFactor;
-  static uint64_t const s_defaultBlockSize;
+  static uint64_t constexpr s_defaultWorkFactor{1024U}; /* N */
+  static uint64_t constexpr s_defaultParallelFactor{1U}; /* p */
+  static uint64_t constexpr s_defaultBlockSize{8U}; /* r */
 
 private:
   SensitiveData d_credentials;

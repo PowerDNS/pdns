@@ -19,15 +19,18 @@ Apart from raw SQL statements, setting domain metadata can be done with
 
 The following options can only be read (not written to) via the HTTP API metadata endpoint.
 
-* API-RECTIFY
 * AXFR-MASTER-TSIG
 * LUA-AXFR-SCRIPT
 * NSEC3NARROW
 * NSEC3PARAM
 * PRESIGNED
-* TSIG-ALLOW-AXFR
+* SOA-EDIT
 
-The option SOA-EDIT-API cannot be written or read via the HTTP API metadata endpoint.
+The following options cannot be written or read via the HTTP API metadata endpoint.
+
+* API-RECTIFY
+* ENABLE-LUA-RECORDS
+* SOA-EDIT-API
 
 .. _metadata-allow-axfr-from:
 
@@ -37,7 +40,7 @@ ALLOW-AXFR-FROM
 Per-zone AXFR ACLs can be stored in the domainmetadata table.
 
 Each ACL specifies one subnet (v4 or v6), or the magical value 'AUTO-NS'
-that tries to allow all potential slaves in.
+that tries to allow all potential secondaries in.
 
 Example:
 
@@ -59,28 +62,8 @@ records, add ``allow-axfr-ips=`` to ``pdns.conf``.
 
 .. _metadata-api-rectify:
 
-API-RECTIFY
------------
-.. versionadded:: 4.1.0
-
-This metadata item controls whether or not a zone is fully rectified on changes
-to the contents of a zone made through the :doc:`API <http-api/index>`.
-
-When the ``API-RECTIFY`` value is "1", the zone will be rectified on changes.
-Any other value means that it will not be rectified. If this is not set
-at all, rectifying of the zone depends on the config variable
-:ref:`setting-default-api-rectify`.
-
-.. _metadata-axfr-source:
-
-AXFR-SOURCE
------------
-
-The IP address to use as a source address for sending AXFR and IXFR
-requests.
-
-ALLOW-DNSUPDATE-FROM, TSIG-ALLOW-DNSUPDATE, FORWARD-DNSUPDATE, SOA-EDIT-DNSUPDATE, NOTIFY-DNSUPDATE
----------------------------------------------------------------------------------------------------
+ALLOW-DNSUPDATE-FROM, FORWARD-DNSUPDATE, NOTIFY-DNSUPDATE, SOA-EDIT-DNSUPDATE
+-----------------------------------------------------------------------------
 
 See the documentation on :ref:`Dynamic DNS update <dnsupdate-metadata>`.
 
@@ -99,10 +82,42 @@ number. e.g.:
     pdnsutil set-meta powerdns.org ALLOW-AXFR-FROM 2001:db8:53::1
 
 
+API-RECTIFY
+-----------
+.. versionadded:: 4.1.0
+
+This metadata item controls whether or not a zone is fully rectified on changes
+to the contents of a zone made through the :doc:`API <http-api/index>`.
+
+When the ``API-RECTIFY`` value is "1", the zone will be rectified on changes.
+Any other value means that it will not be rectified. If this is not set
+at all, rectifying of the zone depends on the config variable
+:ref:`setting-default-api-rectify`.
+
+.. _metadata-axfr-source:
+
 AXFR-MASTER-TSIG
 ----------------
 
-Use this named TSIG key to retrieve this zone from its master, see :ref:`tsig-provision-signed-notify-axfr`.
+Use this named TSIG key to retrieve this zone from its primary, see :ref:`tsig-provision-signed-notify-axfr`.
+
+AXFR-SOURCE
+-----------
+
+The IP address to use as a source address for sending AXFR and IXFR
+requests.
+
+ENABLE-LUA-RECORDS
+------------------
+
+If set to 1, allows :doc:`LUA records <lua-records/index>` to be used within
+this zone, even if :ref:`setting-enable-lua-records` is set to ``no``.
+
+GSS-ACCEPTOR-PRINCIPAL
+----------------------
+
+Use this principal for accepting GSS context.
+(See :ref:`tsig-gss-tsig`).
 
 GSS-ALLOW-AXFR-PRINCIPAL
 ------------------------
@@ -118,16 +133,10 @@ Allow this GSS principal to perform AXFR retrieval. Most commonly it is
 ``host/something@REALM``, ``DNS/something@REALM`` or ``user@REALM``.
 (See :ref:`tsig-gss-tsig`).
 
-GSS-ACCEPTOR-PRINCIPAL
-----------------------
-
-Use this principal for accepting GSS context.
-(See :ref:`tsig-gss-tsig`).
-
 IXFR
 ----
 
-If set to 1, attempt IXFR when retrieving zone updates. Otherwise IXFR
+If set to 1, attempt IXFR when retrieving zone updates. Otherwise, IXFR
 is not attempted.
 
 LUA-AXFR-SCRIPT
@@ -179,7 +188,7 @@ To publish CDNSKEY records of the KSKs for the zone, set
 
 To publish CDS records for the KSKs in the zone, set ``PUBLISH-CDS`` to
 a comma- separated list of `signature algorithm
-numbers <http://www.iana.org/assignments/ds-rr-types/ds-rr-types.xhtml#ds-rr-types-1>`__.
+numbers <https://www.iana.org/assignments/ds-rr-types/ds-rr-types.xhtml#ds-rr-types-1>`__.
 
 This metadata can also be set using the
 :doc:`pdnsutil <dnssec/pdnsutil>` commands ``set-publish-cdnskey``
@@ -194,9 +203,9 @@ SLAVE-RENOTIFY
 --------------
 .. versionadded:: 4.3.0
 
-If set to 1, will make PowerDNS renotify the slaves after an AXFR is received from a master.
+If set to 1, will make PowerDNS renotify the secondaries after an AXFR is received from a primary.
 Any other value means that no renotifies are done. If not set at all, action will depend on
-the :ref:`setting-slave-renotify` setting.
+the :ref:`setting-secondary-do-renotify` setting.
 
 .. _metadata-soa-edit:
 
@@ -204,9 +213,9 @@ SOA-EDIT
 --------
 
 When serving this zone, modify the SOA serial number in one of several
-ways. Mostly useful to get slaves to re-transfer a zone regularly to get
+ways. Mostly useful to get secondaries to re-transfer a zone regularly to get
 fresh RRSIGs. See the :ref:`DNSSEC
-documentation <soa-edit-ensure-signature-freshness-on-slaves>`
+documentation <soa-edit-ensure-signature-freshness-on-secondaries>`
 for more information.
 
 .. _metadata-soa-edit-api:
@@ -231,7 +240,7 @@ TSIG-ALLOW-DNSUPDATE
 --------------------
 
 This setting allows you to set the TSIG key required to do an :doc:`dnsupdate`.
-If :ref:`GSS-TSIG <tsig-gss-tsig>` is enabled, you can put kerberos principals here as well.
+If :ref:`GSS-TSIG <tsig-gss-tsig>` is enabled, you can put Kerberos principals here as well.
 
 Extra metadata
 --------------

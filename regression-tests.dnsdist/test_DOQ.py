@@ -63,6 +63,64 @@ class TestDOQ(QUICTests, DNSDistTest):
     def sendQUICQuery(self, query, response=None, useQueue=True, connection=None):
         return self.sendDOQQuery(self._doqServerPort, query, response=response, caFile=self._caCert, useQueue=useQueue, serverName=self._serverName, connection=connection)
 
+class TestDOQYaml(QUICTests, DNSDistTest):
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _doqServerPort = pickAvailablePort()
+    _config_template = ""
+    _config_params = []
+    _yaml_config_template = """---
+backends:
+  - address: "127.0.0.1:%d"
+    protocol: "Do53"
+binds:
+  - listen_address: "127.0.0.1:%d"
+    reuseport: true
+    protocol: "DoQ"
+    tls:
+      certificates:
+        - certificate: "%s"
+          key: "%s"
+query_rules:
+  - name: "Drop"
+    selector:
+      type: "QName"
+      qname: "drop.doq.tests.powerdns.com."
+    action:
+      type: "Drop"
+  - name: "Refused"
+    selector:
+      type: "QName"
+      qname: "refused.doq.tests.powerdns.com."
+    action:
+      type: "RCode"
+      rcode: "5"
+  - name: "Spoof"
+    selector:
+      type: "QName"
+      qname: "spoof.doq.tests.powerdns.com."
+    action:
+      type: "Spoof"
+      ips:
+        - "1.2.3.4"
+  - name: "No backend"
+    selector:
+      type: "QName"
+      qname: "no-backend.doq.tests.powerdns.com."
+    action:
+      type: "Pool"
+      pool_name: "this-pool-has-no-backend"
+    """
+    _yaml_config_params = ['_testServerPort', '_doqServerPort','_serverCert', '_serverKey']
+
+    def getQUICConnection(self):
+        return self.getDOQConnection(self._doqServerPort, self._caCert)
+
+    def sendQUICQuery(self, query, response=None, useQueue=True, connection=None):
+        return self.sendDOQQuery(self._doqServerPort, query, response=response, caFile=self._caCert, useQueue=useQueue, serverName=self._serverName, connection=connection)
+
 class TestDOQWithCache(QUICWithCacheTests, DNSDistTest):
     _serverKey = 'server.key'
     _serverCert = 'server.chain'

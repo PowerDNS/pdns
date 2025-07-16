@@ -81,6 +81,7 @@ bool ConnectionToBackend::reconnect()
          the other end to acknowledge our initial packet before we could
          send the rest. */
       setTCPNoDelay(socket.getHandle());
+      setDscp(socket.getHandle(), d_ds->d_config.remote.sin4.sin_family, d_ds->d_config.dscp);
 
 #ifdef SO_BINDTODEVICE
       if (!d_ds->d_config.sourceItfName.empty()) {
@@ -191,11 +192,11 @@ static bool getSerialFromIXFRQuery(TCPQuery& query)
     MOADNSParser parser(true, reinterpret_cast<const char*>(query.d_buffer.data() + sizeof(uint16_t) + proxyPayloadSize), payloadSize);
 
     for (const auto& record : parser.d_answers) {
-      if (record.first.d_place != DNSResourceRecord::AUTHORITY || record.first.d_class != QClass::IN || record.first.d_type != QType::SOA) {
+      if (record.d_place != DNSResourceRecord::AUTHORITY || record.d_class != QClass::IN || record.d_type != QType::SOA) {
         return false;
       }
 
-      auto unknownContent = getRR<UnknownRecordContent>(record.first);
+      auto unknownContent = getRR<UnknownRecordContent>(record);
       if (!unknownContent) {
         return false;
       }
@@ -224,17 +225,12 @@ static void editPayloadID(PacketBuffer& payload, uint16_t newId, size_t proxyPro
   memcpy(&payload.at(startOfHeaderOffset), &id, sizeof(id));
 }
 
-enum class QueryState : uint8_t {
-  hasSizePrepended,
-  noSize
-};
-
 enum class ConnectionState : uint8_t {
   needProxy,
   proxySent
 };
 
-static void prepareQueryForSending(TCPQuery& query, uint16_t id, QueryState queryState, ConnectionState connectionState)
+static void prepareQueryForSending(TCPQuery& query, uint16_t queryID, ConnectionState connectionState)
 {
   if (connectionState == ConnectionState::needProxy) {
     if (query.d_proxyProtocolPayload.size() > 0 && !query.d_proxyProtocolPayloadAdded) {
@@ -258,7 +254,7 @@ static void prepareQueryForSending(TCPQuery& query, uint16_t id, QueryState quer
     getSerialFromIXFRQuery(query);
   }
 
-  editPayloadID(query.d_buffer, id, query.d_proxyProtocolPayloadAdded ? query.d_idstate.d_proxyProtocolPayloadSize : 0, true);
+  editPayloadID(query.d_buffer, queryID, query.d_proxyProtocolPayloadAdded ? query.d_idstate.d_proxyProtocolPayloadSize : 0, true);
 }
 
 IOState TCPConnectionToBackend::queueNextQuery(std::shared_ptr<TCPConnectionToBackend>& conn)
@@ -266,7 +262,7 @@ IOState TCPConnectionToBackend::queueNextQuery(std::shared_ptr<TCPConnectionToBa
   conn->d_currentQuery = std::move(conn->d_pendingQueries.front());
 
   uint16_t id = conn->d_highestStreamID;
-  prepareQueryForSending(conn->d_currentQuery.d_query, id, QueryState::hasSizePrepended, conn->needProxyProtocolPayload() ? ConnectionState::needProxy : ConnectionState::proxySent);
+  prepareQueryForSending(conn->d_currentQuery.d_query, id, conn->needProxyProtocolPayload() ? ConnectionState::needProxy : ConnectionState::proxySent);
 
   conn->d_pendingQueries.pop_front();
   conn->d_state = State::sendingQueryToBackend;
@@ -277,6 +273,7 @@ IOState TCPConnectionToBackend::queueNextQuery(std::shared_ptr<TCPConnectionToBa
 
 IOState TCPConnectionToBackend::sendQuery(std::shared_ptr<TCPConnectionToBackend>& conn, const struct timeval& now)
 {
+  (void)now;
   DEBUGLOG("sending query to backend "<<conn->getDS()->getNameWithAddr()<<" over FD "<<conn->d_handler->getDescriptor());
 
   IOState state = conn->d_handler->tryWrite(conn->d_currentQuery.d_query.d_buffer, conn->d_currentPos, conn->d_currentQuery.d_query.d_buffer.size());
@@ -428,7 +425,7 @@ void TCPConnectionToBackend::handleIO(std::shared_ptr<TCPConnectionToBackend>& c
               /* we need to edit this query so it has the correct ID */
               auto query = std::move(conn->d_currentQuery);
               uint16_t id = conn->d_highestStreamID;
-              prepareQueryForSending(query.d_query, id, QueryState::hasSizePrepended, ConnectionState::needProxy);
+              prepareQueryForSending(query.d_query, id, ConnectionState::needProxy);
               conn->d_currentQuery = std::move(query);
             }
 
@@ -542,7 +539,7 @@ void TCPConnectionToBackend::queueQuery(std::shared_ptr<TCPQuerySender>& sender,
     uint16_t id = d_highestStreamID;
 
     d_currentQuery = PendingRequest({sender, std::move(query)});
-    prepareQueryForSending(d_currentQuery.d_query, id, QueryState::hasSizePrepended, needProxyProtocolPayload() ? ConnectionState::needProxy : ConnectionState::proxySent);
+    prepareQueryForSending(d_currentQuery.d_query, id, needProxyProtocolPayload() ? ConnectionState::needProxy : ConnectionState::proxySent);
 
     struct timeval now;
     gettimeofday(&now, 0);
@@ -613,13 +610,18 @@ void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, F
     }
   };
 
+  const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
+  const auto& timeoutRespRules = dnsdist::rules::getResponseRuleChain(chains, dnsdist::rules::ResponseRuleChain::TimeoutResponseRules);
+
   try {
     if (d_state == State::sendingQueryToBackend) {
       increaseCounters(d_currentQuery.d_query.d_idstate.cs);
       auto sender = std::move(d_currentQuery.d_sender);
       if (sender->active()) {
-        TCPResponse response(std::move(d_currentQuery.d_query));
-        sender->notifyIOError(now, std::move(response));
+        if (!handleTimeoutResponseRules(timeoutRespRules, d_currentQuery.d_query.d_idstate, d_ds, sender)) {
+          TCPResponse response(std::move(d_currentQuery.d_query));
+          sender->notifyIOError(now, std::move(response));
+        }
       }
     }
 
@@ -627,8 +629,10 @@ void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, F
       increaseCounters(query.d_query.d_idstate.cs);
       auto sender = std::move(query.d_sender);
       if (sender->active()) {
-        TCPResponse response(std::move(query.d_query));
-        sender->notifyIOError(now, std::move(response));
+        if (!handleTimeoutResponseRules(timeoutRespRules, query.d_query.d_idstate, d_ds, sender)) {
+          TCPResponse response(std::move(query.d_query));
+          sender->notifyIOError(now, std::move(response));
+        }
       }
     }
 
@@ -636,8 +640,10 @@ void TCPConnectionToBackend::notifyAllQueriesFailed(const struct timeval& now, F
       increaseCounters(response.second.d_query.d_idstate.cs);
       auto sender = std::move(response.second.d_sender);
       if (sender->active()) {
-        TCPResponse tresp(std::move(response.second.d_query));
-        sender->notifyIOError(now, std::move(tresp));
+        if (!handleTimeoutResponseRules(timeoutRespRules, response.second.d_query.d_idstate, d_ds, sender)) {
+          TCPResponse tresp(std::move(response.second.d_query));
+          sender->notifyIOError(now, std::move(tresp));
+        }
       }
     }
   }
@@ -815,11 +821,11 @@ bool TCPConnectionToBackend::isXFRFinished(const TCPResponse& response, TCPQuery
     }
     else {
       for (const auto& record : parser.d_answers) {
-        if (record.first.d_class != QClass::IN || record.first.d_type != QType::SOA) {
+        if (record.d_class != QClass::IN || record.d_type != QType::SOA) {
           continue;
         }
 
-        auto unknownContent = getRR<UnknownRecordContent>(record.first);
+        auto unknownContent = getRR<UnknownRecordContent>(record);
         if (!unknownContent) {
           continue;
         }

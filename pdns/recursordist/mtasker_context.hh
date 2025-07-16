@@ -30,6 +30,8 @@ struct pdns_ucontext_t
   pdns_ucontext_t();
   pdns_ucontext_t(pdns_ucontext_t const&) = delete;
   pdns_ucontext_t& operator=(pdns_ucontext_t const&) = delete;
+  pdns_ucontext_t(pdns_ucontext_t&&) = delete;
+  pdns_ucontext_t& operator=(pdns_ucontext_t&&) = delete;
   ~pdns_ucontext_t();
 
   void* uc_mcontext;

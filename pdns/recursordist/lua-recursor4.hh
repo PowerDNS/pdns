@@ -72,7 +72,11 @@ struct LuaContext::Pusher<pdns_postresolve_ffi_handle*>
 class RecursorLua4 : public BaseLua4
 {
 public:
-  RecursorLua4();
+  RecursorLua4(const std::string& includePath = "") :
+    BaseLua4(includePath)
+  {
+    prepareContext();
+  };
   RecursorLua4(const RecursorLua4&) = delete;
   RecursorLua4(RecursorLua4&&) = delete;
   RecursorLua4& operator=(const RecursorLua4&) = delete;
@@ -133,7 +137,7 @@ public:
     unsigned int tag{0};
     int rcode{0};
     const uint16_t qtype;
-    const bool isTcp;
+    bool isTcp;
     vState validationState{vState::Indeterminate};
 
     void addAnswer(uint16_t type, const std::string& content, boost::optional<int> ttl, boost::optional<string> name);
@@ -215,10 +219,12 @@ public:
   bool nodata(DNSQuestion& dnsQuestion, int& ret, RecEventTrace&) const;
   bool postresolve(DNSQuestion& dnsQuestion, int& ret, RecEventTrace&) const;
 
-  bool preoutquery(const ComboAddress& nameserver, const ComboAddress& requestor, const DNSName& query, const QType& qtype, bool isTcp, vector<DNSRecord>& res, int& ret, RecEventTrace& eventTrace, const struct timeval& theTime) const;
+  bool preoutquery(const ComboAddress& nameserver, const ComboAddress& requestor, const DNSName& query, const QType& qtype, bool& isTcp, vector<DNSRecord>& res, int& ret, RecEventTrace& eventTrace, const struct timeval& theTime) const;
   bool ipfilter(const ComboAddress& remote, const ComboAddress& local, const struct dnsheader&, RecEventTrace&) const;
 
   bool policyHitEventFilter(const ComboAddress& remote, const DNSName& qname, const QType& qtype, bool tcp, DNSFilterEngine::Policy& policy, std::unordered_set<std::string>& tags, std::unordered_map<std::string, bool>& discardedPolicies) const;
+
+  void runStartStopFunction(const std::string& script, bool start, Logr::log_t log);
 
   [[nodiscard]] bool needDQ() const
   {

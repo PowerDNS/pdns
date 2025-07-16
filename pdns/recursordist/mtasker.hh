@@ -30,7 +30,6 @@
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index/key_extractors.hpp>
 
-#include "namespaces.hh"
 #include "misc.hh"
 #include "mtasker_context.hh"
 
@@ -51,9 +50,7 @@ public:
   {
     EventKey key;
     std::shared_ptr<pdns_ucontext_t> context;
-    struct timeval ttd
-    {
-    };
+    struct timeval ttd{};
     int tid{};
   };
   struct KeyTag
@@ -182,12 +179,12 @@ private:
   size_t d_maxCachedStacks{0};
   int d_tid{0};
   int d_maxtid{0};
-
+  bool d_used{true}; // was d_eventkey consumed?
   enum waitstatusenum : int8_t
   {
     Error = -1,
     TimeOut = 0,
-    Answer
+    Answer = 1,
   } d_waitstatus;
 
   std::shared_ptr<pdns_ucontext_t> getUContext();
@@ -267,18 +264,14 @@ int MTasker<EventKey, EventVal, Cmp>::waitEvent(EventKey& key, EventVal* val, un
   waiter.ttd.tv_sec = 0;
   waiter.ttd.tv_usec = 0;
   if (timeoutMsec != 0) {
-    struct timeval increment
-    {
-    };
+    struct timeval increment{};
     increment.tv_sec = timeoutMsec / 1000;
     increment.tv_usec = static_cast<decltype(increment.tv_usec)>(1000 * (timeoutMsec % 1000));
     if (now != nullptr) {
       waiter.ttd = increment + *now;
     }
     else {
-      struct timeval realnow
-      {
-      };
+      struct timeval realnow{};
       gettimeofday(&realnow, nullptr);
       waiter.ttd = increment + realnow;
     }
@@ -299,13 +292,16 @@ int MTasker<EventKey, EventVal, Cmp>::waitEvent(EventKey& key, EventVal* val, un
   d_threads[d_tid].dt.start();
 #endif
   if (val && d_waitstatus == Answer) {
-    *val = d_waitval;
+    *val = std::move(d_waitval);
   }
   d_tid = waiter.tid;
-  if ((char*)&waiter < d_threads[d_tid].highestStackSeen) {
-    d_threads[d_tid].highestStackSeen = (char*)&waiter;
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+  if (auto* waiterAddress = reinterpret_cast<char*>(&waiter); waiterAddress < d_threads[d_tid].highestStackSeen) {
+    d_threads[d_tid].highestStackSeen = waiterAddress;
   }
-  key = d_eventkey;
+  assert(!d_used);
+  key = std::move(d_eventkey);
+  d_used = true;
   return d_waitstatus;
 }
 
@@ -332,10 +328,9 @@ void MTasker<Key, Val, Cmp>::yield()
 template <class EventKey, class EventVal, class Cmp>
 int MTasker<EventKey, EventVal, Cmp>::sendEvent(const EventKey& key, const EventVal* val)
 {
-  typename waiters_t::iterator waiter = d_waiters.find(key);
+  auto waiter = d_waiters.find(key);
 
   if (waiter == d_waiters.end()) {
-    // cerr<<"Event sent nobody was waiting for! " <<key << endl;
     return 0;
   }
   d_waitstatus = Answer;
@@ -344,6 +339,7 @@ int MTasker<EventKey, EventVal, Cmp>::sendEvent(const EventKey& key, const Event
   }
   d_tid = waiter->tid; // set tid
   d_eventkey = waiter->key; // pass waitEvent the exact key it was woken for
+  d_used = false;
   auto userspace = std::move(waiter->context);
   d_waiters.erase(waiter); // removes the waitpoint
   notifyStackSwitch(d_threads[d_tid].startOfStack, d_stacksize);
@@ -373,8 +369,7 @@ std::shared_ptr<pdns_ucontext_t> MTasker<Key, Val, Cmp>::getUContext()
   ucontext->uc_link = &d_kernel; // come back to kernel after dying
 
 #ifdef PDNS_USE_VALGRIND
-  uc->valgrind_id = VALGRIND_STACK_REGISTER(&uc->uc_stack[0],
-                                            &uc->uc_stack[uc->uc_stack.size() - 1]);
+  ucontext->valgrind_id = VALGRIND_STACK_REGISTER(&ucontext->uc_stack[0], &ucontext->uc_stack[ucontext->uc_stack.size() - 1]);
 #endif /* PDNS_USE_VALGRIND */
 
   return ucontext;
@@ -457,14 +452,13 @@ bool MTasker<Key, Val, Cmp>::schedule(const struct timeval& now)
     return true;
   }
   if (!d_waiters.empty()) {
-    typedef typename waiters_t::template index<KeyTag>::type waiters_by_ttd_index_t;
-    //    waiters_by_ttd_index_t& ttdindex=d_waiters.template get<KeyTag>();
-    waiters_by_ttd_index_t& ttdindex = boost::multi_index::get<KeyTag>(d_waiters);
+    auto& ttdindex = boost::multi_index::get<KeyTag>(d_waiters);
 
-    for (typename waiters_by_ttd_index_t::iterator i = ttdindex.begin(); i != ttdindex.end();) {
+    for (auto i = ttdindex.begin(); i != ttdindex.end();) {
       if (i->ttd.tv_sec && i->ttd < now) {
         d_waitstatus = TimeOut;
         d_eventkey = i->key; // pass waitEvent the exact key it was woken for
+        d_used = false;
         auto ucontext = i->context;
         d_tid = i->tid;
         ttdindex.erase(i++); // removes the waitpoint

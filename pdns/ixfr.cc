@@ -259,40 +259,41 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord>>> getIXFRDeltas(const ComboAddr
     for (auto& r: mdp.d_answers) {
       if(!primarySOA) {
         // we have not seen the first SOA record yet
-        if (r.first.d_type != QType::SOA) {
-          throw std::runtime_error("The first record of the IXFR answer for zone '"+zone.toLogString()+"' from primary '"+primary.toStringWithPort()+"' is not a SOA ("+QType(r.first.d_type).toString()+")");
+        if (r.d_type != QType::SOA) {
+          throw std::runtime_error("The first record of the IXFR answer for zone '"+zone.toLogString()+"' from primary '"+primary.toStringWithPort()+"' is not a SOA ("+QType(r.d_type).toString()+")");
         }
 
-        auto sr = getRR<SOARecordContent>(r.first);
-        if (!sr) {
+        auto soaRecord = getRR<SOARecordContent>(r);
+        if (!soaRecord) {
           throw std::runtime_error("Error getting the content of the first SOA record of the IXFR answer for zone '"+zone.toLogString()+"' from primary '"+primary.toStringWithPort()+"'");
         }
 
-        if(sr->d_st.serial == getRR<SOARecordContent>(oursr)->d_st.serial) {
+        if(soaRecord->d_st.serial == getRR<SOARecordContent>(oursr)->d_st.serial) {
           // we are up to date
           return ret;
         }
-        primarySOA = std::move(sr);
+        if(soaRecord->d_st.serial < getRR<SOARecordContent>(oursr)->d_st.serial) {
+          // we have a higher SOA than the auth? Should not happen, but what can we do?
+          throw std::runtime_error("Our serial is higher than remote one for zone '" + zone.toLogString() + "' from primary '" + primary.toStringWithPort() + "': ours " + std::to_string(getRR<SOARecordContent>(oursr)->d_st.serial) + " theirs " + std::to_string(soaRecord->d_st.serial));
+        }
+        primarySOA = std::move(soaRecord);
         ++primarySOACount;
-      } else if (r.first.d_type == QType::SOA) {
-        auto sr = getRR<SOARecordContent>(r.first);
-        if (!sr) {
+      } else if (r.d_type == QType::SOA) {
+        auto soaRecord = getRR<SOARecordContent>(r);
+        if (!soaRecord) {
           throw std::runtime_error("Error getting the content of SOA record of IXFR answer for zone '"+zone.toLogString()+"' from primary '"+primary.toStringWithPort()+"'");
         }
 
         // we hit a marker SOA record
-        if (primarySOA->d_st.serial == sr->d_st.serial) {
+        if (primarySOA->d_st.serial == soaRecord->d_st.serial) {
           ++primarySOACount;
         }
       }
       // When we see the 2nd record, we can decide what the style is
       if (records.size() == 1 && style == Unknown) {
-        if (r.first.d_type != QType::SOA) {
-          // Non-empty AXFR style has a non-SOA record following the first SOA
-          style = AXFR;
-        }
-        else if (primarySOACount == expectedSOAForAXFR) {
-          // Empty zone AXFR style: start SOA is immediately followed by end marker SOA
+        if (r.d_type != QType::SOA || primarySOACount == expectedSOAForAXFR) {
+          // 1. Non-empty AXFR style has a non-SOA record following the first SOA
+          // 2. Empty zone AXFR style: start SOA is immediately followed by end marker SOA
           style = AXFR;
         }
         else {
@@ -301,18 +302,20 @@ vector<pair<vector<DNSRecord>, vector<DNSRecord>>> getIXFRDeltas(const ComboAddr
         }
       }
 
-      if(r.first.d_place != DNSResourceRecord::ANSWER) {
-        if(r.first.d_type == QType::TSIG)
+      if(r.d_place != DNSResourceRecord::ANSWER) {
+        if (r.d_type == QType::TSIG) {
           continue;
+        }
 
-        if(r.first.d_type == QType::OPT)
+        if (r.d_type == QType::OPT) {
           continue;
+        }
 
-        throw std::runtime_error("Unexpected record (" +QType(r.first.d_type).toString()+") in non-answer section ("+std::to_string(r.first.d_place)+") in IXFR response for zone '"+zone.toLogString()+"' from primary '"+primary.toStringWithPort());
+        throw std::runtime_error("Unexpected record (" +QType(r.d_type).toString()+") in non-answer section ("+std::to_string(r.d_place)+") in IXFR response for zone '"+zone.toLogString()+"' from primary '"+primary.toStringWithPort());
       }
 
-      r.first.d_name.makeUsRelative(zone);
-      records.push_back(r.first);
+      r.d_name.makeUsRelative(zone);
+      records.push_back(r);
     }
   }
 

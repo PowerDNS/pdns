@@ -73,22 +73,11 @@ struct Rings
     LockGuarded<boost::circular_buffer<Response>> respRing;
   };
 
-  Rings(size_t capacity = 10000, size_t numberOfShards = 10, size_t nbLockTries = 5, bool keepLockingStats = false) :
-    d_blockingQueryInserts(0), d_blockingResponseInserts(0), d_deferredQueryInserts(0), d_deferredResponseInserts(0), d_nbQueryEntries(0), d_nbResponseEntries(0), d_currentShardId(0), d_capacity(capacity), d_numberOfShards(numberOfShards), d_nbLockTries(nbLockTries), d_keepLockingStats(keepLockingStats)
-  {
-  }
-
   std::unordered_map<int, vector<boost::variant<string, double>>> getTopBandwidth(unsigned int numentries);
   size_t numDistinctRequestors();
-  /* this function should not be called after init() has been called */
-  void setCapacity(size_t newCapacity, size_t numberOfShards);
 
   /* This function should only be called at configuration time before any query or response has been inserted */
-  void init();
-
-  void setNumberOfLockRetries(size_t retries);
-  void setRecordQueries(bool);
-  void setRecordResponses(bool);
+  void init(size_t capacity, size_t numberOfShards, size_t nbLockRetries = 5, bool recordQueries = true, bool recordResponses = true);
 
   size_t getNumberOfShards() const
   {
@@ -125,13 +114,13 @@ struct Rings
 #endif
         return;
       }
-      if (d_keepLockingStats) {
+      if (s_keepLockingStats) {
         ++d_deferredQueryInserts;
       }
     }
 
     /* out of luck, let's just wait */
-    if (d_keepLockingStats) {
+    if (s_keepLockingStats) {
       ++d_blockingResponseInserts;
     }
     auto& shard = getOneShard();
@@ -152,13 +141,13 @@ struct Rings
         insertResponseLocked(*lock, when, requestor, name, qtype, usec, size, dh, backend, protocol);
         return;
       }
-      if (d_keepLockingStats) {
+      if (s_keepLockingStats) {
         ++d_deferredResponseInserts;
       }
     }
 
     /* out of luck, let's just wait */
-    if (d_keepLockingStats) {
+    if (s_keepLockingStats) {
       ++d_blockingResponseInserts;
     }
     auto& shard = getOneShard();
@@ -204,10 +193,10 @@ struct Rings
   }
 
   std::vector<std::unique_ptr<Shard>> d_shards;
-  pdns::stat_t d_blockingQueryInserts;
-  pdns::stat_t d_blockingResponseInserts;
-  pdns::stat_t d_deferredQueryInserts;
-  pdns::stat_t d_deferredResponseInserts;
+  pdns::stat_t d_blockingQueryInserts{0};
+  pdns::stat_t d_blockingResponseInserts{0};
+  pdns::stat_t d_deferredQueryInserts{0};
+  pdns::stat_t d_deferredResponseInserts{0};
 
 private:
   size_t getShardId()
@@ -248,15 +237,16 @@ private:
     ring.push_back({requestor, backend, name, when, dh, usec, size, qtype, protocol});
   }
 
-  std::atomic<size_t> d_nbQueryEntries;
-  std::atomic<size_t> d_nbResponseEntries;
-  std::atomic<size_t> d_currentShardId;
+  static constexpr bool s_keepLockingStats{false};
+
+  std::atomic<size_t> d_nbQueryEntries{0};
+  std::atomic<size_t> d_nbResponseEntries{0};
+  std::atomic<size_t> d_currentShardId{0};
   std::atomic<bool> d_initialized{false};
 
-  size_t d_capacity;
-  size_t d_numberOfShards;
-  size_t d_nbLockTries = 5;
-  bool d_keepLockingStats{false};
+  size_t d_capacity{10000};
+  size_t d_numberOfShards{10};
+  size_t d_nbLockTries{5};
   bool d_recordQueries{true};
   bool d_recordResponses{true};
 };

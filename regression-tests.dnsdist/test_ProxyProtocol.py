@@ -4,6 +4,7 @@ import dns
 import selectors
 import socket
 import ssl
+import requests
 import struct
 import sys
 import threading
@@ -132,17 +133,42 @@ class TestProxyProtocol(ProxyProtocolTest):
     _config_template = """
     newServer{address="127.0.0.1:%d", useProxyProtocol=true}
 
+    webserver("127.0.0.1:%d")
+    setWebserverConfig{password="%s", apiKey="%s"}
+
     function addValues(dq)
       local values = { [0]="foo", [42]="bar" }
       dq:setProxyProtocolValues(values)
       return DNSAction.None
     end
 
+    local counter = 1
+    function addRandomValue(dq)
+      dq:addProxyProtocolValue(0xEE, tostring(counter))
+      counter = counter + 1
+      return DNSAction.None
+    end
+
     addAction("values-lua.proxy.tests.powerdns.com.", LuaAction(addValues))
     addAction("values-action.proxy.tests.powerdns.com.", SetProxyProtocolValuesAction({ ["1"]="dnsdist", ["255"]="proxy-protocol"}))
+    addAction("random-values.proxy.tests.powerdns.com.", LuaAction(addRandomValue))
     """
-    _config_params = ['_proxyResponderPort']
-    _verboseMode = True
+    _webServerPort = pickAvailablePort()
+    _webServerBasicAuthPassword = 'secret'
+    _webServerBasicAuthPasswordHashed = '$scrypt$ln=10,p=1,r=8$6DKLnvUYEeXWh3JNOd3iwg==$kSrhdHaRbZ7R74q3lGBqO1xetgxRxhmWzYJ2Qvfm7JM='
+    _webServerAPIKey = 'apisecret'
+    _webServerAPIKeyHashed = '$scrypt$ln=10,p=1,r=8$9v8JxDfzQVyTpBkTbkUqYg==$bDQzAOHeK1G9UvTPypNhrX48w974ZXbFPtRKS34+aso='
+    _config_params = ['_proxyResponderPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
+
+    def getServerStats(self):
+      headers = {'x-api-key': self._webServerAPIKey}
+      url = 'http://127.0.0.1:' + str(self._webServerPort) + '/api/v1/servers/localhost'
+      r = requests.get(url, headers=headers, timeout=1)
+      self.assertTrue(r)
+      self.assertEqual(r.status_code, 200)
+      self.assertTrue(r.json())
+      content = r.json()
+      return content['servers']
 
     def testProxyUDP(self):
         """
@@ -347,6 +373,9 @@ class TestProxyProtocol(ProxyProtocolTest):
       query = dns.message.make_query(name, 'A', 'IN')
       response = dns.message.make_response(query)
 
+      new_conn_before = self.getServerStats()[0]['tcpNewConnections']
+      reused_conn_before = self.getServerStats()[0]['tcpReusedConnections']
+
       conn = self.openTCPConnection(2.0)
       data = query.to_wire()
 
@@ -371,6 +400,72 @@ class TestProxyProtocol(ProxyProtocolTest):
         self.assertEqual(receivedResponse, response)
         self.checkMessageProxyProtocol(receivedProxyPayload, '127.0.0.1', '127.0.0.1', True, [])
 
+      # check:
+      # - only one concurrent connection to the backend
+      # - no more than 1 new connection to the backend was opened
+      server = self.getServerStats()[0]
+      self.assertEqual(server['tcpNewConnections'], new_conn_before + 1)
+      self.assertEqual(server['tcpReusedConnections'], reused_conn_before + 9)
+      self.assertEqual(server['tcpMaxConcurrentConnections'], 1)
+
+    def testProxyTCPSeveralQueriesWithRandomTLVOnSameConnection(self):
+      """
+        Proxy Protocol: Several queries with random TLV on the same TCP connection
+      """
+      name = 'random-values.proxy.tests.powerdns.com.'
+      query = dns.message.make_query(name, 'A', 'IN')
+      response = dns.message.make_response(query)
+
+      stats = self.getServerStats()[0]
+      max_conns_before = stats['tcpMaxConcurrentConnections']
+      current_conns_before = stats['tcpCurrentConnections']
+      new_conn_before = stats['tcpNewConnections']
+      reused_conn_before = stats['tcpReusedConnections']
+
+      conn = self.openTCPConnection(2.0)
+      data = query.to_wire()
+
+      number_of_queries = 10
+      for idx in range(number_of_queries):
+        toProxyQueue.put(response, True, 2.0)
+        self.sendTCPQueryOverConnection(conn, data, rawQuery=True)
+        receivedResponse = None
+        try:
+          receivedResponse = self.recvTCPResponseOverConnection(conn)
+        except socket.timeout:
+          print('timeout')
+
+        (receivedProxyPayload, receivedDNSData) = fromProxyQueue.get(True, 2.0)
+        self.assertTrue(receivedProxyPayload)
+        self.assertTrue(receivedDNSData)
+        self.assertTrue(receivedResponse)
+
+        receivedQuery = dns.message.from_wire(receivedDNSData)
+        receivedQuery.id = query.id
+        receivedResponse.id = response.id
+        self.assertEqual(receivedQuery, query)
+        self.assertEqual(receivedResponse, response)
+        self.checkMessageProxyProtocol(receivedProxyPayload, '127.0.0.1', '127.0.0.1', True, [[238, str(idx + 1).encode('UTF-8')]])
+
+      # check:
+      # - only one concurrent connection to the backend
+      # - no more than number_of_queries connections to the backend were opened
+      server = self.getServerStats()[0]
+      self.assertEqual(server['tcpNewConnections'], new_conn_before + number_of_queries)
+      self.assertEqual(server['tcpReusedConnections'], reused_conn_before)
+      # in some cases existing (established before this test) connections to the backend might still
+      # exist, so we cannot enforce a strict "only 1 connection" check
+      self.assertLessEqual(server['tcpMaxConcurrentConnections'], max_conns_before + 1)
+      # but if we managed to add more than two connections to the existing ones, something is
+      # wrong!
+      # why two and not one? when a query arrives we retrieve the "owned" outgoing connection to the backend,
+      # and we notice that the TLVs are different than the previous ones, so we discard the outgoing connection
+      # and create a new one. This should lead to only one concurrent connection, except that if we read the
+      # new query while being called from the function handling the response from the backend, we might still
+      # hold a shared reference to the previous connection. It will be released when we come back to the calling
+      # function, but for a short time we will have two concurrent connections.
+      self.assertLessEqual(server['tcpMaxConcurrentConnections'], current_conns_before + 2)
+
 class TestProxyProtocolIncoming(ProxyProtocolTest):
     """
     dnsdist is configured to prepend a Proxy Protocol header to the query and expect one on incoming queries
@@ -379,6 +474,8 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
     _config_template = """
     addDOHLocal("127.0.0.1:%d", "%s", "%s", {"/"}, {library='nghttp2', proxyProtocolOutsideTLS=true})
     addDOHLocal("127.0.0.1:%d", "%s", "%s", {"/"}, {library='nghttp2', proxyProtocolOutsideTLS=false})
+    addTLSLocal("127.0.0.1:%d", "%s", "%s", {proxyProtocolOutsideTLS=true})
+    addTLSLocal("127.0.0.1:%d", "%s", "%s", {proxyProtocolOutsideTLS=false})
     setProxyProtocolACL( { "127.0.0.1/32" } )
     newServer{address="127.0.0.1:%d", useProxyProtocol=true, proxyProtocolAdvertiseTLS=true}
 
@@ -421,7 +518,9 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
     _caCert = 'ca.pem'
     _dohServerPPOutsidePort = pickAvailablePort()
     _dohServerPPInsidePort = pickAvailablePort()
-    _config_params = ['_dohServerPPOutsidePort', '_serverCert', '_serverKey', '_dohServerPPInsidePort', '_serverCert', '_serverKey', '_proxyResponderPort']
+    _dotServerPPOutsidePort = pickAvailablePort()
+    _dotServerPPInsidePort = pickAvailablePort()
+    _config_params = ['_dohServerPPOutsidePort', '_serverCert', '_serverKey', '_dohServerPPInsidePort', '_serverCert', '_serverKey', '_dotServerPPOutsidePort', '_serverCert', '_serverKey', '_dotServerPPInsidePort', '_serverCert', '_serverKey', '_proxyResponderPort']
 
     def testNoHeader(self):
         """
@@ -441,7 +540,7 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
 
     def testIncomingProxyDest(self):
         """
-        Incoming Proxy Protocol: values from Lua
+        Incoming Proxy Protocol: get forwarded destination
         """
         name = 'get-forwarded-dest.proxy-protocol-incoming.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
@@ -666,7 +765,7 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
         conn = self.openDOHConnection(reverseProxyPort, self._caCert, timeout=2.0)
 
         reverseProxyBaseURL = ("https://%s:%d/" % (self._serverName, reverseProxyPort))
-        (receivedQuery, receivedResponse) = self.sendDOHQuery(reverseProxyPort, self._serverName, reverseProxyBaseURL, query, response=response, caFile=self._caCert, useQueue=True, conn=conn)
+        (receivedQuery, receivedResponse) = self.sendDOHQuery(reverseProxyPort, self._serverName, reverseProxyBaseURL, query, response=response, caFile=self._caCert, conn=conn)
         (receivedProxyPayload, receivedDNSData) = fromProxyQueue.get(True, 2.0)
         self.assertTrue(receivedProxyPayload)
         self.assertTrue(receivedDNSData)
@@ -682,7 +781,7 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
         for idx in range(5):
           receivedResponse = None
           toProxyQueue.put(response, True, 2.0)
-          (receivedQuery, receivedResponse) = self.sendDOHQuery(reverseProxyPort, self._serverName, reverseProxyBaseURL, query, response=response, caFile=self._caCert, useQueue=True, conn=conn)
+          (receivedQuery, receivedResponse) = self.sendDOHQuery(reverseProxyPort, self._serverName, reverseProxyBaseURL, query, response=response, caFile=self._caCert, conn=conn)
           (receivedProxyPayload, receivedDNSData) = fromProxyQueue.get(True, 2.0)
           self.assertTrue(receivedProxyPayload)
           self.assertTrue(receivedDNSData)
@@ -719,7 +818,7 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
         conn = self.openDOHConnection(reverseProxyPort, self._caCert, timeout=2.0)
 
         reverseProxyBaseURL = ("https://%s:%d/" % (self._serverName, reverseProxyPort))
-        (receivedQuery, receivedResponse) = self.sendDOHQuery(reverseProxyPort, self._serverName, reverseProxyBaseURL, query, response=response, caFile=self._caCert, useQueue=True, conn=conn)
+        (receivedQuery, receivedResponse) = self.sendDOHQuery(reverseProxyPort, self._serverName, reverseProxyBaseURL, query, response=response, caFile=self._caCert, conn=conn)
         (receivedProxyPayload, receivedDNSData) = fromProxyQueue.get(True, 2.0)
         self.assertTrue(receivedProxyPayload)
         self.assertTrue(receivedDNSData)
@@ -735,7 +834,7 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
         for idx in range(5):
           receivedResponse = None
           toProxyQueue.put(response, True, 2.0)
-          (receivedQuery, receivedResponse) = self.sendDOHQuery(reverseProxyPort, self._serverName, reverseProxyBaseURL, query, response=response, caFile=self._caCert, useQueue=True, conn=conn)
+          (receivedQuery, receivedResponse) = self.sendDOHQuery(reverseProxyPort, self._serverName, reverseProxyBaseURL, query, response=response, caFile=self._caCert, conn=conn)
           (receivedProxyPayload, receivedDNSData) = fromProxyQueue.get(True, 2.0)
           self.assertTrue(receivedProxyPayload)
           self.assertTrue(receivedDNSData)
@@ -748,6 +847,108 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
           self.assertEqual(receivedResponse, response)
           self.checkMessageProxyProtocol(receivedProxyPayload, '127.0.0.1', '127.0.0.1', True, [ [0, b'foo'], [1, b'dnsdist'], [ 2, b'foo'], [3, b'proxy'], [32, ''], [ 42, b'bar'], [255, b'proxy-protocol'] ], v6=False, sourcePort=None, destinationPort=reverseProxyPort)
 
+    def testProxyDoTSeveralQueriesOverConnectionPPOutside(self):
+        """
+        Incoming Proxy Protocol: Several queries over the same connection (DoT, PP outside TLS)
+        """
+        name = 'several-queries.dot-outside.proxy-protocol-incoming.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+
+        toProxyQueue.put(response, True, 2.0)
+
+        wire = query.to_wire()
+
+        reverseProxyPort = pickAvailablePort()
+        reverseProxy = threading.Thread(name='Mock Proxy Protocol Reverse Proxy', target=MockTCPReverseProxyAddingProxyProtocol, args=[reverseProxyPort, self._dotServerPPOutsidePort])
+        reverseProxy.start()
+        time.sleep(1)
+
+        receivedResponse = None
+        conn = self.openTLSConnection(reverseProxyPort, self._serverName, self._caCert, timeout=2.0)
+        self.sendTCPQueryOverConnection(conn, query, response=response)
+        receivedResponse = self.recvTCPResponseOverConnection(conn)
+        (receivedProxyPayload, receivedDNSData) = fromProxyQueue.get(True, 2.0)
+        self.assertTrue(receivedProxyPayload)
+        self.assertTrue(receivedDNSData)
+        self.assertTrue(receivedResponse)
+
+        receivedQuery = dns.message.from_wire(receivedDNSData)
+        receivedQuery.id = query.id
+        receivedResponse.id = response.id
+        self.assertEqual(receivedQuery, query)
+        self.assertEqual(receivedResponse, response)
+        self.checkMessageProxyProtocol(receivedProxyPayload, '127.0.0.1', '127.0.0.1', True, [ [0, b'foo'], [1, b'dnsdist'], [ 2, b'foo'], [3, b'proxy'], [32, ''], [42, b'bar'], [255, b'proxy-protocol'] ], v6=False, sourcePort=None, destinationPort=reverseProxyPort)
+
+        for idx in range(5):
+          receivedResponse = None
+          toProxyQueue.put(response, True, 2.0)
+          self.sendTCPQueryOverConnection(conn, query, response=response)
+          receivedResponse = self.recvTCPResponseOverConnection(conn)
+          (receivedProxyPayload, receivedDNSData) = fromProxyQueue.get(True, 2.0)
+          self.assertTrue(receivedProxyPayload)
+          self.assertTrue(receivedDNSData)
+          self.assertTrue(receivedResponse)
+
+          receivedQuery = dns.message.from_wire(receivedDNSData)
+          receivedQuery.id = query.id
+          receivedResponse.id = response.id
+          self.assertEqual(receivedQuery, query)
+          self.assertEqual(receivedResponse, response)
+          self.checkMessageProxyProtocol(receivedProxyPayload, '127.0.0.1', '127.0.0.1', True, [ [0, b'foo'], [1, b'dnsdist'], [ 2, b'foo'], [3, b'proxy'], [32, ''], [42, b'bar'], [255, b'proxy-protocol'] ], v6=False, sourcePort=None, destinationPort=reverseProxyPort)
+
+    def testProxyDoTSeveralQueriesOverConnectionPPInside(self):
+        """
+        Incoming Proxy Protocol: Several queries over the same connection (DoT, PP inside TLS)
+        """
+        name = 'several-queries.dot-inside.proxy-protocol-incoming.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+
+        toProxyQueue.put(response, True, 2.0)
+
+        wire = query.to_wire()
+
+        reverseProxyPort = pickAvailablePort()
+        tlsContext = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        tlsContext.load_cert_chain(self._serverCert, self._serverKey)
+        tlsContext.set_alpn_protocols(['dot'])
+        reverseProxy = threading.Thread(name='Mock Proxy Protocol Reverse Proxy', target=MockTCPReverseProxyAddingProxyProtocol, args=[reverseProxyPort, self._dotServerPPInsidePort, tlsContext, self._caCert, self._serverName])
+        reverseProxy.start()
+
+        receivedResponse = None
+        time.sleep(1)
+        conn = self.openTLSConnection(reverseProxyPort, self._serverName, self._caCert, timeout=2.0)
+
+        self.sendTCPQueryOverConnection(conn, query, response=response)
+        receivedResponse = self.recvTCPResponseOverConnection(conn)
+        (receivedProxyPayload, receivedDNSData) = fromProxyQueue.get(True, 2.0)
+        self.assertTrue(receivedProxyPayload)
+        self.assertTrue(receivedDNSData)
+        self.assertTrue(receivedResponse)
+
+        receivedQuery = dns.message.from_wire(receivedDNSData)
+        receivedQuery.id = query.id
+        receivedResponse.id = response.id
+        self.assertEqual(receivedQuery, query)
+        self.assertEqual(receivedResponse, response)
+
+        for idx in range(5):
+          receivedResponse = None
+          toProxyQueue.put(response, True, 2.0)
+          self.sendTCPQueryOverConnection(conn, query, response=response)
+          receivedResponse = self.recvTCPResponseOverConnection(conn)
+          (receivedProxyPayload, receivedDNSData) = fromProxyQueue.get(True, 2.0)
+          self.assertTrue(receivedProxyPayload)
+          self.assertTrue(receivedDNSData)
+          self.assertTrue(receivedResponse)
+
+          receivedQuery = dns.message.from_wire(receivedDNSData)
+          receivedQuery.id = query.id
+          receivedResponse.id = response.id
+          self.assertEqual(receivedQuery, query)
+          self.assertEqual(receivedResponse, response)
+
     @classmethod
     def tearDownClass(cls):
         cls._sock.close()
@@ -756,6 +957,136 @@ class TestProxyProtocolIncoming(ProxyProtocolTest):
         for backgroundThread in backgroundThreads:
             backgroundThreads[backgroundThread] = False
         cls.killProcess(cls._dnsdist)
+
+class TestProxyProtocolIncomingValuesViaLua(DNSDistTest):
+    """
+    Check that dnsdist can retrieve incoming Proxy Protocol TLV values via Lua
+    """
+
+    _config_template = """
+    setProxyProtocolACL( { "127.0.0.1/32" } )
+
+    function checkValues(dq)
+      if dq.localaddr:toStringWithPort() ~= '[2001:db8::9]:9999' then
+        return DNSAction.Spoof, "invalid.local.addr."
+      end
+      if dq.remoteaddr:toStringWithPort() ~= '[2001:db8::8]:8888' then
+        return DNSAction.Spoof, "invalid.remote.addr."
+      end
+      local values = dq:getProxyProtocolValues()
+      if #values ~= 3 then
+        return DNSAction.Spoof, #values .. ".invalid.values.count."
+      end
+      if values[2] ~= 'foo' then
+        return DNSAction.Spoof, "2.foo.value.missing."
+      end
+      if values[3] ~= 'proxy' then
+        return DNSAction.Spoof, "3.proxy.value.missing."
+      end
+      return DNSAction.Spoof, "ok."
+    end
+
+    local ffi = require("ffi")
+    local C = ffi.C
+    ffi.cdef[[
+      typedef unsigned int socklen_t;
+      const char *inet_ntop(int af, const void *restrict src,
+                      char *restrict dst, socklen_t size);
+    ]]
+    local ret_ptr = ffi.new("const char *[1]")
+    local ret_ptr_param = ffi.cast("const void **", ret_ptr)
+    local ret_size = ffi.new("size_t[1]")
+    local ret_size_param = ffi.cast("size_t*", ret_size)
+    local ret_pp_ptr = ffi.new("const dnsdist_ffi_proxy_protocol_value_t*[1]")
+    local ret_pp_ptr_param = ffi.cast("const dnsdist_ffi_proxy_protocol_value_t**", ret_pp_ptr)
+    local inet_buffer = ffi.new("char[?]", 256)
+
+    function sendResult(dqffi, str)
+      C.dnsdist_ffi_dnsquestion_set_result(dqffi, str, #str)
+      return DNSAction.Spoof
+    end
+
+    function checkValuesFFI(dqffi)
+      C.dnsdist_ffi_dnsquestion_get_localaddr(dqffi, ret_ptr_param, ret_size_param)
+      local addr = C.inet_ntop(10, ret_ptr[0], inet_buffer, 256)
+      if addr == nil or ffi.string(addr) ~= '2001:db8::9' then
+        return sendResult(dqffi, "invalid.local.addr.")
+      end
+      C.dnsdist_ffi_dnsquestion_get_remoteaddr(dqffi, ret_ptr_param, ret_size_param)
+      local addr = C.inet_ntop(10, ret_ptr[0], inet_buffer, 256)
+      if addr == nil or ffi.string(addr) ~= '2001:db8::8' then
+        return sendResult(dqffi, "invalid.remote.addr.")
+      end
+
+      local count = tonumber(C.dnsdist_ffi_dnsquestion_get_proxy_protocol_values(dqffi, ret_pp_ptr_param))
+      if count ~= 2 then
+        return sendResult(dqffi, count .. ".invalid.values.count.")
+      end
+
+      local foo_seen = false
+      local proxy_seen = false
+      for counter = 0, count - 1 do
+        local entry = ret_pp_ptr[0][counter]
+        if entry.type == 2 and ffi.string(entry.value, entry.size) == 'foo' then
+          foo_seen = true
+        elseif entry.type == 3 and ffi.string(entry.value, entry.size) == 'proxy' then
+          proxy_seen = true
+        end
+      end
+      if not foo_seen then
+        return sendResult(dqffi, "2.foo.value.missing.")
+      end
+      if not proxy_seen then
+        return sendResult(dqffi, "3.proxy.value.missing.")
+      end
+
+      return sendResult(dqffi, "ok.")
+    end
+
+    addAction("proxy-protocol-incoming-values-via-lua.tests.powerdns.com.", LuaAction(checkValues))
+    addAction("proxy-protocol-incoming-values-via-lua-ffi.tests.powerdns.com.", LuaFFIAction(checkValuesFFI))
+
+    newServer{address="127.0.0.1:%d"}
+    """
+
+    def testProxyUDPWithValuesFromLua(self):
+        """
+        Incoming Proxy Protocol: values from Lua
+        """
+        destAddr = "2001:db8::9"
+        destPort = 9999
+        srcAddr = "2001:db8::8"
+        srcPort = 8888
+        names = ['proxy-protocol-incoming-values-via-lua.tests.powerdns.com.',
+                 'proxy-protocol-incoming-values-via-lua-ffi.tests.powerdns.com.'
+                 ]
+        for name in names:
+            query = dns.message.make_query(name, 'A', 'IN')
+            # dnsdist set RA = RD for spoofed responses
+            query.flags &= ~dns.flags.RD
+            response = dns.message.make_response(query)
+
+            expectedResponse = dns.message.make_response(query)
+            rrset = dns.rrset.from_text(name,
+                                        60,
+                                        dns.rdataclass.IN,
+                                        dns.rdatatype.CNAME,
+                                        'ok.')
+            expectedResponse.answer.append(rrset)
+
+            udpPayload = ProxyProtocol.getPayload(False, False, True, srcAddr, destAddr, srcPort, destPort, [ [ 2, b'foo'], [ 3, b'proxy'] ])
+            (_, receivedResponse) = self.sendUDPQuery(udpPayload + query.to_wire(), response=None, useQueue=False, rawQuery=True)
+            self.assertEqual(expectedResponse, receivedResponse)
+
+            conn = self.openTCPConnection(2.0)
+            try:
+                conn.send(udpPayload)
+                conn.send(struct.pack("!H", len(query.to_wire())))
+                conn.send(query.to_wire())
+                receivedResponse = self.recvTCPResponseOverConnection(conn)
+            except socket.timeout:
+                print('timeout')
+            self.assertEqual(expectedResponse, receivedResponse)
 
 class TestProxyProtocolNotExpected(DNSDistTest):
     """
@@ -768,7 +1099,6 @@ class TestProxyProtocolNotExpected(DNSDistTest):
     """
     # NORMAL responder, does not expect a proxy protocol payload!
     _config_params = ['_testServerPort']
-    _verboseMode = True
 
     def testNoHeader(self):
         """
@@ -910,7 +1240,6 @@ class TestDOHWithOutgoingProxyProtocol(DNSDistDOHTest):
     setACL( { "::1/128", "127.0.0.0/8" } )
     """
     _config_params = ['_proxyResponderPort', '_dohWithNGHTTP2ServerPort', '_serverCert', '_serverKey', '_dohWithH2OServerPort', '_serverCert', '_serverKey']
-    _verboseMode = True
 
     def testTruncation(self):
         """

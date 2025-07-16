@@ -3,6 +3,7 @@ import dns
 import os
 import socket
 import struct
+import subprocess
 import threading
 import time
 import unittest
@@ -12,7 +13,7 @@ from proxyprotocol import ProxyProtocol
 
 class TestProxyProtocolLuaRecords(AuthTest):
     _config_template = """
-launch=bind
+launch={backend}
 any-to-tcp=no
 proxy-protocol-from=127.0.0.1
 enable-lua-records
@@ -113,15 +114,17 @@ myip.example.org.            3600 IN LUA  TXT     "who:toString()..'/'..bestwho:
 
 class TestProxyProtocolNOTIFY(AuthTest):
     _config_template = """
-launch=bind
+launch={backend}
 any-to-tcp=no
 proxy-protocol-from=127.0.0.1
 secondary
 """
 
-    _zones = { 'example.org': '192.0.2.1',
+    _secondary_zones = { 'example.org': '192.0.2.1',
                'example.com': '192.0.2.2'
     }
+
+    _zones = {}
 
     @classmethod
     def generateAuthZone(cls, confdir, zonename, zonecontent):
@@ -131,13 +134,30 @@ secondary
             pass
 
     @classmethod
+    def generateAuthConfig(cls, confdir):
+        super(TestProxyProtocolNOTIFY, cls).generateAuthConfig(confdir)
+        if cls._backend == 'lmdb':
+            for zonename in cls._secondary_zones:
+                pdnsutilCmd = [os.environ['PDNSUTIL'],
+                   '--config-dir=%s' % confdir,
+                   'create-secondary-zone',
+                   zonename,
+                   cls._secondary_zones[zonename]]
+
+                print(' '.join(pdnsutilCmd))
+                try:
+                    subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
+                except subprocess.CalledProcessError as e:
+                    raise AssertionError('%s failed (%d): %s' % (pdnsutilCmd, e.returncode, e.output))
+
+    @classmethod
     def generateAuthNamedConf(cls, confdir, zones):
         with open(os.path.join(confdir, 'named.conf'), 'w') as namedconf:
             namedconf.write("""
 options {
     directory "%s";
 };""" % confdir)
-            for zonename in zones:
+            for zonename in cls._secondary_zones:
                 zone = '.' if zonename == 'ROOT' else zonename
 
                 namedconf.write("""
@@ -145,7 +165,7 @@ options {
             type secondary;
             file "%s.zone";
             masters { %s; };
-        };""" % (zone, zonename, cls._zones[zone]))
+        };""" % (zone, zonename, cls._secondary_zones[zone]))
 
 
     @classmethod
@@ -187,7 +207,7 @@ options {
 
 class TestProxyProtocolAXFRACL(AuthTest):
     _config_template = """
-launch=bind
+launch={backend}
 any-to-tcp=no
 proxy-protocol-from=127.0.0.1
 allow-axfr-ips=192.0.2.53

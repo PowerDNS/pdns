@@ -61,13 +61,15 @@
 // worker thread(s) now no longer process TCP queries.
 
 size_t g_tcpMaxQueriesPerConn;
+unsigned int g_maxTCPClients;
 unsigned int g_maxTCPPerClient;
 int g_tcpTimeout;
 bool g_anyToTcp;
 
 uint16_t TCPConnection::s_maxInFlight;
 
-thread_local std::unique_ptr<tcpClientCounts_t> t_tcpClientCounts;
+using tcpClientCounts_t = map<ComboAddress, uint32_t, ComboAddress::addressOnlyLessThan>;
+static thread_local std::unique_ptr<tcpClientCounts_t> t_tcpClientCounts = std::make_unique<tcpClientCounts_t>();
 
 static void handleRunningTCPQuestion(int fileDesc, FDMultiplexer::funcparam_t& var);
 
@@ -106,7 +108,7 @@ TCPConnection::~TCPConnection()
          g_slogtcpin->error(Logr::Error, e.reason, "Error closing TCPConnection socket", "exception", Logging::Loggable("PDNSException")));
   }
 
-  if (t_tcpClientCounts->count(d_remote) != 0 && (*t_tcpClientCounts)[d_remote]-- == 0) {
+  if (t_tcpClientCounts && t_tcpClientCounts->count(d_remote) != 0 && (*t_tcpClientCounts)[d_remote]-- == 0) {
     t_tcpClientCounts->erase(d_remote);
   }
   --s_currentConnections;
@@ -272,11 +274,11 @@ static void handleNotify(std::unique_ptr<DNSComboWriter>& comboWriter, const DNS
   }
 }
 
-static void doProtobufLogQuery(bool logQuery, LocalStateHolder<LuaConfigItems>& luaconfsLocal, const std::unique_ptr<DNSComboWriter>& comboWriter, const DNSName& qname, QType qtype, QClass qclass, const dnsheader* dnsheader, const shared_ptr<TCPConnection>& conn)
+static void doProtobufLogQuery(bool logQuery, LocalStateHolder<LuaConfigItems>& luaconfsLocal, const std::unique_ptr<DNSComboWriter>& comboWriter, const DNSName& qname, QType qtype, QClass qclass, const dnsheader* dnsheader, const shared_ptr<TCPConnection>& conn, const boost::optional<uint32_t>& ednsVersion)
 {
   try {
     if (logQuery && !(luaconfsLocal->protobufExportConfig.taggedOnly && comboWriter->d_policyTags.empty())) {
-      protobufLogQuery(luaconfsLocal, comboWriter->d_uuid, comboWriter->d_source, comboWriter->d_destination, comboWriter->d_mappedSource, comboWriter->d_ednssubnet.source, true, dnsheader->id, conn->qlen, qname, qtype, qclass, comboWriter->d_policyTags, comboWriter->d_requestorId, comboWriter->d_deviceId, comboWriter->d_deviceName, comboWriter->d_meta);
+      protobufLogQuery(luaconfsLocal, comboWriter->d_uuid, comboWriter->d_source, comboWriter->d_destination, comboWriter->d_mappedSource, comboWriter->d_ednssubnet.getSource(), true, conn->qlen, qname, qtype, qclass, comboWriter->d_policyTags, comboWriter->d_requestorId, comboWriter->d_deviceId, comboWriter->d_deviceName, comboWriter->d_meta, ednsVersion, *dnsheader);
     }
   }
   catch (const std::exception& e) {
@@ -290,52 +292,63 @@ static void doProtobufLogQuery(bool logQuery, LocalStateHolder<LuaConfigItems>& 
 static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, shared_ptr<TCPConnection>& conn, RunningTCPQuestionGuard& tcpGuard, int fileDesc)
 {
   RecThreadInfo::self().incNumberOfDistributedQueries();
-  struct timeval start
-  {
-  };
+  struct timeval start{};
   Utility::gettimeofday(&start, nullptr);
 
   DNSName qname;
   uint16_t qtype = 0;
   uint16_t qclass = 0;
-  bool needECS = false;
+  bool needEDNSParse = false;
   string requestorId;
   string deviceId;
   string deviceName;
   bool logQuery = false;
   bool qnameParsed = false;
+  boost::optional<uint32_t> ednsVersion;
 
   comboWriter->d_eventTrace.setEnabled(SyncRes::s_event_trace_enabled != 0);
+  // eventTrace uses monotonic time, while OpenTelemetry uses absolute time. setEnabled()
+  // established the reference point, get an absolute TS as close as possible to the
+  // eventTrace start of trace time.
+  auto traceTS = pdns::trace::timestamp();
   comboWriter->d_eventTrace.add(RecEventTrace::ReqRecv);
+  if (SyncRes::eventTraceEnabled(SyncRes::event_trace_to_ot)) {
+    comboWriter->d_otTrace.clear();
+    comboWriter->d_otTrace.start_time_unix_nano = traceTS;
+  }
   auto luaconfsLocal = g_luaconfs.getLocal();
   if (checkProtobufExport(luaconfsLocal)) {
-    needECS = true;
+    needEDNSParse = true;
   }
   logQuery = t_protobufServers.servers && luaconfsLocal->protobufExportConfig.logQueries;
   comboWriter->d_logResponse = t_protobufServers.servers && luaconfsLocal->protobufExportConfig.logResponses;
 
-  if (needECS || (t_pdl && (t_pdl->hasGettagFFIFunc() || t_pdl->hasGettagFunc())) || comboWriter->d_mdp.d_header.opcode == static_cast<unsigned>(Opcode::Notify)) {
+  if (needEDNSParse || (t_pdl && (t_pdl->hasGettagFFIFunc() || t_pdl->hasGettagFunc())) || comboWriter->d_mdp.d_header.opcode == static_cast<unsigned>(Opcode::Notify)) {
 
     try {
       EDNSOptionViewMap ednsOptions;
       comboWriter->d_ecsParsed = true;
       comboWriter->d_ecsFound = false;
       getQNameAndSubnet(conn->data, &qname, &qtype, &qclass,
-                        comboWriter->d_ecsFound, &comboWriter->d_ednssubnet, g_gettagNeedsEDNSOptions ? &ednsOptions : nullptr);
+                        comboWriter->d_ecsFound, &comboWriter->d_ednssubnet,
+                        (g_gettagNeedsEDNSOptions || SyncRes::eventTraceEnabled(SyncRes::event_trace_to_ot)) ? &ednsOptions : nullptr, ednsVersion);
       qnameParsed = true;
 
+      if (SyncRes::eventTraceEnabled(SyncRes::event_trace_to_ot)) {
+        pdns::trace::extractOTraceIDs(ednsOptions, comboWriter->d_otTrace);
+      }
       if (t_pdl) {
         try {
           if (t_pdl->hasGettagFFIFunc()) {
-            RecursorLua4::FFIParams params(qname, qtype, comboWriter->d_local, comboWriter->d_remote, comboWriter->d_destination, comboWriter->d_source, comboWriter->d_ednssubnet.source, comboWriter->d_data, comboWriter->d_gettagPolicyTags, comboWriter->d_records, ednsOptions, comboWriter->d_proxyProtocolValues, requestorId, deviceId, deviceName, comboWriter->d_routingTag, comboWriter->d_rcode, comboWriter->d_ttlCap, comboWriter->d_variable, true, logQuery, comboWriter->d_logResponse, comboWriter->d_followCNAMERecords, comboWriter->d_extendedErrorCode, comboWriter->d_extendedErrorExtra, comboWriter->d_responsePaddingDisabled, comboWriter->d_meta);
-            comboWriter->d_eventTrace.add(RecEventTrace::LuaGetTagFFI);
+            RecursorLua4::FFIParams params(qname, qtype, comboWriter->d_local, comboWriter->d_remote, comboWriter->d_destination, comboWriter->d_source, comboWriter->d_ednssubnet.getSource(), comboWriter->d_data, comboWriter->d_gettagPolicyTags, comboWriter->d_records, ednsOptions, comboWriter->d_proxyProtocolValues, requestorId, deviceId, deviceName, comboWriter->d_routingTag, comboWriter->d_rcode, comboWriter->d_ttlCap, comboWriter->d_variable, true, logQuery, comboWriter->d_logResponse, comboWriter->d_followCNAMERecords, comboWriter->d_extendedErrorCode, comboWriter->d_extendedErrorExtra, comboWriter->d_responsePaddingDisabled, comboWriter->d_meta);
+            auto match = comboWriter->d_eventTrace.add(RecEventTrace::LuaGetTagFFI);
             comboWriter->d_tag = t_pdl->gettag_ffi(params);
-            comboWriter->d_eventTrace.add(RecEventTrace::LuaGetTagFFI, comboWriter->d_tag, false);
+            comboWriter->d_eventTrace.add(RecEventTrace::LuaGetTagFFI, comboWriter->d_tag, false, match);
           }
           else if (t_pdl->hasGettagFunc()) {
-            comboWriter->d_eventTrace.add(RecEventTrace::LuaGetTag);
-            comboWriter->d_tag = t_pdl->gettag(comboWriter->d_source, comboWriter->d_ednssubnet.source, comboWriter->d_destination, qname, qtype, &comboWriter->d_gettagPolicyTags, comboWriter->d_data, ednsOptions, true, requestorId, deviceId, deviceName, comboWriter->d_routingTag, comboWriter->d_proxyProtocolValues);
-            comboWriter->d_eventTrace.add(RecEventTrace::LuaGetTag, comboWriter->d_tag, false);
+            auto match = comboWriter->d_eventTrace.add(RecEventTrace::LuaGetTag);
+            comboWriter->d_tag = t_pdl->gettag(comboWriter->d_source, comboWriter->d_ednssubnet.getSource(), comboWriter->d_destination, qname, qtype, &comboWriter->d_gettagPolicyTags, comboWriter->d_data, ednsOptions, true, requestorId, deviceId, deviceName, comboWriter->d_routingTag, comboWriter->d_proxyProtocolValues);
+            comboWriter->d_eventTrace.add(RecEventTrace::LuaGetTag, comboWriter->d_tag, false, match);
           }
           // Copy d_gettagPolicyTags to d_policyTags, so other Lua hooks see them and can add their
           // own. Before storing into the packetcache, the tags in d_gettagPolicyTags will be
@@ -345,19 +358,18 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
           // constructing the PB message.
           comboWriter->d_policyTags = comboWriter->d_gettagPolicyTags;
         }
-        catch (const std::exception& e) {
+        catch (const MOADNSException& moadnsexception) {
           if (g_logCommonErrors) {
-            SLOG(g_log << Logger::Warning << "Error parsing a query packet qname='" << qname << "' for tag determination, setting tag=0: " << e.what() << endl,
-                 g_slogtcpin->info(Logr::Warning, "Error parsing a query packet for tag determination, setting tag=0", "remote", Logging::Loggable(conn->d_remote), "qname", Logging::Loggable(qname)));
+            g_slogtcpin->error(moadnsexception.what(), "Error parsing a query packet for tag determination", "qname", Logging::Loggable(qname), "excepion", Logging::Loggable("MOADNSException"));
           }
+        }
+        catch (const std::exception& stdException) {
+          g_rateLimitedLogger.log(g_slogtcpin, "Error parsing a query packet for tag determination", stdException, "qname", Logging::Loggable(qname), "remote", Logging::Loggable(conn->d_remote));
         }
       }
     }
-    catch (const std::exception& e) {
-      if (g_logCommonErrors) {
-        SLOG(g_log << Logger::Warning << "Error parsing a query packet for tag determination, setting tag=0: " << e.what() << endl,
-             g_slogtcpin->error(Logr::Warning, e.what(), "Error parsing a query packet for tag determination, setting tag=0", "exception", Logging::Loggable("std::exception"), "remote", Logging::Loggable(conn->d_remote)));
-      }
+    catch (const std::exception& stdException) {
+      g_rateLimitedLogger.log(g_slogudpin, "Error parsing a query packet for tag determination, setting tag=0", stdException, "remote", Logging::Loggable(conn->d_remote));
     }
   }
 
@@ -376,7 +388,7 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
   }
 
   if (t_protobufServers.servers) {
-    doProtobufLogQuery(logQuery, luaconfsLocal, comboWriter, qname, qtype, qclass, dnsheader, conn);
+    doProtobufLogQuery(logQuery, luaconfsLocal, comboWriter, qname, qtype, qclass, dnsheader, conn, ednsVersion);
   }
 
   if (t_pdl) {
@@ -438,9 +450,9 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
       /* It might seem like a good idea to skip the packet cache lookup if we know that the answer is not cacheable,
          but it means that the hash would not be computed. If some script decides at a later time to mark back the answer
          as cacheable we would cache it with a wrong tag, so better safe than sorry. */
-      comboWriter->d_eventTrace.add(RecEventTrace::PCacheCheck);
+      auto match = comboWriter->d_eventTrace.add(RecEventTrace::PCacheCheck);
       bool cacheHit = checkForCacheHit(qnameParsed, comboWriter->d_tag, conn->data, qname, qtype, qclass, g_now, response, comboWriter->d_qhash, pbData, true, comboWriter->d_source, comboWriter->d_mappedSource);
-      comboWriter->d_eventTrace.add(RecEventTrace::PCacheCheck, cacheHit, false);
+      comboWriter->d_eventTrace.add(RecEventTrace::PCacheCheck, cacheHit, false, match);
 
       if (cacheHit) {
         if (!g_quiet) {
@@ -452,23 +464,19 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
 
         bool hadError = sendResponseOverTCP(comboWriter, response);
         finishTCPReply(comboWriter, hadError, false);
-        struct timeval now
-        {
-        };
+        struct timeval now{};
         Utility::gettimeofday(&now, nullptr);
         uint64_t spentUsec = uSec(now - start);
         t_Counters.at(rec::Histogram::cumulativeAnswers)(spentUsec);
         comboWriter->d_eventTrace.add(RecEventTrace::AnswerSent);
 
-        if (t_protobufServers.servers && comboWriter->d_logResponse && (!luaconfsLocal->protobufExportConfig.taggedOnly || !pbData || pbData->d_tagged)) {
-          struct timeval tval
-          {
-            0, 0
-          };
-          protobufLogResponse(dnsheader, luaconfsLocal, pbData, tval, true, comboWriter->d_source, comboWriter->d_destination, comboWriter->d_mappedSource, comboWriter->d_ednssubnet, comboWriter->d_uuid, comboWriter->d_requestorId, comboWriter->d_deviceId, comboWriter->d_deviceName, comboWriter->d_meta, comboWriter->d_eventTrace, comboWriter->d_policyTags);
+        if (t_protobufServers.servers && comboWriter->d_logResponse && (!luaconfsLocal->protobufExportConfig.taggedOnly || (pbData && pbData->d_tagged))) {
+          struct timeval tval{
+            0, 0};
+          protobufLogResponse(qname, qtype, dnsheader, luaconfsLocal, pbData, tval, true, comboWriter->d_source, comboWriter->d_destination, comboWriter->d_mappedSource, comboWriter->d_ednssubnet, comboWriter->d_uuid, comboWriter->d_requestorId, comboWriter->d_deviceId, comboWriter->d_deviceName, comboWriter->d_meta, comboWriter->d_eventTrace, comboWriter->d_otTrace, comboWriter->d_policyTags);
         }
 
-        if (comboWriter->d_eventTrace.enabled() && (SyncRes::s_event_trace_enabled & SyncRes::event_trace_to_log) != 0) {
+        if (comboWriter->d_eventTrace.enabled() && SyncRes::eventTraceEnabled(SyncRes::event_trace_to_log)) {
           SLOG(g_log << Logger::Info << comboWriter->d_eventTrace.toString() << endl,
                g_slogtcpin->info(Logr::Info, comboWriter->d_eventTrace.toString())); // More fancy?
         }
@@ -690,85 +698,79 @@ void handleNewTCPQuestion(int fileDesc, [[maybe_unused]] FDMultiplexer::funcpara
   ComboAddress addr;
   socklen_t addrlen = sizeof(addr);
   int newsock = accept(fileDesc, reinterpret_cast<struct sockaddr*>(&addr), &addrlen); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-  if (newsock >= 0) {
-    if (g_multiTasker->numProcesses() >= g_maxMThreads) {
-      t_Counters.at(rec::Counter::overCapacityDrops)++;
-      try {
-        closesocket(newsock);
-      }
-      catch (const PDNSException& e) {
-        SLOG(g_log << Logger::Error << "Error closing TCP socket after an over capacity drop: " << e.reason << endl,
-             g_slogtcpin->error(Logr::Error, e.reason, "Error closing TCP socket after an over capacity drop", "exception", Logging::Loggable("PDNSException")));
-      }
-      return;
-    }
-
-    ComboAddress destaddr;
-    socklen_t len = sizeof(destaddr);
-    getsockname(newsock, reinterpret_cast<sockaddr*>(&destaddr), &len); // if this fails, we're ok with it NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-    bool fromProxyProtocolSource = expectProxyProtocol(addr, destaddr);
-    if (!fromProxyProtocolSource && t_remotes) {
-      t_remotes->push_back(addr);
-    }
-    ComboAddress mappedSource = addr;
-    if (!fromProxyProtocolSource && t_proxyMapping) {
-      if (const auto* iter = t_proxyMapping->lookup(addr)) {
-        mappedSource = iter->second.address;
-        ++iter->second.stats.netmaskMatches;
-      }
-    }
-    if (!fromProxyProtocolSource && t_allowFrom && !t_allowFrom->match(&mappedSource)) {
-      if (!g_quiet) {
-        SLOG(g_log << Logger::Error << "[" << g_multiTasker->getTid() << "] dropping TCP query from " << mappedSource.toString() << ", address neither matched by allow-from nor proxy-protocol-from" << endl,
-             g_slogtcpin->info(Logr::Error, "dropping TCP query address neither matched by allow-from nor proxy-protocol-from", "source", Logging::Loggable(mappedSource)));
-      }
-      t_Counters.at(rec::Counter::unauthorizedTCP)++;
-      try {
-        closesocket(newsock);
-      }
-      catch (const PDNSException& e) {
-        SLOG(g_log << Logger::Error << "Error closing TCP socket after an ACL drop: " << e.reason << endl,
-             g_slogtcpin->error(Logr::Error, e.reason, "Error closing TCP socket after an ACL drop", "exception", Logging::Loggable("PDNSException")));
-      }
-      return;
-    }
-
-    if (g_maxTCPPerClient > 0 && t_tcpClientCounts->count(addr) > 0 && (*t_tcpClientCounts)[addr] >= g_maxTCPPerClient) {
-      t_Counters.at(rec::Counter::tcpClientOverflow)++;
-      try {
-        closesocket(newsock); // don't call TCPConnection::closeAndCleanup here - did not enter it in the counts yet!
-      }
-      catch (const PDNSException& e) {
-        SLOG(g_log << Logger::Error << "Error closing TCP socket after an overflow drop: " << e.reason << endl,
-             g_slogtcpin->error(Logr::Error, e.reason, "Error closing TCP socket after an overflow drop", "exception", Logging::Loggable("PDNSException")));
-      }
-      return;
-    }
-
-    setNonBlocking(newsock);
-    setTCPNoDelay(newsock);
-    std::shared_ptr<TCPConnection> tcpConn = std::make_shared<TCPConnection>(newsock, addr);
-    tcpConn->d_source = addr;
-    tcpConn->d_destination = destaddr;
-    tcpConn->d_mappedSource = mappedSource;
-
-    if (fromProxyProtocolSource) {
-      tcpConn->proxyProtocolNeed = s_proxyProtocolMinimumHeaderSize;
-      tcpConn->data.resize(tcpConn->proxyProtocolNeed);
-      tcpConn->state = TCPConnection::PROXYPROTOCOLHEADER;
-    }
-    else {
-      tcpConn->state = TCPConnection::BYTE0;
-    }
-
-    struct timeval ttd
-    {
-    };
-    Utility::gettimeofday(&ttd, nullptr);
-    ttd.tv_sec += g_tcpTimeout;
-
-    t_fdm->addReadFD(tcpConn->getFD(), handleRunningTCPQuestion, tcpConn, &ttd);
+  if (newsock < 0) {
+    return;
   }
+  auto closeSock = [newsock](rec::Counter cnt, const string& msg) {
+    try {
+      closesocket(newsock);
+      t_Counters.at(cnt)++;
+      // We want this bump to percolate up without too much delay
+      t_Counters.updateSnap(false);
+    }
+    catch (const PDNSException& e) {
+      g_slogtcpin->error(Logr::Error, e.reason, msg, "exception", Logging::Loggable("PDNSException"));
+    }
+  };
+
+  if (TCPConnection::getCurrentConnections() >= g_maxTCPClients) {
+    closeSock(rec::Counter::tcpOverflow, "Error closing TCP socket after an overflow drop");
+    return;
+  }
+  if (g_multiTasker->numProcesses() >= g_maxMThreads) {
+    closeSock(rec::Counter::overCapacityDrops, "Error closing TCP socket after an over capacity drop");
+    return;
+  }
+
+  ComboAddress destaddr;
+  socklen_t len = sizeof(destaddr);
+  getsockname(newsock, reinterpret_cast<sockaddr*>(&destaddr), &len); // if this fails, we're ok with it NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+  bool fromProxyProtocolSource = expectProxyProtocol(addr, destaddr);
+  if (!fromProxyProtocolSource && t_remotes) {
+    t_remotes->push_back(addr);
+  }
+  ComboAddress mappedSource = addr;
+  if (!fromProxyProtocolSource && t_proxyMapping) {
+    if (const auto* iter = t_proxyMapping->lookup(addr)) {
+      mappedSource = iter->second.address;
+      ++iter->second.stats.netmaskMatches;
+    }
+  }
+  if (!fromProxyProtocolSource && t_allowFrom && !t_allowFrom->match(&mappedSource)) {
+    if (!g_quiet) {
+      SLOG(g_log << Logger::Error << "[" << g_multiTasker->getTid() << "] dropping TCP query from " << mappedSource.toString() << ", address neither matched by allow-from nor proxy-protocol-from" << endl,
+           g_slogtcpin->info(Logr::Error, "dropping TCP query address neither matched by allow-from nor proxy-protocol-from", "source", Logging::Loggable(mappedSource)));
+    }
+    closeSock(rec::Counter::unauthorizedTCP, "Error closing TCP socket after an ACL drop");
+    return;
+  }
+
+  if (g_maxTCPPerClient > 0 && t_tcpClientCounts->count(addr) > 0 && (*t_tcpClientCounts)[addr] >= g_maxTCPPerClient) {
+    closeSock(rec::Counter::tcpClientOverflow, "Error closing TCP socket after a client overflow drop");
+    return;
+  }
+
+  setNonBlocking(newsock);
+  setTCPNoDelay(newsock);
+  std::shared_ptr<TCPConnection> tcpConn = std::make_shared<TCPConnection>(newsock, addr);
+  tcpConn->d_source = addr;
+  tcpConn->d_destination = destaddr;
+  tcpConn->d_mappedSource = mappedSource;
+
+  if (fromProxyProtocolSource) {
+    tcpConn->proxyProtocolNeed = s_proxyProtocolMinimumHeaderSize;
+    tcpConn->data.resize(tcpConn->proxyProtocolNeed);
+    tcpConn->state = TCPConnection::PROXYPROTOCOLHEADER;
+  }
+  else {
+    tcpConn->state = TCPConnection::BYTE0;
+  }
+
+  timeval ttd{};
+  Utility::gettimeofday(&ttd, nullptr);
+  ttd.tv_sec += g_tcpTimeout;
+
+  t_fdm->addReadFD(tcpConn->getFD(), handleRunningTCPQuestion, tcpConn, &ttd);
 }
 
 static void TCPIOHandlerIO(int fileDesc, FDMultiplexer::funcparam_t& var);
@@ -1091,9 +1093,11 @@ LWResult::Result arecvtcp(PacketBuffer& data, const size_t len, shared_ptr<TCPIO
   return LWResult::Result::Success;
 }
 
-void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets, Logr::log_t log)
+// The two last arguments to makeTCPServerSockets are used for logging purposes only
+unsigned int makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets, Logr::log_t log, bool doLog, unsigned int instances)
 {
   vector<string> localAddresses;
+  vector<string> logVec;
   stringtok(localAddresses, ::arg()["local-address"], " ,");
 
   if (localAddresses.empty()) {
@@ -1104,13 +1108,15 @@ void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets
   auto first = true;
 #endif
   const uint16_t defaultLocalPort = ::arg().asNum("local-port");
+  const vector<string> defaultVector = {"127.0.0.1", "::1"};
+  const auto configIsDefault = localAddresses == defaultVector;
+
   for (const auto& localAddress : localAddresses) {
     ComboAddress address{localAddress, defaultLocalPort};
-    const int socketFd = socket(address.sin6.sin6_family, SOCK_STREAM, 0);
+    auto socketFd = FDWrapper(socket(address.sin6.sin6_family, SOCK_STREAM, 0));
     if (socketFd < 0) {
       throw PDNSException("Making a TCP server socket for resolver: " + stringerror());
     }
-
     setCloseOnExec(socketFd);
 
     int tmp = 1;
@@ -1173,7 +1179,12 @@ void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets
 
     socklen_t socklen = address.sin4.sin_family == AF_INET ? sizeof(address.sin4) : sizeof(address.sin6);
     if (::bind(socketFd, reinterpret_cast<struct sockaddr*>(&address), socklen) < 0) { // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-      throw PDNSException("Binding TCP server socket for " + address.toStringWithPort() + ": " + stringerror());
+      int err = errno;
+      if (!configIsDefault || address != ComboAddress{"::1", defaultLocalPort}) {
+        throw PDNSException("Binding TCP server socket for " + address.toStringWithPort() + ": " + stringerror(err));
+      }
+      log->info(Logr::Warning, "Cannot listen on this address, skipping", "proto", Logging::Loggable("TCP"), "address", Logging::Loggable(address), "error", Logging::Loggable(stringerror(err)));
+      continue;
     }
 
     setNonBlocking(socketFd);
@@ -1188,14 +1199,18 @@ void makeTCPServerSockets(deferredAdd_t& deferredAdds, std::set<int>& tcpSockets
     listen(socketFd, 128);
     deferredAdds.emplace_back(socketFd, handleNewTCPQuestion);
     tcpSockets.insert(socketFd);
+    logVec.emplace_back(address.toStringWithPort());
 
     // we don't need to update g_listenSocketsAddresses since it doesn't work for TCP/IP:
     //  - fd is not that which we know here, but returned from accept()
-    SLOG(g_log << Logger::Info << "Listening for TCP queries on " << address.toStringWithPort() << endl,
-         log->info(Logr::Info, "Listening for queries", "protocol", Logging::Loggable("TCP"), "address", Logging::Loggable(address)));
 
 #ifdef TCP_DEFER_ACCEPT
     first = false;
 #endif
+    socketFd.release(); // to avoid auto-close by FDWrapper
   }
+  if (doLog) {
+    log->info(Logr::Info, "Listening for queries", "protocol", Logging::Loggable("TCP"), "addresses", Logging::IterLoggable(logVec.cbegin(), logVec.cend()), "socketInstances", Logging::Loggable(instances), "reuseport", Logging::Loggable(g_reusePort));
+  }
+  return localAddresses.size();
 }

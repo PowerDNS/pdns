@@ -22,14 +22,19 @@
 #pragma once
 #include "namespaces.hh"
 
-enum ProductType { ProductAuthoritative, ProductRecursor };
+enum ProductType
+{
+  ProductAuthoritative,
+  ProductRecursor
+};
 
-string compilerVersion();
-void showProductVersion();
-void showBuildConfiguration();
-string fullVersionString();
-string getPDNSVersion();
-string productName();
-string productTypeApiType();
-void versionSetProduct(ProductType pt);
-ProductType versionGetProduct();
+[[nodiscard]] std::string compilerVersion();
+[[nodiscard]] std::vector<std::string> getProductVersionLines();
+[[nodiscard]] std::string getProductVersion();
+[[nodiscard]] std::string getBuildConfiguration();
+[[nodiscard]] std::string fullVersionString();
+[[nodiscard]] std::string getPDNSVersion();
+[[nodiscard]] std::string productName();
+[[nodiscard]] std::string productTypeApiType();
+void versionSetProduct(ProductType productType_);
+[[nodiscard]] ProductType versionGetProduct();

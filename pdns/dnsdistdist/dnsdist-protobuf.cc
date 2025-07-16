@@ -180,6 +180,10 @@ void DNSDistProtoBufMessage::serialize(std::string& data) const
     msg.setEDNSSubnet(*d_ednsSubnet, 128);
   }
 
+  if (d_dr != nullptr) {
+    msg.setPacketCacheHit(d_dr->ids.cacheHit);
+    msg.setOutgoingQueries((d_dr->ids.cacheHit || d_dr->ids.selfGenerated) ? 0 : 1);
+  }
   msg.startResponse();
   if (d_queryTime) {
     // coverity[store_truncates_time_t]
@@ -260,7 +264,7 @@ ProtoBufMetaKey::ProtoBufMetaKey(const std::string& key)
           if (!typeIt->d_caseSensitive) {
             boost::algorithm::to_lower(variable);
           }
-          d_subKey = variable;
+          d_subKey = std::move(variable);
         }
         return;
       }
@@ -383,7 +387,7 @@ const ProtoBufMetaKey::TypeContainer ProtoBufMetaKey::s_types = {
                                             auto tag = key;
                                             tag.append(":");
                                             tag.append(value);
-                                            result.push_back(tag);
+                                            result.push_back(std::move(tag));
                                           }
                                         }
                                         return result;

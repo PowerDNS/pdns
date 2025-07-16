@@ -39,11 +39,17 @@
 #include <stdexcept>
 #include <string>
 #include <cctype>
+#include <utility>
 #include <vector>
 
 #include "namespaces.hh"
 
 class DNSName;
+#if defined(PDNS_AUTH)
+class ZoneName;
+#else
+using ZoneName = DNSName;
+#endif
 
 // Do not change to "using TSIGHashEnum ..." until you know CodeQL does not choke on it
 typedef enum
@@ -96,7 +102,6 @@ namespace OpenSSL
 string nowTime();
 string unquotify(const string &item);
 string humanDuration(time_t passed);
-bool stripDomainSuffix(string *qname, const string &domain);
 void stripLine(string &line);
 std::optional<string> getHostname();
 std::string getCarbonHostName();
@@ -109,6 +114,7 @@ bool getTSIGHashEnum(const DNSName& algoName, TSIGHashEnum& algoEnum);
 DNSName getTSIGAlgoName(TSIGHashEnum& algoEnum);
 
 int logFacilityToLOG(unsigned int facility);
+std::optional<int> logFacilityFromString(std::string facilityStr);
 
 template<typename Container>
 void
@@ -139,10 +145,16 @@ stringtok (Container &container, string const &in,
   }
 }
 
-template<typename T> bool rfc1982LessThan(T a, T b)
+template<typename T> bool rfc1982LessThan(T lhs, T rhs)
 {
   static_assert(std::is_unsigned_v<T>, "rfc1982LessThan only works for unsigned types");
-  return std::make_signed_t<T>(a - b) < 0;
+  return static_cast<std::make_signed_t<T>>(lhs - rhs) < 0;
+}
+
+template<typename T> bool rfc1982LessThanOrEqual(T lhs, T rhs)
+{
+  static_assert(std::is_unsigned_v<T>, "rfc1982LessThanOrEqual only works for unsigned types");
+  return static_cast<std::make_signed_t<T>>(lhs - rhs) <= 0;
 }
 
 // fills container with ranges, so {posbegin,posend}
@@ -294,31 +306,24 @@ inline const string toLower(const string &upper)
 inline const string toLowerCanonic(const string &upper)
 {
   string reply(upper);
-  if(!upper.empty()) {
-    unsigned int i, limit= ( unsigned int ) reply.length();
-    unsigned char c;
-    for(i = 0; i < limit ; i++) {
-      c = dns_tolower(upper[i]);
-      if(c != upper[i])
-        reply[i] = c;
+  if (!reply.empty()) {
+    const auto length = reply.length();
+    if (reply[length - 1] == '.') {
+      reply.resize(length - 1);
     }
-    if(upper[i-1]=='.')
-      reply.resize(i-1);
+    toLowerInPlace(reply);
   }
-
   return reply;
 }
-
-
 
 // Make s uppercase:
 inline string toUpper( const string& s )
 {
-        string r(s);
-        for( unsigned int i = 0; i < s.length(); i++ ) {
-          r[i] = dns_toupper(r[i]);
-        }
-        return r;
+  string r(s);
+  for (size_t i = 0; i < s.length(); ++i) {
+    r[i] = dns_toupper(r[i]);
+  }
+  return r;
 }
 
 inline double getTime()
@@ -334,7 +339,7 @@ inline double getTime()
   throw runtime_error(why + ": " + stringerror(errno));
 }
 
-string makeHexDump(const string& str);
+string makeHexDump(const string& str, const string& sep = " ");
 //! Convert the hexstring in to a byte string
 string makeBytesFromHex(const string &in);
 
@@ -366,20 +371,38 @@ inline bool operator<(const struct timespec& lhs, const struct timespec& rhs)
 }
 
 
-inline bool pdns_ilexicographical_compare(const std::string& a, const std::string& b)  __attribute__((pure));
-inline bool pdns_ilexicographical_compare(const std::string& a, const std::string& b)
+inline int pdns_ilexicographical_compare_three_way(std::string_view a, std::string_view b)  __attribute__((pure));
+inline int pdns_ilexicographical_compare_three_way(std::string_view a, std::string_view b)
 {
-  const unsigned char *aPtr = (const unsigned char*)a.c_str(), *bPtr = (const unsigned char*)b.c_str();
+  const unsigned char *aPtr = (const unsigned char*)a.data(), *bPtr = (const unsigned char*)b.data();
   const unsigned char *aEptr = aPtr + a.length(), *bEptr = bPtr + b.length();
   while(aPtr != aEptr && bPtr != bEptr) {
-    if ((*aPtr != *bPtr) && (dns_tolower(*aPtr) - dns_tolower(*bPtr)))
-      return (dns_tolower(*aPtr) - dns_tolower(*bPtr)) < 0;
+    if (*aPtr != *bPtr) {
+      if (int rc = dns_tolower(*aPtr) - dns_tolower(*bPtr); rc != 0) {
+        return rc;
+      }
+    }
     aPtr++;
     bPtr++;
   }
-  if(aPtr == aEptr && bPtr == bEptr) // strings are equal (in length)
-    return false;
-  return aPtr == aEptr; // true if first string was shorter
+  // At this point, one of the strings has been completely processed.
+  // Either both have the same length, and they are equal, or one of them
+  // is larger, and compares as higher.
+  if (aPtr == aEptr) {
+    if (bPtr != bEptr) {
+      return -1; // a < b
+    }
+  }
+  else {
+    return 1; // a > b
+  }
+  return 0; // a == b
+}
+
+inline bool pdns_ilexicographical_compare(const std::string& a, const std::string& b)  __attribute__((pure));
+inline bool pdns_ilexicographical_compare(const std::string& a, const std::string& b)
+{
+  return pdns_ilexicographical_compare_three_way(a, b) < 0;
 }
 
 inline bool pdns_iequals(const std::string& a, const std::string& b) __attribute__((pure));
@@ -388,15 +411,7 @@ inline bool pdns_iequals(const std::string& a, const std::string& b)
   if (a.length() != b.length())
     return false;
 
-  const char *aPtr = a.c_str(), *bPtr = b.c_str();
-  const char *aEptr = aPtr + a.length();
-  while(aPtr != aEptr) {
-    if((*aPtr != *bPtr) && (dns_tolower(*aPtr) != dns_tolower(*bPtr)))
-      return false;
-    aPtr++;
-    bPtr++;
-  }
-  return true;
+  return pdns_ilexicographical_compare_three_way(a, b) == 0;
 }
 
 inline bool pdns_iequals_ch(const char a, const char b) __attribute__((pure));
@@ -467,20 +482,18 @@ inline size_t pdns_ci_find(const string& haystack, const string& needle)
 
 pair<string, string> splitField(const string& inp, char sepa);
 
-inline bool isCanonical(const string& qname)
+inline bool isCanonical(std::string_view qname)
 {
-  if(qname.empty())
-    return false;
-  return qname[qname.size()-1]=='.';
+  return boost::ends_with(qname, ".");
 }
 
-inline DNSName toCanonic(const DNSName& zone, const string& qname)
+inline DNSName toCanonic(const ZoneName& zone, const string& qname)
 {
   if(qname.size()==1 && qname[0]=='@')
-    return zone;
+    return DNSName(zone);
   if(isCanonical(qname))
     return DNSName(qname);
-  return DNSName(qname) += zone;
+  return DNSName(qname) += DNSName(zone);
 }
 
 string stripDot(const string& dom);
@@ -527,7 +540,8 @@ private:
 class SimpleMatch
 {
 public:
-  SimpleMatch(const string &mask, bool caseFold = false): d_mask(mask), d_fold(caseFold)
+  SimpleMatch(string mask, bool caseFold = false) :
+    d_mask(std::move(mask)), d_fold(caseFold)
   {
   }
 
@@ -568,6 +582,12 @@ public:
     return match(name.toStringNoDot());
   }
 
+#if defined(PDNS_AUTH) // [
+  bool match(const ZoneName& name) const {
+    return match(name.toStringNoDot());
+  }
+#endif // ]
+
 private:
   const string d_mask;
   const bool d_fold;
@@ -588,6 +608,8 @@ bool setSocketTimestamps(int fd);
 
 //! Sets the socket into blocking mode.
 bool setBlocking( int sock );
+
+void setDscp(int sock, unsigned short family, uint8_t dscp);
 
 //! Sets the socket into non-blocking mode.
 bool setNonBlocking( int sock );
@@ -837,6 +859,13 @@ struct FDWrapper
     if (d_fd >= 0) {
       ret = close(d_fd);
     }
+    d_fd = -1;
+    return ret;
+  }
+
+  int release()
+  {
+    auto ret = d_fd;
     d_fd = -1;
     return ret;
   }

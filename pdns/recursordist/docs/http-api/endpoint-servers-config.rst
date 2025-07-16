@@ -5,7 +5,7 @@
   Change a single setting
 
   .. note::
-    Only :ref:`setting-allow-from` and :ref:`setting-allow-notify-from` can be set.
+    Only :ref:`setting-yaml-incoming.allow_from` and :ref:`setting-yaml-incoming.allow_notify_from` can be set.
 
   .. note::
     For configuration changes to work :ref:`setting-include-dir` and :ref:`setting-api-config-dir` should have the same value for old-style settings.

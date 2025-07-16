@@ -18,6 +18,7 @@ PowerDNS Authoritative Server
     dnsupdate
     catalog
     tsig
+    views
     lua-records/index
     guides/index
     backends/index

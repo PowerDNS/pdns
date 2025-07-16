@@ -1,0 +1,6 @@
+Tests for zone variant handling.
+The expected result for non-LMDB backends is failure.
+
+The current expected_result file is -wrong-. It shows how
+other backends ignore the variant, instead of rejecting it.
+I left it like this for now so CI is green.

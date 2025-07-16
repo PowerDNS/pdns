@@ -87,25 +87,11 @@ ecs-add-for=0.0.0.0/0
             cls._UDPResponder.start()
 
     @classmethod
-    def setUpClass(cls):
-        cls.setUpSockets()
-
-        cls.startResponders()
-
-        confdir = os.path.join('configs', cls._confdir)
-        cls.createConfigDir(confdir)
-
-        cls.generateRecursorConfig(confdir)
-        cls.startRecursor(confdir, cls._recursorPort)
-
-        print("Launching tests..")
-
-    @classmethod
     def tearDownClass(cls):
         cls.tearDownRecursor()
         os.unlink('tagfile')
 
-class testRoutingTag(RoutingTagTest):
+class RoutingTagTest(RoutingTagTest):
     _confdir = 'RoutingTag'
 
     _config_template = """
@@ -179,7 +165,7 @@ end
             print(e.output)
             raise
 
-class testRoutingTagFFI(RoutingTagTest):
+class RoutingTagFFITest(RoutingTagTest):
     _confdir = 'RoutingTagFFI'
 
     _config_template = """

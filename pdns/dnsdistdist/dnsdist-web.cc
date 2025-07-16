@@ -32,115 +32,23 @@
 #include "base64.hh"
 #include "connection-management.hh"
 #include "dnsdist.hh"
+#include "dnsdist-cache.hh"
+#include "dnsdist-configuration.hh"
 #include "dnsdist-dynblocks.hh"
+#include "dnsdist-dynbpf.hh"
+#include "dnsdist-frontend.hh"
 #include "dnsdist-healthchecks.hh"
+#include "dnsdist-lua.hh"
 #include "dnsdist-metrics.hh"
 #include "dnsdist-prometheus.hh"
 #include "dnsdist-rings.hh"
 #include "dnsdist-rule-chains.hh"
+#include "dnsdist-rules.hh"
 #include "dnsdist-web.hh"
 #include "dolog.hh"
 #include "gettime.hh"
 #include "threadname.hh"
 #include "sstuff.hh"
-
-struct WebserverConfig
-{
-  WebserverConfig()
-  {
-    acl.toMasks("127.0.0.1, ::1");
-  }
-
-  NetmaskGroup acl;
-  std::unique_ptr<CredentialsHolder> password;
-  std::unique_ptr<CredentialsHolder> apiKey;
-  boost::optional<std::unordered_map<std::string, std::string>> customHeaders;
-  bool apiRequiresAuthentication{true};
-  bool dashboardRequiresAuthentication{true};
-  bool statsRequireAuthentication{true};
-};
-
-bool g_apiReadWrite{false};
-LockGuarded<WebserverConfig> g_webserverConfig;
-std::string g_apiConfigDirectory;
-
-static ConcurrentConnectionManager s_connManager(100);
-
-std::string getWebserverConfig()
-{
-  ostringstream out;
-
-  {
-    auto config = g_webserverConfig.lock();
-    out << "Current web server configuration:" << endl;
-    out << "ACL: " << config->acl.toString() << endl;
-    out << "Custom headers: ";
-    if (config->customHeaders) {
-      out << endl;
-      for (const auto& header : *config->customHeaders) {
-        out << " - " << header.first << ": " << header.second << endl;
-      }
-    }
-    else {
-      out << "None" << endl;
-    }
-    out << "API requires authentication: " << (config->apiRequiresAuthentication ? "yes" : "no") << endl;
-    out << "Dashboard requires authentication: " << (config->dashboardRequiresAuthentication ? "yes" : "no") << endl;
-    out << "Statistics require authentication: " << (config->statsRequireAuthentication ? "yes" : "no") << endl;
-    out << "Password: " << (config->password ? "set" : "unset") << endl;
-    out << "API key: " << (config->apiKey ? "set" : "unset") << endl;
-  }
-  out << "API writable: " << (g_apiReadWrite ? "yes" : "no") << endl;
-  out << "API configuration directory: " << g_apiConfigDirectory << endl;
-  out << "Maximum concurrent connections: " << s_connManager.getMaxConcurrentConnections() << endl;
-
-  return out.str();
-}
-
-class WebClientConnection
-{
-public:
-  WebClientConnection(const ComboAddress& client, int socketDesc) :
-    d_client(client), d_socket(socketDesc)
-  {
-    if (!s_connManager.registerConnection()) {
-      throw std::runtime_error("Too many concurrent web client connections");
-    }
-  }
-  WebClientConnection(WebClientConnection&& rhs) noexcept :
-    d_client(rhs.d_client), d_socket(std::move(rhs.d_socket))
-  {
-  }
-  WebClientConnection(const WebClientConnection&) = delete;
-  WebClientConnection& operator=(const WebClientConnection&) = delete;
-  WebClientConnection& operator=(WebClientConnection&& rhs) noexcept
-  {
-    d_client = rhs.d_client;
-    d_socket = std::move(rhs.d_socket);
-    return *this;
-  }
-
-  ~WebClientConnection()
-  {
-    if (d_socket.getHandle() != -1) {
-      s_connManager.releaseConnection();
-    }
-  }
-
-  [[nodiscard]] const Socket& getSocket() const
-  {
-    return d_socket;
-  }
-
-  [[nodiscard]] const ComboAddress& getClient() const
-  {
-    return d_client;
-  }
-
-private:
-  ComboAddress d_client;
-  Socket d_socket;
-};
 
 #ifndef DISABLE_PROMETHEUS
 static MetricDefinitionStorage s_metricDefinitions;
@@ -226,7 +134,87 @@ std::map<std::string, MetricDefinition> MetricDefinitionStorage::metrics{
 };
 #endif /* DISABLE_PROMETHEUS */
 
-bool addMetricDefinition(const dnsdist::prometheus::PrometheusMetricDefinition& def)
+namespace dnsdist::webserver
+{
+static ConcurrentConnectionManager s_connManager(100);
+
+std::string getConfig()
+{
+  ostringstream out;
+
+  {
+    const auto& config = dnsdist::configuration::getCurrentRuntimeConfiguration();
+    out << "Current web server configuration:" << endl;
+    out << "ACL: " << config.d_webServerACL.toString() << endl;
+    out << "Custom headers: ";
+    if (config.d_webCustomHeaders) {
+      out << endl;
+      for (const auto& header : *config.d_webCustomHeaders) {
+        out << " - " << header.first << ": " << header.second << endl;
+      }
+    }
+    else {
+      out << "None" << endl;
+    }
+    out << "API requires authentication: " << (config.d_apiRequiresAuthentication ? "yes" : "no") << endl;
+    out << "Dashboard requires authentication: " << (config.d_dashboardRequiresAuthentication ? "yes" : "no") << endl;
+    out << "Statistics require authentication: " << (config.d_statsRequireAuthentication ? "yes" : "no") << endl;
+    out << "Password: " << (config.d_webPassword ? "set" : "unset") << endl;
+    out << "API key: " << (config.d_webAPIKey ? "set" : "unset") << endl;
+    out << "API writable: " << (config.d_apiReadWrite ? "yes" : "no") << endl;
+    out << "API configuration directory: " << config.d_apiConfigDirectory << endl;
+    out << "Maximum concurrent connections: " << s_connManager.getMaxConcurrentConnections() << endl;
+  }
+
+  return out.str();
+}
+
+class WebClientConnection
+{
+public:
+  WebClientConnection(const ComboAddress& client, int socketDesc) :
+    d_client(client), d_socket(socketDesc)
+  {
+    if (!s_connManager.registerConnection()) {
+      throw std::runtime_error("Too many concurrent web client connections");
+    }
+  }
+  WebClientConnection(WebClientConnection&& rhs) noexcept :
+    d_client(rhs.d_client), d_socket(std::move(rhs.d_socket))
+  {
+  }
+  WebClientConnection(const WebClientConnection&) = delete;
+  WebClientConnection& operator=(const WebClientConnection&) = delete;
+  WebClientConnection& operator=(WebClientConnection&& rhs) noexcept
+  {
+    d_client = rhs.d_client;
+    d_socket = std::move(rhs.d_socket);
+    return *this;
+  }
+
+  ~WebClientConnection()
+  {
+    if (d_socket.getHandle() != -1) {
+      s_connManager.releaseConnection();
+    }
+  }
+
+  [[nodiscard]] const Socket& getSocket() const
+  {
+    return d_socket;
+  }
+
+  [[nodiscard]] const ComboAddress& getClient() const
+  {
+    return d_client;
+  }
+
+private:
+  ComboAddress d_client;
+  Socket d_socket;
+};
+
+bool addMetricDefinition([[maybe_unused]] const dnsdist::prometheus::PrometheusMetricDefinition& def)
 {
 #ifndef DISABLE_PROMETHEUS
   return MetricDefinitionStorage::addMetricDefinition(def);
@@ -238,17 +226,18 @@ bool addMetricDefinition(const dnsdist::prometheus::PrometheusMetricDefinition& 
 #ifndef DISABLE_WEB_CONFIG
 static bool apiWriteConfigFile(const string& filebasename, const string& content)
 {
-  if (!g_apiReadWrite) {
+  const auto& runtimeConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
+  if (!runtimeConfig.d_apiReadWrite) {
     warnlog("Not writing content to %s since the API is read-only", filebasename);
     return false;
   }
 
-  if (g_apiConfigDirectory.empty()) {
+  if (runtimeConfig.d_apiConfigDirectory.empty()) {
     vinfolog("Not writing content to %s since the API configuration directory is not set", filebasename);
     return false;
   }
 
-  string filename = g_apiConfigDirectory + "/" + filebasename + ".conf";
+  string filename = runtimeConfig.d_apiConfigDirectory + "/" + filebasename + ".conf";
   ofstream ofconf(filename.c_str());
   if (!ofconf) {
     errlog("Could not open configuration fragment file '%s' for writing: %s", filename, stringerror());
@@ -277,7 +266,7 @@ static void apiSaveACL(const NetmaskGroup& nmg)
 }
 #endif /* DISABLE_WEB_CONFIG */
 
-static bool checkAPIKey(const YaHTTP::Request& req, const std::unique_ptr<CredentialsHolder>& apiKey)
+static bool checkAPIKey(const YaHTTP::Request& req, const std::shared_ptr<const CredentialsHolder>& apiKey)
 {
   if (!apiKey) {
     return false;
@@ -291,7 +280,7 @@ static bool checkAPIKey(const YaHTTP::Request& req, const std::unique_ptr<Creden
   return false;
 }
 
-static bool checkWebPassword(const YaHTTP::Request& req, const std::unique_ptr<CredentialsHolder>& password, bool dashboardRequiresAuthentication)
+static bool checkWebPassword(const YaHTTP::Request& req, const std::shared_ptr<const CredentialsHolder>& password, bool dashboardRequiresAuthentication)
 {
   if (!dashboardRequiresAuthentication) {
     return true;
@@ -338,26 +327,26 @@ static bool isAStatsRequest(const YaHTTP::Request& req)
 
 static bool handleAuthorization(const YaHTTP::Request& req)
 {
-  auto config = g_webserverConfig.lock();
+  const auto& config = dnsdist::configuration::getCurrentRuntimeConfiguration();
 
   if (isAStatsRequest(req)) {
-    if (config->statsRequireAuthentication) {
+    if (config.d_statsRequireAuthentication) {
       /* Access to the stats is allowed for both API and Web users */
-      return checkAPIKey(req, config->apiKey) || checkWebPassword(req, config->password, config->dashboardRequiresAuthentication);
+      return checkAPIKey(req, config.d_webAPIKey) || checkWebPassword(req, config.d_webPassword, config.d_dashboardRequiresAuthentication);
     }
     return true;
   }
 
   if (isAnAPIRequest(req)) {
     /* Access to the API requires a valid API key */
-    if (!config->apiRequiresAuthentication || checkAPIKey(req, config->apiKey)) {
+    if (!config.d_apiRequiresAuthentication || checkAPIKey(req, config.d_webAPIKey)) {
       return true;
     }
 
-    return isAnAPIRequestAllowedWithWebAuth(req) && checkWebPassword(req, config->password, config->dashboardRequiresAuthentication);
+    return isAnAPIRequestAllowedWithWebAuth(req) && checkWebPassword(req, config.d_webPassword, config.d_dashboardRequiresAuthentication);
   }
 
-  return checkWebPassword(req, config->password, config->dashboardRequiresAuthentication);
+  return checkWebPassword(req, config.d_webPassword, config.d_dashboardRequiresAuthentication);
 }
 
 static bool isMethodAllowed(const YaHTTP::Request& req)
@@ -365,7 +354,7 @@ static bool isMethodAllowed(const YaHTTP::Request& req)
   if (req.method == "GET") {
     return true;
   }
-  if (req.method == "PUT" && g_apiReadWrite) {
+  if (req.method == "PUT" && dnsdist::configuration::getCurrentRuntimeConfiguration().d_apiReadWrite) {
     if (req.url.path == "/api/v1/servers/localhost/config/allow-from") {
       return true;
     }
@@ -382,7 +371,8 @@ static bool isMethodAllowed(const YaHTTP::Request& req)
 
 static bool isClientAllowedByACL(const ComboAddress& remote)
 {
-  return g_webserverConfig.lock()->acl.match(remote);
+  const auto& config = dnsdist::configuration::getCurrentRuntimeConfiguration();
+  return config.d_webServerACL.match(remote);
 }
 
 static void handleCORS(const YaHTTP::Request& req, YaHTTP::Response& resp)
@@ -391,7 +381,7 @@ static void handleCORS(const YaHTTP::Request& req, YaHTTP::Response& resp)
   if (origin != req.headers.end()) {
     if (req.method == "OPTIONS") {
       /* Pre-flight request */
-      if (g_apiReadWrite) {
+      if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_apiReadWrite) {
         resp.headers["Access-Control-Allow-Methods"] = "GET, PUT";
       }
       else {
@@ -408,7 +398,7 @@ static void handleCORS(const YaHTTP::Request& req, YaHTTP::Response& resp)
   }
 }
 
-static void addSecurityHeaders(YaHTTP::Response& resp, const boost::optional<std::unordered_map<std::string, std::string>>& customHeaders)
+static void addSecurityHeaders(YaHTTP::Response& resp, const std::optional<std::unordered_map<std::string, std::string>>& customHeaders)
 {
   static const std::vector<std::pair<std::string, std::string>> headers = {
     {"X-Content-Type-Options", "nosniff"},
@@ -429,7 +419,7 @@ static void addSecurityHeaders(YaHTTP::Response& resp, const boost::optional<std
   }
 }
 
-static void addCustomHeaders(YaHTTP::Response& resp, const boost::optional<std::unordered_map<std::string, std::string>>& customHeaders)
+static void addCustomHeaders(YaHTTP::Response& resp, const std::optional<std::unordered_map<std::string, std::string>>& customHeaders)
 {
   if (!customHeaders) {
     return;
@@ -443,14 +433,13 @@ static void addCustomHeaders(YaHTTP::Response& resp, const boost::optional<std::
 }
 
 template <typename T>
-static json11::Json::array someResponseRulesToJson(GlobalStateHolder<vector<T>>* someResponseRules)
+static json11::Json::array someResponseRulesToJson(const std::vector<T>& someResponseRules)
 {
   using namespace json11;
   Json::array responseRules;
   int num = 0;
-  auto localResponseRules = someResponseRules->getLocal();
-  responseRules.reserve(localResponseRules->size());
-  for (const auto& rule : *localResponseRules) {
+  responseRules.reserve(someResponseRules.size());
+  for (const auto& rule : someResponseRules) {
     responseRules.emplace_back(Json::object{
       {"id", num++},
       {"creationOrder", static_cast<double>(rule.d_creationOrder)},
@@ -466,10 +455,9 @@ static json11::Json::array someResponseRulesToJson(GlobalStateHolder<vector<T>>*
 
 #ifndef DISABLE_PROMETHEUS
 template <typename T>
-static void addRulesToPrometheusOutput(std::ostringstream& output, GlobalStateHolder<vector<T>>& rules)
+static void addRulesToPrometheusOutput(std::ostringstream& output, const std::vector<T>& rules)
 {
-  auto localRules = rules.getLocal();
-  for (const auto& entry : *localRules) {
+  for (const auto& entry : rules) {
     std::string identifier = !entry.d_name.empty() ? entry.d_name : boost::uuids::to_string(entry.d_id);
     output << "dnsdist_rule_hits{id=\"" << identifier << "\"} " << entry.d_rule->d_matches << "\n";
   }
@@ -513,6 +501,10 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
         prometheusMetricName = metricDetails.customName;
       }
 
+      if (!entry.d_labels.empty()) {
+        prometheusMetricName += "{" + entry.d_labels + "}";
+      }
+
       // for these we have the help and types encoded in the sources
       // but we need to be careful about labels in custom metrics
       std::string helpName = prometheusMetricName.substr(0, prometheusMetricName.find('{'));
@@ -526,11 +518,8 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
       if (const auto& val = std::get_if<pdns::stat_t*>(&entry.d_value)) {
         output << (*val)->load();
       }
-      else if (const auto& adval = std::get_if<pdns::stat_t_trait<double>*>(&entry.d_value)) {
+      else if (const auto& adval = std::get_if<pdns::stat_double_t*>(&entry.d_value)) {
         output << (*adval)->load();
-      }
-      else if (const auto& dval = std::get_if<double*>(&entry.d_value)) {
-        output << **dval;
       }
       else if (const auto& func = std::get_if<dnsdist::metrics::Stats::statfunction_t>(&entry.d_value)) {
         output << (*func)(entry.d_name);
@@ -558,7 +547,6 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   output << "dnsdist_latency_sum " << dnsdist::metrics::g_stats.latencySum << "\n";
   output << "dnsdist_latency_count " << dnsdist::metrics::g_stats.latencyCount << "\n";
 
-  auto states = g_dstates.getLocal();
   const string statesbase = "dnsdist_server_";
 
   // clang-format off
@@ -625,7 +613,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   output << "# HELP " << statesbase << "healthcheckfailuresinvalid "      << "Number of health check attempts where the DNS response was invalid"                   << "\n";
   output << "# TYPE " << statesbase << "healthcheckfailuresinvalid "      << "counter"                                                                              << "\n";
 
-  for (const auto& state : *states) {
+  for (const auto& state : dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends) {
     string serverName;
 
     if (state->getName().empty()) {
@@ -635,7 +623,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
       serverName = state->getName();
     }
 
-    boost::replace_all(serverName, ".", "_");
+    std::replace(serverName.begin(), serverName.end(), '.', '_');
 
     const std::string label = boost::str(boost::format(R"({server="%1%",address="%2%"})")
                                          % serverName % state->d_config.remote.toStringWithPort());
@@ -700,6 +688,8 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   output << "# TYPE " << frontsbase << "tcpavgqueriesperconnection " << "gauge" << "\n";
   output << "# HELP " << frontsbase << "tcpavgconnectionduration " << "The average duration of a TCP connection (ms)" << "\n";
   output << "# TYPE " << frontsbase << "tcpavgconnectionduration " << "gauge" << "\n";
+  output << "# HELP " << frontsbase << "tcpavgreadios " << "The average number of read IO operations per query over a TCP connection" << "\n";
+  output << "# TYPE " << frontsbase << "tcpavgreadios " << "gauge" << "\n";
   output << "# HELP " << frontsbase << "tlsqueries " << "Number of queries received by dnsdist over TLS, by TLS version" << "\n";
   output << "# TYPE " << frontsbase << "tlsqueries " << "counter" << "\n";
   output << "# HELP " << frontsbase << "tlsnewsessions " << "Amount of new TLS sessions negotiated" << "\n";
@@ -714,7 +704,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   output << "# TYPE " << frontsbase << "tlshandshakefailures " << "counter" << "\n";
 
   std::map<std::string,uint64_t> frontendDuplicates;
-  for (const auto& front : g_frontends) {
+  for (const auto& front : dnsdist::getFrontends()) {
     if (front->udpFD == -1 && front->tcpFD == -1) {
       continue;
     }
@@ -746,6 +736,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
       output << frontsbase << "tcpmaxconcurrentconnections" << label << front->tcpMaxConcurrentConnections.load() << "\n";
       output << frontsbase << "tcpavgqueriesperconnection" << label << front->tcpAvgQueriesPerConnection.load() << "\n";
       output << frontsbase << "tcpavgconnectionduration" << label << front->tcpAvgConnectionDuration.load() << "\n";
+      output << frontsbase << "tcpavgreadios" << label << front->tcpAvgIOsPerConnection << "\n";
       if (front->hasTLS()) {
         output << frontsbase << "tlsnewsessions" << label << front->tlsNewSessions.load() << "\n";
         output << frontsbase << "tlsresumptions" << label << front->tlsResumptions.load() << "\n";
@@ -763,7 +754,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
           errorCounters = &front->tlsFrontend->d_tlsCounters;
         }
         else if (front->dohFrontend != nullptr) {
-          errorCounters = &front->dohFrontend->d_tlsContext.d_tlsCounters;
+          errorCounters = &front->dohFrontend->d_tlsContext->d_tlsCounters;
         }
 
         if (errorCounters != nullptr) {
@@ -800,8 +791,8 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
 
 #ifdef HAVE_DNS_OVER_HTTPS
   std::map<std::string,uint64_t> dohFrontendDuplicates;
-  for(const auto& doh : g_dohlocals) {
-    const string frontName = doh->d_tlsContext.d_addr.toStringWithPort();
+  for(const auto& doh : dnsdist::getDoHFrontends()) {
+    const string frontName = doh->d_tlsContext->d_addr.toStringWithPort();
     uint64_t threadNumber = 0;
     auto dupPair = frontendDuplicates.emplace(frontName, 1);
     if (!dupPair.second) {
@@ -839,7 +830,6 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   }
 #endif /* HAVE_DNS_OVER_HTTPS */
 
-  auto localPools = g_pools.getLocal();
   const string cachebase = "dnsdist_pool_";
   output << "# HELP dnsdist_pool_servers " << "Number of servers in that pool" << "\n";
   output << "# TYPE dnsdist_pool_servers " << "gauge" << "\n";
@@ -867,7 +857,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   output << "# HELP dnsdist_pool_cache_cleanup_count_total " << "Number of times the cache has been scanned to remove expired entries, if any" << "\n";
   output << "# TYPE dnsdist_pool_cache_cleanup_count_total " << "counter" << "\n";
 
-  for (const auto& entry : *localPools) {
+  for (const auto& entry : dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools) {
     string poolName = entry.first;
 
     if (poolName.empty()) {
@@ -896,11 +886,14 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
 
   output << "# HELP dnsdist_rule_hits " << "Number of hits of that rule" << "\n";
   output << "# TYPE dnsdist_rule_hits " << "counter" << "\n";
-  for (const auto& chain : dnsdist::rules::getRuleChains()) {
-    addRulesToPrometheusOutput(output, chain.holder);
+  const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
+  for (const auto& chainDescription : dnsdist::rules::getRuleChainDescriptions()) {
+    const auto& chain = dnsdist::rules::getRuleChain(chains, chainDescription.identifier);
+    addRulesToPrometheusOutput(output, chain);
   }
-  for (const auto& chain : dnsdist::rules::getResponseRuleChains()) {
-    addRulesToPrometheusOutput(output, chain.holder);
+  for (const auto& chainDescription : dnsdist::rules::getResponseRuleChainDescriptions()) {
+    const auto& chain = dnsdist::rules::getResponseRuleChain(chains, chainDescription.identifier);
+    addRulesToPrometheusOutput(output, chain);
   }
 
 #ifndef DISABLE_DYNBLOCKS
@@ -928,7 +921,7 @@ static void handlePrometheus(const YaHTTP::Request& req, YaHTTP::Response& resp)
   output << "dnsdist_info{version=\"" << VERSION << "\"} " << "1" << "\n";
 
   resp.body = output.str();
-  resp.headers["Content-Type"] = "text/plain";
+  resp.headers["Content-Type"] = "text/plain; version=0.0.4";
   // clang-format on
 }
 #endif /* DISABLE_PROMETHEUS */
@@ -942,14 +935,14 @@ static void addStatsToJSONObject(Json::object& obj)
     if (entry.d_name == "special-memory-usage") {
       continue; // Too expensive for get-all
     }
+    if (!entry.d_labels.empty()) {
+      continue; // Skip labeled metrics to prevent duplicates
+    }
     if (const auto& val = std::get_if<pdns::stat_t*>(&entry.d_value)) {
       obj.emplace(entry.d_name, (double)(*val)->load());
     }
-    else if (const auto& adval = std::get_if<pdns::stat_t_trait<double>*>(&entry.d_value)) {
+    else if (const auto& adval = std::get_if<pdns::stat_double_t*>(&entry.d_value)) {
       obj.emplace(entry.d_name, (*adval)->load());
-    }
-    else if (const auto& dval = std::get_if<double*>(&entry.d_value)) {
-      obj.emplace(entry.d_name, (**dval));
     }
     else if (const auto& func = std::get_if<dnsdist::metrics::Stats::statfunction_t>(&entry.d_value)) {
       obj.emplace(entry.d_name, (double)(*func)(entry.d_name));
@@ -969,6 +962,7 @@ static void handleJSONStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
   }
 
   const string& command = req.getvars.at("command");
+  const auto& runtimeConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
 
   if (command == "stats") {
     auto obj = Json::object{
@@ -976,7 +970,7 @@ static void handleJSONStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
       {"packetcache-misses", 0},
       {"over-capacity-drops", 0},
       {"too-old-drops", 0},
-      {"server-policy", g_policy.getLocal()->getName()}};
+      {"server-policy", runtimeConfig.d_lbPolicy->getName()}};
 
     addStatsToJSONObject(obj);
 
@@ -987,10 +981,10 @@ static void handleJSONStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
   else if (command == "dynblocklist") {
     Json::object obj;
 #ifndef DISABLE_DYNBLOCKS
-    auto nmg = g_dynblockNMG.getLocal();
     timespec now{};
     gettime(&now);
-    for (const auto& entry : *nmg) {
+    const auto& dynamicClientAddressRules = dnsdist::DynamicBlocks::getClientAddressDynamicRules();
+    for (const auto& entry : dynamicClientAddressRules) {
       if (!(now < entry.second.until)) {
         continue;
       }
@@ -1002,14 +996,14 @@ static void handleJSONStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
         {"reason", entry.second.reason},
         {"seconds", static_cast<double>(entry.second.until.tv_sec - now.tv_sec)},
         {"blocks", static_cast<double>(counter)},
-        {"action", DNSAction::typeToString(entry.second.action != DNSAction::Action::None ? entry.second.action : g_dynBlockAction)},
+        {"action", DNSAction::typeToString(entry.second.action != DNSAction::Action::None ? entry.second.action : runtimeConfig.d_dynBlockAction)},
         {"warning", entry.second.warning},
         {"ebpf", entry.second.bpf}};
       obj.emplace(entry.first.toString(), thing);
     }
 
-    auto smt = g_dynblockSMT.getLocal();
-    smt->visit([&now, &obj](const SuffixMatchTree<DynBlock>& node) {
+    const auto& dynamicSuffixRules = dnsdist::DynamicBlocks::getSuffixDynamicRules();
+    dynamicSuffixRules.visit([&now, &obj, &runtimeConfig](const SuffixMatchTree<DynBlock>& node) {
       if (!(now < node.d_value.until)) {
         return;
       }
@@ -1021,7 +1015,7 @@ static void handleJSONStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
         {"reason", node.d_value.reason},
         {"seconds", static_cast<double>(node.d_value.until.tv_sec - now.tv_sec)},
         {"blocks", static_cast<double>(node.d_value.blocks)},
-        {"action", DNSAction::typeToString(node.d_value.action != DNSAction::Action::None ? node.d_value.action : g_dynBlockAction)},
+        {"action", DNSAction::typeToString(node.d_value.action != DNSAction::Action::None ? node.d_value.action : runtimeConfig.d_dynBlockAction)},
         {"ebpf", node.d_value.bpf}};
       obj.emplace(dom, thing);
     });
@@ -1045,8 +1039,8 @@ static void handleJSONStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
       }
     }
     if (g_defaultBPFFilter) {
-      auto nmg = g_dynblockNMG.getLocal();
-      for (const auto& entry : *nmg) {
+      const auto& dynamicClientAddressRules = dnsdist::DynamicBlocks::getClientAddressDynamicRules();
+      for (const auto& entry : dynamicClientAddressRules) {
         if (!(now < entry.second.until) || !entry.second.bpf) {
           continue;
         }
@@ -1055,7 +1049,7 @@ static void handleJSONStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
           {"reason", entry.second.reason},
           {"seconds", static_cast<double>(entry.second.until.tv_sec - now.tv_sec)},
           {"blocks", static_cast<double>(counter)},
-          {"action", DNSAction::typeToString(entry.second.action != DNSAction::Action::None ? entry.second.action : g_dynBlockAction)},
+          {"action", DNSAction::typeToString(entry.second.action != DNSAction::Action::None ? entry.second.action : runtimeConfig.d_dynBlockAction)},
           {"warning", entry.second.warning},
         };
         obj.emplace(entry.first.toString(), thing);
@@ -1075,10 +1069,10 @@ static void handleJSONStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
 static void addServerToJSON(Json::array& servers, int identifier, const std::shared_ptr<DownstreamState>& backend)
 {
   string status;
-  if (backend->d_config.availability == DownstreamState::Availability::Up) {
+  if (backend->d_config.d_availability == DownstreamState::Availability::Up) {
     status = "UP";
   }
-  else if (backend->d_config.availability == DownstreamState::Availability::Down) {
+  else if (backend->d_config.d_availability == DownstreamState::Availability::Down) {
     status = "DOWN";
   }
   else {
@@ -1133,7 +1127,7 @@ static void addServerToJSON(Json::array& servers, int identifier, const std::sha
     {"dropRate", (double)backend->dropRate}};
 
   /* sending a latency for a DOWN server doesn't make sense */
-  if (backend->d_config.availability == DownstreamState::Availability::Down) {
+  if (backend->d_config.d_availability == DownstreamState::Availability::Down) {
     server["latency"] = nullptr;
     server["tcpLatency"] = nullptr;
   }
@@ -1150,17 +1144,17 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
 
   Json::array servers;
   {
-    auto localServers = g_dstates.getLocal();
-    servers.reserve(localServers->size());
-    for (const auto& server : *localServers) {
+    const auto& localServers = dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends;
+    servers.reserve(localServers.size());
+    for (const auto& server : localServers) {
       addServerToJSON(servers, num++, server);
     }
   }
 
   Json::array frontends;
   num = 0;
-  frontends.reserve(g_frontends.size());
-  for (const auto& front : g_frontends) {
+  frontends.reserve(dnsdist::getFrontends().size());
+  for (const auto& front : dnsdist::getFrontends()) {
     if (front->udpFD == -1 && front->tcpFD == -1) {
       continue;
     }
@@ -1197,7 +1191,7 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
       errorCounters = &front->tlsFrontend->d_tlsCounters;
     }
     else if (front->dohFrontend != nullptr) {
-      errorCounters = &front->dohFrontend->d_tlsContext.d_tlsCounters;
+      errorCounters = &front->dohFrontend->d_tlsContext->d_tlsCounters;
     }
     if (errorCounters != nullptr) {
       frontend["tlsHandshakeFailuresDHKeyTooSmall"] = (double)errorCounters->d_dhKeyTooSmall;
@@ -1215,12 +1209,13 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
   Json::array dohs;
 #ifdef HAVE_DNS_OVER_HTTPS
   {
-    dohs.reserve(g_dohlocals.size());
+    const auto dohFrontends = dnsdist::getDoHFrontends();
+    dohs.reserve(dohFrontends.size());
     num = 0;
-    for (const auto& doh : g_dohlocals) {
+    for (const auto& doh : dohFrontends) {
       dohs.emplace_back(Json::object{
         {"id", num++},
-        {"address", doh->d_tlsContext.d_addr.toStringWithPort()},
+        {"address", doh->d_tlsContext->d_addr.toStringWithPort()},
         {"http-connects", (double)doh->d_httpconnects},
         {"http1-queries", (double)doh->d_http1Stats.d_nbQueries},
         {"http2-queries", (double)doh->d_http2Stats.d_nbQueries},
@@ -1248,10 +1243,10 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
 
   Json::array pools;
   {
-    auto localPools = g_pools.getLocal();
     num = 0;
-    pools.reserve(localPools->size());
-    for (const auto& pool : *localPools) {
+    const auto& localPools = dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools;
+    pools.reserve(localPools.size());
+    for (const auto& pool : localPools) {
       const auto& cache = pool.second->packetCache;
       Json::object entry{
         {"id", num++},
@@ -1273,7 +1268,7 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
 
   string acl;
   {
-    auto aclEntries = g_ACL.getLocal()->toStringVector();
+    auto aclEntries = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.toStringVector();
 
     for (const auto& entry : aclEntries) {
       if (!acl.empty()) {
@@ -1286,7 +1281,7 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
   string localaddressesStr;
   {
     std::set<std::string> localaddresses;
-    for (const auto& front : g_frontends) {
+    for (const auto& front : dnsdist::getFrontends()) {
       localaddresses.insert(front->local.toStringWithPort());
     }
     for (const auto& addr : localaddresses) {
@@ -1312,12 +1307,13 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
 
   /* unfortunately DNSActions have getStats(),
      and DNSResponseActions do not. */
-  for (const auto& chain : dnsdist::rules::getRuleChains()) {
+  const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
+  for (const auto& chainDescription : dnsdist::rules::getRuleChainDescriptions()) {
     Json::array rules;
-    auto localRules = chain.holder.getLocal();
+    const auto& chain = dnsdist::rules::getRuleChain(chains, chainDescription.identifier);
     num = 0;
-    rules.reserve(localRules->size());
-    for (const auto& lrule : *localRules) {
+    rules.reserve(chain.size());
+    for (const auto& lrule : chain) {
       Json::object rule{
         {"id", num++},
         {"creationOrder", (double)lrule.d_creationOrder},
@@ -1329,12 +1325,13 @@ static void handleStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
         {"action-stats", lrule.d_action->getStats()}};
       rules.emplace_back(std::move(rule));
     }
-    responseObject[chain.metricName] = std::move(rules);
+    responseObject[chainDescription.metricName] = std::move(rules);
   }
 
-  for (const auto& chain : dnsdist::rules::getResponseRuleChains()) {
-    auto responseRules = someResponseRulesToJson(&chain.holder);
-    responseObject[chain.metricName] = std::move(responseRules);
+  for (const auto& chainDescription : dnsdist::rules::getResponseRuleChainDescriptions()) {
+    const auto& chain = dnsdist::rules::getResponseRuleChain(chains, chainDescription.identifier);
+    auto responseRules = someResponseRulesToJson(chain);
+    responseObject[chainDescription.metricName] = std::move(responseRules);
   }
 
   resp.headers["Content-Type"] = "application/json";
@@ -1353,9 +1350,9 @@ static void handlePoolStats(const YaHTTP::Request& req, YaHTTP::Response& resp)
   resp.status = 200;
   Json::array doc;
 
-  auto localPools = g_pools.getLocal();
-  const auto poolIt = localPools->find(poolName->second);
-  if (poolIt == localPools->end()) {
+  const auto& pools = dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools;
+  const auto poolIt = pools.find(poolName->second);
+  if (poolIt == pools.end()) {
     resp.status = 404;
     return;
   }
@@ -1410,17 +1407,11 @@ static void handleStatsOnly(const YaHTTP::Request& req, YaHTTP::Response& resp)
           {"name", item.d_name},
           {"value", (double)(*val)->load()}});
       }
-      else if (const auto& adval = std::get_if<pdns::stat_t_trait<double>*>(&item.d_value)) {
+      else if (const auto& adval = std::get_if<pdns::stat_double_t*>(&item.d_value)) {
         doc.emplace_back(Json::object{
           {"type", "StatisticItem"},
           {"name", item.d_name},
           {"value", (*adval)->load()}});
-      }
-      else if (const auto& dval = std::get_if<double*>(&item.d_value)) {
-        doc.emplace_back(Json::object{
-          {"type", "StatisticItem"},
-          {"name", item.d_name},
-          {"value", (**dval)}});
       }
       else if (const auto& func = std::get_if<dnsdist::metrics::Stats::statfunction_t>(&item.d_value)) {
         doc.emplace_back(Json::object{
@@ -1442,23 +1433,25 @@ static void handleConfigDump(const YaHTTP::Request& req, YaHTTP::Response& resp)
   resp.status = 200;
 
   Json::array doc;
-  typedef boost::variant<bool, double, std::string> configentry_t;
+  const auto& runtimeConfiguration = dnsdist::configuration::getCurrentRuntimeConfiguration();
+  const auto& immutableConfig = dnsdist::configuration::getImmutableConfiguration();
+  using configentry_t = boost::variant<bool, double, std::string>;
   std::vector<std::pair<std::string, configentry_t>> configEntries{
-    {"acl", g_ACL.getLocal()->toString()},
-    {"allow-empty-response", g_allowEmptyResponse},
-    {"control-socket", g_serverControl.toStringWithPort()},
-    {"ecs-override", g_ECSOverride},
-    {"ecs-source-prefix-v4", (double)g_ECSSourcePrefixV4},
-    {"ecs-source-prefix-v6", (double)g_ECSSourcePrefixV6},
-    {"fixup-case", g_fixupCase},
-    {"max-outstanding", (double)g_maxOutstanding},
-    {"server-policy", g_policy.getLocal()->getName()},
-    {"stale-cache-entries-ttl", (double)g_staleCacheEntriesTTL},
-    {"tcp-recv-timeout", (double)g_tcpRecvTimeout},
-    {"tcp-send-timeout", (double)g_tcpSendTimeout},
-    {"truncate-tc", g_truncateTC},
-    {"verbose", g_verbose},
-    {"verbose-health-checks", g_verboseHealthChecks}};
+    {"acl", runtimeConfiguration.d_ACL.toString()},
+    {"allow-empty-response", runtimeConfiguration.d_allowEmptyResponse},
+    {"control-socket", runtimeConfiguration.d_consoleServerAddress.toStringWithPort()},
+    {"ecs-override", runtimeConfiguration.d_ecsOverride},
+    {"ecs-source-prefix-v4", static_cast<double>(runtimeConfiguration.d_ECSSourcePrefixV4)},
+    {"ecs-source-prefix-v6", static_cast<double>(runtimeConfiguration.d_ECSSourcePrefixV6)},
+    {"fixup-case", runtimeConfiguration.d_fixupCase},
+    {"max-outstanding", static_cast<double>(immutableConfig.d_maxUDPOutstanding)},
+    {"server-policy", runtimeConfiguration.d_lbPolicy->getName()},
+    {"stale-cache-entries-ttl", static_cast<double>(runtimeConfiguration.d_staleCacheEntriesTTL)},
+    {"tcp-recv-timeout", static_cast<double>(runtimeConfiguration.d_tcpRecvTimeout)},
+    {"tcp-send-timeout", static_cast<double>(runtimeConfiguration.d_tcpSendTimeout)},
+    {"truncate-tc", runtimeConfiguration.d_truncateTC},
+    {"verbose", runtimeConfiguration.d_verbose},
+    {"verbose-health-checks", runtimeConfiguration.d_verboseHealthChecks}};
   for (const auto& item : configEntries) {
     if (const auto& bval = boost::get<bool>(&item.second)) {
       doc.emplace_back(Json::object{
@@ -1512,7 +1505,9 @@ static void handleAllowFrom(const YaHTTP::Request& req, YaHTTP::Response& resp)
 
         if (resp.status == 200) {
           infolog("Updating the ACL via the API to %s", nmg.toString());
-          g_ACL.setState(nmg);
+          dnsdist::configuration::updateRuntimeConfiguration([&nmg](dnsdist::configuration::RuntimeConfiguration& config) {
+            config.d_ACL = nmg;
+          });
           apiSaveACL(nmg);
         }
       }
@@ -1525,7 +1520,7 @@ static void handleAllowFrom(const YaHTTP::Request& req, YaHTTP::Response& resp)
     }
   }
   if (resp.status == 200) {
-    auto aclEntries = g_ACL.getLocal()->toStringVector();
+    auto aclEntries = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.toStringVector();
 
     Json::object obj{
       {"type", "ConfigSetting"},
@@ -1588,7 +1583,7 @@ static void handleCacheManagement(const YaHTTP::Request& req, YaHTTP::Response& 
 
   std::shared_ptr<ServerPool> pool;
   try {
-    pool = getPool(g_pools.getCopy(), poolName->second);
+    pool = getPool(poolName->second);
   }
   catch (const std::exception& e) {
     resp.status = 404;
@@ -1686,9 +1681,7 @@ static void handleRings(const YaHTTP::Request& req, YaHTTP::Response& resp)
   size_t numberOfResponses = 0;
   Json::array queries;
   Json::array responses;
-  struct timespec now
-  {
-  };
+  struct timespec now{};
   gettime(&now);
 
   for (const auto& shard : g_rings.d_shards) {
@@ -1745,7 +1738,7 @@ void clearWebHandlers()
 #ifndef DISABLE_BUILTIN_HTML
 #include "htmlfiles.h"
 
-static void redirectToIndex(const YaHTTP::Request& req, YaHTTP::Response& resp)
+static void redirectToIndex([[maybe_unused]] const YaHTTP::Request& req, YaHTTP::Response& resp)
 {
   const string charset = "; charset=utf-8";
   resp.body.assign(s_urlmap.at("index.html"));
@@ -1849,10 +1842,9 @@ static void connectionThread(WebClientConnection&& conn)
     resp.version = req.version;
 
     {
-      auto config = g_webserverConfig.lock();
-
-      addCustomHeaders(resp, config->customHeaders);
-      addSecurityHeaders(resp, config->customHeaders);
+      const auto& config = dnsdist::configuration::getCurrentRuntimeConfiguration();
+      addCustomHeaders(resp, config.d_webCustomHeaders);
+      addSecurityHeaders(resp, config.d_webCustomHeaders);
     }
     /* indicate that the connection will be closed after completion of the response */
     resp.headers["Connection"] = "close";
@@ -1917,64 +1909,21 @@ static void connectionThread(WebClientConnection&& conn)
   }
 }
 
-void setWebserverAPIKey(std::unique_ptr<CredentialsHolder>&& apiKey)
-{
-  auto config = g_webserverConfig.lock();
-
-  if (apiKey) {
-    config->apiKey = std::move(apiKey);
-  }
-  else {
-    config->apiKey.reset();
-  }
-}
-
-void setWebserverPassword(std::unique_ptr<CredentialsHolder>&& password)
-{
-  g_webserverConfig.lock()->password = std::move(password);
-}
-
-void setWebserverACL(const std::string& acl)
-{
-  NetmaskGroup newACL;
-  newACL.toMasks(acl);
-
-  g_webserverConfig.lock()->acl = std::move(newACL);
-}
-
-void setWebserverCustomHeaders(const boost::optional<std::unordered_map<std::string, std::string>>& customHeaders)
-{
-  g_webserverConfig.lock()->customHeaders = customHeaders;
-}
-
-void setWebserverStatsRequireAuthentication(bool require)
-{
-  g_webserverConfig.lock()->statsRequireAuthentication = require;
-}
-
-void setWebserverAPIRequiresAuthentication(bool require)
-{
-  g_webserverConfig.lock()->apiRequiresAuthentication = require;
-}
-
-void setWebserverDashboardRequiresAuthentication(bool require)
-{
-  g_webserverConfig.lock()->dashboardRequiresAuthentication = require;
-}
-
-void setWebserverMaxConcurrentConnections(size_t max)
+void setMaxConcurrentConnections(size_t max)
 {
   s_connManager.setMaxConcurrentConnections(max);
 }
 
-void dnsdistWebserverThread(int sock, const ComboAddress& local)
+void WebserverThread(Socket sock)
 {
   setThreadName("dnsdist/webserv");
+  // coverity[auto_causes_copy]
+  const auto local = *dnsdist::configuration::getCurrentRuntimeConfiguration().d_webServerAddress;
   infolog("Webserver launched on %s", local.toStringWithPort());
 
   {
-    auto config = g_webserverConfig.lock();
-    if (!config->password && config->dashboardRequiresAuthentication) {
+    const auto& config = dnsdist::configuration::getCurrentRuntimeConfiguration();
+    if (!config.d_webPassword && config.d_dashboardRequiresAuthentication) {
       warnlog("Webserver launched on %s without a password set!", local.toStringWithPort());
     }
   }
@@ -1982,7 +1931,7 @@ void dnsdistWebserverThread(int sock, const ComboAddress& local)
   for (;;) {
     try {
       ComboAddress remote(local);
-      int fileDesc = SAccept(sock, remote);
+      int fileDesc = SAccept(sock.getHandle(), remote);
 
       if (!isClientAllowedByACL(remote)) {
         vinfolog("Connection to webserver from client %s is not allowed, closing", remote.toStringWithPort());
@@ -2000,4 +1949,5 @@ void dnsdistWebserverThread(int sock, const ComboAddress& local)
       vinfolog("Had an error accepting new webserver connection: %s", e.what());
     }
   }
+}
 }

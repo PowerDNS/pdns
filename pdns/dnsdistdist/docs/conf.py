@@ -20,6 +20,8 @@
 # import os
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
+import sys
+from pathlib import Path
 import datetime
 
 # -- General configuration ------------------------------------------------
@@ -28,11 +30,13 @@ import datetime
 #
 # needs_sphinx = '1.0'
 
+sys.path.append(str(Path('.').resolve()))
+
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = ['redjack.sphinx.lua', 'sphinxcontrib.httpdomain', 'sphinxjsondomain',
-              'sphinxcontrib.fulltoc', 'changelog']
+              'sphinxcontrib.fulltoc', 'changelog', 'depfile']
 primary_domain = 'lua'
 
 # Add any paths that contain templates here, relative to this directory.
@@ -92,7 +96,7 @@ changelog_render_pullreq = "https://github.com/PowerDNS/pdns/pull/%s"
 changelog_render_changeset = "https://github.com/PowerDNS/pdns/commit/%s"
 
 changelog_sections = ['New Features', 'Improvements', 'Bug Fixes', 'Removals']
-changelog_inner_tag_sort = ['Security', 'DNS over QUIC', 'DNS over HTTP3', 'DNS over HTTPS', 'DNS over TLS', 'DNSCrypt', 'DNSTAP', 'Protobuf', 'Performance', 'Webserver', 'Metrics']
+changelog_inner_tag_sort = ['Security', 'DNS over QUIC', 'DNS over HTTP3', 'DNS over HTTPS', 'DNS over TLS', 'DNSCrypt', 'DNSTAP', 'Protobuf', 'Performance', 'Webserver', 'Metrics', 'Meson', 'YAML']
 
 changelog_hide_tags_in_entry = True
 
@@ -117,6 +121,7 @@ html_static_path = ['_static']
 
 html_favicon = '_static/favicon.ico'
 
+html_sidebars = { '**': ['searchbox.html', 'relations.html', 'localtoc.html', 'sourcelink.html'] }
 
 # -- Options for HTMLHelp output ------------------------------------------
 
@@ -199,4 +204,5 @@ epub_copyright = copyright
 # A list of files that should not be packed into the epub file.
 epub_exclude_files = ['search.html']
 
-
+depfile = 'sphinx.d'
+depfile_stamp = 'sphinx.stamp'

@@ -5,8 +5,9 @@ import struct
 
 from recursortests import RecursorTest
 
-class testKeepOpenTCP(RecursorTest):
+class KeepOpenTCPTest(RecursorTest):
     _confdir = 'KeepOpenTCP'
+    _auth_zones = RecursorTest._default_auth_zones
 
     _config_template = """dnssec=validate
 packetcache-ttl=10
@@ -21,7 +22,7 @@ auth-zones=authzone.example=configs/%s/authzone.zone""" % _confdir
 @ 3600 IN SOA {soa}
 @ 3600 IN A 192.0.2.88
 """.format(soa=cls._SOA))
-        super(testKeepOpenTCP, cls).generateRecursorConfig(confdir)
+        super(KeepOpenTCPTest, cls).generateRecursorConfig(confdir)
 
     def sendTCPQueryKeepOpen(cls, sock, query, timeout=2.0):
         try:

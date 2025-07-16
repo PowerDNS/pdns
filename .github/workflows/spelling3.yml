@@ -12,9 +12,9 @@ on:
     branches:
       - "**"
     types:
-      - 'opened'
-      - 'reopened'
-      - 'synchronize'
+      - "opened"
+      - "reopened"
+      - "synchronize"
 
 jobs:
   spelling:
@@ -22,10 +22,8 @@ jobs:
     permissions:
       # contents-read is needed to checkout in private repositories
       contents: read
-      # actions-read is needed (possibly only for private repositories)
-      # to identify the workflow's filename until
-      # https://github.com/actions/runner/issues/853 is fixed
-      actions: read
+      # pull-requests-read is needed for suppress_push_for_open_pull_request in private repositories
+      pull-requests: read
       # security-events-write is needed according to the documentation:
       # https://docs.github.com/en/code-security/code-scanning/integrating-with-code-scanning/uploading-a-sarif-file-to-github#uploading-a-code-scanning-analysis-with-github-actions
       security-events: write
@@ -38,35 +36,41 @@ jobs:
       # note: If you use only_check_changed_files, you do not want cancel-in-progress
       cancel-in-progress: true
     steps:
-    - name: check-spelling
-      id: spelling
-      uses: check-spelling/check-spelling@v0.0.22
-      with:
-        config: .github/actions/spell-check
-        suppress_push_for_open_pull_request: ${{ github.actor != 'dependabot[bot]' && 1 }}
-        checkout: true
-        spell_check_this: powerdns/pdns@master
-        post_comment: 0
-        warnings: bad-regex,binary-file,deprecated-feature,ignored-expect-variant,large-file,limited-references,no-newline-at-eof,noisy-file,non-alpha-in-dictionary,token-is-substring,unexpected-line-ending,whitespace-in-dictionary,minified-file,unsupported-configuration,no-files-to-check
-        use_sarif: ${{ (!github.event.pull_request || (github.event.pull_request.head.repo.full_name == github.repository)) && 1 }}
-        extra_dictionaries:
-          cspell:software-terms/dict/softwareTerms.txt
-          cspell:node/dict/node.txt
-          cspell:python/src/common/extra.txt
-          cspell:php/dict/php.txt
-          cspell:python/src/python/python-lib.txt
-          cspell:golang/dict/go.txt
-          cspell:fullstack/dict/fullstack.txt
-          cspell:k8s/dict/k8s.txt
-          cspell:aws/aws.txt
-          cspell:cpp/src/stdlib-cpp.txt
-          cspell:filetypes/filetypes.txt
-          cspell:python/src/python/python.txt
-          cspell:django/dict/django.txt
-          cspell:typescript/dict/typescript.txt
-          cspell:dotnet/dict/dotnet.txt
-          cspell:html/dict/html.txt
-          cspell:cpp/src/lang-keywords.txt
-          cspell:lua/dict/lua.txt
-          cspell:latex/dict/latex.txt
-        check_extra_dictionaries: ''
+      - name: check-spelling
+        id: spelling
+        uses: check-spelling/check-spelling@v0.0.25
+        with:
+          config: .github/actions/spell-check
+          suppress_push_for_open_pull_request: ${{ github.actor != 'dependabot[bot]' && 1 }}
+          checkout: true
+          check_file_names: 1
+          spell_check_this: powerdns/pdns@master
+          post_comment: 0
+          use_magic_file: 1
+          warnings: bad-regex,binary-file,deprecated-feature,ignored-expect-variant,large-file,limited-references,no-newline-at-eof,noisy-file,non-alpha-in-dictionary,token-is-substring,unexpected-line-ending,whitespace-in-dictionary,minified-file,unsupported-configuration,no-files-to-check,unclosed-block-ignore-begin,unclosed-block-ignore-end
+          use_sarif: ${{ (!github.event.pull_request || (github.repository_owner != 'PowerDNS' && github.event.pull_request.head.repo.full_name == github.repository)) && !vars.DO_NOT_USE_SARIF_REPORTING && 1 }}
+          dictionary_source_prefixes: >
+            {
+            "cspell": "https://raw.githubusercontent.com/check-spelling/cspell-dicts/v20241114/dictionaries/"
+            }
+          extra_dictionaries: |
+            cspell:software-terms/softwareTerms.txt
+            cspell:node/node.txt
+            cspell:php/php.txt
+            cspell:python/common/extra.txt
+            cspell:python/python/python-lib.txt
+            cspell:golang/go.txt
+            cspell:cpp/stdlib-cpp.txt
+            cspell:aws/aws.txt
+            cspell:filetypes/filetypes.txt
+            cspell:dart/dart.txt
+            cspell:rust/rust.txt
+            cspell:npm/npm.txt
+            cspell:cpp/stdlib-c.txt
+            cspell:fullstack/fullstack.txt
+            cspell:python/python/python.txt
+            cspell:typescript/typescript.txt
+            cspell:html/html.txt
+            cspell:java/java.txt
+            cspell:lua/lua.txt
+          check_extra_dictionaries: ""

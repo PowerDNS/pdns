@@ -16,13 +16,12 @@ on:
         type: string
         # please remember to update build-packages.yml as well
         default: >-
-          el-7
           el-8
           el-9
-          debian-buster
+          el-10
           debian-bullseye
           debian-bookworm
-          ubuntu-focal
+          debian-trixie
           ubuntu-jammy
           ubuntu-noble
       ref:

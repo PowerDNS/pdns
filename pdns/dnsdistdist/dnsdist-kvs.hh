@@ -160,6 +160,8 @@ public:
   // This requires that the underlying store supports ordered keys, which is true for LMDB but not for CDB, for example.
   virtual bool getRangeValue(const std::string& key, std::string& value)
   {
+    (void)key;
+    (void)value;
     throw std::runtime_error("range-based lookups are not implemented for this Key-Value Store");
   }
   virtual bool reload()
@@ -175,7 +177,7 @@ public:
 class LMDBKVStore: public KeyValueStore
 {
 public:
-  LMDBKVStore(const std::string& fname, const std::string& dbName, bool noLock=false): d_env(fname.c_str(), noLock ? MDB_NOSUBDIR|MDB_RDONLY|MDB_NOLOCK : MDB_NOSUBDIR|MDB_RDONLY, 0600, 0), d_dbi(d_env.openDB(dbName, 0)), d_fname(fname), d_dbName(dbName)
+  LMDBKVStore(const std::string& fname, const std::string& dbName, bool noLock=false): d_env(getMDBEnv(fname.c_str(), noLock ? MDB_NOSUBDIR|MDB_RDONLY|MDB_NOLOCK : MDB_NOSUBDIR|MDB_RDONLY, 0600, 0)), d_dbi(d_env->openDB(dbName, 0)), d_fname(fname), d_dbName(dbName)
   {
   }
 
@@ -184,7 +186,7 @@ public:
   bool getRangeValue(const std::string& key, std::string& value) override;
 
 private:
-  MDBEnv d_env;
+  std::shared_ptr<MDBEnv> d_env;
   MDBDbi d_dbi;
   std::string d_fname;
   std::string d_dbName;

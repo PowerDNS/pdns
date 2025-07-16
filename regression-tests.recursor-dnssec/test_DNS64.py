@@ -3,10 +3,12 @@ import os
 
 from recursortests import RecursorTest
 
-class DNS64RecursorTest(RecursorTest):
+class DNS64Test(RecursorTest):
 
     _confdir = 'DNS64'
+    _auth_zones = RecursorTest._default_auth_zones
     _config_template = """
+    serve-rfc6303=no
     auth-zones=example.dns64=configs/%s/example.dns64.zone
     auth-zones+=in-addr.arpa=configs/%s/in-addr.arpa.zone
     auth-zones+=ip6.arpa=configs/%s/ip6.arpa.zone
@@ -54,7 +56,7 @@ formerr 3600 IN A 192.0.2.43
 1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2 IN PTR aaaa.example.dns64.
 """.format(soa=cls._SOA))
 
-        super(DNS64RecursorTest, cls).generateRecursorConfig(confdir)
+        super(DNS64Test, cls).generateRecursorConfig(confdir)
 
     # this type (A) exists for this name
     def testExistingA(self):

@@ -1,10 +1,16 @@
 #!/usr/bin/env bash
 
-[ -z "$GMYSQLDB" ] && GMYSQLDB=pdnstest
-[ -z "$GMYSQLUSER" ] && GMYSQLUSER=root
-[ -z "$GMYSQLHOST" ] && GMYSQLHOST=localhost
-[ -z "$GMYSQLPASSWD" ] && GMYSQLPASSWD=''
+plusvariant=''
+_context=${context%-variant}
+if [ $context != $_context ]
+then
+    plusvariant='..variant'
+fi
 
-mysql --user="$GMYSQLUSER" --password="$GMYSQLPASSWD" --host="$GMYSQLHOST" \
-	"$GMYSQLDB" \
-	-e "UPDATE records SET content = 'ns1.test.dyndns. ahu.example.dyndns. 2012060701 28800 7200 604800 86400' WHERE name in ('test.dyndns', 'sub.test.dyndns') AND type = 'SOA'"
+for zone in test.dyndns sub.test.dyndns
+do
+    zonewithvariant=${zone}${plusvariant}
+    $PDNSUTIL --config-dir=. --config-name=$backend \
+        replace-rrset ${zonewithvariant} ${zone} SOA "ns1.test.dyndns ahu.example.dyndns 2012060701 28800 7200 604800 86400" \
+        > /dev/null
+done

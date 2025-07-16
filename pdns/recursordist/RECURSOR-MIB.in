@@ -1,0 +1,138 @@
+-- -*- snmpv2 -*-
+-- ----------------------------------------------------------------------
+-- MIB file for PowerDNS Recursor
+-- ----------------------------------------------------------------------
+
+PDNSRECURSOR-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    OBJECT-TYPE, MODULE-IDENTITY, enterprises,
+    Counter64, NOTIFICATION-TYPE
+        FROM SNMPv2-SMI
+    CounterBasedGauge64
+        FROM HCNUM-TC
+    OBJECT-GROUP, MODULE-COMPLIANCE, NOTIFICATION-GROUP
+        FROM SNMPv2-CONF;
+
+rec MODULE-IDENTITY
+    LAST-UPDATED "202408280000Z"
+    ORGANIZATION "PowerDNS BV"
+    CONTACT-INFO "support@powerdns.com"
+    DESCRIPTION
+       "This MIB module describes information gathered through PowerDNS Recursor."
+
+    REVISION "202408280000Z"
+    DESCRIPTION "Added metric for too many incoming TCP connections"
+
+    REVISION "202408130000Z"
+    DESCRIPTION "Added metric for chain limits reached"
+
+    REVISION "202405230000Z"
+    DESCRIPTION "Added metrics for maximum chain length and weight"
+
+    REVISION "202306080000Z"
+    DESCRIPTION "Added metrics for NOD and UDR events"
+
+    REVISION "202302240000Z"
+    DESCRIPTION "Added metrics for sharded packet cache contention"
+
+    REVISION "202209120000Z"
+    DESCRIPTION "Added metrics for answers from auths by rcode"
+
+    REVISION "202208220000Z"
+    DESCRIPTION "Added internal maintenance metrics."
+
+    REVISION "202201310000Z"
+    DESCRIPTION "Added non-resolving NS name metric."
+
+    REVISION "202111090000Z"
+    DESCRIPTION "Added NOTIFY-related metrics."
+
+    REVISION "202110270000Z"
+    DESCRIPTION "Added more UDP errors metric."
+
+    REVISION "202107200000Z"
+    DESCRIPTION "Added almost expired task metrics."
+
+    REVISION "202101050000Z"
+    DESCRIPTION "Added Aggressive NSEC cache metrics."
+
+    REVISION "202002170000Z"
+    DESCRIPTION "Added proxyProtocolInvalid metric."
+
+    REVISION "201911140000Z"
+    DESCRIPTION "Added qnameMinFallbackSuccess stats."
+
+    REVISION "201812240000Z"
+    DESCRIPTION "Added the dnssecAuthenticDataQueries and dnssecCheckDisabledQueries stats."
+
+    REVISION "201611290000Z"
+    DESCRIPTION "Initial revision."
+
+    ::= { powerdns 2 }
+
+powerdns		OBJECT IDENTIFIER ::= { enterprises 43315 }
+
+stats OBJECT IDENTIFIER ::= { rec 1 }
+REPL_OBJECTS1
+---
+--- Traps / Notifications
+---
+
+trap OBJECT IDENTIFIER ::= { rec 10 }
+traps OBJECT IDENTIFIER ::= { trap 0 } --- reverse-mappable
+trapObjects OBJECT IDENTIFIER ::= { rec 11 }
+
+trapReason OBJECT-TYPE
+    SYNTAX OCTET STRING
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Reason for this trap"
+    ::= { trapObjects 1 }
+
+--- { trapObjects 5000 } up to and including { trapObjects 5999 } are reserved for local, product-specific extensions to the Recursor MIB
+
+customTrap NOTIFICATION-TYPE
+    OBJECTS {
+        trapReason
+    }
+    STATUS current
+    DESCRIPTION "Trap sent by sendCustomTrap"
+    ::= { traps 1 }
+
+--- { traps 5000 } up to and including { traps 5999 } are reserved for local, product-specific extensions to the Recursor MIB
+
+---
+--- Conformance
+---
+
+recConformance OBJECT IDENTIFIER ::= { rec 100 }
+
+recCompliances MODULE-COMPLIANCE
+    STATUS current
+    DESCRIPTION "PowerDNS Recursor compliance statement"
+    MODULE
+    MANDATORY-GROUPS {
+        recGroup,
+        recTrapsGroup
+    }
+    ::= { recConformance 1 }
+
+recGroup OBJECT-GROUP
+    OBJECTS {
+REPL_OBJECTS2
+    }
+    STATUS current
+    DESCRIPTION "Objects conformance group for PowerDNS Recursor"
+    ::= { recConformance 2 }
+
+recTrapsGroup NOTIFICATION-GROUP
+    NOTIFICATIONS {
+        customTrap
+    }
+    STATUS current
+    DESCRIPTION "Traps conformance group for PowerDNS Recursor"
+    ::= { recConformance 3 }
+
+END

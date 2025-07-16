@@ -20,7 +20,7 @@ This approach generates `.gcno` files during the compilation, which are stored a
 * Every invocation of a program updates the `.gcda` files corresponding to the code that has been executed. It will append to existing `.gcda` files, but only process can update a given file so parallel execution will result in corrupted data.
 * Writing to each `.gcda` might take a while for large programs, and has been known to slow down execution quite a lot.
 * Accurate reporting of lines and branches may be problematic when optimizations are enabled, so it is advised to disable optimizations to get useful analysis.
-* Note that the `.gcda` files produced by `clang++` are not fully compatible with the `g++` ones, and with the existing tools, but [`llvm-cov gcov`](https://llvm.org/docs/CommandGuide/llvm-cov.html#llvm-cov-gcov) can produce `.gcov` files that should be compatible. A symptom of this incompatiblity looks like this:
+* Note that the `.gcda` files produced by `clang++` are not fully compatible with the `g++` ones, and with the existing tools, but [`llvm-cov gcov`](https://llvm.org/docs/CommandGuide/llvm-cov.html#llvm-cov-gcov) can produce `.gcov` files that should be compatible. A symptom of this incompatibility looks like this:
 
 ```
 Processing pdns/ednssubnet.gcda

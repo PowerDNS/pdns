@@ -10,7 +10,7 @@ DIRTY=""
 git status | grep -q clean || DIRTY='.dirty'
 
 # Special environment variable to signal that we are building a release, as this
-# has consequenses for the version number.
+# has consequences for the version number.
 if [ "${IS_RELEASE}" = "YES" ]; then
   TAG="$(git describe --tags --exact-match 2> /dev/null | cut -d- -f 2-)"
   if [ -n "${TAG}" ]; then
@@ -53,7 +53,7 @@ if [ ! -z "$(git rev-parse --abbrev-ref HEAD 2> /dev/null)" ]; then
     # We used 0.0.XXXXgHASH for master in the previous incarnation of our build pipeline.
     # This now becomes 0.0.XXXX.0.gHASH, as 0.0.0.XXXX.gHASH (which is more correct)
     # would break upgrades for those running master
-    # This _should_ be ok for forever is we stick to X.Y.Z for version numbers
+    # This _should_ be ok for forever if we stick to X.Y.Z for version numbers
     LAST_TAG=0.0
     COMMITS_SINCE_TAG="$(git rev-list --count 12c868770afc20b6cc0da439d881105151d557dd..HEAD 2> /dev/null).0"
     [ "${COMMITS_SINCE_TAG}" = ".0" ] && COMMITS_SINCE_TAG=0.0

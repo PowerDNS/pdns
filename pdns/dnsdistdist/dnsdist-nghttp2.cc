@@ -43,7 +43,6 @@
 
 std::atomic<uint64_t> g_dohStatesDumpRequested{0};
 std::unique_ptr<DoHClientCollection> g_dohClientThreads{nullptr};
-std::optional<uint16_t> g_outgoingDoHWorkerThreads{std::nullopt};
 
 #if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
 class DoHConnectionToBackend : public ConnectionToBackend
@@ -131,10 +130,8 @@ uint32_t DoHConnectionToBackend::getConcurrentStreamsCount() const
 
 void DoHConnectionToBackend::handleResponse(PendingRequest&& request)
 {
-  struct timeval now
-  {
-    .tv_sec = 0, .tv_usec = 0
-  };
+  struct timeval now{
+    .tv_sec = 0, .tv_usec = 0};
 
   gettimeofday(&now, nullptr);
   try {
@@ -182,14 +179,20 @@ void DoHConnectionToBackend::handleIOError()
   d_connectionDied = true;
   nghttp2_session_terminate_session(d_session.get(), NGHTTP2_PROTOCOL_ERROR);
 
-  struct timeval now
-  {
-    .tv_sec = 0, .tv_usec = 0
-  };
+  struct timeval now{
+    .tv_sec = 0, .tv_usec = 0};
+
+  const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
+  const auto& timeoutRespRules = dnsdist::rules::getResponseRuleChain(chains, dnsdist::rules::ResponseRuleChain::TimeoutResponseRules);
 
   gettimeofday(&now, nullptr);
   for (auto& request : d_currentStreams) {
-    handleResponseError(std::move(request.second), now);
+    if (!d_healthCheckQuery && handleTimeoutResponseRules(timeoutRespRules, request.second.d_query.d_idstate, d_ds, request.second.d_sender)) {
+      d_ds->reportTimeoutOrError();
+    }
+    else {
+      handleResponseError(std::move(request.second), now);
+    }
   }
 
   d_currentStreams.clear();
@@ -198,6 +201,7 @@ void DoHConnectionToBackend::handleIOError()
 
 void DoHConnectionToBackend::handleTimeout(const struct timeval& now, bool write)
 {
+  (void)now;
   if (write) {
     if (d_firstWrite) {
       ++d_ds->tcpConnectTimeouts;
@@ -302,6 +306,8 @@ void DoHConnectionToBackend::queueQuery(std::shared_ptr<TCPQuerySender>& sender,
 
   data_provider.source.ptr = this;
   data_provider.read_callback = [](nghttp2_session* session, int32_t stream_id, uint8_t* buf, size_t length, uint32_t* data_flags, nghttp2_data_source* source, void* user_data) -> ssize_t {
+    (void)session;
+    (void)source;
     auto* conn = static_cast<DoHConnectionToBackend*>(user_data);
     auto& request = conn->d_currentStreams.at(stream_id);
     size_t toCopy = 0;
@@ -377,10 +383,8 @@ void DoHConnectionToBackend::handleReadableIOCallback(int fd, FDMultiplexer::fun
           throw std::runtime_error("Fatal error while passing received data to nghttp2: " + std::string(nghttp2_strerror((int)readlen)));
         }
 
-        struct timeval now
-        {
-          .tv_sec = 0, .tv_usec = 0
-        };
+        struct timeval now{
+          .tv_sec = 0, .tv_usec = 0};
 
         gettimeofday(&now, nullptr);
         conn->d_lastDataReceivedTime = now;
@@ -471,10 +475,8 @@ void DoHConnectionToBackend::stopIO()
 
 void DoHConnectionToBackend::updateIO(IOState newState, const FDMultiplexer::callbackfunc_t& callback, bool noTTD)
 {
-  struct timeval now
-  {
-    .tv_sec = 0, .tv_usec = 0
-  };
+  struct timeval now{
+    .tv_sec = 0, .tv_usec = 0};
 
   gettimeofday(&now, nullptr);
   boost::optional<struct timeval> ttd{boost::none};
@@ -514,6 +516,8 @@ void DoHConnectionToBackend::watchForRemoteHostClosingConnection()
 
 ssize_t DoHConnectionToBackend::send_callback(nghttp2_session* session, const uint8_t* data, size_t length, int flags, void* user_data)
 {
+  (void)session;
+  (void)flags;
   DoHConnectionToBackend* conn = reinterpret_cast<DoHConnectionToBackend*>(user_data);
   bool bufferWasEmpty = conn->d_out.empty();
   if (!conn->d_proxyProtocolPayloadSent && !conn->d_proxyProtocolPayload.empty()) {
@@ -556,6 +560,7 @@ ssize_t DoHConnectionToBackend::send_callback(nghttp2_session* session, const ui
 
 int DoHConnectionToBackend::on_frame_recv_callback(nghttp2_session* session, const nghttp2_frame* frame, void* user_data)
 {
+  (void)session;
   DoHConnectionToBackend* conn = reinterpret_cast<DoHConnectionToBackend*>(user_data);
   // cerr<<"Frame type is "<<std::to_string(frame->hd.type)<<endl;
 #if 0
@@ -601,10 +606,8 @@ int DoHConnectionToBackend::on_frame_recv_callback(nghttp2_session* session, con
       }
       else {
         vinfolog("HTTP response has a non-200 status code: %d", request.d_responseCode);
-        struct timeval now
-        {
-          .tv_sec = 0, .tv_usec = 0
-        };
+        struct timeval now{
+          .tv_sec = 0, .tv_usec = 0};
 
         gettimeofday(&now, nullptr);
 
@@ -629,6 +632,8 @@ int DoHConnectionToBackend::on_frame_recv_callback(nghttp2_session* session, con
 
 int DoHConnectionToBackend::on_data_chunk_recv_callback(nghttp2_session* session, uint8_t flags, int32_t stream_id, const uint8_t* data, size_t len, void* user_data)
 {
+  (void)session;
+  (void)flags;
   DoHConnectionToBackend* conn = reinterpret_cast<DoHConnectionToBackend*>(user_data);
   // cerr<<"Got data of size "<<len<<" for stream "<<stream_id<<endl;
   auto stream = conn->d_currentStreams.find(stream_id);
@@ -657,10 +662,8 @@ int DoHConnectionToBackend::on_data_chunk_recv_callback(nghttp2_session* session
     }
     else {
       vinfolog("HTTP response has a non-200 status code: %d", request.d_responseCode);
-      struct timeval now
-      {
-        .tv_sec = 0, .tv_usec = 0
-      };
+      struct timeval now{
+        .tv_sec = 0, .tv_usec = 0};
 
       gettimeofday(&now, nullptr);
 
@@ -677,6 +680,7 @@ int DoHConnectionToBackend::on_data_chunk_recv_callback(nghttp2_session* session
 
 int DoHConnectionToBackend::on_stream_close_callback(nghttp2_session* session, int32_t stream_id, uint32_t error_code, void* user_data)
 {
+  (void)session;
   DoHConnectionToBackend* conn = reinterpret_cast<DoHConnectionToBackend*>(user_data);
 
   if (error_code == 0) {
@@ -693,10 +697,8 @@ int DoHConnectionToBackend::on_stream_close_callback(nghttp2_session* session, i
     return 0;
   }
 
-  struct timeval now
-  {
-    .tv_sec = 0, .tv_usec = 0
-  };
+  struct timeval now{
+    .tv_sec = 0, .tv_usec = 0};
 
   gettimeofday(&now, nullptr);
   auto request = std::move(stream->second);
@@ -725,6 +727,8 @@ int DoHConnectionToBackend::on_stream_close_callback(nghttp2_session* session, i
 
 int DoHConnectionToBackend::on_header_callback(nghttp2_session* session, const nghttp2_frame* frame, const uint8_t* name, size_t namelen, const uint8_t* value, size_t valuelen, uint8_t flags, void* user_data)
 {
+  (void)session;
+  (void)flags;
   DoHConnectionToBackend* conn = reinterpret_cast<DoHConnectionToBackend*>(user_data);
 
   const std::string status(":status");
@@ -755,7 +759,8 @@ int DoHConnectionToBackend::on_header_callback(nghttp2_session* session, const n
 
 int DoHConnectionToBackend::on_error_callback(nghttp2_session* session, int lib_error_code, const char* msg, size_t len, void* user_data)
 {
-  vinfolog("Error in HTTP/2 connection: %s", std::string(msg, len));
+  (void)session;
+  vinfolog("Error in HTTP/2 connection: %s (%d)", std::string(msg, len), lib_error_code);
 
   DoHConnectionToBackend* conn = reinterpret_cast<DoHConnectionToBackend*>(user_data);
   conn->d_connectionDied = true;
@@ -822,6 +827,7 @@ DoHConnectionToBackend::DoHConnectionToBackend(const std::shared_ptr<DownstreamS
 
 static void handleCrossProtocolQuery(int pipefd, FDMultiplexer::funcparam_t& param)
 {
+  (void)pipefd;
   auto threadData = boost::any_cast<DoHClientThreadData*>(param);
 
   std::unique_ptr<CrossProtocolQuery> cpq{nullptr};
@@ -836,10 +842,8 @@ static void handleCrossProtocolQuery(int pipefd, FDMultiplexer::funcparam_t& par
     throw std::runtime_error("Error while reading from the DoH cross-protocol channel:" + std::string(e.what()));
   }
 
-  struct timeval now
-  {
-    .tv_sec = 0, .tv_usec = 0
-  };
+  struct timeval now{
+    .tv_sec = 0, .tv_usec = 0};
   gettimeofday(&now, nullptr);
 
   std::shared_ptr<TCPQuerySender> tqs = cpq->getTCPQuerySender();
@@ -865,10 +869,8 @@ static void dohClientThread(pdns::channel::Receiver<CrossProtocolQuery>&& receiv
     DoHClientThreadData data(std::move(receiver));
     data.mplexer->addReadFD(data.d_receiver.getDescriptor(), handleCrossProtocolQuery, &data);
 
-    struct timeval now
-    {
-      .tv_sec = 0, .tv_usec = 0
-    };
+    struct timeval now{
+      .tv_sec = 0, .tv_usec = 0};
 
     gettimeofday(&now, nullptr);
     time_t lastTimeoutScan = now.tv_sec;
@@ -886,7 +888,7 @@ static void dohClientThread(pdns::channel::Receiver<CrossProtocolQuery>&& receiv
           if (g_dohStatesDumpRequested > 0) {
             /* just to keep things clean in the output, debug only */
             static std::mutex s_lock;
-            std::lock_guard<decltype(s_lock)> lck(s_lock);
+            auto lock = std::scoped_lock(s_lock);
             if (g_dohStatesDumpRequested > 0) {
               /* no race here, we took the lock so it can only be increased in the meantime */
               --g_dohStatesDumpRequested;
@@ -923,16 +925,6 @@ static void dohClientThread(pdns::channel::Receiver<CrossProtocolQuery>&& receiv
     errlog("Fatal error in outgoing DoH thread: %s", e.what());
   }
 }
-
-static bool select_next_proto_callback(unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen)
-{
-  if (nghttp2_select_next_protocol(out, outlen, in, inlen) <= 0) {
-    vinfolog("The remote DoH backend did not advertise " NGHTTP2_PROTO_VERSION_ID);
-    return false;
-  }
-  return true;
-}
-
 #endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
 
 struct DoHClientCollection::DoHWorkerThread
@@ -987,10 +979,11 @@ void DoHClientCollection::addThread()
 {
 #if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
   try {
-    auto [sender, receiver] = pdns::channel::createObjectQueue<CrossProtocolQuery>(pdns::channel::SenderBlockingMode::SenderNonBlocking, pdns::channel::ReceiverBlockingMode::ReceiverNonBlocking, g_tcpInternalPipeBufferSize);
+    const auto internalPipeBufferSize = dnsdist::configuration::getImmutableConfiguration().d_tcpInternalPipeBufferSize;
+    auto [sender, receiver] = pdns::channel::createObjectQueue<CrossProtocolQuery>(pdns::channel::SenderBlockingMode::SenderNonBlocking, pdns::channel::ReceiverBlockingMode::ReceiverNonBlocking, internalPipeBufferSize);
 
     vinfolog("Adding DoH Client thread");
-    std::lock_guard<std::mutex> lock(d_mutex);
+    auto lock = std::scoped_lock(d_mutex);
 
     if (d_numberOfThreads >= d_clientThreads.size()) {
       vinfolog("Adding a new DoH client thread would exceed the vector size (%d/%d), skipping. Consider increasing the maximum amount of DoH client threads with setMaxDoHClientThreads() in the configuration.", d_numberOfThreads, d_clientThreads.size());
@@ -1023,15 +1016,16 @@ void DoHClientCollection::addThread()
 bool initDoHWorkers()
 {
 #if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
-  if (!g_outgoingDoHWorkerThreads) {
+  auto outgoingDoHWorkerThreads = dnsdist::configuration::getImmutableConfiguration().d_outgoingDoHWorkers;
+  if (!outgoingDoHWorkerThreads) {
     /* Unless the value has been set to 0 explicitly, always start at least one outgoing DoH worker thread, in case a DoH backend
        is added at a later time. */
-    g_outgoingDoHWorkerThreads = 1;
+    outgoingDoHWorkerThreads = 1;
   }
 
-  if (g_outgoingDoHWorkerThreads && *g_outgoingDoHWorkerThreads > 0) {
-    g_dohClientThreads = std::make_unique<DoHClientCollection>(*g_outgoingDoHWorkerThreads);
-    for (size_t idx = 0; idx < *g_outgoingDoHWorkerThreads; idx++) {
+  if (outgoingDoHWorkerThreads && *outgoingDoHWorkerThreads > 0) {
+    g_dohClientThreads = std::make_unique<DoHClientCollection>(*outgoingDoHWorkerThreads);
+    for (size_t idx = 0; idx < *outgoingDoHWorkerThreads; idx++) {
       g_dohClientThreads->addThread();
     }
   }
@@ -1041,39 +1035,21 @@ bool initDoHWorkers()
 #endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
 }
 
-bool setupDoHClientProtocolNegotiation(std::shared_ptr<TLSCtx>& ctx)
-{
-  if (ctx == nullptr) {
-    return false;
-  }
-#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
-  /* we want to set the ALPN to h2, if only to mitigate the ALPACA attack */
-  const std::vector<std::vector<uint8_t>> h2Alpns = {{'h', '2'}};
-  ctx->setALPNProtos(h2Alpns);
-  ctx->setNextProtocolSelectCallback(select_next_proto_callback);
-  return true;
-#else /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
-  return false;
-#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
-}
-
-bool sendH2Query(const std::shared_ptr<DownstreamState>& ds, std::unique_ptr<FDMultiplexer>& mplexer, std::shared_ptr<TCPQuerySender>& sender, InternalQuery&& query, bool healthCheck)
+bool sendH2Query([[maybe_unused]] const std::shared_ptr<DownstreamState>& downstream, [[maybe_unused]] std::unique_ptr<FDMultiplexer>& mplexer, [[maybe_unused]] std::shared_ptr<TCPQuerySender>& sender, [[maybe_unused]] InternalQuery&& query, [[maybe_unused]] bool healthCheck)
 {
 #if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
-  struct timeval now
-  {
-    .tv_sec = 0, .tv_usec = 0
-  };
+  struct timeval now{
+    .tv_sec = 0, .tv_usec = 0};
   gettimeofday(&now, nullptr);
 
   if (healthCheck) {
     /* always do health-checks over a new connection */
-    auto newConnection = std::make_shared<DoHConnectionToBackend>(ds, mplexer, now, std::move(query.d_proxyProtocolPayload));
+    auto newConnection = std::make_shared<DoHConnectionToBackend>(downstream, mplexer, now, std::move(query.d_proxyProtocolPayload));
     newConnection->setHealthCheck(healthCheck);
     newConnection->queueQuery(sender, std::move(query));
   }
   else {
-    auto connection = t_downstreamDoHConnectionsManager.getConnectionToDownstream(mplexer, ds, now, std::move(query.d_proxyProtocolPayload));
+    auto connection = t_downstreamDoHConnectionsManager.getConnectionToDownstream(mplexer, downstream, now, std::move(query.d_proxyProtocolPayload));
     connection->queueQuery(sender, std::move(query));
   }
 
@@ -1092,7 +1068,7 @@ size_t clearH2Connections()
   return cleared;
 }
 
-size_t handleH2Timeouts(FDMultiplexer& mplexer, const struct timeval& now)
+size_t handleH2Timeouts([[maybe_unused]] FDMultiplexer& mplexer, [[maybe_unused]] const struct timeval& now)
 {
   size_t got = 0;
 #if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
@@ -1119,21 +1095,21 @@ size_t handleH2Timeouts(FDMultiplexer& mplexer, const struct timeval& now)
   return got;
 }
 
-void setDoHDownstreamCleanupInterval(uint16_t max)
+void setDoHDownstreamCleanupInterval([[maybe_unused]] uint16_t max)
 {
 #if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
   DownstreamDoHConnectionsManager::setCleanupInterval(max);
 #endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
 }
 
-void setDoHDownstreamMaxIdleTime(uint16_t max)
+void setDoHDownstreamMaxIdleTime([[maybe_unused]] uint16_t max)
 {
 #if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
   DownstreamDoHConnectionsManager::setMaxIdleTime(max);
 #endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
 }
 
-void setDoHDownstreamMaxIdleConnectionsPerBackend(size_t max)
+void setDoHDownstreamMaxIdleConnectionsPerBackend([[maybe_unused]] size_t max)
 {
 #if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
   DownstreamDoHConnectionsManager::setMaxIdleConnectionsPerDownstream(max);

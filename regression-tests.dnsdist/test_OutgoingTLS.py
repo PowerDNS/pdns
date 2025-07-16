@@ -4,6 +4,7 @@ import requests
 import ssl
 import threading
 import time
+import os
 
 from dnsdisttests import DNSDistTest, pickAvailablePort
 
@@ -15,7 +16,6 @@ class OutgoingTLSTests(object):
     _webServerAPIKey = 'apisecret'
     _webServerBasicAuthPasswordHashed = '$scrypt$ln=10,p=1,r=8$6DKLnvUYEeXWh3JNOd3iwg==$kSrhdHaRbZ7R74q3lGBqO1xetgxRxhmWzYJ2Qvfm7JM='
     _webServerAPIKeyHashed = '$scrypt$ln=10,p=1,r=8$9v8JxDfzQVyTpBkTbkUqYg==$bDQzAOHeK1G9UvTPypNhrX48w974ZXbFPtRKS34+aso='
-    _verboseMode = True
 
     def checkOnlyTLSResponderHit(self, numberOfTLSQueries=1):
         self.assertNotIn('UDP Responder', self._responsesCounter)
@@ -137,14 +137,63 @@ class BrokenOutgoingTLSTests(object):
         self.checkNoResponderHit()
 
 class TestOutgoingTLSOpenSSL(DNSDistTest, OutgoingTLSTests):
+    if os.path.exists("/tmp/dotkeys"):
+        os.remove("/tmp/dotkeys")
     _tlsBackendPort = pickAvailablePort()
     _config_params = ['_tlsBackendPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
     _config_template = """
     setMaxTCPClientThreads(1)
-    newServer{address="127.0.0.1:%s", tls='openssl', validateCertificates=true, caStore='ca.pem', subjectName='powerdns.com'}
+    newServer{address="127.0.0.1:%s", tls='openssl', validateCertificates=true, caStore='ca.pem', subjectName='powerdns.com', keyLogFile="/tmp/dotkeys"}
     webserver("127.0.0.1:%s")
     setWebserverConfig({password="%s", apiKey="%s"})
     """
+
+    def testZNonEmptyKeyfile(self):
+        self.assertTrue(os.path.exists("/tmp/dotkeys"))
+        self.assertTrue(os.path.getsize("/tmp/dotkeys") > 0)
+
+    @staticmethod
+    def sniCallback(sslSocket, sni, sslContext):
+        assert(sni == 'powerdns.com')
+        return None
+
+    @classmethod
+    def startResponders(cls):
+        tlsContext = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        tlsContext.load_cert_chain('server.chain', 'server.key')
+        # requires Python 3.7+
+        if hasattr(tlsContext, 'sni_callback'):
+            tlsContext.sni_callback = cls.sniCallback
+
+        print("Launching TLS responder..")
+        cls._TLSResponder = threading.Thread(name='TLS Responder', target=cls.TCPResponder, args=[cls._tlsBackendPort, cls._toResponderQueue, cls._fromResponderQueue, False, False, None, tlsContext])
+        cls._TLSResponder.daemon = True
+        cls._TLSResponder.start()
+
+class TestOutgoingTLSOpenSSLYaml(DNSDistTest, OutgoingTLSTests):
+    _tlsBackendPort = pickAvailablePort()
+    _config_params = []
+    _config_template = ""
+    _yaml_config_template = """---
+backends:
+  - address: "127.0.0.1:%d"
+    protocol: "DoT"
+    tls:
+      provider: "openssl"
+      validate_certificate: true
+      ca_store: "ca.pem"
+      subject_name: "powerdns.com"
+webserver:
+  listen_address: "127.0.0.1:%d"
+  password: "%s"
+  api_key: "%s"
+  acl:
+    - 127.0.0.0/8
+tuning:
+  tcp:
+    worker_threads: 1
+    """
+    _yaml_config_params = ['_tlsBackendPort', '_webServerPort', '_webServerBasicAuthPasswordHashed', '_webServerAPIKeyHashed']
 
     @staticmethod
     def sniCallback(sslSocket, sni, sslContext):

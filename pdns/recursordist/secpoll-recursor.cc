@@ -14,8 +14,7 @@
 #define PACKAGEVERSION getPDNSVersion()
 #endif
 
-uint32_t g_security_status;
-string g_security_message;
+pdns::stat_t g_security_status;
 
 void doSecPoll(time_t* last_secpoll, Logr::log_t log)
 {
@@ -24,9 +23,7 @@ void doSecPoll(time_t* last_secpoll, Logr::log_t log)
   }
 
   string pkgv(PACKAGEVERSION);
-  struct timeval now
-  {
-  };
+  struct timeval now{};
   Utility::gettimeofday(&now);
 
   /* update last_secpoll right now, even if it fails
@@ -49,8 +46,8 @@ void doSecPoll(time_t* last_secpoll, Logr::log_t log)
     qstring += '.';
   }
 
-  boost::replace_all(qstring, "+", "_");
-  boost::replace_all(qstring, "~", "_");
+  std::replace(qstring.begin(), qstring.end(), '+', '_');
+  std::replace(qstring.begin(), qstring.end(), '~', '_');
 
   vState state = vState::Indeterminate;
   DNSName query(qstring);
@@ -89,19 +86,17 @@ void doSecPoll(time_t* last_secpoll, Logr::log_t log)
     return;
   }
 
-  g_security_message = std::move(security_message);
-
-  auto rlog = vlog->withValues("securitymessage", Logging::Loggable(g_security_message), "status", Logging::Loggable(security_status));
+  auto rlog = vlog->withValues("securitymessage", Logging::Loggable(security_message), "status", Logging::Loggable(security_status));
   if (g_security_status != 1 && security_status == 1) {
-    SLOG(g_log << Logger::Warning << "Polled security status of version " << pkgv << ", no known issues reported: " << g_security_message << endl,
+    SLOG(g_log << Logger::Warning << "Polled security status of version " << pkgv << ", no known issues reported: " << security_message << endl,
          rlog->info(Logr::Notice, "Polled security status of version, no known issues reported"));
   }
   if (security_status == 2) {
-    SLOG(g_log << Logger::Error << "PowerDNS Security Update Recommended: " << g_security_message << endl,
+    SLOG(g_log << Logger::Error << "PowerDNS Security Update Recommended: " << security_message << endl,
          rlog->info(Logr::Error, "PowerDNS Security Update Recommended"));
   }
   if (security_status == 3) {
-    SLOG(g_log << Logger::Error << "PowerDNS Security Update Mandatory: " << g_security_message << endl,
+    SLOG(g_log << Logger::Error << "PowerDNS Security Update Mandatory: " << security_message << endl,
          rlog->info(Logr::Error, "PowerDNS Security Update Mandatory"));
   }
 

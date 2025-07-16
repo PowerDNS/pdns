@@ -873,7 +873,7 @@ int DNSCryptContext::encryptQuery(PacketBuffer& packet, size_t maximumSize, cons
 bool generateDNSCryptCertificate(const std::string& providerPrivateKeyFile, uint32_t serial, time_t begin, time_t end, DNSCryptExchangeVersion version, DNSCryptCert& certOut, DNSCryptPrivateKey& keyOut)
 {
   bool success = false;
-  DNSCryptCertSignedData::ResolverPrivateKeyType providerPrivateKey;
+  DNSCryptCertSignedData::ResolverPrivateKeyType providerPrivateKey{};
   sodium_mlock(providerPrivateKey.data(), providerPrivateKey.size());
   sodium_memzero(providerPrivateKey.data(), providerPrivateKey.size());
 

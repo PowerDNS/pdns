@@ -15,7 +15,7 @@ have pdnsutil && {
   _pdnsutil_helper_local_() {
     local cur prev cmd
 
-    local _PDNSUTIL_ALL_CMDS="activate-tsig-key activate-zone-key add-record add-supermaster add-zone-key backend-cmd b2b-migrate bench-db change-slave-zone-master
+    local _PDNSUTIL_ALL_CMDS="activate-tsig-key activate-zone-key add-record add-supermaster add-zone-key backend-cmd backend-lookup b2b-migrate bench-db change-slave-zone-master
                               check-zone check-all-zones clear-zone create-bind-db create-slave-zone create-zone deactivate-tsig-key deactivate-zone-key delete-rrset
                               delete-tsig-key delete-zone disable-dnssec edit-zone export-zone-dnskey export-zone-key generate-tsig-key generate-zone-key get-meta
                               hash-zone-record increase-serial import-tsig-key import-zone-key load-zone list-algorithms list-keys list-zone list-all-zones

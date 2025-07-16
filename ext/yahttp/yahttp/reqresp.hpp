@@ -98,6 +98,7 @@ namespace YaHTTP {
     HTTPBase() {
       HTTPBase::initialize();
     };
+    virtual ~HTTPBase() = default;
 
     virtual void initialize() {
       kind = 0;

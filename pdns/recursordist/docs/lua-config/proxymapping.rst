@@ -4,7 +4,7 @@ Table Based Proxy Mapping
 =========================
 Starting with version 4.7.0, the PowerDNS Recursor has the ability to map source IP addresses to alternative addresses, which is for example useful when some clients reach the recursor via a reverse-proxy.
 The mapped address is used internally for ACL and similar checks.
-If the :ref:`setting-proxy-protocol-from` is also used, the substitution is done on the source address specified in the proxy protocol header.
+If the :ref:`setting-yaml-incoming.proxy_protocol_from` is also used, the substitution is done on the source address specified in the proxy protocol header.
 
 Depending on context, the incoming address can be
 
@@ -19,11 +19,11 @@ The mapped address ``M``
 
 ``M equals S`` if no Table Based Proxy Mapping is used.
 
-``I`` determines if the Proxy Protocol is used (:ref:`setting-proxy-protocol-from`).
+``I`` determines if the Proxy Protocol is used (:ref:`setting-yaml-incoming.proxy_protocol_from`).
 
 ``S`` is passed to Lua functions and RPZ processing
 
-``M`` is used for incoming ACL checking (:ref:`setting-allow-from`) and to determine the ECS processing (:ref:`setting-ecs-add-for`).
+``M`` is used for incoming ACL checking (:ref:`setting-yaml-incoming.allow_from`) and to determine the ECS processing (:ref:`setting-yaml-ecs.add_for`).
 
 An example use:
 
@@ -48,7 +48,7 @@ See :func:`protobufServer` on how to tune the source address logged in ``Protobu
   Specify a table based mapping for a subnet.
 
   :param string subnet: a subnet to match
-  :param string ip: the IP address or IPaddress port combination to match the subnet to.
+  :param string ip: the IP address or IP address + port combination to match the subnet to.
   :param array domains: An array of strings used to fill a :ref:`dns-suffix-match-group`.
 
 If the optional ``domains`` argument is given to this function, only queries for names matching the :ref:`dns-suffix-match-group` will use the value ``M`` to determine the outgoing ECS; other queries will use the value ``S``.

@@ -298,13 +298,15 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
             ]
         }
         payload = {'rrsets': [rrset]}
-        self.session.patch(
+        r = self.session.patch(
             self.url("/api/v1/servers/localhost/zones/" + data['id']),
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         data = self.get_zone(data['id'])
         soa_serial = get_first_rec(data, name, 'SOA')['content'].split(' ')[2]
         self.assertEqual(soa_serial[-2:], '02')
+        self.assertEqual(r.headers['X-PDNS-Old-Serial'][-2:], '01')
+        self.assertEqual(r.headers['X-PDNS-New-Serial'][-2:], '02')
 
     def test_create_zone_with_records(self):
         name = unique_zone_name()
@@ -456,7 +458,7 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
             data=json.dumps(payload),
             headers={'content-type': 'application/json'})
         self.assertEqual(r.status_code, 422)
-        self.assertIn('Unable to parse DNS Name', r.json()['error'])
+        self.assertIn('Unable to parse Zone Name', r.json()['error'])
 
     def test_create_zone_restricted_chars(self):
         name = 'test:' + unique_zone_name()  # : isn't good as a name.
@@ -876,8 +878,9 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
         self.assertEqual(data['name'], 'example.com.')
 
     def test_get_zone_rrset(self):
-        rz = self.session.get(self.url("/api/v1/servers/localhost/zones"))
-        domains = rz.json()
+        name = 'host-18000.example.com.'
+        r = self.session.get(self.url("/api/v1/servers/localhost/zones"))
+        domains = r.json()
         example_com = [domain for domain in domains if domain['name'] == u'example.com.'][0]
 
         # verify single record from name that has a single record
@@ -888,7 +891,7 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
             [
                 {
                     'comments': [],
-                    'name': 'host-18000.example.com.',
+                    'name': name,
                     'records':
                     [
                         {
@@ -901,6 +904,39 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
                 }
             ]
         )
+
+        # disable previous record
+        rrset = {
+            'changetype': 'replace',
+            'name': name,
+            'type': 'A',
+            'ttl': 120,
+            'records':
+            [
+                {
+                    'content': '192.168.1.80',
+                    'disabled': True
+                }
+            ]
+        }
+        payload = {'rrsets': [rrset]}
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/example.com"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assert_success(r)
+
+        # verify that the changed record is not found when asking for
+        # disabled records not to be included
+        data = self.get_zone(example_com['id'], rrset_name="host-18000.example.com.", include_disabled="false")
+        self.assertEqual(len(data['rrsets']), 0)
+
+        # verify that the changed record is found when explicitly asking for
+        # disabled records, and by default.
+        data = self.get_zone(example_com['id'], rrset_name="host-18000.example.com.", include_disabled="true")
+        self.assertEqual(get_rrset(data, name, 'A')['records'], rrset['records'])
+        data = self.get_zone(example_com['id'], rrset_name="host-18000.example.com.")
+        self.assertEqual(get_rrset(data, name, 'A')['records'], rrset['records'])
 
         # verify two RRsets from a name that has two types with one record each
         powerdnssec_org = [domain for domain in domains if domain['name'] == u'powerdnssec.org.'][0]
@@ -1935,7 +1971,7 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
 
     def test_zone_comment_create(self):
         name, payload, zone = self.create_zone()
-        rrset = {
+        rrset1 = {
             'changetype': 'replace',
             'name': name,
             'type': 'NS',
@@ -1951,7 +1987,19 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
                 }
             ]
         }
-        payload = {'rrsets': [rrset]}
+        rrset2 = {
+            'changetype': 'replace',
+            'name': name,
+            'type': 'SOA',
+            'ttl': 3600,
+            'comments': [
+                {
+                    'account': 'test3',
+                    'content': 'this should not show up later'
+                }
+            ]
+        }
+        payload = {'rrsets': [rrset1, rrset2]}
         r = self.session.patch(
             self.url("/api/v1/servers/localhost/zones/" + name),
             data=json.dumps(payload),
@@ -1963,13 +2011,15 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
             self.assert_success(r)
         # make sure the comments have been set, and that the NS
         # records are still present
-        data = self.get_zone(name)
+        data = self.get_zone(name, rrset_name=name, rrset_type="NS")
         serverset = get_rrset(data, name, 'NS')
         print(serverset)
         self.assertNotEqual(serverset['records'], [])
         self.assertNotEqual(serverset['comments'], [])
         # verify that modified_at has been set by pdns
         self.assertNotEqual([c for c in serverset['comments']][0]['modified_at'], 0)
+        # verify that unrelated comments do not leak into the result
+        self.assertEqual(get_rrset(data, name, 'SOA'), None)
         # verify that TTL is correct (regression test)
         self.assertEqual(serverset['ttl'], 3600)
 
@@ -1997,7 +2047,7 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
 
     @unittest.skipIf(is_auth_lmdb(), "No comments in LMDB")
     def test_zone_comment_out_of_range_modified_at(self):
-        # Test if comments on an rrset stay intact if the rrset is replaced
+        # Test if a modified_at outside of the 32 bit range throws an error
         name, payload, zone = self.create_zone()
         rrset = {
             'changetype': 'replace',
@@ -2068,7 +2118,6 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         self.assertEqual(serverset['records'], rrset2['records'])
         self.assertEqual(serverset['comments'], rrset['comments'])
 
-    @unittest.skipIf(is_auth_lmdb(), "No search in LMDB")
     def test_search_rr_exact_zone(self):
         name = unique_zone_name()
         self.create_zone(name=name, serial=22, soa_edit_api='')
@@ -2088,7 +2137,6 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
              u'ttl': 3600, u'type': u'SOA', u'name': name},
         ])
 
-    @unittest.skipIf(is_auth_lmdb(), "No search in LMDB")
     def test_search_rr_exact_zone_filter_type_zone(self):
         name = unique_zone_name()
         data_type = "zone"
@@ -2100,7 +2148,6 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
             {u'object_type': u'zone', u'name': name, u'zone_id': name},
         ])
 
-    @unittest.skipIf(is_auth_lmdb(), "No search in LMDB")
     def test_search_rr_exact_zone_filter_type_record(self):
         name = unique_zone_name()
         data_type = "record"
@@ -2120,7 +2167,6 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
              u'ttl': 3600, u'type': u'SOA', u'name': name},
         ])
 
-    @unittest.skipIf(is_auth_lmdb(), "No search in LMDB")
     def test_search_rr_substring(self):
         name = unique_zone_name()
         search = name[5:-5]
@@ -2131,7 +2177,6 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         # should return zone, SOA, ns1, ns2
         self.assertEqual(len(r.json()), 4)
 
-    @unittest.skipIf(is_auth_lmdb(), "No search in LMDB")
     def test_search_rr_case_insensitive(self):
         name = unique_zone_name()+'testsuffix.'
         self.create_zone(name=name)
@@ -2141,7 +2186,7 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         # should return zone, SOA, ns1, ns2
         self.assertEqual(len(r.json()), 4)
 
-    @unittest.skipIf(is_auth_lmdb(), "No search or comments in LMDB")
+    @unittest.skipIf(is_auth_lmdb(), "No comments in LMDB")
     def test_search_rr_comment(self):
         name = unique_zone_name()
         rrsets = [{
@@ -2169,7 +2214,6 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         self.assertEqual(data[0]['name'], name)
         self.assertEqual(data[0]['content'], rrsets[0]['comments'][0]['content'])
 
-    @unittest.skipIf(is_auth_lmdb(), "No search in LMDB")
     def test_search_after_rectify_with_ent(self):
         name = unique_zone_name()
         search = name.split('.')[0]

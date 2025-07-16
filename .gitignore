@@ -58,5 +58,9 @@ __pycache__
 compile_commands.*
 .cache
 /.clang-tidy
+.ccls-cache
 .gdb_history
 .venv
+
+# Local Netlify folder
+.netlify

@@ -1,6 +1,5 @@
 ./ext/lmdb-safe/lmdb-safe.cc
 ./ext/lmdb-safe/lmdb-safe.hh
-./ext/lmdb-safe/lmdb-typed.cc
 ./ext/lmdb-safe/lmdb-typed.hh
 ./ext/probds/murmur3.cc
 ./pdns/anadns.hh
@@ -19,8 +18,6 @@
 ./pdns/base64.cc
 ./pdns/base64.hh
 ./pdns/bindparserclasses.hh
-./pdns/bpf-filter.cc
-./pdns/bpf-filter.hh
 ./pdns/calidns.cc
 ./pdns/capabilities.cc
 ./pdns/cdb.cc
@@ -28,8 +25,6 @@
 ./pdns/comfun.cc
 ./pdns/comment.hh
 ./pdns/dbdnsseckeeper.cc
-./pdns/delaypipe.cc
-./pdns/delaypipe.hh
 ./pdns/distributor.hh
 ./pdns/dns.cc
 ./pdns/dns.hh
@@ -48,7 +43,6 @@
 ./pdns/dnsdistdist/dnsdist-lua-web.cc
 ./pdns/dnsdistdist/dnsdist-prometheus.hh
 ./pdns/dnsdistdist/dnsdist-rules.hh
-./pdns/dnsdistdist/dnsdist-secpoll.cc
 ./pdns/dnsdistdist/dnsdist-systemd.cc
 ./pdns/dnsdistdist/dnsdist-tcp-downstream.cc
 ./pdns/dnsdistdist/dnsdist-tcp-downstream.hh
@@ -88,7 +82,6 @@
 ./pdns/dnswasher.cc
 ./pdns/dnswriter.cc
 ./pdns/dnswriter.hh
-./pdns/doh.hh
 ./pdns/dumresp.cc
 ./pdns/dynhandler.cc
 ./pdns/dynhandler.hh
@@ -207,7 +200,6 @@
 ./pdns/test-packetcache_hh.cc
 ./pdns/test-proxy_protocol_cc.cc
 ./pdns/test-rcpgenerator_cc.cc
-./pdns/test-sholder_hh.cc
 ./pdns/test-statbag_cc.cc
 ./pdns/test-svc_records_cc.cc
 ./pdns/test-trusted-notification-proxy_cc.cc
@@ -229,8 +221,6 @@
 ./pdns/uuid-utils.cc
 ./pdns/validate.cc
 ./pdns/validate.hh
-./pdns/version.cc
-./pdns/version.hh
 ./pdns/webserver.cc
 ./pdns/webserver.hh
 ./pdns/zone2json.cc

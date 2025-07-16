@@ -45,9 +45,17 @@ For example, if we have two servers, with respective weights of 1 and 4, we expe
 ``whashed`` is a similar weighted policy, but assigns questions with identical hash to identical servers, allowing for better cache concentration ('sticky queries').
 The current hash algorithm is based on the qname of the query.
 
-.. function:: setWHashedPertubation(value)
+.. function:: setWHashedPerturbation(value)
+
+  .. versionadded:: 2.0.0
+    Before 2.0.0 this function was misspelled as ``setWHashedPerturbation``
 
   Set the hash perturbation value to be used in the whashed policy instead of a random one, allowing to have consistent whashed results on different instances.
+
+.. function:: setWHashedPertubation(value)
+
+  .. deprecated:: 2.0.0
+    Before 2.0.0 this function was misspelled, see :func:`setWHashedPerturbation`
 
 Since 1.5.0, a bounded-load version is also supported, trying to prevent one server from receiving much more queries than intended, even if the distribution of queries is not perfect. This "weighted hashing with bounded loads" algorithm is enabled by setting :func:`setWeightedBalancingFactor` to a value other than 0, which is the default. This value is the maximum number of outstanding queries that a given server can have at a given time, as a ratio of the total number of outstanding queries for all the active servers in the pool, pondered by the weight of the server.
 
@@ -63,7 +71,7 @@ For example, if we have two servers, with respective weights of 1 and 4, we expe
 Increasing the weight of servers to a value larger than the default is required to get a good distribution of queries. Small values like 100 or 1000 should be enough to get a correct distribution.
 This is a side-effect of the internal implementation of the consistent hashing algorithm, which assigns as many points on a circle to a server than its weight, and distributes a query to the server who has the closest point on the circle from the hash of the query's qname. Therefore having very few points, as is the case with the default weight of 1, leads to a poor distribution of queries.
 
-You can also set the hash perturbation value, see :func:`setWHashedPertubation`. To achieve consistent distribution over :program:`dnsdist` restarts, you will also need to explicitly set the backend's UUIDs with the ``id`` option of :func:`newServer`. You can get the current UUIDs of your backends by calling :func:`showServers` with the ``showUUIDs=true`` option.
+You can also set the hash perturbation value, see :func:`setWHashedPerturbation`. To achieve consistent distribution over :program:`dnsdist` restarts, you will also need to explicitly set the backend's UUIDs with the ``id`` option of :func:`newServer`. You can get the current UUIDs of your backends by calling :func:`showServers` with the ``showUUIDs=true`` option.
 
 Since 1.5.0, a bounded-load version is also supported, preventing one server from receiving much more queries than intended, even if the distribution of queries is not perfect. This "consistent hashing with bounded loads" algorithm is enabled by setting :func:`setConsistentHashingBalancingFactor` to a value other than 0, which is the default. This value is the maximum number of outstanding queries that a given server can have at a given time, as a ratio of the total number of outstanding queries for all the active servers in the pool, pondered by the weight of the server.
 
@@ -76,6 +84,15 @@ For example, if we have two servers, with respective weights of 1 and 4, we expe
 
 The last available policy is ``roundrobin``, which indiscriminately sends each query to the next server that is up.
 If all servers are down, the policy will still select one server by default. Setting :func:`setRoundRobinFailOnNoServer` to ``true`` will change this behavior.
+
+``orderedWrandUntag``
+~~~~~~~~~~~~~~~~~~~~~
+
+``orderedWrandUntag`` is another weighted policy with additional server filtering:
+
+- select the group of server(s) with the lowest ``order`` passed to :func:`newServer`.
+- filter out server(s) that were tagged with key string of :func:`Server:getNameWithAddr` in the query that was set by :func:`DNSQuestion:setTag`. This can be useful to restart a query with a different server, the user is responsible to set the required tag in lua action before calling :func:`DNSResponse:restart`. Initial queries are not impacted by this filtering if there is no other intentional lua action to set the tag.
+- policy ``wrandom`` is then applied to the selected server(s) above.
 
 Lua server policies
 -------------------
@@ -292,7 +309,7 @@ Functions
   .. versionadded: 1.5.0
 
   Set the maximum imbalance between the number of outstanding queries intended for a given server, based on its weight,
-  and the actual number, when using the ``whashed`` or ``wrandom`` load-balancing policy.
+  and the actual number, when using the ``whashed``, ``wrandom`` or ``orderedWrandUntag`` load-balancing policy.
   Default is 0, which disables the bounded-load algorithm.
 
 .. function:: showPoolServerPolicy(pool)

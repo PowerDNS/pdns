@@ -5,8 +5,9 @@ import dns
 from recursortests import RecursorTest
 
 
-class TestFlags(RecursorTest):
+class FlagsTest(RecursorTest):
     _confdir = 'Flags'
+    _auth_zones = RecursorTest._default_auth_zones
     _config_template = """dnssec=%s"""
     _config_params = ['_dnssec_setting']
     _dnssec_setting = None
@@ -72,9 +73,9 @@ class TestFlags(RecursorTest):
     @classmethod
     def tearDownClass(cls):
         cls.tearDownAuth()
-        for _, recursor in cls._recursors.items():
+        for subdir, recursor in cls._recursors.items():
             cls._recursor = recursor
-            cls.tearDownRecursor()
+            cls.tearDownRecursor(subdir)
 
     def getQueryForSecure(self, flags='', ednsflags=''):
         return self.createQuery('ns1.example.', 'A', flags, ednsflags)

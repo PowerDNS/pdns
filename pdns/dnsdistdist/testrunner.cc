@@ -19,6 +19,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+
+#define BOOST_TEST_NO_MAIN
+
 #ifndef BOOST_TEST_DYN_LINK
 #define BOOST_TEST_DYN_LINK
 #endif
@@ -31,4 +34,10 @@
 #endif
 #include <boost/test/unit_test.hpp>
 
+// entry point:
+int main(int argc, char* argv[])
+{
+  setenv("BOOST_TEST_RANDOM", "1", 1); // NOLINT(concurrency-mt-unsafe)
+  return boost::unit_test::unit_test_main(&init_unit_test, argc, argv);
+}
 

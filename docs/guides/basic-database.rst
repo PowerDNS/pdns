@@ -67,19 +67,19 @@ Now, let's add a zone and some records::
     $ sudo -u pdns pdnsutil create-zone example.com ns1.example.com
     Creating empty zone 'example.com'
     Also adding one NS record
-    $ sudo -u pdns pdnsutil add-record example.com '' MX '25 mail.example.com'
+    $ sudo -u pdns pdnsutil add-record example.com example.com MX '25 mail.example.com'
     New rrset:
     example.com. 3005 IN MX 25 mail.example.com
-    $ sudo -u pdns pdnsutil add-record example.com. www A 192.0.2.1
+    $ sudo -u pdns pdnsutil add-record example.com www.example.com A 192.0.2.1
     New rrset:
     www.example.com. 3005 IN A 192.0.2.1
 
 This should be done as the ``pdns`` user (or root), as sqlite3 requires write access to the directory of the database file.
 
 .. note::
-  ``pdnsutil`` is a tool that can manipulate zones, set DNSSEC parameters for zones and does :doc:`many other <../manpages/pdnsutil.1>` things.
-  It is *highly* recommended to use ``pdnsutil`` or the :doc:`HTTP API <../http-api/index>` to modify zones instead of using raw SQL,
-  as ``pdnsutil`` and the API perform checks on the data and post-store changes to prevent issues when serving DNS data.
+  :doc:`pdnsutil <../manpages/pdnsutil.1>` is a tool that can manipulate zones, set DNSSEC parameters for zones and does many other things.
+  It is *highly* recommended to use :doc:`pdnsutil <../manpages/pdnsutil.1>` or the :doc:`HTTP API <../http-api/index>` to modify zones instead of using raw SQL,
+  as :doc:`pdnsutil <../manpages/pdnsutil.1>` and the API perform checks on the data and post-store changes to prevent issues when serving DNS data.
 
 If we now requery our database, ``www.example.com`` should be present::
 
@@ -90,8 +90,10 @@ If we now requery our database, ``www.example.com`` should be present::
     25 mail.example.com
 
 If this is not the output you get, remove ``+short`` to see the full output so you can find out what went wrong.
-The first problem could be that PowerDNS has a :ref:`packet-cache` and a :ref:`query-cache` performance reasons.
-If you see old, or no, data right after changing records, wait for :ref:`setting-cache-ttl`, or :ref:`setting-negquery-cache-ttl`, or :ref:`setting-query-cache-ttl`.
+The first problem could be that PowerDNS has a :ref:`packet-cache` and a :ref:`query-cache` for performance reasons.
+If you see old, or no, data right after changing records, wait for :ref:`setting-cache-ttl`, 
+:ref:`setting-negquery-cache-ttl`, :ref:`setting-query-cache-ttl`, or :ref:`setting-zone-cache-refresh-interval`
+to expire before testing.
 
 Now, run ``pdnsutil edit-zone example.com`` and try to add a few more records, and query them with dig to make sure they work.
 

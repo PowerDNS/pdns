@@ -1,6 +1,20 @@
 Tuning related functions
 ========================
 
+.. function:: setBanDurationForExceedingMaxReadIOsPerQuery(num)
+
+  .. versionadded:: 2.0.0
+
+  Set for how long, in seconds, a client (or range, see :func:`setTCPConnectionsMaskV4`, :func:`setTCPConnectionsMaskV6` and :func:`setTCPConnectionsMaskV4Port` to see how clients can be aggregated) will be prevented from opening a new TCP connection when it has exceeded :func:`setMaxTCPReadIOsPerQuery` over a TCP connection. Default is 60 seconds.
+
+.. function:: setBanDurationForExceedingTCPTLSRate(num)
+
+  .. versionadded:: 2.0.0
+
+  Set for how long, in seconds, a client (or range, see :func:`setTCPConnectionsMaskV4`, :func:`setTCPConnectionsMaskV6` and :func:`setTCPConnectionsMaskV4Port` to see how clients can be aggregated) will be prevented from opening a new TCP connection when it has exceeded :func:`setMaxTCPConnectionRatePerClient`, :func:`setMaxTLSNewSessionRatePerClient` or :func:`setMaxTLSResumedSessionRatePerClient`. Default is 10 seconds.
+
+  :param int num: Duration of the ban in seconds
+
 .. function:: setDoHDownstreamCleanupInterval(interval)
 
   .. versionadded:: 1.7.0
@@ -40,6 +54,11 @@ Tuning related functions
   .. versionchanged:: 1.7.0
     The default value has been set back to 10.
 
+  .. warning::
+
+    Be wary of using a too large value for this setting. :program:`dnsdist` keeps a per-thread cache of TCP connections to its backends so using a large value could, in addition to creating a lot of threads,
+    lead to a very high number of TCP connections to the backends. PowerDNS Recursor, for example, has a low default limit (128) for the number of incoming TCP connections it is willing to accept.
+
   Set the maximum of TCP client threads, handling TCP connections. Before 1.4.0 a TCP thread could only handle a single incoming TCP connection at a time, while after 1.4.0 it can handle a larger number of them simultaneously.
 
   Note that before 1.6.0 the TCP worker threads were created at runtime, adding a new thread when the existing ones seemed to struggle with the load, until the maximum number of threads had been reached. Starting with 1.6.0 the configured number of worker threads are immediately created at startup.
@@ -50,19 +69,27 @@ Tuning related functions
 
 .. function:: setMaxTCPConnectionDuration(num)
 
-  Set the maximum duration of an incoming TCP connection, in seconds. 0 (the default) means unlimited
+  Set the maximum duration of an incoming TCP connection, in seconds. 0 (the default) means unlimited.
 
   :param int num:
 
+.. function:: setMaxTCPConnectionRatePerClient(num)
+
+  .. versionadded:: 2.0.0
+
+  Set the maximum number of new TCP connections that a given client (or range, see :func:`setTCPConnectionsMaskV4`, :func:`setTCPConnectionsMaskV6` and :func:`setTCPConnectionsMaskV4Port` to see how clients can be aggregated) can open, per second, over the last :func:`setTCPConnectionRateInterval` minutes. Clients exceeding this rate will not be able to open new TCP connections for :func:`setBanDurationForExceedingTCPTLSRate` seconds. See also :func:`setMaxTLSNewSessionRatePerClient` and :func:`setMaxTLSResumedSessionRatePerClient`. 0 (the default) means unlimited.
+
+  :param int num: Number of new connections per second
+
 .. function:: setMaxTCPConnectionsPerClient(num)
 
-  Set the maximum number of TCP connections per client. 0 (the default) means unlimited
+  Set the maximum number of TCP connections per client. 0 (the default) means unlimited.
 
   :param int num:
 
 .. function:: setMaxTCPQueriesPerConnection(num)
 
-  Set the maximum number of queries in an incoming TCP connection. 0 (the default) means unlimited
+  Set the maximum number of queries in an incoming TCP connection. 0 (the default) means unlimited.
 
   :param int num:
 
@@ -71,28 +98,52 @@ Tuning related functions
   .. versionchanged:: 1.6.0
     Before 1.6.0 the default value was 1000 on all systems.
 
-  Set the maximum number of TCP connections queued (waiting to be picked up by a client thread), defaults to 1000 (10000 on Linux since 1.6.0). 0 means unlimited
+  Set the maximum number of TCP connections queued (waiting to be picked up by a client thread), defaults to 1000 (10000 on Linux since 1.6.0). 0 means unlimited.
 
   :param int num:
+
+.. function:: setMaxTCPReadIOsPerQuery(num)
+
+  .. versionadded:: 2.0.0
+
+  Set the maximum number of read events needed to receive a new query on a TCP connection. Usually reading a DNS query over a TCP connection requires two read events, one to read the query size and one to read the query itself. For large queries, on congested networks, a few short reads might occur, increasing the number of read operations needed to read the full query, but if a large number of read events is needed the client might be misbehaving or even actively trying to hurt the server. When this limit is reached, the TCP connection will be terminated and the offending client IP (or range, see :func:`setTCPConnectionsMaskV4`, :func:`setTCPConnectionsMaskV6` and :func:`setTCPConnectionsMaskV4Port` to see how clients can be aggregated) will be prevented from opening a new TCP connection for up to :func:`setBanDurationForExceedingMaxReadIOsPerQuery` seconds. Default is 50.
+
+  :param int num: Number of read IO events per query
 
 .. function:: setMaxUDPOutstanding(num)
 
   .. versionchanged:: 1.4.0
     Before 1.4.0 the default value was 10240
 
-  Set the maximum number of outstanding UDP queries to a given backend server. This can only be set at configuration time and defaults to 65535 (10240 before 1.4.0)
+  Set the maximum number of outstanding UDP queries to a given backend server. This can only be set at configuration time and defaults to 65535 (10240 before 1.4.0).
 
   :param int num:
 
+.. function:: setMaxTLSNewSessionRatePerClient(num)
+
+  .. versionadded:: 2.0.0
+
+  Set the maximum number of new TLS sessions, without resumption, that a given client (or range, see :func:`setTCPConnectionsMaskV4`, :func:`setTCPConnectionsMaskV6` and :func:`setTCPConnectionsMaskV4Port` to see how clients can be aggregated) can open, per second, over the last :func:`setTCPConnectionRateInterval` minutes. Clients exceeding this rate will not be able to open new TCP connections for :func:`setBanDurationForExceedingTCPTLSRate` seconds. See also :func:`setMaxTLSNewSessionRatePerClient` and :func:`setMaxTCPConnectionRatePerClient`. 0 (the default) means unlimited.
+
+  :param int num: Number of resumed sessions per second
+
+.. function:: setMaxTLSResumedSessionRatePerClient(num)
+
+  .. versionadded:: 2.0.0
+
+  Set the maximum number of resumed TLS sessions that a given client (or range, see :func:`setTCPConnectionsMaskV4`, :func:`setTCPConnectionsMaskV6` and :func:`setTCPConnectionsMaskV4Port` to see how clients can be aggregated) can open, per second, over the last :func:`setTCPConnectionRateInterval` minutes. Clients exceeding this rate will not be able to open new TCP connections for :func:`setBanDurationForExceedingTCPTLSRate` seconds. See also :func:`setMaxTLSResumedSessionRatePerClient` and :func:`setMaxTCPConnectionRatePerClient`. 0 (the default) means unlimited.
+
+  :param int num: Number of new sessions per second
+
 .. function:: setCacheCleaningDelay(num)
 
-  Set the interval in seconds between two runs of the cache cleaning algorithm, removing expired entries. Default is every 60s
+  Set the interval in seconds between two runs of the cache cleaning algorithm, removing expired entries. Default is every 60s.
 
   :param int num:
 
 .. function:: setCacheCleaningPercentage(num)
 
-  Set the percentage of the cache that the cache cleaning algorithm will try to free by removing expired entries. By default (100), all expired entries are removed
+  Set the percentage of the cache that the cache cleaning algorithm will try to free by removing expired entries. By default (100), all expired entries are removed.
 
   :param int num:
 
@@ -104,9 +155,49 @@ Tuning related functions
 
 .. function:: setStaleCacheEntriesTTL(num)
 
-  Allows using cache entries expired for at most n seconds when no backend available to answer for a query
+  Allows using cache entries expired for at most n seconds when no backend available to answer for a query.
 
   :param int num:
+
+.. function:: setTCPConnectionRateInterval(num)
+
+  .. versionadded:: 2.0.0
+
+  Set the interval, in minutes, over which new TCP and TLS per client connection rates are computed (see :func:`setMaxTCPConnectionRatePerClient`, :func:`setMaxTLSNewSessionRatePerClient` and :func:`setMaxTLSResumedSessionRatePerClient`). Default is 5.
+
+  :param int num: Interval in minutes
+
+.. function:: setTCPConnectionsMaskV4(num)
+
+  .. versionadded:: 2.0.0
+
+  Mask to apply to IPv4 addresses when enforcing :func:`setMaxTCPConnectionRatePerClient`, :func:`setMaxTLSNewSessionRatePerClient` and :func:`setMaxTLSResumedSessionRatePerClient`. In some scenarios it might make sense to apply these settings to a /28 range rather than a single address, for example. Default is 32.
+
+  :param int num: Number of bits to keep
+
+.. function:: setTCPConnectionsMaskV4Port(num)
+
+  .. versionadded:: 2.0.0
+
+  Number of bits of the port number to consider when enforcing :func:`setMaxTCPConnectionRatePerClient`, :func:`setMaxTLSNewSessionRatePerClient` and :func:`setMaxTLSResumedSessionRatePerClient` over IPv4 addresses, for CGNAT deployments. Default is 0 meaning that the port is not taken into account. For example passing ``2`` here, which only makes sense if :func:`setTCPConnectionsMaskV4` is set to ``32``, will split a given IPv4 address into four port ranges: ``0-16383``, ``16384-32767``, ``32768-49151`` and ``49152-65535``.
+
+  :param int num: Number of bits to keep
+
+.. function:: setTCPConnectionsMaskV6(num)
+
+  .. versionadded:: 2.0.0
+
+  Mask to apply to IPv6 addresses when enforcing :func:`setMaxTCPConnectionRatePerClient`, :func:`setMaxTLSNewSessionRatePerClient` and :func:`setMaxTLSResumedSessionRatePerClient`. In some scenarios it might make sense to apply these settings to a whole /64 IPv6 range rather than a single address, for example. Default is 128.
+
+  :param int num: Number of bits to keep
+
+.. function:: setTCPConnectionsOverloadThreshold(num)
+
+  .. versionadded:: 2.0.0
+
+  Set a threshold as a percentage to the maximum number of incoming TCP connections per frontend or per client. When this threshold is reached, new incoming TCP connections are restricted: only query per connection is allowed (no out-of-order processing, no idle time allowed), the receive timeout is reduced to 500 milliseconds and the total duration of the TCP connection is limited to 5 seconds. Default is 90.
+
+  :param int num: Threshold in percent
 
 .. function:: setTCPDownstreamCleanupInterval(interval)
 
@@ -163,13 +254,13 @@ Tuning related functions
 
 .. function:: setTCPRecvTimeout(num)
 
-  Set the read timeout on TCP connections from the client, in seconds. Defaults to 2
+  Set the read timeout on TCP connections from the client, in seconds. Defaults to 2.
 
   :param int num:
 
 .. function:: setTCPSendTimeout(num)
 
-  Set the write timeout on TCP connections from the client, in seconds. Defaults to 2
+  Set the write timeout on TCP connections from the client, in seconds. Defaults to 2.
 
   :param int num:
 
@@ -195,6 +286,6 @@ Tuning related functions
 
 .. function:: setUDPTimeout(num)
 
-  Set the maximum time dnsdist will wait for a response from a backend over UDP, in seconds. Defaults to 2
+  Set the maximum time dnsdist will wait for a response from a backend over UDP, in seconds. Defaults to 2.
 
   :param int num:

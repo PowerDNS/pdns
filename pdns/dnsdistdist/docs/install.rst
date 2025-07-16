@@ -9,7 +9,7 @@ Building from source is also supported.
 Installing from Packages
 ------------------------
 
-If dnsdist is available in your operating system's software repositories, install it from there.
+If dnsdist is available in your operating system's software repositories, you can install it from there.
 However, the version of dnsdist in the repositories might be an older version that might not have a feature that was added in a later version.
 Or you might want to be brave and try a development snapshot from the master branch.
 PowerDNS provides software repositories for the most popular distributions.
@@ -37,31 +37,34 @@ For Red Hat, CentOS and its derivatives, dnsdist is available in `EPEL <https://
 FreeBSD
 ~~~~~~~
 
-dnsdist is also available in `FreeBSD ports <http://www.freshports.org/dns/dnsdist/>`_.
+dnsdist is also available in `FreeBSD ports <https://www.freshports.org/dns/dnsdist/>`_.
 
 Installing from Source
 ----------------------
 
-In order to compile dnsdist, a modern compiler with C++ 2017 support and GNU make are required.
+In order to compile dnsdist, a modern compiler with C++ 2017 support, a Python 3 interpreter with the ``YAML`` module, and either GNU make or ``meson`` with ``ninja`` are required.
 dnsdist depends on the following libraries:
 
-* `Boost <http://boost.org/>`_
-* `Lua <http://www.lua.org/>`_ 5.1+ or `LuaJit <http://luajit.org/>`_
-* `Editline (libedit) <http://thrysoee.dk/editline/>`_
+* `Boost <https://boost.org/>`_
+* `Lua <https://www.lua.org/>`_ 5.1+ or `LuaJit <https://luajit.org/>`_
+* `Editline (libedit) <https://thrysoee.dk/editline/>`_
 * `libfstrm <https://github.com/farsightsec/fstrm>`_ (optional, dnstap support)
-* `GnuTLS <https://www.gnutls.org/>`_ (optional, DoT and outgoing DoH support)
+* `GnuTLS <https://www.gnutls.org/>`_ (optional, DoT and DoH support)
+* `hostname from Inetutils <https://www.gnu.org/software/inetutils/>`_
+  (required for building with ``meson``)
 * `libbpf <https://github.com/libbpf/libbpf>`_ and `libxdp <https://github.com/xdp-project/xdp-tools>`_ (optional, `XSK`/`AF_XDP` support)
 * `libcap <https://sites.google.com/site/fullycapable/>`_ (optional, capabilities support)
 * `libh2o <https://github.com/h2o/h2o>`_ (optional, incoming DoH support, deprecated in 1.9.0 in favor of ``nghttp2``)
-* `libsodium <https://download.libsodium.org/doc/>`_ (optional, DNSCrypt and console encryption support)
+* `libsodium <https://download.libsodium.org/doc/>`_ (optional, DNSCrypt support)
 * `LMDB <http://www.lmdb.tech/doc/>`_ (optional, LMDB support)
-* `net-snmp <http://www.net-snmp.org/>`_ (optional, SNMP support)
-* `nghttp2 <https://nghttp2.org/>`_ (optional, outgoing DoH support)
+* `net-snmp <https://www.net-snmp.org/>`_ (optional, SNMP support)
+* `nghttp2 <https://nghttp2.org/>`_ (optional, DoH support)
 * `OpenSSL <https://www.openssl.org/>`_ (optional, DoT and DoH support)
-* `protobuf <https://developers.google.com/protocol-buffers/>`_ (optional, not needed as of 1.6.0)
-* `quiche <https://github.com/cloudflare/quiche>`_ (optional, incoming DoQ support)
+* `Quiche <https://github.com/cloudflare/quiche>`_ (optional, incoming DoQ and DoH3 support)
 * `re2 <https://github.com/google/re2>`_ (optional)
 * `TinyCDB <https://www.corpit.ru/mjt/tinycdb.html>`_ (optional, CDB support)
+
+Since 2.0.0, the optional ``yaml`` configuration requires a Rust development environment, including ``rustc`` and ``cargo``.
 
 Should :program:`dnsdist` be run on a system with systemd, it is highly recommended to have
 the systemd header files (``libsystemd-dev`` on Debian and ``systemd-devel`` on CentOS)
@@ -86,6 +89,8 @@ Older (1.0.x) releases can also be signed with one of the following keys:
 * `1628 90D0 689D D12D D33E 4696 1C5E E990 D2E7 1575 <https://pgp.mit.edu/pks/lookup?op=get&search=0x1C5EE990D2E71575>`_
 * `B76C D467 1C09 68BA A87D E61C 5E50 715B F2FF E1A7 <https://pgp.mit.edu/pks/lookup?op=get&search=0x5E50715BF2FFE1A7>`_
 
+To compile from tarball:
+
 * Untar the tarball and ``cd`` into the source directory
 * Run ``./configure``
 * Run ``make`` or ``gmake`` (on BSD)
@@ -95,9 +100,9 @@ From git
 
 To compile from git, these additional dependencies are required:
 
-* GNU `Autoconf <http://www.gnu.org/software/autoconf/autoconf.html>`_
+* GNU `Autoconf <https://www.gnu.org/software/autoconf/autoconf.html>`_
 * GNU `Automake <https://www.gnu.org/software/automake/>`_
-* `Ragel <http://www.colm.net/open-source/ragel/>`_
+* `Ragel <https://www.colm.net/open-source/ragel/>`_
 
 dnsdist source code lives in the `PowerDNS git repository <https://github.com/PowerDNS/pdns>`_ but is independent of PowerDNS.
 
@@ -109,6 +114,14 @@ dnsdist source code lives in the `PowerDNS git repository <https://github.com/Po
   ./configure
   make
 
+Using meson
+~~~~~~~~~~~
+
+dnsdist can also be compiled with ``meson`` and ``ninja``. For example::
+
+  meson setup build
+  meson compile -C build
+
 OS Specific Instructions
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -117,7 +130,9 @@ None, really.
 Build options
 ~~~~~~~~~~~~~
 
-Our ``configure`` script provides a fair number of options with regard to which features should be enabled, as well as which libraries should be used. In addition to these options, more features can be disabled at compile-time by defining the following symbols:
+Our ``configure`` script and ``meson_options.txt`` counterpart provides a fair number of options with regard to which features should be enabled, as well as which libraries should be used. Run ``./configure --help`` or ``meson configure`` for the list of supported options.
+
+In addition to these options, more features can be disabled at compile-time by defining the following symbols:
 
 * ``DISABLE_BUILTIN_HTML`` removes the built-in web pages
 * ``DISABLE_CARBON`` for carbon support

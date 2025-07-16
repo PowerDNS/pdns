@@ -29,6 +29,7 @@
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/identity.hpp>
 #include <boost/multi_index/sequenced_index.hpp>
+#include <utility>
 using namespace boost::multi_index;
 
 #include <unistd.h>
@@ -43,7 +44,7 @@ using namespace boost::multi_index;
 
 struct SuckRequest
 {
-  DNSName domain;
+  ZoneName domain;
   ComboAddress primary;
   bool force;
   enum RequestPriority : uint8_t
@@ -75,13 +76,13 @@ using domains_by_name_t = UniQueue::index<IDTag>::type;
 class NotificationQueue
 {
 public:
-  void add(const DNSName& domain, const string& ipstring, time_t delay = 0)
+  void add(const ZoneName& domain, const string& ipstring, time_t delay = 0)
   {
     const ComboAddress ipaddress(ipstring);
     add(domain, ipaddress, delay);
   }
 
-  void add(const DNSName& domain, const ComboAddress& ipaddress, time_t delay = 0)
+  void add(const ZoneName& domain, const ComboAddress& ipaddress, time_t delay = 0)
   {
     NotificationRequest nr;
     nr.domain = domain;
@@ -90,10 +91,10 @@ public:
     nr.id = dns_random_uint16();
     nr.next = time(nullptr) + delay;
 
-    d_nqueue.push_back(nr);
+    d_nqueue.push_back(std::move(nr));
   }
 
-  bool removeIf(const ComboAddress& remote, uint16_t id, const DNSName& domain)
+  bool removeIf(const ComboAddress& remote, uint16_t id, const ZoneName& domain)
   {
     for (auto i = d_nqueue.begin(); i != d_nqueue.end(); ++i) {
       ComboAddress stQueued{i->ip};
@@ -105,7 +106,7 @@ public:
     return false;
   }
 
-  bool getOne(DNSName& domain, string& ip, uint16_t* id, bool& purged)
+  bool getOne(ZoneName& domain, string& ip, uint16_t* id, bool& purged)
   {
     for (d_nqueue_t::iterator i = d_nqueue.begin(); i != d_nqueue.end(); ++i)
       if (i->next <= time(nullptr)) {
@@ -138,7 +139,7 @@ public:
 private:
   struct NotificationRequest
   {
-    DNSName domain;
+    ZoneName domain;
     string ip;
     time_t next;
     int attempts;
@@ -168,17 +169,17 @@ public:
   time_t doNotifications(PacketHandler* P);
   void go();
 
-  void drillHole(const DNSName& domain, const string& ip);
-  bool justNotified(const DNSName& domain, const string& ip);
-  void addSuckRequest(const DNSName& domain, const ComboAddress& primary, SuckRequest::RequestPriority, bool force = false);
+  void drillHole(const ZoneName& domain, const string& ipAddress);
+  bool justNotified(const ZoneName& domain, const string& ipAddress);
+  void addSuckRequest(const ZoneName& domain, const ComboAddress& primary, SuckRequest::RequestPriority, bool force = false);
   void addSecondaryCheckRequest(const DomainInfo& di, const ComboAddress& remote);
   void addTryAutoPrimaryRequest(const DNSPacket& p);
-  void notify(const DNSName& domain, const string& ip);
+  void notify(const ZoneName& domain, const string& ipAddress);
   void mainloop();
   void retrievalLoopThread();
-  void sendNotification(int sock, const DNSName& domain, const ComboAddress& remote, uint16_t id, UeberBackend* B);
-  bool notifyDomain(const DNSName& domain, UeberBackend* B);
-  vector<pair<DNSName, ComboAddress>> getSuckRequests();
+  static void sendNotification(int sock, const ZoneName& domain, const ComboAddress& remote, uint16_t notificationId, UeberBackend* ueber);
+  bool notifyDomain(const ZoneName& domain, UeberBackend* ueber);
+  vector<pair<ZoneName, ComboAddress>> getSuckRequests();
   size_t getSuckRequestsWaiting();
 
 private:
@@ -186,10 +187,10 @@ private:
   void makeNotifySockets();
   void queueNotifyDomain(const DomainInfo& di, UeberBackend* B);
   int d_nsock4, d_nsock6;
-  LockGuarded<map<pair<DNSName, string>, time_t>> d_holes;
+  LockGuarded<map<pair<ZoneName, string>, time_t>> d_holes;
 
-  void suck(const DNSName& domain, const ComboAddress& remote, bool force = false);
-  void ixfrSuck(const DNSName& domain, const TSIGTriplet& tt, const ComboAddress& laddr, const ComboAddress& remote, ZoneStatus& zs, vector<DNSRecord>* axfr);
+  void suck(const ZoneName& domain, const ComboAddress& remote, bool force = false);
+  static void ixfrSuck(const ZoneName& domain, const TSIGTriplet& tsig, const ComboAddress& laddr, const ComboAddress& remote, ZoneStatus& status, vector<DNSRecord>* axfr);
 
   void secondaryRefresh(PacketHandler* P);
   void primaryUpdateCheck(PacketHandler* P);
@@ -211,7 +212,7 @@ private:
   {
     uint64_t d_sorthelper{0};
     UniQueue d_suckdomains;
-    set<DNSName> d_inprogress;
+    set<ZoneName> d_inprogress;
 
     set<DomainInfo> d_tocheck;
     struct cmp
@@ -227,15 +228,15 @@ private:
     // Used to keep some state on domains that failed their freshness checks.
     // uint64_t == counter of the number of failures (increased by 1 every consecutive slave-cycle-interval that the domain fails)
     // time_t == wait at least until this time before attempting a new check
-    map<DNSName, pair<uint64_t, time_t>> d_failedSecondaryRefresh;
+    map<ZoneName, pair<uint64_t, time_t>> d_failedSecondaryRefresh;
   };
 
   LockGuarded<Data> d_data;
 
   struct RemoveSentinel
   {
-    explicit RemoveSentinel(const DNSName& dn, CommunicatorClass* cc) :
-      d_dn(dn), d_cc(cc)
+    explicit RemoveSentinel(ZoneName dn, CommunicatorClass* cc) :
+      d_dn(std::move(dn)), d_cc(cc)
     {}
 
     ~RemoveSentinel()
@@ -246,7 +247,7 @@ private:
       catch (...) {
       }
     }
-    DNSName d_dn;
+    ZoneName d_dn;
     CommunicatorClass* d_cc;
   };
 };
@@ -262,7 +263,8 @@ public:
     this->resolve_name(&addresses, name);
 
     if (b) {
-      b->lookup(QType(QType::ANY), name, -1);
+      // Safe to pass UnknownDomainID here - name is obtained from NSRecordContent
+      b->lookup(QType(QType::ANY), name, UnknownDomainID);
       DNSZoneRecord rr;
       while (b->get(rr))
         if (rr.dr.d_type == QType::A || rr.dr.d_type == QType::AAAA)

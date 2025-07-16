@@ -11,6 +11,7 @@
 	mysql --user="$GMYSQL2USER" --password="$GMYSQL2PASSWD" --host="$GMYSQL2HOST" \
 		"$GMYSQL2DB" < ../modules/gmysqlbackend/schema.mysql.sql
 
+	backend=gmysql2
 	cat > pdns-gmysql2.conf << __EOF__
 module-dir=./modules
 launch=gmysql

@@ -377,7 +377,7 @@ int SSQLite3::busyHandler([[maybe_unused]] void* userData, [[maybe_unused]] int 
 
 void SSQLite3::startTransaction()
 {
-  execute("begin");
+  execute("begin immediate");
   m_in_transaction = true;
 }
 

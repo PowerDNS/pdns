@@ -1,32 +1,22 @@
+import pytest
 import dns
 import os
 import subprocess
 from recursortests import RecursorTest
 
-class testSimpleForwardOverDoT(RecursorTest):
+class SimpleForwardOverDoTTest(RecursorTest):
     """
-    This is forwarding to a DoT server in a very basic way and is dependent on Quad9 working
+    This is forwarding to DoT servers in a very basic way and is dependent on the forwards working for DoT
     """
 
     _confdir = 'SimpleForwardOverDoT'
     _config_template = """
 dnssec=validate
-forward-zones-recurse=.=9.9.9.9:853
+forward-zones-recurse=.=1.1.1.1:853;8.8.8.8:853;9.9.9.9:853
 devonly-regression-test-mode
     """
 
-    @classmethod
-    def setUpClass(cls):
-
-        # we don't need all the auth stuff
-        cls.setUpSockets()
-
-        confdir = os.path.join('configs', cls._confdir)
-        cls.createConfigDir(confdir)
-
-        cls.generateRecursorConfig(confdir)
-        cls.startRecursor(confdir, cls._recursorPort)
-
+    @pytest.mark.external
     def testA(self):
         expected = dns.rrset.from_text('dns.google.', 0, dns.rdataclass.IN, 'A', '8.8.8.8', '8.8.4.4')
         query = dns.message.make_query('dns.google', 'A', want_dnssec=True)

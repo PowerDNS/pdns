@@ -22,6 +22,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 #include <string>
 
 #include "config.h"
@@ -30,7 +31,6 @@
 #include "iputils.hh"
 
 #ifndef DISABLE_PROTOBUF
-#include "protozero.hh"
 
 class DnstapMessage
 {
@@ -60,8 +60,14 @@ public:
     DNSCryptTCP = 6,
     DoQ = 7
   };
+  enum class HttpProtocolType : uint32_t
+  {
+    HTTP1 = 1,
+    HTTP2 = 2,
+    HTTP3 = 3,
+  };
 
-  DnstapMessage(std::string&& buffer, MessageType type, const std::string& identity, const ComboAddress* requestor, const ComboAddress* responder, ProtocolType protocol, const char* packet, size_t len, const struct timespec* queryTime, const struct timespec* responseTime, const boost::optional<const DNSName&>& auth = boost::none);
+  DnstapMessage(std::string&& buffer, MessageType type, const std::string& identity, const ComboAddress* requestor, const ComboAddress* responder, ProtocolType protocol, const char* packet, size_t len, const struct timespec* queryTime, const struct timespec* responseTime, const boost::optional<const DNSName&>& auth = boost::none, const boost::optional<HttpProtocolType> httpProtocol = boost::none);
 
   void setExtra(const std::string& extra);
   std::string&& getBuffer();

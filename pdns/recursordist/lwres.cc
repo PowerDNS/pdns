@@ -296,10 +296,8 @@ static bool tcpconnect(const ComboAddress& ip, TCPOutConnectionManager::Connecti
     return false;
   }
 
-  const struct timeval timeout
-  {
-    g_networkTimeoutMsec / 1000, static_cast<suseconds_t>(g_networkTimeoutMsec) % 1000 * 1000
-  };
+  const struct timeval timeout{
+    g_networkTimeoutMsec / 1000, static_cast<suseconds_t>(g_networkTimeoutMsec) % 1000 * 1000};
   Socket s(ip.sin4.sin_family, SOCK_STREAM);
   s.setNonBlocking();
   setTCPNoDelay(s.getHandle());
@@ -428,11 +426,11 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
   if (EDNS0Level > 0) {
     DNSPacketWriter::optvect_t opts;
     if (srcmask) {
-      EDNSSubnetOpts eo;
-      eo.source = *srcmask;
+      EDNSSubnetOpts subnetOpts;
+      subnetOpts.setSource(*srcmask);
       outgoingECSBits = srcmask->getBits();
       outgoingECSAddr = srcmask->getNetwork();
-      opts.emplace_back(EDNSOptionCode::ECS, makeEDNSSubnetOptsString(eo));
+      opts.emplace_back(EDNSOptionCode::ECS, subnetOpts.makeOptString());
       weWantEDNSSubnet = true;
     }
 
@@ -484,7 +482,7 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
       return ret;
     }
 
-    if (queryfd == -1) {
+    if (queryfd <= -1) {
       *chained = true;
     }
 
@@ -595,8 +593,9 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
     }
 
     lwr->d_records.reserve(mdp.d_answers.size());
-    for (const auto& a : mdp.d_answers)
-      lwr->d_records.push_back(a.first);
+    for (const auto& answer : mdp.d_answers) {
+      lwr->d_records.push_back(answer);
+    }
 
     EDNSOpts edo;
     if (EDNS0Level > 0 && getEDNSOpts(mdp, &edo)) {
@@ -606,13 +605,13 @@ static LWResult::Result asyncresolve(const ComboAddress& address, const DNSName&
         for (const auto& opt : edo.d_options) {
           if (opt.first == EDNSOptionCode::ECS) {
             EDNSSubnetOpts reso;
-            if (getEDNSSubnetOptsFromString(opt.second, &reso)) {
+            if (EDNSSubnetOpts::getFromString(opt.second, &reso)) {
               /* rfc7871 states that 0 "indicate[s] that the answer is suitable for all addresses in FAMILY",
                  so we might want to still pass the information along to be able to differentiate between
                  IPv4 and IPv6. Still I'm pretty sure it doesn't matter in real life, so let's not duplicate
                  entries in our cache. */
-              if (reso.scope.getBits()) {
-                uint8_t bits = std::min(reso.scope.getBits(), outgoingECSBits);
+              if (reso.getScopePrefixLength() != 0) {
+                uint8_t bits = std::min(reso.getScopePrefixLength(), outgoingECSBits);
                 outgoingECSAddr.truncate(bits);
                 srcmask = Netmask(outgoingECSAddr, bits);
               }

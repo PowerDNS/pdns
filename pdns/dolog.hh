@@ -46,7 +46,7 @@
           errlog("Unable to bind to %s: %s", ca.toStringWithPort(), strerr(errno));
 
    Will log to stdout. Will syslog in any case with LOG_INFO,
-   LOG_WARNING, LOG_ERR respectively. If g_verbose=false, vinfolog is a noop.
+   LOG_WARNING, LOG_ERR respectively. If verbose=false, vinfolog is a noop.
    More generically, dolog(someiostream, "Hello %s", stream) will log to someiostream
 
    This will happily print a string to %d! Doesn't do further format processing.
@@ -81,9 +81,6 @@ void dolog(O& outputStream, const char* formatStr, T value, const Args&... args)
 }
 
 #if !defined(RECURSOR)
-// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-extern bool g_verbose;
-
 #ifdef DNSDIST
 namespace dnsdist::logging
 {
@@ -96,10 +93,6 @@ public:
     ISO8601
   };
 
-  static void setVerbose(bool value = true)
-  {
-    g_verbose = value;
-  }
   static void setSyslog(bool value = true)
   {
     s_syslog = value;
@@ -122,10 +115,6 @@ public:
   static void setVerboseStream(std::ofstream&& stream)
   {
     s_verboseStream = std::move(stream);
-  }
-  static bool getVerbose()
-  {
-    return g_verbose;
   }
   static bool getSyslog()
   {
@@ -235,9 +224,16 @@ void verboselog(const char* formatStr, const Args&... args)
 #endif /* DNSDIST */
 }
 
-#define vinfolog \
-  if (g_verbose) \
+#ifdef DNSDIST
+#include "dnsdist-configuration.hh"
+
+#define vinfolog                                                          \
+  if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_verbose) \
   verboselog
+#else
+#define vinfolog \
+  infolog
+#endif
 
 template <typename... Args>
 void infolog(const char* formatStr, const Args&... args)
@@ -258,9 +254,8 @@ void errlog(const char* formatStr, const Args&... args)
 }
 
 #else // RECURSOR
-#define g_verbose 0
 #define vinfolog \
-  if (g_verbose) \
+  if (false)     \
   infolog
 
 template <typename... Args>

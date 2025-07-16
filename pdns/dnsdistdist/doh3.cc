@@ -49,8 +49,6 @@
 
 using namespace dnsdist::doq;
 
-using h3_headers_t = std::map<std::string, std::string>;
-
 class H3Connection
 {
 public:
@@ -64,15 +62,24 @@ public:
   H3Connection& operator=(H3Connection&&) = default;
   ~H3Connection() = default;
 
+  std::shared_ptr<const std::string> getSNI()
+  {
+    if (!d_sni) {
+      d_sni = std::make_shared<const std::string>(getSNIFromQuicheConnection(d_conn));
+    }
+    return d_sni;
+  }
+
   ComboAddress d_peer;
   ComboAddress d_localAddr;
   QuicheConnection d_conn;
   QuicheConfig d_config;
   QuicheHTTP3Connection d_http3{nullptr, quiche_h3_conn_free};
   // buffer request headers by streamID
-  std::unordered_map<uint64_t, h3_headers_t> d_headersBuffers;
+  std::unordered_map<uint64_t, dnsdist::doh3::h3_headers_t> d_headersBuffers;
   std::unordered_map<uint64_t, PacketBuffer> d_streamBuffers;
   std::unordered_map<uint64_t, PacketBuffer> d_streamOutBuffers;
+  std::shared_ptr<const std::string> d_sni{nullptr};
 };
 
 static void sendBackDOH3Unit(DOH3UnitUniquePtr&& unit, const char* description);
@@ -96,7 +103,6 @@ struct DOH3ServerConfig
 
   using ConnectionsMap = std::map<PacketBuffer, H3Connection>;
 
-  LocalHolders holders;
   ConnectionsMap d_connections;
   QuicheConfig config;
   QuicheHTTP3Config http3config;
@@ -142,12 +148,9 @@ public:
 
     if (!response.isAsync()) {
 
-      static thread_local LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> localRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::ResponseRules).getLocal();
-      static thread_local LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> localCacheInsertedRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules).getLocal();
-
       dnsResponse.ids.doh3u = std::move(unit);
 
-      if (!processResponse(dnsResponse.ids.doh3u->response, *localRespRuleActions, *localCacheInsertedRespRuleActions, dnsResponse, false)) {
+      if (!processResponse(dnsResponse.ids.doh3u->response, dnsResponse, false)) {
         if (dnsResponse.ids.doh3u) {
 
           sendBackDOH3Unit(std::move(dnsResponse.ids.doh3u), "Response dropped by rules");
@@ -291,40 +294,53 @@ static bool tryWriteResponse(H3Connection& conn, const uint64_t streamID, Packet
   return true;
 }
 
-static void h3_send_response(H3Connection& conn, const uint64_t streamID, uint16_t statusCode, const uint8_t* body, size_t len)
+static void addHeaderToList(std::vector<quiche_h3_header>& headers, const char* name, size_t nameLen, const char* value, size_t valueLen)
+{
+  headers.emplace_back((quiche_h3_header){
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
+    .name = reinterpret_cast<const uint8_t*>(name),
+    .name_len = nameLen,
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
+    .value = reinterpret_cast<const uint8_t*>(value),
+    .value_len = valueLen,
+  });
+}
+
+static void h3_send_response(H3Connection& conn, const uint64_t streamID, uint16_t statusCode, const uint8_t* body, size_t len, const std::string& contentType = {})
 {
   std::string status = std::to_string(statusCode);
-  std::string lenStr = std::to_string(len);
-  std::array<quiche_h3_header, 3> headers{
-    (quiche_h3_header){
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
-      .name = reinterpret_cast<const uint8_t*>(":status"),
-      .name_len = sizeof(":status") - 1,
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
-      .value = reinterpret_cast<const uint8_t*>(status.data()),
-      .value_len = status.size(),
-    },
-    (quiche_h3_header){
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
-      .name = reinterpret_cast<const uint8_t*>("content-length"),
-      .name_len = sizeof("content-length") - 1,
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
-      .value = reinterpret_cast<const uint8_t*>(lenStr.data()),
-      .value_len = lenStr.size(),
-    },
-    (quiche_h3_header){
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
-      .name = reinterpret_cast<const uint8_t*>("content-type"),
-      .name_len = sizeof("content-type") - 1,
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
-      .value = reinterpret_cast<const uint8_t*>("application/dns-message"),
-      .value_len = sizeof("application/dns-message") - 1,
-    },
-  };
+  PacketBuffer location;
+  PacketBuffer responseBody;
+  std::vector<quiche_h3_header> headers;
+  headers.reserve(4);
+  addHeaderToList(headers, ":status", sizeof(":status") - 1, status.data(), status.size());
+
+  if (statusCode >= 300 && statusCode < 400) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
+    addHeaderToList(headers, "location", sizeof("location") - 1, reinterpret_cast<const char*>(body), len);
+    static const std::string s_redirectStart{"<!DOCTYPE html><TITLE>Moved</TITLE><P>The document has moved <A HREF=\""};
+    static const std::string s_redirectEnd{"\">here</A>"};
+    static const std::string s_redirectContentType("text/html; charset=utf-8");
+    addHeaderToList(headers, "content-type", sizeof("content-type") - 1, s_redirectContentType.data(), s_redirectContentType.size());
+    responseBody.reserve(s_redirectStart.size() + len + s_redirectEnd.size());
+    responseBody.insert(responseBody.begin(), s_redirectStart.begin(), s_redirectStart.end());
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    responseBody.insert(responseBody.end(), body, body + len);
+    responseBody.insert(responseBody.end(), s_redirectEnd.begin(), s_redirectEnd.end());
+    body = responseBody.data();
+    len = responseBody.size();
+  }
+  else if (len > 0 && (statusCode == 200U || !contentType.empty())) {
+    // do not include content-type header info if there is no content
+    addHeaderToList(headers, "content-type", sizeof("content-type") - 1, contentType.empty() ? "application/dns-message" : contentType.data(), contentType.empty() ? sizeof("application/dns-message") - 1 : contentType.size());
+  }
+
+  const std::string lenStr = std::to_string(len);
+  addHeaderToList(headers, "content-length", sizeof("content-length") - 1, lenStr.data(), lenStr.size());
+
   auto returnValue = quiche_h3_send_response(conn.d_http3.get(), conn.d_conn.get(),
                                              streamID, headers.data(),
-                                             // do not include content-type header info if there is no content
-                                             (len > 0 && statusCode == 200U ? headers.size() : headers.size() - 1),
+                                             headers.size(),
                                              len == 0);
   if (returnValue != 0) {
     /* in theory it could be QUICHE_H3_ERR_STREAM_BLOCKED if the stream is not writable / congested, but we are not going to handle this case */
@@ -356,13 +372,13 @@ static void h3_send_response(H3Connection& conn, const uint64_t streamID, uint16
   }
 }
 
-static void h3_send_response(H3Connection& conn, const uint64_t streamID, uint16_t statusCode, const std::string& content)
+static void h3_send_response(H3Connection& conn, const uint64_t streamID, uint16_t statusCode, const std::string& content = {})
 {
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
   h3_send_response(conn, streamID, statusCode, reinterpret_cast<const uint8_t*>(content.data()), content.size());
 }
 
-static void handleResponse(DOH3Frontend& frontend, H3Connection& conn, const uint64_t streamID, uint16_t statusCode, const PacketBuffer& response)
+static void handleResponse(DOH3Frontend& frontend, H3Connection& conn, const uint64_t streamID, uint16_t statusCode, const PacketBuffer& response, const std::string& contentType)
 {
   if (statusCode == 200) {
     ++frontend.d_validResponses;
@@ -374,7 +390,7 @@ static void handleResponse(DOH3Frontend& frontend, H3Connection& conn, const uin
     quiche_conn_stream_shutdown(conn.d_conn.get(), streamID, QUICHE_SHUTDOWN_WRITE, static_cast<uint64_t>(DOQ_Error_Codes::DOQ_UNSPECIFIED_ERROR));
   }
   else {
-    h3_send_response(conn, streamID, statusCode, &response.at(0), response.size());
+    h3_send_response(conn, streamID, statusCode, &response.at(0), response.size(), contentType);
   }
 }
 
@@ -477,7 +493,7 @@ static void processDOH3Query(DOH3UnitUniquePtr&& doh3Unit)
   const auto handleImmediateResponse = [](DOH3UnitUniquePtr&& unit, [[maybe_unused]] const char* reason) {
     DEBUGLOG("handleImmediateResponse() reason=" << reason);
     auto conn = getConnection(unit->dsc->df->d_server_config->d_connections, unit->serverConnID);
-    handleResponse(*unit->dsc->df, *conn, unit->streamID, unit->status_code, unit->response);
+    handleResponse(*unit->dsc->df, *conn, unit->streamID, unit->status_code, unit->response, unit->d_contentTypeOut);
     unit->ids.doh3u.reset();
   };
 
@@ -491,10 +507,9 @@ static void processDOH3Query(DOH3UnitUniquePtr&& doh3Unit)
 
     remote = unit->ids.origRemote;
     DOH3ServerConfig* dsc = unit->dsc;
-    auto& holders = dsc->holders;
     ClientState& clientState = *dsc->clientState;
 
-    if (!holders.acl->match(remote)) {
+    if (!dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(remote)) {
       vinfolog("Query from %s (DoH3) dropped because of ACL", remote.toStringWithPort());
       ++dnsdist::metrics::g_stats.aclDrops;
       unit->response.clear();
@@ -560,9 +575,12 @@ static void processDOH3Query(DOH3UnitUniquePtr&& doh3Unit)
       ids.origFlags = *flags;
       return true;
     });
+    if (unit->sni) {
+      dnsQuestion.sni = *unit->sni;
+    }
     unit->ids.cs = &clientState;
 
-    auto result = processQuery(dnsQuestion, holders, downstream);
+    auto result = processQuery(dnsQuestion, downstream);
     if (result == ProcessQueryResult::Drop) {
       unit->status_code = 403;
       handleImmediateResponse(std::move(unit), "DoH3 dropped query");
@@ -634,7 +652,7 @@ static void processDOH3Query(DOH3UnitUniquePtr&& doh3Unit)
   }
 }
 
-static void doh3_dispatch_query(DOH3ServerConfig& dsc, PacketBuffer&& query, const ComboAddress& local, const ComboAddress& remote, const PacketBuffer& serverConnID, const uint64_t streamID)
+static void doh3_dispatch_query(DOH3ServerConfig& dsc, PacketBuffer&& query, const ComboAddress& local, const ComboAddress& remote, const PacketBuffer& serverConnID, const uint64_t streamID, const std::shared_ptr<const std::string>& sni, dnsdist::doh3::h3_headers_t&& headers)
 {
   try {
     auto unit = std::make_unique<DOH3Unit>(std::move(query));
@@ -644,6 +662,8 @@ static void doh3_dispatch_query(DOH3ServerConfig& dsc, PacketBuffer&& query, con
     unit->ids.protocol = dnsdist::Protocol::DoH3;
     unit->serverConnID = serverConnID;
     unit->streamID = streamID;
+    unit->sni = sni;
+    unit->headers = std::move(headers);
 
     processDOH3Query(std::move(unit));
   }
@@ -664,7 +684,7 @@ static void flushResponses(pdns::channel::Receiver<DOH3Unit>& receiver)
       auto unit = std::move(*tmp);
       auto conn = getConnection(unit->dsc->df->d_server_config->d_connections, unit->serverConnID);
       if (conn) {
-        handleResponse(*unit->dsc->df, *conn, unit->streamID, unit->status_code, unit->response);
+        handleResponse(*unit->dsc->df, *conn, unit->streamID, unit->status_code, unit->response, unit->d_contentTypeOut);
       }
     }
     catch (const std::exception& e) {
@@ -711,7 +731,7 @@ static void processH3HeaderEvent(ClientState& clientState, DOH3Frontend& fronten
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
       std::string_view content(reinterpret_cast<char*>(value), value_len);
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): Quiche API
-      auto* headersptr = reinterpret_cast<h3_headers_t*>(argp);
+      auto* headersptr = reinterpret_cast<dnsdist::doh3::h3_headers_t*>(argp);
       headersptr->emplace(key, content);
       return 0;
     },
@@ -744,14 +764,18 @@ static void processH3HeaderEvent(ClientState& clientState, DOH3Frontend& fronten
       return;
     }
     DEBUGLOG("Dispatching GET query");
-    doh3_dispatch_query(*(frontend.d_server_config), std::move(*payload), conn.d_localAddr, client, serverConnID, streamID);
+    doh3_dispatch_query(*(frontend.d_server_config), std::move(*payload), conn.d_localAddr, client, serverConnID, streamID, conn.getSNI(), std::move(headers));
     conn.d_streamBuffers.erase(streamID);
     conn.d_headersBuffers.erase(streamID);
     return;
   }
 
   if (headers.at(":method") == "POST") {
+#if defined(HAVE_QUICHE_H3_EVENT_HEADERS_HAS_MORE_FRAMES)
+    if (!quiche_h3_event_headers_has_more_frames(event)) {
+#else
     if (!quiche_h3_event_headers_has_body(event)) {
+#endif
       handleImmediateError("Empty POST query");
     }
     return;
@@ -760,7 +784,7 @@ static void processH3HeaderEvent(ClientState& clientState, DOH3Frontend& fronten
   handleImmediateError("Unsupported HTTP method");
 }
 
-static void processH3DataEvent(ClientState& clientState, DOH3Frontend& frontend, H3Connection& conn, const ComboAddress& client, const PacketBuffer& serverConnID, const uint64_t streamID, quiche_h3_event* event, PacketBuffer& buffer)
+static void processH3DataEvent(ClientState& clientState, DOH3Frontend& frontend, H3Connection& conn, const ComboAddress& client, const PacketBuffer& serverConnID, const uint64_t streamID, PacketBuffer& buffer)
 {
   auto handleImmediateError = [&clientState, &frontend, &conn, streamID](const char* msg) {
     DEBUGLOG(msg);
@@ -809,7 +833,7 @@ static void processH3DataEvent(ClientState& clientState, DOH3Frontend& frontend,
   }
 
   DEBUGLOG("Dispatching POST query");
-  doh3_dispatch_query(*(frontend.d_server_config), std::move(streamBuffer), conn.d_localAddr, client, serverConnID, streamID);
+  doh3_dispatch_query(*(frontend.d_server_config), std::move(streamBuffer), conn.d_localAddr, client, serverConnID, streamID, conn.getSNI(), std::move(headers));
   conn.d_headersBuffers.erase(streamID);
   conn.d_streamBuffers.erase(streamID);
 }
@@ -826,7 +850,7 @@ static void processH3Events(ClientState& clientState, DOH3Frontend& frontend, H3
     if (streamID < 0) {
       break;
     }
-    conn.d_headersBuffers.try_emplace(streamID, h3_headers_t{});
+    conn.d_headersBuffers.try_emplace(streamID, dnsdist::doh3::h3_headers_t{});
 
     switch (quiche_h3_event_type(event)) {
     case QUICHE_H3_EVENT_HEADERS: {
@@ -834,7 +858,7 @@ static void processH3Events(ClientState& clientState, DOH3Frontend& frontend, H3
       break;
     }
     case QUICHE_H3_EVENT_DATA: {
-      processH3DataEvent(clientState, frontend, conn, client, serverConnID, streamID, event, buffer);
+      processH3DataEvent(clientState, frontend, conn, client, serverConnID, streamID, buffer);
       break;
     }
     case QUICHE_H3_EVENT_FINISHED:
@@ -908,14 +932,14 @@ static void handleSocketReadable(DOH3Frontend& frontend, ClientState& clientStat
       if (!quiche_version_is_supported(version)) {
         DEBUGLOG("Unsupported version");
         ++frontend.d_doh3UnsupportedVersionErrors;
-        handleVersionNegociation(sock, clientConnID, serverConnID, client, localAddr, buffer);
+        handleVersionNegotiation(sock, clientConnID, serverConnID, client, localAddr, buffer, clientState.local.isUnspecified());
         continue;
       }
 
       if (token_len == 0) {
         /* stateless retry */
         DEBUGLOG("No token received");
-        handleStatelessRetry(sock, clientConnID, serverConnID, client, localAddr, version, buffer);
+        handleStatelessRetry(sock, clientConnID, serverConnID, client, localAddr, version, buffer, clientState.local.isUnspecified());
         continue;
       }
 
@@ -962,7 +986,7 @@ static void handleSocketReadable(DOH3Frontend& frontend, ClientState& clientStat
 
       processH3Events(clientState, frontend, conn->get(), client, serverConnID, buffer);
 
-      flushEgress(sock, conn->get().d_conn, client, localAddr, buffer);
+      flushEgress(sock, conn->get().d_conn, client, localAddr, buffer, clientState.local.isUnspecified());
     }
     else {
       DEBUGLOG("Connection not established");
@@ -1007,7 +1031,7 @@ void doh3Thread(ClientState* clientState)
         for (auto conn = frontend->d_server_config->d_connections.begin(); conn != frontend->d_server_config->d_connections.end();) {
           quiche_conn_on_timeout(conn->second.d_conn.get());
 
-          flushEgress(sock, conn->second.d_conn, conn->second.d_peer, conn->second.d_localAddr, buffer);
+          flushEgress(sock, conn->second.d_conn, conn->second.d_peer, conn->second.d_localAddr, buffer, clientState->local.isUnspecified());
 
           if (quiche_conn_is_closed(conn->second.d_conn.get())) {
 #ifdef DEBUGLOG_ENABLED
@@ -1038,6 +1062,89 @@ void doh3Thread(ClientState* clientState)
   catch (const std::exception& e) {
     DEBUGLOG("Caught fatal error in the main DoH3 thread: " << e.what());
   }
+}
+
+std::string DOH3Unit::getHTTPPath() const
+{
+  const auto& path = headers.at(":path");
+  auto pos = path.find('?');
+  if (pos == string::npos) {
+    return path;
+  }
+  return path.substr(0, pos);
+}
+
+std::string DOH3Unit::getHTTPQueryString() const
+{
+  const auto& path = headers.at(":path");
+  auto pos = path.find('?');
+  if (pos == string::npos) {
+    return {};
+  }
+
+  return path.substr(pos);
+}
+
+std::string DOH3Unit::getHTTPHost() const
+{
+  const auto& host = headers.find(":authority");
+  if (host == headers.end()) {
+    return {};
+  }
+  return host->second;
+}
+
+std::string DOH3Unit::getHTTPScheme() const
+{
+  const auto& scheme = headers.find(":scheme");
+  if (scheme == headers.end()) {
+    return {};
+  }
+  return scheme->second;
+}
+
+const dnsdist::doh3::h3_headers_t& DOH3Unit::getHTTPHeaders() const
+{
+  return headers;
+}
+
+void DOH3Unit::setHTTPResponse(uint16_t statusCode, PacketBuffer&& body, const std::string& contentType)
+{
+  status_code = statusCode;
+  response = std::move(body);
+  d_contentTypeOut = contentType;
+}
+
+#else /* HAVE_DNS_OVER_HTTP3 */
+
+std::string DOH3Unit::getHTTPPath() const
+{
+  return {};
+}
+
+std::string DOH3Unit::getHTTPQueryString() const
+{
+  return {};
+}
+
+std::string DOH3Unit::getHTTPHost() const
+{
+  return {};
+}
+
+std::string DOH3Unit::getHTTPScheme() const
+{
+  return {};
+}
+
+const dnsdist::doh3::h3_headers_t& DOH3Unit::getHTTPHeaders() const
+{
+  static const dnsdist::doh3::h3_headers_t headers;
+  return headers;
+}
+
+void DOH3Unit::setHTTPResponse(uint16_t, PacketBuffer&&, const std::string&)
+{
 }
 
 #endif /* HAVE_DNS_OVER_HTTP3 */

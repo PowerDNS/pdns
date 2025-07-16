@@ -8,6 +8,7 @@
 #include <cerrno>
 #include <iostream>
 #include <thread>
+#include <string_view>
 
 #include <boost/algorithm/string.hpp>
 #include <h2o.h>
@@ -29,7 +30,6 @@
 #include "dnsdist-ecs.hh"
 #include "dnsdist-metrics.hh"
 #include "dnsdist-proxy-protocol.hh"
-#include "dnsdist-rules.hh"
 #include "libssl.hh"
 #include "threadname.hh"
 
@@ -56,7 +56,7 @@
 */
 
 /* 'Intermediate' compatibility from https://wiki.mozilla.org/Security/Server_Side_TLS#Intermediate_compatibility_.28default.29 */
-static constexpr string_view DOH_DEFAULT_CIPHERS = "ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA:ECDHE-ECDSA-DES-CBC3-SHA:ECDHE-RSA-DES-CBC3-SHA:EDH-RSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:DES-CBC3-SHA:!DSS";
+static constexpr std::string_view DOH_DEFAULT_CIPHERS = "ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA:ECDHE-ECDSA-DES-CBC3-SHA:ECDHE-RSA-DES-CBC3-SHA:EDH-RSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:DES-CBC3-SHA:!DSS";
 
 class DOHAcceptContext
 {
@@ -207,7 +207,6 @@ struct DOHServerConfig
   DOHServerConfig& operator=(DOHServerConfig&&) = delete;
   ~DOHServerConfig() = default;
 
-  LocalHolders holders;
   std::set<std::string, std::less<>> paths;
   h2o_globalconf_t h2o_config{};
   h2o_context_t h2o_ctx{};
@@ -274,6 +273,10 @@ struct DOHUnit : public DOHUnitInterface
   [[nodiscard]] const std::string& getHTTPHost() const override;
   [[nodiscard]] const std::string& getHTTPScheme() const override;
   [[nodiscard]] const std::unordered_map<std::string, std::string>& getHTTPHeaders() const override;
+  [[nodiscard]] std::shared_ptr<TCPQuerySender> getQuerySender() const override
+  {
+    return nullptr;
+  }
   void setHTTPResponse(uint16_t statusCode, PacketBuffer&& body, const std::string& contentType="") override;
   void handleTimeout() override;
   void handleUDPResponse(PacketBuffer&& response, InternalQueryState&& state, [[maybe_unused]] const std::shared_ptr<DownstreamState>& downstream) override;
@@ -328,7 +331,7 @@ static void on_socketclose(void *data)
       auto diff = now - conn->d_connectionStartTime;
 
       conn->d_acceptCtx->decrementConcurrentConnections();
-      conn->d_acceptCtx->d_cs->updateTCPMetrics(conn->d_nbQueries, diff.tv_sec * 1000 + diff.tv_usec / 1000);
+      conn->d_acceptCtx->d_cs->updateTCPMetrics(conn->d_nbQueries, diff.tv_sec * 1000 + diff.tv_usec / 1000, 0);
     }
 
     dnsdist::IncomingConcurrentTCPConnectionsManager::accountClosedTCPConnection(conn->d_remote);
@@ -486,6 +489,7 @@ public:
 
   void handleResponse(const struct timeval& now, TCPResponse&& response) override
   {
+    (void)now;
     if (!response.d_idstate.du) {
       return;
     }
@@ -503,12 +507,9 @@ public:
     memcpy(&cleartextDH, dr.getHeader().get(), sizeof(cleartextDH));
 
     if (!response.isAsync()) {
-      static thread_local LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> localRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::ResponseRules).getLocal();
-      static thread_local LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> localCacheInsertedRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules).getLocal();
-
       dr.ids.du = std::move(dohUnit);
 
-      if (!processResponse(dynamic_cast<DOHUnit*>(dr.ids.du.get())->response, *localRespRuleActions, *localCacheInsertedRespRuleActions, dr, false)) {
+      if (!processResponse(dynamic_cast<DOHUnit*>(dr.ids.du.get())->response, dr, false)) {
         if (dr.ids.du) {
           dohUnit = getDUFromIDS(dr.ids);
           dohUnit->status_code = 503;
@@ -550,6 +551,7 @@ public:
 
   void notifyIOError(const struct timeval& now, TCPResponse&& response) override
   {
+    (void)now;
     auto& query = response.d_idstate;
     if (!query.du) {
       return;
@@ -699,7 +701,6 @@ static void processDOHQuery(DOHUnitUniquePtr&& unit, bool inMainThread = false)
 
     remote = ids.origRemote;
     DOHServerConfig* dsc = unit->dsc;
-    auto& holders = dsc->holders;
     ClientState& clientState = *dsc->clientState;
 
     if (unit->query.size() < sizeof(dnsheader) || unit->query.size() > std::numeric_limits<uint16_t>::max()) {
@@ -760,7 +761,7 @@ static void processDOHQuery(DOHUnitUniquePtr&& unit, bool inMainThread = false)
     ids.cs = &clientState;
     dnsQuestion.sni = std::move(unit->sni);
     ids.du = std::move(unit);
-    auto result = processQuery(dnsQuestion, holders, downstream);
+    auto result = processQuery(dnsQuestion, downstream);
 
     if (result == ProcessQueryResult::Drop) {
       unit = getDUFromIDS(ids);
@@ -861,6 +862,7 @@ static void processDOHQuery(DOHUnitUniquePtr&& unit, bool inMainThread = false)
 /* called when a HTTP response is about to be sent, from the main DoH thread */
 static void on_response_ready_cb(struct st_h2o_filter_t *self, h2o_req_t *req, h2o_ostream_t **slot)
 {
+  (void)self;
   if (req == nullptr) {
     return;
   }
@@ -1075,8 +1077,7 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
       }
     }
 
-    auto& holders = dsc->holders;
-    if (!holders.acl->match(remote)) {
+    if (!dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(remote)) {
       ++dnsdist::metrics::g_stats.aclDrops;
       vinfolog("Query from %s (DoH) dropped because of ACL", remote.toStringWithPort());
       h2o_send_error_403(req, "Forbidden", "DoH query not allowed because of ACL", 0);
@@ -1151,8 +1152,8 @@ static int doh_handler(h2o_handler_t *self, h2o_req_t *req)
       if (pos != string::npos) {
         // need to base64url decode this
         string sdns(path.substr(pos+5));
-        boost::replace_all(sdns,"-", "+");
-        boost::replace_all(sdns,"_", "/");
+        std::replace(sdns.begin(), sdns.end(), '-', '+');
+        std::replace(sdns.begin(), sdns.end(), '_', '/');
         // re-add padding that may have been missing
         switch (sdns.size() % 4) {
         case 2:
@@ -1300,6 +1301,7 @@ static void dnsdistclient(pdns::channel::Receiver<DOHUnit>&& receiver)
    */
 static void on_dnsdist(h2o_socket_t *listener, const char *err)
 {
+  (void)err;
   /* we want to read as many responses from the pipe as possible before
      giving up. Even if we are overloaded and fighting with the DoH connections
      for the CPU, the first thing we need to do is to send responses to free slots
@@ -1387,15 +1389,15 @@ static void on_accept(h2o_socket_t *listener, const char *err)
     return;
   }
 
-  if (dsc->dohFrontend->d_earlyACLDrop && !dsc->dohFrontend->d_trustForwardedForHeader && !dsc->holders.acl->match(remote)) {
+  if (dsc->dohFrontend->d_earlyACLDrop && !dsc->dohFrontend->d_trustForwardedForHeader && !dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(remote)) {
     ++dnsdist::metrics::g_stats.aclDrops;
     vinfolog("Dropping DoH connection from %s because of ACL", remote.toStringWithPort());
     h2o_socket_close(sock);
     return;
   }
 
-  if (!dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(remote)) {
-    vinfolog("Dropping DoH connection from %s because we have too many from this client already", remote.toStringWithPort());
+  auto connectionResult = dnsdist::IncomingConcurrentTCPConnectionsManager::accountNewTCPConnection(remote, false);
+  if (connectionResult == dnsdist::IncomingConcurrentTCPConnectionsManager::NewConnectionResult::Denied) {
     h2o_socket_close(sock);
     return;
   }
@@ -1484,7 +1486,7 @@ static void setupTLSContext(DOHAcceptContext& acceptCtx,
     tlsConfig.d_ciphers = DOH_DEFAULT_CIPHERS.data();
   }
 
-  auto [ctx, warnings] = libssl_init_server_context(tlsConfig, acceptCtx.d_ocspResponses);
+  auto [ctx, warnings] = libssl_init_server_context_no_sni(tlsConfig, acceptCtx.d_ocspResponses);
   for (const auto& warning : warnings) {
     warnlog("%s", warning);
   }
@@ -1506,10 +1508,10 @@ static void setupTLSContext(DOHAcceptContext& acceptCtx,
   }
 #endif /* DISABLE_OCSP_STAPLING */
 
-  libssl_set_error_counters_callback(ctx, &counters);
+  libssl_set_error_counters_callback(*ctx.get(), &counters);
 
   if (!tlsConfig.d_keyLogFile.empty()) {
-    acceptCtx.d_keyLogFile = libssl_set_key_log_file(ctx, tlsConfig.d_keyLogFile);
+    acceptCtx.d_keyLogFile = libssl_set_key_log_file(ctx.get(), tlsConfig.d_keyLogFile);
   }
 
   h2o_ssl_register_alpn_protocols(ctx.get(), h2o_http2_alpn_protocols);
@@ -1532,16 +1534,16 @@ static void setupAcceptContext(DOHAcceptContext& ctx, DOHServerConfig& dsc, bool
   nativeCtx->ctx = &dsc.h2o_ctx;
   nativeCtx->hosts = dsc.h2o_config.hosts;
   auto dohFrontend = std::atomic_load_explicit(&dsc.dohFrontend, std::memory_order_acquire);
-  ctx.d_ticketsKeyRotationDelay = dohFrontend->d_tlsContext.d_tlsConfig.d_ticketsKeyRotationDelay;
+  ctx.d_ticketsKeyRotationDelay = dohFrontend->d_tlsContext->d_tlsConfig.d_ticketsKeyRotationDelay;
 
   if (setupTLS && dohFrontend->isHTTPS()) {
     try {
       setupTLSContext(ctx,
-                      dohFrontend->d_tlsContext.d_tlsConfig,
-                      dohFrontend->d_tlsContext.d_tlsCounters);
+                      dohFrontend->d_tlsContext->d_tlsConfig,
+                      dohFrontend->d_tlsContext->d_tlsCounters);
     }
     catch (const std::runtime_error& e) {
-      throw std::runtime_error("Error setting up TLS context for DoH listener on '" + dohFrontend->d_tlsContext.d_addr.toStringWithPort() + "': " + e.what());
+      throw std::runtime_error("Error setting up TLS context for DoH listener on '" + dohFrontend->d_tlsContext->d_addr.toStringWithPort() + "': " + e.what());
     }
   }
   ctx.d_cs = dsc.clientState;
@@ -1584,7 +1586,7 @@ void dohThread(ClientState* clientState)
     setThreadName("dnsdist/doh");
     // I wonder if this registers an IP address.. I think it does
     // this may mean we need to actually register a site "name" here and not the IP address
-    h2o_hostconf_t *hostconf = h2o_config_register_host(&dsc->h2o_config, h2o_iovec_init(dohFrontend->d_tlsContext.d_addr.toString().c_str(), dohFrontend->d_tlsContext.d_addr.toString().size()), 65535);
+    h2o_hostconf_t *hostconf = h2o_config_register_host(&dsc->h2o_config, h2o_iovec_init(dohFrontend->d_tlsContext->d_addr.toString().c_str(), dohFrontend->d_tlsContext->d_addr.toString().size()), 65535);
 
     dsc->paths = dohFrontend->d_urls;
     for (const auto& url : dsc->paths) {
@@ -1608,11 +1610,11 @@ void dohThread(ClientState* clientState)
     setupAcceptContext(*dsc->accept_ctx, *dsc, false);
 
     if (create_listener(dsc, clientState->tcpFD) != 0) {
-      throw std::runtime_error("DOH server failed to listen on " + dohFrontend->d_tlsContext.d_addr.toStringWithPort() + ": " + stringerror(errno));
+      throw std::runtime_error("DOH server failed to listen on " + dohFrontend->d_tlsContext->d_addr.toStringWithPort() + ": " + stringerror(errno));
     }
     for (const auto& [addr, descriptor] : clientState->d_additionalAddresses) {
       if (create_listener(dsc, descriptor) != 0) {
-        throw std::runtime_error("DOH server failed to listen on additional address " + addr.toStringWithPort() + " for DOH local" + dohFrontend->d_tlsContext.d_addr.toStringWithPort() + ": " + stringerror(errno));
+        throw std::runtime_error("DOH server failed to listen on additional address " + addr.toStringWithPort() + " for DOH local" + dohFrontend->d_tlsContext->d_addr.toStringWithPort() + ": " + stringerror(errno));
       }
     }
 
@@ -1650,15 +1652,12 @@ void DOHUnit::handleUDPResponse(PacketBuffer&& udpResponse, InternalQueryState&&
     }
   }
   if (!dohUnit->truncated) {
-    static thread_local LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> localRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::ResponseRules).getLocal();
-    static thread_local LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> localCacheInsertedRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules).getLocal();
-
     DNSResponse dnsResponse(dohUnit->ids, udpResponse, dohUnit->downstream);
     dnsheader cleartextDH{};
     memcpy(&cleartextDH, dnsResponse.getHeader().get(), sizeof(cleartextDH));
 
     dnsResponse.ids.du = std::move(dohUnit);
-    if (!processResponse(udpResponse, *localRespRuleActions, *localCacheInsertedRespRuleActions, dnsResponse, false)) {
+    if (!processResponse(udpResponse, dnsResponse, false)) {
       if (dnsResponse.ids.du) {
         dohUnit = getDUFromIDS(dnsResponse.ids);
         dohUnit->status_code = 503;
@@ -1741,11 +1740,11 @@ void H2ODOHFrontend::setup()
   if  (isHTTPS()) {
     try {
       setupTLSContext(*d_dsc->accept_ctx,
-                      d_tlsContext.d_tlsConfig,
-                      d_tlsContext.d_tlsCounters);
+                      d_tlsContext->d_tlsConfig,
+                      d_tlsContext->d_tlsCounters);
     }
     catch (const std::runtime_error& e) {
-      throw std::runtime_error("Error setting up TLS context for DoH listener on '" + d_tlsContext.d_addr.toStringWithPort() + "': " + e.what());
+      throw std::runtime_error("Error setting up TLS context for DoH listener on '" + d_tlsContext->d_addr.toStringWithPort() + "': " + e.what());
     }
   }
 }

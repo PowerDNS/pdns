@@ -35,6 +35,7 @@ jobs:
       with:
         fetch-depth: 5
         submodules: recursive
+        persist-credentials: false
 
     - name: Check if Debian is about to toss us off a balcony
       run: ./build-scripts/check-debian-autoremovals.py
@@ -42,97 +43,138 @@ jobs:
   coverity-auth:
     name: coverity scan of the auth
     if: ${{ vars.SCHEDULED_MISC_DAILIES }}
-    runs-on: ubuntu-22.04
-    env:
+    uses: PowerDNS/pdns/.github/workflows/coverity.yml@master
+    with:
+      product: 'authoritative'
+    secrets:
       COVERITY_TOKEN: ${{ secrets.coverity_auth_token }}
-      FUZZING_TARGETS: no
-      SANITIZERS:
-      UNIT_TESTS: no
-    steps:
-      - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 5
-          submodules: recursive
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - run: build-scripts/gh-actions-setup-inv-no-dist-upgrade
-      - run: inv install-clang
-      - run: inv install-auth-build-deps
-      - run: inv install-coverity-tools PowerDNS
-      - run: inv coverity-clang-configure
-      - run: inv ci-autoconf
-      - run: inv ci-auth-configure
-      - run: inv coverity-make
-      - run: inv coverity-tarball auth.tar.bz2
-      - run: inv coverity-upload ${{ secrets.coverity_email }} PowerDNS auth.tar.bz2
+      COVERITY_EMAIL: ${{ secrets.coverity_email }}
 
   coverity-dnsdist:
     name: coverity scan of dnsdist
     if: ${{ vars.SCHEDULED_MISC_DAILIES }}
-    runs-on: ubuntu-22.04
-    env:
+    uses: PowerDNS/pdns/.github/workflows/coverity.yml@master
+    with:
+      product: 'dnsdist'
+    secrets:
       COVERITY_TOKEN: ${{ secrets.coverity_dnsdist_token }}
-      SANITIZERS:
-      UNIT_TESTS: no
-      REPO_HOME: ${{ github.workspace }}
-    steps:
-      - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 5
-          submodules: recursive
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - run: build-scripts/gh-actions-setup-inv-no-dist-upgrade
-      - run: inv install-clang
-      - run: inv install-dnsdist-build-deps --skipXDP
-      - run: inv install-coverity-tools dnsdist
-      - run: inv coverity-clang-configure
-      - run: inv ci-autoconf
-        working-directory: ./pdns/dnsdistdist/
-      - run: inv ci-build-and-install-quiche ${{ env.REPO_HOME }}
-        working-directory: ./pdns/dnsdistdist/
-      - run: inv ci-dnsdist-configure full
-        working-directory: ./pdns/dnsdistdist/
-      - run: inv coverity-make
-        working-directory: ./pdns/dnsdistdist/
-      - run: inv coverity-tarball dnsdist.tar.bz2
-        working-directory: ./pdns/dnsdistdist/
-      - run: inv coverity-upload ${{ secrets.coverity_email }} dnsdist dnsdist.tar.bz2
-        working-directory: ./pdns/dnsdistdist/
+      COVERITY_EMAIL: ${{ secrets.coverity_email }}
 
   coverity-rec:
     name: coverity scan of the rec
     if: ${{ vars.SCHEDULED_MISC_DAILIES }}
-    runs-on: ubuntu-22.04
-    env:
+    uses: PowerDNS/pdns/.github/workflows/coverity.yml@master
+    with:
+      product: 'recursor'
+    secrets:
       COVERITY_TOKEN: ${{ secrets.coverity_rec_token }}
-      SANITIZERS:
-      UNIT_TESTS: no
+      COVERITY_EMAIL: ${{ secrets.coverity_email }}
+
+  # The jobs below check that only the pinned version of Python3 packages are installed with pip. Running in a container, a
+  # pip proxy registers all requests for installing packages with pip.  Then, the downloaded packages and their versions are compared
+  # with the list used for the installation (i.e. docs/requirements.txt, pdns/recursordist/docs/requirements.txt, etc). If a package
+  # is missing or a version does not match the one expected, this job fails, which makes the workflow fail.
+  #
+  # The pinned version plus hashes are generated using pip-compile using an input file that includes the original list of packages
+  # (pip-compile --generate-hashes -U requirements.in). "pip-compile" can be installed via pip-tools with Python 3.11, which is the version
+  # used in the CI. Any other Python version would end up with different versions for packages and could result in workflow failures.
+  #
+  # One recurring error thrown by this validation is when a new version of a pinned package is released for a "setup-requires" dependency
+  # of one of the packages in the list (see https://github.com/PowerDNS/pdns/pull/14596). The package version in “requirements.in” should
+  # be modified to solve this issue. In some cases, it is enough to generate again the list of packages, making sure to add the -U flag
+  # to force the upgrade: "pip-compile --generate-hashes -U requirements.in" (this could include upgrading other packages).
+
+  list-pip-requirement-files:
+    if: ${{ vars.SCHEDULED_MISC_DAILIES }}
+    runs-on: ubuntu-22.04
+    outputs:
+      req-files: ${{ steps.get-list-requirements.outputs.files }}
     steps:
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+    - name: Get all requirements.txt files and export them as outputs
+      id: get-list-requirements
+      run: |
+        echo "files=$(find . -name 'requirements.txt' | jq -R -s -c 'split("\n")[:-1]')" >> "$GITHUB_OUTPUT"
+
+  validate-pip-hashes:
+    if: ${{ vars.SCHEDULED_MISC_DAILIES }}
+    name: ${{ matrix.requirements-file }} - Validate list of packages and hashes
+    runs-on: ubuntu-22.04
+    needs: list-pip-requirement-files
+    services:
+      database:
+        image: epicwink/proxpi@sha256:a219ea0ef4f5b272eaf18bc5a5d00220c5aa07debb434d36161550862768aa93
+        ports:
+          - 5000:5000
+        options: >-
+          --restart always
+    strategy:
+      fail-fast: false
+      matrix:
+        requirements-file: ${{ fromJson(needs.list-pip-requirement-files.outputs.req-files) }}
+    env:
+      SERVICE_IP_ADDR: 127.0.0.1
+      REQUIREMENTS_FILE: ${{ matrix.requirements-file }}
+    steps:
+      - run: echo "${REQUIREMENTS_FILE}"
       - uses: PowerDNS/pdns/set-ubuntu-mirror@meta
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      # Configure pip index-url set to proxpi
+      - run: pip config set global.index-url http://${{ env.SERVICE_IP_ADDR }}:5000/index/
+      - run: pip config set global.trusted-host ${{ env.SERVICE_IP_ADDR }}
+      - id: proxpi-docker
+        run: echo "id=$(docker ps | grep "epicwink/proxpi" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+      - run: pip install -r ${REQUIREMENTS_FILE}
+      - name: Get the list of packages requested to the pip proxy
+        env:
+          ID: ${{ steps.proxpi-docker.outputs.id }}
+        run: |
+          docker logs "${ID}" 2>&1 | grep whl | awk '{print $8}' | cut -d "/" -f 4 | awk -F'-' '{print $1"=="$2}' | sort -u --ignore-case | sed 's/_/-/' | egrep -v "pip==|setuptools==" > /tmp/proxpi.log
+          cat /tmp/proxpi.log
+      - name: check only listed packages were installed
+        run: for i in `cat /tmp/proxpi.log`; do grep -qq -i $i ${REQUIREMENTS_FILE} || ( echo "$i not found" && exit 1 ); done
+
+  run-rec-bulk-test-on-ubicloud:
+    if: ${{ vars.UBICLOUD_DAILY_REC_BULKTEST == '1' }}
+    name: Run Recursor (master) Bulk Test On Ubicloud
+    runs-on: ubicloud-standard-8-ubuntu-2404
+    strategy:
+      matrix:
+        testsize: [500000]
+        IPv6: [0, 1]
+      max-parallel: 1
+    steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 5
           submodules: recursive
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - run: build-scripts/gh-actions-setup-inv-no-dist-upgrade
-      - run: inv install-clang
-      - run: inv install-rec-build-deps
-      - run: inv install-coverity-tools 'PowerDNS+Recursor'
-      - run: inv coverity-clang-configure
-      - run: inv ci-autoconf
-        working-directory: ./pdns/recursordist/
-      - run: inv ci-rec-configure full
-        working-directory: ./pdns/recursordist/
-      - run: inv coverity-make
-        working-directory: ./pdns/recursordist/
-      - run: inv coverity-tarball recursor.tar.bz2
-        working-directory: ./pdns/recursordist/
-      - run: inv coverity-upload ${{ secrets.coverity_email }} 'PowerDNS+Recursor' recursor.tar.bz2
-        working-directory: ./pdns/recursordist/
+          ref: ${{ inputs.branch-name }}
+          persist-credentials: false
+      - name: Add PowerDNS Repo
+        run: echo 'deb [signed-by=/etc/apt/keyrings/rec-master-pub.asc] http://repo.powerdns.com/ubuntu noble-rec-master main' | sudo tee /etc/apt/sources.list.d/pdns.list
+      - name: Add key
+        run: sudo install -d /etc/apt/keyrings; curl https://repo.powerdns.com/CBC8B383-pub.asc | sudo tee /etc/apt/keyrings/rec-master-pub.asc
+      - name: Apt Update
+        run: sudo apt-get update
+      - name: Install Recursor Package and PDNS Tools
+        run: sudo apt install pdns-recursor pdns-tools
+      - name: Get Top Million Names
+        run: curl --no-progress-meter -LO https://umbrella-static.s3.dualstack.us-west-1.amazonaws.com/top-1m.csv.zip && unzip top-1m.csv.zip -d .
+        working-directory: regression-tests
+      - name: Run Bulk Test
+        run: ./recursor-test 5300 ${{ matrix.testsize }} 8 2048 1024
+        working-directory: regression-tests
+        env:
+          RECURSOR: /usr/sbin/pdns_recursor
+          RECCONTROL: /usr/bin/rec_control
+          DNSBULKTEST: /usr/bin/dnsbulktest
+          THRESHOLD: 95
+          TRACE: no
+          IPv6: ${{ matrix.IPv6 }}

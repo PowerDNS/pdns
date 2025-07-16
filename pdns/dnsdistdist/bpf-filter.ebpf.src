@@ -1,1 +1,503 @@
-../bpf-filter.ebpf.src
+
+#include <net/sock.h>
+#include <linux/types.h>
+#include <uapi/linux/tcp.h>
+#include <uapi/linux/udp.h>
+#include <uapi/linux/ip.h>
+#include <uapi/linux/ipv6.h>
+#include <bcc/proto.h>
+
+struct dnsheader {
+        unsigned        id :16;         /* query identification number */
+#if BYTE_ORDER == BIG_ENDIAN
+                        /* fields in third byte */
+        unsigned        qr: 1;          /* response flag */
+        unsigned        opcode: 4;      /* purpose of message */
+        unsigned        aa: 1;          /* authoritative answer */
+        unsigned        tc: 1;          /* truncated message */
+        unsigned        rd: 1;          /* recursion desired */
+                        /* fields in fourth byte */
+        unsigned        ra: 1;          /* recursion available */
+        unsigned        unused :1;      /* unused bits (MBZ as of 4.9.3a3) */
+        unsigned        ad: 1;          /* authentic data from named */
+        unsigned        cd: 1;          /* checking disabled by resolver */
+        unsigned        rcode :4;       /* response code */
+#elif BYTE_ORDER == LITTLE_ENDIAN || BYTE_ORDER == PDP_ENDIAN
+                        /* fields in third byte */
+        unsigned        rd :1;          /* recursion desired */
+        unsigned        tc :1;          /* truncated message */
+        unsigned        aa :1;          /* authoritative answer */
+        unsigned        opcode :4;      /* purpose of message */
+        unsigned        qr :1;          /* response flag */
+                        /* fields in fourth byte */
+        unsigned        rcode :4;       /* response code */
+        unsigned        cd: 1;          /* checking disabled by resolver */
+        unsigned        ad: 1;          /* authentic data from named */
+        unsigned        unused :1;      /* unused bits (MBZ as of 4.9.3a3) */
+        unsigned        ra :1;          /* recursion available */
+#endif
+                        /* remaining bytes */
+        unsigned        qdcount :16;    /* number of question entries */
+        unsigned        ancount :16;    /* number of answer entries */
+        unsigned        nscount :16;    /* number of authority entries */
+        unsigned        arcount :16;    /* number of resource entries */
+};
+
+struct QNameKey
+{
+  uint8_t qname[255];
+};
+
+struct KeyV6
+{
+  uint8_t src[16];
+};
+
+struct QNameValue
+{
+  u64 counter;
+  u16 qtype;
+};
+
+BPF_TABLE("hash", u32, u64, v4filter, 1024);
+BPF_TABLE("hash", struct KeyV6, u64, v6filter, 1024);
+BPF_TABLE("hash", struct QNameKey, struct QNameValue, qnamefilter, 1024);
+BPF_TABLE("prog", int, int, progsarray, 1);
+
+int bpf_qname_filter(struct __sk_buff *skb)
+{
+  uint32_t qname_off = skb->cb[0];
+  ssize_t labellen = skb->cb[3];
+  size_t idx = 2;
+  struct QNameKey qkey = { 0 };
+  u32 val = skb->cb[1];
+  if (val) {
+    qkey.qname[0] = val;
+  }
+  val = skb->cb[2];
+  if (val) {
+    qkey.qname[1] = val;
+  }
+  uint8_t temp;
+
+#define FILL_ONE_KEY                                    \
+  temp = load_byte(skb, qname_off + idx);               \
+  labellen--;                                           \
+  if (labellen < 0) {                                   \
+    labellen = temp;                                    \
+    if (labellen == 0) {                                \
+      goto end;                                         \
+    }                                                   \
+  } else if (temp >= 'A' && temp <= 'Z') {              \
+    temp += ('a' - 'A');                                \
+  }                                                     \
+  qkey.qname[idx] = temp;                               \
+  idx++;
+
+  /* 2 - 52 */
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  /* 52 - 102 */
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  /* 102 - 152 */
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  /* 152 - 202 */
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  /* 202 - 252 */
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  /* 252 - 254 */
+  FILL_ONE_KEY
+  FILL_ONE_KEY
+
+  /* the only value that makes sense for
+     qkey.qname[255] is 0, and it's already
+     there */
+  end:
+
+  {
+    idx++;
+    u16 qtype = load_half(skb, (qname_off + idx));
+
+    struct QNameValue* qvalue = qnamefilter.lookup(&qkey);
+    if (qvalue &&
+      (qvalue->qtype == 65535 || qtype == qvalue->qtype)) {
+      __sync_fetch_and_add(&qvalue->counter, 1);
+      return 0;
+    }
+  }
+
+  return 2147483647;
+}
+
+int bpf_dns_filter(struct __sk_buff *skb) {
+  u8 ip_proto;
+  int proto_off;
+  /* nh_off will contain a negative offset, used in BPF to get access to
+     the MAC/network layers, as positive values are used to get access to
+     the transport layer */
+  int nh_off = BPF_LL_OFF + ETH_HLEN;
+
+  if (skb->protocol == ntohs(0x0800)) {
+    u32 key;
+    int off = nh_off + offsetof(struct iphdr, saddr);
+    key = load_word(skb, off);
+
+    u64* counter = v4filter.lookup(&key);
+    if (counter) {
+      __sync_fetch_and_add(counter, 1);
+      return 0;
+    }
+
+    ip_proto = load_byte(skb, nh_off + offsetof(struct iphdr, protocol));
+    proto_off = nh_off + sizeof(struct iphdr);
+  }
+  else if (skb->protocol == ntohs(0x86DD)) {
+    struct KeyV6 key;
+    int off = nh_off + offsetof(struct ipv6hdr, saddr);
+    key.src[0] = load_byte(skb, off++);
+    key.src[1] = load_byte(skb, off++);
+    key.src[2] = load_byte(skb, off++);
+    key.src[3] = load_byte(skb, off++);
+    key.src[4] = load_byte(skb, off++);
+    key.src[5] = load_byte(skb, off++);
+    key.src[6] = load_byte(skb, off++);
+    key.src[7] = load_byte(skb, off++);
+    key.src[8] = load_byte(skb, off++);
+    key.src[9] = load_byte(skb, off++);
+    key.src[10] = load_byte(skb, off++);
+    key.src[11] = load_byte(skb, off++);
+    key.src[12] = load_byte(skb, off++);
+    key.src[13] = load_byte(skb, off++);
+    key.src[14] = load_byte(skb, off++);
+    key.src[15] = load_byte(skb, off++);
+
+    u64* counter = v6filter.lookup(&key);
+    if (counter) {
+      __sync_fetch_and_add(counter, 1);
+      return 0;
+    }
+
+    ip_proto = load_byte(skb, nh_off + offsetof(struct ipv6hdr, nexthdr));
+    proto_off = nh_off + sizeof(struct ipv6hdr);
+  }
+  else {
+    /* neither IPv4 not IPv6, well */
+    return 2147483647;
+  }
+
+  /* allow TCP */
+  if (ip_proto == IPPROTO_TCP) {
+    return 2147483647;
+  }
+
+  struct QNameKey qkey = { 0 };
+  /* switch to positive offsets here, as we have seen some issues
+     when accessing the content of the transport layer with negative offsets
+     https://github.com/PowerDNS/pdns/issues/9626 */
+  int dns_off = sizeof(struct udphdr);
+  int qname_off = dns_off + sizeof(struct dnsheader);
+  skb->cb[0] = (uint32_t) qname_off;
+  u16 qtype;
+
+  uint8_t temp = load_byte(skb, qname_off);
+  if (temp > 63) {
+    return 0;
+  }
+
+  if (temp == 0) {
+    /* root, nothing else to see */
+    qtype = load_half(skb, (qname_off + 1));
+
+    struct QNameValue* qvalue = qnamefilter.lookup(&qkey);
+    if (qvalue &&
+      (qvalue->qtype == 65535 || qtype == qvalue->qtype)) {
+      __sync_fetch_and_add(&qvalue->counter, 1);
+      return 0;
+    }
+    return 2147483647;
+  }
+
+  ssize_t labellen = temp;
+  skb->cb[1] = temp;
+  qkey.qname[0] = temp;
+
+  temp = load_byte(skb, qname_off + 1);
+  labellen--;
+  if (temp >= 'A' && temp <= 'Z') {
+    temp += ('a' - 'A');
+  }
+  skb->cb[2] = temp;
+  skb->cb[3] = labellen;
+  progsarray.call(skb, 0);
+
+  return 2147483647;
+}

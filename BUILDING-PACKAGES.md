@@ -30,7 +30,7 @@ Locate the `Run workflow` dropdown item on the top right side of the screen, ins
 - `Branch`: you can keep `master` here, unless you need to build for an operating system which is not in the list, in which case you will have to create a new branch and add the required file(s) for this OS. See `Adding a new OS` below.
 - `Product to build`: select the product you want to build packages for, for example `dnsdist`
 - `OSes to build for, space separated`: keep one or more OSes you want to build packages for, for example `ubuntu-focal`
-- `git ref to checkout`: the exact version you want to build. It can be the name of branch, a git tag or a git commit ID. Most likely you will be willing to build from a tagged release, like `dnsdist-1.8.1`.
+- `git ref to checkout`: the exact version you want to build. It can be the name of branch, a git tag, or a git commit ID. Most likely you will be willing to build from a tagged release, like `dnsdist-1.8.1`.
 - `is this a release build?`: Keep `NO`
 
 Click `Run workflow` to start the build.
@@ -44,20 +44,18 @@ Adding a new OS to the list
 
 Adding a new OS is usually easy, provided that it does not differ too much from an existing one. For example, to add support for Debian Bookworm (already present in the current repository), one had to:
 
-Copy the existing instructions for Debian Buster:
+Copy the existing instructions for Debian bullseye:
 ```
-cp builder-support/dockerfiles/Dockerfile.target.debian-buster builder-support/dockerfiles/Dockerfile.target.debian-bookworm
+cp builder-support/dockerfiles/Dockerfile.target.debian-bullseye builder-support/dockerfiles/Dockerfile.target.debian-bookworm
 ```
 
-In the new `builder-support/dockerfiles/Dockerfile.target.debian-bookworm` file, replace every occurence of `debian-buster` by `debian-bookworm`, and of `debian:buster` by `debian:bookworm`
+In the new `builder-support/dockerfiles/Dockerfile.target.debian-bookworm` file, replace every occurrence of `debian-bullseye` by `debian-bookworm`, and of `debian:bullseye` by `debian:bookworm`
 
 Then add the new target to the list of OSes in the `.github/workflows/builder-dispatch.yml` workflow file:
 ```
 default: >-
-  el-7
   el-8
   el-9
-  debian-buster
   debian-bullseye
   debian-bookworm
   ubuntu-focal
@@ -68,10 +66,8 @@ If release packages should be automatically built for this new target, then `.gi
 ``
 ```
 default: >-
-  el-7
   el-8
   el-9
-  debian-buster
   debian-bullseye
   debian-bookworm
   ubuntu-focal
@@ -80,12 +76,12 @@ default: >-
 
 Not forgetting to update the list of hashes later in the same file:
 ```
-pkghashes-el-7: ${{ steps.pkghashes.outputs.pkghashes-el-7 }}
 pkghashes-el-8: ${{ steps.pkghashes.outputs.pkghashes-el-8 }}
 pkghashes-el-9: ${{ steps.pkghashes.outputs.pkghashes-el-9 }}
-pkghashes-debian-buster: ${{ steps.pkghashes.outputs.pkghashes-debian-buster }}
 pkghashes-debian-bullseye: ${{ steps.pkghashes.outputs.pkghashes-debian-bullseye }}
 pkghashes-debian-bookworm: ${{ steps.pkghashes.outputs.pkghashes-debian-bookworm }}
 pkghashes-ubuntu-focal: ${{ steps.pkghashes.outputs.pkghashes-ubuntu-focal }}
 pkghashes-ubuntu-jammy: ${{ steps.pkghashes.outputs.pkghashes-ubuntu-jammy }}
 ```
+
+For targets that get release packages, also add them to `.github/workflows/build-packages-daily-master.yml` so that we notice breakage.

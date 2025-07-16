@@ -17,7 +17,7 @@ This technique was first used by ``dnscache`` by Dan J. Bernstein and is standar
 
 In addition, PowerDNS detects when it is being sent too many unexpected answers, and mistrusts a proper answer if found within a clutch of unexpected ones.
 
-This behaviour can be tuned using the :ref:`setting-spoof-nearmiss-max`.
+This behaviour can be tuned using the :ref:`setting-yaml-recursor.spoof_nearmiss_max`.
 
 Throttling
 ----------

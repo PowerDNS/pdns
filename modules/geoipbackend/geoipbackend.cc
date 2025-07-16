@@ -56,8 +56,8 @@ struct GeoIPService
 
 struct GeoIPDomain
 {
-  std::uint32_t id{};
-  DNSName domain;
+  domainid_t id{};
+  ZoneName domain;
   int ttl{};
   map<DNSName, GeoIPService> services;
   map<DNSName, vector<GeoIPDNSResourceRecord>> records;
@@ -80,12 +80,29 @@ const static std::array<string, 12> GeoIP_MONTHS = {"jan", "feb", "mar", "apr", 
    If the reference is external, we spoof up a CNAME, and good luck with that
 */
 
+struct DirPtrDeleter
+{
+  /* using a deleter instead of decltype(&closedir) has two big advantages:
+     - the deleter is included in the type and does not have to be passed
+       when creating a new object (easier to use, less memory usage, in theory
+       better inlining)
+     - we avoid the annoying "ignoring attributes on template argument ‘int (*)(DIR*)’"
+       warning from the compiler, which is there because closedir is tagged as __nonnull((1))
+  */
+  void operator()(DIR* dirPtr) const noexcept
+  {
+    closedir(dirPtr);
+  }
+};
+
+using UniqueDirPtr = std::unique_ptr<DIR, DirPtrDeleter>;
+
 GeoIPBackend::GeoIPBackend(const string& suffix)
 {
   WriteLock writeLock(&s_state_lock);
   setArgPrefix("geoip" + suffix);
   if (!getArg("dnssec-keydir").empty()) {
-    auto dirHandle = std::unique_ptr<DIR, decltype(&closedir)>(opendir(getArg("dnssec-keydir").c_str()), closedir);
+    auto dirHandle = UniqueDirPtr(opendir(getArg("dnssec-keydir").c_str()));
     if (!dirHandle) {
       throw PDNSException("dnssec-keydir " + getArg("dnssec-keydir") + " does not exist");
     }
@@ -130,7 +147,7 @@ static bool validateMappingLookupFormats(const vector<string>& formats)
 static vector<GeoIPDNSResourceRecord> makeDNSResourceRecord(GeoIPDomain& dom, DNSName name)
 {
   GeoIPDNSResourceRecord resourceRecord;
-  resourceRecord.domain_id = static_cast<int>(dom.id);
+  resourceRecord.domain_id = dom.id;
   resourceRecord.ttl = dom.ttl;
   resourceRecord.qname = std::move(name);
   resourceRecord.qtype = QType(0); // empty non terminal
@@ -215,23 +232,23 @@ void GeoIPBackend::setupNetmasks(const YAML::Node& domain, GeoIPDomain& dom)
   }
 }
 
-bool GeoIPBackend::loadDomain(const YAML::Node& domain, std::uint32_t domainID, GeoIPDomain& dom)
+bool GeoIPBackend::loadDomain(const YAML::Node& domain, domainid_t domainID, GeoIPDomain& dom)
 {
   try {
     dom.id = domainID;
-    dom.domain = DNSName(domain["domain"].as<string>());
+    dom.domain = ZoneName(domain["domain"].as<string>());
     dom.ttl = domain["ttl"].as<int>();
 
     for (auto recs = domain["records"].begin(); recs != domain["records"].end(); recs++) {
-      DNSName qname = DNSName(recs->first.as<string>());
+      ZoneName qname = ZoneName(recs->first.as<string>());
       vector<GeoIPDNSResourceRecord> rrs;
 
       for (auto item = recs->second.begin(); item != recs->second.end(); item++) {
         auto rec = item->begin();
         GeoIPDNSResourceRecord rr;
-        rr.domain_id = static_cast<int>(dom.id);
+        rr.domain_id = dom.id;
         rr.ttl = dom.ttl;
-        rr.qname = qname;
+        rr.qname = qname.operator const DNSName&();
         if (rec->first.IsNull()) {
           rr.qtype = QType(0);
         }
@@ -276,7 +293,7 @@ bool GeoIPBackend::loadDomain(const YAML::Node& domain, std::uint32_t domainID, 
         rr.auth = true;
         rrs.push_back(rr);
       }
-      std::swap(dom.records[qname], rrs);
+      std::swap(dom.records[qname.operator const DNSName&()], rrs);
     }
 
     setupNetmasks(domain, dom);
@@ -392,12 +409,20 @@ void GeoIPBackend::initialize()
     g_log << Logger::Warning << "No GeoIP database files loaded!" << endl;
   }
 
-  if (!getArg("zones-file").empty()) {
+  std::string zonesFile{getArg("zones-file")};
+  if (!zonesFile.empty()) {
     try {
-      config = YAML::LoadFile(getArg("zones-file"));
+      config = YAML::LoadFile(zonesFile);
     }
     catch (YAML::Exception& ex) {
-      throw PDNSException(string("Cannot read config file ") + ex.msg);
+      std::string description{};
+      if (!ex.mark.is_null()) {
+        description = "Configuration error in " + zonesFile + ", line " + std::to_string(ex.mark.line + 1) + ", column " + std::to_string(ex.mark.column + 1);
+      }
+      else {
+        description = "Cannot read config file " + zonesFile;
+      }
+      throw PDNSException(description + ": " + ex.msg);
     }
   }
 
@@ -485,7 +510,7 @@ bool GeoIPBackend::lookup_static(const GeoIPDomain& dom, const DNSName& search, 
   return false;
 };
 
-void GeoIPBackend::lookup(const QType& qtype, const DNSName& qdomain, int zoneId, DNSPacket* pkt_p)
+void GeoIPBackend::lookup(const QType& qtype, const DNSName& qdomain, domainid_t zoneId, DNSPacket* pkt_p)
 {
   ReadLock rl(&s_state_lock);
   const GeoIPDomain* dom;
@@ -497,8 +522,9 @@ void GeoIPBackend::lookup(const QType& qtype, const DNSName& qdomain, int zoneId
 
   d_result.clear();
 
-  if (zoneId > -1 && zoneId < static_cast<int>(s_domains.size()))
+  if (zoneId >= 0 && zoneId < static_cast<domainid_t>(s_domains.size())) {
     dom = &(s_domains[zoneId]);
+  }
   else {
     for (const GeoIPDomain& i : s_domains) { // this is arguably wrong, we should probably find the most specific match
       if (qdomain.isPartOf(i.domain)) {
@@ -647,7 +673,8 @@ static string queryGeoIP(const Netmask& addr, GeoIPInterface::GeoIPQueryAttribut
       break;
     case GeoIPInterface::Location:
       double lat = 0, lon = 0;
-      boost::optional<int> alt, prec;
+      std::optional<int> alt;
+      std::optional<int> prec;
       if (addr.isIPv6())
         found = gi->queryLocationV6(gl, ip, lat, lon, alt, prec);
       else
@@ -691,7 +718,7 @@ string getGeoForLua(const std::string& ip, int qaint)
 }
 
 static bool queryGeoLocation(const Netmask& addr, GeoIPNetmask& gl, double& lat, double& lon,
-                             boost::optional<int>& alt, boost::optional<int>& prec)
+                             std::optional<int>& alt, std::optional<int>& prec)
 {
   for (auto const& gi : s_geoip_files) {
     string val;
@@ -708,7 +735,8 @@ static bool queryGeoLocation(const Netmask& addr, GeoIPNetmask& gl, double& lat,
 string GeoIPBackend::format2str(string sformat, const Netmask& addr, GeoIPNetmask& gl, const GeoIPDomain& dom)
 {
   string::size_type cur, last;
-  boost::optional<int> alt, prec;
+  std::optional<int> alt;
+  std::optional<int> prec;
   double lat, lon;
   time_t t = time(nullptr);
   GeoIPNetmask tmp_gl; // largest wins
@@ -893,19 +921,19 @@ void GeoIPBackend::rediscover(string* /* status */)
   reload();
 }
 
-bool GeoIPBackend::getDomainInfo(const DNSName& domain, DomainInfo& di, bool /* getSerial */)
+bool GeoIPBackend::getDomainInfo(const ZoneName& domain, DomainInfo& info, bool /* getSerial */)
 {
   ReadLock rl(&s_state_lock);
 
-  for (GeoIPDomain dom : s_domains) {
+  for (const GeoIPDomain& dom : s_domains) {
     if (dom.domain == domain) {
       SOAData sd;
-      this->getSOA(domain, sd);
-      di.id = dom.id;
-      di.zone = dom.domain;
-      di.serial = sd.serial;
-      di.kind = DomainInfo::Native;
-      di.backend = this;
+      this->getSOA(dom.domain, dom.id, sd);
+      info.id = dom.id;
+      info.zone = dom.domain;
+      info.serial = sd.serial;
+      info.kind = DomainInfo::Native;
+      info.backend = this;
       return true;
     }
   }
@@ -919,7 +947,7 @@ void GeoIPBackend::getAllDomains(vector<DomainInfo>* domains, bool /* getSerial 
   DomainInfo di;
   for (const auto& dom : s_domains) {
     SOAData sd;
-    this->getSOA(dom.domain, sd);
+    this->getSOA(dom.domain, dom.id, sd);
     di.id = dom.id;
     di.zone = dom.domain;
     di.serial = sd.serial;
@@ -929,17 +957,17 @@ void GeoIPBackend::getAllDomains(vector<DomainInfo>* domains, bool /* getSerial 
   }
 }
 
-bool GeoIPBackend::getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string>>& meta)
+bool GeoIPBackend::getAllDomainMetadata(const ZoneName& name, std::map<std::string, std::vector<std::string>>& meta)
 {
   if (!d_dnssec)
     return false;
 
   ReadLock rl(&s_state_lock);
-  for (GeoIPDomain dom : s_domains) {
+  for (const GeoIPDomain& dom : s_domains) {
     if (dom.domain == name) {
       if (hasDNSSECkey(dom.domain)) {
         meta[string("NSEC3NARROW")].push_back("1");
-        meta[string("NSEC3PARAM")].push_back("1 0 1 f95a");
+        meta[string("NSEC3PARAM")].push_back("1 0 0 -");
       }
       return true;
     }
@@ -947,13 +975,13 @@ bool GeoIPBackend::getAllDomainMetadata(const DNSName& name, std::map<std::strin
   return false;
 }
 
-bool GeoIPBackend::getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta)
+bool GeoIPBackend::getDomainMetadata(const ZoneName& name, const std::string& kind, std::vector<std::string>& meta)
 {
   if (!d_dnssec)
     return false;
 
   ReadLock rl(&s_state_lock);
-  for (GeoIPDomain dom : s_domains) {
+  for (const GeoIPDomain& dom : s_domains) {
     if (dom.domain == name) {
       if (hasDNSSECkey(dom.domain)) {
         if (kind == "NSEC3NARROW")
@@ -967,12 +995,12 @@ bool GeoIPBackend::getDomainMetadata(const DNSName& name, const std::string& kin
   return false;
 }
 
-bool GeoIPBackend::getDomainKeys(const DNSName& name, std::vector<DNSBackend::KeyData>& keys)
+bool GeoIPBackend::getDomainKeys(const ZoneName& name, std::vector<DNSBackend::KeyData>& keys)
 {
   if (!d_dnssec)
     return false;
   ReadLock rl(&s_state_lock);
-  for (GeoIPDomain dom : s_domains) {
+  for (const GeoIPDomain& dom : s_domains) {
     if (dom.domain == name) {
       regex_t reg;
       regmatch_t regm[5];
@@ -999,7 +1027,7 @@ bool GeoIPBackend::getDomainKeys(const DNSName& name, std::vector<DNSBackend::Ke
             }
             ifs.close();
             kd.content = content.str();
-            keys.push_back(kd);
+            keys.emplace_back(std::move(kd));
           }
         }
       }
@@ -1011,14 +1039,14 @@ bool GeoIPBackend::getDomainKeys(const DNSName& name, std::vector<DNSBackend::Ke
   return false;
 }
 
-bool GeoIPBackend::removeDomainKey(const DNSName& name, unsigned int id)
+bool GeoIPBackend::removeDomainKey(const ZoneName& name, unsigned int keyId)
 {
   if (!d_dnssec)
     return false;
   WriteLock rl(&s_state_lock);
   ostringstream path;
 
-  for (GeoIPDomain dom : s_domains) {
+  for (const GeoIPDomain& dom : s_domains) {
     if (dom.domain == name) {
       regex_t reg;
       regmatch_t regm[5];
@@ -1030,7 +1058,7 @@ bool GeoIPBackend::removeDomainKey(const DNSName& name, unsigned int id)
         for (size_t i = 0; i < glob_result.gl_pathc; i++) {
           if (regexec(&reg, glob_result.gl_pathv[i], 5, regm, 0) == 0) {
             auto kid = pdns::checked_stoi<unsigned int>(glob_result.gl_pathv[i] + regm[3].rm_so);
-            if (kid == id) {
+            if (kid == keyId) {
               if (unlink(glob_result.gl_pathv[i])) {
                 cerr << "Cannot delete key:" << strerror(errno) << endl;
               }
@@ -1047,14 +1075,14 @@ bool GeoIPBackend::removeDomainKey(const DNSName& name, unsigned int id)
   return false;
 }
 
-bool GeoIPBackend::addDomainKey(const DNSName& name, const KeyData& key, int64_t& id)
+bool GeoIPBackend::addDomainKey(const ZoneName& name, const KeyData& key, int64_t& keyId)
 {
   if (!d_dnssec)
     return false;
   WriteLock rl(&s_state_lock);
   unsigned int nextid = 1;
 
-  for (GeoIPDomain dom : s_domains) {
+  for (const GeoIPDomain& dom : s_domains) {
     if (dom.domain == name) {
       regex_t reg;
       regmatch_t regm[5];
@@ -1078,19 +1106,19 @@ bool GeoIPBackend::addDomainKey(const DNSName& name, const KeyData& key, int64_t
       ofstream ofs(pathname.str().c_str());
       ofs.write(key.content.c_str(), key.content.size());
       ofs.close();
-      id = nextid;
+      keyId = nextid;
       return true;
     }
   }
   return false;
 }
 
-bool GeoIPBackend::activateDomainKey(const DNSName& name, unsigned int id)
+bool GeoIPBackend::activateDomainKey(const ZoneName& name, unsigned int keyId)
 {
   if (!d_dnssec)
     return false;
   WriteLock rl(&s_state_lock);
-  for (GeoIPDomain dom : s_domains) {
+  for (const GeoIPDomain& dom : s_domains) {
     if (dom.domain == name) {
       regex_t reg;
       regmatch_t regm[5];
@@ -1102,7 +1130,7 @@ bool GeoIPBackend::activateDomainKey(const DNSName& name, unsigned int id)
         for (size_t i = 0; i < glob_result.gl_pathc; i++) {
           if (regexec(&reg, glob_result.gl_pathv[i], 5, regm, 0) == 0) {
             auto kid = pdns::checked_stoi<unsigned int>(glob_result.gl_pathv[i] + regm[3].rm_so);
-            if (kid == id && !strcmp(glob_result.gl_pathv[i] + regm[4].rm_so, "0")) {
+            if (kid == keyId && strcmp(glob_result.gl_pathv[i] + regm[4].rm_so, "0") == 0) { // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
               ostringstream newpath;
               newpath << getArg("dnssec-keydir") << "/" << dom.domain.toStringNoDot() << "." << pdns::checked_stoi<unsigned int>(glob_result.gl_pathv[i] + regm[2].rm_so) << "." << kid << ".1.key";
               if (rename(glob_result.gl_pathv[i], newpath.str().c_str())) {
@@ -1120,12 +1148,12 @@ bool GeoIPBackend::activateDomainKey(const DNSName& name, unsigned int id)
   return false;
 }
 
-bool GeoIPBackend::deactivateDomainKey(const DNSName& name, unsigned int id)
+bool GeoIPBackend::deactivateDomainKey(const ZoneName& name, unsigned int keyId)
 {
   if (!d_dnssec)
     return false;
   WriteLock rl(&s_state_lock);
-  for (GeoIPDomain dom : s_domains) {
+  for (const GeoIPDomain& dom : s_domains) {
     if (dom.domain == name) {
       regex_t reg;
       regmatch_t regm[5];
@@ -1137,7 +1165,7 @@ bool GeoIPBackend::deactivateDomainKey(const DNSName& name, unsigned int id)
         for (size_t i = 0; i < glob_result.gl_pathc; i++) {
           if (regexec(&reg, glob_result.gl_pathv[i], 5, regm, 0) == 0) {
             auto kid = pdns::checked_stoi<unsigned int>(glob_result.gl_pathv[i] + regm[3].rm_so);
-            if (kid == id && !strcmp(glob_result.gl_pathv[i] + regm[4].rm_so, "1")) {
+            if (kid == keyId && strcmp(glob_result.gl_pathv[i] + regm[4].rm_so, "1") == 0) { // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
               ostringstream newpath;
               newpath << getArg("dnssec-keydir") << "/" << dom.domain.toStringNoDot() << "." << pdns::checked_stoi<unsigned int>(glob_result.gl_pathv[i] + regm[2].rm_so) << "." << kid << ".0.key";
               if (rename(glob_result.gl_pathv[i], newpath.str().c_str())) {
@@ -1155,17 +1183,17 @@ bool GeoIPBackend::deactivateDomainKey(const DNSName& name, unsigned int id)
   return false;
 }
 
-bool GeoIPBackend::publishDomainKey(const DNSName& /* name */, unsigned int /* id */)
+bool GeoIPBackend::publishDomainKey(const ZoneName& /* name */, unsigned int /* id */)
 {
   return false;
 }
 
-bool GeoIPBackend::unpublishDomainKey(const DNSName& /* name */, unsigned int /* id */)
+bool GeoIPBackend::unpublishDomainKey(const ZoneName& /* name */, unsigned int /* id */)
 {
   return false;
 }
 
-bool GeoIPBackend::hasDNSSECkey(const DNSName& name)
+bool GeoIPBackend::hasDNSSECkey(const ZoneName& name)
 {
   ostringstream pathname;
   pathname << getArg("dnssec-keydir") << "/" << name.toStringNoDot() << "*.key";

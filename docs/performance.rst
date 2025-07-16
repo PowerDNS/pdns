@@ -62,6 +62,11 @@ To determine if PowerDNS is unable to keep up with packets, determine
 the value of the :ref:`stat-qsize-q` variable. This represents the number of
 packets waiting for database attention. During normal operations the
 queue should be small.
+This number is a total over all receiver threads.
+
+The :ref:`setting-max-queue-length` and :ref:`setting-overload-queue-length` settings determine how PowerDNS deals with growing queues.
+If the queue for a single receiver thread (and its associated distributor threads) grows beyond the ``overload`` number, queries are answered only from the packet cache so the database can hopefully recover.
+If we reach the ``max`` number, we consider the situation hopeless and respawn the server process.
 
 The value of :ref:`setting-queue-limit` should be set to only keep queries in
 queue for as long as someone would be interested in knowing the answer. Many
@@ -117,7 +122,7 @@ defaults to 20 seconds.
 
 The default values should work fine for many sites. When tuning, keep in
 mind that the Query Cache mostly saves database access but that the
-Packet Cache also saves a lot of CPU because 0 internal processing is
+Packet Cache also saves a lot of CPU because zero internal processing is
 done when answering a question from the Packet Cache.
 
 Caches & Memory Allocations & glibc
@@ -260,7 +265,7 @@ Amount of packets in the packetcache
 
 qsize-q
 ^^^^^^^
-Number of packets waiting for database attention, only available if :ref:`setting-receiver-threads` > 1
+Number of packets waiting for database attention, only available if :ref:`setting-distributor-threads` > 1
 
 .. _stat-query-cache-hit:
 
@@ -315,6 +320,12 @@ Number of packets we sent to our recursor, but did not get a timely answer for.
 security-status
 ^^^^^^^^^^^^^^^
 Security status based on :ref:`securitypolling`.
+
+.. _stat-send-latency:
+
+send-latency
+^^^^^^^^^^^^
+Average number of microseconds needed to send the answer
 
 .. _stat-servfail-packets:
 
@@ -399,12 +410,6 @@ Number of questions received over TCPv6
 timedout-packets
 ^^^^^^^^^^^^^^^^
 Amount of packets that were dropped because they had to wait too long internally
-
-.. _stat-send-latency:
-
-send-latency
-^^^^^^^^^^^^
-Average number of microseconds needed to send the answer
 
 .. _stat-udp-answers-bytes:
 

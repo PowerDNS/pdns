@@ -1,0 +1,473 @@
+Changelogs for 5.0.x
+====================
+
+.. changelog::
+  :version: 5.0.0-alpha1
+  :released: 27th of May 2025
+
+  This is release 5.0.0-alpha1 of the Authoritative Server.
+  The major new feature in 5.0.0 is :ref:`views` support.
+  Besides that, this release also contains a long list of other improvements.
+
+  .. change::
+    :tags: New Features
+    :pullreq: 15393, 15441, 15421, 15470, 15512
+
+    new feature: :ref:`views`
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15570
+
+    Trust inet_pton to validate IPv6 addresses and nothing more
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15520
+
+    Fix building with GCC 15.1: missing `cstdint` include
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15474
+
+    Use a unique type for domain ids
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15451
+
+    Better behaviour with non-working DNSSEC configurations
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15443
+
+    Add a quiet option to pdnsutil
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15390
+
+    Log DNS packet parse errors
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15353
+
+    fix log string in case there are notifies needed
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15334
+
+    [geoip] Try and be more helpful in YAML error exceptions
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15299
+
+    API: allow fetching disabled RRsets
+
+  .. change::
+    :tags: New Features
+    :pullreq: 15265
+
+    webserver Unix socket support (tacerus)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15238
+
+    Fix list-all-zones in multi-backend configuration involving LMDB
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15222
+
+    Damage control in Lua createForward()
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15207
+
+    [pdnsutil] Command aliases
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15197
+
+    [pdnsutil] Suggest increase-serial after create-zone
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15176
+
+    lmdb-safe: add prefix() cursor; use it in list/lookup/get
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15175
+
+    Improve LMDBBackend reliability
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15170
+
+    [pdnsutil] dedup in add-record
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15160
+
+    [pdnsutil] Better error message when disk full
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15152
+
+    Make the record representation of ALIAS match CNAME
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15147
+
+    Low-hanging LMDB fruits
+
+  .. change::
+    :tags: New Features
+    :pullreq: 15140
+
+    sdig: implement cookie support
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15133
+
+    [pdnsutil] Do not allow increase-serial on secondary zones
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15131
+
+    [pdnsutil] Let add-zone-key use defaults from pdns.conf
+
+  .. change::
+    :tags: New Features
+    :pullreq: 15127
+
+    lua records: new option to set the http status code to match in ifurlup function
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15105
+
+    Let pdnsutil warn when creating local files
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15103
+
+    Grow tinydnsbackend capabilities a bit
+
+  .. change::
+    :tags: New Features
+    :pullreq: 15098
+
+    Add a "failOnIncompleteCheck" option to if\*up Lua functions
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15090
+
+    Avoid LMDB exception during recursive lookup
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15086
+
+    try to find ldap libs in case pkg-config is missing (happens on debian11)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 15083, 15253
+
+    Provide additional answers in NAPTR queries
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15082
+
+    More helpful pdnsutil help output
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15080
+
+    pdnsutil: check for key presence after import
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15072
+
+    Adjust Content-Type header for Prometheus endpoint to include version (Woutifier)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15063
+
+    Include cstdint to get uint64_t
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15049
+
+    Correctly report SQL insertion errors
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15041
+
+    Exit gracefully on ^D on control-console
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15004
+
+    [lmdb] Ignore unreachable TSIG keys in getTSIGKeys
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14996
+
+    Lua up checks: finer control
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14993
+
+    createForward and createForward6 will use the zone_record as base (BozhanL)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14975
+
+    prevent createReverse6 from generating illegal IDN record  (BozhanL)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14931
+
+    Fix ipv\*hint=auto on lmdb backend
+
+  .. change::
+    :tags: Removed Features
+    :pullreq: 14926
+
+    [feature] remove support for libdecaf
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14913
+
+    [bugfix] Reject hexadecimal blobs with odd number of characters
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14900
+
+    pdnsutil edit-zone: Emit the updated SOA serial (ukleinek)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14897
+
+    fix register type race
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14842
+
+    don't log absence of GSS-TSIG functionality at such a high level, use DEBUG
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14823
+
+    SVCB parser: allow quotes around port=
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14782
+
+    Rework MDBIn/OutVal
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14781
+
+    pdns: allow empty string in version-string (Bertrand Jacquin)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14676
+
+    don't build .so for non-dyn modules
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14670
+
+    webserver.cc: try to pass exception text with 500 errors
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14665
+
+    sdig: some improvements for stdin mode
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14642
+
+    more and better thread names
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14625
+
+    Fix leak of MDB_env object
+
+  .. change::
+    :tags: New Features
+    :pullreq: 14604
+
+    allow turning off across-zone resolving (zeha)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14591
+
+    dnsproxy: make local port range configurable (zeha)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 14581
+
+    added a new config for direct queries of dnskey signature (d-wibowo)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14576
+
+    ssqlite3: use "begin immediate" to avoid later fights over upgrading to write
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14561
+
+    Add doc reference to oversized chunk message (Josh Soref)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 14505
+
+    `pdnsutil`: Add `backend-lookup` subcommand
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14500
+
+    fix domain ordering in query for mysql and odbc-sqlite, and test it
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14454
+
+    catalogs SQL: force order of domains to avoid spurious rehashes
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14419
+
+    Fix compile error on OPENSSL_VERSION_MAJOR < 3
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14368
+
+    allow -lodbc in a non-standard location
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14218
+
+    web: make request/response timeout configurable (Samir Aguiar)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13980
+
+    Do shuffle TCP responses except \*XFRs (Karel Bilek)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13959
+
+    Add Meson as a build system for auth
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13951
+
+    deprecate output of SHA1, GOST hashes
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 13949
+
+    ixfrdist: use IPV6_V6ONLY on listening sockets, closes #13878
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13930
+
+    sdig: remove xpf handling
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13879
+
+    LUA: support returning empty set in filterForward
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13867
+
+    on OpenBSD, try harder to send on a non-blocking socket
+
+  .. change::
+    :tags: New Features
+    :pullreq: 13770
+
+    Add setting to make TSIG required for DNS updates (Assumeru)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13060
+
+    gmysql: modernise implementation of gmysql-ssl flag
+
+  .. change::
+    :tags: New Features
+    :pullreq: 11678
+
+    Lua global include (cmouse)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 10692
+
+    added self weighted lua function (n0tlu5)
+

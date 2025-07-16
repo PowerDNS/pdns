@@ -2,5 +2,6 @@
 incoming:
   allow_from_file: ''
   allow_from: !override
-  - 1.2.3.4/32, 127.0.0.0/24
+  - 1.2.3.4/32
+  - 127.0.0.0/24
 

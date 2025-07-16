@@ -2,8 +2,9 @@ import dns
 import os
 from recursortests import RecursorTest
 
-class testRDNotAllowed(RecursorTest):
-    _confdir = 'RDFlagNotAllowed'
+class RDNotAllowedTest(RecursorTest):
+    _confdir = 'RDNotAllowed'
+    _auth_zones = RecursorTest._default_auth_zones
 
     _config_template = """
 """
@@ -17,8 +18,9 @@ class testRDNotAllowed(RecursorTest):
         self.assertRcodeEqual(res, dns.rcode.REFUSED)
         self.assertAnswerEmpty(res)
 
-class testRDAllowed(RecursorTest):
-    _confdir = 'RDFlagAllowed'
+class RDAllowedTest(RecursorTest):
+    _confdir = 'RDAllowed'
+    _auth_zones = RecursorTest._default_auth_zones
 
     _config_template = """
     disable-packetcache=yes

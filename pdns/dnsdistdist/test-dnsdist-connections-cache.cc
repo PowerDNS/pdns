@@ -71,8 +71,9 @@ public:
   {
   }
 
-  void release(bool removeFomCache)
+  static void release(bool removeFromCache)
   {
+    (void)removeFromCache;
   }
 
   std::shared_ptr<DownstreamState> getDS() const
@@ -81,10 +82,8 @@ public:
   }
 
   std::shared_ptr<DownstreamState> d_ds;
-  struct timeval d_lastDataReceivedTime
-  {
-    0, 0
-  };
+  struct timeval d_lastDataReceivedTime{
+    0, 0};
   bool d_reusable{true};
   bool d_usable{true};
   bool d_idle{false};

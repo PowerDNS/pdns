@@ -34,51 +34,82 @@
 #include "dnsdist-tcp-downstream.hh"
 #include "dnsdist-tcp-upstream.hh"
 
-GlobalStateHolder<NetmaskGroup> g_ACL;
-GlobalStateHolder<servers_t> g_dstates;
-
-QueryCount g_qcount;
-
 const bool TCPIOHandler::s_disableConnectForUnitTests = true;
 
 bool checkDNSCryptQuery(const ClientState& cs, PacketBuffer& query, std::unique_ptr<DNSCryptQuery>& dnsCryptQuery, time_t now, bool tcp)
 {
+  (void)cs;
+  (void)query;
+  (void)dnsCryptQuery;
+  (void)now;
+  (void)tcp;
   return false;
 }
 
 bool checkQueryHeaders(const struct dnsheader& dnsHeader, ClientState& clientState)
 {
+  (void)dnsHeader;
+  (void)clientState;
   return true;
 }
 
 uint64_t uptimeOfProcess(const std::string& str)
 {
+  (void)str;
   return 0;
 }
 
 void handleResponseSent(const InternalQueryState& ids, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol protocol, bool fromBackend)
 {
+  (void)ids;
+  (void)udiff;
+  (void)client;
+  (void)backend;
+  (void)size;
+  (void)cleartextDH;
+  (void)protocol;
+  (void)fromBackend;
+}
+
+void handleResponseSent(const DNSName& qname, const QType& qtype, double udiff, const ComboAddress& client, const ComboAddress& backend, unsigned int size, const dnsheader& cleartextDH, dnsdist::Protocol outgoingProtocol, dnsdist::Protocol incomingProtocol, bool fromBackend)
+{
+  (void)qname;
+  (void)qtype;
+  (void)udiff;
+  (void)client;
+  (void)backend;
+  (void)size;
+  (void)cleartextDH;
+  (void)outgoingProtocol;
+  (void)incomingProtocol;
+  (void)fromBackend;
 }
 
 std::function<ProcessQueryResult(DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend)> s_processQuery;
 
-ProcessQueryResult processQuery(DNSQuestion& dq, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend)
+ProcessQueryResult processQuery(DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& selectedBackend)
 {
   if (s_processQuery) {
-    return s_processQuery(dq, selectedBackend);
+    return s_processQuery(dnsQuestion, selectedBackend);
   }
 
   return ProcessQueryResult::Drop;
 }
 
-bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const std::shared_ptr<DownstreamState>& remote)
+bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const std::shared_ptr<DownstreamState>& remote, bool allowEmptyResponse)
 {
+  (void)response;
+  (void)qname;
+  (void)qtype;
+  (void)qclass;
+  (void)remote;
+  (void)allowEmptyResponse;
   return true;
 }
 
 static std::function<bool(PacketBuffer& response, DNSResponse& dr, bool muted)> s_processResponse;
 
-bool processResponse(PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& respRuleActions, const std::vector<dnsdist::rules::ResponseRuleAction>& cacheInsertedRespRuleActions, DNSResponse& dnsResponse, bool muted)
+bool processResponse(PacketBuffer& response, DNSResponse& dnsResponse, bool muted)
 {
   if (s_processResponse) {
     return s_processResponse(response, dnsResponse, muted);
@@ -165,6 +196,7 @@ public:
 
   IOState tryRead(PacketBuffer& buffer, size_t& pos, size_t toRead, bool allowIncomplete=false) override
   {
+    (void)allowIncomplete;
     auto step = getStep();
     BOOST_REQUIRE_EQUAL(step.request, !d_client ? ExpectedStep::ExpectedRequest::readFromClient : ExpectedStep::ExpectedRequest::readFromBackend);
 
@@ -194,6 +226,8 @@ public:
 
   IOState tryConnect(bool fastOpen, const ComboAddress& remote) override
   {
+    (void)fastOpen;
+    (void)remote;
     auto step = getStep();
     BOOST_REQUIRE_EQUAL(step.request, ExpectedStep::ExpectedRequest::connectToBackend);
 
@@ -243,6 +277,7 @@ public:
 
   void setSession(std::unique_ptr<TLSSession>& session) override
   {
+    (void)session;
   }
 
   /* unused in that context, don't bother */
@@ -252,15 +287,26 @@ public:
 
   void connect(bool fastOpen, const ComboAddress& remote, const struct timeval& timeout) override
   {
+    (void)fastOpen;
+    (void)remote;
+    (void)timeout;
   }
 
   size_t read(void* buffer, size_t bufferSize, const struct timeval&readTimeout, const struct timeval& totalTimeout={0,0}, bool allowIncomplete=false) override
   {
+    (void)buffer;
+    (void)bufferSize;
+    (void)readTimeout;
+    (void)totalTimeout;
+    (void)allowIncomplete;
     return 0;
   }
 
   size_t write(const void* buffer, size_t bufferSize, const struct timeval& writeTimeout) override
   {
+    (void)buffer;
+    (void)bufferSize;
+    (void)writeTimeout;
     return 0;
   }
 private:
@@ -290,16 +336,22 @@ public:
 
   std::unique_ptr<TLSConnection> getConnection(int socket, const struct timeval& timeout, time_t now) override
   {
+    (void)timeout;
+    (void)now;
     return std::make_unique<MockupTLSConnection>(socket);
   }
 
   std::unique_ptr<TLSConnection> getClientConnection(const std::string& host, bool hostIsAddr, int socket, const struct timeval& timeout) override
   {
+    (void)host;
+    (void)hostIsAddr;
+    (void)timeout;
     return std::make_unique<MockupTLSConnection>(socket, true);
   }
 
   void rotateTicketsKey(time_t now) override
   {
+    (void)now;
   }
 
   size_t getTicketsKeysCount() override
@@ -326,6 +378,7 @@ public:
 
   int run(struct timeval* tv, int timeout=500) override
   {
+    (void)timeout;
     int ret = 0;
 
     gettimeofday(tv, nullptr); // MANDATORY
@@ -356,14 +409,19 @@ public:
 
   void getAvailableFDs(std::vector<int>& fds, int timeout) override
   {
+    (void)fds;
+    (void)timeout;
   }
 
   void addFD(int fd, FDMultiplexer::EventKind kind) override
   {
+    (void)fd;
+    (void)kind;
   }
 
   void removeFD(int fd, FDMultiplexer::EventKind) override
   {
+    (void)fd;
   }
 
   string getName() const override
@@ -456,8 +514,9 @@ struct TestFixture
     s_backendReadBuffer.clear();
     s_backendWriteBuffer.clear();
 
-    g_proxyProtocolACL.clear();
-    g_verbose = false;
+    dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_proxyProtocolACL.clear();
+    });
     IncomingTCPConnectionState::clearAllDownstreamConnections();
 
     /* we _NEED_ to set this function to empty otherwise we might get what was set
@@ -482,6 +541,7 @@ static void testInit(const std::string& name, TCPClientThreadData& threadData)
 
 BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
 {
+  const auto tcpRecvTimeout = dnsdist::configuration::getCurrentRuntimeConfiguration().d_tcpRecvTimeout;
   auto local = getBackendAddress("1", 80);
   ClientState localCS(local, true, false, 0, "", {}, true);
   auto tlsCtx = std::make_shared<MockupTLSCtx>();
@@ -513,6 +573,8 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
       { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
     };
     s_processQuery = [](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
+      (void)selectedBackend;
       return ProcessQueryResult::Drop;
     };
 
@@ -535,6 +597,8 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
       { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
     };
     s_processQuery = [](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
+      (void)selectedBackend;
       // Would be nicer to actually turn it into a response
       return ProcessQueryResult::SendAnswer;
     };
@@ -567,6 +631,8 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
       { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
     };
     s_processQuery = [](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
+      (void)selectedBackend;
       // Would be nicer to actually turn it into a response
       return ProcessQueryResult::SendAnswer;
     };
@@ -595,6 +661,8 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
       { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
     };
     s_processQuery = [](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
+      (void)selectedBackend;
       throw std::runtime_error("Something unexpected happened");
     };
 
@@ -622,6 +690,8 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
     s_steps.push_back({ ExpectedStep::ExpectedRequest::closeClient, IOState::Done });
 
     s_processQuery = [](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
+      (void)selectedBackend;
       // Would be nicer to actually turn it into a response
       return ProcessQueryResult::SendAnswer;
     };
@@ -644,6 +714,8 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
       { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
     };
     s_processQuery = [](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
+      (void)selectedBackend;
       /* should not be reached */
       BOOST_CHECK(false);
       return ProcessQueryResult::SendAnswer;
@@ -656,7 +728,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
     state->handleIO();
     BOOST_CHECK_EQUAL(threadData.mplexer->run(&now), 0);
     struct timeval later = now;
-    later.tv_sec += g_tcpRecvTimeout + 1;
+    later.tv_sec += tcpRecvTimeout + 1;
     auto expiredReadConns = threadData.mplexer->getTimeouts(later, false);
     for (const auto& cbData : expiredReadConns) {
       BOOST_CHECK_EQUAL(cbData.first, state->d_handler.getDescriptor());
@@ -682,6 +754,8 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
       { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
     };
     s_processQuery = [](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
+      (void)selectedBackend;
       return ProcessQueryResult::SendAnswer;
     };
 
@@ -692,7 +766,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
     state->handleIO();
     BOOST_CHECK_EQUAL(threadData.mplexer->run(&now), 0);
     struct timeval later = now;
-    later.tv_sec += g_tcpRecvTimeout + 1;
+    later.tv_sec += tcpRecvTimeout + 1;
     auto expiredWriteConns = threadData.mplexer->getTimeouts(later, true);
     for (const auto& cbData : expiredWriteConns) {
       BOOST_CHECK_EQUAL(cbData.first, state->d_handler.getDescriptor());
@@ -718,6 +792,8 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
       { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
     };
     s_processQuery = [](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
+      (void)selectedBackend;
       return ProcessQueryResult::SendAnswer;
     };
 
@@ -729,6 +805,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionWithProxyProtocol_SelfAnswered, TestFixture)
 {
+  const auto tcpRecvTimeout = dnsdist::configuration::getCurrentRuntimeConfiguration().d_tcpRecvTimeout;
   auto local = getBackendAddress("1", 80);
   ClientState localCS(local, true, false, 0, "", {}, true);
   auto tlsCtx = std::make_shared<MockupTLSCtx>();
@@ -751,8 +828,10 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionWithProxyProtocol_SelfAnswered, T
   {
     TEST_INIT("=> reading PP");
 
-    g_proxyProtocolACL.addMask("0.0.0.0/0");
-    g_proxyProtocolACL.addMask("::0/0");
+    dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_proxyProtocolACL.addMask("0.0.0.0/0");
+      config.d_proxyProtocolACL.addMask("::0/0");
+    });
 
     auto proxyPayload = makeProxyHeader(true, ComboAddress("192.0.2.1"), ComboAddress("192.0.2.2"), {});
     BOOST_REQUIRE_GT(proxyPayload.size(), s_proxyProtocolMinimumHeaderSize);
@@ -776,6 +855,8 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionWithProxyProtocol_SelfAnswered, T
       { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
     };
     s_processQuery = [](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
+      (void)selectedBackend;
       return ProcessQueryResult::SendAnswer;
     };
 
@@ -791,8 +872,11 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionWithProxyProtocol_SelfAnswered, T
   {
     TEST_INIT("=> Invalid PP");
 
-    g_proxyProtocolACL.addMask("0.0.0.0/0");
-    g_proxyProtocolACL.addMask("::0/0");
+    dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_proxyProtocolACL.addMask("0.0.0.0/0");
+      config.d_proxyProtocolACL.addMask("::0/0");
+    });
+
     auto proxyPayload = std::vector<uint8_t>(s_proxyProtocolMinimumHeaderSize);
     std::fill(proxyPayload.begin(), proxyPayload.end(), 0);
 
@@ -806,6 +890,8 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionWithProxyProtocol_SelfAnswered, T
       { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
     };
     s_processQuery = [](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
+      (void)selectedBackend;
       return ProcessQueryResult::SendAnswer;
     };
 
@@ -818,8 +904,11 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionWithProxyProtocol_SelfAnswered, T
   {
     TEST_INIT("=> timeout while reading PP");
 
-    g_proxyProtocolACL.addMask("0.0.0.0/0");
-    g_proxyProtocolACL.addMask("::0/0");
+    dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_proxyProtocolACL.addMask("0.0.0.0/0");
+      config.d_proxyProtocolACL.addMask("::0/0");
+    });
+
     auto proxyPayload = makeProxyHeader(true, ComboAddress("192.0.2.1"), ComboAddress("192.0.2.2"), {});
     BOOST_REQUIRE_GT(proxyPayload.size(), s_proxyProtocolMinimumHeaderSize);
     s_readBuffer = query;
@@ -833,6 +922,8 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionWithProxyProtocol_SelfAnswered, T
       { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
     };
     s_processQuery = [](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
+      (void)selectedBackend;
       return ProcessQueryResult::SendAnswer;
     };
 
@@ -843,7 +934,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionWithProxyProtocol_SelfAnswered, T
     state->handleIO();
     BOOST_CHECK_EQUAL(threadData.mplexer->run(&now), 0);
     struct timeval later = now;
-    later.tv_sec += g_tcpRecvTimeout + 1;
+    later.tv_sec += tcpRecvTimeout + 1;
     auto expiredReadConns = threadData.mplexer->getTimeouts(later, false);
     for (const auto& cbData : expiredReadConns) {
       BOOST_CHECK_EQUAL(cbData.first, state->d_handler.getDescriptor());
@@ -912,10 +1003,14 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
       { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
     };
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
     s_processResponse = [](PacketBuffer& response, DNSResponse& dr, bool muted) -> bool {
+      (void)response;
+      (void)dr;
+      (void)muted;
       return true;
     };
 
@@ -952,10 +1047,14 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
       { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
     };
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
     s_processResponse = [](PacketBuffer& response, DNSResponse& dr, bool muted) -> bool {
+      (void)response;
+      (void)dr;
+      (void)muted;
       throw std::runtime_error("Unexpected error while processing the response");
     };
 
@@ -991,10 +1090,14 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
       { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
     };
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
     s_processResponse = [](PacketBuffer& response, DNSResponse& dr, bool muted) -> bool {
+      (void)response;
+      (void)dr;
+      (void)muted;
       return false;
     };
 
@@ -1034,10 +1137,14 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
       { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
     };
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
     s_processResponse = [](PacketBuffer& response, DNSResponse& dr, bool muted) -> bool {
+      (void)response;
+      (void)dr;
+      (void)muted;
       return true;
     };
 
@@ -1062,9 +1169,14 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
       { ExpectedStep::ExpectedRequest::closeClient, IOState::Done },
     };
     s_processQuery = [](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
+      (void)selectedBackend;
       return ProcessQueryResult::SendAnswer;
     };
     s_processResponse = [](PacketBuffer& response, DNSResponse& dr, bool muted) -> bool {
+      (void)response;
+      (void)dr;
+      (void)muted;
       return true;
     };
 
@@ -1099,10 +1211,14 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
       { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
     };
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
     s_processResponse = [](PacketBuffer& response, DNSResponse& dr, bool muted) -> bool {
+      (void)response;
+      (void)dr;
+      (void)muted;
       return true;
     };
 
@@ -1167,10 +1283,14 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
     };
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
     s_processResponse = [](PacketBuffer& response, DNSResponse& dr, bool muted) -> bool {
+      (void)response;
+      (void)dr;
+      (void)muted;
       return true;
     };
 
@@ -1200,26 +1320,31 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
       { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2 },
       /* opening a connection to the backend (5 tries by default) */
       { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [](int descriptor) {
+          (void)descriptor;
           throw NetworkError("Connection refused by the backend");
         }
       },
       { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
       { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [](int descriptor) {
+          (void)descriptor;
           throw NetworkError("Connection refused by the backend");
         }
       },
       { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
       { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [](int descriptor) {
+          (void)descriptor;
           throw NetworkError("Connection refused by the backend");
         }
       },
       { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
       { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [](int descriptor) {
+          (void)descriptor;
           throw NetworkError("Connection refused by the backend");
         }
       },
       { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
       { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [](int descriptor) {
+          (void)descriptor;
           throw NetworkError("Connection refused by the backend");
         }
       },
@@ -1229,11 +1354,14 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
     };
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
-
+      (void)dq;
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
     s_processResponse = [](PacketBuffer& response, DNSResponse& dr, bool muted) -> bool {
+      (void)response;
+      (void)dr;
+      (void)muted;
       return true;
     };
 
@@ -1265,11 +1393,14 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
     };
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
-
+      (void)dq;
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
     s_processResponse = [](PacketBuffer& response, DNSResponse& dr, bool muted) -> bool {
+      (void)response;
+      (void)dr;
+      (void)muted;
       return true;
     };
 
@@ -1312,10 +1443,14 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
     };
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
     s_processResponse = [](PacketBuffer& response, DNSResponse& dr, bool muted) -> bool {
+      (void)response;
+      (void)dr;
+      (void)muted;
       return true;
     };
 
@@ -1369,10 +1504,14 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
     };
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
     s_processResponse = [](PacketBuffer& response, DNSResponse& dr, bool muted) -> bool {
+      (void)response;
+      (void)dr;
+      (void)muted;
       return true;
     };
 
@@ -1425,10 +1564,14 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
     };
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
     s_processResponse = [](PacketBuffer& response, DNSResponse& dr, bool muted) -> bool {
+      (void)response;
+      (void)dr;
+      (void)muted;
       return true;
     };
 
@@ -1457,24 +1600,28 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
       { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
       /* and now reconnection fails (1) */
       { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [](int descriptor) {
+          (void)descriptor;
           throw NetworkError("Connection refused by the backend");
         }
       },
       { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
       /* 2 */
       { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [](int descriptor) {
+          (void)descriptor;
           throw NetworkError("Connection refused by the backend");
         }
       },
       { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
       /* 3 */
       { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [](int descriptor) {
+          (void)descriptor;
           throw NetworkError("Connection refused by the backend");
         }
       },
       { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
       /* 4 */
       { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [](int descriptor) {
+          (void)descriptor;
           throw NetworkError("Connection refused by the backend");
         }
       },
@@ -1484,10 +1631,14 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
     };
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
     s_processResponse = [](PacketBuffer& response, DNSResponse& dr, bool muted) -> bool {
+      (void)response;
+      (void)dr;
+      (void)muted;
       return true;
     };
 
@@ -1536,10 +1687,14 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
     };
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
     s_processResponse = [](PacketBuffer& response, DNSResponse& dr, bool muted) -> bool {
+      (void)response;
+      (void)dr;
+      (void)muted;
       return true;
     };
 
@@ -1596,10 +1751,14 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
     };
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
     s_processResponse = [](PacketBuffer& response, DNSResponse& dr, bool muted) -> bool {
+      (void)response;
+      (void)dr;
+      (void)muted;
       return true;
     };
 
@@ -1637,10 +1796,14 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
     };
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
     s_processResponse = [](PacketBuffer& response, DNSResponse& dr, bool muted) -> bool {
+      (void)response;
+      (void)dr;
+      (void)muted;
       return true;
     };
 
@@ -1660,7 +1823,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
     /* 101 queries on the same connection, check that the maximum number of queries kicks in */
     TEST_INIT("=> 101 queries on the same connection");
 
-    g_maxTCPQueriesPerConn = 100;
+    dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_maxTCPQueriesPerConn = 100;
+    });
 
     size_t count = 101;
 
@@ -1699,10 +1864,14 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
     s_steps.push_back({ ExpectedStep::ExpectedRequest::closeClient, IOState::Done });
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
     s_processResponse = [](PacketBuffer& response, DNSResponse& dr, bool muted) -> bool {
+      (void)response;
+      (void)dr;
+      (void)muted;
       return true;
     };
 
@@ -1714,7 +1883,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
     IncomingTCPConnectionState::clearAllDownstreamConnections();
 
-    g_maxTCPQueriesPerConn = 0;
+    dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_maxTCPQueriesPerConn = 0;
+    });
 #endif
   }
 
@@ -1739,12 +1910,16 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
     };
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
       selectedBackend = backend;
       dq.asynchronous = true;
       /* note that we do nothing with the query, we just tell the frontend it was dealt with */
       return ProcessQueryResult::Asynchronous;
     };
     s_processResponse = [](PacketBuffer& response, DNSResponse& dr, bool muted) -> bool {
+      (void)response;
+      (void)dr;
+      (void)muted;
       return true;
     };
 
@@ -1757,8 +1932,10 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendNoOOOR, TestFixture)
   }
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
 {
+  const auto tcpRecvTimeout = dnsdist::configuration::getCurrentRuntimeConfiguration().d_tcpRecvTimeout;
   auto local = getBackendAddress("1", 80);
   ClientState localCS(local, true, false, 0, "", {}, true);
   /* enable out-of-order on the front side */
@@ -1925,10 +2102,14 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
     };
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
     s_processResponse = [](PacketBuffer& response, DNSResponse& dr, bool muted) -> bool {
+      (void)response;
+      (void)dr;
+      (void)muted;
       return true;
     };
 
@@ -1952,7 +2133,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
     TEST_INIT("=> 3 queries sent to the backend, 1 self-answered, 1 new query sent to the backend which responds to the first query right away, then to the last one, then the connection to the backend times out");
 
     // increase the client timeout for that test, we want the backend to timeout first
-    g_tcpRecvTimeout = 5;
+    dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_tcpRecvTimeout = 5;
+    });
 
     PacketBuffer expectedWriteBuffer;
     PacketBuffer expectedBackendWriteBuffer;
@@ -2061,6 +2244,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       return ProcessQueryResult::PassToBackend;
     };
     s_processResponse = [](PacketBuffer& response, DNSResponse& dr, bool muted) -> bool {
+      (void)response;
+      (void)dr;
+      (void)muted;
       return true;
     };
 
@@ -2092,7 +2278,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
     IncomingTCPConnectionState::clearAllDownstreamConnections();
 
     // restore the client timeout
-    g_tcpRecvTimeout = 2;
+    dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_tcpRecvTimeout = 2;
+    });
   }
 
   {
@@ -2184,6 +2372,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       /* reading a query from the client (5) */
       { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
       { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(4).size() - 2, [&threadData,&backendDesc](int desc) {
+        (void)desc;
         /* set the backend descriptor as ready now */
         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(backendDesc);
       } },
@@ -2214,6 +2403,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       /* reading a response from the backend (5) */
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(4).size() - 2, [&threadData](int desc) {
+        (void)desc;
         /* set the client descriptor as ready to resume sending */
         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(-1);
       } },
@@ -2237,10 +2427,14 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
     };
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
     s_processResponse = [](PacketBuffer& response, DNSResponse& dr, bool muted) -> bool {
+      (void)response;
+      (void)dr;
+      (void)muted;
       return true;
     };
 
@@ -2252,7 +2446,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
     }
 
     struct timeval later = now;
-    later.tv_sec += g_tcpRecvTimeout + 1;
+    later.tv_sec += tcpRecvTimeout + 1;
     auto expiredConns = threadData.mplexer->getTimeouts(later, false);
     BOOST_CHECK_EQUAL(expiredConns.size(), 1U);
     for (const auto& cbData : expiredConns) {
@@ -2301,6 +2495,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(1).size() - 2 },
       /* query is dropped, closing the connection to the client */
       { ExpectedStep::ExpectedRequest::closeClient, IOState::Done, 0, [&timeout](int desc) {
+        (void)desc;
         timeout = true;
       } },
       /* closing a connection to the backend after a timeout */
@@ -2309,6 +2504,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
 
     counter = 0;
     s_processQuery = [backend,&counter](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
       if (counter == 0) {
         ++counter;
         selectedBackend = backend;
@@ -2317,6 +2513,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       return ProcessQueryResult::Drop;
     };
     s_processResponse = [](PacketBuffer& response, DNSResponse& dr, bool muted) -> bool {
+      (void)response;
+      (void)dr;
+      (void)muted;
       return true;
     };
 
@@ -2380,6 +2579,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(1).size() - 2 },
       /* query is dropped, closing the connection to the client */
       { ExpectedStep::ExpectedRequest::closeClient, IOState::Done, 0, [&threadData,&backendDescriptor](int desc) {
+        (void)desc;
         /* the backend descriptor becomes ready */
         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(backendDescriptor);
       } },
@@ -2392,6 +2592,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
 
     counter = 0;
     s_processQuery = [backend,&counter](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
       if (counter == 0) {
         ++counter;
         selectedBackend = backend;
@@ -2400,6 +2601,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       return ProcessQueryResult::Drop;
     };
     s_processResponse = [](PacketBuffer& response, DNSResponse& dr, bool muted) -> bool {
+      (void)response;
+      (void)dr;
+      (void)muted;
       return true;
     };
 
@@ -2504,6 +2708,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(4).size() - 2 },
       /* sending response (3) to the client */
       { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(4).size(), [&timeout](int desc) {
+        (void)desc;
         timeout = true;
       } },
       /* closing a connection to the backend */
@@ -2513,10 +2718,14 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
     };
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
     s_processResponse = [](PacketBuffer& response, DNSResponse& dr, bool muted) -> bool {
+      (void)response;
+      (void)dr;
+      (void)muted;
       return true;
     };
 
@@ -2527,7 +2736,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
     }
 
     struct timeval later = now;
-    later.tv_sec += g_tcpRecvTimeout + 1;
+    later.tv_sec += tcpRecvTimeout + 1;
     auto expiredConns = threadData.mplexer->getTimeouts(later, false);
     BOOST_CHECK_EQUAL(expiredConns.size(), 1U);
     for (const auto& cbData : expiredConns) {
@@ -2543,7 +2752,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
     }
 
     later = now;
-    later.tv_sec += g_tcpRecvTimeout + 1;
+    later.tv_sec += tcpRecvTimeout + 1;
     expiredConns = threadData.mplexer->getTimeouts(later, false);
     BOOST_CHECK_EQUAL(expiredConns.size(), 1U);
     for (const auto& cbData : expiredConns) {
@@ -2629,30 +2838,36 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
       /* try opening a new connection to the backend, it fails (5) times */
       { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done, 0, [](int desc) {
+        (void)desc;
         throw NetworkError("Connection refused by the backend");
       } },
       { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
       /* try opening a new connection to the backend, it fails (5) times */
       { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done,0, [](int desc) {
+        (void)desc;
         throw NetworkError("Connection refused by the backend");
       } },
       { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
       /* try opening a new connection to the backend, it fails (5) times */
       { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done,0, [](int desc) {
+        (void)desc;
         throw NetworkError("Connection refused by the backend");
       } },
       { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
       /* try opening a new connection to the backend, it fails (5) times */
       { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done,0, [](int desc) {
+        (void)desc;
         throw NetworkError("Connection refused by the backend");
       } },
       { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done },
       /* try opening a new connection to the backend, it fails (5) times */
       { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done,0, [](int desc) {
+        (void)desc;
         throw NetworkError("Connection refused by the backend");
       } },
       /* closing a connection to the backend, client becomes ready */
       { ExpectedStep::ExpectedRequest::closeBackend, IOState::Done, 0, [&threadData](int desc) {
+        (void)desc;
         /* the client descriptor is ready */
         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(-1);
       } },
@@ -2665,10 +2880,14 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
     };
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
     s_processResponse = [](PacketBuffer& response, DNSResponse& dr, bool muted) -> bool {
+      (void)response;
+      (void)dr;
+      (void)muted;
       return true;
     };
 
@@ -2832,6 +3051,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       } },
       /* no more query from the client for now */
       { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0 , [&threadData](int desc) {
+        (void)desc;
         /* the client descriptor becomes NOT ready */
         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(-1);
       } },
@@ -2850,6 +3070,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, axfrResponses.at(2).size() - 2 },
       /* sending response (3) to the client */
       { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, axfrResponses.at(2).size(), [&threadData](int desc) {
+        (void)desc;
         /* the client descriptor becomes ready */
         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(-1);
       } },
@@ -2872,10 +3093,14 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
     };
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
     s_processResponse = [](PacketBuffer& response, DNSResponse& dr, bool muted) -> bool {
+      (void)response;
+      (void)dr;
+      (void)muted;
       return true;
     };
 
@@ -3020,6 +3245,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       } },
       /* no more query from the client for now */
       { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0 , [&threadData](int desc) {
+        (void)desc;
         /* the client descriptor becomes NOT ready */
         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(-1);
       } },
@@ -3046,10 +3272,14 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
     };
 
     s_processQuery = [proxyEnabledBackend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
       selectedBackend = proxyEnabledBackend;
       return ProcessQueryResult::PassToBackend;
     };
     s_processResponse = [](PacketBuffer& response, DNSResponse& dr, bool muted) -> bool {
+      (void)response;
+      (void)dr;
+      (void)muted;
       return true;
     };
 
@@ -3275,6 +3505,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, firstResponse.size() - 2 },
       /* sending response (1) to the client */
       { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, firstResponse.size(), [&threadData](int desc) {
+        (void)desc;
         /* client descriptor becomes ready */
         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(-1);
       } },
@@ -3288,6 +3519,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, ixfrResponses.at(0).size() - 2 },
       /* sending response (ixfr 1) to the client */
       { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, ixfrResponses.at(0).size(), [&threadData](int desc) {
+        (void)desc;
         /* the client descriptor becomes ready */
         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(-1);
       } },
@@ -3310,10 +3542,14 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
     };
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
     s_processResponse = [](PacketBuffer& response, DNSResponse& dr, bool muted) -> bool {
+      (void)response;
+      (void)dr;
+      (void)muted;
       return true;
     };
 
@@ -3436,10 +3672,14 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
     };
 
     s_processQuery = [proxyEnabledBackend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
       selectedBackend = proxyEnabledBackend;
       return ProcessQueryResult::PassToBackend;
     };
     s_processResponse = [](PacketBuffer& response, DNSResponse& dr, bool muted) -> bool {
+      (void)response;
+      (void)dr;
+      (void)muted;
       return true;
     };
 
@@ -3521,10 +3761,14 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
     };
 
     s_processQuery = [proxyEnabledBackend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
       selectedBackend = proxyEnabledBackend;
       return ProcessQueryResult::PassToBackend;
     };
     s_processResponse = [](PacketBuffer& response, DNSResponse& dr, bool muted) -> bool {
+      (void)response;
+      (void)dr;
+      (void)muted;
       return true;
     };
 
@@ -3557,7 +3801,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
 
     /* make sure that the backend's timeout is shorter than the client's */
     backend->d_config.tcpConnectTimeout = 1;
-    g_tcpRecvTimeout = 5;
+    dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_tcpRecvTimeout = 5;
+    });
 
     bool timeout = false;
     s_steps = {
@@ -3575,6 +3821,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       /* reading a third query from the client */
       { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
       { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(2).size() - 2, [&timeout](int desc) {
+        (void)desc;
         timeout = true;
       } },
       /* trying to read more from the client but nothing to read */
@@ -3586,10 +3833,14 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
     };
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
     s_processResponse = [](PacketBuffer& response, DNSResponse& dr, bool muted) -> bool {
+      (void)response;
+      (void)dr;
+      (void)muted;
       return true;
     };
 
@@ -3616,7 +3867,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
 
     /* restore */
     backend->d_config.tcpSendTimeout = 30;
-    g_tcpRecvTimeout = 2;
+    dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_tcpRecvTimeout = 2;
+    });
 
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
     /* we have no connection to clear, because there was a timeout! */
@@ -3703,6 +3956,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0 },
       /* nothing more to read from the client at that moment */
       { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0, [&threadData, &backend1Desc](int desc) {
+        (void)desc;
         /* but the first backend becomes readable */
         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(backend1Desc);
       } },
@@ -3744,6 +3998,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(2).size() - 2 },
       /* sending it to the client */
       { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(2).size(), [&threadData,&backend1Desc,&backend2Desc](int desc) {
+        (void)desc;
         /* backend 2 is no longer readable, backend 1 becomes readable */
         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(backend2Desc);
         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(backend1Desc);
@@ -3753,6 +4008,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(4).size() - 2 },
       /* sending it to the client */
       { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(4).size(), [&threadData,&backend1Desc,&backend2Desc](int desc) {
+        (void)desc;
         /* backend 1 is no longer readable, backend 2 becomes readable */
         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(backend1Desc);
         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(backend2Desc);
@@ -3762,6 +4018,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(3).size() - 2 },
       /* sending it to the client */
       { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(3).size(), [&threadData,&backend2Desc](int desc) {
+        (void)desc;
         /* backend 2 is no longer readable */
         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setNotReady(backend2Desc);
         /* client becomes readable */
@@ -3777,10 +4034,14 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
     };
 
     s_processQuery = [backend1](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
       selectedBackend = backend1;
       return ProcessQueryResult::PassToBackend;
     };
     s_processResponse = [](PacketBuffer& response, DNSResponse& dr, bool muted) -> bool {
+      (void)response;
+      (void)dr;
+      (void)muted;
       return true;
     };
 
@@ -3853,6 +4114,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
       } },
       /* sending it to the client. we don't have anything else to send to the client, no new query from it either, until we time out */
       { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(0).size(), [&timeout](int desc) {
+        (void)desc;
         timeout = true;
       } },
       /* closing a connection to the backend */
@@ -3862,10 +4124,14 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
     };
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
     s_processResponse = [](PacketBuffer& response, DNSResponse& dr, bool muted) -> bool {
+      (void)response;
+      (void)dr;
+      (void)muted;
       return true;
     };
 
@@ -3876,7 +4142,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
     }
 
     struct timeval later = now;
-    later.tv_sec += g_tcpRecvTimeout + 1;
+    later.tv_sec += tcpRecvTimeout + 1;
     auto expiredConns = threadData.mplexer->getTimeouts(later);
     BOOST_CHECK_EQUAL(expiredConns.size(), 1U);
     for (const auto& cbData : expiredConns) {
@@ -3899,6 +4165,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendOOOR, TestFixture)
 
 BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendNotOOOR, TestFixture)
 {
+  const auto tcpRecvTimeout = dnsdist::configuration::getCurrentRuntimeConfiguration().d_tcpRecvTimeout;
   auto local = getBackendAddress("1", 80);
   ClientState localCS(local, true, false, 0, "", {}, true);
   /* enable out-of-order on the front side */
@@ -4040,6 +4307,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendNotOOOR, TestFixture)
       { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, queries.at(4).size() },
       /* no response ready yet, client stops being readable, first backend has a response */
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::NeedRead, 0, [&threadData,&backendDescriptors](int desc) {
+        (void)desc;
         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(backendDescriptors.at(0));
       } },
       /* trying to read from the client but nothing yet */
@@ -4051,6 +4319,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendNotOOOR, TestFixture)
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(0).size() - 2 },
       /* sending it to the client */
       { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(0).size(), [&threadData,&backendDescriptors](int desc) {
+        (void)desc;
         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(backendDescriptors.at(2));
       } },
       /* reading response (3) from the third backend (3) */
@@ -4058,6 +4327,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendNotOOOR, TestFixture)
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(2).size() - 2 },
       /* sending it to the client */
       { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(2).size(), [&threadData,&backendDescriptors](int desc) {
+        (void)desc;
         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(backendDescriptors.at(1));
       } },
       /* reading response (2) from the second backend (2) */
@@ -4065,6 +4335,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendNotOOOR, TestFixture)
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(1).size() - 2 },
       /* sending it to the client */
       { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(1).size(), [&threadData,&backendDescriptors](int desc) {
+        (void)desc;
         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(backendDescriptors.at(4));
       } },
       /* reading response (5) from the fifth backend (5) */
@@ -4072,6 +4343,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendNotOOOR, TestFixture)
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(4).size() - 2 },
       /* sending it to the client */
       { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(4).size(), [&threadData,&backendDescriptors](int desc) {
+        (void)desc;
         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(backendDescriptors.at(3));
       } },
       /* reading response (4) from the fourth backend (4) */
@@ -4079,6 +4351,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendNotOOOR, TestFixture)
       { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, responses.at(3).size() - 2 },
       /* sending it to the client */
       { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, responses.at(3).size(), [&threadData](int desc) {
+        (void)desc;
         dynamic_cast<MockupFDMultiplexer*>(threadData.mplexer.get())->setReady(-1);
       } },
       /* client closes the connection */
@@ -4094,10 +4367,14 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendNotOOOR, TestFixture)
     };
 
     s_processQuery = [backend](DNSQuestion& dq, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dq;
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };
     s_processResponse = [](PacketBuffer& response, DNSResponse& dr, bool muted) -> bool {
+      (void)response;
+      (void)dr;
+      (void)muted;
       return true;
     };
 
@@ -4137,6 +4414,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendNotOOOR, TestFixture)
                 { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
                 { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, queries.at(1).size() - 2 },
                 { ExpectedStep::ExpectedRequest::readFromClient, IOState::NeedRead, 0, [&timeout](int desc) {
+                  (void)desc;
                   timeout = true;
                 }},
                 /* close the connection with the client */
@@ -4150,6 +4428,9 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendNotOOOR, TestFixture)
       return ProcessQueryResult::Asynchronous;
     };
     s_processResponse = [](PacketBuffer& response, DNSResponse& dr, bool muted) -> bool {
+      (void)response;
+      (void)dr;
+      (void)muted;
       return true;
     };
 
@@ -4160,7 +4441,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendNotOOOR, TestFixture)
     }
 
     struct timeval later = now;
-    later.tv_sec += g_tcpRecvTimeout + 1;
+    later.tv_sec += tcpRecvTimeout + 1;
     auto expiredConns = threadData.mplexer->getTimeouts(later);
     BOOST_CHECK_EQUAL(expiredConns.size(), 1U);
     for (const auto& cbData : expiredConns) {
@@ -4172,6 +4453,84 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnectionOOOR_BackendNotOOOR, TestFixture)
 
     BOOST_CHECK_EQUAL(backend->outstanding.load(), 0U);
 
+    /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
+    IncomingTCPConnectionState::clearAllDownstreamConnections();
+  }
+}
+
+BOOST_FIXTURE_TEST_CASE(test_Pipelined_Queries_Immediate_Responses, TestFixture)
+{
+  auto local = getBackendAddress("1", 80);
+  ClientState localCS(local, true, false, 0, "", {}, true);
+  auto tlsCtx = std::make_shared<MockupTLSCtx>();
+  localCS.tlsFrontend = std::make_shared<TLSFrontend>(tlsCtx);
+
+  TCPClientThreadData threadData;
+  threadData.mplexer = std::make_unique<MockupFDMultiplexer>();
+
+  timeval now{};
+  gettimeofday(&now, nullptr);
+
+  PacketBuffer query;
+  GenericDNSPacketWriter<PacketBuffer> pwQ(query, DNSName("powerdns.com."), QType::A, QClass::IN, 0);
+  pwQ.getHeader()->rd = 1;
+  pwQ.getHeader()->id = 0;
+
+  auto querySize = static_cast<uint16_t>(query.size());
+  const std::array<uint8_t, 2> sizeBytes{ static_cast<uint8_t>(querySize / 256), static_cast<uint8_t>(querySize % 256) };
+  query.insert(query.begin(), sizeBytes.begin(), sizeBytes.end());
+
+  auto backend = std::make_shared<DownstreamState>(getBackendAddress("42", 53));
+  backend->d_tlsCtx = tlsCtx;
+
+  {
+    /* 1000 queries from client passed to backend (one at at time), backend answers right away */
+    TEST_INIT("=> Query to backend, backend answers right away");
+    const size_t nbQueries = 10000;
+    s_readBuffer = query;
+    s_backendReadBuffer = query;
+
+    s_steps = {
+      { ExpectedStep::ExpectedRequest::handshakeClient, IOState::Done },
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2 },
+      /* opening a connection to the backend */
+      { ExpectedStep::ExpectedRequest::connectToBackend, IOState::Done },
+      { ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size() },
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2 },
+      { ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, query.size() - 2 },
+      { ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, query.size() },
+    };
+    for (size_t idx = 1; idx < nbQueries; idx++) {
+      appendPayloadEditingID(s_readBuffer, query, idx);
+      appendPayloadEditingID(s_backendReadBuffer, query, idx);
+
+      s_steps.emplace_back(ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 2);
+      s_steps.emplace_back(ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, query.size() - 2);
+      s_steps.emplace_back(ExpectedStep::ExpectedRequest::writeToBackend, IOState::Done, query.size());
+      s_steps.emplace_back(ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, 2);
+      s_steps.emplace_back(ExpectedStep::ExpectedRequest::readFromBackend, IOState::Done, query.size() - 2);
+      s_steps.emplace_back(ExpectedStep::ExpectedRequest::writeToClient, IOState::Done, query.size());
+    }
+    s_steps.emplace_back(ExpectedStep::ExpectedRequest::readFromClient, IOState::Done, 0);
+    /* closing client connection */
+    s_steps.emplace_back(ExpectedStep::ExpectedRequest::closeClient, IOState::Done);
+    /* closing a connection to the backend */
+    s_steps.emplace_back(ExpectedStep::ExpectedRequest::closeBackend, IOState::Done);
+
+    s_processQuery = [backend](DNSQuestion&, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      selectedBackend = backend;
+      return ProcessQueryResult::PassToBackend;
+    };
+    s_processResponse = [](PacketBuffer&, DNSResponse&, bool) -> bool {
+      return true;
+    };
+
+    auto state = std::make_shared<IncomingTCPConnectionState>(ConnectionInfo(&localCS, getBackendAddress("84", 4242)), threadData, now);
+    state->handleIO();
+    BOOST_CHECK_EQUAL(s_writeBuffer.size(), query.size() * nbQueries);
+    BOOST_CHECK_EQUAL(s_backendWriteBuffer.size(), query.size() * nbQueries);
+    BOOST_CHECK_EQUAL(backend->outstanding.load(), 0U);
     /* we need to clear them now, otherwise we end up with dangling pointers to the steps via the TLS context, etc */
     IncomingTCPConnectionState::clearAllDownstreamConnections();
   }

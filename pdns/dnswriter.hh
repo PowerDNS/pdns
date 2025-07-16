@@ -127,7 +127,7 @@ public:
 
   void xfr8BitInt(uint8_t val);
 
-  void xfrName(const DNSName& label, bool compress=false, bool noDot=false);
+  void xfrName(const DNSName& name, bool compress=false);
   void xfrText(const string& text, bool multi=false, bool lenField=true);
   void xfrUnquotedText(const string& text, bool lenField);
   void xfrBlob(const string& blob, int len=-1);
@@ -138,6 +138,7 @@ public:
 
   dnsheader* getHeader();
   void getRecordPayload(string& records); // call __before commit__
+  void getWireFormatContent(string& record); // call __before commit__
 
   void setCanonic(bool val)
   {
@@ -171,8 +172,8 @@ private:
   DNSName d_qname;
 
   uint16_t d_truncatemarker; // end of header, for truncate
-  DNSResourceRecord::Place d_recordplace;
-  bool d_canonic, d_lowerCase, d_compress{false};
+  DNSResourceRecord::Place d_recordplace{DNSResourceRecord::QUESTION};
+  bool d_canonic{false}, d_lowerCase{false}, d_compress{false};
 };
 
 using DNSPacketWriter = GenericDNSPacketWriter<std::vector<uint8_t>>;

@@ -24,11 +24,8 @@ verbose=0
 if [ -t 1 ]; then
     verbose=1
 fi
-if [ x$CIRCLECI = xtrue ]; then
-    verbose=0
-fi
 
-FORMAT=clang-format-11
+FORMAT=clang-format-19
 if ! which $FORMAT 2> /dev/null; then
     FORMAT=clang-format
 fi

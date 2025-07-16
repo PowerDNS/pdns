@@ -2,6 +2,7 @@
 #include "config.h"
 #endif
 
+#include <algorithm>
 #include <boost/format.hpp>
 
 #include "utility.hh"
@@ -46,8 +47,7 @@ static uint8_t precsize_aton(const char **strptr)
       break;
 
   mantissa = cmval / poweroften[exponent];
-  if (mantissa > 9)
-    mantissa = 9;
+  mantissa = std::min(mantissa, 9);
 
   retval = (mantissa << 4) | exponent;
 
@@ -156,7 +156,7 @@ latlon2ul(const char **latlonstrptr, int *which)
   return (retval);
 }
 
-void LOCRecordContent::report()
+void LOCRecordContent::report(const ReportIsOnlyCallableByReportAllTypes& /* unused */)
 {
   regist(1, QType::LOC, &make, &make, "LOC");
   regist(254, QType::LOC, &make, &make, "LOC");
@@ -301,8 +301,6 @@ string LOCRecordContent::getZoneRepresentation(bool /* noDot */) const
   // convert d_version, d_size, d_horiz/vertpre, d_latitude, d_longitude, d_altitude to:
   // 51 59 00.000 N 5 55 00.000 E 4.00m 1.00m 10000.00m 10.00m
 
-  double latitude= ((int32_t)((uint32_t)d_latitude  - ((uint32_t)1<<31)))/3600000.0;
-  double longitude=((int32_t)((uint32_t)d_longitude - ((uint32_t)1<<31)))/3600000.0;
   double altitude= ((int32_t)d_altitude           )/100.0 - 100000;
 
   double size=0.01*((d_size>>4)&0xf);
@@ -320,15 +318,43 @@ string LOCRecordContent::getZoneRepresentation(bool /* noDot */) const
   while(count--)
     vertpre*=10;
 
-  double remlat=60.0*(latitude-(int)latitude);
-  double remlong=60.0*(longitude-(int)longitude);
-  static const boost::format fmt("%d %d %2.03f %c %d %d %2.03f %c %.2fm %.2fm %.2fm %.2fm");
+  char hemLat = 'N';
+  uint32_t lat = d_latitude;
+  if (lat >= 1U << 31) {
+    lat -= 1U << 31;
+  }
+  else {
+    hemLat = 'S';
+    lat = (1U << 31) - lat;
+  }
+  auto fracLat = lat % 1000;
+  lat /= 1000;
+  auto secLat = lat % 60;
+  lat /= 60;
+  auto minutesLat = lat % 60;
+  auto degreesLat = lat / 60;
+
+  char hemLon= 'E';
+  uint32_t lon = d_longitude;
+  if (lon >= 1U << 31) {
+    lon -= 1U << 31;
+  }
+  else {
+    hemLon = 'W';
+    lon = (1U << 31) - lon;
+  }
+  auto fracLon = lon % 1000;
+  lon /= 1000;
+  auto secLon = lon % 60;
+  lon /= 60;
+  auto minutesLon = lon % 60;
+  auto degreesLon = lon / 60;
+
+  static const boost::format fmt("%d %d %d.%03d %c %d %d %d.%03d %c %.2fm %.2fm %.2fm %.2fm");
   std::string ret = boost::str(
     boost::format(fmt)
-    % abs((int)latitude) % abs((int) ((latitude-(int)latitude)*60))
-    % fabs((double)((remlat-(int)remlat)*60.0)) % (latitude>0 ? 'N' : 'S')
-    % abs((int)longitude) % abs((int) ((longitude-(int)longitude)*60))
-    % fabs((double)((remlong-(int)remlong)*60.0)) % (longitude>0 ? 'E' : 'W')
+    % degreesLat % minutesLat % secLat % fracLat % hemLat
+    % degreesLon % minutesLon % secLon % fracLon % hemLon
     % altitude % size
     % horizpre % vertpre
     );

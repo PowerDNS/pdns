@@ -25,7 +25,6 @@
 #include <string>
 #include <vector>
 
-#include "sholder.hh"
 #include "uuid-utils.hh"
 
 class DNSRule;
@@ -43,21 +42,19 @@ struct RuleAction
   uint64_t d_creationOrder;
 };
 
-struct RuleChainDescription
-{
-  std::string prefix;
-  std::string metricName;
-  GlobalStateHolder<std::vector<RuleAction>>& holder;
-};
-
 enum class RuleChain : uint8_t
 {
   Rules = 0,
   CacheMissRules = 1,
 };
 
-const std::vector<RuleChainDescription>& getRuleChains();
-GlobalStateHolder<std::vector<RuleAction>>& getRuleChainHolder(RuleChain chain);
+struct RuleChainDescription
+{
+  const std::string prefix;
+  const std::string description;
+  const std::string metricName;
+  const RuleChain identifier;
+};
 
 struct ResponseRuleAction
 {
@@ -75,16 +72,37 @@ enum class ResponseRuleChain : uint8_t
   CacheInsertedResponseRules = 2,
   SelfAnsweredResponseRules = 3,
   XFRResponseRules = 4,
+  TimeoutResponseRules = 5,
 };
 
 struct ResponseRuleChainDescription
 {
-  std::string prefix;
-  std::string metricName;
-  GlobalStateHolder<std::vector<ResponseRuleAction>>& holder;
+  const std::string prefix;
+  const std::string description;
+  const std::string metricName;
+  const ResponseRuleChain identifier;
 };
 
-const std::vector<ResponseRuleChainDescription>& getResponseRuleChains();
-GlobalStateHolder<std::vector<ResponseRuleAction>>& getResponseRuleChainHolder(ResponseRuleChain chain);
+struct RuleChains
+{
+  std::vector<RuleAction> d_ruleActions;
+  std::vector<RuleAction> d_cacheMissRuleActions;
+  std::vector<ResponseRuleAction> d_respruleactions;
+  std::vector<ResponseRuleAction> d_cachehitrespruleactions;
+  std::vector<ResponseRuleAction> d_selfansweredrespruleactions;
+  std::vector<ResponseRuleAction> d_cacheInsertedRespRuleActions;
+  std::vector<ResponseRuleAction> d_XFRRespRuleActions;
+  std::vector<ResponseRuleAction> d_TimeoutRespRuleActions;
+};
 
+const std::vector<RuleChainDescription>& getRuleChainDescriptions();
+std::vector<RuleAction>& getRuleChain(RuleChains& chains, RuleChain chain);
+const std::vector<RuleAction>& getRuleChain(const RuleChains& chains, RuleChain chain);
+const std::vector<ResponseRuleChainDescription>& getResponseRuleChainDescriptions();
+std::vector<ResponseRuleAction>& getRuleChain(RuleChains& chains, ResponseRuleChain chain);
+const std::vector<ResponseRuleAction>& getRuleChain(const RuleChains& chains, ResponseRuleChain chain);
+std::vector<ResponseRuleAction>& getResponseRuleChain(RuleChains& chains, ResponseRuleChain chain);
+const std::vector<ResponseRuleAction>& getResponseRuleChain(const RuleChains& chains, ResponseRuleChain chain);
+void add(RuleChains& chains, RuleChain identifier, const std::shared_ptr<DNSRule>& selector, const std::shared_ptr<DNSAction>& action, std::string&& name, const boost::uuids::uuid& uuid, uint64_t creationOrder);
+void add(RuleChains& chains, ResponseRuleChain identifier, const std::shared_ptr<DNSRule>& selector, const std::shared_ptr<DNSResponseAction>& action, std::string&& name, const boost::uuids::uuid& uuid, uint64_t creationOrder);
 }

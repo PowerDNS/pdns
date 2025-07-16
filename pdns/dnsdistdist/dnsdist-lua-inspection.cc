@@ -19,11 +19,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include <algorithm>
 #include <fcntl.h>
+#include <iterator>
 
 #include "dnsdist.hh"
-#include "dnsdist-lua.hh"
+#include "dnsdist-console.hh"
 #include "dnsdist-dynblocks.hh"
+#include "dnsdist-frontend.hh"
+#include "dnsdist-lua.hh"
 #include "dnsdist-nghttp2.hh"
 #include "dnsdist-rings.hh"
 #include "dnsdist-tcp.hh"
@@ -141,7 +145,7 @@ static void statNodeRespRing(statvisitor_t visitor, uint64_t seconds)
       }
 
       const bool hit = entry.isACacheHit();
-      root.submit(entry.name, ((entry.dh.rcode == 0 && entry.usec == std::numeric_limits<unsigned int>::max()) ? -1 : entry.dh.rcode), entry.size, hit, boost::none);
+      root.submit(entry.name, ((entry.dh.rcode == 0 && entry.usec == std::numeric_limits<unsigned int>::max()) ? -1 : entry.dh.rcode), entry.size, hit, std::nullopt);
     }
   }
 
@@ -495,7 +499,7 @@ void setupLuaInspection(LuaContext& luaCtx)
       }
       totalEntries += rings.back().size();
     }
-    vector<std::unordered_map<string, boost::variant<string, unsigned int>>> ret;
+    vector<std::unordered_map<string, boost::variant<unsigned int, string>>> ret;
     ret.reserve(totalEntries);
     for (const auto& ring : rings) {
       for (const auto& entry : ring) {
@@ -516,11 +520,18 @@ void setupLuaInspection(LuaContext& luaCtx)
 
   luaCtx.executeCode(R"(function topResponses(top, kind, labels) top = top or 10; kind = kind or 0; for k,v in ipairs(getTopResponses(top, kind, labels)) do show(string.format("%4d  %-40s %4d %4.1f%%",k,v[1],v[2],v[3])) end end)");
 
-  luaCtx.writeFunction("getSlowResponses", [](uint64_t top, uint64_t msec, boost::optional<int> labels) {
-    return getGenResponses(top, labels, [msec](const Rings::Response& resp) { return resp.usec > msec * 1000; });
+  luaCtx.writeFunction("getSlowResponses", [](uint64_t top, uint64_t msec, boost::optional<int> labels, boost::optional<bool> timeouts) {
+    return getGenResponses(top, labels, [msec, timeouts](const Rings::Response& resp) {
+      if (timeouts && *timeouts) {
+        return resp.usec == std::numeric_limits<unsigned int>::max();
+      }
+      return resp.usec > msec * 1000 && resp.usec != std::numeric_limits<unsigned int>::max();
+    });
   });
 
-  luaCtx.executeCode(R"(function topSlow(top, msec, labels) top = top or 10; msec = msec or 500; for k,v in ipairs(getSlowResponses(top, msec, labels)) do show(string.format("%4d  %-40s %4d %4.1f%%",k,v[1],v[2],v[3])) end end)");
+  luaCtx.executeCode(R"(function topSlow(top, msec, labels) top = top or 10; msec = msec or 500; for k,v in ipairs(getSlowResponses(top, msec, labels, false)) do show(string.format("%4d  %-40s %4d %4.1f%%",k,v[1],v[2],v[3])) end end)");
+
+  luaCtx.executeCode(R"(function topTimeouts(top, labels) top = top or 10; for k,v in ipairs(getSlowResponses(top, 0, labels, true)) do show(string.format("%4d  %-40s %4d %4.1f%%",k,v[1],v[2],v[3])) end end)");
 
   luaCtx.writeFunction("getTopBandwidth", [](uint64_t top) {
     setLuaNoSideEffect();
@@ -533,7 +544,7 @@ void setupLuaInspection(LuaContext& luaCtx)
   luaCtx.writeFunction("delta", []() {
     setLuaNoSideEffect();
     // we hold the lua lock already!
-    for (const auto& entry : g_confDelta) {
+    for (const auto& entry : dnsdist::console::getConfigurationDelta()) {
       tm entryTime{};
       localtime_r(&entry.first.tv_sec, &entryTime);
       std::array<char, 80> date{};
@@ -704,7 +715,7 @@ void setupLuaInspection(LuaContext& luaCtx)
     for (const auto& entry : histo) {
       int stars = static_cast<int>(70.0 * entry.second / highest);
       char value = '*';
-      if (stars == 0 && entry.second != 0) {
+      if (stars == 0 && entry.second != 0 && highest != 0.0) {
         stars = 1; // you get 1 . to show something is there..
         if (70.0 * entry.second / highest > 0.5) {
           value = ':';
@@ -719,19 +730,20 @@ void setupLuaInspection(LuaContext& luaCtx)
 
   luaCtx.writeFunction("showTCPStats", [] {
     setLuaNoSideEffect();
+    const auto& immutableConfig = dnsdist::configuration::getImmutableConfiguration();
     ostringstream ret;
     boost::format fmt("%-12d %-12d %-12d %-12d");
     ret << (fmt % "Workers" % "Max Workers" % "Queued" % "Max Queued") << endl;
-    ret << (fmt % g_tcpclientthreads->getThreadsCount() % (g_maxTCPClientThreads ? *g_maxTCPClientThreads : 0) % g_tcpclientthreads->getQueuedCount() % g_maxTCPQueuedConnections) << endl;
+    ret << (fmt % g_tcpclientthreads->getThreadsCount() % immutableConfig.d_maxTCPClientThreads % g_tcpclientthreads->getQueuedCount() % immutableConfig.d_maxTCPQueuedConnections) << endl;
     ret << endl;
 
     ret << "Frontends:" << endl;
-    fmt = boost::format("%-3d %-20.20s %-20d %-20d %-20d %-25d %-20d %-20d %-20d %-20f %-20f %-20d %-20d %-25d %-25d %-15d %-15d %-15d %-15d %-15d");
-    ret << (fmt % "#" % "Address" % "Connections" % "Max concurrent conn" % "Died reading query" % "Died sending response" % "Gave up" % "Client timeouts" % "Downstream timeouts" % "Avg queries/conn" % "Avg duration" % "TLS new sessions" % "TLS Resumptions" % "TLS unknown ticket keys" % "TLS inactive ticket keys" % "TLS 1.0" % "TLS 1.1" % "TLS 1.2" % "TLS 1.3" % "TLS other") << endl;
+    fmt = boost::format("%-3d %-20.20s %-20d %-20d %-20d %-25d %-20d %-20d %-20d %-20f %-20f %-20d %-20d %-25d %-25d %-15d %-15d %-15d %-15d %-15d %-15d");
+    ret << (fmt % "#" % "Address" % "Connections" % "Max concurrent conn" % "Died reading query" % "Died sending response" % "Gave up" % "Client timeouts" % "Downstream timeouts" % "Avg queries/conn" % "Avg duration" % "Avg read IOs/conn" % "TLS new sessions" % "TLS Resumptions" % "TLS unknown ticket keys" % "TLS inactive ticket keys" % "TLS 1.0" % "TLS 1.1" % "TLS 1.2" % "TLS 1.3" % "TLS other") << endl;
 
     size_t counter = 0;
-    for (const auto& frontend : g_frontends) {
-      ret << (fmt % counter % frontend->local.toStringWithPort() % frontend->tcpCurrentConnections % frontend->tcpMaxConcurrentConnections % frontend->tcpDiedReadingQuery % frontend->tcpDiedSendingResponse % frontend->tcpGaveUp % frontend->tcpClientTimeouts % frontend->tcpDownstreamTimeouts % frontend->tcpAvgQueriesPerConnection % frontend->tcpAvgConnectionDuration % frontend->tlsNewSessions % frontend->tlsResumptions % frontend->tlsUnknownTicketKey % frontend->tlsInactiveTicketKey % frontend->tls10queries % frontend->tls11queries % frontend->tls12queries % frontend->tls13queries % frontend->tlsUnknownqueries) << endl;
+    for (const auto& frontend : dnsdist::getFrontends()) {
+      ret << (fmt % counter % frontend->local.toStringWithPort() % frontend->tcpCurrentConnections % frontend->tcpMaxConcurrentConnections % frontend->tcpDiedReadingQuery % frontend->tcpDiedSendingResponse % frontend->tcpGaveUp % frontend->tcpClientTimeouts % frontend->tcpDownstreamTimeouts % frontend->tcpAvgQueriesPerConnection % frontend->tcpAvgConnectionDuration % frontend->tcpAvgIOsPerConnection % frontend->tlsNewSessions % frontend->tlsResumptions % frontend->tlsUnknownTicketKey % frontend->tlsInactiveTicketKey % frontend->tls10queries % frontend->tls11queries % frontend->tls12queries % frontend->tls13queries % frontend->tlsUnknownqueries) << endl;
       ++counter;
     }
     ret << endl;
@@ -740,9 +752,8 @@ void setupLuaInspection(LuaContext& luaCtx)
     fmt = boost::format("%-3d %-20.20s %-20.20s %-20d %-20d %-25d %-25d %-20d %-20d %-20d %-20d %-20d %-20d %-20d %-20d %-20f %-20f");
     ret << (fmt % "#" % "Name" % "Address" % "Connections" % "Max concurrent conn" % "Died sending query" % "Died reading response" % "Gave up" % "Read timeouts" % "Write timeouts" % "Connect timeouts" % "Too many conn" % "Total connections" % "Reused connections" % "TLS resumptions" % "Avg queries/conn" % "Avg duration") << endl;
 
-    auto states = g_dstates.getLocal();
     counter = 0;
-    for (const auto& backend : *states) {
+    for (const auto& backend : dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends) {
       ret << (fmt % counter % backend->getName() % backend->d_config.remote.toStringWithPort() % backend->tcpCurrentConnections % backend->tcpMaxConcurrentConnections % backend->tcpDiedSendingQuery % backend->tcpDiedReadingResponse % backend->tcpGaveUp % backend->tcpReadTimeouts % backend->tcpWriteTimeouts % backend->tcpConnectTimeouts % backend->tcpTooManyConcurrentConnections % backend->tcpNewConnections % backend->tcpReusedConnections % backend->tlsResumptions % backend->tcpAvgQueriesPerConnection % backend->tcpAvgConnectionDuration) << endl;
       ++counter;
     }
@@ -758,7 +769,7 @@ void setupLuaInspection(LuaContext& luaCtx)
     ret << (fmt % "#" % "Address" % "DH key too small" % "Inappropriate fallback" % "No shared cipher" % "Unknown cipher type" % "Unknown exchange type" % "Unknown protocol" % "Unsupported EC" % "Unsupported protocol") << endl;
 
     size_t counter = 0;
-    for (const auto& frontend : g_frontends) {
+    for (const auto& frontend : dnsdist::getFrontends()) {
       if (!frontend->hasTLS()) {
         continue;
       }
@@ -767,7 +778,7 @@ void setupLuaInspection(LuaContext& luaCtx)
         errorCounters = &frontend->tlsFrontend->d_tlsCounters;
       }
       else if (frontend->dohFrontend != nullptr) {
-        errorCounters = &frontend->dohFrontend->d_tlsContext.d_tlsCounters;
+        errorCounters = &frontend->dohFrontend->d_tlsContext->d_tlsCounters;
       }
       if (errorCounters == nullptr) {
         continue;
@@ -802,27 +813,30 @@ void setupLuaInspection(LuaContext& luaCtx)
     boost::format fmt("%-35s\t%+11s");
     g_outputBuffer.clear();
     auto entries = *dnsdist::metrics::g_stats.entries.read_lock();
-    sort(entries.begin(), entries.end(),
+
+    // Filter entries to just the ones without label, for clearer output
+    std::vector<std::reference_wrapper<decltype(entries)::value_type>> unlabeledEntries;
+    std::copy_if(entries.begin(), entries.end(), std::back_inserter(unlabeledEntries), [](const decltype(entries)::value_type& triple) { return triple.d_labels.empty(); });
+
+    sort(unlabeledEntries.begin(), unlabeledEntries.end(),
          [](const decltype(entries)::value_type& lhs, const decltype(entries)::value_type& rhs) {
            return lhs.d_name < rhs.d_name;
          });
     boost::format flt("    %9.1f");
-    for (const auto& entry : entries) {
+    for (const auto& entryRef : unlabeledEntries) {
+      const auto& entry = entryRef.get();
       string second;
       if (const auto& val = std::get_if<pdns::stat_t*>(&entry.d_value)) {
         second = std::to_string((*val)->load());
       }
-      else if (const auto& adval = std::get_if<pdns::stat_t_trait<double>*>(&entry.d_value)) {
+      else if (const auto& adval = std::get_if<pdns::stat_double_t*>(&entry.d_value)) {
         second = (flt % (*adval)->load()).str();
-      }
-      else if (const auto& dval = std::get_if<double*>(&entry.d_value)) {
-        second = (flt % (**dval)).str();
       }
       else if (const auto& func = std::get_if<dnsdist::metrics::Stats::statfunction_t>(&entry.d_value)) {
         second = std::to_string((*func)(entry.d_name));
       }
 
-      if (leftcolumn.size() < entries.size() / 2) {
+      if (leftcolumn.size() < unlabeledEntries.size() / 2) {
         leftcolumn.push_back((fmt % entry.d_name % second).str());
       }
       else {
@@ -1049,9 +1063,30 @@ void setupLuaInspection(LuaContext& luaCtx)
   /* DynBlock object accessors */
   luaCtx.registerMember("reason", &DynBlock::reason);
   luaCtx.registerMember("domain", &DynBlock::domain);
-  luaCtx.registerMember("until", &DynBlock::until);
+  luaCtx.registerMember<DynBlock, timespec>(
+    "until", [](const DynBlock& block) {
+      timespec nowMonotonic{};
+      gettime(&nowMonotonic);
+      timespec nowRealTime{};
+      gettime(&nowRealTime, true);
+
+      auto seconds = block.until.tv_sec - nowMonotonic.tv_sec;
+      auto nseconds = block.until.tv_nsec - nowMonotonic.tv_nsec;
+      if (nseconds < 0) {
+        seconds -= 1;
+        nseconds += 1000000000;
+      }
+
+      nowRealTime.tv_sec += seconds;
+      nowRealTime.tv_nsec += nseconds;
+      if (nowRealTime.tv_nsec > 1000000000) {
+        nowRealTime.tv_sec += 1;
+        nowRealTime.tv_nsec -= 1000000000;
+      }
+
+      return nowRealTime; }, []([[maybe_unused]] DynBlock& block, [[maybe_unused]] timespec until) {});
   luaCtx.registerMember<DynBlock, unsigned int>(
-    "blocks", [](const DynBlock& block) { return block.blocks.load(); }, [](DynBlock& block, [[maybe_unused]] unsigned int blocks) {});
+    "blocks", [](const DynBlock& block) { return block.blocks.load(); }, []([[maybe_unused]] DynBlock& block, [[maybe_unused]] unsigned int blocks) {});
   luaCtx.registerMember("action", &DynBlock::action);
   luaCtx.registerMember("warning", &DynBlock::warning);
   luaCtx.registerMember("bpf", &DynBlock::bpf);
@@ -1070,7 +1105,7 @@ void setupLuaInspection(LuaContext& luaCtx)
                          parseDynamicActionOptionalParameters("addDynBlockSMT", rule, action, optionalParameters);
 
                          bool needUpdate = false;
-                         auto slow = g_dynblockSMT.getCopy();
+                         auto smtBlocks = dnsdist::DynamicBlocks::getSuffixDynamicRulesCopy();
                          for (const auto& capair : names) {
                            DNSName domain(capair.second);
                            domain.makeUsLowerCase();
@@ -1078,13 +1113,13 @@ void setupLuaInspection(LuaContext& luaCtx)
                            until.tv_sec += actualSeconds;
                            DynBlock dblock{msg, until, domain, action ? *action : DNSAction::Action::None};
                            dblock.tagSettings = rule.d_tagSettings;
-                           if (dnsdist::DynamicBlocks::addOrRefreshBlockSMT(slow, now, std::move(dblock), false)) {
+                           if (dnsdist::DynamicBlocks::addOrRefreshBlockSMT(smtBlocks, now, std::move(dblock), false)) {
                              needUpdate = true;
                            }
                          }
 
                          if (needUpdate) {
-                           g_dynblockSMT.setState(slow);
+                           dnsdist::DynamicBlocks::setSuffixDynamicRules(std::move(smtBlocks));
                          }
                        });
 
@@ -1123,9 +1158,9 @@ void setupLuaInspection(LuaContext& luaCtx)
                          DynBlock dblock{msg, until, DNSName(), action ? *action : DNSAction::Action::None};
                          dblock.tagSettings = rule.d_tagSettings;
 
-                         auto slow = g_dynblockNMG.getCopy();
-                         if (dnsdist::DynamicBlocks::addOrRefreshBlock(slow, now, target, std::move(dblock), false)) {
-                           g_dynblockNMG.setState(slow);
+                         auto dynamicRules = dnsdist::DynamicBlocks::getClientAddressDynamicRulesCopy();
+                         if (dnsdist::DynamicBlocks::addOrRefreshBlock(dynamicRules, now, target, std::move(dblock), false)) {
+                           dnsdist::DynamicBlocks::setClientAddressDynamicRules(std::move(dynamicRules));
                          }
                        });
 #endif /* DISABLE_DYNBLOCKS */

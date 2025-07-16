@@ -32,7 +32,7 @@ def ProtobufConnectionHandler(queue, conn):
         if not data:
             break
 
-        queue.put(data, True, timeout=2.0)
+        queue.put_nowait(data)
 
     conn.close()
 
@@ -91,24 +91,20 @@ class TestRecursorProtobuf(RecursorTest):
                'zones': ['example']}
     }
 
-    def getFirstProtobufMessage(self, retries=1, waitTime=1):
+    def getFirstProtobufMessage(self, retries=10, waitTime=0.1):
         msg = None
-
         #print("in getFirstProtobufMessage")
         for param in protobufServersParameters:
-          #print(param.port)
           failed = 0
 
           while param.queue.empty():
-            #print(failed)
-            #print(retries)
             if failed >= retries:
               break
-
             failed = failed + 1
-            #print("waiting")
+            #print(str(failed) + '...')
             time.sleep(waitTime)
 
+          #print(str(failed) + ' ' + str(param.queue.empty()))
           self.assertFalse(param.queue.empty())
           data = param.queue.get(False)
           self.assertTrue(data)
@@ -117,8 +113,6 @@ class TestRecursorProtobuf(RecursorTest):
           msg.ParseFromString(data)
           if oldmsg is not None:
             self.assertEqual(msg, oldmsg)
-
-        #print(msg)
         return msg
 
     def emptyProtoBufQueue(self):
@@ -198,6 +192,13 @@ class TestRecursorProtobuf(RecursorTest):
         self.assertEqual(msg.question.qClass, qtype)
         self.assertTrue(msg.question.HasField('qName'))
         self.assertEqual(msg.question.qName, qname)
+
+    # This method takes wire format values to check
+    def checkProtobufHeaderFlagsAndEDNSVersion(self, msg, flags, ednsVersion):
+        self.assertTrue(msg.HasField('headerFlags'))
+        self.assertEqual(msg.headerFlags, socket.htons(flags))
+        self.assertTrue(msg.HasField('ednsVersion'))
+        self.assertEqual(msg.ednsVersion, socket.htonl(ednsVersion))
 
     def checkProtobufResponse(self, msg, protocol, response, initiator='127.0.0.1', receivedSize=None, vstate=dnsmessage_pb2.PBDNSMessage.VState.Indeterminate):
         self.assertEqual(msg.type, dnsmessage_pb2.PBDNSMessage.DNSResponseType)
@@ -293,9 +294,6 @@ class TestRecursorProtobuf(RecursorTest):
         # Make sure the queue is empty, in case
         # a previous test failed
         self.emptyProtoBufQueue()
-        # wait long enough to be sure that the housekeeping has
-        # prime the root NS
-        time.sleep(1)
 
     @classmethod
     def generateRecursorConfig(cls, confdir):
@@ -342,6 +340,29 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
         # check the protobuf messages corresponding to the UDP query and answer
         msg = self.getFirstProtobufMessage()
         self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.UDP, query, dns.rdataclass.IN, dns.rdatatype.A, name)
+        # wire format, RD and CD set in headerflags, plus DO bit in flags part of EDNS Version
+        self.checkProtobufHeaderFlagsAndEDNSVersion(msg, 0x0110, 0x00008000)
+        # then the response
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res, '127.0.0.1')
+        self.assertEqual(len(msg.response.rrs), 1)
+        rr = msg.response.rrs[0]
+        # we have max-cache-ttl set to 15
+        self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
+        self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.42')
+        self.checkNoRemainingMessage()
+        #
+        # again, for a PC cache hit
+        #
+        res = self.sendUDPQuery(query)
+
+        self.assertRRsetInAnswer(res, expected)
+
+        # check the protobuf messages corresponding to the UDP query and answer
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.UDP, query, dns.rdataclass.IN, dns.rdatatype.A, name)
+        # wire format, RD and CD set in headerflags, plus DO bit in flags part of EDNS Version
+        self.checkProtobufHeaderFlagsAndEDNSVersion(msg, 0x0110, 0x00008000)
         # then the response
         msg = self.getFirstProtobufMessage()
         self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res, '127.0.0.1')
@@ -386,7 +407,7 @@ class ProtobufProxyMappingTest(TestRecursorProtobuf):
     This test makes sure that we correctly export queries and response over protobuf with a proxyMapping
     """
 
-    _confdir = 'ProtobufProxyMappingTest'
+    _confdir = 'ProtobufProxyMapping'
     _config_template = """
     auth-zones=example=configs/%s/example.zone
     allow-from=3.4.5.0/24
@@ -424,7 +445,7 @@ class ProtobufProxyMappingLogMappedTest(TestRecursorProtobuf):
     This test makes sure that we correctly export queries and response over protobuf.
     """
 
-    _confdir = 'ProtobufProxyMappingLogMappedTest'
+    _confdir = 'ProtobufProxyMappingLogMapped'
     _config_template = """
     auth-zones=example=configs/%s/example.zone
     allow-from=3.4.5.0/0"
@@ -643,7 +664,7 @@ class OutgoingProtobufWithECSMappingTest(TestRecursorProtobuf):
     that the recursor at least connects to the protobuf server.
     """
 
-    _confdir = 'OutgoingProtobuffWithECSMapping'
+    _confdir = 'OutgoingProtobufWithECSMapping'
     _config_template = """
     # Switch off QName Minimization, it generates much more protobuf messages
     # (or make the test much more smart!)
@@ -932,58 +953,71 @@ auth-zones=example=configs/%s/example.zone""" % _confdir
         expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.42')
         query = dns.message.make_query(name, 'A', want_dnssec=True)
         query.flags |= dns.flags.CD
-        res = self.sendUDPQuery(query)
-        self.assertRRsetInAnswer(res, expected)
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+          sender = getattr(self, method)
+          res = sender(query)
+          self.assertRRsetInAnswer(res, expected)
 
-        # check the protobuf message corresponding to the UDP response
-        # the first query and answer are not tagged, so there is nothing in the queue
-        time.sleep(1)
-        self.checkNoRemainingMessage()
+          # check the protobuf message corresponding to the UDP response
+          # the first query and answer are not tagged, so there is nothing in the queue
+          #time.sleep(1)
+
+          self.checkNoRemainingMessage()
+          # Again to check PC case
+          res = sender(query)
+          #time.sleep(1)
+          self.checkNoRemainingMessage()
 
     def testTagged(self):
         name = 'tagged.example.'
         expected = dns.rrset.from_text(name, 0, dns.rdataclass.IN, 'A', '192.0.2.84')
         query = dns.message.make_query(name, 'A', want_dnssec=True)
         query.flags |= dns.flags.CD
-        res = self.sendUDPQuery(query)
-        self.assertRRsetInAnswer(res, expected)
+        first = True
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+          messagetype = dnsmessage_pb2.PBDNSMessage.UDP
+          if not first:
+             messagetype = dnsmessage_pb2.PBDNSMessage.TCP
+          sender = getattr(self, method)
+          res = sender(query)
+          self.assertRRsetInAnswer(res, expected)
 
-        # check the protobuf messages corresponding to the UDP query and answer
-        msg = self.getFirstProtobufMessage()
-        self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.UDP, query, dns.rdataclass.IN, dns.rdatatype.A, name)
-        self.checkProtobufTags(msg, [ self._tag_from_gettag ])
-        # then the response
-        msg = self.getFirstProtobufMessage()
-        self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res)
-        self.assertEqual(len(msg.response.rrs), 1)
-        rr = msg.response.rrs[0]
-        # we have max-cache-ttl set to 15
-        self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15)
-        self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.84')
-        tags = [ self._tag_from_gettag ] + self._tags
-        #print(msg)
-        self.checkProtobufTags(msg, tags)
-        self.checkNoRemainingMessage()
+          # check the protobuf messages corresponding to the query and answer
+          msg = self.getFirstProtobufMessage()
+          self.checkProtobufQuery(msg, messagetype, query, dns.rdataclass.IN, dns.rdatatype.A, name)
+          self.checkProtobufTags(msg, [ self._tag_from_gettag ])
+          # then the response
+          msg = self.getFirstProtobufMessage()
+          self.checkProtobufResponse(msg, messagetype, res)
+          self.assertEqual(len(msg.response.rrs), 1)
+          rr = msg.response.rrs[0]
+          # we have max-cache-ttl set to 15, but only check it first iteration
+          self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15, checkTTL=first)
+          self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.84')
+          tags = [ self._tag_from_gettag ] + self._tags
+          self.checkProtobufTags(msg, tags)
+          self.checkNoRemainingMessage()
 
-        # Again to check PC case
-        res = self.sendUDPQuery(query)
-        self.assertRRsetInAnswer(res, expected)
+          # Again to check PC case
+          res = sender(query)
+          self.assertRRsetInAnswer(res, expected)
 
-        # check the protobuf messages corresponding to the UDP query and answer
-        msg = self.getFirstProtobufMessage()
-        self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.UDP, query, dns.rdataclass.IN, dns.rdatatype.A, name)
-        self.checkProtobufTags(msg, [ self._tag_from_gettag ])
-        # then the response
-        msg = self.getFirstProtobufMessage()
-        self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, res)
-        self.assertEqual(len(msg.response.rrs), 1)
-        rr = msg.response.rrs[0]
-        # time may have passed, so do not check TTL
-        self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15, checkTTL=False)
-        self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.84')
-        tags = [ self._tag_from_gettag ] + self._tags
-        self.checkProtobufTags(msg, tags)
-        self.checkNoRemainingMessage()
+          # check the protobuf messages corresponding to the query and answer
+          msg = self.getFirstProtobufMessage()
+          self.checkProtobufQuery(msg, messagetype, query, dns.rdataclass.IN, dns.rdatatype.A, name)
+          self.checkProtobufTags(msg, [ self._tag_from_gettag ])
+          # then the response
+          msg = self.getFirstProtobufMessage()
+          self.checkProtobufResponse(msg, messagetype, res)
+          self.assertEqual(len(msg.response.rrs), 1)
+          rr = msg.response.rrs[0]
+          # time may have passed, so do not check TTL
+          self.checkProtobufResponseRecord(rr, dns.rdataclass.IN, dns.rdatatype.A, name, 15, checkTTL=False)
+          self.assertEqual(socket.inet_ntop(socket.AF_INET, rr.rdata), '192.0.2.84')
+          tags = [ self._tag_from_gettag ] + self._tags
+          self.checkProtobufTags(msg, tags)
+          self.checkNoRemainingMessage()
+          first = False
 
 class ProtobufTagCacheBase(TestRecursorProtobuf):
     __test__ = False
@@ -1532,7 +1566,7 @@ class ProtobufMetaFFITest(TestRecursorProtobuf):
     """
     This test makes sure that we can correctly add extra meta fields (FFI version).
     """
-    _confdir = 'ProtobufMetaFFITest'
+    _confdir = 'ProtobufMetaFFI'
     _config_template = """
 auth-zones=example=configs/%s/example.zone""" % _confdir
     _lua_config_file = """

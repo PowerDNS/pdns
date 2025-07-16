@@ -1,0 +1,9 @@
+# To generate requirements.txt, install pip-tools and run:
+#  pip-compile --generate-hashes -U requirements.in
+
+wheel==0.45.1
+dnspython==2.1.0
+pytest
+Twisted>0.15.0
+requests>=2.18.4
+https://github.com/PowerDNS/xfrserver/archive/refs/tags/0.3.zip

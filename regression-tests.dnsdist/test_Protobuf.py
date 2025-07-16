@@ -421,9 +421,38 @@ class TestProtobufMetaTags(DNSDistProtobufTest):
     newServer{address="127.0.0.1:%s"}
     rl = newRemoteLogger('127.0.0.1:%d')
 
+    local ffi = require("ffi")
+    local C = ffi.C
+    function add_meta(dq)
+      local key = "my-meta-key-1"
+      local key2 = "my-meta-key-2"
+      C.dnsdist_ffi_dnsquestion_meta_begin_key(dq, key, #key)
+      C.dnsdist_ffi_dnsquestion_meta_add_str_value_to_key(dq, "test", 4)
+      C.dnsdist_ffi_dnsquestion_meta_add_int64_value_to_key(dq, -42)
+      C.dnsdist_ffi_dnsquestion_meta_add_str_value_to_key(dq, "test2", 5)
+      C.dnsdist_ffi_dnsquestion_meta_end_key(dq)
+
+      local key2 = "my-meta-key-2"
+      C.dnsdist_ffi_dnsquestion_meta_begin_key(dq, key2, #key2)
+      C.dnsdist_ffi_dnsquestion_meta_add_str_value_to_key(dq, "foo", 3)
+      C.dnsdist_ffi_dnsquestion_meta_add_int64_value_to_key(dq, 42)
+      C.dnsdist_ffi_dnsquestion_meta_add_str_value_to_key(dq, "bar", 3)
+      C.dnsdist_ffi_dnsquestion_meta_end_key(dq)
+
+      return DNSAction.None
+    end
+
+    function addMetaToResponse(dr)
+      dr:setMetaKey('my-meta-key-1', {'test', -42, 'test2'})
+      dr:setMetaKey('my-meta-key-2', {'foo', 42, 'bar'})
+      return DNSResponseAction.None
+    end
+
+    addAction(AllRule(), LuaFFIAction(add_meta))
     addAction(AllRule(), SetTagAction('my-tag-key', 'my-tag-value'))
     addAction(AllRule(), SetTagAction('my-empty-key', ''))
     addAction(AllRule(), RemoteLogAction(rl, nil, {serverID='dnsdist-server-1', exportTags='*'}, {b64='b64-content', ['my-tag-export-name']='tag:my-tag-key'}))
+    addResponseAction(AllRule(), LuaResponseAction(addMetaToResponse))
     addResponseAction(AllRule(), SetTagResponseAction('my-tag-key2', 'my-tag-value2'))
     addResponseAction(AllRule(), RemoteLogResponseAction(rl, nil, false, {serverID='dnsdist-server-1', exportTags='my-empty-key,my-tag-key2'}, {['my-tag-export-name']='tags'}))
     """
@@ -462,13 +491,25 @@ class TestProtobufMetaTags(DNSDistProtobufTest):
         self.assertIn('my-tag-key:my-tag-value', msg.response.tags)
         self.assertIn('my-empty-key', msg.response.tags)
         # meta tags
-        self.assertEqual(len(msg.meta), 2)
+        self.assertEqual(len(msg.meta), 4)
         tags = {}
         for entry in msg.meta:
             tags[entry.key] = entry.value.stringVal
 
         self.assertIn('b64', tags)
         self.assertIn('my-tag-export-name', tags)
+
+        self.assertEqual(msg.meta[2].key, 'my-meta-key-1')
+        self.assertEqual(len(msg.meta[2].value.stringVal), 2)
+        self.assertIn('test', msg.meta[2].value.stringVal)
+        self.assertIn('test2', msg.meta[2].value.stringVal)
+        self.assertIn(-42, msg.meta[2].value.intVal)
+
+        self.assertEqual(msg.meta[3].key, 'my-meta-key-2')
+        self.assertEqual(len(msg.meta[3].value.stringVal), 2)
+        self.assertIn('foo', msg.meta[3].value.stringVal)
+        self.assertIn('bar', msg.meta[3].value.stringVal)
+        self.assertIn(42, msg.meta[3].value.intVal)
 
         b64EncodedQuery = base64.b64encode(query.to_wire()).decode('ascii')
         self.assertEqual(tags['b64'], [b64EncodedQuery])
@@ -482,13 +523,25 @@ class TestProtobufMetaTags(DNSDistProtobufTest):
         self.assertIn('my-tag-key2:my-tag-value2', msg.response.tags)
         self.assertIn('my-empty-key', msg.response.tags)
         # meta tags
-        self.assertEqual(len(msg.meta), 1)
+        self.assertEqual(len(msg.meta), 3)
         self.assertEqual(msg.meta[0].key, 'my-tag-export-name')
         self.assertEqual(len(msg.meta[0].value.stringVal), 3)
         self.assertIn('my-tag-key:my-tag-value', msg.meta[0].value.stringVal)
         self.assertIn('my-tag-key2:my-tag-value2', msg.meta[0].value.stringVal)
         # no ':' when the value is empty
         self.assertIn('my-empty-key', msg.meta[0].value.stringVal)
+
+        self.assertEqual(msg.meta[1].key, 'my-meta-key-1')
+        self.assertEqual(len(msg.meta[1].value.stringVal), 2)
+        self.assertIn('test', msg.meta[1].value.stringVal)
+        self.assertIn('test2', msg.meta[1].value.stringVal)
+        self.assertIn(-42, msg.meta[1].value.intVal)
+
+        self.assertEqual(msg.meta[2].key, 'my-meta-key-2')
+        self.assertEqual(len(msg.meta[2].value.stringVal), 2)
+        self.assertIn('foo', msg.meta[2].value.stringVal)
+        self.assertIn('bar', msg.meta[2].value.stringVal)
+        self.assertIn(42, msg.meta[2].value.intVal)
 
 class TestProtobufExtendedDNSErrorTags(DNSDistProtobufTest):
     _config_params = ['_testServerPort', '_protobufServerPort']
@@ -547,6 +600,69 @@ class TestProtobufExtendedDNSErrorTags(DNSDistProtobufTest):
         self.assertEqual(len(msg.meta[0].value.stringVal), 1)
         self.assertIn(15, msg.meta[0].value.intVal)
         self.assertIn('Blocked by RPZ!', msg.meta[0].value.stringVal)
+
+class TestProtobufCacheHit(DNSDistProtobufTest):
+    _config_params = ['_testServerPort', '_protobufServerPort']
+    _config_template = """
+    newServer{address="127.0.0.1:%s"}
+    rl = newRemoteLogger('127.0.0.1:%d')
+    pc = newPacketCache(100, {maxTTL=86400, minTTL=1})
+    getPool(""):setCache(pc)
+
+    addResponseAction(AllRule(), RemoteLogResponseAction(rl, nil, false, {serverID='dnsdist-server-1'}))
+    addCacheHitResponseAction(AllRule(), RemoteLogResponseAction(rl, nil, false, {serverID='dnsdist-server-1'}))
+    """
+
+    def testProtobufExtendedError(self):
+        """
+        Protobuf: CacheHit field
+        """
+        name = 'cachehit.protobuf.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        # fill the cache
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
+
+        if self._protobufQueue.empty():
+            # let the protobuf messages the time to get there
+            time.sleep(1)
+
+        # check the protobuf message corresponding to the UDP response
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, response)
+        self.assertTrue(msg.HasField('packetCacheHit'))
+        self.assertFalse(msg.packetCacheHit)
+        self.assertTrue(msg.HasField('outgoingQueries'))
+        self.assertEqual(msg.outgoingQueries, 1)
+
+        # now shoud be a cache hit
+        (_, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedResponse)
+        self.assertEqual(response, receivedResponse)
+
+        if self._protobufQueue.empty():
+            # let the protobuf messages the time to get there
+            time.sleep(1)
+
+        # check the protobuf message corresponding to the UDP response
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufResponse(msg, dnsmessage_pb2.PBDNSMessage.UDP, response)
+        self.assertTrue(msg.HasField('packetCacheHit'))
+        self.assertTrue(msg.packetCacheHit)
+        self.assertTrue(msg.HasField('outgoingQueries'))
+        self.assertEqual(msg.outgoingQueries, 0)
 
 class TestProtobufMetaDOH(DNSDistProtobufTest):
 
@@ -1001,3 +1117,77 @@ class TestProtobufAXFR(DNSDistProtobufTest):
                     self.assertEqual(socket.inet_ntop(socket.AF_INET6, rr.rdata), '2001:db8::1')
 
         self.assertEqual(count, len(responses))
+
+class TestYamlProtobuf(DNSDistProtobufTest):
+
+    _yaml_config_template = """---
+binds:
+  - listen_address: "127.0.0.1:%d"
+    reuseport: true
+    protocol: Do53
+    threads: 2
+
+backends:
+  - address: "127.0.0.1:%d"
+    protocol: Do53
+
+remote_logging:
+  protobuf_loggers:
+    - name: "my-logger"
+      address: "127.0.0.1:%d"
+      timeout: 1
+
+query_rules:
+  - name: "my-rule"
+    selector:
+      type: "All"
+    action:
+      type: "RemoteLog"
+      logger_name: "my-logger"
+      server_id: "%s"
+      export_tags:
+        - "tag-1"
+        - "tag-2"
+"""
+    _dnsDistPort = pickAvailablePort()
+    _testServerPort = pickAvailablePort()
+    _yaml_config_params = ['_dnsDistPort', '_testServerPort', '_protobufServerPort', '_protobufServerID']
+    _config_params = []
+
+    def testProtobuf(self):
+        """
+        Yaml: Remote logging via protobuf
+        """
+        name = 'remote-logging.protobuf.yaml.test.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        query.flags &= ~dns.flags.RD
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    60,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+
+        response.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response=response)
+            receivedQuery.id = query.id
+            self.assertEqual(receivedQuery, query)
+            self.assertEqual(receivedResponse, response)
+
+
+        if self._protobufQueue.empty():
+            # let the protobuf messages the time to get there
+            time.sleep(1)
+        # check the protobuf message corresponding to the UDP query
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.UDP, query, dns.rdataclass.IN, dns.rdatatype.A, name)
+
+        if self._protobufQueue.empty():
+            # let the protobuf messages the time to get there
+            time.sleep(1)
+        # TCP query
+        msg = self.getFirstProtobufMessage()
+        self.checkProtobufQuery(msg, dnsmessage_pb2.PBDNSMessage.TCP, query, dns.rdataclass.IN, dns.rdatatype.A, name)

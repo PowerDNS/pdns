@@ -15,53 +15,59 @@ IMPORTS
         FROM SNMPv2-CONF;
 
 rec MODULE-IDENTITY
-    LAST-UPDATED "202107200000Z"
+    LAST-UPDATED "202408280000Z"
     ORGANIZATION "PowerDNS BV"
     CONTACT-INFO "support@powerdns.com"
     DESCRIPTION
        "This MIB module describes information gathered through PowerDNS Recursor."
 
-    REVISION "201611290000Z"
-    DESCRIPTION "Initial revision."
+    REVISION "202408280000Z"
+    DESCRIPTION "Added metric for too many incoming TCP connections"
 
-    REVISION "201812240000Z"
-    DESCRIPTION "Added the dnssecAuthenticDataQueries and dnssecCheckDisabledQueries stats."
+    REVISION "202408130000Z"
+    DESCRIPTION "Added metric for chain limits reached"
 
-    REVISION "201911140000Z"
-    DESCRIPTION "Added qnameMinFallbackSuccess stats."
-
-    REVISION "202002170000Z"
-    DESCRIPTION "Added proxyProtocolInvalid metric."
-
-    REVISION "202101050000Z"
-    DESCRIPTION "Added Aggressive NSEC cache metrics."
-
-    REVISION "202107200000Z"
-    DESCRIPTION "Added almost expired task metrics."
-
-    REVISION "202110270000Z"
-    DESCRIPTION "Added more UDP errors metric."
-
-    REVISION "202111090000Z"
-    DESCRIPTION "Added NOTIFY-related metrics."
-
-    REVISION "202201310000Z"
-    DESCRIPTION "Added non-resolving NS name metric."
-
-    REVISION "202208220000Z"
-    DESCRIPTION "Added internal maintenance metrics."
-
-    REVISION "202209120000Z"
-    DESCRIPTION "Added metrics for answers from auths by rcode"
-
-    REVISION "202302240000Z"
-    DESCRIPTION "Added metrics for sharded packet cache contention"
+    REVISION "202405230000Z"
+    DESCRIPTION "Added metrics for maximum chain length and weight"
 
     REVISION "202306080000Z"
     DESCRIPTION "Added metrics for NOD and UDR events"
 
-    REVISION "202405230000Z"
-    DESCRIPTION "Added metrics for maximum chain length and weight"
+    REVISION "202302240000Z"
+    DESCRIPTION "Added metrics for sharded packet cache contention"
+
+    REVISION "202209120000Z"
+    DESCRIPTION "Added metrics for answers from auths by rcode"
+
+    REVISION "202208220000Z"
+    DESCRIPTION "Added internal maintenance metrics."
+
+    REVISION "202201310000Z"
+    DESCRIPTION "Added non-resolving NS name metric."
+
+    REVISION "202111090000Z"
+    DESCRIPTION "Added NOTIFY-related metrics."
+
+    REVISION "202110270000Z"
+    DESCRIPTION "Added more UDP errors metric."
+
+    REVISION "202107200000Z"
+    DESCRIPTION "Added almost expired task metrics."
+
+    REVISION "202101050000Z"
+    DESCRIPTION "Added Aggressive NSEC cache metrics."
+
+    REVISION "202002170000Z"
+    DESCRIPTION "Added proxyProtocolInvalid metric."
+
+    REVISION "201911140000Z"
+    DESCRIPTION "Added qnameMinFallbackSuccess stats."
+
+    REVISION "201812240000Z"
+    DESCRIPTION "Added the dnssecAuthenticDataQueries and dnssecCheckDisabledQueries stats."
+
+    REVISION "201611290000Z"
+    DESCRIPTION "Initial revision."
 
     ::= { powerdns 2 }
 
@@ -114,7 +120,7 @@ cacheEntries OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Number of cache entries"
+        "Number of record cache entries"
     ::= { stats 6 }
 
 cacheBytes OBJECT-TYPE
@@ -362,7 +368,7 @@ qaLatency OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Average latency in microseconds"
+        "Shows the current latency average, in microseconds, exponentially weighted over past 'latency-statistic-size' packets"
     ::= { stats 37 }
 
 unexpectedPackets OBJECT-TYPE
@@ -446,11 +452,11 @@ ignoredPackets OBJECT-TYPE
     ::= { stats 47 }
 
 maxMthreadStack OBJECT-TYPE
-    SYNTAX CounterBasedGauge64
+    SYNTAX Counter64
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Maximum size of the Mthread stack"
+        "Maximum amount of the mthread stack ever used"
     ::= { stats 48 }
 
 negcacheEntries OBJECT-TYPE
@@ -538,7 +544,7 @@ allOutqueries OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Number of outgoing queries sent"
+        "Number of outgoing queries"
     ::= { stats 59 }
 
 ipv6Outqueries OBJECT-TYPE
@@ -650,7 +656,7 @@ nopingOutqueries OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Number of outgoing queries w/o ping"
+        "Number of outgoing queries without ping"
     ::= { stats 73 }
 
 noednsOutqueries OBJECT-TYPE
@@ -658,7 +664,7 @@ noednsOutqueries OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Number of outgoing queries w/o EDNS"
+        "Number of outgoing queries without EDNS"
     ::= { stats 74 }
 
 uptime OBJECT-TYPE
@@ -686,7 +692,7 @@ fdUsage OBJECT-TYPE
     ::= { stats 77 }
 
 userMsec OBJECT-TYPE
-    SYNTAX CounterBasedGauge64
+    SYNTAX Counter64
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
@@ -694,7 +700,7 @@ userMsec OBJECT-TYPE
     ::= { stats 78 }
 
 sysMsec OBJECT-TYPE
-    SYNTAX CounterBasedGauge64
+    SYNTAX Counter64
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
@@ -918,7 +924,7 @@ taskQueueExpired OBJECT-TYPE
     ::= { stats 106 }
 
 taskQueueSize OBJECT-TYPE
-    SYNTAX Counter64
+    SYNTAX CounterBasedGauge64
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
@@ -970,7 +976,7 @@ dotOutqueries OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Number of outgoing DoT queries since starting"
+        "Number of outgoing DoT queries"
     ::= { stats 113 }
 
 dns64PrefixAnswers OBJECT-TYPE
@@ -994,7 +1000,7 @@ almostExpiredRun OBJECT-TYPE
     MAX-ACCESS read-only
     STATUS current
     DESCRIPTION
-        "Number of almost-expired tasks run"
+        "Number of almost-expired tasks run to completion"
     ::= { stats 116 }
 
 almostExpiredExceptions OBJECT-TYPE
@@ -1269,6 +1275,22 @@ maxChainWeight OBJECT-TYPE
         "Maximum chain weight"
     ::= { stats 150 }
 
+chainLimits OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Chain limits reached"
+    ::= { stats 151 }
+
+tcpOverflow OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Incoming TCP limits reached"
+    ::= { stats 152 }
+
 ---
 --- Traps / Notifications
 ---
@@ -1315,6 +1337,7 @@ recCompliances MODULE-COMPLIANCE
 
 recGroup OBJECT-GROUP
     OBJECTS {
+        trapReason,
         questions,
         ipv6Questions,
         tcpQuestions,
@@ -1391,7 +1414,6 @@ recGroup OBJECT-GROUP
         noednsOutqueries,
         uptime,
         realMemoryUsage,
-        specialMemoryUsage,
         fdUsage,
         userMsec,
         sysMsec,
@@ -1415,7 +1437,6 @@ recGroup OBJECT-GROUP
         variableResponses,
         specialMemoryUsage,
         rebalancedQueries,
-        trapReason,
         qnameMinFallbackSuccess,
         proxyProtocolInvalid,
         recordCacheContended,
@@ -1444,7 +1465,7 @@ recGroup OBJECT-GROUP
         zoneDisallowedNotify,
         nonResolvingNameserverEntries,
         maintenanceUSec,
-        maintenanceCalls,
+        maintenanceCount,
         authrcode0Count,
         authrcode1Count,
         authrcode2Count,
@@ -1466,7 +1487,9 @@ recGroup OBJECT-GROUP
         nodEvents,
         udrEvents,
         maxChainLength,
-        maxChainWeight
+        maxChainWeight,
+        chainLimits,
+        tcpOverflow
     }
     STATUS current
     DESCRIPTION "Objects conformance group for PowerDNS Recursor"

@@ -56,10 +56,6 @@ static std::string const pwhash_prefix = "$scrypt$";
 static size_t const pwhash_prefix_size = pwhash_prefix.size();
 #endif
 
-uint64_t const CredentialsHolder::s_defaultWorkFactor{1024U}; /* N */
-uint64_t const CredentialsHolder::s_defaultParallelFactor{1U}; /* p */
-uint64_t const CredentialsHolder::s_defaultBlockSize{8U}; /* r */
-
 SensitiveData::SensitiveData(std::string&& data) :
   d_data(std::move(data))
 {
@@ -110,10 +106,11 @@ static std::string hashPasswordInternal([[maybe_unused]] const std::string& pass
   }
 
   // OpenSSL 3.0 changed the string arg to const unsigned char*, other versions use const char *
+  // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 #if OPENSSL_VERSION_MAJOR >= 3
-  auto passwordData = reinterpret_cast<const char*>(password.data());
+  const auto* passwordData = reinterpret_cast<const char*>(password.data());
 #else
-  auto passwordData = reinterpret_cast<const unsigned char*>(password.data());
+  const auto* passwordData = reinterpret_cast<const unsigned char*>(password.data());
 #endif
   if (EVP_PKEY_CTX_set1_pbe_pass(pctx.get(), passwordData, password.size()) <= 0) {
     throw std::runtime_error("Error adding the password to the scrypt context to hash the supplied password");
@@ -122,6 +119,7 @@ static std::string hashPasswordInternal([[maybe_unused]] const std::string& pass
   if (EVP_PKEY_CTX_set1_scrypt_salt(pctx.get(), reinterpret_cast<const unsigned char*>(salt.data()), salt.size()) <= 0) {
     throw std::runtime_error("Error adding the salt to the scrypt context to hash the supplied password");
   }
+  // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
   if (EVP_PKEY_CTX_set_scrypt_N(pctx.get(), workFactor) <= 0) {
     throw std::runtime_error("Error setting the work factor to the scrypt context to hash the supplied password");
@@ -139,6 +137,7 @@ static std::string hashPasswordInternal([[maybe_unused]] const std::string& pass
   out.resize(pwhash_output_size);
   size_t outlen = out.size();
 
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
   if (EVP_PKEY_derive(pctx.get(), reinterpret_cast<unsigned char*>(out.data()), &outlen) <= 0 || outlen != pwhash_output_size) {
     throw std::runtime_error("Error deriving the output from the scrypt context to hash the supplied password");
   }
@@ -156,7 +155,8 @@ static std::string generateRandomSalt()
   std::string salt;
   salt.resize(pwhash_salt_size);
 
-  if (RAND_bytes(reinterpret_cast<unsigned char*>(salt.data()), salt.size()) != 1) {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+  if (RAND_bytes(reinterpret_cast<unsigned char*>(salt.data()), static_cast<int>(salt.size())) != 1) {
     throw std::runtime_error("Error while generating a salt to hash the supplied password");
   }
 
@@ -375,6 +375,7 @@ CredentialsHolder::CredentialsHolder(std::string&& password, bool hashPlaintext)
 
   if (!d_isHashed) {
     d_fallbackHashPerturb = dns_random_uint32();
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     d_fallbackHash = burtle(reinterpret_cast<const unsigned char*>(d_credentials.getString().data()), d_credentials.getString().size(), d_fallbackHashPerturb);
   }
 }
@@ -390,14 +391,13 @@ bool CredentialsHolder::matches(const std::string& password) const
   if (d_isHashed) {
     return verifyPassword(d_credentials.getString(), d_salt, d_workFactor, d_parallelFactor, d_blockSize, password);
   }
-  else {
-    uint32_t fallback = burtle(reinterpret_cast<const unsigned char*>(password.data()), password.size(), d_fallbackHashPerturb);
-    if (fallback != d_fallbackHash) {
-      return false;
-    }
-
-    return constantTimeStringEquals(password, d_credentials.getString());
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+  uint32_t fallback = burtle(reinterpret_cast<const unsigned char*>(password.data()), password.size(), d_fallbackHashPerturb);
+  if (fallback != d_fallbackHash) {
+    return false;
   }
+
+  return constantTimeStringEquals(password, d_credentials.getString());
 }
 
 bool CredentialsHolder::isHashingAvailable()
@@ -414,8 +414,8 @@ bool CredentialsHolder::isHashingAvailable()
 
 SensitiveData CredentialsHolder::readFromTerminal()
 {
-  struct termios term;
-  struct termios oterm;
+  termios term{};
+  termios oterm{};
   bool restoreTermSettings = false;
   int termAction = TCSAFLUSH;
 #ifdef TCSASOFT
@@ -442,19 +442,20 @@ SensitiveData CredentialsHolder::readFromTerminal()
   }
 
   struct std::map<int, struct sigaction> signals;
-  struct sigaction sa;
-  sigemptyset(&sa.sa_mask);
-  sa.sa_flags = 0;
-  sa.sa_handler = [](int /* s */) {};
-  sigaction(SIGALRM, &sa, &signals[SIGALRM]);
-  sigaction(SIGHUP, &sa, &signals[SIGHUP]);
-  sigaction(SIGINT, &sa, &signals[SIGINT]);
-  sigaction(SIGPIPE, &sa, &signals[SIGPIPE]);
-  sigaction(SIGQUIT, &sa, &signals[SIGQUIT]);
-  sigaction(SIGTERM, &sa, &signals[SIGTERM]);
-  sigaction(SIGTSTP, &sa, &signals[SIGTSTP]);
-  sigaction(SIGTTIN, &sa, &signals[SIGTTIN]);
-  sigaction(SIGTTOU, &sa, &signals[SIGTTOU]);
+  struct sigaction sigact // just sigaction does not work, it clashes with sigaction(2)
+    {};
+  sigemptyset(&sigact.sa_mask);
+  sigact.sa_flags = 0;
+  sigact.sa_handler = [](int /* s */) {};
+  sigaction(SIGALRM, &sigact, &signals[SIGALRM]);
+  sigaction(SIGHUP, &sigact, &signals[SIGHUP]);
+  sigaction(SIGINT, &sigact, &signals[SIGINT]);
+  sigaction(SIGPIPE, &sigact, &signals[SIGPIPE]);
+  sigaction(SIGQUIT, &sigact, &signals[SIGQUIT]);
+  sigaction(SIGTERM, &sigact, &signals[SIGTERM]);
+  sigaction(SIGTSTP, &sigact, &signals[SIGTSTP]);
+  sigaction(SIGTTIN, &sigact, &signals[SIGTTIN]);
+  sigaction(SIGTTOU, &sigact, &signals[SIGTTOU]);
 
   std::string buffer;
   /* let's allocate a huge buffer now to prevent reallocation,
@@ -462,10 +463,10 @@ SensitiveData CredentialsHolder::readFromTerminal()
   buffer.reserve(512);
 
   for (;;) {
-    char ch = '\0';
-    auto got = read(input, &ch, 1);
-    if (got == 1 && ch != '\n' && ch != '\r') {
-      buffer.push_back(ch);
+    char character = '\0';
+    auto got = read(input, &character, 1);
+    if (got == 1 && character != '\n' && character != '\r') {
+      buffer.push_back(character);
     }
     else {
       break;
@@ -480,5 +481,5 @@ SensitiveData CredentialsHolder::readFromTerminal()
     sigaction(sig.first, &sig.second, nullptr);
   }
 
-  return SensitiveData(std::move(buffer));
+  return {std::move(buffer)};
 }

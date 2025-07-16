@@ -8,7 +8,7 @@ from queue import Queue
 
 from recursortests import RecursorTest
 
-class TestCarbon(RecursorTest):
+class CarbonTest(RecursorTest):
     _confdir = 'Carbon'
     _carbonNamespace = 'NS'
     _carbonInstance = 'Instance'
@@ -26,22 +26,6 @@ class TestCarbon(RecursorTest):
     carbon-ourname=%s
     carbon-server=127.0.0.1:%s,127.0.01:%s
     """ % (_carbonNamespace, _carbonInstance, _carbonInterval, _carbonServerName, _carbonServer1Port,  _carbonServer2Port)
-    @classmethod
-    def setUpClass(cls):
-
-        # we don't need all the auth stuff
-        cls.setUpSockets()
-        cls.startResponders()
-
-        confdir = os.path.join('configs', cls._confdir)
-        cls.createConfigDir(confdir)
-
-        cls.generateRecursorConfig(confdir)
-        cls.startRecursor(confdir, cls._recursorPort)
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tearDownRecursor()
 
     @classmethod
     def CarbonResponder(cls, port):

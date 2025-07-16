@@ -69,12 +69,8 @@ int UnixsocketConnector::recv_message(Json& output)
   std::string s_output;
   std::string err;
 
-  struct timeval t0
-  {
-  };
-  struct timeval t
-  {
-  };
+  struct timeval t0{};
+  struct timeval t{};
 
   gettimeofday(&t0, nullptr);
   memcpy(&t, &t0, sizeof(t0));
@@ -159,9 +155,7 @@ ssize_t UnixsocketConnector::write(const std::string& data)
 
 void UnixsocketConnector::reconnect()
 {
-  struct sockaddr_un sock
-  {
-  };
+  struct sockaddr_un sock{};
   int rv = 0;
 
   if (connected) {

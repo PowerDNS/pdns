@@ -2,7 +2,7 @@ Structured Logging Dictionary
 =============================
 
 This page describes the common entries of the Structured Logging component.
-Currently :ref:`setting-structured-logging-backend` can have these values:
+Currently :ref:`setting-yaml-logging.structured_logging_backend` can have these values:
 
 - The ``default`` text based backend
 - The ``systemd-journal`` backend
@@ -12,8 +12,8 @@ The ``default`` backend
 -----------------------
 The default backend uses a text representation of the key-value pairs.
 A line is constructed by appending all key-value pairs as ``key="value"``, separated by spaces.
-The output is written by passing the resulting text line to the standard error stream and also to ``syslog`` if :ref:`setting-disable-syslog` is false.
-Depending on the value of :ref:`setting-log-timestamp` a timestamp is prepended to the log line.
+The output is written by passing the resulting text line to the standard error stream and also to ``syslog`` if :ref:`setting-yaml-logging.disable_syslog` is false.
+Depending on the value of :ref:`setting-yaml-logging.timestamp` a timestamp is prepended to the log line.
 
 An example line (including prepended timestamp) looks like this::
 
@@ -40,15 +40,16 @@ The following keys are always present:
 +-------------+------------------+--------------------------------------+---------------------------------------+
 | ``level``   |``number``        |``"0"``                               |The detail level of the log entry, do  |
 |             |                  |                                      |not confuse with                       |
-|             |                  |                                      |:ref:`setting-loglevel`. Not actively  |
-|             |                  |                                      |used currently.                        |
+|             |                  |                                      |:ref:`setting-yaml-logging.loglevel`.  |
+|             |                  |                                      |Not actively used currently.           |
 +-------------+------------------+--------------------------------------+---------------------------------------+
 | ``prio``    |``enum``          |``"Notice"``                          |One of ``Alert=1``, ``Critical=2``,    |
 |             |                  |                                      |``Error=3``, ``Warning=4``,            |
 |             |                  |                                      |``Notice=5``, ``Info=6``,              |
 |             |                  |                                      |``Debug=7``. A log entry will only     |
 |             |                  |                                      |produced if its ``prio`` is equal or   |
-|             |                  |                                      |lower than :ref:`setting-loglevel`.    |
+|             |                  |                                      |lower than                             |
+|             |                  |                                      |:ref:`setting-yaml-logging.loglevel`.  |
 +-------------+------------------+--------------------------------------+---------------------------------------+
 | ``tid``     |``number``        |``"2"``                               |The Posix worker thread id that        |
 |             |                  |                                      |produced the log entry. If not produced|
@@ -104,7 +105,7 @@ To query the log, use a command similar to::
 The ``json`` backend
 --------------------
 The ``json`` structured logging backend has been added in version 5.1.0 and uses the same keys and values as the default backend.
-An example of a a log object::
+An example of a log object::
 
     {"level": "0", "limit": "10765", "msg": "Raised soft limit on number of filedescriptors to match max-mthreads and threads settings", "priority": "4", "subsystem": "config", "tid": "0", "ts": "1709285994.851"}
 

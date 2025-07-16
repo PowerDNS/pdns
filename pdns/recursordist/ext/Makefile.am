@@ -1,6 +1,5 @@
 SUBDIRS = \
 	arc4random \
-	yahttp \
 	json11 \
 	probds
 

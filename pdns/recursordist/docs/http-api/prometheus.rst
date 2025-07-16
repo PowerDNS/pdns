@@ -5,7 +5,7 @@ Prometheus Data Endpoint
 
 .. http:get:: /metrics
 
-    Get statistics from Recursor in `Prometheus <https://prometheus.io>`_ format. Uses :ref:`setting-webserver-password` and returned list can be controlled with :ref:`setting-stats-api-blacklist`
+    Get statistics from Recursor in `Prometheus <https://prometheus.io>`_ format. Uses :ref:`setting-yaml-webservice.password` and returned list can be controlled with :ref:`setting-yaml-recursor.stats_api_disabled_list`
 
   **Example request**:
    .. sourcecode:: bash
@@ -18,7 +18,7 @@ Prometheus Data Endpoint
     HTTP/1.1 200 OK
     Connection: close
     Content-Length: 19203
-    Content-Type: text/plain
+    Content-Type: text/plain; version=0.0.4
     Server: PowerDNS/0.0.16480.0.g876dd46192
 
     # HELP pdns_recursor_all_outqueries Number of outgoing UDP queries since starting

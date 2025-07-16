@@ -7,7 +7,7 @@ import dns
 from recursortests import RecursorTest
 
 
-class testNotYetValid(RecursorTest):
+class NotYetValidTest(RecursorTest):
     """This regression test starts the authoritative servers with a clock that is
     set 15 days into the future. Hence, the recursor must reject the signatures
     because they are not yet valid.

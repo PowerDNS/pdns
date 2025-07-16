@@ -14,7 +14,7 @@ set -x
 cd regression-tests
 
 rm -f top-1m.csv
-wget -c -N http://s3-us-west-1.amazonaws.com/umbrella-static/top-1m.csv.zip
+wget -c -N https://umbrella-static.s3.dualstack.us-west-1.amazonaws.com/top-1m.csv.zip
 
 unzip top-1m.csv.zip
 

@@ -24,11 +24,71 @@
 #include "ldapbackend.hh"
 #include <cstdlib>
 
-bool LdapBackend::list(const DNSName& target, int domain_id, bool /* include_disabled */)
+/*
+ *  Known DNS RR types
+ *  Types which aren't active are currently not supported by PDNS
+ */
+
+static const char* ldap_attrany[] = { // NOLINT(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
+  "associatedDomain", // needs to be first, code below depends on this
+  "dNSTTL",
+  "ALIASRecord",
+  "aRecord",
+  "nSRecord",
+  "cNAMERecord",
+  "sOARecord",
+  "pTRRecord",
+  "hInfoRecord",
+  "mXRecord",
+  "tXTRecord",
+  "rPRecord",
+  "aFSDBRecord",
+  //  "SigRecord",
+  "KeyRecord",
+  //  "gPosRecord",
+  "aAAARecord",
+  "lOCRecord",
+  "sRVRecord",
+  "nAPTRRecord",
+  "kXRecord",
+  "certRecord",
+  //  "a6Record",
+  "dNameRecord",
+  //  "aPLRecord",
+  "dSRecord",
+  "sSHFPRecord",
+  "iPSecKeyRecord",
+  "rRSIGRecord",
+  "nSECRecord",
+  "dNSKeyRecord",
+  "dHCIDRecord",
+  "nSEC3Record",
+  "nSEC3PARAMRecord",
+  "tLSARecord",
+  "cDSRecord",
+  "cDNSKeyRecord",
+  "openPGPKeyRecord",
+  "SVCBRecord",
+  "HTTPSRecord",
+  "sPFRecord",
+  "EUI48Record",
+  "EUI64Record",
+  "tKeyRecord",
+  "uRIRecord",
+  "cAARecord",
+  "TYPE65226Record",
+  "TYPE65534Record",
+  "modifyTimestamp",
+  "PdnsRecordTTL",
+  "PdnsRecordAuth",
+  "PdnsRecordOrdername",
+  nullptr};
+
+bool LdapBackend::list(const ZoneName& target, domainid_t domain_id, bool /* include_disabled */)
 {
   try {
     d_in_list = true;
-    d_qname = target;
+    d_qname = target.operator const DNSName&();
     d_qtype = QType::ANY;
     d_results_cache.clear();
 
@@ -57,7 +117,7 @@ bool LdapBackend::list(const DNSName& target, int domain_id, bool /* include_dis
   return false;
 }
 
-bool LdapBackend::list_simple(const DNSName& target, int /* domain_id */)
+bool LdapBackend::list_simple(const ZoneName& target, domainid_t /* domain_id */)
 {
   string dn;
   string filter;
@@ -92,7 +152,7 @@ bool LdapBackend::list_simple(const DNSName& target, int /* domain_id */)
   return true;
 }
 
-bool LdapBackend::list_strict(const DNSName& target, int domain_id)
+bool LdapBackend::list_strict(const ZoneName& target, domainid_t domain_id)
 {
   if (target.isPartOf(DNSName("in-addr.arpa")) || target.isPartOf(DNSName("ip6.arpa"))) {
     g_log << Logger::Warning << d_myname << " Request for reverse zone AXFR, but this is not supported in strict mode" << endl;
@@ -102,7 +162,7 @@ bool LdapBackend::list_strict(const DNSName& target, int domain_id)
   return list_simple(target, domain_id);
 }
 
-void LdapBackend::lookup(const QType& qtype, const DNSName& qname, int zoneid, DNSPacket* dnspkt)
+void LdapBackend::lookup(const QType& qtype, const DNSName& qname, domainid_t zoneid, DNSPacket* dnspkt)
 {
   try {
     d_in_list = false;
@@ -136,7 +196,7 @@ void LdapBackend::lookup(const QType& qtype, const DNSName& qname, int zoneid, D
   }
 }
 
-void LdapBackend::lookup_simple(const QType& qtype, const DNSName& qname, DNSPacket* /* dnspkt */, int /* zoneid */)
+void LdapBackend::lookup_simple(const QType& qtype, const DNSName& qname, DNSPacket* /* dnspkt */, domainid_t /* zoneid */)
 {
   string filter, attr, qesc;
   const char** attributes = ldap_attrany + 1; // skip associatedDomain
@@ -158,7 +218,7 @@ void LdapBackend::lookup_simple(const QType& qtype, const DNSName& qname, DNSPac
   d_search = d_pldap->search(getArg("basedn"), LDAP_SCOPE_SUBTREE, filter, attributes);
 }
 
-void LdapBackend::lookup_strict(const QType& qtype, const DNSName& qname, DNSPacket* /* dnspkt */, int /* zoneid */)
+void LdapBackend::lookup_strict(const QType& qtype, const DNSName& qname, DNSPacket* /* dnspkt */, domainid_t /* zoneid */)
 {
   int len;
   vector<string> parts;
@@ -200,7 +260,7 @@ void LdapBackend::lookup_strict(const QType& qtype, const DNSName& qname, DNSPac
   d_search = d_pldap->search(getArg("basedn"), LDAP_SCOPE_SUBTREE, filter, attributes);
 }
 
-void LdapBackend::lookup_tree(const QType& qtype, const DNSName& qname, DNSPacket* /* dnspkt */, int /* zoneid */)
+void LdapBackend::lookup_tree(const QType& qtype, const DNSName& qname, DNSPacket* /* dnspkt */, domainid_t /* zoneid */)
 {
   string filter, attr, qesc, dn;
   const char** attributes = ldap_attrany + 1; // skip associatedDomain
@@ -318,7 +378,7 @@ bool LdapBackend::get(DNSResourceRecord& rr)
   return true;
 }
 
-bool LdapBackend::getDomainInfo(const DNSName& domain, DomainInfo& di, bool /* getSerial */)
+bool LdapBackend::getDomainInfo(const ZoneName& domain, DomainInfo& info, bool /* getSerial */)
 {
   string filter;
   SOAData sd;
@@ -347,7 +407,7 @@ bool LdapBackend::getDomainInfo(const DNSName& domain, DomainInfo& di, bool /* g
   catch (LDAPNoConnection& lnc) {
     g_log << Logger::Warning << d_myname << " Connection to LDAP lost, trying to reconnect" << endl;
     if (reconnect())
-      this->getDomainInfo(domain, di);
+      this->getDomainInfo(domain, info);
     else
       throw PDNSException("Failed to reconnect to LDAP server");
   }
@@ -364,42 +424,42 @@ bool LdapBackend::getDomainInfo(const DNSName& domain, DomainInfo& di, bool /* g
     fillSOAData(result["sOARecord"][0], sd);
 
     if (result.count("PdnsDomainId") && !result["PdnsDomainId"].empty())
-      di.id = std::stoi(result["PdnsDomainId"][0]);
+      info.id = static_cast<domainid_t>(std::stoll(result["PdnsDomainId"][0]));
     else
-      di.id = 0;
+      info.id = UnknownDomainID;
 
-    di.serial = sd.serial;
-    di.zone = DNSName(domain);
+    info.serial = sd.serial;
+    info.zone = domain;
 
     if (result.count("PdnsDomainLastCheck") && !result["PdnsDomainLastCheck"].empty())
-      pdns::checked_stoi_into(di.last_check, result["PdnsDomainLastCheck"][0]);
+      pdns::checked_stoi_into(info.last_check, result["PdnsDomainLastCheck"][0]);
     else
-      di.last_check = 0;
+      info.last_check = 0;
 
     if (result.count("PdnsDomainNotifiedSerial") && !result["PdnsDomainNotifiedSerial"].empty())
-      pdns::checked_stoi_into(di.notified_serial, result["PdnsDomainNotifiedSerial"][0]);
+      pdns::checked_stoi_into(info.notified_serial, result["PdnsDomainNotifiedSerial"][0]);
     else
-      di.notified_serial = 0;
+      info.notified_serial = 0;
 
     if (result.count("PdnsDomainMaster") && !result["PdnsDomainMaster"].empty()) {
       for (const auto& m : result["PdnsDomainMaster"])
-        di.primaries.emplace_back(m, 53);
+        info.primaries.emplace_back(m, 53);
     }
 
     if (result.count("PdnsDomainType") && !result["PdnsDomainType"].empty()) {
       string kind = result["PdnsDomainType"][0];
       if (kind == "master")
-        di.kind = DomainInfo::Primary;
+        info.kind = DomainInfo::Primary;
       else if (kind == "slave")
-        di.kind = DomainInfo::Secondary;
+        info.kind = DomainInfo::Secondary;
       else
-        di.kind = DomainInfo::Native;
+        info.kind = DomainInfo::Native;
     }
     else {
-      di.kind = DomainInfo::Native;
+      info.kind = DomainInfo::Native;
     }
 
-    di.backend = this;
+    info.backend = this;
     return true;
   }
 

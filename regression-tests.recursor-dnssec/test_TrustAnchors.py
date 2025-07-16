@@ -2,7 +2,7 @@ import dns
 from recursortests import RecursorTest
 
 
-class testTrustAnchorsEnabled(RecursorTest):
+class TrustAnchorsEnabledTest(RecursorTest):
     """This test will do a query for "trustanchor.server CH TXT" and hopes to get
     a proper answer"""
 
@@ -22,7 +22,7 @@ addNTA("example.com", "some reason")
     def testTrustanchorDotServer(self):
         expected = dns.rrset.from_text_list(
             'trustanchor.server.', 86400, dns.rdataclass.CH, 'TXT',
-            ['". 20326"', '"powerdns.com. 44030"'])
+            ['". 20326 38696"', '"powerdns.com. 44030"'])
         query = dns.message.make_query('trustanchor.server', 'TXT',
                                        dns.rdataclass.CH)
         result = self.sendUDPQuery(query)
@@ -42,7 +42,7 @@ addNTA("example.com", "some reason")
         self.assertRRsetInAnswer(result, expected)
 
 
-class testTrustAnchorsDisabled(RecursorTest):
+class TrustAnchorsDisabledTest(RecursorTest):
     """This test will do a query for "trustanchor.server CH TXT" and hopes to get
     a proper answer"""
 

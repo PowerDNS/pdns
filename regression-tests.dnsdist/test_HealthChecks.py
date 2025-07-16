@@ -5,7 +5,8 @@ import ssl
 import threading
 import time
 import dns
-from dnsdisttests import DNSDistTest, pickAvailablePort
+import queue
+from dnsdisttests import DNSDistTest, pickAvailablePort, ResponderDropAction
 
 class HealthCheckTest(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
@@ -56,6 +57,7 @@ class TestDefaultHealthCheck(HealthCheckTest):
 
         self.sendConsoleCommand("getServer(0):setUp()")
         self.assertEqual(self.getBackendStatus(), 'up')
+        self.assertEqual(self.sendConsoleCommand("getServer(0):getHealthCheckMode()").rstrip(), "active")
 
         before = TestDefaultHealthCheck._healthCheckCounter
         time.sleep(1.5)
@@ -71,6 +73,7 @@ class TestDefaultHealthCheck(HealthCheckTest):
         self.sendConsoleCommand("getServer(0):setAuto()")
         # we get back the previous state, which was up
         self.assertEqual(self.getBackendStatus(), 'up')
+        self.assertEqual(self.sendConsoleCommand("getServer(0):getHealthCheckMode()").rstrip(), "active")
 
         before = TestDefaultHealthCheck._healthCheckCounter
         time.sleep(1.5)
@@ -79,6 +82,7 @@ class TestDefaultHealthCheck(HealthCheckTest):
 
         self.sendConsoleCommand("getServer(0):setDown()")
         self.assertEqual(self.getBackendStatus(), 'down')
+        self.assertEqual(self.sendConsoleCommand("getServer(0):getHealthCheckMode()").rstrip(), "active")
         self.sendConsoleCommand("getServer(0):setAuto(false)")
 
         before = TestDefaultHealthCheck._healthCheckCounter
@@ -86,6 +90,15 @@ class TestDefaultHealthCheck(HealthCheckTest):
         self.assertGreater(TestDefaultHealthCheck._healthCheckCounter, before)
         self.assertEqual(self.getBackendStatus(), 'up')
         self.assertEqual(self.getBackendMetric(0, 'healthCheckFailures'), 0)
+        self.assertEqual(self.sendConsoleCommand("getServer(0):getHealthCheckMode()").rstrip(), "active")
+
+        self.sendConsoleCommand("getServer(0):setLazyAuto()")
+        self.assertEqual(self.sendConsoleCommand("getServer(0):getHealthCheckMode()").rstrip(), "lazy")
+        self.sendConsoleCommand("getServer(0):setDown()")
+        self.sendConsoleCommand("getServer(0):setAuto()")
+        self.assertEqual(self.sendConsoleCommand("getServer(0):getHealthCheckMode()").rstrip(), "lazy")
+        self.sendConsoleCommand("getServer(0):setActiveAuto()")
+        self.assertEqual(self.sendConsoleCommand("getServer(0):getHealthCheckMode()").rstrip(), "active")
 
 class TestHealthCheckForcedUP(HealthCheckTest):
     # this test suite uses a different responder port
@@ -234,10 +247,10 @@ class TestLazyHealthChecks(HealthCheckTest):
 
     newServer{address="127.0.0.1:%s", healthCheckMode='lazy', checkInterval=1, lazyHealthCheckFailedInterval=1, lazyHealthCheckThreshold=10, lazyHealthCheckSampleSize=100,  lazyHealthCheckMinSampleCount=10, lazyHealthCheckMode='TimeoutOrServFail', pool=''}
 
-    newServer{address="127.0.0.1:%s", tls='openssl', caStore='ca.pem', healthCheckMode='lazy', checkInterval=1, lazyHealthCheckFailedInterval=1, lazyHealthCheckThreshold=10, lazyHealthCheckSampleSize=100,  lazyHealthCheckMinSampleCount=10, lazyHealthCheckMode='TimeoutOrServFail', pool='dot'}
+    newServer{address="127.0.0.1:%s", tls='openssl', caStore='ca.pem', subjectAddr='127.0.0.1', healthCheckMode='lazy', checkInterval=1, lazyHealthCheckFailedInterval=1, lazyHealthCheckThreshold=10, lazyHealthCheckSampleSize=100,  lazyHealthCheckMinSampleCount=10, lazyHealthCheckMode='TimeoutOrServFail', pool='dot'}
     addAction('dot.lazy.test.powerdns.com.', PoolAction('dot'))
 
-    newServer{address="127.0.0.1:%s", tls='openssl', dohPath='/dns-query', caStore='ca.pem', healthCheckMode='lazy', checkInterval=1, lazyHealthCheckFailedInterval=1, lazyHealthCheckThreshold=10, lazyHealthCheckSampleSize=100,  lazyHealthCheckMinSampleCount=10, lazyHealthCheckMode='TimeoutOrServFail', pool='doh'}
+    newServer{address="127.0.0.1:%s", tls='openssl', dohPath='/dns-query', caStore='ca.pem', subjectAddr='127.0.0.1', healthCheckMode='lazy', checkInterval=1, lazyHealthCheckFailedInterval=1, lazyHealthCheckThreshold=10, lazyHealthCheckSampleSize=100,  lazyHealthCheckMinSampleCount=10, lazyHealthCheckMode='TimeoutOrServFail', pool='doh'}
     addAction('doh.lazy.test.powerdns.com.', PoolAction('doh'))
     """
     _verboseMode = True
@@ -398,3 +411,228 @@ class TestLazyHealthChecks(HealthCheckTest):
         time.sleep(1.5)
         self.assertEqual(_dohHealthCheckQueries, 2)
         self.assertEqual(self.getBackendStatus(), 'up')
+
+class HealthCheckUpdateParams(HealthCheckTest):
+
+    _healthQueue = queue.Queue()
+    _dropHealthCheck = False
+
+    @classmethod
+    def startResponders(cls):
+        print("Launching responders..")
+        cls._UDPResponder = threading.Thread(name='UDP Responder', target=cls.UDPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue, False, cls.healthCallback])
+        cls._UDPResponder.daemon = True
+        cls._UDPResponder.start()
+
+    @classmethod
+    def healthCallback(cls, request):
+        if cls._dropHealthCheck:
+          cls._healthQueue.put(False)
+          return ResponderDropAction()
+        response = dns.message.make_response(request)
+        cls._healthQueue.put(True)
+        return response.to_wire()
+
+    @classmethod
+    def wait1(cls, block=True):
+        return cls._healthQueue.get(block)
+
+    @classmethod
+    def setDrop(cls, flag=True):
+        cls._dropHealthCheck = flag
+
+class TestUpdateHCParamsCombo1(HealthCheckUpdateParams):
+
+    # this test suite uses a different responder port
+    _testServerPort = pickAvailablePort()
+
+    def testCombo1(self):
+        """
+        HealthChecks: Update maxCheckFailures, rise
+        """
+        # consume health checks upon sys init
+        try:
+          while self.wait1(False): pass
+        except queue.Empty: pass
+
+        self.assertEqual(self.wait1(), True)
+        time.sleep(0.1)
+        self.assertEqual(self.getBackendMetric(0, 'healthCheckFailures'), 0)
+        self.assertEqual(self.getBackendStatus(), 'up')
+
+        self.sendConsoleCommand("getServer(0):setHealthCheckParams({maxCheckFailures=2,rise=2})")
+        self.setDrop()
+
+        # wait for 1st failure
+        for i in [1,2,3]:
+            rc = self.wait1()
+            if rc is False: break
+        self.assertGreater(3, i)
+        time.sleep(1.1)
+        # should have failures but still up
+        self.assertGreater(self.getBackendMetric(0, 'healthCheckFailures'), 0)
+        self.assertEqual(self.getBackendStatus(), 'up')
+
+        # wait for 2nd failure
+        self.assertEqual(self.wait1(), False)
+        time.sleep(1.1)
+        # should have more failures and down
+        self.assertGreater(self.getBackendMetric(0, 'healthCheckFailures'), 1)
+        self.assertEqual(self.getBackendStatus(), 'down')
+
+        self.setDrop(False)
+
+        # wait for 1st success
+        for i in [1,2,3]:
+            rc = self.wait1()
+            if rc is True: break
+        self.assertGreater(3, i)
+        time.sleep(0.1)
+        # still down
+        self.assertEqual(self.getBackendStatus(), 'down')
+
+        beforeFailure = self.getBackendMetric(0, 'healthCheckFailures')
+
+        # wati for 2nd success
+        self.assertEqual(self.wait1(), True)
+        time.sleep(0.1)
+        # should have no more failures, back to up
+        self.assertEqual(self.getBackendMetric(0, 'healthCheckFailures'), beforeFailure)
+        self.assertEqual(self.getBackendStatus(), 'up')
+
+class TestUpdateHCParamsCombo2(HealthCheckUpdateParams):
+
+    # this test suite uses a different responder port
+    _testServerPort = pickAvailablePort()
+
+    def testCombo2(self):
+        """
+        HealthChecks: Update checkTimeout, checkInterval
+        """
+        # consume health checks upon sys init
+        try:
+          while self.wait1(False): pass
+        except queue.Empty: pass
+
+        self.assertEqual(self.wait1(), True)
+        time.sleep(0.1)
+        self.assertEqual(self.getBackendMetric(0, 'healthCheckFailures'), 0)
+        self.assertEqual(self.getBackendStatus(), 'up')
+
+        self.sendConsoleCommand("getServer(0):setHealthCheckParams({checkInterval=2})")
+
+        # start timing
+        self.assertEqual(self.wait1(), True)
+        t1 = time.time()
+        self.assertEqual(self.wait1(), True)
+        t2 = time.time()
+        # intervals shall be greater than 1
+        self.assertGreater(t2-t1, 1.5)
+
+        self.sendConsoleCommand("getServer(0):setHealthCheckParams({checkTimeout=2000})")
+        self.setDrop()
+
+        # wait for 1st failure
+        for i in [1,2,3]:
+            rc = self.wait1()
+            if rc is False: break
+        self.assertGreater(3, i)
+
+        beforeFailure = self.getBackendMetric(0, 'healthCheckFailures')
+
+        time.sleep(1.5)
+        # not timeout yet, should have no failure increase
+        self.assertEqual(self.getBackendMetric(0, 'healthCheckFailures'), beforeFailure)
+
+        time.sleep(1)
+        # now should timeout and failure increased
+        self.assertEqual(self.getBackendMetric(0, 'healthCheckFailures'), beforeFailure+1)
+
+class TestServerStateChange(HealthCheckTest):
+
+    _healthQueue = queue.Queue()
+    _dropHealthCheck = False
+    _config_template = """
+    setKey("%s")
+    controlSocket("127.0.0.1:%d")
+    webserver("127.0.0.1:%s")
+    setWebserverConfig({apiKey="%s"})
+    srv = newServer{address="127.0.0.1:%d",maxCheckFailures=1,checkTimeout=1000,checkInterval=1,rise=1}
+    srv:setAuto(false)
+    serverUpCount = {}
+    serverDownCount = {}
+    function ServerStateChange(nameAddr, newState)
+        if newState then
+            if not serverUpCount[nameAddr] then serverUpCount[nameAddr] = 0 end
+            serverUpCount[nameAddr] = serverUpCount[nameAddr] + 1
+        else
+            if not serverDownCount[nameAddr] then serverDownCount[nameAddr] = 0 end
+            serverDownCount[nameAddr] = serverDownCount[nameAddr] + 1
+        end
+    end
+    addServerStateChangeCallback(ServerStateChange)
+    function getCount(nameAddr, state)
+        if state then
+            if not serverUpCount[nameAddr] then serverUpCount[nameAddr] = 0 end
+            return serverUpCount[nameAddr]
+        else
+            if not serverDownCount[nameAddr] then serverDownCount[nameAddr] = 0 end
+            return serverDownCount[nameAddr]
+        end
+    end
+    """
+
+    @classmethod
+    def startResponders(cls):
+        print("Launching responders..")
+        cls._UDPResponder = threading.Thread(name='UDP Responder', target=cls.UDPResponder, args=[cls._testServerPort, cls._toResponderQueue, cls._fromResponderQueue, False, cls.healthCallback])
+        cls._UDPResponder.daemon = True
+        cls._UDPResponder.start()
+
+    @classmethod
+    def healthCallback(cls, request):
+        if cls._dropHealthCheck:
+          cls._healthQueue.put(False)
+          print("health check received drop")
+          return ResponderDropAction()
+        response = dns.message.make_response(request)
+        cls._healthQueue.put(True)
+        print("health check received return")
+        return response.to_wire()
+
+    @classmethod
+    def setDrop(cls, flag=True):
+        cls._dropHealthCheck = flag
+
+    def getCount(self, nameAddr, state):
+        if state:
+            return int(self.sendConsoleCommand("getCount('{}', true)".format(nameAddr)).strip("\n"))
+        return int(self.sendConsoleCommand("getCount('{}', false)".format(nameAddr)).strip("\n"))
+
+    def testServerStateChange(self):
+        """
+        HealthChecks: test Server State Change callback
+        """
+
+        nameAddr = self.sendConsoleCommand("getServer(0):getNameWithAddr()").strip("\n")
+        self.assertTrue(nameAddr)
+
+        time.sleep(1)
+        # server initial up shall have been hit
+        self.assertEqual(self.getBackendStatus(), 'up')
+        self.assertEqual(self.getCount(nameAddr, True), 1)
+        self.assertEqual(self.getCount(nameAddr, False), 0)
+
+        self.setDrop(True)
+        time.sleep(2.5)
+        # up count did not change, down count increased by 1
+        self.assertEqual(self.getBackendStatus(), 'down')
+        self.assertEqual(self.getCount(nameAddr, True), 1)
+        self.assertEqual(self.getCount(nameAddr, False), 1)
+
+        self.setDrop(False)
+        time.sleep(1.5)
+        # up count increased again, down count did not change
+        self.assertEqual(self.getBackendStatus(), 'up')
+        self.assertEqual(self.getCount(nameAddr, True), 2)
+        self.assertEqual(self.getCount(nameAddr, False), 1)

@@ -57,7 +57,7 @@ Functions and methods of a ``DNSName``
     Provided that the current name is part of the supplied name, returns a new DNSName
     composed only of the labels that are below the supplied name (ie making www.powerdns.com
     relative to powerdns.com would return only wwww)
-    Otherwise an empty (unset) DNSName is returned.
+    Otherwise, an empty (unset) DNSName is returned.
 
     :param DNSName name: The name to make us relative against
 

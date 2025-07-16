@@ -19,13 +19,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-#include "logger.hh"
-#include "version.hh"
-#include "dnsbackend.hh"
 
+#include "config.h"
+#include "version.hh"
+#include "namespaces.hh"
+
+#ifdef PDNS_MODULES
+#include "dnsbackend.hh"
+#endif
+
+#include <sstream>
 #include <boost/algorithm/string/join.hpp>
 
 static ProductType productType;
@@ -33,16 +36,17 @@ static ProductType productType;
 string compilerVersion()
 {
 #if defined(__clang__)
-  return string("clang " __clang_version__ );
+  return "clang " __clang_version__;
 #elif defined(__GNUC__)
-  return string("gcc " __VERSION__ );
-#else  // add other compilers here
-  return string("Unknown compiler");
+  return "gcc " __VERSION__;
+#else // add other compilers here
+  return "Unknown compiler";
 #endif
 }
 
 // Human-readable product name
-string productName() {
+string productName()
+{
   switch (productType) {
   case ProductAuthoritative:
     return "PowerDNS Authoritative Server";
@@ -58,7 +62,8 @@ string getPDNSVersion()
 }
 
 // REST API product type
-string productTypeApiType() {
+string productTypeApiType()
+{
   switch (productType) {
   case ProductAuthoritative:
     return "authoritative";
@@ -68,120 +73,133 @@ string productTypeApiType() {
   return "unknown";
 }
 
-void showProductVersion()
+vector<string> getProductVersionLines()
 {
-  g_log<<Logger::Warning<<productName()<<" "<< VERSION << " (C) "
-    "PowerDNS.COM BV" << endl;
-  g_log<<Logger::Warning<<"Using "<<(sizeof(unsigned long)*8)<<"-bits mode. "
-    "Built using " << compilerVersion()
-#ifndef REPRODUCIBLE
-    <<" on " __DATE__ " " __TIME__ " by " BUILD_HOST
-#endif
-    <<"."<< endl;
-  g_log<<Logger::Warning<<"PowerDNS comes with ABSOLUTELY NO WARRANTY. "
-    "This is free software, and you are welcome to redistribute it "
-    "according to the terms of the GPL version 2." << endl;
+  vector<string> ret;
+  std::istringstream istr(getProductVersion());
+  for (string line; std::getline(istr, line);) {
+    ret.emplace_back(line);
+  }
+  return ret;
 }
 
-void showBuildConfiguration()
+string getProductVersion()
 {
-  g_log<<Logger::Warning<<"Features: "<<
-#ifdef HAVE_LIBDECAF
-    "decaf " <<
+  ostringstream ret;
+  ret << productName() << " " << VERSION << " (C) "
+                                            "PowerDNS.COM BV"
+      << endl;
+  ret << "Using " << (sizeof(unsigned long) * 8) << "-bits mode. "
+                                                    "Built using "
+      << compilerVersion()
+#ifndef REPRODUCIBLE
+      << " on " __DATE__ " " __TIME__ " by " BUILD_HOST
 #endif
-#ifdef HAVE_BOOST_CONTEXT
-    "fcontext " <<
-#endif
+      << "." << endl;
+  ret << "PowerDNS comes with ABSOLUTELY NO WARRANTY. "
+         "This is free software, and you are welcome to redistribute it "
+         "according to the terms of the GPL version 2."
+      << endl;
+  return ret.str();
+}
+
+string getBuildConfiguration()
+{
+  ostringstream ret;
+  ret << "Features:"
 #ifdef HAVE_LIBCRYPTO_ECDSA
-    "libcrypto-ecdsa " <<
+      << " libcrypto-ecdsa"
 #endif
 #ifdef HAVE_LIBCRYPTO_ED25519
-    "libcrypto-ed25519 " <<
+      << " libcrypto-ed25519"
 #endif
 #ifdef HAVE_LIBCRYPTO_ED448
-    "libcrypto-ed448 " <<
+      << " libcrypto-ed448"
 #endif
 #ifdef HAVE_LIBCRYPTO_EDDSA
-    "libcrypto-eddsa " <<
+      << " libcrypto-eddsa"
 #endif
 #ifdef HAVE_LIBDL
-    "libdl " <<
+      << " libdl"
 #endif
 #ifdef HAVE_GEOIP
-    "libgeoip " <<
+      << " libgeoip"
 #endif
 #ifdef HAVE_MMDB
-    "libmaxminddb " <<
+      << " libmaxminddb"
 #endif
 #ifdef HAVE_LUA
-    "lua " <<
+      << " lua"
 #endif
 #ifdef HAVE_LUA_RECORDS
-    "lua-records " <<
+      << " lua-records"
 #endif
 #ifdef NOD_ENABLED
-    "nod " <<
+      << " nod"
 #endif
 #ifdef HAVE_P11KIT1
-    "PKCS#11 " <<
+      << " PKCS#11"
 #endif
-"protobuf " <<
+      << " protobuf"
 #ifdef HAVE_FSTRM
-"dnstap-framestream " <<
+      << " dnstap-framestream"
 #endif
 #ifdef REMOTEBACKEND_ZEROMQ
-    "remotebackend-zeromq " <<
+      << " remotebackend-zeromq"
 #endif
 #ifdef HAVE_NET_SNMP
-    "snmp " <<
+      << " snmp"
 #endif
 #ifdef HAVE_LIBSODIUM
-    "sodium " <<
+      << " sodium"
 #endif
 #ifdef HAVE_LIBCURL
-    "curl " <<
+      << " curl"
 #endif
 #ifdef HAVE_DNS_OVER_TLS
-    "DoT " <<
+      << " DoT"
 #endif
 #ifdef HAVE_EVP_PKEY_CTX_SET1_SCRYPT_SALT
-    "scrypt " <<
+      << " scrypt"
 #endif
 #ifdef ENABLE_GSS_TSIG
-    "gss-tsig " <<
+      << " gss-tsig"
 #endif
 #ifdef VERBOSELOG
-    "verboselog" <<
+      << " verboselog"
 #endif
-    endl;
+      << endl;
 #ifdef PDNS_MODULES
   // Auth only
-  g_log << Logger::Warning << "Built-in modules: " << PDNS_MODULES << endl;
+  ret << "Built-in modules: " << PDNS_MODULES << endl;
   const auto& modules = BackendMakers().getModules();
-  g_log << Logger::Warning << "Loaded modules: " << boost::join(modules, " ") << endl;
+  ret << "Loaded modules: " << boost::join(modules, " ") << endl;
 #endif
+// NOLINTBEGIN(cppcoreguidelines-macro-usage)
 #ifdef PDNS_CONFIG_ARGS
 #define double_escape(s) #s
 #define escape_quotes(s) double_escape(s)
-  g_log<<Logger::Warning<<"Configured with: "<<escape_quotes(PDNS_CONFIG_ARGS)<<endl;
+  // NOLINTEND(cppcoreguidelines-macro-usage)
+  ret << "Configured with: " << escape_quotes(PDNS_CONFIG_ARGS) << endl;
 #undef escape_quotes
 #undef double_escape
 #endif
+  return ret.str();
 }
 
 string fullVersionString()
 {
-  ostringstream s;
-  s<<productName()<<" " VERSION;
+  ostringstream ret;
+  ret << productName() << " " VERSION;
 #ifndef REPRODUCIBLE
-  s<<" (built " __DATE__ " " __TIME__ " by " BUILD_HOST ")";
+  ret << " (built " __DATE__ " " __TIME__ " by " BUILD_HOST ")";
 #endif
-  return s.str();
+  return ret.str();
 }
 
-void versionSetProduct(ProductType pt)
+void versionSetProduct(ProductType productType_)
 {
-  productType = pt;
+  productType = productType_;
 }
 
 ProductType versionGetProduct()

@@ -8,9 +8,11 @@
 #include "config.h"
 #endif
 #include <boost/test/unit_test.hpp>
+#include <boost/format.hpp>
 
 #include "iputils.hh"
 #include "recursor_cache.hh"
+#include "syncres.hh"
 
 BOOST_AUTO_TEST_SUITE(recursorcache_cc)
 
@@ -20,7 +22,7 @@ static void simple(time_t now)
   MemRecursorCache MRC;
 
   std::vector<DNSRecord> records;
-  std::vector<std::shared_ptr<DNSRecord>> authRecords;
+  MemRecursorCache::AuthRecsVec authRecords;
   std::vector<std::shared_ptr<const RRSIGRecordContent>> signatures;
   const DNSName authZone(".");
 
@@ -162,6 +164,7 @@ static void simple(time_t now)
     BOOST_CHECK_EQUAL(retrieved.size(), 0U);
 
     // QType::ANY should return any qtype, so from the right subnet we should get all of them
+    MemRecursorCache::s_limitQTypeAny = false;
     BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::ANY), MemRecursorCache::None, &retrieved, ComboAddress("192.0.2.3")), (ttd - now));
     BOOST_CHECK_EQUAL(retrieved.size(), 3U);
     for (const auto& rec : retrieved) {
@@ -389,13 +392,60 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheSimpleDistantFuture)
 }
 #endif
 
+BOOST_AUTO_TEST_CASE(test_RecursorCacheBig)
+{
+  MemRecursorCache::resetStaticsForTests();
+  MemRecursorCache MRC;
+
+  std::vector<DNSRecord> records;
+  std::vector<DNSRecord> retrieved;
+  const DNSName authZone(".");
+
+  time_t now = time(nullptr);
+  time_t ttd = now + 30;
+  DNSName power("powerdns.com.");
+  DNSRecord dr0;
+  string dr0Content("2001:DB8::");
+  dr0.d_name = power;
+  dr0.d_type = QType::AAAA;
+  dr0.d_class = QClass::IN;
+  dr0.d_ttl = static_cast<uint32_t>(ttd); // XXX truncation
+  dr0.d_place = DNSResourceRecord::ANSWER;
+  for (int i = 0; i < MemRecursorCache::s_maxRRSetSize; i++) {
+    dr0.setContent(std::make_shared<AAAARecordContent>(dr0Content + std::to_string(i)));
+    records.push_back(dr0);
+  }
+
+  // This one should fit
+  MRC.replace(now, power, QType::AAAA, records, {}, {}, true, authZone, boost::none);
+  BOOST_CHECK_EQUAL(MRC.size(), 1U);
+  BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::AAAA), MemRecursorCache::None, &retrieved, ComboAddress()), (ttd - now));
+  BOOST_CHECK_EQUAL(retrieved.size(), MemRecursorCache::s_maxRRSetSize);
+
+  dr0.setContent(std::make_shared<AAAARecordContent>(dr0Content + std::to_string(MemRecursorCache::s_maxRRSetSize)));
+  records.push_back(dr0);
+  // This one is too large and should throw exception
+  MRC.replace(now, power, QType::AAAA, records, {}, {}, true, authZone, boost::none);
+  BOOST_CHECK_EQUAL(MRC.size(), 1U);
+
+  BOOST_CHECK_THROW((void)MRC.get(now, power, QType(QType::AAAA), MemRecursorCache::None, &retrieved, ComboAddress()),
+                    ImmediateServFailException);
+
+  records.resize(1);
+  // This one should fit again
+  MRC.replace(now, power, QType::AAAA, records, {}, {}, true, authZone, boost::none);
+  BOOST_CHECK_EQUAL(MRC.size(), 1U);
+  BOOST_CHECK_EQUAL(MRC.get(now, power, QType(QType::AAAA), MemRecursorCache::None, &retrieved, ComboAddress()), (ttd - now));
+  BOOST_CHECK_EQUAL(retrieved.size(), 1U);
+}
+
 BOOST_AUTO_TEST_CASE(test_RecursorCacheGhost)
 {
   MemRecursorCache::resetStaticsForTests();
   MemRecursorCache MRC;
 
   std::vector<DNSRecord> records;
-  std::vector<std::shared_ptr<DNSRecord>> authRecords;
+  MemRecursorCache::AuthRecsVec authRecords;
   std::vector<std::shared_ptr<const RRSIGRecordContent>> signatures;
   time_t now = time(nullptr);
 
@@ -439,7 +489,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheReplaceAuthByNonAuthMargin)
   MemRecursorCache MRC;
 
   std::vector<DNSRecord> records;
-  std::vector<std::shared_ptr<DNSRecord>> authRecords;
+  MemRecursorCache::AuthRecsVec authRecords;
   std::vector<std::shared_ptr<const RRSIGRecordContent>> signatures;
   time_t now = time(nullptr);
 
@@ -486,7 +536,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingExpiredEntries)
 
   std::vector<DNSRecord> records;
   std::vector<std::shared_ptr<const RRSIGRecordContent>> signatures;
-  std::vector<std::shared_ptr<DNSRecord>> authRecs;
+  MemRecursorCache::AuthRecsVec authRecs;
   const DNSName authZone(".");
   BOOST_CHECK_EQUAL(MRC.size(), 0U);
   time_t now = time(nullptr);
@@ -581,7 +631,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_ExpungingValidEntries)
 
   std::vector<DNSRecord> records;
   std::vector<std::shared_ptr<const RRSIGRecordContent>> signatures;
-  std::vector<std::shared_ptr<DNSRecord>> authRecs;
+  MemRecursorCache::AuthRecsVec authRecs;
   const DNSName authZone(".");
   BOOST_CHECK_EQUAL(MRC.size(), 0U);
   time_t now = time(nullptr);
@@ -761,7 +811,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheECSIndex)
   const DNSName power("powerdns.com.");
   const DNSName authZone(".");
   std::vector<DNSRecord> records;
-  std::vector<std::shared_ptr<DNSRecord>> authRecords;
+  MemRecursorCache::AuthRecsVec authRecords;
   std::vector<std::shared_ptr<const RRSIGRecordContent>> signatures;
   time_t now = time(nullptr);
   std::vector<DNSRecord> retrieved;
@@ -921,7 +971,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCache_Wipe)
   const DNSName power("powerdns.com.");
   const DNSName authZone(".");
   std::vector<DNSRecord> records;
-  std::vector<std::shared_ptr<DNSRecord>> authRecords;
+  MemRecursorCache::AuthRecsVec authRecords;
   std::vector<std::shared_ptr<const RRSIGRecordContent>> signatures;
   time_t now = time(nullptr);
   std::vector<DNSRecord> retrieved;
@@ -1010,7 +1060,7 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheTagged)
   MemRecursorCache MRC;
 
   const DNSName authZone(".");
-  std::vector<std::shared_ptr<DNSRecord>> authRecords;
+  MemRecursorCache::AuthRecsVec authRecords;
   std::vector<std::shared_ptr<const RRSIGRecordContent>> signatures;
   time_t now = time(nullptr);
   time_t ttd = now + 30;
@@ -1237,5 +1287,231 @@ BOOST_AUTO_TEST_CASE(test_RecursorCacheTagged)
     throw;
   }
 }
+
+BOOST_AUTO_TEST_CASE(test_RecursorCacheDumpAndRestore)
+{
+  MemRecursorCache::resetStaticsForTests();
+  MemRecursorCache MRC;
+
+  const DNSName authZone(".");
+  MemRecursorCache::AuthRecsVec authRecords;
+  DNSRecord dr;
+  dr.d_place = DNSResourceRecord::ANSWER;
+  dr.d_name = DNSName("hi");
+  dr.d_type = QType::AAAA;
+  dr.d_ttl = 3600;
+  dr.setContent(std::make_shared<ARecordContent>(ComboAddress("1::2:3:4")));
+  authRecords.emplace_back(dr);
+
+  std::vector<std::shared_ptr<const RRSIGRecordContent>> signatures;
+  signatures.emplace_back(std::dynamic_pointer_cast<RRSIGRecordContent>(RRSIGRecordContent::make("DNSKEY 8 0 172800 20241111000000 20241021000000 20326 . alCFgDZS+0l5zcpQ/7R+5OFeCrk9KGkNP2F9ynXIXG6QigPj/9qjm0xx ItRJUUim+SrJywAmLKe+48oTUeSRyDKVVg3LGDekLKcIVz0EBqTL2y44 usDlUlxqx5O0LQVHy4h/hm9+dCXFiSBWoV0LcAplV9OYWhxi+CxmxZU5 8vK6eVAde8E2JHdeDuy23WF5lxYEg1q7ehEt5EdRvZ7hZzfawEFR3Qv3 WMootO2eBAAneIe94daJP/i1iwQJ4p+bGVCZ4sJk+Pk9J7lwEQq6Ghkd SpLsRxArUhvoVgtnh0LkAV7TsajYk8K2JRt7wHNDbBV6+Vdq2bh7ZPGv LiGkIQ==")));
+
+  time_t now = time(nullptr);
+  time_t ttd = now + 30;
+
+  DNSName power("powerdns.com.");
+  DNSRecord dr0;
+  ComboAddress dr0Content("192.0.2.40");
+  dr0.d_name = power;
+  dr0.d_type = QType::A;
+  dr0.d_class = QClass::IN;
+  dr0.setContent(std::make_shared<ARecordContent>(dr0Content));
+  dr0.d_ttl = static_cast<uint32_t>(ttd);
+  dr0.d_place = DNSResourceRecord::ANSWER;
+  std::vector<DNSRecord> rset0;
+  rset0.push_back(dr0);
+
+  const ComboAddress nobody;
+  const ComboAddress somebody("::1");
+  const time_t ttl_time = 90;
+
+  auto checker = [&] {
+    const size_t expected = 100;
+
+    for (size_t counter = 0; counter < expected; ++counter) {
+      DNSName a = DNSName("hello ") + DNSName(std::to_string(counter));
+      BOOST_CHECK_EQUAL(DNSName(a.toString()), a);
+
+      MRC.replace(now, a, QType(QType::A), rset0, signatures, authRecords, true, authZone, boost::none, boost::none, vState::Insecure, somebody, false, ttl_time);
+    }
+
+    BOOST_CHECK_EQUAL(MRC.size(), expected);
+
+    size_t matches = 0;
+
+    for (size_t counter = 0; counter < expected + 10; counter++) {
+      std::vector<DNSRecord> retrieved;
+      MemRecursorCache::AuthRecs authRecs;
+      MemRecursorCache::SigRecs sigs;
+      bool variable = false;
+      vState state = vState::Indeterminate;
+      bool wasAuth = false;
+      DNSName fromZone;
+      ComboAddress from;
+      if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(counter)), QType(QType::A), MemRecursorCache::None, &retrieved, somebody, boost::none, &sigs, &authRecs, &variable, &state, &wasAuth, &fromZone, &from) > 0) {
+        matches++;
+        BOOST_CHECK_EQUAL(retrieved.size(), rset0.size());
+        BOOST_CHECK_EQUAL(getRR<ARecordContent>(retrieved.at(0))->getCA().toString(), dr0Content.toString());
+        BOOST_CHECK_EQUAL(sigs->size(), 1U);
+        BOOST_CHECK_EQUAL(sigs->at(0)->getZoneRepresentation(), signatures.at(0)->getZoneRepresentation());
+        BOOST_CHECK_EQUAL(authRecs->size(), 1U);
+
+        BOOST_CHECK_EQUAL(authRecs->at(0).toString(), authRecords.at(0).toString());
+        BOOST_CHECK_EQUAL(state, vState::Insecure);
+        BOOST_CHECK_EQUAL(wasAuth, true);
+        BOOST_CHECK_EQUAL(fromZone, authZone);
+        BOOST_CHECK_EQUAL(from.toString(), somebody.toString());
+      }
+    }
+    BOOST_CHECK_EQUAL(matches, expected);
+  };
+  try {
+    checker();
+
+    std::string dump;
+    MRC.getRecordSets(0, 0, dump);
+    MRC.doWipeCache(DNSName("."), true);
+    BOOST_CHECK_EQUAL(MRC.size(), 0U);
+    size_t inserted = MRC.putRecordSets(dump);
+    BOOST_CHECK_EQUAL(inserted, 100U);
+    BOOST_CHECK_EQUAL(MRC.size(), 100U);
+
+    checker();
+  }
+  catch (const PDNSException& e) {
+    cerr << "Had error: " << e.reason << endl;
+    throw;
+  }
+}
+
+#if 0
+volatile bool g_ret; // make sure the optimizer does not get too smart
+uint64_t g_totalRuns;
+volatile bool g_stop;
+
+static void alarmHandler(int /* unused */)
+{
+  g_stop = true;
+}
+
+template <typename C>
+void doRun(const C& cmd, int mseconds = 100)
+{
+  itimerval timer{};
+  timer.it_value.tv_sec = mseconds / 1000;
+  timer.it_value.tv_usec = 1000 * (mseconds % 1000);
+  timer.it_interval.tv_sec = 0;
+  timer.it_interval.tv_usec = 0;
+
+  signal(SIGPROF, alarmHandler);
+  setitimer(ITIMER_PROF, &timer, nullptr);
+
+  unsigned int runs = 0;
+  g_stop = false;
+  CPUTime start{};
+  start.start();
+  while (runs++, !g_stop) {
+    cmd();
+  }
+  double delta = static_cast<double>(start.ndiff()) / 1000000000.0;
+  boost::format fmt("'%s' %.02f seconds: %.1f runs/s, %.02f us/run");
+
+  cerr << (fmt % cmd.getName() % delta % (runs / delta) % (delta * 1000000.0 / runs)) << endl;
+  g_totalRuns += runs;
+}
+
+struct NOPTest
+{
+  [[nodiscard]] static string getName()
+  {
+    return "null test";
+  }
+
+  void operator()() const
+  {
+  }
+};
+
+struct RecordsSpeedTest
+{
+  [[nodiscard]] static string getName()
+  {
+    return "RecordsSpeedTest";
+  }
+
+  void operator()() const
+  {
+    MemRecursorCache::resetStaticsForTests();
+    MemRecursorCache MRC;
+
+    const DNSName authZone(".");
+    MemRecursorCache::AuthRecsVec authRecords;
+    DNSRecord dr;
+    dr.d_place = DNSResourceRecord::ANSWER;
+    dr.d_name = DNSName("hi");
+    dr.d_type = QType::AAAA;
+    dr.d_ttl = 3600;
+    dr.setContent(std::make_shared<ARecordContent>(ComboAddress("1::2:3:4")));
+    authRecords.emplace_back(dr);
+    time_t now = time(nullptr);
+    time_t ttd = now + 30;
+
+    MemRecursorCache::SigRecsVec signatures;
+    signatures.emplace_back(std::dynamic_pointer_cast<RRSIGRecordContent>(RRSIGRecordContent::make("DNSKEY 8 0 172800 20241111000000 20241021000000 20326 . alCFgDZS+0l5zcpQ/7R+5OFeCrk9KGkNP2F9ynXIXG6QigPj/9qjm0xx ItRJUUim+SrJywAmLKe+48oTUeSRyDKVVg3LGDekLKcIVz0EBqTL2y44 usDlUlxqx5O0LQVHy4h/hm9+dCXFiSBWoV0LcAplV9OYWhxi+CxmxZU5 8vK6eVAde8E2JHdeDuy23WF5lxYEg1q7ehEt5EdRvZ7hZzfawEFR3Qv3 WMootO2eBAAneIe94daJP/i1iwQJ4p+bGVCZ4sJk+Pk9J7lwEQq6Ghkd SpLsRxArUhvoVgtnh0LkAV7TsajYk8K2JRt7wHNDbBV6+Vdq2bh7ZPGv LiGkIQ==")));
+
+    DNSName power("powerdns.com.");
+    DNSRecord dr0;
+    ComboAddress dr0Content("192.0.2.40");
+    dr0.d_name = power;
+    dr0.d_type = QType::A;
+    dr0.d_class = QClass::IN;
+    dr0.setContent(std::make_shared<ARecordContent>(dr0Content));
+    dr0.d_ttl = static_cast<uint32_t>(ttd);
+    dr0.d_place = DNSResourceRecord::ANSWER;
+    std::vector<DNSRecord> rset0;
+    rset0.push_back(dr0);
+
+    const ComboAddress nobody;
+    const ComboAddress somebody("::1");
+    const time_t ttl_time = 90;
+    const size_t expected = 100;
+
+    for (size_t counter = 0; counter < expected; ++counter) {
+      DNSName a = DNSName("hello ") + DNSName(std::to_string(counter));
+      BOOST_CHECK_EQUAL(DNSName(a.toString()), a);
+
+      MRC.replace(now, a, QType(QType::A), rset0, signatures, authRecords, true, authZone, boost::none, boost::none, vState::Insecure, somebody, false, ttl_time);
+    }
+
+    BOOST_CHECK_EQUAL(MRC.size(), expected);
+
+    size_t matches = 0;
+
+    const size_t runs = 1000;
+    for (size_t run = 0; run < runs; run++) {
+      for (size_t counter = 0; counter < expected; ++counter) {
+        std::vector<DNSRecord> retrieved;
+        MemRecursorCache::AuthRecs authRecs;
+        MemRecursorCache::SigRecs sigs;
+        bool variable = false;
+        vState state = vState::Indeterminate;
+        bool wasAuth = false;
+        DNSName fromZone;
+        ComboAddress from;
+        if (MRC.get(now, DNSName("hello ") + DNSName(std::to_string(counter)), QType(QType::A), MemRecursorCache::None, &retrieved, somebody, boost::none, &sigs, &authRecs, &variable, &state, &wasAuth, &fromZone, &from) > 0) {
+          matches++;
+        }
+      }
+    }
+    BOOST_CHECK_EQUAL(matches, runs * expected);
+  }
+};
+
+BOOST_AUTO_TEST_CASE(test_speed)
+{
+  doRun(NOPTest());
+  doRun(RecordsSpeedTest());
+}
+#endif
 
 BOOST_AUTO_TEST_SUITE_END()

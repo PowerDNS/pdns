@@ -1,4 +1,4 @@
-Rule selectors
+Rule Selectors
 ==============
 
 Packets can be matched by selectors, called a ``DNSRule``.
@@ -10,6 +10,8 @@ These ``DNSRule``\ s be one of the following items:
   * A :class:`DNSName`
   * A list of :class:`DNSName`\ s
   * A (compounded) ``Rule``
+
+This page describes the ``Lua`` versions of these selectors, for the ``YAML`` version please see :doc:`yaml-selectors`.
 
 Selectors can be combined via :func:`AndRule`, :func:`OrRule` and :func:`NotRule`.
 
@@ -80,6 +82,14 @@ Selectors can be combined via :func:`AndRule`, :func:`OrRule` and :func:`NotRule
   Only valid DNS over HTTPS queries are matched. If you want to match all HTTP queries, see :meth:`DOHFrontend:setResponsesMap` instead.
 
   :param str path: The exact HTTP path to match on
+
+.. function:: IncomingProtocolRule(protocol)
+
+  .. versionadded:: 2.1.0
+
+  Matches queries received over a specific protocol.
+
+  :param str protocol: The protocol to match on, in a case-sensitive way. Supported values are DoUDP, DoTCP, DNSCryptUDP, DNSCryptTCP, DoT, DoH, DoQ and DoH3
 
 .. function:: KeyValueStoreLookupRule(kvs, lookupKey)
 
@@ -303,7 +313,7 @@ Selectors can be combined via :func:`AndRule`, :func:`OrRule` and :func:`NotRule
   The second rule drops anything with more than 4 consecutive digits within a .EXAMPLE domain.
 
   Note that the query name is presented without a trailing dot to the regex.
-  The regex is applied case insensitively.
+  The regex is applied case-insensitively.
 
   :param string regex: A regular expression to match the traffic on
 
@@ -329,7 +339,7 @@ Selectors can be combined via :func:`AndRule`, :func:`OrRule` and :func:`NotRule
 
 .. function:: RE2Rule(regex)
 
-  Matches the query name against the supplied regex using the RE2 engine.
+  Matches the query name against the supplied regex using the RE2 engine. Note that this rule requires a full match of the query name, meaning that for example the ``powerdns`` expression will match a query name of ``powerdns`` but neither``prefixpowerdns``, ``sub.powerdns``, ``powerdnssuffix`` nor ``powerdns.tld``. In short, the expression is processed as if it started with a ``^`` and ended with a ``$``.
 
   For an example of usage, see :func:`RegexRule`.
 
@@ -371,7 +381,7 @@ Selectors can be combined via :func:`AndRule`, :func:`OrRule` and :func:`NotRule
   Matches question or answer with a tag named ``name`` set. If ``value`` is specified, the existing tag value should match too.
 
   :param string name: The name of the tag that has to be set
-  :param string value: If set, the value the tag has to be set to. Default is unset
+  :param string value: If set, the value that must match the tag. Default is unset
 
 .. function:: TCPRule(tcp)
 

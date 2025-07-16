@@ -15,7 +15,9 @@ This will make dnsdist listen on IP address 127.0.0.1, port 5300 and forward all
 ``dnsdist`` Console and Configuration
 -------------------------------------
 
-Here is more complete configuration, save it to ``dnsdist.conf``::
+Here is more complete configuration, save it to ``dnsdist.conf``:
+
+.. code-block:: lua
 
   newServer({address="2001:db8::1", qps=1})
   newServer({address="2001:db8::2", qps=1})
@@ -25,6 +27,29 @@ Here is more complete configuration, save it to ``dnsdist.conf``::
   setServerPolicy(firstAvailable) -- first server within its QPS limit
 
 The :func:`newServer` function is used to add a backend server to the configuration.
+
+The ``yaml`` equivalent, from 2.0+ onwards, would be:
+
+.. code-block:: yaml
+
+  backends:
+    - address: "2001:db8::1"
+      protocol: Do53
+      qps: 1
+    - address: "2001:db8::2"
+      protocol: Do53
+      qps: 1
+    - address: "[2001:db8::3]:5300"
+      protocol: Do53
+      qps: 10
+    - address: "[2001:db8::4]"
+      name: "dns1"
+      protocol: Do53
+      qps: 10
+    - address: "192.0.2.1"
+      protocol: Do53
+  load_balancing_policies:
+    default_policy: "firstAvailable"
 
 Now run dnsdist again, reading this configuration::
 
@@ -117,6 +142,21 @@ Adding network ranges to the :term:`ACL` is done with the :func:`setACL` and :fu
 
   setACL({'192.0.2.0/28', '2001:db8:1::/56'}) -- Set the ACL to only allow these subnets
   addACL('2001:db8:2::/56')                   -- Add this subnet to the existing ACL
+
+And in ``yaml`` format:
+
+.. code-block:: yaml
+
+acl:
+  - "192.0.2.0/28"
+  - "2001:db8:1::/56"
+  - "2001:db8:2::/56"
+binds:
+  - listen_address: "192.0.2.53"
+    protocol: Do53
+  - listen_address: "[::1]:5300"
+    protocol: Do53
+
 
 Securing the path to the backend
 --------------------------------

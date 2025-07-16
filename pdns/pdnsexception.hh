@@ -21,6 +21,7 @@
  */
 #pragma once
 #include<string>
+#include <utility>
 
 #include "namespaces.hh"
 
@@ -29,8 +30,9 @@ class PDNSException
 {
 public:
   PDNSException() : reason("Unspecified") {};
-  PDNSException(const string& r) : reason(r) {};
-  
+  PDNSException(string r) :
+    reason(std::move(r)) {};
+
   string reason; //! Print this to tell the user what went wrong
 };
 

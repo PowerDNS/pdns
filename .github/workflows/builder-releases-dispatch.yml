@@ -12,64 +12,49 @@ permissions: # least privileges, see https://docs.github.com/en/actions/using-wo
 
 jobs:
   call-builder-auth-49:
-    name: Call builder rel/auth-4.9.x
     if: ${{ vars.SCHEDULED_JOBS_BUILDER }}
     uses: PowerDNS/pdns/.github/workflows/builder.yml@rel/auth-4.9.x
     with:
       branch-name: rel/auth-4.9.x
 
   call-builder-auth-48:
-    name: Call builder rel/auth-4.8.x
     if: ${{ vars.SCHEDULED_JOBS_BUILDER }}
     uses: PowerDNS/pdns/.github/workflows/builder.yml@rel/auth-4.8.x
     with:
       branch-name: rel/auth-4.8.x
 
   call-builder-auth-47:
-    name: Call builder rel/auth-4.7.x
     if: ${{ vars.SCHEDULED_JOBS_BUILDER }}
     uses: PowerDNS/pdns/.github/workflows/builder.yml@rel/auth-4.7.x
     with:
       branch-name: rel/auth-4.7.x
 
+  call-builder-rec-52:
+    if: ${{ vars.SCHEDULED_JOBS_BUILDER }}
+    uses: PowerDNS/pdns/.github/workflows/builder.yml@rel/rec-5.2.x
+    with:
+      branch-name: rel/rec-5.2.x
+
+  call-builder-rec-51:
+    if: ${{ vars.SCHEDULED_JOBS_BUILDER }}
+    uses: PowerDNS/pdns/.github/workflows/builder.yml@rel/rec-5.1.x
+    with:
+      branch-name: rel/rec-5.1.x
+
   call-builder-rec-50:
-    name: Call builder rel/rec-5.0.x
     if: ${{ vars.SCHEDULED_JOBS_BUILDER }}
     uses: PowerDNS/pdns/.github/workflows/builder.yml@rel/rec-5.0.x
     with:
       branch-name: rel/rec-5.0.x
 
-  call-builder-rec-49:
-    name: Call builder rel/rec-4.9.x
-    if: ${{ vars.SCHEDULED_JOBS_BUILDER }}
-    uses: PowerDNS/pdns/.github/workflows/builder.yml@rel/rec-4.9.x
-    with:
-      branch-name: rel/rec-4.9.x
-
-  call-builder-rec-48:
-    name: Call builder rel/rec-4.8.x
-    if: ${{ vars.SCHEDULED_JOBS_BUILDER }}
-    uses: PowerDNS/pdns/.github/workflows/builder.yml@rel/rec-4.8.x
-    with:
-      branch-name: rel/rec-4.8.x
-
   call-builder-dnsdist-19:
-    name: Call builder rel/dnsdist-1.9.x
     if: ${{ vars.SCHEDULED_JOBS_BUILDER }}
     uses: PowerDNS/pdns/.github/workflows/builder.yml@rel/dnsdist-1.9.x
     with:
       branch-name: rel/dnsdist-1.9.x
 
   call-builder-dnsdist-18:
-    name: Call builder rel/dnsdist-1.8.x
     if: ${{ vars.SCHEDULED_JOBS_BUILDER }}
     uses: PowerDNS/pdns/.github/workflows/builder.yml@rel/dnsdist-1.8.x
     with:
       branch-name: rel/dnsdist-1.8.x
-
-  call-builder-dnsdist-17:
-    name: Call builder rel/dnsdist-1.7.x
-    if: ${{ vars.SCHEDULED_JOBS_BUILDER }}
-    uses: PowerDNS/pdns/.github/workflows/builder.yml@rel/dnsdist-1.7.x
-    with:
-      branch-name: rel/dnsdist-1.7.x

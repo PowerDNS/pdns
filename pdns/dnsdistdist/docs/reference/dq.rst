@@ -131,6 +131,14 @@ This state can be modified from the various hooks.
 
     :returns: A table of EDNSOptionView objects, indexed on the ECS Option code
 
+  .. method:: DNSQuestion::getElapsedUs -> double
+
+     .. versionadded:: 1.9.8
+
+     Return the amount of time that has elapsed since the query was received.
+
+     :returns: A double indicating elapsed time in microseconds
+
   .. method:: DNSQuestion:getHTTPHeaders() -> table
 
     .. versionadded:: 1.4.0
@@ -173,6 +181,18 @@ This state can be modified from the various hooks.
     Return the HTTP scheme for a DoH query.
 
     :returns: The scheme of the DoH query, for example ``http`` or ``https``
+
+  .. method:: DNSQuestion:getIncomingInterface() -> string
+
+    .. versionadded:: 1.9.10
+
+    Return the name of the network interface this query was received on, but only if the corresponding frontend
+    has been bound to a specific network interface via the ``interface`` parameter to :func:`addLocal`, :func:`setLocal`,
+    :func:`addTLSLocal`, :func:`addDOHLocal`, :func:`addDOQLocal` or :func:`AddDOH3Local`, or the ``interface`` parameter
+    of a :ref:`frontend <yaml-settings-BindConfiguration>` when the YAML format is used. This is useful in Virtual Routing
+    and Forwarding (VRF) environments where the destination IP address might not be enough to identify the VRF.
+
+    :returns: The name of the network interface this query was received on, or an empty string.
 
   .. method:: DNSQuestion:getProtocol() -> string
 
@@ -266,7 +286,7 @@ This state can be modified from the various hooks.
         dq:setContent(raw)
         return DNSAction.Allow
       end
-      addAction(AndRule({QTypeRule(DNSQType.A), makeRule('custom.async.tests.powerdns.com')}), LuaAction(replaceQueryPayload))
+      addAction(AndRule({QTypeRule(DNSQType.A), QNameSuffixRule('custom.async.tests.powerdns.com')}), LuaAction(replaceQueryPayload))
 
     :param string data: The raw DNS payload
 
@@ -300,6 +320,15 @@ This state can be modified from the various hooks.
     :param int status: The HTTP status code to return
     :param string body: The body of the HTTP response, or a URL if the status code is a redirect (3xx)
     :param string contentType: The HTTP Content-Type header to return for a 200 response, ignored otherwise. Default is ``application/dns-message``.
+
+  .. method:: DNSQuestion:setMetaKey(key, values)
+
+    .. versionadded:: 2.0.0
+
+    Set a meta-data entry to be exported in the ``meta`` field of ProtoBuf messages.
+
+    :param string key: The key
+    :param list values: A list containing strings, integers, or a mix of integers and strings
 
   .. method:: DNSQuestion:setNegativeAndAdditionalSOA(nxd, zone, ttl, mname, rname, serial, refresh, retry, expire, minimum)
 
@@ -418,11 +447,23 @@ DNSResponse object
   If the value is really needed while the response is being processed, it is possible to set a tag while the query is processed, as tags will be passed to the response object.
   It also has additional methods:
 
-  .. method:: DNSResponse.getSelectedBackend() -> Server
+  .. method:: DNSResponse:getSelectedBackend() -> Server
 
     .. versionadded:: 1.9.0
 
     Get the selected backend :class:`Server` or nil
+
+  .. method:: DNSResponse:getStaleCacheHit() -> bool
+
+    .. versionadded:: 2.0.0
+
+    Get the indicator of whether the cache lookup hit a stale entry.
+
+  .. method:: DNSResponse:getRestartCount() -> int
+
+    .. versionadded:: 2.0.0
+
+    Get the current restart count, useful when the number of restart attempts is to be checked.
 
   .. method:: DNSResponse:editTTLs(func)
 
@@ -618,7 +659,7 @@ AsynchronousObject object
 
     Resume the processing of the suspended object.
     For a question, it means first checking whether it was turned into a response,
-    and sending the response out it it was. Otherwise do a cache-lookup: on a
+    and sending the response out it it was. Otherwise, do a cache-lookup: on a
     cache-hit, the response will be sent immediately. On a cache-miss,
     it means dnsdist will select a backend and send the query to the backend.
     For a response, it means inserting into the cache if needed and sending the

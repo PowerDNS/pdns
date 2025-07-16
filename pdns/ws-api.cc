@@ -50,47 +50,6 @@ using json11::Json;
 extern StatBag S;
 #endif
 
-#ifndef HAVE_STRCASESTR
-
-/*
- * strcasestr() locates the first occurrence in the string s1 of the
- * sequence of characters (excluding the terminating null character)
- * in the string s2, ignoring case.  strcasestr() returns a pointer
- * to the located string, or a null pointer if the string is not found.
- * If s2 is empty, the function returns s1.
- */
-
-static char*
-strcasestr(const char* s1, const char* s2)
-{
-  int* cm = __trans_lower;
-  const uchar_t* us1 = (const uchar_t*)s1;
-  const uchar_t* us2 = (const uchar_t*)s2;
-  const uchar_t* tptr;
-  int c;
-
-  if (us2 == NULL || *us2 == '\0')
-    return ((char*)us1);
-
-  c = cm[*us2];
-  while (*us1 != '\0') {
-    if (c == cm[*us1++]) {
-      tptr = us1;
-      while (cm[c = *++us2] == cm[*us1++] && c != '\0')
-        continue;
-      if (c == '\0')
-        return ((char*)tptr - 1);
-      us1 = tptr;
-      us2 = (const uchar_t*)s2;
-      c = cm[*us2];
-    }
-  }
-
-  return (NULL);
-}
-
-#endif // HAVE_STRCASESTR
-
 static Json getServerDetail()
 {
   return Json::object{
@@ -307,7 +266,27 @@ DNSName apiNameToDNSName(const string& name)
   }
 }
 
-DNSName apiZoneIdToName(const string& identifier)
+#if defined(PDNS_AUTH)
+ZoneName apiNameToZoneName(const string& name)
+{
+  // Split the variant name, if any, in order to be able to invoke
+  // isCanonical on the right subset.
+  if (auto sep = ZoneName::findVariantSeparator(name); sep != std::string_view::npos) {
+    if (!isCanonical(std::string_view(name).substr(0, sep))) {
+      throw ApiException("Zone Name '" + name + "' is not canonical");
+    }
+    try {
+      return ZoneName(name, sep);
+    }
+    catch (...) {
+      throw ApiException("Unable to parse Zone Name '" + name + "'");
+    }
+  }
+  return ZoneName(apiNameToDNSName(name));
+}
+#endif
+
+ZoneName apiZoneIdToName(const string& identifier)
 {
   string zonename;
   ostringstream outputStringStream;
@@ -355,16 +334,15 @@ DNSName apiZoneIdToName(const string& identifier)
   zonename = outputStringStream.str();
 
   try {
-    return DNSName(zonename);
+    return ZoneName(zonename);
   }
   catch (...) {
     throw ApiException("Unable to parse DNS Name '" + zonename + "'");
   }
 }
 
-string apiZoneNameToId(const DNSName& dname)
+static string encodeName(const string& name)
 {
-  string name = dname.toString();
   ostringstream outputStringStream;
 
   for (char iter : name) {
@@ -376,14 +354,34 @@ string apiZoneNameToId(const DNSName& dname)
     }
   }
 
-  string identifier = outputStringStream.str();
+  return outputStringStream.str();
+}
+
+string apiZoneNameToId(const ZoneName& dname)
+{
+#if defined(PDNS_AUTH)
+  std::string ret = apiNameToId(dname.operator const DNSName&().toString());
+  // Add the variant, if any
+  if (dname.hasVariant()) {
+    ret += ".";
+    ret += encodeName(dname.getVariant());
+  }
+  return ret;
+#else
+  return apiNameToId(dname.toString());
+#endif
+}
+
+string apiNameToId(const string& name)
+{
+  string identifier = encodeName(name);
 
   // add trailing dot
   if (identifier.empty() || identifier.substr(identifier.size() - 1) != ".") {
     identifier += ".";
   }
 
-  // special handling for the root zone, as a dot on it's own doesn't work
+  // special handling for the root zone, as a dot on its own doesn't work
   // everywhere.
   if (identifier == ".") {
     identifier = (boost::format("=%02X") % (int)('.')).str();
@@ -391,14 +389,14 @@ string apiZoneNameToId(const DNSName& dname)
   return identifier;
 }
 
-void apiCheckNameAllowedCharacters(const string& name)
+void apiCheckNameAllowedCharacters(std::string_view name)
 {
   if (name.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890_/.-") != std::string::npos) {
-    throw ApiException("Name '" + name + "' contains unsupported characters");
+    throw ApiException("Name '" + std::string(name) + "' contains unsupported characters");
   }
 }
 
-void apiCheckQNameAllowedCharacters(const string& qname)
+void apiCheckQNameAllowedCharacters(std::string_view qname)
 {
   if (qname.compare(0, 2, "*.") == 0) {
     apiCheckNameAllowedCharacters(qname.substr(2));

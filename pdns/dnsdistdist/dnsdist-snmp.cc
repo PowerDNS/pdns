@@ -1,10 +1,9 @@
 
 #include "dnsdist-snmp.hh"
+#include "dnsdist-dynblocks.hh"
 #include "dnsdist-metrics.hh"
 #include "dolog.hh"
 
-bool g_snmpEnabled{false};
-bool g_snmpTrapsEnabled{false};
 std::unique_ptr<DNSDistSNMPAgent> g_snmpAgent{nullptr};
 
 #ifdef HAVE_NET_SNMP
@@ -81,6 +80,7 @@ static int handleCounter64Stats(netsnmp_mib_handler* handler,
                                 netsnmp_agent_request_info* reqinfo,
                                 netsnmp_request_info* requests)
 {
+  (void)handler;
   if (reqinfo->mode != MODE_GET) {
     return SNMP_ERR_GENERR;
   }
@@ -127,6 +127,7 @@ static int handleFloatStats(netsnmp_mib_handler* handler,
                             netsnmp_agent_request_info* reqinfo,
                             netsnmp_request_info* requests)
 {
+  (void)handler;
   if (reqinfo->mode != MODE_GET) {
     return SNMP_ERR_GENERR;
   }
@@ -141,8 +142,8 @@ static int handleFloatStats(netsnmp_mib_handler* handler,
     return SNMP_ERR_GENERR;
   }
 
-  if (const auto& val = std::get_if<double*>(&stIt->second)) {
-    std::string str(std::to_string(**val));
+  if (const auto& val = std::get_if<pdns::stat_double_t*>(&stIt->second)) {
+    std::string str(std::to_string((*val)->load()));
     snmp_set_var_typed_value(requests->requestvb,
                              ASN_OCTET_STR,
                              str.c_str(),
@@ -153,7 +154,7 @@ static int handleFloatStats(netsnmp_mib_handler* handler,
   return SNMP_ERR_GENERR;
 }
 
-static void registerFloatStat(const char* name, const OIDStat& statOID, double* ptr)
+static void registerFloatStat(const char* name, const OIDStat& statOID, pdns::stat_double_t* ptr)
 {
   if (statOID.size() != OID_LENGTH(queriesOID)) {
     errlog("Invalid OID for SNMP Float statistic %s", name);
@@ -178,6 +179,7 @@ static int handleGauge64Stats(netsnmp_mib_handler* handler,
                               netsnmp_agent_request_info* reqinfo,
                               netsnmp_request_info* requests)
 {
+  (void)handler;
   if (reqinfo->mode != MODE_GET) {
     return SNMP_ERR_GENERR;
   }
@@ -260,6 +262,8 @@ static netsnmp_variable_list* backendStatTable_get_next_data_point(void** loop_c
                                                                    netsnmp_variable_list* put_index_data,
                                                                    netsnmp_iterator_info* mydata)
 {
+  (void)loop_context;
+  (void)mydata;
   if (s_currentServerIdx >= s_servers.size()) {
     return nullptr;
   }
@@ -280,11 +284,11 @@ static netsnmp_variable_list* backendStatTable_get_first_data_point(void** loop_
 
   /* get a copy of the shared_ptrs so they are not
      destroyed while we process the request */
-  auto dstates = g_dstates.getLocal();
+  auto backends = dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends;
   s_servers.clear();
-  s_servers.reserve(dstates->size());
-  for (const auto& server : *dstates) {
-    s_servers.push_back(server);
+  s_servers.reserve(backends.size());
+  for (auto& server : backends) {
+    s_servers.push_back(std::move(server));
   }
 
   return backendStatTable_get_next_data_point(loop_context,
@@ -298,6 +302,8 @@ static int backendStatTable_handler(netsnmp_mib_handler* handler,
                                     netsnmp_agent_request_info* reqinfo,
                                     netsnmp_request_info* requests)
 {
+  (void)handler;
+  (void)reginfo;
   netsnmp_request_info* request{nullptr};
 
   switch (reqinfo->mode) {
@@ -388,7 +394,7 @@ static int backendStatTable_handler(netsnmp_mib_handler* handler,
 }
 #endif /* HAVE_NET_SNMP */
 
-bool DNSDistSNMPAgent::sendBackendStatusChangeTrap(const DownstreamState& dss)
+bool DNSDistSNMPAgent::sendBackendStatusChangeTrap([[maybe_unused]] const DownstreamState& dss)
 {
 #ifdef HAVE_NET_SNMP
   const string backendAddress = dss.d_config.remote.toStringWithPort();
@@ -426,7 +432,7 @@ bool DNSDistSNMPAgent::sendBackendStatusChangeTrap(const DownstreamState& dss)
 #endif /* HAVE_NET_SNMP */
 }
 
-bool DNSDistSNMPAgent::sendCustomTrap(const std::string& reason)
+bool DNSDistSNMPAgent::sendCustomTrap([[maybe_unused]] const std::string& reason)
 {
 #ifdef HAVE_NET_SNMP
   netsnmp_variable_list* varList = nullptr;
@@ -448,7 +454,7 @@ bool DNSDistSNMPAgent::sendCustomTrap(const std::string& reason)
 #endif /* HAVE_NET_SNMP */
 }
 
-bool DNSDistSNMPAgent::sendDNSTrap(const DNSQuestion& dnsQuestion, const std::string& reason)
+bool DNSDistSNMPAgent::sendDNSTrap([[maybe_unused]] const DNSQuestion& dnsQuestion, [[maybe_unused]] const std::string& reason)
 {
 #ifdef HAVE_NET_SNMP
   std::string local = dnsQuestion.ids.origDest.toString();
@@ -599,7 +605,7 @@ DNSDistSNMPAgent::DNSDistSNMPAgent(const std::string& name, const std::string& d
   registerGauge64Stat("cpuUserMSec", cpuUserMSecOID, &getCPUTimeUser);
   registerGauge64Stat("cpuSysMSec", cpuSysMSecOID, &getCPUTimeSystem);
   registerGauge64Stat("fdUsage", fdUsageOID, &getOpenFileDescriptors);
-  registerGauge64Stat("dynBlockedNMGSize", dynBlockedNMGSizeOID, [](const std::string&) { return g_dynblockNMG.getLocal()->size(); });
+  registerGauge64Stat("dynBlockedNMGSize", dynBlockedNMGSizeOID, [](const std::string&) { return dnsdist::DynamicBlocks::getClientAddressDynamicRules().size(); });
   registerGauge64Stat("securityStatus", securityStatusOID, [](const std::string&) { return dnsdist::metrics::g_stats.securityStatus.load(); });
   registerGauge64Stat("realMemoryUsage", realMemoryUsageOID, &getRealMemoryUsage);
 

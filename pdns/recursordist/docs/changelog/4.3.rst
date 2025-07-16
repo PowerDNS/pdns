@@ -681,7 +681,7 @@ Changelogs for 4.3.x
     :pullreq: 8047
     :tickets: 8008
 
-    Another time sensistive test fixed with a fixednow construct.
+    Another time sensitive test fixed with a fixednow construct.
 
   .. change::
     :tags: New Features

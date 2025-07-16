@@ -6,6 +6,9 @@ import ssl
 import subprocess
 import time
 import unittest
+import random
+import string
+
 from dnsdisttests import DNSDistTest, pickAvailablePort
 
 class TLSTests(object):
@@ -322,6 +325,58 @@ class TestGnuTLS(DNSDistTest, TLSTests):
     def testProvider(self):
         self.assertEqual(self.getTLSProvider(), "gnutls")
 
+class TestOpenSSLYaml(DNSDistTest, TLSTests):
+
+    _extraStartupSleep = 1
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+    _serverKey = 'server-tls.key'
+    _serverCert = 'server-tls.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _tlsServerPort = pickAvailablePort()
+    _config_template = ""
+    _config_params = []
+    _yaml_config_template = """---
+console:
+  key: "%s"
+  listen_address: "127.0.0.1:%d"
+  acl:
+    - 127.0.0.0/8
+backends:
+  - address: "127.0.0.1:%d"
+    protocol: "Do53"
+binds:
+  - listen_address: "127.0.0.1:%d"
+    reuseport: true
+    protocol: "DoT"
+    tls:
+      certificates:
+        - certificate: "%s"
+          key: "%s"
+      provider: "openssl"
+query_rules:
+  - name: "SNI"
+    selector:
+      type: "SNI"
+      server_name: "powerdns.com"
+    action:
+      type: "Spoof"
+      ips:
+        - "1.2.3.4"
+    """
+    _yaml_config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey']
+
+    @classmethod
+    def setUpClass(cls):
+        cls.generateNewCertificateAndKey('server-tls')
+        cls.startResponders()
+        cls.startDNSDist()
+        cls.setUpSockets()
+
+    def testProvider(self):
+        self.assertEqual(self.getTLSProvider(), "openssl")
+
 class TestDOTWithCache(DNSDistTest):
     _serverKey = 'server.key'
     _serverCert = 'server.chain'
@@ -516,3 +571,85 @@ class TestPKCSTLSCertificate(DNSDistTest, TLSTests):
         cls.startResponders()
         cls.startDNSDist()
         cls.setUpSockets()
+
+class TestOpenSSLTLSTicketsKeyCallback(DNSDistTest):
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _tlsServerPort = pickAvailablePort()
+    _numberOfKeys = 5
+
+    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey']
+    _config_template = """
+    setKey("%s")
+    controlSocket("127.0.0.1:%s")
+
+    newServer{address="127.0.0.1:%s"}
+    addTLSLocal("127.0.0.1:%s", "%s", "%s", { provider="openssl" })
+
+    lastKey = ""
+    lastKeyLen = 0
+
+    function keyAddedCallback(key, keyLen)
+      lastKey = key
+      lastKeyLen = keyLen
+    end
+    setTicketsKeyAddedHook(keyAddedCallback)
+    """
+
+    def testSetTicketsKey(self):
+        """
+        TLSTicketsKey: test setting new key and the key added hook
+        """
+
+        newKey = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(80))
+        self.sendConsoleCommand("getTLSFrontend(0):loadTicketsKey(\"{}\")".format(newKey))
+        keyLen = self.sendConsoleCommand('lastKeyLen')
+        self.assertEqual(int(keyLen), 80)
+        lastKey = self.sendConsoleCommand('lastKey')
+        self.assertEqual(newKey, lastKey.strip())
+
+class TestGnuTLSTLSTicketsKeyCallback(DNSDistTest):
+    _consoleKey = DNSDistTest.generateConsoleKey()
+    _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
+
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _tlsServerPort = pickAvailablePort()
+    _numberOfKeys = 5
+
+    _config_params = ['_consoleKeyB64', '_consolePort', '_testServerPort', '_tlsServerPort', '_serverCert', '_serverKey']
+    _config_template = """
+    setKey("%s")
+    controlSocket("127.0.0.1:%s")
+
+    newServer{address="127.0.0.1:%s"}
+    addTLSLocal("127.0.0.1:%s", "%s", "%s", { provider="gnutls" })
+
+    lastKey = ""
+    lastKeyLen = 0
+
+    function keyAddedCallback(key, keyLen)
+      lastKey = key
+      lastKeyLen = keyLen
+    end
+    setTicketsKeyAddedHook(keyAddedCallback)
+    """
+
+    def testSetTicketsKey(self):
+        """
+        TLSTicketsKey: test setting new key and the key added hook
+        """
+
+        newKey = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(64))
+        self.sendConsoleCommand("getTLSFrontend(0):loadTicketsKey(\"{}\")".format(newKey))
+        keyLen = self.sendConsoleCommand('lastKeyLen')
+        self.assertEqual(int(keyLen), 64)
+        lastKey = self.sendConsoleCommand('lastKey')
+        self.assertEqual(newKey, lastKey.strip())

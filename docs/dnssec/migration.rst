@@ -29,7 +29,7 @@ To deliver a correctly signed zone with the :ref:`dnssec-pdnsutil-dnssec-default
     pdnsutil secure-zone ZONE
 
 To view the DS records for this zone (to transfer to the parent zone),
-run
+run:
 
 .. code-block:: shell
 
@@ -74,14 +74,14 @@ Putting them in the database might cause duplicate records in responses.
 automatically.
 
 .. warning::
-  Right now, you will also need to configure NSEC(3) settings
+  Right now, you will also need to configure NSEC/NSEC3 settings
   for pre-signed zones using ``pdnsutil set-nsec3``. Default is NSEC, in
   which case no further configuration is necessary.
 
 From existing DNSSEC non-PowerDNS setups, live signing
 ------------------------------------------------------
 
-The ``pdnsutil`` tool features the option to import zone keys in the
+The :doc:`pdnsutil <pdnsutil>` tool features the option to import zone keys in the
 industry standard private key format, version 1.2. To import an existing
 KSK, use
 
@@ -89,16 +89,16 @@ KSK, use
 
     pdnsutil import-zone-key ZONE FILENAME ksk
 
-replace 'ksk' by 'zsk' for a Zone Signing Key.
+replace ``ksk`` with ``zsk`` for a Zone Signing Key.
 
 If all keys are imported using this tool, a zone will serve mostly
 identical records to before, with the important change that the RRSIG
 inception dates will be different.
 
 .. note::
-  Within PowerDNS, the 'algorithm' for RSASHA1 keys is modulated
-  based on the NSEC3 setting. So if an algorithm=7 key is imported in a
-  zone with no configured NSEC3, it will appear as algorithm 5!
+  Within PowerDNS, the ``algorithm`` for RSASHA1 keys is modulated
+  based on the NSEC3 setting. So if an ``algorithm=7`` key is imported in a
+  zone with no configured NSEC3, it will appear as ``algorithm 5``!
 
 Secure transfers
 ----------------

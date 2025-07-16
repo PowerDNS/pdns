@@ -53,21 +53,24 @@ permissions: # least privileges, see https://docs.github.com/en/actions/using-wo
 jobs:
   validate-push-image:
     name: Check only images built from tags and master are pushed
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           submodules: recursive
           ref: ${{ inputs.ref }}
+          persist-credentials: false
       - name: validate reference only if image will be pushed
         if: ${{ inputs.push }}
+        env:
+          REF: ${{ inputs.ref }}
         run: |
-          [[ "${{ inputs.ref }}" == "master" ]] || git describe --tags --exact-match
+          [[ "${REF}" == "master" ]] || git describe --tags --exact-match
 
   build:
     name: build docker image for a product
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: validate-push-image
     outputs:
       image-digest: ${{ steps.build-image.outputs.digest }}
@@ -77,6 +80,7 @@ jobs:
           fetch-depth: 0
           submodules: recursive
           ref: ${{ inputs.ref }}
+          persist-credentials: false
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
         with:
@@ -86,6 +90,7 @@ jobs:
         with:
           platforms: ${{ inputs.platforms }}
       - name: Login to Docker Hub
+        if: ${{ inputs.push }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -94,7 +99,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}/${{ inputs.image-name }}
+          images: ${{ secrets.DOCKERHUB_ORGANIZATION_NAME || 'powerdns' }}/${{ inputs.image-name }}
           tags: ${{ inputs.image-tags }}
       - name: Build and load powerdns product images
         id: build-image
@@ -116,43 +121,65 @@ jobs:
           repository: ${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}/${{ inputs.image-name }}
           short-description: ${{ inputs.image-description }}
 
-  test-uploaded-images:
-    name: test uploaded images
+  prepare-test-runner-os-list:
+    name: generate runner list
     if: ${{ inputs.push }}
     needs: build
+    runs-on: ubuntu-24.04
+    outputs:
+      runnerlist: ${{ steps.get-runnerlist.outputs.runnerlist }}
+      skiptests: ${{ steps.get-runnerlist.outputs.skiptests }}
+    steps:
+      - run: sudo apt-get update && sudo apt-get -y install jo
+      - id: get-runnerlist
+        run: |
+          runner_os=()
+          [[ -n "${{ contains(inputs.platforms, 'amd64') && 'ubuntu-24.04' || '' }}" ]] && runner_os+=('ubuntu-24.04')
+          [[ -n "${{ vars.ARM64_USE_UBICLOUD == '1' && contains(inputs.platforms, 'arm64') || '' }}" ]] && runner_os+=('ubicloud-standard-2-arm')
+          echo "runnerlist=$(jo -a ${runner_os[@]})" >> "$GITHUB_OUTPUT"
+          # Skip tests if no runner is suitable for running them. Set a default runner to avoid CI failure
+          if [[ -z "${runner_os[@]}" ]]; then
+            echo "runnerlist=$(jo -a ubuntu-24.04)" >> "$GITHUB_OUTPUT"
+            echo "skiptests=1" >> "$GITHUB_OUTPUT"
+          fi
+
+  test-uploaded-images:
+    name: test uploaded images
+    if: ${{ inputs.push && ! needs.prepare-test-runner-os-list.outputs.skiptests }}
+    needs: [build, prepare-test-runner-os-list]
     runs-on: ${{ matrix.runner-os }}
     strategy:
       matrix:
-        runner-os:
-          - ubuntu-22.04
-          - ubicloud-standard-2-arm
+        runner-os: ${{ fromJson(needs.prepare-test-runner-os-list.outputs.runnerlist )}}
       fail-fast: false
+    env:
+      INPUT_IMAGE_NAME: ${{ inputs.image-name }}
+      INPUT_IMAGE_TAGS: ${{ inputs.image-tags }}
+      INPUT_PLATFORMS: ${{ inputs.platforms }}
     steps:
       - name: Check running image
-        if: ${{ ( matrix.runner-os == 'ubuntu-22.04' && contains(inputs.platforms, 'amd64') ) || ( matrix.runner-os == 'ubicloud-standard-2-arm' && contains(inputs.platforms, 'arm64') ) }}
         run: |
-          image_name='${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}/${{ inputs.image-name }}'
-          for tag in `echo '${{ inputs.image-tags }}' | tr '\n' ' '`; do
+          image_name="${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}/${INPUT_IMAGE_NAME}"
+          for tag in `echo "${INPUT_IMAGE_TAGS}" | tr '\n' ' '`; do
             echo 'Testing: '${image_name}':'${tag};
             # pdns-auth image returns a 134 exit code
             docker run ${image_name}:${tag} --version || [ "$?" == "134" ]
           done
       - name: Check image digest matches
-        if: ${{ ( matrix.runner-os == 'ubuntu-22.04' && contains(inputs.platforms, 'amd64') ) || ( matrix.runner-os == 'ubicloud-standard-2-arm' && contains(inputs.platforms, 'arm64') ) }}
+        env:
+          EXPECTED_DIGEST: ${{ needs.build.outputs.image-digest }}
         run: |
-          output_digest='${{ needs.build.outputs.image-digest }}'
-          image_name='${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}/${{ inputs.image-name }}'
-          for tag in `echo '${{ inputs.image-tags }}' | tr '\n' ' '`; do
+          image_name="${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}/${INPUT_IMAGE_NAME}"
+          for tag in `echo "${INPUT_IMAGE_TAGS}" | tr '\n' ' '`; do
             image_digest=$(docker inspect --format='{{index .RepoDigests 0}}' ${image_name}:${tag} | cut -d '@' -f 2)
-            [[ "${output_digest}" == "${image_digest}" ]] || \
-              ( echo "Image digest does not match => output_digest: "${output_digest}" - image_digest: "${image_digest} && exit 1 )
+            [[ "${EXPECTED_DIGEST}" == "${image_digest}" ]] || \
+              ( echo "Image digest does not match => output_digest: "${EXPECTED_DIGEST}" - image_digest: "${image_digest} && exit 1 )
           done
       - name: Check SBOM and Provenance
-        if: ${{ ( matrix.runner-os == 'ubuntu-22.04' && contains(inputs.platforms, 'amd64') ) || ( matrix.runner-os == 'ubicloud-standard-2-arm' && contains(inputs.platforms, 'arm64') ) }}
         run: |
-          image_name='${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}/${{ inputs.image-name }}'
-          for tag in `echo '${{ inputs.image-tags }}' | tr '\n' ' '`; do
-            if $(echo '${{ inputs.platforms }}' | grep -qq ','); then
+          image_name="${{ secrets.DOCKERHUB_ORGANIZATION_NAME }}/${INPUT_IMAGE_NAME}"
+          for tag in `echo "${INPUT_IMAGE_TAGS}" | tr '\n' ' '`; do
+            if $(echo "${INPUT_PLATFORMS}" | grep -qq ','); then
               docker buildx imagetools inspect ${image_name}:${tag} --format "{{json .Provenance}}" | jq -e '."linux/'$(dpkg --print-architecture)'" | has("SLSA")'
               docker buildx imagetools inspect ${image_name}:${tag} --format "{{json .SBOM}}" | jq -e '."linux/'$(dpkg --print-architecture)'" | has("SPDX")'
             else

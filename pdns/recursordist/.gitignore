@@ -41,6 +41,7 @@
 /dnsmessage.pb.h
 /pdns-recursor.service
 /pdns-recursor@.service
+/pubsuffix.cc
 /lua.hpp
 /test-suite.log
 /testrunner.log
@@ -58,3 +59,8 @@ PowerDNS-Recursor.pdf
 /.cache
 /.clang-tidy
 /recursor.yml
+/rec-metrics-gen.h
+/rec-oids-gen.h
+/rec-prometheus-gen.h
+rec-snmp-gen.h
+

@@ -31,18 +31,18 @@
 #include "zoneparser-tng.hh"
 #include "dnsparser.hh"
 
-uint32_t getSerialFromPrimary(const ComboAddress& primary, const DNSName& zone, shared_ptr<const SOARecordContent>& sr, const TSIGTriplet& tt, const uint16_t timeout)
+uint32_t getSerialFromPrimary(const ComboAddress& primary, const ZoneName& zone, shared_ptr<const SOARecordContent>& soarecord, const TSIGTriplet& tsig, const uint16_t timeout)
 {
   vector<uint8_t> packet;
-  DNSPacketWriter pw(packet, zone, QType::SOA);
-  if(!tt.algo.empty()) {
+  DNSPacketWriter pwriter(packet, zone.operator const DNSName&(), QType::SOA);
+  if(!tsig.algo.empty()) {
     TSIGRecordContent trc;
-    trc.d_algoName = tt.algo;
+    trc.d_algoName = tsig.algo;
     trc.d_time = time(nullptr);
     trc.d_fudge = 300;
-    trc.d_origID=ntohs(pw.getHeader()->id);
+    trc.d_origID=ntohs(pwriter.getHeader()->id);
     trc.d_eRcode=0;
-    addTSIG(pw, trc, tt.name, tt.secret, "", false);
+    addTSIG(pwriter, trc, tsig.name, tsig.secret, "", false);
   }
 
   Socket s(primary.sin4.sin_family, SOCK_DGRAM);
@@ -65,10 +65,10 @@ uint32_t getSerialFromPrimary(const ComboAddress& primary, const DNSName& zone, 
     throw std::runtime_error("RCODE from response is not NoError but " + RCode::to_s(mdp.d_header.rcode));
   }
   for(const auto& r: mdp.d_answers) {
-    if(r.first.d_type == QType::SOA) {
-      sr = getRR<SOARecordContent>(r.first);
-      if(sr != nullptr) {
-        return sr->d_st.serial;
+    if(r.d_type == QType::SOA) {
+      soarecord = getRR<SOARecordContent>(r);
+      if(soarecord != nullptr) {
+        return soarecord->d_st.serial;
       }
     }
   }
@@ -126,7 +126,7 @@ static void writeRecords(FILE* fp, const records_t& records)
   }
 }
 
-void writeZoneToDisk(const records_t& records, const DNSName& zone, const std::string& directory)
+void writeZoneToDisk(const records_t& records, const ZoneName& zone, const std::string& directory)
 {
   DNSRecord soa;
   auto serial = getSerialFromRecords(records, soa);
@@ -141,7 +141,7 @@ void writeZoneToDisk(const records_t& records, const DNSName& zone, const std::s
 
   records_t soarecord;
   soarecord.insert(soa);
-  if (fprintf(filePtr.get(), "$ORIGIN %s\n", zone.toString().c_str()) < 0) {
+  if (fprintf(filePtr.get(), "$ORIGIN %s\n", zone.operator const DNSName&().toString().c_str()) < 0) {
     string error = "Error writing to zone file for " + zone.toLogString() + " in file " + fname + ".partial" + ": " + stringerror();
     filePtr.reset();
     unlink((fname+".partial").c_str());
@@ -169,7 +169,7 @@ void writeZoneToDisk(const records_t& records, const DNSName& zone, const std::s
   }
 }
 
-void loadZoneFromDisk(records_t& records, const string& fname, const DNSName& zone)
+void loadZoneFromDisk(records_t& records, const string& fname, const ZoneName& zone)
 {
   ZoneParserTNG zpt(fname, zone);
 
@@ -197,7 +197,7 @@ void loadZoneFromDisk(records_t& records, const string& fname, const DNSName& zo
  * Load the zone `zone` from `fname` and put the first found SOA into `soa`
  * Does NOT check for nullptr
  */
-void loadSOAFromDisk(const DNSName& zone, const string& fname, shared_ptr<const SOARecordContent>& soa, uint32_t& soaTTL)
+void loadSOAFromDisk(const ZoneName& zone, const string& fname, shared_ptr<const SOARecordContent>& soa, uint32_t& soaTTL)
 {
   ZoneParserTNG zpt(fname, zone);
   zpt.disableGenerate();

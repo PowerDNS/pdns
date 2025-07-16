@@ -22,6 +22,7 @@
 
 #include "config.h"
 #include "dnsdist-discovery.hh"
+#include "dnsdist-backend.hh"
 #include "dnsdist.hh"
 #include "dnsdist-random.hh"
 #include "dnsparser.hh"
@@ -235,6 +236,7 @@ static bool handleSVCResult(const PacketBuffer& answer, const ComboAddress& exis
 
 bool ServiceDiscovery::getDiscoveredConfig(const UpgradeableBackend& upgradeableBackend, ServiceDiscovery::DiscoveredResolverConfig& config)
 {
+  const auto verbose = dnsdist::configuration::getCurrentRuntimeConfiguration().d_verbose;
   const auto& backend = upgradeableBackend.d_ds;
   const auto& addr = backend->d_config.remote;
   try {
@@ -276,7 +278,7 @@ bool ServiceDiscovery::getDiscoveredConfig(const UpgradeableBackend& upgradeable
     uint16_t responseSize = 0;
     auto got = readn2WithTimeout(sock.getHandle(), &responseSize, sizeof(responseSize), remainingTime);
     if (got != sizeof(responseSize)) {
-      if (g_verbose) {
+      if (verbose) {
         warnlog("Error while waiting for the ADD upgrade response size from backend %s: %d", addr.toStringWithPort(), got);
       }
       return false;
@@ -286,14 +288,14 @@ bool ServiceDiscovery::getDiscoveredConfig(const UpgradeableBackend& upgradeable
 
     got = readn2WithTimeout(sock.getHandle(), packet.data(), packet.size(), remainingTime);
     if (got != packet.size()) {
-      if (g_verbose) {
+      if (verbose) {
         warnlog("Error while waiting for the ADD upgrade response from backend %s: %d", addr.toStringWithPort(), got);
       }
       return false;
     }
 
     if (packet.size() <= sizeof(struct dnsheader)) {
-      if (g_verbose) {
+      if (verbose) {
         warnlog("Too short answer of size %d received from the backend %s", packet.size(), addr.toStringWithPort());
       }
       return false;
@@ -302,14 +304,14 @@ bool ServiceDiscovery::getDiscoveredConfig(const UpgradeableBackend& upgradeable
     struct dnsheader d;
     memcpy(&d, packet.data(), sizeof(d));
     if (d.id != id) {
-      if (g_verbose) {
+      if (verbose) {
         warnlog("Invalid ID (%d / %d) received from the backend %s", d.id, id, addr.toStringWithPort());
       }
       return false;
     }
 
     if (d.rcode != RCode::NoError) {
-      if (g_verbose) {
+      if (verbose) {
         warnlog("Response code '%s' received from the backend %s for '%s'", RCode::to_s(d.rcode), addr.toStringWithPort(), s_discoveryDomain);
       }
 
@@ -317,7 +319,7 @@ bool ServiceDiscovery::getDiscoveredConfig(const UpgradeableBackend& upgradeable
     }
 
     if (ntohs(d.qdcount) != 1) {
-      if (g_verbose) {
+      if (verbose) {
         warnlog("Invalid answer (qdcount %d) received from the backend %s", ntohs(d.qdcount), addr.toStringWithPort());
       }
       return false;
@@ -328,7 +330,7 @@ bool ServiceDiscovery::getDiscoveredConfig(const UpgradeableBackend& upgradeable
     DNSName receivedName(reinterpret_cast<const char*>(packet.data()), packet.size(), sizeof(dnsheader), false, &receivedType, &receivedClass);
 
     if (receivedName != s_discoveryDomain || receivedType != s_discoveryType || receivedClass != QClass::IN) {
-      if (g_verbose) {
+      if (verbose) {
         warnlog("Invalid answer, either the qname (%s / %s), qtype (%s / %s) or qclass (%s / %s) does not match, received from the backend %s", receivedName, s_discoveryDomain, QType(receivedType).toString(), s_discoveryType.toString(), QClass(receivedClass).toString(), QClass::IN.toString(), addr.toStringWithPort());
       }
       return false;
@@ -399,16 +401,18 @@ bool ServiceDiscovery::tryToUpgradeBackend(const UpgradeableBackend& backend)
   config.remote = discoveredConfig.d_addr;
   config.remote.setPort(discoveredConfig.d_port);
 
-  if (backend.keepAfterUpgrade && config.availability == DownstreamState::Availability::Up) {
+  if (backend.keepAfterUpgrade && config.d_availability == DownstreamState::Availability::Up) {
     /* it's OK to keep the forced state if we replace the initial
        backend, but if we are adding a new backend, it should not
        inherit that setting, especially since DoX backends are much
        more likely to fail (certificate errors, ...) */
     if (config.d_upgradeToLazyHealthChecks) {
-      config.availability = DownstreamState::Availability::Lazy;
+      config.d_availability = DownstreamState::Availability::Auto;
+      config.d_healthCheckMode = DownstreamState::HealthCheckMode::Lazy;
     }
     else {
-      config.availability = DownstreamState::Availability::Auto;
+      config.d_availability = DownstreamState::Availability::Auto;
+      config.d_healthCheckMode = DownstreamState::HealthCheckMode::Active;
     }
   }
 
@@ -447,42 +451,38 @@ bool ServiceDiscovery::tryToUpgradeBackend(const UpgradeableBackend& backend)
 
     infolog("Added automatically upgraded server %s", newServer->getNameWithAddr());
 
-    auto localPools = g_pools.getCopy();
     if (!newServer->d_config.pools.empty()) {
       for (const auto& poolName : newServer->d_config.pools) {
-        addServerToPool(localPools, poolName, newServer);
+        addServerToPool(poolName, newServer);
       }
     }
     else {
-      addServerToPool(localPools, "", newServer);
+      addServerToPool("", newServer);
     }
 
     newServer->start();
 
-    auto states = g_dstates.getCopy();
-    states.push_back(newServer);
     /* remove the existing backend if needed */
     if (!backend.keepAfterUpgrade) {
-      for (auto it = states.begin(); it != states.end(); ++it) {
-        if (*it == backend.d_ds) {
-          states.erase(it);
-          break;
+      dnsdist::configuration::updateRuntimeConfiguration([&backend](dnsdist::configuration::RuntimeConfiguration& runtimeConfig) {
+        auto& backends = runtimeConfig.d_backends;
+        for (auto backendIt = backends.begin(); backendIt != backends.end(); ++backendIt) {
+          if (*backendIt == backend.d_ds) {
+            backends.erase(backendIt);
+            break;
+          }
         }
-      }
+      });
 
       for (const string& poolName : backend.d_ds->d_config.pools) {
-        removeServerFromPool(localPools, poolName, backend.d_ds);
+        removeServerFromPool(poolName, backend.d_ds);
       }
       /* the server might also be in the default pool */
-      removeServerFromPool(localPools, "", backend.d_ds);
+      removeServerFromPool("", backend.d_ds);
     }
 
-    std::stable_sort(states.begin(), states.end(), [](const decltype(newServer)& a, const decltype(newServer)& b) {
-      return a->d_config.order < b->d_config.order;
-    });
+    dnsdist::backend::registerNewBackend(newServer);
 
-    g_pools.setState(localPools);
-    g_dstates.setState(states);
     if (!backend.keepAfterUpgrade) {
       backend.d_ds->stop();
     }

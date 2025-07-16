@@ -9,15 +9,24 @@ AC_PROG_CC
 AC_PROG_CXX
 AC_LANG([C++])
 
-AC_DEFINE([DNSDIST], [1],
-  [This is dnsdist]
-)
+CPPFLAGS="-DDNSDIST $CPPFLAGS"
+
+# Warn when pkg.m4 is missing
+m4_pattern_forbid([^_?PKG_[A-Z_]+$], [*** pkg.m4 missing, please install pkg-config])
 
 LT_PREREQ([2.2.2])
-LT_INIT([disable-static])
+# Rust runtime uses dlopen from its static lib
+LT_INIT([disable-static dlopen])
+AC_SUBST([LIBDL], [$lt_cv_dlopen_libs])
 
-CFLAGS="-g -O3 -Wall -Wextra -Wshadow -Wno-unused-parameter -fvisibility=hidden $CFLAGS"
-CXXFLAGS="-g -O3 -Wall -Wextra -Wshadow -Wno-unused-parameter -Wmissing-declarations -Wredundant-decls -fvisibility=hidden $CXXFLAGS"
+CFLAGS="-g -O3 -Wall -Wextra -Wshadow -fvisibility=hidden $CFLAGS"
+CXXFLAGS="-g -O3 -Wall -Wextra -Wshadow -Wmissing-declarations -Wredundant-decls -fvisibility=hidden $CXXFLAGS"
+
+AC_SUBST([pdns_configure_args], ["$ac_configure_args"])
+AC_DEFINE_UNQUOTED([DNSDIST_CONFIG_ARGS],
+  ["$pdns_configure_args"],
+  [pdns configure arguments]
+)
 
 PDNS_WITH_LIBSODIUM
 PDNS_WITH_QUICHE
@@ -33,7 +42,7 @@ PDNS_CHECK_PTHREAD_NP
 PDNS_CHECK_SECURE_MEMSET
 AC_FUNC_STRERROR_R
 
-BOOST_REQUIRE([1.42])
+BOOST_REQUIRE([1.54])
 
 PDNS_ENABLE_UNIT_TESTS
 PDNS_ENABLE_FUZZ_TARGETS
@@ -61,7 +70,7 @@ AC_SUBST([ARC4RANDOM_LIBS], ['$(top_builddir)/ext/arc4random/libarc4random.la'])
 
 AC_CHECK_HEADERS([sys/random.h])
 
-PDNS_WITH_LUA([mandatory])
+PDNS_WITH_LUA
 AS_IF([test "x$LUAPC" = "xluajit"], [
   # export all symbols with default visibility, to be able to use the Lua FFI interface
   AC_MSG_NOTICE([Adding -rdynamic to export all symbols for the Lua FFI interface])
@@ -126,6 +135,12 @@ AS_IF([test "x$enable_dns_over_http3" != "xno"], [
   ])
 ])
 
+DNSDIST_ENABLE_YAML
+
+AS_IF([test "x$enable_yaml" != "xno"], [
+  PDNS_CHECK_CARGO([1.64])
+])
+
 DNSDIST_WITH_CDB
 PDNS_CHECK_LMDB
 PDNS_ENABLE_IPCIPHER
@@ -184,6 +199,8 @@ AS_IF([test "x$PACKAGEVERSION" != "x"],
 )
 
 AC_CONFIG_FILES([Makefile
+        dnsdist-rust-lib/Makefile
+        dnsdist-rust-lib/rust/Makefile
         ext/arc4random/Makefile
         ext/yahttp/Makefile
         ext/yahttp/yahttp/Makefile
@@ -298,6 +315,10 @@ AS_IF([test "x$CDB_LIBS" != "x"],
 AS_IF([test "x$LMDB_LIBS" != "x"],
   [AC_MSG_NOTICE([lmdb: yes])],
   [AC_MSG_NOTICE([lmdb: no])]
+)
+AS_IF([test "x$enable_yaml" != "xno"],
+  [AC_MSG_NOTICE([YAML configuration: yes])],
+  [AC_MSG_NOTICE([YAML configuration: no])]
 )
 
 AC_MSG_NOTICE([])

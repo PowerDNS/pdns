@@ -20,7 +20,7 @@ class TestALIAS(AuthTest):
 expand-alias=yes
 resolver=%s.1:5301
 any-to-tcp=no
-launch=bind
+launch={backend}
 edns-subnet-processing=yes
 """
 
@@ -194,10 +194,10 @@ subnetwrong.example.org.     3600 IN ALIAS subnetwrong.example.com.
 
         ecso = clientsubnetoption.ClientSubnetOption('2001:db8:db6:db5::', 64)
         ecso2 = clientsubnetoption.ClientSubnetOption('2001:db8:db6:db5::', 64, 48)
-        query = dns.message.make_query('subnet.example.org', 'A', use_edns=True, options=[ecso])
+        query = dns.message.make_query('subnet.example.org', 'AAAA', use_edns=True, options=[ecso])
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
-        self.assertAnyRRsetInAnswer(res, expected_a)
+        self.assertAnyRRsetInAnswer(res, expected_aaaa)
         self.assertEqual(res.options[0], ecso2)
 
     def testECSWrong(self):
@@ -218,10 +218,10 @@ subnetwrong.example.org.     3600 IN ALIAS subnetwrong.example.com.
 
         ecso = clientsubnetoption.ClientSubnetOption('2001:db8:db6:db5::', 64)
         ecso2 = clientsubnetoption.ClientSubnetOption('2001:db8:db6:db5::', 64, 48)
-        query = dns.message.make_query('subnetwrong.example.org', 'A', use_edns=True, options=[ecso])
+        query = dns.message.make_query('subnetwrong.example.org', 'AAAA', use_edns=True, options=[ecso])
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
-        self.assertAnyRRsetInAnswer(res, expected_a)
+        self.assertAnyRRsetInAnswer(res, expected_aaaa)
         self.assertEqual(res.options[0], ecso2)
 
     def testECSNone(self):
@@ -242,10 +242,10 @@ subnetwrong.example.org.     3600 IN ALIAS subnetwrong.example.com.
 
         ecso = clientsubnetoption.ClientSubnetOption('2001:db8:db6:db5::', 64)
         ecso2 = clientsubnetoption.ClientSubnetOption('2001:db8:db6:db5::', 64, 0)
-        query = dns.message.make_query('noerror.example.org', 'A', use_edns=True, options=[ecso])
+        query = dns.message.make_query('noerror.example.org', 'AAAA', use_edns=True, options=[ecso])
         res = self.sendUDPQuery(query)
         self.assertRcodeEqual(res, dns.rcode.NOERROR)
-        self.assertAnyRRsetInAnswer(res, expected_a)
+        self.assertAnyRRsetInAnswer(res, expected_aaaa)
         self.assertEqual(res.options[0], ecso2)
 
 class AliasUDPResponder(DatagramProtocol):

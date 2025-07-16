@@ -48,6 +48,8 @@ def addDependencyToSBOM(sbom, appInfos, pkg):
         component['version'] = (pkg.version if pkg.epoch == 0 else str(pkg.epoch) + ':' + pkg.version) + '-' + pkg.release
     else:
         component['version'] = (pkg.version if pkg.epoch == 0 else str(pkg.epoch) + ':' + pkg.version)
+    if hasattr(pkg, 'arch'):
+        component['version'] += '.' + pkg.arch
     if hasattr(pkg, 'vendor') and pkg.vendor is not None:
         component['supplier'] = {'name': pkg.vendor}
     if hasattr(pkg, 'publisher') and pkg.publisher is not None:
@@ -132,7 +134,15 @@ def generateSBOM(packageName, additionalDeps):
     appName = packageName
     appInfos = getPackageInformations(pkgDB, packageName)
     component = { 'name': appName, 'bom-ref': 'pkg:' + appName, 'type': 'application'}
-    component['version'] = appInfos.version
+
+    if appInfos.release:
+        component['version'] = (appInfos.version if appInfos.epoch == 0 else str(appInfos.epoch) + ':' + appInfos.version) + '-' + appInfos.release
+    else:
+        component['version'] = (appInfos.version if appInfos.epoch == 0 else str(appInfos.epoch) + ':' + appInfos.version)
+
+    if hasattr(appInfos, 'arch'):
+        component['version'] += '.' + appInfos.arch
+
     component['supplier'] = {'name': appInfos.vendor if appInfos.vendor != '<NULL>' else 'PowerDNS.COM BV', 'url': ['https://www.powerdns.com']}
     component['licenses'] = [{'license': {'id': licenseToSPDXIdentifier(appInfos.license)}}]
     depRelations['pkg:' + appName] = []

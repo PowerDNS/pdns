@@ -878,6 +878,10 @@ class TestAPICustomStatistics(APITestsBase):
     declareMetric("my-custom-metric", "counter", "Number of statistics")
     declareMetric("my-other-metric", "counter", "Another number of statistics")
     declareMetric("my-gauge", "gauge", "Current memory usage")
+    declareMetric("my-labeled-gauge", "gauge", "Custom gauge with labels", { withLabels = true })
+    setMetric("my-labeled-gauge", 123, { labels = { foo = "bar" } })
+    declareMetric("my-labeled-counter", "counter", "Custom counter with labels", { withLabels = true })
+    incMetric("my-labeled-counter", { labels = { foo = "bar" } })
     setWebserverConfig({password="%s", apiKey="%s"})
     """
 
@@ -899,3 +903,8 @@ class TestAPICustomStatistics(APITestsBase):
         for key in expected:
             self.assertIn(key, content)
             self.assertTrue(content[key] >= 0)
+
+        unexpected = ['my-labeled-gauge', 'my-labeled-counter']
+
+        for key in unexpected:
+            self.assertNotIn(key, content)

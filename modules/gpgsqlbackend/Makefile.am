@@ -19,5 +19,9 @@ libgpgsqlbackend_la_SOURCES = \
 	gpgsqlbackend.cc gpgsqlbackend.hh \
 	spgsql.cc spgsql.hh
 
+if GPGSQLBACKEND_DYNMODULE
 libgpgsqlbackend_la_LDFLAGS = -module -avoid-version
+else
+libgpgsqlbackend_la_LDFLAGS = -static -avoid-version
+endif
 libgpgsqlbackend_la_LIBADD = $(PGSQL_LIBS)

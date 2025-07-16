@@ -27,7 +27,7 @@ To stop the recursor by hand, run::
 
   # rec_control quit
 
-To dump the cache to disk, execute::
+To dump the caches to disk, execute::
 
   # rec_control dump-cache /tmp/the-cache
 
@@ -48,13 +48,15 @@ Options
                       control.
 --timeout=<num>       Number of seconds to wait for the remote PowerDNS
                       Recursor to respond.
+--version             Show the version number of this program. Note that the **version**
+                      command shows the version of the running recursor.
 
 Commands
 --------
-add-dont-throttle-names NAME [NAME...]
+add-dont-throttle-names *NAME* [*NAME*...]
     Add names for nameserver domains that may not be throttled.
 
-add-dont-throttle-netmasks NETMASK [NETMASK...]
+add-dont-throttle-netmasks *NETMASK* [*NETMASK*...]
     Add netmasks for nameservers that may not be throttled.
 
 add-nta *DOMAIN* [*REASON*]
@@ -68,10 +70,10 @@ add-ta *DOMAIN* *DSRECORD*
 current-queries
     Shows the currently active queries.
 
-clear-dont-throttle-names NAME [NAME...]
+clear-dont-throttle-names *NAME* [*NAME*...]
     Remove names that are not allowed to be throttled. If *NAME* is ``*``, remove all
 
-clear-dont-throttle-netmasks NETMASK [NETMASK...]
+clear-dont-throttle-netmasks *NETMASK* [*NETMASK*...]
     Remove netmasks that are not allowed to be throttled. If *NETMASK* is ``*``, remove all
 
 clear-nta *DOMAIN*...
@@ -82,15 +84,15 @@ clear-ta [*DOMAIN*]...
     Remove Trust Anchor for one or more *DOMAIN*\ s. Note that removing the
     root trust anchor is not possible.
 
-dump-cache *FILENAME*
-    Dumps the entire cache to *FILENAME*. This file should not exist already,
+dump-cache *FILENAME* [*TYPE*...]
+    Dumps caches to *FILENAME*. This file should not exist already,
     PowerDNS will refuse to overwrite it. While dumping, the recursor
     might not answer questions.
 
-    Typical PowerDNS Recursors run multiple threads, therefore you'll see
-    duplicate, different entries for the same domains. The negative cache is
-    also dumped to the same file. The per-thread positive and negative cache
-    dumps are separated with an appropriate comment.
+    If no *TYPE* is specified the record cache, the negative cache,
+    the packet cache and the aggressive NSEC cache are dumped. To
+    select specific caches specify one or more *TYPE*s, separated
+    by spaces. The value of *TYPE* can be r, n, p or a.
 
 dump-dot-probe-map *FILENAME*
     Dump the contents of the DoT probe map to the *FILENAME* mentioned.
@@ -179,7 +181,7 @@ hash-password [*WORK-FACTOR*]
 
 help
     Shows a list of supported commands understood by the running
-    :program:`pdns_recursor`
+    :program:`pdns_recursor`.
 
 list-dnssec-algos
     List supported (and potentially disabled) DNSSEC algorithms.
@@ -209,7 +211,11 @@ reload-lua-config [*FILENAME*]
     executed, any settings changed at runtime that are not modified in this
     file, will still be active. The effects of reloading do not always take
     place immediately, as some subsystems reload and replace configuration
-    in an asynchronous way.
+    in an asynchronous way. If YAML settings are used this command will
+    reload the runtime settable parts of the YAML settings.
+
+reload-yaml
+    Reload the runtime settable parts of the YAML settings.
 
 reload-zones
     Reload authoritative and forward zones. Retains current configuration in
@@ -251,7 +257,7 @@ set-event-trace-enabled *NUM*
     ``2`` = log file, ``3`` = protobuf and log file.
 
 show-yaml [*FILE*]
-    Show Yaml representation of odl-style config.
+    Show Yaml representation of old-style config.
 
 top-queries
     Shows the top-20 queries. Statistics are over the last
@@ -329,7 +335,7 @@ unload-lua-script
     Unloads Lua script if one was loaded.
 
 version
-    Report running version.
+    Report the version of the running Recursor.
 
 wipe-cache *DOMAIN* [*DOMAIN*] [...]
     Wipe entries for *DOMAIN* (exact name match) from the cache. This is useful

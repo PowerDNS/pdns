@@ -12,7 +12,9 @@
 class AuthLua4 : public BaseLua4
 {
 public:
-  AuthLua4();
+  AuthLua4(const std::string& includePath="") : BaseLua4(includePath) {
+    prepareContext();
+  };
   bool updatePolicy(const DNSName &qname, const QType& qtype, const DNSName &zonename, const DNSPacket& packet);
   bool axfrfilter(const ComboAddress&, const DNSName&, const DNSResourceRecord&, std::vector<DNSResourceRecord>&);
   LuaContext* getLua();
@@ -43,5 +45,5 @@ private:
   luacall_axfr_filter_t d_axfr_filter;
   luacall_prequery_t d_prequery;
 };
-std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, const DNSName& qname,
-                                                   const DNSName& zone, int zoneid, const DNSPacket& dnsp, uint16_t qtype, unique_ptr<AuthLua4>& LUA);
+std::vector<shared_ptr<DNSRecordContent>> luaSynth(const std::string& code, const DNSName& query, const DNSZoneRecord& zone_record,
+                                                   const DNSName& zone, const DNSPacket& dnsp, uint16_t qtype, unique_ptr<AuthLua4>& LUA);

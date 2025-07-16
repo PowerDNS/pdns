@@ -36,37 +36,37 @@ class ixfrdistStats {
 
     std::string getStats();
 
-    void setSOASerial(const DNSName& d, const uint32_t serial) {
+    void setSOASerial(const ZoneName& d, const uint32_t serial) {
       auto stat = getRegisteredDomain(d);
       stat->second.currentSOA = serial;
       stat->second.haveZone = true;
     }
-    void incrementSOAChecks(const DNSName& d, const uint64_t amount = 1) {
+    void incrementSOAChecks(const ZoneName& d, const uint64_t amount = 1) {
       getRegisteredDomain(d)->second.numSOAChecks += amount;
     }
-    void incrementSOAChecksFailed(const DNSName& d, const uint64_t amount = 1) {
+    void incrementSOAChecksFailed(const ZoneName& d, const uint64_t amount = 1) {
       getRegisteredDomain(d)->second.numSOAChecksFailed += amount;
     }
-    void incrementSOAinQueries(const DNSName& d, const uint64_t amount = 1) {
+    void incrementSOAinQueries(const ZoneName& d, const uint64_t amount = 1) {
       getRegisteredDomain(d)->second.numSOAinQueries += amount;
     }
-    void incrementAXFRinQueries(const DNSName& d, const uint64_t amount = 1) {
+    void incrementAXFRinQueries(const ZoneName& d, const uint64_t amount = 1) {
       getRegisteredDomain(d)->second.numAXFRinQueries += amount;
     }
-    void incrementIXFRinQueries(const DNSName& d, const uint64_t amount = 1) {
+    void incrementIXFRinQueries(const ZoneName& d, const uint64_t amount = 1) {
       getRegisteredDomain(d)->second.numIXFRinQueries += amount;
     }
-    void incrementAXFRFailures(const DNSName& d, const uint64_t amount = 1) {
+    void incrementAXFRFailures(const ZoneName& d, const uint64_t amount = 1) {
       getRegisteredDomain(d)->second.numAXFRFailures += amount;
     }
-    void incrementIXFRFailures(const DNSName& d, const uint64_t amount = 1) {
+    void incrementIXFRFailures(const ZoneName& d, const uint64_t amount = 1) {
       getRegisteredDomain(d)->second.numIXFRFailures += amount;
     }
-    void registerDomain(const DNSName& d) {
+    void registerDomain(const ZoneName& d) {
       domainStats[d].haveZone = false;
     }
 
-    void incrementUnknownDomainInQueries(const DNSName& /* d */)
+    void incrementUnknownDomainInQueries(const ZoneName& /* d */)
     { // the name is ignored. It would be great to report it, but we don't want to blow up Prometheus
       progStats.unknownDomainInQueries += 1;
     }
@@ -98,11 +98,11 @@ class ixfrdistStats {
         std::atomic<uint32_t> unknownDomainInQueries{0};
     };
 
-    std::map<DNSName, perDomainStat> domainStats;
+    std::map<ZoneName, perDomainStat> domainStats;
     std::array<std::atomic<uint64_t>, 16> notimpStats{};
     programStats progStats;
 
-    std::map<DNSName, perDomainStat>::iterator getRegisteredDomain(const DNSName& d) {
+    std::map<ZoneName, perDomainStat>::iterator getRegisteredDomain(const ZoneName& d) {
       auto ret = domainStats.find(d);
       if (ret == domainStats.end()) {
         throw PDNSException("Domain '" + d.toLogString() + "' not defined in the statistics map");

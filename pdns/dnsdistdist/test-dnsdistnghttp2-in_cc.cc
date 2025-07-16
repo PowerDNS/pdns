@@ -143,6 +143,9 @@ public:
       nghttp2_data_provider data_provider;
       data_provider.source.ptr = this;
       data_provider.read_callback = [](nghttp2_session* session, int32_t stream_id, uint8_t* buf, size_t length, uint32_t* data_flags, nghttp2_data_source* source, void* user_data) -> ssize_t {
+        (void)session;
+        (void)stream_id;
+        (void)source;
         auto* conn = static_cast<DOHConnection*>(user_data);
         auto& pos = conn->d_position;
         const auto& currentQuery = conn->d_currentQuery;
@@ -197,6 +200,8 @@ public:
 private:
   static ssize_t send_callback(nghttp2_session* session, const uint8_t* data, size_t length, int flags, void* user_data)
   {
+    (void)session;
+    (void)flags;
     auto* conn = static_cast<DOHConnection*>(user_data);
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): nghttp2 API
     conn->d_clientOutBuffer.insert(conn->d_clientOutBuffer.end(), data, data + length);
@@ -205,6 +210,7 @@ private:
 
   static int on_frame_recv_callback(nghttp2_session* session, const nghttp2_frame* frame, void* user_data)
   {
+    (void)session;
     auto* conn = static_cast<DOHConnection*>(user_data);
     if ((frame->hd.type == NGHTTP2_HEADERS || frame->hd.type == NGHTTP2_DATA) && (frame->hd.flags & NGHTTP2_FLAG_END_STREAM) != 0) {
       const auto& response = conn->d_responses.at(frame->hd.stream_id);
@@ -231,6 +237,8 @@ private:
 
   static int on_data_chunk_recv_callback(nghttp2_session* session, uint8_t flags, int32_t stream_id, const uint8_t* data, size_t len, void* user_data)
   {
+    (void)session;
+    (void)flags;
     auto* conn = static_cast<DOHConnection*>(user_data);
     auto& response = conn->d_responses[stream_id];
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): nghttp2 API
@@ -240,6 +248,8 @@ private:
 
   static int on_header_callback(nghttp2_session* session, const nghttp2_frame* frame, const uint8_t* name, size_t namelen, const uint8_t* value, size_t valuelen, uint8_t flags, void* user_data)
   {
+    (void)session;
+    (void)flags;
     auto* conn = static_cast<DOHConnection*>(user_data);
     const std::string status(":status");
     if (frame->hd.type == NGHTTP2_HEADERS && frame->headers.cat == NGHTTP2_HCAT_RESPONSE) {
@@ -266,6 +276,10 @@ private:
 
   static int on_stream_close_callback(nghttp2_session* session, int32_t stream_id, uint32_t error_code, void* user_data)
   {
+    (void)session;
+    (void)stream_id;
+    (void)error_code;
+    (void)user_data;
     return 0;
   }
 };
@@ -361,6 +375,8 @@ public:
 
   IOState tryConnect(bool fastOpen, const ComboAddress& remote) override
   {
+    (void)fastOpen;
+    (void)remote;
     throw std::runtime_error("Should not happen");
   }
 
@@ -402,6 +418,7 @@ public:
 
   void setSession(std::unique_ptr<TLSSession>& session) override
   {
+    (void)session;
   }
 
   [[nodiscard]] std::vector<int> getAsyncFDs() override
@@ -416,15 +433,26 @@ public:
 
   void connect(bool fastOpen, const ComboAddress& remote, const struct timeval& timeout) override
   {
+    (void)fastOpen;
+    (void)remote;
+    (void)timeout;
   }
 
   size_t read(void* buffer, size_t bufferSize, const struct timeval& readTimeout, const struct timeval& totalTimeout = {0, 0}, bool allowIncomplete = false) override
   {
+    (void)buffer;
+    (void)bufferSize;
+    (void)readTimeout;
+    (void)totalTimeout;
+    (void)allowIncomplete;
     return 0;
   }
 
   size_t write(const void* buffer, size_t bufferSize, const struct timeval& writeTimeout) override
   {
+    (void)buffer;
+    (void)bufferSize;
+    (void)writeTimeout;
     return 0;
   }
 
@@ -472,7 +500,6 @@ private:
     /* we _NEED_ to set this function to empty otherwise we might get what was set
        by the last test, and we might not like it at all */
     s_processQuery = nullptr;
-    g_proxyProtocolACL.clear();
   }
 };
 
@@ -486,9 +513,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
   TCPClientThreadData threadData;
   threadData.mplexer = std::make_unique<MockupFDMultiplexer>();
 
-  struct timeval now
-  {
-  };
+  struct timeval now{};
   gettimeofday(&now, nullptr);
 
   size_t counter = 0;
@@ -561,6 +586,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
   {
     /* dnsdist sends a response right away, client closes the connection after getting the response */
     s_processQuery = [response](DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)selectedBackend;
       /* self answered */
       dnsQuestion.getMutableData() = response;
       return ProcessQueryResult::SendAnswer;
@@ -592,6 +618,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
   {
     /* dnsdist sends a response right away, but the client closes the connection without even reading the response */
     s_processQuery = [response](DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)selectedBackend;
       /* self answered */
       dnsQuestion.getMutableData() = response;
       return ProcessQueryResult::SendAnswer;
@@ -627,6 +654,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_SelfAnswered, TestFixture)
   {
     /* dnsdist sends a response right away, client closes the connection while getting the response */
     s_processQuery = [response](DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)selectedBackend;
       /* self answered */
       dnsQuestion.getMutableData() = response;
       return ProcessQueryResult::SendAnswer;
@@ -676,9 +704,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendTimeout, TestFixture)
 
   auto backend = std::make_shared<DownstreamState>(getBackendAddress("42", 53));
 
-  struct timeval now
-  {
-  };
+  timeval now{};
   gettimeofday(&now, nullptr);
 
   size_t counter = 0;
@@ -701,6 +727,7 @@ BOOST_FIXTURE_TEST_CASE(test_IncomingConnection_BackendTimeout, TestFixture)
   {
     /* dnsdist forwards the query to the backend, which does not answer -> timeout */
     s_processQuery = [backend](DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& selectedBackend) -> ProcessQueryResult {
+      (void)dnsQuestion;
       selectedBackend = backend;
       return ProcessQueryResult::PassToBackend;
     };

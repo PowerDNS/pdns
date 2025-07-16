@@ -8,12 +8,13 @@ import extendederrors
 from recursortests import RecursorTest
 
 
-class testExpired(RecursorTest):
+class ExpiredTest(RecursorTest):
     """This regression test starts the authoritative servers with a clock that is
     set 15 days into the past. Hence, the recursor must reject the signatures
     because they are expired.
     """
     _confdir = 'Expired'
+    _auth_zones = RecursorTest._default_auth_zones
 
     _config_template = """dnssec=validate"""
 
@@ -26,12 +27,13 @@ class testExpired(RecursorTest):
 
         self.assertRcodeEqual(res, dns.rcode.SERVFAIL)
 
-class testExpiredWithEDE(RecursorTest):
+class ExpiredWithEDETest(RecursorTest):
     """This regression test starts the authoritative servers with a clock that is
     set 15 days into the past. Hence, the recursor must reject the signatures
     because they are expired.
     """
     _confdir = 'ExpiredWithEDE'
+    _auth_zones = RecursorTest._default_auth_zones
 
     _config_template = """
     dnssec=validate

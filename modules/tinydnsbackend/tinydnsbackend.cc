@@ -28,7 +28,7 @@
 #include <utility>
 
 static string backendname = "[TinyDNSBackend] ";
-uint32_t TinyDNSBackend::s_lastId;
+domainid_t TinyDNSBackend::s_lastId;
 LockGuarded<TinyDNSBackend::TDI_suffix_t> TinyDNSBackend::s_domainInfo;
 
 vector<string> TinyDNSBackend::getLocations()
@@ -50,7 +50,7 @@ vector<string> TinyDNSBackend::getLocations()
   char key[6];
   key[0] = '\000';
   key[1] = '\045';
-  key[2] = (addr)&0xff;
+  key[2] = (addr) & 0xff;
   key[3] = (addr >> 8) & 0xff;
   key[4] = (addr >> 16) & 0xff;
   key[5] = (addr >> 24) & 0xff;
@@ -88,58 +88,58 @@ TinyDNSBackend::TinyDNSBackend(const string& suffix)
   d_isWildcardQuery = false;
 }
 
+TinyDNSBackend::TDI_t::iterator TinyDNSBackend::updateState(DomainInfo& domain, TDI_t* state)
+{
+  TDIByZone_t& zone_index = state->get<tag_zone>();
+  TDIByZone_t::iterator itByZone = zone_index.find(domain.zone);
+  if (itByZone != zone_index.end()) {
+    return itByZone;
+  }
+
+  TinyDomainInfo tmp;
+  s_lastId++;
+  tmp.zone = domain.zone;
+  tmp.id = s_lastId;
+  tmp.notified_serial = domain.serial;
+  return state->insert(tmp).first;
+}
+
 void TinyDNSBackend::getUpdatedPrimaries(vector<DomainInfo>& retDomains, std::unordered_set<DNSName>& /* catalogs */, CatalogHashMap& /* catalogHashes */)
 {
+  bool alwaysNotify{false};
   auto domainInfo = s_domainInfo.lock(); //TODO: We could actually lock less if we do it per suffix.
-  if (!domainInfo->count(d_suffix)) {
+  if (domainInfo->count(d_suffix) == 0) {
+    // If we don't have any state yet, this is startup, check whether we need
+    // to always notify.
+    alwaysNotify = mustDo("notify-on-startup");
     TDI_t tmp;
     domainInfo->emplace(d_suffix, tmp);
   }
 
-  TDI_t* domains = &(*domainInfo)[d_suffix];
+  TDI_t* state = &(*domainInfo)[d_suffix];
 
   vector<DomainInfo> allDomains;
-  getAllDomains(&allDomains, true, false);
-  if (domains->size() == 0 && !mustDo("notify-on-startup")) {
-    for (vector<DomainInfo>::iterator di = allDomains.begin(); di != allDomains.end(); ++di) {
-      di->notified_serial = 0;
-    }
-  }
+  getAllDomains_locked(&allDomains, true);
 
-  for (vector<DomainInfo>::iterator di = allDomains.begin(); di != allDomains.end(); ++di) {
-    TDIByZone_t& zone_index = domains->get<tag_zone>();
-    TDIByZone_t::iterator itByZone = zone_index.find(di->zone);
-    if (itByZone == zone_index.end()) {
-      s_lastId++;
-
-      TinyDomainInfo tmp;
-      tmp.zone = di->zone;
-      tmp.id = s_lastId;
-      tmp.notified_serial = di->serial;
-      domains->insert(tmp);
-
-      di->id = s_lastId;
-      if (di->notified_serial > 0) {
-        retDomains.push_back(*di);
-      }
-    }
-    else {
-      if (itByZone->notified_serial < di->serial) {
-        di->id = itByZone->id;
-        retDomains.push_back(*di);
-      }
+  for (auto& domain : allDomains) {
+    auto iter = updateState(domain, state);
+    // Keep domain id in sync with our current state.
+    domain.id = iter->id;
+    if (alwaysNotify || iter->notified_serial < domain.serial) {
+      retDomains.push_back(domain);
     }
   }
 }
 
-void TinyDNSBackend::setNotified(uint32_t id, uint32_t serial)
+// NOLINTNEXTLINE(readability-identifier-length)
+void TinyDNSBackend::setNotified(domainid_t id, uint32_t serial)
 {
   auto domainInfo = s_domainInfo.lock();
   if (!domainInfo->count(d_suffix)) {
     throw PDNSException("Can't get list of domains to set the serial.");
   }
-  TDI_t* domains = &(*domainInfo)[d_suffix];
-  TDIById_t& domain_index = domains->get<tag_domainid>();
+  TDI_t* state = &(*domainInfo)[d_suffix];
+  TDIById_t& domain_index = state->get<tag_domainid>();
   TDIById_t::iterator itById = domain_index.find(id);
   if (itById == domain_index.end()) {
     g_log << Logger::Error << backendname << "Received updated serial(" << serial << "), but domain ID (" << id << ") is not known in this backend." << endl;
@@ -148,10 +148,10 @@ void TinyDNSBackend::setNotified(uint32_t id, uint32_t serial)
     DLOG(g_log << Logger::Debug << backendname << "Setting serial for " << itById->zone << " to " << serial << endl);
     domain_index.modify(itById, TDI_SerialModifier(serial));
   }
-  (*domainInfo)[d_suffix] = *domains;
+  (*domainInfo)[d_suffix] = *state;
 }
 
-void TinyDNSBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool /* include_disabled */)
+void TinyDNSBackend::getAllDomains_locked(vector<DomainInfo>* domains, bool getSerial)
 {
   d_isAxfr = true;
   d_isGetDomains = true;
@@ -159,6 +159,7 @@ void TinyDNSBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, 
 
   try {
     d_cdbReader = std::make_unique<CDB>(getArg("dbfile"));
+    d_currentDomain = UnknownDomainID;
   }
   catch (const std::exception& e) {
     g_log << Logger::Error << e.what() << endl;
@@ -172,9 +173,9 @@ void TinyDNSBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, 
   while (get(rr)) {
     if (rr.qtype.getCode() == QType::SOA && dupcheck.insert(rr.qname).second) {
       DomainInfo di;
-      di.id = -1; //TODO: Check if this is ok.
+      di.id = d_currentDomain; // Will be overridden by caller
       di.backend = this;
-      di.zone = rr.qname;
+      di.zone = ZoneName(rr.qname);
       di.kind = DomainInfo::Primary;
       di.last_check = time(0);
 
@@ -195,13 +196,60 @@ void TinyDNSBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, 
   }
 }
 
-bool TinyDNSBackend::list(const DNSName& target, int /* domain_id */, bool /* include_disabled */)
+void TinyDNSBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, bool /* include_disabled */)
+{
+  auto domainInfo = s_domainInfo.lock(); //TODO: We could actually lock less if we do it per suffix.
+  if (domainInfo->count(d_suffix) == 0) {
+    TDI_t tmp;
+    domainInfo->emplace(d_suffix, tmp);
+  }
+
+  TDI_t* state = &(*domainInfo)[d_suffix];
+
+  getAllDomains_locked(domains, getSerial);
+
+  for (auto& domain : *domains) {
+    auto iter = updateState(domain, state);
+    // Keep domain id in sync with our current state.
+    domain.id = iter->id;
+  }
+}
+
+//NOLINTNEXTLINE(readability-identifier-length)
+bool TinyDNSBackend::getDomainInfo(const ZoneName& domain, DomainInfo& di, bool getSerial)
+{
+  auto domainInfo = s_domainInfo.lock(); //TODO: We could actually lock less if we do it per suffix.
+  if (domainInfo->count(d_suffix) == 0) {
+    TDI_t tmp;
+    domainInfo->emplace(d_suffix, tmp);
+  }
+
+  TDI_t* state = &(*domainInfo)[d_suffix];
+
+  vector<DomainInfo> allDomains;
+  getAllDomains_locked(&allDomains, getSerial);
+
+  bool found{false};
+  for (auto& oneDomain : allDomains) {
+    auto iter = updateState(oneDomain, state);
+    if (oneDomain.zone == domain) {
+      // Keep domain id in sync with our current state.
+      oneDomain.id = iter->id;
+      di = oneDomain;
+      found = true;
+    }
+  }
+  return found;
+}
+
+bool TinyDNSBackend::list(const ZoneName& target, domainid_t domain_id, bool /* include_disabled */)
 {
   d_isAxfr = true;
   d_isGetDomains = false;
-  string key = target.toDNSStringLC();
+  string key = target.operator const DNSName&().toDNSStringLC();
   try {
     d_cdbReader = std::make_unique<CDB>(getArg("dbfile"));
+    d_currentDomain = domain_id;
   }
   catch (const std::exception& e) {
     g_log << Logger::Error << e.what() << endl;
@@ -211,7 +259,7 @@ bool TinyDNSBackend::list(const DNSName& target, int /* domain_id */, bool /* in
   return d_cdbReader->searchSuffix(key);
 }
 
-void TinyDNSBackend::lookup(const QType& qtype, const DNSName& qdomain, int /* zoneId */, DNSPacket* pkt_p)
+void TinyDNSBackend::lookup(const QType& qtype, const DNSName& qdomain, domainid_t zoneId, DNSPacket* pkt_p)
 {
   d_isAxfr = false;
   d_isGetDomains = false;
@@ -232,6 +280,7 @@ void TinyDNSBackend::lookup(const QType& qtype, const DNSName& qdomain, int /* z
 
   try {
     d_cdbReader = std::make_unique<CDB>(getArg("dbfile"));
+    d_currentDomain = zoneId;
   }
   catch (const std::exception& e) {
     g_log << Logger::Error << e.what() << endl;
@@ -309,7 +358,7 @@ bool TinyDNSBackend::get(DNSResourceRecord& rr)
       }
       // rr.qname.clear();
       rr.qname = DNSName(key.c_str(), key.size(), 0, false);
-      rr.domain_id = -1;
+      rr.domain_id = d_currentDomain;
       // 11:13.21 <@ahu> IT IS ALWAYS AUTH --- well not really because we are just a backend :-)
       // We could actually do NSEC3-NARROW DNSSEC according to Habbie, if we do, we need to change something here.
       rr.auth = true;
@@ -362,6 +411,7 @@ bool TinyDNSBackend::get(DNSResourceRecord& rr)
   DLOG(g_log << Logger::Debug << backendname << "No more records to return." << endl);
 
   d_cdbReader = nullptr;
+  d_currentDomain = UnknownDomainID;
   return false;
 }
 

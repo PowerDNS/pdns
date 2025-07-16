@@ -1,22 +1,44 @@
 dnsdist Overview
 ================
 
-dnsdist is a highly DNS-, DoS- and abuse-aware loadbalancer.
+:program:`dnsdist` is a highly DNS-, DoS- and abuse-aware loadbalancer.
 Its goal in life is to route traffic to the best server, delivering top performance to legitimate users while shunting or blocking abusive traffic.
 
-dnsdist is dynamic, its configuration language is `Lua <http://lua.org>`_ and it can be changed at runtime, and its statistics can be queried from a console-like interface or an HTTP API.
+:program:`dnsdist` is dynamic, its configuration can be changed at runtime via a :doc:`console-like interface <guides/console>`.
+It exposes :doc:`metrics <statistics>` that can be exported via Carbon, Prometheus, an HTTP API and the console.
+
+Until 2.0.0 the configuration was written in `Lua <https://lua.org>`_, but it is now possible to write the configuration in :doc:`yaml <reference/yaml-settings>` as well.
 
 A configuration to balance DNS queries to several backend servers:
 
 .. code-block:: lua
 
-   newServer({address="2620:fe::fe", qps=1})
-   newServer({address="2620:fe::9", qps=1})
-   newServer({address="9.9.9.9", qps=1})
-   newServer({address="2001:db8::1", qps=10})
-   newServer({address="[2001:db8::2]:5300", name="dns1", qps=10})
+   newServer({address="2620:fe::fe"})
+   newServer({address="2620:fe::9"})
+   newServer({address="9.9.9.9"})
+   newServer({address="2001:db8::1"})
+   newServer({address="[2001:db8::2]:5300", name="dns1"})
    newServer("192.0.2.1")
-   setServerPolicy(firstAvailable) -- first server within its QPS limit
+
+Or in ``yaml``:
+
+.. code-block:: yaml
+
+  backends:
+    - address: "2620:fe::fe"
+      protocol: Do53
+    - address: "2620:fe::9"
+      protocol: Do53
+    - address: "9.9.9.9"
+      protocol: Do53
+    - address: "2001:db8::1"
+      protocol: Do53
+    - address: "[2001:db8::1]:5300"
+      name: "dns1"
+      protocol: Do53
+    - address: "192.0.2.1"
+      protocol: Do53
+
 
 Running dnsdist
 ---------------
@@ -40,6 +62,6 @@ There are several ways to reach us:
 * #powerdns on `irc.oftc.net <irc://irc.oftc.net/#powerdns>`_
 
 The Open-Xchange/PowerDNS company can provide help or support you in private as well.
-Please `contact Open-Xchange <https://www.open-xchange.com/about-ox/contact-us/>`__.
+Please `contact PowerDNS <https://www.powerdns.com/contact-us>`__.
 
 This documentation is also available as a `PDF document <dnsdist.pdf>`_.

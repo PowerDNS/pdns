@@ -8,7 +8,6 @@ case $context in
 		if [ ! -d $testsdir/../venv ]; then
 			python3 -m venv $testsdir/../venv
 			source $testsdir/../venv/bin/activate
-			pip install -U wheel
 			pip install -r $testsdir/../requirements.txt
 		else
 			source $testsdir/../venv/bin/activate
@@ -89,6 +88,7 @@ case $context in
 
 
 		# generate pdns.conf for pdnsutil
+		backend=remote
 		cat > pdns-remote.conf <<EOF
 module-dir=$PDNS_BUILD_PATH/modules
 launch=remote

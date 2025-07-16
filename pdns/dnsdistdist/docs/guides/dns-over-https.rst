@@ -34,6 +34,25 @@ A more complicated (and more realistic) example is when you want to indicate met
 
   addDOHLocal('2001:db8:1:f00::1', '/etc/ssl/certs/example.com.pem', '/etc/ssl/private/example.com.key', "/", {customResponseHeaders={["link"]="<https://example.com/policy.html> rel=\\"service-meta\\"; type=\\"text/html\\""}})
 
+Or in ``yaml``:
+
+.. code-block:: yaml
+
+  - listen_address: "2001:db8:1:f00::1"
+    protocol: "DoH"
+    tls:
+      certificates:
+        - certificate: "/etc/ssl/certs/example.com.pem"
+          key: "/etc/ssl/private/example.com.key"
+    doh:
+      provider: "nghttp2"
+      paths:
+        - "/"
+      custom_response_headers:
+        - key: "link"
+          value: "<https://example.com/policy.html> rel=\\"service-meta\\"; type=\\"text/html\\""
+
+
 A particular attention should be taken to the permissions of the certificate and key files. Many ACME clients used to get and renew certificates, like CertBot, set permissions assuming that services are started as root, which is no longer true for dnsdist as of 1.5.0. For that particular case, making a copy of the necessary files in the /etc/dnsdist directory is advised, using for example CertBot's ``--deploy-hook`` feature to copy the files with the right permissions after a renewal.
 
 More information about sessions management can also be found in :doc:`../advanced/tls-sessions-management`.
@@ -74,7 +93,24 @@ preferred library for incoming DoH support, because ``h2o`` has unfortunately re
 (see https://github.com/h2o/h2o/issues/3230). While we took great care to make the migration as painless as possible, ``h2o`` supported HTTP/1 while ``nghttp2``
 does not. This is not an issue for actual DNS over HTTPS clients that support HTTP/2, but might be one in setups running dnsdist behind a reverse-proxy that
 does not support HTTP/2, like nginx. We do not plan on implementing HTTP/1, and recommend using HTTP/2 between the reverse-proxy and dnsdist for performance reasons.
-For nginx in particular, a possible work-around is to use the `grpc_pass <http://nginx.org/r/grpc_pass>`_ directive as suggested in their `bug tracker <https://trac.nginx.org/nginx/ticket/1875>`_.
+
+For nginx in particular, a possible work-around is to use the `grpc_pass <https://nginx.org/r/grpc_pass>`_ directive as suggested in their `bug tracker <https://trac.nginx.org/nginx/ticket/1875>`_ e.g.::
+
+  location /dns-query {
+    set $upstream_app dnsdist;
+    set $upstream_port 443;
+    set $upstream_proto grpcs;
+    grpc_pass $upstream_proto://$upstream_app:$upstream_port;
+
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Protocol $scheme;
+    proxy_set_header Range $http_range;
+    proxy_set_header If-Range $http_if_range;
+  }
 
 Internal design
 ^^^^^^^^^^^^^^^
@@ -104,12 +140,24 @@ dnsdist provides a lot of counters to investigate issues:
 Outgoing
 --------
 
-Support for securing the exchanges between dnsdist and the backend will be implemented in 1.7.0, and will lead to all queries, regardless of whether they were initially received by dnsdist over UDP, TCP, DoT or DoH, being forwarded over a secure DNS over HTTPS channel.
-That support can be enabled via the ``dohPath`` parameter of the :func:`newServer` command. Additional parameters control the TLS provider used (``tls``), the validation of the certificate presented by the backend (``caStore``, ``validateCertificates``), the actual TLS ciphers used (``ciphers``, ``ciphersTLS13``) and the SNI value sent (``subjectName``).
+:program:`dnsdist` also supports outgoing DNS-over-HTTPS since 1.7.0. This way, all queries, regardless of whether they were initially received by dnsdist over UDP, TCP, DoT or DoH, are forwarded to the backend over a secure DNS-over-HTTPS channel.
+Such that support can be enabled via the ``dohPath`` parameter of the :func:`newServer` command. Additional parameters control the TLS provider used (``tls``), the validation of the certificate presented by the backend (``caStore``, ``validateCertificates``), the actual TLS ciphers used (``ciphers``, ``ciphersTLS13``) and the SNI value sent (``subjectName``).
 
 .. code-block:: lua
 
   newServer({address="[2001:DB8::1]:443", tls="openssl", subjectName="doh.powerdns.com", dohPath="/dns-query", validateCertificates=true})
+
+.. code-block:: yaml
+
+  backends:
+    - address: "127.0.0.1:%d"
+      protocol: "DoH"
+      tls:
+        provider: "openssl"
+        validate_certificate: true
+        subject_name: "doh.powerdns.com"
+      doh:
+        path: "/dns-query"
 
 
 Internal design

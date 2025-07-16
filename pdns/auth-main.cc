@@ -116,6 +116,7 @@ time_t g_luaConsistentHashesCleanupInterval{3600};
 #ifdef ENABLE_GSS_TSIG
 bool g_doGssTSIG;
 #endif
+bool g_views;
 typedef Distributor<DNSPacket, DNSPacket, PacketHandler> DNSDistributor;
 
 ArgvMap theArg;
@@ -126,7 +127,7 @@ AuthZoneCache g_zoneCache;
 std::unique_ptr<DNSProxy> DP{nullptr};
 static std::unique_ptr<DynListener> s_dynListener{nullptr};
 CommunicatorClass Communicator;
-static double avg_latency{0.0}, receive_latency{0.0}, cache_latency{0.0}, backend_latency{0.0}, send_latency{0.0};
+static std::atomic<double> avg_latency{0.0}, receive_latency{0.0}, cache_latency{0.0}, backend_latency{0.0}, send_latency{0.0};
 static unique_ptr<TCPNameserver> s_tcpNameserver{nullptr};
 static vector<DNSDistributor*> s_distributors;
 static shared_ptr<UDPNameserver> s_udpNameserver{nullptr};
@@ -205,6 +206,7 @@ static void declareArguments()
   ::arg().set("receiver-threads", "Default number of receiver threads to start") = "1";
   ::arg().set("queue-limit", "Maximum number of milliseconds to queue a query") = "1500";
   ::arg().set("resolver", "Use this resolver for ALIAS and the internal stub resolver") = "no";
+  ::arg().set("dnsproxy-udp-port-range", "Select DNS Proxy outgoing UDP port from given range (lower upper)") = "10000 60000";
   ::arg().set("udp-truncation-threshold", "Maximum UDP response size before we truncate") = "1232";
 
   ::arg().set("config-name", "Name of this virtual configuration - will rename the binary image") = "";
@@ -238,7 +240,7 @@ static void declareArguments()
 
   ::arg().setSwitch("webserver", "Start a webserver for monitoring (api=yes also enables the HTTP listener)") = "no";
   ::arg().setSwitch("webserver-print-arguments", "If the webserver should print arguments") = "no";
-  ::arg().set("webserver-address", "IP Address of webserver/API to listen on") = "127.0.0.1";
+  ::arg().set("webserver-address", "IP Address or path to UNIX domain socket for webserver/API to listen on") = "127.0.0.1";
   ::arg().set("webserver-port", "Port of webserver/API to listen on") = "8081";
   ::arg().set("webserver-password", "Password required for accessing the webserver") = "";
   ::arg().set("webserver-allow-from", "Webserver/API access is only allowed from these subnets") = "127.0.0.1,::1";
@@ -291,9 +293,11 @@ static void declareArguments()
 
   ::arg().set("lua-prequery-script", "Lua script with prequery handler (DO NOT USE)") = "";
   ::arg().set("lua-dnsupdate-policy-script", "Lua script with DNS update policy handler") = "";
+  ::arg().set("lua-global-include-dir", "Include *.lua files from this directory into Lua contexts") = "";
 
   ::arg().setSwitch("traceback-handler", "Enable the traceback handler (Linux only)") = "yes";
   ::arg().setSwitch("direct-dnskey", "Fetch DNSKEY, CDS and CDNSKEY RRs from backend during DNSKEY or CDS/CDNSKEY synthesis") = "no";
+  ::arg().setSwitch("direct-dnskey-signature", "Fetch signature of DNSKEY RRs from backend directly") = "no";
   ::arg().set("default-ksk-algorithm", "Default KSK algorithm") = "ecdsa256";
   ::arg().set("default-ksk-size", "Default KSK size (0 means default)") = "0";
   ::arg().set("default-zsk-algorithm", "Default ZSK algorithm") = "";
@@ -307,15 +311,16 @@ static void declareArguments()
 
   ::arg().setSwitch("expand-alias", "Expand ALIAS records") = "no";
   ::arg().set("outgoing-axfr-expand-alias", "Expand ALIAS records during outgoing AXFR") = "no";
+  ::arg().setSwitch("resolve-across-zones", "Resolve CNAME targets and other referrals across local zones") = "yes";
   ::arg().setSwitch("8bit-dns", "Allow 8bit dns queries") = "no";
 #ifdef HAVE_LUA_RECORDS
-  ::arg().setSwitch("enable-lua-records", "Process LUA records for all zones (metadata overrides this)") = "no";
-  ::arg().setSwitch("lua-records-insert-whitespace", "Insert whitespace when combining LUA chunks") = "no";
-  ::arg().set("lua-records-exec-limit", "LUA records scripts execution limit (instructions count). Values <= 0 mean no limit") = "1000";
+  ::arg().setSwitch("enable-lua-records", "Process Lua records for all zones (metadata overrides this)") = "no";
+  ::arg().setSwitch("lua-records-insert-whitespace", "Insert whitespace when combining Lua chunks") = "no";
+  ::arg().set("lua-records-exec-limit", "Lua records scripts execution limit (instructions count). Values <= 0 mean no limit") = "1000";
   ::arg().set("lua-health-checks-expire-delay", "Stops doing health checks after the record hasn't been used for that delay (in seconds)") = "3600";
-  ::arg().set("lua-health-checks-interval", "LUA records health checks monitoring interval in seconds") = "5";
+  ::arg().set("lua-health-checks-interval", "Lua records health checks monitoring interval in seconds") = "5";
   ::arg().set("lua-consistent-hashes-cleanup-interval", "Pre-computed hashes cleanup interval (in seconds)") = "3600";
-  ::arg().set("lua-consistent-hashes-expire-delay", "Cleanup pre-computed hashes that haven't been used for the given delay (in seconds). See pickchashed() LUA function") = "86400";
+  ::arg().set("lua-consistent-hashes-expire-delay", "Cleanup pre-computed hashes that haven't been used for the given delay (in seconds). See pickchashed() Lua function") = "86400";
 #endif
   ::arg().setSwitch("axfr-lower-serial", "Also AXFR a zone from a primary with a lower serial") = "no";
 
@@ -339,6 +344,9 @@ static void declareArguments()
 #ifdef ENABLE_GSS_TSIG
   ::arg().setSwitch("enable-gss-tsig", "Enable GSS TSIG processing") = "no";
 #endif
+
+  ::arg().setSwitch("views", "Enable views (variants) of zones, for backends which support them") = "no";
+
   ::arg().setDefaults();
 }
 
@@ -515,6 +523,12 @@ static int isGuarded(char** argv)
   return !!p;
 }
 
+static void update_latencies(int start, int diff)
+{
+  send_latency = 0.999 * send_latency + 0.001 * std::max(diff - start, 0);
+  avg_latency = 0.999 * avg_latency + 0.001 * std::max(diff, 0); // 'EWMA'
+}
+
 static void sendout(std::unique_ptr<DNSPacket>& a, int start)
 {
   if (!a)
@@ -528,9 +542,7 @@ static void sendout(std::unique_ptr<DNSPacket>& a, int start)
     s_udpNameserver->send(*a);
 
     diff = a->d_dt.udiff();
-    send_latency = 0.999 * send_latency + 0.001 * std::max(diff - start, 0);
-
-    avg_latency = 0.999 * avg_latency + 0.001 * std::max(diff, 0);
+    update_latencies(start, diff);
   }
   catch (const std::exception& e) {
     g_log << Logger::Error << "Caught unhandled exception while sending a response: " << e.what() << endl;
@@ -620,7 +632,12 @@ try {
 
       if (PC.enabled() && (question.d.opcode != Opcode::Notify && question.d.opcode != Opcode::Update) && question.couldBeCached()) {
         start = diff;
-        bool haveSomething = PC.get(question, cached); // does the PacketCache recognize this question?
+        std::string view{};
+        if (g_views) {
+          Netmask netmask(accountremote);
+          view = g_zoneCache.getViewFromNetwork(&netmask);
+        }
+        bool haveSomething = PC.get(question, cached, view); // does the PacketCache recognize this question?
         if (haveSomething) {
           if (logDNSQueries)
             g_log << ": packetcache HIT" << endl;
@@ -640,8 +657,7 @@ try {
           NS->send(cached); // answer it then                              inlined
 
           diff = question.d_dt.udiff();
-          send_latency = 0.999 * send_latency + 0.001 * std::max(diff - start, 0);
-          avg_latency = 0.999 * avg_latency + 0.001 * std::max(diff, 0); // 'EWMA'
+          update_latencies(start, diff);
           continue;
         }
         diff = question.d_dt.udiffNoReset();
@@ -715,6 +731,7 @@ static void mainthread()
 #ifdef ENABLE_GSS_TSIG
   g_doGssTSIG = ::arg().mustDo("enable-gss-tsig");
 #endif
+  g_views = ::arg().mustDo("views");
 
   DNSPacket::s_udpTruncationThreshold = std::max(512, ::arg().asNum("udp-truncation-threshold"));
   DNSPacket::s_doEDNSSubnetProcessing = ::arg().mustDo("edns-subnet-processing");
@@ -742,6 +759,16 @@ static void mainthread()
     exit(1);
 #endif
   }
+
+  // Check for mutually incompatible settings:
+  // - enabling views currently requires the zone cache to be active
+  if (g_views) {
+    if (::arg().asNum("zone-cache-refresh-interval") == 0) {
+      g_log << Logger::Error << R"(Error: use of views requires the zone cache to be enabled, please set "zone-cache-refresh-interval" to a nonzero value.)" << endl;
+      exit(1); // NOLINT(concurrency-mt-unsafe) we're single threaded at this point
+    }
+  }
+  // (no more checks yet)
 
   PC.setTTL(::arg().asNum("cache-ttl"));
   PC.setMaxEntries(::arg().asNum("max-packet-cache-entries"));
@@ -785,7 +812,7 @@ static void mainthread()
   Utility::dropUserPrivs(newuid);
 
   if (::arg().mustDo("resolver")) {
-    DP = std::make_unique<DNSProxy>(::arg()["resolver"]);
+    DP = std::make_unique<DNSProxy>(::arg()["resolver"], ::arg()["dnsproxy-udp-port-range"]);
     DP->go();
   }
 
@@ -996,7 +1023,7 @@ static string DLRestHandler(const vector<string>& parts, pid_t /* ppid */)
   }
   line.append(1, '\n');
 
-  std::lock_guard<std::mutex> l(g_guardian_lock);
+  auto lock = std::scoped_lock(g_guardian_lock);
 
   try {
     writen2(g_fd1[1], line.c_str(), line.size() + 1);
@@ -1023,11 +1050,11 @@ static int guardian(int argc, char** argv)
   int infd = 0, outfd = 1;
 
   DynListener dlg(g_programname);
-  dlg.registerFunc("QUIT", &DLQuitHandler, "quit daemon");
-  dlg.registerFunc("CYCLE", &DLCycleHandler, "restart instance");
-  dlg.registerFunc("PING", &DLPingHandler, "ping guardian");
-  dlg.registerFunc("STATUS", &DLStatusHandler, "get instance status from guardian");
-  dlg.registerRestFunc(&DLRestHandler);
+  DynListener::registerExitFunc("QUIT", &DLQuitHandler);
+  DynListener::registerFunc("CYCLE", &DLCycleHandler, "restart instance");
+  DynListener::registerFunc("PING", &DLPingHandler, "ping guardian");
+  DynListener::registerFunc("STATUS", &DLStatusHandler, "get instance status from guardian");
+  DynListener::registerRestFunc(&DLRestHandler);
   dlg.go();
   string progname = argv[0];
 
@@ -1202,6 +1229,7 @@ static void sigTermHandler([[maybe_unused]] int signal)
 #endif /* COVERAGE */
 
 //! The main function of pdns, the pdns process
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 int main(int argc, char** argv)
 {
   versionSetProduct(ProductAuthoritative);
@@ -1226,8 +1254,8 @@ int main(int argc, char** argv)
     ::arg().laxParse(argc, argv); // do a lax parse
 
     if (::arg().mustDo("version")) {
-      showProductVersion();
-      showBuildConfiguration();
+      cout << getProductVersion();
+      cout << getBuildConfiguration();
       return 0;
     }
 
@@ -1411,7 +1439,7 @@ int main(int argc, char** argv)
     }
     DynListener::registerFunc("SHOW", &DLShowHandler, "show a specific statistic or * to get a list", "<statistic>");
     DynListener::registerFunc("RPING", &DLPingHandler, "ping instance");
-    DynListener::registerFunc("QUIT", &DLRQuitHandler, "quit daemon");
+    DynListener::registerExitFunc("QUIT", &DLRQuitHandler);
     DynListener::registerFunc("UPTIME", &DLUptimeHandler, "get instance uptime");
     DynListener::registerFunc("NOTIFY-HOST", &DLNotifyHostHandler, "notify host for specific zone", "<zone> <host>");
     DynListener::registerFunc("NOTIFY", &DLNotifyHandler, "queue a notification", "<zone>");
@@ -1501,7 +1529,9 @@ int main(int argc, char** argv)
 
   DLOG(g_log << Logger::Warning << "Verbose logging in effect" << endl);
 
-  showProductVersion();
+  for (const string& line : getProductVersionLines()) {
+    g_log << Logger::Warning << line << endl;
+  }
 
   try {
     mainthread();

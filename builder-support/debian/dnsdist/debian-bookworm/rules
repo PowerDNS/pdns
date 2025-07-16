@@ -8,76 +8,76 @@ export DEB_BUILD_MAINT_OPTIONS=hardening=+bindnow,+pie
 DPKG_EXPORT_BUILDFLAGS = 1
 include /usr/share/dpkg/default.mk
 
-# for atomic support on powerpc (automatic on mipsel)
-LDFLAGS += -latomic
-
 # Only enable systemd integration on Linux operating systems
 ifeq ($(DEB_HOST_ARCH_OS),linux)
-CONFIGURE_ARGS += --enable-systemd --with-systemd=/lib/systemd/system
+MESON_ARGS += -Dsystemd-service=enabled
 DH_ARGS += --with systemd
 else
-CONFIGURE_ARGS += --disable-systemd
+MESON_ARGS += -Dsystemd-service=disabled
 endif
 
 # Only enable BPF/XDP on Linux operating systems
 ifeq ($(DEB_HOST_ARCH_OS),linux)
-CONFIGURE_ARGS += --with-xsk
+MESON_ARGS += -Dxsk=enabled
 else
-CONFIGURE_ARGS += --without-xsk
+MESON_ARGS += -Dxsk=disabled
 endif
 
-# Only disable luajit on arm64
-ifneq ($(DEB_HOST_ARCH),arm64)
-CONFIGURE_ARGS += --with-lua=luajit
+# Build with luajit if it is installable
+ifneq (,$(wildcard /usr/lib/*/pkgconfig/luajit.pc))
+MESON_ARGS += -Dlua=luajit
 else
-CONFIGURE_ARGS += --with-lua=lua5.3
+MESON_ARGS += -Dlua=lua
 endif
 
 %:
-	dh $@ \
-	  --with autoreconf \
+	dh $@ --buildsystem=meson \
 	  $(DH_ARGS)
 
 override_dh_auto_clean:
 	rm -f dnslabeltext.cc
 	dh_auto_clean
 
+# for atomic support on powerpc (automatic on mipsel)
+#LDFLAGS += -latomic
+# We need clang (LLVM) to link the Rust static library and the C++ code with LTO enabled
+# build-id SHA1 prevents an issue with the debug symbols ("export: `-Wl,--build-id=sha1': not a valid identifier")
+
 override_dh_auto_configure:
-	./configure \
-	  --host=$(DEB_HOST_GNU_TYPE) \
-	  --build=$(DEB_BUILD_GNU_TYPE) \
-	  --prefix=/usr \
+	LDFLAGS="-latomic -fuse-ld=lld -Wl,--build-id=sha1" \
+	CC=clang \
+	CXX=clang++ \
+	PKG_CONFIG_PATH=/opt/lib/pkgconfig dh_auto_configure -- \
 	  --sysconfdir=/etc/dnsdist \
-	  --mandir=\$${prefix}/share/man \
-	  --infodir=\$${prefix}/share/info \
-	  --libdir='$${prefix}/lib/$(DEB_HOST_MULTIARCH)' \
-	  --libexecdir='$${prefix}/lib' \
-	  --enable-lto=thin \
-	  --enable-dns-over-https \
-	  --enable-dns-over-quic \
-	  --enable-dns-over-http3 \
-	  --enable-dns-over-tls \
-	  --enable-dnscrypt \
-	  --enable-dnstap \
-	  --with-ebpf \
-	  --with-gnutls \
-	  --with-h2o \
-	  --with-net-snmp \
-	  --with-libcap \
-	  --with-libsodium \
-	  --with-quiche \
-	  --with-re2 \
-	  --with-service-user='_dnsdist' \
-	  --with-service-group='_dnsdist' \
-	  $(CONFIGURE_ARGS) \
-	  PKG_CONFIG_PATH=/opt/lib/pkgconfig
+	  -Dunit-tests=true \
+	  -Db_lto=true \
+	  -Db_lto_mode=thin \
+	  -Db_pie=true \
+	  -Ddns-over-https=enabled \
+	  -Ddns-over-quic=enabled \
+	  -Ddns-over-http3=enabled \
+	  -Ddns-over-tls=enabled \
+	  -Ddnscrypt=enabled \
+	  -Ddnstap=enabled \
+	  -Dyaml=enabled \
+	  -Debpf=enabled \
+	  -Dyaml=enabled \
+	  -Dtls-gnutls=enabled \
+	  -Dsnmp=enabled \
+	  -Dlibcap=enabled \
+	  -Dlibsodium=enabled \
+	  -Dquiche=enabled \
+	  -Dre2=enabled \
+	  -Dsystemd-service-user='_dnsdist' \
+	  -Dsystemd-service-group='_dnsdist' \
+	  $(MESON_ARGS)
 
 override_dh_auto_build-arch:
-	dh_auto_build -- V=1
+	dh_auto_build
 
 override_dh_install:
 	dh_auto_install
-	install -Dm644 /usr/lib/libdnsdist-quiche.so debian/dnsdist/usr/lib/libdnsdist-quiche.so
+	install -Dm644 /usr/lib/$(DEB_HOST_MULTIARCH)/libdnsdist-quiche.so debian/dnsdist/usr/lib/$(DEB_HOST_MULTIARCH)/libdnsdist-quiche.so
 ifeq ($(DEB_HOST_ARCH_BITS),32)
 	echo RestrictAddressFamilies is broken on 32bit, removing it from service file
 	perl -ni -e 'print unless /RestrictAddressFamilies/' debian/dnsdist/lib/systemd/system/*.service

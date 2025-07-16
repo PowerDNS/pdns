@@ -214,10 +214,10 @@ namespace pdns {
       result->reserve(mdp.d_answers.size());
 
       for (const auto& i: mdp.d_answers) {
-        rr.qname = i.first.d_name;
-        rr.qtype = i.first.d_type;
-        rr.ttl = i.first.d_ttl;
-        rr.content = i.first.getContent()->getZoneRepresentation(true);
+        rr.qname = i.d_name;
+        rr.qtype = i.d_type;
+        rr.ttl = i.d_ttl;
+        rr.content = i.getContent()->getZoneRepresentation(true);
         result->push_back(rr);
       }
 
@@ -286,15 +286,15 @@ bool Resolver::tryGetSOASerial(DNSName *domain, ComboAddress* remote, uint32_t *
   *theirInception = *theirExpire = 0;
   bool gotSOA=false;
   for(const MOADNSParser::answers_t::value_type& drc :  mdp.d_answers) {
-    if(drc.first.d_type == QType::SOA && drc.first.d_name == *domain) {
-      auto src = getRR<SOARecordContent>(drc.first);
+    if(drc.d_type == QType::SOA && drc.d_name == *domain) {
+      auto src = getRR<SOARecordContent>(drc);
       if (src) {
         *theirSerial = src->d_st.serial;
         gotSOA = true;
       }
     }
-    if(drc.first.d_type == QType::RRSIG && drc.first.d_name == *domain) {
-      auto rrc = getRR<RRSIGRecordContent>(drc.first);
+    if(drc.d_type == QType::RRSIG && drc.d_name == *domain) {
+      auto rrc = getRR<RRSIGRecordContent>(drc);
       if(rrc && rrc->d_type == QType::SOA) {
         *theirInception= std::max(*theirInception, rrc->d_siginception);
         *theirExpire = std::max(*theirExpire, rrc->d_sigexpire);

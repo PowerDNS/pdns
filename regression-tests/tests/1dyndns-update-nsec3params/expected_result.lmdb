@@ -1,0 +1,62 @@
+1 test.dyndns. 3600 IN NSEC cname1.test.dyndns. NS SOA MX RRSIG NSEC DNSKEY 1 test.dyndns. 3600 IN RRSIG NSEC 13 2 3600 [expiry] [inception] [keytag] test.dyndns. ... 1 test.dyndns. 3600 IN RRSIG SOA 13 2 3600 [expiry] [inception] [keytag] test.dyndns. ... 1 test.dyndns. 3600 IN SOA ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400 2 . 32768 IN OPT Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0 Reply to question for qname='test.dyndns.', qtype=NSEC3PARAM
+1	a.host.test.dyndns.	3600	IN	NSEC	e.host.test.dyndns. A RRSIG NSEC
+1	a.host.test.dyndns.	3600	IN	RRSIG	NSEC 13 4 3600 [expiry] [inception] [keytag] test.dyndns. ...
+1	delete-add.test.dyndns.	3600	IN	NSEC	a.host.test.dyndns. A TXT RRSIG NSEC
+1	delete-add.test.dyndns.	3600	IN	RRSIG	NSEC 13 3 3600 [expiry] [inception] [keytag] test.dyndns. ...
+1	test.dyndns.	3600	IN	RRSIG	SOA 13 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
+1	test.dyndns.	3600	IN	SOA	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
+2	.	32768	IN	OPT	
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='b.host.test.dyndns.', qtype=A
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+0	test.dyndns.	86400	IN	NSEC3PARAM	1 0 10 dcbe
+0	test.dyndns.	86400	IN	RRSIG	NSEC3PARAM 13 2 86400 [expiry] [inception] [keytag] test.dyndns. ...
+2	.	32768	IN	OPT	
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='test.dyndns.', qtype=NSEC3PARAM
+1	ac2jl1kik929tr9i5rfcmbucm547n51a.test.dyndns.	3600	IN	NSEC3	1 [flags] 10 dcbe EE295AK1NDT9O0RLL1A4RPPB4NAOV4QM
+1	ac2jl1kik929tr9i5rfcmbucm547n51a.test.dyndns.	3600	IN	RRSIG	NSEC3 13 3 3600 [expiry] [inception] [keytag] test.dyndns. ...
+1	test.dyndns.	3600	IN	RRSIG	SOA 13 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
+1	test.dyndns.	3600	IN	SOA	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
+1	uba3qp1vffon9pq2r07e7ldrnh5mg90v.test.dyndns.	3600	IN	NSEC3	1 [flags] 10 dcbe 4KLD1OCH52V50U3NG1HM8R7960VRSVOM A RRSIG
+1	uba3qp1vffon9pq2r07e7ldrnh5mg90v.test.dyndns.	3600	IN	RRSIG	NSEC3 13 3 3600 [expiry] [inception] [keytag] test.dyndns. ...
+2	.	32768	IN	OPT	
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='b.host.test.dyndns.', qtype=A
+Check if NSEC3PARAM record exists and A-record added
+--- Start: diff start step.1 ---
+no difference
+--- End: diff start step.1 ---
+
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+1	test.dyndns.	3600	IN	NSEC	cname1.test.dyndns. NS SOA MX RRSIG NSEC DNSKEY
+1	test.dyndns.	3600	IN	RRSIG	NSEC 13 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
+1	test.dyndns.	3600	IN	RRSIG	SOA 13 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
+1	test.dyndns.	3600	IN	SOA	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
+2	.	32768	IN	OPT	
+Rcode: 0 (No Error), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='test.dyndns.', qtype=NSEC3PARAM
+1	a.host.test.dyndns.	3600	IN	NSEC	e.host.test.dyndns. A RRSIG NSEC
+1	a.host.test.dyndns.	3600	IN	RRSIG	NSEC 13 4 3600 [expiry] [inception] [keytag] test.dyndns. ...
+1	delete-add.test.dyndns.	3600	IN	NSEC	a.host.test.dyndns. A TXT RRSIG NSEC
+1	delete-add.test.dyndns.	3600	IN	RRSIG	NSEC 13 3 3600 [expiry] [inception] [keytag] test.dyndns. ...
+1	test.dyndns.	3600	IN	RRSIG	SOA 13 2 3600 [expiry] [inception] [keytag] test.dyndns. ...
+1	test.dyndns.	3600	IN	SOA	ns1.test.dyndns. ahu.example.dyndns. [serial] 28800 7200 604800 86400
+2	.	32768	IN	OPT	
+Rcode: 3 (Non-Existent domain), RD: 0, QR: 1, TC: 0, AA: 1, opcode: 0
+Reply to question for qname='b.host.test.dyndns.', qtype=A
+Check if NSEC3PARAM is deleted
+--- Start: diff start step.2 ---
+no difference
+--- End: diff start step.2 ---
+

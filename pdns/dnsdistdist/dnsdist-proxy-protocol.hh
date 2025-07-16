@@ -21,15 +21,17 @@
  */
 #pragma once
 
-#include "dnsdist.hh"
+#include <string>
 
-extern NetmaskGroup g_proxyProtocolACL;
-extern size_t g_proxyProtocolMaximumSize;
-extern bool g_applyACLToProxiedClients;
+#include "iputils.hh"
+#include "noinitvector.hh"
+#include "proxy-protocol.hh"
+
+struct DNSQuestion;
 
 std::string getProxyProtocolPayload(const DNSQuestion& dq);
 
-bool addProxyProtocol(DNSQuestion& dq, size_t* proxyProtocolPayloadSize = nullptr);
+bool addProxyProtocol(DNSQuestion& dnsQuestion, size_t* proxyProtocolPayloadSize = nullptr);
 bool addProxyProtocol(DNSQuestion& dq, const std::string& payload);
 bool addProxyProtocol(PacketBuffer& buffer, const std::string& payload);
 bool addProxyProtocol(PacketBuffer& buffer, bool tcp, const ComboAddress& source, const ComboAddress& destination, const std::vector<ProxyProtocolValue>& values);

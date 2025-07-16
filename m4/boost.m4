@@ -622,13 +622,6 @@ BOOST_DEFUN([Bind],
 [BOOST_FIND_HEADER([boost/bind.hpp])])
 
 
-# BOOST_CAST()
-# ------------
-# Look for Boost.Cast
-BOOST_DEFUN([Cast],
-[BOOST_FIND_HEADER([boost/cast.hpp])])
-
-
 # BOOST_CHRONO([PREFERRED-RT-OPT], [ERROR_ON_UNUSABLE])
 # --------------
 # Look for Boost.Chrono.
@@ -794,15 +787,6 @@ fi
 LIBS=$boost_context_save_LIBS
 LDFLAGS=$boost_context_save_LDFLAGS
 ])# BOOST_CONTEXT
-
-
-# BOOST_CONVERSION()
-# ------------------
-# Look for Boost.Conversion (cast / lexical_cast)
-BOOST_DEFUN([Conversion],
-[BOOST_FIND_HEADER([boost/cast.hpp])
-BOOST_FIND_HEADER([boost/lexical_cast.hpp])
-])# BOOST_CONVERSION
 
 
 # BOOST_COROUTINE([PREFERRED-RT-OPT], [ERROR_ON_UNUSABLE])

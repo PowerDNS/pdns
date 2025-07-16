@@ -9,27 +9,15 @@ from recursortests import RecursorTest
 
 class RecursorEDNSPaddingTest(RecursorTest):
 
-    @classmethod
-    def setUpClass(cls):
-        cls.setUpSockets()
-
-        cls.startResponders()
-
-        confdir = os.path.join('configs', cls._confdir)
-        cls.createConfigDir(confdir)
-        cls.generateAllAuthConfig(confdir)
-
-        # we only need these auths and this cuts the needed time in half
-        if cls._auth_zones:
-            for auth_suffix in ['8', '9', '10']:
-                authconfdir = os.path.join(confdir, 'auth-%s' % auth_suffix)
-                ipaddress = cls._PREFIX + '.' + auth_suffix
-                cls.startAuth(authconfdir, ipaddress)
-
-        cls.generateRecursorConfig(confdir)
-        cls.startRecursor(confdir, cls._recursorPort)
-
-        print("Launching tests..")
+    _confdir = 'RecursorEDNSPadding'
+    _auth_zones = {
+        '8': {'threads': 1,
+              'zones': ['ROOT']},
+        '9': {'threads': 1,
+              'zones': ['secure.example', 'islandofsecurity.example']},
+        '10': {'threads': 1,
+            'zones': ['example']},
+    }
 
     def checkPadding(self, message, numberOfBytes=None):
         self.assertEqual(message.edns, 0)
@@ -209,7 +197,7 @@ packetcache-ttl=60
 
 class PaddingNotAllowedAlwaysTest(RecursorEDNSPaddingTest):
 
-    _confdir = 'PaddingAlwaysNotAllowed'
+    _confdir = 'PaddingNotAllowedAlways'
     _config_template = """edns-padding-from=127.0.0.2
 edns-padding-mode=always
 edns-padding-tag=7830
@@ -299,7 +287,7 @@ class PaddingAllowedAlwaysSameTagTest(RecursorEDNSPaddingTest):
     # we use the default tag (0) for padded responses, which will cause
     # the same packet cache entry (with padding ) to be returned to a client
     # not allowed by the edns-padding-from list
-    _confdir = 'PaddingAlwaysSameTag'
+    _confdir = 'PaddingAllowedAlwaysSameTag'
     _config_template = """edns-padding-from=127.0.0.1
 edns-padding-mode=always
 edns-padding-tag=0

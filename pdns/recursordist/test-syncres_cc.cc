@@ -30,27 +30,25 @@ ArgvMap& arg()
   return theArg;
 }
 
-BaseLua4::~BaseLua4()
-{
-}
+BaseLua4::~BaseLua4() = default;
 
 void BaseLua4::getFeatures(Features& /* features */)
 {
 }
 
-bool RecursorLua4::preoutquery(const ComboAddress& /* ns */, const ComboAddress& /* requestor */, const DNSName& /* query */, const QType& /* qtype */, bool /* isTcp */, vector<DNSRecord>& /* res */, int& /* ret */, RecEventTrace& /* et */, const struct timeval& /* tv */) const
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+bool RecursorLua4::preoutquery(const ComboAddress& /* ns */, const ComboAddress& /* requestor */, const DNSName& /* query */, const QType& /* qtype */, bool& /* isTcp */, vector<DNSRecord>& /* res */, int& /* ret */, RecEventTrace& /* et */, const struct timeval& /* tv */) const
 {
   return false;
 }
 
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 bool RecursorLua4::policyHitEventFilter(const ComboAddress& /* remote */, const DNSName& /* qname */, const QType& /* qtype */, bool /* tcp */, DNSFilterEngine::Policy& /* policy */, std::unordered_set<std::string>& /* tags */, std::unordered_map<std::string, bool>& /* discardedPolicies */) const
 {
   return false;
 }
 
-RecursorLua4::~RecursorLua4()
-{
-}
+RecursorLua4::~RecursorLua4() = default;
 
 void RecursorLua4::postPrepareContext()
 {
@@ -80,40 +78,44 @@ LWResult::Result asyncresolve(const ComboAddress& /* ip */, const DNSName& /* do
 bool primeHints(time_t now)
 {
   vector<DNSRecord> nsset;
-  if (!g_recCache)
+  if (!g_recCache) {
     g_recCache = std::make_unique<MemRecursorCache>();
-  if (!g_negCache)
+  }
+  if (!g_negCache) {
     g_negCache = std::make_unique<NegCache>();
+  }
 
-  DNSRecord arr, aaaarr, nsrr;
+  DNSRecord arr;
+  DNSRecord aaaarr;
+  DNSRecord nsrr;
   nsrr.d_name = g_rootdnsname;
   arr.d_type = QType::A;
   aaaarr.d_type = QType::AAAA;
   nsrr.d_type = QType::NS;
   arr.d_ttl = aaaarr.d_ttl = nsrr.d_ttl = now + 3600000;
 
-  for (char c = 'a'; c <= 'm'; ++c) {
-    char templ[40];
-    strncpy(templ, "a.root-servers.net.", sizeof(templ) - 1);
-    templ[sizeof(templ) - 1] = '\0';
-    *templ = c;
-    aaaarr.d_name = arr.d_name = DNSName(templ);
-    nsrr.setContent(std::make_shared<NSRecordContent>(DNSName(templ)));
-    arr.setContent(std::make_shared<ARecordContent>(ComboAddress(rootIps4[c - 'a'])));
+  for (char character = 'a'; character <= 'm'; ++character) {
+    std::array<char, 40> templ{};
+    strncpy(templ.data(), "a.root-servers.net.", sizeof(templ) - 1);
+    templ[templ.size() - 1] = '\0';
+    templ.at(0) = character;
+    aaaarr.d_name = arr.d_name = DNSName(templ.data());
+    nsrr.setContent(std::make_shared<NSRecordContent>(DNSName(templ.data())));
+    arr.setContent(std::make_shared<ARecordContent>(ComboAddress(rootIps4.at(character - 'a'))));
     vector<DNSRecord> aset;
     aset.push_back(arr);
-    g_recCache->replace(now, DNSName(templ), QType(QType::A), aset, vector<std::shared_ptr<const RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), false, g_rootdnsname);
-    if (!rootIps6[c - 'a'].empty()) {
-      aaaarr.setContent(std::make_shared<AAAARecordContent>(ComboAddress(rootIps6[c - 'a'])));
+    g_recCache->replace(now, DNSName(templ.data()), QType(QType::A), aset, vector<std::shared_ptr<const RRSIGRecordContent>>(), {}, false, g_rootdnsname);
+    if (!rootIps6.at(character - 'a').empty()) {
+      aaaarr.setContent(std::make_shared<AAAARecordContent>(ComboAddress(rootIps6.at(character - 'a'))));
 
       vector<DNSRecord> aaaaset;
       aaaaset.push_back(aaaarr);
-      g_recCache->replace(now, DNSName(templ), QType(QType::AAAA), aaaaset, vector<std::shared_ptr<const RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), false, g_rootdnsname);
+      g_recCache->replace(now, DNSName(templ.data()), QType(QType::AAAA), aaaaset, vector<std::shared_ptr<const RRSIGRecordContent>>(), {}, false, g_rootdnsname);
     }
 
     nsset.push_back(nsrr);
   }
-  g_recCache->replace(now, g_rootdnsname, QType(QType::NS), nsset, vector<std::shared_ptr<const RRSIGRecordContent>>(), vector<std::shared_ptr<DNSRecord>>(), false, g_rootdnsname); // and stuff in the cache
+  g_recCache->replace(now, g_rootdnsname, QType(QType::NS), nsset, vector<std::shared_ptr<const RRSIGRecordContent>>(), {}, false, g_rootdnsname); // and stuff in the cache
   return true;
 }
 
@@ -142,7 +144,7 @@ void initSR(bool debug)
   }
 
   RecursorPacketCache::s_refresh_ttlperc = 0;
-  MemRecursorCache::s_maxServedStaleExtensions = 0;
+  MemRecursorCache::resetStaticsForTests();
   NegCache::s_maxServedStaleExtensions = 0;
   g_recCache = std::make_unique<MemRecursorCache>();
   g_negCache = std::make_unique<NegCache>();
@@ -215,6 +217,7 @@ void initSR(bool debug)
 
   g_dnssecmode = DNSSECMode::Off;
   g_maxNSEC3Iterations = 2500;
+  g_signatureInceptionSkew = 60;
 
   g_aggressiveNSECCache.reset();
   AggressiveNSECCache::s_maxNSEC3CommonPrefix = AggressiveNSECCache::s_default_maxNSEC3CommonPrefix;
@@ -321,7 +324,7 @@ void computeRRSIG(const DNSSECPrivateKey& dpk, const DNSName& signer, const DNSN
 
 typedef std::unordered_map<DNSName, std::pair<DNSSECPrivateKey, DSRecordContent>> testkeysset_t;
 
-bool addRRSIG(const testkeysset_t& keys, std::vector<DNSRecord>& records, const DNSName& signer, uint32_t sigValidity, bool broken, boost::optional<uint8_t> algo, boost::optional<DNSName> wildcard, boost::optional<time_t> now)
+bool addRRSIG(const testkeysset_t& keys, std::vector<DNSRecord>& records, const DNSName& signer, uint32_t sigValidity, std::variant<bool, int> broken, boost::optional<uint8_t> algo, boost::optional<DNSName> wildcard, boost::optional<time_t> now)
 {
   if (records.empty()) {
     return false;
@@ -363,8 +366,11 @@ bool addRRSIG(const testkeysset_t& keys, std::vector<DNSRecord>& records, const 
 
   RRSIGRecordContent rrc;
   computeRRSIG(it->second.first, signer, wildcard ? *wildcard : name, type, ttl, sigValidity, rrc, recordcontents, algo, boost::none, now);
-  if (broken) {
+  if (auto* bval = std::get_if<bool>(&broken); bval != nullptr && *bval) {
     rrc.d_signature[0] ^= 42;
+  }
+  else if (auto* ival = std::get_if<int>(&broken)) {
+    rrc.d_signature[0] ^= *ival; // NOLINT(*-narrowing-conversions)
   }
 
   DNSRecord rec;
@@ -582,3 +588,5 @@ LWResult::Result basicRecordsForQnameMinimization(LWResult* res, const DNSName& 
   }
   return LWResult::Result::Timeout;
 }
+
+#include "rec-web-stubs.hh"

@@ -31,6 +31,7 @@
 #include "dnsdist.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-internal-queries.hh"
+#include "dnsdist-snmp.hh"
 #include "dnsdist-tcp.hh"
 #include "dnsdist-xsk.hh"
 
@@ -42,28 +43,60 @@
 #include "ednscookies.hh"
 #include "ednssubnet.hh"
 
-ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend)
+ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& selectedBackend)
 {
+  (void)dnsQuestion;
+  (void)selectedBackend;
   return ProcessQueryResult::Drop;
 }
 
-bool processResponseAfterRules(PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& cacheInsertedRespRuleActions, DNSResponse& dnsResponse, bool muted)
+bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse, bool muted)
 {
+  (void)response;
+  (void)dnsResponse;
+  (void)muted;
   return false;
 }
 
 bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>& respRuleActions, DNSResponse& dnsResponse)
 {
+  (void)respRuleActions;
+  (void)dnsResponse;
   return true;
+}
+
+bool handleTimeoutResponseRules(const std::vector<dnsdist::rules::ResponseRuleAction>& rules, InternalQueryState& ids, const std::shared_ptr<DownstreamState>& d_ds, const std::shared_ptr<TCPQuerySender>& sender)
+{
+  (void)rules;
+  (void)ids;
+  (void)d_ds;
+  (void)sender;
+  return false;
+}
+
+void handleServerStateChange(const string& nameWithAddr, bool newResult)
+{
+  (void)nameWithAddr;
+  (void)newResult;
 }
 
 bool sendUDPResponse(int origFD, const PacketBuffer& response, const int delayMsec, const ComboAddress& origDest, const ComboAddress& origRemote)
 {
+  (void)origFD;
+  (void)response;
+  (void)delayMsec;
+  (void)origDest;
+  (void)origRemote;
   return false;
 }
 
 bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& downstream, uint16_t queryID, DNSQuestion& dnsQuestion, PacketBuffer& query, bool actuallySend)
 {
+  (void)downstream;
+  (void)queryID;
+  (void)dnsQuestion;
+  (void)query;
+  (void)actuallySend;
   return true;
 }
 
@@ -71,6 +104,8 @@ namespace dnsdist
 {
 std::unique_ptr<CrossProtocolQuery> getInternalQueryFromDQ(DNSQuestion& dnsQuestion, bool isResponse)
 {
+  (void)dnsQuestion;
+  (void)isResponse;
   return nullptr;
 }
 }
@@ -84,15 +119,20 @@ bool DNSDistSNMPAgent::sendBackendStatusChangeTrap([[maybe_unused]] DownstreamSt
 #ifdef HAVE_XSK
 namespace dnsdist::xsk
 {
-bool XskProcessQuery(ClientState& clientState, LocalHolders& holders, XskPacket& packet)
+bool XskProcessQuery(ClientState& clientState, XskPacket& packet)
 {
+  (void)clientState;
+  (void)packet;
   return false;
 }
 }
 #endif /* HAVE_XSK */
 
-bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& localRespRuleActions, const std::vector<dnsdist::rules::ResponseRuleAction>& cacheInsertedRespRuleActions, InternalQueryState&& ids)
+bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer& response, InternalQueryState&& ids)
 {
+  (void)dss;
+  (void)response;
+  (void)ids;
   return false;
 }
 
@@ -477,8 +517,8 @@ BOOST_AUTO_TEST_CASE(replaceECSWithSameSize)
   GenericDNSPacketWriter<PacketBuffer> packetWriter(query, name, QType::A, QClass::IN, 0);
   packetWriter.getHeader()->rd = 1;
   EDNSSubnetOpts ecsOpts;
-  ecsOpts.source = Netmask(origRemote, ECSSourcePrefixV4);
-  string origECSOption = makeEDNSSubnetOptsString(ecsOpts);
+  ecsOpts.setSource(Netmask(origRemote, ECSSourcePrefixV4));
+  string origECSOption = ecsOpts.makeOptString();
   GenericDNSPacketWriter<PacketBuffer>::optvect_t opts;
   opts.emplace_back(EDNSOptionCode::ECS, origECSOption);
   packetWriter.addOpt(512, 0, 0, opts);
@@ -517,8 +557,8 @@ BOOST_AUTO_TEST_CASE(replaceECSWithSameSizeAlreadyParsed)
   GenericDNSPacketWriter<PacketBuffer> packetWriter(query, ids.qname, QType::A, QClass::IN, 0);
   packetWriter.getHeader()->rd = 1;
   EDNSSubnetOpts ecsOpts;
-  ecsOpts.source = Netmask(origRemote, ECSSourcePrefixV4);
-  string origECSOption = makeEDNSSubnetOptsString(ecsOpts);
+  ecsOpts.setSource(Netmask(origRemote, ECSSourcePrefixV4));
+  string origECSOption = ecsOpts.makeOptString();
   GenericDNSPacketWriter<PacketBuffer>::optvect_t opts;
   opts.emplace_back(EDNSOptionCode::ECS, origECSOption);
   packetWriter.addOpt(512, 0, 0, opts);
@@ -564,8 +604,8 @@ BOOST_AUTO_TEST_CASE(replaceECSWithSmaller)
   GenericDNSPacketWriter<PacketBuffer> packetWriter(query, name, QType::A, QClass::IN, 0);
   packetWriter.getHeader()->rd = 1;
   EDNSSubnetOpts ecsOpts;
-  ecsOpts.source = Netmask(origRemote, 32);
-  string origECSOption = makeEDNSSubnetOptsString(ecsOpts);
+  ecsOpts.setSource(Netmask(origRemote, 32));
+  string origECSOption = ecsOpts.makeOptString();
   GenericDNSPacketWriter<PacketBuffer>::optvect_t opts;
   opts.emplace_back(EDNSOptionCode::ECS, origECSOption);
   packetWriter.addOpt(512, 0, 0, opts);
@@ -604,8 +644,8 @@ BOOST_AUTO_TEST_CASE(replaceECSWithLarger)
   EDNSSubnetOpts ecsOpts;
   // smaller (less specific so less bits) option
   static_assert(8 < ECSSourcePrefixV4, "The ECS scope should be smaller");
-  ecsOpts.source = Netmask(origRemote, 8);
-  string origECSOption = makeEDNSSubnetOptsString(ecsOpts);
+  ecsOpts.setSource(Netmask(origRemote, 8));
+  string origECSOption = ecsOpts.makeOptString();
   GenericDNSPacketWriter<PacketBuffer>::optvect_t opts;
   opts.emplace_back(EDNSOptionCode::ECS, origECSOption);
   packetWriter.addOpt(512, 0, 0, opts);
@@ -660,8 +700,8 @@ BOOST_AUTO_TEST_CASE(replaceECSFollowedByTSIG)
   GenericDNSPacketWriter<PacketBuffer> packetWriter(query, name, QType::A, QClass::IN, 0);
   packetWriter.getHeader()->rd = 1;
   EDNSSubnetOpts ecsOpts;
-  ecsOpts.source = Netmask(origRemote, 8);
-  string origECSOption = makeEDNSSubnetOptsString(ecsOpts);
+  ecsOpts.setSource(Netmask(origRemote, 8));
+  string origECSOption = ecsOpts.makeOptString();
   GenericDNSPacketWriter<PacketBuffer>::optvect_t opts;
   opts.emplace_back(EDNSOptionCode::ECS, origECSOption);
   packetWriter.addOpt(512, 0, 0, opts);
@@ -719,8 +759,8 @@ BOOST_AUTO_TEST_CASE(replaceECSAfterAN)
   packetWriter.startRecord(DNSName("powerdns.com."), QType::A, 0, QClass::IN, DNSResourceRecord::ANSWER, true);
   packetWriter.commit();
   EDNSSubnetOpts ecsOpts;
-  ecsOpts.source = Netmask(origRemote, 8);
-  string origECSOption = makeEDNSSubnetOptsString(ecsOpts);
+  ecsOpts.setSource(Netmask(origRemote, 8));
+  string origECSOption = ecsOpts.makeOptString();
   GenericDNSPacketWriter<PacketBuffer>::optvect_t opts;
   opts.emplace_back(EDNSOptionCode::ECS, origECSOption);
   packetWriter.addOpt(512, 0, 0, opts);
@@ -777,8 +817,8 @@ BOOST_AUTO_TEST_CASE(replaceECSAfterAuth)
   packetWriter.startRecord(DNSName("powerdns.com."), QType::A, 0, QClass::IN, DNSResourceRecord::AUTHORITY, true);
   packetWriter.commit();
   EDNSSubnetOpts ecsOpts;
-  ecsOpts.source = Netmask(origRemote, 8);
-  string origECSOption = makeEDNSSubnetOptsString(ecsOpts);
+  ecsOpts.setSource(Netmask(origRemote, 8));
+  string origECSOption = ecsOpts.makeOptString();
   GenericDNSPacketWriter<PacketBuffer>::optvect_t opts;
   opts.emplace_back(EDNSOptionCode::ECS, origECSOption);
   packetWriter.addOpt(512, 0, 0, opts);
@@ -833,8 +873,8 @@ BOOST_AUTO_TEST_CASE(replaceECSBetweenTwoRecords)
   GenericDNSPacketWriter<PacketBuffer> packetWriter(query, name, QType::A, QClass::IN, 0);
   packetWriter.getHeader()->rd = 1;
   EDNSSubnetOpts ecsOpts;
-  ecsOpts.source = Netmask(origRemote, 8);
-  string origECSOption = makeEDNSSubnetOptsString(ecsOpts);
+  ecsOpts.setSource(Netmask(origRemote, 8));
+  string origECSOption = ecsOpts.makeOptString();
   GenericDNSPacketWriter<PacketBuffer>::optvect_t opts;
   opts.emplace_back(EDNSOptionCode::ECS, origECSOption);
   packetWriter.startRecord(DNSName("additional"), QType::A, 0, QClass::IN, DNSResourceRecord::ADDITIONAL, false);
@@ -1098,8 +1138,8 @@ BOOST_AUTO_TEST_CASE(removeECSWhenOnlyOption)
   packetWriter.commit();
 
   EDNSSubnetOpts ecsOpts;
-  ecsOpts.source = Netmask(origRemote, ECSSourcePrefixV4);
-  string origECSOptionStr = makeEDNSSubnetOptsString(ecsOpts);
+  ecsOpts.setSource(Netmask(origRemote, ECSSourcePrefixV4));
+  string origECSOptionStr = ecsOpts.makeOptString();
   GenericDNSPacketWriter<PacketBuffer>::optvect_t opts;
   opts.emplace_back(EDNSOptionCode::ECS, origECSOptionStr);
   packetWriter.addOpt(512, 0, 0, opts);
@@ -1148,8 +1188,8 @@ BOOST_AUTO_TEST_CASE(removeECSWhenFirstOption)
   packetWriter.commit();
 
   EDNSSubnetOpts ecsOpts;
-  ecsOpts.source = Netmask(origRemote, ECSSourcePrefixV6);
-  string origECSOptionStr = makeEDNSSubnetOptsString(ecsOpts);
+  ecsOpts.setSource(Netmask(origRemote, ECSSourcePrefixV6));
+  string origECSOptionStr = ecsOpts.makeOptString();
   EDNSCookiesOpt cookiesOpt("deadbeefdeadbeef");
   string cookiesOptionStr = cookiesOpt.makeOptString();
   GenericDNSPacketWriter<PacketBuffer>::optvect_t opts;
@@ -1201,9 +1241,8 @@ BOOST_AUTO_TEST_CASE(removeECSWhenIntermediaryOption)
   packetWriter.commit();
 
   EDNSSubnetOpts ecsOpts;
-  ecsOpts.source = Netmask(origRemote, ECSSourcePrefixV4);
-  string origECSOptionStr = makeEDNSSubnetOptsString(ecsOpts);
-
+  ecsOpts.setSource(Netmask(origRemote, ECSSourcePrefixV4));
+  string origECSOptionStr = ecsOpts.makeOptString();
   EDNSCookiesOpt cookiesOpt("deadbeefdeadbeef");
   string cookiesOptionStr1 = cookiesOpt.makeOptString();
   string cookiesOptionStr2 = cookiesOpt.makeOptString();
@@ -1260,8 +1299,8 @@ BOOST_AUTO_TEST_CASE(removeECSWhenLastOption)
   EDNSCookiesOpt cookiesOpt("deadbeefdeadbeef");
   string cookiesOptionStr = cookiesOpt.makeOptString();
   EDNSSubnetOpts ecsOpts;
-  ecsOpts.source = Netmask(origRemote, ECSSourcePrefixV4);
-  string origECSOptionStr = makeEDNSSubnetOptsString(ecsOpts);
+  ecsOpts.setSource(Netmask(origRemote, ECSSourcePrefixV4));
+  string origECSOptionStr = ecsOpts.makeOptString();
   GenericDNSPacketWriter<PacketBuffer>::optvect_t opts;
   opts.emplace_back(EDNSOptionCode::COOKIE, cookiesOptionStr);
   opts.emplace_back(EDNSOptionCode::ECS, origECSOptionStr);
@@ -1307,8 +1346,8 @@ BOOST_AUTO_TEST_CASE(rewritingWithoutECSWhenOnlyOption)
   packetWriter.xfr32BitInt(0x01020304);
 
   EDNSSubnetOpts ecsOpts;
-  ecsOpts.source = Netmask(origRemote, ECSSourcePrefixV4);
-  string origECSOptionStr = makeEDNSSubnetOptsString(ecsOpts);
+  ecsOpts.setSource(Netmask(origRemote, ECSSourcePrefixV4));
+  string origECSOptionStr = ecsOpts.makeOptString();
   GenericDNSPacketWriter<PacketBuffer>::optvect_t opts;
   opts.emplace_back(EDNSOptionCode::ECS, origECSOptionStr);
   packetWriter.addOpt(512, 0, 0, opts);
@@ -1346,8 +1385,8 @@ BOOST_AUTO_TEST_CASE(rewritingWithoutECSWhenFirstOption)
   packetWriter.xfr32BitInt(0x01020304);
 
   EDNSSubnetOpts ecsOpts;
-  ecsOpts.source = Netmask(origRemote, ECSSourcePrefixV4);
-  string origECSOptionStr = makeEDNSSubnetOptsString(ecsOpts);
+  ecsOpts.setSource(Netmask(origRemote, ECSSourcePrefixV4));
+  string origECSOptionStr = ecsOpts.makeOptString();
   EDNSCookiesOpt cookiesOpt("deadbeefdeadbeef");
   string cookiesOptionStr = cookiesOpt.makeOptString();
   GenericDNSPacketWriter<PacketBuffer>::optvect_t opts;
@@ -1388,8 +1427,8 @@ BOOST_AUTO_TEST_CASE(rewritingWithoutECSWhenIntermediaryOption)
   packetWriter.xfr32BitInt(0x01020304);
 
   EDNSSubnetOpts ecsOpts;
-  ecsOpts.source = Netmask(origRemote, ECSSourcePrefixV4);
-  string origECSOptionStr = makeEDNSSubnetOptsString(ecsOpts);
+  ecsOpts.setSource(Netmask(origRemote, ECSSourcePrefixV4));
+  string origECSOptionStr = ecsOpts.makeOptString();
   EDNSCookiesOpt cookiesOpt("deadbeefdeadbeef");
   string cookiesOptionStr1 = cookiesOpt.makeOptString();
   string cookiesOptionStr2 = cookiesOpt.makeOptString();
@@ -1432,8 +1471,8 @@ BOOST_AUTO_TEST_CASE(rewritingWithoutECSWhenLastOption)
   packetWriter.xfr32BitInt(0x01020304);
 
   EDNSSubnetOpts ecsOpts;
-  ecsOpts.source = Netmask(origRemote, ECSSourcePrefixV4);
-  string origECSOptionStr = makeEDNSSubnetOptsString(ecsOpts);
+  ecsOpts.setSource(Netmask(origRemote, ECSSourcePrefixV4));
+  string origECSOptionStr = ecsOpts.makeOptString();
   EDNSCookiesOpt cookiesOpt("deadbeefdeadbeef");
   string cookiesOptionStr = cookiesOpt.makeOptString();
   GenericDNSPacketWriter<PacketBuffer>::optvect_t opts;
@@ -1488,7 +1527,7 @@ static int getZ(const DNSName& qname, const uint16_t qtype, const uint16_t qclas
 
   auto dnsQuestion = DNSQuestion(ids, query);
 
-  return getEDNSZ(dnsQuestion);
+  return dnsdist::getEDNSZ(dnsQuestion);
 }
 
 BOOST_AUTO_TEST_CASE(test_getEDNSZ)
@@ -1499,8 +1538,8 @@ BOOST_AUTO_TEST_CASE(test_getEDNSZ)
   uint16_t qtype = QType::A;
   uint16_t qclass = QClass::IN;
   EDNSSubnetOpts ecsOpts;
-  ecsOpts.source = Netmask(ComboAddress("127.0.0.1"), ECSSourcePrefixV4);
-  string origECSOptionStr = makeEDNSSubnetOptsString(ecsOpts);
+  ecsOpts.setSource(Netmask(ComboAddress("127.0.0.1"), ECSSourcePrefixV4));
+  string origECSOptionStr = ecsOpts.makeOptString();
   EDNSCookiesOpt cookiesOpt("deadbeefdeadbeef");
   string cookiesOptionStr = cookiesOpt.makeOptString();
   GenericDNSPacketWriter<PacketBuffer>::optvect_t opts;
@@ -1589,6 +1628,131 @@ BOOST_AUTO_TEST_CASE(test_getEDNSZ)
     BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(query.data()), query.size(), &udpPayloadSize, &zValue), true);
     BOOST_CHECK_EQUAL(zValue, EDNS_HEADER_FLAG_DO);
     BOOST_CHECK_EQUAL(udpPayloadSize, 512);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_getEDNSVersion)
+{
+  const DNSName qname("www.powerdns.com.");
+  const uint16_t qtype = QType::A;
+  const uint16_t qclass = QClass::IN;
+  const GenericDNSPacketWriter<PacketBuffer>::optvect_t opts;
+
+  auto getVersion = [&qname](PacketBuffer& query) {
+    InternalQueryState ids;
+    ids.protocol = dnsdist::Protocol::DoUDP;
+    ids.qname = qname;
+    ids.qtype = qtype;
+    ids.qclass = qclass;
+    ids.origDest = ComboAddress("127.0.0.1");
+    ids.origRemote = ComboAddress("127.0.0.1");
+    ids.queryRealTime.start();
+
+    auto dnsQuestion = DNSQuestion(ids, query);
+
+    return dnsdist::getEDNSVersion(dnsQuestion);
+  };
+
+  {
+    /* no EDNS */
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> packetWriter(query, qname, qtype, qclass, 0);
+    packetWriter.commit();
+
+    BOOST_CHECK(getVersion(query) == std::nullopt);
+  }
+
+  {
+    /* truncated EDNS */
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> packetWriter(query, qname, qtype, qclass, 0);
+    packetWriter.addOpt(512, 0, EDNS_HEADER_FLAG_DO);
+    packetWriter.commit();
+
+    query.resize(query.size() - (/* RDLEN */ sizeof(uint16_t) + /* TTL */ 2));
+    BOOST_CHECK(getVersion(query) == std::nullopt);
+  }
+
+  {
+    /* valid EDNS, no options */
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> packetWriter(query, qname, qtype, qclass, 0);
+    packetWriter.addOpt(512, 0, 0);
+    packetWriter.commit();
+
+    BOOST_CHECK_EQUAL(*getVersion(query), 0U);
+  }
+
+  {
+    /* EDNS version 255 */
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> packetWriter(query, qname, qtype, qclass, 0);
+    packetWriter.addOpt(512, 0, EDNS_HEADER_FLAG_DO, opts, 255U);
+    packetWriter.commit();
+
+    BOOST_CHECK_EQUAL(*getVersion(query), 255U);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_getEDNSExtendedRCode)
+{
+  const DNSName qname("www.powerdns.com.");
+  const uint16_t qtype = QType::A;
+  const uint16_t qclass = QClass::IN;
+
+  auto getExtendedRCode = [&qname](PacketBuffer& query) {
+    InternalQueryState ids;
+    ids.protocol = dnsdist::Protocol::DoUDP;
+    ids.qname = qname;
+    ids.qtype = qtype;
+    ids.qclass = qclass;
+    ids.origDest = ComboAddress("127.0.0.1");
+    ids.origRemote = ComboAddress("127.0.0.1");
+    ids.queryRealTime.start();
+
+    auto dnsQuestion = DNSQuestion(ids, query);
+
+    return dnsdist::getEDNSExtendedRCode(dnsQuestion);
+  };
+
+  {
+    /* no EDNS */
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> packetWriter(query, qname, qtype, qclass, 0);
+    packetWriter.commit();
+
+    BOOST_CHECK(getExtendedRCode(query) == std::nullopt);
+  }
+
+  {
+    /* truncated EDNS */
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> packetWriter(query, qname, qtype, qclass, 0);
+    packetWriter.addOpt(512, 0, EDNS_HEADER_FLAG_DO);
+    packetWriter.commit();
+
+    query.resize(query.size() - (/* RDLEN */ sizeof(uint16_t) + /* TTL */ 2));
+    BOOST_CHECK(getExtendedRCode(query) == std::nullopt);
+  }
+
+  {
+    /* valid EDNS, no options */
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> packetWriter(query, qname, qtype, qclass, 0);
+    packetWriter.addOpt(512, 0, 0);
+    packetWriter.commit();
+
+    BOOST_CHECK_EQUAL(*getExtendedRCode(query), 0U);
+  }
+
+  {
+    /* EDNS extended RCode 4095 (15 for the normal RCode, 255 for the EDNS part) */
+    PacketBuffer query;
+    GenericDNSPacketWriter<PacketBuffer> packetWriter(query, qname, qtype, qclass, 0);
+    packetWriter.addOpt(512, 4095U, EDNS_HEADER_FLAG_DO);
+    packetWriter.commit();
+
+    BOOST_CHECK_EQUAL(*getExtendedRCode(query), 255U);
   }
 }
 
@@ -1604,8 +1768,8 @@ BOOST_AUTO_TEST_CASE(test_addEDNSToQueryTurnedResponse)
   uint16_t zValue = 0;
   uint16_t udpPayloadSize = 0;
   EDNSSubnetOpts ecsOpts;
-  ecsOpts.source = Netmask(ComboAddress("127.0.0.1"), ECSSourcePrefixV4);
-  string origECSOptionStr = makeEDNSSubnetOptsString(ecsOpts);
+  ecsOpts.setSource(Netmask(ComboAddress("127.0.0.1"), ECSSourcePrefixV4));
+  string origECSOptionStr = ecsOpts.makeOptString();
   EDNSCookiesOpt cookiesOpt("deadbeefdeadbeef");
   string cookiesOptionStr = cookiesOpt.makeOptString();
   GenericDNSPacketWriter<PacketBuffer>::optvect_t opts;
@@ -1621,7 +1785,9 @@ BOOST_AUTO_TEST_CASE(test_addEDNSToQueryTurnedResponse)
     packetWriter.commit();
 
     auto dnsQuestion = turnIntoResponse(ids, query);
-    BOOST_CHECK_EQUAL(getEDNSZ(dnsQuestion), 0);
+    BOOST_CHECK_EQUAL(dnsdist::getEDNSZ(dnsQuestion), 0);
+    BOOST_CHECK(dnsdist::getEDNSVersion(dnsQuestion) == std::nullopt);
+    BOOST_CHECK(dnsdist::getEDNSExtendedRCode(dnsQuestion) == std::nullopt);
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(dnsQuestion.getData().data()), dnsQuestion.getData().size(), &udpPayloadSize, &zValue), false);
     BOOST_CHECK_EQUAL(zValue, 0);
@@ -1637,7 +1803,9 @@ BOOST_AUTO_TEST_CASE(test_addEDNSToQueryTurnedResponse)
 
     query.resize(query.size() - (/* RDLEN */ sizeof(uint16_t) + /* last byte of TTL / Z */ 1));
     auto dnsQuestion = turnIntoResponse(ids, query, false);
-    BOOST_CHECK_EQUAL(getEDNSZ(dnsQuestion), 0);
+    BOOST_CHECK_EQUAL(dnsdist::getEDNSZ(dnsQuestion), 0);
+    BOOST_CHECK(dnsdist::getEDNSVersion(dnsQuestion) == std::nullopt);
+    BOOST_CHECK(dnsdist::getEDNSExtendedRCode(dnsQuestion) == std::nullopt);
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(dnsQuestion.getData().data()), dnsQuestion.getData().size(), &udpPayloadSize, &zValue), false);
     BOOST_CHECK_EQUAL(zValue, 0);
@@ -1652,11 +1820,13 @@ BOOST_AUTO_TEST_CASE(test_addEDNSToQueryTurnedResponse)
     packetWriter.commit();
 
     auto dnsQuestion = turnIntoResponse(ids, query);
-    BOOST_CHECK_EQUAL(getEDNSZ(dnsQuestion), 0);
+    BOOST_CHECK_EQUAL(dnsdist::getEDNSZ(dnsQuestion), 0);
+    BOOST_CHECK_EQUAL(*dnsdist::getEDNSVersion(dnsQuestion), 0U);
+    BOOST_CHECK_EQUAL(*dnsdist::getEDNSExtendedRCode(dnsQuestion), 0U);
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(dnsQuestion.getData().data()), dnsQuestion.getData().size(), &udpPayloadSize, &zValue), true);
     BOOST_CHECK_EQUAL(zValue, 0);
-    BOOST_CHECK_EQUAL(udpPayloadSize, g_PayloadSizeSelfGenAnswers);
+    BOOST_CHECK_EQUAL(udpPayloadSize, dnsdist::configuration::getCurrentRuntimeConfiguration().d_payloadSizeSelfGenAnswers);
   }
 
   {
@@ -1667,11 +1837,13 @@ BOOST_AUTO_TEST_CASE(test_addEDNSToQueryTurnedResponse)
     packetWriter.commit();
 
     auto dnsQuestion = turnIntoResponse(ids, query);
-    BOOST_CHECK_EQUAL(getEDNSZ(dnsQuestion), EDNS_HEADER_FLAG_DO);
+    BOOST_CHECK_EQUAL(dnsdist::getEDNSZ(dnsQuestion), EDNS_HEADER_FLAG_DO);
+    BOOST_CHECK_EQUAL(*dnsdist::getEDNSVersion(dnsQuestion), 0U);
+    BOOST_CHECK_EQUAL(*dnsdist::getEDNSExtendedRCode(dnsQuestion), 0U);
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(dnsQuestion.getData().data()), dnsQuestion.getData().size(), &udpPayloadSize, &zValue), true);
     BOOST_CHECK_EQUAL(zValue, EDNS_HEADER_FLAG_DO);
-    BOOST_CHECK_EQUAL(udpPayloadSize, g_PayloadSizeSelfGenAnswers);
+    BOOST_CHECK_EQUAL(udpPayloadSize, dnsdist::configuration::getCurrentRuntimeConfiguration().d_payloadSizeSelfGenAnswers);
   }
 
   {
@@ -1682,11 +1854,13 @@ BOOST_AUTO_TEST_CASE(test_addEDNSToQueryTurnedResponse)
     packetWriter.commit();
 
     auto dnsQuestion = turnIntoResponse(ids, query);
-    BOOST_CHECK_EQUAL(getEDNSZ(dnsQuestion), 0);
+    BOOST_CHECK_EQUAL(dnsdist::getEDNSZ(dnsQuestion), 0);
+    BOOST_CHECK_EQUAL(*dnsdist::getEDNSVersion(dnsQuestion), 0U);
+    BOOST_CHECK_EQUAL(*dnsdist::getEDNSExtendedRCode(dnsQuestion), 0U);
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(dnsQuestion.getData().data()), dnsQuestion.getData().size(), &udpPayloadSize, &zValue), true);
     BOOST_CHECK_EQUAL(zValue, 0);
-    BOOST_CHECK_EQUAL(udpPayloadSize, g_PayloadSizeSelfGenAnswers);
+    BOOST_CHECK_EQUAL(udpPayloadSize, dnsdist::configuration::getCurrentRuntimeConfiguration().d_payloadSizeSelfGenAnswers);
   }
 
   {
@@ -1697,11 +1871,13 @@ BOOST_AUTO_TEST_CASE(test_addEDNSToQueryTurnedResponse)
     packetWriter.commit();
 
     auto dnsQuestion = turnIntoResponse(ids, query);
-    BOOST_CHECK_EQUAL(getEDNSZ(dnsQuestion), EDNS_HEADER_FLAG_DO);
+    BOOST_CHECK_EQUAL(dnsdist::getEDNSZ(dnsQuestion), EDNS_HEADER_FLAG_DO);
+    BOOST_CHECK_EQUAL(*dnsdist::getEDNSVersion(dnsQuestion), 0U);
+    BOOST_CHECK_EQUAL(*dnsdist::getEDNSExtendedRCode(dnsQuestion), 0U);
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     BOOST_CHECK_EQUAL(getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(dnsQuestion.getData().data()), dnsQuestion.getData().size(), &udpPayloadSize, &zValue), true);
     BOOST_CHECK_EQUAL(zValue, EDNS_HEADER_FLAG_DO);
-    BOOST_CHECK_EQUAL(udpPayloadSize, g_PayloadSizeSelfGenAnswers);
+    BOOST_CHECK_EQUAL(udpPayloadSize, dnsdist::configuration::getCurrentRuntimeConfiguration().d_payloadSizeSelfGenAnswers);
   }
 }
 
@@ -1711,8 +1887,8 @@ BOOST_AUTO_TEST_CASE(test_getEDNSOptionsStart)
   const uint16_t qtype = QType::A;
   const uint16_t qclass = QClass::IN;
   EDNSSubnetOpts ecsOpts;
-  ecsOpts.source = Netmask(ComboAddress("127.0.0.1"), ECSSourcePrefixV4);
-  const string ecsOptionStr = makeEDNSSubnetOptsString(ecsOpts);
+  ecsOpts.setSource(Netmask(ComboAddress("127.0.0.1"), ECSSourcePrefixV4));
+  const string ecsOptionStr = ecsOpts.makeOptString();
   GenericDNSPacketWriter<PacketBuffer>::optvect_t opts;
   opts.emplace_back(EDNSOptionCode::ECS, ecsOptionStr);
   const ComboAddress rem("127.0.0.1");
@@ -1729,13 +1905,13 @@ BOOST_AUTO_TEST_CASE(test_getEDNSOptionsStart)
     packetWriter.getHeader()->rcode = RCode::NXDomain;
     packetWriter.commit();
 
-    int res = getEDNSOptionsStart(query, qname.wirelength(), &optRDPosition, &remaining);
+    int res = dnsdist::getEDNSOptionsStart(query, qname.wirelength(), &optRDPosition, &remaining);
 
     BOOST_CHECK_EQUAL(res, ENOENT);
 
     /* truncated packet (should not matter) */
     query.resize(query.size() - 1);
-    res = getEDNSOptionsStart(query, qname.wirelength(), &optRDPosition, &remaining);
+    res = dnsdist::getEDNSOptionsStart(query, qname.wirelength(), &optRDPosition, &remaining);
 
     BOOST_CHECK_EQUAL(res, ENOENT);
   }
@@ -1747,7 +1923,7 @@ BOOST_AUTO_TEST_CASE(test_getEDNSOptionsStart)
     packetWriter.addOpt(512, 0, 0);
     packetWriter.commit();
 
-    int res = getEDNSOptionsStart(query, qname.wirelength(), &optRDPosition, &remaining);
+    int res = dnsdist::getEDNSOptionsStart(query, qname.wirelength(), &optRDPosition, &remaining);
 
     BOOST_CHECK_EQUAL(res, 0);
     BOOST_CHECK_EQUAL(optRDPosition, optRDExpectedOffset);
@@ -1756,7 +1932,7 @@ BOOST_AUTO_TEST_CASE(test_getEDNSOptionsStart)
     /* truncated packet */
     query.resize(query.size() - 1);
 
-    res = getEDNSOptionsStart(query, qname.wirelength(), &optRDPosition, &remaining);
+    res = dnsdist::getEDNSOptionsStart(query, qname.wirelength(), &optRDPosition, &remaining);
     BOOST_CHECK_EQUAL(res, ENOENT);
   }
 
@@ -1767,7 +1943,7 @@ BOOST_AUTO_TEST_CASE(test_getEDNSOptionsStart)
     packetWriter.addOpt(512, 0, 0, opts);
     packetWriter.commit();
 
-    int res = getEDNSOptionsStart(query, qname.wirelength(), &optRDPosition, &remaining);
+    int res = dnsdist::getEDNSOptionsStart(query, qname.wirelength(), &optRDPosition, &remaining);
 
     BOOST_CHECK_EQUAL(res, 0);
     BOOST_CHECK_EQUAL(optRDPosition, optRDExpectedOffset);
@@ -1775,7 +1951,7 @@ BOOST_AUTO_TEST_CASE(test_getEDNSOptionsStart)
 
     /* truncated options (should not matter for this test) */
     query.resize(query.size() - 1);
-    res = getEDNSOptionsStart(query, qname.wirelength(), &optRDPosition, &remaining);
+    res = dnsdist::getEDNSOptionsStart(query, qname.wirelength(), &optRDPosition, &remaining);
     BOOST_CHECK_EQUAL(res, 0);
     BOOST_CHECK_EQUAL(optRDPosition, optRDExpectedOffset);
     BOOST_CHECK_EQUAL(remaining, query.size() - optRDExpectedOffset);
@@ -1811,8 +1987,8 @@ BOOST_AUTO_TEST_CASE(test_isEDNSOptionInOpt)
   const uint16_t qtype = QType::A;
   const uint16_t qclass = QClass::IN;
   EDNSSubnetOpts ecsOpts;
-  ecsOpts.source = Netmask(ComboAddress("127.0.0.1"), ECSSourcePrefixV4);
-  const string ecsOptionStr = makeEDNSSubnetOptsString(ecsOpts);
+  ecsOpts.setSource(Netmask(ComboAddress("127.0.0.1"), ECSSourcePrefixV4));
+  const string ecsOptionStr = ecsOpts.makeOptString();
   const size_t sizeOfECSContent = ecsOptionStr.size();
   const size_t sizeOfECSOption = /* option code */ 2 + /* option length */ 2 + sizeOfECSContent;
   EDNSCookiesOpt cookiesOpt("deadbeefdeadbeef");
@@ -1986,9 +2162,9 @@ BOOST_AUTO_TEST_CASE(test_setNegativeAndAdditionalSOA)
     BOOST_CHECK_EQUAL(mdp.d_header.nscount, 0U);
     BOOST_CHECK_EQUAL(mdp.d_header.arcount, 1U);
     BOOST_REQUIRE_EQUAL(mdp.d_answers.size(), 1U);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_type, static_cast<uint16_t>(QType::SOA));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_class, QClass::IN);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_name, DNSName("zone."));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_type, static_cast<uint16_t>(QType::SOA));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_class, QClass::IN);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_name, DNSName("zone."));
   }
   {
     /* now with incoming EDNS */
@@ -2009,11 +2185,11 @@ BOOST_AUTO_TEST_CASE(test_setNegativeAndAdditionalSOA)
     BOOST_CHECK_EQUAL(mdp.d_header.nscount, 0U);
     BOOST_CHECK_EQUAL(mdp.d_header.arcount, 2U);
     BOOST_REQUIRE_EQUAL(mdp.d_answers.size(), 2U);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_type, static_cast<uint16_t>(QType::SOA));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_class, QClass::IN);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_name, DNSName("zone."));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).first.d_type, static_cast<uint16_t>(QType::OPT));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).first.d_name, g_rootdnsname);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_type, static_cast<uint16_t>(QType::SOA));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_class, QClass::IN);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_name, DNSName("zone."));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).d_type, static_cast<uint16_t>(QType::OPT));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).d_name, g_rootdnsname);
   }
 
   /* test No Data */
@@ -2036,9 +2212,9 @@ BOOST_AUTO_TEST_CASE(test_setNegativeAndAdditionalSOA)
     BOOST_CHECK_EQUAL(mdp.d_header.nscount, 0U);
     BOOST_CHECK_EQUAL(mdp.d_header.arcount, 1U);
     BOOST_REQUIRE_EQUAL(mdp.d_answers.size(), 1U);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_type, static_cast<uint16_t>(QType::SOA));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_class, QClass::IN);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_name, DNSName("zone."));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_type, static_cast<uint16_t>(QType::SOA));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_class, QClass::IN);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_name, DNSName("zone."));
   }
   {
     /* now with incoming EDNS */
@@ -2059,11 +2235,11 @@ BOOST_AUTO_TEST_CASE(test_setNegativeAndAdditionalSOA)
     BOOST_CHECK_EQUAL(mdp.d_header.nscount, 0U);
     BOOST_CHECK_EQUAL(mdp.d_header.arcount, 2U);
     BOOST_REQUIRE_EQUAL(mdp.d_answers.size(), 2U);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_type, static_cast<uint16_t>(QType::SOA));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_class, QClass::IN);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_name, DNSName("zone."));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).first.d_type, static_cast<uint16_t>(QType::OPT));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).first.d_name, g_rootdnsname);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_type, static_cast<uint16_t>(QType::SOA));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_class, QClass::IN);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_name, DNSName("zone."));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).d_type, static_cast<uint16_t>(QType::OPT));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).d_name, g_rootdnsname);
   }
 
   /* SOA in the authority section*/
@@ -2089,9 +2265,9 @@ BOOST_AUTO_TEST_CASE(test_setNegativeAndAdditionalSOA)
     BOOST_CHECK_EQUAL(mdp.d_header.nscount, 1U);
     BOOST_CHECK_EQUAL(mdp.d_header.arcount, 0U);
     BOOST_REQUIRE_EQUAL(mdp.d_answers.size(), 1U);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_type, static_cast<uint16_t>(QType::SOA));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_class, QClass::IN);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_name, DNSName("zone."));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_type, static_cast<uint16_t>(QType::SOA));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_class, QClass::IN);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_name, DNSName("zone."));
   }
   {
     /* now with incoming EDNS */
@@ -2112,11 +2288,11 @@ BOOST_AUTO_TEST_CASE(test_setNegativeAndAdditionalSOA)
     BOOST_CHECK_EQUAL(mdp.d_header.nscount, 1U);
     BOOST_CHECK_EQUAL(mdp.d_header.arcount, 1U);
     BOOST_REQUIRE_EQUAL(mdp.d_answers.size(), 2U);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_type, static_cast<uint16_t>(QType::SOA));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_class, QClass::IN);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_name, DNSName("zone."));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).first.d_type, static_cast<uint16_t>(QType::OPT));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).first.d_name, g_rootdnsname);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_type, static_cast<uint16_t>(QType::SOA));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_class, QClass::IN);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_name, DNSName("zone."));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).d_type, static_cast<uint16_t>(QType::OPT));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).d_name, g_rootdnsname);
   }
 
   /* test No Data */
@@ -2139,9 +2315,9 @@ BOOST_AUTO_TEST_CASE(test_setNegativeAndAdditionalSOA)
     BOOST_CHECK_EQUAL(mdp.d_header.nscount, 1U);
     BOOST_CHECK_EQUAL(mdp.d_header.arcount, 0U);
     BOOST_REQUIRE_EQUAL(mdp.d_answers.size(), 1U);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_type, static_cast<uint16_t>(QType::SOA));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_class, QClass::IN);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_name, DNSName("zone."));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_type, static_cast<uint16_t>(QType::SOA));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_class, QClass::IN);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_name, DNSName("zone."));
   }
   {
     /* now with incoming EDNS */
@@ -2162,11 +2338,11 @@ BOOST_AUTO_TEST_CASE(test_setNegativeAndAdditionalSOA)
     BOOST_CHECK_EQUAL(mdp.d_header.nscount, 1U);
     BOOST_CHECK_EQUAL(mdp.d_header.arcount, 1U);
     BOOST_REQUIRE_EQUAL(mdp.d_answers.size(), 2U);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_type, static_cast<uint16_t>(QType::SOA));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_class, QClass::IN);
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_name, DNSName("zone."));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).first.d_type, static_cast<uint16_t>(QType::OPT));
-    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).first.d_name, g_rootdnsname);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_type, static_cast<uint16_t>(QType::SOA));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_class, QClass::IN);
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_name, DNSName("zone."));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).d_type, static_cast<uint16_t>(QType::OPT));
+    BOOST_CHECK_EQUAL(mdp.d_answers.at(1).d_name, g_rootdnsname);
   }
 }
 
@@ -2281,14 +2457,14 @@ BOOST_AUTO_TEST_CASE(test_setEDNSOption)
   BOOST_CHECK_EQUAL(mdp.d_header.ancount, 0U);
   BOOST_CHECK_EQUAL(mdp.d_header.nscount, 0U);
   BOOST_CHECK_EQUAL(mdp.d_header.arcount, 1U);
-  BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_type, static_cast<uint16_t>(QType::OPT));
-  BOOST_CHECK_EQUAL(mdp.d_answers.at(0).first.d_name, g_rootdnsname);
+  BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_type, static_cast<uint16_t>(QType::OPT));
+  BOOST_CHECK_EQUAL(mdp.d_answers.at(0).d_name, g_rootdnsname);
 
   EDNS0Record edns0{};
   BOOST_REQUIRE(getEDNS0Record(dnsQuestion.getData(), edns0));
   BOOST_CHECK_EQUAL(edns0.version, 0U);
   BOOST_CHECK_EQUAL(edns0.extRCode, 0U);
-  BOOST_CHECK_EQUAL(edns0.extFlags, EDNS_HEADER_FLAG_DO);
+  BOOST_CHECK_EQUAL(ntohs(edns0.extFlags), EDNS_HEADER_FLAG_DO);
 
   BOOST_REQUIRE(parseEDNSOptions(dnsQuestion));
   BOOST_REQUIRE(dnsQuestion.ednsOptions != nullptr);

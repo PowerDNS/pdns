@@ -318,7 +318,7 @@ struct Fixture
     addSignerParams(DNSSECKeeper::ED25519, "ED25519", ed25519);
 #endif
 
-#if defined(HAVE_LIBDECAF) || defined(HAVE_LIBCRYPTO_ED448)
+#if defined(HAVE_LIBCRYPTO_ED448)
     addSignerParams(DNSSECKeeper::ED448, "ED448", ed448);
 #endif
   }
@@ -343,8 +343,6 @@ static void checkRR(const SignerParams& signer)
   sortedRecords_t rrs;
   /* values taken from rfc8080 for ed25519 and ed448, rfc5933 for gost */
   DNSName qname(dpk.getAlgorithm() == DNSSECKeeper::ECCGOST ? "www.example.net." : "example.com.");
-
-  reportBasicTypes();
 
   RRSIGRecordContent rrc;
   uint32_t expire = 1440021600;

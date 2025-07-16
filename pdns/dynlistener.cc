@@ -36,13 +36,10 @@
 #include <netinet/in.h>
 #include <iostream>
 #include <sstream>
-#include <sys/types.h>
 #include <csignal>
 
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <unistd.h>
-#include <boost/algorithm/string.hpp> 
 #include <thread>
 
 #include "misc.hh"
@@ -59,6 +56,7 @@ extern StatBag S;
 
 DynListener::g_funkdb_t DynListener::s_funcdb;
 DynListener::g_funk_t* DynListener::s_restfunc;
+std::string DynListener::s_exitfuncname;
 
 DynListener::~DynListener()
 {
@@ -280,7 +278,14 @@ string DynListener::getLine()
     }
 
     if (len == 0) {
-      throw PDNSException("Guardian exited - going down as well");
+      // File descriptor has been closed. We translate this into an exit
+      // request, but if it did not succeed and we are back attempting to
+      // read data, there's not much we can do but throw up.
+      static bool firstTime = true;
+      if (!firstTime) {
+        throw PDNSException("Guardian exited - going down as well");
+      }
+      firstTime = false;
     }
 
     if (static_cast<size_t>(len) == mesg.size()) {
@@ -319,6 +324,13 @@ void DynListener::sendlines(const string &l)
   }
 }
 
+void DynListener::registerExitFunc(const string &name, g_funk_t *gf) // NOLINT(readability-identifier-length)
+{
+  g_funkwithusage_t funk = {gf, "", "quit daemon"};
+  s_exitfuncname = name;
+  s_funcdb[s_exitfuncname] = std::move(funk);
+}
+
 void DynListener::registerFunc(const string &name, g_funk_t *gf, const string &usage, const string &args)
 {
   g_funkwithusage_t e = {gf, args, usage};
@@ -339,6 +351,9 @@ void DynListener::theListener()
 
     for(;;) {
       string line=getLine();
+      if (line.empty()) {
+        line = s_exitfuncname;
+      }
       boost::trim_right(line);
 
       vector<string>parts;

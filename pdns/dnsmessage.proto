@@ -145,7 +145,7 @@ message PBDNSMessage {
   }
 
   message Meta {
-    required string key = 1;                    // MUST be unique, so if you have multiple values they must be aggregated into on Meta
+    required string key = 1;                    // MUST be unique, so if you have multiple values they must be aggregated into one Meta
     required MetaValue value = 2;
   }
   repeated Meta meta = 22;                      // Arbitrary meta-data - to be used in future rather than adding new fields all the time
@@ -170,6 +170,8 @@ message PBDNSMessage {
     LuaNoData = 108;
     LuaNXDomain = 109;
     LuaPostResolveFFI = 110;
+
+    AuthRequest = 120;
   }
 
   message Event {
@@ -188,6 +190,9 @@ message PBDNSMessage {
   optional uint64 workerId = 25;                // Thread id
   optional bool packetCacheHit = 26;            // Was it a packet cache hit?
   optional uint32 outgoingQueries = 27;         // Number of outgoing queries used to answer the query
+  optional uint32 headerFlags = 28;             // Flags field in wire format, 16 bits used
+  optional uint32 ednsVersion = 29;             // EDNS version and flags in wire format, see https://www.rfc-editor.org/rfc/rfc6891.html#section-6.1.3
+  optional bytes openTelemetryData = 30;        // Protobuf encoded Open Telemetry Data, see https://github.com/open-telemetry/opentelemetry-proto/blob/main/opentelemetry/proto/trace/v1/trace.proto
 }
 
 message PBDNSMessageList {

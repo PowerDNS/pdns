@@ -25,6 +25,7 @@ struct dnsdist_ffi_servers_list_t;
 struct dnsdist_ffi_server_t;
 struct dnsdist_ffi_dnsquestion_t;
 
+struct DNSQuestion;
 struct DownstreamState;
 
 struct PerThreadPoliciesState;
@@ -33,10 +34,13 @@ class ServerPolicy
 {
 public:
   template <class T>
+  using Numbered = std::pair<unsigned int, T>;
+  using NumberedServer = Numbered<shared_ptr<DownstreamState>>;
+  template <class T>
   using NumberedVector = std::vector<std::pair<unsigned int, T>>;
   using NumberedServerVector = NumberedVector<shared_ptr<DownstreamState>>;
-  typedef std::function<shared_ptr<DownstreamState>(const NumberedServerVector& servers, const DNSQuestion*)> policyfunc_t;
-  typedef std::function<unsigned int(dnsdist_ffi_servers_list_t* servers, dnsdist_ffi_dnsquestion_t* dq)> ffipolicyfunc_t;
+  using policyfunc_t = std::function<std::shared_ptr<DownstreamState>(const NumberedServerVector& servers, const DNSQuestion*)>;
+  using ffipolicyfunc_t = std::function<unsigned int(dnsdist_ffi_servers_list_t* servers, dnsdist_ffi_dnsquestion_t* dq)>;
 
   ServerPolicy(const std::string& name_, policyfunc_t policy_, bool isLua_) :
     d_name(name_), d_policy(std::move(policy_)), d_isLua(isLua_)
@@ -68,15 +72,10 @@ public:
   }
 
 private:
-  struct PerThreadState
-  {
-    LuaContext d_luaContext;
-    std::unordered_map<std::string, ffipolicyfunc_t> d_policies;
-    bool d_initialized{false};
-  };
+  struct PerThreadState;
 
   const ffipolicyfunc_t& getPerThreadPolicy() const;
-  static thread_local PerThreadState t_perThreadState;
+  static thread_local std::unique_ptr<PerThreadState> t_perThreadState;
 
 public:
   std::string d_name;
@@ -92,14 +91,14 @@ public:
 
 struct ServerPool;
 
-using pools_t = map<std::string, std::shared_ptr<ServerPool>>;
-std::shared_ptr<ServerPool> getPool(const pools_t& pools, const std::string& poolName);
-std::shared_ptr<ServerPool> createPoolIfNotExists(pools_t& pools, const string& poolName);
-void setPoolPolicy(pools_t& pools, const string& poolName, std::shared_ptr<ServerPolicy> policy);
-void addServerToPool(pools_t& pools, const string& poolName, std::shared_ptr<DownstreamState> server);
-void removeServerFromPool(pools_t& pools, const string& poolName, std::shared_ptr<DownstreamState> server);
+using pools_t = std::map<std::string, std::shared_ptr<ServerPool>>;
+std::shared_ptr<ServerPool> getPool(const std::string& poolName);
+std::shared_ptr<ServerPool> createPoolIfNotExists(const string& poolName);
+void setPoolPolicy(const string& poolName, std::shared_ptr<ServerPolicy> policy);
+void addServerToPool(const string& poolName, std::shared_ptr<DownstreamState> server);
+void removeServerFromPool(const string& poolName, std::shared_ptr<DownstreamState> server);
 
-const std::shared_ptr<const ServerPolicy::NumberedServerVector> getDownstreamCandidates(const map<std::string, std::shared_ptr<ServerPool>>& pools, const std::string& poolName);
+std::shared_ptr<const ServerPolicy::NumberedServerVector> getDownstreamCandidates(const std::string& poolName);
 
 std::shared_ptr<DownstreamState> firstAvailable(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq);
 
@@ -110,8 +109,11 @@ std::shared_ptr<DownstreamState> whashedFromHash(const ServerPolicy::NumberedSer
 std::shared_ptr<DownstreamState> chashed(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq);
 std::shared_ptr<DownstreamState> chashedFromHash(const ServerPolicy::NumberedServerVector& servers, size_t hash);
 std::shared_ptr<DownstreamState> roundrobin(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq);
+std::shared_ptr<DownstreamState> orderedWrandUntag(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dnsq);
 
-extern double g_consistentHashBalancingFactor;
-extern double g_weightedBalancingFactor;
-extern uint32_t g_hashperturb;
-extern bool g_roundrobinFailOnNoServer;
+#include <unordered_map>
+
+namespace dnsdist::lbpolicies
+{
+const std::vector<std::shared_ptr<ServerPolicy>>& getBuiltInPolicies();
+}

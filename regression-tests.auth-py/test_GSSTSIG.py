@@ -7,8 +7,10 @@ from authtests import AuthTest
 
 
 class GSSTSIGBase(AuthTest):
+    _backend = 'gsqlite3'
+
     _config_template_default = """
-module-dir=../regression-tests/modules
+module-dir={PDNS_MODULE_DIR}
 daemon=no
 socket-dir={confdir}
 cache-ttl=0
@@ -34,6 +36,24 @@ dnsupdate-require-tsig=no
                  }
 
     @classmethod
+    def secureZone(cls, confdir, zonename, key=None):
+        # This particular test uses a sqlite-only configuration, unlike
+        # all the other tests in that directory. Because of this, we
+        # need to perform an explicit create-zone, otherwise import-zone-key
+        # would fail.
+        zone = '.' if zonename == 'ROOT' else zonename
+        pdnsutilCmd = [os.environ['PDNSUTIL'],
+                       '--config-dir=%s' % confdir,
+                       'create-zone',
+                       zone]
+        print(' '.join(pdnsutilCmd))
+        try:
+            subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as e:
+            raise AssertionError('%s failed (%d): %s' % (pdnsutilCmd, e.returncode, e.output))
+        super(GSSTSIGBase, cls).secureZone(confdir, zonename, key)
+
+    @classmethod
     def setUpClass(cls):
         super(GSSTSIGBase, cls).setUpClass()
         os.system("$PDNSUTIL --config-dir=configs/auth delete-zone example.net")
@@ -43,9 +63,9 @@ dnsupdate-require-tsig=no
         os.system("$PDNSUTIL --config-dir=configs/auth create-zone noacceptor.net")
         os.system("$PDNSUTIL --config-dir=configs/auth create-zone wrongacceptor.net")
 
-        os.system("$PDNSUTIL --config-dir=configs/auth add-record example.net . SOA 3600 'ns1.example.net otto.example.net 2022010403 10800 3600 604800 3600'")
-        os.system("$PDNSUTIL --config-dir=configs/auth add-record noacceptor.net . SOA 3600 'ns1.noacceptor.net otto.example.net 2022010403 10800 3600 604800 3600'")
-        os.system("$PDNSUTIL --config-dir=configs/auth add-record wrongacceptor.net . SOA 3600 'ns1.wrongacceptor.net otto.example.net 2022010403 10800 3600 604800 3600'")
+        os.system("$PDNSUTIL --config-dir=configs/auth add-record example.net example.net SOA 3600 'ns1.example.net otto.example.net 2022010403 10800 3600 604800 3600'")
+        os.system("$PDNSUTIL --config-dir=configs/auth add-record noacceptor.net noacceptor.net SOA 3600 'ns1.noacceptor.net otto.example.net 2022010403 10800 3600 604800 3600'")
+        os.system("$PDNSUTIL --config-dir=configs/auth add-record wrongacceptor.net wrongacceptor.net SOA 3600 'ns1.wrongacceptor.net otto.example.net 2022010403 10800 3600 604800 3600'")
 
         os.system("$PDNSUTIL --config-dir=configs/auth set-meta example.net GSS-ACCEPTOR-PRINCIPAL DNS/ns1.example.net@EXAMPLE.COM")
         os.system("$PDNSUTIL --config-dir=configs/auth set-meta wrongacceptor.net GSS-ACCEPTOR-PRINCIPAL DNS/ns1.example.net@EXAMPLE.COM")

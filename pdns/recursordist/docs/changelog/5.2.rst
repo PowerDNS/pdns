@@ -1,0 +1,415 @@
+Changelogs for 5.2.X
+====================
+
+Before upgrading, it is advised to read the :doc:`../upgrade`.
+
+.. changelog::
+  :version: 5.2.2
+  :released: 9th of April 2025
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15279
+    :tickets: 15254
+
+    If we see both a CNAME and answer records, follow CNAME and discard the answer records.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15212
+    :tickets: 15203
+
+    Switch back to serde_yaml as serde_yml is maintained poorly.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15211
+    :tickets: 15072
+
+    Adjust Content-Type header for Prometheus endpoint to include version.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15210
+    :tickets: 15063
+
+    Include cstdint to get uint64_t.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15209
+    :tickets: 15023
+
+    Remove spurious ] in configure.ac.
+
+.. changelog::
+  :version: 5.2.1
+  :released: 7th of April 2025
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15396
+
+    Fix PowerDNS Security Advisory 2025-01 (CVE-2025-30195): A crafted zone can lead to an illegal memory access in the Recursor.
+
+.. changelog::
+  :version: 5.2.0
+  :released: 14th of January 2025
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15015
+    :tickets: 15010
+
+    Fix protobufServer(.. {taggedOnly=true}) logic for cache-returned responses (g0tar).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15020
+    :tickets: 15019
+
+    Explicitly log port of listening addresses.
+
+.. changelog::
+  :version: 5.2.0-rc1
+  :released: 13th of December 2024
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14962
+    :tickets: 14957
+
+    Avoid local source port 4791 (zhaojs).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14942
+
+    Log only one line per protocol for listening sockets on startup.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14941
+
+    Generate metrics files (also) where meson expects them.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14943
+
+    Skip the current zone when looking for a cut after an invalid DS denial proof
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14913
+
+    Reject hexadecimal blobs with odd number of characters.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14926
+    :tickets: 12953
+
+    Remove support for libdecaf.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14917
+    :tickets: 14915
+
+    Sync Dockerfile build options with packages
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14909
+
+    Followup to 14796: also call stop hook in 1 thread case.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14897
+
+    Fix register QType race.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14896
+
+    Coverity fixes, all minor optimizations
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14895
+
+    Follow clippy's code improvements advice, move static lib version to 5.2.0.
+
+
+
+.. changelog::
+  :version: 5.2.0-beta1
+  :released: 27th of November 2024
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14852
+
+    Add rec_control reload-yaml as an alias for reload-lua-config.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14852
+
+    Add header flags and edns version as fields in protobuf messages.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14863
+    :tickets: 14471, 14857
+
+    Fix serial number inconsistency for RPZ dump files.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14858
+    :tickets: 14855
+
+    Remember which query led to aggressive cache insert/update and show it in cache dump and traces.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14847
+
+    Several coverity reports, all low severity optimizations.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14844
+
+    Allow addresses to retrieve catalog zones and RPZs to be names (is system resolver is enabled).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14838
+    :tickets: 14533
+
+    Better fd count estimates and move default incoming.max_tcp_client to 1024.
+
+.. changelog::
+  :version: 5.2.0-alpha1
+  :released: 11th of November 2024
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14825
+    :tickets: 13066
+
+    rec_control top* cleanup.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14824
+
+    Coverity-20241105 and one log level change.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14822
+    :tickets: 14310
+
+    Fix a difference between record-cache hit and miss in some ServFail results if QName Minimization is enabled.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14525
+
+    Add 38696 root anchor.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14759
+    :tickets: 12865
+
+    Implement catalog zones to populate forwarding zones.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14807
+
+    Drop ref in mtasker when it is no longer needed.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14796
+    :tickets: 8032
+
+    Provide a few more Lua functions, most importantly record cache dump and load and hook when starting and stopping the recursor.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14809
+
+    Actively deprecate old style settings.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14816
+
+    Periodic stats cleanup and rename outqueries-per-query to outqueries-per-query-perc.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14722
+
+    Generate metrics related files from a single source.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14506
+
+    Notify_allowed should be processed for forward_zones and forward_zones_recurse.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14693
+
+    Implement rfc6303 special zones (mostly v6 reverse mappings).
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14697
+
+    Give a more clear error message if the build fails because python was not found.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14653,14758
+
+    Rust related version updates.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14611
+    :tickets: 14582
+
+    Only log MOADNSExceptions if logging.log_common_errors is true.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14694
+
+    RPZ tweaks: log policyName on policyHit when updating root.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14651
+
+    Stop supporting ucontext flavor for context switching from out codebase. boost might still provide methods on some platforms using ucontext.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14666
+
+    Introduce a "too large" counter for the framestream remote logger.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14633
+
+    Move minimal boost version to 1.54.
+
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14595
+
+    Rework auth response sanitize code.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14606
+
+    Rework the way tcp-in limits is maintained.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14557
+    :tickets: 14522
+
+    Always include all stats for RPZs in Prometheus data (previously zero stats would be skipped).
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14518
+    :tickets: 14455
+
+    Refactor version reporting code and write version to stdout.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14499
+
+    Limit the number of async tasks pushed to resolve NS names.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14471
+
+    Dump right SOA into dumpFile and report non-relative SOA for includeSOA=true.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14458,14678,14487,14517
+    :tickets: 13987
+
+    Add meson build
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14459
+
+    Provide docker image with yml config file.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14430
+
+    Refactor sanitizeRecords and fix order dependency.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14419
+    :tickets: 14327
+
+    Fix compile error on OPENSSL_VERSION_MAJOR < 3.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14408
+
+    Show throttle reason in rec_control dump-throttlemap.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14404
+
+    Yahttp router: appease coverity with respect to unsigned underflow in match().
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14386
+
+    Fix coverity 1544951 copy_instead_of_move.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14385
+
+    Tidy AXFRRetriever::timeoutReadn.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14381
+
+    Cleanup read2n and mark unixDie as [[noreturn]].
+
+

@@ -62,15 +62,17 @@ void LdapBackend::getUpdatedPrimaries(vector<DomainInfo>& domains, std::unordere
       continue;
 
     DomainInfo di;
-    if (!getDomainInfo(DNSName(result["associatedDomain"][0]), di))
+    if (!getDomainInfo(ZoneName(result["associatedDomain"][0]), di)) {
       continue;
+    }
 
     if (di.notified_serial < di.serial)
       domains.push_back(di);
   }
 }
 
-void LdapBackend::setNotified(uint32_t id, uint32_t serial)
+// NOLINTNEXTLINE(readability-identifier-length)
+void LdapBackend::setNotified(domainid_t id, uint32_t serial)
 {
   string filter;
   PowerLDAP::SearchResult::Ptr search;

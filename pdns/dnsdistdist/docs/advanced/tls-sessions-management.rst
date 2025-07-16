@@ -28,13 +28,15 @@ Keys management for incoming connections in dnsdist
 
 dnsdist supports both server's side (sessions) and client's side (tickets) resumption for incoming connections (client to dnsdist).
 
-Since server-side sessions cannot be shared between several instances, and pretty much all clients support tickets anyway, we do recommend disabling the sessions by passing ``numberOfStoredSessions=0`` to the :func:`addDOHLocal` (for DNS over HTTPS) and :func:`addTLSLocal` (for DNS over TLS) functions.
+Since server-side sessions cannot be shared between several instances, and pretty much all clients support tickets anyway, we do recommend disabling the sessions by passing ``numberOfStoredSessions=0`` to the :func:`addDOHLocal` (for DNS over HTTPS) and :func:`addTLSLocal` (for DNS over TLS) functions, or setting ``tls.number_of_stored_sessions=0`` on a :ref:`frontend configuration <yaml-settings-BindConfiguration>` when using YAML.
 
-By default, dnsdist will generate a new, random STEK at startup for each :func:`addTLSLocal` and :func:`addDOHLocal` directive, and rotate these STEKs every 12 hours. For each frontend it will keep 5 keys in memory, with only the last one marked as active and used to encrypt new tickets while the remaining ones can still be used to decrypt existing tickets after a rotation. The rotation time and the number of keys to keep in memory can be configured via the ``numberOfTicketsKeys`` and ``ticketsKeysRotationDelay`` parameters of the :func:`addDOHLocal` (for DNS over HTTPS) and :func:`addTLSLocal` (for DNS over TLS) functions.
+By default, dnsdist will generate a new, random STEK at startup for each frontend created via :func:`addTLSLocal` and :func:`addDOHLocal` directive, and rotate these STEKs every 12 hours. For each frontend it will keep 5 keys in memory, with only the last one marked as active and used to encrypt new tickets while the remaining ones can still be used to decrypt existing tickets after a rotation. The rotation time and the number of keys to keep in memory can be configured via the ``numberOfTicketsKeys`` and ``ticketsKeysRotationDelay`` parameters of the :func:`addDOHLocal` (for DNS over HTTPS) and :func:`addTLSLocal` (for DNS over TLS) functions.
 When the automatic rotation mechanism kicks in a new, random key will be added to the list of keys. With the OpenSSL provider, the new key becomes active, so new tickets will be encrypted with this key, and the existing keys become passive and only be used to decrypt existing tickets. With the GnuTLS provider only one key is currently supported so the existing keys are immediately discarded.
 This automatic rotation can be disabled by setting ``ticketsKeysRotationDelay`` to 0.
 
-It is also possible to manually request a STEK rotation using the :func:`getDOHFrontend` (DoH) and :func:`getTLSContext` (DoT) functions to retrieve the bind object, and calling its ``rotateTicketsKey`` method (:meth:`DOHFrontend:rotateTicketsKey`, :meth:`TLSContext:rotateTicketsKey`).
+It is also possible to manually request a STEK rotation using the :func:`getDOHFrontend` (DoH) and :func:`getTLSFrontend` (DoT) functions to retrieve the bind object, and calling its ``rotateTicketsKey`` method (:meth:`DOHFrontend:rotateTicketsKey`, :meth:`TLSFrontend:rotateTicketsKey`).
+
+There is an important difference when the YAML configuration is used: groups of identical frontends can be created via the ``threads`` parameter of a :ref:`frontend configuration <yaml-settings-BindConfiguration>`. Identical frontends then share the same STEKs, even after an automatic or manual rotation. In addition to that, any operation on the STEKs should be done on the first frontend of the group, as attempting to alter the STEKs of the other frontends in a group will be ignored to avoid unwanted side-effects.
 
 The default settings should be fine for most deployments, but generating a random key for every dnsdist instance will not allow resuming the session from a different instance in a cluster. It is also not very useful to have a different key for every :func:`addTLSLocal` and :func:`addDOHLocal` directive if you are using the same certificate and key, and it would be much better to use the same STEK to improve the session resumption ratio.
 
@@ -48,12 +50,12 @@ For the GnuTLS provider (DoT), the operation is the same but requires only 64 cr
 
   dd if=/dev/urandom of=/secure-tmp-fs/tickets.key bs=64 count=1
 
-The file can then be loaded at startup by using the ``ticketKeyFile`` parameter of the :func:`addDOHLocal` (for DNS over HTTPS) and :func:`addTLSLocal` (for DNS over TLS) functions.
+The file can then be loaded at startup by using the ``ticketKeyFile`` parameter of the :func:`addDOHLocal` (for DNS over HTTPS) and :func:`addTLSLocal` (for DNS over TLS) functions, or the ``tls.ticket_key_file`` of a :ref:`frontend configuration <yaml-settings-BindConfiguration>` when using YAML.
 
 If the file contains several keys, so for example 240 random bytes, dnsdist will load several STEKs, using the last one for encrypting new tickets and all of them to decrypt existing tickets.
 
 In order to rotate the keys at runtime, it is possible to instruct dnsdist to reload the content of the certificates, keys, and STEKs from the same file used at configuration time, for all DoH and DoH binds, by issuing the :func:`reloadAllCertificates` command.
-It can also be done one bind at a time using the :func:`getDOHFrontend` (DoH) and :func:`getTLSContext` (DoT) functions to retrieve the bind object, and calling its ``loadTicketsKeys`` method (:meth:`DOHFrontend:loadTicketsKeys`, :meth:`TLSContext:loadTicketsKeys`).
+It can also be done one bind at a time using the :func:`getDOHFrontend` (DoH) and :func:`getTLSFrontend` (DoT) functions to retrieve the bind object, and calling its ``loadTicketsKeys`` method (:meth:`DOHFrontend:loadTicketsKeys`, :meth:`TLSFrontend:loadTicketsKeys`).
 
 One possible way of handling manual rotation of the key would be to first:
 

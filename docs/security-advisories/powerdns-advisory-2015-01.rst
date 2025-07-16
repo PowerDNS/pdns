@@ -16,9 +16,12 @@ PowerDNS Security Advisory 2015-01: Label decompression bug can cause crashes or
 -  Solution: Upgrade to any of the non-affected versions
 -  Workaround: Run your Recursor under a supervisor. Exposure can be
    limited by configuring the
-   ```allow-from`` <../recursor/settings.md#allow-from>`__ setting so
+   |allow-from|_ setting so
    only trusted users can query your nameserver. There is no workaround
    for the Authoritative server.
+
+.. |allow-from| replace:: ``allow-from``
+.. _allow-from: :ref:`setting-allow-from`
 
 A bug was discovered in our label decompression code, making it possible
 for names to refer to themselves, thus causing a loop during
@@ -49,7 +52,7 @@ clearly the CPU spike issues.
 Update 7th of July 2015: Toshifumi Sakaguchi discovered that the
 original fix was insufficient in some cases. Updated versions of the
 Authoritative Server and Recursor `were
-released <../changelog.md#powerdns-recursor-364>`__ on the 9th of June.
+released <../changelog/pre-4.0.rst#powerdns-recursor-364>`__ on the 9th of June.
 Minimal patches are
-`available <http://downloads.powerdns.com/patches/2015-01/>`__. The
+`available <https://downloads.powerdns.com/patches/2015-01/>`__. The
 insufficient fix was assigned CVE-2015-5470.

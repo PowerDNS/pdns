@@ -15,7 +15,7 @@ To enable distributors of PowerDNS to signal that they have backported versions,
 Details
 ^^^^^^^
 PowerDNS software sadly sometimes has critical security bugs.
-Even though we send out notifications of these via all channels available, we find that not everybody actually find out about our security releases.
+Even though we send out notifications of these via all channels available, we find that not everybody actually finds out about our security releases.
 
 To solve this, PowerDNS software will start polling for security notifications, and log these periodically.
 Secondly, the security status of the software will be reported using the built-in metrics.
@@ -44,7 +44,7 @@ If at a later date, resolution fails, the security-status is not reset to 1.
 It could be lowered however if we discover the security status is less urgent than we thought.
 
 If resolution fails, and the previous security-status was 1, the new security-status becomes 0 ('no data').
-If the security-status was higher than 1, it will remain that way, and not get set to 0.
+If the security-status was greater than 1, it will remain that way, and not get set to 0.
 
 In this way, security-status of 0 really means 'no data', and cannot mask a known problem.
 

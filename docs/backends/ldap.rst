@@ -2,12 +2,19 @@ LDAP backend
 ============
 
 * Native: Yes
-* Master: Yes
-* Slave: No
-* Superslave: No
+* Primary: Yes
+* Secondary: No
+* Producer: No
+* Consumer: No
+* Autosecondary: No
+* DNS Update: No
 * DNSSEC: No
 * Disabled data: No
 * Comments: No
+* Search: No
+* Views: No
+* API: Read-only
+* Multiple instances: Yes
 * Zone caching: No
 * Module name: ldap
 * Launch name: ``ldap``
@@ -19,7 +26,7 @@ supported.
 
 The original author for this module is Norbert Sendetzky. This page is
 based on the content from his `LDAPbackend wiki
-section <http://wiki.linuxnetworks.de/index.php/PowerDNS_ldapbackend>`__
+section <https://web.archive.org/web/20160212235114/http://www.linuxnetworks.de/doc/index.php/PowerDNS_LDAP_Backend>`__
 as copied in February 2016, and edited from there.
 
 .. warning::
@@ -124,7 +131,7 @@ password, or "gssapi", which requires a Kerberos keytab.
 
 (default "") : Path to the object to authenticate against. Should only
 be used, if the LDAP server doesn't support anonymous binds and with the
-"simple" bindmethod.
+"simple" :ref:`setting-ldap-bindmethod`.
 
 .. _setting-ldap-secret:
 
@@ -132,7 +139,7 @@ be used, if the LDAP server doesn't support anonymous binds and with the
 ^^^^^^^^^^^^^^^
 
 (default "") : Password for authentication against the object specified
-by ldap-binddn. Only used when "bindmethod" is "simple".
+by ldap-binddn. Only used when :ref:`setting-ldap-bindmethod` is "simple".
 
 .. _setting-ldap-krb5-keytab:
 
@@ -140,9 +147,9 @@ by ldap-binddn. Only used when "bindmethod" is "simple".
 ^^^^^^^^^^^^^^^^^^^^
 
 (default: "") : Full path to the keytab file to use to authenticate.
-This is only used when "bindmethod" is set to "gssapi". The keytab must,
-ideally, contain only one principal (or to put it otherwise, only the
-first principal found in the keytab will be used).
+This is only used when :ref:`setting-ldap-bindmethod` is set to "gssapi".
+The keytab must, ideally, contain only one principal (or to put it otherwise,
+only the first principal found in the keytab will be used).
 
 .. _setting-ldap-krb5-ccache:
 
@@ -175,7 +182,7 @@ information.
 
 -  ``simple``: Search the requested domain by comparing the
    associatedDomain attributes with the domain string in the question.
--  ``tree``: Search entires by translating the domain string into a LDAP
+-  ``tree``: Search entries by translating the domain string into a LDAP
    dn. Your LDAP tree must be designed in the same way as the DNS LDAP
    tree. The question for "myhost.linuxnetworks.de" would translate into
    "dc=myhost,dc=linuxnetworks,dc=de,ou=hosts=..." and the entry where
@@ -202,18 +209,18 @@ whose attribute "active" is set to "yes".
 e.g. (&(:target:)(active=yes)) for returning only entries whose
 attribute "active" is set to "yes".
 
-Master Mode
------------
+Primary Mode
+------------
 
 Schema update
 ^^^^^^^^^^^^^
 
-First off adding master support to the LDAP backend needs a schema
+First off adding primary support to the LDAP backend needs a schema
 update. This is required as some metadata must be stored by PowerDNS,
 such as the last successful transfer to slaves. The new schema is
 available in schema/pdns-domaininfo.schema.
 
-Once the schema is loaded the zones for which you want to be a master
+Once the schema is loaded the zones for which you want to be a primary
 must be modified. The dn of the SOA record *must* have the object class
 ``PdnsDomain``, and thus the ``PdnsDomainId`` attribute. This attribute
 is an integer that *must* be unique across all zones served by the
@@ -223,7 +230,7 @@ backend. Furthermore the ``PdnsDomainType`` must be equal to 'master'
 Example
 ^^^^^^^
 
-Here is an example LDIF of a zone that's ready for master operation
+Here is an example LDIF of a zone that's ready for primary operation
 (assuming the 'tree' style):
 
 ::
@@ -242,7 +249,7 @@ Here is an example LDIF of a zone that's ready for master operation
     PdnsDomainType: master
     PdnsDomainMaster: 192.168.0.2
 
-You should have one attribute ``PdnsDomainMaster`` per master serving
+You should have one attribute ``PdnsDomainMaster`` per primary serving
 this zone.
 
 Example
@@ -475,14 +482,14 @@ BIND LDAP backend
 ^^^^^^^^^^^^^^^^^
 
 When coming from the `BIND LDAP sdb
-backend <http://bind9-ldap.bayour.com/>`__, the records can be kept in
+backend <https://web.archive.org/web/20240816181821/https://bind9-ldap.bayour.com/>`__, the records can be kept in
 the LDAP tree also for the PowerDNS LDAP backend. The schemas both
 backends utilize is almost the same except for one important thing:
 Domains for PowerDNS are stored in the attribute "associatedDomain"
 whereas BIND stores them split in "relativeDomainName" and "zoneName".
 
 There is a `migration
-script <http://www.linuxnetworks.de/pdnsldap/bind2pdns-ldap>`__ which
+script <https://www.linuxnetworks.de/pdnsldap/bind2pdns-ldap>`__ which
 creates a file in LDIF format with the necessary LDAP updates including
 the "associatedDomain" and "dc" attributes. The utility is executed on
 the command line by:
@@ -495,11 +502,11 @@ the command line by:
        --binddn=ADMIN_DN > update.ldif
 
 The parameter "host" and "basedn" are mandatory, "binddn" is optional.
-If "binddn" is given, the script will prompt for a password, otherwise
+If "binddn" is given, the script will prompt for a password; otherwise,
 an anonymous bind is executed. The updates in LDIF format are written to
 stdout and can be redirected to a file.
 
-The `script <http://www.linuxnetworks.de/pdnsldap/bind2pdns-ldap>`__
+The `script <https://www.linuxnetworks.de/pdnsldap/bind2pdns-ldap>`__
 requires Perl and the Perl Net::LDAP module.
 
 Updating the entries in the LDAP tree requires to make the dnsdomain2
@@ -507,9 +514,9 @@ schema known to the LDAP server. Unfortunately, both schemas (dnsdomain2
 and dnszone) share the same record types and use the same OIDs so the
 LDAP server can't use both schemas at the same time. The solution is to
 add the `dnsdomain2
-schema <http://www.linuxnetworks.de/pdnsldap/dnsdomain2.schema>`__ and
+schema <https://www.linuxnetworks.de/pdnsldap/dnsdomain2.schema>`__ and
 replace the dnszone schema by the `dnszone-migrate
-schema <http://www.linuxnetworks.de/pdnsldap/dnszone-migrate.schema>`__.
+schema <https://www.linuxnetworks.de/pdnsldap/dnszone-migrate.schema>`__.
 After restarting the LDAP server attributes from both schemas can be
 used and updating the objects in the LDAP tree using the LDIF file
 generated from ``bind2pdns-ldap`` will work without errors.

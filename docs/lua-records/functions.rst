@@ -30,7 +30,7 @@ Client variables
   otherwise. This is a :class:`Netmask`.
 ``bestwho``
   In absence of ECS, this is set to the IP address of requesting resolver.
-  Otherwise set to the network part of the EDNS Client Subnet supplied by the
+  Otherwise, set to the network part of the EDNS Client Subnet supplied by the
   resolver. This is a :class:`ComboAddress`.
 ``who``
   IP address of requesting resolver as a :class:`ComboAddress`.
@@ -43,6 +43,14 @@ Functions available
 Record creation functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
+  .. _if-first-run:
+
+.. warning::
+  For functions that require network traffic ``if...(..., addresses[...])``,
+  the first time they're called, they effectively treat all addresses as
+  failing which means that whatever fallback behavior is used will apply to
+  that first resolution.
+
 .. function:: ifportup(portnum, addresses[, options])
 
   Simplistic test to see if an IP address listens on a certain port. This will
@@ -52,8 +60,8 @@ Record creation functions
   list IPv4 addresses on an AAAA record, or IPv6 addresses on an A record.
 
   Will return a single address from the set of available addresses. If
-  no address is available, will return a random element of the set of
-  addresses supplied for testing.
+  no address is available (but also :ref:`on the first run <if-first-run>`),
+  will return a random element of the set of addresses supplied for testing.
 
   :param int portnum: The port number to test connections to.
   :param {str} addresses: The list of addresses to check connectivity for.
@@ -65,12 +73,16 @@ Record creation functions
   - ``backupSelector``: used to pick the address(es) from all addresses if all addresses are down. Choices include 'pickclosest', 'random', 'hashed', 'all' (default 'random').
   - ``source``: Source address to check from
   - ``timeout``: Maximum time in seconds that you allow the check to take (default 2)
+  - ``interval``: Time interval between two checks, in seconds. Defaults to :ref:`setting-lua-health-checks-interval` if not specified.
+  - ``minimumFailures``: The number of unsuccessful checks in a row required to mark the address as down. Defaults to 1 if not specified, i.e. report as down on the first unsuccessful check.
+  - ``failOnIncompleteCheck``: if set to ``true``, return SERVFAIL instead of applying ``backupSelector``, if none of the addresses have completed their background health check yet.
 
 
 .. function:: ifurlup(url, addresses[, options])
 
   More sophisticated test that attempts an actual http(s) connection to
-  ``url``. In addition, a list of sets of IP addresses can be supplied. The
+  ``url`` (but results are not used :ref:`on the first run <if-first-run>`).
+  In addition, a list of sets of IP addresses can be supplied. The
   first set with at least one available address is selected. The ``selector`` then
   selects from the subset of available addresses of the selected set.
   An URL is considered available if the HTTP response code is 200 and optionally if
@@ -80,15 +92,20 @@ Record creation functions
   :param addresses: List of sets of addresses to check the URL on.
   :param options: Table of options for this specific check, see below.
 
+  .. _ifurlup-options:
+
   Various options can be set in the ``options`` parameter:
 
   - ``selector``: used to pick the address(es) from the subset of available addresses of the selected set. Choices include 'pickclosest', 'random', 'hashed', 'all' (default 'random').
   - ``backupSelector``: used to pick the address from all addresses if all addresses are down. Choices include 'pickclosest', 'random', 'hashed', 'all' (default 'random').
   - ``source``: Source address to check from
   - ``timeout``: Maximum time in seconds that you allow the check to take (default 2)
+  - ``interval``: Time interval between two checks, in seconds. Defaults to :ref:`setting-lua-health-checks-interval` if not specified.
   - ``stringmatch``: check ``url`` for this string, only declare 'up' if found
   - ``useragent``: Set the HTTP "User-Agent" header in the requests. By default it is set to "PowerDNS Authoritative Server"
   - ``byteslimit``: Limit the maximum download size to ``byteslimit`` bytes (default 0 meaning no limit).
+  - ``minimumFailures``: The number of unsuccessful checks in a row required to mark the address as down. Defaults to 1 if not specified, i.e. report as down on the first unsuccessful check.
+  - ``failOnIncompleteCheck``: if set to ``true``, return SERVFAIL instead of applying ``backupSelector``, if none of the addresses have completed their background health check yet.
 
   An example of a list of address sets:
 
@@ -102,7 +119,7 @@ Record creation functions
   This is useful when health checking already happens elsewhere, and that state is exposed over HTTP(S).
   Health checks are considered positive if the HTTP response code is 200 and optionally if the content matches the ``stringmatch`` option.
 
-  Options are identical to those for ``ifurlup``.
+  :ref:`Options <ifurlup-options>` are identical to those for ``ifurlup``.
 
   Example:
 
@@ -127,6 +144,35 @@ Record creation functions
   :param values: A list of strings such as IPv4 or IPv6 address.
 
   This function also works for CNAME or TXT records.
+
+.. function:: pickselfweighted(url, addresses[, options])
+
+  ..  versionadded:: 5.0.0
+
+  Selects an IP address from the supplied list, weighted according to the results of `isUp` checks. Each address is evaluated, and if its associated weight (from `isUp`) is greater than 0, it is considered for selection using a weighted hash based on `bestwho`. If no address is "up" the function defaults to a random selection.
+
+  :param string url: The health check url to retrieve.
+  :param addresses: A list of IP addresses to evaluate.
+  :param options: Table of options for this specific check, see below.
+
+  Various options can be set in the ``options`` parameter:
+
+  - ``selector``: used to pick the address(es) from the subset of available addresses of the selected set. Choices include 'pickclosest', 'random', 'hashed', 'all' (default 'random').
+  - ``backupSelector``: used to pick the address from all addresses if all addresses are down. Choices include 'pickclosest', 'random', 'hashed', 'all' (default 'random').
+  - ``source``: Source address to check from
+  - ``timeout``: Maximum time in seconds that you allow the check to take (default 2)
+  - ``stringmatch``: check ``url`` for this string, only declare 'up' if found
+  - ``useragent``: Set the HTTP "User-Agent" header in the requests. By default it is set to "PowerDNS Authoritative Server"
+  - ``byteslimit``: Limit the maximum download size to ``byteslimit`` bytes (default 0 meaning no limit).
+  - ``httpcode``: Set the HTTP status code to match in response. (default is 200)
+
+  An example of a list of address sets:
+
+  .. code-block:: lua
+
+    pickselfweighted("http://example.com/weight", { "192.0.2.20", "203.0.113.4", "203.0.113.2" })
+
+  This function is ideal for scenarios where candidates can self-determine their weights, while also providing fallback behavior when all addresses are down.
 
 .. function:: pickrandomsample(number, values)
 
@@ -216,12 +262,13 @@ Record creation functions
   :param values: table of weight, string (such as IPv4 or IPv6 address).
 
   This function works almost like :func:`pickwhashed` while bringing the following properties:
+
   - reordering the list of entries won't affect the distribution
   - updating the weight of an entry will only affect a part of the distribution
   - because of the previous properties, the CPU and memory cost is a bit higher than :func:`pickwhashed`
 
   Hashes will be pre computed the first time such a record is hit and refreshed if needed. If updating the list is done often,
-  the cash may grow. A cleanup routine is performed every :ref:`setting-lua-consistent-hashes-cleanup-interval` seconds (default 1h)
+  the cache may grow. A cleanup routine is performed every :ref:`setting-lua-consistent-hashes-cleanup-interval` seconds (default 1h)
   and cleans cached entries for records that haven't been used for :ref:`setting-lua-consistent-hashes-expire-delay` seconds (default 24h)
 
   An example::
@@ -364,7 +411,7 @@ Reverse DNS functions
   Used for generating default hostnames from IPv6 wildcard reverse DNS records, e.g. ``*.1.0.0.2.ip6.arpa``
 
   **For simplicity purposes, only small sections of IPv6 rDNS domains are used in most parts of this guide,**
-  **as a full ip6.arpa record is around 80 characters long**
+  **as a full ip6.arpa record is around 80 characters long.**
 
   See :func:`createReverse` for IPv4 records (in-addr.arpa)
 
@@ -384,6 +431,7 @@ Reverse DNS functions
       - ``%3%`` = 0
       - ``%4%`` = 1
   - ``%33%`` converts the compressed address format into a dashed format, e.g. ``2001:a::1`` to ``2001-a--1``
+      This format may add '0' to the result, preventing it from being identified as an illegal IDN by ``dig``.
   - ``%34%`` to ``%41%`` represent the 8 uncompressed 2-byte chunks
       - **Example:** PTR query for ``2001:a:b::123``
       - ``%34%`` - returns ``2001`` (chunk 1)
@@ -426,7 +474,7 @@ Reverse DNS functions
     $ dig +short AAAA 2001-a-b--1.static6.example.com @ns1.example.com
     2001:a:b::1
 
-  Since 4.8.0: a non-split full length format (``20010002000300040005000600070db8.example.com``) is also supported, optionally prefixed, in which case the last 32 characters will be considered.
+  Since 4.8.0: a non-split full length format (``20010002000300040005000600070db8.example.com``) is also supported, optionally prefixed, in which case only the last 32 characters will be considered.
 
 .. function:: filterForward(address, masks[, fallback])
 
@@ -447,6 +495,36 @@ Reverse DNS functions
 
 Helper functions
 ~~~~~~~~~~~~~~~~
+
+.. function:: geoiplookup(address, attr)
+
+  Retrieve specific attributes related to an IP address.
+
+  :param string address: The IP address to lookup.
+  :param int attr: The attribute identifier for the lookup.
+
+  From version 5.0.0 onwards, instead of the numerical value of the attribute
+  identifier, you can use the following constants as the attribute:
+
+  - `GeoIPQueryAttribute.ASn`
+  - `GeoIPQueryAttribute.City`
+  - `GeoIPQueryAttribute.Continent`
+  - `GeoIPQueryAttribute.Country`
+  - `GeoIPQueryAttribute.Country2`
+  - `GeoIPQueryAttribute.Name`
+  - `GeoIPQueryAttribute.Region`
+  - `GeoIPQueryAttribute.Location`
+
+  Example::
+
+    asn.example.com       IN LUA TXT "geoiplookup(bestwho:toString(), GeoIPQueryAttribute.ASn)"       ; 1
+    city.example.com      IN LUA TXT "geoiplookup(bestwho:toString(), GeoIPQueryAttribute.City)"      ; auckland
+    continent.example.com IN LUA TXT "geoiplookup(bestwho:toString(), GeoIPQueryAttribute.Continent)" ; oc
+    country.example.com   IN LUA TXT "geoiplookup(bestwho:toString(), GeoIPQueryAttribute.Country)"   ; nz
+    country2.example.com  IN LUA TXT "geoiplookup(bestwho:toString(), GeoIPQueryAttribute.Country2)"  ; nz
+    name.example.com      IN LUA TXT "geoiplookup(bestwho:toString(), GeoIPQueryAttribute.Name)"      ; lvlt-1
+    region.example.com    IN LUA TXT "geoiplookup(bestwho:toString(), GeoIPQueryAttribute.Region)"    ; auk
+    location.example.com  IN LUA TXT "geoiplookup(bestwho:toString(), GeoIPQueryAttribute.Location)"  ; -36.000000 174.000000
 
 .. function:: asnum(number)
               asnum(numbers)

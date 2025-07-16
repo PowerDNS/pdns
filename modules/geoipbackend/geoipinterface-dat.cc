@@ -287,7 +287,7 @@ public:
         free(result);
         gl.netmask = tmp_gl.netmask;
         // reduce space to dash
-        ret = boost::replace_all_copy(ret, " ", "-");
+        std::replace(ret.begin(), ret.end(), ' ', '-');
         return true;
       }
     }
@@ -306,7 +306,7 @@ public:
         free(result);
         gl.netmask = tmp_gl.netmask;
         // reduce space to dash
-        ret = boost::replace_all_copy(ret, " ", "-");
+        std::replace(ret.begin(), ret.end(), ' ', '-');
         return true;
       }
     }
@@ -433,7 +433,7 @@ public:
 
   bool queryLocationV6(GeoIPNetmask& gl, const string& ip,
                        double& latitude, double& longitude,
-                       boost::optional<int>& /* alt */, boost::optional<int>& /* prec */) override
+                       std::optional<int>& /* alt */, std::optional<int>& /* prec */) override
   {
     if (d_db_type == GEOIP_REGION_EDITION_REV0 || d_db_type == GEOIP_REGION_EDITION_REV1 || d_db_type == GEOIP_CITY_EDITION_REV0_V6 || d_db_type == GEOIP_CITY_EDITION_REV1_V6) {
       std::unique_ptr<GeoIPRecord, geoiprecord_deleter> gir(GeoIP_record_by_addr_v6(d_gi.get(), ip.c_str()));
@@ -449,7 +449,7 @@ public:
 
   bool queryLocation(GeoIPNetmask& gl, const string& ip,
                      double& latitude, double& longitude,
-                     boost::optional<int>& /* alt */, boost::optional<int>& /* prec */) override
+                     std::optional<int>& /* alt */, std::optional<int>& /* prec */) override
   {
     if (d_db_type == GEOIP_REGION_EDITION_REV0 || d_db_type == GEOIP_REGION_EDITION_REV1 || d_db_type == GEOIP_CITY_EDITION_REV0 || d_db_type == GEOIP_CITY_EDITION_REV1) {
       std::unique_ptr<GeoIPRecord, geoiprecord_deleter> gir(GeoIP_record_by_addr(d_gi.get(), ip.c_str()));

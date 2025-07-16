@@ -241,9 +241,11 @@ static void WeOrigSlowQueriesDelta(int& weOutstanding, int& origOutstanding, int
 
 static void compactAnswerSet(MOADNSParser::answers_t orig, set<DNSRecord>& compacted)
 {
-  for(MOADNSParser::answers_t::const_iterator i=orig.begin(); i != orig.end(); ++i)
-    if(i->first.d_place==DNSResourceRecord::ANSWER)
-      compacted.insert(i->first);
+  for (const auto& rec : orig) {
+    if (rec.d_place == DNSResourceRecord::ANSWER) {
+      compacted.insert(rec);
+    }
+  }
 }
 
 static bool isRcodeOk(int rcode)
@@ -260,11 +262,13 @@ static bool isRootReferral(const MOADNSParser::answers_t& answers)
 
   bool ok=true;
   for(MOADNSParser::answers_t::const_iterator iter = answers.begin(); iter != answers.end(); ++iter) {
-    //    cerr<<(int)iter->first.d_place<<", "<<iter->first.d_name<<" "<<iter->first.d_type<<", # "<<answers.size()<<endl;
-    if(iter->first.d_place!=2)
-      ok=false;
-    if(!iter->first.d_name.isRoot() || iter->first.d_type!=QType::NS)
-      ok=false;
+    //    cerr<<(int)iter->d_place<<", "<<iter->d_name<<" "<<iter->d_type<<", # "<<answers.size()<<endl;
+    if (iter->d_place != 2) {
+      ok = false;
+    }
+    if (!iter->d_name.isRoot() || iter->d_type != QType::NS) {
+      ok = false;
+    }
   }
   return ok;
 }
@@ -554,14 +558,15 @@ static void addECSOption(char* packet, const size_t packetSize, uint16_t* len, c
   struct dnsheader* dh = (struct dnsheader*) packet;
 
   EDNSSubnetOpts eso;
-  if(stamp < 0)
-    eso.source = Netmask(remote);
+  if(stamp < 0) {
+    eso.setSource(Netmask(remote));
+  }
   else {
     ComboAddress stamped(remote);
     *((char*)&stamped.sin4.sin_addr.s_addr)=stamp;
-    eso.source = Netmask(stamped);
+    eso.setSource(Netmask(stamped));
   }
-  string optRData=makeEDNSSubnetOptsString(eso);
+  string optRData = eso.makeOptString();
   string record;
   generateEDNSOption(EDNSOptionCode::ECS, optRData, record);
   generateOptRR(record, EDNSRR);

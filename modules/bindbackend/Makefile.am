@@ -18,4 +18,8 @@ libbindbackend_la_SOURCES = \
 	bindbackend2.cc bindbackend2.hh \
 	binddnssec.cc
 
+if BINDBACKEND_DYNMODULE
 libbindbackend_la_LDFLAGS = -module -avoid-version
+else
+libbindbackend_la_LDFLAGS = -static -avoid-version
+endif

@@ -88,7 +88,7 @@ Zone configuration is attached as a meta data with the key `X-PDNSKEYROLLER-CONF
 
 * `version` : this json format version identifier
 * `key_style` : `single` or `split` depending on the number of keys
-* `xsk_algo` : algorithm to roll as name or number, see bellow
+* `xsk_algo` : algorithm to roll as name or number, see below
 * `xsk_frequency` : the rate at which to roll the keys
 * `xsk_keysize` : keysize in bits
 * `xsk_method` : strategy for the rollover (for now, only `prepublish` is supported)

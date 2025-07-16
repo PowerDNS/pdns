@@ -19,13 +19,22 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+
+// for OpenBSD, sys/socket.h needs to come before net/if.h
+#include <sys/socket.h>
+#include <net/if.h>
+
+#include <boost/format.hpp>
+
 #include "config.h"
 #include "dnsdist.hh"
+#include "dnsdist-backend.hh"
 #include "dnsdist-backoff.hh"
 #include "dnsdist-metrics.hh"
 #include "dnsdist-nghttp2.hh"
 #include "dnsdist-random.hh"
 #include "dnsdist-rings.hh"
+#include "dnsdist-snmp.hh"
 #include "dnsdist-tcp.hh"
 #include "dnsdist-xsk.hh"
 #include "dolog.hh"
@@ -131,6 +140,7 @@ bool DownstreamState::reconnect(bool initialAttempt)
     }
 
     try {
+      setDscp(fd, d_config.remote.sin4.sin_family, d_config.dscp);
       SConnect(fd, d_config.remote);
       if (sockets.size() > 1) {
         (*mplexer.lock())->addReadFD(fd, [](int, boost::any) {});
@@ -143,8 +153,13 @@ bool DownstreamState::reconnect(bool initialAttempt)
       connected = true;
     }
     catch (const std::runtime_error& error) {
-      if (initialAttempt || g_verbose) {
-        infolog("Error connecting to new server with address %s: %s", d_config.remote.toStringWithPort(), error.what());
+      if (initialAttempt || dnsdist::configuration::getCurrentRuntimeConfiguration().d_verbose) {
+        if (!IsAnyAddress(d_config.sourceAddr) || !d_config.sourceItfName.empty()) {
+            infolog("Error connecting to new server with address %s (source address: %s, source interface: %s): %s", d_config.remote.toStringWithPort(), IsAnyAddress(d_config.sourceAddr) ? "not set" : d_config.sourceAddr.toString(), d_config.sourceItfName.empty() ? "not set" : d_config.sourceItfName, error.what());
+          }
+        else {
+          infolog("Error connecting to new server with address %s: %s", d_config.remote.toStringWithPort(), error.what());
+        }
       }
       connected = false;
       break;
@@ -221,7 +236,7 @@ void DownstreamState::stop()
   d_stopped = true;
 
   {
-    std::lock_guard<std::mutex> tl(connectLock);
+    auto tlock = std::scoped_lock(connectLock);
     auto slock = mplexer.lock();
 
     for (auto& fd : sockets) {
@@ -236,6 +251,7 @@ void DownstreamState::stop()
 void DownstreamState::hash()
 {
   vinfolog("Computing hashes for id=%s and weight=%d", *d_config.id, d_config.d_weight);
+  const auto hashPerturbation = dnsdist::configuration::getImmutableConfiguration().d_hashPerturbation;
   auto w = d_config.d_weight;
   auto idStr = boost::str(boost::format("%s") % *d_config.id);
   auto lockedHashes = hashes.write_lock();
@@ -243,7 +259,8 @@ void DownstreamState::hash()
   lockedHashes->reserve(w);
   while (w > 0) {
     std::string uuid = boost::str(boost::format("%s-%d") % idStr % w);
-    unsigned int wshash = burtleCI(reinterpret_cast<const unsigned char*>(uuid.c_str()), uuid.size(), g_hashperturb);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): sorry, it's the burtle API
+    unsigned int wshash = burtleCI(reinterpret_cast<const unsigned char*>(uuid.c_str()), uuid.size(), hashPerturbation);
     lockedHashes->push_back(wshash);
     --w;
   }
@@ -293,30 +310,26 @@ DownstreamState::DownstreamState(DownstreamState::Config&& config, std::shared_p
     setWeight(d_config.d_weight);
   }
 
-  if (d_config.availability == Availability::Lazy && d_config.d_lazyHealthCheckSampleSize > 0) {
+  if (d_config.d_availability == Availability::Auto && d_config.d_healthCheckMode == HealthCheckMode::Lazy && d_config.d_lazyHealthCheckSampleSize > 0) {
     d_lazyHealthCheckStats.lock()->d_lastResults.set_capacity(d_config.d_lazyHealthCheckSampleSize);
     setUpStatus(true);
   }
 
   setName(d_config.name);
 
-  if (d_tlsCtx) {
-    if (!d_config.d_dohPath.empty()) {
+  if (d_tlsCtx && !d_config.d_dohPath.empty()) {
 #ifdef HAVE_NGHTTP2
-      setupDoHClientProtocolNegotiation(d_tlsCtx);
+    auto outgoingDoHWorkerThreads = dnsdist::configuration::getImmutableConfiguration().d_outgoingDoHWorkers;
+    if (dnsdist::configuration::isImmutableConfigurationDone() && outgoingDoHWorkerThreads && *outgoingDoHWorkerThreads == 0) {
+      throw std::runtime_error("Error: setOutgoingDoHWorkerThreads() is set to 0 so no outgoing DoH worker thread is available to serve queries");
+    }
 
-      if (g_configurationDone && g_outgoingDoHWorkerThreads && *g_outgoingDoHWorkerThreads == 0) {
-        throw std::runtime_error("Error: setOutgoingDoHWorkerThreads() is set to 0 so no outgoing DoH worker thread is available to serve queries");
-      }
-
-      if (!g_outgoingDoHWorkerThreads || *g_outgoingDoHWorkerThreads == 0) {
-        g_outgoingDoHWorkerThreads = 1;
-      }
+    if (!dnsdist::configuration::isImmutableConfigurationDone() && (!outgoingDoHWorkerThreads || *outgoingDoHWorkerThreads == 0)) {
+      dnsdist::configuration::updateImmutableConfiguration([](dnsdist::configuration::ImmutableConfiguration& immutableConfig) {
+        immutableConfig.d_outgoingDoHWorkers = 1;
+      });
+    }
 #endif /* HAVE_NGHTTP2 */
-    }
-    else {
-      setupDoTProtocolNegotiation(d_tlsCtx);
-    }
   }
 
   if (connect && !isTCPOnly()) {
@@ -352,11 +365,12 @@ void DownstreamState::start()
 
 void DownstreamState::connectUDPSockets()
 {
-  if (s_randomizeIDs) {
+  const auto& config = dnsdist::configuration::getImmutableConfiguration();
+  if (config.d_randomizeIDsToBackend) {
     idStates.clear();
   }
   else {
-    idStates.resize(g_maxOutstanding);
+    idStates.resize(config.d_maxUDPOutstanding);
   }
   sockets.resize(d_config.d_numberOfSockets);
 
@@ -396,8 +410,8 @@ int DownstreamState::pickSocketForSending()
     return sockets[0];
   }
 
-  size_t idx;
-  if (s_randomizeSockets) {
+  size_t idx{0};
+  if (dnsdist::configuration::getImmutableConfiguration().d_randomizeUDPSocketsToBackend) {
     idx = dnsdist::getRandomValue(numberOfSockets);
   }
   else {
@@ -419,27 +433,29 @@ void DownstreamState::pickSocketsReadyForReceiving(std::vector<int>& ready)
   (*mplexer.lock())->getAvailableFDs(ready, 1000);
 }
 
-bool DownstreamState::s_randomizeSockets{false};
-bool DownstreamState::s_randomizeIDs{false};
-int DownstreamState::s_udpTimeout{2};
-
-static bool isIDSExpired(const IDState& ids)
+static bool isIDSExpired(const IDState& ids, uint8_t udpTimeout)
 {
   auto age = ids.age.load();
-  return age > DownstreamState::s_udpTimeout;
+  return age > udpTimeout;
 }
 
 void DownstreamState::handleUDPTimeout(IDState& ids)
 {
   ids.age = 0;
   ids.inUse = false;
-  DOHUnitInterface::handleTimeout(std::move(ids.internal.du));
   ++reuseds;
   --outstanding;
   ++dnsdist::metrics::g_stats.downstreamTimeouts; // this is an 'actively' discovered timeout
   vinfolog("Had a downstream timeout from %s (%s) for query for %s|%s from %s",
            d_config.remote.toStringWithPort(), getName(),
            ids.internal.qname.toLogString(), QType(ids.internal.qtype).toString(), ids.internal.origRemote.toStringWithPort());
+
+  const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
+  const auto& timeoutRespRules = dnsdist::rules::getResponseRuleChain(chains, dnsdist::rules::ResponseRuleChain::TimeoutResponseRules);
+  auto sender = ids.internal.du == nullptr ? nullptr : ids.internal.du->getQuerySender();
+  if (!handleTimeoutResponseRules(timeoutRespRules, ids.internal, shared_from_this(), sender)) {
+    DOHUnitInterface::handleTimeout(std::move(ids.internal.du));
+  }
 
   if (g_rings.shouldRecordResponses()) {
     struct timespec ts;
@@ -459,7 +475,7 @@ void DownstreamState::handleUDPTimeout(IDState& ids)
 
 void DownstreamState::reportResponse(uint8_t rcode)
 {
-  if (d_config.availability == Availability::Lazy && d_config.d_lazyHealthCheckSampleSize > 0) {
+  if (d_config.d_availability == Availability::Auto && d_config.d_healthCheckMode == HealthCheckMode::Lazy && d_config.d_lazyHealthCheckSampleSize > 0) {
     bool failure = d_config.d_lazyHealthCheckMode == LazyHealthCheckMode::TimeoutOrServFail ? rcode == RCode::ServFail : false;
     d_lazyHealthCheckStats.lock()->d_lastResults.push_back(failure);
   }
@@ -467,7 +483,7 @@ void DownstreamState::reportResponse(uint8_t rcode)
 
 void DownstreamState::reportTimeoutOrError()
 {
-  if (d_config.availability == Availability::Lazy && d_config.d_lazyHealthCheckSampleSize > 0) {
+  if (d_config.d_availability == Availability::Auto && d_config.d_healthCheckMode == HealthCheckMode::Lazy && d_config.d_lazyHealthCheckSampleSize > 0) {
     d_lazyHealthCheckStats.lock()->d_lastResults.push_back(true);
   }
 }
@@ -478,11 +494,13 @@ void DownstreamState::handleUDPTimeouts()
     return;
   }
 
-  if (s_randomizeIDs) {
+  const auto& config = dnsdist::configuration::getImmutableConfiguration();
+  const auto udpTimeout = d_config.udpTimeout > 0 ? d_config.udpTimeout : config.d_udpTimeout;
+  if (config.d_randomizeIDsToBackend) {
     auto map = d_idStatesMap.lock();
     for (auto it = map->begin(); it != map->end(); ) {
       auto& ids = it->second;
-      if (isIDSExpired(ids)) {
+      if (isIDSExpired(ids, udpTimeout)) {
         handleUDPTimeout(ids);
         it = map->erase(it);
         continue;
@@ -497,7 +515,7 @@ void DownstreamState::handleUDPTimeouts()
         if (!ids.isInUse()) {
           continue;
         }
-        if (!isIDSExpired(ids)) {
+        if (!isIDSExpired(ids, udpTimeout)) {
           ++ids.age;
           continue;
         }
@@ -506,7 +524,7 @@ void DownstreamState::handleUDPTimeouts()
           continue;
         }
         /* check again, now that we have locked this state */
-        if (ids.isInUse() && isIDSExpired(ids)) {
+        if (ids.isInUse() && isIDSExpired(ids, udpTimeout)) {
           handleUDPTimeout(ids);
         }
       }
@@ -516,7 +534,8 @@ void DownstreamState::handleUDPTimeouts()
 
 uint16_t DownstreamState::saveState(InternalQueryState&& state)
 {
-  if (s_randomizeIDs) {
+  const auto& config = dnsdist::configuration::getImmutableConfiguration();
+  if (config.d_randomizeIDsToBackend) {
     /* if the state is already in use we will retry,
        up to 5 five times. The last selected one is used
        even if it was already in use */
@@ -578,7 +597,8 @@ uint16_t DownstreamState::saveState(InternalQueryState&& state)
 
 void DownstreamState::restoreState(uint16_t id, InternalQueryState&& state)
 {
-  if (s_randomizeIDs) {
+  const auto& config = dnsdist::configuration::getImmutableConfiguration();
+  if (config.d_randomizeIDsToBackend) {
     auto map = d_idStatesMap.lock();
 
     auto [it, inserted] = map->emplace(id, IDState());
@@ -619,8 +639,8 @@ void DownstreamState::restoreState(uint16_t id, InternalQueryState&& state)
 std::optional<InternalQueryState> DownstreamState::getState(uint16_t id)
 {
   std::optional<InternalQueryState> result = std::nullopt;
-
-  if (s_randomizeIDs) {
+  const auto& config = dnsdist::configuration::getImmutableConfiguration();
+  if (config.d_randomizeIDsToBackend) {
     auto map = d_idStatesMap.lock();
 
     auto it = map->find(id);
@@ -654,7 +674,11 @@ std::optional<InternalQueryState> DownstreamState::getState(uint16_t id)
 
 bool DownstreamState::healthCheckRequired(std::optional<time_t> currentTime)
 {
-  if (d_config.availability == DownstreamState::Availability::Lazy) {
+  if (d_config.d_availability != DownstreamState::Availability::Auto) {
+    return false;
+  }
+
+  if (d_config.d_healthCheckMode == DownstreamState::HealthCheckMode::Lazy) {
     auto stats = d_lazyHealthCheckStats.lock();
     if (stats->d_status == LazyHealthCheckStats::LazyStatus::PotentialFailure) {
       vinfolog("Sending health-check query for %s which is still in the Potential Failure state", getNameWithAddr());
@@ -703,7 +727,7 @@ bool DownstreamState::healthCheckRequired(std::optional<time_t> currentTime)
 
     return false;
   }
-  else if (d_config.availability == DownstreamState::Availability::Auto) {
+  if (d_config.d_healthCheckMode == DownstreamState::HealthCheckMode::Active) {
 
     if (d_nextCheck > 1) {
       --d_nextCheck;
@@ -731,7 +755,7 @@ void DownstreamState::updateNextLazyHealthCheck(LazyHealthCheckStats& stats, boo
       /* we are still in the "up" state, we need to send the next query quickly to
          determine if the backend is really down */
       stats.d_nextCheck = now + d_config.checkInterval;
-      vinfolog("Backend %s is in potential failure state, next check in %d seconds", getNameWithAddr(), d_config.checkInterval);
+      vinfolog("Backend %s is in potential failure state, next check in %d seconds", getNameWithAddr(), d_config.checkInterval.load());
     }
     else if (consecutiveSuccessfulChecks > 0) {
       /* we are in 'Failed' state, but just had one (or more) successful check,
@@ -787,12 +811,13 @@ void DownstreamState::submitHealthCheckResult(bool initial, bool newResult)
     setUpStatus(newResult);
     if (newResult == false) {
       currentCheckFailures++;
-      if (d_config.availability == DownstreamState::Availability::Lazy) {
+      if (d_config.d_healthCheckMode == DownstreamState::HealthCheckMode::Lazy) {
         auto stats = d_lazyHealthCheckStats.lock();
         stats->d_status = LazyHealthCheckStats::LazyStatus::Failed;
         updateNextLazyHealthCheck(*stats, false);
       }
     }
+    handleServerStateChange(getNameWithAddr(), newResult);
     return;
   }
 
@@ -812,7 +837,7 @@ void DownstreamState::submitHealthCheckResult(bool initial, bool newResult)
            and we didn't reach the threshold yet, let's stay down */
         newState = false;
 
-        if (d_config.availability == DownstreamState::Availability::Lazy) {
+        if (d_config.d_healthCheckMode == DownstreamState::HealthCheckMode::Lazy) {
           auto stats = d_lazyHealthCheckStats.lock();
           updateNextLazyHealthCheck(*stats, false);
         }
@@ -820,7 +845,7 @@ void DownstreamState::submitHealthCheckResult(bool initial, bool newResult)
     }
 
     if (newState) {
-      if (d_config.availability == DownstreamState::Availability::Lazy) {
+      if (d_config.d_healthCheckMode == DownstreamState::HealthCheckMode::Lazy) {
         auto stats = d_lazyHealthCheckStats.lock();
         vinfolog("Backend %s had %d successful checks, moving to Healthy", getNameWithAddr(), std::to_string(consecutiveSuccessfulChecks));
         stats->d_status = LazyHealthCheckStats::LazyStatus::Healthy;
@@ -843,7 +868,7 @@ void DownstreamState::submitHealthCheckResult(bool initial, bool newResult)
            and we did not reach the threshold yet, let's stay up */
         newState = true;
       }
-      else if (d_config.availability == DownstreamState::Availability::Lazy) {
+      else if (d_config.d_healthCheckMode == DownstreamState::HealthCheckMode::Lazy) {
         auto stats = d_lazyHealthCheckStats.lock();
         vinfolog("Backend %s failed its health-check, moving from Potential failure to Failed", getNameWithAddr());
         stats->d_status = LazyHealthCheckStats::LazyStatus::Failed;
@@ -864,9 +889,10 @@ void DownstreamState::submitHealthCheckResult(bool initial, bool newResult)
     }
 
     setUpStatus(newState);
-    if (g_snmpAgent && g_snmpTrapsEnabled) {
+    if (g_snmpAgent != nullptr && dnsdist::configuration::getImmutableConfiguration().d_snmpTrapsEnabled) {
       g_snmpAgent->sendBackendStatusChangeTrap(*this);
     }
+    handleServerStateChange(getNameWithAddr(), newResult);
   }
 }
 
@@ -905,14 +931,84 @@ void DownstreamState::registerXsk(std::vector<std::shared_ptr<XskSocket>>& xsks)
   d_config.sourceMACAddr = d_xskSockets.at(0)->getSourceMACAddress();
 
   for (auto& xsk : d_xskSockets) {
-    auto xskInfo = XskWorker::create();
+    auto xskInfo = XskWorker::create(XskWorker::Type::Bidirectional, xsk->sharedEmptyFrameOffset);
     d_xskInfos.push_back(xskInfo);
     xsk->addWorker(xskInfo);
-    xskInfo->sharedEmptyFrameOffset = xsk->sharedEmptyFrameOffset;
   }
   reconnect(false);
 }
 #endif /* HAVE_XSK */
+
+bool DownstreamState::parseSourceParameter(const std::string& source, DownstreamState::Config& config)
+{
+  /* handle source in the following forms:
+     - v4 address ("192.0.2.1")
+     - v6 address ("2001:DB8::1")
+     - interface name ("eth0")
+     - v4 address and interface name ("192.0.2.1@eth0")
+     - v6 address and interface name ("2001:DB8::1@eth0")
+  */
+  std::string::size_type pos = source.find('@');
+  if (pos == std::string::npos) {
+    /* no '@', try to parse that as a valid v4/v6 address */
+    try {
+      config.sourceAddr = ComboAddress(source);
+      return true;
+    }
+    catch (...) {
+    }
+  }
+
+  /* try to parse as interface name, or v4/v6@itf */
+  config.sourceItfName = source.substr(pos == std::string::npos ? 0 : pos + 1);
+  unsigned int itfIdx = if_nametoindex(config.sourceItfName.c_str());
+  if (itfIdx != 0) {
+    if (pos == 0 || pos == std::string::npos) {
+      /* "eth0" or "@eth0" */
+      config.sourceItf = itfIdx;
+    }
+    else {
+      /* "192.0.2.1@eth0" */
+      config.sourceAddr = ComboAddress(source.substr(0, pos));
+      config.sourceItf = itfIdx;
+    }
+#ifdef SO_BINDTODEVICE
+    if (!dnsdist::configuration::isImmutableConfigurationDone()) {
+      /* we need to retain CAP_NET_RAW to be able to set SO_BINDTODEVICE in the health checks */
+      dnsdist::configuration::updateImmutableConfiguration([](dnsdist::configuration::ImmutableConfiguration& currentConfig) {
+        currentConfig.d_capabilitiesToRetain.insert("CAP_NET_RAW");
+      });
+    }
+#endif
+    return true;
+  }
+
+  warnlog("Dismissing source %s because '%s' is not a valid interface name", source, config.sourceItfName);
+  return false;
+}
+
+bool DownstreamState::parseAvailabilityConfigFromStr(DownstreamState::Config& config, const std::string& str)
+{
+  if (pdns_iequals(str, "auto")) {
+    config.d_availability = DownstreamState::Availability::Auto;
+    config.d_healthCheckMode = DownstreamState::HealthCheckMode::Active;
+    return true;
+  }
+  if (pdns_iequals(str, "lazy")) {
+    config.d_availability = DownstreamState::Availability::Auto;
+    config.d_healthCheckMode = DownstreamState::HealthCheckMode::Lazy;
+    return true;
+  }
+  if (pdns_iequals(str, "up")) {
+    config.d_availability = DownstreamState::Availability::Up;
+    return true;
+  }
+  if (pdns_iequals(str, "down")) {
+    config.d_availability = DownstreamState::Availability::Down;
+    return true;
+  }
+  return false;
+}
 
 size_t ServerPool::countServers(bool upOnly)
 {
@@ -975,6 +1071,13 @@ void ServerPool::addServer(shared_ptr<DownstreamState>& server)
     serv.first = idx++;
   }
   *servers = std::make_shared<const ServerPolicy::NumberedServerVector>(std::move(newServers));
+
+  if ((*servers)->size() == 1) {
+    d_tcpOnly = server->isTCPOnly();
+  }
+  else if (!server->isTCPOnly()) {
+    d_tcpOnly = false;
+  }
 }
 
 void ServerPool::removeServer(shared_ptr<DownstreamState>& server)
@@ -985,8 +1088,10 @@ void ServerPool::removeServer(shared_ptr<DownstreamState>& server)
   auto newServers = std::make_shared<ServerPolicy::NumberedServerVector>(*(*servers));
   size_t idx = 1;
   bool found = false;
+  bool tcpOnly = true;
   for (auto it = newServers->begin(); it != newServers->end();) {
     if (found) {
+      tcpOnly = tcpOnly && it->second->isTCPOnly();
       /* we need to renumber the servers placed
          after the removed one, for Lua (custom policies) */
       it->first = idx++;
@@ -996,9 +1101,25 @@ void ServerPool::removeServer(shared_ptr<DownstreamState>& server)
       it = newServers->erase(it);
       found = true;
     } else {
+      tcpOnly = tcpOnly && it->second->isTCPOnly();
       idx++;
       it++;
     }
   }
+  d_tcpOnly = tcpOnly;
   *servers = std::move(newServers);
+}
+
+namespace dnsdist::backend
+{
+void registerNewBackend(std::shared_ptr<DownstreamState>& backend)
+{
+  dnsdist::configuration::updateRuntimeConfiguration([&backend](dnsdist::configuration::RuntimeConfiguration& config) {
+    auto& backends = config.d_backends;
+    backends.push_back(backend);
+    std::stable_sort(backends.begin(), backends.end(), [](const std::shared_ptr<DownstreamState>& lhs, const std::shared_ptr<DownstreamState>& rhs) {
+      return lhs->d_config.order < rhs->d_config.order;
+    });
+  });
+}
 }

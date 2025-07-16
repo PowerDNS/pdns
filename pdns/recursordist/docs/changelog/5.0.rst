@@ -4,6 +4,73 @@ Changelogs for 5.0.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.0.10
+  :released: 9th of April 2025
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15281
+    :tickets: 15254
+
+    If we see both a CNAME and answer records, follow CNAME and discard the answer records.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15214
+    :tickets: 14525
+
+    Add new root trust anchor.
+
+.. changelog::
+  :version: 5.0.9
+  :released: 3rd of October 2024
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14744
+
+    `Security advisory 2024-04 <https://docs.powerdns.com/recursor/security-advisories/powerdns-advisory-2024-04.html>`__: CVE-2024-25590
+
+.. changelog::
+   :version: 5.0.8
+   :released: 23rd of July 2024
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14502
+    :tickets: 14499
+
+    Limit the number of async tasks pushed to resolve NS names and optimize processing of additionals.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14482
+    :tickets: 14471
+
+    Dump right SOA into dumpFile and report non-relative SOA for includeSOA=true.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14479
+    :tickets: 14404
+
+    Yahttp router: avoid unsigned underflow in route().
+
+  .. change::
+    :tags: Improvements.
+    :pullreq: 14412
+    :tickets: 134400
+
+    Switch el7 builds to Oracle Linux 7.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14415
+    :tickets: 14359
+
+    dns.cc: use pdns::views::UnsignedCharView.
+
+.. changelog::
    :version: 5.0.7
    :released: 3rd of July 2024
 
@@ -44,7 +111,7 @@ Before upgrading, it is advised to read the :doc:`../upgrade`.
     :pullreq: 14222
     :tickets: 14185
 
-    Report error and adjust max-mthreads when linux map limit (vm.max_map_count) is too low to accomodate resource usage under load.
+    Report error and adjust max-mthreads when linux map limit (vm.max_map_count) is too low to accommodate resource usage under load.
 
 .. changelog::
    :version: 5.0.5

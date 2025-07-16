@@ -213,7 +213,7 @@ BOOST_AUTO_TEST_CASE(test_getCarbonHostName)
 
   BOOST_CHECK_EQUAL(gethostname(buffer, sizeof buffer), 0);
   std::string my_hostname(buffer);
-  boost::replace_all(my_hostname, ".", "_");
+  std::replace(my_hostname.begin(), my_hostname.end(), '.', '_');
 
   std::string hostname = getCarbonHostName();
   // ensure it matches what we get

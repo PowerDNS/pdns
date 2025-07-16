@@ -1,0 +1,244 @@
+---
+- name: "allow"
+  description: "Let these packets go through."
+- name: "ClearRecordTypes"
+  description: "Removes given type(s) records from the response. Beware you can accidentally turn the answer into a NODATA response without a SOA record in the additional section in which case you may want to use NegativeAndSOAAction() to generate an answer, see example below. Subsequent rules are processed after this action."
+  skip-cpp: true
+  skip-rust: true
+  parameters:
+    - name: "types"
+      type: "Vec<u16>"
+      default: true
+      description: "List of types to remove"
+- name: "delay"
+  description: "Delay the response by the specified amount of milliseconds (UDP-only). Note that the sending of the query to the backend, if needed, is not delayed. Only the sending of the response to the client will be delayed. Subsequent rules are processed after this action"
+  parameters:
+    - name: "msec"
+      type: "u32"
+      description: "The amount of milliseconds to delay the response"
+- name: "DnstapLog"
+  description: "Send the current response to a remote logger as a dnstap message. ``alter-function`` is a callback, receiving a :class:`DNSResponse` and a :class:`DnstapMessage`, that can be used to modify the message. Subsequent rules are processed after this action"
+  skip-cpp: true
+  skip-rust: true
+  parameters:
+    - name: "identity"
+      type: "String"
+      description: "Server identity to store in the dnstap message"
+    - name: "logger_name"
+      type: "String"
+      description: "The name of dnstap logger"
+    - name: "alter_function_name"
+      type: "String"
+      default: ""
+      description: "The name of the Lua function that will alter the message"
+    - name: "alter_function_code"
+      type: "String"
+      default: ""
+      description: "The code of the Lua function that will alter the message"
+    - name: "alter_function_file"
+      type: "String"
+      default: ""
+      description: "The path to a file containing the code of the Lua function that will alter the message"
+- name: "drop"
+  description: "Drop the packet"
+- name: "LimitTTL"
+  description: "Cap the TTLs of the response to the given boundaries"
+  skip-cpp: true
+  skip-rust: true
+  parameters:
+    - name: "min"
+      type: "u32"
+      description: "The minimum allowed value"
+    - name: "max"
+      type: "u32"
+      description: "The maximum allowed value"
+    - name: "types"
+      type: "Vec<u16>"
+      default: true
+      description: "The record types to cap the TTL for, as integers. Default is empty which means all records will be capped"
+- name: "log"
+  description: "Log a line for each response, to the specified file if any, to the console (require verbose) if the empty string is given as filename.
+If an empty string is supplied in the file name, the logging is done to stdout, and only in verbose mode by default. This can be changed by setting ``verbose-only`` to ``false``.
+The ``append`` parameter specifies whether we open the file for appending or truncate each time (default). The ``buffered`` parameter specifies whether writes to the file are buffered (default) or not.
+Subsequent rules are processed after this action"
+  parameters:
+    - name: "file_name"
+      type: "String"
+      default: ""
+      cpp-optional: false
+      description: "File to log to. Set to an empty string to log to the normal stdout log, this only works when ``-v`` is set on the command line"
+    - name: "append"
+      type: "bool"
+      default: "false"
+      cpp-optional: false
+      description: "Whether to append to an existing file"
+    - name: "buffered"
+      type: "bool"
+      default: "false"
+      cpp-optional: false
+      description: "Whether to use buffered I/O"
+    - name: "verbose_only"
+      type: "bool"
+      default: "true"
+      cpp-optional: false
+      description: "Whether to log only in verbose mode when logging to stdout"
+    - name: "include_timestamp"
+      type: "bool"
+      default: "false"
+      cpp-optional: false
+      description: "Whether to include a timestamp for every entry"
+- name: "lua"
+  description: "Invoke a Lua function that accepts a :class:`DNSResponse`. The function should return a :ref:`DNSResponseAction`. If the Lua code fails, ``ServFail`` is returned"
+  skip-cpp: true
+  skip-rust: true
+  parameters:
+    - name: "function_name"
+      type: "String"
+      default: ""
+      description: "The name of the Lua function"
+    - name: "function_code"
+      type: "String"
+      default: ""
+      description: "The code of the Lua function"
+    - name: "function_file"
+      type: "String"
+      default: ""
+      description: "The path to a file containing the code of the Lua function"
+- name: "LuaFFI"
+  description: "Invoke a Lua function that accepts a pointer to a ``dnsdist_ffi_dnsquestion_t`` object, whose bindings are defined in ``dnsdist-lua-ffi-interface.h``. The function should return a :ref:`DNSResponseAction`. If the Lua code fails, ``ServFail`` is returned"
+  skip-cpp: true
+  skip-rust: true
+  parameters:
+    - name: "function_name"
+      type: "String"
+      default: ""
+      description: "The name of the Lua function"
+    - name: "function_code"
+      type: "String"
+      default: ""
+      description: "The code of the Lua function"
+    - name: "function_file"
+      type: "String"
+      default: ""
+      description: "The path to a file containing the code of the Lua function"
+- name: "LuaFFIPerThread"
+  description: "Invoke a Lua function that accepts a pointer to a ``dnsdist_ffi_dnsquestion_t`` object, whose bindings are defined in ``dnsdist-lua-ffi-interface.h``. The function should return a :ref:`DNSResponseAction`. If the Lua code fails, ``ServFail`` is returned.
+The function will be invoked in a per-thread Lua state, without access to the global Lua state. All constants (:ref:`DNSQType`, :ref:`DNSRCode`, ...) are available in that per-thread context, as well as all FFI functions. Objects and their bindings that are not usable in a FFI context (:class:`DNSQuestion`, :class:`DNSDistProtoBufMessage`, :class:`PacketCache`, ...) are not available."
+  parameters:
+    - name: "code"
+      type: "String"
+      description: "The code of the Lua function"
+- name: "RemoteLog"
+  description: "Send the current response to a remote logger as a Protocol Buffer message. ``alter-function`` is a callback, receiving a :class:`DNSResponse` and a :class:`DNSDistProtoBufMessage`, that can be used to modify the message, for example for anonymization purposes. Subsequent rules are processed after this action"
+  skip-cpp: true
+  skip-rust: true
+  parameters:
+    - name: "logger_name"
+      type: "String"
+      description: "The name of the protocol buffer logger"
+    - name: "alter_function_name"
+      type: "String"
+      default: ""
+      description: "The name of the Lua function"
+    - name: "alter_function_code"
+      type: "String"
+      default: ""
+      description: "The code of the Lua function"
+    - name: "alter_function_file"
+      type: "String"
+      default: ""
+      description: "The path to a file containing the code of the Lua function"
+    - name: "server_id"
+      type: "String"
+      default: ""
+      description: "Set the Server Identity field"
+    - name: "ip_encrypt_key"
+      type: "String"
+      default: ""
+      description: "A key, that can be generated via the :func:`makeIPCipherKey` function, to encrypt the IP address of the requestor for anonymization purposes. The encryption is done using ipcrypt for IPv4 and a 128-bit AES ECB operation for IPv6"
+    - name: "include_cname"
+      type: "bool"
+      default: "false"
+      description: "Whether or not to parse and export CNAMEs"
+    - name: "export_tags"
+      type: "Vec<String>"
+      default: ""
+      description: "The comma-separated list of keys of internal tags to export into the ``tags`` Protocol Buffer field, as ``key:value`` strings. Note that a tag with an empty value will be exported as ``<key>``, not ``<key>:``. An empty string means that no internal tag will be exported. The special value ``*`` means that all tags will be exported"
+    - name: "export_extended_errors_to_meta"
+      type: "String"
+      default: ""
+      description: "Export Extended DNS Errors present in the DNS response, if any, into the ``meta`` Protocol Buffer field using the specified ``key``. The EDE info code will be exported as an integer value, and the EDE extra text, if present, as a string value"
+    - name: "metas"
+      type: "Vec<ProtoBufMetaConfiguration>"
+      default: true
+      description: "A list of ``name``=``key`` pairs, for meta-data to be added to Protocol Buffer message"
+- name: "SetEDNSOption"
+  description: "Add arbitrary EDNS option and data to the response. Any existing EDNS content with the same option code will be replaced. Subsequent rules are processed after this action"
+  parameters:
+    - name: "code"
+      type: "u32"
+      description: "The EDNS option number"
+    - name: "data"
+      type: "String"
+      description: "The EDNS0 option raw content"
+- name: "SetExtendedDNSError"
+  description: "Set an Extended DNS Error status that will be added to the response. Subsequent rules are processed after this action"
+  parameters:
+    - name: "info_code"
+      type: "u16"
+      description: "The EDNS Extended DNS Error code"
+    - name: "extra_text"
+      type: "String"
+      default: ""
+      cpp-optional: false
+      description: "The optional EDNS Extended DNS Error extra text"
+- name: "SetMaxReturnedTTL"
+  description: "Cap the TTLs of the response to the given maximum, but only after inserting the response into the packet cache with the initial TTL values"
+  skip-cpp: true
+  parameters:
+    - name: "max"
+      type: "u32"
+      description: "The TTL cap"
+- name: "SetMaxTTL"
+  description: "Cap the TTLs of the response to the given maximum"
+  skip-cpp: true
+  skip-rust: true
+  parameters:
+    - name: "max"
+      type: "u32"
+      description: "The TTL cap"
+- name: "SetMinTTL"
+  description: "Cap the TTLs of the response to the given minimum"
+  skip-cpp: true
+  skip-rust: true
+  parameters:
+    - name: "min"
+      type: "u32"
+      description: "The TTL cap"
+- name: "SetReducedTTL"
+  description: "Reduce the TTL of records in a response to a percentage of the original TTL. For example, passing 50 means that the original TTL will be cut in half. Subsequent rules are processed after this action"
+  parameters:
+    - name: "percentage"
+      type: "u8"
+      description: "The percentage to use"
+- name: "SetSkipCache"
+  description: "Don’t store this answer in the cache. Subsequent rules are processed after this action."
+- name: "SetTag"
+  description: "Associate a tag named ``tag`` with a value of ``value`` to this response. This function will overwrite any existing tag value. Subsequent rules are processed after this action"
+  parameters:
+    - name: "tag"
+      type: "String"
+      description: "The tag name"
+    - name: "value"
+      type: "String"
+      description: "The tag value"
+- name: "SNMPTrap"
+  description: "Send an SNMP trap, adding the message string as the query description. Subsequent rules are processed after this action"
+  parameters:
+    - name: "reason"
+      type: "String"
+      default: ""
+      cpp-optional: false
+      description: "The SNMP trap reason"
+- name: "TC"
+  description: "Truncate an existing answer, to force the client to TCP. Only applied to answers that will be sent to the client over TCP. In addition to the TC bit being set, all records are removed from the answer, authority and additional sections"

@@ -1,96 +1,138 @@
-case $context in
+plusvariant=''
+plusrootvariant=''
+_context=${context%-variant}
+if [ $context != $_context ]
+then
+    plusvariant='..variant'
+    plusrootvariant='.variant'
+    skipreasons="$skipreasons variant"
+fi
+
+case $_context in
     lmdb | lmdb-nodnssec | lmdb-nsec3 | lmdb-nsec3-optout | lmdb-nsec3-narrow)
+        backend=lmdb
         cat > pdns-lmdb.conf << __EOF__
 module-dir=$PDNS_BUILD_PATH/modules
 launch=lmdb
 lmdb-filename=./pdns.lmdb
 lmdb-random-ids=yes
+edns-subnet-processing
+views=yes
+any-to-tcp=no
+dnsupdate=yes
 __EOF__
 
         rm -f pdns.lmdb*
         for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | grep -v '^nztest.com$')
         do
             if [ "$zone" = "." ]; then
-                        $PDNSUTIL --config-dir=. --config-name=lmdb load-zone $zone zones/ROOT
+                zonewithvariant=$zone$plusrootvariant # prevent extra dot!
+                zonefile=zones/ROOT
             else
-                        $PDNSUTIL --config-dir=. --config-name=lmdb load-zone $zone zones/$zone
+                zonewithvariant=$zone$plusvariant
+                zonefile=zones/$zone
             fi
-            if [ $context != lmdb-nodnssec ]
+            $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb load-zone $zonewithvariant $zonefile
+
+            [ -n "$plusvariant" ] && $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb view-add-zone variant-view $zonewithvariant
+
+            if [ $_context != lmdb-nodnssec ]
             then
                 if [ $zone != insecure.dnssec-parent.com ]
                 then
-                    if [ $context = lmdb-nsec3 ]
+                    if [ $_context = lmdb-nsec3 ]
                     then
-                        $PDNSUTIL --config-dir=. --config-name=lmdb set-nsec3 $zone "1 0 1 abcd" 2>&1
-                    elif [ $context =  lmdb-nsec3-optout ]
+                        $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb set-nsec3 $zonewithvariant "1 0 1 abcd" 2>&1
+                    elif [ $_context =  lmdb-nsec3-optout ]
                     then
-                        $PDNSUTIL --config-dir=. --config-name=lmdb set-nsec3 $zone "1 1 1 abcd" 2>&1
-                    elif [ $context = lmdb-nsec3-narrow ]
+                        $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb set-nsec3 $zonewithvariant "1 1 1 abcd" 2>&1
+                    elif [ $_context = lmdb-nsec3-narrow ]
                     then
-                        $PDNSUTIL --config-dir=. --config-name=lmdb set-nsec3 $zone '1 1 1 abcd' narrow 2>&1
+                        $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb set-nsec3 $zonewithvariant '1 1 1 abcd' narrow 2>&1
                     fi
-                    securezone $zone lmdb
+                    securezone $zonewithvariant lmdb
                     if [ $zone = hiddencryptokeys.org ]
                     then
-                        keyid=$($PDNSUTIL --config-dir=. --config-name=lmdb list-keys $zone | grep hiddencryptokeys.org | awk '{ print $7 }')
-                        $PDNSUTIL --config-dir=. --config-name=lmdb unpublish-zone-key $zone $keyid
+                        keyid=$($RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb list-keys $zonewithvariant | grep hiddencryptokeys.org | awk '{ print $7 }')
+                        $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb unpublish-zone-key $zonewithvariant $keyid
                     fi
                     if [ $zone = cryptokeys.org ]
                     then
-                        $PDNSUTIL --config-dir=. --config-name=lmdb add-zone-key $zone zsk 384 active unpublished ecdsa384
-                        $PDNSUTIL --config-dir=. --config-name=lmdb add-zone-key $zone zsk 2048 inactive published rsasha512
-                        $PDNSUTIL --config-dir=. --config-name=lmdb add-zone-key $zone zsk 2048 inactive unpublished rsasha256
+                        $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb add-zone-key $zonewithvariant zsk 384 active unpublished ecdsa384
+                        $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb add-zone-key $zonewithvariant zsk 2048 inactive published rsasha512
+                        $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb add-zone-key $zonewithvariant zsk 2048 inactive unpublished rsasha256
                     fi
                 fi
             else
-                $PDNSUTIL --config-dir=. --config-name=lmdb rectify-zone $zone 2>&1
+                $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb rectify-zone $zonewithvariant 2>&1
             fi
             if [ "$zone" = "tsig.com" ]; then
-                $PDNSUTIL --config-dir=. --config-name=lmdb import-tsig-key test $ALGORITHM $KEY
-                $PDNSUTIL --config-dir=. --config-name=lmdb activate-tsig-key tsig.com test primary
+                $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb import-tsig-key test $ALGORITHM $KEY
+                $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb activate-tsig-key tsig.com$plusvariant test primary
             fi
         done
 
         # setup catalog zone
 
-        if ! $PDNSUTIL --config-dir=. --config-name=lmdb list-all-zones | grep '^.$' # detect root tests
+        if ! $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb list-all-zones | grep '^\.' # detect root tests
         then
             for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | grep -v '^nztest.com$')
             do
-                $PDNSUTIL --config-dir=. --config-name=lmdb set-kind $zone master
-                $PDNSUTIL --config-dir=. --config-name=lmdb set-catalog $zone catalog.invalid
+                $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb set-kind $zone$plusvariant master
+                $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb set-catalog $zone$plusvariant catalog.invalid$plusvariant
             done
 
-            $PDNSUTIL --config-dir=. --config-name=lmdb load-zone catalog.invalid zones/catalog.invalid
-            $PDNSUTIL --config-dir=. --config-name=lmdb set-kind catalog.invalid producer
+            $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb load-zone catalog.invalid zones/catalog.invalid
+            $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb set-kind catalog.invalid producer
 
-            $PDNSUTIL --config-dir=. --config-name=lmdb set-options-json test.com '{"producer":{"coo":"other-catalog.invalid","unique":"123"}}'
-            $PDNSUTIL --config-dir=. --config-name=lmdb set-options-json tsig.com '{"producer":{"group":["pdns-group-x","pdns-group-y"]}}'
+            $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb set-options-json test.com$plusvariant '{"producer":{"coo":"other-catalog.invalid","unique":"123"}}'
+            $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb set-options-json tsig.com$plusvariant '{"producer":{"group":["pdns-group-x","pdns-group-y"]}}'
         fi
+
+        [ -n "$plusvariant" ] && $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb set-network 0.0.0.0/0 variant-view
+
+        for variant in foo bar
+        do
+          $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb create-zone example.com..$variant
+          $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb list-all-zones
+          $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb show-zone example.com..$variant
+          $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb add-record example.com..$variant example.com TXT '"hello from the '$variant' variant"'
+          $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb add-record example.com..$variant cname.example.com CNAME target.example.org
+          $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb add-record example.com..$variant cname-nxd.example.com CNAME nxd.example.org
+        done
+
+        $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb view-add-zone view1 example.com..foo
+        $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb view-add-zone view2 example.com..bar
+
+        $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb create-zone example.org..foo
+        $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb add-record example.org..foo target.example.org TXT '"hello from target..foo"'
+        $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb view-add-zone view1 example.org..foo
+
+        $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb set-network 192.0.2.0/24 view1
+        $RUNWRAPPER_PDNSUTIL $PDNSUTIL --config-dir=. --config-name=lmdb set-network 192.0.2.0/25 view2
 
         $RUNWRAPPER $PDNS --loglevel=7 --daemon=no --local-address=$address --local-port=$port --config-dir=. \
             --config-name=lmdb --socket-dir=./ --no-shuffle \
-            --dnsupdate=no \
             --expand-alias=yes --resolver=$RESOLVERIP \
             --disable-axfr-rectify=yes --outgoing-axfr-expand-alias=yes \
             --cache-ttl=$cachettl --dname-processing $lua_prequery &
 
         extracontexts="lmdb"
-        skipreasons="lmdb nodyndns"
+        skipreasons="$skipreasons lmdb dyndns"
 
-        if [ $context = lmdb-nsec3 ]
+        if [ $_context = lmdb-nsec3 ]
         then
             extracontexts="$extracontexts dnssec nsec3"
             skipreasons="$skipreasons nsec3"
-        elif [ $context = lmdb-nsec3-optout ]
+        elif [ $_context = lmdb-nsec3-optout ]
         then
             extracontexts="$extracontexts dnssec nsec3 nsec3-optout"
             skipreasons="$skipreasons optout"
-        elif [ $context = lmdb-nsec3-narrow ]
+        elif [ $_context = lmdb-nsec3-narrow ]
         then
             extracontexts="$extracontexts dnssec narrow"
             skipreasons="$skipreasons narrow"
-        elif [ $context = lmdb-nodnssec ]
+        elif [ $_context = lmdb-nodnssec ]
         then
             skipreasons="$skipreasons nodnssec"
         else

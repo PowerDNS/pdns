@@ -42,9 +42,9 @@ extern StatBag S;
 // this is so the geoipbackend can set this pointer if loaded for lua-record.cc
 std::function<std::string(const std::string&, int)> g_getGeo;
 
-bool DNSBackend::getAuth(const DNSName& target, SOAData* soaData)
+bool DNSBackend::getAuth(const ZoneName& target, SOAData* soaData)
 {
-  return this->getSOA(target, *soaData);
+  return this->getSOA(target, UnknownDomainID, *soaData);
 }
 
 void DNSBackend::setArgPrefix(const string& prefix)
@@ -65,6 +65,12 @@ const string& DNSBackend::getArg(const string& key)
 int DNSBackend::getArgAsNum(const string& key)
 {
   return arg().asNum(d_prefix + "-" + key);
+}
+
+// Default API lookup has no support for disabled records and simply wraps lookup()
+void DNSBackend::APILookup(const QType& qtype, const DNSName& qdomain, domainid_t zoneId, bool /* include_disabled */)
+{
+  lookup(qtype, qdomain, zoneId, nullptr);
 }
 
 void BackendFactory::declare(const string& suffix, const string& param, const string& explanation, const string& value)
@@ -239,18 +245,27 @@ vector<std::unique_ptr<DNSBackend>> BackendMakerClass::all(bool metadataOnly)
     answer, in which case you need to perform a getDomainInfo call!
 
     \param domain Domain we want to get the SOA details of
-    \param sd SOAData which is filled with the SOA details
+    \param zoneId Domain id, if known
+    \param soaData SOAData which is filled with the SOA details
     \param unmodifiedSerial bool if set, serial will be returned as stored in the backend (maybe 0)
 */
-bool DNSBackend::getSOA(const DNSName& domain, SOAData& soaData)
+bool DNSBackend::getSOA(const ZoneName& domain, domainid_t zoneId, SOAData& soaData)
 {
-  this->lookup(QType(QType::SOA), domain, -1);
+  soaData.db = nullptr;
+
+  if (domain.hasVariant() && zoneId == UnknownDomainID) {
+    DomainInfo domaininfo;
+    if (!this->getDomainInfo(domain, domaininfo, false)) {
+      return false;
+    }
+    zoneId = domaininfo.id;
+  }
+  // Safe for zoneId to be UnknownDomainID here - it won't be the case for variants, see above
+  this->lookup(QType(QType::SOA), domain.operator const DNSName&(), zoneId);
   S.inc("backend-queries");
 
   DNSResourceRecord resourceRecord;
   int hits = 0;
-
-  soaData.db = nullptr;
 
   try {
     while (this->get(resourceRecord)) {
@@ -258,7 +273,7 @@ bool DNSBackend::getSOA(const DNSName& domain, SOAData& soaData)
         throw PDNSException("Got non-SOA record when asking for SOA, zone: '" + domain.toLogString() + "'");
       }
       hits++;
-      soaData.qname = domain;
+      soaData.zonename = domain.makeLowerCase();
       soaData.ttl = resourceRecord.ttl;
       soaData.db = this;
       soaData.domain_id = resourceRecord.domain_id;
@@ -300,11 +315,11 @@ bool DNSBackend::get(DNSZoneRecord& zoneRecord)
   return true;
 }
 
-bool DNSBackend::getBeforeAndAfterNames(uint32_t id, const DNSName& zonename, const DNSName& qname, DNSName& before, DNSName& after)
+bool DNSBackend::getBeforeAndAfterNames(domainid_t domainId, const ZoneName& zonename, const DNSName& qname, DNSName& before, DNSName& after)
 {
   DNSName unhashed;
-  bool ret = this->getBeforeAndAfterNamesAbsolute(id, qname.makeRelative(zonename).makeLowerCase(), unhashed, before, after);
-  DNSName lczonename = zonename.makeLowerCase();
+  bool ret = this->getBeforeAndAfterNamesAbsolute(domainId, qname.makeRelative(zonename).makeLowerCase(), unhashed, before, after);
+  DNSName lczonename = zonename.makeLowerCase().operator const DNSName&();
   before += lczonename;
   after += lczonename;
   return ret;
@@ -335,8 +350,7 @@ void fillSOAData(const DNSZoneRecord& inZoneRecord, SOAData& soaData)
 
 std::shared_ptr<DNSRecordContent> makeSOAContent(const SOAData& soaData)
 {
-  struct soatimes soaTimes
-  {
+  struct soatimes soaTimes{
     .serial = soaData.serial,
     .refresh = soaData.refresh,
     .retry = soaData.retry,

@@ -30,12 +30,12 @@
 using pdns::resolver::parseResult;
 
 AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
-                             const DNSName& domain,
-                             const TSIGTriplet& tt, 
+                             const ZoneName& domain,
+                             const TSIGTriplet& tsigConf,
                              const ComboAddress* laddr,
                              size_t maxReceivedBytes,
-                             uint16_t timeout)
-  : d_buf(65536), d_tsigVerifier(tt, remote, d_trc), d_receivedBytes(0), d_maxReceivedBytes(maxReceivedBytes)
+                             uint16_t timeout) :
+  d_buf(65536), d_tsigVerifier(tsigConf, remote, d_trc), d_maxReceivedBytes(maxReceivedBytes)
 {
   ComboAddress local;
   if (laddr != nullptr) {
@@ -57,19 +57,21 @@ AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
     d_soacount = 0;
   
     vector<uint8_t> packet;
-    DNSPacketWriter pw(packet, domain, QType::AXFR);
-    pw.getHeader()->id = dns_random_uint16();
-  
-    if(!tt.name.empty()) {
-      if (tt.algo == DNSName("hmac-md5"))
-        d_trc.d_algoName = tt.algo + DNSName("sig-alg.reg.int");
-      else
-        d_trc.d_algoName = tt.algo;
+    DNSPacketWriter pwriter(packet, DNSName(domain), QType::AXFR);
+    pwriter.getHeader()->id = dns_random_uint16();
+
+    if (!tsigConf.name.empty()) {
+      if (tsigConf.algo == DNSName("hmac-md5")) {
+        d_trc.d_algoName = tsigConf.algo + DNSName("sig-alg.reg.int");
+      }
+      else {
+        d_trc.d_algoName = tsigConf.algo;
+      }
       d_trc.d_time = time(nullptr);
       d_trc.d_fudge = 300;
-      d_trc.d_origID=ntohs(pw.getHeader()->id);
+      d_trc.d_origID=ntohs(pwriter.getHeader()->id);
       d_trc.d_eRcode=0;
-      addTSIG(pw, d_trc, tt.name, tt.secret, "", false);
+      addTSIG(pwriter, d_trc, tsigConf.name, tsigConf.secret, "", false);
     }
   
     uint16_t replen=htons(packet.size());
@@ -148,9 +150,11 @@ int AXFRRetriever::getChunk(Resolver::res_t &res, vector<DNSRecord>* records, ui
     err = parseResult(mdp, DNSName(), 0, 0, &res);
 
     if (!err) {
-      for(const auto& answer :  mdp.d_answers)
-        if (answer.first.d_type == QType::SOA)
+      for(const auto& answer :  mdp.d_answers) {
+        if (answer.d_type == QType::SOA) {
           d_soacount++;
+        }
+      }
     }
   }
   else {
@@ -158,11 +162,11 @@ int AXFRRetriever::getChunk(Resolver::res_t &res, vector<DNSRecord>* records, ui
     records->reserve(mdp.d_answers.size());
 
     for(auto& r: mdp.d_answers) {
-      if (r.first.d_type == QType::SOA) {
+      if (r.d_type == QType::SOA) {
         d_soacount++;
       }
 
-      records->push_back(std::move(r.first));
+      records->push_back(std::move(r));
     }
   }
 

@@ -12,6 +12,8 @@ project(
   ],
 )
 
+add_project_arguments('-DPDNS_AUTH', language: 'cpp')
+
 product_source_dir = meson.current_source_dir()
 product_build_dir = meson.current_build_dir()
 summary('Source Dir', product_source_dir, section: 'Build')
@@ -42,9 +44,9 @@ subdir('meson' / 'net-libs')                # Network Libraries
 subdir('meson' / 'tm-gmtoff')               # Check for tm_gmtoff field in struct tm
 subdir('meson' / 'mmap')                    # Check for mmap
 subdir('meson' / 'libsodium')               # Libsodium-based signers
-subdir('meson' / 'libdecaf')                # Libdecaf-based signers
 subdir('meson' / 'libcrypto')               # OpenSSL-based signers
 subdir('meson' / 'libssl')                  # OpenSSL libssl
+subdir('meson' / 'libssl-engines')          # OpenSSL libssl engines
 subdir('meson' / 'gnutls')                  # GnuTLS
 subdir('meson' / 'dot')                     # DNS over TLS
 subdir('meson' / 'ipcipher')                # IPCipher
@@ -128,7 +130,6 @@ deps = [
   dep_lua_records,
   dep_netlibs,
   dep_libsodium,
-  dep_libdecaf,
   dep_libcrypto,
   dep_libssl,
   dep_gnutls,
@@ -137,7 +138,7 @@ deps = [
   dep_dlopen,
   dep_pkcs11,
   dep_gss_tsig,
-  dep_systemd,
+  dep_libsystemd,
   dep_arc4random,
   dep_ipcrypt,
   dep_json11,
@@ -159,10 +160,10 @@ deps = [
   dep_boost_test,
 ]
 
-if dep_systemd.found()
+if dep_systemd_prog.found()
   systemd_service_conf = configuration_data()
-  systemd_service_conf.set('BinDir', get_option('bindir'))
-  systemd_service_conf.set('StaticBinDir', get_option('sbindir'))
+  systemd_service_conf.set('BinDir', get_option('prefix') / get_option('bindir'))
+  systemd_service_conf.set('StaticBinDir', get_option('prefix') / get_option('sbindir'))
   systemd_service_user = get_option('systemd-service-user')
   systemd_service_group = get_option('systemd-service-group')
   systemd_service_conf.set('ServiceUser', systemd_service_user)
@@ -229,6 +230,7 @@ if dep_systemd.found()
   auth_service_conf_general = configuration_data()
   auth_service_conf_general.merge_from(auth_service_conf)
   auth_service_conf_general.set('Description', 'PowerDNS Authoritative Server')
+  auth_service_conf_general.set('ConfigName', '')
   auth_service_conf_general.set('SocketDir', enable_socket_dir ? '--socket-dir=%t/pdns-auth' : '')
   auth_service_conf_general.set('SyslogIdentifier', 'pdns-auth')
   auth_service_conf_general.set('RuntimeDirectory', 'pdns-auth')
@@ -268,6 +270,7 @@ if dep_systemd.found()
     ixfrdist_service_conf_general = configuration_data()
     ixfrdist_service_conf_general.merge_from(ixfrdist_service_conf)
     ixfrdist_service_conf_general.set('Description', 'PowerDNS IXFR Distributor')
+    ixfrdist_service_conf_general.set('Config', '')
 
     configure_file(
       input: 'auth' / 'systemd' / 'ixfrdist.service.in',
@@ -278,7 +281,7 @@ if dep_systemd.found()
     ixfrdist_service_conf_instance = configuration_data()
     ixfrdist_service_conf_instance.merge_from(ixfrdist_service_conf)
     ixfrdist_service_conf_instance.set('Description', 'PowerDNS IXFR Distributor %i')
-    ixfrdist_service_conf_instance.set('Config', '--config=' + get_option('sysconfdir') + '/ixfrdist-%.ymli')
+    ixfrdist_service_conf_instance.set('Config', '--config=' + get_option('sysconfdir') + '/ixfrdist-%i.yml')
 
     configure_file(
       input: 'auth' / 'systemd' / 'ixfrdist.service.in',
@@ -413,10 +416,6 @@ conditional_sources = {
     'sources': [src_dir / 'lua-record.cc'],
     'condition': dep_lua_records.found(),
   },
-  'standalone-fuzz-target-runner': {
-    'sources': [src_dir / 'standalone_fuzz_target_runner.cc'],
-    'condition': get_option('fuzz-targets'),
-  },
 }
 
 foreach name, info: conditional_sources
@@ -433,17 +432,6 @@ if dep_libsodium.found()
     link_whole: static_library(
       'pdns-signers-sodium',
       sources: files(src_dir / 'sodiumsigners.cc'),
-      dependencies: deps,
-    )
-  )
-endif
-
-libpdns_signers_decaf = dependency('', required: false)
-if dep_libdecaf.found()
-  libpdns_signers_decaf = declare_dependency(
-    link_whole: static_library(
-      'pdns-signers-decaf',
-      sources: files(src_dir / 'decafsigners.cc'),
       dependencies: deps,
     )
   )
@@ -690,7 +678,6 @@ tools = {
       libpdns_ssqlite3,
       libpdns_gettime,
       libpdns_signers_openssl,
-      libpdns_signers_decaf,
       libpdns_signers_sodium,
     ],
     'manpages': ['pdns_server.1'],
@@ -703,7 +690,6 @@ tools = {
       dep_modules,
       libpdns_ssqlite3,
       libpdns_signers_openssl,
-      libpdns_signers_decaf,
       libpdns_signers_sodium,
     ],
     'manpages': ['pdnsutil.1'],
@@ -803,6 +789,14 @@ if get_option('tools')
       'main': src_dir / 'ixplore.cc',
       'manpages': ['ixplore.1'],
     },
+    'dnstcpbench': {
+      'main': src_dir / 'dnstcpbench.cc',
+      'manpages': ['dnstcpbench.1'],
+    },
+    'dnsbulktest': {
+      'main': src_dir / 'dnsbulktest.cc',
+      'manpages': ['dnsbulktest.1'],
+    },
     # Broken
     # 'comfun' : {
     #   'main': src_dir / 'comfun.cc',
@@ -831,18 +825,6 @@ if get_option('tools')
     src_dir / 'tcpiohandler.hh',
   )
 
-  if have_boost_1_48_0
-    tools += {
-      'dnstcpbench': {
-        'main': src_dir / 'dnstcpbench.cc',
-        'manpages': ['dnstcpbench.1'],
-      },
-      'dnsbulktest': {
-        'main': src_dir / 'dnsbulktest.cc',
-        'manpages': ['dnsbulktest.1'],
-      },
-    }
-  endif
 endif
 
 if get_option('tools-ixfrdist')
@@ -887,6 +869,7 @@ if get_option('unit-tests')
       src_dir / 'test-credentials_cc.cc',
       src_dir / 'test-digests_hh.cc',
       src_dir / 'test-distributor_hh.cc',
+      src_dir / 'test-dns_cc.cc',
       src_dir / 'test-dns_random_hh.cc',
       src_dir / 'test-dnsname_cc.cc',
       src_dir / 'test-dnsparser_cc.cc',
@@ -932,7 +915,6 @@ if get_option('unit-tests')
       'deps-extra': [
         libpdns_test,
         libpdns_signers_openssl,
-        libpdns_signers_decaf,
         libpdns_signers_sodium,
       ],
     },
@@ -946,14 +928,32 @@ if get_option('unit-tests')
 endif
 
 if get_option('fuzz-targets')
-  tools += {
-    'fuzz-target-moadnsparser'                        : { 'main': src_dir / 'fuzz_moadnsparser.cc'                        },
-    'fuzz-target-packetcache'                         : { 'main': src_dir / 'fuzz_packetcache.cc'                         },
-    'fuzz-target-proxyprotocol'                       : { 'main': src_dir / 'fuzz_proxyprotocol.cc'                       },
-    'fuzz-target-dnslabeltext-parseRFC1035CharString' : { 'main': src_dir / 'fuzz_dnslabeltext_parseRFC1035CharString.cc' },
-    'fuzz-target-yahttp'                              : { 'main': src_dir / 'fuzz_yahttp.cc'                              },
-    'fuzz-target-zoneparsertng'                       : { 'main': src_dir / 'fuzz_zoneparsertng.cc'                       },
-  }
+  fuzz_extra_sources = []
+  fuzzer_ldflags = []
+  # https://github.com/harfbuzz/harfbuzz/pull/2549/files
+  if get_option('fuzzer_ldflags') == ''
+    fuzz_extra_sources += src_dir / 'standalone_fuzz_target_runner.cc'
+  else
+    fuzzer_ldflags += get_option('fuzzer_ldflags')
+  endif
+
+  fuzz_targets = [
+    'moadnsparser',
+    'packetcache',
+    'proxyprotocol',
+    'dnslabeltext-parseRFC1035CharString',
+    'yahttp',
+    'zoneparsertng',
+  ]
+
+  foreach target: fuzz_targets
+    source_file = src_dir / 'fuzz_' + target.underscorify() + '.cc'
+    tools += {
+      'fuzz-target-' + target: { 'main': source_file,
+                                 'link-args': fuzzer_ldflags,
+                                 'files-extra': fuzz_extra_sources }
+    }
+  endforeach
 endif
 
 libpdns_common = declare_dependency(
@@ -979,6 +979,7 @@ foreach tool, info: tools
   export_dynamic = 'export-dynamic' in info ? info['export-dynamic'] : false
   files_extra = 'files-extra' in info ? info['files-extra'] : []
   deps_extra = 'deps-extra' in info ? info['deps-extra'] : []
+  link_args = 'link-args' in info ? info['link-args'] : []
 
   set_variable(
     var_name,
@@ -988,6 +989,7 @@ foreach tool, info: tools
       config_h,
       files_extra,
       export_dynamic: export_dynamic,
+      link_args: link_args,
       dependencies: [
         deps,
         libpdns_common,
@@ -1013,16 +1015,30 @@ summary('Path', python.full_path(), section: 'Manual Pages')
 summary('Version', python.version(), section: 'Manual Pages')
 
 if python.found()
-  run_target(
-    'man-pages',
-    command: [
-      python,
-      docs_dir / 'generate-man-pages.py',
-      '--venv-name', 'venv-auth-man-pages',
-      '--requirements-file', docs_dir / 'requirements.txt',
-      '--source-directory', docs_dir,
-      '--target-directory', 'auth-man-pages',
-    ] + man_pages,
+  generated_man_pages = []
+  foreach tool, info: tools
+    if 'manpages' in info
+      foreach man_page: info['manpages']
+        generated_man_pages += man_page
+      endforeach
+    endif
+  endforeach
+  custom_target(
+     'man-pages',
+     input: man_pages,
+     output: generated_man_pages,
+     install: true,
+     install_dir: join_paths(get_option('mandir'), 'man1'),
+     command: [
+       python,
+       product_source_dir / docs_dir / 'generate-man-pages.py',
+       '--build-root', '@BUILD_ROOT@',
+       '--source-root', '@SOURCE_ROOT@',
+       '--venv-name', 'venv-auth-man-pages',
+       '--requirements-file', docs_dir / 'requirements.txt',
+       '--source-directory', docs_dir,
+       '--target-directory', '@BUILD_ROOT@',
+     ] + man_pages,
   )
 endif
 
@@ -1037,65 +1053,125 @@ if get_option('unit-tests')
   )
 endif
 
-if get_option('module-remote') != 'disabled' and get_option('unit-tests-backends')
-  libpdns_module_remotebackend_test_common = declare_dependency(
-    link_whole: static_library(
-      'pdns-test-remotebackend',
-      module_remotebackend_test_sources_common,
-      dependencies: [
-        deps,
-        module_remotebackend_lib,
-        libpdns_signers_pkcs11,
-        libpdns_common,
-        libpdns_dnslabeltext,
-      ],
-      extra_files: module_remotebackend_test_sources_extra,
-    )
-  )
-
-  env = {
-    'BOOST_TEST_LOG_LEVEL': 'message',
-    'REMOTEBACKEND_ZEROMQ': get_option('module-remote-zeromq') ? 'yes' : 'no',
-  }
-
-  foreach test_binary, test_source: module_remotebackend_test_sources_binaries
-    exec_var_name = test_binary.underscorify()
-
-    set_variable(
-      exec_var_name,
-      executable(
-        test_binary,
-        test_source,
+if get_option('unit-tests-backends')
+  # Remote Backend Tests #################################################################
+  if get_option('module-remote') != 'disabled'
+    libpdns_module_remotebackend_test_common = declare_dependency(
+      link_whole: static_library(
+        'pdns-test-remotebackend',
+        module_remotebackend_test_sources_common,
         dependencies: [
           deps,
-          dep_boost_test,
-          dep_zeromq,
-          libpdns_module_remotebackend_test_common,
+          module_remotebackend_lib,
+          libpdns_signers_pkcs11,
+          libpdns_common,
+          libpdns_dnslabeltext,
         ],
+        extra_files: module_remotebackend_test_sources_extra,
       )
     )
 
-    test(
-      'pdns-auth-' + test_binary,
-      module_remotebackend_testrunner,
-      args: ['--', get_variable(exec_var_name).full_path()],
-      env: env,
-      workdir: product_source_dir / fs.parent(module_remotebackend_testrunner),
-      is_parallel: false,
-    )
+    env = {
+      'BOOST_TEST_LOG_LEVEL': 'message',
+      'REMOTEBACKEND_ZEROMQ': get_option('module-remote-zeromq') ? 'yes' : 'no',
+    }
+
+    foreach test_binary, test_source: module_remotebackend_test_sources_binaries
+      exec_var_name = test_binary.underscorify()
+
+      set_variable(
+        exec_var_name,
+        executable(
+          test_binary,
+          test_source,
+          dependencies: [
+            deps,
+            dep_boost_test,
+            dep_zeromq,
+            libpdns_module_remotebackend_test_common,
+          ],
+        )
+      )
+
+      test(
+        'pdns-auth-' + test_binary,
+        module_remotebackend_testrunner,
+        args: ['--', get_variable(exec_var_name).full_path()],
+        env: env,
+        workdir: product_source_dir / fs.parent(module_remotebackend_testrunner),
+        is_parallel: false,
+        depends: get_variable(exec_var_name),
+      )
+    endforeach
+  endif
+
+  # Regression Tests #####################################################################
+  start_test_stop = files('regression-tests' / 'start-test-stop')[0]
+
+  test_modules = {
+    'geoip': 'module-geoip',
+    'lmdb': 'module-lmdb',
+    'lmdb-nodnssec': 'module-lmdb',
+  }
+
+  foreach module, option: test_modules
+    if get_option(option) != 'disabled'
+      test(
+        'pdns-auth-backend-' + module,
+        start_test_stop,
+        args: ['5300', module],
+        workdir: product_source_dir / 'regression-tests',
+        depends: [pdns_auth, pdns_auth_util, sdig, saxfr, pdns_auth_notify, nsec3dig],
+        is_parallel: false,
+      )
+    endif
   endforeach
 endif
 
-if get_option('unit-tests-backends')
-  start_test_stop = files('regression-tests' / 'start-test-stop')[0]
-endif
+if python.found()
+  html_docs = custom_target(
+    'html-docs',
+    command: [
+        python,
+        product_source_dir / docs_dir / 'generate-docs.py',
+        '--build-root', '@BUILD_ROOT@',
+        '--source-root', '@SOURCE_ROOT@',
+        '--venv-name', 'venv-docs',
+        '--requirements-file', docs_dir / 'requirements.txt',
+        '--source-directory', docs_dir,
+        '--target-directory', '@BUILD_ROOT@' / 'html-docs',
+    ],
+    output: 'sphinx.stamp',
+    console: true,
+    depfile: 'sphinx.d',
+  )
 
-if get_option('module-geoip') != 'disabled' and get_option('unit-tests-backends')
-  test(
-    'pdns-auth-backend-geoip',
-    start_test_stop,
-    args: ['5300', 'geoip'],
-    workdir: product_source_dir / 'regression-tests',
-    depends: [pdns_auth],
+  docs_tarball = custom_target(
+    'html-docs.tar.bz2',
+    command: ['tar', 'cjf', 'html-docs.tar.bz2', html_docs],
+    output: 'html-docs.tar.bz2',
+  )
+
+  pdf_docs = custom_target(
+    command: [
+        python,
+        product_source_dir / docs_dir / 'generate-docs.py',
+        '--build-root', '@BUILD_ROOT@',
+        '--source-root', '@SOURCE_ROOT@',
+        '--venv-name', 'venv-docs',
+        '--requirements-file', docs_dir / 'requirements.txt',
+        '--source-directory', docs_dir,
+        '--target-directory', '@BUILD_ROOT@',
+        '--pdf-name', 'PowerDNS-Authoritative.pdf',
+    ],
+    output: 'PowerDNS-Authoritative.pdf',
+    console: true,
+    depfile: 'sphinx.d',
+  )
+
+  run_target(
+    'all-docs',
+    # args mentioned in command line become auto-dependency
+    command: ['echo', 'Generated', html_docs, docs_tarball, pdf_docs],
   )
 endif

@@ -3,27 +3,8 @@ import requests
 
 from recursortests import RecursorTest
 
-class APIRecursorTest(RecursorTest):
-
-    @classmethod
-    def setUpClass(cls):
-
-        # we don't need all the auth stuff
-        cls.setUpSockets()
-        cls.startResponders()
-
-        confdir = os.path.join('configs', cls._confdir)
-        cls.createConfigDir(confdir)
-
-        cls.generateRecursorConfig(confdir)
-        cls.startRecursor(confdir, cls._recursorPort)
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tearDownRecursor()
-
-class APIAllowedRecursorTest(APIRecursorTest):
-    _confdir = 'API'
+class APIAllowedRecursorTest(RecursorTest):
+    _confdir = 'APIAllowedRecursor'
     _wsPort = 8042
     _wsTimeout = 2
     _wsPassword = 'secretpassword'
@@ -47,8 +28,8 @@ api-key=%s
         self.assertEqual(r.status_code, 200)
         self.assertTrue(r.json())
 
-class APIDeniedRecursorTest(APIRecursorTest):
-    _confdir = 'API'
+class APIDeniedRecursorTest(RecursorTest):
+    _confdir = 'APIDeniedRecursor'
     _wsPort = 8042
     _wsTimeout = 2
     _wsPassword = 'secretpassword'

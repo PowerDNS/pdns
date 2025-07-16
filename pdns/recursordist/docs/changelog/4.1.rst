@@ -649,7 +649,7 @@ See :doc:`EOL Statements <../appendices/EOL>`.
     :pullreq: 6209
     :tickets: 6212
 
-    Fix to make ``primeHints`` threadsafe, otherwise there's a small
+    Fix to make ``primeHints`` threadsafe; otherwise, there's a small
     chance on startup that the root-server IPs will be incorrect.
 
   .. change::
@@ -738,7 +738,7 @@ See :doc:`EOL Statements <../appendices/EOL>`.
     :tags: DNSSEC, Bug Fixes
     :pullreq: 6008
 
-    Don't leak when the loading a public ECDSA key fails.
+    Don't leak when loading a public ECDSA key fails.
 
   .. change::
     :tags: DNSSEC, Bug Fixes
@@ -795,7 +795,7 @@ See :doc:`EOL Statements <../appendices/EOL>`.
     :tickets: 5882
 
     Split NODATA / NXDOMAIN NSEC wildcard denial proof of
-    existence. Otherwise there is a very real risk that a NSEC will
+    existence. Otherwise, there is a very real risk that a NSEC will
     cover a more specific wildcard and we end up with what looks like a
     NXDOMAIN proof but is a NODATA one.
 
@@ -933,7 +933,7 @@ See :doc:`EOL Statements <../appendices/EOL>`.
     :tags: Improvements
     :pullreq: 5774
 
-    Add :ref:`experimental metrics <stat-x-our-latency>` that track the time spent inside PowerDNS per query.
+    Add experimental :doc:`../metrics` ``x-our-latency`` that track the time spent inside PowerDNS per query.
     These metrics ignore time spent waiting for the network.
 
   .. change::

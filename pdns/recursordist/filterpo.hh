@@ -212,7 +212,7 @@ public:
 
     [[nodiscard]] bool getSOA(DNSRecord& rec) const
     {
-      if (d_zoneData) {
+      if (d_zoneData && d_zoneData->d_soa.getContent()) {
         rec = d_zoneData->d_soa;
         return true;
       }
@@ -373,6 +373,10 @@ public:
     [[nodiscard]] uint32_t getSerial() const
     {
       return d_serial;
+    }
+    [[nodiscard]] const DNSRecord& getSOA() const
+    {
+      return d_zoneData->d_soa;
     }
 
     [[nodiscard]] size_t size() const

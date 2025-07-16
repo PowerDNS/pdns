@@ -164,7 +164,7 @@ string NSECBitmap::getZoneRepresentation() const
   return ret;
 }
 
-void NSECRecordContent::report()
+void NSECRecordContent::report(const ReportIsOnlyCallableByReportAllTypes& /* unused */)
 {
   regist(1, 47, &make, &make, "NSEC");
 }
@@ -174,7 +174,7 @@ std::shared_ptr<DNSRecordContent> NSECRecordContent::make(const string& content)
   return std::make_shared<NSECRecordContent>(content);
 }
 
-NSECRecordContent::NSECRecordContent(const string& content, const DNSName& zone)
+NSECRecordContent::NSECRecordContent(const string& content, const ZoneName& zone)
 {
   RecordTextReader rtr(content, zone);
   rtr.xfrName(d_next);
@@ -213,7 +213,7 @@ string NSECRecordContent::getZoneRepresentation(bool /* noDot */) const
 
 ////// begin of NSEC3
 
-void NSEC3RecordContent::report()
+void NSEC3RecordContent::report(const ReportIsOnlyCallableByReportAllTypes& /* unused */)
 {
   regist(1, 50, &make, &make, "NSEC3");
 }
@@ -223,7 +223,7 @@ std::shared_ptr<DNSRecordContent> NSEC3RecordContent::make(const string& content
   return std::make_shared<NSEC3RecordContent>(content);
 }
 
-NSEC3RecordContent::NSEC3RecordContent(const string& content, const DNSName& zone)
+NSEC3RecordContent::NSEC3RecordContent(const string& content, const ZoneName& zone)
 {
   RecordTextReader rtr(content, zone);
   rtr.xfr8BitInt(d_algorithm);
@@ -286,7 +286,7 @@ string NSEC3RecordContent::getZoneRepresentation(bool /* noDot */) const
 }
 
 
-void NSEC3PARAMRecordContent::report()
+void NSEC3PARAMRecordContent::report(const ReportIsOnlyCallableByReportAllTypes& /* unused */)
 {
   regist(1, 51, &make, &make, "NSEC3PARAM");
   regist(254, 51, &make, &make, "NSEC3PARAM");
@@ -297,7 +297,7 @@ std::shared_ptr<DNSRecordContent> NSEC3PARAMRecordContent::make(const string& co
   return std::make_shared<NSEC3PARAMRecordContent>(content);
 }
 
-NSEC3PARAMRecordContent::NSEC3PARAMRecordContent(const string& content, const DNSName& zone)
+NSEC3PARAMRecordContent::NSEC3PARAMRecordContent(const string& content, const ZoneName& zone)
 {
   RecordTextReader rtr(content, zone);
   rtr.xfr8BitInt(d_algorithm);
@@ -343,7 +343,7 @@ string NSEC3PARAMRecordContent::getZoneRepresentation(bool /* noDot */) const
 
 ////// begin of CSYNC
 
-void CSYNCRecordContent::report()
+void CSYNCRecordContent::report(const ReportIsOnlyCallableByReportAllTypes& /* unused */)
 {
   regist(1, 62, &make, &make, "CSYNC");
 }
@@ -353,7 +353,7 @@ std::shared_ptr<DNSRecordContent> CSYNCRecordContent::make(const string& content
   return std::make_shared<CSYNCRecordContent>(content);
 }
 
-CSYNCRecordContent::CSYNCRecordContent(const string& content, const DNSName& zone)
+CSYNCRecordContent::CSYNCRecordContent(const string& content, const ZoneName& zone)
 {
   RecordTextReader rtr(content, zone);
   rtr.xfr32BitInt(d_serial);

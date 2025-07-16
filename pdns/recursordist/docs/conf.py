@@ -18,8 +18,8 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 # import os
-# import sys
-# sys.path.insert(0, os.path.abspath('.'))
+import sys
+from pathlib import Path
 import guzzle_sphinx_theme
 import datetime
 
@@ -29,13 +29,15 @@ import datetime
 #
 # needs_sphinx = '1.0'
 
+sys.path.append(str(Path('.').resolve()))
+
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 #extensions = []
 #extensions = ['redjack.sphinx.lua', 'sphinxcontrib.httpdomain', 'sphinxjsondomain']
 extensions = ['redjack.sphinx.lua', 'sphinxcontrib.httpdomain', 'sphinxjsondomain',
-              'sphinxcontrib.fulltoc', 'changelog']
+              'sphinxcontrib.fulltoc', 'changelog', 'depfile']
 primary_domain = 'lua'
 
 # Add any paths that contain templates here, relative to this directory.
@@ -127,6 +129,7 @@ html_favicon = 'common/favicon.ico'
 html_static_path = ['_static']
 html_style = 'pdns.css'
 
+html_sidebars = { '**': ['logo-text.html', 'searchbox.html', 'relations.html', 'localtoc.html', 'sourcelink.html'] }
 
 # -- Options for HTMLHelp output ------------------------------------------
 
@@ -207,3 +210,6 @@ epub_copyright = copyright
 
 # A list of files that should not be packed into the epub file.
 epub_exclude_files = ['search.html']
+
+depfile = 'sphinx.d'
+depfile_stamp = 'sphinx.stamp'

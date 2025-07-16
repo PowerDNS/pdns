@@ -213,6 +213,29 @@ namespace PacketMangling
     memcpy(packet, &header, sizeof(header));
     return true;
   }
+
+  void restrictDNSPacketTTLs(PacketBuffer& packet, uint32_t minimumValue, uint32_t maximumValue, const std::unordered_set<QType>& types)
+  {
+    auto visitor = [minimumValue, maximumValue, types](uint8_t section, uint16_t qclass, uint16_t qtype, uint32_t ttl) {
+      (void)section;
+      if (!types.empty() && qclass == QClass::IN && types.count(qtype) == 0) {
+        return ttl;
+      }
+
+      if (minimumValue > 0) {
+        if (ttl < minimumValue) {
+          ttl = minimumValue;
+        }
+      }
+      if (ttl > maximumValue) {
+        ttl = maximumValue;
+      }
+      return ttl;
+    };
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    editDNSPacketTTL(reinterpret_cast<char*>(packet.data()), packet.size(), visitor);
+  }
+
 }
 
 void setResponseHeadersFromConfig(dnsheader& dnsheader, const ResponseConfig& config)

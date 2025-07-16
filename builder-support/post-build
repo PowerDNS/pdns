@@ -17,15 +17,24 @@ if ! $tar --version | grep -q GNU; then
     exit 1
 fi
 
-for prog in pdns-recursor dnsdist pdns; do
+# pdns (auth) is handled seperately, it needs a special find condition which is hard to do with
+# vars, as we don't want the asterisks to expand prematurely. So repeat the body of the loop below
+# with a find condition for pdns to exclude accidentally matching pdns-recursor*.
+for prog in pdns-recursor dnsdist; do
   if [ $(find ${SRCDIR}/dist -name "${prog}*" 2>/dev/null | wc -l) -ne 0 ]; then
+    extension="tar.xz"
     dst=${DESTDIR}/${prog}/${BUILDER_VERSION}
     mkdir -p ${dst}
-    cp ${BUILDER_TMP}/${BUILDER_VERSION}/sdist/${prog}*.tar.bz2 ${dst}
-    if [ "${prog}" = "pdns" ]; then
-      rm -f ${dst}/pdns-recursor*
-    fi
+    cp ${BUILDER_TMP}/${BUILDER_VERSION}/sdist/${prog}*.${extension} ${dst}
     tardirname=${prog}-${BUILDER_VERSION}-${BUILDER_TARGET}
     "$tar" -cjf ${dst}/${tardirname}.tar.bz2 --transform="s,.*/,${tardirname}/,g"  $(find ${SRCDIR} -type f)
   fi
 done
+prog=pdns
+if [ $(find ${SRCDIR}/dist -name 'pdns*' -a ! -name 'pdns-recursor*' 2>/dev/null | wc -l) -ne 0 ]; then
+  dst=${DESTDIR}/${prog}/${BUILDER_VERSION}
+  mkdir -p ${dst}
+  cp ${BUILDER_TMP}/${BUILDER_VERSION}/sdist/${prog}*.tar.bz2 ${dst}
+  tardirname=${prog}-${BUILDER_VERSION}-${BUILDER_TARGET}
+  "$tar" -cjf ${dst}/${tardirname}.tar.bz2 --transform="s,.*/,${tardirname}/,g"  $(find ${SRCDIR} -type f)
+fi

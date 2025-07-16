@@ -54,6 +54,7 @@
 #include "logr.hh"
 #include "rec-tcounters.hh"
 #include "ednsextendederror.hh"
+#include "protozero-trace.hh"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -168,6 +169,9 @@ public:
   static uint64_t doDumpNonResolvingNS(int fileDesc);
   static uint64_t doDumpSavedParentNSSets(int fileDesc);
   static uint64_t doDumpDoTProbeMap(int fileDesc);
+
+  static size_t getNSSpeedTable(size_t maxSize, std::string& ret);
+  static size_t putIntoNSSpeedTable(const std::string& ret);
 
   static int getRootNS(struct timeval now, asyncresolve_t asyncCallback, unsigned int depth, Logr::log_t);
   static void addDontQuery(const std::string& mask)
@@ -296,10 +300,11 @@ public:
   {
     return t_sstorage.domainmap;
   }
+  static bool isRecursiveForward(const DNSName& qname);
 
   static void setECSScopeZeroAddress(const Netmask& scopeZeroMask)
   {
-    s_ecsScopeZero.source = scopeZeroMask;
+    s_ecsScopeZero.setSource(scopeZeroMask);
   }
 
   static void clearECSStats()
@@ -568,16 +573,22 @@ public:
 
   static const int event_trace_to_pb = 1;
   static const int event_trace_to_log = 2;
+  static const int event_trace_to_ot = 4;
   static int s_event_trace_enabled;
   static bool s_save_parent_ns_set;
   static bool s_addExtendedResolutionDNSErrors;
 
+  static bool eventTraceEnabled(int flag)
+  {
+    return (s_event_trace_enabled & flag) != 0;
+  }
   std::unordered_map<std::string, bool> d_discardedPolicies;
   DNSFilterEngine::Policy d_appliedPolicy;
   std::unordered_set<std::string> d_policyTags;
   boost::optional<string> d_routingTag;
   ComboAddress d_fromAuthIP;
   RecEventTrace d_eventTrace;
+  pdns::trace::InitialSpanInfo d_otTrace;
   std::shared_ptr<Logr::Logger> d_slog = g_slog->withName("syncres");
   boost::optional<EDNSExtendedError> d_extendedError;
 
@@ -603,7 +614,6 @@ private:
   static EDNSSubnetOpts s_ecsScopeZero;
   static LogMode s_lm;
   static std::unique_ptr<NetmaskGroup> s_dontQuery;
-  const static std::unordered_set<QType> s_redirectionQTypes;
 
   struct GetBestNSAnswer
   {
@@ -664,6 +674,7 @@ private:
   vector<ComboAddress> retrieveAddressesForNS(const std::string& prefix, const DNSName& qname, vector<std::pair<DNSName, float>>::const_iterator& tns, unsigned int depth, set<GetBestNSAnswer>& beenthere, const vector<std::pair<DNSName, float>>& rnameservers, NsSet& nameservers, bool& sendRDQuery, bool& pierceDontQuery, bool& flawedNSSet, bool cacheOnly, unsigned int& nretrieveAddressesForNS);
 
   void sanitizeRecords(const std::string& prefix, LWResult& lwr, const DNSName& qname, QType qtype, const DNSName& auth, bool wasForwarded, bool rdQuery);
+  void sanitizeRecordsPass2(const std::string& prefix, LWResult& lwr, const DNSName& qname, QType qtype, const DNSName& auth, std::unordered_set<DNSName>& allowedAnswerNames, std::unordered_set<DNSName>& allowedAdditionals, bool cnameSeen, bool isNXDomain, bool isNXQType, std::vector<bool>& skipvec, unsigned int& skipCount);
   /* This function will check whether the answer should have the AA bit set, and will set if it should be set and isn't.
      This is unfortunately needed to deal with very crappy so-called DNS servers */
   void fixupAnswer(const std::string& prefix, LWResult& lwr, const DNSName& qname, QType qtype, const DNSName& auth, bool wasForwarded, bool rdQuery);
@@ -678,10 +689,10 @@ private:
   boost::optional<Netmask> getEDNSSubnetMask(const DNSName& name, const ComboAddress& rem);
 
   static bool validationEnabled();
-  uint32_t computeLowestTTD(const std::vector<DNSRecord>& records, const std::vector<std::shared_ptr<const RRSIGRecordContent>>& signatures, uint32_t signaturesTTL, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs) const;
+  uint32_t computeLowestTTD(const std::vector<DNSRecord>& records, const MemRecursorCache::SigRecsVec& signatures, uint32_t signaturesTTL, const MemRecursorCache::AuthRecsVec& authorityRecs) const;
   void updateValidationState(const DNSName& qname, vState& state, vState stateUpdate, const string& prefix);
-  vState validateRecordsWithSigs(unsigned int depth, const string& prefix, const DNSName& qname, QType qtype, const DNSName& name, QType type, const std::vector<DNSRecord>& records, const std::vector<std::shared_ptr<const RRSIGRecordContent>>& signatures);
-  vState validateDNSKeys(const DNSName& zone, const std::vector<DNSRecord>& dnskeys, const std::vector<std::shared_ptr<const RRSIGRecordContent>>& signatures, unsigned int depth, const string& prefix);
+  vState validateRecordsWithSigs(unsigned int depth, const string& prefix, const DNSName& qname, QType qtype, const DNSName& name, QType type, const std::vector<DNSRecord>& records, const MemRecursorCache::SigRecsVec& signatures);
+  vState validateDNSKeys(const DNSName& zone, const std::vector<DNSRecord>& dnskeys, const MemRecursorCache::SigRecsVec& signatures, unsigned int depth, const string& prefix);
   vState getDNSKeys(const DNSName& signer, skeyset_t& keys, bool& servFailOccurred, unsigned int depth, const string& prefix);
   dState getDenialValidationState(const NegCache::NegCacheEntry& negEntry, dState expectedState, bool referralToUnsigned, const string& prefix);
   void updateDenialValidationState(const DNSName& qname, vState& neValidationState, const DNSName& neName, vState& state, dState denialState, dState expectedState, bool isDS, unsigned int depth, const string& prefix);
@@ -777,7 +788,7 @@ struct PacketID
   PacketBuffer inMSG; // they'll go here
   PacketBuffer outMSG; // the outgoing message that needs to be sent
 
-  using chain_t = set<uint16_t>;
+  using chain_t = set<std::pair<int, uint16_t>>;
   mutable chain_t authReqChain;
   shared_ptr<TCPIOHandler> tcphandler{nullptr};
   timeval creationTime{};
@@ -908,7 +919,7 @@ class ImmediateServFailException
 {
 public:
   ImmediateServFailException(string reason_) :
-    reason(std::move(reason_)){};
+    reason(std::move(reason_)) {};
 
   string reason; //! Print this to tell the user what went wrong
 };
@@ -936,7 +947,6 @@ extern uint16_t g_outgoingEDNSBufsize;
 extern std::atomic<uint32_t> g_maxCacheEntries, g_maxPacketCacheEntries;
 extern bool g_lowercaseOutgoing;
 
-std::string reloadZoneConfiguration(bool yaml);
 using pipefunc_t = std::function<void*()>;
 void broadcastFunction(const pipefunc_t& func);
 void distributeAsyncFunction(const std::string& packet, const pipefunc_t& func);

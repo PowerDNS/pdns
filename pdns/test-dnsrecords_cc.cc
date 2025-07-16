@@ -47,12 +47,6 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
   // tuple contains <type, user value, zone representation, line value, broken>
   typedef boost::tuple<QType::typeenum, std::string, std::string, std::string, broken_marker> case_t;
   typedef std::list<case_t> cases_t;
-  MRRecordContent::report();
-  IPSECKEYRecordContent::report();
-  KXRecordContent::report();
-  DHCIDRecordContent::report();
-  TSIGRecordContent::report();
-  TKEYRecordContent::report();
 
 // NB!!! WHEN ADDING A TEST MAKE SURE YOU PUT IT NEXT TO ITS KIND
 // TO MAKE SURE TEST NUMBERING DOES NOT BREAK
@@ -123,7 +117,13 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
      (CASE_L(QType::LOC, "32 7 19 S 116 2 25 E 10m", "32 7 19.000 S 116 2 25.000 E 10.00m 1.00m 10000.00m 10.00m", "\x00\x12\x16\x13\x79\x1b\x7d\x28\x98\xe6\x48\x68\x00\x98\x9a\x68"))
      (CASE_L(QType::LOC, "42 21 54 N 71 06 18 W -24m 30m", "42 21 54.000 N 71 6 18.000 W -24.00m 30.00m 10000.00m 10.00m", "\x00\x33\x16\x13\x89\x17\x2d\xd0\x70\xbe\x15\xf0\x00\x98\x8d\x20"))
      (CASE_L(QType::LOC, "42 21 43.952 N 71 5 6.344 W -24m 1m 200m", "42 21 43.952 N 71 5 6.344 W -24.00m 1.00m 200.00m 10.00m", "\x00\x12\x24\x13\x89\x17\x06\x90\x70\xbf\x2d\xd8\x00\x98\x8d\x20"))
+     (CASE_L(QType::LOC, "57 9 0.000 N 2 7 9.998 W 0.00m 0.00m 0.00m 0.00m", "57 9 0.000 N 2 7 9.998 W 0.00m 0.00m 0.00m 0.00m", "\x00\x00\x00\x00\x8c\x43\x57\xe0\x7f\x8b\x93\x52\x00\x98\x96\x80"))
+     (CASE_L(QType::LOC, "57 8 59.999 N 2 7 9.998 W 0.00m 0.00m 0.00m 0.00m", "57 8 59.999 N 2 7 9.998 W 0.00m 0.00m 0.00m 0.00m", "\x00\x00\x00\x00\x8c\x43\x57\xdf\x7f\x8b\x93\x52\x00\x98\x96\x80"))
 // local name
+     (CASE_L(QType::LOC, "51 11 60.000 N 2 12 5.080 W 0.00m 0.00m 0.00m 0.00m", "51 12 0.000 N 2 12 5.080 W 0.00m 0.00m 0.00m 0.00m", "\x00\x00\x00\x00\x8a\xfc\x80\x00\x7f\x87\x12\xa8\x00\x98\x96\x80"))
+     (CASE_L(QType::LOC, "51 11 59.999 N 2 12 5.080 W 0.00m 0.00m 0.00m 0.00m", "51 11 59.999 N 2 12 5.080 W 0.00m 0.00m 0.00m 0.00m", "\x00\x00\x00\x00\x8a\xfc\x7f\xff\x7f\x87\x12\xa8\x00\x98\x96\x80"))
+     (CASE_L(QType::LOC, "49 18 0.000 N 10 35 0.000 E 409.00m 1.00m 10000.00m 10.00m", "49 18 0.000 N 10 35 0.000 E 409.00m 1.00m 10000.00m 10.00m", "\x00\x12\x16\x13\x8a\x94\x21\x40\x82\x45\x5c\x20\x00\x99\x36\x44"))
+     (CASE_L(QType::LOC, "49 18 0.000 S 10 35 0.000 W 409.00m 1.00m 10000.00m 10.00m", "49 18 0.000 S 10 35 0.000 W 409.00m 1.00m 10000.00m 10.00m", "\x00\x12\x16\x13\x75\x6b\xde\xc0\x7d\xba\xa3\xe0\x00\x99\x36\x44"))
      (CASE_S(QType::SRV, "10 10 5060 sip.rec.test.", "\x00\x0a\x00\x0a\x13\xc4\x03sip\x03rec\x04test\x00"))
 // non-local name
      (CASE_S(QType::SRV, "10 10 5060 sip.example.com.", "\x00\x0a\x00\x0a\x13\xc4\x03sip\x07""example\x03""com\x00"))
@@ -305,8 +305,12 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
    BOOST_TEST_MESSAGE("Checking record type " << q.toString() << " test #" << n);
    try {
       std::string recData;
-      auto rec = DNSRecordContent::make(q.getCode(), 1, inval);
-      BOOST_CHECK_MESSAGE(rec != NULL, "make( " << q.getCode() << ", 1, " << inval << ") should not return NULL");
+      uint16_t qclass = QClass::IN;
+      if (q.getCode() == QType::TSIG || q.getCode() == QType::TKEY) {
+        qclass = QClass::ANY;
+      }
+      auto rec = DNSRecordContent::make(q.getCode(), qclass, inval);
+      BOOST_CHECK_MESSAGE(rec != nullptr, "make( " << q.getCode() << ", " << qclass << ", " << inval << ") should not return NULL");
       if (rec == NULL) continue;
       // now verify the record (note that this will be same as *zone* value (except for certain QTypes)
 
@@ -325,7 +329,7 @@ BOOST_AUTO_TEST_CASE(test_record_types) {
       }
       recData = rec->serialize(DNSName("rec.test"));
 
-      std::shared_ptr<DNSRecordContent> rec2 = DNSRecordContent::deserialize(DNSName("rec.test"),q.getCode(),recData);
+      auto rec2 = DNSRecordContent::deserialize(DNSName("rec.test"), q.getCode(), recData, qclass);
       BOOST_CHECK_MESSAGE(rec2 != NULL, "deserialize(rec.test, " << q.getCode() << ", recData) should not return NULL");
       if (rec2 == NULL) continue;
       // now verify the zone representation (here it can be different!)
@@ -434,7 +438,6 @@ BOOST_AUTO_TEST_CASE(test_opt_record_in) {
 
   // test that nsid gets parsed into system
   std::string packet("\xf0\x01\x01\x00\x00\x01\x00\x01\x00\x00\x00\x01\x03www\x08powerdns\x03""com\x00\x00\x01\x00\x01\x03www\x08powerdns\x03""com\x00\x00\x01\x00\x01\x00\x00\x00\x10\x00\x04\x7f\x00\x00\x01\x00\x00\x29\x05\x00\x00\x00\x00\x00\x00\x0c\x00\x03\x00\x08powerdns",89);
-  OPTRecordContent::report();
 
   MOADNSParser mdp(true, (char*)&*packet.begin(), (unsigned int)packet.size());
 
@@ -587,6 +590,9 @@ BOOST_AUTO_TEST_CASE(test_nsec_records_in) {
 
     BOOST_CHECK_THROW(MOADNSParser failParser(false, reinterpret_cast<const char*>(packet.data()), packet.size()-1), MOADNSException);
   }
+
+  // Invalid length of the NSEC3 hex blob
+  BOOST_CHECK_THROW(DNSRecordContent::make(QType::NSEC3PARAM, QClass::IN, "1 0 12 abcde"), RecordTextException);
 }
 
 BOOST_AUTO_TEST_CASE(test_nsec_records_types) {
@@ -701,7 +707,7 @@ BOOST_AUTO_TEST_CASE(test_nsec3_records_types) {
 
     MOADNSParser parser(false, reinterpret_cast<const char*>(packet.data()), packet.size());
     BOOST_REQUIRE_EQUAL(parser.d_answers.size(), 1U);
-    const auto& record = parser.d_answers.at(0).first;
+    const auto& record = parser.d_answers.at(0);
     BOOST_REQUIRE(record.d_type == QType::NSEC3);
     BOOST_REQUIRE(record.d_class == QClass::IN);
     auto content = getRR<NSEC3RecordContent>(record);
@@ -714,6 +720,29 @@ BOOST_AUTO_TEST_CASE(test_nsec3_records_types) {
     boost::to_lower(str2);
     BOOST_CHECK_EQUAL(str2, str);
   }
+}
+
+BOOST_AUTO_TEST_CASE(test_size_estimate)
+{
+  auto anA = DNSRecordContent::make(QType::A, QClass::IN, "1.2.3.4");
+  auto anAAAA = DNSRecordContent::make(QType::AAAA, QClass::IN, "1234:4578:89ab::");
+  auto aTXT = DNSRecordContent::make(QType::TXT, QClass::IN, "\"a somewhat long text\"");
+  BOOST_CHECK(anAAAA->sizeEstimate() < aTXT->sizeEstimate());
+
+  auto rrsigA = DNSRecordContent::make(QType::RRSIG, QClass::IN, "SOA 8 3 300 20130523000000 20130509000000 54216 rec.test. ecWKD/OsdAiXpbM/sgPT82KVD/WiQnnqcxoJgiH3ixHa+LOAcYU7FG7V4BRRJxLriY1e0rB2gAs3kCel9D4bzfK6wAqG4Di/eHUgHptRlaR2ycELJ4t1pjzrnuGiIzA1wM2izRmeE+Xoy1367Qu0pOz5DLzTfQITWFsB2iUzN4Y=");
+  auto rrsigB = DNSRecordContent::make(QType::RRSIG, QClass::IN, "SOA 8 3 300 20130523000000 20130509000000 54216 rec.test. fcWKD/OsdAiXpbM/sgPT82KVD/WiQnnqcxoJgiH3ixHa+LOAcYU7FG7V4BRRJxLriY1e0rB2gAs3kCel9D4bzfK6wAqG4Di/eHUgHptRlaR2ycELJ4t1pjzrnuGiIzA1wM2izRmeE+Xoy1367Qu0pOz5DLzTfQITWFsB2iUzN4YAAAA=");
+  BOOST_CHECK(rrsigA->sizeEstimate() < rrsigB->sizeEstimate());
+  BOOST_CHECK(rrsigA->sizeEstimate() > aTXT->sizeEstimate());
+
+  auto nsecA = DNSRecordContent::make(QType::NSEC, QClass::IN, "host.example.com. A MX RRSIG NSEC TYPE1234");
+  auto nsecB = DNSRecordContent::make(QType::NSEC, QClass::IN, "host1.example.com. A MX RRSIG NSEC TYPE1234");
+  BOOST_CHECK(nsecA->sizeEstimate() < nsecB->sizeEstimate());
+  BOOST_CHECK(nsecA->sizeEstimate() > aTXT->sizeEstimate());
+
+  auto nsec3A = DNSRecordContent::make(QType::NSEC3, QClass::IN, "1 1 12 aabbccdd 2vptu5timamqttgl4luu9kg21e0aor3s a mx rrsig nsec3 type1234 type65535");
+  auto nsec3B = DNSRecordContent::make(QType::NSEC3, QClass::IN, "1 1 0 - 2vptu5timamqttgl4luu9kg21e0aor3s");
+  BOOST_CHECK(nsec3A->sizeEstimate() > nsec3B->sizeEstimate());
+  BOOST_CHECK(nsec3B->sizeEstimate() > aTXT->sizeEstimate());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

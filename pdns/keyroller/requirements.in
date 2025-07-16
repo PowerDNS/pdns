@@ -1,0 +1,8 @@
+# To generate requirements.txt, install pip-tools and run:
+#  pip-compile --generate-hashes -U requirements.in
+
+PyYAML==6.0.1
+pytimeparse
+requests
+json_tricks
+nose

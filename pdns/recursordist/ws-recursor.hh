@@ -20,13 +20,18 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
-#include <boost/utility.hpp>
-#include "namespaces.hh"
-#include "mplexer.hh"
+
 #include "webserver.hh"
 
 class HttpRequest;
 class HttpResponse;
+extern void serveRustWeb();
+
+#ifndef RUST_WS
+
+#include <boost/utility.hpp>
+#include "namespaces.hh"
+#include "mplexer.hh"
 
 class AsyncServer : public Server
 {
@@ -52,7 +57,7 @@ class AsyncWebServer : public WebServer
 {
 public:
   AsyncWebServer(FDMultiplexer* fdm, const string& listenaddress, int port) :
-    WebServer(listenaddress, port), d_fdm(fdm){};
+    WebServer(listenaddress, port), d_fdm(fdm) {};
   void go();
 
 private:
@@ -75,3 +80,4 @@ public:
 private:
   std::unique_ptr<AsyncWebServer> d_ws{nullptr};
 };
+#endif

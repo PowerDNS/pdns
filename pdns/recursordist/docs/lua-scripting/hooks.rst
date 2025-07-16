@@ -97,14 +97,14 @@ Interception Functions
 
     The tagged packetcache can e.g. be used to answer queries from cache that have e.g. been filtered for certain IPs (this logic should be implemented in :func:`gettag`).
     This ensure that queries are answered quickly compared to setting :attr:`dq.variable <DNSQuestion.variable>` to true.
-    In the latter case, repeated queries will not be found in the packetcache and pass through the entire resolving process, and all relevant Lua hooks wil be called.
+    In the latter case, repeated queries will not be found in the packetcache and pass through the entire resolving process, and all relevant Lua hooks will be called.
 
     :param ComboAddress remote: The sender's IP address
     :param Netmask ednssubnet: The EDNS Client subnet that was extracted from the packet
     :param ComboAddress localip: The IP address the query was received on
     :param DNSName qname: The domain name the query is for
     :param int qtype: The query type of the query
-    :param ednsoptions: A table whose keys are EDNS option codes and values are :class:`EDNSOptionView` objects. This table is empty unless the :ref:`setting-gettag-needs-edns-options` option is set.
+    :param ednsoptions: A table whose keys are EDNS option codes and values are :class:`EDNSOptionView` objects. This table is empty unless the :ref:`setting-yaml-incoming.gettag_needs_edns_options` option is set.
     :param bool tcp: Added in 4.1.0, a boolean indicating whether the query was received over UDP (false) or TCP (true).
     :param proxyprotocolvalues: Added in 4.4.0, a table of :class:`ProxyProtocolValue` objects representing the Type-Length Values received via the Proxy Protocol, if any.
 
@@ -183,13 +183,17 @@ Interception Functions
 
 .. function:: preoutquery(dq) -> bool
 
+  .. versionchanged:: 5.3.0
+
+    :attr:`dq.isTCP <DNSQuestion.isTcp>` can be set to force TCP or UDP
+
   This hook is not called in response to a client packet, but fires when the Recursor wants to talk to an authoritative server.
 
   When this hook sets the special result code ``-3``, the whole DNS client query causing this outgoing query gets a ``ServFail``.
 
   However, this function can also return records like :func:`preresolve`.
 
-  :param DNSQuestion dq: The DNS question to handle.
+  :param DNSQuestion dq: Attributes of a DNS question to be sent out to an authoritative server
 
   In the case of :func:`preoutquery`, only a few attributes if the :class:`dq <DNSQuestion>` object are filled in:
 
@@ -197,7 +201,10 @@ Interception Functions
   - :attr:`dq.localaddr <DNSQuestion.localaddr>`
   - :attr:`dq.qname <DNSQuestion.qname>`
   - :attr:`dq.qtype <DNSQuestion.qtype>`
-  - :attr:`dq.isTcp <DNSQuestion.isTcp>`
+  - :attr:`dq.isTcp <DNSQuestion.isTcp>` since version 5.3.0 this attribute may be changed by the hook to force the use of UDP or TCP
+
+  Note that except for :attr:`dq.localaddr <DNSQuestion.localaddr>`, which identifies the client that triggered this outgoing query, all other attributes apply to
+  the *outgoing* query that will be sent by the :program:`Recursor`.
 
   Do not rely on other attributes having a value and do not call any method of the :class:`dq <DNSQuestion>` object apart from the record set manipulation methods.
 
@@ -206,8 +213,9 @@ Interception Functions
   .. versionadded:: 4.4.0
 
   This hook is called when a filtering policy has been hit, before the decision has been applied, making it possible to change a policy decision by altering its content or to skip it entirely.
-  Using the :meth:`event:discardPolicy() <PolicyEvent:discardPolicy>` function, it is also possible to selectively disable one or more filtering policy, for example RPZ zones.
-  The return value indicates whether the policy hit should be completely ignored (true) or applied (false), possibly after editing the action to take in that latter case (see :ref:`modifyingpolicydecisions` below). when true is returned, the resolution process will resume as if the policy hit never took place.
+  Using the :meth:`event:discardPolicy() <PolicyEvent:discardPolicy>` function it is also possible to selectively disable one or more filtering policies, for example RPZ zones.
+  The return value indicates whether the policy hit should be completely ignored (``true``) or applied (``false``), possibly after editing the action to take in that latter case.
+  When ``true`` is returned the resolution process will resume as if the policy hit never took place.
 
   :param PolicyEvent event: The event to handle
 
@@ -223,20 +231,7 @@ Interception Functions
         return false
       end
 
-  To alter the decision of the policy hit instead:
-
-  .. code-block:: Lua
-
-      function policyEventFilter(event)
-        if event.qname:equal("example.com") then
-          -- replace the decision with a custom CNAME
-          event.appliedPolicy.policyKind = pdns.policykinds.Custom
-          event.appliedPolicy.policyCustom = "example.net"
-          -- returning false so that the hit is not ignored
-          return false
-        end
-        return false
-      end
+  To alter the decision of the policy hit instead see :ref:`modifyingpolicydecisions`.
 
 .. _hook-semantics:
 
@@ -250,7 +245,7 @@ If a function has taken over a request, it can set an rcode (usually 0), and spe
 An interesting rcode is `NXDOMAIN` (3, or ``pdns.NXDOMAIN``), which specifies the non-existence of a domain.
 Instead of setting an rcode and records, it can also set fields in the applied policy to influence further processing.
 
-The :func:`ipfilter` and :func:`preoutquery` hooks are different, in that :func:`ipfilter` can only return a true of false value, and that :func:`preoutquery` can also set rcode -3 to signify that the whole query should be terminated.
+The :func:`ipfilter` and :func:`preoutquery` hooks are different, in that :func:`ipfilter` can only return a true or false value, and that :func:`preoutquery` can also set rcode -3 to signify that the whole query should be terminated.
 
 The :func:`policyEventFilter` has a different meaning as well, where returning true means that the policy hit should be ignored and normal processing should be resumed.
 
@@ -373,32 +368,51 @@ This script requires PowerDNS Recursor 4.x or later.
 
 Modifying Policy Decisions
 --------------------------
-The PowerDNS Recursor has a :doc:`policy engine based on Response Policy Zones (RPZ) <../lua-config/rpz>`.
-Starting with version 4.0.1 of the recursor, it is possible to alter this decision inside the Lua hooks.
+:program:`Recursor` has a :doc:`policy engine based on Response Policy Zones (RPZ) <../lua-config/rpz>`.
+It is possible to alter decisions by using Lua hooks.
+The :func:`policyEventFilter` hook is called on policy hits but before the policy comes into action, allowing
+modifications of the policy decision.
 
-If the decision is modified in a Lua hook, ``false`` should be
-returned, as the query is not actually handled by Lua so the decision
-is picked up by the Recursor.
-
-Before 4.4.0, the result of the policy decision is checked after :func:`preresolve` and :func:`postresolve`. Beginning with version 4.4.0, the policy decision is checked after :func:`preresolve` and any :func:`policyEventFilter` call instead.
-
-For example, if a decision is set to ``pdns.policykinds.NODATA`` by the policy engine and is unchanged in :func:`preresolve`, the query is replied to with a NODATA response immediately after :func:`preresolve`.
-
-Example script
-^^^^^^^^^^^^^^
+Example script using :func:`policyEventFilter`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: Lua
 
-    -- This script demonstrates modifying policies for versions before 4.4.0.
-    -- Starting with 4.4.0, it is preferred to use a policyEventFilter.
-    -- Dont ever block my own domain and IPs
+    -- This is the preferred approach to modify policy decisions.
+    -- Dont ever block my own domain and IPs.
+    -- To make the policy engine ignore a hit instead, return true.
+    function policyEventFilter(event)
+      if event.qname:equal("example.com") then
+        -- replace the decision with a custom CNAME
+        event.appliedPolicy.policyKind = pdns.policykinds.Custom
+        event.appliedPolicy.policyCustom = "example.net"
+        -- returning false so that the hit is not ignored
+        return false
+      end
+      return false
+    end
+
+If the decision is modified in Lua hooks other than :func:`policyEventFilter` (like :func:`preresolve`), ``false`` should be
+returned, as the hook decided not to handle the query.
+This makes the Recursor pick up the modified decision.
+
+The policy decision is checked after :func:`preresolve` and any :func:`policyEventFilter` call.
+
+Pre-4.4.0 example script
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: Lua
+
+    -- It is preferred to use a policyEventFilter, see example above.
+    -- Dont ever block my own domain and IPs.
     myDomain = newDN("example.com")
 
     myNetblock = newNMG()
     myNetblock:addMasks({"192.0.2.0/24"})
 
     function preresolve(dq)
-      if dq.qname:isPartOf(myDomain) and dq.appliedPolicy.policyKind ~= pdns.policykinds.NoAction then
+      if dq.qname:isPartOf(myDomain) and
+          dq.appliedPolicy.policyKind ~= pdns.policykinds.NoAction then
         pdnslog("Not blocking our own domain!")
         dq.appliedPolicy.policyKind = pdns.policykinds.NoAction
       end
@@ -454,4 +468,4 @@ This function expects no argument and doesn't return any value.
         -- Perform here your maintenance
     end
 
-The interval can be configured through the :ref:`setting-lua-maintenance-interval` setting.
+The interval can be configured through the :ref:`setting-yaml-recursor.lua_maintenance_interval` setting.

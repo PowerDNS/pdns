@@ -142,7 +142,7 @@ int main(int argc, char **argv)
       message="SHOW *";
       command="show";
     }
-    else if(command=="quit" || command=="QUIT") {
+    else if(command=="quit" || command=="QUIT" || command == "stop" || command == "STOP") {
       message="QUIT";
     }
     else if(command=="status" || command=="STATUS") {

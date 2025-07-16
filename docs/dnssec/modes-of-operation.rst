@@ -138,22 +138,22 @@ Pre-signed records
 ------------------
 
 In this mode, PowerDNS serves zones that already contain DNSSEC records.
-Such zones can either be slaved from a remote master in online signing
-mode, or can be pre-signed using tools like OpenDNSSEC, ldns-signzone,
+Such zones can either be served as secondary from a remote primary in online
+signing mode, or can be pre-signed using tools like OpenDNSSEC, ldns-signzone,
 and dnssec-signzone.
 
-Even in this mode, PowerDNS will synthesize NSEC(3) records itself
-because of its architecture. RRSIGs of these NSEC(3) will still need to
+Even in this mode, PowerDNS will synthesize NSEC/NSEC3 records itself
+because of its architecture. RRSIGs of these records will still need to
 be imported. See the :ref:`Presigned migration guide <dnssec-migration-presigned>`.
 
 Front-signing
 -------------
 
 As a special feature, PowerDNS can operate as a signing server which
-operates as a slave to an unsigned master.
+operates as a secondary to an unsigned primary.
 
 In this way, if keying material is available for an unsigned zone that
-is retrieved from a master server, this keying material will be used
+is retrieved from a primary server, this keying material will be used
 when serving data from this zone.
 
 As part of the zone retrieval, the equivalent of
@@ -163,10 +163,10 @@ fields are set correctly in the backend.
 Signed AXFR
 -----------
 
-An outgoing zone transfer from a signing master contains all information
+An outgoing zone transfer from a signing primary contains all information
 required for the receiving party to rectify the zone without knowing the
 keys, such as signed NSEC3 records for empty non-terminals. The zone is
-not required to be rectified on the master.
+not required to be rectified on the primary.
 
 The signing and hashing algorithms are described in :ref:`dnssec-online-signing`.
 

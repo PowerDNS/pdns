@@ -60,6 +60,7 @@
 #include <pwd.h>
 #include <grp.h>
 #include <climits>
+#include <unordered_map>
 #ifdef __FreeBSD__
 #  include <pthread_np.h>
 #endif
@@ -307,69 +308,6 @@ string nowTime()
   return {buffer.data()};
 }
 
-static bool ciEqual(const string& lhs, const string& rhs)
-{
-  if (lhs.size() != rhs.size()) {
-    return false;
-  }
-
-  string::size_type pos = 0;
-  const string::size_type epos = lhs.size();
-  for (; pos < epos; ++pos) {
-    if (dns_tolower(lhs[pos]) != dns_tolower(rhs[pos])) {
-      return false;
-    }
-  }
-  return true;
-}
-
-/** does domain end on suffix? Is smart about "wwwds9a.nl" "ds9a.nl" not matching */
-static bool endsOn(const string &domain, const string &suffix)
-{
-  if( suffix.empty() || ciEqual(domain, suffix) ) {
-    return true;
-  }
-
-  if(domain.size() <= suffix.size()) {
-    return false;
-  }
-
-  string::size_type dpos = domain.size() - suffix.size() - 1;
-  string::size_type spos = 0;
-
-  if (domain[dpos++] != '.') {
-    return false;
-  }
-
-  for(; dpos < domain.size(); ++dpos, ++spos) {
-    if (dns_tolower(domain[dpos]) != dns_tolower(suffix[spos])) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-/** strips a domain suffix from a domain, returns true if it stripped */
-bool stripDomainSuffix(string *qname, const string &domain)
-{
-  if (!endsOn(*qname, domain)) {
-    return false;
-  }
-
-  if (toLower(*qname) == toLower(domain)) {
-    *qname="@";
-  }
-  else {
-    if ((*qname)[qname->size() - domain.size() - 1] != '.') {
-      return false;
-    }
-
-    qname->resize(qname->size() - domain.size()-1);
-  }
-  return true;
-}
-
 // returns -1 in case if error, 0 if no data is available, 1 if there is. In the first two cases, errno is set
 int waitForData(int fileDesc, int seconds, int useconds)
 {
@@ -568,7 +506,7 @@ std::string getCarbonHostName()
     throw std::runtime_error(stringerror());
   }
 
-  boost::replace_all(*hostname, ".", "_");
+  std::replace(hostname->begin(), hostname->end(), '.', '_');
   return *hostname;
 }
 
@@ -630,15 +568,16 @@ string U32ToIP(uint32_t val)
 }
 
 
-string makeHexDump(const string& str)
+string makeHexDump(const string& str, const string& sep)
 {
   std::array<char, 5> tmp;
   string ret;
-  ret.reserve(static_cast<size_t>(str.size()*2.2));
+  ret.reserve(static_cast<size_t>(str.size() * (2 + sep.size())));
 
   for (char n : str) {
-    snprintf(tmp.data(), tmp.size(), "%02x ", static_cast<unsigned char>(n));
+    snprintf(tmp.data(), tmp.size(), "%02x", static_cast<unsigned char>(n));
     ret += tmp.data();
+    ret += sep;
   }
   return ret;
 }
@@ -727,6 +666,62 @@ int logFacilityToLOG(unsigned int facility)
   default:
     return -1;
   }
+}
+
+std::optional<int> logFacilityFromString(std::string facilityStr)
+{
+  static std::unordered_map<std::string, int> const s_facilities = {
+    {"local0", LOG_LOCAL0},
+    {"log_local0", LOG_LOCAL0},
+    {"local1", LOG_LOCAL1},
+    {"log_local1", LOG_LOCAL1},
+    {"local2", LOG_LOCAL2},
+    {"log_local2", LOG_LOCAL2},
+    {"local3", LOG_LOCAL3},
+    {"log_local3", LOG_LOCAL3},
+    {"local4", LOG_LOCAL4},
+    {"log_local4", LOG_LOCAL4},
+    {"local5", LOG_LOCAL5},
+    {"log_local5", LOG_LOCAL5},
+    {"local6", LOG_LOCAL6},
+    {"log_local6", LOG_LOCAL6},
+    {"local7", LOG_LOCAL7},
+    {"log_local7", LOG_LOCAL7},
+    /* most of these likely make very little sense
+       for us, but why not? */
+    {"kern", LOG_KERN},
+    {"log_kern", LOG_KERN},
+    {"user", LOG_USER},
+    {"log_user", LOG_USER},
+    {"mail", LOG_MAIL},
+    {"log_mail", LOG_MAIL},
+    {"daemon", LOG_DAEMON},
+    {"log_daemon", LOG_DAEMON},
+    {"auth", LOG_AUTH},
+    {"log_auth", LOG_AUTH},
+    {"syslog", LOG_SYSLOG},
+    {"log_syslog", LOG_SYSLOG},
+    {"lpr", LOG_LPR},
+    {"log_lpr", LOG_LPR},
+    {"news", LOG_NEWS},
+    {"log_news", LOG_NEWS},
+    {"uucp", LOG_UUCP},
+    {"log_uucp", LOG_UUCP},
+    {"cron", LOG_CRON},
+    {"log_cron", LOG_CRON},
+    {"authpriv", LOG_AUTHPRIV},
+    {"log_authpriv", LOG_AUTHPRIV},
+    {"ftp", LOG_FTP},
+    {"log_ftp", LOG_FTP}
+  };
+
+  toLowerInPlace(facilityStr);
+  auto facilityIt = s_facilities.find(facilityStr);
+  if (facilityIt == s_facilities.end()) {
+    return std::nullopt;
+  }
+
+  return facilityIt->second;
 }
 
 string stripDot(const string& dom)
@@ -1022,6 +1017,36 @@ bool setReuseAddr(int sock)
   if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (char*)&tmp, static_cast<unsigned>(sizeof tmp))<0)
     throw PDNSException(string("Setsockopt failed: ")+stringerror());
   return true;
+}
+
+void setDscp(int sock, unsigned short family, uint8_t dscp)
+{
+  int val = 0;
+  unsigned int len = 0;
+
+  if (dscp == 0 || dscp > 63) {
+    // No DSCP marking
+    return;
+  }
+
+  if (family == AF_INET) {
+    if (getsockopt(sock, IPPROTO_IP, IP_TOS, &val, &len)<0) {
+      throw std::runtime_error(string("Set DSCP failed: ")+stringerror());
+    }
+    val = (dscp<<2) | (val&0x3);
+    if (setsockopt(sock, IPPROTO_IP, IP_TOS, &val, sizeof(val))<0) {
+      throw std::runtime_error(string("Set DSCP failed: ")+stringerror());
+    }
+  }
+  else if (family == AF_INET6) {
+    if (getsockopt(sock, IPPROTO_IPV6, IPV6_TCLASS, &val, &len)<0) {
+      throw std::runtime_error(string("Set DSCP failed: ")+stringerror());
+    }
+    val = (dscp<<2) | (val&0x3);
+    if (setsockopt(sock, IPPROTO_IPV6, IPV6_TCLASS, &val, sizeof(val))<0) {
+      throw std::runtime_error(string("Set DSCP failed: ")+stringerror());
+    }
+  }
 }
 
 bool isNonBlocking(int sock)

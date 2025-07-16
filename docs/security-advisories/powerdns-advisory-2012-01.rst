@@ -19,7 +19,7 @@ PowerDNS Security Advisory 2012-01: PowerDNS Authoritative Server can be caused 
    does have a performance impact. Please see below.
 
 Affected versions of the PowerDNS Authoritative Server can be made to
-respond to DNS responses, thus enabling an attacker to setup a packet
+respond to DNS responses, thus enabling an attacker to set up a packet
 loop between two PowerDNS servers, perpetually answering each other's
 answers. In some scenarios, a server could also be made to talk to
 itself, achieving the same effect.
@@ -48,9 +48,9 @@ INPUT.
 To solve this issue, we recommend upgrading to the latest packages
 available for your system. Tarballs and new static builds (32/64bit,
 RPM/DEB) of 2.9.22.5 and 3.0.1 have been uploaded to `our download
-site <http://www.powerdns.com/content/downloads.html>`__. Kees
+site <https://www.powerdns.com/downloads>`__. Kees
 Monshouwer has provided updated CentOS/RHEL packages in `his
-repository <http://www.monshouwer.eu/download/3th_party/>`__. Debian,
+repository <https://www.monshouwer.eu/download/3th_party/>`__. Debian,
 Fedora and SuSE should have packages available shortly after this
 announcement.
 

@@ -1,6 +1,32 @@
 Upgrade Guide
 =============
 
+1.9.x to 2.0.0
+--------------
+
+Since 2.0.0, a Python 3 interpreter with the ``YAML`` module is required to build :program:`dnsdist`.
+:program:`dnsdist` 2.0.0 also supports a new, optional ``yaml`` :doc:`configuration format <reference/yaml-settings>`. To build with this feature enabled, a Rust development environment, including ``rustc`` and ``cargo`` is needed.
+
+:func:`showTLSContexts` has been renamed to :func:`showTLSFrontends`.
+:func:`getTLSContext` and the associated :class:`TLSContext` have been removed, please use :func:`getTLSFrontend` and the associated :class:`TLSFrontend` instead.
+
+Our eBPF filtering code no longer treats the ``255``/``ANY`` qtype as a special value intended to block queries for all types, and will only block ``ANY`` queries instead. The reserved ``65535`` value now can be used to block queries for all qtypes.
+
+XPF support has been removed.
+
+:meth:`Server:setAuto` used to reset the health-check mode to ``active`` even if it had previously been set to ``lazy`` via :meth:`Server:setLazyAuto`. This is no longer the case, and :meth:`Server:setActiveAuto` should be used instead to set the health-check mode to ``Active``.
+
+The ``options`` parameter of :func:`HTTPStatusAction` has been deprecated because it had unexpected side-effects, and should thus no longer be used.
+
+In some cases, :program:`dnsdist` turns an incoming query into a response, setting the response code in the process. When doing so, it was not properly cleaning up records present in the answer, authority or additional sections, which could have been surprising to clients and wasted bandwidth. This has now been fixed. The cases in question are:
+
+* :func:`RCodeAction`
+* :func:`ERCodeAction`
+* returning ``DNSAction.Nxdomain``, ``DNSAction.Refused`` or ``DNSAction.ServFail`` from ``Lua``
+* using the ``DNSAction.Nxdomain``, ``DNSAction.Refused`` or ``DNSAction.ServFail`` dynamic block actions
+* sending ``Server Failure`` when no downstream servers are usable
+* receiving a zone transfer request over DoQ, DoH or DoH3
+
 1.8.x to 1.9.0
 --------------
 
@@ -61,7 +87,7 @@ Plain-text API keys and passwords for web server authentication are now strongly
 1.5.x to 1.6.0
 --------------
 
-The packet cache no longer hashes EDNS Cookies by default, which means that two queries that are identical except for the content of their cookie will now be served the same answer. This only works if the backend is not returning any answer containing EDNS Cookies, otherwise the wrong cookie might be returned to a client. To prevent this, the ``cookieHashing=true`` parameter might be passed to :func:`newPacketCache` so that cookies are hashed, resulting in separate entries in the packet cache.
+The packet cache no longer hashes EDNS Cookies by default, which means that two queries that are identical except for the content of their cookie will now be served the same answer. This only works if the backend is not returning any answer containing EDNS Cookies; otherwise, the wrong cookie might be returned to a client. To prevent this, the ``cookieHashing=true`` parameter might be passed to :func:`newPacketCache` so that cookies are hashed, resulting in separate entries in the packet cache.
 
 All TCP worker threads are now created at startup, instead of being created on-demand. The existing behaviour was useful for very small setups but did not scale quickly to a large amount of TCP connections.
 The new behaviour can cause a noticeable increase of TCP connections between dnsdist and its backends, as the TCP connections are not shared between TCP worker threads.

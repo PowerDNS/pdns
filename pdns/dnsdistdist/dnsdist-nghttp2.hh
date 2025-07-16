@@ -57,16 +57,14 @@ private:
 
 extern std::unique_ptr<DoHClientCollection> g_dohClientThreads;
 extern std::atomic<uint64_t> g_dohStatesDumpRequested;
-extern std::optional<uint16_t> g_outgoingDoHWorkerThreads;
 
 class TLSCtx;
 
 bool initDoHWorkers();
-bool setupDoHClientProtocolNegotiation(std::shared_ptr<TLSCtx>& ctx);
 
 /* opens a new HTTP/2 connection to the supplied backend (attached to the supplied multiplexer), sends the query,
    waits for the response to come back or an error to occur then notifies the sender, closing the connection. */
-bool sendH2Query(const std::shared_ptr<DownstreamState>& ds, std::unique_ptr<FDMultiplexer>& mplexer, std::shared_ptr<TCPQuerySender>& sender, InternalQuery&& query, bool healthCheck);
+bool sendH2Query(const std::shared_ptr<DownstreamState>& downstream, std::unique_ptr<FDMultiplexer>& mplexer, std::shared_ptr<TCPQuerySender>& sender, InternalQuery&& query, bool healthCheck);
 size_t handleH2Timeouts(FDMultiplexer& mplexer, const struct timeval& now);
 size_t clearH2Connections();
 

@@ -104,7 +104,7 @@ void Logger::log(const string& msg, Urgency u) noexcept
     }
 
     static std::mutex mutex;
-    std::lock_guard<std::mutex> lock(mutex); // the C++-2011 spec says we need this, and OSX actually does
+    auto lock = std::scoped_lock(mutex); // the C++-2011 spec says we need this, and OSX actually does
 
     // To avoid issuing multiple syscalls, we write the complete line to clog with a single << call.
     // For that we need a buffer allocated, we might want to use writev(2) one day to avoid that.
@@ -165,7 +165,7 @@ void Logger::setName(const string& _name)
 }
 
 Logger::Logger(string n, int facility) :
-  name(std::move(n)), flags(LOG_PID | LOG_NDELAY), d_facility(facility), d_loglevel(Logger::None), consoleUrgency(Error), opened(false), d_disableSyslog(false)
+  name(std::move(n)), flags(LOG_PID | LOG_NDELAY), d_facility(facility)
 {
   open();
 }
@@ -211,9 +211,24 @@ Logger& Logger::operator<<(const DNSName& d)
   return *this;
 }
 
+#if defined(PDNS_AUTH)
+Logger& Logger::operator<<(const ZoneName& zone)
+{
+  *this << zone.toLogString();
+
+  return *this;
+}
+#endif
+
 Logger& Logger::operator<<(const ComboAddress& ca)
 {
   *this << ca.toLogString();
+  return *this;
+}
+
+Logger& Logger::operator<<(const SockaddrWrapper& sockaddr)
+{
+  *this << sockaddr.toString();
   return *this;
 }
 

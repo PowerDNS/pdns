@@ -26,6 +26,8 @@ AC_PROG_CC
 AC_PROG_CXX
 AC_LANG([C++])
 
+CPPFLAGS="-DPDNS_AUTH $CPPFLAGS"
+
 PDNS_CHECK_TIME_T
 PDNS_CHECK_BISON
 PDNS_CHECK_FLEX
@@ -42,7 +44,7 @@ PTHREAD_SET_NAME
 AC_FUNC_STRERROR_R
 AX_CXX_CXXFS
 
-PDNS_WITH_LUA([mandatory])
+PDNS_WITH_LUA
 PDNS_CHECK_LUA_HPP
 
 AC_MSG_CHECKING([whether we will enable compiler security checks])
@@ -88,7 +90,6 @@ AC_CHECK_HEADERS(
 AC_CHECK_HEADERS([sys/random.h])
 
 PDNS_WITH_LIBSODIUM
-PDNS_WITH_LIBDECAF
 PDNS_CHECK_LIBCRYPTO([
 ],[
    AC_MSG_ERROR([OpenSSL/libcrypto not found])
@@ -114,13 +115,7 @@ PDNS_ENABLE_IPCIPHER
 PDNS_CHECK_RAGEL([pdns/dnslabeltext.cc], [www.powerdns.com])
 PDNS_CHECK_CLOCK_GETTIME
 
-BOOST_REQUIRE([1.42])
-# Boost accumulators, as used by dnsbulktest and dnstcpbench, need 1.48+
-# to be compatible with C++11
-AM_CONDITIONAL([HAVE_BOOST_GE_148], [test "$boost_major_version" -ge 148])
-AS_IF([test "$boost_major_version" -ge 148], [
-  AC_DEFINE(HAVE_BOOST_GE_148, [1], [Define to 1 if you have boost >= 1.48])
-])
+BOOST_REQUIRE([1.54])
 
 BOOST_PROGRAM_OPTIONS([mt])
 AS_IF([test "$boost_cv_lib_program_options" = "no"], [
@@ -155,7 +150,7 @@ PDNS_FROM_GIT
 dnl Checks for library functions.
 dnl the *_r functions are in posix so we can use them unconditionally, but the ext/yahttp code is
 dnl using the defines.
-AC_CHECK_FUNCS_ONCE([strcasestr localtime_r gmtime_r recvmmsg sched_setscheduler])
+AC_CHECK_FUNCS_ONCE([localtime_r gmtime_r recvmmsg sched_setscheduler])
 AC_CHECK_FUNCS_ONCE([getrandom getentropy arc4random arc4random_uniform arc4random_buf])
 PDNS_CHECK_SECURE_MEMSET
 
@@ -347,6 +342,19 @@ AS_IF([test "x$PACKAGEVERSION" != "x"],
 
 export moduledirs moduleobjects modulelibs
 
+AM_CONDITIONAL([BINDBACKEND_DYNMODULE],     [echo $dynmodules | grep -w bind])
+AM_CONDITIONAL([GEOIPBACKEND_DYNMODULE],    [echo $dynmodules | grep -w geoip])
+AM_CONDITIONAL([GMYSQLBACKEND_DYNMODULE],   [echo $dynmodules | grep -w gmysql])
+AM_CONDITIONAL([GODBCBACKEND_DYNMODULE],    [echo $dynmodules | grep -w godbc])
+AM_CONDITIONAL([GPGSQLBACKEND_DYNMODULE],   [echo $dynmodules | grep -w gpgsql])
+AM_CONDITIONAL([GSQLITE3BACKEND_DYNMODULE], [echo $dynmodules | grep -w gsqlite3])
+AM_CONDITIONAL([LDAPBACKEND_DYNMODULE],     [echo $dynmodules | grep -w ldap])
+AM_CONDITIONAL([LMDBBACKEND_DYNMODULE],     [echo $dynmodules | grep -w lmdb])
+AM_CONDITIONAL([LUA2BACKEND_DYNMODULE],     [echo $dynmodules | grep -w lua2])
+AM_CONDITIONAL([PIPEBACKEND_DYNMODULE],     [echo $dynmodules | grep -w pipe])
+AM_CONDITIONAL([REMOTEBACKEND_DYNMODULE],   [echo $dynmodules | grep -w remote])
+AM_CONDITIONAL([TINYDNSBACKEND_DYNMODULE],  [echo $dynmodules | grep -w tinydns])
+
 AC_CONFIG_FILES([
   Makefile
   modules/Makefile
@@ -410,11 +418,11 @@ AS_IF([test "x$libcrypto_ecdsa" = "xyes"],
   [AC_MSG_NOTICE([OpenSSL ecdsa: yes])],
   [AC_MSG_NOTICE([OpenSSL ecdsa: no])]
 )
-AS_IF([test "x$LIBSODIUM_LIBS" != "x" || test "x$LIBDECAF_LIBS" != "x" || test "x$libcrypto_ed25519" = "xyes"],
+AS_IF([test "x$LIBSODIUM_LIBS" != "x" || test "x$libcrypto_ed25519" = "xyes"],
   [AC_MSG_NOTICE([ed25519: yes])],
   [AC_MSG_NOTICE([ed25519: no])]
 )
-AS_IF([test "x$LIBDECAF_LIBS" != "x" || test "x$libcrypto_ed448" = "xyes"],
+AS_IF([test "x$libcrypto_ed448" = "xyes"],
   [AC_MSG_NOTICE([ed448: yes])],
   [AC_MSG_NOTICE([ed448: no])]
 )

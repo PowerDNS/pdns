@@ -488,7 +488,7 @@ Changelogs for 4.1.x
     :pullreq: 6555
     :tickets: 6396
 
-    Report unparseable data in stoul invalid_argument exception
+    Report unparsable data in stoul invalid_argument exception
 
   .. change::
     :tags: Improvements
@@ -517,7 +517,7 @@ Changelogs for 4.1.x
 
   This is the second release in the 4.1 train.
 
-  This is a bug-fix only release, with fixes to the LDAP and MySQL backends, the ``pdnsutil`` tool, and PDNS internals.
+  This is a bug-fix only release, with fixes to the LDAP and MySQL backends, the :doc:`pdnsutil <../manpages/pdnsutil.1>` tool, and PDNS internals.
 
   Changes since 4.1.1:
 
@@ -643,7 +643,7 @@ Changelogs for 4.1.x
   This is the third release candidate of the PowerDNS Authoritative Server in the 4.1 release train.
 
   This release features various bug fixes and some improvements to
-  ``pdnsutil``.
+  :doc:`pdnsutil <../manpages/pdnsutil.1>`.
 
   .. change::
     :tags: Bug Fixes
@@ -682,7 +682,7 @@ Changelogs for 4.1.x
     :pullreq: 5883
     :tickets: 5853
 
-    Add ``add-meta`` command to ``pdnsutil`` that can be used to append
+    Add ``add-meta`` command to :doc:`pdnsutil <../manpages/pdnsutil.1>` that can be used to append
     to existing metadata without clobbering it.
 
   .. change::
@@ -1447,7 +1447,7 @@ Changelogs for 4.1.x
     :tags: MySQL & Postgresql, Improvements
     :pullreq: 5518
 
-    Schema changes for MySQL / MariaDB and PostgreSQL to for storage requirements of various versions (Kees Monshouwer).
+    Schema changes for MySQL / MariaDB and PostgreSQL for storage requirements of various versions (Kees Monshouwer).
 
   .. change::
     :tags: GeoIP, Improvements

@@ -1,128 +1,128 @@
 start_master ()
 {
-	case $context in
-			bind*)
-				source ./backends/bind-master
-				;;
-			geoip*)
-				source ./backends/geoip-master
-				;;
-			gmysql*)
-				source ./backends/gmysql-master
-				;;
+        case $context in
+                        bind*)
+                                source ./backends/bind-master
+                                ;;
+                        geoip*)
+                                source ./backends/geoip-master
+                                ;;
+                        gmysql*)
+                                source ./backends/gmysql-master
+                                ;;
 
-			godbc_mssql*)
-				[ -z $GODBC_MSSQL_DSN ] && echo '$GODBC_MSSQL_DSN must be set' >&2 && exit 1
-				[ -z $GODBC_MSSQL_USERNAME ] && echo '$GODBC_MSSQL_USERNAME must be set' >&2 && exit 1
-				[ -z $GODBC_MSSQL_PASSWORD ] && echo '$GODBC_MSSQL_PASSWORD must be set' >&2 && exit 1
-				source ./backends/godbc_mssql-master
-				;;
+                        godbc_mssql*)
+                                [ -z $GODBC_MSSQL_DSN ] && echo '$GODBC_MSSQL_DSN must be set' >&2 && exit 1
+                                [ -z $GODBC_MSSQL_USERNAME ] && echo '$GODBC_MSSQL_USERNAME must be set' >&2 && exit 1
+                                [ -z $GODBC_MSSQL_PASSWORD ] && echo '$GODBC_MSSQL_PASSWORD must be set' >&2 && exit 1
+                                source ./backends/godbc_mssql-master
+                                ;;
 
-			godbc_sqlite3*)
-				[ -z $GODBC_SQLITE3_DSN ] && echo '$GODBC_SQLITE3_DSN must be set' >&2 && exit 1
-				source ./backends/godbc_sqlite3-master
-				;;
+                        godbc_sqlite3*)
+                                [ -z $GODBC_SQLITE3_DSN ] && echo '$GODBC_SQLITE3_DSN must be set' >&2 && exit 1
+                                source ./backends/godbc_sqlite3-master
+                                ;;
 
-			gpgsql*)
-				source ./backends/gpgsql-master
-				;;
+                        gpgsql*)
+                                source ./backends/gpgsql-master
+                                ;;
 
-			gsqlite3*)
-				source ./backends/gsqlite3-master
-				;;
+                        gsqlite3*)
+                                source ./backends/gsqlite3-master
+                                ;;
 
-			lmdb*)
-				source ./backends/lmdb-master
-				;;
+                        lmdb*)
+                                source ./backends/lmdb-master
+                                ;;
 
-			remote*)
-				source ./backends/remote-master
-				;;
+                        remote*)
+                                source ./backends/remote-master
+                                ;;
 
-			tinydns*)
-				source ./backends/tinydns-master
-				;;
+                        tinydns*)
+                                source ./backends/tinydns-master
+                                ;;
 
-			ldap*)
-				source ./backends/ldap-master
-				;;
+                        ldap*)
+                                source ./backends/ldap-master
+                                ;;
 
-			lua2*)
-				source ./backends/lua2-master
-				;;
+                        lua2*)
+                                source ./backends/lua2-master
+                                ;;
 
-			ext-nsd*)
-				source ./ext/nsd-master
-				;;
+                        ext-nsd*)
+                                source ./ext/nsd-master
+                                ;;
 
-			ext-bind*)
-				source ./ext/bind-master
-				;;
+                        ext-bind*)
+                                source ./ext/bind-master
+                                ;;
 
-			*)
-				nocontext=yes
-	esac
+                        *)
+                                nocontext=yes
+        esac
 
-	if [ "$nocontext" == "yes" ]
-	then
-		echo unknown context $context
-		: > passed_tests
-		echo 'unknown-context-'"$context" > failed_tests
-		./toxml $context
-		exit
-	fi
+        if [ "$nocontext" == "yes" ]
+        then
+                echo unknown context $context
+                : > passed_tests
+                echo 'unknown-context-'"$context" > failed_tests
+                ./toxml $context
+                exit
+        fi
 }
 
 start_slave ()
 {
-	skipreasons="$skipreasons presigned nodyndns"
+        skipreasons="$skipreasons presigned nodyndns slave"
 
-	case $presignedcontext in
-		bind*)
-			source ./backends/bind-slave
-			;;
+        case $presignedcontext in
+                bind*)
+                        source ./backends/bind-slave
+                        ;;
 
-		gmysql*)
-			source ./backends/gmysql-slave
-			;;
+                gmysql*)
+                        source ./backends/gmysql-slave
+                        ;;
 
-		godbc_mssql*)
-			[ -z $GODBC_MSSQL2_DSN ] && echo '$GODBC_MSSQL2_DSN must be set' >&2 && exit 1
-			[ -z $GODBC_MSSQL2_USERNAME ] && echo '$GODBC_MSSQL2_USERNAME must be set' >&2 && exit 1
-			[ -z $GODBC_MSSQL2_PASSWORD ] && echo '$GODBC_MSSQL2_PASSWORD must be set' >&2 && exit 1
-			source ./backends/godbc_mssql-slave
-			;;
+                godbc_mssql*)
+                        [ -z $GODBC_MSSQL2_DSN ] && echo '$GODBC_MSSQL2_DSN must be set' >&2 && exit 1
+                        [ -z $GODBC_MSSQL2_USERNAME ] && echo '$GODBC_MSSQL2_USERNAME must be set' >&2 && exit 1
+                        [ -z $GODBC_MSSQL2_PASSWORD ] && echo '$GODBC_MSSQL2_PASSWORD must be set' >&2 && exit 1
+                        source ./backends/godbc_mssql-slave
+                        ;;
 
-		gpgsql*)
-		source ./backends/gpgsql-slave
-			;;
+                gpgsql*)
+                source ./backends/gpgsql-slave
+                        ;;
 
-		gsqlite3*)
-			source ./backends/gsqlite3-slave
-			;;
+                gsqlite3*)
+                        source ./backends/gsqlite3-slave
+                        ;;
 
-		lmdb*)
-			source ./backends/lmdb-slave
-			;;
+                lmdb*)
+                        source ./backends/lmdb-slave
+                        ;;
 
-		ext-bind*)
-			source ./ext/bind-slave
-			;;
+                ext-bind*)
+                        source ./ext/bind-slave
+                        ;;
 
-		ext-nsd*)
-			source ./ext/nsd-slave
-			;;
+                ext-nsd*)
+                        source ./ext/nsd-slave
+                        ;;
 
-		*)
-			nocontext=yes
-	esac
+                *)
+                        nocontext=yes
+        esac
 
-	if [ "$nocontext" == "yes" ]
-	then
-		echo unknown presigned context $presignedcontext
-		: > passed_tests
-		echo 'unknown-presigned-context-'"$presignedcontext" > failed_tests
-		./toxml $context
-		exit
-	fi
+        if [ "$nocontext" == "yes" ]
+        then
+                echo unknown presigned context $presignedcontext
+                : > passed_tests
+                echo 'unknown-presigned-context-'"$presignedcontext" > failed_tests
+                ./toxml $context
+                exit
+        fi
 }

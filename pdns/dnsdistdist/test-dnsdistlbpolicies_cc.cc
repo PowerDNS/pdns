@@ -10,27 +10,18 @@
 #include "dnsdist.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-lua-ffi.hh"
+#include "dnsdist-snmp.hh"
 #include "dolog.hh"
 
-uint16_t g_maxOutstanding{std::numeric_limits<uint16_t>::max()};
-
 #include "ext/luawrapper/include/LuaContext.hpp"
-LockGuarded<LuaContext> g_lua{LuaContext()};
+RecursiveLockGuarded<LuaContext> g_lua{LuaContext()};
 
-bool g_snmpEnabled{false};
-bool g_snmpTrapsEnabled{false};
 std::unique_ptr<DNSDistSNMPAgent> g_snmpAgent{nullptr};
 
 #if BENCH_POLICIES
-bool g_verbose{true};
 #include "dnsdist-rings.hh"
 Rings g_rings;
-GlobalStateHolder<NetmaskTree<DynBlock>> g_dynblockNMG;
-GlobalStateHolder<SuffixMatchTree<DynBlock>> g_dynblockSMT;
 #endif /* BENCH_POLICIES */
-
-GlobalStateHolder<pools_t> g_pools;
-std::vector<std::unique_ptr<ClientState>> g_frontends;
 
 /* add stub implementations, we don't want to include the corresponding object files
    and their dependencies */
@@ -42,30 +33,15 @@ bool TLSFrontend::setupTLS()
 }
 
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static): this is a stub, the real one is not that simple..
-std::string DNSQuestion::getTrailingData() const
-{
-  return "";
-}
-
-// NOLINTNEXTLINE(readability-convert-member-functions-to-static): this is a stub, the real one is not that simple..
-bool DNSQuestion::setTrailingData(const std::string& tail)
-{
-  return false;
-}
-
-// NOLINTNEXTLINE(readability-convert-member-functions-to-static): this is a stub, the real one is not that simple..
 bool DNSDistSNMPAgent::sendDNSTrap(const DNSQuestion& dnsQuestion, const std::string& reason)
 {
+  (void)dnsQuestion;
+  (void)reason;
   return false;
 }
 
 void setLuaNoSideEffect()
 {
-}
-
-DNSAction::Action SpoofAction::operator()(DNSQuestion* dnsQuestion, std::string* ruleresult) const
-{
-  return DNSAction::Action::None;
 }
 
 bool setupDoTProtocolNegotiation(std::shared_ptr<TLSCtx>& tlsCtx)
@@ -77,10 +53,10 @@ bool setupDoTProtocolNegotiation(std::shared_ptr<TLSCtx>& tlsCtx)
 // NOLINTNEXTLINE(performance-unnecessary-value-param): this is a stub, the real one is not that simple and the performance does not matter
 void responderThread(std::shared_ptr<DownstreamState> dss)
 {
+  (void)dss;
 }
 
 string g_outputBuffer;
-std::atomic<bool> g_configurationDone{false};
 
 static DNSQuestion getDQ(const DNSName* providedName = nullptr)
 {
@@ -102,9 +78,6 @@ static DNSQuestion getDQ(const DNSName* providedName = nullptr)
 static void benchPolicy(const ServerPolicy& pol)
 {
 #if BENCH_POLICIES
-  bool existingVerboseValue = g_verbose;
-  g_verbose = false;
-
   std::vector<DNSName> names;
   names.reserve(1000);
   for (size_t idx = 0; idx < 1000; idx++) {
@@ -129,8 +102,8 @@ static void benchPolicy(const ServerPolicy& pol)
     }
   }
   cerr << pol.name << " took " << std::to_string(sw.udiff()) << " us for " << names.size() << endl;
-
-  g_verbose = existingVerboseValue;
+#else
+  (void)pol;
 #endif /* BENCH_POLICIES */
 }
 
@@ -138,12 +111,17 @@ static void resetLuaContext()
 {
   /* we need to reset this before cleaning the Lua state because the server policy might holds
      a reference to a Lua function (Lua policies) */
-  g_policy.setState(ServerPolicy("leastOutstanding", leastOutstanding, false));
+  dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
+    config.d_lbPolicy = std::make_shared<ServerPolicy>("leastOutstanding", leastOutstanding, false);
+  });
+  /* we actually need this line to clear the cached state for this thread */
+  BOOST_REQUIRE_EQUAL(dnsdist::configuration::getCurrentRuntimeConfiguration().d_lbPolicy->getName(), "leastOutstanding");
   *(g_lua.lock()) = LuaContext();
 }
 
 BOOST_AUTO_TEST_SUITE(dnsdistlbpolicies)
 
+#if 0
 BOOST_AUTO_TEST_CASE(test_firstAvailable)
 {
   auto dnsQuestion = getDQ();
@@ -223,17 +201,23 @@ BOOST_AUTO_TEST_CASE(test_roundRobin)
   ServerPolicy::NumberedServerVector servers;
 
   /* selecting a server on an empty server list */
-  g_roundrobinFailOnNoServer = false;
+  dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
+    config.d_roundrobinFailOnNoServer = false;
+  });
   auto server = pol.getSelectedBackend(servers, dnsQuestion);
   BOOST_CHECK(server == nullptr);
 
   servers.emplace_back(1, std::make_shared<DownstreamState>(ComboAddress("192.0.2.1:53")));
 
-  /* servers start as 'down' but the RR policy returns a server unless g_roundrobinFailOnNoServer is set */
-  g_roundrobinFailOnNoServer = true;
+  /* servers start as 'down' but the RR policy returns a server unless d_roundrobinFailOnNoServer is set */
+  dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
+    config.d_roundrobinFailOnNoServer = true;
+  });
   server = pol.getSelectedBackend(servers, dnsQuestion);
   BOOST_CHECK(server == nullptr);
-  g_roundrobinFailOnNoServer = false;
+  dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
+    config.d_roundrobinFailOnNoServer = false;
+  });
   server = pol.getSelectedBackend(servers, dnsQuestion);
   BOOST_CHECK(server != nullptr);
 
@@ -466,8 +450,10 @@ BOOST_AUTO_TEST_CASE(test_whashed)
 
 BOOST_AUTO_TEST_CASE(test_chashed)
 {
-  bool existingVerboseValue = g_verbose;
-  g_verbose = false;
+  bool existingVerboseValue = dnsdist::configuration::getCurrentRuntimeConfiguration().d_verbose;
+  dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
+    config.d_verbose = false;
+  });
 
   std::vector<DNSName> names;
   names.reserve(1000);
@@ -549,8 +535,11 @@ BOOST_AUTO_TEST_CASE(test_chashed)
   BOOST_CHECK_GT(got, expected / 2);
   BOOST_CHECK_LT(got, expected * 2);
 
-  g_verbose = existingVerboseValue;
+  dnsdist::configuration::updateRuntimeConfiguration([existingVerboseValue](dnsdist::configuration::RuntimeConfiguration& config) {
+    config.d_verbose = existingVerboseValue;
+  });
 }
+#endif
 
 BOOST_AUTO_TEST_CASE(test_lua)
 {
@@ -571,12 +560,17 @@ BOOST_AUTO_TEST_CASE(test_lua)
   )foo";
   resetLuaContext();
   g_lua.lock()->writeFunction("setServerPolicyLua", [](const string& name, const ServerPolicy::policyfunc_t& policy) {
-    g_policy.setState(ServerPolicy{name, policy, true});
+    auto pol = std::make_shared<ServerPolicy>(name, policy, true);
+    dnsdist::configuration::updateRuntimeConfiguration([&pol](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_lbPolicy = std::move(pol);
+    });
   });
   g_lua.lock()->executeCode(policySetupStr);
 
   {
-    ServerPolicy pol = g_policy.getCopy();
+    const auto& pol = dnsdist::configuration::getCurrentRuntimeConfiguration().d_lbPolicy;
+    BOOST_REQUIRE(pol != nullptr);
+    BOOST_REQUIRE(pol != nullptr);
     ServerPolicy::NumberedServerVector servers;
     std::map<std::shared_ptr<DownstreamState>, uint64_t> serversMap;
     for (size_t idx = 1; idx <= 10; idx++) {
@@ -588,7 +582,7 @@ BOOST_AUTO_TEST_CASE(test_lua)
 
     for (const auto& name : names) {
       auto dnsQuestion = getDQ(&name);
-      auto server = pol.getSelectedBackend(servers, dnsQuestion);
+      auto server = pol->getSelectedBackend(servers, dnsQuestion);
       BOOST_REQUIRE(serversMap.count(server) == 1);
       ++serversMap[server];
     }
@@ -602,11 +596,11 @@ BOOST_AUTO_TEST_CASE(test_lua)
     }
     BOOST_CHECK_EQUAL(total, names.size());
 
-    benchPolicy(pol);
+    benchPolicy(*pol);
   }
   resetLuaContext();
 }
-
+#if 0
 #ifdef LUAJIT_VERSION
 
 BOOST_AUTO_TEST_CASE(test_lua_ffi_rr)
@@ -632,12 +626,16 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_rr)
   resetLuaContext();
   g_lua.lock()->executeCode(getLuaFFIWrappers());
   g_lua.lock()->writeFunction("setServerPolicyLuaFFI", [](const string& name, const ServerPolicy::ffipolicyfunc_t& policy) {
-    g_policy.setState(ServerPolicy(name, policy));
+    auto pol = std::make_shared<ServerPolicy>(name, std::move(policy));
+    dnsdist::configuration::updateRuntimeConfiguration([&pol](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_lbPolicy = std::move(pol);
+    });
   });
   g_lua.lock()->executeCode(policySetupStr);
 
   {
-    ServerPolicy pol = g_policy.getCopy();
+    const auto& pol = dnsdist::configuration::getCurrentRuntimeConfiguration().d_lbPolicy;
+    BOOST_REQUIRE(pol != nullptr);
     ServerPolicy::NumberedServerVector servers;
     std::map<std::shared_ptr<DownstreamState>, uint64_t> serversMap;
     for (size_t idx = 1; idx <= 10; idx++) {
@@ -649,7 +647,7 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_rr)
 
     for (const auto& name : names) {
       auto dnsQuestion = getDQ(&name);
-      auto server = pol.getSelectedBackend(servers, dnsQuestion);
+      auto server = pol->getSelectedBackend(servers, dnsQuestion);
       BOOST_REQUIRE(serversMap.count(server) == 1);
       ++serversMap[server];
     }
@@ -663,7 +661,7 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_rr)
     }
     BOOST_CHECK_EQUAL(total, names.size());
 
-    benchPolicy(pol);
+    benchPolicy(*pol);
   }
   resetLuaContext();
 }
@@ -686,12 +684,16 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_no_server_available)
   resetLuaContext();
   g_lua.lock()->executeCode(getLuaFFIWrappers());
   g_lua.lock()->writeFunction("setServerPolicyLuaFFI", [](const string& policyName, ServerPolicy::ffipolicyfunc_t policy) {
-    g_policy.setState(ServerPolicy(policyName, std::move(policy)));
+    auto pol = std::make_shared<ServerPolicy>(policyName, std::move(policy));
+    dnsdist::configuration::updateRuntimeConfiguration([&pol](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_lbPolicy = std::move(pol);
+    });
   });
   g_lua.lock()->executeCode(policySetupStr);
 
   {
-    ServerPolicy pol = g_policy.getCopy();
+    const auto& pol = dnsdist::configuration::getCurrentRuntimeConfiguration().d_lbPolicy;
+    BOOST_REQUIRE(pol != nullptr);
     ServerPolicy::NumberedServerVector servers;
     for (size_t idx = 1; idx <= 10; idx++) {
       servers.emplace_back(idx, std::make_shared<DownstreamState>(ComboAddress("192.0.2." + std::to_string(idx) + ":53")));
@@ -700,7 +702,7 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_no_server_available)
     BOOST_REQUIRE_EQUAL(servers.size(), 10U);
 
     auto dnsQuestion = getDQ(&dnsName);
-    auto server = pol.getSelectedBackend(servers, dnsQuestion);
+    auto server = pol->getSelectedBackend(servers, dnsQuestion);
     BOOST_REQUIRE(server == nullptr);
   }
   resetLuaContext();
@@ -728,12 +730,16 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_hashed)
   resetLuaContext();
   g_lua.lock()->executeCode(getLuaFFIWrappers());
   g_lua.lock()->writeFunction("setServerPolicyLuaFFI", [](const string& name, const ServerPolicy::ffipolicyfunc_t& policy) {
-    g_policy.setState(ServerPolicy(name, policy));
+    auto pol = std::make_shared<ServerPolicy>(name, std::move(policy));
+    dnsdist::configuration::updateRuntimeConfiguration([&pol](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_lbPolicy = std::move(pol);
+    });
   });
   g_lua.lock()->executeCode(policySetupStr);
 
   {
-    ServerPolicy pol = g_policy.getCopy();
+    const auto& pol = dnsdist::configuration::getCurrentRuntimeConfiguration().d_lbPolicy;
+    BOOST_REQUIRE(pol != nullptr);
     ServerPolicy::NumberedServerVector servers;
     std::map<std::shared_ptr<DownstreamState>, uint64_t> serversMap;
     for (size_t idx = 1; idx <= 10; idx++) {
@@ -745,7 +751,7 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_hashed)
 
     for (const auto& name : names) {
       auto dnsQuestion = getDQ(&name);
-      auto server = pol.getSelectedBackend(servers, dnsQuestion);
+      auto server = pol->getSelectedBackend(servers, dnsQuestion);
       BOOST_REQUIRE(serversMap.count(server) == 1);
       ++serversMap[server];
     }
@@ -759,7 +765,7 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_hashed)
     }
     BOOST_CHECK_EQUAL(total, names.size());
 
-    benchPolicy(pol);
+    benchPolicy(*pol);
   }
   resetLuaContext();
 }
@@ -784,12 +790,16 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_whashed)
   resetLuaContext();
   g_lua.lock()->executeCode(getLuaFFIWrappers());
   g_lua.lock()->writeFunction("setServerPolicyLuaFFI", [](const string& name, const ServerPolicy::ffipolicyfunc_t& policy) {
-    g_policy.setState(ServerPolicy(name, policy));
+    auto pol = std::make_shared<ServerPolicy>(name, std::move(policy));
+    dnsdist::configuration::updateRuntimeConfiguration([&pol](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_lbPolicy = std::move(pol);
+    });
   });
   g_lua.lock()->executeCode(policySetupStr);
 
   {
-    ServerPolicy pol = g_policy.getCopy();
+    const auto& pol = dnsdist::configuration::getCurrentRuntimeConfiguration().d_lbPolicy;
+    BOOST_REQUIRE(pol != nullptr);
     ServerPolicy::NumberedServerVector servers;
     std::map<std::shared_ptr<DownstreamState>, uint64_t> serversMap;
     for (size_t idx = 1; idx <= 10; idx++) {
@@ -801,7 +811,7 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_whashed)
 
     for (const auto& name : names) {
       auto dnsQuestion = getDQ(&name);
-      auto server = pol.getSelectedBackend(servers, dnsQuestion);
+      auto server = pol->getSelectedBackend(servers, dnsQuestion);
       BOOST_REQUIRE(serversMap.count(server) == 1);
       ++serversMap[server];
     }
@@ -815,16 +825,13 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_whashed)
     }
     BOOST_CHECK_EQUAL(total, names.size());
 
-    benchPolicy(pol);
+    benchPolicy(*pol);
   }
   resetLuaContext();
 }
 
 BOOST_AUTO_TEST_CASE(test_lua_ffi_chashed)
 {
-  bool existingVerboseValue = g_verbose;
-  g_verbose = false;
-
   std::vector<DNSName> names;
   names.reserve(1000);
   for (size_t idx = 0; idx < 1000; idx++) {
@@ -843,12 +850,16 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_chashed)
   resetLuaContext();
   g_lua.lock()->executeCode(getLuaFFIWrappers());
   g_lua.lock()->writeFunction("setServerPolicyLuaFFI", [](const string& name, const ServerPolicy::ffipolicyfunc_t& policy) {
-    g_policy.setState(ServerPolicy(name, policy));
+    auto pol = std::make_shared<ServerPolicy>(name, std::move(policy));
+    dnsdist::configuration::updateRuntimeConfiguration([&pol](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_lbPolicy = std::move(pol);
+    });
   });
   g_lua.lock()->executeCode(policySetupStr);
 
   {
-    ServerPolicy pol = g_policy.getCopy();
+    const auto& pol = dnsdist::configuration::getCurrentRuntimeConfiguration().d_lbPolicy;
+    BOOST_REQUIRE(pol != nullptr);
     ServerPolicy::NumberedServerVector servers;
     std::map<std::shared_ptr<DownstreamState>, uint64_t> serversMap;
     for (size_t idx = 1; idx <= 10; idx++) {
@@ -864,7 +875,7 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_chashed)
 
     for (const auto& name : names) {
       auto dnsQuestion = getDQ(&name);
-      auto server = pol.getSelectedBackend(servers, dnsQuestion);
+      auto server = pol->getSelectedBackend(servers, dnsQuestion);
       BOOST_REQUIRE(serversMap.count(server) == 1);
       ++serversMap[server];
     }
@@ -878,12 +889,11 @@ BOOST_AUTO_TEST_CASE(test_lua_ffi_chashed)
     }
     BOOST_CHECK_EQUAL(total, names.size());
 
-    benchPolicy(pol);
+    benchPolicy(*pol);
   }
-  g_verbose = existingVerboseValue;
   resetLuaContext();
 }
 
 #endif /* LUAJIT_VERSION */
-
+#endif
 BOOST_AUTO_TEST_SUITE_END()

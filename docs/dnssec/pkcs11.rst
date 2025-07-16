@@ -174,4 +174,4 @@ Smart Card token on Ubuntu 14.04.
     pdnsutil show-zone zone
 
 - Note that the physical token is pretty slow, so you have to use it as
-  hidden master. It has been observed to produce about 1.5 signatures/second.
+  hidden primary. It has been observed to produce about 1.5 signatures/second.

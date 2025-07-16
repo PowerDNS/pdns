@@ -19,9 +19,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifdef HAVE_CONFIG_H
+
 #include "config.h"
-#endif
+
 #include "utility.hh"
 #include "webserver.hh"
 #include "misc.hh"
@@ -37,7 +37,11 @@
 #include "uuid-utils.hh"
 #include <yahttp/router.hpp>
 #include <algorithm>
-#include <unordered_set>
+#include <bitset>
+#include <unistd.h>
+#include <filesystem>
+
+namespace filesystem = std::filesystem;
 
 json11::Json HttpRequest::json()
 {
@@ -135,6 +139,8 @@ void HttpResponse::setSuccessResult(const std::string& message, const int status
   setJsonBody(json11::Json::object { { "result", message } });
   this->status = status_;
 }
+
+#ifndef RUST_WS
 
 static void bareHandlerWrapper(const WebServer::HandlerFunction& handler, YaHTTP::Request* req, YaHTTP::Response* resp)
 {
@@ -301,12 +307,12 @@ void WebServer::handleRequest(HttpRequest& req, HttpResponse& resp) const
     catch(PDNSException &e) {
       SLOG(g_log<<Logger::Error<<req.logprefix<<"HTTP ISE for \""<< req.url.path << "\": Exception: " << e.reason << endl,
            log->error(Logr::Error, e.reason, msg, "exception", Logging::Loggable("PDNSException")));
-      throw HttpInternalServerErrorException();
+      throw HttpInternalServerErrorException(e.reason);
     }
     catch(std::exception &e) {
       SLOG(g_log<<Logger::Error<<req.logprefix<<"HTTP ISE for \""<< req.url.path << "\": STL Exception: " << e.what() << endl,
            log->error(Logr::Error, e.what(), msg, "exception", Logging::Loggable("std::exception")));
-      throw HttpInternalServerErrorException();
+      throw HttpInternalServerErrorException(e.what());
     }
     catch(...) {
       SLOG(g_log<<Logger::Error<<req.logprefix<<"HTTP ISE for \""<< req.url.path << "\": Unknown Exception" << endl,
@@ -587,8 +593,8 @@ WebServer::WebServer(string listenaddress, int port) :
   d_listenaddress(std::move(listenaddress)),
   d_port(port),
   d_server(nullptr),
-  d_maxbodysize(2*1024*1024),
-  d_connectiontimeout(5)
+  d_maxbodysize(static_cast<ssize_t>(2 * 1024 * 1024))
+
 {
     YaHTTP::Router::Map("OPTIONS", "/<*url>", [](YaHTTP::Request *req, YaHTTP::Response *resp) {
       // look for url in routes
@@ -624,10 +630,25 @@ WebServer::WebServer(string listenaddress, int port) :
 
 void WebServer::bind()
 {
+  if (filesystem::is_socket(d_listenaddress.c_str())) {
+    int err=unlink(d_listenaddress.c_str());
+    if(err < 0 && errno!=ENOENT) {
+      SLOG(g_log<<Logger::Error<<d_logprefix<<"Listening on HTTP socket failed, unable to remove existing socket at "<<d_listenaddress<<endl,
+           d_slog->error(Logr::Error, e.what(), "Listening on HTTP socket failed, unable to remove existing socket", "exception", d_listenaddress));
+      d_server = nullptr;
+      return;
+    }
+  }
+
   try {
     d_server = createServer();
-    SLOG(g_log<<Logger::Warning<<d_logprefix<<"Listening for HTTP requests on "<<d_server->d_local.toStringWithPort()<<endl,
-         d_slog->info(Logr::Info, "Listening for HTTP requests", "address", Logging::Loggable(d_server->d_local)));
+    if (d_server->d_local.isUnixSocket()) {
+      SLOG(g_log<<Logger::Warning<<d_logprefix<<"Listening for HTTP requests on "<<d_listenaddress<<endl,
+           d_slog->info(Logr::Info, "Listening for HTTP requests", "path", Logging::Loggable(d_listenaddress)));
+    } else {
+        SLOG(g_log<<Logger::Warning<<d_logprefix<<"Listening for HTTP requests on "<<d_server->d_local.toStringWithPort()<<endl,
+             d_slog->info(Logr::Info, "Listening for HTTP requests", "address", Logging::Loggable(d_server->d_local)));
+    }
   }
   catch(NetworkError &e) {
     SLOG(g_log<<Logger::Error<<d_logprefix<<"Listening on HTTP socket failed: "<<e.what()<<endl,
@@ -649,7 +670,7 @@ void WebServer::go()
         if (!client) {
           continue;
         }
-        if (client->acl(d_acl)) {
+        if (d_server->d_local.isUnixSocket() || client->acl(d_acl)) {
           std::thread webHandler(WebServerConnectionThreadStart, this, client);
           webHandler.detach();
         } else {
@@ -686,3 +707,4 @@ void WebServer::go()
   }
   _exit(1);
 }
+#endif // !RUST_WS

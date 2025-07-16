@@ -1,7 +1,10 @@
 # To generate requirements.txt, install pip-tools and run:
-#  pip-compile --generate-hashes requirements.in
+#  pip-compile --generate-hashes -U requirements.in
 
+wheel==0.45.1
+setuptools-git==1.2
 Sphinx>=1.5.0,!=1.8.0,<2.0
+alabaster==0.7.13 # higher versions require Sphinx>3.4
 https://github.com/PowerDNS/sphinxcontrib-openapi/archive/refs/heads/use-jsondomain-pdns-py3.10-noscm.zip
 https://github.com/PowerDNS/sphinx-jsondomain/archive/refs/heads/no-type-links.zip
 changelog>=0.5.6,<0.6
@@ -10,6 +13,7 @@ guzzle_sphinx_theme
 docutils!=0.15,<0.18
 jinja2<3.1.0
 pyyaml==6.0.1
-packaging==24.1
 setuptools-scm==8.0.3 # setup-requires for sphinxcontrib-openapi
 pbr # setup-requires for sphinxcontrib-fulltoc
+standard.pipes
+standard.imghdr

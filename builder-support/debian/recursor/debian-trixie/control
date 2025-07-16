@@ -1,0 +1,43 @@
+Source: pdns-recursor
+Section: net
+Maintainer: PowerDNS Autobuilder <powerdns.support@powerdns.com>
+Priority: optional
+Standards-Version: 4.5.1
+Build-Depends: debhelper (>= 10),
+               dh-autoreconf,
+               clang,
+               libboost-context-dev,
+               libboost-dev,
+               libboost-filesystem-dev,
+               libboost-program-options-dev,
+               libboost-system-dev,
+               libboost-test-dev,
+               libboost-thread-dev,
+               libcap-dev,
+               libcurl4-openssl-dev,
+               libfstrm-dev,
+               libluajit-5.1-dev [amd64 arm64] | liblua5.3-dev,
+               libprotobuf-dev,
+               libsnmp-dev,
+               libsodium-dev,
+               libssl-dev,
+               libsystemd-dev,
+               lld,
+               pkgconf | pkg-config,
+               protobuf-compiler,
+               ragel,
+               systemd,
+               systemd-dev
+Homepage: https://www.powerdns.com/
+Rules-Requires-Root: no
+
+Package: pdns-recursor
+Architecture: any
+Pre-Depends: ${misc:Pre-Depends}
+Depends: adduser,
+         dns-root-data,
+         ${misc:Depends},
+         ${shlibs:Depends}
+Description: PowerDNS Recursor
+ High-performance resolving name server, utilizing multiple
+ processor and including Lua scripting capabilities.

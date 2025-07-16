@@ -30,8 +30,9 @@ class TestPrometheus(DNSDistTest):
     declareMetric('custom-metric3', 'counter', 'Custom counter', 'custom_prometheus_name')
 
     -- test prometheus labels in custom metrics
-    declareMetric('custom-metric-foo-x-bar-y-xyz', 'counter', 'Custom counter with labels', 'custom_metric_foo{x="bar",y="xyz"}')
-    declareMetric('custom-metric-foo-x-baz-y-abc', 'counter', 'Custom counter with labels', 'custom_metric_foo{x="baz",y="abc"}')
+    declareMetric('custom-metric-foo', 'counter', 'Custom counter with labels', { withLabels = true })
+    incMetric('custom-metric-foo', { labels = { x = 'bar', y = 'xyz' } })
+    incMetric('custom-metric-foo', { labels = { x = 'baz', y = 'abc' } })
     """
 
     def checkPrometheusContentBasic(self, content):
@@ -47,12 +48,16 @@ class TestPrometheus(DNSDistTest):
                 tokens = line.split(' ')
                 self.assertEqual(len(tokens), 2)
                 if not line.startswith('dnsdist_') and not line.startswith('custom_'):
-                    raise AssertionError('Expecting prometheus metric to be prefixed by \'dnsdist_\', got: "%s"' % (line))
+                    raise AssertionError(
+                        'Expecting prometheus metric to be prefixed by \'dnsdist_\', got: "%s"' % (line))
 
-    def checkMetric(self, content, name, expectedType, expectedValue):
+    def checkMetric(self, content, name, expectedType, expectedValue, expectedLabels=""):
         typeFound = False
         helpFound = False
         valueFound = False
+        labelsFound = False
+        if expectedLabels == "":
+            labelsFound = True
         for line in content.splitlines():
             if name in str(line):
                 tokens = line.split(' ')
@@ -70,10 +75,15 @@ class TestPrometheus(DNSDistTest):
                     if tokens[0] == name:
                         valueFound = True
                         self.assertEqual(int(tokens[1]), expectedValue)
+                    elif tokens[0] == name + expectedLabels:
+                        valueFound = True
+                        labelsFound = True
+                        self.assertEqual(int(tokens[1]), expectedValue)
 
         self.assertTrue(typeFound)
         self.assertTrue(helpFound)
         self.assertTrue(valueFound)
+        self.assertTrue(labelsFound)
 
     def checkPrometheusContentPromtool(self, content):
         output = None
@@ -106,3 +116,5 @@ class TestPrometheus(DNSDistTest):
         self.checkMetric(r.text, 'dnsdist_custom_metric1', 'counter', 1)
         self.checkMetric(r.text, 'dnsdist_custom_metric2', 'gauge', 0)
         self.checkMetric(r.text, 'custom_prometheus_name', 'counter', 0)
+        self.checkMetric(r.text, 'dnsdist_custom_metric_foo', 'counter', 1, '{x="bar",y="xyz"}')
+        self.checkMetric(r.text, 'dnsdist_custom_metric_foo', 'counter', 1, '{x="baz",y="abc"}')

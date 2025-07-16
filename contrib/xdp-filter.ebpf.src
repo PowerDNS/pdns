@@ -2,9 +2,17 @@
 
 #define DISABLE_LOGGING 1
 
-BPF_TABLE_PINNED("hash", uint32_t, struct map_value, v4filter, 1024, "/sys/fs/bpf/dnsdist/addr-v4");
-BPF_TABLE_PINNED("hash", struct in6_addr, struct map_value, v6filter, 1024, "/sys/fs/bpf/dnsdist/addr-v6");
-BPF_TABLE_PINNED("hash", struct dns_qname, struct map_value, qnamefilter, 1024, "/sys/fs/bpf/dnsdist/qnames");
+#if !defined(DDIST_MAPS_SIZE)
+#define DDIST_MAPS_SIZE 1024
+#endif /* DDIST_MAPS_SIZE */
+
+#if !defined(DDIST_MAX_NUMBER_OF_QUEUES)
+#define DDIST_MAX_NUMBER_OF_QUEUES 64
+#endif /* DDIST_MAX_NUMBER_OF_QUEUES */
+
+BPF_TABLE_PINNED("hash", uint32_t, struct map_value, v4filter, DDIST_MAPS_SIZE, "/sys/fs/bpf/dnsdist/addr-v4");
+BPF_TABLE_PINNED("hash", struct in6_addr, struct map_value, v6filter, DDIST_MAPS_SIZE, "/sys/fs/bpf/dnsdist/addr-v6");
+BPF_TABLE_PINNED("hash", struct dns_qname, struct map_value, qnamefilter, DDIST_MAPS_SIZE, "/sys/fs/bpf/dnsdist/qnames");
 #ifndef DISABLE_LOGGING
 BPF_TABLE_PINNED("prog", int, int, progsarray, 2, "/sys/fs/bpf/dnsdist/progs");
 #endif /* DISABLE_LOGGING */
@@ -18,8 +26,8 @@ BPF_TABLE_PINNED("prog", int, int, progsarray, 2, "/sys/fs/bpf/dnsdist/progs");
   BPF_F_TABLE(_table_type ":" _pinned, _key_type, _leaf_type, _name, _max_entries, _flags)
 #endif
 
-BPF_TABLE_PINNED7("lpm_trie", struct CIDR4, struct map_value, cidr4filter, 1024, "/sys/fs/bpf/dnsdist/cidr4", BPF_F_NO_PREALLOC);
-BPF_TABLE_PINNED7("lpm_trie", struct CIDR6, struct map_value, cidr6filter, 1024, "/sys/fs/bpf/dnsdist/cidr6", BPF_F_NO_PREALLOC);
+BPF_TABLE_PINNED7("lpm_trie", struct CIDR4, struct map_value, cidr4filter, DDIST_MAPS_SIZE, "/sys/fs/bpf/dnsdist/cidr4", BPF_F_NO_PREALLOC);
+BPF_TABLE_PINNED7("lpm_trie", struct CIDR6, struct map_value, cidr6filter, DDIST_MAPS_SIZE, "/sys/fs/bpf/dnsdist/cidr6", BPF_F_NO_PREALLOC);
 
 #ifdef UseXsk
 #define BPF_XSKMAP_PIN(_name, _max_entries, _pinned) \
@@ -34,9 +42,9 @@ BPF_TABLE_PINNED7("lpm_trie", struct CIDR6, struct map_value, cidr6filter, 1024,
   };                                                 \
   __attribute__((section("maps/xskmap:" _pinned))) struct _name##_table_t _name = {.max_entries = (_max_entries)}
 
-BPF_XSKMAP_PIN(xsk_map, 16, "/sys/fs/bpf/dnsdist/xskmap");
-BPF_TABLE_PINNED("hash", struct IPv4AndPort, bool, xskDestinationsV4, 1024, "/sys/fs/bpf/dnsdist/xsk-destinations-v4");
-BPF_TABLE_PINNED("hash", struct IPv6AndPort, bool, xskDestinationsV6, 1024, "/sys/fs/bpf/dnsdist/xsk-destinations-v6");
+BPF_XSKMAP_PIN(xsk_map, DDIST_MAX_NUMBER_OF_QUEUES, "/sys/fs/bpf/dnsdist/xskmap");
+BPF_TABLE_PINNED("hash", struct IPv4AndPort, bool, xskDestinationsV4, DDIST_MAPS_SIZE, "/sys/fs/bpf/dnsdist/xsk-destinations-v4");
+BPF_TABLE_PINNED("hash", struct IPv6AndPort, bool, xskDestinationsV6, DDIST_MAPS_SIZE, "/sys/fs/bpf/dnsdist/xsk-destinations-v6");
 #endif /* UseXsk */
 
 #define COMPARE_PORT(x, p) ((x) == bpf_htons(p))
@@ -135,8 +143,8 @@ static inline struct map_value* check_qname(struct cursor* c)
     return value;
   }
 
-  // check with Qtype 255 (*)
-  qkey.qtype = 255;
+  // check with Qtype 65535 (*)
+  qkey.qtype = 65535;
 
   return qnamefilter.lookup(&qkey);
 }

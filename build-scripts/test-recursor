@@ -6,7 +6,7 @@ export PDNS=${PDNS:-"/usr/sbin/pdns_server"}
 export PDNSUTIL=${PDNSUTIL:-"/usr/bin/pdnsutil"}
 export SDIG=${SDIG:-"/usr/bin/sdig"}
 export NSEC3DIG=${NSEC3DIG:-"/usr/bin/nsec3dig"}
-export NOTIFY=${NOTIFY:-"/usr/bin/notify"}
+export NOTIFY=${NOTIFY:-"/usr/bin/pdns_notify"}
 export SAXFR=${SAXFR:-"/usr/bin/saxfr"}
 
 if [ "$0" != "./build-scripts/test-recursor" ]; then
@@ -17,7 +17,7 @@ fi
 set -x
 
 EXTRA_ARG=""
-if [ $PWD = /srv/buildbot-worker/test-rec-debian-buster/build ]; then
+if [ $PWD = /srv/buildbot-worker/test-rec-debian-bookworm/build ]; then
     EXTRA_ARG=--ignore=test_SNMP.py
 fi
 

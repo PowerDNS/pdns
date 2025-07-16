@@ -126,10 +126,22 @@ std::optional<PacketBuffer> validateToken(const PacketBuffer& token, const Combo
   }
 }
 
-static void sendFromTo(Socket& sock, const ComboAddress& peer, const ComboAddress& local, PacketBuffer& buffer)
+static void sendFromTo(Socket& sock, const ComboAddress& peer, const ComboAddress& local, PacketBuffer& buffer, [[maybe_unused]] bool socketBoundToAny)
 {
-  const int flags = 0;
-  if (local.sin4.sin_family == 0) {
+  /* we only want to specify the source address to use if we were able to
+     either harvest it from the incoming packet, or if our socket is already
+     bound to a specific address */
+  bool setSourceAddress = local.sin4.sin_family != 0;
+#if defined(__FreeBSD__) || defined(__DragonFly__)
+  /* FreeBSD and DragonFlyBSD refuse the use of IP_SENDSRCADDR on a socket that is bound to a
+     specific address, returning EINVAL in that case. */
+  if (!socketBoundToAny) {
+    setSourceAddress = false;
+  }
+#endif /* __FreeBSD__ || __DragonFly__ */
+
+  if (!setSourceAddress) {
+    const int flags = 0;
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     auto ret = sendto(sock.getHandle(), buffer.data(), buffer.size(), flags, reinterpret_cast<const struct sockaddr*>(&peer), peer.getSocklen());
     if (ret < 0) {
@@ -147,7 +159,7 @@ static void sendFromTo(Socket& sock, const ComboAddress& peer, const ComboAddres
   }
 }
 
-void handleStatelessRetry(Socket& sock, const PacketBuffer& clientConnID, const PacketBuffer& serverConnID, const ComboAddress& peer, const ComboAddress& localAddr, uint32_t version, PacketBuffer& buffer)
+void handleStatelessRetry(Socket& sock, const PacketBuffer& clientConnID, const PacketBuffer& serverConnID, const ComboAddress& peer, const ComboAddress& localAddr, uint32_t version, PacketBuffer& buffer, bool socketBoundToAny)
 {
   auto newServerConnID = getCID();
   if (!newServerConnID) {
@@ -170,10 +182,10 @@ void handleStatelessRetry(Socket& sock, const PacketBuffer& clientConnID, const 
   }
 
   buffer.resize(static_cast<size_t>(written));
-  sendFromTo(sock, peer, localAddr, buffer);
+  sendFromTo(sock, peer, localAddr, buffer, socketBoundToAny);
 }
 
-void handleVersionNegociation(Socket& sock, const PacketBuffer& clientConnID, const PacketBuffer& serverConnID, const ComboAddress& peer, const ComboAddress& localAddr, PacketBuffer& buffer)
+void handleVersionNegotiation(Socket& sock, const PacketBuffer& clientConnID, const PacketBuffer& serverConnID, const ComboAddress& peer, const ComboAddress& localAddr, PacketBuffer& buffer, bool socketBoundToAny)
 {
   buffer.resize(MAX_DATAGRAM_SIZE);
 
@@ -187,10 +199,10 @@ void handleVersionNegociation(Socket& sock, const PacketBuffer& clientConnID, co
   }
 
   buffer.resize(static_cast<size_t>(written));
-  sendFromTo(sock, peer, localAddr, buffer);
+  sendFromTo(sock, peer, localAddr, buffer, socketBoundToAny);
 }
 
-void flushEgress(Socket& sock, QuicheConnection& conn, const ComboAddress& peer, const ComboAddress& localAddr, PacketBuffer& buffer)
+void flushEgress(Socket& sock, QuicheConnection& conn, const ComboAddress& peer, const ComboAddress& localAddr, PacketBuffer& buffer, bool socketBoundToAny)
 {
   buffer.resize(MAX_DATAGRAM_SIZE);
   quiche_send_info send_info;
@@ -206,7 +218,7 @@ void flushEgress(Socket& sock, QuicheConnection& conn, const ComboAddress& peer,
     }
     // FIXME pacing (as send_info.at should tell us when to send the packet) ?
     buffer.resize(static_cast<size_t>(written));
-    sendFromTo(sock, peer, localAddr, buffer);
+    sendFromTo(sock, peer, localAddr, buffer, socketBoundToAny);
   }
 }
 
@@ -215,12 +227,12 @@ void configureQuiche(QuicheConfig& config, const QuicheParams& params, bool isHT
   for (const auto& pair : params.d_tlsConfig.d_certKeyPairs) {
     auto res = quiche_config_load_cert_chain_from_pem_file(config.get(), pair.d_cert.c_str());
     if (res != 0) {
-      throw std::runtime_error("Error loading the server certificate: " + std::to_string(res));
+      throw std::runtime_error("Error loading the server certificate from '" + pair.d_cert + "': " + std::to_string(res));
     }
     if (pair.d_key) {
       res = quiche_config_load_priv_key_from_pem_file(config.get(), pair.d_key->c_str());
       if (res != 0) {
-        throw std::runtime_error("Error loading the server key: " + std::to_string(res));
+        throw std::runtime_error("Error loading the server key from '" + *(pair.d_key) + "': " + std::to_string(res));
       }
     }
   }
@@ -312,9 +324,7 @@ bool recvAsync(Socket& socket, PacketBuffer& buffer, ComboAddress& clientAddr, C
        This is indicated by setting the family to 0 which is acted upon
        in sendUDPResponse() and DelayedPacket::().
     */
-    const ComboAddress bogusV4("0.0.0.0:0");
-    const ComboAddress bogusV6("[::]:0");
-    if ((localAddr.sin4.sin_family == AF_INET && localAddr == bogusV4) || (localAddr.sin4.sin_family == AF_INET6 && localAddr == bogusV6)) {
+    if (localAddr.isUnspecified()) {
       localAddr.sin4.sin_family = 0;
     }
   }
@@ -325,6 +335,18 @@ bool recvAsync(Socket& socket, PacketBuffer& buffer, ComboAddress& clientAddr, C
   return !buffer.empty();
 }
 
-};
+std::string getSNIFromQuicheConnection([[maybe_unused]] const QuicheConnection& conn)
+{
+#if defined(HAVE_QUICHE_CONN_SERVER_NAME)
+  const uint8_t* sniPtr = nullptr;
+  size_t sniPtrSize = 0;
+  quiche_conn_server_name(conn.get(), &sniPtr, &sniPtrSize);
+  if (sniPtrSize > 0) {
+    return std::string(reinterpret_cast<const char*>(sniPtr), sniPtrSize);
+  }
+#endif /* HAVE_QUICHE_CONN_SERVER_NAME */
+  return {};
+}
+}
 
 #endif

@@ -21,6 +21,7 @@
  */
 #pragma once
 #include "dnsrecords.hh"
+#include "dnspacket.hh"
 
 #include <string>
 #include <vector>
@@ -291,7 +292,7 @@ string hashQNameWithSalt(const std::string& salt, unsigned int iterations, const
 void incrementHash(std::string& raw);
 void decrementHash(std::string& raw);
 
-void addRRSigs(DNSSECKeeper& dk, UeberBackend& db, const std::set<DNSName>& authMap, vector<DNSZoneRecord>& rrs);
+void addRRSigs(DNSSECKeeper& dsk, UeberBackend& ueber, const std::set<ZoneName>& authSet, vector<DNSZoneRecord>& rrs, DNSPacket* packet=nullptr);
 
 void addTSIG(DNSPacketWriter& pw, TSIGRecordContent& trc, const DNSName& tsigkeyname, const string& tsigsecret, const string& tsigprevious, bool timersonly);
 bool validateTSIG(const std::string& packet, size_t sigPos, const TSIGTriplet& tt, const TSIGRecordContent& trc, const std::string& previousMAC, const std::string& theirMAC, bool timersOnly, unsigned int dnsHeaderOffset=0);

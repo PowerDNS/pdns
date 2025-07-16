@@ -63,6 +63,9 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_ANYNoIdQuery=getArg("any-query");
   d_ANYIdQuery=getArg("any-id-query");
 
+  d_APIIdQuery=getArg("api-id-query");
+  d_APIANYIdQuery=getArg("api-any-id-query");
+
   d_listQuery=getArg("list-query");
   d_listSubZoneQuery=getArg("list-subzone-query");
 
@@ -140,6 +143,8 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_IdQuery_stmt = nullptr;
   d_ANYNoIdQuery_stmt = nullptr;
   d_ANYIdQuery_stmt = nullptr;
+  d_APIIdQuery_stmt = nullptr;
+  d_APIANYIdQuery_stmt = nullptr;
   d_listQuery_stmt = nullptr;
   d_listSubZoneQuery_stmt = nullptr;
   d_InfoOfDomainsZoneQuery_stmt = nullptr;
@@ -203,7 +208,7 @@ GSQLBackend::GSQLBackend(const string &mode, const string &suffix)
   d_SearchCommentsQuery_stmt = nullptr;
 }
 
-void GSQLBackend::setNotified(uint32_t domain_id, uint32_t serial)
+void GSQLBackend::setNotified(domainid_t domain_id, uint32_t serial)
 {
   try {
     reconnectIfNeeded();
@@ -221,7 +226,7 @@ void GSQLBackend::setNotified(uint32_t domain_id, uint32_t serial)
   }
 }
 
-void GSQLBackend::setLastCheck(uint32_t domain_id, time_t lastcheck)
+void GSQLBackend::setLastCheck(domainid_t domain_id, time_t lastcheck)
 {
   try {
     reconnectIfNeeded();
@@ -238,17 +243,17 @@ void GSQLBackend::setLastCheck(uint32_t domain_id, time_t lastcheck)
   }
 }
 
-void GSQLBackend::setStale(uint32_t domain_id)
+void GSQLBackend::setStale(domainid_t domain_id)
 {
   setLastCheck(domain_id, 0);
 }
 
-void GSQLBackend::setFresh(uint32_t domain_id)
+void GSQLBackend::setFresh(domainid_t domain_id)
 {
   setLastCheck(domain_id, time(nullptr));
 }
 
-bool GSQLBackend::setPrimaries(const DNSName& domain, const vector<ComboAddress>& primaries)
+bool GSQLBackend::setPrimaries(const ZoneName& domain, const vector<ComboAddress>& primaries)
 {
   vector<string> primaries_s;
   primaries_s.reserve(primaries.size());
@@ -275,7 +280,7 @@ bool GSQLBackend::setPrimaries(const DNSName& domain, const vector<ComboAddress>
   return true;
 }
 
-bool GSQLBackend::setKind(const DNSName &domain, const DomainInfo::DomainKind kind)
+bool GSQLBackend::setKind(const ZoneName &domain, const DomainInfo::DomainKind kind)
 {
   try {
     reconnectIfNeeded();
@@ -294,7 +299,7 @@ bool GSQLBackend::setKind(const DNSName &domain, const DomainInfo::DomainKind ki
   return true;
 }
 
-bool GSQLBackend::setOptions(const DNSName& domain, const string& options)
+bool GSQLBackend::setOptions(const ZoneName& domain, const string& options)
 {
   try {
     reconnectIfNeeded();
@@ -313,7 +318,7 @@ bool GSQLBackend::setOptions(const DNSName& domain, const string& options)
   return true;
 }
 
-bool GSQLBackend::setCatalog(const DNSName& domain, const DNSName& catalog)
+bool GSQLBackend::setCatalog(const ZoneName& domain, const ZoneName& catalog)
 {
   try {
     reconnectIfNeeded();
@@ -332,7 +337,7 @@ bool GSQLBackend::setCatalog(const DNSName& domain, const DNSName& catalog)
   return true;
 }
 
-bool GSQLBackend::setAccount(const DNSName &domain, const string &account)
+bool GSQLBackend::setAccount(const ZoneName &domain, const string &account)
 {
   try {
     reconnectIfNeeded();
@@ -351,7 +356,7 @@ bool GSQLBackend::setAccount(const DNSName &domain, const string &account)
   return true;
 }
 
-bool GSQLBackend::getDomainInfo(const DNSName &domain, DomainInfo &di, bool getSerial)
+bool GSQLBackend::getDomainInfo(const ZoneName &domain, DomainInfo &info, bool getSerial)
 {
   /* fill DomainInfo from database info:
      id,name,master IP(s),last_check,notified_serial,type,account */
@@ -376,34 +381,35 @@ bool GSQLBackend::getDomainInfo(const DNSName &domain, DomainInfo &di, bool getS
 
   ASSERT_ROW_COLUMNS("info-zone-query", d_result[0], 9);
 
-  pdns::checked_stoi_into(di.id, d_result[0][0]);
+  pdns::checked_stoi_into(info.id, d_result[0][0]);
   try {
-    di.zone=DNSName(d_result[0][1]);
-    di.catalog = (!d_result[0][7].empty() ? DNSName(d_result[0][7]) : DNSName());
+    info.zone=ZoneName(d_result[0][1]);
+    info.catalog = (!d_result[0][7].empty() ? ZoneName(d_result[0][7]) : ZoneName());
   } catch (...) {
     return false;
   }
   string type=d_result[0][5];
-  di.options = d_result[0][6];
-  di.account = d_result[0][8];
-  di.kind = DomainInfo::stringToKind(type);
+  info.options = d_result[0][6];
+  info.account = d_result[0][8];
+  info.kind = DomainInfo::stringToKind(type);
 
   vector<string> primaries;
   stringtok(primaries, d_result[0][2], " ,\t");
   for (const auto& m : primaries)
-    di.primaries.emplace_back(m, 53);
-  pdns::checked_stoi_into(di.last_check, d_result[0][3]);
-  pdns::checked_stoi_into(di.notified_serial, d_result[0][4]);
-  di.backend=this;
+    info.primaries.emplace_back(m, 53);
+  pdns::checked_stoi_into(info.last_check, d_result[0][3]);
+  pdns::checked_stoi_into(info.notified_serial, d_result[0][4]);
+  info.backend=this;
 
-  di.serial = 0;
+  info.serial = 0;
   if(getSerial) {
     try {
       SOAData sd;
-      if(!getSOA(domain, sd))
+      if(!getSOA(domain, info.id, sd)) {
         g_log<<Logger::Notice<<"No serial for '"<<domain<<"' found - zone is missing?"<<endl;
+      }
       else
-        di.serial = sd.serial;
+        info.serial = sd.serial;
     }
     catch(PDNSException &ae){
       g_log<<Logger::Error<<"Error retrieving serial for '"<<domain<<"': "<<ae.reason<<endl;
@@ -443,7 +449,7 @@ void GSQLBackend::getUnfreshSecondaryInfos(vector<DomainInfo>* unfreshDomains)
     ASSERT_ROW_COLUMNS("info-all-secondaries-query", row, 6);
 
     try {
-      di.zone = DNSName(row[1]);
+      di.zone = ZoneName(row[1]);
     }
     catch (const std::runtime_error& e) {
       g_log << Logger::Warning << __PRETTY_FUNCTION__ << " zone name '" << row[1] << "' is not a valid DNS name: " << e.what() << endl;
@@ -559,7 +565,7 @@ void GSQLBackend::getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::u
     }
 
     try {
-      di.zone = DNSName(row[1]);
+      di.zone = ZoneName(row[1]);
     }
     catch (const std::runtime_error& e) {
       g_log << Logger::Warning << __PRETTY_FUNCTION__ << " zone name '" << row[1] << "' is not a valid DNS name: " << e.what() << endl;
@@ -571,7 +577,7 @@ void GSQLBackend::getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::u
     }
 
     try {
-      di.catalog = DNSName(row[5]);
+      di.catalog = ZoneName(row[5]);
     }
     catch (const std::runtime_error& e) {
       g_log << Logger::Warning << __PRETTY_FUNCTION__ << " zone name '" << row[5] << "' is not a valid DNS name: " << e.what() << endl;
@@ -583,7 +589,7 @@ void GSQLBackend::getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::u
     }
 
     if (pdns_iequals(row[2], "PRODUCER")) {
-      catalogs.insert(di.zone);
+      catalogs.insert(di.zone.operator const DNSName&());
       catalogHashes[di.zone].process("\0");
       continue; // Producer fresness check is performed elsewhere
     }
@@ -632,7 +638,7 @@ void GSQLBackend::getUpdatedPrimaries(vector<DomainInfo>& updatedDomains, std::u
   }
 }
 
-bool GSQLBackend::getCatalogMembers(const DNSName& catalog, vector<CatalogInfo>& members, CatalogInfo::CatalogType type)
+bool GSQLBackend::getCatalogMembers(const ZoneName& catalog, vector<CatalogInfo>& members, CatalogInfo::CatalogType type)
 {
   try {
     reconnectIfNeeded();
@@ -675,7 +681,7 @@ bool GSQLBackend::getCatalogMembers(const DNSName& catalog, vector<CatalogInfo>&
     CatalogInfo ci;
 
     try {
-      ci.d_zone = DNSName(row[1]);
+      ci.d_zone = ZoneName(row[1]);
     }
     catch (const std::runtime_error& e) {
       g_log << Logger::Warning << __PRETTY_FUNCTION__ << " zone name '" << row[1] << "' is not a valid DNS name: " << e.what() << endl;
@@ -726,7 +732,7 @@ bool GSQLBackend::getCatalogMembers(const DNSName& catalog, vector<CatalogInfo>&
   return true;
 }
 
-bool GSQLBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype)
+bool GSQLBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSName& qname, const DNSName& ordername, bool auth, const uint16_t qtype, bool /* isNsec3 */)
 {
   if(!d_dnssecQueries)
     return false;
@@ -807,7 +813,7 @@ bool GSQLBackend::updateDNSSECOrderNameAndAuth(uint32_t domain_id, const DNSName
   return true;
 }
 
-bool GSQLBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& insert, set<DNSName>& erase, bool remove)
+bool GSQLBackend::updateEmptyNonTerminals(domainid_t domain_id, set<DNSName>& insert, set<DNSName>& erase, bool remove)
 {
   if(remove) {
     try {
@@ -866,12 +872,17 @@ bool GSQLBackend::updateEmptyNonTerminals(uint32_t domain_id, set<DNSName>& inse
   return true;
 }
 
-bool GSQLBackend::doesDNSSEC()
+unsigned int GSQLBackend::getCapabilities()
 {
-    return d_dnssecQueries;
+  unsigned int caps = CAP_COMMENTS | CAP_DIRECT | CAP_LIST | CAP_CREATE;
+  if (d_dnssecQueries) {
+    caps |= CAP_DNSSEC;
+  }
+  return caps;
 }
 
-bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after)
+// NOLINTNEXTLINE(readability-identifier-length)
+bool GSQLBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after)
 {
   if(!d_dnssecQueries)
     return false;
@@ -985,7 +996,7 @@ bool GSQLBackend::getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qna
   return true;
 }
 
-bool GSQLBackend::addDomainKey(const DNSName& name, const KeyData& key, int64_t& id)
+bool GSQLBackend::addDomainKey(const ZoneName& name, const KeyData& key, int64_t& keyId)
 {
   if(!d_dnssecQueries)
     return false;
@@ -1006,7 +1017,7 @@ bool GSQLBackend::addDomainKey(const DNSName& name, const KeyData& key, int64_t&
     if (d_AddDomainKeyQuery_stmt->hasNextRow()) {
       SSqlStatement::row_t row;
       d_AddDomainKeyQuery_stmt->nextRow(row);
-      id = std::stoi(row[0]);
+      keyId = std::stoi(row[0]);
       d_AddDomainKeyQuery_stmt->reset();
       return true;
     } else {
@@ -1022,23 +1033,27 @@ bool GSQLBackend::addDomainKey(const DNSName& name, const KeyData& key, int64_t&
 
     d_GetLastInsertedKeyIdQuery_stmt->execute();
     if (!d_GetLastInsertedKeyIdQuery_stmt->hasNextRow()) {
-      id = -2;
+      keyId = -2;
       return true;
     }
     SSqlStatement::row_t row;
     d_GetLastInsertedKeyIdQuery_stmt->nextRow(row);
     ASSERT_ROW_COLUMNS("get-last-inserted-key-id-query", row, 1);
-    id = std::stoi(row[0]);
+    keyId = std::stoi(row[0]);
     d_GetLastInsertedKeyIdQuery_stmt->reset();
+    if (keyId == 0) {
+      // No insert took place, report as error.
+      keyId = -1;
+    }
     return true;
   }
   catch (SSqlException &e) {
-    id = -2;
+    keyId = -2;
     return true;
   }
 }
 
-bool GSQLBackend::activateDomainKey(const DNSName& name, unsigned int id)
+bool GSQLBackend::activateDomainKey(const ZoneName& name, unsigned int keyId)
 {
   if(!d_dnssecQueries)
     return false;
@@ -1049,18 +1064,18 @@ bool GSQLBackend::activateDomainKey(const DNSName& name, unsigned int id)
     // clang-format off
     d_ActivateDomainKeyQuery_stmt->
       bind("domain", name)->
-      bind("key_id", id)->
+      bind("key_id", keyId)->
       execute()->
       reset();
     // clang-format on
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to activate key with id "+ std::to_string(id) + " for domain '" + name.toLogString() + "': "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to activate key with id "+ std::to_string(keyId) + " for domain '" + name.toLogString() + "': "+e.txtReason());
   }
   return true;
 }
 
-bool GSQLBackend::deactivateDomainKey(const DNSName& name, unsigned int id)
+bool GSQLBackend::deactivateDomainKey(const ZoneName& name, unsigned int keyId)
 {
   if(!d_dnssecQueries)
     return false;
@@ -1071,18 +1086,18 @@ bool GSQLBackend::deactivateDomainKey(const DNSName& name, unsigned int id)
     // clang-format off
     d_DeactivateDomainKeyQuery_stmt->
       bind("domain", name)->
-      bind("key_id", id)->
+      bind("key_id", keyId)->
       execute()->
       reset();
     // clang-format on
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to deactivate key with id "+ std::to_string(id) + " for domain '" + name.toLogString() + "': "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to deactivate key with id "+ std::to_string(keyId) + " for domain '" + name.toLogString() + "': "+e.txtReason());
   }
   return true;
 }
 
-bool GSQLBackend::publishDomainKey(const DNSName& name, unsigned int id)
+bool GSQLBackend::publishDomainKey(const ZoneName& name, unsigned int keyId)
 {
   if(!d_dnssecQueries)
     return false;
@@ -1093,18 +1108,18 @@ bool GSQLBackend::publishDomainKey(const DNSName& name, unsigned int id)
     // clang-format off
     d_PublishDomainKeyQuery_stmt->
       bind("domain", name)->
-      bind("key_id", id)->
+      bind("key_id", keyId)->
       execute()->
       reset();
     // clang-format on
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to publish key with id "+ std::to_string(id) + " for domain '" + name.toLogString() + "': "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to publish key with id "+ std::to_string(keyId) + " for domain '" + name.toLogString() + "': "+e.txtReason());
   }
   return true;
 }
 
-bool GSQLBackend::unpublishDomainKey(const DNSName& name, unsigned int id)
+bool GSQLBackend::unpublishDomainKey(const ZoneName& name, unsigned int keyId)
 {
   if(!d_dnssecQueries)
     return false;
@@ -1115,20 +1130,20 @@ bool GSQLBackend::unpublishDomainKey(const DNSName& name, unsigned int id)
     // clang-format off
     d_UnpublishDomainKeyQuery_stmt->
       bind("domain", name)->
-      bind("key_id", id)->
+      bind("key_id", keyId)->
       execute()->
       reset();
     // clang-format on
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to unpublish key with id "+ std::to_string(id) + " for domain '" + name.toLogString() + "': "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to unpublish key with id "+ std::to_string(keyId) + " for domain '" + name.toLogString() + "': "+e.txtReason());
   }
   return true;
 }
 
 
 
-bool GSQLBackend::removeDomainKey(const DNSName& name, unsigned int id)
+bool GSQLBackend::removeDomainKey(const ZoneName& name, unsigned int keyId)
 {
   if(!d_dnssecQueries)
     return false;
@@ -1139,13 +1154,13 @@ bool GSQLBackend::removeDomainKey(const DNSName& name, unsigned int id)
     // clang-format off
     d_RemoveDomainKeyQuery_stmt->
       bind("domain", name)->
-      bind("key_id", id)->
+      bind("key_id", keyId)->
       execute()->
       reset();
     // clang-format on
   }
   catch (SSqlException &e) {
-    throw PDNSException("GSQLBackend unable to remove key with id "+ std::to_string(id) + " for domain '" + name.toLogString() + "': "+e.txtReason());
+    throw PDNSException("GSQLBackend unable to remove key with id "+ std::to_string(keyId) + " for domain '" + name.toLogString() + "': "+e.txtReason());
   }
   return true;
 }
@@ -1256,7 +1271,7 @@ bool GSQLBackend::getTSIGKeys(std::vector< struct TSIGKey > &keys)
   return true;
 }
 
-bool GSQLBackend::getDomainKeys(const DNSName& name, std::vector<KeyData>& keys)
+bool GSQLBackend::getDomainKeys(const ZoneName& name, std::vector<KeyData>& keys)
 {
   if(!d_dnssecQueries)
     return false;
@@ -1295,7 +1310,7 @@ bool GSQLBackend::getDomainKeys(const DNSName& name, std::vector<KeyData>& keys)
   return true;
 }
 
-bool GSQLBackend::getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string> >& meta)
+bool GSQLBackend::getAllDomainMetadata(const ZoneName& name, std::map<std::string, std::vector<std::string> >& meta)
 {
   try {
     reconnectIfNeeded();
@@ -1326,7 +1341,7 @@ bool GSQLBackend::getAllDomainMetadata(const DNSName& name, std::map<std::string
 }
 
 
-bool GSQLBackend::getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta)
+bool GSQLBackend::getDomainMetadata(const ZoneName& name, const std::string& kind, std::vector<std::string>& meta)
 {
   if(!d_dnssecQueries && isDnssecDomainMetadata(kind))
     return false;
@@ -1358,7 +1373,7 @@ bool GSQLBackend::getDomainMetadata(const DNSName& name, const std::string& kind
   return true;
 }
 
-bool GSQLBackend::setDomainMetadata(const DNSName& name, const std::string& kind, const std::vector<std::string>& meta)
+bool GSQLBackend::setDomainMetadata(const ZoneName& name, const std::string& kind, const std::vector<std::string>& meta)
 {
   if(!d_dnssecQueries && isDnssecDomainMetadata(kind))
     return false;
@@ -1393,13 +1408,13 @@ bool GSQLBackend::setDomainMetadata(const DNSName& name, const std::string& kind
   return true;
 }
 
-void GSQLBackend::lookup(const QType& qtype, const DNSName& qname, int domain_id, DNSPacket* /* pkt_p */)
+void GSQLBackend::lookup(const QType& qtype, const DNSName& qname, domainid_t domain_id, DNSPacket* /* pkt_p */)
 {
   try {
     reconnectIfNeeded();
 
     if(qtype.getCode()!=QType::ANY) {
-      if(domain_id < 0) {
+      if(domain_id == UnknownDomainID) {
         d_query_name = "basic-query";
         d_query_stmt = &d_NoIdQuery_stmt;
         // clang-format off
@@ -1419,7 +1434,7 @@ void GSQLBackend::lookup(const QType& qtype, const DNSName& qname, int domain_id
       }
     } else {
       // qtype==ANY
-      if(domain_id < 0) {
+      if(domain_id == UnknownDomainID) {
         d_query_name = "any-query";
         d_query_stmt = &d_ANYNoIdQuery_stmt;
         // clang-format off
@@ -1448,7 +1463,45 @@ void GSQLBackend::lookup(const QType& qtype, const DNSName& qname, int domain_id
   d_qname=qname;
 }
 
-bool GSQLBackend::list(const DNSName &target, int domain_id, bool include_disabled)
+void GSQLBackend::APILookup(const QType& qtype, const DNSName& qname, domainid_t domain_id, bool include_disabled)
+{
+  try {
+    reconnectIfNeeded();
+
+    if(qtype.getCode()!=QType::ANY) {
+      d_query_name = "api-id-query";
+      d_query_stmt = &d_APIIdQuery_stmt;
+      // clang-format off
+      (*d_query_stmt)->
+        bind("include_disabled", (int)include_disabled)->
+        bind("qtype", qtype.toString())->
+        bind("qname", qname)->
+        bind("domain_id", domain_id);
+      // clang-format on
+    } else {
+      // qtype==ANY
+      d_query_name = "api-any-id-query";
+      d_query_stmt = &d_APIANYIdQuery_stmt;
+      // clang-format off
+      (*d_query_stmt)->
+        bind("include_disabled", (int)include_disabled)->
+        bind("qname", qname)->
+        bind("domain_id", domain_id);
+      // clang-format on
+    }
+
+    (*d_query_stmt)->
+      execute();
+  }
+  catch(SSqlException &e) {
+    throw PDNSException("GSQLBackend unable to APILookup '" + qname.toLogString() + "(" + std::to_string(domain_id) + ")|" + qtype.toString() + "':"+e.txtReason());
+  }
+
+  d_list=false;
+  d_qname=qname;
+}
+
+bool GSQLBackend::list(const ZoneName &target, domainid_t domain_id, bool include_disabled)
 {
   DLOG(g_log<<"GSQLBackend constructing handle for list of domain id '"<<domain_id<<"'"<<endl);
 
@@ -1474,7 +1527,7 @@ bool GSQLBackend::list(const DNSName &target, int domain_id, bool include_disabl
   return true;
 }
 
-bool GSQLBackend::listSubZone(const DNSName &zone, int domain_id) {
+bool GSQLBackend::listSubZone(const ZoneName &zone, domainid_t domain_id) {
 
   string wildzone = "%." + zone.makeLowerCase().toStringNoDot();
 
@@ -1601,7 +1654,7 @@ bool GSQLBackend::autoPrimariesList(std::vector<AutoPrimary>& primaries)
   return true;
 }
 
-bool GSQLBackend::autoPrimaryBackend(const string& ip, const DNSName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** ddb)
+bool GSQLBackend::autoPrimaryBackend(const string& ipAddress, const ZoneName& domain, const vector<DNSResourceRecord>& nsset, string* nameserver, string* account, DNSBackend** ddb)
 {
   // check if we know the ip/ns couple in the database
   for(const auto & i : nsset) {
@@ -1610,7 +1663,7 @@ bool GSQLBackend::autoPrimaryBackend(const string& ip, const DNSName& domain, co
 
       // clang-format off
       d_AutoPrimaryInfoQuery_stmt->
-        bind("ip", ip)->
+        bind("ip", ipAddress)->
         bind("nameserver", i.content)->
         execute()->
         getResult(d_result)->
@@ -1618,7 +1671,7 @@ bool GSQLBackend::autoPrimaryBackend(const string& ip, const DNSName& domain, co
       // clang-format on
     }
     catch (SSqlException &e) {
-      throw PDNSException("GSQLBackend unable to search for a autoprimary with IP " + ip + " and nameserver name '" + i.content + "' for domain '" + domain.toLogString() + "': " + e.txtReason());
+      throw PDNSException("GSQLBackend unable to search for a autoprimary with IP " + ipAddress + " and nameserver name '" + i.content + "' for domain '" + domain.toLogString() + "': " + e.txtReason());
     }
     if(!d_result.empty()) {
       ASSERT_ROW_COLUMNS("autoprimary-query", d_result[0], 1);
@@ -1631,7 +1684,7 @@ bool GSQLBackend::autoPrimaryBackend(const string& ip, const DNSName& domain, co
   return false;
 }
 
-bool GSQLBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account)
+bool GSQLBackend::createDomain(const ZoneName& domain, const DomainInfo::DomainKind kind, const vector<ComboAddress>& primaries, const string& account)
 {
   vector<string> primaries_s;
   primaries_s.reserve(primaries.size());
@@ -1658,10 +1711,10 @@ bool GSQLBackend::createDomain(const DNSName& domain, const DomainInfo::DomainKi
   return true;
 }
 
-bool GSQLBackend::createSecondaryDomain(const string& ip, const DNSName& domain, const string& nameserver, const string& account)
+bool GSQLBackend::createSecondaryDomain(const string& ipAddress, const ZoneName& domain, const string& nameserver, const string& account)
 {
   string name;
-  vector<ComboAddress> primaries({ComboAddress(ip, 53)});
+  vector<ComboAddress> primaries({ComboAddress(ipAddress, 53)});
   try {
     if (!nameserver.empty()) {
       // figure out all IP addresses for the primary
@@ -1695,7 +1748,7 @@ bool GSQLBackend::createSecondaryDomain(const string& ip, const DNSName& domain,
   return true;
 }
 
-bool GSQLBackend::deleteDomain(const DNSName &domain)
+bool GSQLBackend::deleteDomain(const ZoneName &domain)
 {
   if (!d_inTransaction) {
     throw PDNSException("deleteDomain called outside of transaction");
@@ -1758,9 +1811,9 @@ void GSQLBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, boo
       DomainInfo di;
       pdns::checked_stoi_into(di.id, row[0]);
       try {
-        di.zone = DNSName(row[1]);
+        di.zone = ZoneName(row[1]);
         if (!row[8].empty()) {
-          di.catalog = DNSName(row[8]);
+          di.catalog = ZoneName(row[8]);
         }
       } catch (...) {
         continue;
@@ -1827,7 +1880,8 @@ void GSQLBackend::getAllDomains(vector<DomainInfo>* domains, bool getSerial, boo
   }
 }
 
-bool GSQLBackend::replaceRRSet(uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset)
+// NOLINTNEXTLINE(readability-identifier-length)
+bool GSQLBackend::replaceRRSet(domainid_t domain_id, const DNSName& qname, const QType& qt, const vector<DNSResourceRecord>& rrset)
 {
   try {
     reconnectIfNeeded();
@@ -1940,7 +1994,7 @@ bool GSQLBackend::feedRecord(const DNSResourceRecord& r, const DNSName& ordernam
   return true; // XXX FIXME this API should not return 'true' I think -ahu
 }
 
-bool GSQLBackend::feedEnts(int domain_id, map<DNSName,bool>& nonterm)
+bool GSQLBackend::feedEnts(domainid_t domain_id, map<DNSName,bool>& nonterm)
 {
   for(const auto& nt: nonterm) {
     try {
@@ -1963,7 +2017,7 @@ bool GSQLBackend::feedEnts(int domain_id, map<DNSName,bool>& nonterm)
   return true;
 }
 
-bool GSQLBackend::feedEnts3(int domain_id, const DNSName& /* domain */, map<DNSName, bool>& nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow)
+bool GSQLBackend::feedEnts3(domainid_t domain_id, const DNSName& /* domain */, map<DNSName, bool>& nonterm, const NSEC3PARAMRecordContent& ns3prc, bool narrow)
 {
   if(!d_dnssecQueries)
       return false;
@@ -2005,7 +2059,7 @@ bool GSQLBackend::feedEnts3(int domain_id, const DNSName& /* domain */, map<DNSN
   return true;
 }
 
-bool GSQLBackend::startTransaction(const DNSName &domain, int domain_id)
+bool GSQLBackend::startTransaction(const ZoneName &domain, domainid_t domain_id)
 {
   try {
     reconnectIfNeeded();
@@ -2015,7 +2069,7 @@ bool GSQLBackend::startTransaction(const DNSName &domain, int domain_id)
     }
     d_db->startTransaction();
     d_inTransaction = true;
-    if(domain_id >= 0) {
+    if(domain_id != UnknownDomainID) {
       // clang-format off
       d_DeleteZoneQuery_stmt->
         bind("domain_id", domain_id)->
@@ -2058,7 +2112,7 @@ bool GSQLBackend::abortTransaction()
   return true;
 }
 
-bool GSQLBackend::listComments(const uint32_t domain_id)
+bool GSQLBackend::listComments(const domainid_t domain_id)
 {
   try {
     reconnectIfNeeded();
@@ -2132,7 +2186,8 @@ bool GSQLBackend::feedComment(const Comment& comment)
   return true;
 }
 
-bool GSQLBackend::replaceComments(const uint32_t domain_id, const DNSName& qname, const QType& qt, const vector<Comment>& comments)
+// NOLINTNEXTLINE(readability-identifier-length)
+bool GSQLBackend::replaceComments(const domainid_t domain_id, const DNSName& qname, const QType& qt, const vector<Comment>& comments)
 {
   try {
     reconnectIfNeeded();

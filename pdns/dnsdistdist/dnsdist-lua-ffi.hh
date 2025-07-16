@@ -22,26 +22,33 @@
 #pragma once
 
 #include "dnsdist.hh"
+#include "protozero.hh"
 
-extern "C" {
+extern "C"
+{
 #include "dnsdist-lua-ffi-interface.h"
 }
 
-// dnsdist_ffi_dnsquestion_t is a lightuserdata
-template<>
-struct LuaContext::Pusher<dnsdist_ffi_dnsquestion_t*> {
-    static const int minSize = 1;
-    static const int maxSize = 1;
+#include "ext/luawrapper/include/LuaContext.hpp"
 
-    static PushedObject push(lua_State* state, dnsdist_ffi_dnsquestion_t* ptr) noexcept {
-        lua_pushlightuserdata(state, ptr);
-        return PushedObject{state, 1};
-    }
+// dnsdist_ffi_dnsquestion_t is a lightuserdata
+template <>
+struct LuaContext::Pusher<dnsdist_ffi_dnsquestion_t*>
+{
+  static const int minSize = 1;
+  static const int maxSize = 1;
+
+  static PushedObject push(lua_State* state, dnsdist_ffi_dnsquestion_t* ptr) noexcept
+  {
+    lua_pushlightuserdata(state, ptr);
+    return PushedObject{state, 1};
+  }
 };
 
 struct dnsdist_ffi_dnsquestion_t
 {
-  dnsdist_ffi_dnsquestion_t(DNSQuestion* dq_): dq(dq_)
+  dnsdist_ffi_dnsquestion_t(DNSQuestion* dq_) :
+    dq(dq_)
   {
   }
 
@@ -56,24 +63,33 @@ struct dnsdist_ffi_dnsquestion_t
   std::unique_ptr<std::vector<dnsdist_ffi_ednsoption_t>> ednsOptionsVect;
   std::unique_ptr<std::vector<dnsdist_ffi_http_header_t>> httpHeadersVect;
   std::unique_ptr<std::vector<dnsdist_ffi_tag_t>> tagsVect;
+  std::unique_ptr<std::vector<dnsdist_ffi_proxy_protocol_value_t>> proxyProtocolValuesVect;
   std::unique_ptr<std::unordered_map<std::string, std::string>> httpHeaders;
+#if !defined(DISABLE_PROTOBUF)
+  protozero::pbf_writer pbfWriter;
+  protozero::pbf_writer pbfMetaWriter;
+  protozero::pbf_writer pbfMetaValueWriter;
+#endif /* DISABLE_PROTOBUF */
 };
 
 // dnsdist_ffi_dnsresponse_t is a lightuserdata
-template<>
-struct LuaContext::Pusher<dnsdist_ffi_dnsresponse_t*> {
-    static const int minSize = 1;
-    static const int maxSize = 1;
+template <>
+struct LuaContext::Pusher<dnsdist_ffi_dnsresponse_t*>
+{
+  static const int minSize = 1;
+  static const int maxSize = 1;
 
-    static PushedObject push(lua_State* state, dnsdist_ffi_dnsresponse_t* ptr) noexcept {
-        lua_pushlightuserdata(state, ptr);
-        return PushedObject{state, 1};
-    }
+  static PushedObject push(lua_State* state, dnsdist_ffi_dnsresponse_t* ptr) noexcept
+  {
+    lua_pushlightuserdata(state, ptr);
+    return PushedObject{state, 1};
+  }
 };
 
 struct dnsdist_ffi_dnsresponse_t
 {
-  dnsdist_ffi_dnsresponse_t(DNSResponse* dr_): dr(dr_)
+  dnsdist_ffi_dnsresponse_t(DNSResponse* dr_) :
+    dr(dr_)
   {
   }
 
@@ -82,20 +98,23 @@ struct dnsdist_ffi_dnsresponse_t
 };
 
 // dnsdist_ffi_server_t is a lightuserdata
-template<>
-struct LuaContext::Pusher<dnsdist_ffi_server_t*> {
-    static const int minSize = 1;
-    static const int maxSize = 1;
+template <>
+struct LuaContext::Pusher<dnsdist_ffi_server_t*>
+{
+  static const int minSize = 1;
+  static const int maxSize = 1;
 
-    static PushedObject push(lua_State* state, dnsdist_ffi_server_t* ptr) noexcept {
-        lua_pushlightuserdata(state, ptr);
-        return PushedObject{state, 1};
-    }
+  static PushedObject push(lua_State* state, dnsdist_ffi_server_t* ptr) noexcept
+  {
+    lua_pushlightuserdata(state, ptr);
+    return PushedObject{state, 1};
+  }
 };
 
 struct dnsdist_ffi_server_t
 {
-  dnsdist_ffi_server_t(const std::shared_ptr<DownstreamState>& server_): server(server_)
+  dnsdist_ffi_server_t(const std::shared_ptr<DownstreamState>& server_) :
+    server(server_)
   {
   }
 
@@ -103,23 +122,26 @@ struct dnsdist_ffi_server_t
 };
 
 // dnsdist_ffi_servers_list_t is a lightuserdata
-template<>
-struct LuaContext::Pusher<dnsdist_ffi_servers_list_t*> {
-    static const int minSize = 1;
-    static const int maxSize = 1;
+template <>
+struct LuaContext::Pusher<dnsdist_ffi_servers_list_t*>
+{
+  static const int minSize = 1;
+  static const int maxSize = 1;
 
-    static PushedObject push(lua_State* state, dnsdist_ffi_servers_list_t* ptr) noexcept {
-        lua_pushlightuserdata(state, ptr);
-        return PushedObject{state, 1};
-    }
+  static PushedObject push(lua_State* state, dnsdist_ffi_servers_list_t* ptr) noexcept
+  {
+    lua_pushlightuserdata(state, ptr);
+    return PushedObject{state, 1};
+  }
 };
 
 struct dnsdist_ffi_servers_list_t
 {
-  dnsdist_ffi_servers_list_t(const ServerPolicy::NumberedServerVector& servers_): servers(servers_)
+  dnsdist_ffi_servers_list_t(const ServerPolicy::NumberedServerVector& servers_) :
+    servers(servers_)
   {
     ffiServers.reserve(servers.size());
-    for (const auto& server: servers) {
+    for (const auto& server : servers) {
       ffiServers.push_back(dnsdist_ffi_server_t(server.second));
     }
   }
@@ -129,20 +151,23 @@ struct dnsdist_ffi_servers_list_t
 };
 
 // dnsdist_ffi_network_message_t is a lightuserdata
-template<>
-struct LuaContext::Pusher<dnsdist_ffi_network_message_t*> {
-    static const int minSize = 1;
-    static const int maxSize = 1;
+template <>
+struct LuaContext::Pusher<dnsdist_ffi_network_message_t*>
+{
+  static const int minSize = 1;
+  static const int maxSize = 1;
 
-    static PushedObject push(lua_State* state, dnsdist_ffi_network_message_t* ptr) noexcept {
-        lua_pushlightuserdata(state, ptr);
-        return PushedObject{state, 1};
-    }
+  static PushedObject push(lua_State* state, dnsdist_ffi_network_message_t* ptr) noexcept
+  {
+    lua_pushlightuserdata(state, ptr);
+    return PushedObject{state, 1};
+  }
 };
 
 struct dnsdist_ffi_network_message_t
 {
-  dnsdist_ffi_network_message_t(const std::string& payload_ ,const std::string& from_, uint16_t endpointID_): payload(payload_), from(from_), endpointID(endpointID_)
+  dnsdist_ffi_network_message_t(const std::string& payload_, const std::string& from_, uint16_t endpointID_) :
+    payload(payload_), from(from_), endpointID(endpointID_)
   {
   }
 

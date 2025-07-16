@@ -20,7 +20,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
-#include "boost/lexical_cast.hpp"
 #include "boost/algorithm/string/join.hpp"
 #include "pdns/arguments.hh"
 
@@ -36,10 +35,10 @@ private:
   typedef std::vector<std::pair<string, string>> lookup_context_t;
 
   typedef std::vector<std::pair<int, std::vector<std::pair<string, boost::variant<bool, int, DNSName, string, QType>>>>> lookup_result_t;
-  typedef std::function<lookup_result_t(const QType& qtype, const DNSName& qname, int domain_id, const lookup_context_t& ctx)> lookup_call_t;
+  typedef std::function<lookup_result_t(const QType& qtype, const DNSName& qname, domainid_t domain_id, const lookup_context_t& ctx)> lookup_call_t;
 
   typedef boost::variant<bool, lookup_result_t> list_result_t;
-  typedef std::function<list_result_t(const DNSName& qname, int domain_id)> list_call_t;
+  typedef std::function<list_result_t(const DNSName& qname, domainid_t domain_id)> list_call_t;
 
   typedef vector<pair<string, boost::variant<bool, long, string, vector<string>>>> domaininfo_result_t;
   typedef boost::variant<bool, domaininfo_result_t> get_domaininfo_result_t;
@@ -59,15 +58,16 @@ private:
 
   typedef std::vector<std::pair<string, boost::variant<string, DNSName>>> before_and_after_names_result_t;
   typedef boost::variant<bool, before_and_after_names_result_t> get_before_and_after_names_absolute_result_t;
-  typedef std::function<get_before_and_after_names_absolute_result_t(int id, const DNSName& qname)> get_before_and_after_names_absolute_call_t;
+  typedef std::function<get_before_and_after_names_absolute_result_t(domainid_t id, const DNSName& qname)> get_before_and_after_names_absolute_call_t;
 
-  typedef std::function<void(int, long)> set_notified_call_t;
+  typedef std::function<void(domainid_t, long)> set_notified_call_t;
 
   typedef std::function<string(const string& cmd)> direct_backend_cmd_call_t;
 
 public:
   Lua2BackendAPIv2(const string& suffix)
   {
+    d_include_path = ::arg()["lua-global-include-dir"];
     setArgPrefix("lua2" + suffix);
     d_debug_log = mustDo("query-logging");
     prepareContext();
@@ -129,9 +129,13 @@ public:
     }
   }
 
-  bool doesDNSSEC() override
+  unsigned int getCapabilities() override
   {
-    return d_dnssec;
+    unsigned int caps = CAP_DIRECT | CAP_LIST;
+    if (d_dnssec) {
+      caps |= CAP_DNSSEC;
+    }
+    return caps;
   }
 
   void parseLookup(const lookup_result_t& result)
@@ -179,7 +183,7 @@ public:
       g_log << Logger::Debug << "[" << getPrefix() << "] Got empty result" << endl;
   }
 
-  bool list(const DNSName& target, int domain_id, bool /* include_disabled */ = false) override
+  bool list(const ZoneName& target, domainid_t domain_id, bool /* include_disabled */ = false) override
   {
     if (f_list == nullptr) {
       g_log << Logger::Error << "[" << getPrefix() << "] dns_list missing - cannot do AXFR" << endl;
@@ -190,7 +194,7 @@ public:
       throw PDNSException("list attempted while another was running");
 
     logCall("list", "target=" << target << ",domain_id=" << domain_id);
-    list_result_t result = f_list(target, domain_id);
+    list_result_t result = f_list(target.operator const DNSName&(), domain_id);
 
     if (result.which() == 0)
       return false;
@@ -200,7 +204,7 @@ public:
     return true;
   }
 
-  void lookup(const QType& qtype, const DNSName& qname, int domain_id, DNSPacket* p = nullptr) override
+  void lookup(const QType& qtype, const DNSName& qname, domainid_t domain_id, DNSPacket* p = nullptr) override
   {
     if (d_result.size() != 0)
       throw PDNSException("lookup attempted while another was running");
@@ -242,16 +246,17 @@ public:
     return f(par);
   }
 
-  void setNotified(uint32_t id, uint32_t serial) override
+  void setNotified(domainid_t id, uint32_t serial) override
   {
     if (f_set_notified == NULL)
       return;
-    logCall("dns_set_notified", "id=" << static_cast<int>(id) << ",serial=" << serial);
-    f_set_notified(static_cast<int>(id), serial);
+    logCall("dns_set_notified", "id=" << id << ",serial=" << serial);
+    f_set_notified(id, serial);
   }
 
   void parseDomainInfo(const domaininfo_result_t& row, DomainInfo& di)
   {
+    di.id = UnknownDomainID;
     for (const auto& item : row) {
       if (item.first == "account")
         di.account = boost::get<string>(item.second);
@@ -261,7 +266,7 @@ public:
         for (const auto& primary : boost::get<vector<string>>(item.second))
           di.primaries.push_back(ComboAddress(primary, 53));
       else if (item.first == "id")
-        di.id = static_cast<int>(boost::get<long>(item.second));
+        di.id = static_cast<domainid_t>(boost::get<long>(item.second));
       else if (item.first == "notified_serial")
         di.notified_serial = static_cast<unsigned int>(boost::get<long>(item.second));
       else if (item.first == "serial")
@@ -275,14 +280,21 @@ public:
     logResult("zone=" << di.zone << ",serial=" << di.serial << ",kind=" << di.getKindString());
   }
 
-  bool getDomainInfo(const DNSName& domain, DomainInfo& di, bool /* getSerial */ = true) override
+  bool getDomainInfo(const ZoneName& domain, DomainInfo& di, bool /* getSerial */ = true) override
   {
     if (f_get_domaininfo == nullptr) {
-      // use getAuth instead
+      // use getAuth instead... but getAuth wraps getSOA which will call
+      // getDomainInfo if this is a domain variant, so protect against this
+      // would-be infinite recursion.
+      if (domain.hasVariant()) {
+        g_log << Logger::Info << "Unable to return domain information for '" << domain.toLogString() << "' due to unimplemented dns_get_domaininfo" << endl;
+        return false;
+      }
       SOAData sd;
       if (!getAuth(domain, &sd))
         return false;
 
+      di.id = sd.domain_id;
       di.zone = domain;
       di.backend = this;
       di.serial = sd.serial;
@@ -290,7 +302,7 @@ public:
     }
 
     logCall("get_domaininfo", "domain=" << domain);
-    get_domaininfo_result_t result = f_get_domaininfo(domain);
+    get_domaininfo_result_t result = f_get_domaininfo(domain.operator const DNSName&());
 
     if (result.which() == 0)
       return false;
@@ -309,20 +321,20 @@ public:
     logCall("get_all_domains", "");
     for (const auto& row : f_get_all_domains()) {
       DomainInfo di;
-      di.zone = row.first;
+      di.zone = ZoneName(row.first);
       logResult(di.zone);
       parseDomainInfo(row.second, di);
       domains->push_back(di);
     }
   }
 
-  bool getAllDomainMetadata(const DNSName& name, std::map<std::string, std::vector<std::string>>& meta) override
+  bool getAllDomainMetadata(const ZoneName& name, std::map<std::string, std::vector<std::string>>& meta) override
   {
     if (f_get_all_domain_metadata == nullptr)
       return false;
 
     logCall("get_all_domain_metadata", "name=" << name);
-    get_all_domain_metadata_result_t result = f_get_all_domain_metadata(name);
+    get_all_domain_metadata_result_t result = f_get_all_domain_metadata(name.operator const DNSName&());
     if (result.which() == 0)
       return false;
 
@@ -336,13 +348,13 @@ public:
     return true;
   }
 
-  bool getDomainMetadata(const DNSName& name, const std::string& kind, std::vector<std::string>& meta) override
+  bool getDomainMetadata(const ZoneName& name, const std::string& kind, std::vector<std::string>& meta) override
   {
     if (f_get_domain_metadata == nullptr)
       return false;
 
     logCall("get_domain_metadata", "name=" << name << ",kind=" << kind);
-    get_domain_metadata_result_t result = f_get_domain_metadata(name, kind);
+    get_domain_metadata_result_t result = f_get_domain_metadata(name.operator const DNSName&(), kind);
     if (result.which() == 0)
       return false;
 
@@ -354,13 +366,13 @@ public:
     return true;
   }
 
-  bool getDomainKeys(const DNSName& name, std::vector<DNSBackend::KeyData>& keys) override
+  bool getDomainKeys(const ZoneName& name, std::vector<DNSBackend::KeyData>& keys) override
   {
     if (f_get_domain_keys == nullptr)
       return false;
 
     logCall("get_domain_keys", "name=" << name);
-    get_domain_keys_result_t result = f_get_domain_keys(name);
+    get_domain_keys_result_t result = f_get_domain_keys(name.operator const DNSName&());
 
     if (result.which() == 0)
       return false;
@@ -383,13 +395,13 @@ public:
           g_log << Logger::Warning << "[" << getPrefix() << "] Unsupported key '" << item.first << "' in keydata result" << endl;
       }
       logResult("id=" << key.id << ",flags=" << key.flags << ",active=" << (key.active ? "true" : "false") << ",published=" << (key.published ? "true" : "false"));
-      keys.push_back(key);
+      keys.emplace_back(std::move(key));
     }
 
     return true;
   }
 
-  bool getBeforeAndAfterNamesAbsolute(uint32_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) override
+  bool getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& qname, DNSName& unhashed, DNSName& before, DNSName& after) override
   {
     if (f_get_before_and_after_names_absolute == nullptr)
       return false;

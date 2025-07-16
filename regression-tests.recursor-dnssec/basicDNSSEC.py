@@ -5,6 +5,7 @@ import os
 class BasicDNSSEC(RecursorTest):
     __test__ = False
     _config_template = """dnssec=validate"""
+    _auth_zones = RecursorTest._default_auth_zones
 
     @classmethod
     def setUp(cls):

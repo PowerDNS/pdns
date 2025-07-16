@@ -17,7 +17,7 @@ DNSCrypt objects and functions
 
   :param string address: The address and port to listen on
   :param string provider: The provider name for this bind
-  :param str certFile(s): The path to a X.509 certificate file in PEM format, or a list of paths to such files.
+  :param str certFile(s): The path to a DNSCrypt certificate file, or a list of paths to such files.
   :param str keyFile(s): The path to the private key file corresponding to the certificate, or a list of paths to such files, whose order should match the certFile(s) ones.
   :param table options: A table with key: value pairs with options (see below)
 
@@ -108,11 +108,11 @@ Certificates
 
   .. method:: DNSCryptCert:getTSEnd() -> int
 
-    Return the date the certificate is valid from, as a Unix timestamp.
+    Return the date that the certificate is valid from, as a Unix timestamp.
 
   .. method:: DNSCryptCert:getTSStart() -> int
 
-    Return the date the certificate is valid until (inclusive), as a Unix timestamp
+    Return the date that the certificate is valid until (inclusive), as a Unix timestamp
 
 Certificate Pairs
 -----------------
@@ -146,9 +146,12 @@ Context
     :param DNSCryptPrivateKey key: The private key corresponding to the certificate
     :param bool active: Whether the certificate should be advertised to clients. Default is true
 
-  .. method:: DNSCryptContext:generateAndLoadInMemoryCertificate(keyfile, serial, begin, end [, version])
+  .. method:: DNSCryptContext:generateAndLoadInMemoryCertificate(keyfile, serial, begin, end [, version]) -> bool
 
-    Generate a new resolver key and the associated certificate in-memory, sign it with the provided provider key, and add it to the context
+  .. versionchanged:: 2.0.0
+    A return value indicating whether the certificate was correctly loaded has been added. Before 2.0.0 the method did not return any value.
+
+    Generate a new resolver key and the associated certificate in-memory, sign it with the provided provider key, and add it to the context. Returns true if the certificate was correctly loaded, false otherwise.
 
     :param string keyfile: Path to the provider key file to use
     :param int serial: The serial number of the certificate
@@ -183,7 +186,7 @@ Context
     tied to it.
 
     :param string certificate: Path to a certificate file
-    :param string keyfile: Path to a the corresponding key file
+    :param string keyfile: Path to the corresponding key file
     :param bool active: Whether the certificate should be marked as active. Default is true
 
   .. method:: DNSCryptContext:markActive(serial)

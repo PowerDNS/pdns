@@ -61,6 +61,14 @@ public:
   Connection& operator=(Connection&&) = default;
   ~Connection() = default;
 
+  std::shared_ptr<const std::string> getSNI()
+  {
+    if (!d_sni) {
+      d_sni = std::make_shared<const std::string>(getSNIFromQuicheConnection(d_conn));
+    }
+    return d_sni;
+  }
+
   ComboAddress d_peer;
   ComboAddress d_localAddr;
   QuicheConnection d_conn;
@@ -68,6 +76,7 @@ public:
 
   std::unordered_map<uint64_t, PacketBuffer> d_streamBuffers;
   std::unordered_map<uint64_t, PacketBuffer> d_streamOutBuffers;
+  std::shared_ptr<const std::string> d_sni{nullptr};
 };
 
 static void sendBackDOQUnit(DOQUnitUniquePtr&& unit, const char* description);
@@ -91,7 +100,6 @@ struct DOQServerConfig
 
   using ConnectionsMap = std::map<PacketBuffer, Connection>;
 
-  LocalHolders holders;
   ConnectionsMap d_connections;
   QuicheConfig config;
   ClientState* clientState{nullptr};
@@ -135,13 +143,9 @@ public:
     memcpy(&cleartextDH, dnsResponse.getHeader().get(), sizeof(cleartextDH));
 
     if (!response.isAsync()) {
-
-      static thread_local LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> localRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::ResponseRules).getLocal();
-      static thread_local LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> localCacheInsertedRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules).getLocal();
-
       dnsResponse.ids.doqu = std::move(unit);
 
-      if (!processResponse(dnsResponse.ids.doqu->response, *localRespRuleActions, *localCacheInsertedRespRuleActions, dnsResponse, false)) {
+      if (!processResponse(dnsResponse.ids.doqu->response, dnsResponse, false)) {
         if (dnsResponse.ids.doqu) {
 
           sendBackDOQUnit(std::move(dnsResponse.ids.doqu), "Response dropped by rules");
@@ -413,10 +417,9 @@ static void processDOQQuery(DOQUnitUniquePtr&& doqUnit)
 
     remote = unit->ids.origRemote;
     DOQServerConfig* dsc = unit->dsc;
-    auto& holders = dsc->holders;
     ClientState& clientState = *dsc->clientState;
 
-    if (!holders.acl->match(remote)) {
+    if (!dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(remote)) {
       vinfolog("Query from %s (DoQ) dropped because of ACL", remote.toStringWithPort());
       ++dnsdist::metrics::g_stats.aclDrops;
       unit->response.clear();
@@ -478,9 +481,12 @@ static void processDOQQuery(DOQUnitUniquePtr&& doqUnit)
       ids.origFlags = *flags;
       return true;
     });
+    if (unit->sni) {
+      dnsQuestion.sni = *unit->sni;
+    }
     unit->ids.cs = &clientState;
 
-    auto result = processQuery(dnsQuestion, holders, downstream);
+    auto result = processQuery(dnsQuestion, downstream);
     if (result == ProcessQueryResult::Drop) {
       handleImmediateResponse(std::move(unit), "DoQ dropped query");
       return;
@@ -547,7 +553,7 @@ static void processDOQQuery(DOQUnitUniquePtr&& doqUnit)
   }
 }
 
-static void doq_dispatch_query(DOQServerConfig& dsc, PacketBuffer&& query, const ComboAddress& local, const ComboAddress& remote, const PacketBuffer& serverConnID, const uint64_t streamID)
+static void doq_dispatch_query(DOQServerConfig& dsc, PacketBuffer&& query, const ComboAddress& local, const ComboAddress& remote, const PacketBuffer& serverConnID, const uint64_t streamID, const std::shared_ptr<const std::string>& sni)
 {
   try {
     auto unit = std::make_unique<DOQUnit>(std::move(query));
@@ -557,6 +563,7 @@ static void doq_dispatch_query(DOQServerConfig& dsc, PacketBuffer&& query, const
     unit->ids.protocol = dnsdist::Protocol::DoQ;
     unit->serverConnID = serverConnID;
     unit->streamID = streamID;
+    unit->sni = sni;
 
     processDOQQuery(std::move(unit));
   }
@@ -655,7 +662,7 @@ static void handleReadableStream(DOQFrontend& frontend, ClientState& clientState
     return;
   }
   DEBUGLOG("Dispatching query");
-  doq_dispatch_query(*(frontend.d_server_config), std::move(streamBuffer), conn.d_localAddr, client, serverConnID, streamID);
+  doq_dispatch_query(*(frontend.d_server_config), std::move(streamBuffer), conn.d_localAddr, client, serverConnID, streamID, conn.getSNI());
   conn.d_streamBuffers.erase(streamID);
 }
 
@@ -718,14 +725,14 @@ static void handleSocketReadable(DOQFrontend& frontend, ClientState& clientState
       if (!quiche_version_is_supported(version)) {
         DEBUGLOG("Unsupported version");
         ++frontend.d_doqUnsupportedVersionErrors;
-        handleVersionNegociation(sock, clientConnID, serverConnID, client, localAddr, buffer);
+        handleVersionNegotiation(sock, clientConnID, serverConnID, client, localAddr, buffer, clientState.local.isUnspecified());
         continue;
       }
 
       if (token_len == 0) {
         /* stateless retry */
         DEBUGLOG("No token received");
-        handleStatelessRetry(sock, clientConnID, serverConnID, client, localAddr, version, buffer);
+        handleStatelessRetry(sock, clientConnID, serverConnID, client, localAddr, version, buffer, clientState.local.isUnspecified());
         continue;
       }
 
@@ -766,7 +773,7 @@ static void handleSocketReadable(DOQFrontend& frontend, ClientState& clientState
         handleReadableStream(frontend, clientState, *conn, streamID, client, serverConnID);
       }
 
-      flushEgress(sock, conn->get().d_conn, client, localAddr, buffer);
+      flushEgress(sock, conn->get().d_conn, client, localAddr, buffer, clientState.local.isUnspecified());
     }
     else {
       DEBUGLOG("Connection not established");
@@ -811,7 +818,7 @@ void doqThread(ClientState* clientState)
         for (auto conn = frontend->d_server_config->d_connections.begin(); conn != frontend->d_server_config->d_connections.end();) {
           quiche_conn_on_timeout(conn->second.d_conn.get());
 
-          flushEgress(sock, conn->second.d_conn, conn->second.d_peer, conn->second.d_localAddr, buffer);
+          flushEgress(sock, conn->second.d_conn, conn->second.d_peer, conn->second.d_localAddr, buffer, clientState->local.isUnspecified());
 
           if (quiche_conn_is_closed(conn->second.d_conn.get())) {
 #ifdef DEBUGLOG_ENABLED

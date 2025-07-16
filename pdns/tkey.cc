@@ -40,7 +40,7 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
     if (g_doGssTSIG) {
       if (tkey_in.d_algo == DNSName("gss-tsig.")) {
         std::vector<std::string> meta;
-        DNSName tmpName(name);
+        ZoneName tmpName(name);
         do {
           if (B.getDomainMetadata(tmpName, "GSS-ACCEPTOR-PRINCIPAL", meta) && meta.size()>0) {
             break;
@@ -69,9 +69,9 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
       {
       tkey_out->d_error = 21; // BADALGO
 #ifdef ENABLE_GSS_TSIG
-      g_log<<Logger::Error<<"GSS-TSIG request but feature not enabled by enable-gss-tsigs setting"<<endl;
+      g_log<<Logger::Debug<<"GSS-TSIG request but feature not enabled by enable-gss-tsig setting"<<endl;
 #else
-      g_log<<Logger::Error<<"GSS-TSIG request but feature not compiled in"<<endl;
+      g_log<<Logger::Debug<<"GSS-TSIG request but feature not compiled in"<<endl;
 #endif
     }
   } else if (tkey_in.d_mode == 5) { // destroy context

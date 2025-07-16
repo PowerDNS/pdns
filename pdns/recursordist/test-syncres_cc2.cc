@@ -1121,7 +1121,7 @@ BOOST_AUTO_TEST_CASE(test_dont_skip_negcache_for_variable_response)
   SyncRes::addEDNSDomain(DNSName("powerdns.com."));
 
   EDNSSubnetOpts incomingECS;
-  incomingECS.source = Netmask("192.0.2.128/32");
+  incomingECS.setSource(Netmask("192.0.2.128/32"));
   sr->setQuerySource(ComboAddress(), boost::optional<const EDNSSubnetOpts&>(incomingECS));
 
   sr->setAsyncCallback([&](const ComboAddress& address, const DNSName& domain, int /* type */, bool /* doTCP */, bool /* sendRDQuery */, int /* EDNS0Level */, struct timeval* /* now */, boost::optional<Netmask>& srcmask, const ResolveContext& /* context */, LWResult* res, bool* /* chained */) {
@@ -1176,7 +1176,7 @@ BOOST_AUTO_TEST_CASE(test_ecs_cache_limit_allowed)
   SyncRes::addEDNSDomain(DNSName("powerdns.com."));
 
   EDNSSubnetOpts incomingECS;
-  incomingECS.source = Netmask("192.0.2.128/32");
+  incomingECS.setSource(Netmask("192.0.2.128/32"));
   sr->setQuerySource(ComboAddress(), boost::optional<const EDNSSubnetOpts&>(incomingECS));
   SyncRes::s_ecsipv4cachelimit = 24;
 
@@ -1215,7 +1215,7 @@ BOOST_AUTO_TEST_CASE(test_ecs_cache_limit_no_ttl_limit_allowed)
   SyncRes::addEDNSDomain(DNSName("powerdns.com."));
 
   EDNSSubnetOpts incomingECS;
-  incomingECS.source = Netmask("192.0.2.128/32");
+  incomingECS.setSource(Netmask("192.0.2.128/32"));
   sr->setQuerySource(ComboAddress(), boost::optional<const EDNSSubnetOpts&>(incomingECS));
   SyncRes::s_ecsipv4cachelimit = 16;
 
@@ -1254,7 +1254,7 @@ BOOST_AUTO_TEST_CASE(test_ecs_cache_ttllimit_allowed)
   SyncRes::addEDNSDomain(DNSName("powerdns.com."));
 
   EDNSSubnetOpts incomingECS;
-  incomingECS.source = Netmask("192.0.2.128/32");
+  incomingECS.setSource(Netmask("192.0.2.128/32"));
   sr->setQuerySource(ComboAddress(), boost::optional<const EDNSSubnetOpts&>(incomingECS));
   SyncRes::s_ecscachelimitttl = 30;
 
@@ -1293,7 +1293,7 @@ BOOST_AUTO_TEST_CASE(test_ecs_cache_ttllimit_and_scope_allowed)
   SyncRes::addEDNSDomain(DNSName("powerdns.com."));
 
   EDNSSubnetOpts incomingECS;
-  incomingECS.source = Netmask("192.0.2.128/32");
+  incomingECS.setSource(Netmask("192.0.2.128/32"));
   sr->setQuerySource(ComboAddress(), boost::optional<const EDNSSubnetOpts&>(incomingECS));
   SyncRes::s_ecscachelimitttl = 100;
   SyncRes::s_ecsipv4cachelimit = 24;
@@ -1333,7 +1333,7 @@ BOOST_AUTO_TEST_CASE(test_ecs_cache_ttllimit_notallowed)
   SyncRes::addEDNSDomain(DNSName("powerdns.com."));
 
   EDNSSubnetOpts incomingECS;
-  incomingECS.source = Netmask("192.0.2.128/32");
+  incomingECS.setSource(Netmask("192.0.2.128/32"));
   sr->setQuerySource(ComboAddress(), boost::optional<const EDNSSubnetOpts&>(incomingECS));
   SyncRes::s_ecscachelimitttl = 100;
   SyncRes::s_ecsipv4cachelimit = 16;
@@ -1365,6 +1365,8 @@ BOOST_AUTO_TEST_CASE(test_ns_speed)
 {
   std::unique_ptr<SyncRes> sr;
   initSR(sr);
+
+  BOOST_CHECK_EQUAL(SyncRes::getNSSpeedsSize(), 0U);
 
   primeHints();
 
@@ -1430,6 +1432,49 @@ BOOST_AUTO_TEST_CASE(test_ns_speed)
   BOOST_CHECK_EQUAL(nsCounts[ComboAddress("192.0.2.1:53")], 1U);
   BOOST_CHECK_EQUAL(nsCounts[ComboAddress("192.0.2.2:53")], 1U);
   BOOST_CHECK_EQUAL(nsCounts[ComboAddress("[2001:DB8::2]:53")], 1U);
+
+  // read PB representation back and forth, compare using the text dump
+  std::string temp1{"/tmp/speedDump1XXXXXX"};
+  std::string temp2{"/tmp/speedDump2XXXXXX"};
+  auto fd1 = FDWrapper(mkstemp(temp1.data()));
+  auto fd2 = FDWrapper(mkstemp(temp2.data()));
+  auto count = SyncRes::doDumpNSSpeeds(fd1);
+  fd1.reset();
+  std::string pbDump;
+  auto records = SyncRes::getNSSpeedTable(0, pbDump);
+  BOOST_CHECK_EQUAL(records, count);
+
+  SyncRes::clearNSSpeeds();
+  BOOST_CHECK_EQUAL(SyncRes::getNSSpeedsSize(), 0U);
+
+  // Put PB dump back
+  count = SyncRes::putIntoNSSpeedTable(pbDump);
+  BOOST_CHECK_EQUAL(records, count);
+  count = SyncRes::doDumpNSSpeeds(fd2);
+  fd2.reset();
+  BOOST_CHECK_EQUAL(records, count);
+
+  // NS speed table is a hashed unique table, which not neccesarily stable wrt recreation
+  // So we read the lines, sort them and compare
+  std::ifstream file1(temp1);
+  std::ifstream file2(temp2);
+  std::vector<std::string> lines1;
+  std::vector<std::string> lines2;
+  while (file1.good()) {
+    std::string line;
+    std::getline(file1, line);
+    lines1.emplace_back(line);
+  }
+  while (file2.good()) {
+    std::string line;
+    std::getline(file2, line);
+    lines2.emplace_back(line);
+  }
+  unlink(temp1.data());
+  unlink(temp2.data());
+  std::sort(lines1.begin(), lines1.end());
+  std::sort(lines2.begin(), lines2.end());
+  BOOST_CHECK(lines1 == lines2);
 }
 
 BOOST_AUTO_TEST_CASE(test_flawed_nsset)
@@ -1465,7 +1510,7 @@ BOOST_AUTO_TEST_CASE(test_flawed_nsset)
   std::vector<shared_ptr<const RRSIGRecordContent>> sigs;
   addRecordToList(records, target, QType::NS, "pdns-public-ns1.powerdns.com.", DNSResourceRecord::AUTHORITY, now + 3600);
 
-  g_recCache->replace(now, target, QType(QType::NS), records, sigs, vector<std::shared_ptr<DNSRecord>>(), true, g_rootdnsname, boost::optional<Netmask>());
+  g_recCache->replace(now, target, QType(QType::NS), records, sigs, {}, true, g_rootdnsname, boost::optional<Netmask>());
 
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
@@ -1571,7 +1616,7 @@ BOOST_AUTO_TEST_CASE(test_cache_hit)
   std::vector<shared_ptr<const RRSIGRecordContent>> sigs;
 
   addRecordToList(records, target, QType::A, "192.0.2.1", DNSResourceRecord::ANSWER, now + 3600);
-  g_recCache->replace(now, target, QType(QType::A), records, sigs, vector<std::shared_ptr<DNSRecord>>(), true, g_rootdnsname, boost::optional<Netmask>());
+  g_recCache->replace(now, target, QType(QType::A), records, sigs, {}, true, g_rootdnsname, boost::optional<Netmask>());
 
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);
@@ -1667,7 +1712,7 @@ BOOST_AUTO_TEST_CASE(test_cache_min_max_ecs_ttl)
   const ComboAddress ns("192.0.2.1:53");
 
   EDNSSubnetOpts incomingECS;
-  incomingECS.source = Netmask("192.0.2.128/32");
+  incomingECS.setSource(Netmask("192.0.2.128/32"));
   sr->setQuerySource(ComboAddress(), boost::optional<const EDNSSubnetOpts&>(incomingECS));
   SyncRes::addEDNSDomain(target);
 
@@ -1760,7 +1805,7 @@ BOOST_AUTO_TEST_CASE(test_cache_expired_ttl)
   std::vector<shared_ptr<const RRSIGRecordContent>> sigs;
   addRecordToList(records, target, QType::A, "192.0.2.42", DNSResourceRecord::ANSWER, now - 60);
 
-  g_recCache->replace(now - 3600, target, QType(QType::A), records, sigs, vector<std::shared_ptr<DNSRecord>>(), true, g_rootdnsname, boost::optional<Netmask>());
+  g_recCache->replace(now - 3600, target, QType(QType::A), records, sigs, {}, true, g_rootdnsname, boost::optional<Netmask>());
 
   vector<DNSRecord> ret;
   int res = sr->beginResolve(target, QType(QType::A), QClass::IN, ret);

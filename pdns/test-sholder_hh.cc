@@ -13,38 +13,37 @@ using std::string;
 struct TestObject
 {
   string name;
-  uint64_t number;
+  uint64_t number{0};
 };
 
-static GlobalStateHolder<TestObject> g_to; 
-std::atomic<bool> g_failed;
+static GlobalStateHolder<TestObject> s_to;
+static std::atomic<bool> s_failed;
 
 BOOST_AUTO_TEST_SUITE(test_sholder_hh)
 
-void treader()
+static void treader()
 {
-  auto local = g_to.getLocal();
-  for(int n=0; n < 10000000; ++n) {
-    auto g = *local;
-    if(g.name != std::to_string(g.number)) {
-      g_failed=1;
+  auto local = s_to.getLocal();
+  for (uint64_t counter = 0; counter < 10000000U; ++counter) {
+    auto copy = *local;
+    if (copy.name != std::to_string(copy.number)) {
+      s_failed.store(true);
       break;
     }
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_sholder) {
-  g_to.setState({"1", 1});
+BOOST_AUTO_TEST_CASE(test_sholder)
+{
+  s_to.setState({"1", 1});
 
-  std::thread t1(treader);
-  for(unsigned int n=0; n < 1000000; ++n) {
-    g_to.setState({std::to_string(n), n});
-    g_to.modify([n](TestObject& to) { to.number = 2*n; to.name=std::to_string(to.number);} );
+  std::thread thread1(treader);
+  for (uint64_t counter = 0; counter < 1000000U; ++counter) {
+    s_to.setState({std::to_string(counter), counter});
+    s_to.modify([counter](TestObject& toValue) { toValue.number = 2*counter; toValue.name = std::to_string(toValue.number); });
   }
-  t1.join();
-  BOOST_CHECK_EQUAL(g_failed, 0);
+  thread1.join();
+  BOOST_CHECK_EQUAL(s_failed, 0);
 }
 
-
 BOOST_AUTO_TEST_SUITE_END()
-

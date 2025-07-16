@@ -11,6 +11,19 @@ To emit metrics to Graphite, or any other software supporting the Carbon protoco
 Where ``ourname`` can be used to override your hostname, and ``30`` is the reporting interval in seconds. ``dnsdist`` and ``main`` are used as namespace and instance variables. For querycount statistics these two variables are currently ignored. The last four arguments can be omitted.
 The latest version of `PowerDNS Metronome <https://github.com/ahupowerdns/metronome>`_ comes with attractive graphs for dnsdist by default.
 
+The equivalent ``yaml`` configuration:
+
+.. code-block:: yaml
+
+  metrics:
+    carbon:
+      - address: "ip-address-of-carbon-server"
+        name: "ourname"
+        interval: "30"
+        namespace: "dnsdist"
+        instance: "main"
+
+
 Query counters
 --------------
 

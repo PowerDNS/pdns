@@ -6,6 +6,7 @@ These chapters contain extensive information on all functions and object availab
 .. toctree::
   :maxdepth: 3
 
+  selectors
   actions
   config
   constants
@@ -27,7 +28,11 @@ These chapters contain extensive information on all functions and object availab
   logging
   web
   rules-management
-  selectors
   svc
   custommetrics
   xsk
+  yaml-settings
+  yaml-selectors
+  yaml-actions
+  yaml-response-actions
+  yaml-support-structures

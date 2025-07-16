@@ -29,6 +29,8 @@ Currently, the following backends have been modified to support catalog zones:
 - :doc:`godbc <backends/generic-odbc>`
 - :doc:`lmdb <backends/lmdb>`
 
+If you are also using views, please read :ref:`views-catalog-zones` in the Views documentation.
+
 .. _catalog-configuration-options:
 
 Configuration options
@@ -41,7 +43,7 @@ None really.
 Per zone settings
 -----------------
 
-It is highly recommended to protect catalog zones with :doc:`TSIG <../tsig>`
+It is highly recommended to protect catalog zones with :doc:`TSIG <../tsig>`.
 
 CATALOG-HASH
 ~~~~~~~~~~~~
@@ -87,7 +89,7 @@ Create a producer zone:
 
 .. code-block:: shell
 
-  pdnsutil load-zone catalog.example zones/catalog.example ZONEFILE
+  pdnsutil load-zone catalog.example ZONEFILE
   pdnsutil set-kind catalog.example producer
 
 Creating producer zones is supported in the :doc:`API <http-api/zone>`, using type ``PRODUCER``.
@@ -101,6 +103,7 @@ In the example below ``example.com`` is the member and ``catalog.example`` is th
 .. code-block:: shell
 
   pdnsutil set-catalog example.com catalog.example
+  pdnsutil set-kind example.com primary
 
 Setting catalog values is supported in the :doc:`API <http-api/zone>`, by setting the ``catalog`` property in the zone properties.
 Setting the catalog to an empty ``""`` removes the member zone from the catalog it is in.
@@ -140,3 +143,19 @@ The only difference is the type, which is now set to CONSUMER.
 Creating consumer zones is supported in the :doc:`API <http-api/zone>`, using type ``CONSUMER``.
 
 New member zones on the consumer adopt their primaries from the consumer zone.
+
+Updating a secondary server when primary address/port changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If NOTIFY+AXFR are being used to replicate zone changes between the
+primary and secondary servers, and the address and/or port of the
+primary server changes, two steps are necessary on each secondary
+server in order to fully apply the changes.
+
+.. code-block:: shell
+
+  pdnsutil change-secondary-zone-primary catalog.example 192.0.2.45
+  pdns_control retrieve catalog.example
+
+This will update the primary server contact details in each zone
+included in the catalog zone.

@@ -136,7 +136,7 @@ Bug fixes
    `#5091 <https://github.com/PowerDNS/pdns/issues/5091>`__
    (shantikulkarni)
 -  `#5289 <https://github.com/PowerDNS/pdns/pull/5289>`__: Sort NSEC
-   record case insensitive (Kees Monshouwer)
+   record case-insensitive (Kees Monshouwer)
 -  `#5378 <https://github.com/PowerDNS/pdns/pull/5378>`__: Make sure
    NSEC ordernames are always lower case
 -  `#4781 <https://github.com/PowerDNS/pdns/pull/4781>`__: API:
@@ -314,7 +314,7 @@ Released July 29th 2016
 
 This release fixes two small issues and adds a setting to limit AXFR and
 IXFR sizes, in response to
-`CVE-2016-6172 <http://www.openwall.com/lists/oss-security/2016/07/06/4>`__.
+`CVE-2016-6172 <https://www.openwall.com/lists/oss-security/2016/07/06/4>`__.
 
 Bug fixes
 ~~~~~~~~~
@@ -367,7 +367,7 @@ As part of the general cleanup and improvements, we did the following:
 
 -  Moved to C++ 2011, a cleaner more powerful version of C++ that has
    allowed us to `improve the quality of
-   implementation <http://bert-hubert.blogspot.nl/2015/01/on-c2011-quality-of-implementation.html>`__
+   implementation <https://bert-hubert.blogspot.nl/2015/01/on-c2011-quality-of-implementation.html>`__
    in many places.
 -  Implemented dedicated infrastructure for dealing with DNS names that
    is fully "DNS Native" and needs less escaping and unescaping.
@@ -395,7 +395,7 @@ In addition to this cleanup, 4.0.0 brings the following new features:
 -  Experimental support for ed25519 DNSSEC signatures (when compiled
    with libsodium support).
 -  IXFR consumption support.
--  Many new ``pdnsutil`` commands
+-  Many new :doc:`pdnsutil <../manpages/pdnsutil.1>` commands
 
    -  ``help`` command now produces the help
    -  Warns if the configuration file cannot be read
@@ -417,7 +417,7 @@ The following backend have been dropped in 4.0.0:
 
 Important changes:
 
--  ``pdnssec`` has been renamed to ``pdnsutil``
+-  ``pdnssec`` has been renamed to :doc:`pdnsutil <../manpages/pdnsutil.1>`
 -  PowerDNS Authoritative Server now listens by default on all IPv6
    addresses.
 -  The default for ``pdnsutil secure-zone`` has been changed from 1 2048

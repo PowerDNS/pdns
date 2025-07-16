@@ -2,7 +2,7 @@ Server pools
 ------------
 
 dnsdist has the concept to "server pools", any number of servers can belong to a group.
-A default pool, identified by the empty string ``''`` is always present, and `newServer` without a pool argument will assign the new server to that pool.
+A default pool, identified by the empty string ``''`` is always present, and :func:`newServer` without a pool argument will assign the new server to that pool.
 
 Let's say we know we're getting a whole bunch of traffic for a domain used in DoS attacks, for example 'example.com'.
 We can do two things with this kind of traffic.
@@ -42,4 +42,3 @@ Traffic exceeding the :term:`QPS` limit will not match that rule, and subsequent
 
   getServer(4):addPool("abuse")
   getServer(4):rmPool("abuse")
-

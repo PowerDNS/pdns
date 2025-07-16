@@ -1,0 +1,9 @@
+/target
+/Makefile
+/Makefile.in
+/cxx.h
+/lib.rs.h
+/web.rs.h
+/misc.rs.h
+src/lib.rs
+.dir-locals.el

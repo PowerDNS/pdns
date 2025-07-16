@@ -2,12 +2,19 @@ Generic SQLite 3 backend
 ========================
 
 * Native: Yes
-* Master: Yes
-* Slave: Yes
-* Superslave: Yes
+* Primary: Yes
+* Secondary: Yes
+* Producer: Yes
+* Consumer: Yes
+* Autosecondary: Yes
+* DNS Update: Yes
 * DNSSEC: Yes
 * Disabled data: Yes
 * Comments: Yes
+* Search: Yes
+* Views: No
+* API: Read-Write
+* Multiple instances: yes
 * Zone caching: Yes
 * Module name: gsqlite3
 * Launch name: ``gsqlite3``
@@ -20,7 +27,7 @@ Generic SQLite 3 backend
 This backend retrieves all data from a SQLite database, which is an
 RDBMS that's embedded into the application itself, so you won't need to
 be running a separate server process. It also reduces overhead, and
-simplifies installation. At `www.sqlite.org <http://www.sqlite.org>`__
+simplifies installation. At `www.sqlite.org <https://www.sqlite.org>`__
 you can find more information about SQLite.
 
 As this is a generic backend, built on top of the gSql framework, you
@@ -115,7 +122,7 @@ Compiling the SQLite backend
 
 Before you can begin compiling PowerDNS with the SQLite backend you need
 to have the SQLite utility and library installed on your system. You can
-download these from http://www.sqlite.org/download.html, or you can use
+download these from https://www.sqlite.org/download.html, or you can use
 packages (if your distribution provides those).
 
 When you've installed the library you can use:

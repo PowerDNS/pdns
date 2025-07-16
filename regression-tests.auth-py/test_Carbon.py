@@ -19,7 +19,7 @@ class TestCarbon(AuthTest):
     _carbonQueue2 = Queue()
     _carbonCounters = {}
     _config_template = """
-    launch=bind
+    launch={backend}
     carbon-namespace=%s
     carbon-instance=%s
     carbon-interval=%s

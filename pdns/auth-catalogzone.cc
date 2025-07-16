@@ -113,17 +113,17 @@ void CatalogInfo::updateHash(CatalogHashMap& hashes, const DomainInfo& di) const
   }
 }
 
-DNSZoneRecord CatalogInfo::getCatalogVersionRecord(const DNSName& zone)
+DNSZoneRecord CatalogInfo::getCatalogVersionRecord(const ZoneName& zone)
 {
   DNSZoneRecord dzr;
-  dzr.dr.d_name = DNSName("version") + zone;
+  dzr.dr.d_name = DNSName("version") + zone.operator const DNSName&();
   dzr.dr.d_ttl = 0;
   dzr.dr.d_type = QType::TXT;
   dzr.dr.setContent(std::make_shared<TXTRecordContent>("2"));
   return dzr;
 }
 
-void CatalogInfo::toDNSZoneRecords(const DNSName& zone, vector<DNSZoneRecord>& dzrs) const
+void CatalogInfo::toDNSZoneRecords(const ZoneName& zone, vector<DNSZoneRecord>& dzrs) const
 {
   DNSName prefix;
   if (d_unique.empty()) {
@@ -132,13 +132,13 @@ void CatalogInfo::toDNSZoneRecords(const DNSName& zone, vector<DNSZoneRecord>& d
   else {
     prefix = d_unique;
   }
-  prefix += DNSName("zones") + zone;
+  prefix += DNSName("zones") + zone.operator const DNSName&();
 
   DNSZoneRecord dzr;
   dzr.dr.d_name = prefix;
   dzr.dr.d_ttl = 0;
   dzr.dr.d_type = QType::PTR;
-  dzr.dr.setContent(std::make_shared<PTRRecordContent>(d_zone.toString()));
+  dzr.dr.setContent(std::make_shared<PTRRecordContent>(d_zone.operator const DNSName&().toString()));
   dzrs.emplace_back(dzr);
 
   if (!d_coo.empty()) {

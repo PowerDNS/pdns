@@ -1,0 +1,42 @@
+#!/bin/sh
+
+# The first invocation of pdnsutil is redirected to /dev/null to hide the
+# "local files have been created" message if using lmdb as backend.
+# All other pdnsutil invocation have the Ueberbackend destructor messages from
+# --enable-verbose-logging removed.
+# Invocations which will output zone contents are passed through sort(1), as
+# the order of entries for records having multiple entries is backend-specific
+# and not guaranteed to be in any particular order.
+
+pdnsutil_wrapper() {
+$PDNSUTIL --config-dir=. --config-name=$backend "$@" 2>&1 | egrep -v 'destructor'
+}
+
+ZONE=bug.less
+
+pdnsutil_wrapper zone create  ${ZONE} > /dev/null
+pdnsutil_wrapper record add   ${ZONE} cname.${ZONE} CNAME host 
+pdnsutil_wrapper record add   ${ZONE} host.${ZONE} A 127.0.0.1
+# Duplicate records should be omitted
+pdnsutil_wrapper record add   ${ZONE} host2.${ZONE} A 127.0.0.2 127.0.0.2
+# Can't add non-CNAME record to a CNAME record
+pdnsutil_wrapper record add   ${ZONE} cname.${ZONE} A 127.0.0.1
+# Can't add CNAME record if other records exist
+pdnsutil_wrapper record add   ${ZONE} host.${ZONE} CNAME host2
+# Adding existing record should ignore duplicates
+pdnsutil_wrapper record add   ${ZONE} host2.${ZONE} A 127.0.0.2 127.0.0.3 | LC_ALL=C sort
+
+# Deleting rrset with ANY should delete all entries regardless of their type
+pdnsutil_wrapper record add   ${ZONE} no.${ZONE} A 1.2.3.4
+pdnsutil_wrapper record add   ${ZONE} no.${ZONE} TXT '"insert your favorite zen quote here"'
+pdnsutil_wrapper rrset delete ${ZONE} no.${ZONE} ANY
+
+# Display zone contents for final verification
+pdnsutil_wrapper zone list    ${ZONE} | LC_ALL=C sort
+
+# Only for LMDB, check predictable zone ID
+[ $backend = lmdb ] && pdnsutil_wrapper -v zone show ${ZONE}
+
+# Delete this non-standard zone, so that the result of the zone-variants
+# test do not vary if this particular test is skipped.
+pdnsutil_wrapper zone delete  ${ZONE} > /dev/null

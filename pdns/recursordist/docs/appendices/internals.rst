@@ -28,7 +28,7 @@ means that PowerDNS is written naively, with one thread of execution per
 query, synchronously waiting for packets, Normally this would lead to
 very bad performance (unless running on a computer with very fast
 threading, like possibly the Sun CoolThreads family), so PowerDNS
-employs `MTasker <http://ds9a.nl/mtasker>`__ for very fast userspace
+employs `MTasker <https://berthub.eu/mtasker/>`__ for very fast userspace
 threading.
 
 MTasker, which was developed separately from PowerDNS, does not provide
@@ -187,9 +187,9 @@ C++ is a powerful language. Perhaps a bit too powerful at times, you can
 turn a program into a real freakshow if you so desire.
 
 PowerDNS generally tries not to go overboard in this respect, but we do
-build upon a very advanced part of the `Boost <http://www.boost.org>`__
+build upon a very advanced part of the `Boost <https://www.boost.org>`__
 C++ library: `boost::multi index
-container <http://boost.org/libs/multi_index/doc/index.html>`__.
+container <https://boost.org/libs/multi_index/doc/index.html>`__.
 
 This container provides the equivalent of SQL indexes on multiple keys.
 It also implements compound keys, which PowerDNS uses as well.
@@ -199,7 +199,7 @@ with a compound key on the name and type of a record. Furthermore, the
 cache is sequenced, each time a record is accessed it is moved to the
 end of the list. When cleanup is performed, we start at the beginning.
 New records also get inserted at the end. For DNS correctness, the sort
-order of the cache is case insensitive.
+order of the cache is case-insensitive.
 
 The multi index container appears in other parts of PowerDNS, and
 MTasker as well.
@@ -451,7 +451,7 @@ This allows falling back to the saved parent NS set on resolution errors
 using the child specified NS set.
 As experience shows, this configuration error is encountered in the
 wild often enough to warrant this workaround.
-See :ref:`setting-save-parent-ns-set`.
+See :ref:`setting-yaml-recursor.save_parent_ns_set`.
 
 .. _serve-stale:
 
@@ -462,7 +462,7 @@ Starting with version 4.8.0, the Recursor implements ``Serve Stale`` (:rfc:`8767
 This is a mechanism that allows records in the record cache that are expired
 but that cannot be refreshed (due to network or authoritative server issues) to be served anyway.
 
-The :ref:`setting-serve-stale-extensions` determines how many times the records lifetime can be extended.
+The :ref:`setting-yaml-recordcache.serve_stale_extensions` determines how many times the records lifetime can be extended.
 Each extension of the lifetime of a record lasts 30s.
 A value of 1440 means the maximum extra life time is 30 * 1440 seconds which is 12 hours.
 If the original TTL of a record was less than 30s, the original TTLs will be used as extension period.
@@ -471,7 +471,7 @@ On each extension an asynchronous task to resolve the name will be created.
 If that task succeeds, the record will not be served stale anymore, as an up-to-date value is now available.
 
 
-If :ref:`setting-serve-stale-extensions` is not zero expired records will be kept in the record cache until the number of records becomes too large.
+If :ref:`setting-yaml-recordcache.serve_stale_extensions` is not zero expired records will be kept in the record cache until the number of records becomes too large.
 Cache eviction will then be done on a least-recently-used basis.
 
 When dumping the cache using ``rec_control dump-cache`` the ``ss`` value shows the serve stale extension count.

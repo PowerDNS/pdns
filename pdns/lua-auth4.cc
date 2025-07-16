@@ -13,8 +13,6 @@
 
 #include "ueberbackend.hh"
 
-AuthLua4::AuthLua4() { prepareContext(); }
-
 LuaContext* AuthLua4::getLua()
 {
   return d_lw.get();
@@ -67,7 +65,7 @@ void AuthLua4::postPrepareContext() {
   d_lw->registerFunction<DNSPacket, std::unordered_map<unsigned int, DNSRecord>()>("getRRS", [](DNSPacket &p){ std::unordered_map<unsigned int, DNSRecord> ret; unsigned int i = 0; for(const auto &rec: p.getRRS()) { ret.insert({i++, rec.dr}); } return ret;});
   d_lw->registerMember<DNSPacket, DNSName>("qdomain", [](const DNSPacket &p) -> DNSName { return p.qdomain; }, [](DNSPacket &p, const DNSName& name) { p.qdomain = name; });
   d_lw->registerMember<DNSPacket, DNSName>("qdomainwild", [](const DNSPacket &p) -> DNSName { return p.qdomainwild; }, [](DNSPacket &p, const DNSName& name) { p.qdomainwild = name; });
-  d_lw->registerMember<DNSPacket, DNSName>("qdomainzone", [](const DNSPacket &p) -> DNSName { return p.qdomainzone; }, [](DNSPacket &p, const DNSName& name) { p.qdomainzone = name; });
+  d_lw->registerMember<DNSPacket, DNSName>("qdomainzone", [](const DNSPacket &pkt) -> DNSName { return pkt.qdomainzone.operator const DNSName&(); }, [](DNSPacket &pkt, const DNSName& name) { pkt.qdomainzone = ZoneName(name); });
 
   d_lw->registerMember<DNSPacket, std::string>("d_peer_principal", [](const DNSPacket &p) -> std::string { return p.d_peer_principal; }, [](DNSPacket &p, const std::string &princ) { p.d_peer_principal = princ; });
   d_lw->registerMember<DNSPacket, const std::string>("qtype", [](const DNSPacket &p) ->  const std::string { return p.qtype.toString(); }, [](DNSPacket &p, const std::string &type) { p.qtype = type; });
@@ -84,6 +82,9 @@ void AuthLua4::postPrepareContext() {
   d_lw->registerFunction<DNSName(UpdatePolicyQuery::*)()>("getTsigName", [](UpdatePolicyQuery& upq) { return upq.tsigName; });
   d_lw->registerFunction<std::string(UpdatePolicyQuery::*)()>("getPeerPrincipal", [](UpdatePolicyQuery& upq) { return upq.peerPrincipal; });
 /* end of update policy */
+  if (!d_include_path.empty()) {
+    includePath(d_include_path);
+  }
 }
 
 void AuthLua4::postLoad() {

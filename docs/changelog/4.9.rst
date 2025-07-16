@@ -2,6 +2,217 @@ Changelogs for 4.9.x
 ====================
 
 .. changelog::
+  :version: 4.9.7
+  :released: 7th of July 2025
+
+  This is release 4.9.7 of the Authoritative Server.
+  It contains bug fixes, mainly in LMDB.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 4.9.x.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15770
+    :tickets: 15063
+
+    compilation fix: Include cstdint to get uint64_t
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15772
+    :tickets: 15594
+
+    auth docker: avoid crash on --version caused by doubly loaded modules
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15771
+    :tickets: 15518
+
+    TSIG payload: use canonical (lowercase) name format
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15736
+    :tickets: 15677
+
+    LMDB: honour map-size for all files
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15720
+
+    Close race window during which LMDB lightning stream flag values might be incorrect.
+
+.. changelog::
+  :version: 4.9.6
+  :released: never
+
+  Technical issues in the release process prevented the 4.9.6 release to be
+  created correctly.
+  Therefore 4.9.6 was never released, in favour of 4.9.7.
+
+.. changelog::
+  :version: 4.9.5
+  :released: 7th of May 2025
+
+  This is release 4.9.5 of the Authoritative Server.
+  It contains an LMDB performance optimization and bug fixes.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 4.9.x.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15237
+    :tickets: 15176
+
+    Faster LMDB list/lookup/get operations
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15347
+    :tickets: 15339
+
+    Correctly handle marked-as-deleted elements in LMDB read-only queries
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15345
+    :tickets: 15340
+
+    Fix MySQL operation on 64-bit big-endian platforms
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15228
+    :tickets: 15222
+
+    Fix incorrect behaviour of Lua createForward and createForward6 functions
+    leading to possible SERVFAIL answers, when processing certain data.
+
+.. changelog::
+  :version: 4.9.4
+  :released: 7th of February 2025
+
+  This is release 4.9.4 of the Authoritative Server.
+  It contains a bug fix.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 4.9.x.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15094
+    :tickets: 15093
+
+    check return value of getCatalogMembers() (Kees Monshouwer)
+
+.. changelog::
+  :version: 4.9.3
+  :released: 17th of December 2024
+
+  This is release 4.9.3 of the Authoritative Server.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 4.9.x.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14968
+
+    SVCB parser: allow quotes around port=
+
+.. changelog::
+  :version: 4.9.2
+  :released: 1st of October 2024
+
+  This is release 4.9.2 of the Authoritative Server.
+
+  Please review the :doc:`Upgrade Notes <../upgrading>` before upgrading from versions < 4.9.x.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14711
+
+    pdnsutil check-zone: make LUA records optional
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14710
+
+    Yahttp router: appease coverity regarding unsigned underflow in match()
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14708
+
+    json11: add include for cstdint
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14709
+
+    Fix build with boost 1.86.0
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14675
+
+    API: when querying with rrset_name, respect it for comments too
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14707
+
+    more and better thread names
+
+  .. change::
+    :tags: New Features
+    :pullreq: 14712
+
+    provide dns packet when doing lookup for presigned signatures
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14706
+
+    webserver.cc: try to pass exception text with 500 errors
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14603
+
+    ssqlite3: use "begin immediate" to avoid later fights over upgrading to write
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14526
+
+    fix domain ordering in catalog SQL query
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14403
+
+    switch el7 builds to Oracle Linux 7
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14405
+
+    dns.cc: use ``pdns::views::UnsignedCharView``
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14303
+
+    geoipbackend: link C++ filesystem lib if necessary
+
+  .. change::
+    :tags: New Features
+    :pullreq: 14245
+
+    auth web: make request/response timeout configurable (Samir Aguiar)
+
+.. changelog::
   :version: 4.9.1
   :released: 28th of May 2024
 

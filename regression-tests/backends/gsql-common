@@ -50,6 +50,7 @@ gsql_master()
         --config-name=$backend --socket-dir=./ --no-shuffle \
         --dnsupdate=yes --resolver=$RESOLVERIP --outgoing-axfr-expand-alias=yes \
         --expand-alias=yes \
+        --primary=yes --only-notify="" \
         --cache-ttl=$cachettl --dname-processing \
         --disable-axfr-rectify=yes $lua_prequery &
 

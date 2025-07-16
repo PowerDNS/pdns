@@ -5,7 +5,7 @@ import subprocess
 import time
 from recursortests import RecursorTest
 
-class testNamedForward(RecursorTest):
+class NamedForwardTest(RecursorTest):
     """
     This is forwarding test using a name as target
     """
@@ -13,21 +13,9 @@ class testNamedForward(RecursorTest):
     _confdir = 'NamedForward'
     _config_template = """
 dnssec=validate
-forward-zones-recurse=.=dns.quad9.net
+forward-zones-recurse=.=dns.quad9.net;dns.google;one.one.one.one
 system-resolver-ttl=10
     """
-
-    @classmethod
-    def setUpClass(cls):
-
-        # we don't need all the auth stuff
-        cls.setUpSockets()
-
-        confdir = os.path.join('configs', cls._confdir)
-        cls.createConfigDir(confdir)
-
-        cls.generateRecursorConfig(confdir)
-        cls.startRecursor(confdir, cls._recursorPort)
 
     def testA(self):
         expected = dns.rrset.from_text('dns.google.', 0, dns.rdataclass.IN, 'A', '8.8.8.8', '8.8.4.4')
@@ -41,7 +29,7 @@ system-resolver-ttl=10
         self.assertMatchingRRSIGInAnswer(res, expected)
 
 @unittest.skipUnless('ENABLE_SUDO_TESTS' in os.environ, "sudo is not available")
-class testNamedForwardWithChange(RecursorTest):
+class NamedForwardWithChangeTest(RecursorTest):
     """
     This is forwarding test using a name as target and a changing resolve
     """

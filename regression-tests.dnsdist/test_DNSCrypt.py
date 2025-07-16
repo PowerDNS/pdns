@@ -265,6 +265,56 @@ class TestDNSCrypt(DNSCryptTest):
 
         self.doDNSCryptQuery(client, query, response, True)
 
+class TestDNSCryptYaml(TestDNSCrypt):
+    _config_template = """
+    function checkDNSCryptUDP(dq)
+      if dq:getProtocol() ~= "DNSCrypt UDP" then
+        return DNSAction.Spoof, '1.2.3.4'
+      end
+      return DNSAction.None
+    end
+
+    function checkDNSCryptTCP(dq)
+      if dq:getProtocol() ~= "DNSCrypt TCP" then
+        return DNSAction.Spoof, '1.2.3.4'
+      end
+      return DNSAction.None
+    end
+"""
+    _yaml_config_template = """
+console:
+  key: "%s"
+  listen_address: "127.0.0.1:%d"
+  acl:
+    - 127.0.0.0/8
+binds:
+  - listen_address: "127.0.0.1:%d"
+    protocol: "DNSCrypt"
+    dnscrypt:
+      provider_name: "%s"
+      certificates:
+        - certificate: "DNSCryptResolver.cert"
+          key: "DNSCryptResolver.key"
+backends:
+  - address: "127.0.0.1:%d"
+    protocol: Do53
+query_rules:
+  - selector:
+      type: "QName"
+      qname: "udp.protocols.dnscrypt.tests.powerdns.com."
+    action:
+      type: "Lua"
+      function_name: "checkDNSCryptUDP"
+  - selector:
+      type: "QName"
+      qname: "tcp.protocols.dnscrypt.tests.powerdns.com."
+    action:
+      type: "Lua"
+      function_name: "checkDNSCryptTCP"
+"""
+    _config_params = []
+    _yaml_config_params = ['_consoleKeyB64', '_consolePort', '_dnsDistPortDNSCrypt', '_providerName', '_testServerPort']
+
 class TestDNSCryptWithCache(DNSCryptTest):
 
     _config_params = ['_resolverCertificateSerial', '_resolverCertificateValidFrom', '_resolverCertificateValidUntil', '_dnsDistPortDNSCrypt', '_providerName', '_testServerPort']
@@ -325,45 +375,60 @@ class TestDNSCryptWithCache(DNSCryptTest):
 class TestDNSCryptAutomaticRotation(DNSCryptTest):
     _config_template = """
     setKey("%s")
-    controlSocket("127.0.0.1:%s")
+    controlSocket("127.0.0.1:%d")
     generateDNSCryptCertificate("DNSCryptProviderPrivate.key", "DNSCryptResolver.cert", "DNSCryptResolver.key", %d, %d, %d)
     addDNSCryptBind("127.0.0.1:%d", "%s", "DNSCryptResolver.cert", "DNSCryptResolver.key")
-    newServer{address="127.0.0.1:%s"}
+    addDNSCryptBind("127.0.0.1:%d", "%s", "DNSCryptResolver.cert", "DNSCryptResolver.key")
+    newServer{address="127.0.0.1:%d"}
 
     local last = 0
-    serial = %d
+    local serial = %d
+    dnscrypt_errors = 0
+
     function reloadCallback()
       local now = os.time()
       if ((now - last) > 2) then
         serial = serial + 1
-        getDNSCryptBind(0):generateAndLoadInMemoryCertificate('DNSCryptProviderPrivate.key', serial, now - 60, now + 120)
+        for idx = 0, getDNSCryptBindCount() - 1 do
+          if not getDNSCryptBind(idx):generateAndLoadInMemoryCertificate('DNSCryptProviderPrivate.key', serial, now - 60, now + 120) then
+            dnscrypt_errors = dnscrypt_errors + 1
+            break
+          end
+        end
         last = now
       end
     end
+
     addMaintenanceCallback(reloadCallback)
     """
 
-    _config_params = ['_consoleKeyB64', '_consolePort', '_resolverCertificateSerial', '_resolverCertificateValidFrom', '_resolverCertificateValidUntil', '_dnsDistPortDNSCrypt', '_providerName', '_testServerPort', '_resolverCertificateSerial']
+    _dnsDistPortDNSCrypt2 = pickAvailablePort()
+    _config_params = ['_consoleKeyB64', '_consolePort', '_resolverCertificateSerial', '_resolverCertificateValidFrom', '_resolverCertificateValidUntil', '_dnsDistPortDNSCrypt', '_providerName', '_dnsDistPortDNSCrypt2', '_providerName', '_testServerPort', '_resolverCertificateSerial']
 
     def testCertRotation(self):
         """
         DNSCrypt: automatic certificate rotation
         """
-        client = dnscrypt.DNSCryptClient(self._providerName, self._providerFingerprint, "127.0.0.1", self._dnsDistPortDNSCrypt)
+        clients = []
+        serials = {}
+        for port in [self._dnsDistPortDNSCrypt, self._dnsDistPortDNSCrypt2]:
+            clients.append(dnscrypt.DNSCryptClient(self._providerName, self._providerFingerprint, "127.0.0.1", port))
 
-        client.refreshResolverCertificates()
-        cert = client.getResolverCertificate()
-        self.assertTrue(cert)
-        firstSerial = cert.serial
-        self.assertGreaterEqual(cert.serial, self._resolverCertificateSerial)
+        for client in clients:
+            client.refreshResolverCertificates()
+            cert = client.getResolverCertificate()
+            self.assertTrue(cert)
+            serials[client] = cert.serial
+            self.assertGreaterEqual(cert.serial, self._resolverCertificateSerial)
 
         time.sleep(3)
 
-        client.refreshResolverCertificates()
-        cert = client.getResolverCertificate()
-        self.assertTrue(cert)
-        secondSerial = cert.serial
-        self.assertGreater(cert.serial, firstSerial)
+        for client in clients:
+            client.refreshResolverCertificates()
+            cert = client.getResolverCertificate()
+            self.assertTrue(cert)
+            secondSerial = cert.serial
+            self.assertGreater(cert.serial, serials[client])
 
         name = 'automatic-rotation.dnscrypt.tests.powerdns.com.'
         query = dns.message.make_query(name, 'A', 'IN')
@@ -375,5 +440,9 @@ class TestDNSCryptAutomaticRotation(DNSCryptTest):
                                     '192.2.0.1')
         response.answer.append(rrset)
 
-        self.doDNSCryptQuery(client, query, response, False)
-        self.doDNSCryptQuery(client, query, response, True)
+        for client in clients:
+            self.doDNSCryptQuery(client, query, response, False)
+            self.doDNSCryptQuery(client, query, response, True)
+
+        counter = self.sendConsoleCommand("return dnscrypt_errors")
+        self.assertEqual(counter.strip(), "0")

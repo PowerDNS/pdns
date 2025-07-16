@@ -21,15 +21,14 @@
  */
 #include "dnsdist-session-cache.hh"
 
-TLSSessionCache g_sessionCache;
+#include "dnsdist-configuration.hh"
 
-time_t TLSSessionCache::s_cleanupDelay{60};
-time_t TLSSessionCache::s_sessionValidity{600};
-uint16_t TLSSessionCache::s_maxSessionsPerBackend{20};
+TLSSessionCache g_sessionCache;
 
 void TLSSessionCache::cleanup(time_t now, LockGuardedHolder<TLSSessionCache::CacheData>& data)
 {
-  time_t cutOff = now + s_sessionValidity;
+  const auto& runtimeConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
+  time_t cutOff = now + runtimeConfig.d_tlsSessionCacheSessionValidity;
 
   for (auto it = data->d_sessions.begin(); it != data->d_sessions.end();) {
     if (it->second.d_lastUsed > cutOff || it->second.d_sessions.size() == 0) {
@@ -40,7 +39,7 @@ void TLSSessionCache::cleanup(time_t now, LockGuardedHolder<TLSSessionCache::Cac
     }
   }
 
-  data->d_nextCleanup = now + s_cleanupDelay;
+  data->d_nextCleanup = now + runtimeConfig.d_tlsSessionCacheCleanupDelay;
 }
 
 void TLSSessionCache::putSessions(const boost::uuids::uuid& backendID, time_t now, std::vector<std::unique_ptr<TLSSession>>&& sessions)
@@ -50,9 +49,10 @@ void TLSSessionCache::putSessions(const boost::uuids::uuid& backendID, time_t no
     cleanup(now, data);
   }
 
+  const auto& runtimeConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
   for (auto& session : sessions) {
     auto& entry = data->d_sessions[backendID];
-    if (entry.d_sessions.size() >= s_maxSessionsPerBackend) {
+    if (entry.d_sessions.size() >= runtimeConfig.d_tlsSessionCacheMaxSessionsPerBackend) {
       entry.d_sessions.pop_back();
     }
     entry.d_sessions.push_front(std::move(session));

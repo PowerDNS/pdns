@@ -9,7 +9,7 @@ There are several ways to pass that information using dnsdist: the :ref:`Proxy P
 When the backend supports it (ISC Bind, Knot, Knot Resolver, PowerDNS Authoritative, PowerDNS Recursor, Unbound, HAProxy, nginx, postfix and many others do), the proxy protocol is the best option.
 
 .. note::
-  X-Proxied-For (XPF) was a third option but it has been deprecated for a while, and support has been removed in 2.0.0.
+  X-Proxied-For (XPF) was a third option but it has been deprecated for a while, and support was removed in 2.0.0.
 
 .. _Proxy Protocol:
 
@@ -35,7 +35,7 @@ Both the PowerDNS Authoritative Server and the Recursor can parse PROXYv2 header
 
   proxy-protocol-from=192.0.2.2
 
-For more informations, see the `authoritative server's documentation <https://doc.powerdns.com/authoritative/settings.html#proxy-protocol-from>`_ or the `recursor's documentation <https://docs.powerdns.com/recursor/settings.html#proxy-protocol-from>`_.
+For more information, see the `authoritative server's documentation <https://doc.powerdns.com/authoritative/settings.html#proxy-protocol-from>`_ or the `recursor's documentation <https://docs.powerdns.com/recursor/settings.html#proxy-protocol-from>`_.
 
 From clients to dnsdist
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -129,7 +129,7 @@ X-Proxied-For
 -------------
 
 .. note::
-  XPF support has been removed in 2.0.0.
+  XPF support was removed in 2.0.0.
 
 The experimental XPF record (from `draft-bellis-dnsop-xpf <https://datatracker.ietf.org/doc/draft-bellis-dnsop-xpf/>`_) is an alternative to the use of EDNS Client Subnet which has the advantages of preserving any existing EDNS Client Subnet value sent by the client, and of passing along the original destination address, as well as the initial source and destination ports.
 
@@ -149,12 +149,7 @@ Influence on caching
 --------------------
 
 When dnsdist's packet cache is in use, it is important to note that the cache lookup is done **after** adding ECS, because it prevents serving the same response to clients from different subnets when ECS is passed to an authoritative server doing GeoIP, or to a backend doing custom filtering.
-However that means that passing a narrow ECS source will effectively kill dnsdist's cache ratio, since a given answer will only be a cache hit for clients in the same ECS subnet. Therefore, unless a broad ECS source (greater than 24, for example) is used, it's better to disable caching.
-
-One exception to that rule is the zero-scope feature, which allows dnsdist to detect that a response sent by the backend has a 0-scope ECS value, indicating that the answer is not ECS-specific and can be used for all clients. dnsdist will then store the answer in its packet cache using the initial query, before ECS has been added.
-For that feature to work, dnsdist will look up twice into the packet cache when a query arrives, first without and then with ECS. That way, when most of the responses sent by a backend are not ECS-specific and can be served to all clients, dnsdist will still be able to have a great cache-hit ratio for non ECS-specific entries.
-
-That feature is enabled by setting ``disableZeroScope=false`` on :func:`newServer` (default) and ``parseECS=true`` on :func:`newPacketCache` (not the default).
+However that means that passing a narrow ECS source will effectively kill dnsdist's cache ratio, since a given answer will only be a cache hit for clients in the same ECS subnet. Therefore, unless a broad ECS source (greater than 24, for example) is used, it's better to disable caching. The zero-scope feature can be enabled to mitigate this drawback, as described in :doc:`zero-scope`.
 
 
 Things are different for the proxy protocol, because dnsdist then does the cache lookup **before** adding the payload. It means that caching can still be enabled as long as the response is not source-dependent, but should be disabled otherwise.

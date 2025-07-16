@@ -40,9 +40,9 @@
 
 */
 
-
-template <typename Container> GenericDNSPacketWriter<Container>::GenericDNSPacketWriter(Container& content, const DNSName& qname, uint16_t  qtype, uint16_t qclass, uint8_t opcode)
-  : d_content(content), d_qname(qname), d_canonic(false), d_lowerCase(false)
+template <typename Container>
+GenericDNSPacketWriter<Container>::GenericDNSPacketWriter(Container& content, const DNSName& qname, uint16_t qtype, uint16_t qclass, uint8_t opcode) :
+  d_content(content), d_qname(qname)
 {
   d_content.clear();
   dnsheader dnsheader;
@@ -217,11 +217,8 @@ template <typename Container> uint16_t GenericDNSPacketWriter<Container>::lookup
   */
   unsigned int bestpos=0;
   *matchLen=0;
-#if BOOST_VERSION >= 105400
-  boost::container::static_vector<uint16_t, 34> nvect, pvect;
-#else
-  vector<uint16_t> nvect, pvect;
-#endif
+  boost::container::static_vector<uint16_t, 34> nvect;
+  boost::container::static_vector<uint16_t, 34> pvect;
 
   try {
     for(auto riter= raw.cbegin(); riter < raw.cend(); ) {
@@ -319,7 +316,7 @@ template <typename Container> uint16_t GenericDNSPacketWriter<Container>::lookup
   return bestpos;
 }
 // this is the absolute hottest function in the pdns recursor
-template <typename Container> void GenericDNSPacketWriter<Container>::xfrName(const DNSName& name, bool compress, bool)
+template <typename Container> void GenericDNSPacketWriter<Container>::xfrName(const DNSName& name, bool compress)
 {
   if(l_verbose)
     cout<<"Wants to write "<<name<<", compress="<<compress<<", canonic="<<d_canonic<<", LC="<<d_lowerCase<<endl;
@@ -458,6 +455,12 @@ template <typename Container> void GenericDNSPacketWriter<Container>::xfrSvcPara
 template <typename Container> void GenericDNSPacketWriter<Container>::getRecordPayload(string& records)
 {
   records.assign(d_content.begin() + d_sor, d_content.end());
+}
+
+// call __before commit__
+template <typename Container> void GenericDNSPacketWriter<Container>::getWireFormatContent(string& record)
+{
+  record.assign(d_content.begin() + d_rollbackmarker, d_content.end());
 }
 
 template <typename Container> uint32_t GenericDNSPacketWriter<Container>::size() const

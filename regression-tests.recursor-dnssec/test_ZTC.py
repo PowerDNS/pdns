@@ -5,8 +5,7 @@ import subprocess
 
 from recursortests import RecursorTest
 
-class testZTC(RecursorTest):
-
+class ZTCTest(RecursorTest):
     _confdir = 'ZTC'
     _config_template = """
 dnssec:
@@ -20,27 +19,14 @@ recordcache:
 """
 
     @classmethod
-    def setUpClass(cls):
-
-        # we don't need all the auth stuff
-        cls.setUpSockets()
-        cls.startResponders()
-
-        confdir = os.path.join('configs', cls._confdir)
-        cls.createConfigDir(confdir)
-
-        cls.generateRecursorYamlConfig(confdir, False)
-        cls.startRecursor(confdir, cls._recursorPort)
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tearDownRecursor()
+    def generateRecursorConfig(cls, confdir):
+        super(ZTCTest, cls).generateRecursorYamlConfig(confdir, False)
 
     def testZTC(self):
         grepCmd = ['grep', 'validationStatus="Secure"', 'configs/' + self._confdir + '/recursor.log']
         ret = b''
-        for i in range(30):
-            time.sleep(1)
+        for i in range(300):
+            time.sleep(0.1)
             try:
                 ret = subprocess.check_output(grepCmd, stderr=subprocess.STDOUT)
             except subprocess.CalledProcessError as e:

@@ -208,7 +208,7 @@ public:
 
   bool queryLocation(GeoIPNetmask& gl, const string& ip,
                      double& latitude, double& longitude,
-                     boost::optional<int>& /* alt */, boost::optional<int>& prec) override
+                     std::optional<int>& /* alt */, std::optional<int>& prec) override
   {
     MMDB_entry_data_s data;
     MMDB_lookup_result_s res;
@@ -228,7 +228,7 @@ public:
 
   bool queryLocationV6(GeoIPNetmask& gl, const string& ip,
                        double& latitude, double& longitude,
-                       boost::optional<int>& /* alt */, boost::optional<int>& prec) override
+                       std::optional<int>& /* alt */, std::optional<int>& prec) override
   {
     MMDB_entry_data_s data;
     MMDB_lookup_result_s res;

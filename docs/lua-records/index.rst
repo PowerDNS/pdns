@@ -6,7 +6,7 @@ PowerDNS Authoritative Server version 4.2 and later support dynamic DNS
 records.
 
 These records contain small snippets of configuration that enable dynamic
-behaviour based on requester IP address, requester's EDNS Client Subnet,
+behaviour based on requestor IP address, requestor's EDNS Client Subnet,
 server availability or other factors.
 
 Capabilities range from very simple to highly advanced multi-pool
@@ -42,8 +42,8 @@ Here is a very basic example using :func:`ifportup`::
 
      www    IN    LUA    A    "ifportup(443, {'192.0.2.1', '192.0.2.2'})"
 
-This turns the 'www' name within a zone into a special record that will
-randomly return 192.0.2.1 or 192.0.2.2, as long as both of these IP
+This turns the ``www`` name within a zone into a special record that will
+randomly return ``192.0.2.1`` or ``192.0.2.2``, as long as both of these IP
 addresses listen on port 443.
 
 If either IP address stops listening, only the other address will be
@@ -66,7 +66,7 @@ Another example using :func:`pickclosest`::
     www    IN    LUA    A    "pickclosest({'192.0.2.1','192.0.2.2','198.51.100.1'})"
 
 This uses the GeoIP backend to find indications of the geographical location of
-the requester and the listed IP addresses. It will return with one of the closest
+the requestor and the listed IP addresses. It will return with one of the closest
 addresses.
 
 :func:`pickclosest` and :func:`ifportup` can be combined as follows::
@@ -177,9 +177,10 @@ outside of Europe will hit 198.51.100.1 as long as it is available, and the
 
 Advanced topics
 ---------------
-By default, LUA records are executed with ``return `` prefixed to them. This saves
-a lot of typing for common cases. To run actual Lua scripts, start a record with a ``;``
-which indicates no ``return `` should be prepended.
+
+By default, LUA records are executed as if they were the argument to Lua's ``return`` statement.
+This saves a lot of typing for common cases.
+To run actual Lua scripts, start a record with a semicolon (``;``). You need to add your own ``return`` statement.
 
 To keep records more concise and readable, configuration can be stored in
 separate records. The full example from above can also be written as::
@@ -234,7 +235,7 @@ Shared Lua state model
 The default mode of operation for LUA records is to create a fresh Lua state for every query that hits a LUA record.
 This way, different LUA records cannot accidentally interfere with each other, by leaving around global objects, or perhaps even deleting relevant functions.
 However, creating a Lua state (and registering all our functions for it, see Reference below) takes measurable time.
-For users that are confident they can write Lua scripts that will not interfere with eachother, a mode is supported where Lua states are created on the first query, and then reused forever.
+For users that are confident they can write Lua scripts that will not interfere with each other, a mode is supported where Lua states are created on the first query, and then reused forever.
 Note that the state is per-thread (for UDP, plus one shared state for all TCP), so while data sharing between LUA invocations is possible (useful for caching and reducing the cost of ``require``), there is no single shared Lua environment.
 In non-scientific testing this has yielded up to 10x QPS increases.
 

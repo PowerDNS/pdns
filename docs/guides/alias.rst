@@ -36,6 +36,10 @@ When the authoritative server receives a query for the A-record for
 with that A record.
 If the ALIAS target cannot be resolved (SERVFAIL) or does not exist (NXDOMAIN) the authoritative server will answer SERVFAIL.
 
+.. warning::
+  You should make sure that the :ref:`setting-resolver` does not point to
+  PowerDNS itself, to prevent infinite query loops.
+
 .. _alias_axfr:
 
 AXFR Zone transfers
@@ -71,4 +75,4 @@ ALIAS and DNSSEC
 Starting with the PowerDNS Authoritative Server 4.0.0, DNSSEC 'washing'
 of ALIAS records is supported on AXFR (**not** on live-signing). Set
 ``outgoing-axfr-expand-alias`` to 'yes' and enable DNSSEC for the zone
-on the master. PowerDNS will sign the A/AAAA records during the AXFR.
+on the primary. PowerDNS will sign the A/AAAA records during the AXFR.

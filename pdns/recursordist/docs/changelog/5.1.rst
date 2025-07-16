@@ -4,6 +4,129 @@ Changelogs for 5.1.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.1.4
+  :released: 9th of April 2025
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15280
+    :tickets: 15254
+
+    If we see both a CNAME and answer records, follow CNAME and discard the answer records.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15215
+    :tickets: 14525
+
+    Add new root trust anchor.
+
+.. changelog::
+  :version: 5.1.3
+  :released: 5th of November 2024
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14774
+    :tickets: 14693
+
+    Implement rfc6303 special zones (mostly v6 reverse mappings).
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14773
+    :tickets: 14628
+
+    Avoid duplicated waiter ids for chained requests.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14772
+    :tickets: 14554
+
+    Distinguish OS imposed limits from app imposed limits, specifically on chains.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14771
+    :tickets: 14549, 14550
+
+    json11: add include for cstdint.
+
+.. changelog::
+  :version: 5.1.2
+  :released: 3rd of October 2024
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14743
+
+    `Security advisory 2024-04 <https://docs.powerdns.com/recursor/security-advisories/powerdns-advisory-2024-04.html>`__: CVE-2024-25590
+
+.. changelog::
+   :version: 5.1.1
+   :released: 23rd of July 2024
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14516
+    :tickets: 14514
+
+    Fix maintenanceCalls vs maintenanceCount in SNMP MIB.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14501
+    :tickets: 14499
+
+    Limit the number of async tasks pushed to resolve NS names and optimizer processing of additionals.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14481
+    :tickets: 14471
+
+    Dump right SOA into dumpFile and report non-relative SOA for includeSOA=true.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14478
+    :tickets: 14404
+
+    Yahttp router: avoid unsigned underflow in match().
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14477
+    :tickets: 14459
+
+    Move default Docker config to YAML.
+
+.. changelog::
+  :version: 5.1.0
+  :released: 10th of July 2024
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14435
+
+    Fix typo in log message.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14402
+    :tickets: 14400
+
+    Switch el7 builds to Oracle Linux 7
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14389
+    :tickets: 14384
+
+    Keep Lua config in Debian/Ubuntu package as existing setups might use it, even though a fresh one does not.
+
+.. changelog::
   :version: 5.1.0-rc1
   :released: 25th of June 2024
 

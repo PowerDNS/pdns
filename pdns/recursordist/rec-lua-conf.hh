@@ -108,6 +108,7 @@ public:
   SortList sortlist;
   DNSFilterEngine dfe;
   vector<RPZTrackerParams> rpzs;
+  vector<FWCatalogZone> catalogzones;
   TrustAnchorFileInfo trustAnchorFileInfo; // Used to update the Trust Anchors from file periodically
   map<DNSName, dsset_t> dsAnchors;
   map<DNSName, std::string> negAnchors;

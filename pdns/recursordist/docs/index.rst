@@ -25,7 +25,7 @@ Notable features
 - Very fast, and contains innovative query-throttling code to save time talking to obsolete or broken nameservers.
 - Code is written linearly, sequentially, which means that there are no problems with 'query restart' or anything.
 - Does DNSSEC validation
-- Is highly scriptable in `Lua <http://lua.org>`_
+- Is highly scriptable in `Lua <https://lua.org>`_
 
 Getting support
 ---------------
@@ -39,13 +39,13 @@ Public support is available via several different channels:
   * ``#powerdns`` on `irc.oftc.net <irc://irc.oftc.net/#powerdns>`_
 
 The Open-Xchange/PowerDNS company can provide help or support you in private as well.
-Please `contact Open-Xchange <https://www.open-xchange.com/about-ox/contact-us/>`__.
+Please `contact PowerDNS <https://www.powerdns.com/contact-us>`__.
 
 My information is confidential, must I send it to the mailing list, discuss it on IRC, or post it in a GitHub ticket?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Yes, we have a support policy called `"Open Source Support: out in the open" <https://blog.powerdns.com/2016/01/18/open-source-support-out-in-the-open/>`_.
 
-If you desire privacy, please consider entering a support relationship with us, in which case we invite you to `contact Open-Xchange <https://www.open-xchange.com/about-ox/contact-us/>`__.
+If you desire privacy, please consider entering a support relationship with us, in which case we invite you to `contact PowerDNS <https://www.powerdns.com/contact-us>`__.
 
 I have a question!
 ^^^^^^^^^^^^^^^^^^

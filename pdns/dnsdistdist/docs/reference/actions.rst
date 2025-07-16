@@ -2,6 +2,8 @@ Rule Actions
 ============
 
 :doc:`selectors` need to be combined with an action for them to actually do something with the matched packets.
+This page describes the ``Lua`` versions of these actions, for the ``YAML`` version please see :doc:`yaml-actions` and :doc:`yaml-response-actions`.
+
 Some actions allow further processing of rules, this is noted in their description. Most of these start with 'Set' with a few exceptions, mostly for logging actions. These exceptions are:
 
 - :func:`ClearRecordTypesResponseAction`
@@ -59,7 +61,7 @@ The following actions exist.
   Execute the specified action and override its return with None, making it possible to continue the processing.
   Subsequent rules are processed after this action.
 
-  :param int action: Any other action
+  :param Action action: Any other action
 
 .. function:: DelayAction(milliseconds)
 
@@ -172,12 +174,15 @@ The following actions exist.
   .. versionchanged:: 1.5.0
     Added the optional parameter ``options``.
 
+  .. versionchanged:: 2.0.0
+    The ``options`` parameter is now deprecated.
+
   Return an HTTP response with a status code of ''status''. For HTTP redirects, ''body'' should be the redirect URL.
 
   :param int status: The HTTP status code to return.
   :param string body: The body of the HTTP response, or a URL if the status code is a redirect (3xx).
   :param string contentType: The HTTP Content-Type header to return for a 200 response, ignored otherwise. Default is ''application/dns-message''.
-  :param table options: A table with key: value pairs with options.
+  :param table options: A table with key: value pairs with options. Deprecated since 2.0.0 as it had unexpected side-effects.
 
   Options:
 
@@ -224,7 +229,7 @@ The following actions exist.
 
   :param int min: The minimum allowed value
   :param int max: The maximum allowed value
-  :param list of int: The record types to cap the TTL for. Default is empty which means all records will be capped.
+  :param table types: The record types to cap the TTL for, as integers. Default is empty which means all records will be capped.
 
 .. function:: LogAction([filename[, binary[, append[, buffered[, verboseOnly[, includeTimestamp]]]]]])
 
@@ -496,7 +501,7 @@ The following actions exist.
     ``exportExtendedErrorsToMeta`` optional key added to the options table.
 
   Send the content of this response to a remote logger via Protocol Buffer.
-  ``alterFunction`` is the same callback that receiving a :class:`DNSQuestion` and a :class:`DNSDistProtoBufMessage`, that can be used to modify the Protocol Buffer content, for example for anonymization purposes.
+  ``alterFunction`` is the same callback that receiving a :class:`DNSResponse` and a :class:`DNSDistProtoBufMessage`, that can be used to modify the Protocol Buffer content, for example for anonymization purposes.
   ``includeCNAME`` indicates whether CNAME records inside the response should be parsed and exported.
   The default is to only exports A and AAAA records.
   Since 1.8.0 it is possible to add configurable meta-data fields to the Protocol Buffer message via the ``metas`` parameter, which takes a list of ``name``=``key`` pairs. See :func:`RemoteLogAction` for the list of available keys.
@@ -533,7 +538,8 @@ The following actions exist.
 
   .. versionadded:: 1.6.0
 
-  Disable the sending of ECS to the backend.
+  Disable the addition of EDNS Client Subnet information by :program:`dnsdist` before passing queries to the backend.
+  This does not remove any existing EDNS Client Subnet value sent by the client, please have a look at :func:`SetEDNSOptionAction` instead.
   Subsequent rules are processed after this action.
   Note that this function was called :func:`DisableECSAction` before 1.6.0.
 
@@ -549,7 +555,7 @@ The following actions exist.
 
   Set the ECS prefix and prefix length sent to backends to an arbitrary value.
   If both IPv4 and IPv6 masks are supplied the IPv4 one will be used for IPv4 clients
-  and the IPv6 one for IPv6 clients. Otherwise the first mask is used for both, and
+  and the IPv6 one for IPv6 clients. Otherwise, the first mask is used for both, and
   can actually be an IPv6 mask.
   Subsequent rules are processed after this action.
 
@@ -582,6 +588,16 @@ The following actions exist.
   .. versionadded:: 1.7.0
 
   Add arbitrary EDNS option and data to the query. Any existing EDNS content with the same option code will be overwritten.
+  Subsequent rules are processed after this action.
+
+  :param int option: The EDNS option number
+  :param string data: The EDNS0 option raw content
+
+.. function:: SetEDNSOptionResponseAction(option)
+
+  .. versionadded:: 1.9.11
+
+  Add arbitrary EDNS option and data to the response. Any existing EDNS content with the same option code will be replaced.
   Subsequent rules are processed after this action.
 
   :param int option: The EDNS option number
@@ -795,6 +811,9 @@ The following actions exist.
   Forge a response with the specified IPv4 (for an A query) or IPv6 (for an AAAA) addresses.
   If you specify multiple addresses, all that match the query type (A, AAAA or ANY) will get spoofed in.
 
+  Note that if you only specify addresses of one type (e.g. only IPv4 addresses), then queries for the other type (in this case AAAA queries), will **not** be spoofed.
+  If you want to spoof the request for an A record, but not return an IPv6 address on AAAA requests, you could limit this function to A queries and  :func:`NegativeAndSOAAction()` for AAAA queries.
+
   :param string ip: An IPv4 and/or IPv6 address to spoof
   :param {string} ips: A table of IPv4 and/or IPv6 addresses to spoof
   :param table options: A table with key: value pairs with options.
@@ -878,11 +897,11 @@ The following actions exist.
 
   .. versionadded:: 1.7.0
 
-  Forge a response with the specified SVC record data. If the list contains more than one class:`SVCRecordParameters` (generated via :func:`newSVCRecordParameters`) object, they are all returned,
+  Forge a response with the specified SVC record data. If the list contains more than one :class:`SVCRecordParameters` (generated via :func:`newSVCRecordParameters`) object, they are all returned,
   and should have different priorities.
   The hints provided in the SVC parameters, if any, will also be added as A/AAAA records in the additional section, using the target name present in the parameters as owner name if it's not empty (root) and the qname instead.
 
-  :param list of class:`SVCRecordParameters` svcParams: The record data to return
+  :param table svcParams: List of :class:`SVCRecordParameters` from which to generate the record data to return
   :param table options: A table with key: value pairs with options.
 
   Options:
@@ -949,7 +968,7 @@ The following actions exist.
 
   Send copy of query to ``remote``, keep stats on responses.
   If ``addECS`` is set to true, EDNS Client Subnet information will be added to the query.
-  If ``addProxyProtocol`` is set to true, a Proxy Protocol v2 payload will be prepended in front of the query. The payload will contain the protocol the initial query was received over (UDP or TCP), as well as the initial source and destination addresses and ports.
+  If ``addProxyProtocol`` is set to true, a Proxy Protocol v2 payload will be prepended in front of the query. The payload will contain the protocol that delivered the initial query (UDP or TCP), as well as the initial source and destination addresses and ports.
   If ``local`` has provided a value like "192.0.2.53", :program:`dnsdist` will try binding that address as local address when sending the queries.
   Subsequent rules are processed after this action.
 

@@ -24,6 +24,7 @@
 #include <cstring>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 #include <set>
 #include <strings.h>
@@ -33,36 +34,33 @@
 #include <unordered_set>
 #include <string_view>
 
+using namespace std::string_view_literals;
+
 #include <boost/version.hpp>
-
-#if BOOST_VERSION >= 105300
 #include <boost/container/string.hpp>
-#endif
 
-inline bool dns_isspace(char c)
+inline bool dns_isspace(char chr) __attribute__((const));
+inline bool dns_isspace(char chr)
 {
-  return c == ' ' || c == '\t' || c == '\r' || c == '\n';
+  return chr == ' ' || chr == '\t' || chr == '\r' || chr == '\n';
 }
 
-extern const unsigned char dns_toupper_table[256],  dns_tolower_table[256];
+extern const unsigned char dns_toupper_table[256], dns_tolower_table[256];
 
-inline unsigned char dns_toupper(unsigned char c)
+inline unsigned char dns_toupper(unsigned char chr) __attribute__((pure));
+inline unsigned char dns_toupper(unsigned char chr)
 {
-  return dns_toupper_table[c];
+  return dns_toupper_table[chr];
 }
 
-inline unsigned char dns_tolower(unsigned char c)
+inline unsigned char dns_tolower(unsigned char chr) __attribute__((pure));
+inline unsigned char dns_tolower(unsigned char chr)
 {
-  return dns_tolower_table[c];
+  return dns_tolower_table[chr];
 }
 
 #include "burtle.hh"
 #include "views.hh"
-
-// #include "dns.hh"
-// #include "logger.hh"
-
-//#include <ext/vstring.h>
 
 /* Quest in life:
      accept escaped ascii presentations of DNS names and store them "natively"
@@ -76,6 +74,17 @@ inline unsigned char dns_tolower(unsigned char c)
    NOTE: For now, everything MUST be . terminated, otherwise it is an error
 */
 
+// DNSName: represents a case-insensitive string, allowing for non-printable
+// characters. It is used for all kinds of name (of hosts, domains, keys,
+// algorithm...) overall the PowerDNS codebase.
+//
+// The following type traits are provided:
+// - EqualityComparable
+// - LessThanComparable
+// - Hash
+#if defined(PDNS_AUTH)
+class ZoneName;
+#endif
 class DNSName
 {
 public:
@@ -147,7 +156,7 @@ public:
   void trimToLabels(unsigned int);
   size_t hash(size_t init=0) const
   {
-    return burtleCI((const unsigned char*)d_storage.c_str(), d_storage.size(), init);
+    return burtleCI(d_storage, init);
   }
   DNSName& operator+=(const DNSName& rhs)
   {
@@ -166,23 +175,34 @@ public:
 
   bool operator<(const DNSName& rhs)  const // this delivers _some_ kind of ordering, but not one useful in a DNS context. Really fast though.
   {
+    struct DNSNameCompare
+    {
+      bool operator()(const unsigned char& lhs, const unsigned char& rhs) const
+      {
+        return dns_tolower(lhs) < dns_tolower(rhs);
+      }
+    };
+
+    // note that this is case insensitive, including on the label lengths
     return std::lexicographical_compare(d_storage.rbegin(), d_storage.rend(),
-				 rhs.d_storage.rbegin(), rhs.d_storage.rend(),
-				 [](const unsigned char& a, const unsigned char& b) {
-					  return dns_tolower(a) < dns_tolower(b);
-					}); // note that this is case insensitive, including on the label lengths
+             rhs.d_storage.rbegin(), rhs.d_storage.rend(), DNSNameCompare());
   }
 
-  inline bool canonCompare(const DNSName& rhs) const;
-  bool slowCanonCompare(const DNSName& rhs) const;
+  int slowCanonCompare_three_way(const DNSName& rhs) const;
+  int canonCompare_three_way(const DNSName& rhs) const;
+  inline bool canonCompare(const DNSName& rhs) const { return canonCompare_three_way(rhs) < 0; }
 
-#if BOOST_VERSION >= 105300
   typedef boost::container::string string_t;
-#else
-  typedef std::string string_t;
-#endif
+
   const string_t& getStorage() const {
     return d_storage;
+  }
+
+  [[nodiscard]] size_t sizeEstimate() const
+  {
+    return d_storage.size(); // knowingly overestimating small strings as most string
+                             // implementations have internal capacity and we always include
+                             // sizeof(*this)
   }
 
   bool has8bitBytes() const; /* returns true if at least one byte of the labels forming the name is not included in [A-Za-z0-9_*./@ \\:-] */
@@ -214,6 +234,13 @@ public:
   };
   RawLabelsVisitor getRawLabelsVisitor() const;
 
+#if defined(PDNS_AUTH) // [
+  // Sugar while ZoneName::operator DNSName are made explicit
+  bool isPartOf(const ZoneName& rhs) const;
+  DNSName makeRelative(const ZoneName& zone) const;
+  void makeUsRelative(const ZoneName& zone);
+#endif // ]
+
 private:
   string_t d_storage;
 
@@ -225,65 +252,6 @@ private:
 };
 
 size_t hash_value(DNSName const& d);
-
-
-inline bool DNSName::canonCompare(const DNSName& rhs) const
-{
-  //      01234567890abcd
-  // us:  1a3www4ds9a2nl
-  // rhs: 3www6online3com
-  // to compare, we start at the back, is nl < com? no -> done
-  //
-  // 0,2,6,a
-  // 0,4,a
-
-  uint8_t ourpos[64], rhspos[64];
-  uint8_t ourcount=0, rhscount=0;
-  //cout<<"Asked to compare "<<toString()<<" to "<<rhs.toString()<<endl;
-  for(const unsigned char* p = (const unsigned char*)d_storage.c_str(); p < (const unsigned char*)d_storage.c_str() + d_storage.size() && *p && ourcount < sizeof(ourpos); p+=*p+1)
-    ourpos[ourcount++]=(p-(const unsigned char*)d_storage.c_str());
-  for(const unsigned char* p = (const unsigned char*)rhs.d_storage.c_str(); p < (const unsigned char*)rhs.d_storage.c_str() + rhs.d_storage.size() && *p && rhscount < sizeof(rhspos); p+=*p+1)
-    rhspos[rhscount++]=(p-(const unsigned char*)rhs.d_storage.c_str());
-
-  if(ourcount == sizeof(ourpos) || rhscount==sizeof(rhspos)) {
-    return slowCanonCompare(rhs);
-  }
-
-  for(;;) {
-    if(ourcount == 0 && rhscount != 0)
-      return true;
-    if(rhscount == 0)
-      return false;
-    ourcount--;
-    rhscount--;
-
-    bool res=std::lexicographical_compare(
-					  d_storage.c_str() + ourpos[ourcount] + 1,
-					  d_storage.c_str() + ourpos[ourcount] + 1 + *(d_storage.c_str() + ourpos[ourcount]),
-					  rhs.d_storage.c_str() + rhspos[rhscount] + 1,
-					  rhs.d_storage.c_str() + rhspos[rhscount] + 1 + *(rhs.d_storage.c_str() + rhspos[rhscount]),
-					  [](const unsigned char& a, const unsigned char& b) {
-					    return dns_tolower(a) < dns_tolower(b);
-					  });
-
-    //    cout<<"Forward: "<<res<<endl;
-    if(res)
-      return true;
-
-    res=std::lexicographical_compare(	  rhs.d_storage.c_str() + rhspos[rhscount] + 1,
-					  rhs.d_storage.c_str() + rhspos[rhscount] + 1 + *(rhs.d_storage.c_str() + rhspos[rhscount]),
-					  d_storage.c_str() + ourpos[ourcount] + 1,
-					  d_storage.c_str() + ourpos[ourcount] + 1 + *(d_storage.c_str() + ourpos[ourcount]),
-					  [](const unsigned char& a, const unsigned char& b) {
-					    return dns_tolower(a) < dns_tolower(b);
-					  });
-    //    cout<<"Reverse: "<<res<<endl;
-    if(res)
-      return false;
-  }
-  return false;
-}
-
 
 struct CanonDNSNameCompare
 {
@@ -302,10 +270,120 @@ inline DNSName operator+(const DNSName& lhs, const DNSName& rhs)
 
 extern const DNSName g_rootdnsname, g_wildcarddnsname;
 
+#if defined(PDNS_AUTH) // [
+// ZoneName: this is equivalent to DNSName, but intended to only store zone
+// names. In addition to the name, an optional variant is allowed. The
+// variant is never part of a DNS packet; it can only be used by backends to
+// perform specific extra processing.
+// Variant names are limited to [a-z0-9_-].
+// Conversions between DNSName and ZoneName are allowed, but must be explicit;
+// conversions to DNSName lose the variant part.
+class ZoneName
+{
+public:
+  ZoneName() = default; //!< Constructs an *empty* ZoneName, NOT the root!
+  // Work around assertion in some boost versions that do not like self-assignment of boost::container::string
+  ZoneName& operator=(const ZoneName& rhs)
+  {
+    if (this != &rhs) {
+      d_name = rhs.d_name;
+      d_variant = rhs.d_variant;
+    }
+    return *this;
+  }
+  ZoneName& operator=(ZoneName&& rhs) noexcept
+  {
+    if (this != &rhs) {
+      d_name = std::move(rhs.d_name);
+      d_variant = std::move(rhs.d_variant);
+    }
+    return *this;
+  }
+  ZoneName(const ZoneName& a) = default;
+  ZoneName(ZoneName&& a) = default;
+
+  explicit ZoneName(std::string_view name);
+  explicit ZoneName(std::string_view name, std::string_view variant) : d_name(name), d_variant(variant) {}
+  explicit ZoneName(const DNSName& name, std::string_view variant = ""sv) : d_name(name), d_variant(variant) {}
+  explicit ZoneName(std::string_view name, std::string_view::size_type sep);
+
+  bool isPartOf(const ZoneName& rhs) const { return d_name.isPartOf(rhs.d_name); }
+  bool isPartOf(const DNSName& rhs) const { return d_name.isPartOf(rhs); }
+  bool operator==(const ZoneName& rhs) const { return d_name == rhs.d_name && d_variant == rhs.d_variant; }
+  bool operator!=(const ZoneName& rhs) const { return !operator==(rhs); }
+
+  std::string toString(const std::string& separator=".", const bool trailing=true) const;
+  void toString(std::string& output, const std::string& separator=".", const bool trailing=true) const { output = toString(separator, trailing); }
+  std::string toLogString() const;
+  std::string toStringNoDot() const;
+  std::string toStringRootDot() const;
+
+  bool chopOff() { return d_name.chopOff(); }
+  ZoneName makeLowerCase() const
+  {
+    ZoneName ret(*this);
+    ret.d_name.makeUsLowerCase();
+    return ret;
+  }
+  void makeUsLowerCase() { d_name.makeUsLowerCase(); }
+  bool empty() const { return d_name.empty(); }
+  void clear() { d_name.clear(); d_variant.clear(); }
+  void trimToLabels(unsigned int trim) { d_name.trimToLabels(trim); }
+  size_t hash(size_t init=0) const;
+
+  bool operator<(const ZoneName& rhs)  const;
+
+  int canonCompare_three_way(const ZoneName& rhs) const;
+  inline bool canonCompare(const ZoneName& rhs) const { return canonCompare_three_way(rhs) < 0; }
+
+  // Conversion from ZoneName to DNSName
+  explicit operator const DNSName&() const { return d_name; }
+  explicit operator DNSName&() { return d_name; }
+
+  bool hasVariant() const { return !d_variant.empty(); }
+  std::string getVariant() const { return d_variant; }
+  void setVariant(std::string_view);
+
+  // Search for a variant separator: mandatory (when variants are used) trailing
+  // dot followed by another dot and the variant name, and return the length of
+  // the zone name without its variant part, or npos if there is no variant
+  // present.
+  static std::string_view::size_type findVariantSeparator(std::string_view name);
+
+private:
+  DNSName d_name;
+  std::string d_variant{};
+};
+
+size_t hash_value(ZoneName const& zone);
+
+std::ostream & operator<<(std::ostream &ostr, const ZoneName& zone);
+namespace std {
+    template <>
+    struct hash<ZoneName> {
+        size_t operator () (const ZoneName& dn) const { return dn.hash(0); }
+    };
+}
+
+struct CanonZoneNameCompare
+{
+  bool operator()(const ZoneName& a, const ZoneName& b) const
+  {
+    return a.canonCompare(b);
+  }
+};
+#else // ] [
+using ZoneName = DNSName;
+using CanonZoneNameCompare = CanonDNSNameCompare;
+#endif // ]
+
+extern const ZoneName g_rootzonename;
+
 template<typename T>
 struct SuffixMatchTree
 {
-  SuffixMatchTree(const std::string& name="", bool endNode_=false) : d_name(name), endNode(endNode_)
+  SuffixMatchTree(std::string name = "", bool endNode_ = false) :
+    d_name(std::move(name)), endNode(endNode_)
   {}
 
   SuffixMatchTree(const SuffixMatchTree& rhs): d_name(rhs.d_name), children(rhs.children), endNode(rhs.endNode)
@@ -332,7 +410,7 @@ struct SuffixMatchTree
   std::string d_name;
   mutable std::set<SuffixMatchTree, std::less<>> children;
   mutable bool endNode;
-  mutable T d_value;
+  mutable T d_value{};
 
   /* this structure is used to do a lookup without allocating and
      copying a string, using C++14's heterogeneous lookups in ordered

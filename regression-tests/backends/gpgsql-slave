@@ -6,6 +6,7 @@
 	createdb --user="$GPGSQL2USER" "$GPGSQL2DB" || echo ignoring createdb failure
 	psql --user="$GPGSQL2USER" "$GPGSQL2DB" < ../modules/gpgsqlbackend/schema.pgsql.sql
 
+	backend=gpgsql2
 	cat > pdns-gpgsql2.conf << __EOF__
 module-dir=./modules
 launch=gpgsql

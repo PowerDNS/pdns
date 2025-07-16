@@ -21,44 +21,18 @@
  */
 #pragma once
 
+#include <vector>
+#include <string>
+#include <utility>
+
 #include "config.h"
 #include "sstuff.hh"
 
-#ifndef DISABLE_COMPLETION
-struct ConsoleKeyword
+namespace dnsdist::console
 {
-  std::string name;
-  bool function;
-  std::string parameters;
-  std::string description;
-  std::string toString() const
-  {
-    std::string res(name);
-    if (function) {
-      res += "(" + parameters + ")";
-    }
-    res += ": ";
-    res += description;
-    return res;
-  }
-};
-extern const std::vector<ConsoleKeyword> g_consoleKeywords;
-extern "C"
-{
-  char** my_completion(const char* text, int start, int end);
-}
-
-#endif /* DISABLE_COMPLETION */
-
-extern GlobalStateHolder<NetmaskGroup> g_consoleACL;
-extern std::string g_consoleKey; // in theory needs locking
-extern bool g_logConsoleConnections;
-extern bool g_consoleEnabled;
-extern uint32_t g_consoleOutputMsgMaxSize;
-
-void doClient(ComboAddress server, const std::string& command);
+const std::vector<std::pair<timeval, std::string>>& getConfigurationDelta();
+void doClient(const std::string& command);
 void doConsole();
-void controlThread(std::shared_ptr<Socket> acceptFD, ComboAddress local);
-void clearConsoleHistory();
-
-void setConsoleMaximumConcurrentConnections(size_t max);
+void controlThread(Socket&& acceptFD);
+void clearHistory();
+}

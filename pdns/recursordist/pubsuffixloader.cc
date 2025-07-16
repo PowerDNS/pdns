@@ -86,7 +86,7 @@ void initPublicSuffixList(const std::string& file)
       vector<string> parts;
       stringtok(parts, low, ".");
       reverse(parts.begin(), parts.end());
-      pbList.push_back(parts);
+      pbList.push_back(std::move(parts));
     }
   }
 

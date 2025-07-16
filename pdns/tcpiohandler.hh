@@ -81,7 +81,10 @@ public:
   {
     throw std::runtime_error("This TLS backend does not have the capability to load a tickets key from a file");
   }
-
+  virtual void loadTicketsKey(const std::string& /* key */)
+  {
+    throw std::runtime_error("This TLS backend does not have the capability to load a ticket key");
+  }
   void handleTicketsKeyRotation(time_t now)
   {
     if (d_ticketsKeyRotationDelay != 0 && now > d_ticketsKeyNextRotation) {
@@ -112,22 +115,27 @@ public:
   virtual size_t getTicketsKeysCount() = 0;
   virtual std::string getName() const = 0;
 
-  /* set the advertised ALPN protocols, in client or server context */
-  virtual bool setALPNProtos(const std::vector<std::vector<uint8_t>>& /* protos */)
-  {
-    return false;
-  }
+  using tickets_key_added_hook = std::function<void(const std::string& key)>;
 
-  /* called in a client context, if the client advertised more than one ALPN values and the server returned more than one as well, to select the one to use. */
-  virtual bool setNextProtocolSelectCallback(bool(*)(unsigned char** out, unsigned char* outlen, const unsigned char* in, unsigned int inlen))
+  static void setTicketsKeyAddedHook(const tickets_key_added_hook& hook)
   {
-    return false;
+    TLSCtx::s_ticketsKeyAddedHook = hook;
   }
-
+  static const tickets_key_added_hook& getTicketsKeyAddedHook()
+  {
+    return TLSCtx::s_ticketsKeyAddedHook;
+  }
+  static bool hasTicketsKeyAddedHook()
+  {
+    return TLSCtx::s_ticketsKeyAddedHook != nullptr;
+  }
 protected:
   std::atomic_flag d_rotatingTicketsKey;
   std::atomic<time_t> d_ticketsKeyNextRotation{0};
   time_t d_ticketsKeyRotationDelay{0};
+
+private:
+  static tickets_key_added_hook s_ticketsKeyAddedHook;
 };
 
 class TLSFrontend
@@ -147,21 +155,33 @@ public:
 
   void rotateTicketsKey(time_t now)
   {
-    if (d_ctx != nullptr) {
+    if (d_ctx != nullptr && d_parentFrontend == nullptr) {
       d_ctx->rotateTicketsKey(now);
     }
   }
 
   void loadTicketsKeys(const std::string& file)
   {
-    if (d_ctx != nullptr) {
+    if (d_ctx != nullptr && d_parentFrontend == nullptr) {
       d_ctx->loadTicketsKeys(file);
     }
   }
 
-  std::shared_ptr<TLSCtx> getContext()
+  void loadTicketsKey(const std::string& key)
+  {
+    if (d_ctx != nullptr && d_parentFrontend == nullptr) {
+      d_ctx->loadTicketsKey(key);
+    }
+  }
+
+  std::shared_ptr<TLSCtx> getContext() const
   {
     return std::atomic_load_explicit(&d_ctx, std::memory_order_acquire);
+  }
+
+  void setParent(std::shared_ptr<const TLSFrontend> parent)
+  {
+    std::atomic_store_explicit(&d_parentFrontend, std::move(parent), std::memory_order_release);
   }
 
   void cleanup()
@@ -227,6 +247,7 @@ public:
   bool d_proxyProtocolOutsideTLS{false};
 protected:
   std::shared_ptr<TLSCtx> d_ctx{nullptr};
+  std::shared_ptr<const TLSFrontend> d_parentFrontend{nullptr};
 };
 
 class TCPIOHandler
@@ -550,7 +571,7 @@ public:
     return d_conn->getAsyncFDs();
   }
 
-  const static bool s_disableConnectForUnitTests;
+  static const bool s_disableConnectForUnitTests;
 
 private:
   std::unique_ptr<TLSConnection> d_conn{nullptr};
@@ -567,6 +588,8 @@ struct TLSContextParameters
   std::string d_ciphers;
   std::string d_ciphers13;
   std::string d_caStore;
+  std::string d_keyLogFile;
+  TLSFrontend::ALPN d_alpn{TLSFrontend::ALPN::Unset};
   bool d_validateCertificates{true};
   bool d_releaseBuffers{true};
   bool d_enableRenegotiation{false};

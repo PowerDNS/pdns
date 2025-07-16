@@ -118,7 +118,7 @@ Prefixing a mask with ``!`` excludes that mask from matching.
 
       Adds ``masks`` to the NetMaskGroup.
 
-      :param {str} mask: The masks to add.
+      :param {str} masks: The masks to add.
 
   .. method:: NetMaskGroup:match(address) -> bool
 

@@ -9,28 +9,28 @@ This can be raised using the ``ulimit`` command or via the ``LimitNOFILE`` unit 
 FreeBSD has a default limit that is high enough for even very heavy duty use.
 
 Limit the size of the caches to a sensible value.
-Cache hit rate does not improve meaningfully beyond a few million :ref:`setting-max-cache-entries`, reducing the memory footprint reduces CPU cache misses.
+Cache hit rate does not improve meaningfully beyond a few million :ref:`setting-yaml-recordcache.max_entries`, reducing the memory footprint reduces CPU cache misses.
 See below for more information about the various caches.
 
 When deploying (large scale) IPv6, please be aware some Linux distributions leave IPv6 routing cache tables at very small default values.
 Please check and if necessary raise ``sysctl net.ipv6.route.max_size``.
 
-Set :ref:`setting-threads` to your number of CPU cores minus the number of distributor threads.
+Set :ref:`setting-yaml-recursor.threads` to your number of CPU cores minus the number of distributor threads.
 
 Threading and distribution of queries
 -------------------------------------
 
-When running with several threads, you can either ask PowerDNS to start one or more special threads to dispatch the incoming queries to the workers by setting :ref:`setting-pdns-distributes-queries` to ``yes``, or let the worker threads handle the incoming queries themselves.
+When running with several threads, you can either ask PowerDNS to start one or more special threads to dispatch the incoming queries to the workers by setting :ref:`setting-yaml-incoming.pdns_distributes_queries` to ``yes``, or let the worker threads handle the incoming queries themselves.
 The latter is the default since version 4.9.0.
 
-The dispatch thread enabled by :ref:`setting-pdns-distributes-queries` tries to send the same queries to the same thread to maximize the cache-hit ratio.
-If the incoming query rate is so high that the dispatch thread becomes a bottleneck, you can increase :ref:`setting-distributor-threads` to use more than one.
+The dispatch thread enabled by :ref:`setting-yaml-incoming.pdns_distributes_queries` tries to send the same queries to the same thread to maximize the cache-hit ratio.
+If the incoming query rate is so high that the dispatch thread becomes a bottleneck, you can increase :ref:`setting-yaml-incoming.distributor_threads` to use more than one.
 
-If :ref:`setting-pdns-distributes-queries` is set to ``no`` and either ``SO_REUSEPORT`` support is not available or the :ref:`setting-reuseport` directive is set to ``no``, all worker threads share the same listening sockets.
+If :ref:`setting-yaml-incoming.pdns_distributes_queries` is set to ``false`` and either ``SO_REUSEPORT`` support is not available or the :ref:`setting-yaml-incoming.reuseport` directive is set to ``false``, all worker threads share the same listening sockets.
 
 This prevents a single thread from having to handle every incoming queries, but can lead to thundering herd issues where all threads are awoken at once when a query arrives.
 
-If ``SO_REUSEPORT`` support is available and :ref:`setting-reuseport` is set to ``yes``, which is the
+If ``SO_REUSEPORT`` support is available and :ref:`setting-yaml-incoming.reuseport` is set to ``true``, which is the
 default since version 4.9.0, separate listening sockets are opened for each worker thread and the query distributions is handled by the kernel, avoiding any thundering herd issue as well as preventing the distributor thread from becoming the bottleneck.
 The next section discusses how to determine if the mechanism is working properly.
 
@@ -38,7 +38,7 @@ The next section discusses how to determine if the mechanism is working properly
 
 Imbalance
 ^^^^^^^^^
-Due to the nature of the distribution method used by the kernel imbalance with the new default settings of :ref:`setting-reuseport` and :ref:`setting-pdns-distributes-queries` may occur if you have very few clients.
+Due to the nature of the distribution method used by the kernel imbalance with the new default settings of :ref:`setting-yaml-incoming.reuseport` and :ref:`setting-yaml-incoming.pdns_distributes_queries` may occur if you have very few clients.
 Imbalance can be observed by reading the periodic statistics reported by :program:`Recursor`::
 
   Jun 26 11:06:41 pepper pdns-recursor[10502]: msg="Queries handled by thread" subsystem="stats" level="0" prio="Info" tid="0" ts="1687770401.359" count="7" thread="0"
@@ -58,20 +58,20 @@ The following guideline applies for the ``dnsdist`` case:
 
 Non-Linux systems
 ^^^^^^^^^^^^^^^^^
-On some systems setting :ref:`setting-reuseport` to ``yes`` does not have the desired effect at all.
-If your systems shows great imbalance in the number of queries processed per thread (as reported by the periodic statistics report), try switching :ref:`setting-reuseport` to ``no`` and/or setting  :ref:`setting-pdns-distributes-queries` to ``yes``.
+On some systems setting :ref:`setting-yaml-incoming.reuseport` to ``true`` does not have the desired effect at all.
+If your systems shows great imbalance in the number of queries processed per thread (as reported by the periodic statistics report), try switching :ref:`setting-yaml-incoming.reuseport` to ``false`` and/or setting  :ref:`setting-yaml-incoming.pdns_distributes_queries` to ``true``.
 
 .. versionadded:: 4.1.0
-   The :ref:`setting-cpu-map` parameter can be used to pin worker threads to specific CPUs, in order to keep caches as warm as possible and optimize memory access on NUMA systems.
+   The :ref:`setting-yaml-recursor.cpu_map` parameter can be used to pin worker threads to specific CPUs, in order to keep caches as warm as possible and optimize memory access on NUMA systems.
 
 .. versionadded:: 4.2.0
-   The :ref:`setting-distributor-threads` parameter can be used to run more than one distributor thread.
+   The :ref:`setting-yaml-incoming.distributor_threads` parameter can be used to run more than one distributor thread.
 
 .. versionchanged:: 4.9.0
-   The :ref:`setting-reuseport` parameter now defaults to ``yes``.
+   The :ref:`setting-yaml-incoming.reuseport` parameter now defaults to ``yes``.
 
 .. versionchanged:: 4.9.0
-   The :ref:`setting-pdns-distributes-queries` parameter now defaults to ``no``.
+   The :ref:`setting-yaml-incoming.pdns_distributes_queries` parameter now defaults to ``no``.
 
 
 MTasker and MThreads
@@ -79,15 +79,15 @@ MTasker and MThreads
 
 PowerDNS :program:`Recursor` uses a cooperative multitasking in userspace called ``MTasker``, based either on ``boost::context`` if available, or on ``System V ucontexts`` otherwise. For maximum performance, please make sure that your system supports ``boost::context``, as the alternative has been known to be quite slower.
 
-The maximum number of simultaneous MTasker threads, called ``MThreads``, can be tuned via :ref:`setting-max-mthreads`, as the default value of 2048 might not be enough for large-scale installations.
+The maximum number of simultaneous MTasker threads, called ``MThreads``, can be tuned via :ref:`setting-yaml-recursor.max_mthreads`, as the default value of 2048 might not be enough for large-scale installations.
 This setting limits the number of mthreads *per physical (Posix) thread*.
 The threads that create mthreads are the distributor and worker threads.
 
-When a ``MThread`` is started, a new stack is dynamically allocated for it. The size of that stack can be configured via the :ref:`setting-stack-size` parameter, whose default value is 200 kB which should be enough in most cases.
+When a ``MThread`` is started, a new stack is dynamically allocated for it. The size of that stack can be configured via the :ref:`setting-yaml-recursor.stack_size` parameter, whose default value is 200 kB which should be enough in most cases.
 
-To reduce the cost of allocating a new stack for every query, the recursor can cache a small amount of stacks to make sure that the allocation stays cheap. This can be configured via the :ref:`setting-stack-cache-size` setting.
+To reduce the cost of allocating a new stack for every query, the recursor can cache a small amount of stacks to make sure that the allocation stays cheap. This can be configured via the :ref:`setting-yaml-recursor.stack_cache_size` setting.
 This limit is per physical (Posix) thread.
-The only trade-off of enabling this cache is a slightly increased memory consumption, at worst equals to the number of stacks specified by :ref:`setting-stack-cache-size` multiplied by the size of one stack, itself specified via :ref:`setting-stack-size`.
+The only trade-off of enabling this cache is a slightly increased memory consumption, at worst equal to the number of stacks specified by :ref:`setting-yaml-recursor.stack_cache_size` multiplied by the size of one stack, itself specified via :ref:`setting-yaml-recursor.stack_size`.
 
 Linux limits the number of memory mappings a process can allocate by the ``vm.max_map_count`` kernel parameter.
 A single ``MThread`` stack can take up to 3 memory mappings.
@@ -187,33 +187,33 @@ When the recursor starts up, it will check if enough file descriptors are availa
 
 When a query is received over a TCP connection, first the packet cache is consulted.
 If an answer is found it will be returned immediately.
-If no answer is found, the Recursor will process :ref:`setting-max-concurrent-requests-per-tcp-connection` queries per incoming TCP connection concurrently.
+If no answer is found, the Recursor will process :ref:`setting-yaml-incoming.max_concurrent_requests_per_tcp_connection` queries per incoming TCP connection concurrently.
 If more than this number of queries is pending for this TCP connection, the remaining queries will stay in the TCP receive buffer to be processed later.
 Each of the queries processed will consume an mthread until processing is done.
 A response to a query is sent immediately when it becomes available; the response can be sent before other responses to queries that were received earlier by the Recursor.
 This is the Out-of-Order feature which greatly enhances performance, as a single slow query does not prevent other queries to be processed.
 
-Before version 5.0.0, TCP queries are processed by either the distributer thread(s) if :ref:`setting-pdns-distributes-queries` is true, or by worker threads if :ref:`setting-pdns-distributes-queries` is false.
+Before version 5.0.0, TCP queries are processed by either the distributer thread(s) if :ref:`setting-yaml-incoming.pdns_distributes_queries` is true, or by worker threads if :ref:`setting-yaml-incoming.pdns_distributes_queries` is false.
 Starting with version 5.0.0, :program:`Recursor` has dedicated thread(s) processing TCP queries.
 
-The maximum number of mthreads consumed by TCP queries is :ref:`setting-max-tcp-clients` times :ref:`setting-max-concurrent-requests-per-tcp-connection`.
-Before version 5.0.0, if :ref:`setting-pdns-distributes-queries` is false, this number should be (much) lower than :ref:`setting-max-mthreads`, to also allow UDP queries to be handled as these also consume mthreads.
-Note that :ref:`setting-max-mthreads` is a per Posix thread setting.
+The maximum number of mthreads consumed by TCP queries is :ref:`setting-yaml-incoming.max_tcp_clients` times :ref:`setting-yaml-incoming.max_concurrent_requests_per_tcp_connection`.
+Before version 5.0.0, if :ref:`setting-yaml-incoming.pdns_distributes_queries` is false, this number should be (much) lower than :ref:`setting-yaml-recursor.max_mthreads`, to also allow UDP queries to be handled as these also consume mthreads.
+Note that :ref:`setting-yaml-recursor.max_mthreads` is a per Posix thread setting.
 This means that the global maximum number of mthreads  is (#distributor threads + #worker threads) * max-mthreads.
 
-If you expect few clients, you can increase :ref:`setting-max-concurrent-requests-per-tcp-connection`, to allow more concurrency per TCP connection.
-If you expect many clients and you have increased :ref:`setting-max-tcp-clients`, reduce :ref:`setting-max-concurrent-requests-per-tcp-connection` number to prevent mthread starvation or increase the maximum number of mthreads.
+If you expect few clients, you can increase :ref:`setting-yaml-incoming.max_concurrent_requests_per_tcp_connection`, to allow more concurrency per TCP connection.
+If you expect many clients and you have increased :ref:`setting-yaml-incoming.max_tcp_clients`, reduce :ref:`setting-yaml-incoming.max_concurrent_requests_per_tcp_connection` number to prevent mthread starvation or increase the maximum number of mthreads.
 
-To increase the maximum number of concurrent queries consider increasing  :ref:`setting-max-mthreads`, but be aware that each active mthread consumes more than 200k of memory.
-To see the current number of mthreads in use consult the :ref:`stat-concurrent-queries` metric.
-If a query could not be handled due to mthread shortage, the :ref:`stat-over-capacity-drops` metric is increased.
+To increase the maximum number of concurrent queries consider increasing  :ref:`setting-yaml-recursor.max_mthreads`, but be aware that each active mthread consumes more than 200k of memory.
+To see the current number of mthreads in use consult the :doc:`metrics` ``concurrent-queries`` metric.
+If a query could not be handled due to mthread shortage, the ``over-capacity-drops`` metric is increased.
 
 As an example, if you have typically 200 TCP clients, and the default maximum number of mthreads of 2048, a good number of concurrent requests per TCP connection would be 5. Assuming a worst case packet cache hit ratio, if all 200 TCP clients fill their connections with queries, about half (5 * 200) of the mthreads would be used by incoming TCP queries, leaving the other half for incoming UDP queries.
 Note that starting with version 5.0.0, TCP queries are processed by dedicated TCP thread(s), so the sharing of mthreads between UDP and TCP queries no longer applies.
 
-The total number of incoming TCP connections is limited by :ref:`setting-max-tcp-clients`.
-There is also a per client address limit: :ref:`setting-max-tcp-per-client` to limit the impact of a single client.
-Consult the :ref:`stat-tcp-clients` metric for the current number of TCP connections and the :ref:`stat-tcp-client-overflow` metric to see if client connection attempts were rejected because there were too many existing connections from a single address.
+The total number of incoming TCP connections is limited by :ref:`setting-yaml-incoming.max_tcp_clients`.
+There is also a per client address limit: :ref:`setting-yaml-incoming.max_tcp_per_client` to limit the impact of a single client.
+Consult the :doc:`metrics` ``tcp-clients`` metric for the current number of TCP connections and the ``tcp-client-overflow`` metric to see if client connection attempts were rejected because there were too many existing connections from a single address.
 
 .. _tcp-fast-open-support:
 
@@ -237,9 +237,9 @@ While developing active TCP Fast Open, it was needed to set ``net.ipv4.tcp_fasto
 At the moment of writing, some Google operated nameservers (both recursive and authoritative) indicate Fast Open support in the TCP handshake, but do not accept the cookie they sent previously and send a new one for each connection.
 Google is working to fix this.
 
-If you operate an anycast pool of machines, make them share the TCP Fast Open Key by setting the ``net.ipv4.tcp_fastopen_key`` sysctl, otherwise you will create a similar issue some Google servers have.
+If you operate an anycast pool of machines, make them share the TCP Fast Open Key by setting the ``net.ipv4.tcp_fastopen_key`` sysctl; otherwise, you will create a similar issue some Google servers have.
 
-To determine a good value for the :ref:`setting-tcp-fast-open` setting, watch the ``TCPFastOpenListenOverflow`` metric.
+To determine a good value for the :ref:`setting-yaml-incoming.tcp_fast_open` setting, watch the ``TCPFastOpenListenOverflow`` metric.
 If this value increases often, the value might be too low for your traffic, but note that increasing it will use kernel resources.
 
 Running with a local root zone 
@@ -302,6 +302,8 @@ Measuring performance
 
 The PowerDNS Recursor exposes many :doc:`metrics <metrics>` that can be graphed and monitored.
 
+.. _event-tracing:
+
 Event Tracing
 -------------
 Event tracing is an experimental feature introduced in version 4.6.0 that allows following the internals of processing queries in more detail.
@@ -309,6 +311,7 @@ Event tracing is an experimental feature introduced in version 4.6.0 that allows
 In certain spots in the resolving process event records are created that contain an identification of the event, a timestamp, potentially a value and an indication if this was the start or the end of an event. This is relevant for events that describe stages in the resolving process.
 
 At this point in time event logs of queries can be exported using a protobuf log or they can be written to the log file.
+Starting with version 5.3.0, the same information can also be exported as OpenTelemetry Traces data.
 
 Note that this is an experimental feature that will change in upcoming releases.
 
@@ -350,7 +353,7 @@ Currently, an event protobuf message has the following definition:
     }
     repeated Event trace = 23;
 
-Event traces can be enabled by either setting :ref:`setting-event-trace-enabled` or by using the :doc:`rec_control <manpages/rec_control.1>` subcommand ``set-event-trace-enabled``.
+Event traces can be enabled by either setting :ref:`setting-yaml-recursor.event_trace_enabled` or by using the :doc:`rec_control <manpages/rec_control.1>` subcommand ``set-event-trace-enabled``.
 
 An example of a trace (timestamps are relative in nanoseconds) as shown  in the logfile:
 
@@ -364,7 +367,7 @@ An example of a trace (timestamps are relative in nanoseconds) as shown  in the 
      -AnswerSent(337266453)
 
 The packet cache check event has two events.
-The first signals the start of packet cache lookup, and the second the completion of the packet cache lookup with result 0 (not found).
+The first signals the start of packet cache lookup, and the second signals the completion of the packet cache lookup with result 0 (not found).
 The SynRec event also has two entries. The value (0) is the return value of the SyncRes function.
 
 An example of a trace with a packet cache hit):
@@ -406,3 +409,234 @@ An example where various Lua related events can be seen:
 There is no packet cache hit, so SyncRes is called which does a couple of outgoing queries.
 
 
+OpenTelemetry Traces
+^^^^^^^^^^^^^^^^^^^^
+
+OpenTelemetry Traces are generated by setting :ref:`setting-yaml-recursor.event_trace_enabled` or by using the :doc:`rec_control <manpages/rec_control.1>` subcommand ``set-event-trace-enabled``.
+:program:`Recursor` will set the ``openTelemetryData`` field of ``dnsmessage.proto`` messages generated to contain OpenTelemetry Traces, encoded as Protobuf data.
+The encoding used is defined in https://github.com/open-telemetry/opentelemetry-proto/blob/main/opentelemetry/proto/trace/v1/trace.proto.
+
+The example decoder in https://github.com/PowerDNS/pdns/blob/master/contrib/ProtobufLogger.py displays a JSON representation of the data and optionally submits the data (in Protobuf format) to an OpenTelemetry trace collector using a POST to a URL given on the command line.
+
+An example, encoded in JSON:
+
+.. code-block:: json
+
+    {
+      "resource_spans": [
+        {
+          "resource": {
+            "attributes": [
+              {
+                "key": "service.name",
+                "value": {
+                  "string_value": "rec"
+                }
+              }
+            ]
+          },
+          "scope_spans": [
+            {
+              "spans": [
+                {
+                  "trace_id": "hYxA7fc6b/0KnrVRZTZPiw==",
+                  "span_id": "JXJ4ddrswYQ=",
+                  "parent_span_id": "AAAAAAAAAAA=",
+                  "name": "RecRequest",
+                  "start_time_unix_nano": "1749561792313272000",
+                  "end_time_unix_nano": "1749561792750566000"
+                },
+                {
+                  "trace_id": "hYxA7fc6b/0KnrVRZTZPiw==",
+                  "span_id": "MQHynlz1HY8=",
+                  "parent_span_id": "JXJ4ddrswYQ=",
+                  "name": "ReqRecv",
+                  "start_time_unix_nano": "1749561792313272000",
+                  "end_time_unix_nano": "1749561792750560000",
+                  "attributes": [
+                    {
+                      "key": "value",
+                      "value": {
+                        "string_value": "www.powerdns.net/A"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "trace_id": "hYxA7fc6b/0KnrVRZTZPiw==",
+                  "span_id": "NZy+TnYqDHA=",
+                  "parent_span_id": "JXJ4ddrswYQ=",
+                  "name": "PCacheCheck",
+                  "start_time_unix_nano": "1749561792313363000",
+                  "end_time_unix_nano": "1749561792313365000",
+                  "attributes": [
+                    {
+                      "key": "value",
+                      "value": {
+                        "bool_value": false
+                      }
+                    }
+                  ]
+                },
+                {
+                  "trace_id": "hYxA7fc6b/0KnrVRZTZPiw==",
+                  "span_id": "Bo/RN3dz9fs=",
+                  "parent_span_id": "JXJ4ddrswYQ=",
+                  "name": "SyncRes",
+                  "start_time_unix_nano": "1749561792313428000",
+                  "end_time_unix_nano": "1749561792750302000",
+                  "attributes": [
+                    {
+                      "key": "value",
+                      "value": {
+                        "int_value": "0"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "trace_id": "hYxA7fc6b/0KnrVRZTZPiw==",
+                  "span_id": "xNMXyT7mWjA=",
+                  "parent_span_id": "Bo/RN3dz9fs=",
+                  "name": "AuthRequest",
+                  "start_time_unix_nano": "1749561792313485000",
+                  "end_time_unix_nano": "1749561792571098000",
+                  "attributes": [
+                    {
+                      "key": "value",
+                      "value": {
+                        "string_value": "net/A"
+                      }
+                    },
+                    {
+                      "key": "value",
+                      "value": {
+                        "int_value": "0"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "trace_id": "hYxA7fc6b/0KnrVRZTZPiw==",
+                  "span_id": "p/JA/yx/qE0=",
+                  "parent_span_id": "Bo/RN3dz9fs=",
+                  "name": "AuthRequest",
+                  "start_time_unix_nano": "1749561792572165000",
+                  "end_time_unix_nano": "1749561792596116000",
+                  "attributes": [
+                    {
+                      "key": "value",
+                      "value": {
+                        "string_value": "powerdns.net/A"
+                      }
+                    },
+                    {
+                      "key": "value",
+                      "value": {
+                        "int_value": "0"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "trace_id": "hYxA7fc6b/0KnrVRZTZPiw==",
+                  "span_id": "CJOTDQJtrCo=",
+                  "parent_span_id": "Bo/RN3dz9fs=",
+                  "name": "AuthRequest",
+                  "start_time_unix_nano": "1749561792596318000",
+                  "end_time_unix_nano": "1749561792610541000",
+                  "attributes": [
+                    {
+                      "key": "value",
+                      "value": {
+                        "string_value": "net/DNSKEY"
+                      }
+                    },
+                    {
+                      "key": "value",
+                      "value": {
+                        "int_value": "0"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "trace_id": "hYxA7fc6b/0KnrVRZTZPiw==",
+                  "span_id": "/WEYJlz7JO4=",
+                  "parent_span_id": "Bo/RN3dz9fs=",
+                  "name": "AuthRequest",
+                  "start_time_unix_nano": "1749561792611791000",
+                  "end_time_unix_nano": "1749561792709927000",
+                  "attributes": [
+                    {
+                      "key": "value",
+                      "value": {
+                        "string_value": "www.powerdns.net/A"
+                      }
+                    },
+                    {
+                      "key": "value",
+                      "value": {
+                        "int_value": "0"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "trace_id": "hYxA7fc6b/0KnrVRZTZPiw==",
+                  "span_id": "XMYoT4nXjBo=",
+                  "parent_span_id": "Bo/RN3dz9fs=",
+                  "name": "AuthRequest",
+                  "start_time_unix_nano": "1749561792710051000",
+                  "end_time_unix_nano": "1749561792730321000",
+                  "attributes": [
+                    {
+                      "key": "value",
+                      "Value": {
+                        "string_value": "powerdns.net/DNSKEY"
+                      }
+                    },
+                    {
+                      "key": "value",
+                      "value": {
+                        "int_value": "0"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "trace_id": "hYxA7fc6b/0KnrVRZTZPiw==",
+                  "span_id": "wVWnDBsGOIo=",
+                  "parent_span_id": "Bo/RN3dz9fs=",
+                  "name": "AuthRequest",
+                  "start_time_unix_nano": "1749561792730960000",
+                  "end_time_unix_nano": "1749561792750073000",
+                  "attributes": [
+                    {
+                      "key": "value",
+                      "value": {
+                        "string_value": "powerdns.net/A"
+                      }
+                    },
+                    {
+                      "key": "value",
+                      "value": {
+                        "int_value": "0"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "trace_id": "hYxA7fc6b/0KnrVRZTZPiw==",
+                  "span_id": "qllduzHSRbQ=",
+                  "parent_span_id": "JXJ4ddrswYQ=",
+                  "name": "AnswerSent",
+                  "start_time_unix_nano": "1749561792750557000",
+                  "end_time_unix_nano": "1749561792750557000"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }

@@ -1,7 +1,0 @@
-/target
-/Makefile
-/Makefile.in
-/cxx.h
-/lib.rs.h
-src/lib.rs
-.dir-locals.el

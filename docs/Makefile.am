@@ -36,10 +36,8 @@ MANPAGES_DIST += $(MANPAGES_TARGET_TOOLS) \
 	dnsbulktest.1 \
 	dnstcpbench.1
 
-if HAVE_BOOST_GE_148
 MANPAGES_INSTALL += dnsbulktest.1 \
 	dnstcpbench.1
-endif
 
 if TOOLS
 MANPAGES_INSTALL += $(MANPAGES_TARGET_TOOLS)
@@ -68,7 +66,7 @@ mans/.complete: .venv
 
 .venv: requirements.txt
 	$(PYTHON) -m venv .venv
-	.venv/bin/pip install -U pip setuptools setuptools-git wheel
+	.venv/bin/pip install -U pip setuptools
 	.venv/bin/pip install -r ${srcdir}/requirements.txt
 
 .NOTPARALLEL: \

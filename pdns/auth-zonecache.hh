@@ -26,18 +26,40 @@
 #include "dnsname.hh"
 #include "lock.hh"
 #include "misc.hh"
+#include "iputils.hh"
+#include "dnspacket.hh"
 
 class AuthZoneCache : public boost::noncopyable
 {
 public:
   AuthZoneCache(size_t mapsCount = 1024);
 
-  void replace(const vector<std::tuple<DNSName, int>>& zone);
-  void add(const DNSName& zone, const int zoneId);
-  void remove(const DNSName& zone);
+  using ViewsMap = std::map<std::string, std::map<DNSName, std::string>>;
+
+  // Zone maintainance
+  void replace(const vector<std::tuple<ZoneName, domainid_t>>& zone);
+  void replace(NetmaskTree<string> nettree);
+  void replace(ViewsMap viewsmap);
+  void add(const ZoneName& zone, const domainid_t zoneId);
+  void remove(const ZoneName& zone);
   void setReplacePending(); //!< call this when data collection for the subsequent replace() call starts.
 
-  bool getEntry(const DNSName& zone, int& zoneId);
+  // Views maintainance
+  void addToView(const std::string& view, const ZoneName& zone);
+  bool removeFromView(const std::string& view, const ZoneName& zone);
+
+  // Network maintainance
+  void updateNetwork(const Netmask& network, const std::string& view);
+
+  // Zone lookup
+  bool getEntry(const ZoneName& zone, domainid_t& zoneId);
+
+  // View lookup
+  std::string getViewFromNetwork(Netmask* net);
+
+  // Variant lookup
+  std::string getVariantFromView(const ZoneName& zone, const std::string& view);
+  void setZoneVariant(DNSPacket& packet);
 
   size_t size() { return *d_statnumentries; } //!< number of entries in the cache
 
@@ -57,12 +79,15 @@ public:
   void clear();
 
 private:
+  SharedLockGuarded<NetmaskTree<string>> d_nets;
+  SharedLockGuarded<ViewsMap> d_views;
+
   struct CacheValue
   {
-    int zoneId{-1};
+    domainid_t zoneId{UnknownDomainID};
   };
 
-  typedef std::unordered_map<DNSName, CacheValue, std::hash<DNSName>> cmap_t;
+  typedef std::unordered_map<ZoneName, CacheValue, std::hash<ZoneName>> cmap_t;
 
   struct MapCombo
   {
@@ -75,11 +100,11 @@ private:
   };
 
   vector<MapCombo> d_maps;
-  size_t getMapIndex(const DNSName& zone)
+  size_t getMapIndex(const ZoneName& zone)
   {
     return zone.hash() % d_maps.size();
   }
-  MapCombo& getMap(const DNSName& qname)
+  MapCombo& getMap(const ZoneName& qname)
   {
     return d_maps[getMapIndex(qname)];
   }
@@ -92,7 +117,7 @@ private:
 
   struct PendingData
   {
-    std::vector<std::tuple<DNSName, int, bool>> d_pendingUpdates;
+    std::vector<std::tuple<ZoneName, domainid_t, bool>> d_pendingUpdates;
     bool d_replacePending{false};
   };
   LockGuarded<PendingData> d_pending;

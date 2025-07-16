@@ -15,9 +15,8 @@ def AsyncResponder(listenPath, responsePath):
     # Make sure the socket does not already exist
     try:
         os.unlink(listenPath)
-    except OSError:
-        if os.path.exists(listenPath):
-            raise
+    except FileNotFoundError:
+        pass
 
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
     try:
@@ -515,6 +514,8 @@ class TestAsyncFFI(DNSDistTest, AsyncTests):
       collectgarbage()
     end
 
+    addExitCallback(atExit)
+
     -- this only matters for tests actually reaching the backend
     addAction('tcp-only.async.tests.powerdns.com', PoolAction('tcp-only', false))
     addAction('cache.async.tests.powerdns.com', PoolAction('cache', false))
@@ -627,6 +628,8 @@ class TestAsyncLua(DNSDistTest, AsyncTests):
       listener = nil
       collectgarbage()
     end
+
+    addExitCallback(atExit)
 
     -- this only matters for tests actually reaching the backend
     addAction('tcp-only.async.tests.powerdns.com', PoolAction('tcp-only', false))

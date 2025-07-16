@@ -24,10 +24,8 @@
 #include "config.h"
 
 #ifndef DISABLE_CARBON
-
-#include <thread>
+#include <string>
 #include "iputils.hh"
-#include "lock.hh"
 
 namespace dnsdist
 {
@@ -43,17 +41,8 @@ public:
     unsigned int interval;
   };
 
-  static bool addEndpoint(Endpoint&& endpoint);
-  static void run();
-
-private:
-  struct Config
-  {
-    std::vector<Endpoint> d_endpoints;
-    bool d_running{false};
-  };
-
-  static LockGuarded<Config> s_config;
+  static Endpoint newEndpoint(const std::string& address, std::string ourName, uint64_t interval, const std::string& namespace_name, const std::string& instance_name);
+  static void run(const std::vector<Endpoint>& endpoints);
 };
 
 }

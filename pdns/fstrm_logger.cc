@@ -30,9 +30,7 @@ FrameStreamLogger::FrameStreamLogger(const int family, std::string address, bool
     }
 
     if (d_family == AF_UNIX) {
-      struct sockaddr_un local
-      {
-      };
+      struct sockaddr_un local{};
       if (makeUNsockaddr(d_address, &local) != 0) {
         throw std::runtime_error("FrameStreamLogger: Unable to use '" + d_address + "', it is not a valid UNIX socket path.");
       }
@@ -170,7 +168,7 @@ RemoteLoggerInterface::Result FrameStreamLogger::queueData(const std::string& da
   }
   uint8_t* frame = (uint8_t*)malloc(data.length()); // NOLINT: it's the API
   if (frame == nullptr) {
-    ++d_queueFullDrops; // XXX separate count?
+    ++d_tooLargeCount;
     return Result::TooLarge;
   }
   memcpy(frame, data.c_str(), data.length());

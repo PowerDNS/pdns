@@ -17,11 +17,17 @@ shards=$5
 : ${TRACE:="fail"}
 : ${DNSBULKTEST:="../pdns/dnsbulktest"}
 
+echo Current working dir is `pwd`
+
 if [ $IPv6 = 1 ]
 then
-        QLA6=" ::"
+    echo \$ dig -6 @k.root-servers.net . SOA
+    dig -6 @k.root-servers.net . SOA # Do we actually have v6 connectivity?
+    QLA6=" ::"
 else
-        QLA6=""
+    echo \$ dig -4 @k.root-servers.net . SOA
+    dig -4 @k.root-servers.net . SOA # Do we actually have v4 connectivity?
+    QLA6=""
 fi
 
 rm -f recursor.pid pdns_recursor.pid
@@ -31,7 +37,7 @@ rm -f recursor.pid pdns_recursor.pid
 <measurement><name>system CPU seconds</name><value>%S</value></measurement>
 <measurement><name>wallclock seconds</name><value>%e</value></measurement>
 <measurement><name>%% CPU used</name><value>%P</value></measurement>
-'         ${RECURSOR} --daemon=no --local-port=$port --socket-dir=./ --trace=$TRACE --config-dir=. --max-mthreads=$mthreads --query-local-address="0.0.0.0${QLA6}" --threads=$threads --record-cache-shards=$shards --refresh-on-ttl-perc=10 --dnssec=validate --pdns-distributes-queries --reuseport=no > recursor.log 2>&1 &
+'         ${RECURSOR} --daemon=no --local-port=$port --socket-dir=./ --trace=$TRACE --config-dir=. --max-mthreads=$mthreads --query-local-address="0.0.0.0${QLA6}" --threads=$threads --record-cache-shards=$shards --refresh-on-ttl-perc=10 --dnssec=validate --pdns-distributes-queries --reuseport=no --enable-old-settings > recursor.log 2>&1 &
 sleep 3
 if [ ! -e pdns_recursor.pid ]; then
         cat recursor.log
@@ -42,7 +48,7 @@ fi
 
 # warm up the cache
 echo
-echo === First run with limit=$limit threads=$threads mthreads=$mthreads shards=$shards ===
+echo === First run with IPv6=$IPv6 limit=$limit threads=$threads mthreads=$mthreads shards=$shards ===
 ${DNSBULKTEST} --www=false -qe 127.0.0.1 $port $limit < ${CSV} > bulktest.results
 kill -USR1 $(cat pdns_recursor.pid) || true
 ${RECCONTROL} --timeout=20 --socket-dir=. --config-dir=. get-all || true
@@ -51,7 +57,7 @@ sleep 5
 
 # rerun 1 with hot cache
 echo
-echo === Second run with limit=$limit threads=$threads mthreads=$mthreads shards=$shards ===
+echo === Second run with IPv6=$IPv6 limit=$limit threads=$threads mthreads=$mthreads shards=$shards ===
 ${DNSBULKTEST} --www=false -qe 127.0.0.1 $port $limit < ${CSV} > bulktest.results
 kill -USR1 $(cat pdns_recursor.pid) || true
 ${RECCONTROL} --timeout=20 --socket-dir=. --config-dir=. get-all || true
@@ -60,21 +66,21 @@ sleep 5
 
 # rerun 2 with hot cache
 echo
-echo === Third run with limit=$limit threads=$threads mthreads=$mthreads shards=$shards ===
+echo === Third run with IPv6=$IPv6 limit=$limit threads=$threads mthreads=$mthreads shards=$shards ===
 ${DNSBULKTEST} --www=false -qe 127.0.0.1 $port $limit < ${CSV} > bulktest.results
 kill -USR1 $(cat pdns_recursor.pid) || true
 ${RECCONTROL} --timeout=20 --socket-dir=. --config-dir=. get-all || true
 
-# give it a chance to write the log requested by the kill
 sleep 1
+${RECCONTROL} --timeout=20 --socket-dir=. --config-dir=. ping
+${RECCONTROL} --timeout=20 --socket-dir=. --config-dir=. quit-nicely
+#
+# Since quit-nicely is now synchronous, we should not need to wait for the log to be up-date-date anymore
+#sleep 1
 echo
 echo "=== RECURSOR LOG ==="
 cat recursor.log
 echo "=== END RECURSOR LOG ==="
-sleep 1
-${RECCONTROL} --timeout=20 --socket-dir=. --config-dir=. ping
-kill $(cat pdns_recursor.pid) 
-sleep 5
 
 . ./bulktest.results
 

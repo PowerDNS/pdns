@@ -1,5 +1,5 @@
 # our chosen base image
-FROM debian:11-slim AS builder
+FROM debian:trixie-slim AS builder
 
 ENV NO_LUA_JIT="s390x arm64"
 
@@ -33,10 +33,10 @@ ADD configure.ac Makefile.am /source/
 COPY builder/helpers/set-configure-ac-version.sh /usr/local/bin
 
 ARG MAKEFLAGS=
-ENV MAKEFLAGS ${MAKEFLAGS:--j2}
+ENV MAKEFLAGS=${MAKEFLAGS:--j2}
 
 ARG DOCKER_FAKE_RELEASE=NO
-ENV DOCKER_FAKE_RELEASE ${DOCKER_FAKE_RELEASE}
+ENV DOCKER_FAKE_RELEASE=${DOCKER_FAKE_RELEASE}
 
 RUN if [ "${DOCKER_FAKE_RELEASE}" = "YES" ]; then \
       BUILDER_VERSION="$(IS_RELEASE=YES BUILDER_MODULES=authoritative ./builder-support/gen-version | sed 's/\([0-9]\+\.[0-9]\+\.[0-9]\+\(\(alpha|beta|rc\)\d\+\)\)?.*/\1/')" set-configure-ac-version.sh;\
@@ -52,6 +52,7 @@ RUN mkdir /build && \
       --sysconfdir=/etc/powerdns \
       --enable-option-checking=fatal \
       --with-dynmodules='bind geoip gmysql godbc gpgsql gsqlite3 ldap lmdb lua2 pipe remote tinydns' \
+      --with-modules='' \
       --enable-tools \
       --enable-ixfrdist \
       --with-unixodbc-lib=/usr/lib/$(dpkg-architecture -q DEB_BUILD_GNU_TYPE) && \
@@ -67,14 +68,14 @@ RUN cd /tmp && mkdir /build/tmp/ && mkdir debian && \
     dpkg-deb -I equivs-dummy_1.0_all.deb && cp equivs-dummy_1.0_all.deb /build/tmp/
 
 # Runtime
-FROM debian:11-slim
+FROM debian:trixie-slim
 
 # Reusable layer for base update - Should be cached from builder
 RUN apt-get update && apt-get -y dist-upgrade && apt-get clean
 
 # Ensure python3 and jinja2 is present (for startup script), and sqlite3 (for db schema), and tini (for signal management),
 #   and vim (for pdnsutil edit-zone) , and supervisor (for special use cases requiring advanced process management)
-RUN apt-get install -y python3 python3-jinja2 sqlite3 tini libcap2-bin vim-tiny supervisor && apt-get clean
+RUN apt-get install -y python3 python3-jinja2 sqlite3 tini libcap2-bin vim-tiny supervisor adduser && apt-get clean
 
 # Output from builder
 COPY --from=builder /build /

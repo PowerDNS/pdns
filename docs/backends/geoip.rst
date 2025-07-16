@@ -2,19 +2,26 @@ GeoIP backend
 =============
 
 * Native: Yes
-* Master: No
-* Slave: No
-* Superslave: No
+* Primary: No
+* Secondary: No
+* Producer: No
+* Consumer: No
+* Autosecondary: No
+* DNS Update: No
 * DNSSEC: Yes
 * Disabled data: No
 * Comments: No
+* Search: No
+* Views: No
+* API: Read-only
+* Multiple instances: Yes
 * Zone caching: Yes
 * Module name: geoip
 * Launch name: ``geoip``
 
 This backend (which is a.k.a. the YAML backend) allows visitors to be sent to a server closer to them, with
 no appreciable delay, as would otherwise be incurred with a protocol
-level redirect. Additionally, the Geo Backend can be used to provide
+level redirect. Additionally, the GeoIP backend can be used to provide
 service over several clusters, any of which can be taken out of use
 easily, for example for maintenance purposes. This backend can utilize
 EDNS Client Subnet extension for decision making, if provided in query
@@ -86,7 +93,7 @@ Specifies the full path of the zone configuration file to use. The file is re-op
 
 Specifies the full path of a directory that will contain DNSSEC keys.
 This option enables DNSSEC on the backend. Keys can be created/managed
-with ``pdnsutil``, and the backend stores these keys in files with key
+with :doc:`pdnsutil <../manpages/pdnsutil.1>`, and the backend stores these keys in files with key
 flags and active/disabled state encoded in the key filenames.
 
 Zonefile format

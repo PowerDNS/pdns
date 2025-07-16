@@ -1,20 +1,16 @@
 JSON11_LIBS = $(top_builddir)/ext/json11/libjson11.la
 PROBDS_LIBS = $(top_builddir)/ext/probds/libprobds.la
 ARC4RANDOM_LIBS = $(top_builddir)/ext/arc4random/libarc4random.la
-RUST_LIBS = $(top_builddir)/settings/rust/libsettings.a $(LIBDL)
+RUST_LIBS = $(top_builddir)/rec-rust-lib/rust/librecrust.a $(LIBDL)
 
 AM_CPPFLAGS = $(LUA_CFLAGS) $(YAHTTP_CFLAGS) $(BOOST_CPPFLAGS) $(LIBSODIUM_CFLAGS) $(NET_SNMP_CFLAGS) $(LIBCAP_CFLAGS) $(SANITIZER_FLAGS) -O3 -Wall -pthread -DSYSCONFDIR=\"${sysconfdir}\" $(SYSTEMD_CFLAGS)
-
-if LIBDECAF
-AM_CPPFLAGS += $(LIBDECAF_CFLAGS)
-endif
 
 AM_CPPFLAGS += \
 	-I$(top_srcdir)/ext/json11 \
 	-I$(top_srcdir)/ext/protozero/include \
-	-I$(top_srcdir)/settings \
-	-I$(top_builddir)/settings \
-	-I$(top_srcdir)/settings/rust/src \
+	-I$(top_srcdir)/rec-rust-lib \
+	-I$(top_builddir)/rec-rust-lib \
+	-I$(top_srcdir)/rec-rust-lib/rust/src \
 	$(YAHTTP_CFLAGS) \
 	$(LIBCRYPTO_INCLUDES) \
 	-DBOOST_CONTAINER_USE_STD_EXCEPTIONS
@@ -39,7 +35,12 @@ AM_LDFLAGS = \
 ACLOCAL_AMFLAGS = -I m4
 
 BUILT_SOURCES=htmlfiles.h \
-	dnslabeltext.cc
+	dnslabeltext.cc \
+	rec-metrics-gen.h \
+	rec-prometheus-gen.h \
+	rec-snmp-gen.h \
+	rec-oids-gen.h \
+	RECURSOR-MIB.txt
 
 CLEANFILES = htmlfiles.h \
 	recursor.yml-dist
@@ -48,8 +49,12 @@ htmlfiles.h: incfiles ${srcdir}/html/* ${srcdir}/html/js/*
 	$(AM_V_GEN)$(srcdir)/incfiles > $@.tmp
 	@mv $@.tmp $@
 
-# We explicitly build settings in two steps, as settings modifies files in the settings/rust subdir
-SUBDIRS=ext settings settings/rust
+# Use patterns to avoid having two instances of generate run simultaneously, a well-known hack for GNU make
+rec-metrics-gen%h rec-prometheus-gen%h rec-snmp-gen%h rec-oids-gen%h RECURSOR-MIB%txt: metrics.py metrics_table.py RECURSOR-MIB.in
+	$(PYTHON) metrics.py
+
+# We explicitly build rec-rust-lib in two steps, as it modifies files in the rec-rust-lib/rust subdir
+SUBDIRS=ext rec-rust-lib rec-rust-lib/rust
 
 if LUA
 AM_CPPFLAGS +=$(LUA_CFLAGS)
@@ -62,13 +67,11 @@ EXTRA_DIST = \
 	dnslabeltext.cc \
 	dnslabeltext.rl \
 	dnsmessage.proto \
-	effective_tld_names.dat \
 	epollmplexer.cc \
 	kqueuemplexer.cc \
 	lua_hpp.mk \
 	malloctrace.cc malloctrace.hh \
 	mkpubsuffixcc \
-	mtasker_fcontext.cc mtasker_ucontext.cc \
 	NOTICE \
 	opensslsigners.hh opensslsigners.cc \
 	portsmplexer.cc \
@@ -79,6 +82,13 @@ EXTRA_DIST = \
 	test_libcrypto \
 	pdns-recursor.service.in \
 	RECURSOR-MIB.txt \
+	metrics.py \
+	metrics_table.py \
+	RECURSOR-MIB.in \
+	rec-metrics-gen.h \
+	rec-prometheus-gen.h \
+	rec-snmp-gen.h \
+	rec-oids-gen.h \
 	builder-support/gen-version
 
 dist-hook:
@@ -129,6 +139,7 @@ pdns_recursor_SOURCES = \
 	dnsseckeeper.hh \
 	dnswriter.cc dnswriter.hh \
 	dolog.hh \
+	ednscookies.cc ednscookies.hh \
 	ednsextendederror.cc ednsextendederror.hh \
 	ednsoptions.cc ednsoptions.hh \
 	ednspadding.cc ednspadding.hh \
@@ -163,6 +174,8 @@ pdns_recursor_SOURCES = \
 	pdns_recursor.cc \
 	pdnsexception.hh \
 	pollmplexer.cc \
+	protozero-helpers.hh \
+	protozero-trace.cc protozero-trace.hh \
 	protozero.cc protozero.hh \
 	proxy-protocol.cc proxy-protocol.hh \
 	pubsuffix.hh pubsuffix.cc \
@@ -175,14 +188,18 @@ pdns_recursor_SOURCES = \
 	rec-eventtrace.cc rec-eventtrace.hh \
 	rec-lua-conf.hh rec-lua-conf.cc \
 	rec-main.hh rec-main.cc \
+	rec-nsspeeds.cc rec-nsspeeds.hh \
 	rec-protozero.cc rec-protozero.hh \
 	rec-responsestats.hh rec-responsestats.cc \
+	rec-rust-lib/cxxsupport.cc \
 	rec-snmp.hh rec-snmp.cc \
 	rec-system-resolve.hh rec-system-resolve.cc \
 	rec-taskqueue.cc rec-taskqueue.hh \
 	rec-tcounters.cc rec-tcounters.hh \
 	rec-tcp.cc \
 	rec-tcpout.cc rec-tcpout.hh \
+	rec-xfr.cc rec-xfr.hh \
+	rec-xfrtracker.cc \
 	rec-zonetocache.cc rec-zonetocache.hh \
 	rec_channel.cc rec_channel.hh rec_metrics.hh \
 	rec_channel_rec.cc \
@@ -198,7 +215,6 @@ pdns_recursor_SOURCES = \
 	rpzloader.cc rpzloader.hh \
 	secpoll-recursor.cc secpoll-recursor.hh \
 	secpoll.cc secpoll.hh \
-	settings/cxxsupport.cc \
 	sha.hh \
 	sholder.hh \
 	shuffle.cc shuffle.hh \
@@ -229,7 +245,7 @@ pdns_recursor_SOURCES = \
 	zoneparser-tng.cc zoneparser-tng.hh
 
 nodist_pdns_recursor_SOURCES = \
-	settings/cxxsettings-generated.cc
+	rec-rust-lib/cxxsettings-generated.cc
 
 if !HAVE_LUA_HPP
 BUILT_SOURCES += lua.hpp
@@ -239,7 +255,6 @@ endif
 CLEANFILES += lua.hpp
 
 pdns_recursor_LDADD = \
-	$(YAHTTP_LIBS) \
 	$(JSON11_LIBS) \
 	$(LIBCRYPTO_LIBS) \
 	$(BOOST_CONTEXT_LIBS) \
@@ -311,10 +326,14 @@ testrunner_SOURCES = \
 	ratelimitedlog.hh \
 	rcpgenerator.cc \
 	rec-eventtrace.cc rec-eventtrace.hh \
+	rec-nsspeeds.cc rec-nsspeeds.hh \
 	rec-responsestats.hh rec-responsestats.cc \
+	rec-rust-lib/cxxsupport.cc \
 	rec-system-resolve.hh rec-system-resolve.cc \
 	rec-taskqueue.cc rec-taskqueue.hh \
 	rec-tcounters.cc rec-tcounters.hh \
+	rec-web-stubs.hh \
+	rec-xfrtracker.cc \
 	rec-zonetocache.cc rec-zonetocache.hh \
 	recpacketcache.cc recpacketcache.hh \
 	recursor_cache.cc recursor_cache.hh \
@@ -323,8 +342,8 @@ testrunner_SOURCES = \
 	root-dnssec.hh \
 	rpzloader.cc rpzloader.hh \
 	secpoll.cc \
-	settings/cxxsupport.cc \
 	sholder.hh \
+	shuffle.cc shuffle.hh \
 	sillyrecords.cc \
 	sortlist.cc sortlist.hh \
 	sstuff.hh \
@@ -343,6 +362,7 @@ testrunner_SOURCES = \
 	test-dnsparser_hh.cc \
 	test-dnsrecordcontent.cc \
 	test-dnsrecords_cc.cc \
+	test-ednscookie_cc.cc \
 	test-ednsoptions_cc.cc \
 	test-filterpo_cc.cc \
 	test-histogram_hh.cc \
@@ -365,6 +385,8 @@ testrunner_SOURCES = \
 	test-rpzloader_cc.cc \
 	test-secpoll_cc.cc \
 	test-settings.cc \
+	test-sholder_hh.cc \
+	test-shuffle_cc.cc \
 	test-signers.cc \
 	test-syncres_cc.cc \
 	test-syncres_cc.hh \
@@ -385,11 +407,12 @@ testrunner_SOURCES = \
 	unix_utility.cc \
 	validate-recursor.cc validate-recursor.hh \
 	validate.cc validate.hh \
+	version.cc version.hh \
 	zonemd.cc zonemd.hh \
 	zoneparser-tng.cc zoneparser-tng.hh
 
 nodist_testrunner_SOURCES = \
-	settings/cxxsettings-generated.cc
+	rec-rust-lib/cxxsettings-generated.cc
 
 testrunner_LDFLAGS = \
 	$(AM_LDFLAGS) \
@@ -432,12 +455,6 @@ testrunner_LDADD += $(LIBSODIUM_LIBS)
 endif
 
 
-
-if LIBDECAF
-pdns_recursor_SOURCES += \
-	decafsigners.cc
-pdns_recursor_LDADD += $(LIBDECAF_LIBS)
-endif
 
 if MALLOC_TRACE
 pdns_recursor_SOURCES += \
@@ -528,34 +545,31 @@ rec_control_SOURCES = \
 	qtype.cc \
 	rcpgenerator.cc	rcpgenerator.hh \
 	rec-lua-conf.cc rec-lua-conf.hh \
+	rec-rust-lib/cxxsupport.cc \
+	rec-system-resolve.cc rec-system-resolve.hh \
+	rec-web-stubs.hh \
 	rec_channel.cc rec_channel.hh \
 	rec_control.cc \
-	settings/cxxsupport.cc \
 	sillyrecords.cc \
 	sortlist.cc sortlist.hh \
 	svc-records.cc svc-records.hh \
+	threadname.cc threadname.hh \
 	unix_utility.cc
 
 nodist_rec_control_SOURCES = \
-	settings/cxxsettings-generated.cc
+	rec-rust-lib/cxxsettings-generated.cc
 
 dnslabeltext.cc: dnslabeltext.rl
 	$(AM_V_GEN)$(RAGEL) $< -o dnslabeltext.cc
 
-curl_verbose = $(curl_verbose_$(V))
-curl_verbose_ = $(curl_verbose_$(AM_DEFAULT_VERBOSITY))
-curl_verbose_0 = @echo "  CURL    " $@;
-$(srcdir)/effective_tld_names.dat:
-	$(curl_verbose)if ! curl -s -S https://publicsuffix.org/list/public_suffix_list.dat > $@; then rm -f $@; exit 1; fi
-
-pubsuffix.cc: $(srcdir)/effective_tld_names.dat
-	$(srcdir)/mkpubsuffixcc $< $@
+pubsuffix.cc:
+	$(srcdir)/mkpubsuffixcc $@
 
 ## Config file
 sysconf_DATA = recursor.yml-dist
 
 recursor.yml-dist: pdns_recursor
-	dir=$$(mktemp -d) && touch "$$dir/recursor.yml" && ./pdns_recursor --config-dir="$$dir" --config=default 2> /dev/null > $@ && rm "$$dir/recursor.yml" && rmdir "$$dir"
+	./pdns_recursor --config=default 2> /dev/null > $@
 
 ## Manpages
 MANPAGES=pdns_recursor.1 \
@@ -571,7 +585,7 @@ endif # if !HAVE_MANPAGES
 
 .venv: docs/requirements.txt
 	$(PYTHON) -m venv .venv
-	.venv/bin/pip install -U pip setuptools setuptools-git wheel
+	.venv/bin/pip install -U pip setuptools
 	.venv/bin/pip install -r ${top_srcdir}/docs/requirements.txt
 
 html-docs: docs/** .venv
@@ -609,7 +623,7 @@ endif
 
 if HAVE_SYSTEMD
 pdns-recursor.service: pdns-recursor.service.in
-	$(AM_V_GEN)sed -e 's![@]sbindir[@]!$(sbindir)!' -e 's![@]service_user[@]!$(service_user)!' -e 's![@]service_group[@]!$(service_group)!' < $< > $@
+	$(AM_V_GEN)sed -e 's![@]bindir[@]!$(bindir)!' -e 's![@]sbindir[@]!$(sbindir)!' -e 's![@]service_user[@]!$(service_user)!' -e 's![@]service_group[@]!$(service_group)!' < $< > $@
 if !HAVE_SYSTEMD_WITH_RUNTIME_DIR_ENV
 if HAVE_SYSTEMD_PERCENT_T
 	$(AM_V_GEN)sed -e 's!/pdns_recursor!& --socket-dir=%t/pdns-recursor!' -i $@
@@ -685,7 +699,8 @@ pdns-recursor@.service: pdns-recursor.service
 	  -e 's!SyslogIdentifier=.*!&-%i!' \
 	  < $< > $@
 if HAVE_SYSTEMD_PERCENT_T
-	$(AM_V_GEN)sed -e 's!RuntimeDirectory=.*!&-%i!' -i $@
+	$(AM_V_GEN)sed -e 's!RuntimeDirectory=.*!&-%i!' \
+	  -e 's!--socket-dir=%t/pdns-recursor!--config-name=%i --socket-dir=%t/pdns-recursor-%i!' -i $@
 if !HAVE_SYSTEMD_WITH_RUNTIME_DIR_ENV
 	$(AM_V_GEN)sed -e 's!--socket-dir=[^ ]\+!&-%i !' -i $@
 endif

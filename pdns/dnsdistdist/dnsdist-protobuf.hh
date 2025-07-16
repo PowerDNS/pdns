@@ -21,11 +21,17 @@
  */
 #pragma once
 
-#include "dnsdist.hh"
 #include "dnsname.hh"
 
 #ifndef DISABLE_PROTOBUF
+#include <boost/multi_index_container.hpp>
+#include <boost/multi_index/hashed_index.hpp>
+#include <boost/multi_index/key_extractors.hpp>
+
 #include "protozero.hh"
+
+struct DNSQuestion;
+struct DNSResponse;
 
 class DNSDistProtoBufMessage
 {
@@ -146,9 +152,9 @@ class ProtoBufMetaKey
 
   using TypeContainer = boost::multi_index_container<
     KeyTypeDescription,
-    indexed_by<
-      hashed_unique<tag<NameTag>, member<KeyTypeDescription, const std::string, &KeyTypeDescription::d_name>>,
-      hashed_unique<tag<TypeTag>, member<KeyTypeDescription, const Type, &KeyTypeDescription::d_type>>>>;
+    boost::multi_index::indexed_by<
+      boost::multi_index::hashed_unique<boost::multi_index::tag<NameTag>, boost::multi_index::member<KeyTypeDescription, const std::string, &KeyTypeDescription::d_name>>,
+      boost::multi_index::hashed_unique<boost::multi_index::tag<TypeTag>, boost::multi_index::member<KeyTypeDescription, const Type, &KeyTypeDescription::d_type>>>>;
 
   static const TypeContainer s_types;
 

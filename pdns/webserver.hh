@@ -20,12 +20,19 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
-#include <map>
-#include <string>
-#include <list>
+
+#include "config.h"
+
+#ifdef RECURSOR
+// Network facing/routing part of webserver is implemented in rust. We stil use a few classes from
+// yahttp, but do not link to it.
+#define RUST_WS
+#endif
+
 #include <boost/utility.hpp>
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Woverloaded-virtual"
+#include <utility>
 #include <yahttp/yahttp.hpp>
 #pragma GCC diagnostic pop
 
@@ -33,12 +40,15 @@
 
 #include "credentials.hh"
 #include "namespaces.hh"
+#ifndef REST_WS
 #include "sstuff.hh"
+#endif
 #include "logging.hh"
 
 class HttpRequest : public YaHTTP::Request {
 public:
-  HttpRequest(const string& logprefix_="") : YaHTTP::Request(), logprefix(logprefix_) { };
+  HttpRequest(string logprefix_ = "") :
+    YaHTTP::Request(), logprefix(std::move(logprefix_)) {};
 
   string logprefix;
   bool accept_yaml{false};
@@ -157,6 +167,8 @@ public:
   }
 };
 
+#ifndef RUST_WS
+
 class Server
 {
 public:
@@ -167,7 +179,7 @@ public:
   }
   virtual ~Server() = default;
 
-  ComboAddress d_local;
+  SockaddrWrapper d_local;
 
   std::shared_ptr<Socket> accept() {
     return std::shared_ptr<Socket>(d_server_socket.accept());
@@ -289,7 +301,7 @@ protected:
   std::unique_ptr<CredentialsHolder> d_webserverPassword{nullptr};
 
   ssize_t d_maxbodysize; // in bytes
-  int d_connectiontimeout; // in seconds
+  int d_connectiontimeout{5}; // in seconds
 
   NetmaskGroup d_acl;
 
@@ -298,3 +310,5 @@ protected:
   // Describes the amount of logging the webserver does
   WebServer::LogLevel d_loglevel{WebServer::LogLevel::Detailed};
 };
+
+#endif // !RUST_WS

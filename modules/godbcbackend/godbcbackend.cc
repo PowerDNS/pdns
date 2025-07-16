@@ -75,6 +75,9 @@ public:
     declare(suffix, "any-query", "Any query", record_query + " disabled=0 and name=?");
     declare(suffix, "any-id-query", "Any with ID query", record_query + " disabled=0 and name=? and domain_id=?");
 
+    declare(suffix, "api-id-query", "API basic with ID query", record_query + " (disabled=0 or disabled=?) and type=? and name=? and domain_id=?");
+    declare(suffix, "api-any-id-query", "API any with ID query", record_query + " (disabled=0 or disabled=?) and name=? and domain_id=?");
+
     declare(suffix, "list-query", "AXFR query", "SELECT content,ttl,prio,type,domain_id,disabled,name,auth,CONVERT(varchar(255), ordername, 0) FROM records WHERE (disabled=0 OR disabled=?) and domain_id=? order by name, type");
     declare(suffix, "list-subzone-query", "Subzone listing", record_query + " disabled=0 and (name=? OR name like ?) and domain_id=?");
 
@@ -112,7 +115,7 @@ public:
     declare(suffix, "update-account-query", "", "update domains set account=? where name=?");
     declare(suffix, "update-serial-query", "", "update domains set notified_serial=? where id=?");
     declare(suffix, "update-lastcheck-query", "", "update domains set last_check=? where id=?");
-    declare(suffix, "info-all-primary-query", "", "select domains.id, domains.name, domains.type, domains.notified_serial, domains.options, domains.catalog, records.content from records join domains on records.domain_id=domains.id and records.name=domains.name where records.type='SOA' and records.disabled=0 and domains.type in ('MASTER', 'PRODUCER')");
+    declare(suffix, "info-all-primary-query", "", "select domains.id, domains.name, domains.type, domains.notified_serial, domains.options, domains.catalog, records.content from records join domains on records.domain_id=domains.id and records.name=domains.name where records.type='SOA' and records.disabled=0 and domains.type in ('MASTER', 'PRODUCER') order by domains.id");
     declare(suffix, "info-producer-members-query", "", "select domains.id, domains.name, domains.options from records join domains on records.domain_id=domains.id and records.name=domains.name where domains.type='MASTER' and domains.catalog=? and records.type='SOA' and records.disabled=0");
     declare(suffix, "info-consumer-members-query", "", "select id, name, options, master from domains where type='SLAVE' and catalog=?");
     declare(suffix, "delete-domain-query", "", "delete from domains where name=?");

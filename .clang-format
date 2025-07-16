@@ -1,14 +1,14 @@
 ---
-Language:        Cpp
-BasedOnStyle:  WebKit
+Language: Cpp
+BasedOnStyle: WebKit
 AccessModifierOffset: -2
 ConstructorInitializerIndentWidth: 2
 ContinuationIndentWidth: 2
-IndentWidth:     2
+IndentWidth: 2
 ObjCBlockIndentWidth: 2
 AlignAfterOpenBracket: Align
 
-SortIncludes:    false
+SortIncludes: false
 
 SpaceBeforeCpp11BracedList: false
 Cpp11BracedListStyle: true
@@ -31,3 +31,9 @@ AllowAllParametersOfDeclarationOnNextLine: true
 BreakConstructorInitializers: AfterColon
 ConstructorInitializerAllOnOneLineOrOnePerLine: true
 SpaceInEmptyBlock: false
+
+# I'd rather have the default (Minimum 1) here, but that causes quite some churn
+SpacesInLineCommentPrefix:
+  Minimum: 0
+  Maximum: -1
+

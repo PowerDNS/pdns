@@ -23,6 +23,7 @@
 
 #include <map>
 #include <memory>
+#include <string>
 
 #include "config.h"
 
@@ -92,12 +93,12 @@ void fillRandom(PacketBuffer& buffer, size_t size);
 std::optional<PacketBuffer> getCID();
 PacketBuffer mintToken(const PacketBuffer& dcid, const ComboAddress& peer);
 std::optional<PacketBuffer> validateToken(const PacketBuffer& token, const ComboAddress& peer);
-void handleStatelessRetry(Socket& sock, const PacketBuffer& clientConnID, const PacketBuffer& serverConnID, const ComboAddress& peer, const ComboAddress& localAddr, uint32_t version, PacketBuffer& buffer);
-void handleVersionNegociation(Socket& sock, const PacketBuffer& clientConnID, const PacketBuffer& serverConnID, const ComboAddress& peer, const ComboAddress& localAddr, PacketBuffer& buffer);
-void flushEgress(Socket& sock, QuicheConnection& conn, const ComboAddress& peer, const ComboAddress& localAddr, PacketBuffer& buffer);
+void handleStatelessRetry(Socket& sock, const PacketBuffer& clientConnID, const PacketBuffer& serverConnID, const ComboAddress& peer, const ComboAddress& localAddr, uint32_t version, PacketBuffer& buffer, bool socketBoundToAny);
+void handleVersionNegotiation(Socket& sock, const PacketBuffer& clientConnID, const PacketBuffer& serverConnID, const ComboAddress& peer, const ComboAddress& localAddr, PacketBuffer& buffer, bool socketBoundToAny);
+void flushEgress(Socket& sock, QuicheConnection& conn, const ComboAddress& peer, const ComboAddress& localAddr, PacketBuffer& buffer, bool socketBoundToAny);
 void configureQuiche(QuicheConfig& config, const QuicheParams& params, bool isHTTP);
 bool recvAsync(Socket& socket, PacketBuffer& buffer, ComboAddress& clientAddr, ComboAddress& localAddr);
-
+std::string getSNIFromQuicheConnection(const QuicheConnection& conn);
 };
 
 #endif

@@ -1,5 +1,5 @@
 PREFIX=10.0.3
 # PDNSRECURSOR=    # set to override default location
-# PDNS=            # set to override default location   
+# PDNS=            # set to override default location
 AUTHRUN="exec authbind ${PDNS} --config-dir=. > logfile 2>&1"
-RECRUN="exec authbind ${PDNSRECURSOR} --config-dir=. --daemon=no --trace=yes --dont-query= --local-address=$PREFIX.9 --hint-file=hintfile --packetcache-ttl=0 --max-cache-ttl=15 --threads=1 > logfile 2>&1"
+RECRUN="exec authbind ${PDNSRECURSOR} --config-dir=. --daemon=no --trace=yes --dont-query= --local-address=$PREFIX.9 --hint-file=hintfile --packetcache-ttl=0 --max-cache-ttl=15 --threads=1 --enable-old-settings > logfile 2>&1"

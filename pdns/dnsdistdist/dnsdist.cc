@@ -23,6 +23,7 @@
 #include "config.h"
 
 #include <cstdint>
+#include <filesystem>
 #include <fstream>
 #include <getopt.h>
 #include <grp.h>
@@ -33,16 +34,6 @@
 #include <sys/resource.h>
 #include <unistd.h>
 
-#ifdef HAVE_LIBEDIT
-#if defined(__OpenBSD__) || defined(__NetBSD__)
-// If this is not undeffed, __attribute__ wil be redefined by /usr/include/readline/rlstdc.h
-#undef __STRICT_ANSI__
-#include <readline/readline.h>
-#else
-#include <editline/readline.h>
-#endif
-#endif /* HAVE_LIBEDIT */
-
 #include "dnsdist-systemd.hh"
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
@@ -52,22 +43,31 @@
 #include "dnsdist-async.hh"
 #include "dnsdist-cache.hh"
 #include "dnsdist-carbon.hh"
+#include "dnsdist-configuration.hh"
+#include "dnsdist-configuration-yaml.hh"
 #include "dnsdist-console.hh"
+#include "dnsdist-console-completion.hh"
 #include "dnsdist-crypto.hh"
 #include "dnsdist-discovery.hh"
-#include "dnsdist-dnsparser.hh"
 #include "dnsdist-dynblocks.hh"
 #include "dnsdist-ecs.hh"
 #include "dnsdist-edns.hh"
+#include "dnsdist-frontend.hh"
 #include "dnsdist-healthchecks.hh"
 #include "dnsdist-lua.hh"
 #include "dnsdist-lua-hooks.hh"
 #include "dnsdist-nghttp2.hh"
+#include "dnsdist-nghttp2-in.hh"
 #include "dnsdist-proxy-protocol.hh"
 #include "dnsdist-random.hh"
 #include "dnsdist-rings.hh"
+#include "dnsdist-rules.hh"
 #include "dnsdist-secpoll.hh"
+#include "dnsdist-self-answers.hh"
+#include "dnsdist-snmp.hh"
 #include "dnsdist-tcp.hh"
+#include "dnsdist-tcp-downstream.hh"
+#include "dnsdist-tcp-upstream.hh"
 #include "dnsdist-web.hh"
 #include "dnsdist-xsk.hh"
 
@@ -78,7 +78,6 @@
 #include "doh.hh"
 #include "dolog.hh"
 #include "dnsname.hh"
-#include "dnsparser.hh"
 #include "ednsoptions.hh"
 #include "gettime.hh"
 #include "lock.hh"
@@ -100,28 +99,11 @@
    on the Lua side we can't do that. */
 
 using std::thread;
-bool g_verbose;
 
-uint16_t g_maxOutstanding{std::numeric_limits<uint16_t>::max()};
-uint32_t g_staleCacheEntriesTTL{0};
-bool g_allowEmptyResponse{false};
-
-GlobalStateHolder<NetmaskGroup> g_ACL;
 string g_outputBuffer;
 
-std::vector<std::shared_ptr<TLSFrontend>> g_tlslocals;
-std::vector<std::shared_ptr<DOHFrontend>> g_dohlocals;
-std::vector<std::shared_ptr<DOQFrontend>> g_doqlocals;
-std::vector<std::shared_ptr<DOH3Frontend>> g_doh3locals;
-std::vector<std::shared_ptr<DNSCryptContext>> g_dnsCryptLocals;
-
 shared_ptr<BPFFilter> g_defaultBPFFilter{nullptr};
-std::vector<std::shared_ptr<DynBPFFilter>> g_dynBPFFilters;
 
-std::vector<std::unique_ptr<ClientState>> g_frontends;
-GlobalStateHolder<pools_t> g_pools;
-size_t g_udpVectorSize{1};
-std::vector<uint32_t> g_TCPFastOpenKey;
 /* UDP: the grand design. Per socket we listen on for incoming queries there is one thread.
    Then we have a bunch of connected sockets for talking to downstream servers.
    We send directly to those sockets.
@@ -138,18 +120,6 @@ std::vector<uint32_t> g_TCPFastOpenKey;
  */
 
 Rings g_rings;
-QueryCount g_qcount;
-
-GlobalStateHolder<servers_t> g_dstates;
-
-bool g_servFailOnNoPolicy{false};
-bool g_truncateTC{false};
-bool g_fixupCase{false};
-bool g_dropEmptyQueries{false};
-uint32_t g_socketUDPSendBuffer{0};
-uint32_t g_socketUDPRecvBuffer{0};
-
-std::set<std::string> g_capabilitiesToRetain;
 
 // we are not willing to receive a bigger UDP response than that, no matter what
 static constexpr size_t s_maxUDPResponsePacketSize{4096U};
@@ -177,14 +147,14 @@ static void sendfromto(int sock, const PacketBuffer& buffer, const ComboAddress&
   }
 }
 
-static void truncateTC(PacketBuffer& packet, size_t maximumSize, unsigned int qnameWireLength)
+static void truncateTC(PacketBuffer& packet, size_t maximumSize, unsigned int qnameWireLength, bool addEDNSToSelfGeneratedResponses)
 {
   try {
     bool hadEDNS = false;
     uint16_t payloadSize = 0;
     uint16_t zValue = 0;
 
-    if (g_addEDNSToSelfGeneratedResponses) {
+    if (addEDNSToSelfGeneratedResponses) {
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
       hadEDNS = getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(packet.data()), packet.size(), &payloadSize, &zValue);
     }
@@ -222,42 +192,10 @@ struct DelayedPacket
 static std::unique_ptr<DelayPipe<DelayedPacket>> g_delay{nullptr};
 #endif /* DISABLE_DELAY_PIPE */
 
-std::string DNSQuestion::getTrailingData() const
-{
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-  const auto* message = reinterpret_cast<const char*>(this->getData().data());
-  const uint16_t messageLen = getDNSPacketLength(message, this->getData().size());
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-  return {message + messageLen, this->getData().size() - messageLen};
-}
-
-bool DNSQuestion::setTrailingData(const std::string& tail)
-{
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-  const char* message = reinterpret_cast<const char*>(this->data.data());
-  const uint16_t messageLen = getDNSPacketLength(message, this->data.size());
-  this->data.resize(messageLen);
-  if (!tail.empty()) {
-    if (!hasRoomFor(tail.size())) {
-      return false;
-    }
-    this->data.insert(this->data.end(), tail.begin(), tail.end());
-  }
-  return true;
-}
-
-bool DNSQuestion::editHeader(const std::function<bool(dnsheader&)>& editFunction)
-{
-  if (data.size() < sizeof(dnsheader)) {
-    throw std::runtime_error("Trying to access the dnsheader of a too small (" + std::to_string(data.size()) + ") DNSQuestion buffer");
-  }
-  return dnsdist::PacketMangling::editDNSHeaderFromPacket(data, editFunction);
-}
-
 static void doLatencyStats(dnsdist::Protocol protocol, double udiff)
 {
-  constexpr auto doAvg = [](double& var, double n, double weight) {
-    var = (weight - 1) * var / weight + n / weight;
+  constexpr auto doAvg = [](pdns::stat_double_t& var, double n, double weight) {
+    var.store((weight - 1) * var.load() / weight + n / weight);
   };
 
   if (protocol == dnsdist::Protocol::DoUDP || protocol == dnsdist::Protocol::DNSCryptUDP) {
@@ -320,7 +258,7 @@ static void doLatencyStats(dnsdist::Protocol protocol, double udiff)
   }
 }
 
-bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const std::shared_ptr<DownstreamState>& remote)
+bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, const uint16_t qtype, const uint16_t qclass, const std::shared_ptr<DownstreamState>& remote, bool allowEmptyResponse)
 {
   if (response.size() < sizeof(dnsheader)) {
     return false;
@@ -336,7 +274,7 @@ bool responseContentMatches(const PacketBuffer& response, const DNSName& qname, 
   }
 
   if (dnsHeader->qdcount == 0) {
-    if ((dnsHeader->rcode != RCode::NoError && dnsHeader->rcode != RCode::NXDomain) || g_allowEmptyResponse) {
+    if ((dnsHeader->rcode != RCode::NoError && dnsHeader->rcode != RCode::NXDomain) || allowEmptyResponse) {
       return true;
     }
 
@@ -389,6 +327,9 @@ static bool fixUpQueryTurnedResponse(DNSQuestion& dnsQuestion, const uint16_t or
     return true;
   });
 
+  if (dnsQuestion.d_selfGeneratedHandledEDNS) {
+    return true;
+  }
   return addEDNSToQueryTurnedResponse(dnsQuestion);
 }
 
@@ -407,7 +348,7 @@ static bool fixUpResponse(PacketBuffer& response, const DNSName& qname, uint16_t
     return true;
   }
 
-  if (g_fixupCase) {
+  if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_fixupCase) {
     const auto& realname = qname.getStorage();
     if (response.size() >= (sizeof(dnsheader) + realname.length())) {
       memcpy(&response.at(sizeof(dnsheader)), realname.c_str(), realname.length());
@@ -519,6 +460,9 @@ bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>&
         return true;
         break;
       case DNSResponseAction::Action::ServFail:
+        if (dnsResponse.getData().size() < sizeof(dnsheader)) {
+          return false;
+        }
         dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsResponse.getMutableData(), [](dnsheader& header) {
           header.rcode = RCode::ServFail;
           return true;
@@ -526,13 +470,16 @@ bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>&
         return true;
         break;
       case DNSResponseAction::Action::Truncate:
+        if (dnsResponse.getData().size() < sizeof(dnsheader)) {
+          return false;
+        }
         if (!dnsResponse.overTCP()) {
           dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsResponse.getMutableData(), [](dnsheader& header) {
             header.tc = true;
             header.qr = true;
             return true;
           });
-          truncateTC(dnsResponse.getMutableData(), dnsResponse.getMaximumSize(), dnsResponse.ids.qname.wirelength());
+          truncateTC(dnsResponse.getMutableData(), dnsResponse.getMaximumSize(), dnsResponse.ids.qname.wirelength(), dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses);
           ++dnsdist::metrics::g_stats.ruleTruncated;
           return true;
         }
@@ -550,7 +497,7 @@ bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>&
   return true;
 }
 
-bool processResponseAfterRules(PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& cacheInsertedRespRuleActions, DNSResponse& dnsResponse, bool muted)
+bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse, [[maybe_unused]] bool muted)
 {
   bool zeroScope = false;
   if (!fixUpResponse(response, dnsResponse.ids.qname, dnsResponse.ids.origFlags, dnsResponse.ids.ednsAdded, dnsResponse.ids.ecsAdded, dnsResponse.ids.useZeroScope ? &zeroScope : nullptr)) {
@@ -570,25 +517,26 @@ bool processResponseAfterRules(PacketBuffer& response, const std::vector<dnsdist
       zeroScope = false;
     }
     uint32_t cacheKey = dnsResponse.ids.cacheKey;
-    if (dnsResponse.ids.protocol == dnsdist::Protocol::DoH && dnsResponse.ids.forwardedOverUDP) {
-      cacheKey = dnsResponse.ids.cacheKeyUDP;
+    if (dnsResponse.ids.protocol == dnsdist::Protocol::DoH && !dnsResponse.ids.forwardedOverUDP) {
+      cacheKey = dnsResponse.ids.cacheKeyTCP;
+      // disable zeroScope in that case, as we only have the "no-ECS" cache key for UDP
+      zeroScope = false;
     }
-    else if (zeroScope) {
+    if (zeroScope) {
       // if zeroScope, pass the pre-ECS hash-key and do not pass the subnet to the cache
       cacheKey = dnsResponse.ids.cacheKeyNoECS;
     }
-
     dnsResponse.ids.packetCache->insert(cacheKey, zeroScope ? boost::none : dnsResponse.ids.subnet, dnsResponse.ids.cacheFlags, dnsResponse.ids.dnssecOK, dnsResponse.ids.qname, dnsResponse.ids.qtype, dnsResponse.ids.qclass, response, dnsResponse.ids.forwardedOverUDP, dnsResponse.getHeader()->rcode, dnsResponse.ids.tempFailureTTL);
 
+    const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
+    const auto& cacheInsertedRespRuleActions = dnsdist::rules::getResponseRuleChain(chains, dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules);
     if (!applyRulesToResponse(cacheInsertedRespRuleActions, dnsResponse)) {
       return false;
     }
   }
 
   if (dnsResponse.ids.ttlCap > 0) {
-    std::string result;
-    LimitTTLResponseAction lrac(0, dnsResponse.ids.ttlCap, {});
-    lrac(&dnsResponse, &result);
+    dnsdist::PacketMangling::restrictDNSPacketTTLs(dnsResponse.getMutableData(), 0, dnsResponse.ids.ttlCap);
   }
 
   if (dnsResponse.ids.d_extendedError) {
@@ -606,8 +554,11 @@ bool processResponseAfterRules(PacketBuffer& response, const std::vector<dnsdist
   return true;
 }
 
-bool processResponse(PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& respRuleActions, const std::vector<dnsdist::rules::ResponseRuleAction>& cacheInsertedRespRuleActions, DNSResponse& dnsResponse, bool muted)
+bool processResponse(PacketBuffer& response, DNSResponse& dnsResponse, bool muted)
 {
+  const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
+  const auto& respRuleActions = dnsdist::rules::getResponseRuleChain(chains, dnsdist::rules::ResponseRuleChain::ResponseRules);
+
   if (!applyRulesToResponse(respRuleActions, dnsResponse)) {
     return false;
   }
@@ -616,18 +567,19 @@ bool processResponse(PacketBuffer& response, const std::vector<dnsdist::rules::R
     return true;
   }
 
-  return processResponseAfterRules(response, cacheInsertedRespRuleActions, dnsResponse, muted);
+  return processResponseAfterRules(response, dnsResponse, muted);
 }
 
 static size_t getInitialUDPPacketBufferSize(bool expectProxyProtocol)
 {
-  static_assert(s_udpIncomingBufferSize <= s_initialUDPPacketBufferSize, "The incoming buffer size should not be larger than s_initialUDPPacketBufferSize");
+  static_assert(dnsdist::configuration::s_udpIncomingBufferSize <= s_initialUDPPacketBufferSize, "The incoming buffer size should not be larger than s_initialUDPPacketBufferSize");
 
-  if (!expectProxyProtocol || g_proxyProtocolACL.empty()) {
+  const auto& runtimeConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
+  if (!expectProxyProtocol || runtimeConfig.d_proxyProtocolACL.empty()) {
     return s_initialUDPPacketBufferSize;
   }
 
-  return s_initialUDPPacketBufferSize + g_proxyProtocolMaximumSize;
+  return s_initialUDPPacketBufferSize + runtimeConfig.d_proxyProtocolMaximumSize;
 }
 
 static size_t getMaximumIncomingPacketSize(const ClientState& clientState)
@@ -636,14 +588,15 @@ static size_t getMaximumIncomingPacketSize(const ClientState& clientState)
     return getInitialUDPPacketBufferSize(clientState.d_enableProxyProtocol);
   }
 
-  if (!clientState.d_enableProxyProtocol || g_proxyProtocolACL.empty()) {
-    return s_udpIncomingBufferSize;
+  const auto& runtimeConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
+  if (!clientState.d_enableProxyProtocol || runtimeConfig.d_proxyProtocolACL.empty()) {
+    return dnsdist::configuration::s_udpIncomingBufferSize;
   }
 
-  return s_udpIncomingBufferSize + g_proxyProtocolMaximumSize;
+  return dnsdist::configuration::s_udpIncomingBufferSize + runtimeConfig.d_proxyProtocolMaximumSize;
 }
 
-bool sendUDPResponse(int origFD, const PacketBuffer& response, const int delayMsec, const ComboAddress& origDest, const ComboAddress& origRemote)
+bool sendUDPResponse(int origFD, const PacketBuffer& response, [[maybe_unused]] const int delayMsec, const ComboAddress& origDest, const ComboAddress& origRemote)
 {
 #ifndef DISABLE_DELAY_PIPE
   if (delayMsec > 0 && g_delay != nullptr) {
@@ -688,21 +641,26 @@ void handleResponseSent(const DNSName& qname, const QType& qtype, double udiff, 
   doLatencyStats(incomingProtocol, udiff);
 }
 
-static void handleResponseForUDPClient(InternalQueryState& ids, PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& respRuleActions, const std::vector<dnsdist::rules::ResponseRuleAction>& cacheInsertedRespRuleActions, const std::shared_ptr<DownstreamState>& backend, bool isAsync, bool selfGenerated)
+static void handleResponseTC4UDPClient(uint16_t udpPayloadSize, PacketBuffer& response, DNSResponse& dnsResponse)
 {
-  DNSResponse dnsResponse(ids, response, backend);
-
-  if (ids.udpPayloadSize > 0 && response.size() > ids.udpPayloadSize) {
-    vinfolog("Got a response of size %d while the initial UDP payload size was %d, truncating", response.size(), ids.udpPayloadSize);
-    truncateTC(dnsResponse.getMutableData(), dnsResponse.getMaximumSize(), dnsResponse.ids.qname.wirelength());
+  if (udpPayloadSize > 0 && response.size() > udpPayloadSize) {
+    vinfolog("Got a response of size %d while the initial UDP payload size was %d, truncating", response.size(), udpPayloadSize);
+    truncateTC(dnsResponse.getMutableData(), dnsResponse.getMaximumSize(), dnsResponse.ids.qname.wirelength(), dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses);
     dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsResponse.getMutableData(), [](dnsheader& header) {
       header.tc = true;
       return true;
     });
   }
-  else if (dnsResponse.getHeader()->tc && g_truncateTC) {
-    truncateTC(response, dnsResponse.getMaximumSize(), dnsResponse.ids.qname.wirelength());
+  else if (dnsResponse.getHeader()->tc && dnsdist::configuration::getCurrentRuntimeConfiguration().d_truncateTC) {
+    truncateTC(response, dnsResponse.getMaximumSize(), dnsResponse.ids.qname.wirelength(), dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses);
   }
+}
+
+static void handleResponseForUDPClient(InternalQueryState& ids, PacketBuffer& response, const std::shared_ptr<DownstreamState>& backend, bool isAsync, bool selfGenerated)
+{
+  DNSResponse dnsResponse(ids, response, backend);
+
+  handleResponseTC4UDPClient(ids.udpPayloadSize, response, dnsResponse);
 
   /* when the answer is encrypted in place, we need to get a copy
      of the original header before encryption to fill the ring buffer */
@@ -710,7 +668,7 @@ static void handleResponseForUDPClient(InternalQueryState& ids, PacketBuffer& re
   memcpy(&cleartextDH, dnsResponse.getHeader().get(), sizeof(cleartextDH));
 
   if (!isAsync) {
-    if (!processResponse(response, respRuleActions, cacheInsertedRespRuleActions, dnsResponse, ids.cs != nullptr && ids.cs->muted)) {
+    if (!processResponse(response, dnsResponse, ids.cs != nullptr && ids.cs->muted)) {
       return;
     }
 
@@ -751,13 +709,13 @@ static void handleResponseForUDPClient(InternalQueryState& ids, PacketBuffer& re
   }
 }
 
-bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer& response, const std::vector<dnsdist::rules::ResponseRuleAction>& localRespRuleActions, const std::vector<dnsdist::rules::ResponseRuleAction>& cacheInsertedRespRuleActions, InternalQueryState&& ids)
+bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer& response, InternalQueryState&& ids)
 {
 
   const dnsheader_aligned dnsHeader(response.data());
   auto queryId = dnsHeader->id;
 
-  if (!responseContentMatches(response, ids.qname, ids.qtype, ids.qclass, dss)) {
+  if (!responseContentMatches(response, ids.qname, ids.qtype, ids.qclass, dss, dnsdist::configuration::getCurrentRuntimeConfiguration().d_allowEmptyResponse)) {
     dss->restoreState(queryId, std::move(ids));
     return false;
   }
@@ -783,7 +741,7 @@ bool processResponderPacket(std::shared_ptr<DownstreamState>& dss, PacketBuffer&
     return false;
   }
 
-  handleResponseForUDPClient(ids, response, localRespRuleActions, cacheInsertedRespRuleActions, dss, false, false);
+  handleResponseForUDPClient(ids, response, dss, false, false);
   return true;
 }
 
@@ -792,8 +750,6 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
 {
   try {
     setThreadName("dnsdist/respond");
-    auto localRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::ResponseRules).getLocal();
-    auto localCacheInsertedRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules).getLocal();
     const size_t initialBufferSize = getInitialUDPPacketBufferSize(false);
     /* allocate one more byte so we can detect truncation */
     PacketBuffer response(initialBufferSize + 1);
@@ -852,9 +808,9 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
             continue;
           }
 
-          if (processResponderPacket(dss, response, *localRespRuleActions, *localCacheInsertedRespRuleActions, std::move(*ids)) && ids->isXSK() && ids->cs->xskInfo) {
+          if (processResponderPacket(dss, response, std::move(*ids)) && ids->isXSK() && ids->cs->xskInfoResponder) {
 #ifdef HAVE_XSK
-            auto& xskInfo = ids->cs->xskInfo;
+            auto& xskInfo = ids->cs->xskInfoResponder;
             auto xskPacket = xskInfo->getEmptyFrame();
             if (!xskPacket) {
               continue;
@@ -888,36 +844,35 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
   }
 }
 
-LockGuarded<LuaContext> g_lua{LuaContext()};
-ComboAddress g_serverControl{"127.0.0.1:5199"};
+RecursiveLockGuarded<LuaContext> g_lua{LuaContext()};
 
 static void spoofResponseFromString(DNSQuestion& dnsQuestion, const string& spoofContent, bool raw)
 {
   string result;
 
   if (raw) {
+    dnsdist::ResponseConfig config;
     std::vector<std::string> raws;
     stringtok(raws, spoofContent, ",");
-    SpoofAction tempSpoofAction(raws, std::nullopt);
-    tempSpoofAction(&dnsQuestion, &result);
+    dnsdist::self_answers::generateAnswerFromRDataEntries(dnsQuestion, raws, std::nullopt, config);
   }
   else {
     std::vector<std::string> addrs;
     stringtok(addrs, spoofContent, " ,");
 
     if (addrs.size() == 1) {
+      dnsdist::ResponseConfig config;
       try {
         ComboAddress spoofAddr(spoofContent);
-        SpoofAction tempSpoofAction({spoofAddr});
-        tempSpoofAction(&dnsQuestion, &result);
+        dnsdist::self_answers::generateAnswerFromIPAddresses(dnsQuestion, {spoofAddr}, config);
       }
       catch (const PDNSException& e) {
         DNSName cname(spoofContent);
-        SpoofAction tempSpoofAction(cname); // CNAME then
-        tempSpoofAction(&dnsQuestion, &result);
+        dnsdist::self_answers::generateAnswerFromCNAME(dnsQuestion, cname, config);
       }
     }
     else {
+      dnsdist::ResponseConfig config;
       std::vector<ComboAddress> cas;
       for (const auto& addr : addrs) {
         try {
@@ -926,18 +881,15 @@ static void spoofResponseFromString(DNSQuestion& dnsQuestion, const string& spoo
         catch (...) {
         }
       }
-      SpoofAction tempSpoofAction(cas);
-      tempSpoofAction(&dnsQuestion, &result);
+      dnsdist::self_answers::generateAnswerFromIPAddresses(dnsQuestion, cas, config);
     }
   }
 }
 
 static void spoofPacketFromString(DNSQuestion& dnsQuestion, const string& spoofContent)
 {
-  string result;
-
-  SpoofAction tempSpoofAction(spoofContent.c_str(), spoofContent.size());
-  tempSpoofAction(&dnsQuestion, &result);
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+  dnsdist::self_answers::generateAnswerFromRawPacket(dnsQuestion, PacketBuffer(spoofContent.data(), spoofContent.data() + spoofContent.size()));
 }
 
 bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dnsQuestion, std::string& ruleresult, bool& drop)
@@ -947,11 +899,7 @@ bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dnsQuestio
   }
 
   auto setRCode = [&dnsQuestion](uint8_t rcode) {
-    dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [rcode](dnsheader& header) {
-      header.rcode = rcode;
-      header.qr = true;
-      return true;
-    });
+    dnsdist::self_answers::removeRecordsAndSetRCode(dnsQuestion, rcode);
   };
 
   switch (action) {
@@ -1054,40 +1002,40 @@ static bool applyRulesChainToQuery(const std::vector<dnsdist::rules::RuleAction>
   return !drop;
 }
 
-static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dnsQuestion, const timespec& now)
+static bool applyRulesToQuery(DNSQuestion& dnsQuestion, const timespec& now)
 {
   if (g_rings.shouldRecordQueries()) {
     g_rings.insertQuery(now, dnsQuestion.ids.origRemote, dnsQuestion.ids.qname, dnsQuestion.ids.qtype, dnsQuestion.getData().size(), *dnsQuestion.getHeader(), dnsQuestion.getProtocol());
   }
 
-  if (g_qcount.enabled) {
-    string qname = dnsQuestion.ids.qname.toLogString();
-    bool countQuery{true};
-    if (g_qcount.filter) {
-      auto lock = g_lua.lock();
-      std::tie(countQuery, qname) = g_qcount.filter(&dnsQuestion);
-    }
-
-    if (countQuery) {
-      auto records = g_qcount.records.write_lock();
-      if (records->count(qname) == 0) {
-        (*records)[qname] = 0;
+  {
+    const auto& runtimeConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
+    if (runtimeConfig.d_queryCountConfig.d_enabled) {
+      string qname = dnsQuestion.ids.qname.toLogString();
+      bool countQuery{true};
+      if (runtimeConfig.d_queryCountConfig.d_filter) {
+        auto lock = g_lua.lock();
+        std::tie(countQuery, qname) = runtimeConfig.d_queryCountConfig.d_filter(&dnsQuestion);
       }
-      (*records)[qname]++;
+
+      if (countQuery) {
+        auto records = dnsdist::QueryCount::g_queryCountRecords.write_lock();
+        if (records->count(qname) == 0) {
+          (*records)[qname] = 0;
+        }
+        (*records)[qname]++;
+      }
     }
   }
 
 #ifndef DISABLE_DYNBLOCKS
+  const auto defaultDynBlockAction = dnsdist::configuration::getCurrentRuntimeConfiguration().d_dynBlockAction;
   auto setRCode = [&dnsQuestion](uint8_t rcode) {
-    dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [rcode](dnsheader& header) {
-      header.rcode = rcode;
-      header.qr = true;
-      return true;
-    });
+    dnsdist::self_answers::removeRecordsAndSetRCode(dnsQuestion, rcode);
   };
 
   /* the Dynamic Block mechanism supports address and port ranges, so we need to pass the full address and port */
-  if (auto* got = holders.dynNMGBlock->lookup(AddressAndPortRange(dnsQuestion.ids.origRemote, dnsQuestion.ids.origRemote.isIPv4() ? 32 : 128, 16))) {
+  if (auto* got = dnsdist::DynamicBlocks::getClientAddressDynamicRules().lookup(AddressAndPortRange(dnsQuestion.ids.origRemote, dnsQuestion.ids.origRemote.isIPv4() ? 32 : 128, 16))) {
     auto updateBlockStats = [&got]() {
       ++dnsdist::metrics::g_stats.dynBlocked;
       got->second.blocks++;
@@ -1096,7 +1044,7 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dnsQuestion, c
     if (now < got->second.until) {
       DNSAction::Action action = got->second.action;
       if (action == DNSAction::Action::None) {
-        action = g_dynBlockAction;
+        action = defaultDynBlockAction;
       }
 
       switch (action) {
@@ -1164,7 +1112,7 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dnsQuestion, c
     }
   }
 
-  if (auto* got = holders.dynSMTBlock->lookup(dnsQuestion.ids.qname)) {
+  if (auto* got = dnsdist::DynamicBlocks::getSuffixDynamicRules().lookup(dnsQuestion.ids.qname)) {
     auto updateBlockStats = [&got]() {
       ++dnsdist::metrics::g_stats.dynBlocked;
       got->blocks++;
@@ -1173,7 +1121,7 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dnsQuestion, c
     if (now < got->until) {
       DNSAction::Action action = got->action;
       if (action == DNSAction::Action::None) {
-        action = g_dynBlockAction;
+        action = defaultDynBlockAction;
       }
       switch (action) {
       case DNSAction::Action::NoOp:
@@ -1239,7 +1187,9 @@ static bool applyRulesToQuery(LocalHolders& holders, DNSQuestion& dnsQuestion, c
   }
 #endif /* DISABLE_DYNBLOCKS */
 
-  return applyRulesChainToQuery(*holders.ruleactions, dnsQuestion);
+  const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
+  const auto& queryRules = dnsdist::rules::getRuleChain(chains, dnsdist::rules::RuleChain::Rules);
+  return applyRulesChainToQuery(queryRules, dnsQuestion);
 }
 
 ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& backend, const int socketDesc, const PacketBuffer& request, bool healthCheck)
@@ -1280,7 +1230,7 @@ ssize_t udpClientSendRequestToBackend(const std::shared_ptr<DownstreamState>& ba
   return result;
 }
 
-static bool isUDPQueryAcceptable(ClientState& clientState, LocalHolders& holders, const struct msghdr* msgh, const ComboAddress& remote, ComboAddress& dest, bool& expectProxyProtocol)
+static bool isUDPQueryAcceptable(ClientState& clientState, const struct msghdr* msgh, const ComboAddress& remote, ComboAddress& dest, bool& expectProxyProtocol)
 {
   if ((msgh->msg_flags & MSG_TRUNC) != 0) {
     /* message was too large for our buffer */
@@ -1291,7 +1241,7 @@ static bool isUDPQueryAcceptable(ClientState& clientState, LocalHolders& holders
   }
 
   expectProxyProtocol = clientState.d_enableProxyProtocol && expectProxyProtocolFrom(remote);
-  if (!holders.acl->match(remote) && !expectProxyProtocol) {
+  if (!dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.match(remote) && !expectProxyProtocol) {
     vinfolog("Query from %s dropped because of ACL", remote.toStringWithPort());
     ++dnsdist::metrics::g_stats.aclDrops;
     return false;
@@ -1325,7 +1275,7 @@ static bool isUDPQueryAcceptable(ClientState& clientState, LocalHolders& holders
   return true;
 }
 
-bool checkDNSCryptQuery(const ClientState& clientState, PacketBuffer& query, std::unique_ptr<DNSCryptQuery>& dnsCryptQuery, time_t now, bool tcp)
+bool checkDNSCryptQuery(const ClientState& clientState, [[maybe_unused]] PacketBuffer& query, [[maybe_unused]] std::unique_ptr<DNSCryptQuery>& dnsCryptQuery, [[maybe_unused]] time_t now, [[maybe_unused]] bool tcp)
 {
   if (clientState.dnscryptCtx) {
 #ifdef HAVE_DNSCRYPT
@@ -1356,7 +1306,7 @@ bool checkQueryHeaders(const struct dnsheader& dnsHeader, ClientState& clientSta
 
   if (dnsHeader.qdcount == 0) {
     ++dnsdist::metrics::g_stats.emptyQueries;
-    if (g_dropEmptyQueries) {
+    if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_dropEmptyQueries) {
       return false;
     }
   }
@@ -1369,7 +1319,7 @@ bool checkQueryHeaders(const struct dnsheader& dnsHeader, ClientState& clientSta
 }
 
 #if !defined(DISABLE_RECVMMSG) && defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
-static void queueResponse(const ClientState& clientState, const PacketBuffer& response, const ComboAddress& dest, const ComboAddress& remote, struct mmsghdr& outMsg, struct iovec* iov, cmsgbuf_aligned* cbuf)
+static void queueResponse(const PacketBuffer& response, const ComboAddress& dest, const ComboAddress& remote, struct mmsghdr& outMsg, struct iovec* iov, cmsgbuf_aligned* cbuf)
 {
   outMsg.msg_len = 0;
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast,cppcoreguidelines-pro-type-reinterpret-cast): API
@@ -1391,21 +1341,23 @@ struct mmsghdr
 #endif
 
 /* self-generated responses or cache hits */
-static bool prepareOutgoingResponse(LocalHolders& holders, const ClientState& clientState, DNSQuestion& dnsQuestion, bool cacheHit)
+static bool prepareOutgoingResponse([[maybe_unused]] const ClientState& clientState, DNSQuestion& dnsQuestion, bool cacheHit)
 {
   std::shared_ptr<DownstreamState> backend{nullptr};
   DNSResponse dnsResponse(dnsQuestion.ids, dnsQuestion.getMutableData(), backend);
   dnsResponse.d_incomingTCPState = dnsQuestion.d_incomingTCPState;
   dnsResponse.ids.selfGenerated = true;
+  dnsResponse.ids.cacheHit = cacheHit;
 
-  if (!applyRulesToResponse(cacheHit ? *holders.cacheHitRespRuleactions : *holders.selfAnsweredRespRuleactions, dnsResponse)) {
+  const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
+  const auto& cacheHitRespRules = dnsdist::rules::getResponseRuleChain(chains, dnsdist::rules::ResponseRuleChain::CacheHitResponseRules);
+  const auto& selfAnsweredRespRules = dnsdist::rules::getResponseRuleChain(chains, dnsdist::rules::ResponseRuleChain::SelfAnsweredResponseRules);
+  if (!applyRulesToResponse(cacheHit ? cacheHitRespRules : selfAnsweredRespRules, dnsResponse)) {
     return false;
   }
 
   if (dnsResponse.ids.ttlCap > 0) {
-    std::string result;
-    LimitTTLResponseAction ltrac(0, dnsResponse.ids.ttlCap, {});
-    ltrac(&dnsResponse, &result);
+    dnsdist::PacketMangling::restrictDNSPacketTTLs(dnsResponse.getMutableData(), 0, dnsResponse.ids.ttlCap);
   }
 
   if (dnsResponse.ids.d_extendedError) {
@@ -1431,11 +1383,11 @@ static bool prepareOutgoingResponse(LocalHolders& holders, const ClientState& cl
   return true;
 }
 
-static ProcessQueryResult handleQueryTurnedIntoSelfAnsweredResponse(DNSQuestion& dnsQuestion, LocalHolders& holders)
+static ProcessQueryResult handleQueryTurnedIntoSelfAnsweredResponse(DNSQuestion& dnsQuestion)
 {
   fixUpQueryTurnedResponse(dnsQuestion, dnsQuestion.ids.origFlags);
 
-  if (!prepareOutgoingResponse(holders, *dnsQuestion.ids.cs, dnsQuestion, false)) {
+  if (!prepareOutgoingResponse(*dnsQuestion.ids.cs, dnsQuestion, false)) {
     return ProcessQueryResult::Drop;
   }
 
@@ -1455,30 +1407,37 @@ static ProcessQueryResult handleQueryTurnedIntoSelfAnsweredResponse(DNSQuestion&
   return ProcessQueryResult::SendAnswer;
 }
 
-static void selectBackendForOutgoingQuery(DNSQuestion& dnsQuestion, const std::shared_ptr<ServerPool>& serverPool, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend)
+static void selectBackendForOutgoingQuery(DNSQuestion& dnsQuestion, const std::shared_ptr<ServerPool>& serverPool, std::shared_ptr<DownstreamState>& selectedBackend)
 {
   std::shared_ptr<ServerPolicy> poolPolicy = serverPool->policy;
-  const auto& policy = poolPolicy != nullptr ? *poolPolicy : *(holders.policy);
+  const auto& policy = poolPolicy != nullptr ? *poolPolicy : *dnsdist::configuration::getCurrentRuntimeConfiguration().d_lbPolicy;
   const auto servers = serverPool->getServers();
   selectedBackend = policy.getSelectedBackend(*servers, dnsQuestion);
 }
 
-ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend)
+ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& selectedBackend)
 {
   const uint16_t queryId = ntohs(dnsQuestion.getHeader()->id);
 
   try {
     if (dnsQuestion.getHeader()->qr) { // something turned it into a response
-      return handleQueryTurnedIntoSelfAnsweredResponse(dnsQuestion, holders);
+      return handleQueryTurnedIntoSelfAnsweredResponse(dnsQuestion);
     }
-    std::shared_ptr<ServerPool> serverPool = getPool(*holders.pools, dnsQuestion.ids.poolName);
+    std::shared_ptr<ServerPool> serverPool = getPool(dnsQuestion.ids.poolName);
     dnsQuestion.ids.packetCache = serverPool->packetCache;
-    selectBackendForOutgoingQuery(dnsQuestion, serverPool, holders, selectedBackend);
+    selectBackendForOutgoingQuery(dnsQuestion, serverPool, selectedBackend);
+    bool willBeForwardedOverUDP = !dnsQuestion.overTCP() || dnsQuestion.ids.protocol == dnsdist::Protocol::DoH;
+    if (selectedBackend && selectedBackend->isTCPOnly()) {
+      willBeForwardedOverUDP = false;
+    }
+    else if (!selectedBackend) {
+      willBeForwardedOverUDP = !serverPool->isTCPOnly();
+    }
 
-    uint32_t allowExpired = selectedBackend ? 0 : g_staleCacheEntriesTTL;
+    uint32_t allowExpired = selectedBackend ? 0 : dnsdist::configuration::getCurrentRuntimeConfiguration().d_staleCacheEntriesTTL;
 
     if (dnsQuestion.ids.packetCache && !dnsQuestion.ids.skipCache) {
-      dnsQuestion.ids.dnssecOK = (getEDNSZ(dnsQuestion) & EDNS_HEADER_FLAG_DO) != 0;
+      dnsQuestion.ids.dnssecOK = (dnsdist::getEDNSZ(dnsQuestion) & EDNS_HEADER_FLAG_DO) != 0;
     }
 
     if (dnsQuestion.useECS && ((selectedBackend && selectedBackend->d_config.useECS) || (!selectedBackend && serverPool->getECS()))) {
@@ -1486,11 +1445,11 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, LocalHolders
       // we need ECS parsing (parseECS) to be true so we can be sure that the initial incoming query did not have an existing
       // ECS option, which would make it unsuitable for the zero-scope feature.
       if (dnsQuestion.ids.packetCache && !dnsQuestion.ids.skipCache && (!selectedBackend || !selectedBackend->d_config.disableZeroScope) && dnsQuestion.ids.packetCache->isECSParsingEnabled()) {
-        if (dnsQuestion.ids.packetCache->get(dnsQuestion, dnsQuestion.getHeader()->id, &dnsQuestion.ids.cacheKeyNoECS, dnsQuestion.ids.subnet, dnsQuestion.ids.dnssecOK, !dnsQuestion.overTCP(), allowExpired, false, true, false)) {
+        if (dnsQuestion.ids.packetCache->get(dnsQuestion, dnsQuestion.getHeader()->id, &dnsQuestion.ids.cacheKeyNoECS, dnsQuestion.ids.subnet, dnsQuestion.ids.dnssecOK, willBeForwardedOverUDP, allowExpired, false, true, false)) {
 
           vinfolog("Packet cache hit for query for %s|%s from %s (%s, %d bytes)", dnsQuestion.ids.qname.toLogString(), QType(dnsQuestion.ids.qtype).toString(), dnsQuestion.ids.origRemote.toStringWithPort(), dnsQuestion.ids.protocol.toString(), dnsQuestion.getData().size());
 
-          if (!prepareOutgoingResponse(holders, *dnsQuestion.ids.cs, dnsQuestion, true)) {
+          if (!prepareOutgoingResponse(*dnsQuestion.ids.cs, dnsQuestion, true)) {
             return ProcessQueryResult::Drop;
           }
 
@@ -1512,14 +1471,11 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, LocalHolders
     }
 
     if (dnsQuestion.ids.packetCache && !dnsQuestion.ids.skipCache) {
-      bool forwardedOverUDP = !dnsQuestion.overTCP();
-      if (selectedBackend && selectedBackend->isTCPOnly()) {
-        forwardedOverUDP = false;
-      }
-
-      /* we do not record a miss for queries received over DoH and forwarded over TCP
+      /* First lookup, which takes into account how the protocol over which the query will be forwarded.
+         For DoH, this lookup is done with the protocol set to TCP but we will retry over UDP below,
+         therefore we do not record a miss for queries received over DoH and forwarded over TCP
          yet, as we will do a second-lookup */
-      if (dnsQuestion.ids.packetCache->get(dnsQuestion, dnsQuestion.getHeader()->id, &dnsQuestion.ids.cacheKey, dnsQuestion.ids.subnet, dnsQuestion.ids.dnssecOK, forwardedOverUDP, allowExpired, false, true, dnsQuestion.ids.protocol != dnsdist::Protocol::DoH || forwardedOverUDP)) {
+      if (dnsQuestion.ids.packetCache->get(dnsQuestion, dnsQuestion.getHeader()->id, dnsQuestion.ids.protocol == dnsdist::Protocol::DoH ? &dnsQuestion.ids.cacheKeyTCP : &dnsQuestion.ids.cacheKey, dnsQuestion.ids.subnet, dnsQuestion.ids.dnssecOK, dnsQuestion.ids.protocol != dnsdist::Protocol::DoH && willBeForwardedOverUDP, allowExpired, false, true, dnsQuestion.ids.protocol != dnsdist::Protocol::DoH || !willBeForwardedOverUDP)) {
 
         dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [flags = dnsQuestion.ids.origFlags](dnsheader& header) {
           restoreFlags(&header, flags);
@@ -1528,7 +1484,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, LocalHolders
 
         vinfolog("Packet cache hit for query for %s|%s from %s (%s, %d bytes)", dnsQuestion.ids.qname.toLogString(), QType(dnsQuestion.ids.qtype).toString(), dnsQuestion.ids.origRemote.toStringWithPort(), dnsQuestion.ids.protocol.toString(), dnsQuestion.getData().size());
 
-        if (!prepareOutgoingResponse(holders, *dnsQuestion.ids.cs, dnsQuestion, true)) {
+        if (!prepareOutgoingResponse(*dnsQuestion.ids.cs, dnsQuestion, true)) {
           return ProcessQueryResult::Drop;
         }
 
@@ -1536,10 +1492,11 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, LocalHolders
         ++dnsQuestion.ids.cs->responses;
         return ProcessQueryResult::SendAnswer;
       }
-      if (dnsQuestion.ids.protocol == dnsdist::Protocol::DoH && !forwardedOverUDP) {
-        /* do a second-lookup for UDP responses, but we do not want TC=1 answers */
-        if (dnsQuestion.ids.packetCache->get(dnsQuestion, dnsQuestion.getHeader()->id, &dnsQuestion.ids.cacheKeyUDP, dnsQuestion.ids.subnet, dnsQuestion.ids.dnssecOK, true, allowExpired, false, false, true)) {
-          if (!prepareOutgoingResponse(holders, *dnsQuestion.ids.cs, dnsQuestion, true)) {
+      if (dnsQuestion.ids.protocol == dnsdist::Protocol::DoH && willBeForwardedOverUDP) {
+        /* do a second-lookup for responses received over UDP, but we do not want TC=1 answers */
+        /* we need to be careful to keep the existing cache-key (TCP) */
+        if (dnsQuestion.ids.packetCache->get(dnsQuestion, dnsQuestion.getHeader()->id, &dnsQuestion.ids.cacheKey, dnsQuestion.ids.subnet, dnsQuestion.ids.dnssecOK, true, allowExpired, false, false, true)) {
+          if (!prepareOutgoingResponse(*dnsQuestion.ids.cs, dnsQuestion, true)) {
             return ProcessQueryResult::Drop;
           }
 
@@ -1553,36 +1510,37 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, LocalHolders
 
       ++dnsdist::metrics::g_stats.cacheMisses;
 
+      // coverity[auto_causes_copy]
       const auto existingPool = dnsQuestion.ids.poolName;
-      if (!applyRulesChainToQuery(*holders.cacheMissRuleActions, dnsQuestion)) {
+      const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
+      const auto& cacheMissRuleActions = dnsdist::rules::getRuleChain(chains, dnsdist::rules::RuleChain::CacheMissRules);
+
+      if (!applyRulesChainToQuery(cacheMissRuleActions, dnsQuestion)) {
         return ProcessQueryResult::Drop;
       }
       if (dnsQuestion.getHeader()->qr) { // something turned it into a response
-        return handleQueryTurnedIntoSelfAnsweredResponse(dnsQuestion, holders);
+        return handleQueryTurnedIntoSelfAnsweredResponse(dnsQuestion);
       }
       /* let's be nice and allow the selection of a different pool,
          but no second cache-lookup for you */
       if (dnsQuestion.ids.poolName != existingPool) {
-        serverPool = getPool(*holders.pools, dnsQuestion.ids.poolName);
+        serverPool = getPool(dnsQuestion.ids.poolName);
         dnsQuestion.ids.packetCache = serverPool->packetCache;
-        selectBackendForOutgoingQuery(dnsQuestion, serverPool, holders, selectedBackend);
+        selectBackendForOutgoingQuery(dnsQuestion, serverPool, selectedBackend);
       }
     }
 
     if (!selectedBackend) {
+      auto servFailOnNoPolicy = dnsdist::configuration::getCurrentRuntimeConfiguration().d_servFailOnNoPolicy;
       ++dnsdist::metrics::g_stats.noPolicy;
 
-      vinfolog("%s query for %s|%s from %s, no downstream server available", g_servFailOnNoPolicy ? "ServFailed" : "Dropped", dnsQuestion.ids.qname.toLogString(), QType(dnsQuestion.ids.qtype).toString(), dnsQuestion.ids.origRemote.toStringWithPort());
-      if (g_servFailOnNoPolicy) {
-        dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [](dnsheader& header) {
-          header.rcode = RCode::ServFail;
-          header.qr = true;
-          return true;
-        });
+      vinfolog("%s query for %s|%s from %s, no downstream server available", servFailOnNoPolicy ? "ServFailed" : "Dropped", dnsQuestion.ids.qname.toLogString(), QType(dnsQuestion.ids.qtype).toString(), dnsQuestion.ids.origRemote.toStringWithPort());
+      if (servFailOnNoPolicy) {
+        dnsdist::self_answers::removeRecordsAndSetRCode(dnsQuestion, RCode::ServFail);
 
         fixUpQueryTurnedResponse(dnsQuestion, dnsQuestion.ids.origFlags);
 
-        if (!prepareOutgoingResponse(holders, *dnsQuestion.ids.cs, dnsQuestion, false)) {
+        if (!prepareOutgoingResponse(*dnsQuestion.ids.cs, dnsQuestion, false)) {
           return ProcessQueryResult::Drop;
         }
         ++dnsdist::metrics::g_stats.responses;
@@ -1613,6 +1571,42 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, LocalHolders
   return ProcessQueryResult::Drop;
 }
 
+bool handleTimeoutResponseRules(const std::vector<dnsdist::rules::ResponseRuleAction>& rules, InternalQueryState& ids, const std::shared_ptr<DownstreamState>& d_ds, const std::shared_ptr<TCPQuerySender>& sender)
+{
+  PacketBuffer empty;
+  DNSResponse dnsResponse(ids, empty, d_ds);
+  auto protocol = dnsResponse.getProtocol();
+
+  vinfolog("Handling timeout response rules for incoming protocol = %s", protocol.toString());
+  if (protocol == dnsdist::Protocol::DoH) {
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
+    dnsResponse.d_incomingTCPState = std::dynamic_pointer_cast<IncomingHTTP2Connection>(sender);
+#endif
+    if (!dnsResponse.d_incomingTCPState || !sender || !sender->active()) {
+      return false;
+    }
+  }
+  else if (protocol == dnsdist::Protocol::DoTCP || protocol == dnsdist::Protocol::DNSCryptTCP || protocol == dnsdist::Protocol::DoT) {
+    dnsResponse.d_incomingTCPState = std::dynamic_pointer_cast<IncomingTCPConnectionState>(sender);
+    if (!dnsResponse.d_incomingTCPState || !sender || !sender->active()) {
+      return false;
+    }
+  }
+  (void)applyRulesToResponse(rules, dnsResponse);
+  return dnsResponse.isAsynchronous();
+}
+
+void handleServerStateChange(const string& nameWithAddr, bool newResult)
+{
+  try {
+    auto lua = g_lua.lock();
+    dnsdist::lua::hooks::runServerStateChangeHooks(*lua, nameWithAddr, newResult);
+  }
+  catch (const std::exception& exp) {
+    warnlog("Error calling the Lua hook for Server State Change: %s", exp.what());
+  }
+}
+
 class UDPTCPCrossQuerySender : public TCPQuerySender
 {
 public:
@@ -1630,16 +1624,14 @@ public:
 
   void handleResponse(const struct timeval& now, TCPResponse&& response) override
   {
+    (void)now;
     if (!response.d_ds && !response.d_idstate.selfGenerated) {
       throw std::runtime_error("Passing a cross-protocol answer originated from UDP without a valid downstream");
     }
 
     auto& ids = response.d_idstate;
 
-    static thread_local LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> localRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::ResponseRules).getLocal();
-    static thread_local LocalStateHolder<vector<dnsdist::rules::ResponseRuleAction>> localCacheInsertedRespRuleActions = dnsdist::rules::getResponseRuleChainHolder(dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules).getLocal();
-
-    handleResponseForUDPClient(ids, response.d_buffer, *localRespRuleActions, *localCacheInsertedRespRuleActions, response.d_ds, response.isAsync(), response.d_idstate.selfGenerated);
+    handleResponseForUDPClient(ids, response.d_buffer, response.d_ds, response.isAsync(), response.d_idstate.selfGenerated);
   }
 
   void handleXFRResponse(const struct timeval& now, TCPResponse&& response) override
@@ -1695,7 +1687,7 @@ std::unique_ptr<CrossProtocolQuery> getUDPCrossProtocolQueryFromDQ(DNSQuestion& 
   return std::make_unique<UDPCrossProtocolQuery>(std::move(dnsQuestion.getMutableData()), std::move(dnsQuestion.ids), nullptr);
 }
 
-ProcessQueryResult processQuery(DNSQuestion& dnsQuestion, LocalHolders& holders, std::shared_ptr<DownstreamState>& selectedBackend)
+ProcessQueryResult processQuery(DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& selectedBackend)
 {
   const uint16_t queryId = ntohs(dnsQuestion.getHeader()->id);
 
@@ -1707,15 +1699,11 @@ ProcessQueryResult processQuery(DNSQuestion& dnsQuestion, LocalHolders& holders,
     gettime(&now);
 
     if ((dnsQuestion.ids.qtype == QType::AXFR || dnsQuestion.ids.qtype == QType::IXFR) && (dnsQuestion.getProtocol() == dnsdist::Protocol::DoH || dnsQuestion.getProtocol() == dnsdist::Protocol::DoQ || dnsQuestion.getProtocol() == dnsdist::Protocol::DoH3)) {
-      dnsQuestion.editHeader([](dnsheader& header) {
-        header.rcode = RCode::NotImp;
-        header.qr = true;
-        return true;
-      });
-      return processQueryAfterRules(dnsQuestion, holders, selectedBackend);
+      dnsdist::self_answers::removeRecordsAndSetRCode(dnsQuestion, RCode::NotImp);
+      return processQueryAfterRules(dnsQuestion, selectedBackend);
     }
 
-    if (!applyRulesToQuery(holders, dnsQuestion, now)) {
+    if (!applyRulesToQuery(dnsQuestion, now)) {
       return ProcessQueryResult::Drop;
     }
 
@@ -1723,7 +1711,7 @@ ProcessQueryResult processQuery(DNSQuestion& dnsQuestion, LocalHolders& holders,
       return ProcessQueryResult::Asynchronous;
     }
 
-    return processQueryAfterRules(dnsQuestion, holders, selectedBackend);
+    return processQueryAfterRules(dnsQuestion, selectedBackend);
   }
   catch (const std::exception& e) {
     vinfolog("Got an error while parsing a %s query from %s, id %d: %s", (dnsQuestion.overTCP() ? "TCP" : "UDP"), dnsQuestion.ids.origRemote.toStringWithPort(), queryId, e.what());
@@ -1736,9 +1724,13 @@ bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& downstrea
   bool doh = dnsQuestion.ids.du != nullptr;
 
   bool failed = false;
+  dnsQuestion.ids.d_proxyProtocolPayloadSize = 0;
   if (downstream->d_config.useProxyProtocol) {
     try {
-      addProxyProtocol(dnsQuestion, &dnsQuestion.ids.d_proxyProtocolPayloadSize);
+      size_t proxyProtocolPayloadSize = 0;
+      if (addProxyProtocol(dnsQuestion, &proxyProtocolPayloadSize)) {
+        dnsQuestion.ids.d_proxyProtocolPayloadSize += proxyProtocolPayloadSize;
+      }
     }
     catch (const std::exception& e) {
       vinfolog("Adding proxy protocol payload to %s query from %s failed: %s", (dnsQuestion.ids.du ? "DoH" : ""), dnsQuestion.ids.origDest.toStringWithPort(), e.what());
@@ -1797,7 +1789,7 @@ bool assignOutgoingUDPQueryToBackend(std::shared_ptr<DownstreamState>& downstrea
   return true;
 }
 
-static void processUDPQuery(ClientState& clientState, LocalHolders& holders, const struct msghdr* msgh, const ComboAddress& remote, ComboAddress& dest, PacketBuffer& query, std::vector<mmsghdr>* responsesVect, unsigned int* queuedResponses, struct iovec* respIOV, cmsgbuf_aligned* respCBuf)
+static void processUDPQuery(ClientState& clientState, const struct msghdr* msgh, const ComboAddress& remote, ComboAddress& dest, PacketBuffer& query, std::vector<mmsghdr>* responsesVect, unsigned int* queuedResponses, struct iovec* respIOV, cmsgbuf_aligned* respCBuf)
 {
   assert(responsesVect == nullptr || (queuedResponses != nullptr && respIOV != nullptr && respCBuf != nullptr));
   uint16_t queryId = 0;
@@ -1809,7 +1801,7 @@ static void processUDPQuery(ClientState& clientState, LocalHolders& holders, con
 
   try {
     bool expectProxyProtocol = false;
-    if (!isUDPQueryAcceptable(clientState, holders, msgh, remote, dest, expectProxyProtocol)) {
+    if (!isUDPQueryAcceptable(clientState, msgh, remote, dest, expectProxyProtocol)) {
       return;
     }
     /* dest might have been updated, if we managed to harvest the destination address */
@@ -1828,7 +1820,7 @@ static void processUDPQuery(ClientState& clientState, LocalHolders& holders, con
     }
 
     std::vector<ProxyProtocolValue> proxyProtocolValues;
-    if (expectProxyProtocol && !handleProxyProtocol(remote, false, *holders.acl, query, ids.origRemote, ids.origDest, proxyProtocolValues)) {
+    if (expectProxyProtocol && !handleProxyProtocol(remote, false, dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL, query, ids.origRemote, ids.origDest, proxyProtocolValues)) {
       return;
     }
 
@@ -1874,8 +1866,17 @@ static void processUDPQuery(ClientState& clientState, LocalHolders& holders, con
       dnsQuestion.proxyProtocolValues = make_unique<std::vector<ProxyProtocolValue>>(std::move(proxyProtocolValues));
     }
 
+    // save UDP payload size from origin query
+    uint16_t udpPayloadSize = 0;
+    uint16_t zValue = 0;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(query.data()), query.size(), &udpPayloadSize, &zValue);
+    if (udpPayloadSize < 512) {
+      udpPayloadSize = 512;
+    }
+
     std::shared_ptr<DownstreamState> backend{nullptr};
-    auto result = processQuery(dnsQuestion, holders, backend);
+    auto result = processQuery(dnsQuestion, backend);
 
     if (result == ProcessQueryResult::Drop || result == ProcessQueryResult::Asynchronous) {
       return;
@@ -1887,13 +1888,16 @@ static void processUDPQuery(ClientState& clientState, LocalHolders& holders, con
 #ifndef DISABLE_RECVMMSG
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
       if (dnsQuestion.ids.delayMsec == 0 && responsesVect != nullptr) {
-        queueResponse(clientState, query, dest, remote, (*responsesVect)[*queuedResponses], respIOV, respCBuf);
+        queueResponse(query, dest, remote, (*responsesVect)[*queuedResponses], respIOV, respCBuf);
         (*queuedResponses)++;
         handleResponseSent(dnsQuestion.ids.qname, dnsQuestion.ids.qtype, 0., remote, ComboAddress(), query.size(), *dnsHeader, dnsdist::Protocol::DoUDP, dnsdist::Protocol::DoUDP, false);
         return;
       }
 #endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
 #endif /* DISABLE_RECVMMSG */
+      /* ensure payload size is not exceeded */
+      DNSResponse dnsResponse(ids, query, nullptr);
+      handleResponseTC4UDPClient(udpPayloadSize, query, dnsResponse);
       /* we use dest, always, because we don't want to use the listening address to send a response since it could be 0.0.0.0 */
       sendUDPResponse(clientState.udpFD, query, dnsQuestion.ids.delayMsec, dest, remote);
 
@@ -1931,7 +1935,7 @@ static void processUDPQuery(ClientState& clientState, LocalHolders& holders, con
 #ifdef HAVE_XSK
 namespace dnsdist::xsk
 {
-bool XskProcessQuery(ClientState& clientState, LocalHolders& holders, XskPacket& packet)
+bool XskProcessQuery(ClientState& clientState, XskPacket& packet)
 {
   uint16_t queryId = 0;
   const auto& remote = packet.getFromAddr();
@@ -1947,13 +1951,13 @@ bool XskProcessQuery(ClientState& clientState, LocalHolders& holders, XskPacket&
 
   try {
     bool expectProxyProtocol = false;
-    if (!XskIsQueryAcceptable(packet, clientState, holders, expectProxyProtocol)) {
+    if (!XskIsQueryAcceptable(packet, clientState, expectProxyProtocol)) {
       return false;
     }
 
     auto query = packet.clonePacketBuffer();
     std::vector<ProxyProtocolValue> proxyProtocolValues;
-    if (expectProxyProtocol && !handleProxyProtocol(remote, false, *holders.acl, query, ids.origRemote, ids.origDest, proxyProtocolValues)) {
+    if (expectProxyProtocol && !handleProxyProtocol(remote, false, dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL, query, ids.origRemote, ids.origDest, proxyProtocolValues)) {
       return false;
     }
 
@@ -1998,7 +2002,7 @@ bool XskProcessQuery(ClientState& clientState, LocalHolders& holders, XskPacket&
       dnsQuestion.proxyProtocolValues = make_unique<std::vector<ProxyProtocolValue>>(std::move(proxyProtocolValues));
     }
     std::shared_ptr<DownstreamState> backend{nullptr};
-    auto result = processQuery(dnsQuestion, holders, backend);
+    auto result = processQuery(dnsQuestion, backend);
 
     if (result == ProcessQueryResult::Drop) {
       return false;
@@ -2059,7 +2063,7 @@ bool XskProcessQuery(ClientState& clientState, LocalHolders& holders, XskPacket&
 
 #ifndef DISABLE_RECVMMSG
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
-static void MultipleMessagesUDPClientThread(ClientState* clientState, LocalHolders& holders)
+static void MultipleMessagesUDPClientThread(ClientState* clientState)
 {
   struct MMReceiver
   {
@@ -2070,7 +2074,7 @@ static void MultipleMessagesUDPClientThread(ClientState* clientState, LocalHolde
     /* used by HarvestDestinationAddress */
     cmsgbuf_aligned cbuf{};
   };
-  const size_t vectSize = g_udpVectorSize;
+  const size_t vectSize = dnsdist::configuration::getImmutableConfiguration().d_udpVectorSize;
 
   if (vectSize > std::numeric_limits<uint16_t>::max()) {
     throw std::runtime_error("The value of setUDPMultipleMessagesVectorSize is too high, the maximum value is " + std::to_string(std::numeric_limits<uint16_t>::max()));
@@ -2131,7 +2135,7 @@ static void MultipleMessagesUDPClientThread(ClientState* clientState, LocalHolde
       }
 
       recvData[msgIdx].packet.resize(got);
-      processUDPQuery(*clientState, holders, msgh, remote, recvData[msgIdx].dest, recvData[msgIdx].packet, &outMsgVec, &msgsToSend, &recvData[msgIdx].iov, &recvData[msgIdx].cbuf);
+      processUDPQuery(*clientState, msgh, remote, recvData[msgIdx].dest, recvData[msgIdx].packet, &outMsgVec, &msgsToSend, &recvData[msgIdx].iov, &recvData[msgIdx].cbuf);
     }
 
     /* immediate (not delayed or sent to a backend) responses (mostly from a rule, dynamic block
@@ -2154,11 +2158,10 @@ static void udpClientThread(std::vector<ClientState*> states)
 {
   try {
     setThreadName("dnsdist/udpClie");
-    LocalHolders holders;
 #ifndef DISABLE_RECVMMSG
 #if defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE)
-    if (g_udpVectorSize > 1) {
-      MultipleMessagesUDPClientThread(states.at(0), holders);
+    if (dnsdist::configuration::getImmutableConfiguration().d_udpVectorSize > 1) {
+      MultipleMessagesUDPClientThread(states.at(0));
     }
     else
 #endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
@@ -2183,7 +2186,7 @@ static void udpClientThread(std::vector<ClientState*> states)
       ComboAddress remote;
       ComboAddress dest;
 
-      auto handleOnePacket = [&packet, &iov, &holders, &msgh, &remote, &dest, initialBufferSize](const UDPStateParam& param) {
+      auto handleOnePacket = [&packet, &iov, &msgh, &remote, &dest, initialBufferSize](const UDPStateParam& param) {
         packet.resize(initialBufferSize);
         iov.iov_base = &packet.at(0);
         iov.iov_len = packet.size();
@@ -2198,7 +2201,7 @@ static void udpClientThread(std::vector<ClientState*> states)
 
         packet.resize(static_cast<size_t>(got));
 
-        processUDPQuery(*param.cs, holders, &msgh, remote, dest, packet, nullptr, nullptr, nullptr, nullptr);
+        processUDPQuery(*param.cs, &msgh, remote, dest, packet, nullptr, nullptr, nullptr, nullptr);
       };
 
       std::vector<UDPStateParam> params;
@@ -2228,6 +2231,7 @@ static void udpClientThread(std::vector<ClientState*> states)
       }
       else {
         auto callback = [&remote, &msgh, &iov, &packet, &handleOnePacket, initialBufferSize](int socket, FDMultiplexer::funcparam_t& funcparam) {
+          (void)socket;
           const auto* param = boost::any_cast<const UDPStateParam*>(funcparam);
           try {
             remote.sin4.sin_family = param->cs->local.sin4.sin_family;
@@ -2268,10 +2272,6 @@ static void udpClientThread(std::vector<ClientState*> states)
   }
 }
 
-boost::optional<uint64_t> g_maxTCPClientThreads{boost::none};
-pdns::stat16_t g_cacheCleaningDelay{60};
-pdns::stat16_t g_cacheCleaningPercentage{100};
-
 static void maintThread()
 {
   setThreadName("dnsdist/main");
@@ -2290,6 +2290,9 @@ static void maintThread()
           (*maintenanceCallback)();
         }
         dnsdist::lua::hooks::runMaintenanceHooks(*lua);
+#if !defined(DISABLE_DYNBLOCKS)
+        dnsdist::DynamicBlocks::runRegisteredGroups(*lua);
+#endif /* DISABLE_DYNBLOCKS */
         secondsToWaitLog = 0;
       }
       catch (const std::exception& e) {
@@ -2302,15 +2305,15 @@ static void maintThread()
     }
 
     counter++;
-    if (counter >= g_cacheCleaningDelay) {
+    if (counter >= dnsdist::configuration::getCurrentRuntimeConfiguration().d_cacheCleaningDelay) {
       /* keep track, for each cache, of whether we should keep
        expired entries */
       std::map<std::shared_ptr<DNSDistPacketCache>, bool> caches;
 
       /* gather all caches actually used by at least one pool, and see
          if something prevents us from cleaning the expired entries */
-      auto localPools = g_pools.getLocal();
-      for (const auto& entry : *localPools) {
+      const auto& pools = dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools;
+      for (const auto& entry : pools) {
         const auto& pool = entry.second;
 
         auto packetCache = pool->packetCache;
@@ -2338,7 +2341,7 @@ static void maintThread()
           continue;
         }
         const auto& packetCache = pair.first;
-        size_t upTo = (packetCache->getMaxEntries() * (100 - g_cacheCleaningPercentage)) / 100;
+        size_t upTo = (packetCache->getMaxEntries() * (100 - dnsdist::configuration::getCurrentRuntimeConfiguration().d_cacheCleaningPercentage)) / 100;
         packetCache->purgeExpired(upTo, now);
       }
       counter = 0;
@@ -2361,30 +2364,41 @@ static void secPollThread()
   setThreadName("dnsdist/secpoll");
 
   for (;;) {
+    const auto& runtimeConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
+
     try {
-      doSecPoll(g_secPollSuffix);
+      dnsdist::secpoll::doSecPoll(runtimeConfig.d_secPollSuffix);
     }
     catch (...) {
     }
     // coverity[store_truncates_time_t]
-    std::this_thread::sleep_for(std::chrono::seconds(g_secPollInterval));
+    std::this_thread::sleep_for(std::chrono::seconds(runtimeConfig.d_secPollInterval));
   }
 }
 #endif /* DISABLE_SECPOLL */
+
+static std::atomic<bool> s_exiting{false};
+void doExitNicely(int exitCode = EXIT_SUCCESS);
+
+static void checkExiting()
+{
+  if (s_exiting) {
+    doExitNicely();
+  }
+}
 
 static void healthChecksThread()
 {
   setThreadName("dnsdist/healthC");
 
   constexpr int intervalUsec = 1000 * 1000;
-  struct timeval lastRound
-  {
+  struct timeval lastRound{
     .tv_sec = 0,
-    .tv_usec = 0
-  };
-  auto states = g_dstates.getLocal(); // this points to the actual shared_ptrs!
+    .tv_usec = 0};
 
   for (;;) {
+    checkExiting();
+
     timeval now{};
     gettimeofday(&now, nullptr);
     auto elapsedTimeUsec = uSec(now - lastRound);
@@ -2397,7 +2411,10 @@ static void healthChecksThread()
     }
 
     std::unique_ptr<FDMultiplexer> mplexer{nullptr};
-    for (const auto& dss : *states) {
+    // this points to the actual shared_ptrs!
+    // coverity[auto_causes_copy]
+    const auto servers = dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends;
+    for (const auto& dss : servers) {
       dss->updateStatisticsInfo();
 
       dss->handleUDPTimeouts();
@@ -2407,7 +2424,7 @@ static void healthChecksThread()
       }
 
       if (!mplexer) {
-        mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent(states->size()));
+        mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent(servers.size()));
       }
 
       if (!queueHealthCheck(mplexer, dss)) {
@@ -2421,7 +2438,7 @@ static void healthChecksThread()
   }
 }
 
-static void bindAny(int addressFamily, int sock)
+static void bindAny([[maybe_unused]] int addressFamily, [[maybe_unused]] int sock)
 {
   __attribute__((unused)) int one = 1;
 
@@ -2477,30 +2494,31 @@ static void dropUserPrivs(uid_t uid)
 
 static void checkFileDescriptorsLimits(size_t udpBindsCount, size_t tcpBindsCount)
 {
+  const auto& immutableConfig = dnsdist::configuration::getImmutableConfiguration();
   /* stdin, stdout, stderr */
   rlim_t requiredFDsCount = 3;
-  auto backends = g_dstates.getLocal();
+  const auto& backends = dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends;
   /* UDP sockets to backends */
   size_t backendUDPSocketsCount = 0;
-  for (const auto& backend : *backends) {
+  for (const auto& backend : backends) {
     backendUDPSocketsCount += backend->sockets.size();
   }
   requiredFDsCount += backendUDPSocketsCount;
   /* TCP sockets to backends */
-  if (g_maxTCPClientThreads) {
-    requiredFDsCount += (backends->size() * (*g_maxTCPClientThreads));
+  if (immutableConfig.d_maxTCPClientThreads > 0) {
+    requiredFDsCount += (backends.size() * immutableConfig.d_maxTCPClientThreads);
   }
   /* listening sockets */
   requiredFDsCount += udpBindsCount;
   requiredFDsCount += tcpBindsCount;
   /* number of TCP connections currently served, assuming 1 connection per worker thread which is of course not right */
-  if (g_maxTCPClientThreads) {
-    requiredFDsCount += *g_maxTCPClientThreads;
+  if (immutableConfig.d_maxTCPClientThreads > 0) {
+    requiredFDsCount += immutableConfig.d_maxTCPClientThreads;
     /* max pipes for communicating between TCP acceptors and client threads */
-    requiredFDsCount += (*g_maxTCPClientThreads * 2);
+    requiredFDsCount += (immutableConfig.d_maxTCPClientThreads * 2);
   }
   /* max TCP queued connections */
-  requiredFDsCount += g_maxTCPQueuedConnections;
+  requiredFDsCount += immutableConfig.d_maxTCPQueuedConnections;
   /* DelayPipe pipe */
   requiredFDsCount += 2;
   /* syslog socket */
@@ -2525,10 +2543,10 @@ static void checkFileDescriptorsLimits(size_t udpBindsCount, size_t tcpBindsCoun
   }
 }
 
-static bool g_warned_ipv6_recvpktinfo = false;
-
 static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr, int& socket, bool tcp, bool warn)
 {
+  const auto& immutableConfig = dnsdist::configuration::getImmutableConfiguration();
+  static bool s_warned_ipv6_recvpktinfo = false;
   (void)warn;
   socket = SSocket(addr.sin4.sin_family, !tcp ? SOCK_DGRAM : SOCK_STREAM, 0);
 
@@ -2541,8 +2559,8 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
 #ifdef TCP_FASTOPEN
       SSetsockopt(socket, IPPROTO_TCP, TCP_FASTOPEN, clientState.fastOpenQueueSize);
 #ifdef TCP_FASTOPEN_KEY
-      if (!g_TCPFastOpenKey.empty()) {
-        auto res = setsockopt(socket, IPPROTO_IP, TCP_FASTOPEN_KEY, g_TCPFastOpenKey.data(), g_TCPFastOpenKey.size() * sizeof(g_TCPFastOpenKey[0]));
+      if (!immutableConfig.d_tcpFastOpenKey.empty()) {
+        auto res = setsockopt(socket, IPPROTO_IP, TCP_FASTOPEN_KEY, immutableConfig.d_tcpFastOpenKey.data(), immutableConfig.d_tcpFastOpenKey.size() * sizeof(immutableConfig.d_tcpFastOpenKey[0]));
         if (res == -1) {
           throw runtime_error("setsockopt for level IPPROTO_TCP and opname TCP_FASTOPEN_KEY failed: " + stringerror());
         }
@@ -2566,9 +2584,9 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
     int one = 1;
     (void)setsockopt(socket, IPPROTO_IP, GEN_IP_PKTINFO, &one, sizeof(one)); // linux supports this, so why not - might fail on other systems
 #ifdef IPV6_RECVPKTINFO
-    if (addr.isIPv6() && setsockopt(socket, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one)) < 0 && !g_warned_ipv6_recvpktinfo) {
+    if (addr.isIPv6() && setsockopt(socket, IPPROTO_IPV6, IPV6_RECVPKTINFO, &one, sizeof(one)) < 0 && !s_warned_ipv6_recvpktinfo) {
       warnlog("Warning: IPV6_RECVPKTINFO setsockopt failed: %s", stringerror());
-      g_warned_ipv6_recvpktinfo = true;
+      s_warned_ipv6_recvpktinfo = true;
     }
 #endif
   }
@@ -2605,9 +2623,9 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
   }
 
   if (!tcp) {
-    if (g_socketUDPSendBuffer > 0) {
+    if (immutableConfig.d_socketUDPSendBuffer > 0) {
       try {
-        setSocketSendBuffer(socket, g_socketUDPSendBuffer);
+        setSocketSendBuffer(socket, immutableConfig.d_socketUDPSendBuffer);
       }
       catch (const std::exception& e) {
         warnlog(e.what());
@@ -2625,9 +2643,9 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
       }
     }
 
-    if (g_socketUDPRecvBuffer > 0) {
+    if (immutableConfig.d_socketUDPRecvBuffer > 0) {
       try {
-        setSocketReceiveBuffer(socket, g_socketUDPRecvBuffer);
+        setSocketReceiveBuffer(socket, immutableConfig.d_socketUDPRecvBuffer);
       }
       catch (const std::exception& e) {
         warnlog(e.what());
@@ -2661,7 +2679,10 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
   }
 
 #ifdef HAVE_EBPF
-  if (g_defaultBPFFilter && !g_defaultBPFFilter->isExternal()) {
+  /* for now eBPF filtering is not enabled on QUIC sockets because the eBPF code tries
+     to parse the QNAME from the payload for all UDP datagrams, which obviously does not
+     work well for these. */
+  if (!isQUIC && g_defaultBPFFilter && !g_defaultBPFFilter->isExternal()) {
     clientState.attachFilter(g_defaultBPFFilter, socket);
     vinfolog("Attaching default BPF Filter to %s frontend %s", (!tcp ? std::string("UDP") : std::string("TCP")), addr.toStringWithPort());
   }
@@ -2700,40 +2721,40 @@ static void setupLocalSocket(ClientState& clientState, const ComboAddress& addr,
   }
 }
 
-static void setUpLocalBind(std::unique_ptr<ClientState>& cstate)
+static void setUpLocalBind(ClientState& cstate)
 {
   /* skip some warnings if there is an identical UDP context */
-  bool warn = !cstate->tcp || cstate->tlsFrontend != nullptr || cstate->dohFrontend != nullptr;
-  int& descriptor = !cstate->tcp ? cstate->udpFD : cstate->tcpFD;
+  bool warn = !cstate.tcp || cstate.tlsFrontend != nullptr || cstate.dohFrontend != nullptr;
+  int& descriptor = !cstate.tcp ? cstate.udpFD : cstate.tcpFD;
   (void)warn;
 
-  setupLocalSocket(*cstate, cstate->local, descriptor, cstate->tcp, warn);
+  setupLocalSocket(cstate, cstate.local, descriptor, cstate.tcp, warn);
 
-  for (auto& [addr, socket] : cstate->d_additionalAddresses) {
-    setupLocalSocket(*cstate, addr, socket, true, false);
+  for (auto& [addr, socket] : cstate.d_additionalAddresses) {
+    setupLocalSocket(cstate, addr, socket, true, false);
   }
 
-  if (cstate->tlsFrontend != nullptr) {
-    if (!cstate->tlsFrontend->setupTLS()) {
-      errlog("Error while setting up TLS on local address '%s', exiting", cstate->local.toStringWithPort());
+  if (cstate.tlsFrontend != nullptr) {
+    if (!cstate.tlsFrontend->setupTLS()) {
+      errlog("Error while setting up TLS on local address '%s', exiting", cstate.local.toStringWithPort());
       _exit(EXIT_FAILURE);
     }
   }
 
-  if (cstate->dohFrontend != nullptr) {
-    cstate->dohFrontend->setup();
+  if (cstate.dohFrontend != nullptr) {
+    cstate.dohFrontend->setup();
   }
-  if (cstate->doqFrontend != nullptr) {
-    cstate->doqFrontend->setup();
+  if (cstate.doqFrontend != nullptr) {
+    cstate.doqFrontend->setup();
   }
-  if (cstate->doh3Frontend != nullptr) {
-    cstate->doh3Frontend->setup();
+  if (cstate.doh3Frontend != nullptr) {
+    cstate.doh3Frontend->setup();
   }
 
-  cstate->ready = true;
+  cstate.ready = true;
 }
 
-struct
+struct CommandLineParameters
 {
   vector<string> locals;
   vector<string> remotes;
@@ -2744,9 +2765,7 @@ struct
   string config;
   string uid;
   string gid;
-} g_cmdLine;
-
-std::atomic<bool> g_configurationDone{false};
+};
 
 static void usage()
 {
@@ -2800,60 +2819,74 @@ static void usage()
 #endif
 
 #if defined(COVERAGE) || (defined(__SANITIZE_ADDRESS__) && defined(HAVE_LEAK_SANITIZER_INTERFACE))
-static void cleanupLuaObjects()
+static void cleanupLuaObjects(LuaContext& /* luaCtx */)
 {
+  dnsdist::lua::hooks::clearExitCallbacks();
   /* when our coverage mode is enabled, we need to make sure
      that the Lua objects are destroyed before the Lua contexts. */
-  for (const auto& chain : dnsdist::rules::getRuleChains()) {
-    chain.holder.setState({});
-  }
-  for (const auto& chain : dnsdist::rules::getResponseRuleChains()) {
-    chain.holder.setState({});
-  }
-  g_dstates.setState({});
-  g_policy.setState(ServerPolicy());
-  g_pools.setState({});
-  clearWebHandlers();
+  dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
+    config.d_ruleChains = dnsdist::rules::RuleChains();
+    config.d_lbPolicy = std::make_shared<ServerPolicy>();
+    config.d_pools.clear();
+    config.d_backends.clear();
+  });
+  dnsdist::webserver::clearWebHandlers();
   dnsdist::lua::hooks::clearMaintenanceHooks();
+  dnsdist::lua::hooks::clearServerStateChangeCallbacks();
 }
 #endif /* defined(COVERAGE) || (defined(__SANITIZE_ADDRESS__) && defined(HAVE_LEAK_SANITIZER_INTERFACE)) */
 
-#if defined(COVERAGE)
-static void sigTermHandler(int)
+void doExitNicely(int exitCode)
 {
-  cleanupLuaObjects();
-  pdns::coverage::dumpCoverageData();
-  _exit(EXIT_SUCCESS);
-}
-#else
-static void sigTermHandler([[maybe_unused]] int sig)
-{
-#if !defined(__SANITIZE_THREAD__)
-  /* TSAN is rightfully unhappy about this:
-     WARNING: ThreadSanitizer: signal-unsafe call inside of a signal
-     This is not a real problem for us, as the worst case is that
-     we crash trying to exit, but let's try to avoid the warnings
-     in our tests.
-  */
-  if (dnsdist::logging::LoggingConfiguration::getSyslog()) {
-    syslog(LOG_INFO, "Exiting on user request");
+  if (s_exiting) {
+    if (dnsdist::logging::LoggingConfiguration::getSyslog()) {
+      syslog(LOG_INFO, "Exiting on user request");
+    }
+    std::cout << "Exiting on user request" << std::endl;
   }
-  std::cout << "Exiting on user request" << std::endl;
-#endif /* __SANITIZE_THREAD__ */
-#if defined(__SANITIZE_ADDRESS__) && defined(HAVE_LEAK_SANITIZER_INTERFACE)
+
+#ifdef HAVE_SYSTEMD
+  sd_notify(0, "STOPPING=1");
+#endif /* HAVE_SYSTEMD */
+
+#if defined(COVERAGE) || (defined(__SANITIZE_ADDRESS__) && defined(HAVE_LEAK_SANITIZER_INTERFACE))
   if (dnsdist::g_asyncHolder) {
     dnsdist::g_asyncHolder->stop();
   }
+
+  for (auto& backend : dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends) {
+    backend->stop();
+  }
+#endif
+
   {
     auto lock = g_lua.lock();
-    cleanupLuaObjects();
+    dnsdist::lua::hooks::runExitCallbacks(*lock);
+#if defined(COVERAGE) || (defined(__SANITIZE_ADDRESS__) && defined(HAVE_LEAK_SANITIZER_INTERFACE))
+    cleanupLuaObjects(*lock);
     *lock = LuaContext();
+#endif
   }
+
+#if defined(__SANITIZE_ADDRESS__) && defined(HAVE_LEAK_SANITIZER_INTERFACE)
   __lsan_do_leak_check();
 #endif /* __SANITIZE_ADDRESS__ && HAVE_LEAK_SANITIZER_INTERFACE */
-  _exit(EXIT_SUCCESS);
+
+#ifdef COVERAGE
+  pdns::coverage::dumpCoverageData();
+#endif
+
+  /* do not call destructors, because we have some
+     dependencies between objects that are not trivial
+     to solve.
+  */
+  _exit(exitCode);
 }
-#endif /* COVERAGE */
+
+static void sigTermHandler(int /* sig */)
+{
+  s_exiting.store(true);
+}
 
 static void reportFeatures()
 {
@@ -2940,9 +2973,18 @@ static void reportFeatures()
   cout << "systemd";
 #endif
   cout << endl;
+// NOLINTBEGIN(cppcoreguidelines-macro-usage)
+#ifdef DNSDIST_CONFIG_ARGS
+#define double_escape(s) #s
+#define escape_quotes(s) double_escape(s)
+  // NOLINTEND(cppcoreguidelines-macro-usage)
+  cout << "Configured with: " << escape_quotes(DNSDIST_CONFIG_ARGS) << endl;
+#undef escape_quotes
+#undef double_escape
+#endif
 }
 
-static void parseParameters(int argc, char** argv, ComboAddress& clientAddress)
+static void parseParameters(int argc, char** argv, CommandLineParameters& cmdLine, ComboAddress& clientAddress)
 {
   const std::array<struct option, 16> longopts{{{"acl", required_argument, nullptr, 'a'},
                                                 {"check-config", no_argument, nullptr, 1},
@@ -2962,6 +3004,8 @@ static void parseParameters(int argc, char** argv, ComboAddress& clientAddress)
                                                 {nullptr, 0, nullptr, 0}}};
   int longindex = 0;
   string optstring;
+  dnsdist::configuration::RuntimeConfiguration newConfig;
+
   while (true) {
     // NOLINTNEXTLINE(concurrency-mt-unsafe): only one thread at this point
     int gotChar = getopt_long(argc, argv, "a:cC:e:g:hk:l:u:vV", longopts.data(), &longindex);
@@ -2970,28 +3014,28 @@ static void parseParameters(int argc, char** argv, ComboAddress& clientAddress)
     }
     switch (gotChar) {
     case 1:
-      g_cmdLine.checkConfig = true;
+      cmdLine.checkConfig = true;
       break;
     case 2:
       dnsdist::logging::LoggingConfiguration::setSyslog(false);
       break;
     case 3:
-      g_cmdLine.beSupervised = true;
+      cmdLine.beSupervised = true;
       break;
     case 4:
       dnsdist::logging::LoggingConfiguration::setLogTimestamps(true);
       break;
     case 'C':
-      g_cmdLine.config = optarg;
+      cmdLine.config = optarg;
       break;
     case 'c':
-      g_cmdLine.beClient = true;
+      cmdLine.beClient = true;
       break;
     case 'e':
-      g_cmdLine.command = optarg;
+      cmdLine.command = optarg;
       break;
     case 'g':
-      g_cmdLine.gid = optarg;
+      cmdLine.gid = optarg;
       break;
     case 'h':
       cout << "dnsdist " << VERSION << endl;
@@ -3002,29 +3046,35 @@ static void parseParameters(int argc, char** argv, ComboAddress& clientAddress)
       break;
     case 'a':
       optstring = optarg;
-      g_ACL.modify([optstring](NetmaskGroup& nmg) { nmg.addMask(optstring); });
+      newConfig.d_ACL.addMask(optstring);
       break;
     case 'k':
 #if defined HAVE_LIBSODIUM || defined(HAVE_LIBCRYPTO)
-      if (B64Decode(string(optarg), g_consoleKey) < 0) {
+    {
+      std::string consoleKey;
+      if (B64Decode(string(optarg), consoleKey) < 0) {
         cerr << "Unable to decode key '" << optarg << "'." << endl;
         // NOLINTNEXTLINE(concurrency-mt-unsafe): only one thread at this point
         exit(EXIT_FAILURE);
       }
+      dnsdist::configuration::updateRuntimeConfiguration([&consoleKey](dnsdist::configuration::RuntimeConfiguration& config) {
+        config.d_consoleKey = std::move(consoleKey);
+      });
+    }
 #else
       cerr << "dnsdist has been built without libsodium or libcrypto, -k/--setkey is unsupported." << endl;
       // NOLINTNEXTLINE(concurrency-mt-unsafe): only one thread at this point
       exit(EXIT_FAILURE);
 #endif
-      break;
+    break;
     case 'l':
-      g_cmdLine.locals.push_back(boost::trim_copy(string(optarg)));
+      cmdLine.locals.push_back(boost::trim_copy(string(optarg)));
       break;
     case 'u':
-      g_cmdLine.uid = optarg;
+      cmdLine.uid = optarg;
       break;
     case 'v':
-      g_verbose = true;
+      newConfig.d_verbose = true;
       break;
     case 'V':
       reportFeatures();
@@ -3045,60 +3095,60 @@ static void parseParameters(int argc, char** argv, ComboAddress& clientAddress)
 
   // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): argv
   for (const auto* ptr = argv; *ptr != nullptr; ++ptr) {
-    if (g_cmdLine.beClient) {
+    if (cmdLine.beClient) {
       clientAddress = ComboAddress(*ptr, 5199);
     }
     else {
-      g_cmdLine.remotes.emplace_back(*ptr);
+      cmdLine.remotes.emplace_back(*ptr);
     }
   }
+
+  dnsdist::configuration::updateRuntimeConfiguration([&newConfig](dnsdist::configuration::RuntimeConfiguration& config) {
+    config = std::move(newConfig);
+  });
 }
 static void setupPools()
 {
-  auto pools = g_pools.getCopy();
-  {
-    bool precompute = false;
-    if (g_policy.getLocal()->getName() == "chashed") {
-      precompute = true;
-    }
-    else {
-      for (const auto& entry : pools) {
-        if (entry.second->policy != nullptr && entry.second->policy->getName() == "chashed") {
-          precompute = true;
-          break;
-        }
+  bool precompute = false;
+  if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_lbPolicy->getName() == "chashed") {
+    precompute = true;
+  }
+  else {
+    for (const auto& entry : dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools) {
+      if (entry.second->policy != nullptr && entry.second->policy->getName() == "chashed") {
+        precompute = true;
+        break;
       }
     }
-    if (precompute) {
-      vinfolog("Pre-computing hashes for consistent hash load-balancing policy");
-      // pre compute hashes
-      auto backends = g_dstates.getLocal();
-      for (const auto& backend : *backends) {
-        if (backend->d_config.d_weight < 100) {
-          vinfolog("Warning, the backend '%s' has a very low weight (%d), which will not yield a good distribution of queries with the 'chashed' policy. Please consider raising it to at least '100'.", backend->getName(), backend->d_config.d_weight);
-        }
+  }
+  if (precompute) {
+    vinfolog("Pre-computing hashes for consistent hash load-balancing policy");
+    // pre compute hashes
+    for (const auto& backend : dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends) {
+      if (backend->d_config.d_weight < 100) {
+        vinfolog("Warning, the backend '%s' has a very low weight (%d), which will not yield a good distribution of queries with the 'chashed' policy. Please consider raising it to at least '100'.", backend->getName(), backend->d_config.d_weight);
+      }
 
-        backend->hash();
-      }
+      backend->hash();
     }
   }
 }
 
-static void dropPrivileges()
+static void dropPrivileges(const CommandLineParameters& cmdLine)
 {
   uid_t newgid = getegid();
   gid_t newuid = geteuid();
 
-  if (!g_cmdLine.gid.empty()) {
-    newgid = strToGID(g_cmdLine.gid);
+  if (!cmdLine.gid.empty()) {
+    newgid = strToGID(cmdLine.gid);
   }
 
-  if (!g_cmdLine.uid.empty()) {
-    newuid = strToUID(g_cmdLine.uid);
+  if (!cmdLine.uid.empty()) {
+    newuid = strToUID(cmdLine.uid);
   }
 
   bool retainedCapabilities = true;
-  if (!g_capabilitiesToRetain.empty() && (getegid() != newgid || geteuid() != newuid)) {
+  if (!dnsdist::configuration::getImmutableConfiguration().d_capabilitiesToRetain.empty() && (getegid() != newgid || geteuid() != newuid)) {
     retainedCapabilities = keepCapabilitiesAfterSwitchingIDs();
   }
 
@@ -3129,40 +3179,46 @@ static void dropPrivileges()
        or as an unprivileged user with ambient
        capabilities like CAP_NET_BIND_SERVICE.
     */
-    dropCapabilities(g_capabilitiesToRetain);
+    dropCapabilities(dnsdist::configuration::getImmutableConfiguration().d_capabilitiesToRetain);
   }
   catch (const std::exception& e) {
     warnlog("%s", e.what());
   }
 }
 
-static void initFrontends()
+static void initFrontends(const CommandLineParameters& cmdLine)
 {
-  if (!g_cmdLine.locals.empty()) {
-    for (auto it = g_frontends.begin(); it != g_frontends.end();) {
+  auto frontends = dnsdist::configuration::getImmutableConfiguration().d_frontends;
+
+  if (!cmdLine.locals.empty()) {
+    for (auto it = frontends.begin(); it != frontends.end();) {
       /* DoH, DoT and DNSCrypt frontends are separate */
       if ((*it)->dohFrontend == nullptr && (*it)->tlsFrontend == nullptr && (*it)->dnscryptCtx == nullptr && (*it)->doqFrontend == nullptr && (*it)->doh3Frontend == nullptr) {
-        it = g_frontends.erase(it);
+        it = frontends.erase(it);
       }
       else {
         ++it;
       }
     }
 
-    for (const auto& loc : g_cmdLine.locals) {
+    for (const auto& loc : cmdLine.locals) {
       /* UDP */
-      g_frontends.emplace_back(std::make_unique<ClientState>(ComboAddress(loc, 53), false, false, 0, "", std::set<int>{}, true));
+      frontends.emplace_back(std::make_unique<ClientState>(ComboAddress(loc, 53), false, false, 0, "", std::set<int>{}, true));
       /* TCP */
-      g_frontends.emplace_back(std::make_unique<ClientState>(ComboAddress(loc, 53), true, false, 0, "", std::set<int>{}, true));
+      frontends.emplace_back(std::make_unique<ClientState>(ComboAddress(loc, 53), true, false, 0, "", std::set<int>{}, true));
     }
   }
 
-  if (g_frontends.empty()) {
+  if (frontends.empty()) {
     /* UDP */
-    g_frontends.emplace_back(std::make_unique<ClientState>(ComboAddress("127.0.0.1", 53), false, false, 0, "", std::set<int>{}, true));
+    frontends.emplace_back(std::make_unique<ClientState>(ComboAddress("127.0.0.1", 53), false, false, 0, "", std::set<int>{}, true));
     /* TCP */
-    g_frontends.emplace_back(std::make_unique<ClientState>(ComboAddress("127.0.0.1", 53), true, false, 0, "", std::set<int>{}, true));
+    frontends.emplace_back(std::make_unique<ClientState>(ComboAddress("127.0.0.1", 53), true, false, 0, "", std::set<int>{}, true));
   }
+
+  dnsdist::configuration::updateImmutableConfiguration([&frontends](dnsdist::configuration::ImmutableConfiguration& config) {
+    config.d_frontends = std::move(frontends);
+  });
 }
 
 namespace dnsdist
@@ -3178,7 +3234,7 @@ static void startFrontends()
 
   std::vector<ClientState*> tcpStates;
   std::vector<ClientState*> udpStates;
-  for (auto& clientState : g_frontends) {
+  for (const auto& clientState : dnsdist::getFrontends()) {
 #ifdef HAVE_XSK
     if (clientState->xskInfo) {
       dnsdist::xsk::addDestinationAddress(clientState->local);
@@ -3258,17 +3314,101 @@ static void startFrontends()
 }
 }
 
+struct ListeningSockets
+{
+  Socket d_consoleSocket{-1};
+  Socket d_webServerSocket{-1};
+};
+
+static ListeningSockets initListeningSockets()
+{
+  ListeningSockets result;
+  const auto& currentConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
+
+  if (currentConfig.d_consoleEnabled) {
+    const auto& local = currentConfig.d_consoleServerAddress;
+    try {
+      result.d_consoleSocket = Socket(local.sin4.sin_family, SOCK_STREAM, 0);
+      result.d_consoleSocket.bind(local, true);
+      result.d_consoleSocket.listen(5);
+    }
+    catch (const std::exception& exp) {
+      errlog("Unable to bind to control socket on %s: %s", local.toStringWithPort(), exp.what());
+    }
+  }
+
+  if (currentConfig.d_webServerAddress) {
+    const auto& local = *currentConfig.d_webServerAddress;
+    try {
+      result.d_webServerSocket = Socket(local.sin4.sin_family, SOCK_STREAM, 0);
+      result.d_webServerSocket.bind(local, true);
+      result.d_webServerSocket.listen(5);
+    }
+    catch (const std::exception& exp) {
+      errlog("Unable to bind to web server socket on %s: %s", local.toStringWithPort(), exp.what());
+    }
+  }
+
+  return result;
+}
+
+static std::optional<std::string> lookForTentativeConfigurationFileWithExtension(const std::string& configurationFile, const std::string& extension)
+{
+  auto dotPos = configurationFile.rfind('.');
+  if (dotPos == std::string::npos) {
+    return std::nullopt;
+  }
+  auto tentativeFile = configurationFile.substr(0, dotPos + 1) + extension;
+  if (!std::filesystem::exists(tentativeFile)) {
+    return std::nullopt;
+  }
+  return tentativeFile;
+}
+
+static bool loadConfigurationFromFile(const std::string& configurationFile, bool isClient, bool configCheck)
+{
+  if (boost::ends_with(configurationFile, ".yml")) {
+    // the bindings are always needed, for example for inline Lua
+    dnsdist::lua::setupLuaBindingsOnly(*(g_lua.lock()), isClient, configCheck);
+
+    if (auto tentativeLuaConfFile = lookForTentativeConfigurationFileWithExtension(configurationFile, "lua")) {
+      vinfolog("Loading configuration from auto-discovered Lua file %s", *tentativeLuaConfFile);
+      dnsdist::configuration::lua::loadLuaConfigurationFile(*(g_lua.lock()), *tentativeLuaConfFile, configCheck);
+    }
+    vinfolog("Loading configuration from YAML file %s", configurationFile);
+    if (!dnsdist::configuration::yaml::loadConfigurationFromFile(configurationFile, isClient, configCheck)) {
+      return false;
+    }
+    if (!isClient && !configCheck) {
+      dnsdist::lua::setupLuaConfigurationOptions(*(g_lua.lock()), false, false);
+    }
+    return true;
+  }
+
+  dnsdist::lua::setupLua(*(g_lua.lock()), isClient, configCheck);
+  if (boost::ends_with(configurationFile, ".lua")) {
+    vinfolog("Loading configuration from Lua file %s", configurationFile);
+    dnsdist::configuration::lua::loadLuaConfigurationFile(*(g_lua.lock()), configurationFile, configCheck);
+    if (auto tentativeYamlConfFile = lookForTentativeConfigurationFileWithExtension(configurationFile, "yml")) {
+      vinfolog("Loading configuration from auto-discovered YAML file %s", *tentativeYamlConfFile);
+      return dnsdist::configuration::yaml::loadConfigurationFromFile(*tentativeYamlConfFile, isClient, configCheck);
+    }
+  }
+  else {
+    vinfolog("Loading configuration from Lua file %s", configurationFile);
+    dnsdist::configuration::lua::loadLuaConfigurationFile(*(g_lua.lock()), configurationFile, configCheck);
+  }
+  return true;
+}
+
 int main(int argc, char** argv)
 {
   try {
+    CommandLineParameters cmdLine{};
     size_t udpBindsCount = 0;
     size_t tcpBindsCount = 0;
-#ifdef HAVE_LIBEDIT
-#ifndef DISABLE_COMPLETION
-    rl_attempted_completion_function = my_completion;
-    rl_completion_append_character = 0;
-#endif /* DISABLE_COMPLETION */
-#endif /* HAVE_LIBEDIT */
+
+    dnsdist::console::completion::setupCompletion();
 
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast): SIG_IGN macro
     signal(SIGPIPE, SIG_IGN);
@@ -3286,7 +3426,9 @@ int main(int argc, char** argv)
     }
 #endif
     dnsdist::initRandom();
-    g_hashperturb = dnsdist::getRandomValue(0xffffffff);
+    dnsdist::configuration::updateImmutableConfiguration([](dnsdist::configuration::ImmutableConfiguration& config) {
+      config.d_hashPerturbation = dnsdist::getRandomValue(0xffffffff);
+    });
 
 #ifdef HAVE_XSK
     try {
@@ -3299,19 +3441,28 @@ int main(int argc, char** argv)
 #endif /* HAVE_XSK */
 
     ComboAddress clientAddress = ComboAddress();
-    g_cmdLine.config = SYSCONFDIR "/dnsdist.conf";
+    cmdLine.config = SYSCONFDIR "/dnsdist.conf";
 
-    parseParameters(argc, argv, clientAddress);
+    parseParameters(argc, argv, cmdLine, clientAddress);
 
-    ServerPolicy leastOutstandingPol{"leastOutstanding", leastOutstanding, false};
+    dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
+      config.d_lbPolicy = std::make_shared<ServerPolicy>("leastOutstanding", leastOutstanding, false);
+    });
 
-    g_policy.setState(leastOutstandingPol);
-    if (g_cmdLine.beClient || !g_cmdLine.command.empty()) {
-      setupLua(*(g_lua.lock()), true, false, g_cmdLine.config);
+    if (cmdLine.beClient || !cmdLine.command.empty()) {
+      if (!loadConfigurationFromFile(cmdLine.config, true, false)) {
+#ifdef COVERAGE
+        exit(EXIT_FAILURE);
+#else
+        _exit(EXIT_FAILURE);
+#endif
+      }
       if (clientAddress != ComboAddress()) {
-        g_serverControl = clientAddress;
+        dnsdist::configuration::updateRuntimeConfiguration([&clientAddress](dnsdist::configuration::RuntimeConfiguration& config) {
+          config.d_consoleServerAddress = clientAddress;
+        });
       }
-      doClient(g_serverControl, g_cmdLine.command);
+      dnsdist::console::doClient(cmdLine.command);
 #ifdef COVERAGE
       exit(EXIT_SUCCESS);
 #else
@@ -3319,50 +3470,54 @@ int main(int argc, char** argv)
 #endif
     }
 
-    auto acl = g_ACL.getCopy();
-    if (acl.empty()) {
-      for (const auto& addr : {"127.0.0.0/8", "10.0.0.0/8", "100.64.0.0/10", "169.254.0.0/16", "192.168.0.0/16", "172.16.0.0/12", "::1/128", "fc00::/7", "fe80::/10"}) {
-        acl.addMask(addr);
+    dnsdist::configuration::updateRuntimeConfiguration([](dnsdist::configuration::RuntimeConfiguration& config) {
+      auto& acl = config.d_ACL;
+      if (acl.empty()) {
+        for (const auto& addr : {"127.0.0.0/8", "10.0.0.0/8", "100.64.0.0/10", "169.254.0.0/16", "192.168.0.0/16", "172.16.0.0/12", "::1/128", "fc00::/7", "fe80::/10"}) {
+          acl.addMask(addr);
+        }
       }
-      g_ACL.setState(acl);
-    }
+      for (const auto& mask : {"127.0.0.1/8", "::1/128"}) {
+        config.d_consoleACL.addMask(mask);
+      }
+      config.d_webServerACL.toMasks("127.0.0.1, ::1");
+    });
 
-    auto consoleACL = g_consoleACL.getCopy();
-    for (const auto& mask : {"127.0.0.1/8", "::1/128"}) {
-      consoleACL.addMask(mask);
-    }
-    g_consoleACL.setState(consoleACL);
-    registerBuiltInWebHandlers();
+    dnsdist::webserver::registerBuiltInWebHandlers();
 
-    if (g_cmdLine.checkConfig) {
-      setupLua(*(g_lua.lock()), false, true, g_cmdLine.config);
+    if (cmdLine.checkConfig) {
+      if (!loadConfigurationFromFile(cmdLine.config, false, true)) {
+#ifdef COVERAGE
+        exit(EXIT_FAILURE);
+#else
+        _exit(EXIT_FAILURE);
+#endif
+      }
       // No exception was thrown
-      infolog("Configuration '%s' OK!", g_cmdLine.config);
-#ifdef COVERAGE
-      cleanupLuaObjects();
-      exit(EXIT_SUCCESS);
-#else
-      _exit(EXIT_SUCCESS);
-#endif
+      infolog("Configuration '%s' OK!", cmdLine.config);
+      doExitNicely();
     }
 
     infolog("dnsdist %s comes with ABSOLUTELY NO WARRANTY. This is free software, and you are welcome to redistribute it according to the terms of the GPL version 2", VERSION);
 
     dnsdist::g_asyncHolder = std::make_unique<dnsdist::AsynchronousHolder>();
 
-    auto todo = setupLua(*(g_lua.lock()), false, false, g_cmdLine.config);
+    /* create the default pool no matter what */
+    createPoolIfNotExists("");
+
+    if (!loadConfigurationFromFile(cmdLine.config, false, false)) {
+#ifdef COVERAGE
+      exit(EXIT_FAILURE);
+#else
+      _exit(EXIT_FAILURE);
+#endif
+    }
 
     setupPools();
 
-    initFrontends();
+    initFrontends(cmdLine);
 
-    g_configurationDone = true;
-
-    g_rings.init();
-
-    for (auto& frontend : g_frontends) {
-      setUpLocalBind(frontend);
-
+    for (const auto& frontend : dnsdist::getFrontends()) {
       if (!frontend->tcp) {
         ++udpBindsCount;
       }
@@ -3371,9 +3526,32 @@ int main(int argc, char** argv)
       }
     }
 
+    dnsdist::configuration::setImmutableConfigurationDone();
+
+    {
+      const auto& immutableConfig = dnsdist::configuration::getImmutableConfiguration();
+      setTCPDownstreamMaxIdleConnectionsPerBackend(immutableConfig.d_outgoingTCPMaxIdlePerBackend);
+      setTCPDownstreamMaxIdleTime(immutableConfig.d_outgoingTCPMaxIdleTime);
+      setTCPDownstreamCleanupInterval(immutableConfig.d_outgoingTCPCleanupInterval);
+#if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
+      setDoHDownstreamMaxIdleConnectionsPerBackend(immutableConfig.d_outgoingDoHMaxIdlePerBackend);
+      setDoHDownstreamMaxIdleTime(immutableConfig.d_outgoingDoHMaxIdleTime);
+      setDoHDownstreamCleanupInterval(immutableConfig.d_outgoingDoHCleanupInterval);
+#endif /* HAVE_DNS_OVER_HTTPS && HAVE_NGHTTP2 */
+    }
+
+    {
+      const auto& config = dnsdist::configuration::getImmutableConfiguration();
+      g_rings.init(config.d_ringsCapacity, config.d_ringsNumberOfShards, config.d_ringsNbLockTries, config.d_ringsRecordQueries, config.d_ringsRecordResponses);
+    }
+
+    for (const auto& frontend : dnsdist::getFrontends()) {
+      setUpLocalBind(*frontend);
+    }
+
     {
       std::string acls;
-      auto aclEntries = g_ACL.getLocal()->toStringVector();
+      auto aclEntries = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ACL.toStringVector();
       for (const auto& aclEntry : aclEntries) {
         if (!acls.empty()) {
           acls += ", ";
@@ -3384,7 +3562,7 @@ int main(int argc, char** argv)
     }
     {
       std::string acls;
-      auto aclEntries = g_consoleACL.getLocal()->toStringVector();
+      auto aclEntries = dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleACL.toStringVector();
       for (const auto& entry : aclEntries) {
         if (!acls.empty()) {
           acls += ", ";
@@ -3394,62 +3572,74 @@ int main(int argc, char** argv)
       infolog("Console ACL allowing connections from: %s", acls.c_str());
     }
 
+    auto listeningSockets = initListeningSockets();
+
 #if defined(HAVE_LIBSODIUM) || defined(HAVE_LIBCRYPTO)
-    if (g_consoleEnabled && g_consoleKey.empty()) {
+    if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleEnabled && dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleKey.empty()) {
       warnlog("Warning, the console has been enabled via 'controlSocket()' but no key has been set with 'setKey()' so all connections will fail until a key has been set");
     }
 #endif
 
-    dropPrivileges();
+    dropPrivileges(cmdLine);
 
     /* this need to be done _after_ dropping privileges */
 #ifndef DISABLE_DELAY_PIPE
     g_delay = std::make_unique<DelayPipe<DelayedPacket>>();
 #endif /* DISABLE_DELAY_PIPE */
 
-    if (g_snmpAgent != nullptr) {
+#if defined(HAVE_NET_SNMP)
+    if (dnsdist::configuration::getImmutableConfiguration().d_snmpEnabled) {
+      g_snmpAgent = std::make_unique<DNSDistSNMPAgent>("dnsdist", dnsdist::configuration::getImmutableConfiguration().d_snmpDaemonSocketPath);
       g_snmpAgent->run();
     }
-
-    if (!g_maxTCPClientThreads) {
-      g_maxTCPClientThreads = static_cast<size_t>(10);
-    }
-    else if (*g_maxTCPClientThreads == 0 && tcpBindsCount > 0) {
-      warnlog("setMaxTCPClientThreads() has been set to 0 while we are accepting TCP connections, raising to 1");
-      g_maxTCPClientThreads = 1;
-    }
+#endif /* HAVE_NET_SNMP */
 
     /* we need to create the TCP worker threads before the
        acceptor ones, otherwise we might crash when processing
        the first TCP query */
 #ifndef USE_SINGLE_ACCEPTOR_THREAD
-    g_tcpclientthreads = std::make_unique<TCPClientCollection>(*g_maxTCPClientThreads, std::vector<ClientState*>());
+    const auto maxTCPClientThreads = dnsdist::configuration::getImmutableConfiguration().d_maxTCPClientThreads;
+    /* the limit is completely arbitrary: hopefully high enough not to trigger too many false positives
+       but low enough to be useful */
+    if (maxTCPClientThreads >= 50U) {
+      warnlog("setMaxTCPClientThreads(%d) might create a large number of TCP connections to backends, and is probably not needed, please consider lowering it", maxTCPClientThreads);
+    }
+    g_tcpclientthreads = std::make_unique<TCPClientCollection>(maxTCPClientThreads, std::vector<ClientState*>());
 #endif
 
 #if defined(HAVE_DNS_OVER_HTTPS) && defined(HAVE_NGHTTP2)
     initDoHWorkers();
 #endif
 
-    for (auto& todoItem : todo) {
-      todoItem();
+    if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_consoleEnabled) {
+      std::thread consoleControlThread(dnsdist::console::controlThread, std::move(listeningSockets.d_consoleSocket));
+      consoleControlThread.detach();
+    }
+    if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_webServerAddress) {
+      std::thread webServerThread(dnsdist::webserver::WebserverThread, std::move(listeningSockets.d_webServerSocket));
+      webServerThread.detach();
     }
 
-    auto localPools = g_pools.getCopy();
-    /* create the default pool no matter what */
-    createPoolIfNotExists(localPools, "");
-    if (!g_cmdLine.remotes.empty()) {
-      for (const auto& address : g_cmdLine.remotes) {
+    for (const auto& backend : dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends) {
+      if (backend->connected) {
+        backend->start();
+      }
+    }
+
+    if (!cmdLine.remotes.empty()) {
+      for (const auto& address : cmdLine.remotes) {
         DownstreamState::Config config;
         config.remote = ComboAddress(address, 53);
         auto ret = std::make_shared<DownstreamState>(std::move(config), nullptr, true);
-        addServerToPool(localPools, "", ret);
+        addServerToPool("", ret);
         ret->start();
-        g_dstates.modify([&ret](servers_t& servers) { servers.push_back(std::move(ret)); });
+        dnsdist::configuration::updateRuntimeConfiguration([&ret](dnsdist::configuration::RuntimeConfiguration& runtimeConfig) {
+          runtimeConfig.d_backends.push_back(std::move(ret));
+        });
       }
     }
-    g_pools.setState(localPools);
 
-    if (g_dstates.getLocal()->empty()) {
+    if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends.empty()) {
       errlog("No downstream servers defined: all packets will get dropped");
       // you might define them later, but you need to know
     }
@@ -3457,12 +3647,13 @@ int main(int argc, char** argv)
     checkFileDescriptorsLimits(udpBindsCount, tcpBindsCount);
 
     {
-      auto states = g_dstates.getCopy(); // it is a copy, but the internal shared_ptrs are the real deal
+      // coverity[auto_causes_copy]
+      const auto states = dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends; // it is a copy, but the internal shared_ptrs are the real deal
       auto mplexer = std::unique_ptr<FDMultiplexer>(FDMultiplexer::getMultiplexerSilent(states.size()));
       for (auto& dss : states) {
 
-        if (dss->d_config.availability == DownstreamState::Availability::Auto || dss->d_config.availability == DownstreamState::Availability::Lazy) {
-          if (dss->d_config.availability == DownstreamState::Availability::Auto) {
+        if (dss->d_config.d_availability == DownstreamState::Availability::Auto) {
+          if (dss->d_config.d_healthCheckMode == DownstreamState::HealthCheckMode::Active) {
             dss->d_nextCheck = dss->d_config.checkInterval;
           }
 
@@ -3481,7 +3672,7 @@ int main(int argc, char** argv)
     dnsdist::ServiceDiscovery::run();
 
 #ifndef DISABLE_CARBON
-    dnsdist::Carbon::run();
+    dnsdist::Carbon::run(dnsdist::configuration::getCurrentRuntimeConfiguration().d_carbonEndpoints);
 #endif /* DISABLE_CARBON */
 
     thread stattid(maintThread);
@@ -3495,13 +3686,13 @@ int main(int argc, char** argv)
 #endif /* DISABLE_DYNBLOCKS */
 
 #ifndef DISABLE_SECPOLL
-    if (!g_secPollSuffix.empty()) {
+    if (!dnsdist::configuration::getCurrentRuntimeConfiguration().d_secPollSuffix.empty()) {
       thread secpollthread(secPollThread);
       secpollthread.detach();
     }
 #endif /* DISABLE_SECPOLL */
 
-    if (g_cmdLine.beSupervised) {
+    if (cmdLine.beSupervised) {
 #ifdef HAVE_SYSTEMD
       sd_notify(0, "READY=1");
 #endif
@@ -3509,14 +3700,9 @@ int main(int argc, char** argv)
     }
     else {
       healththread.detach();
-      doConsole();
+      dnsdist::console::doConsole();
     }
-#ifdef COVERAGE
-    cleanupLuaObjects();
-    exit(EXIT_SUCCESS);
-#else
-    _exit(EXIT_SUCCESS);
-#endif
+    doExitNicely();
   }
   catch (const LuaContext::ExecutionErrorException& e) {
     try {
@@ -3529,29 +3715,14 @@ int main(int argc, char** argv)
     catch (const PDNSException& ae) {
       errlog("Fatal pdns error: %s", ae.reason);
     }
-#ifdef COVERAGE
-    cleanupLuaObjects();
-    exit(EXIT_FAILURE);
-#else
-    _exit(EXIT_FAILURE);
-#endif
+    doExitNicely(EXIT_FAILURE);
   }
   catch (const std::exception& e) {
     errlog("Fatal error: %s", e.what());
-#ifdef COVERAGE
-    cleanupLuaObjects();
-    exit(EXIT_FAILURE);
-#else
-    _exit(EXIT_FAILURE);
-#endif
+    doExitNicely(EXIT_FAILURE);
   }
   catch (const PDNSException& ae) {
     errlog("Fatal pdns error: %s", ae.reason);
-#ifdef COVERAGE
-    cleanupLuaObjects();
-    exit(EXIT_FAILURE);
-#else
-    _exit(EXIT_FAILURE);
-#endif
+    doExitNicely(EXIT_FAILURE);
   }
 }

@@ -177,7 +177,7 @@ Changelogs for 4.2.x
 
   The LMDB backend is incomplete in this version. Slaving zones works, loading zones with pdnsutil works, but more fine-grained edits (using edit-zone, or the REST API) fail. We hope to fix this soon in a 4.2.x release.
 
-  For an overview of features new since 4.1.x, please see `the 4.2.0 announcement blog post <http://blog.powerdns.com/2019/08/29/powerdns-authoritative-server-4-2-0/>`__.
+  For an overview of features new since 4.1.x, please see `the 4.2.0 announcement blog post <https://blog.powerdns.com/2019/08/30/powerdns-authoritative-server-4-2-0>`__.
 
   .. change::
     :tags: Bug Fixes
@@ -550,7 +550,7 @@ Changelogs for 4.2.x
     * Do not busy loop if we get lots of notifies.
     * Improve error reporting with garbage in the 'master' field of the database
     * Do not exit on exception resolving addresses to notify
-    * Auth ringbuffer summaries were case sensitive & accounted delegations incorrectly
+    * Auth ringbuffer summaries were case-sensitive & accounted delegations incorrectly
     * plug mysql_thread_init memory leak
     * Ensure we increase the number of queued queries before decreasing it
 
@@ -1455,7 +1455,7 @@ Changelogs for 4.2.x
     :tags: Bug Fixes
     :pullreq: 6396
 
-    Report unparseable data in stoul ``invalid_argument`` exception.
+    Report unparsable data in stoul ``invalid_argument`` exception.
 
   .. change::
     :tags: New Features, Tools
@@ -1543,7 +1543,7 @@ Changelogs for 4.2.x
     :pullreq: 6128
     :tickets: 5268
 
-    GeoIPbackend improvements:
+    GeoIP backend improvements:
 
     * Adds MMDB support. Now geoip backend can be compiled without geoip support,
     * Adds location support,

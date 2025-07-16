@@ -1,16 +1,16 @@
 # See https://github.com/check-spelling/check-spelling/wiki/Configuration-Examples:-excludes
-# want to include regression-tests.*/description
 (?:^|/)(?i)COPYRIGHT
 (?:^|/)(?i)LICEN[CS]E
+(?:^|/)(?i)third[-_]?party/
 (?:^|/)3rdparty/
 (?:^|/)ext/
-(?:^|/)go\.mod$
+(?:^|/)generated/
 (?:^|/)go\.sum$
 (?:^|/)m4/
 (?:^|/)package(?:-lock|)\.json$
 (?:^|/)Pipfile$
 (?:^|/)pyproject.toml
-(?:^|/)requirements(?:-dev|-doc|-test|)\.txt$
+(?:^|/|\b)requirements(?:-dev|-doc|-test|)\.txt$
 (?:^|/)vendor/
 /expected_result
 /test-base64_cc\.cc$
@@ -24,11 +24,10 @@ SUMS$
 \.avi$
 \.bmp$
 \.bz2$
-\.cer$
+\.cert?$|\.crt$
 \.class$
 \.coveragerc$
 \.crl$
-\.crt$
 \.csr$
 \.dll$
 \.docx?$
@@ -93,7 +92,9 @@ SUMS$
 \.yml$
 \.zip$
 ^codedocs/doxygen\.conf$
+^docs/depfile\.py$
 ^docs/http-api/tsigkey\.rst$
+^docs/http-api/swagger/spectral-ruleset\.yaml$
 ^docs/lua-records/reference/index\.rst$
 ^modules/remotebackend/example\.rb$
 ^modules/remotebackend/test-remotebackend-keys\.hh$
@@ -106,4 +107,3 @@ SUMS$
 ^\.github/actions/spelling/
 ^\.github/workflows/spelling\d*\.yml$
 ^\Qdocs/lua-records/reference/index.rst\E$
-^\Qpdns/dnsdistdist/docs/_static/dnsdist-keyblock.asc\E$

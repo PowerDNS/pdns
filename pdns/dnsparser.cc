@@ -27,6 +27,8 @@
 #include "namespaces.hh"
 #include "noinitvector.hh"
 
+std::atomic<bool> DNSRecordContent::d_locked{false};
+
 UnknownRecordContent::UnknownRecordContent(const string& zone)
 {
   // parse the input
@@ -78,7 +80,7 @@ void UnknownRecordContent::toPacket(DNSPacketWriter& pw) const
   pw.xfrBlob(string(d_record.begin(),d_record.end()));
 }
 
-shared_ptr<DNSRecordContent> DNSRecordContent::deserialize(const DNSName& qname, uint16_t qtype, const string& serialized)
+shared_ptr<DNSRecordContent> DNSRecordContent::deserialize(const DNSName& qname, uint16_t qtype, const string& serialized, uint16_t qclass, bool internalRepresentation)
 {
   dnsheader dnsheader;
   memset(&dnsheader, 0, sizeof(dnsheader));
@@ -100,7 +102,7 @@ shared_ptr<DNSRecordContent> DNSRecordContent::deserialize(const DNSName& qname,
 
   struct dnsrecordheader drh;
   drh.d_type=htons(qtype);
-  drh.d_class=htons(QClass::IN);
+  drh.d_class=htons(qclass);
   drh.d_ttl=0;
   drh.d_clen=htons(serialized.size());
 
@@ -112,14 +114,15 @@ shared_ptr<DNSRecordContent> DNSRecordContent::deserialize(const DNSName& qname,
   }
 
   DNSRecord dr;
-  dr.d_class = QClass::IN;
+  dr.d_class = qclass;
   dr.d_type = qtype;
   dr.d_name = qname;
   dr.d_clen = serialized.size();
-  PacketReader pr(std::string_view(reinterpret_cast<const char*>(packet.data()), packet.size()), packet.size() - serialized.size() - sizeof(dnsrecordheader));
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): packet.data() is uint8_t *
+  PacketReader reader(std::string_view(reinterpret_cast<const char*>(packet.data()), packet.size()), packet.size() - serialized.size() - sizeof(dnsrecordheader), internalRepresentation);
   /* needed to get the record boundaries right */
-  pr.getDnsrecordheader(drh);
-  auto content = DNSRecordContent::make(dr, pr, Opcode::Query);
+  reader.getDnsrecordheader(drh);
+  auto content = DNSRecordContent::make(dr, reader, Opcode::Query);
   return content;
 }
 
@@ -305,7 +308,7 @@ void MOADNSParser::init(bool query, const std::string_view& packet)
         d_tsigPos = recordStartPos;
       }
 
-      d_answers.emplace_back(std::move(dr), pr.getPosition() - sizeof(dnsheader));
+      d_answers.emplace_back(std::move(dr));
     }
 
 #if 0
@@ -342,7 +345,7 @@ bool MOADNSParser::hasEDNS() const
   }
 
   for (const auto& record : d_answers) {
-    if (record.first.d_place == DNSResourceRecord::ADDITIONAL && record.first.d_type == QType::OPT) {
+    if (record.d_place == DNSResourceRecord::ADDITIONAL && record.d_type == QType::OPT) {
       return true;
     }
   }
@@ -467,22 +470,25 @@ DNSName PacketReader::getName()
   throw PDNSException("PacketReader::getName(): name is empty");
 }
 
-static string txtEscape(const string &name)
+// FIXME see #6010 and #3503 if you want a proper solution
+string txtEscape(const string &name)
 {
   string ret;
-  char ebuf[5];
+  std::array<char, 5> ebuf{};
 
-  for(char i : name) {
-    if((unsigned char) i >= 127 || (unsigned char) i < 32) {
-      snprintf(ebuf, sizeof(ebuf), "\\%03u", (unsigned char)i);
-      ret += ebuf;
+  for (char letter : name) {
+    const unsigned uch = static_cast<unsigned char>(letter);
+    if (uch >= 127 || uch < 32) {
+      snprintf(ebuf.data(), ebuf.size(), "\\%03u", uch);
+      ret += ebuf.data();
     }
-    else if(i=='"' || i=='\\'){
+    else if (letter == '"' || letter == '\\'){
       ret += '\\';
-      ret += i;
+      ret += letter;
     }
-    else
-      ret += i;
+    else {
+      ret += letter;
+    }
   }
   return ret;
 }
@@ -628,7 +634,7 @@ void PacketReader::xfrSvcParamKeyVals(set<SvcParam> &kvs) {
           throw std::out_of_range("alpn length of 0");
         }
         xfrBlob(alpn, alpnLen);
-        alpns.push_back(alpn);
+        alpns.push_back(std::move(alpn));
       }
       kvs.insert(SvcParam(key, std::move(alpns)));
       break;
@@ -663,7 +669,13 @@ void PacketReader::xfrSvcParamKeyVals(set<SvcParam> &kvs) {
         xfrCAWithoutPort(key, addr);
         addresses.push_back(addr);
       }
-      kvs.insert(SvcParam(key, std::move(addresses)));
+      // If there were no addresses, and the input comes from internal
+      // representation, we can reasonably assume this is the serialization
+      // of "auto".
+      bool doAuto{d_internal && len == 0};
+      auto param = SvcParam(key, std::move(addresses));
+      param.setAutoHint(doAuto);
+      kvs.insert(std::move(param));
       break;
     }
     case SvcParam::ech: {
@@ -1007,9 +1019,7 @@ uint32_t getDNSPacketMinTTL(const char* packet, size_t length, bool* seenAuthSOA
       }
 
       const uint32_t ttl = dpm.get32BitInt();
-      if (result > ttl) {
-        result = ttl;
-      }
+      result = std::min(result, ttl);
 
       dpm.skipRData();
     }

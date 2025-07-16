@@ -55,9 +55,7 @@ void logTime(std::ostream& stream)
   std::array<char, 50> buffer{""};
 
   if (LoggingConfiguration::getStructuredLogging() && LoggingConfiguration::getStructuredLoggingTimeFormat() == LoggingConfiguration::TimeFormat::Numeric) {
-    struct timeval now
-    {
-    };
+    struct timeval now{};
     gettimeofday(&now, nullptr);
     snprintf(buffer.data(), buffer.size(), "%lld.%03ld", static_cast<long long>(now.tv_sec), static_cast<long>(now.tv_usec / 1000));
   }
@@ -69,15 +67,13 @@ void logTime(std::ostream& stream)
 
     time_t now{0};
     time(&now);
-    struct tm localNow
-    {
-    };
+    struct tm localNow{};
     localtime_r(&now, &localNow);
 
     {
       // strftime is not thread safe, it can access locale information
       static std::mutex mutex;
-      auto lock = std::lock_guard(mutex);
+      auto lock = std::scoped_lock(mutex);
 
       if (strftime(buffer.data(), buffer.size(), timeFormat, &localNow) == 0) {
         buffer[0] = '\0';

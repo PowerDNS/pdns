@@ -22,14 +22,17 @@
 #pragma once
 
 #include <functional>
+#include <string>
 
 class LuaContext;
 
 namespace dnsdist::lua::hooks
 {
-using MaintenanceCallback = std::function<void()>;
 void runMaintenanceHooks(const LuaContext& context);
-void addMaintenanceCallback(const LuaContext& context, MaintenanceCallback callback);
 void clearMaintenanceHooks();
+void runExitCallbacks(const LuaContext& context);
+void clearExitCallbacks();
+void runServerStateChangeHooks(const LuaContext& context, const std::string& nameWithAddr, bool newState);
+void clearServerStateChangeCallbacks();
 void setupLuaHooks(LuaContext& luaCtx);
 }

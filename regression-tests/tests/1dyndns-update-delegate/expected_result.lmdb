@@ -1,0 +1,57 @@
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+Check delegate1 added correctly
+--- Start: diff start step.1 ---
+> delegate1.test.dyndns	3600	IN	NS	ns1.delegate1.test.dyndns.
+> delegate1.test.dyndns	3600	IN	NS	ns2.delegate1.test.dyndns.
+> ns1.delegate1.test.dyndns	3600	IN	A	127.0.0.1
+> ns2.delegate1.test.dyndns	3600	IN	A	127.0.0.1
+--- End: diff start step.1 ---
+
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+Check delegate2 added correctly
+--- Start: diff start step.2 ---
+> delegate1.test.dyndns	3600	IN	NS	ns1.delegate1.test.dyndns.
+> delegate1.test.dyndns	3600	IN	NS	ns2.delegate1.test.dyndns.
+> delegate2.test.dyndns	3600	IN	NS	ns1.delegate2.test.dyndns.
+> delegate2.test.dyndns	3600	IN	NS	ns2.example.com.
+> ns1.delegate1.test.dyndns	3600	IN	A	127.0.0.1
+> ns1.delegate2.test.dyndns	3600	IN	A	127.0.0.1
+> ns2.delegate1.test.dyndns	3600	IN	A	127.0.0.1
+> ns2.delegate2.test.dyndns	3600	IN	A	127.0.0.1
+--- End: diff start step.2 ---
+
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+check delegate delete
+--- Start: diff start step.3 ---
+> ns1.delegate1.test.dyndns	3600	IN	A	127.0.0.1
+> ns1.delegate2.test.dyndns	3600	IN	A	127.0.0.1
+> ns2.delegate1.test.dyndns	3600	IN	A	127.0.0.1
+> ns2.delegate2.test.dyndns	3600	IN	A	127.0.0.1
+--- End: diff start step.3 ---
+
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+Check if glue records are deleted and zone back to how we started
+--- Start: diff start step.4 ---
+no difference
+--- End: diff start step.4 ---
+

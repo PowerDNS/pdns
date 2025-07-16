@@ -87,17 +87,17 @@ namespace pdns {
     }
     typename std::aligned_storage_t<sizeof(atomic_t), CPU_LEVEL1_DCACHE_LINESIZE> counter;
   };
-
-  using stat_t = stat_t_trait<uint64_t>;
-  using stat32_t = stat_t_trait<uint32_t>;
-  using stat16_t = stat_t_trait<uint16_t>;
 }
 #else
 namespace pdns {
-  using stat_t = std::atomic<uint64_t>;
-  using stat32_t = std::atomic<uint32_t>;
-  using stat16_t = std::atomic<uint16_t>;
   template <class T>
   using stat_t_trait = std::atomic<T>;
 }
 #endif
+
+namespace pdns {
+  using stat_t = stat_t_trait<uint64_t>;
+  using stat32_t = stat_t_trait<uint32_t>;
+  using stat16_t = stat_t_trait<uint16_t>;
+  using stat_double_t = stat_t_trait<double>;
+}

@@ -40,7 +40,7 @@ This is a small bugfix release. Additionally, the deb/RPM packages on
 downloads.powerdns.com (those with -static in the name) for 3.4.8 have
 been built against Botan 1.10.11 instead of Botan 1.10.3 like previous
 packages. Please see `the Botan Security
-page <http://botan.randombit.net/security.html>`__ for more information
+page <https://botan.randombit.net/security.html>`__ for more information
 on the fixes in Botan 1.10.11. As a PowerDNS user, these issues only
 affect you if you ran our -static packages *and* allowed your users to
 upload private keys to your configuration.
@@ -73,7 +73,7 @@ PowerDNS Authoritative Server 3.4.7
 Released 3rd of November 2015
 
 This is a security release fixing `Security Advisory
-2015-03 <security/powerdns-advisory-2015-03.md>`__
+2015-03 <../security-advisories/powerdns-advisory-2015-03.rst>`__
 
 Bug fixes:
 
@@ -144,7 +144,7 @@ PowerDNS Authoritative Server 3.4.6
 Released 28th of August 2015
 
 This is a security release fixing `Security Advisory
-2015-02 <security/powerdns-advisory-2015-02.md>`__
+2015-02 <../security-advisories/powerdns-advisory-2015-02.rst>`__
 
 Bug fixes:
 
@@ -185,7 +185,7 @@ PowerDNS Authoritative Server 3.3.3
 Released 9th of June 2015
 
 This is a security release fixing `Security Advisory
-2015-01 <security/powerdns-advisory-2015-01.md>`__
+2015-01 <../security-advisories/powerdns-advisory-2015-01.rst>`__
 
 Bug fixes:
 
@@ -198,7 +198,7 @@ PowerDNS Authoritative Server 3.4.5
 Released 9th of June 2015
 
 This is a security release fixing `Security Advisory
-2015-01 <security/powerdns-advisory-2015-01.md>`__
+2015-01 <../security-advisories/powerdns-advisory-2015-01.rst>`__
 
 Bug fixes:
 
@@ -254,7 +254,7 @@ Released 1st of May, 2015
 
 Among other bug fixes and improvements (as listed below), this release
 incorporates a fix for CVE-2015-1868, as detailed in `PowerDNS Security
-Advisory 2015-01 <security/powerdns-advisory-2015-01.md>`__
+Advisory 2015-01 <../security-advisories/powerdns-advisory-2015-01.rst>`__
 
 If you are running DNSSEC with version 3.3.1 or below, and you cannot
 currently upgrade to 3.4.4, please consider upgrading to 3.3.2; it has a
@@ -303,7 +303,7 @@ Improvements:
 Bug fixes:
 
 -  `commit 88c52fe <https://github.com/PowerDNS/pdns/commit/88c52fe>`__:
-   make makeRelative() case insensitive (Kees Monshouwer)
+   make makeRelative() case-insensitive (Kees Monshouwer)
 
 DNSSEC improvements:
 
@@ -339,13 +339,13 @@ Released 23rd of April, 2015
 major upgrade if you are coming from 2.9.x. Additionally, if you are
 coming from any 3.x version (including 3.3.1), there is a mandatory SQL
 schema upgrade. Please refer to the `Upgrade
-documentation <authoritative/upgrading.md>`__ for important information
+documentation <../upgrading.rst>`__ for important information
 on correct and stable operation, as well as notes on performance and
 memory use.
 
 Among other bug fixes and improvements (as listed below), this release
 incorporates a fix for CVE-2015-1868, as detailed in `PowerDNS Security
-Advisory 2015-01 <security/powerdns-advisory-2015-01.md>`__
+Advisory 2015-01 <../security-advisories/powerdns-advisory-2015-01.rst>`__
 
 Bug fixes:
 
@@ -444,7 +444,7 @@ PowerDNS Authoritative Server 3.4.3
 major upgrade if you are coming from 2.9.x. Additionally, if you are
 coming from any 3.x version (including 3.3.1), there is a mandatory SQL
 schema upgrade. Please refer to the `Upgrade
-documentation <authoritative/upgrading.md>`__ for important information
+documentation <../upgrading.rst>`__ for important information
 on correct and stable operation, as well as notes on performance and
 memory use.
 
@@ -489,7 +489,7 @@ Improvements:
 Experimental API changes (Chris Hofstaedtler):
 
 -  `commit ca44706 <https://github.com/PowerDNS/pdns/commit/ca44706>`__:
-   API: move shared DomainInfo reader into it's own function
+   API: move shared DomainInfo reader into its own function
 -  `commit 102602f <https://github.com/PowerDNS/pdns/commit/102602f>`__:
    API: allow writing to domains.account field
 -  `commit d82f632 <https://github.com/PowerDNS/pdns/commit/d82f632>`__:
@@ -508,7 +508,7 @@ PowerDNS Authoritative Server 3.4.2
 major upgrade if you are coming from 2.9.x. Additionally, if you are
 coming from any 3.x version (including 3.3.1), there is a mandatory SQL
 schema upgrade. Please refer to the `Upgrade
-documentation <authoritative/upgrading.md>`__ for important information
+documentation <../upgrading.rst>`__ for important information
 on correct and stable operation, as well as notes on performance and
 memory use.
 
@@ -528,7 +528,7 @@ Improvements:
 -  `commit 73004f1 <https://github.com/PowerDNS/pdns/commit/73004f1>`__:
    implement CORS for the HTTP API
 -  `commit 4d9c289 <https://github.com/PowerDNS/pdns/commit/4d9c289>`__:
-   qtype is now case insensitive in API and database
+   qtype is now case-insensitive in API and database
 -  `commit 13af5d8 <https://github.com/PowerDNS/pdns/commit/13af5d8>`__,
    `commit 223373a <https://github.com/PowerDNS/pdns/commit/223373a>`__,
    `commit 1d5a68d <https://github.com/PowerDNS/pdns/commit/1d5a68d>`__,
@@ -647,7 +647,7 @@ PowerDNS Authoritative Server 3.4.1
 major upgrade if you are coming from 2.9.x. Additionally, if you are
 coming from any 3.x version (including 3.3.1), there is a mandatory SQL
 schema upgrade. Please refer to the `Upgrade
-documentation <authoritative/upgrading.md>`__ for important information
+documentation <../upgrading.rst>`__ for important information
 on correct and stable operation, as well as notes on performance and
 memory use.
 
@@ -667,7 +667,7 @@ A list of changes since 3.4.0 follows.
    PowerDNS now polls the security status of a release at startup and
    periodically. More detail on this feature, and how to turn it off,
    can be found in `Security
-   polling <common/security.md#security-polling>`__.
+   polling <../security.rst#security-polling>`__.
 -  `commit 5fe6dc0 <https://github.com/PowerDNS/pdns/commit/5fe6dc0>`__:
    API: Replace HTTP Basic auth with static key in custom header
    (X-API-Key)
@@ -693,7 +693,7 @@ contributors, to whom we are very grateful.
 major upgrade if you are coming from 2.9.x. Additionally, if you are
 coming from any 3.x version (including 3.3.1), there is a mandatory SQL
 schema upgrade. Please refer to the `Upgrade
-documentation <authoritative/upgrading.md>`__ for important information
+documentation <../upgrading.rst>`__ for important information
 on correct and stable operation, as well as notes on performance and
 memory use.
 
@@ -955,7 +955,7 @@ Other changes
 -  `commit 3613a51 <https://github.com/PowerDNS/pdns/commit/3613a51>`__:
    Show built-in features in ^^version output
 -  `commit 4bd7d35 <https://github.com/PowerDNS/pdns/commit/4bd7d35>`__:
-   make domainmetadata queries case insensitive
+   make domainmetadata queries case-insensitive
 -  `commit 088c334 <https://github.com/PowerDNS/pdns/commit/088c334>`__:
    output warning message when no to be notified NS's are found
 -  `commit 5631b44 <https://github.com/PowerDNS/pdns/commit/5631b44>`__:
@@ -986,9 +986,9 @@ Downloads
 ^^^^^^^^^
 
 -  `Official download
-   page <http://www.powerdns.com/content/downloads.html>`__
+   page <https://www.powerdns.com/downloads>`__
 -  `native RHEL5/6 packages from Kees
-   Monshouwer <http://www.monshouwer.eu/download/3rd_party/pdns-server/>`__
+   Monshouwer <https://www.monshouwer.eu/download/3rd_party/pdns/>`__
 
 Changes since 3.3
 ^^^^^^^^^^^^^^^^^
@@ -1036,7 +1036,7 @@ Changes since 3.3
    dfd1b82 <https://github.com/PowerDNS/pdns/commit/dfd1b82>`__).
 -  Build fixes for platforms with 'weird' types (like s390/s390x):
    `commit c669f7c <https://github.com/PowerDNS/pdns/commit/c669f7c>`__
-   (`details <http://blog.powerdns.com/2013/10/28/on-ragel-and-char-types/>`__),
+   (`details <https://blog.powerdns.com/2013/10/28/on-ragel-and-char-types/>`__),
    `commit 07b904e <https://github.com/PowerDNS/pdns/commit/07b904e>`__
    and `commit
    2400764 <https://github.com/PowerDNS/pdns/commit/2400764>`__.
@@ -1072,7 +1072,7 @@ Changes since 3.3
 -  `commit 213ec4a <https://github.com/PowerDNS/pdns/commit/213ec4a>`__:
    add constraints for name to pg schema
 -  `commit f104427 <https://github.com/PowerDNS/pdns/commit/f104427>`__:
-   make domainmetadata queries case insensitive
+   make domainmetadata queries case-insensitive
 -  `commit 78fc378 <https://github.com/PowerDNS/pdns/commit/78fc378>`__:
    no label compression for name in TSIG records
 -  `commit 15d6ffb <https://github.com/PowerDNS/pdns/commit/15d6ffb>`__:
@@ -1111,9 +1111,9 @@ Downloads
 ^^^^^^^^^
 
 -  `Official download
-   page <http://www.powerdns.com/content/downloads.html>`__
+   page <https://www.powerdns.com/downloads>`__
 -  `native RHEL5/6 packages from Kees
-   Monshouwer <http://www.monshouwer.eu/download/3rd_party/pdns-server/>`__
+   Monshouwer <https://www.monshouwer.eu/download/3rd_party/pdns/>`__
 
 Changes between RC2 and final
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1389,7 +1389,7 @@ Other changes
    correct bogus use of poll(2) related constants, improving non-Linux
    portability. Thanks Wouter de Jong.
 -  `commit 27ff60a <https://github.com/PowerDNS/pdns/commit/27ff60a>`__:
-   make sure our NSEC(3)s for names with spaces in them are correct.
+   make sure our NSEC/NSEC3 records for names with spaces in them are correct.
    Reported by Jimmy Bergman. Includes test.
 -  `commit 116e28a <https://github.com/PowerDNS/pdns/commit/116e28a>`__:
    reduce log level of successful gpgsql/gsqlite3 connection to Info
@@ -1443,7 +1443,7 @@ Other changes
    parameters for pdnssec.
 -  `commit 2f2b014 <https://github.com/PowerDNS/pdns/commit/2f2b014>`__:
    apply variant of code in `ticket
-   714 <https://github.com/PowerDNS/pdns/issues/714>`__ so we can lauch
+   714 <https://github.com/PowerDNS/pdns/issues/714>`__ so we can launch
    pipe backend scripts with parameters, plus add experimental code that
    if pipe-command is a unix domain socket, we use that.
 -  `commit 9566683 <https://github.com/PowerDNS/pdns/commit/9566683>`__:
@@ -1480,7 +1480,7 @@ against other authoritative servers.
 **Warning**: Version 3.2 of the PowerDNS Authoritative Server is a major
 upgrade if you are coming from 2.9.x. There are also some important
 changes if you are coming from 3.0 or 3.1. Please refer to the `Upgrade
-documentation <authoritative/upgrading.md>`__ for important information
+documentation <../upgrading.rst>`__ for important information
 on correct and stable operation, as well as notes on performance and
 memory use.
 
@@ -1488,81 +1488,64 @@ Downloads
 ^^^^^^^^^
 
 -  `Official download
-   page <http://www.powerdns.com/content/downloads.html>`__
+   page <https://www.powerdns.com/downloads>`__
 -  `native RHEL5/6 packages from Kees
-   Monshouwer <http://www.monshouwer.eu/download/3rd_party/pdns-server/>`__
+   Monshouwer <https://www.monshouwer.eu/download/3rd_party/pdns/>`__
 -  `additional third-party
    builds <http://wiki.powerdns.com/trac#GettingPowerDNSpackages>`__
 
 In addition to all the changes below, we now auto-build semi-static
-packages. Relevant changes to make that possible are in `commit
-2849 <http://wiki.powerdns.com/projects/trac/changeset/2849>`__, `commit
-2853 <http://wiki.powerdns.com/projects/trac/changeset/2853>`__, 2858,
-`commit 2859 <http://wiki.powerdns.com/projects/trac/changeset/2859>`__,
-`commit 2860 <http://wiki.powerdns.com/projects/trac/changeset/2860>`__.
+packages. Relevant changes to make that possible are in `commit f8d30633216e1e36d8a0d93e5dafa963e7f88209 <https://github.com/PowerDNS/pdns/commit/f8d30633216e1e36d8a0d93e5dafa963e7f88209>`__, `commit f696d497961da9485a2c6c9754b7339cbe4726b0 <https://github.com/PowerDNS/pdns/commit/f696d497961da9485a2c6c9754b7339cbe4726b0>`__, 2858,
+`commit e3c3a4db449386f4bd65760d79b8d95229385bcd <https://github.com/PowerDNS/pdns/commit/e3c3a4db449386f4bd65760d79b8d95229385bcd>`__,
+`commit d8e16f30952b85c8624bd47d6ab7cf402d770b98 <https://github.com/PowerDNS/pdns/commit/d8e16f30952b85c8624bd47d6ab7cf402d770b98>`__.
 
 Changes between 3.2-RC4 and the final 3.2 release
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 -  Aki Tuomi contributed a bunch of fixes to our crypto drivers. Code in
-   `commit
-   3036 <http://wiki.powerdns.com/projects/trac/changeset/3036>`__ and
-   `commit
-   3055 <http://wiki.powerdns.com/projects/trac/changeset/3055>`__/`commit
-   3057 <http://wiki.powerdns.com/projects/trac/changeset/3057>`__.
+   `commit 9b9fca6867fa20caa905c35faa3631781e88a743 <https://github.com/PowerDNS/pdns/commit/9b9fca6867fa20caa905c35faa3631781e88a743>`__ and
+   `commit 6d40be6aa0f07f8fdbb1084a0247f9f44c7edc63 <https://github.com/PowerDNS/pdns/commit/6d40be6aa0f07f8fdbb1084a0247f9f44c7edc63>`__/`commit a7e19882096cb4ad258610dd2718e84c597e9fa3 <https://github.com/PowerDNS/pdns/commit/a7e19882096cb4ad258610dd2718e84c597e9fa3>`__.
 -  The ksk\|zsk argument for pdnssec import-zone-key was required while
-   it should be optional. Fixed in `commit
-   3051 <http://wiki.powerdns.com/projects/trac/changeset/3051>`__.
+   it should be optional. Fixed in `commit d1eacbeb2be9fd2ef2faa3c867b4a934da637444 <https://github.com/PowerDNS/pdns/commit/d1eacbeb2be9fd2ef2faa3c867b4a934da637444>`__.
 
 Changes between 3.2-RC3 and 3.2-RC4
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 -  The experimental undocumented bindbackend superslave mode would break
    the first added domain until a restart. Fixed by Kees Monshouwer in
-   `commit
-   3013 <http://wiki.powerdns.com/projects/trac/changeset/3013>`__.
+   `commit ad371bf3d92be6e64ccbca2686493d41a6e8ef14 <https://github.com/PowerDNS/pdns/commit/ad371bf3d92be6e64ccbca2686493d41a6e8ef14>`__.
 -  Sander Hoentjen reported an issue with our choice of ports for
    outgoing TCP connections. Investigating it turned up that we were
    randomizing TCP connections on purpose while leaving UDP port choice
-   to the kernel, which should be the other way around. Fixed in `commit
-   3014 <http://wiki.powerdns.com/projects/trac/changeset/3014>`__,
+   to the kernel, which should be the other way around. Fixed in `commit eabdf7e0405bc12b93f9f3cb8a9e3e41f20452d3 <https://github.com/PowerDNS/pdns/commit/eabdf7e0405bc12b93f9f3cb8a9e3e41f20452d3>`__,
    closing `ticket 643 <https://github.com/PowerDNS/pdns/issues/643>`__
    and `ticket 644 <https://github.com/PowerDNS/pdns/issues/644>`__.
 -  Aki Tuomi contributed some autoconf code to use mysql\_config if it
-   is available. Code in `commit
-   3015 <http://wiki.powerdns.com/projects/trac/changeset/3015>`__ and
-   `commit
-   3019 <http://wiki.powerdns.com/projects/trac/changeset/3019>`__,
+   is available. Code in `commit 6ef61776eeaaf0178c6e902c49aafde091c57b61 <https://github.com/PowerDNS/pdns/commit/6ef61776eeaaf0178c6e902c49aafde091c57b61>`__ and
+   `commit 258d3f805ccd63f7383ae679a83740b386f444f2 <https://github.com/PowerDNS/pdns/commit/258d3f805ccd63f7383ae679a83740b386f444f2>`__,
    closing `ticket 458 <https://github.com/PowerDNS/pdns/issues/458>`__.
 -  The MongoDB backend was removed at the author's request, as it does
-   not work with any current libmongo versions. Change in `commit
-   3017 <http://wiki.powerdns.com/projects/trac/changeset/3017>`__.
+   not work with any current libmongo versions. Change in `commit 8ecbcd268e0b9d8ab37d8d06c03f457af8a4475c <https://github.com/PowerDNS/pdns/commit/8ecbcd268e0b9d8ab37d8d06c03f457af8a4475c>`__.
 -  Mark Zealey discovered we were retrieving the ascii powerdns version
    string for each packet, not just for version string queries. Fixed in
-   `commit
-   3018 <http://wiki.powerdns.com/projects/trac/changeset/3018>`__,
+   `commit be6c6b392496d22b8221d597ad6d20141326e774 <https://github.com/PowerDNS/pdns/commit/be6c6b392496d22b8221d597ad6d20141326e774>`__,
    closing `ticket 651 <https://github.com/PowerDNS/pdns/issues/651>`__.
 -  Our new json code would not compile on solaris 9 and 10 due to lack
-   of strcasestr. Juraj Lutter contributed a portable version in `commit
-   3020 <http://wiki.powerdns.com/projects/trac/changeset/3020>`__.
+   of strcasestr. Juraj Lutter contributed a portable version in `commit 283276d3954c8601a5e324d02dcbed622c5472be <https://github.com/PowerDNS/pdns/commit/283276d3954c8601a5e324d02dcbed622c5472be>`__.
 -  Mark Zealey noted that RRs with low TTLs could lower our
-   query-cache-ttl persistently. Fixed in `commit
-   3023 <http://wiki.powerdns.com/projects/trac/changeset/3023>`__,
+   query-cache-ttl persistently. Fixed in `commit 46c6efbe2e2b4ca6fa31e586ff1613094fda17f0 <https://github.com/PowerDNS/pdns/commit/46c6efbe2e2b4ca6fa31e586ff1613094fda17f0>`__,
    closing `ticket 662 <https://github.com/PowerDNS/pdns/issues/662>`__.
 -  pdnssec now honours module-dir, patch by Fredrik Danerklint in
-   `commit
-   3026 <http://wiki.powerdns.com/projects/trac/changeset/3026>`__.
+   `commit 966828ac4c6c97b0594bd989eb9c4c628f2924d6 <https://github.com/PowerDNS/pdns/commit/966828ac4c6c97b0594bd989eb9c4c628f2924d6>`__.
 
 Changes between 3.2-RC2 and 3.2-RC3
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 -  Michael Scheffler noticed that the lazy-recursion setting had no
-   effect at all. Setting removed in `commit
-   3003 <http://wiki.powerdns.com/projects/trac/changeset/3003>`__.
+   effect at all. Setting removed in `commit 431855d41911327c9a8253601d6513549e49ec66 <https://github.com/PowerDNS/pdns/commit/431855d41911327c9a8253601d6513549e49ec66>`__.
 -  Mark Zealey found that an earlier performance improvement could cause
    crashes under high load, with lots of IPs configured in local-address
-   and receiver-threads higher than 1. Fixed in `commit
-   3005 <http://wiki.powerdns.com/projects/trac/changeset/3005>`__.
+   and receiver-threads greater than 1. Fixed in `commit 223066c673f3ec76757ff34b497d5ae86c815f2c <https://github.com/PowerDNS/pdns/commit/223066c673f3ec76757ff34b497d5ae86c815f2c>`__.
 
 Changes between 3.2-RC1 and 3.2-RC2
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1570,114 +1553,82 @@ Changes between 3.2-RC1 and 3.2-RC2
 -  The udp-queries metric would only count on the first thread launched,
    instead of on all threads. Additionally, it was initialised at MAXINT
    at startup, instead of at 0. Both issues fixed by Kees Monshouwer in
-   `commit
-   2999 <http://wiki.powerdns.com/projects/trac/changeset/2999>`__,
+   `commit 90b072846387597a834de4f929b60c53e62628c7 <https://github.com/PowerDNS/pdns/commit/90b072846387597a834de4f929b60c53e62628c7>`__,
    closing `ticket 491 <https://github.com/PowerDNS/pdns/issues/491>`__
    and `ticket 582 <https://github.com/PowerDNS/pdns/issues/582>`__.
 -  Aki Tuomi contributed zone2json, a great way for programmers to
-   benefit from our zone file parser. Code in `commit
-   2997 <http://wiki.powerdns.com/projects/trac/changeset/2997>`__,
+   benefit from our zone file parser. Code in `commit ee681377a95d31bfba481ad46b7f5b23b771a0d6 <https://github.com/PowerDNS/pdns/commit/ee681377a95d31bfba481ad46b7f5b23b771a0d6>`__,
    closes `ticket 509 <https://github.com/PowerDNS/pdns/issues/509>`__.
 -  Our DNS TXT parser is not 8-bit safe, but our DNS TXT writer assumes
    the reader is! Reported by Jan-Piet Mens in `ticket
-   541 <https://github.com/PowerDNS/pdns/issues/541>`__, `commit
-   2993 <http://wiki.powerdns.com/projects/trac/changeset/2993>`__ fixes
+   541 <https://github.com/PowerDNS/pdns/issues/541>`__, `commit 5dba9d254f3bc97ade939bc8b344394cd469daf4 <https://github.com/PowerDNS/pdns/commit/5dba9d254f3bc97ade939bc8b344394cd469daf4>`__ fixes
    our writer but not yet our parser.
 -  Ruben d'Arco did some improvements to the MyDNS backend, and provided
    a full test suite for it, that we now run after every commit. Code in
-   `commit
-   2988 <http://wiki.powerdns.com/projects/trac/changeset/2988>`__.
+   `commit 267af0fbc3cdda20aa397f243e1de7ba57e54d1a <https://github.com/PowerDNS/pdns/commit/267af0fbc3cdda20aa397f243e1de7ba57e54d1a>`__.
 -  Some exceptions from backends would lose their meaning while bubbling
-   up. Fixed by Aki Tuomi in `commit
-   2985 <http://wiki.powerdns.com/projects/trac/changeset/2985>`__,
+   up. Fixed by Aki Tuomi in `commit 06ad4526fbde236869b89f1ef644ace9fb5955c4 <https://github.com/PowerDNS/pdns/commit/06ad4526fbde236869b89f1ef644ace9fb5955c4>`__,
    closing `ticket 639 <https://github.com/PowerDNS/pdns/issues/639>`__.
 -  The packet-cache honours max reply length while matching cached
    packets against queries, but not EDNS status. This would mean that
    EDNS-enabled replies with a 512 reply len could be returned on
    non-EDNS queries. Spotted while investigating a report from Winfried
-   Angele, patched by Ruben d'Arco in `commit
-   2982 <http://wiki.powerdns.com/projects/trac/changeset/2982>`__,
+   Angele, patched by Ruben d'Arco in `commit 17d0b1e67010ee9813d2acddf3bef40fc6d78482 <https://github.com/PowerDNS/pdns/commit/17d0b1e67010ee9813d2acddf3bef40fc6d78482>`__,
    closing `ticket 630 <https://github.com/PowerDNS/pdns/issues/630>`__.
 -  Errors involving creating, deletion or changing permissions on the
-   control socket were unclear. Ruben d'Arco improved this in `commit
-   2981 <http://wiki.powerdns.com/projects/trac/changeset/2981>`__.
+   control socket were unclear. Ruben d'Arco improved this in `commit aac4004167179fc5196a9186dead96781c42e2c9 <https://github.com/PowerDNS/pdns/commit/aac4004167179fc5196a9186dead96781c42e2c9>`__.
 -  pipe-timeout was always documented to be in milliseconds, but it
-   turns out it was in seconds! `commit
-   2971 <http://wiki.powerdns.com/projects/trac/changeset/2971>`__
+   turns out it was in seconds! `commit ecc96bb7ead552fdb0d5f3ca99e95aaeafa70589 <https://github.com/PowerDNS/pdns/commit/ecc96bb7ead552fdb0d5f3ca99e95aaeafa70589>`__
    changes them to actually be in ms, and 'increases' the default from
    1000 seconds to 2000 milliseconds.
 -  Some exceptions would get dropped during inbound AXFR, yielding a log
    file that says 'transaction started' and nothing after that, making
-   AXFR fail silently. `commit
-   2976 <http://wiki.powerdns.com/projects/trac/changeset/2976>`__ and
-   `commit
-   2977 <http://wiki.powerdns.com/projects/trac/changeset/2977>`__
+   AXFR fail silently. `commit 7f450125540eefd692898131a01381a31ba7b87f <https://github.com/PowerDNS/pdns/commit/7f450125540eefd692898131a01381a31ba7b87f>`__ and
+   `commit 480fbb4095158c6acde5765cbd14896adfd25576 <https://github.com/PowerDNS/pdns/commit/480fbb4095158c6acde5765cbd14896adfd25576>`__
    improve this somewhat.
 -  We now error out on empty labels inside of names (www..example.com)
-   instead of generating bogus reply packets. Code in `commit
-   2972 <http://wiki.powerdns.com/projects/trac/changeset/2972>`__,
+   instead of generating bogus reply packets. Code in `commit 91567562eade07b35200ca916c24c415c4ef4bc4 <https://github.com/PowerDNS/pdns/commit/91567562eade07b35200ca916c24c415c4ef4bc4>`__,
    reported by several users.
 -  Doing chmod before chown, instead of the other way around, apparently
    avoids requiring a whole SELinux capability. Reported by Sander
-   Hoentjen, fixed in `commit
-   2965 <http://wiki.powerdns.com/projects/trac/changeset/2965>`__.
+   Hoentjen, fixed in `commit 7505c18d1181fa35271f9b4baaf752904b6f4811 <https://github.com/PowerDNS/pdns/commit/7505c18d1181fa35271f9b4baaf752904b6f4811>`__.
 -  Chris Hofstaedtler fixed a bug in our Debian init.d script. Code
-   in `commit
-   2963 <http://wiki.powerdns.com/projects/trac/changeset/2963>`__.
+   in `commit 51d71c7771ed61459c898688f3afd054d4e3eefd <https://github.com/PowerDNS/pdns/commit/51d71c7771ed61459c898688f3afd054d4e3eefd>`__.
 -  Superslave errors ('Unable to find backend willing to host ..') now
    include the NSset found at the master, to aid debugging. Code in
-   `commit
-   2887 <http://wiki.powerdns.com/projects/trac/changeset/2887>`__.
--  `commit
-   2874 <http://wiki.powerdns.com/projects/trac/changeset/2874>`__ in
+   `commit a7372c6fc0e9872cfe442ef0a990d9b85e7f16c9 <https://github.com/PowerDNS/pdns/commit/a7372c6fc0e9872cfe442ef0a990d9b85e7f16c9>`__.
+-  `commit e237ea0468d61a10fe02ed4fa1df61e14d9e7d39 <https://github.com/PowerDNS/pdns/commit/e237ea0468d61a10fe02ed4fa1df61e14d9e7d39>`__ in
    RC1 broke compilation without SQLite3 and made query logging
-   unreliable. Fixed in `commit
-   2888 <http://wiki.powerdns.com/projects/trac/changeset/2888>`__,
-   `commit
-   2889 <http://wiki.powerdns.com/projects/trac/changeset/2889>`__.
--  The dnsreplay tool now processes single packet pcaps. Fix in `commit
-   2895 <http://wiki.powerdns.com/projects/trac/changeset/2895>`__.
+   unreliable. Fixed in `commit c507b8224b22698f428848d582529cc709c1e505 <https://github.com/PowerDNS/pdns/commit/c507b8224b22698f428848d582529cc709c1e505>`__,
+   `commit a464c196640d9fede553e413935f9dd3133ba59e <https://github.com/PowerDNS/pdns/commit/a464c196640d9fede553e413935f9dd3133ba59e>`__.
+-  The dnsreplay tool now processes single packet pcaps. Fix in `commit cc4d4e8f3c0b702613c720c5706c9450bac3bb88 <https://github.com/PowerDNS/pdns/commit/cc4d4e8f3c0b702613c720c5706c9450bac3bb88>`__.
 -  PowerDNS always derives NSEC/NSEC3 from the actual zone content. To
    accommodate this, zone2sql now drops NSEC/NSEC3 records, as those
-   should never be in a PowerDNS backend directly (`commit
-   2915 <http://wiki.powerdns.com/projects/trac/changeset/2915>`__),
-   bindbackend ignores NSEC/NSEC3 while reading zonefiles (`commit
-   2917 <http://wiki.powerdns.com/projects/trac/changeset/2917>`__) and
+   should never be in a PowerDNS backend directly (`commit 88a7d2c157368678ebbb4070bdc15a1c70ed8fdc <https://github.com/PowerDNS/pdns/commit/88a7d2c157368678ebbb4070bdc15a1c70ed8fdc>`__),
+   bindbackend ignores NSEC/NSEC3 while reading zonefiles (`commit c884525828916a98871a6c17567d24d12a265f2f <https://github.com/PowerDNS/pdns/commit/c884525828916a98871a6c17567d24d12a265f2f>`__) and
    pdnssec reports NSEC/NSEC3 in the database as an error condition
-   (`commit
-   2918 <http://wiki.powerdns.com/projects/trac/changeset/2918>`__).
+   (`commit 0aabca97c5d654bd3f464cc1bad1c7e4f717b16b <https://github.com/PowerDNS/pdns/commit/0aabca97c5d654bd3f464cc1bad1c7e4f717b16b>`__).
 -  The bindbackend now ignores NSEC/NSEC3 records while reading
-   zonefiles. Change in `commit
-   2917 <http://wiki.powerdns.com/projects/trac/changeset/2917>`__.
+   zonefiles. Change in `commit c884525828916a98871a6c17567d24d12a265f2f <https://github.com/PowerDNS/pdns/commit/c884525828916a98871a6c17567d24d12a265f2f>`__.
 -  An EXPERIMENTAL feature ('direct-dnskey') for reading ZSKs from the
-   records table/your BIND zonefile was added in `commit
-   2920 <http://wiki.powerdns.com/projects/trac/changeset/2920>`__,
-   `commit
-   2921 <http://wiki.powerdns.com/projects/trac/changeset/2921>`__,
-   `commit
-   2922 <http://wiki.powerdns.com/projects/trac/changeset/2922>`__.
+   records table/your BIND zonefile was added in `commit 4a6ea260e77857625d37763529ebc5d57f584eba <https://github.com/PowerDNS/pdns/commit/4a6ea260e77857625d37763529ebc5d57f584eba>`__,
+   `commit 6dae726d3d1d43b636b6a62c685428db57e98d86 <https://github.com/PowerDNS/pdns/commit/6dae726d3d1d43b636b6a62c685428db57e98d86>`__,
+   `commit 12a926883f6f6f1d188316499ca36270e6e8e690 <https://github.com/PowerDNS/pdns/commit/12a926883f6f6f1d188316499ca36270e6e8e690>`__.
 -  While fully optional, PowerDNS supports direct RRSIG queries. Kees
-   Monshouwer improved on our behaviour for those queries in `commit
-   2927 <http://wiki.powerdns.com/projects/trac/changeset/2927>`__.
+   Monshouwer improved on our behaviour for those queries in `commit 14b8677552842725c4d6329e625230f42c469eba <https://github.com/PowerDNS/pdns/commit/14b8677552842725c4d6329e625230f42c469eba>`__.
 -  IPv6 glue situations require AAAA records for the receiving end of a
    delegation in the ADDITIONAL section of a referral. This was
    supported ('do-ipv6-additional-processing') but not enabled by
-   default. `commit
-   2929 <http://wiki.powerdns.com/projects/trac/changeset/2929>`__
+   default. `commit 61bf4182246befd67087e9f3a77f8113ae3ce830 <https://github.com/PowerDNS/pdns/commit/61bf4182246befd67087e9f3a77f8113ae3ce830>`__
    enables it by default.
 -  pdnssec check-zone now warns for CNAME-and-other data at names in
-   your zones. Code by Ruben d'Arco in `commit
-   2930 <http://wiki.powerdns.com/projects/trac/changeset/2930>`__.
+   your zones. Code by Ruben d'Arco in `commit 61717a5121b2416d6173bb70e8ebd05f9392e638 <https://github.com/PowerDNS/pdns/commit/61717a5121b2416d6173bb70e8ebd05f9392e638>`__.
 -  Positive ANY-responses would include a spurious NSEC3. Corrected in
-   `commit
-   2932 <http://wiki.powerdns.com/projects/trac/changeset/2932>`__ and
-   `commit
-   2933 <http://wiki.powerdns.com/projects/trac/changeset/2933>`__,
-   cleaned up by Kees Monshouwer in `commit
-   2935 <http://wiki.powerdns.com/projects/trac/changeset/2935>`__.
+   `commit acfda9630d579ba727eaa5b3ed6fbbe99878fe8b <https://github.com/PowerDNS/pdns/commit/acfda9630d579ba727eaa5b3ed6fbbe99878fe8b>`__ and
+   `commit 91cd2a53f0ab4b8cf8b26a97693bfca77a3a165a <https://github.com/PowerDNS/pdns/commit/91cd2a53f0ab4b8cf8b26a97693bfca77a3a165a>`__,
+   cleaned up by Kees Monshouwer in `commit dcb8c5d754ad9242066804db40fc67948e3761da <https://github.com/PowerDNS/pdns/commit/dcb8c5d754ad9242066804db40fc67948e3761da>`__.
 -  The ldapbackend now allows overriding the base dn for AXFR subtree
-   search. Fixed in `commit
-   2934 <http://wiki.powerdns.com/projects/trac/changeset/2934>`__,
+   search. Fixed in `commit 7e2219a10be897d88811553f890a37e8bcc8f340 <https://github.com/PowerDNS/pdns/commit/7e2219a10be897d88811553f890a37e8bcc8f340>`__,
    closing `ticket 536 <https://github.com/PowerDNS/pdns/issues/536>`__.
 
 Changes below are in 3.2-RC1 and up.
@@ -1687,139 +1638,104 @@ DNSSEC changes in 3.2
 
 -  Kees Monshouwer did a tremendous amount of work to improve and
    perfect our DNSSEC implementation, mostly in the NSEC3 area. Code in
-   `commit
-   2687 <http://wiki.powerdns.com/projects/trac/changeset/2687>`__,
-   `commit
-   2689 <http://wiki.powerdns.com/projects/trac/changeset/2689>`__,
-   `commit
-   2691 <http://wiki.powerdns.com/projects/trac/changeset/2691>`__,
+   `commit 75a89ce6063c43b8a7a91e5312a42dd0cc21972a <https://github.com/PowerDNS/pdns/commit/75a89ce6063c43b8a7a91e5312a42dd0cc21972a>`__,
+   `commit bf5e9b0c672c6a2041df7545a22cba85fac8ba95 <https://github.com/PowerDNS/pdns/commit/bf5e9b0c672c6a2041df7545a22cba85fac8ba95>`__,
+   `commit f76203f2e6883dc3f3fb4c397cf9c26aafa8a7d6 <https://github.com/PowerDNS/pdns/commit/f76203f2e6883dc3f3fb4c397cf9c26aafa8a7d6>`__,
    fixing `ticket 486 <https://github.com/PowerDNS/pdns/issues/486>`__,
    `ticket 537 <https://github.com/PowerDNS/pdns/issues/537>`__, `ticket
    540 <https://github.com/PowerDNS/pdns/issues/540>`__. He also
-   implemented support for Empty Non-Terminals, code in `commit
-   2721 <http://wiki.powerdns.com/projects/trac/changeset/2721>`__,
-   `commit
-   2732 <http://wiki.powerdns.com/projects/trac/changeset/2732>`__,
-   `commit
-   2745 <http://wiki.powerdns.com/projects/trac/changeset/2745>`__,
+   implemented support for Empty Non-Terminals, code in `commit b5baefafdf6413af8e4a4b0848a6139700342d6f <https://github.com/PowerDNS/pdns/commit/b5baefafdf6413af8e4a4b0848a6139700342d6f>`__,
+   `commit ece45ffbf50044a09e2dbd15149dec289693f400 <https://github.com/PowerDNS/pdns/commit/ece45ffbf50044a09e2dbd15149dec289693f400>`__,
+   `commit 0c13544c3d03a74104a018218bb4e68e4dfa3f01 <https://github.com/PowerDNS/pdns/commit/0c13544c3d03a74104a018218bb4e68e4dfa3f01>`__,
    fixing `ticket 127 <https://github.com/PowerDNS/pdns/issues/127>`__
    and `ticket 558 <https://github.com/PowerDNS/pdns/issues/558>`__.
 -  Presigned wildcard operation was improved with the help of many
-   parties (see commit message for `commit
-   2676 <http://wiki.powerdns.com/projects/trac/changeset/2676>`__).
+   parties (see commit message for `commit f1485b68c67be1b77acfd93b33e8011d297b2c1d <https://github.com/PowerDNS/pdns/commit/f1485b68c67be1b77acfd93b33e8011d297b2c1d>`__).
    Presigned operation was also changed to be more consistent with
-   master/live-signing operation. Code and a full test suite in `commit
-   2709 <http://wiki.powerdns.com/projects/trac/changeset/2709>`__,
+   master/live-signing operation. Code and a full test suite in `commit 794c2f9267376a304256dd87a150959e90385f11 <https://github.com/PowerDNS/pdns/commit/794c2f9267376a304256dd87a150959e90385f11>`__,
    which also improves TTL behaviour for various situations. Fixes
    `ticket 460 <https://github.com/PowerDNS/pdns/issues/460>`__, `ticket
    533 <https://github.com/PowerDNS/pdns/issues/533>`__, `ticket
    559 <https://github.com/PowerDNS/pdns/issues/559>`__.
 -  Depending on database & locale settings, names starting with
-   underscore would sometimes cause broken records. `commit
-   2710 <http://wiki.powerdns.com/projects/trac/changeset/2710>`__
+   underscore would sometimes cause broken records. `commit a5f6886f058331a1193f0d5759128e701ef73849 <https://github.com/PowerDNS/pdns/commit/a5f6886f058331a1193f0d5759128e701ef73849>`__
    contains schema and code changes for the gpgsql and gmysql backends
    to sort this (no pun intended) definitively, closing `ticket
    550 <https://github.com/PowerDNS/pdns/issues/550>`__. In addition, a
    pdnssec test-schema command was added (experimental and incomplete).
    It can be used to verify underscore sorting and a few other
-   parameters of the database. Code in `commit
-   2714 <http://wiki.powerdns.com/projects/trac/changeset/2714>`__.
+   parameters of the database. Code in `commit 46d2e0d67290911cc8b92f19cf273d6a8a8eb6ae <https://github.com/PowerDNS/pdns/commit/46d2e0d67290911cc8b92f19cf273d6a8a8eb6ae>`__.
 -  We now always include an EDNS section in responses to queries that
    also had an EDNS section. This was thought to improve BIND
    interoperability, but this turned out to be false. In any case, this
    change improves standards compliance. Spotted by Mats Dufberg, code
-   in `commit
-   2649 <http://wiki.powerdns.com/projects/trac/changeset/2649>`__.
+   in `commit f20d53711433013f409ef6685723bdaab1958349 <https://github.com/PowerDNS/pdns/commit/f20d53711433013f409ef6685723bdaab1958349>`__.
 -  It turns out we were storing Botan keys the wrong way. Botan did not
    care but Polar did, causing interoperability problems. Fixed in
-   `commit
-   2720 <http://wiki.powerdns.com/projects/trac/changeset/2720>`__, with
+   `commit 50f1c2555dc892f6ca9f787e8bad1b6b1f614855 <https://github.com/PowerDNS/pdns/commit/50f1c2555dc892f6ca9f787e8bad1b6b1f614855>`__, with
    the kind help of Paul Bakker of PolarSSL. Fixes `ticket
    492 <https://github.com/PowerDNS/pdns/issues/492>`__ as reported by
    Florian Obser via Debian.
 -  pdnssec add-zone-key now defaults to RSASHA256, like secure-zone
-   already did. Code in `commit
-   2692 <http://wiki.powerdns.com/projects/trac/changeset/2692>`__.
+   already did. Code in `commit 0ba8e0f16823ee924c16e5cc3ba74729fe27eb93 <https://github.com/PowerDNS/pdns/commit/0ba8e0f16823ee924c16e5cc3ba74729fe27eb93>`__.
 -  pdns\_control purge now also purges DNSSEC-related caches (keys and
-   metadata). Code in `commit
-   2694 <http://wiki.powerdns.com/projects/trac/changeset/2694>`__, by
+   metadata). Code in `commit 627d2ca288d14b2023e40694a9ee4b5b44afddef <https://github.com/PowerDNS/pdns/commit/627d2ca288d14b2023e40694a9ee4b5b44afddef>`__, by
    Ruben d'Arco. Fixes `ticket
    530 <https://github.com/PowerDNS/pdns/issues/530>`__.
 -  The signer thread would die in specific situations, leaving you with
-   a non-working but very busy system. Fixed in `commit
-   2668 <http://wiki.powerdns.com/projects/trac/changeset/2668>`__,
-   `commit
-   2670 <http://wiki.powerdns.com/projects/trac/changeset/2670>`__,
+   a non-working but very busy system. Fixed in `commit 05cc368b24effceada1bdaadae060f789ddf3988 <https://github.com/PowerDNS/pdns/commit/05cc368b24effceada1bdaadae060f789ddf3988>`__,
+   `commit a4da80fc3ca81660527e053828de3a0b49df2a2b <https://github.com/PowerDNS/pdns/commit/a4da80fc3ca81660527e053828de3a0b49df2a2b>`__,
    closing `ticket 517 <https://github.com/PowerDNS/pdns/issues/517>`__.
 -  pdnssec secure-zone now warns when you just signed a slave zone.
-   Suggested by Mark Scholten, code in `commit
-   2795 <http://wiki.powerdns.com/projects/trac/changeset/2795>`__,
+   Suggested by Mark Scholten, code in `commit 3bf071227b6e93f99a21ccf936ee2105826b69d8 <https://github.com/PowerDNS/pdns/commit/3bf071227b6e93f99a21ccf936ee2105826b69d8>`__,
    closes `ticket 592 <https://github.com/PowerDNS/pdns/issues/592>`__.
 -  pdnssec check-zone now warns about out-of-zone data. Patch by Kees
-   Monshouwer in `commit
-   2826 <http://wiki.powerdns.com/projects/trac/changeset/2826>`__,
+   Monshouwer in `commit b191a8357b9093317d4e918ca9f756f508afccb1 <https://github.com/PowerDNS/pdns/commit/b191a8357b9093317d4e918ca9f756f508afccb1>`__,
    closing `ticket 604 <https://github.com/PowerDNS/pdns/issues/604>`__.
--  pdnssec now honours ^^no-config. Patch by Kees Monshouwer in `commit
-   2810 <http://wiki.powerdns.com/projects/trac/changeset/2810>`__.
+-  pdnssec now honours ^^no-config. Patch by Kees Monshouwer in `commit f78b02f35872d5022f736f5c95510a252435a26b <https://github.com/PowerDNS/pdns/commit/f78b02f35872d5022f736f5c95510a252435a26b>`__.
 -  Various fixes for bindbackend presigned operation, mostly by Kees
-   Monshouwer. Code in `commit
-   2815 <http://wiki.powerdns.com/projects/trac/changeset/2815>`__,
+   Monshouwer. Code in `commit b563f71b3352b62f4fc3c8f25638be54c8e01f25 <https://github.com/PowerDNS/pdns/commit/b563f71b3352b62f4fc3c8f25638be54c8e01f25>`__,
    closing `ticket 600 <https://github.com/PowerDNS/pdns/issues/600>`__.
 -  Bindbackend could get confused about domain metadata, sometimes even
-   causing hangs. Fixes by Kees Monshouwer in `commit
-   2819 <http://wiki.powerdns.com/projects/trac/changeset/2819>`__ and
-   `commit
-   2834 <http://wiki.powerdns.com/projects/trac/changeset/2834>`__,
+   causing hangs. Fixes by Kees Monshouwer in `commit 7c85a8913981470f0c8344b6d997fd05ead3ef18 <https://github.com/PowerDNS/pdns/commit/7c85a8913981470f0c8344b6d997fd05ead3ef18>`__ and
+   `commit 14b7e03bbb05fc02ec89f46c71755b06fb87b1b3 <https://github.com/PowerDNS/pdns/commit/14b7e03bbb05fc02ec89f46c71755b06fb87b1b3>`__,
    closing `ticket 600 <https://github.com/PowerDNS/pdns/issues/600>`__
    and `ticket 603 <https://github.com/PowerDNS/pdns/issues/603>`__.
 -  SQL queries in gsql backends that reference the domain\_id column
    have been made explicit about from what table they want this column.
    This makes it easier to operate custom schemas without changing the
-   queries. Fix by Nicky Gerritsen in `commit
-   2821 <http://wiki.powerdns.com/projects/trac/changeset/2821>`__.
+   queries. Fix by Nicky Gerritsen in `commit 36dea203880a0bf9bbf7414a97c91517a293ac3c <https://github.com/PowerDNS/pdns/commit/36dea203880a0bf9bbf7414a97c91517a293ac3c>`__.
 -  In various situations involving CNAMEs and wildcards, and for ANY
    queries involving CNAMEs, we would sometimes return bogus results.
-   Fixed in `commit
-   2825 <http://wiki.powerdns.com/projects/trac/changeset/2825>`__ by
+   Fixed in `commit c5c4fbdcfb172bec1803d4dbcdceb622c965c385 <https://github.com/PowerDNS/pdns/commit/c5c4fbdcfb172bec1803d4dbcdceb622c965c385>`__ by
    Kees Monshouwer.
 -  rectify-zone accidentally set auth=1 on NS records of secure
    delegations. Reported by George Notaras, fixed by Kees Monshouwer in
-   `commit
-   2831 <http://wiki.powerdns.com/projects/trac/changeset/2831>`__,
+   `commit c2df797edccd2e8e7494d8ab658f345bd97ae89a <https://github.com/PowerDNS/pdns/commit/c2df797edccd2e8e7494d8ab658f345bd97ae89a>`__,
    closing `ticket 605 <https://github.com/PowerDNS/pdns/issues/605>`__.
 -  The DNSSEC signature cache now actually gets cleaned up, avoiding
-   lasting spikes in memory usage every thursday. Code in `commit
-   2836 <http://wiki.powerdns.com/projects/trac/changeset/2836>`__ and
-   `commit
-   2843 <http://wiki.powerdns.com/projects/trac/changeset/2843>`__,
+   lasting spikes in memory usage every thursday. Code in `commit ccc3f9ed0fdcdbd0457f5d8f10d72893ed0bc02c <https://github.com/PowerDNS/pdns/commit/ccc3f9ed0fdcdbd0457f5d8f10d72893ed0bc02c>`__ and
+   `commit ff1040bff32921d59ebb5c850ca0f97ee2159c13 <https://github.com/PowerDNS/pdns/commit/ff1040bff32921d59ebb5c850ca0f97ee2159c13>`__,
    closing `ticket 594 <https://github.com/PowerDNS/pdns/issues/594>`__.
 -  Signatures used to roll at midnight on thursday. We now roll them one
    hour after midnight, with inception still set to midnight, to allow
-   for some variations in clock quality on resolvers. Code in `commit
-   2857 <http://wiki.powerdns.com/projects/trac/changeset/2857>`__.
+   for some variations in clock quality on resolvers. Code in `commit d90efbf48f3b8bad8f29610583f6349b7ae3d802 <https://github.com/PowerDNS/pdns/commit/d90efbf48f3b8bad8f29610583f6349b7ae3d802>`__.
 -  Duplicate records (same name/type/content/priority) would sometimes
-   get broken RRSIGs during outgoing AXFR. Fixed in `commit
-   2856 <http://wiki.powerdns.com/projects/trac/changeset/2856>`__.
+   get broken RRSIGs during outgoing AXFR. Fixed in `commit a2f3b9ec1f1cba1146ccf9294a1d15f5590e4975 <https://github.com/PowerDNS/pdns/commit/a2f3b9ec1f1cba1146ccf9294a1d15f5590e4975>`__.
 -  A root zone (name="") with DNSSEC would cause crashes in some
-   situations. Reported by Luuk Hendriks. Fixed in `commit
-   2867 <http://wiki.powerdns.com/projects/trac/changeset/2867>`__,
-   `commit
-   2868 <http://wiki.powerdns.com/projects/trac/changeset/2868>`__,
+   situations. Reported by Luuk Hendriks. Fixed in `commit 8e90e4284aa143433cd6d0c424b460c2406e108f <https://github.com/PowerDNS/pdns/commit/8e90e4284aa143433cd6d0c424b460c2406e108f>`__,
+   `commit 60e145911cf26849590777c579c373957b6dab2d <https://github.com/PowerDNS/pdns/commit/60e145911cf26849590777c579c373957b6dab2d>`__,
    closing `ticket 614 <https://github.com/PowerDNS/pdns/issues/614>`__.
 -  Direct RRSIG queries for zones with auto-completed SOA records would
    cause trouble. Reported by Kees Monshouwer and fixed by him in
-   `commit
-   2869 <http://wiki.powerdns.com/projects/trac/changeset/2869>`__.
+   `commit 25cee6b9448744d3b6428ceb38cda9de0efd327c <https://github.com/PowerDNS/pdns/commit/25cee6b9448744d3b6428ceb38cda9de0efd327c>`__.
 -  When a name is matched only by a wildcard, but the type in the query
-   is not present, we would be lacking one NSEC(3) record to prove the
-   existence of the wildcard. Fixed by Kees Monshouwer in `commit
-   2872 <http://wiki.powerdns.com/projects/trac/changeset/2872>`__ and
-   `commit
-   2873 <http://wiki.powerdns.com/projects/trac/changeset/2873>`__.
+   is not present, we would be lacking one NSEC/NSEC3 record to prove the
+   existence of the wildcard. Fixed by Kees Monshouwer in `commit 7bb8e2026c204f3356bfde3634a297f05aad0b4e <https://github.com/PowerDNS/pdns/commit/7bb8e2026c204f3356bfde3634a297f05aad0b4e>`__ and
+   `commit 1012b0399b0353b04edaa61b8a42be10da4290f7 <https://github.com/PowerDNS/pdns/commit/1012b0399b0353b04edaa61b8a42be10da4290f7>`__.
 -  Luuk Hendriks spotted that our PolarSSL RSA key generation code was
    using inferior entropy. This can be important on virtual machines
-   with badly implemented clocks. Fixed in `commit
-   2876 <http://wiki.powerdns.com/projects/trac/changeset/2876>`__,
+   with badly implemented clocks. Fixed in `commit 802da34574540238df2b470e9c85823e89e10024 <https://github.com/PowerDNS/pdns/commit/802da34574540238df2b470e9c85823e89e10024>`__,
    closing `ticket 615 <https://github.com/PowerDNS/pdns/issues/615>`__.
 
 Non-DNSSEC improvements/changes
@@ -1830,18 +1746,14 @@ Non-DNSSEC improvements/changes
    proper to occur before any threads are spawned, avoiding race
    conditions in this call. Note that this crash has only been observed
    twice in thousands of regression test runs and has never been
-   reported in the real world. Change in `commit
-   2882 <http://wiki.powerdns.com/projects/trac/changeset/2882>`__.
+   reported in the real world. Change in `commit 35b9a6ffb0ebd0ba10426c93f2095d8dd2036493 <https://github.com/PowerDNS/pdns/commit/35b9a6ffb0ebd0ba10426c93f2095d8dd2036493>`__.
 -  Leen Besselink submitted query logging support for the SQLite3 parts
-   in the bindbackend. Code in `commit
-   2874 <http://wiki.powerdns.com/projects/trac/changeset/2874>`__.
+   in the bindbackend. Code in `commit e237ea0468d61a10fe02ed4fa1df61e14d9e7d39 <https://github.com/PowerDNS/pdns/commit/e237ea0468d61a10fe02ed4fa1df61e14d9e7d39>`__.
 -  Multi-backend operation would sometimes cause garbage domain IDs to
    be passed to backends. Reported by Kees Monshouwer and fixed by him
-   in `commit
-   2871 <http://wiki.powerdns.com/projects/trac/changeset/2871>`__.
+   in `commit c27c8d96f9a62d7744cf8b12c88846d15fdd2728 <https://github.com/PowerDNS/pdns/commit/c27c8d96f9a62d7744cf8b12c88846d15fdd2728>`__.
 -  Bindbackend would sometimes crash during reloads/rediscovers. The
-   changes in `commit
-   2837 <http://wiki.powerdns.com/projects/trac/changeset/2837>`__ get
+   changes in `commit a3047110df07009ea9d572e2cd1098cb106d337c <https://github.com/PowerDNS/pdns/commit/a3047110df07009ea9d572e2cd1098cb106d337c>`__ get
    rid of the crash, at the cost of returning SERVFAIL during reloads.
    Closes `ticket 564 <https://github.com/PowerDNS/pdns/issues/564>`__.
 -  Our label decompression code was naive, causing troubles for slaving
@@ -1849,231 +1761,158 @@ Non-DNSSEC improvements/changes
    2822 <https://github.com/PowerDNS/pdns/issues/2822>`__, closes
    `ticket 599 <https://github.com/PowerDNS/pdns/issues/599>`__.
 -  Bindbackend slaves would choke on unknown RR types and do silly
-   things with RP and SRV records. Fixed in `commit
-   2811 <http://wiki.powerdns.com/projects/trac/changeset/2811>`__ and
-   `commit
-   2812 <http://wiki.powerdns.com/projects/trac/changeset/2812>`__.
+   things with RP and SRV records. Fixed in `commit 815caf66c9907703f4c7424ab16eb332a728b25d <https://github.com/PowerDNS/pdns/commit/815caf66c9907703f4c7424ab16eb332a728b25d>`__ and
+   `commit 6348d4068d10b4ce7779fc700f56d08d4053a099 <https://github.com/PowerDNS/pdns/commit/6348d4068d10b4ce7779fc700f56d08d4053a099>`__.
 -  The luabackend can now compile against Lua 5.2. Patch by Fredrik
-   Danerklint in `commit
-   2794 <http://wiki.powerdns.com/projects/trac/changeset/2794>`__,
-   additional luabackend compile fixes in `commit
-   2854 <http://wiki.powerdns.com/projects/trac/changeset/2854>`__.
+   Danerklint in `commit 67f30c7437daa8d334eff8a040c92f3954b504d0 <https://github.com/PowerDNS/pdns/commit/67f30c7437daa8d334eff8a040c92f3954b504d0>`__,
+   additional luabackend compile fixes in `commit 1f5ab13ce35eb9dfab7ea29e5189df9116fc946c <https://github.com/PowerDNS/pdns/commit/1f5ab13ce35eb9dfab7ea29e5189df9116fc946c>`__.
 -  A new backend, the 'Remote backend' `Remote
-   Backend <authoritative/backend-remote.md>`__ was submitted by Aki
+   Backend <../backends/remote.rst>`__ was submitted by Aki
    Tuomi. It aims to replace the pipebackend with a better protocol and
-   support for more connection methods, including HTTP. Code in `commit
-   2755 <http://wiki.powerdns.com/projects/trac/changeset/2755>`__,
-   `commit
-   2756 <http://wiki.powerdns.com/projects/trac/changeset/2756>`__,
-   `commit
-   2757 <http://wiki.powerdns.com/projects/trac/changeset/2757>`__,
-   `commit
-   2758 <http://wiki.powerdns.com/projects/trac/changeset/2758>`__,
-   `commit
-   2759 <http://wiki.powerdns.com/projects/trac/changeset/2759>`__,
-   `commit
-   2824 <http://wiki.powerdns.com/projects/trac/changeset/2824>`__,
+   support for more connection methods, including HTTP. Code in `commit bf42c81738795d53daee615224194213dd320250 <https://github.com/PowerDNS/pdns/commit/bf42c81738795d53daee615224194213dd320250>`__,
+   `commit 62a409982a71458c02dcdc0784abb621b27d03e7 <https://github.com/PowerDNS/pdns/commit/62a409982a71458c02dcdc0784abb621b27d03e7>`__,
+   `commit 8b690857f649647213ddd24c3238537dd2d3d909 <https://github.com/PowerDNS/pdns/commit/8b690857f649647213ddd24c3238537dd2d3d909>`__,
+   `commit 078b1b52ef62aac8309c226ff4aa8e1ca361094d <https://github.com/PowerDNS/pdns/commit/078b1b52ef62aac8309c226ff4aa8e1ca361094d>`__,
+   `commit 2303a61240f9985a9c9a19c13d19b74dbbf573dc <https://github.com/PowerDNS/pdns/commit/2303a61240f9985a9c9a19c13d19b74dbbf573dc>`__,
+   `commit f4644dfcc244fbbc3ace160f1a937534f4785197 <https://github.com/PowerDNS/pdns/commit/f4644dfcc244fbbc3ace160f1a937534f4785197>`__,
    closing `ticket 529 <https://github.com/PowerDNS/pdns/issues/529>`__,
    `ticket 597 <https://github.com/PowerDNS/pdns/issues/597>`__.
 -  The gsqlite (SQLite 2) backend was removed. We were not aware of any
    users and it was not actually working anyway. Changes in commits
-   `2773 <http://wiki.powerdns.com/projects/trac/changeset/2773>`__-`2777 <http://wiki.powerdns.com/projects/trac/changeset/2777>`__,
+   `commit e8557a62e4ea91acfe991ebb9aabf90ea9d82fc8 <https://github.com/PowerDNS/pdns/commit/e8557a62e4ea91acfe991ebb9aabf90ea9d82fc8>`__-`commit 7d006c32efaaad5fea0c71ade926910b1df147ae <https://github.com/PowerDNS/pdns/commit/7d006c32efaaad5fea0c71ade926910b1df147ae>`__,
    closing `ticket 565 <https://github.com/PowerDNS/pdns/issues/565>`__.
 -  Various tinydnsbackend improvements: ignore-bogus-records option; TAI
    offset updated; strip dots on names where suitable; various internal
-   improvements. Code in `commit
-   2762 <http://wiki.powerdns.com/projects/trac/changeset/2762>`__.
+   improvements. Code in `commit f03f9070d5613a3537613c99df4c1041cdecdcc1 <https://github.com/PowerDNS/pdns/commit/f03f9070d5613a3537613c99df4c1041cdecdcc1>`__.
 -  gpgsql no longer logs the database password in connection errors.
-   Code in `commit
-   2609 <http://wiki.powerdns.com/projects/trac/changeset/2609>`__,
-   `commit
-   2612 <http://wiki.powerdns.com/projects/trac/changeset/2612>`__,
+   Code in `commit e310897f9f85aa16d6e9730a54b0cc368cb2e5ce <https://github.com/PowerDNS/pdns/commit/e310897f9f85aa16d6e9730a54b0cc368cb2e5ce>`__,
+   `commit d7fec365f32345c7f0b90427945022e5405459b3 <https://github.com/PowerDNS/pdns/commit/d7fec365f32345c7f0b90427945022e5405459b3>`__,
    closing `ticket 459 <https://github.com/PowerDNS/pdns/issues/459>`__.
 -  You can now finally specify 0.0.0.0 or :: as local-address/local-ipv6
    without getting replies from the wrong address. This much-requested
-   feature is implemented in `commit
-   2763 <http://wiki.powerdns.com/projects/trac/changeset/2763>`__,
-   `commit
-   2766 <http://wiki.powerdns.com/projects/trac/changeset/2766>`__,
-   `commit
-   2779 <http://wiki.powerdns.com/projects/trac/changeset/2779>`__ and
-   `commit
-   2781 <http://wiki.powerdns.com/projects/trac/changeset/2781>`__.
+   feature is implemented in `commit 2b6f1436930d84fef86d2eb7cab33e1f2e22eb06 <https://github.com/PowerDNS/pdns/commit/2b6f1436930d84fef86d2eb7cab33e1f2e22eb06>`__,
+   `commit befe4ccb438fa66d22e72c9cd237addb76ce0ca0 <https://github.com/PowerDNS/pdns/commit/befe4ccb438fa66d22e72c9cd237addb76ce0ca0>`__,
+   `commit 2f55e09a45b3c8ac72656a0c68dcb873aa171e47 <https://github.com/PowerDNS/pdns/commit/2f55e09a45b3c8ac72656a0c68dcb873aa171e47>`__ and
+   `commit cf2898970ad2ded46f625e464a9521d77a93e8c0 <https://github.com/PowerDNS/pdns/commit/cf2898970ad2ded46f625e464a9521d77a93e8c0>`__.
    Tested on Linux, FreeBSD and Mac OS X.
 -  3.2 can be reliably built with or without Lua. This and many other
-   configure/compile-related fixes in `commit
-   2610 <http://wiki.powerdns.com/projects/trac/changeset/2610>`__,
-   `commit
-   2611 <http://wiki.powerdns.com/projects/trac/changeset/2611>`__ /
-   `ticket 461 <https://github.com/PowerDNS/pdns/issues/461>`__, `commit
-   2666 <http://wiki.powerdns.com/projects/trac/changeset/2666>`__,
-   `commit
-   2671 <http://wiki.powerdns.com/projects/trac/changeset/2671>`__,
-   `commit
-   2672 <http://wiki.powerdns.com/projects/trac/changeset/2672>`__ /
-   `ticket 522 <https://github.com/PowerDNS/pdns/issues/522>`__, `commit
-   2673 <http://wiki.powerdns.com/projects/trac/changeset/2673>`__ /
-   `ticket 522 <https://github.com/PowerDNS/pdns/issues/522>`__, `commit
-   2696 <http://wiki.powerdns.com/projects/trac/changeset/2696>`__ /
-   `ticket 555 <https://github.com/PowerDNS/pdns/issues/555>`__, `commit
-   2697 <http://wiki.powerdns.com/projects/trac/changeset/2697>`__ /
-   `ticket 457 <https://github.com/PowerDNS/pdns/issues/457>`__, `commit
-   2698 <http://wiki.powerdns.com/projects/trac/changeset/2698>`__,
-   `commit
-   2708 <http://wiki.powerdns.com/projects/trac/changeset/2708>`__,
-   `commit
-   2742 <http://wiki.powerdns.com/projects/trac/changeset/2742>`__ /
+   configure/compile-related fixes in `commit 1d8ea61d1276650b09c79937bcb6bd5351c41407 <https://github.com/PowerDNS/pdns/commit/1d8ea61d1276650b09c79937bcb6bd5351c41407>`__,
+   `commit 2e860cd008f6de9e5da29710d4a7e2b4d8736f75 <https://github.com/PowerDNS/pdns/commit/2e860cd008f6de9e5da29710d4a7e2b4d8736f75>`__ /
+   `ticket 461 <https://github.com/PowerDNS/pdns/issues/461>`__, `commit 7e7feae2184d7e4fa671f3b97704e61afe9488d8 <https://github.com/PowerDNS/pdns/commit/7e7feae2184d7e4fa671f3b97704e61afe9488d8>`__,
+   `commit 530b474ddcbda2a48370edff4122588f1bcdb987 <https://github.com/PowerDNS/pdns/commit/530b474ddcbda2a48370edff4122588f1bcdb987>`__,
+   `commit 0d070df2afa886df8061a4cec08eca91cee06a36 <https://github.com/PowerDNS/pdns/commit/0d070df2afa886df8061a4cec08eca91cee06a36>`__ /
+   `ticket 522 <https://github.com/PowerDNS/pdns/issues/522>`__, `commit d3c2aba773f3ae56d63a7251b09bfc039e39b402 <https://github.com/PowerDNS/pdns/commit/d3c2aba773f3ae56d63a7251b09bfc039e39b402>`__ /
+   `ticket 522 <https://github.com/PowerDNS/pdns/issues/522>`__, `commit 199e13197b628bd67a99ea72a2c35a230c335b40 <https://github.com/PowerDNS/pdns/commit/199e13197b628bd67a99ea72a2c35a230c335b40>`__ /
+   `ticket 555 <https://github.com/PowerDNS/pdns/issues/555>`__, `commit 37ea5db97fb24ff6fdcdd96827bc69f6fcb36472 <https://github.com/PowerDNS/pdns/commit/37ea5db97fb24ff6fdcdd96827bc69f6fcb36472>`__ /
+   `ticket 457 <https://github.com/PowerDNS/pdns/issues/457>`__, `commit 300cc6181c42764753638fa609c4274590f248eb <https://github.com/PowerDNS/pdns/commit/300cc6181c42764753638fa609c4274590f248eb>`__,
+   `commit e9ea6916b6c91df5a90a645214206ac2dc5b35c5 <https://github.com/PowerDNS/pdns/commit/e9ea6916b6c91df5a90a645214206ac2dc5b35c5>`__,
+   `commit ab9501b14c91f512b94cad8b5556606ca7e11c45 <https://github.com/PowerDNS/pdns/commit/ab9501b14c91f512b94cad8b5556606ca7e11c45>`__ /
    `ticket 462 <https://github.com/PowerDNS/pdns/issues/462>`__),
-   `commit
-   2752 <http://wiki.powerdns.com/projects/trac/changeset/2752>`__ /
-   `ticket 437 <https://github.com/PowerDNS/pdns/issues/437>`__, `commit
-   2764 <http://wiki.powerdns.com/projects/trac/changeset/2764>`__,
-   `commit
-   2809 <http://wiki.powerdns.com/projects/trac/changeset/2809>`__,
-   `commit
-   2844 <http://wiki.powerdns.com/projects/trac/changeset/2844>`__,
-   `commit
-   2845 <http://wiki.powerdns.com/projects/trac/changeset/2845>`__,
-   `commit
-   2846 <http://wiki.powerdns.com/projects/trac/changeset/2846>`__,
-   `commit
-   2881 <http://wiki.powerdns.com/projects/trac/changeset/2881>`__.
+   `commit 8a98935adfe89dfdceba971a2587c6cee7f73c57 <https://github.com/PowerDNS/pdns/commit/8a98935adfe89dfdceba971a2587c6cee7f73c57>`__ /
+   `ticket 437 <https://github.com/PowerDNS/pdns/issues/437>`__, `commit 11a48e4fba1c672c9d5e94082da9e333d451b8c4 <https://github.com/PowerDNS/pdns/commit/11a48e4fba1c672c9d5e94082da9e333d451b8c4>`__,
+   `commit d209b173835759e6f23b7430204c9a867af9ad08 <https://github.com/PowerDNS/pdns/commit/d209b173835759e6f23b7430204c9a867af9ad08>`__,
+   `commit 642fb7d741c48f24a5bddbb3241743f0f6b8630b <https://github.com/PowerDNS/pdns/commit/642fb7d741c48f24a5bddbb3241743f0f6b8630b>`__,
+   `commit 0a1c05435d03012ae647bb110e56c9476cc762d7 <https://github.com/PowerDNS/pdns/commit/0a1c05435d03012ae647bb110e56c9476cc762d7>`__,
+   `commit 294c34a1313f4bf523f54b6a88e356e9a01c0941 <https://github.com/PowerDNS/pdns/commit/294c34a1313f4bf523f54b6a88e356e9a01c0941>`__,
+   `commit b7fd9b552f9e072dd0a59ead57d62c937ebeb5d2 <https://github.com/PowerDNS/pdns/commit/b7fd9b552f9e072dd0a59ead57d62c937ebeb5d2>`__.
 -  Juraj Lutter contributed AXFR-SOURCE per zone metadata settings. Code
-   in `commit
-   2616 <http://wiki.powerdns.com/projects/trac/changeset/2616>`__.
+   in `commit fc396d56351406aee9815ad6c7bc03cacb556a63 <https://github.com/PowerDNS/pdns/commit/fc396d56351406aee9815ad6c7bc03cacb556a63>`__.
 -  Initscripts now have exit codes, submitted by Sander Hoentjen. Code
-   in `commit
-   2728 <http://wiki.powerdns.com/projects/trac/changeset/2728>`__.
+   in `commit f580d61861e558878c6897742a6d95b1c81e3cb7 <https://github.com/PowerDNS/pdns/commit/f580d61861e558878c6897742a6d95b1c81e3cb7>`__.
    Guardian now returns 0 instead of 1 when receiving SIGTERM, requested
-   by Morten Stevens of Fedora. Code in `commit
-   2717 <http://wiki.powerdns.com/projects/trac/changeset/2717>`__.
+   by Morten Stevens of Fedora. Code in `commit 93d8ebf9928bc9759a965f3ceb75d99ea29b061f <https://github.com/PowerDNS/pdns/commit/93d8ebf9928bc9759a965f3ceb75d99ea29b061f>`__.
 -  Mark Zealey submitted various performance improvement patches and
-   suggestions. Accepted as `commit
-   2729 <http://wiki.powerdns.com/projects/trac/changeset/2729>`__ /
-   `ticket 579 <https://github.com/PowerDNS/pdns/issues/579>`__, `commit
-   2730 <http://wiki.powerdns.com/projects/trac/changeset/2730>`__ /
+   suggestions. Accepted as `commit 839973ac5c281206c27db034114da9ab591af0d9 <https://github.com/PowerDNS/pdns/commit/839973ac5c281206c27db034114da9ab591af0d9>`__ /
+   `ticket 579 <https://github.com/PowerDNS/pdns/issues/579>`__, `commit 9efea10a01eb1a56de1e5559efca5a2b5f9beb45 <https://github.com/PowerDNS/pdns/commit/9efea10a01eb1a56de1e5559efca5a2b5f9beb45>`__ /
    `ticket 584 <https://github.com/PowerDNS/pdns/issues/584>`__),
-   `commit
-   2731 <http://wiki.powerdns.com/projects/trac/changeset/2731>`__ /
+   `commit 078f4c97f16dce426627f81a863a128d131d8c10 <https://github.com/PowerDNS/pdns/commit/078f4c97f16dce426627f81a863a128d131d8c10>`__ /
    `ticket 583 <https://github.com/PowerDNS/pdns/issues/583>`__),
-   `commit
-   2768 <http://wiki.powerdns.com/projects/trac/changeset/2768>`__ /
+   `commit 18a144efc9668b00558c254bfb366a2835c72b95 <https://github.com/PowerDNS/pdns/commit/18a144efc9668b00558c254bfb366a2835c72b95>`__ /
    `ticket 578 <https://github.com/PowerDNS/pdns/issues/578>`__). Please
    see commit messages for more details.
 -  pdnssec check-all-zones now reuses database connections, avoiding a
-   socket exhaustion issue in some situations. Code in `commit
-   2749 <http://wiki.powerdns.com/projects/trac/changeset/2749>`__,
+   socket exhaustion issue in some situations. Code in `commit 9d335015dbf254c1b71d9da0125a8ccb973b6ca0 <https://github.com/PowerDNS/pdns/commit/9d335015dbf254c1b71d9da0125a8ccb973b6ca0>`__,
    closes `ticket 519 <https://github.com/PowerDNS/pdns/issues/519>`__.
 -  Ruben d'Arco submitted various improvements regarding trailing dots.
    Additional lookups now try harder, pdnssec errors about trailing dots
    in names, pdnssec warns about trailing dots in names inside content
-   fields, AXFR now strips the dot from SRV hostnames. Code in `commit
-   2748 <http://wiki.powerdns.com/projects/trac/changeset/2748>`__,
+   fields, AXFR now strips the dot from SRV hostnames. Code in `commit 8c949c5266f5b51f3e4264e0241f7bec8d454824 <https://github.com/PowerDNS/pdns/commit/8c949c5266f5b51f3e4264e0241f7bec8d454824>`__,
    fixes `ticket 289 <https://github.com/PowerDNS/pdns/issues/289>`__.
 -  Pre-3.0, backends would get cycled if they threw the right error. 3.2
-   reinstates this behaviour, as it is more robust. Change in `commit
-   2734 <http://wiki.powerdns.com/projects/trac/changeset/2734>`__
-   (reverting `commit
-   2100 <http://wiki.powerdns.com/projects/trac/changeset/2100>`__),
+   reinstates this behaviour, as it is more robust. Change in `commit 31d9bb01f54e5a172ae45789413535c36a7ef6da <https://github.com/PowerDNS/pdns/commit/31d9bb01f54e5a172ae45789413535c36a7ef6da>`__
+   (reverting `commit 86113ac91cb8e597a927b0cc9837062a18f494d9 <https://github.com/PowerDNS/pdns/commit/86113ac91cb8e597a927b0cc9837062a18f494d9>`__),
    fixes `ticket 386 <https://github.com/PowerDNS/pdns/issues/386>`__.
 -  PowerDNS auth does not use the select() kernel/library call anymore.
    This means fd-numbers over 1023 (and, in general, more than 1024
    sockets, including more than 1024 listening sockets) should now work
-   reliably. Code in `commit
-   2739 <http://wiki.powerdns.com/projects/trac/changeset/2739>`__,
-   `commit
-   2740 <http://wiki.powerdns.com/projects/trac/changeset/2740>`__,
+   reliably. Code in `commit 6a6976f866721cb381f3a5da762b73cd90a4468f <https://github.com/PowerDNS/pdns/commit/6a6976f866721cb381f3a5da762b73cd90a4468f>`__,
+   `commit 6e24224638eb866d81a7e642715803c1fb4900de <https://github.com/PowerDNS/pdns/commit/6e24224638eb866d81a7e642715803c1fb4900de>`__,
    fixes `ticket 408 <https://github.com/PowerDNS/pdns/issues/408>`__.
 -  gmysql users can now specify the 'group' we connect as, using the
-   gmysql-group setting. Submitted by Kees Monshouwer, code in `commit
-   2770 <http://wiki.powerdns.com/projects/trac/changeset/2770>`__,
-   `commit
-   2771 <http://wiki.powerdns.com/projects/trac/changeset/2771>`__,
-   `commit
-   2778 <http://wiki.powerdns.com/projects/trac/changeset/2778>`__,
-   `commit
-   2780 <http://wiki.powerdns.com/projects/trac/changeset/2780>`__,
+   gmysql-group setting. Submitted by Kees Monshouwer, code in `commit 3d9b0007d08c00ff5026b643434b9f9261b1aca5 <https://github.com/PowerDNS/pdns/commit/3d9b0007d08c00ff5026b643434b9f9261b1aca5>`__,
+   `commit 6fea7ecca12a9a9cac9e8fe101a8893b8dde11c8 <https://github.com/PowerDNS/pdns/commit/6fea7ecca12a9a9cac9e8fe101a8893b8dde11c8>`__,
+   `commit e5613cceb88a17d26350c70780100e0d6f3fa700 <https://github.com/PowerDNS/pdns/commit/e5613cceb88a17d26350c70780100e0d6f3fa700>`__,
+   `commit ce9dd8b45b4597e0b57b1484b2a9ad9dfc5e6504 <https://github.com/PowerDNS/pdns/commit/ce9dd8b45b4597e0b57b1484b2a9ad9dfc5e6504>`__,
    closing `ticket 463 <https://github.com/PowerDNS/pdns/issues/463>`__.
 -  The Linux-only traceback handler is now optional (use
    traceback-handler=off to disable it). Suggested by Marc Haber. Change
-   in `commit
-   2798 <http://wiki.powerdns.com/projects/trac/changeset/2798>`__,
+   in `commit 5488e86bd141d9c9b01d8687e90462b2f08cd7aa <https://github.com/PowerDNS/pdns/commit/5488e86bd141d9c9b01d8687e90462b2f08cd7aa>`__,
    closes `ticket 497 <https://github.com/PowerDNS/pdns/issues/497>`__.
 -  We now use IPV6\_V6ONLY to bind IPv6 sockets. This ensures consistent
-   behaviour between different operating systems. Change in `commit
-   2799 <http://wiki.powerdns.com/projects/trac/changeset/2799>`__.
+   behaviour between different operating systems. Change in `commit 326484bed8214ba96bcd1a9a4d0657de31ce92e9 <https://github.com/PowerDNS/pdns/commit/326484bed8214ba96bcd1a9a4d0657de31ce92e9>`__.
 -  MySQL connections are now logged at a higher loglevel, reducing log
-   clutter. Change in `commit
-   2800 <http://wiki.powerdns.com/projects/trac/changeset/2800>`__.
--  We now ship a systemd unit file in contrib/. Added in `commit
-   2847 <http://wiki.powerdns.com/projects/trac/changeset/2847>`__ and
-   `commit
-   2848 <http://wiki.powerdns.com/projects/trac/changeset/2848>`__,
+   clutter. Change in `commit 1c89ede820851e8987fc728e192ae595a7411b47 <https://github.com/PowerDNS/pdns/commit/1c89ede820851e8987fc728e192ae595a7411b47>`__.
+-  We now ship a systemd unit file in contrib/. Added in `commit e0f824e978be24a36e1655d5f19dbb49ea211302 <https://github.com/PowerDNS/pdns/commit/e0f824e978be24a36e1655d5f19dbb49ea211302>`__ and
+   `commit c10398cb21ec5c7478f0361ef30a9640eea26239 <https://github.com/PowerDNS/pdns/commit/c10398cb21ec5c7478f0361ef30a9640eea26239>`__,
    submitted by Morten Stevens.
 
 Assorted bugfixes
 ^^^^^^^^^^^^^^^^^
 
--  If a slave domain is removed while a transfer for it is queued, we no
+-  If a slave domain is removed while a transfer to it is queued, we no
    longer try the transfer. This also avoids a rare crash in similar
-   circumstances. Code in `commit
-   2802 <http://wiki.powerdns.com/projects/trac/changeset/2802>`__,
+   circumstances. Code in `commit f9fa0e2de8c0c4a83a4104dfa3120c8e64f6c15b <https://github.com/PowerDNS/pdns/commit/f9fa0e2de8c0c4a83a4104dfa3120c8e64f6c15b>`__,
    closes `ticket 596 <https://github.com/PowerDNS/pdns/issues/596>`__.
 -  When using pdnssec with gsql backends, sometimes an SSqlException
    would pop up without any useful information. This no longer happens
-   and errors are now in general more meaningful. Fix in `commit
-   2803 <http://wiki.powerdns.com/projects/trac/changeset/2803>`__.
+   and errors are now in general more meaningful. Fix in `commit bb6dd39e21eefef96eb34efd94ffa6a16454995d <https://github.com/PowerDNS/pdns/commit/bb6dd39e21eefef96eb34efd94ffa6a16454995d>`__.
 -  zone2sql now uses correct string syntax for PostgreSQL. This is
    needed for importing with the changed default settings in PostgreSQL
-   9.2 and up. Code in `commit
-   2797 <http://wiki.powerdns.com/projects/trac/changeset/2797>`__,
+   9.2 and up. Code in `commit 7168d218ff4bb2b468935da7e5a1c0a232d6c2e4 <https://github.com/PowerDNS/pdns/commit/7168d218ff4bb2b468935da7e5a1c0a232d6c2e4>`__,
    closes `ticket 471 <https://github.com/PowerDNS/pdns/issues/471>`__.
 -  We no longer send v6 notifications if v6 is not available. Same for
-   IPv4. Code in `commit
-   2772 <http://wiki.powerdns.com/projects/trac/changeset/2772>`__,
+   IPv4. Code in `commit 16d1f6097faf26f8258f30f67d446ec44bf474d7 <https://github.com/PowerDNS/pdns/commit/16d1f6097faf26f8258f30f67d446ec44bf474d7>`__,
    fixes `ticket 515 <https://github.com/PowerDNS/pdns/issues/515>`__.
 -  We would sometimes serve stale data after an incoming AXFR. Reported
-   by Martin Draschl, fixed by Ruben d'Arco in `commit
-   2699 <http://wiki.powerdns.com/projects/trac/changeset/2699>`__,
+   by Martin Draschl, fixed by Ruben d'Arco in `commit 54d4144a3e880107e9f675bc1ca222e474caaacf <https://github.com/PowerDNS/pdns/commit/54d4144a3e880107e9f675bc1ca222e474caaacf>`__,
    closing `ticket 525 <https://github.com/PowerDNS/pdns/issues/525>`__.
 -  Duplicate incoming NOTIFYs could cause PowerDNS to try to insert the
-   same domain name into a database twice. Fixed in `commit
-   2703 <http://wiki.powerdns.com/projects/trac/changeset/2703>`__,
+   same domain name into a database twice. Fixed in `commit 8c80c4f4f4e5d427c0284872c84380de67829187 <https://github.com/PowerDNS/pdns/commit/8c80c4f4f4e5d427c0284872c84380de67829187>`__,
    closing `ticket 453 <https://github.com/PowerDNS/pdns/issues/453>`__.
 -  pdnssec show-zone now works on a zone that has any number of keys,
    instead of requiring active keys. Reported by Jeroen Tushuizen of
-   myH2Oservers, code in `commit
-   2769 <http://wiki.powerdns.com/projects/trac/changeset/2769>`__,
+   myH2Oservers, code in `commit d4a4176ddec43d1b30ee4b12cde1e16aaed9ecc1 <https://github.com/PowerDNS/pdns/commit/d4a4176ddec43d1b30ee4b12cde1e16aaed9ecc1>`__,
    closes `ticket 586 <https://github.com/PowerDNS/pdns/issues/586>`__.
 -  pdns-control notify-host now accepts v6 literals. Reported by
-   Christof Meerwald, fixed in `commit
-   2704 <http://wiki.powerdns.com/projects/trac/changeset/2704>`__.
+   Christof Meerwald, fixed in `commit c069c1f26539f8c36e143e4222ce13f23ae4db31 <https://github.com/PowerDNS/pdns/commit/c069c1f26539f8c36e143e4222ce13f23ae4db31>`__.
 -  The tinydnsbackend no longer chokes on questions longer than 64
-   bytes. Code in `commit
-   2622 <http://wiki.powerdns.com/projects/trac/changeset/2622>`__.
+   bytes. Code in `commit 82aec8077f21e283f3022671190ebe65f73619a6 <https://github.com/PowerDNS/pdns/commit/82aec8077f21e283f3022671190ebe65f73619a6>`__.
 -  \*-all-domains commands in pdnssec now work with Postgres (gpgsql)
-   too. Code in `commit
-   2645 <http://wiki.powerdns.com/projects/trac/changeset/2645>`__,
+   too. Code in `commit 94109d6a4652dc73ef611c30b426d47f728669b6 <https://github.com/PowerDNS/pdns/commit/94109d6a4652dc73ef611c30b426d47f728669b6>`__,
    closing `ticket 472 <https://github.com/PowerDNS/pdns/issues/472>`__.
 -  We would sometimes leave the opcode of an outgoing packet
-   uninitialized. Fixed in `commit
-   2680 <http://wiki.powerdns.com/projects/trac/changeset/2680>`__,
+   uninitialized. Fixed in `commit da22f3df00c36d152c2b098b2e32f0360b20fe04 <https://github.com/PowerDNS/pdns/commit/da22f3df00c36d152c2b098b2e32f0360b20fe04>`__,
    closing `ticket 532 <https://github.com/PowerDNS/pdns/issues/532>`__.
--  nproxy can now listen on a configurable port. Code in `commit
-   2684 <http://wiki.powerdns.com/projects/trac/changeset/2684>`__,
+-  nproxy can now listen on a configurable port. Code in `commit b4e820773f0fb6d52ecd35384ef6cfe74b7e1abc <https://github.com/PowerDNS/pdns/commit/b4e820773f0fb6d52ecd35384ef6cfe74b7e1abc>`__,
    fixes `ticket 534 <https://github.com/PowerDNS/pdns/issues/534>`__.
--  Improve mydnsbackend for SOA queries. Code in `commit
-   2751 <http://wiki.powerdns.com/projects/trac/changeset/2751>`__,
+-  Improve mydnsbackend for SOA queries. Code in `commit 13b17e886c41fbe39e6fd4b6247aeabb1d191eca <https://github.com/PowerDNS/pdns/commit/13b17e886c41fbe39e6fd4b6247aeabb1d191eca>`__,
    fixes `ticket 439 <https://github.com/PowerDNS/pdns/issues/439>`__,
    by Ruben d'Arco.
 -  Various non-functional fixes that make Valgrind happy (note that
    Valgrind was right to complain in all of these situations), in
-   `commit
-   2715 <http://wiki.powerdns.com/projects/trac/changeset/2715>`__,
-   `commit
-   2716 <http://wiki.powerdns.com/projects/trac/changeset/2716>`__,
-   `commit
-   2718 <http://wiki.powerdns.com/projects/trac/changeset/2718>`__.
+   `commit c8722b89bb3e9476d4424a21b04392a5313aae1c <https://github.com/PowerDNS/pdns/commit/c8722b89bb3e9476d4424a21b04392a5313aae1c>`__,
+   `commit 79fe6bef998382979c7cd14dc6da250dae29955b <https://github.com/PowerDNS/pdns/commit/79fe6bef998382979c7cd14dc6da250dae29955b>`__,
+   `commit 998a2450de7d319a03ee0b29c1f0b78af10ff6cd <https://github.com/PowerDNS/pdns/commit/998a2450de7d319a03ee0b29c1f0b78af10ff6cd>`__.
 
  PowerDNS Authoritative Server 3.1
 ----------------------------------
@@ -2085,7 +1924,7 @@ RC2 released on the 14th of April 2012 RC1 released on the 23th of March
 **Warning**: Version 3.1 of the PowerDNS Authoritative Server is a major
 upgrade if you are coming from 2.9.x. There are also some important
 changes if you are coming from 3.0. Please refer to the `Upgrade
-documentation <authoritative/upgrading.md>`__ for important information
+documentation <../upgrading.rst>`__ for important information
 on correct and stable operation, as well as notes on performance and
 memory use.
 
@@ -2117,9 +1956,9 @@ Downloads
 ^^^^^^^^^
 
 -  `Official download
-   page <http://www.powerdns.com/content/downloads.html>`__
+   page <https://www.powerdns.com/downloads>`__
 -  `CentOS/RHEL 5/6
-   RPMs <http://www.monshouwer.eu/download/3rd_party/pdns-server/>`__
+   RPMs <https://www.monshouwer.eu/download/3rd_party/pdns/>`__
    kindly provided by Kees Monshouwer.
 -  `Additional
    packages <http://wiki.powerdns.com/trac#GettingPowerDNSpackages>`__
@@ -2129,508 +1968,355 @@ Changes between RC3 and final
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 -  pdnssec now honours the default-soa-name setting. Reported by Kees
-   Monshouwer, fixed in `commit
-   2600 <http://wiki.powerdns.com/projects/trac/changeset/2600>`__.
+   Monshouwer, fixed in `commit da6a292656ba9a113a008bf96fac6499e0043ed3 <https://github.com/PowerDNS/pdns/commit/da6a292656ba9a113a008bf96fac6499e0043ed3>`__.
 
 Changes between RC2 and RC3
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 -  The hidden test-algorithms command for pdnssec now has a little
-   brother 'test-algorithm X'. Code in `commit
-   2596 <http://wiki.powerdns.com/projects/trac/changeset/2596>`__, by
+   brother 'test-algorithm X'. Code in `commit cbb0025bb3887aa03e4392a9f3eb12af7a903cac <https://github.com/PowerDNS/pdns/commit/cbb0025bb3887aa03e4392a9f3eb12af7a903cac>`__, by
    Aki Tuomi.
--  PolarSSL upgraded to 1.1.2 due to weak RSA key generation (`commit
-   2586 <http://wiki.powerdns.com/projects/trac/changeset/2586>`__). If
+-  PolarSSL upgraded to 1.1.2 due to weak RSA key generation (`commit f48b4a12a2fc48d4aeeb76dee1721e4a1a83b75a <https://github.com/PowerDNS/pdns/commit/f48b4a12a2fc48d4aeeb76dee1721e4a1a83b75a>`__). If
    you created RSA keys with RC1 or RC2 using PolarSSL, please replace
-   them! This upgrade introduced a slowdown; speedup patch in `commit
-   2593 <http://wiki.powerdns.com/projects/trac/changeset/2593>`__.
+   them! This upgrade introduced a slowdown; speedup patch in `commit 73fae989c7bc276c0be5d4bb4618c6929fc3a6a5 <https://github.com/PowerDNS/pdns/commit/73fae989c7bc276c0be5d4bb4618c6929fc3a6a5>`__.
 -  It turns out we were using libmysqlclient in a thread-unsafe manner.
    This issue was reported and painstakingly debugged by Marc Haber.
-   Presumably fixed in `commit
-   2591 <http://wiki.powerdns.com/projects/trac/changeset/2591>`__.
+   Presumably fixed in `commit b87bd70860f12824262b995dd791423661f68182 <https://github.com/PowerDNS/pdns/commit/b87bd70860f12824262b995dd791423661f68182>`__.
 -  Updated a bunch of internal counters to be threadsafe. Code in
-   `commit
-   2579 <http://wiki.powerdns.com/projects/trac/changeset/2579>`__.
--  NSEC(3) bitmaps can now cover RRtypes above 255. Reported by Michael
-   Braunoeder, patch by Aki Tuomi in `commit
-   2590 <http://wiki.powerdns.com/projects/trac/changeset/2590>`__.
+   `commit 16f7d28d81099077def2b44436a4942893afc306 <https://github.com/PowerDNS/pdns/commit/16f7d28d81099077def2b44436a4942893afc306>`__.
+-  NSEC/NSEC3 bitmaps can now cover RRtypes above 255. Reported by Michael
+   Braunoeder, patch by Aki Tuomi in `commit 5b7f65461b656ce554d392e903c92091370a0dfd <https://github.com/PowerDNS/pdns/commit/5b7f65461b656ce554d392e903c92091370a0dfd>`__.
 -  pdnssec check-zone now reports MBOXFW and URL records (as those are
    unsupported since 3.0). Reported by Gerwin Krist of Digitalus, patch
    by Ruben d'Arco. Closes `ticket
    446 <https://github.com/PowerDNS/pdns/issues/446>`__.
 -  The odbcbackend was removed. It only runs on Windows and Windows is
-   unsupported since 3.0. Removal in `commit
-   2576 <http://wiki.powerdns.com/projects/trac/changeset/2576>`__.
+   unsupported since 3.0. Removal in `commit 861af1d989fde1cf150507bac2d73c8279db6404 <https://github.com/PowerDNS/pdns/commit/861af1d989fde1cf150507bac2d73c8279db6404>`__.
 -  We used to send the chunk length and the actual chunk in two separate
    writes (often resulting in two separate TCP packets) during outbound
    AXFR. This confused MSDNS. We now combine those writes. Code in
-   `commit
-   2575 <http://wiki.powerdns.com/projects/trac/changeset/2575>`__.
+   `commit fbaa5e098fbf7ce5d6a0a1beae5081b6c8d79e66 <https://github.com/PowerDNS/pdns/commit/fbaa5e098fbf7ce5d6a0a1beae5081b6c8d79e66>`__.
 -  The bindbackend can now run without SQLite3, as previously intended.
-   Fix in `commit
-   2574 <http://wiki.powerdns.com/projects/trac/changeset/2574>`__.
+   Fix in `commit f50339220e8061a82142709aa4fccee1fcf7a305 <https://github.com/PowerDNS/pdns/commit/f50339220e8061a82142709aa4fccee1fcf7a305>`__.
 -  Some high-concurrency master setups would crash under load. Fixed in
-   `commit
-   2571 <http://wiki.powerdns.com/projects/trac/changeset/2571>`__.
+   `commit e082fb4ce34c83efd47ce24c0ddcd06be4c960bc <https://github.com/PowerDNS/pdns/commit/e082fb4ce34c83efd47ce24c0ddcd06be4c960bc>`__.
 
 Changes between RC1 and RC2
 ---------------------------
 
 -  We imported the TinyDNS backend by Ruben d'Arco. Code mostly in
-   `commit
-   2559 <http://wiki.powerdns.com/projects/trac/changeset/2559>`__. See
+   `commit ddee6d080548f18ed36ec2754bc251256e0affdd <https://github.com/PowerDNS/pdns/commit/ddee6d080548f18ed36ec2754bc251256e0affdd>`__. See
    `TinyDNS Backend <../backends/tinydns.rst>`__.
 -  Overriding C(XX)FLAGS is easier now. Problem pointed out by Jose
    Arthur Benetasso Villanova and others, fix suggested by Sten Spans.
-   Patch in `commit
-   2533 <http://wiki.powerdns.com/projects/trac/changeset/2533>`__.
--  TSIG fixes: skip embedded spaces in keys (`commit
-   2536 <http://wiki.powerdns.com/projects/trac/changeset/2536>`__),
-   compute signatures correctly (by Ruben d'Arco in `commit
-   2547 <http://wiki.powerdns.com/projects/trac/changeset/2547>`__),
--  nproxy, dnsscan and dnsdemog did not compile at all. Fixes in `commit
-   2538 <http://wiki.powerdns.com/projects/trac/changeset/2538>`__,
-   `commit
-   2554 <http://wiki.powerdns.com/projects/trac/changeset/2554>`__.
--  We now allow unescaped tabs in TXT records. Fix in `commit
-   2539 <http://wiki.powerdns.com/projects/trac/changeset/2539>`__.
+   Patch in `commit 51303a3569a9328a1028d08f3f4c619f2dd2562f <https://github.com/PowerDNS/pdns/commit/51303a3569a9328a1028d08f3f4c619f2dd2562f>`__.
+-  TSIG fixes: skip embedded spaces in keys (`commit 3880856c880e0a8ca5d777e0d99c0326fe7f2efb <https://github.com/PowerDNS/pdns/commit/3880856c880e0a8ca5d777e0d99c0326fe7f2efb>`__),
+   compute signatures correctly (by Ruben d'Arco in `commit 236e0c78b4846f2fb5c3311c1875837fc0e57cd6 <https://github.com/PowerDNS/pdns/commit/236e0c78b4846f2fb5c3311c1875837fc0e57cd6>`__),
+-  nproxy, dnsscan and dnsdemog did not compile at all. Fixes in `commit 2d21c5cd4f297bada9321161725b0b2ae9dadadb <https://github.com/PowerDNS/pdns/commit/2d21c5cd4f297bada9321161725b0b2ae9dadadb>`__,
+   `commit e6e9fad0f7d716fa935a104dfc84f298bf668776 <https://github.com/PowerDNS/pdns/commit/e6e9fad0f7d716fa935a104dfc84f298bf668776>`__.
+-  We now allow unescaped tabs in TXT records. Fix in `commit fef45243d061d38d87c8be61cdb41e823ab32bbc <https://github.com/PowerDNS/pdns/commit/fef45243d061d38d87c8be61cdb41e823ab32bbc>`__.
 -  SOA records no longer disappear during incoming transfers. Fix by
-   Ruben d'Arco in `commit
-   2540 <http://wiki.powerdns.com/projects/trac/changeset/2540>`__.
+   Ruben d'Arco in `commit a426be785dab20591b6c07458cda941e5ddfbf6d <https://github.com/PowerDNS/pdns/commit/a426be785dab20591b6c07458cda941e5ddfbf6d>`__.
 -  PowerDNS compiles on OS X (and other platforms that support our auth
-   server but not the recursor) again, fix in `commit
-   2566 <http://wiki.powerdns.com/projects/trac/changeset/2566>`__.
--  Cleanups related to warnings from gcc and valgrind in `commit
-   2561 <http://wiki.powerdns.com/projects/trac/changeset/2561>`__,
-   `commit
-   2562 <http://wiki.powerdns.com/projects/trac/changeset/2562>`__,
-   `commit
-   2565 <http://wiki.powerdns.com/projects/trac/changeset/2565>`__.
+   server but not the recursor) again, fix in `commit e92c9494df51522714b23d8f19aa7fc9e7af6fdb <https://github.com/PowerDNS/pdns/commit/e92c9494df51522714b23d8f19aa7fc9e7af6fdb>`__.
+-  Cleanups related to warnings from gcc and valgrind in `commit e9bc79c6a4c2e34e53b5beb2aaee470d10491646 <https://github.com/PowerDNS/pdns/commit/e9bc79c6a4c2e34e53b5beb2aaee470d10491646>`__,
+   `commit bf372db8481c1b97dda08ab64b320ba76b7824bd <https://github.com/PowerDNS/pdns/commit/bf372db8481c1b97dda08ab64b320ba76b7824bd>`__,
+   `commit 313923a85eef5422f8d9a5eab562a3e1bc915e39 <https://github.com/PowerDNS/pdns/commit/313923a85eef5422f8d9a5eab562a3e1bc915e39>`__.
 -  Solaris compatibility fixes by Ruben d'Arco, Juraj Lutter and others
-   in `commit
-   2548 <http://wiki.powerdns.com/projects/trac/changeset/2548>`__,
-   `commit
-   2552 <http://wiki.powerdns.com/projects/trac/changeset/2552>`__,
-   `commit
-   2553 <http://wiki.powerdns.com/projects/trac/changeset/2553>`__,
-   `commit
-   2560 <http://wiki.powerdns.com/projects/trac/changeset/2560>`__.
-   Fixes for \*BSD in `commit
-   2546 <http://wiki.powerdns.com/projects/trac/changeset/2546>`__.
+   in `commit 372a3947a3784b780e2b54a4ba5f3a5f6cead3f4 <https://github.com/PowerDNS/pdns/commit/372a3947a3784b780e2b54a4ba5f3a5f6cead3f4>`__,
+   `commit 8f3456a7a1a2ef772ed5f95ea7b9e8d1592b62a3 <https://github.com/PowerDNS/pdns/commit/8f3456a7a1a2ef772ed5f95ea7b9e8d1592b62a3>`__,
+   `commit c833728c77748c3515008e2256684fdd4c657ee3 <https://github.com/PowerDNS/pdns/commit/c833728c77748c3515008e2256684fdd4c657ee3>`__,
+   `commit 4bf5694acb7e4cf6825faa9980101c128cc1b2f7 <https://github.com/PowerDNS/pdns/commit/4bf5694acb7e4cf6825faa9980101c128cc1b2f7>`__.
+   Fixes for \*BSD in `commit 525d1f90d42868843c1f28175ceecfee51d2f040 <https://github.com/PowerDNS/pdns/commit/525d1f90d42868843c1f28175ceecfee51d2f040>`__.
 -  pdns\_control help would report 'version' twice, reported by Gerwin,
-   fix in `commit
-   2549 <http://wiki.powerdns.com/projects/trac/changeset/2549>`__.
+   fix in `commit 36926e31e7b979c942289744359b91e8087ca7bc <https://github.com/PowerDNS/pdns/commit/36926e31e7b979c942289744359b91e8087ca7bc>`__.
 
 DNSSEC related fixes
 ^^^^^^^^^^^^^^^^^^^^
 
 -  When slaving zones, PowerDNS now automatically detects that a zone is
-   presigned. Code in `commit
-   2502 <http://wiki.powerdns.com/projects/trac/changeset/2502>`__,
+   presigned. Code in `commit a1282cdd4b5ba10bb0b27eee3c8100cf9a99fe36 <https://github.com/PowerDNS/pdns/commit/a1282cdd4b5ba10bb0b27eee3c8100cf9a99fe36>`__,
    closing `ticket 369 <https://github.com/PowerDNS/pdns/issues/369>`__,
    `ticket 392 <https://github.com/PowerDNS/pdns/issues/392>`__.
 -  The bindbackend can now manage its own SQLite3 database to store key
    data, removing the need to run it with a gsql backend. Code in
-   `commit
-   2448 <http://wiki.powerdns.com/projects/trac/changeset/2448>`__,
-   `commit
-   2449 <http://wiki.powerdns.com/projects/trac/changeset/2449>`__,
-   `commit
-   2450 <http://wiki.powerdns.com/projects/trac/changeset/2450>`__,
-   `commit
-   2451 <http://wiki.powerdns.com/projects/trac/changeset/2451>`__,
-   `commit
-   2452 <http://wiki.powerdns.com/projects/trac/changeset/2452>`__,
-   `commit
-   2453 <http://wiki.powerdns.com/projects/trac/changeset/2453>`__,
-   `commit
-   2455 <http://wiki.powerdns.com/projects/trac/changeset/2455>`__,
-   `commit
-   2482 <http://wiki.powerdns.com/projects/trac/changeset/2482>`__,
-   `commit
-   2496 <http://wiki.powerdns.com/projects/trac/changeset/2496>`__,
-   `commit
-   2499 <http://wiki.powerdns.com/projects/trac/changeset/2499>`__.
+   `commit c9ba2a496f0fc6a1d77b3761b9a77688a570b4d0 <https://github.com/PowerDNS/pdns/commit/c9ba2a496f0fc6a1d77b3761b9a77688a570b4d0>`__,
+   `commit ccca2f6414235e7aabba20c005d6678302633a78 <https://github.com/PowerDNS/pdns/commit/ccca2f6414235e7aabba20c005d6678302633a78>`__,
+   `commit 2717b8b383de410934faeb497642c9ea41e6ffc9 <https://github.com/PowerDNS/pdns/commit/2717b8b383de410934faeb497642c9ea41e6ffc9>`__,
+   `commit 9bbd66f8e5a6d36bb98b072e1e523c5f91d83d61 <https://github.com/PowerDNS/pdns/commit/9bbd66f8e5a6d36bb98b072e1e523c5f91d83d61>`__,
+   `commit 20af48f2fdea636997bebf716f23d1e49be21273 <https://github.com/PowerDNS/pdns/commit/20af48f2fdea636997bebf716f23d1e49be21273>`__,
+   `commit fbe72b7ae6cd0bab54b4a74f09cc86aa10c8730a <https://github.com/PowerDNS/pdns/commit/fbe72b7ae6cd0bab54b4a74f09cc86aa10c8730a>`__,
+   `commit 080f5d57ec91a0f315ce2548b467b6c3d08ff29a <https://github.com/PowerDNS/pdns/commit/080f5d57ec91a0f315ce2548b467b6c3d08ff29a>`__,
+   `commit 9ca633e6d8c646de6a14f2ab4bf0ac0b7d4d0628 <https://github.com/PowerDNS/pdns/commit/9ca633e6d8c646de6a14f2ab4bf0ac0b7d4d0628>`__,
+   `commit 32869e14fa12ae11bf153c42e09074e7029ae0b0 <https://github.com/PowerDNS/pdns/commit/32869e14fa12ae11bf153c42e09074e7029ae0b0>`__,
+   `commit bfd6722e92a9bfe716aac2f9ea6026e42927b7e1 <https://github.com/PowerDNS/pdns/commit/bfd6722e92a9bfe716aac2f9ea6026e42927b7e1>`__.
 -  NSEC/NSEC3 logic for picking 'boundary' names was tricky, and got it
-   wrong in some cases. Fixes in `commit
-   2289 <http://wiki.powerdns.com/projects/trac/changeset/2289>`__,
-   `commit
-   2429 <http://wiki.powerdns.com/projects/trac/changeset/2429>`__,
-   `commit
-   2435 <http://wiki.powerdns.com/projects/trac/changeset/2435>`__ and
-   `commit
-   2473 <http://wiki.powerdns.com/projects/trac/changeset/2473>`__.
+   wrong in some cases. Fixes in `commit bc74a0782194b6159082e67a06b7689bfecc5d62 <https://github.com/PowerDNS/pdns/commit/bc74a0782194b6159082e67a06b7689bfecc5d62>`__,
+   `commit 5697411bace93119b87231fda11a348945aba168 <https://github.com/PowerDNS/pdns/commit/5697411bace93119b87231fda11a348945aba168>`__,
+   `commit 88717c791c5d13ef8b908113e7cab9c74364a67d <https://github.com/PowerDNS/pdns/commit/88717c791c5d13ef8b908113e7cab9c74364a67d>`__ and
+   `commit f3c18f9d42e65b317101865ecec6c63a0967be1e <https://github.com/PowerDNS/pdns/commit/f3c18f9d42e65b317101865ecec6c63a0967be1e>`__.
 -  The subtle differences between 'what records get NSEC', 'what records
    get NSEC3' and 'what records should get signed' did not translate
    well to the SQL auth column. We now use 'ordername IS NULL' to map
-   the whole spectrum. Code in `commit
-   2477 <http://wiki.powerdns.com/projects/trac/changeset/2477>`__,
-   `commit
-   2480 <http://wiki.powerdns.com/projects/trac/changeset/2480>`__,
-   `commit
-   2492 <http://wiki.powerdns.com/projects/trac/changeset/2492>`__.
+   the whole spectrum. Code in `commit 270454105a33eed1c417af4a22e65a13912f6507 <https://github.com/PowerDNS/pdns/commit/270454105a33eed1c417af4a22e65a13912f6507>`__,
+   `commit 0dd440611027f4094b87d7722a573ab91bb3690b <https://github.com/PowerDNS/pdns/commit/0dd440611027f4094b87d7722a573ab91bb3690b>`__,
+   `commit 45c5f5f124911575ed1027a48e0eb5a49c2436cb <https://github.com/PowerDNS/pdns/commit/45c5f5f124911575ed1027a48e0eb5a49c2436cb>`__.
 -  Pre-signed AXFR output, although correct, was different from our
-   query responses. Rectified in `commit
-   2477 <http://wiki.powerdns.com/projects/trac/changeset/2477>`__.
+   query responses. Rectified in `commit 270454105a33eed1c417af4a22e65a13912f6507 <https://github.com/PowerDNS/pdns/commit/270454105a33eed1c417af4a22e65a13912f6507>`__.
 -  Spotted & fixed by Jimmy Bergman of Atomia, CNAMEs and RRSIGs could
-   have bad interactions. Fix in `commit
-   2314 <http://wiki.powerdns.com/projects/trac/changeset/2314>`__,
-   further refined in `commit
-   2318 <http://wiki.powerdns.com/projects/trac/changeset/2318>`__.
+   have bad interactions. Fix in `commit f41796b5f0553146be80a519cd352ad25f706017 <https://github.com/PowerDNS/pdns/commit/f41796b5f0553146be80a519cd352ad25f706017>`__,
+   further refined in `commit 8d3cbffa4a8361340783890b5d658ab1d4c5a57a <https://github.com/PowerDNS/pdns/commit/8d3cbffa4a8361340783890b5d658ab1d4c5a57a>`__.
    Closes `ticket 411 <https://github.com/PowerDNS/pdns/issues/411>`__.
 -  Spotted & fixed by Jimmy Bergman of Atomia, we now allow direct RRSIG
    queries even when do=0.
 -  Spotted by Mark Scholten and Marco Davids, we would sometimes
    generate duplicate (and wrong) RRSIGs when signing an ANY answer
-   because of record jumbling. Fix in `commit
-   2381 <http://wiki.powerdns.com/projects/trac/changeset/2381>`__.
--  Several fixes to handling of DS queries, in `commit
-   2420 <http://wiki.powerdns.com/projects/trac/changeset/2420>`__,
-   `commit
-   2510 <http://wiki.powerdns.com/projects/trac/changeset/2510>`__,
-   `commit
-   2512 <http://wiki.powerdns.com/projects/trac/changeset/2512>`__.
+   because of record jumbling. Fix in `commit dca357a19895ba6a203eeeee5b2adbd4b090e1b4 <https://github.com/PowerDNS/pdns/commit/dca357a19895ba6a203eeeee5b2adbd4b090e1b4>`__.
+-  Several fixes to handling of DS queries, in `commit 849bd7f11f42b2c5bd78bf760b5f494fcbb5ac5f <https://github.com/PowerDNS/pdns/commit/849bd7f11f42b2c5bd78bf760b5f494fcbb5ac5f>`__,
+   `commit 571726e9d0352e64d2de15e7a4aac31482ac8c06 <https://github.com/PowerDNS/pdns/commit/571726e9d0352e64d2de15e7a4aac31482ac8c06>`__,
+   `commit 0a0f41126c7ae976c145913697560af979a81057 <https://github.com/PowerDNS/pdns/commit/0a0f41126c7ae976c145913697560af979a81057>`__.
 -  We now lowercase the signer name in an RRSIG. This is not mandated by
    DNSSEC specification but it improves compatibility with some
-   validators. Fix in `commit
-   2426 <http://wiki.powerdns.com/projects/trac/changeset/2426>`__.
+   validators. Fix in `commit c3a6f4ceeef899f9782ac3a63c706d2fd650f509 <https://github.com/PowerDNS/pdns/commit/c3a6f4ceeef899f9782ac3a63c706d2fd650f509>`__.
 
 Bug fixes
 ^^^^^^^^^
 
 -  Winfried Angele discovered we would open an additional backend
    connection per zone in the BIND backend. This only impacted users
-   with multiple simultaneous backends. Fix in `commit
-   2253 <http://wiki.powerdns.com/projects/trac/changeset/2253>`__,
+   with multiple simultaneous backends. Fix in `commit d4d9ea3ce0c60df7aa2a1b1b214609b85b1aa6e9 <https://github.com/PowerDNS/pdns/commit/d4d9ea3ce0c60df7aa2a1b1b214609b85b1aa6e9>`__,
    closing `ticket 383 <https://github.com/PowerDNS/pdns/issues/383>`__.
 -  All versions of max-cache-entries setting had confusing behaviour
    when set to 0. Now clarified to mean that 0 truly means 0, and not
-   'infinite'. Change in `commit
-   2328 <http://wiki.powerdns.com/projects/trac/changeset/2328>`__.
+   'infinite'. Change in `commit 157f806e6ee84a913742ef4615b7f72eaae05a8f <https://github.com/PowerDNS/pdns/commit/157f806e6ee84a913742ef4615b7f72eaae05a8f>`__.
 -  Wildcards in the presence of delegations were broken. Reported by a
-   cast of thousands. Fix & regression test in `commit
-   2368 <http://wiki.powerdns.com/projects/trac/changeset/2368>`__.
+   cast of thousands. Fix & regression test in `commit a87b7e3ff99abb2127fe23947c316f7e4e7d18b6 <https://github.com/PowerDNS/pdns/commit/a87b7e3ff99abb2127fe23947c316f7e4e7d18b6>`__.
    Closes `ticket 389 <https://github.com/PowerDNS/pdns/issues/389>`__.
 -  Internal caches used an order of magnitude more memory than expected
    and some were not purged properly, which hindered real life
-   deployments. Spotted by Winfried Angele and others. Fixed in `commit
-   2287 <http://wiki.powerdns.com/projects/trac/changeset/2287>`__ and
-   `commit
-   2328 <http://wiki.powerdns.com/projects/trac/changeset/2328>`__.
+   deployments. Spotted by Winfried Angele and others. Fixed in `commit 2665f226c169f4ca0874a73e3e23add4ebdc3bb5 <https://github.com/PowerDNS/pdns/commit/2665f226c169f4ca0874a73e3e23add4ebdc3bb5>`__ and
+   `commit 157f806e6ee84a913742ef4615b7f72eaae05a8f <https://github.com/PowerDNS/pdns/commit/157f806e6ee84a913742ef4615b7f72eaae05a8f>`__.
 -  Christof Meerwald discovered our .tar file missed a file of the Lua
-   backend. Change in `commit
-   2257 <http://wiki.powerdns.com/projects/trac/changeset/2257>`__.
+   backend. Change in `commit b06b54f802835630a0d656c3dd84895c220f3333 <https://github.com/PowerDNS/pdns/commit/b06b54f802835630a0d656c3dd84895c220f3333>`__.
 -  Paul Xek found out that the edns-subnet support did not work for
-   subnets tinier than a /25 or /121. Fix in `commit
-   2258 <http://wiki.powerdns.com/projects/trac/changeset/2258>`__.
+   subnets tinier than a /25 or /121. Fix in `commit f6c101f2eccd4787645810578a66cc7fcda50f92 <https://github.com/PowerDNS/pdns/commit/f6c101f2eccd4787645810578a66cc7fcda50f92>`__.
 -  edns-subnet aware PIPE scripts received bogus remote information on
-   AXFR requests. Fixed in `commit
-   2284 <http://wiki.powerdns.com/projects/trac/changeset/2284>`__.
+   AXFR requests. Fixed in `commit 19a391470120d6ad542c4498cb10d4005d10fc8b <https://github.com/PowerDNS/pdns/commit/19a391470120d6ad542c4498cb10d4005d10fc8b>`__.
 -  Fix compilation against older versions of MySQL that do not have
-   MYSQL\_OPT\_RECONNECT. `commit
-   2264 <http://wiki.powerdns.com/projects/trac/changeset/2264>`__,
+   MYSQL\_OPT\_RECONNECT. `commit 8b6b45bbdb2dbd4f53262ab7b8362e2be9e7541b <https://github.com/PowerDNS/pdns/commit/8b6b45bbdb2dbd4f53262ab7b8362e2be9e7541b>`__,
    closing `ticket 378 <https://github.com/PowerDNS/pdns/issues/378>`__.
 -  D. Stussy of Snarked.net discovered that PowerDNS could not parse a
-   DNS packet with a trailing blob of unknown length. Fixed in `commit
-   2267 <http://wiki.powerdns.com/projects/trac/changeset/2267>`__.
--  'pdnssec' did not work for records with NULL ttls. Fixed in `commit
-   2266 <http://wiki.powerdns.com/projects/trac/changeset/2266>`__,
+   DNS packet with a trailing blob of unknown length. Fixed in `commit e2c162d3d255cecefd3bf4d73d82a1fccdfb47b2 <https://github.com/PowerDNS/pdns/commit/e2c162d3d255cecefd3bf4d73d82a1fccdfb47b2>`__.
+-  'pdnssec' did not work for records with NULL ttls. Fixed in `commit f2e7d77b067a137f40a411853a8bb145d701effb <https://github.com/PowerDNS/pdns/commit/f2e7d77b067a137f40a411853a8bb145d701effb>`__,
    closing `ticket 432 <https://github.com/PowerDNS/pdns/issues/432>`__.
 -  Pipe backend had issues parsing IPv6 records in ABI version 3. Fixed
-   in `commit
-   2260 <http://wiki.powerdns.com/projects/trac/changeset/2260>`__.
+   in `commit 64ff52f33933e4e3f4406f32858082fc385b5698 <https://github.com/PowerDNS/pdns/commit/64ff52f33933e4e3f4406f32858082fc385b5698>`__.
 -  We truncated the altitude in LOC records! I hope no one got lost. Fix
-   in `commit
-   2268 <http://wiki.powerdns.com/projects/trac/changeset/2268>`__.
+   in `commit 5e843b4eb10341737062907bf619f1bbabb94a17 <https://github.com/PowerDNS/pdns/commit/5e843b4eb10341737062907bf619f1bbabb94a17>`__.
 -  Xander Soldaat discovered that even if the web server was not
-   configured, we'd still listen on the port. Fix in `commit
-   2269 <http://wiki.powerdns.com/projects/trac/changeset/2269>`__,
+   configured, we'd still listen on the port. Fix in `commit c81c2ea83d41670b37084e3924f7a5001fdcf1a1 <https://github.com/PowerDNS/pdns/commit/c81c2ea83d41670b37084e3924f7a5001fdcf1a1>`__,
    closes `ticket 402 <https://github.com/PowerDNS/pdns/issues/402>`__.
 -  The PIPE backend issues frequent fork()s, leading to potential fd
-   leaks if these are not marked as 'close on exec'. Solved in `commit
-   2273 <http://wiki.powerdns.com/projects/trac/changeset/2273>`__,
+   leaks if these are not marked as 'close on exec'. Solved in `commit 42c235e574b189dc923a656f59ca612f2b676bee <https://github.com/PowerDNS/pdns/commit/42c235e574b189dc923a656f59ca612f2b676bee>`__,
    closing `ticket 194 <https://github.com/PowerDNS/pdns/issues/194>`__.
 -  Robert van der Meulen found that we messed up the interaction between
-   wildcards and CNAMEs. Fixed in `commit
-   2276 <http://wiki.powerdns.com/projects/trac/changeset/2276>`__,
+   wildcards and CNAMEs. Fixed in `commit bcb8aebeb1628b3d4a7c5f064b6941ef52d3a34f <https://github.com/PowerDNS/pdns/commit/bcb8aebeb1628b3d4a7c5f064b6941ef52d3a34f>`__,
    which also adds a regression test to prevent this issue from
    recurring.
 -  Fred Wittekind discovered that our notification proxy 'nproxy' no
-   longer built from source. Fixed in `commit
-   2278 <http://wiki.powerdns.com/projects/trac/changeset/2278>`__.
+   longer built from source. Fixed in `commit 8bc03e7e6c5a9170a758d2bc9641ffc900386cd1 <https://github.com/PowerDNS/pdns/commit/8bc03e7e6c5a9170a758d2bc9641ffc900386cd1>`__.
 -  Grant Keller found that we were inconsistent with spaces in labels,
-   thus breaking DNS-SD. Fix in `commit
-   2305 <http://wiki.powerdns.com/projects/trac/changeset/2305>`__.
+   thus breaking DNS-SD. Fix in `commit 7878f29a9ce7cc6209e97986c2eb7c4814b954a4 <https://github.com/PowerDNS/pdns/commit/7878f29a9ce7cc6209e97986c2eb7c4814b954a4>`__.
 -  Winfried Angele fixed our autoconf script for Lua detection in
-   `commit
-   2308 <http://wiki.powerdns.com/projects/trac/changeset/2308>`__.
+   `commit 53210b90e1a85f690d0eac147b0e7bb038456e80 <https://github.com/PowerDNS/pdns/commit/53210b90e1a85f690d0eac147b0e7bb038456e80>`__.
 -  BIND backend would leak an fd when including a configuration file
-   from named.conf. Spotted by Hannu Ylitalo of Nebula Oy in `commit
-   2359 <http://wiki.powerdns.com/projects/trac/changeset/2359>`__.
+   from named.conf. Spotted by Hannu Ylitalo of Nebula Oy in `commit e35673c4b336801d77369a1c2c504db5b4664457 <https://github.com/PowerDNS/pdns/commit/e35673c4b336801d77369a1c2c504db5b4664457>`__.
 -  GSQLite3 backend could crash on a network error at the wrong moment,
-   leading to a restart by the guardian. Fix in `commit
-   2336 <http://wiki.powerdns.com/projects/trac/changeset/2336>`__.
--  './configure ^^enable-verbose-logging' was broken, fixed in `commit
-   2312 <http://wiki.powerdns.com/projects/trac/changeset/2312>`__.
+   leading to a restart by the guardian. Fix in `commit 0ba2a32b2a9f8fdaca724c7fdbca69ee6cbed358 <https://github.com/PowerDNS/pdns/commit/0ba2a32b2a9f8fdaca724c7fdbca69ee6cbed358>`__.
+-  './configure ^^enable-verbose-logging' was broken, fixed in `commit df8d5183675f32fe1052c93597a966f96605bad4 <https://github.com/PowerDNS/pdns/commit/df8d5183675f32fe1052c93597a966f96605bad4>`__.
 -  PowerDNS would serve up old SOA data immediately after sending out a
    notification. Complicated bug documented perfectly in `ticket
    427 <https://github.com/PowerDNS/pdns/issues/427>`__, which also came
    with not one but with two different patches to fix the problem.
-   Thanks to Keith Buck. Code in `commit
-   2408 <http://wiki.powerdns.com/projects/trac/changeset/2408>`__.
+   Thanks to Keith Buck. Code in `commit 27fdc3fc75b2604ea431b283f9fc11778c957d37 <https://github.com/PowerDNS/pdns/commit/27fdc3fc75b2604ea431b283f9fc11778c957d37>`__.
 -  Flag '^^start-id' in zone2sql was not functional. Removed for now in
-   `commit
-   2387 <http://wiki.powerdns.com/projects/trac/changeset/2387>`__,
+   `commit 32a11a757cc38c6dbebc31dd5efc4038a29c4b2b <https://github.com/PowerDNS/pdns/commit/32a11a757cc38c6dbebc31dd5efc4038a29c4b2b>`__,
    closing `ticket 332 <https://github.com/PowerDNS/pdns/issues/332>`__.
 -  Our distribution tarball did not have the SQL schemas. Fixed in
-   `commit
-   2459 <http://wiki.powerdns.com/projects/trac/changeset/2459>`__ and
-   `commit
-   2460 <http://wiki.powerdns.com/projects/trac/changeset/2460>`__.
--  "Empty" MX records would confuse one of our parsers. Fixed in `commit
-   2468 <http://wiki.powerdns.com/projects/trac/changeset/2468>`__,
+   `commit 8ee4cb230c54000b7b9f887aa2e1839974992ad5 <https://github.com/PowerDNS/pdns/commit/8ee4cb230c54000b7b9f887aa2e1839974992ad5>`__ and
+   `commit bbd99f4018d02f0e9a83b862201009b8410c9fce <https://github.com/PowerDNS/pdns/commit/bbd99f4018d02f0e9a83b862201009b8410c9fce>`__.
+-  "Empty" MX records would confuse one of our parsers. Fixed in `commit 161a1d5979ba77258f73f9100c57e95ef87dc061 <https://github.com/PowerDNS/pdns/commit/161a1d5979ba77258f73f9100c57e95ef87dc061>`__,
    closing Debian bug 533023.
 -  The pdns.conf 'wildcards'-setting did not do anything in 3.0, so it
-   was removed. Change in `commit
-   2508 <http://wiki.powerdns.com/projects/trac/changeset/2508>`__,
-   `commit
-   2509 <http://wiki.powerdns.com/projects/trac/changeset/2509>`__.
+   was removed. Change in `commit 354d77385345fec7967e1546f28efb2ee23e6033 <https://github.com/PowerDNS/pdns/commit/354d77385345fec7967e1546f28efb2ee23e6033>`__,
+   `commit 9c7d2bfeef98e2d24f9bea943f4f908a9c4ac1e8 <https://github.com/PowerDNS/pdns/commit/9c7d2bfeef98e2d24f9bea943f4f908a9c4ac1e8>`__.
 -  Additional processing based on records loaded by the BIND backend
-   might fail because of a trailing dot mismatch. Fix in `commit
-   2398 <http://wiki.powerdns.com/projects/trac/changeset/2398>`__.
+   might fail because of a trailing dot mismatch. Fix in `commit 25e0cd7f98d92e7b04e2b37dfb6344b344c05735 <https://github.com/PowerDNS/pdns/commit/25e0cd7f98d92e7b04e2b37dfb6344b344c05735>`__.
 
 New features
 ^^^^^^^^^^^^
 
 -  Per-zone AXFR ACLs, based on the allow-axfr-ips zone metadata item.
-   Code in `commit
-   2274 <http://wiki.powerdns.com/projects/trac/changeset/2274>`__.
+   Code in `commit 93afc0a304a120dd0818340e36653721b2608acd <https://github.com/PowerDNS/pdns/commit/93afc0a304a120dd0818340e36653721b2608acd>`__.
    Also, remove some remains of our previous approach to supporting this
-   in `commit
-   2326 <http://wiki.powerdns.com/projects/trac/changeset/2326>`__.
+   in `commit 71f7901659e9d57e30e5a61214c3ecde4ec285c6 <https://github.com/PowerDNS/pdns/commit/71f7901659e9d57e30e5a61214c3ecde4ec285c6>`__.
 -  New SOA Serial Tweak mode INCEPTION-EPOCH for when operating as a
    'signing slave', contributed by Jimmy Bergman. Code and documentation
-   in `commit
-   2320 <http://wiki.powerdns.com/projects/trac/changeset/2320>`__.
+   in `commit 7bdce5e0c02205a34a570dea2acbbf698334930f <https://github.com/PowerDNS/pdns/commit/7bdce5e0c02205a34a570dea2acbbf698334930f>`__.
 -  Newlines in the 'content' field of backends are now allowed,
-   restoring some DKIM setups to working condition. Update in `commit
-   2394 <http://wiki.powerdns.com/projects/trac/changeset/2394>`__,
+   restoring some DKIM setups to working condition. Update in `commit 6478a88e005fcd5e154de89373d0f207642ddf56 <https://github.com/PowerDNS/pdns/commit/6478a88e005fcd5e154de89373d0f207642ddf56>`__,
    closing `ticket 395 <https://github.com/PowerDNS/pdns/issues/395>`__.
 
 Improvements
 ^^^^^^^^^^^^
 
 -  Depending on the encoding used, MySQL could take issue with our
-   'tsigkeys' table which contained very large rows. Trimmed in `commit
-   2400 <http://wiki.powerdns.com/projects/trac/changeset/2400>`__,
+   'tsigkeys' table which contained very large rows. Trimmed in `commit 800e1fd0af633d2500c1f72379590e061b172a4f <https://github.com/PowerDNS/pdns/commit/800e1fd0af633d2500c1f72379590e061b172a4f>`__,
    closing `ticket 410 <https://github.com/PowerDNS/pdns/issues/410>`__.
--  Various build/configure-related fixes in `commit
-   2319 <http://wiki.powerdns.com/projects/trac/changeset/2319>`__,
-   `commit
-   2373 <http://wiki.powerdns.com/projects/trac/changeset/2373>`__,
-   `commit
-   2386 <http://wiki.powerdns.com/projects/trac/changeset/2386>`__,
+-  Various build/configure-related fixes in `commit e47173e1e5cc22abfa230ddd9f36db312f257294 <https://github.com/PowerDNS/pdns/commit/e47173e1e5cc22abfa230ddd9f36db312f257294>`__,
+   `commit 6b6e38a854feba1fcefbe472749e76ba1a2d0bb1 <https://github.com/PowerDNS/pdns/commit/6b6e38a854feba1fcefbe472749e76ba1a2d0bb1>`__,
+   `commit 919422dcd37b17b963fe7a7a97024cde7b7373de <https://github.com/PowerDNS/pdns/commit/919422dcd37b17b963fe7a7a97024cde7b7373de>`__,
    closing `ticket 380 <https://github.com/PowerDNS/pdns/issues/380>`__,
    `ticket 405 <https://github.com/PowerDNS/pdns/issues/405>`__, `ticket
    420 <https://github.com/PowerDNS/pdns/issues/420>`__.
--  We now show the SOA serial after zone transfers. Code in `commit
-   2385 <http://wiki.powerdns.com/projects/trac/changeset/2385>`__,
+-  We now show the SOA serial after zone transfers. Code in `commit 207f9ea1a34c2b8811408dab261bcd86dd1b18c9 <https://github.com/PowerDNS/pdns/commit/207f9ea1a34c2b8811408dab261bcd86dd1b18c9>`__,
    closing `ticket 416 <https://github.com/PowerDNS/pdns/issues/416>`__.
 -  Ruben d'Arco submitted a full rework of our slave-side AXFR TSIG
    handling, closing `ticket
    393 <https://github.com/PowerDNS/pdns/issues/393>`__ and `ticket
    400 <https://github.com/PowerDNS/pdns/issues/400>`__ in the process.
-   Code in `commit
-   2506 <http://wiki.powerdns.com/projects/trac/changeset/2506>`__.
-   Additional improvement in `commit
-   2513 <http://wiki.powerdns.com/projects/trac/changeset/2513>`__.
+   Code in `commit 54d84273c4d919c9645b4bd9d3c59d8ee5f3b2f0 <https://github.com/PowerDNS/pdns/commit/54d84273c4d919c9645b4bd9d3c59d8ee5f3b2f0>`__.
+   Additional improvement in `commit a1467662fbcb0112b84dfbb4bd60466fd80f0f08 <https://github.com/PowerDNS/pdns/commit/a1467662fbcb0112b84dfbb4bd60466fd80f0f08>`__.
 -  The records.name-column in the gpgsql schema is now constrained to
    lowercase, as PowerDNS would be unable to find other entries anyway.
-   Fix in `commit
-   2503 <http://wiki.powerdns.com/projects/trac/changeset/2503>`__,
+   Fix in `commit ae19957f529671cebd5ba8474f8e5fec303af6c3 <https://github.com/PowerDNS/pdns/commit/ae19957f529671cebd5ba8474f8e5fec303af6c3>`__,
    closing `ticket 426 <https://github.com/PowerDNS/pdns/issues/426>`__.
 -  The gsql-backends can now handle huge records, thanks to a patch by
-   Ruben d'Arco. Code in `commit
-   2476 <http://wiki.powerdns.com/projects/trac/changeset/2476>`__,
+   Ruben d'Arco. Code in `commit ecd45bb535d2ebff5116443e2522bd22d7e89994 <https://github.com/PowerDNS/pdns/commit/ecd45bb535d2ebff5116443e2522bd22d7e89994>`__,
    closing `ticket 407 <https://github.com/PowerDNS/pdns/issues/407>`__.
-   Additional changes in `commit
-   2292 <http://wiki.powerdns.com/projects/trac/changeset/2292>`__,
-   `commit
-   2487 <http://wiki.powerdns.com/projects/trac/changeset/2487>`__,
-   `commit
-   2489 <http://wiki.powerdns.com/projects/trac/changeset/2489>`__.
+   Additional changes in `commit 1796924f852771cc20755b3d2fb1fc474987bb30 <https://github.com/PowerDNS/pdns/commit/1796924f852771cc20755b3d2fb1fc474987bb30>`__,
+   `commit 1c5666cad8750360e4d13f8b3f2649108a0f92a9 <https://github.com/PowerDNS/pdns/commit/1c5666cad8750360e4d13f8b3f2649108a0f92a9>`__,
+   `commit 3ed3feada1e0e9a28364fc02902541870b5cbf2e <https://github.com/PowerDNS/pdns/commit/3ed3feada1e0e9a28364fc02902541870b5cbf2e>`__.
    Closes `ticket 218 <https://github.com/PowerDNS/pdns/issues/218>`__,
    `ticket 316 <https://github.com/PowerDNS/pdns/issues/316>`__.
 -  Some of PowerDNS' internal classes would work with uninitialized data
-   when repurposed outside of the PowerDNS core logic. Fix in `commit
-   2469 <http://wiki.powerdns.com/projects/trac/changeset/2469>`__,
+   when repurposed outside of the PowerDNS core logic. Fix in `commit eef10ff28fa971b0789b280ec35d2cb1836e5312 <https://github.com/PowerDNS/pdns/commit/eef10ff28fa971b0789b280ec35d2cb1836e5312>`__,
 -  pdnssec now has 'check-all-zones' and 'rectify-all-zones' commands.
-   Submitted by Ruben d'Arco, code in `commit
-   2467 <http://wiki.powerdns.com/projects/trac/changeset/2467>`__.
+   Submitted by Ruben d'Arco, code in `commit 1325e8a23a7ee87fe023ae4c1f99e3d05218a577 <https://github.com/PowerDNS/pdns/commit/1325e8a23a7ee87fe023ae4c1f99e3d05218a577>`__.
 -  'restart' in our init.d-script would not start pdns if it was down
-   before. Fixed in `commit
-   2462 <http://wiki.powerdns.com/projects/trac/changeset/2462>`__.
+   before. Fixed in `commit e7526caa15d23b5f5117a1fb8ae80e3e468366f0 <https://github.com/PowerDNS/pdns/commit/e7526caa15d23b5f5117a1fb8ae80e3e468366f0>`__.
 -  'pdnssec rectify-zone' now honours ^^verbose and is rather quiet
-   without it. Code in `commit
-   2443 <http://wiki.powerdns.com/projects/trac/changeset/2443>`__.
--  Improved error messages for systems without IPv6. Changes in `commit
-   2425 <http://wiki.powerdns.com/projects/trac/changeset/2425>`__.
+   without it. Code in `commit 4bf664d87e2d7f4a9d15b8a46e861c290dbf3dca <https://github.com/PowerDNS/pdns/commit/4bf664d87e2d7f4a9d15b8a46e861c290dbf3dca>`__.
+-  Improved error messages for systems without IPv6. Changes in `commit 5e2be4cf544300b58ecdc6e9da4741f833da72c1 <https://github.com/PowerDNS/pdns/commit/5e2be4cf544300b58ecdc6e9da4741f833da72c1>`__.
 -  The packet- and querycache now honour TTLs from backend data. Code in
-   `commit
-   2414 <http://wiki.powerdns.com/projects/trac/changeset/2414>`__.
+   `commit b35ea8ec8aa2fbcfddc08ba0db52eebb76fbccb4 <https://github.com/PowerDNS/pdns/commit/b35ea8ec8aa2fbcfddc08ba0db52eebb76fbccb4>`__.
 -  'pdns\_control help' now shows useful usage information. Code in
-   `commit
-   2410 <http://wiki.powerdns.com/projects/trac/changeset/2410>`__ and
-   `commit
-   2465 <http://wiki.powerdns.com/projects/trac/changeset/2465>`__.
+   `commit 3c90953ee475dba4516ccb04805ee6491a3ac894 <https://github.com/PowerDNS/pdns/commit/3c90953ee475dba4516ccb04805ee6491a3ac894>`__ and
+   `commit 17384177e9242ab814f7cdd3f614384a5e8d1371 <https://github.com/PowerDNS/pdns/commit/17384177e9242ab814f7cdd3f614384a5e8d1371>`__.
 -  Jasper Spaans improved our init.d script for compliance with Debian
-   Squeeze. Patch in `commit
-   2251 <http://wiki.powerdns.com/projects/trac/changeset/2251>`__.
+   Squeeze. Patch in `commit 88d5b8d2af9da8997509d73c97b326943b3fbbbc <https://github.com/PowerDNS/pdns/commit/88d5b8d2af9da8997509d73c97b326943b3fbbbc>`__.
    Further improvement with 'set -e' to initscript contributed by Marc
-   Haber in `commit
-   2301 <http://wiki.powerdns.com/projects/trac/changeset/2301>`__.
+   Haber in `commit 190cca705322c3aae1e52cf591c456a85b6c4b4a <https://github.com/PowerDNS/pdns/commit/190cca705322c3aae1e52cf591c456a85b6c4b4a>`__.
 -  Klaus Darilion discovered our configuration file template and ^^help
    output explained the various cache TTLs wrongly, and he also added
-   documentation for some missing parameters. `commit
-   2271 <http://wiki.powerdns.com/projects/trac/changeset/2271>`__ and
-   `commit
-   2272 <http://wiki.powerdns.com/projects/trac/changeset/2272>`__.
+   documentation for some missing parameters. `commit ec7f535c5fd535a4e716825abdbdc94ffdc832a4 <https://github.com/PowerDNS/pdns/commit/ec7f535c5fd535a4e716825abdbdc94ffdc832a4>`__ and
+   `commit eaa5a93aa2674567758ccb86e00cfbf7437bbe34 <https://github.com/PowerDNS/pdns/commit/eaa5a93aa2674567758ccb86e00cfbf7437bbe34>`__.
 -  Add support for building against Botan 1.10 (stable) and drop support
-   for 1.9 (development). Changes in `commit
-   2334 <http://wiki.powerdns.com/projects/trac/changeset/2334>`__. This
+   for 1.9 (development). Changes in `commit a11fe644b04385640b4327dbef93d8421abefe90 <https://github.com/PowerDNS/pdns/commit/a11fe644b04385640b4327dbef93d8421abefe90>`__. This
    fixes several bugs when building against 1.9.
 -  Upgrade internal PolarSSL library to their version 1.1.1. Change in
-   `commit
-   2389 <http://wiki.powerdns.com/projects/trac/changeset/2389>`__ and
+   `commit 71e6c77be1318c4927b9a4d079b39f35557c555a <https://github.com/PowerDNS/pdns/commit/71e6c77be1318c4927b9a4d079b39f35557c555a>`__ and
    beyond.
 -  Compilation of several backends failed for Boost in non-standard
-   locations. Fixes in `commit
-   2316 <http://wiki.powerdns.com/projects/trac/changeset/2316>`__..
--  We now do additional processing for SRV records too. Code in `commit
-   2388 <http://wiki.powerdns.com/projects/trac/changeset/2388>`__,
+   locations. Fixes in `commit 2fcbee807ace6e0f90b88157ddc431deec520baf <https://github.com/PowerDNS/pdns/commit/2fcbee807ace6e0f90b88157ddc431deec520baf>`__..
+-  We now do additional processing for SRV records too. Code in `commit a16e8e3adf57b17a7ec76089abe726706d2c3452 <https://github.com/PowerDNS/pdns/commit/a16e8e3adf57b17a7ec76089abe726706d2c3452>`__,
    closing `ticket 423 <https://github.com/PowerDNS/pdns/issues/423>`__
    (which also contained the patch). Regression test updates that flow
-   from this in `commit
-   2390 <http://wiki.powerdns.com/projects/trac/changeset/2390>`__.
--  Fix compilation on OSX. `commit
-   2316 <http://wiki.powerdns.com/projects/trac/changeset/2316>`__.
+   from this in `commit e80e21951a648acd549146a0b9a42cf169698deb <https://github.com/PowerDNS/pdns/commit/e80e21951a648acd549146a0b9a42cf169698deb>`__.
+-  Fix compilation on OSX. `commit 2fcbee807ace6e0f90b88157ddc431deec520baf <https://github.com/PowerDNS/pdns/commit/2fcbee807ace6e0f90b88157ddc431deec520baf>`__.
 -  Fix pdnssec crash when asked to do DNSSEC without a DNSSEC capable
-   backend. Code in `commit
-   2369 <http://wiki.powerdns.com/projects/trac/changeset/2369>`__.
+   backend. Code in `commit f0c4b9d5d777aca598fac5625ec07d815df57ea2 <https://github.com/PowerDNS/pdns/commit/f0c4b9d5d777aca598fac5625ec07d815df57ea2>`__.
 -  If PowerDNS was not configured to operate as a DNS master, it would
    still accept 'pdns\_control notify' commands, but then not do it.
    Spotted by David Gavarret, patch by Jose Arthur Benetasso Villanova
-   in `commit
-   2379 <http://wiki.powerdns.com/projects/trac/changeset/2379>`__.
+   in `commit 2685008f01d7c075881607b6c4326ccfa6d19395 <https://github.com/PowerDNS/pdns/commit/2685008f01d7c075881607b6c4326ccfa6d19395>`__.
 -  In various places we would only accept UPPERCASE DNS typenames. Fixed
-   in `commit
-   2370 <http://wiki.powerdns.com/projects/trac/changeset/2370>`__,
+   in `commit e1469cfc7833cfcb5e8177c856c8a182e2ef89b0 <https://github.com/PowerDNS/pdns/commit/e1469cfc7833cfcb5e8177c856c8a182e2ef89b0>`__,
    closing `ticket 390 <https://github.com/PowerDNS/pdns/issues/390>`__.
 -  We would not always drop supplemental groups correctly. Reported by
    David Black of Atlassian.
 -  Our regression tests have been strengthened a lot, and now cover way
    more features. Commits in
-   `2280 <http://wiki.powerdns.com/projects/trac/changeset/2280>`__,
-   `2281 <http://wiki.powerdns.com/projects/trac/changeset/2281>`__,
-   `2282 <http://wiki.powerdns.com/projects/trac/changeset/2282>`__,
-   `2317 <http://wiki.powerdns.com/projects/trac/changeset/2317>`__,
-   `2348 <http://wiki.powerdns.com/projects/trac/changeset/2348>`__,
-   `2349 <http://wiki.powerdns.com/projects/trac/changeset/2349>`__,
-   `2350 <http://wiki.powerdns.com/projects/trac/changeset/2350>`__,
-   `2351 <http://wiki.powerdns.com/projects/trac/changeset/2351>`__ and
+   `commit 1e19d452037dac91509faeba3b0189e2af70fc36 <https://github.com/PowerDNS/pdns/commit/1e19d452037dac91509faeba3b0189e2af70fc36>`__,
+   `commit b91471258512adf553073a83f29d436d8bf62802 <https://github.com/PowerDNS/pdns/commit/b91471258512adf553073a83f29d436d8bf62802>`__,
+   `commit 40b9700aed70fb8496eeac2f902212d5d3be5b92 <https://github.com/PowerDNS/pdns/commit/40b9700aed70fb8496eeac2f902212d5d3be5b92>`__,
+   `commit 62d07fb614dc6eca0fce7de40ac5737a607fc6a9 <https://github.com/PowerDNS/pdns/commit/62d07fb614dc6eca0fce7de40ac5737a607fc6a9>`__,
+   `commit c00e2b9fb9bbc0c631e093c84624fba1a361df46 <https://github.com/PowerDNS/pdns/commit/c00e2b9fb9bbc0c631e093c84624fba1a361df46>`__,
+   `commit 1e257b949698400f9e61824efe67e219561af41c <https://github.com/PowerDNS/pdns/commit/1e257b949698400f9e61824efe67e219561af41c>`__,
+   `commit 5828314fb78a4e2ab2ed0bc35a51c6d9aead12d8 <https://github.com/PowerDNS/pdns/commit/5828314fb78a4e2ab2ed0bc35a51c6d9aead12d8>`__,
+   `commit e65a021a04b408fc1502d36f2aa4bde5e067b6a7 <https://github.com/PowerDNS/pdns/commit/e65a021a04b408fc1502d36f2aa4bde5e067b6a7>`__ and
    beyond.
 -  Update to support the latest draft of DANE/TLSA. Spotted by James
-   Cloos (`commit
-   2338 <http://wiki.powerdns.com/projects/trac/changeset/2338>`__).
-   Further improvements by Pieter Lexis in `commit
-   2347 <http://wiki.powerdns.com/projects/trac/changeset/2347>`__,
-   `commit
-   2358 <http://wiki.powerdns.com/projects/trac/changeset/2358>`__.
+   Cloos (`commit f5a097962a97569e1da7adb1bb0efd279c671bea <https://github.com/PowerDNS/pdns/commit/f5a097962a97569e1da7adb1bb0efd279c671bea>`__).
+   Further improvements by Pieter Lexis in `commit 4372f8305a2e326e9c4495bffe3298a479fe18ae <https://github.com/PowerDNS/pdns/commit/4372f8305a2e326e9c4495bffe3298a479fe18ae>`__,
+   `commit b9ec21adcba4f0437a233a8f9d785e755d8d45f0 <https://github.com/PowerDNS/pdns/commit/b9ec21adcba4f0437a233a8f9d785e755d8d45f0>`__.
 -  Compilation on OpenBSD was eased by patches from Brad Smith, which
-   can be found in `commit
-   2288 <http://wiki.powerdns.com/projects/trac/changeset/2288>`__ and
-   `commit
-   2291 <http://wiki.powerdns.com/projects/trac/changeset/2291>`__,
+   can be found in `commit e54f8ac04fb04ce5181b400c0c460e85d72c3ea2 <https://github.com/PowerDNS/pdns/commit/e54f8ac04fb04ce5181b400c0c460e85d72c3ea2>`__ and
+   `commit c2a155b14fe5df02b0a02daac533c009f9495f8b <https://github.com/PowerDNS/pdns/commit/c2a155b14fe5df02b0a02daac533c009f9495f8b>`__,
    closing `ticket 95 <https://github.com/PowerDNS/pdns/issues/95>`__.
 -  'make check' failed on the internal PolarSSL. Spotted by Daniel
-   Briley, fix in `commit
-   2283 <http://wiki.powerdns.com/projects/trac/changeset/2283>`__.
+   Briley, fix in `commit 3fc0ca1bf72763515722c5ac5fc3f8e70a72a1ef <https://github.com/PowerDNS/pdns/commit/3fc0ca1bf72763515722c5ac5fc3f8e70a72a1ef>`__.
 -  The default SQL schemas were expanded to contain far longer content
-   fields. `commit
-   2292 <http://wiki.powerdns.com/projects/trac/changeset/2292>`__,
-   `commit
-   2293 <http://wiki.powerdns.com/projects/trac/changeset/2293>`__.
--  Documentation typos, Jake Spencer (`commit
-   2304 <http://wiki.powerdns.com/projects/trac/changeset/2304>`__),
-   Jose Arthur Benetasso Villanova (`commit
-   2337 <http://wiki.powerdns.com/projects/trac/changeset/2337>`__).
-   Code typos in `commit
-   2324 <http://wiki.powerdns.com/projects/trac/changeset/2324>`__
+   fields. `commit 1796924f852771cc20755b3d2fb1fc474987bb30 <https://github.com/PowerDNS/pdns/commit/1796924f852771cc20755b3d2fb1fc474987bb30>`__,
+   `commit 7a9343a956529282f73d91c60c2ec2aec1da8ebb <https://github.com/PowerDNS/pdns/commit/7a9343a956529282f73d91c60c2ec2aec1da8ebb>`__.
+-  Documentation typos, Jake Spencer (`commit 135c3634189aefba0c5220d23c867a0af034e1e1 <https://github.com/PowerDNS/pdns/commit/135c3634189aefba0c5220d23c867a0af034e1e1>`__),
+   Jose Arthur Benetasso Villanova (`commit d06fd284a302485227aa26f0352dd2af1c1d6ab6 <https://github.com/PowerDNS/pdns/commit/d06fd284a302485227aa26f0352dd2af1c1d6ab6>`__).
+   Code typos in `commit abc1d9281c1a0d9636e28cb9cdbb09c7d8020141 <https://github.com/PowerDNS/pdns/commit/abc1d9281c1a0d9636e28cb9cdbb09c7d8020141>`__
    (closes `ticket
    296 <https://github.com/PowerDNS/pdns/issues/296>`__).
 -  Manpage updates from Debian, provided by Matthijs Möhlmann. Content
-   in `commit
-   2306 <http://wiki.powerdns.com/projects/trac/changeset/2306>`__.
+   in `commit c48bf63d863420566c8b3a5f9fdbc853184b1873 <https://github.com/PowerDNS/pdns/commit/c48bf63d863420566c8b3a5f9fdbc853184b1873>`__.
 -  pdnssec rectify-zone can now accept multiple zones at the same time.
-   Code in `commit
-   2383 <http://wiki.powerdns.com/projects/trac/changeset/2383>`__.
+   Code in `commit d4904322c6b674a9dc4d71184168a2efd6ced4b2 <https://github.com/PowerDNS/pdns/commit/d4904322c6b674a9dc4d71184168a2efd6ced4b2>`__.
 -  As suggested in `ticket
    416 <https://github.com/PowerDNS/pdns/issues/416>`__, we now log the
    SOA serial number after committing an AXFR'd zone to the backend.
-   Code in `commit
-   2385 <http://wiki.powerdns.com/projects/trac/changeset/2385>`__.
+   Code in `commit 207f9ea1a34c2b8811408dab261bcd86dd1b18c9 <https://github.com/PowerDNS/pdns/commit/207f9ea1a34c2b8811408dab261bcd86dd1b18c9>`__.
 -  Pick up location of sqlite3 libraries using pkg-config. Implemented
    using a variation of the patch found in the, now closed, `ticket
-   380 <https://github.com/PowerDNS/pdns/issues/380>`__. Code in `commit
-   2386 <http://wiki.powerdns.com/projects/trac/changeset/2386>`__.
--  Documented 'pdnssec ^^verbose' flag is now accepted. Code in `commit
-   2384 <http://wiki.powerdns.com/projects/trac/changeset/2384>`__,
+   380 <https://github.com/PowerDNS/pdns/issues/380>`__. Code in `commit 919422dcd37b17b963fe7a7a97024cde7b7373de <https://github.com/PowerDNS/pdns/commit/919422dcd37b17b963fe7a7a97024cde7b7373de>`__.
+-  Documented 'pdnssec ^^verbose' flag is now accepted. Code in `commit b3ce3dec476ceb4c9ea5f9950317177be0ab26de <https://github.com/PowerDNS/pdns/commit/b3ce3dec476ceb4c9ea5f9950317177be0ab26de>`__,
    closing `ticket 404 <https://github.com/PowerDNS/pdns/issues/404>`__.
 -  'pdnssec ^^help' now lists all supported signing algorithms.
    Suggested by Jose Arthur Benetasso Villanova.
 -  PIPE backend example script with edns-subnet support was improved to
    actually use edns-subnet field. Plus update PIPE backend
-   documentation. Code in `commit
-   2285 <http://wiki.powerdns.com/projects/trac/changeset/2285>`__, more
-   documentation regarding MX and SRV in `commit
-   2313 <http://wiki.powerdns.com/projects/trac/changeset/2313>`__.
--  edns-subnet fields now also output in logfile when available (`commit
-   2321 <http://wiki.powerdns.com/projects/trac/changeset/2321>`__).
+   documentation. Code in `commit 52c2caa694249674258a49d0e0553000678d45c1 <https://github.com/PowerDNS/pdns/commit/52c2caa694249674258a49d0e0553000678d45c1>`__, more
+   documentation regarding MX and SRV in `commit 98a4b6f1b8245abca2129739ad357b6a824a9678 <https://github.com/PowerDNS/pdns/commit/98a4b6f1b8245abca2129739ad357b6a824a9678>`__.
+-  edns-subnet fields now also output in logfile when available (`commit fe498acebc24abc5ae4b6fd684c24d592c74be68 <https://github.com/PowerDNS/pdns/commit/fe498acebc24abc5ae4b6fd684c24d592c74be68>`__).
 -  When running with virtualized configuration files, we now allow
    dashes in the configuration name. Suggested by Marc Haber, code in
-   `commit
-   2295 <http://wiki.powerdns.com/projects/trac/changeset/2295>`__.
-   Further fixes by Brielle Bruns in `commit
-   2327 <http://wiki.powerdns.com/projects/trac/changeset/2327>`__.
--  Compilation fixes for GNU/Hurd in `commit
-   2307 <http://wiki.powerdns.com/projects/trac/changeset/2307>`__ via
+   `commit 9214b25afb70bca2dafb0e3741cbc424805d0681 <https://github.com/PowerDNS/pdns/commit/9214b25afb70bca2dafb0e3741cbc424805d0681>`__.
+   Further fixes by Brielle Bruns in `commit affeacd27e8135ab992ede704d1b726311db9754 <https://github.com/PowerDNS/pdns/commit/affeacd27e8135ab992ede704d1b726311db9754>`__.
+-  Compilation fixes for GNU/Hurd in `commit 0db701403f161aec50d4a655a6d570840a719794 <https://github.com/PowerDNS/pdns/commit/0db701403f161aec50d4a655a6d570840a719794>`__ via
    Matthijs Möhlmann.
 -  Marc Haber improved our Debian packaging scripts for smoother
-   upgrades. Code in `commit
-   2315 <http://wiki.powerdns.com/projects/trac/changeset/2315>`__.
+   upgrades. Code in `commit a1e18b0396f476571c00b58de7fc0fd134ff5b60 <https://github.com/PowerDNS/pdns/commit/a1e18b0396f476571c00b58de7fc0fd134ff5b60>`__.
 -  When failing to bind to an IP address, report to which one it failed.
-   `commit
-   2325 <http://wiki.powerdns.com/projects/trac/changeset/2325>`__.
+   `commit 83d22c50c57f32b29ae1f97fef0500c05cccc52c <https://github.com/PowerDNS/pdns/commit/83d22c50c57f32b29ae1f97fef0500c05cccc52c>`__.
 -  Supermaster checks were performed synchronously, leading to the
-   possibilities of slowdowns. Fixed in `commit
-   2402 <http://wiki.powerdns.com/projects/trac/changeset/2402>`__.
+   possibilities of slowdowns. Fixed in `commit 7108e05536b84a2445eddd824e5b3771c6236766 <https://github.com/PowerDNS/pdns/commit/7108e05536b84a2445eddd824e5b3771c6236766>`__.
 
 Other changes
 ^^^^^^^^^^^^^
 
--  Removed the deprecated non-generic mysqlbackend, in `commit
-   2488 <http://wiki.powerdns.com/projects/trac/changeset/2488>`__,
-   `commit
-   2514 <http://wiki.powerdns.com/projects/trac/changeset/2514>`__,
-   `commit
-   2515 <http://wiki.powerdns.com/projects/trac/changeset/2515>`__.
--  Removed the deprecated 'pdnsbackend', in `commit
-   2490 <http://wiki.powerdns.com/projects/trac/changeset/2490>`__,
-   `commit
-   2516 <http://wiki.powerdns.com/projects/trac/changeset/2516>`__.
+-  Removed the deprecated non-generic mysqlbackend, in `commit 739985b10ec2f3d90ca2ed75b1c22ce448c2075f <https://github.com/PowerDNS/pdns/commit/739985b10ec2f3d90ca2ed75b1c22ce448c2075f>`__,
+   `commit 120d02f37f88912aca9fccdac7e672cfe970d0ad <https://github.com/PowerDNS/pdns/commit/120d02f37f88912aca9fccdac7e672cfe970d0ad>`__,
+   `commit 8cfddcac1b169de441edd4995ab573bd5af5483f <https://github.com/PowerDNS/pdns/commit/8cfddcac1b169de441edd4995ab573bd5af5483f>`__.
+-  Removed the deprecated 'pdnsbackend', in `commit 9fa66b7b67adf22073ef82bbcf47e9057982857e <https://github.com/PowerDNS/pdns/commit/9fa66b7b67adf22073ef82bbcf47e9057982857e>`__,
+   `commit ed346ed7d4f64a3b96cb6f5d4459682e1ad64815 <https://github.com/PowerDNS/pdns/commit/ed346ed7d4f64a3b96cb6f5d4459682e1ad64815>`__.
 -  Removed GRANT statements from the gpgsql schema, as we can't assume
-   they will work for everyone. Change in `commit
-   2493 <http://wiki.powerdns.com/projects/trac/changeset/2493>`__.
+   they will work for everyone. Change in `commit 63513a7f09f06f092f9693ad4fde2b3bea78ed9f <https://github.com/PowerDNS/pdns/commit/63513a7f09f06f092f9693ad4fde2b3bea78ed9f>`__.
    Tickets closed but not associated with a commit
 -  `ticket 125 <https://github.com/PowerDNS/pdns/issues/125>`__:
    "PowerDNS offers wild card info. when it is not queried for."
@@ -2680,35 +2366,29 @@ urge you to upgrade to a recent version of PowerDNS!
 2.9.22.5 is an interim release for those not yet ready to make the jump
 to 3.0, but do need a more recent version of the Authoritative Server.
 It also contains the patch from `PowerDNS Security Advisory
-2012-01 <security/powerdns-advisory-2012-01.md>`__.
+2012-01 <../security-advisories/powerdns-advisory-2012-01.rst>`__.
 
 -  Improved performance of master/slave engine, especially when hosting
    tens or hundreds of thousands of slave zones. Code in commits
-   `1657 <http://wiki.powerdns.com/projects/trac/changeset/1657>`__,
-   `1658 <http://wiki.powerdns.com/projects/trac/changeset/1658>`__,
-   `1661 <http://wiki.powerdns.com/projects/trac/changeset/1661>`__
+   `commit 0281dbdd10ccf69d1f294e546e6998eac0278bee <https://github.com/PowerDNS/pdns/commit/0281dbdd10ccf69d1f294e546e6998eac0278bee>`__,
+   `commit 57025e6a5fae80eb854b0cabde4168e24d850064 <https://github.com/PowerDNS/pdns/commit/57025e6a5fae80eb854b0cabde4168e24d850064>`__,
+   `commit d781faa3477a0359a6c71714c87593cf1aec4961 <https://github.com/PowerDNS/pdns/commit/d781faa3477a0359a6c71714c87593cf1aec4961>`__
    (which also brings multi-master support),
-   `1662 <http://wiki.powerdns.com/projects/trac/changeset/1662>`__
+   `commit 45a50b4bb655a1908379a5a52f23ddaadc12084c <https://github.com/PowerDNS/pdns/commit/45a50b4bb655a1908379a5a52f23ddaadc12084c>`__
    (non-standard ports for masters),
-   `1664 <http://wiki.powerdns.com/projects/trac/changeset/1664>`__,
-   `1665 <http://wiki.powerdns.com/projects/trac/changeset/1665>`__,
-   `1666 <http://wiki.powerdns.com/projects/trac/changeset/1666>`__,
-   `1667 <http://wiki.powerdns.com/projects/trac/changeset/1667>`__,
-   `1672 <http://wiki.powerdns.com/projects/trac/changeset/1672>`__,
-   `1673 <http://wiki.powerdns.com/projects/trac/changeset/1673>`__,
-   `2063 <http://wiki.powerdns.com/projects/trac/changeset/2063>`__).
--  Compilation fixes for more modern compilers (`commit
-   1660 <http://wiki.powerdns.com/projects/trac/changeset/1660>`__,
-   `commit
-   1694 <http://wiki.powerdns.com/projects/trac/changeset/1694>`__)
--  Don't crash on communication error with pdns\_control (`commit
-   2015 <http://wiki.powerdns.com/projects/trac/changeset/2015>`__).
--  Packet cache fixes for UltraSPARC (`commit
-   1663 <http://wiki.powerdns.com/projects/trac/changeset/1663>`__)
--  Fix crashes in the BIND backend (`commit
-   1693 <http://wiki.powerdns.com/projects/trac/changeset/1693>`__,
-   `commit
-   1692 <http://wiki.powerdns.com/projects/trac/changeset/1692>`__)
+   `commit cf0404c0caa82141652cea20ce467bbd559a8b44 <https://github.com/PowerDNS/pdns/commit/cf0404c0caa82141652cea20ce467bbd559a8b44>`__,
+   `commit 84f3c2177ad5b5b18db9c1cea17f6153dab2e999 <https://github.com/PowerDNS/pdns/commit/84f3c2177ad5b5b18db9c1cea17f6153dab2e999>`__,
+   `commit 8969a762cee17e3ea899e16def6a90e35f63fb44 <https://github.com/PowerDNS/pdns/commit/8969a762cee17e3ea899e16def6a90e35f63fb44>`__,
+   `commit bcbdface597f8005c99523fdc196308e33a050cc <https://github.com/PowerDNS/pdns/commit/bcbdface597f8005c99523fdc196308e33a050cc>`__,
+   `commit 8f40f7ed74814cae63b2858b34d7f4f3d54e2153 <https://github.com/PowerDNS/pdns/commit/8f40f7ed74814cae63b2858b34d7f4f3d54e2153>`__,
+   `commit e9e6c6aa2b71e246e45433c0dcbdcbc41c477730 <https://github.com/PowerDNS/pdns/commit/e9e6c6aa2b71e246e45433c0dcbdcbc41c477730>`__,
+   `commit a4e97436ac774cadae02ba19742c857da565cab6 <https://github.com/PowerDNS/pdns/commit/a4e97436ac774cadae02ba19742c857da565cab6>`__).
+-  Compilation fixes for more modern compilers (`commit 55cec3c68c4435bf8f8a5373c7f07e6ea3c50445 <https://github.com/PowerDNS/pdns/commit/55cec3c68c4435bf8f8a5373c7f07e6ea3c50445>`__,
+   `commit b95ab2f9fefaab32f0496f83f257af42663464e7 <https://github.com/PowerDNS/pdns/commit/b95ab2f9fefaab32f0496f83f257af42663464e7>`__)
+-  Don't crash on communication error with pdns\_control (`commit d0bbf0ddefae44481b9b653c6b30273d07354656 <https://github.com/PowerDNS/pdns/commit/d0bbf0ddefae44481b9b653c6b30273d07354656>`__).
+-  Packet cache fixes for UltraSPARC (`commit 2b1cbe513ff13b8cfa7ffe8025944e6704b934e6 <https://github.com/PowerDNS/pdns/commit/2b1cbe513ff13b8cfa7ffe8025944e6704b934e6>`__)
+-  Fix crashes in the BIND backend (`commit 334115e02c0ded0d35074bb2b80af0c26955e11e <https://github.com/PowerDNS/pdns/commit/334115e02c0ded0d35074bb2b80af0c26955e11e>`__,
+   `commit b4682cffb2dd1dacd13ad00c193f37ff02177273 <https://github.com/PowerDNS/pdns/commit/b4682cffb2dd1dacd13ad00c193f37ff02177273>`__)
 
 PowerDNS Authoritative Server 3.0.1
 -----------------------------------
@@ -2719,7 +2399,7 @@ PowerDNS Authoritative Server 3.0.1
 MUST upgrade to 3.1 or beyond!
 
 3.0.1 consists of 3.0, plus the patch from `PowerDNS Security Advisory
-2012-01 <security/powerdns-advisory-2012-01.md>`__
+2012-01 <../security-advisories/powerdns-advisory-2012-01.rst>`__
 
 PowerDNS Authoritative Server 3.0
 ---------------------------------
@@ -2730,7 +2410,7 @@ RC2 released on the 19th of April 2011 RC3 released on the 19th of July
 
 **Warning**: Version 3.0 of the PowerDNS Authoritative Server is a major
 upgrade if you are coming from 2.9.x. Please refer to the `Upgrade
-documentation <authoritative/upgrading.md>`__ for important information
+documentation <../upgrading.rst>`__ for important information
 on correct and stable operation, as well as notes on performance and
 memory use.
 
@@ -2756,11 +2436,11 @@ achieving high levels of security.
 PowerDNS Authoritative Server 3.0 development has been made possible by
 the financial and moral support of
 
--  `AFNIC, the French registry <http://www.afnic.fr/>`__
+-  `AFNIC, the French registry <https://www.afnic.fr/>`__
 -  `IPCom's RcodeZero Anycast
-   DNS <http://www.ipcom.at/en/dns/rcodezero_anycast/>`__, a subsidiary
+   DNS <https://web.archive.org/web/20160306182714/http://www.rcodezero.at/index.php?id=1165&L=1>`__, a subsidiary
    of NIC.AT, the Austrian registry
--  `SIDN, the Dutch registry <http://www.sidn.nl/>`__
+-  `SIDN, the Dutch registry <https://www.sidn.nl/>`__
 
 This release has received exceptional levels of community support, and
 we'd like to thank the following people in addition to those mentioned
@@ -2786,221 +2466,160 @@ Known issues as of RC3
 Changes between RC3 and final
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
--  Slight tweak to the pipebackend to ease DNSSEC operations (`commit
-   2239 <http://wiki.powerdns.com/projects/trac/changeset/2239>`__,
-   `commit
-   2247 <http://wiki.powerdns.com/projects/trac/changeset/2247>`__).
-   Also fix pipebackend support in pdnssec tool (`commit
-   2244 <http://wiki.powerdns.com/projects/trac/changeset/2244>`__).
+-  Slight tweak to the pipebackend to ease DNSSEC operations (`commit 42f1cf3eccbc27e2b67ab3428c89bcdde6fd3b81 <https://github.com/PowerDNS/pdns/commit/42f1cf3eccbc27e2b67ab3428c89bcdde6fd3b81>`__,
+   `commit 0a2915e2127f3968082f0a5e42ca7d5b1b8227ea <https://github.com/PowerDNS/pdns/commit/0a2915e2127f3968082f0a5e42ca7d5b1b8227ea>`__).
+   Also fix pipebackend support in pdnssec tool (`commit c6347f61b9b25e640620c95910792bd8ce6c9c3c <https://github.com/PowerDNS/pdns/commit/c6347f61b9b25e640620c95910792bd8ce6c9c3c>`__).
 -  Upgrade the experimental native Lua backend to the latest version
-   from Fredrik Danerklint (`commit
-   2240 <http://wiki.powerdns.com/projects/trac/changeset/2240>`__) and
-   include this backend in the .deb packages (`commit
-   2242 <http://wiki.powerdns.com/projects/trac/changeset/2242>`__)
+   from Fredrik Danerklint (`commit 244828bf698549bffce23eb8736059ab86bcf763 <https://github.com/PowerDNS/pdns/commit/244828bf698549bffce23eb8736059ab86bcf763>`__) and
+   include this backend in the .deb packages (`commit 9a7f942c01b26632aa3c227e9d2d831819909a7c <https://github.com/PowerDNS/pdns/commit/9a7f942c01b26632aa3c227e9d2d831819909a7c>`__)
 -  Remove IPv6 dependency, it was only possible to run master/slave
    operations on a server with at least one IPv6 address. Some very old
-   virtualized setups turned out to have no IPv6 at all. Fix in `commit
-   2246 <http://wiki.powerdns.com/projects/trac/changeset/2246>`__.
+   virtualized setups turned out to have no IPv6 at all. Fix in `commit 6a2df3f610e9fccc70c70059c8bee1b00124d35d <https://github.com/PowerDNS/pdns/commit/6a2df3f610e9fccc70c70059c8bee1b00124d35d>`__.
 
 Changes between RC2 and RC3
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 -  PowerDNS Authoritative Server could not be configured to use an IPv6
-   based resolving backend. Solved in `commit
-   2191 <http://wiki.powerdns.com/projects/trac/changeset/2191>`__.
+   based resolving backend. Solved in `commit c0cc655925c0e70751aa4cfd08434983df9b3ea5 <https://github.com/PowerDNS/pdns/commit/c0cc655925c0e70751aa4cfd08434983df9b3ea5>`__.
 -  LDAP backend reconfigured the timezone (TZ) setting of the daemon,
    leading to confusing logfile entries. Fixed by Chris Hofstaedtler
-   in `commit
-   2913 <http://wiki.powerdns.com/projects/trac/changeset/2913>`__,
+   in `commit 609db699dc584fc48d80505d9eddb79b7674b83b <https://github.com/PowerDNS/pdns/commit/609db699dc584fc48d80505d9eddb79b7674b83b>`__,
    closing `ticket 313 <https://github.com/PowerDNS/pdns/issues/313>`__.
 -  Non-DNSSEC capable backends could crash on DNSSEC queries. Fixed in
-   `commit
-   2194 <http://wiki.powerdns.com/projects/trac/changeset/2194>`__ and
-   `commit
-   2196 <http://wiki.powerdns.com/projects/trac/changeset/2196>`__
+   `commit e7d023f4626a4b66f5a6f1af257a49d1444ad790 <https://github.com/PowerDNS/pdns/commit/e7d023f4626a4b66f5a6f1af257a49d1444ad790>`__ and
+   `commit 92165881c33dc93e8f5fbf194590cf99e5b494bd <https://github.com/PowerDNS/pdns/commit/92165881c33dc93e8f5fbf194590cf99e5b494bd>`__
    (thanks to Charlie Smurthwaite) closing `ticket
    360 <https://github.com/PowerDNS/pdns/issues/360>`__.
 -  Errors looking up a UID or GID were reported confusingly ('Success'),
-   fixed in `commit
-   2195 <http://wiki.powerdns.com/projects/trac/changeset/2195>`__,
+   fixed in `commit d0c0ae3a8d4278d63e0170e76d766ccbb3feef61 <https://github.com/PowerDNS/pdns/commit/d0c0ae3a8d4278d63e0170e76d766ccbb3feef61>`__,
    closing `ticket 359 <https://github.com/PowerDNS/pdns/issues/359>`__.
--  Fix compilation against older MySQL, client libraries (`commit
-   2198 <http://wiki.powerdns.com/projects/trac/changeset/2198>`__,
-   `commit
-   2199 <http://wiki.powerdns.com/projects/trac/changeset/2199>`__,
-   `commit
-   2204 <http://wiki.powerdns.com/projects/trac/changeset/2204>`__),
+-  Fix compilation against older MySQL, client libraries (`commit 1ee924fb3beec7307caa282191fd5b8694581be0 <https://github.com/PowerDNS/pdns/commit/1ee924fb3beec7307caa282191fd5b8694581be0>`__,
+   `commit e4e90ae1ed4b5f6c243bc82734add3d7ed56e76e <https://github.com/PowerDNS/pdns/commit/e4e90ae1ed4b5f6c243bc82734add3d7ed56e76e>`__,
+   `commit 9bd88d812de7de1a984552f63a50e00b69f8f7c2 <https://github.com/PowerDNS/pdns/commit/9bd88d812de7de1a984552f63a50e00b69f8f7c2>`__),
    especially for older RHEL/CentOS. Also addresses the failure to look
    in lib64 directory for PostgreSQL.
 -  Sqlite3 needs write access not just to its database file, but also to
    the directory it is in. If this wasn't the case, no useful error
-   message was provided. Improvement in `commit
-   2202 <http://wiki.powerdns.com/projects/trac/changeset/2202>`__.
--  Update of MongoDB backend (`commit
-   2203 <http://wiki.powerdns.com/projects/trac/changeset/2203>`__,
-   `commit
-   2212 <http://wiki.powerdns.com/projects/trac/changeset/2212>`__).
+   message was provided. Improvement in `commit ba71c508285eb132704f28cdfebe99e1aba4bbd7 <https://github.com/PowerDNS/pdns/commit/ba71c508285eb132704f28cdfebe99e1aba4bbd7>`__.
+-  Update of MongoDB backend (`commit 1eb7bc30be4a499dc1170661c07adce5ba0f261f <https://github.com/PowerDNS/pdns/commit/1eb7bc30be4a499dc1170661c07adce5ba0f261f>`__,
+   `commit 6b2308ac24f23b8a470c37b7cfcf9195c3213022 <https://github.com/PowerDNS/pdns/commit/6b2308ac24f23b8a470c37b7cfcf9195c3213022>`__).
 -  'pdnssec hash-zone-record' emitted an inverted warning about narrow
-   NSEC3 hashes. Spotted by Jan-Piet Mens, fix in `commit
-   2205 <http://wiki.powerdns.com/projects/trac/changeset/2205>`__.
+   NSEC3 hashes. Spotted by Jan-Piet Mens, fix in `commit 5e42374ce8b94934c72b95628f2d7ce9332b17f3 <https://github.com/PowerDNS/pdns/commit/5e42374ce8b94934c72b95628f2d7ce9332b17f3>`__.
 -  PowerDNS can fill out default fields for SOA records, but neglected
    to do so if the SOA record was matched by an incoming ANY question.
    Spotted by Marc Laros & others. Fixes `ticket
-   357 <https://github.com/PowerDNS/pdns/issues/357>`__, code in `commit
-   2206 <http://wiki.powerdns.com/projects/trac/changeset/2206>`__.
--  PowerDNS would mistreat binary data in TXT records. Fix in `commit
-   2207 <http://wiki.powerdns.com/projects/trac/changeset/2207>`__.
+   357 <https://github.com/PowerDNS/pdns/issues/357>`__, code in `commit 4e9fadf6a4710fd581d2ef9d394bf54a8dc3dcc6 <https://github.com/PowerDNS/pdns/commit/4e9fadf6a4710fd581d2ef9d394bf54a8dc3dcc6>`__.
+-  PowerDNS would mistreat binary data in TXT records. Fix in `commit 66b40966ec45674dbd935432712510a27e2c2ce0 <https://github.com/PowerDNS/pdns/commit/66b40966ec45674dbd935432712510a27e2c2ce0>`__.
    Again spotted by Jan-Piet Mens. Closes `ticket
    356 <https://github.com/PowerDNS/pdns/issues/356>`__.
 -  Add experimental Lua backend by our star contributor Fredrik
-   Danerklint. `commit
-   2208 <http://wiki.powerdns.com/projects/trac/changeset/2208>`__.
+   Danerklint. `commit e18dbde1d496ded10aa16a79ed516ce5940e3950 <https://github.com/PowerDNS/pdns/commit/e18dbde1d496ded10aa16a79ed516ce5940e3950>`__.
 -  Christoph Meerwald discovered our RRSIG freshness checking checked
-   more than the intended RRSIG (on the SOA record). Fix in `commit
-   2209 <http://wiki.powerdns.com/projects/trac/changeset/2209>`__.
+   more than the intended RRSIG (on the SOA record). Fix in `commit 965f9774bca2f6ee2a487afef052e6c7283fc060 <https://github.com/PowerDNS/pdns/commit/965f9774bca2f6ee2a487afef052e6c7283fc060>`__.
 -  Christoph Meerwald discovered we got confused by TSIG signed
    EDNS-adorned queries, since we expected the EDNS OPT pseudorecord to
-   be the very last record. Fix in `commit
-   2214 <http://wiki.powerdns.com/projects/trac/changeset/2214>`__.
+   be the very last record. Fix in `commit 0e4ab7bce137fce1cde6899a0f9223df0e9f45d6 <https://github.com/PowerDNS/pdns/commit/0e4ab7bce137fce1cde6899a0f9223df0e9f45d6>`__.
 -  Christoph Meerwald discovered that when using SOA outgoing editing we
-   would sign and THEN edit. This was not productive. Fixed in `commit
-   2215 <http://wiki.powerdns.com/projects/trac/changeset/2215>`__.
+   would sign and THEN edit. This was not productive. Fixed in `commit f33065be80bc3690791234d283b0cfb023a7b048 <https://github.com/PowerDNS/pdns/commit/f33065be80bc3690791234d283b0cfb023a7b048>`__.
 -  Add missing-but-documented pdnssec command 'disable-dnssec'. Spotted
    by Craig Whitmore. Plus fixed misleading ^^help output. Code in
-   `commit
-   2216 <http://wiki.powerdns.com/projects/trac/changeset/2216>`__.
+   `commit 5935cedec74135fb041ef5f3ae8d4e6d1e8be630 <https://github.com/PowerDNS/pdns/commit/5935cedec74135fb041ef5f3ae8d4e6d1e8be630>`__.
 -  By popular demand, a tweak which makes an overloaded database no
    longer restart PowerDNS but to drop queries until the database is
-   available again. Code in `commit
-   2217 <http://wiki.powerdns.com/projects/trac/changeset/2217>`__,
+   available again. Code in `commit e7e691ccdec78324a49e9bce6c0293cb456cc1ca <https://github.com/PowerDNS/pdns/commit/e7e691ccdec78324a49e9bce6c0293cb456cc1ca>`__,
    lightly tested. Enable by setting 'overload-queue-length=100' (for
    example).
 -  By suggestion of Miek Gieben of SIDN, add SOA-EDIT mode 'EPOCH' which
-   sets the SOA serial number to the 'UNIX time'. Implemented in `commit
-   2218 <http://wiki.powerdns.com/projects/trac/changeset/2218>`__.
+   sets the SOA serial number to the 'UNIX time'. Implemented in `commit d6063079d2c01a02e39bc248410f65340ff21393 <https://github.com/PowerDNS/pdns/commit/d6063079d2c01a02e39bc248410f65340ff21393>`__.
 -  Added some US export control & ECCN to documentation, needed because
-   of DNSSEC content. Update in `commit
-   2219 <http://wiki.powerdns.com/projects/trac/changeset/2219>`__.
+   of DNSSEC content. Update in `commit a9bd99f92b7504a890d24a2c8d67a6c36b0b5d6b <https://github.com/PowerDNS/pdns/commit/a9bd99f92b7504a890d24a2c8d67a6c36b0b5d6b>`__.
 -  Fix up various spelling mistakes and badly formatted messages
-   (`commit
-   2220 <http://wiki.powerdns.com/projects/trac/changeset/2220>`__ and
-   `commit
-   2221 <http://wiki.powerdns.com/projects/trac/changeset/2221>`__) by
+   (`commit 4c2a2f9fc55a2ed90dabcffa2df15b5bf2d50dba <https://github.com/PowerDNS/pdns/commit/4c2a2f9fc55a2ed90dabcffa2df15b5bf2d50dba>`__ and
+   `commit 37fd87715762d0955e410abe37310942ab74124d <https://github.com/PowerDNS/pdns/commit/37fd87715762d0955e410abe37310942ab74124d>`__) by
    Maik Zumstrull and 'anonymous'.
 -  After a lot of thought, we now handle CNAMEs to names outside our
    knowledge ('bailiwick') exactly as in BIND 9.8.0, even though our way
-   was standards compliant too. It confused things. Update in `commit
-   2222 <http://wiki.powerdns.com/projects/trac/changeset/2222>`__ and
-   `commit
-   2224 <http://wiki.powerdns.com/projects/trac/changeset/2224>`__.
+   was standards compliant too. It confused things. Update in `commit dd7221539c181234da81e8e9e6a1023922228572 <https://github.com/PowerDNS/pdns/commit/dd7221539c181234da81e8e9e6a1023922228572>`__ and
+   `commit 3af99aee0d1bccbafe4cd235e01b99cc6fd38624 <https://github.com/PowerDNS/pdns/commit/3af99aee0d1bccbafe4cd235e01b99cc6fd38624>`__.
 -  Tweak sqlite3 library location detection for newer Ubuntu versions.
-   Change in `commit
-   2223 <http://wiki.powerdns.com/projects/trac/changeset/2223>`__.
+   Change in `commit 63c13255102e3c63b6d8fe77ef8adada854dff71 <https://github.com/PowerDNS/pdns/commit/63c13255102e3c63b6d8fe77ef8adada854dff71>`__.
 -  DNSSEC SQL schema improvements allowing for the use of constraints
-   and foreign keys in `commit
-   2225 <http://wiki.powerdns.com/projects/trac/changeset/2225>`__, by
+   and foreign keys in `commit a101c4085435660345cb9383a5a599577952882f <https://github.com/PowerDNS/pdns/commit/a101c4085435660345cb9383a5a599577952882f>`__, by
    Gerald Gruenberg, closing `ticket
    371 <https://github.com/PowerDNS/pdns/issues/371>`__.
 -  Add support for EDNS option 'edns-subnet', based on
-   draft-vandergaast-edns-client-subnet (`commit
-   2226 <http://wiki.powerdns.com/projects/trac/changeset/2226>`__,
-   `commit
-   2228 <http://wiki.powerdns.com/projects/trac/changeset/2228>`__,
-   `commit
-   2229 <http://wiki.powerdns.com/projects/trac/changeset/2229>`__,
-   `commit
-   2230 <http://wiki.powerdns.com/projects/trac/changeset/2230>`__,
-   `commit
-   2231 <http://wiki.powerdns.com/projects/trac/changeset/2231>`__,
-   `commit
-   2233 <http://wiki.powerdns.com/projects/trac/changeset/2233>`__).
+   draft-vandergaast-edns-client-subnet (`commit 6f97329bf84ee8bf9a9186b12f7cab639f43e8dc <https://github.com/PowerDNS/pdns/commit/6f97329bf84ee8bf9a9186b12f7cab639f43e8dc>`__,
+   `commit 801085ac160fe636b834bc124143e55240c41b9d <https://github.com/PowerDNS/pdns/commit/801085ac160fe636b834bc124143e55240c41b9d>`__,
+   `commit a4c8835f808124c44f81821b688cf91fc0b2d6f7 <https://github.com/PowerDNS/pdns/commit/a4c8835f808124c44f81821b688cf91fc0b2d6f7>`__,
+   `commit d06799d4d7c601d1cd2e608e0834a4b8346f2b73 <https://github.com/PowerDNS/pdns/commit/d06799d4d7c601d1cd2e608e0834a4b8346f2b73>`__,
+   `commit af7d3ea63ba4ded6b8f185dd79428965f4247bba <https://github.com/PowerDNS/pdns/commit/af7d3ea63ba4ded6b8f185dd79428965f4247bba>`__,
+   `commit f674c49ed50453b4f0e873d9bac42ab14adcdf10 <https://github.com/PowerDNS/pdns/commit/f674c49ed50453b4f0e873d9bac42ab14adcdf10>`__).
 -  Zone2sql sent out the wrong 'COMMIT' statement in sqlite mode. In
    addition, in this mode, zone2sql would not emit statements to update
    the domains table unless the 'slave' setting was chosen. Code in
-   `commit
-   2167 <http://wiki.powerdns.com/projects/trac/changeset/2167>`__.
+   `commit 2241f7557d050541d820b0e46782a62846ecc676 <https://github.com/PowerDNS/pdns/commit/2241f7557d050541d820b0e46782a62846ecc676>`__.
 -  We dropped the Authoritative Answer flag on an out-of-bailiwick CNAME
-   referral, which was unnecessary. Code in `commit
-   2170 <http://wiki.powerdns.com/projects/trac/changeset/2170>`__.
+   referral, which was unnecessary. Code in `commit 76bf5f405e7102929da5ab07196d7b2734fbb9cb <https://github.com/PowerDNS/pdns/commit/76bf5f405e7102929da5ab07196d7b2734fbb9cb>`__.
 -  Kees Monshouwer discovered that we failed to detect the location of
-   PostgreSQL on RHEL/CentOS. Fix in `commit
-   2144 <http://wiki.powerdns.com/projects/trac/changeset/2144>`__. In
-   addition, `commit
-   2162 <http://wiki.powerdns.com/projects/trac/changeset/2162>`__ eases
+   PostgreSQL on RHEL/CentOS. Fix in `commit 4c9d3d822320513f09c254fcb447fb685051492d <https://github.com/PowerDNS/pdns/commit/4c9d3d822320513f09c254fcb447fb685051492d>`__. In
+   addition, `commit eef915a2096238d1d245e2c71f3f252c8691c344 <https://github.com/PowerDNS/pdns/commit/eef915a2096238d1d245e2c71f3f252c8691c344>`__ eases
    detection of MySQL on RHEL/CentOS 64 bits systems.
 -  Marc Laros re-reported an old bug in the internally used 'pdns'
    backend where details of the SOA record were not filled out
-   correctly. Resolved in `commit
-   2145 <http://wiki.powerdns.com/projects/trac/changeset/2145>`__.
+   correctly. Resolved in `commit ced6993472a48498d4e0eb4f4f62a9b30126f0de <https://github.com/PowerDNS/pdns/commit/ced6993472a48498d4e0eb4f4f62a9b30126f0de>`__.
 -  Jan-Piet Mens found that our TSIG signed SOA zone freshness check was
-   signed incorrectly. Fixed in `commit
-   2147 <http://wiki.powerdns.com/projects/trac/changeset/2147>`__.
-   Improved error messages that helped debug this issue in `commit
-   2148 <http://wiki.powerdns.com/projects/trac/changeset/2148>`__,
-   `commit
-   2149 <http://wiki.powerdns.com/projects/trac/changeset/2149>`__.
+   signed incorrectly. Fixed in `commit 842c8dd2aae5a11ce3a2f183a63c570a16144afe <https://github.com/PowerDNS/pdns/commit/842c8dd2aae5a11ce3a2f183a63c570a16144afe>`__.
+   Improved error messages that helped debug this issue in `commit e8b0c58e5031393ac82ecda2a305dc5ce2fada0e <https://github.com/PowerDNS/pdns/commit/e8b0c58e5031393ac82ecda2a305dc5ce2fada0e>`__,
+   `commit 67672ba6a4461aba87abd11cb59f66a9f39160f2 <https://github.com/PowerDNS/pdns/commit/67672ba6a4461aba87abd11cb59f66a9f39160f2>`__.
 -  Jan-Piet Mens helped debug an issue where some servers were "almost
    always" unable to transfer a TSIG signed zone correctly. Turns out
    that the TSIG signing code used an internal timestamp and not the
    remote timestamp. Because of good NTP synchronization this quite
-   often was not a problem. Fix in `commit
-   2159 <http://wiki.powerdns.com/projects/trac/changeset/2159>`__.
+   often was not a problem. Fix in `commit 5b6d751ec70a502847990f06523406e01c2456dc <https://github.com/PowerDNS/pdns/commit/5b6d751ec70a502847990f06523406e01c2456dc>`__.
 -  Thor Spruyt of Telenet discovered that the PowerDNS code would try to
    emit DNS answers over TCP of over 65535 bytes long, which failed. We
-   now truncate such answers properly. Code in `commit
-   2150 <http://wiki.powerdns.com/projects/trac/changeset/2150>`__.
+   now truncate such answers properly. Code in `commit dffbaa08436a2f755d2cff9dab481a919c6c4374 <https://github.com/PowerDNS/pdns/commit/dffbaa08436a2f755d2cff9dab481a919c6c4374>`__.
 -  The Slave engine now reuses an existing database connection, removing
    the need to create a new database connection every minute (and worse,
-   log about it). Code in `commit
-   2153 <http://wiki.powerdns.com/projects/trac/changeset/2153>`__.
+   log about it). Code in `commit 936eb34ab50cf3463a75e551a67711fdace756d5 <https://github.com/PowerDNS/pdns/commit/936eb34ab50cf3463a75e551a67711fdace756d5>`__.
 -  Fix a potential Year 2106 bug in the TSIG signing code. Because we
-   care (`commit
-   2156 <http://wiki.powerdns.com/projects/trac/changeset/2156>`__).
+   care (`commit a6e93c0f349a83b3a5e17939bb996a0c1569719a <https://github.com/PowerDNS/pdns/commit/a6e93c0f349a83b3a5e17939bb996a0c1569719a>`__).
 -  Added experimental support for the 'DANE' TLSA record which is used
-   to authenticate SSL certificates via DNSSEC. `commit
-   2161 <http://wiki.powerdns.com/projects/trac/changeset/2161>`__.
+   to authenticate SSL certificates via DNSSEC. `commit 07dbe87ec0825a9bcb4ab11ed51376e880adc62b <https://github.com/PowerDNS/pdns/commit/07dbe87ec0825a9bcb4ab11ed51376e880adc62b>`__.
 -  Added experimental support for the MongoDB 'NoSQL' backend,
-   contributed by Fredrik Danerklint in `commit
-   2162 <http://wiki.powerdns.com/projects/trac/changeset/2162>`__.
+   contributed by Fredrik Danerklint in `commit eef915a2096238d1d245e2c71f3f252c8691c344 <https://github.com/PowerDNS/pdns/commit/eef915a2096238d1d245e2c71f3f252c8691c344>`__.
 
 Other major new features
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 -  TSIG for authorizing and authenticating AXFR requests & incoming zone
    transfers (Code in
-   `2024 <http://wiki.powerdns.com/projects/trac/changeset/2024>`__,
-   `2025 <http://wiki.powerdns.com/projects/trac/changeset/2025>`__,
-   `2033 <http://wiki.powerdns.com/projects/trac/changeset/2033>`__,
-   `2034 <http://wiki.powerdns.com/projects/trac/changeset/2034>`__).
+   `commit 78bcb85857b15320e9cd2b28e8b486a667a1d79f <https://github.com/PowerDNS/pdns/commit/78bcb85857b15320e9cd2b28e8b486a667a1d79f>`__,
+   `commit 6507e8e8235a895dfe2c148821b89f03e810fab6 <https://github.com/PowerDNS/pdns/commit/6507e8e8235a895dfe2c148821b89f03e810fab6>`__,
+   `commit 20665beb4ce045e359b43b765a8e925bad67c55b <https://github.com/PowerDNS/pdns/commit/20665beb4ce045e359b43b765a8e925bad67c55b>`__,
+   `commit 01cb2fe2dc4072386747ac18e51b921850198d94 <https://github.com/PowerDNS/pdns/commit/01cb2fe2dc4072386747ac18e51b921850198d94>`__).
    This allows for retrieving TSIG protected content, as well as serving
    it.
 -  Per zone also-notify.
 -  MyDNS compatible backend, allowing for 'instantaneous' migration from
-   this authoritative nameserver. Code in `commit
-   1418 <http://wiki.powerdns.com/projects/trac/changeset/1418>`__,
+   this authoritative nameserver. Code in `commit 4dad70693039a752f93ee0ee5cbd1c858cad8803 <https://github.com/PowerDNS/pdns/commit/4dad70693039a752f93ee0ee5cbd1c858cad8803>`__,
    contributed by Jonathan Oddy.
 -  PowerDNS can now slave zones over IPv6 and notify IPv6 remotes of
-   updates. Already. Code in `commit
-   2009 <http://wiki.powerdns.com/projects/trac/changeset/2009>`__ and
+   updates. Already. Code in `commit f2994f9204a7c3ed164df278a8d21de9d217f767 <https://github.com/PowerDNS/pdns/commit/f2994f9204a7c3ed164df278a8d21de9d217f767>`__ and
    beyond.
 -  Lua based incoming zone editing, allowing masters or signing slaves
    to add information to the zone they will (re-)serve. Implemented in
-   `commit
-   2065 <http://wiki.powerdns.com/projects/trac/changeset/2065>`__. To
+   `commit e23622a77b269efe6a0dbf19934cb58245c7a66c <https://github.com/PowerDNS/pdns/commit/e23622a77b269efe6a0dbf19934cb58245c7a66c>`__. To
    enable, use LUA-AXFR-SCRIPT zone metadata setting.
 -  Native Oracle backend with full DNSSEC support. Contributed by Maik
    Zumstrull, then at the Steinbuch Centre for Computing at the
    Karlsruhe Institute of Technology.
--  "Also-notify" support, implemented by Aki Tuomi in `commit
-   1400 <http://wiki.powerdns.com/projects/trac/changeset/1400>`__.
+-  "Also-notify" support, implemented by Aki Tuomi in `commit 27d94a79709a9ba4145dacd929427f2029a1af12 <https://github.com/PowerDNS/pdns/commit/27d94a79709a9ba4145dacd929427f2029a1af12>`__.
    Support for Generic SQL backends and for the BIND backend. Further
-   code in `commit
-   1360 <http://wiki.powerdns.com/projects/trac/changeset/1360>`__.
--  Support for binding to thousands of IP addresses, code in `commit
-   1443 <http://wiki.powerdns.com/projects/trac/changeset/1443>`__.
+   code in `commit ab5edd12996d2813bc548da07ad8c3110080ad91 <https://github.com/PowerDNS/pdns/commit/ab5edd12996d2813bc548da07ad8c3110080ad91>`__.
+-  Support for binding to thousands of IP addresses, code in `commit 8edfedf16fdcae591b1437701abf87fc8d76dcad <https://github.com/PowerDNS/pdns/commit/8edfedf16fdcae591b1437701abf87fc8d76dcad>`__.
 -  Generic MySQL backend now supports stored procedures. Implemented in
-   `commit
-   2084 <http://wiki.powerdns.com/projects/trac/changeset/2084>`__,
+   `commit a35deffb15a1aa10d41ba62e78cb9b17aeea74e8 <https://github.com/PowerDNS/pdns/commit/a35deffb15a1aa10d41ba62e78cb9b17aeea74e8>`__,
    closing `ticket 231 <https://github.com/PowerDNS/pdns/issues/231>`__.
 -  Generic ODBC backend compiles again, and is reported to work for some
    users that need it. Code contributed in `ticket
@@ -3008,9 +2627,9 @@ Other major new features
 -  Massively parallel slaving infrastructure, able to check the
    freshness of thousands of remote zones per second, plus perform many
    incoming zone transfers simultaneously. Sponsored by Tyler Hall, code
-   in `1449 <http://wiki.powerdns.com/projects/trac/changeset/1449>`__,
-   `1500 <http://wiki.powerdns.com/projects/trac/changeset/1500>`__,
-   `1859 <http://wiki.powerdns.com/projects/trac/changeset/1859>`__
+   in `commit 3696224df4b45d62b332117864c64092e9bb5886 <https://github.com/PowerDNS/pdns/commit/3696224df4b45d62b332117864c64092e9bb5886>`__,
+   `commit 9b082a142c28c854ef7ee7227e6d5782c87568df <https://github.com/PowerDNS/pdns/commit/9b082a142c28c854ef7ee7227e6d5782c87568df>`__,
+   `commit dbcb3066a1c1da733a432b78a71ef60084be7d63 <https://github.com/PowerDNS/pdns/commit/dbcb3066a1c1da733a432b78a71ef60084be7d63>`__
 -  Core DNS logic replaced completely to deal with the brave new world
    of DNSSEC.
 
@@ -3018,200 +2637,150 @@ Bugs fixed
 ^^^^^^^^^^
 
 -  sqlite2 and sqlite3 backends used MySQL-style escaping, leading to
-   SQL errors in some cases. Discovered by Sten Spans. Fixed in `commit
-   1342 <http://wiki.powerdns.com/projects/trac/changeset/1342>`__.
+   SQL errors in some cases. Discovered by Sten Spans. Fixed in `commit bdaab6b8d4e66d80850743fc8495f2bbb4848d64 <https://github.com/PowerDNS/pdns/commit/bdaab6b8d4e66d80850743fc8495f2bbb4848d64>`__.
 -  Internal webserver no longer prints '1e2%'. Bug rediscovered by Jeff
-   Sipek. Fixed in `commit
-   1342 <http://wiki.powerdns.com/projects/trac/changeset/1342>`__.
+   Sipek. Fixed in `commit bdaab6b8d4e66d80850743fc8495f2bbb4848d64 <https://github.com/PowerDNS/pdns/commit/bdaab6b8d4e66d80850743fc8495f2bbb4848d64>`__.
 -  PowerDNS would refuse to serve domain names with spaces in them, or
-   otherwise non-printable characters. Addressed in `commit
-   2081 <http://wiki.powerdns.com/projects/trac/changeset/2081>`__.
+   otherwise non-printable characters. Addressed in `commit ade8e2b8f81f49694046afe1a2302dc78f3942ab <https://github.com/PowerDNS/pdns/commit/ade8e2b8f81f49694046afe1a2302dc78f3942ab>`__.
 -  PowerDNS can now serve escaped labels, as described by RFC 4343. Data
-   should be present in backends in that escaped form. Code in `commit
-   2089 <http://wiki.powerdns.com/projects/trac/changeset/2089>`__.
+   should be present in backends in that escaped form. Code in `commit 7ecd35765d8c7895b4eb911017d67c435d69a883 <https://github.com/PowerDNS/pdns/commit/7ecd35765d8c7895b4eb911017d67c435d69a883>`__.
 -  In some cases, we would include duplicate CNAMEs. In addition, we
    would hand out a full root-referral when not configured to in some
    cases (ticket `223 <https://github.com/PowerDNS/pdns/issues/223>`__).
-   Discovered by Andreas Jakum, fixed in `commit
-   1344 <http://wiki.powerdns.com/projects/trac/changeset/1344>`__.
+   Discovered by Andreas Jakum, fixed in `commit b72687a19f328115a6b90bcecc10b16ce2c022c2 <https://github.com/PowerDNS/pdns/commit/b72687a19f328115a6b90bcecc10b16ce2c022c2>`__.
 -  Shane Kerr discovered we would corrupt DNS transaction IDs from the
-   packet cache on big endian systems. Fix in `commit
-   1346 <http://wiki.powerdns.com/projects/trac/changeset/1346>`__,
+   packet cache on big-endian systems. Fix in `commit bb0bbdc2454749da526f72a3c393eecf7e43fe8d <https://github.com/PowerDNS/pdns/commit/bb0bbdc2454749da526f72a3c393eecf7e43fe8d>`__,
    closing `ticket 222 <https://github.com/PowerDNS/pdns/issues/222>`__.
 -  PowerDNS did not use RFC 1982 serial arithmetic, leading to a SOA
    serial number of 1 to be regarded as older than 4400000000, when in
    fact it is 'newer'. Issue (re-)discovered by Jan-Piet Mens.
 -  BIND backend got confused of a zone's file name changed after a
-   configuration reload. Fix in `commit
-   1347 <http://wiki.powerdns.com/projects/trac/changeset/1347>`__,
+   configuration reload. Fix in `commit 5552a8e7639e109ed62b8d4471ee34d9289fba68 <https://github.com/PowerDNS/pdns/commit/5552a8e7639e109ed62b8d4471ee34d9289fba68>`__,
    closing `ticket 228 <https://github.com/PowerDNS/pdns/issues/228>`__.
 -  When restarted by the Guardian, PowerDNS will perform a full
    multi-threaded cache cleanup, which took a long time and could crash.
-   Fix in `commit
-   1364 <http://wiki.powerdns.com/projects/trac/changeset/1364>`__.
+   Fix in `commit 907ea90af61d792a922c6fc4001b4aced90f37e3 <https://github.com/PowerDNS/pdns/commit/907ea90af61d792a922c6fc4001b4aced90f37e3>`__.
 -  Under artificial circumstances, PowerDNS would never clean its packet
-   cache. Found by Marcus Goller, fix in `commit
-   1399 <http://wiki.powerdns.com/projects/trac/changeset/1399>`__ and
-   `commit
-   1408 <http://wiki.powerdns.com/projects/trac/changeset/1408>`__. This
+   cache. Found by Marcus Goller, fix in `commit b2ac0df85cdfabf86dd4430f988499eddf2a4413 <https://github.com/PowerDNS/pdns/commit/b2ac0df85cdfabf86dd4430f988499eddf2a4413>`__ and
+   `commit bca0308ff36db5bef1408ff0becaf38d3e70a109 <https://github.com/PowerDNS/pdns/commit/bca0308ff36db5bef1408ff0becaf38d3e70a109>`__. This
    update also retunes the cleanup frequency.
 -  Packetcache would cache things it should not have been caching. Fixes
    in commits
-   `1407 <http://wiki.powerdns.com/projects/trac/changeset/1407>`__,
-   `1488 <http://wiki.powerdns.com/projects/trac/changeset/1488>`__,
-   `1869 <http://wiki.powerdns.com/projects/trac/changeset/1869>`__,
-   `1880 <http://wiki.powerdns.com/projects/trac/changeset/1880>`__
+   `commit e2ff25c7643dde960fd502d1a32a221c172f7899 <https://github.com/PowerDNS/pdns/commit/e2ff25c7643dde960fd502d1a32a221c172f7899>`__,
+   `commit fe47c23f961b4b0bf06175881bac7e485e9eacdb <https://github.com/PowerDNS/pdns/commit/fe47c23f961b4b0bf06175881bac7e485e9eacdb>`__,
+   `commit a637d0a533cf9441ca4bf96dbefa8ebbd568fd88 <https://github.com/PowerDNS/pdns/commit/a637d0a533cf9441ca4bf96dbefa8ebbd568fd88>`__,
+   `commit 9a8a1c8b056b7c3b3945de8ea2aa70e70a7c4259 <https://github.com/PowerDNS/pdns/commit/9a8a1c8b056b7c3b3945de8ea2aa70e70a7c4259>`__
 -  When processing incoming notifications, the BIND backend was
    case-sensitive, and would disregard notifications in the wrong case.
-   Discovered by 'Dolphin', fix in `commit
-   1420 <http://wiki.powerdns.com/projects/trac/changeset/1420>`__.
+   Discovered by 'Dolphin', fix in `commit 059db45874a8606682ce2b670a002fb4941e8dee <https://github.com/PowerDNS/pdns/commit/059db45874a8606682ce2b670a002fb4941e8dee>`__.
 -  The init.d script did not mention the 'reload' command. Code in
-   `commit
-   1463 <http://wiki.powerdns.com/projects/trac/changeset/1463>`__,
+   `commit f22c75cd68c270a6f1b4a64e541effb38585b686 <https://github.com/PowerDNS/pdns/commit/f22c75cd68c270a6f1b4a64e541effb38585b686>`__,
    closes `ticket 233 <https://github.com/PowerDNS/pdns/issues/233>`__.
 -  Generic SQL Backends would sometimes emit obscure error messages. Fix
-   in `commit
-   2049 <http://wiki.powerdns.com/projects/trac/changeset/2049>`__.
+   in `commit e1602f7a5b0b3bb8a933b6a368e2a328599f9adb <https://github.com/PowerDNS/pdns/commit/e1602f7a5b0b3bb8a933b6a368e2a328599f9adb>`__.
 -  PowerDNS would be confused by embedded NULs in domain names, and
-   would also mess up the escaping of some characters. Fix in `commit
-   1468 <http://wiki.powerdns.com/projects/trac/changeset/1468>`__,
-   `commit
-   1469 <http://wiki.powerdns.com/projects/trac/changeset/1469>`__,
-   `commit
-   1478 <http://wiki.powerdns.com/projects/trac/changeset/1478>`__,
-   `commit
-   1480 <http://wiki.powerdns.com/projects/trac/changeset/1480>`__,
+   would also mess up the escaping of some characters. Fix in `commit edb1c9eeb923de818bca441e0e6ad9c18b3d2c9b <https://github.com/PowerDNS/pdns/commit/edb1c9eeb923de818bca441e0e6ad9c18b3d2c9b>`__,
+   `commit ec6480f387373baa8ce4d30a8636764aa933f511 <https://github.com/PowerDNS/pdns/commit/ec6480f387373baa8ce4d30a8636764aa933f511>`__,
+   `commit 3d40879b43625628c14df5da928139b04914077f <https://github.com/PowerDNS/pdns/commit/3d40879b43625628c14df5da928139b04914077f>`__,
+   `commit 213f6de6962da586d37aaf928598ed282cc0f52e <https://github.com/PowerDNS/pdns/commit/213f6de6962da586d37aaf928598ed282cc0f52e>`__,
 -  SOA queries for the name of a delegation point were not referred. Fix
-   in `commit
-   1466 <http://wiki.powerdns.com/projects/trac/changeset/1466>`__,
+   in `commit 2893c412b7ca9bbdbbd72de4982728b277738e0f <https://github.com/PowerDNS/pdns/commit/2893c412b7ca9bbdbbd72de4982728b277738e0f>`__,
    closing `ticket 224 <https://github.com/PowerDNS/pdns/issues/224>`__.
    In addition, queries for AAAA for a CNAMEd record pointing to a name
    with no AAAA would deliver a direct SOA, without the CNAME in
-   between. Fix in `commit
-   1542 <http://wiki.powerdns.com/projects/trac/changeset/1542>`__,
-   `commit
-   1607 <http://wiki.powerdns.com/projects/trac/changeset/1607>`__.
+   between. Fix in `commit ca443a348e4ccca3915b9cf05e26e2a391183df7 <https://github.com/PowerDNS/pdns/commit/ca443a348e4ccca3915b9cf05e26e2a391183df7>`__,
+   `commit 507823d14f9516be69b71654871dff9cec5b664c <https://github.com/PowerDNS/pdns/commit/507823d14f9516be69b71654871dff9cec5b664c>`__.
    Also, wildcard CNAMEs pointing to a record without the type requested
-   suffered from the same issue, fix in `commit
-   1543 <http://wiki.powerdns.com/projects/trac/changeset/1543>`__.
+   suffered from the same issue, fix in `commit b3add44189d938d8a44afb55ff0ed7c1de9ecf10 <https://github.com/PowerDNS/pdns/commit/b3add44189d938d8a44afb55ff0ed7c1de9ecf10>`__.
 -  On processing an incoming AXFR, once an MX or SRV record had been
    seen, all future fields got a 'priority' entry as well. This had no
-   operational impact, but looked messy. Fixed in `commit
-   1437 <http://wiki.powerdns.com/projects/trac/changeset/1437>`__.
+   operational impact, but looked messy. Fixed in `commit 7af358fcb0c545aaa096c03a8ae0b97ef68a4eaa <https://github.com/PowerDNS/pdns/commit/7af358fcb0c545aaa096c03a8ae0b97ef68a4eaa>`__.
 -  Aki Tuomi discovered that the BIND zone file parser would
-   misrepresent 'something IN MX 15 @'. Fix in `commit
-   1621 <http://wiki.powerdns.com/projects/trac/changeset/1621>`__.
+   misrepresent 'something IN MX 15 @'. Fix in `commit 43f40013e20a100969d1cf4b7db4ce5cbacf55de <https://github.com/PowerDNS/pdns/commit/43f40013e20a100969d1cf4b7db4ce5cbacf55de>`__.
 -  Marco Davids discovered the BIND zone file parser would trip over
-   really long lines. Fix in `commit
-   1624 <http://wiki.powerdns.com/projects/trac/changeset/1624>`__,
-   `commit
-   1625 <http://wiki.powerdns.com/projects/trac/changeset/1625>`__.
+   really long lines. Fix in `commit 47eb772cd13acd691849039ffe8b7ede06adb14c <https://github.com/PowerDNS/pdns/commit/47eb772cd13acd691849039ffe8b7ede06adb14c>`__,
+   `commit 834942f1c522e1fbfc6ffa6635f7cd834b807ebc <https://github.com/PowerDNS/pdns/commit/834942f1c522e1fbfc6ffa6635f7cd834b807ebc>`__.
 -  Thomas Mieslinger discovered that our webserver would only be started
-   after dropping privileges, which could cause problems. Fix in `commit
-   1629 <http://wiki.powerdns.com/projects/trac/changeset/1629>`__.
+   after dropping privileges, which could cause problems. Fix in `commit 96d299dbd765b0d269deebc0f4b77626242f01a1 <https://github.com/PowerDNS/pdns/commit/96d299dbd765b0d269deebc0f4b77626242f01a1>`__.
 -  Zone2sql did quite often not do exactly what was required, which
-   users fixed by editing the SQL output. Revamped in `commit
-   2032 <http://wiki.powerdns.com/projects/trac/changeset/2032>`__.
+   users fixed by editing the SQL output. Revamped in `commit 1d14201415a503a42b69b193481af01bfe9a673e <https://github.com/PowerDNS/pdns/commit/1d14201415a503a42b69b193481af01bfe9a673e>`__.
 -  An Ubuntu user discovered in Launchpad bug 600479 that restarting
    database threads cost a lot of memory. Normally this is rare, except
-   in case of problems. Addressed in `commit
-   1676 <http://wiki.powerdns.com/projects/trac/changeset/1676>`__.
+   in case of problems. Addressed in `commit a858f79e978b4b187bc59a672870529a4610a04c <https://github.com/PowerDNS/pdns/commit/a858f79e978b4b187bc59a672870529a4610a04c>`__.
 -  BIND backend could crash under (very) high load with very large
-   numbers of zones (hundreds of thousands). Fixed in `commit
-   1690 <http://wiki.powerdns.com/projects/trac/changeset/1690>`__.
+   numbers of zones (hundreds of thousands). Fixed in `commit f1cf06785a728e0bdbb7f46895b4091a3ad1adc6 <https://github.com/PowerDNS/pdns/commit/f1cf06785a728e0bdbb7f46895b4091a3ad1adc6>`__.
 -  Miek Gieben and Marco Davids spotted that PowerDNS would answer the
    version.bind query in the IN class too. Bug reported via twitter! Fix
-   in `commit
-   1709 <http://wiki.powerdns.com/projects/trac/changeset/1709>`__.
+   in `commit adf13442027c74a889b354b2bb4372d27ff9ca30 <https://github.com/PowerDNS/pdns/commit/adf13442027c74a889b354b2bb4372d27ff9ca30>`__.
 -  Marcus Lauer and the OpenDNSSEC project discovered that outgoing
-   notifications did not carry the 'aa' flag. Fixed in `commit
-   1746 <http://wiki.powerdns.com/projects/trac/changeset/1746>`__.
+   notifications did not carry the 'aa' flag. Fixed in `commit 6da6416987578944d9b40651bbfec473b10f04ee <https://github.com/PowerDNS/pdns/commit/6da6416987578944d9b40651bbfec473b10f04ee>`__.
 -  Debugging PowerDNS, or backgrounding it, could cause crashes. Fixed
-   by Anders Kaseorg in `commit
-   1747 <http://wiki.powerdns.com/projects/trac/changeset/1747>`__.
+   by Anders Kaseorg in `commit 440191e19f0f13d36787f8234b72b04b1e02f1aa <https://github.com/PowerDNS/pdns/commit/440191e19f0f13d36787f8234b72b04b1e02f1aa>`__.
 -  Fixed a bug that could cause crashes on launching thousands of
    backend connections. Never observed to occur, but who knows. Fix in
-   `commit
-   1792 <http://wiki.powerdns.com/projects/trac/changeset/1792>`__.
+   `commit 9b9ae9a8113bb9386d4179a752b73bddaee93836 <https://github.com/PowerDNS/pdns/commit/9b9ae9a8113bb9386d4179a752b73bddaee93836>`__.
 -  Under some circumstances, large answers could be truncated in
    mid-record. While technically legal, this upset a number of resolver
-   implementations (including the PowerDNS Recursor!). Fixed in `commit
-   1830 <http://wiki.powerdns.com/projects/trac/changeset/1830>`__,
+   implementations (including the PowerDNS Recursor!). Fixed in `commit cf00d8d34d1e1e41b207c93b81757de489406861 <https://github.com/PowerDNS/pdns/commit/cf00d8d34d1e1e41b207c93b81757de489406861>`__,
    re-closes `ticket
    200 <https://github.com/PowerDNS/pdns/issues/200>`__.
 -  Jan Piet Mens and Florian Weimer discovered we had problems dealing
-   with escaped labels and escaped TXT fields. Fixed in `commit
-   2000 <http://wiki.powerdns.com/projects/trac/changeset/2000>`__.
+   with escaped labels and escaped TXT fields. Fixed in `commit bac8f21be37b4c8f06443664f55c9717fc45cbb7 <https://github.com/PowerDNS/pdns/commit/bac8f21be37b4c8f06443664f55c9717fc45cbb7>`__.
 -  After 2.2 billion queries, statistics would wrap oddly. Fix in
-   `commit
-   2019 <http://wiki.powerdns.com/projects/trac/changeset/2019>`__,
+   `commit bb3c3f50318499b09b685403c16ee9929c6104e5 <https://github.com/PowerDNS/pdns/commit/bb3c3f50318499b09b685403c16ee9929c6104e5>`__,
    closing `ticket 327 <https://github.com/PowerDNS/pdns/issues/327>`__.
 
 Improvements
 ^^^^^^^^^^^^
 
 -  Long TXT records are now split into 255-byte components
-   automatically. Implemented in `commit
-   1340 <http://wiki.powerdns.com/projects/trac/changeset/1340>`__,
+   automatically. Implemented in `commit a6c516640aa9c4f0f98bdda2738c45dadbaa8ba6 <https://github.com/PowerDNS/pdns/commit/a6c516640aa9c4f0f98bdda2738c45dadbaa8ba6>`__,
    reported by Darren Gamble in `ticket
    188 <https://github.com/PowerDNS/pdns/issues/188>`__.
 -  When receiving large numbers of notifications, PowerDNS would check
    these synchronously, leading to a slowdown for other services. Fixed
-   in `commit
-   2058 <http://wiki.powerdns.com/projects/trac/changeset/2058>`__,
+   in `commit 7f3d870ea26d6c244083a2a4eb353bf74c8d4173 <https://github.com/PowerDNS/pdns/commit/7f3d870ea26d6c244083a2a4eb353bf74c8d4173>`__,
    problem diagnosed by Richard Poole of Heart Internet.
 -  Fixed compilation on newer compilers and newer versions of Boost.
    Changes in
-   `1345 <http://wiki.powerdns.com/projects/trac/changeset/1345>`__
+   `commit f9822705e21952ff6fa151119edd467082bda0d0 <https://github.com/PowerDNS/pdns/commit/f9822705e21952ff6fa151119edd467082bda0d0>`__
    (closes `ticket
    227 <https://github.com/PowerDNS/pdns/issues/227>`__),
-   `1391 <http://wiki.powerdns.com/projects/trac/changeset/1391>`__,
-   `1394 <http://wiki.powerdns.com/projects/trac/changeset/1394>`__,
-   `1425 <http://wiki.powerdns.com/projects/trac/changeset/1425>`__,
-   `1427 <http://wiki.powerdns.com/projects/trac/changeset/1427>`__,
-   `1428 <http://wiki.powerdns.com/projects/trac/changeset/1428>`__,
-   `1429 <http://wiki.powerdns.com/projects/trac/changeset/1429>`__,
-   `1440 <http://wiki.powerdns.com/projects/trac/changeset/1440>`__,
-   `1653 <http://wiki.powerdns.com/projects/trac/changeset/1653>`__,
+   `commit cd421f46b89ded4f78ef66e81a3f3dd359a518b9 <https://github.com/PowerDNS/pdns/commit/cd421f46b89ded4f78ef66e81a3f3dd359a518b9>`__,
+   `commit 251a94387af1b6b5bd27819a764d1a260894fa79 <https://github.com/PowerDNS/pdns/commit/251a94387af1b6b5bd27819a764d1a260894fa79>`__,
+   `commit df9eba22ed2bc39be1085e3d6d3ad036f986411f <https://github.com/PowerDNS/pdns/commit/df9eba22ed2bc39be1085e3d6d3ad036f986411f>`__,
+   `commit 61b26744ffabd9746e1837b7a876cda66e625753 <https://github.com/PowerDNS/pdns/commit/61b26744ffabd9746e1837b7a876cda66e625753>`__,
+   `commit 646cbea6906be6706b1fd517efb383caa59635bc <https://github.com/PowerDNS/pdns/commit/646cbea6906be6706b1fd517efb383caa59635bc>`__,
+   `commit eb4e30902d04c557817bf63bd310d5753bbabc6f <https://github.com/PowerDNS/pdns/commit/eb4e30902d04c557817bf63bd310d5753bbabc6f>`__,
+   `commit 2b808f13b9506e79111331a0d8906eb3f34a1e92 <https://github.com/PowerDNS/pdns/commit/2b808f13b9506e79111331a0d8906eb3f34a1e92>`__,
+   `commit 11d8a43f749f247631deeae433872d767a967a04 <https://github.com/PowerDNS/pdns/commit/11d8a43f749f247631deeae433872d767a967a04>`__,
    thanks to Ruben Kerkhof and others.
 -  Moved Generic PostgreSQL backend over to the newer E'' style escapes.
-   `commit
-   2094 <http://wiki.powerdns.com/projects/trac/changeset/2094>`__.
--  Compilation fixes for Mac OS X 10.5.7 in `commit
-   1389 <http://wiki.powerdns.com/projects/trac/changeset/1389>`__,
+   `commit e5a7e727957d0a1f7be0119cc11700a19a454d5b <https://github.com/PowerDNS/pdns/commit/e5a7e727957d0a1f7be0119cc11700a19a454d5b>`__.
+-  Compilation fixes for Mac OS X 10.5.7 in `commit a45c14237388ffbc9f5643e98a256499ebc86e88 <https://github.com/PowerDNS/pdns/commit/a45c14237388ffbc9f5643e98a256499ebc86e88>`__,
    thanks to Tobias Markmann.
 -  We can now bind to scoped IPv6 addresses, lack spotted by Darren
-   Gamble. Part of the fix is in `commit
-   2018 <http://wiki.powerdns.com/projects/trac/changeset/2018>`__.
+   Gamble. Part of the fix is in `commit 506a9050f0de15d99fa338cc2819b1918a805f0c <https://github.com/PowerDNS/pdns/commit/506a9050f0de15d99fa338cc2819b1918a805f0c>`__.
 -  Built-in query cache can now also cache queries which lead to
-   multiple answers. Code in `commit
-   2069 <http://wiki.powerdns.com/projects/trac/changeset/2069>`__.
+   multiple answers. Code in `commit 7d454f5bf16585b3820ebf4647a929264ca93f7b <https://github.com/PowerDNS/pdns/commit/7d454f5bf16585b3820ebf4647a929264ca93f7b>`__.
 -  Prodded on by Jan Piet Mens, we now support 'unknown types' (which
    look like TYPE65534).
 -  Add 'slave-renotify' to retransmit notifies for slaved zones, which
    is helpful when acting as a 'signing slave' for a hidden master. Code
-   in `commit
-   1950 <http://wiki.powerdns.com/projects/trac/changeset/1950>`__.
+   in `commit 8de9c0543cc162d8edf9b46f27d46a447148ced5 <https://github.com/PowerDNS/pdns/commit/8de9c0543cc162d8edf9b46f27d46a447148ced5>`__.
 -  No longer let zone2sql and zone2ldap import BIND 'hint' zones.
-   `commit
-   1998 <http://wiki.powerdns.com/projects/trac/changeset/1998>`__.
+   `commit bc0fa09ed7e06b19410af5e84969a2101e27c9ee <https://github.com/PowerDNS/pdns/commit/bc0fa09ed7e06b19410af5e84969a2101e27c9ee>`__.
 -  Allow for timestamps to explicitly be specified in (s)econds. Code in
-   `commit
-   1398 <http://wiki.powerdns.com/projects/trac/changeset/1398>`__,
+   `commit 2326ec3f2bda526880939898ae8c999726ababae <https://github.com/PowerDNS/pdns/commit/2326ec3f2bda526880939898ae8c999726ababae>`__,
    closing `ticket 250 <https://github.com/PowerDNS/pdns/issues/250>`__.
 -  Zones with URL and MBOXFW records can be transferred over AXFR, code
-   in `commit
-   1464 <http://wiki.powerdns.com/projects/trac/changeset/1464>`__.
+   in `commit b5d7e593b6779c1691eb06d63b6433ef4b3afda3 <https://github.com/PowerDNS/pdns/commit/b5d7e593b6779c1691eb06d63b6433ef4b3afda3>`__.
 -  Maik Zumstrull cleaned up the BIND Backend makefile, plus taught our
-   init.d script to read /etc/default/pdns. Code in `commit
-   1601 <http://wiki.powerdns.com/projects/trac/changeset/1601>`__,
-   `commit
-   1602 <http://wiki.powerdns.com/projects/trac/changeset/1602>`__.
+   init.d script to read /etc/default/pdns. Code in `commit 7e62804a7023cd8b1be3174bc27a311e0fa74e9f <https://github.com/PowerDNS/pdns/commit/7e62804a7023cd8b1be3174bc27a311e0fa74e9f>`__,
+   `commit fdff9148d33b547eafe7662f59c51a04a77ea9c0 <https://github.com/PowerDNS/pdns/commit/fdff9148d33b547eafe7662f59c51a04a77ea9c0>`__.
 -  Generic SQL backends now support multiple masters in the domains
-   table. Code in `commit
-   1857 <http://wiki.powerdns.com/projects/trac/changeset/1857>`__.
-   Additionally, masters can also have :port numbers. Code in `commit
-   1858 <http://wiki.powerdns.com/projects/trac/changeset/1858>`__.
+   table. Code in `commit 2d28bfa1f2fa5cb41262a29024bd530badf0f357 <https://github.com/PowerDNS/pdns/commit/2d28bfa1f2fa5cb41262a29024bd530badf0f357>`__.
+   Additionally, masters can also have :port numbers. Code in `commit a370ef3183ba4ba5f0ef9b2327f7e11e1453d476 <https://github.com/PowerDNS/pdns/commit/a370ef3183ba4ba5f0ef9b2327f7e11e1453d476>`__.
 
 Authoritative Server version 2.9.22
 -----------------------------------
@@ -3239,74 +2808,62 @@ Fixed between rc1 and rc2, but not an issue in 2.9.21.
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 -  **pdns\_control ccounts** again outputs proper cache statistics.
-   Implemented in `commit
-   1304 <http://wiki.powerdns.com/projects/trac/changeset/1304>`__.
+   Implemented in `commit 4b298c7f76b0c76a4b378db7d5a05ff5da39be00 <https://github.com/PowerDNS/pdns/commit/4b298c7f76b0c76a4b378db7d5a05ff5da39be00>`__.
 -  Negative query caching was reinstated, leading to 6 times fewer
    backend queries than rc1 on the Express.powerdns.com servers.
 -  Packetcache no longer needlessly parses outgoing packets before
    sending them.
 -  Fancy records work again. This work has been sponsored by ISP
-   Services. Implemented in `commit
-   1302 <http://wiki.powerdns.com/projects/trac/changeset/1302>`__ and
-   `commit
-   1299 <http://wiki.powerdns.com/projects/trac/changeset/1299>`__.
+   Services. Implemented in `commit d34d3e017f04d48338a454eeb5d9cb8cce8dee61 <https://github.com/PowerDNS/pdns/commit/d34d3e017f04d48338a454eeb5d9cb8cce8dee61>`__ and
+   `commit 5e61f18cbe1329ade613fa48d438b7915d92c78a <https://github.com/PowerDNS/pdns/commit/5e61f18cbe1329ade613fa48d438b7915d92c78a>`__.
 
 New features
 ^^^^^^^^^^^^
 
 -  **pdns\_control** can now also work over TCP/IP. Sponsored by
    Directi. Commits
-   `1246 <http://wiki.powerdns.com/projects/trac/changeset/1246>`__,
-   `1251 <http://wiki.powerdns.com/projects/trac/changeset/1251>`__,
-   `1254 <http://wiki.powerdns.com/projects/trac/changeset/1254>`__,
-   `1255 <http://wiki.powerdns.com/projects/trac/changeset/1255>`__.
+   `commit 040712e08b9fd49d878a84ecbd4192f5454225fb <https://github.com/PowerDNS/pdns/commit/040712e08b9fd49d878a84ecbd4192f5454225fb>`__,
+   `commit e81974aa24c6d745e17ed0b8016c33154b76eec3 <https://github.com/PowerDNS/pdns/commit/e81974aa24c6d745e17ed0b8016c33154b76eec3>`__,
+   `commit 86b98d4ada432a27b43c1a93af6ce2abc69c4254 <https://github.com/PowerDNS/pdns/commit/86b98d4ada432a27b43c1a93af6ce2abc69c4254>`__,
+   `commit a78ba771786055962bd70c9c76e4e120941bae43 <https://github.com/PowerDNS/pdns/commit/a78ba771786055962bd70c9c76e4e120941bae43>`__.
 -  Implemented a notification proxy, see `"Notification proxy
-   (nproxy)" <tools/analysis.md#nproxy%22>`__. This work was sponsored
+   (nproxy)" <../manpages/nproxy.1.rst>`__. This work was sponsored
    by UPC Broadband. Implemented in commits
-   `1075 <http://wiki.powerdns.com/projects/trac/changeset/1075>`__,
-   `1077 <http://wiki.powerdns.com/projects/trac/changeset/1077>`__,
-   `1082 <http://wiki.powerdns.com/projects/trac/changeset/1082>`__,
-   `1083 <http://wiki.powerdns.com/projects/trac/changeset/1083>`__,
-   `1085 <http://wiki.powerdns.com/projects/trac/changeset/1085>`__ and
-   `1086 <http://wiki.powerdns.com/projects/trac/changeset/1086>`__.
+   `commit 0efda032c1720c2e2b2fdbc09b8e74c46d5240f8 <https://github.com/PowerDNS/pdns/commit/0efda032c1720c2e2b2fdbc09b8e74c46d5240f8>`__,
+   `commit 33ecb315908cd8bc037e622e270e5decc7088cf5 <https://github.com/PowerDNS/pdns/commit/33ecb315908cd8bc037e622e270e5decc7088cf5>`__,
+   `commit 8472da1b2105a782577166f04e189214b6c917d9 <https://github.com/PowerDNS/pdns/commit/8472da1b2105a782577166f04e189214b6c917d9>`__,
+   `commit c37f5e15a7e2e8a79dec416ddbfbcaa11d03da1a <https://github.com/PowerDNS/pdns/commit/c37f5e15a7e2e8a79dec416ddbfbcaa11d03da1a>`__,
+   `commit f7fb702255293439f303692ce9c9c1801b7a07d5 <https://github.com/PowerDNS/pdns/commit/f7fb702255293439f303692ce9c9c1801b7a07d5>`__ and
+   `commit 3908709da86d05b8818b6e3001570840297a5cdb <https://github.com/PowerDNS/pdns/commit/3908709da86d05b8818b6e3001570840297a5cdb>`__.
 -  IXFR queries are now supported in the sense that we treat them as
    AXFR queries, silencing warnings in other nameservers. Suggested in
    `ticket 131 <https://github.com/PowerDNS/pdns/issues/131>`__.
 -  The PIPE backend has been extended by David Apgar to allow the
    reporting of errors using the 'FAIL' command, plus support for
-   responses with whitespace. Implemented in `commit
-   1114 <http://wiki.powerdns.com/projects/trac/changeset/1114>`__.
+   responses with whitespace. Implemented in `commit 668056a5f643b90aaa56870626bf9b8f9ff49aea <https://github.com/PowerDNS/pdns/commit/668056a5f643b90aaa56870626bf9b8f9ff49aea>`__.
 -  PowerDNS Authoritative server now parses incoming EDNS options, like
-   maximum allowed packet size. Implemented in `commit
-   1123 <http://wiki.powerdns.com/projects/trac/changeset/1123>`__ and
-   `commit
-   1281 <http://wiki.powerdns.com/projects/trac/changeset/1281>`__.
+   maximum allowed packet size. Implemented in `commit 657e9124aed2ca65118b4ffb199c3b2e8496b1ef <https://github.com/PowerDNS/pdns/commit/657e9124aed2ca65118b4ffb199c3b2e8496b1ef>`__ and
+   `commit 803973128eb36c25998d05d5c5f41994b623f43a <https://github.com/PowerDNS/pdns/commit/803973128eb36c25998d05d5c5f41994b623f43a>`__.
 -  Added support for DHCID, IPSECKEY and KX records, thanks Norbert
-   Sendetzky for the hint. Implemented in `commit
-   1144 <http://wiki.powerdns.com/projects/trac/changeset/1144>`__.
+   Sendetzky for the hint. Implemented in `commit 9fd71f2e76b959378bc8f246836c164f23dc5a1c <https://github.com/PowerDNS/pdns/commit/9fd71f2e76b959378bc8f246836c164f23dc5a1c>`__.
 -  Norbert Sendetzky has added support for all record types
    supported by PowerDNS to the LDAPBackend. Furthermore, the detection
    of OpenLDAP in autoconf has been improved. Finally, debian has
-   supplied some fixes to PowerLDAP. Implemented in `commit
-   1152 <http://wiki.powerdns.com/projects/trac/changeset/1152>`__ and
-   `commit
-   1153 <http://wiki.powerdns.com/projects/trac/changeset/1153>`__.
+   supplied some fixes to PowerLDAP. Implemented in `commit 45480ad8a7826087bc8d9ba238a60aec4d29c84c <https://github.com/PowerDNS/pdns/commit/45480ad8a7826087bc8d9ba238a60aec4d29c84c>`__ and
+   `commit 4d7e6a135e3bb5946953d3b0e6ec49b4e6d52ea2 <https://github.com/PowerDNS/pdns/commit/4d7e6a135e3bb5946953d3b0e6ec49b4e6d52ea2>`__.
 -  Implemented EDNS NSID option for retrieving the nameserver ID out of
    band. Defaults to hostname, can be specified using the **server-id**
-   setting. Code in `commit
-   1232 <http://wiki.powerdns.com/projects/trac/changeset/1232>`__.
+   setting. Code in `commit 7f7b8d5572dc70408feb2f15874ed11fd9e59988 <https://github.com/PowerDNS/pdns/commit/7f7b8d5572dc70408feb2f15874ed11fd9e59988>`__.
 -  Implemented experimental EDNS PING for enhanced forgery resilience.
-   Code in `commit
-   1232 <http://wiki.powerdns.com/projects/trac/changeset/1232>`__.
+   Code in `commit 7f7b8d5572dc70408feb2f15874ed11fd9e59988 <https://github.com/PowerDNS/pdns/commit/7f7b8d5572dc70408feb2f15874ed11fd9e59988>`__.
 
 Performance
 ^^^^^^^^^^^
 
 -  Improve packet generation performance, in some cases by 25%. Code in
-   `1258 <http://wiki.powerdns.com/projects/trac/changeset/1258>`__,
-   `1259 <http://wiki.powerdns.com/projects/trac/changeset/1259>`__.
--  Improved access list checking performance. `commit
-   1261 <http://wiki.powerdns.com/projects/trac/changeset/1261>`__.
+   `commit 16989b4c042daafcb7f04db2d22661dd67587652 <https://github.com/PowerDNS/pdns/commit/16989b4c042daafcb7f04db2d22661dd67587652>`__,
+   `commit efb265e3d802b63322542e9244430ed76de76a2c <https://github.com/PowerDNS/pdns/commit/efb265e3d802b63322542e9244430ed76de76a2c>`__.
+-  Improved access list checking performance. `commit 102eb646515217cd8870763b8596177137672e67 <https://github.com/PowerDNS/pdns/commit/102eb646515217cd8870763b8596177137672e67>`__.
 -  PowerDNS Authoritative caches were completely redone, and are now
    based on the same cache that is in the resolver. This work has been
    sponsored by Directi. In large benchmarks, PowerDNS performance has
@@ -3317,10 +2874,8 @@ Performance
    Aki Tuomi.
 -  Installations which run with very high cache hitrates can now benefit
    from multiple CPUs by setting **receiver-threads** to the number of
-   desired CPUs to utilize in cache operations. Implemented in `commit
-   1316 <http://wiki.powerdns.com/projects/trac/changeset/1316>`__.
--  BIND backend speedups in `commit
-   1108 <http://wiki.powerdns.com/projects/trac/changeset/1108>`__,
+   desired CPUs to utilize in cache operations. Implemented in `commit d9b2581395519715447fcbbda6ba072aa0ba8a64 <https://github.com/PowerDNS/pdns/commit/d9b2581395519715447fcbbda6ba072aa0ba8a64>`__.
+-  BIND backend speedups in `commit 702156dfc973632f62ee2b93422487bdb4d6d717 <https://github.com/PowerDNS/pdns/commit/702156dfc973632f62ee2b93422487bdb4d6d717>`__,
    measured at around a 20% improvement, possibly more on very large
    setups.
 
@@ -3329,91 +2884,74 @@ Bugs fixed
 
 -  Tyler Hall discovered the PowerDNS configuration file parser had
    problems with trailing tabs. This turned out to be a wider problem in
-   PowerDNS. Buggy code replaced by a library call in `commit
-   1237 <http://wiki.powerdns.com/projects/trac/changeset/1237>`__ and
-   `commit
-   1240 <http://wiki.powerdns.com/projects/trac/changeset/1240>`__.
+   PowerDNS. Buggy code replaced by a library call in `commit 5b2cb3be10f33854350b4c3649ae8de49d87d8cc <https://github.com/PowerDNS/pdns/commit/5b2cb3be10f33854350b4c3649ae8de49d87d8cc>`__ and
+   `commit df1d406a82f8e982e5c2f43927225a1ab32bdcb0 <https://github.com/PowerDNS/pdns/commit/df1d406a82f8e982e5c2f43927225a1ab32bdcb0>`__.
 -  David Apgar of Yahoo discovered that our 'guardian' method of
    restarting PowerDNS in case of problems was not fool proof, and
-   submitted a fix. A variation of this fix can be found in `commit
-   1323 <http://wiki.powerdns.com/projects/trac/changeset/1323>`__. Also
+   submitted a fix. A variation of this fix can be found in `commit aced0e6c10fd22a4a72ffc562c2c0b25dbbc2883 <https://github.com/PowerDNS/pdns/commit/aced0e6c10fd22a4a72ffc562c2c0b25dbbc2883>`__. Also
    reported by Directi.
 -  Connection reset by peer events in the TCP nameserver no longer lead
-   to the cycling of database connections. Code in `commit
-   1241 <http://wiki.powerdns.com/projects/trac/changeset/1241>`__.
+   to the cycling of database connections. Code in `commit 67d74e4952f18d53e1bd570457c6d44309fb1ffc <https://github.com/PowerDNS/pdns/commit/67d74e4952f18d53e1bd570457c6d44309fb1ffc>`__.
 -  FreeBSD compilation with Generic PostgreSQL backend was fixed.
-   Reported by Wouter de Jong of WideXS, fixed in `commit
-   1305 <http://wiki.powerdns.com/projects/trac/changeset/1305>`__,
+   Reported by Wouter de Jong of WideXS, fixed in `commit 009551af28b7f154c0d0dcdb9a90bebc96d5909a <https://github.com/PowerDNS/pdns/commit/009551af28b7f154c0d0dcdb9a90bebc96d5909a>`__,
    closes `ticket 95 <https://github.com/PowerDNS/pdns/issues/95>`__.
 -  Webserver no longer prints '1e2%'. Finally closes `ticket
    26 <https://github.com/PowerDNS/pdns/issues/26>`__. Much friendly
-   nagging for over 3 years by Jeff Sipek, code in `commit
-   1303 <http://wiki.powerdns.com/projects/trac/changeset/1303>`__.
+   nagging for over 3 years by Jeff Sipek, code in `commit dcc65f259b6b3ae92ada1cadbe203c5dca76c891 <https://github.com/PowerDNS/pdns/commit/dcc65f259b6b3ae92ada1cadbe203c5dca76c891>`__.
 -  PowerDNS used to ignore certain queries it could not answer. These
    queries are no longer ignored, but get a SERVFAIL response.
-   Implemented in `commit
-   1239 <http://wiki.powerdns.com/projects/trac/changeset/1239>`__.
+   Implemented in `commit 8b1ed874b009aeda37843f71e6b4ec25e75485fb <https://github.com/PowerDNS/pdns/commit/8b1ed874b009aeda37843f71e6b4ec25e75485fb>`__.
 -  Fix subtle CNAME and wildcard interactions reported by 'zzyzz',
-   implemented in `commit
-   1147 <http://wiki.powerdns.com/projects/trac/changeset/1147>`__.
+   implemented in `commit bcf21dff3cd44fed34ec18baaf54ff2560453642 <https://github.com/PowerDNS/pdns/commit/bcf21dff3cd44fed34ec18baaf54ff2560453642>`__.
 -  The generic backends did not honour the **default-ttl** setting.
    Spotted and implemented by Matti Hiljanen.
 -  Matti Hiljanen discovered that the OpenDBX backend did not fill out
    the SOA ttl value properly. Matti also improved the SQL statements
-   for better compatibility. Implemented in `commit
-   1181 <http://wiki.powerdns.com/projects/trac/changeset/1181>`__.
+   for better compatibility. Implemented in `commit 2b266a45851eaffa287cae5e3aade783f6201cc2 <https://github.com/PowerDNS/pdns/commit/2b266a45851eaffa287cae5e3aade783f6201cc2>`__.
 -  Treat invalid WWW requests better. Spotted by Maikel Verheijen,
-   implemented in `commit
-   1092 <http://wiki.powerdns.com/projects/trac/changeset/1092>`__.
--  Documentation errors and typos, spotted by Marco Davids (`commit
-   1097 <http://wiki.powerdns.com/projects/trac/changeset/1097>`__) and
-   Rejo Zengers (`commit
-   1119 <http://wiki.powerdns.com/projects/trac/changeset/1119>`__)
+   implemented in `commit 8ef989633a1c6bf2a67ae25a81fb75a06bf50034 <https://github.com/PowerDNS/pdns/commit/8ef989633a1c6bf2a67ae25a81fb75a06bf50034>`__.
+-  Documentation errors and typos, spotted by Marco Davids (`commit 0c677e41820b4343e2228a5f25f853d0ec4964ae <https://github.com/PowerDNS/pdns/commit/0c677e41820b4343e2228a5f25f853d0ec4964ae>`__) and
+   Rejo Zengers (`commit 3e88ab2a4360619c212fd0e4c404803c64deb742 <https://github.com/PowerDNS/pdns/commit/3e88ab2a4360619c212fd0e4c404803c64deb742>`__)
 -  Properly fill out the 'recursion available'-flag. Spotted by Augie
    Schwer in `ticket
    167 <https://github.com/PowerDNS/pdns/issues/167>`__.
 -  Several memory leaks on bad data in the database or other errors have
    been fixed. Addressed in
-   `1078 <http://wiki.powerdns.com/projects/trac/changeset/1078>`__ and
-   `1079 <http://wiki.powerdns.com/projects/trac/changeset/1079>`__.
+   `commit 30b4da879318fedf613eab17e2be21444c3fd470 <https://github.com/PowerDNS/pdns/commit/30b4da879318fedf613eab17e2be21444c3fd470>`__ and
+   `commit 8ea10bfc8384a25cc5d7d366b94b0f47ccceecdb <https://github.com/PowerDNS/pdns/commit/8ea10bfc8384a25cc5d7d366b94b0f47ccceecdb>`__.
 -  In contravention to the documentation, the domain type as specified
    in the database ('MASTER', 'SLAVE' or 'NATIVE') was interpreted case
    sensitively.
-   `1084 <http://wiki.powerdns.com/projects/trac/changeset/1084>`__.
+   `commit f7df9b0fc8fbbdd86a08c92f3638c9d69c4bcd35 <https://github.com/PowerDNS/pdns/commit/f7df9b0fc8fbbdd86a08c92f3638c9d69c4bcd35>`__.
 -  BIND backend could crash on processing information about slave zones
    to be checked. Spotted by Stefan Schmidt, fixed in
-   `1089 <http://wiki.powerdns.com/projects/trac/changeset/1089>`__.
+   `commit fbdca370588dff6ed47a79fd46caec60a190e747 <https://github.com/PowerDNS/pdns/commit/fbdca370588dff6ed47a79fd46caec60a190e747>`__.
 -  Jelte Jansen of Stichting NLNetLabs discovered PowerDNS in BIND mode
    couldn't operate as a root-server! Fixed in
-   `1057 <http://wiki.powerdns.com/projects/trac/changeset/1057>`__.
+   `commit 5e6880ce2b0e4b52350bdc5ccbdf837ed68ee2da <https://github.com/PowerDNS/pdns/commit/5e6880ce2b0e4b52350bdc5ccbdf837ed68ee2da>`__.
 -  'DPS' discovered there was a rare opportunity for PowerDNS to lock up
    waiting for new data. Addressed in
-   `1076 <http://wiki.powerdns.com/projects/trac/changeset/1076>`__.
--  Make singlethreaded mode more resilient against errors. `commit
-   1272 <http://wiki.powerdns.com/projects/trac/changeset/1272>`__.
+   `commit 91dd9c009e19a2d029cd01c0ca79263ac5942aef <https://github.com/PowerDNS/pdns/commit/91dd9c009e19a2d029cd01c0ca79263ac5942aef>`__.
+-  Make singlethreaded mode more resilient against errors. `commit 5fe21f79d1f0c7c59a53501295cd87aaa22e3f61 <https://github.com/PowerDNS/pdns/commit/5fe21f79d1f0c7c59a53501295cd87aaa22e3f61>`__.
 -  DNSSEC records were part of 2.9.21, but were not actually hooked up.
    Please note that while PowerDNS can serve most DNSSEC records, it
    does not do DNSSEC processing. Implemented in
-   `1046 <http://wiki.powerdns.com/projects/trac/changeset/1046>`__.
+   `commit 4d729b5837a1d3b8cf5724eabe986ef31c704bdd <https://github.com/PowerDNS/pdns/commit/4d729b5837a1d3b8cf5724eabe986ef31c704bdd>`__.
 -  Shawn Starr migrated all his domains to PowerDNS in one evening, from
    an installation that had been used since BIND4. In doing so, he found
    3 bugs in as many hours. An **IN** statement in the BIND
    ``named.conf`` with a zone with a trailing dot was misparsed, fixed
-   in `commit
-   1233 <http://wiki.powerdns.com/projects/trac/changeset/1233>`__.
+   in `commit 520b53575bab9c2ba70e1c8d3c5e9a910537b9da <https://github.com/PowerDNS/pdns/commit/520b53575bab9c2ba70e1c8d3c5e9a910537b9da>`__.
    Secondly, the zone file parser tripped over a line consisting of
    nothing but comments in the wrong place. Finally '$ORIGIN .' was
-   misparsed. Last two issues fixed in `commit
-   1234 <http://wiki.powerdns.com/projects/trac/changeset/1234>`__.
+   misparsed. Last two issues fixed in `commit 4d2c97aa1715368f700a4ec389230b1eff7b0195 <https://github.com/PowerDNS/pdns/commit/4d2c97aa1715368f700a4ec389230b1eff7b0195>`__.
 -  Our statistics counters did not wrap correctly after the 2.15 billion
    mark. Spotted by Stefan Schmidt, reported in `ticket
    179 <https://github.com/PowerDNS/pdns/issues/179>`__, fixed in
-   `commit
-   1284 <http://wiki.powerdns.com/projects/trac/changeset/1284>`__.
+   `commit dee7ba5ac1f6cf53c59da3e9652fe05ffc190097 <https://github.com/PowerDNS/pdns/commit/dee7ba5ac1f6cf53c59da3e9652fe05ffc190097>`__.
 -  Bindbackend could sometimes generate very strange error messages
    while processing a malformed zone file. Sometimes such error messages
-   could cause a crash (reported on HP-UX). Addressed by `commit
-   1279 <http://wiki.powerdns.com/projects/trac/changeset/1279>`__. This
+   could cause a crash (reported on HP-UX). Addressed by `commit 87c837a3774f1997d4a4b3263a570b37890ff142 <https://github.com/PowerDNS/pdns/commit/87c837a3774f1997d4a4b3263a570b37890ff142>`__. This
    could not be triggered remotely. Closes ticket `ticket
    203 <https://github.com/PowerDNS/pdns/issues/203>`__.
 -  Pipe backend did not clean up killed coprocesses. Found and fixed by
@@ -3428,92 +2966,76 @@ Improvements
 
 -  Zone parser improvements mean $TTL and $INCLUDES now work a lot
    better. Implemented in
-   `1056 <http://wiki.powerdns.com/projects/trac/changeset/1056>`__,
-   `1062 <http://wiki.powerdns.com/projects/trac/changeset/1062>`__.
+   `commit cfe397d575155a26273d13bc61fe1004dfa28e0a <https://github.com/PowerDNS/pdns/commit/cfe397d575155a26273d13bc61fe1004dfa28e0a>`__,
+   `commit 62c821cdd7b54d790b05d2cf2edbb99e0c87717e <https://github.com/PowerDNS/pdns/commit/62c821cdd7b54d790b05d2cf2edbb99e0c87717e>`__.
 -  No longer report temporary recvfrom errors, which used to spam the
-   log on many systems. Addressed in `commit
-   1320 <http://wiki.powerdns.com/projects/trac/changeset/1320>`__.
+   log on many systems. Addressed in `commit 21b7170d7fec509c893f7daf42b987bb6e302846 <https://github.com/PowerDNS/pdns/commit/21b7170d7fec509c893f7daf42b987bb6e302846>`__.
 -  Direct queries for 'fancy records' would lead to errors, such queries
    now fail early. Spotted by Jorn Ekkelenkamp, implemented in
-   `1051 <http://wiki.powerdns.com/projects/trac/changeset/1051>`__.
+   `commit c4ac58650e5c1dc7f7297ad2733ee2b0315ffa9b <https://github.com/PowerDNS/pdns/commit/c4ac58650e5c1dc7f7297ad2733ee2b0315ffa9b>`__.
 -  Fix typo in geobackend, closing `ticket
    157 <https://github.com/PowerDNS/pdns/issues/157>`__, implemented in
-   `1090 <http://wiki.powerdns.com/projects/trac/changeset/1090>`__.
+   `commit 905dc7c47a07af3337a3afca15985678b7db0833 <https://github.com/PowerDNS/pdns/commit/905dc7c47a07af3337a3afca15985678b7db0833>`__.
 -  Initial work on TSIG support - not done yet. Spurred on by Marco
    Davids.
 -  Embarrassingly, the 'master' configuration setting was not documented
    in the list of all settings!
 -  Norbert has updated OpenDBX so that SQLite reads and writes no longer
    deadlock, plus compilation fixes on Solaris, plus the addition of
-   autoserials to backends that support triggers. Implemented in `commit
-   1154 <http://wiki.powerdns.com/projects/trac/changeset/1154>`__.
+   autoserials to backends that support triggers. Implemented in `commit e830c24957c775ec577388005c604abfa66aa5db <https://github.com/PowerDNS/pdns/commit/e830c24957c775ec577388005c604abfa66aa5db>`__.
 -  Random generator is now based on AES, improving the security of
    certain proxy operations. This is the same random generator that is
-   in the recursor. Implemented in `commit
-   1256 <http://wiki.powerdns.com/projects/trac/changeset/1256>`__.
+   in the recursor. Implemented in `commit a28a204ace2d98152e055a05615b58967576bc9c <https://github.com/PowerDNS/pdns/commit/a28a204ace2d98152e055a05615b58967576bc9c>`__.
 -  Documentation for 'supermaster' mode was improved due to popular
    demand.
 -  When binding to a UDP port failed, supply a more precise error
-   message (`commit
-   1245 <http://wiki.powerdns.com/projects/trac/changeset/1245>`__)
+   message (`commit 5bfabeac71fba78f17409790039f6bbe84ec4a12 <https://github.com/PowerDNS/pdns/commit/5bfabeac71fba78f17409790039f6bbe84ec4a12>`__)
 -  The zone parser error messages were vastly improved, partially
-   inspired by Shawn's cowboy migration. Code in `commit
-   1235 <http://wiki.powerdns.com/projects/trac/changeset/1235>`__.
+   inspired by Shawn's cowboy migration. Code in `commit d27ea3946ba22e0f6606010abf2357bfa6a277c7 <https://github.com/PowerDNS/pdns/commit/d27ea3946ba22e0f6606010abf2357bfa6a277c7>`__.
 -  Labels are compressed more efficiently (case-insensitively), leading
-   to smaller packets. Implemented in `commit
-   1156 <http://wiki.powerdns.com/projects/trac/changeset/1156>`__.
+   to smaller packets. Implemented in `commit ac1db50a7cf4fdb539e6792c5098c0590773a10b <https://github.com/PowerDNS/pdns/commit/ac1db50a7cf4fdb539e6792c5098c0590773a10b>`__.
 -  Fix handling of TCP timeouts to not cause a reload of the backends.
-   Implemented in `commit
-   1092 <http://wiki.powerdns.com/projects/trac/changeset/1092>`__.
+   Implemented in `commit 8ef989633a1c6bf2a67ae25a81fb75a06bf50034 <https://github.com/PowerDNS/pdns/commit/8ef989633a1c6bf2a67ae25a81fb75a06bf50034>`__.
 -  TCP Receiver no longer spams the log with common network errors.
-   Implemented in `commit
-   1306 <http://wiki.powerdns.com/projects/trac/changeset/1306>`__.
+   Implemented in `commit 0afa904954689696b2e3bcab401831f7c12114d9 <https://github.com/PowerDNS/pdns/commit/0afa904954689696b2e3bcab401831f7c12114d9>`__.
 -  Move from select() to poll()-based multiplexing, allowing PowerDNS to
    listen on more than 1024 sockets simultaneously. One big PowerDNS
    user needs this. Implemented in
-   `1072 <http://wiki.powerdns.com/projects/trac/changeset/1072>`__.
+   `commit fab091b9e1a38822ba12e428b7f6eb62c9a20f59 <https://github.com/PowerDNS/pdns/commit/fab091b9e1a38822ba12e428b7f6eb62c9a20f59>`__.
 -  Zone2sql now reads source files in performance enhancing inode order.
    Additionally, zone2sql no longer dies on a missing zone file if
    **^^on-error-resume-next** was specified. Finally, statistics of
    zone2sql conversion have been improved. Implemented in
-   `1055 <http://wiki.powerdns.com/projects/trac/changeset/1055>`__.
+   `commit a19dacb93bdd215e10b42461dbbf9bbfb680b8b8 <https://github.com/PowerDNS/pdns/commit/a19dacb93bdd215e10b42461dbbf9bbfb680b8b8>`__.
 -  Address issues found by more recent g++ versions. Spotted and/or
-   fixed by Jorn Ekkelenkamp (`commit
-   1051 <http://wiki.powerdns.com/projects/trac/changeset/1051>`__),
-   Marcus Rueckert (`commit
-   1094 <http://wiki.powerdns.com/projects/trac/changeset/1094>`__),
-   Norbert Sendetzky (`commit
-   1107 <http://wiki.powerdns.com/projects/trac/changeset/1107>`__),
-   Serge Belyshev (`commit
-   1171 <http://wiki.powerdns.com/projects/trac/changeset/1171>`__).
+   fixed by Jorn Ekkelenkamp (`commit c4ac58650e5c1dc7f7297ad2733ee2b0315ffa9b <https://github.com/PowerDNS/pdns/commit/c4ac58650e5c1dc7f7297ad2733ee2b0315ffa9b>`__),
+   Marcus Rueckert (`commit 8b3cfcd328ddedee9e70c5bbd642f0d7908f6f80 <https://github.com/PowerDNS/pdns/commit/8b3cfcd328ddedee9e70c5bbd642f0d7908f6f80>`__),
+   Norbert Sendetzky (`commit b02286fde0136b6994f9f048483474cc6fea539a <https://github.com/PowerDNS/pdns/commit/b02286fde0136b6994f9f048483474cc6fea539a>`__),
+   Serge Belyshev (`commit 547628006a3a8e5d6870f23d673edc12191666ec <https://github.com/PowerDNS/pdns/commit/547628006a3a8e5d6870f23d673edc12191666ec>`__).
 -  The Intel C Compiler implements certain things differently, causing
    the master/slave communicator to malfunction. Spotted by Marcus
    Rueckert, implemented in
-   `1052 <http://wiki.powerdns.com/projects/trac/changeset/1052>`__,
+   `commit f1a8bee5321a6945edae8ddc94fbe95b2df772d1 <https://github.com/PowerDNS/pdns/commit/f1a8bee5321a6945edae8ddc94fbe95b2df772d1>`__,
    plus fallout in
-   `1105 <http://wiki.powerdns.com/projects/trac/changeset/1105>`__.
+   `commit 88c0425a4fbf5ce7d297ff8ccd75c2e0f8866116 <https://github.com/PowerDNS/pdns/commit/88c0425a4fbf5ce7d297ff8ccd75c2e0f8866116>`__.
 -  PowerDNS can now be compiled with Boost 1.37.0.
 -  Andre Lorbach of Adiscon discovered the Microsoft Windows 2003
    nameserver adds out of zone data to zone transfers, which we need to
    ignore, instead of rejecting the entire zone. Implemented in
-   `1048 <http://wiki.powerdns.com/projects/trac/changeset/1048>`__.
+   `commit a911c6ea292c7f1ae855a778c0c052e16ba7c202 <https://github.com/PowerDNS/pdns/commit/a911c6ea292c7f1ae855a778c0c052e16ba7c202>`__.
 -  PowerDNS now skips remote master servers which consistently generate
    timeout messages, improving the master checking cycle time
    tremendously. Developed in cooperation with Tyler Hall. Implemented
-   in `commit
-   1278 <http://wiki.powerdns.com/projects/trac/changeset/1278>`__.
+   in `commit 2f58f0ce01c5b7e682f95f90b5f8c1eaccb2c9fe <https://github.com/PowerDNS/pdns/commit/2f58f0ce01c5b7e682f95f90b5f8c1eaccb2c9fe>`__.
 -  When binding to a UDP port failed, supply a more precise error
-   message (`commit
-   1245 <http://wiki.powerdns.com/projects/trac/changeset/1245>`__)
+   message (`commit 5bfabeac71fba78f17409790039f6bbe84ec4a12 <https://github.com/PowerDNS/pdns/commit/5bfabeac71fba78f17409790039f6bbe84ec4a12>`__)
 -  **dnsreplay** now waits for the final answers to arrive, making it
    possible to process even small pcap files and get meaningful
-   statistics. `commit
-   1268 <http://wiki.powerdns.com/projects/trac/changeset/1268>`__.
+   statistics. `commit 27b014bcc91450b44c4b0ea98b5d6b3e6b4c8448 <https://github.com/PowerDNS/pdns/commit/27b014bcc91450b44c4b0ea98b5d6b3e6b4c8448>`__.
 -  **dnsreplay** has a more sane default timeout now, which can be
    configured too. Suggested by Augie Schwer in `ticket
    163 <https://github.com/PowerDNS/pdns/issues/163>`__, implemented in
-   `commit
-   1287 <http://wiki.powerdns.com/projects/trac/changeset/1287>`__.
+   `commit 2a8fb0960d4c47ec4552be4a1f1c7f9f21202397 <https://github.com/PowerDNS/pdns/commit/2a8fb0960d4c47ec4552be4a1f1c7f9f21202397>`__.
 
 Authoritative Server version 2.9.21.2
 -------------------------------------
@@ -3531,7 +3053,7 @@ configurations do not run in single threaded mode, an upgrade is
 recommended.
 
 More detail can be found in `PowerDNS Security Advisory
-2008-02 <security/powerdns-advisory-2008-03.md>`__.
+2008-02 <../security-advisories/powerdns-advisory-2008-03.rst>`__.
 
 Authoritative Server version 2.9.21.1
 -------------------------------------
@@ -3545,9 +3067,9 @@ drop queries it considers malformed. We are grateful that Brian notified
 us quickly about this problem.
 
 This issue has been assigned CVE-2008-3337. The single patch is in
-`commit 1239 <http://wiki.powerdns.com/projects/trac/changeset/1239>`__.
+`commit 8b1ed874b009aeda37843f71e6b4ec25e75485fb <https://github.com/PowerDNS/pdns/commit/8b1ed874b009aeda37843f71e6b4ec25e75485fb>`__.
 More detail can be found in `PowerDNS Security Advisory
-2008-02 <security/powerdns-advisory-2008-02.md>`__.
+2008-02 <../security-advisories/powerdns-advisory-2008-02.rst>`__.
 
 The implication is that while the PowerDNS Authoritative server itself
 does not face a security risk because of dropping these malformed
@@ -3583,19 +3105,19 @@ release of the PowerDNS Authoritative Server will be called 3.0.
 
 This release would not have been possible without large amounts of help
 and support from the PowerDNS Community. We specifically want to thank
-Massimo Bandinelli of Italy's `Register.it <http://register.it>`__,
-`Dave Aaldering of Aaldering ICT <http://aaldering-ict.nl>`__, `True
-BV <http://true.nl>`__, `XS4ALL <http://www.xs4all.nl>`__, Daniel Bilik
-of `Neosystem <http://www.neosystem.cz>`__,
-`EasyDNS <http://www.easydns.com>`__, `Heinrich
-Ruthensteiner <http://www.siemens.com>`__ of Siemens, `Augie
-Schwer <http://schwer.us>`__, `Mark
-Bergsma <http://www.wikipedia.org>`__, `Marco
-Davids <http://www.forfun.net>`__, `Marcus Rueckert of
-OpenSUSE <http://www.opensuse.org>`__, Andre Muraro of
-`Locaweb <http://www.locaweb.com.br>`__, Antony Lesuisse, `Norbert
-Sendetzky <http://www.linuxnetworks.de>`__, `Marco
-Chiavacci <http://www.aruba.it>`__, Christoph Haas, Ralf van der Enden
+Massimo Bandinelli of Italy's `Register.it <https://register.it>`__,
+`Dave Aaldering of Aaldering ICT <https://web.archive.org/web/20161111111643/http://www.aalderingict.nl/>`__, `True
+BV <https://true.nl>`__, `XS4ALL <https://www.xs4all.nl>`__, Daniel Bilik
+of `Neosystem <https://www.neosystem.cz>`__,
+`EasyDNS <https://www.easydns.com>`__, `Heinrich
+Ruthensteiner <https://www.siemens.com>`__ of Siemens, `Augie
+Schwer <https://schwer.us>`__, `Mark
+Bergsma <https://www.wikipedia.org>`__, `Marco
+Davids <https://web.archive.org/web/20161021130129/https://forfun.net/>`__, `Marcus Rueckert of
+OpenSUSE <https://www.opensuse.org>`__, Andre Muraro of
+`Locaweb <https://www.locaweb.com.br>`__, Antony Lesuisse, `Norbert
+Sendetzky <https://www.linuxnetworks.de>`__, `Marco
+Chiavacci <https://www.aruba.it>`__, Christoph Haas, Ralf van der Enden
 and Ruben Kerkhof.
 
 Security issues
@@ -3619,222 +3141,172 @@ Bugs
 
 -  Multi-part TXT records weren't supported. This has been fixed, and
    regression tests have been added. Code in commits
-   `1016 <http://wiki.powerdns.com/projects/trac/changeset/1016>`__,
-   `996 <http://wiki.powerdns.com/projects/trac/changeset/996>`__,
-   `994 <http://wiki.powerdns.com/projects/trac/changeset/994>`__.
+   `commit 6a5038a8526c75282e2cb1753fd457667d3d54fe <https://github.com/PowerDNS/pdns/commit/6a5038a8526c75282e2cb1753fd457667d3d54fe>`__,
+   `commit ef6a78d5d2259221b7561f869921a45d6ebe8e05 <https://github.com/PowerDNS/pdns/commit/ef6a78d5d2259221b7561f869921a45d6ebe8e05>`__,
+   `commit a6c07fb9eed8d861d7052d1621e2c8e05cca2e38 <https://github.com/PowerDNS/pdns/commit/a6c07fb9eed8d861d7052d1621e2c8e05cca2e38>`__.
 -  Email addresses with embedded dots in SOA records were not parsed
    correctly, nor were other embedded dots. Noted by 'Bastiaan', fixed
-   in `commit
-   1026 <http://wiki.powerdns.com/projects/trac/changeset/1026>`__.
+   in `commit 38e655b657c4601b659c8ef0c96111230e663c14 <https://github.com/PowerDNS/pdns/commit/38e655b657c4601b659c8ef0c96111230e663c14>`__.
 -  BIND backend treated the 'm' TTL modifier as 'months' and not
-   'minutes'. Closes Debian bug 406462. Addressed in `commit
-   1026 <http://wiki.powerdns.com/projects/trac/changeset/1026>`__.
+   'minutes'. Closes Debian bug 406462. Addressed in `commit 38e655b657c4601b659c8ef0c96111230e663c14 <https://github.com/PowerDNS/pdns/commit/38e655b657c4601b659c8ef0c96111230e663c14>`__.
 -  Our snapshots were built against a static version of PostgreSQL that
    was incompatible with many Linux distributions, leading to instant
    crashes on startup. Fixed in
-   `1022 <http://wiki.powerdns.com/projects/trac/changeset/1022>`__ and
-   `1023 <http://wiki.powerdns.com/projects/trac/changeset/1023>`__.
+   `commit b45bc7bf7ceb399dfd2bcbbd7b568d8abef6154b <https://github.com/PowerDNS/pdns/commit/b45bc7bf7ceb399dfd2bcbbd7b568d8abef6154b>`__ and
+   `commit 6784bbda73f1106888be8081aa0ce2c442f9871a <https://github.com/PowerDNS/pdns/commit/6784bbda73f1106888be8081aa0ce2c442f9871a>`__.
 -  CNAME referrals to child zones gave improper responses. Noted by
    Augie Schwer in `ticket
    123 <https://github.com/PowerDNS/pdns/issues/123>`__, fixed in
-   `commit
-   992 <http://wiki.powerdns.com/projects/trac/changeset/992>`__.
+   `commit 9493aba8c273327ce8c5d9d53eaec7efc028e3e4 <https://github.com/PowerDNS/pdns/commit/9493aba8c273327ce8c5d9d53eaec7efc028e3e4>`__.
 -  When passing a port number with the **recursor** setting, this would
    sometimes generate errors during additional processing. Switched off
    overly helpful additional processing for recursive queries to remove
-   this problem. Implemented in `commit
-   1031 <http://wiki.powerdns.com/projects/trac/changeset/1031>`__,
+   this problem. Implemented in `commit 0595c0db6ac3e3a31e351842d55b09318ab7fb0f <https://github.com/PowerDNS/pdns/commit/0595c0db6ac3e3a31e351842d55b09318ab7fb0f>`__,
    spotted by Ralf van der Enden.
 -  NS to a nameserver with the name of the zone itself generated
-   problems. Spotted by Augie Schwer, fixed in `commit
-   947 <http://wiki.powerdns.com/projects/trac/changeset/947>`__.
+   problems. Spotted by Augie Schwer, fixed in `commit 77235722fb74bae51f52b8911732206526b7f607 <https://github.com/PowerDNS/pdns/commit/77235722fb74bae51f52b8911732206526b7f607>`__.
 -  Multi-line records in the BIND backend were not always parsed
-   correctly. Fixed in `commit
-   1014 <http://wiki.powerdns.com/projects/trac/changeset/1014>`__.
+   correctly. Fixed in `commit 9f0076d7bc2f783799995851ecadfe6f3d7ad1fd <https://github.com/PowerDNS/pdns/commit/9f0076d7bc2f783799995851ecadfe6f3d7ad1fd>`__.
 -  The LOC-record had problems operating outside of the eastern
-   hemisphere of the northern part of the world! Fixed in `commit
-   1011 <http://wiki.powerdns.com/projects/trac/changeset/1011>`__.
+   hemisphere of the northern part of the world! Fixed in `commit c6a60874da55b1a591878d0b1c6a5635fb1ba730 <https://github.com/PowerDNS/pdns/commit/c6a60874da55b1a591878d0b1c6a5635fb1ba730>`__.
 -  Backends were compiled without multithreading preprocessor flags. As
    far as we can determine, this would only cause problems for the BIND
    backend, but we cannot rule out this caused instability in other
-   backends. Fixed in `commit
-   1001 <http://wiki.powerdns.com/projects/trac/changeset/1001>`__.
+   backends. Fixed in `commit 3479a2cdd56539b9c0c96e0e55ea764f720541a3 <https://github.com/PowerDNS/pdns/commit/3479a2cdd56539b9c0c96e0e55ea764f720541a3>`__.
 -  The BIND backend was highly unstable under reloads, and leaked memory
    and file descriptors. Thanks to Mark Bergsma and Massimo Bandinelli
    for respectively pointing this out to us and testing large amounts of
    patches to fix the problem. The fixes have resulted in better
    performance, less code, and a remarkable simplification of this
    backend. Commits
-   `1039 <http://wiki.powerdns.com/projects/trac/changeset/1039>`__,
-   `1034 <http://wiki.powerdns.com/projects/trac/changeset/1034>`__,
-   `1035 <http://wiki.powerdns.com/projects/trac/changeset/1035>`__,
-   `1006 <http://wiki.powerdns.com/projects/trac/changeset/1006>`__,
-   `999 <http://wiki.powerdns.com/projects/trac/changeset/999>`__,
-   `905 <http://wiki.powerdns.com/projects/trac/changeset/905>`__ and
+   `commit c36285d002cf10bda2c59c8ec28b8aefea8f86d3 <https://github.com/PowerDNS/pdns/commit/c36285d002cf10bda2c59c8ec28b8aefea8f86d3>`__,
+   `commit 94dd1374fe912a54765c03c09f43bd9bb89786c3 <https://github.com/PowerDNS/pdns/commit/94dd1374fe912a54765c03c09f43bd9bb89786c3>`__,
+   `commit 85de45bb40f7836dd22e67642ee40aac00d73214 <https://github.com/PowerDNS/pdns/commit/85de45bb40f7836dd22e67642ee40aac00d73214>`__,
+   `commit 106351248e08b2741c6700f0e65b6082c31ff618 <https://github.com/PowerDNS/pdns/commit/106351248e08b2741c6700f0e65b6082c31ff618>`__,
+   `commit 2a95d1dfabea56a51dc9e9ef142499f2291794d4 <https://github.com/PowerDNS/pdns/commit/2a95d1dfabea56a51dc9e9ef142499f2291794d4>`__,
+   `commit 8558f6cc35553b2f27be234113de54fbf69ec33d <https://github.com/PowerDNS/pdns/commit/8558f6cc35553b2f27be234113de54fbf69ec33d>`__ and
    previous.
 -  BIND backend gave convincing NXDOMAINs on unloaded zones in some
-   cases. Spotted and fixed by Daniel Bilik in `commit
-   984 <http://wiki.powerdns.com/projects/trac/changeset/984>`__.
+   cases. Spotted and fixed by Daniel Bilik in `commit ab9e6a6c011ab081975662a2462aa52786cf8195 <https://github.com/PowerDNS/pdns/commit/ab9e6a6c011ab081975662a2462aa52786cf8195>`__.
 -  SOA records in zone transfers sometimes contained the wrong SOA TTL.
-   Spotted by Christian Kuehn, fixed in `commit
-   902 <http://wiki.powerdns.com/projects/trac/changeset/902>`__.
+   Spotted by Christian Kuehn, fixed in `commit 232f8a721a4db04237281ac8a878066ddbd5c449 <https://github.com/PowerDNS/pdns/commit/232f8a721a4db04237281ac8a878066ddbd5c449>`__.
 -  PowerDNS could get confused by very high SOA serial numbers. Spotted
-   and fixed by Dan Bilik, fixed in `commit
-   626 <http://wiki.powerdns.com/projects/trac/changeset/626>`__.
+   and fixed by Dan Bilik, fixed in `commit 3aa1a882c628a7aa813a458e1c062db383434f66 <https://github.com/PowerDNS/pdns/commit/3aa1a882c628a7aa813a458e1c062db383434f66>`__.
 -  Some versions of FreeBSD perform very strict checks on socket address
    sizes passed to 'connect', which could lead to problems retrieving
-   zones over AXFR. Fixed in `commit
-   891 <http://wiki.powerdns.com/projects/trac/changeset/891>`__.
+   zones over AXFR. Fixed in `commit 253c0df4b73620864bd1ae1a5857b0d32d567eeb <https://github.com/PowerDNS/pdns/commit/253c0df4b73620864bd1ae1a5857b0d32d567eeb>`__.
 -  Some versions of FreeBSD perform very strict checks on IPv6 socket
    addresses, leading to problems. Discovered by Sten Spans, fixed in
-   `commit 885 <http://wiki.powerdns.com/projects/trac/changeset/885>`__
-   and `commit
-   886 <http://wiki.powerdns.com/projects/trac/changeset/886>`__.
+   `commit 71aac83adfbd166006799869beb7f368a88bd4c7 <https://github.com/PowerDNS/pdns/commit/71aac83adfbd166006799869beb7f368a88bd4c7>`__
+   and `commit 7aef68ffdb1e0924a69c47bd59bbdfb27259aed6 <https://github.com/PowerDNS/pdns/commit/7aef68ffdb1e0924a69c47bd59bbdfb27259aed6>`__.
 -  IXFR requests were not logged properly. Noted by Ralf van der Enden,
-   fixed in `commit
-   990 <http://wiki.powerdns.com/projects/trac/changeset/990>`__.
+   fixed in `commit 10a67196f1bd59609d7c1793e98f67e16f0d01ea <https://github.com/PowerDNS/pdns/commit/10a67196f1bd59609d7c1793e98f67e16f0d01ea>`__.
 -  Some NAPTR records needed an additional space character to encode
-   correctly. Spotted by Heinrich Ruthensteiner, fixed in `commit
-   1029 <http://wiki.powerdns.com/projects/trac/changeset/1029>`__.
+   correctly. Spotted by Heinrich Ruthensteiner, fixed in `commit c1d02c0d59b87dd7ffe5c7d5807dd266cf5772c0 <https://github.com/PowerDNS/pdns/commit/c1d02c0d59b87dd7ffe5c7d5807dd266cf5772c0>`__.
 -  Many bugs in the TCP nameserver, leading to a PowerDNS process that
    did not respond to TCP queries over time. Many fixes provided by Dan
    Bilik, other problems were fixed by rewriting our TCP handling code.
    Commits
-   `982 <http://wiki.powerdns.com/projects/trac/changeset/982>`__ and
-   `980 <http://wiki.powerdns.com/projects/trac/changeset/980>`__,
-   `950 <http://wiki.powerdns.com/projects/trac/changeset/950>`__,
-   `924 <http://wiki.powerdns.com/projects/trac/changeset/924>`__,
-   `889 <http://wiki.powerdns.com/projects/trac/changeset/889>`__,
-   `874 <http://wiki.powerdns.com/projects/trac/changeset/874>`__,
-   `869 <http://wiki.powerdns.com/projects/trac/changeset/869>`__,
-   `685 <http://wiki.powerdns.com/projects/trac/changeset/685>`__,
-   `684 <http://wiki.powerdns.com/projects/trac/changeset/684>`__.
+   `commit 6a3e5d1a360525b1182adcfd4f0067e43ef34b27 <https://github.com/PowerDNS/pdns/commit/6a3e5d1a360525b1182adcfd4f0067e43ef34b27>`__ and
+   `commit ff76e8b4bdb49bc5c0d64bc8021a2d1812b8a1a8 <https://github.com/PowerDNS/pdns/commit/ff76e8b4bdb49bc5c0d64bc8021a2d1812b8a1a8>`__,
+   `commit 649a88dfce1c6960597a84e9846881d5ba5275f7 <https://github.com/PowerDNS/pdns/commit/649a88dfce1c6960597a84e9846881d5ba5275f7>`__,
+   `commit 2c61cc65fd31af4cf958201ed786629b4cb5372d <https://github.com/PowerDNS/pdns/commit/2c61cc65fd31af4cf958201ed786629b4cb5372d>`__,
+   `commit 027ffd26add5d49bf732565f86a6ff5780299183 <https://github.com/PowerDNS/pdns/commit/027ffd26add5d49bf732565f86a6ff5780299183>`__,
+   `commit c38f650919eef37cc13128f7c0d182209b145da7 <https://github.com/PowerDNS/pdns/commit/c38f650919eef37cc13128f7c0d182209b145da7>`__,
+   `commit 12a965c5b7c9ad30fa7d634c6b3a17cd2151ba1b <https://github.com/PowerDNS/pdns/commit/12a965c5b7c9ad30fa7d634c6b3a17cd2151ba1b>`__,
+   `commit 3e579e91b59c426dca62d11babc112488696e1cf <https://github.com/PowerDNS/pdns/commit/3e579e91b59c426dca62d11babc112488696e1cf>`__,
+   `commit 6b70b8c7a130340fa697cd704f486901c9c9293d <https://github.com/PowerDNS/pdns/commit/6b70b8c7a130340fa697cd704f486901c9c9293d>`__.
 -  Fix crashes on the ARM processor due to alignment errors. Thanks to
    Sjoerd Simons. Closes Debian bug 397031.
 -  Missing data in generic SQL backends would sometimes lead to faked
-   SOA serial data. Spotted by Leander Lakkas from True. Fix in `commit
-   866 <http://wiki.powerdns.com/projects/trac/changeset/866>`__.
+   SOA serial data. Spotted by Leander Lakkas from True. Fix in `commit 8e80db1de53a1dff6ec8f44a48dee128345e70ea <https://github.com/PowerDNS/pdns/commit/8e80db1de53a1dff6ec8f44a48dee128345e70ea>`__.
 -  When receiving two quick notifications in succession, the packet
    cache would sometimes "process" the second one, leading PowerDNS to
-   ignore it. Spotted by Dan Bilik, fixed in `commit
-   686 <http://wiki.powerdns.com/projects/trac/changeset/686>`__.
+   ignore it. Spotted by Dan Bilik, fixed in `commit 147f6aa18ad650a8d689ca4699cb50c1569bad62 <https://github.com/PowerDNS/pdns/commit/147f6aa18ad650a8d689ca4699cb50c1569bad62>`__.
 -  Geobackend (by Mark Bergsma) did not properly override the getSOA
    method, breaking non-overlay operation of this fine backend. The
    geobackend now also skips '.hidden' configuration files, and now
    properly disregards empty configuration files. Additionally, the
-   overlapping abilities were improved. Details available in `commit
-   876 <http://wiki.powerdns.com/projects/trac/changeset/876>`__, by
+   overlapping abilities were improved. Details available in `commit cf74b4e174b73f6cb847603a003f6747aaf582d6 <https://github.com/PowerDNS/pdns/commit/cf74b4e174b73f6cb847603a003f6747aaf582d6>`__, by
    Mark.
 
 Features
 ^^^^^^^^
 
--  Thanks to `EasyDNS <http://www.easydns.com>`__, PowerDNS now supports
+-  Thanks to `EasyDNS <https://www.easydns.com>`__, PowerDNS now supports
    multiple masters per domain. For configuration details, see `Slave
-   operation <authoritative/modes-of-operation.md#slave-operation>`__.
-   Implemented in `commit
-   1018 <http://wiki.powerdns.com/projects/trac/changeset/1018>`__,
-   `commit
-   1017 <http://wiki.powerdns.com/projects/trac/changeset/1017>`__.
--  Thanks to `EasyDNS <http://www.easydns.com>`__, PowerDNS now supports
-   the KEY record type, as well the SPF record. In `commit
-   976 <http://wiki.powerdns.com/projects/trac/changeset/976>`__.
+   operation <../modes-of-operation.rst#slave-operation>`__.
+   Implemented in `commit e5b11b2f2754b3c0c5193f0a692350342381addb <https://github.com/PowerDNS/pdns/commit/e5b11b2f2754b3c0c5193f0a692350342381addb>`__,
+   `commit 4232a932d733711c74a7e30b28fca755f9722d9f <https://github.com/PowerDNS/pdns/commit/4232a932d733711c74a7e30b28fca755f9722d9f>`__.
+-  Thanks to `EasyDNS <https://www.easydns.com>`__, PowerDNS now supports
+   the KEY record type, as well the SPF record. In `commit 4b5762f1f096b0fdb741ad6d630ccd831910ad35 <https://github.com/PowerDNS/pdns/commit/4b5762f1f096b0fdb741ad6d630ccd831910ad35>`__.
 -  Added support for CERT, SSHFP, DNSKEY, DS, NSEC, RRSIG record types,
    as part of the move to the new DNS parsing/generating code.
 -  Support for the AFSDB record type, as requested by 'Bastian'.
-   Implemented in `commit
-   978 <http://wiki.powerdns.com/projects/trac/changeset/978>`__,
+   Implemented in `commit 37f47031e967bf9672fae156605e8d7f045fa59a <https://github.com/PowerDNS/pdns/commit/37f47031e967bf9672fae156605e8d7f045fa59a>`__,
    closing `ticket 129 <https://github.com/PowerDNS/pdns/issues/129>`__.
--  Support for the MR record type. Implemented in `commit
-   941 <http://wiki.powerdns.com/projects/trac/changeset/941>`__ and
-   `commit
-   1019 <http://wiki.powerdns.com/projects/trac/changeset/1019>`__.
--  Gsqlite3 backend was added by Antony Lesuisse in `commit
-   942 <http://wiki.powerdns.com/projects/trac/changeset/942>`__;
+-  Support for the MR record type. Implemented in `commit 286b1804b0b9aeb929b64b8bc0824b03bcfd63e5 <https://github.com/PowerDNS/pdns/commit/286b1804b0b9aeb929b64b8bc0824b03bcfd63e5>`__ and
+   `commit 4e0805a61129cf104f55628afd05e64f034f7cfc <https://github.com/PowerDNS/pdns/commit/4e0805a61129cf104f55628afd05e64f034f7cfc>`__.
+-  Gsqlite3 backend was added by Antony Lesuisse in `commit 0b67a76da6789512c7416578ed0bc6a0337c795a <https://github.com/PowerDNS/pdns/commit/0b67a76da6789512c7416578ed0bc6a0337c795a>`__;
 -  Added the ability to send out light-weight root-referrals that save
    bandwidth yet still placate mediocre resolver implementations.
-   Implemented in `commit
-   912 <http://wiki.powerdns.com/projects/trac/changeset/912>`__, enable
+   Implemented in `commit bc28bef8dd410aca2469d6bcb7ea0b405e3b3f31 <https://github.com/PowerDNS/pdns/commit/bc28bef8dd410aca2469d6bcb7ea0b405e3b3f31>`__, enable
    with 'root-referral=lean'.
 
 Improvements
 ^^^^^^^^^^^^
 
 -  Miscellaneous OpenDBX and LDAP backend improvements by Norbert
-   Sendetzky. Applied in `commit
-   977 <http://wiki.powerdns.com/projects/trac/changeset/977>`__ and
-   `commit
-   1040 <http://wiki.powerdns.com/projects/trac/changeset/1040>`__.
+   Sendetzky. Applied in `commit 8e20e6035f1062dd1d3898c8bceea9038f9d11d9 <https://github.com/PowerDNS/pdns/commit/8e20e6035f1062dd1d3898c8bceea9038f9d11d9>`__ and
+   `commit 6cd9edc5c756be8d067753e6d97cf6caee30f7b9 <https://github.com/PowerDNS/pdns/commit/6cd9edc5c756be8d067753e6d97cf6caee30f7b9>`__.
 -  SGML source of the documentation was cleaned up by Ruben Kerkhof in
-   `commit
-   936 <http://wiki.powerdns.com/projects/trac/changeset/936>`__.
--  Speedups in core DNS label processing code. Implemented in `commit
-   928 <http://wiki.powerdns.com/projects/trac/changeset/928>`__,
-   `commit
-   654 <http://wiki.powerdns.com/projects/trac/changeset/654>`__,
-   `commit
-   1020 <http://wiki.powerdns.com/projects/trac/changeset/1020>`__.
+   `commit f97bcb7c446d03f223ff4814203e43e3970aadf1 <https://github.com/PowerDNS/pdns/commit/f97bcb7c446d03f223ff4814203e43e3970aadf1>`__.
+-  Speedups in core DNS label processing code. Implemented in `commit f6a9e00a988dbb863b327f6f961ea7827155519e <https://github.com/PowerDNS/pdns/commit/f6a9e00a988dbb863b327f6f961ea7827155519e>`__,
+   `commit c536ca8d06637e28b64dc793c77bfc834166a271 <https://github.com/PowerDNS/pdns/commit/c536ca8d06637e28b64dc793c77bfc834166a271>`__,
+   `commit 2ffeead0e23507d35b301fca7a8e90ed5919438f <https://github.com/PowerDNS/pdns/commit/2ffeead0e23507d35b301fca7a8e90ed5919438f>`__.
 -  When communicating with master servers and encountering errors, more
    useful details are logged. Reported by Stefan Arentz in `ticket
    137 <https://github.com/PowerDNS/pdns/issues/137>`__, closed by
-   `commit
-   1015 <http://wiki.powerdns.com/projects/trac/changeset/1015>`__.
+   `commit 849fde0b54008fe6ee068cacc7435b0627ff03b0 <https://github.com/PowerDNS/pdns/commit/849fde0b54008fe6ee068cacc7435b0627ff03b0>`__.
 -  Database errors are now logged with more details. Addressed in
-   `commit
-   1004 <http://wiki.powerdns.com/projects/trac/changeset/1004>`__.
+   `commit e95f387c23d14e37ac0898245ef873be0dfb1814 <https://github.com/PowerDNS/pdns/commit/e95f387c23d14e37ac0898245ef873be0dfb1814>`__.
 -  pdns\_control problems are now logged more verbosely. Change in
-   `commit
-   910 <http://wiki.powerdns.com/projects/trac/changeset/910>`__.
+   `commit b6547d92f721553d6e0f373bcb4a577f7b235139 <https://github.com/PowerDNS/pdns/commit/b6547d92f721553d6e0f373bcb4a577f7b235139>`__.
 -  Erroneous address configuration was logged unclearly. Spotted by
-   River Tarnell, fixed in `commit
-   888 <http://wiki.powerdns.com/projects/trac/changeset/888>`__.
+   River Tarnell, fixed in `commit cac5dc79a9fa45d6514a6a133e951377b5588481 <https://github.com/PowerDNS/pdns/commit/cac5dc79a9fa45d6514a6a133e951377b5588481>`__.
 -  Example configuration shipped with PowerDNS was very old. Noted by
-   Leen Besselink, fixed in `commit
-   946 <http://wiki.powerdns.com/projects/trac/changeset/946>`__.
+   Leen Besselink, fixed in `commit b9b7a7f41e4bba71ad9439052e4cbeda4b899154 <https://github.com/PowerDNS/pdns/commit/b9b7a7f41e4bba71ad9439052e4cbeda4b899154>`__.
 -  PowerDNS neglected to chdir to the root when chrooted. This closes
    `ticket 110 <https://github.com/PowerDNS/pdns/issues/110>`__, fixed
-   in `commit
-   944 <http://wiki.powerdns.com/projects/trac/changeset/944>`__.
+   in `commit b27151e4eba295e23bc92cedaff746dc6fd8e8a2 <https://github.com/PowerDNS/pdns/commit/b27151e4eba295e23bc92cedaff746dc6fd8e8a2>`__.
 -  Microsoft resolver had problems with responses we generated for
-   CNAMEs pointing out of our bailiwick. Fixed in `commit
-   983 <http://wiki.powerdns.com/projects/trac/changeset/983>`__ and
+   CNAMEs pointing out of our bailiwick. Fixed in `commit 40a9e4b33a3c0050cd2f8989001d0f057827b956 <https://github.com/PowerDNS/pdns/commit/40a9e4b33a3c0050cd2f8989001d0f057827b956>`__ and
    expedited by Locaweb.com.br.
 -  Built-in webserver logs errors more verbosely. Closes `ticket
-   82 <https://github.com/PowerDNS/pdns/issues/82>`__, fixed in `commit
-   991 <http://wiki.powerdns.com/projects/trac/changeset/991>`__.
--  Queries containing '@' no longer flood the logs. Addressed in `commit
-   1014 <http://wiki.powerdns.com/projects/trac/changeset/1014>`__.
+   82 <https://github.com/PowerDNS/pdns/issues/82>`__, fixed in `commit 64e8f2988c911c279b19071a9fcdee245c5d2774 <https://github.com/PowerDNS/pdns/commit/64e8f2988c911c279b19071a9fcdee245c5d2774>`__.
+-  Queries containing '@' no longer flood the logs. Addressed in `commit 9f0076d7bc2f783799995851ecadfe6f3d7ad1fd <https://github.com/PowerDNS/pdns/commit/9f0076d7bc2f783799995851ecadfe6f3d7ad1fd>`__.
 -  The build process now looks for PostgreSQL in more places.
-   Implemented in `commit
-   998 <http://wiki.powerdns.com/projects/trac/changeset/998>`__, closes
+   Implemented in `commit b08c319b341447030585b9a3ece5120e4597235a <https://github.com/PowerDNS/pdns/commit/b08c319b341447030585b9a3ece5120e4597235a>`__, closes
    `ticket 90 <https://github.com/PowerDNS/pdns/issues/90>`__.
 -  Speedups in the BIND backend now mean large installations enjoy
    startup times up to 30 times faster than with the original BIND
    nameserver. Many thanks to Massimo Bandinelli.
 -  BIND backend now offers full support for query logging, implemented
-   in `commit
-   1026 <http://wiki.powerdns.com/projects/trac/changeset/1026>`__,
-   `commit
-   1029 <http://wiki.powerdns.com/projects/trac/changeset/1029>`__.
+   in `commit 38e655b657c4601b659c8ef0c96111230e663c14 <https://github.com/PowerDNS/pdns/commit/38e655b657c4601b659c8ef0c96111230e663c14>`__,
+   `commit c1d02c0d59b87dd7ffe5c7d5807dd266cf5772c0 <https://github.com/PowerDNS/pdns/commit/c1d02c0d59b87dd7ffe5c7d5807dd266cf5772c0>`__.
 -  BIND backend named.conf parsing is now fully case-insensitive for
-   domain names. This closes Debian bug 406461, fixed in `commit
-   1027 <http://wiki.powerdns.com/projects/trac/changeset/1027>`__.
+   domain names. This closes Debian bug 406461, fixed in `commit 3e607366feb25d0676ff11eb7ce173adbaa67df9 <https://github.com/PowerDNS/pdns/commit/3e607366feb25d0676ff11eb7ce173adbaa67df9>`__.
 -  IPv6 and IPv4 address parsing routines have been replaced, which
-   should result in prettier output in some cases. `commit
-   962 <http://wiki.powerdns.com/projects/trac/changeset/962>`__,
-   `commit
-   1012 <http://wiki.powerdns.com/projects/trac/changeset/1012>`__ and
+   should result in prettier output in some cases. `commit 88c1bc50428914d3390dea240f2db2b439daa979 <https://github.com/PowerDNS/pdns/commit/88c1bc50428914d3390dea240f2db2b439daa979>`__,
+   `commit 9770663f86161155715c7a8ff7368f9bb0e12f26 <https://github.com/PowerDNS/pdns/commit/9770663f86161155715c7a8ff7368f9bb0e12f26>`__ and
    others.
 -  5 new regression tests have been added to insure old bugs do not
    return.
 -  Fix small issues with very modern compilers and BOOST snapshots.
-   Noted by Marcus Rueckert, addressed in `commit
-   954 <http://wiki.powerdns.com/projects/trac/changeset/954>`__,
-   `commit 964 <http://wiki.powerdns.com/projects/trac/changeset/964>`__
-   `commit
-   965 <http://wiki.powerdns.com/projects/trac/changeset/965>`__,
-   `commit
-   1003 <http://wiki.powerdns.com/projects/trac/changeset/1003>`__.
+   Noted by Marcus Rueckert, addressed in `commit 279b5b47b5e25f2a948a5b6fbf3622d0dee58e05 <https://github.com/PowerDNS/pdns/commit/279b5b47b5e25f2a948a5b6fbf3622d0dee58e05>`__,
+   `commit 2a522240fdf0d45988f26f0ca756cba83f90e117 <https://github.com/PowerDNS/pdns/commit/2a522240fdf0d45988f26f0ca756cba83f90e117>`__
+   `commit c1a49c1ccb288934af669bc9f29a361a570cf2a0 <https://github.com/PowerDNS/pdns/commit/c1a49c1ccb288934af669bc9f29a361a570cf2a0>`__,
+   `commit df39b8495bb41fbea70648d2b955d8d40b414892 <https://github.com/PowerDNS/pdns/commit/df39b8495bb41fbea70648d2b955d8d40b414892>`__.
 
 Version 2.9.20
 --------------
@@ -3843,11 +3315,11 @@ Released the 15th of March 2006
 
 Besides adding OpenDBX, this release is mostly about fixing problems and
 speeding up the recursor. This release has been made possible by
-`XS4ALL <http://www.xs4all.nl>`__ and `True <http://true.nl>`__. Thanks!
+`XS4ALL <https://www.xs4all.nl>`__ and `True <https://true.nl>`__. Thanks!
 
 Furthermore, we are very grateful for the help of Andrew Pinski, who
 hacks on gcc, and of Joaquín M López Muñoz, the author of
-`boost::multi\_index\_container <http://www.boost.org/libs/multi_index/doc/index.html>`__.
+`boost::multi\_index\_container <https://www.boost.org/libs/multi_index/doc/index.html>`__.
 Without their near-realtime help this release would've been delayed a
 lot. Thanks!
 
@@ -3855,31 +3327,23 @@ Bugs fixed in the recursor
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 -  Possible stability issues in the recursor on encountering errors
-   (`commit
-   532 <http://wiki.powerdns.com/projects/trac/changeset/532>`__,
-   `commit
-   533 <http://wiki.powerdns.com/projects/trac/changeset/533>`__)
--  Memory leaks in recursor fixed (`commit
-   534 <http://wiki.powerdns.com/projects/trac/changeset/534>`__,
-   `commit
-   572 <http://wiki.powerdns.com/projects/trac/changeset/572>`__). In a
+   (`commit 40207e646524bc3ed3d4b1a74fd31b1241de2102 <https://github.com/PowerDNS/pdns/commit/40207e646524bc3ed3d4b1a74fd31b1241de2102>`__,
+   `commit de1890b24e5848fee8d42d0f1dd24b99df3ac12c <https://github.com/PowerDNS/pdns/commit/de1890b24e5848fee8d42d0f1dd24b99df3ac12c>`__)
+-  Memory leaks in recursor fixed (`commit 4c789c509c3611db124fe5a1114fd144fa5d2107 <https://github.com/PowerDNS/pdns/commit/4c789c509c3611db124fe5a1114fd144fa5d2107>`__,
+   `commit f9f05db41ef5e157172d4ecabe90f87afa2fab0b <https://github.com/PowerDNS/pdns/commit/f9f05db41ef5e157172d4ecabe90f87afa2fab0b>`__). In a
    test 800 million real life DNS packets have been sent to the
    recursor, representing several days of traffic from a major ISP,
    memory use was high (500MB), but stable.
 -  Prune all data in PowerDNS - previously per-nameserver and per-query
-   performance statistics were kept around forever (`commit
-   535 <http://wiki.powerdns.com/projects/trac/changeset/535>`__)
+   performance statistics were kept around forever (`commit 8a5602d430987fbc73175c6896cfd8a40b7cb177 <https://github.com/PowerDNS/pdns/commit/8a5602d430987fbc73175c6896cfd8a40b7cb177>`__)
 -  IPv6 additional processing was broken. Reported by Lionel Elie
    Mamane, who also provided a fix. The problem was fixed differently in
-   the end. `commit
-   562 <http://wiki.powerdns.com/projects/trac/changeset/562>`__.
+   the end. `commit e29f6ed0e9f9566acf6c4302c457a65fd05000a8 <https://github.com/PowerDNS/pdns/commit/e29f6ed0e9f9566acf6c4302c457a65fd05000a8>`__.
 -  pdns\_recursor did not shuffle answers since 2.9.19, leading to
    problems sending mail to the Hotmail servers. Reported in `ticket
-   54 <https://github.com/PowerDNS/pdns/issues/54>`__, fixed in `commit
-   567 <http://wiki.powerdns.com/projects/trac/changeset/567>`__.
+   54 <https://github.com/PowerDNS/pdns/issues/54>`__, fixed in `commit e67e250fa3999885da051b44340d0bd191770d78 <https://github.com/PowerDNS/pdns/commit/e67e250fa3999885da051b44340d0bd191770d78>`__.
 -  If a single nameserver had multiple IP addresses listed, PowerDNS
-   would only use one of them. Noted by Mark Martin, fixed in `commit
-   570 <http://wiki.powerdns.com/projects/trac/changeset/570>`__, who
+   would only use one of them. Noted by Mark Martin, fixed in `commit bfea0d0b4d7d50d442be9084ef0779051fd3f808 <https://github.com/PowerDNS/pdns/commit/bfea0d0b4d7d50d442be9084ef0779051fd3f808>`__, who
    depends on a domain with 4 nameserver IP addresses of which 2 are
    broken.
 
@@ -3887,27 +3351,25 @@ Improvements to the recursor
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 -  Commits
-   `535 <http://wiki.powerdns.com/projects/trac/changeset/535>`__,
-   `540 <http://wiki.powerdns.com/projects/trac/changeset/540>`__,
-   `541 <http://wiki.powerdns.com/projects/trac/changeset/541>`__,
-   `542 <http://wiki.powerdns.com/projects/trac/changeset/542>`__,
-   `543 <http://wiki.powerdns.com/projects/trac/changeset/543>`__,
-   `544 <http://wiki.powerdns.com/projects/trac/changeset/544>`__,
-   `545 <http://wiki.powerdns.com/projects/trac/changeset/545>`__,
-   `547 <http://wiki.powerdns.com/projects/trac/changeset/547>`__ and
-   `548 <http://wiki.powerdns.com/projects/trac/changeset/548>`__,
-   `574 <http://wiki.powerdns.com/projects/trac/changeset/574>`__ all
+   `commit 8a5602d430987fbc73175c6896cfd8a40b7cb177 <https://github.com/PowerDNS/pdns/commit/8a5602d430987fbc73175c6896cfd8a40b7cb177>`__,
+   `commit d3a8e1dfef6b52ddfb6eb5d456e317ea3db2b32b <https://github.com/PowerDNS/pdns/commit/d3a8e1dfef6b52ddfb6eb5d456e317ea3db2b32b>`__,
+   `commit f5be3a1e99f9395b3268c830d5782c7b47eb96f5 <https://github.com/PowerDNS/pdns/commit/f5be3a1e99f9395b3268c830d5782c7b47eb96f5>`__,
+   `commit ec4864497251ea6ef7a015311a7fc56361ea220f <https://github.com/PowerDNS/pdns/commit/ec4864497251ea6ef7a015311a7fc56361ea220f>`__,
+   `commit 9fdf67d56af4d5635b0bb4f6b82c594c11e8ade6 <https://github.com/PowerDNS/pdns/commit/9fdf67d56af4d5635b0bb4f6b82c594c11e8ade6>`__,
+   `commit 2e3d8a19046ba72067d2073f7cfd1df65cf463fd <https://github.com/PowerDNS/pdns/commit/2e3d8a19046ba72067d2073f7cfd1df65cf463fd>`__,
+   `commit 49bd5a203ffda87ef731fe68c8db47c7dc0db10f <https://github.com/PowerDNS/pdns/commit/49bd5a203ffda87ef731fe68c8db47c7dc0db10f>`__,
+   `commit 27af6ab1e0619ac8d9534848288522eb2ead96c3 <https://github.com/PowerDNS/pdns/commit/27af6ab1e0619ac8d9534848288522eb2ead96c3>`__ and
+   `commit 43a2b29c94be7fa7f58fae879549a5fed76b005b <https://github.com/PowerDNS/pdns/commit/43a2b29c94be7fa7f58fae879549a5fed76b005b>`__,
+   `commit 29f0b1ce12fc1102606334409d11bbd3698c32bc <https://github.com/PowerDNS/pdns/commit/29f0b1ce12fc1102606334409d11bbd3698c32bc>`__ all
    speed up the recursor by a large factor, without altering the DNS
    algorithm.
 -  Move recursor to the incredible boost::multi\_index\_container
-   (`commit
-   580 <http://wiki.powerdns.com/projects/trac/changeset/580>`__). This
+   (`commit ca0b5def6013adc2ececb14462e76712259ab244 <https://github.com/PowerDNS/pdns/commit/ca0b5def6013adc2ececb14462e76712259ab244>`__). This
    brings a huge improvement in cache pruning times.
--  `commit 549 <http://wiki.powerdns.com/projects/trac/changeset/549>`__
-   and `commit
-   550 <http://wiki.powerdns.com/projects/trac/changeset/550>`__ work
+-  `commit 0bb34eb126cc8512b69099d0c7a525ff64499575 <https://github.com/PowerDNS/pdns/commit/0bb34eb126cc8512b69099d0c7a525ff64499575>`__
+   and `commit 90a5cfe2b52e1724dc3b428d2cfc7ef427f6e5a8 <https://github.com/PowerDNS/pdns/commit/90a5cfe2b52e1724dc3b428d2cfc7ef427f6e5a8>`__ work
    around gcc bug
-   `24704 <http://gcc.gnu.org/bugzilla/show_bug.cgi?id=24704>`__ if
+   `24704 <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=24704>`__ if
    requested, which speeds up the recursor a lot, but involves a dirty
    hack. Enable with **./configure ^^enable-gcc-skip-locking**. No
    guarantees!
@@ -3916,31 +3378,25 @@ Bugs fixed in the authoritative nameserver
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 -  PowerDNS would no longer allow a '/' in domain names, fixed by
-   `commit
-   537 <http://wiki.powerdns.com/projects/trac/changeset/537>`__,
+   `commit 15031854c5129a4c7bbb8b2fde0a67b05909f3e0 <https://github.com/PowerDNS/pdns/commit/15031854c5129a4c7bbb8b2fde0a67b05909f3e0>`__,
    reported in `ticket
    48 <https://github.com/PowerDNS/pdns/issues/48>`__.
 -  Parameters to **pdns\_control notify-host** were not checked, leading
    to possible crashes. Reported in `ticket
-   24 <https://github.com/PowerDNS/pdns/issues/24>`__, fixed in `commit
-   565 <http://wiki.powerdns.com/projects/trac/changeset/565>`__.
+   24 <https://github.com/PowerDNS/pdns/issues/24>`__, fixed in `commit 5762f14e3c7c9c5a37e4dfb94078a219fdffc51a <https://github.com/PowerDNS/pdns/commit/5762f14e3c7c9c5a37e4dfb94078a219fdffc51a>`__.
 -  On some compilers, processing of NAPTR records could cause the server
    to crash. Reported by Bernd Froemel in `ticket
-   29 <https://github.com/PowerDNS/pdns/issues/29>`__, fixed in `commit
-   538 <http://wiki.powerdns.com/projects/trac/changeset/538>`__.
+   29 <https://github.com/PowerDNS/pdns/issues/29>`__, fixed in `commit 44dcb5ff3e10b7c5ae09143b985b1de936e98886 <https://github.com/PowerDNS/pdns/commit/44dcb5ff3e10b7c5ae09143b985b1de936e98886>`__.
 -  Backend errors could make the whole nameserver exit under some
-   circumstances, notably using the LDAP backend. Fixed in `commit
-   583 <http://wiki.powerdns.com/projects/trac/changeset/583>`__,
+   circumstances, notably using the LDAP backend. Fixed in `commit 46b917e6a472dd6b7d91d58c7f7e4ec97dccae40 <https://github.com/PowerDNS/pdns/commit/46b917e6a472dd6b7d91d58c7f7e4ec97dccae40>`__,
    reported in `ticket
    62 <https://github.com/PowerDNS/pdns/issues/62>`__.
 -  Referrals were subtly broken by recent CNAME/Wildcard improvements,
-   fixed in `commit
-   539 <http://wiki.powerdns.com/projects/trac/changeset/539>`__. Fix
-   and other improvements sponsored by `True <http://true.nl>`__.
+   fixed in `commit 95f0df4542f6abf2ffbdc92da9cc3e56bd9e1253 <https://github.com/PowerDNS/pdns/commit/95f0df4542f6abf2ffbdc92da9cc3e56bd9e1253>`__. Fix
+   and other improvements sponsored by `True <https://true.nl>`__.
 -  PowerDNS would try to insert records it has no knowledge about in
    slave zones, which did not work. Reported in `ticket
-   60 <https://github.com/PowerDNS/pdns/issues/60>`__, fixed in `commit
-   566 <http://wiki.powerdns.com/projects/trac/changeset/566>`__. A
+   60 <https://github.com/PowerDNS/pdns/issues/60>`__, fixed in `commit 02b37061fea43ed29fc972bc24374bf858853a03 <https://github.com/PowerDNS/pdns/commit/02b37061fea43ed29fc972bc24374bf858853a03>`__. A
    superior fix would be to implement the relevant unknown record
    standard.
 
@@ -3948,17 +3404,13 @@ Improvements to the authoritative nameserver
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 -  Pipebackend did not properly propagate the ABI version to its
-   children, fixed in `commit
-   546 <http://wiki.powerdns.com/projects/trac/changeset/546>`__,
+   children, fixed in `commit 8348e9fd5de1dbc414ca01352361b8e26d27ddc6 <https://github.com/PowerDNS/pdns/commit/8348e9fd5de1dbc414ca01352361b8e26d27ddc6>`__,
    reported by kickdaddy@gmail.com in `ticket
    45 <https://github.com/PowerDNS/pdns/issues/45>`__.
--  `OpenDBX <http://www.linuxnetworks.de/pdnsodbx/index.html>`__ backend
-   added (`commit
-   559 <http://wiki.powerdns.com/projects/trac/changeset/559>`__,
-   `commit
-   560 <http://wiki.powerdns.com/projects/trac/changeset/560>`__,
-   `commit
-   561 <http://wiki.powerdns.com/projects/trac/changeset/561>`__) by
+-  `OpenDBX <https://www.linuxnetworks.de/doc/index.php/PowerDNS_OpenDBX_Backend>`__ backend
+   added (`commit 790e7c1b49abeea42c4778c3ef2dd009af88e672 <https://github.com/PowerDNS/pdns/commit/790e7c1b49abeea42c4778c3ef2dd009af88e672>`__,
+   `commit 116762a333b137a73cee4aabcb9ea1cb82427e14 <https://github.com/PowerDNS/pdns/commit/116762a333b137a73cee4aabcb9ea1cb82427e14>`__,
+   `commit 1620e053f524e433ff02386fe4bb6436be6d8dc4 <https://github.com/PowerDNS/pdns/commit/1620e053f524e433ff02386fe4bb6436be6d8dc4>`__) by
    Norbert Sendetzky. From the website: “ The OpenDBX backend enables it
    to fetch DNS information from every DBMS supported by the OpenDBX
    library and combines the power of one of the best DNS server
@@ -3966,52 +3418,37 @@ Improvements to the authoritative nameserver
    OpenDBX adds some other features like database failover. Thanks
    Norbert!
 -  LDAP fixes as reported in `ticket
-   37 <https://github.com/PowerDNS/pdns/issues/37>`__, fixed in `commit
-   558 <http://wiki.powerdns.com/projects/trac/changeset/558>`__, which
+   37 <https://github.com/PowerDNS/pdns/issues/37>`__, fixed in `commit c533708a9e8d29c397d9769f2dd68ce5885d0b9d <https://github.com/PowerDNS/pdns/commit/c533708a9e8d29c397d9769f2dd68ce5885d0b9d>`__, which
    make **pdns\_control notify** work.
 -  Arjo Hooimeijer added support for soa-refresh-default,
    soa-retry-default, soa-expire-default, which were previously
-   hardcoded. `commit
-   563 <http://wiki.powerdns.com/projects/trac/changeset/563>`__ and
-   fallout in `commit
-   573 <http://wiki.powerdns.com/projects/trac/changeset/573>`__ (thanks
+   hardcoded. `commit 10583b6240492a3a88642ad85e726f008b4cdf59 <https://github.com/PowerDNS/pdns/commit/10583b6240492a3a88642ad85e726f008b4cdf59>`__ and
+   fallout in `commit 411a1ed073293d10d7416b14ed56e5a210c4d5bc <https://github.com/PowerDNS/pdns/commit/411a1ed073293d10d7416b14ed56e5a210c4d5bc>`__ (thanks
    to Wolfram Schlich).
 
 Miscellaneous
 ^^^^^^^^^^^^^
 
 -  Fixes for g++ 4.1. Compiling with 4.1 realizes notable speedups.
-   `commit
-   568 <http://wiki.powerdns.com/projects/trac/changeset/568>`__,
-   `commit
-   569 <http://wiki.powerdns.com/projects/trac/changeset/569>`__.
+   `commit fd4b10f738004d8b15c88d5cdcf3f601311c08c9 <https://github.com/PowerDNS/pdns/commit/fd4b10f738004d8b15c88d5cdcf3f601311c08c9>`__,
+   `commit a0dbd4ce64427e3232e321cbe0f349ccca864d87 <https://github.com/PowerDNS/pdns/commit/a0dbd4ce64427e3232e321cbe0f349ccca864d87>`__.
 -  PowerDNS now reports if it is running in 32 or 64 bit mode, useful
    for bi-arch users that need to know if they are benefiting from
-   `AMD's great processor <http://www.amd.com>`__. `commit
-   571 <http://wiki.powerdns.com/projects/trac/changeset/571>`__.
--  **dnsscope** compiles again, `commit
-   551 <http://wiki.powerdns.com/projects/trac/changeset/551>`__,
-   `commit 564 <http://wiki.powerdns.com/projects/trac/changeset/564>`__
+   `AMD's great processor <https://www.amd.com>`__. `commit 22c012a8251c54e95e8b08aed06eae830ff0a448 <https://github.com/PowerDNS/pdns/commit/22c012a8251c54e95e8b08aed06eae830ff0a448>`__.
+-  **dnsscope** compiles again, `commit 1a21c2a52be8b787196e7f2532f1c10d28cb973e <https://github.com/PowerDNS/pdns/commit/1a21c2a52be8b787196e7f2532f1c10d28cb973e>`__,
+   `commit d5ad413a3069181834c4188e0787d8d14cb7982c <https://github.com/PowerDNS/pdns/commit/d5ad413a3069181834c4188e0787d8d14cb7982c>`__
    (FreeBSD 64-bit time\_t).
--  **dnsreplay\_mindex** compiles again, fixed by `commit
-   572 <http://wiki.powerdns.com/projects/trac/changeset/572>`__. Its
+-  **dnsreplay\_mindex** compiles again, fixed by `commit f9f05db41ef5e157172d4ecabe90f87afa2fab0b <https://github.com/PowerDNS/pdns/commit/f9f05db41ef5e157172d4ecabe90f87afa2fab0b>`__. Its
    performance, and the performance of the recursor was improved by
-   `commit
-   559 <http://wiki.powerdns.com/projects/trac/changeset/559>`__.
+   `commit 790e7c1b49abeea42c4778c3ef2dd009af88e672 <https://github.com/PowerDNS/pdns/commit/790e7c1b49abeea42c4778c3ef2dd009af88e672>`__.
 -  Build scripts were added, mostly for internal use but we know some
-   PowerDNS users build their own packages too. `commit
-   553 <http://wiki.powerdns.com/projects/trac/changeset/553>`__,
-   `commit
-   554 <http://wiki.powerdns.com/projects/trac/changeset/554>`__,
-   `commit
-   555 <http://wiki.powerdns.com/projects/trac/changeset/555>`__,
-   `commit
-   556 <http://wiki.powerdns.com/projects/trac/changeset/556>`__,
-   `commit
-   557 <http://wiki.powerdns.com/projects/trac/changeset/557>`__.
+   PowerDNS users build their own packages too. `commit 5ccb93bb67e092b31aa8dbd9b09d7e8ff6e58464 <https://github.com/PowerDNS/pdns/commit/5ccb93bb67e092b31aa8dbd9b09d7e8ff6e58464>`__,
+   `commit 63c76bc99090f799bb5c43df9c18398f91601fac <https://github.com/PowerDNS/pdns/commit/63c76bc99090f799bb5c43df9c18398f91601fac>`__,
+   `commit 56ae30ac4f8b3ced84db52e8e3b7ac84e1186f7e <https://github.com/PowerDNS/pdns/commit/56ae30ac4f8b3ced84db52e8e3b7ac84e1186f7e>`__,
+   `commit 92987a99667aa1720e125d40699b31828a85eb86 <https://github.com/PowerDNS/pdns/commit/92987a99667aa1720e125d40699b31828a85eb86>`__,
+   `commit f433bbd4eb0258eba14e1c07fe11b226eec12a9f <https://github.com/PowerDNS/pdns/commit/f433bbd4eb0258eba14e1c07fe11b226eec12a9f>`__.
 -  ``bootstrap`` script was not included in release. Thanks to Stefan
-   Arentz for noticing. Fixed in `commit
-   574 <http://wiki.powerdns.com/projects/trac/changeset/574>`__.
+   Arentz for noticing. Fixed in `commit 29f0b1ce12fc1102606334409d11bbd3698c32bc <https://github.com/PowerDNS/pdns/commit/29f0b1ce12fc1102606334409d11bbd3698c32bc>`__.
 
 Version 2.9.19
 --------------
@@ -4048,7 +3485,7 @@ The code is also shorter.
 This release fixes a number of embarrassing bugs and is a recommended
 upgrade.
 
-Thanks are due to `XS4ALL <http://www.xs4all.nl>`__ who are supporting
+Thanks are due to `XS4ALL <https://www.xs4all.nl>`__ who are supporting
 continuing development of PowerDNS, the fruits of which can be found in
 this release already. Furthermore, a remarkable number of people have
 helped report bugs, validate solutions or have submitted entire patches.
@@ -4065,8 +3502,8 @@ Improvements
    recursor deployments have too much traffic for this to be useful.
 -  PowerDNS recursor is now able to read its root-hints from disk, which
    is useful to operate with alternate roots, like the `Open Root Server
-   Network <http://www.orsn.org>`__. See `PowerDNS
-   Recursor <recursor/index.md>`__.
+   Network <https://www.orsn.org>`__. See `PowerDNS
+   Recursor <https://docs.powerdns.com/recursor/>`__.
 -  PowerDNS can now send out old-fashioned root-referrals when queried
    for domains for which it is not authoritative. Wastes some bandwidth
    but may solve incoming query floods if domains are delegated to you
@@ -4074,20 +3511,16 @@ Improvements
    recursors.
 -  PowerDNS now prints out a warning when running with legacy
    LinuxThreads implementation instead of the high performance NPTL
-   library. `commit
-   455 <http://wiki.powerdns.com/projects/trac/changeset/455>`__.
+   library. `commit 2b4d0a490fd39a1018135f42a669f35559f858d8 <https://github.com/PowerDNS/pdns/commit/2b4d0a490fd39a1018135f42a669f35559f858d8>`__.
 -  A lot of superfluous calls to gettimeofday() have been removed,
    making PowerDNS and especially the recursor faster. Suggested by Kai.
--  SPF records are now supported natively. `commit
-   472 <http://wiki.powerdns.com/projects/trac/changeset/472>`__,
+-  SPF records are now supported natively. `commit dd10362105be43185aa0e6c959d27e3eccc1e60d <https://github.com/PowerDNS/pdns/commit/dd10362105be43185aa0e6c959d27e3eccc1e60d>`__,
    closing `ticket 22 <https://github.com/PowerDNS/pdns/issues/22>`__.
 -  Improved IPv6 'bound to' messages. Thanks to Niels Bakker, Wichert
    Akkerman and Gerty de Wolf for suggestions.
--  Separate graphs can now be made of IPv6 queries and answers. `commit
-   485 <http://wiki.powerdns.com/projects/trac/changeset/485>`__.
+-  Separate graphs can now be made of IPv6 queries and answers. `commit bd852e59a9606389b5ed355bdc19c4b042eccd58 <https://github.com/PowerDNS/pdns/commit/bd852e59a9606389b5ed355bdc19c4b042eccd58>`__.
 -  Out of zone additional processing is now on by default to better
-   comply with standards. `commit
-   487 <http://wiki.powerdns.com/projects/trac/changeset/487>`__.
+   comply with standards. `commit 9054d8a46ff923ec9c6dd0ae2831704136987baf <https://github.com/PowerDNS/pdns/commit/9054d8a46ff923ec9c6dd0ae2831704136987baf>`__.
 -  Regression tests have been expanded to deal with more record types
    (SRV, NAPTR, TXT, duplicate SRV).
 -  Improved query-logging in Bindbackend, which can be used for
@@ -4103,46 +3536,35 @@ Bugs fixed
 
 -  Domain name validation has been made a lot stricter - it turns out
    PostgreSQL was interpreting some (corrupt) domain names as unicode.
-   Tested and suggested by Register.com (`commit
-   451 <http://wiki.powerdns.com/projects/trac/changeset/451>`__).
+   Tested and suggested by Register.com (`commit 5158c49503e6902c2b0b70a8f87a891b7ce94f74 <https://github.com/PowerDNS/pdns/commit/5158c49503e6902c2b0b70a8f87a891b7ce94f74>`__).
 -  LDAP backend did not compile (commits
-   `452 <http://wiki.powerdns.com/projects/trac/changeset/452>`__,
-   `453 <http://wiki.powerdns.com/projects/trac/changeset/453>`__) due
+   `commit 331d69caf2a062def55bb1b1e11b76bf4a1e282f <https://github.com/PowerDNS/pdns/commit/331d69caf2a062def55bb1b1e11b76bf4a1e282f>`__,
+   `commit 5fe07bddd507ac015d04e71c01b3d411ebedcc61 <https://github.com/PowerDNS/pdns/commit/5fe07bddd507ac015d04e71c01b3d411ebedcc61>`__) due
    to partially applied patch (Norbert Sendetzky)
--  Incoming zone transfers work reliably again. Fixed in `commit
-   460 <http://wiki.powerdns.com/projects/trac/changeset/460>`__ and
-   beyond. And `commit
-   523 <http://wiki.powerdns.com/projects/trac/changeset/523>`__ -
+-  Incoming zone transfers work reliably again. Fixed in `commit 177da253a35ed78e75cd29f4d87e4f8bbbf8060e <https://github.com/PowerDNS/pdns/commit/177da253a35ed78e75cd29f4d87e4f8bbbf8060e>`__ and
+   beyond. And `commit 049c05114279874d40faa69aada5cb0d82726e63 <https://github.com/PowerDNS/pdns/commit/049c05114279874d40faa69aada5cb0d82726e63>`__ -
    closing Debian bug 330184.
 -  Recent g++ versions exposed a mistake in the PowerDNS recursor cache
-   pruning code, causing random crashes. Fixed in `commit
-   465 <http://wiki.powerdns.com/projects/trac/changeset/465>`__.
+   pruning code, causing random crashes. Fixed in `commit d25b35e27d909824b2f8d97da1f99b16c3f60e67 <https://github.com/PowerDNS/pdns/commit/d25b35e27d909824b2f8d97da1f99b16c3f60e67>`__.
    Reported by several Red Hat users.
 -  PowerDNS recursor, and MTasker in general, did not work on Solaris.
-   Patch by Juergen Ilse, `commit
-   471 <http://wiki.powerdns.com/projects/trac/changeset/471>`__. Also
+   Patch by Juergen Ilse, `commit 4b720f05ff48b4531485713eed94412f8a168f49 <https://github.com/PowerDNS/pdns/commit/4b720f05ff48b4531485713eed94412f8a168f49>`__. Also
    moved most of PowerDNS over to uint32\_t style typedefs, which eases
-   compilation problems on Solaris, `commit
-   477 <http://wiki.powerdns.com/projects/trac/changeset/477>`__.
+   compilation problems on Solaris, `commit 092f210a3b524529679d0a14492170bf7422c6ab <https://github.com/PowerDNS/pdns/commit/092f210a3b524529679d0a14492170bf7422c6ab>`__.
 -  Bindbackend2 did not properly search its include path for $INCLUDE
-   statements. Noted by Mark Bergsma, `commit
-   474 <http://wiki.powerdns.com/projects/trac/changeset/474>`__.
+   statements. Noted by Mark Bergsma, `commit 5b15d4d308a4fca1692edc8754f209b17dc9b05f <https://github.com/PowerDNS/pdns/commit/5b15d4d308a4fca1692edc8754f209b17dc9b05f>`__.
 -  Bindbackend did not notice changed zones, this problem has been fixed
    by the move to Bind2.
 -  Pipebackend did not clean up, leading to an additional pipe backend
    per AXFR or pdns\_control reload. Discovered by Marc Jauvin, fixed by
-   `commit
-   525 <http://wiki.powerdns.com/projects/trac/changeset/525>`__.
+   `commit f7a23c1c5dbdecd587d933f54386ba55ee489f6d <https://github.com/PowerDNS/pdns/commit/f7a23c1c5dbdecd587d933f54386ba55ee489f6d>`__.
 -  Bindbackend (both old and current versions) did not honour 'include'
    statements in ``named.conf`` on **pdns\_control rediscover**. Noted
-   by Marc Jauvin, fixed by `commit
-   526 <http://wiki.powerdns.com/projects/trac/changeset/526>`__.
+   by Marc Jauvin, fixed by `commit 751f7add980af4902823e9dda354c5e6392f8f45 <https://github.com/PowerDNS/pdns/commit/751f7add980af4902823e9dda354c5e6392f8f45>`__.
 -  Zone transfers were sometimes shuffled, which wastes useless time,
-   `commit
-   478 <http://wiki.powerdns.com/projects/trac/changeset/478>`__.
+   `commit e9dd48f9018ef291849c881d88faa66baab5c592 <https://github.com/PowerDNS/pdns/commit/e9dd48f9018ef291849c881d88faa66baab5c592>`__.
 -  CNAMEs and Wildcards now work as in Bind, fixing many complaints,
-   `commit
-   487 <http://wiki.powerdns.com/projects/trac/changeset/487>`__.
+   `commit 9054d8a46ff923ec9c6dd0ae2831704136987baf <https://github.com/PowerDNS/pdns/commit/9054d8a46ff923ec9c6dd0ae2831704136987baf>`__.
 -  NAPTR records were compressed, which would work, but was in violation
    of the RFC, commit 493.
 -  NAPTR records were not always parsed correctly from BIND zone files,
@@ -4158,13 +3580,13 @@ Released on the 16th of July 2005.
 The '8 million domains' release, which also marks the battle readiness
 of the PowerDNS Recursor. The latest improvements have been made
 possible by financial support and contributions by
-`Register.com <http://register.com>`__ and
-`XS4ALL <http://www.xs4all.nl/>`__. Thanks!
+`Register.com <https://register.com>`__ and
+`XS4ALL <https://www.xs4all.nl/>`__. Thanks!
 
 This release brings a number of new features (vastly improved recursor,
 Generic Oracle Support, DNS analysis and replay tools, and more) but
 also has a new build dependency, the `Boost
-library <http://www.boost.org>`__ (version 1.31 or higher).
+library <https://www.boost.org>`__ (version 1.31 or higher).
 
 Currently several big ISPs are evaluating the PowerDNS recursor for
 their resolving needs, some of them have switched already. In the course
@@ -4176,9 +3598,9 @@ release, can stand up to heavy duty ISP loads (over 20000
 queries/second) and in fact does so better than major other nameservers,
 giving more complete answers and being faster to boot.
 
-We invite ISPs who note recursor problems to record their problematic
-traffic and replay it using the tools described in `Tools to analyse DNS
-traffic <tools/analysis.md>`__ to discover if PowerDNS does a better
+We invited ISPs who noted recursor problems to record their problematic
+traffic and replay it using the tools described in "Tools to analyse DNS
+traffic" to discover if PowerDNS did a better
 job, and to let us know the results.
 
 Additionally, the bind2backend is almost ready to replace the stock bind
@@ -4249,7 +3671,7 @@ Improvements
 -  The Pipe Backend has been improved such that it can send out
    different answers based on the IP address the question was received
    ON. See `PipeBackend
-   protocol <authoritative/backend-pipe.md#pipebackend-protocol>`__ for
+   protocol <../backends/pipe.rst#pipebackend-protocol>`__ for
    how this changed the Pipe Backend protocol. Note that you need to set
    **pipebackend-abi-version** to benefit from this change, existing
    clients are not affected. Change and documentation contributed by
@@ -4310,10 +3732,8 @@ New technology
 -  'sdig', a simple dig work-alike with 'canonical' output, which is
    used for the regression tests. Based on the new DNS parser logic.
 -  **dnswasher**, **dnsreplay** and **dnsscope**, all DNS analysis
-   tools. See `Tools to analyse DNS traffic <tools/analysis.md>`__ for
-   more details.
--  Generic Oracle Backend, sponsored by Register.COM. See `Oracle
-   specifics <authoritative/backend-generic-oracle.md>`__.
+   tools.
+-  Generic Oracle Backend, sponsored by Register.COM.
 
 Version 2.9.17
 --------------
@@ -4413,7 +3833,7 @@ Bugfixes
    Straus)
 -  PowerDNS left its controlsocket around after exit and reported
    confusing errors if a socket was already in use.
--  The recursor proxy did not work on big endian systems like SPARC and
+-  The recursor proxy did not work on big-endian systems like SPARC and
    some MIPS processors (Remco Post)
 -  We no longer dump core on processing LOC records on UltraSPARC
    (Andrew Mulholland supplied a testing machine)
@@ -4507,7 +3927,7 @@ Big news! Windows is back! Our great friend Michel Stol found the time
 to update the PowerDNS code so it works again under windows.
 
 Furthermore, big thanks go out to Dell who quickly repaired my trusty
-`laptop <http://ds9a.nl/dell-d800>`__.
+`laptop <https://berthub.eu/dell-d800>`__.
 
 His changes - Generic SQLite support added - Removed the ODBC backend,
 replaced it by the Generic ODBC Backend, which has all the cool
@@ -4515,7 +3935,7 @@ configurability of the Generic MySQL and PostgreSQL backends. - The
 PowerDNS Recursor now runs as a Service. It defaults to running on port
 5300, PowerDNS itself is configured to expect the Recursor on port 5300
 now. - The PowerDNS Service is now known as 'PowerDNS' to Windows. - The
-Installer was redone, this time with `NSIS2 <http://nsis.sf.net>`__. -
+Installer was redone, this time with `NSIS2 <https://nsis.sourceforge.io/>`__. -
 General updates and fixes.
 
 Other news
@@ -4580,9 +4000,9 @@ New features
 
 -  ^^version command (requested by Mike Benoit)
 -  delegation-only, a Verisign special.
--  Generic `SQLite <http://www.sqlite.org>`__ support, by Michel 'Who da
+-  Generic `SQLite <https://www.sqlite.org>`__ support, by Michel 'Who da
    man?' Stol. See `Generic SQLite
-   backend <authoritative/backend-generic-sqlite.md>`__.
+   backend <../backends/generic-sqlite3.rst>`__.
 -  init.d script for pdns\_recursor
 -  Recursor now actually purges its cache, saving memory.
 -  Slave configuration now no longer falls over when presented with a
@@ -4682,7 +4102,7 @@ Bugs fixed
    wasted memory and also led to the continued non-existence of hosts
    that since had come into existence.
 -  The Generic SQL backends did not lowercase the names of records,
-   which led to new records not being found by case sensitive databases
+   which led to new records not being found by case-sensitive databases
    (notably PostgreSQL). Found by Volker Goetz.
 -  NS queries for zones for which we did not carry authority, but only
    had delegation information, had their NS records in the wrong
@@ -4749,7 +4169,7 @@ Improvements
    fact only made things worse.
 -  LDAP backend updates from its author Norbert Sendetzky. Reverse
    lookups should work now too.
--  An error message about unparseable packets did not include the
+-  An error message about unparsable packets did not include the
    originating IP address (fixed by Mark Bergsma)
 -  PowerDNS can now be started via path resolution while running with a
    guardian. Suggested by Maurice Nonnekes.
@@ -4766,7 +4186,7 @@ Bugs fixed
 -  ``pdns_control`` could leave behind remnants in case PowerDNS was not
    running (reported by dG)
 -  Incoming AXFR did not work on Solaris and other big-endian systems
-   (Willem de Groot helped debugging this long standing problem).
+   (Willem de Groot helped debugging this long-standing problem).
 -  Recursor could crash on convoluted CNAME loops. Thanks to Dan Faerch
    for delivering core dumps.
 -  Silly 'wuh' debugging output in zone2sql and bindbackend removed
@@ -4817,7 +4237,7 @@ this issue. We hope to resolve it soon.
 -  Simultaneous AXFRs may have been problematic on some backends. Thanks
    to Jorn of ISP-Services again for helping us resolve this issue.
 -  Added LDAP backend by Norbert Sendetzky, see `LDAP
-   Backend <authoritative/backend-ldap.md>`__.
+   Backend <../backends/ldap.rst>`__.
 -  Added Generic ODBC backend for Windows by Michel Stol.
 -  Simplified 'out of zone data' detection in incoming AXFR support,
    hopefully removing a case sensitivity bug there. Thanks again to
@@ -4839,7 +4259,7 @@ the main PowerDNS binary to make it interact better with the recursing
 component.
 
 Sadly, due to `technical
-reasons <http://sources.redhat.com/ml/libc-alpha/2003-01/msg00245.html>`__,
+reasons <https://sourceware.org/legacy-ml/libc-alpha/2003-01/msg00245.html>`__,
 compiling the pdns recursor and pdns authoritative nameserver into one
 binary is not immediately possible. During the release of 2.9.4 we
 stated that the recursing nameserver would be integrated in the next
@@ -4856,7 +4276,7 @@ entirely). FreeBSD does not support the required functions. If you know
 any important FreeBSD people, plea with them to support
 set/get/swapcontext! Alternatively, FreeBSD coders could read the
 solution presented here `in figure
-5 <http://www.eng.uwaterloo.ca/~ejones/software/threading.html>`__.
+5 <https://evanjones.ca/software/threading.html>`__.
 
 The 'Contributor of the Month' award goes to Mark Bergsma who has
 responded to our plea for help with the label compressor and contributed
@@ -4928,7 +4348,7 @@ In preliminary tests, the recursor appears to be four times faster than
 BIND 9 on a naive benchmark starting from a cold cache. BIND 9 managed
 to get through to some slower nameservers however, which were given up
 on by PowerDNS. We will continue to tune the recursor. See `PowerDNS
-Recursor <recursor/index.md>`__ for further details.
+Recursor <https://docs.powerdns.com/recursor/>`__ for further details.
 
 The BIND Backend has also been tested (see the **bind-domain-status**
 item below) rather heavily by several parties. After some discussion
@@ -4943,16 +4363,16 @@ PowerDNS than yet know about it. So spread the word!
 In other news, we now have a security page at
 `Security <../security.rst>`__. Furthermore, Maurice Nonnekes
 contributed an OpenBSD port! See `his
-page <http://www.codeninja.nl/openbsd/powerdns/>`__ for more details!
+page <https://web.archive.org/web/20070408142316/http://www.codeninja.nl/projects/openbsd/powerdns/>`__ for more details!
 
 New features and improvements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 -  All SQL queries in the generic backends are now available for
    configuration. (Martin Klebermass, Bert Hubert). See `Generic SQL
-   backends <authoritative/backend-generic-sql.md>`__.
+   backends <../backends/generic-sql.rst>`__.
 -  A recursing nameserver! See `PowerDNS
-   Recursor <recursor/index.md>`__.
+   Recursor <https://docs.powerdns.com/recursor/>`__.
 -  An incoming AXFR now only starts a backend zone replacement
    transaction after the first record arrived successfully, thus making
    sure no work is done when a remote nameserver is unable/unwilling to
@@ -5065,9 +4485,9 @@ instructions. Without instructions, the right things also happen, but
 the operator is in charge.
 
 For more about all this coolness, see
-`“pdns\_control” <running.rst#pdnscontrol>`__ and
+`“pdns\_control” <../running.rst#pdnscontrol>`__ and
 `“pdns\_control
-commands” <backends/bind.rst#bind-control-commands>`__.
+commands” <../backends/bind.rst#bind-control-commands>`__.
 
 **Warning**: Again some changes in compilation instructions. The hybrid
 pgmysql backend has been split up into 'gmysql' and 'gpgsql', sharing a
@@ -5130,7 +4550,7 @@ Changes
    socket variety so it can transport large amounts of text, which is
    needed for the **bind-domain-status** command, for which see
    `Pdns\_control
-   commands <authoritative/backend-bind.md#bind-control-commands>`__.
+   commands <../backends/bind.rst#bind-control-commands>`__.
    This breaks compatibility with older pdns\_control and pdns\_server
    binaries!
 -  Bind backend now ignores 'hint' and 'forward' and other unsupported
@@ -5196,11 +4616,11 @@ Documentation
 ^^^^^^^^^^^^^
 
 -  Documented the 'random backend', see `Random
-   Backend <authoritative/backend-random.md>`__.
+   Backend <../backends/random.rst>`__.
 -  Wichert Akkerman contributed three manpages.
 -  Building PowerDNS on Unix is now documented somewhat more, see
    `Compiling PowerDNS on
-   Unix <appendix/compiling-powerdns.md#on-unix>`__.
+   Unix <../appendices/compiling.rst#on-unix>`__.
 
 Features
 ^^^^^^^^
@@ -5210,8 +4630,7 @@ Features
    PowerDNS compiles on OpenBSD but swiftly crashes. Help is welcome.
 -  ODBC backend (for Windows only) was missing from the distribution,
    now added.
--  xdb backend added - see `XDB
-   Backend <authoritative/backend-deprecated.md#xdb-backend>`__.
+-  xdb backend added.
    Designed for use by root-server operators.
 -  Dynamic modules are back which is good news for distributors who want
    to make a pdns packages that does not depend one every database under
@@ -5297,7 +4716,7 @@ already been running 24 hours on our servers before release.
 Version 2.7 and 2.7.1
 ---------------------
 
-This version fixes some very long standing issues and adds a few new
+This version fixes some very long-standing issues and adds a few new
 features. If you are still running 2.6, upgrade yesterday. If you were
 running 2.6.1, an upgrade is still strongly advised.
 
@@ -5352,7 +4771,7 @@ Quick fix release for a big cache problem.
 ------------
 
 Performance release. A lot of work has been done to raise PowerDNS
-performance to staggering levels in order to take part in benchmarketing
+performance to staggering levels in order to take part in benchmarking
 efforts. Together with our as yet unnamed partner, PowerDNS has been
 benchmarked at 60.000 mostly cached queries/second on off the shelf PC
 hardware. Uncached performance was 17.000 uncached DNS queries/second on
@@ -5368,8 +4787,8 @@ performance switches may appear in ^^help output but you are advised to
 stay away from these.
 
 Developers: this version needs the pdns-2.5.1 development kit, available
-on http://downloads.powerdns.com/releases/dev. See also `Backend
-writers' guide <appendix/backend-writers-guide.md>`__.
+on https://downloads.powerdns.com/releases/dev. See also `Backend
+writers' guide <../appendices/backend-writers-guide.rst>`__.
 
 Performance
 ^^^^^^^^^^^
@@ -5414,11 +4833,11 @@ Version 2.5.1
 -------------
 
 `Brown paper
-bag <http://www.tuxedo.org/~esr/jargon/html/entry/brown-paper-bag-bug.html>`__
+bag <https://www.gutenberg.org/cache/epub/3008/pg3008-images.html#brown-paper-bagbug>`__
 release fixing a huge memory leak in the new Query Cache.
 
 Developers: this version needs the new pdns-2.5.1 development kit,
-available on http://downloads.powerdns.com/releases/dev. See also
+available on https://downloads.powerdns.com/releases/dev. See also
 `Backend writers' guide <../appendices/backend-writers-guide.rst>`__.
 
 And some small changes
@@ -5427,7 +4846,7 @@ And some small changes
    allows remotes to cache the fact that a domain does not exist and
    will not exist for a while. Thanks to Chris Thompson for `pointing
    out how tiny our minds
-   are <http://ops.ietf.org/lists/namedroppers/namedroppers.2002/msg01697.html>`__.
+   are <https://mailarchive.ietf.org/arch/msg/namedroppers/oqzDiPVjxPuAKqK9IZh9eiEif6w/>`__.
    This feature may cause a noticeable reduction in query load.
 -  Small speedup to non-packet-cached queries, incidentally fixing the
    huge memory leak.
@@ -5491,7 +4910,7 @@ New features
 Enhancements
 ^^^^^^^^^^^^
 
--  Packet Cache is now case insensitive, leading to a higher hitrate
+-  Packet Cache is now case-insensitive, leading to a higher hitrate
    because identical queries only differing in case now both match. Care
    is taken to restore the proper case in the answer sent out.
 -  Packet Cache stores packets more efficiently now, savings are
@@ -5533,7 +4952,7 @@ Version 2.4
 -----------
 
 Developers: this version is compatible with the pdns-2.1 development
-kit, available on http://downloads.powerdns.com/releases/dev. See also
+kit, available on https://downloads.powerdns.com/releases/dev. See also
 `*Backend writers' guide* <../appendices/backend-writers-guide.rst>`__.
 
 This version fixes some stability issues with malformed or malcrafted
@@ -5580,13 +4999,13 @@ Version 2.3
 -----------
 
 Developers: this version is compatible with the pdns-2.1 development
-kit, available on http://downloads.powerdns.com/releases/dev. See also
+kit, available on https://downloads.powerdns.com/releases/dev. See also
 `Backend writers' guide <../appendices/backend-writers-guide.rst>`__
 
 This release adds the Generic MySQL backend which allows full
 master/slave semantics with MySQL and InnoDB tables (or other tables
 that support transactions). See `Generic MySQL
-backend <authoritative/backend-generic-mysql.md>`__.
+backend <../backends/generic-mysql.rst>`__.
 
 Other new features
 ^^^^^^^^^^^^^^^^^^
@@ -5622,7 +5041,7 @@ Version 2.2
 -----------
 
 Developers: this version is compatible with the pdns-2.1 development
-kit, available on http://downloads.powerdns.com/releases/dev. See also
+kit, available on https://downloads.powerdns.com/releases/dev. See also
 `Backend writers' guide <../appendices/backend-writers-guide.rst>`__
 
 Again a big release. PowerDNS is seeing some larger deployments in more
@@ -5664,7 +5083,7 @@ New features
 -  **pdns\_control purge** can now also purge based on suffix, allowing
    operators to purge an entire domain from the packet cache instead of
    only specific records. See also
-   `pdns\_control <running.rst#pdnscontrol>`__ Thanks to
+   `pdns\_control <../running.rst#pdnscontrol>`__ Thanks to
    Mike Benoit for this suggestion.
 -  **soa-serial-offset** for installations with small SOA serial numbers
    wishing to register .DE domains with DENIC which demands six-figure
@@ -5682,8 +5101,8 @@ recursing backend under most circumstances. Old behaviour can be
 restored by turning **lazy-recursion** off.
 
 Developers: this version has a new pdns-2.1 development kit, available
-on http://downloads.powerdns.com/releases/dev. See also `Backend
-writers' guide <appendix/backend-writers-guide.md>`__.
+on https://downloads.powerdns.com/releases/dev. See also `Backend
+writers' guide <../appendices/backend-writers-guide.rst>`__.
 
 **Warning**: Most users will run a static version of PowerDNS which has
 no dependencies on external libraries. However, some may need to run the
@@ -5691,8 +5110,8 @@ dynamic version. This warning applies to these users.
 
 To run the dynamic version of PowerDNS, which is needed for backend
 drivers which are only available in source form, gcc 3.0 is required.
-RedHat 7.2 comes with gcc 3.0 as an optional component, RedHat 7.3 does
-not. However, the RedHat 7.2 Update gcc rpms install just fine on RedHat
+Red Hat 7.2 comes with gcc 3.0 as an optional component, Red Hat 7.3 does
+not. However, the Red Hat 7.2 Update gcc rpms install just fine on Red Hat
 7.3. For Debian, we suggest running 'woody' and installing the g++-3.0
 package. We expect to release a FreeBSD dynamic version shortly.
 
@@ -5729,11 +5148,11 @@ Features
    the Oracle backend. Zone2sql now outputs better SQL and the backend
    is now fully documented. Furthermore, the queries are compatible with
    the PowerDNS XML-RPC product, allowing PowerDNS express to run off
-   Oracle. See `Oracle backend <authoritative/backend-oracle.md>`__.
+   Oracle.
 -  Zone2sql now accepts ^^transactions to wrap zones in a transaction
    for PostgreSQL and Oracle output. This is a major speedup and also
    makes for better isolation of inserts. See
-   `Zone2sql <migration.rst#zone2sql>`__.
+   `Zone2sql <../migration.rst#zone2sql>`__.
 -  **pdns\_control** now has the ability to purge the PowerDNS cache or
    parts of it. This enables operators to raise the TTL of the Packet
    Cache to huge values and only to invalidate the cache when changes
@@ -5879,7 +5298,7 @@ Version 1.99.12 Prerelease
 --------------------------
 
 The Windows release! See `Installing on Microsoft
-Windows <authoritative/installation.md>`__. Beware, windows support is
+Windows <../installation.rst>`__. Beware, windows support is
 still very fresh and untested. Feedback is very welcome.
 
 Developers: this version is compatible with 1.99.11 backends.
@@ -5887,9 +5306,8 @@ Developers: this version is compatible with 1.99.11 backends.
 -  Windows 2000 code base merge completed. This resulted in quite some
    changes on the Unix end of things, so this may impact reliability.
 -  ODBC backend added for Windows. See `ODBC
-   backend <authoritative/backend-deprecated.md#odbc-backend>`__.
--  IBM DB2 Universal Database backend available for Linux. See `DB2
-   backend <authoritative/backend-deprecated.md#db2-backend>`__.
+   backend <../backends/generic-odbc.rst>`__.
+-  IBM DB2 Universal Database backend available for Linux.
 -  Zone2sql now understands $INCLUDE. Thanks to Amaze Internet for
    nagging about this
 -  The SOA Minimum TTL now has a configurable default
@@ -5901,7 +5319,7 @@ Bugs fixed
 ^^^^^^^^^^
 
 -  When operating in virtual hosting mode (See `Virtual
-   hosting <authoritative/running.md#virtual-hosting>`__), the
+   hosting <../running.rst#virtual-hosting>`__), the
    additional init.d scripts would not function correctly and interface
    with other pdns instances.
 -  PowerDNS neglected to conserve case on answers. So a query for
@@ -5909,7 +5327,7 @@ Bugs fixed
    www.powerdns.com. While this did not confuse resolvers, it is better
    to conserve case. This has semantic consequences for all backends,
    which the documentation now spells out.
--  PostgreSQL backend was case sensitive and returned only answers in
+-  PostgreSQL backend was case-sensitive and returned only answers in
    case an exact match was found. The Generic PostgreSQL backend is now
    officially all lower case and zone2sql in PostgreSQL mode enforces
    this. Documentation has been updated to reflect the case change.
@@ -5925,7 +5343,7 @@ Features
 ^^^^^^^^
 
 -  pdns\_control (see
-   `pdns\_control <running.rst#pdnscontrol>`__) now opens
+   `pdns\_control <../running.rst#pdnscontrol>`__) now opens
    the local end of its socket in ``/tmp`` instead of next to the remote
    socket (by default ``/var/run``). This eases the way for allowing
    non-root access to pdns\_control. When running chrooted (see
@@ -5991,14 +5409,14 @@ Features
    of changes and allowing slaves to AXFR. Big rewording of replication
    support, domains are now either 'native', 'master' or 'slave'. See
    `Master/Slave operation &
-   replication <authoritative/modes-of-operation.md>`__ for lots of
+   replication <../modes-of-operation.rst>`__ for lots of
    details.
 -  **Zone2sql** in PostgreSQL mode now populates the 'domains' table for
    easy master, slave or native replication support.
 -  Ability to run on IPv6 transport only
 -  Logging can now happen under a 'facility' so all PowerDNS messages
    appear in their own file. See `Operational logging using
-   syslog <common/logging.md>`__.
+   syslog <../running.rst>`__.
 -  Different OS releases of PowerDNS now get different install path
    defaults. Thanks to Mark Lastdrager for nagging about this and to
    Nero Imhard and Frederique Rijsdijk for suggesting saner defaults.
@@ -6037,13 +5455,13 @@ Features
    using the **local-ipv6** setting.
 -  Very silly randombackend added which appears in the documentation as
    a sample backend. See `Backend writers'
-   guide <appendix/backend-writers-guide.md>`__.
+   guide <../appendices/backend-writers-guide.rst>`__.
 -  When transferring a slave zone from a master, out of zone data is now
    rejected. Malicious operators might try to insert bad records
    otherwise.
 -  'Supermaster' support for automatic provisioning from masters. See
    `Supermaster automatic provisioning of
-   slaves <authoritative/modes-of-operation.md#supermaster>`__.
+   slaves <../modes-of-operation.rst#supermaster>`__.
 -  Recursing backend can now live on a non-standard (!=53) port. See
    `Recursion <../guides/recursion.rst>`__.
 -  Slave zone retrieval is now queued instead of immediate, which scales
@@ -6058,7 +5476,7 @@ Internal
    generate them in special ways. PostgreSQL backend does so when
    operating as a slave.
 -  Writing backends is now a lot easier. See `Backend writers'
-   guide <appendix/backend-writers-guide.md>`__.
+   guide <../appendices/backend-writers-guide.rst>`__.
 -  Added Bindbackend to internal regression tests, confirming that it is
    compliant.
 
@@ -6095,7 +5513,7 @@ Feature enhancements
 
 -  Recursing backend. See `Recursion <../guides/recursion.rst>`__.
    Allows recursive and authoritative DNS on the same IP address.
--  `NAPTR support <appendices/types.rst#naptr>`__, which is especially useful for
+-  `NAPTR support <../appendices/types.rst#naptr>`__, which is especially useful for
    the ENUM/E.164 community.
 -  Zone transfers can now be allowed per `netmask instead of only per IP
    address <../settings.rst#allow-axfr-ips>`__.
@@ -6326,7 +5744,7 @@ Feature enhancements
    prefix.
 -  zone2sql now accepts a ^^zone-name parameter
 -  BindBackend maturing - 9500 zones parsed in 3.5 seconds. No longer
-   case sensitive.
+   case-sensitive.
 
 Performance enhancements
 ^^^^^^^^^^^^^^^^^^^^^^^^

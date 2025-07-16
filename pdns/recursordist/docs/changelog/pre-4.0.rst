@@ -98,65 +98,65 @@ Aki Tuomi delivered a lot of love. Thanks!
 Minor changes:
 
 -  Removal of dead code here and there
-   04dc6d618734fc630122de4c56dff641ebaf0988
+   `commit 04dc6d618734fc630122de4c56dff641ebaf0988 <https://github.com/PowerDNS/pdns/commit/04dc6d618734fc630122de4c56dff641ebaf0988>`__
 -  Per-qtype response counters are now 64 bit
-   297bb6acf7902068693a4aae1443c424d0e8dd52 on 64 bit systems
+   `commit 297bb6acf7902068693a4aae1443c424d0e8dd52 <https://github.com/PowerDNS/pdns/commit/297bb6acf7902068693a4aae1443c424d0e8dd52>`__ on 64 bit systems
 -  Add IPv6 addresses for b and c.root-servers.net hints
-   efc2595423c9a1be6f2d8f4da25445198ceb8b57
+   `commit efc2595423c9a1be6f2d8f4da25445198ceb8b57 <https://github.com/PowerDNS/pdns/commit/efc2595423c9a1be6f2d8f4da25445198ceb8b57>`__
 -  Add IP address to logging about terminated queries
-   37aa9904d1cc967ba4b5d5e17dbe41485f8cdece
--  Improve qtype name logging fab3ed3453e15ae88e29a0e4071b214eb19caad9
+   `commit 37aa9904d1cc967ba4b5d5e17dbe41485f8cdece <https://github.com/PowerDNS/pdns/commit/37aa9904d1cc967ba4b5d5e17dbe41485f8cdece>`__
+-  Improve qtype name logging `commit fab3ed3453e15ae88e29a0e4071b214eb19caad9 <https://github.com/PowerDNS/pdns/commit/fab3ed3453e15ae88e29a0e4071b214eb19caad9>`__
    (Aki Tuomi)
 -  Redefine 'BAD\_NETS' for dont-query based on newer IANA guidance
-   12cd44ee0fcde5893f85dccc499bfc35152c5fff (lochiiconnectivity)
+   `commit 12cd44ee0fcde5893f85dccc499bfc35152c5fff <https://github.com/PowerDNS/pdns/commit/12cd44ee0fcde5893f85dccc499bfc35152c5fff>`__ (lochiiconnectivity)
 -  Add documentation links to systemd unit
-   eb154adfdffa5c78624e2ea98e938d7b5787119e (Ruben Kerkhof)
+   `commit eb154adfdffa5c78624e2ea98e938d7b5787119e <https://github.com/PowerDNS/pdns/commit/eb154adfdffa5c78624e2ea98e938d7b5787119e>`__ (Ruben Kerkhof)
 
 Improvements:
 
 -  Upgrade embedded PolarSSL to 1.3.9:
-   d330a2ea1a93d7675ef680311f8aa0306aeefcf1
--  yahttp upgrade c290975778942ed1082ca66918695a5bd2d6bac4
-   c65a57e888ee48eaa948e590c90c51420bffa847 (Aki Tuomi)
+   `commit d330a2ea1a93d7675ef680311f8aa0306aeefcf1 <https://github.com/PowerDNS/pdns/commit/d330a2ea1a93d7675ef680311f8aa0306aeefcf1>`__
+-  yahttp upgrade `commit c290975778942ed1082ca66918695a5bd2d6bac4 <https://github.com/PowerDNS/pdns/commit/c290975778942ed1082ca66918695a5bd2d6bac4>`__
+   `commit c65a57e888ee48eaa948e590c90c51420bffa847 <https://github.com/PowerDNS/pdns/commit/c65a57e888ee48eaa948e590c90c51420bffa847>`__ (Aki Tuomi)
 -  Replace . in hostnames by - for Carbon so as not to confuse Metronome
-   46541751ed1c3bc051d78217543d5fc76733e212
+   `commit 46541751ed1c3bc051d78217543d5fc76733e212 <https://github.com/PowerDNS/pdns/commit/46541751ed1c3bc051d78217543d5fc76733e212>`__
 -  Manpages got a lot of love and are now built from Markdown (Pieter
    Lexis)
--  Move to PolarSSL base64 488360551009784ab35c43ee4580e773a2a8a227
+-  Move to PolarSSL base64 `commit 488360551009784ab35c43ee4580e773a2a8a227 <https://github.com/PowerDNS/pdns/commit/488360551009784ab35c43ee4580e773a2a8a227>`__
    (Kees Monshouwer)
 -  The quiet=no query logging is now more informative
-   461df9d20c560d240285f772c09b3beb89d46daa
+   `commit 461df9d20c560d240285f772c09b3beb89d46daa <https://github.com/PowerDNS/pdns/commit/461df9d20c560d240285f772c09b3beb89d46daa>`__
 -  We can finally bind to 0.0.0.0 and :: and guarantee answers from the
-   correct source b71b60ee73ef3c86f80a2179981eda2e61c4363f
+   correct source `commit b71b60ee73ef3c86f80a2179981eda2e61c4363f <https://github.com/PowerDNS/pdns/commit/b71b60ee73ef3c86f80a2179981eda2e61c4363f>`__
 -  We use per-packet timestamps to drop ancient traffic in case of
-   overload b71b60ee73ef3c86f80a2179981eda2e61c4363f, non-Linux
-   portability in d63f0d83631c41eff203d30b0b7c475a88f1db59
+   overload `commit b71b60ee73ef3c86f80a2179981eda2e61c4363f <https://github.com/PowerDNS/pdns/commit/b71b60ee73ef3c86f80a2179981eda2e61c4363f>`__, non-Linux
+   portability in `commit d63f0d83631c41eff203d30b0b7c475a88f1db59 <https://github.com/PowerDNS/pdns/commit/d63f0d83631c41eff203d30b0b7c475a88f1db59>`__
 -  Builtin webserver can be queried with the API key in the URL again
-   c89f8cd022c4a9409b95d22ffa3b03e4e98dc400
+   `commit c89f8cd022c4a9409b95d22ffa3b03e4e98dc400 <https://github.com/PowerDNS/pdns/commit/c89f8cd022c4a9409b95d22ffa3b03e4e98dc400>`__
 -  Ringbuffers are now available via API
-   c89f8cd022c4a9409b95d22ffa3b03e4e98dc400
--  Lua 5.3 compatibility 59c6fc3e3931ca87d484337daee512e716bc4cf4 (Kees
+   `commit c89f8cd022c4a9409b95d22ffa3b03e4e98dc400 <https://github.com/PowerDNS/pdns/commit/c89f8cd022c4a9409b95d22ffa3b03e4e98dc400>`__
+-  Lua 5.3 compatibility `commit 59c6fc3e3931ca87d484337daee512e716bc4cf4 <https://github.com/PowerDNS/pdns/commit/59c6fc3e3931ca87d484337daee512e716bc4cf4>`__ (Kees
    Monshouwer)
 -  No longer leave a stale UNIX domain socket around from rec\_control
-   if the recursor was down 524e4f4d81f4ed9eb218715cbc8a59f0b9868234,
+   if the recursor was down `commit 524e4f4d81f4ed9eb218715cbc8a59f0b9868234 <https://github.com/PowerDNS/pdns/commit/524e4f4d81f4ed9eb218715cbc8a59f0b9868234>`__,
    ticket #2061
 -  Running with 'quiet=no' would strangely actually prevent debug
-   messages from being logged f48d7b657ec32517f8bfcada3bfe6353ca313314
+   messages from being logged `commit f48d7b657ec32517f8bfcada3bfe6353ca313314 <https://github.com/PowerDNS/pdns/commit/f48d7b657ec32517f8bfcada3bfe6353ca313314>`__
 -  Webserver now implements CORS for the API
-   ea89a97e864c43c1cb03f2959ad04c4ebe7580ad, fixing ticket #1984
+   `commit ea89a97e864c43c1cb03f2959ad04c4ebe7580ad <https://github.com/PowerDNS/pdns/commit/ea89a97e864c43c1cb03f2959ad04c4ebe7580ad>`__, fixing ticket #1984
 -  Housekeeping thread would sometimes run multiple times simultaneously,
-   which worked, but was odd cc59bce675e62e2b9657b42614ce8be3312cae82
+   which worked, but was odd `commit cc59bce675e62e2b9657b42614ce8be3312cae82 <https://github.com/PowerDNS/pdns/commit/cc59bce675e62e2b9657b42614ce8be3312cae82>`__
 
 New features:
 
 -  New ``root-nx-trust`` flag makes PowerDNS generalize NXDOMAIN
    responses from the root-servers
-   01402d56846a3a61811ebd4e6bc97e53f908e568
+   `commit 01402d56846a3a61811ebd4e6bc97e53f908e568 <https://github.com/PowerDNS/pdns/commit/01402d56846a3a61811ebd4e6bc97e53f908e568>`__
 -  ``getregisteredname()`` for Lua, which turns 'www.bbc.co.uk' into
-   'bbc.co.uk' 8cd4851beb78bc6ab320926fb5cb6a09282016b1
--  Lua preoutquery filter 3457a2a0ec41d3b3aff7640f30008788e1228a6e
+   'bbc.co.uk' `commit 8cd4851beb78bc6ab320926fb5cb6a09282016b1 <https://github.com/PowerDNS/pdns/commit/8cd4851beb78bc6ab320926fb5cb6a09282016b1>`__
+-  Lua preoutquery filter `commit 3457a2a0ec41d3b3aff7640f30008788e1228a6e <https://github.com/PowerDNS/pdns/commit/3457a2a0ec41d3b3aff7640f30008788e1228a6e>`__
 -  Lua IP-based filter (ipfilter) before parsing packets
-   4ea949413c495254acb0bd19335142761c1efc0c
+   `commit 4ea949413c495254acb0bd19335142761c1efc0c <https://github.com/PowerDNS/pdns/commit/4ea949413c495254acb0bd19335142761c1efc0c>`__
 -  ``iputils`` class for Lua, to quickly process IP addresses and
    netmasks in their native format
 -  ``getregisteredname`` function for Lua, to find the registered domain
@@ -167,62 +167,62 @@ New features:
 Speedups:
 
 -  Remove unneeded malloc traffic
-   93d4a89096e64d53740790f58fadec56f6a0af14
-   8682c32bc45b6ffa7c0f6da778e1b223ae7f03ce
-   a903b39cfe7364c56324038264d3db50b8cece87
+   `commit 93d4a89096e64d53740790f58fadec56f6a0af14 <https://github.com/PowerDNS/pdns/commit/93d4a89096e64d53740790f58fadec56f6a0af14>`__
+   `commit 8682c32bc45b6ffa7c0f6da778e1b223ae7f03ce <https://github.com/PowerDNS/pdns/commit/8682c32bc45b6ffa7c0f6da778e1b223ae7f03ce>`__
+   `commit a903b39cfe7364c56324038264d3db50b8cece87 <https://github.com/PowerDNS/pdns/commit/a903b39cfe7364c56324038264d3db50b8cece87>`__
 -  Our nameserver-loop detection carried around a lot of baggage for
    complex domain names, plus did not differentiate IPv4 and IPv6 well
-   enough 891fbf888ccac074e3edc38864641ca774f2f03c
+   enough `commit 891fbf888ccac074e3edc38864641ca774f2f03c <https://github.com/PowerDNS/pdns/commit/891fbf888ccac074e3edc38864641ca774f2f03c>`__
 -  Prioritize new queries over nameserver responses, improving latency
-   under query bursts bf3b0cec366c090af000b066267b6f6bbb3a512a
+   under query bursts `commit bf3b0cec366c090af000b066267b6f6bbb3a512a <https://github.com/PowerDNS/pdns/commit/bf3b0cec366c090af000b066267b6f6bbb3a512a>`__
 -  Remove escaping in case there was nothing to escape
-   83b746fd1d94c8742d8bd87a44beb44c154230c7
+   `commit 83b746fd1d94c8742d8bd87a44beb44c154230c7 <https://github.com/PowerDNS/pdns/commit/83b746fd1d94c8742d8bd87a44beb44c154230c7>`__
 -  Our logging infrastructure had a lot of locking
-   d1449e4d073595e1e1581804f121fc90e37158bf
+   `commit d1449e4d073595e1e1581804f121fc90e37158bf <https://github.com/PowerDNS/pdns/commit/d1449e4d073595e1e1581804f121fc90e37158bf>`__
 -  Reduce logging level of certain common messages, which locked up
    synchronously logging systems
-   854d44e31c76aa650520e6d462dd3a02b5936f7a
+   `commit 854d44e31c76aa650520e6d462dd3a02b5936f7a <https://github.com/PowerDNS/pdns/commit/854d44e31c76aa650520e6d462dd3a02b5936f7a>`__
 -  Add limit on total wall-clock time spent on a query
-   9de3e0340fa066d4c59449e1643a1de8c343f8f2
+   `commit 9de3e0340fa066d4c59449e1643a1de8c343f8f2 <https://github.com/PowerDNS/pdns/commit/9de3e0340fa066d4c59449e1643a1de8c343f8f2>`__
 -  Packet cache is now case-insensitive, which increases hitrate
-   90974597aadaf1096e3fd0dc450be7422ea591a5
+   `commit 90974597aadaf1096e3fd0dc450be7422ea591a5 <https://github.com/PowerDNS/pdns/commit/90974597aadaf1096e3fd0dc450be7422ea591a5>`__
 
 Security relevant:
 
 -  Check for PIE, RELRO and stack protector during configure
-   8d0354b189c12e1e14f5309d3b49935c17f9eeb0 (Aki Tuomi)
+   `commit 8d0354b189c12e1e14f5309d3b49935c17f9eeb0 <https://github.com/PowerDNS/pdns/commit/8d0354b189c12e1e14f5309d3b49935c17f9eeb0>`__ (Aki Tuomi)
 -  Testing for support of PIE etc was improved in
-   b2053c28ccb9609e2ce7bcb6beda83f98a062aa3 and beyond, fixes #2125
+   `commit b2053c28ccb9609e2ce7bcb6beda83f98a062aa3 <https://github.com/PowerDNS/pdns/commit/b2053c28ccb9609e2ce7bcb6beda83f98a062aa3>`__ and beyond, fixes #2125
    (Ruben Kerkhof)
 -  Max query-per-query limit (max-qperq) is now configurable
-   173d790ead08f67733010ca4c6fc404a040fe699
+   `commit 173d790ead08f67733010ca4c6fc404a040fe699 <https://github.com/PowerDNS/pdns/commit/173d790ead08f67733010ca4c6fc404a040fe699>`__
 
 Bugs fixed:
 
 -  IPv6 outgoing queries had a disproportionate effect on our query
-   load. Fixed in 76f190f2a0877cd79ede2994124c1a58dc69ae49 and beyond.
+   load. Fixed in `commit 76f190f2a0877cd79ede2994124c1a58dc69ae49 <https://github.com/PowerDNS/pdns/commit/76f190f2a0877cd79ede2994124c1a58dc69ae49>`__ and beyond.
 -  rec\_control gave incorrect output on a timeout
-   12997e9d800734da51b808767e1e2477244c30eb
+   `commit 12997e9d800734da51b808767e1e2477244c30eb <https://github.com/PowerDNS/pdns/commit/12997e9d800734da51b808767e1e2477244c30eb>`__
 -  When using the webserver AND having an error in the Lua script,
    recursor could crash during startup
-   62f0ae62984adadab687c23fe1b287c1f219b2cb
+   `commit 62f0ae62984adadab687c23fe1b287c1f219b2cb <https://github.com/PowerDNS/pdns/commit/62f0ae62984adadab687c23fe1b287c1f219b2cb>`__
 -  Hugely long version strings would trip up security polling
-   18b7333828a1275ae5f5574a9c8330290d8557ff (Kees Monshouwer)
+   `commit 18b7333828a1275ae5f5574a9c8330290d8557ff <https://github.com/PowerDNS/pdns/commit/18b7333828a1275ae5f5574a9c8330290d8557ff>`__ (Kees Monshouwer)
 -  The 'remotes' ringbuffer was sized incorrectly
-   f8f243b01215d6adcb59389f09ef494f1309041f
+   `commit f8f243b01215d6adcb59389f09ef494f1309041f <https://github.com/PowerDNS/pdns/commit/f8f243b01215d6adcb59389f09ef494f1309041f>`__
 -  Cache sizes had an off-by-one scaling problem, with the wrong number
    of entries allocated per thread
-   f8f243b01215d6adcb59389f09ef494f1309041f
+   `commit f8f243b01215d6adcb59389f09ef494f1309041f <https://github.com/PowerDNS/pdns/commit/f8f243b01215d6adcb59389f09ef494f1309041f>`__
 -  Our automatic file descriptor limit raising was attempted *after*
    setuid, which made it a lot less effective. Found and fixed by Aki
-   Tuomi a6414fdce9b0ec32c340d1f2eea2254f3fedc1c1
+   Tuomi `commit a6414fdce9b0ec32c340d1f2eea2254f3fedc1c1 <https://github.com/PowerDNS/pdns/commit/a6414fdce9b0ec32c340d1f2eea2254f3fedc1c1>`__
 -  Timestamps used for dropping packets were occasionally wrong
-   183eb8774e4bc2569f06d5894fec65740f4b70b6 and
-   4c4765c104bacc146533217bcc843efb244a8086 (RC2) with thanks to
+   `commit 183eb8774e4bc2569f06d5894fec65740f4b70b6 <https://github.com/PowerDNS/pdns/commit/183eb8774e4bc2569f06d5894fec65740f4b70b6>`__ and
+   `commit 4c4765c104bacc146533217bcc843efb244a8086 <https://github.com/PowerDNS/pdns/commit/4c4765c104bacc146533217bcc843efb244a8086>`__ (RC2) with thanks to
    Winfried for debugging.
 -  In RC1, our new DoS protection measures would crash the Recursor if
    too many root servers were unreachable.
-   6a6fb05ad81c519b4002ed1db00f3ed9b7bce6b4. Debugging and testing by
+   `commit 6a6fb05ad81c519b4002ed1db00f3ed9b7bce6b4 <https://github.com/PowerDNS/pdns/commit/6a6fb05ad81c519b4002ed1db00f3ed9b7bce6b4>`__. Debugging and testing by
    Fusl.
 
 Various other documentation changes by Chris Hofstaedtler and Ruben
@@ -247,7 +247,7 @@ A list of changes since 3.6.1 follows.
    PowerDNS now polls the security status of a release at startup and
    periodically. More detail on this feature, and how to turn it off,
    can be found in `Security
-   polling <common/security.md#security-polling>`__.
+   polling <../common/secpoll.rst>`__.
 -  `commit 5027429 <https://github.com/PowerDNS/pdns/commit/5027429>`__:
    We did not transmit the right 'local' socket address to Lua for
    TCP/IP queries in the recursor. In addition, we would attempt to
@@ -270,7 +270,7 @@ Released on the 10th of September 2014.
 
 PowerDNS Recursor 3.6.0 could crash with a specific sequence of packets.
 For more details, see `the
-advisory <security/powerdns-advisory-2014-01.md>`__. PowerDNS Recursor
+advisory <../security-advisories/powerdns-advisory-2014-01.rst>`__. PowerDNS Recursor
 3.6.1 was very well tested, and is in full production already, so it
 should be a safe upgrade.
 
@@ -296,7 +296,7 @@ fixes a few minor issues and adds a debugging feature:
    to our existing carbon-server and carbon-ourname settings, but now at
    runtime. This specific invocation will make your stats appear
    automatically on our `public telemetry
-   server <http://xs.powerdns.com/metronome/?server=pdns.xs.recursor&beginTime=-3600>`__.
+   server <https://metronome.powerdns.com/?server=dnsdist.pdns-public-ns1_powerdns_com.main&beginTime=-3600>`__.
 
 PowerDNS Recursor version 3.6.0
 -------------------------------
@@ -484,7 +484,7 @@ Downloads
 
 -  `Official download page <https://www.powerdns.com/downloads.html>`__
 -  `native RHEL5/6 packages from Kees
-   Monshouwer <http://www.monshouwer.eu/download/3rd_party/pdns-recursor/>`__
+   Monshouwer <https://www.monshouwer.eu/download/3rd_party/pdns-recursor/>`__
 
 Changes since 3.5.2
 ^^^^^^^^^^^^^^^^^^^
@@ -521,7 +521,7 @@ Downloads
 
 -  `Official download page <https://www.powerdns.com/downloads.html>`__
 -  `native RHEL5/6 packages from Kees
-   Monshouwer <http://www.monshouwer.eu/download/3rd_party/pdns-recursor/>`__
+   Monshouwer <https://www.monshouwer.eu/download/3rd_party/pdns-recursor/>`__
 
 Changes since 3.5.1
 ^^^^^^^^^^^^^^^^^^^
@@ -550,7 +550,7 @@ Downloads
 
 -  `Official download page <https://www.powerdns.com/downloads.html>`__
 -  `native RHEL5/6 packages from Kees
-   Monshouwer <http://www.monshouwer.eu/download/3rd_party/pdns-recursor/>`__
+   Monshouwer <https://www.monshouwer.eu/download/3rd_party/pdns-recursor/>`__
 
 Changes since 3.5
 ^^^^^^^^^^^^^^^^^
@@ -586,7 +586,7 @@ Downloads
 
 -  `Official download page <https://www.powerdns.com/downloads.html>`__
 -  `native RHEL5/6 packages from Kees
-   Monshouwer <http://www.monshouwer.eu/download/3rd_party/pdns-recursor/>`__
+   Monshouwer <https://www.monshouwer.eu/download/3rd_party/pdns-recursor/>`__
 
 Changes between RC5 and the final 3.5 release
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -647,12 +647,12 @@ Changes between RC1 and RC2
 -  While Recursor 3.3 was not vulnerable to the specific attack noted in
    'Ghost Domain Names: Revoked Yet Still Resolvable' (more information
    at `A New DNS Exploitation Technique: Ghost Domain
-   Names <http://resources.infosecinstitute.com/ghost-domain-names/>`__),
+   Names <https://www.infosecinstitute.com/resources/hacking/ghost-domain-names/>`__),
    further investigation showed that a variant of the attack could work.
    This was fixed in `commit
    3085 <http://wiki.powerdns.com/projects/trac/changeset/3085>`__. This
    should also close the slightly bogus
-   `CVE-2012-1193 <http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2012-1193>`__.
+   `CVE-2012-1193 <https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2012-1193>`__.
    Closes `ticket 668 <https://github.com/PowerDNS/pdns/issues/668>`__.
 -  The auth-can-lower-ttl flag was removed, as it did not have any
    effect in most situations, and thus did not operate as advertised. We
@@ -884,7 +884,7 @@ Improvements
    selection. Suggested by Darren Gamble, implemented with help from
    Niels Bakker. Change in `commit
    1620 <http://wiki.powerdns.com/projects/trac/changeset/1620>`__.
--  Solaris on x86 has a long standing bug in port\_getn(), which we now
+-  Solaris on x86 has a long-standing bug in port\_getn(), which we now
    work around. Spotted by 'Dirk' and 'AS'. Solution suggested by the
    Apache runtime library, update in `commit
    1622 <http://wiki.powerdns.com/projects/trac/changeset/1622>`__.
@@ -959,7 +959,7 @@ Released on the 7th of March 2010.
 
 **Warning**: Lua scripts from version 3.1.7.\* are fully compatible with
 version 3.2. However, scripts written for development snapshot releases,
-are NOT. Please see `Scripting <recursor/scripting.md>`__ for details!
+are NOT. Please see `Scripting <../lua-scripting/index.rst>`__ for details!
 
 The 3.2 release is the first major release of the PowerDNS Recursor in a
 long time. Partly this is because 3.1.7.\* functioned very well, and
@@ -1366,7 +1366,7 @@ It is hoped that the addition of Lua scripting will enable responsible
 DNS modification for those that need it.
 
 For more details about the Lua scripting, which can be modified, loaded
-and unloaded at runtime, see `Scripting <recursor/scripting.md>`__. Many
+and unloaded at runtime, see `Scripting <../lua-scripting/index.rst>`__. Many
 thanks are due to the #lua irc channel, for excellent near-realtime Lua
 support. In addition, a number of PowerDNS users have been
 enthusiastically testing prereleases of the scripting support, and have
@@ -1430,7 +1430,7 @@ enough to justify a quick upgrade.
    DNS-hierarchy, like 'juniper.net'.
 
    This issue was fixed rapidly because of the help of
-   `XS4ALL <http://www.xs4all.nl>`__ (Eric Veldhuyzen, Kai Storbeck),
+   `XS4ALL <https://www.xs4all.nl>`__ (Eric Veldhuyzen, Kai Storbeck),
    Brad Dameron and Kees Monshouwer. Fix in `commit
    1178 <http://wiki.powerdns.com/projects/trac/changeset/1178>`__.
 
@@ -1463,7 +1463,7 @@ vulnerability to our attention which would enable a smart attacker to
 possibly malicious data.
 
 Details can be found on `this Trusteer
-page <http://www.trusteer.com/docs/powerdnsrecursor.html>`__.
+page <https://web.archive.org/web/20120107014921/https://www.trusteer.com/list-context/publications/powerdns-recursor-dns-cache-poisoning>`__.
 
 It is recommended that all users of the PowerDNS Recursor upgrade to
 3.1.5 as soon as practicable, while we simultaneously note that busy
@@ -1501,8 +1501,7 @@ Security related issues
 -  The Recursor will by default no longer query private-space
    nameservers. This closes a slight security risk and simultaneously
    improves performance and stability. For more information, see
-   **dont-query** in `pdns\_recursor
-   settings <recursor/settings.md#dont-query>`__. Implemented in `commit
+   **dont-query** in :ref:`setting-dont-query`. Implemented in `commit
    923 <http://wiki.powerdns.com/projects/trac/changeset/923>`__.
 -  Applied fix for `ticket
    110 <https://github.com/PowerDNS/pdns/issues/110>`__ ('PowerDNS
@@ -2065,8 +2064,7 @@ Improvements
 Recursor version 3.0.1
 ----------------------
 
-Released 25th of April 2006,
-`download <http://www.powerdns.com/en/downloads.aspx>`__.
+Released 25th of April 2006.
 
 This release consists of nothing but tiny fixes to 3.0, including one
 with security implications. An upgrade is highly recommended.
@@ -2119,8 +2117,7 @@ Operating system specific fixes
 Recursor version 3.0
 --------------------
 
-Released 20th of April 2006,
-`download <http://www.powerdns.com/en/downloads.aspx>`__.
+Released 20th of April 2006.
 
 This is the first separate release of the PowerDNS Recursor. There are
 many reasons for this, one of the most important ones is that previously
@@ -2147,7 +2144,7 @@ PowerDNS, as it is a Better Internet Nameserver Daemon.
 
 Some more information, based on a previous version of PowerDNS, can be
 found on the `PowerDNS development
-blog <http://blog.netherlabs.nl/articles/2006/04/14/holy-cow-1-3-million-additional-ip-addresses-served-by-powerdns>`__.
+blog <https://blog.netherlabs.nl/articles/2006/04/14/holy-cow-1-3-million-additional-ip-addresses-served-by-powerdns>`__.
 
 **Warning**: Because of recent DNS based denial of service attacks,
 running an open recursor has become a security risk. Therefore, unless
@@ -2156,8 +2153,7 @@ localhost, which means it does not resolve for hosts on your network. To
 fix, configure the **local-address** setting with all addresses you want
 to listen on. Additionally, by default service is restricted to RFC 1918
 private IP addresses. Use **allow-from** to selectively open up the
-recursor for your own network. See `pdns\_recursor
-settings <recursor/settings.md#allow-from>`__ for details.
+recursor for your own network. See :ref:`setting-allow-from` for details.
 
 Important new features of the PowerDNS recursor 3.0
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -2166,11 +2162,11 @@ Important new features of the PowerDNS recursor 3.0
    spoofing made harder by using a new network address for each query,
    PowerDNS detects when an attempt is made to spoof it, and temporarily
    ignores the data. For details, see
-   `Anti-spoofing <recursor/security.md>`__.
+   `Anti-spoofing <../security.rst>`__.
 -  First nameserver to benefit from epoll/kqueue/Solaris completion
    ports event reporting framework, for stellar performance.
 -  Best statistics of any recursing nameserver we know of, see
-   `Statistics <recursor/stats.md>`__.
+   `Statistics <../metrics.rst>`__.
 -  Last-recently-used based cache cleanup algorithm, keeping the 'best'
    records in memory
 -  First class Solaris support, built on a 'try and buy' Sun CoolThreads
@@ -2178,10 +2174,10 @@ Important new features of the PowerDNS recursor 3.0
 -  Full IPv6 support, implemented natively.
 -  Access filtering, both for IPv4 and IPv6.
 -  Experimental SMP support for nearly double performance. See `PowerDNS
-   Recursor performance <recursor/performance.md>`__.
+   Recursor performance <../performance.rst>`__.
 
 Many people helped package and test this release. Jorn Ekkelenkamp of
 ISP-Services helped find the '8000 SOAs' bug and spotted many other
-oddities and `XS4ALL <http://www.xs4all.nl>`__ internet funded a lot of
+oddities and `XS4ALL <https://www.xs4all.nl>`__ internet funded a lot of
 the recent development. Joaquín M López Muñoz of the
 boost::multi\_index\_container was again of great help.

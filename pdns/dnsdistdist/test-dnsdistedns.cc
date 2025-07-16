@@ -135,8 +135,8 @@ BOOST_AUTO_TEST_CASE(getExtendedDNSError)
       .extraText = "Synthesized from aggressive NSEC cache"};
     opts.emplace_back(EDNSOptionCode::EXTENDEDERROR, makeEDNSExtendedErrorOptString(ede));
     EDNSSubnetOpts ecsOpt;
-    ecsOpt.source = Netmask(ComboAddress("192.0.2.1"), 24U);
-    const auto ecsOptStr = makeEDNSSubnetOptsString(ecsOpt);
+    ecsOpt.setSource(Netmask(ComboAddress("192.0.2.1"), 24U));
+    const auto ecsOptStr = ecsOpt.makeOptString();
     opts.emplace_back(EDNSOptionCode::ECS, ecsOptStr);
     pw.addOpt(512, 0, 0, opts);
     pw.commit();
@@ -155,8 +155,8 @@ BOOST_AUTO_TEST_CASE(getExtendedDNSError)
     pw.getHeader()->rd = 1;
     GenericDNSPacketWriter<PacketBuffer>::optvect_t opts;
     EDNSSubnetOpts ecsOpt;
-    ecsOpt.source = Netmask(ComboAddress("192.0.2.1"), 24U);
-    const auto ecsOptStr = makeEDNSSubnetOptsString(ecsOpt);
+    ecsOpt.setSource(Netmask(ComboAddress("192.0.2.1"), 24U));
+    const auto ecsOptStr = ecsOpt.makeOptString();
     opts.emplace_back(EDNSOptionCode::ECS, ecsOptStr);
     const EDNSExtendedError ede{
       .infoCode = static_cast<uint16_t>(EDNSExtendedError::code::Synthesized),

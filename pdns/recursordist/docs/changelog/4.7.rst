@@ -277,7 +277,7 @@ Changelogs for 4.7.X
     :tags: Improvements
     :pullreq: 11443
 
-    Remember parent NS set, to be able to fallback to it if needed.
+    Remember parent NS set, to be able to fall back to it if needed.
 
   .. change::
     :tags: Improvements

@@ -36,7 +36,7 @@
 class FrameStreamLogger : public RemoteLoggerInterface
 {
 public:
-  FrameStreamLogger(int family, std::string address, bool connect, const std::unordered_map<string, unsigned>& options = std::unordered_map<string, unsigned>());
+  FrameStreamLogger(int family, std::string address, bool connect, const std::unordered_map<string, unsigned int>& options = std::unordered_map<string, unsigned int>());
   FrameStreamLogger(const FrameStreamLogger&) = delete;
   FrameStreamLogger(FrameStreamLogger&&) = delete;
   FrameStreamLogger& operator=(const FrameStreamLogger&) = delete;
@@ -63,7 +63,7 @@ public:
   {
     return Stats{.d_queued = d_framesSent,
                  .d_pipeFull = d_queueFullDrops,
-                 .d_tooLarge = 0,
+                 .d_tooLarge = d_tooLargeCount,
                  .d_otherError = d_permanentFailures};
   }
 
@@ -81,6 +81,7 @@ private:
   struct fstrm_iothr* d_iothr{nullptr};
   std::atomic<uint64_t> d_framesSent{0};
   std::atomic<uint64_t> d_queueFullDrops{0};
+  std::atomic<uint64_t> d_tooLargeCount{0};
   std::atomic<uint64_t> d_permanentFailures{0};
 
   void cleanup();

@@ -39,7 +39,7 @@ bind-domain-extended-status [*ZONE*...]
 
 Output an extended status of all zones, containing much more information than
 the simple zone status, like the number of records currently loaded, whether pdns
-is primary or secondary for the zone, the list of primaries, various timers, etc
+is primary or secondary for the zone, the list of primaries, various timers, etc.
 Optionally, append *ZONE*\ s to get the status of specific zones.
 
 bind-domain-status [*ZONE*...]
@@ -66,7 +66,7 @@ Show the content of the cache.
 current-config [diff]
 ^^^^^^^^^^^^^^^^^^^^^
 
-Show the currently running configuration. The output has the same format as ``pdns_server --config``. With the diff option only modified options are included in the output.
+Show the currently running configuration. The output has the same format as ``pdns_server --config``. With the diff option, only modified options are included in the output.
 
 cycle
 ^^^^^
@@ -118,10 +118,10 @@ specified the entire cache is purged.
 qtypes
 ^^^^^^
 
-Get a count of queries per qtype on standard out.
+Get a count of queries per qtype on standard output.
 
-quit
-^^^^
+quit or stop
+^^^^^^^^^^^^
 
 Tell a running pdns\_server to quit.
 

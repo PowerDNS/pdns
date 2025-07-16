@@ -258,7 +258,7 @@ Changelogs for 4.5.X
     :tags: Bug Fixes
     :pullreq: 10519
 
-    Make sure that we pass the SOA along the NSEC(3) proof for DS queries.
+    Make sure that we pass the SOA along the NSEC/NSEC3 proof for DS queries.
 
 .. changelog::
   :version: 4.5.2

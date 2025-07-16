@@ -1,5 +1,8 @@
 === random=no
 == creating zone
+WARNING: local files have been created as a result of this operation.
+Be sure to check the files owner, group and permission to make sure that
+the authoritative server can correctly use them.
 Set 'example.com' meta FOO = BAR
 	FOO	BAR
 FOO
@@ -16,6 +19,9 @@ FOO2
 == deleting zone
 === random=yes
 == creating zone
+WARNING: local files have been created as a result of this operation.
+Be sure to check the files owner, group and permission to make sure that
+the authoritative server can correctly use them.
 Set 'example.com' meta FOO = BAR
 	FOO	BAR
 FOO

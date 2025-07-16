@@ -24,13 +24,28 @@ class AuthTest(AssertEqualDNSMessageMixin, unittest.TestCase):
     _confdir = 'auth'
     _authPort = 5300
 
+    _backend = os.getenv("AUTH_BACKEND", "bind")
+    _backend_variants = bool(int(os.getenv("AUTH_BACKEND_VARIANTS", 0)))
+
+    _backend_configs = dict(
+        bind="""
+bind-config={confdir}/named.conf
+bind-dnssec-db={bind_dnssec_db}
+zone-cache-refresh-interval=0
+""",
+        lmdb="""
+views
+zone-cache-refresh-interval=1
+""",
+        gsqlite3="""
+zone-cache-refresh-interval=0
+""")
+
     _config_params = []
 
     _config_template_default = """
-module-dir=../regression-tests/modules
+module-dir={PDNS_MODULE_DIR}
 daemon=no
-bind-config={confdir}/named.conf
-bind-dnssec-db={bind_dnssec_db}
 socket-dir={confdir}
 cache-ttl=0
 negquery-cache-ttl=0
@@ -69,13 +84,22 @@ PrivateKey: Lt0v0Gol3pRUFM7fDdcy0IWN0O/MnEmVPA+VylL8Y4U=
         """,
     }
 
-    _auth_cmd = ['authbind',
-                 os.environ['PDNS']]
+    _auth_cmd = [os.environ['PDNS']]
+    if sys.platform != 'darwin':
+        _auth_cmd = ['authbind'] + _auth_cmd
+
     _auth_env = {}
     _auths = {}
 
     _PREFIX = os.environ['PREFIX']
+    _PDNS_MODULE_DIR = os.environ['PDNS_MODULE_DIR']
 
+    @classmethod
+    def maybeAddVariant(cls, zone):
+        if cls._backend_variants and cls._backend == 'lmdb':
+            return zone + "..variant"
+        else:
+            return zone
 
     @classmethod
     def createConfigDir(cls, confdir):
@@ -114,23 +138,33 @@ options {
         params = tuple([getattr(cls, param) for param in cls._config_params])
 
         with open(os.path.join(confdir, 'pdns.conf'), 'w') as pdnsconf:
-            pdnsconf.write(cls._config_template_default.format(
-                confdir=confdir, prefix=cls._PREFIX,
-                bind_dnssec_db=bind_dnssec_db))
-            pdnsconf.write(cls._config_template % params)
+            args = dict(backend=cls._backend,
+                        confdir=confdir,
+                        prefix=cls._PREFIX,
+                        bind_dnssec_db=bind_dnssec_db,
+                        PDNS_MODULE_DIR=cls._PDNS_MODULE_DIR
+                        )
 
-        os.system("sqlite3 ./configs/auth/powerdns.sqlite < ../modules/gsqlite3backend/schema.sqlite3.sql")
+            pdnsconf.write((cls._config_template_default + cls._backend_configs[cls._backend]).format(**args))
+            pdnsconf.write(cls._config_template.format(**args) % params)
 
-        pdnsutilCmd = [os.environ['PDNSUTIL'],
-                       '--config-dir=%s' % confdir,
-                       'create-bind-db',
-                       bind_dnssec_db]
+        if cls._backend == 'gsqlite3':
+            os.system("sqlite3 ./configs/auth/powerdns.sqlite < ../modules/gsqlite3backend/schema.sqlite3.sql")
 
-        print(' '.join(pdnsutilCmd))
-        try:
-            subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
-        except subprocess.CalledProcessError as e:
-            raise AssertionError('%s failed (%d): %s' % (pdnsutilCmd, e.returncode, e.output))
+        if cls._backend == 'lmdb':
+            os.system("rm -f pdns.lmdb*")
+
+        if cls._backend == 'bind':
+            pdnsutilCmd = [os.environ['PDNSUTIL'],
+                           '--config-dir=%s' % confdir,
+                           'create-bind-db',
+                           bind_dnssec_db]
+
+            print(' '.join(pdnsutilCmd))
+            try:
+                subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
+            except subprocess.CalledProcessError as e:
+                raise AssertionError('%s failed (%d): %s' % (pdnsutilCmd, e.returncode, e.output))
 
     @classmethod
     def secureZone(cls, confdir, zonename, key=None):
@@ -139,7 +173,7 @@ options {
             pdnsutilCmd = [os.environ['PDNSUTIL'],
                            '--config-dir=%s' % confdir,
                            'secure-zone',
-                           zone]
+                           cls.maybeAddVariant(zone)]
         else:
             keyfile = os.path.join(confdir, 'dnssec.key')
             with open(keyfile, 'w') as fdKeyfile:
@@ -148,7 +182,7 @@ options {
             pdnsutilCmd = [os.environ['PDNSUTIL'],
                            '--config-dir=%s' % confdir,
                            'import-zone-key',
-                           zone,
+                           cls.maybeAddVariant(zone),
                            keyfile,
                            'active',
                            'ksk']
@@ -162,14 +196,65 @@ options {
     @classmethod
     def generateAllAuthConfig(cls, confdir):
         cls.generateAuthConfig(confdir)
-        cls.generateAuthNamedConf(confdir, cls._zones.keys())
 
-        for zonename, zonecontent in cls._zones.items():
-            cls.generateAuthZone(confdir,
-                                 zonename,
-                                 zonecontent)
-            if cls._zone_keys.get(zonename, None):
-                cls.secureZone(confdir, zonename, cls._zone_keys.get(zonename))
+        if cls._backend == 'bind':
+            cls.generateAuthNamedConf(confdir, cls._zones.keys())
+
+            for zonename, zonecontent in cls._zones.items():
+                cls.generateAuthZone(confdir,
+                                     zonename,
+                                     zonecontent)
+                if cls._zone_keys.get(zonename, None):
+                    cls.secureZone(confdir, zonename, cls._zone_keys.get(zonename))
+        elif cls._backend == 'lmdb':
+            for zonename, zonecontent in cls._zones.items():
+                cls.generateAuthZone(confdir,
+                                     zonename,
+                                     zonecontent)
+                pdnsutilCmd = [os.environ['PDNSUTIL'],
+                               '--config-dir=%s' % confdir,
+                               'load-zone',
+                               cls.maybeAddVariant(zonename),
+                               os.path.join(confdir, '%s.zone' % zonename)]
+
+                print(' '.join(pdnsutilCmd))
+                try:
+                    subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
+                except subprocess.CalledProcessError as e:
+                    raise AssertionError('%s failed (%d): %s' % (pdnsutilCmd, e.returncode, e.output))
+
+                if cls._zone_keys.get(zonename, None):
+                    cls.secureZone(confdir, zonename, cls._zone_keys.get(zonename))
+
+                pdnsutilCmd = [os.environ['PDNSUTIL'],
+                               '--config-dir=%s' % confdir,
+                               'view-add-zone',
+                               'one-view',
+                               cls.maybeAddVariant(zonename)]
+                print(' '.join(pdnsutilCmd))
+                try:
+                    subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
+                except subprocess.CalledProcessError as e:
+                    raise AssertionError('%s failed (%d): %s' % (pdnsutilCmd, e.returncode, e.output))
+
+            for net in ['0.0.0.0/0', '::/0']:
+                pdnsutilCmd = [os.environ['PDNSUTIL'],
+                               '--config-dir=%s' % confdir,
+                               'set-network',
+                               net,
+                               'one-view']
+                print(' '.join(pdnsutilCmd))
+                try:
+                    subprocess.check_output(pdnsutilCmd, stderr=subprocess.STDOUT)
+                except subprocess.CalledProcessError as e:
+                    raise AssertionError('%s failed (%d): %s' % (pdnsutilCmd, e.returncode, e.output))
+
+        elif cls._backend == 'gsqlite3':
+            # this is not a supported config from the user, but some of the test_*.py files use gsqlite3
+            return
+        else:
+            raise RuntimeError("unknown backend " + cls._backend + " specified")
+
 
     @classmethod
     def waitForTCPSocket(cls, ipaddress, port):
@@ -194,7 +279,6 @@ options {
         authcmd.append('--local-address=%s' % ipaddress)
         authcmd.append('--local-port=%s' % cls._authPort)
         authcmd.append('--loglevel=9')
-        authcmd.append('--zone-cache-refresh-interval=0')
         print(' '.join(authcmd))
         logFile = os.path.join(confdir, 'pdns.log')
         with open(logFile, 'w') as fdLog:
@@ -243,10 +327,6 @@ options {
     @classmethod
     def tearDownResponders(cls):
         pass
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tearDownAuth()
 
     @classmethod
     def killProcess(cls, p):
@@ -435,7 +515,7 @@ options {
                 self.assertEqual(ans, rrset, "'%s' != '%s'" % (ans.to_text(), rrset.to_text()))
                 found = True
 
-        if not found :
+        if not found:
             raise AssertionError("RRset not found in answer\n\n%s" % ret)
 
     def assertRRsetInAdditional(self, msg, rrset):
@@ -459,7 +539,7 @@ options {
                 self.assertEqual(ans, rrset, "'%s' != '%s'" % (ans.to_text(), rrset.to_text()))
                 found = True
 
-        if not found :
+        if not found:
             raise AssertionError("RRset not found in answer\n\n%s" % ret)
 
     def sortRRsets(self, rrsets):
@@ -490,6 +570,29 @@ options {
 
         if not found:
             raise AssertionError("RRset not found in answer\n%s" %
+                                 "\n".join(([ans.to_text() for ans in msg.answer])))
+
+    def assertNoneRRsetInAnswer(self, msg, rrsets):
+        """Asserts that none of the supplied rrsets exist (without comparing TTL)
+        in the answer section of msg
+
+        @param msg: the dns.message.Message to check
+        @param rrsets: an array of dns.rrset.RRset object"""
+
+        if not isinstance(msg, dns.message.Message):
+            raise TypeError("msg is not a dns.message.Message")
+
+        found = False
+        for rrset in rrsets:
+            if not isinstance(rrset, dns.rrset.RRset):
+                raise TypeError("rrset is not a dns.rrset.RRset")
+            for ans in msg.answer:
+                if ans.match(rrset.name, rrset.rdclass, rrset.rdtype, 0, None):
+                    if ans == rrset:
+                        found = True
+
+        if found:
+            raise AssertionError("RRset incorrectly found in answer\n%s" %
                                  "\n".join(([ans.to_text() for ans in msg.answer])))
 
     def assertMatchingRRSIGInAnswer(self, msg, coveredRRset, keys=None):

@@ -108,7 +108,11 @@ public:
   Logger& operator<<(const char* s);
   Logger& operator<<(const string& s); //!< log a string
   Logger& operator<<(const DNSName&);
+#if defined(PDNS_AUTH)
+  Logger& operator<<(const ZoneName&);
+#endif
   Logger& operator<<(const ComboAddress&); //!< log an address
+  Logger& operator<<(const SockaddrWrapper&); //!< log an address
   Logger& operator<<(Urgency); //!< set the urgency, << style
 
   Logger& operator<<(const QType& qtype)
@@ -138,11 +142,8 @@ public:
 private:
   struct PerThread
   {
-    PerThread() :
-      d_urgency(Info)
-    {}
     string d_output;
-    Urgency d_urgency;
+    Urgency d_urgency{Info};
   };
   PerThread& getPerThread();
   void open();
@@ -151,10 +152,10 @@ private:
   string name;
   int flags;
   int d_facility;
-  Urgency d_loglevel;
-  Urgency consoleUrgency;
-  bool opened;
-  bool d_disableSyslog;
+  Urgency d_loglevel{Logger::None};
+  Urgency consoleUrgency{Error};
+  bool opened{false};
+  bool d_disableSyslog{false};
   bool d_timestamps{true};
   bool d_prefixed{false}; // this used to prefix the loglevel, but now causes formatting like structured logging
 };

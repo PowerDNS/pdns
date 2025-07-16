@@ -49,7 +49,7 @@ To fix: how to remove the stale entries that will surely accumulate
 class DNSProxy
 {
 public:
-  DNSProxy(const string& remote); //!< creates socket
+  DNSProxy(const string& remote, const string& udpPortRange); //!< creates socket
   ~DNSProxy(); //<! dtor for DNSProxy
   void go(); //!< launches the actual thread
   bool completePacket(std::unique_ptr<DNSPacket>& reply, const DNSName& target, const DNSName& aname, uint8_t scopeMask);

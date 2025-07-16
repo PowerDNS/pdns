@@ -32,15 +32,15 @@
 #include "validate-recursor.hh"
 #include "filterpo.hh"
 
-#include "secpoll-recursor.hh"
+#include "secpoll-recursor.hh" // IWYU pragma: keep, needed by included generated file
 #include "pubsuffix.hh"
 #include "namespaces.hh"
 #include "rec-taskqueue.hh"
-#include "rec-tcpout.hh"
+#include "rec-tcpout.hh" // IWYU pragma: keep, needed by included generated file
 #include "rec-main.hh"
 #include "rec-system-resolve.hh"
 
-#include "settings/cxxsettings.hh"
+#include "rec-rust-lib/cxxsettings.hh"
 
 /* g++ defines __SANITIZE_THREAD__
    clang++ supports the nice __has_feature(thread_sanitizer),
@@ -90,7 +90,6 @@ bool PrefixDashNumberCompare::operator()(const std::string& a, const std::string
   return aa < bb;
 }
 
-static map<string, const uint32_t*> d_get32bitpointers;
 static map<string, const pdns::stat_t*> d_getatomics;
 static map<string, std::function<uint64_t()>> d_get64bitmembers;
 static map<string, std::function<StatsMap()>> d_getmultimembers;
@@ -125,24 +124,28 @@ void disableStats(StatComponent component, const string& stats)
   }
 }
 
-static void addGetStat(const string& name, const uint32_t* place)
-{
-  d_get32bitpointers[name] = place;
-}
-
 static void addGetStat(const string& name, const pdns::stat_t* place)
 {
-  d_getatomics[name] = place;
+  if (!d_getatomics.emplace(name, place).second) {
+    cerr << "addGetStat: double def " << name << endl;
+    _exit(1);
+  }
 }
 
-static void addGetStat(const string& name, std::function<uint64_t()> f)
+static void addGetStat(const string& name, std::function<uint64_t()> func)
 {
-  d_get64bitmembers[name] = std::move(f);
+  if (!d_get64bitmembers.emplace(name, std::move(func)).second) {
+    cerr << "addGetStat: double def " << name << endl;
+    _exit(1);
+  }
 }
 
-static void addGetStat(const string& name, std::function<StatsMap()> f)
+static void addGetStat(const string& name, std::function<StatsMap()> func)
 {
-  d_getmultimembers[name] = std::move(f);
+  if (!d_getmultimembers.emplace(name, std::move(func)).second) {
+    cerr << "addGetStat: double def " << name << endl;
+    _exit(1);
+  }
 }
 
 static std::string getPrometheusName(const std::string& arg)
@@ -178,12 +181,12 @@ static std::optional<uint64_t> get(const string& name)
 {
   std::optional<uint64_t> ret;
 
-  if (d_get32bitpointers.count(name))
-    return *d_get32bitpointers.find(name)->second;
-  if (d_getatomics.count(name))
+  if (d_getatomics.count(name) != 0) {
     return d_getatomics.find(name)->second->load();
-  if (d_get64bitmembers.count(name))
+  }
+  if (d_get64bitmembers.count(name) != 0) {
     return d_get64bitmembers.find(name)->second();
+  }
 
   {
     auto dm = d_dynmetrics.lock();
@@ -214,11 +217,6 @@ StatsMap getAllStatsMap(StatComponent component)
   StatsMap ret;
   const auto& disabledlistMap = s_disabledStats.at(component);
 
-  for (const auto& the32bits : d_get32bitpointers) {
-    if (disabledlistMap.count(the32bits.first) == 0) {
-      ret.emplace(the32bits.first, StatsMapEntry{getPrometheusName(the32bits.first), std::to_string(*the32bits.second)});
-    }
-  }
   for (const auto& atomic : d_getatomics) {
     if (disabledlistMap.count(atomic.first) == 0) {
       ret.emplace(atomic.first, StatsMapEntry{getPrometheusName(atomic.first), std::to_string(atomic.second->load())});
@@ -971,7 +969,7 @@ static uint64_t doGetThreadCPUMsec(int n)
   static time_t last = 0;
   static ThreadTimes tt;
 
-  std::lock_guard<std::mutex> l(s_mut);
+  auto lock = std::scoped_lock(s_mut);
   if (last != time(nullptr)) {
     tt = broadcastAccFunction<ThreadTimes>(pleaseGetThreadCPUMsec);
     last = time(nullptr);
@@ -1313,261 +1311,7 @@ static time_t s_startupTime = time(nullptr);
 
 static void registerAllStats1()
 {
-  addGetStat("questions", [] { return g_Counters.sum(rec::Counter::qcounter); });
-  addGetStat("ipv6-questions", [] { return g_Counters.sum(rec::Counter::ipv6qcounter); });
-  addGetStat("tcp-questions", [] { return g_Counters.sum(rec::Counter::tcpqcounter); });
-
-  addGetStat("cache-hits", []() { return g_recCache->getCacheHits(); });
-  addGetStat("cache-misses", []() { return g_recCache->getCacheMisses(); });
-  addGetStat("cache-entries", doGetCacheSize);
-  addGetStat("max-cache-entries", []() { return g_maxCacheEntries.load(); });
-  addGetStat("max-packetcache-entries", []() { return g_maxPacketCacheEntries.load(); });
-  addGetStat("cache-bytes", doGetCacheBytes);
-  addGetStat("record-cache-contended", []() { return g_recCache->stats().first; });
-  addGetStat("record-cache-acquired", []() { return g_recCache->stats().second; });
-
-  addGetStat("packetcache-hits", [] { return g_packetCache ? g_packetCache->getHits() : 0; });
-  addGetStat("packetcache-misses", [] { return g_packetCache ? g_packetCache->getMisses() : 0; });
-  addGetStat("packetcache-entries", [] { return g_packetCache ? g_packetCache->size() : 0; });
-  addGetStat("packetcache-bytes", [] { return g_packetCache ? g_packetCache->bytes() : 0; });
-  addGetStat("packetcache-contended", []() { return g_packetCache ? g_packetCache->stats().first : 0; });
-  addGetStat("packetcache-acquired", []() { return g_packetCache ? g_packetCache->stats().second : 0; });
-
-  addGetStat("aggressive-nsec-cache-entries", []() { return g_aggressiveNSECCache ? g_aggressiveNSECCache->getEntriesCount() : 0; });
-  addGetStat("aggressive-nsec-cache-nsec-hits", []() { return g_aggressiveNSECCache ? g_aggressiveNSECCache->getNSECHits() : 0; });
-  addGetStat("aggressive-nsec-cache-nsec3-hits", []() { return g_aggressiveNSECCache ? g_aggressiveNSECCache->getNSEC3Hits() : 0; });
-  addGetStat("aggressive-nsec-cache-nsec-wc-hits", []() { return g_aggressiveNSECCache ? g_aggressiveNSECCache->getNSECWildcardHits() : 0; });
-  addGetStat("aggressive-nsec-cache-nsec3-wc-hits", []() { return g_aggressiveNSECCache ? g_aggressiveNSECCache->getNSEC3WildcardHits() : 0; });
-
-  addGetStat("malloc-bytes", doGetMallocated);
-
-  addGetStat("servfail-answers", [] { return g_Counters.sum(rec::Counter::servFails); });
-  addGetStat("nxdomain-answers", [] { return g_Counters.sum(rec::Counter::nxDomains); });
-  addGetStat("noerror-answers", [] { return g_Counters.sum(rec::Counter::noErrors); });
-
-  addGetStat("unauthorized-udp", [] { return g_Counters.sum(rec::Counter::unauthorizedUDP); });
-  addGetStat("unauthorized-tcp", [] { return g_Counters.sum(rec::Counter::unauthorizedTCP); });
-  addGetStat("source-disallowed-notify", [] { return g_Counters.sum(rec::Counter::sourceDisallowedNotify); });
-  addGetStat("zone-disallowed-notify", [] { return g_Counters.sum(rec::Counter::zoneDisallowedNotify); });
-  addGetStat("tcp-client-overflow", [] { return g_Counters.sum(rec::Counter::tcpClientOverflow); });
-
-  addGetStat("client-parse-errors", [] { return g_Counters.sum(rec::Counter::clientParseError); });
-  addGetStat("server-parse-errors", [] { return g_Counters.sum(rec::Counter::serverParseError); });
-  addGetStat("too-old-drops", [] { return g_Counters.sum(rec::Counter::tooOldDrops); });
-  addGetStat("truncated-drops", [] { return g_Counters.sum(rec::Counter::truncatedDrops); });
-  addGetStat("query-pipe-full-drops", [] { return g_Counters.sum(rec::Counter::queryPipeFullDrops); });
-
-  addGetStat("answers0-1", []() { return g_Counters.sum(rec::Histogram::answers).getCount(0); });
-  addGetStat("answers1-10", []() { return g_Counters.sum(rec::Histogram::answers).getCount(1); });
-  addGetStat("answers10-100", []() { return g_Counters.sum(rec::Histogram::answers).getCount(2); });
-  addGetStat("answers100-1000", []() { return g_Counters.sum(rec::Histogram::answers).getCount(3); });
-  addGetStat("answers-slow", []() { return g_Counters.sum(rec::Histogram::answers).getCount(4); });
-
-  addGetStat("x-ourtime0-1", []() { return g_Counters.sum(rec::Histogram::ourtime).getCount(0); });
-  addGetStat("x-ourtime1-2", []() { return g_Counters.sum(rec::Histogram::ourtime).getCount(1); });
-  addGetStat("x-ourtime2-4", []() { return g_Counters.sum(rec::Histogram::ourtime).getCount(2); });
-  addGetStat("x-ourtime4-8", []() { return g_Counters.sum(rec::Histogram::ourtime).getCount(3); });
-  addGetStat("x-ourtime8-16", []() { return g_Counters.sum(rec::Histogram::ourtime).getCount(4); });
-  addGetStat("x-ourtime16-32", []() { return g_Counters.sum(rec::Histogram::ourtime).getCount(5); });
-  addGetStat("x-ourtime-slow", []() { return g_Counters.sum(rec::Histogram::ourtime).getCount(6); });
-
-  addGetStat("auth4-answers0-1", []() { return g_Counters.sum(rec::Histogram::auth4Answers).getCount(0); });
-  addGetStat("auth4-answers1-10", []() { return g_Counters.sum(rec::Histogram::auth4Answers).getCount(1); });
-  addGetStat("auth4-answers10-100", []() { return g_Counters.sum(rec::Histogram::auth4Answers).getCount(2); });
-  addGetStat("auth4-answers100-1000", []() { return g_Counters.sum(rec::Histogram::auth4Answers).getCount(3); });
-  addGetStat("auth4-answers-slow", []() { return g_Counters.sum(rec::Histogram::auth4Answers).getCount(4); });
-
-  addGetStat("auth6-answers0-1", []() { return g_Counters.sum(rec::Histogram::auth6Answers).getCount(0); });
-  addGetStat("auth6-answers1-10", []() { return g_Counters.sum(rec::Histogram::auth6Answers).getCount(1); });
-  addGetStat("auth6-answers10-100", []() { return g_Counters.sum(rec::Histogram::auth6Answers).getCount(2); });
-  addGetStat("auth6-answers100-1000", []() { return g_Counters.sum(rec::Histogram::auth6Answers).getCount(3); });
-  addGetStat("auth6-answers-slow", []() { return g_Counters.sum(rec::Histogram::auth6Answers).getCount(4); });
-
-  addGetStat("qa-latency", []() { return round(g_Counters.avg(rec::DoubleWAvgCounter::avgLatencyUsec)); });
-  addGetStat("x-our-latency", []() { return round(g_Counters.avg(rec::DoubleWAvgCounter::avgLatencyOursUsec)); });
-  addGetStat("unexpected-packets", [] { return g_Counters.sum(rec::Counter::unexpectedCount); });
-  addGetStat("case-mismatches", [] { return g_Counters.sum(rec::Counter::caseMismatchCount); });
-  addGetStat("spoof-prevents", [] { return g_Counters.sum(rec::Counter::spoofCount); });
-
-  addGetStat("nsset-invalidations", [] { return g_Counters.sum(rec::Counter::nsSetInvalidations); });
-
-  addGetStat("resource-limits", [] { return g_Counters.sum(rec::Counter::resourceLimits); });
-  addGetStat("over-capacity-drops", [] { return g_Counters.sum(rec::Counter::overCapacityDrops); });
-  addGetStat("policy-drops", [] { return g_Counters.sum(rec::Counter::policyDrops); });
-  addGetStat("no-packet-error", [] { return g_Counters.sum(rec::Counter::noPacketError); });
-  addGetStat("ignored-packets", [] { return g_Counters.sum(rec::Counter::ignoredCount); });
-  addGetStat("empty-queries", [] { return g_Counters.sum(rec::Counter::emptyQueriesCount); });
-  addGetStat("max-mthread-stack", [] { return g_Counters.max(rec::Counter::maxMThreadStackUsage); });
-
-  addGetStat("negcache-entries", getNegCacheSize);
-  addGetStat("throttle-entries", SyncRes::getThrottledServersSize);
-
-  addGetStat("nsspeeds-entries", SyncRes::getNSSpeedsSize);
-  addGetStat("failed-host-entries", SyncRes::getFailedServersSize);
-  addGetStat("non-resolving-nameserver-entries", SyncRes::getNonResolvingNSSize);
-
-  addGetStat("concurrent-queries", getConcurrentQueries);
-  addGetStat("security-status", &g_security_status);
-  addGetStat("outgoing-timeouts", [] { return g_Counters.sum(rec::Counter::outgoingtimeouts); });
-  addGetStat("outgoing4-timeouts", [] { return g_Counters.sum(rec::Counter::outgoing4timeouts); });
-  addGetStat("outgoing6-timeouts", [] { return g_Counters.sum(rec::Counter::outgoing6timeouts); });
-  addGetStat("auth-zone-queries", [] { return g_Counters.sum(rec::Counter::authzonequeries); });
-  addGetStat("tcp-outqueries", [] { return g_Counters.sum(rec::Counter::tcpoutqueries); });
-  addGetStat("dot-outqueries", [] { return g_Counters.sum(rec::Counter::dotoutqueries); });
-  addGetStat("all-outqueries", [] { return g_Counters.sum(rec::Counter::outqueries); });
-  addGetStat("ipv6-outqueries", [] { return g_Counters.sum(rec::Counter::ipv6queries); });
-  addGetStat("throttled-outqueries", [] { return g_Counters.sum(rec::Counter::throttledqueries); });
-  addGetStat("dont-outqueries", [] { return g_Counters.sum(rec::Counter::dontqueries); });
-  addGetStat("qname-min-fallback-success", [] { return g_Counters.sum(rec::Counter::qnameminfallbacksuccess); });
-  addGetStat("throttled-out", [] { return g_Counters.sum(rec::Counter::throttledqueries); });
-  addGetStat("unreachables", [] { return g_Counters.sum(rec::Counter::unreachables); });
-  addGetStat("ecs-queries", &SyncRes::s_ecsqueries);
-  addGetStat("ecs-responses", &SyncRes::s_ecsresponses);
-  addGetStat("chain-resends", [] { return g_Counters.sum(rec::Counter::chainResends); });
-  addGetStat("tcp-clients", [] { return TCPConnection::getCurrentConnections(); });
-
-#ifdef __linux__
-  addGetStat("udp-recvbuf-errors", [] { return udpErrorStats("udp-recvbuf-errors"); });
-  addGetStat("udp-sndbuf-errors", [] { return udpErrorStats("udp-sndbuf-errors"); });
-  addGetStat("udp-noport-errors", [] { return udpErrorStats("udp-noport-errors"); });
-  addGetStat("udp-in-errors", [] { return udpErrorStats("udp-in-errors"); });
-  addGetStat("udp-in-csum-errors", [] { return udpErrorStats("udp-in-csum-errors"); });
-  addGetStat("udp6-recvbuf-errors", [] { return udp6ErrorStats("udp6-recvbuf-errors"); });
-  addGetStat("udp6-sndbuf-errors", [] { return udp6ErrorStats("udp6-sndbuf-errors"); });
-  addGetStat("udp6-noport-errors", [] { return udp6ErrorStats("udp6-noport-errors"); });
-  addGetStat("udp6-in-errors", [] { return udp6ErrorStats("udp6-in-errors"); });
-  addGetStat("udp6-in-csum-errors", [] { return udp6ErrorStats("udp6-in-csum-errors"); });
-#endif
-
-  addGetStat("edns-ping-matches", [] { return g_Counters.sum(rec::Counter::ednsPingMatches); });
-  addGetStat("edns-ping-mismatches", [] { return g_Counters.sum(rec::Counter::ednsPingMismatches); });
-  addGetStat("dnssec-queries", [] { return g_Counters.sum(rec::Counter::dnssecQueries); });
-
-  addGetStat("dnssec-authentic-data-queries", [] { return g_Counters.sum(rec::Counter::dnssecAuthenticDataQueries); });
-  addGetStat("dnssec-check-disabled-queries", [] { return g_Counters.sum(rec::Counter::dnssecCheckDisabledQueries); });
-
-  addGetStat("variable-responses", [] { return g_Counters.sum(rec::Counter::variableResponses); });
-
-  addGetStat("noping-outqueries", [] { return g_Counters.sum(rec::Counter::noPingOutQueries); });
-  addGetStat("noedns-outqueries", [] { return g_Counters.sum(rec::Counter::noEdnsOutQueries); });
-
-  addGetStat("uptime", [] { return time(nullptr) - s_startupTime; });
-  addGetStat("real-memory-usage", [] { return getRealMemoryUsage(string()); });
-  addGetStat("special-memory-usage", [] { return getSpecialMemoryUsage(string()); });
-  addGetStat("fd-usage", [] { return getOpenFileDescriptors(string()); });
-
-  //  addGetStat("query-rate", getQueryRate);
-  addGetStat("user-msec", getUserTimeMsec);
-  addGetStat("sys-msec", getSysTimeMsec);
-
-#ifdef __linux__
-  addGetStat("cpu-iowait", [] { return getCPUIOWait(string()); });
-  addGetStat("cpu-steal", [] { return getCPUSteal(string()); });
-#endif
-
-  addGetStat("cpu-msec", []() { return toCPUStatsMap("cpu-msec"); });
-
-#ifdef MALLOC_TRACE
-  addGetStat("memory-allocs", [] { return g_mtracer->getAllocs(string()); });
-  addGetStat("memory-alloc-flux", [] { return g_mtracer->getAllocFlux(string()); });
-  addGetStat("memory-allocated", [] { return g_mtracer->getTotAllocated(string()); });
-#endif
-
-  addGetStat("dnssec-validations", [] { return g_Counters.sum(rec::Counter::dnssecValidations); });
-  addGetStat("dnssec-result-insecure", [] { return g_Counters.sum(rec::DNSSECHistogram::dnssec).at(vState::Insecure); });
-  addGetStat("dnssec-result-secure", [] { return g_Counters.sum(rec::DNSSECHistogram::dnssec).at(vState::Secure); });
-  addGetStat("dnssec-result-bogus", []() {
-    std::set<vState> const bogusStates = {vState::BogusNoValidDNSKEY, vState::BogusInvalidDenial, vState::BogusUnableToGetDSs, vState::BogusUnableToGetDNSKEYs, vState::BogusSelfSignedDS, vState::BogusNoRRSIG, vState::BogusNoValidRRSIG, vState::BogusMissingNegativeIndication, vState::BogusSignatureNotYetValid, vState::BogusSignatureExpired, vState::BogusUnsupportedDNSKEYAlgo, vState::BogusUnsupportedDSDigestType, vState::BogusNoZoneKeyBitSet, vState::BogusRevokedDNSKEY, vState::BogusInvalidDNSKEYProtocol};
-    auto counts = g_Counters.sum(rec::DNSSECHistogram::dnssec);
-    uint64_t total = 0;
-    for (const auto& state : bogusStates) {
-      total += counts.at(state);
-    }
-    return total;
-  });
-
-  addGetStat("dnssec-result-bogus-no-valid-dnskey", [] { return g_Counters.sum(rec::DNSSECHistogram::dnssec).at(vState::BogusNoValidDNSKEY); });
-  addGetStat("dnssec-result-bogus-invalid-denial", [] { return g_Counters.sum(rec::DNSSECHistogram::dnssec).at(vState::BogusInvalidDenial); });
-  addGetStat("dnssec-result-bogus-unable-to-get-dss", [] { return g_Counters.sum(rec::DNSSECHistogram::dnssec).at(vState::BogusUnableToGetDSs); });
-  addGetStat("dnssec-result-bogus-unable-to-get-dnskeys", [] { return g_Counters.sum(rec::DNSSECHistogram::dnssec).at(vState::BogusUnableToGetDNSKEYs); });
-  addGetStat("dnssec-result-bogus-self-signed-ds", [] { return g_Counters.sum(rec::DNSSECHistogram::dnssec).at(vState::BogusSelfSignedDS); });
-  addGetStat("dnssec-result-bogus-no-rrsig", [] { return g_Counters.sum(rec::DNSSECHistogram::dnssec).at(vState::BogusNoRRSIG); });
-  addGetStat("dnssec-result-bogus-no-valid-rrsig", [] { return g_Counters.sum(rec::DNSSECHistogram::dnssec).at(vState::BogusNoValidRRSIG); });
-  addGetStat("dnssec-result-bogus-missing-negative-indication", [] { return g_Counters.sum(rec::DNSSECHistogram::dnssec).at(vState::BogusMissingNegativeIndication); });
-  addGetStat("dnssec-result-bogus-signature-not-yet-valid", [] { return g_Counters.sum(rec::DNSSECHistogram::dnssec).at(vState::BogusSignatureNotYetValid); });
-  addGetStat("dnssec-result-bogus-signature-expired", [] { return g_Counters.sum(rec::DNSSECHistogram::dnssec).at(vState::BogusSignatureExpired); });
-  addGetStat("dnssec-result-bogus-unsupported-dnskey-algo", [] { return g_Counters.sum(rec::DNSSECHistogram::dnssec).at(vState::BogusUnsupportedDNSKEYAlgo); });
-  addGetStat("dnssec-result-bogus-unsupported-ds-digest-type", [] { return g_Counters.sum(rec::DNSSECHistogram::dnssec).at(vState::BogusUnsupportedDSDigestType); });
-  addGetStat("dnssec-result-bogus-no-zone-key-bit-set", [] { return g_Counters.sum(rec::DNSSECHistogram::dnssec).at(vState::BogusNoZoneKeyBitSet); });
-  addGetStat("dnssec-result-bogus-revoked-dnskey", [] { return g_Counters.sum(rec::DNSSECHistogram::dnssec).at(vState::BogusRevokedDNSKEY); });
-  addGetStat("dnssec-result-bogus-invalid-dnskey-protocol", [] { return g_Counters.sum(rec::DNSSECHistogram::dnssec).at(vState::BogusInvalidDNSKEYProtocol); });
-  addGetStat("dnssec-result-indeterminate", [] { return g_Counters.sum(rec::DNSSECHistogram::dnssec).at(vState::Indeterminate); });
-  addGetStat("dnssec-result-nta", [] { return g_Counters.sum(rec::DNSSECHistogram::dnssec).at(vState::NTA); });
-
-  if (::arg()["x-dnssec-names"].length() > 0) {
-    addGetStat("x-dnssec-result-bogus", []() {
-      std::set<vState> const bogusStates = {vState::BogusNoValidDNSKEY, vState::BogusInvalidDenial, vState::BogusUnableToGetDSs, vState::BogusUnableToGetDNSKEYs, vState::BogusSelfSignedDS, vState::BogusNoRRSIG, vState::BogusNoValidRRSIG, vState::BogusMissingNegativeIndication, vState::BogusSignatureNotYetValid, vState::BogusSignatureExpired, vState::BogusUnsupportedDNSKEYAlgo, vState::BogusUnsupportedDSDigestType, vState::BogusNoZoneKeyBitSet, vState::BogusRevokedDNSKEY, vState::BogusInvalidDNSKEYProtocol};
-      auto counts = g_Counters.sum(rec::DNSSECHistogram::xdnssec);
-      uint64_t total = 0;
-      for (const auto& state : bogusStates) {
-        total += counts.at(state);
-      }
-      return total;
-    });
-    addGetStat("x-dnssec-result-bogus-no-valid-dnskey", [] { return g_Counters.sum(rec::DNSSECHistogram::xdnssec).at(vState::BogusNoValidDNSKEY); });
-    addGetStat("x-dnssec-result-bogus-invalid-denial", [] { return g_Counters.sum(rec::DNSSECHistogram::xdnssec).at(vState::BogusInvalidDenial); });
-    addGetStat("x-dnssec-result-bogus-unable-to-get-dss", [] { return g_Counters.sum(rec::DNSSECHistogram::xdnssec).at(vState::BogusUnableToGetDSs); });
-    addGetStat("x-dnssec-result-bogus-unable-to-get-dnskeys", [] { return g_Counters.sum(rec::DNSSECHistogram::xdnssec).at(vState::BogusUnableToGetDNSKEYs); });
-    addGetStat("x-dnssec-result-bogus-self-signed-ds", [] { return g_Counters.sum(rec::DNSSECHistogram::xdnssec).at(vState::BogusSelfSignedDS); });
-    addGetStat("x-dnssec-result-bogus-no-rrsig", [] { return g_Counters.sum(rec::DNSSECHistogram::xdnssec).at(vState::BogusNoRRSIG); });
-    addGetStat("x-dnssec-result-bogus-no-valid-rrsig", [] { return g_Counters.sum(rec::DNSSECHistogram::xdnssec).at(vState::BogusNoValidRRSIG); });
-    addGetStat("x-dnssec-result-bogus-missing-negative-indication", [] { return g_Counters.sum(rec::DNSSECHistogram::xdnssec).at(vState::BogusMissingNegativeIndication); });
-    addGetStat("x-dnssec-result-bogus-signature-not-yet-valid", [] { return g_Counters.sum(rec::DNSSECHistogram::xdnssec).at(vState::BogusSignatureNotYetValid); });
-    addGetStat("x-dnssec-result-bogus-signature-expired", [] { return g_Counters.sum(rec::DNSSECHistogram::xdnssec).at(vState::BogusSignatureExpired); });
-    addGetStat("x-dnssec-result-bogus-unsupported-dnskey-algo", [] { return g_Counters.sum(rec::DNSSECHistogram::xdnssec).at(vState::BogusUnsupportedDNSKEYAlgo); });
-    addGetStat("x-dnssec-result-bogus-unsupported-ds-digest-type", [] { return g_Counters.sum(rec::DNSSECHistogram::xdnssec).at(vState::BogusUnsupportedDSDigestType); });
-    addGetStat("x-dnssec-result-bogus-no-zone-key-bit-set", [] { return g_Counters.sum(rec::DNSSECHistogram::xdnssec).at(vState::BogusNoZoneKeyBitSet); });
-    addGetStat("x-dnssec-result-bogus-revoked-dnskey", [] { return g_Counters.sum(rec::DNSSECHistogram::xdnssec).at(vState::BogusRevokedDNSKEY); });
-    addGetStat("x-dnssec-result-bogus-invalid-dnskey-protocol", [] { return g_Counters.sum(rec::DNSSECHistogram::xdnssec).at(vState::BogusInvalidDNSKEYProtocol); });
-    addGetStat("x-dnssec-result-indeterminate", [] { return g_Counters.sum(rec::DNSSECHistogram::xdnssec).at(vState::Indeterminate); });
-    addGetStat("x-dnssec-result-nta", [] { return g_Counters.sum(rec::DNSSECHistogram::xdnssec).at(vState::NTA); });
-    addGetStat("x-dnssec-result-insecure", [] { return g_Counters.sum(rec::DNSSECHistogram::xdnssec).at(vState::Insecure); });
-    addGetStat("x-dnssec-result-secure", [] { return g_Counters.sum(rec::DNSSECHistogram::xdnssec).at(vState::Secure); });
-  }
-
-  addGetStat("policy-result-noaction", [] { return g_Counters.sum(rec::PolicyHistogram::policy).at(DNSFilterEngine::PolicyKind::NoAction); });
-  addGetStat("policy-result-drop", [] { return g_Counters.sum(rec::PolicyHistogram::policy).at(DNSFilterEngine::PolicyKind::Drop); });
-  addGetStat("policy-result-nxdomain", [] { return g_Counters.sum(rec::PolicyHistogram::policy).at(DNSFilterEngine::PolicyKind::NXDOMAIN); });
-  addGetStat("policy-result-nodata", [] { return g_Counters.sum(rec::PolicyHistogram::policy).at(DNSFilterEngine::PolicyKind::NODATA); });
-  addGetStat("policy-result-truncate", [] { return g_Counters.sum(rec::PolicyHistogram::policy).at(DNSFilterEngine::PolicyKind::Truncate); });
-  addGetStat("policy-result-custom", [] { return g_Counters.sum(rec::PolicyHistogram::policy).at(DNSFilterEngine::PolicyKind::Custom); });
-
-  addGetStat("rebalanced-queries", [] { return g_Counters.sum(rec::Counter::rebalancedQueries); });
-
-  addGetStat("proxy-protocol-invalid", [] { return g_Counters.sum(rec::Counter::proxyProtocolInvalidCount); });
-
-  addGetStat("nod-lookups-dropped-oversize", [] { return g_Counters.sum(rec::Counter::nodLookupsDroppedOversize); });
-
-  addGetStat("taskqueue-pushed", []() { return getTaskPushes(); });
-  addGetStat("taskqueue-expired", []() { return getTaskExpired(); });
-  addGetStat("taskqueue-size", []() { return getTaskSize(); });
-
-  addGetStat("dns64-prefix-answers", [] { return g_Counters.sum(rec::Counter::dns64prefixanswers); });
-
-  addGetStat("almost-expired-pushed", []() { return getAlmostExpiredTasksPushed(); });
-  addGetStat("almost-expired-run", []() { return getAlmostExpiredTasksRun(); });
-  addGetStat("almost-expired-exceptions", []() { return getAlmostExpiredTaskExceptions(); });
-
-  addGetStat("idle-tcpout-connections", getCurrentIdleTCPConnections);
-
-  addGetStat("maintenance-usec", [] { return g_Counters.sum(rec::Counter::maintenanceUsec); });
-  addGetStat("maintenance-calls", [] { return g_Counters.sum(rec::Counter::maintenanceCalls); });
-
-  addGetStat("nod-events", [] { return g_Counters.sum(rec::Counter::nodCount); });
-  addGetStat("udr-events", [] { return g_Counters.sum(rec::Counter::udrCount); });
-
-  addGetStat("max-chain-length", [] { return g_Counters.max(rec::Counter::maxChainLength); });
-  addGetStat("max-chain-weight", [] { return g_Counters.max(rec::Counter::maxChainWeight); });
+#include "rec-metrics-gen.h"
 
   /* make sure that the ECS stats are properly initialized */
   SyncRes::clearECSStats();
@@ -1595,9 +1339,6 @@ static void registerAllStats1()
   addGetStat("auth-rcode-answers", []() {
     return toAuthRCodeStatsMap("auth-rcode-answers");
   });
-  addGetStat("remote-logger-count", []() {
-    return toRemoteLoggerStatsMap("remote-logger-count");
-  });
 }
 
 void registerAllStats()
@@ -1618,13 +1359,13 @@ static auto clearLuaScript()
   return doQueueReloadLuaScript(empty.begin(), empty.end());
 }
 
-void doExitGeneric(bool nicely)
+// This code SHOUD *NOT* BE CALLED BY SIGNAL HANDLERS anymore
+static void doExitGeneric(bool nicely)
 {
 #if defined(__SANITIZE_THREAD__)
   _exit(0); // regression test check for exit 0
 #endif
-  g_log << Logger::Error << "Exiting on user request" << endl;
-  g_rcc.~RecursorControlChannel();
+  g_slog->withName("runtime")->info(Logr::Notice, "Exiting on user request", "nicely", Logging::Loggable(nicely));
 
   if (!g_pidfname.empty()) {
     unlink(g_pidfname.c_str()); // we can at least try..
@@ -1632,8 +1373,16 @@ void doExitGeneric(bool nicely)
 
   if (nicely) {
     RecursorControlChannel::stop = true;
+    {
+      std::unique_lock lock(g_doneRunning.mutex);
+      g_doneRunning.condVar.wait(lock, [] { return g_doneRunning.done.load(); });
+    }
+    // g_rcc.~RecursorControlChannel() do not call, caller still needs it!
+    // Caller will continue doing the orderly shutdown
   }
   else {
+    // rec_control quit case. Is that still used by test code? bulktests and regression test use quit-nicely
+    g_rcc.~RecursorControlChannel();
 #if defined(__SANITIZE_ADDRESS__) && defined(HAVE_LEAK_SANITIZER_INTERFACE)
     clearLuaScript();
     pdns::coverage::dumpCoverageData();
@@ -1646,7 +1395,7 @@ void doExitGeneric(bool nicely)
   }
 }
 
-void doExit()
+static void doExit()
 {
   doExitGeneric(false);
 }
@@ -1758,37 +1507,35 @@ vector<ComboAddress>* pleaseGetTimeouts()
   return ret;
 }
 
-static string doGenericTopRemotes(pleaseremotefunc_t func)
+static string doGenericTopRemotes(const pleaseremotefunc_t& func)
 {
-  typedef map<ComboAddress, int, ComboAddress::addressOnlyLessThan> counts_t;
-  counts_t counts;
-
-  vector<ComboAddress> remotes = broadcastAccFunction<vector<ComboAddress>>(func);
-
-  unsigned int total = 0;
-  for (const ComboAddress& ca : remotes) {
-    total++;
-    counts[ca]++;
+  auto remotes = broadcastAccFunction<vector<ComboAddress>>(func);
+  const unsigned int total = remotes.size();
+  if (total == 0) {
+    return "No qualifying data available\n";
   }
 
-  typedef std::multimap<int, ComboAddress> rcounts_t;
-  rcounts_t rcounts;
+  std::map<ComboAddress, unsigned int, ComboAddress::addressOnlyLessThan> counts;
+  for (const auto& address : remotes) {
+    counts[address]++;
+  }
 
-  for (auto&& c : counts)
-    rcounts.emplace(-c.second, c.first);
+  std::multimap<unsigned int, ComboAddress> rcounts;
+  for (const auto& count : counts) {
+    rcounts.emplace(count.second, count.first);
+  }
 
   ostringstream ret;
   ret << "Over last " << total << " entries:\n";
   boost::format fmt("%.02f%%\t%s\n");
-  int limit = 0, accounted = 0;
-  if (total) {
-    for (rcounts_t::const_iterator i = rcounts.begin(); i != rcounts.end() && limit < 20; ++i, ++limit) {
-      ret << fmt % (-100.0 * i->first / total) % i->second.toString();
-      accounted += -i->first;
-    }
-    ret << '\n'
-        << fmt % (100.0 * (total - accounted) / total) % "rest";
+  unsigned int limit = 0;
+  unsigned int accounted = 0;
+  for (auto i = rcounts.rbegin(); i != rcounts.rend() && limit < 20; ++i, ++limit) {
+    ret << fmt % (100.0 * i->first / total) % i->second.toString();
+    accounted += i->first;
   }
+  ret << '\n'
+      << fmt % (100.0 * (total - accounted) / total) % "rest";
   return ret.str();
 }
 
@@ -1808,7 +1555,7 @@ DNSName getRegisteredName(const DNSName& dom)
   while (!parts.empty()) {
     if (parts.size() == 1 || binary_search(g_pubs.begin(), g_pubs.end(), parts)) {
 
-      string ret = last;
+      string ret = std::move(last);
       if (!ret.empty())
         ret += ".";
 
@@ -1829,37 +1576,36 @@ static DNSName nopFilter(const DNSName& name)
   return name;
 }
 
-static string doGenericTopQueries(pleasequeryfunc_t func, std::function<DNSName(const DNSName&)> filter = nopFilter)
+static string doGenericTopQueries(const pleasequeryfunc_t& func, const std::function<DNSName(const DNSName&)>& filter = nopFilter)
 {
-  typedef pair<DNSName, uint16_t> query_t;
-  typedef map<query_t, int> counts_t;
-  counts_t counts;
-  vector<query_t> queries = broadcastAccFunction<vector<query_t>>(func);
-
-  unsigned int total = 0;
-  for (const query_t& q : queries) {
-    total++;
-    counts[pair(filter(q.first), q.second)]++;
+  using query_t = pair<DNSName, uint16_t>;
+  auto queries = broadcastAccFunction<vector<query_t>>(func);
+  const unsigned int total = queries.size();
+  if (total == 0) {
+    return "No qualifying data available\n";
   }
 
-  typedef std::multimap<int, query_t> rcounts_t;
-  rcounts_t rcounts;
+  map<query_t, unsigned int> counts;
+  for (const auto& query : queries) {
+    counts[pair(filter(query.first), query.second)]++;
+  }
 
-  for (auto&& c : counts)
-    rcounts.emplace(-c.second, c.first);
+  std::multimap<unsigned int, query_t> rcounts;
+  for (const auto& count : counts) {
+    rcounts.emplace(count.second, count.first);
+  }
 
   ostringstream ret;
   ret << "Over last " << total << " entries:\n";
   boost::format fmt("%.02f%%\t%s\n");
-  int limit = 0, accounted = 0;
-  if (total) {
-    for (rcounts_t::const_iterator i = rcounts.begin(); i != rcounts.end() && limit < 20; ++i, ++limit) {
-      ret << fmt % (-100.0 * i->first / total) % (i->second.first.toLogString() + "|" + DNSRecordContent::NumberToType(i->second.second));
-      accounted += -i->first;
-    }
-    ret << '\n'
-        << fmt % (100.0 * (total - accounted) / total) % "rest";
+  unsigned int limit = 0;
+  unsigned int accounted = 0;
+  for (auto i = rcounts.rbegin(); i != rcounts.rend() && limit < 20; ++i, ++limit) {
+    ret << fmt % (100.0 * i->first / total) % (i->second.first.toLogString() + "|" + DNSRecordContent::NumberToType(i->second.second));
+    accounted += i->first;
   }
+  ret << '\n'
+      << fmt % (100.0 * (total - accounted) / total) % "rest";
 
   return ret.str();
 }
@@ -1891,7 +1637,7 @@ static string addDontThrottleNames(T begin, T end)
   while (begin != end) {
     try {
       auto d = DNSName(*begin);
-      toAdd.push_back(d);
+      toAdd.push_back(std::move(d));
     }
     catch (const std::exception& e) {
       return "Problem parsing '" + *begin + "': " + e.what() + ", nothing added\n";
@@ -2109,7 +1855,7 @@ static RecursorControlChannel::Answer help()
           "                                 remove netmasks that are not allowed to be throttled. If N is '*', remove all\n"
           "clear-nta [DOMAIN]...            Clear the Negative Trust Anchor for DOMAINs, if no DOMAIN is specified, remove all\n"
           "clear-ta [DOMAIN]...             Clear the Trust Anchor for DOMAINs\n"
-          "dump-cache <filename>            dump cache contents to the named file\n"
+          "dump-cache <filename> [type...]  dump cache contents to the named file, type is r, n, p or a\n"
           "dump-dot-probe-map <filename>    dump the contents of the DoT probe map to the named file\n"
           "dump-edns [status] <filename>    dump EDNS status to the named file\n"
           "dump-failedservers <filename>    dump the failed servers to the named file\n"
@@ -2131,14 +1877,15 @@ static RecursorControlChannel::Answer help()
           "                                 notice: queries from cache aren't being counted yet\n"
           "get-remotelogger-stats           get remote logger statistics\n"
           "hash-password [work-factor]      ask for a password then return the hashed version\n"
-          "help                             get this list\n"
+          "help                             get this list (from the running recursor)\n"
           "list-dnssec-algos                list supported DNSSEC algorithms\n"
           "ping                             check that all threads are alive\n"
           "quit                             stop the recursor daemon\n"
-          "quit-nicely                      stop the recursor daemon nicely\n"
+          "quit-nicely or stop              stop the recursor daemon nicely\n"
           "reload-acls                      reload ACLS\n"
           "reload-lua-script [filename]     (re)load Lua script\n"
-          "reload-lua-config [filename]     (re)load Lua configuration file\n"
+          "reload-yaml                      Reload runtime settable parts of YAML settings\n"
+          "reload-lua-config [filename]     (re)load Lua configuration file or equivalent YAML clauses\n"
           "reload-zones                     reload all auth and forward zones\n"
           "set-ecs-minimum-ttl value        set ecs-minimum-ttl-override\n"
           "set-max-aggr-nsec-cache-size value set new maximum aggressive NSEC cache size\n"
@@ -2147,7 +1894,7 @@ static RecursorControlChannel::Answer help()
           "set-minimum-ttl value            set minimum-ttl-override\n"
           "set-carbon-server                set a carbon server for telemetry\n"
           "set-dnssec-log-bogus SETTING     enable (SETTING=yes) or disable (SETTING=no) logging of DNSSEC validation failures\n"
-          "set-event-trace-enabled SETTING  set logging of event trace messages, 0 = disabled, 1 = protobuf, 2 = log file, 3 = both\n"
+          "set-event-trace-enabled SETTING  set logging of event trace messages, 0 = disabled, 1 = protobuf, 2 = log file, 4 = opentelemetry traces, combinations allowed by adding\n"
           "show-yaml [file]                 show yaml config derived from old-style config\n"
           "trace-regex [regex file]         emit resolution trace for matching queries (no arguments clears tracing)\n"
           "top-largeanswer-remotes          show top remotes receiving large answers\n"
@@ -2162,7 +1909,7 @@ static RecursorControlChannel::Answer help()
           "top-servfail-remotes             show top remotes receiving servfail answers\n"
           "top-bogus-remotes                show top remotes receiving bogus answers\n"
           "unload-lua-script                unload Lua script\n"
-          "version                          return Recursor version number\n"
+          "version                          return version number of running Recursor\n"
           "wipe-cache domain0 [domain1] ..  wipe domain data from cache\n"
           "wipe-cache-typed type domain0 [domain1] ..  wipe domain data with qtype from cache\n"};
 }
@@ -2175,12 +1922,15 @@ RecursorControlChannel::Answer luaconfig(bool broadcast)
   extern std::unique_ptr<ProxyMapping> g_proxyMapping;
   if (!g_luaSettingsInYAML) {
     try {
+      if (::arg()["lua-config-file"].empty()) {
+        return {0, "No Lua or corresponding YAML configuration active\n"};
+      }
       loadRecursorLuaConfig(::arg()["lua-config-file"], proxyMapping, lci);
       activateLuaConfig(lci);
       lci = g_luaconfs.getCopy();
       if (broadcast) {
-        startLuaConfigDelayedThreads(lci.rpzs, lci.generation);
-        broadcastFunction([=] { return pleaseSupplantProxyMapping(proxyMapping); });
+        startLuaConfigDelayedThreads(lci, lci.generation);
+        broadcastFunction([pmap = std::move(proxyMapping)] { return pleaseSupplantProxyMapping(pmap); });
       }
       else {
         // Initial proxy mapping
@@ -2217,7 +1967,7 @@ RecursorControlChannel::Answer luaconfig(bool broadcast)
     activateLuaConfig(lci);
     lci = g_luaconfs.getCopy();
     if (broadcast) {
-      startLuaConfigDelayedThreads(lci.rpzs, lci.generation);
+      startLuaConfigDelayedThreads(lci, lci.generation);
       broadcastFunction([pmap = std::move(proxyMapping)] { return pleaseSupplantProxyMapping(pmap); });
     }
     else {
@@ -2240,7 +1990,7 @@ static RecursorControlChannel::Answer luaconfig(T begin, T end)
 {
   if (begin != end) {
     if (g_luaSettingsInYAML) {
-      return {1, "Unable to reload Lua script from '" + ::arg()["lua-config-file"] + " as there is no active Lua configuration\n"};
+      return {1, "Unable to reload Lua script from '" + *begin + "' as there is no active Lua configuration\n"};
     }
     ::arg().set("lua-config-file") = *begin;
   }
@@ -2312,7 +2062,7 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int socket, cons
   if (cmd == "version") {
     return {0, getPDNSVersion() + "\n"};
   }
-  if (cmd == "quit-nicely") {
+  if (cmd == "quit-nicely" || cmd == "stop") {
     *command = &doExitNicely;
     return {0, "bye nicely\n"};
   }
@@ -2361,6 +2111,9 @@ RecursorControlChannel::Answer RecursorControlParser::getAnswer(int socket, cons
     return doQueueReloadLuaScript(begin, end);
   }
   if (cmd == "reload-lua-config") {
+    return luaconfig(begin, end);
+  }
+  if (cmd == "reload-yaml") {
     return luaconfig(begin, end);
   }
   if (cmd == "set-carbon-server") {

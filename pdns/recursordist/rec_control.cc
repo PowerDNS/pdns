@@ -32,7 +32,7 @@
 #include "credentials.hh"
 #include "namespaces.hh"
 #include "rec_channel.hh"
-#include "settings/cxxsettings.hh"
+#include "rec-rust-lib/cxxsettings.hh"
 #include "logger.hh"
 #include "logging.hh"
 
@@ -247,6 +247,10 @@ static RecursorControlChannel::Answer showYAML(const std::string& path)
   try {
     std::string msg;
     auto converted = pdns::settings::rec::oldStyleSettingsFileToYaml(configName, true);
+    if (converted == "{}\n") {
+      msg += "There seems to be no YAML config in " + configName;
+      return {1, std::move(msg)};
+    }
     msg += "# Start of converted recursor.yml based on " + configName + "\n";
     msg += converted;
     msg += "# Validation result: ";
@@ -444,3 +448,4 @@ int main(int argc, char** argv)
     return 1;
   }
 }
+#include "rec-web-stubs.hh"

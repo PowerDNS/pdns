@@ -12,6 +12,7 @@ import time
 import unittest
 import dns
 import dns.message
+import requests
 
 from proxyprotocol import ProxyProtocol
 
@@ -408,7 +409,7 @@ PrivateKey: Ep9uo6+wwjb4MaOmqq7LHav2FLrjotVOeZg8JT1Qk04=
     # This dict is keyed with the suffix of the IP address and its value
     # is a list of zones hosted on that IP. Note that delegations should
     # go into the _zones's zonecontent
-    _auth_zones = {
+    _default_auth_zones = {
         '8': {'threads': 1,
               'zones': ['ROOT']},
         '9': {'threads': 1,
@@ -433,6 +434,7 @@ PrivateKey: Ep9uo6+wwjb4MaOmqq7LHav2FLrjotVOeZg8JT1Qk04=
         '18': {'threads': 1,
                'zones': ['example']}
     }
+    _auth_zones = {}
     # Other IPs used:
     #  2: test_Interop.py
     #  3-7: free?
@@ -480,12 +482,12 @@ options {
         };""" % (zone, zonename))
 
     @classmethod
-    def generateAuthConfig(cls, confdir, threads):
+    def generateAuthConfig(cls, confdir, threads, extra=''):
         bind_dnssec_db = os.path.join(confdir, 'bind-dnssec.sqlite3')
 
         with open(os.path.join(confdir, 'pdns.conf'), 'w') as pdnsconf:
             pdnsconf.write("""
-module-dir=../regression-tests/modules
+module-dir={moduledir}
 launch=bind
 daemon=no
 bind-config={confdir}/named.conf
@@ -499,9 +501,12 @@ log-dns-details=yes
 loglevel=9
 enable-lua-records
 dname-processing=yes
-distributor-threads={threads}""".format(confdir=confdir,
-                                        bind_dnssec_db=bind_dnssec_db,
-                                        threads=threads))
+distributor-threads={threads}
+{extra}""".format(moduledir=os.environ['PDNSMODULEDIR'],
+                  confdir=confdir,
+                  bind_dnssec_db=bind_dnssec_db,
+                  threads=threads,
+                  extra=extra))
 
         pdnsutilCmd = [os.environ['PDNSUTIL'],
                        '--config-dir=%s' % confdir,
@@ -611,7 +616,13 @@ distributor-threads={threads}""".format(confdir=confdir,
             raise AssertionError('%s failed (%d)' % (authcmd, cls._auths[ipaddress].returncode))
 
     @classmethod
+    def checkConfdir(cls, confdir):
+        if cls.__name__ != 'FlagsTest' and os.path.basename(confdir) + 'Test' != cls.__name__:
+            raise AssertionError('conf dir ' + confdir + ' and ' + cls.__name__ + ' inconsistent with convention')
+
+    @classmethod
     def generateRecursorConfig(cls, confdir):
+        cls.checkConfdir(confdir)
         params = tuple([getattr(cls, param) for param in cls._config_params])
         if len(params):
             print(params)
@@ -645,6 +656,7 @@ distributor-threads={threads}""".format(confdir=confdir,
 
     @classmethod
     def generateRecursorYamlConfig(cls, confdir, luaConfig=True):
+        cls.checkConfdir(confdir)
         params = tuple([getattr(cls, param) for param in cls._config_params])
         if len(params):
             print(params)
@@ -691,7 +703,8 @@ distributor-threads={threads}""".format(confdir=confdir,
         recursorcmd = [os.environ['PDNSRECURSOR'],
                        '--config-dir=%s' % confdir,
                        '--local-port=%s' % port,
-                       '--security-poll-suffix=']
+                       '--security-poll-suffix=',
+                       '--enable-old-settings']
         print(' '.join(recursorcmd))
 
         logFile = os.path.join(confdir, 'recursor.log')
@@ -756,7 +769,7 @@ distributor-threads={threads}""".format(confdir=confdir,
     def killProcess(cls, p):
         # Don't try to kill it if it's already dead
         if p.poll() is not None:
-            return
+            return p
         try:
             p.terminate()
             for count in range(100): # tsan can be slow
@@ -782,8 +795,28 @@ distributor-threads={threads}""".format(confdir=confdir,
             cls.killProcess(auth);
 
     @classmethod
-    def tearDownRecursor(cls):
-        p = cls.killProcess(cls._recursor)
+    def tearDownRecursor(cls, subdir=None):
+        # We now kill the recursor in a friendly way, as systemd is doing the same.
+        if subdir is None:
+            confdir = os.path.join('configs', cls._confdir)
+        else:
+            confdir = os.path.join('configs', cls._confdir, subdir)
+        rec_controlCmd = [os.environ['RECCONTROL'],
+                          '--config-dir=%s' % confdir,
+                          '--timeout=20',
+                          'quit-nicely']
+        try:
+            subprocess.check_output(rec_controlCmd, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as e:
+            raise AssertionError('%s failed (%d): %s' % (rec_controlCmd, e.returncode, e.output))
+        # Wait for it, as the process really should have exited
+        p = cls._recursor
+        for count in range(100): # tsan can be slow
+            if p.poll() is not None:
+                break;
+            time.sleep(0.1)
+        if p.poll() is None:
+            raise AssertionError('Process did not exit on request within 10s')
         if p.returncode not in (0, -15):
             raise AssertionError('Process exited with return code %d' % (p.returncode))
 
@@ -1190,3 +1223,23 @@ distributor-threads={threads}""".format(confdir=confdir,
         if data:
             message = dns.message.from_wire(data)
         return message
+
+    def checkMetrics(self, map):
+        self.waitForTCPSocket("127.0.0.1", self._wsPort)
+        headers = {'x-api-key': self._apiKey}
+        url = 'http://127.0.0.1:' + str(self._wsPort) + '/api/v1/servers/localhost/statistics'
+        r = requests.get(url, headers=headers, timeout=self._wsTimeout)
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.json())
+        content = r.json()
+        count = 0
+        for entry in content:
+            for key, expected in map.items():
+                if entry['name'] == key:
+                    value = int(entry['value'])
+                    if callable(expected):
+                        self.assertTrue(expected(value), key + ": value " + str(value) + " is not expected")
+                    else:
+                        self.assertEqual(value, expected, key + ": value " + str(value) + " is not expected")
+                    count += 1
+        self.assertEqual(count, len(map))

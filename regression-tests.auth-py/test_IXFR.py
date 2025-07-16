@@ -59,8 +59,10 @@ xfrServerPort = 4244
 xfrServer = AXFRServer(xfrServerPort, zones)
 
 class TestIXFR(AuthTest):
+    _backend = 'gsqlite3'
+
     _config_template = """
-launch=gsqlite3 bind
+launch=gsqlite3
 gsqlite3-database=configs/auth/powerdns.sqlite
 gsqlite3-dnssec
 secondary

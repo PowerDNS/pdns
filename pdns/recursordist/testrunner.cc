@@ -28,6 +28,7 @@
 #endif
 #include <boost/test/unit_test.hpp>
 
+#include <array>
 #include <iostream>
 #include <dnsrecords.hh>
 #include <iomanip>
@@ -37,19 +38,6 @@
 #include "dns_random.hh"
 
 static std::string s_timestampFormat = "%s";
-
-static const char* toTimestampStringMilli(const struct timeval& tv, char* buf, size_t sz)
-
-{
-  struct tm tm;
-  size_t len = strftime(buf, sz, s_timestampFormat.c_str(), localtime_r(&tv.tv_sec, &tm));
-  if (len == 0) {
-    len = snprintf(buf, sz, "%lld", static_cast<long long>(tv.tv_sec));
-  }
-
-  snprintf(buf + len, sz - len, ".%03ld", static_cast<long>(tv.tv_usec) / 1000);
-  return buf;
-}
 
 static void loggerBackend(const Logging::Entry& entry)
 {
@@ -65,17 +53,17 @@ static void loggerBackend(const Logging::Entry& entry)
     buf << " subsystem=" << std::quoted(entry.name.get());
   }
   buf << " level=" << entry.level;
-  if (entry.d_priority) {
+  if (entry.d_priority != 0) {
     buf << " prio=" << static_cast<int>(entry.d_priority);
   }
-  char timebuf[64];
-  buf << " ts=" << std::quoted(toTimestampStringMilli(entry.d_timestamp, timebuf, sizeof(timebuf)));
-  for (auto const& v : entry.values) {
+  std::array<char, 64> timebuf{};
+  buf << " ts=" << std::quoted(Logging::toTimestampStringMilli(entry.d_timestamp, timebuf));
+  for (auto const& val : entry.values) {
     buf << " ";
-    buf << v.first << "=" << std::quoted(v.second);
+    buf << val.first << "=" << std::quoted(val.second);
   }
-  Logger::Urgency u = entry.d_priority ? Logger::Urgency(entry.d_priority) : Logger::Info;
-  g_log << u << buf.str() << endl;
+  Logger::Urgency urgency = entry.d_priority != 0 ? Logger::Urgency(entry.d_priority) : Logger::Info;
+  g_log << urgency << buf.str() << endl;
 }
 
 static bool init_unit_test()
@@ -92,5 +80,6 @@ static bool init_unit_test()
 // entry point:
 int main(int argc, char* argv[])
 {
+  setenv("BOOST_TEST_RANDOM", "1", 1); // NOLINT(concurrency-mt-unsafe)
   return boost::unit_test::unit_test_main(&init_unit_test, argc, argv);
 }

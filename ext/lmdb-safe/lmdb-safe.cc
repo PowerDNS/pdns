@@ -1,9 +1,11 @@
+#include "config.h"
 #include "lmdb-safe.hh"
+
 #include <fcntl.h>
 #include <mutex>
 #include <memory>
 #include <sys/stat.h>
-#include <string.h>
+#include <cstring>
 #include <map>
 
 #ifndef DNSDIST
@@ -14,11 +16,6 @@ using std::string;
 using std::runtime_error;
 using std::tuple;
 using std::weak_ptr;
-
-static string MDBError(int rc)
-{
-  return mdb_strerror(rc);
-}
 
 #ifndef DNSDIST
 
@@ -78,15 +75,37 @@ namespace LMDBLS {
 
 #endif /* #ifndef DNSDIST */
 
+std::atomic<unsigned int> MDBDbi::d_creationCount{0};
+
 MDBDbi::MDBDbi(MDB_env* /* env */, MDB_txn* txn, const string_view dbname, int flags) : d_dbi(-1)
 {
   // A transaction that uses this function must finish (either commit or abort) before any other transaction in the process may use this function.
 
-  int rc = mdb_dbi_open(txn, dbname.empty() ? 0 : &dbname[0], flags, &d_dbi);
-  if(rc)
-    throw std::runtime_error("Unable to open named database: " + MDBError(rc));
+  int ret = MDBDbi::mdb_dbi_open(txn, dbname.empty() ? nullptr : dbname.data(), flags, &d_dbi);
+  if (ret != 0) {
+    throw std::runtime_error("Unable to open named database: " + MDBError(ret));
+  }
 
   // Database names are keys in the unnamed database, and may be read but not written.
+}
+
+// This is a wrapper around the real mdb_dbi_open(), in order to track creation
+// of new files.
+int MDBDbi::mdb_dbi_open(MDB_txn* txn, const char* name, unsigned int flags, MDB_dbi* dbi)
+{
+  if ((flags & MDB_CREATE) != 0) {
+    flags &= ~MDB_CREATE;
+    int retval = ::mdb_dbi_open(txn, name, flags, dbi);
+    if (retval == MDB_NOTFOUND) {
+      flags |= MDB_CREATE;
+      retval = ::mdb_dbi_open(txn, name, flags, dbi);
+      if (retval == 0) {
+        d_creationCount++;
+      }
+    }
+    return retval;
+  }
+  return ::mdb_dbi_open(txn, name, flags, dbi);
 }
 
 MDBEnv::MDBEnv(const char* fname, int flags, int mode, uint64_t mapsizeMB)
@@ -116,37 +135,84 @@ Various other options may also need to be set before opening the handle, e.g. md
 
 void MDBEnv::incROTX()
 {
-  std::lock_guard<std::mutex> l(d_countmutex);
-  ++d_ROtransactionsOut[std::this_thread::get_id()];
+  auto threadId = std::this_thread::get_id();
+  {
+    std::shared_lock<std::shared_mutex> lock(d_countmutex);
+    if (auto transactionsIt = d_ROtransactionsOut.find(threadId); transactionsIt != d_ROtransactionsOut.end()) {
+      ++transactionsIt->second;
+      return;
+    }
+  }
+
+  {
+    std::unique_lock<std::shared_mutex> lock(d_countmutex);
+    auto [transactionsIt, inserted] = d_ROtransactionsOut.emplace(threadId, 1);
+    if (!inserted) {
+      ++transactionsIt->second;
+    }
+  }
 }
 
 void MDBEnv::decROTX()
 {
-  std::lock_guard<std::mutex> l(d_countmutex);
-  --d_ROtransactionsOut[std::this_thread::get_id()];
+  auto threadId = std::this_thread::get_id();
+  {
+    std::shared_lock<std::shared_mutex> lock(d_countmutex);
+    d_ROtransactionsOut.at(threadId)--;
+  }
 }
 
 void MDBEnv::incRWTX()
 {
-  std::lock_guard<std::mutex> l(d_countmutex);
-  ++d_RWtransactionsOut[std::this_thread::get_id()];
+  auto threadId = std::this_thread::get_id();
+  {
+    std::shared_lock<std::shared_mutex> lock(d_countmutex);
+    if (auto transactionsIt = d_RWtransactionsOut.find(threadId); transactionsIt != d_RWtransactionsOut.end()) {
+      ++transactionsIt->second;
+      return;
+    }
+  }
+
+  {
+    std::unique_lock<std::shared_mutex> lock(d_countmutex);
+    auto [transactionsIt, inserted] = d_RWtransactionsOut.emplace(threadId, 1);
+    if (!inserted) {
+      ++transactionsIt->second;
+    }
+  }
 }
 
 void MDBEnv::decRWTX()
 {
-  std::lock_guard<std::mutex> l(d_countmutex);
-  --d_RWtransactionsOut[std::this_thread::get_id()];
+  auto threadId = std::this_thread::get_id();
+  {
+    std::shared_lock<std::shared_mutex> lock(d_countmutex);
+    d_RWtransactionsOut.at(threadId)--;
+  }
 }
 
 int MDBEnv::getRWTX()
 {
-  std::lock_guard<std::mutex> l(d_countmutex);
-  return d_RWtransactionsOut[std::this_thread::get_id()];
+  auto threadId = std::this_thread::get_id();
+  {
+    std::shared_lock<std::shared_mutex> lock(d_countmutex);
+    if (auto transactionsIt = d_RWtransactionsOut.find(threadId); transactionsIt != d_RWtransactionsOut.end()) {
+      return transactionsIt->second.load();
+    }
+  }
+  return 0;
 }
+
 int MDBEnv::getROTX()
 {
-  std::lock_guard<std::mutex> l(d_countmutex);
-  return d_ROtransactionsOut[std::this_thread::get_id()];
+  auto threadId = std::this_thread::get_id();
+  {
+    std::shared_lock<std::shared_mutex> lock(d_countmutex);
+    if (auto transactionsIt = d_RWtransactionsOut.find(threadId); transactionsIt != d_RWtransactionsOut.end()) {
+      return transactionsIt->second.load();
+    }
+  }
+  return 0;
 }
 
 
@@ -161,39 +227,45 @@ std::shared_ptr<MDBEnv> getMDBEnv(const char* fname, int flags, int mode, uint64
   static std::map<tuple<dev_t, ino_t>, Value> s_envs;
   static std::mutex mut;
 
-  struct stat statbuf;
-  if(stat(fname, &statbuf)) {
-    if(errno != ENOENT)
-      throw std::runtime_error("Unable to stat prospective mdb database: "+string(strerror(errno)));
-    else {
-      std::lock_guard<std::mutex> l(mut);
+  struct stat statbuf{};
+  if (stat(fname, &statbuf) != 0) {
+    if (errno != ENOENT) {
+      throw std::runtime_error("Unable to stat prospective mdb database: " + MDBError(errno));
+    }
+    std::lock_guard<std::mutex> lock(mut);
+    /* we need to check again _after_ taking the lock, otherwise a different thread might have created
+       it in the meantime */
+    if (stat(fname, &statbuf) != 0) {
+      if (errno != ENOENT) {
+        throw std::runtime_error("Unable to stat prospective mdb database: " + MDBError(errno));
+      }
       auto fresh = std::make_shared<MDBEnv>(fname, flags, mode, mapsizeMB);
-      if(stat(fname, &statbuf))
-        throw std::runtime_error("Unable to stat prospective mdb database: "+string(strerror(errno)));
+      if (stat(fname, &statbuf) != 0) {
+        throw std::runtime_error("Unable to stat prospective mdb database: " + MDBError(errno));
+      }
       auto key = std::tie(statbuf.st_dev, statbuf.st_ino);
-      s_envs[key] = {fresh, flags};
+      s_envs.emplace(key, Value{fresh, flags});
       return fresh;
     }
   }
 
-  std::lock_guard<std::mutex> l(mut);
+  std::lock_guard<std::mutex> lock(mut);
   auto key = std::tie(statbuf.st_dev, statbuf.st_ino);
   auto iter = s_envs.find(key);
-  if(iter != s_envs.end()) {
+  if (iter != s_envs.end()) {
     auto sp = iter->second.wp.lock();
-    if(sp) {
-      if(iter->second.flags != flags)
+    if (sp) {
+      if (iter->second.flags != flags) {
         throw std::runtime_error("Can't open mdb with differing flags");
+      }
 
       return sp;
     }
-    else {
-      s_envs.erase(iter); // useful if make_shared fails
-    }
+    s_envs.erase(iter); // useful if make_shared fails
   }
 
   auto fresh = std::make_shared<MDBEnv>(fname, flags, mode, mapsizeMB);
-  s_envs[key] = {fresh, flags};
+  s_envs.emplace(key, Value{fresh, flags});
 
   return fresh;
 }
@@ -233,11 +305,13 @@ MDBRWTransactionImpl::MDBRWTransactionImpl(MDBEnv *parent, MDB_txn *txn):
 MDB_txn *MDBRWTransactionImpl::openRWTransaction(MDBEnv *env, MDB_txn *parent, int flags)
 {
   MDB_txn *result;
-  if(env->getROTX() || env->getRWTX())
+  if(env->getRWTX() != 0) {
     throw std::runtime_error("Duplicate RW transaction");
+  }
 
-  if(int rc=mdb_txn_begin(env->d_env, parent, flags, &result))
-    throw std::runtime_error("Unable to start RW transaction: "+std::string(mdb_strerror(rc)));
+  if(int retCode=mdb_txn_begin(env->d_env, parent, flags, &result); retCode != 0) {
+    throw std::runtime_error("Unable to start RW transaction: "+MDBError(retCode));
+  }
 
   env->incRWTX();
   return result;
@@ -267,8 +341,8 @@ void MDBRWTransactionImpl::commit()
     return;
   }
 
-  if(int rc = mdb_txn_commit(d_txn)) {
-    throw std::runtime_error("committing: " + std::string(mdb_strerror(rc)));
+  if(int retCode = mdb_txn_commit(d_txn); retCode != 0) {
+    throw std::runtime_error("committing: " + MDBError(retCode));
   }
   environment().decRWTX();
   d_txn = nullptr;
@@ -304,8 +378,9 @@ MDB_txn *MDBROTransactionImpl::openROTransaction(MDBEnv *env, MDB_txn *parent, i
     A transaction and its cursors must only be used by a single thread, and a thread may only have a single transaction at a time. If MDB_NOTLS is in use, this does not apply to read-only transactions. */
   MDB_txn *result = nullptr;
 
-  if(int rc=mdb_txn_begin(env->d_env, parent, MDB_RDONLY | flags, &result))
-    throw std::runtime_error("Unable to start RO transaction: "+string(mdb_strerror(rc)));
+  if(int retCode=mdb_txn_begin(env->d_env, parent, MDB_RDONLY | flags, &result); retCode != 0) {
+    throw std::runtime_error("Unable to start RO transaction: "+MDBError(retCode));
+  }
 
   env->incROTX();
 
@@ -360,8 +435,8 @@ void MDBROTransactionImpl::commit()
 
 void MDBRWTransactionImpl::clear(MDB_dbi dbi)
 {
-  if(int rc = mdb_drop(d_txn, dbi, 0)) {
-    throw runtime_error("Error clearing database: " + MDBError(rc));
+  if(int retCode = mdb_drop(d_txn, dbi, 0); retCode != 0) {
+    throw runtime_error("Error clearing database: " + MDBError(retCode));
   }
 }
 
@@ -369,8 +444,8 @@ MDBRWCursor MDBRWTransactionImpl::getRWCursor(const MDBDbi& dbi)
 {
   MDB_cursor *cursor;
   int rc= mdb_cursor_open(d_txn, dbi, &cursor);
-  if(rc) {
-    throw std::runtime_error("Error creating RW cursor: "+std::string(mdb_strerror(rc)));
+  if(rc != 0) {
+    throw std::runtime_error("Error creating RW cursor: "+MDBError(rc));
   }
 
   return MDBRWCursor(d_rw_cursors, cursor, d_txn, d_txtime);
@@ -384,8 +459,8 @@ MDBRWCursor MDBRWTransactionImpl::getCursor(const MDBDbi &dbi)
 MDBRWTransaction MDBRWTransactionImpl::getRWTransaction()
 {
   MDB_txn *txn;
-  if (int rc = mdb_txn_begin(environment(), *this, 0, &txn)) {
-    throw std::runtime_error(std::string("failed to start child transaction: ")+mdb_strerror(rc));
+  if (int retCode = mdb_txn_begin(environment(), *this, 0, &txn); retCode != 0) {
+    throw std::runtime_error(std::string("failed to start child transaction: ")+MDBError(retCode));
   }
   // we need to increase the counter here because commit/abort on the child transaction will decrease it
   environment().incRWTX();
@@ -425,8 +500,8 @@ MDBROCursor MDBROTransactionImpl::getROCursor(const MDBDbi &dbi)
 {
   MDB_cursor *cursor;
   int rc= mdb_cursor_open(d_txn, dbi, &cursor);
-  if(rc) {
-    throw std::runtime_error("Error creating RO cursor: "+std::string(mdb_strerror(rc)));
+  if(rc != 0) {
+    throw std::runtime_error("Error creating RO cursor: "+MDBError(rc));
   }
   return MDBROCursor(d_cursors, cursor);
 }

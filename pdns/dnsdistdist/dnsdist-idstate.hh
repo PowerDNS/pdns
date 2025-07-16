@@ -79,10 +79,8 @@ struct StopWatch
     return d_start;
   }
 
-  struct timespec d_start
-  {
-    0, 0
-  };
+  struct timespec d_start{
+    0, 0};
 
 private:
   struct timespec getCurrentTime() const
@@ -157,8 +155,8 @@ struct InternalQueryState
   int32_t d_streamID{-1}; // 4
   uint32_t cacheKey{0}; // 4
   uint32_t cacheKeyNoECS{0}; // 4
-  // DoH-only */
-  uint32_t cacheKeyUDP{0}; // 4
+  // DoH-only: if we received a TC=1 answer, we had to retry over TCP and thus we need the TCP cache key */
+  uint32_t cacheKeyTCP{0}; // 4
   uint32_t ttlCap{0}; // cap the TTL _after_ inserting into the packet cache // 4
   int backendFD{-1}; // 4
   int delayMsec{0};
@@ -170,6 +168,7 @@ struct InternalQueryState
   uint16_t cacheFlags{0}; // DNS flags as sent to the backend // 2
   uint16_t udpPayloadSize{0}; // Max UDP payload size from the query // 2
   dnsdist::Protocol protocol; // 1
+  uint8_t restartCount{0}; // 1
   bool ednsAdded{false};
   bool ecsAdded{false};
   bool skipCache{false};
@@ -177,6 +176,8 @@ struct InternalQueryState
   bool useZeroScope{false};
   bool forwardedOverUDP{false};
   bool selfGenerated{false};
+  bool cacheHit{false};
+  bool staleCacheHit{false};
 };
 
 struct IDState

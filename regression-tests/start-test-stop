@@ -57,19 +57,20 @@ for arg; do
     esac
 done; unset -v arg
 if [ "$_show_help" -eq 1 ]; then
-	grep -v '^#' << '__EOF__'
+        grep -v '^#' << '__EOF__'
 
 Usage: ./start-test-stop <port> [<context>] [wait|nowait] [<cachettl>] [<specifictest>]
 
 context is one of:
-bind bind-dnssec bind-dnssec-nsec3 bind-dnssec-nsec3-optout bind-dnssec-nsec3-narrow
+bind bind-dnssec bind-dnssec-nsec3 bind-dnssec-nsec3-optout bind-dnssec-nsec3-narrow bind-dnssec-pkcs11
 geoip geoip-nsec3-narrow
 gmysql-nodnssec gmysql gmysql-nsec3 gmysql-nsec3-optout gmysql-nsec3-narrow gmysql_sp
 godbc_mssql-nodnssec godbc_mssql godbc_mssql-nsec3 godbc_mssql-nsec3-optout godbc_mssql-nsec3-narrow
 godbc_sqlite3-nodnssec godbc_sqlite3 godbc_sqlite3-nsec3 godbc_sqlite3-nsec3-optout godbc_sqlite3-narrow
 gpgsql-nodnssec gpgsql gpgsql-nsec3 gpgsql-nsec3-optout gpgsql-nsec3-narrow gpgsql_sp
 gsqlite3-nodnssec gsqlite3 gsqlite3-nsec3 gsqlite3-nsec3-optout gsqlite3-nsec3-narrow
-lmdb-nodnssec lmdb
+lmdb-nodnssec lmdb lmdb-nsec3 lmdb-nsec3-optout lmdb-nsec3-narrow
+lmdb-nodnssec-variant lmdb-variant lmdb-nsec3-variant lmdb-nsec3-optout-variant lmdb-nsec3-narrow-variant
 remotebackend-pipe remotebackend-unix remotebackend-http remotebackend-zeromq
 remotebackend-pipe-dnssec remotebackend-unix-dnssec remotebackend-http-dnssec remotebackend-zeromq-dnssec
 #remotebackend-pipe-nsec3 remotebackend-unix-nsec3 remotebackend-http-nsec3
@@ -93,7 +94,7 @@ lua2 lua2-dnssec lua2-nsec3 lua2-nsec3-narrow
 
 * Specifictest can be used to run only one single test.
 __EOF__
-	exit
+        exit
 fi
 unset -v _show_help
 
@@ -103,129 +104,132 @@ source ../regression-tests/common
 
 bindwait ()
 {
-	check_process
-	configname=$1
-	domcount=$(grep -c ^zone named.conf)
-	if [ ! -x $PDNSCONTROL ]
-	then
-		echo "No pdns_control found"
-		exit
-	fi
-	loopcount=0
+        check_process
+        configname=$1
+        domcount=$(grep -c ^zone named.conf)
+        if [ ! -x $PDNSCONTROL ]
+        then
+                echo "No pdns_control found"
+                exit
+        fi
+        loopcount=0
 
-	while [ $loopcount -lt 20 ]
-	do
-		sleep 5
-		done=$( ($PDNSCONTROL --config-name=$configname --socket-dir=. --no-config bind-domain-status || true) | grep -c 'parsed into memory' || true )
-		if [ $done = $domcount ]
-		then
-			return
-		fi
-		let loopcount=loopcount+1
-	done
+        while [ $loopcount -lt 20 ]
+        do
+                sleep 5
+                done=$( ($PDNSCONTROL --config-name=$configname --socket-dir=. --no-config bind-domain-status || true) | grep -c 'parsed into memory' || true )
+                if [ $done = $domcount ]
+                then
+                        return
+                fi
+                let loopcount=loopcount+1
+        done
 
-	if [ $done != $domcount ]
-	then
-		echo "Domain parsing failed" >> failed_tests
-	fi
+        if [ $done != $domcount ]
+        then
+                echo "Domain parsing failed" >> failed_tests
+        fi
 }
 
 securezone ()
 {
-	local zone=$1
-	local configname=$2
+        local zone=$1
+        local configname=$2
 
-	if [ -n "$configname" ]
-	then
-		configname="--config-name=$configname"
-	fi
-	if [ "${zone: 0:16}" = "secure-delegated" ]
-	then
-		$PDNSUTIL --config-dir=. $configname import-zone-key $zone $zone.private ksk 2>&1
-		$PDNSUTIL --config-dir=. $configname add-zone-key $zone rsasha256 1024 zsk active 2>&1
-		$PDNSUTIL --config-dir=. $configname rectify-zone $zone 2>&1
-		$PDNSUTIL --config-dir=. $configname set-publish-cds $zone 2>&1
-		$PDNSUTIL --config-dir=. $configname set-publish-cdnskey $zone 2>&1
-	else
-		# check if PKCS#11 should be used
-		if [ "$pkcs11" -eq 1 ]; then
-			if [ "$slot" == "" ]; then
-				slot=0
-			else
-				slot=$((slot+1))
-			fi
-			label=pdnstest-${EPOCHSECONDS}-${slot}
-			softhsm2-util --delete-token --label $label 2> /dev/null || true
-			softhsm2-util --init-token --label $label --free --pin 1234 --so-pin 1234
-			kid=`$PDNSUTIL --config-dir=. $configname hsm assign $zone ecdsa256 ksk softhsm2 $label 1234 $label 2>&1 | grep softhsm | awk '{ print $NF }'`
-			$PDNSUTIL --config-dir=. $configname hsm create-key $zone $kid
-			$PDNSUTIL --config-dir=. $configname rectify-zone $zone 2>&1
-		else
-			$PDNSUTIL --config-dir=. $configname secure-zone $zone 2>&1
-		fi
-		if [ "${zone: 0:20}" = "cdnskey-cds-test.com" ]; then
-			$PDNSUTIL --config-dir=. $configname set-publish-cds $zone 2>&1
-			$PDNSUTIL --config-dir=. $configname set-publish-cdnskey $zone 2>&1
-		fi
-		if [ "$zone" = "dnssec-parent.com" ]; then
-			$PDNSUTIL --config-dir=. $configname set-publish-cds $zone 0 2>&1
-			$PDNSUTIL --config-dir=. $configname set-publish-cdnskey $zone delete 2>&1
-		fi
-	fi
+        if [ -n "$configname" ]
+        then
+                configname="--config-name=$configname"
+        fi
+        if [ "${zone: 0:16}" = "secure-delegated" ]
+        then
+                $PDNSUTIL --config-dir=. $configname import-zone-key $zone ${zone%..*}.private ksk 2>&1
+                $PDNSUTIL --config-dir=. $configname add-zone-key $zone rsasha256 1024 zsk active 2>&1
+                $PDNSUTIL --config-dir=. $configname rectify-zone $zone 2>&1
+                $PDNSUTIL --config-dir=. $configname set-publish-cds $zone 2>&1
+                $PDNSUTIL --config-dir=. $configname set-publish-cdnskey $zone 2>&1
+        else
+                # check if PKCS#11 should be used
+                if [ "$pkcs11" -eq 1 ]; then
+                        if [ "$slot" == "" ]; then
+                                slot=0
+                        else
+                                slot=$((slot+1))
+                        fi
+                        label=pdnstest-${EPOCHSECONDS}-${slot}
+                        softhsm2-util --delete-token --label $label 2> /dev/null || true
+                        softhsm2-util --init-token --label $label --free --pin 1234 --so-pin 1234
+                        kid=`$PDNSUTIL --config-dir=. $configname hsm assign $zone ecdsa256 ksk softhsm2 $label 1234 $label 2>&1 | grep softhsm | awk '{ print $NF }'`
+                        $PDNSUTIL --config-dir=. $configname hsm create-key $zone $kid
+                        $PDNSUTIL --config-dir=. $configname rectify-zone $zone 2>&1
+                else
+                        $PDNSUTIL --config-dir=. $configname secure-zone $zone 2>&1
+                fi
+                if [ "${zone: 0:20}" = "cdnskey-cds-test.com" ]; then
+                        $PDNSUTIL --config-dir=. $configname set-publish-cds $zone 2>&1
+                        $PDNSUTIL --config-dir=. $configname set-publish-cdnskey $zone 2>&1
+                fi
+                if [ "${zone%..*}" = "dnssec-parent.com" ]; then
+                        $PDNSUTIL --config-dir=. $configname set-publish-cds $zone 0 2>&1
+                        $PDNSUTIL --config-dir=. $configname set-publish-cdnskey $zone delete 2>&1
+                fi
+        fi
 }
 
 kill_process ()
 {
-	set +e
-	trap - EXIT INT TERM
+        set +e
+        trap - EXIT INT TERM
 
-	if [ $1 -gt 1 ]
-	then
-		echo "exitvalue$1" >> failed_tests
-		./toxml
-		./totar
-	fi
+        if [ $1 -gt 1 ]
+        then
+                echo "exitvalue$1" >> failed_tests
+                ./toxml
+                ./totar
+        fi
 
-	pids=$(cat pdns*.pid)
+        pids=$(cat pdns*.pid)
 
-	if [ -n "$pids" ]
-	then
-		kill $pids
-		# make sure they die.
-		loopcount=0
-		done=0
-		while [ $loopcount -lt 10 ] && [ $done -eq 0 ]
-		do
-			done=1
-			for pid in $pids
-			do
-				kill -0 $pid > /dev/null 2>&1
-				if [ $? -eq 0 ];
-				then
-					done=0
-				fi
-			done
-			let loopcount=loopcount+1
-			sleep 1
-		done
+        if [ -n "$pids" ]
+        then
+                kill $pids
+                # make sure they die.
+                loopcount=0
+                done=0
+                while [ $loopcount -lt 10 ] && [ $done -eq 0 ]
+                do
+                        done=1
+                        for pid in $pids
+                        do
+                                kill -0 $pid > /dev/null 2>&1
+                                if [ $? -eq 0 ];
+                                then
+                                        done=0
+                                fi
+                        done
+                        let loopcount=loopcount+1
+                        sleep 1
+                done
 
-		kill -9 $pids
-	fi
+                if [ $done -eq 0 ]
+                then
+                        kill -9 $pids
+                fi
+        fi
 
-	rm pdns*.pid
-	exit $1
+        rm pdns*.pid
+        exit $1
 }
 
 if [ ! -x $PDNS ]
  then
-	echo "$PDNS is not executable binary"
-	exit
+        echo "$PDNS is not executable binary"
+        exit
 fi
 
 if [ ! -x $PDNS2 ]
 then
-	echo "$PDNS2 is not executable binary"
-	exit
+        echo "$PDNS2 is not executable binary"
+        exit
 fi
 
 address="${PDNS_LISTEN_ADDR:-127.0.0.1}"
@@ -242,18 +246,19 @@ spectest=$5
 testsdir=./tests
 
 for prog in $SDIG $SAXFR $NOTIFY $NSEC3DIG; do
-  if `echo $prog | grep -q '\.\./pdns'`; then
-    ${MAKE} -C ../pdns ${prog##*../pdns/} || exit
+  if [ ! -x "$prog" ]; then
+    echo "Error: cannot find $prog, please build it."
+    exit 1
   fi
 done
 
 # Copy original zones because the test might modify them (well only the dyndns stuff, but let's make this work for others as well)
 for zone in $(grep 'zone ' named.conf  | cut -f2 -d\")
 do
-	if [ -f zones/$zone.orig ]
-	then
-		cp -f zones/$zone.orig zones/$zone
-	fi
+        if [ -f zones/$zone.orig ]
+        then
+                cp -f zones/$zone.orig zones/$zone
+        fi
 done
 
 rm -f pdns*.pid
@@ -265,29 +270,35 @@ both=no
 
 if [[ "$context" =~ .+-presigned.* ]]
 then
-	presigned=yes
-	port=$((port-100))
-	eval "$(echo "$context" | sed -r 's/(.+)(-presigned)(-(.*))?/context=\1 presignedcontext=\4/')"
-	if [ -z "$presignedcontext" ]
-	then
-		presignedcontext=$context
-	fi
+        presigned=yes
+        port=$((port-100))
+        eval "$(echo "$context" | sed -r 's/(.+)(-presigned)(-(.*))?/context=\1 presignedcontext=\4/')"
+        if [ -z "$presignedcontext" ]
+        then
+                presignedcontext=$context
+        fi
 fi
 
 if [ "${context: -5}" = "-both" ]
 then
-	both=yes
-	port=$((port-100))
-	context=${context%-both}
-	presignedcontext=$context
+        both=yes
+        port=$((port-100))
+        context=${context%-both}
+        presignedcontext=$context
 fi
 
 optout=0
 pkcs11=0
 
-if [ "${context: -13}" = "-nsec3-optout" ]
+if [ "${context: -8}" = "-variant" ]
 then
-	optout=1
+	subcontext=${context%-variant}
+else
+	subcontext=${context}
+fi
+if [ "${subcontext: -13}" = "-nsec3-optout" ]
+then
+        optout=1
 fi
 
 if [ "${context: -7}" = "-pkcs11" ]
@@ -311,30 +322,28 @@ source backends/common
 start_master
 
 if [ "$skiplua" == "1" ]; then
-	skipreasons="$skipreasons nolua"
+        skipreasons="$skipreasons nolua"
 fi
 
 check_process
 
 dotests () {
-	nameserver=127.0.0.1 ./runtests $spectest
-	./toxml
-	./totar
+        nameserver=127.0.0.1 ./runtests $spectest
+        ./toxml
+        ./totar
 
-	cat ./trustedkeys
-
-	if [ -s "./failed_tests" ]
-	then
-		for t in `cat failed_tests`
-		do
-			echo -e "\n\n$t"
-			cat ${testsdir}/$t/diff
-		done
-		if [ "${!1}" -eq 0 ]
-		then
-			eval "$1=1"
-		fi
-	fi
+        if [ -s "./failed_tests" ]
+        then
+                for t in `cat failed_tests`
+                do
+                        echo -e "\n\n$t"
+                        cat ${testsdir}/$t/diff
+                done
+                if [ "${!1}" -eq 0 ]
+                then
+                        eval "$1=1"
+                fi
+        fi
 }
 
 ## TODO: give sdig a timeout
@@ -354,25 +363,25 @@ sleep 2
 
 if [ $presigned = no ] || [ $both = yes ]
 then
-	dotests RETVAL
+        dotests RETVAL
 fi
 
 if [ $presigned = yes ] || [ $both = yes ]
 then
-	start_slave
+        start_slave
 
-	export port
-	export context
-	export skipreasons
-	export backend
+        export port
+        export context
+        export skipreasons
+        export backend
 
-	dotests RETVAL
+        dotests RETVAL
 fi
 
 if [ "$wait" = "wait" ]
 then
-	echo tests done! push enter to terminate instance
-	read l
+        echo tests done! push enter to terminate instance
+        read l
 fi
 
 trap "kill_process $RETVAL" EXIT

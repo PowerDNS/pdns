@@ -1,0 +1,17 @@
+[package]
+name = "dnsdist-rust"
+# Convention: major/minor is equal to DNSdist's major/minor
+version = "2.0.0"
+edition = "2021"
+
+[lib]
+name = "dnsdist_rust"
+crate-type = ["staticlib"]
+
+[dependencies]
+cxx = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_yaml = { version = "0.9.34" }
+
+[build-dependencies]
+cxx-build = "1.0"

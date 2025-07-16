@@ -2,12 +2,13 @@ import dns
 import os
 from recursortests import RecursorTest
 
-class testServerNames(RecursorTest):
+class ServerNamesTest(RecursorTest):
     """
     This tests all kinds naming things
     """
 
     _confdir = 'ServerNames'
+    _auth_zones = RecursorTest._default_auth_zones
     _servername = 'awesome-pdns1.example.com'
     _versionbind = 'Awesome!'
     _versionbind_expected = dns.rrset.from_text('version.bind.', 86400, 'CH', 'TXT', _versionbind)

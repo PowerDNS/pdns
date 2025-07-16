@@ -19,11 +19,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-#ifdef HAVE_CONFIG_H
+
 #include "config.h"
-#endif
+
 #include "ednscookies.hh"
-#include "misc.hh"
+#include "dns_random.hh"
+#include "iputils.hh"
 
 #ifdef HAVE_CRYPTO_SHORTHASH
 #include <sodium.h>
@@ -54,11 +55,13 @@ bool EDNSCookiesOpt::makeFromString(const char* option, unsigned int len)
 string EDNSCookiesOpt::makeOptString() const
 {
   string ret;
-  if (!isWellFormed())
+  if (!isWellFormed()) {
     return ret;
+  }
   ret.assign(client);
-  if (server.length() != 0)
+  if (server.length() != 0) {
     ret.append(server);
+  }
   return ret;
 }
 
@@ -66,11 +69,13 @@ void EDNSCookiesOpt::getEDNSCookiesOptFromString(const char* option, unsigned in
 {
   client.clear();
   server.clear();
-  if (len < 8)
+  if (len < 8) {
     return;
-  client = string(option, 8);
+  }
+  const std::string tmp(option, len);
+  client = tmp.substr(0, 8);
   if (len > 8) {
-    server = string(option + 8, len - 8);
+    server = tmp.substr(8);
   }
 }
 
@@ -84,16 +89,16 @@ bool EDNSCookiesOpt::isValid([[maybe_unused]] const string& secret, [[maybe_unus
     // Version is not 1, can't verify
     return false;
   }
-  uint32_t ts;
-  memcpy(&ts, &server[4], sizeof(ts));
-  ts = ntohl(ts);
+  uint32_t timestamp{};
+  memcpy(&timestamp, &server[4], sizeof(timestamp));
+  timestamp = ntohl(timestamp);
   // coverity[store_truncates_time_t]
-  uint32_t now = static_cast<uint32_t>(time(nullptr));
+  auto now = static_cast<uint32_t>(time(nullptr));
   // RFC 9018 section 4.3:
   //    The DNS server
   //    SHOULD allow cookies within a 1-hour period in the past and a
   //    5-minute period into the future
-  if (rfc1982LessThan(now + 300, ts) && rfc1982LessThan(ts + 3600, now)) {
+  if (rfc1982LessThan(now + 300, timestamp) && rfc1982LessThan(timestamp + 3600, now)) {
     return false;
   }
   if (secret.length() != crypto_shorthash_KEYBYTES) {
@@ -103,11 +108,13 @@ bool EDNSCookiesOpt::isValid([[maybe_unused]] const string& secret, [[maybe_unus
   string toHash = client + server.substr(0, 8) + source.toByteString();
   string hashResult;
   hashResult.resize(8);
-  crypto_shorthash(
-    reinterpret_cast<unsigned char*>(&hashResult[0]),
-    reinterpret_cast<const unsigned char*>(&toHash[0]),
-    toHash.length(),
-    reinterpret_cast<const unsigned char*>(&secret[0]));
+
+  // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
+  crypto_shorthash(reinterpret_cast<unsigned char*>(hashResult.data()),
+                   reinterpret_cast<const unsigned char*>(toHash.data()),
+                   toHash.length(),
+                   reinterpret_cast<const unsigned char*>(secret.data()));
+  // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
   return constantTimeStringEquals(server.substr(8), hashResult);
 #else
   return false;
@@ -119,30 +126,37 @@ bool EDNSCookiesOpt::shouldRefresh() const
   if (server.size() < 16) {
     return true;
   }
-  uint32_t ts;
-  memcpy(&ts, &server[4], sizeof(ts));
-  ts = ntohl(ts);
+  uint32_t timestamp{};
+  memcpy(&timestamp, &server.at(4), sizeof(timestamp));
+  timestamp = ntohl(timestamp);
   // coverity[store_truncates_time_t]
-  uint32_t now = static_cast<uint32_t>(time(nullptr));
+  auto now = static_cast<uint32_t>(time(nullptr));
   // RFC 9018 section 4.3:
   //    The DNS server
   //    SHOULD allow cookies within a 1-hour period in the past and a
   //    5-minute period into the future
   // If this is not the case, we need to refresh
-  if (rfc1982LessThan(now + 300, ts) && rfc1982LessThan(ts + 3600, now)) {
+  if (rfc1982LessThan(now + 300, timestamp) && rfc1982LessThan(timestamp + 3600, now)) {
     return true;
   }
 
   // RFC 9018 section 4.3:
   //    The DNS server SHOULD generate a new Server Cookie at least if the
   //     received Server Cookie from the client is more than half an hour old
-  return rfc1982LessThan(ts + 1800, now);
+  return rfc1982LessThan(timestamp + 1800, now);
+}
+
+void EDNSCookiesOpt::makeClientCookie()
+{
+  const size_t clientCookieSize = 8;
+  client.resize(clientCookieSize);
+  dns_random(client.data(), clientCookieSize);
 }
 
 bool EDNSCookiesOpt::makeServerCookie([[maybe_unused]] const string& secret, [[maybe_unused]] const ComboAddress& source)
 {
 #ifdef HAVE_CRYPTO_SHORTHASH
-  static_assert(EDNSCookieSecretSize == crypto_shorthash_KEYBYTES * 2, "The EDNSCookieSecretSize is not twice crypto_shorthash_KEYBYTES");
+  static_assert(EDNSCookieSecretSize == crypto_shorthash_KEYBYTES * static_cast<size_t>(2), "The EDNSCookieSecretSize is not twice crypto_shorthash_KEYBYTES");
 
   if (isValid(secret, source) && !shouldRefresh()) {
     return true;
@@ -158,6 +172,7 @@ bool EDNSCookiesOpt::makeServerCookie([[maybe_unused]] const string& secret, [[m
   server.resize(4, '\0'); // 3 reserved bytes
   // coverity[store_truncates_time_t]
   uint32_t now = htonl(static_cast<uint32_t>(time(nullptr)));
+  // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
   server += string(reinterpret_cast<const char*>(&now), sizeof(now));
   server.resize(8);
 
@@ -165,11 +180,11 @@ bool EDNSCookiesOpt::makeServerCookie([[maybe_unused]] const string& secret, [[m
   toHash += server;
   toHash += source.toByteString();
   server.resize(16);
-  crypto_shorthash(
-    reinterpret_cast<unsigned char*>(&server[8]),
-    reinterpret_cast<const unsigned char*>(&toHash[0]),
-    toHash.length(),
-    reinterpret_cast<const unsigned char*>(&secret[0]));
+  crypto_shorthash(reinterpret_cast<unsigned char*>(&server.at(8)),
+                   reinterpret_cast<const unsigned char*>(toHash.data()),
+                   toHash.length(),
+                   reinterpret_cast<const unsigned char*>(secret.data()));
+  // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
   return true;
 #else
   return false;

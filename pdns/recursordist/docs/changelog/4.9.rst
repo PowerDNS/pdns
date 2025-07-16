@@ -2,6 +2,55 @@ Changelogs for 4.9.X
 ====================
 
 .. changelog::
+  :version: 4.9.9
+  :released: 3rd of October 2024
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14745
+
+    `Security advisory 2024-04 <https://docs.powerdns.com/recursor/security-advisories/powerdns-advisory-2024-04.html>`__: CVE-2024-25590
+
+.. changelog::
+  :version: 4.9.8
+  :released: 23rd of July 2024
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14503
+    :tickets: 14499
+
+    Optimize processing of additionals.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14483
+    :tickets: 14471
+
+    Dump right SOA into dumpFile and report non-relative SOA for includeSOA=true.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14480
+    :tickets: 14404
+
+    Yahttp router: avoid unsigned underflow in route().
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14413
+    :tickets: 14400
+
+    Switch el7 builds to Oracle Linux 7.
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14416
+    :tickets: 14359
+
+    dns.cc: use pdns::views::UnsignedCharView.
+
+.. changelog::
   :version: 4.9.7
   :released: 3rd of July 2024
 

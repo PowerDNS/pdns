@@ -2,6 +2,1131 @@ Changelog
 =========
 
 .. changelog::
+  :version: 2.0.0-rc1
+  :released: 8th of July 2025
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15709
+    :tickets: 15708
+
+    Libssl depends on libcrypto
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 15734
+    :tickets: 15517
+
+    Enforce that additional addresses are DoT/DoH only
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15774
+    :tickets: 15699
+
+    Prevent Lua bindings for backend from crashing on empty backend
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15775
+    :tickets: 15699
+
+    Return nil for non-existing Lua objects
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 15776
+    :tickets: 15735
+
+    lmdb-safe: Improve the scalability of transaction maps
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15777
+
+    Prevent users from opening the same LMDB twice
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15778
+
+    lmdb-safe: Fix a small race in ``getMDBEnv``
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 15779
+    :tickets: 15750
+
+    Fix logging and XSK YAML settings being ignored
+
+  .. change::
+    :tags: Improvements, YAML
+    :pullreq: 15780
+
+    Error on unsupported backend protocols from YAML
+
+  .. change::
+    :tags: Improvements, YAML
+    :pullreq: 15781
+
+    Error if backend certificate validation is enabled without a subject name
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 15784
+    :tickets: 15743
+
+    Add a Lua binding to get objects declared in YAML
+
+.. changelog::
+  :version: 2.0.0-beta1
+  :released: 20th of June 2025
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15578
+
+    Fix spelling for ``setWHashedPerturbation`` (Josh Soref)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15614
+
+    Explicitly use the versions present in ``Cargo.lock`` when building
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15616
+
+    Debian: use luajit when possible (Chris Hofstaedtler)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15615
+
+    Update our Rust dependencies
+
+  .. change::
+    :tags: New Features
+    :pullreq: 15610
+
+    Add SetEDNSOptionResponseAction (Samir Aguiar)
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 15650
+
+    YAML: Correct ``enable_proxy_protocol`` value for TCP/UDP binds (Robert Edmonds)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15532
+
+    Add option to support cache sharing between different payload sizes (@pacnal)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15656
+
+    Remove never used argument
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15602
+
+    Do not replace EDNS in answers self-generated from a packet
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15640
+
+    Clean up existing records when turning query into response
+
+  .. change::
+    :tags: New Features, Protobuf
+    :pullreq: 15690
+
+    Add Lua APIs to set Meta tags in protobuf messages
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15691
+
+    Generate completion and help for rule chains
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15695
+
+    Meson: followup to #15685 to avoid compiler warnings
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15682
+
+    Remove superfluous code block in YAML config (Pieter Lexis)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15685
+
+    Meson: Pick ``-lcrypto`` up from the spot defined by ``dep_libcrypto``
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15676
+
+    Add a count to track the number of query restarts (@pacnal)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 15670
+
+    Add route policy of first ordered then weighted (@pacnal)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15679
+    :tickets: 8060
+
+    Provide an ``IP_OFFMASK`` value for systems lacking it
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 15662
+
+    Apply generic YAML configuration items early
+
+.. changelog::
+  :version: 2.0.0-alpha2
+  :released: 23rd of May 2025
+
+  .. change::
+    :tags: New Features
+    :pullreq: 15306
+
+    Add support for calling Lua methods when exiting
+
+  .. change::
+    :tags: Improvements, DNS over QUIC, DNS over HTTP3
+    :pullreq: 15328, 15583
+
+    Upgrade Quiche to 0.24.2 in our packages
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15329, 15584
+
+    Upgrade Rust to 1.87.0 when building our packages
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 15330
+
+    Fix YAML configuration failure to build without CDB/LMDB
+
+  .. change::
+    :tags: Bug Fixes, Meson
+    :pullreq: 15331
+
+    Do not auto-enable disabled features when building with meson
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15333
+
+    Fix version number in our Docker image
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 15338
+
+    Better handling of the ``dlsym`` missing symbol in our Rust lib
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 15351
+
+    Load Lua bindings before parsing YAML configuration
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 15355
+
+    Better handling of exceptions raised during YAML parsing
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 15356
+
+    Better handling of nonexistent Lua function name in YAML
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15362
+
+    Do not register Xsk sockets on configuration check or client mode
+
+  .. change::
+    :tags: New Features
+    :pullreq: 15376
+
+    Add mitigations against misbehaving TCP/TLS clients
+
+  .. change::
+    :tags: Improvements, Meson
+    :pullreq: 15377
+
+    Allow alternate location for libssl
+
+  .. change::
+    :tags: New Features, DNS over TLS, DNS over HTTPS, Performance
+    :pullreq: 15387
+
+    Share tickets key between identical frontends created via YAML
+
+  .. change::
+    :tags: New Features
+    :pullreq: 15388
+
+    Enhancement to support rule action for query timeout case (@pacnal)
+
+  .. change::
+    :tags: Bug Fixes, Meson
+    :pullreq: 15392
+
+    Do not try to get the version/path of Python if not found
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15407
+
+    Fix compilation with DoH3 enabled and DoH disabled
+
+  .. change::
+    :tags: New Features, DNS over TLS, DNS over HTTPS
+    :pullreq: 15409
+
+    Add support for switching certificates based on SNI with OpenSSL
+
+  .. change::
+    :tags: Bug Fixes, Meson
+    :pullreq: 15416
+
+    Fix two issues when building with meson
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15419
+
+    Refactor the packet cache settings
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15423
+
+    Add an option to cache truncated answers
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15431
+
+    Be consistent with regard to health-check modes transition
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15436
+
+    Fix a few more cases of potentially unused arguments
+
+  .. change::
+    :tags: New Features
+    :pullreq: 15439
+
+    Support DSCP marking towards downstream server (@pacnal)
+
+  .. change::
+    :tags: Bug Fixes, DNS over QUIC, DNS over HTTP3
+    :pullreq: 15440
+    :tickets: 15427
+
+    If SONAME is present in the generated Quiche lib set it to the correct value
+
+  .. change::
+    :tags: Bug Fixes, DNSCrypt
+    :pullreq: 15463
+
+    Fix a confusion about contexts/frontends in :func:`getDNSCryptBind`
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15467
+
+    Add indicator for cache hit rules to know if hit a stale entry (@pacnal)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15471
+
+    Fix an iterator out-of-bound read when removing a TCP-only server
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15472
+
+    Reduce memory usage with fast-changing dynamic backends
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS, Security
+    :pullreq: 15480
+    :tickets: 15475
+
+    Fix a crash when processing timeouts for incoming DoH queries
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 15481
+
+    Gracefully handle timeout/response for a closed HTTP stream
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 15496
+
+    Fix building with YAML enabled but without TLS support
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15514
+
+    Fix memory corruption when using :func:`getAddressInfo`
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15477
+
+    Provide runtime update API for some health check params (@pacnal)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15520
+
+    Fix building with GCC 15.1: missing ``cstdint`` include
+
+  .. change::
+    :tags: Bug Fixes, Meson
+    :pullreq: 15521
+    :tickets: 15516
+
+    Don't build with ``libedit`` if disabled via meson
+
+  .. change::
+    :tags: Improvements, Metrics
+    :pullreq: 15524
+
+    Improve scalability of custom metrics
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15525
+
+    Upgrade to protozero 1.8.0
+
+  .. change::
+    :tags: Improvements, DNS over HTTPS
+    :pullreq: 15526
+    :tickets: 14791
+
+    Deprecate the ``options`` parameter of :func:`HTTPStatusAction`
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15534
+    :tickets: 15529
+
+    Only set the proxy protocol payload size when actually added
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15539
+
+    The second parameter to :func:`setAPIWritable` is optional
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15554
+
+    Fix a crash in the TCP concurrent connections map
+
+  .. change::
+    :tags: Improvements, Meson
+    :pullreq: 15558
+
+    Switch ``eBPF`` support to ``auto`` when building with meson
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15563
+
+    Suppress a warning on macOS
+
+  .. change::
+    :tags: Bug Fixes, DNS over QUIC, DNS over HTTP3
+    :pullreq: 15564
+
+    Two fixes to enable building on OpenBSD with QUIC enabled
+
+  .. change::
+    :tags: Bug Fixes, Meson
+    :pullreq: 15565
+
+    Fix our meson build not reaching a stable state
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: 15571
+
+    Fix a crash when TCP queries and responses keep coming
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15573
+
+    Fix one potential issue and several false positives reported by Coverity
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15585
+
+    Fix the behaviour of ``TagRule`` with an empty string as value
+
+.. changelog::
+  :version: 1.9.10
+  :released: 20th of May 2025
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15497
+    :tickets: 15432
+
+    On FreeBSD, only pass source addresses on sockets bound to ANY
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15499
+
+    Better error when we cannot connect a backend socket
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15500
+    :tickets: 15060
+
+    Include ``cstdint`` to get ``uint64_t``
+
+  .. change::
+    :tags: Improvements, Metrics
+    :pullreq: 15501
+    :tickets: 15071
+
+    Adjust ``Content-Type`` header for Prometheus endpoint to include version
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15502
+
+    Enable XSK in our Noble Ubuntu packages
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15503
+
+    Upgrade Quiche to 0.23.4 in our packages
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15504
+    :tickets: 15218
+
+    Limit # of proxy protocol-enabled outgoing TCP connections
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15505
+
+    Allow ``AF_NETLINK`` and ``AF_XDP`` under ``systemd``
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15506
+
+    Upgrade Rust to 1.85.0 in our packages
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15507
+    :tickets: 15427
+
+    If ``SONAME`` is present in the generated Quiche library, set it to the correct value
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15508
+
+    Add Lua bindings for the incoming network interface
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15510
+    :tickets: 15362
+
+    Do not register Xsk sockets on configuration check or client mode
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15511
+    :tickets: 15337
+
+    Fix cache lookup for unavailable TCP-only backends
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15519
+    :tickets: 15495
+
+    Fix memory corruption when using ``getAddressInfo``
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15560
+
+    Fix building with GCC 15.1: missing ``cstdint`` include
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15562
+    :tickets: 15529
+
+    Only set the proxy protocol payload size when actually added
+
+  .. change::
+    :tags: Bug Fixes, Security
+    :pullreq: 15572
+
+    Fix a crash when TCP queries and responses keep coming
+
+.. changelog::
+  :version: 1.9.9
+  :released: 29th of April 2025
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15118
+
+    Handle Quiche >= 0.23.0 since the API changed
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15137
+
+    Fix compatibility with `boost::lockfree` >= 1.87.0
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15164
+
+    Update Rust to 1.84.1 for our packages
+
+  .. change::
+    :tags: Security, Bug Fixes, DNS over HTTPS
+    :pullreq: 15482
+    :tickets: 15475
+
+    Fix a crash when processing timeouts for incoming DoH queries
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 15485
+
+    Gracefully handle timeout/response for a closed HTTP stream
+
+.. changelog::
+  :version: 2.0.0-alpha1
+  :released: 18th of March 2025
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15165
+
+    Update Quiche to 0.23.2
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15164
+
+    Update Rust to 1.84.1 for our packages
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 13920
+
+    Shrink InternalQueryState's size by reordering its fields
+
+  .. change::
+    :tags: New Features
+    :pullreq: 13923
+
+    Add a new response chain for XFR responses
+
+  .. change::
+    :tags: New Features
+    :pullreq: 13922
+
+    Add a new query rules chain triggered after a cache miss
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14083
+
+    Change home directory to /var/lib/<product> on EL-based OSs
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14130
+
+    Fix TCP I/O timeout and callback being used for HTTP/2
+
+  .. change::
+    :tags: Removals
+    :pullreq: 14184
+
+    Remove XPF support
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14195
+
+    Get rid of ``assert()``
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14205
+
+    Delint the DNSCrypt code base
+
+  .. change::
+    :tags: New Features
+    :pullreq: 14182
+    :tickets: 13750, 13374
+
+    Add the ability to set tags from dynamic block rules
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14330
+
+    Snmp-agent: Move net-snmp headers out of our headers
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14326
+
+    Use ``pdns::checked_stoi`` instead of ``sscanf`` for ``grepq``'s ms
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14392
+
+    Handle Quiche >= 0.22.0
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14376
+
+    Fix a race when accessing a backend health status
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14367
+
+    Refactoring of the configuration
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14495
+
+    Use atomic variables for the per-protocol latencies
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14588
+
+    Add configure args to --version output
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14577
+
+    Add Lua FFI accessors for EDNS version and extended rcode
+
+  .. change::
+    :tags: New Features, DNS over HTTPS, DNS over TLS
+    :pullreq: 14938
+
+    Allow setting keyLogFile to DoT/DoH backends (Karel Bilek)
+
+  .. change::
+    :tags: New Features, DNS over HTTP3
+    :pullreq: 15002
+
+    Add DoH3 headers, query string, path and scheme bindings
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14970
+
+    Boost > std optional (Rosen Penev)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14948
+
+    Clang-tidy: simplify some algorithms (Rosen Penev)
+
+  .. change::
+    :tags: New Features, DNS over HTTP3
+    :pullreq: 15029
+
+    Add the ability to set custom HTTP responses over DoH3
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15036
+
+    Improve error messages on security polling failures
+
+  .. change::
+    :tags: Removals
+    :pullreq: 15030
+
+    Remove ``TLSContext``
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15032
+
+    Use getAddressInfo() instead python daemonized subprocess (Denis Kadyshev)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15046
+
+    Better error when we cannot connect a backend socket
+
+  .. change::
+    :tags: New Features
+    :pullreq: 14969
+
+    Add a new, optional, YAML-based configuration format
+
+  .. change::
+    :tags: New Features, DNS over QUIC, DNS over HTTP3
+    :pullreq: 15024
+    :tickets: 14048
+
+    Gather Server Name Indication on QUIC (DoQ, DoH3) connections
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14724, 15115, 15138, 15149, 15163, 15184
+
+    Add meson support
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15118, 14134
+
+    Handle Quiche >= 0.23.0 since the API changed
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15120
+
+    Make hard-coded values configurable in xdp.py
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15132
+
+    Add support for multiple network interfaces in the XDP helper
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15137
+
+    Fix compatibility with ``boost::lockfree`` >= 1.87.0
+
+  .. change::
+    :tags: Improvements, Protobuf, DNSTAP
+    :pullreq: 15123
+    :tickets: 14861
+
+    Add pooling support for ``RemoteLoggerInterface`` (Ensar Sarajčić)
+
+  .. change::
+    :tags: Bug Fixes,
+    :pullreq: 15199
+
+    Use ``65535`` instead of ``255`` to block all types via eBPF
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15247
+    :tickets: 15246
+
+    Lua comboaddress: raw docs, cleanups, dnsdist add getRaw (Karel Bilek)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15158
+
+    Disable Lua configuration directives in YAML mode
+
+  .. change::
+    :tags: Improvements, DNSTAP
+    :pullreq: 15151
+    :tickets: 15108
+
+    Add support for dnstap new http_protocol field
+
+  .. change::
+    :tags: Improvements, Protobuf
+    :pullreq: 15298
+
+    Protobuf, support packetCacheHit and outgoingQueries fields
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15300
+
+    Allow ``AF_NETLINK`` and ``AF_XDP`` under ``systemd``
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15257
+
+    Limit # of proxy protocol-enabled outgoing TCP connections
+
+.. changelog::
+  :version: 1.9.8
+  :released: 17th of December 2024
+
+  .. change::
+    :tags: Improvements, DNS over TLS, DNS over HTTPS
+    :pullreq: 14877
+
+    Add the ability to load a given TLS tickets key
+
+  .. change::
+    :tags: Bug Fixes, DNS over TLS, DNS over HTTPS
+    :pullreq: 14878
+
+    setTicketsKeyAddedHook: pass a std::string to the hook to avoid luawrapper to truncate content at potential null chars
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14887
+
+    Add elapsed time to dq object (@phonedph1)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14929
+
+    Allow resetting ``setWeightedBalancingFactor()`` to zero
+
+  .. change::
+    :tags: Bug Fixes, DNS over HTTPS
+    :pullreq: 14977
+    :tickets: 14959
+
+    Fix ECS zero-scope caching with incoming DoH queries
+
+  .. change::
+    :tags: Improvements, Metrics
+    :pullreq: 14978
+
+    Custom metrics: better error messages, small doc improvements
+
+.. changelog::
+  :version: 1.9.7
+  :released: 4th of October 2024
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14638
+    :tickets: 14562
+
+    Fix build with boost 1.86.0
+
+  .. change::
+    :tags: Bug Fixes, DNS over TLS
+    :pullreq: 14639
+    :tickets: 14631
+
+    Fix handling of proxy protocol payload outside of TLS for DoT
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14641
+    :tickets: 14568
+
+    Stop reporting timeouts in ``topSlow()``, add ``topTimeouts()``
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14643
+    :tickets: 14552
+
+    Return a valid unix timestamp for Dynamic Block's ``until``
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14644
+    :tickets: 14548
+
+    Fix EDNS flags confusion when editing the OPT header
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14645
+    :tickets: 14549
+
+    Fix compilation with GCC 15 (Holger Hoffstätte)
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14646
+
+    Add warnings about large values passed to ``setMaxTCPClientThreads``
+
+  .. change::
+    :tags: Improvements, DNS over QUIC, DNS over HTTP3
+    :pullreq: 14647
+
+    Update Quiche to 0.22.0 (in our packages)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14640
+
+    Handle a nonexistent default pool when removing a server
+
+  .. change::
+    :tags: Improvements, DNS over QUIC, DNS over HTTP3
+    :pullreq: 14695
+
+    Update the Rust version we use in our packages to 1.78
+
+  .. change::
+    :tags: Bug Fixes, DNS over TLS
+    :pullreq: 14677
+
+     Prevent a data race in incoming DNS over TLS connections by storing the ``OpenSSLTLSIOCtx`` in the connection
+
+  .. change::
+    :tags: New Features
+    :pullreq: 14716
+    :tickets: 14664
+
+    Add a FFI accessor to incoming proxy protocol values
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14730
+
+    Add EDNS to responses generated from raw record data
+
+  .. change::
+    :tags: Bug Fixes, DNS over QUIC, DNS over HTTP3
+    :pullreq: 14740
+    :tickets: 14736
+
+    Disable eBPF filtering on QUIC (DoQ, DoH3) sockets
+
+.. changelog::
+  :version: 1.8.4
+  :released: 20th of September 2024
+
+  Please review the :doc:`Upgrade Guide <../upgrade_guide>` before upgrading from versions < 1.8.x.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14467
+
+    Fix a compilation issue with clang by switching to ``pdns::views::UnsignedCharView``
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14680
+    :tickets: 14562
+
+    Fix build with boost 1.86.0
+
+  .. change::
+    :tags: Bug Fixes, DNS over TLS
+    :pullreq: 14679
+
+    Prevent a data race in incoming DNS over TLS connections by storing the ``OpenSSLTLSIOCtx`` in the connection
+
+.. changelog::
+  :version: 1.9.6
+  :released: 16th of July 2024
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14436
+
+    Fix a race in the XSK/AF_XDP backend handling code
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 14437
+
+    dns.cc: use pdns::views::UnsignedCharView
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14438
+
+    Make the logging functions available to all Lua environments
+
+  .. change::
+    :tags: Bug Fixes, Metrics
+    :pullreq: 14439
+    :tickets: 14395
+
+    Dedup Prometheus help and type lines for custom metrics with labels
+
+  .. change::
+    :tags: New Features
+    :pullreq: 14449
+
+    Add support for a callback when a new tickets key is added
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14450
+
+    Handle Quiche >= 0.22.0
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 14452
+
+    Don't include openssl/engine.h if it's not going to be used (Sander Hoentjen)
+
+.. changelog::
   :version: 1.9.5
   :released: 20th of June 2024
 
@@ -5352,7 +6477,7 @@ Changelog
     :tags: Improvements
     :pullreq: 6637
 
-    Don't copy unitialized values of SuffixMatchTree
+    Don't copy uninitialized values of SuffixMatchTree
 
   .. change::
     :tags: Improvements
@@ -6029,7 +7154,7 @@ Changelog
     :pullreq: 4859
     :tickets: 4857
 
-    Change ``truncateTC`` to defaulting to off, having it enabled by default causes an compatibility with :rfc:`6891` (Robin Geuze).
+    Change ``truncateTC`` to defaulting to off, having it enabled by default causes an incompatibility with :rfc:`6891` (Robin Geuze).
 
   .. change::
     :tags: Bug Fixes

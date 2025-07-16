@@ -60,7 +60,7 @@ Functions and methods of a ``ComboAddress``
 
   .. method:: ComboAddress:getRaw() -> string
 
-    Returns in raw bytes format format
+    Returns in raw bytes format
 
   .. method:: ComboAddress:toStringWithPort() -> string
 
@@ -104,12 +104,14 @@ Functions and methods of a ``ComboAddressSet``
   It has these methods:
 
   .. method:: ComboAddressSet:add(addr)
+  .. method:: ComboAddressSet:add(addrs)
+  .. method:: ComboAddressSet:add(ca)
 
-    Add the given `addr` to set. `addr` can be of the following types
+    Add the given addresses to set. the parameter can be of the following types:
 
-    :param ComboAddress addr: The `ComboAddress` object to add to set
     :param string addr: Handy way to add `ComboAddress` from its string representation
-    :param [string] addr: Add the given list of addresses to the set
+    :param [string] addrs: Add the given list of addresses to the set
+    :param ComboAddress ca: The `ComboAddress` object to add to set
 
   .. code-block:: lua
 

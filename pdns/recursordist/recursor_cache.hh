@@ -21,12 +21,10 @@
  */
 #pragma once
 #include <string>
-#include <set>
 #include "dns.hh"
 #include "qtype.hh"
 #include "misc.hh"
 #include "dnsname.hh"
-#include <iostream>
 #include "dnsrecords.hh"
 #include <boost/utility.hpp>
 #include <boost/multi_index_container.hpp>
@@ -54,10 +52,18 @@ public:
   // The time a stale cache entry is extended
   static constexpr uint32_t s_serveStaleExtensionPeriod = 30;
 
+  // Maximum size of RRSet we are willing to cache. If the RRSet is larger, we do create an entry,
+  // but mark it as too big. Subsequent gets will cause an ImmediateServFailException to be thrown.
+  static uint16_t s_maxRRSetSize;
+  static bool s_limitQTypeAny;
+
   [[nodiscard]] size_t size() const;
   [[nodiscard]] size_t bytes();
   [[nodiscard]] pair<uint64_t, uint64_t> stats();
   [[nodiscard]] size_t ecsIndexSize();
+
+  size_t getRecordSets(size_t perShard, size_t maxSize, std::string& ret);
+  size_t putRecordSets(const std::string& pbuf);
 
   using OptTag = boost::optional<std::string>;
 
@@ -67,9 +73,32 @@ public:
   static constexpr Flags Refresh = 1 << 1;
   static constexpr Flags ServeStale = 1 << 2;
 
-  [[nodiscard]] time_t get(time_t, const DNSName& qname, QType qtype, Flags flags, vector<DNSRecord>* res, const ComboAddress& who, const OptTag& routingTag = boost::none, vector<std::shared_ptr<const RRSIGRecordContent>>* signatures = nullptr, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs = nullptr, bool* variable = nullptr, vState* state = nullptr, bool* wasAuth = nullptr, DNSName* fromAuthZone = nullptr, ComboAddress* fromAuthIP = nullptr);
+  // The type used to pass auth record data to replace(); If the vector is non-empty, the cache will
+  // store a shared pointer to the copied data. The shared pointer will be returned by get().  There
+  // are optimizations: an empty vector will be stored as a nullptr, but get() will return a pointer
+  // to an already existing empty vector in that case, this is more convenient for the caller, since
+  // it avoid checking for nullptr, just iterate as for the non-empty case.
+  //
+  // get() will return a shared vector to a const vector of shared pointers. Only a single shared
+  // pointer gets copied, while earlier code would copy all shared pointer in the vector.
+  //
+  // In the current SyncRes code, AuthRecs never get appended to a non-empty vector while SigRecs do
+  // get appended in some cases; the handleHit() code will take measures. In the future we might
+  // want a more specialized data structure than a vector, it would require another level of
+  // indirection though, so for now we construct a new shared vector if appending is needed. See
+  // handleHit() for details.
+  using AuthRecsVec = std::vector<DNSRecord>;
+  using AuthRecs = std::shared_ptr<const AuthRecsVec>; // const to avoid modifying the vector, which would be bad for shared data
+  const static AuthRecs s_emptyAuthRecs;
 
-  void replace(time_t, const DNSName& qname, QType qtype, const vector<DNSRecord>& content, const vector<shared_ptr<const RRSIGRecordContent>>& signatures, const std::vector<std::shared_ptr<DNSRecord>>& authorityRecs, bool auth, const DNSName& authZone, boost::optional<Netmask> ednsmask = boost::none, const OptTag& routingTag = boost::none, vState state = vState::Indeterminate, boost::optional<ComboAddress> from = boost::none, bool refresh = false, time_t ttl_time = time(nullptr));
+  // Use same setup as AuthRecs.
+  using SigRecsVec = std::vector<std::shared_ptr<const RRSIGRecordContent>>;
+  using SigRecs = std::shared_ptr<const SigRecsVec>; // Also const as it is shared
+  const static SigRecs s_emptySigRecs;
+
+  [[nodiscard]] time_t get(time_t, const DNSName& qname, QType qtype, Flags flags, vector<DNSRecord>* res, const ComboAddress& who, const OptTag& routingTag = boost::none, SigRecs* signatures = nullptr, AuthRecs* authorityRecs = nullptr, bool* variable = nullptr, vState* state = nullptr, bool* wasAuth = nullptr, DNSName* fromAuthZone = nullptr, ComboAddress* fromAuthIP = nullptr);
+
+  void replace(time_t, const DNSName& qname, QType qtype, const vector<DNSRecord>& content, const SigRecsVec& signatures, const AuthRecsVec& authorityRecs, bool auth, const DNSName& authZone, boost::optional<Netmask> ednsmask = boost::none, const OptTag& routingTag = boost::none, vState state = vState::Indeterminate, boost::optional<ComboAddress> from = boost::none, bool refresh = false, time_t ttl_time = time(nullptr));
 
   void doPrune(time_t now, size_t keep);
   uint64_t doDump(int fileDesc, size_t maxCacheEntries);
@@ -127,9 +156,13 @@ private:
 
     bool shouldReplace(time_t now, bool auth, vState state, bool refresh);
 
+    [[nodiscard]] size_t sizeEstimate() const;
+    [[nodiscard]] size_t authRecsSizeEstimate() const;
+    [[nodiscard]] size_t sigRecsSizeEstimate() const;
+
     records_t d_records;
-    std::vector<std::shared_ptr<const RRSIGRecordContent>> d_signatures;
-    std::vector<std::shared_ptr<DNSRecord>> d_authorityRecs;
+    SigRecs d_signatures;
+    AuthRecs d_authorityRecs;
     DNSName d_qname;
     DNSName d_authZone;
     ComboAddress d_from;
@@ -142,7 +175,15 @@ private:
     QType d_qtype;
     bool d_auth;
     mutable bool d_submitted{false}; // whether this entry has been queued for refetch
+    bool d_tooBig{false};
   };
+
+  bool replace(CacheEntry&& entry);
+  // Using templates to avoid exposing protozero types in this header file
+  template <typename T>
+  bool putRecordSet(T&);
+  template <typename T, typename U>
+  void getRecordSet(T&, U);
 
   /* The ECS Index (d_ecsIndex) keeps track of whether there is any ECS-specific
      entry for a given (qname,qtype) entry in the cache (d_map), and if so
@@ -333,7 +374,7 @@ private:
   static Entries getEntries(MapCombo::LockedContent& map, const DNSName& qname, QType qtype, const OptTag& rtag);
   static cache_t::const_iterator getEntryUsingECSIndex(MapCombo::LockedContent& map, time_t now, const DNSName& qname, QType qtype, bool requireAuth, const ComboAddress& who, bool serveStale);
 
-  static time_t handleHit(time_t now, MapCombo::LockedContent& content, OrderedTagIterator_t& entry, const DNSName& qname, uint32_t& origTTL, vector<DNSRecord>* res, vector<std::shared_ptr<const RRSIGRecordContent>>* signatures, std::vector<std::shared_ptr<DNSRecord>>* authorityRecs, bool* variable, boost::optional<vState>& state, bool* wasAuth, DNSName* authZone, ComboAddress* fromAuthIP);
+  static time_t handleHit(time_t now, MapCombo::LockedContent& content, OrderedTagIterator_t& entry, const DNSName& qname, uint32_t& origTTL, vector<DNSRecord>* res, SigRecs* signatures, AuthRecs* authorityRecs, bool* variable, boost::optional<vState>& state, bool* wasAuth, DNSName* authZone, ComboAddress* fromAuthIP);
   static void updateStaleEntry(time_t now, OrderedTagIterator_t& entry);
   static void handleServeStaleBookkeeping(time_t, bool, OrderedTagIterator_t&);
 };

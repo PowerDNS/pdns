@@ -24,8 +24,8 @@ BOOST_AUTO_TEST_CASE(test_basic) {
   DNSName aroot("a.root-servers.net"), broot("b.root-servers.net");
   BOOST_CHECK(aroot < broot);
   BOOST_CHECK(!(broot < aroot));
-  BOOST_CHECK(aroot.canonCompare(broot));
-  BOOST_CHECK(!broot.canonCompare(aroot));
+  BOOST_CHECK(aroot.canonCompare_three_way(broot) < 0);
+  BOOST_CHECK(broot.canonCompare_three_way(aroot) > 0);
 
 
   string before("www.ds9a.nl.");
@@ -265,7 +265,6 @@ BOOST_AUTO_TEST_CASE(test_Append) {
 }
 
 BOOST_AUTO_TEST_CASE(test_packetCompress) {
-  reportBasicTypes();
   vector<unsigned char> packet;
   DNSPacketWriter dpw(packet, DNSName("www.ds9a.nl."), QType::AAAA);
   dpw.startRecord(DNSName("ds9a.nl"), QType::SOA);
@@ -302,7 +301,6 @@ BOOST_AUTO_TEST_CASE(test_packetCompress) {
 }
 
 BOOST_AUTO_TEST_CASE(test_packetCompressLong) {
-  reportBasicTypes();
   vector<unsigned char> packet;
   DNSName loopback("1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa");
   DNSPacketWriter dpw(packet, loopback, QType::PTR);
@@ -330,7 +328,6 @@ BOOST_AUTO_TEST_CASE(test_packetCompressLong) {
 
 BOOST_AUTO_TEST_CASE(test_PacketParse) {
   vector<unsigned char> packet;
-  reportBasicTypes();
   DNSName root(".");
   DNSPacketWriter dpw1(packet, g_rootdnsname, QType::AAAA);
   DNSName p((char*)&packet[0], packet.size(), 12, false);
@@ -393,7 +390,6 @@ BOOST_AUTO_TEST_CASE(test_hashContainer) {
 
 BOOST_AUTO_TEST_CASE(test_QuestionHash) {
   vector<unsigned char> packet(sizeof(dnsheader));
-  reportBasicTypes();
 
   bool ok;
   // A return init case
@@ -453,7 +449,6 @@ BOOST_AUTO_TEST_CASE(test_QuestionHash) {
 
 BOOST_AUTO_TEST_CASE(test_packetParse) {
   vector<unsigned char> packet;
-  reportBasicTypes();
   DNSPacketWriter dpw(packet, DNSName("www.ds9a.nl."), QType::AAAA);
 
   uint16_t qtype, qclass;
@@ -689,7 +684,7 @@ BOOST_AUTO_TEST_CASE(test_compare_naive) {
 BOOST_AUTO_TEST_CASE(test_compare_empty) {
   DNSName a, b;
   BOOST_CHECK(!(a<b));
-  BOOST_CHECK(!a.canonCompare(b));
+  BOOST_CHECK(a.canonCompare_three_way(b) == 0);
 }
 
 BOOST_AUTO_TEST_CASE(test_casing) {
@@ -707,11 +702,11 @@ BOOST_AUTO_TEST_CASE(test_casing) {
 
 BOOST_AUTO_TEST_CASE(test_compare_canonical) {
   DNSName lower("bert.com."), higher("alpha.nl.");
-  BOOST_CHECK(lower.canonCompare(higher));
+  BOOST_CHECK(lower.canonCompare_three_way(higher) < 0);
 
-  BOOST_CHECK(DNSName("bert.com").canonCompare(DNSName("www.bert.com")));
-  BOOST_CHECK(DNSName("BeRt.com").canonCompare(DNSName("WWW.berT.com")));
-  BOOST_CHECK(!DNSName("www.BeRt.com").canonCompare(DNSName("WWW.berT.com")));
+  BOOST_CHECK(DNSName("bert.com").canonCompare_three_way(DNSName("www.bert.com")) < 0);
+  BOOST_CHECK(DNSName("BeRt.com").canonCompare_three_way(DNSName("WWW.berT.com")) < 0);
+  BOOST_CHECK(DNSName("www.BeRt.com").canonCompare_three_way(DNSName("WWW.berT.com")) == 0);
 
   CanonDNSNameCompare a;
   BOOST_CHECK(a(g_rootdnsname, DNSName("www.powerdns.com")));
@@ -1036,5 +1031,35 @@ BOOST_AUTO_TEST_CASE(test_getcommonlabels) {
   BOOST_CHECK_EQUAL(name1.getCommonLabels(name5), DNSName());
   BOOST_CHECK_EQUAL(name5.getCommonLabels(name1), DNSName());
 }
+
+#if defined(PDNS_AUTH)
+BOOST_AUTO_TEST_CASE(test_variantnames) {
+  ZoneName zone1("..variant");
+  ZoneName zone2("bug.less..variant");
+  ZoneName zone3(R"(actually\..not.a.variant)");
+  ZoneName zone4(R"(still\\\..not.a.variant)");
+  ZoneName zone5(R"(anti-\\..variant)");
+  ZoneName zone6(R"(sl\\\\\..a\\\..sh\...overflow)");
+
+  BOOST_CHECK(zone1.hasVariant());
+  BOOST_CHECK(zone1.operator const DNSName&().isRoot());
+
+  BOOST_CHECK(zone2.hasVariant());
+  BOOST_CHECK_EQUAL(zone2.operator const DNSName&().toString(), "bug.less.");
+  BOOST_CHECK_EQUAL(zone2.getVariant(), "variant");
+
+  BOOST_CHECK(!zone3.hasVariant());
+  BOOST_CHECK(!zone4.hasVariant());
+
+  BOOST_CHECK(zone5.hasVariant());
+  BOOST_CHECK_EQUAL(zone5.operator const DNSName&().toString(), R"(anti-\\.)");
+  BOOST_CHECK_EQUAL(zone5.getVariant(), "variant");
+
+  BOOST_CHECK(zone6.hasVariant());
+  BOOST_CHECK_EQUAL(zone6.getVariant(), "overflow");
+
+  BOOST_CHECK_THROW(ZoneName zone("variants.r.us..dot..dot...dot....dot.....dots"),std::out_of_range);
+}
+#endif
 
 BOOST_AUTO_TEST_SUITE_END()

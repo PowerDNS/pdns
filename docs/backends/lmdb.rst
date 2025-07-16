@@ -2,18 +2,22 @@ LMDB backend
 ============
 
 * Native: Yes
-* Master: Yes
-* Slave: Yes
-* Superslave: No
-* Case: All lower
+* Primary: Yes
+* Secondary: Yes
+* Producer: Yes
+* Consumer: Yes
+* Autosecondary: No
+* DNS Update: since version 5.0.0
 * DNSSEC: Yes
 * Disabled data: Yes
 * Comments: No
+* Search: since version 5.0.0
+* Views: Yes
+* API: Read-Write
 * Multiple instances: No
 * Zone caching: Yes
 * Module name: lmdb
 * Launch name: ``lmdb``
-
 
 .. warning::
   The LMDB backend is considered stable as of 4.4.0. Version 4.3.0 was stable but had an important `known bug <https://github.com/PowerDNS/pdns/issues/8012>`__, that affects anybody with big records such as long TXT content.
@@ -36,14 +40,14 @@ Path to the LMDB file (e.g. */var/lib/powerdns/pdns.lmdb*)
 
 .. warning::
   On systemd systems,
-  When running PowerDNS via the provided systemd service file, `ProtectSystem <http://www.freedesktop.org/software/systemd/man/systemd.exec.html#ProtectSystem=>`_ is set to ``full``, this means PowerDNS is unable to write to e.g. ``/etc`` and ``/home``, possibly being unable to write to the LMDB database.
+  When running PowerDNS via the provided systemd service file, `ProtectSystem <https://www.freedesktop.org/software/systemd/man/systemd.exec.html#ProtectSystem=>`_ is set to ``full``, this means PowerDNS is unable to write to e.g. ``/etc`` and ``/home``, possibly being unable to write to the LMDB database.
 
 .. _setting-lmdb-shards:
 
 ``lmdb-shards``
 ^^^^^^^^^^^^^^^^^
 
-Records database will be split into this number of shards e.g. lmdb-shards=64
+Records database will be split into this number of shards e.g. lmdb-shards=64.
 Default is 2 on 32 bits systems, and 64 on 64 bits systems.
 
 .. _setting-lmdb-sync-mode:
@@ -55,11 +59,10 @@ Default is 2 on 32 bits systems, and 64 on 64 bits systems.
 
   ``mapasync`` choice removed
 
-* Synchronisation mode: sync, nosync, nometasync
-* Default: sync
+Synchronisation mode: one of sync, nosync, nometasync (default: sync).
 
 ``sync`` (default since 4.9.0)
-  LMDB synchronous mode. Safest option, but also slightly slower. Can  also be enabled with ``lmdb-sync-mode=``
+  LMDB synchronous mode. Safest option, but also slightly slower. Can also be enabled with ``lmdb-sync-mode=``
 
 ``nosync``
   don't flush systems buffers to disk when committing a transaction.
@@ -77,9 +80,9 @@ Default is 2 on 32 bits systems, and 64 on 64 bits systems.
 ``lmdb-schema-version``
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-Determines the maximum schema version LMDB is allowed to upgrade to. If the on disk LMDB database has a lower version than the current version of the LMDB schema the backend will not start, unless this setting allows it to upgrade the schema. If the version of the DB is already the same as the current schema version this setting is not checked and the backend starts normally.
+Determines the maximum schema version LMDB is allowed to upgrade to. If the on disk LMDB database has a lower version than the current version of the LMDB schema the backend will not start, unless this setting allows it to upgrade the schema. If the version of the DB is already the same as the current schema version this setting is not checked and the backend will start normally.
 
-The default value for this setting is the highest supported schema version for the version of PowerDNS you are starting. if you want to prevent automatic schema upgrades, explicitly set this setting to the current default before upgrading PowerDNS.
+The default value for this setting is the highest supported schema version for the version of PowerDNS you are starting. If you want to prevent automatic schema upgrades, explicitly set this setting to the current default before upgrading PowerDNS.
 
 ================  ===================
 PowerDNS Version  LMDB Schema version
@@ -89,6 +92,7 @@ PowerDNS Version  LMDB Schema version
 4.4.x to 4.6.x    3
 4.7.x and up      4
 4.8.x and up      5
+5.0.x and up      6
 ================  ===================
 
 .. _settings-lmdb-random-ids:

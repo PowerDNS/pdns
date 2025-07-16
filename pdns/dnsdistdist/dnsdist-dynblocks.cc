@@ -1,13 +1,12 @@
-
 #include "dnsdist.hh"
 #include "dnsdist-dynblocks.hh"
 #include "dnsdist-metrics.hh"
-
-GlobalStateHolder<NetmaskTree<DynBlock, AddressAndPortRange>> g_dynblockNMG;
-GlobalStateHolder<SuffixMatchTree<DynBlock>> g_dynblockSMT;
-DNSAction::Action g_dynBlockAction = DNSAction::Action::Drop;
+#include "sholder.hh"
 
 #ifndef DISABLE_DYNBLOCKS
+static GlobalStateHolder<ClientAddressDynamicRules> s_dynblockNMG;
+static GlobalStateHolder<SuffixDynamicRules> s_dynblockSMT;
+
 void DynBlockRulesGroup::apply(const timespec& now)
 {
   counts_t counts;
@@ -29,7 +28,7 @@ void DynBlockRulesGroup::apply(const timespec& now)
     return;
   }
 
-  boost::optional<NetmaskTree<DynBlock, AddressAndPortRange>> blocks;
+  boost::optional<ClientAddressDynamicRules> blocks;
   bool updated = false;
 
   for (const auto& entry : counts) {
@@ -115,7 +114,7 @@ void DynBlockRulesGroup::apply(const timespec& now)
   }
 
   if (updated && blocks) {
-    g_dynblockNMG.setState(std::move(*blocks));
+    s_dynblockNMG.setState(std::move(*blocks));
   }
 
   applySMT(now, statNodeRoot);
@@ -157,7 +156,7 @@ void DynBlockRulesGroup::applySMT(const struct timespec& now, StatNode& statNode
 
   if (!namesToBlock.empty()) {
     updated = false;
-    SuffixMatchTree<DynBlock> smtBlocks = g_dynblockSMT.getCopy();
+    auto smtBlocks = dnsdist::DynamicBlocks::getSuffixDynamicRulesCopy();
     for (auto& [name, parameters] : namesToBlock) {
       if (parameters.d_reason || parameters.d_action) {
         DynBlockRule rule(d_suffixMatchRule);
@@ -174,7 +173,7 @@ void DynBlockRulesGroup::applySMT(const struct timespec& now, StatNode& statNode
       }
     }
     if (updated) {
-      g_dynblockSMT.setState(std::move(smtBlocks));
+      s_dynblockSMT.setState(std::move(smtBlocks));
     }
   }
 }
@@ -202,19 +201,19 @@ bool DynBlockRulesGroup::checkIfResponseCodeMatches(const Rings::Response& respo
 
 /* return the actual action that will be taken by that block:
    - either the one set on that block, if any
-   - or the one set with setDynBlocksAction in g_dynBlockAction
+   - or the one set with setDynBlocksAction
 */
 static DNSAction::Action getActualAction(const DynBlock& block)
 {
   if (block.action != DNSAction::Action::None) {
     return block.action;
   }
-  return g_dynBlockAction;
+  return dnsdist::configuration::getCurrentRuntimeConfiguration().d_dynBlockAction;
 }
 
 namespace dnsdist::DynamicBlocks
 {
-bool addOrRefreshBlock(NetmaskTree<DynBlock, AddressAndPortRange>& blocks, const timespec& now, const AddressAndPortRange& requestor, DynBlock&& dblock, bool beQuiet)
+bool addOrRefreshBlock(ClientAddressDynamicRules& blocks, const timespec& now, const AddressAndPortRange& requestor, DynBlock&& dblock, bool beQuiet)
 {
   unsigned int count = 0;
   bool expired = false;
@@ -279,7 +278,7 @@ bool addOrRefreshBlock(NetmaskTree<DynBlock, AddressAndPortRange>& blocks, const
   return true;
 }
 
-bool addOrRefreshBlockSMT(SuffixMatchTree<DynBlock>& blocks, const timespec& now, DynBlock&& dblock, bool beQuiet)
+bool addOrRefreshBlockSMT(SuffixDynamicRules& blocks, const timespec& now, DynBlock&& dblock, bool beQuiet)
 {
   unsigned int count = 0;
   /* be careful, if you try to insert a longer suffix
@@ -317,7 +316,7 @@ bool addOrRefreshBlockSMT(SuffixMatchTree<DynBlock>& blocks, const timespec& now
 }
 }
 
-void DynBlockRulesGroup::addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock, AddressAndPortRange>>& blocks, const struct timespec& now, const AddressAndPortRange& requestor, const DynBlockRule& rule, bool& updated, bool warning)
+void DynBlockRulesGroup::addOrRefreshBlock(boost::optional<ClientAddressDynamicRules>& blocks, const struct timespec& now, const AddressAndPortRange& requestor, const DynBlockRule& rule, bool& updated, bool warning)
 {
   /* network exclusions are address-based only (no port) */
   if (d_excludedSubnets.match(requestor.getNetwork())) {
@@ -333,7 +332,7 @@ void DynBlockRulesGroup::addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock,
     dblock.tagSettings = rule.d_tagSettings;
   }
   if (!blocks) {
-    blocks = g_dynblockNMG.getCopy();
+    blocks = dnsdist::DynamicBlocks::getClientAddressDynamicRulesCopy();
   }
 
   updated = dnsdist::DynamicBlocks::addOrRefreshBlock(*blocks, now, requestor, std::move(dblock), d_beQuiet);
@@ -347,7 +346,7 @@ void DynBlockRulesGroup::addOrRefreshBlock(boost::optional<NetmaskTree<DynBlock,
   }
 }
 
-void DynBlockRulesGroup::addOrRefreshBlockSMT(SuffixMatchTree<DynBlock>& blocks, const struct timespec& now, const DNSName& name, const DynBlockRule& rule, bool& updated)
+void DynBlockRulesGroup::addOrRefreshBlockSMT(SuffixDynamicRules& blocks, const struct timespec& now, const DNSName& name, const DynBlockRule& rule, bool& updated)
 {
   if (d_excludedDomains.check(name)) {
     /* do not add a block for excluded domains */
@@ -481,7 +480,7 @@ void DynBlockRulesGroup::processResponseRules(counts_t& counts, StatNode& root, 
 
       if (suffixMatchRuleMatches) {
         const bool hit = ringEntry.isACacheHit();
-        root.submit(ringEntry.name, ((ringEntry.dh.rcode == 0 && ringEntry.usec == std::numeric_limits<unsigned int>::max()) ? -1 : ringEntry.dh.rcode), ringEntry.size, hit, boost::none);
+        root.submit(ringEntry.name, ((ringEntry.dh.rcode == 0 && ringEntry.usec == std::numeric_limits<unsigned int>::max()) ? -1 : ringEntry.dh.rcode), ringEntry.size, hit, std::nullopt);
       }
     }
   }
@@ -494,7 +493,7 @@ void DynBlockMaintenance::purgeExpired(const struct timespec& now)
   // since the block happens in kernel space.
   uint64_t bpfBlocked = 0;
   {
-    auto blocks = g_dynblockNMG.getLocal();
+    auto blocks = s_dynblockNMG.getLocal();
     std::vector<AddressAndPortRange> toRemove;
     for (const auto& entry : *blocks) {
       if (!(now < entry.second.until)) {
@@ -517,29 +516,29 @@ void DynBlockMaintenance::purgeExpired(const struct timespec& now)
       }
     }
     if (!toRemove.empty()) {
-      auto updated = g_dynblockNMG.getCopy();
+      auto updated = dnsdist::DynamicBlocks::getClientAddressDynamicRulesCopy();
       for (const auto& entry : toRemove) {
         updated.erase(entry);
       }
-      g_dynblockNMG.setState(std::move(updated));
+      s_dynblockNMG.setState(std::move(updated));
       dnsdist::metrics::g_stats.dynBlocked += bpfBlocked;
     }
   }
 
   {
     std::vector<DNSName> toRemove;
-    auto blocks = g_dynblockSMT.getLocal();
-    blocks->visit([&toRemove, now](const SuffixMatchTree<DynBlock>& node) {
+    auto blocks = s_dynblockSMT.getLocal();
+    blocks->visit([&toRemove, now](const SuffixDynamicRules& node) {
       if (!(now < node.d_value.until)) {
         toRemove.push_back(node.d_value.domain);
       }
     });
     if (!toRemove.empty()) {
-      auto updated = g_dynblockSMT.getCopy();
+      auto updated = dnsdist::DynamicBlocks::getSuffixDynamicRulesCopy();
       for (const auto& entry : toRemove) {
         updated.remove(entry);
       }
-      g_dynblockSMT.setState(std::move(updated));
+      s_dynblockSMT.setState(std::move(updated));
     }
   }
 }
@@ -551,7 +550,7 @@ std::map<std::string, std::list<std::pair<AddressAndPortRange, unsigned int>>> D
     return results;
   }
 
-  auto blocks = g_dynblockNMG.getLocal();
+  auto blocks = s_dynblockNMG.getLocal();
   for (const auto& entry : *blocks) {
     auto& topsForReason = results[entry.second.reason];
     uint64_t value = entry.second.blocks.load();
@@ -584,8 +583,8 @@ std::map<std::string, std::list<std::pair<DNSName, unsigned int>>> DynBlockMaint
     return results;
   }
 
-  auto blocks = g_dynblockSMT.getLocal();
-  blocks->visit([&results, topN](const SuffixMatchTree<DynBlock>& node) {
+  auto blocks = s_dynblockSMT.getLocal();
+  blocks->visit([&results, topN](const SuffixDynamicRules& node) {
     auto& topsForReason = results[node.d_value.reason];
     if (topsForReason.size() < topN || topsForReason.front().second < node.d_value.blocks) {
       auto newEntry = std::pair(node.d_value.domain, node.d_value.blocks.load());
@@ -613,8 +612,6 @@ struct DynBlockEntryStat
 std::list<DynBlockMaintenance::MetricsSnapshot> DynBlockMaintenance::s_metricsData;
 
 LockGuarded<DynBlockMaintenance::Tops> DynBlockMaintenance::s_tops;
-size_t DynBlockMaintenance::s_topN{20};
-time_t DynBlockMaintenance::s_expiredDynBlocksPurgeInterval{60};
 
 void DynBlockMaintenance::collectMetrics()
 {
@@ -774,13 +771,14 @@ void DynBlockMaintenance::run()
   static const time_t metricsGenerationInterval = 60;
 
   time_t now = time(nullptr);
-  time_t nextExpiredPurge = now + s_expiredDynBlocksPurgeInterval;
-  time_t nextMetricsCollect = now + metricsCollectionInterval;
+  auto purgeInterval = dnsdist::configuration::getCurrentRuntimeConfiguration().d_dynBlocksPurgeInterval;
+  time_t nextExpiredPurge = now + static_cast<time_t>(purgeInterval);
+  time_t nextMetricsCollect = now + static_cast<time_t>(metricsCollectionInterval);
   time_t nextMetricsGeneration = now + metricsGenerationInterval;
 
   while (true) {
     time_t sleepDelay = std::numeric_limits<time_t>::max();
-    if (s_expiredDynBlocksPurgeInterval > 0) {
+    if (purgeInterval > 0) {
       sleepDelay = std::min(sleepDelay, (nextExpiredPurge - now));
     }
     sleepDelay = std::min(sleepDelay, (nextMetricsCollect - now));
@@ -808,21 +806,21 @@ void DynBlockMaintenance::run()
         nextMetricsGeneration = now + metricsGenerationInterval;
       }
 
-      if (s_expiredDynBlocksPurgeInterval > 0 && now >= nextExpiredPurge) {
-        struct timespec tspec
-        {
-        };
+      purgeInterval = dnsdist::configuration::getCurrentRuntimeConfiguration().d_dynBlocksPurgeInterval;
+      if (purgeInterval > 0 && now >= nextExpiredPurge) {
+        timespec tspec{};
         gettime(&tspec);
         purgeExpired(tspec);
 
         now = time(nullptr);
-        nextExpiredPurge = now + s_expiredDynBlocksPurgeInterval;
+        nextExpiredPurge = now + static_cast<time_t>(purgeInterval);
       }
     }
     catch (const std::exception& e) {
       warnlog("Error in the dynamic block maintenance thread: %s", e.what());
     }
     catch (...) {
+      vinfolog("Unhandled error in the dynamic block maintenance thread");
     }
   }
 }
@@ -993,6 +991,72 @@ std::string DynBlockRulesGroup::DynBlockCacheMissRatioRule::toString() const
   result << "for " << std::to_string(d_blockDuration) << " seconds when over " << std::to_string(d_ratio) << " ratio during the last " << d_seconds << " seconds, with a global cache-hit ratio of at least " << d_minimumGlobalCacheHitRatio << ", reason: '" << d_blockReason << "'";
 
   return result.str();
+}
+
+namespace dnsdist::DynamicBlocks
+{
+const ClientAddressDynamicRules& getClientAddressDynamicRules()
+{
+  static thread_local auto t_localRules = s_dynblockNMG.getLocal();
+  return *t_localRules;
+}
+
+ClientAddressDynamicRules getClientAddressDynamicRulesCopy()
+{
+  return s_dynblockNMG.getCopy();
+}
+
+const SuffixDynamicRules& getSuffixDynamicRules()
+{
+  static thread_local auto t_localRules = s_dynblockSMT.getLocal();
+  return *t_localRules;
+}
+
+SuffixDynamicRules getSuffixDynamicRulesCopy()
+{
+  return s_dynblockSMT.getCopy();
+}
+
+void setClientAddressDynamicRules(ClientAddressDynamicRules&& rules)
+{
+  s_dynblockNMG.setState(std::move(rules));
+}
+
+void setSuffixDynamicRules(SuffixDynamicRules&& rules)
+{
+  s_dynblockSMT.setState(std::move(rules));
+}
+
+void clearClientAddressDynamicRules()
+{
+  ClientAddressDynamicRules emptyNMG;
+  setClientAddressDynamicRules(std::move(emptyNMG));
+}
+
+void clearSuffixDynamicRules()
+{
+  SuffixDynamicRules emptySMT;
+  setSuffixDynamicRules(std::move(emptySMT));
+}
+
+LockGuarded<std::vector<std::shared_ptr<DynBlockRulesGroup>>> s_registeredDynamicBlockGroups;
+
+void registerGroup(std::shared_ptr<DynBlockRulesGroup>& group)
+{
+  s_registeredDynamicBlockGroups.lock()->push_back(group);
+}
+
+void runRegisteredGroups(LuaContext& luaCtx)
+{
+  // only used to make sure we hold the Lua context lock
+  (void)luaCtx;
+  timespec now{};
+  gettime(&now);
+  for (auto& group : *s_registeredDynamicBlockGroups.lock()) {
+    group->apply(now);
+  }
+}
+
 }
 
 #endif /* DISABLE_DYNBLOCKS */

@@ -1,0 +1,19 @@
+# To generate requirements.txt, install pip-tools and run:
+#  pip-compile --generate-hashes -U requirements.in
+
+wheel==0.45.1
+dnspython>=2.2.0
+pytest
+pytest-xdist
+libnacl>=1.4.3,<1.7
+requests>=2.1.0
+protobuf>=3.0
+pyasn1==0.4.8
+pysnmp>=5,<6
+future>=0.17.1
+pycurl>=7.43.0
+lmdb>=0.95
+cdbx==0.1.2
+h2>=4.0.0
+aioquic
+async_timeout

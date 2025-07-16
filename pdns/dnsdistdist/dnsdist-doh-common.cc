@@ -21,82 +21,22 @@
  */
 #include "base64.hh"
 #include "dnsdist-doh-common.hh"
-#include "dnsdist-rules.hh"
+#include "dnsdist.hh"
 
 #ifdef HAVE_DNS_OVER_HTTPS
-
-HTTPHeaderRule::HTTPHeaderRule(const std::string& header, const std::string& regex) :
-  d_header(toLower(header)), d_regex(regex), d_visual("http[" + header + "] ~ " + regex)
-{
-}
-
-bool HTTPHeaderRule::matches(const DNSQuestion* dq) const
-{
-  if (!dq->ids.du) {
-    return false;
-  }
-
-  const auto& headers = dq->ids.du->getHTTPHeaders();
-  for (const auto& header : headers) {
-    if (header.first == d_header) {
-      return d_regex.match(header.second);
-    }
-  }
-  return false;
-}
-
-string HTTPHeaderRule::toString() const
-{
-  return d_visual;
-}
-
-HTTPPathRule::HTTPPathRule(std::string path) :
-  d_path(std::move(path))
-{
-}
-
-bool HTTPPathRule::matches(const DNSQuestion* dq) const
-{
-  if (!dq->ids.du) {
-    return false;
-  }
-
-  const auto path = dq->ids.du->getHTTPPath();
-  return d_path == path;
-}
-
-string HTTPPathRule::toString() const
-{
-  return "url path == " + d_path;
-}
-
-HTTPPathRegexRule::HTTPPathRegexRule(const std::string& regex) :
-  d_regex(regex), d_visual("http path ~ " + regex)
-{
-}
-
-bool HTTPPathRegexRule::matches(const DNSQuestion* dq) const
-{
-  if (!dq->ids.du) {
-    return false;
-  }
-
-  return d_regex.match(dq->ids.du->getHTTPPath());
-}
-
-string HTTPPathRegexRule::toString() const
-{
-  return d_visual;
-}
-
 void DOHFrontend::rotateTicketsKey(time_t now)
 {
-  return d_tlsContext.rotateTicketsKey(now);
+  return d_tlsContext->rotateTicketsKey(now);
 }
 
 void DOHFrontend::loadTicketsKeys(const std::string& keyFile)
 {
-  return d_tlsContext.loadTicketsKeys(keyFile);
+  return d_tlsContext->loadTicketsKeys(keyFile);
+}
+
+void DOHFrontend::loadTicketsKey(const std::string& key)
+{
+  return d_tlsContext->loadTicketsKey(key);
 }
 
 void DOHFrontend::handleTicketsKeyRotation()
@@ -105,26 +45,26 @@ void DOHFrontend::handleTicketsKeyRotation()
 
 std::string DOHFrontend::getNextTicketsKeyRotation() const
 {
-  return d_tlsContext.getNextTicketsKeyRotation();
+  return d_tlsContext->getNextTicketsKeyRotation();
 }
 
 size_t DOHFrontend::getTicketsKeysCount()
 {
-  return d_tlsContext.getTicketsKeysCount();
+  return d_tlsContext->getTicketsKeysCount();
 }
 
 void DOHFrontend::reloadCertificates()
 {
   if (isHTTPS()) {
-    d_tlsContext.setupTLS();
+    d_tlsContext->setupTLS();
   }
 }
 
 void DOHFrontend::setup()
 {
   if (isHTTPS()) {
-    if (!d_tlsContext.setupTLS()) {
-      throw std::runtime_error("Error setting up TLS context for DoH listener on '" + d_tlsContext.d_addr.toStringWithPort());
+    if (!d_tlsContext->setupTLS()) {
+      throw std::runtime_error("Error setting up TLS context for DoH listener on '" + d_tlsContext->d_addr.toStringWithPort());
     }
   }
 }

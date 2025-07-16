@@ -80,6 +80,23 @@ class TestCaching(DNSDistTest):
 
         self.assertEqual(total, 1)
 
+    def testEmptyTruncated(self):
+        """
+        Cache: Empty TC=1 is not cached by default
+        """
+        name = 'empty-tc.cache.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'AAAA', 'IN')
+        response = dns.message.make_response(query)
+        response.flags |= dns.flags.TC
+
+        for _ in range(2):
+            (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(receivedResponse, response)
+
     def testDOCached(self):
         """
         Cache: Served from cache, query has DO bit set
@@ -519,7 +536,7 @@ class TestCaching(DNSDistTest):
         """
         numberOfQueries = 10
         name = 'large-answer.cache.tests.powerdns.com.'
-        query = dns.message.make_query(name, 'TXT', 'IN')
+        query = dns.message.make_query(name, 'TXT', 'IN', payload=4096)
         response = dns.message.make_response(query)
         # we prepare a large answer
         content = ""
@@ -527,8 +544,8 @@ class TestCaching(DNSDistTest):
             if len(content) > 0:
                 content = content + ', '
             content = content + (str(i)*50)
-        # pad up to 4096
-        content = content + 'A'*42
+        # pad up to 4096 (less 11 for EDNS)
+        content = content + 'A'*31
 
         rrset = dns.rrset.from_text(name,
                                     3600,
@@ -1151,15 +1168,19 @@ class TestCachingStale(DNSDistTest):
     _consoleKey = DNSDistTest.generateConsoleKey()
     _consoleKeyB64 = base64.b64encode(_consoleKey).decode('ascii')
     _staleCacheTTL = 60
-    _config_params = ['_staleCacheTTL', '_consoleKeyB64', '_consolePort', '_testServerPort']
+    _config_params = ['_staleCacheTTL', '_consoleKeyB64', '_consolePort', '_testServerPort', '_testServerPort']
     _config_template = """
     pc = newPacketCache(100, {maxTTL=86400, minTTL=1, temporaryFailureTTL=0, staleTTL=%d})
     getPool(""):setCache(pc)
+    getPool("tcp-only"):setCache(pc)
     setStaleCacheEntriesTTL(600)
     setKey("%s")
     controlSocket("127.0.0.1:%d")
     newServer{address="127.0.0.1:%d"}
+    newServer{address="127.0.0.1:%d", tcpOnly=true, pool='tcp-only'}
+    addAction(QNameRule('stale-tcp-only.cache.tests.powerdns.com.'), PoolAction('tcp-only'))
     """
+
     def testCacheStale(self):
         """
         Cache: Cache entry, set backend down, get stale entry
@@ -1192,6 +1213,53 @@ class TestCachingStale(DNSDistTest):
 
         # ok, we mark the backend as down
         self.sendConsoleCommand("getServer(0):setDown()")
+        # and we wait for the entry to expire
+        time.sleep(ttl + 1)
+
+        # we should get a cached, stale, entry
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEqual(receivedResponse, response)
+        for an in receivedResponse.answer:
+            self.assertEqual(an.ttl, self._staleCacheTTL)
+
+        total = 0
+        for key in self._responsesCounter:
+            total += self._responsesCounter[key]
+
+        self.assertEqual(total, misses)
+
+    def testCacheStaleTCPOnly(self):
+        """
+        Cache: Cache entry from TCP-only backend, set backend down, get stale entry
+
+        """
+        misses = 0
+        ttl = 2
+        name = 'stale-tcp-only.cache.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    ttl,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        # Miss
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
+        misses += 1
+
+        # next queries should hit the cache
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False)
+        self.assertEqual(receivedResponse, response)
+
+        # ok, we mark the backend as down
+        self.sendConsoleCommand("getServer(1):setDown()")
         # and we wait for the entry to expire
         time.sleep(ttl + 1)
 
@@ -2396,6 +2464,12 @@ class TestCachingCollisionWithECSParsing(DNSDistTest):
 
 class TestCachingScopeZero(DNSDistTest):
 
+    _serverKey = 'server.key'
+    _serverCert = 'server.chain'
+    _serverName = 'tls.tests.dnsdist.org'
+    _caCert = 'ca.pem'
+    _dohServerPort = pickAvailablePort()
+    _dohBaseURL = ("https://%s:%d/" % (_serverName, _dohServerPort))
     _config_template = """
     -- Be careful to enable ECS parsing in the packet cache, otherwise scope zero is disabled
     pc = newPacketCache(100, {maxTTL=86400, minTTL=1, temporaryFailureTTL=60, staleTTL=60, dontAge=false, numberOfShards=1, deferrableInsertLock=true, maxNegativeTTL=3600, parseECS=true})
@@ -2406,7 +2480,11 @@ class TestCachingScopeZero(DNSDistTest):
     -- to unset it using rules before the first cache lookup)
     addAction(RDRule(), SetECSAction("192.0.2.1/32"))
     addAction(RDRule(), SetNoRecurseAction())
+
+    -- test the DoH special case (query received over TCP, forwarded over UDP)
+    addDOHLocal("127.0.0.1:%d", "%s", "%s", { "/" }, {library='nghttp2'})
     """
+    _config_params = ['_testServerPort', '_dohServerPort', '_serverCert', '_serverKey']
 
     def testScopeZero(self):
         """
@@ -2581,6 +2659,38 @@ class TestCachingScopeZero(DNSDistTest):
             receivedQuery.id = expectedQuery2.id
             self.checkMessageEDNSWithECS(expectedQuery2, receivedQuery)
             self.checkMessageNoEDNS(receivedResponse, response)
+
+    def testScopeZeroIncomingDoH(self):
+        """
+        Cache: Test the scope-zero feature with a query received over DoH, backend returns a scope of zero
+        """
+        ttl = 600
+        name = 'scope-zero-incoming-doh.cache.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'AAAA', 'IN')
+        query.flags &= ~dns.flags.RD
+        ecso = clientsubnetoption.ClientSubnetOption('127.0.0.0', 24)
+        expectedQuery = dns.message.make_query(name, 'AAAA', 'IN', use_edns=True, options=[ecso], payload=4096)
+        expectedQuery.flags &= ~dns.flags.RD
+        ecsoResponse = clientsubnetoption.ClientSubnetOption('127.0.0.1', 24, 0)
+        expectedResponse = dns.message.make_response(query)
+        scopedResponse = dns.message.make_response(query)
+        scopedResponse.use_edns(edns=True, payload=4096, options=[ecsoResponse])
+        rrset = dns.rrset.from_text(name,
+                                    ttl,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '::1')
+        scopedResponse.answer.append(rrset)
+        expectedResponse.answer.append(rrset)
+
+        (receivedQuery, receivedResponse) = self.sendDOHQueryWrapper(query, scopedResponse)
+        receivedQuery.id = expectedQuery.id
+        self.checkMessageEDNSWithECS(expectedQuery, receivedQuery)
+        self.checkMessageNoEDNS(receivedResponse, expectedResponse)
+
+        # next query should hit the cache
+        (receivedQuery, receivedResponse) = self.sendDOHQueryWrapper(query, response=None, useQueue=False)
+        self.checkMessageNoEDNS(receivedResponse, expectedResponse)
 
 class TestCachingScopeZeroButNoSubnetcheck(DNSDistTest):
 
@@ -2978,3 +3088,154 @@ class TestCachingOfVeryLargeAnswers(DNSDistTest):
         self.assertFalse(receivedResponse)
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
+
+class TestCacheEmptyTC(DNSDistTest):
+
+    _truncated_ttl = 42
+    _config_template = """
+    pc = newPacketCache(100, {maxTTL=86400, minTTL=1, truncatedTTL=%d})
+    getPool(""):setCache(pc)
+    newServer{address="127.0.0.1:%d"}
+    """
+    _config_params = ['_truncated_ttl', '_testServerPort']
+
+    def testEmptyTruncated(self):
+        """
+        Cache: Empty TC=1 should be cached
+        """
+        name = 'cache-empty-tc.cache.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'AAAA', 'IN')
+        response = dns.message.make_response(query)
+        response.flags |= dns.flags.TC
+
+        # first to fill the cache
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(receivedResponse, response)
+
+        # now it should be cached
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertEqual(receivedResponse, response)
+
+class TestCachingPayloadRanks(DNSDistTest):
+
+    _verboseMode = True
+    _testServerPort = pickAvailablePort()
+    _webTimeout = 2.0
+    _webServerPort = pickAvailablePort()
+    _webServerAPIKey = 'apisecret'
+    _webServerAPIKeyHashed = '$scrypt$ln=10,p=1,r=8$9v8JxDfzQVyTpBkTbkUqYg==$bDQzAOHeK1G9UvTPypNhrX48w974ZXbFPtRKS34+aso='
+    _config_params = ['_webServerPort', '_webServerAPIKeyHashed', '_testServerPort']
+    _config_template = """
+    webserver("127.0.0.1:%s")
+    setWebserverConfig({apiKey="%s"})
+    pc = newPacketCache(100, {maxTTL=86400, minTTL=1, payloadRanks={768, 512, 4096, 1280, 1024, 2048}})
+    getPool(""):setCache(pc)
+    newServer{address="127.0.0.1:%d"}
+    """
+
+    def getPoolMetric(self, poolID, metricName):
+        headers = {'x-api-key': self._webServerAPIKey}
+        url = 'http://127.0.0.1:' + str(self._webServerPort) + '/api/v1/servers/localhost'
+        r = requests.get(url, headers=headers, timeout=self._webTimeout)
+        self.assertTrue(r)
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.json())
+        content = r.json()
+        self.assertIn('pools', content)
+        pools = content['pools']
+        self.assertGreater(len(pools), poolID)
+        pool = pools[poolID]
+        return int(pool[metricName])
+
+    def testCachePayloadRanks(self):
+        """
+        Cache: Testing ``payloadRanks`` parameter for caching
+
+        """
+        # testing with and without EDNS0 payload size
+        name1 = 'cached.cache.tests.powerdns.com.'
+        query1 = dns.message.make_query(name1, 'AAAA', 'IN', payload=512)
+        query1_1 = dns.message.make_query(name1, 'AAAA', 'IN', payload=600)
+        response1 = dns.message.make_response(query1)
+        rrset1 = dns.rrset.from_text(name1,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.AAAA,
+                                    '::1')
+        response1.answer.append(rrset1)
+
+        # first query to fill the cache
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query1, response1)
+        self.assertTrue(receivedQuery)
+        self.assertTrue(receivedResponse)
+        self.assertEqual(self.getPoolMetric(0, 'cacheHits'), 0)
+        receivedQuery.id = query1.id
+        self.assertEqual(query1, receivedQuery)
+        self.assertEqual(receivedResponse, response1)
+
+        # same query shall hit cache
+        (_, receivedResponse) = self.sendUDPQuery(query1, response=None, useQueue=False)
+        self.assertTrue(receivedResponse)
+        self.assertEqual(self.getPoolMetric(0, 'cacheHits'), 1)
+        self.assertEqual(receivedResponse, response1)
+
+        # query1_1 shall also hit cache since 600 round down to 512
+        (_, receivedResponse) = self.sendUDPQuery(query1_1, response=None, useQueue=False)
+        self.assertTrue(receivedResponse)
+        self.assertEqual(self.getPoolMetric(0, 'cacheHits'), 2)
+        self.assertEqual(len(receivedResponse.answer), 1)
+        self.assertEqual(receivedResponse.answer[0], rrset1)
+
+        # testing for large sized cache entry
+        name2 = 'bigcached.cache.tests.powerdns.com.'
+        query2 = dns.message.make_query(name2, 'AAAA', 'IN', payload=1279)
+        query2_1 = dns.message.make_query(name2, 'AAAA', 'IN', payload=1200)
+        query2_2 = dns.message.make_query(name2, 'AAAA', 'IN', payload=1024)
+
+        response2 = dns.message.make_response(query2)
+        v6addr_list = []
+        for i in range(1,41):
+            v6addr_list.append(f'fe80:fe80:fe80:fe80::{i}')
+        rrset2 = dns.rrset.from_text_list(name2,
+                                          3600,
+                                          dns.rdataclass.IN,
+                                          dns.rdatatype.AAAA,
+                                          v6addr_list)
+        response2.answer.append(rrset2) # reponse > 40x(16+10)=1040 bytes
+
+        # first query to fill the cache
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query2, response2)
+        self.assertTrue(receivedQuery)
+        self.assertEqual(self.getPoolMetric(0, 'cacheHits'), 2)
+        self.assertTrue(receivedResponse)
+        receivedQuery.id = query2.id
+        self.assertEqual(query2, receivedQuery)
+        self.assertEqual(receivedResponse, response2)
+
+        # same query shall hit cache
+        (_, receivedResponse) = self.sendUDPQuery(query2, response=None, useQueue=False)
+        self.assertTrue(receivedResponse)
+        self.assertEqual(self.getPoolMetric(0, 'cacheHits'), 3)
+        self.assertEqual(receivedResponse, response2)
+
+        # query2_1 shall hit cache
+        (_, receivedResponse) = self.sendUDPQuery(query2_1, response=None, useQueue=False)
+        self.assertTrue(receivedResponse)
+        self.assertEqual(self.getPoolMetric(0, 'cacheHits'), 4)
+        self.assertEqual(len(receivedResponse.answer), 1)
+        self.assertEqual(receivedResponse.answer[0], rrset2)
+
+        # query2_2 shall hit cache but truncated since payload size is not enough
+        (_, receivedResponse) = self.sendUDPQuery(query2_2, response=None, useQueue=False)
+        self.assertTrue(receivedResponse)
+        self.assertEqual(self.getPoolMetric(0, 'cacheHits'), 5)
+        self.assertEqual(len(receivedResponse.answer), 0)
+        self.assertEqual(receivedResponse.flags & dns.flags.TC, dns.flags.TC)

@@ -29,7 +29,7 @@ DNSHeader (``dh``) object
 
   .. method:: DNSHeader:getAD() -> bool
 
-    Authenticated data from named
+    Authenticated data from name server
 
   .. method:: DNSHeader:getAA() -> bool
 

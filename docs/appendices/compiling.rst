@@ -36,18 +36,18 @@ These releases are PGP-signed with one of these key-ids:
 Dependencies
 ------------
 
-To build the PowerDNS Authoritative Server, a C++ compiler with support for C++ 2011 is required.
-This means gcc 4.9 and newer and clang 3.5 and newer.
+To build the PowerDNS Authoritative Server, a C++ compiler with support for C++ 2017 is required.
+This means gcc 7.1 and newer and clang 5 and newer.
 Furthermore, the Makefiles require GNU make, not BSD make.
 
 By default, the PowerDNS Authoritative Server requires the following libraries and headers:
 
-* `Boost <http://boost.org/>`_ 1.35 or newer
+* `Boost <https://boost.org/>`_ 1.54 or newer
 * `OpenSSL <https://openssl.org>`_
 
 To build from a Git repository clone, the following dependencies are also required:
 
-* `ragel <http://www.colm.net/open-source/ragel/>`_
+* `ragel <https://www.colm.net/open-source/ragel/>`_
 * `bison <https://www.gnu.org/software/bison/>`_
 * `flex <https://github.com/westes/flex>`_
 * `Python <https://python.org>`_ 3.6 or newer, with the 'venv' package
@@ -63,12 +63,6 @@ ed25519 support with libsodium
 
 The PowerDNS Authoritative Server can link with `libsodium <https://download.libsodium.org/doc/>`_ to support ed25519 (DNSSEC algorithm 15).
 To detect libsodium, use the ``--with-libsodium`` configure option.
-
-ed25519 and ed448 support with libdecaf
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-`libdecaf <https://sourceforge.net/projects/ed448goldilocks/>`_ is a library that allows the PowerDNS Authoritative Server to support ed25519 and Ed448 (DNSSEC algorithms 15 and 16).
-To detect libdecaf, use the ``--with-libdecaf`` configure option.
 
 systemd notify support
 ^^^^^^^^^^^^^^^^^^^^^^

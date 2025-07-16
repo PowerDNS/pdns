@@ -34,6 +34,7 @@ static bool init_unit_test()
 // entry point:
 int main(int argc, char* argv[])
 {
+  setenv("BOOST_TEST_RANDOM", "1", 1); // NOLINT(concurrency-mt-unsafe)
   S.d_allowRedeclare = true;
   return boost::unit_test::unit_test_main(&init_unit_test, argc, argv);
 }

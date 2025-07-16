@@ -11,16 +11,72 @@ upgrade notes if your version is older than 3.4.2.
 4.9.0 to 5.0.0/master
 ---------------------
 
+LMDB backend, views
+^^^^^^^^^^^^^^^^^^^
+
+Version 5.0.0-alpha1 ships a new version of the LMDB database schema (called version 6), in support of the new views feature.
+There is no downgrade process.
+If you upgrade your database (by starting 5.0.0 without setting :ref:`setting-lmdb-schema-version` to ``5``), you cannot go back.
+
+Upgrading is supported from schema version 3 and up.
+
+The implementation of views involved a massive refactoring of many parts of the code base.
+While many things have been thoroughly tested, some loose ends likely remain.
+Specifically, catalog zones have not been updated for views support at all.
+Most other things are expected to work; if you find something wrong, please :ref:`let us know <getting-support>`.
+
+LMDB backend, DNS Update support
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The LMDB backend also now supports :doc:`DNS Update <dnsupdate>` (RFC2136).
+
+LMDB backend, search support
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The record search from the :doc:`HTTP API <http-api/search>` functionality has 
+been implemented in the LMDB backend.
+
+LOC record parsing
+^^^^^^^^^^^^^^^^^^
+
+The parsing and validation of LOC records is modified to be conforming to the `rfc:1876`.
+This may cause records previously rejected to be accepted and vice versa.
+
 LUA records whitespace insertion
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 :ref:`setting-lua-records-insert-whitespace`, introduced in 4.9.1 with the default value (``yes``) set to maintain the old behaviour of inserting whitespace, is set to ``no`` in 5.0.
+
+lua-records-exec-limit feature restored
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The :ref:`setting-lua-records-exec-limit` setting, which will abort Lua records
+taking too much time to complete, had unintentionally been rendered ineffective
+in 4.3.0. Its functionality has been restored, which could cause existing
+configurations to stop working if this setting had been used with a too small
+value.
 
 ixfrdist IPv6 support
 ^^^^^^^^^^^^^^^^^^^^^
 
 ``ixfrdist`` now binds listening sockets with `IPV6_V6ONLY set`, which means that ``[::]`` no longer accepts IPv4 connections.
 If you want to listen on both IPv4 and IPv6, you need to add a line with ``0.0.0.0`` to the ``listen`` section of your ixfrdist configuration.
+
+pdnsutil behaviour changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A few changes of behaviour have been implemented in :doc:`pdnsutil <manpages/pdnsutil.1>`.
+
+* The ``add-zone-key`` command used to default to creating a ZSK,
+  if no key type was given. This default has changed to KSK.
+* The ``add-record``, ``delete-rrset``, ``edit-zone``, ``increase-serial`` and
+  ``replace-rrset`` operations will now refuse to work on secondary zones unless
+  the ``--force`` option is passed.
+* When a zone gets created with either ``create-zone``,
+  ``create-secondary-zone`` or ``load-zone`` (if the zone wasn't existing
+  already), a :ref:`metadata-soa-edit-api` metadata with a value of ``DEFAULT``
+  will be added to the zone.
+* ``add-record`` and ``delete-rrset`` now treat all names as absolute.
 
 4.8.0 to 4.9.0
 --------------
@@ -303,10 +359,10 @@ The previous set of indexes for the gsqlite3 backend was found to be poor.
 4.2.x to 4.3.0
 --------------
 
-NSEC(3) TTL changed
-^^^^^^^^^^^^^^^^^^^
+NSEC/NSEC3 TTL changed
+^^^^^^^^^^^^^^^^^^^^^^
 
-NSEC(3) records now use the negative TTL, instead of the SOA minimum TTL.
+NSEC/NSEC3 records now use the negative TTL, instead of the SOA minimum TTL.
 See :ref:`the DNSSEC TTL notes <dnssec-ttl-notes>`  for more information.
 
 Lua Netmask class methods changed

@@ -14,17 +14,19 @@ permissions:
 
 jobs:
   prepare:
-    runs-on: ubuntu-22.04
+    env:
+      REF_NAME: ${{ github.ref_name }}
+    runs-on: ubuntu-24.04
     outputs:
       image-name-suffix: ${{ steps.get-image-version.outputs.version }}
       image-tag: ${{ steps.get-image-tag.outputs.tag }}
       image-description-suffix: ${{ steps.get-image-description.outputs.description }}
     steps:
-      - run: echo "version=$(echo '${{ github.ref_name }}' | cut -d '-' -f 2 | awk -F'.' '{print $1$2}')" >> $GITHUB_OUTPUT
+      - run: echo "version=$(echo "${REF_NAME}" | cut -d '-' -f 2 | awk -F'.' '{print $1$2}')" >> $GITHUB_OUTPUT
         id: get-image-version
-      - run: echo "tag=$(echo '${{ github.ref_name }}' | cut -d '-' -f 2-)" >> $GITHUB_OUTPUT
+      - run: echo "tag=$(echo "${REF_NAME}" | cut -d '-' -f 2-)" >> $GITHUB_OUTPUT
         id: get-image-tag
-      - run: echo "description=$(echo '${{ github.ref_name }}' | cut -d '-' -f 2- | awk -F'.' '{print "v"$1"."$2".x"}')" >> $GITHUB_OUTPUT
+      - run: echo "description=$(echo "${REF_NAME}" | cut -d '-' -f 2- | awk -F'.' '{print "v"$1"."$2".x"}')" >> $GITHUB_OUTPUT
         id: get-image-description
 
   call-build-image-auth:

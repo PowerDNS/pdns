@@ -1,82 +1,83 @@
-	context=${context}-presigned-lmdb
-	cat > pdns-lmdb2.conf << __EOF__
+        context=${context}-presigned-lmdb
+        backend=lmdb2
+        cat > pdns-lmdb2.conf << __EOF__
 module-dir=./modules
 launch=lmdb
 lmdb-filename=./pdns2.lmdb
 __EOF__
 
-	rm -f pdns2.lmdb*
-	zones=0
-	for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | grep -v '^nztest.com$' | perl -e 'print reverse <STDIN>')
-	do
-		zones=$((zones+1))
-		if [ "$zone" = "example.com" ]; then
-			$PDNSUTIL --config-dir=. --config-name=lmdb2 create-secondary-zone $zone 127.0.0.1:$port
-		fi
-		if [ "$zone" = "test.com" ]; then
-			$PDNSUTIL --config-dir=. --config-name=lmdb2 create-secondary-zone $zone 127.0.0.1:$port
-			$PDNSUTIL --config-dir=. --config-name=lmdb2 set-catalog $zone other-catalog.invalid
-			$PDNSUTIL --config-dir=. --config-name=lmdb2 set-options-json $zone '{"consumer":{"coo":"catalog.invalid","unique":"42"}}'
-		fi
-		if [ "$zone" = "tsig.com" ]; then
-			$PDNSUTIL --config-dir=. --config-name=lmdb2 create-secondary-zone $zone 127.0.0.2:$port
-			$PDNSUTIL --config-dir=. --config-name=lmdb2 set-catalog $zone catalog.invalid
-			$PDNSUTIL --config-dir=. --config-name=lmdb2 set-options-json $zone "{\"consumer\":{\"unique\":\"$($SAXFR 127.0.0.1 $port catalog.invalid | grep $zone | grep PTR | cut -d'.' -f1)\"}}"
-			$PDNSUTIL --config-dir=. --config-name=lmdb2 import-tsig-key test $ALGORITHM $KEY
-			$PDNSUTIL --config-dir=. --config-name=lmdb2 activate-tsig-key tsig.com test secondary
-		fi
-		if [ "$zone" = "stest.com" ]; then
-			$PDNSUTIL --config-dir=. --config-name=lmdb2 create-secondary-zone $zone 127.0.0.1:$port
-			$PDNSUTIL --config-dir=. --config-name=lmdb2 set-catalog $zone other-catalog.invalid
-			$PDNSUTIL --config-dir=. --config-name=lmdb2 set-options-json $zone "{\"consumer\":{\"coo\":\"catalog.invalid\",\"unique\":\"$($SAXFR 127.0.0.1 $port catalog.invalid | grep $zone | grep PTR | cut -d'.' -f1)\"}}"
-			if [[ $skipreasons != *nolua* ]]; then
-				$PDNSUTIL --config-dir=. --config-name=lmdb2 set-meta stest.com AXFR-SOURCE 127.0.0.2
-			fi
-		fi
-		if [ "$zone" = "wtest.com" ]; then
-			$PDNSUTIL --config-dir=. --config-name=lmdb2 create-secondary-zone $zone 127.0.0.1:$port
-			$PDNSUTIL --config-dir=. --config-name=lmdb2 set-catalog $zone catalog.invalid
-			$PDNSUTIL --config-dir=. --config-name=lmdb2 set-options-json $zone '{"consumer":{"unique":"42"}}'
-		fi
-		if [ "$zone" = "." ]; then
-			$PDNSUTIL --config-dir=. --config-name=lmdb2 create-secondary-zone $zone 127.0.0.1:$port
-		fi
-	done
+        rm -f pdns2.lmdb*
+        zones=0
+        for zone in $(grep 'zone ' named.conf  | cut -f2 -d\" | grep -v '^nztest.com$' | perl -e 'print reverse <STDIN>')
+        do
+                zones=$((zones+1))
+                if [ "$zone" = "example.com" ]; then
+                        $PDNSUTIL --config-dir=. --config-name=lmdb2 create-secondary-zone $zone 127.0.0.1:$port
+                fi
+                if [ "$zone" = "test.com" ]; then
+                        $PDNSUTIL --config-dir=. --config-name=lmdb2 create-secondary-zone $zone 127.0.0.1:$port
+                        $PDNSUTIL --config-dir=. --config-name=lmdb2 set-catalog $zone other-catalog.invalid
+                        $PDNSUTIL --config-dir=. --config-name=lmdb2 set-options-json $zone '{"consumer":{"coo":"catalog.invalid","unique":"42"}}'
+                fi
+                if [ "$zone" = "tsig.com" ]; then
+                        $PDNSUTIL --config-dir=. --config-name=lmdb2 create-secondary-zone $zone 127.0.0.2:$port
+                        $PDNSUTIL --config-dir=. --config-name=lmdb2 set-catalog $zone catalog.invalid
+                        $PDNSUTIL --config-dir=. --config-name=lmdb2 set-options-json $zone "{\"consumer\":{\"unique\":\"$($SAXFR 127.0.0.1 $port catalog.invalid | grep $zone | grep PTR | cut -d'.' -f1)\"}}"
+                        $PDNSUTIL --config-dir=. --config-name=lmdb2 import-tsig-key test $ALGORITHM $KEY
+                        $PDNSUTIL --config-dir=. --config-name=lmdb2 activate-tsig-key tsig.com test secondary
+                fi
+                if [ "$zone" = "stest.com" ]; then
+                        $PDNSUTIL --config-dir=. --config-name=lmdb2 create-secondary-zone $zone 127.0.0.1:$port
+                        $PDNSUTIL --config-dir=. --config-name=lmdb2 set-catalog $zone other-catalog.invalid
+                        $PDNSUTIL --config-dir=. --config-name=lmdb2 set-options-json $zone "{\"consumer\":{\"coo\":\"catalog.invalid\",\"unique\":\"$($SAXFR 127.0.0.1 $port catalog.invalid | grep $zone | grep PTR | cut -d'.' -f1)\"}}"
+                        if [[ $skipreasons != *nolua* ]]; then
+                                $PDNSUTIL --config-dir=. --config-name=lmdb2 set-meta stest.com AXFR-SOURCE 127.0.0.2
+                        fi
+                fi
+                if [ "$zone" = "wtest.com" ]; then
+                        $PDNSUTIL --config-dir=. --config-name=lmdb2 create-secondary-zone $zone 127.0.0.1:$port
+                        $PDNSUTIL --config-dir=. --config-name=lmdb2 set-catalog $zone catalog.invalid
+                        $PDNSUTIL --config-dir=. --config-name=lmdb2 set-options-json $zone '{"consumer":{"unique":"42"}}'
+                fi
+                if [ "$zone" = "." ]; then
+                        $PDNSUTIL --config-dir=. --config-name=lmdb2 create-secondary-zone $zone 127.0.0.1:$port
+                fi
+        done
 
-	# setup catalog zone
-	if [ $zones -ne 1 ] # detect root tests
-	then
-		zones=$((zones+1))
-		$PDNSUTIL --config-dir=. --config-name=lmdb2 create-secondary-zone catalog.invalid 127.0.0.1:$port
-		$PDNSUTIL --config-dir=. --config-name=lmdb2 set-kind catalog.invalid consumer
+        # setup catalog zone
+        if [ $zones -ne 1 ] # detect root tests
+        then
+                zones=$((zones+1))
+                $PDNSUTIL --config-dir=. --config-name=lmdb2 create-secondary-zone catalog.invalid 127.0.0.1:$port
+                $PDNSUTIL --config-dir=. --config-name=lmdb2 set-kind catalog.invalid consumer
 
-		$PDNSUTIL --config-dir=. --config-name=lmdb2 create-secondary-zone remove.invalid 127.0.0.1:$port
-		$PDNSUTIL --config-dir=. --config-name=lmdb2 set-catalog remove.invalid catalog.invalid
-	fi
+                $PDNSUTIL --config-dir=. --config-name=lmdb2 create-secondary-zone remove.invalid 127.0.0.1:$port
+                $PDNSUTIL --config-dir=. --config-name=lmdb2 set-catalog remove.invalid catalog.invalid
+        fi
 
-	port=$((port+100))
+        port=$((port+100))
 
-	$RUNWRAPPER $PDNS2 --daemon=no --local-port=$port --config-dir=. \
-		--config-name=lmdb2 --socket-dir=./ --no-shuffle \
-		--secondary --xfr-cycle-interval=15 --dname-processing --api --api-key=secret &
+        $RUNWRAPPER $PDNS2 --daemon=no --local-port=$port --config-dir=. \
+                --config-name=lmdb2 --socket-dir=./ --no-shuffle \
+                --secondary --xfr-cycle-interval=15 --dname-processing --api --api-key=secret &
 
-	sleep 1
-	$PDNSCONTROL --config-name=lmdb2 --socket-dir=. --no-config retrieve catalog.invalid
+        sleep 1
+        $PDNSCONTROL --config-name=lmdb2 --socket-dir=. --no-config retrieve catalog.invalid
 
-	echo 'waiting for zones to be fetched'
-	loopcount=0
-	while [ $loopcount -lt 30 ]
-	do
-		sleep 5
-		present=$(curl -s -S -H 'X-API-Key: secret' http://127.0.0.1:8081/api/v1/servers/localhost/zones  | jq -r '.[] | .serial' | grep -c -v '^0$')
-		if [ $zones -eq $present ]
-		then
-			break
-		fi
-		let loopcount=loopcount+1
-	done
-	if [ $zones -ne $present ]
-	then
-		echo "AXFR FAILED" >> failed_tests
-		exit
-	fi
+        echo 'waiting for zones to be fetched'
+        loopcount=0
+        while [ $loopcount -lt 30 ]
+        do
+                sleep 5
+                present=$(curl -s -S -H 'X-API-Key: secret' http://127.0.0.1:8081/api/v1/servers/localhost/zones  | jq -r '.[] | .serial' | grep -c -v '^0$')
+                if [ $zones -eq $present ]
+                then
+                        break
+                fi
+                let loopcount=loopcount+1
+        done
+        if [ $zones -ne $present ]
+        then
+                echo "AXFR FAILED" >> failed_tests
+                exit
+        fi

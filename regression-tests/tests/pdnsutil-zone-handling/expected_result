@@ -1,0 +1,22 @@
+New rrset:
+cname.bug.less. 3600 IN CNAME host
+New rrset:
+host.bug.less. 3600 IN A 127.0.0.1
+Ignoring duplicate record content "127.0.0.2"
+New rrset:
+host2.bug.less. 3600 IN A 127.0.0.2
+Attempting to add record to cname.bug.less which already has a CNAME record
+Attempting to add CNAME to host.bug.less which already has existing records
+New rrset:
+host2.bug.less. 3600 IN A 127.0.0.2
+host2.bug.less. 3600 IN A 127.0.0.3
+New rrset:
+no.bug.less. 3600 IN A 1.2.3.4
+New rrset:
+no.bug.less. 3600 IN TXT "insert your favorite zen quote here"
+$ORIGIN .
+bug.less	3600	IN	SOA	a.misconfigured.dns.server.invalid hostmaster.bug.less 0 10800 3600 604800 3600
+cname.bug.less	3600	IN	CNAME	host.
+host.bug.less	3600	IN	A	127.0.0.1
+host2.bug.less	3600	IN	A	127.0.0.2
+host2.bug.less	3600	IN	A	127.0.0.3

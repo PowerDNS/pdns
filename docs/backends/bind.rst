@@ -2,14 +2,20 @@ BIND zone file backend
 ======================
 
 * Native: Yes
-* Master: Yes
-* Slave: Yes
-* Superslave: Experimental
+* Primary: Yes
+* Secondary: Yes
+* Producer: No
+* Consumer: No
+* Autosecondary: Experimental
+* DNS Update: No
 * DNSSEC: Yes
 * Disabled data: No
 * Comments: No
+* Search: Yes
+* Views: No
 * API: Read-only
-* Zone caching: Yes (except in hybrid mode)
+* Multiple instances: No
+* Zone caching: Yes
 * Module name: bind
 * Launch: ``bind``
 
@@ -73,7 +79,7 @@ See :ref:`bind-operation` section for more information.
 ~~~~~~~~~~~~~~~~~~
 
 Filename to store and access our DNSSEC metadatabase, empty for none. To
-slave DNSSEC-enabled domains (where the RRSIGS are in the AXFR), a
+run secondary DNSSEC-enabled domains (where the RRSIGS are in the AXFR), a
 ``bind-dnssec-db`` is required. This is because the
 :ref:`metadata-presigned` domain metadata is set
 during the zonetransfer.
@@ -166,18 +172,18 @@ not yet available, to prevent incomplete answers.
 
 Reloading is currently done only when a request (or zone transfer) for a
 zone comes in, and then only after :ref:`setting-bind-check-interval`
-seconds have passed after the last check. If a change occurred, access
+seconds have passed since the last check. If a change occurred, access
 to the zone is disabled, the file is reloaded, access is restored, and
 the question is answered. For regular zones, reloading is fast enough to
 answer the question which lead to the reload within the DNS timeout.
 
 If :ref:`setting-bind-check-interval` is specified as
-zero, no checks will be performed until the ``pdns_control reload`` is
-given.
+zero, no checks will be performed until the ``pdns_control reload`` command
+is issued.
 
-Please note that also the :ref:`setting-slave-cycle-interval` setting
-controls how often a master would notify a slave about changes.
-Especially in 'hidden master' configurations, where servers usually
+Please note that also the :ref:`setting-xfr-cycle-interval` setting
+controls how often a primary would notify a secondary about changes.
+Especially in 'hidden primary' configurations, where servers usually
 don't receive regular queries, you may want to lower that setting to a
 value as low as :ref:`setting-bind-check-interval`.
 
@@ -200,7 +206,7 @@ will be loaded at first request.
 
 Output an extended status of a domain or domains, containing much more information than
 the simple domain status, like the number of records currently loaded, whether pdns
-is master or slave for the domain, the list of masters, various timers, etc
+is primary or secondary for the domain, the list of primaries, various timers, etc
 
 ``bind-domain-status [domain ...]``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -219,7 +225,7 @@ Lists all zones that have problems, and what those problems are.
 ``bind-reload-now <domain>``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Reloads a zone from disk NOW, reporting back results.
+Reloads a zone from disk immediately, reporting back results.
 
 ``rediscover``
 ~~~~~~~~~~~~~~
@@ -246,14 +252,14 @@ benefit in using multiple CPUs for the packetcache, so a noticeable
 speedup can be attained by specifying
 ``distributor-threads=1`` in ``pdns.conf``.
 
-Master/slave/native configuration
----------------------------------
+Primary/secondary/native configuration
+--------------------------------------
 
-Master
-~~~~~~
+Primary
+~~~~~~~
 
 Works as expected. At startup, no notification storm is performed as
-this is generally not useful. Perhaps in the future the BIND backend
+this is generally not useful. Perhaps, in the future, the BIND backend
 will attempt to store zone metadata in the zone, allowing it to
 determine if a zone has changed its serial since the last time
 notifications were sent out.
@@ -261,11 +267,11 @@ notifications were sent out.
 Changes which are discovered when reloading zones do lead to
 notifications however.
 
-Slave
-~~~~~
+Secondary
+~~~~~~~~~
 
 Also works as expected. The BIND backend expects to be able to write to
-a directory where a slave domain lives. The incoming zone is stored as
+a directory where a secondary domain lives. The incoming zone is stored as
 'zonename.RANDOM' and atomically renamed if it is retrieved
 successfully, and parsed only then.
 
@@ -277,10 +283,10 @@ Native
 
 PowerDNS has the concept of "native" zones that have the
 ``type native;`` in the BIND configuration file. These zones are neither
-a master (no notifies are sent) nor a slave zone (it will never be
+a primary (no notifies are sent) nor a secondary zone (it will never be
 AXFR'd in). This means that the replication mechanism for these zone is
 not AXFR but out of band, e.g. using ``rsync``. Changes to native zones
-are picked up in the same way as master and slave zones, see
+are picked up in the same way as primary and secondary zones, see
 :ref:`bind-operation`.
 
 Native zones in the BIND backend are supported since version 4.1.0 of

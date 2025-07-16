@@ -4,6 +4,7 @@ Priority: optional
 Maintainer: PowerDNS.COM BV <powerdns.support.sales@powerdns.com>
 Uploaders: PowerDNS.COM BV <powerdns.support.sales@powerdns.com>
 Build-Depends: debhelper (>= 10),
+               clang,
                libboost-all-dev,
                libbpf-dev [linux-any],
                libcap-dev,
@@ -12,8 +13,7 @@ Build-Depends: debhelper (>= 10),
                libfstrm-dev,
                libgnutls28-dev,
                liblmdb-dev,
-               libluajit-5.1-dev [!arm64 !s390x],
-               liblua5.3-dev [arm64 s390x],
+               libluajit-5.1-dev [amd64 arm64] | liblua5.3-dev,
                libnghttp2-dev,
                libre2-dev,
                libsnmp-dev,
@@ -22,9 +22,13 @@ Build-Depends: debhelper (>= 10),
                libsystemd-dev [linux-any],
                libwslay-dev,
                libxdp-dev [linux-any],
+               lld,
+               meson,
+               ninja-build,
                pkg-config,
+               python3-yaml,
                ragel,
-               systemd [linux-any]
+               systemd-dev | systemd [linux-any]
 Standards-Version: 4.1.5
 Homepage: https://dnsdist.org
 

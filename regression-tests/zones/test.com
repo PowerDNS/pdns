@@ -20,7 +20,12 @@ server1			IN	A	1.2.3.4
 *.test			IN	CNAME	server1
 www.test		IN	A	4.3.2.1
 sub.test		IN	NS	ns-test.example.net
-enum			IN	NAPTR 100 50 "u" "e2u+sip" "" testuser.domain.com.
+enum			IN	NAPTR 100 50 "u" "e2u+sip" "" server1.test.com.
+ensm			IN	NAPTR 100 50 "s" "e2u+sip" "" _double._tcp.dc.test.com.
+enam			IN	NAPTR 100 50 "a" "e2u+sip" "" server1.test.com.
+naptr			IN	NAPTR 100 50 "u" "e2u+sip" "" server1.test.com.
+naptr			IN	NAPTR 100 50 "s" "e2u+sip" "" _double._tcp.dc.test.com.
+naptr			IN	NAPTR 100 50 "a" "e2u+sip" "" server1.test.com.
 counter			IN	A	1.1.1.5
 _ldap._tcp.dc		IN	SRV 	0 100 389 server2.example.net.
 _double._tcp.dc		IN	SRV 	0 100 389 server1

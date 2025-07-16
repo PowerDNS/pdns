@@ -3,15 +3,16 @@ import os
 import time
 from recursortests import RecursorTest
 
-class testOOOTCP(RecursorTest):
+class OOOTCPTest(RecursorTest):
     _confdir = 'OOOTCP'
+    _auth_zones = RecursorTest._default_auth_zones
 
     _config_template = """dnssec=validate
 """
 
     @classmethod
     def generateRecursorConfig(cls, confdir):
-        super(testOOOTCP, cls).generateRecursorConfig(confdir)
+        super(OOOTCPTest, cls).generateRecursorConfig(confdir)
 
     def testOOOVeryBasic(self):
         expected = {}

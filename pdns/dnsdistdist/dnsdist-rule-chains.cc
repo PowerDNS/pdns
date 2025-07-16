@@ -24,44 +24,114 @@
 
 namespace dnsdist::rules
 {
-GlobalStateHolder<std::vector<RuleAction>> s_ruleActions;
-GlobalStateHolder<std::vector<RuleAction>> s_cacheMissRuleActions;
-GlobalStateHolder<std::vector<ResponseRuleAction>> s_respruleactions;
-GlobalStateHolder<std::vector<ResponseRuleAction>> s_cachehitrespruleactions;
-GlobalStateHolder<std::vector<ResponseRuleAction>> s_selfansweredrespruleactions;
-GlobalStateHolder<std::vector<ResponseRuleAction>> s_cacheInsertedRespRuleActions;
-GlobalStateHolder<std::vector<ResponseRuleAction>> s_XFRRespRuleActions;
-
 static const std::vector<ResponseRuleChainDescription> s_responseRuleChains{
-  {"", "response-rules", s_respruleactions},
-  {"CacheHit", "cache-hit-response-rules", s_cachehitrespruleactions},
-  {"CacheInserted", "cache-inserted-response-rules", s_selfansweredrespruleactions},
-  {"SelfAnswered", "self-answered-response-rules", s_cacheInsertedRespRuleActions},
-  {"XFR", "xfr-response-rules", s_XFRRespRuleActions},
+  {"", "response", "response-rules", ResponseRuleChain::ResponseRules},
+  {"CacheHit", "cache hit", "cache-hit-response-rules", ResponseRuleChain::CacheHitResponseRules},
+  {"CacheInserted", "cache inserted", "cache-inserted-response-rules", ResponseRuleChain::CacheInsertedResponseRules},
+  {"SelfAnswered", "self-answered", "self-answered-response-rules", ResponseRuleChain::SelfAnsweredResponseRules},
+  {"XFR", "xfr", "xfr-response-rules", ResponseRuleChain::XFRResponseRules},
+  {"Timeout", "timeout", "timeout-response-rules", ResponseRuleChain::TimeoutResponseRules},
 };
 
-const std::vector<ResponseRuleChainDescription>& getResponseRuleChains()
+const std::vector<ResponseRuleChainDescription>& getResponseRuleChainDescriptions()
 {
   return s_responseRuleChains;
 }
 
-GlobalStateHolder<std::vector<ResponseRuleAction>>& getResponseRuleChainHolder(ResponseRuleChain chain)
-{
-  return s_responseRuleChains.at(static_cast<size_t>(chain)).holder;
-}
-
 static const std::vector<RuleChainDescription> s_ruleChains{
-  {"", "rules", s_ruleActions},
-  {"CacheMiss", "cache-miss-rules", s_cacheMissRuleActions},
+  {"", "", "rules", RuleChain::Rules},
+  {"CacheMiss", "cache-miss", "cache-miss-rules", RuleChain::CacheMissRules},
 };
 
-const std::vector<RuleChainDescription>& getRuleChains()
+const std::vector<RuleChainDescription>& getRuleChainDescriptions()
 {
   return s_ruleChains;
 }
 
-GlobalStateHolder<std::vector<RuleAction>>& getRuleChainHolder(RuleChain chain)
+std::vector<RuleAction>& getRuleChain(RuleChains& chains, RuleChain chain)
 {
-  return s_ruleChains.at(static_cast<size_t>(chain)).holder;
+  switch (chain) {
+  case RuleChain::Rules:
+    return chains.d_ruleActions;
+  case RuleChain::CacheMissRules:
+    return chains.d_cacheMissRuleActions;
+  }
+
+  throw std::runtime_error("Trying to accept an invalid rule chain");
 }
+
+const std::vector<RuleAction>& getRuleChain(const RuleChains& chains, RuleChain chain)
+{
+  switch (chain) {
+  case RuleChain::Rules:
+    return chains.d_ruleActions;
+  case RuleChain::CacheMissRules:
+    return chains.d_cacheMissRuleActions;
+  }
+
+  throw std::runtime_error("Trying to accept an invalid rule chain");
+}
+
+std::vector<ResponseRuleAction>& getRuleChain(RuleChains& chains, ResponseRuleChain chain)
+{
+  return getResponseRuleChain(chains, chain);
+}
+
+const std::vector<ResponseRuleAction>& getRuleChain(const RuleChains& chains, ResponseRuleChain chain)
+{
+  return getResponseRuleChain(chains, chain);
+}
+
+std::vector<ResponseRuleAction>& getResponseRuleChain(RuleChains& chains, ResponseRuleChain chain)
+{
+  switch (chain) {
+  case ResponseRuleChain::ResponseRules:
+    return chains.d_respruleactions;
+  case ResponseRuleChain::CacheHitResponseRules:
+    return chains.d_cachehitrespruleactions;
+  case ResponseRuleChain::CacheInsertedResponseRules:
+    return chains.d_cacheInsertedRespRuleActions;
+  case ResponseRuleChain::SelfAnsweredResponseRules:
+    return chains.d_selfansweredrespruleactions;
+  case ResponseRuleChain::XFRResponseRules:
+    return chains.d_XFRRespRuleActions;
+  case ResponseRuleChain::TimeoutResponseRules:
+    return chains.d_TimeoutRespRuleActions;
+  }
+
+  throw std::runtime_error("Trying to accept an invalid response rule chain");
+}
+
+const std::vector<ResponseRuleAction>& getResponseRuleChain(const RuleChains& chains, ResponseRuleChain chain)
+{
+  switch (chain) {
+  case ResponseRuleChain::ResponseRules:
+    return chains.d_respruleactions;
+  case ResponseRuleChain::CacheHitResponseRules:
+    return chains.d_cachehitrespruleactions;
+  case ResponseRuleChain::CacheInsertedResponseRules:
+    return chains.d_cacheInsertedRespRuleActions;
+  case ResponseRuleChain::SelfAnsweredResponseRules:
+    return chains.d_selfansweredrespruleactions;
+  case ResponseRuleChain::XFRResponseRules:
+    return chains.d_XFRRespRuleActions;
+  case ResponseRuleChain::TimeoutResponseRules:
+    return chains.d_TimeoutRespRuleActions;
+  }
+
+  throw std::runtime_error("Trying to accept an invalid response rule chain");
+}
+
+void add(RuleChains& chains, RuleChain identifier, const std::shared_ptr<DNSRule>& selector, const std::shared_ptr<DNSAction>& action, std::string&& name, const boost::uuids::uuid& uuid, uint64_t creationOrder)
+{
+  auto& chain = getRuleChain(chains, identifier);
+  chain.push_back({selector, action, std::move(name), uuid, creationOrder});
+}
+
+void add(RuleChains& chains, ResponseRuleChain identifier, const std::shared_ptr<DNSRule>& selector, const std::shared_ptr<DNSResponseAction>& action, std::string&& name, const boost::uuids::uuid& uuid, uint64_t creationOrder)
+{
+  auto& chain = getResponseRuleChain(chains, identifier);
+  chain.push_back({selector, action, std::move(name), uuid, creationOrder});
+}
+
 }

@@ -111,10 +111,11 @@ edns-outgoing-bufsize=%d
             self.assertEqual(message.edns, -1)
 
 
-class EDNSBufferTest16801680(EDNSBufferTest):
+class EDNSBuffer16801680Test(EDNSBufferTest):
     """
     Runs test cases 1, 2, 5, 6, 7, 8
     """
+    _confdir = 'EDNSBuffer16801680'
 
     def testEdnsBufferTestCase01(self):
         query = self.getMessage('01', 4096)
@@ -164,7 +165,7 @@ class EDNSBufferTest16801680(EDNSBufferTest):
             message = dns.message.from_wire(raw)
             self.checkEDNS(message, 512)
 
-class EDNSBufferTest16801681(EDNSBufferTest):
+class EDNSBuffer16801681Test(EDNSBufferTest):
     """
     Runs test case 3
     """
@@ -188,7 +189,7 @@ edns-outgoing-bufsize=%d
             self.checkEDNS(message, 512)
 
 
-class EDNSBufferTest16801679(EDNSBufferTest):
+class EDNSBuffer16801679Test(EDNSBufferTest):
     """
     Runs test case 4
     """
@@ -252,17 +253,19 @@ class UDPLargeResponder(DatagramProtocol):
         # We pretend to do EDNS with a 4096 buffer size
         response.use_edns(payload=4096)
 
-        # What we use to fill the TXT records
-        # Test number + 64, so 01 = 'A', 02 = 'B' etc...
-        value = chr(testnum + 64)
-
         # Each pre-RDATA answer RR is 12 bytes
         # NAME:  2 (ptr to begin of packet, 0xC00C)
         # TYPE:  2
         # CLASS: 2
         # TTL:   4
         # RDLEN: 2
+        loop = 0
         while packet_size > 0:
+            # What we use to fill the TXT records
+            # Test number + 64 + loop iteration, so 01 = 'A', 02 = 'B' etc...
+            # We take the loop iteration to not generate duplicate records
+            value = chr(testnum + 64 + loop)
+            loop += 1
             # Remove the pre-RDATA length
             packet_size -= 12
             # And the TXT size indicator (first byte in the TXT record)
