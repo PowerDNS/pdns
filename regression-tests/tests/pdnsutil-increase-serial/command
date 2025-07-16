@@ -18,5 +18,5 @@ mysqldiff 1 "Check that ${zonewithvariant}. still has a valid ordername"
 
 # restore old SOA
 $PDNSUTIL --config-dir=. --config-name=$backend \
-    replace-rrset ${zonewithvariant} @ SOA "ns1.${zone} ahu.example.dyndns 2012060701 28800 7200 604800 86400" \
+    replace-rrset ${zonewithvariant} ${zone} SOA "ns1.${zone} ahu.example.dyndns 2012060701 28800 7200 604800 86400" \
     > /dev/null
