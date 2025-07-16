@@ -76,6 +76,7 @@ A few changes of behaviour have been implemented in :doc:`pdnsutil <manpages/pdn
   ``create-secondary-zone`` or ``load-zone`` (if the zone wasn't existing
   already), a :ref:`metadata-soa-edit-api` metadata with a value of ``DEFAULT``
   will be added to the zone.
+* ``add-record`` and ``delete-rrset`` now treat all names as absolute.
 
 4.8.0 to 4.9.0
 --------------
