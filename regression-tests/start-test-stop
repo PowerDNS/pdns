@@ -290,7 +290,13 @@ fi
 optout=0
 pkcs11=0
 
-if [ "${context: -13}" = "-nsec3-optout" ]
+if [ "${context: -8}" = "-variant" ]
+then
+	subcontext=${context%-variant}
+else
+	subcontext=${context}
+fi
+if [ "${subcontext: -13}" = "-nsec3-optout" ]
 then
         optout=1
 fi
