@@ -114,6 +114,9 @@ static void startNewTransaction()
 static void emitDomain(const ZoneName& domain, const vector<ComboAddress>* primaries = nullptr)
 {
   string iDomain = domain.toStringRootDot();
+  if (::arg().mustDo("delete-matching-domains")) {
+    cout << "DELETE FROM domains WHERE name=" << toLower(sqlstr(iDomain)) << ";" << endl;
+  }
   if (!::arg().mustDo("secondary")) {
     cout<<"insert into domains (name,type) values ("<<toLower(sqlstr(iDomain))<<",'NATIVE');"<<endl;
   }
@@ -209,6 +212,7 @@ try
     ::arg().setSwitch("transactions","If target SQL supports it, use transactions")="no";
     ::arg().setSwitch("on-error-resume-next","Continue after errors")="no";
     ::arg().setSwitch("filter-duplicate-soa","Filter second SOA in zone")="yes";
+    ::arg().setSwitch("delete-matching-domains", "Delete existing matching domains before emitting new domain")="no";
     ::arg().set("zone","Zonefile to parse")="";
     ::arg().set("zone-name","Specify an $ORIGIN in case it is not present")="";
     ::arg().set("named-conf","Bind 8/9 named.conf to parse")="";
