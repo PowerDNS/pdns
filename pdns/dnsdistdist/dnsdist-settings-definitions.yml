@@ -1887,7 +1887,7 @@ netmask_group:
     - name: "netmasks"
       type: "Vec<String>"
       default: ""
-      description: "List of netmasks"
+      description: "List of netmasks. A subnet that is not followed by ``/`` will be interpreted as a ``/32`` or ``/128`` subnet (a single address), depending on address family. It is possible to exclude ranges by prefixing an item with the negation character ``!``"
 
 packet_cache:
   description: "Packet-cache settings"
