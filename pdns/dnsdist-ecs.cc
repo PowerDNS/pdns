@@ -266,62 +266,6 @@ bool slowRewriteEDNSOptionInQueryWithRecords(const PacketBuffer& initialPacket, 
   return true;
 }
 
-static bool slowParseEDNSOptions(const PacketBuffer& packet, EDNSOptionViewMap& options)
-{
-  if (packet.size() < sizeof(dnsheader)) {
-    return false;
-  }
-
-  const dnsheader_aligned dh(packet.data());
-
-  if (ntohs(dh->qdcount) == 0) {
-    return false;
-  }
-
-  if (ntohs(dh->arcount) == 0) {
-    throw std::runtime_error("slowParseEDNSOptions() should not be called for queries that have no EDNS");
-  }
-
-  try {
-    uint64_t numrecords = ntohs(dh->ancount) + ntohs(dh->nscount) + ntohs(dh->arcount);
-    DNSPacketMangler dpm(const_cast<char*>(reinterpret_cast<const char*>(&packet.at(0))), packet.size());
-    uint64_t n;
-    for(n=0; n < ntohs(dh->qdcount) ; ++n) {
-      dpm.skipDomainName();
-      /* type and class */
-      dpm.skipBytes(4);
-    }
-
-    for(n=0; n < numrecords; ++n) {
-      dpm.skipDomainName();
-
-      uint8_t section = n < ntohs(dh->ancount) ? 1 : (n < (ntohs(dh->ancount) + ntohs(dh->nscount)) ? 2 : 3);
-      uint16_t dnstype = dpm.get16BitInt();
-      dpm.get16BitInt();
-      dpm.skipBytes(4); /* TTL */
-
-      if(section == 3 && dnstype == QType::OPT) {
-        uint32_t offset = dpm.getOffset();
-        if (offset >= packet.size()) {
-          return false;
-        }
-        /* if we survive this call, we can parse it safely */
-        dpm.skipRData();
-        return getEDNSOptions(reinterpret_cast<const char*>(&packet.at(offset)), packet.size() - offset, options) == 0;
-      }
-      else {
-        dpm.skipRData();
-      }
-    }
-  }
-  catch(...)
-  {
-    return false;
-  }
-
-  return true;
-}
-
 int locateEDNSOptRR(const PacketBuffer& packet, uint16_t * optStart, size_t * optLen, bool * last)
 {
   assert(optStart != NULL);
