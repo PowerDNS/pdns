@@ -157,8 +157,9 @@ is retrieved from a primary server, this keying material will be used
 when serving data from this zone.
 
 As part of the zone retrieval, the equivalent of
-``pdnsutil zone rectify`` is run to make sure that all DNSSEC-related
-fields are set correctly in the backend.
+``pdnsutil zone rectify`` (``pdnsutil rectify-zone`` prior to version 5.0) is
+run to make sure that all DNSSEC-related fields are set correctly in the
+backend.
 
 Signed AXFR
 -----------
@@ -187,8 +188,9 @@ database. Then, restart PowerDNS.
 .. note::
   This SQLite database is different from the database used for the regular :doc:`SQLite 3 backend <../backends/generic-sqlite3>`.
 
-After this, you can use ``pdnsutil zone secure`` and all other pdnsutil
-commands on your BIND zones without trouble.
+After this, you can use ``pdnsutil zone secure`` (``pdnsutil secure-zone`` prior
+to version 5.0) and all other :doc:`pdnsutil <../manpages/pdnsutil.1>` commands on
+your BIND zones without trouble.
 
 .. _dnssec-modes-hybrid-bind:
 

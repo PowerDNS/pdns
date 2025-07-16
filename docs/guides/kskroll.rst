@@ -11,7 +11,9 @@ After every change, use your favourite DNSSEC checker (`DNSViz <https://dnsviz.n
 .. warning::
 
     For every mutation to your zone make sure that your serial is bumped, so your secondaries pick up the changes too.
-    If you are using AXFR replication, this usually is as simple as ``pdnsutil zone increase-serial example.com``
+    If you are using AXFR replication, this usually is as simple as ``pdnsutil
+    zone increase-serial example.com`` (``pdnsutil increase-serial example.com``
+    prior to version 5.0)
 
 Phase: Initial
 --------------
@@ -28,13 +30,27 @@ At first note down algorithm of currently used KSK, because new KSK shall use th
 
     pdnsutil zone show example.com
 
+or, prior to version 5.0:
+
+.. code-block:: shell
+
+    pdnsutil show-zone example.com
+
 To create a new **active** and **published** KSK with the same algorithm for the zone, run something like:
 
 .. code-block:: shell
 
     pdnsutil zone add-key example.com ksk active published ALGORITHM
 
-Please note down the key ID that ``zone add-key`` reports. You can also retrieve it later with ``pdnsutil zone show example.com``.
+or, prior to version 5.0:
+
+.. code-block:: shell
+
+    pdnsutil add-zone-key example.com ksk active published ALGORITHM
+
+Please note down the key ID that ``zone add-key`` reports. You can also retrieve
+it later with ``pdnsutil zone show example.com`` (``pdnsutil show-zone
+example.com`` prior to version 5.0).
 
 After this the DNSKEY set will be signed by both KSKs.
 
@@ -49,7 +65,10 @@ The DNSKEY set is currently signed with both KSKs and keys of both are published
 This means that a DS for either old or new KSK is sufficient for validation.
 We can now switch the DS record in the parent zone - there is no need to have DSes for both KSKs in the parent zone.
 
-Using ``pdnsutil zone show example.com`` or ``pdnsutil zone export-ds example.com``, extract the DNSKEY or DS for new KSK, depending on what the parent zone operator takes as input.
+Using ``pdnsutil zone show example.com`` or ``pdnsutil zone export-ds
+example.com`` (respectively ``pdnsutil show-zone example.com`` and ``pdnsutil
+export-zone-ds example.com`` prior to version 5.0), extract the DNSKEY or DS for
+new KSK, depending on what the parent zone operator takes as input.
 Note that these commands print DNSKEYs and/or DSes for both the old and the new KSK.
 
 Check the DS TTL at the parent, for example: ``dig DS example.com @c.gtld-servers.net`` for a delegation from ``.com``.
@@ -70,7 +89,13 @@ It is time to remove the old DNSKEY:
 .. code-block:: shell
 
     pdnsutil zone remove-key example.com OLD_KSK_ID
-    
+
+or, prior to version 5.0:
+
+.. code-block:: shell
+
+    pdnsutil remove-zone-key example.com OLD_KSK_ID
+
 Please check that your secondaries now only show the new set of keys when queried with ``dig DNSKEY example.com @...``.
 
 Conclusion

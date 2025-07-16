@@ -131,7 +131,8 @@ The :doc:`pdnsutil <manpages/pdnsutil.1>` tool has a
 first backend that is capable of hosting it.
 
 To import, configure the backend and run
-``pdnsutil zone load example.com /tmp/example.com.zone`` to import
+``pdnsutil zone load example.com /tmp/example.com.zone`` (``pdnsutil load-zone
+example.com /tmp/example.com.zone`` prior to version 5.0) to import
 the ``example.com`` domain from the ``/tmp/example.com.zone`` file. The
 zone is imported atomically (i.e. it is fully imported, or not) and any
 existing records for that zone are overwritten. This include the SOA record too.
@@ -175,7 +176,8 @@ Moving from source to target
    sure you properly clear **ALL** data from target backend before
    retrying.
 -  Remove (or comment out) old backend from pdns.conf, and run
-   ``pdnsutil zone rectify-all`` and ``pdnsutil zone check-all`` to
-   make sure everything is OK.
+   ``pdnsutil zone rectify-all`` and ``pdnsutil zone check-all`` (respectively
+   ``pdnsutil rectify-all-zones`` and ``pdnsutil check-all-zones`` prior to
+   version 5.0) to make sure everything is OK.
 -  If everything is OK, then go ahead to restart your PowerDNS service.
    Check logs to make sure everything went ok.

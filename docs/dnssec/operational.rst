@@ -18,7 +18,8 @@ Manual
 As automation is not very widespread, DS publication often needs to occur
 manually as follows:
 
-1. utilize ``pdnsutil zone show`` to display DS and DNSKEY parameters,
+1. utilize ``pdnsutil zone show`` (``pdnsutil show-zone`` prior to version 5.0)
+   to display DS and DNSKEY parameters,
 2. transfer these parameters securely to your parent.
 
 Some parents accept DS format, while some accept DNSKEY (and use it to derive
@@ -92,6 +93,12 @@ Going insecure
 
     pdnsutil zone dnssec-disable ZONE
 
+or, prior to version 5.0:
+
+.. code-block:: shell
+
+    pdnsutil disable-dnssec ZONE
+
 .. warning::
   Going insecure with a zone that has a DS record in the
   parent zone will make the zone BOGUS. Make sure the parent zone removes
@@ -115,6 +122,12 @@ e.g.
 
     pdnsutil zone set-nsec3 example.net '1 0 0 -'
 
+or, prior to version 5.0:
+
+.. code-block:: shell
+
+    pdnsutil set-nsec3 example.net '1 0 0 -'
+
 The quoted part is the content of the NSEC3PARAM records, as defined in
 :rfc:`RFC 5155 <5155#section-4>`, in order:
 
@@ -134,6 +147,12 @@ To convert a zone from NSEC3 to NSEC operations, run:
 .. code-block:: shell
 
     pdnsutil zone unset-nsec3 ZONE
+
+or, prior to version 5.0:
+
+.. code-block:: shell
+
+    pdnsutil unset-nsec3 ZONE
 
 .. warning::
   Don't change from NSEC to NSEC3 (or the other way around)

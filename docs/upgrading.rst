@@ -75,135 +75,137 @@ The old syntax is still recognized, so that existing scripts and finger memory
 will keep working. However, you are advised to switch to the new command syntax,
 using this conversion table:
 
-+-----------------------------------+--------------------------------+
-| Old syntax                        | New syntax                     |
-+===================================+================================+
-| ``activate-tsig-key``             | ``tsigkey activate``           |
-+-----------------------------------+--------------------------------+
-| ``activate-zone-key``             | ``zone activate-key``          |
-+-----------------------------------+--------------------------------+
-| ``add-autoprimary``               | ``autoprimary add``            |
-+-----------------------------------+--------------------------------+
-| ``add-meta``                      | ``metadata add``               |
-+-----------------------------------+--------------------------------+
-| ``add-record``                    | ``rrset add``                  |
-+-----------------------------------+--------------------------------+
-| ``add-zone-key``                  | ``zone add-key``               |
-+-----------------------------------+--------------------------------+
-| ``change-secondary-zone-primary`` | ``zone change-primary``        |
-+-----------------------------------+--------------------------------+
-| ``check-all-zones``               | ``zone check-all``             |
-+-----------------------------------+--------------------------------+
-| ``check-zone``                    | ``zone check``                 |
-+-----------------------------------+--------------------------------+
-| ``clear-zone``                    | ``zone clear``                 |
-+-----------------------------------+--------------------------------+
-| ``create-secondary-zone``         | ``zone create-secondary``      |
-+-----------------------------------+--------------------------------+
-| ``create-zone``                   | ``zone create``                |
-+-----------------------------------+--------------------------------+
-| ``deactivate-tsig-key``           | ``tsigkey deactivate``         |
-+-----------------------------------+--------------------------------+
-| ``deactivate-zone-key``           | ``zone deactivate-key``        |
-+-----------------------------------+--------------------------------+
-| ``delete-rrset``                  | ``rrset delete``               |
-+-----------------------------------+--------------------------------+
-| ``delete-tsig-key``               | ``tsigkey delete``             |
-+-----------------------------------+--------------------------------+
-| ``delete-zone``                   | ``zone delete``                |
-+-----------------------------------+--------------------------------+
-| ``disable-dnssec``                | ``zone dnssec-disable``        |
-+-----------------------------------+--------------------------------+
-| ``edit-zone``                     | ``zone edit``                  |
-+-----------------------------------+--------------------------------+
-| ``export-zone-dnskey``            | ``zone export-dnskey``         |
-+-----------------------------------+--------------------------------+
-| ``export-zone-ds``                | ``zone export-ds``             |
-+-----------------------------------+--------------------------------+
-| ``export-zone-key``               | ``zone export-key``            |
-+-----------------------------------+--------------------------------+
-| ``export-zone-key-pem``           | ``zone export-key-pem``        |
-+-----------------------------------+--------------------------------+
-| ``generate-tsig-key``             | ``tsigkey generate``           |
-+-----------------------------------+--------------------------------+
-| ``generate-zone-key``             | ``zone generate-key``          |
-+-----------------------------------+--------------------------------+
-| ``get-meta``                      | ``metadata get``               |
-+-----------------------------------+--------------------------------+
-| ``hash-zone-record``              | ``rrset hash``                 |
-+-----------------------------------+--------------------------------+
-| ``import-tsig-key``               | ``tsigkey import``             |
-+-----------------------------------+--------------------------------+
-| ``import-zone-key``               | ``zone import-key``            |
-+-----------------------------------+--------------------------------+
-| ``import-zone-key-pem``           | ``zone import-key-pem``        |
-+-----------------------------------+--------------------------------+
-| ``increase-serial``               | ``zone increase-serial``       |
-+-----------------------------------+--------------------------------+
-| ``list-all-zones``                | ``zone list-all``              |
-+-----------------------------------+--------------------------------+
-| ``list-autoprimaries``            | ``autoprimary list``           |
-+-----------------------------------+--------------------------------+
-| ``list-keys``                     | ``zone list-keys``             |
-+-----------------------------------+--------------------------------+
-| ``list-member-zones``             | ``catalog list-members``       |
-+-----------------------------------+--------------------------------+
-| ``list-tsig-keys``                | ``tsigkey list``               |
-+-----------------------------------+--------------------------------+
-| ``list-zone``                     | ``zone list``                  |
-+-----------------------------------+--------------------------------+
-| ``load-zone``                     | ``zone load``                  |
-+-----------------------------------+--------------------------------+
-| ``publish-zone-key``              | ``zone publish-key``           |
-+-----------------------------------+--------------------------------+
-| ``rectify-all-zones``             | ``zone rectify-all``           |
-+-----------------------------------+--------------------------------+
-| ``rectify-zone``                  | ``zone rectify``               |
-+-----------------------------------+--------------------------------+
-| ``remove-autoprimary``            | ``autoprimary remove``         |
-+-----------------------------------+--------------------------------+
-| ``remove-zone-key``               | ``zone remove-key``            |
-+-----------------------------------+--------------------------------+
-| ``replace-rrset``                 | ``rrset replace``              |
-+-----------------------------------+--------------------------------+
-| ``secure-all-zones``              | ``zone secure-all``            |
-+-----------------------------------+--------------------------------+
-| ``secure-zone``                   | ``zone secure``                |
-+-----------------------------------+--------------------------------+
-| ``set-account``                   | ``zone set-account``           |
-+-----------------------------------+--------------------------------+
-| ``set-catalog``                   | ``catalog set``                |
-+-----------------------------------+--------------------------------+
-| ``set-kind``                      | ``zone set-kind``              |
-+-----------------------------------+--------------------------------+
-| ``set-meta``                      | ``metadata set``               |
-+-----------------------------------+--------------------------------+
-| ``set-nsec3``                     | ``zone set-nsec3``             |
-+-----------------------------------+--------------------------------+
-| ``set-option``                    | ``zone set-option``            |
-+-----------------------------------+--------------------------------+
-| ``set-options-json``              | ``zone set-options-json``      |
-+-----------------------------------+--------------------------------+
-| ``set-presigned``                 | ``zone set-presigned``         |
-+-----------------------------------+--------------------------------+
-| ``set-publish-cdnskey``           | ``zone set-publish-cdnskey``   |
-+-----------------------------------+--------------------------------+
-| ``set-publish-cds``               | ``zone set-publish-cds``       |
-+-----------------------------------+--------------------------------+
-| ``show-zone``                     | ``zone show``                  |
-+-----------------------------------+--------------------------------+
-| ``unpublish-zone-key``            | ``zone unpublish-key``         |
-+-----------------------------------+--------------------------------+
-| ``unset-nsec3``                   | ``zone unset-nsec3``           |
-+-----------------------------------+--------------------------------+
-| ``unset-presigned``               | ``zone unset-presigned``       |
-+-----------------------------------+--------------------------------+
-| ``unset-publish-cdnskey``         | ``zone unset-publish-cdnskey`` |
-+-----------------------------------+--------------------------------+
-| ``unset-publish-cds``             | ``zone unset-publish-cds``     |
-+-----------------------------------+--------------------------------+
-| ``zonemd-verify-file``            | ``zone zonemd-verify-file``    |
-+-----------------------------------+--------------------------------+
+.. list-table:: pdnsutil syntax conversion table
+   :header-rows: 1
+
+   * - Old syntax
+     - New syntax
+   * - ``activate-tsig-key``
+     - ``tsigkey activate``
+   * - ``activate-zone-key``
+     - ``zone activate-key``
+   * - ``add-autoprimary``
+     - ``autoprimary add``
+   * - ``add-meta``
+     - ``metadata add``
+   * - ``add-record``
+     - ``rrset add``
+   * - ``add-zone-key``
+     - ``zone add-key``
+   * - ``change-secondary-zone-primary``
+     - ``zone change-primary``
+   * - ``check-all-zones``
+     - ``zone check-all``
+   * - ``check-zone``
+     - ``zone check``
+   * - ``clear-zone``
+     - ``zone clear``
+   * - ``create-secondary-zone``
+     - ``zone create-secondary``
+   * - ``create-zone``
+     - ``zone create``
+   * - ``deactivate-tsig-key``
+     - ``tsigkey deactivate``
+   * - ``deactivate-zone-key``
+     - ``zone deactivate-key``
+   * - ``delete-rrset``
+     - ``rrset delete``
+   * - ``delete-tsig-key``
+     - ``tsigkey delete``
+   * - ``delete-zone``
+     - ``zone delete``
+   * - ``disable-dnssec``
+     - ``zone dnssec-disable``
+   * - ``edit-zone``
+     - ``zone edit``
+   * - ``export-zone-dnskey``
+     - ``zone export-dnskey``
+   * - ``export-zone-ds``
+     - ``zone export-ds``
+   * - ``export-zone-key``
+     - ``zone export-key``
+   * - ``export-zone-key-pem``
+     - ``zone export-key-pem``
+   * - ``generate-tsig-key``
+     - ``tsigkey generate``
+   * - ``generate-zone-key``
+     - ``zone generate-key``
+   * - ``get-meta``
+     - ``metadata get``
+   * - ``hash-zone-record``
+     - ``rrset hash``
+   * - ``import-tsig-key``
+     - ``tsigkey import``
+   * - ``import-zone-key``
+     - ``zone import-key``
+   * - ``import-zone-key-pem``
+     - ``zone import-key-pem``
+   * - ``increase-serial``
+     - ``zone increase-serial``
+   * - ``list-all-zones``
+     - ``zone list-all``
+   * - ``list-autoprimaries``
+     - ``autoprimary list``
+   * - ``list-keys``
+     - ``zone list-keys``
+   * - ``list-member-zones``
+     - ``catalog list-members``
+   * - ``list-tsig-keys``
+     - ``tsigkey list``
+   * - ``list-zone``
+     - ``zone list``
+   * - ``load-zone``
+     - ``zone load``
+   * - ``publish-zone-key``
+     - ``zone publish-key``
+   * - ``rectify-all-zones``
+     - ``zone rectify-all``
+   * - ``rectify-zone``
+     - ``zone rectify``
+   * - ``remove-autoprimary``
+     - ``autoprimary remove``
+   * - ``remove-zone-key``
+     - ``zone remove-key``
+   * - ``replace-rrset``
+     - ``rrset replace``
+   * - ``secure-all-zones``
+     - ``zone secure-all``
+   * - ``secure-zone``
+     - ``zone secure``
+   * - ``set-account``
+     - ``zone set-account``
+   * - ``set-catalog``
+     - ``catalog set``
+   * - ``set-kind``
+     - ``zone set-kind``
+   * - ``set-meta``
+     - ``metadata set``
+   * - ``set-nsec3``
+     - ``zone set-nsec3``
+   * - ``set-option``
+     - ``zone set-option``
+   * - ``set-options-json``
+     - ``zone set-options-json``
+   * - ``set-presigned``
+     - ``zone set-presigned``
+   * - ``set-publish-cdnskey``
+     - ``zone set-publish-cdnskey``
+   * - ``set-publish-cds``
+     - ``zone set-publish-cds``
+   * - ``show-zone``
+     - ``zone show``
+   * - ``unpublish-zone-key``
+     - ``zone unpublish-key``
+   * - ``unset-nsec3``
+     - ``zone unset-nsec3``
+   * - ``unset-presigned``
+     - ``zone unset-presigned``
+   * - ``unset-publish-cdnskey``
+     - ``zone unset-publish-cdnskey``
+   * - ``unset-publish-cds``
+     - ``zone unset-publish-cds``
+   * - ``zonemd-verify-file``
+     - ``zone zonemd-verify-file``
 
 Commands not listed above have not changed syntax.
 

@@ -40,6 +40,10 @@ These instructions have been tested on Debian 10 (Buster).
 
     pdnsutil zone show example.com
 
+  or, prior to version 5.0::
+
+    pdnsutil show-zone example.com
+
 SoftHSM2 with forwarding
 ------------------------
 
@@ -172,6 +176,10 @@ Smart Card token on Ubuntu 14.04.
 - Verify that everything worked, you should see valid data there. ::
 
     pdnsutil zone show zone
+
+  or, prior to version 5.0::
+
+    pdnsutil show-zone zone
 
 - Note that the physical token is pretty slow, so you have to use it as
   hidden primary. It has been observed to produce about 1.5 signatures/second.

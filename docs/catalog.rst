@@ -92,6 +92,13 @@ Create a producer zone:
   pdnsutil zone load catalog.example ZONEFILE
   pdnsutil zone set-kind catalog.example producer
 
+or, prior to version 5.0:
+
+.. code-block:: shell
+
+  pdnsutil load-zone catalog.example ZONEFILE
+  pdnsutil set-kind catalog.example producer
+
 Creating producer zones is supported in the :doc:`API <http-api/zone>`, using type ``PRODUCER``.
 
 Assigning members to a producer zone
@@ -104,6 +111,13 @@ In the example below ``example.com`` is the member and ``catalog.example`` is th
 
   pdnsutil catalog set example.com catalog.example
   pdnsutil zone set-kind example.com primary
+
+or, prior to version 5.0:
+
+.. code-block:: shell
+
+  pdnsutil set-catalog example.com catalog.example
+  pdnsutil set-kind example.com primary
 
 Setting catalog values is supported in the :doc:`API <http-api/zone>`, by setting the ``catalog`` property in the zone properties.
 Setting the catalog to an empty ``""`` removes the member zone from the catalog it is in.
@@ -119,6 +133,13 @@ PowerDNS currently supports the following properties:
   pdnsutil zone set-option example.com producer coo other-catalog.example
   pdnsutil zone set-option example.com producer group pdns-group-x pdns-group-y
 
+or, prior to version 5.0:
+
+.. code-block:: shell
+
+  pdnsutil set-option example.com producer coo other-catalog.example
+  pdnsutil set-option example.com producer group pdns-group-x pdns-group-y
+
 There is also an option to set a specific <unique-N> value for a zone. This is done by setting a the ``unique`` value.
 This is used to signal a state reset to the consumer.
 The value for ``unique`` is a single DNS label.
@@ -126,6 +147,12 @@ The value for ``unique`` is a single DNS label.
 .. code-block:: shell
 
   pdnsutil --config-dir=. --config-name=gmysql zone set-option test.com producer unique 123
+
+or, prior to version 5.0:
+
+.. code-block:: shell
+
+  pdnsutil --config-dir=. --config-name=gmysql set-option test.com producer unique 123
 
 Setting options is not yet supported in the API.
 
@@ -139,6 +166,13 @@ The only difference is the type, which is now set to CONSUMER.
 
   pdnsutil zone create-secondary catalog.example 192.0.2.42
   pdnsutil zone set-kind catalog.example consumer
+
+or, prior to version 5.0:
+
+.. code-block:: shell
+
+  pdnsutil create-secondary-zone catalog.example 192.0.2.42
+  pdnsutil set-kind catalog.example consumer
 
 Creating consumer zones is supported in the :doc:`API <http-api/zone>`, using type ``CONSUMER``.
 
@@ -155,6 +189,13 @@ server in order to fully apply the changes.
 .. code-block:: shell
 
   pdnsutil zone change-primary catalog.example 192.0.2.45
+  pdns_control retrieve catalog.example
+
+or, prior to version 5.0:
+
+.. code-block:: shell
+
+  pdnsutil change-secondary-zone-primary catalog.example 192.0.2.45
   pdns_control retrieve catalog.example
 
 This will update the primary server contact details in each zone

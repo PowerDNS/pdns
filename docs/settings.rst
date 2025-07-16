@@ -592,7 +592,7 @@ when automatic publication is turned off.
 
 .. versionadded:: 5.0.0
 
-Read signatures of DNSKEY records directly from the backend. 
+Read signatures of DNSKEY records directly from the backend.
 If not set and the record is not presigned, DNSKEY records will be signed directly by PDNS Authoritative.
 Please only use this if you are sure that you need it.
 

@@ -45,6 +45,13 @@ Another way of importing and activating TSIG keys into the database is using
     pdnsutil tsigkey import test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
     pdnsutil tsigkey activate powerdnssec.org test primary
 
+or, prior to version 5.0:
+
+.. code-block:: shell
+
+    pdnsutil import-tsig-key test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
+    pdnsutil activate-tsig-key powerdnssec.org test primary
+
 To ease interoperability, the equivalent configuration above in BIND
 would look like this::
 

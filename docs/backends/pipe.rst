@@ -291,7 +291,7 @@ values. The default value for scopebits is 0. The default for auth is 1
 Direct backend commands
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-With abi-version 5 you can use :doc:`backend-cmd <../dnssec/pdnsutil>` for
+With abi-version 5 you can use :doc:`backend-cmd <../manpages/pdnsutil.1>` for
 executing commands on your backend. PowerDNS will use the following
 query/answer format:
 

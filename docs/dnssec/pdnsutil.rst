@@ -14,7 +14,8 @@ For a list of available commands, see the :doc:`manpage <../manpages/pdnsutil.1>
 DNSSEC Defaults
 ---------------
 
-Since version 4.0, when securing a zone using ``pdnsutil zone secure``,
+Since version 4.0, when securing a zone using ``pdnsutil zone secure``
+(``pdnsutil secure-zone`` prior to version 5.0),
 a single ECDSA (algorithm 13, ECDSAP256SHA256) key is generated that is
 used as CSK. Before 4.0, 3 RSA (algorithm 8) keys were generated, one as
 the KSK and two ZSKs. As all keys are online in the database, it made no

@@ -9,7 +9,8 @@ grouped.
   Host names and the MNAME of a SOA records are NEVER
   terminated with a '.' in PowerDNS storage! If a trailing '.' is present
   it will inevitably cause problems, problems that may be hard to debug.
-  Use ``pdnsutil zone check`` to validate your zone data.
+  Use ``pdnsutil zone check`` (or ``pdnsutil check-zone`` prior to version
+  5.0) to validate your zone data.
 
 .. note::
   Whenever the storage format is mentioned, this relates only to the way

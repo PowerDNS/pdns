@@ -341,16 +341,16 @@ zone set-nsec3 *ZONE* ['*HASH-ALGORITHM* *FLAGS* *ITERATIONS* *SALT*'] [**narrow
     resolvers and that a limit can be set with ``max-nsec3-iterations``
     in ``pdns.conf``. The *SALT* is a hexadecimal string encoding the bits
     for the salt, or - to use no salt.
-    
+
     Setting **narrow** will make PowerDNS send out "white lies" (:rfc:`7129`)
     about the next secure record to prevent zone enumeration. Instead of
     looking it up in the database, it will send out the hash + 1 as the next
     secure record. Narrow mode requires online signing capabilities by the
     nameserver and therefore zone transfers are denied.
-    
+
     If only the zone is provided as argument, the 4-parameter quoted string
     defaults to ``'1 0 0 -'``, as recommended by :rfc:`9276`.
-    
+
     A sample commandline would be:
 
     ``pdnsutil zone set-nsec3 powerdnssec.org '1 1 1 ab' narrow``
@@ -410,12 +410,12 @@ zone add-key *ZONE* [**KSK**,\ **ZSK**] [**active**,\ **inactive**] [**published
     the specified *ALGORITHM* and *KEYBITS*. If *KEYBITS* is omitted, the value
     of :ref:`setting-default-ksk-size` or :ref:`setting-default-zsk-size` are
     used.
-    
+
     The key is inactive by default, set it to **active** to immediately use it
     to sign *ZONE*. The key is published in the zone by default, set it to
     **unpublished** to keep it from being returned in a DNSKEY query, which is
     useful for algorithm rollovers.
-    
+
     Prints the id of the added key.
 
 zone deactivate-key *ZONE* *KEY_ID*

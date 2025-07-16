@@ -23,6 +23,12 @@ As an example, securing an existing zone can be as simple as:
 
     $ pdnsutil zone secure powerdnssec.org
 
+or, prior to version 5.0:
+
+.. code-block:: shell
+
+    $ pdnsutil secure-zone powerdnssec.org
+
 Alternatively, PowerDNS can serve pre-signed zones, without knowledge of
 private keys.
 
