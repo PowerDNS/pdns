@@ -66,6 +66,8 @@ OTHER Options
     Adds a delete statement to the sql output to allow re-importing zones.
     Mostly only useful during testing. This hould not be used on a live DB
     as you will override the zone with previous data.
+    You should have the optional foreign key relationship enabled in your 
+    schema if you use this or it will leave created abandoned records
 --help
     List all options
 --on-error-resume-next
