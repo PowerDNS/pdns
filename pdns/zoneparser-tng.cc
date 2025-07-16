@@ -369,8 +369,7 @@ bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
     else if(pdns_iequals(command,"$INCLUDE") && d_parts.size() > 1 && d_fromfile) {
       string fname=unquotify(makeString(d_line, d_parts[1]));
       // Find the first semicolon and remove everything after it, including the semicolon
-      size_t semicolon_pos = fname.find(';');
-      if (semicolon_pos != string::npos) {
+      if (auto semicolon_pos = fname.find(';'); semicolon_pos != string::npos) {
         fname.resize(semicolon_pos);
       }
       if (!fname.empty() && fname[0] != '/' && !d_reldir.empty()) {
