@@ -338,7 +338,6 @@ pair<string,int> ZoneParserTNG::getLineNumAndFile()
     return {d_filestates.top().d_filename, d_filestates.top().d_lineno};
 }
 
-
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 bool ZoneParserTNG::get(DNSResourceRecord& rr, std::string* comment)
 {
