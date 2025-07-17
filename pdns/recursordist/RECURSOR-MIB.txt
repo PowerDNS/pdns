@@ -1250,6 +1250,46 @@ udrEvents OBJECT-TYPE
         "Count of UDR events"
     ::= { stats 148 }
 
+maxChainLength OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Maximum chain length"
+    ::= { stats 149 }
+
+maxChainWeight OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Maximum chain weight"
+    ::= { stats 150 }
+
+chainLimits OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Chain limits reached"
+    ::= { stats 151 }
+
+tcpOverflow OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Incoming TCP limits reached"
+    ::= { stats 152 }
+
+ecsMissing OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of answers where ECS info was missing"
+    ::= { stats 153 }
+
 ---
 --- Traps / Notifications
 ---
@@ -1445,7 +1485,12 @@ recGroup OBJECT-GROUP
         packetCacheContended,
         packetCacheAcquired,
         nodEvents,
-        udrEvents
+        udrEvents,
+        maxChainLength,
+        maxChainWeight,
+        chainLimits,
+        tcpOverflow,
+        ecsMissing
     }
     STATUS current
     DESCRIPTION "Objects conformance group for PowerDNS Recursor"

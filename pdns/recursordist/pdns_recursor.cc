@@ -30,8 +30,8 @@
 #include "rec-taskqueue.hh"
 #include "shuffle.hh"
 #include "validate-recursor.hh"
-
 #include "ratelimitedlog.hh"
+#include "ednsoptions.hh"
 
 #ifdef HAVE_SYSTEMD
 #include <systemd/sd-daemon.h>
@@ -230,7 +230,6 @@ static void handleGenUDPQueryResponse(int fileDesc, FDMultiplexer::funcparam_t& 
   else {
     PacketBuffer empty;
     g_multiTasker->sendEvent(pident, &empty);
-    //    cerr<<"Had some kind of error: "<<ret<<", "<<stringerror()<<endl;
   }
 }
 
@@ -269,32 +268,30 @@ thread_local std::unique_ptr<UDPClientSocks> t_udpclientsocks;
 
 /* these two functions are used by LWRes */
 LWResult::Result asendto(const void* data, size_t len, int /* flags */,
-                         const ComboAddress& toAddress, uint16_t qid, const DNSName& domain, uint16_t qtype, bool ecs, int* fileDesc)
+                         const ComboAddress& toAddress, uint16_t qid, const DNSName& domain, uint16_t qtype, const std::optional<EDNSSubnetOpts>& ecs, int* fileDesc)
 {
 
   auto pident = std::make_shared<PacketID>();
   pident->domain = domain;
   pident->remote = toAddress;
   pident->type = qtype;
+  if (ecs) {
+    pident->ecsSubnet = ecs->source;
+  }
 
-  // We cannot merge ECS-enabled queries based on the ECS source only, as the scope
-  // of the response might be narrower, so instead we do not chain ECS-enabled queries
-  // at all.
-  if (!ecs) {
-    // See if there is an existing outstanding request we can chain on to, using partial equivalence
-    // function looking for the same query (qname and qtype) to the same host, but with a different
-    // message ID.
-    auto chain = g_multiTasker->d_waiters.equal_range(pident, PacketIDBirthdayCompare());
+  // See if there is an existing outstanding request we can chain on to, using partial equivalence
+  // function looking for the same query (qname, qtype and ecs if applicable) to the same host, but
+  // with a different message ID.
+  auto chain = g_multiTasker->d_waiters.equal_range(pident, PacketIDBirthdayCompare());
 
-    for (; chain.first != chain.second; chain.first++) {
-      // Line below detected an issue with the two ways of ordering PacketIDs (birthday and non-birthday)
-      assert(chain.first->key->domain == pident->domain); // NOLINT
-      // don't chain onto existing chained waiter or a chain already processed
-      if (chain.first->key->fd > -1 && !chain.first->key->closed) {
-        chain.first->key->chain.insert(qid); // we can chain
-        *fileDesc = -1; // gets used in waitEvent / sendEvent later on
-        return LWResult::Result::Success;
-      }
+  for (; chain.first != chain.second; chain.first++) {
+    // Line below detected an issue with the two ways of ordering PacketIDs (birthday and non-birthday)
+    assert(chain.first->key->domain == pident->domain); // NOLINT
+    // don't chain onto existing chained waiter or a chain already processed
+    if (chain.first->key->fd > -1 && !chain.first->key->closed && pident->ecsSubnet == chain.first->key->ecsSubnet) {
+      *fileDesc = -1;
+      chain.first->key->chain.insert(qid); // we can chain
+      return LWResult::Result::Success;
     }
   }
 
@@ -320,8 +317,10 @@ LWResult::Result asendto(const void* data, size_t len, int /* flags */,
   return LWResult::Result::Success;
 }
 
+static bool checkIncomingECSSource(const PacketBuffer& packet, const Netmask& subnet);
+
 LWResult::Result arecvfrom(PacketBuffer& packet, int /* flags */, const ComboAddress& fromAddr, size_t& len,
-                           uint16_t qid, const DNSName& domain, uint16_t qtype, int fileDesc, const struct timeval& now)
+                           uint16_t qid, const DNSName& domain, uint16_t qtype, int fileDesc, const std::optional<EDNSSubnetOpts>& ecs, const struct timeval& now)
 {
   static const unsigned int nearMissLimit = ::arg().asNum("spoof-nearmiss-max");
 
@@ -331,7 +330,14 @@ LWResult::Result arecvfrom(PacketBuffer& packet, int /* flags */, const ComboAdd
   pident->domain = domain;
   pident->type = qtype;
   pident->remote = fromAddr;
-
+  pident->creationTime = now;
+  if (ecs) {
+    // We sent out the query using ecs
+    // We expect incoming source ECS to match, see https://www.rfc-editor.org/rfc/rfc7871#section-7.3
+    // But there's also section 11-2, which says we should treat absent incoming ecs as scope zero
+    // We fill in the search key with the ecs we sent out, so both cases are covered and accepted here.
+    pident->ecsSubnet = ecs->source;
+  }
   int ret = g_multiTasker->waitEvent(pident, &packet, g_networkTimeoutMsec, &now);
   len = 0;
 
@@ -344,6 +350,12 @@ LWResult::Result arecvfrom(PacketBuffer& packet, int /* flags */, const ComboAdd
 
     len = packet.size();
 
+    // In ecs hardening mode, we consider a missing or a mismatched ECS in the reply as a case for
+    // retrying without ECS. The actual logic to do that is in Syncres::doResolveAtThisIP()
+    if (g_ECSHardening && pident->ecsSubnet && !checkIncomingECSSource(packet, *pident->ecsSubnet)) {
+      t_Counters.at(rec::Counter::ecsMissingCount)++;
+      return LWResult::Result::ECSMissing;
+    }
     if (nearMissLimit > 0 && pident->nearMisses > nearMissLimit) {
       /* we have received more than nearMissLimit answers on the right IP and port, from the right source (we are using connected sockets),
          for the correct qname and qtype, but with an unexpected message ID. That looks like a spoofing attempt. */
@@ -2039,7 +2051,7 @@ void getQNameAndSubnet(const std::string& question, DNSName* dnsname, uint16_t* 
         /* we need to pass the record len */
         int res = getEDNSOptions(reinterpret_cast<const char*>(&question.at(pos - sizeof(drh->d_clen))), questionLen - pos + (sizeof(drh->d_clen)), *options); // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
         if (res == 0) {
-          const auto& iter = options->find(EDNSOptionCode::ECS);
+          const auto iter = options->find(EDNSOptionCode::ECS);
           if (iter != options->end() && !iter->second.values.empty() && iter->second.values.at(0).content != nullptr && iter->second.values.at(0).size > 0) {
             EDNSSubnetOpts eso;
             if (getEDNSSubnetOptsFromString(iter->second.values.at(0).content, iter->second.values.at(0).size, &eso)) {
@@ -2640,7 +2652,6 @@ static void handleNewUDPQuestion(int fileDesc, FDMultiplexer::funcparam_t& /* va
       }
     }
     else {
-      // cerr<<t_id<<" had error: "<<stringerror()<<endl;
       if (firstQuery && errno == EAGAIN) {
         t_Counters.at(rec::Counter::noPacketError)++;
       }
@@ -2860,6 +2871,7 @@ static void doResends(MT_t::waiters_t::iterator& iter, const std::shared_ptr<Pac
   if (iter->key->chain.empty()) {
     return;
   }
+
   for (auto i = iter->key->chain.begin(); i != iter->key->chain.end(); ++i) {
     auto packetID = std::make_shared<PacketID>(*resend);
     packetID->fd = -1;
@@ -2867,6 +2879,32 @@ static void doResends(MT_t::waiters_t::iterator& iter, const std::shared_ptr<Pac
     g_multiTasker->sendEvent(packetID, &content);
     t_Counters.at(rec::Counter::chainResends)++;
   }
+}
+
+static bool checkIncomingECSSource(const PacketBuffer& packet, const Netmask& subnet)
+{
+  bool foundMatchingECS = false;
+
+  // We sent out ECS, check if the response has the expected ECS info
+  EDNSOptionViewMap ednsOptions;
+  if (slowParseEDNSOptions(packet, ednsOptions)) {
+    // check content
+    auto option = ednsOptions.find(EDNSOptionCode::ECS);
+    if (option != ednsOptions.end()) {
+      // found an ECS option
+      EDNSSubnetOpts ecs;
+      for (const auto& value : option->second.values) {
+        if (getEDNSSubnetOptsFromString(value.content, value.size, &ecs)) {
+          if (ecs.source == subnet) {
+            foundMatchingECS = true;
+          }
+        }
+        break; // The RFC isn't clear about multiple ECS options. We chose to handle it like cookies
+               // and only look at the first.
+      }
+    }
+  }
+  return foundMatchingECS;
 }
 
 static void handleUDPServerResponse(int fileDesc, FDMultiplexer::funcparam_t& var)
@@ -2886,7 +2924,7 @@ static void handleUDPServerResponse(int fileDesc, FDMultiplexer::funcparam_t& va
     t_udpclientsocks->returnSocket(fileDesc);
 
     PacketBuffer empty;
-    MT_t::waiters_t::iterator iter = g_multiTasker->d_waiters.find(pid);
+    auto iter = g_multiTasker->d_waiters.find(pid);
     if (iter != g_multiTasker->d_waiters.end()) {
       doResends(iter, pid, empty);
     }
@@ -2947,7 +2985,7 @@ static void handleUDPServerResponse(int fileDesc, FDMultiplexer::funcparam_t& va
   }
 
   if (!pident->domain.empty()) {
-    MT_t::waiters_t::iterator iter = g_multiTasker->d_waiters.find(pident);
+    auto iter = g_multiTasker->d_waiters.find(pident);
     if (iter != g_multiTasker->d_waiters.end()) {
       doResends(iter, pident, packet);
     }
@@ -2969,7 +3007,6 @@ retryWithName:
 
       // be a bit paranoid here since we're weakening our matching
       if (pident->domain.empty() && !d_waiter.key->domain.empty() && pident->type == 0 && d_waiter.key->type != 0 && pident->id == d_waiter.key->id && d_waiter.key->remote == pident->remote) {
-        // cerr<<"Empty response, rest matches though, sending to a waiter"<<endl;
         pident->domain = d_waiter.key->domain;
         pident->type = d_waiter.key->type;
         goto retryWithName; // note that this only passes on an error, lwres will still reject the packet NOLINT(cppcoreguidelines-avoid-goto)

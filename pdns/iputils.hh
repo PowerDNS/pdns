@@ -656,7 +656,12 @@ public:
     return std::tie(d_network, d_bits) == std::tie(rhs.d_network, rhs.d_bits);
   }
 
-  bool empty() const
+  bool operator!=(const Netmask& rhs) const
+  {
+    return !(*this == rhs);
+  }
+
+  [[nodiscard]] bool empty() const
   {
     return d_network.sin4.sin_family==0;
   }

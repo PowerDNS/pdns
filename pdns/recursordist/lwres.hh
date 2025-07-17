@@ -51,6 +51,7 @@ void remoteLoggerQueueData(RemoteLoggerInterface&, const std::string&);
 
 extern std::shared_ptr<Logr::Logger> g_slogout;
 extern bool g_paddingOutgoing;
+extern bool g_ECSHardening;
 
 class LWResException : public PDNSException
 {
@@ -72,7 +73,8 @@ public:
     Success = 1,
     PermanentError = 2 /* not transport related */,
     OSLimitError = 3,
-    Spoofed = 4 /* Spoofing attempt (too many near-misses) */
+    Spoofed = 4, /* Spoofing attempt (too many near-misses) */
+    ECSMissing = 5,
   };
 
   vector<DNSRecord> d_records;
@@ -83,9 +85,11 @@ public:
   bool d_haveEDNS{false};
 };
 
+struct EDNSSubnetOpts;
+
 LWResult::Result asendto(const void* data, size_t len, int flags, const ComboAddress& toAddress, uint16_t qid,
-                         const DNSName& domain, uint16_t qtype, bool ecs, int* fileDesc);
+                         const DNSName& domain, uint16_t qtype, const std::optional<EDNSSubnetOpts>& ecs, int* fileDesc);
 LWResult::Result arecvfrom(PacketBuffer& packet, int flags, const ComboAddress& fromAddr, size_t& len, uint16_t qid,
-                           const DNSName& domain, uint16_t qtype, int fileDesc, const struct timeval& now);
+                           const DNSName& domain, uint16_t qtype, int fileDesc, const std::optional<EDNSSubnetOpts>& ecs, const struct timeval& now);
 
 LWResult::Result asyncresolve(const ComboAddress& ip, const DNSName& domain, int type, bool doTCP, bool sendRDQuery, int EDNS0Level, struct timeval* now, boost::optional<Netmask>& srcmask, boost::optional<const ResolveContext&> context, const std::shared_ptr<std::vector<std::unique_ptr<RemoteLogger>>>& outgoingLoggers, const std::shared_ptr<std::vector<std::unique_ptr<FrameStreamLogger>>>& fstrmLoggers, const std::set<uint16_t>& exportTypes, LWResult* res, bool* chained);

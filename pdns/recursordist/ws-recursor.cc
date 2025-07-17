@@ -1253,6 +1253,10 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::d_metrics
   {"udr-events",
    MetricDefinition(PrometheusMetricType::counter,
                     "Count of UDR events")},
+
+  {"ecs-missing",
+   MetricDefinition(PrometheusMetricType::counter,
+                    "Number of answers where ECS info was missing")},
 };
 
 constexpr bool CHECK_PROMETHEUS_METRICS = false;

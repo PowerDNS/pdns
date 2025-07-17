@@ -169,9 +169,13 @@ static const oid rcode15AnswersOID[] = {RECURSOR_STATS_OID, 144};
 
 static const oid packetCacheContendedOID[] = {RECURSOR_STATS_OID, 145};
 static const oid packetCacheAcquiredOID[] = {RECURSOR_STATS_OID, 146};
-
-static const std::array<oid, 10> nodEventsOID = {RECURSOR_STATS_OID, 147};
-static const std::array<oid, 10> udrEventsOID = {RECURSOR_STATS_OID, 148};
+static const oid nodEventsOID[] = {RECURSOR_STATS_OID, 147};
+static const oid udrEventsOID[] = {RECURSOR_STATS_OID, 148};
+static const oid maxChainLengthOID[] = {RECURSOR_STATS_OID, 149};
+static const oid maxChainWeightOID[] = {RECURSOR_STATS_OID, 150};
+static const oid chainLimitsOID[] = {RECURSOR_STATS_OID, 151};
+static const oid tcpOverflowOID[] = {RECURSOR_STATS_OID, 152};
+static const oid ecsMissingOID[] = {RECURSOR_STATS_OID, 153};
 
 static std::unordered_map<oid, std::string> s_statsMap;
 
@@ -428,8 +432,15 @@ RecursorSNMPAgent::RecursorSNMPAgent(const std::string& name, const std::string&
   RCODE(14);
   RCODE(15);
 
-  registerCounter64Stat("nod-events", nodEventsOID.data(), nodEventsOID.size());
-  registerCounter64Stat("udr-events", udrEventsOID.data(), udrEventsOID.size());
+  registerCounter64Stat("packetcache-contended", packetCacheContendedOID, OID_LENGTH(packetCacheContendedOID));
+  registerCounter64Stat("packetcache-acquired", packetCacheAcquiredOID, OID_LENGTH(packetCacheAcquiredOID));
+  registerCounter64Stat("nod-events", nodEventsOID, OID_LENGTH(nodEventsOID));
+  registerCounter64Stat("udr-events", udrEventsOID, OID_LENGTH(udrEventsOID));
+  registerCounter64Stat("max-chain-length", maxChainLengthOID, OID_LENGTH(maxChainLengthOID));
+  registerCounter64Stat("max-chain-weight", maxChainWeightOID, OID_LENGTH(maxChainWeightOID));
+  registerCounter64Stat("chain-limits", chainLimitsOID, OID_LENGTH(chainLimitsOID));
+  registerCounter64Stat("tcp-overflow", tcpOverflowOID, OID_LENGTH(tcpOverflowOID));
+  registerCounter64Stat("ecs-missing", ecsMissingOID, OID_LENGTH(ecsMissingOID));
 
 #endif /* HAVE_NET_SNMP */
 }
