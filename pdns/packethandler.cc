@@ -117,18 +117,23 @@ PacketHandler::~PacketHandler()
  *
  * @param p          Pointer to the DNSPacket containing the original question
  * @param r          Pointer to the DNSPacket where the records should be inserted into
+ * @param sd         SOAData of the zone from which CDNSKEY contents are taken (default: d_sd)
  * @return           bool that shows if any records were added
 **/
 bool PacketHandler::addCDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r)
 {
+  return addCDNSKEY(p, r, d_sd);
+}
+bool PacketHandler::addCDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r, SOAData &sd) // NOLINT(readability-identifier-length)
+{
   string publishCDNSKEY;
-  d_dk.getPublishCDNSKEY(r->qdomainzone,publishCDNSKEY);
+  d_dk.getPublishCDNSKEY(sd.zonename,publishCDNSKEY);
   if (publishCDNSKEY.empty())
     return false;
 
   DNSZoneRecord rr;
   rr.dr.d_type=QType::CDNSKEY;
-  rr.dr.d_ttl=d_sd.minimum;
+  rr.dr.d_ttl=sd.minimum;
   rr.dr.d_name=p.qdomain;
   rr.auth=true;
 
@@ -139,7 +144,7 @@ bool PacketHandler::addCDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r)
   }
 
   bool haveOne=false;
-  for (const auto& value : d_dk.getEntryPoints(r->qdomainzone)) {
+  for (const auto& value : d_dk.getEntryPoints(sd.zonename)) {
     if (!value.second.published) {
       continue;
     }
@@ -149,10 +154,11 @@ bool PacketHandler::addCDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r)
   }
 
   if(::arg().mustDo("direct-dnskey")) {
-    B.lookup(QType(QType::CDNSKEY), p.qdomain, d_sd.domain_id, &p);
+    B.lookup(QType(QType::CDNSKEY), sd.qname(), sd.domain_id, &p);
 
     while(B.get(rr)) {
-      rr.dr.d_ttl=d_sd.minimum;
+      rr.dr.d_ttl=sd.minimum;
+      rr.dr.d_name=p.qdomain;
       r->addRecord(std::move(rr));
       haveOne=true;
     }
@@ -204,12 +210,17 @@ bool PacketHandler::addDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r)
  * @param p   Pointer to the DNSPacket containing the original question.
  * @param r   Pointer to the DNSPacket where the records should be inserted into.
  *            used to determine record TTL.
+ * @param sd  SOAData of the zone from which CDS contents are taken (default: d_sd)
  * @return    bool that shows if any records were added.
 **/
-bool PacketHandler::addCDS(DNSPacket& p, std::unique_ptr<DNSPacket>& r)
+bool PacketHandler::addCDS(DNSPacket& p, std::unique_ptr<DNSPacket>& r) // NOLINT(readability-identifier-length)
+{
+  return addCDS(p, r, d_sd);
+}
+bool PacketHandler::addCDS(DNSPacket& p, std::unique_ptr<DNSPacket>& r, SOAData &sd) // NOLINT(readability-identifier-length)
 {
   string publishCDS;
-  d_dk.getPublishCDS(r->qdomainzone, publishCDS);
+  d_dk.getPublishCDS(sd.zonename, publishCDS);
   if (publishCDS.empty())
     return false;
 
@@ -218,7 +229,7 @@ bool PacketHandler::addCDS(DNSPacket& p, std::unique_ptr<DNSPacket>& r)
 
   DNSZoneRecord rr;
   rr.dr.d_type=QType::CDS;
-  rr.dr.d_ttl=d_sd.minimum;
+  rr.dr.d_ttl=sd.minimum;
   rr.dr.d_name=p.qdomain;
   rr.auth=true;
 
@@ -230,22 +241,23 @@ bool PacketHandler::addCDS(DNSPacket& p, std::unique_ptr<DNSPacket>& r)
 
   bool haveOne=false;
 
-  for (const auto& value : d_dk.getEntryPoints(r->qdomainzone)) {
+  for (const auto& value : d_dk.getEntryPoints(sd.zonename)) {
     if (!value.second.published) {
       continue;
     }
     for(auto const &digestAlgo : digestAlgos){
-      rr.dr.setContent(std::make_shared<DSRecordContent>(makeDSFromDNSKey(p.qdomain, value.first.getDNSKEY(), pdns::checked_stoi<uint8_t>(digestAlgo))));
+      rr.dr.setContent(std::make_shared<DSRecordContent>(makeDSFromDNSKey(sd.qname(), value.first.getDNSKEY(), pdns::checked_stoi<uint8_t>(digestAlgo))));
       r->addRecord(DNSZoneRecord(rr));
       haveOne=true;
     }
   }
 
   if(::arg().mustDo("direct-dnskey")) {
-    B.lookup(QType(QType::CDS), p.qdomain, d_sd.domain_id, &p);
+    B.lookup(QType(QType::CDS), sd.qname(), sd.domain_id, &p);
 
     while(B.get(rr)) {
-      rr.dr.d_ttl=d_sd.minimum;
+      rr.dr.d_ttl=sd.minimum;
+      rr.dr.d_name=p.qdomain;
       r->addRecord(std::move(rr));
       haveOne=true;
     }
@@ -743,7 +755,7 @@ void PacketHandler::emitNSEC(std::unique_ptr<DNSPacket>& r, const DNSName& name,
   r->addRecord(std::move(rr));
 }
 
-void PacketHandler::emitNSEC3(std::unique_ptr<DNSPacket>& r, const NSEC3PARAMRecordContent& ns3prc, const DNSName& name, const string& namehash, const string& nexthash, int mode)
+void PacketHandler::emitNSEC3(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const NSEC3PARAMRecordContent& ns3prc, const DNSName& name, const string& namehash, const string& nexthash, int mode) // NOLINT(readability-identifier-length)
 {
   NSEC3RecordContent n3rc;
   n3rc.d_algorithm = ns3prc.d_algorithm;
@@ -774,6 +786,13 @@ void PacketHandler::emitNSEC3(std::unique_ptr<DNSPacket>& r, const NSEC3PARAMRec
             break;
           }
         }
+      }
+    } else if(mode == 6) {
+      if (p.qtype.getCode() != QType::CDS) {
+        n3rc.set(QType::CDS);
+      }
+      if (p.qtype.getCode() != QType::CDNSKEY) {
+        n3rc.set(QType::CDNSKEY);
       }
     }
 
@@ -842,6 +861,7 @@ void PacketHandler::emitNSEC3(std::unique_ptr<DNSPacket>& r, const NSEC3PARAMRec
    mode 3 = Wildcard Answer Responses
    mode 4 = Name Error Responses
    mode 5 = Direct NSEC request
+   mode 6 = Authenticated DNSSEC bootstrapping (RFC 9615)
 */
 void PacketHandler::addNSECX(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const DNSName& target, const DNSName& wildcard, int mode)
 {
@@ -943,7 +963,7 @@ void PacketHandler::addNSEC3(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const 
 
     if (!after.empty()) {
       DLOG(g_log<<"Done calling for matching, hashed: '"<<toBase32Hex(hashed)<<"' before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"'"<<endl);
-      emitNSEC3(r, ns3rc, unhashed, before, after, mode);
+      emitNSEC3(p, r, ns3rc, unhashed, before, after, mode);
     }
   }
 
@@ -960,7 +980,7 @@ void PacketHandler::addNSEC3(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const 
 
     getNSEC3Hashes(narrow, hashed, true, unhashed, before, after);
     DLOG(g_log<<"Done calling for covering, hashed: '"<<toBase32Hex(hashed)<<"' before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"'"<<endl);
-    emitNSEC3( r, ns3rc, unhashed, before, after, mode);
+    emitNSEC3(p, r, ns3rc, unhashed, before, after, mode);
   }
 
   // wildcard denial
@@ -972,7 +992,7 @@ void PacketHandler::addNSEC3(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const 
 
     getNSEC3Hashes(narrow, hashed, (mode != 2), unhashed, before, after);
     DLOG(g_log<<"Done calling for '*', hashed: '"<<toBase32Hex(hashed)<<"' before='"<<toBase32Hex(before)<<"', after='"<<toBase32Hex(after)<<"'"<<endl);
-    emitNSEC3( r, ns3rc, unhashed, before, after, mode);
+    emitNSEC3(p, r, ns3rc, unhashed, before, after, mode);
   }
 }
 
@@ -1318,6 +1338,78 @@ void PacketHandler::completeANYRecords(DNSPacket& p, std::unique_ptr<DNSPacket>&
     }
     addNSEC3PARAM(p, r);
   }
+}
+
+bool PacketHandler::tryAuthSignal(DNSPacket& p, std::unique_ptr<DNSPacket>& r, DNSName &target) // NOLINT(readability-identifier-length)
+{
+  DLOG(g_log<<Logger::Warning<<"Let's try authenticated DNSSEC bootstrapping (RFC 9615) ..."<<endl);
+  if(d_sd.zonename.operator const DNSName&().countLabels() == 0 || d_sd.zonename.operator const DNSName&().getRawLabel(0) != "_signal" || !d_dk.isSignalingZone(d_sd.zonename)) {
+    return false;
+  }
+
+  // Check that we're doing online signing in narrow mode (as we don't know next owner names)
+  if(!d_dk.isSecuredZone(d_sd.zonename) || d_dk.isPresigned(d_sd.zonename)) {
+    g_log << Logger::Warning << "Signaling zone '" << d_sd.zonename << "' must be secured (but not presigned!); synthesis disabled (" << target << "/" << p.qtype << " from " << p.getRemoteString() << ")" << endl;
+    return false;
+  }
+  bool narrow{false};
+  if (!d_dk.getNSEC3PARAM(d_sd.zonename, nullptr, &narrow) || !narrow) {
+    g_log << Logger::Warning << "Signaling zone '" << d_sd.zonename << "' must use NSEC3 narrow; synthesis disabled (" << target << "/" << p.qtype << ")" << " from " << p.getRemoteString() << ")" << endl;
+    return false;
+  }
+
+  // Check for prefix mismatch
+  if(target.countLabels() == 0 || target.getRawLabel(0) != "_dsboot") {
+    makeNOError(p, r, target, DNSName(), 0); // could be ENT
+    return true;
+  }
+
+  // Check for qtype match
+  if(!(p.qtype.getCode() == QType::CDS || p.qtype.getCode() == QType::CDNSKEY)) {
+    // We don't know at this point whether CDS/CDNSKEY exist, so let's add both to DoE type map
+    makeNOError(p, r, target, DNSName(), 6);
+    return true;
+  }
+
+  // Extract target zone name and fetch zone
+  SOAData zone_sd;
+  ZoneName zone = ZoneName(target.makeRelative(d_sd.zonename));
+  zone.chopOff();
+  // Zone must exist, but need not be secured (could be using front-sign setup)
+  if(!B.getAuth(zone, p.qtype, &zone_sd, p.getRealRemote()) || zone_sd.zonename != zone) {
+    return false; // Bootstrap target zone unknown, NXDOMAIN at _dsboot is OK
+  }
+
+  // Insert synthetic response
+  bool haveOne = false;
+  bool autoPublish = !d_dk.isPresigned(zone);
+  std::string val;
+  if(p.qtype.getCode() == QType::CDS) {
+    d_dk.getPublishCDS(zone, val);
+    autoPublish &= !val.empty();
+    if(autoPublish) {
+      haveOne = addCDS(p, r, zone_sd);
+    }
+  } else if(p.qtype.getCode() == QType::CDNSKEY) {
+    d_dk.getPublishCDNSKEY(zone, val);
+    autoPublish &= !val.empty();
+    if(autoPublish) {
+      haveOne = addCDNSKEY(p, r, zone_sd);
+    }
+  }
+  if(!autoPublish) {
+      DNSZoneRecord rec;
+      B.lookup(p.qtype.getCode(), DNSName(zone), zone_sd.domain_id, &p);
+      while(B.get(rec)) {
+        rec.dr.d_name = p.qdomain;
+        r->addRecord(std::move(rec));
+        haveOne=true;
+      }
+    }
+  if(!haveOne) {
+    makeNOError(p, r, target, DNSName(), 6); // other type might exist
+  }
+  return true;
 }
 
 bool PacketHandler::tryDNAME(DNSPacket& p, std::unique_ptr<DNSPacket>& r, DNSName &target)
@@ -1842,6 +1934,9 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
     } catch (const std::range_error &e) {
       // We couldn't make a CNAME.....
       state.r->setRcode(RCode::YXDomain);
+      return true;
+    }
+    if(tryAuthSignal(pkt, state.r, state.target)) {
       return true;
     }
 

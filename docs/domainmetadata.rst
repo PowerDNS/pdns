@@ -197,6 +197,21 @@ see the :doc:`guides/kskrollcdnskey`.
 
 Global defaults for these values can be set via :ref:`setting-default-publish-cdnskey` and :ref:`setting-default-publish-cds`.
 
+.. _metadata-signaling-zone:
+
+SIGNALING-ZONE
+--------------
+.. versionadded:: 5.0.0
+
+If set to 1 (and the zone is signed and uses NSEC3 narrow mode), this setting will make
+PowerDNS synthesize CDS/CDNSKEY records obtained from other zones served on the same
+nameserver, in accordance with :rfc:`9615`.
+
+Typically, this metadata does not need to be set manually; instead, you can use
+``pdnsutil set-signaling-zone $zone``. This command not only configures this metadata but
+also takes care of the other preconditions needed to properly set up a signaling zone.
+For details, see :ref:`dnssec-bootstrapping`.
+
 .. _metadata-slave-renotify:
 
 SLAVE-RENOTIFY

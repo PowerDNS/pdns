@@ -85,6 +85,17 @@ bool DNSSECKeeper::isPresigned(const ZoneName& name, bool useCache)
   return meta=="1";
 }
 
+bool DNSSECKeeper::isSignalingZone(const ZoneName& name, bool useCache)
+{
+  string meta;
+  if (useCache) {
+    getFromMeta(name, "SIGNALING-ZONE", meta);
+  }
+  else {
+    getFromMetaNoCache(name, "SIGNALING-ZONE", meta);
+  }
+  return meta=="1";
+}
 
 bool DNSSECKeeper::addKey(const ZoneName& name, bool setSEPBit, int algorithm, int64_t& keyId, int bits, bool active, bool published)
 {
@@ -384,6 +395,13 @@ bool DNSSECKeeper::checkNSEC3PARAM(const NSEC3PARAMRecordContent& ns3p, string& 
 
 bool DNSSECKeeper::setNSEC3PARAM(const ZoneName& zname, const NSEC3PARAMRecordContent& ns3p, const bool& narrow)
 {
+  if (auto wirelength = zname.operator const DNSName&().wirelength(); wirelength > 222) {
+    throw runtime_error("Cannot enable NSEC3 for zone '" + zname.toLogString() + "' as it is too long (" + std::to_string(wirelength) + " bytes, maximum is 222 bytes)");
+  }
+  if(ns3p.d_algorithm != 1) {
+    throw runtime_error("NSEC3PARAM algorithm set to '" + std::to_string(ns3p.d_algorithm) + "', but '1' is the only valid value");
+  }
+
   if (d_keymetadb->inTransaction()) {
     d_metaUpdate = true;
   }

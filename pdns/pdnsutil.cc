@@ -3595,16 +3595,14 @@ static int setNsec3(vector<string>& cmds, const std::string_view synopsis)
 
   DNSSECKeeper dk; //NOLINT(readability-identifier-length)
   ZoneName zone(cmds.at(1));
-  if (auto wirelength = zone.operator const DNSName&().wirelength(); wirelength > 222) {
-    cerr<<"Cannot enable NSEC3 for " << zone << " as it is too long (" << wirelength << " bytes, maximum is 222 bytes)"<<endl;
-    return 1;
+  try {
+    if (! dk.setNSEC3PARAM(zone, ns3pr, narrow)) {
+      cerr<<"Cannot set NSEC3 param for " << zone << endl;
+      return 1;
+    }
   }
-  if(ns3pr.d_algorithm != 1) {
-    cerr<<"NSEC3PARAM algorithm set to '"<<std::to_string(ns3pr.d_algorithm)<<"', but '1' is the only valid value"<<endl;
-    return EXIT_FAILURE;
-  }
-  if (! dk.setNSEC3PARAM(zone, ns3pr, narrow)) {
-    cerr<<"Cannot set NSEC3 param for " << zone << endl;
+  catch (const runtime_error& err) {
+    cerr << err.what() << endl;
     return 1;
   }
 
@@ -3667,6 +3665,64 @@ static int setPublishCDs(vector<string>& cmds, const std::string_view synopsis)
     cerr << "Could not set publishing for CDS records for " << cmds.at(1) << endl;
     return 1;
   }
+  return 0;
+}
+
+static int setSignalingZone(vector<string>& cmds, const std::string_view synopsis)
+{
+  if(cmds.size() < 2) {
+    return usage(synopsis);
+  }
+
+  if(cmds.size() > 2) {
+    cerr << "Too many arguments" << endl;
+    return 1;
+  }
+
+  ZoneName zone(cmds.at(1));
+
+  if(zone.operator const DNSName&().countLabels() == 0 || zone.operator const DNSName&().getRawLabel(0) != "_signal") {
+    cerr << "Signaling zone's first label must be '_signal': " << zone << endl;
+    return 1;
+  }
+
+  DNSSECKeeper dk; //NOLINT(readability-identifier-length)
+
+  // pdnsutil secure-zone $zone
+  if(!dk.isSecuredZone(zone)) {
+    dk.startTransaction(zone);
+    bool success = secureZone(dk, zone);
+    dk.commitTransaction();
+    if(!success) {
+      return 1;
+    }
+  }
+
+  // pdnsutil set-nsec3 $zone "1 0 0 -" narrow
+  try {
+    if (!dk.setNSEC3PARAM(zone, NSEC3PARAMRecordContent("1 0 0 -"), true)) {
+      cerr<<"Cannot set NSEC3 param for " << zone << endl;
+      return 1;
+    }
+  }
+  catch (const runtime_error& err) {
+    cerr << err.what() << endl;
+    return 1;
+  }
+
+  // pdnsutil rectify-zone $zone
+  if(!rectifyZone(dk, zone)) {
+    cerr<<"Cannot rectify zone " << zone << endl;
+    return 1;
+  }
+
+  // pdnsutil set-meta $zone SIGNALING-ZONE 1
+  if(addOrSetMeta(zone, "SIGNALING-ZONE", {"1"}, true) != 0) {
+    cerr<<"Cannot set meta for zone " << zone << endl;
+    return 1;
+  }
+
+  cerr << "Successfully configured signaling zone " << zone << endl;
   return 0;
 }
 
@@ -4193,11 +4249,14 @@ static int setMeta(vector<string>& cmds, const std::string_view synopsis)
   const static std::array<string, 7> multiMetaWhitelist = {"ALLOW-AXFR-FROM", "ALLOW-DNSUPDATE-FROM",
     "ALSO-NOTIFY", "TSIG-ALLOW-AXFR", "TSIG-ALLOW-DNSUPDATE", "GSS-ALLOW-AXFR-PRINCIPAL",
     "PUBLISH-CDS"};
-  bool clobber = true;
-  if (cmds.at(0) == "add-meta") {
-    clobber = false;
-    if (find(multiMetaWhitelist.begin(), multiMetaWhitelist.end(), kind) == multiMetaWhitelist.end() && kind.find("X-") != 0) {
+  bool clobber = (cmds.at(0) != "add-meta");
+  if (find(multiMetaWhitelist.begin(), multiMetaWhitelist.end(), kind) == multiMetaWhitelist.end() && kind.find("X-") != 0) {
+    if(!clobber) {
       cerr<<"Refusing to add metadata to single-value metadata "<<kind<<endl;
+      return 1;
+    }
+    if(cmds.size() > 4) {
+      cerr<<"Refusing to set several metadata to single-value metadata "<<kind<<endl;
       return 1;
     }
   }
@@ -5053,6 +5112,10 @@ static const std::unordered_map<std::string, commandDispatcher> commands{
    "\tEnable sending CDS responses for ZONE, using DIGESTALGOS as signature\n"
    "\talgorithms; DIGESTALGOS should be a comma-separated list of numbers,\n"
    "\t(default: '2')"}},
+  {"set-signaling-zone", {true, setSignalingZone, GROUP_CDNSKEY,
+   "set-signaling-zone ZONE",
+   "\tConfigure zone for RFC 9615 DNSSEC bootstrapping\n"
+   "\t(zone name must begin with _signal.)"}},
   {"show-zone", {true, showZone, GROUP_DNSSEC,
    "show-zone ZONE",
    "\tShow DNSSEC (public) key details about a zone"}},
