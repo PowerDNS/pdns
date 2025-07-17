@@ -3681,7 +3681,7 @@ static int setSignalingZone(vector<string>& cmds, const std::string_view synopsi
 
   ZoneName zone(cmds.at(1));
 
-  if(zone.operator const DNSName&().getRawLabel(0) != "_signal") {
+  if(zone.operator const DNSName&().countLabels() == 0 || zone.operator const DNSName&().getRawLabel(0) != "_signal") {
     cerr << "Signaling zone's first label must be '_signal': " << zone << endl;
     return 1;
   }
@@ -5115,7 +5115,7 @@ static const std::unordered_map<std::string, commandDispatcher> commands{
   {"set-signaling-zone", {true, setSignalingZone, GROUP_CDNSKEY,
    "set-signaling-zone ZONE",
    "\tConfigure zone for RFC 9615 DNSSEC bootstrapping\n"
-   "(zone name must begin with _signal.)"}},
+   "\t(zone name must begin with _signal.)"}},
   {"show-zone", {true, showZone, GROUP_DNSSEC,
    "show-zone ZONE",
    "\tShow DNSSEC (public) key details about a zone"}},
