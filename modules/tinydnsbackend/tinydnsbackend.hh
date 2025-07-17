@@ -68,7 +68,7 @@ public:
   // Methods for simple operation
   TinyDNSBackend(const string& suffix);
 
-  unsigned int getCapabilities() override { return CAP_LIST; }
+  unsigned int getCapabilities() override { return CAP_LIST | CAP_SEARCH; }
   void lookup(const QType& qtype, const DNSName& qdomain, domainid_t zoneId, DNSPacket* pkt_p = nullptr) override;
   bool list(const ZoneName& target, domainid_t domain_id, bool include_disabled = false) override;
   bool get(DNSResourceRecord& rr) override;

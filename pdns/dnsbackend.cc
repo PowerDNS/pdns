@@ -73,6 +73,40 @@ void DNSBackend::APILookup(const QType& qtype, const DNSName& qdomain, domainid_
   lookup(qtype, qdomain, zoneId, nullptr);
 }
 
+// Default search logic, for backends which can enumerate their records.
+bool DNSBackend::searchRecords(const string& pattern, size_t maxResults, vector<DNSResourceRecord>& result)
+{
+  // We depend upon working list(), but also getAllDomains(), which is why we
+  // are checking explicitly for CAP_SEARCH in addition to CAP_LIST - the
+  // default getAllDomains() implementation below is not safe to use here.
+  if ((getCapabilities() & (CAP_LIST | CAP_SEARCH)) != (CAP_LIST | CAP_SEARCH)) {
+    return false;
+  }
+
+  SimpleMatch simpleMatch(pattern, true);
+  std::vector<DomainInfo> domains;
+  getAllDomains(&domains, false, true);
+  for (const auto& info : domains) {
+    if (!list(info.zone, info.id, true)) {
+      return false;
+    }
+    DNSResourceRecord rec;
+    while (get(rec)) {
+      if (maxResults == 0) {
+        continue;
+      }
+      if (simpleMatch.match(rec.qname) || simpleMatch.match(rec.content)) {
+        result.emplace_back(rec);
+        --maxResults;
+      }
+    }
+    if (maxResults == 0) {
+      break;
+    }
+  }
+  return true;
+}
+
 void BackendFactory::declare(const string& suffix, const string& param, const string& explanation, const string& value)
 {
   string fullname = d_name + suffix + "-" + param;

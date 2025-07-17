@@ -11,7 +11,7 @@ Lua2 Backend
 * DNSSEC: Yes
 * Disabled data: No
 * Comments: No
-* Search: No
+* Search: Yes\*
 * Views: No
 * API: Read-Write
 * Multiple instances: Yes
@@ -123,7 +123,8 @@ OUTPUT:
  domaininfo. See :ref:`dns_get_domaininfo() <backends_lua2_dns_get_domaininfo>`.
 
 NOTES:
- This function is **optional**, except if you need primary functionality.
+ This function is **optional**, except if you need primary functionality. It
+ is required if you want to be able to search records.
 
 ``dns_get_domain_metadata(domain, kind)``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

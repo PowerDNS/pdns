@@ -135,6 +135,9 @@ public:
     if (d_dnssec) {
       caps |= CAP_DNSSEC;
     }
+    if (f_get_all_domains != nullptr) {
+      caps |= CAP_SEARCH;
+    }
     return caps;
   }
 
