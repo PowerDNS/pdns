@@ -18,7 +18,8 @@ Manual
 As automation is not very widespread, DS publication often needs to occur
 manually as follows:
 
-1. utilize ``pdnsutil show-zone`` to display DS and DNSKEY parameters,
+1. utilize ``pdnsutil zone show`` (``pdnsutil show-zone`` prior to version 5.0)
+   to display DS and DNSKEY parameters,
 2. transfer these parameters securely to your parent.
 
 Some parents accept DS format, while some accept DNSKEY (and use it to derive
@@ -34,7 +35,7 @@ DS records from them. This works for both DS initialization (bootstrapping)
 and DS updates (rollovers).
 
 CDS/CDNSKEY record publication can be enabled using
-``pdnsutil set-publish-cds`` / ``pdnsutil set-publish-cdnskey``.
+``pdnsutil zone set-publish-cds`` or ``pdnsutil zone set-publish-cdnskey``.
 
 For bootstrapping, this method lacks authentication (there is no preexisting
 chain of trust). Some registries work around this by observing CDS/CDNSKEY
@@ -64,8 +65,8 @@ enable authenticated bootstrapping as follows:
    .. code-block:: shell
 
       nshost=ns1.example.net
-      pdnsutil create-zone _signal.$nshost $nshost  # create NS record too
-      pdnsutil set-signaling-zone _signal.$nshost
+      pdnsutil zone create _signal.$nshost $nshost  # create NS record too
+      pdnsutil zone set-signaling _signal.$nshost
 
    You can do this on ``ns1.example.net`` directly, or on another instance
    serving the same zones. This is useful when not all instances are
@@ -81,12 +82,18 @@ Note: A nameserver can't bootstrap its own parent. (The above example
 won't work to bootstrap ``example.net``; see step 1.) If no other zones
 are served under that hostname, you can skip creating its signaling zone.
 
-``pdnsutil set-signaling-zone _signal.$nshost`` is equivalent to securing
+``pdnsutil zone set-signaling _signal.$nshost`` is equivalent to securing
 the zone, enabling NSEC3 narrow mode, and setting the ``SIGNALING-ZONE``
 metadata, which will make the zone behave as an :rfc:`9615` signaling zone.
 
 Going insecure
 --------------
+
+.. code-block:: shell
+
+    pdnsutil zone dnssec-disable ZONE
+
+or, prior to version 5.0:
 
 .. code-block:: shell
 
@@ -107,9 +114,15 @@ NSEC3 instead, issue:
 
 .. code-block:: shell
 
-    pdnsutil set-nsec3 ZONE [PARAMETERS] ['narrow']
+    pdnsutil zone set-nsec3 ZONE [PARAMETERS] ['narrow']
 
 e.g.
+
+.. code-block:: shell
+
+    pdnsutil zone set-nsec3 example.net '1 0 0 -'
+
+or, prior to version 5.0:
 
 .. code-block:: shell
 
@@ -130,6 +143,12 @@ Optionally, NSEC3 can be set to 'narrow' mode. For more information refer
 to :ref:`dnssec-nsec-modes`.
 
 To convert a zone from NSEC3 to NSEC operations, run:
+
+.. code-block:: shell
+
+    pdnsutil zone unset-nsec3 ZONE
+
+or, prior to version 5.0:
 
 .. code-block:: shell
 

@@ -89,6 +89,13 @@ Create a producer zone:
 
 .. code-block:: shell
 
+  pdnsutil zone load catalog.example ZONEFILE
+  pdnsutil zone set-kind catalog.example producer
+
+or, prior to version 5.0:
+
+.. code-block:: shell
+
   pdnsutil load-zone catalog.example ZONEFILE
   pdnsutil set-kind catalog.example producer
 
@@ -99,6 +106,13 @@ Assigning members to a producer zone
 
 After the producer zone is created it is necessary to assign member zones to it.
 In the example below ``example.com`` is the member and ``catalog.example`` is the catalog.
+
+.. code-block:: shell
+
+  pdnsutil catalog set example.com catalog.example
+  pdnsutil zone set-kind example.com primary
+
+or, prior to version 5.0:
 
 .. code-block:: shell
 
@@ -116,12 +130,25 @@ PowerDNS currently supports the following properties:
 
 .. code-block:: shell
 
+  pdnsutil zone set-option example.com producer coo other-catalog.example
+  pdnsutil zone set-option example.com producer group pdns-group-x pdns-group-y
+
+or, prior to version 5.0:
+
+.. code-block:: shell
+
   pdnsutil set-option example.com producer coo other-catalog.example
   pdnsutil set-option example.com producer group pdns-group-x pdns-group-y
 
 There is also an option to set a specific <unique-N> value for a zone. This is done by setting a the ``unique`` value.
 This is used to signal a state reset to the consumer.
 The value for ``unique`` is a single DNS label.
+
+.. code-block:: shell
+
+  pdnsutil --config-dir=. --config-name=gmysql zone set-option test.com producer unique 123
+
+or, prior to version 5.0:
 
 .. code-block:: shell
 
@@ -134,6 +161,13 @@ Setting up a consumer zone
 
 Setting up a consumer zone on a secondary server is almost identical to a normal secondary zone.
 The only difference is the type, which is now set to CONSUMER.
+
+.. code-block:: shell
+
+  pdnsutil zone create-secondary catalog.example 192.0.2.42
+  pdnsutil zone set-kind catalog.example consumer
+
+or, prior to version 5.0:
 
 .. code-block:: shell
 
@@ -151,6 +185,13 @@ If NOTIFY+AXFR are being used to replicate zone changes between the
 primary and secondary servers, and the address and/or port of the
 primary server changes, two steps are necessary on each secondary
 server in order to fully apply the changes.
+
+.. code-block:: shell
+
+  pdnsutil zone change-primary catalog.example 192.0.2.45
+  pdns_control retrieve catalog.example
+
+or, prior to version 5.0:
 
 .. code-block:: shell
 

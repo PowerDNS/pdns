@@ -39,7 +39,7 @@ been implemented in the LMDB backend.
 LOC record parsing
 ^^^^^^^^^^^^^^^^^^
 
-The parsing and validation of LOC records is modified to be conforming to the `rfc:1876`.
+The parsing and validation of LOC records is modified to be conforming to the :rfc:`1876`.
 This may cause records previously rejected to be accepted and vice versa.
 
 LUA records whitespace insertion
@@ -62,18 +62,162 @@ ixfrdist IPv6 support
 ``ixfrdist`` now binds listening sockets with `IPV6_V6ONLY set`, which means that ``[::]`` no longer accepts IPv4 connections.
 If you want to listen on both IPv4 and IPv6, you need to add a line with ``0.0.0.0`` to the ``listen`` section of your ixfrdist configuration.
 
-pdnsutil behaviour changes
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+pdnsutil syntax and behaviour changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-A few changes of behaviour have been implemented in :doc:`pdnsutil <manpages/pdnsutil.1>`.
+The :doc:`pdnsutil <manpages/pdnsutil.1>` syntax has been overhauled in order to be more
+orthogonal and consistent. Most commands will now take the form
+``pdnsutil <object> <action> [arguments...]``, where ``<object>`` is a noun and
+``<action>`` is a verb; a few commands which do not apply to any particular
+object kind use only the verb.
 
-* The ``add-zone-key`` command used to default to creating a ZSK,
+The old syntax is still recognized, so that existing scripts and finger memory
+will keep working. However, you are advised to switch to the new command syntax,
+using this conversion table:
+
+.. list-table:: pdnsutil syntax conversion table
+   :header-rows: 1
+
+   * - Old syntax
+     - New syntax
+   * - ``activate-tsig-key``
+     - ``tsigkey activate``
+   * - ``activate-zone-key``
+     - ``zone activate-key``
+   * - ``add-autoprimary``
+     - ``autoprimary add``
+   * - ``add-meta``
+     - ``metadata add``
+   * - ``add-record``
+     - ``rrset add``
+   * - ``add-zone-key``
+     - ``zone add-key``
+   * - ``change-secondary-zone-primary``
+     - ``zone change-primary``
+   * - ``check-all-zones``
+     - ``zone check-all``
+   * - ``check-zone``
+     - ``zone check``
+   * - ``clear-zone``
+     - ``zone clear``
+   * - ``create-secondary-zone``
+     - ``zone create-secondary``
+   * - ``create-zone``
+     - ``zone create``
+   * - ``deactivate-tsig-key``
+     - ``tsigkey deactivate``
+   * - ``deactivate-zone-key``
+     - ``zone deactivate-key``
+   * - ``delete-rrset``
+     - ``rrset delete``
+   * - ``delete-tsig-key``
+     - ``tsigkey delete``
+   * - ``delete-zone``
+     - ``zone delete``
+   * - ``disable-dnssec``
+     - ``zone dnssec-disable``
+   * - ``edit-zone``
+     - ``zone edit``
+   * - ``export-zone-dnskey``
+     - ``zone export-dnskey``
+   * - ``export-zone-ds``
+     - ``zone export-ds``
+   * - ``export-zone-key``
+     - ``zone export-key``
+   * - ``export-zone-key-pem``
+     - ``zone export-key-pem``
+   * - ``generate-tsig-key``
+     - ``tsigkey generate``
+   * - ``generate-zone-key``
+     - ``zone generate-key``
+   * - ``get-meta``
+     - ``metadata get``
+   * - ``hash-zone-record``
+     - ``rrset hash``
+   * - ``import-tsig-key``
+     - ``tsigkey import``
+   * - ``import-zone-key``
+     - ``zone import-key``
+   * - ``import-zone-key-pem``
+     - ``zone import-key-pem``
+   * - ``increase-serial``
+     - ``zone increase-serial``
+   * - ``list-all-zones``
+     - ``zone list-all``
+   * - ``list-autoprimaries``
+     - ``autoprimary list``
+   * - ``list-keys``
+     - ``zone list-keys``
+   * - ``list-member-zones``
+     - ``catalog list-members``
+   * - ``list-tsig-keys``
+     - ``tsigkey list``
+   * - ``list-zone``
+     - ``zone list``
+   * - ``load-zone``
+     - ``zone load``
+   * - ``publish-zone-key``
+     - ``zone publish-key``
+   * - ``rectify-all-zones``
+     - ``zone rectify-all``
+   * - ``rectify-zone``
+     - ``zone rectify``
+   * - ``remove-autoprimary``
+     - ``autoprimary remove``
+   * - ``remove-zone-key``
+     - ``zone remove-key``
+   * - ``replace-rrset``
+     - ``rrset replace``
+   * - ``secure-all-zones``
+     - ``zone secure-all``
+   * - ``secure-zone``
+     - ``zone secure``
+   * - ``set-account``
+     - ``zone set-account``
+   * - ``set-catalog``
+     - ``catalog set``
+   * - ``set-kind``
+     - ``zone set-kind``
+   * - ``set-meta``
+     - ``metadata set``
+   * - ``set-nsec3``
+     - ``zone set-nsec3``
+   * - ``set-option``
+     - ``zone set-option``
+   * - ``set-options-json``
+     - ``zone set-options-json``
+   * - ``set-presigned``
+     - ``zone set-presigned``
+   * - ``set-publish-cdnskey``
+     - ``zone set-publish-cdnskey``
+   * - ``set-publish-cds``
+     - ``zone set-publish-cds``
+   * - ``show-zone``
+     - ``zone show``
+   * - ``unpublish-zone-key``
+     - ``zone unpublish-key``
+   * - ``unset-nsec3``
+     - ``zone unset-nsec3``
+   * - ``unset-presigned``
+     - ``zone unset-presigned``
+   * - ``unset-publish-cdnskey``
+     - ``zone unset-publish-cdnskey``
+   * - ``unset-publish-cds``
+     - ``zone unset-publish-cds``
+   * - ``zonemd-verify-file``
+     - ``zone zonemd-verify-file``
+
+Commands not listed above have not changed syntax.
+
+A few changes of behaviour have been implemented as well:
+
+* The ``zone add-key`` command used to default to creating a ZSK,
   if no key type was given. This default has changed to KSK.
-* The ``add-record``, ``delete-rrset``, ``edit-zone``, ``increase-serial`` and
-  ``replace-rrset`` operations will now refuse to work on secondary zones unless
-  the ``--force`` option is passed.
-* When a zone gets created with either ``create-zone``,
-  ``create-secondary-zone`` or ``load-zone`` (if the zone wasn't existing
+* The ``rrset add``, ``rrset delete``, ``rrset replace``, ``zone edit``
+  and ``zone increase-serial`` operations will now refuse to work on secondary
+  zones unless the ``--force`` option is passed.
+* When a zone gets created with either ``zone create``,
+  ``zone create-secondary`` or ``zone load`` (if the zone wasn't existing
   already), a :ref:`metadata-soa-edit-api` metadata with a value of ``DEFAULT``
   will be added to the zone.
 * ``add-record`` and ``delete-rrset`` now treat all names as absolute.
@@ -173,7 +317,7 @@ However, this feature interacts badly with handling of presigned zones.
 In version 4.5.0, this feature was accidentally broken in the implementation of the zone cache.
 In 4.6.0, this automatic conversion is fully removed.
 If you still have ``@`` signs in any SOA RNAMEs, 4.6.0 will serve those out literally.
-You can find any stray ``@`` signs by running ``pdnsutil check-all-zones``.
+You can find any stray ``@`` signs by running ``pdnsutil zone check-all``.
 
 New default NSEC3 parameters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -183,7 +327,7 @@ Following `draft-ietf-dnsop-nsec3-guidance (Guidance for NSEC3 parameter setting
 SHA1 DSes
 ^^^^^^^^^
 
-``pdnsutil show-zone`` and ``pdnsutil export-zone-ds`` no longer emit SHA1 DS records, unless ``--verbose`` is in use.
+``pdnsutil zone show`` and ``pdnsutil zone export-ds`` no longer emit SHA1 DS records, unless ``--verbose`` is in use.
 
 Privileged port binding in Docker
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -324,7 +468,7 @@ SOA autofilling (i.e. allowing incomplete SOAs in the database) and the API ``se
 * :ref:`setting-soa-retry-default`
 
 Replace them with :ref:`setting-default-soa-content`, but be aware that this will only be used at zone creation time.
-Please run ``pdnsutil check-all-zones`` to check for incomplete SOAs.
+Please run ``pdnsutil zone check-all`` to check for incomplete SOAs.
 
 The :ref:`setting-do-ipv6-additional-processing` setting was removed. IPv6 additional processing now always happens when IPv4 additional processing happens.
 
@@ -349,7 +493,7 @@ On RHEL/CentOS 8, the gmysql backend now uses ``mariadb-connector-c`` instead of
 This change was made because the default MySQL implementation for RHEL8 is MariaDB, and MariaDB and MySQL cannot be installed in parallel due to conflicting RPM packages.
 The mariadb client lib will connect to your existing MySQL servers without trouble.
 
-Unknown record encoding (`RFC 3597 <https://tools.ietf.org/html/rfc3597>`__) has become more strict as a result of the fixes for :doc:`PowerDNS Security Advisory 2020-05 <../security-advisories/powerdns-advisory-2020-05>`. Please use ``pdnsutil check-all-zones`` to review your zone contents.
+Unknown record encoding (`RFC 3597 <https://tools.ietf.org/html/rfc3597>`__) has become more strict as a result of the fixes for :doc:`PowerDNS Security Advisory 2020-05 <../security-advisories/powerdns-advisory-2020-05>`. Please use ``pdnsutil zone check-all`` to review your zone contents.
 
 The previous set of indexes for the gsqlite3 backend was found to be poor.
 4.3.1 ships a new schema, and a migration:
@@ -424,7 +568,7 @@ Schema changes
 Implicit 5->7 algorithm upgrades
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Since version 3.0 (the first version of the PowerDNS Authoritative Server that supported DNSSEC signing), we have automatically, silently, upgraded algorithm 5 (RSASHA1) keys to algorithm 7 (RSASHA1-NSEC3-SHA1) when the user enabled NSEC3. This has been a source of confusion, and because of that, we introduced warnings for users of this feature in 4.0 and 4.1. To see if you are affected, run ``pdnsutil check-all-zones`` from version 4.0 or up. In this release, the automatic upgrade is gone, and affected zones will break if no action is taken.
+Since version 3.0 (the first version of the PowerDNS Authoritative Server that supported DNSSEC signing), we have automatically, silently, upgraded algorithm 5 (RSASHA1) keys to algorithm 7 (RSASHA1-NSEC3-SHA1) when the user enabled NSEC3. This has been a source of confusion, and because of that, we introduced warnings for users of this feature in 4.0 and 4.1. To see if you are affected, run ``pdnsutil zone check-all`` from version 4.0 or up. In this release, the automatic upgrade is gone, and affected zones will break if no action is taken.
 
 .. _ixfr-in-corruption-4.3.0:
 
@@ -438,7 +582,7 @@ You could accomplish that by deleting all records in the zone with an SQL query 
 4.2.X to 4.2.3
 --------------
 
-Unknown record encoding (`RFC 3597 <https://tools.ietf.org/html/rfc3597>`__) has become more strict as a result of the fixes for :doc:`PowerDNS Security Advisory 2020-05 <../security-advisories/powerdns-advisory-2020-05>`. Please use ``pdnsutil check-all-zones`` to review your zone contents.
+Unknown record encoding (`RFC 3597 <https://tools.ietf.org/html/rfc3597>`__) has become more strict as a result of the fixes for :doc:`PowerDNS Security Advisory 2020-05 <../security-advisories/powerdns-advisory-2020-05>`. Please use ``pdnsutil zone check-all`` to review your zone contents.
 
 4.X.X to 4.2.2
 --------------
@@ -465,7 +609,7 @@ You could accomplish that by deleting all records in the zone with an SQL query 
 4.1.X to 4.1.14
 ---------------
 
-Unknown record encoding (`RFC 3597 <https://tools.ietf.org/html/rfc3597>`__) has become more strict as a result of the fixes for :doc:`PowerDNS Security Advisory 2020-05 <../security-advisories/powerdns-advisory-2020-05>`. Please use ``pdnsutil check-all-zones`` to review your zone contents.
+Unknown record encoding (`RFC 3597 <https://tools.ietf.org/html/rfc3597>`__) has become more strict as a result of the fixes for :doc:`PowerDNS Security Advisory 2020-05 <../security-advisories/powerdns-advisory-2020-05>`. Please use ``pdnsutil zone check-all`` to review your zone contents.
 
 4.1.0 to 4.1.1
 --------------
@@ -625,4 +769,4 @@ MBOXFW records. Thus, make sure to clean up the records in the DB.
 
 In version 3.X, the PowerDNS Authoritative Server silently ignored records that
 have a 'priority' field (like MX or SRV), but where one was not in the database.
-In 4.X, :doc:`pdnsutil check-zone <manpages/pdnsutil.1>` will complain about this.
+In 4.X, :doc:`pdnsutil zone check <manpages/pdnsutil.1>` will complain about this.

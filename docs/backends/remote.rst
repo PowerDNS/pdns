@@ -243,7 +243,7 @@ Response:
 ~~~~~~~~~~~~~
 
 This method is similar to :ref:`remote-lookup`, but also returns disabled
-records. It allows for an extra optional parameter, ``include_disabled`` which, 
+records. It allows for an extra optional parameter, ``include_disabled`` which,
 if present and set to false, will only return non-disabled records (in which
 case, the behaviour is equivalent to the ``lookup`` method.)
 
@@ -285,7 +285,7 @@ Response (split into lines for ease of reading)
       {"qtype":"MX", "qname":"example.com", "content":"10 mx1.example.com.", "ttl": 60},
       {"qtype":"A", "qname":"www.example.com", "content":"203.0.113.2", "ttl": 60},
       {"qtype":"A", "qname":"ns1.example.com", "content":"192.0.2.2", "ttl": 60},
-      {"qtype":"A", "qname":"mx1.example.com", "content":"192.0.2.3", "ttl": 60} 
+      {"qtype":"A", "qname":"mx1.example.com", "content":"192.0.2.3", "ttl": 60}
     ]}
 
 Example HTTP/RPC
@@ -473,7 +473,7 @@ Query:
 .. code-block:: http
 
     PATCH /dnsapi/setdomainmetadata/example.com/PRESIGNED HTTP/1.1
-    Content-Type: application/x-www-form-urlencoded 
+    Content-Type: application/x-www-form-urlencoded
     Content-Length: 12
 
     value[]=YES&
@@ -1217,7 +1217,8 @@ Response:
 ``feedEnts``
 ~~~~~~~~~~~~
 
-This method is used by pdnsutil rectify-zone to populate missing
+This method is used by ``pdnsutil zone rectify`` (``pdnsutil rectify-zone``
+prior to version 5.0) to populate missing
 non-terminals. This is used when you have, say, record like
 _sip._upd.example.com, but no _udp.example.com. PowerDNS requires
 that there exists a non-terminal in between, and this instructs you to
@@ -1498,7 +1499,7 @@ Response:
 ~~~~~~~~~~~~~~~~~~~~
 
 Can be used to send arbitrary commands to your backend using
-:doc:`../dnssec/pdnsutil`.
+:doc:`../manpages/pdnsutil.1`.
 
 -  Mandatory: no
 -  Parameters: query
@@ -1767,10 +1768,10 @@ Query:
 
 .. code-block:: json
 
-    { 
+    {
       "method": "lookup",
       "parameters": {
-         "qname": "example.com", 
+         "qname": "example.com",
          "qtype": "SOA",
          "zone_id": "-1"
       }
@@ -1781,10 +1782,10 @@ Reply:
 .. code-block:: json
 
     {
-      "result": 
-       [ 
+      "result":
+       [
          { "qtype": "SOA",
-           "qname": "example.com", 
+           "qname": "example.com",
            "content": "dns1.icann.org. hostmaster.icann.org. 2012080849 7200 3600 1209600 3600",
            "ttl": 3600,
            "domain_id": -1

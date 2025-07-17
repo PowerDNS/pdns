@@ -78,7 +78,8 @@ In this case, the ipv6hint parameter is dropped when answering the query (and on
   ;; ADDITIONAL SECTION:
   no-ipv6.example.org.	3600	IN	A	192.0.2.2
 
-:doc:`pdnsutil <../manpages/pdnsutil.1>` checks if the autohints in SVCB and derived records can be found in the zone when using ``pdnsutil check-zone``.
+:doc:`pdnsutil <../manpages/pdnsutil.1>` checks if the autohints in SVCB and derived records can be found in the zone when using ``pdnsutil zone check``
+(``pdnsutil check-zone`` prior to version 5.0).
 It will emit a warning when there are no hints to be found::
 
   [warning] HTTPS record for no-ipv6.example.org has automatic IPv6 hints, but no AAAA-record for the target at no-ipv6.example.org exists.

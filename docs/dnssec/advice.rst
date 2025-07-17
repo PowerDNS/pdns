@@ -6,7 +6,8 @@ bewildering array of settings that can be configured.
 
 It is easy to (mis)configure DNSSEC in such a way that your domain
 will not operate reliably, or even, at all. We advise operators to stick
-to the keying defaults of ``pdnsutil secure-zone``.
+to the keying defaults of ``pdnsutil zone secure`` (``pdnsutil secure-zone``
+prior to version 5.0).
 
 .. note::
   GOST may be more widely available in Russia, because it might

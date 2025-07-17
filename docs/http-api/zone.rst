@@ -25,7 +25,8 @@ Comments are per-RRset.
 
   Switching ``dnssec`` to ``true`` (from ``false``) sets up DNSSEC signing
   based on the other flags, this includes running the equivalent of
-  ``secure-zone`` and ``rectify-zone`` (if ``api_rectify`` is set to ``true``).
+  ``pdnsutil zone secure`` and ``pdnsutil zone rectify`` (if ``api_rectify``
+  is set to ``true``).
   This also applies to newly created zones. If ``presigned`` is ``true``,
   no DNSSEC changes will be made to the zone or cryptokeys.
 

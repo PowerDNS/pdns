@@ -64,6 +64,18 @@ Note the ``REFUSED`` status - this is the code most name servers use to indicate
 
 Now, let's add a zone and some records::
 
+    $ sudo -u pdns pdnsutil zone create example.com ns1.example.com
+    Creating empty zone 'example.com'
+    Also adding one NS record
+    $ sudo -u pdns pdnsutil rrset add example.com example.com MX '25 mail.example.com'
+    New rrset:
+    example.com. 3005 IN MX 25 mail.example.com
+    $ sudo -u pdns pdnsutil rrset add example.com www.example.com A 192.0.2.1
+    New rrset:
+    www.example.com. 3005 IN A 192.0.2.1
+
+or, prior to version 5.0::
+
     $ sudo -u pdns pdnsutil create-zone example.com ns1.example.com
     Creating empty zone 'example.com'
     Also adding one NS record
@@ -91,11 +103,13 @@ If we now requery our database, ``www.example.com`` should be present::
 
 If this is not the output you get, remove ``+short`` to see the full output so you can find out what went wrong.
 The first problem could be that PowerDNS has a :ref:`packet-cache` and a :ref:`query-cache` for performance reasons.
-If you see old, or no, data right after changing records, wait for :ref:`setting-cache-ttl`, 
+If you see old, or no, data right after changing records, wait for :ref:`setting-cache-ttl`,
 :ref:`setting-negquery-cache-ttl`, :ref:`setting-query-cache-ttl`, or :ref:`setting-zone-cache-refresh-interval`
 to expire before testing.
 
-Now, run ``pdnsutil edit-zone example.com`` and try to add a few more records, and query them with dig to make sure they work.
+Now, run ``pdnsutil zone edit example.com`` (or ``pdnsutil edit-zone
+example.com`` prior to version 5.0) and try to add a few more records, and query
+them with dig to make sure they work.
 
 You now have a working database driven nameserver!
 

@@ -25,15 +25,25 @@ Native operation
 
 To add a domain, issue the following::
 
+    pdnsutil zone create example.com
+
+or, prior to version 5.0::
+
     pdnsutil create-zone example.com
 
-Records can now be added using ``pdnsutil add-record`` or ``pdnsutil edit-zone``.
+Records can now be added using ``pdnsutil rrset add`` or ``pdnsutil zone edit``
+(respectively ``pdnsutil add-record`` and ``pdnsutil edit-zone`` prior to
+version 5.0).
 
 Secondary operation
 ^^^^^^^^^^^^^^^^^^^
 
 These backends are fully secondary capable. To become a secondary of the
 'example.com' domain, using 198.51.100.6 as the primary execute this::
+
+   pdnsutil zone create-secondary example.com 198.51.100.6
+
+or, prior to version 5.0::
 
    pdnsutil create-secondary-zone example.com 198.51.100.6
 
@@ -64,6 +74,11 @@ seconds by default.
 
 PowerDNS has support for multiple primaries per zone, and also port numbers for these primaries::
 
+   pdnsutil zone create secondary example.com 198.51.100.6 2001:0DB8:15:4AF::4
+   pdnsutil zone create secondary example.net 198.51.100.20:5301 '[2001:0DB8:11:6E::4]:54'
+
+or, prior to version 5.0::
+
    pdnsutil create-secondary-zone example.com 198.51.100.6 2001:0DB8:15:4AF::4
    pdnsutil create-secondary-zone example.net 198.51.100.20:5301 '[2001:0DB8:11:6E::4]:54'
 
@@ -72,6 +87,10 @@ Autoprimary operation
 
 To configure a :ref:`autoprimary <autoprimary-operation>` with IP address 203.0.113.53 which lists this
 installation as 'autosecondary.example.com', issue the following::
+
+    pdnsutil autoprimary add 203.0.113.53 autosecondary.example.com internal
+
+or, prior to version 5.0::
 
     pdnsutil add-autoprimary 203.0.113.53 autosecondary.example.com internal
 
@@ -87,6 +106,11 @@ The generic SQL backend is fully primary capable with automatic discovery
 of serial changes. Raising the serial number of a domain suffices to
 trigger PowerDNS to send out notifications. To configure a domain for
 primary operation instead of the default native replication, issue::
+
+    pdnsutil zone create example.com
+    pdnsutil zone set-kind example.com MASTER
+
+or, prior to version 5.0::
 
     pdnsutil create-zone example.com
     pdnsutil set-kind example.com MASTER
@@ -127,7 +151,8 @@ Rules for filling out DNSSEC fields
 
 Two additional fields in the 'records' table are important: 'auth' and
 'ordername'. These fields are set correctly on an incoming zone
-transfer, and also by running ``pdnsutil rectify-zone``.
+transfer, and also by running ``pdnsutil zone rectify`` (``pdnsutil
+rectify-zone`` prior to version 5.0).
 
 The 'auth' field should be set to '1' for data for which the zone itself
 is authoritative, which includes the SOA record and its own NS records.
@@ -152,8 +177,9 @@ www' as its ordername.
 
 In 'NSEC3' non-narrow mode, the ordername should contain a lowercase
 base32hex encoded representation of the salted & iterated hash of the
-full record name. ``pdnsutil hash-zone-record zone record`` can be used
-to calculate this hash.
+full record name. ``pdnsutil rrset hash zone record`` (``pdnsutil
+hash-zone-record zone record`` prior to version 5.0) can be used to calculate
+this hash.
 
 In addition, PowerDNS fully supports empty non-terminals. If you have a
 zone example.com, and a host a.b.c.example.com in it, rectify-zone (and
@@ -227,7 +253,8 @@ is!
 DNSSEC queries
 ^^^^^^^^^^^^^^
 
-These queries are used by e.g. ``pdnsutil rectify-zone``. Make sure to
+These queries are used by e.g. ``pdnsutil zone rectify`` (``pdnsutil
+rectify-zone`` prior to version 5.0). Make sure to
 read :ref:`rules-for-filling-out-dnssec-fields`
 if you wish to calculate ordername and auth without using pdns-rectify.
 

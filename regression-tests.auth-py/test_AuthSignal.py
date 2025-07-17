@@ -34,16 +34,16 @@ gsqlite3-dnssec=yes
         cls.signaling_prefix = dns.name.from_text('_dsboot.cds-cdnskey.test').relativize(dns.name.root)
         cls.signaling_qname = cls.signaling_prefix.concatenate(cls.signaling_domain)
 
-        os.system("$PDNSUTIL --config-dir=configs/auth create-zone _signal.ns1.example.net")
-        os.system("$PDNSUTIL --config-dir=configs/auth set-signaling-zone _signal.ns1.example.net")
+        os.system("$PDNSUTIL --config-dir=configs/auth zone create _signal.ns1.example.net")
+        os.system("$PDNSUTIL --config-dir=configs/auth zone set-signaling _signal.ns1.example.net")
         query = dns.message.make_query('_signal.ns1.example.net', 'DNSKEY')
         res = cls.sendUDPQuery(query)
         cls.signaling_keytag = dns.dnssec.key_id(res.answer[0][0])
 
-        os.system("$PDNSUTIL --config-dir=configs/auth create-zone cds-cdnskey.test")
-        os.system("$PDNSUTIL --config-dir=configs/auth secure-zone cds-cdnskey.test")
-        os.system("$PDNSUTIL --config-dir=configs/auth set-publish-cds cds-cdnskey.test 2 4")
-        os.system("$PDNSUTIL --config-dir=configs/auth set-publish-cdnskey cds-cdnskey.test")
+        os.system("$PDNSUTIL --config-dir=configs/auth zone create cds-cdnskey.test")
+        os.system("$PDNSUTIL --config-dir=configs/auth zone secure cds-cdnskey.test")
+        os.system("$PDNSUTIL --config-dir=configs/auth zone set-publish-cds cds-cdnskey.test 2 4")
+        os.system("$PDNSUTIL --config-dir=configs/auth zone set-publish-cdnskey cds-cdnskey.test")
 
     def _signalingQuery(self, rdtype):
         query = dns.message.make_query('cds-cdnskey.test', rdtype)
@@ -77,8 +77,8 @@ gsqlite3-dnssec=yes
         self._testSignalingRRset(dns.rdatatype.CDNSKEY)
 
     def testSignalingQueryNoSignal(self):
-        os.system("$PDNSUTIL --config-dir=configs/auth create-zone no-signaling.test")
-        os.system("$PDNSUTIL --config-dir=configs/auth secure-zone no-signaling.test")
+        os.system("$PDNSUTIL --config-dir=configs/auth zone create no-signaling.test")
+        os.system("$PDNSUTIL --config-dir=configs/auth zone secure no-signaling.test")
 
         signaling_prefix = dns.name.from_text('_dsboot.no-signaling.test').relativize(dns.name.root)
         qname = signaling_prefix.concatenate(self.signaling_domain)

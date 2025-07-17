@@ -42,8 +42,15 @@ Another way of importing and activating TSIG keys into the database is using
 
 .. code-block:: shell
 
+    pdnsutil tsigkey import test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
+    pdnsutil tsigkey activate powerdnssec.org test primary
+
+or, prior to version 5.0:
+
+.. code-block:: shell
+
     pdnsutil import-tsig-key test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
-    pdnsutil activate-tsig-key powerdnssec.org test master
+    pdnsutil activate-tsig-key powerdnssec.org test primary
 
 To ease interoperability, the equivalent configuration above in BIND
 would look like this::
@@ -54,7 +61,7 @@ would look like this::
     };
 
     zone "powerdnssec.org" {
-        type master;
+        type primary;
         file "powerdnssec.org";
         allow-transfer {  key test.; };
     };
@@ -88,8 +95,8 @@ This can also be done using
 
 .. code-block:: shell
 
-    pdnsutil import-tsig-key test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
-    pdnsutil activate-tsig-key powerdnssec.org test slave
+    pdnsutil tsigkey import test hmac-md5 'kp4/24gyYsEzbuTVJRUMoqGFmN3LYgVDzJ/3oRSP7ys='
+    pdnsutil tsigkey activate powerdnssec.org test secondary
 
 This setup corresponds to the ``TSIG-ALLOW-AXFR`` access rule defined in
 the previous section.
@@ -107,7 +114,7 @@ quite) similar to the following BIND statements::
     };
 
     zone "powerdnssec.org" {
-     type slave;
+     type secondary;
      masters { 127.0.0.1; };
      file "powerdnssec.org";
     };
