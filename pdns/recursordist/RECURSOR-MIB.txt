@@ -15,11 +15,14 @@ IMPORTS
         FROM SNMPv2-CONF;
 
 rec MODULE-IDENTITY
-    LAST-UPDATED "202408280000Z"
+    LAST-UPDATED "202505270000Z"
     ORGANIZATION "PowerDNS BV"
     CONTACT-INFO "support@powerdns.com"
     DESCRIPTION
        "This MIB module describes information gathered through PowerDNS Recursor."
+
+    REVISION "202505270000Z"
+    DESCRIPTION "Added metric for missing ECS in reply"
 
     REVISION "202408280000Z"
     DESCRIPTION "Added metric for too many incoming TCP connections"
@@ -1291,6 +1294,14 @@ tcpOverflow OBJECT-TYPE
         "Incoming TCP limits reached"
     ::= { stats 152 }
 
+ecsMissing OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of answers where ECS info was missing"
+    ::= { stats 153 }
+
 ---
 --- Traps / Notifications
 ---
@@ -1489,7 +1500,8 @@ recGroup OBJECT-GROUP
         maxChainLength,
         maxChainWeight,
         chainLimits,
-        tcpOverflow
+        tcpOverflow,
+        ecsMissing
     }
     STATUS current
     DESCRIPTION "Objects conformance group for PowerDNS Recursor"
