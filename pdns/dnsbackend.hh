@@ -164,6 +164,7 @@ public:
     CAP_LIST = 1 << 3, // Backend supports record enumeration
     CAP_CREATE = 1 << 4, // Backend supports domain creation
     CAP_VIEWS = 1 << 5, // Backend supports views
+    CAP_SEARCH = 1 << 6, // Backend supports record search
   };
 
   virtual unsigned int getCapabilities() = 0;
@@ -468,10 +469,7 @@ public:
   }
 
   //! Search for records, returns true if search was done successfully.
-  virtual bool searchRecords(const string& /* pattern */, size_t /* maxResults */, vector<DNSResourceRecord>& /* result */)
-  {
-    return false;
-  }
+  virtual bool searchRecords(const string& pattern, size_t maxResults, vector<DNSResourceRecord>& result);
 
   //! Search for comments, returns true if search was done successfully.
   virtual bool searchComments(const string& /* pattern */, size_t /* maxResults */, vector<Comment>& /* result */)
