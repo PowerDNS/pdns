@@ -173,12 +173,14 @@ struct RuntimeConfiguration
 };
 
 /* Be careful not to hold on this for too long, it can be invalidated
-   by the next call to getCurrentRuntimeConfiguration() from the
+   by the next call to refreshLocalRuntimeConfiguration() from the
    same thread, so better be sure that any function you are not calling
-   while holding to this reference does not call getCurrentRuntimeConfiguration()
+   while holding to this reference does not call refreshLocalRuntimeConfiguration
    itself. When in doubt, better call getCurrentRuntimeConfiguration() twice.
 */
 const RuntimeConfiguration& getCurrentRuntimeConfiguration();
+const RuntimeConfiguration& refreshLocalRuntimeConfiguration();
+
 /* Get the runtime-immutable configuration */
 const ImmutableConfiguration& getImmutableConfiguration();
 /* Update the runtime-immutable part of the configuration. This function can only be called
