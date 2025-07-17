@@ -305,6 +305,7 @@ SSQLite3::SSQLite3(const std::string& database, const std::string& journalmode, 
   m_dolog = false;
   m_in_transaction = false;
   sqlite3_busy_handler(m_pDB, busyHandler, nullptr);
+  sqlite3_busy_timeout(m_pDB, 5000);
 
   if (journalmode.length() != 0) {
     executeImpl("PRAGMA journal_mode=" + journalmode);
