@@ -2883,7 +2883,7 @@ bool LMDBBackend::updateEmptyNonTerminals(domainid_t domain_id, set<DNSName>& in
       MDBOutVal val{};
       std::vector<DNSName> names;
 
-      if (cursor.prefix(match, key, val) == 0) {
+      while (cursor.prefix(match, key, val) == 0) {
         do {
           if (compoundOrdername::getQType(key.getNoStripHeader<StringView>()) == QType::ENT) {
             // We need to remember the name of the records we're deleting, so
@@ -2893,11 +2893,17 @@ bool LMDBBackend::updateEmptyNonTerminals(domainid_t domain_id, set<DNSName>& in
             DNSName qname = compoundOrdername::getQName(key.getNoStripHeader<StringView>());
             names.emplace_back(qname);
             cursor.del(key);
+            // Do not risk accumulating too many names. Better iterate
+            // multiple times, there won't be any ENT left eventually.
+            if (names.size() >= 100) {
+              break;
+            }
           }
         } while (cursor.next(key, val) == 0);
-      }
-      for (const auto& qname : names) {
-        deleteNSEC3RecordPair(txn, domain_id, qname);
+        for (const auto& qname : names) {
+          deleteNSEC3RecordPair(txn, domain_id, qname);
+        }
+        names.clear();
       }
     }
   }
