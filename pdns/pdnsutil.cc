@@ -3681,7 +3681,7 @@ static int setSignalingZone(vector<string>& cmds, const std::string_view synopsi
 
   ZoneName zone(cmds.at(1));
 
-  if(zone.operator const DNSName&().countLabels() == 0 || zone.operator const DNSName&().getRawLabel(0) != "_signal") {
+  if(zone.operator const DNSName&().countLabels() == 0 || !pdns_iequals(zone.operator const DNSName&().getRawLabel(0), "_signal")) {
     cerr << "Signaling zone's first label must be '_signal': " << zone << endl;
     return 1;
   }
