@@ -12,7 +12,9 @@ import time
 import unittest
 import dns
 import dns.message
-
+import requests
+import threading
+from twisted.internet import reactor
 from proxyprotocol import ProxyProtocol
 
 from eqdnsmessage import AssertEqualDNSMessageMixin
@@ -426,9 +428,9 @@ PrivateKey: Ep9uo6+wwjb4MaOmqq7LHav2FLrjotVOeZg8JT1Qk04=
                'zones': ['optout.example']},
         '15': {'threads': 1,
                'zones': ['insecure.optout.example', 'secure.optout.example', 'cname-secure.example']},
-        '16': {'threads': 2,
+        '16': {'threads': 10,
                'zones': ['delay1.example']},
-        '17': {'threads': 2,
+        '17': {'threads': 10,
                'zones': ['delay2.example']},
         '18': {'threads': 1,
                'zones': ['example']}
@@ -1190,3 +1192,30 @@ distributor-threads={threads}""".format(confdir=confdir,
         if data:
             message = dns.message.from_wire(data)
         return message
+
+    def checkMetrics(self, map):
+        self.waitForTCPSocket("127.0.0.1", self._wsPort)
+        headers = {'x-api-key': self._apiKey}
+        url = 'http://127.0.0.1:' + str(self._wsPort) + '/api/v1/servers/localhost/statistics'
+        r = requests.get(url, headers=headers, timeout=self._wsTimeout)
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.json())
+        content = r.json()
+        count = 0
+        for entry in content:
+            for key, expected in map.items():
+                if entry['name'] == key:
+                    value = int(entry['value'])
+                    if callable(expected):
+                        self.assertTrue(expected(value))
+                    else:
+                        self.assertEqual(value, expected)
+                    count += 1
+        self.assertEqual(count, len(map))
+
+    @classmethod
+    def startReactor(cls):
+        if not reactor.running:
+            cls.Responder = threading.Thread(name='Responder', target=reactor.run, args=(False,))
+            cls.Responder.daemon = True
+            cls.Responder.start()

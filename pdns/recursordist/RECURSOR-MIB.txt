@@ -1280,6 +1280,22 @@ chainLimits OBJECT-TYPE
         "Chain limits reached"
     ::= { stats 151 }
 
+tcpOverflow OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Incoming TCP limits reached"
+    ::= { stats 152 }
+
+ecsMissing OBJECT-TYPE
+    SYNTAX Counter64
+    MAX-ACCESS read-only
+    STATUS current
+    DESCRIPTION
+        "Number of answers where ECS info was missing"
+    ::= { stats 153 }
+
 ---
 --- Traps / Notifications
 ---
@@ -1478,7 +1494,9 @@ recGroup OBJECT-GROUP
         udrEvents,
         maxChainLength,
         maxChainWeight,
-        chainLimits
+        chainLimits,
+        tcpOverflow,
+        ecsMissing
     }
     STATUS current
     DESCRIPTION "Objects conformance group for PowerDNS Recursor"

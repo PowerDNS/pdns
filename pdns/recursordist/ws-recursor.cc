@@ -1261,6 +1261,10 @@ const std::map<std::string, MetricDefinition> MetricDefinitionStorage::d_metrics
   {"chain-limits",
    MetricDefinition(PrometheusMetricType::counter,
                     "Chain limits reached")},
+
+  {"ecs-missing",
+   MetricDefinition(PrometheusMetricType::counter,
+                    "Number of answers where ECS info was missing")},
 };
 
 constexpr bool CHECK_PROMETHEUS_METRICS = false;
