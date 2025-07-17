@@ -1382,6 +1382,7 @@ bool PacketHandler::tryAuthSignal(DNSPacket& p, std::unique_ptr<DNSPacket>& r, D
   // Insert synthetic response
   bool haveOne = false;
   bool autoPublish = !d_dk.isPresigned(zone);
+  std::string val;
   if(p.qtype.getCode() == QType::CDS) {
     d_dk.getPublishCDS(zone, val);
     autoPublish &= !val.empty();
