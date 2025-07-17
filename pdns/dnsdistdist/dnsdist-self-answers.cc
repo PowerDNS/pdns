@@ -252,7 +252,6 @@ bool generateAnswerFromRawPacket(DNSQuestion& dnsQuestion, const PacketBuffer& p
 bool removeRecordsAndSetRCode(DNSQuestion& dnsQuestion, uint8_t rcode)
 {
   auto [hadEDNS, dnssecOK] = getEDNSStatusInQuery(dnsQuestion);
-
   dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [rcode](dnsheader& header) {
     header.rcode = rcode;
     header.qr = true;

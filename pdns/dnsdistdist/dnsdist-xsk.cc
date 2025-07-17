@@ -42,6 +42,7 @@ void XskResponderThread(std::shared_ptr<DownstreamState> dss, std::shared_ptr<Xs
     auto pollfds = getPollFdsForWorker(*xskInfo);
     while (!dss->isStopped()) {
       poll(pollfds.data(), pollfds.size(), -1);
+      dnsdist::configuration::refreshLocalRuntimeConfiguration();
       bool needNotify = false;
       if ((pollfds[0].revents & POLLIN) != 0) {
         needNotify = true;
@@ -135,6 +136,7 @@ void XskRouter(std::shared_ptr<XskSocket> xsk)
   while (true) {
     try {
       auto ready = xsk->wait(-1);
+      dnsdist::configuration::refreshLocalRuntimeConfiguration();
       // descriptor 0 gets incoming AF_XDP packets
       if ((fds.at(0).revents & POLLIN) != 0) {
         auto packets = xsk->recv(64, &failed);
@@ -199,6 +201,7 @@ void XskClientThread(ClientState* clientState)
     while (!xskInfo->hasIncomingFrames()) {
       xskInfo->waitForXskSocket();
     }
+    dnsdist::configuration::refreshLocalRuntimeConfiguration();
     xskInfo->processIncomingFrames([&](XskPacket packet) {
       if (XskProcessQuery(*clientState, packet)) {
         packet.updatePacket();

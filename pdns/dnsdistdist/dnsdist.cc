@@ -443,6 +443,10 @@ static bool encryptResponse(PacketBuffer& response, size_t maximumSize, bool tcp
 
 bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>& respRuleActions, DNSResponse& dnsResponse)
 {
+  if (respRuleActions.empty()) {
+    return true;
+  }
+
   DNSResponseAction::Action action = DNSResponseAction::Action::None;
   std::string ruleresult;
   for (const auto& rrule : respRuleActions) {
@@ -643,7 +647,7 @@ void handleResponseSent(const DNSName& qname, const QType& qtype, double udiff, 
 
 static void handleResponseTC4UDPClient(DNSQuestion& dnsQuestion, uint16_t udpPayloadSize, PacketBuffer& response)
 {
-  if (udpPayloadSize > 0 && response.size() > udpPayloadSize) {
+  if (udpPayloadSize != 0 && response.size() > udpPayloadSize) {
     vinfolog("Got a response of size %d while the initial UDP payload size was %d, truncating", response.size(), udpPayloadSize);
     truncateTC(dnsQuestion.getMutableData(), dnsQuestion.getMaximumSize(), dnsQuestion.ids.qname.wirelength(), dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses);
     dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [](dnsheader& header) {
@@ -651,7 +655,7 @@ static void handleResponseTC4UDPClient(DNSQuestion& dnsQuestion, uint16_t udpPay
       return true;
     });
   }
-  else if (dnsQuestion.getHeader()->tc && dnsdist::configuration::getCurrentRuntimeConfiguration().d_truncateTC) {
+  else if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_truncateTC && dnsQuestion.getHeader()->tc) {
     truncateTC(response, dnsQuestion.getMaximumSize(), dnsQuestion.ids.qname.wirelength(), dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses);
   }
 }
@@ -779,6 +783,8 @@ void responderThread(std::shared_ptr<DownstreamState> dss)
         if (dss->isStopped()) {
           break;
         }
+
+        dnsdist::configuration::refreshLocalRuntimeConfiguration();
 
         for (const auto& sockDesc : sockets) {
           /* allocate one more byte so we can detect truncation */
@@ -983,6 +989,10 @@ bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dnsQuestio
 
 static bool applyRulesChainToQuery(const std::vector<dnsdist::rules::RuleAction>& rules, DNSQuestion& dnsQuestion)
 {
+  if (rules.empty()) {
+    return true;
+  }
+
   DNSAction::Action action = DNSAction::Action::None;
   string ruleresult;
   bool drop = false;
@@ -2206,6 +2216,7 @@ static void udpClientThread(std::vector<ClientState*> states)
 
         packet.resize(static_cast<size_t>(got));
 
+        dnsdist::configuration::refreshLocalRuntimeConfiguration();
         processUDPQuery(*param.cs, &msgh, remote, dest, packet, nullptr, nullptr, nullptr, nullptr);
       };
 
@@ -2287,6 +2298,7 @@ static void maintThread()
   for (;;) {
     std::this_thread::sleep_for(std::chrono::seconds(interval));
 
+    dnsdist::configuration::refreshLocalRuntimeConfiguration();
     {
       auto lua = g_lua.lock();
       try {
@@ -2359,6 +2371,7 @@ static void dynBlockMaintenanceThread()
 {
   setThreadName("dnsdist/dynBloc");
 
+  dnsdist::configuration::refreshLocalRuntimeConfiguration();
   DynBlockMaintenance::run();
 }
 #endif
@@ -2369,7 +2382,7 @@ static void secPollThread()
   setThreadName("dnsdist/secpoll");
 
   for (;;) {
-    const auto& runtimeConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
+    const auto& runtimeConfig = dnsdist::configuration::refreshLocalRuntimeConfiguration();
 
     try {
       dnsdist::secpoll::doSecPoll(runtimeConfig.d_secPollSuffix);
@@ -2416,9 +2429,11 @@ static void healthChecksThread()
     }
 
     std::unique_ptr<FDMultiplexer> mplexer{nullptr};
+    const auto& runtimeConfig = dnsdist::configuration::refreshLocalRuntimeConfiguration();
+
     // this points to the actual shared_ptrs!
     // coverity[auto_causes_copy]
-    const auto servers = dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends;
+    const auto servers = runtimeConfig.d_backends;
     for (const auto& dss : servers) {
       dss->updateStatisticsInfo();
 
@@ -3115,11 +3130,12 @@ static void parseParameters(int argc, char** argv, CommandLineParameters& cmdLin
 static void setupPools()
 {
   bool precompute = false;
-  if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_lbPolicy->getName() == "chashed") {
+  const auto& currentConfig = dnsdist::configuration::getCurrentRuntimeConfiguration();
+  if (currentConfig.d_lbPolicy->getName() == "chashed") {
     precompute = true;
   }
   else {
-    for (const auto& entry : dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools) {
+    for (const auto& entry : currentConfig.d_pools) {
       if (entry.second->policy != nullptr && entry.second->policy->getName() == "chashed") {
         precompute = true;
         break;
@@ -3129,7 +3145,7 @@ static void setupPools()
   if (precompute) {
     vinfolog("Pre-computing hashes for consistent hash load-balancing policy");
     // pre compute hashes
-    for (const auto& backend : dnsdist::configuration::getCurrentRuntimeConfiguration().d_backends) {
+    for (const auto& backend : currentConfig.d_backends) {
       if (backend->d_config.d_weight < 100) {
         vinfolog("Warning, the backend '%s' has a very low weight (%d), which will not yield a good distribution of queries with the 'chashed' policy. Please consider raising it to at least '100'.", backend->getName(), backend->d_config.d_weight);
       }
@@ -3255,11 +3271,11 @@ static void startFrontends()
     if (clientState->dohFrontend != nullptr && clientState->dohFrontend->d_library == "h2o") {
 #ifdef HAVE_DNS_OVER_HTTPS
 #ifdef HAVE_LIBH2OEVLOOP
-      std::thread dotThreadHandle(dohThread, clientState.get());
+      std::thread dohThreadHandle(dohThread, clientState.get());
       if (!clientState->cpus.empty()) {
-        mapThreadToCPUList(dotThreadHandle.native_handle(), clientState->cpus);
+        mapThreadToCPUList(dohThreadHandle.native_handle(), clientState->cpus);
       }
-      dotThreadHandle.detach();
+      dohThreadHandle.detach();
 #endif /* HAVE_LIBH2OEVLOOP */
 #endif /* HAVE_DNS_OVER_HTTPS */
       continue;
