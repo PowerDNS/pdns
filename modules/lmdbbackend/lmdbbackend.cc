@@ -1246,7 +1246,7 @@ void LMDBBackend::writeNSEC3RecordPair(const std::shared_ptr<RecordsRWTransactio
 }
 
 // Check if the only records found for this particular name are a single NSEC3
-// record. (in which case there is no actual data for than qname and that
+// record. (in which case there is no actual data for that qname and that
 // record needs to be deleted)
 bool LMDBBackend::hasOrphanedNSEC3Record(MDBRWCursor& cursor, domainid_t domain_id, const DNSName& qname)
 {
@@ -1382,9 +1382,13 @@ bool LMDBBackend::replaceRRSet(domainid_t domain_id, const DNSName& qname, const
       auto cursor = txn->txn->getCursor(txn->db->dbi);
       MDBOutVal key{};
       MDBOutVal val{};
+      bool hadOrderName{false};
       match = co(domain_id, relative, qt.getCode());
       // There should be at most one exact match here.
       if (cursor.find(match, key, val) == 0) {
+        LMDBResourceRecord lrr;
+        deserializeFromBuffer(val.get<string_view>(), lrr);
+        hadOrderName = lrr.hasOrderName;
         cursor.del(key);
       }
       // If we are not going to add any new records, check if there are any
@@ -1392,7 +1396,7 @@ bool LMDBBackend::replaceRRSet(domainid_t domain_id, const DNSName& qname, const
       // there aren't any, yet there is an NSEC3 record, delete the NSEC3 chain
       // pair as well.
       if (rrset.empty()) {
-        if (hasOrphanedNSEC3Record(cursor, domain_id, relative)) {
+        if (hadOrderName && hasOrphanedNSEC3Record(cursor, domain_id, relative)) {
           deleteNSEC3RecordPair(txn, domain_id, relative);
         }
       }
@@ -2798,11 +2802,13 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSNa
     return false;
   }
 
+  bool hadOrderName{false};
   bool hasOrderName = !ordername.empty() && isNsec3;
   bool keepNSEC3 = hasOrderName;
 
   do {
     if (compoundOrdername::getQType(key.getNoStripHeader<StringView>()) == QType::NSEC3) {
+      hadOrderName = true;
       continue;
     }
 
@@ -2812,6 +2818,7 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSNa
     vector<LMDBResourceRecord> newRRs;
     newRRs.reserve(lrrs.size());
     for (auto& lrr : lrrs) {
+      hadOrderName |= lrr.hasOrderName;
       lrr.qtype = compoundOrdername::getQType(key.getNoStripHeader<StringView>());
       bool isDifferentQType = qtype != QType::ANY && QType(qtype) != lrr.qtype;
       // If there is at least one entry for that qname, with a different qtype
@@ -2835,7 +2842,9 @@ bool LMDBBackend::updateDNSSECOrderNameAndAuth(domainid_t domain_id, const DNSNa
 
   if (!keepNSEC3) {
     // NSEC3 link to be removed: need to remove an existing pair, if any
-    deleteNSEC3RecordPair(txn, domain_id, rel);
+    if (hadOrderName) {
+      deleteNSEC3RecordPair(txn, domain_id, rel);
+    }
   }
   else if (hasOrderName) {
     // NSEC3 link to be added or updated
@@ -2890,8 +2899,12 @@ bool LMDBBackend::updateEmptyNonTerminals(domainid_t domain_id, set<DNSName>& in
             // as to remove the matching NSEC3 records, if any.
             // (we can't invoke deleteNSEC3RecordPair here as doing this
             // could make our cursor invalid)
-            DNSName qname = compoundOrdername::getQName(key.getNoStripHeader<StringView>());
-            names.emplace_back(qname);
+            LMDBResourceRecord lrr;
+            deserializeFromBuffer(val.get<string_view>(), lrr);
+            if (lrr.hasOrderName) {
+              DNSName qname = compoundOrdername::getQName(key.getNoStripHeader<StringView>());
+              names.emplace_back(qname);
+            }
             cursor.del(key);
             // Do not risk accumulating too many names. Better iterate
             // multiple times, there won't be any ENT left eventually.
@@ -2914,8 +2927,12 @@ bool LMDBBackend::updateEmptyNonTerminals(domainid_t domain_id, set<DNSName>& in
       std::string match = order(domain_id, name, QType::ENT);
       MDBOutVal val{};
       if (txn->txn->get(txn->db->dbi, match, val) == 0) {
+        LMDBResourceRecord lrr;
+        deserializeFromBuffer(val.get<string_view>(), lrr);
         txn->txn->del(txn->db->dbi, match);
-        deleteNSEC3RecordPair(txn, domain_id, name);
+        if (lrr.hasOrderName) {
+          deleteNSEC3RecordPair(txn, domain_id, name);
+        }
       }
     }
   }
