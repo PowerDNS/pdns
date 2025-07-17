@@ -1092,8 +1092,11 @@ static std::shared_ptr<DNSRecordContent> deserializeContentZR(uint16_t qtype, co
   return DNSRecordContent::deserialize(qname, qtype, content, QClass::IN, true);
 }
 
-/* design. If you ask a question without a zone id, we lookup the best
-   zone id for you, and answer from that. This is different than other backends, but I can't see why it would not work.
+/* A note on the design.
+
+   If you ask a question without a zone id (this can be the case for lookup(),
+   and of course also for startTransaction if you don't want to delete the
+   domain contents), we lookup the best zone id for you, and answer from that.
 
    The index we use is "zoneid,canonical relative name". This index is also used
    for AXFR.
@@ -1808,7 +1811,7 @@ void LMDBBackend::lookupInternal(const QType& type, const DNSName& qdomain, doma
   }
 
   DomainInfo info;
-  if (zoneId == UnknownDomainID) {
+  if (zoneId == UnknownDomainID) { // may be the case if coming from lookup()
     ZoneName hunt(qdomain);
     auto rotxn = d_tdomains->getROTransaction();
 
