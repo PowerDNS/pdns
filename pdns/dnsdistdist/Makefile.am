@@ -60,12 +60,12 @@ MIN_JS_FILES := $(patsubst src_js/%.js,html/js/%.min.js,$(SRC_JS_FILES))
 dnsdist%generated-body.hh dnsdist%generated.hh: dnsdist-rules-generator.py dnsdist-actions-definitions.yml dnsdist-response-actions-definitions.yml dnsdist-selectors-definitions.yml
 	@if test "$(PYTHON)" = ":"; then echo "Actions or selectors definitions have changed, python is needed to regenerate the related files but python was not found. Please install python and re-run configure"; exit 1; fi
 	@if ! $(PYTHON) --version | grep -q "Python 3"; then echo $(PYTHON) should be at least version 3. Please install python 3 and re-run configure; exit 1; fi
-	$(PYTHON) dnsdist-rules-generator.py . .
+	$(PYTHON) ${srcdir}/dnsdist-rules-generator.py ${srcdir} .
 
 docs/reference/yaml-%.rst: dnsdist-settings-documentation-generator.py dnsdist-settings-definitions.yml dnsdist-actions-definitions.yml dnsdist-response-actions-definitions.yml dnsdist-selectors-definitions.yml
 	@if test "$(PYTHON)" = ":"; then echo "Settings definitions have changed, python is needed to regenerate the related files but python was not found. Please install python and re-run configure"; exit 1; fi
 	@if ! $(PYTHON) --version | grep -q "Python 3"; then echo $(PYTHON) should be at least version 3. Please install python 3 and re-run configure; exit 1; fi
-	$(PYTHON) dnsdist-settings-documentation-generator.py .
+	$(PYTHON) ${srcdir}/dnsdist-settings-documentation-generator.py ${srcdir}
 
 html/js/%.min.js: src_js/%.js
 	uglifyjs $< > $@
