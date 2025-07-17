@@ -124,7 +124,7 @@ bool PacketHandler::addCDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r)
 {
   return addCDNSKEY(p, r, d_sd);
 }
-bool PacketHandler::addCDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r, SOAData &sd)
+bool PacketHandler::addCDNSKEY(DNSPacket& p, std::unique_ptr<DNSPacket>& r, SOAData &sd) // NOLINT(readability-identifier-length)
 {
   string publishCDNSKEY;
   d_dk.getPublishCDNSKEY(sd.zonename,publishCDNSKEY);
@@ -755,7 +755,7 @@ void PacketHandler::emitNSEC(std::unique_ptr<DNSPacket>& r, const DNSName& name,
   r->addRecord(std::move(rr));
 }
 
-void PacketHandler::emitNSEC3(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const NSEC3PARAMRecordContent& ns3prc, const DNSName& name, const string& namehash, const string& nexthash, int mode)
+void PacketHandler::emitNSEC3(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const NSEC3PARAMRecordContent& ns3prc, const DNSName& name, const string& namehash, const string& nexthash, int mode) // NOLINT(readability-identifier-length)
 {
   NSEC3RecordContent n3rc;
   n3rc.d_algorithm = ns3prc.d_algorithm;
@@ -1340,7 +1340,8 @@ void PacketHandler::completeANYRecords(DNSPacket& p, std::unique_ptr<DNSPacket>&
   }
 }
 
-bool PacketHandler::tryAuthSignal(DNSPacket& p, std::unique_ptr<DNSPacket>& r, DNSName &target) {
+bool PacketHandler::tryAuthSignal(DNSPacket& p, std::unique_ptr<DNSPacket>& r, DNSName &target) // NOLINT(readability-identifier-length)
+{
   DLOG(g_log<<Logger::Warning<<"Let's try authenticated DNSSEC bootstrapping (RFC 9615) ..."<<endl);
   if(d_sd.zonename.operator const DNSName&().countLabels() == 0 || d_sd.zonename.operator const DNSName&().getRawLabel(0) != "_signal" || !d_dk.isSignalingZone(d_sd.zonename)) {
     return false;
@@ -1386,25 +1387,28 @@ bool PacketHandler::tryAuthSignal(DNSPacket& p, std::unique_ptr<DNSPacket>& r, D
   if(p.qtype.getCode() == QType::CDS) {
     d_dk.getPublishCDS(zone, val);
     autoPublish &= !val.empty();
-    if(autoPublish)
+    if(autoPublish) {
       haveOne = addCDS(p, r, zone_sd);
+    }
   } else if(p.qtype.getCode() == QType::CDNSKEY) {
     d_dk.getPublishCDNSKEY(zone, val);
     autoPublish &= !val.empty();
-    if(autoPublish)
+    if(autoPublish) {
       haveOne = addCDNSKEY(p, r, zone_sd);
+    }
   }
   if(!autoPublish) {
-      DNSZoneRecord rr;
+      DNSZoneRecord rec;
       B.lookup(p.qtype.getCode(), DNSName(zone), zone_sd.domain_id, &p);
-      while(B.get(rr)) {
-        rr.dr.d_name = p.qdomain;
-        r->addRecord(std::move(rr));
+      while(B.get(rec)) {
+        rec.dr.d_name = p.qdomain;
+        r->addRecord(std::move(rec));
         haveOne=true;
       }
     }
-  if(!haveOne)
+  if(!haveOne) {
     makeNOError(p, r, target, DNSName(), 6); // other type might exist
+  }
   return true;
 }
 

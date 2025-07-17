@@ -3717,7 +3717,7 @@ static int setSignalingZone(vector<string>& cmds, const std::string_view synopsi
   }
 
   // pdnsutil set-meta $zone SIGNALING-ZONE 1
-  if(addOrSetMeta(zone, "SIGNALING-ZONE", {"1"}, true)) {
+  if(addOrSetMeta(zone, "SIGNALING-ZONE", {"1"}, true) != 0) {
     cerr<<"Cannot set meta for zone " << zone << endl;
     return 1;
   }

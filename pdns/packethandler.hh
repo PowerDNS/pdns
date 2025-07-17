@@ -89,7 +89,7 @@ private:
   bool getNSEC3Hashes(bool narrow, const std::string& hashed, bool decrement, DNSName& unhashed, std::string& before, std::string& after, int mode=0);
   void addNSEC3(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const DNSName &target, const DNSName &wildcard, const NSEC3PARAMRecordContent& nsec3param, bool narrow, int mode);
   void emitNSEC(std::unique_ptr<DNSPacket>& r, const DNSName& name, const DNSName& next, int mode);
-  void emitNSEC3(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const NSEC3PARAMRecordContent &ns3rc, const DNSName& unhashed, const string& begin, const string& end, int mode);
+  void emitNSEC3(DNSPacket& p, std::unique_ptr<DNSPacket>& r, const NSEC3PARAMRecordContent &ns3prc, const DNSName& name, const string& namehash, const string& nexthash, int mode);
   int processUpdate(DNSPacket& p);
   int forwardPacket(const string &msgPrefix, const DNSPacket& p, const DomainInfo& di);
   uint performUpdate(const string &msgPrefix, const DNSRecord *rr, DomainInfo *di, bool isPresigned, bool* narrow, bool* haveNSEC3, NSEC3PARAMRecordContent *ns3pr, bool *updatedSerial);
