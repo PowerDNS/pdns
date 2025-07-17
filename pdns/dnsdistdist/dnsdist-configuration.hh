@@ -127,7 +127,7 @@ struct RuntimeConfiguration
   NetmaskGroup d_proxyProtocolACL;
   NetmaskGroup d_consoleACL;
   NetmaskGroup d_webServerACL;
-  std::optional<ComboAddress> d_webServerAddress{std::nullopt};
+  std::set<ComboAddress> d_webServerAddresses;
   dnsdist::QueryCount::Configuration d_queryCountConfig;
   ComboAddress d_consoleServerAddress{"127.0.0.1:5199"};
   std::string d_consoleKey;
