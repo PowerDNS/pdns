@@ -2,6 +2,57 @@ Changelog
 =========
 
 .. changelog::
+  :version: 2.0.0-rc2
+  :released: 17th of July 2025
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15837
+
+    dnsdist-rust-lib: honor ``RUSTC_TARGET_ARCH``
+
+  .. change::
+    :tags: Improvements, YAML
+    :pullreq: 15838
+
+    Handle named rcodes in the YAML configuration
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 15839
+    :tickets: 15810
+
+    Properly process the YAML source parameter for backends
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15840
+    :tickets: 15804
+
+    Properly link with ``libdl`` when building with ``autotools``
+
+  .. change::
+    :tags: Bug Fixes, YAML
+    :pullreq: 15841
+    :tickets: 15822
+
+    Allow registering NMG objects from YAML
+
+  .. change::
+    :tags: Bug Fixes, Webserver
+    :pullreq: 15842
+    :tickets: 15820
+
+    Bring back listening on multiple web server addresses
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15843
+    :tickets: 15830
+
+    Fix narrowing conversion on 32-bit systems by using ``uint64_t`` instead of ``size_t``
+
+.. changelog::
   :version: 2.0.0-rc1
   :released: 8th of July 2025
 
