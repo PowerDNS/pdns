@@ -961,7 +961,7 @@ By default, this option is empty, meaning no EDNS Client Subnet information is s
 Do more strict checking or EDNS Client Subnet information returned by authoritative servers.
 Answers missing ECS information will be ignored and followed up by an ECS-less query.
  ''',
-    'versionadded': ['5.2.x', '5.1.x', '5.0.x']
+    'versionadded': ['5.2.4', '5.1.6', '5.0.12']
     },
     {
         'name' : 'enable_old_settings',
