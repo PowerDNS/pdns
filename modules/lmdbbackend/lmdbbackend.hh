@@ -345,7 +345,7 @@ private:
 
   static bool getAfterForward(MDBROCursor& cursor, MDBOutVal& key, MDBOutVal& val, domainid_t id, DNSName& after);
   static bool getAfterForwardFromStart(MDBROCursor& cursor, MDBOutVal& key, MDBOutVal& val, domainid_t id, DNSName& after);
-  static bool isNSEC3BackRecord(LMDBResourceRecord& lrr, const MDBOutVal& key, const MDBOutVal& val);
+  static bool isNSEC3BackRecord(const MDBOutVal& key, const MDBOutVal& val);
   static bool isValidAuthRecord(const MDBOutVal& key, const MDBOutVal& val);
   static bool hasOrphanedNSEC3Record(MDBRWCursor& cursor, domainid_t domain_id, const DNSName& qname);
   static void deleteNSEC3RecordPair(const std::shared_ptr<RecordsRWTransaction>& txn, domainid_t domain_id, const DNSName& qname);

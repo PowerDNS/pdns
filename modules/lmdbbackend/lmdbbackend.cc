@@ -1092,6 +1092,40 @@ static std::shared_ptr<DNSRecordContent> deserializeContentZR(uint16_t qtype, co
   return DNSRecordContent::deserialize(qname, qtype, content, QClass::IN, true);
 }
 
+// For the few places where we are only interested in the hasOrderName field,
+// this cheap routine is faster than doing:
+// {
+//   LMDBResourceRecord lrr;
+//   deserializeFromBuffer(buffer, lrr);
+//   return lrr.hasOrderName;
+// }
+static bool peekAtHasOrderName(const string_view& buffer)
+{
+  uint16_t len;
+  memcpy(&len, &buffer[0], 2);
+  bool hasOrderName = buffer[2 + len + 4 + 2] != 0;
+  return hasOrderName;
+}
+
+// Similar to the above, but for the auth field.
+static bool peekAtAuth(const string_view& buffer)
+{
+  uint16_t len;
+  memcpy(&len, &buffer[0], 2);
+  bool auth = buffer[2 + len + 4] != 0;
+  return auth;
+}
+
+// Similar to the above, but for the ttl.
+static uint32_t peekAtTtl(const string_view& buffer)
+{
+  uint16_t len;
+  memcpy(&len, &buffer[0], 2);
+  uint32_t ttl;
+  memcpy(&ttl, &buffer[2] + len, 4);
+  return ttl;
+}
+
 /* A note on the design.
 
    If you ask a question without a zone id (this can be the case for lookup(),
@@ -1389,9 +1423,7 @@ bool LMDBBackend::replaceRRSet(domainid_t domain_id, const DNSName& qname, const
       match = co(domain_id, relative, qt.getCode());
       // There should be at most one exact match here.
       if (cursor.find(match, key, val) == 0) {
-        LMDBResourceRecord lrr;
-        deserializeFromBuffer(val.get<string_view>(), lrr);
-        hadOrderName = lrr.hasOrderName;
+        hadOrderName = peekAtHasOrderName(val.get<string_view>());
         cursor.del(key);
       }
       // If we are not going to add any new records, check if there are any
@@ -2472,12 +2504,10 @@ bool LMDBBackend::unpublishDomainKey(const ZoneName& name, unsigned int keyId)
 }
 
 // Return true if the key points to an NSEC3 back chain record (ttl == 0).
-// Updates lrr if this is an NSEC3 record (regardless of its kind).
-bool LMDBBackend::isNSEC3BackRecord(LMDBResourceRecord& lrr, const MDBOutVal& key, const MDBOutVal& val)
+bool LMDBBackend::isNSEC3BackRecord(const MDBOutVal& key, const MDBOutVal& val)
 {
   if (compoundOrdername::getQType(key.getNoStripHeader<StringView>()) == QType::NSEC3) {
-    deserializeFromBuffer(val.get<StringView>(), lrr);
-    if (lrr.ttl == 0) {
+    if (peekAtTtl(val.get<StringView>()) == 0) {
       return true;
     }
   }
@@ -2490,9 +2520,7 @@ bool LMDBBackend::isNSEC3BackRecord(LMDBResourceRecord& lrr, const MDBOutVal& ke
 // NOLINTNEXTLINE(readability-identifier-length)
 bool LMDBBackend::getAfterForward(MDBROCursor& cursor, MDBOutVal& key, MDBOutVal& val, domainid_t id, DNSName& after)
 {
-  LMDBResourceRecord lrr;
-
-  while (!isNSEC3BackRecord(lrr, key, val)) {
+  while (!isNSEC3BackRecord(key, val)) {
     if (cursor.next(key, val) != 0 || compoundOrdername::getDomainID(key.getNoStripHeader<StringView>()) != id) {
       // cout<<"hit end of zone or database when we shouldn't"<<endl;
       return false;
@@ -2534,8 +2562,6 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& q
   auto cursor = txn->txn->getCursor(txn->db->dbi);
   MDBOutVal key, val;
 
-  LMDBResourceRecord lrr;
-
   string matchkey = co(id, qname, QType::NSEC3);
   if (cursor.lower_bound(matchkey, key, val)) {
     // this is beyond the end of the database
@@ -2549,7 +2575,7 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& q
         return false;
       }
 
-      if (isNSEC3BackRecord(lrr, key, val)) {
+      if (isNSEC3BackRecord(key, val)) {
         break; // the kind of NSEC3 we need
       }
       if (cursor.prev(key, val)) {
@@ -2558,8 +2584,11 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& q
       }
     }
     before = co.getQName(key.getNoStripHeader<StringView>());
-    unhashed = DNSName(lrr.content.c_str(), lrr.content.size(), 0, false) + di.zone.operator const DNSName&();
-
+    {
+      LMDBResourceRecord lrr;
+      deserializeFromBuffer(val.get<StringView>(), lrr);
+      unhashed = DNSName(lrr.content.c_str(), lrr.content.size(), 0, false) + di.zone.operator const DNSName&();
+    }
     // now to find after .. at the beginning of the zone
     return getAfterForwardFromStart(cursor, key, val, id, after);
   }
@@ -2581,7 +2610,7 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& q
     int count = 0;
     for (;;) {
       if (compoundOrdername::getQName(key.getNoStripHeader<StringView>()).canonCompare(qname)) {
-        if (isNSEC3BackRecord(lrr, key, val)) {
+        if (isNSEC3BackRecord(key, val)) {
           break;
         }
       }
@@ -2605,7 +2634,7 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& q
             return false;
           }
 
-          if (isNSEC3BackRecord(lrr, key, val)) {
+          if (isNSEC3BackRecord(key, val)) {
             break;
           }
           if (cursor.prev(key, val)) {
@@ -2614,7 +2643,11 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& q
           }
         }
         before = co.getQName(key.getNoStripHeader<StringView>());
-        unhashed = DNSName(lrr.content.c_str(), lrr.content.size(), 0, false) + di.zone.operator const DNSName&();
+        {
+          LMDBResourceRecord lrr;
+          deserializeFromBuffer(val.get<StringView>(), lrr);
+          unhashed = DNSName(lrr.content.c_str(), lrr.content.size(), 0, false) + di.zone.operator const DNSName&();
+        }
         // cout <<"Should still find 'after'!"<<endl;
         // for 'after', we need to find the first hash of this zone
 
@@ -2623,11 +2656,16 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& q
       ++count;
     }
     before = co.getQName(key.getNoStripHeader<StringView>());
-    unhashed = DNSName(lrr.content.c_str(), lrr.content.size(), 0, false) + di.zone.operator const DNSName&();
+    {
+      LMDBResourceRecord lrr;
+      deserializeFromBuffer(val.get<StringView>(), lrr);
+      unhashed = DNSName(lrr.content.c_str(), lrr.content.size(), 0, false) + di.zone.operator const DNSName&();
+    }
     // cout<<"Went backwards, found "<<before<<endl;
     // return us to starting point
-    while (count--)
+    while (count--) {
       cursor.next(key, val);
+    }
   }
   //  cout<<"Now going forward"<<endl;
   if (getAfterForward(cursor, key, val, id, after)) {
@@ -2642,11 +2680,15 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& q
 // non terminal records.
 bool LMDBBackend::isValidAuthRecord(const MDBOutVal& key, const MDBOutVal& val)
 {
-  LMDBResourceRecord lrr;
-
-  deserializeFromBuffer(val.get<StringView>(), lrr);
   QType qtype = compoundOrdername::getQType(key.getNoStripHeader<string_view>()).getCode();
-  return qtype != QType::ENT && (lrr.auth || qtype == QType::NS);
+  switch (qtype) {
+  case QType::ENT:
+    return false;
+  case QType::NS:
+    return true;
+  default:
+    return peekAtAuth(val.get<string_view>());
+  }
 }
 
 bool LMDBBackend::getBeforeAndAfterNames(domainid_t domainId, const ZoneName& zonenameU, const DNSName& qname, DNSName& before, DNSName& after)
@@ -2902,9 +2944,7 @@ bool LMDBBackend::updateEmptyNonTerminals(domainid_t domain_id, set<DNSName>& in
             // as to remove the matching NSEC3 records, if any.
             // (we can't invoke deleteNSEC3RecordPair here as doing this
             // could make our cursor invalid)
-            LMDBResourceRecord lrr;
-            deserializeFromBuffer(val.get<string_view>(), lrr);
-            if (lrr.hasOrderName) {
+            if (peekAtHasOrderName(val.get<string_view>())) {
               DNSName qname = compoundOrdername::getQName(key.getNoStripHeader<StringView>());
               names.emplace_back(qname);
             }
@@ -2930,10 +2970,9 @@ bool LMDBBackend::updateEmptyNonTerminals(domainid_t domain_id, set<DNSName>& in
       std::string match = order(domain_id, name, QType::ENT);
       MDBOutVal val{};
       if (txn->txn->get(txn->db->dbi, match, val) == 0) {
-        LMDBResourceRecord lrr;
-        deserializeFromBuffer(val.get<string_view>(), lrr);
+        bool hadOrderName = peekAtHasOrderName(val.get<string_view>());
         txn->txn->del(txn->db->dbi, match);
-        if (lrr.hasOrderName) {
+        if (hadOrderName) {
           deleteNSEC3RecordPair(txn, domain_id, name);
         }
       }
