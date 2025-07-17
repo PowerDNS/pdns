@@ -52,6 +52,29 @@ static void addRecordHeader(PacketBuffer& packet, size_t& position, uint16_t qcl
   position += recordstart.size();
 }
 
+static std::pair<bool, bool> getEDNSStatusInQuery(DNSQuestion& dnsQuestion)
+{
+  if (!dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses) {
+    return {false, false};
+  }
+
+  if (dnsQuestion.ids.dnssecOK) {
+    if (*dnsQuestion.ids.dnssecOK) {
+      /* DNSSECOK was set, which means the query had EDNS */
+      return {true, true};
+    }
+  }
+
+  if (queryHasEDNS(dnsQuestion)) {
+    bool dnssecOK = ((dnsdist::getEDNSZ(dnsQuestion) & EDNS_HEADER_FLAG_DO) != 0);
+    dnsQuestion.ids.dnssecOK = dnssecOK;
+    return {true, dnssecOK};
+  }
+
+  dnsQuestion.ids.dnssecOK = false;
+  return {false, false};
+}
+
 bool generateAnswerFromCNAME(DNSQuestion& dnsQuestion, const DNSName& cname, const dnsdist::ResponseConfig& responseConfig)
 {
   QType qtype = QType::CNAME;
@@ -62,13 +85,7 @@ bool generateAnswerFromCNAME(DNSQuestion& dnsQuestion, const DNSName& cname, con
     return false;
   }
 
-  bool dnssecOK = false;
-  bool hadEDNS = false;
-  if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses && queryHasEDNS(dnsQuestion)) {
-    hadEDNS = true;
-    dnssecOK = ((dnsdist::getEDNSZ(dnsQuestion) & EDNS_HEADER_FLAG_DO) != 0);
-  }
-
+  auto [hadEDNS, dnssecOK] = getEDNSStatusInQuery(dnsQuestion);
   auto& data = dnsQuestion.getMutableData();
   data.resize(sizeof(dnsheader) + qnameWireLength + 4 + numberOfRecords * 12 /* recordstart */ + totrdatalen); // there goes your EDNS
   size_t position = sizeof(dnsheader) + qnameWireLength + 4;
@@ -122,13 +139,7 @@ bool generateAnswerFromIPAddresses(DNSQuestion& dnsQuestion, const std::vector<C
     return false;
   }
 
-  bool dnssecOK = false;
-  bool hadEDNS = false;
-  if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses && queryHasEDNS(dnsQuestion)) {
-    hadEDNS = true;
-    dnssecOK = ((dnsdist::getEDNSZ(dnsQuestion) & EDNS_HEADER_FLAG_DO) != 0);
-  }
-
+  auto [hadEDNS, dnssecOK] = getEDNSStatusInQuery(dnsQuestion);
   auto& data = dnsQuestion.getMutableData();
   data.resize(sizeof(dnsheader) + qnameWireLength + 4 + numberOfRecords * 12 /* recordstart */ + totrdatalen); // there goes your EDNS
   size_t position = sizeof(dnsheader) + qnameWireLength + 4;
@@ -187,13 +198,7 @@ bool generateAnswerFromRDataEntries(DNSQuestion& dnsQuestion, const std::vector<
     return false;
   }
 
-  bool dnssecOK = false;
-  bool hadEDNS = false;
-  if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses && queryHasEDNS(dnsQuestion)) {
-    hadEDNS = true;
-    dnssecOK = ((dnsdist::getEDNSZ(dnsQuestion) & EDNS_HEADER_FLAG_DO) != 0);
-  }
-
+  auto [hadEDNS, dnssecOK] = getEDNSStatusInQuery(dnsQuestion);
   auto& data = dnsQuestion.getMutableData();
   data.resize(sizeof(dnsheader) + qnameWireLength + 4 + numberOfRecords * 12 /* recordstart */ + totrdatalen); // there goes your EDNS
   size_t position = sizeof(dnsheader) + qnameWireLength + 4;
@@ -246,12 +251,7 @@ bool generateAnswerFromRawPacket(DNSQuestion& dnsQuestion, const PacketBuffer& p
 
 bool removeRecordsAndSetRCode(DNSQuestion& dnsQuestion, uint8_t rcode)
 {
-  bool dnssecOK = false;
-  bool hadEDNS = false;
-  if (dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses && queryHasEDNS(dnsQuestion)) {
-    hadEDNS = true;
-    dnssecOK = ((dnsdist::getEDNSZ(dnsQuestion) & EDNS_HEADER_FLAG_DO) != 0);
-  }
+  auto [hadEDNS, dnssecOK] = getEDNSStatusInQuery(dnsQuestion);
 
   dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [rcode](dnsheader& header) {
     header.rcode = rcode;
