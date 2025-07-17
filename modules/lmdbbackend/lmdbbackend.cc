@@ -1101,8 +1101,8 @@ static std::shared_ptr<DNSRecordContent> deserializeContentZR(uint16_t qtype, co
 // }
 static bool peekAtHasOrderName(const string_view& buffer)
 {
-  uint16_t len;
-  memcpy(&len, &buffer[0], 2);
+  uint16_t len{0};
+  memcpy(&len, buffer.data(), 2);
   bool hasOrderName = buffer[2 + len + 4 + 2] != 0;
   return hasOrderName;
 }
@@ -1110,8 +1110,8 @@ static bool peekAtHasOrderName(const string_view& buffer)
 // Similar to the above, but for the auth field.
 static bool peekAtAuth(const string_view& buffer)
 {
-  uint16_t len;
-  memcpy(&len, &buffer[0], 2);
+  uint16_t len{0};
+  memcpy(&len, buffer.data(), 2);
   bool auth = buffer[2 + len + 4] != 0;
   return auth;
 }
@@ -1119,10 +1119,10 @@ static bool peekAtAuth(const string_view& buffer)
 // Similar to the above, but for the ttl.
 static uint32_t peekAtTtl(const string_view& buffer)
 {
-  uint16_t len;
-  memcpy(&len, &buffer[0], 2);
-  uint32_t ttl;
-  memcpy(&ttl, &buffer[2] + len, 4);
+  uint16_t len{0};
+  memcpy(&len, buffer.data(), 2);
+  uint32_t ttl{0};
+  memcpy(&ttl, buffer.data() + 2 + len, 4);
   return ttl;
 }
 
@@ -2663,7 +2663,7 @@ bool LMDBBackend::getBeforeAndAfterNamesAbsolute(domainid_t id, const DNSName& q
     }
     // cout<<"Went backwards, found "<<before<<endl;
     // return us to starting point
-    while (count--) {
+    while (count-- != 0) {
       cursor.next(key, val);
     }
   }
