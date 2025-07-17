@@ -301,3 +301,47 @@ query_rules:
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEqual(receivedResponse, expectedResponse)
+
+class TestYamlNMGRuleObject(DNSDistTest):
+
+    _yaml_config_template = """---
+binds:
+  - listen_address: "127.0.0.1:%d"
+    protocol: Do53
+
+backends:
+  - address: "127.0.0.1:%d"
+    protocol: Do53
+
+netmask_groups:
+  - name: "my-mng"
+    netmasks:
+      - "192.0.2.1/32"
+      - "127.0.0.1/32"
+
+query_rules:
+  - name: "refuse queries from specific netmasks"
+    selector:
+      type: "NetmaskGroup"
+      netmask_group_name: "my-mng"
+    action:
+      type: "RCode"
+      rcode: "5"
+"""
+    _yaml_config_params = ['_dnsDistPort', '_testServerPort']
+    _config_params = []
+
+    def testYamlNMGRule(self):
+        """
+        YAML: NMGRule (via a NMG object) should refuse our queries
+        """
+        name = 'nmgrule-object.yaml.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.set_rcode(dns.rcode.REFUSED)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertEqual(receivedResponse, expectedResponse)
