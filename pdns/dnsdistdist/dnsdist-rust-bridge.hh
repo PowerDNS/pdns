@@ -33,10 +33,12 @@ struct DNSResponseActionWrapper
 struct ProtobufLoggerConfiguration;
 struct DnstapLoggerConfiguration;
 struct KeyValueStoresConfiguration;
+struct NetmaskGroupConfiguration;
 
 void registerProtobufLogger(const ProtobufLoggerConfiguration& config);
 void registerDnstapLogger(const DnstapLoggerConfiguration& config);
 void registerKVSObjects(const KeyValueStoresConfiguration& config);
+void registerNMGObjects(const ::rust::Vec<NetmaskGroupConfiguration>& nmgs);
 
 #include "dnsdist-rust-bridge-actions-generated.hh"
 #include "dnsdist-rust-bridge-selectors-generated.hh"
