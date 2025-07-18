@@ -44,13 +44,13 @@ def init_argparser():
                                                  'test PowerDNS repositories.')
     parser.add_argument('release', metavar='RELEASE',
                         choices=[# Authoritative Server
-                                 'auth-47', 'auth-48', 'auth-49',
+                                 'auth-47', 'auth-48', 'auth-49', 'auth-50',
                                  'auth-master',
                                  # Recursor
-                                 'rec-48', 'rec-49', 'rec-50', 'rec-51',
+                                 'rec-48', 'rec-49', 'rec-50', 'rec-51', 'rec-52', 'rec-53',
                                  'rec-master',
                                  # DNSDist
-                                 'dnsdist-17', 'dnsdist-18', 'dnsdist-19',
+                                 'dnsdist-17', 'dnsdist-18', 'dnsdist-19', 'dnsdist-20',
                                  'dnsdist-master'],
                         help='the release to generate Docker files for: ' +
                              '%(choices)s')
@@ -136,28 +136,39 @@ def write_release_files (release):
     if g_verbose:
         print("Writing release files...")
 
-    if release in ['auth-47', 'auth-48', 'auth-49', 'auth-master',
-                   'rec-48', 'rec-49', 'rec-50', 'rec-51', 'rec-master',
-                   'dnsdist-17', 'dnsdist-18', 'dnsdist-19', 'dnsdist-master']:
+    if release in ['auth-47', 'auth-48', 'auth-49', 'auth-50', 'auth-master',
+                   'rec-48', 'rec-49', 'rec-50', 'rec-51', 'rec-52', 'rec-53', 'rec-master',
+                   'dnsdist-17', 'dnsdist-18', 'dnsdist-19', 'dnsdist-20', 'dnsdist-master']:
         write_pkg_pin_file(release)
         write_dockerfile('el', '8', release)
         write_dockerfile('el', '9', release)
         write_dockerfile('debian', 'bullseye', release)
         write_list_file('debian', 'bullseye', release)
-        write_dockerfile('ubuntu', 'focal', release)
-        write_list_file('ubuntu', 'focal', release)
+        if release != 'auth-50' and release != 'rec-53' and release != 'dnsdist-20':
+            write_dockerfile('ubuntu', 'focal', release)
+            write_list_file('ubuntu', 'focal', release)
         write_dockerfile('ubuntu', 'jammy', release)
         write_list_file('ubuntu', 'jammy', release)
 
-    if release in ['auth-48', 'auth-49', 'auth-master',
-                   'rec-48', 'rec-49', 'rec-50', 'rec-51', 'rec-master',
-                   'dnsdist-19', 'dnsdist-master']:
+    if release in ['rec-53', 'rec-master',
+                   'dnsdist-20', 'dnsdist-master']:
+        write_dockerfile('el', '10', release)
+
+    if release in ['auth-48', 'auth-49', 'auth-50', 'auth-master',
+                   'rec-48', 'rec-49', 'rec-50', 'rec-51', 'rec-52', 'rec-53', 'rec-master',
+                   'dnsdist-19', 'dnsdist-20', 'dnsdist-master']:
         write_dockerfile('debian', 'bookworm', release)
         write_list_file('debian', 'bookworm', release)
 
-    if release in ['auth-49', 'auth-master',
-                   'rec-50', 'rec-51', 'rec-master',
-                   'dnsdist-19', 'dnsdist-master']:
+    if release in ['auth-49', 'auth-50', 'auth-master',
+                   'rec-53', 'rec-master',
+                   'dnsdist-20', 'dnsdist-master']:
+        write_dockerfile('debian', 'trixie', release)
+        write_list_file('debian', 'trixie', release)
+
+    if release in ['auth-49', 'auth-50', 'auth-master',
+                   'rec-50', 'rec-51', 'rec-52', 'rec-53', 'rec-master',
+                   'dnsdist-19', 'dnsdist-20', 'dnsdist-master']:
         write_dockerfile('ubuntu', 'noble', release)
         write_list_file('ubuntu', 'noble', release)
 
@@ -244,8 +255,8 @@ def test_release (release, arch='x86_64'):
     returned_versions = []
     print('=== testing {} ({}) ==='.format(release, arch))
     for df in dockerfiles:
-        if arch == 'aarch64' and not release in ['rec-49', 'rec-50', 'rec-51', 'rec-master',
-                                                 'dnsdist-19', 'dnsdist-master']:
+        if arch == 'aarch64' and not release in ['auth-50', 'auth-49', 'rec-49', 'rec-50', 'rec-51', 'rec-52', 'rec-53', 'rec-master',
+                                                 'dnsdist-19', 'dnsdist-20', 'dnsdist-master']:
             continue
         if g_verbose:
             print('--- {} ---'.format(df))
