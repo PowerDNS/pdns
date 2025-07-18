@@ -355,6 +355,7 @@ private:
   DNSName d_lookupsubmatch;
   vector<LMDBResourceRecord> d_currentrrset;
   size_t d_currentrrsetpos;
+  time_t d_currentrrsettime;
   MDBOutVal d_currentKey;
   MDBOutVal d_currentVal;
   bool d_includedisabled;

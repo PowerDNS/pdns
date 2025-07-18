@@ -90,7 +90,7 @@ public:
 
   // Aligned on 8-byte boundaries on systems where time_t is 8 bytes and int
   // is 4 bytes, aka modern linux on x86_64
-  time_t last_modified{}; //!< For autocalculating SOA serial numbers - the backend needs to fill this in
+  time_t last_modified{}; //!< Timestamp of last update, if known by the backend
 
   uint32_t ttl{}; //!< Time To Live of this record
   uint32_t signttl{}; //!< If non-zero, use this TTL as original TTL in the RRSIG

@@ -525,9 +525,13 @@ static void fillZone(UeberBackend& backend, const ZoneName& zonename, HttpRespon
 
       while (rit != records.end() && rit->qname == current_qname && rit->qtype == current_qtype) {
         ttl = min(ttl, rit->ttl);
-        rrset_records.push_back(Json::object{
+        auto object = Json::object{
           {"disabled", rit->disabled},
-          {"content", makeApiRecordContent(rit->qtype, rit->content)}});
+          {"content", makeApiRecordContent(rit->qtype, rit->content)}};
+        if (rit->last_modified != 0) {
+          object["modified_at"] = (double)rit->last_modified;
+        }
+        rrset_records.push_back(object);
         rit++;
       }
       while (cit != comments.end() && cit->qname == current_qname && cit->qtype == current_qtype) {
@@ -2596,6 +2600,9 @@ static void apiServerSearchData(HttpRequest* req, HttpResponse* resp)
         {"ttl", (double)resourceRecord.ttl},
         {"disabled", resourceRecord.disabled},
         {"content", makeApiRecordContent(resourceRecord.qtype, resourceRecord.content)}};
+      if (resourceRecord.last_modified != 0) {
+        object["modified_at"] = (double)resourceRecord.last_modified;
+      }
 
       val = zoneIdZone.find(resourceRecord.domain_id);
       if (val != zoneIdZone.end()) {
