@@ -45,6 +45,6 @@ private:
 
   static constexpr size_t s_cacheSize{10};
   static constexpr time_t s_cacheValiditySeconds{60};
-  static LockGuarded<boost::circular_buffer<Entry>> s_cache;
+  static SharedLockGuarded<boost::circular_buffer<Entry>> s_cache;
 };
 }
