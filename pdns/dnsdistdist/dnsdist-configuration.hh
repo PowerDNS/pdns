@@ -22,10 +22,10 @@
 #pragma once
 
 #include <functional>
-#include <map>
 #include <memory>
 #include <optional>
 #include <string>
+#include <unordered_map>
 
 #include "config.h"
 #include "credentials.hh"
@@ -118,7 +118,7 @@ struct RuntimeConfiguration
 #ifndef DISABLE_CARBON
   std::vector<dnsdist::Carbon::Endpoint> d_carbonEndpoints;
 #endif /* DISABLE_CARBON */
-  std::map<std::string, std::shared_ptr<ServerPool>> d_pools;
+  std::unordered_map<std::string, std::shared_ptr<ServerPool>> d_pools;
   std::shared_ptr<const CredentialsHolder> d_webPassword;
   std::shared_ptr<const CredentialsHolder> d_webAPIKey;
   std::optional<std::unordered_map<std::string, std::string>> d_webCustomHeaders;
