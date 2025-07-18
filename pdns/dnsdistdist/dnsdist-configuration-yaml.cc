@@ -1215,13 +1215,19 @@ bool loadConfigurationFromFile(const std::string& fileName, [[maybe_unused]] boo
     }
 
     for (const auto& pool : globalConfig.pools) {
-      std::shared_ptr<ServerPool> poolObj = createPoolIfNotExists(std::string(pool.name));
-      if (!pool.packet_cache.empty()) {
-        poolObj->packetCache = getRegisteredTypeByName<DNSDistPacketCache>(pool.packet_cache);
-      }
-      if (!pool.policy.empty()) {
-        poolObj->policy = getRegisteredTypeByName<ServerPolicy>(pool.policy);
-      }
+      dnsdist::configuration::updateRuntimeConfiguration([&pool](dnsdist::configuration::RuntimeConfiguration& config) {
+        auto [poolIt, inserted] = config.d_pools.emplace(std::string(pool.name), ServerPool());
+        if (inserted) {
+          vinfolog("Creating pool %s", pool.name);
+        }
+
+        if (!pool.packet_cache.empty()) {
+          poolIt->second.packetCache = getRegisteredTypeByName<DNSDistPacketCache>(pool.packet_cache);
+        }
+        if (!pool.policy.empty()) {
+          poolIt->second.policy = getRegisteredTypeByName<ServerPolicy>(pool.policy);
+        }
+      });
     }
 
     loadRulesConfiguration(globalConfig);

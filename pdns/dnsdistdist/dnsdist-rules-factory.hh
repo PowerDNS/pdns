@@ -1178,7 +1178,7 @@ public:
   bool matches(const DNSQuestion* dnsQuestion) const override
   {
     (void)dnsQuestion;
-    return (getPool(d_poolname)->countServers(true) > 0);
+    return (getPool(d_poolname).countServers(true) > 0);
   }
 
   string toString() const override
@@ -1201,7 +1201,7 @@ public:
   bool matches(const DNSQuestion* dnsQuestion) const override
   {
     (void)dnsQuestion;
-    return (getPool(d_poolname)->poolLoad()) > d_limit;
+    return (getPool(d_poolname).poolLoad()) > d_limit;
   }
 
   string toString() const override

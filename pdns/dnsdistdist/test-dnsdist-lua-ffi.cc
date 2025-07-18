@@ -505,10 +505,10 @@ BOOST_AUTO_TEST_CASE(test_PacketCache)
   packetCache->insert(key, subnet, *(getFlagsFromDNSHeader(dq.getHeader().get())), dnssecOK, ids.qname, QType::A, QClass::IN, response, receivedOverUDP, 0, boost::none);
 
   std::string poolName("test-pool");
-  auto testPool = std::make_shared<ServerPool>();
-  testPool->packetCache = packetCache;
+  auto testPool = ServerPool();
+  testPool.packetCache = packetCache;
   std::string poolWithNoCacheName("test-pool-without-cache");
-  auto testPoolWithNoCache = std::make_shared<ServerPool>();
+  auto testPoolWithNoCache = ServerPool();
   dnsdist::configuration::updateRuntimeConfiguration([&poolName, &testPool, &poolWithNoCacheName, &testPoolWithNoCache](dnsdist::configuration::RuntimeConfiguration& config) {
     config.d_pools.emplace(poolName, testPool);
     config.d_pools.emplace(poolWithNoCacheName, testPoolWithNoCache);

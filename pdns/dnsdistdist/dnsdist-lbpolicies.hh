@@ -92,13 +92,13 @@ public:
 struct ServerPool;
 
 using pools_t = std::map<std::string, std::shared_ptr<ServerPool>>;
-std::shared_ptr<ServerPool> getPool(const std::string& poolName);
-std::shared_ptr<ServerPool> createPoolIfNotExists(const string& poolName);
+const ServerPool& getPool(const std::string& poolName);
+const ServerPool& createPoolIfNotExists(const string& poolName);
 void setPoolPolicy(const string& poolName, std::shared_ptr<ServerPolicy> policy);
 void addServerToPool(const string& poolName, std::shared_ptr<DownstreamState> server);
 void removeServerFromPool(const string& poolName, std::shared_ptr<DownstreamState> server);
 
-std::shared_ptr<const ServerPolicy::NumberedServerVector> getDownstreamCandidates(const std::string& poolName);
+const ServerPolicy::NumberedServerVector& getDownstreamCandidates(const std::string& poolName);
 
 std::shared_ptr<DownstreamState> firstAvailable(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq);
 

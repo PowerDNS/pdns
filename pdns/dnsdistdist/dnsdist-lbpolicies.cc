@@ -289,13 +289,12 @@ shared_ptr<DownstreamState> orderedWrandUntag(const ServerPolicy::NumberedServer
   return wrandom(candidates, dnsq);
 }
 
-std::shared_ptr<const ServerPolicy::NumberedServerVector> getDownstreamCandidates(const std::string& poolName)
+const ServerPolicy::NumberedServerVector& getDownstreamCandidates(const std::string& poolName)
 {
-  std::shared_ptr<ServerPool> pool = getPool(poolName);
-  return pool->getServers();
+  return getPool(poolName).getServers();
 }
 
-std::shared_ptr<ServerPool> createPoolIfNotExists(const string& poolName)
+const ServerPool& createPoolIfNotExists(const string& poolName)
 {
   {
     const auto& pools = dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools;
@@ -309,40 +308,47 @@ std::shared_ptr<ServerPool> createPoolIfNotExists(const string& poolName)
     vinfolog("Creating pool %s", poolName);
   }
 
-  auto pool = std::make_shared<ServerPool>();
-  dnsdist::configuration::updateRuntimeConfiguration([&poolName,&pool](dnsdist::configuration::RuntimeConfiguration& config) {
-    config.d_pools.emplace(poolName, pool);
+  dnsdist::configuration::updateRuntimeConfiguration([&poolName](dnsdist::configuration::RuntimeConfiguration& config) {
+    config.d_pools.emplace(poolName, ServerPool());
   });
 
-  return pool;
+  {
+    const auto& pools = dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools;
+    const auto poolIt = pools.find(poolName);
+    return poolIt->second;
+  }
 }
 
 void setPoolPolicy(const string& poolName, std::shared_ptr<ServerPolicy> policy)
 {
-  std::shared_ptr<ServerPool> pool = createPoolIfNotExists(poolName);
   if (!poolName.empty()) {
     vinfolog("Setting pool %s server selection policy to %s", poolName, policy->getName());
   } else {
     vinfolog("Setting default pool server selection policy to %s", policy->getName());
   }
-  pool->policy = std::move(policy);
+
+  dnsdist::configuration::updateRuntimeConfiguration([&poolName, &policy](dnsdist::configuration::RuntimeConfiguration& config) {
+    auto [poolIt, inserted] = config.d_pools.emplace(poolName, ServerPool());
+    poolIt->second.policy = std::move(policy);
+  });
 }
 
 void addServerToPool(const string& poolName, std::shared_ptr<DownstreamState> server)
 {
-  std::shared_ptr<ServerPool> pool = createPoolIfNotExists(poolName);
   if (!poolName.empty()) {
     vinfolog("Adding server to pool %s", poolName);
   } else {
     vinfolog("Adding server to default pool");
   }
-  pool->addServer(server);
+
+  dnsdist::configuration::updateRuntimeConfiguration([&poolName, &server](dnsdist::configuration::RuntimeConfiguration& config) {
+    auto [poolIt, inserted] = config.d_pools.emplace(poolName, ServerPool());
+    poolIt->second.addServer(server);
+  });
 }
 
 void removeServerFromPool(const string& poolName, std::shared_ptr<DownstreamState> server)
 {
-  std::shared_ptr<ServerPool> pool = getPool(poolName);
-
   if (!poolName.empty()) {
     vinfolog("Removing server from pool %s", poolName);
   }
@@ -350,10 +356,13 @@ void removeServerFromPool(const string& poolName, std::shared_ptr<DownstreamStat
     vinfolog("Removing server from default pool");
   }
 
-  pool->removeServer(server);
+  dnsdist::configuration::updateRuntimeConfiguration([&poolName, &server](dnsdist::configuration::RuntimeConfiguration& config) {
+    auto [poolIt, inserted] = config.d_pools.emplace(poolName, ServerPool());
+    poolIt->second.removeServer(server);
+  });
 }
 
-std::shared_ptr<ServerPool> getPool(const std::string& poolName)
+const ServerPool& getPool(const std::string& poolName)
 {
   const auto& pools = dnsdist::configuration::getCurrentRuntimeConfiguration().d_pools;
   auto poolIt = pools.find(poolName);

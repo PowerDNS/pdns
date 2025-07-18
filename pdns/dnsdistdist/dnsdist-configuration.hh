@@ -33,6 +33,7 @@
 #include "dnsdist-carbon.hh"
 #include "dnsdist-query-count.hh"
 #include "dnsdist-rule-chains.hh"
+#include "dnsdist-server-pool.hh"
 #include "iputils.hh"
 
 class ServerPolicy;
@@ -118,7 +119,7 @@ struct RuntimeConfiguration
 #ifndef DISABLE_CARBON
   std::vector<dnsdist::Carbon::Endpoint> d_carbonEndpoints;
 #endif /* DISABLE_CARBON */
-  std::unordered_map<std::string, std::shared_ptr<ServerPool>> d_pools;
+  std::unordered_map<std::string, ServerPool> d_pools;
   std::shared_ptr<const CredentialsHolder> d_webPassword;
   std::shared_ptr<const CredentialsHolder> d_webAPIKey;
   std::optional<std::unordered_map<std::string, std::string>> d_webCustomHeaders;

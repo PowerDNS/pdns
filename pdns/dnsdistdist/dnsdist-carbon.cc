@@ -194,13 +194,13 @@ static bool doOneCarbonExport(const Carbon::Endpoint& endpoint)
       base += ".pools.";
       base += poolName;
       base += ".";
-      const std::shared_ptr<ServerPool> pool = entry.second;
+      const ServerPool& pool = entry.second;
       str << base << "servers"
-          << " " << pool->countServers(false) << " " << now << "\r\n";
+          << " " << pool.countServers(false) << " " << now << "\r\n";
       str << base << "servers-up"
-          << " " << pool->countServers(true) << " " << now << "\r\n";
-      if (pool->packetCache != nullptr) {
-        const auto& cache = pool->packetCache;
+          << " " << pool.countServers(true) << " " << now << "\r\n";
+      if (pool.packetCache != nullptr) {
+        const auto& cache = pool.packetCache;
         str << base << "cache-size"
             << " " << cache->getMaxEntries() << " " << now << "\r\n";
         str << base << "cache-entries"
