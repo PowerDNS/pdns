@@ -2554,6 +2554,41 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         rrsets = base_rrsets + templated_rrsets(invalid_rrsets, name)
         self.put_zone(name, {'rrsets': rrsets}, expect_error=expected_error)
 
+    @unittest.skipIf(not is_auth_lmdb(), "No rrset timestamps except with LMDB")
+    def test_check_rrset_modified_at(self):
+        name = 'host-18000.example.com.'
+        r = self.session.get(self.url("/api/v1/servers/localhost/zones"))
+        domains = r.json()
+        example_com = [domain for domain in domains if domain['name'] == u'example.com.'][0]
+
+        # verify single record from name that has a single record
+        data = self.get_zone(example_com['id'], rrset_name="host-18000.example.com.")
+        modified_at = data['rrsets'][0]['records'][0]['modified_at']
+
+        # write back the same data anyway, to get a new timestamp
+        rrset = {
+            'changetype': 'replace',
+            'name': name,
+            'type': 'A',
+            'ttl': 120,
+            'records':
+            [
+                {
+                    'content': '192.168.1.80',
+                }
+            ]
+        }
+        payload = {'rrsets': [rrset]}
+        r = self.session.patch(
+            self.url("/api/v1/servers/localhost/zones/example.com"),
+            data=json.dumps(payload),
+            headers={'content-type': 'application/json'})
+        self.assert_success(r)
+
+        # get the changed record.
+        data = self.get_zone(example_com['id'], rrset_name="host-18000.example.com.")
+        modified_at_new = data['rrsets'][0]['records'][0]['modified_at']
+        self.assertGreater(modified_at_new, modified_at)
 
 @unittest.skipIf(not is_auth(), "Not applicable")
 class AuthRootZone(ApiTestCase, AuthZonesHelperMixin):
