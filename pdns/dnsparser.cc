@@ -1161,6 +1161,10 @@ bool getEDNSUDPPayloadSizeAndZ(const char* packet, size_t length, uint16_t* payl
   try
   {
     const dnsheader_aligned dh(packet);
+    if (dh->arcount == 0) {
+      return false;
+    }
+
     DNSPacketMangler dpm(const_cast<char*>(packet), length);
 
     const uint16_t qdcount = ntohs(dh->qdcount);
@@ -1172,17 +1176,18 @@ bool getEDNSUDPPayloadSizeAndZ(const char* packet, size_t length, uint16_t* payl
     const size_t numrecords = ntohs(dh->ancount) + ntohs(dh->nscount) + ntohs(dh->arcount);
     for(size_t n = 0; n < numrecords; ++n) {
       dpm.skipDomainName();
-      const uint16_t dnstype = dpm.get16BitInt();
-      const uint16_t dnsclass = dpm.get16BitInt();
+      const auto dnstype = dpm.get16BitInt();
 
-      if(dnstype == QType::OPT) {
+      if (dnstype == QType::OPT) {
+        const auto dnsclass = dpm.get16BitInt();
         /* skip extended rcode and version */
         dpm.skipBytes(2);
         *z = dpm.get16BitInt();
         *payloadSize = dnsclass;
         return true;
       }
-
+      /* skip class */
+      dpm.skipBytes(2);
       /* TTL */
       dpm.skipBytes(4);
       dpm.skipRData();
