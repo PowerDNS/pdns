@@ -110,14 +110,10 @@ public:
   int getRWTX();
   void incRWTX();
   void decRWTX();
-  int getROTX();
-  void incROTX();
-  void decROTX();
 private:
   std::mutex d_openmut;
   std::shared_mutex d_countmutex;
   std::unordered_map<std::thread::id, std::atomic<int>> d_RWtransactionsOut;
-  std::unordered_map<std::thread::id, std::atomic<int>> d_ROtransactionsOut;
 };
 
 std::shared_ptr<MDBEnv> getMDBEnv(const char* fname, int flags, int mode, uint64_t mapsizeMB);
