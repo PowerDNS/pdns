@@ -1015,16 +1015,10 @@ unsigned int DownstreamState::getQPSLimit() const
   return d_qpsLimiter ? d_qpsLimiter->getRate() : 0U;
 }
 
-size_t ServerPool::countServers(bool upOnly)
+size_t ServerPool::countServers(bool upOnly) const
 {
-  std::shared_ptr<const ServerPolicy::NumberedServerVector> servers = nullptr;
-  {
-    auto lock = d_servers.read_lock();
-    servers = *lock;
-  }
-
   size_t count = 0;
-  for (const auto& server : *servers) {
+  for (const auto& server : d_servers) {
     if (!upOnly || std::get<1>(server)->isUp() ) {
       count++;
     }
@@ -1033,51 +1027,36 @@ size_t ServerPool::countServers(bool upOnly)
   return count;
 }
 
-size_t ServerPool::poolLoad()
+size_t ServerPool::poolLoad() const
 {
-  std::shared_ptr<const ServerPolicy::NumberedServerVector> servers = nullptr;
-  {
-    auto lock = d_servers.read_lock();
-    servers = *lock;
-  }
-
   size_t load = 0;
-  for (const auto& server : *servers) {
+  for (const auto& server : d_servers) {
     size_t serverOutstanding = std::get<1>(server)->outstanding.load();
     load += serverOutstanding;
   }
   return load;
 }
 
-const std::shared_ptr<const ServerPolicy::NumberedServerVector> ServerPool::getServers()
+const ServerPolicy::NumberedServerVector& ServerPool::getServers() const
 {
-  std::shared_ptr<const ServerPolicy::NumberedServerVector> result;
-  {
-    result = *(d_servers.read_lock());
-  }
-  return result;
+  return d_servers;
 }
 
-void ServerPool::addServer(shared_ptr<DownstreamState>& server)
+void ServerPool::addServer(std::shared_ptr<DownstreamState>& server)
 {
-  auto servers = d_servers.write_lock();
-  /* we can't update the content of the shared pointer directly even when holding the lock,
-     as other threads might hold a copy. We can however update the pointer as long as we hold the lock. */
-  unsigned int count = static_cast<unsigned int>((*servers)->size());
-  auto newServers = ServerPolicy::NumberedServerVector(*(*servers));
-  newServers.emplace_back(++count, server);
+  unsigned int count = static_cast<unsigned int>(d_servers.size());
+  d_servers.emplace_back(++count, server);
   /* we need to reorder based on the server 'order' */
-  std::stable_sort(newServers.begin(), newServers.end(), [](const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& a, const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& b) {
+  std::stable_sort(d_servers.begin(), d_servers.end(), [](const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& a, const std::pair<unsigned int,std::shared_ptr<DownstreamState> >& b) {
       return a.second->d_config.order < b.second->d_config.order;
     });
   /* and now we need to renumber for Lua (custom policies) */
   size_t idx = 1;
-  for (auto& serv : newServers) {
+  for (auto& serv : d_servers) {
     serv.first = idx++;
   }
-  *servers = std::make_shared<const ServerPolicy::NumberedServerVector>(std::move(newServers));
 
-  if ((*servers)->size() == 1) {
+  if (d_servers.size() == 1) {
     d_tcpOnly = server->isTCPOnly();
   }
   else if (!server->isTCPOnly()) {
@@ -1087,14 +1066,10 @@ void ServerPool::addServer(shared_ptr<DownstreamState>& server)
 
 void ServerPool::removeServer(shared_ptr<DownstreamState>& server)
 {
-  auto servers = d_servers.write_lock();
-  /* we can't update the content of the shared pointer directly even when holding the lock,
-     as other threads might hold a copy. We can however update the pointer as long as we hold the lock. */
-  auto newServers = std::make_shared<ServerPolicy::NumberedServerVector>(*(*servers));
   size_t idx = 1;
   bool found = false;
   bool tcpOnly = true;
-  for (auto it = newServers->begin(); it != newServers->end();) {
+  for (auto it = d_servers.begin(); it != d_servers.end();) {
     if (found) {
       tcpOnly = tcpOnly && it->second->isTCPOnly();
       /* we need to renumber the servers placed
@@ -1103,7 +1078,7 @@ void ServerPool::removeServer(shared_ptr<DownstreamState>& server)
       it++;
     }
     else if (it->second == server) {
-      it = newServers->erase(it);
+      it = d_servers.erase(it);
       found = true;
     } else {
       tcpOnly = tcpOnly && it->second->isTCPOnly();
@@ -1112,7 +1087,6 @@ void ServerPool::removeServer(shared_ptr<DownstreamState>& server)
     }
   }
   d_tcpOnly = tcpOnly;
-  *servers = std::move(newServers);
 }
 
 namespace dnsdist::backend
