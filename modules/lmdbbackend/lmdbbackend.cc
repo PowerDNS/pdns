@@ -1751,6 +1751,8 @@ bool LMDBBackend::deleteDomain(const ZoneName& domain)
  *                 cursor, i.e. same qname but possibly different qtype)
  * d_currentrrsetpos: position in the above when returning its elements one
  *                    by one
+ * d_currentrrsettime: timestamp of d_currentrrset (can't be stored in
+ *                     DNSZoneRecord)
  * d_currentKey: database key at cursor
  * d_currentVal: database contents at cursor
  * d_includedisabled: whether to include disabled records in the results
@@ -1900,6 +1902,7 @@ bool LMDBBackend::get(DNSZoneRecord& zr)
       }
 
       deserializeFromBuffer(d_currentVal.get<string_view>(), d_currentrrset);
+      d_currentrrsettime = LMDBLS::LSgetTimestamp(d_currentVal.getNoStripHeader<string_view>()) / (1000UL * 1000UL * 1000UL);
       d_currentrrsetpos = 0;
     }
     else {
@@ -1963,6 +1966,7 @@ bool LMDBBackend::get(DNSResourceRecord& rr)
   rr.domain_id = zr.domain_id;
   rr.auth = zr.auth;
   rr.disabled = zr.disabled;
+  rr.last_modified = d_currentrrsettime;
 
   return true;
 }
