@@ -1902,7 +1902,7 @@ bool LMDBBackend::get(DNSZoneRecord& zr)
       }
 
       deserializeFromBuffer(d_currentVal.get<string_view>(), d_currentrrset);
-      d_currentrrsettime = LMDBLS::LSgetTimestamp(d_currentVal.getNoStripHeader<string_view>()) / (1000UL * 1000UL * 1000UL);
+      d_currentrrsettime = static_cast<time_t>(LMDBLS::LSgetTimestamp(d_currentVal.getNoStripHeader<string_view>()) / (1000UL * 1000UL * 1000UL));
       d_currentrrsetpos = 0;
     }
     else {
