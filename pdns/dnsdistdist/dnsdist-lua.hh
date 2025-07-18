@@ -85,6 +85,16 @@ std::optional<FunctionType> getFunctionFromLuaCode(const std::string& code, cons
 
   return std::nullopt;
 }
+
+struct LuaServerPoolObject
+{
+  LuaServerPoolObject(std::string name) :
+    poolName(std::move(name))
+  {
+  }
+
+  std::string poolName;
+};
 }
 
 namespace dnsdist::configuration::lua
