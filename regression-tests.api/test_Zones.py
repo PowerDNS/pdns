@@ -10,9 +10,15 @@ from pprint import pprint
 from test_helper import ApiTestCase, unique_zone_name, is_auth, is_auth_lmdb, is_recursor, get_db_records, pdnsutil_rectify, sdig
 
 
+def remove_timestamp(json):
+    for item in json:
+        if 'modified_at' in item:
+            del item['modified_at']
+
 def get_rrset(data, qname, qtype):
     for rrset in data['rrsets']:
         if rrset['name'] == qname and rrset['type'] == qtype:
+            remove_timestamp(rrset['records'])
             return rrset
     return None
 
@@ -887,7 +893,10 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
         data = self.get_zone(example_com['id'], rrset_name="host-18000.example.com.")
         for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial', 'rrsets'):
             self.assertIn(k, data)
-        self.assertEqual(data['rrsets'],
+        received_rrsets = data['rrsets']
+        for rrset in received_rrsets:
+            remove_timestamp(rrset['records'])
+        self.assertEqual(received_rrsets,
             [
                 {
                     'comments': [],
@@ -943,7 +952,10 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
         data = self.get_zone(powerdnssec_org['id'], rrset_name="localhost.powerdnssec.org.")
         for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial', 'rrsets'):
             self.assertIn(k, data)
-        self.assertEqual(sorted(data['rrsets'], key=operator.itemgetter('type')),
+        received_rrsets = data['rrsets']
+        for rrset in received_rrsets:
+            remove_timestamp(rrset['records'])
+        self.assertEqual(sorted(received_rrsets, key=operator.itemgetter('type')),
             [
                 {
                     'comments': [],
@@ -978,7 +990,10 @@ class AuthZones(ApiTestCase, AuthZonesHelperMixin):
         data = self.get_zone(powerdnssec_org['id'], rrset_name="localhost.powerdnssec.org.", rrset_type="AAAA")
         for k in ('id', 'url', 'name', 'masters', 'kind', 'last_check', 'notified_serial', 'serial', 'rrsets'):
             self.assertIn(k, data)
-        self.assertEqual(data['rrsets'],
+        received_rrsets = data['rrsets']
+        for rrset in received_rrsets:
+            remove_timestamp(rrset['records'])
+        self.assertEqual(received_rrsets,
             [
                 {
                     'comments': [],
@@ -2123,8 +2138,10 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         self.create_zone(name=name, serial=22, soa_edit_api='')
         r = self.session.get(self.url("/api/v1/servers/localhost/search-data?q=" + name.rstrip('.')))
         self.assert_success_json(r)
-        print(r.json())
-        self.assertCountEqual(r.json(), [
+        json = r.json()
+        print(json)
+        remove_timestamp(json)
+        self.assertCountEqual(json, [
             {u'object_type': u'zone', u'name': name, u'zone_id': name},
             {u'content': u'ns1.example.com.',
              u'zone_id': name, u'zone': name, u'object_type': u'record', u'disabled': False,
@@ -2154,8 +2171,10 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
         self.create_zone(name=name, serial=22, soa_edit_api='')
         r = self.session.get(self.url("/api/v1/servers/localhost/search-data?q=" + name.rstrip('.') + "&object_type=" + data_type))
         self.assert_success_json(r)
-        print(r.json())
-        self.assertCountEqual(r.json(), [
+        json = r.json()
+        print(json)
+        remove_timestamp(json)
+        self.assertCountEqual(json, [
             {u'content': u'ns1.example.com.',
              u'zone_id': name, u'zone': name, u'object_type': u'record', u'disabled': False,
              u'ttl': 3600, u'type': u'NS', u'name': name},
@@ -2443,7 +2462,10 @@ $NAME$  1D  IN  SOA ns1.example.org. hostmaster.example.org. (
             rrset.setdefault('comments', [])
             for record in rrset['records']:
                 record.setdefault('disabled', False)
-        assert_eq_rrsets(data['rrsets'], rrsets)
+        received_rrsets = data['rrsets']
+        for rrset in received_rrsets:
+            remove_timestamp(rrset['records'])
+        assert_eq_rrsets(received_rrsets, rrsets)
 
     def test_zone_replace_rrsets_dnssec(self):
         """With dnssec: check automatic rectify is done"""
