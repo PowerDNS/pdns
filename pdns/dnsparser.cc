@@ -1162,6 +1162,7 @@ bool getEDNSUDPPayloadSizeAndZ(const char* packet, size_t length, uint16_t* payl
   {
     const dnsheader_aligned dh(packet);
     if (dh->arcount == 0) {
+      // The OPT pseudo-RR, if present, has to be in the additional section (https://datatracker.ietf.org/doc/html/rfc6891#section-6.1.1)
       return false;
     }
 
