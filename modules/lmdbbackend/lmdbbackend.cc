@@ -1854,24 +1854,32 @@ void LMDBBackend::lookupStart(domainid_t domain_id, const std::string& match, bo
   }
 }
 
-bool LMDBBackend::get(DNSZoneRecord& zr)
+bool LMDBBackend::getInternal(DNSName& basename, std::string_view& key)
 {
   for (;;) {
+    if (!d_currentrrset.empty()) {
+      if (++d_currentrrsetpos >= d_currentrrset.size()) {
+        d_currentrrset.clear(); // will invalidate lrr
+        if (d_getcursor && d_getcursor->next(d_currentKey, d_currentVal) != 0) {
+          // cerr<<"resetting d_getcursor 2"<<endl;
+          d_getcursor.reset();
+        }
+      }
+    }
+
     // std::cerr<<"d_getcursor="<<d_getcursor<<std::endl;
     if (!d_getcursor) {
       d_rotxn.reset();
       return false;
     }
 
-    string_view key;
-
     if (d_currentrrset.empty()) {
       d_getcursor->current(d_currentKey, d_currentVal);
 
       key = d_currentKey.getNoStripHeader<string_view>();
-      zr.dr.d_type = compoundOrdername::getQType(key).getCode();
+      QType qtype = compoundOrdername::getQType(key).getCode();
 
-      if (zr.dr.d_type == QType::NSEC3) {
+      if (qtype == QType::NSEC3) {
         // Hit a magic NSEC3 skipping
         if (d_getcursor->next(d_currentKey, d_currentVal) != 0) {
           // cerr<<"resetting d_getcursor 1"<<endl;
@@ -1888,32 +1896,13 @@ bool LMDBBackend::get(DNSZoneRecord& zr)
       key = d_currentKey.getNoStripHeader<string_view>();
     }
     try {
-      const auto& lrr = d_currentrrset.at(d_currentrrsetpos++);
-      DNSName basename;
+      const auto& lrr = d_currentrrset.at(d_currentrrsetpos);
       bool validRecord = d_includedisabled || !lrr.disabled;
 
       if (validRecord) {
         basename = compoundOrdername::getQName(key);
         if (!d_lookupsubmatch.empty()) {
           validRecord = basename.isPartOf(d_lookupsubmatch);
-        }
-      }
-
-      if (validRecord) {
-        zr.dr.d_name = basename + d_lookupdomain.operator const DNSName&();
-        zr.domain_id = compoundOrdername::getDomainID(key);
-        zr.dr.d_type = compoundOrdername::getQType(key).getCode();
-        zr.dr.d_ttl = lrr.ttl;
-        zr.dr.setContent(deserializeContentZR(zr.dr.d_type, zr.dr.d_name, lrr.content));
-        zr.auth = lrr.auth;
-        zr.disabled = lrr.disabled;
-      }
-
-      if (d_currentrrsetpos >= d_currentrrset.size()) {
-        d_currentrrset.clear(); // will invalidate lrr
-        if (d_getcursor->next(d_currentKey, d_currentVal) != 0) {
-          // cerr<<"resetting d_getcursor 2"<<endl;
-          d_getcursor.reset();
         }
       }
 
@@ -1926,6 +1915,31 @@ bool LMDBBackend::get(DNSZoneRecord& zr)
     }
 
     break;
+  }
+
+  return true;
+}
+
+bool LMDBBackend::get(DNSZoneRecord& zr) // NOLINT(readability-identifier-length)
+{
+  DNSName basename;
+  std::string_view key;
+
+  if (!getInternal(basename, key)) {
+    return false;
+  }
+  const auto& lrr = d_currentrrset.at(d_currentrrsetpos);
+  try {
+    zr.dr.d_name = basename + d_lookupdomain.operator const DNSName&();
+    zr.domain_id = compoundOrdername::getDomainID(key);
+    zr.dr.d_type = compoundOrdername::getQType(key).getCode();
+    zr.dr.d_ttl = lrr.ttl;
+    zr.dr.setContent(deserializeContentZR(zr.dr.d_type, zr.dr.d_name, lrr.content));
+    zr.auth = lrr.auth;
+    zr.disabled = lrr.disabled;
+  }
+  catch (const std::exception& e) {
+    throw PDNSException(e.what());
   }
 
   return true;
@@ -3149,7 +3163,70 @@ string LMDBBackend::directBackendCmd(const string& query)
     }
   }
 
+  if (cmd == "list") {
+    return directBackendCmd_list(argv);
+  }
+
   return "unknown lmdbbackend command\n";
+}
+
+string LMDBBackend::directBackendCmd_list(std::vector<string>& argv)
+{
+  ostringstream ret;
+
+  if (argv.size() < 2) {
+    ret << "need a domain name" << endl;
+    return ret.str();
+  }
+  ZoneName zone(argv[1]);
+
+  DomainInfo info;
+  if (!getDomainInfo(zone, info, false)) {
+    ret << "zone " << zone << " not found" << endl;
+    return ret.str();
+  }
+  list(zone, info.id, true);
+  {
+    DNSName basename;
+    std::string_view key;
+    while (getInternal(basename, key)) {
+      const auto& lrr = d_currentrrset.at(d_currentrrsetpos);
+      DNSName qname = basename + d_lookupdomain.operator const DNSName&();
+      QType qtype = compoundOrdername::getQType(key);
+      DNSRecord record;
+      record.setContent(deserializeContentZR(qtype, qname, lrr.content));
+      std::string content = record.getContent()->getZoneRepresentation(true);
+      // Mimic the `prio' field in SQL
+      int prio{0};
+      if (qtype == QType::MX || qtype == QType::SRV) {
+        if (auto pos = content.find_first_not_of("0123456789"); pos != std::string::npos) {
+          pdns::checked_stoi_into(prio, content.substr(0, pos));
+          content.erase(0, pos);
+          boost::trim_left(content);
+        }
+      }
+      ret << qname << "\t" << qtype.toString() << "\t" << prio << "\t" << content << "\t" << lrr.ttl;
+      if (lrr.hasOrderName) {
+        ret << "\t'";
+        // The get() logic skips the NSEC3 records containing the information
+        // we need, and there is no way to nest lookups. But the NSEC3
+        // record has a unique key we can compute, so we can fetch it
+        // without disturbing the current get() cursor.
+        compoundOrdername order;
+        MDBOutVal val{};
+        if (d_rotxn->txn->get(d_rotxn->db->dbi, order(info.id, basename, QType::NSEC3), val) == 0) {
+          LMDBResourceRecord nsec3rr;
+          deserializeFromBuffer(val.get<string_view>(), nsec3rr);
+          DNSName ordername(nsec3rr.content.c_str(), nsec3rr.content.size(), 0, false);
+          ret << ordername;
+        }
+        ret << "'\t";
+        ret << static_cast<int>(lrr.auth);
+      }
+      ret << std::endl;
+    }
+  }
+  return ret.str();
 }
 
 bool LMDBBackend::hasCreatedLocalFiles() const
