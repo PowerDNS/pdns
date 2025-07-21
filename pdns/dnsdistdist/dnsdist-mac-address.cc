@@ -25,7 +25,7 @@
 
 namespace dnsdist
 {
-LockGuarded<boost::circular_buffer<MacAddressesCache::Entry>> MacAddressesCache::s_cache;
+SharedLockGuarded<boost::circular_buffer<MacAddressesCache::Entry>> MacAddressesCache::s_cache;
 
 int MacAddressesCache::get(const ComboAddress& ca, unsigned char* dest, size_t destLen)
 {
@@ -37,7 +37,7 @@ int MacAddressesCache::get(const ComboAddress& ca, unsigned char* dest, size_t d
   time_t now = time(nullptr);
 
   {
-    auto cache = s_cache.lock();
+    auto cache = s_cache.read_lock();
     for (const auto& entry : *cache) {
       if (entry.ttd >= now && compare(entry.ca, ca) == true) {
         if (!entry.found) {
@@ -51,22 +51,22 @@ int MacAddressesCache::get(const ComboAddress& ca, unsigned char* dest, size_t d
   }
 
   auto res = getMACAddress(ca, reinterpret_cast<char*>(dest), destLen);
+  Entry entry;
+  entry.ca = ca;
+  if (res == 0) {
+    memcpy(entry.mac.data(), dest, entry.mac.size());
+    entry.found = true;
+  }
+  else {
+    memset(entry.mac.data(), 0, entry.mac.size());
+    entry.found = false;
+  }
+  entry.ttd = now + MacAddressesCache::s_cacheValiditySeconds;
   {
-    auto cache = s_cache.lock();
+    auto cache = s_cache.write_lock();
     if (cache->capacity() == 0) {
       cache->set_capacity(MacAddressesCache::s_cacheSize);
     }
-    Entry entry;
-    entry.ca = ca;
-    if (res == 0) {
-      memcpy(entry.mac.data(), dest, entry.mac.size());
-      entry.found = true;
-    }
-    else {
-      memset(entry.mac.data(), 0, entry.mac.size());
-      entry.found = false;
-    }
-    entry.ttd = now + MacAddressesCache::s_cacheValiditySeconds;
     cache->push_back(std::move(entry));
   }
 
