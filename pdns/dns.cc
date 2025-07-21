@@ -145,6 +145,16 @@ std::string Opcode::to_s(uint8_t opcode) {
   return s_opcodes.at(opcode);
 }
 
+std::optional<uint8_t> Opcode::from_lowercase_string(const std::string_view& opcode_string)
+{
+  static const std::array<std::string, 6> s_opcodes = { "query", "iquery", "status", "3", "notify", "update" };
+  const auto* position = std::find(s_opcodes.begin(), s_opcodes.end(), opcode_string);
+  if (position == s_opcodes.end()) {
+    return std::nullopt;
+  }
+  return std::distance(s_opcodes.begin(), position);
+}
+
 // goal is to hash based purely on the question name, and turn error into 'default'
 uint32_t hashQuestion(const uint8_t* packet, uint16_t packet_len, uint32_t init, bool& wasOK)
 {
