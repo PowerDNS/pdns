@@ -1521,7 +1521,7 @@ public:
 
     auto [protocol, httpProtocol] = ProtocolToDNSTap(dnsquestion->getProtocol());
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    DnstapMessagemessage(std::move(data), !dnsquestion->getHeader()->qr ? DnstapMessage::MessageType::client_query : DnstapMessage::MessageType::client_response, d_identity, &dnsquestion->ids.origRemote, &dnsquestion->ids.origDest, protocol, reinterpret_cast<const char*>(dnsquestion->getData().data()), dnsquestion->getData().size(), &dnsquestion->getQueryRealTime(), nullptr, boost::none, httpProtocol);
+    DnstapMessage message(std::move(data), !dnsquestion->getHeader()->qr ? DnstapMessage::MessageType::client_query : DnstapMessage::MessageType::client_response, d_identity, &dnsquestion->ids.origRemote, &dnsquestion->ids.origDest, protocol, reinterpret_cast<const char*>(dnsquestion->getData().data()), dnsquestion->getData().size(), &dnsquestion->getQueryRealTime(), nullptr, boost::none, httpProtocol);
     {
       if (d_alterFunc) {
         auto lock = g_lua.lock();

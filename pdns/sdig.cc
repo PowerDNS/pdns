@@ -97,10 +97,11 @@ static void fillPacket(vector<uint8_t>& packet, const string& q, const string& t
     if (otids) {
       const auto traceid = otids->first;
       const auto spanid = otids->second;
-      std::array<uint8_t, 1 + traceid.size() + spanid.size()> data{};
-      data.at(0) = 0; // version
-      std::copy(traceid.begin(), traceid.end(), &data.at(1));
-      std::copy(spanid.begin(), spanid.end(), &data.at(1 + traceid.size()));
+      std::array<uint8_t, pdns::trace::EDNSOTTraceRecord::fullSize> data{};
+      pdns::trace::EDNSOTTraceRecord record{data.data()};
+      record.setVersion(0);
+      record.setTraceID(traceid);
+      record.setSpanID(spanid);
       opts.emplace_back(EDNSOptionCode::OTTRACEIDS, std::string_view(reinterpret_cast<const char*>(data.data()), data.size())); // NOLINT
     }
     pw.addOpt(bufsize, 0, dnssec ? EDNSOpts::DNSSECOK : 0, opts);
