@@ -725,28 +725,24 @@ void dnsdist_ffi_servers_list_get_server(const dnsdist_ffi_servers_list_t* list,
   *out = &list->ffiServers.at(idx);
 }
 
-static size_t dnsdist_ffi_servers_get_index_from_server(const ServerPolicy::NumberedServerVector& servers, const std::shared_ptr<DownstreamState>& server)
-{
-  for (const auto& pair : servers) {
-    if (pair.second == server) {
-      return pair.first - 1;
-    }
-  }
-  throw std::runtime_error("Unable to find servers in server list");
-}
-
 size_t dnsdist_ffi_servers_list_chashed(const dnsdist_ffi_servers_list_t* list, const dnsdist_ffi_dnsquestion_t* dq, size_t hash)
 {
   (void)dq;
-  auto server = chashedFromHash(list->servers, hash);
-  return dnsdist_ffi_servers_get_index_from_server(list->servers, server);
+  auto serverPosition = chashedFromHash(list->servers, hash);
+  if (!serverPosition) {
+    throw std::runtime_error("Unable to find servers in server list");
+  }
+  return *serverPosition;
 }
 
 size_t dnsdist_ffi_servers_list_whashed(const dnsdist_ffi_servers_list_t* list, const dnsdist_ffi_dnsquestion_t* dq, size_t hash)
 {
   (void)dq;
-  auto server = whashedFromHash(list->servers, hash);
-  return dnsdist_ffi_servers_get_index_from_server(list->servers, server);
+  auto serverPosition = whashedFromHash(list->servers, hash);
+  if (!serverPosition) {
+    throw std::runtime_error("Unable to find servers in server list");
+  }
+  return *serverPosition;
 }
 
 uint64_t dnsdist_ffi_server_get_outstanding(const dnsdist_ffi_server_t* server)

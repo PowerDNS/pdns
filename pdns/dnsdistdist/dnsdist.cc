@@ -1424,14 +1424,14 @@ static ProcessQueryResult handleQueryTurnedIntoSelfAnsweredResponse(DNSQuestion&
   return ProcessQueryResult::SendAnswer;
 }
 
-static void selectBackendForOutgoingQuery(DNSQuestion& dnsQuestion, const ServerPool& serverPool, std::shared_ptr<DownstreamState>& selectedBackend)
+static ServerPolicy::SelectedBackend selectBackendForOutgoingQuery(DNSQuestion& dnsQuestion, const ServerPool& serverPool)
 {
   const auto& policy = serverPool.policy != nullptr ? *serverPool.policy : *dnsdist::configuration::getCurrentRuntimeConfiguration().d_lbPolicy;
   const auto& servers = serverPool.getServers();
-  selectedBackend = policy.getSelectedBackend(servers, dnsQuestion);
+  return policy.getSelectedBackend(servers, dnsQuestion);
 }
 
-ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& selectedBackend)
+ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_ptr<DownstreamState>& outgoingBackend)
 {
   const uint16_t queryId = ntohs(dnsQuestion.getHeader()->id);
 
@@ -1440,7 +1440,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
       return handleQueryTurnedIntoSelfAnsweredResponse(dnsQuestion);
     }
     const auto& serverPool = getPool(dnsQuestion.ids.poolName);
-    selectBackendForOutgoingQuery(dnsQuestion, serverPool, selectedBackend);
+    auto selectedBackend = selectBackendForOutgoingQuery(dnsQuestion, serverPool);
     bool willBeForwardedOverUDP = !dnsQuestion.overTCP() || dnsQuestion.ids.protocol == dnsdist::Protocol::DoH;
     if (selectedBackend && selectedBackend->isTCPOnly()) {
       willBeForwardedOverUDP = false;
@@ -1541,7 +1541,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
       if (dnsQuestion.ids.poolName != existingPool) {
         const auto& newServerPool = getPool(dnsQuestion.ids.poolName);
         dnsQuestion.ids.packetCache = newServerPool.packetCache;
-        selectBackendForOutgoingQuery(dnsQuestion, newServerPool, selectedBackend);
+        selectedBackend = selectBackendForOutgoingQuery(dnsQuestion, newServerPool);
       }
       else {
         dnsQuestion.ids.packetCache = serverPool.packetCache;
@@ -1581,6 +1581,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
     }
 
     selectedBackend->incQueriesCount();
+    outgoingBackend = selectedBackend.get();
     return ProcessQueryResult::PassToBackend;
   }
   catch (const std::exception& e) {

@@ -244,6 +244,7 @@ dnsdist_SOURCES = \
 	dnsdist-rules.cc dnsdist-rules.hh \
 	dnsdist-secpoll.cc dnsdist-secpoll.hh \
 	dnsdist-self-answers.cc dnsdist-self-answers.hh \
+	dnsdist-server-pool.hh \
 	dnsdist-session-cache.cc dnsdist-session-cache.hh \
 	dnsdist-snmp.cc dnsdist-snmp.hh \
 	dnsdist-svc.cc dnsdist-svc.hh \
