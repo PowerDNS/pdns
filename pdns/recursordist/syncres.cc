@@ -4188,8 +4188,8 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
   std::unordered_set<DNSName> allowedAnswerNames = {qname};
   bool cnameSeen = false;
   bool haveAnswers = false;
-  bool isNXDomain = false;
-  bool isNXQType = false;
+  bool acceptDelegation = false;
+  bool soaInAuth = false;
 
   std::vector<bool> skipvec(lwr.d_records.size(), false);
   unsigned int counter = 0;
@@ -4306,17 +4306,10 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
           ++skipCount;
           continue;
         }
-
-        if (!haveAnswers) {
-          switch (lwr.d_rcode) {
-          case RCode::NXDomain:
-            isNXDomain = true;
-            break;
-          case RCode::NoError:
-            isNXQType = true;
-            break;
-          }
-        }
+        soaInAuth = true;
+      }
+      if (!haveAnswers && lwr.d_rcode == RCode::NoError) {
+        acceptDelegation = true;
       }
     }
     /* dealing with records in additional */
@@ -4330,10 +4323,10 @@ void SyncRes::sanitizeRecords(const std::string& prefix, LWResult& lwr, const DN
     }
   } // end of first loop, handled answer and most of authority section
 
-  sanitizeRecordsPass2(prefix, lwr, qname, qtype, auth, allowedAnswerNames, allowedAdditionals, cnameSeen, isNXDomain, isNXQType, skipvec, skipCount);
+  sanitizeRecordsPass2(prefix, lwr, qname, qtype, auth, allowedAnswerNames, allowedAdditionals, cnameSeen, acceptDelegation && !soaInAuth, skipvec, skipCount);
 }
 
-void SyncRes::sanitizeRecordsPass2(const std::string& prefix, LWResult& lwr, const DNSName& qname, const QType qtype, const DNSName& auth, std::unordered_set<DNSName>& allowedAnswerNames, std::unordered_set<DNSName>& allowedAdditionals, bool cnameSeen, bool isNXDomain, bool isNXQType, std::vector<bool>& skipvec, unsigned int& skipCount)
+void SyncRes::sanitizeRecordsPass2(const std::string& prefix, LWResult& lwr, const DNSName& qname, const QType qtype, const DNSName& auth, std::unordered_set<DNSName>& allowedAnswerNames, std::unordered_set<DNSName>& allowedAdditionals, bool cnameSeen, bool acceptDelegation, std::vector<bool>& skipvec, unsigned int& skipCount)
 {
   // Second loop, we know now if the answer was NxDomain or NoData
   unsigned int counter = 0;
@@ -4362,13 +4355,13 @@ void SyncRes::sanitizeRecordsPass2(const std::string& prefix, LWResult& lwr, con
       }
     }
     if (rec->d_place == DNSResourceRecord::AUTHORITY && rec->d_type == QType::NS) {
-      if (isNXDomain || isNXQType) {
+      if (!acceptDelegation) {
         /*
-         * We don't want to pick up NS records in AUTHORITY and their ADDITIONAL sections of NXDomain answers
+         * We don't want to pick up NS records in AUTHORITY and their ADDITIONAL sections of NXDomain answers and answers with answer records
          * because they are somewhat easy to insert into a large, fragmented UDP response
          * for an off-path attacker by injecting spoofed UDP fragments. So do not add these to allowedAdditionals.
          */
-        LOG(prefix << qname << ": Removing NS record '" << rec->toString() << "' in the AUTHORITY section of a " << (isNXDomain ? "NXD" : "NXQTYPE") << " response received from " << auth << endl);
+        LOG(prefix << qname << ": Removing NS record '" << rec->toString() << "' in the AUTHORITY section of a response received from " << auth << endl);
         skipvec[counter] = true;
         ++skipCount;
         continue;
