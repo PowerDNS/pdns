@@ -610,7 +610,7 @@ public:
 
   void skipRData()
   {
-    int toskip = get16BitInt();
+    auto toskip = get16BitInt();
     moveOffset(toskip);
   }
 
