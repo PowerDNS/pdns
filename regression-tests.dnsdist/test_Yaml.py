@@ -391,3 +391,66 @@ query_rules:
             sender = getattr(self, method)
             (_, receivedResponse) = sender(query, response=None, useQueue=False)
             self.assertEqual(receivedResponse, expectedResponse)
+
+class TestYamlOpcode(DNSDistTest):
+
+    _yaml_config_template = """---
+binds:
+  - listen_address: "127.0.0.1:%d"
+    protocol: Do53
+
+backends:
+  - address: "127.0.0.1:%d"
+    protocol: Do53
+
+query_rules:
+  - name: "refuse queries from specific opcode"
+    selector:
+      type: "Opcode"
+      code: "NOTIFY"
+    action:
+      type: "RCode"
+      rcode: "Refused"
+"""
+    _yaml_config_params = ['_dnsDistPort', '_testServerPort']
+    _config_params = []
+
+    def testRefuseOpcodeNotify(self):
+        """
+        YAML: Refuse Opcode NOTIFY
+        """
+        name = 'opcodenotify.yaml.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'A', 'IN')
+        query.set_opcode(dns.opcode.NOTIFY)
+        query.flags &= ~dns.flags.RD
+        expectedResponse = dns.message.make_response(query)
+        expectedResponse.set_rcode(dns.rcode.REFUSED)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (_, receivedResponse) = sender(query, response=None, useQueue=False)
+            self.assertEqual(receivedResponse, expectedResponse)
+
+    def testAllowOpcodeUpdate(self):
+        """
+        YAML: Allow Opcode UPDATE
+        """
+        name = 'opcodeupdate.yaml.tests.powerdns.com.'
+        query = dns.message.make_query(name, 'SOA', 'IN')
+        query.set_opcode(dns.opcode.UPDATE)
+        response = dns.message.make_response(query)
+        rrset = dns.rrset.from_text(name,
+                                    3600,
+                                    dns.rdataclass.IN,
+                                    dns.rdatatype.A,
+                                    '127.0.0.1')
+        response.answer.append(rrset)
+
+        for method in ("sendUDPQuery", "sendTCPQuery"):
+            sender = getattr(self, method)
+            (receivedQuery, receivedResponse) = sender(query, response)
+            self.assertTrue(receivedQuery)
+            self.assertTrue(receivedResponse)
+            receivedQuery.id = query.id
+            self.assertEqual(query, receivedQuery)
+            self.assertEqual(response, receivedResponse)

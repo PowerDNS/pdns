@@ -25,6 +25,7 @@
 
 #define BOOST_TEST_NO_MAIN
 
+#include <boost/algorithm/string.hpp>
 #include <boost/test/unit_test.hpp>
 
 #include "dns.hh"
@@ -68,9 +69,14 @@ BOOST_AUTO_TEST_CASE(test_opcode)
   for (uint8_t idx = Opcode::Query; idx <= Opcode::Update; idx++) {
     auto long_s = Opcode::to_s(idx);
     BOOST_CHECK(long_s.size() > 0);
+    boost::to_lower(long_s);
+    auto opcode = Opcode::from_lowercase_string(long_s);
+    BOOST_CHECK(opcode);
+    BOOST_CHECK_EQUAL(*opcode, idx);
   }
 
   BOOST_CHECK_EQUAL(Opcode::to_s(Opcode::Update + 1), std::to_string(Opcode::Update + 1));
+  BOOST_CHECK(!Opcode::from_lowercase_string("notanopcode"));
 }
 
 BOOST_AUTO_TEST_CASE(test_resource_record_place)

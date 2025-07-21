@@ -154,6 +154,17 @@ static uint16_t strToQType(const std::string& context, const std::string& parame
   return qtype;
 }
 
+static uint8_t strToOpcode(const std::string& context, const std::string& parameterName, const ::rust::String& opcode_rust_string)
+{
+  auto opcode_str = std::string(opcode_rust_string);
+  boost::to_lower(opcode_str);
+  auto opcode = Opcode::from_lowercase_string(opcode_str);
+  if (!opcode) {
+    return checkedConversionFromStr<uint8_t>(context, parameterName, opcode_rust_string);
+  }
+  return *opcode;
+}
+
 static std::optional<std::string> loadContentFromConfigurationFile(const std::string& fileName)
 {
   /* no check on the file size, don't do this with just any file! */
