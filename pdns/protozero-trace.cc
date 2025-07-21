@@ -515,13 +515,14 @@ void extractOTraceIDs(const EDNSOptionViewMap& map, pdns::trace::InitialSpanInfo
   const auto traceIDSize = span.trace_id.size();
 
   if (const auto& option = map.find(EDNSOptionCode::OTTRACEIDS); option != map.end()) {
+    // 1 byte version, then tracid  then optinal spanid
     if (option->second.values.size() > 0) {
-      if (option->second.values.at(0).size >= traceIDSize) {
+      if (option->second.values.at(0).size >= 1 + traceIDSize) {
         traceidset = true;
-        pdns::trace::fill(span.trace_id, option->second.values.at(0).content, traceIDSize);
+        pdns::trace::fill(span.trace_id, &option->second.values.at(0).content[1], traceIDSize);  // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic) it's the API
       }
-      if (option->second.values.at(0).size == traceIDSize + span.parent_span_id.size()) {
-        pdns::trace::fill(span.parent_span_id, &option->second.values.at(0).content[traceIDSize], span.parent_span_id.size()); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic) it's the API
+      if (option->second.values.at(0).size == 1 + traceIDSize + span.parent_span_id.size()) {
+        pdns::trace::fill(span.parent_span_id, &option->second.values.at(0).content[traceIDSize + 1], span.parent_span_id.size()); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic) it's the API
       }
     }
   }
