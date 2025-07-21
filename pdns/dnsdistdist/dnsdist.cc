@@ -641,18 +641,18 @@ void handleResponseSent(const DNSName& qname, const QType& qtype, double udiff, 
   doLatencyStats(incomingProtocol, udiff);
 }
 
-static void handleResponseTC4UDPClient(uint16_t udpPayloadSize, PacketBuffer& response, DNSResponse& dnsResponse)
+static void handleResponseTC4UDPClient(DNSQuestion& dnsQuestion, uint16_t udpPayloadSize, PacketBuffer& response)
 {
   if (udpPayloadSize > 0 && response.size() > udpPayloadSize) {
     vinfolog("Got a response of size %d while the initial UDP payload size was %d, truncating", response.size(), udpPayloadSize);
-    truncateTC(dnsResponse.getMutableData(), dnsResponse.getMaximumSize(), dnsResponse.ids.qname.wirelength(), dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses);
-    dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsResponse.getMutableData(), [](dnsheader& header) {
+    truncateTC(dnsQuestion.getMutableData(), dnsQuestion.getMaximumSize(), dnsQuestion.ids.qname.wirelength(), dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses);
+    dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [](dnsheader& header) {
       header.tc = true;
       return true;
     });
   }
-  else if (dnsResponse.getHeader()->tc && dnsdist::configuration::getCurrentRuntimeConfiguration().d_truncateTC) {
-    truncateTC(response, dnsResponse.getMaximumSize(), dnsResponse.ids.qname.wirelength(), dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses);
+  else if (dnsQuestion.getHeader()->tc && dnsdist::configuration::getCurrentRuntimeConfiguration().d_truncateTC) {
+    truncateTC(response, dnsQuestion.getMaximumSize(), dnsQuestion.ids.qname.wirelength(), dnsdist::configuration::getCurrentRuntimeConfiguration().d_addEDNSToSelfGeneratedResponses);
   }
 }
 
@@ -660,7 +660,7 @@ static void handleResponseForUDPClient(InternalQueryState& ids, PacketBuffer& re
 {
   DNSResponse dnsResponse(ids, response, backend);
 
-  handleResponseTC4UDPClient(ids.udpPayloadSize, response, dnsResponse);
+  handleResponseTC4UDPClient(dnsResponse, ids.udpPayloadSize, response);
 
   /* when the answer is encrypted in place, we need to get a copy
      of the original header before encryption to fill the ring buffer */
@@ -1885,8 +1885,7 @@ static void processUDPQuery(ClientState& clientState, const struct msghdr* msgh,
 #endif /* defined(HAVE_RECVMMSG) && defined(HAVE_SENDMMSG) && defined(MSG_WAITFORONE) */
 #endif /* DISABLE_RECVMMSG */
       /* ensure payload size is not exceeded */
-      DNSResponse dnsResponse(ids, query, nullptr);
-      handleResponseTC4UDPClient(udpPayloadSize, query, dnsResponse);
+      handleResponseTC4UDPClient(dnsQuestion, udpPayloadSize, query);
       /* we use dest, always, because we don't want to use the listening address to send a response since it could be 0.0.0.0 */
       sendUDPResponse(clientState.udpFD, query, dnsQuestion.ids.delayMsec, dest, remote);
 
