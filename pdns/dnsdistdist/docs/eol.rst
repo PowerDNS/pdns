@@ -5,11 +5,9 @@ We aim to have a major release every six months. The latest major release train 
 
 Older releases are marked end of life and receive no updates at all. Pre-releases do not receive immediate security updates.
 
-The currently supported release train of PowerDNS DNSdist is 1.9.
+The currently supported release train of PowerDNS DNSdist is 2.0.
 
-PowerDNS DNSdist 1.8 will only receive critical updates and will be End of Life one year after PowerDNS DNSdist 1.9 was released.
-
-PowerDNS DNSdist 1.7 will only receive critical updates and will be End of Life one year after PowerDNS DNSdist 1.8 was released.
+PowerDNS DNSdist 1.9 will only receive critical updates and will be End of Life one year after PowerDNS DNSdist 2.0 was released.
 
 Older versions are End of Life.
 
@@ -25,16 +23,16 @@ Older versions are End of Life.
      - End of Life
    * - 1.9
      - February 16 2024
-     -
-     -
+     - July 21st 2025
+     - July 21st 2026
    * - 1.8
      - March 30 2023
      - February 16 2024
-     - February 16 2025
+     - EOL (February 16 2025)
    * - 1.7
      - January 17 2022
      - March 30 2023
-     - March 30 2024
+     - EOL (March 30 2024)
    * - 1.6
      - May 11 2021
      - March 30 2023
