@@ -2,6 +2,46 @@ Changelog
 =========
 
 .. changelog::
+  :version: 2.0.0
+  :released: 21st of July 2025
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15875
+
+    Fix out-of-tree builds with autotools
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 15876
+
+    Improve the scalability of the MAC address cache
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 15877
+
+    Small speedup for ``getEDNSUDPPayloadSizeAndZ()``
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 15878
+
+    Avoid constructing a :class:`DNSResponse` object when not really needed
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 15879
+
+    Use an unordered map for pools
+
+  .. change::
+    :tags: Improvements, Performance
+    :pullreq: 15880
+
+    Only parse EDNS ``Z`` once
+
+.. changelog::
   :version: 2.0.0-rc2
   :released: 17th of July 2025
 
