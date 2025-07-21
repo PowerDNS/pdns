@@ -4,6 +4,20 @@ Changelogs for 5.0.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.0.12
+  :released: 21st of July 2025
+
+  .. change::
+     :tags: Bug Fixes
+     :pullreq: 15853
+
+     Fix PowerDNS Security Advisory 2025-04: A Recursor configured to send out ECS enabled queries can be sensitive to spoofing attempts.
+
+.. changelog::
+  :version: 5.0.11
+  :released: This version was never made available publicly.
+
+.. changelog::
   :version: 5.0.10
   :released: 9th of April 2025
 

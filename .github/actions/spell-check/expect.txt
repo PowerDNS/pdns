@@ -37,6 +37,7 @@ anothertype
 ansible
 ANSSI
 Antoin
+AOSP
 apikey
 apizones
 AQAB
@@ -841,6 +842,7 @@ myuser
 mywebapp
 namedroppers
 nameserving
+Nankai
 naptr
 Nauck
 Navarrete
