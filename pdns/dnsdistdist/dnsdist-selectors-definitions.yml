@@ -215,7 +215,8 @@ Set the ``source`` parameter to ``false`` to match against destination address i
   description: "Matches queries with opcode equals to ``code``"
   parameters:
     - name: "code"
-      type: "u8"
+      type: "Opcode"
+      rust-type: "String"
       description: "The opcode to match"
 - name: "Or"
   description: "Matches the traffic if one or more of the selectors Rules does match"
