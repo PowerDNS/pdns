@@ -5285,7 +5285,9 @@ static int backendCmd(vector<string>& cmds, const std::string_view synopsis)
   }
 
   for (auto i = next(begin(cmds), 1); i != end(cmds); ++i) {
-    cerr << "== " << *i << endl;
+    if (cmds.size() != 2 && !g_quiet) {
+      cerr << "== " << *i << endl;
+    }
     cout << matchingBackend->directBackendCmd(*i);
   }
 
