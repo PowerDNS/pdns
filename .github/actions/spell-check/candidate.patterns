@@ -759,7 +759,7 @@ W/"[^"]+"
 # Library prefix
 # e.g., `lib`+`archive`, `lib`+`raw`, `lib`+`unwind`
 # (ignores some words that happen to start with `lib`)
-(?:\b|_)[Ll]ib(?:re(?=office)|)(?!era[lt]|ero|erty|rar(?:i(?:an|es)|y))(?=[a-z])
+#(?:\b|[_=])[Ll]ib(?:re(?=office|ssl)|)(?!era[lt]|ero|erty|rar(?:i(?:an|es)|y))(?=[a-z])
 
 # iSCSI iqn (approximate regex)
 \biqn\.[0-9]{4}-[0-9]{2}(?:[\.-][a-z][a-z0-9]*)*\b

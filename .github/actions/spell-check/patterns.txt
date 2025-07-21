@@ -58,7 +58,7 @@ DoH
 # Library prefix
 # e.g., `lib`+`archive`, `lib`+`raw`, `lib`+`unwind`
 # (ignores some words that happen to start with `lib`)
-(?:\b|_)[Ll]ib(?:re(?=office)|)(?!era[lt]|ero|erty|rar(?:i(?:an|es)|y))(?=[a-z])
+(?:\b|_)[Ll]ib(?:re(?=office|ssl)|)(?!era[lt]|ero|erty|rar(?:i(?:an|es)|y))(?=[a-z])
 
 # hit-count: 124 file-count: 50
 # Repeated letters
@@ -162,7 +162,7 @@ DoH
 \b(?:(?:[Ll]og(?:g(?=[a-z])|)|[Ss]ign)(?:ed|ing)?) in to\b
 
 # is (comparator) higher than
-#(?:record is|(?:a (?:bit|lot)|much)) higher than\b
+(?:record is|(?:a (?:bit|lot)|much)|of success) higher than\b
 
 # to opt in
 \bto opt in\b
