@@ -2853,7 +2853,10 @@ static bool showZone(DNSSECKeeper& dnsseckeeper, const ZoneName& zone, bool expo
 
     meta.clear();
     if (B.getDomainMetadata(zone, "AXFR-MASTER-TSIG", meta) && !meta.empty()) {
-      cout << "Zone uses following TSIG key(s): " << boost::join(meta, ",") << endl;
+      // Although AXFR-MASTER-TSIG may contain a list of keys, the current
+      // state of DNSSECKeeper::getTSIGForAccess() causes only the first one
+      // to be ever used, so only list the first item here.
+      cout << "Zone uses following TSIG key: " << meta.front() << endl;
     }
 
     std::map<std::string, std::vector<std::string> > metamap;

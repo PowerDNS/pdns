@@ -439,6 +439,10 @@ static void fillZone(UeberBackend& backend, const ZoneName& zonename, HttpRespon
   Json::array tsig_secondary_keys;
   for (const auto& keyname : tsig_secondary) {
     tsig_secondary_keys.emplace_back(apiNameToId(keyname));
+    // Although AXFR-MASTER-TSIG may contain a list of keys, the current
+    // state of DNSSECKeeper::getTSIGForAccess() causes only the first one
+    // to be ever used, so only return the first item here.
+    break;
   }
   doc["slave_tsig_key_ids"] = tsig_secondary_keys;
 
@@ -948,6 +952,9 @@ static void updateDomainSettingsFromDocument(UeberBackend& backend, DomainInfo& 
   if (!document["slave_tsig_key_ids"].is_null()) {
     vector<string> metadata;
     extractJsonTSIGKeyIds(backend, document["slave_tsig_key_ids"], metadata);
+    if (metadata.size() > 1) {
+      throw ApiException("Only one TSIG secondary key is currently allowed");
+    }
     if (!domainInfo.backend->setDomainMetadata(zonename, "AXFR-MASTER-TSIG", metadata)) {
       throw HttpInternalServerErrorException("Unable to set new TSIG secondary keys for zone '" + zonename.toString() + "'");
     }
