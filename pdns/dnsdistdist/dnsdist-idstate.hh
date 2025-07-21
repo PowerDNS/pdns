@@ -167,12 +167,12 @@ struct InternalQueryState
   uint16_t origFlags{0}; // 2
   uint16_t cacheFlags{0}; // DNS flags as sent to the backend // 2
   uint16_t udpPayloadSize{0}; // Max UDP payload size from the query // 2
+  std::optional<bool> dnssecOK;
   dnsdist::Protocol protocol; // 1
   uint8_t restartCount{0}; // 1
   bool ednsAdded{false};
   bool ecsAdded{false};
   bool skipCache{false};
-  bool dnssecOK{false};
   bool useZeroScope{false};
   bool forwardedOverUDP{false};
   bool selfGenerated{false};

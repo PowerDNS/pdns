@@ -526,7 +526,7 @@ bool processResponseAfterRules(PacketBuffer& response, DNSResponse& dnsResponse,
       // if zeroScope, pass the pre-ECS hash-key and do not pass the subnet to the cache
       cacheKey = dnsResponse.ids.cacheKeyNoECS;
     }
-    dnsResponse.ids.packetCache->insert(cacheKey, zeroScope ? boost::none : dnsResponse.ids.subnet, dnsResponse.ids.cacheFlags, dnsResponse.ids.dnssecOK, dnsResponse.ids.qname, dnsResponse.ids.qtype, dnsResponse.ids.qclass, response, dnsResponse.ids.forwardedOverUDP, dnsResponse.getHeader()->rcode, dnsResponse.ids.tempFailureTTL);
+    dnsResponse.ids.packetCache->insert(cacheKey, zeroScope ? boost::none : dnsResponse.ids.subnet, dnsResponse.ids.cacheFlags, dnsResponse.ids.dnssecOK ? *dnsResponse.ids.dnssecOK : false, dnsResponse.ids.qname, dnsResponse.ids.qtype, dnsResponse.ids.qclass, response, dnsResponse.ids.forwardedOverUDP, dnsResponse.getHeader()->rcode, dnsResponse.ids.tempFailureTTL);
 
     const auto& chains = dnsdist::configuration::getCurrentRuntimeConfiguration().d_ruleChains;
     const auto& cacheInsertedRespRuleActions = dnsdist::rules::getResponseRuleChain(chains, dnsdist::rules::ResponseRuleChain::CacheInsertedResponseRules);
@@ -1436,7 +1436,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
 
     uint32_t allowExpired = selectedBackend ? 0 : dnsdist::configuration::getCurrentRuntimeConfiguration().d_staleCacheEntriesTTL;
 
-    if (dnsQuestion.ids.packetCache && !dnsQuestion.ids.skipCache) {
+    if (dnsQuestion.ids.packetCache && !dnsQuestion.ids.skipCache && !dnsQuestion.ids.dnssecOK) {
       dnsQuestion.ids.dnssecOK = (dnsdist::getEDNSZ(dnsQuestion) & EDNS_HEADER_FLAG_DO) != 0;
     }
 
@@ -1445,7 +1445,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
       // we need ECS parsing (parseECS) to be true so we can be sure that the initial incoming query did not have an existing
       // ECS option, which would make it unsuitable for the zero-scope feature.
       if (dnsQuestion.ids.packetCache && !dnsQuestion.ids.skipCache && (!selectedBackend || !selectedBackend->d_config.disableZeroScope) && dnsQuestion.ids.packetCache->isECSParsingEnabled()) {
-        if (dnsQuestion.ids.packetCache->get(dnsQuestion, dnsQuestion.getHeader()->id, &dnsQuestion.ids.cacheKeyNoECS, dnsQuestion.ids.subnet, dnsQuestion.ids.dnssecOK, willBeForwardedOverUDP, allowExpired, false, true, false)) {
+        if (dnsQuestion.ids.packetCache->get(dnsQuestion, dnsQuestion.getHeader()->id, &dnsQuestion.ids.cacheKeyNoECS, dnsQuestion.ids.subnet, *dnsQuestion.ids.dnssecOK, willBeForwardedOverUDP, allowExpired, false, true, false)) {
 
           vinfolog("Packet cache hit for query for %s|%s from %s (%s, %d bytes)", dnsQuestion.ids.qname.toLogString(), QType(dnsQuestion.ids.qtype).toString(), dnsQuestion.ids.origRemote.toStringWithPort(), dnsQuestion.ids.protocol.toString(), dnsQuestion.getData().size());
 
@@ -1475,7 +1475,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
          For DoH, this lookup is done with the protocol set to TCP but we will retry over UDP below,
          therefore we do not record a miss for queries received over DoH and forwarded over TCP
          yet, as we will do a second-lookup */
-      if (dnsQuestion.ids.packetCache->get(dnsQuestion, dnsQuestion.getHeader()->id, dnsQuestion.ids.protocol == dnsdist::Protocol::DoH ? &dnsQuestion.ids.cacheKeyTCP : &dnsQuestion.ids.cacheKey, dnsQuestion.ids.subnet, dnsQuestion.ids.dnssecOK, dnsQuestion.ids.protocol != dnsdist::Protocol::DoH && willBeForwardedOverUDP, allowExpired, false, true, dnsQuestion.ids.protocol != dnsdist::Protocol::DoH || !willBeForwardedOverUDP)) {
+      if (dnsQuestion.ids.packetCache->get(dnsQuestion, dnsQuestion.getHeader()->id, dnsQuestion.ids.protocol == dnsdist::Protocol::DoH ? &dnsQuestion.ids.cacheKeyTCP : &dnsQuestion.ids.cacheKey, dnsQuestion.ids.subnet, *dnsQuestion.ids.dnssecOK, dnsQuestion.ids.protocol != dnsdist::Protocol::DoH && willBeForwardedOverUDP, allowExpired, false, true, dnsQuestion.ids.protocol != dnsdist::Protocol::DoH || !willBeForwardedOverUDP)) {
 
         dnsdist::PacketMangling::editDNSHeaderFromPacket(dnsQuestion.getMutableData(), [flags = dnsQuestion.ids.origFlags](dnsheader& header) {
           restoreFlags(&header, flags);
@@ -1495,7 +1495,7 @@ ProcessQueryResult processQueryAfterRules(DNSQuestion& dnsQuestion, std::shared_
       if (dnsQuestion.ids.protocol == dnsdist::Protocol::DoH && willBeForwardedOverUDP) {
         /* do a second-lookup for responses received over UDP, but we do not want TC=1 answers */
         /* we need to be careful to keep the existing cache-key (TCP) */
-        if (dnsQuestion.ids.packetCache->get(dnsQuestion, dnsQuestion.getHeader()->id, &dnsQuestion.ids.cacheKey, dnsQuestion.ids.subnet, dnsQuestion.ids.dnssecOK, true, allowExpired, false, false, true)) {
+        if (dnsQuestion.ids.packetCache->get(dnsQuestion, dnsQuestion.getHeader()->id, &dnsQuestion.ids.cacheKey, dnsQuestion.ids.subnet, *dnsQuestion.ids.dnssecOK, true, allowExpired, false, false, true)) {
           if (!prepareOutgoingResponse(*dnsQuestion.ids.cs, dnsQuestion, true)) {
             return ProcessQueryResult::Drop;
           }
@@ -1647,6 +1647,9 @@ public:
       uint16_t zValue = 0;
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
       getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(buffer.data()), buffer.size(), &ids.udpPayloadSize, &zValue);
+      if (!ids.dnssecOK) {
+        ids.dnssecOK = (zValue & EDNS_HEADER_FLAG_DO) != 0;
+      }
       if (ids.udpPayloadSize < 512) {
         ids.udpPayloadSize = 512;
       }
@@ -1860,6 +1863,9 @@ static void processUDPQuery(ClientState& clientState, const struct msghdr* msgh,
     uint16_t zValue = 0;
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     getEDNSUDPPayloadSizeAndZ(reinterpret_cast<const char*>(query.data()), query.size(), &udpPayloadSize, &zValue);
+    if (!ids.dnssecOK) {
+      ids.dnssecOK = (zValue & EDNS_HEADER_FLAG_DO) != 0;
+    }
     if (udpPayloadSize < 512) {
       udpPayloadSize = 512;
     }
