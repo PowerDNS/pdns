@@ -714,11 +714,11 @@ inline KeyValueList KeyValueList::decode(protozero::pbf_reader& reader)
 
 struct EDNSOTTraceRecord
 {
-  // 1 byte version 16 bytes traceid, optional 8 bytes spanid
-  static constexpr size_t fullSize = 1 + 16 + 8;
-  static constexpr size_t sizeNoSpanID = 1 + 16;
-  static constexpr size_t traceIDOffset = 1;
-  static constexpr size_t spanIDOffset = 1 + 16;
+  // 1 byte version, 1 byte reserved/alignment, 16 bytes traceid, optional 8 bytes spanid
+  static constexpr size_t fullSize = 1 + 1 + 16 + 8;
+  static constexpr size_t sizeNoSpanID = 1 + 1 + 16;
+  static constexpr size_t traceIDOffset = 1 + 1;
+  static constexpr size_t spanIDOffset = 1 + 1 + 16;
 
   EDNSOTTraceRecord(uint8_t* arg) :
     data(arg) {}
