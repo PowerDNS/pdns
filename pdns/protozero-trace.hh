@@ -712,6 +712,70 @@ inline KeyValueList KeyValueList::decode(protozero::pbf_reader& reader)
   return pdns::trace::decode<KeyValueList, KeyValue>(reader);
 }
 
+struct EDNSOTTraceRecord
+{
+  // 1 byte version 16 bytes traceid, optional 8 bytes spanid
+  static constexpr size_t fullSize = 1 + 16 + 8;
+  static constexpr size_t sizeNoSpanID = 1 + 16;
+  static constexpr size_t traceIDOffset = 1;
+  static constexpr size_t spanIDOffset = 1 + 16;
+
+  EDNSOTTraceRecord(uint8_t* arg) :
+    data(arg) {}
+  // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+  void setVersion(uint8_t version)
+  {
+    data[0] = version;
+  }
+  void setTraceID(const TraceID& traceid)
+  {
+    std::copy(traceid.begin(), traceid.end(), &data[traceIDOffset]);
+  }
+  void setSpanID(const SpanID& spanid)
+  {
+    std::copy(spanid.begin(), spanid.end(), &data[spanIDOffset]);
+  }
+  // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+private:
+  uint8_t* data;
+};
+
+struct EDNSOTTraceRecordView
+{
+  EDNSOTTraceRecordView(const uint8_t* arg, size_t argsize) :
+    data(arg), size(argsize) {}
+
+  // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+  [[nodiscard]] bool getVersion(uint8_t& version) const
+  {
+    if (size > 0) {
+      version = data[0];
+      return true;
+    }
+    return false;
+  }
+  [[nodiscard]] bool getTraceID(TraceID& traceid) const
+  {
+    if (size >= pdns::trace::EDNSOTTraceRecord::sizeNoSpanID) {
+      std::copy(&data[EDNSOTTraceRecord::traceIDOffset], &data[EDNSOTTraceRecord::traceIDOffset + traceid.size()], traceid.begin());
+      return true;
+    }
+    return false;
+  }
+  [[nodiscard]] bool getSpanID(SpanID& spanid) const
+  {
+    if (size == pdns::trace::EDNSOTTraceRecord::fullSize) {
+      std::copy(&data[EDNSOTTraceRecord::spanIDOffset], &data[EDNSOTTraceRecord::spanIDOffset + spanid.size()], spanid.begin());
+      return true;
+    }
+    return false;
+  }
+  // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+private:
+  const uint8_t* const data;
+  const size_t size;
+};
+
 void extractOTraceIDs(const EDNSOptionViewMap& map, pdns::trace::InitialSpanInfo& span);
 
 } // namespace pdns::trace
