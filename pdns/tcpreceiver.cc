@@ -19,6 +19,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#include "dnsrecords.hh"
 #include "pdns/auth-zonecache.hh"
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -788,6 +789,18 @@ int TCPNameserver::doAXFR(const ZoneName &targetZone, std::unique_ptr<DNSPacket>
     DNSName keyname = DNSName(toBase32Hex(hashQNameWithSalt(ns3pr, zrr.dr.d_name)));
     zrrs.push_back(zrr);
   }
+
+
+  // now stuff in _backend-version
+  // this code is terribly wrong if a TXT RRset with this name already exists
+  zrr.dr.d_name.prependRawLabel("_backend-version");
+  zrr.dr.d_type = QType::TXT;
+  zrr.dr.setContent(std::make_shared<TXTRecordContent>(std::to_string(sd.serial)));
+
+  zrrs.push_back(zrr);
+
+  // restore
+  zrr.dr.d_name = target;
 
   const bool rectify = !(presignedZone || ::arg().mustDo("disable-axfr-rectify"));
   set<DNSName> qnames, nsset, terms;
