@@ -38,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <list>
 #include <map>
 #include <memory>
+#include <optional>
 #include <random>
 #include <set>
 #include <stdexcept>
@@ -1873,8 +1874,8 @@ private:
     // the only case where "min != max" is with boost::optional at the end of the list
     template<typename... TArgumentsList>
     struct FunctionArgumentsCounter {};
-    
-    // true is the template parameter is a boost::optional
+
+    // true if the template parameter is a boost::optional or std::optional
     template<typename T>
     struct IsOptional : public std::false_type {};
 };
@@ -1970,6 +1971,8 @@ struct LuaContext::FunctionArgumentsCounter<> {
 // implementation of IsOptional
 template<typename T>
 struct LuaContext::IsOptional<boost::optional<T>> : public std::true_type {};
+template<typename T>
+struct LuaContext::IsOptional<std::optional<T>> : public std::true_type {};
 
 // implementation of LuaFunctionCaller
 template<typename TFunctionType>
@@ -2542,6 +2545,25 @@ struct LuaContext::Pusher<boost::optional<TType>> {
     }
 };
 
+// std::optional
+template<typename TType>
+struct LuaContext::Pusher<std::optional<TType>> {
+    typedef Pusher<typename std::decay<TType>::type>
+        UnderlyingPusher;
+
+    static const int minSize = UnderlyingPusher::minSize < 1 ? UnderlyingPusher::minSize : 1;
+    static const int maxSize = UnderlyingPusher::maxSize > 1 ? UnderlyingPusher::maxSize : 1;
+
+    static PushedObject push(lua_State* state, const std::optional<TType>& value) noexcept {
+        if (value.has_value()) {
+            return UnderlyingPusher::push(state, value.value());
+        } else {
+            lua_pushnil(state);
+            return PushedObject{state, 1};
+        }
+    }
+};
+
 // tuple
 template<typename... TTypes>
 struct LuaContext::Pusher<std::tuple<TTypes...>> {
@@ -2887,6 +2909,22 @@ struct LuaContext::Reader<boost::optional<TType>>
             return boost::optional<TType>{boost::none};
         if (auto&& other = Reader<TType>::read(state, index))
             return std::move(other);
+        return boost::none;
+    }
+};
+
+template<typename TType>
+struct LuaContext::Reader<std::optional<TType>>
+{
+    static auto read(lua_State* state, int index)
+        -> boost::optional<std::optional<TType>>
+    {
+        if (lua_isnil(state, index)) {
+          return boost::optional<std::optional<TType>>{std::optional<TType>()};
+        }
+        if (auto&& other = Reader<TType>::read(state, index)) {
+            return std::move(std::optional<TType>(*other));
+        }
         return boost::none;
     }
 };
