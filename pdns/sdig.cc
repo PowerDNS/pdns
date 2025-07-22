@@ -68,7 +68,7 @@ static void fillPacket(vector<uint8_t>& packet, const string& q, const string& t
                        bool recurse, QClass qclass, uint8_t opcode, uint16_t qid, const std::optional<string>& cookie,
                        OpenTelemetryData& otids)
 {
-  DNSPacketWriter pw(packet, DNSName(q), DNSRecordContent::TypeToNumber(t), qclass, opcode);
+  DNSPacketWriter pwriter(packet, DNSName(q), DNSRecordContent::TypeToNumber(t), qclass, opcode);
 
   char* env_sdigbufsize = getenv("SDIGBUFSIZE"); // NOLINT(concurrency-mt-unsafe)
   if (dnssec || ednsnm || env_sdigbufsize != nullptr || cookie || otids || zoneversion) { // NOLINT(concurrency-mt-unsafe) we're single threaded
@@ -235,9 +235,9 @@ static void printReply(const string& reply, bool showflags, bool hidesoadetails,
         if (getEDNSExtendedErrorOptFromString(iter.second, eee)) {
           cerr << "EDNS Extended Error response: " << eee.infoCode << "/" << eee.extraText << endl;
         }
-      } else if (iter->first == EDNSOptionCode::ZONEVERSION) {
+      } else if (iter.first == EDNSOptionCode::ZONEVERSION) {
         EDNSZoneVersion zoneversion{};
-        if (getEDNSZoneVersionFromString(iter->second, zoneversion)) {
+        if (getEDNSZoneVersionFromString(iter.second, zoneversion)) {
           if (zoneversion.type == 0) { // FIXME enum
             cerr << "EDNS Zone Version (SOA serial) for labelcount " << (int)zoneversion.labelcount << ": " << zoneversion.version << endl;
           } else {

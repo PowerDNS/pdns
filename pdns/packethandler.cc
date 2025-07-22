@@ -1693,9 +1693,9 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
     return true;
   }
   DLOG(g_log<<Logger::Error<<"We have authority, zone='"<<d_sd.qname()<<"', id="<<d_sd.domain_id<<", zonename="<<d_sd.zonename<<endl);
-  if (r->wantsEDNSZoneVersion()) {
-    auto edited_serial = calculateEditSOA(d_sd.serial, d_dk, d_sd.qname);
-    state.r->d_auth_serials[d_sd.qname] = {edited_serial, d_sd.serial};
+  if (state.r->wantsEDNSZoneVersion()) {
+    auto edited_serial = calculateEditSOA(d_sd.serial, d_dk, d_sd.zonename);
+    state.r->d_auth_serials[d_sd.qname()] = {edited_serial, d_sd.serial};
   }
   
   if (!retargeted) {
