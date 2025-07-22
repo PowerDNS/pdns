@@ -31,44 +31,55 @@ static constexpr size_t s_staticArrayCutOff = 16;
 template <typename T> using DynamicIndexArray = std::vector<std::pair<T, size_t>>;
 template <typename T> using StaticIndexArray = std::array<std::pair<T, size_t>, s_staticArrayCutOff>;
 
-template <class T> static std::optional<ServerPolicy::SelectedServerPosition> getLeastOutstanding(const ServerPolicy::NumberedServerVector& servers, T& poss)
+static std::optional<ServerPolicy::SelectedServerPosition> getLeastOutstanding(const ServerPolicy::NumberedServerVector& servers)
 {
-  /* so you might wonder, why do we go through this trouble? The data on which we sort could change during the sort,
-     which would suck royally and could even lead to crashes. So first we snapshot on what we sort, and then we sort */
-  size_t usableServers = 0;
-  for (const auto& d : servers) {
-    if (d.second->isUp()) {
-      poss.at(usableServers) = std::pair(std::tuple(d.second->outstanding.load(), d.second->d_config.order, d.second->getRelevantLatencyUsec()), d.first);
-      usableServers++;
+  std::optional<ServerPolicy::SelectedServerPosition> best;
+  uint64_t leastOutstandingSeen = std::numeric_limits<uint64_t>::max();
+  int lowestOrderSeen = std::numeric_limits<int>::max();
+  double lowestLatencySeen = std::numeric_limits<double>::max();
+
+  for (const auto& server : servers) {
+    if (!server.second->isUp()) {
+      continue;
+    }
+
+    auto outstanding = server.second->outstanding.load();
+    auto order = server.second->d_config.order;
+    if (outstanding > leastOutstandingSeen) {
+      continue;
+    }
+    if (outstanding < leastOutstandingSeen) {
+      best = server.first;
+      leastOutstandingSeen = outstanding;
+      lowestOrderSeen = order;
+      lowestLatencySeen = server.second->getRelevantLatencyUsec();
+      continue;
+    }
+    if (order > lowestOrderSeen) {
+      continue;
+    }
+    auto latency = server.second->getRelevantLatencyUsec();
+    if (latency < lowestLatencySeen) {
+      best = server.first;
+      leastOutstandingSeen = outstanding;
+      lowestOrderSeen = order;
+      lowestLatencySeen = server.second->getRelevantLatencyUsec();
     }
   }
 
-  if (usableServers == 0) {
-    return std::nullopt;
-  }
-
-  std::nth_element(poss.begin(), poss.begin(), poss.begin() + usableServers, [](const typename T::value_type& a, const typename T::value_type& b) { return a.first < b.first; });
-  return poss.begin()->second;
+  return best;
 }
 
 // get server with least outstanding queries, and within those, with the lowest order, and within those: the fastest
 std::optional<ServerPolicy::SelectedServerPosition> leastOutstanding(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
 {
   (void)dq;
-  using LeastOutstandingType = std::tuple<int,int,double>;
 
   if (servers.size() == 1 && servers[0].second->isUp()) {
     return 1;
   }
 
-  if (servers.size() <= s_staticArrayCutOff) {
-    StaticIndexArray<LeastOutstandingType> poss;
-    return getLeastOutstanding(servers, poss);
-  }
-
-  DynamicIndexArray<LeastOutstandingType> poss;
-  poss.resize(servers.size());
-  return getLeastOutstanding(servers, poss);
+  return getLeastOutstanding(servers);
 }
 
 std::optional<ServerPolicy::SelectedServerPosition> firstAvailable(const ServerPolicy::NumberedServerVector& servers, const DNSQuestion* dq)
