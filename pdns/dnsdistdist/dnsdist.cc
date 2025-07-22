@@ -443,6 +443,10 @@ static bool encryptResponse(PacketBuffer& response, size_t maximumSize, bool tcp
 
 bool applyRulesToResponse(const std::vector<dnsdist::rules::ResponseRuleAction>& respRuleActions, DNSResponse& dnsResponse)
 {
+  if (respRuleActions.empty()) {
+    return true;
+  }
+
   DNSResponseAction::Action action = DNSResponseAction::Action::None;
   std::string ruleresult;
   for (const auto& rrule : respRuleActions) {
@@ -983,6 +987,10 @@ bool processRulesResult(const DNSAction::Action& action, DNSQuestion& dnsQuestio
 
 static bool applyRulesChainToQuery(const std::vector<dnsdist::rules::RuleAction>& rules, DNSQuestion& dnsQuestion)
 {
+  if (rules.empty()) {
+    return true;
+  }
+
   DNSAction::Action action = DNSAction::Action::None;
   string ruleresult;
   bool drop = false;
