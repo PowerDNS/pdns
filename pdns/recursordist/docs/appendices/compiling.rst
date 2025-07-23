@@ -81,7 +81,7 @@ Then run::
 
 To compile from a git checkout using meson install the dependencies above plus::
 
-  apt-get install ragel meson virtualenv curl rust
+  apt-get install ragel meson virtualenv curl rustc
 
 Then run::
 
