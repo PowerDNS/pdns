@@ -1,1 +1,25 @@
-expected_result.lmdb
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+Check delegates added
+--- Start: diff start step.1 ---
+> delegate.test.dyndns	NS	0	ns1.delegate.test.dyndns	3600	'vg1uvfh5go60po37nof33f260sno3bnc'	0
+> ns1.delegate.test.dyndns	A	0	127.0.0.1	3600
+> ns1.other.very.deep.delegate.test.dyndns	A	0	127.0.0.1	3600
+> other.very.deep.delegate.test.dyndns	NS	0	ns1.other.very.deep.delegate.test.dyndns	3600	'rq5u80q2c0mimv20s384e05v13h5oiss'	0
+--- End: diff start step.1 ---
+
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+Check delegates deleted
+--- Start: diff start step.2 ---
+no difference
+--- End: diff start step.2 ---
+
