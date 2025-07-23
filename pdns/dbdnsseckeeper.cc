@@ -855,6 +855,8 @@ bool DNSSECKeeper::rectifyZone(const ZoneName& zone, string& error, string& info
   if (doTransaction)
     sd.db->startTransaction(zone, UnknownDomainID);
 
+  sd.db->rectifyZoneHook(sd.domain_id, true);
+
   bool realrr=true;
   bool doent=true;
   int updates=0;
@@ -966,6 +968,8 @@ bool DNSSECKeeper::rectifyZone(const ZoneName& zone, string& error, string& info
       goto dononterm;
     }
   }
+
+  sd.db->rectifyZoneHook(sd.domain_id, false);
 
   if (doTransaction)
     sd.db->commitTransaction();
