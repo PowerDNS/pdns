@@ -6,10 +6,10 @@ Answer:
 
 Check delegates added
 --- Start: diff start step.1 ---
-> delegate.test.dyndns	3600	IN	NS	ns1.delegate.test.dyndns.
-> ns1.delegate.test.dyndns	3600	IN	A	127.0.0.1
-> ns1.other.very.deep.delegate.test.dyndns	3600	IN	A	127.0.0.1
-> other.very.deep.delegate.test.dyndns	3600	IN	NS	ns1.other.very.deep.delegate.test.dyndns.
+> delegate.test.dyndns	NS	0	ns1.delegate.test.dyndns	3600
+> ns1.delegate.test.dyndns	A	0	127.0.0.1	3600
+> ns1.other.very.deep.delegate.test.dyndns	A	0	127.0.0.1	3600
+> other.very.deep.delegate.test.dyndns	NS	0	ns1.other.very.deep.delegate.test.dyndns	3600
 --- End: diff start step.1 ---
 
 Answer:
