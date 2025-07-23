@@ -174,7 +174,7 @@ public:
   static bool s_doEDNSCookieProcessing;
   static string s_EDNSCookieKey;
   EDNSSubnetOpts d_eso;
-  std::unordered_map<DNSName, std::pair<uint32_t, uint32_t> > d_auth_serials; // unedited, edited
+  std::unordered_map<DNSName, std::tuple<uint32_t, uint32_t, uint32_t> > d_auth_serials; // unedited, edited, backend
 
 #ifdef ENABLE_GSS_TSIG
   void cleanupGSS(int rcode);

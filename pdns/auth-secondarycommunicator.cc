@@ -19,6 +19,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include "dnsrecords.hh"
+#include "misc.hh"
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -82,6 +84,7 @@ struct ZoneStatus
 
   bool isNarrow{false};
   unsigned int soa_serial{0};
+  unsigned int backend_version{0};
   set<DNSName> nsset, qnames, secured;
   uint32_t domain_id;
   size_t numDeltas{0};
@@ -534,6 +537,7 @@ void CommunicatorClass::ixfrSuck(const ZoneName& domain, const TSIGTriplet& tsig
 
 static bool processRecordForZS(const DNSName& domain, bool& firstNSEC3, DNSResourceRecord& rr, ZoneStatus& zs)
 {
+  cerr<<rr.qname<<endl;
   switch (rr.qtype.getCode()) {
   case QType::NSEC3PARAM:
     zs.ns3pr = NSEC3PARAMRecordContent(rr.content);
@@ -563,6 +567,15 @@ static bool processRecordForZS(const DNSName& domain, bool& firstNSEC3, DNSResou
   case QType::NS:
     if (rr.qname != domain)
       zs.nsset.insert(rr.qname);
+    break;
+
+  case QType::TXT:
+    cerr<<"got TXT with first label [" << makeHexDump(rr.qname.getRawLabel(0)) << "]" << endl;
+    if (rr.qname.getRawLabel(0) == "_backend-version") { // FIXME: also check that it is at apex
+      cerr<<"got one " << rr.content<<endl;
+      pdns::checked_stoi_into(zs.backend_version, rr.content.substr(1, rr.content.size() - 1));
+      cerr<<"zs.be = " << zs.backend_version << endl;
+    }
     break;
   }
 
@@ -856,6 +869,8 @@ void CommunicatorClass::suck(const ZoneName& domain, const ComboAddress& remote,
         dk.unsetNSEC3PARAM(domain);
       }
     }
+
+    di.backend->setDomainMetadata(domain, "BACKEND-VERSION", {std::to_string(zs.backend_version)});
 
     bool doent = true;
     uint32_t maxent = ::arg().asNum("max-ent-entries");

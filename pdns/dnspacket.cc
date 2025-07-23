@@ -395,17 +395,22 @@ void DNSPacket::wrapup(bool throwsOnTruncation)
 
       for (auto &auth_serial : d_auth_serials) {
         const auto& name = auth_serial.first;
-        auto& unedited_serial = auth_serial.second.first;
-        auto& edited_serial = auth_serial.second.second;
+        auto& unedited_serial = get<0>(auth_serial.second);
+        auto& edited_serial = get<1>(auth_serial.second);
+        auto& backend_serial = get<2>(auth_serial.second);
 
         uint8_t labelcount = name.countLabels();
         EDNSZoneVersion unedited = {labelcount, 0 /* FIXME enum */, unedited_serial};
         EDNSZoneVersion edited = {labelcount, 246 /* FIXME enum and wrong number */, edited_serial};
+        EDNSZoneVersion backend = {labelcount, 247, backend_serial};
 
         string opt = makeEDNSZoneVersionString(unedited);
         opts.emplace_back(EDNSOptionCode::ZONEVERSION, opt);
 
         opt = makeEDNSZoneVersionString(edited);
+        opts.emplace_back(EDNSOptionCode::ZONEVERSION, opt);
+
+        opt = makeEDNSZoneVersionString(backend);
         opts.emplace_back(EDNSOptionCode::ZONEVERSION, opt);
       }
       if(!opts.empty() || d_haveednssection || d_dnssecOk)
