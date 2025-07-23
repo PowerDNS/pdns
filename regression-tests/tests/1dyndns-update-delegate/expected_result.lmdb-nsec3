@@ -1,1 +1,59 @@
-expected_result.lmdb
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+Check delegate1 added correctly
+--- Start: diff start step.1 ---
+> delegate1.test.dyndns	NS	0	ns1.delegate1.test.dyndns	3600	'h4tlip64juuiun7hbl0bsvqkkshh3pkj'	0
+> delegate1.test.dyndns	NS	0	ns2.delegate1.test.dyndns	3600	'h4tlip64juuiun7hbl0bsvqkkshh3pkj'	0
+> ns1.delegate1.test.dyndns	A	0	127.0.0.1	3600
+> ns2.delegate1.test.dyndns	A	0	127.0.0.1	3600
+--- End: diff start step.1 ---
+
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+Check delegate2 added correctly
+--- Start: diff start step.2 ---
+> delegate1.test.dyndns	NS	0	ns1.delegate1.test.dyndns	3600	'h4tlip64juuiun7hbl0bsvqkkshh3pkj'	0
+> delegate1.test.dyndns	NS	0	ns2.delegate1.test.dyndns	3600	'h4tlip64juuiun7hbl0bsvqkkshh3pkj'	0
+> delegate2.test.dyndns	NS	0	ns1.delegate2.test.dyndns	3600	'hpnrghdi20c5ikiegdmlcknaqu9a3bg0'	0
+> delegate2.test.dyndns	NS	0	ns2.example.com	3600	'hpnrghdi20c5ikiegdmlcknaqu9a3bg0'	0
+> ns1.delegate1.test.dyndns	A	0	127.0.0.1	3600
+> ns1.delegate2.test.dyndns	A	0	127.0.0.1	3600
+> ns2.delegate1.test.dyndns	A	0	127.0.0.1	3600
+> ns2.delegate2.test.dyndns	A	0	127.0.0.1	3600
+--- End: diff start step.2 ---
+
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+check delegate delete
+--- Start: diff start step.3 ---
+> delegate1.test.dyndns	TYPE0	0		0	'h4tlip64juuiun7hbl0bsvqkkshh3pkj'	1
+> delegate2.test.dyndns	TYPE0	0		0	'hpnrghdi20c5ikiegdmlcknaqu9a3bg0'	1
+> ns1.delegate1.test.dyndns	A	0	127.0.0.1	3600	'rcogol03mg1pg3u4338eo0nvvh6bs567'	1
+> ns1.delegate2.test.dyndns	A	0	127.0.0.1	3600	'asm440u7p2im2slo6iqo92vfp6jtopa0'	1
+> ns2.delegate1.test.dyndns	A	0	127.0.0.1	3600	'oshpf39sqa4j1ciudbbvtb5dkrijnpss'	1
+> ns2.delegate2.test.dyndns	A	0	127.0.0.1	3600	'rcd0fo052s6a41ao8ue0b43e1mhv50ds'	1
+--- End: diff start step.3 ---
+
+Answer:
+;; ->>HEADER<<- opcode: UPDATE, status: NOERROR, id: [id]
+;; flags: qr aa; ZONE: 1, PREREQ: 0, UPDATE: 0, ADDITIONAL: 0
+;; ZONE SECTION:
+;test.dyndns.			IN	SOA
+
+Check if glue records are deleted and zone back to how we started
+--- Start: diff start step.4 ---
+no difference
+--- End: diff start step.4 ---
+
