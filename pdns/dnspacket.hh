@@ -25,6 +25,7 @@
 #include "ednssubnet.hh"
 #include "ednscookies.hh"
 #include <optional>
+#include <unordered_map>
 #include <unordered_set>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -121,6 +122,7 @@ public:
 
   bool couldBeCached() const; //!< returns 0 if this query should bypass the packet cache
   bool hasEDNSSubnet() const;
+  bool wantsEDNSZoneVersion() const;
   bool hasEDNS() const;
   bool hasEDNSCookie() const;
   bool hasWellFormedEDNSCookie() const;
@@ -172,6 +174,7 @@ public:
   static bool s_doEDNSCookieProcessing;
   static string s_EDNSCookieKey;
   EDNSSubnetOpts d_eso;
+  std::unordered_map<DNSName, std::tuple<uint32_t, uint32_t, uint32_t> > d_auth_serials; // unedited, edited, backend
 
 #ifdef ENABLE_GSS_TSIG
   void cleanupGSS(int rcode);
@@ -204,6 +207,7 @@ private:
   bool d_tsigtimersonly{false};
   bool d_wantsnsid{false};
   bool d_haveednssubnet{false};
+  bool d_wantszoneversion{false};
   bool d_haveednscookie{false};
   bool d_ednscookievalid{false};
   bool d_haveednssection{false};

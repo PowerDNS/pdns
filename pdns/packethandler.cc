@@ -19,6 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
+#include "misc.hh"
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -1693,7 +1694,18 @@ bool PacketHandler::opcodeQueryInner2(DNSPacket& pkt, queryState &state, bool re
     return true;
   }
   DLOG(g_log<<Logger::Error<<"We have authority, zone='"<<d_sd.qname()<<"', id="<<d_sd.domain_id<<", zonename="<<d_sd.zonename<<endl);
+  if (state.r->wantsEDNSZoneVersion()) {
+    auto edited_serial = calculateEditSOA(d_sd.serial, d_dk, d_sd.zonename);
+    uint32_t backend_serial{0};
 
+    string val;
+    if (d_dk.getFromMeta(d_sd.zonename, "BACKEND-VERSION", val)) {
+      pdns::checked_stoi_into(backend_serial, val);
+    }
+
+    state.r->d_auth_serials[d_sd.qname()] = {edited_serial, d_sd.serial, backend_serial};
+  }
+  
   if (!retargeted) {
     state.r->qdomainzone = d_sd.zonename;
   } else if (!d_doResolveAcrossZones && state.r->qdomainzone.operator const DNSName&() != d_sd.qname()) {
