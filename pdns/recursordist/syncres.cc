@@ -1936,8 +1936,14 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName& qname, const QType qtyp
         // we will get the records from the cache, resulting in a small overhead.
         // This might be a real problem if we had a RPZ hit, though, because we do not want the processing to continue, since
         // RPZ rules will not be evaluated anymore (we already matched).
-        const bool stoppedByPolicyHit = d_appliedPolicy.wasHit();
-
+        bool stoppedByPolicyHit = d_appliedPolicy.wasHit();
+        if (stoppedByPolicyHit && d_appliedPolicy.d_kind == DNSFilterEngine::PolicyKind::Custom && d_appliedPolicy.d_custom) {
+          // if the custom RPZ record was a CNAME we still need a full chase
+          // tested by unit test test_following_cname_chain_with_rpz
+          if (!d_appliedPolicy.d_custom->empty() && d_appliedPolicy.d_custom->at(0)->getType() == QType::CNAME) {
+            stoppedByPolicyHit = false;
+          }
+        }
         if (fromCache != nullptr && (!d_cacheonly || stoppedByPolicyHit)) {
           *fromCache = true;
         }
