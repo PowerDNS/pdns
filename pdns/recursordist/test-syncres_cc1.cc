@@ -1635,8 +1635,8 @@ BOOST_AUTO_TEST_CASE(test_following_cname_chain_with_rpz)
   BOOST_CHECK_EQUAL(ret[2].d_name, cnameTargetb);
   BOOST_CHECK_EQUAL(ret[2].getContent()->getZoneRepresentation(), "192.0.2.2");
 
-  // Let the final record expire. If an RPZ pruding a custom CNAME was hit, we used to not follow
-  // the CNAME as aggresively as needed.  The symptom being the final record missing from the
+  // Let the final record expire. If an RPZ producing a custom CNAME was hit, we used to not follow
+  // the CNAME as aggressively as needed.  The symptom being the final record missing from the
   // result.
   resolver->setNow(timeval{now + 20, 0});
   resolver->setQNameMinimization(true); // XXX find out why this is needed
