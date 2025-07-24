@@ -296,6 +296,7 @@ public:
   {
     return t_sstorage.domainmap;
   }
+  static bool isRecursiveForward(const DNSName& qname);
 
   static void setECSScopeZeroAddress(const Netmask& scopeZeroMask)
   {
