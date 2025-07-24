@@ -136,9 +136,9 @@ std::optional<uint16_t> ERCode::from_short(const std::string_view& ercode_string
 }
 
 std::string Opcode::to_s(uint8_t opcode) {
-  static const std::array<std::string, 6> s_opcodes = { "Query", "IQuery", "Status", "3", "Notify", "Update" };
+  static const std::array<std::string, 6> s_opcodes = { "Query", "IQuery", "Status", "", "Notify", "Update" };
 
-  if (opcode >= s_opcodes.size()) {
+  if (opcode >= s_opcodes.size() || s_opcodes.at(opcode).empty()) {
     return std::to_string(opcode);
   }
 
@@ -147,9 +147,9 @@ std::string Opcode::to_s(uint8_t opcode) {
 
 std::optional<uint8_t> Opcode::from_lowercase_string(const std::string_view& opcode_string)
 {
-  static const std::array<std::string, 6> s_opcodes = { "query", "iquery", "status", "3", "notify", "update" };
+  static const std::array<std::string, 6> s_opcodes = { "query", "iquery", "status", "", "notify", "update" };
   const auto* position = std::find(s_opcodes.begin(), s_opcodes.end(), opcode_string);
-  if (position == s_opcodes.end()) {
+  if (position == s_opcodes.end() || position->empty()) {
     return std::nullopt;
   }
   return std::distance(s_opcodes.begin(), position);

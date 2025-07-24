@@ -71,8 +71,14 @@ BOOST_AUTO_TEST_CASE(test_opcode)
     BOOST_CHECK(long_s.size() > 0);
     boost::to_lower(long_s);
     auto opcode = Opcode::from_lowercase_string(long_s);
-    BOOST_CHECK(opcode);
-    BOOST_CHECK_EQUAL(*opcode, idx);
+    if (idx != 3) {
+      BOOST_CHECK(opcode);
+      BOOST_CHECK_EQUAL(*opcode, idx);
+    }
+    else {
+      BOOST_CHECK_EQUAL(long_s, "3");
+      BOOST_CHECK(!opcode);
+    }
   }
 
   BOOST_CHECK_EQUAL(Opcode::to_s(Opcode::Update + 1), std::to_string(Opcode::Update + 1));
