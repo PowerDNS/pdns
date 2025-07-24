@@ -133,7 +133,7 @@ private:
 
   bool cachedValueMatches(const CacheValue& cachedValue, uint16_t queryFlags, const DNSName& qname, uint16_t qtype, uint16_t qclass, bool receivedOverUDP, bool dnssecOK, const boost::optional<Netmask>& subnet) const;
   uint32_t getShardIndex(uint32_t key) const;
-  void insertLocked(CacheShard& shard, std::unordered_map<uint32_t, CacheValue>& map, uint32_t key, CacheValue& newValue);
+  bool insertLocked(std::unordered_map<uint32_t, CacheValue>& map, uint32_t key, CacheValue& newValue);
 
   std::vector<CacheShard> d_shards;
 
