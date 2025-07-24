@@ -146,9 +146,8 @@ static uint8_t strToRCode(const std::string& context, const std::string& paramet
 static uint16_t strToQType(const std::string& context, const std::string& parameterName, const ::rust::String& qtype_rust_string)
 {
   auto qtype_str = std::string(qtype_rust_string);
-  boost::to_lower(qtype_str);
   QType qtype;
-  qtype = std::string(qtype_str);
+  qtype = qtype_str;
   if (qtype.getCode() == 0) {
     return checkedConversionFromStr<uint8_t>(context, parameterName, qtype_rust_string);
   }
