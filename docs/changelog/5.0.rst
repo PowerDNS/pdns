@@ -2,6 +2,186 @@ Changelogs for 5.0.x
 ====================
 
 .. changelog::
+  :version: 5.0.0-beta1
+  :released: 24th of July 2025
+
+  This is release 5.0.0-beta1 of the Authoritative Server.
+  It contains various bugfixes and improvements over the 5.0.0-alpha1
+  release, as well as RFC2136 support for the LMDB backend.
+
+  .. change::
+    :tags: New Features, API
+    :pullreq: 15867
+
+    Provide record timestamps in the API
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15865
+
+    Remove old FSF address (Chris Hofstaedtler)
+
+  .. change::
+    :tags: New Features, Tools
+    :pullreq: 15704
+
+    Rework pdnsutil command syntax for more consistency and future flexibility
+
+  .. change::
+    :tags: New Features, Tools
+    :pullreq: 15855
+
+    Delete existing matching zones during (re)import (Jamie (Bear) Murphy )
+
+  .. change::
+    :tags: New Features
+    :pullreq: 14074,15863
+
+    Auth feature: RFC9615 (authenticated DNSSEC bootstrapping) (Peter Thomassen)
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15834
+
+    Fix INCEPTION-INCREMENT documentation to match code behavior (@Darwin4053)
+
+  .. change::
+    :tags: Bug Fixes, Tools
+    :pullreq: 15854
+
+    Fixes zone2sql include with a comment (replacement PR) (Jamie (Bear) Murphy )
+
+  .. change::
+    :tags: New Features, API
+    :pullreq: 15827
+    :tickets: 14079
+
+    Add record search capability to the LMDB backend
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15836
+
+    Docs: zone: `modified_at` is a separate property when updating RRSets (Uwe Kleine-König)
+
+  .. change::
+    :tags: New Features, Tools
+    :pullreq: 14984, 15849
+
+    Pdnsutil {add-record,delete-rrset}: require NAME to be absolute (Uwe Kleine-König)
+
+  .. change::
+    :tags: New Features
+    :pullreq: 15786
+    :tickets: 11611, 11612
+
+    Lmdb rfc2136 support
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15798, 15791, 15767
+    :tickets: 11612, 11611, 15767
+
+    Lmdb NSEC3 record handling hygiene bugfixes
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15793
+
+    Pdns: Fix pdnsutil cross-references (Bagas Sanjaya)
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 15763
+
+    Auth: Use arc4random in TSIG generation
+
+  .. change::
+    :tags: Improvements, Tools
+    :pullreq: 15417
+    :tickets: 9096
+
+    [tools] Let pdnsutil always set up a SOA-EDIT-API metadata when creating zones
+
+  .. change::
+    :tags: Improvements, API, Tools
+    :pullreq: 15669
+    :tickets: 11733
+
+    Increase zone serial number after zone key operations
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 15677
+    :tickets: 12901
+
+    LMDB: honour map-size for all files
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15594
+
+    Auth docker: avoid crash on --version caused by doubly loaded modules
+
+  .. change::
+    :tags: Improvements, Internals
+    :pullreq: 15698
+
+    Auth LMDB: attempt to have predictable IDs
+
+  .. change::
+    :tags: New Features
+    :pullreq: 15686
+    :tickets: 15674
+
+    Rec and auth: implement stop command as alias for quit(-nicely)
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 15679
+    :tickets: 8060
+
+    Provide an IP_OFFMASK value for systems lacking it
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15221
+    :tickets: 10558
+
+    Compute LOC text representation without using floating point for latitude and longitude
+
+  .. change::
+    :tags: Bug Fixes, Internals
+    :pullreq: 15609
+
+    Packet Cache fixes for views
+
+  .. change::
+    :tags: Bug Fixes, Tools
+    :pullreq: 15665
+
+    Pdnsutil: clarify provenance of default TTL (Jan-Piet Mens)
+
+  .. change::
+    :tags: Bug Fixes, Tools
+    :pullreq: 15389
+    :tickets: 8494
+
+    [tools] Honour default-ttl in pdnsutil load-zone
+
+  .. change::
+    :tags: Improvements, Tools
+    :pullreq: 15581
+
+    Do not use system(3) in pdnsutil
+
+  .. change::
+    :tags: Improvements, Tools
+    :pullreq: 15604
+
+    Suggest create-zone after view-add-zone of a nonexisting zone
+
+.. changelog::
   :version: 5.0.0-alpha1
   :released: 27th of May 2025
 

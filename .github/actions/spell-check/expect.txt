@@ -63,7 +63,6 @@ Atlassian
 Atomia
 aton
 Authoritativedoc
-authsignal
 authzone
 autobuilt
 autocalculation
@@ -90,6 +89,7 @@ BADSIG
 BADTIME
 BADTRUNC
 BADVERS
+Bagas
 bagbug
 Bakhos
 Bakker
@@ -657,6 +657,7 @@ keywordmatches
 kickdaddy
 Kirill
 Klebermass
+Kleine
 koch
 Kockum
 Kolkman
@@ -1201,6 +1202,7 @@ saltsa
 Samir
 sandboxing
 Sangwhan
+Sanjaya
 Saunalahti
 saxfr
 Scheffler
@@ -1479,6 +1481,7 @@ upperroman
 urandom
 usecase
 userbase
+Uwe
 Valentei
 Valentini
 valgrind
