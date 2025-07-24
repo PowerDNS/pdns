@@ -460,7 +460,7 @@ static void doProcessTCPQuestion(std::unique_ptr<DNSComboWriter>& comboWriter, s
         t_Counters.at(rec::Histogram::cumulativeAnswers)(spentUsec);
         comboWriter->d_eventTrace.add(RecEventTrace::AnswerSent);
 
-        if (t_protobufServers.servers && comboWriter->d_logResponse && (!luaconfsLocal->protobufExportConfig.taggedOnly || !pbData || pbData->d_tagged)) {
+        if (t_protobufServers.servers && comboWriter->d_logResponse && (!luaconfsLocal->protobufExportConfig.taggedOnly || (pbData && pbData->d_tagged))) {
           struct timeval tval
           {
             0, 0

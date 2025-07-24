@@ -2347,7 +2347,7 @@ static string* doProcessUDPQuestion(const std::string& question, const ComboAddr
         int sendErr = sendOnNBSocket(fileDesc, &msgh);
         eventTrace.add(RecEventTrace::AnswerSent);
 
-        if (t_protobufServers.servers && logResponse && (!luaconfsLocal->protobufExportConfig.taggedOnly || !pbData || pbData->d_tagged)) {
+        if (t_protobufServers.servers && logResponse && (!luaconfsLocal->protobufExportConfig.taggedOnly || (pbData && pbData->d_tagged))) {
           protobufLogResponse(dnsheader, luaconfsLocal, pbData, tval, false, source, destination, mappedSource, ednssubnet, uniqueId, requestorId, deviceId, deviceName, meta, eventTrace, policyTags);
         }
 

@@ -2902,7 +2902,7 @@ static void recursorThread()
     threadInfo.setMT(g_multiTasker.get());
 
     {
-      /* start protobuf export threads if needed, don;'t keep a ref to lua config around */
+      /* start protobuf export threads if needed, don't keep a ref to lua config around */
       auto luaconfsLocal = g_luaconfs.getLocal();
       checkProtobufExport(luaconfsLocal);
       checkOutgoingProtobufExport(luaconfsLocal);
