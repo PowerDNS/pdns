@@ -41,8 +41,8 @@ BOOST_AUTO_TEST_SUITE(test_luawrapper)
 BOOST_AUTO_TEST_CASE(test_boost_optional)
 {
   LuaContext context;
-  context.writeFunction("testOptional", [](boost::optional<int> in) -> boost::optional<int> {
-    return in;
+  context.writeFunction("testOptional", [](boost::optional<int> incoming) -> boost::optional<int> {
+    return incoming;
   });
 
   BOOST_REQUIRE(!context.executeCode<boost::optional<int>>("return testOptional(nil)"));
@@ -57,8 +57,8 @@ BOOST_AUTO_TEST_CASE(test_boost_optional)
 BOOST_AUTO_TEST_CASE(test_std_optional)
 {
   LuaContext context;
-  context.writeFunction("testOptional", [](std::optional<int> in) -> std::optional<int> {
-    return in;
+  context.writeFunction("testOptional", [](std::optional<int> incoming) -> std::optional<int> {
+    return incoming;
   });
 
   BOOST_REQUIRE(!context.executeCode<std::optional<int>>("return testOptional(nil)"));
