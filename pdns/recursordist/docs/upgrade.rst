@@ -29,6 +29,13 @@ Changed Settings
 
 The :ref:`setting-yaml-recursor.event_trace_enabled` setting has gained a value to allow openTelemetry Trace data to be included in the Protobuf log stream.
 
+5.0.12, 5.1.6 and 5.2.4
+-----------------------
+
+New settings
+^^^^^^^^^^^^
+- The :ref:`setting-yaml-outgoing.edns_subnet_harden` setting has been introduced to allow for more strict checking of ECS enabled answers.
+
 5.1.0 to 5.2.0
 --------------
 

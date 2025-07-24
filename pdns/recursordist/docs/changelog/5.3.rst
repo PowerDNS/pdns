@@ -4,6 +4,28 @@ Changelogs for 5.3.X
 Before upgrading, it is advised to read the :doc:`../upgrade`.
 
 .. changelog::
+  :version: 5.3.0-beta1
+  :released: 24th of July 2025
+
+  .. change::
+    :tags: Improvements
+    :pullreq: 15887, 15888
+
+    Add version and an alignment byte to the EDNS record for OpenTelemetry data.
+
+  .. change::
+    :tags: Bug Fixes
+    :pullreq: 15848
+
+    Chain and harden ECS enabled queries. (:doc:`../security-advisories/powerdns-advisory-2025-04`).
+
+  .. change::
+    :tags: New Features
+    :pullreq: 15803
+
+    Add Lua hooks to dump and restore measured nameserver speed table.
+
+.. changelog::
   :version: 5.3.0-alpha2
   :released: 9th of July 2025
 
