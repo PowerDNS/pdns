@@ -143,6 +143,17 @@ static uint8_t strToRCode(const std::string& context, const std::string& paramet
   return *rcode;
 }
 
+static uint16_t strToQType(const std::string& context, const std::string& parameterName, const ::rust::String& qtype_rust_string)
+{
+  auto qtype_str = std::string(qtype_rust_string);
+  QType qtype;
+  qtype = qtype_str;
+  if (qtype.getCode() == 0) {
+    return checkedConversionFromStr<uint8_t>(context, parameterName, qtype_rust_string);
+  }
+  return qtype;
+}
+
 static std::optional<std::string> loadContentFromConfigurationFile(const std::string& fileName)
 {
   /* no check on the file size, don't do this with just any file! */
@@ -647,7 +658,7 @@ static void loadDynamicBlockConfiguration(const dnsdist::rust::settings::Dynamic
           ruleParams.d_tagSettings->d_name = std::string(rule.tag_name);
           ruleParams.d_tagSettings->d_value = std::string(rule.tag_value);
         }
-        dbrgObj->setRCodeRate(checkedConversionFromStr<int>("dynamic-rules.rules.qtype_rate", "qtype", rule.qtype), std::move(ruleParams));
+        dbrgObj->setQTypeRate(strToQType("dynamic-rules.rules.qtype_rate", "qtype", rule.qtype), std::move(ruleParams));
       }
       else if (rule.rule_type == "cache-miss-ratio") {
         DynBlockRulesGroup::DynBlockCacheMissRatioRule ruleParams(std::string(rule.comment), rule.action_duration, rule.ratio, rule.warning_ratio, rule.seconds, rule.action.empty() ? DNSAction::Action::None : DNSAction::typeFromString(std::string(rule.action)), rule.minimum_number_of_responses, rule.minimum_global_cache_hit_ratio);

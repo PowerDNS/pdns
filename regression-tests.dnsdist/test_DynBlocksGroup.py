@@ -28,6 +28,55 @@ class TestDynBlockGroupQPS(DynBlocksTest):
         name = 'qrate.group.dynblocks.tests.powerdns.com.'
         self.doTestQRate(name)
 
+class TestDynBlockGroupQTypeRate(DynBlocksTest):
+
+    _config_template = """
+    local dbr = dynBlockRulesGroup()
+    dbr:setQTypeRate(DNSQType.ANY, %d, %d, "Exceeded qtype rate", %d)
+
+    function maintenance()
+	    dbr:apply()
+    end
+    setDynBlocksAction(DNSAction.Refused)
+    newServer{address="127.0.0.1:%d"}
+    """
+    _config_params = ['_dynBlockANYQPS', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort']
+
+    def testDynBlocksQTypeRate(self):
+        """
+        Dyn Blocks (Group): QType Rate
+        """
+        name = 'qtype-rate.group.dynblocks.tests.powerdns.com.'
+        self.doTestQTypeRate(name)
+
+class TestDynBlockGroupQTypeRateYAML(DynBlocksTest):
+
+    _yaml_config_template = """---
+dynamic_rules:
+  - name: "Block client generating too many ANY queries"
+    rules:
+      - type: "qtype-rate"
+        rate: %d
+        seconds: %d
+        action_duration: %d
+        comment: "Exceeded ANY rate"
+        action: "Refused"
+        qtype: "ANY"
+
+backends:
+  - address: "127.0.0.1:%d"
+    protocol: Do53
+"""
+    _config_params = []
+    _yaml_config_params = ['_dynBlockANYQPS', '_dynBlockPeriod', '_dynBlockDuration', '_testServerPort']
+
+    def testDynBlocksQTypeRate(self):
+        """
+        Dyn Blocks (Group / YAML): QType Rate
+        """
+        name = 'qtype-rate-yaml.group.dynblocks.tests.powerdns.com.'
+        self.doTestQTypeRate(name)
+
 class TestDynBlockGroupQPSRefused(DynBlocksTest):
 
     _config_template = """
