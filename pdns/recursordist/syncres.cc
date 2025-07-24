@@ -1949,7 +1949,7 @@ int SyncRes::doResolveNoQNameMinimization(const DNSName& qname, const QType qtyp
         }
         /* Apply Post filtering policies */
 
-        if (d_wantsRPZ && !stoppedByPolicyHit) {
+        if (d_wantsRPZ && !d_appliedPolicy.wasHit()) {
           auto luaLocal = g_luaconfs.getLocal();
           if (luaLocal->dfe.getPostPolicy(ret, d_discardedPolicies, d_appliedPolicy)) {
             mergePolicyTags(d_policyTags, d_appliedPolicy.getTags());
