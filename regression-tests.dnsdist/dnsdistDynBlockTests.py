@@ -18,6 +18,7 @@ class DynBlocksTest(DNSDistTest):
     _webServerAPIKey = 'apisecret'
     _webServerAPIKeyHashed = '$scrypt$ln=10,p=1,r=8$9v8JxDfzQVyTpBkTbkUqYg==$bDQzAOHeK1G9UvTPypNhrX48w974ZXbFPtRKS34+aso='
     _dynBlockQPS = 10
+    _dynBlockANYQPS = 10
     _dynBlockPeriod = 2
     # this needs to be greater than maintenanceWaitTime
     _dynBlockDuration = _maintenanceWaitTime + 2
@@ -125,6 +126,47 @@ class DynBlocksTest(DNSDistTest):
 
         # this one should succeed
         (receivedQuery, receivedResponse) = self.sendTCPQuery(query, response)
+        receivedQuery.id = query.id
+        self.assertEqual(query, receivedQuery)
+        self.assertEqual(response, receivedResponse)
+
+    def doTestQTypeRate(self, name):
+        query = dns.message.make_query(name, 'ANY', 'IN')
+        response = dns.message.make_response(query)
+        blockedResponse = dns.message.make_response(query)
+        blockedResponse.set_rcode(dns.rcode.REFUSED)
+
+        allowed = 0
+        sent = 0
+        for _ in range((self._dynBlockQPS * self._dynBlockPeriod) + 1):
+            (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
+            sent = sent + 1
+            if receivedQuery:
+                receivedQuery.id = query.id
+                self.assertEqual(query, receivedQuery)
+                self.assertEqual(response, receivedResponse)
+                allowed = allowed + 1
+            else:
+                # the query has not reached the responder,
+                # let's clear the response queue
+                self.clearToResponderQueue()
+
+        # we might be already blocked, but we should have been able to send
+        # at least self._dynBlockQPS queries
+        self.assertGreaterEqual(allowed, self._dynBlockQPS)
+
+        if allowed == sent:
+            waitForMaintenanceToRun()
+
+        # we should now be dropped for up to self._dynBlockDuration + self._dynBlockPeriod
+        (_, receivedResponse) = self.sendUDPQuery(query, response=None, useQueue=False, timeout=0.5)
+        self.assertEqual(receivedResponse, blockedResponse)
+
+        # wait until we are not blocked anymore
+        time.sleep(self._dynBlockDuration + self._dynBlockPeriod)
+
+        # this one should succeed
+        (receivedQuery, receivedResponse) = self.sendUDPQuery(query, response)
         receivedQuery.id = query.id
         self.assertEqual(query, receivedQuery)
         self.assertEqual(response, receivedResponse)
