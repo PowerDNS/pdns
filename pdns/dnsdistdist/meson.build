@@ -732,7 +732,7 @@ if dep_systemd_prog.found()
   )
   systemd_service_conf.set(
     'RestrictAddressFamilies',
-    have_systemd_restrict_address_families ? 'RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6' : '',
+    have_systemd_restrict_address_families ? 'RestrictAddressFamilies=AF_INET AF_INET6 AF_NETLINK AF_UNIX AF_XDP' : '',
   )
 
   dnsdist_service_conf_general = configuration_data()
