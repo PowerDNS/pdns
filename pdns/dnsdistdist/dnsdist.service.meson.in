@@ -6,12 +6,12 @@ Wants=network-online.target
 After=network-online.target time-sync.target
 
 [Service]
-ExecStartPre=@BinDir@/dnsdist --check-config
+ExecStartPre=@BinDir@/dnsdist --check-config @ConfigFile@
 # Note: when editing the ExecStart command, keep --supervised and --disable-syslog
-ExecStart=@BinDir@/dnsdist --supervised --disable-syslog
+ExecStart=@BinDir@/dnsdist --supervised --disable-syslog @ConfigFile@
 User=@ServiceUser@
 Group=@ServiceGroup@
-SyslogIdentifier=dnsdist
+SyslogIdentifier=@SyslogIdentifier@
 Type=notify
 Restart=on-failure
 RestartSec=2
