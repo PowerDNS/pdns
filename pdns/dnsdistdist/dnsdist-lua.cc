@@ -967,10 +967,10 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
         const std::string latency = (backend->latencyUsec == 0.0 ? "-" : boost::str(latFmt % (backend->latencyUsec / 1000.0)));
         const std::string latencytcp = (backend->latencyUsecTCP == 0.0 ? "-" : boost::str(latFmt % (backend->latencyUsecTCP / 1000.0)));
         if (showUUIDs) {
-          ret << (fmt % counter % backend->getName() % backend->d_config.remote.toStringWithPort() % status % backend->queryLoad % backend->qps.getRate() % backend->d_config.order % backend->d_config.d_weight % backend->queries.load() % backend->reuseds.load() % (backend->dropRate) % latency % backend->outstanding.load() % pools % *backend->d_config.id % latencytcp) << endl;
+          ret << (fmt % counter % backend->getName() % backend->d_config.remote.toStringWithPort() % status % backend->queryLoad % backend->getQPSLimit() % backend->d_config.order % backend->d_config.d_weight % backend->queries.load() % backend->reuseds.load() % (backend->dropRate) % latency % backend->outstanding.load() % pools % *backend->d_config.id % latencytcp) << endl;
         }
         else {
-          ret << (fmt % counter % backend->getName() % backend->d_config.remote.toStringWithPort() % status % backend->queryLoad % backend->qps.getRate() % backend->d_config.order % backend->d_config.d_weight % backend->queries.load() % backend->reuseds.load() % (backend->dropRate) % latency % backend->outstanding.load() % pools % latencytcp) << endl;
+          ret << (fmt % counter % backend->getName() % backend->d_config.remote.toStringWithPort() % status % backend->queryLoad % backend->getQPSLimit() % backend->d_config.order % backend->d_config.d_weight % backend->queries.load() % backend->reuseds.load() % (backend->dropRate) % latency % backend->outstanding.load() % pools % latencytcp) << endl;
         }
         totQPS += static_cast<uint64_t>(backend->queryLoad);
         totQueries += backend->queries.load();
