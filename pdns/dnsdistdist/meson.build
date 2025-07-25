@@ -732,13 +732,14 @@ if dep_systemd_prog.found()
   )
   systemd_service_conf.set(
     'RestrictAddressFamilies',
-    have_systemd_restrict_address_families ? 'RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6' : '',
+    have_systemd_restrict_address_families ? 'RestrictAddressFamilies=AF_INET AF_INET6 AF_NETLINK AF_UNIX AF_XDP' : '',
   )
 
   dnsdist_service_conf_general = configuration_data()
   dnsdist_service_conf_general.set('Description', 'DNS Loadbalancer')
   dnsdist_service_conf_general.merge_from(systemd_service_conf)
   dnsdist_service_conf_general.set('SyslogIdentifier', 'dnsdist')
+  dnsdist_service_conf_general.set('ConfigFile', '')
 
   configure_file(
     input: 'dnsdist.service.meson.in',
@@ -752,6 +753,7 @@ if dep_systemd_prog.found()
   dnsdist_service_conf_instance.merge_from(systemd_service_conf)
   dnsdist_service_conf_instance.set('Description', 'DNS Loadbalancer %i')
   dnsdist_service_conf_instance.set('SyslogIdentifier', 'dnsdist-%i')
+  dnsdist_service_conf_instance.set('ConfigFile', '--config ' + get_option('sysconfdir') + '/dnsdist-%i.conf')
 
   configure_file(
     input: 'dnsdist.service.meson.in',
