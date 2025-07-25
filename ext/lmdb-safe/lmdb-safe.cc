@@ -133,35 +133,6 @@ Various other options may also need to be set before opening the handle, e.g. md
   }
 }
 
-void MDBEnv::incROTX()
-{
-  auto threadId = std::this_thread::get_id();
-  {
-    std::shared_lock<std::shared_mutex> lock(d_countmutex);
-    if (auto transactionsIt = d_ROtransactionsOut.find(threadId); transactionsIt != d_ROtransactionsOut.end()) {
-      ++transactionsIt->second;
-      return;
-    }
-  }
-
-  {
-    std::unique_lock<std::shared_mutex> lock(d_countmutex);
-    auto [transactionsIt, inserted] = d_ROtransactionsOut.emplace(threadId, 1);
-    if (!inserted) {
-      ++transactionsIt->second;
-    }
-  }
-}
-
-void MDBEnv::decROTX()
-{
-  auto threadId = std::this_thread::get_id();
-  {
-    std::shared_lock<std::shared_mutex> lock(d_countmutex);
-    d_ROtransactionsOut.at(threadId)--;
-  }
-}
-
 void MDBEnv::incRWTX()
 {
   auto threadId = std::this_thread::get_id();
@@ -192,18 +163,6 @@ void MDBEnv::decRWTX()
 }
 
 int MDBEnv::getRWTX()
-{
-  auto threadId = std::this_thread::get_id();
-  {
-    std::shared_lock<std::shared_mutex> lock(d_countmutex);
-    if (auto transactionsIt = d_RWtransactionsOut.find(threadId); transactionsIt != d_RWtransactionsOut.end()) {
-      return transactionsIt->second.load();
-    }
-  }
-  return 0;
-}
-
-int MDBEnv::getROTX()
 {
   auto threadId = std::this_thread::get_id();
   {
@@ -382,8 +341,6 @@ MDB_txn *MDBROTransactionImpl::openROTransaction(MDBEnv *env, MDB_txn *parent, i
     throw std::runtime_error("Unable to start RO transaction: "+MDBError(retCode));
   }
 
-  env->incROTX();
-
   return result;
 }
 
@@ -414,7 +371,6 @@ void MDBROTransactionImpl::abort()
   closeROCursors();
   // if d_txn is non-nullptr here, either the transaction object was invalidated earlier (e.g. by moving from it), or it is an RW transaction which has already cleaned up the d_txn pointer (with an abort).
   if (d_txn) {
-    d_parent->decROTX();
     mdb_txn_abort(d_txn); // this appears to work better than abort for r/o database opening
     d_txn = nullptr;
   }
@@ -425,7 +381,6 @@ void MDBROTransactionImpl::commit()
   closeROCursors();
   // if d_txn is non-nullptr here, either the transaction object was invalidated earlier (e.g. by moving from it), or it is an RW transaction which has already cleaned up the d_txn pointer (with an abort).
   if (d_txn) {
-    d_parent->decROTX();
     mdb_txn_commit(d_txn); // this appears to work better than abort for r/o database opening
     d_txn = nullptr;
   }
