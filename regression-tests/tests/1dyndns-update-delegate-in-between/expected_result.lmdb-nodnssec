@@ -50,8 +50,8 @@ Answer:
 
 Check if delegate and glue are added correctly.
 --- Start: diff start step.1 ---
-> c.host.test.dyndns	3600	IN	NS	ns1.c.host.test.dyndns.
-> ns1.c.host.test.dyndns	3600	IN	A	192.168.0.1
+> c.host.test.dyndns	NS	0	ns1.c.host.test.dyndns	3600
+> ns1.c.host.test.dyndns	A	0	192.168.0.1	3600
 --- End: diff start step.1 ---
 
 0	a.host.test.dyndns.	3600	IN	A	1.1.1.1
@@ -108,7 +108,8 @@ Answer:
 
 Check if delegate is deleted and glue auth=1
 --- Start: diff start step.2 ---
-> ns1.c.host.test.dyndns	3600	IN	A	192.168.0.1
+> c.host.test.dyndns	TYPE0	0		0
+> ns1.c.host.test.dyndns	A	0	192.168.0.1	3600
 --- End: diff start step.2 ---
 
 0	a.host.test.dyndns.	3600	IN	A	1.1.1.1
