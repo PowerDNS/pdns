@@ -781,8 +781,7 @@ static void dbBench(const std::string& fname)
     }
     // Safe to pass UnknownDomainID here
     B.lookup(QType(QType::A), DNSName(std::to_string(dns_random_uint32()))+domain, UnknownDomainID);
-    while(B.get(rr)) {
-    }
+    B.lookupEnd();
     misses++;
 
   }
@@ -906,8 +905,13 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& zone, co
       bool ns=false;
       DNSZoneRecord zr;
       B.lookup(QType(QType::ANY), zone.operator const DNSName&(), sd_p.domain_id);
-      while(B.get(zr))
-        ns |= (zr.dr.d_type == QType::NS);
+      while(B.get(zr)) {
+        if (zr.dr.d_type == QType::NS) {
+          ns = true;
+          B.lookupEnd();
+          break;
+        }
+      }
       if (!ns) {
         cout<<"[Error] No delegation for zone '"<<zone<<"' in parent '"<<parent<<"'"<<endl;
         numerrors++;
@@ -2327,6 +2331,8 @@ static int addOrReplaceRecord(bool isAdd, const vector<string>& cmds) {
         }
       }
       reject = true;
+      di.backend->lookupEnd();
+      break;
     }
     if (reject) {
       cerr<<"Attempting to add CNAME to "<<rr.qname<<" which already has existing records"<<endl;
@@ -2335,12 +2341,10 @@ static int addOrReplaceRecord(bool isAdd, const vector<string>& cmds) {
   }
   else {
     di.backend->lookup(QType(QType::CNAME), rr.qname, static_cast<int>(di.id));
-    // TODO: It would be nice to have a way to complete a lookup and release its
-    // resources without having to exhaust its results - here one successful
-    // get() is all we need to decide to reject the operation. I'm looking at
-    // you, lmdb backend.
     while (di.backend->get(oldrr)) {
       reject = true;
+      di.backend->lookupEnd();
+      break;
     }
     if (reject) {
       cerr<<"Attempting to add record to "<<rr.qname<<" which already has a CNAME record"<<endl;
