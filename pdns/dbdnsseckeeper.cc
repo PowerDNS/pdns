@@ -73,28 +73,26 @@ bool DNSSECKeeper::isSecuredZone(const ZoneName& zone, bool useCache)
   return false;
 }
 
-bool DNSSECKeeper::isPresigned(const ZoneName& name, bool useCache)
+bool DNSSECKeeper::isMetadataOne(const ZoneName& name, const std::string& metaname, bool useCache)
 {
   string meta;
   if (useCache) {
-    getFromMeta(name, "PRESIGNED", meta);
+    getFromMeta(name, metaname, meta);
   }
   else {
-    getFromMetaNoCache(name, "PRESIGNED", meta);
+    getFromMetaNoCache(name, metaname, meta);
   }
   return meta=="1";
 }
 
+bool DNSSECKeeper::isPresigned(const ZoneName& name, bool useCache)
+{
+  return isMetadataOne(name, "PRESIGNED", useCache);
+}
+
 bool DNSSECKeeper::isSignalingZone(const ZoneName& name, bool useCache)
 {
-  string meta;
-  if (useCache) {
-    getFromMeta(name, "SIGNALING-ZONE", meta);
-  }
-  else {
-    getFromMetaNoCache(name, "SIGNALING-ZONE", meta);
-  }
-  return meta=="1";
+  return isMetadataOne(name, "SIGNALING-ZONE", useCache);
 }
 
 bool DNSSECKeeper::addKey(const ZoneName& name, bool setSEPBit, int algorithm, int64_t& keyId, int bits, bool active, bool published)
@@ -356,13 +354,7 @@ bool DNSSECKeeper::getNSEC3PARAM(const ZoneName& zname, NSEC3PARAMRecordContent*
     }
   }
   if(narrow != nullptr) {
-    if(useCache) {
-      getFromMeta(zname, "NSEC3NARROW", value);
-    }
-    else {
-      getFromMetaNoCache(zname, "NSEC3NARROW", value);
-    }
-    *narrow = (value=="1");
+    *narrow = isMetadataOne(zname, "NSEC3NARROW", useCache);
   }
   return true;
 }

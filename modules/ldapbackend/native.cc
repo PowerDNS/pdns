@@ -154,7 +154,9 @@ bool LdapBackend::list_simple(const ZoneName& target, domainid_t /* domain_id */
 
 bool LdapBackend::list_strict(const ZoneName& target, domainid_t domain_id)
 {
-  if (target.isPartOf(DNSName("in-addr.arpa")) || target.isPartOf(DNSName("ip6.arpa"))) {
+  static const DNSName inaddrarpa("in-addr.arpa");
+  static const DNSName ip6arpa("ip6.arpa");
+  if (target.isPartOf(inaddrarpa) || target.isPartOf(ip6arpa)) {
     g_log << Logger::Warning << d_myname << " Request for reverse zone AXFR, but this is not supported in strict mode" << endl;
     return false; // AXFR isn't supported in strict mode. Use simple mode and additional PTR records
   }

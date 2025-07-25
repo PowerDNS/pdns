@@ -161,7 +161,7 @@ static void addSignature(DNSSECKeeper& dsk, UeberBackend& ueber, const ZoneName&
     dsk.getPreRRSIGs(ueber, outsigned, origTTL, packet); // does it all
   }
   else {
-    if(getRRSIGsForRRSET(dsk, signer, wildcardname.countLabels() != 0 ? wildcardname : signQName, signQType, signTTL, toSign, rrcs) < 0)  {
+    if(getRRSIGsForRRSET(dsk, signer, wildcardname.hasLabels() ? wildcardname : signQName, signQType, signTTL, toSign, rrcs) < 0)  {
       // cerr<<"Error signing a record!"<<endl;
       return;
     }

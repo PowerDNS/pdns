@@ -253,7 +253,7 @@ try
     }
     prev=shorter;
   }
-  if(encloser.countLabels() && nextcloser.countLabels())
+  if(encloser.hasLabels() && nextcloser.hasLabels())
   {
     if(denied.count(nextcloser))
     {

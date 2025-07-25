@@ -242,11 +242,13 @@ public:
 
   static void setMaxEntries(size_t maxEntries);
 
+  bool isMetadataOne(const ZoneName& zname, const std::string& metaname, bool useCache);
+
+  int64_t d_metaCacheCleanAction{0};
   typedef std::map<std::string, std::vector<std::string> > METAValues;
 private:
   bool getFromMetaNoCache(const ZoneName& name, const std::string& kind, std::string& value);
 
-  int64_t d_metaCacheCleanAction{0};
   bool d_metaUpdate{false};
 
   struct KeyCacheEntry

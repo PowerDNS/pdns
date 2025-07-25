@@ -152,6 +152,7 @@ public:
   size_t wirelength() const; //!< Number of total bytes in the name
   bool empty() const { return d_storage.empty(); }
   bool isRoot() const { return d_storage.size()==1 && d_storage[0]==0; }
+  bool hasLabels() const { return !empty() && !isRoot(); }
   void clear() { d_storage.clear(); }
   void trimToLabels(unsigned int);
   size_t hash(size_t init=0) const
@@ -268,7 +269,22 @@ inline DNSName operator+(const DNSName& lhs, const DNSName& rhs)
   return ret;
 }
 
-extern const DNSName g_rootdnsname, g_wildcarddnsname;
+extern const DNSName g_rootdnsname;          // .
+extern const DNSName g_wildcarddnsname;      // *
+
+extern const DNSName g_coodnsname;           // coo
+extern const DNSName g_groupdnsname;         // group
+extern const DNSName g_versiondnsname;       // version
+extern const DNSName g_zonesdnsname;         // zones
+
+extern const DNSName g_gsstsigdnsname;       // gss-tsig
+extern const DNSName g_hmacmd5dnsname;       // hmac-md5
+extern const DNSName g_hmacmd5dnsname_long;  // hmac-md5.sig-alg.reg.int
+extern const DNSName g_hmacsha1dnsname;      // hmac-sha1
+extern const DNSName g_hmacsha224dnsname;    // hmac-sha224
+extern const DNSName g_hmacsha256dnsname;    // hmac-sha256
+extern const DNSName g_hmacsha384dnsname;    // hmac-sha384
+extern const DNSName g_hmacsha512dnsname;    // hmac-sha512
 
 #if defined(PDNS_AUTH) // [
 // ZoneName: this is equivalent to DNSName, but intended to only store zone

@@ -116,7 +116,7 @@ void CatalogInfo::updateHash(CatalogHashMap& hashes, const DomainInfo& di) const
 DNSZoneRecord CatalogInfo::getCatalogVersionRecord(const ZoneName& zone)
 {
   DNSZoneRecord dzr;
-  dzr.dr.d_name = DNSName("version") + zone.operator const DNSName&();
+  dzr.dr.d_name = g_versiondnsname + zone.operator const DNSName&();
   dzr.dr.d_ttl = 0;
   dzr.dr.d_type = QType::TXT;
   dzr.dr.setContent(std::make_shared<TXTRecordContent>("2"));
@@ -132,7 +132,7 @@ void CatalogInfo::toDNSZoneRecords(const ZoneName& zone, vector<DNSZoneRecord>& 
   else {
     prefix = d_unique;
   }
-  prefix += DNSName("zones") + zone.operator const DNSName&();
+  prefix += g_zonesdnsname + zone.operator const DNSName&();
 
   DNSZoneRecord dzr;
   dzr.dr.d_name = prefix;
@@ -142,7 +142,7 @@ void CatalogInfo::toDNSZoneRecords(const ZoneName& zone, vector<DNSZoneRecord>& 
   dzrs.emplace_back(dzr);
 
   if (!d_coo.empty()) {
-    dzr.dr.d_name = DNSName("coo") + prefix;
+    dzr.dr.d_name = g_coodnsname + prefix;
     dzr.dr.d_ttl = 0;
     dzr.dr.d_type = QType::PTR;
     dzr.dr.setContent(std::make_shared<PTRRecordContent>(d_coo));
@@ -150,7 +150,7 @@ void CatalogInfo::toDNSZoneRecords(const ZoneName& zone, vector<DNSZoneRecord>& 
   }
 
   for (const auto& group : d_group) {
-    dzr.dr.d_name = DNSName("group") + prefix;
+    dzr.dr.d_name = g_groupdnsname + prefix;
     dzr.dr.d_ttl = 0;
     dzr.dr.d_type = QType::TXT;
     dzr.dr.setContent(std::make_shared<TXTRecordContent>("\"" + group + "\""));

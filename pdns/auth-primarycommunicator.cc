@@ -305,8 +305,8 @@ void CommunicatorClass::sendNotification(int sock, const ZoneName& domain, const
       return;
     }
     TSIGRecordContent trc;
-    if (tsigalgorithm.toStringNoDot() == "hmac-md5") {
-      trc.d_algoName = DNSName(tsigalgorithm.toStringNoDot() + ".sig-alg.reg.int.");
+    if (tsigalgorithm == g_hmacmd5dnsname) {
+      trc.d_algoName = g_hmacmd5dnsname_long;
     }
     else {
       trc.d_algoName = std::move(tsigalgorithm);

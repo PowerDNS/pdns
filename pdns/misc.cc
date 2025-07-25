@@ -1375,20 +1375,27 @@ uint64_t getCPUSteal(const std::string& /* str */)
 
 bool getTSIGHashEnum(const DNSName& algoName, TSIGHashEnum& algoEnum)
 {
-  if (algoName == DNSName("hmac-md5.sig-alg.reg.int") || algoName == DNSName("hmac-md5"))
+  if (algoName == g_hmacmd5dnsname_long || algoName == g_hmacmd5dnsname) {
     algoEnum = TSIG_MD5;
-  else if (algoName == DNSName("hmac-sha1"))
+  }
+  else if (algoName == g_hmacsha1dnsname) {
     algoEnum = TSIG_SHA1;
-  else if (algoName == DNSName("hmac-sha224"))
+  }
+  else if (algoName == g_hmacsha224dnsname) {
     algoEnum = TSIG_SHA224;
-  else if (algoName == DNSName("hmac-sha256"))
+  }
+  else if (algoName == g_hmacsha256dnsname) {
     algoEnum = TSIG_SHA256;
-  else if (algoName == DNSName("hmac-sha384"))
+  }
+  else if (algoName == g_hmacsha384dnsname) {
     algoEnum = TSIG_SHA384;
-  else if (algoName == DNSName("hmac-sha512"))
+  }
+  else if (algoName == g_hmacsha512dnsname) {
     algoEnum = TSIG_SHA512;
-  else if (algoName == DNSName("gss-tsig"))
+  }
+  else if (algoName == g_gsstsigdnsname) {
     algoEnum = TSIG_GSS;
+  }
   else {
      return false;
   }
@@ -1398,13 +1405,13 @@ bool getTSIGHashEnum(const DNSName& algoName, TSIGHashEnum& algoEnum)
 DNSName getTSIGAlgoName(TSIGHashEnum& algoEnum)
 {
   switch(algoEnum) {
-  case TSIG_MD5: return DNSName("hmac-md5.sig-alg.reg.int.");
-  case TSIG_SHA1: return DNSName("hmac-sha1.");
-  case TSIG_SHA224: return DNSName("hmac-sha224.");
-  case TSIG_SHA256: return DNSName("hmac-sha256.");
-  case TSIG_SHA384: return DNSName("hmac-sha384.");
-  case TSIG_SHA512: return DNSName("hmac-sha512.");
-  case TSIG_GSS: return DNSName("gss-tsig.");
+  case TSIG_MD5: return g_hmacmd5dnsname_long;
+  case TSIG_SHA1: return g_hmacsha1dnsname;
+  case TSIG_SHA224: return g_hmacsha224dnsname;
+  case TSIG_SHA256: return g_hmacsha256dnsname;
+  case TSIG_SHA384: return g_hmacsha384dnsname;
+  case TSIG_SHA512: return g_hmacsha512dnsname;
+  case TSIG_GSS: return g_gsstsigdnsname;
   }
   throw PDNSException("getTSIGAlgoName does not understand given algorithm, please fix!");
 }

@@ -1107,7 +1107,7 @@ static int checkZone(DNSSECKeeper &dk, UeberBackend &B, const ZoneName& zone, co
       continue;
     }
 
-    if (isSecure && isOptOut && (rr.qname.countLabels() != 0 && rr.qname.getRawLabels()[0] == "*")) {
+    if (isSecure && isOptOut && (rr.qname.hasLabels() && rr.qname.getRawLabel(0) == "*")) {
       cout<<"[Warning] wildcard record '"<<rr.qname<<" IN " <<rr.qtype.toString()<<" "<<rr.content<<"' is insecure"<<endl;
       cout<<"[Info] Wildcard records in opt-out zones are insecure. Disable the opt-out flag for this zone to avoid this warning. Command: pdnsutil set-nsec3 "<<zone<<endl;
       numwarnings++;
@@ -4221,7 +4221,7 @@ static int setSignalingZone(vector<string>& cmds, const std::string_view synopsi
 
   ZoneName zone(cmds.at(0));
 
-  if(zone.operator const DNSName&().countLabels() == 0 || !pdns_iequals(zone.operator const DNSName&().getRawLabel(0), "_signal")) {
+  if(!zone.operator const DNSName&().hasLabels() || !pdns_iequals(zone.operator const DNSName&().getRawLabel(0), "_signal")) {
     cerr << "Signaling zone's first label must be '_signal': " << zone << endl;
     return 1;
   }

@@ -224,7 +224,7 @@ bool denialProvesNoDelegation(const DNSName& zone, const std::vector<DNSRecord>&
         return false;
       }
 
-      const string beginHash = fromBase32Hex(record.d_name.getRawLabels()[0]);
+      const string beginHash = fromBase32Hex(record.d_name.getRawLabel(0));
       if (beginHash == hash) {
         return !nsec3->isSet(QType::NS);
       }
@@ -436,7 +436,7 @@ static bool provesNSEC3NoWildCard(const DNSName& closestEncloser, uint16_t const
           return false;
         }
         VLOG(log, closestEncloser << ":\tWildcard hash: "<<toBase32Hex(hash)<<endl);
-        string beginHash=fromBase32Hex(validset.first.first.getRawLabels()[0]);
+        string beginHash=fromBase32Hex(validset.first.first.getRawLabel(0));
         VLOG(log, closestEncloser << ":\tNSEC3 hash: "<<toBase32Hex(beginHash)<<" -> "<<toBase32Hex(nsec3->d_nexthash)<<endl);
 
         if (beginHash == hash) {
@@ -761,7 +761,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
         nsec3Seen = true;
 
         VLOG(log, qname << ":\tquery hash: "<<toBase32Hex(hash)<<endl);
-        string beginHash = fromBase32Hex(hashedOwner.getRawLabels()[0]);
+        string beginHash = fromBase32Hex(hashedOwner.getRawLabel(0));
 
         // If the name exists, check if the qtype is denied
         if (beginHash == hash) {
@@ -864,7 +864,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
               return dState::INSECURE;
             }
 
-            string beginHash=fromBase32Hex(validset.first.first.getRawLabels()[0]);
+            string beginHash=fromBase32Hex(validset.first.first.getRawLabel(0));
 
             VLOG(log, qname << ": Comparing "<<toBase32Hex(hash)<<" ("<<closestEncloser<<") against "<<toBase32Hex(beginHash)<<endl);
             if (beginHash == hash) {
@@ -961,7 +961,7 @@ dState getDenial(const cspmap_t &validrrsets, const DNSName& qname, const uint16
               continue;
             }
 
-            string beginHash=fromBase32Hex(validset.first.first.getRawLabels()[0]);
+            string beginHash=fromBase32Hex(validset.first.first.getRawLabel(0));
 
             VLOG(log, qname << ": Comparing "<<toBase32Hex(hash)<<" against "<<toBase32Hex(beginHash)<<" -> "<<toBase32Hex(nsec3->d_nexthash)<<endl);
             if (isCoveredByNSEC3Hash(hash, beginHash, nsec3->d_nexthash)) {

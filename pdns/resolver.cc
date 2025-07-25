@@ -144,10 +144,12 @@ uint16_t Resolver::sendResolve(const ComboAddress& remote, const ComboAddress& l
   if(!tsigkeyname.empty()) {
     // cerr<<"Adding TSIG to notification, key name: '"<<tsigkeyname<<"', algo: '"<<tsigalgorithm<<"', secret: "<<Base64Encode(tsigsecret)<<endl;
     TSIGRecordContent trc;
-    if (tsigalgorithm == DNSName("hmac-md5"))
-      trc.d_algoName = tsigalgorithm + DNSName("sig-alg.reg.int");
-    else
+    if (tsigalgorithm == g_hmacmd5dnsname) {
+      trc.d_algoName = g_hmacmd5dnsname_long;
+    }
+    else {
       trc.d_algoName = tsigalgorithm;
+    }
     trc.d_time = time(nullptr);
     trc.d_fudge = 300;
     trc.d_origID=ntohs(randomid);
@@ -200,7 +202,7 @@ namespace pdns {
       if(mdp.d_header.rcode)
         return mdp.d_header.rcode;
 
-      if(origQname.countLabels()) {  // not AXFR
+      if(origQname.hasLabels()) {  // not AXFR
         if(mdp.d_header.id != id)
           throw ResolverException("Remote nameserver replied with wrong id");
         if(mdp.d_header.qdcount != 1)
