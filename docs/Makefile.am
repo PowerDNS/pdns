@@ -49,7 +49,9 @@ endif
 
 man_MANS = $(MANPAGES_INSTALL)
 
-EXTRA_DIST = $(MANPAGES_DIST)
+EXTRA_DIST = \
+	$(MANPAGES_DIST) \
+	http-api/swagger/authoritative-api-swagger.yaml
 
 if HAVE_VENV
 if !HAVE_MANPAGES

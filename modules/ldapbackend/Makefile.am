@@ -6,6 +6,7 @@ EXTRA_DIST = \
     OBJECTFILES \
     OBJECTLIBS \
     dnsdomain2.schema \
+    meson.build \
     pdns-domaininfo.schema
 
 dist_doc_DATA = \
