@@ -53,6 +53,7 @@ EXTRA_DIST = \
 	dnslabeltext.cc \
 	dnslabeltext.rl \
 	dnsmessage.proto \
+	generate-api-swagger.py \
 	incfiles \
 	inflighter.cc \
 	ixfrdist.example.yml \
