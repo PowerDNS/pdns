@@ -115,6 +115,7 @@ public:
   bool isPartOf(const DNSName& rhs) const;   //!< Are we part of the rhs name? Note that name.isPartOf(name).
   inline bool operator==(const DNSName& rhs) const; //!< DNS-native comparison (case insensitive) - empty compares to empty
   bool operator!=(const DNSName& other) const { return !(*this == other); }
+  bool matches(const std::string_view& wire_uncompressed) const; // DNS-native (case insensitive) comparison against raw data in wire format
 
   std::string toString(const std::string& separator=".", const bool trailing=true) const;              //!< Our human-friendly, escaped, representation
   void toString(std::string& output, const std::string& separator=".", const bool trailing=true) const;

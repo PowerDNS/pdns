@@ -808,6 +808,23 @@ bool DNSName::RawLabelsVisitor::empty() const
   return d_position == 0;
 }
 
+bool DNSName::matches(const std::string_view& wire_uncompressed) const
+{
+  if (wire_uncompressed.empty() != empty() || wire_uncompressed.size() < d_storage.size()) {
+    return false;
+  }
+
+  const auto* us = d_storage.cbegin();
+  const auto* p = wire_uncompressed.cbegin();
+  for (; us != d_storage.cend() && p != wire_uncompressed.cend(); ++us, ++p) {
+    if (dns_tolower(*p) != dns_tolower(*us)) {
+      return false;
+    }
+  }
+
+  return us == d_storage.cend();
+}
+
 #if defined(PDNS_AUTH) // [
 std::ostream & operator<<(std::ostream &ostr, const ZoneName& zone)
 {

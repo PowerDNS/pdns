@@ -1032,6 +1032,33 @@ BOOST_AUTO_TEST_CASE(test_getcommonlabels) {
   BOOST_CHECK_EQUAL(name5.getCommonLabels(name1), DNSName());
 }
 
+BOOST_AUTO_TEST_CASE(test_raw_data_comparison) {
+  const DNSName aroot("a.root-servers.net");
+  PacketBuffer query;
+  GenericDNSPacketWriter<PacketBuffer> packetWriter(query, aroot, QType::A, QClass::IN, 0);
+
+  {
+    const std::string_view raw(reinterpret_cast<const char*>(query.data()) + sizeof(dnsheader), query.size() - sizeof(dnsheader));
+    BOOST_CHECK(aroot.matches(raw));
+
+    DNSName differentCase("A.RooT-Servers.NET");
+    BOOST_CHECK(differentCase.matches(raw));
+
+    const DNSName broot("b.root-servers.net");
+    BOOST_CHECK(!(broot.matches(raw)));
+
+    /* last character differs */
+    const DNSName notaroot("a.root-servers.nes");
+    BOOST_CHECK(!(notaroot.matches(raw)));
+  }
+
+  {
+    /* too short */
+    const std::string_view raw(reinterpret_cast<const char*>(query.data() + sizeof(dnsheader)), aroot.wirelength() - 1);
+    BOOST_CHECK(!(aroot.matches(raw)));
+  }
+}
+
 #if defined(PDNS_AUTH)
 BOOST_AUTO_TEST_CASE(test_variantnames) {
   ZoneName zone1("..variant");
