@@ -632,8 +632,8 @@ unsigned int DNSName::countLabels() const
 
 void DNSName::trimToLabels(unsigned int to)
 {
-  while(countLabels() > to && chopOff()) {
-    ;
+  for (auto nlabels = countLabels(); nlabels > to; --nlabels) {
+    chopOff();
   }
 }
 
