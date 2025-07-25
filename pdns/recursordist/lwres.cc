@@ -372,15 +372,11 @@ static void addPadding(const DNSPacketWriter& pw, size_t bufsize, DNSPacketWrite
   const size_t currentSize = pw.getSizeWithOpts(opts);
   if (currentSize < (bufsize - 4)) {
     const size_t remaining = bufsize - (currentSize + 4);
-    /* from rfc8647, "4.1.  Recommended Strategy: Block-Length Padding":
-       Clients SHOULD pad queries to the closest multiple of 128 octets.
-       Note we are in the client role here.
-    */
-    const size_t blockSize = 128;
-    const size_t modulo = (currentSize + 4) % blockSize;
+    // Note we are in the client role here.
+    const size_t modulo = (currentSize + 4) % rfc8467::clientPaddingBlockSize;
     size_t padSize = 0;
     if (modulo > 0) {
-      padSize = std::min(blockSize - modulo, remaining);
+      padSize = std::min(rfc8467::clientPaddingBlockSize - modulo, remaining);
     }
     opts.emplace_back(EDNSOptionCode::PADDING, makeEDNSPaddingOptString(padSize));
   }

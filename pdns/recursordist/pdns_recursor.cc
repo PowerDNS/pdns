@@ -1627,17 +1627,10 @@ void startDoResolve(void* arg) // NOLINT(readability-function-cognitive-complexi
 
       if (currentSize < (maxSize - 4)) {
         size_t remaining = maxSize - (currentSize + 4);
-        /* from rfc8647, "4.1.  Recommended Strategy: Block-Length Padding":
-           If a server receives a query that includes the EDNS(0) "Padding"
-           option, it MUST pad the corresponding response (see Section 4 of
-           RFC 7830) and SHOULD pad the corresponding response to a
-           multiple of 468 octets (see below).
-        */
-        const size_t blockSize = 468;
-        size_t modulo = (currentSize + 4) % blockSize;
+        size_t modulo = (currentSize + 4) % rfc8467::serverPaddingBlockSize;
         size_t padSize = 0;
         if (modulo > 0) {
-          padSize = std::min(blockSize - modulo, remaining);
+          padSize = std::min(rfc8467::serverPaddingBlockSize - modulo, remaining);
         }
         returnedEdnsOptions.emplace_back(EDNSOptionCode::PADDING, makeEDNSPaddingOptString(padSize));
       }
