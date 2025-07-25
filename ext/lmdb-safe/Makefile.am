@@ -1,6 +1,3 @@
-EXTRA_DIST = \
-        LICENSE
-
 noinst_LTLIBRARIES = liblmdb-safe.la
 
 liblmdb-safe_la_SOURCES = \

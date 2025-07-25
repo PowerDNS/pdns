@@ -4,7 +4,8 @@ pkglib_LTLIBRARIES = libgmysqlbackend.la
 
 EXTRA_DIST = \
 	OBJECTFILES \
-	OBJECTLIBS
+	OBJECTLIBS \
+	meson.build
 
 dist_doc_DATA = \
 	dnssec-3.x_to_3.4.0_schema.mysql.sql \
