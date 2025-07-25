@@ -345,7 +345,7 @@ void setPoolPolicy(const string& poolName, std::shared_ptr<ServerPolicy> policy)
   }
 
   dnsdist::configuration::updateRuntimeConfiguration([&poolName, &policy](dnsdist::configuration::RuntimeConfiguration& config) {
-    auto [poolIt, inserted] = config.d_pools.emplace(poolName, ServerPool());
+    auto [poolIt, _] = config.d_pools.emplace(poolName, ServerPool());
     poolIt->second.policy = std::move(policy);
   });
 }
@@ -359,7 +359,7 @@ void addServerToPool(const string& poolName, std::shared_ptr<DownstreamState> se
   }
 
   dnsdist::configuration::updateRuntimeConfiguration([&poolName, &server](dnsdist::configuration::RuntimeConfiguration& config) {
-    auto [poolIt, inserted] = config.d_pools.emplace(poolName, ServerPool());
+    auto [poolIt, _] = config.d_pools.emplace(poolName, ServerPool());
     poolIt->second.addServer(server);
   });
 }
@@ -374,7 +374,7 @@ void removeServerFromPool(const string& poolName, std::shared_ptr<DownstreamStat
   }
 
   dnsdist::configuration::updateRuntimeConfiguration([&poolName, &server](dnsdist::configuration::RuntimeConfiguration& config) {
-    auto [poolIt, inserted] = config.d_pools.emplace(poolName, ServerPool());
+    auto [poolIt, _] = config.d_pools.emplace(poolName, ServerPool());
     poolIt->second.removeServer(server);
   });
 }
