@@ -738,15 +738,15 @@ bool DNSName::matches(const std::string_view& wire_uncompressed) const
     return false;
   }
 
-  const auto* us = d_storage.cbegin();
-  const auto* p = wire_uncompressed.cbegin();
-  for (; us != d_storage.cend() && p != wire_uncompressed.cend(); ++us, ++p) {
-    if (dns_tolower(*p) != dns_tolower(*us)) {
+  const auto* our = d_storage.cbegin();
+  const auto* other = wire_uncompressed.cbegin();
+  for (; our != d_storage.cend() && other != wire_uncompressed.cend(); ++our, ++other) {
+    if (dns_tolower(*other) != dns_tolower(*our)) {
       return false;
     }
   }
 
-  return us == d_storage.cend();
+  return our == d_storage.cend();
 }
 
 #if defined(PDNS_AUTH) // [
