@@ -4,13 +4,14 @@ infile = 'Cargo.toml'
 outfile = 'libdnsdist_rust.a'
 
 env = environment()
-env.append('CARGO', cargo.full_path())
-env.append('SYSCONFDIR', conf.get('SYSCONFDIR'))
-env.append('builddir', '.')
-env.append('generatedheadersdir', meson.current_build_dir() + '/..')
-env.append('srcdir', meson.current_source_dir())
-env.append('RUST_TARGET', '')
-env.append('RUSTC_TARGET_ARCH', '')
+env.set('_defaultCARGO', cargo.full_path())
+env.set('SYSCONFDIR', conf.get('SYSCONFDIR'))
+env.set('builddir', '.')
+env.set('generatedheadersdir', meson.current_build_dir() + '/..')
+env.set('srcdir', meson.current_source_dir())
+# The two calls below set the env var to an empty string if it does not exist already and leave it alone otherwise
+env.append('RUST_TARGET', '', separator: '')
+env.append('RUSTC_TARGET_ARCH', '', separator: '')
 
 lib_dnsdist_rust = custom_target('libdnsdist_rust.a',
   output: [outfile, 'cxx.h'],
