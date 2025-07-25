@@ -500,6 +500,8 @@ def get_cpp_parameters(struct_name, parameters, skip_name):
             field = f'convertSOAParams({field})'
         elif ptype == 'RCode':
             field = f'dnsdist::configuration::yaml::strToRCode("{struct_name}", "{name}", {field})'
+        elif ptype == 'Opcode':
+            field = f'dnsdist::configuration::yaml::strToOpcode("{struct_name}", "{name}", {field})'
         output += field
     return output
 

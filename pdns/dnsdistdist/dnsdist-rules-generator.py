@@ -68,6 +68,8 @@ def type_to_cpp(type_str, lua_interface, inside_container=False):
         return 'const std::string&'
     if type_str == 'RCode':
         return 'uint8_t'
+    if type_str == 'Opcode':
+        return 'uint8_t'
     return type_str
 
 def get_cpp_object_name(name, is_class=True):
