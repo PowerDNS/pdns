@@ -38,7 +38,7 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
   if (tkey_in.d_mode == 3) { // establish context
 #ifdef ENABLE_GSS_TSIG
     if (g_doGssTSIG) {
-      if (tkey_in.d_algo == DNSName("gss-tsig.")) {
+      if (tkey_in.d_algo == g_gsstsigdnsname) {
         std::vector<std::string> meta;
         ZoneName tmpName(name);
         do {
@@ -117,7 +117,7 @@ void PacketHandler::tkeyHandler(const DNSPacket& p, std::unique_ptr<DNSPacket>& 
   if (sign)
   {
     TSIGRecordContent trc;
-    trc.d_algoName = DNSName("gss-tsig");
+    trc.d_algoName = g_gsstsigdnsname;
     trc.d_time = inception;
     trc.d_fudge = 300;
     trc.d_mac = "";

@@ -61,8 +61,8 @@ AXFRRetriever::AXFRRetriever(const ComboAddress& remote,
     pwriter.getHeader()->id = dns_random_uint16();
 
     if (!tsigConf.name.empty()) {
-      if (tsigConf.algo == DNSName("hmac-md5")) {
-        d_trc.d_algoName = tsigConf.algo + DNSName("sig-alg.reg.int");
+      if (tsigConf.algo == g_hmacmd5dnsname) {
+        d_trc.d_algoName = g_hmacmd5dnsname_long;
       }
       else {
         d_trc.d_algoName = tsigConf.algo;

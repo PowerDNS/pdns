@@ -268,7 +268,22 @@ inline DNSName operator+(const DNSName& lhs, const DNSName& rhs)
   return ret;
 }
 
-extern const DNSName g_rootdnsname, g_wildcarddnsname;
+extern const DNSName g_rootdnsname;          // .
+extern const DNSName g_wildcarddnsname;      // *
+
+extern const DNSName g_coodnsname;           // coo
+extern const DNSName g_groupdnsname;         // group
+extern const DNSName g_versiondnsname;       // version
+extern const DNSName g_zonesdnsname;         // zones
+
+extern const DNSName g_gsstsigdnsname;       // gss-tsig
+extern const DNSName g_hmacmd5dnsname;       // hmac-md5
+extern const DNSName g_hmacmd5dnsname_long;  // hmac-md5.sig-alg.reg.int
+extern const DNSName g_hmacsha1dnsname;      // hmac-sha1
+extern const DNSName g_hmacsha224dnsname;    // hmac-sha224
+extern const DNSName g_hmacsha256dnsname;    // hmac-sha256
+extern const DNSName g_hmacsha384dnsname;    // hmac-sha384
+extern const DNSName g_hmacsha512dnsname;    // hmac-sha512
 
 #if defined(PDNS_AUTH) // [
 // ZoneName: this is equivalent to DNSName, but intended to only store zone

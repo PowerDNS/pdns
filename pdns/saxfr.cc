@@ -105,7 +105,7 @@ try
       input="";
       DNSPacketWriter pwtkey(packet, gssctx.getLabel(), QType::TKEY, QClass::ANY);
       TKEYRecordContent tkrc;
-      tkrc.d_algo = DNSName("gss-tsig.");
+      tkrc.d_algo = g_gsstsigdnsname;
       // coverity[store_truncates_time_t]
       tkrc.d_inception = time((time_t*)NULL);
       tkrc.d_expiration = tkrc.d_inception+15;

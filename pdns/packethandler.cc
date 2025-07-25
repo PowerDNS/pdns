@@ -2096,11 +2096,11 @@ bool PacketHandler::checkForCorrectTSIG(const DNSPacket& packet, DNSName* tsigke
   TSIGTriplet tsigTriplet;
   tsigTriplet.name = *tsigkeyname;
   tsigTriplet.algo = tsigContent->d_algoName;
-  if (tsigTriplet.algo == DNSName("hmac-md5.sig-alg.reg.int")) {
-    tsigTriplet.algo = DNSName("hmac-md5");
+  if (tsigTriplet.algo == g_hmacmd5dnsname_long) {
+    tsigTriplet.algo = g_hmacmd5dnsname;
   }
 
-  if (tsigTriplet.algo != DNSName("gss-tsig")) {
+  if (tsigTriplet.algo != g_gsstsigdnsname) {
     string secret64;
     if (!B.getTSIGKey(*tsigkeyname, tsigTriplet.algo, secret64)) {
       g_log << Logger::Error << "Packet for domain '" << packet.qdomain << "' denied: can't find TSIG key with name '" << *tsigkeyname << "' and algorithm '" << tsigTriplet.algo << "'" << endl;

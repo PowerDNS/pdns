@@ -49,7 +49,7 @@ try
   DNSName keyname("pdns-b-aa");
 
   TSIGRecordContent trc;
-  trc.d_algoName=DNSName("hmac-md5.sig-alg.reg.int");
+  trc.d_algoName=g_hmacmd5dnsname_long;
   trc.d_time=time(0);
   trc.d_fudge=300;
   trc.d_origID=ntohs(pw.getHeader()->id);
@@ -62,7 +62,7 @@ try
   cerr<<"Keyname: '"<<keyname<<"', algo: '"<<trc.d_algoName<<"', key: '"<<Base64Encode(key)<<"'\n";
   TSIGTriplet tt;
   tt.name=keyname;
-  tt.algo=DNSName("hmac-md5");
+  tt.algo=g_hmacmd5dnsname;
   tt.secret=key;
   AXFRRetriever axfr(dest, ZoneName("b.aa"), tt);
   vector<DNSResourceRecord> res;
