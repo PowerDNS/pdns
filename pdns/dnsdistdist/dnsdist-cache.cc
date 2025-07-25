@@ -92,11 +92,11 @@ bool DNSDistPacketCache::cachedValueMatches(const CacheValue& cachedValue, uint1
   return true;
 }
 
-void DNSDistPacketCache::insertLocked(CacheShard& shard, std::unordered_map<uint32_t, CacheValue>& map, uint32_t key, CacheValue& newValue)
+bool DNSDistPacketCache::insertLocked(std::unordered_map<uint32_t, CacheValue>& map, uint32_t key, CacheValue& newValue)
 {
   /* check again now that we hold the lock to prevent a race */
   if (map.size() >= (d_settings.d_maxEntries / d_settings.d_shardCount)) {
-    return;
+    return false;
   }
 
   std::unordered_map<uint32_t, CacheValue>::iterator mapIt;
@@ -104,8 +104,7 @@ void DNSDistPacketCache::insertLocked(CacheShard& shard, std::unordered_map<uint
   std::tie(mapIt, result) = map.insert({key, newValue});
 
   if (result) {
-    ++shard.d_entriesCount;
-    return;
+    return true;
   }
 
   /* in case of collision, don't override the existing entry
@@ -115,15 +114,16 @@ void DNSDistPacketCache::insertLocked(CacheShard& shard, std::unordered_map<uint
 
   if (!wasExpired && !cachedValueMatches(value, newValue.queryFlags, newValue.qname, newValue.qtype, newValue.qclass, newValue.receivedOverUDP, newValue.dnssecOK, newValue.subnet)) {
     ++d_insertCollisions;
-    return;
+    return false;
   }
 
   /* if the existing entry had a longer TTD, keep it */
   if (newValue.validity <= value.validity) {
-    return;
+    return false;
   }
 
   value = newValue;
+  return false;
 }
 
 void DNSDistPacketCache::insert(uint32_t key, const boost::optional<Netmask>& subnet, uint16_t queryFlags, bool dnssecOK, const DNSName& qname, uint16_t qtype, uint16_t qclass, const PacketBuffer& response, bool receivedOverUDP, uint8_t rcode, boost::optional<uint32_t> tempFailureTTL)
@@ -199,6 +199,7 @@ void DNSDistPacketCache::insert(uint32_t key, const boost::optional<Netmask>& su
 
   auto& shard = d_shards.at(shardIndex);
 
+  bool inserted = false;
   if (d_settings.d_deferrableInsertLock) {
     auto lock = shard.d_map.try_write_lock();
 
@@ -206,12 +207,15 @@ void DNSDistPacketCache::insert(uint32_t key, const boost::optional<Netmask>& su
       ++d_deferredInserts;
       return;
     }
-    insertLocked(shard, *lock, key, newValue);
+    inserted = insertLocked(*lock, key, newValue);
   }
   else {
     auto lock = shard.d_map.write_lock();
 
-    insertLocked(shard, *lock, key, newValue);
+    inserted = insertLocked(*lock, key, newValue);
+  }
+  if (inserted) {
+    ++shard.d_entriesCount;
   }
 }
 
