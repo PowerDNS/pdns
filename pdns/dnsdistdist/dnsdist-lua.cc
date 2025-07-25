@@ -1681,7 +1681,7 @@ static void setupLuaConfig(LuaContext& luaCtx, bool client, bool configCheck)
     }
     bool created = false;
     dnsdist::configuration::updateRuntimeConfiguration([&poolName, &created](dnsdist::configuration::RuntimeConfiguration& config) {
-      auto [poolIt, inserted] = config.d_pools.emplace(poolName, ServerPool());
+      auto [_, inserted] = config.d_pools.emplace(poolName, ServerPool());
       created = inserted;
     });
 
