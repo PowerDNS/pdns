@@ -1469,10 +1469,11 @@ static DNSName keyUnconv(std::string& instr)
 
   DNSName tmp;
 
-  for (auto const& label : labels) {
-    tmp.appendRawLabel(label);
+  while (!labels.empty()) {
+    tmp.appendRawLabel(labels.back());
+    labels.pop_back();
   }
-  return tmp.labelReverse();
+  return tmp;
 }
 
 static std::string makeBadDataExceptionMessage(const std::string& where, std::exception& exc, MDBOutVal& key, MDBOutVal& val)
