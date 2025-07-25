@@ -46,24 +46,24 @@ AM_CPPFLAGS +=$(LIBSODIUM_CFLAGS)
 endif
 
 EXTRA_DIST = \
-	dnslabeltext.rl \
-	dnslabeltext.cc \
-	dnsmessage.proto \
-	inflighter.cc \
+	api-swagger.json \
+	api-swagger.yaml \
 	bindparser.hh \
-	named.conf.parsertest \
-	pdns.service.in \
-	ixfrdist.service.in \
+	convert-yaml-to-json.py \
+	dnslabeltext.cc \
+	dnslabeltext.rl \
+	dnsmessage.proto \
+	incfiles \
+	inflighter.cc \
 	ixfrdist.example.yml \
+	ixfrdist.service.in \
 	lua-record.cc \
 	minicurl.cc \
 	minicurl.hh \
-	standalone_fuzz_target_runner.cc \
-	api-swagger.yaml \
-	api-swagger.json \
+	named.conf.parsertest \
+	pdns.service.in \
 	requirements.txt \
-	incfiles \
-	convert-yaml-to-json.py
+	standalone_fuzz_target_runner.cc
 
 BUILT_SOURCES = \
 	bind-dnssec.schema.sqlite3.sql.h \
